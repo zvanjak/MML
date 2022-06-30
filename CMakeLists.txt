@@ -30,9 +30,20 @@ set(CATCH_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/catch)
 add_library(Catch INTERFACE)
 target_include_directories(Catch INTERFACE ${CATCH_INCLUDE_DIR})
 
-file(GLOB LIBSOURCES src/calc.cpp )
-file(GLOB TESTS tests/calc_tests.cpp)
+file(GLOB MML_TESTS tests/vector_tests.cpp
+                    tests/VectorN_tests.cpp 
+                    tests/matrix_tests.cpp
+                    tests/matrixNM_tests.cpp
+                    tests/tensors_tests.cpp
+                    tests/polynom_tests.cpp
+                    tests/function_tests.cpp
+                    tests/derivation_tests.cpp 
+                    tests/integration_tests.cpp
+                    tests/interpolated_functions_tests.cpp
+                    tests/linear_alg_eq_solvers_tests.cpp 
+                    tests/diff_eq_solvers_tests.cpp 
+                    )
 
-add_executable(CalcTests "test_runner.cpp" ${TESTS} ${LIBSOURCES})
-target_link_libraries(CalcTests Catch)
-target_include_directories(CalcTests PRIVATE include)
+add_executable(MMLTests "test_runner.cpp" ${MML_TESTS} )
+target_link_libraries(MMLTests Catch)
+target_include_directories(MMLTests PRIVATE include)
