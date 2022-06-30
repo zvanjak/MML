@@ -44,6 +44,6 @@ file(GLOB MML_TESTS tests/vector_tests.cpp
                     tests/diff_eq_solvers_tests.cpp 
                     )
 
-add_executable(MMLTests "test_runner.cpp" ${MML_TESTS} )
-target_link_libraries(MMLTests Catch)
-target_include_directories(MMLTests PRIVATE include)
+add_executable(MML_Tests "test_runner.cpp" ${MML_TESTS} )
+target_link_libraries(MML_Tests Catch)
+target_include_directories(MML_Tests PRIVATE include)
