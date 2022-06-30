@@ -8,6 +8,7 @@ set(MML_DEMO_SOURCES src/main.cpp
                      src/demo_vector.cpp )
 add_executable(MML_Demo ${MML_DEMO_SOURCES})
 
+add_compile_definitions(MML_USE_SINGLE_HEADER)
 target_include_directories(MML_Demo PRIVATE include)
 
 set(CATCH_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/catch)

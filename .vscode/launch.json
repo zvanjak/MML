@@ -8,7 +8,7 @@
             "name": "MMLib_TestApp - (Windows) Launch",
             "type": "cppvsdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/Debug/MMLib_TestApp.exe",
+            "program": "${workspaceFolder}/build/Debug/MML_Demo.exe",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${fileDirname}",

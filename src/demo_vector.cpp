@@ -2,7 +2,10 @@
 #include <iomanip>
 #include <cmath>
 
+#ifdef MML_USE_SINGLE_HEADER
 #include "MMLBasicTypes.h"
+#else
+#endif
 
 void Demo_Vector()
 {
