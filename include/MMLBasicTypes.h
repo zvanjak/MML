@@ -1584,7 +1584,7 @@ namespace MML
             int i;
             double xh,hh,h6;
 
-            int n=y.size();
+            int n= (int) y.size();
             Vector dym(n),dyt(n),yt(n);
             hh=h*0.5;
             h6=h/6.0;
@@ -1647,7 +1647,7 @@ namespace MML
                 dc4=c4-13525.0/55296.0, dc5 = -277.00/14336.0, dc6=c6-0.25;
             int i;
 
-            int n=y.size();
+            int n= (int) y.size();
             Vector ak2(n),ak3(n),ak4(n),ak5(n),ak6(n),ytemp(n);
             for (i=0;i<n;i++)
                 ytemp[i]=y[i]+b21*h*dydx[i];
@@ -1679,7 +1679,7 @@ namespace MML
             int i;
             double errmax,h,htemp,xnew;
 
-            int n=y.size();
+            int n= (int) y.size();
             h=htry;
             Vector yerr(n),ytemp(n);
             for (;;) {
@@ -1716,7 +1716,7 @@ namespace MML
             int i,nstp;
             double xsav,x,hnext,hdid,h;
 
-            int nvar=ystart.size();
+            int nvar= (int) ystart.size();
             Vector yscal(nvar),y(nvar),dydx(nvar);
             Vector &xp=*xp_p;
             Matrix &yp=*yp_p;
@@ -2481,7 +2481,34 @@ namespace MML
 
     };
 
- 
+    // void tridag(Vector &a, Vector &b, Vector &c, Vector &r, Vector &u)
+    // {
+    //     // Solves for a vector u[1..n] the tridiagonal linear set given by equation (2.4.1). a[1..n],
+    //     // b[1..n], c[1..n], and r[1..n] are input vectors and are not modified.
+
+    //     int j;
+    //     double bet;
+
+    //     int n=(int)a.size();
+    //     Vector gam(n);
+
+    //     if (b[0] == 0.0) 
+    //         //nrerror("Error 1 in tridag");
+    //         return;
+
+    //     u[0]=r[0]/(bet=b[0]);
+    //     for (j=1;j<n;j++) {
+    //         gam[j]=c[j-1]/bet;
+    //         bet=b[j]-a[j]*gam[j];
+    //         if (bet == 0.0) 
+    //             // nrerror("Error 2 in tridag");
+    //             return;
+
+    //         u[j]=(r[j]-a[j]*u[j-1])/bet;
+    //     }
+    //     for (j=(n-2);j>=0;j--)
+    //         u[j] -= gam[j+1]*u[j+1];
+    // }
 
     /////////////////////////////////   SVD DECOMPOSITION      /////////////////////////////
     class SVDecompositionSolver 

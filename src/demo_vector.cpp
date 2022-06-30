@@ -5,6 +5,7 @@
 #ifdef MML_USE_SINGLE_HEADER
 #include "MMLBasicTypes.h"
 #else
+#include "basic_types/Vector.h"
 #endif
 
 void Demo_Vector()

@@ -1,8 +1,12 @@
+#ifdef MML_USE_SINGLE_HEADER
+#include "MMLBasicTypes.h"
+#else
 #include <iostream>
 #include <iomanip>
 #include <cmath>
 
 #include "algorithms/Integration.h"
+#endif
 
 using namespace std;
 

@@ -4,8 +4,23 @@ set (CMAKE_CXX_STANDARD 20)
 
 project(MML_Demo VERSION 0.1.0)
 
-set(MML_DEMO_SOURCES src/main.cpp 
-                     src/demo_vector.cpp )
+set(MML_DEMO_SOURCES  src/main.cpp 
+                        src/demo_vector.cpp
+                        src/demo_vectorn.cpp
+                        src/demo_matrix.cpp
+                        src/demo_matrixnm.cpp
+                        src/demo_tensors.cpp
+                        src/demo_geometry.cpp
+                        src/demo_integration.cpp
+                        src/demo_polynom.cpp
+                        src/demo_function.cpp
+                        src/demo_interpolators.cpp
+                        src/demo_interpolated_function.cpp
+                        src/demo_derivation.cpp
+                        src/demo_linear_alg_eq_solvers.cpp
+                        src/demo_diff_eq_solvers.cpp
+                        )
+
 add_executable(MML_Demo ${MML_DEMO_SOURCES})
 
 add_compile_definitions(MML_USE_SINGLE_HEADER)

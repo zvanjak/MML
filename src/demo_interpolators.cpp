@@ -2,10 +2,14 @@
 #include <iomanip>
 #include <cmath>
 
+#ifdef MML_USE_SINGLE_HEADER
+#include "MMLBasicTypes.h"
+#else
 #include "MMLBase.h"
 #include "algorithms/Interpolators.h"
 #include "basic_types/Vector.h"
 #include "basic_types/Matrix.h"
+#endif
 
 using namespace std;
 using namespace MML;

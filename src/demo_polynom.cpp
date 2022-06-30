@@ -2,7 +2,11 @@
 #include <iomanip>
 #include <cmath>
 
+#ifdef MML_USE_SINGLE_HEADER
+#include "MMLBasicTypes.h"
+#else
 #include "basic_types/Polynom.h"
+#endif
 
 void Demo_Polynom()
 {

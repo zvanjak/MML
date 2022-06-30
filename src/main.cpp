@@ -1,6 +1,4 @@
-#include <iostream>
 
-#include "MMLBasicTypes.h"
 
 void Demo_Vector();
 void Demo_VectorN();
@@ -22,17 +20,17 @@ void Demo_DiffEqSolvers();
 
 int main(int, char**) 
 {
-    Demo_Vector();
+    // Demo_Vector();
     // Demo_VectorN();
     // Demo_Matrix();
-    // Demo_MatrixNM();
+    Demo_MatrixNM();
     // Demo_Tensors();
-    // Demo_Geometry();
+    Demo_Geometry();
 
     // Demo_Polynom();
     // Demo_Function();
 
-    // Demo_Derivation();
+    Demo_Derivation();
     // Demo_Integration();
     // Demo_Interpolators();
     // Demo_Interpolated_Function();

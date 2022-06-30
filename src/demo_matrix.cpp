@@ -2,8 +2,12 @@
 #include <iomanip>
 #include <cmath>
 
+#ifdef MML_USE_SINGLE_HEADER
+#include "MMLBasicTypes.h"
+#else
 #include "basic_types/Vector.h"
 #include "basic_types/Matrix.h"
+#endif
 
 void Basic_mat_operations() 
 {

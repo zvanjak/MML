@@ -1,8 +1,12 @@
+#ifdef MML_USE_SINGLE_HEADER
+#include "MMLBasicTypes.h"
+#else
 #include <iostream>
 #include <iomanip>
 #include <cmath>
 
 #include "basic_types/Function.h"
+#endif
 
 double TestFunc1(double x)
 {

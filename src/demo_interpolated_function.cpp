@@ -4,7 +4,11 @@
 
 #include <vector>
 
+#ifdef MML_USE_SINGLE_HEADER
+#include "MMLBasicTypes.h"
+#else
 #include "basic_types/InterpolatedFunction.h"
+#endif
 
 double TestFunc2(double x)
 {
