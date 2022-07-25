@@ -3,7 +3,7 @@
 #include <cmath>
 
 #ifdef MML_USE_SINGLE_HEADER
-#include "MMLBasicTypes.h"
+#include "MML.h"
 #else
 #include "basic_types/Vector.h"
 #endif
@@ -31,7 +31,7 @@ void Demo_Vector()
     std::cout << "c * 2.0 = " << c * 2.0 << std::endl;
     std::cout << "c / 2.0 = " << c / 2.0 << std::endl;
 
-    std::cout << "NormCartesian(a) = " << a.NormCartesian() << std::endl;
+    std::cout << "NormCartesian(a) = " << a.NormL2() << std::endl;
     std::cout << "b.ScalarProductCartesian(c) = " << b.ScalarProductCartesian(c) << std::endl;
 
 }

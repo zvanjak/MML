@@ -1,7 +1,7 @@
 #include <iostream>
 
 #ifdef MML_USE_SINGLE_HEADER
-#include "MMLBasicTypes.h"
+#include "MML.h"
 #else
 #include "algorithms/LinAlgEqSolvers.h"
 #endif
@@ -52,10 +52,10 @@ void Test_gaussj()
     MML::Matrix     rhscopy(rhs4);
 
     std::cout << "Initial matrix:\n";
-    matcopy.Print();
+    matcopy.Print(10,3);
 
     std::cout << "Right side:\n";
-    rhscopy.Print();
+    rhscopy.Print(10,3);
 
     MML::GaussJordanSolver::Solve(matcopy, rhscopy);
 
@@ -115,10 +115,10 @@ void Test_LU_decomposition_solver()
     MML::Matrix     rhscopy(rhs4);
 
     std::cout << "Initial matrix:\n";
-    matcopy.Print();
+    matcopy.Print(10,3);
 
     std::cout << "Right side:\n";
-    rhscopy.Print();
+    rhscopy.Print(10,3);
 
     MML::LUDecompositionSolver luSolver(matcopy);
 
@@ -151,7 +151,7 @@ void Test_QR_decomposition_solver()
     MML::Matrix     matcopy(origMat);
 
     std::cout << "Initial matrix:\n";
-    matcopy.Print();
+    matcopy.Print(10,3);
 
     std::cout << "Right side:\n";
     std::cout << vecrhs4 << std::endl;
@@ -186,7 +186,7 @@ void Test_SVD_decomposition_solver()
     MML::Matrix     matcopy(origMat);
 
     std::cout << "Initial matrix:\n";
-    matcopy.Print();
+    matcopy.Print(10, 3);
 
     std::cout << "Right side:\n";
     std::cout << vecrhs4 << std::endl;

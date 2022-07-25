@@ -3,7 +3,7 @@
 #include <cmath>
 
 #ifdef MML_USE_SINGLE_HEADER
-#include "MMLBasicTypes.h"
+#include "MML.h"
 #else
 #include "MMLBase.h"
 #include "algorithms/Interpolators.h"

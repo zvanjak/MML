@@ -2,7 +2,7 @@
 #define __MML_LINEAR_ALG_EQ_SOLVERS_TEST_BED_H
 
 #ifdef MML_USE_SINGLE_HEADER
-#include "MMLBasicTypes.h"
+#include "MML.h"
 #else
 #include "basic_types/Matrix.h"
 #endif

@@ -1,7 +1,7 @@
 #include "../catch/catch.hpp"
 
 #ifdef MML_USE_SINGLE_HEADER
-#include "MMLBasicTypes.h"
+#include "MML.h"
 #else
 #include "algorithms/Integration.h"
 #endif
