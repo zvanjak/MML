@@ -20,6 +20,38 @@
 #define SIGN(a,b) ( (b) >= 0.0 ? fabs(a): -fabs(a) )
 
 #define SQR(a) ( (a) * (a) )
+
+///////////////////////////   ./include/MMLBase.h   ///////////////////////////
+
+
+
+static const double DerivationDefaultStep = 1e-6;
+
+namespace MML
+{
+	class	MMLException : public std::exception
+	{
+	public:
+		MMLException();
+		MMLException( int nType );
+		~MMLException();
+
+		int		m_nType;
+	};
+
+	class MatrixAccessBoundsError : public std::exception
+	{
+
+	};
+
+	class MatrixOperationDimensionError : public std::exception
+	{
+		std::string _operation;
+
+	};
+
+}
+
 ///////////////////////////   ./include/utilities/TabulatedValues.h   ///////////////////////////
 
 namespace MML
@@ -131,6 +163,7 @@ namespace MML
 
 ///////////////////////////   ./include/basic_types/Vector.h   ///////////////////////////
 
+
 namespace MML
 {
     class Vector
@@ -149,7 +182,7 @@ namespace MML
                     _elems[i] = vals[i];
             }
 
-            double& operator[](int n) { return _elems[n]; }
+            double& operator[](int n)       { return _elems[n]; }
             double  operator[](int n) const { return _elems[n]; }
             
             size_t size() const { return _elems.size(); }
@@ -162,7 +195,7 @@ namespace MML
                 return product;
             }
 
-            double NormL2()
+            double NormL2() const
             {
                 double norm = 0.0;
                 for( int i=0; i<size(); i++ )
@@ -170,7 +203,7 @@ namespace MML
                 return std::sqrt(norm);
             }
 
-            bool IsEqual(const Vector &b, double eps)
+            bool IsEqual(const Vector &b, double eps) const
             {
                 for( int i=0; i<size(); i++ )
                 {
@@ -180,7 +213,7 @@ namespace MML
                 return true;
             }
 
-            Vector operator+(Vector &b )
+            Vector operator+(const Vector &b ) const
             {
                 Vector ret(b.size());;
                 for(int i=0; i<b.size(); i++)
@@ -188,7 +221,7 @@ namespace MML
                 return ret;
             }
 
-            Vector operator-(Vector &b )
+            Vector operator-(const Vector &b ) const
             {
                 Vector ret(b.size());;
                 for(int i=0; i<b.size(); i++)
@@ -196,7 +229,7 @@ namespace MML
                 return ret;
             }
 
-            friend Vector operator*(double a, Vector &b )
+            friend Vector operator*(double a, const Vector &b )
             {
                 Vector ret(b.size());;
                 for(int i=0; i<b.size(); i++)
@@ -204,7 +237,7 @@ namespace MML
                 return ret;
             }
 
-            friend Vector operator*(Vector &a, double b )
+            friend Vector operator*(const Vector &a, double b )
             {
                 Vector ret(a.size());;
                 for(int i=0; i<a.size(); i++)
@@ -212,7 +245,7 @@ namespace MML
                 return ret;
             }
 
-            friend Vector operator/(Vector &a, double b)
+            friend Vector operator/(const Vector &a, double b)
             {
                 Vector ret(a.size());
                 for(int i=0; i<a.size(); i++)
@@ -256,6 +289,7 @@ namespace MML
 
 ///////////////////////////   ./include/basic_types/VectorN.h   ///////////////////////////
 
+
 namespace MML
 {
     template<int N> 
@@ -266,7 +300,6 @@ namespace MML
 
         public:
         VectorN() {}
-
         VectorN(std::initializer_list<double> list) 
         { 
             int count{ 0 };
@@ -285,7 +318,15 @@ namespace MML
 
         int size() const { return N; }
 
-        double NormL2()
+        double ScalarProductCartesian(VectorN &b) const
+        {
+            double product = 0.0;
+            for( int i=0; i<N; i++ )
+                product += (*this)[i] * b[i];
+            return product;
+        }
+
+        double NormL2() const
         {
             double norm = 0.0;
             for( int i=0; i<size(); i++ )
@@ -293,12 +334,17 @@ namespace MML
             return sqrt(norm);
         }
 
-        bool IsEqual(VectorN &b, double eps)
+        bool IsEqual(VectorN &b, double eps) const
         {
-            return false;
+            for( int i=0; i<N; i++ )
+            {
+                if( fabs((*this)[i] - b[i]) > eps )
+                    return false;
+            }
+            return true;
         }
 
-        VectorN operator+(const VectorN &b )
+        VectorN operator+(const VectorN &b ) const
         {
             VectorN ret;
             for(int i=0; i<N; i++)
@@ -306,7 +352,7 @@ namespace MML
             return ret;
         }
 
-        VectorN operator-(const VectorN &b )
+        VectorN operator-(const VectorN &b ) const
         {
             VectorN ret;
             for(int i=0; i<N; i++)
@@ -338,20 +384,29 @@ namespace MML
             return ret;
         }
 
-        void Print(int width, int precision)
+        std::string to_string(int width, int precision)
         {
-            std::cout << "[";
+            std::stringstream str;
+
+            Print(str, width, precision);
+
+            return str.str();
+        }
+
+        void Print(std::ostream& stream, int width, int precision)
+        {
+            stream << "[";
             bool first = true;
             for(const double& x : _val)
             {
                 if( !first )
-                    std::cout << ", ";
+                    stream << ", ";
                 else
                     first = false;
 
-                std::cout << std::setw(width) << std::setprecision(precision) << x;
+                stream << std::setw(width) << std::setprecision(precision) << x;
             }
-            std::cout << "]";
+            stream << "]";
         }   
 
         friend std::ostream& operator<<(std::ostream& stream, const VectorN<N> &a)
@@ -408,7 +463,7 @@ namespace MML
                 Z() = 0.0;
             }
 
-            Vector3Cartesian(VectorN<3> &b)
+            Vector3Cartesian(const VectorN<3> &b)
             {
                 X() = b[0];
                 Y() = b[1];
@@ -428,7 +483,7 @@ namespace MML
                 }
             }
 
-            bool IsParallelTo(Vector3Cartesian &b, double eps=1e-15)
+            bool IsParallelTo(Vector3Cartesian &b, double eps=1e-15) const
             {
                 double norm1 = NormL2();
                 double norm2 = b.NormL2();
@@ -437,7 +492,7 @@ namespace MML
                         std::abs(Y()/norm1 - b.Y()/norm2) < eps &&
                         std::abs(Z()/norm1 - b.Z()/norm2) < eps;
             }
-            bool IsPerpendicularTo(Vector3Cartesian &b, double eps=1e-15)
+            bool IsPerpendicularTo(Vector3Cartesian &b, double eps=1e-15) const
             {
                 if( std::abs(ScalarProd(*this,b)) < eps)
                     return true;
@@ -445,7 +500,7 @@ namespace MML
                     return false;
             }
 
-            Vector3Cartesian GetUnitVector()
+            Vector3Cartesian GetUnitVector() const
             {
                 VectorN<3> res = (*this) / NormL2();
 
@@ -468,7 +523,7 @@ namespace MML
                 return ret;
             }
 
-            friend double VectorsAngle(Vector3Cartesian &a, Vector3Cartesian &b)
+            friend double VectorsAngle(const Vector3Cartesian &a, const Vector3Cartesian &b)
             {
                 double cos_phi = ScalarProd(a,b) / (a.NormL2() * b.NormL2());
 
@@ -485,7 +540,72 @@ namespace MML
             double& Theta()         { return _val[1]; }
             double  Phi() const     { return _val[2]; }
             double& Phi()           { return _val[2]; }
-    };    
+
+            Vector3Spherical()
+            {
+                R()     = 0.0;
+                Theta() = 0.0;
+                Phi()   = 0.0;
+            }
+
+            Vector3Spherical(const VectorN<3> &b)
+            {
+                R()     = b[0];
+                Theta() = b[1];
+                Phi()   = b[2];
+            }
+
+            Vector3Spherical(std::initializer_list<double> list) 
+            { 
+                int count{ 0 };
+                for (auto element : list)
+                {
+                    _val[count] = element;
+                    ++count;
+
+                    if( count >= 3 )
+                        break;
+                }
+            }            
+    };  
+
+    class Vector3Cylindrical  : public VectorN<3>
+    {
+        public:
+            double  R() const     { return _val[0]; }
+            double& R()           { return _val[0]; }
+            double  Phi() const   { return _val[1]; }
+            double& Phi()         { return _val[1]; }
+            double  Z() const     { return _val[2]; }
+            double& Z()           { return _val[2]; }
+
+            Vector3Cylindrical()
+            {
+                R()     = 0.0;
+                Phi() = 0.0;
+                Phi()   = 0.0;
+            }
+
+            Vector3Cylindrical(const VectorN<3> &b)
+            {
+                R()   = b[0];
+                Phi() = b[1];
+                Z()   = b[2];
+            }
+
+            Vector3Cylindrical(std::initializer_list<double> list) 
+            { 
+                int count{ 0 };
+                for (auto element : list)
+                {
+                    _val[count] = element;
+                    ++count;
+
+                    if( count >= 3 )
+                        break;
+                }
+            }            
+    };        
 }
 
 
@@ -504,10 +624,16 @@ typedef MML::VectorN<4> Vector4;
 ///////////////////////////   ./include/basic_types/Matrix.h   ///////////////////////////
 
 
+
 namespace MML
 {
     class Matrix
     {
+    private:
+        size_t _rows;
+        size_t _cols;
+        double **_ptrData;
+
     public:
         Matrix() : _rows(0), _cols(0)
         {
@@ -595,7 +721,25 @@ namespace MML
             }
         }
 
-        static Matrix RowMatrixFromVector(Vector &b)
+        void Resize(size_t rows, size_t cols) 
+        {
+            for (size_t i = 0; i < _rows; ++i)
+                if (_ptrData != nullptr && _ptrData[i] != nullptr)
+                    delete[] _ptrData[i];
+            if (_ptrData != nullptr)
+                delete[] _ptrData;
+
+            _rows = rows;
+            _cols = cols;
+            _ptrData = new double *[_rows];
+            for (size_t i = 0; i < _rows; ++i)
+                _ptrData[i] = new double[_cols];
+            for (size_t i = 0; i < _rows; ++i)
+                for (size_t j = 0; j < _cols; ++j)
+                    _ptrData[i][j] = 0;
+        }
+
+        static Matrix RowMatrixFromVector(const Vector &b)
         {
             Matrix ret(1, b.size());
             for( int i=0; i<b.size(); i++)
@@ -604,7 +748,7 @@ namespace MML
             return ret;
         }
 
-        static Matrix ColumnMatrixFromVector(Vector &b)
+        static Matrix ColumnMatrixFromVector(const Vector &b)
         {
             Matrix ret(b.size(), 1);
             for( int i=0; i<b.size(); i++)
@@ -613,29 +757,36 @@ namespace MML
             return ret;
         }
 
-        static Vector VectorFromRow(Matrix &a, int rowInd)
+        static Vector VectorFromRow(const Matrix &a, int rowInd)
         {
             Vector ret(a.ColNum());
             for( int i=0; i<a.ColNum(); i++)
-                ret[i] = a[rowInd][i];
+                ret[i] = a(rowInd,i);
 
             return ret;
         }
 
-        static Vector VectorFromColumn(Matrix &a, int colInd)
+        static Vector VectorFromColumn(const Matrix &a, int colInd)
         {
             Vector ret(a.RowNum());
             for( int i=0; i<a.RowNum(); i++)
-                ret[i] = a[i][colInd];
+                ret[i] = a(i,colInd);
 
             return ret;
         }
         
-        bool IsEqual(Matrix &b, double eps)
+        bool IsEqual(const Matrix &b, double eps) const
         {
-            return false;
-        }
+            if( RowNum() != b.RowNum() || ColNum() != b.ColNum() )
+                return false;
 
+            for( int i=0; i<RowNum(); i++ )
+                for( int j=0; j<ColNum(); j++ )
+                    if( fabs(_ptrData[i][j] - b._ptrData[i][j]) > eps )
+                        return false;
+                
+            return true;
+        }
 
         Matrix &operator=(const Matrix &m)
         {
@@ -675,12 +826,26 @@ namespace MML
             return *this;
         }
 
-        double *operator[](int i)
+        double* operator[](int i)        { return _ptrData[i]; }
+        
+        double  operator()(int i, int j) const { return _ptrData[i][j]; }
+        double& operator()(int i, int j)       { return _ptrData[i][j]; }        
+
+        // version with checking bounds
+        double  ElemAt(int i, int j) const 
+        { 
+            if( i<0 || i>=RowNum() || j<0 || j>=ColNum() )
+            {
+                throw;
+            }
+            return _ptrData[i][j]; 
+        }
+        double& ElemAt(int i, int j)       
         {
-            return _ptrData[i];
+            return _ptrData[i][j]; 
         }
 
-        Matrix operator+(const Matrix &other)
+        Matrix operator+(const Matrix &other) const
         {
             //std::cout << "Matrix::operator + START \n";
 
@@ -702,7 +867,7 @@ namespace MML
             return temp;
         }
 
-        Matrix operator-(const Matrix &other)
+        Matrix operator-(const Matrix &other) const
         {
             //std::cout << "Matrix::operator + START \n";
 
@@ -745,7 +910,7 @@ namespace MML
             return	ret;
         }
 
-       friend Matrix operator*( Matrix &a, double b )
+       friend Matrix operator*( const Matrix &a, double b )
         {
             int	i, j;
             Matrix	ret(a.RowNum(), a.ColNum());
@@ -757,7 +922,7 @@ namespace MML
             return ret;
         }
 
-        friend Matrix operator*( double a, Matrix &b )
+        friend Matrix operator*( double a, const Matrix &b )
         {
             int	i, j;
             Matrix	ret(b.RowNum(), b.ColNum());
@@ -769,7 +934,7 @@ namespace MML
             return ret;
         }
 
-        friend Vector operator*( Matrix &a, Vector &b )
+        friend Vector operator*( const Matrix &a, const Vector &b )
         {
             int	i, j;
             Vector	ret(a.RowNum());
@@ -791,7 +956,7 @@ namespace MML
             return ret;
         }
 
-        friend Vector operator*( Vector &a, Matrix &b )
+        friend Vector operator*( const Vector &a, const Matrix &b )
         {
             int	i, j;
             Vector	ret(b.ColNum());
@@ -802,76 +967,45 @@ namespace MML
                 {
                     ret[i] = 0;
                     for( j=0; j<b.RowNum(); j++ )
-                        ret[i] += a[i] * b[i][j];
+                        ret[i] += a[i] * b(i,j);
                 }
             }
             else
             {
-                std::cout << "Krive dimenzije kod mnozenja matrice i vektora !!!";
+                throw MatrixOperationDimensionError();
+//                std::cout << "Krive dimenzije kod mnozenja matrice i vektora !!!";
             }
 
             return ret;
         }
 
-        void Resize(size_t rows, size_t cols) 
+        void Print(std::ostream& stream, int width, int precision) const
         {
-            for (size_t i = 0; i < _rows; ++i)
-                if (_ptrData != nullptr && _ptrData[i] != nullptr)
-                    delete[] _ptrData[i];
-            if (_ptrData != nullptr)
-                delete[] _ptrData;
+            stream << "Rows: " << RowNum() << "  Cols: " << ColNum() << std::endl;
 
-            _rows = rows;
-            _cols = cols;
-            _ptrData = new double *[_rows];
-            for (size_t i = 0; i < _rows; ++i)
-                _ptrData[i] = new double[_cols];
-            for (size_t i = 0; i < _rows; ++i)
-                for (size_t j = 0; j < _cols; ++j)
-                    _ptrData[i][j] = 0;
-            
-            //std::cout << "Matrix::constructor \n";
-        }
-
-        void Print(int width, int precision)
-        {
-            std::cout << "Rows: " << _rows << "  Cols: " << _cols << std::endl;
-
-            for (size_t i = 0; i < _rows; i++)
+            for (size_t i = 0; i < RowNum(); i++)
             {
-                for (size_t j = 0; j < _cols; j++)
+                stream << "[ ";
+                for (size_t j = 0; j < ColNum(); j++)
                 {
-                    std::cout << std::setw(width) << std::setprecision(precision) << _ptrData[i][j] << ", ";
-                }
-                std::cout << std::endl;
+                    stream << std::setw(width) << std::setprecision(precision) << _ptrData[i][j] << ", ";
+                }                
+                stream << " ]" << std::endl;
             }
         }
 
         friend std::ostream& operator<<(std::ostream& stream, const Matrix &a)
         {
-            stream << "Rows: " << a.RowNum() << "  Cols: " << a.ColNum() << std::endl;
-
-            for (size_t i = 0; i < a.RowNum(); i++)
-            {
-                stream << "[ ";
-                for (size_t j = 0; j < a.ColNum(); j++)
-                {
-                    stream << std::setw(10) << std::setprecision(3) << a._ptrData[i][j] << ", ";
-                }                
-                stream << " ]" << std::endl;
-            }
+            a.Print(stream, 10, 3);
 
             return stream;
         }        
 
-    private:
-        size_t _rows;
-        size_t _cols;
-        double **_ptrData;
     };
 }
 
 ///////////////////////////   ./include/basic_types/MatrixNM.h   ///////////////////////////
+
 
 
 namespace MML
@@ -928,6 +1062,53 @@ namespace MML
                             _vals[i][j] = 0;
             }
         }
+        
+        // TODO
+        // static Matrix RowMatrixFromVector(const Vector &b)
+        // {
+        //     Matrix ret(1, b.size());
+        //     for( int i=0; i<b.size(); i++)
+        //         ret[0][i] = b[i];
+
+        //     return ret;
+        // }
+
+        // static Matrix ColumnMatrixFromVector(const Vector &b)
+        // {
+        //     Matrix ret(b.size(), 1);
+        //     for( int i=0; i<b.size(); i++)
+        //         ret[i][0] = b[i];
+
+        //     return ret;
+        // }
+
+        // static Vector VectorFromRow(const Matrix &a, int rowInd)
+        // {
+        //     Vector ret(a.ColNum());
+        //     for( int i=0; i<a.ColNum(); i++)
+        //         ret[i] = a.Elem(rowInd,i);
+
+        //     return ret;
+        // }
+
+        // static Vector VectorFromColumn(const Matrix &a, int colInd)
+        // {
+        //     Vector ret(a.RowNum());
+        //     for( int i=0; i<a.RowNum(); i++)
+        //         ret[i] = a.Elem(i,colInd);
+
+        //     return ret;
+        // }
+
+        bool IsEqual(const MatrixNM &b, double eps) const
+        {
+            for( int i=0; i<RowNum(); i++ )
+                for( int j=0; j<ColNum(); j++ )
+                    if( fabs(_vals[i][j] - b._vals[i][j]) > eps )
+                        return false;
+                
+            return true;
+        }
 
         MatrixNM &operator=(const MatrixNM &m)
         {
@@ -941,9 +1122,24 @@ namespace MML
             return *this;
         }
 
-        double &operator()(int i, int j) { return _vals[i][j]; }
+        double  operator()(int i, int j) const { return _vals[i][j]; }
+        double& operator()(int i, int j)       { return _vals[i][j]; }        
 
-        MatrixNM operator+(const MatrixNM &other)
+        // version with checking bounds
+        double  ElemAt(int i, int j) const 
+        { 
+            if( i<0 || i>=RowNum() || j<0 || j>=ColNum() )
+            {
+                throw;
+            }
+            return _vals[i][j]; 
+        }
+        double& ElemAt(int i, int j)       
+        {
+            return _vals[i][j]; 
+        }
+
+        MatrixNM operator+(const MatrixNM &other) const
         {
             MatrixNM temp;
             for (size_t i = 0; i < RowNum(); i++)
@@ -952,7 +1148,7 @@ namespace MML
             return temp;
         }
 
-        MatrixNM operator-(const MatrixNM &other)
+        MatrixNM operator-(const MatrixNM &other) const
         {
             MatrixNM temp;
             for (size_t i = 0; i < RowNum(); i++)
@@ -977,8 +1173,7 @@ namespace MML
             return	ret;
         }        
 
-
-       friend MatrixNM operator*( MatrixNM &a, double b )
+       friend MatrixNM operator*( const MatrixNM &a, double b )
         {
             int	i, j;
             MatrixNM	ret(a.RowNum(), a.ColNum());
@@ -990,7 +1185,7 @@ namespace MML
             return ret;
         }
 
-        friend MatrixNM operator*( double a, MatrixNM &b )
+        friend MatrixNM operator*( double a, const MatrixNM &b )
         {
             int	i, j;
             MatrixNM	ret(b.RowNum(), b.ColNum());
@@ -1002,7 +1197,7 @@ namespace MML
             return ret;
         }
 
-        friend VectorN<N> operator*( MatrixNM &a, VectorN<M> &b )
+        friend VectorN<N> operator*( const MatrixNM &a, const VectorN<M> &b )
         {
             int	i, j;
             VectorN<N>	ret;
@@ -1017,7 +1212,7 @@ namespace MML
             return ret;
         }
 
-        friend VectorN<M> operator*( VectorN<N> &a, MatrixNM &b )
+        friend VectorN<M> operator*( const VectorN<N> &a, const MatrixNM &b )
         {
             int	i, j;
             VectorN<M>	ret;
@@ -1032,31 +1227,24 @@ namespace MML
             return ret;
         }
 
-        void Print(int width, int precision)
+        void Print(std::ostream& stream, int width, int precision) const
         {
-            for (int i = 0; i < N; i++)
+            stream << "Rows: " << RowNum() << "  Cols: " << ColNum() << std::endl;
+
+            for (size_t i = 0; i < RowNum(); i++)
             {
-                for (int j = 0; j < M; j++)
+                stream << "[ ";
+                for (size_t j = 0; j < ColNum(); j++)
                 {
-                    std::cout << std::setw(width) << std::setprecision(precision) << _vals[i][j] << ", ";
-                }
-                std::cout << std::endl;
+                    stream << std::setw(width) << std::setprecision(precision) << _vals[i][j] << ", ";
+                }                
+                stream << " ]" << std::endl;
             }
         }   
 
         friend std::ostream& operator<<(std::ostream& stream, const MatrixNM &a)
         {
-            stream << "Rows: " << a.RowNum() << "  Cols: " << a.ColNum() << std::endl;
-
-            for (size_t i = 0; i < a.RowNum(); i++)
-            {
-                stream << "[ ";
-                for (size_t j = 0; j < a.ColNum(); j++)
-                {
-                    stream << std::setw(10) << std::setprecision(3) << a._vals[i][j] << ", ";
-                }                
-                stream << " ]" << std::endl;
-            }
+            a.Print(stream, 10, 3);
 
             return stream;
         }               
@@ -1064,6 +1252,7 @@ namespace MML
 }
 
 ///////////////////////////   ./include/basic_types/Polynom.h   ///////////////////////////
+
 namespace MML
 {
 	class	Polynom
@@ -1109,12 +1298,14 @@ namespace MML
 	};
 }
 ///////////////////////////   ./include/basic_types/MatrixSparse.h   ///////////////////////////
+
 namespace MML
 {
 
 }
 
 ///////////////////////////   ./include/basic_types/Geometry.h   ///////////////////////////
+
 
 namespace MML
 {
@@ -1349,6 +1540,7 @@ namespace MML
 }
 
 ///////////////////////////   ./include/interfaces/ILinAlgEqSystemSolver.h   ///////////////////////////
+
 namespace MML
 {
     class ILinAlgEqSystemSolver
@@ -2184,6 +2376,7 @@ namespace MML
     };
 } // end namespace
 ///////////////////////////   ./include/algorithms/EigenSystemSolvers.h   ///////////////////////////
+
 namespace MML
 {
     class EigenSystemSolvers
@@ -2194,6 +2387,7 @@ namespace MML
 
 
 ///////////////////////////   ./include/interfaces/IFunction.h   ///////////////////////////
+
 
 
 namespace MML
@@ -2215,19 +2409,19 @@ namespace MML
 
     //////////////////////////////////////////////////////////////////////
     template<int N>
-    class IScalarFunction : public IFunction<double, VectorN<N> &>
+    class IScalarFunction : public IFunction<double, const VectorN<N> &>
     {
         public:
-        virtual double operator()(VectorN<N> &x) const = 0;
+        virtual double operator()(const VectorN<N> &x) const = 0;
     };
 
     //////////////////////////////////////////////////////////////////////
     template<int N>
-    class IVectorFunction : public IFunction<VectorN<N>, VectorN<N> &>
+    class IVectorFunction : public IFunction<VectorN<N>, const VectorN<N> &>
     {
         public:
-        virtual VectorN<N> operator()(VectorN<N> &x) const = 0;
-        virtual double operator()(VectorN<N> &x, int component) 
+        virtual VectorN<N> operator()(const VectorN<N> &x) const = 0;
+        virtual double operator()(VectorN<N> &x, int component) const
         {
             VectorN<N> val = (*this)(x);
             return val[component];
@@ -2238,26 +2432,27 @@ namespace MML
 ///////////////////////////   ./include/basic_types/Function.h   ///////////////////////////
 
 
+
 namespace MML
 {
     //////////////////////////////////////////////////////////////////////
     class RealFunction : public IRealFunction
     {
-        double (*_func)(double) ;
+        double (*_func)(const double) ;
 
         public:
-        RealFunction(double (*inFunc)(double) ) : _func(inFunc)    {}
+        RealFunction(double (*inFunc)(const double) ) : _func(inFunc)    {}
 
-        double operator()(double x) const    { return _func(x); }
+        double operator()(const double x) const    { return _func(x); }
     };
     class RealFunctionFromStdFunc : public IRealFunction
     {
-        std::function<double(double)> _func;
+        std::function<double(const double)> _func;
 
         public:
-        RealFunctionFromStdFunc(std::function<double(double)> &inFunc) : _func(inFunc)    {}
+        RealFunctionFromStdFunc(std::function<double(const double)> &inFunc) : _func(inFunc)    {}
 
-        double operator()(double x) const    { return _func(x); }
+        double operator()(const double x) const    { return _func(x); }
     };
 
     //////////////////////////////////////////////////////////////////////
@@ -2265,24 +2460,24 @@ namespace MML
     class ScalarFunctionFromFuncPtr : public IScalarFunction<N>
     {
         public:
-        double (*_func)(VectorN<N> &);
+        double (*_func)(const VectorN<N> &);
 
-        ScalarFunctionFromFuncPtr( double (*inFunc)(VectorN<N> &) ) : _func(inFunc)
+        ScalarFunctionFromFuncPtr( double (*inFunc)(const VectorN<N> &) ) : _func(inFunc)
         {}
 
-        double operator()(VectorN<N> &x) const  { return _func(x); }
+        double operator()(const VectorN<N> &x) const  { return _func(x); }
     };
 
     template<int N>
     class ScalarFunctionFromStdFunc : public IScalarFunction<N>
     {
         public:
-        std::function<double(VectorN<N> &)> _func;
+        std::function<double(const VectorN<N> &)> _func;
 
-        ScalarFunctionFromStdFunc(std::function<double(VectorN<N> &)> inFunc) : _func(inFunc)
+        ScalarFunctionFromStdFunc(std::function<double(const VectorN<N> &)> inFunc) : _func(inFunc)
         {}
 
-        double operator()(VectorN<N> &x) const  { return _func(x); }
+        double operator()(const VectorN<N> &x) const  { return _func(x); }
     };
     
     //////////////////////////////////////////////////////////////////////
@@ -2290,26 +2485,27 @@ namespace MML
     class VectorFunctionFromFuncPtr : public IVectorFunction<N>
     {
         public:
-        VectorN<N> (*_func)(VectorN<N> &);
+        VectorN<N> (*_func)(const VectorN<N> &);
 
-        VectorFunctionFromFuncPtr( VectorN<N> (*inFunc)(VectorN<N> &) ) : _func(inFunc)
+        VectorFunctionFromFuncPtr( VectorN<N> (*inFunc)(const VectorN<N> &) ) : _func(inFunc)
         {}
 
-        VectorN<N> operator()(VectorN<N> &x) const  { return _func(x); }
+        VectorN<N> operator()(const VectorN<N> &x) const  { return _func(x); }
     };
     template<int N>
     class VectorFunctionFromStdFunc : public IVectorFunction<N>
     {
         public:
-        std::function<VectorN<N>(VectorN<N> &)> _func;
+        std::function<VectorN<N>(const VectorN<N> &)> _func;
 
-        VectorFunctionFromStdFunc(std::function<VectorN<N>(VectorN<N> &)> &inFunc) : _func(inFunc)    {}
+        VectorFunctionFromStdFunc(std::function<VectorN<N>(const VectorN<N> &)> &inFunc) : _func(inFunc)    {}
 
-        VectorN<N> operator()(VectorN<N> &x) const   { return _func(x); }
+        VectorN<N> operator()(const VectorN<N> &x) const   { return _func(x); }
     };
 } // end namespace
 
 ///////////////////////////   ./include/basic_types/InterpolatedFunction.h   ///////////////////////////
+
 
 namespace MML
 {
@@ -2340,6 +2536,7 @@ namespace MML
 }
 
 ///////////////////////////   ./include/basic_types/DeltaFunction.h   ///////////////////////////
+
 namespace MML
 {
 
@@ -2352,6 +2549,7 @@ namespace MML
 }
 
 ///////////////////////////   ./include/algorithms/Derivation.h   ///////////////////////////
+
 
 
 namespace MML
@@ -2373,7 +2571,12 @@ namespace MML
   //              h = boost::math::nextafter(x, (numeric_limits<double>::max)()) - x;
             }
             return h;
-        }    
+        }
+
+        /********************************************************************************************************************/
+        /********                               Numerical derivatives of FIRST order                                 ********/
+        /********************************************************************************************************************/
+
         static double NDer1(const MML::IRealFunction &f, double x, double* error = nullptr)
         {
             const double eps = std::numeric_limits<double>::epsilon();
@@ -2396,8 +2599,118 @@ namespace MML
             }
             return diff / h;
         }
+     
+        static double NDer1(const MML::IRealFunction &f, double x, double h, double* error = nullptr)
+        {
+            const double eps = std::numeric_limits<double>::epsilon();
 
-        double NDer2(const MML::IRealFunction &f, double x, double* error)
+            double yh = f(x + h);
+            double y0 = f(x);
+            double diff = yh - y0;
+            if (error)
+            {
+                double ym = f(x - h);
+                double ypph = std::abs(yh - 2 * y0 + ym) / h;
+                // h*|f''(x)|*0.5 + (|f(x+h)+|f(x)|)*eps/h
+                *error = ypph / 2 + (std::abs(yh) + std::abs(y0))*eps / h;
+            }
+            return diff / h;
+        }
+
+
+        template <int N>
+        static double NDer1Partial(const IScalarFunction<N> &f, int deriv_index, const VectorN<N> &point, double *error = nullptr)
+        {
+            double h = 2 * sqrt(std::numeric_limits<double>::epsilon());
+
+            return NDer1Partial(f, deriv_index, point, h, error);
+        }
+
+        template <int N>
+        static double NDer1Partial(const IScalarFunction<N> &f, int deriv_index, const VectorN<N> &point, double h, double *error = nullptr)
+        {
+            const double eps = std::numeric_limits<double>::epsilon();
+
+            double     orig_x = point[deriv_index];
+
+            VectorN<N> x = point;
+            double y0 = f(x);
+
+            x[deriv_index] = orig_x + h;
+            double yh = f(x);
+
+            double diff = yh - y0;
+            if (error)
+            {
+                x[deriv_index] = orig_x - h;
+                double ym = f(x);
+                double ypph = std::abs(yh - 2 * y0 + ym) / h;
+                *error = ypph / 2 + (std::abs(yh) + std::abs(y0))*eps / h;
+            }
+            return diff / h;
+        } 
+
+        template <int N>
+        static VectorN<N> NDer1PartialByAll(const IScalarFunction<N> &f, const VectorN<N> &point, VectorN<N> *error = nullptr)
+        {
+            double h = 2 * sqrt(std::numeric_limits<double>::epsilon());
+
+            return NDer1PartialByAll(f, point, error);
+        }
+
+        template <int N>
+        static VectorN<N> NDer1PartialByAll(const IScalarFunction<N> &f, const VectorN<N> &point, double h, VectorN<N> *error = nullptr)
+        {
+            VectorN<N> ret;
+
+            for( int i=0; i<N; i++)
+            {
+                if( error )
+                    ret[i] = NDer1Partial(f, i, point, h, &(*error)[i]);
+                else
+                    ret[i] = NDer1Partial(f, i, point, h);
+            }
+
+            return ret;
+        }
+
+        template <int N>
+        static double NDer1Partial(const IVectorFunction<N> &f, int deriv_index, const VectorN<N> &point, double *error = nullptr)
+        {
+            double h = 2 * sqrt(std::numeric_limits<double>::epsilon());
+
+            return NDer1Partial(f, deriv_index, point, h, error);
+        }
+
+        template <int N>
+        static double NDer1Partial(const IVectorFunction<N> &f, int func_index, int deriv_index, const VectorN<N> &point, double h, double *error = nullptr)
+        {
+            const double eps = std::numeric_limits<double>::epsilon();
+
+            VectorN<N> x{point};
+            double x_orig = x[deriv_index];
+            double y0 = f(x)[func_index];
+
+            x[deriv_index] = x_orig + h;
+            double yh = f(x)[func_index];
+
+            double diff = yh - y0;
+            if (error)
+            {
+                x[deriv_index] = x_orig - h;
+                double ym = f(x)[func_index];
+                double ypph = std::abs(yh - 2 * y0 + ym) / h;
+                // h*|f''(x)|*0.5 + (|f(x+h)+|f(x)|)*eps/h
+                *error = ypph / 2 + (std::abs(yh) + std::abs(y0))*eps / h;
+            }
+            return diff / h;
+        }
+
+        /********************************************************************************************************************/
+        /********                               Numerical derivatives of SECOND order                                 ********/
+        /********************************************************************************************************************/
+
+        static double NDer2(const MML::IRealFunction &f, double x, double* error = nullptr)
         {
             const double eps = (std::numeric_limits<double>::epsilon)();
             // Error bound ~eps^2/3
@@ -2417,26 +2730,153 @@ namespace MML
             }
 
             return diff / (2 * h);
+        } 
+
+        static double NDer2(const MML::IRealFunction &f, double x, double h, double* error = nullptr)
+        {
+            const double eps = (std::numeric_limits<double>::epsilon)();
+
+            double yh = f(x + h);
+            double ymh = f(x - h);
+            double diff = yh - ymh;
+            if (error)
+            {
+                double yth = f(x + 2 * h);
+                double ymth = f(x - 2 * h);
+                *error = eps * (std::abs(yh) + std::abs(ymh)) / (2 * h) + std::abs((yth - ymth) / 2 - diff) / (6 * h);
+            }
+
+            return diff / (2 * h);
         }  
 
-        double NDer4(const MML::IRealFunction &f, double x, double* error)
+        template <int N>
+        static double NDer2Partial(const IScalarFunction<N> &f, int deriv_index, const VectorN<N> &point, double *error = nullptr)
+        {
+            const double eps = (std::numeric_limits<double>::epsilon)();
+            double h = std::pow(3 * eps, static_cast<double>(1) / static_cast<double>(3));
+
+            return NDer2Partial(f, deriv_index, point, h, error);
+        }
+
+        template <int N>
+        static double NDer2Partial(const IScalarFunction<N> &f, int deriv_index, const VectorN<N> &point, double h, double *error = nullptr)
+        {
+            const double eps = (std::numeric_limits<double>::epsilon)();
+
+            double     orig_x = point[deriv_index];
+
+            VectorN<N> x{point};
+            x[deriv_index] = orig_x + h;
+            double yh = f(x);
+
+            x[deriv_index] = orig_x - h;
+            double ymh = f(x);
+
+            double diff = yh - ymh;
+
+            if (error)
+            {
+                x[deriv_index] = orig_x + 2 * h;
+                double yth = f(x);
+
+                x[deriv_index] = orig_x - 2 * h;
+                double ymth = f(x);
+                *error = eps * (std::abs(yh) + std::abs(ymh)) / (2 * h) + std::abs((yth - ymth) / 2 - diff) / (6 * h);
+            }
+
+            return diff / (2 * h);
+        }
+
+        template <int N>
+        static VectorN<N> NDer2PartialByAll(const IScalarFunction<N> &f, const VectorN<N> &point, VectorN<N> *error = nullptr)
+        {
+            const double eps = (std::numeric_limits<double>::epsilon)();
+            double h = std::pow(3 * eps, static_cast<double>(1) / static_cast<double>(3));
+
+            return NDer2PartialByAll(f, point, error);
+        }
+
+        template <int N>
+        static VectorN<N> NDer2PartialByAll(const IScalarFunction<N> &f, const VectorN<N> &point, double h, VectorN<N> *error = nullptr)
+        {
+            VectorN<N> ret;
+
+            for( int i=0; i<N; i++)
+            {
+                if( error )
+                    ret[i] = NDer2Partial(f, i, point, h, &(*error)[i]);
+                else
+                    ret[i] = NDer2Partial(f, i, point, h);
+            }
+
+            return ret;
+        }
+
+        template <int N>
+        static double NDer2Partial(const IVectorFunction<N> &f, int func_index, int deriv_index, const VectorN<N> &point, double *error = nullptr)
+        {
+            const double eps = (std::numeric_limits<double>::epsilon)();
+            double h = std::pow(3 * eps, static_cast<double>(1) / static_cast<double>(3));
+
+            return NDer2Partial(f, func_index, deriv_index, point, error);
+        }        
+
+        template <int N>
+        static double NDer2Partial(const IVectorFunction<N> &f, int func_index, int deriv_index, const VectorN<N> &point, double h, double *error = nullptr)
+        {
+            const double eps = (std::numeric_limits<double>::epsilon)();
+
+            double     orig_x = point[deriv_index];
+
+            VectorN<N> x{point};
+            x[deriv_index] = orig_x + h;
+            double yh = f(x)[func_index];
+
+            x[deriv_index] = orig_x - h;
+            double ymh = f(x)[func_index];
+
+            double diff = yh - ymh;
+
+            if (error)
+            {
+                x[deriv_index] = orig_x + 2 * h;
+                double yth = f(x)[func_index];
+
+                x[deriv_index] = orig_x - 2 * h;
+                double ymth = f(x)[func_index];                
+
+                *error = eps * (std::abs(yh) + std::abs(ymh)) / (2 * h) + std::abs((yth - ymth) / 2 - diff) / (6 * h);
+            }
+
+            return diff / (2 * h);
+        }
+
+        /********************************************************************************************************************/
+        /********                               Numerical derivatives of FOURTH order                                 ********/
+        /********************************************************************************************************************/
+
+        static double NDer4(const MML::IRealFunction &f, double x, double* error = nullptr)
         {
             const double eps = (std::numeric_limits<double>::epsilon)();
             // Error bound ~eps^4/5
             double h = std::pow(11.25*eps, (double)1 / (double)5);
             //h = detail::make_xph_representable(x, h);
+            
             double ymth = f(x - 2 * h);
             double yth = f(x + 2 * h);
             double yh = f(x + h);
             double ymh = f(x - h);
+            
             double y2 = ymth - yth;
             double y1 = yh - ymh;
+            
             if (error)
             {
                 // Mathematica code to extract the remainder:
                 // Series[(f[x-2*h]+ 8*f[x+h] - 8*f[x-h] - f[x+2*h])/(12*h), {h, 0, 7}]
                 double y_three_h = f(x + 3 * h);
                 double y_m_three_h = f(x - 3 * h);
+                
                 // Error from fifth derivative:
                 *error = std::abs((y_three_h - y_m_three_h) / 2 + 2 * (ymth - yth) + 5 * (yh - ymh) / 2) / (30 * h);
                 // Error from function evaluation:
@@ -2445,7 +2885,153 @@ namespace MML
             return (y2 + 8 * y1) / (12 * h);
         }
 
-        double NDer6(const MML::IRealFunction &f, double x, double* error)
+        static double NDer4(const MML::IRealFunction &f, double x, double h, double* error = nullptr)
+        {
+            const double eps = (std::numeric_limits<double>::epsilon)();
+            
+            double ymth = f(x - 2 * h);
+            double yth = f(x + 2 * h);
+            double yh = f(x + h);
+            double ymh = f(x - h);
+            
+            double y2 = ymth - yth;
+            double y1 = yh - ymh;
+            
+            if (error)
+            {
+                double y_three_h = f(x + 3 * h);
+                double y_m_three_h = f(x - 3 * h);
+
+                *error = std::abs((y_three_h - y_m_three_h) / 2 + 2 * (ymth - yth) + 5 * (yh - ymh) / 2) / (30 * h);
+                *error += eps * (std::abs(yth) + std::abs(ymth) + 8 * (std::abs(ymh) + std::abs(yh))) / (12 * h);
+            }
+            return (y2 + 8 * y1) / (12 * h);
+        }
+
+        template <int N>
+        static double NDer4Partial(const IScalarFunction<N> &f, int deriv_index, const VectorN<N> &point, double *error = nullptr)
+        {
+            const double eps = (std::numeric_limits<double>::epsilon)();
+            double h = std::pow(11.25*eps, (double)1 / (double)5);
+
+            return NDer4Partial(f, deriv_index, point, h, error);
+        }
+
+        template <int N>
+        static double NDer4Partial(const IScalarFunction<N> &f, int deriv_index, const VectorN<N> &point, double h, double *error = nullptr)
+        {
+            const double eps = (std::numeric_limits<double>::epsilon)();
+
+            double     orig_x = point[deriv_index];
+
+            VectorN<N> x{point};
+            x[deriv_index] = orig_x - 2 * h;
+            double ymth = f(x);
+
+            x[deriv_index] = orig_x + 2 * h;
+            double yth = f(x);
+
+            x[deriv_index] = orig_x + h;
+            double yh = f(x);
+
+            x[deriv_index] = orig_x - h;
+            double ymh = f(x);
+
+            double y2 = ymth - yth;
+            double y1 = yh - ymh;
+            
+            if (error)
+            {
+                x[deriv_index] = orig_x + 3 * h;
+                double y_three_h = f(x);
+
+                x[deriv_index] = orig_x - 3 * h;
+                double y_m_three_h = f(x);
+
+                *error = std::abs((y_three_h - y_m_three_h) / 2 + 2 * (ymth - yth) + 5 * (yh - ymh) / 2) / (30 * h);
+
+                *error += eps * (std::abs(yth) + std::abs(ymth) + 8 * (std::abs(ymh) + std::abs(yh))) / (12 * h);
+            }
+            return (y2 + 8 * y1) / (12 * h);
+        }
+
+        template <int N>
+        static VectorN<N> NDer4PartialByAll(const IScalarFunction<N> &f, const VectorN<N> &point, VectorN<N> *error = nullptr)
+        {
+            const double eps = (std::numeric_limits<double>::epsilon)();
+            double h = std::pow(11.25*eps, (double)1 / (double)5);
+
+            return NDer4PartialByAll(f, point, error);
+        }
+
+        template <int N>
+        static VectorN<N> NDer4PartialByAll(const IScalarFunction<N> &f, const VectorN<N> &point, double h, VectorN<N> *error = nullptr)
+        {
+            VectorN<N> ret;
+
+            for( int i=0; i<N; i++)
+            {
+                if( error )
+                    ret[i] = NDer4Partial(f, i, point, h, &(*error)[i]);
+                else
+                    ret[i] = NDer4Partial(f, i, point, h);
+            }
+
+            return ret;
+        }
+
+        template <int N>
+        static double NDer4Partial(const IVectorFunction<N> &f, int func_index, int deriv_index, const VectorN<N> &point, double *error = nullptr)
+        {
+            const double eps = (std::numeric_limits<double>::epsilon)();
+            double h = std::pow(11.25*eps, (double)1 / (double)5);
+
+            return NDer4Partial(f, deriv_index, point, h, error);
+        }
+
+        template <int N>
+        static double NDer4Partial(const IVectorFunction<N> &f, int func_index, int deriv_index, const VectorN<N> &point, double h, double *error = nullptr)
+        {
+            const double eps = (std::numeric_limits<double>::epsilon)();
+
+            double     orig_x = point[deriv_index];
+
+            VectorN<N> x{point};
+            x[deriv_index] = orig_x - 2 * h;
+            double ymth = f(x)[func_index];
+
+            x[deriv_index] = orig_x + 2 * h;
+            double yth = f(x)[func_index];
+
+            x[deriv_index] = orig_x + h;
+            double yh = f(x)[func_index];
+
+            x[deriv_index] = orig_x - h;
+            double ymh = f(x)[func_index];
+
+            double y2 = ymth - yth;
+            double y1 = yh - ymh;
+            
+            if (error)
+            {
+                x[deriv_index] = orig_x + 3 * h;
+                double y_three_h = f(x)[func_index];
+
+                x[deriv_index] = orig_x - 3 * h;
+                double y_m_three_h = f(x)[func_index];
+
+                *error = std::abs((y_three_h - y_m_three_h) / 2 + 2 * (ymth - yth) + 5 * (yh - ymh) / 2) / (30 * h);
+
+                *error += eps * (std::abs(yth) + std::abs(ymth) + 8 * (std::abs(ymh) + std::abs(yh))) / (12 * h);
+            }
+            return (y2 + 8 * y1) / (12 * h);
+        }
+
+        /********************************************************************************************************************/
+        /********                               Numerical derivatives of SIXTH order                                 ********/
+        /********************************************************************************************************************/
+
+        double NDer6(const MML::IRealFunction &f, double x, double* error = nullptr)
         {
             const double eps = (std::numeric_limits<double>::epsilon)();
             // Error bound ~eps^6/7
@@ -2471,7 +3057,11 @@ namespace MML
             return (y3 + 9 * y2 + 45 * y1) / (60 * h);
         }
 
-        double NDer8(const MML::IRealFunction &f, double x, double* error)
+        /********************************************************************************************************************/
+        /********                               Numerical derivatives of EIGHTH order                                ********/
+        /********************************************************************************************************************/
+
+        double NDer8(const MML::IRealFunction &f, double x, double* error = nullptr)
         {
             const double eps = (std::numeric_limits<double>::epsilon)();
             // Error bound ~eps^8/9.
@@ -2504,164 +3094,17 @@ namespace MML
             }
             return (tmp1 + tmp2) / (105 * h);
         }              
-            
-        static double NDer1(const MML::IRealFunction &f, double x, double h, double* error = nullptr)
-        {
-            const double eps = std::numeric_limits<double>::epsilon();
 
-            double yh = f(x + h);
-            double y0 = f(x);
-            double diff = yh - y0;
-            if (error)
-            {
-                double ym = f(x - h);
-                double ypph = std::abs(yh - 2 * y0 + ym) / h;
-                // h*|f''(x)|*0.5 + (|f(x+h)+|f(x)|)*eps/h
-                *error = ypph / 2 + (std::abs(yh) + std::abs(y0))*eps / h;
-            }
-            return diff / h;
-        }
 
-        template <int N>
-        class HelperFunc
-        {
-            const IScalarFunction<N> &_func;
-            const VectorN<N> &_x;
-            int _der_ind;
+        static inline double(*Derive)(const MML::IRealFunction &f, double x, double* error) = Derivation::NDer1;
 
-        public:
-            HelperFunc(const IScalarFunction<N> &inFunc, const VectorN<N> &x) : _func(inFunc), _x(x)
-            { }
-            HelperFunc(const IScalarFunction<N> &inFunc, const VectorN<N> &x, int der_ind) : _func(inFunc), _x(x), _der_ind(der_ind)
-            { }
-
-            void setDerInd(int ind) { _der_ind = ind; }
-
-            double operator()(double x) const
-            {
-                VectorN<N> copy{_x};
-
-                copy[_der_ind] = x;
-
-                return _func(copy);
-            }
-        };
-
-        template <int N>
-        static double NDer1Partial(const IScalarFunction<N> &f, int deriv_index, const VectorN<N> &point, double *error = nullptr)
-        {
-            double x = point[deriv_index];
-            HelperFunc<N> helper{f, point, deriv_index};
-
-            const double eps = std::numeric_limits<double>::epsilon();
-            double h = 2 * sqrt(eps);
-
-            double yh = helper(x + h);
-            double y0 = helper(x);
-            double diff = yh - y0;
-            if (error)
-            {
-                double ym = helper(x - h);
-                double ypph = std::abs(yh - 2 * y0 + ym) / h;
-                // h*|f''(x)|*0.5 + (|f(x+h)+|f(x)|)*eps/h
-                *error = ypph / 2 + (std::abs(yh) + std::abs(y0))*eps / h;
-            }
-            return diff / h;
-        }
-
-        template <int N>
-        static double NDer1Partial(const IScalarFunction<N> &f, int deriv_index, const VectorN<N> &point, double h, double *error = nullptr)
-        {
-            double x = point[deriv_index];
-            HelperFunc<N> helper{f, point, deriv_index};
-
-            const double eps = std::numeric_limits<double>::epsilon();
-
-            double yh = helper(x + h);
-            double y0 = helper(x);
-            double diff = yh - y0;
-            if (error)
-            {
-                double ym = helper(x - h);
-                double ypph = std::abs(yh - 2 * y0 + ym) / h;
-                // h*|f''(x)|*0.5 + (|f(x+h)+|f(x)|)*eps/h
-                *error = ypph / 2 + (std::abs(yh) + std::abs(y0))*eps / h;
-            }
-            return diff / h;
-        }
-
-        template <int N>
-        static double NDer1Partial(const IVectorFunction<N> &f, int func_index, int deriv_index, const VectorN<N> &point, double h, double *error = nullptr)
-        {
-            const double eps = std::numeric_limits<double>::epsilon();
-
-            VectorN<N> x(point);
-            double y0 = f(x)[func_index];
-
-            VectorN<N> x_plus_h(point);
-            x_plus_h[deriv_index] += h;
-            double yh = f(x_plus_h)[func_index];
-
-            double diff = yh - y0;
-            if (error)
-            {
-                VectorN<N> x_min_h(point);
-                x_plus_h[deriv_index] -= h;
-                double ym = f(x_plus_h)[func_index];
-                double ypph = std::abs(yh - 2 * y0 + ym) / h;
-                // h*|f''(x)|*0.5 + (|f(x+h)+|f(x)|)*eps/h
-                *error = ypph / 2 + (std::abs(yh) + std::abs(y0))*eps / h;
-            }
-            return diff / h;
-        }        
-
-        // BIG TODO - derivacija vektorskog polja PO ODREDJENOM SMJERU
-        // template <int N>
-        // static double DeriveDirectional(const VectorNFunction<N> &f, VectorN<N> &deriv_direction, VectorN<N> &point)
-        // {
-        //     double x = point[deriv_index];
-        //     HelperFunc<N> helper{f, point, deriv_index};
-
-        //     double dfdx = boost::math::differentiation::finite_difference_derivative(helper, x);
-
-        //     return dfdx;
-        // }
-
-        template <int N>
-        static VectorN<N> NDer1PartialByAll(const IScalarFunction<N> &f, const VectorN<N> &point, double h, VectorN<N> *error = nullptr)
-        {
-            VectorN<N> ret;
-
-            for( int i=0; i<N; i++)
-            {
-                int deriv_index = i;
-
-                double x = point[deriv_index];
-                HelperFunc<N> helper{f, point, deriv_index};
-
-                const double eps = std::numeric_limits<double>::epsilon();
-
-                double yh = helper(x + h);
-                double y0 = helper(x);
-                double diff = yh - y0;
-                if (error)
-                {
-                    double ym = helper(x - h);
-                    double ypph = std::abs(yh - 2 * y0 + ym) / h;
-                    // h*|f''(x)|*0.5 + (|f(x+h)+|f(x)|)*eps/h
-                    (*error)[i] = ypph / 2 + (std::abs(yh) + std::abs(y0))*eps / h;
-                }
-
-                ret[i] = diff / h;
-            }
-
-            return ret;
-        }
     };
+
 
 }
 
 ///////////////////////////   ./include/interfaces/ICoordTransf.h   ///////////////////////////
+
 
 
 namespace MML
@@ -2712,9 +3155,92 @@ namespace MML
 
         // transform tensor
     };
+
+
+
+
+    template<typename VectorFrom, typename VectorTo, int N>
+    class ICoordTransfTest
+    {
+        public:
+        virtual VectorTo    transf(const VectorFrom &in) = 0;       // transfCoord
+        virtual VectorFrom  transfInverse(const VectorTo &in) = 0;
+
+        virtual IScalarFunction<N>& coordTransfFunc(int i) = 0;
+        virtual IScalarFunction<N>& inverseCoordTransfFunc(int i) = 0;
+
+        // transf contravariant vector
+        VectorTo contravariantTransf(const VectorFrom &vec, const VectorFrom &pos) 
+        {
+            VectorFrom ret;
+
+            for( int j=0; j<N; j++ )
+            {
+                ret[j] = 0;
+                for( int k=0; k<N; k++)
+                {
+                    ret[j] += Derivation::NDer1Partial(coordTransfFunc(j), k, pos, 1e-8) * vec[j];
+                }
+            }
+
+            return ret;
+        }
+        VectorFrom contravariantTransf(const VectorTo &vec, const VectorTo &pos) 
+        {
+            VectorFrom ret;
+
+            for( int k=0; k<N; k++ )
+            {
+                ret[k] = 0;
+                for( int j=0; j<N; j++)
+                {
+                    ret[k] += Derivation::NDer1Partial(inverseCoordTransfFunc(k), j, pos, 1e-8) * vec[j];
+                }
+            }
+
+            return ret;
+        }
+
+        // transform covariant vector
+        VectorFrom covariantTransf(const VectorTo &vec, const VectorFrom &pos)
+        {
+            VectorFrom ret;
+
+            for( int k=0; k<N; k++ )
+            {
+                ret[k] = 0;
+                for( int j=0; j<N; j++)
+                {
+                    ret[k] += Derivation::NDer1Partial(coordTransfFunc(j), k, pos, 1e-8) * vec[j];
+                }
+            }
+
+            return ret;
+        }
+
+        VectorTo covariantTransf(const VectorFrom &vec, const VectorTo &pos)
+        {
+            VectorTo ret;
+
+            for( int j=0; j<N; j++ )
+            {
+                ret[j] = 0;
+                for( int k=0; k<N; k++)
+                {
+                    ret[j] += Derivation::NDer1Partial(inverseCoordTransfFunc(k), j, pos, 1e-8) * vec[k];
+                }
+            }
+
+            return ret;
+        }
+
+        // transform tensor
+    };    
+  
 }
 
 ///////////////////////////   ./include/basic_types/Tensors.h   ///////////////////////////
+
 
 namespace MML
 {
@@ -2943,6 +3469,7 @@ namespace MML
 ///////////////////////////   ./include/algorithms/Interpolators.h   ///////////////////////////
 
 
+
 namespace MML
 {
     static bool polint(Vector &xa, Vector &ya, const double x, double &y, double &dy)
@@ -3050,6 +3577,7 @@ namespace MML
 }  // end namespace
 
 ///////////////////////////   ./include/algorithms/Integration.h   ///////////////////////////
+
 
 
 namespace MML
@@ -3179,6 +3707,7 @@ namespace MML
 } // end namespace
 ///////////////////////////   ./include/algorithms/RootFinding.h   ///////////////////////////// bit će toga
 
+
 namespace MML
 {
     class RootFinding
@@ -3189,6 +3718,7 @@ namespace MML
 
 
 ///////////////////////////   ./include/systems/LinAlgEqSystem.h   ///////////////////////////
+
 namespace MML
 {
     class LinAlgEqSystem
@@ -3204,6 +3734,7 @@ namespace MML
 
 
 ///////////////////////////   ./include/systems/DiffEqSystem.h   ///////////////////////////
+
 namespace MML
 {
     class DiffEqEqSystem
