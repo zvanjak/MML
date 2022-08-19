@@ -6,11 +6,15 @@ void Demo_Matrix();
 void Demo_MatrixNM();
 void Demo_Tensors();
 void Demo_Geometry();
+void Demo_CoordTransf();
+void Demo_CoordSystem();
 
 void Demo_Polynom();
 void Demo_Function();
 
 void Demo_Derivation();
+void Demo_Field_operations();
+
 void Demo_Integration();
 void Demo_Interpolators();
 void Demo_Interpolated_Function();
@@ -20,23 +24,23 @@ void Demo_DiffEqSolvers();
 
 int main(int, char**) 
 {
+    // Demo_CoordSystem();
+    // Demo_CoordTransf();
+    Demo_Derivation();
+    // Demo_DiffEqSolvers();
+    // Demo_Field_operations();
+    // Demo_Function();
+    // Demo_Geometry();
+    // Demo_Integration();
+    // Demo_Interpolated_Function();
+    // Demo_Interpolators();
+    // Demo_LinearAlgEqSolvers();
+    // Demo_Matrix();
+    // Demo_MatrixNM();
+    // Demo_Polynom();
+    // Demo_Tensors();
     // Demo_Vector();
     // Demo_VectorN();
-    // Demo_Matrix();
-    Demo_MatrixNM();
-    // Demo_Tensors();
-    Demo_Geometry();
-
-    // Demo_Polynom();
-    // Demo_Function();
-
-    Demo_Derivation();
-    // Demo_Integration();
-    // Demo_Interpolators();
-    // Demo_Interpolated_Function();
-
-    // Demo_LinearAlgEqSolvers();
-    // Demo_DiffEqSolvers();
 
 
 /* TODO
@@ -59,7 +63,7 @@ int main(int, char**)
         - METRIKA!!!
 
 - integracija
-    - multidimensional integratio n over regular domains
+    - multidimensional integration over regular domains
     - usporediti integraciju u Kartezijevim i sfernim koord nekog volumnog integrala preko kugle!
 - root finding
 - diff eq 

@@ -10,10 +10,14 @@ void Test_gaussj()
 {
     std::cout << "SOLVING VIA GAUSS-JORDAN ELIMINATION:\n";
 
+    MML::Matrix     m1(2, 2, {1.0, -1.0, 
+                              1.5, 3.0});
+    MML::Matrix     m1_rhs(2, 1, {1.0, 2.0});
+
     MML::Matrix     mat0(3, 3, {1.0, 2.0, -1.0, 
                                 -1.0, 5.0, 6.0, 
                                 3.0, 1.0, 1.0 });
-    MML::Matrix     rhs0(03, 1, {1.0, 2.0, 1.0});
+    MML::Matrix     rhs0(3, 1, {1.0, 2.0, 1.0});
 
     MML::Matrix     mat1(3, 3, {1.0, 0.0, 0.0,
                                 0.0, 2.0, 0.0,
@@ -47,27 +51,34 @@ void Test_gaussj()
                                 0.4, 4.1});    
  
     
-    MML::Matrix&    origMat = mat4;
+    // MML::Matrix&    origMat = mat4;
+    // MML::Matrix     matcopy(origMat);
+    // MML::Matrix     rhscopy(rhs4);
+
+    MML::Matrix&    origMat = m1;
     MML::Matrix     matcopy(origMat);
-    MML::Matrix     rhscopy(rhs4);
+    MML::Matrix     rhscopy(m1_rhs);
 
     std::cout << "Initial matrix:\n";
-    matcopy.Print(10,3);
+    matcopy.Print(std::cout,10,3);
 
     std::cout << "Right side:\n";
-    rhscopy.Print(10,3);
+    rhscopy.Print(std::cout,10,3);
 
     MML::GaussJordanSolver::Solve(matcopy, rhscopy);
 
     std::cout << "Solution:\n";
-    MML::Vector    solVec({rhscopy[0][0], rhscopy[1][0], rhscopy[2][0], rhscopy[3][0], rhscopy[4][0]});
+    MML::Vector solVec = MML::Matrix::VectorFromColumn(rhscopy, 0);
+    //MML::Vector    solVec({rhscopy[0][0], rhscopy[1][0], rhscopy[2][0], rhscopy[3][0], rhscopy[4][0]});
     std::cout << solVec << std::endl;
-
 
     // inicijaliziramo rhs1Vec sa rješenjem
     MML::Vector    res = origMat * solVec;
 
     std::cout << "Multiplying solution with matrix: " << res << std::endl;
+
+    std::cout << "Inverse " << matcopy << std::endl;
+    std::cout << "Orig * inve = " << origMat * matcopy << std::endl;
 }
 
 void Test_LU_decomposition_solver()
@@ -115,10 +126,10 @@ void Test_LU_decomposition_solver()
     MML::Matrix     rhscopy(rhs4);
 
     std::cout << "Initial matrix:\n";
-    matcopy.Print(10,3);
+    matcopy.Print(std::cout,10,3);
 
     std::cout << "Right side:\n";
-    rhscopy.Print(10,3);
+    rhscopy.Print(std::cout,10,3);
 
     MML::LUDecompositionSolver luSolver(matcopy);
 
@@ -151,7 +162,7 @@ void Test_QR_decomposition_solver()
     MML::Matrix     matcopy(origMat);
 
     std::cout << "Initial matrix:\n";
-    matcopy.Print(10,3);
+    matcopy.Print(std::cout,10,3);
 
     std::cout << "Right side:\n";
     std::cout << vecrhs4 << std::endl;
@@ -186,7 +197,7 @@ void Test_SVD_decomposition_solver()
     MML::Matrix     matcopy(origMat);
 
     std::cout << "Initial matrix:\n";
-    matcopy.Print(10, 3);
+    matcopy.Print(std::cout,10, 3);
 
     std::cout << "Right side:\n";
     std::cout << vecrhs4 << std::endl;

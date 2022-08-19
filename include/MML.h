@@ -1,5 +1,5 @@
-#if !defined  __MML_BASIC_TYPES_SINGLE_HEADER
-#define __MML_BASIC_TYPES_SINGLE_HEADER
+#ifndef  MML_SINGLE_HEADER
+#define MML_SINGLE_HEADER
 
 #include <exception>
 
@@ -29,26 +29,48 @@ static const double DerivationDefaultStep = 1e-6;
 
 namespace MML
 {
-	class	MMLException : public std::exception
+	class VectorDimensionError : public std::invalid_argument
 	{
-	public:
-		MMLException();
-		MMLException( int nType );
-		~MMLException();
-
-		int		m_nType;
-	};
-
-	class MatrixAccessBoundsError : public std::exception
-	{
-
-	};
-
-	class MatrixOperationDimensionError : public std::exception
-	{
+		public:
 		std::string _operation;
 
+		VectorDimensionError(std::string inOperation, std::string inMessage) : std::invalid_argument(inMessage)
+		{
+			_operation = inOperation;
+		}
+	};	
+	class MatrixAccessBoundsError : public std::out_of_range 
+	{
+		public:
+		std::string _operation;
+
+		MatrixAccessBoundsError(std::string inOperation, std::string inMessage) : std::out_of_range(inMessage)
+		{
+			_operation = inOperation; 
+		}
 	};
+
+	class MatrixDimensionError : public std::invalid_argument
+	{
+		public:
+		std::string _operation;
+
+		MatrixDimensionError(std::string inOperation, std::string inMessage) : std::invalid_argument(inMessage)
+		{
+			_operation = inOperation;
+		}
+	};
+
+	class SingularMatrixError : public std::domain_error
+	{
+		public:
+		std::string _operation;
+
+		SingularMatrixError(std::string inOperation) : std::domain_error(inOperation)
+		{
+			_operation = inOperation;
+		}
+	};	
 
 }
 
@@ -64,6 +86,8 @@ namespace MML
 
         virtual double Value(int ind) = 0;
         virtual double Value(int ind, double &outX) = 0;
+
+        virtual ~ITabulatedValues1D() {}
     };
 
     class ITabulatedValues2D
@@ -74,6 +98,8 @@ namespace MML
 
         virtual double Value(int ind1, int in2) = 0;
         virtual double Value(int ind1, int in2, double &outX, double &outY) = 0;
+
+        virtual ~ITabulatedValues2D() {}
     };
 
     class ITabulatedValues3D
@@ -85,6 +111,8 @@ namespace MML
 
         virtual double Value(int ind1, int ind2, int ind3) = 0;
         virtual double Value(int ind1, int ind2, int ind3, double &outX, double &outY, double &outZ) = 0;
+
+        virtual ~ITabulatedValues3D() {}
     };
 
     ///////////////////////////////////////////////   Implementations    ///////////////////////////////////////////
@@ -189,6 +217,9 @@ namespace MML
 
             double ScalarProductCartesian(Vector &b)
             {
+                if (size() != b.size() )
+                    throw VectorDimensionError("Vector::ScalarProductCartesian", "wrong dim");
+
                 double product = 0.0;
                 for( int i=0; i<size(); i++ )
                     product += (*this)[i] * b[i];
@@ -203,11 +234,14 @@ namespace MML
                 return std::sqrt(norm);
             }
 
-            bool IsEqual(const Vector &b, double eps) const
+            bool IsEqual(const Vector &b, double eps=1e-15) const
             {
+                if (size() != b.size() )
+                    throw VectorDimensionError("Vector::IsEqual", "wrong dim");
+
                 for( int i=0; i<size(); i++ )
                 {
-                    if( fabs((*this)[i] - b[i]) > eps )
+                    if( std::abs((*this)[i] - b[i]) > eps )
                         return false;
                 }
                 return true;
@@ -215,6 +249,9 @@ namespace MML
 
             Vector operator+(const Vector &b ) const
             {
+                if (size() != b.size() )
+                    throw VectorDimensionError("Vector::op+", "wrong dim");
+
                 Vector ret(b.size());;
                 for(int i=0; i<b.size(); i++)
                     ret._elems[i] = (*this)[i] + b._elems[i];
@@ -223,6 +260,9 @@ namespace MML
 
             Vector operator-(const Vector &b ) const
             {
+                if (size() != b.size() )
+                    throw VectorDimensionError("Vector::op-", "wrong dim");
+
                 Vector ret(b.size());;
                 for(int i=0; i<b.size(); i++)
                     ret._elems[i] = (*this)[i] - b._elems[i];
@@ -280,7 +320,7 @@ namespace MML
 
             friend std::ostream& operator<<(std::ostream& stream, const Vector &a)
             {
-                a.Print(stream, 15, 15);
+                a.Print(stream, 15, 10);
 
                 return stream;
             }
@@ -296,7 +336,7 @@ namespace MML
     class VectorN
     {
         protected:
-            double  _val[N];
+            double  _val[N] = {0};
 
         public:
         VectorN() {}
@@ -384,7 +424,7 @@ namespace MML
             return ret;
         }
 
-        std::string to_string(int width, int precision)
+        std::string to_string(int width, int precision) const
         {
             std::stringstream str;
 
@@ -393,7 +433,7 @@ namespace MML
             return str.str();
         }
 
-        void Print(std::ostream& stream, int width, int precision)
+        std::ostream& Print(std::ostream& stream, int width, int precision) const
         {
             stream << "[";
             bool first = true;
@@ -407,22 +447,13 @@ namespace MML
                 stream << std::setw(width) << std::setprecision(precision) << x;
             }
             stream << "]";
+
+            return stream;
         }   
 
         friend std::ostream& operator<<(std::ostream& stream, const VectorN<N> &a)
         {
-            stream << "[";
-            bool first = true;
-            for(const double& x : a._val)
-            {
-                if( !first )
-                    stream << ", ";
-                else
-                    first = false;
-
-                stream << std::setw(8) << x;
-            }
-            stream << "]";
+            a.Print(stream,15,10);
 
             return stream;
         }
@@ -624,6 +655,8 @@ typedef MML::VectorN<4> Vector4;
 ///////////////////////////   ./include/basic_types/Matrix.h   ///////////////////////////
 
 
+//#include <format>
+
 
 namespace MML
 {
@@ -635,11 +668,7 @@ namespace MML
         double **_ptrData;
 
     public:
-        Matrix() : _rows(0), _cols(0)
-        {
-            _ptrData = nullptr;
-            //std::cout << "Matrix::default constructor \n";
-        }
+        Matrix() : _rows(0), _cols(0),  _ptrData{nullptr} {} 
         Matrix(size_t rows, size_t cols) : _rows(rows), _cols(cols)
         {
             _ptrData = new double *[_rows];
@@ -648,8 +677,6 @@ namespace MML
             for (size_t i = 0; i < _rows; ++i)
                 for (size_t j = 0; j < _cols; ++j)
                     _ptrData[i][j] = 0;
-            
-            //std::cout << "Matrix::constructor \n";
         }
         Matrix(size_t rows, size_t cols, std::initializer_list<double> values) : _rows(rows), _cols(cols)
         {
@@ -657,7 +684,6 @@ namespace MML
             for (size_t i = 0; i < _rows; ++i)
                 _ptrData[i] = new double[_cols];
             
-            size_t cnt = 0;
             auto val = values.begin();
             for (size_t i = 0; i < _rows; ++i)
                 for (size_t j = 0; j < _cols; ++j)
@@ -668,8 +694,6 @@ namespace MML
                     }
                     else
                         _ptrData[i][j] = 0.0;
-            
-            //std::cout << "Matrix::constructor \n";
         }
         Matrix(const Matrix &m) : _rows(m._rows), _cols(m._cols)
         {
@@ -679,8 +703,6 @@ namespace MML
             for (size_t i = 0; i < _rows; ++i)
                 for (size_t j = 0; j < _cols; ++j)
                     _ptrData[i][j] = m._ptrData[i][j];
-
-            //std::cout << "Matrix::copy constructor \n";
         }
         Matrix(Matrix &&m)
         {
@@ -692,8 +714,6 @@ namespace MML
             m._rows = 0;
             m._cols = 0;
             m._ptrData = nullptr;
-
-            //std::cout << "Matrix::move constructor \n";
         }
         ~Matrix()
         {
@@ -702,7 +722,6 @@ namespace MML
                     delete[] _ptrData[i];
             if (_ptrData != nullptr)
                 delete[] _ptrData;
-            //std::cout << "Matrix::destructor \n";
         }
 
         int RowNum() const { return (int) _rows; }
@@ -719,6 +738,8 @@ namespace MML
                         else
                             _ptrData[i][j] = 0;
             }
+            else
+                throw MatrixDimensionError("MakeUnitMatrix", "must be square");
         }
 
         void Resize(size_t rows, size_t cols) 
@@ -775,15 +796,18 @@ namespace MML
             return ret;
         }
         
-        bool IsEqual(const Matrix &b, double eps) const
+        bool IsEqual(const Matrix &b, double eps=1e-15) const
         {
             if( RowNum() != b.RowNum() || ColNum() != b.ColNum() )
                 return false;
 
             for( int i=0; i<RowNum(); i++ )
                 for( int j=0; j<ColNum(); j++ )
+                {
+                    auto diff = fabs(_ptrData[i][j] - b._ptrData[i][j]);
                     if( fabs(_ptrData[i][j] - b._ptrData[i][j]) > eps )
                         return false;
+                }
                 
             return true;
         }
@@ -810,7 +834,6 @@ namespace MML
                 for (size_t j = 0; j < _cols; ++j)
                     _ptrData[i][j] = m._ptrData[i][j];
 
-            //std::cout << "Matrix::operator = \n";
             return *this;
         }
         Matrix &operator=(Matrix &&m)
@@ -822,7 +845,6 @@ namespace MML
             std::swap(_rows, m._rows);
             std::swap(_cols, m._cols);
 
-            //std::cout << "Matrix::move operator = \n";
             return *this;
         }
 
@@ -835,77 +857,57 @@ namespace MML
         double  ElemAt(int i, int j) const 
         { 
             if( i<0 || i>=RowNum() || j<0 || j>=ColNum() )
-            {
-                throw;
-            }
+                throw MatrixAccessBoundsError("Matrix::ElemAt", "i=, j=, rows=, cols=");
+
             return _ptrData[i][j]; 
         }
         double& ElemAt(int i, int j)       
         {
+            if( i<0 || i>=RowNum() || j<0 || j>=ColNum() )
+                throw MatrixAccessBoundsError("MatrixElemAt", "i=, j=, rows=, cols=");
+
             return _ptrData[i][j]; 
         }
 
         Matrix operator+(const Matrix &other) const
         {
-            //std::cout << "Matrix::operator + START \n";
+            if (_rows != other._rows || _cols != other._cols)
+                throw MatrixDimensionError("op+", "wrong dim");
 
             Matrix temp(_rows, _cols);
-            if (_rows != other._rows || _cols != other._cols)
-            {
-                for (size_t i = 0; i < _rows; i++)
-                    for (size_t j = 0; j < _cols; j++)
-                        temp._ptrData[i][j] = _ptrData[i][j];
-                return temp;
-            }
-            else
-            {
-                for (size_t i = 0; i < _rows; i++)
-                    for (size_t j = 0; j < _cols; j++)
-                        temp._ptrData[i][j] = other._ptrData[i][j] + _ptrData[i][j];
-            }
-            //std::cout << "Matrix::operator + END \n";
+            for (size_t i = 0; i < _rows; i++)
+                for (size_t j = 0; j < _cols; j++)
+                    temp._ptrData[i][j] = other._ptrData[i][j] + _ptrData[i][j];
+
             return temp;
         }
 
         Matrix operator-(const Matrix &other) const
         {
-            //std::cout << "Matrix::operator + START \n";
+            if (_rows != other._rows || _cols != other._cols)
+                throw MatrixDimensionError("op-", "wrong dim");
 
             Matrix temp(_rows, _cols);
-            if (_rows != other._rows || _cols != other._cols)
-            {
-                for (int i = 0; i < _rows; i++)
-                    for (int j = 0; j < _cols; j++)
-                        temp._ptrData[i][j] = _ptrData[i][j];
-                return temp;
-            }
-            else
-            {
-                for (int i = 0; i < _rows; i++)
-                    for (int j = 0; j < _cols; j++)
-                        temp._ptrData[i][j] =  _ptrData[i][j] - other._ptrData[i][j];
-            }
-            //std::cout << "Matrix::operator + END \n";
+            for (int i = 0; i < _rows; i++)
+                for (int j = 0; j < _cols; j++)
+                    temp._ptrData[i][j] =  _ptrData[i][j] - other._ptrData[i][j];
+
             return temp;
         }
 
         Matrix  operator*( const Matrix &b ) const
         {
-            Matrix	ret(RowNum(), b.ColNum());
+            if( ColNum() != b.RowNum() )
+                throw MatrixDimensionError("op*", "wrong dim");
 
-            if( ColNum() == b.RowNum() )
-            {
-                for( int i=0; i<ret.RowNum(); i++ )
-                    for( int j=0; j<ret.ColNum(); j++ )
-                    {
-                        ret._ptrData[i][j] = 0;
-                        for(int k=0; k<ColNum(); k++ )
-                            ret._ptrData[i][j] += _ptrData[i][k] * b._ptrData[k][j];
-                    }
-            }
-            else
-            {				// krive dimenzije matrice
-            }
+            Matrix	ret(RowNum(), b.ColNum());
+            for( int i=0; i<ret.RowNum(); i++ )
+                for( int j=0; j<ret.ColNum(); j++ )
+                {
+                    ret._ptrData[i][j] = 0;
+                    for(int k=0; k<ColNum(); k++ )
+                        ret._ptrData[i][j] += _ptrData[i][k] * b._ptrData[k][j];
+                }
 
             return	ret;
         }
@@ -934,23 +936,29 @@ namespace MML
             return ret;
         }
 
-        friend Vector operator*( const Matrix &a, const Vector &b )
+       friend Matrix operator/(const Matrix &a, double b )
         {
             int	i, j;
-            Vector	ret(a.RowNum());
+            Matrix	ret(a.RowNum(), a.ColNum());
 
-            if( a.ColNum() == b.size() )
+            for( i=0; i<a.RowNum(); i++ )
+                for( j=0; j<a.ColNum(); j++ )
+                    ret[i][j] = a._ptrData[i][j] / b;
+
+            return ret;
+        }
+
+        friend Vector operator*( const Matrix &a, const Vector &b )
+        {
+            if( a.ColNum() != b.size() )
+                throw MatrixDimensionError("Matrix * Vector", "wrong dim");
+
+            Vector	ret(a.RowNum());
+            for( int i=0; i<a.RowNum(); i++ )
             {
-                for( i=0; i<a.RowNum(); i++ )
-                {
-                    ret[i] = 0;
-                    for( j=0; j<a.ColNum(); j++ )
-                        ret[i] += a._ptrData[i][j] * b[j];
-                }
-            }
-            else
-            {
-                std::cout << "Krive dimenzije kod mnozenja matrice i vektora !!!";
+                ret[i] = 0;
+                for( int j=0; j<a.ColNum(); j++ )
+                    ret[i] += a._ptrData[i][j] * b[j];
             }
 
             return ret;
@@ -958,22 +966,16 @@ namespace MML
 
         friend Vector operator*( const Vector &a, const Matrix &b )
         {
-            int	i, j;
-            Vector	ret(b.ColNum());
+            if( a.size() != b.RowNum() )
+                //std::string error = std::format("Hello {}!\n", "world");
+                throw MatrixDimensionError("Vector * Matrix", "Vector dim = N, Matrix row num = M");
 
-            if( a.size() == b.RowNum() )
+            Vector	ret(b.ColNum());
+            for( int i=0; i<b.ColNum(); i++ )
             {
-                for( i=0; i<b.ColNum(); i++ )
-                {
-                    ret[i] = 0;
-                    for( j=0; j<b.RowNum(); j++ )
-                        ret[i] += a[i] * b(i,j);
-                }
-            }
-            else
-            {
-                throw MatrixOperationDimensionError();
-//                std::cout << "Krive dimenzije kod mnozenja matrice i vektora !!!";
+                ret[i] = 0;
+                for( int j=0; j<b.RowNum(); j++ )
+                    ret[i] += a[i] * b(i,j);
             }
 
             return ret;
@@ -999,8 +1001,100 @@ namespace MML
             a.Print(stream, 10, 3);
 
             return stream;
-        }        
+        }   
 
+        void Invert()
+        {
+            if( RowNum() != ColNum() ) 
+                throw MatrixDimensionError("Matrix::Invert", "");
+
+            Matrix& a = *this;            
+            Matrix  b(RowNum(), 1);      // dummy rhs
+
+            b(0,0) = 1.0;
+
+            int i,icol,irow,j,k,l,ll;
+            double big,dum,pivinv;
+
+            int n=a.RowNum();
+            int m=b.ColNum();
+            std::vector<int> indxc(n),indxr(n),ipiv(n);
+            for (j=0;j<n;j++) ipiv[j]=0;
+            for (i=0;i<n;i++) {
+                big=0.0;
+                for (j=0;j<n;j++)
+                    if (ipiv[j] != 1)
+                        for (k=0;k<n;k++) {
+                            if (ipiv[k] == 0) {
+                                if (std::abs(a[j][k]) >= big) {
+                                    big=std::abs(a[j][k]);
+                                    irow=j;
+                                    icol=k;
+                                }
+                            }
+                        }
+                ++(ipiv[icol]);
+                if (irow != icol) {
+                    for (l=0;l<n;l++) std::swap(a[irow][l],a[icol][l]);
+                    for (l=0;l<m;l++) std::swap(b[irow][l],b[icol][l]);
+                }
+                indxr[i]=irow;
+                indxc[i]=icol;
+
+                if (a[icol][icol] == 0.0) 
+                    throw SingularMatrixError("Matrix::Invert, gaussj: Singular Matrix");
+
+                pivinv=1.0/a[icol][icol];
+                a[icol][icol]=1.0;
+                for (l=0;l<n;l++) a[icol][l] *= pivinv;
+                for (l=0;l<m;l++) b[icol][l] *= pivinv;
+                for (ll=0;ll<n;ll++)
+                    if (ll != icol) {
+                        dum=a[ll][icol];
+                        a[ll][icol]=0.0;
+                        for (l=0;l<n;l++) a[ll][l] -= a[icol][l]*dum;
+                        for (l=0;l<m;l++) b[ll][l] -= b[icol][l]*dum;
+                    }
+            }
+            for (l=n-1;l>=0;l--) {
+                if (indxr[l] != indxc[l])
+                    for (k=0;k<n;k++)
+                        std::swap(a[k][indxr[l]],a[k][indxc[l]]);
+            }
+        }   
+        Matrix GetInverse() const
+        {
+            if( RowNum() != ColNum() ) 
+                throw MatrixDimensionError("Matrix::GetInvert", "");
+
+            Matrix a(*this);              // making a copy, where inverse will be stored at the end
+            
+            a.Invert();
+            
+            return a;
+        }     
+
+        void Transpose()
+        {
+            // check dimensions - in place Transpose only for square matrices
+            if( RowNum() != ColNum() ) 
+                throw MatrixDimensionError("Matrix::Transpose", "");
+
+            for (size_t i = 0; i < RowNum(); i++)
+                for (size_t j = i+1; j < ColNum(); j++)
+                    std::swap(_ptrData[i][j], _ptrData[j][i]);
+        }
+
+        Matrix GetTranspose() const
+        {
+            Matrix ret(ColNum(), RowNum());
+
+            for (size_t i = 0; i < RowNum(); i++)
+                for (size_t j = 0; j < ColNum(); j++)
+                    ret((int) i, (int) j) = _ptrData[j][i];
+
+            return ret;
+        }
     };
 }
 
@@ -1010,24 +1104,16 @@ namespace MML
 
 namespace MML
 {
-
     template <int N, int M>
     class MatrixNM
     {
     public:
-        double _vals[N][M];
+        double _vals[N][M] = {{0}};
 
     public:
-        MatrixNM() 
-        {
-            for (size_t i = 0; i < N; ++i)
-                for (size_t j = 0; j < M; ++j)
-                    _vals[i][j] = 0.0;
-        }
-
+        MatrixNM() {}
         MatrixNM(std::initializer_list<double> values) 
         {
-            size_t cnt = 0;
             auto val = values.begin();
             for (size_t i = 0; i < RowNum(); ++i)
                 for (size_t j = 0; j < ColNum(); ++j)
@@ -1039,7 +1125,6 @@ namespace MML
                     else
                         _vals[i][j] = 0.0;
         }
-
         MatrixNM(const MatrixNM &m) 
         {
             for (size_t i = 0; i < RowNum(); ++i)
@@ -1100,7 +1185,7 @@ namespace MML
         //     return ret;
         // }
 
-        bool IsEqual(const MatrixNM &b, double eps) const
+        bool IsEqual(const MatrixNM &b, double eps=1e-15) const
         {
             for( int i=0; i<RowNum(); i++ )
                 for( int j=0; j<ColNum(); j++ )
@@ -1129,13 +1214,15 @@ namespace MML
         double  ElemAt(int i, int j) const 
         { 
             if( i<0 || i>=RowNum() || j<0 || j>=ColNum() )
-            {
-                throw;
-            }
+                throw MatrixAccessBoundsError("MatrixElemAt", "i=, j=, rows=, cols=");
+
             return _vals[i][j]; 
         }
         double& ElemAt(int i, int j)       
         {
+            if( i<0 || i>=RowNum() || j<0 || j>=ColNum() )
+                throw MatrixAccessBoundsError("MatrixElemAt", "i=, j=, rows=, cols=");
+
             return _vals[i][j]; 
         }
 
@@ -1180,7 +1267,19 @@ namespace MML
 
             for( i=0; i<a.RowNum(); i++ )
                 for( j=0; j<a.ColNum(); j++ )
-                    ret[i][j] = a._ptrData[i][j] * b;
+                    ret._vals[i][j] = a._vals[i][j] * b;
+
+            return ret;
+        }
+
+       friend MatrixNM operator/( const MatrixNM &a, double b )
+        {
+            int	i, j;
+            MatrixNM	ret(a.RowNum(), a.ColNum());
+
+            for( i=0; i<a.RowNum(); i++ )
+                for( j=0; j<a.ColNum(); j++ )
+                    ret._vals[i][j] = a._vals[i][j] / b;
 
             return ret;
         }
@@ -1192,7 +1291,7 @@ namespace MML
 
             for( i=0; i<b.RowNum(); i++ )
                 for( j=0; j<b.ColNum(); j++ )
-                    ret[i][j] = a * b._ptrData[i][j];
+                    ret._vals[i][j] = a * b._vals[i][j];
 
             return ret;
         }
@@ -1247,7 +1346,101 @@ namespace MML
             a.Print(stream, 10, 3);
 
             return stream;
-        }               
+        }     
+
+        void Invert()
+        {
+            if( RowNum() != ColNum() ) 
+                throw MatrixDimensionError("MatrixNM::Invert", "");
+
+            MatrixNM& a = *this;            
+            MatrixNM<N,1>  b;      // dummy rhs
+
+            b(0,0) = 1.0;
+
+            int i,icol,irow,j,k,l,ll;
+            double big,dum,pivinv;
+
+            int n=RowNum();
+            int m=b.ColNum();
+            std::vector<int> indxc(n),indxr(n),ipiv(n);
+            for (j=0;j<n;j++) ipiv[j]=0;
+            for (i=0;i<n;i++) {
+                big=0.0;
+                for (j=0;j<n;j++)
+                    if (ipiv[j] != 1)
+                        for (k=0;k<n;k++) {
+                            if (ipiv[k] == 0) {
+                                if (std::abs(a._vals[j][k]) >= big) {
+                                    big=std::abs(a._vals[j][k]);
+                                    irow=j;
+                                    icol=k;
+                                }
+                            }
+                        }
+                ++(ipiv[icol]);
+                if (irow != icol) {
+                    for (l=0;l<n;l++) std::swap(a._vals[irow][l],a._vals[icol][l]);
+                    for (l=0;l<m;l++) std::swap(b._vals[irow][l],b._vals[icol][l]);
+                }
+                indxr[i]=irow;
+                indxc[i]=icol;
+
+                if (a._vals[icol][icol] == 0.0) 
+                    throw SingularMatrixError("MatrixNM::Invert, gaussj: Singular Matrix");
+
+                pivinv=1.0/a._vals[icol][icol];
+                a._vals[icol][icol]=1.0;
+                for (l=0;l<n;l++) a._vals[icol][l] *= pivinv;
+                for (l=0;l<m;l++) b._vals[icol][l] *= pivinv;
+                for (ll=0;ll<n;ll++)
+                    if (ll != icol) {
+                        dum=a._vals[ll][icol];
+                        a._vals[ll][icol]=0.0;
+                        for (l=0;l<n;l++) a._vals[ll][l] -= a._vals[icol][l]*dum;
+                        for (l=0;l<m;l++) b._vals[ll][l] -= b._vals[icol][l]*dum;
+                    }
+            }
+            for (l=n-1;l>=0;l--) {
+                if (indxr[l] != indxc[l])
+                    for (k=0;k<n;k++)
+                        std::swap(a._vals[k][indxr[l]],a._vals[k][indxc[l]]);
+            }
+        }  
+
+        MatrixNM GetInverse() const
+        {
+            if( RowNum() != ColNum() ) 
+                throw MatrixDimensionError("MatrixNM::GetInvert", "");
+
+            MatrixNM a(*this);              // making a copy, where inverse will be stored at the end
+            
+            a.Invert();
+            
+            return a;
+        }     
+
+        void Transpose()
+        {
+            // check dimensions - in place Transpose only for square matrices
+            if( RowNum() != ColNum() ) 
+                throw MatrixDimensionError("MatrixNM::Transpose", "");
+
+            for (size_t i = 0; i < RowNum(); i++)
+                for (size_t j = i+1; j < ColNum(); j++)
+                    std::swap(_vals[i][j], _vals[j][i]);
+        }
+
+        MatrixNM<M,N> GetTranspose() const
+        {
+            MatrixNM<M,N> ret;
+
+            for (size_t i = 0; i < RowNum(); i++)
+                for (size_t j = 0; j < ColNum(); j++)
+                    ret._vals[i][j] = _vals[j][i];
+
+            return ret;
+        }             
     };
 }
 
@@ -1471,6 +1664,74 @@ namespace MML
 
 namespace MML
 {
+    class CoordSystemOrthogonalCartesian
+    {
+        Vector3Cartesian _base[3];
+
+        public:
+        CoordSystemOrthogonalCartesian(Vector3Cartesian b1, Vector3Cartesian b2, Vector3Cartesian b3)
+        {
+            _base[0] = b1;
+            _base[1] = b2;
+            _base[2] = b3;
+        }
+
+        bool isOrthogonal()
+        {
+            double a01 = ScalarProd(_base[0], _base[1]);
+            double a02 = ScalarProd(_base[0], _base[2]);
+            double a12 = ScalarProd(_base[1], _base[2]);
+
+            return sqrt(a01*a01 + a02*a02 + a12*a12) < 1e-6;
+        }
+    };
+
+    class CoordSystemObliqueCartesian
+    {
+        public:
+        Vector3Cartesian _base[3];
+        VectorN<3> _dual[3];
+
+        MatrixNM<3,3> _alpha;
+
+        MatrixNM<3,3> _transf;
+        MatrixNM<3,3> _inv;
+
+        public:
+        CoordSystemObliqueCartesian(Vector3Cartesian b1, Vector3Cartesian b2, Vector3Cartesian b3)
+        {
+            _base[0] = b1;
+            _base[1] = b2;
+            _base[2] = b3;
+
+            Vector3Cartesian cross1 = VectorProd(_base[1], _base[2]);
+            _dual[0] = (1 / (ScalarProd(_base[0], cross1))) * cross1;
+
+            Vector3Cartesian cross2 = VectorProd(_base[2], _base[0]);
+            _dual[1] = (1 / (ScalarProd(_base[1], cross2))) * cross2;
+
+            Vector3Cartesian cross3 = VectorProd(_base[0], _base[1]);
+            _dual[2] = (1 / (ScalarProd(_base[2], cross3))) * cross3;
+
+            for( int i=0; i<3; i++ )
+            {
+                for(int j=0; j<3; j++ )
+                {
+                    _alpha(i,j) =  _base[i][j];
+                    _transf(i,j) = _base[j][i];     // transponirano
+                }
+            }
+
+            _inv = _transf.GetInverse();
+
+        }
+
+        VectorN<3> Dual(int i)
+        {
+            return _dual[i];
+        }        
+    };
+
     // RECTILINEAR - konstantni bazni vektori
     // CURVILINEAR - U SVAKOJ TOCKI IMA DRUGACIJE BAZNE VEKTORE
     template<int N>
@@ -1560,7 +1821,7 @@ namespace MML
 {
     class LinAlgEqSolvers
     {
-        // staticke funkcije za low levdel rjesavanje
+        // staticke funkcije za low level rjesavanje
     };
 
     class GaussJordanSolver
@@ -1598,8 +1859,7 @@ namespace MML
                 indxc[i]=icol;
 
                 if (a[icol][icol] == 0.0) 
-                    //nrerror("gaussj: Singular Matrix");
-                    return false;
+                    throw SingularMatrixError("GaussJordanSolver::Solve - Singular Matrix");
 
                 pivinv=1.0/a[icol][icol];
                 a[icol][icol]=1.0;
@@ -1634,7 +1894,7 @@ namespace MML
         double d;
     
     public:
-        LUDecompositionSolver(Matrix  &a) : n(a.RowNum()), lu(a), refOrig(a), indx(n) 
+        LUDecompositionSolver(Matrix  &a) : n(a.RowNum()), refOrig(a), lu(a), indx(n) 
         {
             // Given a matrix a[1..n][1..n], this routine replaces it by the LU decomposition of a rowwise
             // permutation of itself. a and n are input. a is output, arranged as in equation (2.3.14) above;
@@ -1652,7 +1912,8 @@ namespace MML
                 for (j=0;j<n;j++)
                     if ((temp=std::abs(lu[i][j])) > big) big=temp;
                 if (big == 0.0) 
-                    throw("Singular matrix in LUdcmp");
+                    throw SingularMatrixError("LUDecompositionSolver::ctor - Singular Matrix");
+
                 vv[i]=1.0/big;
             }
             for (k=0;k<n;k++) {
@@ -1808,7 +2069,7 @@ namespace MML
             }
             for (i=0;i<n;i++) for (j=0;j<i;j++) el[j][i] = 0.;
         }
-        void solve(Vector &b, Vector &x) 
+        void Solve(Vector &b, Vector &x) 
         {
             // Solves the set of n linear equations A · x = b, where a is a positive-definite symmetric matrix.
             // a[1..n][1..n] and p[1..n] are input as the output of the routine choldc. Only the lower
@@ -1958,7 +2219,9 @@ namespace MML
             // solution vector on output            
             int i,j;
             double sum;
-            if (sing) throw("attempting solve in a singular QR");
+            if (sing) 
+                throw SingularMatrixError("QRDecompositionSolver::rsolve - attempting solve in a singular QR");
+
             for (i=n-1;i>=0;i--) {
                 sum=b[i];
                 for (j=i+1;j<n;j++) sum -= r[i][j]*x[j];
@@ -2080,299 +2343,299 @@ namespace MML
             return (w[0] <= 0. || w[n-1] <= 0.) ? 0. : w[n-1]/w[0];
         }
 
-    
-    void solve(Vector &b, Vector &x, double thresh = -1.) 
-    {
-        // Solves A·X = B for a vector X, where A is specified by the arrays u[1..m][1..n], w[1..n],
-        // v[1..n][1..n] as returned by svdcmp. m and n are the dimensions of a, and will be equal for
-        // square matrices. b[1..m] is the input right-hand side. x[1..n] is the output solution vector.
-        // No input quantities are destroyed, so the routine may be called sequentially with different b’s.        
-        int i,j,jj;
-        double s;
-        if (b.size() != m || x.size() != n) throw("solve bad sizes");
-        Vector tmp(n);
-        tsh = (thresh >= 0. ? thresh : 0.5*sqrt(m+n+1.)*w[0]*eps);
-        for (j=0;j<n;j++) {
-            s=0.0;
-            if (w[j] > tsh) {
-                for (i=0;i<m;i++) s += u[i][j]*b[i];
-                s /= w[j];
+        
+        void solve(Vector &b, Vector &x, double thresh = -1.) 
+        {
+            // Solves A·X = B for a vector X, where A is specified by the arrays u[1..m][1..n], w[1..n],
+            // v[1..n][1..n] as returned by svdcmp. m and n are the dimensions of a, and will be equal for
+            // square matrices. b[1..m] is the input right-hand side. x[1..n] is the output solution vector.
+            // No input quantities are destroyed, so the routine may be called sequentially with different b’s.        
+            int i,j,jj;
+            double s;
+            if (b.size() != m || x.size() != n) throw("solve bad sizes");
+            Vector tmp(n);
+            tsh = (thresh >= 0. ? thresh : 0.5*sqrt(m+n+1.)*w[0]*eps);
+            for (j=0;j<n;j++) {
+                s=0.0;
+                if (w[j] > tsh) {
+                    for (i=0;i<m;i++) s += u[i][j]*b[i];
+                    s /= w[j];
+                }
+                tmp[j]=s;
             }
-            tmp[j]=s;
-        }
-        for (j=0;j<n;j++) {
-            s=0.0;
-            for (jj=0;jj<n;jj++) s += v[j][jj]*tmp[jj];
-            x[j]=s;
-        }
-    }
-
-    void solve(Matrix &b, Matrix &x, double thresh = -1.)
-    {
-        int i,j,p=b.ColNum();
-        if (b.RowNum() != m || x.RowNum() != n || x.ColNum() != p)
-            throw("solve bad sizes");
-        Vector xx(n),bcol(m);
-        for (j=0;j<p;j++) {
-            for (i=0;i<m;i++) bcol[i] = b[i][j];
-            solve(bcol,xx,thresh);
-            for (i=0;i<n;i++) x[i][j] = xx[i];
-        }
-    }
-    int rank(double thresh = -1.) {
-        int j,nr=0;
-        tsh = (thresh >= 0. ? thresh : 0.5*sqrt(m+n+1.)*w[0]*eps);
-        for (j=0;j<n;j++) if (w[j] > tsh) nr++;
-        return nr;
-    }
-
-    int nullity(double thresh = -1.) {
-        int j,nn=0;
-        tsh = (thresh >= 0. ? thresh : 0.5*sqrt(m+n+1.)*w[0]*eps);
-        for (j=0;j<n;j++) if (w[j] <= tsh) nn++;
-        return nn;
-    }
-
-    Matrix range(double thresh = -1.){
-        int i,j,nr=0;
-        Matrix rnge(m,rank(thresh));
-        for (j=0;j<n;j++) {
-            if (w[j] > tsh) {
-                for (i=0;i<m;i++) rnge[i][nr] = u[i][j];
-                nr++;
+            for (j=0;j<n;j++) {
+                s=0.0;
+                for (jj=0;jj<n;jj++) s += v[j][jj]*tmp[jj];
+                x[j]=s;
             }
         }
-        return rnge;
-    }
 
-    Matrix nullspace(double thresh = -1.){
-        int j,jj,nn=0;
-        Matrix nullsp(n,nullity(thresh));
-        for (j=0;j<n;j++) {
-            if (w[j] <= tsh) {
-                for (jj=0;jj<n;jj++) nullsp[jj][nn] = v[jj][j];
-                nn++;
+        void solve(Matrix &b, Matrix &x, double thresh = -1.)
+        {
+            int i,j,p=b.ColNum();
+            if (b.RowNum() != m || x.RowNum() != n || x.ColNum() != p)
+                throw("solve bad sizes");
+            Vector xx(n),bcol(m);
+            for (j=0;j<p;j++) {
+                for (i=0;i<m;i++) bcol[i] = b[i][j];
+                solve(bcol,xx,thresh);
+                for (i=0;i<n;i++) x[i][j] = xx[i];
             }
         }
-        return nullsp;
-    }
-    void decompose() {
-        bool flag;
-        int i,its,j,jj,k,l,nm;
-        double anorm,c,f,g,h,s,scale,x,y,z;
-        Vector rv1(n);
-        g = scale = anorm = 0.0;
-        for (i=0;i<n;i++) {
-            l=i+2;
-            rv1[i]=scale*g;
-            g=s=scale=0.0;
-            if (i < m) {
-                for (k=i;k<m;k++) scale += std::abs(u[k][i]);
-                if (scale != 0.0) {
-                    for (k=i;k<m;k++) {
-                        u[k][i] /= scale;
-                        s += u[k][i]*u[k][i];
-                    }
-                    f=u[i][i];
-                    g = -SIGN(sqrt(s),f);
-                    h=f*g-s;
-                    u[i][i]=f-g;
-                    for (j=l-1;j<n;j++) {
-                        for (s=0.0,k=i;k<m;k++) s += u[k][i]*u[k][j];
-                        f=s/h;
-                        for (k=i;k<m;k++) u[k][j] += f*u[k][i];
-                    }
-                    for (k=i;k<m;k++) u[k][i] *= scale;
+        int rank(double thresh = -1.) {
+            int j,nr=0;
+            tsh = (thresh >= 0. ? thresh : 0.5*sqrt(m+n+1.)*w[0]*eps);
+            for (j=0;j<n;j++) if (w[j] > tsh) nr++;
+            return nr;
+        }
+
+        int nullity(double thresh = -1.) {
+            int j,nn=0;
+            tsh = (thresh >= 0. ? thresh : 0.5*sqrt(m+n+1.)*w[0]*eps);
+            for (j=0;j<n;j++) if (w[j] <= tsh) nn++;
+            return nn;
+        }
+
+        Matrix range(double thresh = -1.){
+            int i,j,nr=0;
+            Matrix rnge(m,rank(thresh));
+            for (j=0;j<n;j++) {
+                if (w[j] > tsh) {
+                    for (i=0;i<m;i++) rnge[i][nr] = u[i][j];
+                    nr++;
                 }
             }
-            w[i]=scale *g;
-            g=s=scale=0.0;
-            if (i+1 <= m && i+1 != n) {
-                for (k=l-1;k<n;k++) scale += std::abs(u[i][k]);
-                if (scale != 0.0) {
-                    for (k=l-1;k<n;k++) {
-                        u[i][k] /= scale;
-                        s += u[i][k]*u[i][k];
-                    }
-                    f=u[i][l-1];
-                    g = -SIGN(sqrt(s),f);
-                    h=f*g-s;
-                    u[i][l-1]=f-g;
-                    for (k=l-1;k<n;k++) rv1[k]=u[i][k]/h;
-                    for (j=l-1;j<m;j++) {
-                        for (s=0.0,k=l-1;k<n;k++) s += u[j][k]*u[i][k];
-                        for (k=l-1;k<n;k++) u[j][k] += s*rv1[k];
-                    }
-                    for (k=l-1;k<n;k++) u[i][k] *= scale;
-                }
-            }
-            anorm=std::max(anorm,(std::abs(w[i])+std::abs(rv1[i])));
+            return rnge;
         }
-        for (i=n-1;i>=0;i--) {
-            if (i < n-1) {
-                if (g != 0.0) {
-                    for (j=l;j<n;j++)
-                        v[j][i]=(u[i][j]/u[i][l])/g;
-                    for (j=l;j<n;j++) {
-                        for (s=0.0,k=l;k<n;k++) s += u[i][k]*v[k][j];
-                        for (k=l;k<n;k++) v[k][j] += s*v[k][i];
-                    }
+
+        Matrix nullspace(double thresh = -1.){
+            int j,jj,nn=0;
+            Matrix nullsp(n,nullity(thresh));
+            for (j=0;j<n;j++) {
+                if (w[j] <= tsh) {
+                    for (jj=0;jj<n;jj++) nullsp[jj][nn] = v[jj][j];
+                    nn++;
                 }
-                    for (j=l;j<n;j++) v[i][j]=v[j][i]=0.0;
-                }
-                v[i][i]=1.0;
-                g=rv1[i];
-                l=i;
             }
-            for (i=std::min(m,n)-1;i>=0;i--) {
-                l=i+1;
-                g=w[i];
-                for (j=l;j<n;j++) u[i][j]=0.0;
-                if (g != 0.0) {
-                    g=1.0/g;
-                    for (j=l;j<n;j++) {
-                        for (s=0.0,k=l;k<m;k++) s += u[k][i]*u[k][j];
-                        f=(s/u[i][i])*g;
-                        for (k=i;k<m;k++) u[k][j] += f*u[k][i];
-                    }
-                    for (j=i;j<m;j++) u[j][i] *= g;
-                } else for (j=i;j<m;j++) u[j][i]=0.0;
-                ++u[i][i];
-            }
-            for (k=n-1;k>=0;k--) {
-                for (its=0;its<30;its++) {
-                    flag=true;
-                    for (l=k;l>=0;l--) {
-                        nm=l-1;
-                        if (l == 0 || std::abs(rv1[l]) <= eps*anorm) {
-                            flag=false;
-                            break;
+            return nullsp;
+        }
+        void decompose() {
+            bool flag;
+            int i,its,j,jj,k,l,nm;
+            double anorm,c,f,g,h,s,scale,x,y,z;
+            Vector rv1(n);
+            g = scale = anorm = 0.0;
+            for (i=0;i<n;i++) {
+                l=i+2;
+                rv1[i]=scale*g;
+                g=s=scale=0.0;
+                if (i < m) {
+                    for (k=i;k<m;k++) scale += std::abs(u[k][i]);
+                    if (scale != 0.0) {
+                        for (k=i;k<m;k++) {
+                            u[k][i] /= scale;
+                            s += u[k][i]*u[k][i];
                         }
-                        if (std::abs(w[nm]) <= eps*anorm) break;
+                        f=u[i][i];
+                        g = -SIGN(sqrt(s),f);
+                        h=f*g-s;
+                        u[i][i]=f-g;
+                        for (j=l-1;j<n;j++) {
+                            for (s=0.0,k=i;k<m;k++) s += u[k][i]*u[k][j];
+                            f=s/h;
+                            for (k=i;k<m;k++) u[k][j] += f*u[k][i];
+                        }
+                        for (k=i;k<m;k++) u[k][i] *= scale;
                     }
-                    if (flag) {
-                        c=0.0;
-                        s=1.0;
-                        for (i=l;i<k+1;i++) {
-                            f=s*rv1[i];
-                            rv1[i]=c*rv1[i];
-                            if (std::abs(f) <= eps*anorm) break;
-                            g=w[i];
-                            h=pythag(f,g);
-                            w[i]=h;
-                            h=1.0/h;
-                            c=g*h;
-                            s = -f*h;
-                            for (j=0;j<m;j++) {
-                                y=u[j][nm];
-                                z=u[j][i];
-                                u[j][nm]=y*c+z*s;
-                                u[j][i]=z*c-y*s;
+                }
+                w[i]=scale *g;
+                g=s=scale=0.0;
+                if (i+1 <= m && i+1 != n) {
+                    for (k=l-1;k<n;k++) scale += std::abs(u[i][k]);
+                    if (scale != 0.0) {
+                        for (k=l-1;k<n;k++) {
+                            u[i][k] /= scale;
+                            s += u[i][k]*u[i][k];
+                        }
+                        f=u[i][l-1];
+                        g = -SIGN(sqrt(s),f);
+                        h=f*g-s;
+                        u[i][l-1]=f-g;
+                        for (k=l-1;k<n;k++) rv1[k]=u[i][k]/h;
+                        for (j=l-1;j<m;j++) {
+                            for (s=0.0,k=l-1;k<n;k++) s += u[j][k]*u[i][k];
+                            for (k=l-1;k<n;k++) u[j][k] += s*rv1[k];
+                        }
+                        for (k=l-1;k<n;k++) u[i][k] *= scale;
+                    }
+                }
+                anorm=std::max(anorm,(std::abs(w[i])+std::abs(rv1[i])));
+            }
+            for (i=n-1;i>=0;i--) {
+                if (i < n-1) {
+                    if (g != 0.0) {
+                        for (j=l;j<n;j++)
+                            v[j][i]=(u[i][j]/u[i][l])/g;
+                        for (j=l;j<n;j++) {
+                            for (s=0.0,k=l;k<n;k++) s += u[i][k]*v[k][j];
+                            for (k=l;k<n;k++) v[k][j] += s*v[k][i];
+                        }
+                    }
+                        for (j=l;j<n;j++) v[i][j]=v[j][i]=0.0;
+                    }
+                    v[i][i]=1.0;
+                    g=rv1[i];
+                    l=i;
+                }
+                for (i=std::min(m,n)-1;i>=0;i--) {
+                    l=i+1;
+                    g=w[i];
+                    for (j=l;j<n;j++) u[i][j]=0.0;
+                    if (g != 0.0) {
+                        g=1.0/g;
+                        for (j=l;j<n;j++) {
+                            for (s=0.0,k=l;k<m;k++) s += u[k][i]*u[k][j];
+                            f=(s/u[i][i])*g;
+                            for (k=i;k<m;k++) u[k][j] += f*u[k][i];
+                        }
+                        for (j=i;j<m;j++) u[j][i] *= g;
+                    } else for (j=i;j<m;j++) u[j][i]=0.0;
+                    ++u[i][i];
+                }
+                for (k=n-1;k>=0;k--) {
+                    for (its=0;its<30;its++) {
+                        flag=true;
+                        for (l=k;l>=0;l--) {
+                            nm=l-1;
+                            if (l == 0 || std::abs(rv1[l]) <= eps*anorm) {
+                                flag=false;
+                                break;
+                            }
+                            if (std::abs(w[nm]) <= eps*anorm) break;
+                        }
+                        if (flag) {
+                            c=0.0;
+                            s=1.0;
+                            for (i=l;i<k+1;i++) {
+                                f=s*rv1[i];
+                                rv1[i]=c*rv1[i];
+                                if (std::abs(f) <= eps*anorm) break;
+                                g=w[i];
+                                h=pythag(f,g);
+                                w[i]=h;
+                                h=1.0/h;
+                                c=g*h;
+                                s = -f*h;
+                                for (j=0;j<m;j++) {
+                                    y=u[j][nm];
+                                    z=u[j][i];
+                                    u[j][nm]=y*c+z*s;
+                                    u[j][i]=z*c-y*s;
+                                }
                             }
                         }
+                        z=w[k];
+                        if (l == k) {
+                            if (z < 0.0) {
+                                w[k] = -z;
+                                for (j=0;j<n;j++) v[j][k] = -v[j][k];
+                            }
+                            break;
+                        }
+                        if (its == 29) throw("no convergence in 30 svdcmp iterations");
+                        x=w[l];
+                        nm=k-1;
+                        y=w[nm];
+                        g=rv1[nm];
+                        h=rv1[k];
+                        f=((y-z)*(y+z)+(g-h)*(g+h))/(2.0*h*y);
+                        g=pythag(f,1.0);
+                        f=((x-z)*(x+z)+h*((y/(f+SIGN(g,f)))-h))/x;
+                        c=s=1.0;
+                        for (j=l;j<=nm;j++) {
+                            i=j+1;
+                            g=rv1[i];
+                            y=w[i];
+                            h=s*g;
+                            g=c*g;
+                            z=pythag(f,h);
+                            rv1[j]=z;
+                            c=f/z;
+                            s=h/z;
+                            f=x*c+g*s;
+                            g=g*c-x*s;
+                            h=y*s;
+                            y *= c;
+                            for (jj=0;jj<n;jj++) {
+                                x=v[jj][j];
+                                z=v[jj][i];
+                                v[jj][j]=x*c+z*s;
+                                v[jj][i]=z*c-x*s;
+                            }
+                            z=pythag(f,h);
+                            w[j]=z;
+                            if (z) {
+                                z=1.0/z;
+                                c=f*z;
+                                s=h*z;
+                            }
+                            f=c*g+s*y;
+                            x=c*y-s*g;
+                            for (jj=0;jj<m;jj++) {
+                                y=u[jj][j];
+                                z=u[jj][i];
+                                u[jj][j]=y*c+z*s;
+                                u[jj][i]=z*c-y*s;
+                            }
+                        }
+                        rv1[l]=0.0;
+                        rv1[k]=f;
+                        w[k]=x;
                     }
-                    z=w[k];
-                    if (l == k) {
-                        if (z < 0.0) {
-                            w[k] = -z;
-                            for (j=0;j<n;j++) v[j][k] = -v[j][k];
-                        }
-                        break;
-                    }
-                    if (its == 29) throw("no convergence in 30 svdcmp iterations");
-                    x=w[l];
-                    nm=k-1;
-                    y=w[nm];
-                    g=rv1[nm];
-                    h=rv1[k];
-                    f=((y-z)*(y+z)+(g-h)*(g+h))/(2.0*h*y);
-                    g=pythag(f,1.0);
-                    f=((x-z)*(x+z)+h*((y/(f+SIGN(g,f)))-h))/x;
-                    c=s=1.0;
-                    for (j=l;j<=nm;j++) {
-                        i=j+1;
-                        g=rv1[i];
-                        y=w[i];
-                        h=s*g;
-                        g=c*g;
-                        z=pythag(f,h);
-                        rv1[j]=z;
-                        c=f/z;
-                        s=h/z;
-                        f=x*c+g*s;
-                        g=g*c-x*s;
-                        h=y*s;
-                        y *= c;
-                        for (jj=0;jj<n;jj++) {
-                            x=v[jj][j];
-                            z=v[jj][i];
-                            v[jj][j]=x*c+z*s;
-                            v[jj][i]=z*c-x*s;
-                        }
-                        z=pythag(f,h);
-                        w[j]=z;
-                        if (z) {
-                            z=1.0/z;
-                            c=f*z;
-                            s=h*z;
-                        }
-                        f=c*g+s*y;
-                        x=c*y-s*g;
-                        for (jj=0;jj<m;jj++) {
-                            y=u[jj][j];
-                            z=u[jj][i];
-                            u[jj][j]=y*c+z*s;
-                            u[jj][i]=z*c-y*s;
-                        }
-                    }
-                    rv1[l]=0.0;
-                    rv1[k]=f;
-                    w[k]=x;
                 }
             }
-        }
 
-        void reorder() {
-            int i,j,k,s,inc=1;
-            double sw;
-            Vector su(m), sv(n);
-            do { inc *= 3; inc++; } while (inc <= n);
-            do {
-                inc /= 3;
-                for (i=inc;i<n;i++) {
-                    sw = w[i];
-                    for (k=0;k<m;k++) su[k] = u[k][i];
-                    for (k=0;k<n;k++) sv[k] = v[k][i];
-                    j = i;
-                    while (w[j-inc] < sw) {
-                        w[j] = w[j-inc];
-                        for (k=0;k<m;k++) u[k][j] = u[k][j-inc];
-                        for (k=0;k<n;k++) v[k][j] = v[k][j-inc];
-                        j -= inc;
-                        if (j < inc) break;
+            void reorder() {
+                int i,j,k,s,inc=1;
+                double sw;
+                Vector su(m), sv(n);
+                do { inc *= 3; inc++; } while (inc <= n);
+                do {
+                    inc /= 3;
+                    for (i=inc;i<n;i++) {
+                        sw = w[i];
+                        for (k=0;k<m;k++) su[k] = u[k][i];
+                        for (k=0;k<n;k++) sv[k] = v[k][i];
+                        j = i;
+                        while (w[j-inc] < sw) {
+                            w[j] = w[j-inc];
+                            for (k=0;k<m;k++) u[k][j] = u[k][j-inc];
+                            for (k=0;k<n;k++) v[k][j] = v[k][j-inc];
+                            j -= inc;
+                            if (j < inc) break;
+                        }
+                        w[j] = sw;
+                        for (k=0;k<m;k++) u[k][j] = su[k];
+                        for (k=0;k<n;k++) v[k][j] = sv[k];
+
                     }
-                    w[j] = sw;
-                    for (k=0;k<m;k++) u[k][j] = su[k];
-                    for (k=0;k<n;k++) v[k][j] = sv[k];
-
-                }
-            } while (inc > 1);
-            for (k=0;k<n;k++) {
-                s=0;
-                for (i=0;i<m;i++) if (u[i][k] < 0.) s++;
-                for (j=0;j<n;j++) if (v[j][k] < 0.) s++;
-                if (s > (m+n)/2) {
-                    for (i=0;i<m;i++) u[i][k] = -u[i][k];
-                    for (j=0;j<n;j++) v[j][k] = -v[j][k];
+                } while (inc > 1);
+                for (k=0;k<n;k++) {
+                    s=0;
+                    for (i=0;i<m;i++) if (u[i][k] < 0.) s++;
+                    for (j=0;j<n;j++) if (v[j][k] < 0.) s++;
+                    if (s > (m+n)/2) {
+                        for (i=0;i<m;i++) u[i][k] = -u[i][k];
+                        for (j=0;j<n;j++) v[j][k] = -v[j][k];
+                    }
                 }
             }
-        }
 
-        double pythag(const double a, const double b) {
-            double absa=std::abs(a), absb=std::abs(b);
-            return (absa > absb ? absa*sqrt(1.0+SQR(absb/absa)) :
-                (absb == 0.0 ? 0.0 : absb*sqrt(1.0+SQR(absa/absb))));
-        }
+            double pythag(const double a, const double b) {
+                double absa=std::abs(a), absb=std::abs(b);
+                return (absa > absb ? absa*sqrt(1.0+SQR(absb/absa)) :
+                    (absb == 0.0 ? 0.0 : absb*sqrt(1.0+SQR(absa/absb))));
+            }
     };
 } // end namespace
 ///////////////////////////   ./include/algorithms/EigenSystemSolvers.h   ///////////////////////////
@@ -2557,7 +2820,7 @@ namespace MML
     class Derivation
     {
     public:
-        double make_xph_representable(double x, double  h)
+        static double make_xph_representable(double x, double  h)
         {
             using std::numeric_limits;
             // Redefine h so that x + h is representable. Not using this trick leads to large error.
@@ -2611,7 +2874,6 @@ namespace MML
             {
                 double ym = f(x - h);
                 double ypph = std::abs(yh - 2 * y0 + ym) / h;
-                // h*|f''(x)|*0.5 + (|f(x+h)+|f(x)|)*eps/h
                 *error = ypph / 2 + (std::abs(yh) + std::abs(y0))*eps / h;
             }
             return diff / h;
@@ -2655,7 +2917,7 @@ namespace MML
         {
             double h = 2 * sqrt(std::numeric_limits<double>::epsilon());
 
-            return NDer1PartialByAll(f, point, error);
+            return NDer1PartialByAll(f, point, h, error);
         }
 
         template <int N>
@@ -2700,7 +2962,6 @@ namespace MML
                 x[deriv_index] = x_orig - h;
                 double ym = f(x)[func_index];
                 double ypph = std::abs(yh - 2 * y0 + ym) / h;
-                // h*|f''(x)|*0.5 + (|f(x+h)+|f(x)|)*eps/h
                 *error = ypph / 2 + (std::abs(yh) + std::abs(y0))*eps / h;
             }
             return diff / h;
@@ -2793,7 +3054,7 @@ namespace MML
             const double eps = (std::numeric_limits<double>::epsilon)();
             double h = std::pow(3 * eps, static_cast<double>(1) / static_cast<double>(3));
 
-            return NDer2PartialByAll(f, point, error);
+            return NDer2PartialByAll(f, point, h, error);
         }
 
         template <int N>
@@ -2818,7 +3079,7 @@ namespace MML
             const double eps = (std::numeric_limits<double>::epsilon)();
             double h = std::pow(3 * eps, static_cast<double>(1) / static_cast<double>(3));
 
-            return NDer2Partial(f, func_index, deriv_index, point, error);
+            return NDer2Partial(f, func_index, deriv_index, point, h, error);
         }        
 
         template <int N>
@@ -2961,7 +3222,7 @@ namespace MML
             const double eps = (std::numeric_limits<double>::epsilon)();
             double h = std::pow(11.25*eps, (double)1 / (double)5);
 
-            return NDer4PartialByAll(f, point, error);
+            return NDer4PartialByAll(f, point, h, error);
         }
 
         template <int N>
@@ -3031,7 +3292,7 @@ namespace MML
         /********                               Numerical derivatives of SIXTH order                                 ********/
         /********************************************************************************************************************/
 
-        double NDer6(const MML::IRealFunction &f, double x, double* error = nullptr)
+        static double NDer6(const MML::IRealFunction &f, double x, double* error = nullptr)
         {
             const double eps = (std::numeric_limits<double>::epsilon)();
             // Error bound ~eps^6/7
@@ -3057,11 +3318,164 @@ namespace MML
             return (y3 + 9 * y2 + 45 * y1) / (60 * h);
         }
 
+        static double NDer6(const MML::IRealFunction &f, double x, double h, double* error = nullptr)
+        {
+            const double eps = (std::numeric_limits<double>::epsilon)();
+
+            double yh = f(x + h);
+            double ymh = f(x - h);
+            double y1 = yh - ymh;
+            double y2 = f(x - 2 * h) - f(x + 2 * h);
+            double y3 = f(x + 3 * h) - f(x - 3 * h);
+
+            if (error)
+            {
+                double y7 = (f(x + 4 * h) - f(x - 4 * h) - 6 * y3 - 14 * y1 - 14 * y2) / 2;
+                *error = std::abs(y7) / (140 * h) + 5 * (std::abs(yh) + std::abs(ymh))*eps / h;
+            }
+            return (y3 + 9 * y2 + 45 * y1) / (60 * h);
+        }        
+
+        template <int N>
+        static double NDer6Partial(const IScalarFunction<N> &f, int deriv_index, const VectorN<N> &point, double *error = nullptr)
+        {
+            const double eps = (std::numeric_limits<double>::epsilon)();
+            double h = std::pow(eps / 168, (double)1 / (double)7);
+
+            return NDer6Partial(f, deriv_index, point, h, error);
+        }
+
+        template <int N>
+        static double NDer6Partial(const IScalarFunction<N> &f, int deriv_index, const VectorN<N> &point, double h, double *error = nullptr)
+        {
+            const double eps = (std::numeric_limits<double>::epsilon)();
+
+            double     orig_x = point[deriv_index];
+
+            VectorN<N> x{point};
+
+            x[deriv_index] = orig_x + h;
+            double yh = f(x);
+
+            x[deriv_index] = orig_x - h;
+            double ymh = f(x);
+
+            x[deriv_index] = orig_x - 2 * h;
+            double ym2h = f(x);
+
+            x[deriv_index] = orig_x + 2 * h;
+            double y2h = f(x);
+
+            x[deriv_index] = orig_x - 3 * h;
+            double ym3h = f(x);
+
+            x[deriv_index] = orig_x + 3 * h;
+            double y3h = f(x);
+
+            double y1 = yh - ymh;
+            double y2 = ym2h - y2h;
+            double y3 = y3h - ym3h;
+
+            if (error)
+            {
+                x[deriv_index] = orig_x + 4 * h;
+                double y4h = f(x);
+
+                x[deriv_index] = orig_x - 4 * h;
+                double ym4h = f(x);
+
+                double y7 = (y4h - ym4h - 6 * y3 - 14 * y1 - 14 * y2) / 2;
+                *error = std::abs(y7) / (140 * h) + 5 * (std::abs(yh) + std::abs(ymh))*eps / h;
+            }
+            return (y3 + 9 * y2 + 45 * y1) / (60 * h);
+        }
+
+        template <int N>
+        static VectorN<N> NDer6PartialByAll(const IScalarFunction<N> &f, const VectorN<N> &point, VectorN<N> *error = nullptr)
+        {
+            const double eps = (std::numeric_limits<double>::epsilon)();
+            double h = std::pow(eps / 168, (double)1 / (double)7);
+
+            return NDer6PartialByAll(f, point, h, error);
+        }
+
+        template <int N>
+        static VectorN<N> NDer6PartialByAll(const IScalarFunction<N> &f, const VectorN<N> &point, double h, VectorN<N> *error = nullptr)
+        {
+            VectorN<N> ret;
+
+            for( int i=0; i<N; i++)
+            {
+                if( error )
+                    ret[i] = NDer6Partial(f, i, point, h, &(*error)[i]);
+                else
+                    ret[i] = NDer6Partial(f, i, point, h);
+            }
+
+            return ret;
+        }
+
+
+        template <int N>
+        static double NDer6Partial(const IVectorFunction<N> &f, int func_index, int deriv_index, const VectorN<N> &point, double *error = nullptr)
+        {
+            const double eps = (std::numeric_limits<double>::epsilon)();
+            double h = std::pow(eps / 168, (double)1 / (double)7);
+
+            return NDer6Partial(f, func_index, deriv_index, point, h, error);
+        }
+
+        template <int N>
+        static double NDer6Partial(const IVectorFunction<N> &f, int func_index, int deriv_index, const VectorN<N> &point, double h, double *error = nullptr)
+        {
+            const double eps = (std::numeric_limits<double>::epsilon)();
+
+            double     orig_x = point[deriv_index];
+
+            VectorN<N> x{point};
+
+            x[deriv_index] = orig_x + h;
+            double yh = f(x)[func_index];
+
+            x[deriv_index] = orig_x - h;
+            double ymh = f(x)[func_index];
+
+            x[deriv_index] = orig_x - 2 * h;
+            double ym2h = f(x)[func_index];
+
+            x[deriv_index] = orig_x + 2 * h;
+            double y2h = f(x)[func_index];
+
+            x[deriv_index] = orig_x - 3 * h;
+            double ym3h = f(x)[func_index];
+
+            x[deriv_index] = orig_x + 3 * h;
+            double y3h = f(x)[func_index];
+
+            double y1 = yh - ymh;
+            double y2 = ym2h - y2h;
+            double y3 = y3h - ym3h;
+
+            if (error)
+            {
+                x[deriv_index] = orig_x + 4 * h;
+                double y4h = f(x)[func_index];
+
+                x[deriv_index] = orig_x - 4 * h;
+                double ym4h = f(x)[func_index];
+
+                double y7 = (y4h - ym4h - 6 * y3 - 14 * y1 - 14 * y2) / 2;
+                *error = std::abs(y7) / (140 * h) + 5 * (std::abs(yh) + std::abs(ymh))*eps / h;
+            }
+            return (y3 + 9 * y2 + 45 * y1) / (60 * h);
+        }
+
+
         /********************************************************************************************************************/
         /********                               Numerical derivatives of EIGHTH order                                ********/
         /********************************************************************************************************************/
 
-        double NDer8(const MML::IRealFunction &f, double x, double* error = nullptr)
+        static double NDer8(const MML::IRealFunction &f, double x, double* error = nullptr)
         {
             const double eps = (std::numeric_limits<double>::epsilon)();
             // Error bound ~eps^8/9.
@@ -3093,8 +3507,185 @@ namespace MML
                 *error = std::abs(f9) / (630 * h) + 7 * (std::abs(yh) + std::abs(ymh))*eps / h;
             }
             return (tmp1 + tmp2) / (105 * h);
-        }              
+        }
 
+        static double NDer8(const MML::IRealFunction &f, double x, double h, double* error = nullptr)
+        {
+            const double eps = (std::numeric_limits<double>::epsilon)();
+
+            double yh = f(x + h);
+            double ymh = f(x - h);
+            double y1 = yh - ymh;
+            double y2 = f(x - 2 * h) - f(x + 2 * h);
+            double y3 = f(x + 3 * h) - f(x - 3 * h);
+            double y4 = f(x - 4 * h) - f(x + 4 * h);
+
+            double tmp1 = 3 * y4 / 8 + 4 * y3;
+            double tmp2 = 21 * y2 + 84 * y1;
+
+            if (error)
+            {
+                double f9 = (f(x + 5 * h) - f(x - 5 * h)) / 2 + 4 * y4 + 27 * y3 / 2 + 24 * y2 + 21 * y1;
+                *error = std::abs(f9) / (630 * h) + 7 * (std::abs(yh) + std::abs(ymh))*eps / h;
+            }
+            return (tmp1 + tmp2) / (105 * h);
+        }       
+
+        template <int N>
+        static double NDer8Partial(const IScalarFunction<N> &f, int deriv_index, const VectorN<N> &point, double *error = nullptr)
+        {
+            const double eps = (std::numeric_limits<double>::epsilon)();
+            double h = std::pow(551.25*eps, (double)1 / (double)9);
+
+            return NDer8Partial(f, deriv_index, point, h, error);
+        }
+
+        template <int N>
+        static double NDer8Partial(const IScalarFunction<N> &f, int deriv_index, const VectorN<N> &point, double h, double *error = nullptr)
+        {
+            const double eps = (std::numeric_limits<double>::epsilon)();
+
+            double     orig_x = point[deriv_index];
+
+            VectorN<N> x{point};
+
+            x[deriv_index] = orig_x + h;
+            double yh = f(x);
+
+            x[deriv_index] = orig_x - h;
+            double ymh = f(x);
+
+            x[deriv_index] = orig_x - 2 * h;
+            double ym2h = f(x);
+
+            x[deriv_index] = orig_x + 2 * h;
+            double y2h = f(x);
+
+            x[deriv_index] = orig_x - 3 * h;
+            double ym3h = f(x);
+
+            x[deriv_index] = orig_x + 3 * h;
+            double y3h = f(x);
+
+            x[deriv_index] = orig_x - 4 * h;
+            double ym4h = f(x);
+
+            x[deriv_index] = orig_x + 4 * h;
+            double y4h = f(x);
+
+            double y1 = yh - ymh;
+            double y2 = ym2h - y2h;
+            double y3 = y3h - ym3h;
+            double y4 = ym4h - y4h;
+
+            double tmp1 = 3 * y4 / 8 + 4 * y3;
+            double tmp2 = 21 * y2 + 84 * y1;
+
+            if (error)
+            {
+                x[deriv_index] = orig_x + 5 * h;
+                double y5h = f(x);
+
+                x[deriv_index] = orig_x - 5 * h;
+                double ym5h = f(x);
+
+                double f9 = (y5h - ym5h) / 2 + 4 * y4 + 27 * y3 / 2 + 24 * y2 + 21 * y1;
+                *error = std::abs(f9) / (630 * h) + 7 * (std::abs(yh) + std::abs(ymh))*eps / h;
+
+            }
+
+            return (tmp1 + tmp2) / (105 * h);            
+        }
+
+        template <int N>
+        static VectorN<N> NDer8PartialByAll(const IScalarFunction<N> &f, const VectorN<N> &point, VectorN<N> *error = nullptr)
+        {
+            const double eps = (std::numeric_limits<double>::epsilon)();
+            double h = std::pow(551.25*eps, (double)1 / (double)9);
+
+            return NDer8PartialByAll(f, point, h, error);
+        }
+
+        template <int N>
+        static VectorN<N> NDer8PartialByAll(const IScalarFunction<N> &f, const VectorN<N> &point, double h, VectorN<N> *error = nullptr)
+        {
+            VectorN<N> ret;
+
+            for( int i=0; i<N; i++)
+            {
+                if( error )
+                    ret[i] = NDer8Partial(f, i, point, h, &(*error)[i]);
+                else
+                    ret[i] = NDer8Partial(f, i, point, h);
+            }
+
+            return ret;
+        }
+
+        template <int N>
+        static double NDer8Partial(const IVectorFunction<N> &f, int func_index, int deriv_index, const VectorN<N> &point, double *error = nullptr)
+        {
+            const double eps = (std::numeric_limits<double>::epsilon)();
+            double h = std::pow(551.25*eps, (double)1 / (double)9);
+
+            return NDer8Partial(f, func_index, deriv_index, point, h, error);
+        }
+
+        template <int N>
+        static double NDer8Partial(const IVectorFunction<N> &f, int func_index, int deriv_index, const VectorN<N> &point, double h, double *error = nullptr)
+        {
+            const double eps = (std::numeric_limits<double>::epsilon)();
+
+            double     orig_x = point[deriv_index];
+
+            VectorN<N> x{point};
+
+            x[deriv_index] = orig_x + h;
+            double yh = f(x)[func_index];
+
+            x[deriv_index] = orig_x - h;
+            double ymh = f(x)[func_index];
+
+            x[deriv_index] = orig_x - 2 * h;
+            double ym2h = f(x)[func_index];
+
+            x[deriv_index] = orig_x + 2 * h;
+            double y2h = f(x)[func_index];
+
+            x[deriv_index] = orig_x - 3 * h;
+            double ym3h = f(x)[func_index];
+
+            x[deriv_index] = orig_x + 3 * h;
+            double y3h = f(x)[func_index];
+
+            x[deriv_index] = orig_x - 4 * h;
+            double ym4h = f(x)[func_index];
+
+            x[deriv_index] = orig_x + 4 * h;
+            double y4h = f(x)[func_index];
+
+            double y1 = yh - ymh;
+            double y2 = ym2h - y2h;
+            double y3 = y3h - ym3h;
+            double y4 = ym4h - y4h;
+
+            double tmp1 = 3 * y4 / 8 + 4 * y3;
+            double tmp2 = 21 * y2 + 84 * y1;
+
+            if (error)
+            {
+                x[deriv_index] = orig_x + 5 * h;
+                double y5h = f(x)[func_index];
+
+                x[deriv_index] = orig_x - 5 * h;
+                double ym5h = f(x)[func_index];
+
+                double f9 = (y5h - ym5h) / 2 + 4 * y4 + 27 * y3 / 2 + 24 * y2 + 21 * y1;
+                *error = std::abs(f9) / (630 * h) + 7 * (std::abs(yh) + std::abs(ymh))*eps / h;
+            }
+
+            return (tmp1 + tmp2) / (105 * h);            
+        }        
 
         static inline double(*Derive)(const MML::IRealFunction &f, double x, double* error) = Derivation::NDer1;
 
@@ -3109,58 +3700,58 @@ namespace MML
 
 namespace MML
 {
-    template<int N>
-    class ICoordTransf
-    {
-        public:
-        virtual VectorN<N> transf(VectorN<N> in) = 0;       // transfCoord
-        //virtual VectorN<N> inverseTransf(VectorN<N> in) = 0;
+    // template<int N>
+    // class ICoordTransfTest
+    // {
+    //     public:
+    //     virtual VectorN<N> transf(VectorN<N> in) = 0;       // transfCoord
+    //     //virtual VectorN<N> inverseTransf(VectorN<N> in) = 0;
 
-        virtual IScalarFunction<N>& coordTransfFunc(int i) = 0;
-        virtual IScalarFunction<N>& inverseCoordTransfFunc(int i) = 0;
+    //     virtual IScalarFunction<N>& coordTransfFunc(int i) = 0;
+    //     virtual IScalarFunction<N>& inverseCoordTransfFunc(int i) = 0;
 
-        // transf contravariant vector
-        VectorN<N> contravariantTransf(VectorN<N> &vec, VectorN<N> &pos)
-        {
-            VectorN<N> ret;
+    //     // transf contravariant vector
+    //     VectorN<N> contravariantTransf(VectorN<N> &vec, VectorN<N> &pos)
+    //     {
+    //         VectorN<N> ret;
 
-            for( int i=0; i<N; i++ )
-            {
-                ret[i] = 0;
-                for( int j=0; j<N; j++)
-                {
-                    ret[i] += Derivation::NDer1Partial(inverseCoordTransfFunc(i), j, pos, 1e-8) * vec[j];
-                }
-            }
+    //         for( int i=0; i<N; i++ )
+    //         {
+    //             ret[i] = 0;
+    //             for( int j=0; j<N; j++)
+    //             {
+    //                 ret[i] += Derivation::NDer1Partial(inverseCoordTransfFunc(i), j, pos, 1e-8) * vec[j];
+    //             }
+    //         }
 
-            return ret;
-        }
+    //         return ret;
+    //     }
 
-        // transform covariant vector
-        VectorN<N> covariantTransf(VectorN<N> &vec, VectorN<N> &pos)
-        {
-            VectorN<N> ret;
+    //     // transform covariant vector
+    //     VectorN<N> covariantTransf(VectorN<N> &vec, VectorN<N> &pos)
+    //     {
+    //         VectorN<N> ret;
 
-            for( int i=0; i<N; i++ )
-            {
-                ret[i] = 0;
-                for( int j=0; j<N; j++)
-                {
-                    ret[i] += Derivation::NDer1Partial(coordTransfFunc(j), i, pos, 1e-8) * vec[j];
-                }
-            }
+    //         for( int i=0; i<N; i++ )
+    //         {
+    //             ret[i] = 0;
+    //             for( int j=0; j<N; j++)
+    //             {
+    //                 ret[i] += Derivation::NDer1Partial(coordTransfFunc(j), i, pos, 1e-8) * vec[j];
+    //             }
+    //         }
 
-            return ret;
-        }
+    //         return ret;
+    //     }
 
-        // transform tensor
-    };
+    //     // transform tensor
+    // };
 
 
 
 
     template<typename VectorFrom, typename VectorTo, int N>
-    class ICoordTransfTest
+    class ICoordTransf
     {
         public:
         virtual VectorTo    transf(const VectorFrom &in) = 0;       // transfCoord
@@ -3168,6 +3759,13 @@ namespace MML
 
         virtual IScalarFunction<N>& coordTransfFunc(int i) = 0;
         virtual IScalarFunction<N>& inverseCoordTransfFunc(int i) = 0;
+
+        virtual VectorTo getUnitVector(int ind, const VectorFrom &pos)
+        {
+            VectorTo ret;
+
+            return ret;
+        }
 
         // transf contravariant vector
         VectorTo contravariantTransf(const VectorFrom &vec, const VectorFrom &pos) 
@@ -3179,13 +3777,13 @@ namespace MML
                 ret[j] = 0;
                 for( int k=0; k<N; k++)
                 {
-                    ret[j] += Derivation::NDer1Partial(coordTransfFunc(j), k, pos, 1e-8) * vec[j];
+                    ret[j] += Derivation::NDer1Partial(coordTransfFunc(j), k, pos, 1e-8) * vec[k];
                 }
             }
 
             return ret;
         }
-        VectorFrom contravariantTransf(const VectorTo &vec, const VectorTo &pos) 
+        VectorFrom contravariantTransfInverse(const VectorTo &vec, const VectorTo &pos) 
         {
             VectorFrom ret;
 
@@ -3202,22 +3800,6 @@ namespace MML
         }
 
         // transform covariant vector
-        VectorFrom covariantTransf(const VectorTo &vec, const VectorFrom &pos)
-        {
-            VectorFrom ret;
-
-            for( int k=0; k<N; k++ )
-            {
-                ret[k] = 0;
-                for( int j=0; j<N; j++)
-                {
-                    ret[k] += Derivation::NDer1Partial(coordTransfFunc(j), k, pos, 1e-8) * vec[j];
-                }
-            }
-
-            return ret;
-        }
-
         VectorTo covariantTransf(const VectorFrom &vec, const VectorTo &pos)
         {
             VectorTo ret;
@@ -3233,6 +3815,22 @@ namespace MML
 
             return ret;
         }
+
+        VectorFrom covariantTransfInverse(const VectorTo &vec, const VectorFrom &pos)
+        {
+            VectorFrom ret;
+
+            for( int k=0; k<N; k++ )
+            {
+                ret[k] = 0;
+                for( int j=0; j<N; j++)
+                {
+                    ret[k] += Derivation::NDer1Partial(coordTransfFunc(j), k, pos, 1e-8) * vec[j];
+                }
+            }
+
+            return ret;
+        }        
 
         // transform tensor
     };    
@@ -3257,10 +3855,10 @@ namespace MML
                 return 0.0;
             }
 
-            TensorRank2 Transform(ICoordTransf<N> &a)
-            {
-                return TensorRank2{};
-            }
+            // TensorRank2 Transform(ICoordTransfTest<N> &a)
+            // {
+            //     return TensorRank2{};
+            // }
     };
 
     template <int N>
@@ -3509,6 +4107,7 @@ namespace MML
         return true;
     }
 
+    // TODO - unused function
     static void polin2(Vector &x1a, Vector &x2a, Matrix &ya, const double x1,
                 const double x2, double &y, double &dy)
     // Given arrays x1a[1..m] and x2a[1..n] of independent variables, and a submatrix of function
@@ -3530,6 +4129,7 @@ namespace MML
         polint(x1a,ymtmp,x1,y,dy);
     }
 
+    // TODO - unused function
     static bool ratint(Vector &xa, Vector &ya, const double x, double &y, double &dy)
     {
         // Given arrays xa[1..n] and ya[1..n], and given a value of x, this routine returns a value of
@@ -3582,6 +4182,133 @@ namespace MML
 
 namespace MML
 {
+	class Integration
+	{
+		public:
+
+			static double TrapRefine(IRealFunction &func, const double a, const double b, const int n)
+			{
+				// This routine computes the nth stage of refinement of an extended trapezoidal rule. func is input
+				// as a pointer to the function to be integrated between limits a and b, also input. When called with
+				// n=1, the routine returns the crudest estimate of Rab f(x)dx. Subsequent calls with n=2,3,...
+				// (in that sequential order) will improve the accuracy by adding 2n-2 additional interior points.
+
+				double x,tnm,sum,del;
+				static double s;
+				int it,j;
+
+				if (n == 1) {
+					return (s=0.5*(b-a)*(func(a)+func(b)));
+				} else {
+					for (it=1,j=1;j<n-1;j++) it <<= 1;
+					tnm=it;
+					del=(b-a)/tnm;
+					x=a+0.5*del;
+					for (sum=0.0,j=0;j<it;j++,x+=del) sum += func(x);
+					s=0.5*(s+(b-a)*sum/tnm);
+					return s;
+				}
+			}
+
+			static double IntegrateTrap(IRealFunction &func, const double a, const double b)
+			{
+				// Returns the integral of the function func from a to b. The parameters EPS can be set to the
+				// desired fractional accuracy and JMAX so that 2 to the power JMAX-1 is the maximum allowed
+				// number of steps. Integration is performed by the trapezoidal rule.
+
+				// Unsophisticated as it is, routine qtrap is in fact a fairly robust way of doing
+				// integrals of functions that are not very smooth. Increased sophistication will usually
+				// translate into a higher-order method whose efficiency will be greater only for
+				// sufficiently smooth integrands. qtrap is the method of choice, e.g., for an integrand
+				// which is a function of a variable that is linearly interpolated between measured data
+				// points. Be sure that you do not require too stringent an EPS, however: If qtrap takes
+				// too many steps in trying to achieve your required accuracy, accumulated roundoff
+				// errors may start increasing, and the routine may never converge. A value 10−6
+				// is just on the edge of trouble for most 32-bit machines; it is achievable when the
+				// convergence is moderately rapid, but not otherwise.
+
+				const int JMAX=20;
+				const double EPS=1.0e-10;
+				int j;
+				double s,olds=0.0;
+
+				for (j=0;j<JMAX;j++) {
+					s=TrapRefine(func,a,b,j+1);
+					if (j > 5)
+						if (std::abs(s-olds) < EPS*std::abs(olds) ||
+							(s == 0.0 && olds == 0.0)) 
+							return s;
+					olds=s;
+				}
+				// nrerror("Too many steps in routine qtrap");
+				return 0.0;
+			}
+
+			static double IntegrateSimpson(IRealFunction &func, const double a, const double b)
+			{
+				// Returns the integral of the function func from a to b. The parameters EPS can be set to the
+				// desired fractional accuracy and JMAX so that 2 to the power JMAX-1 is the maximum allowed
+				// number of steps. Integration is performed by Simpson’s rule.
+
+				// The routine qsimp will in general be more efficient than qtrap (i.e., require
+				// fewer function evaluations) when the function to be integrated has a finite 4th
+				// derivative (i.e., a continuous 3rd derivative). The combination of qsimp and its
+				// necessary workhorse trapzd is a good one for light-duty work.
+
+				const int JMAX=20;
+				const double EPS=1.0e-10;
+				int j;
+				double s,st,ost=0.0,os=0.0;
+
+				for (j=0;j<JMAX;j++) {
+					st=TrapRefine(func,a,b,j+1);
+					s=(4.0*st-ost)/3.0;
+					if (j > 5)
+						if (std::abs(s-os) < EPS*std::abs(os) ||
+							(s == 0.0 && os == 0.0)) 
+							return s;
+					os=s;
+					ost=st;
+				}
+				//nrerror("Too many steps in routine qsimp");
+				return 0.0;
+			}
+
+			static double IntegrateRomberg(IRealFunction &func, double a, double b)
+			{
+				// Returns the integral of the function func from a to b. Integration is performed by Romberg’s
+				// method of order 2K, where, e.g., K=2 is Simpson’s rule.
+
+				// The routine qromb, along with its required trapzd and polint, is quite
+				// powerful for sufficiently smooth (e.g., analytic) integrands, integrated over intervals
+				// which contain no singularities, and where the endoubleoints are also nonsingular. qromb,
+				// in such circumstances, takes many, many fewer function evaluations than either of
+				// the routines in x4.2
+
+				const int JMAX=20, JMAXP=JMAX+1, K=5;
+				const double EPS=1.0e-10;
+				double ss,dss;
+				Vector s(JMAX),h(JMAXP),s_t(K),h_t(K);
+				int i,j;
+
+				h[0]=1.0;
+				for (j=1;j<=JMAX;j++) {
+					s[j-1]=TrapRefine(func,a,b,j);
+					if (j >= K) {
+						for (i=0;i<K;i++) {
+							h_t[i]=h[j-K+i];
+							s_t[i]=s[j-K+i];
+						}
+						polint(h_t,s_t,0.0,ss,dss);
+						if (std::abs(dss) <= EPS*std::abs(ss)) return ss;
+					}
+					h[j]=0.25*h[j-1];
+				}
+				//nrerror("Too many steps in routine qromb");
+				return 0.0;
+			}
+	};
+
 	static double trapzd(double func(const double), const double a, const double b, const int n)
 	{
 		// This routine computes the nth stage of refinement of an extended trapezoidal rule. func is input
