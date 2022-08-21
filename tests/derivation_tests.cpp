@@ -287,3 +287,8 @@ TEST_CASE("Test_NDer8Partial", "[simple]")
     REQUIRE(fDer(point, 2) == Approx(der3).epsilon(1e-9));
     REQUIRE(fDer(point, 2) != Approx(der3).epsilon(1e-10));
 }
+
+TEST_CASE("Verify_vector_equation1")
+{
+    
+}

@@ -26,9 +26,9 @@ int main(int, char**)
 {
     // Demo_CoordSystem();
     // Demo_CoordTransf();
-    Demo_Derivation();
+    // Demo_Derivation();
     // Demo_DiffEqSolvers();
-    // Demo_Field_operations();
+    Demo_Field_operations();
     // Demo_Function();
     // Demo_Geometry();
     // Demo_Integration();

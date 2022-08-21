@@ -1,4 +1,4 @@
-#ifndef  MML_SINGLE_HEADER
+#ifndef MML_SINGLE_HEADER
 #define MML_SINGLE_HEADER
 
 #include <exception>
@@ -25,10 +25,23 @@
 
 
 
-static const double DerivationDefaultStep = 1e-6;
-
 namespace MML
 {
+    class DefaultParams
+    {
+        public:
+        static inline const double DerivationDefaultStep = 1e-6;
+        
+        static inline const int    IntegrateTrapJMAX = 20;
+        static inline const double IntegrateTrapEPS = 1.0e-10;
+
+        static inline const int    IntegrateSimpJMAX = 20;
+        static inline const double IntegrateSimpEPS = 1.0e-10;
+
+        static inline const int    IntegrateRombJMAX = 20;
+        static inline const double IntegrateRombEPS = 1.0e-10;
+    };
+
 	class VectorDimensionError : public std::invalid_argument
 	{
 		public:
@@ -67,6 +80,17 @@ namespace MML
 		std::string _operation;
 
 		SingularMatrixError(std::string inOperation) : std::domain_error(inOperation)
+		{
+			_operation = inOperation;
+		}
+	};	
+
+    class IntegrationTooManySteps : public std::domain_error
+	{
+		public:
+		std::string _operation;
+
+		IntegrationTooManySteps(std::string inOperation) : std::domain_error(inOperation)
 		{
 			_operation = inOperation;
 		}
@@ -148,7 +172,7 @@ namespace MML
         }
     };
 
-    class TabulatedValues1D
+    class TabulatedValues1D : public ITabulatedValues1D
     {
     private:
         double _x1, _x2;
@@ -1448,46 +1472,53 @@ namespace MML
 
 namespace MML
 {
-	class	Polynom
+    // ovo će biti generalni polinom
+    template <typename _Field, typename _CoefType = double>
+    class Polynom
+    {
+
+    };
+
+	class	PolynomReal
 	{
 	private:
 		int			m_nDegree;
 		double	*m_pdCoef;
 
 	public:
-		Polynom();
-		Polynom( int n );
-		Polynom( const Polynom &Copy );
-		~Polynom();
+		PolynomReal();
+		PolynomReal( int n );
+		PolynomReal( const PolynomReal &Copy );
+		~PolynomReal();
 
-		friend	int			GetDegree( const Polynom &a );
-		friend	int			GetRealDegree( const Polynom & a );
-		friend	double	GetCoef( const Polynom &a, int CoefNum );
-		friend	double	GetLeadingCoef( const Polynom &a );
-		friend	void		ReducePolynom( Polynom *a );
+		friend	int			GetDegree( const PolynomReal &a );
+		friend	int			GetRealDegree( const PolynomReal & a );
+		friend	double	GetCoef( const PolynomReal &a, int CoefNum );
+		friend	double	GetLeadingCoef( const PolynomReal &a );
+		friend	void		ReducePolynom( PolynomReal *a );
 
 		double		Val( double x );
-		Polynom		operator+( const Polynom &b ) const;
-		Polynom		operator-( const Polynom &a ) const;
-		Polynom		operator*( const Polynom &b ) const;
-		Polynom		operator/( const Polynom &b ) const;
-		Polynom		operator%( const Polynom &b ) const;	// dijeljenje po modulu (ostatak)
-		Polynom&	operator=( const Polynom &b );
+		PolynomReal		operator+( const PolynomReal &b ) const;
+		PolynomReal		operator-( const PolynomReal &a ) const;
+		PolynomReal		operator*( const PolynomReal &b ) const;
+		PolynomReal		operator/( const PolynomReal &b ) const;
+		PolynomReal		operator%( const PolynomReal &b ) const;	// dijeljenje po modulu (ostatak)
+		PolynomReal&	operator=( const PolynomReal &b );
 
-		Polynom		operator+=( const Polynom &b );
-		Polynom		operator-=( const Polynom &b );
-		Polynom		operator*=( const Polynom &b );
-		Polynom		operator*=( const double b );
-		Polynom		operator/=( const double &b );
+		PolynomReal		operator+=( const PolynomReal &b );
+		PolynomReal		operator-=( const PolynomReal &b );
+		PolynomReal		operator*=( const PolynomReal &b );
+		PolynomReal		operator*=( const double b );
+		PolynomReal		operator/=( const double &b );
 	//	Polynom		operator/=( const Polynom &b );
 
 		double&		operator[]( int i );
 
-		friend	Polynom	operator*( double a, const Polynom &b );
-		friend	Polynom	operator*( const Polynom &a, double b );
+		friend	PolynomReal	operator*( double a, const PolynomReal &b );
+		friend	PolynomReal	operator*( const PolynomReal &a, double b );
 
-		friend	void	Input( Polynom *a );
-		friend	void	Print( const Polynom &a );
+		friend	void	Input( PolynomReal *a );
+		friend	void	Print( const PolynomReal &a );
 	};
 }
 ///////////////////////////   ./include/basic_types/MatrixSparse.h   ///////////////////////////
@@ -1726,10 +1757,8 @@ namespace MML
 
         }
 
-        VectorN<3> Dual(int i)
-        {
-            return _dual[i];
-        }        
+        VectorN<3> Base(int i) { return _base[i]; }
+        VectorN<3> Dual(int i) { return _dual[i]; }        
     };
 
     // RECTILINEAR - konstantni bazni vektori
@@ -2338,11 +2367,9 @@ namespace MML
             tsh = 0.5*sqrt(m+n+1.)*w[0]*eps;
         }
 
-
         double inv_condition() {
             return (w[0] <= 0. || w[n-1] <= 0.) ? 0. : w[n-1]/w[0];
         }
-
         
         void solve(Vector &b, Vector &x, double thresh = -1.) 
         {
@@ -2595,47 +2622,47 @@ namespace MML
                 }
             }
 
-            void reorder() {
-                int i,j,k,s,inc=1;
-                double sw;
-                Vector su(m), sv(n);
-                do { inc *= 3; inc++; } while (inc <= n);
-                do {
-                    inc /= 3;
-                    for (i=inc;i<n;i++) {
-                        sw = w[i];
-                        for (k=0;k<m;k++) su[k] = u[k][i];
-                        for (k=0;k<n;k++) sv[k] = v[k][i];
-                        j = i;
-                        while (w[j-inc] < sw) {
-                            w[j] = w[j-inc];
-                            for (k=0;k<m;k++) u[k][j] = u[k][j-inc];
-                            for (k=0;k<n;k++) v[k][j] = v[k][j-inc];
-                            j -= inc;
-                            if (j < inc) break;
-                        }
-                        w[j] = sw;
-                        for (k=0;k<m;k++) u[k][j] = su[k];
-                        for (k=0;k<n;k++) v[k][j] = sv[k];
+        void reorder() {
+            int i,j,k,s,inc=1;
+            double sw;
+            Vector su(m), sv(n);
+            do { inc *= 3; inc++; } while (inc <= n);
+            do {
+                inc /= 3;
+                for (i=inc;i<n;i++) {
+                    sw = w[i];
+                    for (k=0;k<m;k++) su[k] = u[k][i];
+                    for (k=0;k<n;k++) sv[k] = v[k][i];
+                    j = i;
+                    while (w[j-inc] < sw) {
+                        w[j] = w[j-inc];
+                        for (k=0;k<m;k++) u[k][j] = u[k][j-inc];
+                        for (k=0;k<n;k++) v[k][j] = v[k][j-inc];
+                        j -= inc;
+                        if (j < inc) break;
+                    }
+                    w[j] = sw;
+                    for (k=0;k<m;k++) u[k][j] = su[k];
+                    for (k=0;k<n;k++) v[k][j] = sv[k];
 
-                    }
-                } while (inc > 1);
-                for (k=0;k<n;k++) {
-                    s=0;
-                    for (i=0;i<m;i++) if (u[i][k] < 0.) s++;
-                    for (j=0;j<n;j++) if (v[j][k] < 0.) s++;
-                    if (s > (m+n)/2) {
-                        for (i=0;i<m;i++) u[i][k] = -u[i][k];
-                        for (j=0;j<n;j++) v[j][k] = -v[j][k];
-                    }
+                }
+            } while (inc > 1);
+            for (k=0;k<n;k++) {
+                s=0;
+                for (i=0;i<m;i++) if (u[i][k] < 0.) s++;
+                for (j=0;j<n;j++) if (v[j][k] < 0.) s++;
+                if (s > (m+n)/2) {
+                    for (i=0;i<m;i++) u[i][k] = -u[i][k];
+                    for (j=0;j<n;j++) v[j][k] = -v[j][k];
                 }
             }
+        }
 
-            double pythag(const double a, const double b) {
-                double absa=std::abs(a), absb=std::abs(b);
-                return (absa > absb ? absa*sqrt(1.0+SQR(absb/absa)) :
-                    (absb == 0.0 ? 0.0 : absb*sqrt(1.0+SQR(absa/absb))));
-            }
+        double pythag(const double a, const double b) {
+            double absa=std::abs(a), absb=std::abs(b);
+            return (absa > absb ? absa*sqrt(1.0+SQR(absb/absa)) :
+                (absb == 0.0 ? 0.0 : absb*sqrt(1.0+SQR(absa/absb))));
+        }
     };
 } // end namespace
 ///////////////////////////   ./include/algorithms/EigenSystemSolvers.h   ///////////////////////////
@@ -2690,6 +2717,42 @@ namespace MML
             return val[component];
         }
     };
+
+    //////////////////////////////////////////////////////////////////////
+    template<int N, int M>
+    class IVectorFunctionNM : public IFunction<VectorN<M>, const VectorN<N> &>
+    {
+        public:
+        virtual VectorN<M> operator()(const VectorN<N> &x) const = 0;
+        virtual double operator()(VectorN<N> &x, int component) const
+        {
+            VectorN<M> val = (*this)(x);
+            return val[component];
+        }
+    };
+
+    //////////////////////////////////////////////////////////////////////
+    template<int N>
+    class IParametricCurve : public IFunction<const VectorN<N>, double>
+    {
+        public:
+        virtual VectorN<N> operator()(double x) const = 0;
+    };
+
+    //////////////////////////////////////////////////////////////////////
+    template<int N>
+    class IParametricSurface : public IFunction<const VectorN<N>, const VectorN<2>>
+    {
+        public:
+        virtual VectorN<N> operator()(const VectorN<2> &coord) const = 0;
+        virtual VectorN<N> operator()(double u, double w) const
+        {
+            VectorN<2> coord{u,w};
+
+            return operator()(coord);
+        }
+    };
+
 }
 
 ///////////////////////////   ./include/basic_types/Function.h   ///////////////////////////
@@ -2725,8 +2788,7 @@ namespace MML
         public:
         double (*_func)(const VectorN<N> &);
 
-        ScalarFunctionFromFuncPtr( double (*inFunc)(const VectorN<N> &) ) : _func(inFunc)
-        {}
+        ScalarFunctionFromFuncPtr( double (*inFunc)(const VectorN<N> &) ) : _func(inFunc)    {}
 
         double operator()(const VectorN<N> &x) const  { return _func(x); }
     };
@@ -2737,8 +2799,7 @@ namespace MML
         public:
         std::function<double(const VectorN<N> &)> _func;
 
-        ScalarFunctionFromStdFunc(std::function<double(const VectorN<N> &)> inFunc) : _func(inFunc)
-        {}
+        ScalarFunctionFromStdFunc(std::function<double(const VectorN<N> &)> inFunc) : _func(inFunc)     {}
 
         double operator()(const VectorN<N> &x) const  { return _func(x); }
     };
@@ -2750,8 +2811,7 @@ namespace MML
         public:
         VectorN<N> (*_func)(const VectorN<N> &);
 
-        VectorFunctionFromFuncPtr( VectorN<N> (*inFunc)(const VectorN<N> &) ) : _func(inFunc)
-        {}
+        VectorFunctionFromFuncPtr( VectorN<N> (*inFunc)(const VectorN<N> &) ) : _func(inFunc)      {}
 
         VectorN<N> operator()(const VectorN<N> &x) const  { return _func(x); }
     };
@@ -2765,6 +2825,53 @@ namespace MML
 
         VectorN<N> operator()(const VectorN<N> &x) const   { return _func(x); }
     };
+
+    //////////////////////////////////////////////////////////////////////
+    template<int N>
+    class ParametricCurveFromFuncPtr : public IParametricCurve<N>
+    {
+        public:
+        VectorN<N> (*_func)(double);
+
+        ParametricCurveFromFuncPtr( VectorN<N> (*inFunc)(double) ) : _func(inFunc)    {}
+
+        VectorN<N> operator()(double x) const  { return _func(x); }
+    };
+
+    template<int N>
+    class ParametricCurveFromStdFunc : public IParametricCurve<N>
+    {
+        public:
+        std::function<VectorN<N>(double)> _func;
+
+        ParametricCurveFromStdFunc(std::function<VectorN<N>(double)> &inFunc) : _func(inFunc)    {}
+
+        VectorN<N> operator()(double x) const   { return _func(x); }
+    };
+
+
+    //////////////////////////////////////////////////////////////////////
+    template<int N>
+    class ParametricSurfaceFromFuncPtr : public IParametricSurface<N>
+    {
+        public:
+        VectorN<N> (*_func)(const VectorN<2> &);
+
+        ParametricSurfaceFromFuncPtr( VectorN<N> (*inFunc)(const VectorN<2> &) ) : _func(inFunc)    {}
+
+        VectorN<N> operator()(const VectorN<2> &x) const  { return _func(x); }
+    };
+
+    template<int N>
+    class ParametricSurfaceFromStdFunc : public IParametricSurface<N>
+    {
+        public:
+        std::function<VectorN<N>(const VectorN<2> &)> _func;
+
+        ParametricSurfaceFromStdFunc(std::function<VectorN<N>(const VectorN<2> &)> &inFunc) : _func(inFunc)    {}
+
+        VectorN<N> operator()(const VectorN<2> &x) const   { return _func(x); }
+    };    
 } // end namespace
 
 ///////////////////////////   ./include/basic_types/InterpolatedFunction.h   ///////////////////////////
@@ -2785,17 +2892,51 @@ namespace MML
         double operator()(double x) const    { return 0.0; }
     };
 
-    template<int N>    
-    class InterpolatedScalarFunction : public IScalarFunction<N>
+    class InterpolatedScalarFunction2D : public IScalarFunction<2>
     {
         public:
-        InterpolatedScalarFunction() 
+        InterpolatedScalarFunction2D() {}
+
+        double operator()(const VectorN<2> &x) const    { return 0.0; }
+        virtual double operator()(double u, double w)
         {
+            VectorN<2> coord{u,w};
 
-        }
-
-        double operator()(VectorN<N> x) const    { return 0.0; }
+            return operator()(coord);
+        }        
     };
+
+    class InterpolatedScalarFunction3D : public IScalarFunction<3>
+    {
+        public:
+        InterpolatedScalarFunction3D() {}
+
+        double operator()(const VectorN<3> &x) const    { return 0.0; }
+        virtual double operator()(double u, double w, double z)
+        {
+            VectorN<3> coord{u,w,z};
+
+            return operator()(coord);
+        }            
+    };
+
+    template<int N>
+    class InterpolatedCurve : public IParametricCurve<N>
+    {
+        public:
+        InterpolatedCurve() {}
+
+        VectorN<N> operator()(double x) const    { return VectorN<N>{}; }
+    };
+
+    template<int N>
+    class InterpolatedSurface : public IParametricSurface<N>
+    {
+        public:
+        InterpolatedSurface() {}
+
+        VectorN<N> operator()(const VectorN<2> &x) const    { return VectorN<N>{}; }
+    };       
 }
 
 ///////////////////////////   ./include/basic_types/DeltaFunction.h   ///////////////////////////
@@ -2812,6 +2953,7 @@ namespace MML
 }
 
 ///////////////////////////   ./include/algorithms/Derivation.h   ///////////////////////////
+
 
 
 
@@ -2839,7 +2981,6 @@ namespace MML
         /********************************************************************************************************************/
         /********                               Numerical derivatives of FIRST order                                 ********/
         /********************************************************************************************************************/
-
         static double NDer1(const MML::IRealFunction &f, double x, double* error = nullptr)
         {
             const double eps = std::numeric_limits<double>::epsilon();
@@ -2937,11 +3078,11 @@ namespace MML
         }
 
         template <int N>
-        static double NDer1Partial(const IVectorFunction<N> &f, int deriv_index, const VectorN<N> &point, double *error = nullptr)
+        static double NDer1Partial(const IVectorFunction<N> &f, int func_index, int deriv_index, const VectorN<N> &point, double *error = nullptr)
         {
             double h = 2 * sqrt(std::numeric_limits<double>::epsilon());
 
-            return NDer1Partial(f, deriv_index, point, h, error);
+            return NDer1Partial(f, func_index, deriv_index, point, h, error);
         }
 
         template <int N>
@@ -2967,10 +3108,58 @@ namespace MML
             return diff / h;
         }
 
+        template <int N>
+        static VectorN<N> NDer1PartialByAll(const IVectorFunction<N> &f, int func_index, const VectorN<N> &point, VectorN<N> *error = nullptr)
+        {
+            double h = 2 * sqrt(std::numeric_limits<double>::epsilon());
+
+            return NDer1PartialByAll(f, func_index, point, h, error);
+        }
+
+        template <int N>
+        static VectorN<N> NDer1PartialByAll(const IVectorFunction<N> &f, int func_index, const VectorN<N> &point, double h, VectorN<N> *error = nullptr)
+        {
+            VectorN<N> ret;
+
+            for( int i=0; i<N; i++)
+            {
+                if( error )
+                    ret[i] = NDer1Partial(f, func_index, i, point, h, &(*error)[i]);
+                else
+                    ret[i] = NDer1Partial(f, func_index, i, point, h);
+            }
+
+            return ret;         
+        }
+
+        template <int N>
+        static MatrixNM<N,N> NDer1PartialAllByAll(const IVectorFunction<N> &f, const VectorN<N> &point, MatrixNM<N,N> *error = nullptr)
+        {
+            double h = 2 * sqrt(std::numeric_limits<double>::epsilon());
+
+            return NDer1PartialAllByAll(f, point, h, error);
+        }
+
+        template <int N>
+        static MatrixNM<N,N> NDer1PartialAllByAll(const IVectorFunction<N> &f, const VectorN<N> &point, double h, MatrixNM<N,N> *error = nullptr)
+        {
+            MatrixNM<N,N> ret;
+
+            for( int i=0; i<N; i++)
+                for( int j=0; j<N; j++)
+                {
+                    if( error )
+                        ret(i,j) = NDer1Partial(f, i, j, point, h, &((*error)(i,j)));
+                    else
+                        ret(i,j) = NDer1Partial(f, i, j, point, h);
+                }
+
+            return ret;         
+        }
+
         /********************************************************************************************************************/
         /********                               Numerical derivatives of SECOND order                                 ********/
         /********************************************************************************************************************/
-
         static double NDer2(const MML::IRealFunction &f, double x, double* error = nullptr)
         {
             const double eps = (std::numeric_limits<double>::epsilon)();
@@ -3115,7 +3304,6 @@ namespace MML
         /********************************************************************************************************************/
         /********                               Numerical derivatives of FOURTH order                                 ********/
         /********************************************************************************************************************/
-
         static double NDer4(const MML::IRealFunction &f, double x, double* error = nullptr)
         {
             const double eps = (std::numeric_limits<double>::epsilon)();
@@ -3247,7 +3435,7 @@ namespace MML
             const double eps = (std::numeric_limits<double>::epsilon)();
             double h = std::pow(11.25*eps, (double)1 / (double)5);
 
-            return NDer4Partial(f, deriv_index, point, h, error);
+            return NDer4Partial(f, func_index, deriv_index, point, h, error);
         }
 
         template <int N>
@@ -3291,7 +3479,6 @@ namespace MML
         /********************************************************************************************************************/
         /********                               Numerical derivatives of SIXTH order                                 ********/
         /********************************************************************************************************************/
-
         static double NDer6(const MML::IRealFunction &f, double x, double* error = nullptr)
         {
             const double eps = (std::numeric_limits<double>::epsilon)();
@@ -3415,7 +3602,6 @@ namespace MML
             return ret;
         }
 
-
         template <int N>
         static double NDer6Partial(const IVectorFunction<N> &f, int func_index, int deriv_index, const VectorN<N> &point, double *error = nullptr)
         {
@@ -3470,11 +3656,9 @@ namespace MML
             return (y3 + 9 * y2 + 45 * y1) / (60 * h);
         }
 
-
         /********************************************************************************************************************/
         /********                               Numerical derivatives of EIGHTH order                                ********/
         /********************************************************************************************************************/
-
         static double NDer8(const MML::IRealFunction &f, double x, double* error = nullptr)
         {
             const double eps = (std::numeric_limits<double>::epsilon)();
@@ -3687,9 +3871,23 @@ namespace MML
             return (tmp1 + tmp2) / (105 * h);            
         }        
 
-        static inline double(*Derive)(const MML::IRealFunction &f, double x, double* error) = Derivation::NDer1;
+        static inline double(*Derive)(const MML::IRealFunction &f, double x, double* error) = Derivation::NDer4;
+        
+        template<int N>
+        static inline double(*DerivePartial)(const IScalarFunction<N> &f, int deriv_index, const VectorN<N> &point, double *error) = Derivation::NDer4Partial;
 
-    };
+        template<int N>
+        static inline VectorN<N>(*DerivePartialAll)(const IScalarFunction<N> &f, const VectorN<N> &point, VectorN<N> *error) = Derivation::NDer4PartialByAll;
+
+        template<int N>
+        static inline double(*DeriveVecPartial)(const IVectorFunction<N> &f, int func_index, int deriv_index, const VectorN<N> &point, double *error) = Derivation::NDer4Partial;
+
+        template<int N>
+        static inline VectorN<N>(*DeriveVecPartialAll)(const IVectorFunction<N> &f, int func_index, const VectorN<N> &point, VectorN<N> *error) = Derivation::NDer1PartialByAll;
+
+        template<int N>
+        static inline MatrixNM<N,N>(*DeriveVecPartialAllByAll)(const IVectorFunction<N> &f, const VectorN<N> &point, MatrixNM<N,N> *error) = Derivation::NDer1PartialAllByAll;
+};
 
 
 }
@@ -4186,251 +4384,133 @@ namespace MML
 	{
 		public:
 
-			static double TrapRefine(IRealFunction &func, const double a, const double b, const int n)
-			{
-				// This routine computes the nth stage of refinement of an extended trapezoidal rule. func is input
-				// as a pointer to the function to be integrated between limits a and b, also input. When called with
-				// n=1, the routine returns the crudest estimate of Rab f(x)dx. Subsequent calls with n=2,3,...
-				// (in that sequential order) will improve the accuracy by adding 2n-2 additional interior points.
+        static double TrapRefine(IRealFunction &func, const double a, const double b, const int n)
+        {
+            // This routine computes the nth stage of refinement of an extended trapezoidal rule. func is input
+            // as a pointer to the function to be integrated between limits a and b, also input. When called with
+            // n=1, the routine returns the crudest estimate of Rab f(x)dx. Subsequent calls with n=2,3,...
+            // (in that sequential order) will improve the accuracy by adding 2n-2 additional interior points.
+            double x,tnm,sum,del;
+            static double s;
+            int it,j;
 
-				double x,tnm,sum,del;
-				static double s;
-				int it,j;
+            if (n == 1) {
+                return (s=0.5*(b-a)*(func(a)+func(b)));
+            } else 
+            {
+                for (it=1,j=1;j<n-1;j++) 
+                    it <<= 1;
+            
+                tnm=it;
+                del=(b-a)/tnm;
+                x=a+0.5*del;
+            
+                for (sum=0.0,j=0;j<it;j++,x+=del) 
+                    sum += func(x);
+            
+                s=0.5*(s+(b-a)*sum/tnm);
+            
+                return s;
+            }
+        }
 
-				if (n == 1) {
-					return (s=0.5*(b-a)*(func(a)+func(b)));
-				} else {
-					for (it=1,j=1;j<n-1;j++) it <<= 1;
-					tnm=it;
-					del=(b-a)/tnm;
-					x=a+0.5*del;
-					for (sum=0.0,j=0;j<it;j++,x+=del) sum += func(x);
-					s=0.5*(s+(b-a)*sum/tnm);
-					return s;
-				}
-			}
+        static double IntegrateTrap(IRealFunction &func, const double a, const double b)
+        {
+            // Returns the integral of the function func from a to b. The parameters EPS can be set to the
+            // desired fractional accuracy and JMAX so that 2 to the power JMAX-1 is the maximum allowed
+            // number of steps. Integration is performed by the trapezoidal rule.
 
-			static double IntegrateTrap(IRealFunction &func, const double a, const double b)
-			{
-				// Returns the integral of the function func from a to b. The parameters EPS can be set to the
-				// desired fractional accuracy and JMAX so that 2 to the power JMAX-1 is the maximum allowed
-				// number of steps. Integration is performed by the trapezoidal rule.
+            // Unsophisticated as it is, routine qtrap is in fact a fairly robust way of doing
+            // integrals of functions that are not very smooth. Increased sophistication will usually
+            // translate into a higher-order method whose efficiency will be greater only for
+            // sufficiently smooth integrands. qtrap is the method of choice, e.g., for an integrand
+            // which is a function of a variable that is linearly interpolated between measured data
+            // points. Be sure that you do not require too stringent an EPS, however: If qtrap takes
+            // too many steps in trying to achieve your required accuracy, accumulated roundoff
+            // errors may start increasing, and the routine may never converge. A value 10−6
+            // is just on the edge of trouble for most 32-bit machines; it is achievable when the
+            // convergence is moderately rapid, but not otherwise.
+            int j;
+            double s,olds=0.0;
 
-				// Unsophisticated as it is, routine qtrap is in fact a fairly robust way of doing
-				// integrals of functions that are not very smooth. Increased sophistication will usually
-				// translate into a higher-order method whose efficiency will be greater only for
-				// sufficiently smooth integrands. qtrap is the method of choice, e.g., for an integrand
-				// which is a function of a variable that is linearly interpolated between measured data
-				// points. Be sure that you do not require too stringent an EPS, however: If qtrap takes
-				// too many steps in trying to achieve your required accuracy, accumulated roundoff
-				// errors may start increasing, and the routine may never converge. A value 10−6
-				// is just on the edge of trouble for most 32-bit machines; it is achievable when the
-				// convergence is moderately rapid, but not otherwise.
+            for (j=0;j<DefaultParams::IntegrateTrapJMAX;j++) 
+            {
+                s=TrapRefine(func,a,b,j+1);
 
-				const int JMAX=20;
-				const double EPS=1.0e-10;
-				int j;
-				double s,olds=0.0;
+                if (j > 5)
+                    if (std::abs(s-olds) < DefaultParams::IntegrateTrapEPS * std::abs(olds) ||
+                        (s == 0.0 && olds == 0.0)) 
+                        return s;
+                olds=s;
+            }
+            throw IntegrationTooManySteps("qtrap");
+        }
 
-				for (j=0;j<JMAX;j++) {
-					s=TrapRefine(func,a,b,j+1);
-					if (j > 5)
-						if (std::abs(s-olds) < EPS*std::abs(olds) ||
-							(s == 0.0 && olds == 0.0)) 
-							return s;
-					olds=s;
-				}
-				// nrerror("Too many steps in routine qtrap");
-				return 0.0;
-			}
+        static double IntegrateSimpson(IRealFunction &func, const double a, const double b)
+        {
+            // Returns the integral of the function func from a to b. The parameters EPS can be set to the
+            // desired fractional accuracy and JMAX so that 2 to the power JMAX-1 is the maximum allowed
+            // number of steps. Integration is performed by Simpson’s rule.
 
-			static double IntegrateSimpson(IRealFunction &func, const double a, const double b)
-			{
-				// Returns the integral of the function func from a to b. The parameters EPS can be set to the
-				// desired fractional accuracy and JMAX so that 2 to the power JMAX-1 is the maximum allowed
-				// number of steps. Integration is performed by Simpson’s rule.
+            // The routine qsimp will in general be more efficient than qtrap (i.e., require
+            // fewer function evaluations) when the function to be integrated has a finite 4th
+            // derivative (i.e., a continuous 3rd derivative). The combination of qsimp and its
+            // necessary workhorse trapzd is a good one for light-duty work.
+            int j;
+            double s,st,ost=0.0,os=0.0;
 
-				// The routine qsimp will in general be more efficient than qtrap (i.e., require
-				// fewer function evaluations) when the function to be integrated has a finite 4th
-				// derivative (i.e., a continuous 3rd derivative). The combination of qsimp and its
-				// necessary workhorse trapzd is a good one for light-duty work.
+            for (j=0;j<DefaultParams::IntegrateSimpJMAX;j++) 
+            {
+                st=TrapRefine(func,a,b,j+1);
+                s=(4.0*st-ost)/3.0;
+                
+                if (j > 5)
+                    if (std::abs(s-os) < DefaultParams::IntegrateSimpEPS * std::abs(os) ||
+                        (s == 0.0 && os == 0.0)) 
+                        return s;
+                os=s;
+                ost=st;
+            }
+            throw IntegrationTooManySteps("qsimp");
+        }
 
-				const int JMAX=20;
-				const double EPS=1.0e-10;
-				int j;
-				double s,st,ost=0.0,os=0.0;
+        static double IntegrateRomberg(IRealFunction &func, double a, double b)
+        {
+            // Returns the integral of the function func from a to b. Integration is performed by Romberg’s
+            // method of order 2K, where, e.g., K=2 is Simpson’s rule.
 
-				for (j=0;j<JMAX;j++) {
-					st=TrapRefine(func,a,b,j+1);
-					s=(4.0*st-ost)/3.0;
-					if (j > 5)
-						if (std::abs(s-os) < EPS*std::abs(os) ||
-							(s == 0.0 && os == 0.0)) 
-							return s;
-					os=s;
-					ost=st;
-				}
-				//nrerror("Too many steps in routine qsimp");
-				return 0.0;
-			}
+            // The routine qromb, along with its required trapzd and polint, is quite
+            // powerful for sufficiently smooth (e.g., analytic) integrands, integrated over intervals
+            // which contain no singularities, and where the endoubleoints are also nonsingular. qromb,
+            // in such circumstances, takes many, many fewer function evaluations than either of
+            // the routines in x4.2
+            const int JMAXP=DefaultParams::IntegrateRombJMAX+1, K=5;
+            double ss,dss;
+            Vector s(DefaultParams::IntegrateRombJMAX),h(JMAXP),s_t(K),h_t(K);
 
-			static double IntegrateRomberg(IRealFunction &func, double a, double b)
-			{
-				// Returns the integral of the function func from a to b. Integration is performed by Romberg’s
-				// method of order 2K, where, e.g., K=2 is Simpson’s rule.
+            h[0]=1.0;
+            for (int j=1;j<=DefaultParams::IntegrateRombJMAX;j++) 
+            {
+                s[j-1]=TrapRefine(func,a,b,j);
+            
+                if (j >= K) 
+                {
+                    for (int i=0;i<K;i++) {
+                        h_t[i]=h[j-K+i];
+                        s_t[i]=s[j-K+i];
+                    }
+                
+                    polint(h_t,s_t,0.0,ss,dss);
+                
+                    if (std::abs(dss) <= DefaultParams::IntegrateRombEPS * std::abs(ss)) 
+                        return ss;
+                }
 
-				// The routine qromb, along with its required trapzd and polint, is quite
-				// powerful for sufficiently smooth (e.g., analytic) integrands, integrated over intervals
-				// which contain no singularities, and where the endoubleoints are also nonsingular. qromb,
-				// in such circumstances, takes many, many fewer function evaluations than either of
-				// the routines in x4.2
-
-				const int JMAX=20, JMAXP=JMAX+1, K=5;
-				const double EPS=1.0e-10;
-				double ss,dss;
-				Vector s(JMAX),h(JMAXP),s_t(K),h_t(K);
-				int i,j;
-
-				h[0]=1.0;
-				for (j=1;j<=JMAX;j++) {
-					s[j-1]=TrapRefine(func,a,b,j);
-					if (j >= K) {
-						for (i=0;i<K;i++) {
-							h_t[i]=h[j-K+i];
-							s_t[i]=s[j-K+i];
-						}
-						polint(h_t,s_t,0.0,ss,dss);
-						if (std::abs(dss) <= EPS*std::abs(ss)) return ss;
-					}
-					h[j]=0.25*h[j-1];
-				}
-				//nrerror("Too many steps in routine qromb");
-				return 0.0;
-			}
+                h[j]=0.25*h[j-1];
+            }
+            throw IntegrationTooManySteps("qromb");
+        }
 	};
-
-	static double trapzd(double func(const double), const double a, const double b, const int n)
-	{
-		// This routine computes the nth stage of refinement of an extended trapezoidal rule. func is input
-		// as a pointer to the function to be integrated between limits a and b, also input. When called with
-		// n=1, the routine returns the crudest estimate of Rab f(x)dx. Subsequent calls with n=2,3,...
-		// (in that sequential order) will improve the accuracy by adding 2n-2 additional interior points.
-
-		double x,tnm,sum,del;
-		static double s;
-		int it,j;
-
-		if (n == 1) {
-			return (s=0.5*(b-a)*(func(a)+func(b)));
-		} else {
-			for (it=1,j=1;j<n-1;j++) it <<= 1;
-			tnm=it;
-			del=(b-a)/tnm;
-			x=a+0.5*del;
-			for (sum=0.0,j=0;j<it;j++,x+=del) sum += func(x);
-			s=0.5*(s+(b-a)*sum/tnm);
-			return s;
-		}
-	}
-
-	static double qtrap(double func(const double), const double a, const double b)
-	{
-		// Returns the integral of the function func from a to b. The parameters EPS can be set to the
-		// desired fractional accuracy and JMAX so that 2 to the power JMAX-1 is the maximum allowed
-		// number of steps. Integration is performed by the trapezoidal rule.
-
-		// Unsophisticated as it is, routine qtrap is in fact a fairly robust way of doing
-		// integrals of functions that are not very smooth. Increased sophistication will usually
-		// translate into a higher-order method whose efficiency will be greater only for
-		// sufficiently smooth integrands. qtrap is the method of choice, e.g., for an integrand
-		// which is a function of a variable that is linearly interpolated between measured data
-		// points. Be sure that you do not require too stringent an EPS, however: If qtrap takes
-		// too many steps in trying to achieve your required accuracy, accumulated roundoff
-		// errors may start increasing, and the routine may never converge. A value 10−6
-		// is just on the edge of trouble for most 32-bit machines; it is achievable when the
-		// convergence is moderately rapid, but not otherwise.
-
-		const int JMAX=20;
-		const double EPS=1.0e-10;
-		int j;
-		double s,olds=0.0;
-
-		for (j=0;j<JMAX;j++) {
-			s=trapzd(func,a,b,j+1);
-			if (j > 5)
-				if (fabs(s-olds) < EPS*fabs(olds) ||
-					(s == 0.0 && olds == 0.0)) 
-					return s;
-			olds=s;
-		}
-		// nrerror("Too many steps in routine qtrap");
-		return 0.0;
-	}
-
-	static double qsimp(double func(const double), const double a, const double b)
-	{
-		// Returns the integral of the function func from a to b. The parameters EPS can be set to the
-		// desired fractional accuracy and JMAX so that 2 to the power JMAX-1 is the maximum allowed
-		// number of steps. Integration is performed by Simpson’s rule.
-
-		// The routine qsimp will in general be more efficient than qtrap (i.e., require
-		// fewer function evaluations) when the function to be integrated has a finite 4th
-		// derivative (i.e., a continuous 3rd derivative). The combination of qsimp and its
-		// necessary workhorse trapzd is a good one for light-duty work.
-
-		const int JMAX=20;
-		const double EPS=1.0e-10;
-		int j;
-		double s,st,ost=0.0,os=0.0;
-
-		for (j=0;j<JMAX;j++) {
-			st=trapzd(func,a,b,j+1);
-			s=(4.0*st-ost)/3.0;
-			if (j > 5)
-				if (fabs(s-os) < EPS*fabs(os) ||
-					(s == 0.0 && os == 0.0)) 
-					return s;
-			os=s;
-			ost=st;
-		}
-		//nrerror("Too many steps in routine qsimp");
-		return 0.0;
-	}
-
-	static double qromb(double func(const double), double a, double b)
-	{
-		// Returns the integral of the function func from a to b. Integration is performed by Romberg’s
-		// method of order 2K, where, e.g., K=2 is Simpson’s rule.
-
-		// The routine qromb, along with its required trapzd and polint, is quite
-		// powerful for sufficiently smooth (e.g., analytic) integrands, integrated over intervals
-		// which contain no singularities, and where the endoubleoints are also nonsingular. qromb,
-		// in such circumstances, takes many, many fewer function evaluations than either of
-		// the routines in x4.2
-
-		const int JMAX=20, JMAXP=JMAX+1, K=5;
-		const double EPS=1.0e-10;
-		double ss,dss;
-		Vector s(JMAX),h(JMAXP),s_t(K),h_t(K);
-		int i,j;
-
-		h[0]=1.0;
-		for (j=1;j<=JMAX;j++) {
-			s[j-1]=trapzd(func,a,b,j);
-			if (j >= K) {
-				for (i=0;i<K;i++) {
-					h_t[i]=h[j-K+i];
-					s_t[i]=s[j-K+i];
-				}
-				polint(h_t,s_t,0.0,ss,dss);
-				if (fabs(dss) <= EPS*fabs(ss)) return ss;
-			}
-			h[j]=0.25*h[j-1];
-		}
-		//nrerror("Too many steps in routine qromb");
-		return 0.0;
-	}
-
 } // end namespace
 ///////////////////////////   ./include/algorithms/RootFinding.h   ///////////////////////////// bit će toga
 

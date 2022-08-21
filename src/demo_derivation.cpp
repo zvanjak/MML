@@ -6,10 +6,9 @@
 #include <cmath>
 
 #include "algorithms/Derivation.h"
+#include "../tests/test_data/functions_test_bed.h"
 
 #endif
-
-#include "../tests/test_data/functions_test_bed.h"
 
 class DemoDerivationTestMemberFunc
 {
