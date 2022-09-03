@@ -27,6 +27,14 @@ namespace MML::Tests
         else return exp(x[2]);
     }
 
+    static MML::VectorN<3> TestVectorFunc1(const MML::VectorN<3> &x) { return VectorN<3>{cos(x[0]), sin(x[1]), exp(x[2])}; }
+    static MML::VectorN<3> TestVectorFunc1_derived(const MML::VectorN<3> &x, int ind) 
+    { 
+        if( ind == 0 ) return VectorN<3>{-sin(x[0]), 0.0, 0.0};
+        else if( ind == 1 ) return VectorN<3>{0, cos(x[1]), 0};
+        else return VectorN<3>{0, 0, exp(x[2])};
+    }
+
     struct TestFunctionReal
     {
         double _start, _end;
@@ -67,6 +75,25 @@ namespace MML::Tests
         {}
     };    
 
+    struct TestFunctionVector3
+    {
+        std::string _funcName;
+
+        MML::VectorFunctionFromFuncPtr<3> _func;
+        MML::VectorN<3> (*_funcDerived)(const MML::VectorN<3> &, int ind);
+
+        std::string _funcExpr;
+        std::string _funcDerivedExpr;
+
+        TestFunctionVector3(std::string funcName,
+                            MML::VectorN<3> (*f1)(const MML::VectorN<3> &), MML::VectorN<3> (*f2)(const MML::VectorN<3> &, int ind), 
+                            std::string funcExpr, std::string funcDerivedExpr
+                            ) : _funcName(funcName),
+                                _func(f1), _funcDerived(f2), 
+                                _funcExpr(funcExpr), _funcDerivedExpr(funcDerivedExpr)
+        {}
+    };    
+
     class FunctionsTestBed
     {
     public:
@@ -86,6 +113,7 @@ namespace MML::Tests
             };
 
         const static inline TestFunctionScalar3 _listFuncScalar[] = { {"Simple func", TestScalarFunc1, TestScalarFunc1_derived, "cos(x[0]) + sin(x[1]) + exp(x[2])", "-sin(x[0]); cos(x[1]); exp(x[2]"} };
+        const static inline TestFunctionVector3 _listFuncVector[] = { {"Simple vector func", TestVectorFunc1, TestVectorFunc1_derived, "( cos(x[0]) , sin(x[1]) , exp(x[2]) )", "( -sin(x[0]), 0, 0 ); ( 0, cos(x[1]), 0 ); ( 0, 0, exp(x[2] )"} };
 
     };
 

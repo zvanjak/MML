@@ -37,6 +37,20 @@ MML::VectorN<3> PotentialSphericalGradient(const MML::VectorN<3> &x )
     return MML::FieldOpSpher::GradientSpher(fPotSpher, pos);
 }
 
+double PotentialCyl(const MML::VectorN<3> &x )
+{
+    double r = x.NormL2();
+
+    return 10.0 / sqrt(x[0]*x[0] + x[2]*x[2]);
+}
+
+MML::VectorN<3> PotentialCylindricalGradient(const MML::VectorN<3> &x )
+{
+    MML::ScalarFunctionFromFuncPtr<3> fPotCart(PotentialCyl);    
+
+    return MML::FieldOpCylindrical::GradientCyl(fPotCart, x);
+}
+
 MML::VectorN<3> SimpleVectorFunc(const MML::VectorN<3> &x )
 {
     MML::VectorN<3> ret;
@@ -122,8 +136,8 @@ void Demo_divergence()
     std::cout << "****                          DIVERGENCE                           ****" << std::endl;
     std::cout << "***********************************************************************" << std::endl;
 
-    MML::CoordTransfSphericalToCartesian transfSpherToCart;
-    MML::CoordTransfCartesianToSpherical transfCartToSpher;
+    MML::CoordTransfSphericalToCartesian    transfSpherToCart;
+    MML::CoordTransfCylindricalToCartesian  transfCylToCart;
 
     MML::VectorFunctionFromFuncPtr<3> fSimpleVecFunc(SimpleVectorFunc);
 
@@ -135,14 +149,21 @@ void Demo_divergence()
 
     MML::Vector3Cartesian y2_cart{0.2, -0.2, 0.2};
     auto div_grad = MML::FieldOperations<3>::DivCart(fCartGrad, y2_cart);
-    std::cout << "Div of cartesian gradient field at " << y2_cart << " = " << div_grad << std::endl;
+    std::cout << "Div of cartesian gradient field at   " << y2_cart << " = " << div_grad << std::endl;
 
     MML::VectorFunctionFromFuncPtr<3> fSpherGrad(PotentialSphericalGradient);
 
-    MML::Vector3Spherical y2_spher{ transfSpherToCart.transfInverse(y2_cart) };
+    MML::Vector3Spherical y2_spher{ MML::CoordTransfSpherToCart.transfInverse(y2_cart) };
 
     auto div_grad_spher = MML::FieldOpSpher::DivSpher(fSpherGrad, y2_spher);
-    std::cout << "Div of spherical gradient field at " << y2_spher << " = " << div_grad_spher << std::endl;    
+    std::cout << "Div of spherical gradient field at   " << y2_spher << " = " << div_grad_spher << std::endl;
+
+    MML::VectorFunctionFromFuncPtr<3> fCylGrad(PotentialCylindricalGradient);
+
+    MML::Vector3Cylindrical y2_cyl{ transfCylToCart.transfInverse(y2_cart) };
+
+    auto div_grad_cyl = MML::FieldOpCylindrical::DivCyl(fCylGrad, y2_cyl);
+    std::cout << "Div of cylindrical gradient field at " << y2_cyl << " = " << div_grad_cyl << std::endl;       
 }
 
 void Demo_Field_operations()

@@ -10,6 +10,8 @@ set(MML_DEMO_SOURCES  src/main.cpp
                         src/demo_matrix.cpp
                         src/demo_matrixnm.cpp
                         src/demo_tensors.cpp
+                        src/demo_coord_system.cpp
+                        src/demo_coord_transf.cpp
                         src/demo_geometry.cpp
                         src/demo_integration.cpp
                         src/demo_polynom.cpp
@@ -17,6 +19,7 @@ set(MML_DEMO_SOURCES  src/main.cpp
                         src/demo_interpolators.cpp
                         src/demo_interpolated_function.cpp
                         src/demo_derivation.cpp
+                        src/demo_field_operations.cpp
                         src/demo_linear_alg_eq_solvers.cpp
                         src/demo_diff_eq_solvers.cpp
                         )
