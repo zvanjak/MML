@@ -4,27 +4,25 @@ Basic mathematical functionality, contained in a single-header file.
 **Math types**
 
 - [vectors and matrices](/docs/Vectors_and_matrices.md)
-
-- [vectors and matrices](https://github.com/zvanjak/MML/blob/master/docs/Vectors_and_matrices.md)
   - Vector
   - VectorN<int N>
   - Matrix
   - MatrixNM<int N, int M>
-- [tensors](https://github.com/zvanjak/MML/blob/master/docs/Tensors.md) - TODO
+- [tensors](/docs/Tensors.md) - TODO
   - Tensor2<int Dim>
   - Tensor3<int Dim>
   - Tensor4<int Dim>
 - polynoms - TODO
   - Polynom
-- [functions](https://github.com/zvanjak/MML/blob/master/docs/Functions.md)
+- [functions](/docs/Functions.md)
   - IRealFunction
   - IScalarFunction<int N>
   - IVectorFunction<int N>
   - InterpolatedFunction - TODO
-- [geometry](https://github.com/zvanjak/MML/blob/master/docs/Geometry.md) - TODO
+- [geometry](/docs/Geometry.md) - TODO
   - Line2, Line3  
   - Plane
-- [coordinate transformations](https://github.com/zvanjak/MML/blob/master/docs/Coordinate_transformations.md)
+- [coordinate transformations](/docs/Coordinate_transformations.md)
   - spherical
   - cylindrical
   - general
