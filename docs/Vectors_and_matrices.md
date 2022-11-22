@@ -9,11 +9,11 @@ Defined vector types:
 
 Initializing/creating vector
 
-  `MML::Vector  a({1.0, 1.0, 1.0});`
+`MML::Vector  a({1.0, 1.0, 1.0});`
+`MML::Vector  b({2.0, 2.0, 2.0});`
+`MML::Vector  c({3.0, 3.0, 3.0});`
 
-  `MML::Vector  b({2.0, 2.0, 2.0});`
 
-  `MML::Vector  c({3.0, 3.0, 3.0});`
 
 Operations with vectors:
 

@@ -3,6 +3,8 @@ Basic mathematical functionality, contained in a single-header file.
 
 **Math types**
 
+- [vectors and matrices](/docs/Vectors_and_matrices.md)
+
 - [vectors and matrices](https://github.com/zvanjak/MML/blob/master/docs/Vectors_and_matrices.md)
   - Vector
   - VectorN<int N>
