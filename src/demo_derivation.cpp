@@ -8,7 +8,7 @@
 #include "algorithms/Derivation.h"
 #endif
 
-#include "../tests/test_data/functions_test_bed.h"
+#include "../test_data/real_functions_test_bed.h"
 
 class DemoDerivationTestMemberFunc
 {
@@ -35,9 +35,7 @@ void Demo_Derivation_member_fun()
 {
     DemoDerivationTestMemberFunc      funcObj(3.0);
     
-    std::function<double(double)> func{funcObj};
-
-    MML::RealFunctionFromStdFunc g{func};
+    MML::RealFunctionFromStdFunc g(std::function<double(double)>{funcObj});
 
     for( double h=1e-5; h>=1e-10; h/=10.0 )
     {
@@ -66,8 +64,8 @@ void Demo_Partial_derivation()
 // Comparing precision of derivation routines of different order, for simple function
 void Demo_Derivation_precision_comparison_single()
 {
-    MML::RealFunction g     = MML::Tests::FunctionsTestBed::_listFuncReal[0]._func;
-    MML::RealFunction g_der = MML::Tests::FunctionsTestBed::_listFuncReal[0]._funcDerived;
+    MML::RealFunction g     = MML::TestData::RealFunctionsTestBed::_listFuncReal[0]._func;
+    MML::RealFunction g_der = MML::TestData::RealFunctionsTestBed::_listFuncReal[0]._funcDerived;
 
     for(int i=0; i<5; i++ )
     {
@@ -96,7 +94,7 @@ void Demo_Derivation_precision_comparison_single()
 
 void Demo_Derivation_precision_comparison()
 {
-    double start_x = -10.0;
+    double start_x = 0.1;
     double end_x = 10.0;
     double step = 0.5;
     int count = (int) ((end_x - start_x) / step);
@@ -104,13 +102,11 @@ void Demo_Derivation_precision_comparison()
     std::cout << "AVERAGE DERIVATION ERROR FOR DIFFERENT ORDERS" << std::endl;
     std::cout << "Function                  Nder1           NDer2           NDer4           NDer6           NDer8" << std::endl;
 
-    for(auto&& test_func : MML::Tests::FunctionsTestBed::_listFuncReal)
+    for(auto&& test_func : MML::TestData::RealFunctionsTestBed::_listFuncReal)
     {
         MML::RealFunction g     = test_func._func;
         MML::RealFunction g_der = test_func._funcDerived;
-
-
-        
+      
         std::cout << std::setw(15) << test_func._funcExpr << " - ";
 
         for(int i=0; i<5; i++ )

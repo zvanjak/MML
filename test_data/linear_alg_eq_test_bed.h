@@ -9,6 +9,8 @@
 
 namespace MML::Tests
 {
+    // known LinAlgSys
+    // - matrica, rhs, solution, i eigen
     class LinearAlgEqTestBed
     {
     public:

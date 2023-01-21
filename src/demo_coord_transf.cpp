@@ -18,7 +18,7 @@ void Demo_CoordTransf()
 
     MML::CoordTransfSphericalToCartesian transf;
 
-    MML::VectorN<3> p1{1.0, 1.0, 1.0};
+    MML::VectorN<Real, 3> p1{1.0, 1.0, 1.0};
     auto p1Spher = transf.transfInverse(p1);
 
     std::cout << "Cartesian: " << p1 << std::endl << "Spherical: " << p1Spher << std::endl;

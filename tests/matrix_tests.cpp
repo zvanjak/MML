@@ -8,7 +8,7 @@
 #endif
 
 TEST_CASE("Matrix_default_ctor_init_to_zero", "[simple]") {
-    MML::Matrix a(2,2);
+    MML::Matrix<Real> a(2,2);
 
 	REQUIRE(0.0 ==  a(0,0));
 	REQUIRE(0.0 ==  a(0,1));
@@ -17,7 +17,7 @@ TEST_CASE("Matrix_default_ctor_init_to_zero", "[simple]") {
 }
 
 TEST_CASE("Matrix_initializer_list_ctor", "[simple]") {
-    MML::Matrix a(2, 2, {1.0, 2.0, 3.0, 4.0});
+    MML::Matrix<Real> a(2, 2, {1.0, 2.0, 3.0, 4.0});
 
 	REQUIRE(2 == a.RowNum());
 	REQUIRE(2 == a.ColNum());
@@ -30,8 +30,8 @@ TEST_CASE("Matrix_initializer_list_ctor", "[simple]") {
 
 TEST_CASE("Matrix_Transpose", "[simple]") 
 {
-    MML::Matrix mat(2,2, {1.0, 2.0, 3.0, 4.0} );
-    MML::Matrix matTransp(2,2, {1.0, 3.0, 2.0, 4.0} );
+    MML::Matrix<Real> mat(2,2, {1.0, 2.0, 3.0, 4.0} );
+    MML::Matrix<Real> matTransp(2,2, {1.0, 3.0, 2.0, 4.0} );
 
 	mat.Transpose();
 
@@ -40,8 +40,8 @@ TEST_CASE("Matrix_Transpose", "[simple]")
 
 TEST_CASE("Matrix_GetTranspose", "[simple]") 
 {
-    MML::Matrix mat(2,2, {1.0, 2.0, 3.0, 4.0} );
-    MML::Matrix matTransp(2,2, {1.0, 3.0, 2.0, 4.0} );
+    MML::Matrix<Real> mat(2,2, {1.0, 2.0, 3.0, 4.0} );
+    MML::Matrix<Real> matTransp(2,2, {1.0, 3.0, 2.0, 4.0} );
 
 	auto trans = mat.GetTranspose();
 
@@ -50,13 +50,13 @@ TEST_CASE("Matrix_GetTranspose", "[simple]")
 
 TEST_CASE("Matrix_GetInverse", "[simple]") 
 {
-    MML::Matrix mat(2,2, {1.0, 2.0, 3.0, 4.0} );
+    MML::Matrix<Real> mat(2,2, {1.0, 2.0, 3.0, 4.0} );
 
 	auto b = mat.GetInverse();
 
 	auto c = mat * b;
 
-	MML::Matrix d(2,2);
+	MML::Matrix<Real> d(2,2);
 	d.MakeUnitMatrix();
 
 	REQUIRE(c.IsEqual(d));
@@ -64,8 +64,8 @@ TEST_CASE("Matrix_GetInverse", "[simple]")
 
 TEST_CASE("Test_Matrix", "[simple]") 
 {
-    MML::Matrix mat(2,2, {1.0, 0.0, 0.0, 1.0} );
-    MML::Vector a{1.0, 0.0, 0.0};
+    MML::Matrix<Real> mat(2,2, {1.0, 0.0, 0.0, 1.0} );
+    MML::Vector<Real> a{1.0, 0.0, 0.0};
 
     REQUIRE_THROWS_AS(a * mat, MML::MatrixDimensionError); 
     

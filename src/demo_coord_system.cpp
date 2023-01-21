@@ -86,7 +86,7 @@ void Demo_Coord_Rectilinear()
     auto contravar_coef = transf.transf(vec_A);
 
     std::cout << "Contravar. coeff.: " << contravar_coef << std::endl;
-    MML::VectorN<3> contra_expanded = contravar_coef[0] * e1_base +
+    MML::VectorN<Real, 3> contra_expanded = contravar_coef[0] * e1_base +
                                       contravar_coef[1] * e2_base +
                                       contravar_coef[2] * e3_base;
     std::cout << "Expanded to orig.: " << contra_expanded << std::endl;
@@ -96,7 +96,7 @@ void Demo_Coord_Rectilinear()
                                      ScalarProd(vec_A, MML::Vector3Cartesian(e3_base))};        
     std::cout << "Covar. coeff.    : " << covar_coef << std::endl;
     
-    MML::VectorN<3> covar_expanded = covar_coef[0] * transf.Dual(0) +
+    MML::VectorN<Real, 3> covar_expanded = covar_coef[0] * transf.Dual(0) +
                                      covar_coef[1] * transf.Dual(1) +
                                      covar_coef[2] * transf.Dual(2);
     std::cout << "Expanded to orig.: " << covar_expanded << std::endl;

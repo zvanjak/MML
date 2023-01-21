@@ -9,22 +9,25 @@
 #include "basic_types/Function.h"
 #endif
 
-double TestFunc1(double x)
+double GravityPotential(double r)
 {
-    return x;
+    return 1 / r;
 }
 
-void Demo_Function()
+void Demo_Fields()
 {
     std::cout << std::endl;
     std::cout << "***********************************************************************" << std::endl;
-    std::cout << "****                          FUNCTION                             ****" << std::endl;
+    std::cout << "****                          FIELDS                               ****" << std::endl;
     std::cout << "***********************************************************************" << std::endl;
 
-    std::function<double(double)> f(TestFunc1);
-    
-    MML::RealFunctionFromStdFunc func(f);
-
+/*
+    - definirati različite potencijalne funkcije (ScalarFunction)
+        - gravitacija
+    - definirati vektorske funcije polja
+        - polje EM naboja u pokretu
+        - polje vodiča kroz koji teče struja
+*/
     MML::RealFunction func2([](double x) { return x; });
     MML::ScalarFunctionFromFuncPtr<3> funcScalar([](const MML::VectorN<Real, 3> &x) { return x[0]; });
     MML::VectorFunctionFromFuncPtr<3> funcVector([](const MML::VectorN<Real, 3> &x) { return MML::VectorN<Real, 3>{0, x[0] * x[1], 0}; });

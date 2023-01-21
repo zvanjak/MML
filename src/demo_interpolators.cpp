@@ -31,8 +31,8 @@ void Test_Interpolation_RealFunc_Polynomial()
     if (n < 1) 
         return;
         
-    Vector xa(n);
-    Vector ya(n);
+    Vector<Real> xa(n);
+    Vector<Real> ya(n);
     cout << fixed << setprecision(6);
     for (nfunc=0;nfunc<2;nfunc++) {
         if (nfunc == 0) {
@@ -81,7 +81,7 @@ void Test_Interpolation_RealFunc_Rational()
     const double EPS=1.0;
     int i;
     double dyy,xx,yexp,yy;
-    Vector x(NPT),y(NPT);
+    Vector<Real> x(NPT),y(NPT);
 
     for (i=0;i<NPT;i++) {
         x[i]=(i+1)*2.0/NPT;
@@ -108,8 +108,8 @@ void Test_Interpolation_2DFunc()
     const double PI=3.141592653589793238;
     int i,j;
     double dy,f,x1,x2,y;
-    Vector x1a(N),x2a(N);
-    Matrix ya(N,N);
+    Vector<Real> x1a(N),x2a(N);
+    Matrix<Real> ya(N,N);
 
     for (i=0;i<N;i++) {
         x1a[i]=(i+1)*PI/N;
