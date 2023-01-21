@@ -4,8 +4,8 @@
 #include "MML.h"
 #else
 #include "algorithms/LinAlgEqSolvers.h"
-#include "../test_data/linear_alg_eq_test_bed.h"
 #endif
+#include "../test_data/linear_alg_eq_test_bed.h"
 
 void Test_GaussJordan_solver()
 {

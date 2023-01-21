@@ -1233,6 +1233,52 @@ namespace MML
     };
 }
 
+///////////////////////////   ./include/basic_types/Mat3D.h   ///////////////////////////
+
+namespace MML
+{
+    template <class T>
+    class Mat3D {
+    private:
+        int nn;
+        int mm;
+        int kk;
+        T ***v;
+    public:
+        Mat3D(): nn(0), mm(0), kk(0), v(NULL) {}
+
+        Mat3D(int n, int m, int k) : nn(n), mm(m), kk(k), v(new T**[n])
+        {
+            int i,j;
+            v[0] = new T*[n*m];
+            v[0][0] = new T[n*m*k];
+            for(j=1; j<m; j++) v[0][j] = v[0][j-1] + k;
+            for(i=1; i<n; i++) {
+                v[i] = v[i-1] + m;
+                v[i][0] = v[i-1][0] + m*k;
+                for(j=1; j<m; j++) v[i][j] = v[i][j-1] + k;
+            }
+        }        
+
+        ~Mat3D()
+        {
+            if (v != NULL) {
+                delete[] (v[0][0]);
+                delete[] (v[0]);
+                delete[] (v);
+            }
+        }
+
+        //subscripting: pointer to row i
+        inline T**              operator[](const int i)       { return v[i]; }
+        inline const T* const * operator[](const int i) const { return v[i]; }
+
+        inline int dim1() const { return nn; }
+        inline int dim2() const { return mm; }
+        inline int dim3() const { return kk; }
+    };
+}
+
 ///////////////////////////   ./include/basic_types/MatrixNM.h   ///////////////////////////
 
 
@@ -1600,7 +1646,7 @@ namespace MML
 
 namespace MML
 {
-    // ovo će biti generalni polinom
+    // ovo ce biti generalni polinom
     template <typename _Field, typename _CoefType = double>
     class Polynom
     {
@@ -1756,7 +1802,7 @@ namespace MML
 
         // ctors
         //  dviej tocke
-        //  tocka i koeficijne smjera
+        //  tocka i koeficijne smjera + odredjeni t za odredjivanje druge tocke
     };
 
     class SegmentLine3D
