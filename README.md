@@ -1,6 +1,14 @@
 # MML - Minimal Math Library
 Basic mathematical functionality, contained in a single-header file.
 
+**MML Vision**
+
+For C++ developer
+Who needs an easy to use math library to perform simple (and not so simple) math calculations
+The Minimal Math Library
+Is a single-header C++ library of classes and functions
+That is trivial to use in any kind of project, is C++ 17 cross-platform compatible, and comes with a rich set of functionalities for working with vectors, matrices, linear systems, differential equations, coordinate systems and transformations.
+
 **Math types**
 
 - [vectors and matrices](/docs/Vectors_and_matrices.md)
