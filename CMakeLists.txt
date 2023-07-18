@@ -9,6 +9,7 @@ set(MML_DEMO_SOURCES  src/main.cpp
                         src/demo_coord_transf.cpp
                         src/demo_derivation.cpp
                         src/demo_diff_eq_solvers.cpp
+                        src/demo_covar_contravar_transf.cpp
                         src/demo_field_operations.cpp
                         src/demo_fields.cpp
                         src/demo_function.cpp
@@ -17,6 +18,7 @@ set(MML_DEMO_SOURCES  src/main.cpp
                         src/demo_interpolated_function.cpp
                         src/demo_interpolators.cpp
                         src/demo_linear_alg_eq_solvers.cpp
+                        src/demo_eigen_solvers.cpp
                         src/demo_matrix.cpp
                         src/demo_matrixnm.cpp
                         src/demo_path_integration.cpp
@@ -43,12 +45,14 @@ file(GLOB MML_TESTS tests/vector_tests.cpp
                     tests/matrixNM_tests.cpp
                     tests/tensors_tests.cpp
                     tests/polynom_tests.cpp
+                    tests/geometry_tests.cpp
                     tests/function_tests.cpp
                     tests/derivation_tests.cpp 
                     tests/integration_tests.cpp
                     tests/interpolated_functions_tests.cpp
                     tests/linear_alg_eq_solvers_tests.cpp 
-                    tests/diff_eq_solvers_tests.cpp 
+                    tests/eigen_solvers_tests.cpp 
+                    tests/diff_eq_solvers_tests.cpp  
                     )
 
 add_executable(MML_Tests "test_runner.cpp" ${MML_TESTS} )

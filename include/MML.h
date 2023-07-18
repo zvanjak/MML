@@ -4810,6 +4810,17 @@ namespace MML
     }
 }
 
+///////////////////////////   ./include/basic_types/Surfaces.h   ///////////////////////////
+
+
+namespace MML
+{
+    namespace Surfaces
+    {
+        static ParametricSurfaceFromFuncPtr<3> test1([](double u, double w) { return MML::VectorN<Real, 3>{u, w, u+w}; });
+    }
+}
+
 ///////////////////////////   ./include/basic_types/InterpolatedFunction.h   ///////////////////////////
 
 
