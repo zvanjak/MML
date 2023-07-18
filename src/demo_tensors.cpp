@@ -5,7 +5,7 @@
 #ifdef MML_USE_SINGLE_HEADER
 #include "MML.h"
 #else
-#include "basic_types/Tensors.h"
+#include "basic_types/Tensor.h"
 #endif
 
 void Demo_Tensors()

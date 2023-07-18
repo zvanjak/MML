@@ -27,6 +27,7 @@
 
 
 
+
 template<class T>
 inline T SQR(const T a) {return a*a;}
 
@@ -40,6 +41,9 @@ inline float SIGN(const float &a, const double &b)
 inline float SIGN(const double &a, const float &b)
 	{return (float)(b >= 0 ? (a >= 0 ? a : -a) : (a >= 0 ? -a : a));}
     
+// template<class T>
+// inline void SWAP(T &a, T &b)
+// 	{T dum=a; a=b; b=dum;}
 
 typedef double               Real;      // default real type
 typedef std::complex<double> Complex;   // default complex type
@@ -233,7 +237,48 @@ namespace MML
     };
 }
 
-///////////////////////////   ./include/basic_types/Vector.h   ///////////////////////////
+///////////////////////////   ./include/basic_types/Algebra.h   ///////////////////////////
+// group
+
+// Z6 group
+
+// permutation group
+
+template<int N, class _FieldType, class _VecType>
+class VectorSpace
+{
+    public:
+    virtual _FieldType  identity() = 0;
+    virtual _VecType    zero() = 0;
+    virtual _VecType    inverse(const _VecType &b) = 0;
+
+    // zbrajanje dva vektora
+    // množenje vektora skalarom
+};
+
+class RealNVectorSpace
+{
+    public:
+    virtual double  identity() = 0;
+    virtual double  zero() = 0;
+    virtual double  inverse(const double &b) = 0;
+
+    // zbrajanje dva vektora
+    // množenje vektora skalarom
+};
+
+// Hilbert space, kompleksni field!
+
+template<class _VecSpace>
+class VectorFromVecSpace
+{
+    // vraća skalarni produkt definiran u template param
+};
+
+void f()
+{
+
+}///////////////////////////   ./include/basic_types/Vector.h   ///////////////////////////
 
 
 namespace MML
@@ -300,6 +345,18 @@ namespace MML
                 return true;
             }
 
+            static bool AreEqual(const Vector &a,const Vector &b, _Type eps=1e-15)
+            {
+                if (a.size() != b.size() )
+                    throw VectorDimensionError("Vector::IsEqual", "wrong dim");
+
+                for( int i=0; i<a.size(); i++ )
+                {
+                    if( std::abs(a[i] - b[i]) > eps )
+                        return false;
+                }
+                return true;
+            }
             Vector operator+(const Vector &b ) const
             {
                 if (size() != b.size() )
@@ -464,7 +521,7 @@ namespace MML
 
         int size() const { return N; }
 
-        _Type ScalarProductCartesian(VectorN &b) const
+        _Type ScalarProductCartesian(const VectorN &b) const
         {
             _Type product = 0.0;
             for( int i=0; i<N; i++ )
@@ -564,185 +621,6 @@ namespace MML
             return stream;
         }
     };
-
-    class Vector2Cartesian : public VectorN<Real, 2>
-    {
-        public:
-            Real  X() const   { return _val[0]; }
-            Real& X()         { return _val[0]; }
-            Real  Y() const   { return _val[1]; }
-            Real& Y()         { return _val[1]; }
-    };
-
-    class Vector2Polar : public VectorN<Real, 2>
-    {
-        public:
-            Real  R() const   { return _val[0]; }
-            Real& R()         { return _val[0]; }
-            Real  Phi() const { return _val[1]; }
-            Real& Phi()       { return _val[1]; }
-    };
-
-    class Vector3Cartesian : public VectorN<Real, 3>
-    {
-        public:
-            Real  X() const   { return _val[0]; }
-            Real& X()         { return _val[0]; }
-            Real  Y() const   { return _val[1]; }
-            Real& Y()         { return _val[1]; }
-            Real  Z() const   { return _val[2]; }
-            Real& Z()         { return _val[2]; }
-
-            Vector3Cartesian()
-            {
-                X() = 0.0;
-                Y() = 0.0;
-                Z() = 0.0;
-            }
-
-            Vector3Cartesian(const VectorN<Real, 3> &b)
-            {
-                X() = b[0];
-                Y() = b[1];
-                Z() = b[2];
-            }
-
-            Vector3Cartesian(std::initializer_list<Real> list) 
-            { 
-                int count{ 0 };
-                for (auto element : list)
-                {
-                    _val[count] = element;
-                    ++count;
-
-                    if( count >= 3 )
-                        break;
-                }
-            }
-
-            bool IsParallelTo(Vector3Cartesian &b, Real eps=1e-15) const
-            {
-                Real norm1 = NormL2();
-                Real norm2 = b.NormL2();
-
-                return  std::abs(X()/norm1 - b.X()/norm2) < eps &&
-                        std::abs(Y()/norm1 - b.Y()/norm2) < eps &&
-                        std::abs(Z()/norm1 - b.Z()/norm2) < eps;
-            }
-            bool IsPerpendicularTo(Vector3Cartesian &b, Real eps=1e-15) const
-            {
-                if( std::abs(ScalarProd(*this,b)) < eps)
-                    return true;
-                else
-                    return false;
-            }
-
-            Vector3Cartesian GetUnitVector() const
-            {
-                VectorN<Real, 3> res = (*this) / NormL2();
-
-                return Vector3Cartesian{res};
-            }
-
-            friend Real ScalarProd(const Vector3Cartesian &a, const Vector3Cartesian &b)
-            {
-                return a.X() * b.X() + a.Y() * b.Y() + a.Z() * b.Z();
-            }
-
-            friend Vector3Cartesian VectorProd(const Vector3Cartesian &a, const Vector3Cartesian &b)
-            {
-                Vector3Cartesian ret;
-
-                ret.X() = a.Y() * b.Z() - a.Z() * b.Y();
-                ret.Y() = a.Z() * b.X() - a.X() * b.Z();
-                ret.Z() = a.X() * b.Y() - a.Y() * b.X();
-
-                return ret;
-            }
-
-            friend Real VectorsAngle(const Vector3Cartesian &a, const Vector3Cartesian &b)
-            {
-                Real cos_phi = ScalarProd(a,b) / (a.NormL2() * b.NormL2());
-
-                return acos(cos_phi);
-            }            
-    };
-
-    class Vector3Spherical : public VectorN<Real, 3>
-    {
-        public:
-            Real  R() const       { return _val[0]; }
-            Real& R()             { return _val[0]; }
-            Real  Theta() const   { return _val[1]; }
-            Real& Theta()         { return _val[1]; }
-            Real  Phi() const     { return _val[2]; }
-            Real& Phi()           { return _val[2]; }
-
-            Vector3Spherical()
-            {
-                R()     = 0.0;
-                Theta() = 0.0;
-                Phi()   = 0.0;
-            }
-
-            Vector3Spherical(const VectorN<Real, 3> &b)
-            {
-                R()     = b[0];
-                Theta() = b[1];
-                Phi()   = b[2];
-            }
-
-            Vector3Spherical(std::initializer_list<Real> list) 
-            { 
-                int count{ 0 };
-                for (auto element : list)
-                {
-                    _val[count] = element;
-                    ++count;
-
-                    if( count >= 3 )
-                        break;
-                }
-            }            
-    };  
-
-    class Vector3Cylindrical  : public VectorN<Real, 3>
-    {
-        public:
-            Real  R() const     { return _val[0]; }
-            Real& R()           { return _val[0]; }
-            Real  Phi() const   { return _val[1]; }
-            Real& Phi()         { return _val[1]; }
-            Real  Z() const     { return _val[2]; }
-            Real& Z()           { return _val[2]; }
-
-            Vector3Cylindrical()
-            {
-                R()     = 0.0;
-                Phi() = 0.0;
-                Phi()   = 0.0;
-            }
-
-            Vector3Cylindrical(const VectorN<Real, 3> &b)
-            {
-                R()   = b[0];
-                Phi() = b[1];
-                Z()   = b[2];
-            }
-
-            Vector3Cylindrical(std::initializer_list<Real> list) 
-            { 
-                int count{ 0 };
-                for (auto element : list)
-                {
-                    _val[count] = element;
-                    ++count;
-
-                    if( count >= 3 )
-                        break;
-                }
-            }            
-    }; 
 
     typedef VectorN<float, 2> Vector2Flt;
     typedef VectorN<float, 3> Vector3Flt;
@@ -946,6 +824,21 @@ namespace MML
                 
             return true;
         }
+
+        bool AreEqual(const Matrix &a, const Matrix &b, _Type eps=1e-15) const
+        {
+            if( a.RowNum() != b.RowNum() || a.ColNum() != b.ColNum() )
+                return false;
+
+            for( int i=0; i<a.RowNum(); i++ )
+                for( int j=0; j<a.ColNum(); j++ )
+                {
+                    if( std::abs(a._ptrData[i][j] - b._ptrData[i][j]) > eps )
+                        return false;
+                }
+                
+            return true;
+        }        
 
         Matrix &operator=(const Matrix &m)
         {
@@ -1311,6 +1204,11 @@ namespace MML
                 for (size_t j = 0; j < ColNum(); ++j)
                     _vals[i][j] = m._vals[i][j];
         }
+        MatrixNM(const _Type &m)        // initialize as diagonal matrix
+        {
+            for( int i=0; i<N; i++ )
+                _vals[i][i] = _Type{m};
+        }        
 
         static MatrixNM GetUnitMatrix() 
         {
@@ -1404,6 +1302,18 @@ namespace MML
 
             return *this;
         }
+
+        MatrixNM &operator=(const _Type &m)
+        {
+            if (this == &m)
+                return *this;
+
+            for (size_t i = 0; i < RowNum(); ++i)
+                for (size_t j = 0; j < ColNum(); ++j)
+                    _vals[i][j] = m;
+
+            return *this;
+        }        
 
         _Type  operator()(int i, int j) const { return _vals[i][j]; }
         _Type& operator()(int i, int j)       { return _vals[i][j]; }        
@@ -1644,57 +1554,269 @@ namespace MML
 
 ///////////////////////////   ./include/basic_types/Polynom.h   ///////////////////////////
 
+
 namespace MML
 {
+    template <int _Dim, typename _Field = Real>
+    class LinearFunctionalN
+    {
+    private:
+        VectorN<_Field, _Dim> _vecCoef;
+    public:
+        LinearFunctionalN() {}
+        LinearFunctionalN(const VectorN<_Field, _Dim> &vecCoef) : _vecCoef(vecCoef) {}
+        LinearFunctionalN(std::initializer_list<_Field> list) : _vecCoef(list) {}
+
+        LinearFunctionalN(const LinearFunctionalN &Copy) : _vecCoef(Copy._vecCoef) {}
+        ~LinearFunctionalN() {}
+
+        LinearFunctionalN& operator=(const LinearFunctionalN &Copy) { _vecCoef = Copy._vecCoef; return *this; }
+
+        _Field operator()(const VectorN<_Field, _Dim> &vecX) const
+        {
+            _Field result = 0.0;
+            for (int i = 0; i < _Dim; i++)
+                result += _vecCoef[i] * vecX[i];
+            return result;
+        }
+
+        LinearFunctionalN operator+(const LinearFunctionalN &b) const
+        {
+            LinearFunctionalN result;
+            for (int i = 0; i < _Dim; i++)
+            {
+                if (i < _vecCoef.size())
+                    result._vecCoef[i] += _vecCoef[i];
+                if (i < b._vecCoef.size())
+                    result._vecCoef[i] += b._vecCoef[i];
+            }
+            return result;
+        }
+
+        LinearFunctionalN operator-(const LinearFunctionalN &b) const
+        {
+            LinearFunctionalN result;
+            for (int i = 0; i < _Dim; i++)
+            {
+                if (i < _vecCoef.size())
+                    result._vecCoef[i] += _vecCoef[i];
+                if (i < b._vecCoef.size())
+                    result._vecCoef[i] -= b._vecCoef[i];
+            }
+            return result;
+        }
+
+        LinearFunctionalN operator*(double b) const
+        {
+            LinearFunctionalN result;
+            for (int i = 0; i < _vecCoef.size();    i++)
+                result._vecCoef[i] = _vecCoef[i] * b;
+            return result;
+        }
+
+    };
+
+    class LinearFunctional
+    {
+    private:
+        std::vector<double> _vecCoef;
+    public:
+        LinearFunctional() {}
+        LinearFunctional(const std::vector<double> &vecCoef) : _vecCoef(vecCoef) {}
+        LinearFunctional(std::initializer_list<double> list) : _vecCoef(list) {}
+
+        LinearFunctional(const LinearFunctional &Copy) : _vecCoef(Copy._vecCoef) {}
+        ~LinearFunctional() {}
+
+        LinearFunctional& operator=(const LinearFunctional &Copy) { _vecCoef = Copy._vecCoef; return *this; }
+
+        double operator()(const std::vector<double> &vecX) const
+        {
+            double result = 0.0;
+            for (int i = 0; i < _vecCoef.size(); i++)
+                result += _vecCoef[i] * vecX[i];
+            return result;
+        }
+
+        LinearFunctional operator+(const LinearFunctional &b) const
+        {
+            LinearFunctional result;
+            int n = (int) std::max(_vecCoef.size(), b._vecCoef.size());
+            result._vecCoef.resize(n);
+            for (int i = 0; i < n; i++)
+            {
+                if (i < _vecCoef.size())
+                    result._vecCoef[i] += _vecCoef[i];
+                if (i < b._vecCoef.size())
+                    result._vecCoef[i] += b._vecCoef[i];
+            }
+            return result;
+        }
+
+        LinearFunctional operator-(const LinearFunctional &b) const
+        {
+            LinearFunctional result;
+            int n = (int) std::max(_vecCoef.size(), b._vecCoef.size());
+            result._vecCoef.resize(n);
+            for (int i = 0; i < n; i++)
+            {
+                if (i < _vecCoef.size())
+                    result._vecCoef[i] += _vecCoef[i];
+                if (i < b._vecCoef.size())
+                    result._vecCoef[i] -= b._vecCoef[i];
+            }
+            return result;
+        }
+
+        LinearFunctional operator*(double b) const
+        {
+            LinearFunctional result;
+            result._vecCoef.resize(_vecCoef.size());
+            for (int i = 0; i < _vecCoef.size(); i++)
+                result._vecCoef[i] = _vecCoef[i] * b;
+            return result;
+        }
+    };
+
     // ovo ce biti generalni polinom
     template <typename _Field, typename _CoefType = double>
     class Polynom
     {
+    private:
+        std::vector<_CoefType> _vecCoef;
+    public:
+        Polynom() {}
+        Polynom(const std::vector<_CoefType> &vecCoef) : _vecCoef(vecCoef) {}
+        Polynom(std::initializer_list<_CoefType> list) : _vecCoef(list) {}
 
+        Polynom(const Polynom &Copy) : _vecCoef(Copy._vecCoef) {}
+        ~Polynom() {}
+
+        Polynom& operator=(const Polynom &Copy) { _vecCoef = Copy._vecCoef; return *this; }
+
+        int GetDegree() const { return (int) _vecCoef.size() - 1; }
+
+        _Field operator()(const _Field &x) const
+        {
+            _Field result = 1.0; 
+            _Field power = x;
+            for (int i = 1; i < _vecCoef.size(); i++)
+            {
+                result = result + _vecCoef[i] * power;
+                power = power * x;
+            }
+            return result;
+        }
+
+        Polynom operator+(const Polynom &b) const
+        {
+            Polynom result;
+            int n = (int) std::max(_vecCoef.size(), b._vecCoef.size());
+            result._vecCoef.resize(n);
+            for (int i = 0; i < n; i++)
+            {
+                if (i < _vecCoef.size())
+                    result._vecCoef[i] += _vecCoef[i];
+                if (i < b._vecCoef.size())
+                    result._vecCoef[i] += b._vecCoef[i];
+            }
+            return result;
+        }
+
+        Polynom operator-(const Polynom &b) const
+        {
+            Polynom result;
+            int n = (int) std::max(_vecCoef.size(), b._vecCoef.size());
+            result._vecCoef.resize(n);
+            for (int i = 0; i < n; i++)
+            {
+                if (i < _vecCoef.size())
+                    result._vecCoef[i] += _vecCoef[i];
+                if (i < b._vecCoef.size())
+                    result._vecCoef[i] -= b._vecCoef[i];
+            }
+            return result;
+        }
+
+        Polynom operator*(const Polynom &b) const
+        {
+            Polynom result;
+
+            int n = (int) (_vecCoef.size() + b._vecCoef.size() - 1);
+            result._vecCoef.resize(n);
+            for (int i = 0; i < _vecCoef.size(); i++)
+                for (int j = 0; j < b._vecCoef.size(); j++)
+                    result._vecCoef[i + j] += _vecCoef[i] * b._vecCoef[j];
+            return result;
+        }
+
+        friend Polynom operator*(const Polynom &a, _CoefType b )
+        {
+            Polynom ret;
+            for(int i=0; i<=a.GetDegree(); i++)
+                ret._vecCoef[i] = a._vecCoef[i] * b;
+            return ret;
+        }
+
+        friend Polynom operator*(_CoefType a, const Polynom &b )
+        {
+            Polynom ret;
+            for(int i=0; i<=b.GetDegree(); i++)
+                ret._vecCoef[i] = a * b._vecCoef[i];
+            return ret;
+        }
+
+        friend Polynom operator/(const Polynom &a, _CoefType b)
+        {
+            Polynom ret;
+            for(int i=0; i<=a.GetDegree(); i++)
+                ret._vecCoef[i] = a._vecCoef[i] / b;
+            return ret;
+        }        
+
+        std::ostream& Print(std::ostream& stream, int width, int precision) const
+        {
+            stream << "[";
+            bool first = true;
+            for(const _CoefType& x : _vecCoef)
+            {
+                if( !first )
+                    stream << ", ";
+                else
+                    first = false;
+
+                stream << std::setw(width) << std::setprecision(precision) << x;
+            }
+            stream << "]";
+
+            return stream;
+        }
+
+        std::string to_string(int width, int precision) const
+        {
+            std::stringstream str;
+
+            Print(str, width, precision);
+
+            return str.str();
+        }
+
+        friend std::ostream& operator<<(std::ostream& stream, Polynom &a)
+        {
+            a.Print(stream,15,10);
+
+            return stream;
+        }        
     };
+        
+    typedef Polynom<Real, Real>         RealPolynom;
+    typedef Polynom<Complex, Complex>   ComplexPolynom;
 
-	class	PolynomReal
-	{
-	private:
-		int			m_nDegree;
-		double	*m_pdCoef;
-
-	public:
-		PolynomReal();
-		PolynomReal( int n );
-		PolynomReal( const PolynomReal &Copy );
-		~PolynomReal();
-
-		friend	int			GetDegree( const PolynomReal &a );
-		friend	int			GetRealDegree( const PolynomReal & a );
-		friend	double	GetCoef( const PolynomReal &a, int CoefNum );
-		friend	double	GetLeadingCoef( const PolynomReal &a );
-		friend	void		ReducePolynom( PolynomReal *a );
-
-		double		Val( double x );
-		PolynomReal		operator+( const PolynomReal &b ) const;
-		PolynomReal		operator-( const PolynomReal &a ) const;
-		PolynomReal		operator*( const PolynomReal &b ) const;
-		PolynomReal		operator/( const PolynomReal &b ) const;
-		PolynomReal		operator%( const PolynomReal &b ) const;	// dijeljenje po modulu (ostatak)
-		PolynomReal&	operator=( const PolynomReal &b );
-
-		PolynomReal		operator+=( const PolynomReal &b );
-		PolynomReal		operator-=( const PolynomReal &b );
-		PolynomReal		operator*=( const PolynomReal &b );
-		PolynomReal		operator*=( const double b );
-		PolynomReal		operator/=( const double &b );
-	//	Polynom		operator/=( const Polynom &b );
-
-		double&		operator[]( int i );
-
-		friend	PolynomReal	operator*( double a, const PolynomReal &b );
-		friend	PolynomReal	operator*( const PolynomReal &a, double b );
-
-		friend	void	Input( PolynomReal *a );
-		friend	void	Print( const PolynomReal &a );
-	};
+    typedef Polynom<MatrixNM<Real,2,2>, Real>       MatrixPolynomDim2;
+    typedef Polynom<MatrixNM<Real,3,3>, Real>       MatrixPolynomDim3;
+    typedef Polynom<MatrixNM<Real,4,4>, Real>       MatrixPolynomDim4;
 }
+
 ///////////////////////////   ./include/basic_types/MatrixSparse.h   ///////////////////////////
 
 namespace MML
@@ -1707,180 +1829,691 @@ namespace MML
 
 namespace MML
 {
+    class Triangle
+    {
+    private:
+        double _a, _b, _c;
+
+    public:
+        double  A() const   { return _a; }
+        double& A()         { return _a; }
+        double  B() const   { return _b; }
+        double& B()         { return _b; }
+        double  C() const   { return _c; }
+        double& C()         { return _c; }
+
+        Triangle() {}
+        Triangle(double a, double b, double c) : _a(a), _b(b), _c(c) {}
+
+        double Area() const
+        {
+            double s = (_a + _b + _c) / 2.0;
+            return sqrt(s * (s - _a) * (s - _b) * (s - _c));
+        }
+        bool IsRight() const
+        {
+            return (SQR(_a) + SQR(_b) == SQR(_c)) || (SQR(_a) + SQR(_c) == SQR(_b)) || (SQR(_b) + SQR(_c) == SQR(_a));
+        }
+        bool IsIsosceles() const
+        {
+            return (_a == _b) || (_a == _c) || (_b == _c);
+        }
+        bool IsEquilateral() const
+        {
+            return (_a == _b) && (_a == _c);
+        }
+    };
+}
+
+///////////////////////////   ./include/basic_types/Geometry2D.h   ///////////////////////////
+
+
+namespace MML
+{
     class Point2Cartesian
     {
-        private:
-            double _x, _y;
-        public:
-            double  X() const   { return _x; }
-            double& X()         { return _x; }
-            double  Y() const   { return _y; }
-            double& Y()         { return _y; }
+    private:
+        double _x, _y;
+
+    public:
+        double  X() const   { return _x; }
+        double& X()         { return _x; }
+        double  Y() const   { return _y; }
+        double& Y()         { return _y; }
+
+        Point2Cartesian() {}
+        Point2Cartesian(double x, double y) : _x(x), _y(y) {}
+
+        double Dist(const Point2Cartesian &b) const { return sqrt(SQR(b._x - _x) + SQR(b._y - _y) ); }
+
+        Point2Cartesian operator+(const VectorN<Real, 2> &b) const
+        {
+            return Point2Cartesian(_x + b[0], _y + b[1]);
+        }
+    };
+
+    class Vector2Cartesian : public VectorN<Real, 2>
+    {
+    public:
+        Vector2Cartesian() {}
+        Vector2Cartesian(double x, double y) 
+        {
+            _val[0] = x;
+            _val[1] = y;
+        }
+        Vector2Cartesian(const Point2Cartesian &a, const Point2Cartesian &b) 
+        {
+            _val[0] = b.X() - a.X();
+            _val[1] = b.Y() - a.Y();
+        }
+
+        Real    X() const   { return _val[0]; }
+        Real&   X()         { return _val[0]; }
+        Real    Y() const   { return _val[1]; }
+        Real&   Y()         { return _val[1]; }
+
+        Vector2Cartesian GetUnitVector() const
+        {
+            VectorN<Real, 2> res = (*this) / NormL2();
+
+            return Vector2Cartesian(res[0], res[1]);
+        }
     };
 
     class Point2Polar
     {
-        private:
-            double _r, _phi;
-        public:
-            double  R() const     { return _r; }
-            double& R()           { return _r; }
-            double  Phi() const   { return _phi; }
-            double& Phi()         { return _phi; }
+    private:
+        double _r, _phi;
+
+    public:
+        double  R() const   { return _r; }
+        double& R()         { return _r; }
+        double  Phi() const { return _phi; }
+        double& Phi()       { return _phi; }
+        
+        Point2Polar() {}
+        Point2Polar(double r, double phi) : _r(r), _phi(phi) {}
     };
 
-    class Point3Cartesian
+    class Vector2Polar : public VectorN<Real, 2>
     {
-        private:
-            double _x, _y, _z;
-        public:
-            double  X() const   { return _x; }
-            double& X()         { return _x; }
-            double  Y() const   { return _y; }
-            double& Y()         { return _y; }
-            double  Z() const   { return _z; }
-            double& Z()         { return _z; }
+    public:
+        Real    R() const   { return _val[0]; }
+        Real&   R()         { return _val[0]; }
+        Real    Phi() const { return _val[1]; }
+        Real&   Phi()       { return _val[1]; }
 
-            Point3Cartesian() {}
-            Point3Cartesian(double x, double y, double z) : _x(x), _y(y), _z(z) {}
-
-            Point3Cartesian operator+(VectorN<Real, 3> &b)
-            {
-                Point3Cartesian ret;
-                ret.X() = X() + b[0];
-                ret.Y() = Y() + b[1];
-                ret.Z() = Z() + b[2];
-                return ret;
-            }
-            Vector3Cartesian operator-(Point3Cartesian &b)
-            {
-                Vector3Cartesian ret;
-                ret.X() = b.X() - X();
-                ret.Y() = b.Y() - Y();
-                ret.Z() = b.Z() - Z();
-                return ret;
-            }
-    };    
+        Vector2Polar() {}
+        Vector2Polar(double r, double phi) 
+        {
+            _val[0] = r;
+            _val[1] = phi;
+        }   
+    };
 
     class Line2D
     {
+    private:
+        Point2Cartesian _point;
+        Vector2Cartesian _direction; // unit vector in line direction
+
+    public:
+        Line2D(const Point2Cartesian &pnt, const Vector2Cartesian dir)
+        {
+            _point = pnt;
+            _direction = dir.GetUnitVector();
+        }
+
+        Line2D(const Point2Cartesian &a, const Point2Cartesian &b)
+        {
+            Vector2Cartesian dir(a , b);
+            _point = a;
+            _direction = dir.GetUnitVector();
+        }
+
+        // TODO - tocka i double, koji je kut prema pozitivnoj x osi
+
+        Point2Cartesian     StartPoint() const  { return _point; }
+        Point2Cartesian&    StartPoint()        { return _point; }
+
+        Vector2Cartesian    Direction() const   { return _direction; }
+        Vector2Cartesian&   Direction()         { return _direction; }
+
+        Point2Cartesian PointOnLine(double t)
+        {
+            VectorN<Real, 2> dist = t * _direction;
+            Point2Cartesian ret = _point + dist;
+            return ret;
+        }
     };
 
-    class Line3D
+   class SegmentLine2D
     {
-        public:
-            Point3Cartesian _point;
-            Vector3Cartesian _direction;        // da bude jedinicni vektor? normiranje u ctoru?
+    private:
+        Point2Cartesian _point1;
+        Point2Cartesian _point2;
 
-            Line3D(Point3Cartesian &pnt, Vector3Cartesian dir)
-            {
-                _point = pnt;
-                _direction = dir.GetUnitVector();
-            }
+    public:
+        SegmentLine2D(Point2Cartesian pnt1, Point2Cartesian pnt2)
+        {
+            _point1 = pnt1;
+            _point2 = pnt2;
+        }
 
-            Line3D(Point3Cartesian &a, Point3Cartesian &b)
-            {
-                Vector3Cartesian dir = b - a;
-                _point = a;
-                _direction = dir.GetUnitVector();
-            }
+        SegmentLine2D(Point2Cartesian pnt1, Vector2Cartesian direction, double t)
+        {
+            _point1 = pnt1;
+            _point2 = pnt1 + t * direction;
+        }
 
-            Point3Cartesian PointOnLine(double t)
-            {
-                VectorN<Real, 3> dist = t * _direction;
-                Point3Cartesian ret = _point + dist;
-                return ret;
-            }
+        Point2Cartesian     StartPoint() const  { return _point1; }
+        Point2Cartesian&    StartPoint()        { return _point1; }
 
-            // distance Line - Point3
-            // nearest point on line
-    };
+        Point2Cartesian     EndPoint()  const  { return _point2; }
+        Point2Cartesian&    EndPoint()         { return _point2; }
 
-    class SegmentLine2D
-    {
-        // reprezentacija - dvije Point2D
+        Point2Cartesian PointOnSegment(double t)
+        {
+            // check t  u [0,1]
+            VectorN<Real, 2> dist = t * Direction();
+            Point2Cartesian ret = _point1 + dist;
+            return ret;
+        }
 
-        // ctors
-        //  dviej tocke
-        //  tocka i koeficijne smjera + odredjeni t za odredjivanje druge tocke
-    };
-
-    class SegmentLine3D
-    {
-        // reprezentacija - dvije Point3D
-
-        // ctors
-        //  dviej tocke
-        //  tocka i koeficijne smjera
-    };
-
-    class Plane3D
-    {
-        public:
-            double _A, _B, _C, _D;
-
-            Plane3D(Point3Cartesian &a, Vector3Cartesian &normal)
-            {
-
-            }
-
-            Plane3D(Point3Cartesian &a, Point3Cartesian &b, Point3Cartesian &C)
-            {
-
-            }
-
-            Plane3D(double alpha, double beta, double gamma, double d)        // Hesseov (normalni) oblik
-            {
-                _A = cos(alpha);
-                _B = cos(beta);
-                _C = cos(gamma);
-                _D = -d;
-            }
-
-            // tri segmenta na koord osima ctor
-
-            Vector3Cartesian Normal()
-            {
-                Vector3Cartesian ret;
-
-                return ret;
-            }
-
-            // GetCoordAxisSegments
-            // GetHesseNormalFormParams
-
-            // IsPointOnPlane
-
-            // IsLineOnPlane
-
-            // Angle with line
-
-            // Intersection with line
-
-            // 2 plane intersection
+        double              Length()    const { return _point1.Dist(_point2); }
+        Vector2Cartesian    Direction() const { return Vector2Cartesian(_point1, _point2); }
     };
 
     class Triangle2D
     {
+    private:
+        Point2Cartesian _pnt1, _pnt2, _pnt3;
 
-    };
+    public:
+        Triangle2D(Point2Cartesian pnt1, Point2Cartesian pnt2, Point2Cartesian pnt3)
+        {
+            _pnt1 = pnt1;
+            _pnt2 = pnt2;
+            _pnt3 = pnt3;
+        }
+
+        Point2Cartesian     Pnt1() const { return _pnt1; }
+        Point2Cartesian&    Pnt1()       { return _pnt1; }
+        Point2Cartesian     Pnt2() const { return _pnt2; }
+        Point2Cartesian&    Pnt2()       { return _pnt2; }
+        Point2Cartesian     Pnt3() const { return _pnt3; }
+        Point2Cartesian&    Pnt3()       { return _pnt3; }
+
+        double Area() const
+        {
+            double a = _pnt1.Dist(_pnt2);
+            double b = _pnt2.Dist(_pnt3);
+            double c = _pnt3.Dist(_pnt1);
+
+            double s = (a + b + c) / 2.0;
+
+            return sqrt(s * (s - a) * (s - b) * (s - c));
+        }
+    };    
 
     class Polygon2D
     {
+    private:
+        std::vector<Point2Cartesian> _points;
+    public:
+        Polygon2D() {}
+        Polygon2D(std::vector<Point2Cartesian> points) : _points(points) {}
+        Polygon2D(std::initializer_list<Point2Cartesian> list) 
+        {
+            for (auto element : list)
+                _points.push_back(element);
+        }
 
+        std::vector<Point2Cartesian> Points() const { return _points; }
+        std::vector<Point2Cartesian>& Points() { return _points; }
+
+        double Area() const
+        {
+            double area = 0.0;
+            int n = (int) _points.size();
+            for (int i = 0; i < n; i++)
+            {
+                area += _points[i].X() * _points[(i + 1) % n].Y();
+                area -= _points[i].Y() * _points[(i + 1) % n].X();
+            }
+            area /= 2.0;
+            return area;
+        }
+
+        // TODO - IsConvex()
+        
+
+        // bool IsConvex() const
+        // {
+        //     int n = _points.size();
+        //     if (n < 3) return false;
+
+        //     bool got_negative = false;
+        //     bool got_positive = false;
+        //     int B, C;
+        //     for (int A = 0; A < n; A++)
+        //     {
+        //         B = (A + 1) % n;
+        //         C = (B + 1) % n;
+
+        //         double cross_product = CrossProductLength(_points[A], _points[B], _points[C]);
+        //         if (cross_product < 0)
+        //         {
+        //             got_negative = true;
+        //         }
+        //         else if (cross_product > 0)
+        //         {
+        //             got_positive = true;
+        //         }
+        //         if (got_negative && got_positive) return false;
+        //     }
+
+        //     return true;
+        // }
+
+        bool IsInside(Point2Cartesian pnt) const
+        {
+            return false;
+        }                 
+    };            
+}
+///////////////////////////   ./include/basic_types/Geometry3D.h   ///////////////////////////
+
+namespace MML
+{
+
+    class Point3Cartesian
+    {
+    private:
+        double _x, _y, _z;
+
+    public:
+        double  X() const   { return _x; }
+        double& X()         { return _x; }
+        double  Y() const   { return _y; }
+        double& Y()         { return _y; }
+        double  Z() const   { return _z; }
+        double& Z()         { return _z; }
+
+        Point3Cartesian() {}
+        Point3Cartesian(double x, double y, double z) : _x(x), _y(y), _z(z) {}
+
+        double Dist(const Point3Cartesian &b) const { return sqrt(SQR(b._x - _x) + SQR(b._y - _y) + SQR(b._z - _z)); }
+
+        Point3Cartesian operator+(const VectorN<Real, 3> &b) const
+        {
+            return Point3Cartesian(_x + b[0], _y + b[1], _z + b[2]);
+        }
+    };    
+    class Vector3Cartesian : public VectorN<Real, 3>
+    {
+    public:
+        Real    X() const   { return _val[0]; }
+        Real&   X()         { return _val[0]; }
+        Real    Y() const   { return _val[1]; }
+        Real&   Y()         { return _val[1]; }
+        Real    Z() const   { return _val[2]; }
+        Real&   Z()         { return _val[2]; }
+
+        Vector3Cartesian()                                  : VectorN<Real,3>{0.0, 0.0, 0.0} { }
+        Vector3Cartesian(const VectorN<Real, 3> &b)         : VectorN<Real,3>{b[0], b[1], b[2]} { }
+        Vector3Cartesian(double x, double y, double z)      : VectorN<Real,3>{x, y, z} { }
+        Vector3Cartesian(std::initializer_list<Real> list)  : VectorN<Real,3>(list) { }
+        Vector3Cartesian(const Point3Cartesian &a, const Point3Cartesian &b) 
+        {
+            _val[0] = b.X() - a.X();
+            _val[1] = b.Y() - a.Y();
+            _val[2] = b.Z() - a.Z();
+        }
+        bool IsParallelTo(Vector3Cartesian &b, Real eps = 1e-15) const
+        {
+            Real norm1 = NormL2();
+            Real norm2 = b.NormL2();
+
+            return std::abs(X() / norm1 - b.X() / norm2) < eps &&
+                   std::abs(Y() / norm1 - b.Y() / norm2) < eps &&
+                   std::abs(Z() / norm1 - b.Z() / norm2) < eps;
+        }
+
+        bool IsPerpendicularTo(Vector3Cartesian &b, Real eps = 1e-15) const
+        {
+            if (std::abs(ScalarProd(*this, b)) < eps)
+                return true;
+            else
+                return false;
+        }
+
+        Vector3Cartesian GetUnitVector() const
+        {
+            VectorN<Real, 3> res = (*this) / NormL2();
+
+            return Vector3Cartesian{res};
+        }
+
+        friend Real ScalarProd(const Vector3Cartesian &a, const Vector3Cartesian &b)
+        {
+            return a.ScalarProductCartesian(b);
+        }
+
+        friend Vector3Cartesian VectorProd(const Vector3Cartesian &a, const Vector3Cartesian &b)
+        {
+            Vector3Cartesian ret;
+
+            ret.X() = a.Y() * b.Z() - a.Z() * b.Y();
+            ret.Y() = a.Z() * b.X() - a.X() * b.Z();
+            ret.Z() = a.X() * b.Y() - a.Y() * b.X();
+
+            return ret;
+        }
+
+        friend Real VectorsAngle(const Vector3Cartesian &a, const Vector3Cartesian &b)
+        {
+            Real cos_phi = ScalarProd(a, b) / (a.NormL2() * b.NormL2());
+
+            return acos(cos_phi);
+        }
     };
+
+    class Vector3Spherical : public VectorN<Real, 3>
+    {
+    public:
+        Real    R()     const   { return _val[0]; }
+        Real&   R()             { return _val[0]; }
+        Real    Theta() const   { return _val[1]; }
+        Real&   Theta()         { return _val[1]; }
+        Real    Phi()   const   { return _val[2]; }
+        Real&   Phi()           { return _val[2]; }
+
+        Vector3Spherical()                                   : VectorN<Real,3>{0.0, 0.0, 0.0} { }
+        Vector3Spherical(const VectorN<Real, 3> &b)          : VectorN<Real,3>{b[0], b[1], b[2]} { }
+        Vector3Spherical(double r, double theta, double phi) : VectorN<Real,3>{r, theta, phi} { }
+        Vector3Spherical(std::initializer_list<Real> list)   : VectorN<Real,3>(list) { }
+    };
+
+    class Vector3Cylindrical : public VectorN<Real, 3>
+    {
+    public:
+        Real    R()   const { return _val[0]; }
+        Real&   R()         { return _val[0]; }
+        Real    Phi() const { return _val[1]; }
+        Real&   Phi()       { return _val[1]; }
+        Real    Z()   const { return _val[2]; }
+        Real&   Z()         { return _val[2]; }
+
+        Vector3Cylindrical()                                 : VectorN<Real,3>{0.0, 0.0, 0.0} { }
+        Vector3Cylindrical(const VectorN<Real, 3> &b)        : VectorN<Real,3>{b[0], b[1], b[2]} { }
+        Vector3Cylindrical(double r, double phi, double z)   : VectorN<Real,3>{r, phi, z} { }
+        Vector3Cylindrical(std::initializer_list<Real> list) : VectorN<Real,3>(list) { }
+    };
+
+
+    class Line3D
+    {
+    private:
+        Point3Cartesian _point;
+        Vector3Cartesian _direction; 
+
+    public:
+        Line3D(const Point3Cartesian &pnt, const Vector3Cartesian dir)
+        {
+            _point = pnt;
+            _direction = dir.GetUnitVector();
+        }
+
+        Line3D(const Point3Cartesian &a, const Point3Cartesian &b)
+        {
+            Vector3Cartesian dir(a, b);
+            _point = a;
+            _direction = dir.GetUnitVector();
+        }
+
+        Point3Cartesian StartPoint() const  { return _point; }
+        Point3Cartesian &StartPoint()       { return _point; }
+
+        Vector3Cartesian Direction() const  { return _direction; }
+        Vector3Cartesian &Direction()       { return _direction; }
+
+        Point3Cartesian PointOnLine(double t)
+        {
+            return _point + t * _direction;
+        }
+
+        bool IsPerpendicular(const Line3D &b ) const
+        {
+            return ScalarProd(Direction(), b.Direction()) == 0.0f;
+        }
+        // distance Line - Point3
+        // nearest point on line
+        // pravac koji prolazi kroz tocku i sijece zadani pravac okomito
+    };
+
+    class SegmentLine3D
+    {
+    private:
+        Point3Cartesian _point1;
+        Point3Cartesian _point2;
+
+    public:
+        SegmentLine3D(Point3Cartesian pnt1, Point3Cartesian pnt2)
+        {
+            _point1 = pnt1;
+            _point2 = pnt2;
+        }
+
+        SegmentLine3D(Point3Cartesian pnt1, Vector3Cartesian direction, double t)
+        {
+            _point1 = pnt1;
+            _point2 = pnt1 + t * direction;
+        }
+
+        Point3Cartesian StartPoint() const  { return _point1; }
+        Point3Cartesian &StartPoint()       { return _point1; }
+
+        Point3Cartesian EndPoint() const  { return _point2; }
+        Point3Cartesian &EndPoint()       { return _point2; }
+
+        Point3Cartesian PointOnSegment(double t)
+        {
+            // check t  u [0,1]
+            VectorN<Real, 3> dist = t * Direction();
+            Point3Cartesian ret = _point1 + dist;
+            return ret;
+        }
+
+        double              Length()    const { return _point1.Dist(_point2); }
+        Vector3Cartesian    Direction() const { return Vector3Cartesian(_point1, _point2); }
+    };
+
+    class Plane3D
+    {
+    private:
+        double _A, _B, _C, _D;
     
+    public:
+        Plane3D(const Point3Cartesian &a, const Vector3Cartesian &normal)
+        {
+            // check for normal null vector
+            Vector3Cartesian unitNormal = normal.GetUnitVector();
+
+            _A = unitNormal.X();
+            _B = unitNormal.Y();
+            _C = unitNormal.Z();
+            _D = -(a.X() * unitNormal.X() + a.Y() * unitNormal.Y() + a.Z() * unitNormal.Z());
+        }
+
+        Plane3D(const Point3Cartesian &a, const Point3Cartesian &b, const Point3Cartesian &c) : Plane3D(a, VectorProd(Vector3Cartesian(a, b), Vector3Cartesian(a, c)))
+        { }
+
+        Plane3D(double alpha, double beta, double gamma, double d)      // Hesseov (normalni) oblik
+        {
+            _A = cos(alpha);
+            _B = cos(beta);
+            _C = cos(gamma);
+            _D = -d;
+        }
+
+        // tri segmenta na koord osima ctor
+        Plane3D(double seg_x, double seg_y, double seg_z) // Hesseov (normalni) oblik
+        {
+            Point3Cartesian x(seg_x, 0, 0);
+            Point3Cartesian y(0, seg_y, 0);
+            Point3Cartesian z(0, 0, seg_z);
+
+            // TODO
+            _A = 1 / seg_x;
+            _B = 1 / seg_y;
+            _C = 1 / seg_z;
+            _D = -1;
+        }
+
+        static Plane3D GetXYPlane() { return Plane3D(Point3Cartesian(0,0,0), Vector3Cartesian(0,0,1)); }
+        static Plane3D GetXZPlane() { return Plane3D(Point3Cartesian(0,0,0), Vector3Cartesian(0,1,0)); }
+        static Plane3D GetYZPlane() { return Plane3D(Point3Cartesian(0,0,0), Vector3Cartesian(1,0,0)); }
+
+        double  A() const   { return _A; }
+        double& A()         { return _A; }
+        double  B() const   { return _B; }
+        double& B()         { return _B; }
+        double  C() const   { return _C; }
+        double& C()         { return _C; }
+        double  D() const   { return _D; }
+        double& D()         { return _D; }
+
+        Vector3Cartesian Normal() const { return Vector3Cartesian(_A, _B, _C); }
+
+        void GetCoordAxisSegments(double &outseg_x, double& outseg_y, double& outseg_z)
+        {
+            outseg_x = - _D /  _A;
+            outseg_y = - _D /  _B;
+            outseg_z = - _D /  _C;
+        }
+        // TODO - GetHesseNormalFormParams
+
+
+        bool IsPointOnPlane(const Point3Cartesian &pnt) const
+        {
+            return _A * pnt.X() + _B * pnt.Y() + _C * pnt.Z() + _D == 0.0;
+        }
+        double DistToPoint(const Point3Cartesian &pnt) const
+        {
+            double a = _A * pnt.X() + _B * pnt.Y() + _C * pnt.Z() + _D;
+            double b = sqrt(_A * _A + _B * _B + _C * _C);
+
+            return std::abs(a / b);
+        }
+        Point3Cartesian ProjectionToPlane(const Point3Cartesian &pnt) const
+        {
+            Point3Cartesian ret;
+            return ret;
+        }
+
+        bool IsLineOnPlane(const Line3D &line) const
+        {
+            return false;
+        }
+        double AngleToLine(const Line3D &line) const
+        {
+            return 0.0;
+        }        
+        bool IntersectionWithLine(const Line3D &line, Point3Cartesian &out_inter_pnt) const
+        {
+            return false;
+        }
+
+        bool IsParallelToPlane(const Plane3D &plane) const
+        {
+            Vector3Cartesian norm1(_A, _B, _C);
+            Vector3Cartesian norm2(plane._A, plane._B, plane._C);
+
+            return norm1.IsParallelTo(norm2);
+        }        
+        bool IsPerpendicularToPlane(const Plane3D &plane) const
+        {
+            Vector3Cartesian norm1(_A, _B, _C);
+            Vector3Cartesian norm2(plane._A, plane._B, plane._C);
+
+            return norm1.IsPerpendicularTo(norm2);
+        }
+        double AngleToPlane(const Plane3D &plane) const
+        {
+            return 0.0;
+        }     
+
+        bool IntersectionWithPlane(const Plane3D &plane, Line3D &out_inter_line) const
+        {
+            return false;
+        }
+        bool IntersectionWithTwoPlanes(const Plane3D &plane1, const Plane3D &plane2, Line3D &out_inter_line) const
+        {
+            return false;
+        }
+    };
+
     class Triangle3D
     {
+    private:
+        Point3Cartesian _pnt1, _pnt2, _pnt3;;
+    };
 
-    };    
-
+    typedef Vector3Cartesian    Vec3Cart;
+    typedef Vector3Spherical    Vec3Sph;
+    typedef Vector3Cylindrical  Vec3Cyl;
 }
 
 ///////////////////////////   ./include/basic_types/CoordSystem.h   ///////////////////////////
 
 namespace MML
 {
+/*
+SUŠTINA
+- imam koordinate u jednom, i (lokalne) koordinate u drugom koordinatnom sistemu
+- kakva je veza?
+- i kako izracunati jedne na osnovu drugih?
+
+Kakvi koordinatni sistemi su interesantni
+1. Ortogonal cartesian
+2. Oblique cartesian
+3. Cylindrical
+4. Spherical
+5. Generalized
+6. Curvilinear
+7. Generalized curvilinear
+8. Orthogonal curvilinear
+9. Oblique curvilinear
+10. Rectilinear
+11. Rectilinear orthogonal
+12. Rectilinear oblique
+
+PlanarRotatingSystem disk_rotation(pocetni phi, brzina rotacije);
+- za dane dvije koord, lat i long, daje poziciju u odnosu na dani fiksni koord sustav
+LocalCartesian disk_surface(disk_rotation, lat, long);
+
+- što izracunati? 
+    - artiljerijski hitac s dane pozicije i po danoj paraboli
+    - gdje ce pasti - koordinate u jednom i drugom sustavu
+
+- i onda još dodati vrtuljak na toj površini!
+
+MovingDynamicalSytem3D earth_around_sun(funkcija ovisnosti pozicije u odnosu na GLOBALNI KARETEZIJEV sustav);
+RotatingSystem3D earth_rotation(earth_around_sun);
+- za dane dvije koord, lat i long, daje poziciju u odnosu na dani koord sustav
+LocalCartesian3D earth_surface(earth_rotation, lat, long);
+
+LorentzInertialMovingFrame observer_moving_frame(vektor smjera, ovisnost pozicije o t); /// moze i (0,0,0,0) - stoi na mjestu
+LorentzInertialMovingFrame s1(vektor smjera, ovisnost pozicije o t);
+LorentzInertialMovingFrame s2(vektor smjera, ovisnost pozicije o t);
+
+LocalLorent s1;
+LorentzBoosted s2;
+LorentTranslated s3;
+*/
+
+    // RectilinearCartesianOrthogonal
     class CoordSystemOrthogonalCartesian
     {
         Vector3Cartesian _base[3];
@@ -1979,8 +2612,8 @@ namespace MML
     template<int N>
     class MovingCoordSystem
     {
-        VectorN<double, N> _origin;
-        // virtual void transf(VectorN<3> &x, double t) = 0;
+        VectorN<double, 3> _origin;
+        virtual VectorN<Real, 3> transf(const VectorN<Real, 3> &x, double t) = 0;
 
     };    
 
@@ -1989,24 +2622,48 @@ namespace MML
 
     class InertialMovingFrame : public MovingCoordSystem<3>
     {
-        // origin
-        // brzina
+        public:
+        // origin position at t = 0
+        Vector3Cartesian _origin;
+
+        Vector3Cartesian _speed;
+
+        InertialMovingFrame() {}
+        InertialMovingFrame(Vector3Cartesian origin, Vector3Cartesian speed)
+        {
+            _origin = origin;
+            _speed = speed;
+        }
 
         // transform to origin system
+        VectorN<Real, 3> transf(const VectorN<Real, 3> &x, double t)
+        {
+            return x - _origin - _speed * t;
+        }
+
     };
 
-    class RotatingMovingFrame : public MovingCoordSystem<3>
+    class RotatingFrame : public MovingCoordSystem<3>
     {
-        // origin
-        // brzina
+        public:
+        VectorN<double, 3> transf(const VectorN<double, 3> &x, double t)
+        {
+            return VectorN<double, 3>();
+        }
 
-        // os rotacije u odnosu na koordinatni sustav sredista
+        // os rotacije u odnosu na koordinatni sustav sredi8sta
 
         // transform to origin system
     };    
 
     class LorentzIntertialMovingFrame : public MovingCoordSystem<4>
     {
+        public:
+        VectorN<double, 3> transf(const VectorN<double, 3> &x, double t)
+        {
+            return VectorN<double, 3>();
+        }
+
         // origin
         // brzina, odnosno boost
 
@@ -2092,6 +2749,12 @@ namespace MML
             }
 
             return true;
+        }
+
+        static bool Solve(Matrix<Real> &a, Vector<Real> &b)
+        {
+            Matrix<Real> bmat = Matrix<Real>::ColumnMatrixFromVector(b);
+            return Solve(a, bmat);
         }
     };
 
@@ -2850,15 +3513,1039 @@ namespace MML
 } // end namespace
 ///////////////////////////   ./include/algorithms/EigenSystemSolvers.h   ///////////////////////////
 
-namespace MML
-{
-    class EigenSystemSolvers
-    {
 
-    };
+
+// Given the eigenvalues d[0..n-1] and (optionally) the eigenvectors v[0..n-1][0..n-1] as determined by Jacobi (÷11.1) or tqli (÷11.4), this routine sorts the eigenvalues into descending
+// order and rearranges the columns of v correspondingly. The method is straight insertion.
+
+void eigsrt(MML::Vector<Real> &d, MML::Matrix<Real> *v = NULL)
+{
+    int k;
+    int n = (int)d.size();
+    for (int i = 0; i < n - 1; i++)
+    {
+        Real p = d[k = i];
+        for (int j = i; j < n; j++)
+            if (d[j] >= p)
+                p = d[k = j];
+        if (k != i)
+        {
+            d[k] = d[i];
+            d[i] = p;
+            if (v != NULL)
+                for (int j = 0; j < n; j++)
+                {
+                    p = (*v)[j][i];
+                    (*v)[j][i] = (*v)[j][k];
+                    (*v)[j][k] = p;
+                }
+        }
+    }
 }
 
 
+namespace MML
+{
+    // Computes all eigenvalues and eigenvectors of a real symmetric matrix by Jacobi’s method.
+    struct Jacobi
+    {
+        const int n;
+        Matrix<Real> a, v;
+        Vector<Real> d;
+        int nrot;
+        const Real EPS;
+
+        // Computes all eigenvalues and eigenvectors of a real symmetric matrix a[0..n-1][0..n-1].
+        // On output, d[0..n-1] contains the eigenvalues of a sorted into descending order, while
+        // v[0..n-1][0..n-1] is a matrix whose columns contain the corresponding normalized eigenvectors. nrot contains the number of Jacobi rotations that were required. Only the upper
+        // triangle of a is accessed.
+        Jacobi(Matrix<Real> &aa) : n(aa.RowNum()), a(aa), v(n, n), d(n), nrot(0),
+                                   EPS(std::numeric_limits<Real>::epsilon())
+        {
+            int i, j, ip, iq;
+            Real tresh, theta, tau, t, sm, s, h, g, c;
+            Vector<Real> b(n), z(n);
+            for (ip = 0; ip < n; ip++)
+            {
+                for (iq = 0; iq < n; iq++)
+                    v[ip][iq] = 0.0;
+                v[ip][ip] = 1.0;
+            }
+            for (ip = 0; ip < n; ip++)
+            {
+                b[ip] = d[ip] = a[ip][ip];
+                z[ip] = 0.0;
+            }
+            for (i = 1; i <= 50; i++)
+            {
+                sm = 0.0;
+                for (ip = 0; ip < n - 1; ip++)
+                {
+                    for (iq = ip + 1; iq < n; iq++)
+                        sm += abs(a[ip][iq]);
+                }
+                if (sm == 0.0)
+                {
+                    eigsrt(d, &v);
+                    return;
+                }
+                if (i < 4)
+                    tresh = 0.2 * sm / (n * n);
+                else
+                    tresh = 0.0;
+                for (ip = 0; ip < n - 1; ip++)
+                {
+                    for (iq = ip + 1; iq < n; iq++)
+                    {
+                        g = 100.0 * abs(a[ip][iq]);
+                        if (i > 4 && g <= EPS * abs(d[ip]) && g <= EPS * abs(d[iq]))
+                            a[ip][iq] = 0.0;
+                        else if (abs(a[ip][iq]) > tresh)
+                        {
+                            h = d[iq] - d[ip];
+                            if (g <= EPS * abs(h))
+                                t = (a[ip][iq]) / h;
+                            else
+                            {
+                                theta = 0.5 * h / (a[ip][iq]);
+                                t = 1.0 / (abs(theta) + sqrt(1.0 + theta * theta));
+                                if (theta < 0.0)
+                                    t = -t;
+                            }
+                            c = 1.0 / sqrt(1 + t * t);
+                            s = t * c;
+                            tau = s / (1.0 + c);
+                            h = t * a[ip][iq];
+                            z[ip] -= h;
+                            z[iq] += h;
+                            d[ip] -= h;
+                            d[iq] += h;
+                            a[ip][iq] = 0.0;
+                            for (j = 0; j < ip; j++)
+                                rot(a, s, tau, j, ip, j, iq);
+                            for (j = ip + 1; j < iq; j++)
+                                rot(a, s, tau, ip, j, j, iq);
+                            for (j = iq + 1; j < n; j++)
+                                rot(a, s, tau, ip, j, iq, j);
+                            for (j = 0; j < n; j++)
+                                rot(v, s, tau, j, ip, j, iq);
+                            ++nrot;
+                        }
+                    }
+                }
+                for (ip = 0; ip < n; ip++)
+                {
+                    b[ip] += z[ip];
+                    d[ip] = b[ip];
+                    z[ip] = 0.0;
+                }
+            }
+            throw("Too many iterations in routine jacobi");
+        }
+        inline void rot(Matrix<Real> &a, const Real s, const Real tau, const int i,
+                        const int j, const int k, const int l)
+        {
+            Real g = a[i][j];
+            Real h = a[k][l];
+            a[i][j] = g - s * (h + g * tau);
+            a[k][l] = h + s * (g - h * tau);
+        }
+    };
+
+    // Computes all eigenvalues and eigenvectors of a real symmetric matrix by reduction to tridiagonal
+    // form followed by QL iteration.
+    class SymmMatEigenSolver
+    {
+    public:
+        int n;
+        Matrix<Real> z;
+        Vector<Real> d, e;
+        bool yesvecs;
+
+    public:
+        // Computes all eigenvalues and eigenvectors of a real symmetric matrix a[0..n-1][0..n-1]
+        // by reduction to tridiagonal form followed by QL iteration. On output, d[0..n-1] contains
+        // the eigenvalues of a sorted into descending order, while z[0..n-1][0..n-1] is a matrix
+        // whose columns contain the corresponding normalized eigenvectors. If yesvecs is input as
+        // true (the default), then the eigenvectors are computed. If yesvecs is input as false, only
+        // the eigenvalues are computed.
+        SymmMatEigenSolver(Matrix<Real> &a, bool yesvec = true) : n(a.RowNum()), z(a), d(n), e(n), yesvecs(yesvec)
+        {
+            tred2();
+            tqli();
+            sort();
+        }
+
+        // Computes all eigenvalues and (optionally) eigenvectors of a real, symmetric, tridiagonal
+        // matrix by QL iteration. On input, dd[0..n-1] contains the diagonal elements of the tridiagonal matrix. The vector ee[0..n-1] inputs the subdiagonal elements of the tridiagonal
+        // matrix, with ee[0] arbitrary. Output is the same as the constructor above.
+        SymmMatEigenSolver(Vector<Real> &dd, Vector<Real> &ee, bool yesvec = true) : n((int)dd.size()), d(dd), e(ee), z(n, n), yesvecs(yesvec)
+        {
+            for (int i = 0; i < n; i++)
+                z[i][i] = 1.0;
+            tqli();
+            sort();
+        }
+        void sort()
+        {
+            if (yesvecs)
+                eigsrt(d, &z);
+            else
+                eigsrt(d);
+        }
+
+        // Householder reduction of a real symmetric matrix z[0..n-1][0..n-1]. (The input matrix A
+        // to Symmeig is stored in z.) On output, z is replaced by the orthogonal matrix Q effecting
+        // the transformation. d[0..n-1] contains the diagonal elements of the tridiagonal matrix and
+        // e[0..n-1] the off-diagonal elements, with e[0]=0. If yesvecs is false, so that only eigenvalues
+        // will subsequently be determined, several statements are omitted, in which case z contains no
+        // useful information on output.
+        void tred2()
+        {
+            int l, k, j, i;
+            Real scale, hh, h, g, f;
+            for (i = n - 1; i > 0; i--)
+            {
+                l = i - 1;
+                h = scale = 0.0;
+                if (l > 0)
+                {
+                    for (k = 0; k < i; k++)
+                        scale += abs(z[i][k]);
+                    if (scale == 0.0)
+                        e[i] = z[i][l];
+                    else
+                    {
+                        for (k = 0; k < i; k++)
+                        {
+                            z[i][k] /= scale;
+                            h += z[i][k] * z[i][k];
+                        }
+                        f = z[i][l];
+                        g = (f >= 0.0 ? -sqrt(h) : sqrt(h));
+                        e[i] = scale * g;
+                        h -= f * g;
+                        z[i][l] = f - g;
+                        f = 0.0;
+                        for (j = 0; j < i; j++)
+                        {
+                            if (yesvecs)
+                                z[j][i] = z[i][j] / h;
+                            g = 0.0;
+                            for (k = 0; k < j + 1; k++)
+                                g += z[j][k] * z[i][k];
+                            for (k = j + 1; k < i; k++)
+                                g += z[k][j] * z[i][k];
+                            e[j] = g / h;
+                            f += e[j] * z[i][j];
+                        }
+                        hh = f / (h + h);
+                        for (j = 0; j < i; j++)
+                        {
+                            f = z[i][j];
+                            e[j] = g = e[j] - hh * f;
+                            for (k = 0; k < j + 1; k++)
+                                z[j][k] -= (f * e[k] + g * z[i][k]);
+                        }
+                    }
+                }
+                else
+                    e[i] = z[i][l];
+                d[i] = h;
+            }
+            if (yesvecs)
+                d[0] = 0.0;
+            e[0] = 0.0;
+            for (i = 0; i < n; i++)
+            {
+                if (yesvecs)
+                {
+                    if (d[i] != 0.0)
+                    {
+                        for (j = 0; j < i; j++)
+                        {
+                            g = 0.0;
+                            for (k = 0; k < i; k++)
+                                g += z[i][k] * z[k][j];
+                            for (k = 0; k < i; k++)
+                                z[k][j] -= g * z[k][i];
+                        }
+                    }
+                    d[i] = z[i][i];
+                    z[i][i] = 1.0;
+                    for (j = 0; j < i; j++)
+                        z[j][i] = z[i][j] = 0.0;
+                }
+                else
+                {
+                    d[i] = z[i][i];
+                }
+            }
+        }
+
+        // QL algorithm with implicit shifts to determine the eigenvalues and (optionally) the eigenvectors
+        // of a real, symmetric, tridiagonal matrix, or of a real symmetric matrix previously reduced by
+        // tred2 (÷11.3). On input, d[0..n-1] contains the diagonal elements of the tridiagonal matrix.
+        // On output, it returns the eigenvalues. The vector e[0..n-1] inputs the subdiagonal elements
+        // of the tridiagonal matrix, with e[0] arbitrary. On output e is destroyed. If the eigenvectors of
+        // a tridiagonal matrix are desired, the matrix z[0..n-1][0..n-1] is input as the identity matrix.
+        // If the eigenvectors of a matrix that has been reduced by tred2 are required, then z is input as
+        // the matrix output by tred2. In either case, column k of z returns the normalized eigenvector
+        // corresponding to d[k]
+        void tqli()
+        {
+            int m, l, iter, i, k;
+            Real s, r, p, g, f, dd, c, b;
+            const Real EPS = std::numeric_limits<Real>::epsilon();
+            for (i = 1; i < n; i++)
+                e[i - 1] = e[i];
+            e[n - 1] = 0.0;
+            for (l = 0; l < n; l++)
+            {
+                iter = 0;
+                do
+                {
+                    for (m = l; m < n - 1; m++)
+                    {
+                        dd = abs(d[m]) + abs(d[m + 1]);
+                        if (abs(e[m]) <= EPS * dd)
+                            break;
+                    }
+                    if (m != l)
+                    {
+                        if (iter++ == 30)
+                            throw("Too many iterations in tqli");
+                        g = (d[l + 1] - d[l]) / (2.0 * e[l]);
+                        r = pythag(g, 1.0);
+                        g = d[m] - d[l] + e[l] / (g + SIGN(r, g));
+                        s = c = 1.0;
+                        p = 0.0;
+                        for (i = m - 1; i >= l; i--)
+                        {
+                            f = s * e[i];
+                            b = c * e[i];
+                            e[i + 1] = (r = pythag(f, g));
+                            if (r == 0.0)
+                            {
+                                d[i + 1] -= p;
+                                e[m] = 0.0;
+                                break;
+                            }
+                            s = f / r;
+                            c = g / r;
+                            g = d[i + 1] - p;
+                            r = (d[i] - g) * s + 2.0 * c * b;
+                            d[i + 1] = g + (p = s * r);
+                            g = c * r - b;
+                            if (yesvecs)
+                            {
+                                for (k = 0; k < n; k++)
+                                {
+                                    f = z[k][i + 1];
+                                    z[k][i + 1] = s * z[k][i] + c * f;
+                                    z[k][i] = c * z[k][i] - s * f;
+                                }
+                            }
+                        }
+                        if (r == 0.0 && i >= l)
+                            continue;
+                        d[l] -= p;
+                        e[l] = g;
+                        e[m] = 0.0;
+                    }
+                } while (m != l);
+            }
+        }
+        Real pythag(const Real a, const Real b)
+        {
+            Real absa = std::abs(a), absb = std::abs(b);
+            return (absa > absb ? absa * sqrt(1.0 + SQR(absb / absa)) : (absb == 0.0 ? 0.0 : absb * sqrt(1.0 + SQR(absa / absb))));
+        }
+    };
+    //////////////////////////////////////////////////////////////////////////////
+
+    // Computes all eigenvalues and eigenvectors of a real nonsymmetric matrix by reduction to Hessenberg form followed by QR iteration.
+    class Unsymmeig
+    {
+    public:
+        int n;
+        Matrix<Real> a, zz;
+        Vector<Complex> wri;
+        Vector<Real> scale;
+        Vector<int> perm;
+        bool yesvecs, hessen;
+
+        // Computes all eigenvalues and (optionally) eigenvectors of a real nonsymmetric matrix a[0..n-1][0..n-1] by reduction to Hessenberg form followed by QR iteration. 
+        // If yesvecs is input as true (the default), then the eigenvectors are computed. Otherwise, only the eigenvalues are computed. 
+        // If hessen is input as false (the default), the matrix is first reduced to Hessenberg form. Otherwise it is assumed that the matrix is already in Hessenberg from. 
+        // On output, wri[0..n-1] contains the eigenvalues of a sorted into descending order, while zz[0..n-1][0..n-1] is a matrix whose columns contain the corresponding
+        // eigenvectors. 
+        // For a complex eigenvalue, only the eigenvector corresponding to the eigenvalue with a positive imaginary part is stored, with the real part in zz[0..n-1][i] and the
+        // imaginary part in h.zz[0..n-1][i+1]. The eigenvectors are not normalized.
+
+        Unsymmeig(Matrix<Real> &aa, bool yesvec = true, bool hessenb = false) : n(aa.RowNum()), a(aa), zz(n, n), wri(n), scale(n, 1.0), perm(n),
+                                                                                yesvecs(yesvec), hessen(hessenb)
+        {
+            balance();
+            if (!hessen)
+                elmhes();
+            if (yesvecs)
+            {
+                for (int i = 0; i < n; i++)
+                    zz[i][i] = 1.0;
+                if (!hessen)
+                    eltran();
+                hqr2();
+                balbak();
+                sortvecs();
+            }
+            else
+            {
+                hqr();
+                sort();
+            }
+        }
+        void balance()
+        {
+            const Real RADIX = std::numeric_limits<Real>::radix;
+            bool done = false;
+            Real sqrdx = RADIX * RADIX;
+            while (!done)
+            {
+                done = true;
+                for (int i = 0; i < n; i++)
+                {
+                    Real r = 0.0, c = 0.0;
+                    for (int j = 0; j < n; j++)
+                        if (j != i)
+                        {
+                            c += abs(a[j][i]);
+                            r += abs(a[i][j]);
+                        }
+                    if (c != 0.0 && r != 0.0)
+                    {
+                        Real g = r / RADIX;
+                        Real f = 1.0;
+                        Real s = c + r;
+                        while (c < g)
+                        {
+                            f *= RADIX;
+                            c *= sqrdx;
+                        }
+                        g = r * RADIX;
+                        while (c > g)
+                        {
+                            f /= RADIX;
+                            c /= sqrdx;
+                        }
+                        if ((c + r) / f < 0.95 * s)
+                        {
+                            done = false;
+                            g = 1.0 / f;
+                            scale[i] *= f;
+                            for (int j = 0; j < n; j++)
+                                a[i][j] *= g;
+                            for (int j = 0; j < n; j++)
+                                a[j][i] *= f;
+                        }
+                    }
+                }
+            }
+        }
+        void elmhes()
+        {
+            for (int m = 1; m < n - 1; m++)
+            {
+                Real x = 0.0;
+                int i = m;
+                for (int j = m; j < n; j++)
+                {
+                    if (abs(a[j][m - 1]) > abs(x))
+                    {
+                        x = a[j][m - 1];
+                        i = j;
+                    }
+                }
+                perm[m] = i;
+                if (i != m)
+                {
+                    for (int j = m - 1; j < n; j++)
+                        std::swap(a[i][j], a[m][j]);
+                    for (int j = 0; j < n; j++)
+                        std::swap(a[j][i], a[j][m]);
+                }
+                if (x != 0.0)
+                {
+                    for (i = m + 1; i < n; i++)
+                    {
+                        Real y = a[i][m - 1];
+                        if (y != 0.0)
+                        {
+                            y /= x;
+                            a[i][m - 1] = y;
+                            for (int j = m; j < n; j++)
+                                a[i][j] -= y * a[m][j];
+                            for (int j = 0; j < n; j++)
+                                a[j][m] += y * a[j][i];
+                        }
+                    }
+                }
+            }
+        }
+        void eltran()
+        {
+            for (int mp = n - 2; mp > 0; mp--)
+            {
+                for (int k = mp + 1; k < n; k++)
+                    zz[k][mp] = a[k][mp - 1];
+                int i = perm[mp];
+                if (i != mp)
+                {
+                    for (int j = mp; j < n; j++)
+                    {
+                        zz[mp][j] = zz[i][j];
+                        zz[i][j] = 0.0;
+                    }
+                    zz[i][mp] = 1.0;
+                }
+            }
+        }
+
+        void hqr()
+        {
+            int nn, m, l, k, j, its, i, mmin;
+            Real z, y, x, w, v, u, t, s, r, q, p, anorm = 0.0;
+
+            const Real EPS = std::numeric_limits<Real>::epsilon();
+            for (i = 0; i < n; i++)
+                for (j = std::max(i - 1, 0); j < n; j++)
+                    anorm += abs(a[i][j]);
+            nn = n - 1;
+            t = 0.0;
+            while (nn >= 0)
+            {
+                its = 0;
+                do
+                {
+                    for (l = nn; l > 0; l--)
+                    {
+                        s = abs(a[l - 1][l - 1]) + abs(a[l][l]);
+                        if (s == 0.0)
+                            s = anorm;
+                        if (abs(a[l][l - 1]) <= EPS * s)
+                        {
+                            a[l][l - 1] = 0.0;
+                            break;
+                        }
+                    }
+                    x = a[nn][nn];
+                    if (l == nn)
+                    {
+                        wri[nn--] = x + t;
+                    }
+                    else
+                    {
+                        y = a[nn - 1][nn - 1];
+                        w = a[nn][nn - 1] * a[nn - 1][nn];
+                        if (l == nn - 1)
+                        {
+                            p = 0.5 * (y - x);
+                            q = p * p + w;
+                            z = sqrt(abs(q));
+                            x += t;
+                            if (q >= 0.0)
+                            {
+                                z = p + SIGN(z, p);
+                                wri[nn - 1] = wri[nn] = x + z;
+                                if (z != 0.0)
+                                    wri[nn] = x - w / z;
+                            }
+                            else
+                            {
+                                wri[nn] = Complex(x + p, -z);
+                                wri[nn - 1] = conj(wri[nn]);
+                            }
+                            nn -= 2;
+                        }
+                        else
+                        {
+                            if (its == 30)
+                                throw("Too many iterations in hqr");
+                            if (its == 10 || its == 20)
+                            {
+                                t += x;
+                                for (i = 0; i < nn + 1; i++)
+                                    a[i][i] -= x;
+                                s = abs(a[nn][nn - 1]) + abs(a[nn - 1][nn - 2]);
+                                y = x = 0.75 * s;
+                                w = -0.4375 * s * s;
+                            }
+                            ++its;
+                            for (m = nn - 2; m >= l; m--)
+                            {
+                                z = a[m][m];
+                                r = x - z;
+                                s = y - z;
+                                p = (r * s - w) / a[m + 1][m] + a[m][m + 1];
+                                q = a[m + 1][m + 1] - z - r - s;
+                                r = a[m + 2][m + 1];
+                                s = abs(p) + abs(q) + abs(r);
+                                p /= s;
+                                q /= s;
+                                r /= s;
+                                if (m == l)
+                                    break;
+                                u = abs(a[m][m - 1]) * (abs(q) + abs(r));
+                                v = abs(p) * (abs(a[m - 1][m - 1]) + abs(z) + abs(a[m + 1][m + 1]));
+                                if (u <= EPS * v)
+                                    break;
+                            }
+                            for (i = m; i < nn - 1; i++)
+                            {
+                                a[i + 2][i] = 0.0;
+                                if (i != m)
+                                    a[i + 2][i - 1] = 0.0;
+                            }
+                            for (k = m; k < nn; k++)
+                            {
+                                if (k != m)
+                                {
+                                    p = a[k][k - 1];
+                                    q = a[k + 1][k - 1];
+                                    r = 0.0;
+                                    if (k + 1 != nn)
+                                        r = a[k + 2][k - 1];
+                                    if ((x = abs(p) + abs(q) + abs(r)) != 0.0)
+                                    {
+                                        p /= x;
+                                        q /= x;
+                                        r /= x;
+                                    }
+                                }
+                                if ((s = SIGN(sqrt(p * p + q * q + r * r), p)) != 0.0)
+                                {
+                                    if (k == m)
+                                    {
+                                        if (l != m)
+                                            a[k][k - 1] = -a[k][k - 1];
+                                    }
+                                    else
+                                        a[k][k - 1] = -s * x;
+                                    p += s;
+                                    x = p / s;
+                                    y = q / s;
+                                    z = r / s;
+                                    q /= p;
+                                    r /= p;
+                                    for (j = k; j < nn + 1; j++)
+                                    {
+                                        p = a[k][j] + q * a[k + 1][j];
+                                        if (k + 1 != nn)
+                                        {
+                                            p += r * a[k + 2][j];
+                                            a[k + 2][j] -= p * z;
+                                        }
+                                        a[k + 1][j] -= p * y;
+                                        a[k][j] -= p * x;
+                                    }
+                                    mmin = nn < k + 3 ? nn : k + 3;
+                                    for (i = l; i < mmin + 1; i++)
+                                    {
+                                        p = x * a[i][k] + y * a[i][k + 1];
+                                        if (k + 1 != nn)
+                                        {
+                                            p += z * a[i][k + 2];
+                                            a[i][k + 2] -= p * r;
+                                        }
+                                        a[i][k + 1] -= p * q;
+                                        a[i][k] -= p;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } while (l + 1 < nn);
+            }
+        }
+        void hqr2()
+        {
+            int nn, m, l, k, j, its, i, mmin, na;
+            Real z, y, x, w, v, u, t, s, r, q, p, anorm = 0.0, ra, sa, vr, vi;
+
+            const Real EPS = std::numeric_limits<Real>::epsilon();
+            for (i = 0; i < n; i++)
+                for (j = std::max(i - 1, 0); j < n; j++)
+                    anorm += abs(a[i][j]);
+            nn = n - 1;
+            t = 0.0;
+            while (nn >= 0)
+            {
+                its = 0;
+                do
+                {
+                    for (l = nn; l > 0; l--)
+                    {
+                        s = abs(a[l - 1][l - 1]) + abs(a[l][l]);
+                        if (s == 0.0)
+                            s = anorm;
+                        if (abs(a[l][l - 1]) <= EPS * s)
+                        {
+                            a[l][l - 1] = 0.0;
+                            break;
+                        }
+                    }
+                    x = a[nn][nn];
+                    if (l == nn)
+                    {
+                        wri[nn] = a[nn][nn] = x + t;
+                        nn--;
+                    }
+                    else
+                    {
+                        y = a[nn - 1][nn - 1];
+                        w = a[nn][nn - 1] * a[nn - 1][nn];
+                        if (l == nn - 1)
+                        {
+                            p = 0.5 * (y - x);
+                            q = p * p + w;
+                            z = sqrt(abs(q));
+                            x += t;
+                            a[nn][nn] = x;
+                            a[nn - 1][nn - 1] = y + t;
+                            if (q >= 0.0)
+                            {
+                                z = p + SIGN(z, p);
+                                wri[nn - 1] = wri[nn] = x + z;
+                                if (z != 0.0)
+                                    wri[nn] = x - w / z;
+                                x = a[nn][nn - 1];
+                                s = abs(x) + abs(z);
+                                p = x / s;
+                                q = z / s;
+                                r = sqrt(p * p + q * q);
+                                p /= r;
+                                q /= r;
+                                for (j = nn - 1; j < n; j++)
+                                {
+                                    z = a[nn - 1][j];
+                                    a[nn - 1][j] = q * z + p * a[nn][j];
+                                    a[nn][j] = q * a[nn][j] - p * z;
+                                }
+                                for (i = 0; i <= nn; i++)
+                                {
+                                    z = a[i][nn - 1];
+                                    a[i][nn - 1] = q * z + p * a[i][nn];
+                                    a[i][nn] = q * a[i][nn] - p * z;
+                                }
+                                for (i = 0; i < n; i++)
+                                {
+                                    z = zz[i][nn - 1];
+                                    zz[i][nn - 1] = q * z + p * zz[i][nn];
+                                    zz[i][nn] = q * zz[i][nn] - p * z;
+                                }
+                            }
+                            else
+                            {
+                                wri[nn] = Complex(x + p, -z);
+                                wri[nn - 1] = conj(wri[nn]);
+                            }
+                            nn -= 2;
+                        }
+                        else
+                        {
+                            if (its == 30)
+                                throw("Too many iterations in hqr");
+                            if (its == 10 || its == 20)
+                            {
+                                t += x;
+                                for (i = 0; i < nn + 1; i++)
+                                    a[i][i] -= x;
+                                s = abs(a[nn][nn - 1]) + abs(a[nn - 1][nn - 2]);
+                                y = x = 0.75 * s;
+                                w = -0.4375 * s * s;
+                            }
+                            ++its;
+                            for (m = nn - 2; m >= l; m--)
+                            {
+                                z = a[m][m];
+                                r = x - z;
+                                s = y - z;
+                                p = (r * s - w) / a[m + 1][m] + a[m][m + 1];
+                                q = a[m + 1][m + 1] - z - r - s;
+                                r = a[m + 2][m + 1];
+                                s = abs(p) + abs(q) + abs(r);
+                                p /= s;
+                                q /= s;
+                                r /= s;
+                                if (m == l)
+                                    break;
+                                u = abs(a[m][m - 1]) * (abs(q) + abs(r));
+                                v = abs(p) * (abs(a[m - 1][m - 1]) + abs(z) + abs(a[m + 1][m + 1]));
+                                if (u <= EPS * v)
+                                    break;
+                            }
+                            for (i = m; i < nn - 1; i++)
+                            {
+                                a[i + 2][i] = 0.0;
+                                if (i != m)
+                                    a[i + 2][i - 1] = 0.0;
+                            }
+                            for (k = m; k < nn; k++)
+                            {
+                                if (k != m)
+                                {
+                                    p = a[k][k - 1];
+                                    q = a[k + 1][k - 1];
+                                    r = 0.0;
+                                    if (k + 1 != nn)
+                                        r = a[k + 2][k - 1];
+                                    if ((x = abs(p) + abs(q) + abs(r)) != 0.0)
+                                    {
+                                        p /= x;
+                                        q /= x;
+                                        r /= x;
+                                    }
+                                }
+                                if ((s = SIGN(sqrt(p * p + q * q + r * r), p)) != 0.0)
+                                {
+                                    if (k == m)
+                                    {
+                                        if (l != m)
+                                            a[k][k - 1] = -a[k][k - 1];
+                                    }
+                                    else
+                                        a[k][k - 1] = -s * x;
+                                    p += s;
+                                    x = p / s;
+                                    y = q / s;
+                                    z = r / s;
+                                    q /= p;
+                                    r /= p;
+                                    for (j = k; j < n; j++)
+                                    {
+                                        p = a[k][j] + q * a[k + 1][j];
+                                        if (k + 1 != nn)
+                                        {
+                                            p += r * a[k + 2][j];
+                                            a[k + 2][j] -= p * z;
+                                        }
+                                        a[k + 1][j] -= p * y;
+                                        a[k][j] -= p * x;
+                                    }
+                                    mmin = nn < k + 3 ? nn : k + 3;
+                                    for (i = 0; i < mmin + 1; i++)
+                                    {
+                                        p = x * a[i][k] + y * a[i][k + 1];
+                                        if (k + 1 != nn)
+                                        {
+                                            p += z * a[i][k + 2];
+                                            a[i][k + 2] -= p * r;
+                                        }
+                                        a[i][k + 1] -= p * q;
+                                        a[i][k] -= p;
+                                    }
+                                    for (i = 0; i < n; i++)
+                                    {
+                                        p = x * zz[i][k] + y * zz[i][k + 1];
+                                        if (k + 1 != nn)
+                                        {
+                                            p += z * zz[i][k + 2];
+                                            zz[i][k + 2] -= p * r;
+                                        }
+                                        zz[i][k + 1] -= p * q;
+                                        zz[i][k] -= p;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } while (l + 1 < nn);
+            }
+            if (anorm != 0.0)
+            {
+                for (nn = n - 1; nn >= 0; nn--)
+                {
+                    p = real(wri[nn]);
+                    q = imag(wri[nn]);
+                    na = nn - 1;
+                    if (q == 0.0)
+                    {
+                        m = nn;
+                        a[nn][nn] = 1.0;
+                        for (i = nn - 1; i >= 0; i--)
+                        {
+                            w = a[i][i] - p;
+                            r = 0.0;
+                            for (j = m; j <= nn; j++)
+                                r += a[i][j] * a[j][nn];
+                            if (imag(wri[i]) < 0.0)
+                            {
+                                z = w;
+                                s = r;
+                            }
+                            else
+                            {
+                                m = i;
+
+                                if (imag(wri[i]) == 0.0)
+                                {
+                                    t = w;
+                                    if (t == 0.0)
+                                        t = EPS * anorm;
+                                    a[i][nn] = -r / t;
+                                }
+                                else
+                                {
+                                    x = a[i][i + 1];
+                                    y = a[i + 1][i];
+                                    q = SQR(real(wri[i]) - p) + SQR(imag(wri[i]));
+                                    t = (x * s - z * r) / q;
+                                    a[i][nn] = t;
+                                    if (abs(x) > abs(z))
+                                        a[i + 1][nn] = (-r - w * t) / x;
+                                    else
+                                        a[i + 1][nn] = (-s - y * t) / z;
+                                }
+                                t = abs(a[i][nn]);
+                                if (EPS * t * t > 1)
+                                    for (j = i; j <= nn; j++)
+                                        a[j][nn] /= t;
+                            }
+                        }
+                    }
+                    else if (q < 0.0)
+                    {
+                        m = na;
+                        if (abs(a[nn][na]) > abs(a[na][nn]))
+                        {
+                            a[na][na] = q / a[nn][na];
+                            a[na][nn] = -(a[nn][nn] - p) / a[nn][na];
+                        }
+                        else
+                        {
+                            Complex temp = Complex(0.0, -a[na][nn]) / Complex(a[na][na] - p, q);
+                            a[na][na] = real(temp);
+                            a[na][nn] = imag(temp);
+                        }
+                        a[nn][na] = 0.0;
+                        a[nn][nn] = 1.0;
+                        for (i = nn - 2; i >= 0; i--)
+                        {
+                            w = a[i][i] - p;
+                            ra = sa = 0.0;
+                            for (j = m; j <= nn; j++)
+                            {
+                                ra += a[i][j] * a[j][na];
+                                sa += a[i][j] * a[j][nn];
+                            }
+                            if (imag(wri[i]) < 0.0)
+                            {
+                                z = w;
+                                r = ra;
+                                s = sa;
+                            }
+                            else
+                            {
+                                m = i;
+                                if (imag(wri[i]) == 0.0)
+                                {
+                                    Complex temp = Complex(-ra, -sa) / Complex(w, q);
+                                    a[i][na] = real(temp);
+                                    a[i][nn] = imag(temp);
+                                }
+                                else
+                                {
+                                    x = a[i][i + 1];
+                                    y = a[i + 1][i];
+                                    vr = SQR(real(wri[i]) - p) + SQR(imag(wri[i])) - q * q;
+                                    vi = 2.0 * q * (real(wri[i]) - p);
+                                    if (vr == 0.0 && vi == 0.0)
+                                        vr = EPS * anorm * (abs(w) + abs(q) + abs(x) + abs(y) + abs(z));
+                                    Complex temp = Complex(x * r - z * ra + q * sa, x * s - z * sa - q * ra) /
+                                                   Complex(vr, vi);
+                                    a[i][na] = real(temp);
+                                    a[i][nn] = imag(temp);
+                                    if (abs(x) > abs(z) + abs(q))
+                                    {
+                                        a[i + 1][na] = (-ra - w * a[i][na] + q * a[i][nn]) / x;
+                                        a[i + 1][nn] = (-sa - w * a[i][nn] - q * a[i][na]) / x;
+                                    }
+                                    else
+                                    {
+                                        Complex temp = Complex(-r - y * a[i][na], -s - y * a[i][nn]) /
+                                                       Complex(z, q);
+                                        a[i + 1][na] = real(temp);
+                                        a[i + 1][nn] = imag(temp);
+                                    }
+                                }
+                            }
+                            t = std::max(std::abs(a[i][na]), std::abs(a[i][nn]));
+                            if (EPS * t * t > 1)
+                                for (j = i; j <= nn; j++)
+                                {
+                                    a[j][na] /= t;
+                                    a[j][nn] /= t;
+                                }
+                        }
+                    }
+                }
+                for (j = n - 1; j >= 0; j--)
+                    for (i = 0; i < n; i++)
+                    {
+                        z = 0.0;
+                        for (k = 0; k <= j; k++)
+                            z += zz[i][k] * a[k][j];
+                        zz[i][j] = z;
+                    }
+            }
+        }
+        void balbak()
+        {
+            for (int i = 0; i < n; i++)
+                for (int j = 0; j < n; j++)
+                    zz[i][j] *= scale[i];
+        }
+
+        void sort()
+        {
+            int i;
+            for (int j = 1; j < n; j++)
+            {
+                Complex x = wri[j];
+                for (i = j - 1; i >= 0; i--)
+                {
+                    if (real(wri[i]) >= real(x))
+                        break;
+                    wri[i + 1] = wri[i];
+                }
+                wri[i + 1] = x;
+            }
+        }
+        void sortvecs()
+        {
+            int i;
+            Vector<Real> temp(n);
+            for (int j = 1; j < n; j++)
+            {
+                Complex x = wri[j];
+                for (int k = 0; k < n; k++)
+                    temp[k] = zz[k][j];
+                for (i = j - 1; i >= 0; i--)
+                {
+                    if (real(wri[i]) >= real(x))
+                        break;
+                    wri[i + 1] = wri[i];
+                    for (int k = 0; k < n; k++)
+                        zz[k][i + 1] = zz[k][i];
+                }
+                wri[i + 1] = x;
+                for (int k = 0; k < n; k++)
+                    zz[k][i + 1] = temp[k];
+            }
+        }
+    };
+
+}
 ///////////////////////////   ./include/interfaces/IFunction.h   ///////////////////////////
 
 
@@ -2919,6 +4606,8 @@ namespace MML
     {
         public:
         virtual VectorN<Real, N> operator()(double x) const = 0;
+
+        // GetMixX(), GetMaxX(), može vraćati i infinity
     };
 
     //////////////////////////////////////////////////////////////////////
@@ -2926,13 +4615,16 @@ namespace MML
     class IParametricSurface : public IFunction<VectorN<Real, N>, const VectorN<Real, 2> &>
     {
         public:
-        virtual VectorN<Real, N> operator()(const VectorN<Real, 2> &coord) const = 0;
-        virtual VectorN<Real, N> operator()(double u, double w) const 
+        virtual VectorN<Real, N> operator()(double u, double w) const = 0;
+        virtual VectorN<Real, N> operator()(const VectorN<Real, 2> &coord) const 
         {
-            VectorN<Real, 2> coord{u,w};
-
-            return operator()(coord);
+            return operator()(coord[0], coord[1]);
         }
+
+        // GetMixX(), GetMaxX(), može vraćati i infinity
+        // GetMixY(), GetMaxY(), može vraćati i infinity
+        // da je površina omeđena
+
     };
 }
 
@@ -3056,24 +4748,67 @@ namespace MML
     class ParametricSurfaceFromFuncPtr : public IParametricSurface<N>
     {
         public:
-        VectorN<double, N> (*_func)(const VectorN<double, 2> &);
+        VectorN<double, N> (*_func)(double u, double w);
 
-        ParametricSurfaceFromFuncPtr( VectorN<double, N> (*inFunc)(const VectorN<double, 2> &) ) : _func(inFunc)    {}
+        ParametricSurfaceFromFuncPtr( VectorN<double, N> (*inFunc)(double u, double w) ) : _func(inFunc)    {}
 
-        VectorN<double, N> operator()(const VectorN<double, 2> &x) const  { return _func(x); }
+        VectorN<double, N> operator()(double u, double w) const  { return _func(u,w); }
     };
 
     template<int N>
     class ParametricSurfaceFromStdFunc : public IParametricSurface<N>
     {
         public:
-        std::function<VectorN<double, N>(const VectorN<double, 2> &)> _func;
+        std::function<VectorN<double, N>(double u, double w)> _func;
 
-        ParametricSurfaceFromStdFunc(std::function<VectorN<double, N>(const VectorN<double, 2> &)> &inFunc) : _func(inFunc)    {}
+        ParametricSurfaceFromStdFunc(std::function<VectorN<double, N>(double u, double w)> &inFunc) : _func(inFunc)    {}
 
-        VectorN<double, N> operator()(const VectorN<double, 2> &x) const   { return _func(x); }
+        VectorN<double, N> operator()(double u, double w) const   { return _func(u,w); }
     };    
 } // end namespace
+
+///////////////////////////   ./include/basic_types/Functions.h   ///////////////////////////
+
+
+namespace MML
+{
+    namespace Curves
+    {
+        static inline Real Sin(Real x) { return sin(x); }
+        static inline Real Cos(Real x) { return cos(x); }
+        static inline Real Tan(Real x) { return tan(x); }
+        static inline Real Exp(Real x) { return exp(x); }
+        static inline Real Log(Real x) { return log(x); }
+        static inline Real Sqrt(Real x) { return sqrt(x); }
+        static inline Real Pow(Real x, Real y) { return pow(x, y); }
+        static inline Real Sinh(Real x) { return sinh(x); }
+        static inline Real Cosh(Real x) { return cosh(x); }
+        static inline Real Tanh(Real x) { return tanh(x); }
+        static inline Real Asin(Real x) { return asin(x); }
+        static inline Real Acos(Real x) { return acos(x); }
+        static inline Real Atan(Real x) { return atan(x); }
+        static inline Real Asinh(Real x) { return asinh(x); }
+        static inline Real Acosh(Real x) { return acosh(x); }
+        static inline Real Atanh(Real x) { return atanh(x); }
+        // static inline Abs(Real x) { return abs(x); }
+        // static inline Floor(Real x) { return floor(x); }
+        // static inline Ceil(Real x) { return ceil(x); }
+        // static inline Round(Real x) { return round(x); }
+        // static inline Sign(Real x) { return sign(x); }
+
+    }
+}
+
+///////////////////////////   ./include/basic_types/Curves.h   ///////////////////////////
+
+
+namespace MML
+{
+    namespace Curves
+    {
+        static ParametricCurveFromFuncPtr<3> helix_curve([](double t) { return MML::VectorN<Real, 3>{cos(t), sin(t), t}; });
+    }
+}
 
 ///////////////////////////   ./include/basic_types/InterpolatedFunction.h   ///////////////////////////
 
@@ -4403,9 +6138,7 @@ namespace MML
         VectorN<Real, 3> _dual[3];
 
         MatrixNM<Real,3,3> _alpha;
-
         MatrixNM<Real,3,3> _transf;
-        MatrixNM<Real,3,3> _inv;
 
         ScalarFunctionFromStdFunc<3> _f1;
         ScalarFunctionFromStdFunc<3> _f2;
@@ -4446,8 +6179,6 @@ namespace MML
                     _transf(i,j) = _base[j][i];     // transponirano
                 }
             }
-
-            _inv = _transf.GetInverse();            
         }
 
         double func1(const VectorN<Real, 3> &q) { return ScalarProd(q, MML::Vector3Cartesian(_dual[0])); }
@@ -4633,11 +6364,13 @@ namespace MML
     static CoordTransfCartesianToCylindrical    CoordTransfCartToCyl;
 }
 
-///////////////////////////   ./include/basic_types/Tensors.h   ///////////////////////////
+///////////////////////////   ./include/basic_types/Tensor.h   ///////////////////////////
 
 
 namespace MML
 {
+    // imamo TensorData - to su koeficijenti
+    // imamo ponašanje
     template <int N>
     class TensorRank2
     {
@@ -4793,6 +6526,74 @@ class MetricTensorFromCoordTransf: public MetricTensor<N>
     }
 };
 
+}
+
+///////////////////////////   ./include/basic_types/Fields.h   ///////////////////////////
+
+
+namespace MML
+{
+    static double InverseRadialFieldFuncCart(const VectorN<Real, 3> &x )   { return 1.0 / x.NormL2(); }
+
+    static double InverseRadialFieldFuncSpher(const VectorN<Real, 3> &x )
+    {
+        return 1.0 / x[0];
+    }
+
+    static double InverseRadialFieldFuncCyl(const VectorN<Real, 3> &x )
+    {
+        double r = x.NormL2();
+
+        return 10.0 / sqrt(x[0]*x[0] + x[2]*x[2]);
+    }
+
+    class InverseRadialFieldCart : public IScalarFunction<3>
+    {
+    protected:
+        double _constant;
+    public:
+        InverseRadialFieldCart() : _constant(1.0) {}
+        InverseRadialFieldCart(double constant) : _constant(constant) {}
+
+        double operator()(const VectorN<double, 3> &x) const  { return -_constant / x.NormL2(); }
+    };
+
+    class GravityPotentialFieldCart : public InverseRadialFieldCart
+    {
+    private:
+        double _M;
+        double _G;
+    public:
+        GravityPotentialFieldCart() : _M(1.0), _G(6.67408e-11), InverseRadialFieldCart(6.67408e-11) {}
+        GravityPotentialFieldCart(double M) : _M(M), _G(6.67408e-11), InverseRadialFieldCart(M * 6.67408e-11) {}
+        GravityPotentialFieldCart(double M, double G) : _M(M), _G(G), InverseRadialFieldCart(M * G) {}
+    };
+    
+    class MultibodyGravityPotentialFieldCart : public IScalarFunction<3>
+    {
+    private:
+        double _M;
+        double _G;
+        std::vector<double> _masses;
+        std::vector<VectorN<double, 3>> _positions;
+    public:
+        MultibodyGravityPotentialFieldCart() : _M(1.0), _G(6.67408e-11) {}
+        MultibodyGravityPotentialFieldCart(double M) : _M(M), _G(6.67408e-11) {}
+        MultibodyGravityPotentialFieldCart(double M, double G) : _M(M), _G(G) {}
+
+        double operator()(const VectorN<double, 3> &x) const  { return -_G * _M / x.NormL2(); }
+    };      
+    
+    class CoulombPotentialFieldCart : public InverseRadialFieldCart
+    {
+    private:
+        double _Q;
+        double _C;
+    public:
+        CoulombPotentialFieldCart() : _Q(1.0), _C(6.67408e-11), InverseRadialFieldCart(8.987551787e9) {}
+        CoulombPotentialFieldCart(double Q) : _Q(Q), _C(6.67408e-11), InverseRadialFieldCart(Q * 8.987551787e9) {}
+        CoulombPotentialFieldCart(double Q, double C) : _Q(Q), _C(C), InverseRadialFieldCart(Q * C) {}
+    };  
 }
 
 ///////////////////////////   ./include/algorithms/DiffEqSolvers.h   ///////////////////////////
@@ -5234,6 +7035,9 @@ namespace MML
 
 namespace MML
 {
+    // LineIntegralScalar
+    // LineIntegralVector
+    // SurfaceIntegral - flux
 	class PathIntegration
 	{
 		public:
@@ -5256,10 +7060,10 @@ namespace MML
 
 namespace MML
 {
-    class FieldOperations
+    class ScalarFieldOperations
     {
-    public:
-        // Generalni gradijent
+        public:
+                // Generalni gradijent
         template<int N>
         static VectorN<Real, N> Gradient(IScalarFunction<N> &scalarField, const MetricTensor<N>& metric, const VectorN<Real, N> &pos)
         {
@@ -5281,6 +7085,29 @@ namespace MML
             // ret = m.MetricAtPoint(pos) * derivsAtPoint;
         }
 
+        static Vector3Spherical GradientSpher(const IScalarFunction<3> &scalarField, const Vector3Spherical &pos)
+        {
+            Vector3Spherical ret = Derivation::DerivePartialAll<3>(scalarField, pos, nullptr);
+
+            ret[1] = ret[1] / pos[0];
+            ret[2] = ret[2] / (pos[0] * sin(pos[1]));
+
+            return ret;
+        }
+
+        static Vector3Cylindrical GradientCyl(const IScalarFunction<3> &scalarField, const Vector3Cylindrical &pos)
+        {
+            Vector3Cylindrical ret = Derivation::DerivePartialAll<3>(scalarField, pos, nullptr);
+
+            ret[1] = ret[1] / pos[0];
+
+            return ret;
+        }            
+    };
+
+    class VectorFieldOperations
+    {
+    public:
         template<int N>
         static double DivCart(const IVectorFunction<N> &vectorField, const VectorN<Real, N> &pos)
         {
@@ -5296,17 +7123,7 @@ namespace MML
             }
 
             return div;
-        }
-
-        static Vector3Spherical GradientSpher(const IScalarFunction<3> &scalarField, const Vector3Spherical &pos)
-        {
-            Vector3Spherical ret = Derivation::DerivePartialAll<3>(scalarField, pos, nullptr);
-
-            ret[1] = ret[1] / pos[0];
-            ret[2] = ret[2] / (pos[0] * sin(pos[1]));
-
-            return ret;
-        }               
+        }    
 
         static double DivSpher(const IVectorFunction<3> &vectorField, const VectorN<Real, 3> &x)
         {
@@ -5325,16 +7142,7 @@ namespace MML
             div += 1 / (x[0] * sin(x[1])) * derivs[2];
 
             return div;
-        }
-
-        static Vector3Spherical GradientCyl(const IScalarFunction<3> &scalarField, const Vector3Cylindrical &pos)
-        {
-            Vector3Cylindrical ret = Derivation::DerivePartialAll<3>(scalarField, pos, nullptr);
-
-            ret[1] = ret[1] / pos[0];
-
-            return ret;
-        }               
+        }           
 
         static double DivCyl(const IVectorFunction<3> &vectorField, const VectorN<Real, 3> &x)
         {
@@ -5363,6 +7171,18 @@ namespace MML
 namespace MML
 {
     class RootFinding
+    {
+
+    };
+}
+
+
+///////////////////////////   ./include/algorithms/Statistics.h   ///////////////////////////// bit će toga
+
+
+namespace MML
+{
+    class Statistics
     {
 
     };

@@ -22,15 +22,22 @@ void Demo_Interpolators();
 void Demo_Interpolated_Function();
 
 void Demo_LinearAlgEqSolvers();
+void Demo_EigenSolvers();
 void Demo_DiffEqSolvers();
 
 void Test_Speed_Functions();
 
 int main(int, char**) 
 {
+    // Demo_Vector();
+    // Demo_VectorN();
+
+    // Demo_Matrix();
+    // Demo_MatrixNM();
+
     // Demo_CoordSystem();
     // Demo_CoordTransf();
-    Demo_Derivation();
+    // Demo_Derivation();
     // Demo_DiffEqSolvers();
     // Demo_Field_operations();
     // Demo_Fields();
@@ -42,12 +49,9 @@ int main(int, char**)
     // Demo_Interpolated_Function();
     // Demo_Interpolators();
     // Demo_LinearAlgEqSolvers();
-    // Demo_Matrix();
-    // Demo_MatrixNM();
+    Demo_EigenSolvers();
     // Demo_Polynom();
     // Demo_Tensors();
-    // Demo_Vector();
-    // Demo_VectorN();
 
     // Test_Speed_Functions();
 }

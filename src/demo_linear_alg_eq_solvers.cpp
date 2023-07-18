@@ -7,6 +7,20 @@
 #endif
 #include "../test_data/linear_alg_eq_test_bed.h"
 
+// TODO
+void Matirx_Simple_demo()
+{
+    // initialize a matrix with 5 rows and 3 columns
+    MML::Matrix<Real> mat(3, 3, {1, 2, 3,
+                                 4, 5, 6,
+                                 7, 8, 9});
+                                 
+    // right side vector
+    MML::Vector<Real> rhs({1, 2, 3});
+
+    MML::GaussJordanSolver::Solve(mat, rhs);
+}
+
 void Test_GaussJordan_solver()
 {
     std::cout << "SOLVING VIA GAUSS-JORDAN ELIMINATION:\n";

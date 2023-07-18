@@ -6,7 +6,34 @@
 #include <cmath>
 
 #include "basic_types/Geometry.h"
+#include "basic_types/Geometry2D.h"
+#include "basic_types/Geometry3D.h"
 #endif
+
+void Demo_Geometry_2D()
+{
+    MML::Point2Cartesian pnt1;
+    MML::Point2Cartesian pnt2(1.0, 2.0);
+    
+    MML::Vector2Cartesian vec1;
+    MML::Vector2Cartesian vec2(1.0, 2.0);
+
+    MML::Point2Polar pnt_polar_1;
+    MML::Point2Polar pnt_polar_2(1.0, 2.0);
+    
+    MML::Vector2Polar vec_polar_1;
+    MML::Vector2Polar vec_polar_2(1.0, 2.0);
+
+    MML::Line2D line1(MML::Point2Cartesian(0.0, 0.0), MML::Point2Cartesian(1.0, 0.0));
+    MML::Line2D line2(MML::Point2Cartesian(0.0, 0.0), MML::Vector2Cartesian(0.0, 1.0));
+
+    MML::SegmentLine2D seg_line1(MML::Point2Cartesian(0.0, 0.0), MML::Point2Cartesian(1.0, 0.0));
+    MML::SegmentLine2D seg_line2(MML::Point2Cartesian(0.0, 0.0), MML::Vector2Cartesian(0.0, 1.0), 1.0);
+
+    MML::Triangle2D triangle1(MML::Point2Cartesian(0.0, 0.0), MML::Point2Cartesian(1.0, 0.0), MML::Point2Cartesian(0.0, 1.0));
+
+    MML::Polygon2D polygon1({MML::Point2Cartesian(0.0, 0.0), MML::Point2Cartesian(1.0, 0.0), MML::Point2Cartesian(0.0, 1.0)});
+}
 
 void Demo_Geometry()
 {
@@ -15,7 +42,23 @@ void Demo_Geometry()
     std::cout << "****                          GEOMETRY                             ****" << std::endl;
     std::cout << "***********************************************************************" << std::endl;
 
-    MML::Point3Cartesian a({1.0, 2.0, 3.0});
+    Demo_Geometry_2D();
 
-    MML::Line3D  line1(a, MML::Vector3Cartesian({1.0, 0.0, 0.0}));
+    // deklaracije - različite vrste točaka, 2D, 3D, Cartesian, Spherical
+    MML::Point3Cartesian b{1.0, 2.0, 3.0};
+
+    // pravci
+    MML::Line3D  x_axis(MML::Point3Cartesian(0.0, 0.0, 0.0), MML::Vector3Cartesian{1.0, 0.0, 0.0});
+    MML::Line3D  y_axis(MML::Point3Cartesian(0.0, 0.0, 0.0), MML::Vector3Cartesian{0.0, 1.0, 0.0});
+    MML::Line3D  z_axis(MML::Point3Cartesian(0.0, 0.0, 0.0), MML::Vector3Cartesian{0.0, 0.0, 1.0});
+
+    // duzine
+    
+    // poligoni
+
+    // ravnine
+
+    // tijela
+
+
 }

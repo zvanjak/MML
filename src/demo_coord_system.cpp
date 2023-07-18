@@ -9,6 +9,8 @@
 #include "basic_types/CoordTransf.h"
 #endif
 
+using namespace MML;
+
 void Demo_Inertial()
 {
     // zadati isti origin, neku brzinu, i vidjeti kako ide transformacija
@@ -35,14 +37,14 @@ void Demo_2DPolar()
     std::cout << "e2 dual = "; transf.Dual(1).Print(std::cout,10,5) << std::endl;
     std::cout << "e3 dual = "; transf.Dual(2).Print(std::cout,10,5) << std::endl;
 
-    std::cout << "\nTransf. matrix:\n" << transf._inv << std::endl;
+    std::cout << "\nTransf. matrix:\n" << transf._alpha << std::endl;
     std::cout << "Inverse transf. matrix:\n" << transf._transf << std::endl;
 
     MML::Vector3Cartesian vec_A{7, 2, 0};
     std::cout << "Vector A (orig)     = "; vec_A.Print(std::cout,10,5) << std::endl;
 
-    std::cout << transf._inv * vec_A << std::endl;
-    std::cout << transf._transf * (transf._inv * vec_A) << std::endl;
+    std::cout << transf._alpha * vec_A << std::endl;
+    std::cout << transf._transf * (transf._alpha * vec_A) << std::endl;
 
     std::cout << "\nTransformed to new basis:\n";
     auto contravar_coef = transf.transf(vec_A);
@@ -130,7 +132,6 @@ void Demo_Coord_ObliqueCartesian()
 
     std::cout << "Alpha mat  = " << csys._alpha << std::endl;
     std::cout << "Alpha T    = " << csys._transf << std::endl;
-    std::cout << "Inv transf = " << csys._inv << std::endl;
 }
 
 void Demo_CoordSystem()
@@ -148,12 +149,22 @@ void Demo_CoordSystem()
 
     Demo_Coord_ObliqueCartesian();
 
+    MML::InertialMovingFrame train(Vector3Cartesian{0,0,0}, Vector3Cartesian{1,0,0});
+    MML::InertialMovingFrame table_moving_on_train(Vector3Cartesian{1,0,0}, Vector3Cartesian{0.5,0,0});
+    MML::RotatingFrame disc_spinning_on_table;
+    MML::InertialMovingFrame ball_thrown_up;
+
+    // point on disc - polar coordinates
+    Vector3Cartesian point_on_disc{0.5, 0.5, 0};
+    auto transf0 = disc_spinning_on_table.transf(point_on_disc, 1.0);
+    auto transf1 = table_moving_on_train.transf(transf0, 1.0);
+    auto transf2 = train.transf(transf1, 1.0);
 
 
-    MML::RotatingMovingFrame earthLocalSpherical;    // opisuje kružnicu oko sunca - KLJUČNO JE PORAVNANJE!!!
+    MML::RotatingFrame earthSolarSystemCM;    // opisuje kružnicu oko sunca - KLJUČNO JE PORAVNANJE!!!
     // T = 0 - Greenwhich je točno na x osi
-    MML::MovingCoordSystem<3> earthRotational;       // kao koordinate ima sferne koordinate iznad površine zemlje
-    MML::MovingCoordSystem<3> earthLocal;            // projekcija na 2D coord system, sa zadanim ishodištem
+    // MML::MovingCoordSystem<3> earthRotational;       // kao koordinate ima sferne koordinate iznad površine zemlje
+    // MML::MovingCoordSystem<3> earthLocal;            // projekcija na 2D coord system, sa zadanim ishodištem
 
     // ČIM GIBANJE čestice po putanji odstupa od tangente, znači da je prisutna sila
 

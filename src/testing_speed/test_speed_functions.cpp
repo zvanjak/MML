@@ -1,6 +1,9 @@
+#define __STDCPP_WANT_MATH_SPEC_FUNCS__ 1
+
 #include <cmath>
 #include <chrono>
 #include <iostream>
+#include <iomanip>
 #include <string>
 #include <vector>
 
@@ -15,6 +18,8 @@ FUNKCIJA
 - Special func - assoc_laguerre, assoc_legendre, beta, comp_ellint_1(2,3), cyl_bessel_I(j,k)
                 - hermite, legendre, lagurre, riemann_zeta, sph_bessel, sph_legendre
 */
+
+inline double eval_hermite(int n, double x) { return std::hermite(n, x); }
 
 inline double eval_hermite_1(double x) { return std::hermite(1, x); }
 inline double eval_hermite_3(double x) { return std::hermite(3, x); }
