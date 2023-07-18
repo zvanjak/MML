@@ -275,10 +275,7 @@ class VectorFromVecSpace
     // vraća skalarni produkt definiran u template param
 };
 
-void f()
-{
-
-}///////////////////////////   ./include/basic_types/Vector.h   ///////////////////////////
+///////////////////////////   ./include/basic_types/Vector.h   ///////////////////////////
 
 
 namespace MML
@@ -3518,7 +3515,7 @@ namespace MML
 // Given the eigenvalues d[0..n-1] and (optionally) the eigenvectors v[0..n-1][0..n-1] as determined by Jacobi (÷11.1) or tqli (÷11.4), this routine sorts the eigenvalues into descending
 // order and rearranges the columns of v correspondingly. The method is straight insertion.
 
-void eigsrt(MML::Vector<Real> &d, MML::Matrix<Real> *v = NULL)
+static void eigsrt(MML::Vector<Real> &d, MML::Matrix<Real> *v = NULL)
 {
     int k;
     int n = (int)d.size();
