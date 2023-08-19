@@ -5,73 +5,120 @@
 #include <iomanip>
 #include <cmath>
 
+#include "basic_types/InterpolatedFunction.h"
+
 #include "algorithms/Integration.h"
 #endif
 
 using namespace std;
+using namespace MML;
 
-int Test_qtrap(void)
-{
-    // Test function
-    MML::RealFunction func_qtrap( [](double x) { return x*x*(x*x-2.0)*sin(x); } );
-    // Integral of test function
-    MML::RealFunction fint_qtap( [](double x) { return 4.0*x*(x*x-7.0)*sin(x)-(pow(x,4.0)-14.0*x*x+28.0)*cos(x); } );
 
-    const double PIO2=1.570796326794896619;
-    double a=0.0,b=PIO2,s;
-
-    cout << "Integral of func computed with QTRAP" << endl << endl;
-    cout << fixed << setprecision(6);
-    cout << "Actual value of integral is ";
-    cout << setw(12) << (fint_qtap(b)-fint_qtap(a)) << endl;
-
-    s=MML::Integration::IntegrateTrap(func_qtrap,a,b);
-
-    cout << "Result from routine QTRAP is " << setw(12) << s << endl;
-    return 0;
+//////////////////////          REAL FUNCTION DERIVATION           ////////////////////////
+double DemoIntRealFunc_TestFunc(double x) 
+{ 
+    return sin(x)*(1.0 + 0.5*x*x); 
 }
 
-// Driver for routine qsimp
-int Test_qsimp(void)
+void Demo_Integration_func_ptr()
 {
-    // Test function
-    MML::RealFunction func_qsimp( [](double x) { return x*x*(x*x-2.0)*sin(x); } );
-    // Integral of test function
-    MML::RealFunction fint_qsimp( [](double x) { return 4.0*x*(x*x-7.0)*sin(x)-(pow(x,4.0)-14.0*x*x+28.0)*cos(x); } );
+    // creating a function object from a already existing (standalone) function
+    RealFunction f1(DemoIntRealFunc_TestFunc);
 
-    const double PIO2=1.570796326794896619;
-    double a=0.0,b=PIO2,s;
+    // or creating a function object directly
+    RealFunction f2{[](double x) { return sin(x)*(1.0 + 0.5*x*x); } };
 
-    cout << "Integral of func computed with QSIMP" << endl << endl;
-    cout << "Actual value of integral is "
-        << setw(12) << (fint_qsimp(b)-fint_qsimp(a)) << endl;
-    
-    s=MML::Integration::IntegrateSimpson(func_qsimp,a,b);
-    
-    cout << "Result from routine QSIMP is " << setw(12) << s << endl;
-    return 0;
+    // creating a function object from a std::function object
+    std::function<double(double)> h{[](double x) { return sin(x)*(1.0 + 0.5*x*x); } };
+    RealFunctionFromStdFunc f3(h);
+
+    double a = 0.0;
+    double b = 1.0;
+    double int_trap = MML::Integration::IntegrateTrap(f1,a,b);
+    double int_simp = MML::Integration::IntegrateSimpson(f1,a,b);
+    double int_romb = MML::Integration::IntegrateRomberg(f1,a,b);
+
+    // we can use default Integrate routine (default set to IntegrateSimpson)
+    double int_def = MML::Integration::Integrate(f1, a, b, 1e-04);
 }
 
-// Driver for routine qromb
-int Test_qromb(void)
+// If you CAN change the class where your data for calculation is
+class ClassProvidingFuncToIntegrate
 {
-    // Test function
-    MML::RealFunction func_qromb( [] (double x) { return x*x*(x*x-2.0)*sin(x); } );
-    // Integral of test function func
-    MML::RealFunction fint_qromb( [] (double x) { return 4.0*x*(x*x-7.0)*sin(x)-(pow(x,4.0)-14.0*x*x+28.0)*cos(x); } );
+    private:
+        double _param;
+    public:
+        ClassProvidingFuncToIntegrate(double param) : _param(param) { }
     
-    const double PIO2=1.570796326794896619;
-    double a=0.0,b=PIO2,s;
+        // ust provide operator() for your class
+        double operator()(double x ) { return _param * sin(x); }
+};
 
-    cout << "Integral of func computed with QROMB" << endl << endl;
-    cout << fixed << setprecision(6);
-    cout << "Actual value of integral is ";
-    cout << setw(12) << (fint_qromb(b)-fint_qromb(a)) << endl;
+void Demo_Integration_member_fun()
+{
+    ClassProvidingFuncToIntegrate   funcObj(3.0);
+    
+    MML::RealFunctionFromStdFunc g(std::function<double(double)>{funcObj});
 
-    s=MML::Integration::IntegrateRomberg(func_qromb,a,b);
+    double a = 0.0;
+    double b = 1.0;
+    double int_trap = MML::Integration::IntegrateTrap(g,a,b);
+    double int_simp = MML::Integration::IntegrateSimpson(g,a,b);
+    double int_romb = MML::Integration::IntegrateRomberg(g,a,b);
+}
 
-    cout << "Result from routine QROMB is " << setw(12) << s << endl;
-    return 0;
+// If you CAN'T change the class where your data for calculation is
+class BigComplexClassYouCantChangeInt
+{
+    // has data for calculating function you want to derive
+};
+
+// Create a helper wrapper class that will provide operator() for your class
+// and implement calculation of function value
+class BigComplexIntegrateFunc
+{
+    const BigComplexClassYouCantChangeInt &_ref;
+public:
+    BigComplexIntegrateFunc(const BigComplexClassYouCantChangeInt &bigClass) : _ref(bigClass) { }
+
+    double operator()(double x ) 
+    {
+        double val = 0.0; 
+        // complex calculations using _ref
+        return val; 
+    }
+};
+
+void Demo_Integration_member_fun2(const BigComplexClassYouCantChangeInt &ref)
+{
+    BigComplexIntegrateFunc      funcObj(ref);  
+    MML::RealFunctionFromStdFunc func_to_integrate(std::function<double(double)>{funcObj});
+    
+    double a = 0.0;
+    double b = 1.0;
+    double int_trap = MML::Integration::IntegrateTrap(func_to_integrate,a,b);
+    double int_simp = MML::Integration::IntegrateSimpson(func_to_integrate,a,b);
+    double int_romb = MML::Integration::IntegrateRomberg(func_to_integrate,a,b);
+}
+
+void Demo_Integration_Interpolated_RealFunc()
+{
+    // creating interpolated function
+    Vector<double> x_val(100);
+    Vector<double> y_val(100);
+    for( int i=0; i<100; i++ )
+    {
+        x_val[i] = i / 100.0;
+        y_val[i] = sin(x_val[i])*(1.0 + 0.5*x_val[i]*x_val[i]);
+    }
+
+    LinearInterpRealFunc f_linear(x_val, y_val);
+
+    double a = 0.0;
+    double b = 1.0;
+    double int_trap = MML::Integration::IntegrateTrap(f_linear,a,b);
+    double int_simp = MML::Integration::IntegrateSimpson(f_linear,a,b);
+    double int_romb = MML::Integration::IntegrateRomberg(f_linear,a,b);
 }
 
 void Demo_Integration()
@@ -81,7 +128,8 @@ void Demo_Integration()
     std::cout << "****                         INTEGRATION                           ****" << endl;
     std::cout << "***********************************************************************" << endl;
 
-    Test_qtrap();
-    Test_qsimp();
-    Test_qromb();
+    Demo_Integration_func_ptr();
+    Demo_Integration_member_fun();
+    Demo_Integration_member_fun2(BigComplexClassYouCantChangeInt{});
+    Demo_Integration_Interpolated_RealFunc();
 }

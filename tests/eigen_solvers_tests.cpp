@@ -3,17 +3,38 @@
 #ifdef MML_USE_SINGLE_HEADER
 #include "MML.h"
 #else
-#include "basic_types/Vector.h"
-#include "basic_types/Matrix.h"
+#include "core/Vector.h"
+#include "core/Matrix.h"
+#include "core/CoreUtils.h"
+
 #include "algorithms/EigenSystemSolvers.h"
+
 #endif
 
-#include "../test_data/linear_alg_eq_test_bed.h"
+#include "../test_data/linear_alg_eq_systems_test_bed.h"
 
+
+TEST_CASE("Test_Symmetric_Matrix_Eigen_solver 3 x 3", "[simple]")
+{
+	MML::Matrix<Real>       mat = MML::TestBeds::mat_3x3;
+
+    MML::Unsymmeig eigen_solver(mat);
+    
+    REQUIRE( std::abs( (eigen_solver.getEigenvalues() - MML::TestBeds::mat_3x3_eigen_val).NormL2() ) < 1e-13 ); 
+
+    MML::Matrix<Complex> mat_cmplx = MML::Utils::CmplxMatFromRealMat(mat);
+    for(int i=0; i<mat.RowNum(); i++)
+    {    
+        auto v1 = mat_cmplx * eigen_solver.getEigenvector(i);
+        auto v2 = eigen_solver.getEigenvalues()[i] * eigen_solver.getEigenvector(i);
+
+        REQUIRE( std::abs( (v1 - v2).NormL2() ) < 1e-13 ); 
+    }
+}
 
 TEST_CASE("Test_Symmetric_Matrix_Eigen_solver 4 x 4", "[simple]")
 {
-	MML::Matrix<Real>       mat = MML::Tests::LinearAlgEqTestBed::symm_mat4;
+	MML::Matrix<Real>       mat = MML::TestBeds::symm_mat_5x5;
 
     MML::SymmMatEigenSolver eigen_solver(mat);
 
@@ -30,7 +51,7 @@ TEST_CASE("Test_Symmetric_Matrix_Eigen_solver 4 x 4", "[simple]")
 
 TEST_CASE("Test_Unsymmetric_Matrix_Eigen_solver 5 x 5", "[simple]")
 {
-	MML::Matrix<Real>       mat = MML::Tests::LinearAlgEqTestBed::mat4;
+	MML::Matrix<Real>       mat = MML::TestBeds::mat_5x5;
 
     MML::Unsymmeig eigen_solver(mat);
 

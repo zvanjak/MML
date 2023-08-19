@@ -5,8 +5,10 @@
 #ifdef MML_USE_SINGLE_HEADER
 #include "MML.h"
 #else
-#include "basic_types/MatrixNM.h"
+#include "core/MatrixNM.h"
 #endif
+
+using namespace MML;
 
 void MatrixNM_initializations() 
 {

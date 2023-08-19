@@ -3,17 +3,21 @@
 #ifdef MML_USE_SINGLE_HEADER
 #include "MML.h"
 #else
-#include "basic_types/Vector.h"
-#include "basic_types/Matrix.h"
+#include "core/Vector.h"
+#include "core/Matrix.h"
+#include "core/CoreUtils.h"
+
 #include "algorithms/EigenSystemSolvers.h"
 #endif
-#include "../test_data/linear_alg_eq_test_bed.h"
+#include "../test_data/linear_alg_eq_systems_test_bed.h"
+
+using namespace MML;
 
 void Test_Symmetric_Eigen_Solver()
 {
     std::cout << "CALCULATING EIGENVALUES OF SYMMETRIC MATRIX:\n";
 
-    MML::Matrix<Real>     origMat = MML::Tests::LinearAlgEqTestBed::symm_mat4;
+    MML::Matrix<Real>     origMat = MML::TestBeds::symm_mat_5x5;
     MML::Matrix<Real>     matcopy(origMat);
 
     std::cout << "Initial matrix:\n";    matcopy.Print(std::cout,10,3);
@@ -46,36 +50,57 @@ void Test_Symmetric_Eigen_Solver()
     std::cout << "eig_val5 * eig_vec5 = " << eigen_values[4] * eigen_vectors5 << std::endl;
 }
 
-void Test_Unsymmetric_Eigen_Solver()
+void Test_Unsymmetric_Eigen_Solver_Single_Mat(MML::Matrix<Real> origMat)
 {
-    std::cout << "CALCULATING EIGENVALUES OF UNSYMMETRIC MATRIX:\n";
+    std::cout << "*******************************************************************\n";
+    std::cout << "*****   CALCULATING EIGENVALUES OF UNSYMMETRIC MATRIX   " << origMat.RowNum() << "x" << origMat.ColNum() << "   *****\n";
 
-    MML::Matrix<Real>     origMat = MML::Tests::LinearAlgEqTestBed::mat4;
-    MML::Matrix<Real>     matcopy(origMat);
+    int width = 15;
+    int prec  = 10;
 
-    std::cout << "Initial matrix:\n";    matcopy.Print(std::cout,10,3);
+    int dim = origMat.RowNum();
+    MML::Matrix<Real>  matcopy(origMat);
 
     MML::Unsymmeig eigen_solver(matcopy, true, false);
 
-    std::cout << "Eigenvalues C " << eigen_solver.wri << std::endl;
-    std::cout << "Exact eigenvalues = 23.8652 + 0. I, -3.42447 + 1.92848 I, -3.42447 - 1.92848 I,  3.8746 + 0. I, -0.290852 + 0. I\n";
-    std::cout << "Eigenvectors " << eigen_solver.zz << std::endl;
+    std::cout << "Initial matrix:\n";  matcopy.Print(std::cout,10,3);  std::cout << std::endl;
 
-    MML::Vector<Complex>       eigen_values = eigen_solver.wri;
-    MML::Vector<Real>          eigen_vectors1 = MML::Matrix<Real>::VectorFromColumn(eigen_solver.zz, 0);
-    MML::Vector<Real>       eigen_vectors2 = MML::Matrix<Real>::VectorFromColumn(eigen_solver.zz, 1);
-    MML::Vector<Real>       eigen_vectors3 = MML::Matrix<Real>::VectorFromColumn(eigen_solver.zz, 2);
-    //MML::Vector<Real>       eigen_vectors4 = MML::Matrix<Real>::VectorFromColumn(eigen_solver.zz, 3);
-    //MML::Vector<Real>       eigen_vectors5 = MML::Matrix<Real>::VectorFromColumn(eigen_solver.zz, 4);
+    std::cout << "Num real eigenvalues    : " << eigen_solver.getNumReal() << std::endl;
+    std::cout << "Num complex eigenvalues : " << eigen_solver.getNumComplex() << "\n\n";
+    
+    std::cout << "Eigenvalues         : "; eigen_solver.getEigenvalues().Print(std::cout,width,prec); std::cout << std::endl;
+    std::cout << "Real eigenvalues    : "; eigen_solver.getRealEigenvalues().Print(std::cout,width,prec); std::cout << std::endl;
+    std::cout << "Complex eigenvalues : "; eigen_solver.getComplexEigenvalues().Print(std::cout,width,prec); std::cout << "\n\n";
+     
+    std::cout << "Eigenvectors matrix:\n"; eigen_solver.zz.Print(std::cout, width, 7); std::cout << std::endl;
 
-	std::cout << "Mat * eig_vec1      = " << matcopy * eigen_vectors1 << std::endl;
-    std::cout << "eig_val1 * eig_vec1 = " << eigen_values[0].real() * eigen_vectors1 << std::endl;
+    for(int i=0; i<dim; i++ )
+    {
+        Matrix<Complex> mat_cmplx = MML::Utils::CmplxMatFromRealMat(matcopy);
 
-	std::cout << "Mat * eig_vec2      = " << matcopy * eigen_vectors2 << std::endl;
-    std::cout << "eig_val4 * eig_vec2 = " << eigen_values[1].real() * eigen_vectors2 << std::endl;
+        if( eigen_solver.isRealEigenvalue(i) )
+        {
+            double             eigen_val = eigen_solver.getEigenvalues()[i].real();
+            MML::Vector<Real>  eigen_vec = eigen_solver.getRealPartEigenvector(i);
 
-	std::cout << "Mat * eig_vec3      = " << matcopy * eigen_vectors3 << std::endl;
-    std::cout << "eig_val5 * eig_vec3 = " << eigen_values[2].real() * eigen_vectors3 << std::endl;
+            std::cout << "Eigen value  " << i+1 << " (real)    = " << eigen_val << std::endl;
+            std::cout << "Eigen vector " << i+1 << " (real)    = "; eigen_vec.Print(std::cout,width,prec); std::cout << std::endl;
+
+            std::cout << "Mat * eig_vec            = "; (matcopy * eigen_vec).Print(std::cout,width,prec); std::cout << std::endl;
+            std::cout << "eig_val * eig_vec        = "; (eigen_val * eigen_vec).Print(std::cout, width, prec); std::cout << "\n\n";            
+        }
+        else
+        {
+            Complex               eigen_val = eigen_solver.getEigenvalues()[i];
+            MML::Vector<Complex>  eigen_vec = eigen_solver.getEigenvector(i);
+            
+            std::cout << "Eigen value  " << i+1 << " (complex) = " << eigen_val << std::endl;
+            std::cout << "Eigen vector " << i+1 << " (complex) = "; eigen_solver.getEigenvector(i).Print(std::cout, width, prec); std::cout << std::endl;
+
+            std::cout << "Mat * eig_vec            = "; (mat_cmplx * eigen_vec).Print(std::cout, width, prec); std::cout << std::endl;
+            std::cout << "eig_val * eig_vec        = "; (eigen_val * eigen_vec).Print(std::cout, width, prec); std::cout << "\n\n";            
+        }
+    }
 }
 
 void Demo_EigenSolvers()
@@ -85,6 +110,9 @@ void Demo_EigenSolvers()
     std::cout << "****                     EIGENVALUE  SOLVERS                       ****" << std::endl;
     std::cout << "***********************************************************************" << std::endl;
 
-    Test_Symmetric_Eigen_Solver();    
-    Test_Unsymmetric_Eigen_Solver();    
+    //Test_Symmetric_Eigen_Solver();    
+
+    Test_Unsymmetric_Eigen_Solver_Single_Mat(MML::TestBeds::mat_3x3); 
+    // Test_Unsymmetric_Eigen_Solver_Single_Mat(MML::TestBeds::mat_6x6_test1); 
+    // Test_Unsymmetric_Eigen_Solver_Single_Mat(MML::TestBeds::mat_8x8_test1); 
 }

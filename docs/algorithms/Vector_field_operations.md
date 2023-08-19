@@ -1,10 +1,10 @@
-Vector operations
+# VectorScalar and vector field operations
 
 - grad
 - div
 - curl
 
-```c++
+~~~c++
 TEST_CASE("Matrix_default_ctor_init_to_zero", "[simple]") {
     MML::Matrix a(2,2);
 
@@ -13,6 +13,5 @@ TEST_CASE("Matrix_default_ctor_init_to_zero", "[simple]") {
 	REQUIRE(0.0 ==  a(1,0));
 	REQUIRE(0.0 ==  a(1,1));
 }
-```
+~~~
 
-a

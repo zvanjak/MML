@@ -5,9 +5,10 @@
 #else
 #include "algorithms/LinAlgEqSolvers.h"
 #endif
-#include "../test_data/linear_alg_eq_test_bed.h"
+#include "../test_data/linear_alg_eq_systems_test_bed.h"
 
-// TODO
+using namespace MML;
+
 void Matirx_Simple_demo()
 {
     // initialize a matrix with 5 rows and 3 columns
@@ -25,9 +26,9 @@ void Test_GaussJordan_solver()
 {
     std::cout << "SOLVING VIA GAUSS-JORDAN ELIMINATION:\n";
 
-    MML::Matrix<Real>     origMat = MML::Tests::LinearAlgEqTestBed::mat4;
+    MML::Matrix<Real>     origMat = MML::TestBeds::mat_5x5;
     MML::Matrix<Real>     matcopy(origMat);
-    MML::Matrix<Real>     rhscopy(MML::Tests::LinearAlgEqTestBed::mat4_rhs4);
+    MML::Matrix<Real>     rhscopy(MML::TestBeds::mat_5x5_rhs_multi);
 
     std::cout << "Initial matrix:\n";    matcopy.Print(std::cout,10,3);
     std::cout << "Right side:\n";        rhscopy.Print(std::cout,10,3);
@@ -46,9 +47,9 @@ void Test_LU_decomposition_solver()
 {
     std::cout << "\nSOLVING VIA LU DECOMPOSITION:\n";
     
-    MML::Matrix<Real>     origMat = MML::Tests::LinearAlgEqTestBed::mat4;
+    MML::Matrix<Real>     origMat = MML::TestBeds::mat_5x5;
     MML::Matrix<Real>     matcopy(origMat);
-    MML::Matrix<Real>     rhscopy(MML::Tests::LinearAlgEqTestBed::mat4_rhs4);
+    MML::Matrix<Real>     rhscopy(MML::TestBeds::mat_5x5_rhs_multi);
 
     std::cout << "Initial matrix:\n";    matcopy.Print(std::cout,10,3);
     std::cout << "Right side:\n";        rhscopy.Print(std::cout,10,3);
@@ -130,4 +131,5 @@ void Demo_LinearAlgEqSolvers()
     Test_LU_decomposition_solver();
     Test_QR_decomposition_solver();
     Test_SVD_decomposition_solver();
+    // TODO - Cholesky decomposition solver
 }

@@ -5,25 +5,35 @@
 #ifdef MML_USE_SINGLE_HEADER
 #include "MML.h"
 #else
-#include "basic_types/Vector.h"
-#include "basic_types/Matrix.h"
-#include "basic_types/Mat3D.h"
+#include "core/Vector.h"
+#include "core/Matrix.h"
+#include "core/Matrix3D.h"
 #endif
 
+using namespace MML;
 
 void Matrix_initializations() 
 {
     std::cout << "***********************************************************" << std::endl;
     std::cout << "*******            Matrix Initializations           *******" << std::endl;
 
-    MML::Mat3D<float>  b_a(3,3,3);
-
-    MML::Matrix<Real> a;
-    MML::Matrix<Real> b(2,2);
-    MML::Matrix<Real> c(2,2, {1.0, 0.0, 0.0, 1.0});
+    MML::Matrix<Real> a;                                // empty matrix
+    MML::Matrix<Real> b(2,2);                           // ampty matrix 2 x 2
+    MML::Matrix<Real> c(2,2, {1.0, 0.0, 0.0, 1.0});     // matrix with initialized values
     MML::Matrix<Real> d(c);
     MML::Matrix<Real> e = c;
     MML::Matrix<Real> f = MML::Matrix<Real>::GetUnitMatrix(3);
+
+    MML::MatrixInt      mat_int;
+    MML::MatrixDbl      mat_dbl(3,3);
+    MML::MatrixComplex  mat_cmplx(2,2, { Complex(1,1),  Complex(-1,2), 
+                                         Complex(2, -0.5), Complex(1,1) });
+
+    MML::MatI          mat_i(3,3);
+    MML::MatF          mat_d(3,3);
+    MML::MatC          mat_c(3,3);
+
+    MML::Matrix3D<float>  mat_3d(3,3,3);
 
     std::cout << "a = " << a << std::endl;
     std::cout << "b = " << b << std::endl;
@@ -36,23 +46,23 @@ void Matrix_initializations()
 void Matrix_vector_init_operations() 
 {
     std::cout << "***********************************************************" << std::endl;
-    std::cout << "*******         Matrix-vector init operations       *******" << std::endl;
+    std::cout << "*******        Matrix-vector init operations        *******" << std::endl;
 
-    MML::Vector a({1.0, 1.0, 1.0});
-    MML::Matrix<Real> matA = MML::Matrix<Real>::RowMatrixFromVector(a);
-    MML::Matrix<Real> matB = MML::Matrix<Real>::ColumnMatrixFromVector(a);
+    Vector a({1.0, 1.0, 1.0});
+    Matrix<Real> matA = Matrix<Real>::RowMatrixFromVector(a);
+    Matrix<Real> matB = Matrix<Real>::ColumnMatrixFromVector(a);
 
     std::cout << "Vector a = " << a << std::endl;
     std::cout << "Matrix matA = Matrix::RowMatrixFromVector(a);\nmatA = " << matA << std::endl;
     std::cout << "Matrix matB = Matrix::ColMatrixFromVector(a);\nmatB = " << matB << std::endl;
 
-    MML::Matrix<Real> m1(2,2, {1.0, -1.0, 1.5, 3.0});
-    MML::Vector vecRow = MML::Matrix<Real>::VectorFromRow(m1, 0);
-    MML::Vector vecCol = MML::Matrix<Real>::VectorFromColumn(m1, 0);
-    MML::Vector vecDiag = MML::Matrix<Real>::VectorFromDiagonal(m1);
+    Matrix<Real> m1(2,2, {1.0, -1.0, 1.5, 3.0});
+    Vector vecRow  = Matrix<Real>::VectorFromRow(m1, 0);
+    Vector vecCol  = Matrix<Real>::VectorFromColumn(m1, 0);
+    Vector vecDiag = Matrix<Real>::VectorFromDiagonal(m1);
 
     std::cout << "Matrix m1 = " << m1 << std::endl;
-    std::cout << "Vector vecRow = Matrix::VectorFromRow(a,0)     = " << vecRow << std::endl;
+    std::cout << "Vector vecRow = Matrix::VectorFromRow(a, 0)    = " << vecRow << std::endl;
     std::cout << "Vector vecCol = Matrix::VectorFromColumn(a, 0) = " << vecCol << std::endl;
     std::cout << "Vector vecCol = Matrix::VectorFromDiagonal(a)  = " << vecDiag << std::endl;
 }
@@ -67,7 +77,7 @@ void Basic_mat_operations()
     std::cout << "***********************************************************" << std::endl;
     std::cout << "*******         Matrix Basic operations             *******" << std::endl;
 
-    MML::Matrix<Real> m1(2,2, {1.0, -1.0, 1.5, 3.0}), m2(2,2, {-2.5, 3.0, 1, -1.0});
+    Matrix<Real> m1(2,2, {1.0, -1.0, 1.5, 3.0}), m2(2,2, {-2.5, 3.0, 1, -1.0});
     m2.MakeUnitMatrix();
 
     std::cout << "m1 = " << m1 << std::endl;
@@ -86,8 +96,8 @@ void Matrix_Vector_mul()
     std::cout << "***********************************************************" << std::endl;
     std::cout << "*******          Matrix Vector multiplication       *******" << std::endl;
 
-    MML::Vector v1({1.0, 2.0});
-    MML::Matrix<Real> m1(2,2, {1.0, -1.0, 1.5, 3.0});
+    Vector v1({1.0, 2.0});
+    Matrix<Real> m1(2,2, {1.0, -1.0, 1.5, 3.0});
     
     std::cout << "v1 = " << v1 << std::endl;
     std::cout << "m1 = " << m1 << std::endl;

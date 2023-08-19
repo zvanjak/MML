@@ -11,24 +11,17 @@
 
 namespace MML::TestData
 {
-    static MML::VectorN<Real, 3> TestVectorFunc1(const MML::VectorN<Real, 3> &x) { return VectorN<Real, 3>{cos(x[0]), sin(x[1]), exp(x[2])}; }
-    static MML::VectorN<Real, 3> TestVectorFunc1_derived(const MML::VectorN<Real, 3> &x, int ind) 
-    { 
-        if( ind == 0 ) return VectorN<Real, 3>{-sin(x[0]), 0.0, 0.0};
-        else if( ind == 1 ) return VectorN<Real, 3>{0, cos(x[1]), 0};
-        else return VectorN<Real, 3>{0, 0, exp(x[2])};
-    }
-
     template<int N>
     struct TestFunctionVector
     {
         std::string _funcName;
 
-        MML::VectorFunctionFromFuncPtr<N> _func;
+        MML::VectorFunction<N> _func;
         MML::VectorN<Real, N> (*_funcDerived)(const MML::VectorN<Real, N> &, int ind);
 
         std::string _funcExpr;
         std::string _funcDerivedExpr;
+        // curl
 
         TestFunctionVector(std::string funcName,
                             MML::VectorN<Real, N> (*f1)(const MML::VectorN<Real, N> &), std::string funcExpr, 
@@ -39,6 +32,14 @@ namespace MML::TestData
         {}
     };    
 
+    static MML::VectorN<Real, 3> TestVectorFunc1(const MML::VectorN<Real, 3> &x) { return VectorN<Real, 3>{cos(x[0]), sin(x[1]), exp(x[2])}; }
+    static MML::VectorN<Real, 3> TestVectorFunc1_derived(const MML::VectorN<Real, 3> &x, int ind) 
+    { 
+        if( ind == 0 ) return VectorN<Real, 3>{-sin(x[0]), 0.0, 0.0};
+        else if( ind == 1 ) return VectorN<Real, 3>{0, cos(x[1]), 0};
+        else return VectorN<Real, 3>{0, 0, exp(x[2])};
+    }
+    
     class VectorFunctionsTestBed
     {
     public:

@@ -5,135 +5,223 @@
 #include <iomanip>
 #include <cmath>
 
+#include "basic_types/InterpolatedFunction.h"
+
 #include "algorithms/Derivation.h"
 #endif
 
 #include "../test_data/real_functions_test_bed.h"
 
-class DemoDerivationTestMemberFunc
+using namespace MML;
+
+// TODO - simple precision comparison for selected function
+
+//////////////////////          REAL FUNCTION DERIVATION           ////////////////////////
+double DemoDerRealFunc_TestFunc(double x) 
+{ 
+    return sin(x)*(1.0 + 0.5*x*x); 
+}
+
+void Demo_Derivation_func_ptr()
+{
+    // creating a function object from a already existing (standalone) function
+    RealFunction f1(DemoDerRealFunc_TestFunc);
+
+    // or creating a function object directly
+    RealFunction f2{[](double x) { return sin(x)*(1.0 + 0.5*x*x); } };
+
+    // creating a function object from a std::function object
+    std::function<double(double)> h{[](double x) { return sin(x)*(1.0 + 0.5*x*x); } };
+    RealFunctionFromStdFunc f3(h);
+
+    double der_f12 = Derivation::NDer2(f1, 0.5);
+    double der_f14 = Derivation::NDer4(f1, 0.5);
+    double der_f18 = Derivation::NDer8(f1, 0.5);
+    double der_f21 = Derivation::NDer1(f2, 0.5);
+    double der_f36 = Derivation::NDer6(f3, 0.5);
+
+    // we can use default Derive routine (default set to NDer4)
+    double num_der4 = Derivation::Derive(f1, 0.5, nullptr);
+}
+
+// If you CAN change the class where your data for calculation is
+class ClassProvidingFuncToDerive
 {
     private:
         double _param;
     public:
-        DemoDerivationTestMemberFunc(double param) : _param(param) { }
+        ClassProvidingFuncToDerive(double param) : _param(param) { }
     
+        // ust provide operator() for your class
         double operator()(double x ) { return _param * sin(x); }
-        double derivation(double x ) { return _param * cos(x); }
 };
-
-void Demo_Derivation_func_ptr()
-{
-
-}
-
-void Demo_Derivation_func_interpolated()
-{
-
-}
 
 void Demo_Derivation_member_fun()
 {
-    DemoDerivationTestMemberFunc      funcObj(3.0);
+    ClassProvidingFuncToDerive   funcObj(3.0);
     
     MML::RealFunctionFromStdFunc g(std::function<double(double)>{funcObj});
-
-    for( double h=1e-5; h>=1e-10; h/=10.0 )
-    {
-        double err_sum = 0.0;
-        std::cout << "h = " << h << std::endl;
-        for( double x=0; x<=3.0; x+=0.5)
-        {
-            double num_der = MML::Derivation::NDer4(g, x, h);
-            double err = num_der - funcObj.derivation(x);
-            std::cout << std::setw(10) << std::setprecision(7) << x << "  " 
-                    << std::setw(13) << std::setprecision(8) << num_der << "   " 
-                    << std::setw(13) << std::setprecision(8) << funcObj.derivation(x) << "  "
-                    << std::setw(13) << std::setprecision(8) << err << std::endl;
-            
-            err_sum += std::abs(err);
-        }
-        std::cout << "Total error = " << err_sum << std::endl;
-    }
+    double der_g = MML::Derivation::NDer4(g, 0.5);
 }
 
-void Demo_Partial_derivation()
+// If you CAN'T change the class where your data for calculation is
+class BigComplexClassYouCantChange
+{
+    // has data for calculating function you want to derive
+};
+
+// Create a helper wrapper class that will provide operator() for your class
+// and implement calculation of function value
+class BigComplexDerivFunc
+{
+    const BigComplexClassYouCantChange &_ref;
+public:
+    BigComplexDerivFunc(const BigComplexClassYouCantChange &bigClass) : _ref(bigClass) { }
+
+    double operator()(double x ) 
+    {
+        double val = 0.0; 
+        // complex calculations using _ref
+        return val; 
+    }
+};
+
+void Demo_Derivation_member_fun2(const BigComplexClassYouCantChange &ref)
+{
+    BigComplexDerivFunc          funcObj(ref);  
+    MML::RealFunctionFromStdFunc func_to_derive(std::function<double(double)>{funcObj});
+    
+    double der_1 = MML::Derivation::NDer4(func_to_derive, 0.5);
+    double der_2 = MML::Derivation::Derive(func_to_derive, 0.5, nullptr);
+}
+
+void Demo_Derivation_Interpolated_RealFunc()
+{
+    // creating interpolated function
+    Vector<double> x_val(100);
+    Vector<double> y_val(100);
+    for( int i=0; i<100; i++ )
+    {
+        x_val[i] = i / 100.0;
+        y_val[i] = sin(x_val[i])*(1.0 + 0.5*x_val[i]*x_val[i]);
+    }
+
+    LinearInterpRealFunc f_linear(x_val, y_val);
+
+    double der_f1 = Derivation::NDer1(f_linear, 0.5);
+    double der_f2 = Derivation::NDer2(f_linear, 0.5);
+    double der_f3 = Derivation::NDer4(f_linear, 0.5);
+    double der_f4 = Derivation::NDer6(f_linear, 0.5);
+    double der_f5 = Derivation::NDer8(f_linear, 0.5);
+    double der_f6 = Derivation::Derive(f_linear, 0.5, nullptr);
+}
+
+void Demo_Derivation_RealFunc_Second_and_Third()
+{
+    RealFunction f1(DemoDerRealFunc_TestFunc);
+    RealFunction f2{[](double x) { return sin(x)*(1.0 + 0.5*x*x); } };
+    
+    std::function<double(double)>   h{[](double x) { return sin(x)*(1.0 + 0.5*x*x); } };
+    RealFunctionFromStdFunc         f3(h);
+
+    ClassProvidingFuncToDerive      funcObj(3.0);
+    MML::RealFunctionFromStdFunc    f4(std::function<double(double)>{funcObj});
+
+    double sec_der_f1 = Derivation::NSecDer1(f1, 0.5);
+    double sec_der_f2 = Derivation::NSecDer2(f2, 0.5);
+    double sec_der_f3 = Derivation::NSecDer4(f3, 0.5);
+    double sec_der_f4 = Derivation::NSecDer6(f4, 0.5);
+    double sec_der_f5 = Derivation::DeriveSec(f1, 0.5, nullptr);
+
+    double third_der_f1 = Derivation::NThirdDer1(f1, 0.5);
+    double third_der_f2 = Derivation::NThirdDer2(f2, 0.5);
+    double third_der_f3 = Derivation::NThirdDer4(f3, 0.5);
+    double third_der_f4 = Derivation::NThirdDer6(f4, 0.5);
+    double third_der_f5 = Derivation::DeriveThird(f1, 0.5, nullptr);
+}
+
+// simple example for a single function of various precisions
+void Demo_Derivation_RealFunc_precision_comparison()
 {
 
 }
 
-// Comparing precision of derivation routines of different order, for simple function
-void Demo_Derivation_precision_comparison_single()
+/////////////////////          SCALAR FUNCTION DERIVATION           ///////////////////////
+void Demo_Derivation_Scalar_func_partial()
 {
-    MML::RealFunction g     = MML::TestData::RealFunctionsTestBed::_listFuncReal[0]._func;
-    MML::RealFunction g_der = MML::TestData::RealFunctionsTestBed::_listFuncReal[0]._funcDerived;
+    ScalarFunction<3> f{[](const VectorN<double, 3> &x) { return sin(x[0])*(1.0 + 0.5*x[1]*x[2]); } };
 
-    for(int i=0; i<5; i++ )
-    {
-        double num_der;
-        double err_sum = 0.0;
-        for( double x=0; x<=3.0; x+=0.5)
-        {
-            switch(i) {
-                case 0:  num_der = MML::Derivation::NDer1(g, x); break;
-                case 1:  num_der = MML::Derivation::NDer2(g, x); break;
-                case 2:  num_der = MML::Derivation::NDer4(g, x); break;
-                case 3:  num_der = MML::Derivation::NDer6(g, x); break;
-                case 4:  num_der = MML::Derivation::NDer8(g, x); break;
-            }
-            double err = num_der - g_der(x);
-            std::cout << std::setw(10) << std::setprecision(7) << x << "  " 
-                    << std::setw(13) << std::setprecision(8) << num_der << "   " 
-                    << std::setw(13) << std::setprecision(8) << g_der(x) << "  "
-                    << std::setw(13) << std::setprecision(8) << err << std::endl;
-            
-            err_sum += std::abs(err);
-        }
-        std::cout << "Total error = " << err_sum << std::endl;
-    }
+    VectorN<double, 3> pos{0.5, 0.5, 0.5};
+
+    double der_f1 = Derivation::NDer1Partial(f, 0, pos);
+    double der_f2 = Derivation::NDer1Partial(f, 1, pos);
+    double der_f3 = Derivation::NDer1Partial(f, 2, pos);
+
+    VectorN<double, 3> der_f_all = Derivation::NDer1PartialByAll<3>(f, pos, nullptr);
 }
 
-void Demo_Derivation_precision_comparison()
+void Demo_Derivation_Scalar_func_second()
 {
-    double start_x = 0.1;
-    double end_x = 10.0;
-    double step = 0.5;
-    int count = (int) ((end_x - start_x) / step);
+    ScalarFunction<3> f{[](const VectorN<double, 3> &x) { return sin(x[0])*(1.0 + 0.5*x[1]*x[2]); } };
 
-    std::cout << "AVERAGE DERIVATION ERROR FOR DIFFERENT ORDERS" << std::endl;
-    std::cout << "Function                  Nder1           NDer2           NDer4           NDer6           NDer8" << std::endl;
+    VectorN<double, 3> pos{0.5, 0.5, 0.5};
 
-    for(auto&& test_func : MML::TestData::RealFunctionsTestBed::_listFuncReal)
-    {
-        MML::RealFunction g     = test_func._func;
-        MML::RealFunction g_der = test_func._funcDerived;
-      
-        std::cout << std::setw(15) << test_func._funcExpr << " - ";
+    double der_d2f_dxdx = Derivation::NSecDer1Partial(f, 0, 0, pos);
+    double der_d2f_dydy = Derivation::NSecDer1Partial(f, 1, 1, pos);
+    double der_d2f_dzdx = Derivation::NSecDer1Partial(f, 2, 0, pos);
+}
 
-        for(int i=0; i<5; i++ )
-        {
-            double num_der;
-            double err_sum = 0.0;
-            for( double x=start_x; x<=end_x; x+=step)
-            {
-                switch(i) {
-                    case 0:  num_der = MML::Derivation::NDer1(g, x); break;
-                    case 1:  num_der = MML::Derivation::NDer2(g, x); break;
-                    case 2:  num_der = MML::Derivation::NDer4(g, x); break;
-                    case 3:  num_der = MML::Derivation::NDer6(g, x); break;
-                    case 4:  num_der = MML::Derivation::NDer8(g, x); break;
-                }
-                double err = num_der - g_der(x);
-                // std::cout << std::setw(10) << std::setprecision(7) << x << "  " 
-                //         << std::setw(13) << std::setprecision(8) << num_der << "   " 
-                //         << std::setw(13) << std::setprecision(8) << g_der(x) << "  "
-                //         << std::setw(13) << std::setprecision(8) << err << std::endl;
-                
-                err_sum += std::abs(err);
-            }
-            std::cout << " " << std::setw(15) << err_sum/count ;
-        }
-        std::cout << std::endl;
-    }
+/////////////////////          VECTOR FUNCTION DERIVATION           ///////////////////////
+void Demo_Derivation_Vector_func()
+{
+    VectorFunction<3> f{[](const VectorN<double, 3> &x) { return VectorN<double, 3>{sin(x[0]), cos(x[1]), x[2]}; } };
+
+    VectorN<double, 3> pos{0.5, 0.5, 0.5};
+
+    double der_f11 = Derivation::NDer1Partial(f, 0, 0, pos);
+
+    VectorN<double, 3> der_f1 = Derivation::NDer1PartialByAll(f, 0, pos);
+    VectorN<double, 3> der_f2 = Derivation::NDer1PartialByAll(f, 1, pos);
+    VectorN<double, 3> der_f3 = Derivation::NDer1PartialByAll(f, 2, pos);
+
+    MatrixNM<double, 3, 3> der_f_all = Derivation::NDer1PartialAllByAll<3>(f, pos, nullptr);
+}
+
+////////////////////          PARAMETRIC CURVE DERIVATION           ///////////////////////
+void Demo_Derivation_Parametric_curve()
+{
+    // circle in plane
+    ParametricCurve<2> f{[](double t) { return VectorN<double, 2>{sin(t), cos(t)}; } };
+
+    VectorN<Real, 2> der_f1 = Derivation::NDer1(f, 0.5);
+    VectorN<Real, 2> der_f2 = Derivation::NDer2(f, 0.5);
+    VectorN<Real, 2> der_f3 = Derivation::NDer4(f, 0.5);
+    VectorN<Real, 2> der_f4 = Derivation::NDer6(f, 0.5);
+    VectorN<Real, 2> der_f5 = Derivation::DeriveCurve<2>(f, 0.5, nullptr);
+}
+
+void Demo_Derivation_Parametric_curve_second_and_third()
+{
+    // helix
+    ParametricCurve<3> f{[](double t) { return VectorN<double, 3>{sin(t), cos(t), t}; } };
+
+    VectorN<Real, 3> der_f1 = Derivation::NDer1(f, 0.5);
+    VectorN<Real, 3> der_f2 = Derivation::NDer2(f, 0.5);
+    VectorN<Real, 3> der_f3 = Derivation::NDer6(f, 0.5);
+    VectorN<Real, 3> der_f4 = Derivation::NDer8(f, 0.5);
+    VectorN<Real, 3> der_f5 = Derivation::DeriveCurve<3>(f, 0.5, nullptr);
+
+    VectorN<Real, 3> sec_der_f1 = Derivation::NSecDer1(f, 0.5);
+    VectorN<Real, 3> sec_der_f2 = Derivation::NSecDer2(f, 0.5);
+    // VectorN<Real, 3> sec_der_f3 = Derivation::NSecDer6(f, 0.5);
+    // VectorN<Real, 3> sec_der_f4 = Derivation::NSecDer8(f, 0.5);
+    VectorN<Real, 3> sec_der_f5 = Derivation::DeriveCurveSec<3>(f, 0.5, nullptr);
+
+    VectorN<Real, 3> third_der_f1 = Derivation::NThirdDer1(f, 0.5);
+    VectorN<Real, 3> third_der_f2 = Derivation::NThirdDer2(f, 0.5);
+    // VectorN<Real, 3> third_der_f3 = Derivation::NThirdDer6(f, 0.5);
+    // VectorN<Real, 3> third_der_f4 = Derivation::NThirdDer6(f, 0.5);
+    VectorN<Real, 3> third_der_f5 = Derivation::DeriveCurveThird<3>(f, 0.5, nullptr);
 }
 
 void Demo_Derivation()
@@ -142,6 +230,19 @@ void Demo_Derivation()
     std::cout << "***********************************************************************" << std::endl;
     std::cout << "****                         DERIVATION                            ****" << std::endl;
     std::cout << "***********************************************************************" << std::endl;
-    
-    Demo_Derivation_precision_comparison();
+
+    Demo_Derivation_func_ptr();
+    Demo_Derivation_member_fun();
+    Demo_Derivation_member_fun2(BigComplexClassYouCantChange{});
+    Demo_Derivation_Interpolated_RealFunc();
+    Demo_Derivation_RealFunc_Second_and_Third();
+    Demo_Derivation_RealFunc_precision_comparison();
+
+    Demo_Derivation_Scalar_func_partial();
+    Demo_Derivation_Scalar_func_second();
+
+    Demo_Derivation_Vector_func();
+
+    Demo_Derivation_Parametric_curve();
+    Demo_Derivation_Parametric_curve_second_and_third();
 }

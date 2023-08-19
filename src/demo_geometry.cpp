@@ -10,6 +10,8 @@
 #include "basic_types/Geometry3D.h"
 #endif
 
+using namespace MML;
+
 void Demo_Geometry_2D()
 {
     MML::Point2Cartesian pnt1;

@@ -1,1 +1,1 @@
-Integration
+# Numerical integration

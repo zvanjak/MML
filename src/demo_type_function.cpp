@@ -5,12 +5,14 @@
 #include <iomanip>
 #include <cmath>
 
-#include "basic_types/VectorN.h"
+#include "core/VectorN.h"
 #include "basic_types/Function.h"
 #include "basic_types/Functions.h"
 #include "basic_types/Curves.h"
 #include "basic_types/Surfaces.h"
 #endif
+
+using namespace MML;
 
 double TestFunc1(double x)
 {
@@ -29,11 +31,11 @@ void Demo_Function()
     MML::RealFunctionFromStdFunc func(f);
 
     MML::RealFunction func2([](double x) { return x; });
-    MML::ScalarFunctionFromFuncPtr<3> funcScalar([](const MML::VectorN<Real, 3> &x) { return x[0]; });
-    MML::VectorFunctionFromFuncPtr<3> funcVector([](const MML::VectorN<Real, 3> &x) { return MML::VectorN<Real, 3>{0, x[0] * x[1], 0}; });
+    MML::ScalarFunction<3> funcScalar([](const MML::VectorN<Real, 3> &x) { return x[0]; });
+    MML::VectorFunction<3> funcVector([](const MML::VectorN<Real, 3> &x) { return MML::VectorN<Real, 3>{0, x[0] * x[1], 0}; });
 
-    MML::ParametricCurveFromFuncPtr<3> paramCurve([](double x) { return MML::VectorN<Real, 3>{x, 2 * x, 3 * x}; });
+    MML::ParametricCurve<3> paramCurve([](double x) { return MML::VectorN<Real, 3>{x, 2 * x, 3 * x}; });
 
-    auto val1 = MML::Curves::helix_curve(1.0);
+    //auto val1 = MML::Curves::helix_curve(1.0);
     auto val2 = MML::Surfaces::test1(1.0, 1.0);
 }

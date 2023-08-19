@@ -12,6 +12,7 @@
 #endif
 
 using namespace MML;
+
 using std::cout;
 using std::endl;
 
@@ -54,8 +55,8 @@ void Demo_gradient_covariant_transf()
     cout << "\n******   Working with SPHERICAL TO CARTESIAN transformation   *******\n";
     cout << "\n******   Potential in spherical coordinates  *******\n";
     
-    ScalarFunctionFromFuncPtr<3> fPotSpher(InverseRadialFieldFuncSpher);    
-    Vector3Spherical grad_spher = ScalarFieldOperations::GradientSpher(fPotSpher, p_spher);
+    ScalarFunction<3> fPotSpher(InverseRadialFieldFuncSpher);    
+    Vector3Spherical  grad_spher = ScalarFieldOperations::GradientSpher(fPotSpher, p_spher);
 
     cout << "Field at     : " << p_spher << " = " << InverseRadialFieldFuncSpher(p_spher) << std::endl;
     cout << "Grad.Sph. at : " << p_spher << " = " << grad_spher << std::endl;
@@ -63,14 +64,14 @@ void Demo_gradient_covariant_transf()
     Vector3Cartesian grad_transf_to_cart  = CoordTransfSpherToCart.covariantTransf(grad_spher, p_cart);
     Vector3Spherical back_transf_to_spher = CoordTransfCartToSpher.covariantTransf(grad_transf_to_cart, p_spher);
 
-    cout << "Grad.transf. (Cart.) at " << p_cart << " = " << grad_transf_to_cart << std::endl;
+    cout << "Grad.transf. (Cart.) at " << p_cart  << " = " << grad_transf_to_cart << std::endl;
     cout << "Back transf. (Spher) at " << p_spher << " = " << back_transf_to_spher << std::endl;
 
     cout << "\n******   Working with CARTESIAN TO SPHERICAL transformation   *******\n";
     cout << "\n******   Potential in cartesian coordinates:  *******\n";
     
-    ScalarFunctionFromFuncPtr<3> fPotCart(InverseRadialFieldFuncCart);    
-    Vector3Cartesian grad_cart = ScalarFieldOperations::GradientCart<3>(fPotCart, p_cart);
+    ScalarFunction<3> fPotCart(InverseRadialFieldFuncCart);    
+    Vector3Cartesian  grad_cart = ScalarFieldOperations::GradientCart<3>(fPotCart, p_cart);
 
     cout << "Field at      : " << p_cart << " = " << InverseRadialFieldFuncCart(p_cart) << std::endl;
     cout << "Grad.Cart. at : " << p_cart << " = " << grad_cart << std::endl;

@@ -5,10 +5,12 @@
 #include <iomanip>
 #include <cmath>
 
-#include "basic_types/VectorN.h"
+#include "core/VectorN.h"
 #include "basic_types/Function.h"
 #include "basic_types/Fields.h"
 #endif
+
+using namespace MML;
 
 double GravityPotential(double r)
 {
@@ -32,8 +34,8 @@ void Demo_Fields()
     MML::InverseRadialFieldCart gravityPotentialField(10);
     
     MML::RealFunction func2([](double x) { return x; });
-    MML::ScalarFunctionFromFuncPtr<3> funcScalar([](const MML::VectorN<Real, 3> &x) { return x[0]; });
-    MML::VectorFunctionFromFuncPtr<3> funcVector([](const MML::VectorN<Real, 3> &x) { return MML::VectorN<Real, 3>{0, x[0] * x[1], 0}; });
+    MML::ScalarFunction<3> funcScalar([](const MML::VectorN<Real, 3> &x) { return x[0]; });
+    MML::VectorFunction<3> funcVector([](const MML::VectorN<Real, 3> &x) { return MML::VectorN<Real, 3>{0, x[0] * x[1], 0}; });
 
-    MML::ParametricCurveFromFuncPtr<3> paramCurve([](double x) { return MML::VectorN<Real, 3>{x, 2 * x, 3 * x}; });
+    MML::ParametricCurve<3> paramCurve([](double x) { return MML::VectorN<Real, 3>{x, 2 * x, 3 * x}; });
 }

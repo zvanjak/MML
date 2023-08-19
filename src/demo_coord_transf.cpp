@@ -8,6 +8,8 @@
 #include "basic_types/CoordTransf.h"
 #endif
 
+using namespace MML;
+
 void Demo_CoordTransf_Spherical()
 {
     MML::CoordTransfSphericalToCartesian transf;

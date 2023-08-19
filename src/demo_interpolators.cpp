@@ -6,101 +6,19 @@
 #include "MML.h"
 #else
 #include "MMLBase.h"
-#include "algorithms/Interpolators.h"
-#include "basic_types/Vector.h"
-#include "basic_types/Matrix.h"
+
+#include "core/Vector.h"
+#include "core/Matrix.h"
+#include "basic_types/Function.h"
+#include "basic_types/InterpolatedFunction.h"
+
+#include "algorithms/Integration.h"
+#include "algorithms/FunctionAnalyzer.h"
 #endif
 
 using namespace std;
 using namespace MML;
 
-
-void Test_Interpolation_RealFunc_Polynomial()
-{
-    const double PI=3.141592653589793238;
-    int i,n,nfunc;
-    double dy,f,x,y;
-
-    cout << "generation of interpolation tables" << endl;
-    cout << " ... sin(x)    0<x<PI" << endl;
-    cout << " ... exp(x)    0<x<1 " << endl;
-    // cout << "how many entries go in these tables?" << endl;
-    // cin >> n;
-    // cin.get();
-    n = 10;
-    if (n < 1) 
-        return;
-        
-    Vector<Real> xa(n);
-    Vector<Real> ya(n);
-    cout << fixed << setprecision(6);
-    for (nfunc=0;nfunc<2;nfunc++) {
-        if (nfunc == 0) {
-        cout << endl << "sine function from 0 to PI" << endl;
-        for (i=0;i<n;i++) {
-            xa[i]=(i+1)*PI/n;
-            ya[i]=sin(xa[i]);
-        }
-        } else if (nfunc == 1) {
-        cout << endl << "exponential function from 0 to 1" << endl;
-        for (i=0;i<n;i++) {
-            xa[i]=(i+1)*1.0/n;
-            ya[i]=exp(xa[i]);
-        }
-        } else {
-        break;
-        }
-        cout << setw(9) << "x" << setw(14) << "f(x)";
-        cout << setw(17) << "interpolated" << setw(14) << "error" << endl;
-        for (i=0;i<10;i++) {
-        if (nfunc == 0) {
-            x=(-0.05+(i+1)/10.0)*PI;
-            f=sin(x);
-        } else if (nfunc == 1) {
-            x=(-0.05+(i+1)/10.0);
-            f=exp(x);
-        }
-        MML::polint(xa,ya,x,y,dy);
-        cout << setw(12) << x << setw(13) << f << setw(13) << y;
-        cout << "     " << setw(12) << dy << endl;
-        }
-        cout << endl << "***********************************" << endl;
-        cout << "press RETURN" << endl;
-        //cin.get();
-    }    
-}
-
-double test_func(const double x, const double eps)
-{
-        return x*exp(-x)/(SQR(x-1.0)+eps*eps);
-}
-
-void Test_Interpolation_RealFunc_Rational()
-{
-    const int NPT=6;
-    const double EPS=1.0;
-    int i;
-    double dyy,xx,yexp,yy;
-    Vector<Real> x(NPT),y(NPT);
-
-    for (i=0;i<NPT;i++) {
-        x[i]=(i+1)*2.0/NPT;
-        y[i]=test_func(x[i],EPS);
-    }
-    cout << endl << "Diagonal rational function interpolation" << endl;
-    cout << endl << setw(5) << "x" << setw(15) << "interp.";
-    cout << setw(15) << "accuracy" << setw(13) << "actual" << endl;
-    cout << fixed << setprecision(6);
-    for (i=0;i<10;i++) {
-        xx=0.2*(i+1);
-        
-        MML::ratint(x,y,xx,yy,dyy);
-        
-        yexp=test_func(xx,EPS);
-        cout << setw(8) << xx << setw(13) << yy;
-        cout << setw(14) << dyy << setw(14) << yexp << endl;
-    } 
-}
 
 void Test_Interpolation_2DFunc()
 {
@@ -118,11 +36,16 @@ void Test_Interpolation_2DFunc()
             ya[i][j]=sin(x1a[i])*exp(x2a[j]);
         }
     }
+
+    BilinInterpScalarFunction2D bilin_int(x1a,x2a, ya);
+    PolynomInterpScalarFunction2D poly_int(x1a,x2a,ya,3,3);
+    SplineInterpScalarFunction2D spline_int(x1a,x2a,ya);
+
     // test 2-dimensional interpolation
     cout << endl << "Two dimensional interpolation of sin(x1)exp(x2)";
     cout << endl;
     cout << setw(9) << "x1" << setw(13) << "x2" << setw(14) << "f(x)";
-    cout << setw(17) << "interpolated" << setw(12) << "error" << endl;
+    cout << "        polint2       error       Bilin         error        Poly        error        Spline        error " << endl;
     cout << fixed << setprecision(6);
     for (i=0;i<4;i++) {
         x1=(-0.1+(i+1)/5.0)*PI;
@@ -132,13 +55,66 @@ void Test_Interpolation_2DFunc()
 
             MML::polin2(x1a,x2a,ya,x1,x2,y,dy);
             
+            double y_bilin = bilin_int.interp(x1, x2);
+            double y_poly = poly_int.interp(x1, x2);
+            double y_spline = spline_int.interp(x1, x2);
+            
             cout << setw(12) << x1 << setw(13) << x2 << setw(13) << f;
-            cout << setw(13) << y << setw(13) << dy << endl;
+            cout << setw(13) << y  << setw(13) << dy;
+            cout << setw(13) << y_bilin  << setw(13) << y_bilin - f;
+            cout << setw(13) << y_poly   << setw(13) << y_poly - f;
+            cout << setw(13) << y_spline << setw(13) << y_spline - f << endl;
         }
         cout << endl << "***********************************" << endl;
     }
 }
 
+double test_func(const double x)
+{
+    const double eps = 1.0;
+    return x*exp(-x)/(SQR(x-1.0)+eps*eps);
+}
+
+void Test_Linear_interp()
+{
+    const double x1 = 0.0;
+    const double x2 = 2.0;
+    const int    numPnt=5;
+
+    Vector<Real> x(numPnt),y(numPnt);
+
+    for (int i=0;i<numPnt;i++) {
+        x[i] = i * (x2 - x1) / numPnt;
+        y[i] = test_func(x[i]);
+    }    
+    
+    LinearInterpRealFunc myfunc(x,y);
+    
+    PolynomInterpRealFunc myFunc2(x,y,3);
+    SplineInterpRealFunc myFunc3(x,y);
+    RationalInterpRealFunc myFunc4(x,y, 4);
+    BaryRatInterpRealFunc myFunc5(x,y, 4);
+
+    std::cout << "\nLINEAR INTERPOLATION:\n";
+
+    cout << endl << setw(5) << "x" << setw(15) << "interp.";
+    cout << setw(15) << "actual" << setw(13) << " abs.err" << setw(13) << " rel.err" <<endl;
+    cout << fixed << setprecision(6);
+
+    const int printPnt = 20;
+    for (int i=0;i<printPnt;i++) 
+    {
+        double xx   = i * (x2 - x1) / printPnt;
+        double yy   = myfunc(xx);
+        double yexp = test_func(xx);
+
+        cout << setw(8) << xx << setw(13) << yy;
+        cout << setw(14) << yexp << setw(14) << yy-yexp << setw(14) << (yy-yexp)/yexp*100 << endl;
+    }
+    RealFunction test(test_func);
+    
+    std::cout << "Diff = " << FunctionAnalyzer::FuncDiff(myfunc, test, 0.0, 2.0);
+}
 void Demo_Interpolators()
 {
     std::cout << endl;
@@ -146,7 +122,6 @@ void Demo_Interpolators()
     std::cout << "****                       INTERPOLATION                           ****" << endl;
     std::cout << "***********************************************************************" << endl;
 
-    Test_Interpolation_RealFunc_Polynomial();   
     Test_Interpolation_2DFunc();   
-    Test_Interpolation_RealFunc_Rational();
+    Test_Linear_interp();
 }

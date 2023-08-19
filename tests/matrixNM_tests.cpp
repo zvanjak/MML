@@ -3,7 +3,7 @@
 #ifdef MML_USE_SINGLE_HEADER
 #include "MML.h"
 #else
-#include "basic_types/MatrixNM.h"
+#include "core/MatrixNM.h"
 #endif
 
 TEST_CASE("MatrixNM_default_ctor_init_to_zero", "[simple]") {
@@ -27,6 +27,70 @@ TEST_CASE("MatrixNM_initializer_list_ctor", "[simple]") {
 	REQUIRE(4.0 ==  a(1,1));
 }
 
+TEST_CASE("Test_MatrixNM_Op+-", "[simple]") {
+    MML::MatrixNM<Real, 2, 2> a({1.0, 2.0, 3.0, 4.0});
+    MML::MatrixNM<Real, 2, 2> b({1.0, 2.0, 3.0, 4.0});
+
+    auto c = a + b;
+    auto d = a - b;
+
+	REQUIRE(2.0 ==  c(0,0));
+	REQUIRE(4.0 ==  c(0,1));
+
+	REQUIRE(0.0 ==  d(0,0));
+	REQUIRE(0.0 ==  d(0,1));
+}
+
+TEST_CASE("Test_MatrixNM_Op*", "[simple]") {
+    MML::MatrixNM<Real, 2, 2> a({1.0, 2.0, 3.0, 4.0});
+    MML::MatrixNM<Real, 2, 2> b({1.0, 2.0, 3.0, 4.0});
+
+    auto c = a * b;
+
+	REQUIRE( 7.0 ==  c(0,0));
+	REQUIRE(10.0 ==  c(0,1));
+	REQUIRE(15.0 ==  c(1,0));
+	REQUIRE(22.0 ==  c(1,1));
+}
+
+// op. sa skalaraom
+TEST_CASE("Test_MatrixNM_mul_double", "[simple]") {
+    MML::MatrixNM<Real, 2, 2> a({1.0, 100.0, 50.0, 100.0});
+
+	auto b = a * 2.0;
+	auto c = 2.0 * a;
+
+	REQUIRE(2.0 ==  b(0,0));
+	REQUIRE(2.0 ==  c(0,0));
+
+	REQUIRE(200.0 ==  b(0,1));
+	REQUIRE(200.0 ==  c(0,1));	
+}
+
+TEST_CASE("Test_MatrixNM_div_double", "[simple]") {
+    MML::MatrixNM<Real, 2, 2> a({4.0, 400.0, 1.0, 1});
+
+	auto b = a / 2.0;
+
+	REQUIRE(2.0 ==  b(0,0));
+	REQUIRE(200.0 ==  b(0,1));
+}
+
+// op. sa vektorom
+TEST_CASE("Test_MatrixNM_mul_Vector", "[simple]") {
+    MML::MatrixNM<Real, 2, 2> a({1.0, 10.0, 
+                                 5.0, 2.0});
+    MML::VectorN<Real, 2> b({1.0, 2.0});
+
+	auto c = a * b;
+	auto d = b * a;
+
+	REQUIRE(21.0 ==  c[0]);
+	REQUIRE( 9.0 ==  c[1]);
+
+	REQUIRE(11.0 ==  d[0]);
+	REQUIRE(14.0 ==  d[1]);
+}
 
 TEST_CASE("MatrixNM_Transpose", "[simple]") 
 {
@@ -62,7 +126,11 @@ TEST_CASE("MatrixNM_GetInverse", "[simple]")
 	REQUIRE(c.IsEqual(d));
 }
 
-TEST_CASE("Test_MatrixNM", "[simple]") {
-    MML::MatrixNM<Real,2,2> mat({1.0, 0.0, 0.0, 1.0} );
+TEST_CASE("Test_MatrixNM_exceptions", "[simple]") 
+{
+    MML::MatrixNM<Real, 3, 4> mat_3;
 
+    REQUIRE_THROWS_AS(mat_3.Invert(), MML::MatrixDimensionError); 
+    REQUIRE_THROWS_AS(mat_3.GetInverse(), MML::MatrixDimensionError); 
+    REQUIRE_THROWS_AS(mat_3.Transpose(), MML::MatrixDimensionError); 
 }
