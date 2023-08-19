@@ -3926,6 +3926,133 @@ namespace MML
     };       
 }
 
+///////////////////////////   ./include/basic_types/Functionals.h   ///////////////////////////
+
+
+namespace MML
+{
+    template <int _Dim, typename _Field = Real>
+    class LinearFunctionalN
+    {
+    private:
+        VectorN<_Field, _Dim> _vecCoef;
+    public:
+        LinearFunctionalN() {}
+        LinearFunctionalN(const VectorN<_Field, _Dim> &vecCoef) : _vecCoef(vecCoef) {}
+        LinearFunctionalN(std::initializer_list<_Field> list) : _vecCoef(list) {}
+
+        LinearFunctionalN(const LinearFunctionalN &Copy) : _vecCoef(Copy._vecCoef) {}
+        ~LinearFunctionalN() {}
+
+        LinearFunctionalN& operator=(const LinearFunctionalN &Copy) { _vecCoef = Copy._vecCoef; return *this; }
+
+        _Field operator()(const VectorN<_Field, _Dim> &vecX) const
+        {
+            _Field result = 0.0;
+            for (int i = 0; i < _Dim; i++)
+                result += _vecCoef[i] * vecX[i];
+            return result;
+        }
+
+        LinearFunctionalN operator+(const LinearFunctionalN &b) const
+        {
+            LinearFunctionalN result;
+            for (int i = 0; i < _Dim; i++)
+            {
+                if (i < _vecCoef.size())
+                    result._vecCoef[i] += _vecCoef[i];
+                if (i < b._vecCoef.size())
+                    result._vecCoef[i] += b._vecCoef[i];
+            }
+            return result;
+        }
+
+        LinearFunctionalN operator-(const LinearFunctionalN &b) const
+        {
+            LinearFunctionalN result;
+            for (int i = 0; i < _Dim; i++)
+            {
+                if (i < _vecCoef.size())
+                    result._vecCoef[i] += _vecCoef[i];
+                if (i < b._vecCoef.size())
+                    result._vecCoef[i] -= b._vecCoef[i];
+            }
+            return result;
+        }
+
+        LinearFunctionalN operator*(double b) const
+        {
+            LinearFunctionalN result;
+            for (int i = 0; i < _vecCoef.size();    i++)
+                result._vecCoef[i] = _vecCoef[i] * b;
+            return result;
+        }
+
+    };
+
+    class LinearFunctional
+    {
+    private:
+        std::vector<double> _vecCoef;
+    public:
+        LinearFunctional() {}
+        LinearFunctional(const std::vector<double> &vecCoef) : _vecCoef(vecCoef) {}
+        LinearFunctional(std::initializer_list<double> list) : _vecCoef(list) {}
+
+        LinearFunctional(const LinearFunctional &Copy) : _vecCoef(Copy._vecCoef) {}
+        ~LinearFunctional() {}
+
+        LinearFunctional& operator=(const LinearFunctional &Copy) { _vecCoef = Copy._vecCoef; return *this; }
+
+        double operator()(const std::vector<double> &vecX) const
+        {
+            double result = 0.0;
+            for (int i = 0; i < _vecCoef.size(); i++)
+                result += _vecCoef[i] * vecX[i];
+            return result;
+        }
+
+        LinearFunctional operator+(const LinearFunctional &b) const
+        {
+            LinearFunctional result;
+            int n = (int) std::max(_vecCoef.size(), b._vecCoef.size());
+            result._vecCoef.resize(n);
+            for (int i = 0; i < n; i++)
+            {
+                if (i < _vecCoef.size())
+                    result._vecCoef[i] += _vecCoef[i];
+                if (i < b._vecCoef.size())
+                    result._vecCoef[i] += b._vecCoef[i];
+            }
+            return result;
+        }
+
+        LinearFunctional operator-(const LinearFunctional &b) const
+        {
+            LinearFunctional result;
+            int n = (int) std::max(_vecCoef.size(), b._vecCoef.size());
+            result._vecCoef.resize(n);
+            for (int i = 0; i < n; i++)
+            {
+                if (i < _vecCoef.size())
+                    result._vecCoef[i] += _vecCoef[i];
+                if (i < b._vecCoef.size())
+                    result._vecCoef[i] -= b._vecCoef[i];
+            }
+            return result;
+        }
+
+        LinearFunctional operator*(double b) const
+        {
+            LinearFunctional result;
+            result._vecCoef.resize(_vecCoef.size());
+            for (int i = 0; i < _vecCoef.size(); i++)
+                result._vecCoef[i] = _vecCoef[i] * b;
+            return result;
+        }
+    };
+}
+
 ///////////////////////////   ./include/basic_types/Functions.h   ///////////////////////////
 
 
@@ -6286,267 +6413,6 @@ namespace MML
 
 	};
 } // end namespace
-///////////////////////////   ./include/algorithms/PathIntegration.h   ///////////////////////////
-
-
-
-
-namespace MML
-{
-	class PathIntegration
-	{
-        template<int N>
-        class HelperCurveLen : public IRealFunction
-        {
-            const IParametricCurve<N> &_curve;
-        public:
-            HelperCurveLen(const IParametricCurve<N> &curve) : _curve(curve) {}
-
-            double operator()(double t) const 
-            {
-                auto tangent_vec = Derivation::DeriveCurve<N>(_curve, t, nullptr);
-                return tangent_vec.NormL2();
-            }
-        };
-        template<int N>
-        class HelperWorkIntegral : public IRealFunction
-        {
-            const IScalarFunction<N>  &_potential;
-            const IParametricCurve<N> &_curve;
-        public:
-            HelperWorkIntegral(const IScalarFunction<N> &potentialField, const IParametricCurve<N> &curve) : _potential(potentialField), _curve(curve) {}
-
-            double operator()(double t) const 
-            {
-                auto tangent_vec = Derivation::DeriveCurve<N>(_curve, t, nullptr);
-                auto gradient    = ScalarFieldOperations::GradientCart(_potential, _curve(t));
-
-                return tangent_vec.ScalarProductCartesian(gradient);
-            }
-        };
-        template<int N>
-        class HelperLineIntegral : public IRealFunction
-        {
-            const IVectorFunction<N>  &_vector_field;
-            const IParametricCurve<N> &_curve;
-        public:
-            HelperLineIntegral(const IVectorFunction<N> &vectorField, const IParametricCurve<N> &curve) : _vector_field(vectorField), _curve(curve) {}
-
-            double operator()(double t) const 
-            {
-                auto tangent_vec = Derivation::DeriveCurve<N>(_curve, t, nullptr);
-                auto field_vec   = _vector_field(_curve(t));
-
-                return tangent_vec.ScalarProductCartesian(field_vec);
-            }
-        };        
-    public:            
-        template<int N>
-        static double ParametricCurveLength(const IParametricCurve<N> &curve, const double a, const double b)
-        {
-            HelperCurveLen helper(curve);
-            
-            return Integration::IntegrateTrap(helper, a, b);
-        }
-
-        static double WorkIntegral(const IScalarFunction<3> &potentialField, const IParametricCurve<3> &curve, const double a, const double b, const double eps=Defaults::WorkIntegralPrecision)
-        {
-            HelperWorkIntegral helper(potentialField, curve);
-            
-            return Integration::IntegrateTrap(helper, a, b, eps);
-        }
-
-        static double LineIntegral(const IVectorFunction<3> &vectorField, const IParametricCurve<3> &curve, const double a, const double b, const double eps=Defaults::LineIntegralPrecision)
-        {
-            HelperLineIntegral helper(vectorField, curve);
-            
-            return Integration::IntegrateTrap(helper, a, b, eps);            
-        }
-
-        static double SurfaceIntegral(const IVectorFunction<3> &vectorField, const IParametricSurface<3> &surface, const double x1, const double x2, const double y1, const double y2)
-        {
-            return 0.0;
-        }
-	};
-} // end namespace
-///////////////////////////   ./include/algorithms/FieldOperations.h   ///////////////////////////// grad
-// - cart
-// - spher
-// - cyl
-
-
-
-
-
-
-
-namespace MML
-{
-    // TODO - Vec. field op. - Laplacian
-    class ScalarFieldOperations
-    {
-        public:
-        ////////////////////////////////////////////////////////////////////////////////////////////////////////
-        ///////////////////////////                   GRADIENT                     /////////////////////////////
-        template<int N>
-        static VectorN<Real, N> Gradient(IScalarFunction<N> &scalarField, const MetricTensor<N>& metricTensor, const VectorN<Real, N> &pos)
-        {
-            VectorN<Real, N> derivsAtPoint = Derivation::DerivePartialAll<N>(scalarField, pos, nullptr);
-            
-            Tensor2<N> metricAtPoint(2,0);
-            metricTensor.ValueAtPoint(pos, metricAtPoint);
-
-            VectorN<Real, N> ret = metricAtPoint * derivsAtPoint;
-
-            return ret;
-        }
-
-        template<int N>
-        static VectorN<Real, N> GradientCart(const IScalarFunction<N> &scalarField, const VectorN<Real, N> &pos)
-        {
-            return Derivation::DerivePartialAll<N>(scalarField, pos, nullptr);
-        }
-
-        static Vector3Spherical GradientSpher(const IScalarFunction<3> &scalarField, const Vector3Spherical &pos)
-        {
-            Vector3Spherical ret = Derivation::DerivePartialAll<3>(scalarField, pos, nullptr);
-
-            ret[1] = ret[1] / pos[0];
-            ret[2] = ret[2] / (pos[0] * sin(pos[1]));
-
-            return ret;
-        }
-
-        static Vector3Cylindrical GradientCyl(const IScalarFunction<3> &scalarField, const Vector3Cylindrical &pos)
-        {
-            Vector3Cylindrical ret = Derivation::DerivePartialAll<3>(scalarField, pos, nullptr);
-
-            ret[1] = ret[1] / pos[0];
-
-            return ret;
-        }            
-    };
-
-    class VectorFieldOperations
-    {
-    public:
-        ////////////////////////////////////////////////////////////////////////////////////////////////////////
-        ///////////////////////////                  DIVERGENCE                    /////////////////////////////
-        template<int N>
-        static double DivCart(const IVectorFunction<N> &vectorField, const VectorN<Real, N> &pos)
-        {
-            double div = 0.0;
-            for( int i=0; i<N; i++ )
-                div += Derivation::DeriveVecPartial<N>(vectorField, i, i, pos, nullptr);
-
-            return div;
-        }    
-
-        static double DivSpher(const IVectorFunction<3> &vectorField, const VectorN<Real, 3> &x)
-        {
-            VectorN<Real, 3> vals = vectorField(x);
-
-            VectorN<Real, 3> derivs;
-            for( int i=0; i<3; i++ )
-                derivs[i] = Derivation::DeriveVecPartial<3>(vectorField, i, i, x, nullptr);
-            
-            double div = 0.0;
-            div += 1 / (x[0]*x[0]) * (2 * x[0] * vals[0] + x[0]*x[0] * derivs[0]);
-            div += 1 / (x[0] * sin(x[1])) * (cos(x[1]) * vals[1] + sin(x[1]) * derivs[1]);
-            div += 1 / (x[0] * sin(x[1])) * derivs[2];
-
-            return div;
-        }           
-
-        static double DivCyl(const IVectorFunction<3> &vectorField, const VectorN<Real, 3> &x)
-        {
-            VectorN<Real, 3> vals = vectorField(x);
-
-            VectorN<Real, 3> derivs;
-            for( int i=0; i<3; i++ )
-                derivs[i] = Derivation::DeriveVecPartial<3>(vectorField, i, i, x, nullptr);
-            
-            double div = 0.0;
-            div += 1 / x[0] * (vals[0] + x[0] * derivs[0]);
-            div += 1 / x[0] * derivs[1];
-            div += derivs[2];
-
-            return div;
-        }
-        ////////////////////////////////////////////////////////////////////////////////////////////////////////
-        ///////////////////////////                     CURL                       /////////////////////////////
-        static Vector3Cartesian CurlCart(const IVectorFunction<3> &vectorField, const VectorN<Real, 3> &pos)
-        {
-            double dzdy = Derivation::DeriveVecPartial<3>(vectorField, 2, 1, pos, nullptr);
-            double dydz = Derivation::DeriveVecPartial<3>(vectorField, 1, 2, pos, nullptr);
-
-            double dxdz = Derivation::DeriveVecPartial<3>(vectorField, 0, 2, pos, nullptr);
-            double dzdx = Derivation::DeriveVecPartial<3>(vectorField, 2, 0, pos, nullptr);
-
-            double dydx = Derivation::DeriveVecPartial<3>(vectorField, 1, 0, pos, nullptr);
-            double dxdy = Derivation::DeriveVecPartial<3>(vectorField, 0, 1, pos, nullptr);
-
-            Vector3Cartesian curl{dzdy - dydz, dxdz - dzdx, dydx - dxdy};
-
-            return curl;
-        }    
-
-        static Vector3Spherical CurlSpher(const IVectorFunction<3> &vectorField, const VectorN<Real, 3> &pos)
-        {
-            VectorN<Real, 3> vals = vectorField(pos);
-
-            double dphidtheta = Derivation::DeriveVecPartial<3>(vectorField, 2, 1, pos, nullptr);
-            double dthetadphi = Derivation::DeriveVecPartial<3>(vectorField, 1, 2, pos, nullptr);
-
-            double drdphi = Derivation::DeriveVecPartial<3>(vectorField, 0, 2, pos, nullptr);
-            double dphidr = Derivation::DeriveVecPartial<3>(vectorField, 2, 0, pos, nullptr);
-
-            double dthetadr = Derivation::DeriveVecPartial<3>(vectorField, 1, 0, pos, nullptr);
-            double drdtheta = Derivation::DeriveVecPartial<3>(vectorField, 0, 1, pos, nullptr);
-
-            Vector3Spherical ret;
-            const double &r     = pos[0];
-            const double &theta = pos[1];
-            const double &phi   = pos[2];
-
-            ret[0] = 1 / (r * sin(theta)) * (cos(theta) * vals[2] + sin(theta) * dphidtheta - dthetadphi);
-            ret[1] = 1 / r * (1 / sin(theta)  * drdphi - vals[2] - r * dphidr);
-            ret[2] = 1 / r * (vals[1] + r * dthetadr - drdtheta);
-
-            return ret;
-        }           
-
-        static Vector3Cylindrical CurlCyl(const IVectorFunction<3> &vectorField, const VectorN<Real, 3> &pos)
-        {
-            VectorN<Real, 3> vals = vectorField(pos);
-
-            double dzdphi = Derivation::DeriveVecPartial<3>(vectorField, 2, 1, pos, nullptr);
-            double dphidz = Derivation::DeriveVecPartial<3>(vectorField, 1, 2, pos, nullptr);
-
-            double drdz = Derivation::DeriveVecPartial<3>(vectorField, 0, 2, pos, nullptr);
-            double dzdr = Derivation::DeriveVecPartial<3>(vectorField, 2, 0, pos, nullptr);
-
-            double dphidr = Derivation::DeriveVecPartial<3>(vectorField, 1, 0, pos, nullptr);
-            double drdphi = Derivation::DeriveVecPartial<3>(vectorField, 0, 1, pos, nullptr);
-
-            Vector3Cylindrical ret{1.0 / pos[0] * dzdphi - dphidz, drdz - dzdr, 1 / pos[0] * (vals[1] + pos[0] * dphidr - drdphi)};
-
-            return ret;
-        }
-
-        ////////////////////////////////////////////////////////////////////////////////////////////////////////
-        ///////////////////////////                  LAPLACIAN                     /////////////////////////////
-        template<int N>
-        static VectorN<Real, N> LaplacianCart(const IScalarFunction<N> &scalarField, const VectorN<Real, N> &pos)
-        {
-            double lapl = 0.0;
-            for( int i=0; i<N; i++ )
-                lapl += Derivation::NSecDer1Partial<N>(scalarField, i, i, pos, nullptr);
-
-            return div;
-        }
-    };
-}
 ///////////////////////////   ./include/basic_types/CoordTransf.h   ///////////////////////////
 
 
@@ -6952,6 +6818,267 @@ namespace MML
         }
     };
 }
+///////////////////////////   ./include/algorithms/FieldOperations.h   ///////////////////////////// grad
+// - cart
+// - spher
+// - cyl
+
+
+
+
+
+
+
+namespace MML
+{
+    // TODO - Vec. field op. - Laplacian
+    class ScalarFieldOperations
+    {
+        public:
+        ////////////////////////////////////////////////////////////////////////////////////////////////////////
+        ///////////////////////////                   GRADIENT                     /////////////////////////////
+        template<int N>
+        static VectorN<Real, N> Gradient(IScalarFunction<N> &scalarField, const MetricTensor<N>& metricTensor, const VectorN<Real, N> &pos)
+        {
+            VectorN<Real, N> derivsAtPoint = Derivation::DerivePartialAll<N>(scalarField, pos, nullptr);
+            
+            Tensor2<N> metricAtPoint(2,0);
+            metricTensor.ValueAtPoint(pos, metricAtPoint);
+
+            VectorN<Real, N> ret = metricAtPoint * derivsAtPoint;
+
+            return ret;
+        }
+
+        template<int N>
+        static VectorN<Real, N> GradientCart(const IScalarFunction<N> &scalarField, const VectorN<Real, N> &pos)
+        {
+            return Derivation::DerivePartialAll<N>(scalarField, pos, nullptr);
+        }
+
+        static Vector3Spherical GradientSpher(const IScalarFunction<3> &scalarField, const Vector3Spherical &pos)
+        {
+            Vector3Spherical ret = Derivation::DerivePartialAll<3>(scalarField, pos, nullptr);
+
+            ret[1] = ret[1] / pos[0];
+            ret[2] = ret[2] / (pos[0] * sin(pos[1]));
+
+            return ret;
+        }
+
+        static Vector3Cylindrical GradientCyl(const IScalarFunction<3> &scalarField, const Vector3Cylindrical &pos)
+        {
+            Vector3Cylindrical ret = Derivation::DerivePartialAll<3>(scalarField, pos, nullptr);
+
+            ret[1] = ret[1] / pos[0];
+
+            return ret;
+        }            
+    };
+
+    class VectorFieldOperations
+    {
+    public:
+        ////////////////////////////////////////////////////////////////////////////////////////////////////////
+        ///////////////////////////                  DIVERGENCE                    /////////////////////////////
+        template<int N>
+        static double DivCart(const IVectorFunction<N> &vectorField, const VectorN<Real, N> &pos)
+        {
+            double div = 0.0;
+            for( int i=0; i<N; i++ )
+                div += Derivation::DeriveVecPartial<N>(vectorField, i, i, pos, nullptr);
+
+            return div;
+        }    
+
+        static double DivSpher(const IVectorFunction<3> &vectorField, const VectorN<Real, 3> &x)
+        {
+            VectorN<Real, 3> vals = vectorField(x);
+
+            VectorN<Real, 3> derivs;
+            for( int i=0; i<3; i++ )
+                derivs[i] = Derivation::DeriveVecPartial<3>(vectorField, i, i, x, nullptr);
+            
+            double div = 0.0;
+            div += 1 / (x[0]*x[0]) * (2 * x[0] * vals[0] + x[0]*x[0] * derivs[0]);
+            div += 1 / (x[0] * sin(x[1])) * (cos(x[1]) * vals[1] + sin(x[1]) * derivs[1]);
+            div += 1 / (x[0] * sin(x[1])) * derivs[2];
+
+            return div;
+        }           
+
+        static double DivCyl(const IVectorFunction<3> &vectorField, const VectorN<Real, 3> &x)
+        {
+            VectorN<Real, 3> vals = vectorField(x);
+
+            VectorN<Real, 3> derivs;
+            for( int i=0; i<3; i++ )
+                derivs[i] = Derivation::DeriveVecPartial<3>(vectorField, i, i, x, nullptr);
+            
+            double div = 0.0;
+            div += 1 / x[0] * (vals[0] + x[0] * derivs[0]);
+            div += 1 / x[0] * derivs[1];
+            div += derivs[2];
+
+            return div;
+        }
+        ////////////////////////////////////////////////////////////////////////////////////////////////////////
+        ///////////////////////////                     CURL                       /////////////////////////////
+        static Vector3Cartesian CurlCart(const IVectorFunction<3> &vectorField, const VectorN<Real, 3> &pos)
+        {
+            double dzdy = Derivation::DeriveVecPartial<3>(vectorField, 2, 1, pos, nullptr);
+            double dydz = Derivation::DeriveVecPartial<3>(vectorField, 1, 2, pos, nullptr);
+
+            double dxdz = Derivation::DeriveVecPartial<3>(vectorField, 0, 2, pos, nullptr);
+            double dzdx = Derivation::DeriveVecPartial<3>(vectorField, 2, 0, pos, nullptr);
+
+            double dydx = Derivation::DeriveVecPartial<3>(vectorField, 1, 0, pos, nullptr);
+            double dxdy = Derivation::DeriveVecPartial<3>(vectorField, 0, 1, pos, nullptr);
+
+            Vector3Cartesian curl{dzdy - dydz, dxdz - dzdx, dydx - dxdy};
+
+            return curl;
+        }    
+
+        static Vector3Spherical CurlSpher(const IVectorFunction<3> &vectorField, const VectorN<Real, 3> &pos)
+        {
+            VectorN<Real, 3> vals = vectorField(pos);
+
+            double dphidtheta = Derivation::DeriveVecPartial<3>(vectorField, 2, 1, pos, nullptr);
+            double dthetadphi = Derivation::DeriveVecPartial<3>(vectorField, 1, 2, pos, nullptr);
+
+            double drdphi = Derivation::DeriveVecPartial<3>(vectorField, 0, 2, pos, nullptr);
+            double dphidr = Derivation::DeriveVecPartial<3>(vectorField, 2, 0, pos, nullptr);
+
+            double dthetadr = Derivation::DeriveVecPartial<3>(vectorField, 1, 0, pos, nullptr);
+            double drdtheta = Derivation::DeriveVecPartial<3>(vectorField, 0, 1, pos, nullptr);
+
+            Vector3Spherical ret;
+            const double &r     = pos[0];
+            const double &theta = pos[1];
+            const double &phi   = pos[2];
+
+            ret[0] = 1 / (r * sin(theta)) * (cos(theta) * vals[2] + sin(theta) * dphidtheta - dthetadphi);
+            ret[1] = 1 / r * (1 / sin(theta)  * drdphi - vals[2] - r * dphidr);
+            ret[2] = 1 / r * (vals[1] + r * dthetadr - drdtheta);
+
+            return ret;
+        }           
+
+        static Vector3Cylindrical CurlCyl(const IVectorFunction<3> &vectorField, const VectorN<Real, 3> &pos)
+        {
+            VectorN<Real, 3> vals = vectorField(pos);
+
+            double dzdphi = Derivation::DeriveVecPartial<3>(vectorField, 2, 1, pos, nullptr);
+            double dphidz = Derivation::DeriveVecPartial<3>(vectorField, 1, 2, pos, nullptr);
+
+            double drdz = Derivation::DeriveVecPartial<3>(vectorField, 0, 2, pos, nullptr);
+            double dzdr = Derivation::DeriveVecPartial<3>(vectorField, 2, 0, pos, nullptr);
+
+            double dphidr = Derivation::DeriveVecPartial<3>(vectorField, 1, 0, pos, nullptr);
+            double drdphi = Derivation::DeriveVecPartial<3>(vectorField, 0, 1, pos, nullptr);
+
+            Vector3Cylindrical ret{1.0 / pos[0] * dzdphi - dphidz, drdz - dzdr, 1 / pos[0] * (vals[1] + pos[0] * dphidr - drdphi)};
+
+            return ret;
+        }
+
+        ////////////////////////////////////////////////////////////////////////////////////////////////////////
+        ///////////////////////////                  LAPLACIAN                     /////////////////////////////
+        template<int N>
+        static VectorN<Real, N> LaplacianCart(const IScalarFunction<N> &scalarField, const VectorN<Real, N> &pos)
+        {
+            double lapl = 0.0;
+            for( int i=0; i<N; i++ )
+                lapl += Derivation::NSecDer1Partial<N>(scalarField, i, i, pos, nullptr);
+
+            return div;
+        }
+    };
+}
+///////////////////////////   ./include/algorithms/PathIntegration.h   ///////////////////////////
+
+
+
+
+namespace MML
+{
+	class PathIntegration
+	{
+        template<int N>
+        class HelperCurveLen : public IRealFunction
+        {
+            const IParametricCurve<N> &_curve;
+        public:
+            HelperCurveLen(const IParametricCurve<N> &curve) : _curve(curve) {}
+
+            double operator()(double t) const 
+            {
+                auto tangent_vec = Derivation::DeriveCurve<N>(_curve, t, nullptr);
+                return tangent_vec.NormL2();
+            }
+        };
+        template<int N>
+        class HelperWorkIntegral : public IRealFunction
+        {
+            const IScalarFunction<N>  &_potential;
+            const IParametricCurve<N> &_curve;
+        public:
+            HelperWorkIntegral(const IScalarFunction<N> &potentialField, const IParametricCurve<N> &curve) : _potential(potentialField), _curve(curve) {}
+
+            double operator()(double t) const 
+            {
+                auto tangent_vec = Derivation::DeriveCurve<N>(_curve, t, nullptr);
+                auto gradient    = ScalarFieldOperations::GradientCart(_potential, _curve(t));
+
+                return tangent_vec.ScalarProductCartesian(gradient);
+            }
+        };
+        template<int N>
+        class HelperLineIntegral : public IRealFunction
+        {
+            const IVectorFunction<N>  &_vector_field;
+            const IParametricCurve<N> &_curve;
+        public:
+            HelperLineIntegral(const IVectorFunction<N> &vectorField, const IParametricCurve<N> &curve) : _vector_field(vectorField), _curve(curve) {}
+
+            double operator()(double t) const 
+            {
+                auto tangent_vec = Derivation::DeriveCurve<N>(_curve, t, nullptr);
+                auto field_vec   = _vector_field(_curve(t));
+
+                return tangent_vec.ScalarProductCartesian(field_vec);
+            }
+        };        
+    public:            
+        template<int N>
+        static double ParametricCurveLength(const IParametricCurve<N> &curve, const double a, const double b)
+        {
+            HelperCurveLen helper(curve);
+            
+            return Integration::IntegrateTrap(helper, a, b);
+        }
+
+        static double WorkIntegral(const IScalarFunction<3> &potentialField, const IParametricCurve<3> &curve, const double a, const double b, const double eps=Defaults::WorkIntegralPrecision)
+        {
+            HelperWorkIntegral helper(potentialField, curve);
+            
+            return Integration::IntegrateTrap(helper, a, b, eps);
+        }
+
+        static double LineIntegral(const IVectorFunction<3> &vectorField, const IParametricCurve<3> &curve, const double a, const double b, const double eps=Defaults::LineIntegralPrecision)
+        {
+            HelperLineIntegral helper(vectorField, curve);
+            
+            return Integration::IntegrateTrap(helper, a, b, eps);            
+        }
+
+        static double SurfaceIntegral(const IVectorFunction<3> &vectorField, const IParametricSurface<3> &surface, const double x1, const double x2, const double y1, const double y2)
+        {
+            return 0.0;
+        }
+	};
+} // end namespace
 ///////////////////////////   ./include/algorithms/LinAlgEqSolvers.h   ///////////////////////////
 
 
@@ -9082,187 +9209,174 @@ namespace MML
     }; 
 
     struct Dopr853_constants {
-        static const Real c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c14,c15,c16,
-            b1,b6,b7,b8,b9,b10,b11,b12,bhh1,bhh2,bhh3,
-            er1,er6,er7,er8,er9,er10,er11,er12,
-            a21,a31,a32,a41,a43,a51,a53,a54,a61,a64,a65,a71,a74,a75,a76,
-            a81,a84,a85,a86,a87,a91,a94,a95,a96,a97,a98,a101,a104,a105,
-            a106,a107,a108,a109,a111,a114,a115,a116,a117,a118,a119,a1110,
-            a121,a124,a125,a126,a127,a128,a129,a1210,a1211,a141,a147,a148,
-            a149,a1410,a1411,a1412,a1413,a151,a156,a157,a158,a1511,a1512,
-            a1513,a1514,a161,a166,a167,a168,a169,a1613,a1614,a1615,
-            d41,d46,d47,d48,d49,d410,d411,d412,d413,d414,d415,d416,d51,d56,
-            d57,d58,d59,d510,d511,d512,d513,d514,d515,d516,d61,d66,d67,d68,
-            d69,d610,d611,d612,d613,d614,d615,d616,d71,d76,d77,d78,d79,
-            d710,d711,d712,d713,d714,d715,d716;
+        const Real c2  = 0.526001519587677318785587544488e-01;
+        const Real c3  = 0.789002279381515978178381316732e-01;
+        const Real c4  = 0.118350341907227396726757197510e+00;
+        const Real c5  = 0.281649658092772603273242802490e+00;
+        const Real c6  = 0.333333333333333333333333333333e+00;
+        const Real c7  = 0.25e+00;
+        const Real c8  = 0.307692307692307692307692307692e+00;
+        const Real c9  = 0.651282051282051282051282051282e+00;
+        const Real c10 = 0.6e+00;
+        const Real c11 = 0.857142857142857142857142857142e+00;
+        const Real c14 = 0.1e+00;
+        const Real c15 = 0.2e+00;
+        const Real c16 = 0.777777777777777777777777777778e+00;
+
+        const Real b1 =   5.42937341165687622380535766363e-2;
+        const Real b6 =   4.45031289275240888144113950566e0;
+        const Real b7 =   1.89151789931450038304281599044e0;
+        const Real b8 =  -5.8012039600105847814672114227e0;
+        const Real b9 =   3.1116436695781989440891606237e-1;
+        const Real b10 = -1.52160949662516078556178806805e-1;
+        const Real b11 =  2.01365400804030348374776537501e-1;
+        const Real b12 =  4.47106157277725905176885569043e-2;
+
+        const Real bhh1 = 0.244094488188976377952755905512e+00;
+        const Real bhh2 = 0.733846688281611857341361741547e+00;
+        const Real bhh3 = 0.220588235294117647058823529412e-01;
+
+        const Real er1  =  0.1312004499419488073250102996e-01;
+        const Real er6  = -0.1225156446376204440720569753e+01;
+        const Real er7  = -0.4957589496572501915214079952e+00;
+        const Real er8  =  0.1664377182454986536961530415e+01;
+        const Real er9  = -0.3503288487499736816886487290e+00;
+        const Real er10 =  0.3341791187130174790297318841e+00;
+        const Real er11 =  0.8192320648511571246570742613e-01;
+        const Real er12 = -0.2235530786388629525884427845e-01;
+
+        const Real a21 =    5.26001519587677318785587544488e-2;
+        const Real a31 =    1.97250569845378994544595329183e-2;
+        const Real a32 =    5.91751709536136983633785987549e-2;
+        const Real a41 =    2.95875854768068491816892993775e-2;
+        const Real a43 =    8.87627564304205475450678981324e-2;
+        const Real a51 =    2.41365134159266685502369798665e-1;
+        const Real a53 =   -8.84549479328286085344864962717e-1;
+        const Real a54 =    9.24834003261792003115737966543e-1;
+        const Real a61 =    3.7037037037037037037037037037e-2;
+        const Real a64 =    1.70828608729473871279604482173e-1;
+        const Real a65 =    1.25467687566822425016691814123e-1;
+        const Real a71 =    3.7109375e-2;
+        const Real a74 =    1.70252211019544039314978060272e-1;
+        const Real a75 =    6.02165389804559606850219397283e-2;
+        const Real a76 =   -1.7578125e-2;
+
+        const Real a81 =    3.70920001185047927108779319836e-2;
+        const Real a84 =    1.70383925712239993810214054705e-1;
+        const Real a85 =    1.07262030446373284651809199168e-1;
+        const Real a86 =   -1.53194377486244017527936158236e-2;
+        const Real a87 =    8.27378916381402288758473766002e-3;
+        const Real a91 =    6.24110958716075717114429577812e-1;
+        const Real a94 =   -3.36089262944694129406857109825e0;
+        const Real a95 =   -8.68219346841726006818189891453e-1;
+        const Real a96 =    2.75920996994467083049415600797e1;
+        const Real a97 =    2.01540675504778934086186788979e1;
+        const Real a98 =   -4.34898841810699588477366255144e1;
+        const Real a101 =   4.77662536438264365890433908527e-1;
+        const Real a104 =  -2.48811461997166764192642586468e0;
+        const Real a105 =  -5.90290826836842996371446475743e-1;
+        const Real a106 =   2.12300514481811942347288949897e1;
+        const Real a107 =   1.52792336328824235832596922938e1;
+        const Real a108 =  -3.32882109689848629194453265587e1;
+        const Real a109 =  -2.03312017085086261358222928593e-2;
+
+        const Real a111 =  -9.3714243008598732571704021658e-1;
+        const Real a114 =   5.18637242884406370830023853209e0;
+        const Real a115 =   1.09143734899672957818500254654e0;
+        const Real a116 =  -8.14978701074692612513997267357e0;
+        const Real a117 =  -1.85200656599969598641566180701e1;
+        const Real a118 =   2.27394870993505042818970056734e1;
+        const Real a119 =   2.49360555267965238987089396762e0;
+        const Real a1110 = -3.0467644718982195003823669022e0;
+        const Real a121 =   2.27331014751653820792359768449e0;
+        const Real a124 =  -1.05344954667372501984066689879e1;
+        const Real a125 =  -2.00087205822486249909675718444e0;
+        const Real a126 =  -1.79589318631187989172765950534e1;
+        const Real a127 =   2.79488845294199600508499808837e1;
+        const Real a128 =  -2.85899827713502369474065508674e0;
+        const Real a129 =  -8.87285693353062954433549289258e0;
+        const Real a1210 =  1.23605671757943030647266201528e1;
+        const Real a1211 =  6.43392746015763530355970484046e-1;
+
+        const Real a141 =  5.61675022830479523392909219681e-2;
+        const Real a147 =  2.53500210216624811088794765333e-1;
+        const Real a148 = -2.46239037470802489917441475441e-1;
+        const Real a149 = -1.24191423263816360469010140626e-1;
+        const Real a1410 =  1.5329179827876569731206322685e-1;
+        const Real a1411 =  8.20105229563468988491666602057e-3;
+        const Real a1412 =  7.56789766054569976138603589584e-3;
+        const Real a1413 = -8.298e-3;
+
+        const Real a151 =  3.18346481635021405060768473261e-2;
+        const Real a156 =  2.83009096723667755288322961402e-2;
+        const Real a157 =  5.35419883074385676223797384372e-2;
+        const Real a158 = -5.49237485713909884646569340306e-2;
+        const Real a1511 = -1.08347328697249322858509316994e-4;
+        const Real a1512 =  3.82571090835658412954920192323e-4;
+        const Real a1513 = -3.40465008687404560802977114492e-4;
+        const Real a1514 =  1.41312443674632500278074618366e-1;
+        const Real a161 = -4.28896301583791923408573538692e-1;
+        const Real a166 = -4.69762141536116384314449447206e0;
+        const Real a167 =  7.68342119606259904184240953878e0;
+        const Real a168 =  4.06898981839711007970213554331e0;
+        const Real a169 =  3.56727187455281109270669543021e-1;
+        const Real a1613 = -1.39902416515901462129418009734e-3;
+        const Real a1614 =  2.9475147891527723389556272149e0;
+        const Real a1615 = -9.15095847217987001081870187138e0;
+
+        const Real d41  = -0.84289382761090128651353491142e+01;
+        const Real d46  =  0.56671495351937776962531783590e+00;
+        const Real d47  = -0.30689499459498916912797304727e+01;
+        const Real d48  =  0.23846676565120698287728149680e+01;
+        const Real d49  =  0.21170345824450282767155149946e+01;
+        const Real d410 = -0.87139158377797299206789907490e+00;
+        const Real d411 =  0.22404374302607882758541771650e+01;
+        const Real d412 =  0.63157877876946881815570249290e+00;
+        const Real d413 = -0.88990336451333310820698117400e-01;
+        const Real d414 =  0.18148505520854727256656404962e+02;
+        const Real d415 = -0.91946323924783554000451984436e+01;
+        const Real d416 = -0.44360363875948939664310572000e+01;
+
+        const Real d51  =  0.10427508642579134603413151009e+02;
+        const Real d56  =  0.24228349177525818288430175319e+03;
+        const Real d57  =  0.16520045171727028198505394887e+03;
+        const Real d58  = -0.37454675472269020279518312152e+03;
+        const Real d59  = -0.22113666853125306036270938578e+02;
+        const Real d510 =  0.77334326684722638389603898808e+01;
+        const Real d511 = -0.30674084731089398182061213626e+02;
+        const Real d512 = -0.93321305264302278729567221706e+01;
+        const Real d513 =  0.15697238121770843886131091075e+02;
+        const Real d514 = -0.31139403219565177677282850411e+02;
+        const Real d515 = -0.93529243588444783865713862664e+01;
+        const Real d516 =  0.35816841486394083752465898540e+02;
+
+        const Real d61 =  0.19985053242002433820987653617e+02;
+        const Real d66 = -0.38703730874935176555105901742e+03;
+        const Real d67 = -0.18917813819516756882830838328e+03;
+        const Real d68 =  0.52780815920542364900561016686e+03;
+        const Real d69 = -0.11573902539959630126141871134e+02;
+        const Real d610 =  0.68812326946963000169666922661e+01;
+        const Real d611 = -0.10006050966910838403183860980e+01;
+        const Real d612 =  0.77771377980534432092869265740e+00;
+        const Real d613 = -0.27782057523535084065932004339e+01;
+        const Real d614 = -0.60196695231264120758267380846e+02;
+        const Real d615 =  0.84320405506677161018159903784e+02;
+        const Real d616 =  0.11992291136182789328035130030e+02;
+
+        const Real d71  = -0.25693933462703749003312586129e+02;
+        const Real d76  = -0.15418974869023643374053993627e+03;
+        const Real d77  = -0.23152937917604549567536039109e+03;
+        const Real d78  =  0.35763911791061412378285349910e+03;
+        const Real d79  =  0.93405324183624310003907691704e+02;
+        const Real d710 = -0.37458323136451633156875139351e+02;
+        const Real d711 =  0.10409964950896230045147246184e+03;
+        const Real d712 =  0.29840293426660503123344363579e+02;
+        const Real d713 = -0.43533456590011143754432175058e+02;
+        const Real d714 =  0.96324553959188282948394950600e+02;
+        const Real d715 = -0.39177261675615439165231486172e+02;
+        const Real d716 = -0.14972683625798562581422125276e+03;
     };
-    const Real Dopr853_constants::c2  = 0.526001519587677318785587544488e-01;
-    const Real Dopr853_constants::c3  = 0.789002279381515978178381316732e-01;
-    const Real Dopr853_constants::c4  = 0.118350341907227396726757197510e+00;
-    const Real Dopr853_constants::c5  = 0.281649658092772603273242802490e+00;
-    const Real Dopr853_constants::c6  = 0.333333333333333333333333333333e+00;
-    const Real Dopr853_constants::c7  = 0.25e+00;
-    const Real Dopr853_constants::c8  = 0.307692307692307692307692307692e+00;
-    const Real Dopr853_constants::c9  = 0.651282051282051282051282051282e+00;
-    const Real Dopr853_constants::c10 = 0.6e+00;
-    const Real Dopr853_constants::c11 = 0.857142857142857142857142857142e+00;
-    const Real Dopr853_constants::c14 = 0.1e+00;
-    const Real Dopr853_constants::c15 = 0.2e+00;
-    const Real Dopr853_constants::c16 = 0.777777777777777777777777777778e+00;
-
-    const Real Dopr853_constants::b1 =   5.42937341165687622380535766363e-2;
-    const Real Dopr853_constants::b6 =   4.45031289275240888144113950566e0;
-    const Real Dopr853_constants::b7 =   1.89151789931450038304281599044e0;
-    const Real Dopr853_constants::b8 =  -5.8012039600105847814672114227e0;
-    const Real Dopr853_constants::b9 =   3.1116436695781989440891606237e-1;
-    const Real Dopr853_constants::b10 = -1.52160949662516078556178806805e-1;
-    const Real Dopr853_constants::b11 =  2.01365400804030348374776537501e-1;
-    const Real Dopr853_constants::b12 =  4.47106157277725905176885569043e-2;
-
-    const Real Dopr853_constants::bhh1 = 0.244094488188976377952755905512e+00;
-    const Real Dopr853_constants::bhh2 = 0.733846688281611857341361741547e+00;
-    const Real Dopr853_constants::bhh3 = 0.220588235294117647058823529412e-01;
-
-    const Real Dopr853_constants::er1  =  0.1312004499419488073250102996e-01;
-    const Real Dopr853_constants::er6  = -0.1225156446376204440720569753e+01;
-    const Real Dopr853_constants::er7  = -0.4957589496572501915214079952e+00;
-    const Real Dopr853_constants::er8  =  0.1664377182454986536961530415e+01;
-    const Real Dopr853_constants::er9  = -0.3503288487499736816886487290e+00;
-    const Real Dopr853_constants::er10 =  0.3341791187130174790297318841e+00;
-    const Real Dopr853_constants::er11 =  0.8192320648511571246570742613e-01;
-    const Real Dopr853_constants::er12 = -0.2235530786388629525884427845e-01;
-
-    const Real Dopr853_constants::a21 =    5.26001519587677318785587544488e-2;
-    const Real Dopr853_constants::a31 =    1.97250569845378994544595329183e-2;
-    const Real Dopr853_constants::a32 =    5.91751709536136983633785987549e-2;
-    const Real Dopr853_constants::a41 =    2.95875854768068491816892993775e-2;
-    const Real Dopr853_constants::a43 =    8.87627564304205475450678981324e-2;
-    const Real Dopr853_constants::a51 =    2.41365134159266685502369798665e-1;
-    const Real Dopr853_constants::a53 =   -8.84549479328286085344864962717e-1;
-    const Real Dopr853_constants::a54 =    9.24834003261792003115737966543e-1;
-    const Real Dopr853_constants::a61 =    3.7037037037037037037037037037e-2;
-    const Real Dopr853_constants::a64 =    1.70828608729473871279604482173e-1;
-    const Real Dopr853_constants::a65 =    1.25467687566822425016691814123e-1;
-    const Real Dopr853_constants::a71 =    3.7109375e-2;
-    const Real Dopr853_constants::a74 =    1.70252211019544039314978060272e-1;
-    const Real Dopr853_constants::a75 =    6.02165389804559606850219397283e-2;
-    const Real Dopr853_constants::a76 =   -1.7578125e-2;
-
-    const Real Dopr853_constants::a81 =    3.70920001185047927108779319836e-2;
-    const Real Dopr853_constants::a84 =    1.70383925712239993810214054705e-1;
-    const Real Dopr853_constants::a85 =    1.07262030446373284651809199168e-1;
-    const Real Dopr853_constants::a86 =   -1.53194377486244017527936158236e-2;
-    const Real Dopr853_constants::a87 =    8.27378916381402288758473766002e-3;
-    const Real Dopr853_constants::a91 =    6.24110958716075717114429577812e-1;
-    const Real Dopr853_constants::a94 =   -3.36089262944694129406857109825e0;
-    const Real Dopr853_constants::a95 =   -8.68219346841726006818189891453e-1;
-    const Real Dopr853_constants::a96 =    2.75920996994467083049415600797e1;
-    const Real Dopr853_constants::a97 =    2.01540675504778934086186788979e1;
-    const Real Dopr853_constants::a98 =   -4.34898841810699588477366255144e1;
-    const Real Dopr853_constants::a101 =   4.77662536438264365890433908527e-1;
-    const Real Dopr853_constants::a104 =  -2.48811461997166764192642586468e0;
-    const Real Dopr853_constants::a105 =  -5.90290826836842996371446475743e-1;
-    const Real Dopr853_constants::a106 =   2.12300514481811942347288949897e1;
-    const Real Dopr853_constants::a107 =   1.52792336328824235832596922938e1;
-    const Real Dopr853_constants::a108 =  -3.32882109689848629194453265587e1;
-    const Real Dopr853_constants::a109 =  -2.03312017085086261358222928593e-2;
-
-    const Real Dopr853_constants::a111 =  -9.3714243008598732571704021658e-1;
-    const Real Dopr853_constants::a114 =   5.18637242884406370830023853209e0;
-    const Real Dopr853_constants::a115 =   1.09143734899672957818500254654e0;
-    const Real Dopr853_constants::a116 =  -8.14978701074692612513997267357e0;
-    const Real Dopr853_constants::a117 =  -1.85200656599969598641566180701e1;
-    const Real Dopr853_constants::a118 =   2.27394870993505042818970056734e1;
-    const Real Dopr853_constants::a119 =   2.49360555267965238987089396762e0;
-    const Real Dopr853_constants::a1110 = -3.0467644718982195003823669022e0;
-    const Real Dopr853_constants::a121 =   2.27331014751653820792359768449e0;
-    const Real Dopr853_constants::a124 =  -1.05344954667372501984066689879e1;
-    const Real Dopr853_constants::a125 =  -2.00087205822486249909675718444e0;
-    const Real Dopr853_constants::a126 =  -1.79589318631187989172765950534e1;
-    const Real Dopr853_constants::a127 =   2.79488845294199600508499808837e1;
-    const Real Dopr853_constants::a128 =  -2.85899827713502369474065508674e0;
-    const Real Dopr853_constants::a129 =  -8.87285693353062954433549289258e0;
-    const Real Dopr853_constants::a1210 =  1.23605671757943030647266201528e1;
-    const Real Dopr853_constants::a1211 =  6.43392746015763530355970484046e-1;
-
-    const Real Dopr853_constants::a141 =  5.61675022830479523392909219681e-2;
-    const Real Dopr853_constants::a147 =  2.53500210216624811088794765333e-1;
-    const Real Dopr853_constants::a148 = -2.46239037470802489917441475441e-1;
-    const Real Dopr853_constants::a149 = -1.24191423263816360469010140626e-1;
-    const Real Dopr853_constants::a1410 =  1.5329179827876569731206322685e-1;
-    const Real Dopr853_constants::a1411 =  8.20105229563468988491666602057e-3;
-    const Real Dopr853_constants::a1412 =  7.56789766054569976138603589584e-3;
-    const Real Dopr853_constants::a1413 = -8.298e-3;
-
-    const Real Dopr853_constants::a151 =  3.18346481635021405060768473261e-2;
-    const Real Dopr853_constants::a156 =  2.83009096723667755288322961402e-2;
-    const Real Dopr853_constants::a157 =  5.35419883074385676223797384372e-2;
-    const Real Dopr853_constants::a158 = -5.49237485713909884646569340306e-2;
-    const Real Dopr853_constants::a1511 = -1.08347328697249322858509316994e-4;
-    const Real Dopr853_constants::a1512 =  3.82571090835658412954920192323e-4;
-    const Real Dopr853_constants::a1513 = -3.40465008687404560802977114492e-4;
-    const Real Dopr853_constants::a1514 =  1.41312443674632500278074618366e-1;
-    const Real Dopr853_constants::a161 = -4.28896301583791923408573538692e-1;
-    const Real Dopr853_constants::a166 = -4.69762141536116384314449447206e0;
-    const Real Dopr853_constants::a167 =  7.68342119606259904184240953878e0;
-    const Real Dopr853_constants::a168 =  4.06898981839711007970213554331e0;
-    const Real Dopr853_constants::a169 =  3.56727187455281109270669543021e-1;
-    const Real Dopr853_constants::a1613 = -1.39902416515901462129418009734e-3;
-    const Real Dopr853_constants::a1614 =  2.9475147891527723389556272149e0;
-    const Real Dopr853_constants::a1615 = -9.15095847217987001081870187138e0;
-
-    const Real Dopr853_constants::d41  = -0.84289382761090128651353491142e+01;
-    const Real Dopr853_constants::d46  =  0.56671495351937776962531783590e+00;
-    const Real Dopr853_constants::d47  = -0.30689499459498916912797304727e+01;
-    const Real Dopr853_constants::d48  =  0.23846676565120698287728149680e+01;
-    const Real Dopr853_constants::d49  =  0.21170345824450282767155149946e+01;
-    const Real Dopr853_constants::d410 = -0.87139158377797299206789907490e+00;
-    const Real Dopr853_constants::d411 =  0.22404374302607882758541771650e+01;
-    const Real Dopr853_constants::d412 =  0.63157877876946881815570249290e+00;
-    const Real Dopr853_constants::d413 = -0.88990336451333310820698117400e-01;
-    const Real Dopr853_constants::d414 =  0.18148505520854727256656404962e+02;
-    const Real Dopr853_constants::d415 = -0.91946323924783554000451984436e+01;
-    const Real Dopr853_constants::d416 = -0.44360363875948939664310572000e+01;
-
-    const Real Dopr853_constants::d51  =  0.10427508642579134603413151009e+02;
-    const Real Dopr853_constants::d56  =  0.24228349177525818288430175319e+03;
-    const Real Dopr853_constants::d57  =  0.16520045171727028198505394887e+03;
-    const Real Dopr853_constants::d58  = -0.37454675472269020279518312152e+03;
-    const Real Dopr853_constants::d59  = -0.22113666853125306036270938578e+02;
-    const Real Dopr853_constants::d510 =  0.77334326684722638389603898808e+01;
-    const Real Dopr853_constants::d511 = -0.30674084731089398182061213626e+02;
-    const Real Dopr853_constants::d512 = -0.93321305264302278729567221706e+01;
-    const Real Dopr853_constants::d513 =  0.15697238121770843886131091075e+02;
-    const Real Dopr853_constants::d514 = -0.31139403219565177677282850411e+02;
-    const Real Dopr853_constants::d515 = -0.93529243588444783865713862664e+01;
-    const Real Dopr853_constants::d516 =  0.35816841486394083752465898540e+02;
-
-    const Real Dopr853_constants::d61 =  0.19985053242002433820987653617e+02;
-    const Real Dopr853_constants::d66 = -0.38703730874935176555105901742e+03;
-    const Real Dopr853_constants::d67 = -0.18917813819516756882830838328e+03;
-    const Real Dopr853_constants::d68 =  0.52780815920542364900561016686e+03;
-    const Real Dopr853_constants::d69 = -0.11573902539959630126141871134e+02;
-    const Real Dopr853_constants::d610 =  0.68812326946963000169666922661e+01;
-    const Real Dopr853_constants::d611 = -0.10006050966910838403183860980e+01;
-    const Real Dopr853_constants::d612 =  0.77771377980534432092869265740e+00;
-    const Real Dopr853_constants::d613 = -0.27782057523535084065932004339e+01;
-    const Real Dopr853_constants::d614 = -0.60196695231264120758267380846e+02;
-    const Real Dopr853_constants::d615 =  0.84320405506677161018159903784e+02;
-    const Real Dopr853_constants::d616 =  0.11992291136182789328035130030e+02;
-
-    const Real Dopr853_constants::d71  = -0.25693933462703749003312586129e+02;
-    const Real Dopr853_constants::d76  = -0.15418974869023643374053993627e+03;
-    const Real Dopr853_constants::d77  = -0.23152937917604549567536039109e+03;
-    const Real Dopr853_constants::d78  =  0.35763911791061412378285349910e+03;
-    const Real Dopr853_constants::d79  =  0.93405324183624310003907691704e+02;
-    const Real Dopr853_constants::d710 = -0.37458323136451633156875139351e+02;
-    const Real Dopr853_constants::d711 =  0.10409964950896230045147246184e+03;
-    const Real Dopr853_constants::d712 =  0.29840293426660503123344363579e+02;
-    const Real Dopr853_constants::d713 = -0.43533456590011143754432175058e+02;
-    const Real Dopr853_constants::d714 =  0.96324553959188282948394950600e+02;
-    const Real Dopr853_constants::d715 = -0.39177261675615439165231486172e+02;
-    const Real Dopr853_constants::d716 = -0.14972683625798562581422125276e+03;
-
+    
     struct StepperDopr853 : StepperBase, Dopr853_constants {
         Vector<Real> yerr2;
         Vector<Real> k2,k3,k4,k5,k6,k7,k8,k9,k10;
@@ -9442,7 +9556,6 @@ namespace MML
         };
         Controller con;
     };
-
 
     // Bulirsch-Stoer step with monitoring of local truncation error to ensure accuracy and adjust stepsize
     struct StepperBS : StepperBase {
@@ -9840,57 +9953,53 @@ namespace MML
 namespace MML
 {
     struct Ross_constants {
-        static const Real c2,c3,c4,bet2p,bet3p,bet4p,d1,d2,d3,d4,a21,a31,a32,
-            a41,a42,a43,a51,a52,a53,a54,c21,c31,c32,c41,c42,c43,c51,c52,
-            c53,c54,c61,c62,c63,c64,c65,gam,d21,d22,d23,d24,d25,d31,d32,
-            d33,d34,d35;
+        const Real c2=0.386;
+        const Real c3=0.21;
+        const Real c4=0.63;
+        const Real bet2p=0.0317;
+        const Real bet3p=0.0635;
+        const Real bet4p=0.3438;
+        const Real d1= 0.2500000000000000e+00;
+        const Real d2=-0.1043000000000000e+00;
+        const Real d3= 0.1035000000000000e+00;
+        const Real d4=-0.3620000000000023e-01;
+        const Real a21= 0.1544000000000000e+01;
+        const Real a31= 0.9466785280815826e+00;
+        const Real a32= 0.2557011698983284e+00;
+        const Real a41= 0.3314825187068521e+01;
+        const Real a42= 0.2896124015972201e+01;
+        const Real a43= 0.9986419139977817e+00;
+        const Real a51= 0.1221224509226641e+01;
+        const Real a52= 0.6019134481288629e+01;
+        const Real a53= 0.1253708332932087e+02;
+        const Real a54=-0.6878860361058950e+00;
+        const Real c21=-0.5668800000000000e+01;
+        const Real c31=-0.2430093356833875e+01;
+        const Real c32=-0.2063599157091915e+00;
+        const Real c41=-0.1073529058151375e+00;
+        const Real c42=-0.9594562251023355e+01;
+        const Real c43=-0.2047028614809616e+02;
+        const Real c51= 0.7496443313967647e+01;
+        const Real c52=-0.1024680431464352e+02;
+        const Real c53=-0.3399990352819905e+02;
+        const Real c54= 0.1170890893206160e+02;
+        const Real c61= 0.8083246795921522e+01;
+        const Real c62=-0.7981132988064893e+01;
+        const Real c63=-0.3152159432874371e+02;
+        const Real c64= 0.1631930543123136e+02;
+        const Real c65=-0.6058818238834054e+01;
+        const Real gam= 0.2500000000000000e+00;
+        const Real d21= 0.1012623508344586e+02;
+        const Real d22=-0.7487995877610167e+01;
+        const Real d23=-0.3480091861555747e+02;
+        const Real d24=-0.7992771707568823e+01;
+        const Real d25= 0.1025137723295662e+01;
+        const Real d31=-0.6762803392801253e+00;
+        const Real d32= 0.6087714651680015e+01;
+        const Real d33= 0.1643084320892478e+02;
+        const Real d34= 0.2476722511418386e+02;
+        const Real d35=-0.6594389125716872e+01;
     };
-    const Real Ross_constants::c2=0.386;
-    const Real Ross_constants::c3=0.21;
-    const Real Ross_constants::c4=0.63;
-    const Real Ross_constants::bet2p=0.0317;
-    const Real Ross_constants::bet3p=0.0635;
-    const Real Ross_constants::bet4p=0.3438;
-    const Real Ross_constants::d1= 0.2500000000000000e+00;
-    const Real Ross_constants::d2=-0.1043000000000000e+00;
-    const Real Ross_constants::d3= 0.1035000000000000e+00;
-    const Real Ross_constants::d4=-0.3620000000000023e-01;
-    const Real Ross_constants::a21= 0.1544000000000000e+01;
-    const Real Ross_constants::a31= 0.9466785280815826e+00;
-    const Real Ross_constants::a32= 0.2557011698983284e+00;
-    const Real Ross_constants::a41= 0.3314825187068521e+01;
-    const Real Ross_constants::a42= 0.2896124015972201e+01;
-    const Real Ross_constants::a43= 0.9986419139977817e+00;
-    const Real Ross_constants::a51= 0.1221224509226641e+01;
-    const Real Ross_constants::a52= 0.6019134481288629e+01;
-    const Real Ross_constants::a53= 0.1253708332932087e+02;
-    const Real Ross_constants::a54=-0.6878860361058950e+00;
-    const Real Ross_constants::c21=-0.5668800000000000e+01;
-    const Real Ross_constants::c31=-0.2430093356833875e+01;
-    const Real Ross_constants::c32=-0.2063599157091915e+00;
-    const Real Ross_constants::c41=-0.1073529058151375e+00;
-    const Real Ross_constants::c42=-0.9594562251023355e+01;
-    const Real Ross_constants::c43=-0.2047028614809616e+02;
-    const Real Ross_constants::c51= 0.7496443313967647e+01;
-    const Real Ross_constants::c52=-0.1024680431464352e+02;
-    const Real Ross_constants::c53=-0.3399990352819905e+02;
-    const Real Ross_constants::c54= 0.1170890893206160e+02;
-    const Real Ross_constants::c61= 0.8083246795921522e+01;
-    const Real Ross_constants::c62=-0.7981132988064893e+01;
-    const Real Ross_constants::c63=-0.3152159432874371e+02;
-    const Real Ross_constants::c64= 0.1631930543123136e+02;
-    const Real Ross_constants::c65=-0.6058818238834054e+01;
-    const Real Ross_constants::gam= 0.2500000000000000e+00;
-    const Real Ross_constants::d21= 0.1012623508344586e+02;
-    const Real Ross_constants::d22=-0.7487995877610167e+01;
-    const Real Ross_constants::d23=-0.3480091861555747e+02;
-    const Real Ross_constants::d24=-0.7992771707568823e+01;
-    const Real Ross_constants::d25= 0.1025137723295662e+01;
-    const Real Ross_constants::d31=-0.6762803392801253e+00;
-    const Real Ross_constants::d32= 0.6087714651680015e+01;
-    const Real Ross_constants::d33= 0.1643084320892478e+02;
-    const Real Ross_constants::d34= 0.2476722511418386e+02;
-    const Real Ross_constants::d35=-0.6594389125716872e+01;
 
     // Fourth-order stiffly stable Rosenbrock step for integrating stiff ODEs, with monitoring of local
     // truncation error to adjust stepsize.
@@ -10561,6 +10670,431 @@ namespace MML
     };
 
 }
+///////////////////////////   ./include/algorithms/ODESystemSolversLegacy.h   ///////////////////////////
+
+
+
+
+namespace MML
+{
+    class RungeKuttaSolverDumb
+    {
+    public:        
+        void rk4(Vector<Real> &y, Vector<Real> &dydx, const double x, const double h,
+            Vector<Real> &yout, ODESystem &sys)
+        {
+            int i;
+            double xh,hh,h6;
+
+            int n= (int) y.size();
+            Vector<Real> dym(n),dyt(n),yt(n);
+            hh=h*0.5;
+            h6=h/6.0;
+            xh=x+hh;
+            for (i=0;i<n;i++) yt[i]=y[i]+hh*dydx[i];
+            sys.derivs(xh,yt,dyt);
+            for (i=0;i<n;i++) yt[i]=y[i]+hh*dyt[i];
+            sys.derivs(xh,yt,dym);
+            for (i=0;i<n;i++) {
+                yt[i]=y[i]+h*dym[i];
+                dym[i] += dyt[i];
+            }
+            sys.derivs(x+h,yt,dyt);
+            for (i=0;i<n;i++)
+                yout[i]=y[i]+h6*(dydx[i]+dyt[i]+2.0*dym[i]);
+        }
+
+        ODESystemSolutionEqualSpacing integrate(ODESystem &sys, const Vector<Real> &vstart, const double x1, const double x2, int numSteps)
+        {
+            int i,k;
+            double x,h;
+            int dim=sys.getDim();
+            
+            ODESystemSolutionEqualSpacing sol(dim, numSteps);
+
+            Vector<Real> v(vstart),vout(dim),dv(dim);
+            for (i=0;i<dim;i++) {
+                sol.yval[i][0]=v[i];
+            }
+            sol.xval[0]=x1;
+            x=x1;
+            h=(x2-x1)/numSteps;
+            for (k=0;k<numSteps;k++) {
+                sys.derivs(x,v,dv);
+                rk4(v,dv,x,h,vout,sys);
+                if (x+h == x)
+                    throw("Step size too small in routine rkdumb");
+                x += h;
+                sol.xval[k+1]=x;
+                for (i=0;i<dim;i++) {
+                    v[i]=vout[i];
+                    sol.yval[i][k+1]=v[i];
+                }
+            }
+
+            return sol;
+        }    
+    };    
+
+    class RungeKuttaNR2
+    {
+        void rkck(Vector<Real> &y, Vector<Real> &dydx, const double x,
+            const double h, Vector<Real> &yout, Vector<Real> &yerr,
+            ODESystem &sys)
+        {
+            static const double a2=0.2, a3=0.3, a4=0.6, a5=1.0, a6=0.875,
+                b21=0.2, b31=3.0/40.0, b32=9.0/40.0, b41=0.3, b42 = -0.9,
+                b43=1.2, b51 = -11.0/54.0, b52=2.5, b53 = -70.0/27.0,
+                b54=35.0/27.0, b61=1631.0/55296.0, b62=175.0/512.0,
+                b63=575.0/13824.0, b64=44275.0/110592.0, b65=253.0/4096.0,
+                c1=37.0/378.0, c3=250.0/621.0, c4=125.0/594.0, c6=512.0/1771.0,
+                dc1=c1-2825.0/27648.0, dc3=c3-18575.0/48384.0,
+                dc4=c4-13525.0/55296.0, dc5 = -277.00/14336.0, dc6=c6-0.25;
+            int i;
+
+            int n= (int) y.size();
+            Vector<Real> ak2(n),ak3(n),ak4(n),ak5(n),ak6(n),ytemp(n);
+            for (i=0;i<n;i++)
+                ytemp[i]=y[i]+b21*h*dydx[i];
+            sys.derivs(x+a2*h,ytemp,ak2);
+            for (i=0;i<n;i++)
+                ytemp[i]=y[i]+h*(b31*dydx[i]+b32*ak2[i]);
+            sys.derivs(x+a3*h,ytemp,ak3);
+            for (i=0;i<n;i++)
+                ytemp[i]=y[i]+h*(b41*dydx[i]+b42*ak2[i]+b43*ak3[i]);
+            sys.derivs(x+a4*h,ytemp,ak4);
+            for (i=0;i<n;i++)
+                ytemp[i]=y[i]+h*(b51*dydx[i]+b52*ak2[i]+b53*ak3[i]+b54*ak4[i]);
+            sys.derivs(x+a5*h,ytemp,ak5);
+            for (i=0;i<n;i++)
+                ytemp[i]=y[i]+h*(b61*dydx[i]+b62*ak2[i]+b63*ak3[i]+b64*ak4[i]+b65*ak5[i]);
+            sys.derivs(x+a6*h,ytemp,ak6);
+            for (i=0;i<n;i++)
+                yout[i]=y[i]+h*(c1*dydx[i]+c3*ak3[i]+c4*ak4[i]+c6*ak6[i]);
+            for (i=0;i<n;i++)
+                yerr[i]=h*(dc1*dydx[i]+dc3*ak3[i]+dc4*ak4[i]+dc5*ak5[i]+dc6*ak6[i]);
+        }
+
+        void rkqs(Vector<Real> &y, Vector<Real> &dydx, double &x, const double htry,
+            const double eps, Vector<Real> &yscal, double &hdid, double &hnext,
+            ODESystem &sys)
+        {
+            const double SAFETY=0.9, PGROW=-0.2, PSHRNK=-0.25, ERRCON=1.89e-4;
+            int i;
+            double errmax,h,htemp,xnew;
+
+            int n= (int) y.size();
+            h=htry;
+            Vector<Real> yerr(n),ytemp(n);
+            for (;;) {
+                rkck(y,dydx,x,h,ytemp,yerr,sys);
+                errmax=0.0;
+                for (i=0;i<n;i++) errmax=std::max(errmax,fabs(yerr[i]/yscal[i]));
+                errmax /= eps;
+                if (errmax <= 1.0) break;
+                htemp=SAFETY*h*pow(errmax,PSHRNK);
+                h=(h >= 0.0 ? std::max(htemp,0.1*h) : std::min(htemp,0.1*h));
+                xnew=x+h;
+                if (xnew == x) throw("stepsize underflow in rkqs");
+            }
+            if (errmax > ERRCON) hnext=SAFETY*h*pow(errmax,PGROW);
+            else hnext=5.0*h;
+            x += (hdid=h);
+            for (i=0;i<n;i++) y[i]=ytemp[i];
+        }    
+
+    public:
+
+        ODESystemSolution integrate(ODESystem &sys, const Vector<Real> &ystart, const double x1, const double x2, int maxSteps, double minSaveInterval,
+                                    const double eps, const double h1, const double hmin, int &nok, int &nbad)
+        {
+            const int MAXSTP=10000;
+            const double TINY=1.0e-30;
+
+            int dim = sys.getDim();
+            ODESystemSolution sol(dim,maxSteps);
+
+            int kount = 0;
+            int i,nstp;
+            double xsav,x,hnext,hdid,h;
+            Vector<Real> yscal(dim),y(ystart),dydx(dim);
+
+            x=x1;
+            h=SIGN(h1,x2-x1);
+            nok = nbad = kount = 0;
+
+            if (maxSteps > 0) xsav=x-minSaveInterval*2.0;
+            for (nstp=0;nstp<MAXSTP;nstp++) {
+                sys.derivs(x,y,dydx);
+                for (i=0;i<dim;i++)
+                    yscal[i]=fabs(y[i])+fabs(dydx[i]*h)+TINY;
+                if (maxSteps > 0 && kount < maxSteps-1 && fabs(x-xsav) > fabs(minSaveInterval)) {
+                    for (i=0;i<dim;i++) sol.yval[i][kount]=y[i];
+                    sol.xval[kount++]=x;
+                    xsav=x;
+                }
+                if ((x+h-x2)*(x+h-x1) > 0.0) h=x2-x;
+                rkqs(y,dydx,x,h,eps,yscal,hdid,hnext,sys);
+                if (hdid == h) ++nok; else ++nbad;
+                if ((x-x2)*(x2-x1) >= 0.0) {
+                    if (maxSteps != 0) {
+                        for (i=0;i<dim;i++) sol.yval[i][kount]=y[i];
+                        sol.xval[kount++]=x;
+                    }
+                    return sol;
+                }
+                if (fabs(hnext) <= hmin) throw("Step size too small in odeint");
+                h=hnext;
+            }
+            throw("Too many steps in routine odeint");
+        }
+
+    };
+}
+
+///////////////////////////   ./include/algorithms/DiffGeometryAlgorithms.h   ///////////////////////////
+
+
+
+
+namespace MML
+{  
+    class DiffGeometry
+    {
+    public:
+        template<int N>
+        class CurveTangentUnit : public IParametricCurve<N>
+        {
+            const IParametricCurve<N> &_curve;
+        public:
+            CurveTangentUnit(const IParametricCurve<N> &curve) : _curve(curve) {}
+
+            VectorN<Real, N> operator()(double t) const 
+            {
+                auto tangent_vec = Derivation::DeriveCurve<N>(_curve, t, nullptr);
+                return tangent_vec / tangent_vec.NormL2();
+            }
+        };
+
+        template<int N>
+        static VectorN<Real, N> getTangent(const IParametricCurve<N> &curve, double t)
+        {
+            return Derivation::DeriveCurve<N>(curve, t, nullptr);
+        }
+        template<int N>
+        static VectorN<Real, N> getTangentUnit(const IParametricCurve<N> &curve, double t)
+        {
+            auto tangent = getTangent(curve, t);
+            return tangent / tangent.NormL2();
+        }
+
+        template<int N>
+        static VectorN<Real, N> getNormal(const IParametricCurve<N> &curve, double t)
+        {
+            return Derivation::DeriveCurveSec<N>(curve, t, nullptr);
+        }
+        template<int N>
+        static VectorN<Real, N> getNormalScaled(const IParametricCurve<N> &curve, double t)
+        {
+            CurveTangentUnit  helper(curve);
+
+            return Derivation::DeriveCurve<N>(helper, t, nullptr);
+        }        
+        template<int N>
+        static VectorN<Real, N> getNormalUnit(const IParametricCurve<N> &curve, double t)
+        {
+            auto normal = getNormal(curve, t);
+            return normal / normal.NormL2();
+        }
+        template<int N>
+        static VectorN<Real, N> getPrincipalNormal(const IParametricCurve<N> &curve, double t)
+        {
+            auto y_der_1 = Vector3Cartesian(getTangent(curve, t));
+            auto y_der_2 = Vector3Cartesian(Derivation::DeriveCurveSec<3>(curve, t, nullptr));
+
+            Vector3Cartesian vec_prod1 = VectorProd(y_der_2, y_der_1);
+            Vector3Cartesian res_vec   = VectorProd(y_der_1, vec_prod1);
+
+            return res_vec / (y_der_1.NormL2() * vec_prod1.NormL2());
+        }        
+
+        template<int N>
+        static VectorN<Real, N> getBinormal(const IParametricCurve<N> &curve, double t)
+        {
+            auto y_der_1 = Vector3Cartesian(getTangent(curve, t));
+            auto y_der_2 = Vector3Cartesian(Derivation::DeriveCurveSec<3>(curve, t, nullptr));
+
+            Vector3Cartesian vec_prod1 = VectorProd(y_der_2, y_der_1);
+            return vec_prod1 / vec_prod1.NormL2();
+        }  
+
+        template<int N>
+        static VectorN<Real, N> getCurvatureVector(const IParametricCurve<N> &curve, double t)
+        {
+            auto y_der_1 = getTangent(curve, t);
+            auto y_der_2 = Derivation::DeriveCurveSec<3>(curve, t, nullptr);
+
+            double res1 = pow(y_der_1.NormL2(), -2.0);
+            auto   vec2 = y_der_2 - res1 * y_der_1.ScalarProductCartesian(y_der_2) * y_der_1;
+
+            return vec2 / res1;
+        }  
+
+        template<int N>
+        static Real getCurvature(const IParametricCurve<N> &curve, double t)
+        {
+            auto y_der_1 = getTangent(curve, t);
+            auto y_der_2 = Derivation::DeriveCurveSec<3>(curve, t, nullptr);
+
+            double res1 = pow(y_der_1.NormL2(), -2.0);
+            auto   vec2 = y_der_2 - res1 * y_der_1.ScalarProductCartesian(y_der_2) * y_der_1;
+            double res2 = vec2.NormL2();
+
+            return res1 * res2;
+        }  
+    
+        static Real getCurvature3(const IParametricCurve<3> &curve, double t)
+        {
+            auto curve_first_der = Vector3Cartesian( getTangent(curve, t) );
+            auto curve_sec_der   = Vector3Cartesian( Derivation::DeriveCurveSec<3>(curve, t, nullptr) );
+
+            auto prod = VectorProd(curve_first_der, curve_sec_der);
+
+            return prod.NormL2() / pow(curve_first_der.NormL2(), 3);
+        }  
+
+        static Real getTorsion3(const IParametricCurve<3> &curve, double t)
+        {
+            auto curve_first_der = Vector3Cartesian( getTangent(curve, t) );
+            auto curve_sec_der   = Vector3Cartesian( Derivation::DeriveCurveSec<3>(curve, t, nullptr) );
+            auto curve_third_der = Vector3Cartesian( Derivation::DeriveCurveThird<3>(curve, t, nullptr) );
+
+            auto prod = VectorProd(curve_first_der, curve_sec_der);
+
+            Real temp = prod.ScalarProductCartesian(curve_third_der);
+
+            return -temp / pow(prod.NormL2(), 2);
+        }  
+
+        static Plane3D getOsculationPlane(const IParametricCurve<3> &curve, double t)
+        {
+            Vector3Cartesian vec_pnt( curve(t) );
+            
+            Plane3D ret( vec_pnt.getAsPoint(), Vector3Cartesian(getNormal(curve, t)) );
+
+            return ret;
+        }
+
+        static Plane3D getNormalPlane(const IParametricCurve<3> &curve, double t)
+        {
+            Vector3Cartesian vec_pnt( curve(t) );
+            
+            Plane3D ret( vec_pnt.getAsPoint(), Vector3Cartesian(getTangentUnit(curve, t)) );
+
+            return ret;
+        }
+
+        static Plane3D getRectifyingPlane(const IParametricCurve<3> &curve, double t)
+        {
+            Vector3Cartesian vec_pnt( curve(t) );
+            
+            Plane3D ret( vec_pnt.getAsPoint(), Vector3Cartesian(getBinormal(curve, t)) );
+
+            return ret;
+        }
+
+        static void getMovingTrihedron(const IParametricCurve<3> &curve, double t, Vector3Cartesian &tangent, Vector3Cartesian &normal, Vector3Cartesian &binormal)
+        {
+            tangent   = Vector3Cartesian(getTangentUnit(curve, t));
+            normal    = Vector3Cartesian(getPrincipalNormal(curve, t));
+            binormal  = Vector3Cartesian(getBinormal(curve, t));
+        }
+
+        static bool isArcLengthParametrized(const IParametricCurve<3> &curve, double t1, double t2)
+        {
+            int numPnt = 100;
+            double delta = (t2 - t1) / numPnt;
+            for(double t=t1+delta; t < t2; t += delta)
+            {
+                double len = PathIntegration::ParametricCurveLength(curve, t1, t);
+                if( fabs(len - (t - t1)) > 1e-03 )
+                    return false;
+            }
+
+            return true;
+        }        
+    };
+}
+
+///////////////////////////   ./include/algorithms/FunctionAnalyzer.h   ///////////////////////////
+
+
+
+namespace MML
+{
+    // TODO - function point analyzer at point
+    class FunctionAnalyzer
+    {
+    public:
+        enum IntegrationMethod { TRAP, SIMPSON, ROMBERG } ;
+
+        static double FuncDiff(IRealFunction &f1, IRealFunction &f2, double a, double b, IntegrationMethod method = TRAP)
+        {
+            RealFuncDiffHelper helper(f1, f2);
+
+            switch (method)
+            {
+                case SIMPSON:
+                    return Integration::IntegrateSimpson(helper, a, b);
+                case ROMBERG:
+                    return Integration::IntegrateRomberg(helper, a, b);
+                default:
+                    return Integration::IntegrateTrap(helper, a, b);
+            }
+        }
+
+        static double FuncDiffAbs(IRealFunction &f1, IRealFunction &f2, double a, double b, IntegrationMethod method = TRAP)
+        {
+            RealFuncDiffAbsHelper helper(f1, f2);
+
+            switch (method)
+            {
+                case SIMPSON:
+                    return Integration::IntegrateSimpson(helper, a, b);
+                case ROMBERG:
+                    return Integration::IntegrateRomberg(helper, a, b);
+                default:
+                    return Integration::IntegrateTrap(helper, a, b);
+            }
+        }
+        
+        static double FuncDiffSqr(IRealFunction &f1, IRealFunction &f2, double a, double b, IntegrationMethod method = TRAP)
+        {
+            RealFuncDiffSqrHelper helper(f1, f2);
+
+            switch (method)
+            {
+                case SIMPSON:
+                    return Integration::IntegrateSimpson(helper, a, b);
+                case ROMBERG:
+                    return Integration::IntegrateRomberg(helper, a, b);
+                default:
+                    return Integration::IntegrateTrap(helper, a, b);
+            }
+        }
+    };
+}
+///////////////////////////   ./include/algorithms/Fourier.h   ///////////////////////////
+
+namespace MML
+{
+    class Fourier
+    {
+
+    };
+}
+
+
 ///////////////////////////   ./include/algorithms/RootFinding.h   ///////////////////////////
 
 namespace MML

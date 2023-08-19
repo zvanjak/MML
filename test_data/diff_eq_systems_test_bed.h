@@ -7,8 +7,9 @@
 #include "core/Vector.h"
 #include "core/Matrix.h"
 #include "basic_types/ODESystem.h"
-#include "diff_eq_systems_defs.h"
 #endif
+
+#include "diff_eq_systems_defs.h"
 
 namespace MML::TestBeds
 {

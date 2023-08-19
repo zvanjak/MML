@@ -5,8 +5,9 @@
 #include "MML.h"
 #else
 #include "core/Matrix.h"
-#include "linear_alg_eq_systems_defs.h"
 #endif
+
+#include "linear_alg_eq_systems_defs.h"
 
 namespace MML::TestBeds
 {
