@@ -46,6 +46,7 @@ add_executable(MML_Demo ${MML_DEMO_SOURCES})
 add_compile_definitions(MML_USE_SINGLE_HEADER)
 target_include_directories(MML_Demo PRIVATE include)
 
+
 set(CATCH_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/catch)
 add_library(Catch INTERFACE)
 target_include_directories(Catch INTERFACE ${CATCH_INCLUDE_DIR})
