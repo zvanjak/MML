@@ -1,6 +1,8 @@
 #ifdef MML_USE_SINGLE_HEADER
 #include "MML.h"
 #else
+#include "MMLBase.h"
+
 #include "core/Vector.h"
 
 #include "algorithms/ODESystemSolvers.h"
@@ -23,7 +25,7 @@ void Demo_VanderPol_solve()
     std::cout << "\n***********************************************************\n";
     std::cout << "**********         Dopler 5th order                ********\n";
 
-    MML::Vector<Real> ystart0(sys0.getDim());
+    Vector<Real> ystart0(sys0.getDim());
     ystart0[0]=2.0;
     ystart0[1]=0.0;
     Output out0(20);         
@@ -39,7 +41,7 @@ void Demo_VanderPol_solve()
     std::cout << "\n***********************************************************\n";
     std::cout << "**********         Dopler 8th order                ********\n";
     
-    MML::Vector<Real> ystart01(sys0.getDim());
+    Vector<Real> ystart01(sys0.getDim());
     ystart01[0]=2.0;
     ystart01[1]=0.0;
     Output out01(20);            
@@ -53,7 +55,7 @@ void Demo_VanderPol_solve()
     std::cout << "\n***********************************************************\n";
     std::cout << "**********            Bulirsch-Stoer               ********\n";
     
-    MML::Vector<Real> ystartBS(sys0.getDim());
+    Vector<Real> ystartBS(sys0.getDim());
     ystartBS[0]=2.0;
     ystartBS[1]=0.0;
     Output out_BS(20);            
@@ -91,7 +93,7 @@ void Demo_VanderPol_solve()
     std::cout << "\n***********************************************************\n";
     std::cout << "******      Stiff system - Rosenbrock method         ******\n";
 
-    MML::Vector<Real> ystart02(sys_stiff.getDim());
+    Vector<Real> ystart02(sys_stiff.getDim());
     ystart02[0]=1.0;
     ystart02[1]=1.0;
     ystart02[2]=0.0;
@@ -106,7 +108,7 @@ void Demo_VanderPol_solve()
     std::cout << "\n***********************************************************\n";
     std::cout << "****    Stiff system - Semi-implicit extrapol method    ***\n";
 
-    MML::Vector<Real> ystart03(sys_stiff.getDim());
+    Vector<Real> ystart03(sys_stiff.getDim());
     ystart03[0]=1.0;
     ystart03[1]=1.0;
     ystart03[2]=0.0;
@@ -150,6 +152,6 @@ void Demo_DiffEqSolvers()
 
     Demo_VanderPol_solve();
 
-    int n = MML::TestBeds::ODESystemTestBed::numODESystem();
+    int n = TestBeds::ODESystemTestBed::numODESystem();
     Demo_SimpleLinearODE_solve();
 }

@@ -11,7 +11,9 @@
 #include "basic_types/InterpolatedFunction.h"
 #endif
 
-namespace MML::Tests
+using namespace MML;
+
+namespace Tests
 {
     static double Func1(double x) { return sin(x); }
     static double Func1_derived(double x) { return cos(x); }
@@ -24,7 +26,7 @@ namespace MML::Tests
 //     for(int i=0; i<=100; i++ )
 //         values[i] = sin(i / 10.0);
 
-//     MML::TabulatedValues1DEqualSpacing tabValues{0.0, 10.0, values};
+//     TabulatedValues1DEqualSpacing tabValues{0.0, 10.0, values};
 
 //     REQUIRE(sin(0.0) == tabValues.Value(0));
 //     REQUIRE(sin(5.0) == tabValues.Value(50));

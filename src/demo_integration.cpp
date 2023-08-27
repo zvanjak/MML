@@ -1,9 +1,7 @@
 #ifdef MML_USE_SINGLE_HEADER
 #include "MML.h"
 #else
-#include <iostream>
-#include <iomanip>
-#include <cmath>
+#include "MMLBase.h"
 
 #include "basic_types/InterpolatedFunction.h"
 
@@ -34,12 +32,12 @@ void Demo_Integration_func_ptr()
 
     double a = 0.0;
     double b = 1.0;
-    double int_trap = MML::Integration::IntegrateTrap(f1,a,b);
-    double int_simp = MML::Integration::IntegrateSimpson(f1,a,b);
-    double int_romb = MML::Integration::IntegrateRomberg(f1,a,b);
+    double int_trap = Integration::IntegrateTrap(f1,a,b);
+    double int_simp = Integration::IntegrateSimpson(f1,a,b);
+    double int_romb = Integration::IntegrateRomberg(f1,a,b);
 
     // we can use default Integrate routine (default set to IntegrateSimpson)
-    double int_def = MML::Integration::Integrate(f1, a, b, 1e-04);
+    double int_def = Integration::Integrate(f1, a, b, 1e-04);
 }
 
 // If you CAN change the class where your data for calculation is
@@ -58,13 +56,13 @@ void Demo_Integration_member_fun()
 {
     ClassProvidingFuncToIntegrate   funcObj(3.0);
     
-    MML::RealFunctionFromStdFunc g(std::function<double(double)>{funcObj});
+    RealFunctionFromStdFunc g(std::function<double(double)>{funcObj});
 
     double a = 0.0;
     double b = 1.0;
-    double int_trap = MML::Integration::IntegrateTrap(g,a,b);
-    double int_simp = MML::Integration::IntegrateSimpson(g,a,b);
-    double int_romb = MML::Integration::IntegrateRomberg(g,a,b);
+    double int_trap = Integration::IntegrateTrap(g,a,b);
+    double int_simp = Integration::IntegrateSimpson(g,a,b);
+    double int_romb = Integration::IntegrateRomberg(g,a,b);
 }
 
 // If you CAN'T change the class where your data for calculation is
@@ -92,13 +90,13 @@ public:
 void Demo_Integration_member_fun2(const BigComplexClassYouCantChangeInt &ref)
 {
     BigComplexIntegrateFunc      funcObj(ref);  
-    MML::RealFunctionFromStdFunc func_to_integrate(std::function<double(double)>{funcObj});
+    RealFunctionFromStdFunc func_to_integrate(std::function<double(double)>{funcObj});
     
     double a = 0.0;
     double b = 1.0;
-    double int_trap = MML::Integration::IntegrateTrap(func_to_integrate,a,b);
-    double int_simp = MML::Integration::IntegrateSimpson(func_to_integrate,a,b);
-    double int_romb = MML::Integration::IntegrateRomberg(func_to_integrate,a,b);
+    double int_trap = Integration::IntegrateTrap(func_to_integrate,a,b);
+    double int_simp = Integration::IntegrateSimpson(func_to_integrate,a,b);
+    double int_romb = Integration::IntegrateRomberg(func_to_integrate,a,b);
 }
 
 void Demo_Integration_Interpolated_RealFunc()
@@ -116,9 +114,9 @@ void Demo_Integration_Interpolated_RealFunc()
 
     double a = 0.0;
     double b = 1.0;
-    double int_trap = MML::Integration::IntegrateTrap(f_linear,a,b);
-    double int_simp = MML::Integration::IntegrateSimpson(f_linear,a,b);
-    double int_romb = MML::Integration::IntegrateRomberg(f_linear,a,b);
+    double int_trap = Integration::IntegrateTrap(f_linear,a,b);
+    double int_simp = Integration::IntegrateSimpson(f_linear,a,b);
+    double int_romb = Integration::IntegrateRomberg(f_linear,a,b);
 }
 
 void Demo_Integration()

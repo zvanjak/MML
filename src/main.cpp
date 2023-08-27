@@ -1,4 +1,4 @@
-#include "MML.h"
+#include "MMLBase.h"
 
 void Demo_Algebra();
 
@@ -40,16 +40,17 @@ void Demo_Readme_Examples();
 
 int main(int, char**) 
 {
-    double max = std::numeric_limits<double>::max();
-    double min = -std::numeric_limits<double>::max();
-    double inf = std::numeric_limits<double>::infinity();
-    double min_inf = -std::numeric_limits<double>::infinity();
+    // double max = std::numeric_limits<double>::max();
+    // double min = -std::numeric_limits<double>::max();
+    // double inf = std::numeric_limits<double>::infinity();
+    // double min_inf = -std::numeric_limits<double>::infinity();
  
-    if (inf > max)
-        std::cout << inf << " is greater than " << max << '\n';
+    // if (inf > max)
+    //     std::cout << inf << " is greater than " << max << '\n';
 
-    if (min_inf < min)
-        std::cout << min_inf << " is less than " << min << '\n';
+    // if (min_inf < min)
+    //     std::cout << min_inf << " is less than " << min << '\n';
+    
     // Demo_Algebra();
 
     // Demo_Vector();
@@ -62,8 +63,8 @@ int main(int, char**)
     // Demo_Interpolated_Function();
 
     // Demo_Geometry();
-    // Demo_CoordSystem();
-    // Demo_CoordTransf();
+    Demo_CoordSystem();
+    Demo_CoordTransf();
 
     // Demo_Derivation();
     // Demo_Field_operations();
@@ -75,7 +76,7 @@ int main(int, char**)
     // Demo_LinearAlgEqSolvers();
     // Demo_EigenSolvers();
     // Demo_DiffEqSolvers();
-    Demo_Diff_geometry();
+    // Demo_Diff_geometry();
 
     // Test_Speed_Functions();
     // Test_Speed_Derivation();
@@ -84,5 +85,5 @@ int main(int, char**)
     // Test_Precision_Derivation();
     // Test_Precision_Integration();
 
-    Demo_Readme_Examples();
+    // Demo_Readme_Examples();
 }

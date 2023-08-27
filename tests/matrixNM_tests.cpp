@@ -6,8 +6,10 @@
 #include "core/MatrixNM.h"
 #endif
 
+using namespace MML;
+
 TEST_CASE("MatrixNM_default_ctor_init_to_zero", "[simple]") {
-    MML::MatrixNM<Real,2,2> a;
+    MatrixNM<Real,2,2> a;
 
 	REQUIRE(0.0 ==  a(0,0));
 	REQUIRE(0.0 ==  a(0,1));
@@ -16,7 +18,7 @@ TEST_CASE("MatrixNM_default_ctor_init_to_zero", "[simple]") {
 }
 
 TEST_CASE("MatrixNM_initializer_list_ctor", "[simple]") {
-    MML::MatrixNM<Real,2,2> a({1.0, 2.0, 3.0, 4.0});
+    MatrixNM<Real,2,2> a({1.0, 2.0, 3.0, 4.0});
 
 	REQUIRE(2 == a.RowNum());
 	REQUIRE(2 == a.ColNum());
@@ -28,8 +30,8 @@ TEST_CASE("MatrixNM_initializer_list_ctor", "[simple]") {
 }
 
 TEST_CASE("Test_MatrixNM_Op+-", "[simple]") {
-    MML::MatrixNM<Real, 2, 2> a({1.0, 2.0, 3.0, 4.0});
-    MML::MatrixNM<Real, 2, 2> b({1.0, 2.0, 3.0, 4.0});
+    MatrixNM<Real, 2, 2> a({1.0, 2.0, 3.0, 4.0});
+    MatrixNM<Real, 2, 2> b({1.0, 2.0, 3.0, 4.0});
 
     auto c = a + b;
     auto d = a - b;
@@ -42,8 +44,8 @@ TEST_CASE("Test_MatrixNM_Op+-", "[simple]") {
 }
 
 TEST_CASE("Test_MatrixNM_Op*", "[simple]") {
-    MML::MatrixNM<Real, 2, 2> a({1.0, 2.0, 3.0, 4.0});
-    MML::MatrixNM<Real, 2, 2> b({1.0, 2.0, 3.0, 4.0});
+    MatrixNM<Real, 2, 2> a({1.0, 2.0, 3.0, 4.0});
+    MatrixNM<Real, 2, 2> b({1.0, 2.0, 3.0, 4.0});
 
     auto c = a * b;
 
@@ -55,7 +57,7 @@ TEST_CASE("Test_MatrixNM_Op*", "[simple]") {
 
 // op. sa skalaraom
 TEST_CASE("Test_MatrixNM_mul_double", "[simple]") {
-    MML::MatrixNM<Real, 2, 2> a({1.0, 100.0, 50.0, 100.0});
+    MatrixNM<Real, 2, 2> a({1.0, 100.0, 50.0, 100.0});
 
 	auto b = a * 2.0;
 	auto c = 2.0 * a;
@@ -68,7 +70,7 @@ TEST_CASE("Test_MatrixNM_mul_double", "[simple]") {
 }
 
 TEST_CASE("Test_MatrixNM_div_double", "[simple]") {
-    MML::MatrixNM<Real, 2, 2> a({4.0, 400.0, 1.0, 1});
+    MatrixNM<Real, 2, 2> a({4.0, 400.0, 1.0, 1});
 
 	auto b = a / 2.0;
 
@@ -78,9 +80,9 @@ TEST_CASE("Test_MatrixNM_div_double", "[simple]") {
 
 // op. sa vektorom
 TEST_CASE("Test_MatrixNM_mul_Vector", "[simple]") {
-    MML::MatrixNM<Real, 2, 2> a({1.0, 10.0, 
+    MatrixNM<Real, 2, 2> a({1.0, 10.0, 
                                  5.0, 2.0});
-    MML::VectorN<Real, 2> b({1.0, 2.0});
+    VectorN<Real, 2> b({1.0, 2.0});
 
 	auto c = a * b;
 	auto d = b * a;
@@ -94,8 +96,8 @@ TEST_CASE("Test_MatrixNM_mul_Vector", "[simple]") {
 
 TEST_CASE("MatrixNM_Transpose", "[simple]") 
 {
-    MML::MatrixNM<Real,2,2> mat({1.0, 2.0, 3.0, 4.0} );
-    MML::MatrixNM<Real,2,2> matTransp({1.0, 3.0, 2.0, 4.0} );
+    MatrixNM<Real,2,2> mat({1.0, 2.0, 3.0, 4.0} );
+    MatrixNM<Real,2,2> matTransp({1.0, 3.0, 2.0, 4.0} );
 
 	mat.Transpose();
 
@@ -104,8 +106,8 @@ TEST_CASE("MatrixNM_Transpose", "[simple]")
 
 TEST_CASE("MatrixNM_GetTranspose", "[simple]") 
 {
-    MML::MatrixNM<Real,2,2> mat({1.0, 2.0, 3.0, 4.0} );
-    MML::MatrixNM<Real,2,2> matTransp({1.0, 3.0, 2.0, 4.0} );
+    MatrixNM<Real,2,2> mat({1.0, 2.0, 3.0, 4.0} );
+    MatrixNM<Real,2,2> matTransp({1.0, 3.0, 2.0, 4.0} );
 
 	auto trans = mat.GetTranspose();
 
@@ -114,13 +116,13 @@ TEST_CASE("MatrixNM_GetTranspose", "[simple]")
 
 TEST_CASE("MatrixNM_GetInverse", "[simple]") 
 {
-    MML::MatrixNM<Real,2,2> mat({1.0, 2.0, 3.0, 4.0} );
+    MatrixNM<Real,2,2> mat({1.0, 2.0, 3.0, 4.0} );
 
 	auto b = mat.GetInverse();
 
 	auto c = mat * b;
 
-	MML::MatrixNM<Real,2,2> d;
+	MatrixNM<Real,2,2> d;
 	d.MakeUnitMatrix();
 
 	REQUIRE(c.IsEqual(d));
@@ -128,9 +130,9 @@ TEST_CASE("MatrixNM_GetInverse", "[simple]")
 
 TEST_CASE("Test_MatrixNM_exceptions", "[simple]") 
 {
-    MML::MatrixNM<Real, 3, 4> mat_3;
+    MatrixNM<Real, 3, 4> mat_3;
 
-    REQUIRE_THROWS_AS(mat_3.Invert(), MML::MatrixDimensionError); 
-    REQUIRE_THROWS_AS(mat_3.GetInverse(), MML::MatrixDimensionError); 
-    REQUIRE_THROWS_AS(mat_3.Transpose(), MML::MatrixDimensionError); 
+    REQUIRE_THROWS_AS(mat_3.Invert(), MatrixDimensionError); 
+    REQUIRE_THROWS_AS(mat_3.GetInverse(), MatrixDimensionError); 
+    REQUIRE_THROWS_AS(mat_3.Transpose(), MatrixDimensionError); 
 }

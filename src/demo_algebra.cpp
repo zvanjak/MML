@@ -1,9 +1,7 @@
 #ifdef MML_USE_SINGLE_HEADER
 #include "MML.h"
 #else
-#include <iostream>
-#include <iomanip>
-#include <cmath>
+#include "MMLBase.h"
 
 #include "core/Algebra.h"
 #endif

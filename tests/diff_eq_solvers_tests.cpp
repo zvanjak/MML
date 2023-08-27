@@ -6,5 +6,7 @@
 #include "algorithms/ODESystemSolvers.h"
 #endif
 
+using namespace MML;
+
 TEST_CASE("Test_Diff_Eq_Solvers", "[simple]") {
 }

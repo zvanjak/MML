@@ -56,13 +56,13 @@ namespace MML::TestBeds
         }
     };
 
-    void  fnc12(double t, const Vector<Real> &x, Vector<Real> &ret)
+    static void  fnc12(double t, const Vector<Real> &x, Vector<Real> &ret)
     {
         ret[0] =  x[0] +   x[1] - x[2];
         ret[1] = -x[0] + 3*x[1] - x[2];
         ret[2] = -x[0] +   x[1] + x[2];
     }
-    Vector<Real>  fnc12_sol(double t)
+    static Vector<Real>  fnc12_sol(double t)
     {
         Vector<Real> ret(3);
         ret[0] = exp(t);
@@ -70,20 +70,20 @@ namespace MML::TestBeds
         ret[2] = exp(t) + exp(2*t);
         return ret;
     }
-    void VanDerPol(double eps, const double x, const MML::Vector<Real> &y, MML::Vector<Real> &dydx) {
+    static void VanDerPol(double eps, const double x, const MML::Vector<Real> &y, MML::Vector<Real> &dydx) {
         dydx[0]= y[1];
         dydx[1]=((1.0-y[0]*y[0])*y[1]-y[0])/eps;
     }
-    void VanDerPolEps0_1(const double x, const MML::Vector<Real> &y, MML::Vector<Real> &dydx) { return VanDerPol(0.1, x, y, dydx); }
+    static void VanDerPolEps0_1(const double x, const MML::Vector<Real> &y, MML::Vector<Real> &dydx) { return VanDerPol(0.1, x, y, dydx); }
 
-    void  stiff_sys1_derivs(double t, const Vector<Real> &x, Vector<Real> &dydx)
+    static void  stiff_sys1_derivs(double t, const Vector<Real> &x, Vector<Real> &dydx)
     {
         dydx[0] = -0.013*x[0]-1000.0*x[0]*x[2];
         dydx[1] = -2500.0*x[1]*x[2];
         dydx[2] = -0.013*x[0]-1000.0*x[0]*x[2]-2500.0*x[1]*x[2];
     }
 
-    void  stiff_sys1_jac(const double t, const Vector<Real> &x, Vector<Real> &dxdt, Matrix<Real> &dydx)
+    static void  stiff_sys1_jac(const double t, const Vector<Real> &x, Vector<Real> &dxdt, Matrix<Real> &dydx)
     {
         int n= (int) x.size();
 

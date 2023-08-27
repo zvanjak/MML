@@ -6,5 +6,7 @@
 #include "core/Tensor.h"
 #endif
 
+using namespace MML;
+
 TEST_CASE("Test_Tensors", "[simple]") {
 }

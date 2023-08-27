@@ -7,8 +7,10 @@
 #include "core/Matrix.h"
 #endif
 
+using namespace MML;
+
 TEST_CASE("Matrix_default_ctor_init_to_zero", "[simple]") {
-    MML::Matrix<Real> a(2,2);
+    Matrix<Real> a(2,2);
 
     REQUIRE( 2 == a.RowNum());
     REQUIRE( 2 == a.ColNum());
@@ -20,7 +22,7 @@ TEST_CASE("Matrix_default_ctor_init_to_zero", "[simple]") {
 }
 
 TEST_CASE("Matrix_initializer_list_ctor", "[simple]") {
-    MML::Matrix<Real> a(2, 2, {1.0, 2.0, 3.0, 4.0});
+    Matrix<Real> a(2, 2, {1.0, 2.0, 3.0, 4.0});
 
 	REQUIRE(2 == a.RowNum());
 	REQUIRE(2 == a.ColNum());
@@ -34,8 +36,8 @@ TEST_CASE("Matrix_initializer_list_ctor", "[simple]") {
 // TODO - matrix_tests - test access variants, const, pointers, references
 
 TEST_CASE("Test_Matrix_Op+-", "[simple]") {
-    MML::Matrix<Real> a(2, 2, {1.0, 2.0, 3.0, 4.0});
-    MML::Matrix<Real> b(2, 2, {1.0, 2.0, 3.0, 4.0});
+    Matrix<Real> a(2, 2, {1.0, 2.0, 3.0, 4.0});
+    Matrix<Real> b(2, 2, {1.0, 2.0, 3.0, 4.0});
 
     auto c = a + b;
     auto d = a - b;
@@ -48,9 +50,9 @@ TEST_CASE("Test_Matrix_Op+-", "[simple]") {
 }
 
 TEST_CASE("Test_Matrix_Op*", "[simple]") {
-    MML::Matrix<Real> a(2, 2, { 1.0, 2.0, 
+    Matrix<Real> a(2, 2, { 1.0, 2.0, 
                                 3.0, 4.0});
-    MML::Matrix<Real> b(2, 2, { 1.0, 2.0, 
+    Matrix<Real> b(2, 2, { 1.0, 2.0, 
                                 3.0, 4.0});
     auto c = a * b;
 
@@ -62,7 +64,7 @@ TEST_CASE("Test_Matrix_Op*", "[simple]") {
 
 // op. sa skalaraom
 TEST_CASE("Test_Matrix_mul_double", "[simple]") {
-    MML::Matrix<Real> a(2, 2, {1.0, 100.0, 50.0, 100.0});
+    Matrix<Real> a(2, 2, {1.0, 100.0, 50.0, 100.0});
 
 	auto b = a * 2.0;
 	auto c = 2.0 * a;
@@ -75,7 +77,7 @@ TEST_CASE("Test_Matrix_mul_double", "[simple]") {
 }
 
 TEST_CASE("Test_Matrix_div_double", "[simple]") {
-    MML::Matrix<Real> a(2, 2, {4.0, 400.0, 1.0, 1});
+    Matrix<Real> a(2, 2, {4.0, 400.0, 1.0, 1});
 
 	auto b = a / 2.0;
 
@@ -85,8 +87,8 @@ TEST_CASE("Test_Matrix_div_double", "[simple]") {
 
 // op. sa vektorom
 TEST_CASE("Test_Matrix_mul_Vector", "[simple]") {
-    MML::Matrix<Real> a(2, 2, {1.0, 10.0, 5.0, 2.0});
-    MML::Vector b({1.0, 2.0});
+    Matrix<Real> a(2, 2, {1.0, 10.0, 5.0, 2.0});
+    Vector b({1.0, 2.0});
 
 	auto c = a * b;
 	auto d = b * a;
@@ -100,8 +102,8 @@ TEST_CASE("Test_Matrix_mul_Vector", "[simple]") {
 
 TEST_CASE("Matrix_Transpose", "[simple]") 
 {
-    MML::Matrix<Real> mat(2,2, {1.0, 2.0, 3.0, 4.0} );
-    MML::Matrix<Real> matTransp(2,2, {1.0, 3.0, 2.0, 4.0} );
+    Matrix<Real> mat(2,2, {1.0, 2.0, 3.0, 4.0} );
+    Matrix<Real> matTransp(2,2, {1.0, 3.0, 2.0, 4.0} );
 
 	mat.Transpose();
 
@@ -110,8 +112,8 @@ TEST_CASE("Matrix_Transpose", "[simple]")
 
 TEST_CASE("Matrix_GetTranspose", "[simple]") 
 {
-    MML::Matrix<Real> mat(2,2, {1.0, 2.0, 3.0, 4.0} );
-    MML::Matrix<Real> matTransp(2,2, {1.0, 3.0, 2.0, 4.0} );
+    Matrix<Real> mat(2,2, {1.0, 2.0, 3.0, 4.0} );
+    Matrix<Real> matTransp(2,2, {1.0, 3.0, 2.0, 4.0} );
 
 	auto trans = mat.GetTranspose();
 
@@ -120,35 +122,35 @@ TEST_CASE("Matrix_GetTranspose", "[simple]")
 
 TEST_CASE("Matrix_GetInverse", "[simple]") 
 {
-    MML::Matrix<Real> mat(2,2, {1.0, 2.0, 3.0, 4.0} );
+    Matrix<Real> mat(2,2, {1.0, 2.0, 3.0, 4.0} );
 
 	auto b = mat.GetInverse();
 
 	auto c = mat * b;
 
-	REQUIRE(c.IsEqual(MML::Matrix<Real>::GetUnitMatrix(2)));
+	REQUIRE(c.IsEqual(Matrix<Real>::GetUnitMatrix(2)));
 }
 
 TEST_CASE("Test_Matrix_exceptions", "[simple]") 
 {
-    MML::Matrix<Real> mat_1(2,3);
-    REQUIRE_THROWS_AS(mat_1.MakeUnitMatrix(), MML::MatrixDimensionError); 
+    Matrix<Real> mat_1(2,3);
+    REQUIRE_THROWS_AS(mat_1.MakeUnitMatrix(), MatrixDimensionError); 
 
-    MML::Matrix<Real> mat_21(3,3);
-    MML::Matrix<Real> mat_22(2,2);
-    REQUIRE_THROWS_AS(mat_21 + mat_22, MML::MatrixDimensionError); 
-    REQUIRE_THROWS_AS(mat_21 - mat_22, MML::MatrixDimensionError); 
-    REQUIRE_THROWS_AS(mat_21 * mat_22, MML::MatrixDimensionError); 
+    Matrix<Real> mat_21(3,3);
+    Matrix<Real> mat_22(2,2);
+    REQUIRE_THROWS_AS(mat_21 + mat_22, MatrixDimensionError); 
+    REQUIRE_THROWS_AS(mat_21 - mat_22, MatrixDimensionError); 
+    REQUIRE_THROWS_AS(mat_21 * mat_22, MatrixDimensionError); 
  
-    MML::Matrix<Real> mat(2,2, {1.0, 0.0, 0.0, 1.0} );
-    MML::Vector<Real> a{1.0, 0.0, 0.0};
+    Matrix<Real> mat(2,2, {1.0, 0.0, 0.0, 1.0} );
+    Vector<Real> a{1.0, 0.0, 0.0};
 
-    REQUIRE_THROWS_AS(a * mat, MML::MatrixDimensionError); 
-    REQUIRE_THROWS_AS(mat * a, MML::MatrixDimensionError); 
+    REQUIRE_THROWS_AS(a * mat, MatrixDimensionError); 
+    REQUIRE_THROWS_AS(mat * a, MatrixDimensionError); 
 
     // invert i transpose
-    MML::Matrix<Real> mat_3(3,4);
-    REQUIRE_THROWS_AS(mat_3.Invert(), MML::MatrixDimensionError); 
-    REQUIRE_THROWS_AS(mat_3.GetInverse(), MML::MatrixDimensionError); 
-    REQUIRE_THROWS_AS(mat_3.Transpose(), MML::MatrixDimensionError); 
+    Matrix<Real> mat_3(3,4);
+    REQUIRE_THROWS_AS(mat_3.Invert(), MatrixDimensionError); 
+    REQUIRE_THROWS_AS(mat_3.GetInverse(), MatrixDimensionError); 
+    REQUIRE_THROWS_AS(mat_3.Transpose(), MatrixDimensionError); 
 }

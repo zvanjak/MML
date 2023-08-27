@@ -1,10 +1,8 @@
-#include <iostream>
-#include <iomanip>
-#include <cmath>
-
 #ifdef MML_USE_SINGLE_HEADER
 #include "MML.h"
 #else
+#include "MMLBase.h"
+
 #include "core/Vector.h"
 #include "core/Matrix.h"
 #include "core/Matrix3D.h"
@@ -17,23 +15,23 @@ void Matrix_initializations()
     std::cout << "***********************************************************" << std::endl;
     std::cout << "*******            Matrix Initializations           *******" << std::endl;
 
-    MML::Matrix<Real> a;                                // empty matrix
-    MML::Matrix<Real> b(2,2);                           // ampty matrix 2 x 2
-    MML::Matrix<Real> c(2,2, {1.0, 0.0, 0.0, 1.0});     // matrix with initialized values
-    MML::Matrix<Real> d(c);
-    MML::Matrix<Real> e = c;
-    MML::Matrix<Real> f = MML::Matrix<Real>::GetUnitMatrix(3);
+    Matrix<Real> a;                                // empty matrix
+    Matrix<Real> b(2,2);                           // ampty matrix 2 x 2
+    Matrix<Real> c(2,2, {1.0, 0.0, 0.0, 1.0});     // matrix with initialized values
+    Matrix<Real> d(c);
+    Matrix<Real> e = c;
+    Matrix<Real> f = Matrix<Real>::GetUnitMatrix(3);
 
-    MML::MatrixInt      mat_int;
-    MML::MatrixDbl      mat_dbl(3,3);
-    MML::MatrixComplex  mat_cmplx(2,2, { Complex(1,1),  Complex(-1,2), 
-                                         Complex(2, -0.5), Complex(1,1) });
+    MatrixInt      mat_int;
+    MatrixDbl      mat_dbl(3,3);
+    MatrixComplex  mat_cmplx(2,2, { Complex(1,1),  Complex(-1,2), 
+                                    Complex(2, -0.5), Complex(1,1) });
 
-    MML::MatI          mat_i(3,3);
-    MML::MatF          mat_d(3,3);
-    MML::MatC          mat_c(3,3);
+    MatI          mat_i(3,3);
+    MatF          mat_d(3,3);
+    MatC          mat_c(3,3);
 
-    MML::Matrix3D<float>  mat_3d(3,3,3);
+    Matrix3D<float>  mat_3d(3,3,3);
 
     std::cout << "a = " << a << std::endl;
     std::cout << "b = " << b << std::endl;
@@ -111,11 +109,11 @@ void Matrix_Matrix_mul()
     std::cout << "***********************************************************" << std::endl;
     std::cout << "*******          Matrix Matrix multiplication       *******" << std::endl;
 
-    MML::Matrix<Real> m3(1, 3, {1.0, 1.0, 1.0});
-    MML::Matrix<Real> m4(3, 4, {1.0, 0.0, 0.0, 0.0,
+    Matrix<Real> m3(1, 3, {1.0, 1.0, 1.0});
+    Matrix<Real> m4(3, 4, {1.0, 0.0, 0.0, 0.0,
                             0.0, 1.0, 0.0, 0.0, 
                             0.0, 0.0, 1.0, 1.0});
-    MML::Matrix<Real> m5 = m3 * m4;
+    Matrix<Real> m5 = m3 * m4;
 
     std::cout << "m3 = " << m3 << std::endl;
     std::cout << "m4 = " << m4 << std::endl;
@@ -127,7 +125,7 @@ void Matrix_invert()
     std::cout << "***********************************************************" << std::endl;
     std::cout << "*******          Matrix Invert                      *******" << std::endl;
 
-    MML::Matrix<Real> m1(2, 2, {1.0, -1.0, 1.5, 3.0});
+    Matrix<Real> m1(2, 2, {1.0, -1.0, 1.5, 3.0});
 
     std::cout << "m1       = " << m1 << std::endl;
     auto m2 = m1.GetInverse();
@@ -143,7 +141,7 @@ void Matrix_transpose()
     std::cout << "***********************************************************" << std::endl;
     std::cout << "*******          Matrix Transpose                   *******" << std::endl;
 
-    MML::Matrix<Real> m1(2, 2, {1.0, -1.0, 1.5, 3.0});
+    Matrix<Real> m1(2, 2, {1.0, -1.0, 1.5, 3.0});
     std::cout << "m1          = " << m1 << std::endl;
 
     auto m2 = m1.GetTranspose();

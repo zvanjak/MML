@@ -1,9 +1,7 @@
 #ifdef MML_USE_SINGLE_HEADER
 #include "MML.h"
 #else
-#include <iostream>
-#include <iomanip>
-#include <cmath>
+#include "MMLBase.h"
 
 #include "algorithms/PathIntegration.h"
 #endif
@@ -29,7 +27,7 @@ void Calc_work_integral()
 
     for( auto phi=0.1; phi < 2*3.14159; phi += 0.25 )
     {
-        std::cout << "Work integral for phi : " << phi << " is : " << MML::PathIntegration::WorkIntegral(potential, circle, 0, phi, 1e-03) << endl;
+        std::cout << "Work integral for phi : " << phi << " is : " << PathIntegration::WorkIntegral(potential, circle, 0, phi, 1e-03) << endl;
     }
 }
 

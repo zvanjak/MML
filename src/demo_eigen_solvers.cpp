@@ -3,6 +3,8 @@
 #ifdef MML_USE_SINGLE_HEADER
 #include "MML.h"
 #else
+#include "MMLBase.h"
+
 #include "core/Vector.h"
 #include "core/Matrix.h"
 #include "core/CoreUtils.h"
@@ -17,22 +19,22 @@ void Test_Symmetric_Eigen_Solver()
 {
     std::cout << "CALCULATING EIGENVALUES OF SYMMETRIC MATRIX:\n";
 
-    MML::Matrix<Real>     origMat = MML::TestBeds::symm_mat_5x5;
-    MML::Matrix<Real>     matcopy(origMat);
+    Matrix<Real>     origMat = TestBeds::symm_mat_5x5;
+    Matrix<Real>     matcopy(origMat);
 
     std::cout << "Initial matrix:\n";    matcopy.Print(std::cout,10,3);
 
-    MML::SymmMatEigenSolver eigen_solver(matcopy, true);
+    SymmMatEigenSolver eigen_solver(matcopy, true);
 
     std::cout << "Eigenvalues " << eigen_solver.d << std::endl;
     std::cout << "Eigenvectors " << eigen_solver.z << std::endl;
 
-    MML::Vector<Real>       eigen_values = eigen_solver.d;
-    MML::Vector<Real>       eigen_vectors1 = MML::Matrix<Real>::VectorFromColumn(eigen_solver.z, 0);
-    MML::Vector<Real>       eigen_vectors2 = MML::Matrix<Real>::VectorFromColumn(eigen_solver.z, 1);
-    MML::Vector<Real>       eigen_vectors3 = MML::Matrix<Real>::VectorFromColumn(eigen_solver.z, 2);
-    MML::Vector<Real>       eigen_vectors4 = MML::Matrix<Real>::VectorFromColumn(eigen_solver.z, 3);
-    MML::Vector<Real>       eigen_vectors5 = MML::Matrix<Real>::VectorFromColumn(eigen_solver.z, 4);
+    Vector<Real>       eigen_values = eigen_solver.d;
+    Vector<Real>       eigen_vectors1 = Matrix<Real>::VectorFromColumn(eigen_solver.z, 0);
+    Vector<Real>       eigen_vectors2 = Matrix<Real>::VectorFromColumn(eigen_solver.z, 1);
+    Vector<Real>       eigen_vectors3 = Matrix<Real>::VectorFromColumn(eigen_solver.z, 2);
+    Vector<Real>       eigen_vectors4 = Matrix<Real>::VectorFromColumn(eigen_solver.z, 3);
+    Vector<Real>       eigen_vectors5 = Matrix<Real>::VectorFromColumn(eigen_solver.z, 4);
 
     std::cout << "Mat * eig_vec1      = " << matcopy * eigen_vectors1 << std::endl;
     std::cout << "eig_val1 * eig_vec1 = " << eigen_values[0] * eigen_vectors1 << std::endl;
@@ -50,7 +52,7 @@ void Test_Symmetric_Eigen_Solver()
     std::cout << "eig_val5 * eig_vec5 = " << eigen_values[4] * eigen_vectors5 << std::endl;
 }
 
-void Test_Unsymmetric_Eigen_Solver_Single_Mat(MML::Matrix<Real> origMat)
+void Test_Unsymmetric_Eigen_Solver_Single_Mat(Matrix<Real> origMat)
 {
     std::cout << "*******************************************************************\n";
     std::cout << "*****   CALCULATING EIGENVALUES OF UNSYMMETRIC MATRIX   " << origMat.RowNum() << "x" << origMat.ColNum() << "   *****\n";
@@ -59,9 +61,9 @@ void Test_Unsymmetric_Eigen_Solver_Single_Mat(MML::Matrix<Real> origMat)
     int prec  = 10;
 
     int dim = origMat.RowNum();
-    MML::Matrix<Real>  matcopy(origMat);
+    Matrix<Real>  matcopy(origMat);
 
-    MML::Unsymmeig eigen_solver(matcopy, true, false);
+    Unsymmeig eigen_solver(matcopy, true, false);
 
     std::cout << "Initial matrix:\n";  matcopy.Print(std::cout,10,3);  std::cout << std::endl;
 
@@ -76,12 +78,12 @@ void Test_Unsymmetric_Eigen_Solver_Single_Mat(MML::Matrix<Real> origMat)
 
     for(int i=0; i<dim; i++ )
     {
-        Matrix<Complex> mat_cmplx = MML::Utils::CmplxMatFromRealMat(matcopy);
+        Matrix<Complex> mat_cmplx = Utils::CmplxMatFromRealMat(matcopy);
 
         if( eigen_solver.isRealEigenvalue(i) )
         {
-            double             eigen_val = eigen_solver.getEigenvalues()[i].real();
-            MML::Vector<Real>  eigen_vec = eigen_solver.getRealPartEigenvector(i);
+            double        eigen_val = eigen_solver.getEigenvalues()[i].real();
+            Vector<Real>  eigen_vec = eigen_solver.getRealPartEigenvector(i);
 
             std::cout << "Eigen value  " << i+1 << " (real)    = " << eigen_val << std::endl;
             std::cout << "Eigen vector " << i+1 << " (real)    = "; eigen_vec.Print(std::cout,width,prec); std::cout << std::endl;
@@ -91,8 +93,8 @@ void Test_Unsymmetric_Eigen_Solver_Single_Mat(MML::Matrix<Real> origMat)
         }
         else
         {
-            Complex               eigen_val = eigen_solver.getEigenvalues()[i];
-            MML::Vector<Complex>  eigen_vec = eigen_solver.getEigenvector(i);
+            Complex          eigen_val = eigen_solver.getEigenvalues()[i];
+            Vector<Complex>  eigen_vec = eigen_solver.getEigenvector(i);
             
             std::cout << "Eigen value  " << i+1 << " (complex) = " << eigen_val << std::endl;
             std::cout << "Eigen vector " << i+1 << " (complex) = "; eigen_solver.getEigenvector(i).Print(std::cout, width, prec); std::cout << std::endl;
@@ -112,7 +114,7 @@ void Demo_EigenSolvers()
 
     //Test_Symmetric_Eigen_Solver();    
 
-    Test_Unsymmetric_Eigen_Solver_Single_Mat(MML::TestBeds::mat_3x3); 
-    // Test_Unsymmetric_Eigen_Solver_Single_Mat(MML::TestBeds::mat_6x6_test1); 
-    // Test_Unsymmetric_Eigen_Solver_Single_Mat(MML::TestBeds::mat_8x8_test1); 
+    Test_Unsymmetric_Eigen_Solver_Single_Mat(TestBeds::mat_50x50_test2); 
+    // Test_Unsymmetric_Eigen_Solver_Single_Mat(TestBeds::mat_6x6_test1); 
+    // Test_Unsymmetric_Eigen_Solver_Single_Mat(TestBeds::mat_8x8_test1); 
 }

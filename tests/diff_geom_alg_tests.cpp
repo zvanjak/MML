@@ -24,8 +24,8 @@ using namespace MML;
 
 TEST_CASE("Test_Helix_Curvature", "[simple]") 
 {
-    const ParametricCurve<3>  &schaum_curve = MML::TestData::ParametricCurvesTestBed::_listCurves[2]._curve;
-    const RealFunction  &schaum_curve_curv = MML::TestData::ParametricCurvesTestBed::_listCurves[2]._curvatureFunc;
+    const ParametricCurve<3>  &schaum_curve = TestData::ParametricCurvesTestBed::_listCurves[2]._curve;
+    const RealFunction  &schaum_curve_curv = TestData::ParametricCurvesTestBed::_listCurves[2]._curvatureFunc;
 
     double curv = DiffGeometry::getCurvature(schaum_curve, 0.5);
     REQUIRE( schaum_curve_curv(0.5) == Approx(curv) );

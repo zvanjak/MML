@@ -1,9 +1,7 @@
 #ifdef MML_USE_SINGLE_HEADER
 #include "MML.h"
 #else
-#include <iostream>
-#include <iomanip>
-#include <cmath>
+#include "MMLBase.h"
 
 #include "basic_types/InterpolatedFunction.h"
 
@@ -52,7 +50,7 @@ class ClassProvidingFuncToDerive
     public:
         ClassProvidingFuncToDerive(double param) : _param(param) { }
     
-        // ust provide operator() for your class
+        // just provide operator() for your class
         double operator()(double x ) { return _param * sin(x); }
 };
 
@@ -60,8 +58,8 @@ void Demo_Derivation_member_fun()
 {
     ClassProvidingFuncToDerive   funcObj(3.0);
     
-    MML::RealFunctionFromStdFunc g(std::function<double(double)>{funcObj});
-    double der_g = MML::Derivation::NDer4(g, 0.5);
+    RealFunctionFromStdFunc g(std::function<double(double)>{funcObj});
+    double der_g = Derivation::NDer4(g, 0.5);
 }
 
 // If you CAN'T change the class where your data for calculation is
@@ -89,10 +87,10 @@ public:
 void Demo_Derivation_member_fun2(const BigComplexClassYouCantChange &ref)
 {
     BigComplexDerivFunc          funcObj(ref);  
-    MML::RealFunctionFromStdFunc func_to_derive(std::function<double(double)>{funcObj});
+    RealFunctionFromStdFunc func_to_derive(std::function<double(double)>{funcObj});
     
-    double der_1 = MML::Derivation::NDer4(func_to_derive, 0.5);
-    double der_2 = MML::Derivation::Derive(func_to_derive, 0.5, nullptr);
+    double der_1 = Derivation::NDer4(func_to_derive, 0.5);
+    double der_2 = Derivation::Derive(func_to_derive, 0.5, nullptr);
 }
 
 void Demo_Derivation_Interpolated_RealFunc()
@@ -125,7 +123,7 @@ void Demo_Derivation_RealFunc_Second_and_Third()
     RealFunctionFromStdFunc         f3(h);
 
     ClassProvidingFuncToDerive      funcObj(3.0);
-    MML::RealFunctionFromStdFunc    f4(std::function<double(double)>{funcObj});
+    RealFunctionFromStdFunc    f4(std::function<double(double)>{funcObj});
 
     double sec_der_f1 = Derivation::NSecDer1(f1, 0.5);
     double sec_der_f2 = Derivation::NSecDer2(f2, 0.5);

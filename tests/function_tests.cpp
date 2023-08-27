@@ -6,5 +6,7 @@
 #include "basic_types/Function.h"
 #endif
 
+using namespace MML;
+
 TEST_CASE("Test_Function", "[simple]") {
 }

@@ -1,11 +1,10 @@
 #ifdef MML_USE_SINGLE_HEADER
 #include "MML.h"
 #else
-#include <iostream>
-#include <iomanip>
-#include <cmath>
+#include "MMLBase.h"
 
 #include "core/VectorN.h"
+
 #include "basic_types/Function.h"
 #include "basic_types/Functions.h"
 #include "basic_types/Curves.h"
@@ -14,9 +13,23 @@
 
 using namespace MML;
 
-double TestFunc1(double x)
+double Demo_Function_TestFunc(double x) 
+{ 
+    return sin(x)*(1.0 + 0.5*x*x); 
+}
+
+void Demo_Function_from_funct_ptr()
 {
-    return x;
+    // creating a function object from a already existing (standalone) function
+    RealFunction f1(Demo_Function_TestFunc);
+
+    // or creating a function object directly
+    RealFunction f2{[](double x) { return sin(x)*(1.0 + 0.5*x*x); } };
+}
+
+void Demo_Function_from_std_func()
+{
+
 }
 
 void Demo_Function()
@@ -26,16 +39,16 @@ void Demo_Function()
     std::cout << "****                          FUNCTION                             ****" << std::endl;
     std::cout << "***********************************************************************" << std::endl;
 
-    std::function<double(double)> f(TestFunc1);
+    std::function<double(double)> f(Demo_Function_TestFunc);
     
-    MML::RealFunctionFromStdFunc func(f);
+    RealFunctionFromStdFunc func(f);
 
-    MML::RealFunction func2([](double x) { return x; });
-    MML::ScalarFunction<3> funcScalar([](const MML::VectorN<Real, 3> &x) { return x[0]; });
-    MML::VectorFunction<3> funcVector([](const MML::VectorN<Real, 3> &x) { return MML::VectorN<Real, 3>{0, x[0] * x[1], 0}; });
+    RealFunction func2([](double x) { return x; });
+    ScalarFunction<3> funcScalar([](const VectorN<Real, 3> &x) { return x[0]; });
+    VectorFunction<3> funcVector([](const VectorN<Real, 3> &x) { return VectorN<Real, 3>{0, x[0] * x[1], 0}; });
 
-    MML::ParametricCurve<3> paramCurve([](double x) { return MML::VectorN<Real, 3>{x, 2 * x, 3 * x}; });
+    ParametricCurve<3> paramCurve([](double x) { return VectorN<Real, 3>{x, 2 * x, 3 * x}; });
 
-    //auto val1 = MML::Curves::helix_curve(1.0);
-    auto val2 = MML::Surfaces::test1(1.0, 1.0);
+    //auto val1 = Curves::helix_curve(1.0);
+    auto val2 = Surfaces::test1(1.0, 1.0);
 }

@@ -1,10 +1,8 @@
-#include <iostream>
-#include <iomanip>
-#include <cmath>
-
 #ifdef MML_USE_SINGLE_HEADER
 #include "MML.h"
 #else
+#include "MMLBase.h"
+
 #include "basic_types/Polynom.h"
 #include "basic_types/Functionals.h"
 #endif

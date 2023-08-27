@@ -1,10 +1,8 @@
-#include <iostream>
-#include <iomanip>
-#include <cmath>
-
 #ifdef MML_USE_SINGLE_HEADER
 #include "MML.h"
 #else
+#include "MMLBase.h"
+
 #include "core/Vector.h"
 #endif
 
@@ -20,17 +18,17 @@ void Demo_Vector()
     std::vector<double> std_vec{-1.0, 5.0, -2.0, 10.0, 4.0};
     float  arr[5] = {-1.0, 5.0, -2.0, 10.0, 4.0};
 
-    MML::Vector<double>   vec_dbl_1(5);                       // init vector with 5 elements
-    MML::VectorDbl        vec_dbl_2(5, 3.14159);              // init with constant value
-    MML::VecD             vec_dbl_3({ 1.0, 2.0, 3.0 });       // init with list of values
-    MML::Vector<double>   vec_dbl_4(vec_dbl_3);               // init with copy ctor
-    MML::Vector<double>   vec_dbl_5 = vec_dbl_2;              // init with assignment
-    MML::Vector<double>   vec_dbl_6(std_vec);                 // init with std::vector<>
-    MML::VectorFlt        vec_flt_1(5, arr);                  // init with C/C++ array
-    MML::Vector<double>   vec_unit(5, 3);                     // unit vector with 1.0 at index 3
+    Vector<double>   vec_dbl_1(5);                       // init vector with 5 elements
+    VectorDbl        vec_dbl_2(5, 3.14159);              // init with constant value
+    VecD             vec_dbl_3({ 1.0, 2.0, 3.0 });       // init with list of values
+    Vector<double>   vec_dbl_4(vec_dbl_3);               // init with copy ctor
+    Vector<double>   vec_dbl_5 = vec_dbl_2;              // init with assignment
+    Vector<double>   vec_dbl_6(std_vec);                 // init with std::vector<>
+    VectorFlt        vec_flt_1(5, arr);                  // init with C/C++ array
+    Vector<double>   vec_unit(5, 3);                     // unit vector with 1.0 at index 3
 
-    MML::Vector<Complex>  vec_cmplx_1({ 1.0, 2.0, 3.0 });     // init with list of real values
-    MML::VecC             vec_cmplx_2({ Complex(1,1), 
+    Vector<Complex>  vec_cmplx_1({ 1.0, 2.0, 3.0 });     // init with list of real values
+    VecC             vec_cmplx_2({ Complex(1,1), 
                                         Complex(-1,2), 
                                         Complex(2, -0.5) });  // init with list of complex values
 
@@ -63,12 +61,12 @@ void Demo_Vector()
     try {
       std::cout << "a + b = " << vec_dbl_1 + vec_dbl_3 << std::endl;
     }
-    catch (MML::VectorDimensionError& ) {
+    catch (VectorDimensionError& ) {
       std::cout << "\nCan't add vectors of different dimension!\n";
     }
 
     std::cout << "\nVector operations:" << std::endl;
-    MML::Vector<double> vec_dbl_4_almost_equal(vec_dbl_4);
+    Vector<double> vec_dbl_4_almost_equal(vec_dbl_4);
     vec_dbl_4_almost_equal[0] = vec_dbl_4_almost_equal[0] + 1e-6;
     std::cout << "vec_dbl_4              = " << vec_dbl_4 << std::endl;
     std::cout << "vec_dbl_4_almost_equal = " << vec_dbl_4_almost_equal << std::endl;

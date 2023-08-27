@@ -1,7 +1,3 @@
-#include <iostream>
-#include <iomanip>
-#include <cmath>
-
 #ifdef MML_USE_SINGLE_HEADER
 #include "MML.h"
 #else
@@ -53,7 +49,7 @@ void Test_Interpolation_2DFunc()
             x2 = -0.1+(j+1)/5.0;
             f=sin(x1)*exp(x2);
 
-            MML::polin2(x1a,x2a,ya,x1,x2,y,dy);
+            polin2(x1a,x2a,ya,x1,x2,y,dy);
             
             double y_bilin = bilin_int.interp(x1, x2);
             double y_poly = poly_int.interp(x1, x2);
@@ -69,52 +65,6 @@ void Test_Interpolation_2DFunc()
     }
 }
 
-double test_func(const double x)
-{
-    const double eps = 1.0;
-    return x*exp(-x)/(SQR(x-1.0)+eps*eps);
-}
-
-void Test_Linear_interp()
-{
-    const double x1 = 0.0;
-    const double x2 = 2.0;
-    const int    numPnt=5;
-
-    Vector<Real> x(numPnt),y(numPnt);
-
-    for (int i=0;i<numPnt;i++) {
-        x[i] = i * (x2 - x1) / numPnt;
-        y[i] = test_func(x[i]);
-    }    
-    
-    LinearInterpRealFunc myfunc(x,y);
-    
-    PolynomInterpRealFunc myFunc2(x,y,3);
-    SplineInterpRealFunc myFunc3(x,y);
-    RationalInterpRealFunc myFunc4(x,y, 4);
-    BaryRatInterpRealFunc myFunc5(x,y, 4);
-
-    std::cout << "\nLINEAR INTERPOLATION:\n";
-
-    cout << endl << setw(5) << "x" << setw(15) << "interp.";
-    cout << setw(15) << "actual" << setw(13) << " abs.err" << setw(13) << " rel.err" <<endl;
-    cout << fixed << setprecision(6);
-
-    const int printPnt = 20;
-    for (int i=0;i<printPnt;i++) 
-    {
-        double xx   = i * (x2 - x1) / printPnt;
-        double yy   = myfunc(xx);
-        double yexp = test_func(xx);
-
-        cout << setw(8) << xx << setw(13) << yy;
-        cout << setw(14) << yexp << setw(14) << yy-yexp << setw(14) << (yy-yexp)/yexp*100 << endl;
-    }
-    RealFunction test(test_func);
-    
-    std::cout << "Diff = " << FunctionAnalyzer::FuncDiff(myfunc, test, 0.0, 2.0);
-}
 void Demo_Interpolators()
 {
     std::cout << endl;
@@ -123,5 +73,4 @@ void Demo_Interpolators()
     std::cout << "***********************************************************************" << endl;
 
     Test_Interpolation_2DFunc();   
-    Test_Linear_interp();
 }

@@ -107,6 +107,9 @@ namespace MML::TestBeds
             {  
                 "mat_3x3", { 3, mat_3x3, mat_3x3_rhs0, mat_3x3_rhs0_sol, mat_3x3_eigen_val, mat_3x3_eigen_vecs }
             },
+            {  
+                "mat_5x5", { 5, mat_5x5, mat_5x5_rhs0, mat_5x5_rhs0_sol, mat_5x5_eigen_val, mat_5x5_eigen_vecs }
+            },
             { 
                 "mat_3x3_2",
                 {

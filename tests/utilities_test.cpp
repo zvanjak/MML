@@ -6,6 +6,8 @@
 #include "utilities/Utils.h"
 #endif
 
+using namespace MML;
+
 // TODO - finish these tests
 TEST_CASE("Test_Utils_Vector_operations", "[simple]") {
 }

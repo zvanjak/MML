@@ -1,9 +1,7 @@
 #ifdef MML_USE_SINGLE_HEADER
 #include "MML.h"
 #else
-#include <iostream>
-#include <iomanip>
-#include <cmath>
+#include "MMLBase.h"
 
 #include "core/Constants.h"
 #include "core/VectorN.h"
@@ -27,11 +25,9 @@ void Demo_Diff_geometry()
     std::cout << "****                    DIFFERENTIAL GEOMETRY                      ****" << std::endl;
     std::cout << "***********************************************************************" << std::endl;
 
-    ParametricCurve<3>   test_curve1( [](double t) -> VectorN<Real, 3> { return VectorN<Real, 3>{t, t*t, t*t*t}; } );
-    
-    MML::Curves::HelixCurve     helix(2.0, 2.0);
-    //IParametricCurve<3>  &test_curve = helix;
-    const ParametricCurve<3>  &test_curve = MML::TestData::ParametricCurvesTestBed::_listCurves[0]._curve;
+    ParametricCurve<3>        test_curve1( [](double t) -> VectorN<Real, 3> { return VectorN<Real, 3>{t, t*t, t*t*t}; } );
+    Curves::HelixCurve        helix(2.0, 2.0);
+    const ParametricCurve<3> &test_curve = MML::TestData::ParametricCurvesTestBed::_listCurves[0]._curve;
 
     std::cout << "          Tangent                   Tangent unit                   Normal                  Normal unit                    Binormal                   Curv.vec.                Curv.vec.norm.        Curvature\n";
 

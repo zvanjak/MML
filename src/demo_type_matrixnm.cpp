@@ -1,10 +1,8 @@
-#include <iostream>
-#include <iomanip>
-#include <cmath>
-
 #ifdef MML_USE_SINGLE_HEADER
 #include "MML.h"
 #else
+#include "MMLBase.h"
+
 #include "core/MatrixNM.h"
 #endif
 
@@ -15,11 +13,11 @@ void MatrixNM_initializations()
     std::cout << "***********************************************************" << std::endl;
     std::cout << "*******             MatrixNM initialization         *******" << std::endl;
 
-    MML::MatrixNM<Real,2,2> a;
-    MML::MatrixNM<Real,2,2> b({1.0, 0.0, 0.0, 1.0});
-    MML::MatrixNM<Real,2,2> c(b);
-    MML::MatrixNM<Real,2,2> d = c;
-    auto e = MML::MatrixNM<Real,3,3>::GetUnitMatrix();
+    MatrixNM<Real,2,2> a;
+    MatrixNM<Real,2,2> b({1.0, 0.0, 0.0, 1.0});
+    MatrixNM<Real,2,2> c(b);
+    MatrixNM<Real,2,2> d = c;
+    auto e = MatrixNM<Real,3,3>::GetUnitMatrix();
 
     std::cout << "a = " << a << std::endl;
     std::cout << "b = " << b << std::endl;
@@ -33,20 +31,20 @@ void MatrixNM_vector_init_operations()
     std::cout << "***********************************************************" << std::endl;
     std::cout << "*******        MatrixNM - VectorN init operations    ******" << std::endl;
 
-    MML::VectorN<Real, 3> a({1.0, 1.0, 1.0});
-    MML::MatrixNM<Real,1,3> matA = MML::MatrixNM<Real,1,3>::RowMatrixFromVector(a);
-    auto matAauto = MML::MatrixNM<Real,1,3>::RowMatrixFromVector(a);
-    MML::MatrixNM<Real,3,1> matB = MML::MatrixNM<Real,3,1>::ColumnMatrixFromVector(a);
-    auto matBauto = MML::MatrixNM<Real,3,1>::ColumnMatrixFromVector(a);
+    VectorN<Real, 3> a({1.0, 1.0, 1.0});
+    MatrixNM<Real,1,3> matA = MatrixNM<Real,1,3>::RowMatrixFromVector(a);
+    auto matAauto = MatrixNM<Real,1,3>::RowMatrixFromVector(a);
+    MatrixNM<Real,3,1> matB = MatrixNM<Real,3,1>::ColumnMatrixFromVector(a);
+    auto matBauto = MatrixNM<Real,3,1>::ColumnMatrixFromVector(a);
 
     std::cout << "Vector a = " << a << std::endl;
     std::cout << "Matrix matA = Matrix::RowMatrixFromVector(a);\nmatA = " << matA << std::endl;
     std::cout << "Matrix matB = Matrix::ColMatrixFromVector(a);\nmatB = " << matB << std::endl;
 
-    MML::MatrixNM<Real,2,2> m1({1.0, -1.0, 1.5, 3.0});
-    MML::VectorN<Real, 2> vecRow = MML::MatrixNM<Real,2,2>::VectorFromRow(m1, 0);
-    MML::VectorN<Real, 2> vecCol = MML::MatrixNM<Real,2,2>::VectorFromColumn(m1, 0);
-    MML::VectorN<Real, 2> vecDiag = MML::MatrixNM<Real,2,2>::VectorFromDiagonal(m1);
+    MatrixNM<Real,2,2> m1({1.0, -1.0, 1.5, 3.0});
+    VectorN<Real, 2> vecRow = MatrixNM<Real,2,2>::VectorFromRow(m1, 0);
+    VectorN<Real, 2> vecCol = MatrixNM<Real,2,2>::VectorFromColumn(m1, 0);
+    VectorN<Real, 2> vecDiag = MatrixNM<Real,2,2>::VectorFromDiagonal(m1);
 
     std::cout << "Matrix m1 = " << m1 << std::endl;
     std::cout << "Vector vecRow = Matrix::VectorFromRow(a,0)     = " << vecRow << std::endl;
@@ -64,7 +62,7 @@ void Basic_MatrixNM_operations()
     std::cout << "***********************************************************" << std::endl;
     std::cout << "*******             MatrixNM Basic operation        *******" << std::endl;
 
-    MML::MatrixNM<Real,2,2> m1({1.0, -1.0, 1.5, 3.0}), m2;
+    MatrixNM<Real,2,2> m1({1.0, -1.0, 1.5, 3.0}), m2;
     m2.MakeUnitMatrix();
 
     std::cout << "m1 = " << m1 << std::endl;
@@ -83,8 +81,8 @@ void MatrixNM_VectorN_mul()
     std::cout << "***********************************************************" << std::endl;
     std::cout << "*******       MatrixNM VectorN multiplication       *******" << std::endl;
 
-    MML::VectorN<Real, 2> v1({1.0, 2.0});
-    MML::MatrixNM<Real,2,2> m1({1.0, -1.0, 1.5, 3.0});
+    VectorN<Real, 2> v1({1.0, 2.0});
+    MatrixNM<Real,2,2> m1({1.0, -1.0, 1.5, 3.0});
     
     std::cout << "v1 = " << v1 << std::endl;
     std::cout << "m1 = " << m1 << std::endl;
@@ -98,11 +96,11 @@ void MatrixNM_MatrixNM_mul()
     std::cout << "***********************************************************" << std::endl;
     std::cout << "*******        MatrixNM MatrixNM multiplication     *******" << std::endl;
 
-    MML::MatrixNM<Real,1,3> m3{1.0, 1.0, 1.0};
-    MML::MatrixNM<Real,3,4> m4{1.0, 0.0, 0.0, 0.0,
+    MatrixNM<Real,1,3> m3{1.0, 1.0, 1.0};
+    MatrixNM<Real,3,4> m4{1.0, 0.0, 0.0, 0.0,
                             0.0, 1.0, 0.0, 0.0, 
                             0.0, 0.0, 1.0, 1.0};
-    MML::MatrixNM<Real,1,4> m5  = m3 * m4;
+    MatrixNM<Real,1,4> m5  = m3 * m4;
 
     std::cout << "m3 = " << m3 << std::endl;
     std::cout << "m4 = " << m4 << std::endl;
@@ -114,7 +112,7 @@ void MatrixNM_Invert()
     std::cout << "***********************************************************" << std::endl;
     std::cout << "*******             MatrixNM Invert                 *******" << std::endl;
 
-    MML::MatrixNM<Real,2,2> m1({1.0, -1.0, 1.5, 3.0});
+    MatrixNM<Real,2,2> m1({1.0, -1.0, 1.5, 3.0});
 
     std::cout << "m1 = " << m1 << std::endl;
     auto m2 = m1.GetInverse();
@@ -130,7 +128,7 @@ void MatrixNM_transpose()
     std::cout << "***********************************************************" << std::endl;
     std::cout << "*******             MatrixNM Transpose              *******" << std::endl;
 
-    MML::MatrixNM<Real,2,2> m1({1.0, -1.0, 1.5, 3.0});
+    MatrixNM<Real,2,2> m1({1.0, -1.0, 1.5, 3.0});
     std::cout << "m1 = " << m1 << std::endl;
 
     auto m2 = m1.GetTranspose();

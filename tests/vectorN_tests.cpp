@@ -6,8 +6,10 @@
 #include "core/VectorN.h"
 #endif
 
+using namespace MML;
+
 TEST_CASE("VectorN_default_ctor_init_to_zero", "[simple]") {
-    MML::VectorN<Real, 3> a;
+    VectorN<Real, 3> a;
 
 	REQUIRE(0.0 ==  a[0]);
 	REQUIRE(0.0 ==  a[1]);
@@ -15,7 +17,7 @@ TEST_CASE("VectorN_default_ctor_init_to_zero", "[simple]") {
 }
 
 TEST_CASE("VectorN_initializer_list_ctor", "[simple]") {
-    MML::VectorN<Real, 3> a{1.0, 2.0, 3.0};
+    VectorN<Real, 3> a{1.0, 2.0, 3.0};
 
 	REQUIRE(1.0 ==  a[0]);
 	REQUIRE(2.0 ==  a[1]);
@@ -23,14 +25,14 @@ TEST_CASE("VectorN_initializer_list_ctor", "[simple]") {
 }
 
 TEST_CASE("Test_VectorN", "[simple]") {
-	MML::Vector2Dbl a{1.0, 1.0};
+	Vector2Dbl a{1.0, 1.0};
 
 	REQUIRE(a[0] ==  1.0);
 	REQUIRE(a[1] ==  1.0);
 }
 
 TEST_CASE("VectorN_init_to_value", "[simple]") {
-    MML::VectorN<Real, 3> a(1.5);
+    VectorN<Real, 3> a(1.5);
 
 	REQUIRE(3 == a.size());
 
@@ -41,7 +43,7 @@ TEST_CASE("VectorN_init_to_value", "[simple]") {
 
 TEST_CASE("VectorN_init_from_std::vector", "[simple]") {
 	std::vector<double> x{1.0, 2.0, 3.0};
-    MML::VectorN<Real,3> a(x);
+    VectorN<Real,3> a(x);
 
 	REQUIRE(3 == a.size());
 
@@ -52,7 +54,7 @@ TEST_CASE("VectorN_init_from_std::vector", "[simple]") {
 
 TEST_CASE("VectorN_init_from_double_array", "[simple]") {
 	double x[] = {1.0, 2.0, 3.0};
-    MML::VectorN<Real, 3> a(x);
+    VectorN<Real, 3> a(x);
 
 	REQUIRE(3 == a.size());
 
@@ -62,8 +64,8 @@ TEST_CASE("VectorN_init_from_double_array", "[simple]") {
 }
 
 TEST_CASE("Test_VectorN_IsEqual", "[simple]") {
-    MML::Vector2Dbl a({1.0, 2.0});
-    MML::Vector2Dbl b({1.0, 2.0000001});
+    Vector2Dbl a({1.0, 2.0});
+    Vector2Dbl b({1.0, 2.0000001});
 
 	REQUIRE(true == a.IsEqual(b, 1e-7));
     REQUIRE(false == a.IsEqual(b, 1e-8));
@@ -71,8 +73,8 @@ TEST_CASE("Test_VectorN_IsEqual", "[simple]") {
 
 // zbrajanje, oduzimanje
 TEST_CASE("Test_VectorN_Op+-", "[simple]") {
-    MML::Vector2Dbl a({1.0, 2.0});
-    MML::Vector2Dbl b({1.0, 2.0});
+    Vector2Dbl a({1.0, 2.0});
+    Vector2Dbl b({1.0, 2.0});
 
     auto c = a + b;
     auto d = a - b;
@@ -86,7 +88,7 @@ TEST_CASE("Test_VectorN_Op+-", "[simple]") {
 
 // op. sa skalaraom
 TEST_CASE("Test_VectorN_mul_double", "[simple]") {
-    MML::Vector2Dbl a({1.0, 100.0});
+    Vector2Dbl a({1.0, 100.0});
 
 	auto b = a * 2.0;
 	auto c = 2.0 * a;
@@ -99,7 +101,7 @@ TEST_CASE("Test_VectorN_mul_double", "[simple]") {
 }
 
 TEST_CASE("Test_VectorN_div_double", "[simple]") {
-    MML::Vector2Dbl a({4.0, 400.0});
+    Vector2Dbl a({4.0, 400.0});
 
 	auto b = a / 2.0;
 
@@ -108,28 +110,28 @@ TEST_CASE("Test_VectorN_div_double", "[simple]") {
 }
 
 TEST_CASE("Test_VectorN_ScalarProductCartesian", "[simple]") {
-    MML::Vector2Dbl a({1.0, 2.0});
-    MML::Vector2Dbl b({1.0, 2.0});
+    Vector2Dbl a({1.0, 2.0});
+    Vector2Dbl b({1.0, 2.0});
 
 	REQUIRE(5.0 == a.ScalarProductCartesian(b));
 }
 
 TEST_CASE("Test_VectorN_NormL2", "[simple]") {
-    MML::Vector2Dbl a({2.0, 2.0});
+    Vector2Dbl a({2.0, 2.0});
 
 	REQUIRE(sqrt(8) == a.NormL2());
 }
 
 TEST_CASE("Test_VectorN_to_string", "[simple]") {
-    MML::Vector2Dbl a({2.0, 2.0});
+    Vector2Dbl a({2.0, 2.0});
 
 	REQUIRE("[    2,     2]" == a.to_string(5,3));
 
-    MML::Vector4Dbl b({123.0, 1.0, 10.0, -8.0});
+    Vector4Dbl b({123.0, 1.0, 10.0, -8.0});
 
 	REQUIRE("[    123,       1,      10,      -8]" == b.to_string(7,3));
 
-    MML::Vector3Dbl c({123.123, 1.9876543, 10.0});
+    Vector3Dbl c({123.123, 1.9876543, 10.0});
 
 	REQUIRE("[    123.12,     1.9877,         10]" == c.to_string(10,5));
 	REQUIRE("[        123.123,       1.9876543,              10]" == c.to_string(15,9));

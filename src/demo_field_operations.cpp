@@ -1,9 +1,7 @@
 #ifdef MML_USE_SINGLE_HEADER
 #include "MML.h"
 #else
-#include <iostream>
-#include <iomanip>
-#include <cmath>
+#include "MMLBase.h"
 
 #include "basic_types/CoordTransf.h"
 #include "basic_types/Fields.h"
@@ -14,14 +12,14 @@
 using namespace MML;
 
 
-VectorN<Real, 3> PotentialCartesianGradient(const VectorN<Real, 3> &x )
+VectorN<Real, 3> GradientOfCartesianPotential(const VectorN<Real, 3> &x )
 {
     ScalarFunction<3> fPotCart(InverseRadialFieldFuncCart);    
 
     return ScalarFieldOperations::GradientCart<3>(fPotCart, x);
 }
 
-VectorN<Real, 3> PotentialSphericalGradient(const VectorN<Real, 3> &x )
+VectorN<Real, 3> GradientOfSphericalPotential(const VectorN<Real, 3> &x )
 {
     ScalarFunction<3> fPotSpher(InverseRadialFieldFuncSpher);    
     Vector3Spherical pos = x;
@@ -29,7 +27,7 @@ VectorN<Real, 3> PotentialSphericalGradient(const VectorN<Real, 3> &x )
     return ScalarFieldOperations::GradientSpher(fPotSpher, pos);
 }
 
-VectorN<Real, 3> PotentialCylindricalGradient(const VectorN<Real, 3> &x )
+VectorN<Real, 3> GradientOfCylindricalPotential(const VectorN<Real, 3> &x )
 {
     ScalarFunction<3> fPotCart(InverseRadialFieldFuncCyl);    
     Vector3Cylindrical pos {x};
@@ -48,6 +46,7 @@ VectorN<Real, 3> SimpleVectorFunc(const VectorN<Real, 3> &x )
     return ret;
 }
 
+// TODO - finish Demo gradient
 void Demo_gradient()
 {
     std::cout << "***********************************************************************" << std::endl;
@@ -63,27 +62,28 @@ void Demo_divergence()
 
     VectorFunction<3> fSimpleVecFunc(SimpleVectorFunc);
 
-    Vector3Cartesian y1_cart{1.0, -1.0, 1.0};
-    auto div_simple = VectorFieldOperations::DivCart<3>(fSimpleVecFunc, y1_cart);
-    std::cout << "Divergence of simple vec. field at " << y1_cart << " = " << div_simple << std::endl;
+    Vector3Cartesian x1_cart{1.0, -1.0, 1.0};
+    auto div_simple = VectorFieldOperations::DivCart<3>(fSimpleVecFunc, x1_cart);
+    std::cout << "Divergence of simple vec. field at " << x1_cart << " = " << div_simple << std::endl;
 
-    VectorFunction<3> fCartGrad(PotentialCartesianGradient);
-    VectorFunction<3> fSpherGrad(PotentialSphericalGradient);
-    VectorFunction<3> fCylGrad(PotentialCylindricalGradient);
+    VectorFunction<3> fCartGrad(GradientOfCartesianPotential);
+    VectorFunction<3> fSpherGrad(GradientOfSphericalPotential);
+    VectorFunction<3> fCylGrad(GradientOfCylindricalPotential);
 
-    Vector3Cartesian y2_cart{0.2, -0.2, 0.2};
-    Vector3Spherical y2_spher{ CoordTransfSpherToCart.transfInverse(y2_cart) };
-    Vector3Cylindrical y2_cyl{ CoordTransfCartToCyl.transf(y2_cart) };
+    Vector3Cartesian   x2_cart{ 0.2, -0.2, 0.2 };
+    Vector3Spherical   x2_spher{ CoordTransfCartToSpher.transf(x2_cart) };
+    Vector3Cylindrical x2_cyl{ CoordTransfCartToCyl.transf(x2_cart) };
 
-    auto div_grad       = VectorFieldOperations::DivCart<3>(fCartGrad, y2_cart);
-    auto div_grad_spher = VectorFieldOperations::DivSpher(fSpherGrad, y2_spher);
-    auto div_grad_cyl   = VectorFieldOperations::DivCyl(fCylGrad, y2_cyl);
+    auto div_grad       = VectorFieldOperations::DivCart<3>(fCartGrad, x2_cart);
+    auto div_grad_spher = VectorFieldOperations::DivSpher(fSpherGrad, x2_spher);
+    auto div_grad_cyl   = VectorFieldOperations::DivCyl(fCylGrad, x2_cyl);
 
-    std::cout << "Div of cartesian gradient field at   : " << y2_cart << " = " << div_grad << std::endl;
-    std::cout << "Div of spherical gradient field at   : " << y2_spher << " = " << div_grad_spher << std::endl;
-    std::cout << "Div of cylindrical gradient field at : " << y2_cyl << " = " << div_grad_cyl << std::endl;       
+    std::cout << "Div of cartesian gradient field at   : " << x2_cart << " = " << div_grad << std::endl;
+    std::cout << "Div of spherical gradient field at   : " << x2_spher << " = " << div_grad_spher << std::endl;
+    std::cout << "Div of cylindrical gradient field at : " << x2_cyl << " = " << div_grad_cyl << std::endl;       
 }
 
+// TODO - finish Demo curl
 void Demo_curl()
 {
     std::cout << "***********************************************************************" << std::endl;
@@ -91,6 +91,7 @@ void Demo_curl()
     std::cout << "***********************************************************************" << std::endl;
 }
 
+// TODO - finish Demo Laplacian
 void Demo_Laplacian()
 {
     std::cout << "***********************************************************************" << std::endl;
