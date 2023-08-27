@@ -18,9 +18,7 @@
 #include <initializer_list>
 #include <algorithm>
 
-#include <functional>
-
-///////////////////////////   ./include/MMLBase.h   ///////////////////////////
+#include <functional>///////////////////////////   ./include/MMLBase.h   ///////////////////////////
 
 
 
@@ -261,6 +259,11 @@ namespace MML
         {
             //_intervals.push_back(interval);
         }
+        Interval(std::initializer_list<BaseInterval> intervals)
+        {
+        }
+
+        // TODO - ima initializer list s intervalima, i još provjeri i adjusta
     };
 
     class IntervalUnion : public IInterval
@@ -2387,10 +2390,8 @@ namespace MML
 
         double Dist(const Point2Cartesian &b) const { return sqrt(SQR(b._x - _x) + SQR(b._y - _y) ); }
 
-        Point2Cartesian operator+(const VectorN<Real, 2> &b) const
-        {
-            return Point2Cartesian(_x + b[0], _y + b[1]);
-        }
+        Point2Cartesian operator+(const VectorN<Real, 2> &b) const { return Point2Cartesian(_x + b[0], _y + b[1]); }
+        Point2Cartesian operator-(const VectorN<Real, 2> &b) const { return Point2Cartesian(_x - b[0], _y - b[1]); }
     };
 
     class Vector2Cartesian : public VectorN<Real, 2>
@@ -2472,8 +2473,6 @@ namespace MML
             _direction = dir.GetUnitVector();
         }
 
-        // TODO - tocka i double, koji je kut prema pozitivnoj x osi
-
         Point2Cartesian     StartPoint() const  { return _point; }
         Point2Cartesian&    StartPoint()        { return _point; }
 
@@ -2495,15 +2494,11 @@ namespace MML
         Point2Cartesian _point2;
 
     public:
-        SegmentLine2D(Point2Cartesian pnt1, Point2Cartesian pnt2)
-        {
-            _point1 = pnt1;
-            _point2 = pnt2;
-        }
+        SegmentLine2D(Point2Cartesian pnt1, Point2Cartesian pnt2) : _point1(pnt1), _point2(pnt2)
+        { }
 
-        SegmentLine2D(Point2Cartesian pnt1, Vector2Cartesian direction, double t)
+        SegmentLine2D(Point2Cartesian pnt1, Vector2Cartesian direction, double t) : _point1(pnt1)
         {
-            _point1 = pnt1;
             _point2 = pnt1 + t * direction;
         }
 
@@ -2531,12 +2526,8 @@ namespace MML
         Point2Cartesian _pnt1, _pnt2, _pnt3;
 
     public:
-        Triangle2D(Point2Cartesian pnt1, Point2Cartesian pnt2, Point2Cartesian pnt3)
-        {
-            _pnt1 = pnt1;
-            _pnt2 = pnt2;
-            _pnt3 = pnt3;
-        }
+        Triangle2D(Point2Cartesian pnt1, Point2Cartesian pnt2, Point2Cartesian pnt3) : _pnt1(pnt1), _pnt2(pnt2), _pnt3(pnt3)
+        { }
 
         Point2Cartesian     Pnt1() const { return _pnt1; }
         Point2Cartesian&    Pnt1()       { return _pnt1; }
@@ -2629,7 +2620,6 @@ namespace MML
 
 namespace MML
 {
-
     class Point3Cartesian
     {
     private:
@@ -2765,6 +2755,7 @@ namespace MML
         Vector3Cartesian _direction; 
 
     public:
+        Line3D() {}
         Line3D(const Point3Cartesian &pnt, const Vector3Cartesian dir)
         {
             _point = pnt;
@@ -2793,9 +2784,9 @@ namespace MML
         {
             return ScalarProd(Direction(), b.Direction()) == 0.0f;
         }
-        // distance Line - Point3
-        // nearest point on line
-        // pravac koji prolazi kroz tocku i sijece zadani pravac okomito
+        // TODO distance Line - Point3
+        // TODO nearest point on line
+        // TODO pravac koji prolazi kroz tocku i sijece zadani pravac okomito
     };
 
     class SegmentLine3D
@@ -2805,11 +2796,8 @@ namespace MML
         Point3Cartesian _point2;
 
     public:
-        SegmentLine3D(Point3Cartesian pnt1, Point3Cartesian pnt2)
-        {
-            _point1 = pnt1;
-            _point2 = pnt2;
-        }
+        SegmentLine3D(Point3Cartesian pnt1, Point3Cartesian pnt2) : _point1(pnt1), _point2(pnt2)
+        { }
 
         SegmentLine3D(Point3Cartesian pnt1, Vector3Cartesian direction, double t)
         {
@@ -2864,7 +2852,7 @@ namespace MML
         }
 
         // tri segmenta na koord osima ctor
-        Plane3D(double seg_x, double seg_y, double seg_z) // Hesseov (normalni) oblik
+        Plane3D(double seg_x, double seg_y, double seg_z) 
         {
             Point3Cartesian x(seg_x, 0, 0);
             Point3Cartesian y(0, seg_y, 0);
@@ -2951,10 +2939,6 @@ namespace MML
         }     
 
         bool IntersectionWithPlane(const Plane3D &plane, Line3D &out_inter_line) const
-        {
-            return false;
-        }
-        bool IntersectionWithTwoPlanes(const Plane3D &plane1, const Plane3D &plane2, Line3D &out_inter_line) const
         {
             return false;
         }
@@ -3916,6 +3900,7 @@ namespace MML
         }
 
     };
+    
     template<int N>
     class InterpolatedSurface : public IParametricSurface<N>
     {
@@ -4123,6 +4108,7 @@ namespace MML
     // TODO - dodati polarne krivulje r = r(phi)
     namespace Curves
     {
+        ////////////////////////////////             PLANAR CURVES                  //////////////////////////////////
         class Circle2DCurve : public IParametricCurve<2> 
         {
             Real _radius;
@@ -4180,7 +4166,9 @@ namespace MML
             VectorN<Real, 2> operator()(double t) const  { return MML::VectorN<Real, 2>{cos(t) - _c * cos(_n*t), sin(t) - _c * sin(_n*t) }; }
         };
 
-        /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        /////////////////////////////             PLANAR POLAR CURVES                  ////////////////////////////////
+
+        /////////////////////////////////             SPACE CURVES                  ///////////////////////////////////
         class Circle3DXY : public IParametricCurve<3> {
             Real _radius;
         public:
@@ -4205,7 +4193,7 @@ namespace MML
             
             VectorN<Real, 3> operator()(double t) const  { return MML::VectorN<Real, 3>{0, _radius * cos(t), _radius * sin(t)}; }
         };
-
+        
         class HelixCurve : public IParametricCurve<3> 
         {
             Real _radius, _b;
@@ -4446,9 +4434,9 @@ namespace MML
         {
             const Real eps = std::numeric_limits<Real>::epsilon();
 
-            Real     orig_x = point[deriv_index];
+            Real     orig_x     = point[deriv_index];
 
-            VectorN<Real, N> x = point;
+            VectorN<Real, N> x  = point;
             Real y0 = f(x);
 
             x[deriv_index] = orig_x + h;
@@ -4476,12 +4464,12 @@ namespace MML
         template <int N>
         static Real NSecDer1Partial(const IScalarFunction<N> &f, int der_ind1, int der_ind2, const VectorN<Real, N> &point, Real h, Real *error = nullptr)
         {
-            Real x_orig_val    = point[der_ind2];
+            Real x_orig_val      = point[der_ind2];
 
-            auto   x_eval_pos    = point;
-            Real y0            = NDer2Partial(f, der_ind1, x_eval_pos, error);
+            auto x_eval_pos      = point;
+            Real y0              = NDer2Partial(f, der_ind1, x_eval_pos, error);
             x_eval_pos[der_ind2] = x_orig_val + h;
-            Real yh            = NDer2Partial(f, der_ind1, x_eval_pos, error);
+            Real yh              = NDer2Partial(f, der_ind1, x_eval_pos, error);
 
             Real diff = yh - y0;
             if (error)
@@ -4491,7 +4479,7 @@ namespace MML
                 Real ym   = NDer2Partial(f, der_ind1, x_eval_pos, error);
                 Real ypph = std::abs(yh - 2 * y0 + ym) / h;
                 
-                *error      = ypph / 2 + (std::abs(yh) + std::abs(y0)) * std::numeric_limits<Real>::epsilon() / h;
+                *error    = ypph / 2 + (std::abs(yh) + std::abs(y0)) * std::numeric_limits<Real>::epsilon() / h;
             }
             return diff / h;
         } 
@@ -4794,7 +4782,7 @@ namespace MML
 
             Real     orig_x = point[deriv_index];
 
-            VectorN<Real, N> x{point};
+            auto    x = point;
             x[deriv_index] = orig_x + h;
             Real yh = f(x);
 
@@ -4810,6 +4798,45 @@ namespace MML
 
                 x[deriv_index] = orig_x - 2 * h;
                 Real ym2h = f(x);
+                *error = eps * (std::abs(yh) + std::abs(ymh)) / (2 * h) + std::abs((y2h - ym2h) / 2 - diff) / (6 * h);
+            }
+
+            return diff / (2 * h);
+        }
+
+        template <int N>
+        static Real NSecDer2Partial(const IScalarFunction<N> &f, int der_ind1, int der_ind2, const VectorN<Real, N> &point, Real *error = nullptr)
+        {
+            const Real eps = (std::numeric_limits<Real>::epsilon)();
+            Real h = std::pow(3 * eps, static_cast<Real>(1) / static_cast<Real>(3));
+
+            return NSecDer2Partial(f, der_ind1, der_ind2, point, h, error);
+        }
+
+        template <int N>
+        static Real NSecDer2Partial(const IScalarFunction<N> &f, int der_ind1, int der_ind2, const VectorN<Real, N> &point, Real h, Real *error = nullptr)
+        {
+            const Real eps = (std::numeric_limits<Real>::epsilon)();
+
+            Real orig_x          = point[der_ind2];
+            auto x_eval_pos      = point;
+            
+            x_eval_pos[der_ind2] = orig_x + h;
+            Real yh              = NDer4Partial(f, der_ind1, x_eval_pos, error);
+
+            x_eval_pos[der_ind2] = orig_x - h;
+            Real ymh             = NDer4Partial(f, der_ind1, x_eval_pos, error);
+
+            Real diff            = yh - ymh;
+
+            if (error)
+            {
+                x_eval_pos[der_ind2] = orig_x + 2 * h;
+                Real y2h             = NDer4Partial(f, der_ind1, x_eval_pos, error);
+
+                x_eval_pos[der_ind2] = orig_x - 2 * h;
+                Real ym2h            = NDer4Partial(f, der_ind1, x_eval_pos, error);
+                
                 *error = eps * (std::abs(yh) + std::abs(ymh)) / (2 * h) + std::abs((y2h - ym2h) / 2 - diff) / (6 * h);
             }
 
@@ -5158,6 +5185,53 @@ namespace MML
 
                 x[deriv_index] = orig_x - 3 * h;
                 Real ym3h = f(x);
+
+                *error = std::abs((y3h - ym3h) / 2 + 2 * (ym2h - y2h) + 5 * (yh - ymh) / 2) / (30 * h);
+
+                *error += eps * (std::abs(y2h) + std::abs(ym2h) + 8 * (std::abs(ymh) + std::abs(yh))) / (12 * h);
+            }
+            return (y2 + 8 * y1) / (12 * h);
+        }
+
+        template <int N>
+        static Real NSecDer4Partial(const IScalarFunction<N> &f, int der_ind1, int der_ind2, const VectorN<Real, N> &point, Real *error = nullptr)
+        {
+            const Real eps = (std::numeric_limits<Real>::epsilon)();
+            Real h = std::pow(11.25*eps, (Real)1 / (Real)5);
+
+            return NSecDer4Partial(f, der_ind1, der_ind2, point, h, error);
+        }
+
+        template <int N>
+        static Real NSecDer4Partial(const IScalarFunction<N> &f, int der_ind1, int der_ind2, const VectorN<Real, N> &point, Real h, Real *error = nullptr)
+        {
+            const Real eps = (std::numeric_limits<Real>::epsilon)();
+
+            Real     orig_x = point[der_ind2];
+            auto x_eval_pos = point;
+            
+            x_eval_pos[der_ind2] = orig_x + h;
+            Real yh              = NDer6Partial(f, der_ind1, x_eval_pos, error);
+
+            x_eval_pos[der_ind2] = orig_x - h;
+            Real ymh             = NDer6Partial(f, der_ind1, x_eval_pos, error);
+
+            x_eval_pos[der_ind2] = orig_x + 2 * h;
+            Real y2h             = NDer6Partial(f, der_ind1, x_eval_pos, error);
+
+            x_eval_pos[der_ind2] = orig_x - 2 * h;
+            Real ym2h            = NDer6Partial(f, der_ind1, x_eval_pos, error);
+
+            Real y2 = ym2h - y2h;
+            Real y1 = yh - ymh;
+            
+            if (error)
+            {
+                x_eval_pos[der_ind2] = orig_x + 3 * h;
+                Real y3h             = NDer6Partial(f, der_ind1, x_eval_pos, error);
+
+                x_eval_pos[der_ind2] = orig_x - 3 * h;
+                Real ym3h            = NDer6Partial(f, der_ind1, x_eval_pos, error);
 
                 *error = std::abs((y3h - ym3h) / 2 + 2 * (ym2h - y2h) + 5 * (yh - ymh) / 2) / (30 * h);
 
@@ -5537,6 +5611,59 @@ namespace MML
         }
 
         template <int N>
+        static Real NSecDer6Partial(const IScalarFunction<N> &f, int der_ind1, int der_ind2,const VectorN<Real, N> &point, Real *error = nullptr)
+        {
+            const Real eps = (std::numeric_limits<Real>::epsilon)();
+            Real h = std::pow(eps / 168, (Real)1 / (Real)7);
+
+            return NSecDer6Partial(f, der_ind1, der_ind2, point, h, error);
+        }
+
+        template <int N>
+        static Real NSecDer6Partial(const IScalarFunction<N> &f, int der_ind1, int der_ind2, const VectorN<Real, N> &point, Real h, Real *error = nullptr)
+        {
+            const Real eps = (std::numeric_limits<Real>::epsilon)();
+
+            Real     orig_x = point[der_ind2];
+            auto x_eval_pos = point;
+
+            x_eval_pos[der_ind2] = orig_x + h;
+            Real yh              = NDer6Partial(f, der_ind1, x_eval_pos, error);
+
+            x_eval_pos[der_ind2] = orig_x - h;
+            Real ymh             = NDer6Partial(f, der_ind1, x_eval_pos, error);
+
+            x_eval_pos[der_ind2] = orig_x + 2 * h;
+            Real y2h             = NDer6Partial(f, der_ind1, x_eval_pos, error);
+
+            x_eval_pos[der_ind2] = orig_x - 2 * h;
+            Real ym2h            = NDer6Partial(f, der_ind1, x_eval_pos, error);
+
+            x_eval_pos[der_ind2] = orig_x + 3 * h;
+            Real y3h             = NDer6Partial(f, der_ind1, x_eval_pos, error);
+
+            x_eval_pos[der_ind2] = orig_x - 3 * h;
+            Real ym3h            = NDer6Partial(f, der_ind1, x_eval_pos, error);
+
+            Real y1 = yh - ymh;
+            Real y2 = ym2h - y2h;
+            Real y3 = y3h - ym3h;
+
+            if (error)
+            {
+                x_eval_pos[der_ind2] = orig_x + 4 * h;
+                Real y4h             = NDer6Partial(f, der_ind1, x_eval_pos, error);
+
+                x_eval_pos[der_ind2] = orig_x - 4 * h;
+                Real ym4h            = NDer6Partial(f, der_ind1, x_eval_pos, error);
+
+                Real y7 = (y4h - ym4h - 6 * y3 - 14 * y1 - 14 * y2) / 2;
+                *error = std::abs(y7) / (140 * h) + 5 * (std::abs(yh) + std::abs(ymh))*eps / h;
+            }
+            return (y3 + 9 * y2 + 45 * y1) / (60 * h);
+        }
+
+        template <int N>
         static VectorN<Real, N> NDer6PartialByAll(const IScalarFunction<N> &f, const VectorN<Real, N> &point, VectorN<Real, N> *error = nullptr)
         {
             const Real eps = (std::numeric_limits<Real>::epsilon)();
@@ -5863,7 +5990,7 @@ namespace MML
         static Real NDer8Partial(const IScalarFunction<N> &f, int deriv_index, const VectorN<Real, N> &point, Real *error = nullptr)
         {
             const Real eps = (std::numeric_limits<Real>::epsilon)();
-            Real h = std::pow(551.25*eps, (Real)1 / (Real)9);
+            Real h = std::pow(551.25*eps, 1.0 / 9.0);
 
             return NDer8Partial(f, deriv_index, point, h, error);
         }
@@ -5920,6 +6047,70 @@ namespace MML
                 Real f9 = (y5h - ym5h) / 2 + 4 * y4 + 27 * y3 / 2 + 24 * y2 + 21 * y1;
                 *error = std::abs(f9) / (630 * h) + 7 * (std::abs(yh) + std::abs(ymh))*eps / h;
 
+            }
+
+            return (tmp1 + tmp2) / (105 * h);            
+        }
+
+        template <int N>
+        static Real NSecDer8Partial(const IScalarFunction<N> &f, int der_ind1, int der_ind2,  const VectorN<Real, N> &point, Real *error = nullptr)
+        {
+            const Real eps = (std::numeric_limits<Real>::epsilon)();
+            Real h = std::pow(551.25*eps, 1.0 / 9.0);
+
+            return NSecDer8Partial(f, der_ind1, der_ind2, point, h, error);
+        }
+
+        template <int N>
+        static Real NSecDer8Partial(const IScalarFunction<N> &f, int der_ind1, int der_ind2,  const VectorN<Real, N> &point, Real h, Real *error = nullptr)
+        {
+            const Real eps = (std::numeric_limits<Real>::epsilon)();
+
+            Real     orig_x = point[der_ind2];
+            auto x_eval_pos = point;
+
+            x_eval_pos[der_ind2] = orig_x + h;
+            Real yh              = NDer8Partial(f, der_ind1, x_eval_pos, error);
+
+            x_eval_pos[der_ind2] = orig_x - h;
+            Real ymh             = NDer8Partial(f, der_ind1, x_eval_pos, error);
+
+            x_eval_pos[der_ind2] = orig_x + 2 * h;
+            Real y2h             = NDer8Partial(f, der_ind1, x_eval_pos, error);
+
+            x_eval_pos[der_ind2] = orig_x - 2 * h;
+            Real ym2h            = NDer8Partial(f, der_ind1, x_eval_pos, error);
+
+            x_eval_pos[der_ind2] = orig_x + 3 * h;
+            Real y3h             = NDer8Partial(f, der_ind1, x_eval_pos, error);
+
+            x_eval_pos[der_ind2] = orig_x - 3 * h;
+            Real ym3h            = NDer8Partial(f, der_ind1, x_eval_pos, error);
+
+            x_eval_pos[der_ind2] = orig_x + 4 * h;
+            Real y4h             = NDer8Partial(f, der_ind1, x_eval_pos, error);
+
+            x_eval_pos[der_ind2] = orig_x - 4 * h;
+            Real ym4h            = NDer8Partial(f, der_ind1, x_eval_pos, error);
+
+            Real y1 = yh - ymh;
+            Real y2 = ym2h - y2h;
+            Real y3 = y3h - ym3h;
+            Real y4 = ym4h - y4h;
+
+            Real tmp1 = 3 * y4 / 8 + 4 * y3;
+            Real tmp2 = 21 * y2 + 84 * y1;
+
+            if (error)
+            {
+                x_eval_pos[der_ind2] = orig_x + 5 * h;
+                Real y5h             = NDer8Partial(f, der_ind1, x_eval_pos, error);
+
+                x_eval_pos[der_ind2] = orig_x - 5 * h;
+                Real ym5h            = NDer8Partial(f, der_ind1, x_eval_pos, error);
+
+                Real f9 = (y5h - ym5h) / 2 + 4 * y4 + 27 * y3 / 2 + 24 * y2 + 21 * y1;
+                *error  = std::abs(f9) / (630 * h) + 7 * (std::abs(yh) + std::abs(ymh))*eps / h;
             }
 
             return (tmp1 + tmp2) / (105 * h);            
@@ -6177,6 +6368,9 @@ namespace MML
         static inline Real(*DerivePartial)(const IScalarFunction<N> &f, int deriv_index, const VectorN<Real, N> &point, Real *error) = Derivation::NDer4Partial;
 
         template<int N>
+        static inline Real(*DeriveSecPartial)(const IScalarFunction<N> &f, int der_ind1, int der_ind2, const VectorN<Real, N> &point, Real *error) = Derivation::NSecDer4Partial;
+
+        template<int N>
         static inline VectorN<Real, N>(*DerivePartialAll)(const IScalarFunction<N> &f, const VectorN<Real, N> &point, VectorN<Real, N> *error) = Derivation::NDer4PartialByAll;
 
         template<int N>
@@ -6423,7 +6617,8 @@ namespace MML
 {
     // ovdje dodati translational, rotational, galilean, lorentzian transf
     // SVE su to transformacije koordinata
-
+    // TODO - dodati Cart2DToPolar kao primjer 2D transformacije
+    // TODO - dodati CartesianRotation kao primjer 3D transformacije
     template<typename VectorFrom, typename VectorTo, int N>
     class CoordTransf : ICoordTransf<VectorFrom, VectorTo, N>
     {
@@ -6501,15 +6696,13 @@ namespace MML
         }        
 
         // transform tensor
-    };        
+    }; 
+
     class CoordTransfRectilinear : public CoordTransf<VectorN<Real, 3>, VectorN<Real, 3>, 3>
     {
-        public:
+    private:
         Vector3Cartesian _base[3];
-        VectorN<Real, 3> _dual[3];
-
-        MatrixNM<Real,3,3> _alpha;
-        MatrixNM<Real,3,3> _transf;
+        Vector3Cartesian _dual[3];
 
         ScalarFunctionFromStdFunc<3> _f1;
         ScalarFunctionFromStdFunc<3> _f2;
@@ -6519,7 +6712,10 @@ namespace MML
         ScalarFunctionFromStdFunc<3> _fInverse2;
         ScalarFunctionFromStdFunc<3> _fInverse3;
 
-        public:
+    public:
+        MatrixNM<Real,3,3> _alpha;
+        MatrixNM<Real,3,3> _transf;
+
         CoordTransfRectilinear( VectorN<Real, 3> b1, 
                                 VectorN<Real, 3> b2, 
                                 VectorN<Real, 3> b3) : _f1( std::function<double(const VectorN<Real, 3>&)> { std::bind( &CoordTransfRectilinear::func1, this, std::placeholders::_1 ) } ),
@@ -6560,14 +6756,13 @@ namespace MML
         double funcInverse2(const VectorN<Real, 3> &q) { return (_transf * q)[1]; }
         double funcInverse3(const VectorN<Real, 3> &q) { return (_transf * q)[2]; }
 
-        VectorN<Real, 3> Dual(int i)
-        {
-            return _dual[i];
-        }
-        VectorN<Real, 3>           transf(const VectorN<Real, 3> &q)           { return VectorN<Real, 3>{ func1(q), func2(q), func3(q) }; }
-        VectorN<Real, 3>           transfInverse(const VectorN<Real, 3> &q)    { return VectorN<Real, 3>{ funcInverse1(q), funcInverse2(q), funcInverse3(q) }; }
+        Vector3Cartesian    Base(int i) { return _dual[i]; }
+        Vector3Cartesian    Dual(int i) { return _dual[i]; }
+
+        VectorN<Real, 3>    transf(const VectorN<Real, 3> &q)           { return VectorN<Real, 3>{ func1(q), func2(q), func3(q) }; }
+        VectorN<Real, 3>    transfInverse(const VectorN<Real, 3> &q)    { return VectorN<Real, 3>{ funcInverse1(q), funcInverse2(q), funcInverse3(q) }; }
         
-        IScalarFunction<3>&  coordTransfFunc(int i)         
+        IScalarFunction<3>& coordTransfFunc(int i)         
         { 
             if( i == 0 ) return _f1;
             else if( i == 1 ) return _f2;
