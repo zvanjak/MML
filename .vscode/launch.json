@@ -82,7 +82,7 @@
             "name": "Win - DemoApp Launch",
             "type": "cppvsdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/Debug/MML_DemoApp.exe",
+            "program": "${workspaceFolder}/build/Debug/MML_Demo.exe",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${fileDirname}",
