@@ -43,6 +43,11 @@ namespace MML::TestData
     class ParametricCurvesTestBed
     {
     public:
+        static int getNumTestCurves() { return 3; }
+        static int getNumTestCurvesArcLenParam() { return 1; }
+
+        const static TestSpaceCurve& getTestCurve(int i)  { return _listCurves[i]; }
+
         const static inline TestSpaceCurve _listCurves[] = { 
                 {"Helix", "{cos(t), sin(t), t}", 0.0, 2.0 * Constants::PI,  
                         [](double t) { return VectorN<Real,3>{ cos(t), sin(t), t}; }, 
