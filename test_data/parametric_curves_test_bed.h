@@ -43,20 +43,29 @@ namespace MML::TestData
     class ParametricCurvesTestBed
     {
     public:
-        static int getNumTestCurves() { return 3; }
+        static int getNumTestCurves()            { return 3; }
         static int getNumTestCurvesArcLenParam() { return 1; }
 
-        const static TestSpaceCurve& getTestCurve(int i)  { return _listCurves[i]; }
-        const static TestSpaceCurve& getTestCurveArcLenParam(int i)  { return _listCurvesArcLenParam[i]; }
+        const static TestSpaceCurve& getTestCurve(int i)            { return _listCurves[i]; }
+        const static TestSpaceCurve& getTestCurveArcLenParam(int i) { return _listCurvesArcLenParam[i]; }
 
-        const static TestSpaceCurve& getTestFunctionReal(const std::string &curveName)
+        const static TestSpaceCurve& getTestCurve(const std::string &curveName)
         {
             for (int i = 0; i < getNumTestCurves(); i++)
             {
                 if (_listCurves[i]._curveName == curveName)
                     return _listCurves[i];
             }
-            throw std::runtime_error("TestSpaceCurve not found!");
+            throw std::runtime_error("TestSpaceCurve " + curveName + " not found!");
+        }
+        const static TestSpaceCurve& getTestCurveArcLenParam(const std::string &curveName)
+        {
+            for (int i = 0; i < getNumTestCurvesArcLenParam(); i++)
+            {
+                if (_listCurvesArcLenParam[i]._curveName == curveName)
+                    return _listCurves[i];
+            }
+            throw std::runtime_error("TestSpaceCurveArcLenParam " + curveName + " not found!");
         }
 
         const static inline TestSpaceCurve _listCurves[] = { 
