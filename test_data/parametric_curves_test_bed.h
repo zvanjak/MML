@@ -47,6 +47,17 @@ namespace MML::TestData
         static int getNumTestCurvesArcLenParam() { return 1; }
 
         const static TestSpaceCurve& getTestCurve(int i)  { return _listCurves[i]; }
+        const static TestSpaceCurve& getTestCurveArcLenParam(int i)  { return _listCurvesArcLenParam[i]; }
+
+        const static TestSpaceCurve& getTestFunctionReal(const std::string &curveName)
+        {
+            for (int i = 0; i < getNumTestCurves(); i++)
+            {
+                if (_listCurves[i]._curveName == curveName)
+                    return _listCurves[i];
+            }
+            throw std::runtime_error("TestFunctionReal not found!");
+        }
 
         const static inline TestSpaceCurve _listCurves[] = { 
                 {"Helix", "{cos(t), sin(t), t}", 0.0, 2.0 * Constants::PI,  
