@@ -97,7 +97,7 @@ namespace MML::TestData
                 if (_listFuncReal[i]._funcName == funcName)
                     return _listFuncReal[i];
             }
-            throw std::runtime_error("TestFunctionReal not found!");
+            throw std::runtime_error("TestFunctionReal " + funcName + " not found!");
         }
         const static TestFunctionRealWithDerivation& getTestFunctionRealWithDerivation(const std::string &funcName)
         {
@@ -106,7 +106,7 @@ namespace MML::TestData
                 if (_listFuncRealWithDerivation[i]._funcName == funcName)
                     return _listFuncRealWithDerivation[i];
             }
-            throw std::runtime_error("TestFunctionRealWithDerivation not found!");
+            throw std::runtime_error("TestFunctionRealWithDerivation " + funcName + " not found!");
         }
         const static TestFunctionRealWithIntegral& getTestFunctionRealWithIntegral(const std::string &funcName)
         {
@@ -115,7 +115,7 @@ namespace MML::TestData
                 if (_listFuncRealWithIntegral[i]._funcName == funcName)
                     return _listFuncRealWithIntegral[i];
             }
-            throw std::runtime_error("TestFunctionRealWithIntegral not found!");
+            throw std::runtime_error("TestFunctionRealWithIntegral " + funcName + " not found!");
         }
 
     private:

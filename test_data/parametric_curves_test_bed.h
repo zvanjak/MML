@@ -56,7 +56,7 @@ namespace MML::TestData
                 if (_listCurves[i]._curveName == curveName)
                     return _listCurves[i];
             }
-            throw std::runtime_error("TestFunctionReal not found!");
+            throw std::runtime_error("TestSpaceCurve not found!");
         }
 
         const static inline TestSpaceCurve _listCurves[] = { 
