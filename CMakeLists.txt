@@ -13,6 +13,7 @@ set( MML_DEMO_SOURCES   src/main.cpp
                         src/core/demo_coreutils.cpp
                         src/core/demo_derivation.cpp
                         src/core/demo_function.cpp
+                        src/core/demo_function_serialization.cpp
                         src/core/demo_geometry.cpp
                         src/core/demo_integration.cpp
                         src/core/demo_interpolated_function.cpp
