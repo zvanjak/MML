@@ -5,8 +5,9 @@
 #else
 #include "core/Integration.h"
 
-#include "../test_data/real_functions_test_bed.h"
 #endif
+
+#include "../test_data/real_functions_test_bed.h"
 
 using namespace MML;
 

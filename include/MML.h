@@ -2766,7 +2766,7 @@ namespace MML
             // Given a Matrix<Real> a[1..n][1..n], this routine replaces it by the LU decomposition of a rowwise
             // permutation of itself. a and n are input. a is output, arranged as in equation (NR 2.3.14);
             // indx[1..n] is an output Vector<Real> that records the row permutation effected by the partial
-            // pivoting; d is output as ±1 depending on whether the number of row interchanges was even
+            // pivoting; d is output as ï¿½1 depending on whether the number of row interchanges was even
             // or odd, respectively. This routine is used in combination with lubksb to solve linear equations
             // or invert a Matrix<Real>.
             const Real TINY=1.0e-40;
@@ -2814,7 +2814,7 @@ namespace MML
         }
         void Solve(Vector<_Type> &b, Vector<_Type> &x)
         {
-            // Solves the set of n linear equations A·X = B. Here a[1..n][1..n] is input, not as the Matrix<Real>
+            // Solves the set of n linear equations Aï¿½X = B. Here a[1..n][1..n] is input, not as the Matrix<Real>
             // A but rather as its LU decomposition, determined by the routine ludcmp. indx[1..n] is input
             // as the permutation Vector<Real> returned by ludcmp. b[1..n] is input as the right-hand side Vector<Real>
             // B, and returns with the solution Vector<Real> X. a, n, and indx are not modified by this routine
@@ -2883,7 +2883,7 @@ namespace MML
             return dd;
         }
         
-        // Improves a solution Vector<Real> x[1..n] of the linear set of equations A · X = B. The Matrix<Real>
+        // Improves a solution Vector<Real> x[1..n] of the linear set of equations A ï¿½ X = B. The Matrix<Real>
         // a[1..n][1..n], and the Vector<Real>s b[1..n] and x[1..n] are input, as is the dimension n.
         // Also input is alud[1..n][1..n], the LU decomposition of a as returned by ludcmp, and
         // the Vector<Real> indx[1..n] also returned by that routine. On output, only x[1..n] is modified,
@@ -2918,7 +2918,7 @@ namespace MML
         CholeskyDecompositionSolver(Matrix<Real> &a) : n(a.RowNum()), el(a) 
         {
             // Given a positive-definite symmetric Matrix<Real> a[1..n][1..n], this routine constructs its Cholesky
-            // decomposition, A = L · LT . On input, only the upper triangle of a need be given; it is not
+            // decomposition, A = L ï¿½ LT . On input, only the upper triangle of a need be given; it is not
             // modified. The Cholesky factor L is returned in the lower triangle of a, except for its diagonal
             // elements which are returned in p[1..n]
             int i,j,k;
@@ -2941,7 +2941,7 @@ namespace MML
         }
         void Solve(Vector<Real> &b, Vector<Real> &x) 
         {
-            // Solves the set of n linear equations A · x = b, where a is a positive-definite symmetric Matrix<Real>.
+            // Solves the set of n linear equations A ï¿½ x = b, where a is a positive-definite symmetric Matrix<Real>.
             // a[1..n][1..n] and p[1..n] are input as the output of the routine choldc. Only the lower
             // triangle of a is accessed. b[1..n] is input as the right-hand side Vector<Real>. The solution Vector<Real> is
             // returned in x[1..n]. a, n, and p are not modified and can be left in place for successive calls
@@ -3058,7 +3058,7 @@ namespace MML
             }
         }
 
-        // Solves the set of n linear equations A · x = b. a[1..n][1..n], c[1..n], and d[1..n] are
+        // Solves the set of n linear equations A ï¿½ x = b. a[1..n][1..n], c[1..n], and d[1..n] are
         // input as the output of the routine qrdcmp and are not modified. b[1..n] is input as the
         // right-hand side Vector<Real>, and is overwritten with the solution Vector<Real> on output. 
         void Solve(Vector<Real> &b, Vector<Real> &x) 
@@ -3079,7 +3079,7 @@ namespace MML
 
         void rsolve(Vector<Real> &b, Vector<Real> &x) 
         {
-            // Solves the set of n linear equations R · x = b, where R is an upper triangular Matrix<Real> stored in
+            // Solves the set of n linear equations R ï¿½ x = b, where R is an upper triangular Matrix<Real> stored in
             // a and d. a[1..n][1..n] and d[1..n] are input as the output of the routine qrdcmp and
             // are not modified. b[1..n] is input as the right-hand side Vector<Real>, and is overwritten with the
             // solution Vector<Real> on output            
@@ -3096,8 +3096,8 @@ namespace MML
         }
         void update(Vector<Real> &u, Vector<Real> &v) 
         {
-            // Given the QR decomposition of some n × n Matrix<Real>, calculates the QR decomposition of the
-            // Matrix<Real> Q·(R+ u x v). The quantities are dimensioned as r[1..n][1..n], qt[1..n][1..n],
+            // Given the QR decomposition of some n ï¿½ n Matrix<Real>, calculates the QR decomposition of the
+            // Matrix<Real> Qï¿½(R+ u x v). The quantities are dimensioned as r[1..n][1..n], qt[1..n][1..n],
             // u[1..n], and v[1..n]. Note that QT is input and returned in qt.            
             int i,k;
             Vector<Real> w(u);
@@ -3200,7 +3200,7 @@ namespace MML
     public:
         SVDecompositionSolver(Matrix<Real> &a) : m(a.RowNum()), n(a.ColNum()), u(a), v(n,n), w(n) 
         {
-            // Given a Matrix<Real> a[1..m][1..n], this routine computes its singular value decomposition, A = U·W ·V T . 
+            // Given a Matrix<Real> a[1..m][1..n], this routine computes its singular value decomposition, A = Uï¿½W ï¿½V T . 
             // The Matrix<Real> U replaces a on output. 
             // The diagonal Matrix<Real> of singular values W is output as a Vector<Real> w[1..n]. 
             // The Matrix<Real> V (not the transpose V T ) is output as v[1..n][1..n].            
@@ -4741,7 +4741,7 @@ namespace MML
     public:
         virtual VectorN<Real, N> operator()(Real x) const = 0;
 
-        // GetMixX(), GetMaxX(), može vracati i infinity
+        // GetMixX(), GetMaxX(), moï¿½e vracati i infinity
     };
 
     //////////////////////////////////////////////////////////////////////
@@ -4755,8 +4755,8 @@ namespace MML
             return operator()(coord[0], coord[1]);
         }
 
-        // GetMixX(), GetMaxX(), može vracati i infinity
-        // GetMixY(), GetMaxY(), može vracati i infinity
+        // GetMixX(), GetMaxX(), moï¿½e vracati i infinity
+        // GetMixY(), GetMaxY(), moï¿½e vracati i infinity
         // da je povrsina omedjena
     };
 
@@ -7103,7 +7103,7 @@ namespace MML
         {
             // Returns the integral of the function func from a to b. The parameters EPS can be set to the
             // desired fractional accuracy and JMAX so that 2 to the power JMAX-1 is the maximum allowed
-            // number of steps. Integration is performed by Simpson’s rule.
+            // number of steps. Integration is performed by Simpsonï¿½s rule.
 
             // The routine qsimp will in general be more efficient than qtrap (i.e., require
             // fewer function evaluations) when the function to be integrated has a finite 4th
@@ -7133,8 +7133,8 @@ namespace MML
 
         static Real IntegrateRomberg(const IRealFunction &func, Real a, Real b, Real req_eps)
         {
-            // Returns the integral of the function func from a to b. Integration is performed by Romberg’s
-            // method of order 2K, where, e.g., K=2 is Simpson’s rule.
+            // Returns the integral of the function func from a to b. Integration is performed by Rombergï¿½s
+            // method of order 2K, where, e.g., K=2 is Simpsonï¿½s rule.
 
             // The routine qromb, along with its required trapzd and polint, is quite
             // powerful for sufficiently smooth (e.g., analytic) integrands, integrated over intervals
@@ -7177,6 +7177,879 @@ namespace MML
 
 	};
 } // end namespace
+///////////////////////////   ./include/core/Function.h   ///////////////////////////
+
+
+
+namespace MML
+{
+    ///////////////////////////     REAL FUNCTION      ////////////////////////////////////
+    class RealFunction : public IRealFunction
+    {
+        Real (*_func)(const Real) ;
+    public:
+        RealFunction(Real (*inFunc)(const Real) ) : _func(inFunc)    {}
+
+        Real operator()(const Real x) const    { return _func(x); }
+
+        // TODO - expand to Taylor series
+    };
+    class RealFunctionFromStdFunc : public IRealFunction
+    {
+        std::function<Real(const Real)> _func;
+    public:
+        RealFunctionFromStdFunc(std::function<Real(const Real)> inFunc) : _func(inFunc)    {}
+
+        Real operator()(const Real x) const    { return _func(x); }
+    };
+
+    class RealFunctionInterpolated : public IRealFunction
+    {
+    public:
+        Real virtual rawinterp(int jlo, Real x) const = 0;
+    };
+    
+    ///////////////////////////     SCALAR FUNCTION       //////////////////////////////////
+    template<int N>
+    class ScalarFunction : public IScalarFunction<N>
+    {
+        Real (*_func)(const VectorN<Real, N> &);
+    public:
+        ScalarFunction( Real (*inFunc)(const VectorN<Real, N> &) ) : _func(inFunc)    {}
+
+        Real operator()(const VectorN<Real, N> &x) const  { return _func(x); }
+    };
+
+    template<int N>
+    class ScalarFunctionFromStdFunc : public IScalarFunction<N>
+    {
+        std::function<Real(const VectorN<Real, N> &)> _func;
+    public:
+        ScalarFunctionFromStdFunc(std::function<Real(const VectorN<Real, N> &)> inFunc) : _func(inFunc)     {}
+
+        Real operator()(const VectorN<Real, N> &x) const  { return _func(x); }
+    };
+    
+    /////////////////////////    VECTOR FUNCTION N -> N      ///////////////////////////////////
+    template<int N>
+    class VectorFunction : public IVectorFunction<N>
+    {
+        VectorN<Real, N> (*_func)(const VectorN<Real, N> &);
+    public:
+        VectorFunction( VectorN<Real, N> (*inFunc)(const VectorN<Real, N> &) ) : _func(inFunc)      {}
+
+        VectorN<Real, N> operator()(const VectorN<Real, N> &x) const  { return _func(x); }
+    };
+    template<int N>
+    class VectorFunctionFromStdFunc : public IVectorFunction<N>
+    {
+        std::function<VectorN<Real, N>(const VectorN<Real, N> &)> _func;
+    public:
+        VectorFunctionFromStdFunc(std::function<VectorN<Real, N>(const VectorN<Real, N> &)> &inFunc) : _func(inFunc)    {}
+
+        VectorN<Real, N> operator()(const VectorN<Real, N> &x) const   { return _func(x); }
+    };
+
+   /////////////////////////    VECTOR FUNCTION N -> M      ///////////////////////////////////
+    template<int N, int M>
+    class VectorFunctionNM : public IVectorFunctionNM<N,M>
+    {
+        VectorN<Real, M> (*_func)(const VectorN<Real, N> &);
+    public:
+        VectorFunctionNM( VectorN<Real, N> (*inFunc)(const VectorN<Real, N> &) ) : _func(inFunc)      {}
+
+        VectorN<Real, M> operator()(const VectorN<Real, N> &x) const  { return _func(x); }
+    };
+    template<int N, int M>
+    class VectorFunctionNMFromStdFunc : public IVectorFunctionNM<N,M>
+    {
+        std::function<VectorN<Real, M>(const VectorN<Real, N> &)> _func;
+    public:
+        VectorFunctionNMFromStdFunc(std::function<VectorN<Real, M>(const VectorN<Real, N> &)> &inFunc) : _func(inFunc)    {}
+
+        VectorN<Real, M> operator()(const VectorN<Real, N> &x) const   { return _func(x); }
+    };
+
+    //////////////////////     PARAMETRIC CURVE             ///////////////////////////////////
+    template<int N>
+    class ParametricCurve : public IParametricCurve<N>
+    {
+        VectorN<Real, N> (*_func)(Real);
+        // TODO - staviti i interval za T?
+        // default je R
+        // TODO - IsClosed() nad bool _isClosed? default je false
+    public:
+        ParametricCurve( VectorN<Real, N> (*inFunc)(Real) ) : _func(inFunc)    {}
+
+        virtual VectorN<Real, N> operator()(Real x) const  { return _func(x); }
+
+        // TODO - GetTrace(t1, t2, deltaT)
+    };
+
+    template<int N>
+    class ParametricCurveFromStdFunc : public IParametricCurve<N>
+    {
+        std::function<VectorN<Real, N>(Real)> _func;
+    public:
+        ParametricCurveFromStdFunc(std::function<VectorN<Real, N>(Real)> &inFunc) : _func(inFunc)    {}
+
+        VectorN<Real, N> operator()(Real x) const   { return _func(x); }
+    };
+    
+    template<int N>
+    class ParametricCurveInterpolated : public IParametricCurve<N>
+    {
+        // TODO - umjesto func pointera dobije niz tocaka
+        public:
+                virtual VectorN<Real, N> operator()(Real x) const  { return VectorN<Real, N>{0}; }
+    };
+
+    /////////////////////       PARAMETRIC SURFACE         //////////////////////////////////
+    template<int N>
+    class ParametricSurface : public IParametricSurface<N>
+    {
+        VectorN<Real, N> (*_func)(Real u, Real w);
+    public:
+        ParametricSurface( VectorN<Real, N> (*inFunc)(Real u, Real w) ) : _func(inFunc)    {}
+
+        VectorN<Real, N> operator()(Real u, Real w) const  { return _func(u,w); }
+    };
+
+    template<int N>
+    class ParametricSurfaceFromStdFunc : public IParametricSurface<N>
+    {
+        std::function<VectorN<Real, N>(Real u, Real w)> _func;
+    public:
+        ParametricSurfaceFromStdFunc(std::function<VectorN<Real, N>(Real u, Real w)> &inFunc) : _func(inFunc)    {}
+
+        VectorN<Real, N> operator()(Real u, Real w) const   { return _func(u,w); }
+    };    
+
+    /////////////////////       FUNCTION HELPERS         //////////////////////////////////
+    class RealFuncDiffHelper : public IRealFunction
+    {
+        IRealFunction &_f1, &_f2;
+    public:
+        RealFuncDiffHelper(IRealFunction &f1, IRealFunction &f2) : _f1(f1), _f2(f2) {}
+        Real operator()(Real x) const { return _f1(x) - _f2(x); }
+    };
+    
+    class RealFuncDiffAbsHelper : public IRealFunction
+    {
+        IRealFunction &_f1, &_f2;
+    public:
+        RealFuncDiffAbsHelper(IRealFunction &f1, IRealFunction &f2) : _f1(f1), _f2(f2) {}
+        Real operator()(Real x) const { return std::abs(_f1(x) - _f2(x)); }
+    };
+
+    class RealFuncDiffSqrHelper : public IRealFunction
+    {
+        IRealFunction &_f1, &_f2;
+    public:
+        RealFuncDiffSqrHelper(IRealFunction &f1, IRealFunction &f2) : _f1(f1), _f2(f2) {}
+        Real operator()(Real x) const { return SQR(_f1(x) - _f2(x)); }
+    };    
+
+} // end namespace
+
+///////////////////////////   ./include/core/InterpolatedFunction.h   ///////////////////////////
+
+
+
+namespace MML
+{
+    class RealFunctionInterpolatedBase : public RealFunctionInterpolated
+    {
+    public:
+        mutable int jsav, cor;
+
+        int n, mm, dj;
+        // TODO - data by shared pointer!!!
+        const Real *xx, *yy;
+
+        RealFunctionInterpolatedBase(Vector<Real> &x, const Real *y, int m)
+            : n((int)x.size()), mm(m), jsav(0), cor(0), xx(&x[0]), yy(y) 
+        {
+            dj = std::min(1,(int)pow((Real)n,0.25));
+        }
+        
+        // Real interp(Real x) const {
+        //     int jlo = cor ? hunt(x) : locate(x);
+        //     return rawinterp(jlo,x);
+        // }
+
+        Real operator()(Real x) const
+        {
+            int jlo = cor ? hunt(x) : locate(x);
+            return rawinterp(jlo,x);
+        }
+    
+        // Given a value x, return a value j such that x is (insofar as possible) centered in the subrange
+        // xx[j..j+mm-1], where xx is the stored pointer. The values in xx must be monotonic, either
+        // increasing or decreasing. The returned value is not less than 0, nor greater than n-1.
+        int locate(const Real x) const
+        {
+            int ju,jm,jl;
+            if (n < 2 || mm < 2 || mm > n) throw("locate size error");
+            bool ascnd=(xx[n-1] >= xx[0]);
+            jl=0;
+            ju=n-1;
+            while (ju-jl > 1) {
+                jm = (ju+jl) >> 1;
+                if (x >= xx[jm] == ascnd)
+                    jl=jm;
+                else
+                    ju=jm;
+            }
+            cor = std::abs(jl-jsav) > dj ? 0 : 1;
+            jsav = jl;
+            return std::max(0,std::min(n-mm,jl-((mm-2)>>1)));
+        }
+
+        // Given a value x, return a value j such that x is (insofar as possible) centered in the subrange
+        // xx[j..j+mm-1], where xx is the stored pointer. The values in xx must be monotonic, either
+        // increasing or decreasing. The returned value is not less than 0, nor greater than n-1.
+        int hunt(const Real x) const
+        {
+            int jl=jsav, jm, ju, inc=1;
+            if (n < 2 || mm < 2 || mm > n) throw("hunt size error");
+            bool ascnd=(xx[n-1] >= xx[0]);
+            if (jl < 0 || jl > n-1) {
+                jl=0;
+                ju=n-1;
+            } else {
+                if (x >= xx[jl] == ascnd) {
+                    for (;;) {
+                        ju = jl + inc;
+                        if (ju >= n-1) { ju = n-1; break;}
+                        else if (x < xx[ju] == ascnd) break;
+                        else {
+                            jl = ju;
+                            inc += inc;
+                        }
+                    }
+                } else {
+                    ju = jl;
+                    for (;;) {
+                        jl = jl - inc;
+                        if (jl <= 0) { jl = 0; break;}
+                        else if (x >= xx[jl] == ascnd) break;
+                        else {
+                            ju = jl;
+                            inc += inc;
+                        }
+                    }
+                }
+            }
+            while (ju-jl > 1) {
+                jm = (ju+jl) >> 1;
+                if (x >= xx[jm] == ascnd)
+                    jl=jm;
+                else
+                    ju=jm;
+            }
+            cor = std::abs(jl-jsav) > dj ? 0 : 1;
+            jsav = jl;
+            return std::max(0,std::min(n-mm,jl-((mm-2)>>1)));
+        }
+    };
+    
+    struct LinearInterpRealFunc : RealFunctionInterpolatedBase
+    {
+        LinearInterpRealFunc(Vector<Real> &xv, Vector<Real> &yv) : RealFunctionInterpolatedBase(xv,&yv[0],2)  {}
+
+        Real rawinterp(int j, Real x) const {
+            if (xx[j]==xx[j+1]) return yy[j];
+            else return yy[j] + ((x-xx[j])/(xx[j+1]-xx[j]))*(yy[j+1]-yy[j]);
+        }
+    };
+
+    // Polynomial interpolation object. Construct with x and y vectors, and the number M of points
+    // to be used locally (polynomial order plus one), then call interp for interpolated values.
+    struct PolynomInterpRealFunc : RealFunctionInterpolatedBase
+    {
+        mutable Real dy;
+
+        // The user interface to Poly_interp is virtually the same as for Linear_interp
+        // (end of ï¿½3.1), except that an additional argument in the constructor sets M, the number of points used (the order plus one). 
+        PolynomInterpRealFunc(Vector<Real> &xv, Vector<Real> &yv, int m) : RealFunctionInterpolatedBase(xv,&yv[0],m), dy(0.) 
+        {}
+        
+        // Given a value x, and using pointers to data xx and yy, this routine returns an interpolated
+        // value y, and stores an error estimate dy. The returned value is obtained by mm-point polynomial
+        // interpolation on the subrange xx[jl..jl+mm-1].
+        Real rawinterp(int jl, Real x) const
+        {
+            int i,m,ns=0;
+            Real y,den,dif,dift,ho,hp,w;
+            const Real *xa = &xx[jl], *ya = &yy[jl];
+            Vector<Real> c(mm),d(mm);
+            dif=std::abs(x-xa[0]);
+            for (i=0;i<mm;i++) {
+                if ((dift=std::abs(x-xa[i])) < dif) {
+                    ns=i;
+                    dif=dift;
+                }
+                c[i]=ya[i];
+                d[i]=ya[i];
+            }
+            y=ya[ns--];
+            for (m=1;m<mm;m++) {
+                for (i=0;i<mm-m;i++) {
+                    ho=xa[i]-x;
+                    hp=xa[i+m]-x;
+                    w=c[i+1]-d[i];
+                    if ((den=ho-hp) == 0.0) throw("Poly_interp error");
+                    den=w/den;
+                    d[i]=hp*den;
+                    c[i]=ho*den;
+                }
+
+                y += (dy=(2*(ns+1) < (mm-m) ? c[ns+1] : d[ns--]));
+                // After each column in the tableau is completed, we decide which correction, c or d, we
+                // want to add to our accumulating value of y, i.e., which path to take through the tableau
+                // ï¿½ forking up or down. We do this in such a way as to take the most ï¿½straight lineï¿½
+                // route through the tableau to its apex, updating ns accordingly to keep track of where
+                // we are. This route keeps the partial approximations centered (insofar as possible) on
+                // the target x. The last dy added is thus the error indication.                
+            }
+            return y;
+        }
+    };
+
+    // Diagonal rational function interpolation object. Construct with x and y vectors, and the number
+    // m of points to be used locally, then call interp for interpolated values.
+    struct RationalInterpRealFunc : RealFunctionInterpolatedBase
+    {
+        mutable Real dy;
+        RationalInterpRealFunc(Vector<Real> &xv, Vector<Real> &yv, int m) : RealFunctionInterpolatedBase(xv,&yv[0],m), dy(0.) 
+        {}
+        
+        // Given a value x, and using pointers to data xx and yy, this routine returns an interpolated value
+        // y, and stores an error estimate dy. The returned value is obtained by mm-point diagonal rational
+        // function interpolation on the subrange xx[jl..jl+mm-1].        
+        Real rawinterp(int jl, Real x) const
+        {
+            const Real TINY=1.0e-99;
+            int m,i,ns=0;
+            Real y,w,t,hh,h,dd;
+            const Real *xa = &xx[jl], *ya = &yy[jl];
+            Vector<Real> c(mm),d(mm);
+            hh=std::abs(x-xa[0]);
+            for (i=0;i<mm;i++) {
+                h=std::abs(x-xa[i]);
+                if (h == 0.0) {
+                    dy=0.0;
+                    return ya[i];
+                } else if (h < hh) {
+                    ns=i;
+                    hh=h;
+                }
+                c[i]=ya[i];
+                d[i]=ya[i]+TINY;
+            }
+            y=ya[ns--];
+            for (m=1;m<mm;m++) {
+                for (i=0;i<mm-m;i++) {
+                    w=c[i+1]-d[i];
+                    h=xa[i+m]-x;
+                    t=(xa[i]-x)*d[i]/h;
+                    dd=t-c[i+1];
+                    if (dd == 0.0)  // This error condition indicates that the interpolating function has a pole at the requested value of x.
+                        throw("Error in routine ratint");
+                    dd=w/dd;
+                    d[i]=c[i+1]*dd;
+                    c[i]=t*dd;
+                }
+                y += (dy=(2*(ns+1) < (mm-m) ? c[ns+1] : d[ns--]));
+            }
+            return y;
+        }
+    };
+
+    // Cubic spline interpolation object. Construct with x and y vectors, and (optionally) values of
+    // the first derivative at the endpoints, then call interp for interpolated values.
+    struct SplineInterpRealFunc : RealFunctionInterpolatedBase
+    {
+        Vector<Real> y2;
+        
+        SplineInterpRealFunc(Vector<Real> &xv, Vector<Real> &yv, Real yp1=1.e99, Real ypn=1.e99)
+            : RealFunctionInterpolatedBase(xv,&yv[0],2), y2(xv.size())
+        {
+            sety2(&xv[0],&yv[0],yp1,ypn);
+        }
+
+        SplineInterpRealFunc(Vector<Real> &xv, const Real *yv, Real yp1=1.e99, Real ypn=1.e99)
+            : RealFunctionInterpolatedBase(xv,yv,2), y2(xv.size())
+        {
+            sety2(&xv[0],yv,yp1,ypn);
+        }
+
+        // This routine stores an array y2[0..n-1] with second derivatives of the interpolating function
+        // at the tabulated points pointed to by xv, using function values pointed to by yv. If yp1 and/or
+        // ypn are equal to 1  1099 or larger, the routine is signaled to set the corresponding boundary
+        // condition for a natural spline, with zero second derivative on that boundary; otherwise, they are
+        // the values of the first derivatives at the endpoints.
+        void sety2(const Real *xv, const Real *yv, Real yp1, Real ypn)
+        {
+            int i,k;
+            Real p,qn,sig,un;
+            int n=(int) y2.size();
+            Vector<Real> u(n-1);
+            if (yp1 > 0.99e99)
+                y2[0]=u[0]=0.0;
+            else {
+                y2[0] = -0.5;
+                u[0]=(3.0/(xv[1]-xv[0]))*((yv[1]-yv[0])/(xv[1]-xv[0])-yp1);
+            }
+            for (i=1;i<n-1;i++) {
+                sig=(xv[i]-xv[i-1])/(xv[i+1]-xv[i-1]);
+                p=sig*y2[i-1]+2.0;
+                y2[i]=(sig-1.0)/p;
+                u[i]=(yv[i+1]-yv[i])/(xv[i+1]-xv[i]) - (yv[i]-yv[i-1])/(xv[i]-xv[i-1]);
+                u[i]=(6.0*u[i]/(xv[i+1]-xv[i-1])-sig*u[i-1])/p;
+            }
+            if (ypn > 0.99e99)
+                qn=un=0.0;
+            else {
+                qn=0.5;
+                un=(3.0/(xv[n-1]-xv[n-2]))*(ypn-(yv[n-1]-yv[n-2])/(xv[n-1]-xv[n-2]));
+            }
+            y2[n-1]=(un-qn*u[n-2])/(qn*y2[n-2]+1.0);
+            for (k=n-2;k>=0;k--)
+                y2[k]=y2[k]*y2[k+1]+u[k];
+        }
+
+        // Given a value x, and using pointers to data xx and yy, and the stored vector of second derivatives
+        // y2, this routine returns the cubic spline interpolated value y.        
+        Real rawinterp(int jl, Real x) const
+        {
+            int klo=jl,khi=jl+1;
+            Real y,h,b,a;
+            h=xx[khi]-xx[klo];
+            if (h == 0.0) throw("Bad input to routine splint");
+            a=(xx[khi]-x)/h;
+            b=(x-xx[klo])/h;
+            y=a*yy[klo]+b*yy[khi]+((a*a*a-a)*y2[klo]
+                +(b*b*b-b)*y2[khi])*(h*h)/6.0;
+            return y;
+        }
+    };
+
+    // Barycentric rational interpolation object. After constructing the object, call interp for interpolated values. Note that no error estimate dy is calculated.
+    struct BaryRatInterpRealFunc : RealFunctionInterpolatedBase
+    {
+        Vector<Real> w;
+        int d;
+
+        // Constructor arguments are x and y vectors of length n, and order d of desired approximation.
+        BaryRatInterpRealFunc(Vector<Real> &xv, Vector<Real> &yv, int dd) 
+            : RealFunctionInterpolatedBase(xv,&yv[0], (int) xv.size()), w(n), d(dd)
+        {
+            if (n<=d) throw("d too large for number of points in BaryRat_interp");
+            for (int k=0;k<n;k++) {
+                int imin=std::max(k-d,0);
+                int imax = k >= n-d ? n-d-1 : k;
+                Real temp = imin & 1 ? -1.0 : 1.0;
+                Real sum=0.0;
+                for (int i=imin;i<=imax;i++) {
+                    int jmax=std::min(i+d,n-1);
+                    Real term=1.0;
+                    for (int j=i;j<=jmax;j++) {
+                        if (j==k) continue;
+                        term *= (xx[k]-xx[j]);
+                    }
+                    term=temp/term;
+                    temp=-temp;
+                    sum += term;
+                }
+                w[k]=sum;
+            }
+        }
+
+        // Use equation (NR 3.4.9) to compute the barycentric rational interpolant. Note that jl is not used
+        // since the approximation is global; it is included only for compatibility with Base_interp           
+        Real rawinterp(int jl, Real x) const
+        {
+            Real num=0,den=0;
+            for (int i=0;i<n;i++) {
+                Real h=x-xx[i];
+                if (h == 0.0) {
+                    return yy[i];
+                } else {
+                    Real temp=w[i]/h;
+                    num += temp*yy[i];
+                    den += temp;
+                }
+            }
+            return num/den;
+        }
+
+        // No need to invoke hunt or locate since the interpolation is global, so override interp to simply
+        // call rawinterp directly with a dummy value of jl.        
+        Real interp(Real x) {
+            return rawinterp(1,x);
+        }
+    };
+
+    struct BilinInterpScalarFunction2D : public IScalarFunction<2>
+    {
+        int m,n;
+        const Matrix<Real> &y;
+        LinearInterpRealFunc x1terp, x2terp;
+
+        BilinInterpScalarFunction2D(Vector<Real> &x1v, Vector<Real> &x2v, Matrix<Real> &ym)
+            : m((int) x1v.size()), n( (int) x2v.size()), y(ym),
+            x1terp(x1v,x1v), x2terp(x2v,x2v) {}
+
+        Real interp(Real x1p, Real x2p) const {
+            int i,j;
+            Real yy, t, u;
+            i = x1terp.cor ? x1terp.hunt(x1p) : x1terp.locate(x1p);
+            j = x2terp.cor ? x2terp.hunt(x2p) : x2terp.locate(x2p);
+            t = (x1p-x1terp.xx[i])/(x1terp.xx[i+1]-x1terp.xx[i]);
+            u = (x2p-x2terp.xx[j])/(x2terp.xx[j+1]-x2terp.xx[j]);
+            yy = (1.-t)*(1.-u)*y[i][j] + t*(1.-u)*y[i+1][j]
+                + (1.-t)*u*y[i][j+1] + t*u*y[i+1][j+1];
+            return yy;
+        }
+
+        Real operator()(const VectorN<Real, 2> &x) const    
+        { 
+            return interp(x[0], x[1]); 
+        }
+    };
+    
+    struct PolynomInterpScalarFunction2D : public IScalarFunction<2>
+    {
+        int m,n,mm,nn;
+        const Matrix<Real> &y;
+        
+        mutable Vector<Real> yv;
+        mutable PolynomInterpRealFunc x1terp, x2terp;
+
+        PolynomInterpScalarFunction2D(Vector<Real> &x1v, Vector<Real> &x2v, Matrix<Real> &ym,
+            int mp, int np) : m((int) x1v.size()), n( (int) x2v.size()),
+            mm(mp), nn(np), y(ym), yv(m),
+            x1terp(x1v,yv,mm), x2terp(x2v,x2v,nn) {}
+
+        Real interp(Real x1p, Real x2p) const {
+            int i,j,k;
+            i = x1terp.cor ? x1terp.hunt(x1p) : x1terp.locate(x1p);
+            j = x2terp.cor ? x2terp.hunt(x2p) : x2terp.locate(x2p);
+            for (k=i;k<i+mm;k++) {
+                x2terp.yy = &y[k][0];
+                yv[k] = x2terp.rawinterp(j,x2p);
+            }
+            return x1terp.rawinterp(i,x1p);
+        }
+
+        Real operator()(const VectorN<Real, 2> &x) const    
+        { 
+            return interp(x[0], x[1]); 
+        }        
+    };
+    
+    struct SplineInterpScalarFunction2D : public IScalarFunction<2>
+    {
+        int m,n;
+        const Matrix<Real> &y;
+        
+        Vector<Real> &x1;
+        mutable Vector<Real> yv;
+        Vector<SplineInterpRealFunc*> srp;
+
+        SplineInterpScalarFunction2D(Vector<Real> &x1v, Vector<Real> &x2v, Matrix<Real> &ym)
+            : m((int) x1v.size()), n((int) x2v.size()), y(ym), yv(m), x1(x1v), srp(m) 
+            {
+            for (int i=0;i<m;i++) 
+                srp[i] = new SplineInterpRealFunc(x2v,&y[i][0]);
+        }
+
+        ~SplineInterpScalarFunction2D(){
+            for (int i=0;i<m;i++) delete srp[i];
+        }
+
+        Real interp(Real x1p, Real x2p) const 
+        {
+            for (int i=0;i<m;i++) 
+                yv[i] = (*srp[i])(x2p);
+            
+            SplineInterpRealFunc scol(x1,yv);
+            
+            return scol(x1p);
+        }
+
+        Real operator()(const VectorN<Real, 2> &x) const    
+        { 
+            return interp(x[0], x[1]); 
+        }        
+    };
+    
+    class InterpolatedScalarFunction3D : public IScalarFunction<3>
+    {
+        public:
+        InterpolatedScalarFunction3D() {}
+
+        Real operator()(const VectorN<Real, 3> &x) const    { return 0.0; }
+        virtual Real operator()(Real u, Real w, Real z)
+        {
+            VectorN<Real, 3> coord{u,w,z};
+
+            return operator()(coord);
+        }            
+    };
+
+    // Object for interpolating a curve specified by n points in dim dimensions.
+    template<int N>
+    struct SplineInterpParametricCurve : public IParametricCurve<N>
+    {
+        int dim, n, in;
+        bool cls;
+        Matrix<Real> pts;
+        Vector<Real> s;
+        Vector<Real> ans;
+        std::vector<SplineInterpRealFunc*> srp;
+
+        SplineInterpParametricCurve(Matrix<Real> &ptsin, bool close=0)
+        : n(ptsin.RowNum()), dim(ptsin.ColNum()), in(close ? 2*n : n),
+        cls(close), pts(dim,in), s(in), ans(dim), srp(dim) 
+        {
+            int i,ii,im,j,ofs;
+            Real ss,soff,db,de;
+            ofs = close ? n/2 : 0;
+            s[0] = 0.;
+            for (i=0;i<in;i++) {
+                ii = (i-ofs+n) % n;
+                im = (ii-1+n) % n;
+                for (j=0;j<dim;j++) pts[j][i] = ptsin[ii][j];
+                if (i>0) {
+                    s[i] = s[i-1] + rad(&ptsin[ii][0],&ptsin[im][0]);
+                    if (s[i] == s[i-1]) throw("error in Curve_interp");
+                }
+            }
+            ss = close ? s[ofs+n]-s[ofs] : s[n-1]-s[0];
+            soff = s[ofs];
+            for (i=0;i<in;i++) s[i] = (s[i]-soff)/ss;
+            for (j=0;j<dim;j++) {
+                db = in < 4 ? 1.e99 : fprime(&s[0],&pts[j][0],1);
+                de = in < 4 ? 1.e99 : fprime(&s[in-1],&pts[j][in-1],-1);
+                srp[j] = new SplineInterpRealFunc(s,&pts[j][0],db,de);
+            }
+        }
+        ~SplineInterpParametricCurve() {
+            for (int j=0;j<dim;j++) delete srp[j];
+        }
+        
+        VectorN<Real, N> &interp(Real t) const 
+        {
+            VectorN<Real, N> ans;
+
+            if (cls) 
+                t = t - floor(t);
+            for (int j=0;j<dim;j++) 
+                ans[j] = (*srp[j])(t);
+            
+            return ans;
+        }
+
+        VectorN<Real, N> operator()(Real t) const    
+        { 
+            return interp(t); 
+        }
+
+        Real fprime(Real *x, Real *y, int pm) {
+            Real s1 = x[0]-x[pm*1], s2 = x[0]-x[pm*2], s3 = x[0]-x[pm*3],
+                s12 = s1-s2, s13 = s1-s3, s23 = s2-s3;
+            return -(s1*s2/(s13*s23*s3))*y[pm*3]+(s1*s3/(s12*s2*s23))*y[pm*2]
+                -(s2*s3/(s1*s12*s13))*y[pm*1]+(1./s1+1./s2+1./s3)*y[0];
+        }
+
+        Real rad(const Real *p1, const Real *p2) {
+            Real sum = 0.;
+            for (int i=0;i<dim;i++) 
+                sum += SQR(p1[i]-p2[i]);
+            return sqrt(sum);
+        }
+    };
+    
+    template<int N>
+    class InterpolatedSurface : public IParametricSurface<N>
+    {
+        public:
+        InterpolatedSurface() {}
+
+        VectorN<Real, N> operator()(const VectorN<Real, 2> &x) const    { return VectorN<Real, N>{}; }
+    };       
+}
+
+///////////////////////////   ./include/core/LinearFunctional.h   ///////////////////////////
+
+
+
+namespace MML
+{
+    // TODO - napraviti i ovo funkciom, IScalarFunction
+    template <int N, typename _Field = Real>
+    class LinearFunctionalN 
+    {
+    private:
+        // TODO - this should be an array, not a vector
+        VectorN<_Field, N> _vecCoef;
+    public:
+        LinearFunctionalN() {}
+        LinearFunctionalN(const VectorN<_Field, N> &vecCoef) : _vecCoef(vecCoef) {}
+        LinearFunctionalN(std::initializer_list<_Field> list) : _vecCoef(list) {}
+
+        LinearFunctionalN(const LinearFunctionalN &Copy) : _vecCoef(Copy._vecCoef) {}
+        ~LinearFunctionalN() {}
+
+        LinearFunctionalN& operator=(const LinearFunctionalN &Copy) { _vecCoef = Copy._vecCoef; return *this; }
+
+        int Dim() const { return N; }
+
+        _Field operator()(const VectorN<_Field, N> &vecX) const
+        {
+            _Field result = 0.0;
+            for (int i = 0; i < N; i++)
+                result += _vecCoef[i] * vecX[i];
+            return result;
+        }
+
+        LinearFunctionalN operator+(const LinearFunctionalN &b) const
+        {
+            LinearFunctionalN result;
+            for (int i = 0; i < N; i++)
+                result._vecCoef[i] = _vecCoef[i] + b._vecCoef[i];
+            return result;
+        }
+
+        LinearFunctionalN operator-(const LinearFunctionalN &b) const
+        {
+            LinearFunctionalN result;
+            for (int i = 0; i < N; i++)
+                result._vecCoef[i] = _vecCoef[i] - b._vecCoef[i];
+            return result;
+        }
+
+        LinearFunctionalN operator*(_Field b) const
+        {
+            LinearFunctionalN result;
+            for (int i = 0; i < _vecCoef.size();    i++)
+                result._vecCoef[i] = _vecCoef[i] * b;
+            return result;
+        }
+    };
+
+    template <int N>
+    class RealLinearFunctionalN : public IScalarFunction<N>
+    {
+    private:
+        VectorN<Real, N> _vecCoef;
+    public:
+        RealLinearFunctionalN() {}
+        RealLinearFunctionalN(const VectorN<Real, N> &vecCoef) : _vecCoef(vecCoef) {}
+        RealLinearFunctionalN(std::initializer_list<Real> list) : _vecCoef(list) {}
+
+        RealLinearFunctionalN(const RealLinearFunctionalN &Copy) = default;
+        ~RealLinearFunctionalN() {}
+
+        RealLinearFunctionalN& operator=(const RealLinearFunctionalN &Copy) { _vecCoef = Copy._vecCoef; return *this; }
+
+        int Dim() const { return N; }
+
+        Real operator()(const VectorN<Real, N> &vecX) const
+        {
+            Real result = 0.0;
+            for (int i = 0; i < N; i++)
+                result += _vecCoef[i] * vecX[i];
+            return result;
+        }
+
+        RealLinearFunctionalN operator+(const RealLinearFunctionalN &b) const
+        {
+            RealLinearFunctionalN result;
+            for (int i = 0; i < N; i++)
+                result._vecCoef[i] = _vecCoef[i] + b._vecCoef[i];
+            return result;
+        }
+
+        RealLinearFunctionalN operator-(const RealLinearFunctionalN &b) const
+        {
+            RealLinearFunctionalN result;
+            for (int i = 0; i < N; i++)
+                result._vecCoef[i] = _vecCoef[i] - b._vecCoef[i];
+            return result;
+        }
+
+        RealLinearFunctionalN operator*(Real b) const
+        {
+            RealLinearFunctionalN result;
+            for (int i = 0; i < _vecCoef.size();    i++)
+                result._vecCoef[i] = _vecCoef[i] * b;
+            return result;
+        }
+    };    
+
+    class RealLinearFunctional
+    {
+    private:
+        std::vector<Real> _vecCoef;
+    public:
+        RealLinearFunctional() {}
+        RealLinearFunctional(const std::vector<Real> &vecCoef) : _vecCoef(vecCoef) {}
+        RealLinearFunctional(std::initializer_list<Real> list) : _vecCoef(list) {}
+
+        RealLinearFunctional(const RealLinearFunctional &Copy) : _vecCoef(Copy._vecCoef) {}
+        ~RealLinearFunctional() {}
+
+        int Dim() const { return (int) _vecCoef.size(); }
+
+        RealLinearFunctional& operator=(const RealLinearFunctional &Copy) { _vecCoef = Copy._vecCoef; return *this; }
+
+        Real operator()(const std::vector<Real> &vecX) const
+        {
+            if( vecX.size() != Dim() )
+                throw std::runtime_error("RealLinearFunctional::operator() - incompatible vector size");
+
+            Real result = 0.0;
+            for (int i = 0; i < _vecCoef.size(); i++)
+                result += _vecCoef[i] * vecX[i];
+            return result;
+        }
+
+        RealLinearFunctional operator+(const RealLinearFunctional &b) const
+        {
+            if( b.Dim() != Dim() )
+                throw std::runtime_error("RealLinearFunctional::operator+() - incompatible vector size");
+
+            RealLinearFunctional result;
+            for (int i = 0; i < Dim(); i++)
+                result._vecCoef[i] = _vecCoef[i] + b._vecCoef[i];
+            return result;            
+        }
+
+        RealLinearFunctional operator-(const RealLinearFunctional &b) const
+        {
+            if( b.Dim() != Dim() )
+                throw std::runtime_error("RealLinearFunctional::operator-() - incompatible vector size");
+
+            RealLinearFunctional result;
+            for (int i = 0; i < Dim(); i++)
+                result._vecCoef[i] = _vecCoef[i] - b._vecCoef[i];
+            return result;  
+        }
+
+        RealLinearFunctional operator*(Real b) const
+        {
+            RealLinearFunctional result;
+            for (int i = 0; i < Dim(); i++)
+                result._vecCoef[i] = _vecCoef[i] + b;
+            return result;  
+        }
+    };
+}
+
 ///////////////////////////   ./include/core/CoordTransf.h   ///////////////////////////
 
 
@@ -7828,879 +8701,6 @@ namespace MML
     static CoordTransfCartesianToSpherical      CoordTransfCartToSpher;
     static CoordTransfCartesianToCylindrical    CoordTransfCartToCyl;
 }
-///////////////////////////   ./include/core/Function.h   ///////////////////////////
-
-
-
-namespace MML
-{
-    ///////////////////////////     REAL FUNCTION      ////////////////////////////////////
-    class RealFunction : public IRealFunction
-    {
-        Real (*_func)(const Real) ;
-    public:
-        RealFunction(Real (*inFunc)(const Real) ) : _func(inFunc)    {}
-
-        Real operator()(const Real x) const    { return _func(x); }
-
-        // TODO - expand to Taylor series
-    };
-    class RealFunctionFromStdFunc : public IRealFunction
-    {
-        std::function<Real(const Real)> _func;
-    public:
-        RealFunctionFromStdFunc(std::function<Real(const Real)> inFunc) : _func(inFunc)    {}
-
-        Real operator()(const Real x) const    { return _func(x); }
-    };
-
-    class RealFunctionInterpolated : public IRealFunction
-    {
-    public:
-        Real virtual rawinterp(int jlo, Real x) const = 0;
-    };
-    
-    ///////////////////////////     SCALAR FUNCTION       //////////////////////////////////
-    template<int N>
-    class ScalarFunction : public IScalarFunction<N>
-    {
-        Real (*_func)(const VectorN<Real, N> &);
-    public:
-        ScalarFunction( Real (*inFunc)(const VectorN<Real, N> &) ) : _func(inFunc)    {}
-
-        Real operator()(const VectorN<Real, N> &x) const  { return _func(x); }
-    };
-
-    template<int N>
-    class ScalarFunctionFromStdFunc : public IScalarFunction<N>
-    {
-        std::function<Real(const VectorN<Real, N> &)> _func;
-    public:
-        ScalarFunctionFromStdFunc(std::function<Real(const VectorN<Real, N> &)> inFunc) : _func(inFunc)     {}
-
-        Real operator()(const VectorN<Real, N> &x) const  { return _func(x); }
-    };
-    
-    /////////////////////////    VECTOR FUNCTION N -> N      ///////////////////////////////////
-    template<int N>
-    class VectorFunction : public IVectorFunction<N>
-    {
-        VectorN<Real, N> (*_func)(const VectorN<Real, N> &);
-    public:
-        VectorFunction( VectorN<Real, N> (*inFunc)(const VectorN<Real, N> &) ) : _func(inFunc)      {}
-
-        VectorN<Real, N> operator()(const VectorN<Real, N> &x) const  { return _func(x); }
-    };
-    template<int N>
-    class VectorFunctionFromStdFunc : public IVectorFunction<N>
-    {
-        std::function<VectorN<Real, N>(const VectorN<Real, N> &)> _func;
-    public:
-        VectorFunctionFromStdFunc(std::function<VectorN<Real, N>(const VectorN<Real, N> &)> &inFunc) : _func(inFunc)    {}
-
-        VectorN<Real, N> operator()(const VectorN<Real, N> &x) const   { return _func(x); }
-    };
-
-   /////////////////////////    VECTOR FUNCTION N -> M      ///////////////////////////////////
-    template<int N, int M>
-    class VectorFunctionNM : public IVectorFunctionNM<N,M>
-    {
-        VectorN<Real, M> (*_func)(const VectorN<Real, N> &);
-    public:
-        VectorFunctionNM( VectorN<Real, N> (*inFunc)(const VectorN<Real, N> &) ) : _func(inFunc)      {}
-
-        VectorN<Real, M> operator()(const VectorN<Real, N> &x) const  { return _func(x); }
-    };
-    template<int N, int M>
-    class VectorFunctionNMFromStdFunc : public IVectorFunctionNM<N,M>
-    {
-        std::function<VectorN<Real, M>(const VectorN<Real, N> &)> _func;
-    public:
-        VectorFunctionNMFromStdFunc(std::function<VectorN<Real, M>(const VectorN<Real, N> &)> &inFunc) : _func(inFunc)    {}
-
-        VectorN<Real, M> operator()(const VectorN<Real, N> &x) const   { return _func(x); }
-    };
-
-    //////////////////////     PARAMETRIC CURVE             ///////////////////////////////////
-    template<int N>
-    class ParametricCurve : public IParametricCurve<N>
-    {
-        VectorN<Real, N> (*_func)(Real);
-        // TODO - staviti i interval za T?
-        // default je R
-        // TODO - IsClosed() nad bool _isClosed? default je false
-    public:
-        ParametricCurve( VectorN<Real, N> (*inFunc)(Real) ) : _func(inFunc)    {}
-
-        virtual VectorN<Real, N> operator()(Real x) const  { return _func(x); }
-
-        // TODO - GetTrace(t1, t2, deltaT)
-    };
-
-    template<int N>
-    class ParametricCurveFromStdFunc : public IParametricCurve<N>
-    {
-        std::function<VectorN<Real, N>(Real)> _func;
-    public:
-        ParametricCurveFromStdFunc(std::function<VectorN<Real, N>(Real)> &inFunc) : _func(inFunc)    {}
-
-        VectorN<Real, N> operator()(Real x) const   { return _func(x); }
-    };
-    
-    template<int N>
-    class ParametricCurveInterpolated : public IParametricCurve<N>
-    {
-        // TODO - umjesto func pointera dobije niz tocaka
-        public:
-                virtual VectorN<Real, N> operator()(Real x) const  { return VectorN<Real, N>{0}; }
-    };
-
-    /////////////////////       PARAMETRIC SURFACE         //////////////////////////////////
-    template<int N>
-    class ParametricSurface : public IParametricSurface<N>
-    {
-        VectorN<Real, N> (*_func)(Real u, Real w);
-    public:
-        ParametricSurface( VectorN<Real, N> (*inFunc)(Real u, Real w) ) : _func(inFunc)    {}
-
-        VectorN<Real, N> operator()(Real u, Real w) const  { return _func(u,w); }
-    };
-
-    template<int N>
-    class ParametricSurfaceFromStdFunc : public IParametricSurface<N>
-    {
-        std::function<VectorN<Real, N>(Real u, Real w)> _func;
-    public:
-        ParametricSurfaceFromStdFunc(std::function<VectorN<Real, N>(Real u, Real w)> &inFunc) : _func(inFunc)    {}
-
-        VectorN<Real, N> operator()(Real u, Real w) const   { return _func(u,w); }
-    };    
-
-    /////////////////////       FUNCTION HELPERS         //////////////////////////////////
-    class RealFuncDiffHelper : public IRealFunction
-    {
-        IRealFunction &_f1, &_f2;
-    public:
-        RealFuncDiffHelper(IRealFunction &f1, IRealFunction &f2) : _f1(f1), _f2(f2) {}
-        Real operator()(Real x) const { return _f1(x) - _f2(x); }
-    };
-    
-    class RealFuncDiffAbsHelper : public IRealFunction
-    {
-        IRealFunction &_f1, &_f2;
-    public:
-        RealFuncDiffAbsHelper(IRealFunction &f1, IRealFunction &f2) : _f1(f1), _f2(f2) {}
-        Real operator()(Real x) const { return std::abs(_f1(x) - _f2(x)); }
-    };
-
-    class RealFuncDiffSqrHelper : public IRealFunction
-    {
-        IRealFunction &_f1, &_f2;
-    public:
-        RealFuncDiffSqrHelper(IRealFunction &f1, IRealFunction &f2) : _f1(f1), _f2(f2) {}
-        Real operator()(Real x) const { return SQR(_f1(x) - _f2(x)); }
-    };    
-
-} // end namespace
-
-///////////////////////////   ./include/core/InterpolatedFunction.h   ///////////////////////////
-
-
-
-namespace MML
-{
-    class RealFunctionInterpolatedBase : public RealFunctionInterpolated
-    {
-    public:
-        mutable int jsav, cor;
-
-        int n, mm, dj;
-        // TODO - data by shared pointer!!!
-        const Real *xx, *yy;
-
-        RealFunctionInterpolatedBase(Vector<Real> &x, const Real *y, int m)
-            : n((int)x.size()), mm(m), jsav(0), cor(0), xx(&x[0]), yy(y) 
-        {
-            dj = std::min(1,(int)pow((Real)n,0.25));
-        }
-        
-        // Real interp(Real x) const {
-        //     int jlo = cor ? hunt(x) : locate(x);
-        //     return rawinterp(jlo,x);
-        // }
-
-        Real operator()(Real x) const
-        {
-            int jlo = cor ? hunt(x) : locate(x);
-            return rawinterp(jlo,x);
-        }
-    
-        // Given a value x, return a value j such that x is (insofar as possible) centered in the subrange
-        // xx[j..j+mm-1], where xx is the stored pointer. The values in xx must be monotonic, either
-        // increasing or decreasing. The returned value is not less than 0, nor greater than n-1.
-        int locate(const Real x) const
-        {
-            int ju,jm,jl;
-            if (n < 2 || mm < 2 || mm > n) throw("locate size error");
-            bool ascnd=(xx[n-1] >= xx[0]);
-            jl=0;
-            ju=n-1;
-            while (ju-jl > 1) {
-                jm = (ju+jl) >> 1;
-                if (x >= xx[jm] == ascnd)
-                    jl=jm;
-                else
-                    ju=jm;
-            }
-            cor = std::abs(jl-jsav) > dj ? 0 : 1;
-            jsav = jl;
-            return std::max(0,std::min(n-mm,jl-((mm-2)>>1)));
-        }
-
-        // Given a value x, return a value j such that x is (insofar as possible) centered in the subrange
-        // xx[j..j+mm-1], where xx is the stored pointer. The values in xx must be monotonic, either
-        // increasing or decreasing. The returned value is not less than 0, nor greater than n-1.
-        int hunt(const Real x) const
-        {
-            int jl=jsav, jm, ju, inc=1;
-            if (n < 2 || mm < 2 || mm > n) throw("hunt size error");
-            bool ascnd=(xx[n-1] >= xx[0]);
-            if (jl < 0 || jl > n-1) {
-                jl=0;
-                ju=n-1;
-            } else {
-                if (x >= xx[jl] == ascnd) {
-                    for (;;) {
-                        ju = jl + inc;
-                        if (ju >= n-1) { ju = n-1; break;}
-                        else if (x < xx[ju] == ascnd) break;
-                        else {
-                            jl = ju;
-                            inc += inc;
-                        }
-                    }
-                } else {
-                    ju = jl;
-                    for (;;) {
-                        jl = jl - inc;
-                        if (jl <= 0) { jl = 0; break;}
-                        else if (x >= xx[jl] == ascnd) break;
-                        else {
-                            ju = jl;
-                            inc += inc;
-                        }
-                    }
-                }
-            }
-            while (ju-jl > 1) {
-                jm = (ju+jl) >> 1;
-                if (x >= xx[jm] == ascnd)
-                    jl=jm;
-                else
-                    ju=jm;
-            }
-            cor = std::abs(jl-jsav) > dj ? 0 : 1;
-            jsav = jl;
-            return std::max(0,std::min(n-mm,jl-((mm-2)>>1)));
-        }
-    };
-    
-    struct LinearInterpRealFunc : RealFunctionInterpolatedBase
-    {
-        LinearInterpRealFunc(Vector<Real> &xv, Vector<Real> &yv) : RealFunctionInterpolatedBase(xv,&yv[0],2)  {}
-
-        Real rawinterp(int j, Real x) const {
-            if (xx[j]==xx[j+1]) return yy[j];
-            else return yy[j] + ((x-xx[j])/(xx[j+1]-xx[j]))*(yy[j+1]-yy[j]);
-        }
-    };
-
-    // Polynomial interpolation object. Construct with x and y vectors, and the number M of points
-    // to be used locally (polynomial order plus one), then call interp for interpolated values.
-    struct PolynomInterpRealFunc : RealFunctionInterpolatedBase
-    {
-        mutable Real dy;
-
-        // The user interface to Poly_interp is virtually the same as for Linear_interp
-        // (end of ÷3.1), except that an additional argument in the constructor sets M, the number of points used (the order plus one). 
-        PolynomInterpRealFunc(Vector<Real> &xv, Vector<Real> &yv, int m) : RealFunctionInterpolatedBase(xv,&yv[0],m), dy(0.) 
-        {}
-        
-        // Given a value x, and using pointers to data xx and yy, this routine returns an interpolated
-        // value y, and stores an error estimate dy. The returned value is obtained by mm-point polynomial
-        // interpolation on the subrange xx[jl..jl+mm-1].
-        Real rawinterp(int jl, Real x) const
-        {
-            int i,m,ns=0;
-            Real y,den,dif,dift,ho,hp,w;
-            const Real *xa = &xx[jl], *ya = &yy[jl];
-            Vector<Real> c(mm),d(mm);
-            dif=std::abs(x-xa[0]);
-            for (i=0;i<mm;i++) {
-                if ((dift=std::abs(x-xa[i])) < dif) {
-                    ns=i;
-                    dif=dift;
-                }
-                c[i]=ya[i];
-                d[i]=ya[i];
-            }
-            y=ya[ns--];
-            for (m=1;m<mm;m++) {
-                for (i=0;i<mm-m;i++) {
-                    ho=xa[i]-x;
-                    hp=xa[i+m]-x;
-                    w=c[i+1]-d[i];
-                    if ((den=ho-hp) == 0.0) throw("Poly_interp error");
-                    den=w/den;
-                    d[i]=hp*den;
-                    c[i]=ho*den;
-                }
-
-                y += (dy=(2*(ns+1) < (mm-m) ? c[ns+1] : d[ns--]));
-                // After each column in the tableau is completed, we decide which correction, c or d, we
-                // want to add to our accumulating value of y, i.e., which path to take through the tableau
-                // — forking up or down. We do this in such a way as to take the most “straight line”
-                // route through the tableau to its apex, updating ns accordingly to keep track of where
-                // we are. This route keeps the partial approximations centered (insofar as possible) on
-                // the target x. The last dy added is thus the error indication.                
-            }
-            return y;
-        }
-    };
-
-    // Diagonal rational function interpolation object. Construct with x and y vectors, and the number
-    // m of points to be used locally, then call interp for interpolated values.
-    struct RationalInterpRealFunc : RealFunctionInterpolatedBase
-    {
-        mutable Real dy;
-        RationalInterpRealFunc(Vector<Real> &xv, Vector<Real> &yv, int m) : RealFunctionInterpolatedBase(xv,&yv[0],m), dy(0.) 
-        {}
-        
-        // Given a value x, and using pointers to data xx and yy, this routine returns an interpolated value
-        // y, and stores an error estimate dy. The returned value is obtained by mm-point diagonal rational
-        // function interpolation on the subrange xx[jl..jl+mm-1].        
-        Real rawinterp(int jl, Real x) const
-        {
-            const Real TINY=1.0e-99;
-            int m,i,ns=0;
-            Real y,w,t,hh,h,dd;
-            const Real *xa = &xx[jl], *ya = &yy[jl];
-            Vector<Real> c(mm),d(mm);
-            hh=std::abs(x-xa[0]);
-            for (i=0;i<mm;i++) {
-                h=std::abs(x-xa[i]);
-                if (h == 0.0) {
-                    dy=0.0;
-                    return ya[i];
-                } else if (h < hh) {
-                    ns=i;
-                    hh=h;
-                }
-                c[i]=ya[i];
-                d[i]=ya[i]+TINY;
-            }
-            y=ya[ns--];
-            for (m=1;m<mm;m++) {
-                for (i=0;i<mm-m;i++) {
-                    w=c[i+1]-d[i];
-                    h=xa[i+m]-x;
-                    t=(xa[i]-x)*d[i]/h;
-                    dd=t-c[i+1];
-                    if (dd == 0.0)  // This error condition indicates that the interpolating function has a pole at the requested value of x.
-                        throw("Error in routine ratint");
-                    dd=w/dd;
-                    d[i]=c[i+1]*dd;
-                    c[i]=t*dd;
-                }
-                y += (dy=(2*(ns+1) < (mm-m) ? c[ns+1] : d[ns--]));
-            }
-            return y;
-        }
-    };
-
-    // Cubic spline interpolation object. Construct with x and y vectors, and (optionally) values of
-    // the first derivative at the endpoints, then call interp for interpolated values.
-    struct SplineInterpRealFunc : RealFunctionInterpolatedBase
-    {
-        Vector<Real> y2;
-        
-        SplineInterpRealFunc(Vector<Real> &xv, Vector<Real> &yv, Real yp1=1.e99, Real ypn=1.e99)
-            : RealFunctionInterpolatedBase(xv,&yv[0],2), y2(xv.size())
-        {
-            sety2(&xv[0],&yv[0],yp1,ypn);
-        }
-
-        SplineInterpRealFunc(Vector<Real> &xv, const Real *yv, Real yp1=1.e99, Real ypn=1.e99)
-            : RealFunctionInterpolatedBase(xv,yv,2), y2(xv.size())
-        {
-            sety2(&xv[0],yv,yp1,ypn);
-        }
-
-        // This routine stores an array y2[0..n-1] with second derivatives of the interpolating function
-        // at the tabulated points pointed to by xv, using function values pointed to by yv. If yp1 and/or
-        // ypn are equal to 1  1099 or larger, the routine is signaled to set the corresponding boundary
-        // condition for a natural spline, with zero second derivative on that boundary; otherwise, they are
-        // the values of the first derivatives at the endpoints.
-        void sety2(const Real *xv, const Real *yv, Real yp1, Real ypn)
-        {
-            int i,k;
-            Real p,qn,sig,un;
-            int n=(int) y2.size();
-            Vector<Real> u(n-1);
-            if (yp1 > 0.99e99)
-                y2[0]=u[0]=0.0;
-            else {
-                y2[0] = -0.5;
-                u[0]=(3.0/(xv[1]-xv[0]))*((yv[1]-yv[0])/(xv[1]-xv[0])-yp1);
-            }
-            for (i=1;i<n-1;i++) {
-                sig=(xv[i]-xv[i-1])/(xv[i+1]-xv[i-1]);
-                p=sig*y2[i-1]+2.0;
-                y2[i]=(sig-1.0)/p;
-                u[i]=(yv[i+1]-yv[i])/(xv[i+1]-xv[i]) - (yv[i]-yv[i-1])/(xv[i]-xv[i-1]);
-                u[i]=(6.0*u[i]/(xv[i+1]-xv[i-1])-sig*u[i-1])/p;
-            }
-            if (ypn > 0.99e99)
-                qn=un=0.0;
-            else {
-                qn=0.5;
-                un=(3.0/(xv[n-1]-xv[n-2]))*(ypn-(yv[n-1]-yv[n-2])/(xv[n-1]-xv[n-2]));
-            }
-            y2[n-1]=(un-qn*u[n-2])/(qn*y2[n-2]+1.0);
-            for (k=n-2;k>=0;k--)
-                y2[k]=y2[k]*y2[k+1]+u[k];
-        }
-
-        // Given a value x, and using pointers to data xx and yy, and the stored vector of second derivatives
-        // y2, this routine returns the cubic spline interpolated value y.        
-        Real rawinterp(int jl, Real x) const
-        {
-            int klo=jl,khi=jl+1;
-            Real y,h,b,a;
-            h=xx[khi]-xx[klo];
-            if (h == 0.0) throw("Bad input to routine splint");
-            a=(xx[khi]-x)/h;
-            b=(x-xx[klo])/h;
-            y=a*yy[klo]+b*yy[khi]+((a*a*a-a)*y2[klo]
-                +(b*b*b-b)*y2[khi])*(h*h)/6.0;
-            return y;
-        }
-    };
-
-    // Barycentric rational interpolation object. After constructing the object, call interp for interpolated values. Note that no error estimate dy is calculated.
-    struct BaryRatInterpRealFunc : RealFunctionInterpolatedBase
-    {
-        Vector<Real> w;
-        int d;
-
-        // Constructor arguments are x and y vectors of length n, and order d of desired approximation.
-        BaryRatInterpRealFunc(Vector<Real> &xv, Vector<Real> &yv, int dd) 
-            : RealFunctionInterpolatedBase(xv,&yv[0], (int) xv.size()), w(n), d(dd)
-        {
-            if (n<=d) throw("d too large for number of points in BaryRat_interp");
-            for (int k=0;k<n;k++) {
-                int imin=std::max(k-d,0);
-                int imax = k >= n-d ? n-d-1 : k;
-                Real temp = imin & 1 ? -1.0 : 1.0;
-                Real sum=0.0;
-                for (int i=imin;i<=imax;i++) {
-                    int jmax=std::min(i+d,n-1);
-                    Real term=1.0;
-                    for (int j=i;j<=jmax;j++) {
-                        if (j==k) continue;
-                        term *= (xx[k]-xx[j]);
-                    }
-                    term=temp/term;
-                    temp=-temp;
-                    sum += term;
-                }
-                w[k]=sum;
-            }
-        }
-
-        // Use equation (NR 3.4.9) to compute the barycentric rational interpolant. Note that jl is not used
-        // since the approximation is global; it is included only for compatibility with Base_interp           
-        Real rawinterp(int jl, Real x) const
-        {
-            Real num=0,den=0;
-            for (int i=0;i<n;i++) {
-                Real h=x-xx[i];
-                if (h == 0.0) {
-                    return yy[i];
-                } else {
-                    Real temp=w[i]/h;
-                    num += temp*yy[i];
-                    den += temp;
-                }
-            }
-            return num/den;
-        }
-
-        // No need to invoke hunt or locate since the interpolation is global, so override interp to simply
-        // call rawinterp directly with a dummy value of jl.        
-        Real interp(Real x) {
-            return rawinterp(1,x);
-        }
-    };
-
-    struct BilinInterpScalarFunction2D : public IScalarFunction<2>
-    {
-        int m,n;
-        const Matrix<Real> &y;
-        LinearInterpRealFunc x1terp, x2terp;
-
-        BilinInterpScalarFunction2D(Vector<Real> &x1v, Vector<Real> &x2v, Matrix<Real> &ym)
-            : m((int) x1v.size()), n( (int) x2v.size()), y(ym),
-            x1terp(x1v,x1v), x2terp(x2v,x2v) {}
-
-        Real interp(Real x1p, Real x2p) const {
-            int i,j;
-            Real yy, t, u;
-            i = x1terp.cor ? x1terp.hunt(x1p) : x1terp.locate(x1p);
-            j = x2terp.cor ? x2terp.hunt(x2p) : x2terp.locate(x2p);
-            t = (x1p-x1terp.xx[i])/(x1terp.xx[i+1]-x1terp.xx[i]);
-            u = (x2p-x2terp.xx[j])/(x2terp.xx[j+1]-x2terp.xx[j]);
-            yy = (1.-t)*(1.-u)*y[i][j] + t*(1.-u)*y[i+1][j]
-                + (1.-t)*u*y[i][j+1] + t*u*y[i+1][j+1];
-            return yy;
-        }
-
-        Real operator()(const VectorN<Real, 2> &x) const    
-        { 
-            return interp(x[0], x[1]); 
-        }
-    };
-    
-    struct PolynomInterpScalarFunction2D : public IScalarFunction<2>
-    {
-        int m,n,mm,nn;
-        const Matrix<Real> &y;
-        
-        mutable Vector<Real> yv;
-        mutable PolynomInterpRealFunc x1terp, x2terp;
-
-        PolynomInterpScalarFunction2D(Vector<Real> &x1v, Vector<Real> &x2v, Matrix<Real> &ym,
-            int mp, int np) : m((int) x1v.size()), n( (int) x2v.size()),
-            mm(mp), nn(np), y(ym), yv(m),
-            x1terp(x1v,yv,mm), x2terp(x2v,x2v,nn) {}
-
-        Real interp(Real x1p, Real x2p) const {
-            int i,j,k;
-            i = x1terp.cor ? x1terp.hunt(x1p) : x1terp.locate(x1p);
-            j = x2terp.cor ? x2terp.hunt(x2p) : x2terp.locate(x2p);
-            for (k=i;k<i+mm;k++) {
-                x2terp.yy = &y[k][0];
-                yv[k] = x2terp.rawinterp(j,x2p);
-            }
-            return x1terp.rawinterp(i,x1p);
-        }
-
-        Real operator()(const VectorN<Real, 2> &x) const    
-        { 
-            return interp(x[0], x[1]); 
-        }        
-    };
-    
-    struct SplineInterpScalarFunction2D : public IScalarFunction<2>
-    {
-        int m,n;
-        const Matrix<Real> &y;
-        
-        Vector<Real> &x1;
-        mutable Vector<Real> yv;
-        Vector<SplineInterpRealFunc*> srp;
-
-        SplineInterpScalarFunction2D(Vector<Real> &x1v, Vector<Real> &x2v, Matrix<Real> &ym)
-            : m((int) x1v.size()), n((int) x2v.size()), y(ym), yv(m), x1(x1v), srp(m) 
-            {
-            for (int i=0;i<m;i++) 
-                srp[i] = new SplineInterpRealFunc(x2v,&y[i][0]);
-        }
-
-        ~SplineInterpScalarFunction2D(){
-            for (int i=0;i<m;i++) delete srp[i];
-        }
-
-        Real interp(Real x1p, Real x2p) const 
-        {
-            for (int i=0;i<m;i++) 
-                yv[i] = (*srp[i])(x2p);
-            
-            SplineInterpRealFunc scol(x1,yv);
-            
-            return scol(x1p);
-        }
-
-        Real operator()(const VectorN<Real, 2> &x) const    
-        { 
-            return interp(x[0], x[1]); 
-        }        
-    };
-    
-    class InterpolatedScalarFunction3D : public IScalarFunction<3>
-    {
-        public:
-        InterpolatedScalarFunction3D() {}
-
-        Real operator()(const VectorN<Real, 3> &x) const    { return 0.0; }
-        virtual Real operator()(Real u, Real w, Real z)
-        {
-            VectorN<Real, 3> coord{u,w,z};
-
-            return operator()(coord);
-        }            
-    };
-
-    // Object for interpolating a curve specified by n points in dim dimensions.
-    template<int N>
-    struct SplineInterpParametricCurve : public IParametricCurve<N>
-    {
-        int dim, n, in;
-        bool cls;
-        Matrix<Real> pts;
-        Vector<Real> s;
-        Vector<Real> ans;
-        std::vector<SplineInterpRealFunc*> srp;
-
-        SplineInterpParametricCurve(Matrix<Real> &ptsin, bool close=0)
-        : n(ptsin.RowNum()), dim(ptsin.ColNum()), in(close ? 2*n : n),
-        cls(close), pts(dim,in), s(in), ans(dim), srp(dim) 
-        {
-            int i,ii,im,j,ofs;
-            Real ss,soff,db,de;
-            ofs = close ? n/2 : 0;
-            s[0] = 0.;
-            for (i=0;i<in;i++) {
-                ii = (i-ofs+n) % n;
-                im = (ii-1+n) % n;
-                for (j=0;j<dim;j++) pts[j][i] = ptsin[ii][j];
-                if (i>0) {
-                    s[i] = s[i-1] + rad(&ptsin[ii][0],&ptsin[im][0]);
-                    if (s[i] == s[i-1]) throw("error in Curve_interp");
-                }
-            }
-            ss = close ? s[ofs+n]-s[ofs] : s[n-1]-s[0];
-            soff = s[ofs];
-            for (i=0;i<in;i++) s[i] = (s[i]-soff)/ss;
-            for (j=0;j<dim;j++) {
-                db = in < 4 ? 1.e99 : fprime(&s[0],&pts[j][0],1);
-                de = in < 4 ? 1.e99 : fprime(&s[in-1],&pts[j][in-1],-1);
-                srp[j] = new SplineInterpRealFunc(s,&pts[j][0],db,de);
-            }
-        }
-        ~SplineInterpParametricCurve() {
-            for (int j=0;j<dim;j++) delete srp[j];
-        }
-        
-        VectorN<Real, N> &interp(Real t) const 
-        {
-            VectorN<Real, N> ans;
-
-            if (cls) 
-                t = t - floor(t);
-            for (int j=0;j<dim;j++) 
-                ans[j] = (*srp[j])(t);
-            
-            return ans;
-        }
-
-        VectorN<Real, N> operator()(Real t) const    
-        { 
-            return interp(t); 
-        }
-
-        Real fprime(Real *x, Real *y, int pm) {
-            Real s1 = x[0]-x[pm*1], s2 = x[0]-x[pm*2], s3 = x[0]-x[pm*3],
-                s12 = s1-s2, s13 = s1-s3, s23 = s2-s3;
-            return -(s1*s2/(s13*s23*s3))*y[pm*3]+(s1*s3/(s12*s2*s23))*y[pm*2]
-                -(s2*s3/(s1*s12*s13))*y[pm*1]+(1./s1+1./s2+1./s3)*y[0];
-        }
-
-        Real rad(const Real *p1, const Real *p2) {
-            Real sum = 0.;
-            for (int i=0;i<dim;i++) 
-                sum += SQR(p1[i]-p2[i]);
-            return sqrt(sum);
-        }
-    };
-    
-    template<int N>
-    class InterpolatedSurface : public IParametricSurface<N>
-    {
-        public:
-        InterpolatedSurface() {}
-
-        VectorN<Real, N> operator()(const VectorN<Real, 2> &x) const    { return VectorN<Real, N>{}; }
-    };       
-}
-
-///////////////////////////   ./include/core/LinearFunctional.h   ///////////////////////////
-
-
-
-namespace MML
-{
-    // TODO - napraviti i ovo funkciom, IScalarFunction
-    template <int N, typename _Field = Real>
-    class LinearFunctionalN 
-    {
-    private:
-        // TODO - this should be an array, not a vector
-        VectorN<_Field, N> _vecCoef;
-    public:
-        LinearFunctionalN() {}
-        LinearFunctionalN(const VectorN<_Field, N> &vecCoef) : _vecCoef(vecCoef) {}
-        LinearFunctionalN(std::initializer_list<_Field> list) : _vecCoef(list) {}
-
-        LinearFunctionalN(const LinearFunctionalN &Copy) : _vecCoef(Copy._vecCoef) {}
-        ~LinearFunctionalN() {}
-
-        LinearFunctionalN& operator=(const LinearFunctionalN &Copy) { _vecCoef = Copy._vecCoef; return *this; }
-
-        int Dim() const { return N; }
-
-        _Field operator()(const VectorN<_Field, N> &vecX) const
-        {
-            _Field result = 0.0;
-            for (int i = 0; i < N; i++)
-                result += _vecCoef[i] * vecX[i];
-            return result;
-        }
-
-        LinearFunctionalN operator+(const LinearFunctionalN &b) const
-        {
-            LinearFunctionalN result;
-            for (int i = 0; i < N; i++)
-                result._vecCoef[i] = _vecCoef[i] + b._vecCoef[i];
-            return result;
-        }
-
-        LinearFunctionalN operator-(const LinearFunctionalN &b) const
-        {
-            LinearFunctionalN result;
-            for (int i = 0; i < N; i++)
-                result._vecCoef[i] = _vecCoef[i] - b._vecCoef[i];
-            return result;
-        }
-
-        LinearFunctionalN operator*(_Field b) const
-        {
-            LinearFunctionalN result;
-            for (int i = 0; i < _vecCoef.size();    i++)
-                result._vecCoef[i] = _vecCoef[i] * b;
-            return result;
-        }
-    };
-
-    template <int N>
-    class RealLinearFunctionalN : public IScalarFunction<N>
-    {
-    private:
-        VectorN<Real, N> _vecCoef;
-    public:
-        RealLinearFunctionalN() {}
-        RealLinearFunctionalN(const VectorN<Real, N> &vecCoef) : _vecCoef(vecCoef) {}
-        RealLinearFunctionalN(std::initializer_list<Real> list) : _vecCoef(list) {}
-
-        RealLinearFunctionalN(const RealLinearFunctionalN &Copy) = default;
-        ~RealLinearFunctionalN() {}
-
-        RealLinearFunctionalN& operator=(const RealLinearFunctionalN &Copy) { _vecCoef = Copy._vecCoef; return *this; }
-
-        int Dim() const { return N; }
-
-        Real operator()(const VectorN<Real, N> &vecX) const
-        {
-            Real result = 0.0;
-            for (int i = 0; i < N; i++)
-                result += _vecCoef[i] * vecX[i];
-            return result;
-        }
-
-        RealLinearFunctionalN operator+(const RealLinearFunctionalN &b) const
-        {
-            RealLinearFunctionalN result;
-            for (int i = 0; i < N; i++)
-                result._vecCoef[i] = _vecCoef[i] + b._vecCoef[i];
-            return result;
-        }
-
-        RealLinearFunctionalN operator-(const RealLinearFunctionalN &b) const
-        {
-            RealLinearFunctionalN result;
-            for (int i = 0; i < N; i++)
-                result._vecCoef[i] = _vecCoef[i] - b._vecCoef[i];
-            return result;
-        }
-
-        RealLinearFunctionalN operator*(Real b) const
-        {
-            RealLinearFunctionalN result;
-            for (int i = 0; i < _vecCoef.size();    i++)
-                result._vecCoef[i] = _vecCoef[i] * b;
-            return result;
-        }
-    };    
-
-    class RealLinearFunctional
-    {
-    private:
-        std::vector<Real> _vecCoef;
-    public:
-        RealLinearFunctional() {}
-        RealLinearFunctional(const std::vector<Real> &vecCoef) : _vecCoef(vecCoef) {}
-        RealLinearFunctional(std::initializer_list<Real> list) : _vecCoef(list) {}
-
-        RealLinearFunctional(const RealLinearFunctional &Copy) : _vecCoef(Copy._vecCoef) {}
-        ~RealLinearFunctional() {}
-
-        int Dim() const { return (int) _vecCoef.size(); }
-
-        RealLinearFunctional& operator=(const RealLinearFunctional &Copy) { _vecCoef = Copy._vecCoef; return *this; }
-
-        Real operator()(const std::vector<Real> &vecX) const
-        {
-            if( vecX.size() != Dim() )
-                throw std::runtime_error("RealLinearFunctional::operator() - incompatible vector size");
-
-            Real result = 0.0;
-            for (int i = 0; i < _vecCoef.size(); i++)
-                result += _vecCoef[i] * vecX[i];
-            return result;
-        }
-
-        RealLinearFunctional operator+(const RealLinearFunctional &b) const
-        {
-            if( b.Dim() != Dim() )
-                throw std::runtime_error("RealLinearFunctional::operator+() - incompatible vector size");
-
-            RealLinearFunctional result;
-            for (int i = 0; i < Dim(); i++)
-                result._vecCoef[i] = _vecCoef[i] + b._vecCoef[i];
-            return result;            
-        }
-
-        RealLinearFunctional operator-(const RealLinearFunctional &b) const
-        {
-            if( b.Dim() != Dim() )
-                throw std::runtime_error("RealLinearFunctional::operator-() - incompatible vector size");
-
-            RealLinearFunctional result;
-            for (int i = 0; i < Dim(); i++)
-                result._vecCoef[i] = _vecCoef[i] - b._vecCoef[i];
-            return result;  
-        }
-
-        RealLinearFunctional operator*(Real b) const
-        {
-            RealLinearFunctional result;
-            for (int i = 0; i < Dim(); i++)
-                result._vecCoef[i] = _vecCoef[i] + b;
-            return result;  
-        }
-    };
-}
-
 ///////////////////////////   ./include/basic_types/FunctionSpace.h   ///////////////////////////
 
 
@@ -8841,7 +8841,7 @@ namespace MML
 
 namespace MML
 {
-    // TODO - dodati još par planarnih i prostornih krivulja
+    // TODO - dodati joï¿½ par planarnih i prostornih krivulja
     // TODO - dodati polarne krivulje r = r(phi)
     namespace Curves
     {
@@ -9680,11 +9680,11 @@ PlanarRotatingSystem disk_rotation(pocetni phi, brzina rotacije);
 - za dane dvije koord, lat i long, daje poziciju u odnosu na dani fiksni koord sustav
 LocalCartesian disk_surface(disk_rotation, lat, long);
 
-- što izracunati? 
+- ï¿½to izracunati? 
     - artiljerijski hitac s dane pozicije i po danoj paraboli
     - gdje ce pasti - koordinate u jednom i drugom sustavu
 
-- i onda još dodati vrtuljak na toj površini!
+- i onda joï¿½ dodati vrtuljak na toj povrï¿½ini!
 
 MovingDynamicalSytem3D earth_around_sun(funkcija ovisnosti pozicije u odnosu na GLOBALNI KARTEZIJEV sustav);
 RotatingSystem3D earth_rotation(earth_around_sun);
@@ -9859,6 +9859,207 @@ LorentTranslated s3;
 
 }
 
+///////////////////////////   ./include/algorithms/FieldOperations.h   ///////////////////////////// grad
+// - cart
+// - spher
+// - cyl
+
+
+
+
+
+
+namespace MML
+{
+    class ScalarFieldOperations
+    {
+        public:
+        ////////////////////////////////////////////////////////////////////////////////////////////////////////
+        ///////////////////////////                   GRADIENT                     /////////////////////////////
+        template<int N>
+        static VectorN<Real, N> Gradient(IScalarFunction<N> &scalarField, const MetricTensorField<N>& metricTensor, const VectorN<Real, N> &pos)
+        {
+            VectorN<Real, N> derivsAtPoint = Derivation::DerivePartialAll<N>(scalarField, pos, nullptr);
+            
+            Tensor2<N> metricAtPoint(2,0);
+            metricTensor.ValueAtPoint(pos, metricAtPoint);
+
+            VectorN<Real, N> ret = metricAtPoint * derivsAtPoint;
+
+            return ret;
+        }
+
+        template<int N>
+        static VectorN<Real, N> GradientCart(const IScalarFunction<N> &scalarField, const VectorN<Real, N> &pos)
+        {
+            return Derivation::DerivePartialAll<N>(scalarField, pos, nullptr);
+        }
+
+        static Vector3Spherical GradientSpher(const IScalarFunction<3> &scalarField, const Vector3Spherical &pos)
+        {
+            Vector3Spherical ret = Derivation::DerivePartialAll<3>(scalarField, pos, nullptr);
+
+            ret[1] = ret[1] / pos[0];
+            ret[2] = ret[2] / (pos[0] * sin(pos[1]));
+
+            return ret;
+        }
+
+        static Vector3Cylindrical GradientCyl(const IScalarFunction<3> &scalarField, const Vector3Cylindrical &pos)
+        {
+            Vector3Cylindrical ret = Derivation::DerivePartialAll<3>(scalarField, pos, nullptr);
+
+            ret[1] = ret[1] / pos[0];
+
+            return ret;
+        }            
+
+        ////////////////////////////////////////////////////////////////////////////////////////////////////////
+        ///////////////////////////                  LAPLACIAN                     /////////////////////////////
+        template<int N>
+        static Real LaplacianCart(const IScalarFunction<N> &scalarField, const VectorN<Real, N> &pos)
+        {
+            Real lapl = 0.0;
+            for( int i=0; i<N; i++ )
+                lapl += Derivation::NSecDer4Partial<N>(scalarField, i, i, pos, nullptr);
+
+            return lapl;
+        }
+        static Real LaplacianSpher(const IScalarFunction<3> &scalarField, const Vector3Spherical &pos)
+        {
+            const Real r     = pos.R();
+            const Real phi   = pos.Phi();
+            const Real theta = pos.Theta();
+
+            Real first  = Derivation::NSecDer4Partial(scalarField, 0, 0, pos, nullptr);
+            Real second = 2 / pos.R() * Derivation::NDer4Partial(scalarField, 0, pos, nullptr);
+            Real third  = 1 / (r*r * sin(theta)) * (cos(theta) * Derivation::NDer4Partial(scalarField, 1, pos, nullptr) + sin(theta) * Derivation::NSecDer4Partial(scalarField, 1, 1, pos, nullptr));
+            Real fourth = 1 / (r*r * sin(theta)*sin(theta));
+
+            return first + second + third;
+        }
+
+        static Real LaplacianCyl(const IScalarFunction<3> &scalarField, const Vector3Cylindrical &pos)
+        {
+            const Real r = pos[0];
+
+            Real first  = 1 / r * (Derivation::NDer4Partial<3>(scalarField, 0, pos, nullptr) + r * Derivation::NSecDer4Partial<3>(scalarField, 0, 0, pos, nullptr));
+            Real second = 1 / (r*r) * Derivation::NSecDer4Partial<3>(scalarField, 1, 1, pos, nullptr);
+            Real third  = Derivation::NSecDer4Partial<3>(scalarField, 2, 2, pos, nullptr);
+            
+            return first + second + third;
+        }          
+    };
+
+    class VectorFieldOperations
+    {
+    public:
+        ////////////////////////////////////////////////////////////////////////////////////////////////////////
+        ///////////////////////////                  DIVERGENCE                    /////////////////////////////
+        template<int N>
+        static Real DivCart(const IVectorFunction<N> &vectorField, const VectorN<Real, N> &pos)
+        {
+            Real div = 0.0;
+            for( int i=0; i<N; i++ )
+                div += Derivation::DeriveVecPartial<N>(vectorField, i, i, pos, nullptr);
+
+            return div;
+        }    
+
+        static Real DivSpher(const IVectorFunction<3> &vectorField, const VectorN<Real, 3> &x)
+        {
+            VectorN<Real, 3> vals = vectorField(x);
+
+            VectorN<Real, 3> derivs;
+            for( int i=0; i<3; i++ )
+                derivs[i] = Derivation::DeriveVecPartial<3>(vectorField, i, i, x, nullptr);
+            
+            Real div = 0.0;
+            div += 1 / (x[0]*x[0]) * (2 * x[0] * vals[0] + x[0]*x[0] * derivs[0]);
+            div += 1 / (x[0] * sin(x[1])) * (cos(x[1]) * vals[1] + sin(x[1]) * derivs[1]);
+            div += 1 / (x[0] * sin(x[1])) * derivs[2];
+
+            return div;
+        }           
+
+        static Real DivCyl(const IVectorFunction<3> &vectorField, const VectorN<Real, 3> &x)
+        {
+            VectorN<Real, 3> vals = vectorField(x);
+
+            VectorN<Real, 3> derivs;
+            for( int i=0; i<3; i++ )
+                derivs[i] = Derivation::DeriveVecPartial<3>(vectorField, i, i, x, nullptr);
+            
+            Real div = 0.0;
+            div += 1 / x[0] * (vals[0] + x[0] * derivs[0]);
+            div += 1 / x[0] * derivs[1];
+            div += derivs[2];
+
+            return div;
+        }
+        
+        ////////////////////////////////////////////////////////////////////////////////////////////////////////
+        ///////////////////////////                     CURL                       /////////////////////////////
+        static Vector3Cartesian CurlCart(const IVectorFunction<3> &vectorField, const VectorN<Real, 3> &pos)
+        {
+            Real dzdy = Derivation::DeriveVecPartial<3>(vectorField, 2, 1, pos, nullptr);
+            Real dydz = Derivation::DeriveVecPartial<3>(vectorField, 1, 2, pos, nullptr);
+
+            Real dxdz = Derivation::DeriveVecPartial<3>(vectorField, 0, 2, pos, nullptr);
+            Real dzdx = Derivation::DeriveVecPartial<3>(vectorField, 2, 0, pos, nullptr);
+
+            Real dydx = Derivation::DeriveVecPartial<3>(vectorField, 1, 0, pos, nullptr);
+            Real dxdy = Derivation::DeriveVecPartial<3>(vectorField, 0, 1, pos, nullptr);
+
+            Vector3Cartesian curl{dzdy - dydz, dxdz - dzdx, dydx - dxdy};
+
+            return curl;
+        }    
+
+        static Vector3Spherical CurlSpher(const IVectorFunction<3> &vectorField, const VectorN<Real, 3> &pos)
+        {
+            VectorN<Real, 3> vals = vectorField(pos);
+
+            Real dphidtheta = Derivation::DeriveVecPartial<3>(vectorField, 2, 1, pos, nullptr);
+            Real dthetadphi = Derivation::DeriveVecPartial<3>(vectorField, 1, 2, pos, nullptr);
+
+            Real drdphi     = Derivation::DeriveVecPartial<3>(vectorField, 0, 2, pos, nullptr);
+            Real dphidr     = Derivation::DeriveVecPartial<3>(vectorField, 2, 0, pos, nullptr);
+
+            Real dthetadr   = Derivation::DeriveVecPartial<3>(vectorField, 1, 0, pos, nullptr);
+            Real drdtheta   = Derivation::DeriveVecPartial<3>(vectorField, 0, 1, pos, nullptr);
+
+            Vector3Spherical ret;
+            const Real &r     = pos[0];
+            const Real &theta = pos[1];
+            const Real &phi   = pos[2];
+
+            ret[0] = 1 / (r * sin(theta)) * (cos(theta) * vals[2] + sin(theta) * dphidtheta - dthetadphi);
+            ret[1] = 1 / r * (1 / sin(theta)  * drdphi - vals[2] - r * dphidr);
+            ret[2] = 1 / r * (vals[1] + r * dthetadr - drdtheta);
+
+            return ret;
+        }           
+
+        static Vector3Cylindrical CurlCyl(const IVectorFunction<3> &vectorField, const VectorN<Real, 3> &pos)
+        {
+            VectorN<Real, 3> vals = vectorField(pos);
+
+            Real dzdphi = Derivation::DeriveVecPartial<3>(vectorField, 2, 1, pos, nullptr);
+            Real dphidz = Derivation::DeriveVecPartial<3>(vectorField, 1, 2, pos, nullptr);
+
+            Real drdz   = Derivation::DeriveVecPartial<3>(vectorField, 0, 2, pos, nullptr);
+            Real dzdr   = Derivation::DeriveVecPartial<3>(vectorField, 2, 0, pos, nullptr);
+
+            Real dphidr = Derivation::DeriveVecPartial<3>(vectorField, 1, 0, pos, nullptr);
+            Real drdphi = Derivation::DeriveVecPartial<3>(vectorField, 0, 1, pos, nullptr);
+
+            Vector3Cylindrical ret{1.0 / pos[0] * dzdphi - dphidz, drdz - dzdr, 1 / pos[0] * (vals[1] + pos[0] * dphidr - drdphi)};
+
+            return ret;
+        }
+    };
+}
 ///////////////////////////   ./include/basic_types/Fields.h   ///////////////////////////
 
 
@@ -10103,207 +10304,6 @@ namespace MML
     };  
 }
 
-///////////////////////////   ./include/algorithms/FieldOperations.h   ///////////////////////////// grad
-// - cart
-// - spher
-// - cyl
-
-
-
-
-
-
-namespace MML
-{
-    class ScalarFieldOperations
-    {
-        public:
-        ////////////////////////////////////////////////////////////////////////////////////////////////////////
-        ///////////////////////////                   GRADIENT                     /////////////////////////////
-        template<int N>
-        static VectorN<Real, N> Gradient(IScalarFunction<N> &scalarField, const MetricTensorField<N>& metricTensor, const VectorN<Real, N> &pos)
-        {
-            VectorN<Real, N> derivsAtPoint = Derivation::DerivePartialAll<N>(scalarField, pos, nullptr);
-            
-            Tensor2<N> metricAtPoint(2,0);
-            metricTensor.ValueAtPoint(pos, metricAtPoint);
-
-            VectorN<Real, N> ret = metricAtPoint * derivsAtPoint;
-
-            return ret;
-        }
-
-        template<int N>
-        static VectorN<Real, N> GradientCart(const IScalarFunction<N> &scalarField, const VectorN<Real, N> &pos)
-        {
-            return Derivation::DerivePartialAll<N>(scalarField, pos, nullptr);
-        }
-
-        static Vector3Spherical GradientSpher(const IScalarFunction<3> &scalarField, const Vector3Spherical &pos)
-        {
-            Vector3Spherical ret = Derivation::DerivePartialAll<3>(scalarField, pos, nullptr);
-
-            ret[1] = ret[1] / pos[0];
-            ret[2] = ret[2] / (pos[0] * sin(pos[1]));
-
-            return ret;
-        }
-
-        static Vector3Cylindrical GradientCyl(const IScalarFunction<3> &scalarField, const Vector3Cylindrical &pos)
-        {
-            Vector3Cylindrical ret = Derivation::DerivePartialAll<3>(scalarField, pos, nullptr);
-
-            ret[1] = ret[1] / pos[0];
-
-            return ret;
-        }            
-
-        ////////////////////////////////////////////////////////////////////////////////////////////////////////
-        ///////////////////////////                  LAPLACIAN                     /////////////////////////////
-        template<int N>
-        static Real LaplacianCart(const IScalarFunction<N> &scalarField, const VectorN<Real, N> &pos)
-        {
-            Real lapl = 0.0;
-            for( int i=0; i<N; i++ )
-                lapl += Derivation::NSecDer4Partial<N>(scalarField, i, i, pos, nullptr);
-
-            return lapl;
-        }
-        static Real LaplacianSpher(const IScalarFunction<3> &scalarField, const Vector3Spherical &pos)
-        {
-            const Real r     = pos.R();
-            const Real phi   = pos.Phi();
-            const Real theta = pos.Theta();
-
-            Real first  = Derivation::NSecDer4Partial(scalarField, 0, 0, pos, nullptr);
-            Real second = 2 / pos.R() * Derivation::NDer4Partial(scalarField, 0, pos, nullptr);
-            Real third  = 1 / (r*r * sin(theta)) * (cos(theta) * Derivation::NDer4Partial(scalarField, 1, pos, nullptr) + sin(theta) * Derivation::NSecDer4Partial(scalarField, 1, 1, pos, nullptr));
-            Real fourth = 1 / (r*r * sin(theta)*sin(theta));
-
-            return first + second + third;
-        }
-
-        static Real LaplacianCyl(const IScalarFunction<3> &scalarField, const Vector3Cylindrical &pos)
-        {
-            const Real r = pos[0];
-
-            Real first  = 1 / r * (Derivation::NDer4Partial<3>(scalarField, 0, pos, nullptr) + r * Derivation::NSecDer4Partial<3>(scalarField, 0, 0, pos, nullptr));
-            Real second = 1 / (r*r) * Derivation::NSecDer4Partial<3>(scalarField, 1, 1, pos, nullptr);
-            Real third  = Derivation::NSecDer4Partial<3>(scalarField, 2, 2, pos, nullptr);
-            
-            return first + second + third;
-        }          
-    };
-
-    class VectorFieldOperations
-    {
-    public:
-        ////////////////////////////////////////////////////////////////////////////////////////////////////////
-        ///////////////////////////                  DIVERGENCE                    /////////////////////////////
-        template<int N>
-        static Real DivCart(const IVectorFunction<N> &vectorField, const VectorN<Real, N> &pos)
-        {
-            Real div = 0.0;
-            for( int i=0; i<N; i++ )
-                div += Derivation::DeriveVecPartial<N>(vectorField, i, i, pos, nullptr);
-
-            return div;
-        }    
-
-        static Real DivSpher(const IVectorFunction<3> &vectorField, const VectorN<Real, 3> &x)
-        {
-            VectorN<Real, 3> vals = vectorField(x);
-
-            VectorN<Real, 3> derivs;
-            for( int i=0; i<3; i++ )
-                derivs[i] = Derivation::DeriveVecPartial<3>(vectorField, i, i, x, nullptr);
-            
-            Real div = 0.0;
-            div += 1 / (x[0]*x[0]) * (2 * x[0] * vals[0] + x[0]*x[0] * derivs[0]);
-            div += 1 / (x[0] * sin(x[1])) * (cos(x[1]) * vals[1] + sin(x[1]) * derivs[1]);
-            div += 1 / (x[0] * sin(x[1])) * derivs[2];
-
-            return div;
-        }           
-
-        static Real DivCyl(const IVectorFunction<3> &vectorField, const VectorN<Real, 3> &x)
-        {
-            VectorN<Real, 3> vals = vectorField(x);
-
-            VectorN<Real, 3> derivs;
-            for( int i=0; i<3; i++ )
-                derivs[i] = Derivation::DeriveVecPartial<3>(vectorField, i, i, x, nullptr);
-            
-            Real div = 0.0;
-            div += 1 / x[0] * (vals[0] + x[0] * derivs[0]);
-            div += 1 / x[0] * derivs[1];
-            div += derivs[2];
-
-            return div;
-        }
-        
-        ////////////////////////////////////////////////////////////////////////////////////////////////////////
-        ///////////////////////////                     CURL                       /////////////////////////////
-        static Vector3Cartesian CurlCart(const IVectorFunction<3> &vectorField, const VectorN<Real, 3> &pos)
-        {
-            Real dzdy = Derivation::DeriveVecPartial<3>(vectorField, 2, 1, pos, nullptr);
-            Real dydz = Derivation::DeriveVecPartial<3>(vectorField, 1, 2, pos, nullptr);
-
-            Real dxdz = Derivation::DeriveVecPartial<3>(vectorField, 0, 2, pos, nullptr);
-            Real dzdx = Derivation::DeriveVecPartial<3>(vectorField, 2, 0, pos, nullptr);
-
-            Real dydx = Derivation::DeriveVecPartial<3>(vectorField, 1, 0, pos, nullptr);
-            Real dxdy = Derivation::DeriveVecPartial<3>(vectorField, 0, 1, pos, nullptr);
-
-            Vector3Cartesian curl{dzdy - dydz, dxdz - dzdx, dydx - dxdy};
-
-            return curl;
-        }    
-
-        static Vector3Spherical CurlSpher(const IVectorFunction<3> &vectorField, const VectorN<Real, 3> &pos)
-        {
-            VectorN<Real, 3> vals = vectorField(pos);
-
-            Real dphidtheta = Derivation::DeriveVecPartial<3>(vectorField, 2, 1, pos, nullptr);
-            Real dthetadphi = Derivation::DeriveVecPartial<3>(vectorField, 1, 2, pos, nullptr);
-
-            Real drdphi     = Derivation::DeriveVecPartial<3>(vectorField, 0, 2, pos, nullptr);
-            Real dphidr     = Derivation::DeriveVecPartial<3>(vectorField, 2, 0, pos, nullptr);
-
-            Real dthetadr   = Derivation::DeriveVecPartial<3>(vectorField, 1, 0, pos, nullptr);
-            Real drdtheta   = Derivation::DeriveVecPartial<3>(vectorField, 0, 1, pos, nullptr);
-
-            Vector3Spherical ret;
-            const Real &r     = pos[0];
-            const Real &theta = pos[1];
-            const Real &phi   = pos[2];
-
-            ret[0] = 1 / (r * sin(theta)) * (cos(theta) * vals[2] + sin(theta) * dphidtheta - dthetadphi);
-            ret[1] = 1 / r * (1 / sin(theta)  * drdphi - vals[2] - r * dphidr);
-            ret[2] = 1 / r * (vals[1] + r * dthetadr - drdtheta);
-
-            return ret;
-        }           
-
-        static Vector3Cylindrical CurlCyl(const IVectorFunction<3> &vectorField, const VectorN<Real, 3> &pos)
-        {
-            VectorN<Real, 3> vals = vectorField(pos);
-
-            Real dzdphi = Derivation::DeriveVecPartial<3>(vectorField, 2, 1, pos, nullptr);
-            Real dphidz = Derivation::DeriveVecPartial<3>(vectorField, 1, 2, pos, nullptr);
-
-            Real drdz   = Derivation::DeriveVecPartial<3>(vectorField, 0, 2, pos, nullptr);
-            Real dzdr   = Derivation::DeriveVecPartial<3>(vectorField, 2, 0, pos, nullptr);
-
-            Real dphidr = Derivation::DeriveVecPartial<3>(vectorField, 1, 0, pos, nullptr);
-            Real drdphi = Derivation::DeriveVecPartial<3>(vectorField, 0, 1, pos, nullptr);
-
-            Vector3Cylindrical ret{1.0 / pos[0] * dzdphi - dphidz, drdz - dzdr, 1 / pos[0] * (vals[1] + pos[0] * dphidr - drdphi)};
-
-            return ret;
-        }
-    };
-}
 ///////////////////////////   ./include/algorithms/PathIntegration.h   ///////////////////////////
 
 
@@ -10390,7 +10390,7 @@ namespace MML
 ///////////////////////////   ./include/algorithms/EigenSystemSolvers.h   ///////////////////////////
 
 
-// Given the eigenvalues d[0..n-1] and (optionally) the eigenvectors v[0..n-1][0..n-1] as determined by Jacobi (÷11.1) or tqli (÷11.4), this routine sorts the eigenvalues into descending
+// Given the eigenvalues d[0..n-1] and (optionally) the eigenvectors v[0..n-1][0..n-1] as determined by Jacobi (ï¿½11.1) or tqli (ï¿½11.4), this routine sorts the eigenvalues into descending
 // order and rearranges the columns of v correspondingly. The method is straight insertion.
 static void eigsrt(MML::Vector<Real> &d, MML::Matrix<Real> *v = NULL)
 {
@@ -10419,7 +10419,7 @@ static void eigsrt(MML::Vector<Real> &d, MML::Matrix<Real> *v = NULL)
 
 namespace MML
 {
-    // Computes all eigenvalues and eigenvectors of a real symmetric matrix by Jacobi’s method.
+    // Computes all eigenvalues and eigenvectors of a real symmetric matrix by Jacobiï¿½s method.
     struct Jacobi
     {
         const int n;
@@ -10668,7 +10668,7 @@ namespace MML
 
         // QL algorithm with implicit shifts to determine the eigenvalues and (optionally) the eigenvectors
         // of a real, symmetric, tridiagonal matrix, or of a real symmetric matrix previously reduced by
-        // tred2 (÷11.3). On input, d[0..n-1] contains the diagonal elements of the tridiagonal matrix.
+        // tred2 (ï¿½11.3). On input, d[0..n-1] contains the diagonal elements of the tridiagonal matrix.
         // On output, it returns the eigenvalues. The vector e[0..n-1] inputs the subdiagonal elements
         // of the tridiagonal matrix, with e[0] arbitrary. On output e is destroyed. If the eigenvectors of
         // a tridiagonal matrix are desired, the matrix z[0..n-1][0..n-1] is input as the identity matrix.
@@ -13608,7 +13608,6 @@ namespace MML
     public:
         static void Avg(Vector<Real> &data, Real &outAvg) 
         {
-            Real s,ep;
             int j,n=data.size();
 
             outAvg=0.0;
