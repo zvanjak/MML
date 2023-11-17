@@ -15,7 +15,7 @@
 using namespace MML;
 
 
-void Demo_Function()
+void Demo_Function_serialization()
 {
     std::cout << std::endl;
     std::cout << "***********************************************************************" << std::endl;
