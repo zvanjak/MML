@@ -91,7 +91,6 @@ int main(int, char**)
     Demo_Fields();
     // Demo_Function_Space();
     // Demo_Function();
-    Demo_Function_serialization();
     // Demo_LinearFunctionals();
     // Demo_LinearOperators();
     // Demo_VectorSpaces();
