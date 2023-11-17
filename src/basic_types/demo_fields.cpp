@@ -61,6 +61,6 @@ void Demo_Fields()
     VectorFunction<3> user_fun(MyPotentialForceField);
 
     test_fun.SerializeCartesian(-30.0, 30.0, 4, -30.0, 30.0, 4, -30.0, 30.0, 4, "vector_field.txt");
-    auto ret = std::system("..\\..\\tools\\graph_drawers\\vector_field_visualizer\\MML_VectorFieldVisualizer.exe vector_field.txt");
+    auto ret = std::system("..\\..\\tools\\visualizers\\vector_field_visualizer\\MML_VectorFieldVisualizer.exe vector_field.txt");
     std::cout << "Return code = " << ret << std::endl;
 }

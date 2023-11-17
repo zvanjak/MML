@@ -56,5 +56,5 @@ void Demo_Function()
     auto val2 = Surfaces::test1(1.0, 1.0);
 
     f2.SerializeVariableSpaced(0.0, 10.0, 100, "test.txt");
-    auto ret = std::system("..\\..\\tools\\graph_drawers\\real_function_visualizer\\MML_RealFunctionVisualizer.exe");
+    auto ret = std::system("..\\..\\tools\\visualizers\\real_function_visualizer\\MML_RealFunctionVisualizer.exe");
 }
