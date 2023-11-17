@@ -6,7 +6,7 @@
 #include "core/Vector.h"
 #include "core/Matrix.h"
 
-#include "basic_types/Function.h"
+#include "core/Function.h"
 #include "basic_types/Curves.h"
 #include "basic_types/Geometry3D.h"
 
@@ -57,7 +57,7 @@ void Readme_parametric_curves()
     Curves::HelixCurve        helix(2.0, 2.0);
     
     // using curve from TestData
-    const ParametricCurve<3> &test_curve = TestData::ParametricCurvesTestBed::_listCurves[0]._curve;
+    const ParametricCurve<3> &test_curve = TestBeds::ParametricCurvesTestBed::getTestCurve(0)._curve;
 
     double t = 0.5;
     auto tangent   = Vector3Cartesian( DiffGeometry::getTangent(test_curve, t) );

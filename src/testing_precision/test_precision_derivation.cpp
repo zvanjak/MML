@@ -1,9 +1,10 @@
 #ifdef MML_USE_SINGLE_HEADER
 #include "MML.h"
 #else
-#include "core/Constants.h"
-#include "basic_types/Function.h"
-#include "algorithms/Derivation.h"
+#include "utilities/Constants.h"
+
+#include "core/Function.h"
+#include "core/Derivation.h"
 #endif
 
 #include "../test_data/real_functions_test_bed.h"
@@ -11,11 +12,11 @@
 #include "../test_data/vector_functions_test_bed.h"
 
 using namespace MML;
-using namespace MML::TestData;
+using namespace MML::TestBeds;
 
 // For given RealFunction
 // and given interval of test points
-// produces table of error order for different derivation orders
+// produces table of first derivation error order for different derivation orders
 void NDer_Error_Order_Diff_Der_Orders_Single_Func(std::string funcName, const TestFunctionReal  &inFunc, std::vector<Real> intervalPoints)
 {
     std::vector<int> nder_orders{1, 2, 4, 6, 8};
@@ -66,12 +67,65 @@ void NDer_Error_Order_Diff_Der_Orders_Single_Func(std::string funcName, const Te
     std::cout << "------------------------------------------------------------------------------------------------------------------------------------------------------" << std::endl;
 }
 
+
+// For given RealFunction
+// and given interval of test points
+// produces table of second derivation error order for different derivation orders
+void NSecDer_Error_Order_Diff_Der_Orders_Single_Func(std::string funcName, const TestFunctionReal  &inFunc, std::vector<Real> intervalPoints)
+{
+    std::vector<int> nder_orders{1, 2, 4, 6, 8};
+
+    const RealFunction  &f     = inFunc._func;
+    const RealFunction  &f_sec_der = inFunc._funcSecDer;
+
+    double err, err_sum, pr_err;
+
+    std::cout << "\nORDER OF SECOND DERIVATION ERROR FOR DIFFERENT DERIVATION ORDERS - function - " << funcName << std::endl;
+    std::cout << "-------------------------------------------------------------------------------------------------------------------------------------------------------" << std::endl;
+    std::cout << "Ord \\ X  |";
+    for(auto x : intervalPoints) {
+        std::cout << std::setw(10) << x << " ";
+    }
+    std::cout << "  |  Avg. abs. error" << std::endl;
+    std::cout << "-------------------------------------------------------------------------------------------------------------------------------------------------------" << std::endl;
+
+    for(auto ord : nder_orders)
+    {
+        err_sum = 0.0;
+        std::cout << "NSecDer" << ord << " |  ";
+        
+        for(auto x : intervalPoints) 
+        {
+            double exact_der = f_sec_der(x);
+            double num_der = 0.0;
+
+            switch(ord)
+            {
+                case 1: num_der = MML::Derivation::NSecDer1(f, x); break;
+                case 2: num_der = MML::Derivation::NSecDer2(f, x); break;
+                case 4: num_der = MML::Derivation::NSecDer4(f, x); break;
+                case 6: num_der = MML::Derivation::NSecDer6(f, x); break;
+                case 8: num_der = MML::Derivation::NSecDer8(f, x); break;
+                default: std::cout << "Wrong order" << std::endl;
+            }
+            
+            err      = num_der - exact_der;
+            err_sum += std::abs(err);
+            pr_err   = pow(10,ceil(log10(std::abs(err))));
+
+            std::cout << std::scientific << std::setw(8) << std::setprecision(0) << std::abs(pr_err) << "   ";
+        }
+        std::cout << "|   " << std::setw(11) << std::setprecision(6) << err_sum / intervalPoints.size() << std::fixed << std::endl;
+    }
+
+    std::cout << "------------------------------------------------------------------------------------------------------------------------------------------------------" << std::endl;
+}
 void NDer_Average_Error_Diff_Orders_Single_Func(std::string funcName, const TestFunctionReal  &inFunc)
 {
     const RealFunction  &f     = inFunc._func;
     const RealFunction  &f_der = inFunc._funcDerived;
-    double x1 = inFunc._start;
-    double x2 = inFunc._end;
+    double x1 = inFunc._intervalTest.getLowerBound();
+    double x2 = inFunc._intervalTest.getUpperBound();
 
     const int numPntForEval = 20;
 
@@ -135,8 +189,8 @@ void NDer_Error_Diff_h_Single_Func(int order, std::string funcName, const TestFu
 {
     const RealFunction  &f     = inFunc._func;
     const RealFunction  &f_der = inFunc._funcDerived;
-    double x1 = inFunc._start;
-    double x2 = inFunc._end;
+    double x1 = inFunc._intervalTest.getLowerBound();
+    double x2 = inFunc._intervalTest.getUpperBound();
 
     const int numPntForEval = 20;
 
@@ -251,10 +305,11 @@ void Demo_Third_derivation()
 
 void Test_Precision_Derivation()
 {
-    // std::vector<Real> intervalPoints{-10.0, -5.0, -3.0, -1.0, -0.5, -0.1, -0.01, 0.0, 0.01, 0.1, 0.5, 1.0, 3.0, 5.0, 10.0};
+    //std::vector<Real> intervalPoints{-10.0, -5.0, -3.0, -1.0, -0.5, -0.1, -0.025, 0.0, 0.025, 0.1, 0.5, 1.0, 3.0, 5.0, 10.0};
     std::vector<Real> intervalPoints{0.0, 0.5, 1.0, 2.0, 3.0, 5.0 };
 
-    NDer_Error_Order_Diff_Der_Orders_Single_Func("Sin", RealFunctionsTestBed::getTestFunctionReal("Sin"), intervalPoints);
+    //NDer_Error_Order_Diff_Der_Orders_Single_Func("Sin", RealFunctionsTestBed::getTestFunctionReal("Sin"), intervalPoints);
+    NSecDer_Error_Order_Diff_Der_Orders_Single_Func("Sin", RealFunctionsTestBed::getTestFunctionReal("Sin"), intervalPoints);
 
     // NDer_Average_Error_Diff_Orders_Single_Func("Sin", RealFunctionsTestBed::getTestFunctionReal(0));
 

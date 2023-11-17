@@ -1,38 +1,59 @@
+#ifdef MML_USE_SINGLE_HEADER
+#include "MML.h"
+#else
 #include "MMLBase.h"
+#endif
 
+// Utilities
+void Demo_Intervals();
+
+// Core
 void Demo_Algebra();
-
+void Demo_CoordTransf();
+void Demo_CoreUtils();
+void Demo_Derivation();
+void Demo_Function();
+void Demo_Geometry();
+void Demo_Interpolated_Function();
+void Demo_Integration();
+void Demo_LinearAlgEqSolvers();
+void Demo_LinearFunctionals();
+void Demo_LinearOperators();
+void Demo_Matrix();
+void Demo_Matrix_Other();
+void Demo_MatrixNM();
+void Demo_Polynom();
+void Demo_QuadraticForms();
+void Demo_Tensors();
+void Demo_VectorSpaces();
 void Demo_Vector();
 void Demo_VectorN();
-void Demo_Matrix();
-void Demo_MatrixNM();
-void Demo_Tensors();
-void Demo_Geometry();
-void Demo_CoordTransf();
+
+// Basic types
 void Demo_CoordSystem();
-
-void Demo_Polynom();
-void Demo_Function();
-
-void Demo_Derivation();
-void Demo_Field_operations();
+void Demo_Covar_Contravar_transformations();
+void Demo_Dirac_function();
 void Demo_Fields();
-
-void Demo_Integration();
-void Demo_Path_Integration();
+void Demo_Function_Space();
+void Demo_Geometry_2D();
+void Demo_Geometry_3D();
 void Demo_Interpolators();
-void Demo_Interpolated_Function();
+void Demo_Metric_Tensors();
+void Demo_Surfaces();
 
-void Demo_LinearAlgEqSolvers();
-void Demo_EigenSolvers();
-void Demo_DiffEqSolvers();
-
+// Algorithms
 void Demo_Diff_geometry();
+void Demo_EigenSolvers();
+void Demo_Field_operations();
+void Demo_ODESystemSolvers();
+void Demo_Path_Integration();
 
+// Speed
 void Test_Speed_Functions();
 void Test_Speed_Derivation();
 void Test_Speed_Linear_alg_eq_solvers();
 
+// Precision
 void Test_Precision_Derivation();
 void Test_Precision_Integration();
 
@@ -51,32 +72,45 @@ int main(int, char**)
     // if (min_inf < min)
     //     std::cout << min_inf << " is less than " << min << '\n';
     
-    // Demo_Algebra();
+    // Demo_Intervals();
 
+    // Demo_Algebra();
+    // Demo_CoreUtils();
+    // Demo_Matrix();
+    // Demo_Matrix_Other();
+    // Demo_MatrixNM();
+    // Demo_Tensors();
     // Demo_Vector();
     // Demo_VectorN();
-    // Demo_Matrix();
-    // Demo_MatrixNM();
-    // Demo_Polynom();
-    // Demo_Tensors();
-    // Demo_Function();
-    // Demo_Interpolated_Function();
 
-    // Demo_Geometry();
-    Demo_CoordSystem();
     Demo_CoordTransf();
+    // Demo_CoordSystem();
+    // Demo_Covar_Contravar_transformations();
+    // Demo_Dirac_function();
+    Demo_Fields();
+    // Demo_Function_Space();
+    // Demo_Function();
+    Demo_LinearFunctionals();
+    Demo_LinearOperators();
+    Demo_VectorSpaces();
+    // Demo_Geometry();
+    // void Demo_Geometry_2D();
+    // void Demo_Geometry_3D();    
+    // Demo_Interpolated_Function();
+    // Demo_Interpolators();
+    // Demo_Metric_Tensors();
+    // Demo_Polynom();
+    Demo_QuadraticForms();
+    // Demo_Surfaces();
 
     // Demo_Derivation();
-    // Demo_Field_operations();
-    // Demo_Fields();
-    // Demo_Integration();
-    // Demo_Path_Integration();
-    // Demo_Interpolators();
-    
-    // Demo_LinearAlgEqSolvers();
-    // Demo_EigenSolvers();
-    // Demo_DiffEqSolvers();
     // Demo_Diff_geometry();
+    // Demo_EigenSolvers();
+    // Demo_Field_operations();
+    // Demo_Integration();
+    // Demo_LinearAlgEqSolvers();
+    // Demo_ODESystemSolvers();
+    // Demo_Path_Integration();
 
     // Test_Speed_Functions();
     // Test_Speed_Derivation();

@@ -12,7 +12,6 @@
 namespace MML::TestBeds
 {
     // TODO - add Chebyshev diff eq system
-    // TODO - finish implementation of Legandre, Hermite, Laguerre
     // TODO - add couple of (complex) linear diff systems
     // TODO - add at least 5 stiff systems
     class LegandreODE : public IODESystem
@@ -21,24 +20,39 @@ namespace MML::TestBeds
     public:
         LegandreODE(int n) : _n(n) {}
         
-        int  getDim() { return 2; }
+        int getDim() override { return 2; }
         void derivs(const double x, const MML::Vector<Real> &y, MML::Vector<Real> &dydx) override
         {
-            // dydx[0]= y[1];
-            // dydx[1]=((1.0-y[0]*y[0])*y[1]-y[0])/_eps;
+            dydx[0] = y[1];
+            dydx[1] = 2 * x / (1 - x * x) * y[1] - _n * (_n + 1) * y[0];
         }
     };
+
+    class LaguerreODE : public IODESystem
+    {
+        int _n; // order
+    public:
+        LaguerreODE(int n) : _n(n) {}
+        
+        int  getDim() override { return 2; }
+        void derivs(const double x, const MML::Vector<Real> &y, MML::Vector<Real> &dydx) override
+        {
+            dydx[0] = y[1];
+            dydx[1] = (x - 1) / x * y[1] - _n / x * y[0];
+        }
+    };
+
     class HermiteODE : public IODESystem
     {
         int _n; // order
     public:
         HermiteODE(int n) : _n(n) {}
         
-        int  getDim() { return 2; }
+        int  getDim() override { return 2; }
         void derivs(const double x, const MML::Vector<Real> &y, MML::Vector<Real> &dydx) override
         {
-            // dydx[0]= y[1];
-            // dydx[1]=((1.0-y[0]*y[0])*y[1]-y[0])/_eps;
+            dydx[0] = y[1];
+            dydx[1] = 2 * x * y[1] - 2 * _n * y[0];
         }
     };
 
@@ -48,7 +62,7 @@ namespace MML::TestBeds
     public:
         VanDerPolODE(double eps) : _eps(eps) {}
         
-        int  getDim() { return 2; }
+        int  getDim() override { return 2; }
         void derivs(const double x, const MML::Vector<Real> &y, MML::Vector<Real> &dydx) override
         {
             dydx[0] = y[1];

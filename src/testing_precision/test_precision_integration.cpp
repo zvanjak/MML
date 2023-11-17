@@ -1,9 +1,10 @@
 #ifdef MML_USE_SINGLE_HEADER
 #include "MML.h"
 #else
-#include "core/Constants.h"
-#include "basic_types/Function.h"
-#include "algorithms/Integration.h"
+#include "utilities/Constants.h"
+
+#include "core/Function.h"
+#include "core/Integration.h"
 #endif
 
 #include "../test_data/real_functions_test_bed.h"
@@ -14,15 +15,15 @@ using namespace MML;
 
 void Test_Precision_Integration_Single_Func()
 {
-    TestData::TestFunctionReal  f1_sin = TestData::RealFunctionsTestBed::getTestFunctionReal(0);
-    TestData::TestFunctionReal  f1_cos = TestData::RealFunctionsTestBed::getTestFunctionReal(1);
+    TestBeds::TestFunctionReal  f1_sin = TestBeds::RealFunctionsTestBed::getTestFunctionReal(0);
+    TestBeds::TestFunctionReal  f1_cos = TestBeds::RealFunctionsTestBed::getTestFunctionReal(1);
 
     auto  &f_wrap = f1_sin;
 
     RealFunction  &f     = f_wrap._func;
     RealFunction  &f_int = f_wrap._funcIntegrated;
-    double x1 = f_wrap._start;
-    double x2 = f_wrap._end;
+    double x1 = f_wrap._intervalTest.getLowerBound();
+    double x2 = f_wrap._intervalTest.getUpperBound();
 
     const int numIntervals = 20;
 

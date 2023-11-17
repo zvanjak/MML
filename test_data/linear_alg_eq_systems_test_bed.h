@@ -5,14 +5,14 @@
 #include "MML.h"
 #else
 #include "core/Matrix.h"
+#include "core/MatrixSym.h"
 #endif
 
 #include "linear_alg_eq_systems_defs.h"
+#include "linear_alg_eq_systems_complex_defs.h"
 
 namespace MML::TestBeds
 {
-    // TODO - define 10 linear systems, up to 20 x 20 dimension, with complete solutions
-    // TODO - implement generation of random linear system
     // TODO - define 5 symmetric linear systems
     class TestLinearSystem
     {
@@ -49,16 +49,16 @@ namespace MML::TestBeds
     {
     public:
         int _n;
-        MatrixDbl _mat;        // MatrixSymm is not implemented yet
+        MatrixSym<Real> _mat;        // MatrixSymm is not implemented yet
         VectorDbl _rhs;
         VectorDbl _sol;
         VectorDbl _eigen_values;
         std::vector<VectorDbl> _eigen_vectors;
 
-        TestLinearSystemSymmetric(int n, const MML::MatrixDbl &mat, const MML::VectorDbl &rhs, const MML::VectorDbl &sol, const MML::VectorDbl &eigen_values) : 
+        TestLinearSystemSymmetric(int n, const MML::MatrixSym<Real> &mat, const MML::VectorDbl &rhs, const MML::VectorDbl &sol, const MML::VectorDbl &eigen_values) : 
             _n(n), _mat(mat), _rhs(rhs), _sol(sol), _eigen_values(eigen_values)
         {}
-        TestLinearSystemSymmetric(int n, const MML::MatrixDbl &mat, const MML::VectorDbl &rhs, const MML::VectorDbl &sol, const MML::VectorDbl &eigen_values, const std::vector<MML::VectorDbl> &eigen_vectors) : 
+        TestLinearSystemSymmetric(int n, const MML::MatrixSym<Real> &mat, const MML::VectorDbl &rhs, const MML::VectorDbl &sol, const MML::VectorDbl &eigen_values, const std::vector<MML::VectorDbl> &eigen_vectors) : 
             _n(n), _mat(mat), _rhs(rhs), _sol(sol), _eigen_values(eigen_values), _eigen_vectors(eigen_vectors)
         {}        
     };
@@ -68,7 +68,8 @@ namespace MML::TestBeds
     class LinearAlgEqTestBed
     {
     public:
-        static int numLinAlgEqSystems() { return 3; }
+        static int numLinAlgEqSystems()     { return 9; }
+        
         static const TestLinearSystem& getLinAlgEqSystem(int index) { return _listLinearSystems[index].second; }
         static const TestLinearSystem& getLinAlgEqSystem(std::string sysName)
         {
@@ -108,49 +109,38 @@ namespace MML::TestBeds
                 "mat_3x3", { 3, mat_3x3, mat_3x3_rhs0, mat_3x3_rhs0_sol, mat_3x3_eigen_val, mat_3x3_eigen_vecs }
             },
             {  
+                "mat_3x3_1", { 3, mat_3x3_1, mat_3x3_1_rhs0, mat_3x3_1_rhs0_sol, mat_3x3_1_eigen_val, mat_3x3_1_eigen_vecs }
+            },
+            {  
+                "mat_3x3_2", { 3, mat_3x3_2, mat_3x3_2_rhs0, mat_3x3_2_rhs0_sol, mat_3x3_2_eigen_val, mat_3x3_2_eigen_vecs }
+            },
+            {  
+                "mat_3x3_3", { 3, mat_3x3_3, mat_3x3_3_rhs0, mat_3x3_3_rhs0_sol, mat_3x3_3_eigen_val, mat_3x3_3_eigen_vecs }
+            },
+            {  
+                "mat_3x3_4", { 3, mat_3x3_4, mat_3x3_4_rhs0, mat_3x3_4_rhs0_sol, mat_3x3_4_eigen_val, mat_3x3_4_eigen_vecs }
+            },            
+            {  
                 "mat_5x5", { 5, mat_5x5, mat_5x5_rhs0, mat_5x5_rhs0_sol, mat_5x5_eigen_val, mat_5x5_eigen_vecs }
             },
-            { 
-                "mat_3x3_2",
-                {
-                    3, 
-                    MatrixDbl{3, 3, { 1.0, 2.0, -1.0, 
-                                     -1.0, 5.0, 6.0, 
-                                      3.0, 1.0, 1.0 }},
-                    VectorDbl{1.0, 2.0, 1.0},
-                    VectorDbl{0.18867924528301885, 0.41509433962264153, 0.018867924528301921},
-                    VectorComplex{Complex(1.0,0.0), Complex(2.0,0.0), Complex(1.0,0.0)},
-                    {
-                        VectorComplex{Complex(1.0,0.0), Complex(2.0,0.0), Complex(1.0,0.0)},
-                        VectorComplex{Complex(1.0,0.0), Complex(2.0,0.0), Complex(1.0,0.0)},
-                        VectorComplex{Complex(1.0,0.0), Complex(2.0,0.0), Complex(1.0,0.0)}
-                    }
-                }
+            {  
+                "mat_8x8", { 8, mat_8x8, mat_8x8_rhs0, mat_8x8_rhs0_sol, mat_8x8_eigen_val, mat_8x8_eigen_vecs }
+            },
+            {  
+                "mat_10x10", { 10, mat_10x10, mat_10x10_rhs0, mat_10x10_rhs0_sol, mat_10x10_eigen_val, mat_10x10_eigen_vecs }
+            },
+            {  
+                "mat_20x20", { 20, mat_20x20, mat_20x20_rhs0, mat_20x20_rhs0_sol, mat_20x20_eigen_val, mat_20x20_eigen_vecs }
             }
         };
 
         const static inline std::pair<std::string, TestLinearSystemSymmetric> _listLinearSystemsSym[] = { 
-            { 
-                "mat_sym_4x4",
-                {
-                    5, 
-                    MatrixDbl{5, 5, {1.4, 2.1, 2.1, 7.4, 9.6,
-                                    2.1, 1.5, 1.1, 0.7, 5.0,
-                                    2.1, 1.1, 9.6, 5.4, 8.8,
-                                    7.4, 0.7, 5.4, 0.4, 8.0,
-                                    9.6, 5.0, 8.8, 8.0, 7.7}},
-                    VectorDbl{1.0, 2.0, 1.0, 0.0, 0.0},
-                    VectorDbl{1.0, 0.0, 0.0, 0.0, 0.0},
-                    VectorDbl{1.0, 0.0, 2.0, 0.0, 0.0},
-                    {
-                        VectorDbl{1.0, 0.0, 1.0, 0.0, 0.0},
-                        VectorDbl{1.0, 0.0, 1.0, 0.0, 0.0},
-                        VectorDbl{1.0, 0.0, 1.0, 0.0, 0.0},
-                        VectorDbl{1.0, 0.0, 1.0, 0.0, 0.0},
-                        VectorDbl{1.0, 0.0, 1.0, 0.0, 0.0}
-                    }
-                }
-            }
+            {  
+                "symm_mat_3x3", { 3, symm_mat_3x3, symm_mat_3x3_rhs0, symm_mat_3x3_rhs0_sol, symm_mat_3x3_eigen_val, symm_mat_3x3_eigen_vecs }
+            },
+            {  
+                "symm_mat_5x5", { 3, symm_mat_5x5, symm_mat_5x5_rhs0, symm_mat_5x5_rhs0_sol, symm_mat_5x5_eigen_val, symm_mat_5x5_eigen_vecs }
+            }            
         };        
 
         const static inline std::pair<std::string, TestLinearSystemMultiRHS> _listLinearSystemsMultiRHS[] = { 

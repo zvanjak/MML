@@ -5,10 +5,10 @@
 #include "MML.h"
 #else
 #include "core/VectorN.h"
-#include "basic_types/Function.h"
+#include "core/Function.h"
 #endif
 
-namespace MML::TestData
+namespace MML::TestBeds
 {
     // TODO - add planar curves
     // TODO - add planar polar curves
@@ -20,11 +20,11 @@ namespace MML::TestData
         std::string _curveExpr;
         double _start, _end;
 
-        MML::ParametricCurve<3> _curve;
-        MML::ParametricCurve<3> _curveDerived;
-        MML::ParametricCurve<3> _curveDerSecond;
-        MML::RealFunction _curvatureFunc;
-        MML::RealFunction _torsionFunc;
+        ParametricCurve<3> _curve;
+        ParametricCurve<3> _curveDerived;
+        ParametricCurve<3> _curveDerSecond;
+        RealFunction _curvatureFunc;
+        RealFunction _torsionFunc;
 
         TestSpaceCurve(std::string curveName, std::string curveExpr, double x1, double x2,
                         VectorN<Real,3> (*f1)(double), VectorN<Real,3> (*f2)(double), VectorN<Real,3> (*f3)(double), 
@@ -63,11 +63,12 @@ namespace MML::TestData
             for (int i = 0; i < getNumTestCurvesArcLenParam(); i++)
             {
                 if (_listCurvesArcLenParam[i]._curveName == curveName)
-                    return _listCurves[i];
+                    return _listCurvesArcLenParam[i];
             }
             throw std::runtime_error("TestSpaceCurveArcLenParam " + curveName + " not found!");
-        }
-
+        } 
+           
+    private:
         const static inline TestSpaceCurve _listCurves[] = { 
                 {"Helix", "{cos(t), sin(t), t}", 0.0, 2.0 * Constants::PI,  
                         [](double t) { return VectorN<Real,3>{ cos(t), sin(t), t}; }, 
@@ -95,8 +96,8 @@ namespace MML::TestData
         const static inline TestSpaceCurve _listCurvesArcLenParam[] = { 
                 {"Helix", "1/sqrt(2) * {cos(t), sin(t), t}", 0.0, 2.0 * Constants::PI,  
                         [](double t) { return VectorN<Real,3>{ cos(t) / sqrt(2.0), sin(t) / sqrt(2.0), t / sqrt(2.0)}; }, 
-                        [](double t) { return VectorN<Real,3>{-sin(t), cos(t), 1.0};}, 
-                        [](double t) { return VectorN<Real,3>{-cos(t), -sin(t), 0};},
+                        [](double t) { return VectorN<Real,3>{-sin(t) / sqrt(2.0), cos(t) / sqrt(2.0), 1.0 / sqrt(2.0)};}, 
+                        [](double t) { return VectorN<Real,3>{-cos(t) / sqrt(2.0), -sin(t) / sqrt(2.0), 0};},
                         [](double t) { return 0.5; }, 
                         [](double t) { return 1.0; } 
                 }
