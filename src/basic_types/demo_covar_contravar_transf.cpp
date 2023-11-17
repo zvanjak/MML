@@ -5,7 +5,7 @@
 
 #include "core/CoordTransf.h"
 #include "basic_types/Fields.h"
-#include "algorithms/FieldOperations.h"
+#include "core/FieldOperations.h"
 
 #endif
 

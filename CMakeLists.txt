@@ -28,6 +28,8 @@ set( MML_DEMO_SOURCES   src/main.cpp
                         src/core/demo_vector.cpp
                         src/core/demo_vectorn.cpp
                         src/core/demo_vector_spaces.cpp
+                        src/core/demo_metric_tensor.cpp
+                        src/core/demo_field_operations.cpp
 
                         src/basic_types/demo_coord_system.cpp
                         src/basic_types/demo_covar_contravar_transf.cpp                                
@@ -37,12 +39,10 @@ set( MML_DEMO_SOURCES   src/main.cpp
                         src/basic_types/demo_geometry_2d.cpp
                         src/basic_types/demo_geometry_3d.cpp
                         src/basic_types/demo_interpolators.cpp
-                        src/basic_types/demo_metric_tensor.cpp
                         src/basic_types/demo_surfaces.cpp
 
                         src/algorithms/demo_diff_geometry.cpp
                         src/algorithms/demo_eigen_solvers.cpp                                
-                        src/algorithms/demo_field_operations.cpp
                         src/algorithms/demo_function_analyzer.cpp
                         src/algorithms/demo_ode_system_solvers.cpp
                         src/algorithms/demo_path_integration.cpp
@@ -87,17 +87,17 @@ file(GLOB MML_TESTS tests/core/algebra_tests.cpp
                     tests/core/tensors_tests.cpp
                     tests/core/vector_tests.cpp
                     tests/core/vectorN_tests.cpp 
+                    tests/core/field_operations_tests.cpp 
+                    tests/core/metric_tensor_tests.cpp
 
                     tests/basic_types/coord_system_tests.cpp
                     tests/basic_types/function_space_tests.cpp
                     tests/core/geometry_2d_tests.cpp
                     tests/core/geometry_3d_tests.cpp
-                    tests/basic_types/metric_tensor_tests.cpp
                     tests/basic_types/surfaces_tests.cpp
 
                     tests/algorithms/diff_geom_alg_tests.cpp  
                     tests/algorithms/eigen_solvers_tests.cpp 
-                    tests/algorithms/field_operations_tests.cpp 
                     tests/algorithms/function_analyzer_tests.cpp
                     tests/algorithms/ode_system_solvers_tests.cpp  
                     tests/algorithms/path_integration_tests.cpp  
@@ -105,7 +105,7 @@ file(GLOB MML_TESTS tests/core/algebra_tests.cpp
                     tests/precision/derivation_precision_tests.cpp 
                     tests/precision/integration_precision_tests.cpp 
 
-                    tests/intervals_tests.cpp 
+                    tests/intervals_tests.cpp
                     )
 
 add_executable(MML_Tests "mmlib_test_runner.cpp" ${MML_TESTS} )

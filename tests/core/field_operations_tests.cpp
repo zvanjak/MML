@@ -3,7 +3,7 @@
 #ifdef MML_USE_SINGLE_HEADER
 #include "MML.h"
 #else
-#include "algorithms/FieldOperations.h"
+#include "core/FieldOperations.h"
 #endif
 
 using namespace MML;

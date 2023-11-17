@@ -6,7 +6,7 @@
 #include "core/InterpolatedFunction.h"
 #include "core/Derivation.h"
 
-#include "basic_types/MetricTensor.h"
+#include "core/MetricTensor.h"
 #endif
 
 #include "../test_data/real_functions_test_bed.h"

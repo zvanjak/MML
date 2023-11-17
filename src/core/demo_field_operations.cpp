@@ -4,10 +4,10 @@
 #include "MMLBase.h"
 
 #include "core/CoordTransf.h"
+#include "core/FieldOperations.h"
+
 #include "basic_types/Fields.h"
 #include "basic_types/Curves.h"
-
-#include "algorithms/FieldOperations.h"
 #endif
 
 using namespace MML;

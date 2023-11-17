@@ -6,8 +6,9 @@
 #include "core/Tensor.h"
 
 #include "core/CoordTransf.h"
+#include "core/MetricTensor.h"
+
 #include "basic_types/Geometry3D.h"
-#include "basic_types/MetricTensor.h"
 #endif
 
 using namespace MML;
