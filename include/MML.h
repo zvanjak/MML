@@ -3288,14 +3288,14 @@ namespace MML
         Real d;
     
     public:
-    // TODO - HIGH, HIGH, TESKO, napraviti da se moï¿½e odraditi i inplace, a ne da se kao sad uvijek kreira kopija
+    // TODO - HIGH, HIGH, TESKO, napraviti da se može odraditi i inplace, a ne da se kao sad uvijek kreira kopija
         LUDecompositionSolver(const Matrix<_Type>  &inMatRef) : n(inMatRef.RowNum()), refOrig(inMatRef), lu(inMatRef), indx(n) 
-// ne moï¿½e        LUDecompositionSolver(const Matrix<_Type>  &inMatRef) : n(inMatRef.RowNum()), refOrig(inMatRef), lu(Matrix<_Type>(inMatRef.RowNum(), inMatRef.ColNum())), indx(n) 
+// ne može        LUDecompositionSolver(const Matrix<_Type>  &inMatRef) : n(inMatRef.RowNum()), refOrig(inMatRef), lu(Matrix<_Type>(inMatRef.RowNum(), inMatRef.ColNum())), indx(n) 
         {
             // Given a Matrix<Real> a[1..n][1..n], this routine replaces it by the LU decomposition of a rowwise
             // permutation of itself. a and n are input. a is output, arranged as in equation (NR 2.3.14);
             // indx[1..n] is an output Vector<Real> that records the row permutation effected by the partial
-            // pivoting; d is output as ï¿½1 depending on whether the number of row interchanges was even
+            // pivoting; d is output as ±1 depending on whether the number of row interchanges was even
             // or odd, respectively. This routine is used in combination with lubksb to solve linear equations
             // or invert a Matrix<Real>.
             const Real TINY=1.0e-40;
@@ -3344,7 +3344,7 @@ namespace MML
         
         void Solve(Vector<_Type> &b, Vector<_Type> &x)
         {
-            // Solves the set of n linear equations Aï¿½X = B. Here a[1..n][1..n] is input, not as the Matrix<Real>
+            // Solves the set of n linear equations A·X = B. Here a[1..n][1..n] is input, not as the Matrix<Real>
             // A but rather as its LU decomposition, determined by the routine ludcmp. indx[1..n] is input
             // as the permutation Vector<Real> returned by ludcmp. b[1..n] is input as the right-hand side Vector<Real>
             // B, and returns with the solution Vector<Real> X. a, n, and indx are not modified by this routine
@@ -3414,7 +3414,7 @@ namespace MML
             return dd;
         }
         
-        // Improves a solution Vector<Real> x[1..n] of the linear set of equations A ï¿½ X = B. The Matrix<Real>
+        // Improves a solution Vector<Real> x[1..n] of the linear set of equations A · X = B. The Matrix<Real>
         // a[1..n][1..n], and the Vector<Real>s b[1..n] and x[1..n] are input, as is the dimension n.
         // Also input is alud[1..n][1..n], the LU decomposition of a as returned by ludcmp, and
         // the Vector<Real> indx[1..n] also returned by that routine. On output, only x[1..n] is modified,
@@ -3449,7 +3449,7 @@ namespace MML
         CholeskyDecompositionSolver(Matrix<Real> &a) : n(a.RowNum()), el(a) 
         {
             // Given a positive-definite symmetric Matrix<Real> a[1..n][1..n], this routine constructs its Cholesky
-            // decomposition, A = L ï¿½ LT . On input, only the upper triangle of a need be given; it is not
+            // decomposition, A = L · LT . On input, only the upper triangle of a need be given; it is not
             // modified. The Cholesky factor L is returned in the lower triangle of a, except for its diagonal
             // elements which are returned in p[1..n]
             int i,j,k;
@@ -3472,7 +3472,7 @@ namespace MML
         }
         void Solve(Vector<Real> &b, Vector<Real> &x) 
         {
-            // Solves the set of n linear equations A ï¿½ x = b, where a is a positive-definite symmetric Matrix<Real>.
+            // Solves the set of n linear equations A · x = b, where a is a positive-definite symmetric Matrix<Real>.
             // a[1..n][1..n] and p[1..n] are input as the output of the routine choldc. Only the lower
             // triangle of a is accessed. b[1..n] is input as the right-hand side Vector<Real>. The solution Vector<Real> is
             // returned in x[1..n]. a, n, and p are not modified and can be left in place for successive calls
@@ -3589,7 +3589,7 @@ namespace MML
             }
         }
 
-        // Solves the set of n linear equations A ï¿½ x = b. a[1..n][1..n], c[1..n], and d[1..n] are
+        // Solves the set of n linear equations A · x = b. a[1..n][1..n], c[1..n], and d[1..n] are
         // input as the output of the routine qrdcmp and are not modified. b[1..n] is input as the
         // right-hand side Vector<Real>, and is overwritten with the solution Vector<Real> on output. 
         void Solve(Vector<Real> &b, Vector<Real> &x) 
@@ -3610,7 +3610,7 @@ namespace MML
 
         void rsolve(Vector<Real> &b, Vector<Real> &x) 
         {
-            // Solves the set of n linear equations R ï¿½ x = b, where R is an upper triangular Matrix<Real> stored in
+            // Solves the set of n linear equations R · x = b, where R is an upper triangular Matrix<Real> stored in
             // a and d. a[1..n][1..n] and d[1..n] are input as the output of the routine qrdcmp and
             // are not modified. b[1..n] is input as the right-hand side Vector<Real>, and is overwritten with the
             // solution Vector<Real> on output            
@@ -3628,8 +3628,8 @@ namespace MML
         
         void update(Vector<Real> &u, Vector<Real> &v) 
         {
-            // Given the QR decomposition of some n ï¿½ n Matrix<Real>, calculates the QR decomposition of the
-            // Matrix<Real> Qï¿½(R+ u x v). The quantities are dimensioned as r[1..n][1..n], qt[1..n][1..n],
+            // Given the QR decomposition of some n × n Matrix<Real>, calculates the QR decomposition of the
+            // Matrix<Real> Q·(R+ u x v). The quantities are dimensioned as r[1..n][1..n], qt[1..n][1..n],
             // u[1..n], and v[1..n]. Note that QT is input and returned in qt.            
             int i,k;
             Vector<Real> w(u);
@@ -3702,7 +3702,7 @@ namespace MML
     public:
         SVDecompositionSolver(Matrix<Real> &a) : m(a.RowNum()), n(a.ColNum()), u(a), v(n,n), w(n) 
         {
-            // Given a Matrix<Real> a[1..m][1..n], this routine computes its singular value decomposition, A = Uï¿½W ï¿½V T . 
+            // Given a Matrix<Real> a[1..m][1..n], this routine computes its singular value decomposition, A = U·W ·V T . 
             // The Matrix<Real> U replaces a on output. 
             // The diagonal Matrix<Real> of singular values W is output as a Vector<Real> w[1..n]. 
             // The Matrix<Real> V (not the transpose V T ) is output as v[1..n][1..n].            
@@ -7537,8 +7537,115 @@ namespace MML
 
 
 
-namespace MML
+namespace MML::Integration
 {
+    enum IntegrationMethod { TRAP, SIMPSON, ROMBERG, GAUSS10 } ;
+
+
+    static Real TrapRefine(const IRealFunction &func, const Real a, const Real b, const int n)
+    {
+        // This routine computes the nth stage of refinement of an extended trapezoidal rule. func is input
+        // as a pointer to the function to be integrated between limits a and b, also input. When called with
+        // n=1, the routine returns the crudest estimate of Rab f(x)dx. Subsequent calls with n=2,3,...
+        // (in that sequential order) will improve the accuracy by adding 2n-2 additional interior points.
+        Real x,tnm,sum,del;
+        static Real s;
+        int it,j;
+
+        if (n == 1) {
+            return (s=0.5*(b-a)*(func(a)+func(b)));
+        } else 
+        {
+            for (it=1,j=1;j<n-1;j++) 
+                it <<= 1;
+        
+            tnm=it;
+            del=(b-a)/tnm;
+            x=a+0.5*del;
+        
+            for (sum=0.0,j=0;j<it;j++,x+=del) 
+                sum += func(x);
+        
+            s=0.5*(s+(b-a)*sum/tnm);
+        
+            return s;
+        }
+    }
+
+    static Real IntegrateTrap(const IRealFunction &func, const Real a, const Real b, Real req_eps)
+    {
+        // Returns the integral of the function func from a to b. The parameters EPS can be set to the
+        // desired fractional accuracy and JMAX so that 2 to the power JMAX-1 is the maximum allowed
+        // number of steps. Integration is performed by the trapezoidal rule.
+
+        // Unsophisticated as it is, routine qtrap is in fact a fairly robust way of doing
+        // integrals of functions that are not very smooth. Increased sophistication will usually
+        // translate into a higher-order method whose efficiency will be greater only for
+        // sufficiently smooth integrands. qtrap is the method of choice, e.g., for an integrand
+        // which is a function of a variable that is linearly interpolated between measured data
+        // points. Be sure that you do not require too stringent an EPS, however: If qtrap takes
+        // too many steps in trying to achieve your required accuracy, accumulated roundoff
+        // errors may start increasing, and the routine may never converge. 
+        // Value 1e-6 is just on the edge of trouble for most 32-bit machines; it is achievable when the
+        // convergence is moderately rapid, but not otherwise.
+        int j;
+        Real s,olds=0.0;
+        Real diff = 0.0, threshold = 0.0;
+
+        for (j=0;j<Defaults::IntegrateTrapMaxSteps;j++) 
+        {
+            s=TrapRefine(func,a,b,j+1);
+
+            if (j > 5)
+            {
+                diff = s-olds;
+                threshold = req_eps * std::abs(olds);
+                if (std::abs(diff) < threshold || (s == 0.0 && olds == 0.0)) 
+                {
+                    // std::cout << "\ns : " << s << " olds : " << olds <<  " diff : " << diff << " threshold : " << threshold << std::endl;
+                    return s;
+                }
+            }
+            olds=s;
+        }
+        throw IntegrationTooManySteps("qtrap");
+    }
+    static Real IntegrateTrap(const IRealFunction &func, const Real a, const Real b)
+    {
+        return IntegrateTrap(func, a, b, Defaults::IntegrateTrapEPS);
+    }
+
+    static Real IntegrateSimpson(const IRealFunction &func, const Real a, const Real b, Real req_eps)
+    {
+        // Returns the integral of the function func from a to b. The parameters EPS can be set to the
+        // desired fractional accuracy and JMAX so that 2 to the power JMAX-1 is the maximum allowed
+        // number of steps. Integration is performed by Simpson’s rule.
+
+        // The routine qsimp will in general be more efficient than qtrap (i.e., require
+        // fewer function evaluations) when the function to be integrated has a finite 4th
+        // derivative (i.e., a continuous 3rd derivative). The combination of qsimp and its
+        // necessary workhorse trapzd is a good one for light-duty work.
+        int j;
+        Real s,st,ost=0.0,os=0.0;
+
+        for (j=0;j<Defaults::IntegrateSimpMaxSteps;j++) 
+        {
+            st=TrapRefine(func,a,b,j+1);
+            s=(4.0*st-ost)/3.0;
+            
+            if (j > 5)
+                if (std::abs(s-os) < req_eps * std::abs(os) ||
+                    (s == 0.0 && os == 0.0)) 
+                    return s;
+            os=s;
+            ost=st;
+        }throw IntegrationTooManySteps("qsimp");
+    }
+    static Real IntegrateSimpson(const IRealFunction &func, const Real a, const Real b)
+    {
+        return IntegrateSimpson(func, a, b, Defaults::IntegrateSimpEPS);
+    }
+
     static bool polint(Vector<Real> &xa, Vector<Real> &ya, const Real x, Real &y, Real &dy)
     {
         int i,m,ns=0;
@@ -7594,185 +7701,65 @@ namespace MML
         polint(x1a,ymtmp,x1,y,dy);
     }
 
-    enum IntegrationMethod { TRAP, SIMPSON, ROMBERG, GAUSS10 } ;
+    static Real IntegrateRomberg(const IRealFunction &func, const Real a, const Real b, Real req_eps)
+    {
+        // Returns the integral of the function func from a to b. Integration is performed by Romberg’s
+        // method of order 2K, where, e.g., K=2 is Simpson’s rule.
 
-	class Integration
-	{
-		public:
+        // The routine qromb, along with its required trapzd and polint, is quite
+        // powerful for sufficiently smooth (e.g., analytic) integrands, integrated over intervals
+        // which contain no singularities, and where the enRealoints are also nonsingular. qromb,
+        // in such circumstances, takes many, many fewer function evaluations than either of
+        // the routines in x4.2
+        const int JMAXP=Defaults::IntegrateRombMaxSteps+1, K=5;
+        Real ss,dss;
+        Vector<Real> s(Defaults::IntegrateRombMaxSteps),h(JMAXP),s_t(K),h_t(K);
 
-        static Real TrapRefine(const IRealFunction &func, const Real a, const Real b, const int n)
+        h[0]=1.0;
+        for (int j=1;j<=Defaults::IntegrateRombMaxSteps;j++) 
         {
-            // This routine computes the nth stage of refinement of an extended trapezoidal rule. func is input
-            // as a pointer to the function to be integrated between limits a and b, also input. When called with
-            // n=1, the routine returns the crudest estimate of Rab f(x)dx. Subsequent calls with n=2,3,...
-            // (in that sequential order) will improve the accuracy by adding 2n-2 additional interior points.
-            Real x,tnm,sum,del;
-            static Real s;
-            int it,j;
-
-            if (n == 1) {
-                return (s=0.5*(b-a)*(func(a)+func(b)));
-            } else 
+            s[j-1]=TrapRefine(func,a,b,j);
+        
+            if (j >= K) 
             {
-                for (it=1,j=1;j<n-1;j++) 
-                    it <<= 1;
-            
-                tnm=it;
-                del=(b-a)/tnm;
-                x=a+0.5*del;
-            
-                for (sum=0.0,j=0;j<it;j++,x+=del) 
-                    sum += func(x);
-            
-                s=0.5*(s+(b-a)*sum/tnm);
-            
-                return s;
-            }
-        }
-
-        static Real IntegrateTrap(const IRealFunction &func, const Real a, const Real b, Real req_eps)
-        {
-            // Returns the integral of the function func from a to b. The parameters EPS can be set to the
-            // desired fractional accuracy and JMAX so that 2 to the power JMAX-1 is the maximum allowed
-            // number of steps. Integration is performed by the trapezoidal rule.
-
-            // Unsophisticated as it is, routine qtrap is in fact a fairly robust way of doing
-            // integrals of functions that are not very smooth. Increased sophistication will usually
-            // translate into a higher-order method whose efficiency will be greater only for
-            // sufficiently smooth integrands. qtrap is the method of choice, e.g., for an integrand
-            // which is a function of a variable that is linearly interpolated between measured data
-            // points. Be sure that you do not require too stringent an EPS, however: If qtrap takes
-            // too many steps in trying to achieve your required accuracy, accumulated roundoff
-            // errors may start increasing, and the routine may never converge. 
-            // Value 1e-6 is just on the edge of trouble for most 32-bit machines; it is achievable when the
-            // convergence is moderately rapid, but not otherwise.
-            int j;
-            Real s,olds=0.0;
-            Real diff = 0.0, threshold = 0.0;
-
-            for (j=0;j<Defaults::IntegrateTrapMaxSteps;j++) 
-            {
-                s=TrapRefine(func,a,b,j+1);
-
-                if (j > 5)
-                {
-                    diff = s-olds;
-                    threshold = req_eps * std::abs(olds);
-                    if (std::abs(diff) < threshold || (s == 0.0 && olds == 0.0)) 
-                    {
-                        // std::cout << "\ns : " << s << " olds : " << olds <<  " diff : " << diff << " threshold : " << threshold << std::endl;
-                        return s;
-                    }
+                for (int i=0;i<K;i++) {
+                    h_t[i]=h[j-K+i];
+                    s_t[i]=s[j-K+i];
                 }
-                olds=s;
-            }
-            throw IntegrationTooManySteps("qtrap");
-        }
-        static Real IntegrateTrap(const IRealFunction &func, const Real a, const Real b)
-        {
-            return IntegrateTrap(func, a, b, Defaults::IntegrateTrapEPS);
-        }
-
-        static Real IntegrateSimpson(const IRealFunction &func, const Real a, const Real b, Real req_eps)
-        {
-            // Returns the integral of the function func from a to b. The parameters EPS can be set to the
-            // desired fractional accuracy and JMAX so that 2 to the power JMAX-1 is the maximum allowed
-            // number of steps. Integration is performed by Simpsonï¿½s rule.
-
-            // The routine qsimp will in general be more efficient than qtrap (i.e., require
-            // fewer function evaluations) when the function to be integrated has a finite 4th
-            // derivative (i.e., a continuous 3rd derivative). The combination of qsimp and its
-            // necessary workhorse trapzd is a good one for light-duty work.
-            int j;
-            Real s,st,ost=0.0,os=0.0;
-
-            for (j=0;j<Defaults::IntegrateSimpMaxSteps;j++) 
-            {
-                st=TrapRefine(func,a,b,j+1);
-                s=(4.0*st-ost)/3.0;
-                
-                if (j > 5)
-                    if (std::abs(s-os) < req_eps * std::abs(os) ||
-                        (s == 0.0 && os == 0.0)) 
-                        return s;
-                os=s;
-                ost=st;
-            }throw IntegrationTooManySteps("qsimp");
-        }
-        static Real IntegrateSimpson(const IRealFunction &func, const Real a, const Real b)
-        {
-            return IntegrateSimpson(func, a, b, Defaults::IntegrateSimpEPS);
-        }
-
-        static Real IntegrateRomberg(const IRealFunction &func, const Real a, const Real b, Real req_eps)
-        {
-            // Returns the integral of the function func from a to b. Integration is performed by Rombergï¿½s
-            // method of order 2K, where, e.g., K=2 is Simpsonï¿½s rule.
-
-            // The routine qromb, along with its required trapzd and polint, is quite
-            // powerful for sufficiently smooth (e.g., analytic) integrands, integrated over intervals
-            // which contain no singularities, and where the enRealoints are also nonsingular. qromb,
-            // in such circumstances, takes many, many fewer function evaluations than either of
-            // the routines in x4.2
-            const int JMAXP=Defaults::IntegrateRombMaxSteps+1, K=5;
-            Real ss,dss;
-            Vector<Real> s(Defaults::IntegrateRombMaxSteps),h(JMAXP),s_t(K),h_t(K);
-
-            h[0]=1.0;
-            for (int j=1;j<=Defaults::IntegrateRombMaxSteps;j++) 
-            {
-                s[j-1]=TrapRefine(func,a,b,j);
             
-                if (j >= K) 
-                {
-                    for (int i=0;i<K;i++) {
-                        h_t[i]=h[j-K+i];
-                        s_t[i]=s[j-K+i];
-                    }
-                
-                    polint(h_t,s_t,0.0,ss,dss);
-                
-                    if (std::abs(dss) <= req_eps * std::abs(ss)) 
-                        return ss;
-                }
-
-                h[j]=0.25*h[j-1];
+                polint(h_t,s_t,0.0,ss,dss);
+            
+                if (std::abs(dss) <= req_eps * std::abs(ss)) 
+                    return ss;
             }
-            throw IntegrationTooManySteps("qromb");
+
+            h[j]=0.25*h[j-1];
         }
-        static Real IntegrateRomberg(const IRealFunction &func, const Real a, const Real b)
-        {
-            return IntegrateRomberg(func, a, b, Defaults::IntegrateRombEPS);
+        throw IntegrationTooManySteps("qromb");
+    }
+    static Real IntegrateRomberg(const IRealFunction &func, const Real a, const Real b)
+    {
+        return IntegrateRomberg(func, a, b, Defaults::IntegrateRombEPS);
+    }
+
+    static Real IntegrateGauss10(const IRealFunction &func, const Real a, const Real b)
+    {
+        // Returns the integral of the function or functor func between a and b, by ten-point GaussLegendre integration: 
+        // the function is evaluated exactly ten times at interior points in the range of integration.        
+        static const Real x[]={ 0.1488743389816312,0.4333953941292472,
+                                0.6794095682990244,0.8650633666889845,0.9739065285171717};
+        static const Real w[]={ 0.2955242247147529,0.2692667193099963,
+                                0.2190863625159821,0.1494513491505806,0.0666713443086881};
+        Real xm=0.5*(b+a);
+        Real xr=0.5*(b-a);
+        Real s=0;
+        for (int j=0;j<5;j++) {
+            Real dx=xr*x[j];
+            s += w[j]*(func(xm+dx)+func(xm-dx));
         }
+        return s *= xr;
+    }
 
-        static Real IntegrateGauss10(const IRealFunction &func, const Real a, const Real b)
-        {
-            // Returns the integral of the function or functor func between a and b, by ten-point GaussLegendre integration: 
-            // the function is evaluated exactly ten times at interior points in the range of integration.        
-            static const Real x[]={ 0.1488743389816312,0.4333953941292472,
-                                    0.6794095682990244,0.8650633666889845,0.9739065285171717};
-            static const Real w[]={ 0.2955242247147529,0.2692667193099963,
-                                    0.2190863625159821,0.1494513491505806,0.0666713443086881};
-            Real xm=0.5*(b+a);
-            Real xr=0.5*(b-a);
-            Real s=0;
-            for (int j=0;j<5;j++) {
-                Real dx=xr*x[j];
-                s += w[j]*(func(xm+dx)+func(xm-dx));
-            }
-            return s *= xr;
-        }
-
-        static inline Real(*Integrate)(const MML::IRealFunction &f, Real a, Real b, Real req_eps) = Integration::IntegrateSimpson;
-
-	};
-} // end namespace
-///////////////////////////   ./include/core/Integrate3D.h   ///////////////////////////
-
-
-
-namespace MML
-{
     struct SurfIntf2 : public IRealFunction 
     {
         mutable Real xsav;
@@ -7882,14 +7869,16 @@ namespace MML
     };
 
     static Real IntegrateVolume(IScalarFunction<3> &func, const Real x1, const Real x2, Real y1(Real), Real y2(Real),
-                         Real z1(Real, Real), Real z2(Real, Real))
+                        Real z1(Real, Real), Real z2(Real, Real))
     {
         VolIntf1 f1(func, y1,y2,z1,z2);
         
         return Integration::IntegrateGauss10(f1,x1,x2);
     }
-} // namespace MML
+        
+    static inline Real(*Integrate)(const MML::IRealFunction &f, Real a, Real b, Real req_eps) = Integration::IntegrateSimpson;
 
+} // end namespace
 ///////////////////////////   ./include/core/Function.h   ///////////////////////////
 
 
@@ -8384,7 +8373,7 @@ namespace MML
         mutable Real dy;
 
         // The user interface to Poly_interp is virtually the same as for Linear_interp
-        // (end of ï¿½3.1), except that an additional argument in the constructor sets M, the number of points used (the order plus one). 
+        // (end of ÷3.1), except that an additional argument in the constructor sets M, the number of points used (the order plus one). 
         PolynomInterpRealFunc(Vector<Real> &xv, Vector<Real> &yv, int m) : RealFunctionInterpolatedBase(xv,yv,m), dy(0.) 
         {}
         
@@ -8422,7 +8411,7 @@ namespace MML
                 y += (dy=(2*(ns+1) < (mm-m) ? c[ns+1] : d[ns--]));
                 // After each column in the tableau is completed, we decide which correction, c or d, we
                 // want to add to our accumulating value of y, i.e., which path to take through the tableau
-                // ï¿½ forking up or down. We do this in such a way as to take the most ï¿½straight lineï¿½
+                // — forking up or down. We do this in such a way as to take the most “straight line”
                 // route through the tableau to its apex, updating ns accordingly to keep track of where
                 // we are. This route keeps the partial approximations centered (insofar as possible) on
                 // the target x. The last dy added is thus the error indication.                
@@ -10078,7 +10067,7 @@ class ChebyshevApproximation {
 	
     // Chebyshev fit: Given a function func, lower and upper limits of the interval [a,b], compute and
     // save nn coefficients of the Chebyshev approximation such that func.(x) = sum( ... ), where y and x are related by (5.8.10). 
-    // This routine is intended to be called with moderately large n (e.g., 30 or 50), the array of cï¿½s subsequently to be truncated at the smaller value
+    // This routine is intended to be called with moderately large n (e.g., 30 or 50), the array of c’s subsequently to be truncated at the smaller value
     // m such that cm and subsequent elements are negligible.
     ChebyshevApproximation(const IRealFunction &func, Real aa, Real bb, int nn=50)
         : n(nn), m(nn), c(n), a(aa), b(bb)
@@ -11158,11 +11147,11 @@ PlanarRotatingSystem disk_rotation(pocetni phi, brzina rotacije);
 - za dane dvije koord, lat i long, daje poziciju u odnosu na dani fiksni koord sustav
 LocalCartesian disk_surface(disk_rotation, lat, long);
 
-- ï¿½to izracunati? 
+- što izracunati? 
     - artiljerijski hitac s dane pozicije i po danoj paraboli
     - gdje ce pasti - koordinate u jednom i drugom sustavu
 
-- i onda joï¿½ dodati vrtuljak na toj povrï¿½ini!
+- i onda još dodati vrtuljak na toj površini!
 
 MovingDynamicalSytem3D earth_around_sun(funkcija ovisnosti pozicije u odnosu na GLOBALNI KARTEZIJEV sustav);
 RotatingSystem3D earth_rotation(earth_around_sun);
@@ -11587,7 +11576,7 @@ namespace MML
 ///////////////////////////   ./include/algorithms/EigenSystemSolvers.h   ///////////////////////////
 
 
-// Given the eigenvalues d[0..n-1] and (optionally) the eigenvectors v[0..n-1][0..n-1] as determined by Jacobi (ï¿½11.1) or tqli (ï¿½11.4), this routine sorts the eigenvalues into descending
+// Given the eigenvalues d[0..n-1] and (optionally) the eigenvectors v[0..n-1][0..n-1] as determined by Jacobi (÷11.1) or tqli (÷11.4), this routine sorts the eigenvalues into descending
 // order and rearranges the columns of v correspondingly. The method is straight insertion.
 static void eigsrt(MML::Vector<Real> &d, MML::Matrix<Real> *v = NULL)
 {
@@ -11616,7 +11605,7 @@ static void eigsrt(MML::Vector<Real> &d, MML::Matrix<Real> *v = NULL)
 
 namespace MML
 {
-    // Computes all eigenvalues and eigenvectors of a real symmetric matrix by Jacobiï¿½s method.
+    // Computes all eigenvalues and eigenvectors of a real symmetric matrix by Jacobi’s method.
     struct Jacobi
     {
         const int n;
@@ -11865,7 +11854,7 @@ namespace MML
 
         // QL algorithm with implicit shifts to determine the eigenvalues and (optionally) the eigenvectors
         // of a real, symmetric, tridiagonal matrix, or of a real symmetric matrix previously reduced by
-        // tred2 (ï¿½11.3). On input, d[0..n-1] contains the diagonal elements of the tridiagonal matrix.
+        // tred2 (÷11.3). On input, d[0..n-1] contains the diagonal elements of the tridiagonal matrix.
         // On output, it returns the eigenvalues. The vector e[0..n-1] inputs the subdiagonal elements
         // of the tridiagonal matrix, with e[0] arbitrary. On output e is destroyed. If the eigenvectors of
         // a tridiagonal matrix are desired, the matrix z[0..n-1][0..n-1] is input as the identity matrix.
@@ -15127,57 +15116,57 @@ namespace MML
             return max;
         }
 
-        Real getIntegratedDiff(Real a, Real b, IntegrationMethod method = TRAP)
+        Real getIntegratedDiff(Real a, Real b, Integration::IntegrationMethod method = Integration::IntegrationMethod::TRAP)
         {
             return getIntegratedDiff(_f1, _f2, a, b, method);
         }
-        static Real getIntegratedDiff(IRealFunction &f1, IRealFunction &f2, Real a, Real b, IntegrationMethod method = TRAP)
+        static Real getIntegratedDiff(IRealFunction &f1, IRealFunction &f2, Real a, Real b, Integration::IntegrationMethod method = Integration::IntegrationMethod::TRAP)
         {
             RealFuncDiffHelper helper(f1, f2);
 
             switch (method)
             {
-                case SIMPSON:
+                case Integration::IntegrationMethod::SIMPSON:
                     return Integration::IntegrateSimpson(helper, a, b);
-                case ROMBERG:
+                case Integration::IntegrationMethod::ROMBERG:
                     return Integration::IntegrateRomberg(helper, a, b);
                 default:
                     return Integration::IntegrateTrap(helper, a, b);
             }
         }
 
-        Real getIntegratedAbsDiff(Real a, Real b, IntegrationMethod method = TRAP)
+        Real getIntegratedAbsDiff(Real a, Real b, Integration::IntegrationMethod method = Integration::IntegrationMethod::TRAP)
         {
             return getIntegratedAbsDiff(_f1, _f2, a, b, method);
         }
-        static Real getIntegratedAbsDiff(IRealFunction &f1, IRealFunction &f2, Real a, Real b, IntegrationMethod method = TRAP)
+        static Real getIntegratedAbsDiff(IRealFunction &f1, IRealFunction &f2, Real a, Real b, Integration::IntegrationMethod method = Integration::IntegrationMethod::TRAP)
         {
             RealFuncDiffAbsHelper helper(f1, f2);
 
             switch (method)
             {
-                case SIMPSON:
+                case Integration::IntegrationMethod::SIMPSON:
                     return Integration::IntegrateSimpson(helper, a, b);
-                case ROMBERG:
+                case Integration::IntegrationMethod::ROMBERG:
                     return Integration::IntegrateRomberg(helper, a, b);
                 default:
                     return Integration::IntegrateTrap(helper, a, b);
             }
         }
         
-        Real getIntegratedSqrDiff(Real a, Real b, IntegrationMethod method = TRAP)
+        Real getIntegratedSqrDiff(Real a, Real b, Integration::IntegrationMethod method = Integration::IntegrationMethod::TRAP)
         {
             return getIntegratedSqrDiff(_f1, _f2, a, b, method);
         }
-        static Real getIntegratedSqrDiff(IRealFunction &f1, IRealFunction &f2, Real a, Real b, IntegrationMethod method = TRAP)
+        static Real getIntegratedSqrDiff(IRealFunction &f1, IRealFunction &f2, Real a, Real b, Integration::IntegrationMethod method = Integration::IntegrationMethod::TRAP)
         {
             RealFuncDiffSqrHelper helper(f1, f2);
 
             switch (method)
             {
-                case SIMPSON:
+                case Integration::IntegrationMethod::SIMPSON:
                     return Integration::IntegrateSimpson(helper, a, b);
-                case ROMBERG:
+                case Integration::IntegrationMethod::ROMBERG:
                     return Integration::IntegrateRomberg(helper, a, b);
                 default:
                     return Integration::IntegrateTrap(helper, a, b);
