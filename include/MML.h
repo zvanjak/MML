@@ -3288,14 +3288,14 @@ namespace MML
         Real d;
     
     public:
-    // TODO - HIGH, HIGH, TESKO, napraviti da se može odraditi i inplace, a ne da se kao sad uvijek kreira kopija
+    // TODO - HIGH, HIGH, TESKO, napraviti da se moï¿½e odraditi i inplace, a ne da se kao sad uvijek kreira kopija
         LUDecompositionSolver(const Matrix<_Type>  &inMatRef) : n(inMatRef.RowNum()), refOrig(inMatRef), lu(inMatRef), indx(n) 
-// ne može        LUDecompositionSolver(const Matrix<_Type>  &inMatRef) : n(inMatRef.RowNum()), refOrig(inMatRef), lu(Matrix<_Type>(inMatRef.RowNum(), inMatRef.ColNum())), indx(n) 
+// ne moï¿½e        LUDecompositionSolver(const Matrix<_Type>  &inMatRef) : n(inMatRef.RowNum()), refOrig(inMatRef), lu(Matrix<_Type>(inMatRef.RowNum(), inMatRef.ColNum())), indx(n) 
         {
             // Given a Matrix<Real> a[1..n][1..n], this routine replaces it by the LU decomposition of a rowwise
             // permutation of itself. a and n are input. a is output, arranged as in equation (NR 2.3.14);
             // indx[1..n] is an output Vector<Real> that records the row permutation effected by the partial
-            // pivoting; d is output as ±1 depending on whether the number of row interchanges was even
+            // pivoting; d is output as ï¿½1 depending on whether the number of row interchanges was even
             // or odd, respectively. This routine is used in combination with lubksb to solve linear equations
             // or invert a Matrix<Real>.
             const Real TINY=1.0e-40;
@@ -3344,7 +3344,7 @@ namespace MML
         
         void Solve(Vector<_Type> &b, Vector<_Type> &x)
         {
-            // Solves the set of n linear equations A·X = B. Here a[1..n][1..n] is input, not as the Matrix<Real>
+            // Solves the set of n linear equations Aï¿½X = B. Here a[1..n][1..n] is input, not as the Matrix<Real>
             // A but rather as its LU decomposition, determined by the routine ludcmp. indx[1..n] is input
             // as the permutation Vector<Real> returned by ludcmp. b[1..n] is input as the right-hand side Vector<Real>
             // B, and returns with the solution Vector<Real> X. a, n, and indx are not modified by this routine
@@ -3414,7 +3414,7 @@ namespace MML
             return dd;
         }
         
-        // Improves a solution Vector<Real> x[1..n] of the linear set of equations A · X = B. The Matrix<Real>
+        // Improves a solution Vector<Real> x[1..n] of the linear set of equations A ï¿½ X = B. The Matrix<Real>
         // a[1..n][1..n], and the Vector<Real>s b[1..n] and x[1..n] are input, as is the dimension n.
         // Also input is alud[1..n][1..n], the LU decomposition of a as returned by ludcmp, and
         // the Vector<Real> indx[1..n] also returned by that routine. On output, only x[1..n] is modified,
@@ -3449,7 +3449,7 @@ namespace MML
         CholeskyDecompositionSolver(Matrix<Real> &a) : n(a.RowNum()), el(a) 
         {
             // Given a positive-definite symmetric Matrix<Real> a[1..n][1..n], this routine constructs its Cholesky
-            // decomposition, A = L · LT . On input, only the upper triangle of a need be given; it is not
+            // decomposition, A = L ï¿½ LT . On input, only the upper triangle of a need be given; it is not
             // modified. The Cholesky factor L is returned in the lower triangle of a, except for its diagonal
             // elements which are returned in p[1..n]
             int i,j,k;
@@ -3472,7 +3472,7 @@ namespace MML
         }
         void Solve(Vector<Real> &b, Vector<Real> &x) 
         {
-            // Solves the set of n linear equations A · x = b, where a is a positive-definite symmetric Matrix<Real>.
+            // Solves the set of n linear equations A ï¿½ x = b, where a is a positive-definite symmetric Matrix<Real>.
             // a[1..n][1..n] and p[1..n] are input as the output of the routine choldc. Only the lower
             // triangle of a is accessed. b[1..n] is input as the right-hand side Vector<Real>. The solution Vector<Real> is
             // returned in x[1..n]. a, n, and p are not modified and can be left in place for successive calls
@@ -3589,7 +3589,7 @@ namespace MML
             }
         }
 
-        // Solves the set of n linear equations A · x = b. a[1..n][1..n], c[1..n], and d[1..n] are
+        // Solves the set of n linear equations A ï¿½ x = b. a[1..n][1..n], c[1..n], and d[1..n] are
         // input as the output of the routine qrdcmp and are not modified. b[1..n] is input as the
         // right-hand side Vector<Real>, and is overwritten with the solution Vector<Real> on output. 
         void Solve(Vector<Real> &b, Vector<Real> &x) 
@@ -3610,7 +3610,7 @@ namespace MML
 
         void rsolve(Vector<Real> &b, Vector<Real> &x) 
         {
-            // Solves the set of n linear equations R · x = b, where R is an upper triangular Matrix<Real> stored in
+            // Solves the set of n linear equations R ï¿½ x = b, where R is an upper triangular Matrix<Real> stored in
             // a and d. a[1..n][1..n] and d[1..n] are input as the output of the routine qrdcmp and
             // are not modified. b[1..n] is input as the right-hand side Vector<Real>, and is overwritten with the
             // solution Vector<Real> on output            
@@ -3628,8 +3628,8 @@ namespace MML
         
         void update(Vector<Real> &u, Vector<Real> &v) 
         {
-            // Given the QR decomposition of some n × n Matrix<Real>, calculates the QR decomposition of the
-            // Matrix<Real> Q·(R+ u x v). The quantities are dimensioned as r[1..n][1..n], qt[1..n][1..n],
+            // Given the QR decomposition of some n ï¿½ n Matrix<Real>, calculates the QR decomposition of the
+            // Matrix<Real> Qï¿½(R+ u x v). The quantities are dimensioned as r[1..n][1..n], qt[1..n][1..n],
             // u[1..n], and v[1..n]. Note that QT is input and returned in qt.            
             int i,k;
             Vector<Real> w(u);
@@ -3702,7 +3702,7 @@ namespace MML
     public:
         SVDecompositionSolver(Matrix<Real> &a) : m(a.RowNum()), n(a.ColNum()), u(a), v(n,n), w(n) 
         {
-            // Given a Matrix<Real> a[1..m][1..n], this routine computes its singular value decomposition, A = U·W ·V T . 
+            // Given a Matrix<Real> a[1..m][1..n], this routine computes its singular value decomposition, A = Uï¿½W ï¿½V T . 
             // The Matrix<Real> U replaces a on output. 
             // The diagonal Matrix<Real> of singular values W is output as a Vector<Real> w[1..n]. 
             // The Matrix<Real> V (not the transpose V T ) is output as v[1..n][1..n].            
@@ -7677,7 +7677,7 @@ namespace MML
         {
             // Returns the integral of the function func from a to b. The parameters EPS can be set to the
             // desired fractional accuracy and JMAX so that 2 to the power JMAX-1 is the maximum allowed
-            // number of steps. Integration is performed by Simpson’s rule.
+            // number of steps. Integration is performed by Simpsonï¿½s rule.
 
             // The routine qsimp will in general be more efficient than qtrap (i.e., require
             // fewer function evaluations) when the function to be integrated has a finite 4th
@@ -7706,8 +7706,8 @@ namespace MML
 
         static Real IntegrateRomberg(const IRealFunction &func, const Real a, const Real b, Real req_eps)
         {
-            // Returns the integral of the function func from a to b. Integration is performed by Romberg’s
-            // method of order 2K, where, e.g., K=2 is Simpson’s rule.
+            // Returns the integral of the function func from a to b. Integration is performed by Rombergï¿½s
+            // method of order 2K, where, e.g., K=2 is Simpsonï¿½s rule.
 
             // The routine qromb, along with its required trapzd and polint, is quite
             // powerful for sufficiently smooth (e.g., analytic) integrands, integrated over intervals
@@ -7767,6 +7767,129 @@ namespace MML
 
 	};
 } // end namespace
+///////////////////////////   ./include/core/Integrate3D.h   ///////////////////////////
+
+
+
+namespace MML
+{
+    struct SurfIntf2 : public IRealFunction 
+    {
+        mutable Real xsav;
+        IScalarFunction<2> &funcToInt;
+
+        SurfIntf2(IScalarFunction<2> &func) : funcToInt(func) {}
+        Real operator()(const Real y) const
+        {
+            VectorN<Real, 2> v{xsav,y};
+            return funcToInt(v);
+        }
+    };
+    
+    struct SurfIntf1  : public IRealFunction 
+    {
+        mutable SurfIntf2 f2;
+        IntegrationMethod method;
+
+        IScalarFunction<2> &funcToInt;
+        Real (*y1)(Real);
+        Real (*y2)(Real);
+
+        SurfIntf1(IScalarFunction<2> &func, IntegrationMethod inMethod, Real yy1(Real), Real yy2(Real)) : y1(yy1),y2(yy2), f2(func), funcToInt(func), method(inMethod) 
+        {}
+        
+        Real operator()(const Real x) const
+        {
+            f2.xsav=x;
+            switch (method)
+            {
+                case SIMPSON:
+                    return Integration::IntegrateSimpson(f2,y1(x),y2(x));
+                case ROMBERG:
+                    return Integration::IntegrateRomberg(f2,y1(x),y2(x));
+                case GAUSS10:
+                    return Integration::IntegrateGauss10(f2,y1(x),y2(x));
+                default:
+                    Real ret = Integration::IntegrateTrap(f2,y1(x),y2(x));
+                    std::cout << "IntegrateTrap: " << ret << std::endl;
+                    return ret;
+            }            
+        }
+    };
+
+    static Real IntegrateSurface(IScalarFunction<2> &func, IntegrationMethod method, const Real x1, const Real x2, Real y1(Real), Real y2(Real))
+    {
+        SurfIntf1 f1(func, method, y1,y2);
+        
+        switch (method)
+        {
+            case SIMPSON:
+                return Integration::IntegrateSimpson(f1,x1,x2);
+            case ROMBERG:
+                return Integration::IntegrateRomberg(f1,x1,x2);
+            case GAUSS10:
+                return Integration::IntegrateGauss10(f1,x1,x2);
+            default:
+                return Integration::IntegrateTrap(f1,x1,x2);
+        }   
+    }
+
+    struct VolIntf3 : public IRealFunction 
+    {
+        mutable Real xsav,ysav;
+        IScalarFunction<3> &funcToInt;
+
+        VolIntf3(IScalarFunction<3> &func) : funcToInt(func) {}
+        Real operator()(const Real z) const
+        {
+            VectorN<Real, 3> v{xsav,ysav,z};
+            return funcToInt(v);
+        }
+    };
+    struct VolIntf2  : public IRealFunction 
+    {
+        mutable VolIntf3 f3;
+        
+        IScalarFunction<3> &funcToInt;
+        Real (*z1)(Real, Real);
+        Real (*z2)(Real, Real);
+        
+        VolIntf2(IScalarFunction<3> &func, Real zz1(Real, Real), Real zz2(Real, Real)) : z1(zz1), z2(zz2), funcToInt(func), f3(func) {}
+        
+        Real operator()(const Real y) const
+        {
+            f3.ysav=y;
+            return Integration::IntegrateGauss10(f3,z1(f3.xsav,y),z2(f3.xsav,y));
+        }
+    };
+    struct VolIntf1  : public IRealFunction 
+    {
+        mutable VolIntf2 f2;
+
+        IScalarFunction<3> &funcToInt;
+        Real (*y1)(Real);
+        Real (*y2)(Real);
+
+        VolIntf1(IScalarFunction<3> &func, Real yy1(Real), Real yy2(Real), Real z1(Real, Real),
+            Real z2(Real, Real)) : y1(yy1),y2(yy2), f2(func, z1, z2), funcToInt(func) 
+        {}
+        
+        Real operator()(const Real x) const
+        {
+            f2.f3.xsav=x;
+            return Integration::IntegrateGauss10(f2,y1(x),y2(x));
+        }
+    };
+
+    static Real IntegrateVolume(IScalarFunction<3> &func, const Real x1, const Real x2, Real y1(Real), Real y2(Real),
+                         Real z1(Real, Real), Real z2(Real, Real))
+    {
+        VolIntf1 f1(func, y1,y2,z1,z2);
+        
+        return Integration::IntegrateGauss10(f1,x1,x2);
+    }
+} // namespace MML
+
 ///////////////////////////   ./include/core/Function.h   ///////////////////////////
 
 
@@ -8261,7 +8384,7 @@ namespace MML
         mutable Real dy;
 
         // The user interface to Poly_interp is virtually the same as for Linear_interp
-        // (end of ÷3.1), except that an additional argument in the constructor sets M, the number of points used (the order plus one). 
+        // (end of ï¿½3.1), except that an additional argument in the constructor sets M, the number of points used (the order plus one). 
         PolynomInterpRealFunc(Vector<Real> &xv, Vector<Real> &yv, int m) : RealFunctionInterpolatedBase(xv,yv,m), dy(0.) 
         {}
         
@@ -8299,7 +8422,7 @@ namespace MML
                 y += (dy=(2*(ns+1) < (mm-m) ? c[ns+1] : d[ns--]));
                 // After each column in the tableau is completed, we decide which correction, c or d, we
                 // want to add to our accumulating value of y, i.e., which path to take through the tableau
-                // — forking up or down. We do this in such a way as to take the most “straight line”
+                // ï¿½ forking up or down. We do this in such a way as to take the most ï¿½straight lineï¿½
                 // route through the tableau to its apex, updating ns accordingly to keep track of where
                 // we are. This route keeps the partial approximations centered (insofar as possible) on
                 // the target x. The last dy added is thus the error indication.                
@@ -9955,7 +10078,7 @@ class ChebyshevApproximation {
 	
     // Chebyshev fit: Given a function func, lower and upper limits of the interval [a,b], compute and
     // save nn coefficients of the Chebyshev approximation such that func.(x) = sum( ... ), where y and x are related by (5.8.10). 
-    // This routine is intended to be called with moderately large n (e.g., 30 or 50), the array of c’s subsequently to be truncated at the smaller value
+    // This routine is intended to be called with moderately large n (e.g., 30 or 50), the array of cï¿½s subsequently to be truncated at the smaller value
     // m such that cm and subsequent elements are negligible.
     ChebyshevApproximation(const IRealFunction &func, Real aa, Real bb, int nn=50)
         : n(nn), m(nn), c(n), a(aa), b(bb)
@@ -11035,11 +11158,11 @@ PlanarRotatingSystem disk_rotation(pocetni phi, brzina rotacije);
 - za dane dvije koord, lat i long, daje poziciju u odnosu na dani fiksni koord sustav
 LocalCartesian disk_surface(disk_rotation, lat, long);
 
-- što izracunati? 
+- ï¿½to izracunati? 
     - artiljerijski hitac s dane pozicije i po danoj paraboli
     - gdje ce pasti - koordinate u jednom i drugom sustavu
 
-- i onda još dodati vrtuljak na toj površini!
+- i onda joï¿½ dodati vrtuljak na toj povrï¿½ini!
 
 MovingDynamicalSytem3D earth_around_sun(funkcija ovisnosti pozicije u odnosu na GLOBALNI KARTEZIJEV sustav);
 RotatingSystem3D earth_rotation(earth_around_sun);
@@ -11464,7 +11587,7 @@ namespace MML
 ///////////////////////////   ./include/algorithms/EigenSystemSolvers.h   ///////////////////////////
 
 
-// Given the eigenvalues d[0..n-1] and (optionally) the eigenvectors v[0..n-1][0..n-1] as determined by Jacobi (÷11.1) or tqli (÷11.4), this routine sorts the eigenvalues into descending
+// Given the eigenvalues d[0..n-1] and (optionally) the eigenvectors v[0..n-1][0..n-1] as determined by Jacobi (ï¿½11.1) or tqli (ï¿½11.4), this routine sorts the eigenvalues into descending
 // order and rearranges the columns of v correspondingly. The method is straight insertion.
 static void eigsrt(MML::Vector<Real> &d, MML::Matrix<Real> *v = NULL)
 {
@@ -11493,7 +11616,7 @@ static void eigsrt(MML::Vector<Real> &d, MML::Matrix<Real> *v = NULL)
 
 namespace MML
 {
-    // Computes all eigenvalues and eigenvectors of a real symmetric matrix by Jacobi’s method.
+    // Computes all eigenvalues and eigenvectors of a real symmetric matrix by Jacobiï¿½s method.
     struct Jacobi
     {
         const int n;
@@ -11742,7 +11865,7 @@ namespace MML
 
         // QL algorithm with implicit shifts to determine the eigenvalues and (optionally) the eigenvectors
         // of a real, symmetric, tridiagonal matrix, or of a real symmetric matrix previously reduced by
-        // tred2 (÷11.3). On input, d[0..n-1] contains the diagonal elements of the tridiagonal matrix.
+        // tred2 (ï¿½11.3). On input, d[0..n-1] contains the diagonal elements of the tridiagonal matrix.
         // On output, it returns the eigenvalues. The vector e[0..n-1] inputs the subdiagonal elements
         // of the tridiagonal matrix, with e[0] arbitrary. On output e is destroyed. If the eigenvectors of
         // a tridiagonal matrix are desired, the matrix z[0..n-1][0..n-1] is input as the identity matrix.
@@ -14061,250 +14184,254 @@ namespace MML
 namespace MML
 {
     // TODO - MED, LAKO, ovo dovrsiti
-    struct StepperStoerm : public StepperBS {
+    class StepperStoerm : public StepperBS {
+    public:
         using StepperBS::x; using StepperBS::xold; using StepperBS::y;
         using StepperBS::dydx; using StepperBS::dense; using StepperBS::n;
         using StepperBS::KMAXX; using StepperBS::IMAXX; using StepperBS::nseq;
         using StepperBS::cost; using StepperBS::mu; using StepperBS::errfac;
         using StepperBS::ysave; using StepperBS::fsave;
         using StepperBS::dens; using StepperBS::neqn;
+        
         Matrix<Real> ysavep;
-        StepperStoerm(ODESystem &sys, Vector<Real> &yy, Vector<Real> &dydxx, Real &xx,
-                      const Real atol, const Real rtol, bool dens);
-        void dy(const Vector<Real> &y, const Real htot, const int k, Vector<Real> &yend, int &ipt);
-        void prepare_dense(const Real h,const Vector<Real> &dydxnew, const Vector<Real> &ysav,
-                           const Vector<Real> &scale, const int k, Real &error);
-        Real dense_out(const int i,const Real x,const Real h);
-        void dense_interp(const int n, Vector<Real> &y, const int imit);
-    };
 
-    StepperStoerm::StepperStoerm(ODESystem &sys, Vector<Real> &yy, Vector<Real> &dydxx, Real &xx, const Real atoll,const Real rtoll, bool dens)
-        : StepperBS(sys, yy,dydxx,xx,atoll,rtoll,dens),ysavep(IMAXX,n/2) 
-    {
-        neqn=n/2;
-        cost[0]=nseq[0]/2+1;
-        for (int k=0;k<KMAXX;k++)
-            cost[k+1]=cost[k]+nseq[k+1]/2;
-        for (int i=0; i<2*IMAXX+1; i++) {
-            int ip7=i+7;
-            Real fac=1.5/ip7;
-            errfac[i]=fac*fac*fac;
-            Real e = 0.5*sqrt(Real(i+1)/ip7);
-            for (int j=0; j<=i; j++) {
-                errfac[i] *= e/(j+1);
-            }
-        }
-    }
 
-    void StepperStoerm::prepare_dense(const Real h,const Vector<Real> &dydxnew,
-                                      const Vector<Real> &ysav,const Vector<Real> &scale,const int k, Real &error) {
-        Real h2=h*h;
-        mu=std::max(1,2*k-3);
-        for (int i=0; i<neqn; i++) {
-            dens[i]=ysav[i];
-            dens[neqn+i]=h*ysav[neqn+i];
-            dens[2*neqn+i]=h2*dydx[i];
-            dens[3*neqn+i]=y[i];
-            dens[4*neqn+i]=h*y[neqn+i];
-            dens[5*neqn+i]=h2*dydxnew[i];
-        }
-        for (int j=1; j<=k; j++) {
-            Real dblenj=nseq[j];
-            for (int l=j; l>=1; l--) {
-                Real factor=SQR(dblenj/nseq[l-1])-1.0;
-                for (int i=0; i<neqn; i++) {
-                    ysave[l-1][i]=ysave[l][i]+(ysave[l][i]-ysave[l-1][i])/factor;
-                    ysavep[l-1][i]=ysavep[l][i]+(ysavep[l][i]-ysavep[l-1][i])/factor;
+        // StepperStoerm(ODESystem &sys, Vector<Real> &yy, Vector<Real> &dydxx, Real &xx,
+        //               const Real atol, const Real rtol, bool dens);
+        // void dy(const Vector<Real> &y, const Real htot, const int k, Vector<Real> &yend, int &ipt);
+        // void prepare_dense(const Real h,const Vector<Real> &dydxnew, const Vector<Real> &ysav,
+        //                    const Vector<Real> &scale, const int k, Real &error);
+        // Real dense_out(const int i,const Real x,const Real h);
+        // void dense_interp(const int n, Vector<Real> &y, const int imit);
+
+        StepperStoerm(ODESystem &sys, Vector<Real> &yy, Vector<Real> &dydxx, Real &xx, const Real atoll,const Real rtoll, bool dens)
+            : StepperBS(sys, yy,dydxx,xx,atoll,rtoll,dens),ysavep(IMAXX,n/2) 
+        {
+            neqn=n/2;
+            cost[0]=nseq[0]/2+1;
+            for (int k=0;k<KMAXX;k++)
+                cost[k+1]=cost[k]+nseq[k+1]/2;
+            for (int i=0; i<2*IMAXX+1; i++) {
+                int ip7=i+7;
+                Real fac=1.5/ip7;
+                errfac[i]=fac*fac*fac;
+                Real e = 0.5*sqrt(Real(i+1)/ip7);
+                for (int j=0; j<=i; j++) {
+                    errfac[i] *= e/(j+1);
                 }
             }
         }
-        for (int i=0; i<neqn; i++) {
-            dens[6*neqn+i]=ysave[0][i];
-            dens[7*neqn+i]=h*ysavep[0][i];
-        }
-        for (int kmi=2; kmi<=mu; kmi++) {
-            int kbeg=(kmi-2)/2;
-            if (kmi == 2*kbeg+2) {
-                if (kmi == 2) {
-                    for (int i=0; i<neqn; i++)
-                        ysave[0][i]=0.5*(dydxnew[i]+fsave[0][i]);
-                    kbeg=1;
-                }
-                for (int kk=kbeg; kk<=k; kk++) {
-                    Real facnj=0.5*pow(nseq[kk]/2.0,kmi-2);
-                    int ipt=kk*kk+kk+kmi/2-2;
-                    for (int i=0; i<neqn; i++)
-                        ysave[kk][i]=(fsave[ipt][i]+fsave[ipt+1][i])*facnj;
-                }
-            } else {
-                for (int kk=kbeg; kk<=k; kk++) {
-                    Real facnj=pow(nseq[kk]/2.0,kmi-2);
-                    int ipt=kk*kk+kk+kbeg;
-                    for (int i=0; i<neqn; i++)
-                        ysave[kk][i]=fsave[ipt][i]*facnj;
-                }
+
+        void prepare_dense(const Real h,const Vector<Real> &dydxnew,
+                                        const Vector<Real> &ysav,const Vector<Real> &scale,const int k, Real &error) {
+            Real h2=h*h;
+            mu=std::max(1,2*k-3);
+            for (int i=0; i<neqn; i++) {
+                dens[i]=ysav[i];
+                dens[neqn+i]=h*ysav[neqn+i];
+                dens[2*neqn+i]=h2*dydx[i];
+                dens[3*neqn+i]=y[i];
+                dens[4*neqn+i]=h*y[neqn+i];
+                dens[5*neqn+i]=h2*dydxnew[i];
             }
-            for (int j=kbeg+1; j<=k; j++) {
+            for (int j=1; j<=k; j++) {
                 Real dblenj=nseq[j];
-                for (int l=j; l>=kbeg+1; l--) {
+                for (int l=j; l>=1; l--) {
                     Real factor=SQR(dblenj/nseq[l-1])-1.0;
-                    for (int i=0; i<neqn; i++)
-                        ysave[l-1][i]=ysave[l][i]+
-                            (ysave[l][i]-ysave[l-1][i])/factor;
+                    for (int i=0; i<neqn; i++) {
+                        ysave[l-1][i]=ysave[l][i]+(ysave[l][i]-ysave[l-1][i])/factor;
+                        ysavep[l-1][i]=ysavep[l][i]+(ysavep[l][i]-ysavep[l-1][i])/factor;
+                    }
                 }
             }
-            for (int i=0; i<neqn; i++)
-                dens[(kmi+6)*neqn+i]=ysave[kbeg][i]*h2;
-            if (kmi == mu) continue;
-            for (int kk=(kmi-1)/2; kk<=k; kk++) {
-                int lbeg=kk*kk+kmi-2;
-                int lend=SQR(kk+1)-1;
-                if (kmi == 2) lbeg++;
-                for (int l=lend; l>=lbeg; l--)
-                    for (int i=0; i<neqn; i++)
-                        fsave[l][i]=fsave[l][i]-fsave[l-1][i];
-                if (kmi == 2) {
-                    int l=lbeg-1;
-                    for (int i=0; i<neqn; i++)
-                        fsave[l][i]=fsave[l][i]-dydx[i];
+            for (int i=0; i<neqn; i++) {
+                dens[6*neqn+i]=ysave[0][i];
+                dens[7*neqn+i]=h*ysavep[0][i];
+            }
+            for (int kmi=2; kmi<=mu; kmi++) {
+                int kbeg=(kmi-2)/2;
+                if (kmi == 2*kbeg+2) {
+                    if (kmi == 2) {
+                        for (int i=0; i<neqn; i++)
+                            ysave[0][i]=0.5*(dydxnew[i]+fsave[0][i]);
+                        kbeg=1;
+                    }
+                    for (int kk=kbeg; kk<=k; kk++) {
+                        Real facnj=0.5*pow(nseq[kk]/2.0,kmi-2);
+                        int ipt=kk*kk+kk+kmi/2-2;
+                        for (int i=0; i<neqn; i++)
+                            ysave[kk][i]=(fsave[ipt][i]+fsave[ipt+1][i])*facnj;
+                    }
+                } else {
+                    for (int kk=kbeg; kk<=k; kk++) {
+                        Real facnj=pow(nseq[kk]/2.0,kmi-2);
+                        int ipt=kk*kk+kk+kbeg;
+                        for (int i=0; i<neqn; i++)
+                            ysave[kk][i]=fsave[ipt][i]*facnj;
+                    }
+                }
+                for (int j=kbeg+1; j<=k; j++) {
+                    Real dblenj=nseq[j];
+                    for (int l=j; l>=kbeg+1; l--) {
+                        Real factor=SQR(dblenj/nseq[l-1])-1.0;
+                        for (int i=0; i<neqn; i++)
+                            ysave[l-1][i]=ysave[l][i]+
+                                (ysave[l][i]-ysave[l-1][i])/factor;
+                    }
+                }
+                for (int i=0; i<neqn; i++)
+                    dens[(kmi+6)*neqn+i]=ysave[kbeg][i]*h2;
+                if (kmi == mu) continue;
+                for (int kk=(kmi-1)/2; kk<=k; kk++) {
+                    int lbeg=kk*kk+kmi-2;
+                    int lend=SQR(kk+1)-1;
+                    if (kmi == 2) lbeg++;
+                    for (int l=lend; l>=lbeg; l--)
+                        for (int i=0; i<neqn; i++)
+                            fsave[l][i]=fsave[l][i]-fsave[l-1][i];
+                    if (kmi == 2) {
+                        int l=lbeg-1;
+                        for (int i=0; i<neqn; i++)
+                            fsave[l][i]=fsave[l][i]-dydx[i];
+                    }
                 }
             }
+            dense_interp(neqn,dens,mu);
+            error=0.0;
+            if (mu >= 1) {
+                for (int i=0; i<neqn; i++)
+                    error += SQR(dens[(mu+6)*neqn+i]/scale[i]);
+                error=sqrt(error/neqn)*errfac[mu-1];
+            }
         }
-        dense_interp(neqn,dens,mu);
-        error=0.0;
-        if (mu >= 1) {
-            for (int i=0; i<neqn; i++)
-                error += SQR(dens[(mu+6)*neqn+i]/scale[i]);
-            error=sqrt(error/neqn)*errfac[mu-1];
-        }
-    }
 
-    Real StepperStoerm::dense_out(const int i,const Real x,const Real h) {
-        Real theta=(x-xold)/h;
-        Real theta1=1.0-theta;
-        int neqn=n/2;
-        if (i>=neqn) throw("no dense output for y' in StepperStoerm");
-        Real yinterp=dens[i]+theta*(dens[neqn+i]+theta1*(dens[2*neqn+i]+
-            theta*(dens[3*neqn+i]+theta1*(dens[4*neqn+i]*theta+
-            dens[5*neqn+i]*theta1))));
-        if (mu<0)
+        Real dense_out(const int i,const Real x,const Real h) {
+            Real theta=(x-xold)/h;
+            Real theta1=1.0-theta;
+            int neqn=n/2;
+            if (i>=neqn) throw("no dense output for y' in StepperStoerm");
+            Real yinterp=dens[i]+theta*(dens[neqn+i]+theta1*(dens[2*neqn+i]+
+                theta*(dens[3*neqn+i]+theta1*(dens[4*neqn+i]*theta+
+                dens[5*neqn+i]*theta1))));
+            if (mu<0)
+                return yinterp;
+            Real theta05=theta-0.5;
+            Real t4=theta*theta1;
+            Real c=dens[neqn*(mu+6)+i];
+            for (int j=mu;j>0; j--)
+                c=dens[neqn*(j+5)+i]+c*theta05/j;
+            yinterp += t4*t4*t4*c;
             return yinterp;
-        Real theta05=theta-0.5;
-        Real t4=theta*theta1;
-        Real c=dens[neqn*(mu+6)+i];
-        for (int j=mu;j>0; j--)
-            c=dens[neqn*(j+5)+i]+c*theta05/j;
-        yinterp += t4*t4*t4*c;
-        return yinterp;
-    }
+        }
 
-    void StepperStoerm::dense_interp(const int n, Vector<Real> &y, const int imit) {
-        Real y0,y1,yp0,yp1,ypp0,ypp1,ydiff,ah,bh,ch,dh,eh,fh,gh,abh,gfh,gmf,
-            ph0,ph1,ph2,ph3,ph4,ph5,fc1,fc2,fc3;
-        Vector<Real> a(41);
-        for (int i=0; i<n; i++) {
-            y0=y[i];
-            y1=y[3*n+i];
-            yp0=y[n+i];
-            yp1=y[4*n+i];
-            ypp0=y[2*n+i]/2.0;
-            ypp1=y[5*n+i]/2.0;
-            ydiff=y1-y0;
-            ah=ydiff-yp0;
-            bh=yp1-ydiff;
-            ch=ah-ypp0;
-            dh=bh-ah;
-            eh=ypp1-bh;
-            fh=dh-ch;
-            gh=eh-dh;
-            y[n+i]=ydiff;
-            y[2*n+i]=-ah;
-            y[3*n+i]=-dh;
-            y[4*n+i]=gh;
-            y[5*n+i]=fh;
-            if (imit < 0) continue;
-            abh=ah+bh;
-            gfh=gh+fh;
-            gmf=gh-fh;
-            ph0=0.5*(y0+y1+0.25*(-abh+0.25*gfh));
-            ph1=ydiff+0.25*(ah-bh+0.25*gmf);
-            ph2=abh-0.5*gfh;
-            ph3=6.0*(bh-ah)-3.0*gmf;
-            ph4=12.0*gfh;
-            ph5=120.0*gmf;
-            if (imit >= 1) {
-                a[1]=64.0*(y[7*n+i]-ph1);
-                if (imit >= 3) {
-                    a[3]=64.0*(y[9*n+i]-ph3+a[1]*9.0/8.0);
-                    if (imit >= 5) {
-                        a[5]=64.0*(y[11*n+i]-ph5+a[3]*15.0/4.0-a[1]*90.0);
-                        for (int im=7; im <=imit; im+=2) {
-                            fc1=im*(im-1)*3.0/16.0;
-                            fc2=fc1*(im-2)*(im-3)*4.0;
-                            fc3=im*(im-1)*(im-2)*(im-3)*(im-4)*(im-5);
-                            a[im]=64.0*(y[(im+6)*n+i]+fc1*a[im-2]-fc2*a[im-4]+fc3*a[im-6]);
+        void dense_interp(const int n, Vector<Real> &y, const int imit) {
+            Real y0,y1,yp0,yp1,ypp0,ypp1,ydiff,ah,bh,ch,dh,eh,fh,gh,abh,gfh,gmf,
+                ph0,ph1,ph2,ph3,ph4,ph5,fc1,fc2,fc3;
+            Vector<Real> a(41);
+            for (int i=0; i<n; i++) {
+                y0=y[i];
+                y1=y[3*n+i];
+                yp0=y[n+i];
+                yp1=y[4*n+i];
+                ypp0=y[2*n+i]/2.0;
+                ypp1=y[5*n+i]/2.0;
+                ydiff=y1-y0;
+                ah=ydiff-yp0;
+                bh=yp1-ydiff;
+                ch=ah-ypp0;
+                dh=bh-ah;
+                eh=ypp1-bh;
+                fh=dh-ch;
+                gh=eh-dh;
+                y[n+i]=ydiff;
+                y[2*n+i]=-ah;
+                y[3*n+i]=-dh;
+                y[4*n+i]=gh;
+                y[5*n+i]=fh;
+                if (imit < 0) continue;
+                abh=ah+bh;
+                gfh=gh+fh;
+                gmf=gh-fh;
+                ph0=0.5*(y0+y1+0.25*(-abh+0.25*gfh));
+                ph1=ydiff+0.25*(ah-bh+0.25*gmf);
+                ph2=abh-0.5*gfh;
+                ph3=6.0*(bh-ah)-3.0*gmf;
+                ph4=12.0*gfh;
+                ph5=120.0*gmf;
+                if (imit >= 1) {
+                    a[1]=64.0*(y[7*n+i]-ph1);
+                    if (imit >= 3) {
+                        a[3]=64.0*(y[9*n+i]-ph3+a[1]*9.0/8.0);
+                        if (imit >= 5) {
+                            a[5]=64.0*(y[11*n+i]-ph5+a[3]*15.0/4.0-a[1]*90.0);
+                            for (int im=7; im <=imit; im+=2) {
+                                fc1=im*(im-1)*3.0/16.0;
+                                fc2=fc1*(im-2)*(im-3)*4.0;
+                                fc3=im*(im-1)*(im-2)*(im-3)*(im-4)*(im-5);
+                                a[im]=64.0*(y[(im+6)*n+i]+fc1*a[im-2]-fc2*a[im-4]+fc3*a[im-6]);
+                            }
                         }
                     }
                 }
-            }
-            a[0]=64.0*(y[6*n+i]-ph0);
-            if (imit >= 2) {
-                a[2]=64.0*(y[n*8+i]-ph2+a[0]*3.0/8.0);
-                if (imit >= 4) {
-                    a[4]=64.0*(y[n*10+i]-ph4+a[2]*9.0/4.0-a[0]*18.0);
-                    for (int im=6; im<=imit; im+=2) {
-                        fc1=im*(im-1)*3.0/16.0;
-                        fc2=fc1*(im-2)*(im-3)*4.0;
-                        fc3=im*(im-1)*(im-2)*(im-3)*(im-4)*(im-5);
-                        a[im]=64.0*(y[n*(im+6)+i]+a[im-2]*fc1-a[im-4]*fc2+a[im-6]*fc3);
+                a[0]=64.0*(y[6*n+i]-ph0);
+                if (imit >= 2) {
+                    a[2]=64.0*(y[n*8+i]-ph2+a[0]*3.0/8.0);
+                    if (imit >= 4) {
+                        a[4]=64.0*(y[n*10+i]-ph4+a[2]*9.0/4.0-a[0]*18.0);
+                        for (int im=6; im<=imit; im+=2) {
+                            fc1=im*(im-1)*3.0/16.0;
+                            fc2=fc1*(im-2)*(im-3)*4.0;
+                            fc3=im*(im-1)*(im-2)*(im-3)*(im-4)*(im-5);
+                            a[im]=64.0*(y[n*(im+6)+i]+a[im-2]*fc1-a[im-4]*fc2+a[im-6]*fc3);
+                        }
                     }
                 }
+                for (int im=0; im<=imit; im++)
+                    y[n*(im+6)+i]=a[im];
             }
-            for (int im=0; im<=imit; im++)
-                y[n*(im+6)+i]=a[im];
         }
-    }
 
-    void StepperStoerm::dy(const Vector<Real> &y, const Real htot, const int k,
-        Vector<Real> &yend, int &ipt) {
-        Vector<Real> ytemp(n);
-        int nstep=nseq[k];
-        Real h=htot/nstep;
-        Real h2=2.0*h;
-        for (int i=0;i<neqn;i++) {
-            ytemp[i]=y[i];
-            int ni=neqn+i;
-            ytemp[ni]=y[ni]+h*dydx[i];
-        }
-        Real xnew=x;
-        int nstp2=nstep/2;
-        for (int nn=1;nn<=nstp2;nn++) {
-            if (dense && nn == (nstp2+1)/2) {
-                for (int i=0;i<neqn;i++) {
-                    ysavep[k][i]=ytemp[neqn+i];
-                    ysave[k][i]=ytemp[i]+h*ytemp[neqn+i];
+        void dy(const Vector<Real> &y, const Real htot, const int k,
+            Vector<Real> &yend, int &ipt) {
+            Vector<Real> ytemp(n);
+            int nstep=nseq[k];
+            Real h=htot/nstep;
+            Real h2=2.0*h;
+            for (int i=0;i<neqn;i++) {
+                ytemp[i]=y[i];
+                int ni=neqn+i;
+                ytemp[ni]=y[ni]+h*dydx[i];
+            }
+            Real xnew=x;
+            int nstp2=nstep/2;
+            for (int nn=1;nn<=nstp2;nn++) {
+                if (dense && nn == (nstp2+1)/2) {
+                    for (int i=0;i<neqn;i++) {
+                        ysavep[k][i]=ytemp[neqn+i];
+                        ysave[k][i]=ytemp[i]+h*ytemp[neqn+i];
+                    }
+                }
+                for (int i=0;i<neqn;i++)
+                    ytemp[i] += h2*ytemp[neqn+i];
+                xnew += h2;
+                _sys.derivs(xnew,ytemp,yend);
+                if (dense && std::abs(nn-(nstp2+1)/2) < k+1) {
+                    ipt++;
+                    for (int i=0;i<neqn;i++)
+                        fsave[ipt][i]=yend[i];
+                }
+                if (nn != nstp2) {
+                    for (int i=0;i<neqn;i++)
+                        ytemp[neqn+i] += h2*yend[i];
                 }
             }
-            for (int i=0;i<neqn;i++)
-                ytemp[i] += h2*ytemp[neqn+i];
-            xnew += h2;
-            _sys.derivs(xnew,ytemp,yend);
-            if (dense && std::abs(nn-(nstp2+1)/2) < k+1) {
-                ipt++;
-                for (int i=0;i<neqn;i++)
-                    fsave[ipt][i]=yend[i];
-            }
-            if (nn != nstp2) {
-                for (int i=0;i<neqn;i++)
-                    ytemp[neqn+i] += h2*yend[i];
+            for (int i=0;i<neqn;i++) {
+                int ni=neqn+i;
+                yend[ni]=ytemp[ni]+h*yend[i];
+                yend[i]=ytemp[i];
             }
         }
-        for (int i=0;i<neqn;i++) {
-            int ni=neqn+i;
-            yend[ni]=ytemp[ni]+h*yend[i];
-            yend[i]=ytemp[i];
-        }
-    }
+    };
 }
 ///////////////////////////   ./include/algorithms/ODESystemSolvers.h   ///////////////////////////
 
@@ -14854,7 +14981,7 @@ namespace MML
             try {
                 Real y = _f(x);                
             }
-            catch(const std::exception& e) {
+            catch(const std::exception& ) {
                 return false;
             }
             return true;
