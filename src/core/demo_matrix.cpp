@@ -55,9 +55,9 @@ void Matrix_vector_init_operations()
     std::cout << "Matrix matB = Matrix::ColMatrixFromVector(a);\nmatB = " << matB << std::endl;
 
     Matrix<Real> m1(2,2, {1.0, -1.0, 1.5, 3.0});
-    Vector vecRow  = Matrix<Real>::VectorFromRow(m1, 0);
-    Vector vecCol  = Matrix<Real>::VectorFromColumn(m1, 0);
-    Vector vecDiag = Matrix<Real>::VectorFromDiagonal(m1);
+    Vector vecRow  = m1.VectorFromRow(0);
+    Vector vecCol  = m1.VectorFromColumn(0);
+    Vector vecDiag = m1.VectorFromDiagonal();
 
     std::cout << "Matrix m1 = " << m1 << std::endl;
     std::cout << "Vector vecRow = Matrix::VectorFromRow(a, 0)    = " << vecRow << std::endl;

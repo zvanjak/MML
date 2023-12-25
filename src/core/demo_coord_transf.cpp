@@ -131,6 +131,14 @@ void Demo_CoordTransf_Rectilinear()
 
 }
 
+void Demo_CoordTransf_Jacobian()
+{
+    Vector3Cartesian p1{2.0, 2.0, 5};
+    auto   p1Spher = CoordTransfCartToSpher.transf(p1);
+    
+    MatrixNM<Real, 3, 3> jac = CoordTransfCartToSpher.jacobian(p1Spher);    
+}
+
 void Demo_CoordTransf()
 {
     std::cout << std::endl;
@@ -141,4 +149,6 @@ void Demo_CoordTransf()
     Demo_CoordTransf_Spherical();
     Demo_CoordTransf_Cylindrical();
     Demo_GetUnitVector ();
+    Demo_CoordTransf_Rectilinear();
+    Demo_CoordTransf_Jacobian();
 }

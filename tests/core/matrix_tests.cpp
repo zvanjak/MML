@@ -141,11 +141,10 @@ TEST_CASE("Matrix_ColumnMatrixFromVector", "[simple]") {
     REQUIRE(3.0 ==  b[2][0]);
 }
 
-// TODO - VectorFrom
 TEST_CASE("Matrix_VectorFromRow", "[simple]") {
     Matrix<Real> a(1, 3, {1.0, 2.0, 3.0});
 
-    auto b = Matrix<Real>::VectorFromRow(a, 0);
+    auto b = a.VectorFromRow(0);
 
     REQUIRE(3 == b.size());
 
@@ -158,14 +157,14 @@ TEST_CASE("Matrix_VectorFromRow_throws_for_wrong_index", "[simple]") {
     Matrix<Real> a(1, 3, {1.0, 2.0, 3.0});
 
     Vector<Real> b;
-    REQUIRE_THROWS_AS(b = Matrix<Real>::VectorFromRow(a, -1), MatrixAccessBoundsError); 
-    REQUIRE_THROWS_AS(b = Matrix<Real>::VectorFromRow(a, 3), MatrixAccessBoundsError); 
+    REQUIRE_THROWS_AS(b = a.VectorFromRow(-1), MatrixAccessBoundsError); 
+    REQUIRE_THROWS_AS(b = a.VectorFromRow(3), MatrixAccessBoundsError); 
 }
 
 TEST_CASE("Matrix_VectorFromColumn", "[simple]") {
     Matrix<Real> a(3, 1, {1.0, 2.0, 3.0});
 
-    auto b = Matrix<Real>::VectorFromColumn(a, 0);
+    auto b = a.VectorFromColumn(0);
 
     REQUIRE(3 == b.size());
 
@@ -178,8 +177,8 @@ TEST_CASE("Matrix_VectorFromColumn_throws_for_wrong_index", "[simple]") {
     Matrix<Real> a(3, 1, {1.0, 2.0, 3.0});
 
     Vector<Real> b;
-    REQUIRE_THROWS_AS(b = Matrix<Real>::VectorFromColumn(a, -1), MatrixAccessBoundsError); 
-    REQUIRE_THROWS_AS(b = Matrix<Real>::VectorFromColumn(a, 3), MatrixAccessBoundsError); 
+    REQUIRE_THROWS_AS(b = a.VectorFromColumn(-1), MatrixAccessBoundsError); 
+    REQUIRE_THROWS_AS(b = a.VectorFromColumn(3), MatrixAccessBoundsError); 
 }
 
 // TODO - matrix_tests - test access variants, const, pointers, references

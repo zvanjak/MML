@@ -13,8 +13,6 @@
 
 using namespace MML;
 
-// TODO - simple precision comparison for selected function
-
 /*****************************************************************************************/
 /*************                REAL FUNCTION DERIVATION                       *************/
 /*****************************************************************************************/
@@ -223,6 +221,7 @@ void Demo_Derivation_RealFunc_Second_and_Third()
     double third_der_f5 = Derivation::DeriveThird(f1, 0.5, nullptr);
 }
 
+// TODO - sLOW, imple precision comparison for selected function
 // simple example for a single function of various precisions
 void Demo_Derivation_RealFunc_precision_comparison()
 {
@@ -350,16 +349,20 @@ void Demo_Derivation()
     Demo_Derivation_func_ptr();
     Demo_Derivation_member_fun();
     Demo_Derivation_member_fun2(BigComplexClassYouCantChange{});
+    
     Demo_Derivation_Interpolated_RealFunc();
+    
     Demo_Derivation_RealFunc_Second_and_Third();
-    Demo_Derivation_RealFunc_precision_comparison();
 
     Demo_Derivation_Scalar_func_partial();
     Demo_Derivation_Scalar_func_second();
 
     Demo_Derivation_Vector_func();
+    
     Demo_Derivation_Tensor_field();
 
     Demo_Derivation_Parametric_curve();
     Demo_Derivation_Parametric_curve_second_and_third();
+
+    Demo_Derivation_RealFunc_precision_comparison();
 }

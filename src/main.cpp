@@ -13,7 +13,6 @@ void Demo_CoordTransf();
 void Demo_CoreUtils();
 void Demo_Derivation();
 void Demo_Function();
-void Demo_Function_serialization();
 void Demo_Geometry();
 void Demo_Interpolated_Function();
 void Demo_Integration();
@@ -25,6 +24,7 @@ void Demo_Matrix_Other();
 void Demo_MatrixNM();
 void Demo_Polynom();
 void Demo_QuadraticForms();
+void Demo_Serialization();
 void Demo_Tensors();
 void Demo_VectorSpaces();
 void Demo_Vector();
@@ -48,6 +48,9 @@ void Demo_EigenSolvers();
 void Demo_Field_operations();
 void Demo_ODESystemSolvers();
 void Demo_Path_Integration();
+void Demo_Function_analyzer();
+void Demo_Statistics();
+void Demo_Root_finding();
 
 // Speed
 void Test_Speed_Functions();
@@ -78,7 +81,7 @@ int main(int, char**)
     // Demo_Algebra();
     // Demo_CoreUtils();
     // Demo_Matrix();
-    // Demo_Matrix_Other();
+    Demo_Matrix_Other();
     // Demo_MatrixNM();
     // Demo_Tensors();
     // Demo_Vector();
@@ -88,9 +91,11 @@ int main(int, char**)
     // Demo_CoordSystem();
     // Demo_Covar_Contravar_transformations();
     // Demo_Dirac_function();
-    Demo_Fields();
+    // Demo_Fields();
     // Demo_Function_Space();
     // Demo_Function();
+    // Demo_Serialization();
+
     // Demo_LinearFunctionals();
     // Demo_LinearOperators();
     // Demo_VectorSpaces();
@@ -101,17 +106,21 @@ int main(int, char**)
     // Demo_Interpolators();
     // Demo_Metric_Tensors();
     // Demo_Polynom();
-    Demo_QuadraticForms();
+    // Demo_QuadraticForms();
     // Demo_Surfaces();
 
     // Demo_Derivation();
+    // Demo_Integration();
+    // Demo_LinearAlgEqSolvers();
+
     // Demo_Diff_geometry();
     // Demo_EigenSolvers();
     // Demo_Field_operations();
-    // Demo_Integration();
-    // Demo_LinearAlgEqSolvers();
     // Demo_ODESystemSolvers();
     // Demo_Path_Integration();
+    // Demo_Function_analyzer();
+    // Demo_Statistics();
+    Demo_Root_finding();
 
     // Test_Speed_Functions();
     // Test_Speed_Derivation();

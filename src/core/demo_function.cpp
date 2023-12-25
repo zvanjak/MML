@@ -43,18 +43,19 @@ void Demo_Function()
 
     std::function<double(double)> f(Demo_Function_TestFunc);
     
+    RealFunction f1(Demo_Function_TestFunc);
     RealFunction f2{[](double x) { return sin(x); } };
-    RealFunctionFromStdFunc func(f);
+    RealFunctionFromStdFunc f3(f);
 
-    RealFunction func2([](double x) { return x; });
-    ScalarFunction<3> funcScalar([](const VectorN<Real, 3> &x) { return x[0]; });
-    VectorFunction<3> funcVector([](const VectorN<Real, 3> &x) { return VectorN<Real, 3>{0, x[0] * x[1], 0}; });
+    ScalarFunction<3>       funcScalar([](const VectorN<Real, 3> &x) { return x[0]; });
+    VectorFunction<3>       funcVector([](const VectorN<Real, 3> &x) { return VectorN<Real, 3>{0, x[0] * x[1], 0}; });
+    VectorFunctionNM<2, 3>  funcVectorNM([](const VectorN<Real, 2> &x) { return VectorN<Real, 3>{0, x[0] * x[1], 0}; });
+    ParametricCurve<3>      paramCurve([](double x) { return VectorN<Real, 3>{x, 2 * x, 3 * x}; });
+    ParametricSurface<3>    paramSurface([](double x, double y) { return VectorN<Real, 3>{x * y, 2 * x * y, 3 * x}; });
 
-    ParametricCurve<3> paramCurve([](double x) { return VectorN<Real, 3>{x, 2 * x, 3 * x}; });
-
-    //auto val1 = Curves::helix_curve(1.0);
     auto val2 = Surfaces::test1(1.0, 1.0);
 
-    f2.SerializeVariableSpaced(0.0, 10.0, 100, "test.txt");
-    auto ret = std::system("..\\..\\tools\\visualizers\\real_function_visualizer\\MML_RealFunctionVisualizer.exe");
+    Vector3Dbl p1{2.0, 2.0, 5};
+    
+    MatrixNM<Real, 3, 3> jac = funcVector.jacobian(p1);    
 }

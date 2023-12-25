@@ -1,0 +1,91 @@
+- alati za crtanje grafova
+- dobiju ime fajla u kojem su svi podaci i voila
+
+- SVI koji se žele vizualizirati, imaju ToGraphTxt koji generira fajl sa svim potrebnim podacima za vizualizaciju
+    - prva linija u fajlu je identifikator, koji se mora slagati
+
+- real function , interval
+    - VariableSpaced
+        - Name: Sin
+        - values (x, y)
+        - 0.0; 0.0
+        - 0.2; 0.134654
+        - ...
+        REAL_FUNCTION_VARIABLE_SPACED
+        Name: sin(x)
+        0.0 0.0
+        0.1 0.98765
+        ...
+    - EqualSpaced
+        - Name;Sin
+        - Interval: -10 10 
+        - DeltaX: 0.5
+        - values of y
+        REAL_FUNCTION_EQUALLY_SPACED
+        sin(x)
+        Interval: -10 10
+        Delta: 0.5
+        -0.96
+        -0.68
+        ...
+    - EqualSpacedMulti - za rješenja dinamičkih sistema!
+        - Interval: -10 10
+        - DeltaX: 0.5
+        - Title: Sin
+        - values of y
+        - Title;Cos
+        - values of y
+- parametric curve 2 i 3
+    - u stvari je samo jedna funkcij za serijalizaciju
+        - ali, mi moramo definirato ŠTO se serijaliziralo
+        - ima Serialize koji samo ispljune t i koord.
+            -. private?
+    - ParametricCartesian2 - (x, y) = f(t)
+    - ParametricCartesian3 - (x, y, z) = f(t)
+    - ParametricPolar - (r, phi) = f(t)
+    - ParametricSpherical - (r, theta, phi) = f(t)
+    - za putanje tijela
+- scalar function2d - surface
+    - RegularXY surface - zadan na rectangle x, y -> z = f(x, y)
+    - može i u sfernim koord (theta i phi parametri)
+    - ParametricSurface - zadan parametrizirano (u, w) -> (x, y, z) = f(u, w)
+- scalar function 3d - volume prikaz s nužnim presjecima
+    - val = f(x, y, z)
+    . kako prikazati 3D kocku i vrijednosti poljau njoj?
+        prikazati kocku i bojom po rubnim plohama vizualizirati vrijednosti
+        unutar kocke u regularnim intervalima staviti sferu koja veličinom (+ bojom)signalizira vrijednost
+    - u viewu se odabire točka, a onda se prikazuju surfaces po 3 ravnine (x-y, x-z, y-z), određene tom točkom
+- vector field 3d - u točkama prostora se prikazuje vektor
+    - vec = f(x, y, z)
+    - CartesianEquallySpaced
+        - Title: field
+        - IntervalX: -10 10 
+        - DeltaX: 0.5
+        - IntervalY: -10 10 
+        - DeltaY: 0.5
+        - IntervalZ: -10 10 
+        - DeltaZ: 0.5
+        - values of y
+        VECTOR_FIELD
+        gravity field
+        IntervalX: -10 10 
+        DeltaX: 0.5
+        IntervalY: -10 10 
+        DeltaY: 0.5
+        IntervalZ: -10 10 
+        DeltaZ: 0.5
+        -0.96
+        -0.68
+        ...
+- 3D world
+    - može prikazati
+        - točku
+        - vektor u nekoj točki
+            Vector PosCartesian 0 1 -2 VectorCartesian -1 2 3
+        - koordinatne funkcije za poziciju (za spher i cyl)
+        - lokalni koord sistem u točki
+
+- vizualizacija 3D transformacije
+
+Geometry prikazi
+- triangularizacija

@@ -13,10 +13,10 @@
 
 using namespace MML;
 
-// TODO - proširiti testove na kompleksne matrice
+// TODO - HIGH, dodati još testova za kompleksne matrice
 
 ///////////////////////////////////////////////////////////////////////////////////////////
-/*********                         Gauss Jordan solver                            ********/
+/*********                       Gauss Jordan solver REAL                         ********/
 ///////////////////////////////////////////////////////////////////////////////////////////
 TEST_CASE("Test_GaussJordan_Solve_5_x_5", "[simple]")
 {
@@ -41,6 +41,9 @@ TEST_CASE("Test_GaussJordan_Solve_5_x_5_multi", "[simple]")
 	REQUIRE(true == rhs.IsEqual(TestBeds::mat_5x5_rhs_multi_sol, 1e-13));   
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////
+/*********                     Gauss Jordan solver COMPLEX                        ********/
+///////////////////////////////////////////////////////////////////////////////////////////
 TEST_CASE("Test_GaussJordan_Solve_Complex_3_x_3", "[simple]")
 {
 	auto    mat = TestBeds::mat_cmplx_1_3x3;
@@ -56,7 +59,7 @@ TEST_CASE("Test_GaussJordan_Solve_Complex_3_x_3", "[simple]")
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
-/**********                         LU decomposition                              ********/
+/**********                       LU decomposition REAL                           ********/
 ///////////////////////////////////////////////////////////////////////////////////////////
 
 TEST_CASE("Test_LUDecomposition_Solve_3_x_3", "[simple]")
@@ -72,21 +75,6 @@ TEST_CASE("Test_LUDecomposition_Solve_3_x_3", "[simple]")
 
 	Vector<Real>    res_rhs = mat * vecSol;
 	REQUIRE(true == res_rhs.IsEqual(TestBeds::mat_3x3_rhs0, 1e-15));
-}
-
-TEST_CASE("Test_LUDecomposition_Solve_3_x_3_complex", "[simple]")
-{
-	Matrix<Complex> mat = TestBeds::mat_cmplx_1_3x3;
-	Vector<Complex> rhs = TestBeds::mat_cmplx_1_3x3_rhs0;
-	Vector<Complex> vecSol(rhs.size());
-
-	LUDecompositionSolver<Complex> luSolver(mat);
-
-	luSolver.Solve(rhs, vecSol);
-	REQUIRE(true == vecSol.IsEqual(TestBeds::mat_cmplx_1_3x3_rhs0, 1e-15));
-
-	Vector<Complex>    res_rhs = mat * vecSol;
-	REQUIRE(true == res_rhs.IsEqual(TestBeds::mat_cmplx_1_3x3_rhs0, 1e-15));
 }
 
 TEST_CASE("Test_LUDecomposition_Solve_5_x_5", "[simple]")
@@ -177,6 +165,26 @@ TEST_CASE("Test_LUDecomposition_Solve_50_x_50", "[simple]")
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
+/**********                      LU decomposition COMPLEX                         ********/
+///////////////////////////////////////////////////////////////////////////////////////////
+TEST_CASE("Test_LUDecomposition_Solve_3_x_3_complex", "[simple]")
+{
+	Matrix<Complex> mat = TestBeds::mat_cmplx_1_3x3;
+	Vector<Complex> rhs = TestBeds::mat_cmplx_1_3x3_rhs0;
+	Vector<Complex> vecSol(rhs.size());
+
+	LUDecompositionSolver<Complex> luSolver(mat);
+
+	luSolver.Solve(rhs, vecSol);
+	REQUIRE(true == vecSol.IsEqual(TestBeds::mat_cmplx_1_3x3_rhs0_sol, 1e-14));
+
+	Vector<Complex>    res_rhs = mat * vecSol;
+	REQUIRE(true == res_rhs.IsEqual(TestBeds::mat_cmplx_1_3x3_rhs0, 1e-14));
+}
+
+// TODO - MED, dodati 5x5 i 8x8
+
+///////////////////////////////////////////////////////////////////////////////////////////
 /**********                         QR decomposition                              ********/
 ///////////////////////////////////////////////////////////////////////////////////////////
 
@@ -218,12 +226,12 @@ TEST_CASE("Test_QRDecomposition_Solve_5_x_5_multi", "[simple]")
 
 	for (int i = 0; i < 2; i++)
 	{
-		Vector<Real> 	rhs = Matrix<Real>::VectorFromColumn(TestBeds::mat_5x5_rhs_multi, i);
-		Vector<Real>		vecSol(rhs.size());
+		Vector<Real> 	rhs = TestBeds::mat_5x5_rhs_multi.VectorFromColumn(i);
+		Vector<Real>	vecSol(rhs.size());
 
 		qrSolver.Solve(rhs, vecSol);
 
-		Vector<Real> 	rhs_sol = Matrix<Real>::VectorFromColumn(TestBeds::mat_5x5_rhs_multi_sol, i);
+		Vector<Real> 	rhs_sol = TestBeds::mat_5x5_rhs_multi_sol.VectorFromColumn(i);
 
 		REQUIRE(true == vecSol.IsEqual(rhs_sol, 1e-10));
 
@@ -314,6 +322,8 @@ TEST_CASE("Test_GaussJordan_COMPLETE_TEST_BED", "[simple]")
     }
 }
 
+// TODO - LOW, Gauss Jordan solver COMPLEX COMPLETE TEST BED
+
 TEST_CASE("Test_LUDecomposition_COMPLETE_TEST_BED", "[simple]")
 {
     for(int i=0; i<TestBeds::LinearAlgEqTestBed::numLinAlgEqSystems(); i++ )
@@ -333,6 +343,8 @@ TEST_CASE("Test_LUDecomposition_COMPLETE_TEST_BED", "[simple]")
         REQUIRE(true == res_rhs.IsEqual(testBed._rhs, 1e-13));
     }
 }
+
+// TODO - LOW, LU Decomposition COMPLEX COMPLETE TEST BED
 
 TEST_CASE("Test_QRDecomposition_COMPLETE_TEST_BED", "[simple]")
 {

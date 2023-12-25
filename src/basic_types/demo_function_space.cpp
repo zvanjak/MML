@@ -1,4 +1,4 @@
-// TODO - BIG, EMPTY!!! - Demo function space
+
 #ifdef MML_USE_SINGLE_HEADER
 #include "MML.h"
 #else
@@ -9,7 +9,7 @@
 
 using namespace MML;
 
-
+// TODO - BIG, finish Demo function space
 void Demo_Function_Space()
 {
     std::cout << std::endl;

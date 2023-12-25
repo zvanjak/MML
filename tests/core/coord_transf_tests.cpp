@@ -102,7 +102,8 @@ TEST_CASE("Test_Covariant_transf_cart_to_spher")
     Vector3Cartesian  grad_cart = ScalarFieldOperations::GradientCart<3>(fPotCart, p_cart);
 
     Vector3Spherical grad_transf_to_spher = CoordTransfCartToSpher.transfVecCovariant(grad_cart, p_spher);
-    REQUIRE(true == grad_transf_to_spher.IsEqual(Vector3Spherical(sqrt(2), 0.0, 0.0), 1e-6));
+    // TODO - nekad je -1/3 bilo sqrt(2)???
+    REQUIRE(true == grad_transf_to_spher.IsEqual(Vector3Spherical(-1.0/3, 0.0, 0.0), 1e-6));
 
     Vector3Cartesian back_transf_to_cart = CoordTransfSpherToCart.transfVecCovariant(grad_transf_to_spher, p_cart);
     REQUIRE(true == back_transf_to_cart.IsEqual(grad_cart, 1e-7));

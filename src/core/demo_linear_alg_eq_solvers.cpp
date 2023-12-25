@@ -36,7 +36,7 @@ void Test_GaussJordan_solver()
 
     GaussJordanSolver<Real>::Solve(matcopy, rhscopy);
 
-    Vector<Real> solVec = Matrix<Real>::VectorFromColumn(rhscopy, 0);
+    Vector<Real> solVec = rhscopy.VectorFromColumn(0);
     std::cout << "Solution:\n" << solVec << std::endl;
     std::cout << "Multiplying matrix with solution vector: " << origMat * solVec << std::endl;
 
@@ -60,7 +60,7 @@ void Test_LU_decomposition_solver()
     LUDecompositionSolver<Real> luSolver(matcopy);
     luSolver.Solve(rhscopy, matSol);
 
-    Vector<Real> solVec = Matrix<Real>::VectorFromColumn(rhscopy, 0);
+    Vector<Real> solVec = rhscopy.VectorFromColumn(0);
     std::cout << "Solution:\n" << solVec << std::endl;
     std::cout << "Multiplying solution with matrix: " << origMat * solVec << std::endl;
 
@@ -98,7 +98,7 @@ void Test_QR_decomposition_solver()
 
 void Test_SVD_decomposition_solver()
 {
-    std::cout << "\nSOLVING VIA SV DECOMPOSITION:\n";
+    std::cout << "\nSOLVING VIA SVD DECOMPOSITION:\n";
 
     Matrix<Real>     mat4(5, 5, {1.4, 2.1, 2.1, 7.4, 9.6,
                                 1.6, 1.5, 1.1, 0.7, 5.0,

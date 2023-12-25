@@ -135,7 +135,6 @@ TEST_CASE("Test_MatrixNM_mul_Vector", "[simple]") {
 	REQUIRE(14.0 ==  d[1]);
 }
 
-// TODO - more complex case with non rectangular matrix
 TEST_CASE("MatrixNM_Transpose", "[simple]") 
 {
     MatrixNM<Real,2,2> mat({1.0, 2.0, 3.0, 4.0} );
@@ -150,6 +149,16 @@ TEST_CASE("MatrixNM_GetTranspose", "[simple]")
 {
     MatrixNM<Real,2,2> mat({1.0, 2.0, 3.0, 4.0} );
     MatrixNM<Real,2,2> matTransp({1.0, 3.0, 2.0, 4.0} );
+
+	auto trans = mat.GetTranspose();
+
+	REQUIRE(trans.IsEqual(matTransp));
+}
+
+TEST_CASE("MatrixNM_GetTranspose_nonrectangular", "[simple]") 
+{
+    MatrixNM<Real,2,3> mat({1.0, 2.0, 3.0, 4.0, 5.0, 6.0} );
+    MatrixNM<Real,3,2> matTransp({1.0, 3.0, 2.0, 4.0, 3.0, 6.0} );
 
 	auto trans = mat.GetTranspose();
 

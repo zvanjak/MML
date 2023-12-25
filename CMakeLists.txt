@@ -9,6 +9,7 @@ set( MML_DEMO_SOURCES   src/main.cpp
                         src/utilities/demo_intervals.cpp
 
                         src/core/demo_algebra.cpp
+                        src/core/demo_chebyshev_approximation.cpp
                         src/core/demo_coord_transf.cpp
                         src/core/demo_coreutils.cpp
                         src/core/demo_derivation.cpp
@@ -24,6 +25,7 @@ set( MML_DEMO_SOURCES   src/main.cpp
                         src/core/demo_matrixnm.cpp
                         src/core/demo_polynom.cpp
                         src/core/demo_quadratic_form.cpp
+                        src/core/demo_serialization.cpp
                         src/core/demo_tensors.cpp
                         src/core/demo_vector.cpp
                         src/core/demo_vectorn.cpp
@@ -58,7 +60,8 @@ set( MML_DEMO_SOURCES   src/main.cpp
                         src/testing_precision/test_precision_interpolation.cpp
                             
                         src/readme_examples.cpp
-                    )
+                      )
+
 
 add_executable(MML_Demo ${MML_DEMO_SOURCES})
 
@@ -75,6 +78,7 @@ file(GLOB MML_TESTS tests/core/algebra_tests.cpp
                     tests/core/coreutils_tests.cpp
                     tests/core/derivation_tests.cpp                    
                     tests/core/function_tests.cpp
+                    tests/core/function_serialization_tests.cpp
                     tests/core/functional_tests.cpp
                     tests/core/geometry_tests.cpp
                     tests/core/integration_tests.cpp
@@ -89,6 +93,7 @@ file(GLOB MML_TESTS tests/core/algebra_tests.cpp
                     tests/core/vectorN_tests.cpp 
                     tests/core/field_operations_tests.cpp 
                     tests/core/metric_tensor_tests.cpp
+                    tests/core/matrixutils_tests.cpp
 
                     tests/basic_types/coord_system_tests.cpp
                     tests/basic_types/function_space_tests.cpp
@@ -106,7 +111,7 @@ file(GLOB MML_TESTS tests/core/algebra_tests.cpp
                     tests/precision/integration_precision_tests.cpp 
 
                     tests/intervals_tests.cpp
-                    )
+)
 
 add_executable(MML_Tests "mmlib_test_runner.cpp" ${MML_TESTS} )
 target_link_libraries(MML_Tests Catch)

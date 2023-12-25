@@ -20,8 +20,8 @@ namespace MML::TestBeds
     public:
         LegandreODE(int n) : _n(n) {}
         
-        int getDim() override { return 2; }
-        void derivs(const double x, const MML::Vector<Real> &y, MML::Vector<Real> &dydx) override
+        int getDim() const override { return 2; }
+        void derivs(const double x, const MML::Vector<Real> &y, MML::Vector<Real> &dydx) const override
         {
             dydx[0] = y[1];
             dydx[1] = 2 * x / (1 - x * x) * y[1] - _n * (_n + 1) * y[0];
@@ -34,8 +34,8 @@ namespace MML::TestBeds
     public:
         LaguerreODE(int n) : _n(n) {}
         
-        int  getDim() override { return 2; }
-        void derivs(const double x, const MML::Vector<Real> &y, MML::Vector<Real> &dydx) override
+        int  getDim() const override { return 2; }
+        void derivs(const double x, const MML::Vector<Real> &y, MML::Vector<Real> &dydx) const override
         {
             dydx[0] = y[1];
             dydx[1] = (x - 1) / x * y[1] - _n / x * y[0];
@@ -48,8 +48,8 @@ namespace MML::TestBeds
     public:
         HermiteODE(int n) : _n(n) {}
         
-        int  getDim() override { return 2; }
-        void derivs(const double x, const MML::Vector<Real> &y, MML::Vector<Real> &dydx) override
+        int  getDim() const override { return 2; }
+        void derivs(const double x, const MML::Vector<Real> &y, MML::Vector<Real> &dydx) const override
         {
             dydx[0] = y[1];
             dydx[1] = 2 * x * y[1] - 2 * _n * y[0];
@@ -62,8 +62,8 @@ namespace MML::TestBeds
     public:
         VanDerPolODE(double eps) : _eps(eps) {}
         
-        int  getDim() override { return 2; }
-        void derivs(const double x, const MML::Vector<Real> &y, MML::Vector<Real> &dydx) override
+        int  getDim() const override { return 2; }
+        void derivs(const double x, const MML::Vector<Real> &y, MML::Vector<Real> &dydx) const override
         {
             dydx[0] = y[1];
             dydx[1] = ( (1.0 - y[0]*y[0]) * y[1] - y[0] ) / _eps;

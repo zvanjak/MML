@@ -8,7 +8,7 @@
 #include "core/Function.h"
 #endif
 
-namespace MML::TestBeds
+namespace MML:: TestBeds
 {
     // TODO - add planar curves
     // TODO - add planar polar curves

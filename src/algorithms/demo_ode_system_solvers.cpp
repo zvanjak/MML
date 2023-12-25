@@ -14,7 +14,7 @@
 
 using namespace MML;
 
-
+// TODO - HIGH, BIG - vizualizacija rjesenja
 void Demo_VanderPol_solve()
 {
     auto sys0 = TestBeds::ODESystemTestBed::getODESystem(1);
@@ -28,15 +28,22 @@ void Demo_VanderPol_solve()
     Vector<Real> ystart0(sys0.getDim());
     ystart0[0]=2.0;
     ystart0[1]=0.0;
-    Output out0(20);         
+    Output out0(100);         
     
     ODESystemSolver<StepperDopr5> ode_solver0(sys0,atol,rtol, out0);
     ODESystemSolution             sol0 = ode_solver0.integrate(ystart0, x1, x2, h1, hmin);
 
     std::cout << "x values:\n";
-    sol0.xval.Print(std::cout, 6, 3); std::cout << std::endl;
+    sol0._xval.Print(std::cout, 6, 3); std::cout << std::endl;
     std::cout << "y values: - ";
-    sol0.yval.Print(std::cout, 6, 3);
+    sol0._yval.Print(std::cout, 6, 3);
+
+    LinearInterpRealFunc f = sol0.getSolutionAsLinearInterp(0);
+    f.SerializeEquallySpacedDetailed(0.0, 2.0, 100, "ode_lin_interp.txt");
+    auto ret1 = std::system("..\\..\\tools\\visualizers\\real_function_visualizer\\MML_RealFunctionVisualizer.exe ode_lin_interp.txt");
+
+    sol0.Serialize("ode_1.txt");
+    ret1 = std::system("..\\..\\tools\\visualizers\\real_function_visualizer\\MML_RealFunctionVisualizer.exe ode_1.txt");
 
     std::cout << "\n***********************************************************\n";
     std::cout << "**********         Dopler 8th order                ********\n";
@@ -44,13 +51,16 @@ void Demo_VanderPol_solve()
     Vector<Real> ystart01(sys0.getDim());
     ystart01[0]=2.0;
     ystart01[1]=0.0;
-    Output out01(20);            
+    Output out01(100);            
 
     ODESystemSolver<StepperDopr853> ode_solver01(sys0, atol,rtol,out01);
-    ODESystemSolution             sol01 = ode_solver01.integrate(ystart01, 0.0, 2.0, h1, hmin);
+    ODESystemSolution               sol01 = ode_solver01.integrate(ystart01, 0.0, 2.0, h1, hmin);
 
-    std::cout << "x values:\n";    sol01.xval.Print(std::cout, 6, 3); std::cout << std::endl;
-    std::cout << "y values: - ";   sol01.yval.Print(std::cout, 6, 3);
+    std::cout << "x values:\n";    sol01._xval.Print(std::cout, 6, 3); std::cout << std::endl;
+    std::cout << "y values: - ";   sol01._yval.Print(std::cout, 6, 3);
+
+    sol01.Serialize("ode_01.txt");
+    ret1 = std::system("..\\..\\tools\\visualizers\\real_function_visualizer\\MML_RealFunctionVisualizer.exe ode_01.txt");
 
     std::cout << "\n***********************************************************\n";
     std::cout << "**********            Bulirsch-Stoer               ********\n";
@@ -58,14 +68,17 @@ void Demo_VanderPol_solve()
     Vector<Real> ystartBS(sys0.getDim());
     ystartBS[0]=2.0;
     ystartBS[1]=0.0;
-    Output out_BS(20);            
+    Output out_BS(100);            
 
     ODESystemSolver<StepperBS> ode_solver_BS(sys0, atol,rtol,out_BS);
     ODESystemSolution          sol_BS = ode_solver_BS.integrate(ystartBS, 0.0, 2.0, h1, hmin);
 
-    std::cout << "x values:\n";    sol_BS.xval.Print(std::cout, 6, 3); std::cout << std::endl;
-    std::cout << "y values: - ";   sol_BS.yval.Print(std::cout, 6, 3);
+    std::cout << "x values:\n";    sol_BS._xval.Print(std::cout, 6, 3); std::cout << std::endl;
+    std::cout << "y values: - ";   sol_BS._yval.Print(std::cout, 6, 3);
  
+    sol_BS.Serialize("ode_BS.txt");
+    ret1 = std::system("..\\..\\tools\\visualizers\\real_function_visualizer\\MML_RealFunctionVisualizer.exe ode_BS.txt");
+
     std::cout << "\n***********************************************************\n";
     std::cout << "******        Runge-Kutta 4th order - Dumb           ******\n";    
     
@@ -77,6 +90,9 @@ void Demo_VanderPol_solve()
     std::cout << "x values:\n";    sol.xval.Print(std::cout, 6, 3); std::cout << std::endl;
     std::cout << "y values: - ";   sol.yval.Print(std::cout, 6, 3);
 
+    // sol.Serialize("ode_RK_Dumb.txt");
+    // std::system("..\\..\\tools\\visualizers\\real_function_visualizer\\MML_RealFunctionVisualizer.exe ode_1.txt");
+
     std::cout << "\n***********************************************************\n";
     std::cout << "******       Runge-Kutta 4th order - stepper         ******\n";  
 
@@ -84,11 +100,13 @@ void Demo_VanderPol_solve()
     ystart0[0]=2.0;
     ystart0[1]=0.0;
     RungeKuttaNR2    rkNR2;
-    ODESystemSolution sol2 = rkNR2.integrate(sys0, ystart0, 0.0, 2.0, 20, 0.1, 1e-06, h1, hmin, nok, nbad);
+    ODESystemSolution sol2 = rkNR2.integrate(sys0, ystart0, 0.0, 2.0, 100, 0.1, 1e-06, h1, hmin, nok, nbad);
 
-    std::cout << "x values:\n";    sol2.xval.Print(std::cout, 7,3); std::cout << std::endl;
-    std::cout << "y values: - ";   sol2.yval.Print(std::cout, 7,3); 
+    std::cout << "x values:\n";    sol2._xval.Print(std::cout, 7,3); std::cout << std::endl;
+    std::cout << "y values: - ";   sol2._yval.Print(std::cout, 7,3); 
 
+    sol2.Serialize("ode_2.txt");
+    ret1 = std::system("..\\..\\tools\\visualizers\\real_function_visualizer\\MML_RealFunctionVisualizer.exe ode_2.txt");
 
     std::cout << "\n***********************************************************\n";
     std::cout << "******      Stiff system - Rosenbrock method         ******\n";
@@ -102,8 +120,8 @@ void Demo_VanderPol_solve()
     ODESystemSolver<StepperRoss> ode_solver02(sys_stiff, atol, rtol, out02);
     ODESystemSolution            sol02 = ode_solver02.integrate(ystart02, 0.0, 50.0, h1, hmin);
 
-    std::cout << "x values:\n";    sol02.xval.Print(std::cout, 6, 3); std::cout << std::endl;
-    std::cout << "y values: - ";   sol02.yval.Print(std::cout, 6, 3);
+    std::cout << "x values:\n";    sol02._xval.Print(std::cout, 6, 3); std::cout << std::endl;
+    std::cout << "y values: - ";   sol02._yval.Print(std::cout, 6, 3);
     
     std::cout << "\n***********************************************************\n";
     std::cout << "****    Stiff system - Semi-implicit extrapol method    ***\n";
@@ -117,8 +135,8 @@ void Demo_VanderPol_solve()
     ODESystemSolver<StepperSemiImplExtr> ode_solver03(sys_stiff, atol, rtol, out03);
     ODESystemSolution        sol03 = ode_solver03.integrate(ystart03, 0.0, 50.0, h1, hmin);
 
-    std::cout << "x values:\n";    sol03.xval.Print(std::cout, 6, 3); std::cout << std::endl;
-    std::cout << "y values: - ";   sol03.yval.Print(std::cout, 6, 3);              
+    std::cout << "x values:\n";    sol03._xval.Print(std::cout, 6, 3); std::cout << std::endl;
+    std::cout << "y values: - ";   sol03._yval.Print(std::cout, 6, 3);              
 }
 
 void Demo_SimpleLinearODE_solve()
@@ -139,8 +157,8 @@ void Demo_SimpleLinearODE_solve()
     ODESystemSolution sol2 = rkNR2.integrate(sys, sys.getInitialConditions(), 0.0, 2.0, 20, 0.1, 1e-06, h1, hmin, nok, nbad);
 
     std::cout << "**********    Runge-Kutta 4th order - stepper    ********\n";
-    std::cout << "x values:\n";    sol2.xval.Print(std::cout, 7,3); std::cout << std::endl;
-    std::cout << "y values: - ";   sol2.yval.Print(std::cout, 7,3);
+    std::cout << "x values:\n";    sol2._xval.Print(std::cout, 7,3); std::cout << std::endl;
+    std::cout << "y values: - ";   sol2._yval.Print(std::cout, 7,3);
 }
 
 void Demo_ODESystemSolvers()

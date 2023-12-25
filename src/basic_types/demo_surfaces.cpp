@@ -1,4 +1,3 @@
-// TODO - BIG, EMPTY!!! - Demo surfaces
 #ifdef MML_USE_SINGLE_HEADER
 #include "MML.h"
 #else
@@ -9,7 +8,7 @@
 
 using namespace MML;
 
-
+// TODO - LOW, EMPTY!!! - Demo surfaces
 void Demo_Surfaces()
 {
     std::cout << std::endl;

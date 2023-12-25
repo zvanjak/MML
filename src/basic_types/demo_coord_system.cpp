@@ -35,8 +35,8 @@ void Demo_2DPolar()
     std::cout << "e2 dual = "; transf.Dual(1).Print(std::cout,10,5) << std::endl;
     std::cout << "e3 dual = "; transf.Dual(2).Print(std::cout,10,5) << std::endl;
 
-    std::cout << "\nTransf. matrix:\n" << transf._alpha << std::endl;
-    std::cout << "Inverse transf. matrix:\n" << transf._transf << std::endl;
+    std::cout << "\nTransf. matrix:\n" << transf.getAlpha() << std::endl;
+    std::cout << "Inverse transf. matrix:\n" << transf.getTransf() << std::endl;
 
     Vector3Cartesian vec_A{7, 2, 0};
     std::cout << "Vector A (orig)      = "; vec_A.Print(std::cout,10,5) << std::endl;

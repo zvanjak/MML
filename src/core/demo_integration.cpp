@@ -7,6 +7,8 @@
 #include "core/InterpolatedFunction.h"
 
 #include "core/Integration.h"
+#include "core/Integrate3D.h"
+
 #endif
 
 using namespace std;
@@ -120,6 +122,26 @@ void Demo_Integration_Interpolated_RealFunc()
     double int_romb = Integration::IntegrateRomberg(f_linear,a,b);
 }
 
+void Demo_Integration2D()
+{
+    ScalarFunction<2> f([](const VectorN<Real, 2> &x) { return 1.0; });
+    
+    Real integral = IntegrateSurface(f, GAUSS10, 0, 2, [](Real x) { return 1.0;}, [](Real x) { return 4.0;}); 
+    Real integralCircle = IntegrateSurface(f, TRAP, -2, 2, [](Real x) { return -sqrt(4 - x*x);}, [](Real x) { return sqrt(4 - x*x);}); 
+
+    std::cout << "Integral = " << integral << std::endl;
+    std::cout << "Integral circle = " << integralCircle << "4 * PI = " << 4 * Constants::PI << std::endl;
+}
+
+void Demo_Integration3D()
+{
+    ScalarFunction<3> f([](const VectorN<Real, 3> &x) { return 1.0; });
+    
+    Real integral = IntegrateVolume(f, 0, 1, [](Real x) { return 1.0;}, [](Real x) { return 4.0;}, [](Real x, Real y) { return 1.0;}, [](Real x, Real y) { return 5.0;});
+
+    std::cout << "Integral = " << integral << std::endl;
+}
+
 void Demo_Integration()
 {
     std::cout << endl;
@@ -127,8 +149,11 @@ void Demo_Integration()
     std::cout << "****                         INTEGRATION                           ****" << endl;
     std::cout << "***********************************************************************" << endl;
 
-    Demo_Integration_func_ptr();
-    Demo_Integration_member_fun();
-    Demo_Integration_member_fun2(BigComplexClassYouCantChangeInt{});
-    Demo_Integration_Interpolated_RealFunc();
+    // Demo_Integration_func_ptr();
+    // Demo_Integration_member_fun();
+    // Demo_Integration_member_fun2(BigComplexClassYouCantChangeInt{});
+    // Demo_Integration_Interpolated_RealFunc();
+
+    Demo_Integration2D();
+    Demo_Integration3D();
 }

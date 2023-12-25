@@ -1,4 +1,3 @@
-// TODO - BIG, EMPTY!!! - dovršiti demo
 #ifdef MML_USE_SINGLE_HEADER
 #include "MML.h"
 #else
@@ -9,7 +8,7 @@
 
 using namespace MML;
 
-
+// TODO - HIGH, EMPTY!!! - dovršiti demo
 void Demo_Dirac_function()
 {
     std::cout << std::endl;

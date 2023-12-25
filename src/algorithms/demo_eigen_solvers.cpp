@@ -8,7 +8,7 @@
 #include "core/Vector.h"
 #include "core/Matrix.h"
 #include "core/MatrixSym.h"
-#include "core/CoreUtils.h"
+#include "core/MatrixUtils.h"
 
 #include "algorithms/EigenSystemSolvers.h"
 #endif
@@ -31,11 +31,11 @@ void Test_Symmetric_Eigen_Solver()
     std::cout << "Eigenvectors " << eigen_solver.z << std::endl;
 
     Vector<Real>       eigen_values = eigen_solver.d;
-    Vector<Real>       eigen_vectors1 = Matrix<Real>::VectorFromColumn(eigen_solver.z, 0);
-    Vector<Real>       eigen_vectors2 = Matrix<Real>::VectorFromColumn(eigen_solver.z, 1);
-    Vector<Real>       eigen_vectors3 = Matrix<Real>::VectorFromColumn(eigen_solver.z, 2);
-    Vector<Real>       eigen_vectors4 = Matrix<Real>::VectorFromColumn(eigen_solver.z, 3);
-    Vector<Real>       eigen_vectors5 = Matrix<Real>::VectorFromColumn(eigen_solver.z, 4);
+    Vector<Real>       eigen_vectors1 = eigen_solver.z.VectorFromColumn(0);
+    Vector<Real>       eigen_vectors2 = eigen_solver.z.VectorFromColumn(1);
+    Vector<Real>       eigen_vectors3 = eigen_solver.z.VectorFromColumn(2);
+    Vector<Real>       eigen_vectors4 = eigen_solver.z.VectorFromColumn(3);
+    Vector<Real>       eigen_vectors5 = eigen_solver.z.VectorFromColumn(4);
 
     std::cout << "Mat * eig_vec1      = " << matcopy * eigen_vectors1 << std::endl;
     std::cout << "eig_val1 * eig_vec1 = " << eigen_values[0] * eigen_vectors1 << std::endl;
@@ -77,7 +77,7 @@ void Test_Unsymmetric_Eigen_Solver_Single_Mat(Matrix<Real> origMat)
      
     std::cout << "Eigenvectors matrix:\n"; eigen_solver.zz.Print(std::cout, width, 7); std::cout << std::endl;
 
-    Matrix<Complex> mat_cmplx = Utils::CmplxMatFromRealMat(matcopy);
+    Matrix<Complex> mat_cmplx = MatrixUtils::CmplxMatFromRealMat(matcopy);
 
     for(int i=0; i<dim; i++ )
     {
@@ -115,7 +115,7 @@ void Demo_EigenSolvers()
 
     //Test_Symmetric_Eigen_Solver();    
 
-    Test_Unsymmetric_Eigen_Solver_Single_Mat(TestBeds::mat_50x50_test2); 
+    Test_Unsymmetric_Eigen_Solver_Single_Mat(TestBeds::mat_50x50_1); 
     // Test_Unsymmetric_Eigen_Solver_Single_Mat(TestBeds::mat_6x6_test1); 
     // Test_Unsymmetric_Eigen_Solver_Single_Mat(TestBeds::mat_8x8_test1); 
 }

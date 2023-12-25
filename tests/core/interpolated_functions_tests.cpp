@@ -9,30 +9,61 @@
 #include "MML.h"
 #else
 #include "core/InterpolatedFunction.h"
+
+#include "algorithms/FunctionAnalyzer.h"
 #endif
 
 using namespace MML;
 
 namespace Tests
 {
-    static double Func1(double x) { return sin(x); }
-    static double Func1_derived(double x) { return cos(x); }
-    static double Func1_integrated(double x) { return -cos(x); }
+double test_func(const double x)
+{
+    const double eps = 1.0;
+    return x*exp(-x)/(SQR(x-1.0)+eps*eps);
+}
+
+void CreateInterpolatedValues(RealFunction f, Real x1, Real x2, int numPnt, Vector<Real> &outX, Vector<Real> &outY)
+{
+    outX.Resize(numPnt);
+    outY.Resize(numPnt);
+
+    for (int i=0;i<numPnt;i++) {
+        outX[i] = x1 + i * (x2 - x1) / (numPnt - 1);
+        outY[i] = f(outX[i]);
+    } 
 }
 
 // TODO - HIGH, EMPTY!!! - implement tests for interpolation methods and verify precision
+TEST_CASE("Test_LinearInterp_sin_func", "[simple]") {
+    RealFunction f{[](Real x) { return sin(x); } };
 
-// TEST_CASE("Test_TabulatedValues1D", "[simple]") {
-//     std::vector<double> values(101);
+    Vector<Real> vec_x, vec_y;
+    CreateInterpolatedValues(f, 0.0, 2.0*Constants::PI, 10, vec_x, vec_y);
 
-//     for(int i=0; i<=100; i++ )
-//         values[i] = sin(i / 10.0);
+    LinearInterpRealFunc    linear_interp(vec_x, vec_y);
 
-//     TabulatedValues1DEqualSpacing tabValues{0.0, 10.0, values};
+    FunctionComparer      comparer(f, linear_interp);
 
-//     REQUIRE(sin(0.0) == tabValues.Value(0));
-//     REQUIRE(sin(5.0) == tabValues.Value(50));
-//     REQUIRE(sin(10.0) == tabValues.Value(100));
-// }
+    double totalAbsDiff = comparer.getSumAbsDiff(0.0, 2.0*Constants::PI, 100);
+    double avgAbsDiff = comparer.getAvgAbsDiff(0.0, 2.0*Constants::PI, 100);
+    double maxAbsDiff = comparer.getMaxAbsDiff(0.0, 2.0*Constants::PI, 100);
 
+    double totalRelDiff = comparer.getSumRelativeDiff(0.0, 2.0*Constants::PI, 100);
+    double avgRelDiff = comparer.getAvgRelativeDiff(0.0, 2.0*Constants::PI, 100);
+    double maxRelDiff = comparer.getMaxRelativeDiff(0.0, 2.0*Constants::PI, 100);
+
+
+    // REQUIRE(totalAbsDiff == Approx(0.0).margin(0.0001));
+    // REQUIRE(avgAbsDiff == Approx(0.0).margin(0.0001));
+    // REQUIRE(maxAbsDiff == Approx(0.0).margin(0.0001));
+
+
+    // proci kroz 100 tocaka, i usporediti apsolutne vrijednosti
+    // avg razlike, max razlike, min razlike
+    // relativna greška u odnosu na točnu vrijednost
+}
+
+
+} // end namespace
 #endif

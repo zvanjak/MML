@@ -12,6 +12,63 @@
 
 using namespace MML;
 
+
+void Demo_gradient()
+{
+    std::cout << "***********************************************************************" << std::endl;
+    std::cout << "****                           GRADIENT                            ****" << std::endl;
+    std::cout << "***********************************************************************" << std::endl;
+
+    ScalarFunction<3> fPotCart([](const VectorN<Real, 3> &x) -> Real { return InverseRadialPotentialFieldCart(x); });
+    ScalarFunction<3> fPotSpher([](const VectorN<Real, 3> &x) -> Real { return InverseRadialPotentialFieldSpher(x); });
+    ScalarFunction<3> fPotCyl([](const VectorN<Real, 3> &x) -> Real { return InverseRadialPotentialFieldCyl(x); });
+
+    // izračunati gradijent po obodu kružnice
+    Curves::Circle3DXZ circle(1.0);
+    std::cout << "            Position                   Cartesian gradient              Spherical gradient         Spher.grad.covar.transf. to Cart        Cylindrical gradient         Cyl.grad.covar.transf. to Cart" << std::endl;
+    for(double t=0.0; t<2*Constants::PI; t+=0.3)
+    {
+        Vector3Cartesian   pos = circle(t);
+        Vector3Cartesian   grad_cart = ScalarFieldOperations::GradientCart<3>(fPotCart, pos);
+        Vector3Spherical   grad_spher = ScalarFieldOperations::GradientSpher(fPotSpher, CoordTransfCartToSpher.transf(pos));
+        Vector3Cylindrical grad_cyl = ScalarFieldOperations::GradientCyl(fPotCyl, CoordTransfCartToCyl.transf(pos));
+
+        Vector3Cartesian spher_grad_transf_to_cart = CoordTransfSpherToCart.transfVecCovariant(grad_spher, pos);
+        Vector3Cartesian cyl_grad_transf_to_cart   = CoordTransfCylToCart.transfVecCovariant(grad_cyl, pos);
+
+        std::cout << pos.to_string(8,3) << " = " << grad_cart.to_string(8,4) 
+                                        << "  " << grad_spher.to_string(8,4) 
+                                        << "  " << spher_grad_transf_to_cart.to_string(9,4) 
+                                        << "  " << grad_cyl.to_string(8,4) 
+                                        << "  " << cyl_grad_transf_to_cart.to_string(10,4) 
+                                        << std::endl;
+    }
+}
+
+void Demo_Laplacian()
+{
+    std::cout << "***********************************************************************" << std::endl;
+    std::cout << "****                           LAPLACIAN                           ****" << std::endl;
+    std::cout << "***********************************************************************" << std::endl;
+
+    ScalarFunction<3> fPotCart([](const VectorN<Real, 3> &x) -> Real { return InverseRadialPotentialFieldCart(x); });
+    ScalarFunction<3> fPotSpher([](const VectorN<Real, 3> &x) -> Real { return InverseRadialPotentialFieldSpher(x); });
+    ScalarFunction<3> fPotCyl([](const VectorN<Real, 3> &x) -> Real { return InverseRadialPotentialFieldCyl(x); });
+
+    Curves::Circle3DXZ circle(1.0);
+    std::cout << "            Position                 Cart. laplacian         Spher. laplacian         Cylin. laplacian" << std::endl;
+    for(double t=0.0; t<2*Constants::PI; t+=0.3)
+    {
+        Vector3Cartesian pos = circle(t);
+        Real lapl_cart  = ScalarFieldOperations::LaplacianCart(fPotCart, pos);
+        Real lapl_spher = ScalarFieldOperations::LaplacianSpher(fPotSpher, CoordTransfCartToSpher.transf(pos));
+        Real lapl_cyl   = ScalarFieldOperations::LaplacianCyl(fPotCyl, CoordTransfCartToCyl.transf(pos));
+
+        std::cout << pos.to_string(8,3) << " = " << std::setw(20) << lapl_cart << "    " << std::setw(20) << lapl_spher << "    " << std::setw(20) << lapl_cyl << std::endl;
+    }    
+}
+
+
 VectorN<Real, 3> GradientOfCartesianPotential(const VectorN<Real, 3> &x )
 {
     ScalarFunction<3> fPotCart(InverseRadialPotentialFieldCart);    
@@ -44,39 +101,6 @@ VectorN<Real, 3> SimpleVectorFunc(const VectorN<Real, 3> &x )
     ret[2] = x[0] * x[1]*x[1] * x[2];
 
     return ret;
-}
-
-// TODO - finish Demo gradient
-void Demo_gradient()
-{
-    std::cout << "***********************************************************************" << std::endl;
-    std::cout << "****                           GRADIENT                            ****" << std::endl;
-    std::cout << "***********************************************************************" << std::endl;
-
-    ScalarFunction<3> fPotCart([](const VectorN<Real, 3> &x) -> Real { return InverseRadialPotentialFieldCart(x); });
-    ScalarFunction<3> fPotSpher([](const VectorN<Real, 3> &x) -> Real { return InverseRadialPotentialFieldSpher(x); });
-    ScalarFunction<3> fPotCyl([](const VectorN<Real, 3> &x) -> Real { return InverseRadialPotentialFieldCyl(x); });
-
-    // izračunati gradijent po obodu kružnice
-    Curves::Circle3DXZ circle(1.0);
-    std::cout << "            Position                   Cartesian gradient              Spherical gradient         Spher.grad.covar.transf. to Cart        Cylindrical gradient         Cyl.grad.covar.transf. to Cart" << std::endl;
-    for(double t=0.0; t<2*Constants::PI; t+=0.3)
-    {
-        Vector3Cartesian pos = circle(t);
-        Vector3Cartesian grad_cart = ScalarFieldOperations::GradientCart<3>(fPotCart, pos);
-        Vector3Spherical grad_spher = ScalarFieldOperations::GradientSpher(fPotSpher, CoordTransfCartToSpher.transf(pos));
-        Vector3Cylindrical grad_cyl = ScalarFieldOperations::GradientCyl(fPotCyl, CoordTransfCartToCyl.transf(pos));
-
-        Vector3Cartesian spher_grad_transf_to_cart = CoordTransfSpherToCart.transfVecCovariant(grad_spher, pos);
-        Vector3Cartesian cyl_grad_transf_to_cart   = CoordTransfCylToCart.transfVecCovariant(grad_cyl, pos);
-
-        std::cout << pos.to_string(8,3) << " = " << grad_cart.to_string(8,4) 
-                                        << "  " << grad_spher.to_string(8,4) 
-                                        << "  " << spher_grad_transf_to_cart.to_string(9,4) 
-                                        << "  " << grad_cyl.to_string(8,4) 
-                                        << "  " << cyl_grad_transf_to_cart.to_string(10,4) 
-                                        << std::endl;
-    }
 }
 
 void Demo_divergence()
@@ -117,7 +141,6 @@ void Demo_curl()
     std::cout << "****                             CURL                              ****" << std::endl;
     std::cout << "***********************************************************************" << std::endl;
 
-
     VectorFunction<3> fCartGrad(GradientOfCartesianPotential);
     VectorFunction<3> fSpherGrad(GradientOfSphericalPotential);
     VectorFunction<3> fCylGrad(GradientOfCylindricalPotential);
@@ -141,30 +164,6 @@ void Demo_curl()
     }    
 }
 
-// TODO - finish Demo Laplacian
-void Demo_Laplacian()
-{
-    std::cout << "***********************************************************************" << std::endl;
-    std::cout << "****                           LAPLACIAN                           ****" << std::endl;
-    std::cout << "***********************************************************************" << std::endl;
-
-    ScalarFunction<3> fPotCart([](const VectorN<Real, 3> &x) -> Real { return InverseRadialPotentialFieldCart(x); });
-    ScalarFunction<3> fPotSpher([](const VectorN<Real, 3> &x) -> Real { return InverseRadialPotentialFieldSpher(x); });
-    ScalarFunction<3> fPotCyl([](const VectorN<Real, 3> &x) -> Real { return InverseRadialPotentialFieldCyl(x); });
-
-    // izračunati gradijent po obodu kružnice
-    Curves::Circle3DXZ circle(1.0);
-    std::cout << "            Position                 Cart. laplacian         Spher. laplacian         Cylin. laplacian" << std::endl;
-    for(double t=0.0; t<2*Constants::PI; t+=0.3)
-    {
-        Vector3Cartesian pos = circle(t);
-        Real lapl_cart  = ScalarFieldOperations::LaplacianCart(fPotCart, pos);
-        Real lapl_spher = ScalarFieldOperations::LaplacianSpher(fPotSpher, CoordTransfCartToSpher.transf(pos));
-        Real lapl_cyl   = ScalarFieldOperations::LaplacianCyl(fPotCyl, CoordTransfCartToCyl.transf(pos));
-
-        std::cout << pos.to_string(8,3) << " = " << std::setw(20) << lapl_cart << "    " << std::setw(20) << lapl_spher << "    " << std::setw(20) << lapl_cyl << std::endl;
-    }    
-}
 
 void Demo_Field_operations()
 {
