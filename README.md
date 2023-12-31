@@ -79,8 +79,6 @@ They are used for verification of implemented algorithms, but can also be used a
 ***Vectors, matrices***
 ~~~ c++
     // TODO - finish vectors, matrices example
-    // matrica je operator, pa vektor se mnozi
-    // dodati i rad real , complex matrice!
     Vector<double>  vec_dbl_3({ 1.0, 2.0, 3.0 }); 
     VectorComplex   vec_cmplx_2({ Complex(1,1), Complex(-1,2), Complex(2, -0.5) });
 

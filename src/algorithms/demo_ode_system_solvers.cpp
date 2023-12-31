@@ -3,6 +3,8 @@
 #else
 #include "MMLBase.h"
 
+#include "interfaces/IODESystem.h"
+
 #include "core/Vector.h"
 
 #include "algorithms/ODESystemSolvers.h"
@@ -15,6 +17,37 @@
 using namespace MML;
 
 // TODO - HIGH, BIG - vizualizacija rjesenja
+void Demo_Lorenz_solve()
+{
+    TestBeds::LorenzSystemODE sys0(10.0, 28.0, 8.0/3.0);
+     
+    const double atol=1.0e-3, rtol=atol, h1=0.01, hmin=0.0, x1=0.0, x2=50.0;
+
+    std::cout << "\n***********************************************************\n";
+    std::cout << "**********         Demo Lorenz system                ********\n";
+
+    Vector<Real> ystart0(sys0.getDim());
+    ystart0[0]=2.0;
+    ystart0[1]=1.0;
+    ystart0[2]=1.0;
+    Output out0(10000);
+    
+    ODESystemSolver<StepperDopr5> ode_solver0(sys0,atol,rtol, out0);
+    ODESystemSolution             sol0 = ode_solver0.integrate(ystart0, x1, x2, h1, hmin);
+
+    std::cout << "x values:\n";
+    sol0._xval.Print(std::cout, 6, 3); std::cout << std::endl;
+    std::cout << "y values: - ";
+    sol0._yval.Print(std::cout, 6, 3);
+
+    // LinearInterpRealFunc f = sol0.getSolutionAsLinearInterp(0);
+    // f.SerializeEquallySpacedDetailed(x1, x2, 100, "ode_lin_interp.txt");
+    // auto ret1 = std::system("..\\..\\tools\\visualizers\\real_function_visualizer\\MML_RealFunctionVisualizer.exe ode_lin_interp.txt");
+
+    sol0.Serialize("lorenz_1.txt", "Lorenz system");
+    auto ret2 = std::system("..\\..\\tools\\visualizers\\real_function_visualizer\\MML_RealFunctionVisualizer.exe lorenz_1.txt");
+}
+
 void Demo_VanderPol_solve()
 {
     auto sys0 = TestBeds::ODESystemTestBed::getODESystem(1);
@@ -39,11 +72,11 @@ void Demo_VanderPol_solve()
     sol0._yval.Print(std::cout, 6, 3);
 
     LinearInterpRealFunc f = sol0.getSolutionAsLinearInterp(0);
-    f.SerializeEquallySpacedDetailed(0.0, 2.0, 100, "ode_lin_interp.txt");
-    auto ret1 = std::system("..\\..\\tools\\visualizers\\real_function_visualizer\\MML_RealFunctionVisualizer.exe ode_lin_interp.txt");
+    f.SerializeEquallySpacedDetailed(0.0, 2.0, 100, "vanderpol_ode_lin_interp.txt");
+    auto ret1 = std::system("..\\..\\tools\\visualizers\\real_function_visualizer\\MML_RealFunctionVisualizer.exe vanderpol_ode_lin_interp.txt");
 
-    sol0.Serialize("ode_1.txt");
-    ret1 = std::system("..\\..\\tools\\visualizers\\real_function_visualizer\\MML_RealFunctionVisualizer.exe ode_1.txt");
+    sol0.Serialize("vanderpol_doppler5.txt", "Van der Pol solution - Doplet 5th order");
+    ret1 = std::system("..\\..\\tools\\visualizers\\real_function_visualizer\\MML_RealFunctionVisualizer.exe vanderpol_doppler5.txt");
 
     std::cout << "\n***********************************************************\n";
     std::cout << "**********         Dopler 8th order                ********\n";
@@ -59,8 +92,8 @@ void Demo_VanderPol_solve()
     std::cout << "x values:\n";    sol01._xval.Print(std::cout, 6, 3); std::cout << std::endl;
     std::cout << "y values: - ";   sol01._yval.Print(std::cout, 6, 3);
 
-    sol01.Serialize("ode_01.txt");
-    ret1 = std::system("..\\..\\tools\\visualizers\\real_function_visualizer\\MML_RealFunctionVisualizer.exe ode_01.txt");
+    sol01.Serialize("vanderpol_doppler8.txt", "Van der Pol solution - Dopler 8th order");
+    ret1 = std::system("..\\..\\tools\\visualizers\\real_function_visualizer\\MML_RealFunctionVisualizer.exe vanderpol_doppler8.txt");
 
     std::cout << "\n***********************************************************\n";
     std::cout << "**********            Bulirsch-Stoer               ********\n";
@@ -76,8 +109,8 @@ void Demo_VanderPol_solve()
     std::cout << "x values:\n";    sol_BS._xval.Print(std::cout, 6, 3); std::cout << std::endl;
     std::cout << "y values: - ";   sol_BS._yval.Print(std::cout, 6, 3);
  
-    sol_BS.Serialize("ode_BS.txt");
-    ret1 = std::system("..\\..\\tools\\visualizers\\real_function_visualizer\\MML_RealFunctionVisualizer.exe ode_BS.txt");
+    sol_BS.Serialize("vanderpol_bulirsch_stoer.txt", "Van der Pol solution - Bulirsch-Stoer");
+    ret1 = std::system("..\\..\\tools\\visualizers\\real_function_visualizer\\MML_RealFunctionVisualizer.exe vanderpol_bulirsch_stoer.txt");
 
     std::cout << "\n***********************************************************\n";
     std::cout << "******        Runge-Kutta 4th order - Dumb           ******\n";    
@@ -90,8 +123,8 @@ void Demo_VanderPol_solve()
     std::cout << "x values:\n";    sol.xval.Print(std::cout, 6, 3); std::cout << std::endl;
     std::cout << "y values: - ";   sol.yval.Print(std::cout, 6, 3);
 
-    // sol.Serialize("ode_RK_Dumb.txt");
-    // std::system("..\\..\\tools\\visualizers\\real_function_visualizer\\MML_RealFunctionVisualizer.exe ode_1.txt");
+    // sol.Serialize("vanderpol_RK_Dumb.txt");
+    // std::system("..\\..\\tools\\visualizers\\real_function_visualizer\\MML_RealFunctionVisualizer.exe vanderpol_RK_Dumb.txt");
 
     std::cout << "\n***********************************************************\n";
     std::cout << "******       Runge-Kutta 4th order - stepper         ******\n";  
@@ -105,8 +138,8 @@ void Demo_VanderPol_solve()
     std::cout << "x values:\n";    sol2._xval.Print(std::cout, 7,3); std::cout << std::endl;
     std::cout << "y values: - ";   sol2._yval.Print(std::cout, 7,3); 
 
-    sol2.Serialize("ode_2.txt");
-    ret1 = std::system("..\\..\\tools\\visualizers\\real_function_visualizer\\MML_RealFunctionVisualizer.exe ode_2.txt");
+    sol2.Serialize("vanderpol_RK_4th.txt", "Van der Pol solution - RK 4th order");
+    ret1 = std::system("..\\..\\tools\\visualizers\\real_function_visualizer\\MML_RealFunctionVisualizer.exe vanderpol_RK_4th.txt");
 
     std::cout << "\n***********************************************************\n";
     std::cout << "******      Stiff system - Rosenbrock method         ******\n";
@@ -168,8 +201,10 @@ void Demo_ODESystemSolvers()
     std::cout << "****                    DIFF.EQUATIONS SOLVERS                     ****" << std::endl;
     std::cout << "***********************************************************************" << std::endl;
 
-    Demo_VanderPol_solve();
+    // Demo_VanderPol_solve();
 
-    int n = TestBeds::ODESystemTestBed::numODESystem();
-    Demo_SimpleLinearODE_solve();
+    Demo_Lorenz_solve();
+
+    // int n = TestBeds::ODESystemTestBed::numODESystem();
+    // Demo_SimpleLinearODE_solve();
 }

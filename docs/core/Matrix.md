@@ -4,7 +4,7 @@
 Matrix class
 ~~~ c++
     MML::Matrix<Real> a;                                // empty matrix
-    MML::Matrix<Real> b(2,2);                           // ampty matrix 2 x 2
+    MML::Matrix<Real> b(2,2);                           // empty matrix 2 x 2
     MML::Matrix<Real> c(2,2, {1.0, 0.0, 0.0, 1.0});     // matrix with initialized values
     MML::Matrix<Real> d(c);
     MML::Matrix<Real> e = c;

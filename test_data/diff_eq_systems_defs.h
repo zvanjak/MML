@@ -56,7 +56,7 @@ namespace MML::TestBeds
         }
     };
 
-    class VanDerPolODE : IODESystem
+    class VanDerPolODE : public IODESystem
     {
         double _eps;
     public:
@@ -67,6 +67,21 @@ namespace MML::TestBeds
         {
             dydx[0] = y[1];
             dydx[1] = ( (1.0 - y[0]*y[0]) * y[1] - y[0] ) / _eps;
+        }
+    };
+
+    class LorenzSystemODE : public IODESystem
+    {
+        double _sigma, _rho, _beta;
+    public:
+        LorenzSystemODE(double sigma, double rho, double beta) : _sigma(sigma), _rho(rho), _beta(beta) {}
+        
+        int  getDim() const override { return 3; }
+        void derivs(const double x, const MML::Vector<Real> &y, MML::Vector<Real> &dydx) const override
+        {
+            dydx[0] = _sigma * (y[1] - y[0]);
+            dydx[1] = y[0] * (_rho - y[2]) - y[1];
+            dydx[2] = y[0] * y[1] - _beta * y[2];
         }
     };
 

@@ -58,8 +58,22 @@ set( MML_DEMO_SOURCES   src/main.cpp
                         src/testing_precision/test_precision_derivation.cpp
                         src/testing_precision/test_precision_integration.cpp
                         src/testing_precision/test_precision_interpolation.cpp
-                            
-                        src/readme_examples.cpp
+
+                        src/visualization_examples/demo1_lorenz_multi_func.cpp
+                        src/visualization_examples/demo2_lorenz_parametric_curve.cpp
+                        src/visualization_examples/demo3_surface.cpp
+                        src/visualization_examples/demo4_vector_field_gravity.cpp
+                        src/visualization_examples/demo5_vector_field_EM.cpp
+                        src/visualization_examples/visualization_examples.cpp
+                        
+                        src/readme_examples/demo1_vectors_matrices.cpp
+                        src/readme_examples/demo2_lin_alg_solvers.cpp
+                        src/readme_examples/demo3_functions.cpp
+                        src/readme_examples/demo4_derivation.cpp
+                        src/readme_examples/demo5_integration.cpp
+                        src/readme_examples/demo6_ode_solvers.cpp
+                        src/readme_examples/demo7_vector_field_operations.cpp
+                        src/readme_examples/readme_examples.cpp
                       )
 
 

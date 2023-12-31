@@ -4500,6 +4500,9 @@ namespace MML
         
         Point2Polar() {}
         Point2Polar(Real r, Real phi) : _r(r), _phi(phi) {}
+
+        Real Dist(const Point2Polar &b) const { return sqrt(R() * R() + b.R() * b.R() - 2 * R() * b.R() * cos(b.Phi() - Phi())); }
+
     };
 
     class Vector2Polar : public VectorN<Real, 2>
@@ -4983,10 +4986,6 @@ namespace MML
     public:
         virtual Real operator()(Real) const = 0;
 
-        // TODO - IsContinuous
-        //  - ako je lijeva i desna derivacija ista
-        //  - interpolirane funkcije mogu vratiti determiniranu vrijednost
-        // TODO - IsMonotonic (x1, x2, numPoints)
         void GetValues(Real x1, Real x2, int numPnt, Vector<Real> &outX, Vector<Real> &outY)
         {
             outX.Resize(numPnt);
@@ -5259,13 +5258,52 @@ namespace MML
             return true;
         }    
         
+        bool Serialize3D(std::string inType, Real x1_start, Real x1_end, int numPointsX1, Real x2_start, Real x2_end, int numPointsX2, Real x3_start, Real x3_end, int numPointsX3, std::string fileName, Real upper_threshold) const
+        {
+            if( N != 3 )
+                throw std::runtime_error("IVectorFunction::Serialize3D() - N != 3");
+
+            std::ofstream file(fileName);
+            if( !file.is_open() )
+                return false;
+
+            file << inType << std::endl;
+
+            Real stepX = (x1_end - x1_start) / (numPointsX1 - 1);
+            Real stepY = (x2_end - x2_start) / (numPointsX2 - 1);
+            Real stepZ = (x3_end - x3_start) / (numPointsX3 - 1);
+            for( int i=0; i<numPointsX1; i++ )
+                for( int j=0; j<numPointsX2; j++ )
+                    for( int k=0; k<numPointsX3; k++ )
+                    {
+                        Real x = x1_start + i * stepX;
+                        Real y = x2_start + j * stepY;
+                        Real z = x3_start + k * stepZ;
+                        auto val = (*this)(VectorN<Real, N>{x, y, z});
+
+                        if( val.NormL2() < upper_threshold )
+                            file << x << " " << y << " " << z << " " << val[0] << " " << val[1] << " " << val[2] << std::endl;
+                    }
+
+            file.close();
+            return true;
+        }            
+        
         bool Serialize3DCartesian(Real x1, Real x2, int numPointsX, Real y1, Real y2, int numPointsY, Real z1, Real z2, int numPointsZ, std::string fileName) const
         {
             return Serialize3D("VECTOR_FIELD_3D_CARTESIAN", x1, x2, numPointsX, y1, y2, numPointsY, z1, z2, numPointsZ, fileName);
         }
+        bool Serialize3DCartesian(Real x1, Real x2, int numPointsX, Real y1, Real y2, int numPointsY, Real z1, Real z2, int numPointsZ, std::string fileName, Real upper_threshold) const
+        {
+            return Serialize3D("VECTOR_FIELD_3D_CARTESIAN", x1, x2, numPointsX, y1, y2, numPointsY, z1, z2, numPointsZ, fileName, upper_threshold);
+        }
         bool SerializeSpherical(Real r1, Real r2, int numPointsR, Real theta1, Real theta2, int numPointsTheta, Real phi1, Real phi2, int numPointsPhi, std::string fileName) const
         {
             return Serialize3D("VECTOR_FIELD_SPHERICAL", r1, r2, numPointsR, theta1, theta2, numPointsTheta, phi1, phi2, numPointsPhi, fileName);
+        }               
+        bool SerializeSpherical(Real r1, Real r2, int numPointsR, Real theta1, Real theta2, int numPointsTheta, Real phi1, Real phi2, int numPointsPhi, std::string fileName, Real upper_threshold) const
+        {
+            return Serialize3D("VECTOR_FIELD_SPHERICAL", r1, r2, numPointsR, theta1, theta2, numPointsTheta, phi1, phi2, numPointsPhi, fileName, upper_threshold);
         }               
     };
 
@@ -5416,6 +5454,8 @@ namespace MML
             // This approximation will get better as we move to higher orders of accuracy.
             return NDer1(f, x, NDer1_h, error);
         }
+        static Real NDer1Left(const IRealFunction &f, Real x, Real* error = nullptr)  { return NDer1(f, x - 2 * NDer1_h, NDer1_h, error); }
+        static Real NDer1Right(const IRealFunction &f, Real x, Real* error = nullptr) { return NDer1(f, x + 2 * NDer1_h, NDer1_h, error); }
 
         static Real NDer1(const IRealFunction &f, Real x, Real h, Real* error = nullptr)
         {
@@ -5432,6 +5472,9 @@ namespace MML
             }
             return diff / h;
         }
+        static Real NDer1Left(const IRealFunction &f, Real x, Real h, Real* error = nullptr)  { return NDer1(f, x - 2 * h, h, error); }
+        static Real NDer1Right(const IRealFunction &f, Real x, Real h, Real* error = nullptr) { return NDer1(f, x + 2 * h, h, error); }
+
 
         static Real NSecDer1(const IRealFunction &f, Real x, Real* error = nullptr)
         {
@@ -5799,6 +5842,8 @@ namespace MML
 
             return NDer2(f, x, NDer2_h, error);
         } 
+        static Real NDer2Left(const IRealFunction &f, Real x, Real* error = nullptr)  { return NDer2(f, x - 3 * NDer2_h, NDer2_h, error); }
+        static Real NDer2Right(const IRealFunction &f, Real x, Real* error = nullptr) { return NDer2(f, x + 3 * NDer2_h, NDer2_h, error); }
 
         static Real NDer2(const IRealFunction &f, Real x, Real h, Real* error = nullptr)
         {
@@ -5814,6 +5859,9 @@ namespace MML
 
             return diff / (2 * h);
         }
+        static Real NDer2Left(const IRealFunction &f, Real x, Real h, Real* error = nullptr)  { return NDer2(f, x - 3 * h, h, error); }
+        static Real NDer2Right(const IRealFunction &f, Real x, Real h, Real* error = nullptr) { return NDer2(f, x + 3 * h, h, error); }
+
 
         static Real NSecDer2(const IRealFunction &f, Real x, Real* error = nullptr)
         {
@@ -6210,6 +6258,8 @@ namespace MML
             // Error bound ~eps^4/5
             return NDer4(f, x, NDer4_h, error);
         }
+        static Real NDer4Left(const IRealFunction &f, Real x, Real* error = nullptr)  { return NDer4(f, x - 4 * NDer4_h, NDer4_h, error); }
+        static Real NDer4Right(const IRealFunction &f, Real x, Real* error = nullptr) { return NDer4(f, x + 4 * NDer4_h, NDer4_h, error); }
 
         static Real NDer4(const IRealFunction &f, Real x, Real h, Real* error = nullptr)
         {
@@ -6235,6 +6285,8 @@ namespace MML
             }
             return (y2 + 8 * y1) / (12 * h);
         }
+        static Real NDer4Left(const IRealFunction &f, Real x, Real h, Real* error = nullptr)  { return NDer4(f, x - 4 * h, h, error); }
+        static Real NDer4Right(const IRealFunction &f, Real x, Real h, Real* error = nullptr) { return NDer4(f, x + 4 * h, h, error); }
 
         static Real NSecDer4(const IRealFunction &f, Real x, Real* error = nullptr)
         {
@@ -6702,6 +6754,8 @@ namespace MML
             // Error: h^6f^(7)(x)/140 + 5|f(x)|eps/h
             return NDer6(f, x, NDer6_h, error);
         }
+        static Real NDer6Left(const IRealFunction &f, Real x, Real* error = nullptr)  { return NDer6(f, x - 5 * NDer6_h, NDer6_h, error); }
+        static Real NDer6Right(const IRealFunction &f, Real x, Real* error = nullptr) { return NDer6(f, x + 5 * NDer6_h, NDer6_h, error); }
 
         static Real NDer6(const IRealFunction &f, Real x, Real h, Real* error = nullptr)
         {
@@ -6725,6 +6779,8 @@ namespace MML
             }
             return (y3 + 9 * y2 + 45 * y1) / (60 * h);
         }               
+        static Real NDer6Left(const IRealFunction &f, Real x, Real h, Real* error = nullptr)  { return NDer6(f, x - 5 * h, h, error); }
+        static Real NDer6Right(const IRealFunction &f, Real x, Real h, Real* error = nullptr) { return NDer6(f, x + 5 * h, h, error); }
 
         static Real NSecDer6(const IRealFunction &f, Real x, Real* error = nullptr)
         {
@@ -7077,6 +7133,8 @@ namespace MML
 
             return NDer8(f, x, NDer8_h, error);
         }
+        static Real NDer8Left(const IRealFunction &f, Real x, Real* error = nullptr)  { return NDer8(f, x - 6 * NDer8_h, NDer8_h, error); }
+        static Real NDer8Right(const IRealFunction &f, Real x, Real* error = nullptr) { return NDer8(f, x + 6 * NDer8_h, NDer8_h, error); }
 
         static Real NDer8(const IRealFunction &f, Real x, Real h, Real* error = nullptr)
         {
@@ -7102,6 +7160,8 @@ namespace MML
             }
             return (tmp1 + tmp2) / (105 * h);
         }
+        static Real NDer8Left(const IRealFunction &f, Real x, Real h, Real* error = nullptr)  { return NDer8(f, x - 6 * h, h, error); }
+        static Real NDer8Right(const IRealFunction &f, Real x, Real h, Real* error = nullptr) { return NDer8(f, x + 6 * h, h, error); }
 
         static Real NSecDer8(const IRealFunction &f, Real x, Real* error = nullptr)
         {
@@ -10646,7 +10706,7 @@ namespace MML
             return SplineInterpRealFunc(xsave, ysave);
         }        
 
-        bool Serialize(std::string fileName)
+        bool Serialize(std::string fileName, std::string title)
         {
             std::ofstream file(fileName);
             if (!file.is_open())
@@ -10654,6 +10714,7 @@ namespace MML
 
             file << "MULTI_REAL_FUNCTION_VARIABLE_SPACED" << std::endl;
 
+            file << title << std::endl;
             file << _sys_dim << std::endl;
             file << _count << std::endl;
             file << _x1 << std::endl;
@@ -10881,9 +10942,44 @@ namespace MML
         {
             return ScalarProd(Direction(), b.Direction()) == 0.0f;
         }
+
         // TODO distance Line - Point3
+        Real Dist(const Point3Cartesian &pnt)
+        {
+            Real dist = 0.0;
+
+            const Real a = pnt.X();
+            const Real b = pnt.Y();
+            const Real c = pnt.Z();
+
+            const Real x1 = StartPoint().X();
+            const Real y1 = StartPoint().Y();
+            const Real z1 = StartPoint().Z();
+
+            const Real l = Direction().X();
+            const Real m = Direction().Y();
+            const Real n = Direction().Z();
+
+            dist = SQR((a-x1)*m - (b-y1)*l) + SQR((b-y1)*n - (c-z1)*m) + SQR((c-z1)*l - (a-x1)*n);
+            Real denom = l*l + m*m + n*n;
+
+            return sqrt(dist / denom);
+        }
+
+        // Real DistChatGPT(const Point3Cartesian &pnt)
+        // {
+        //     Vector3Cartesian p0 = StartPoint();
+        //     Vector3Cartesian p1 = p0 + Direction();
+        //     Vector3Cartesian p = pnt;
+
+        //     Vector3Cartesian numerator = (p - p0).CrossProduct(p - p1);
+        //     Real denominator = (p1 - p0).Length();
+
+        //     return numerator.Length() / denominator;
+        // }
         // TODO nearest point on line
         // TODO pravac koji prolazi kroz tocku i sijece zadani pravac okomito
+        // TODO - sjeciste dva pravca
     };
 
     class SegmentLine3D
@@ -10937,7 +11033,8 @@ namespace MML
             _D = -(a.X() * unitNormal.X() + a.Y() * unitNormal.Y() + a.Z() * unitNormal.Z());
         }
 
-        Plane3D(const Point3Cartesian &a, const Point3Cartesian &b, const Point3Cartesian &c) : Plane3D(a, VectorProd(Vector3Cartesian(a, b), Vector3Cartesian(a, c)))
+        Plane3D(const Point3Cartesian &a, const Point3Cartesian &b, const Point3Cartesian &c) 
+            : Plane3D(a, VectorProd(Vector3Cartesian(a, b), Vector3Cartesian(a, c)))
         { }
 
         Plane3D(Real alpha, Real beta, Real gamma, Real d)      // Hesseov (normalni) oblik
@@ -11081,6 +11178,11 @@ namespace MML
         {
             // to je kut normala
             return this->Normal().AngleToVector(plane.Normal());
+        }     
+        Real DistToPlane(const Plane3D &plane) const
+        {
+            // TODO finishs
+            return 0.0;
         }     
         // TODO - check implementation IntersectionWithPlane
         bool IntersectionWithPlane(const Plane3D &plane, Line3D &out_inter_line) const
@@ -12708,7 +12810,7 @@ namespace MML
 namespace MML
 {
     struct StepperBase {
-        ODESystem   &_sys;
+        IODESystem   &_sys;
         int    n, neqn;
         bool   dense;
 
@@ -12723,7 +12825,7 @@ namespace MML
         Real hnext;
         Vector<Real> yout,yerr;
 
-        StepperBase(ODESystem &sys, Vector<Real> &yy, Vector<Real> &dydxx, Real &xx, const Real atoll, const Real rtoll, bool dens) 
+        StepperBase(IODESystem &sys, Vector<Real> &yy, Vector<Real> &dydxx, Real &xx, const Real atoll, const Real rtoll, bool dens) 
             : _sys(sys), x(xx),y(yy),dydx(dydxx),atol(atoll),
               rtol(rtoll),dense(dens),n(sys.getDim()),neqn(n),yout(n),yerr(n) {}
 
@@ -12740,7 +12842,7 @@ namespace MML
         // Input to the constructor are the dependent variable y[0..n-1] and its derivative dydx[0..n-1]
         // at the starting value of the independent variable x. Also input are the absolute and relative
         // tolerances, atol and rtol, and the boolean dense, which is true if dense output is required        
-        StepperDopr5(ODESystem &sys, Vector<Real> &yy, Vector<Real> &dydx, Real &xx, const Real atoll, const Real rtoll, bool dens) 
+        StepperDopr5(IODESystem &sys, Vector<Real> &yy, Vector<Real> &dydx, Real &xx, const Real atoll, const Real rtoll, bool dens) 
                 : StepperBase(sys, yy, dydx, xx, atoll, rtoll, dens), 
                   k2(n),k3(n),k4(n),k5(n),k6(n),
                   rcont1(n),rcont2(n),rcont3(n),rcont4(n),rcont5(n),
@@ -13056,7 +13158,7 @@ namespace MML
         Vector<Real> k2,k3,k4,k5,k6,k7,k8,k9,k10;
         Vector<Real> rcont1,rcont2,rcont3,rcont4,rcont5,rcont6,rcont7,rcont8;
         
-        StepperDopr853(ODESystem &sys, Vector<Real> &yy,Vector<Real> &dydxx,Real &xx,
+        StepperDopr853(IODESystem &sys, Vector<Real> &yy,Vector<Real> &dydxx,Real &xx,
                        const Real atoll,const Real rtoll,bool dens) 
                         : StepperBase(sys, yy,dydxx,xx,atoll,rtoll,dens),
                             yerr2(n),k2(n),k3(n),k4(n),
@@ -13247,7 +13349,7 @@ namespace MML
         Vector<int> ipoint;         // Keeps track of where values are stored in fsave.
         Vector<Real> dens;
 
-        StepperBS(ODESystem &sys, Vector<Real> &yy,Vector<Real> &dydxx,Real &xx, const Real atoll,const Real rtoll, bool dens) 
+        StepperBS(IODESystem &sys, Vector<Real> &yy,Vector<Real> &dydxx,Real &xx, const Real atoll,const Real rtoll, bool dens) 
             : StepperBase(sys, yy,dydxx,xx,atoll,rtoll,dens),
                 nseq(IMAXX),cost(IMAXX),
                 table(KMAXX,n),dydxnew(n),coeff(IMAXX,IMAXX),errfac(2*IMAXX+2),ysave(IMAXX,n),
@@ -13687,7 +13789,7 @@ namespace MML
         // Input to the constructor are the dependent variable y[0..n-1] and its derivative dydx[0..n-1]
         // at the starting value of the independent variable x. Also input are the absolute and relative
         // tolerances, atol and rtol, and the boolean dense, which is true if dense output is required
-        StepperRoss(ODESystem &sys, Vector<Real> &yy, Vector<Real> &dydxx, Real &xx, const Real atoll,const Real rtoll, bool dens) 
+        StepperRoss(IODESystem &sys, Vector<Real> &yy, Vector<Real> &dydxx, Real &xx, const Real atoll,const Real rtoll, bool dens) 
             : StepperBase(sys, yy,dydxx,xx,atoll,rtoll,dens),
               dfdy(n,n),dfdx(n),k1(n),k2(n),
               k3(n),k4(n),k5(n),k6(n),cont1(n),cont2(n),cont3(n),cont4(n),a(n,n) 
@@ -13849,12 +13951,12 @@ namespace MML
         Vector<Real> dens;
         Vector<Real> factrl;
 
-        StepperSemiImplExtr(ODESystem &sys, Vector<Real> &yy, Vector<Real> &dydxx, Real &xx,
-        const Real atoll,const Real rtoll, bool dens)
-            : StepperBase(sys, yy,dydxx,xx,atoll,rtoll,dens),nseq(IMAXX),cost(IMAXX),
-            table(KMAXX,n),dfdy(n,n),dfdx(n),calcjac(false),
-            a(n,n),coeff(IMAXX,IMAXX),
-            fsave((IMAXX-1)*(IMAXX+1)/2+2,n),dens((IMAXX+2)*n),factrl(IMAXX) 
+        StepperSemiImplExtr(IODESystem &sys, Vector<Real> &yy, Vector<Real> &dydxx, Real &xx,
+                            const Real atoll,const Real rtoll, bool dens)
+                                : StepperBase(sys, yy,dydxx,xx,atoll,rtoll,dens),nseq(IMAXX),cost(IMAXX),
+                                table(KMAXX,n),dfdy(n,n),dfdx(n),calcjac(false),
+                                a(n,n),coeff(IMAXX,IMAXX),
+                                fsave((IMAXX-1)*(IMAXX+1)/2+2,n),dens((IMAXX+2)*n),factrl(IMAXX) 
         {
             static const Real costfunc=1.0,costjac=5.0,costlu=1.0,costsolve=1.0;
             EPS=std::numeric_limits<Real>::epsilon();
@@ -14426,9 +14528,10 @@ namespace MML
 
 
 
+
 namespace MML
 {
-    struct Output {
+    struct  Output {
         // TODO - MED, LAKO, sve privatizirati
         int kmax;
         int _nvar;
@@ -14528,14 +14631,14 @@ namespace MML
         Vector<Real> _curr_y;
         Vector<Real> _curr_dydx;
     public:
-        ODESystem &_sys;
-        Output    &_out;
-        Stepper   _stepper;
+        IODESystem &_sys;
+        Output     &_out;
+        Stepper    _stepper;
         bool _dense;
 
         int getDim() { return _sys.getDim(); }
 
-        ODESystemSolver(ODESystem &sys, const Real atol, const Real rtol, Output &out) 
+        ODESystemSolver(IODESystem &sys, const Real atol, const Real rtol, Output &out) 
                             : _sys(sys), _curr_y(sys.getDim()), _curr_dydx(sys.getDim()), _dense(out.dense), _out(out),
                               _stepper(sys, _curr_y, _curr_dydx, _curr_x, atol, rtol, out.dense) 
         { }
@@ -15422,6 +15525,7 @@ namespace MML
             throw("Maximum number of iterations exceeded in zbrent");
         }
 
+        // TODO - MED, MED - transformirati
         // static Real rtnewt(const IRealFunction &funcd, const Real x1, const Real x2, const Real xacc) {
         //     const int JMAX=20;
         //     Real rtn=0.5*(x1+x2);
