@@ -13,7 +13,7 @@ general purpose, pythonesque, easy to use, and efficient
 - As of now, and for forseable future, this is for personal and educational use only (see Licensing at the end)
 - Single-header -> include and go 
 - Cross-platform -> tested with Visual Studio Code on Windows (MSVC++, clang), Mac (gcc, clang), Linux (gcc)
-- Pythonesque in its focus on simplicity of use, and focused on faitful modeling of mathematical entities (while trying as much as possible to retain C++ computational efficiency)
+- Pythonesque in its focus on simplicity of use, and focused on faithful modeling of mathematical entities (while trying as much as possible to retain C++ computational efficiency)
 
 **Is there really a need for another C++ math library?**
 - Main benefit, and the reason I did all this is attempt at completeness, and simplicity of use
@@ -21,26 +21,26 @@ general purpose, pythonesque, easy to use, and efficient
 
 **Core**
 - [Core utils](/docs/core/CoreUtils.md) - general utilities
-- [Vectors](/docs/core/Vector_types.md) - Vector, VectorN<int N>
-- [Matrices](/docs/core/Matrix_types.md) - Matrix, MatrixNM<int N, int M>, MatrixSymm, MatrixBandDiag, MatrixTridiag
-- [Matrix utils](/docs/core/MatrixUtils.md) - general utilities
-- [Algebra](/docs/core/Algebra.md) - groups
-- [Vector spaces](/docs/core/Vector_spaces.md) - vector space, normed vector space, metric (Hilbert) space
+- [Vectors](/docs/core/Vector_types.md) - Vector, VectorN<int N>, Vector(2)(3)Cartesian, Vector2Polar, Vector3Spherical, Vector3Cylindrical
+- [Matrices](/docs/core/Matrix_types.md) - Matrix, MatrixNM<int N, int M>, MatrixSym, MatrixBandDiag, MatrixTridiag
+- [Matrix utils](/docs/core/MatrixUtils.md) - general matrix utilities
+- [Algebra](/docs/core/Algebra.md) - groups (big TODO!)
+- [Vector spaces](/docs/core/Vector_spaces.md) - vector space, normed vector space, metric (Hilbert) space (much to do here!)
 - [Linear alg. equations solvers](/docs/core/Linear_equations_solvers.md) - GJ, LU, QR, SVD, Cholesky
 - [Polynoms](/docs/core/Polynom.md) - Polynom
-- [Function types](/docs/core/Function_types.md) - IRealFunction, IScalarFunction<int N>, IVectorFunction<int N>, IParametricCurve<N>, IParametricSurface<N>
-- [Interpolated functions](/docs/core/Interpolated_functions.md) - linear, polynomial, rational poly., spline (Bezier, B-spline, NURBS?)
+- [Function types](/docs/core/Function_types.md) - IRealFunction, IScalarFunction<int N>, IVectorFunction<int N>, IParametricCurve<N>, IParametricSurface<N>, ITensorField<N>
+- [Interpolated functions](/docs/core/Interpolated_functions.md) - linear, polynomial, rational polynomial, spline interpolations
 - [Field operations](/docs/core/Vector_field_operations.md) - grad, div, curl, Laplacian in general, Cartesian, cylindrical and spherical coordinates
-- [Operators](/docs/core/Operators.md)  - linear functional, quadratic form, linear operator
-- [Numerical derivation](/docs/core/Derivation.md) - orders 1, 2, 4, 6, 8
-- [Numerical integration](/docs/core/Integration.md) - Trapezoidal, Simpson, Romberg algorithms
-- [Geometry basic types](/docs/core/Geometry.md) - points, vectors in Cartesian, Polar, Cylindrical and Spherical coordinates
-- [Tensors](/docs/core/Tensors.md)  - Tensor2<int Dim>, Tensor3<int Dim>, Tensor4<int Dim>
-- [Metric tensor](/docs/core/Metric_tensor.md) - predefined metric tensors in Cartesian, Cylindrical and Spherical coordinates
+- [Operators](/docs/core/Operators.md)  - linear functional, quadratic form, linear operator (much to do here!)
+- [Numerical derivation](/docs/core/Derivation.md) - orders 1, 2, 4, 6, 8 for IRealFunction, IScalarFunction, IVectorFunction, IParametricCurve, IParametricSurface, ITensorField
+- [Numerical integration](/docs/core/Integration.md) - Trapezoidal, Simpson, Romberg basic integration algorithms
+- [Geometry](/docs/core/Geometry.md) - pure geometry - points, triangles, bodies
+- [Tensors](/docs/core/Tensors.md) - Tensor2<int Dim>, Tensor3<int Dim>, Tensor4<int Dim>, Tensor5<int Dim>
+- [Metric tensor](/docs/core/Metric_tensor.md) - predefined metric tensors in General, Cartesian, Cylindrical and Spherical coordinates
 - [Coordinate transformations](/docs/core/Coordinate_transformations.md) - General, Cartesian, Cylindrical, Spherical  
 
 **Basic math types**
-- [2D & 3D geometry](/docs/basic_types/Geometry_2D_3D.md) - Lines, Planes, Bodies
+- [2D & 3D geometry](/docs/basic_types/Geometry_2D_3D.md) - analytic geometry in 2D and 3D
 - [Curves & Surfaces](/docs/basic_types/Curves_and_surfaces.md) - predefined curves and surfaces
 - [Dirac delta function](/docs/basic_types/Dirac_delta_function.md)- predefined distributions for representing Dirac delta function
 - [Fields](/docs/basic_types/Fields.md) - predefined fields
@@ -49,13 +49,13 @@ general purpose, pythonesque, easy to use, and efficient
 - [ODE system](/docs/basic_types/ODE_system.md) - represents a system of ordinary differential equations
 
 **Algorithms**
-- [Eigen solvers](/docs/algorithms/Eigen_solvers.md) - solving eigenvalue problems for symmetric and non-symmetric matrices
+- [Eigen solvers](/docs/algorithms/Eigen_solvers.md) - solving eigenvalue problems for symmetric and non-symmetric real matrices
 - [Differential geometry](/docs/algorithms/Differential_geometry.md) - for curves only, so far
 - [Function analyzer](/docs/algorithms/Function_analyzer.md) - analyzing functions, finding roots, extrema, inflection points, etc.
 - [ODE system solvers](/docs/algorithms/Differential_equations_solvers.md) - solvers for systems of ordinary differential equations
 - [Path integration](/docs/algorithms/Path_integration.md) - calculating line and work integrals
 - [Multidim integration](/docs/algorithms/Multidim_integration.md) - calculating surface and volume integrals
-- [Root finding](/docs/algorithms/Root_finding.md) - TODO
+- [Root finding](/docs/algorithms/Root_finding.md) - different root finding algorithms (bracketing, Newton-Raphson)
 - [Statistics](/docs/algorithms/Statistics.md) - basics - avg, std, var, cov, corr
 - [Fourier transformation](/docs/algorithms/Fourier_transformation.md) - TODO
 
@@ -68,7 +68,14 @@ They are used for verification of implemented algorithms, but can also be used a
 - ODE systems
 - parametric curves & surfaces
 
+**Before intro, couple of real examples what it is for**
+- primjer s transformacijama koordinata
+- proracun sudara dva tijela
+- proračun work integrala po zatvorenoj petlji u solenoidalnom polju?
+- proračun momenta inercije za tijelo s diskretnim skupom masa
+
 **Intro examples**
+
 ***Vectors, matrices***
 ~~~ c++
     Vector<double>  vec1({ 1.5, -2.0, 0.5 }), vec2({ 1.0, 1.0, -3.0 }); 
@@ -147,7 +154,7 @@ They are used for verification of implemented algorithms, but can also be used a
 
 ***Solving ODE system***
 ~~~ c++
-    auto sys0 = TestBeds::ODESystemTestBed::getODESystem(1);
+    auto sys0 = TestBeds::ODESystemTestBed::getODESystem("VanDerPol 0.1");
 
     const double atol=1.0e-3, rtol=atol;
     const double h1=0.01, hmin=0.0;
@@ -162,6 +169,7 @@ They are used for verification of implemented algorithms, but can also be used a
     std::cout << "x values:\n";  sol01.xval.Print(std::cout, 6, 3); std::cout << std::endl;
     std::cout << "y values: - "; sol01.yval.Print(std::cout, 6, 3);
 ~~~
+TODO - slika s  vizualizacijom pojave chaosa za odabrane parametre
 
 ***Fields and field operations - grad, div, curl, Laplacian***
 ~~~ c++
@@ -190,6 +198,7 @@ They are used for verification of implemented algorithms, but can also be used a
     auto curvature  = DiffGeometry::getCurvature(test_curve, t);
     auto curvature3 = DiffGeometry::getCurvature3(test_curve, t);
 ~~~
+TODO - vizualizirati neku krivulju, i u jednoj točki vizualizirati (World view) 3 vektora tangente, normale i binormale, te vektore zakrivljenosti
 
 ***Analyzer - function, curve, ?***
 ~~~ c++

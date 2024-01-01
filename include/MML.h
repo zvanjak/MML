@@ -834,6 +834,101 @@ namespace MML
     // FieldR
     // FieldC
 }
+///////////////////////////   ./include/core/Geometry.h   ///////////////////////////
+
+
+
+namespace MML
+{
+    // TODO - MED, dodati Dist svugdje
+    class Point2Cartesian
+    {
+    private:
+        Real _x, _y;
+
+    public:
+        Real  X() const   { return _x; }
+        Real& X()         { return _x; }
+        Real  Y() const   { return _y; }
+        Real& Y()         { return _y; }
+
+        Point2Cartesian() {}
+        Point2Cartesian(Real x, Real y) : _x(x), _y(y) {}
+
+        Real Dist(const Point2Cartesian &b) const { return sqrt(SQR(b._x - _x) + SQR(b._y - _y) ); }
+    };
+
+    class Point2Polar
+    {
+    private:
+        Real _r, _phi;
+
+    public:
+        Real  R() const   { return _r; }
+        Real& R()         { return _r; }
+        Real  Phi() const { return _phi; }
+        Real& Phi()       { return _phi; }
+        
+        Point2Polar() {}
+        Point2Polar(Real r, Real phi) : _r(r), _phi(phi) {}
+
+        Real Dist(const Point2Polar &b) const { return sqrt(R() * R() + b.R() * b.R() - 2 * R() * b.R() * cos(b.Phi() - Phi())); }
+    };
+
+    class Point3Cartesian
+    {
+    private:
+        Real _x, _y, _z;
+
+    public:
+        Real  X() const   { return _x; }
+        Real& X()         { return _x; }
+        Real  Y() const   { return _y; }
+        Real& Y()         { return _y; }
+        Real  Z() const   { return _z; }
+        Real& Z()         { return _z; }
+
+        Point3Cartesian() {}
+        Point3Cartesian(Real x, Real y, Real z) : _x(x), _y(y), _z(z) {}
+
+        Real Dist(const Point3Cartesian &b) const { return sqrt(SQR(b._x - _x) + SQR(b._y - _y) + SQR(b._z - _z)); }
+    };     
+
+    class Triangle
+    {
+    private:
+        Real _a, _b, _c;
+
+    public:
+        Real  A() const   { return _a; }
+        Real& A()         { return _a; }
+        Real  B() const   { return _b; }
+        Real& B()         { return _b; }
+        Real  C() const   { return _c; }
+        Real& C()         { return _c; }
+
+        Triangle() {}
+        Triangle(Real a, Real b, Real c) : _a(a), _b(b), _c(c) {}
+
+        Real Area() const
+        {
+            Real s = (_a + _b + _c) / 2.0;
+            return sqrt(s * (s - _a) * (s - _b) * (s - _c));
+        }
+        bool IsRight() const
+        {
+            return (SQR(_a) + SQR(_b) == SQR(_c)) || (SQR(_a) + SQR(_c) == SQR(_b)) || (SQR(_b) + SQR(_c) == SQR(_a));
+        }
+        bool IsIsosceles() const
+        {
+            return (_a == _b) || (_a == _c) || (_b == _c);
+        }
+        bool IsEquilateral() const
+        {
+            return (_a == _b) && (_a == _c);
+        }
+    };
+}
 ///////////////////////////   ./include/core/Vector.h   ///////////////////////////
 
 namespace MML
@@ -1234,6 +1329,256 @@ namespace MML
     typedef VectorN<Complex, 4> Vec4C;
 }
 
+///////////////////////////   ./include/core/VectorTypes.h   ///////////////////////////
+
+
+
+namespace MML
+{
+    class Vector2Cartesian : public VectorN<Real, 2>
+    {
+    public:
+        Vector2Cartesian() {}
+        Vector2Cartesian(Real x, Real y) 
+        {
+            _val[0] = x;
+            _val[1] = y;
+        }
+        Vector2Cartesian(const VectorN<Real, 2> &b) : VectorN<Real,2>{b[0], b[1]} { }
+        Vector2Cartesian(std::initializer_list<Real> list)  : VectorN<Real,2>(list) { }
+        Vector2Cartesian(const Point2Cartesian &a, const Point2Cartesian &b) 
+        {
+            _val[0] = b.X() - a.X();
+            _val[1] = b.Y() - a.Y();
+        }
+
+        Real    X() const   { return _val[0]; }
+        Real&   X()         { return _val[0]; }
+        Real    Y() const   { return _val[1]; }
+        Real&   Y()         { return _val[1]; }
+
+        friend Vector2Cartesian operator*(const Vector2Cartesian &a, Real b )
+        {
+            Vector2Cartesian ret;
+            for(int i=0; i<2; i++)
+                ret._val[i] = a[i] * b;
+            return ret;
+        }
+        friend Vector2Cartesian operator*(Real a, const Vector2Cartesian &b )
+        {
+            Vector2Cartesian ret;
+            for(int i=0; i<2; i++)
+                ret._val[i] = a * b[i];
+            return ret;
+        }
+        friend Vector2Cartesian operator/(const Vector2Cartesian &a, Real b)
+        {
+            Vector2Cartesian ret;
+            for(int i=0; i<2; i++)
+                ret._val[i] = a[i] / b;
+            return ret;
+        }
+
+        Vector2Cartesian GetUnitVector() const
+        {
+            VectorN<Real, 2> res = (*this) / NormL2();
+
+            return Vector2Cartesian(res[0], res[1]);
+        }
+
+        friend Point2Cartesian operator+(const Point2Cartesian &a, const Vector2Cartesian &b) { return Point2Cartesian(a.X() + b[0], a.Y() + b[1]); }
+        friend Point2Cartesian operator-(const Point2Cartesian &a, const Vector2Cartesian &b) { return Point2Cartesian(a.X() - b[0], a.Y() - b[1]); }
+        // friend Point2Cartesian operator+(const Point2Cartesian &a, const VectorN<Real, 2> &b) { return Point2Cartesian(a.X() + b[0], a.Y() + b[1]); }
+        // friend Point2Cartesian operator-(const Point2Cartesian &a, const VectorN<Real, 2> &b) { return Point2Cartesian(a.X() - b[0], a.Y() - b[1]); }
+    };
+
+    class Vector2Polar : public VectorN<Real, 2>
+    {
+    public:
+        Real    R() const   { return _val[0]; }
+        Real&   R()         { return _val[0]; }
+        Real    Phi() const { return _val[1]; }
+        Real&   Phi()       { return _val[1]; }
+
+        Vector2Polar() {}
+        Vector2Polar(Real r, Real phi) 
+        {
+            _val[0] = r;
+            _val[1] = phi;
+        }   
+        Vector2Polar(const VectorN<Real, 2> &b) : VectorN<Real,2>{b[0], b[1]} { }        
+    };
+
+    class Vector3Cartesian : public VectorN<Real, 3>
+    {
+    public:
+        Real    X() const   { return _val[0]; }
+        Real&   X()         { return _val[0]; }
+        Real    Y() const   { return _val[1]; }
+        Real&   Y()         { return _val[1]; }
+        Real    Z() const   { return _val[2]; }
+        Real&   Z()         { return _val[2]; }
+
+        Vector3Cartesian()                                  : VectorN<Real,3>{0.0, 0.0, 0.0} { }
+        Vector3Cartesian(const VectorN<Real, 3> &b)         : VectorN<Real,3>{b[0], b[1], b[2]} { }
+        Vector3Cartesian(Real x, Real y, Real z)      : VectorN<Real,3>{x, y, z} { }
+        Vector3Cartesian(std::initializer_list<Real> list)  : VectorN<Real,3>(list) { }
+        Vector3Cartesian(const Point3Cartesian &a, const Point3Cartesian &b) 
+        {
+            _val[0] = b.X() - a.X();
+            _val[1] = b.Y() - a.Y();
+            _val[2] = b.Z() - a.Z();
+        }
+
+        friend Vector3Cartesian operator*(const Vector3Cartesian &a, Real b )
+        {
+            Vector3Cartesian ret;
+            for(int i=0; i<3; i++)
+                ret._val[i] = a[i] * b;
+            return ret;
+        }
+        friend Vector3Cartesian operator*(Real a, const Vector3Cartesian &b )
+        {
+            Vector3Cartesian ret;
+            for(int i=0; i<3; i++)
+                ret._val[i] = a * b[i];
+            return ret;
+        }
+        friend Vector3Cartesian operator/(const Vector3Cartesian &a, Real b)
+        {
+            Vector3Cartesian ret;
+            for(int i=0; i<3; i++)
+                ret._val[i] = a[i] / b;
+            return ret;
+        }
+
+        friend Vector3Cartesian operator-(const Point3Cartesian &a, const Point3Cartesian &b) { return  Vector3Cartesian{a.X() - b.X(), a.Y() - b.Y(), a.Z() - b.Z()}; }
+
+        friend Point3Cartesian operator+(const Point3Cartesian &a, const Vector3Cartesian &b) { return Point3Cartesian(a.X() + b[0], a.Y() + b[1], a.Z() + b[2]); }
+        friend Point3Cartesian operator-(const Point3Cartesian &a, const Vector3Cartesian &b) { return Point3Cartesian(a.X() - b[0], a.Y() - b[1], a.Z() - b[2]); }        
+
+        Point3Cartesian getAsPoint()
+        {
+            return Point3Cartesian(_val[0], _val[1], _val[2]);
+        }
+        bool IsParallelTo(const Vector3Cartesian &b, Real eps = 1e-15) const
+        {
+            Real norm1 = NormL2();
+            Real norm2 = b.NormL2();
+
+            return std::abs(X() / norm1 - b.X() / norm2) < eps &&
+                   std::abs(Y() / norm1 - b.Y() / norm2) < eps &&
+                   std::abs(Z() / norm1 - b.Z() / norm2) < eps;
+        }
+
+        bool IsPerpendicularTo(const Vector3Cartesian &b, Real eps = 1e-15) const
+        {
+            if (std::abs(ScalarProd(*this, b)) < eps)
+                return true;
+            else
+                return false;
+        }
+
+        Vector3Cartesian GetAsUnitVector() const
+        {
+            return Vector3Cartesian{(*this) / NormL2()};
+        }
+        Vector3Cartesian GetAsUnitVectorAtPos(const Vector3Cartesian &pos) const
+        {
+            return Vector3Cartesian{(*this) / NormL2()};
+        }
+
+        friend Real ScalarProd(const Vector3Cartesian &a, const Vector3Cartesian &b)
+        {
+            return a.ScalarProductCartesian(b);
+        }
+
+        friend Vector3Cartesian VectorProd(const Vector3Cartesian &a, const Vector3Cartesian &b)
+        {
+            Vector3Cartesian ret;
+
+            ret.X() = a.Y() * b.Z() - a.Z() * b.Y();
+            ret.Y() = a.Z() * b.X() - a.X() * b.Z();
+            ret.Z() = a.X() * b.Y() - a.Y() * b.X();
+
+            return ret;
+        }
+
+        friend Real VectorsAngle(const Vector3Cartesian &a, const Vector3Cartesian &b)
+        {
+            Real cos_phi = ScalarProd(a, b) / (a.NormL2() * b.NormL2());
+
+            return acos(cos_phi);
+        }
+    };
+
+    class Vector3Spherical : public VectorN<Real, 3>
+    {
+    public:
+        Real    R()     const   { return _val[0]; }
+        Real&   R()             { return _val[0]; }
+        Real    Theta() const   { return _val[1]; }
+        Real&   Theta()         { return _val[1]; }
+        Real    Phi()   const   { return _val[2]; }
+        Real&   Phi()           { return _val[2]; }
+
+        Vector3Spherical()                                   : VectorN<Real,3>{0.0, 0.0, 0.0} { }
+        Vector3Spherical(const VectorN<Real, 3> &b)          : VectorN<Real,3>{b[0], b[1], b[2]} { }
+        Vector3Spherical(Real r, Real theta, Real phi)       : VectorN<Real,3>{r, theta, phi} { }
+        Vector3Spherical(std::initializer_list<Real> list)   : VectorN<Real,3>(list) { }
+
+        // TODO - HIGH, HARD, osnovne operacije +, -
+        Vector3Spherical GetAsUnitVector() const
+        {
+            return Vector3Spherical{R(), Theta() , Phi()};
+        } 
+        Vector3Spherical GetAsUnitVectorAtPos(const Vector3Spherical &pos) const
+        {
+            return Vector3Spherical{R(), Theta() / pos.R(), Phi() / (pos.R() * sin(pos.Theta()))};
+        } 
+        std::ostream& PrintDeg(std::ostream& stream, int width, int precision) const
+        {
+            stream << "[ ";
+            stream << std::fixed << std::setw(width) << std::setprecision(precision);
+            stream << R();
+            stream << ", " << Theta() * 180.0 / Constants::PI;
+            stream << ", " << Phi() * 180.0 / Constants::PI << " ]" << std::endl;
+
+            return stream;
+        }          
+    };
+
+    class Vector3Cylindrical : public VectorN<Real, 3>
+    {
+    public:
+        Real    R()   const { return _val[0]; }
+        Real&   R()         { return _val[0]; }
+        Real    Phi() const { return _val[1]; }
+        Real&   Phi()       { return _val[1]; }
+        Real    Z()   const { return _val[2]; }
+        Real&   Z()         { return _val[2]; }
+
+        Vector3Cylindrical()                                 : VectorN<Real,3>{0.0, 0.0, 0.0} { }
+        Vector3Cylindrical(const VectorN<Real, 3> &b)        : VectorN<Real,3>{b[0], b[1], b[2]} { }
+        Vector3Cylindrical(Real r, Real phi, Real z)   : VectorN<Real,3>{r, phi, z} { }
+        Vector3Cylindrical(std::initializer_list<Real> list) : VectorN<Real,3>(list) { }
+
+        // TODO - MED, implement Vector3Cylindrical GetAsUniTVector()
+        // TODO - MED, razmisliti generalno vektor i vektor at point
+        Vector3Cylindrical GetAsUnitVector() const
+        {
+            return Vector3Cylindrical{(*this) / NormL2()};
+        }         
+        Vector3Cylindrical GetAsUnitVectorAtPos(const Vector3Cylindrical &pos) const
+        {
+            return Vector3Cylindrical{(*this) / NormL2()};
+        }        
+    };    
+
+    typedef Vector3Cartesian    Vec3Cart;
+    typedef Vector3Spherical    Vec3Sph;
+    typedef Vector3Cylindrical  Vec3Cyl;
+}
 ///////////////////////////   ./include/core/Matrix.h   ///////////////////////////
 //#include <format>
 
@@ -4429,302 +4774,6 @@ namespace MML
     typedef Polynom<MatrixNM<Real,4,4>, Real>       MatrixPolynomDim4;
 }
 
-///////////////////////////   ./include/core/Geometry.h   ///////////////////////////
-
-
-
-namespace MML
-{
-    // TODO - HIGH, EASY - prebaciti sve vektore u VectorTypes
-    // TODO - MED, urediti i finisirati sve klase do kraja
-    // TODO - MED, dodati Dist svugdje
-    class Point2Cartesian
-    {
-    private:
-        Real _x, _y;
-
-    public:
-        Real  X() const   { return _x; }
-        Real& X()         { return _x; }
-        Real  Y() const   { return _y; }
-        Real& Y()         { return _y; }
-
-        Point2Cartesian() {}
-        Point2Cartesian(Real x, Real y) : _x(x), _y(y) {}
-
-        Real Dist(const Point2Cartesian &b) const { return sqrt(SQR(b._x - _x) + SQR(b._y - _y) ); }
-
-        Point2Cartesian operator+(const VectorN<Real, 2> &b) const { return Point2Cartesian(_x + b[0], _y + b[1]); }
-        Point2Cartesian operator-(const VectorN<Real, 2> &b) const { return Point2Cartesian(_x - b[0], _y - b[1]); }
-    };
-
-    class Vector2Cartesian : public VectorN<Real, 2>
-    {
-    public:
-        Vector2Cartesian() {}
-        Vector2Cartesian(Real x, Real y) 
-        {
-            _val[0] = x;
-            _val[1] = y;
-        }
-        Vector2Cartesian(const VectorN<Real, 2> &b) : VectorN<Real,2>{b[0], b[1]} { }
-        Vector2Cartesian(std::initializer_list<Real> list)  : VectorN<Real,2>(list) { }
-        Vector2Cartesian(const Point2Cartesian &a, const Point2Cartesian &b) 
-        {
-            _val[0] = b.X() - a.X();
-            _val[1] = b.Y() - a.Y();
-        }
-
-        Real    X() const   { return _val[0]; }
-        Real&   X()         { return _val[0]; }
-        Real    Y() const   { return _val[1]; }
-        Real&   Y()         { return _val[1]; }
-
-        Vector2Cartesian GetUnitVector() const
-        {
-            VectorN<Real, 2> res = (*this) / NormL2();
-
-            return Vector2Cartesian(res[0], res[1]);
-        }
-    };
-
-    class Point2Polar
-    {
-    private:
-        Real _r, _phi;
-
-    public:
-        Real  R() const   { return _r; }
-        Real& R()         { return _r; }
-        Real  Phi() const { return _phi; }
-        Real& Phi()       { return _phi; }
-        
-        Point2Polar() {}
-        Point2Polar(Real r, Real phi) : _r(r), _phi(phi) {}
-
-        Real Dist(const Point2Polar &b) const { return sqrt(R() * R() + b.R() * b.R() - 2 * R() * b.R() * cos(b.Phi() - Phi())); }
-
-    };
-
-    class Vector2Polar : public VectorN<Real, 2>
-    {
-    public:
-        Real    R() const   { return _val[0]; }
-        Real&   R()         { return _val[0]; }
-        Real    Phi() const { return _val[1]; }
-        Real&   Phi()       { return _val[1]; }
-
-        Vector2Polar() {}
-        Vector2Polar(Real r, Real phi) 
-        {
-            _val[0] = r;
-            _val[1] = phi;
-        }   
-        Vector2Polar(const VectorN<Real, 2> &b) : VectorN<Real,2>{b[0], b[1]} { }        
-    };
-
-    class Point3Cartesian
-    {
-    private:
-        Real _x, _y, _z;
-
-    public:
-        Real  X() const   { return _x; }
-        Real& X()         { return _x; }
-        Real  Y() const   { return _y; }
-        Real& Y()         { return _y; }
-        Real  Z() const   { return _z; }
-        Real& Z()         { return _z; }
-
-        Point3Cartesian() {}
-        Point3Cartesian(Real x, Real y, Real z) : _x(x), _y(y), _z(z) {}
-
-        Real Dist(const Point3Cartesian &b) const { return sqrt(SQR(b._x - _x) + SQR(b._y - _y) + SQR(b._z - _z)); }
-
-        VectorN<Real,3> operator-(const Point3Cartesian &b) const { return  VectorN<Real, 3>{_x - b.X(), _y - b.Y(), _z - b.Z()}; }
-
-        Point3Cartesian operator+(const VectorN<Real, 3> &b) const { return Point3Cartesian(_x + b[0], _y + b[1], _z + b[2]); }
-        Point3Cartesian operator-(const VectorN<Real, 3> &b) const { return Point3Cartesian(_x - b[0], _y - b[1], _z - b[2]); }
-    };
-
-    class Vector3Cartesian : public VectorN<Real, 3>
-    {
-    public:
-        Real    X() const   { return _val[0]; }
-        Real&   X()         { return _val[0]; }
-        Real    Y() const   { return _val[1]; }
-        Real&   Y()         { return _val[1]; }
-        Real    Z() const   { return _val[2]; }
-        Real&   Z()         { return _val[2]; }
-
-        Vector3Cartesian()                                  : VectorN<Real,3>{0.0, 0.0, 0.0} { }
-        Vector3Cartesian(const VectorN<Real, 3> &b)         : VectorN<Real,3>{b[0], b[1], b[2]} { }
-        Vector3Cartesian(Real x, Real y, Real z)      : VectorN<Real,3>{x, y, z} { }
-        Vector3Cartesian(std::initializer_list<Real> list)  : VectorN<Real,3>(list) { }
-        Vector3Cartesian(const Point3Cartesian &a, const Point3Cartesian &b) 
-        {
-            _val[0] = b.X() - a.X();
-            _val[1] = b.Y() - a.Y();
-            _val[2] = b.Z() - a.Z();
-        }
-
-        Point3Cartesian getAsPoint()
-        {
-            return Point3Cartesian(_val[0], _val[1], _val[2]);
-        }
-        bool IsParallelTo(const Vector3Cartesian &b, Real eps = 1e-15) const
-        {
-            Real norm1 = NormL2();
-            Real norm2 = b.NormL2();
-
-            return std::abs(X() / norm1 - b.X() / norm2) < eps &&
-                   std::abs(Y() / norm1 - b.Y() / norm2) < eps &&
-                   std::abs(Z() / norm1 - b.Z() / norm2) < eps;
-        }
-
-        bool IsPerpendicularTo(const Vector3Cartesian &b, Real eps = 1e-15) const
-        {
-            if (std::abs(ScalarProd(*this, b)) < eps)
-                return true;
-            else
-                return false;
-        }
-
-        Vector3Cartesian GetAsUnitVector() const
-        {
-            return Vector3Cartesian{(*this) / NormL2()};
-        }
-        Vector3Cartesian GetAsUnitVectorAtPos(const Vector3Cartesian &pos) const
-        {
-            return Vector3Cartesian{(*this) / NormL2()};
-        }
-
-        friend Real ScalarProd(const Vector3Cartesian &a, const Vector3Cartesian &b)
-        {
-            return a.ScalarProductCartesian(b);
-        }
-
-        friend Vector3Cartesian VectorProd(const Vector3Cartesian &a, const Vector3Cartesian &b)
-        {
-            Vector3Cartesian ret;
-
-            ret.X() = a.Y() * b.Z() - a.Z() * b.Y();
-            ret.Y() = a.Z() * b.X() - a.X() * b.Z();
-            ret.Z() = a.X() * b.Y() - a.Y() * b.X();
-
-            return ret;
-        }
-
-        friend Real VectorsAngle(const Vector3Cartesian &a, const Vector3Cartesian &b)
-        {
-            Real cos_phi = ScalarProd(a, b) / (a.NormL2() * b.NormL2());
-
-            return acos(cos_phi);
-        }
-    };
-
-    class Vector3Spherical : public VectorN<Real, 3>
-    {
-    public:
-        Real    R()     const   { return _val[0]; }
-        Real&   R()             { return _val[0]; }
-        Real    Theta() const   { return _val[1]; }
-        Real&   Theta()         { return _val[1]; }
-        Real    Phi()   const   { return _val[2]; }
-        Real&   Phi()           { return _val[2]; }
-
-        Vector3Spherical()                                   : VectorN<Real,3>{0.0, 0.0, 0.0} { }
-        Vector3Spherical(const VectorN<Real, 3> &b)          : VectorN<Real,3>{b[0], b[1], b[2]} { }
-        Vector3Spherical(Real r, Real theta, Real phi)       : VectorN<Real,3>{r, theta, phi} { }
-        Vector3Spherical(std::initializer_list<Real> list)   : VectorN<Real,3>(list) { }
-
-        // TODO - HIGH, HARD, osnovne operacije +, -
-        Vector3Spherical GetAsUnitVector() const
-        {
-            return Vector3Spherical{R(), Theta() , Phi()};
-        } 
-        Vector3Spherical GetAsUnitVectorAtPos(const Vector3Spherical &pos) const
-        {
-            return Vector3Spherical{R(), Theta() / pos.R(), Phi() / (pos.R() * sin(pos.Theta()))};
-        } 
-        std::ostream& PrintDeg(std::ostream& stream, int width, int precision) const
-        {
-            stream << "[ ";
-            stream << std::fixed << std::setw(width) << std::setprecision(precision);
-            stream << R();
-            stream << ", " << Theta() * 180.0 / Constants::PI;
-            stream << ", " << Phi() * 180.0 / Constants::PI << " ]" << std::endl;
-
-            return stream;
-        }          
-    };
-
-    class Vector3Cylindrical : public VectorN<Real, 3>
-    {
-    public:
-        Real    R()   const { return _val[0]; }
-        Real&   R()         { return _val[0]; }
-        Real    Phi() const { return _val[1]; }
-        Real&   Phi()       { return _val[1]; }
-        Real    Z()   const { return _val[2]; }
-        Real&   Z()         { return _val[2]; }
-
-        Vector3Cylindrical()                                 : VectorN<Real,3>{0.0, 0.0, 0.0} { }
-        Vector3Cylindrical(const VectorN<Real, 3> &b)        : VectorN<Real,3>{b[0], b[1], b[2]} { }
-        Vector3Cylindrical(Real r, Real phi, Real z)   : VectorN<Real,3>{r, phi, z} { }
-        Vector3Cylindrical(std::initializer_list<Real> list) : VectorN<Real,3>(list) { }
-
-        // TODO - MED, implement Vector3Cylindrical GetAsUniTVector()
-        // TODO - MED, razmisliti generalno vektor i vektor at point
-        Vector3Cylindrical GetAsUnitVector() const
-        {
-            return Vector3Cylindrical{(*this) / NormL2()};
-        }         
-        Vector3Cylindrical GetAsUnitVectorAtPos(const Vector3Cylindrical &pos) const
-        {
-            return Vector3Cylindrical{(*this) / NormL2()};
-        }        
-    };    
-
-    typedef Vector3Cartesian    Vec3Cart;
-    typedef Vector3Spherical    Vec3Sph;
-    typedef Vector3Cylindrical  Vec3Cyl;    
-
-    class Triangle
-    {
-    private:
-        Real _a, _b, _c;
-
-    public:
-        Real  A() const   { return _a; }
-        Real& A()         { return _a; }
-        Real  B() const   { return _b; }
-        Real& B()         { return _b; }
-        Real  C() const   { return _c; }
-        Real& C()         { return _c; }
-
-        Triangle() {}
-        Triangle(Real a, Real b, Real c) : _a(a), _b(b), _c(c) {}
-
-        Real Area() const
-        {
-            Real s = (_a + _b + _c) / 2.0;
-            return sqrt(s * (s - _a) * (s - _b) * (s - _c));
-        }
-        bool IsRight() const
-        {
-            return (SQR(_a) + SQR(_b) == SQR(_c)) || (SQR(_a) + SQR(_c) == SQR(_b)) || (SQR(_b) + SQR(_c) == SQR(_a));
-        }
-        bool IsIsosceles() const
-        {
-            return (_a == _b) || (_a == _c) || (_b == _c);
-        }
-        bool IsEquilateral() const
-        {
-            return (_a == _b) && (_a == _c);
-        }
-    };
-}
 ///////////////////////////   ./include/core/MatrixUtils.h   ///////////////////////////
 
 
@@ -10793,7 +10842,7 @@ namespace MML
 
         Point2Cartesian PointOnLine(Real t)
         {
-            VectorN<Real, 2> dist = t * _direction;
+            Vector2Cartesian dist = t * _direction;
             Point2Cartesian ret = _point + dist;
             return ret;
         }
@@ -10809,9 +10858,9 @@ namespace MML
         SegmentLine2D(Point2Cartesian pnt1, Point2Cartesian pnt2) : _point1(pnt1), _point2(pnt2)
         { }
 
-        SegmentLine2D(Point2Cartesian pnt1, Vector2Cartesian direction, Real t) : _point1(pnt1)
+        SegmentLine2D(const Point2Cartesian &pnt1, const Vector2Cartesian &direction, Real t) : _point1(pnt1)
         {
-            _point2 = pnt1 + t * direction;
+            _point2 = pnt1 + direction * t;
         }
 
         Point2Cartesian     StartPoint() const  { return _point1; }
@@ -10825,7 +10874,7 @@ namespace MML
             if( t < 0.0 || t > 1.0)
                 throw std::invalid_argument("t must be in [0,1]");
 
-            VectorN<Real, 2> dist = t * Direction();
+            Vector2Cartesian dist = t * Direction();
             Point2Cartesian ret = _point1 + dist;
             return ret;
         }
@@ -11008,7 +11057,7 @@ namespace MML
         Point3Cartesian PointOnSegment(Real t)
         {
             // check t  u [0,1]
-            VectorN<Real, 3> dist = t * Direction();
+            Vector3Cartesian dist = t * Direction();
             Point3Cartesian ret = _point1 + dist;
             return ret;
         }
@@ -11149,7 +11198,7 @@ namespace MML
             }
 
             // Calculate the distance between the line and the plane
-            double dist = (GetPointOnPlane() - line.StartPoint()).ScalarProductCartesian(plane_normal) / line_dir.ScalarProductCartesian(plane_normal);
+            double dist = Vector3Cartesian(GetPointOnPlane(), line.StartPoint()).ScalarProductCartesian(plane_normal) / line_dir.ScalarProductCartesian(plane_normal);
 
             // Calculate the point of intersection
             Point3Cartesian inter_pnt = line.StartPoint() + line_dir * dist;
@@ -11199,8 +11248,8 @@ namespace MML
             Point3Cartesian inter_pnt = GetPointOnPlane();
 
             // Calculate the distance between the intersection line and the two planes
-            double dist1 = (inter_pnt - GetPointOnPlane()).ScalarProductCartesian(plane.Normal());
-            double dist2 = (inter_pnt - plane.GetPointOnPlane()).ScalarProductCartesian(Normal());
+            double dist1 = Vector3Cartesian(inter_pnt, GetPointOnPlane()).ScalarProductCartesian(plane.Normal());
+            double dist2 = Vector3Cartesian(inter_pnt, plane.GetPointOnPlane()).ScalarProductCartesian(Normal());
 
             // Calculate the point of intersection
             inter_pnt = inter_pnt - inter_dir * (dist1 / inter_dir.ScalarProductCartesian(plane.Normal()));
