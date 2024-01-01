@@ -8,8 +8,8 @@
 
 #include "core/LinAlgEqSolvers.h"
 
+#include "algorithms/EigenSystemSolvers.h"
 #endif
-
 #include "../test_data/linear_alg_eq_systems_test_bed.h"
 
 using namespace MML;
@@ -29,5 +29,17 @@ void Readme_linear_system_solvers()
 
 	luSolver.Solve(rhs, vecSol);
 
-	Vector<Real>    res_rhs = mat * vecSol;
+    std::cout << "Solution:\n" << vecSol << std::endl;
+    std::cout << "Multiplying solution with matrix: " << mat * vecSol << std::endl;
+
+    Matrix<Real>  matcopy(mat);
+
+    UnsymmEigenSolver eigen_solver(matcopy, true, false);
+
+    std::cout << "Num real eigenvalues    : " << eigen_solver.getNumReal() << std::endl;
+    std::cout << "Num complex eigenvalues : " << eigen_solver.getNumComplex() << "\n\n";
+    
+    std::cout << "Eigenvalues         : "; eigen_solver.getEigenvalues().Print(std::cout,15,10); std::cout << std::endl;
+    std::cout << "Real eigenvalues    : "; eigen_solver.getRealEigenvalues().Print(std::cout,15,10); std::cout << std::endl;
+    std::cout << "Complex eigenvalues : "; eigen_solver.getComplexEigenvalues().Print(std::cout,15,10); std::cout << "\n\n";    
 }

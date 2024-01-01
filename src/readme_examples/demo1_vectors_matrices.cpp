@@ -5,20 +5,28 @@
 
 #include "core/Vector.h"
 #include "core/Matrix.h"
+#include "core/MatrixUtils.h"
+
 #endif
 
 using namespace MML;
 
 void Readme_vectors_matrices()
 {
-    Vector<double>  vec_dbl_3({ 1.0, 2.0, 3.0 }); 
-    VectorComplex   vec_cmplx_2({ Complex(1,1), Complex(-1,2), Complex(2, -0.5) });
+    Vector<double>  vec1({ 1.5, -2.0, 0.5 }), vec2({ 1.0, 1.0, -3.0 }); 
+    VectorComplex   vec_cmplx({ Complex(1,1), Complex(-1,2), Complex(2, -0.5) });
 
-    Matrix<Real>   mat_3x3{ 3, 3, { 1.0, 2.0, -1.0, 
+    Matrix<double>  mat_3x3{ 3, 3, { 1.0, 2.0, -1.0, 
                                    -1.0, 5.0, 6.0, 
                                     3.0, 1.0, 1.0 }};  
-    MatrixComplex  mat_cmplx(2,2, { Complex(1,1),  Complex(-1,2), 
+    MatrixComplex   mat_cmplx(2,2, { Complex(1,1),  Complex(-1,2), 
                                     Complex(2, -0.5), Complex(1,1) });
-    Matrix<Real>   unit_mat3 = MML::Matrix<Real>::GetUnitMatrix(3);
+    Matrix<double>  unit_mat3 = MML::Matrix<Real>::GetUnitMatrix(3);
 
+    Vector<double> v = 2.0 * (vec1 + vec2) * mat_3x3 / vec1.NormL2();
+    VectorComplex  vc = vec_cmplx * mat_cmplx / Complex(1.5, -1.5) / 2.0;
+
+    // combining real and complex vectors and matrices requires special functions
+    VectorComplex vc2 = MatrixUtils::MulVecMat(vec_cmplx, mat_3x3);
+    MatrixComplex mc = MatrixUtils::MulMat(mat_cmplx, mat_3x3);
 }

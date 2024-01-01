@@ -78,17 +78,22 @@ They are used for verification of implemented algorithms, but can also be used a
 
 ***Vectors, matrices***
 ~~~ c++
-    // TODO - finish vectors, matrices example
-    Vector<double>  vec_dbl_3({ 1.0, 2.0, 3.0 }); 
-    VectorComplex   vec_cmplx_2({ Complex(1,1), Complex(-1,2), Complex(2, -0.5) });
+    Vector<double>  vec1({ 1.5, -2.0, 0.5 }), vec2({ 1.0, 1.0, -3.0 }); 
+    VectorComplex   vec_cmplx({ Complex(1,1), Complex(-1,2), Complex(2, -0.5) });
 
-    Matrix<Real>   mat_3x3{ 3, 3, { 1.0, 2.0, -1.0, 
+    Matrix<double>  mat_3x3{ 3, 3, { 1.0, 2.0, -1.0, 
                                    -1.0, 5.0, 6.0, 
                                     3.0, 1.0, 1.0 }};  
-    MatrixComplex  mat_cmplx(2,2, { Complex(1,1),  Complex(-1,2), 
+    MatrixComplex   mat_cmplx(2,2, { Complex(1,1),  Complex(-1,2), 
                                     Complex(2, -0.5), Complex(1,1) });
-    Matrix<Real>   unit_mat3 = MML::Matrix<Real>::GetUnitMatrix(3);
-    // TODO - staviti link na "complete example with output"
+    Matrix<double>  unit_mat3 = MML::Matrix<Real>::GetUnitMatrix(3);
+
+    Vector<double> v = 2.0 * (vec1 + vec2) * mat_3x3 / vec1.NormL2();
+    VectorComplex  vc = vec_cmplx * mat_cmplx / Complex(1.5, -1.5) / 2.0;
+
+    // combining real and complex vectors and matrices requires special functions
+    VectorComplex vc2 = MatrixUtils::MulVecMat(vec_cmplx, mat_3x3);
+    MatrixComplex mc = MatrixUtils::MulMat(mat_cmplx, mat_3x3);
 ~~~
 
 ***Solving linear systems of equations and calculating eigenvalues***
@@ -105,11 +110,22 @@ They are used for verification of implemented algorithms, but can also be used a
 
 	luSolver.Solve(rhs, vecSol);
 
-	Vector<Real>    res_rhs = mat * vecSol;
+    std::cout << "Solution:\n" << vecSol << std::endl;
+    std::cout << "Multiplying solution with matrix: " << mat * vecSol << std::endl;
+
+    Matrix<Real>  matcopy(mat);
+
+    UnsymmEigenSolver eigen_solver(matcopy, true, false);
+
+    std::cout << "Num real eigenvalues    : " << eigen_solver.getNumReal() << std::endl;
+    std::cout << "Num complex eigenvalues : " << eigen_solver.getNumComplex() << "\n\n";
+    
+    std::cout << "Eigenvalues         : "; eigen_solver.getEigenvalues().Print(std::cout,15,10); std::cout << std::endl;
+    std::cout << "Real eigenvalues    : "; eigen_solver.getRealEigenvalues().Print(std::cout,15,10); std::cout << std::endl;
+    std::cout << "Complex eigenvalues : "; eigen_solver.getComplexEigenvalues().Print(std::cout,15,10); std::cout << "\n\n";  
 ~~~
 
-***Functions - from function pointer***
-Introduction - par recenica, sve prezentirati odjednom
+*** Working with functions - derivation, integration***
 ~~~ c++
     double Demo_Function_TestFunc(double x) 
     { 
@@ -121,47 +137,22 @@ Introduction - par recenica, sve prezentirati odjednom
 
     // or creating a function object directly with lambda
     RealFunction f2{[](double x) { return sin(x)*(1.0 + 0.5*x*x); } };
-~~~
 
-Functions - from class member functions, using std::function wrapper
-Introduction - par recenica
-~~~ c++
-    // TODO - functions example
-~~~
+    // creating directly different types of functions
+    ScalarFunction<3>       funcScalar([](const VectorN<Real, 3> &x) { return x[0]; });
+    VectorFunction<3>       funcVector([](const VectorN<Real, 3> &x) { return VectorN<Real, 3>{0, x[0] * x[1], 0}; });
+    VectorFunctionNM<2, 3>  funcVectorNM([](const VectorN<Real, 2> &x) { return VectorN<Real, 3>{0, x[0] * x[1], 0}; });
+    ParametricCurve<3>      paramCurve([](double x) { return VectorN<Real, 3>{x, 2 * x, 3 * x}; });
+    ParametricSurface<3>    paramSurface([](double x, double y) { return VectorN<Real, 3>{x * y, 2 * x * y, 3 * x}; });    
 
-*** Working with functions - derivation, integration***
-Introduction - par recenica
-~~~ c++
-    // TODO - functions example
+    // using predefined functions from TestBeds
+    auto fdef1 = TestBeds::RealFunctionsTestBed::getTestFunctionReal("Sin");
+    auto fdef2 = TestBeds::ScalarFunctionsTestBed::getTestFunctionScalar3(0);
+    auto fdef3 = TestBeds::VectorFunctionsTestBed::getTestFunctionVector(0);
+    auto fdef4 = TestBeds::ParametricCurvesTestBed::getTestCurve("Helix");
 ~~~
-
-***Parametric curves - differential geometry***
-~~~ c++
-    // creating curve directly with lambda
-    // TODO - dodati 2D i 2D polar
-    ParametricCurve<3>        test_curve1( [](double t) -> VectorN<Real, 3> { return VectorN<Real, 3>{t, t*t, t*t*t}; } );
-    
-    // using predefined curve
-    Curves::HelixCurve        helix(2.0, 2.0);
-    
-    // using curve from TestData
-    const ParametricCurve<3> &test_curve = TestBeds::ParametricCurvesTestBed::_listCurves[0]._curve;
-
-    double t = 0.5;
-    auto tangent   = DiffGeometry::getTangent(test_curve, t);
-    auto unit_tang = DiffGeometry::getTangentUnit(test_curve, t);
-    auto normal    = DiffGeometry::getNormal(test_curve, t);
-    auto unit_norm = DiffGeometry::getNormalUnit(test_curve, t);
-    auto binormal  = VectorProd(Vector3Cartesian(unit_tang), Vector3Cartesian(unit_norm));
-    
-    auto curv_vec   = DiffGeometry::getCurvatureVector(test_curve, t);
-    auto curvature  = DiffGeometry::getCurvature(test_curve, t);
-    auto curvature3 = DiffGeometry::getCurvature3(test_curve, t);
-~~~
-vizualizirati neku krivulju, i u jednoj točki vizualizirati (World view) 3 vektora tangente, normale i binormale, te vektore zakrivljenosti
 
 ***Solving ODE system***
-u primjeru definirati Van Der Polov oscilator, i riješiti ga
 ~~~ c++
     auto sys0 = TestBeds::ODESystemTestBed::getODESystem(1);
 
@@ -178,12 +169,36 @@ u primjeru definirati Van Der Polov oscilator, i riješiti ga
     std::cout << "x values:\n";  sol01.xval.Print(std::cout, 6, 3); std::cout << std::endl;
     std::cout << "y values: - "; sol01.yval.Print(std::cout, 6, 3);
 ~~~
-prikazati vizualizaciju pojave chaosa za odabrane parametre
+TODO - slika s  vizualizacijom pojave chaosa za odabrane parametre
 
 ***Fields and field operations - grad, div, curl, Laplacian***
 ~~~ c++
     // TODO - fields example
 ~~~
+
+***Parametric curves - differential geometry***
+~~~ c++
+    // creating curve directly with lambda
+    ParametricCurve<3>        test_curve1( [](double t) -> VectorN<Real, 3> { return VectorN<Real, 3>{t, t*t, t*t*t}; } );
+    
+    // using predefined curve
+    Curves::HelixCurve        helix(2.0, 2.0);
+    
+    // using curve from TestBeds
+    const ParametricCurve<3> &test_curve = TestBeds::ParametricCurvesTestBed::_listCurves[0]._curve;
+
+    double t = 0.5;
+    auto tangent   = DiffGeometry::getTangent(test_curve, t);
+    auto unit_tang = DiffGeometry::getTangentUnit(test_curve, t);
+    auto normal    = DiffGeometry::getNormal(test_curve, t);
+    auto unit_norm = DiffGeometry::getNormalUnit(test_curve, t);
+    auto binormal  = VectorProd(Vector3Cartesian(unit_tang), Vector3Cartesian(unit_norm));
+    
+    auto curv_vec   = DiffGeometry::getCurvatureVector(test_curve, t);
+    auto curvature  = DiffGeometry::getCurvature(test_curve, t);
+    auto curvature3 = DiffGeometry::getCurvature3(test_curve, t);
+~~~
+TODO - vizualizirati neku krivulju, i u jednoj točki vizualizirati (World view) 3 vektora tangente, normale i binormale, te vektore zakrivljenosti
 
 ***Analyzer - function, curve, ?***
 ~~~ c++
