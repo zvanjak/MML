@@ -68,12 +68,6 @@ They are used for verification of implemented algorithms, but can also be used a
 - ODE systems
 - parametric curves & surfaces
 
-**Before intro, couple of real examples what it is for**
-- primjer s transformacijama koordinata
-- proracun sudara dva tijela
-- proračun work integrala po zatvorenoj petlji u solenoidalnom polju?
-- proračun momenta inercije za tijelo s diskretnim skupom masa
-
 **Intro examples**
 
 ***Vectors, matrices***
@@ -169,7 +163,6 @@ They are used for verification of implemented algorithms, but can also be used a
     std::cout << "x values:\n";  sol01.xval.Print(std::cout, 6, 3); std::cout << std::endl;
     std::cout << "y values: - "; sol01.yval.Print(std::cout, 6, 3);
 ~~~
-TODO - slika s  vizualizacijom pojave chaosa za odabrane parametre
 
 ***Fields and field operations - grad, div, curl, Laplacian***
 ~~~ c++
@@ -198,7 +191,6 @@ TODO - slika s  vizualizacijom pojave chaosa za odabrane parametre
     auto curvature  = DiffGeometry::getCurvature(test_curve, t);
     auto curvature3 = DiffGeometry::getCurvature3(test_curve, t);
 ~~~
-TODO - vizualizirati neku krivulju, i u jednoj točki vizualizirati (World view) 3 vektora tangente, normale i binormale, te vektore zakrivljenosti
 
 ***Analyzer - function, curve, ?***
 ~~~ c++
