@@ -4435,6 +4435,7 @@ namespace MML
 
 namespace MML
 {
+    // TODO - HIGH, EASY - prebaciti sve vektore u VectorTypes
     // TODO - MED, urediti i finisirati sve klase do kraja
     // TODO - MED, dodati Dist svugdje
     class Point2Cartesian
@@ -4638,7 +4639,7 @@ namespace MML
         Vector3Spherical(std::initializer_list<Real> list)   : VectorN<Real,3>(list) { }
 
         // TODO - HIGH, HARD, osnovne operacije +, -
-        Vector3Spherical GetAsUnitVectorAtPos() const
+        Vector3Spherical GetAsUnitVector() const
         {
             return Vector3Spherical{R(), Theta() , Phi()};
         } 
@@ -4928,7 +4929,7 @@ namespace MML
             return ret;
         }          
 
-        static Vector<Complex> MulMatVec( const Vector<Complex> &a, const Matrix<Real> &b)
+        static Vector<Complex> MulVecMat( const Vector<Complex> &a, const Matrix<Real> &b)
         {
             if( a.size() != b.RowNum() )
                 throw MatrixDimensionError("operator*(Vec a, Mat b) - vector size must be equal to b.rowNum", (int) a.size(), -1, b.RowNum(), b.ColNum());
