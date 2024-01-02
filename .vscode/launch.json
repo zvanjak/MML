@@ -88,7 +88,18 @@
             "cwd": "${fileDirname}",
             "environment": [],
             "console": "externalTerminal"
-        },      
+        },
+        {
+            "name": "Win - DocsApp Launch",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/Debug/DocsApp.exe",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${fileDirname}",
+            "environment": [],
+            "console": "externalTerminal"
+        }, 
         {
             "name": "Win - Tests",
             "type": "cppvsdbg",

@@ -13,6 +13,7 @@ general purpose, pythonesque, easy to use, and efficient
 - As of now, and for forseable future, this is for personal and educational use only (see Licensing at the end)
 - Single-header -> include and go 
 - Cross-platform -> tested with Visual Studio Code on Windows (MSVC++, clang), Mac (gcc, clang), Linux (gcc)
+- C++20 standard - but can easily be adapted to C++17, C++14
 - Pythonesque in its focus on simplicity of use, and focused on faithful modeling of mathematical entities (while trying as much as possible to retain C++ computational efficiency)
 
 **Is there really a need for another C++ math library?**
@@ -68,26 +69,35 @@ They are used for verification of implemented algorithms, but can also be used a
 - ODE systems
 - parametric curves & surfaces
 
+**Before intro, couple of real examples what it is for**
+- primjer s transformacijama koordinata
+- proracun sudara dva tijela
+- proračun work integrala po zatvorenoj petlji u solenoidalnom polju?
+- proračun momenta inercije za tijelo s diskretnim skupom masa
+
 **Intro examples**
 
 ***Vectors, matrices***
 ~~~ c++
     Vector<double>  vec1({ 1.5, -2.0, 0.5 }), vec2({ 1.0, 1.0, -3.0 }); 
-    VectorComplex   vec_cmplx({ Complex(1,1), Complex(-1,2), Complex(2, -0.5) });
+    VectorComplex   vec_cmplx({ Complex(1,1), Complex(-1,2) });
+    VectorComplex   vec_cmplx2({ Complex(1,1), Complex(-1,2), Complex(2.5, -1.5) });
 
     Matrix<double>  mat_3x3{ 3, 3, { 1.0, 2.0, -1.0, 
                                    -1.0, 5.0, 6.0, 
                                     3.0, 1.0, 1.0 }};  
     MatrixComplex   mat_cmplx(2,2, { Complex(1,1),  Complex(-1,2), 
                                     Complex(2, -0.5), Complex(1,1) });
+    MatrixComplex   mat_cmplx2(2,3, { Complex(1,1),  Complex(-1,2), Complex(1.5, -2), 
+                                    Complex(2, -0.5), Complex(1,1), Complex(-1, 1) });
     Matrix<double>  unit_mat3 = MML::Matrix<Real>::GetUnitMatrix(3);
 
     Vector<double> v = 2.0 * (vec1 + vec2) * mat_3x3 / vec1.NormL2();
     VectorComplex  vc = vec_cmplx * mat_cmplx / Complex(1.5, -1.5) / 2.0;
 
     // combining real and complex vectors and matrices requires special functions
-    VectorComplex vc2 = MatrixUtils::MulVecMat(vec_cmplx, mat_3x3);
-    MatrixComplex mc = MatrixUtils::MulMat(mat_cmplx, mat_3x3);
+    VectorComplex vc2 = MatrixUtils::MulVecMat(vec_cmplx2, mat_3x3);
+    MatrixComplex mc = MatrixUtils::MulMat(mat_cmplx2, mat_3x3);
 ~~~
 
 ***Solving linear systems of equations and calculating eigenvalues***
@@ -144,6 +154,22 @@ They are used for verification of implemented algorithms, but can also be used a
     auto fdef2 = TestBeds::ScalarFunctionsTestBed::getTestFunctionScalar3(0);
     auto fdef3 = TestBeds::VectorFunctionsTestBed::getTestFunctionVector(0);
     auto fdef4 = TestBeds::ParametricCurvesTestBed::getTestCurve("Helix");
+
+    // numerical derivation of real function (different orders)
+    double der_f1 = Derivation::NDer1(f2, 0.5);
+    double der_f2 = Derivation::NDer2(f1, 0.5);
+    double der_f4 = Derivation::NDer4(f1, 0.5, 1e-6);   // setting explicit step size
+    double der_f6 = Derivation::NDer6(f2, 0.5);    
+    double der_f8 = Derivation::NDer8(f2, 0.5);
+
+    // numerical integration of real function
+    double a = 0.0;
+    double b = 1.0;
+    double int_trap = Integration::IntegrateTrap(f1,a,b);
+    double int_simp = Integration::IntegrateSimpson(f1,a,b);
+    double int_romb = Integration::IntegrateRomberg(f1,a,b);
+    // we can use default Integrate routine (default set to IntegrateSimpson)
+    double int_def = Integration::Integrate(f1, a, b, 1e-04); 
 ~~~
 
 ***Solving ODE system***
@@ -163,10 +189,34 @@ They are used for verification of implemented algorithms, but can also be used a
     std::cout << "x values:\n";  sol01.xval.Print(std::cout, 6, 3); std::cout << std::endl;
     std::cout << "y values: - "; sol01.yval.Print(std::cout, 6, 3);
 ~~~
+TODO - slika s  vizualizacijom pojave chaosa za odabrane parametre
 
 ***Fields and field operations - grad, div, curl, Laplacian***
 ~~~ c++
-    // TODO - fields example
+    ScalarFunction<3> fPotCart([](const VectorN<Real, 3> &x) -> Real { return InverseRadialPotentialFieldCart(x); });
+    ScalarFunction<3> fPotSpher([](const VectorN<Real, 3> &x) -> Real { return InverseRadialPotentialFieldSpher(x); });
+    ScalarFunction<3> fPotCyl([](const VectorN<Real, 3> &x) -> Real { return InverseRadialPotentialFieldCyl(x); });
+
+    // calculating field gradient around circle
+    Curves::Circle3DXZ circle(1.0);
+    std::cout << "            Position                   Cartesian gradient              Spherical gradient         Spher.grad.covar.transf. to Cart        Cylindrical gradient         Cyl.grad.covar.transf. to Cart" << std::endl;
+    for(double t=0.0; t<2*Constants::PI; t+=0.3)
+    {
+        Vector3Cartesian   pos = circle(t);
+        Vector3Cartesian   grad_cart  = ScalarFieldOperations::GradientCart<3>(fPotCart, pos);
+        Vector3Spherical   grad_spher = ScalarFieldOperations::GradientSpher(fPotSpher, CoordTransfCartToSpher.transf(pos));
+        Vector3Cylindrical grad_cyl   = ScalarFieldOperations::GradientCyl(fPotCyl, CoordTransfCartToCyl.transf(pos));
+
+        Vector3Cartesian spher_grad_transf_to_cart = CoordTransfSpherToCart.transfVecCovariant(grad_spher, pos);
+        Vector3Cartesian cyl_grad_transf_to_cart   = CoordTransfCylToCart.transfVecCovariant(grad_cyl, pos);
+
+        std::cout << pos.to_string(8,3) << " = " << grad_cart.to_string(8,4) 
+                                        << "  "  << grad_spher.to_string(8,4) 
+                                        << "  "  << spher_grad_transf_to_cart.to_string(9,4) 
+                                        << "  "  << grad_cyl.to_string(8,4) 
+                                        << "  "  << cyl_grad_transf_to_cart.to_string(10,4) 
+                                        << std::endl;
+    }
 ~~~
 
 ***Parametric curves - differential geometry***
@@ -191,13 +241,19 @@ They are used for verification of implemented algorithms, but can also be used a
     auto curvature  = DiffGeometry::getCurvature(test_curve, t);
     auto curvature3 = DiffGeometry::getCurvature3(test_curve, t);
 ~~~
+TODO - vizualizirati neku krivulju, i u jednoj točki vizualizirati (World view) 3 vektora tangente, normale i binormale, te vektore zakrivljenosti
 
-***Analyzer - function, curve, ?***
+***Visualizators***
 ~~~ c++
     // TODO - analyzer example
 ~~~
 
-**Testing precision**
+***FunctionAnalyzer***
+~~~ c++
+    // TODO - analyzer example
+~~~
+
+**Evaluating algorithms precision**
 
 In applying any kind of numerical procedure on computers, observing precision is of paramount importance.
 Following sections describe the precision of implemented algorithms.
@@ -208,10 +264,6 @@ Following sections describe the precision of implemented algorithms.
 - integration precision
 - interpolation precision
 - vector field operations precision
-
-**Testing speed**
-// TODO - testing speed
-- of paramount essence, if you are using C++ (if not, you would be using Python, numpy, and scipy)
 
 **LICENSING**
 - Code is given as it is, without any warranty. Use it at your own risk.

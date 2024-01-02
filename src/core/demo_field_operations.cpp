@@ -23,24 +23,24 @@ void Demo_gradient()
     ScalarFunction<3> fPotSpher([](const VectorN<Real, 3> &x) -> Real { return InverseRadialPotentialFieldSpher(x); });
     ScalarFunction<3> fPotCyl([](const VectorN<Real, 3> &x) -> Real { return InverseRadialPotentialFieldCyl(x); });
 
-    // izračunati gradijent po obodu kružnice
+    // calculating field gradient around circle
     Curves::Circle3DXZ circle(1.0);
     std::cout << "            Position                   Cartesian gradient              Spherical gradient         Spher.grad.covar.transf. to Cart        Cylindrical gradient         Cyl.grad.covar.transf. to Cart" << std::endl;
     for(double t=0.0; t<2*Constants::PI; t+=0.3)
     {
         Vector3Cartesian   pos = circle(t);
-        Vector3Cartesian   grad_cart = ScalarFieldOperations::GradientCart<3>(fPotCart, pos);
+        Vector3Cartesian   grad_cart  = ScalarFieldOperations::GradientCart<3>(fPotCart, pos);
         Vector3Spherical   grad_spher = ScalarFieldOperations::GradientSpher(fPotSpher, CoordTransfCartToSpher.transf(pos));
-        Vector3Cylindrical grad_cyl = ScalarFieldOperations::GradientCyl(fPotCyl, CoordTransfCartToCyl.transf(pos));
+        Vector3Cylindrical grad_cyl   = ScalarFieldOperations::GradientCyl(fPotCyl, CoordTransfCartToCyl.transf(pos));
 
         Vector3Cartesian spher_grad_transf_to_cart = CoordTransfSpherToCart.transfVecCovariant(grad_spher, pos);
         Vector3Cartesian cyl_grad_transf_to_cart   = CoordTransfCylToCart.transfVecCovariant(grad_cyl, pos);
 
         std::cout << pos.to_string(8,3) << " = " << grad_cart.to_string(8,4) 
-                                        << "  " << grad_spher.to_string(8,4) 
-                                        << "  " << spher_grad_transf_to_cart.to_string(9,4) 
-                                        << "  " << grad_cyl.to_string(8,4) 
-                                        << "  " << cyl_grad_transf_to_cart.to_string(10,4) 
+                                        << "  "  << grad_spher.to_string(8,4) 
+                                        << "  "  << spher_grad_transf_to_cart.to_string(9,4) 
+                                        << "  "  << grad_cyl.to_string(8,4) 
+                                        << "  "  << cyl_grad_transf_to_cart.to_string(10,4) 
                                         << std::endl;
     }
 }

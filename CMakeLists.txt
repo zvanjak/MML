@@ -4,7 +4,9 @@ set (CMAKE_CXX_STANDARD 20)
 
 project(MML_Demo VERSION 0.1.0)
 
-set( MML_DEMO_SOURCES   src/main.cpp 
+add_compile_definitions(MML_USE_SINGLE_HEADER)
+
+set( MML_DEMO_SOURCES   src/demo_app_main.cpp 
 
                         src/utilities/demo_intervals.cpp
 
@@ -65,22 +67,44 @@ set( MML_DEMO_SOURCES   src/main.cpp
                         src/visualization_examples/demo4_vector_field_gravity.cpp
                         src/visualization_examples/demo5_vector_field_EM.cpp
                         src/visualization_examples/visualization_examples.cpp
-                        
-                        src/readme_examples/demo1_vectors_matrices.cpp
-                        src/readme_examples/demo2_lin_alg_solvers.cpp
-                        src/readme_examples/demo3_functions.cpp
-                        src/readme_examples/demo4_derivation.cpp
-                        src/readme_examples/demo5_integration.cpp
-                        src/readme_examples/demo6_ode_solvers.cpp
-                        src/readme_examples/demo7_vector_field_operations.cpp
-                        src/readme_examples/readme_examples.cpp
+
+                        docs_examples/readme_examples/demo1_vectors_matrices.cpp
+                        docs_examples/readme_examples/demo2_lin_alg_solvers.cpp
+                        docs_examples/readme_examples/demo3_functions_derivation_integration.cpp
+                        docs_examples/readme_examples/demo4_interpolating_functions.cpp
+                        docs_examples/readme_examples/demo5_ode_solvers.cpp
+                        docs_examples/readme_examples/demo6_vector_field_operations.cpp
+                        docs_examples/readme_examples/demo7_parametric_curves.cpp
+                        docs_examples/readme_examples/demo8_visualizators.cpp
+                        docs_examples/readme_examples/demo9_function_analyzer.cpp
+                        docs_examples/readme_examples/demo99_derivation.cpp
+                        docs_examples/readme_examples/demo99_integration.cpp
+                        docs_examples/readme_examples/readme_examples.cpp
                       )
 
 
 add_executable(MML_Demo ${MML_DEMO_SOURCES})
-
-add_compile_definitions(MML_USE_SINGLE_HEADER)
 target_include_directories(MML_Demo PRIVATE include)
+
+
+project(DocsApp VERSION 0.5.0)
+set(MML_DOCS_APP_SOURCES    docs_examples/doc_examples_app_main.cpp
+
+                            docs_examples/readme_examples/demo1_vectors_matrices.cpp
+                            docs_examples/readme_examples/demo2_lin_alg_solvers.cpp
+                            docs_examples/readme_examples/demo3_functions_derivation_integration.cpp
+                            docs_examples/readme_examples/demo4_interpolating_functions.cpp
+                            docs_examples/readme_examples/demo5_ode_solvers.cpp
+                            docs_examples/readme_examples/demo6_vector_field_operations.cpp
+                            docs_examples/readme_examples/demo7_parametric_curves.cpp
+                            docs_examples/readme_examples/demo8_visualizators.cpp
+                            docs_examples/readme_examples/demo9_function_analyzer.cpp
+                            docs_examples/readme_examples/demo99_derivation.cpp
+                            docs_examples/readme_examples/demo99_integration.cpp
+                            docs_examples/readme_examples/readme_examples.cpp
+)
+add_executable(DocsApp ${MML_DOCS_APP_SOURCES})
+target_include_directories(DocsApp PRIVATE include)
 
 
 set(CATCH_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/catch)
