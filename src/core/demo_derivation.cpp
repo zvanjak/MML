@@ -57,7 +57,7 @@ class ClassProvidingFuncToDerive
     public:
         ClassProvidingFuncToDerive(double param) : _param(param) { }
     
-        double operator()(double x ) { return _param * sin(x); }
+        double operator()(double x ) const { return _param * sin(x); }
 };
 
 void Demo_Derivation_member_fun()
@@ -221,7 +221,7 @@ void Demo_Derivation_RealFunc_Second_and_Third()
     double third_der_f5 = Derivation::DeriveThird(f1, 0.5, nullptr);
 }
 
-// TODO - sLOW, imple precision comparison for selected function
+// TODO - simple precision comparison for selected function
 // simple example for a single function of various precisions
 void Demo_Derivation_RealFunc_precision_comparison()
 {

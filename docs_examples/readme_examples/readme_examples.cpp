@@ -14,8 +14,9 @@
 using namespace MML;
 
 void Readme_vectors_matrices();
-void Readme_functions();
 void Readme_linear_system_solvers();
+void Readme_defining_functions();
+void Readme_working_with_functions();
 void Readme_ode_solvers();
 void Readme_vector_field_operations();
 void Readme_parametric_curves();
@@ -40,7 +41,8 @@ void Demo_Readme_Examples()
 {
     Readme_vectors_matrices();
     Readme_linear_system_solvers();
-    Readme_functions();
+    Readme_defining_functions();
+    Readme_working_with_functions();
     Readme_ode_solvers();
     Readme_vector_field_operations();
     Readme_interpolating_functions();

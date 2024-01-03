@@ -60,6 +60,14 @@ general purpose, pythonesque, easy to use, and efficient
 - [Statistics](/docs/algorithms/Statistics.md) - basics - avg, std, var, cov, corr
 - [Fourier transformation](/docs/algorithms/Fourier_transformation.md) - TODO
 
+**Visualizers**
+- [Real function visualizer](/docs/visualizers/RealFunction_visualizer.md) 
+- [Parametric curve visualizer](/docs/visualizers/ParametricCurve_visualizer.md)
+- [Surface visualizer](/docs/visualizers/Surface_visualizer.md)
+- [Vector field visualizer](/docs/visualizers/VectorField_visualizer.md)
+
+![My Image](docs/images/visualizers.png)
+
 **Test beds**
 There is a multitude of test beds for each of the above algorithms, in the [testbeds](/docs/testbeds/testbeds_intro.md) folder.
 They are used for verification of implemented algorithms, but can also be used as examples of how to use the library.
@@ -69,11 +77,23 @@ They are used for verification of implemented algorithms, but can also be used a
 - ODE systems
 - parametric curves & surfaces
 
-**Before intro, couple of real examples what it is for**
-- primjer s transformacijama koordinata
-- proracun sudara dva tijela
-- proračun work integrala po zatvorenoj petlji u solenoidalnom polju?
-- proračun momenta inercije za tijelo s diskretnim skupom masa
+**Evaluating algorithms precision**
+
+In applying any kind of numerical procedure on computers, observing precision is of paramount importance.
+Following sections describe the precision of implemented algorithms.
+
+[Intro](/docs/testing_precision/testing_precision_intro.md) - introduction
+
+- derivation precision
+- integration precision
+- interpolation precision
+- vector field operations precision
+
+**LICENSING**
+- Code is given as it is, without any warranty. Use it at your own risk.
+- STRICTLY NON-COMMERCIAL USE ONLY!
+- Unfortunately, also unavailable for Open Source project, due to restrictive Numerical Recipes license (for which code I have only personal license).
+- So basically, it is for personal, educational and research use only.
 
 **Intro examples**
 
@@ -102,17 +122,17 @@ They are used for verification of implemented algorithms, but can also be used a
 
 ***Solving linear systems of equations and calculating eigenvalues***
 ~~~ c++
- 	Matrix<Real>    mat{5, 5, { 1.4, 2.1, 2.1, 7.4, 9.6,
+    Matrix<Real>    mat{5, 5, { 1.4, 2.1, 2.1, 7.4, 9.6,
                                 1.6, 1.5, 1.1, 0.7, 5.0,
                                 3.8, 8.0, 9.6, 5.4, 8.8,
                                 4.6, 8.2, 8.4, 0.4, 8.0,
                                 2.6, 2.9, 0.1, 9.6, 7.7 } };
-	Vector<Real> 	rhs{1.1, 4.7, 0.1, 9.3, 0.4};
-	Vector<Real>	vecSol(rhs.size());
+    Vector<Real> 	rhs{1.1, 4.7, 0.1, 9.3, 0.4};
+    Vector<Real>	vecSol(rhs.size());
+    
+    LUDecompositionSolver<Real> luSolver(mat);
 
-	LUDecompositionSolver<Real> luSolver(mat);
-
-	luSolver.Solve(rhs, vecSol);
+    luSolver.Solve(rhs, vecSol);
 
     std::cout << "Solution:\n" << vecSol << std::endl;
     std::cout << "Multiplying solution with matrix: " << mat * vecSol << std::endl;
@@ -129,17 +149,17 @@ They are used for verification of implemented algorithms, but can also be used a
     std::cout << "Complex eigenvalues : "; eigen_solver.getComplexEigenvalues().Print(std::cout,15,10); std::cout << "\n\n";  
 ~~~
 
-*** Working with functions - derivation, integration***
+***Defining functions***
 ~~~ c++
-    double Demo_Function_TestFunc(double x) 
-    { 
+    // CASE 1 - standalone function providing calculation of a function
+    double Readme_functions_TestFunc(double x) { 
         return sin(x)*(1.0 + 0.5*x*x); 
     }
-    ...
-    // creating a function object from an already existing (standalone) function
-    RealFunction f1(Demo_Function_TestFunc);
 
-    // or creating a function object directly with lambda
+    // creating a function object from an already existing (standalone) function
+    RealFunction f1(Readme_functions_TestFunc);
+
+    // CASE 2 - create it directly with lambda
     RealFunction f2{[](double x) { return sin(x)*(1.0 + 0.5*x*x); } };
 
     // creating directly different types of functions
@@ -147,14 +167,61 @@ They are used for verification of implemented algorithms, but can also be used a
     VectorFunction<3>       funcVector([](const VectorN<Real, 3> &x) { return VectorN<Real, 3>{0, x[0] * x[1], 0}; });
     VectorFunctionNM<2, 3>  funcVectorNM([](const VectorN<Real, 2> &x) { return VectorN<Real, 3>{0, x[0] * x[1], 0}; });
     ParametricCurve<3>      paramCurve([](double x) { return VectorN<Real, 3>{x, 2 * x, 3 * x}; });
-    ParametricSurface<3>    paramSurface([](double x, double y) { return VectorN<Real, 3>{x * y, 2 * x * y, 3 * x}; });    
+    ParametricSurface<3>    paramSurface([](double x, double y) { return VectorN<Real, 3>{x * y, 2 * x * y, 3 * x}; });  
 
-    // using predefined functions from TestBeds
-    auto fdef1 = TestBeds::RealFunctionsTestBed::getTestFunctionReal("Sin");
-    auto fdef2 = TestBeds::ScalarFunctionsTestBed::getTestFunctionScalar3(0);
-    auto fdef3 = TestBeds::VectorFunctionsTestBed::getTestFunctionVector(0);
-    auto fdef4 = TestBeds::ParametricCurvesTestBed::getTestCurve("Helix");
+    // CASE 3 - class you CAN change has member function that does the calculation
+    // Option 1 - define operator() for your class and create RealFunctionFromStdFunc
+    class ClassProvidingFuncToDerive {
+        public:
+            double operator()(double x ) const { 
+                return 1.0;     /* calculation using member variables */ 
+            }
+    };
 
+    ClassProvidingFuncToDerive   obj1;
+    RealFunctionFromStdFunc f1(std::function<double(double)>{obj1});
+
+    // Option 2 - make your class inherit IRealFunction interface, and use the object itself as RealFunction
+    class ClassProvidingFuncToDerive2 : public IRealFunction {
+        public:
+            double operator()(double x ) const { 
+                return 1.0;     /* calculation using member variables */ 
+            }
+    };
+    
+    ClassProvidingFuncToDerive2   f2;       // usable RealFunction object
+
+    // CASE 4 - class you CAN'T change has member function that does the calculation
+    class BigComplexClassYouCantChange {
+        // has data for calculating function you want to do somethign with
+    };
+
+    // Create a helper wrapper class, inherit it from IRealFunction and use it as RealFunction
+    class BigComplexFunc2 : public IRealFunction {
+        const BigComplexClassYouCantChange &_ref;
+    public:
+        BigComplexFunc2(const BigComplexClassYouCantChange &bigClass) : _ref(bigClass) { }
+
+        double operator()(double x ) const {
+            return 1.0;     /* calculation using _ref */ 
+        }
+    };
+
+    BigComplexClassYouCantChange bigObj;
+    BigComplexFunc2    f1(bigObj);     // usable RealFunction object
+
+    // CASE 5 - create interpolated function from given data
+    Vector<double> x_val(100), y_val(100);    // vectors containing values for interpolation
+
+    LinearInterpRealFunc    f_linear(x_val, y_val);
+    PolynomInterpRealFunc   f_polynom(x_val, y_val, 3);
+    RationalInterpRealFunc  f_rational(x_val, y_val, 3);
+    SplineInterpRealFunc    f_spline(x_val, y_val);
+    BaryRatInterpRealFunc   f_baryrat(x_val, y_val, 3);
+~~~
+
+***Working with functions - derivation, integration***
+~~~ c++
     // numerical derivation of real function (different orders)
     double der_f1 = Derivation::NDer1(f2, 0.5);
     double der_f2 = Derivation::NDer2(f1, 0.5);
@@ -250,23 +317,3 @@ They are used for verification of implemented algorithms, but can also be used a
 ~~~ c++
     // TODO - analyzer example
 ~~~
-
-**Evaluating algorithms precision**
-
-In applying any kind of numerical procedure on computers, observing precision is of paramount importance.
-Following sections describe the precision of implemented algorithms.
-
-[Intro](/docs/testing_precision/testing_precision_intro.md) - introduction
-
-- derivation precision
-- integration precision
-- interpolation precision
-- vector field operations precision
-
-**LICENSING**
-- Code is given as it is, without any warranty. Use it at your own risk.
-- STRICTLY NON-COMMERCIAL USE ONLY!
-- Unfortunately, also unavailable for Open Source project, due to restrictive Numerical Recipes license (for which code I have only personal license).
-- So basically, it is for personal, educational and research use only.
-
-

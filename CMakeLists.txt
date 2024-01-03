@@ -70,8 +70,8 @@ set( MML_DEMO_SOURCES   src/demo_app_main.cpp
 
                         docs_examples/readme_examples/demo1_vectors_matrices.cpp
                         docs_examples/readme_examples/demo2_lin_alg_solvers.cpp
-                        docs_examples/readme_examples/demo3_functions_derivation_integration.cpp
-                        docs_examples/readme_examples/demo4_interpolating_functions.cpp
+                        docs_examples/readme_examples/demo3_defining_functions.cpp
+                        docs_examples/readme_examples/demo4_working_with_functions.cpp
                         docs_examples/readme_examples/demo5_ode_solvers.cpp
                         docs_examples/readme_examples/demo6_vector_field_operations.cpp
                         docs_examples/readme_examples/demo7_parametric_curves.cpp
@@ -92,8 +92,8 @@ set(MML_DOCS_APP_SOURCES    docs_examples/doc_examples_app_main.cpp
 
                             docs_examples/readme_examples/demo1_vectors_matrices.cpp
                             docs_examples/readme_examples/demo2_lin_alg_solvers.cpp
-                            docs_examples/readme_examples/demo3_functions_derivation_integration.cpp
-                            docs_examples/readme_examples/demo4_interpolating_functions.cpp
+                            docs_examples/readme_examples/demo3_defining_functions.cpp
+                            docs_examples/readme_examples/demo4_working_with_functions.cpp
                             docs_examples/readme_examples/demo5_ode_solvers.cpp
                             docs_examples/readme_examples/demo6_vector_field_operations.cpp
                             docs_examples/readme_examples/demo7_parametric_curves.cpp
