@@ -2504,10 +2504,10 @@ namespace MML
         void   Print(std::ostream& stream, int width, int precision) const
         {
             stream << "Dim: " << _dim << std::endl;
-            for (size_t i = 0; i < _dim; i++) 
+            for (int i = 0; i < _dim; i++) 
             {
                 stream << "[ ";
-                for (size_t j = 0; j < _dim; j++) {
+                for (int j = 0; j < _dim; j++) {
                     stream << std::setw(width) << std::setprecision(precision) << (*this)(i,j) << ", ";
                 }                
                 stream << " ]" << std::endl;
@@ -3695,6 +3695,353 @@ namespace MML
             return ret;
         }        
     };
+
+    namespace MatrixUtils
+    {
+        const static inline MatrixNM<Complex, 2, 2> Pauli[]= {
+            MatrixNM<Complex, 2, 2>{ 0, 1, 
+                                     1, 0 },
+            MatrixNM<Complex, 2, 2>{ 0,              Complex(0, -1), 
+                                     Complex(0, 1),  0},
+            MatrixNM<Complex, 2, 2>{ 1,  0, 
+                                     0, -1 }
+        };
+
+        const static inline MatrixNM<Complex, 4, 4> DiracGamma[]= {
+            MatrixNM<Complex, 4, 4>{ 1,  0,  0,  0, 
+                                     0,  1,  0,  0, 
+                                     0,  0, -1,  0, 
+                                     0,  0,  0, -1 },
+            MatrixNM<Complex, 4, 4>{ 0,  0,  0,  1,
+                                     0,  0,  1,  0,
+                                     0, -1,  0,  0,
+                                    -1,  0,  0,  0 },
+            MatrixNM<Complex, 4, 4>{ 0,              0,              0,              Complex(0, -1),
+                                     0,              0,              Complex(0, 1),  0,
+                                     0,              Complex(0, 1),  0,              0,
+                                     Complex(0, -1), 0,              0,              0 },
+            MatrixNM<Complex, 4, 4>{ 0,  0,  1,  0,
+                                     0,  0,  0, -1,
+                                    -1,  0,  0,  0,
+                                     0,  1,  0,  0 }
+        };
+
+        const static inline MatrixNM<Complex, 4, 4> DiracGamma5{0,  0,  1,  0, 
+                                                                0,  0,  0,  1, 
+                                                                1,  0,  0,  0, 
+                                                                0,  1,  0,  0 };
+
+        /////////////////////             Creating Matrix from Vector             ///////////////////
+        template<class _Type>
+        static Matrix<_Type> RowMatrixFromVector(const Vector<_Type> &b)
+        {
+            Matrix<_Type> ret(1, (int) b.size());
+            for( int i=0; i<b.size(); i++)
+                ret[0][i] = b[i];
+
+            return ret;
+        }
+        template<class _Type>
+        static Matrix<_Type> ColumnMatrixFromVector(const Vector<_Type> &b)
+        {
+            Matrix<_Type> ret((int) b.size(), 1);
+            for( int i=0; i<b.size(); i++)
+                ret[i][0] = b[i];
+
+            return ret;
+        }
+        template<class _Type>
+        static Matrix<_Type> DiagonalMatrixFromVector(const Vector<_Type> &b)
+        {
+            Matrix<_Type> ret((int) b.size(), (int) b.size());
+            for( int i=0; i<b.size(); i++)
+                ret[i][i] = b[i];
+
+            return ret;
+        }   
+
+        ///////////////////////             Matrix helpers               ////////////////////
+        template<class _Type>
+        static Matrix<_Type> Commutator(const Matrix<_Type> &a, const Matrix<_Type> &b)
+        {
+            return a*b - b*a;
+        }
+
+        template<class _Type>
+        static Matrix<_Type> AntiCommutator(const Matrix<_Type> &a, const Matrix<_Type> &b)
+        {
+            return a*b + b*a;
+        }
+        
+        template<class _Type>
+        static void MatrixDecompose(const Matrix<_Type> &orig, Matrix<_Type> &outSym, Matrix<_Type> &outAntiSym)
+        {
+            if( orig.RowNum() != orig.ColNum() )
+                throw MatrixDimensionError("MatrixDecompose - matrix must be square", orig.RowNum(), orig.ColNum(), -1, -1);
+
+            outSym = (orig + orig.GetTranspose()) * 0.5;
+            outAntiSym = (orig - orig.GetTranspose()) * 0.5;
+        }
+
+        ///////////////////////             Matrix functions               ////////////////////
+        template<class _Type>
+        static Matrix<_Type> Exp(const Matrix<_Type> &a, int n = 10)
+        {
+            Matrix<_Type> ret(a.RowNum(), a.ColNum());
+            Matrix<_Type> a_pow_n(a);
+
+            double fact = 1.0;
+            ret.MakeUnitMatrix();
+
+            for( int i=1; i<=n; i++ )
+            {
+                ret += a_pow_n / fact;
+                
+                a_pow_n = a_pow_n * a;
+                fact *= (double) i;
+            }
+
+            return ret;
+        }
+
+        ///////////////////////             Real matrix helpers               ////////////////////
+        static bool IsOrthogonal(const Matrix<Real> &mat, double eps = Defaults::IsMatrixOrthogonalPrecision)
+        {
+            if( mat.RowNum() != mat.ColNum() )
+                throw MatrixDimensionError("IsOrthogonal - matrix must be square", mat.RowNum(), mat.ColNum(), -1, -1);
+            
+            Matrix<Real> matProd = mat * mat.GetTranspose();
+
+            return matProd.IsUnit(eps);
+        } 
+
+        //////////////////////             Complex matrix helpers               ///////////////////
+        static Matrix<Complex> GetConjugateTranspose(const Matrix<Complex> &mat)
+        {
+            Matrix<Complex> ret(mat.ColNum(), mat.RowNum());
+
+            for( int i=0; i<mat.RowNum(); i++ )
+                for( int j=0; j<mat.ColNum(); j++ )
+                    ret[j][i] = std::conj(mat[i][j]);
+
+            return ret;
+        }
+
+        static Matrix<Complex> CmplxMatFromRealMat(const Matrix<Real> &mat)
+        {
+            Matrix<Complex> mat_cmplx(mat.RowNum(), mat.ColNum());
+
+            for(int i=0; i<mat.RowNum(); i++ )
+                for(int j=0; j<mat.ColNum(); j++)
+                    mat_cmplx[i][j] = Complex(mat(i,j), 0.0);
+            
+            return mat_cmplx;         
+        }
+
+        static bool IsComplexMatReal(const Matrix<Complex> &mat)
+        {
+            for(int i=0; i<mat.RowNum(); i++ )
+                for(int j=0; j<mat.ColNum(); j++)
+                    if( mat[i][j].imag() != 0.0 )
+                        return false;
+            
+            return true;
+        }        
+
+        static bool IsHermitian(const Matrix<Complex> &mat)
+        {
+            if( mat.RowNum() != mat.ColNum() )
+                throw MatrixDimensionError("IsHermitian - matrix must be square", mat.RowNum(), mat.ColNum(), -1, -1);
+
+            for(int i=0; i<mat.RowNum(); i++ )
+                for(int j=0; j<mat.ColNum(); j++)
+                    if( mat[i][j] != std::conj(mat[j][i]) )
+                        return false;
+            return true;
+        }
+
+        // IsUnitary - complex square matrix U is unitary if its conjugate transpose U* is also its inverse
+        static bool IsUnitary(const Matrix<Complex> &mat)
+        {
+            if( mat.RowNum() != mat.ColNum() )
+                throw MatrixDimensionError("IsUnitary - matrix must be square", mat.RowNum(), mat.ColNum(), -1, -1);
+            
+            Matrix<Complex> matProd = mat * GetConjugateTranspose(mat);
+
+            return matProd.IsUnit();            
+        }
+
+        //////////////////////         enabling Matrix<Complex> - Matrix<Real>  operations         ///////////////////////
+        static Matrix<Complex> AddMat(const Matrix<Complex> &a, const Matrix<Real> &b)
+        {
+            if (a.RowNum() != b.RowNum() || a.ColNum() != b.ColNum())
+                throw MatrixDimensionError("AddMat(Complex, Real) - must be same dim", a.RowNum(), a.ColNum(), b.RowNum(), b.ColNum());
+
+            Matrix<Complex> ret(a);
+            for (int i = 0; i < b.RowNum(); i++)
+                for (int j = 0; j < b.ColNum(); j++)
+                    ret[i][j] += b[i][j];
+            return ret;
+        }
+        static Matrix<Complex> AddMat(const Matrix<Real> &a, const Matrix<Complex> &b)
+        {
+            if (a.RowNum() != b.RowNum() || a.ColNum() != b.ColNum())
+                throw MatrixDimensionError("AddMat(Real, Complex) - must be same dim", a.RowNum(), a.ColNum(), b.RowNum(), b.ColNum());
+
+            Matrix<Complex> ret(b);
+            for (int i = 0; i < a.RowNum(); i++)
+                for (int j = 0; j < a.ColNum(); j++)
+                    ret[i][j] += a[i][j];
+            return ret;
+        }
+
+        static Matrix<Complex> SubMat(const Matrix<Complex> &a, const Matrix<Real> &b)
+        {
+            if (a.RowNum() != b.RowNum() || a.ColNum() != b.ColNum())
+                throw MatrixDimensionError("AddMat(Complex, Real) - must be same dim", a.RowNum(), a.ColNum(), b.RowNum(), b.ColNum());
+
+            Matrix<Complex> ret(a);
+            for (int i = 0; i < b.RowNum(); i++)
+                for (int j = 0; j < b.ColNum(); j++)
+                    ret[i][j] -= b[i][j];
+            return ret;
+        }
+        static Matrix<Complex> SubMat(const Matrix<Real> &a, const Matrix<Complex> &b)
+        {
+            if (a.RowNum() != b.RowNum() || a.ColNum() != b.ColNum())
+                throw MatrixDimensionError("AddMat(Real, Complex) - must be same dim", a.RowNum(), a.ColNum(), b.RowNum(), b.ColNum());
+
+            Matrix<Complex> ret(b);
+            for (int i = 0; i < a.RowNum(); i++)
+                for (int j = 0; j < a.ColNum(); j++)
+                    ret[i][j] = a[i][j] - b[i][j];
+            return ret;
+        }
+
+        // TODO 0.6 - unitarni minus za Matrix!
+        static Matrix<Complex> MulMat(const Complex &a, const Matrix<Real> &b)
+        {
+            Matrix<Complex>	ret(b.RowNum(), b.ColNum());
+            
+            for( int i=0; i<ret.RowNum(); i++ )
+                for( int j=0; j<ret.ColNum(); j++ ) {
+                    ret[i][j] = a * b[i][j];
+                }
+
+            return	ret;
+        }
+        static Matrix<Complex> MulMat(const Matrix<Complex> &a, const Matrix<Real> &b)
+        {
+            if( a.ColNum() != b.RowNum() )
+                throw MatrixDimensionError("Matrix::operator*(Complex, Real)) - a.colNum must be equal to b.rowNum", a.RowNum(), a.ColNum(), b.RowNum(), b.ColNum());
+
+            Matrix<Complex>	ret(a.RowNum(), b.ColNum());
+            for( int i=0; i<ret.RowNum(); i++ )
+                for( int j=0; j<ret.ColNum(); j++ ) {
+                    ret[i][j] = 0.0;
+                    for(int k=0; k<a.ColNum(); k++ )
+                        ret[i][j] += a[i][k] * b[k][j];
+                }
+
+            return	ret;
+        }       
+        static Matrix<Complex> MulMat(const Matrix<Real> &a, const Matrix<Complex> &b)
+        {
+            if( a.ColNum() != b.RowNum() )
+                throw MatrixDimensionError("Matrix::operator*(Real, Complex)) - a.colNum must be equal to b.rowNum", a.RowNum(), a.ColNum(), b.RowNum(), b.ColNum());
+
+            Matrix<Complex>	ret(a.RowNum(), b.ColNum());
+            for( int i=0; i<ret.RowNum(); i++ )
+                for( int j=0; j<ret.ColNum(); j++ ) {
+                    ret[i][j] = 0.0;
+                    for(int k=0; k<a.ColNum(); k++ )
+                        ret[i][j] += a[i][k] * b[k][j];
+                }
+
+            return	ret;
+        }  
+
+        static Vector<Complex> MulMatVec( const Matrix<Real> &a, const Vector<Complex> &b )
+        {
+            if( a.ColNum() != b.size() )
+                throw MatrixDimensionError("operator*(Mat a, Vec b) - a.colNum must be equal to vector size", a.RowNum(), a.ColNum(), (int) b.size(), -1);
+
+            Vector<Complex>	ret(a.RowNum());
+            for( int i=0; i<a.RowNum(); i++ )
+            {
+                ret[i] = 0;
+                for( int j=0; j<a.ColNum(); j++ )
+                    ret[i] += a[i][j] * b[j];
+            }
+            return ret;
+        }
+        static Vector<Complex> MulMatVec( const Matrix<Complex> &a, const Vector<Real> &b )
+        {
+            if( a.ColNum() != b.size() )
+                throw MatrixDimensionError("operator*(Mat a, Vec b) - a.colNum must be equal to vector size", a.RowNum(), a.ColNum(), (int) b.size(), -1);
+
+            Vector<Complex>	ret(a.RowNum());
+            for( int i=0; i<a.RowNum(); i++ )
+            {
+                ret[i] = 0;
+                for( int j=0; j<a.ColNum(); j++ )
+                    ret[i] += a[i][j] * b[j];
+            }
+            return ret;
+        }
+
+        static Vector<Complex> MulVecMat( const Vector<Complex> &a, const Matrix<Real> &b)
+        {
+            if( a.size() != b.RowNum() )
+                throw MatrixDimensionError("operator*(Vec a, Mat b) - vector size must be equal to b.rowNum", (int) a.size(), -1, b.RowNum(), b.ColNum());
+
+            Vector<Complex>	ret(b.ColNum());
+            for( int i=0; i<b.ColNum(); i++ )
+            {
+                ret[i] = 0;
+                for( int j=0; j<b.RowNum(); j++ )
+                    ret[i] += a[j] * b[j][i] ;
+            }
+            return ret;
+        }     
+        static Vector<Complex> MulVecMat( const Vector<Real> &a, const Matrix<Complex> &b)
+        {
+            if( a.size() != b.RowNum() )
+                throw MatrixDimensionError("operator*(Vec a, Mat b) - vector size must be equal to b.rowNum", (int) a.size(), -1, b.RowNum(), b.ColNum());
+
+            Vector<Complex>	ret(b.ColNum());
+            for( int i=0; i<b.ColNum(); i++ )
+            {
+                ret[i] = 0;
+                for( int j=0; j<b.RowNum(); j++ )
+                    ret[i] += a[j] * b[j][i] ;
+            }
+            return ret;
+        }
+
+        static Matrix<Real> GetRealPart(const Matrix<Complex> &a)
+        {
+            Matrix<Real> ret(a.RowNum(), a.ColNum());
+
+            for( int i=0; i<ret.RowNum(); i++ )
+                for( int j=0; j<ret.ColNum(); j++ ) {
+                    ret[i][j] = a[i][j].real();
+                }
+
+            return	ret;
+        }
+        static Matrix<Real> GetImagPart(const Matrix<Complex> &a)
+        {
+            Matrix<Real> ret(a.RowNum(), a.ColNum());
+
+            for( int i=0; i<ret.RowNum(); i++ )
+                for( int j=0; j<ret.ColNum(); j++ ) {
+                    ret[i][j] = a[i][j].imag();
+                }
+
+            return	ret;
+        }  
+    }
 }
 ///////////////////////////   ./include/interfaces/IFunction.h   ///////////////////////////
 
@@ -4342,14 +4689,14 @@ namespace MML
         Real d;
     
     public:
-    // TODO - HIGH, HIGH, TESKO, napraviti da se može odraditi i inplace, a ne da se kao sad uvijek kreira kopija
+    // TODO - HIGH, HIGH, TESKO, napraviti da se moï¿½e odraditi i inplace, a ne da se kao sad uvijek kreira kopija
         LUDecompositionSolver(const Matrix<_Type>  &inMatRef) : n(inMatRef.RowNum()), refOrig(inMatRef), lu(inMatRef), indx(n) 
-// ne može        LUDecompositionSolver(const Matrix<_Type>  &inMatRef) : n(inMatRef.RowNum()), refOrig(inMatRef), lu(Matrix<_Type>(inMatRef.RowNum(), inMatRef.ColNum())), indx(n) 
+// ne moï¿½e        LUDecompositionSolver(const Matrix<_Type>  &inMatRef) : n(inMatRef.RowNum()), refOrig(inMatRef), lu(Matrix<_Type>(inMatRef.RowNum(), inMatRef.ColNum())), indx(n) 
         {
             // Given a Matrix<Real> a[1..n][1..n], this routine replaces it by the LU decomposition of a rowwise
             // permutation of itself. a and n are input. a is output, arranged as in equation (NR 2.3.14);
             // indx[1..n] is an output Vector<Real> that records the row permutation effected by the partial
-            // pivoting; d is output as ±1 depending on whether the number of row interchanges was even
+            // pivoting; d is output as ï¿½1 depending on whether the number of row interchanges was even
             // or odd, respectively. This routine is used in combination with lubksb to solve linear equations
             // or invert a Matrix<Real>.
             const Real TINY=1.0e-40;
@@ -4398,7 +4745,7 @@ namespace MML
         
         void Solve(const Vector<_Type> &b, Vector<_Type> &x)
         {
-            // Solves the set of n linear equations A·X = B. Here a[1..n][1..n] is input, not as the Matrix<Real>
+            // Solves the set of n linear equations Aï¿½X = B. Here a[1..n][1..n] is input, not as the Matrix<Real>
             // A but rather as its LU decomposition, determined by the routine ludcmp. indx[1..n] is input
             // as the permutation Vector<Real> returned by ludcmp. b[1..n] is input as the right-hand side Vector<Real>
             // B, and returns with the solution Vector<Real> X. a, n, and indx are not modified by this routine
@@ -4475,7 +4822,7 @@ namespace MML
             return dd;
         }
         
-        // Improves a solution Vector<Real> x[1..n] of the linear set of equations A · X = B. The Matrix<Real>
+        // Improves a solution Vector<Real> x[1..n] of the linear set of equations A ï¿½ X = B. The Matrix<Real>
         // a[1..n][1..n], and the Vector<Real>s b[1..n] and x[1..n] are input, as is the dimension n.
         // Also input is alud[1..n][1..n], the LU decomposition of a as returned by ludcmp, and
         // the Vector<Real> indx[1..n] also returned by that routine. On output, only x[1..n] is modified,
@@ -4511,7 +4858,7 @@ namespace MML
         CholeskyDecompositionSolver(Matrix<Real> &a) : n(a.RowNum()), el(a) 
         {
             // Given a positive-definite symmetric Matrix<Real> a[1..n][1..n], this routine constructs its Cholesky
-            // decomposition, A = L · LT . On input, only the upper triangle of a need be given; it is not
+            // decomposition, A = L ï¿½ LT . On input, only the upper triangle of a need be given; it is not
             // modified. The Cholesky factor L is returned in the lower triangle of a, except for its diagonal
             // elements which are returned in p[1..n]
             int i,j,k;
@@ -4534,7 +4881,7 @@ namespace MML
         }
         void Solve(const Vector<Real> &b, Vector<Real> &x) 
         {
-            // Solves the set of n linear equations A · x = b, where a is a positive-definite symmetric Matrix<Real>.
+            // Solves the set of n linear equations A ï¿½ x = b, where a is a positive-definite symmetric Matrix<Real>.
             // a[1..n][1..n] and p[1..n] are input as the output of the routine choldc. Only the lower
             // triangle of a is accessed. b[1..n] is input as the right-hand side Vector<Real>. The solution Vector<Real> is
             // returned in x[1..n]. a, n, and p are not modified and can be left in place for successive calls
@@ -4658,7 +5005,7 @@ namespace MML
             }
         }
 
-        // Solves the set of n linear equations A · x = b. a[1..n][1..n], c[1..n], and d[1..n] are
+        // Solves the set of n linear equations A ï¿½ x = b. a[1..n][1..n], c[1..n], and d[1..n] are
         // input as the output of the routine qrdcmp and are not modified. b[1..n] is input as the
         // right-hand side Vector<Real>, and is overwritten with the solution Vector<Real> on output. 
         void Solve(const Vector<Real> &b, Vector<Real> &x) 
@@ -4674,7 +5021,7 @@ namespace MML
         }
         void RSolve(const Vector<Real> &b, Vector<Real> &x) 
         {
-            // Solves the set of n linear equations R · x = b, where R is an upper triangular Matrix<Real> stored in
+            // Solves the set of n linear equations R ï¿½ x = b, where R is an upper triangular Matrix<Real> stored in
             // a and d. a[1..n][1..n] and d[1..n] are input as the output of the routine qrdcmp and
             // are not modified. b[1..n] is input as the right-hand side Vector<Real>, and is overwritten with the
             // solution Vector<Real> on output            
@@ -4704,8 +5051,8 @@ namespace MML
         }
         void update(Vector<Real> &u, Vector<Real> &v) 
         {
-            // Given the QR decomposition of some n × n Matrix<Real>, calculates the QR decomposition of the
-            // Matrix<Real> Q·(R+ u x v). The quantities are dimensioned as r[1..n][1..n], qt[1..n][1..n],
+            // Given the QR decomposition of some n ï¿½ n Matrix<Real>, calculates the QR decomposition of the
+            // Matrix<Real> Qï¿½(R+ u x v). The quantities are dimensioned as r[1..n][1..n], qt[1..n][1..n],
             // u[1..n], and v[1..n]. Note that QT is input and returned in qt.            
             int i,k;
             Vector<Real> w(u);
@@ -4777,7 +5124,7 @@ namespace MML
     public:
         SVDecompositionSolver(const Matrix<Real> &a) : m(a.RowNum()), n(a.ColNum()), u(a), v(n,n), w(n) 
         {
-            // Given a Matrix<Real> a[1..m][1..n], this routine computes its singular value decomposition, A = U·W ·V T . 
+            // Given a Matrix<Real> a[1..m][1..n], this routine computes its singular value decomposition, A = Uï¿½W ï¿½V T . 
             // The Matrix<Real> U replaces a on output. 
             // The diagonal Matrix<Real> of singular values W is output as a Vector<Real> w[1..n]. 
             // The Matrix<Real> V (not the transpose V T ) is output as v[1..n][1..n].            
@@ -5383,131 +5730,15 @@ namespace MML
     typedef Polynom<MatrixNM<Real,4,4>, Real>       MatrixPolynomDim4;
 }
 
-///////////////////////////   ./include/core/MatrixUtils.h   ///////////////////////////
+///////////////////////////   ./include/core/CoreUtils.h   ///////////////////////////
 
 
-// TODO 0.6 - ovo je problem!!!
+
 
 namespace MML
 {
     namespace MatrixUtils
     {
-        const static inline MatrixNM<Complex, 2, 2> Pauli[]= {
-            MatrixNM<Complex, 2, 2>{ 0, 1, 
-                                     1, 0 },
-            MatrixNM<Complex, 2, 2>{ 0,              Complex(0, -1), 
-                                     Complex(0, 1),  0},
-            MatrixNM<Complex, 2, 2>{ 1,  0, 
-                                     0, -1 }
-        };
-
-        const static inline MatrixNM<Complex, 4, 4> DiracGamma[]= {
-            MatrixNM<Complex, 4, 4>{ 1,  0,  0,  0, 
-                                     0,  1,  0,  0, 
-                                     0,  0, -1,  0, 
-                                     0,  0,  0, -1 },
-            MatrixNM<Complex, 4, 4>{ 0,  0,  0,  1,
-                                     0,  0,  1,  0,
-                                     0, -1,  0,  0,
-                                    -1,  0,  0,  0 },
-            MatrixNM<Complex, 4, 4>{ 0,              0,              0,              Complex(0, -1),
-                                     0,              0,              Complex(0, 1),  0,
-                                     0,              Complex(0, 1),  0,              0,
-                                     Complex(0, -1), 0,              0,              0 },
-            MatrixNM<Complex, 4, 4>{ 0,  0,  1,  0,
-                                     0,  0,  0, -1,
-                                    -1,  0,  0,  0,
-                                     0,  1,  0,  0 }
-        };
-
-        const static inline MatrixNM<Complex, 4, 4> DiracGamma5{0,  0,  1,  0, 
-                                                                0,  0,  0,  1, 
-                                                                1,  0,  0,  0, 
-                                                                0,  1,  0,  0 };
-
-        /////////////////////             Creating Matrix from Vector             ///////////////////
-        template<class _Type>
-        static Matrix<_Type> RowMatrixFromVector(const Vector<_Type> &b)
-        {
-            Matrix<_Type> ret(1, (int) b.size());
-            for( int i=0; i<b.size(); i++)
-                ret[0][i] = b[i];
-
-            return ret;
-        }
-        template<class _Type>
-        static Matrix<_Type> ColumnMatrixFromVector(const Vector<_Type> &b)
-        {
-            Matrix<_Type> ret((int) b.size(), 1);
-            for( int i=0; i<b.size(); i++)
-                ret[i][0] = b[i];
-
-            return ret;
-        }
-        template<class _Type>
-        static Matrix<_Type> DiagonalMatrixFromVector(const Vector<_Type> &b)
-        {
-            Matrix<_Type> ret((int) b.size(), (int) b.size());
-            for( int i=0; i<b.size(); i++)
-                ret[i][i] = b[i];
-
-            return ret;
-        }   
-
-        ///////////////////////             Matrix helpers               ////////////////////
-        template<class _Type>
-        static Matrix<_Type> Commutator(const Matrix<_Type> &a, const Matrix<_Type> &b)
-        {
-            return a*b - b*a;
-        }
-
-        template<class _Type>
-        static Matrix<_Type> AntiCommutator(const Matrix<_Type> &a, const Matrix<_Type> &b)
-        {
-            return a*b + b*a;
-        }
-        
-        template<class _Type>
-        static void MatrixDecompose(const Matrix<_Type> &orig, Matrix<_Type> &outSym, Matrix<_Type> &outAntiSym)
-        {
-            if( orig.RowNum() != orig.ColNum() )
-                throw MatrixDimensionError("MatrixDecompose - matrix must be square", orig.RowNum(), orig.ColNum(), -1, -1);
-
-            outSym = (orig + orig.GetTranspose()) * 0.5;
-            outAntiSym = (orig - orig.GetTranspose()) * 0.5;
-        }
-
-        ///////////////////////             Matrix functions               ////////////////////
-        template<class _Type>
-        static Matrix<_Type> Exp(const Matrix<_Type> &a, int n = 10)
-        {
-            Matrix<_Type> ret(a.RowNum(), a.ColNum());
-            Matrix<_Type> a_pow_n(a);
-
-            double fact = 1.0;
-            ret.MakeUnitMatrix();
-
-            for( int i=1; i<=n; i++ )
-            {
-                ret += a_pow_n / fact;
-                
-                a_pow_n = a_pow_n * a;
-                fact *= (double) i;
-            }
-
-            return ret;
-        }
-
-        ///////////////////////             Real matrix helpers               ////////////////////
-        static bool IsOrthogonal(const Matrix<Real> &mat, double eps = Defaults::IsMatrixOrthogonalPrecision)
-        {
-            if( mat.RowNum() != mat.ColNum() )
-                throw MatrixDimensionError("IsOrthogonal - matrix must be square", mat.RowNum(), mat.ColNum(), -1, -1);
-            
-            Matrix<Real> matProd = mat * mat.GetTranspose();
-
-            return matProd.IsUnit(eps);
-        } 
 
         static Real Det(const Matrix<Real> &mat)
         {
@@ -5525,261 +5756,8 @@ namespace MML
 
             return svdSolver.Rank();
         }
+ 
 
-        static bool IsPositiveDefinite(const Matrix<Real> &mat)
-        {
-            UnsymmEigenSolver eigenSolver(mat);
-
-            if(  eigenSolver.getNumReal() < mat.RowNum() )
-                return false;
-
-            for( int i=0; i<mat.RowNum(); i++ )
-                if( eigenSolver.getRealEigenvalues()[i] <= 0.0 )
-                    return false;
-
-            return true;
-        }
-
-        static bool IsPositiveSemiDefinite(const Matrix<Real> &mat)
-        {
-            UnsymmEigenSolver eigenSolver(mat);
-
-            if(  eigenSolver.getNumReal() < mat.RowNum() )
-                return false;
-
-            for( int i=0; i<mat.RowNum(); i++ )
-                if( eigenSolver.getRealEigenvalues()[i] < 0.0 )
-                    return false;
-
-            return true;
-        }        
-
-        //////////////////////             Complex matrix helpers               ///////////////////
-        static Matrix<Complex> GetConjugateTranspose(const Matrix<Complex> &mat)
-        {
-            Matrix<Complex> ret(mat.ColNum(), mat.RowNum());
-
-            for( int i=0; i<mat.RowNum(); i++ )
-                for( int j=0; j<mat.ColNum(); j++ )
-                    ret[j][i] = std::conj(mat[i][j]);
-
-            return ret;
-        }
-
-        static Matrix<Complex> CmplxMatFromRealMat(const Matrix<Real> &mat)
-        {
-            Matrix<Complex> mat_cmplx(mat.RowNum(), mat.ColNum());
-
-            for(int i=0; i<mat.RowNum(); i++ )
-                for(int j=0; j<mat.ColNum(); j++)
-                    mat_cmplx[i][j] = Complex(mat(i,j), 0.0);
-            
-            return mat_cmplx;         
-        }
-
-        static bool IsComplexMatReal(const Matrix<Complex> &mat)
-        {
-            for(int i=0; i<mat.RowNum(); i++ )
-                for(int j=0; j<mat.ColNum(); j++)
-                    if( mat[i][j].imag() != 0.0 )
-                        return false;
-            
-            return true;
-        }        
-
-        static bool IsHermitian(const Matrix<Complex> &mat)
-        {
-            if( mat.RowNum() != mat.ColNum() )
-                throw MatrixDimensionError("IsHermitian - matrix must be square", mat.RowNum(), mat.ColNum(), -1, -1);
-
-            for(int i=0; i<mat.RowNum(); i++ )
-                for(int j=0; j<mat.ColNum(); j++)
-                    if( mat[i][j] != std::conj(mat[j][i]) )
-                        return false;
-            return true;
-        }
-
-        // IsUnitary - complex square matrix U is unitary if its conjugate transpose U* is also its inverse
-        static bool IsUnitary(const Matrix<Complex> &mat)
-        {
-            if( mat.RowNum() != mat.ColNum() )
-                throw MatrixDimensionError("IsUnitary - matrix must be square", mat.RowNum(), mat.ColNum(), -1, -1);
-            
-            Matrix<Complex> matProd = mat * GetConjugateTranspose(mat);
-
-            return matProd.IsUnit();            
-        }
-
-        //////////////////////         enabling Matrix<Complex> - Matrix<Real>  operations         ///////////////////////
-        static Matrix<Complex> AddMat(const Matrix<Complex> &a, const Matrix<Real> &b)
-        {
-            if (a.RowNum() != b.RowNum() || a.ColNum() != b.ColNum())
-                throw MatrixDimensionError("AddMat(Complex, Real) - must be same dim", a.RowNum(), a.ColNum(), b.RowNum(), b.ColNum());
-
-            Matrix<Complex> ret(a);
-            for (int i = 0; i < b.RowNum(); i++)
-                for (int j = 0; j < b.ColNum(); j++)
-                    ret[i][j] += b[i][j];
-            return ret;
-        }
-        static Matrix<Complex> AddMat(const Matrix<Real> &a, const Matrix<Complex> &b)
-        {
-            if (a.RowNum() != b.RowNum() || a.ColNum() != b.ColNum())
-                throw MatrixDimensionError("AddMat(Real, Complex) - must be same dim", a.RowNum(), a.ColNum(), b.RowNum(), b.ColNum());
-
-            Matrix<Complex> ret(b);
-            for (int i = 0; i < a.RowNum(); i++)
-                for (int j = 0; j < a.ColNum(); j++)
-                    ret[i][j] += a[i][j];
-            return ret;
-        }
-
-        static Matrix<Complex> SubMat(const Matrix<Complex> &a, const Matrix<Real> &b)
-        {
-            if (a.RowNum() != b.RowNum() || a.ColNum() != b.ColNum())
-                throw MatrixDimensionError("AddMat(Complex, Real) - must be same dim", a.RowNum(), a.ColNum(), b.RowNum(), b.ColNum());
-
-            Matrix<Complex> ret(a);
-            for (int i = 0; i < b.RowNum(); i++)
-                for (int j = 0; j < b.ColNum(); j++)
-                    ret[i][j] -= b[i][j];
-            return ret;
-        }
-        static Matrix<Complex> SubMat(const Matrix<Real> &a, const Matrix<Complex> &b)
-        {
-            if (a.RowNum() != b.RowNum() || a.ColNum() != b.ColNum())
-                throw MatrixDimensionError("AddMat(Real, Complex) - must be same dim", a.RowNum(), a.ColNum(), b.RowNum(), b.ColNum());
-
-            Matrix<Complex> ret(b);
-            for (int i = 0; i < a.RowNum(); i++)
-                for (int j = 0; j < a.ColNum(); j++)
-                    ret[i][j] = a[i][j] - b[i][j];
-            return ret;
-        }
-
-        // TODO 0.6 - unitarni minus za Matrix!
-        static Matrix<Complex> MulMat(const Complex &a, const Matrix<Real> &b)
-        {
-            Matrix<Complex>	ret(b.RowNum(), b.ColNum());
-            
-            for( int i=0; i<ret.RowNum(); i++ )
-                for( int j=0; j<ret.ColNum(); j++ ) {
-                    ret[i][j] = a * b[i][j];
-                }
-
-            return	ret;
-        }
-        static Matrix<Complex> MulMat(const Matrix<Complex> &a, const Matrix<Real> &b)
-        {
-            if( a.ColNum() != b.RowNum() )
-                throw MatrixDimensionError("Matrix::operator*(Complex, Real)) - a.colNum must be equal to b.rowNum", a.RowNum(), a.ColNum(), b.RowNum(), b.ColNum());
-
-            Matrix<Complex>	ret(a.RowNum(), b.ColNum());
-            for( int i=0; i<ret.RowNum(); i++ )
-                for( int j=0; j<ret.ColNum(); j++ ) {
-                    ret[i][j] = 0.0;
-                    for(int k=0; k<a.ColNum(); k++ )
-                        ret[i][j] += a[i][k] * b[k][j];
-                }
-
-            return	ret;
-        }       
-        static Matrix<Complex> MulMat(const Matrix<Real> &a, const Matrix<Complex> &b)
-        {
-            if( a.ColNum() != b.RowNum() )
-                throw MatrixDimensionError("Matrix::operator*(Real, Complex)) - a.colNum must be equal to b.rowNum", a.RowNum(), a.ColNum(), b.RowNum(), b.ColNum());
-
-            Matrix<Complex>	ret(a.RowNum(), b.ColNum());
-            for( int i=0; i<ret.RowNum(); i++ )
-                for( int j=0; j<ret.ColNum(); j++ ) {
-                    ret[i][j] = 0.0;
-                    for(int k=0; k<a.ColNum(); k++ )
-                        ret[i][j] += a[i][k] * b[k][j];
-                }
-
-            return	ret;
-        }  
-
-        static Vector<Complex> MulMatVec( const Matrix<Real> &a, const Vector<Complex> &b )
-        {
-            if( a.ColNum() != b.size() )
-                throw MatrixDimensionError("operator*(Mat a, Vec b) - a.colNum must be equal to vector size", a.RowNum(), a.ColNum(), (int) b.size(), -1);
-
-            Vector<Complex>	ret(a.RowNum());
-            for( int i=0; i<a.RowNum(); i++ )
-            {
-                ret[i] = 0;
-                for( int j=0; j<a.ColNum(); j++ )
-                    ret[i] += a[i][j] * b[j];
-            }
-            return ret;
-        }
-        static Vector<Complex> MulMatVec( const Matrix<Complex> &a, const Vector<Real> &b )
-        {
-            if( a.ColNum() != b.size() )
-                throw MatrixDimensionError("operator*(Mat a, Vec b) - a.colNum must be equal to vector size", a.RowNum(), a.ColNum(), (int) b.size(), -1);
-
-            Vector<Complex>	ret(a.RowNum());
-            for( int i=0; i<a.RowNum(); i++ )
-            {
-                ret[i] = 0;
-                for( int j=0; j<a.ColNum(); j++ )
-                    ret[i] += a[i][j] * b[j];
-            }
-            return ret;
-        }
-
-        static Vector<Complex> MulVecMat( const Vector<Complex> &a, const Matrix<Real> &b)
-        {
-            if( a.size() != b.RowNum() )
-                throw MatrixDimensionError("operator*(Vec a, Mat b) - vector size must be equal to b.rowNum", (int) a.size(), -1, b.RowNum(), b.ColNum());
-
-            Vector<Complex>	ret(b.ColNum());
-            for( int i=0; i<b.ColNum(); i++ )
-            {
-                ret[i] = 0;
-                for( int j=0; j<b.RowNum(); j++ )
-                    ret[i] += a[j] * b[j][i] ;
-            }
-            return ret;
-        }     
-        static Vector<Complex> MulVecMat( const Vector<Real> &a, const Matrix<Complex> &b)
-        {
-            if( a.size() != b.RowNum() )
-                throw MatrixDimensionError("operator*(Vec a, Mat b) - vector size must be equal to b.rowNum", (int) a.size(), -1, b.RowNum(), b.ColNum());
-
-            Vector<Complex>	ret(b.ColNum());
-            for( int i=0; i<b.ColNum(); i++ )
-            {
-                ret[i] = 0;
-                for( int j=0; j<b.RowNum(); j++ )
-                    ret[i] += a[j] * b[j][i] ;
-            }
-            return ret;
-        }
-
-        static Matrix<Real> GetRealPart(const Matrix<Complex> &a)
-        {
-            Matrix<Real> ret(a.RowNum(), a.ColNum());
-
-            for( int i=0; i<ret.RowNum(); i++ )
-                for( int j=0; j<ret.ColNum(); j++ ) {
-                    ret[i][j] = a[i][j].real();
-                }
-
-            return	ret;
-        }
-        static Matrix<Real> GetImagPart(const Matrix<Complex> &a)
-        {
-            Matrix<Real> ret(a.RowNum(), a.ColNum());
-
-            for( int i=0; i<ret.RowNum(); i++ )
-                for( int j=0; j<ret.ColNum(); j++ ) {
-                    ret[i][j] = a[i][j].imag();
-                }
-
-            return	ret;
-        }  
     }
 }
 ///////////////////////////   ./include/core/Derivation.h   ///////////////////////////
@@ -8035,7 +8013,7 @@ namespace MML::Integration
     {
         // Returns the integral of the function func from a to b. The parameters EPS can be set to the
         // desired fractional accuracy and JMAX so that 2 to the power JMAX-1 is the maximum allowed
-        // number of steps. Integration is performed by Simpson’s rule.
+        // number of steps. Integration is performed by Simpsonï¿½s rule.
 
         // The routine qsimp will in general be more efficient than qtrap (i.e., require
         // fewer function evaluations) when the function to be integrated has a finite 4th
@@ -8119,8 +8097,8 @@ namespace MML::Integration
 
     static Real IntegrateRomberg(const IRealFunction &func, const Real a, const Real b, Real req_eps)
     {
-        // Returns the integral of the function func from a to b. Integration is performed by Romberg’s
-        // method of order 2K, where, e.g., K=2 is Simpson’s rule.
+        // Returns the integral of the function func from a to b. Integration is performed by Rombergï¿½s
+        // method of order 2K, where, e.g., K=2 is Simpsonï¿½s rule.
 
         // The routine qromb, along with its required trapzd and polint, is quite
         // powerful for sufficiently smooth (e.g., analytic) integrands, integrated over intervals
@@ -8819,7 +8797,7 @@ namespace MML
         mutable Real dy;
 
         // The user interface to Poly_interp is virtually the same as for Linear_interp
-        // (end of ÷3.1), except that an additional argument in the constructor sets M, the number of points used (the order plus one). 
+        // (end of ï¿½3.1), except that an additional argument in the constructor sets M, the number of points used (the order plus one). 
         PolynomInterpRealFunc(Vector<Real> &xv, Vector<Real> &yv, int m) : RealFunctionInterpolatedBase(xv,yv,m), dy(0.) 
         {}
         
@@ -8857,7 +8835,7 @@ namespace MML
                 y += (dy=(2*(ns+1) < (mm-m) ? c[ns+1] : d[ns--]));
                 // After each column in the tableau is completed, we decide which correction, c or d, we
                 // want to add to our accumulating value of y, i.e., which path to take through the tableau
-                // — forking up or down. We do this in such a way as to take the most “straight line”
+                // ï¿½ forking up or down. We do this in such a way as to take the most ï¿½straight lineï¿½
                 // route through the tableau to its apex, updating ns accordingly to keep track of where
                 // we are. This route keeps the partial approximations centered (insofar as possible) on
                 // the target x. The last dy added is thus the error indication.                
@@ -10564,7 +10542,7 @@ class ChebyshevApproximation {
 	
     // Chebyshev fit: Given a function func, lower and upper limits of the interval [a,b], compute and
     // save nn coefficients of the Chebyshev approximation such that func.(x) = sum( ... ), where y and x are related by (5.8.10). 
-    // This routine is intended to be called with moderately large n (e.g., 30 or 50), the array of c’s subsequently to be truncated at the smaller value
+    // This routine is intended to be called with moderately large n (e.g., 30 or 50), the array of cï¿½s subsequently to be truncated at the smaller value
     // m such that cm and subsequent elements are negligible.
     ChebyshevApproximation(const IRealFunction &func, Real aa, Real bb, int nn=50)
         : n(nn), m(nn), c(n), a(aa), b(bb)
@@ -11696,11 +11674,11 @@ PlanarRotatingSystem disk_rotation(pocetni phi, brzina rotacije);
 - za dane dvije koord, lat i long, daje poziciju u odnosu na dani fiksni koord sustav
 LocalCartesian disk_surface(disk_rotation, lat, long);
 
-- što izracunati? 
+- ï¿½to izracunati? 
     - artiljerijski hitac s dane pozicije i po danoj paraboli
     - gdje ce pasti - koordinate u jednom i drugom sustavu
 
-- i onda još dodati vrtuljak na toj površini!
+- i onda joï¿½ dodati vrtuljak na toj povrï¿½ini!
 
 MovingDynamicalSytem3D earth_around_sun(funkcija ovisnosti pozicije u odnosu na GLOBALNI KARTEZIJEV sustav);
 RotatingSystem3D earth_rotation(earth_around_sun);
@@ -12125,7 +12103,7 @@ namespace MML
 ///////////////////////////   ./include/algorithms/EigenSystemSolvers.h   ///////////////////////////
 
 
-// Given the eigenvalues d[0..n-1] and (optionally) the eigenvectors v[0..n-1][0..n-1] as determined by Jacobi (÷11.1) or tqli (÷11.4), this routine sorts the eigenvalues into descending
+// Given the eigenvalues d[0..n-1] and (optionally) the eigenvectors v[0..n-1][0..n-1] as determined by Jacobi (ï¿½11.1) or tqli (ï¿½11.4), this routine sorts the eigenvalues into descending
 // order and rearranges the columns of v correspondingly. The method is straight insertion.
 static void eigsrt(MML::Vector<Real> &d, MML::Matrix<Real> *v = NULL)
 {
@@ -12154,7 +12132,7 @@ static void eigsrt(MML::Vector<Real> &d, MML::Matrix<Real> *v = NULL)
 
 namespace MML
 {
-    // Computes all eigenvalues and eigenvectors of a real symmetric matrix by Jacobi’s method.
+    // Computes all eigenvalues and eigenvectors of a real symmetric matrix by Jacobiï¿½s method.
     struct Jacobi
     {
         const int n;
@@ -12403,7 +12381,7 @@ namespace MML
 
         // QL algorithm with implicit shifts to determine the eigenvalues and (optionally) the eigenvectors
         // of a real, symmetric, tridiagonal matrix, or of a real symmetric matrix previously reduced by
-        // tred2 (÷11.3). On input, d[0..n-1] contains the diagonal elements of the tridiagonal matrix.
+        // tred2 (ï¿½11.3). On input, d[0..n-1] contains the diagonal elements of the tridiagonal matrix.
         // On output, it returns the eigenvalues. The vector e[0..n-1] inputs the subdiagonal elements
         // of the tridiagonal matrix, with e[0] arbitrary. On output e is destroyed. If the eigenvectors of
         // a tridiagonal matrix are desired, the matrix z[0..n-1][0..n-1] is input as the identity matrix.
@@ -16386,6 +16364,44 @@ namespace MML
                 throw("No skew/kurtosis when variance = 0 (in moment)");
         }
     };
+}
+///////////////////////////   ./include/algorithms/MatrixAlg.h   ///////////////////////////
+
+
+
+
+namespace MML
+{
+    namespace MatrixUtils
+    {
+        static bool IsPositiveDefinite(const Matrix<Real> &mat)
+        {
+            UnsymmEigenSolver eigenSolver(mat);
+
+            if(  eigenSolver.getNumReal() < mat.RowNum() )
+                return false;
+
+            for( int i=0; i<mat.RowNum(); i++ )
+                if( eigenSolver.getRealEigenvalues()[i] <= 0.0 )
+                    return false;
+
+            return true;
+        }
+
+        static bool IsPositiveSemiDefinite(const Matrix<Real> &mat)
+        {
+            UnsymmEigenSolver eigenSolver(mat);
+
+            if(  eigenSolver.getNumReal() < mat.RowNum() )
+                return false;
+
+            for( int i=0; i<mat.RowNum(); i++ )
+                if( eigenSolver.getRealEigenvalues()[i] < 0.0 )
+                    return false;
+
+            return true;
+        }        
+    }
 }
 ///////////////////////////   ./include/systems/LinAlgEqSystem.h   ///////////////////////////
 

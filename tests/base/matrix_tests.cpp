@@ -5,7 +5,7 @@
 #else
 #include "base/Vector.h"
 #include "base/Matrix.h"
-#include "core/MatrixUtils.h"
+#include "base/BaseUtils.h"
 #endif
 
 using namespace MML;

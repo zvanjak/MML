@@ -5,7 +5,7 @@
 #include "../include/base/Matrix.h"
 #include "../include/base/BaseUtils.h"
 
-#include "../include/core/MatrixUtils.h"
+#include "../include/core/CoreUtils.h"
 #include "../include/core/LinAlgEqSolvers.h"
 
 #include "../include/algorithms/EigenSystemSolvers.h"

@@ -5,7 +5,8 @@
 
 #include "base/Vector.h"
 #include "base/Matrix.h"
-#include "core/MatrixUtils.h"
+
+#include "core/CoreUtils.h"
 
 #endif
 

@@ -36,7 +36,7 @@ listFiles = ["./include/MMLBase.h",
             "./include/core/LinAlgEqSolvers.h",
             "./include/core/VectorSpace.h",
             "./include/core/Polynom.h",
-            "./include/core/MatrixUtils.h",
+            "./include/core/CoreUtils.h",
 
             "./include/core/Derivation.h",
             "./include/core/Integration.h",
@@ -75,6 +75,7 @@ listFiles = ["./include/MMLBase.h",
             "./include/algorithms/RootFinding.h",
             "./include/algorithms/RootFindingMultidim.h",
             "./include/algorithms/Statistics.h",
+            "./include/algorithms/MatrixAlg.h",
 
             "./include/systems/LinAlgEqSystem.h",
             "./include/systems/DiffEqSystem.h"]

@@ -3,7 +3,7 @@
 #ifdef MML_USE_SINGLE_HEADER
 #include "MML.h"
 #else
-#include "core/MatrixUtils.h"
+#include "core/CoreUtils.h"
 #endif
 
 #include "../test_data/linear_alg_eq_systems_test_bed.h"

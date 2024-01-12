@@ -117,16 +117,16 @@ set(CATCH_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/catch)
 add_library(Catch INTERFACE)
 target_include_directories(Catch INTERFACE ${CATCH_INCLUDE_DIR})
 
-file(GLOB MML_TESTS tests/core/algebra_tests.cpp
+file(GLOB MML_TESTS tests/base/algebra_tests.cpp
 
-                    tests/core/coreutils_tests.cpp
-                    tests/core/geometry_tests.cpp
-                    tests/core/matrix_tests.cpp
-                    tests/core/matrix_other_tests.cpp
-                    tests/core/matrixNM_tests.cpp
-                    tests/core/tensors_tests.cpp
-                    tests/core/vector_tests.cpp
-                    tests/core/vectorN_tests.cpp 
+                    tests/base/baseutils_tests.cpp
+                    tests/base/geometry_tests.cpp
+                    tests/base/matrix_tests.cpp
+                    tests/base/matrix_other_tests.cpp
+                    tests/base/matrixNM_tests.cpp
+                    tests/base/tensors_tests.cpp
+                    tests/base/vector_tests.cpp
+                    tests/base/vectorN_tests.cpp 
 
                     tests/core/coord_transf_tests.cpp
                     tests/core/derivation_tests.cpp                    

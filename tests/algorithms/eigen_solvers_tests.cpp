@@ -6,7 +6,8 @@
 #include "base/Vector.h"
 #include "base/Matrix.h"
 #include "base/BaseUtils.h"
-#include "core/MatrixUtils.h"
+
+#include "core/CoreUtils.h"
 
 #include "algorithms/EigenSystemSolvers.h"
 
