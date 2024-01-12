@@ -3,8 +3,8 @@
 #else
 #include "MMLBase.h"
 
-#include "core/Vector.h"
-#include "core/Matrix.h"
+#include "base/Vector.h"
+#include "base/Matrix.h"
 
 #include "core/Function.h"
 #include "basic_types/Curves.h"
@@ -37,7 +37,7 @@ void Readme_geometry()
 {
 }
 
-void Demo_Readme_Examples()
+void Docs_Readme_Examples()
 {
     Readme_vectors_matrices();
     Readme_linear_system_solvers();

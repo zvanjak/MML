@@ -61,7 +61,7 @@ void Test_Speed_Linear_alg_eq_solvers();
 void Test_Precision_Derivation();
 void Test_Precision_Integration();
 
-void Demo_Readme_Examples();
+void Docs_Readme_Examples();
 void Demo_Visualization_Examples();
 
 
@@ -131,6 +131,6 @@ int main(int, char**)
     // Test_Precision_Derivation();
     // Test_Precision_Integration();
 
-    Demo_Readme_Examples();
-    Demo_Visualization_Examples();
+    // Docs_Readme_Examples();
+    // Demo_Visualization_Examples();
 }

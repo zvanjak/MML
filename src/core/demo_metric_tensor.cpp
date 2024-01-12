@@ -4,7 +4,7 @@
 #else
 #include "MMLBase.h"
 
-#include "core/Tensor.h"
+#include "base/Tensor.h"
 #include "core/CoordTransf.h"
 #include "core/MetricTensor.h"
 

@@ -115,7 +115,7 @@ void Test_SVD_decomposition_solver()
     std::cout << "Right side:\n";        std::cout << vecrhs4 << std::endl;
 
     SVDecompositionSolver svdSolver(matcopy);
-    svdSolver.solve(vecrhs4, solVec);
+    svdSolver.Solve(vecrhs4, solVec);
 
     std::cout << "Solution:\n" << solVec << std::endl;
     std::cout << "Multiplying solution with matrix: " << origMat * solVec << std::endl;

@@ -1,1 +1,1 @@
-# Eigne solvers
+# Eigen solvers

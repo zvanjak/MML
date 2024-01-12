@@ -88,7 +88,7 @@ static const int num_evals = 1000000;
 
 void Test_Speed_Functions()
 {
-    std::cout << "TESTING SPEED OF FUNCTIONS\n";
+    std::cout << "TESTING SPEED OF FUNCTION EVALUATION\n";
 
     using std::chrono::duration;
     using std::chrono::duration_cast;

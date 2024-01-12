@@ -4,8 +4,7 @@
 #ifdef MML_USE_SINGLE_HEADER
 #include "MML.h"
 #else
-#include "core/Matrix.h"
-#include "core/MatrixSym.h"
+#include "base/Matrix.h"
 #endif
 
 namespace MML::TestBeds

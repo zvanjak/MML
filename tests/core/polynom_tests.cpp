@@ -75,7 +75,7 @@ TEST_CASE("Test_Polynom_operator==", "[simple]") {
     REQUIRE(poly4 == poly4b * (-1));
 }
 
-// TODO - finish these
+// TODO 6.0 - finish these
 TEST_CASE("Test_Polynom_operator+", "[simple]") {
     RealPolynom poly({3.5});
 }

@@ -3,7 +3,7 @@
 #else
 #include "MMLBase.h"
 
-#include "core/Geometry.h"
+#include "base/Geometry.h"
 #include "basic_types/Geometry2D.h"
 #include "basic_types/Geometry3D.h"
 #endif

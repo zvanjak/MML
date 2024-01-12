@@ -315,7 +315,7 @@ namespace MML::TestBeds
                         [](double x) { return 0.5 * log(1 - x*x) + x * atanh(x);}, "0.5 * log(1 - x^2) + x * atanh(x)"}
             };
 
-        // TODO - naći još bar 5 složenih funkcija za derivaciju
+        // TODO - HIGH naći još bar 5 složenih funkcija za derivaciju
         const static inline TestFunctionRealWithDerivation _listFuncRealWithDerivation[] = { 
                 {"TestDer1", CompleteRInterval(), 
                             OpenInterval(-20.0, 20.0 ),
@@ -339,7 +339,7 @@ namespace MML::TestBeds
                             [](double x) { return cos(x);},  "cos(x)"}
             };
 
-        // TODO - naći još bar 5 složenih funkcija za integraciju
+        // TODO - HIGH naći još bar 5 složenih funkcija za integraciju
         const static inline TestFunctionRealWithIntegral _listFuncRealWithIntegral[] = { 
                 {"TestInt1", CompleteRInterval(), 
                             OpenInterval(-20.0, 20.0 ),

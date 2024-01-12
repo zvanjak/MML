@@ -10,27 +10,28 @@ set( MML_DEMO_SOURCES   src/demo_app_main.cpp
 
                         src/utilities/demo_intervals.cpp
 
-                        src/core/demo_algebra.cpp
+                        src/base/demo_algebra.cpp
+                        src/base/demo_baseutils.cpp
+                        src/base/demo_geometry.cpp
+                        src/base/demo_matrix.cpp
+                        src/base/demo_matrix_other.cpp
+                        src/base/demo_matrixnm.cpp
+                        src/base/demo_tensors.cpp
+                        src/base/demo_vector.cpp
+                        src/base/demo_vectorn.cpp
+
                         src/core/demo_chebyshev_approximation.cpp
                         src/core/demo_coord_transf.cpp
-                        src/core/demo_coreutils.cpp
                         src/core/demo_derivation.cpp
                         src/core/demo_function.cpp
-                        src/core/demo_geometry.cpp
                         src/core/demo_integration.cpp
                         src/core/demo_interpolated_function.cpp
                         src/core/demo_linear_alg_eq_solvers.cpp
                         src/core/demo_linear_functional.cpp
                         src/core/demo_linear_operator.cpp
-                        src/core/demo_matrix.cpp
-                        src/core/demo_matrix_other.cpp
-                        src/core/demo_matrixnm.cpp
                         src/core/demo_polynom.cpp
                         src/core/demo_quadratic_form.cpp
                         src/core/demo_serialization.cpp
-                        src/core/demo_tensors.cpp
-                        src/core/demo_vector.cpp
-                        src/core/demo_vectorn.cpp
                         src/core/demo_vector_spaces.cpp
                         src/core/demo_metric_tensor.cpp
                         src/core/demo_field_operations.cpp
@@ -67,7 +68,7 @@ set( MML_DEMO_SOURCES   src/demo_app_main.cpp
                         src/visualization_examples/demo4_vector_field_gravity.cpp
                         src/visualization_examples/demo5_vector_field_EM.cpp
                         src/visualization_examples/visualization_examples.cpp
-
+                        
                         docs_examples/readme_examples/demo1_vectors_matrices.cpp
                         docs_examples/readme_examples/demo2_lin_alg_solvers.cpp
                         docs_examples/readme_examples/demo3_defining_functions.cpp
@@ -77,8 +78,6 @@ set( MML_DEMO_SOURCES   src/demo_app_main.cpp
                         docs_examples/readme_examples/demo7_parametric_curves.cpp
                         docs_examples/readme_examples/demo8_visualizators.cpp
                         docs_examples/readme_examples/demo9_function_analyzer.cpp
-                        docs_examples/readme_examples/demo99_derivation.cpp
-                        docs_examples/readme_examples/demo99_integration.cpp
                         docs_examples/readme_examples/readme_examples.cpp
                       )
 
@@ -99,9 +98,16 @@ set(MML_DOCS_APP_SOURCES    docs_examples/doc_examples_app_main.cpp
                             docs_examples/readme_examples/demo7_parametric_curves.cpp
                             docs_examples/readme_examples/demo8_visualizators.cpp
                             docs_examples/readme_examples/demo9_function_analyzer.cpp
-                            docs_examples/readme_examples/demo99_derivation.cpp
-                            docs_examples/readme_examples/demo99_integration.cpp
                             docs_examples/readme_examples/readme_examples.cpp
+
+                            docs_examples/examples/main_example.cpp
+                            docs_examples/examples/example1_kosi_hitac.cpp
+                            docs_examples/examples/example2_collision_calculator.cpp
+                            docs_examples/examples/example3_tensor_of_inertia.cpp
+                            docs_examples/examples/example4_em_field_visualization.cpp
+                            docs_examples/examples/example5_voyager_travels.cpp
+                            docs_examples/examples/example6_electric_charge_distribution.cpp
+                            docs_examples/examples/examples.cpp
 )
 add_executable(DocsApp ${MML_DOCS_APP_SOURCES})
 target_include_directories(DocsApp PRIVATE include)
@@ -112,45 +118,48 @@ add_library(Catch INTERFACE)
 target_include_directories(Catch INTERFACE ${CATCH_INCLUDE_DIR})
 
 file(GLOB MML_TESTS tests/core/algebra_tests.cpp
-                    tests/core/coord_transf_tests.cpp
+
                     tests/core/coreutils_tests.cpp
-                    tests/core/derivation_tests.cpp                    
-                    tests/core/function_tests.cpp
-                    tests/core/function_serialization_tests.cpp
-                    tests/core/functional_tests.cpp
                     tests/core/geometry_tests.cpp
-                    tests/core/integration_tests.cpp
-                    tests/core/interpolated_functions_tests.cpp
-                    tests/core/linear_alg_eq_solvers_tests.cpp 
                     tests/core/matrix_tests.cpp
                     tests/core/matrix_other_tests.cpp
                     tests/core/matrixNM_tests.cpp
-                    tests/core/polynom_tests.cpp
                     tests/core/tensors_tests.cpp
                     tests/core/vector_tests.cpp
                     tests/core/vectorN_tests.cpp 
+
+                    tests/core/coord_transf_tests.cpp
+                    tests/core/derivation_tests.cpp                    
                     tests/core/field_operations_tests.cpp 
-                    tests/core/metric_tensor_tests.cpp
+                    tests/core/function_tests.cpp
+                    tests/core/function_serialization_tests.cpp
+                    tests/core/functional_tests.cpp
+                    tests/core/integration_tests.cpp
+                    tests/core/interpolated_functions_tests.cpp
+                    tests/core/linear_alg_eq_solvers_tests.cpp 
                     tests/core/matrixutils_tests.cpp
+                    tests/core/polynom_tests.cpp
+                    tests/core/metric_tensor_tests.cpp
 
                     tests/basic_types/coord_system_tests.cpp
                     tests/basic_types/function_space_tests.cpp
-                    tests/core/geometry_2d_tests.cpp
-                    tests/core/geometry_3d_tests.cpp
-                    tests/basic_types/surfaces_tests.cpp
+                    tests/basic_types/geometry_2d_tests.cpp
+                    tests/basic_types/geometry_3d_tests.cpp
 
                     tests/algorithms/diff_geom_alg_tests.cpp  
                     tests/algorithms/eigen_solvers_tests.cpp 
                     tests/algorithms/function_analyzer_tests.cpp
                     tests/algorithms/ode_system_solvers_tests.cpp  
                     tests/algorithms/path_integration_tests.cpp  
+                    tests/algorithms/root_finding_tests.cpp  
+                    tests/algorithms/root_finding_multidim_tests.cpp  
 
                     tests/precision/derivation_precision_tests.cpp 
                     tests/precision/integration_precision_tests.cpp 
 
-                    tests/intervals_tests.cpp
+                    tests/utilities/intervals_tests.cpp
 )
 
-add_executable(MML_Tests "mmlib_test_runner.cpp" ${MML_TESTS} )
+add_executable(MML_Tests "tests/mml_test_runner.cpp" ${MML_TESTS} )
 target_link_libraries(MML_Tests Catch)
 target_include_directories(MML_Tests PRIVATE include)

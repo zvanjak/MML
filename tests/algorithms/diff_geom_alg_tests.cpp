@@ -8,7 +8,7 @@
 #include <cmath>
 
 #include "utilities/Constants.h"
-#include "core/VectorN.h"
+#include "base/VectorN.h"
 
 #include "core/Function.h"
 #include "basic_types/Curves.h"

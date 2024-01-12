@@ -3,9 +3,9 @@
 #ifdef MML_USE_SINGLE_HEADER
 #include "MML.h"
 #else
-#include "core/Vector.h"
-#include "core/Matrix.h"
-#include "core/CoreUtils.h"
+#include "base/Vector.h"
+#include "base/Matrix.h"
+#include "base/BaseUtils.h"
 #include "core/MatrixUtils.h"
 
 #include "algorithms/EigenSystemSolvers.h"

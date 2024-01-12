@@ -4,8 +4,8 @@
 #ifdef MML_USE_SINGLE_HEADER
 #include "MML.h"
 #else
-#include "core/VectorN.h"
-#include "core/Matrix.h"
+#include "base/VectorN.h"
+#include "base/Matrix.h"
 
 #include "core/Function.h"
 #endif

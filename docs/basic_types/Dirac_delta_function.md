@@ -1,1 +1,1 @@
-** Dirac delta function **
+# Dirac delta function

@@ -4,8 +4,8 @@
 #ifdef MML_USE_SINGLE_HEADER
 #include "MML.h"
 #else
-#include "core/Vector.h"
-#include "core/Matrix.h"
+#include "base/Vector.h"
+#include "base/Matrix.h"
 #include "basic_types/ODESystem.h"
 #endif
 
@@ -63,7 +63,7 @@ namespace MML::TestBeds
        const static inline std::pair<std::string, ODESystem> _listODESystems[] = 
             { 
                 { "simple 1", ODESystem{3, fnc12} },
-                { "simple 2", ODESystem{2, VanDerPolEps0_1 } },
+                { "simple 2", ODESystem{2, VanDerPolMju0_1 } },
                 { "VanDerPol 0.1", ODESystem{2, [](double t, const Vector<Real> &x, Vector<Real> &dxdt) { return VanDerPol(0.1, t, x, dxdt); } } }
             };
         const static inline std::pair<std::string, ODESystemWithJacobian> _listODESystemsWithJac[] = 

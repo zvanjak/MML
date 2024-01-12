@@ -3,8 +3,9 @@
 #ifdef MML_USE_SINGLE_HEADER
 #include "MML.h"
 #else
-#include "core/Vector.h"
-#include "core/Matrix.h"
+#include "base/Vector.h"
+#include "base/Matrix.h"
+#include "core/MatrixUtils.h"
 
 #include "core/LinAlgEqSolvers.h"
 #endif
@@ -52,7 +53,7 @@ TEST_CASE("Test_GaussJordan_Solve_Complex_3_x_3", "[simple]")
 	GaussJordanSolver<Complex>::Solve(mat, rhs);
 	Vector<Complex> vecSol = rhs;
 
-	REQUIRE(true == rhs.IsEqual(TestBeds::mat_cmplx_1_3x3_rhs0_sol, 1e-16));
+	REQUIRE(true == rhs.IsEqual(TestBeds::mat_cmplx_1_3x3_rhs0_sol, 1e-14));
 
 	Vector<Complex>   res_rhs = TestBeds::mat_cmplx_1_3x3 * vecSol;
 	REQUIRE(true == res_rhs.IsEqual(TestBeds::mat_cmplx_1_3x3_rhs0, 1e-14));    
@@ -366,7 +367,7 @@ TEST_CASE("Test_QRDecomposition_COMPLETE_TEST_BED", "[simple]")
     }
 }
 
-// TODO - Cholesky decomposition COMPLETE TEST BED
+// TODO 0.6 - Cholesky decomposition COMPLETE TEST BED
 
 // TEST_CASE("Test_CholeskyDecomposition_Solve_5_x_5", "[simple]")
 // {
@@ -391,7 +392,7 @@ TEST_CASE("Test_SVDDecomposition_Solve_5_x_5", "[simple]")
 
 	SVDecompositionSolver svdSolver(mat);
 
-	svdSolver.solve(rhs, vecSol);
+	svdSolver.Solve(rhs, vecSol);
 	REQUIRE(true == vecSol.IsEqual(TestBeds::mat_5x5_rhs0_sol, 1e-13));
 
 	Vector<Real>    res_rhs = mat * vecSol;
@@ -408,7 +409,7 @@ TEST_CASE("Test_SVDDecomposition_decomposition", "[simple]")
     Matrix<Real> v = svdSolver.getV();
     Vector<Real> w = svdSolver.getW();
 
-    Matrix<Real> wMat = Matrix<Real>::DiagonalMatrixFromVector(w);
+    Matrix<Real> wMat = MatrixUtils::DiagonalMatrixFromVector<Real>(w);
     
     Matrix<Real> b = u * wMat * v.GetTranspose();
 

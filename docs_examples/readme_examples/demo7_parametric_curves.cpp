@@ -16,6 +16,10 @@ using namespace MML;
 
 void Readme_parametric_curves()
 {
+    std::cout << "***********************************************************************" << std::endl;
+    std::cout << "****                  README - parametric curves                   ****" << std::endl;
+    std::cout << "***********************************************************************" << std::endl;
+
     // creating curve directly with lambda
     ParametricCurve<3>        test_curve1( [](double t) -> VectorN<Real, 3> { return VectorN<Real, 3>{t, t*t, t*t*t}; } );
     

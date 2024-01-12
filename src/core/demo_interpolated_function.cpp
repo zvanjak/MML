@@ -5,8 +5,8 @@
 
 #include "utilities/DataContainers.h"
 
-#include "core/Vector.h"
-#include "core/Matrix.h"
+#include "base/Vector.h"
+#include "base/Matrix.h"
 
 #include "core/Function.h"
 #include "core/InterpolatedFunction.h"

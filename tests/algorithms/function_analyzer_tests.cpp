@@ -3,7 +3,7 @@
 #ifdef MML_USE_SINGLE_HEADER
 #include "MML.h"
 #else
-#include "core/Vector.h"
+#include "base/Vector.h"
 
 #include "core/Function.h"
 #include "core/InterpolatedFunction.h"

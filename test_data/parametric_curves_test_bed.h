@@ -4,7 +4,7 @@
 #ifdef MML_USE_SINGLE_HEADER
 #include "MML.h"
 #else
-#include "core/VectorN.h"
+#include "base/VectorN.h"
 #include "core/Function.h"
 #endif
 
@@ -12,7 +12,7 @@ namespace MML:: TestBeds
 {
     // TODO - add planar curves
     // TODO - add planar polar curves
-    // TODO - add 5 curves with arc length parametrization
+    // TODO - add curves with arc length parametrization
     // arbitrary parametrization
     struct TestSpaceCurve
     {

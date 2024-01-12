@@ -3,8 +3,8 @@
 #else
 #include "MMLBase.h"
 
-#include "core/Vector.h"
-#include "core/Matrix.h"
+#include "base/Vector.h"
+#include "base/Matrix.h"
 
 #include "core/Function.h"
 #include "core/InterpolatedFunction.h"
@@ -112,6 +112,10 @@ void Readme_defining_functions_case_5_usage()
 
 void Readme_defining_functions()
 {
+    std::cout << "***********************************************************************" << std::endl;
+    std::cout << "****                  README - defining functions                  ****" << std::endl;
+    std::cout << "***********************************************************************" << std::endl;
+
     Readme_defining_functions_case_1_usage();
     Readme_defining_functions_case_2_usage();
     Readme_defining_functions_case_3_usage();

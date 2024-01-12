@@ -1,6 +1,8 @@
-void Demo_Readme_Examples();
+void Docs_Examples();
+void Docs_Readme_Examples();
 
 int main()
 {
-    Demo_Readme_Examples();
+    Docs_Readme_Examples();
+    Docs_Examples();
 }

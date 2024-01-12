@@ -11,5 +11,8 @@ using namespace MML;
 
 void Readme_visualizators()
 {
+    std::cout << "***********************************************************************" << std::endl;
+    std::cout << "****                   README - visualizators                      ****" << std::endl;
+    std::cout << "***********************************************************************" << std::endl;
 
 }

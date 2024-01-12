@@ -1,9 +1,9 @@
 //  __ __ __ __ _
 // |  |  |  |  | |    Minimal Math Library for Modern C++
-// | | | | | | | |__  version 0.5.0
+// | | | | | | | |__  version 0.6.0
 // |_| |_|_| |_|____| https://github.com/zvanjak/mml
 //
-// Copyright: 2023 - Zvonimir Vanjak 
+// Copyright: 2023 - 2024, Zvonimir Vanjak 
 //
 // LICENSE:
 // Code is given as it is, without any warranty. Use it at your own risk.
@@ -461,6 +461,121 @@ namespace MML
         virtual void GetEquidistantCovering(int numPoints) = 0;
     };
 }
+///////////////////////////   ./include/interfaces/IAlgebra.h   ///////////////////////////
+
+namespace MML
+{
+    // TODO - Monoid, Ring, CommutativeRing, CommutativeGroup
+    template<class _ElemType>
+    class IGroup
+    {
+        public:
+        virtual _ElemType  identity() const = 0;
+        virtual _ElemType  inverse(const _ElemType& a) const = 0;
+        virtual _ElemType  op(const _ElemType& a, const _ElemType& b) const = 0;
+    };
+
+    template<class _ElemType>
+    class Field
+    {
+        public:
+        virtual _ElemType  identity() = 0;
+        virtual _ElemType  zero() = 0;
+        virtual _ElemType  inverse(const _ElemType& a) = 0;
+        virtual _ElemType  add(const _ElemType& a, const _ElemType& b) = 0;
+        virtual _ElemType  mul(const _ElemType& a, const _ElemType& b) = 0;
+    };
+}
+///////////////////////////   ./include/interfaces/IVectorSpace.h   ///////////////////////////
+
+namespace MML
+{
+    template<class _FieldType, class _VecType>
+    class VectorSpace
+    {
+        public:
+        virtual _FieldType  zero() const { return _FieldType(0);}
+        virtual _FieldType  inverse(const _FieldType &b) const { return -b; }
+        
+        virtual _VecType    add(const _VecType &a, const _VecType &b) const { return a + b; }
+        virtual _VecType    mul(const _FieldType &a, const _VecType &b) const { return a * b; }
+    };
+
+    template<class _FieldType, class _VecType>
+    class NormedVectorSpace : public VectorSpace<_FieldType, _VecType>
+    {
+        public:
+        virtual Real  norm(const _VecType &a) const = 0;
+    };
+
+    template<class _FieldType, class _VecType>
+    class HilbertSpace : public NormedVectorSpace<_FieldType, _VecType>
+    {
+        public:
+        virtual Real  norm(const _VecType &a) const
+        {
+            return sqrt(scal_prod(a, a));
+        }
+        virtual Real  scal_prod(const _VecType &a, const _VecType &b) const = 0;
+    };
+
+    template<class _VecTo, class _VecFrom>
+    class ILinearOperator
+    {
+    public:
+        virtual _VecTo  operator()(const _VecFrom& x) const = 0;
+    };
+}
+///////////////////////////   ./include/interfaces/ITensor.h   ///////////////////////////
+
+namespace MML
+{
+    template<int N>
+    class ITensor2
+    {
+    public:
+        virtual int   NumContravar() const = 0;
+        virtual int   NumCovar() const = 0;
+
+        virtual Real  Component(int i, int j) const = 0;
+        virtual Real& Component(int i, int j) = 0;
+    };
+
+    template<int N>
+    class ITensor3
+    {
+    public:
+        virtual int   NumContravar() const = 0;
+        virtual int   NumCovar() const = 0;
+
+        virtual Real  Component(int i, int j, int k) const = 0;
+        virtual Real& Component(int i, int j, int k) = 0;
+    };
+
+    template<int N>
+    class ITensor4
+    {
+    public:
+        virtual int   NumContravar() const = 0;
+        virtual int   NumCovar() const = 0;
+
+        virtual Real  Component(int i, int j, int k, int l) const = 0;
+        virtual Real& Component(int i, int j, int k, int l) = 0;
+    };  
+
+    template<int N>
+    class ITensor5
+    {
+    public:
+        virtual int   NumContravar() const = 0;
+        virtual int   NumCovar() const = 0;
+
+        virtual Real  Component(int i, int j, int k, int l, int m) const = 0;
+        virtual Real& Component(int i, int j, int k, int l, int m) = 0;
+    };     
+}
+
+
 ///////////////////////////   ./include/utilities/Intervals.h   ///////////////////////////
 
 
@@ -708,111 +823,7 @@ namespace MML
     };    
 }
 
-///////////////////////////   ./include/interfaces/IAlgebra.h   ///////////////////////////
-
-namespace MML
-{
-    // TODO - Monoid, Ring, CommutativeRing, CommutativeGroup
-    template<class _ElemType>
-    class IGroup
-    {
-        public:
-        virtual _ElemType  identity() const = 0;
-        virtual _ElemType  inverse(const _ElemType& a) const = 0;
-        virtual _ElemType  op(const _ElemType& a, const _ElemType& b) const = 0;
-    };
-
-    template<class _ElemType>
-    class Field
-    {
-        public:
-        virtual _ElemType  identity() = 0;
-        virtual _ElemType  zero() = 0;
-        virtual _ElemType  inverse(const _ElemType& a) = 0;
-        virtual _ElemType  add(const _ElemType& a, const _ElemType& b) = 0;
-        virtual _ElemType  mul(const _ElemType& a, const _ElemType& b) = 0;
-    };
-}
-///////////////////////////   ./include/interfaces/IVectorSpace.h   ///////////////////////////
-
-namespace MML
-{
-    template<class _FieldType, class _VecType>
-    class VectorSpace
-    {
-        public:
-        virtual _FieldType  zero() const { return _FieldType(0);}
-        virtual _FieldType  inverse(const _FieldType &b) const { return -b; }
-        
-        virtual _VecType    add(const _VecType &a, const _VecType &b) const { return a + b; }
-        virtual _VecType    mul(const _FieldType &a, const _VecType &b) const { return a * b; }
-    };
-
-    template<class _FieldType, class _VecType>
-    class NormedVectorSpace : public VectorSpace<_FieldType, _VecType>
-    {
-        public:
-        virtual Real  norm(const _VecType &a) const = 0;
-    };
-
-    template<class _FieldType, class _VecType>
-    class HilbertSpace : public NormedVectorSpace<_FieldType, _VecType>
-    {
-        public:
-        virtual Real  norm(const _VecType &a) const
-        {
-            return sqrt(scal_prod(a, a));
-        }
-        virtual Real  scal_prod(const _VecType &a, const _VecType &b) const = 0;
-    };
-
-    template<class _VecTo, class _VecFrom>
-    class ILinearOperator
-    {
-    public:
-        virtual _VecTo  operator()(const _VecFrom& x) const = 0;
-    };
-}
-///////////////////////////   ./include/interfaces/ITensor.h   ///////////////////////////
-
-namespace MML
-{
-    template<int N>
-    class ITensor2
-    {
-    public:
-        virtual int   NumContravar() const = 0;
-        virtual int   NumCovar() const = 0;
-
-        virtual Real  Component(int i, int j) const = 0;
-        virtual Real& Component(int i, int j) = 0;
-    };
-
-    template<int N>
-    class ITensor3
-    {
-    public:
-        virtual int   NumContravar() const = 0;
-        virtual int   NumCovar() const = 0;
-
-        virtual Real  Component(int i, int j, int k) const = 0;
-        virtual Real& Component(int i, int j, int k) = 0;
-    };
-
-    template<int N>
-    class ITensor4
-    {
-    public:
-        virtual int   NumContravar() const = 0;
-        virtual int   NumCovar() const = 0;
-
-        virtual Real  Component(int i, int j, int k, int l) const = 0;
-        virtual Real& Component(int i, int j, int k, int l) = 0;
-    };     
-}
-
-
-///////////////////////////   ./include/core/Algebra.h   ///////////////////////////
+///////////////////////////   ./include/base/Algebra.h   ///////////////////////////
 
 
 
@@ -834,7 +845,7 @@ namespace MML
     // FieldR
     // FieldC
 }
-///////////////////////////   ./include/core/Geometry.h   ///////////////////////////
+///////////////////////////   ./include/base/Geometry.h   ///////////////////////////
 
 
 
@@ -929,7 +940,7 @@ namespace MML
         }
     };
 }
-///////////////////////////   ./include/core/Vector.h   ///////////////////////////
+///////////////////////////   ./include/base/Vector.h   ///////////////////////////
 
 namespace MML
 {
@@ -1117,7 +1128,7 @@ namespace MML
 
 }
 
-///////////////////////////   ./include/core/VectorN.h   ///////////////////////////
+///////////////////////////   ./include/base/VectorN.h   ///////////////////////////
 
 namespace MML
 {
@@ -1329,7 +1340,7 @@ namespace MML
     typedef VectorN<Complex, 4> Vec4C;
 }
 
-///////////////////////////   ./include/core/VectorTypes.h   ///////////////////////////
+///////////////////////////   ./include/base/VectorTypes.h   ///////////////////////////
 
 
 
@@ -1421,7 +1432,7 @@ namespace MML
 
         Vector3Cartesian()                                  : VectorN<Real,3>{0.0, 0.0, 0.0} { }
         Vector3Cartesian(const VectorN<Real, 3> &b)         : VectorN<Real,3>{b[0], b[1], b[2]} { }
-        Vector3Cartesian(Real x, Real y, Real z)      : VectorN<Real,3>{x, y, z} { }
+        Vector3Cartesian(Real x, Real y, Real z)            : VectorN<Real,3>{x, y, z} { }
         Vector3Cartesian(std::initializer_list<Real> list)  : VectorN<Real,3>(list) { }
         Vector3Cartesian(const Point3Cartesian &a, const Point3Cartesian &b) 
         {
@@ -1492,7 +1503,6 @@ namespace MML
         {
             return a.ScalarProductCartesian(b);
         }
-
         friend Vector3Cartesian VectorProd(const Vector3Cartesian &a, const Vector3Cartesian &b)
         {
             Vector3Cartesian ret;
@@ -1530,7 +1540,7 @@ namespace MML
         // TODO - HIGH, HARD, osnovne operacije +, -
         Vector3Spherical GetAsUnitVector() const
         {
-            return Vector3Spherical{R(), Theta() , Phi()};
+            return Vector3Spherical{1.0, Theta() , Phi()};
         } 
         Vector3Spherical GetAsUnitVectorAtPos(const Vector3Spherical &pos) const
         {
@@ -1571,15 +1581,15 @@ namespace MML
         }         
         Vector3Cylindrical GetAsUnitVectorAtPos(const Vector3Cylindrical &pos) const
         {
-            return Vector3Cylindrical{(*this) / NormL2()};
-        }        
+            return Vector3Cylindrical{R(), Phi() / pos.R(), Z()};
+        }   
     };    
 
     typedef Vector3Cartesian    Vec3Cart;
     typedef Vector3Spherical    Vec3Sph;
     typedef Vector3Cylindrical  Vec3Cyl;
 }
-///////////////////////////   ./include/core/Matrix.h   ///////////////////////////
+///////////////////////////   ./include/base/Matrix.h   ///////////////////////////
 //#include <format>
 
 
@@ -1631,15 +1641,17 @@ namespace MML
             for (int i = 0; i < _rows; ++i)
                 for (int j = 0; j < _cols; ++j)
                     _data[i][j] = val;
-        }        
+        }
+        // useful if you have a pointer to continuous (row-wise) 2D array
         Matrix(int rows, int cols, _Type *val) : _rows(rows), _cols(cols)
         {
             Init(rows, cols);
             for (int i = 0; i < _rows; ++i)
                 for (int j = 0; j < _cols; ++j)
                     _data[i][j] = *val++;
-        }   
-        Matrix(int rows, int cols, std::initializer_list<_Type> values) : _rows(rows), _cols(cols)
+        }
+        // in strict mode, you must supply ALL necessary values for complete matrix initialization
+        Matrix(int rows, int cols, std::initializer_list<_Type> values, bool strictMode = true) : _rows(rows), _cols(cols)
         {
             Init(rows, cols);
             
@@ -1648,8 +1660,12 @@ namespace MML
                 for (int j = 0; j < _cols; ++j)
                     if( val != values.end() )
                         _data[i][j] = *val++;
-                    else
-                        _data[i][j] = 0.0;
+                    else {
+                        if( strictMode )
+                            throw MatrixDimensionError("Matrix::Matrix - not enough values in initializer list", _rows, _cols, -1, -1);
+                        else
+                            _data[i][j] = 0.0;
+                    }
         }
         Matrix(const Matrix &m) : _rows(m._rows), _cols(m._cols)
         {
@@ -1683,7 +1699,7 @@ namespace MML
             if( rows <= 0 || cols < 0 )
                 throw MatrixDimensionError("Matrix::Resize - rowNum and colNum must be positive", rows, cols, -1, -1);
 
-            if( rows == RowNum() && cols == ColNum() )
+            if( rows == RowNum() && cols == ColNum() )      // nice :)
                 return;
 
             if (_data != NULL) {
@@ -1738,7 +1754,7 @@ namespace MML
             for( int i=0; i<RowNum(); i++ )
             {
                 if( includeDiagonal )
-                    for( int j=0; j<i+1; j++ )
+                    for( int j=0; j<=i; j++ )
                         ret[i][j] = _data[i][j];
                 else
                     for( int j=0; j<i; j++ )
@@ -1766,31 +1782,7 @@ namespace MML
             return ret;
         }
 
-        /////////////////////          Vector-Matrix conversions           ////////////////////
-        static Matrix RowMatrixFromVector(const Vector<_Type> &b)
-        {
-            Matrix ret(1, (int) b.size());
-            for( int i=0; i<b.size(); i++)
-                ret[0][i] = b[i];
-
-            return ret;
-        }
-        static Matrix ColumnMatrixFromVector(const Vector<_Type> &b)
-        {
-            Matrix ret((int) b.size(), 1);
-            for( int i=0; i<b.size(); i++)
-                ret[i][0] = b[i];
-
-            return ret;
-        }
-        static Matrix DiagonalMatrixFromVector(const Vector<_Type> &b)
-        {
-            Matrix ret((int) b.size(), (int) b.size());
-            for( int i=0; i<b.size(); i++)
-                ret[i][i] = b[i];
-
-            return ret;
-        }        
+        /////////////////////          Matrix to Vector conversions           ////////////////////
         Vector<_Type> VectorFromRow(int rowInd) const
         {
            if( rowInd < 0 || rowInd >= RowNum() )
@@ -1825,6 +1817,7 @@ namespace MML
             return ret;
         }
 
+        /////////////////////          Matrix properties            ////////////////////
         bool IsSymmetric() const   
         {
             if( RowNum() != ColNum() )
@@ -2279,504 +2272,7 @@ namespace MML
     typedef Matrix<Real>    MatD;
     typedef Matrix<Complex> MatC;    
 }
-///////////////////////////   ./include/core/CoreUtils.h   ///////////////////////////
-
-
-namespace MML
-{
-    class Utils
-    {
-    public:
-        ////////////////////////             Complex helpers               //////////////////////
-        static bool AreEqual(const Complex &a, const Complex &b, double eps=Defaults::ComplexEqualityPrecision)
-        {
-            if( std::abs(a.real() - b.real()) > eps || std::abs(a.imag() - b.imag()) > eps )
-                return false;
-            return true;
-        }
-        static bool AreEqual(const Vector<Complex> &a, const Vector<Complex> &b, double eps=Defaults::ComplexEqualityPrecision)
-        {
-            if( a.size() != b.size() )
-                return false;
-
-            for( int i=0; i<a.size(); i++ )
-                if( std::abs(a[i].real() - b[i].real()) > eps || std::abs(a[i].imag() - b[i].imag()) > eps )
-                    return false;
-
-            return true;
-        }
-
-        /////////////////////////             Vector helpers               //////////////////////
-        static Vector<Real> VectorProjectionParallelTo(const Vector<Real> &orig, const Vector<Real> &b)
-        {
-            return orig.ScalarProductCartesian(b) / b.NormL2() * b;
-        }
-        static Vector<Real> VectorProjectionPerpendicularTo(const Vector<Real> &orig, const Vector<Real> &b)
-        {
-            return orig - VectorProjectionParallelTo(orig, b);
-        }
-        template<class _Type>
-        static Matrix<_Type> OuterProduct(const Vector<_Type> &a, const Vector<_Type> &b)
-        {
-            Matrix<_Type> ret(a.size(), b.size());
-
-            for( int i=0; i<a.size(); i++ )
-                for( int j=0; j<b.size(); j++ )
-                    ret[i][j] = a[i] * b[j];
-
-            return ret;
-        }
-
-        /////////////          Vector<Complex> - Vector<Real> operations
-        static Vector<Complex> AddVec(const Vector<Complex> &a, const Vector<Real> &b)
-        {
-            if( a.size() != b.size() )
-                throw VectorDimensionError("AddVec(Complex, Real) - must be same dim", a.size(), b.size());
-
-            Vector<Complex> ret(b.size());;
-            for (int i = 0; i < b.size(); i++)
-                ret[i] = a[i] + b[i];
-            return ret;
-        }
-        static Vector<Complex> AddVec(const Vector<Real> &a, const Vector<Complex> &b)
-        {
-            if( a.size() != b.size() )
-                throw VectorDimensionError("AddVec(Real, Complex) - must be same dim", a.size(), b.size());
-
-            Vector<Complex> ret(b.size());;
-            for (int i = 0; i < b.size(); i++)
-                ret[i] = a[i] + b[i];
-            return ret;
-        }
-
-        static  Vector<Complex> SubVec(const Vector<Complex> &a, const Vector<Real> &b)
-        {
-            if( a.size() != b.size() )
-                throw VectorDimensionError("SubVec(Complex, Real) - must be same dim", a.size(), b.size());
-
-            Vector<Complex> ret(b.size());;
-            for (int i = 0; i < b.size(); i++)
-                ret[i] = a[i] - b[i];
-            return ret;
-        }
-        static Vector<Complex> SubVec(const Vector<Real> &a, const Vector<Complex> &b)
-        {
-            if( a.size() != b.size() )
-                throw VectorDimensionError("SubVec(Real, Complex) - must be same dim", a.size(), b.size());
-
-            Vector<Complex> ret(b.size());;
-            for (int i = 0; i < b.size(); i++)
-                ret[i] = a[i] - b[i];
-            return ret;
-        }        
-
-    };
-}
-///////////////////////////   ./include/core/MatrixSym.h   ///////////////////////////
-
-
-namespace MML
-{
-    template<class _Type>
-    class MatrixSym
-    {
-    private:
-        int  _dim;
-        _Type **_ptrData;
-
-        void Init(int dim)
-        {
-            if( dim <= 0 )
-                throw MatrixDimensionError("MatrixSym::Init - dimension must be positive", dim, -1, -1, -1);
-
-            _dim = dim;
-
-            _ptrData = new _Type*[dim];
-
-            int numElem = (dim * dim + dim )/ 2;
-            if (_ptrData) 
-                _ptrData[0] = numElem>0 ? new _Type[numElem] : nullptr;
-            
-            for (int i=1; i<dim; i++) 
-                _ptrData[i] = _ptrData[i-1] + i;
-        }
-
-    public:
-        ///////////////////////          Constructors and destructor       //////////////////////
-        MatrixSym() : _dim(0),  _ptrData{nullptr} {} 
-        MatrixSym(int dim) : _dim(dim)
-        {
-            Init(dim);
-            for (int i = 0; i < _dim; ++i)
-                for (int j = 0; j < _dim; ++j)
-                    _ptrData[i][j] = 0;
-        }
-        MatrixSym(int dim, _Type val) : _dim(dim)
-        {
-            Init(dim);
-            for (int i = 0; i < _dim; ++i)
-                for (int j = 0; j <= i; ++j)
-                    _ptrData[i][j] = val;
-        }        
-        MatrixSym(int dim, std::initializer_list<_Type> values) : _dim(dim)
-        {
-            Init(dim);
-            if (values.size() != (dim * dim + dim )/ 2)
-                throw("Error in MatrixSym constructor: wrong dimensions");
-            
-            auto val = values.begin();
-            for (int i = 0; i < _dim; ++i)
-                for (int j = 0; j <= i; ++j)
-                    if( val != values.end() )
-                        _ptrData[i][j] = *val++;
-        }
-        MatrixSym(const MatrixSym &m) : _dim(m._dim)
-        {
-            Init(m._dim);
-
-            for (int i = 0; i < _dim; ++i)
-                for (int j = 0; j <= i; ++j)
-                    _ptrData[i][j] = m._ptrData[i][j];
-        }
-        MatrixSym(MatrixSym &&m)
-        {
-            _ptrData = m._ptrData;
-
-            _dim = m._dim;
-
-            m._dim = 0;
-            m._ptrData = nullptr;
-        }
-        ~MatrixSym()
-        {
-            if (_ptrData != NULL) {
-                delete[] (_ptrData[0]);
-                delete[] (_ptrData);
-            }
-        }
-
-        typedef _Type value_type;      // make T available externally
-
-        ////////////////////////               Standard stuff             ////////////////////////
-        int Dim() const { return (int) _dim; }
-        int RowNum() const { return (int) _dim; }
-        int ColNum() const { return (int) _dim; }
-
-        bool IsEqual(const MatrixSym &b, _Type eps=Defaults::MatrixEqualityPrecision) const
-        {
-            if( Dim() != b.Dim() )
-                return false;
-
-            for( int i=0; i<Dim(); i++ )
-                for( int j=0; j<=i; j++ )
-                {
-                    if( Abs(_ptrData[i][j] - b._ptrData[i][j]) > eps )
-                        return false;
-                }
-                
-            return true;
-        }
-        static bool AreEqual(const MatrixSym &a, const MatrixSym &b, _Type eps=Defaults::MatrixEqualityPrecision) 
-        {
-            return a.IsEqual(b, eps);
-        }
-
-        Matrix<_Type> GetAsMatrix() const
-        {
-            Matrix<_Type> ret(Dim(), Dim());
-
-            for( int i=0; i<Dim(); i++ )
-                for( int j=0; j<Dim(); j++ )
-                    ret[i][j] = (*this)(i,j);
-
-            return ret;
-        }
-
-        /////////////////////          Init from regular Matrix           /////////////////////
-        MatrixSym InitFromLower(Matrix<_Type> &b)
-        {
-            if( b.RowNum() != b.ColNum() ) 
-                throw MatrixDimensionError("MatrixSym::InitFromLower - must be square matrix", b.RowNum(), b.ColNum(), -1, -1);
-
-            MatrixSym ret(b.RowNum());
-            for( int i=0; i<b.RowNum(); i++ )
-                for( int j=0; j<=i; j++ )
-                    ret._ptrData[i][j] = b[i][j];
-
-            return ret;
-        }
-        MatrixSym InitFromUpper(Matrix<_Type> &b)
-        {
-            if( b.RowNum() != b.ColNum() ) 
-                throw MatrixDimensionError("MatrixSym::InitFromUpper - must be square matrix", b.RowNum(), b.ColNum(), -1, -1);
-
-            MatrixSym ret(b.RowNum());
-            for( int i=0; i<b.RowNum(); i++ )
-                for( int j=i; j<b.RowNum(); j++ )
-                    ret._ptrData[i][j] = b[i][j];
-
-            return ret;
-        }
-
-        /////////////////////          Vector-Matrix conversion           /////////////////////
-        Vector<_Type> VectorFromRow(int rowInd)
-        {           
-            if( rowInd >= RowNum() )
-                throw MatrixAccessBoundsError("VectorFromRow - row index must be less then a.RowNum()", rowInd, 0, RowNum(), ColNum());
-
-            Vector<_Type> ret(ColNum());
-            for( int i=0; i<ColNum(); i++)
-                ret[i] = this->a(rowInd,i);
-
-            return ret;
-        }
-        Vector<_Type> VectorFromColumn(int colInd)
-        {
-           if( colInd >= ColNum() )
-                throw MatrixAccessBoundsError("VectorFromColumn - column index must be less then a.ColNum()", 0, colInd, RowNum(), ColNum());
-
-            Vector<_Type> ret(RowNum());
-            for( int i=0; i<RowNum(); i++)
-                ret[i] = this->a(i,colInd);
-
-            return ret;
-        }
-        Vector<_Type> VectorFromDiagonal()
-        {
-           if( RowNum() != ColNum() ) 
-                throw MatrixDimensionError("VectorFromDiagonal - must be square matrix", RowNum(), ColNum(), -1, -1);
-
-            Vector<_Type> ret(RowNum());
-            for( int i=0; i<RowNum(); i++)
-                ret[i] = this->a(i,i);
-
-            return ret;
-        }
-
-        ///////////////////////////            Operators             ///////////////////////////
-        MatrixSym &operator=(const MatrixSym &m)
-        {
-            if (this == &m)
-                return *this;
-
-            if (_dim != m._dim )
-            {
-                delete[] (_ptrData[0]);
-                delete[] (_ptrData);
-
-                Init(m.Dim());
-            }
-
-            for (size_t i = 0; i < m.Dim(); ++i)
-                for (size_t j = 0; j <= i; ++j)
-                    _ptrData[i][j] = m._ptrData[i][j];
-
-            return *this;
-        }
-        MatrixSym &operator=(MatrixSym &&m)
-        {
-            if (this == &m)
-                return *this;
-
-            std::swap(_ptrData, m._ptrData);
-            std::swap(_dim, m._dim);
-
-            return *this;
-        }
-
-        _Type  operator()(int i, int j) const {
-            if( i < j ) 
-                return _ptrData[j][i]; 
-            else
-                return _ptrData[i][j]; 
-        }
-        _Type& operator()(int i, int j){ 
-            if( i < j ) 
-                return _ptrData[j][i]; 
-            else
-                return _ptrData[i][j]; 
-        }
-
-        // version with checking bounds
-        // _Type  ElemAt(int i, int j) const 
-        // { 
-        //     if( i<0 || i>=RowNum() || j<0 || j>=ColNum() )
-        //         throw MatrixAccessBoundsError("Matrix::ElemAt", i, j, RowNum(), ColNum());
-
-        //     return _ptrData[i][j]; 
-        // }
-        // _Type& ElemAt(int i, int j)       
-        // {
-        //     if( i<0 || i>=RowNum() || j<0 || j>=ColNum() )
-        //         throw MatrixAccessBoundsError("Matrix::ElemAt", i, j, RowNum(), ColNum());
-
-        //     return _ptrData[i][j]; 
-        // }
-
-        MatrixSym operator+( const MatrixSym &b ) const
-        {
-            if (_dim != b._dim )
-                throw MatrixDimensionError("MatrixSym::operator+() - must be same dim", _dim, -1, b._dim, -1);
-
-            MatrixSym temp(_dim);
-            for (size_t i = 0; i < Dim(); i++)
-                for (size_t j = 0; j <= i; j++)
-                    temp._ptrData[i][j] = b._ptrData[i][j] + _ptrData[i][j];
-
-            return temp;
-        }
-        MatrixSym operator-( const MatrixSym &b ) const
-        {
-            if (_dim != b._dim )
-                throw MatrixDimensionError("MatrixSym::operator-() - must be same dim", _dim, -1, b._dim, -1);
-
-            MatrixSym temp(_dim);
-            for (size_t i = 0; i < Dim(); i++)
-                for (size_t j = 0; j <= i; j++)
-                    temp._ptrData[i][j] = b._ptrData[i][j] - _ptrData[i][j];
-
-            return temp;
-        }        
-
-        Matrix<_Type> operator*( const MatrixSym &b ) const
-        {
-            if( Dim() != b.Dim() )
-                throw MatrixDimensionError("MatrixSym::operator*(MatrixSym &) - a.colNum must be equal to b.rowNum", _dim, _dim, b._dim, b._dim);
-
-            Matrix<_Type>	ret(RowNum(), b.ColNum());
-            for( int i=0; i<ret.RowNum(); i++ )
-                for( int j=0; j<ret.ColNum(); j++ )
-                {
-                    ret[i][j] = 0;
-                    for(int k=0; k<ColNum(); k++ )
-                        ret[i][j] += (*this)(i,k) * b(k,j);
-                }
-
-            return	ret;
-        }
-
-        Matrix<_Type> operator*( const Matrix<_Type> &b ) const
-        {
-            if( Dim() != b.RowNum() )
-                throw MatrixDimensionError("MatrixSym::operator*(Matrix &) - a.colNum must be equal to b.rowNum", _dim, _dim, b.RowNum(), b.ColNum());
-
-            Matrix<_Type>	ret(RowNum(), b.ColNum());
-            for( int i=0; i<ret.RowNum(); i++ )
-                for( int j=0; j<ret.ColNum(); j++ )
-                {
-                    ret[i][j] = 0;
-                    for(int k=0; k<ColNum(); k++ )
-                        ret[i][j] += (*this)(i,k) * b(k,j);
-                }
-
-            return	ret;
-        }
-
-        friend MatrixSym operator*( const MatrixSym &a, _Type b )
-        {
-            int	i, j;
-            MatrixSym	ret(a.Dim());
-
-            for( i=0; i<a.Dim(); i++ )
-                for( j=0; j<=i; j++ )
-                    ret[i][j] = a._ptrData[i][j] * b;
-
-            return ret;
-        }
-        friend MatrixSym operator*( _Type a, const MatrixSym &b )
-        {
-            int	i, j;
-            MatrixSym	ret(a.Dim());
-
-            for( i=0; i<a.Dim(); i++ )
-                for( j=0; j<=i; j++ )
-                    ret[i][j] = a * b._ptrData[i][j];
-
-            return ret;
-        }
-        friend MatrixSym operator/( const MatrixSym &a, _Type b )
-        {
-            int	i, j;
-            MatrixSym	ret(a.Dim());
-
-            for( i=0; i<a.Dim(); i++ )
-                for( j=0; j<=i; j++ )
-                    ret[i][j] = a._ptrData[i][j] / b;
-
-            return ret;
-        }
-
-        friend Vector<_Type> operator*( const MatrixSym &a, const Vector<_Type> &b )
-        {
-            if( a.Dim() != b.size() )
-                throw MatrixDimensionError("operator*(MatSym a, Vec b) - a.Dim must be equal to vector size", a.Dim(), a.Dim(), (int) b.size(), -1);
-
-            Vector<_Type>	ret(a.RowNum());
-            for( int i=0; i<a.Dim(); i++ )
-            {
-                ret[i] = 0;
-                for( int j=0; j<a.Dim(); j++ )
-                    ret[i] += a(i,j) * b[j];
-            }
-
-            return ret;
-        }
-        friend Vector<_Type> operator*( const Vector<_Type> &a, const MatrixSym &b )
-        {
-            if( a.size() != b.Dim() )
-            {
-                //std::string error = std::format("Hello {}!\n", "world");
-                throw MatrixDimensionError("operator*(Vec a, MatSym b) - vector size must be equal to b.Dim", (int) a.size(), -1, b.Dim(), -1);
-            }
-
-            Vector<_Type>	ret(b.Dim());
-            for( int i=0; i<b.Dim(); i++ )
-            {
-                ret[i] = 0;
-                for( int j=0; j<b.Dim(); j++ )
-                    ret[i] += a[j] * b(i,j);
-            }
-
-            return ret;
-        }
-
-        ////////////////////////            Inverse              ///////////////////////
-        Matrix<_Type> GetInverse() const
-        {
-            if( RowNum() != ColNum() ) 
-                throw MatrixDimensionError("MatrixSym::GetInverse - must be square matrix", _dim, _dim, -1, -1);
-
-            Matrix<_Type> a = this->GetAsMatrix();              // making a copy, where inverse will be stored at the end
-            
-            a.Invert();
-            
-            return a;
-        }     
-
-        ///////////////////////////               I/O                 ///////////////////////////
-        void   Print(std::ostream& stream, int width, int precision) const
-        {
-            stream << "Rows: " << Dim() << std::endl;
-
-            for (int i = 0; i < Dim(); i++)
-            {
-                stream << "[ ";
-                for (int j = 0; j < Dim(); j++)
-                {
-                    stream << std::setw(width) << std::setprecision(precision) << (*this)(i, j) << ", ";
-                }                
-                stream << " ]" << std::endl;
-            }
-        }
-        friend std::ostream& operator<<(std::ostream& stream, const MatrixSym &a)
-        {
-            a.Print(stream, 10, 3);
-
-            return stream;
-        }   
-    };
-}
-///////////////////////////   ./include/core/MatrixBandDiag.h   ///////////////////////////
+///////////////////////////   ./include/base/MatrixBandDiag.h   ///////////////////////////
 
 
 namespace MML
@@ -2803,12 +2299,18 @@ namespace MML
                 throw("Error in TridiagonalMatrix constructor: wrong dimensions");
 
             auto val = values.begin();
-            for (int i = 0; i < dim-1; ++i)
-                _c[i] = *val++;
-            for (int i = 0; i < dim; ++i)
+            _a[0] = 0.0;
+            _diag[0] = *val++;
+            _c[0] = *val++;
+            for (int i = 1; i < dim-1; ++i)
+            {
+                _a[i] = *val++;
                 _diag[i] = *val++;
-            for(int i = 0; i < dim-1; ++i)
-                _a[i+1] = *val++;
+                _c[i] = *val++;
+            }
+            _a[dim-1] = *val++;
+            _diag[dim-1] = *val++;
+            _c[dim-1] = 0.0;
         }     
         
         int RowNum() const { return _dim; }
@@ -2835,6 +2337,8 @@ namespace MML
                 throw MatrixAccessBoundsError("TridiagonalMatrix::operator()", i, j, _dim, _dim);
         }
 
+        // TODO 0.6 - dodati IsEqual
+        // TODO 1.0 - imaju li smisla operacije s regularnim matricama? I BandDiag?
         TridiagonalMatrix operator+( const TridiagonalMatrix &b ) const
         {
             if (_dim != b._dim )
@@ -2909,8 +2413,8 @@ namespace MML
             return ret;
         }
 
-        // TODO - invert
-        // TODO - transpose
+        // TODO - 0.6 invert
+        // TODO - 0.6 transpose
 
         void solve(Vector<_Type> &rhs, Vector<_Type> &sol)
         {
@@ -2939,12 +2443,10 @@ namespace MML
         void   Print(std::ostream& stream, int width, int precision) const
         {
             stream << "Dim: " << _dim << std::endl;
-
-            for (size_t i = 0; i < _dim; i++)
+            for (size_t i = 0; i < _dim; i++) 
             {
                 stream << "[ ";
-                for (size_t j = 0; j < _dim; j++)
-                {
+                for (size_t j = 0; j < _dim; j++) {
                     stream << std::setw(width) << std::setprecision(precision) << (*this)(i,j) << ", ";
                 }                
                 stream << " ]" << std::endl;
@@ -2952,25 +2454,42 @@ namespace MML
         }        
     };
 
-    // TODO - HIGH, SREDNJE, Band diagonal matrix
-    template<class _Type>
+    // TODO - 0.6 HIGH, SREDNJE, finish Band diagonal matrix
     class BandDiagonalMatrix
     {
+        // The array a[0..n-1][0..m1+m2] stores A as follows: The diagonal elements are in a[0..n-1][m1].
+        // Subdiagonal elements are in a[j..n-1][0..m1-1] with j > 0 appropriate to the number of
+        // elements on each subdiagonal. Superdiagonal elements are in a[0..j][m1+1..m1+m2] with
+        // j < n-1 appropriate to the number of elements on each superdiagonal.        
         int _dim;
         int _m1, _m2;
-        Matrix<_Type> _data;
+        Matrix<Real> _data;
     public:
         int RowNum() const { return _dim; }
         int ColNum() const { return _dim; }
 
-        // TODO - HIGH, SREDNJE, finish basic operations
+        // TODO - 0.6 HIGH, SREDNJE, finish basic operations
 
-        // Matrix multiply b D A  x, where A is band-diagonal with m1 rows below the diagonal and
+        BandDiagonalMatrix(int dim, int m1, int m2, const Matrix<Real> &data) : _dim(dim), _m1(m1), _m2(m2), _data(data)
+        {
+            if (data.RowNum() != dim || data.ColNum() != m1+m2+1)
+                throw("Error in BandDiagonalMatrix constructor: wrong dimensions");
+        }
+
+        Real  operator()(int i, int j) const {
+            if( i > j + _m1 || j > i + _m2 ) 
+                return 0.0;
+            else
+            {
+                return _data[i][j-i+_m1];
+            }
+        }
+        Real&  operator()(int i, int j) {
+
+                throw MatrixAccessBoundsError("TridiagonalMatrix::operator()", i, j, _dim, _dim);
+        }        
+        // Matrix multiply b = A * x, where A is band-diagonal with m1 rows below the diagonal and
         // m2 rows above. The input vector is x[0..n-1] and the output vector is b[0..n-1]. 
-        // The array a[0..n-1][0..m1+m2] stores A as follows: The diagonal elements are in a[0..n-1][m1].
-        // Subdiagonal elements are in a[j..n-1][0..m1-1] with j > 0 appropriate to the number of
-        // elements on each subdiagonal. Superdiagonal elements are in a[0..j][m1+1..m1+m2] with
-        // j < n-1 appropriate to the number of elements on each superdiagonal.
         void banmul(Matrix<Real> &a, const int m1, const int m2, Vector<Real> &x,	Vector<Real> &b)
         {
             int i,j,k,tmploop,n=a.RowNum();
@@ -2980,11 +2499,24 @@ namespace MML
                 b[i]=0.0;
                 for (j=std::max(0,-k);j<tmploop;j++) b[i] += a[i][j]*x[j+k];
             }
-        }        
+        }
+
+        void   Print(std::ostream& stream, int width, int precision) const
+        {
+            stream << "Dim: " << _dim << std::endl;
+            for (size_t i = 0; i < _dim; i++) 
+            {
+                stream << "[ ";
+                for (size_t j = 0; j < _dim; j++) {
+                    stream << std::setw(width) << std::setprecision(precision) << (*this)(i,j) << ", ";
+                }                
+                stream << " ]" << std::endl;
+            }
+        }    
     };
 }
 
-///////////////////////////   ./include/core/MatrixNM.h   ///////////////////////////
+///////////////////////////   ./include/base/MatrixNM.h   ///////////////////////////
 
 
 namespace MML
@@ -3462,939 +2994,418 @@ namespace MML
     typedef MatrixNM<Complex, 4, 4> Mat44C;
 }
 
-///////////////////////////   ./include/core/MatrixSparse.h   ///////////////////////////
+///////////////////////////   ./include/base/MatrixSparse.h   ///////////////////////////
 
 namespace MML
 {
     // TODO - BIG!!! implement sparse matrix
 }
 
-///////////////////////////   ./include/core/LinAlgEqSolvers.h   ///////////////////////////
+///////////////////////////   ./include/base/MatrixSym.h   ///////////////////////////
 
 
 namespace MML
 {
-    // TODO - HIGHEST, EASY - SVE solvere Solve() prebaciti da vraca Vector kao rezultat
-    ///////////////////////   GAUSS-JORDAN SOLVER    /////////////////////////////
     template<class _Type>
-    class GaussJordanSolver
+    class MatrixSym
     {
-    public:
-        static bool Solve(Matrix<_Type> &a, Matrix<_Type> &b)
+    private:
+        int  _dim;
+        _Type **_ptrData;
+
+        void Init(int dim)
         {
-            int i,icol,irow,j,k,l,ll;
-            Real big;
-            _Type dum,pivinv;
+            if( dim <= 0 )
+                throw MatrixDimensionError("MatrixSym::Init - dimension must be positive", dim, -1, -1, -1);
 
-            int n=a.RowNum();
-            int m=b.ColNum();
-            std::vector<int> indxc(n),indxr(n),ipiv(n);
-            for (j=0;j<n;j++) ipiv[j]=0;
-            for (i=0;i<n;i++) {
-                big=0.0;
-                for (j=0;j<n;j++)
-                    if (ipiv[j] != 1)
-                        for (k=0;k<n;k++) {
-                            if (ipiv[k] == 0) {
-                                if (Abs(a[j][k]) >= big) {
-                                    big=Abs(a[j][k]);
-                                    irow=j;
-                                    icol=k;
-                                }
-                            }
-                        }
-                ++(ipiv[icol]);
-                if (irow != icol) {
-                    for (l=0;l<n;l++) std::swap(a[irow][l],a[icol][l]);
-                    for (l=0;l<m;l++) std::swap(b[irow][l],b[icol][l]);
+            _dim = dim;
+
+            _ptrData = new _Type*[dim];
+
+            int numElem = (dim * dim + dim )/ 2;
+            if (_ptrData) 
+                _ptrData[0] = numElem>0 ? new _Type[numElem] : nullptr;
+            
+            for (int i=1; i<dim; i++) 
+                _ptrData[i] = _ptrData[i-1] + i;
+        }
+
+    public:
+        ///////////////////////          Constructors and destructor       //////////////////////
+        MatrixSym() : _dim(0),  _ptrData{nullptr} {} 
+        MatrixSym(int dim) : _dim(dim)
+        {
+            Init(dim);
+            for (int i = 0; i < _dim; ++i)
+                for (int j = 0; j < _dim; ++j)
+                    _ptrData[i][j] = 0;
+        }
+        MatrixSym(int dim, _Type val) : _dim(dim)
+        {
+            Init(dim);
+            for (int i = 0; i < _dim; ++i)
+                for (int j = 0; j <= i; ++j)
+                    _ptrData[i][j] = val;
+        }        
+        MatrixSym(int dim, std::initializer_list<_Type> values) : _dim(dim)
+        {
+            Init(dim);
+            if (values.size() != (dim * dim + dim )/ 2)
+                throw MatrixDimensionError("Error in MatrixSym constructor: wrong dimensions", dim, -1, -1, -1);
+            
+            auto val = values.begin();
+            for (int i = 0; i < _dim; ++i)
+                for (int j = 0; j <= i; ++j)
+                    if( val != values.end() )
+                        _ptrData[i][j] = *val++;
+        }
+        MatrixSym(const MatrixSym &m) : _dim(m._dim)
+        {
+            Init(m._dim);
+
+            for (int i = 0; i < _dim; ++i)
+                for (int j = 0; j <= i; ++j)
+                    _ptrData[i][j] = m._ptrData[i][j];
+        }
+        MatrixSym(MatrixSym &&m)
+        {
+            _ptrData = m._ptrData;
+
+            _dim = m._dim;
+
+            m._dim = 0;
+            m._ptrData = nullptr;
+        }
+        ~MatrixSym()
+        {
+            if (_ptrData != NULL) {
+                delete[] (_ptrData[0]);
+                delete[] (_ptrData);
+            }
+        }
+
+        typedef _Type value_type;      // make T available externally
+
+        ////////////////////////               Standard stuff             ////////////////////////
+        int Dim() const { return (int) _dim; }
+        int RowNum() const { return (int) _dim; }
+        int ColNum() const { return (int) _dim; }
+
+        bool IsEqual(const MatrixSym &b, _Type eps=Defaults::MatrixEqualityPrecision) const
+        {
+            if( Dim() != b.Dim() )
+                return false;
+
+            for( int i=0; i<Dim(); i++ )
+                for( int j=0; j<=i; j++ )
+                {
+                    if( Abs(_ptrData[i][j] - b._ptrData[i][j]) > eps )
+                        return false;
                 }
-                indxr[i]=irow;
-                indxc[i]=icol;
-
-                if (a[icol][icol] == 0.0) 
-                    throw SingularMatrixError("GaussJordanSolver::Solve - Singular Matrix");
-
-                pivinv=1.0/a[icol][icol];
-                a[icol][icol]=1.0;
-                for (l=0;l<n;l++) a[icol][l] *= pivinv;
-                for (l=0;l<m;l++) b[icol][l] *= pivinv;
-                for (ll=0;ll<n;ll++)
-                    if (ll != icol) {
-                        dum=a[ll][icol];
-                        a[ll][icol]=0.0;
-                        for (l=0;l<n;l++) a[ll][l] -= a[icol][l]*dum;
-                        for (l=0;l<m;l++) b[ll][l] -= b[icol][l]*dum;
-                    }
-            }
-            for (l=n-1;l>=0;l--) {
-                if (indxr[l] != indxc[l])
-                    for (k=0;k<n;k++)
-                        std::swap(a[k][indxr[l]],a[k][indxc[l]]);
-            }
-
+                
             return true;
         }
-
-        static bool Solve(Matrix<_Type> &a, Vector<_Type> &b)
+        static bool AreEqual(const MatrixSym &a, const MatrixSym &b, _Type eps=Defaults::MatrixEqualityPrecision) 
         {
-            Matrix<_Type> bmat = Matrix<_Type>::ColumnMatrixFromVector(b);
-            bool ret = Solve(a, bmat);
-            b = bmat.VectorFromColumn(0);
+            return a.IsEqual(b, eps);
+        }
+
+        Matrix<_Type> GetAsMatrix() const
+        {
+            Matrix<_Type> ret(Dim(), Dim());
+
+            for( int i=0; i<Dim(); i++ )
+                for( int j=0; j<Dim(); j++ )
+                    ret[i][j] = (*this)(i,j);
+
             return ret;
         }
-    };
 
-    ///////////////////////   BAND-DIAGONAL SOLVER    ////////////////////////////
-
-    class BandDiagLUSolver {
-        int n,m1,m2;
-        Matrix<Real> au,al;
-        Vector<int> indx;
-        Real d;
-
-        // TODO - HIGH, SREDNJE, parm mora biti BandDiagonalMatrix!
-        BandDiagLUSolver(Matrix<Real> &a, const int mm1, const int mm2)
-            : n(a.RowNum()), au(a), m1(mm1), m2(mm2), al(n,m1), indx(n)
+        /////////////////////          Init from regular Matrix           /////////////////////
+        MatrixSym InitFromLower(Matrix<_Type> &b)
         {
-            const Real TINY=1.0e-40;
-            int i,j,k,l,mm;
-            Real dum;
-            mm=m1+m2+1;
-            l=m1;
-            for (i=0;i<m1;i++) {
-                for (j=m1-i;j<mm;j++) au[i][j-l]=au[i][j];
-                l--;
-                for (j=mm-l-1;j<mm;j++) au[i][j]=0.0;
-            }
-            d=1.0;
-            l=m1;
-            for (k=0;k<n;k++) {
-                dum=au[k][0];
-                i=k;
-                if (l<n) l++;
-                for (j=k+1;j<l;j++) {
-                    if (std::abs(au[j][0]) > std::abs(dum)) {
-                        dum=au[j][0];
-                        i=j;
-                    }
-                }
-                indx[k]=i+1;
-                if (dum == 0.0) au[k][0]=TINY;
-                if (i != k) {
-                    d = -d;
-                    for (j=0;j<mm;j++) std::swap(au[k][j],au[i][j]);
-                }
-                for (i=k+1;i<l;i++) {
-                    dum=au[i][0]/au[k][0];
-                    al[k][i-k-1]=dum;
-                    for (j=1;j<mm;j++) au[i][j-1]=au[i][j]-dum*au[k][j];
-                    au[i][mm-1]=0.0;
-                }
-            }
-        }
-        void solve(Vector<Real> &b, Vector<Real> &x)
-        {
-            int i,j,k,l,mm;
-            Real dum;
-            mm=m1+m2+1;
-            l=m1;
-            for (k=0;k<n;k++) x[k] = b[k];
-            for (k=0;k<n;k++) {
-                j=indx[k]-1;
-                if (j!=k) std::swap(x[k],x[j]);
-                if (l<n) l++;
-                for (j=k+1;j<l;j++) x[j] -= al[k][j-k-1]*x[k];
-            }
-            l=1;
-            for (i=n-1;i>=0;i--) {
-                dum=x[i];
-                for (k=1;k<l;k++) dum -= au[i][k]*x[k+i];
-                x[i]=dum/au[i][0];
-                if (l<mm) l++;
-            }
-        }
-        Real det() {
-            Real dd = d;
-            for (int i=0;i<n;i++) dd *= au[i][0];
-            return dd;
-        }
-    };
+            if( b.RowNum() != b.ColNum() ) 
+                throw MatrixDimensionError("MatrixSym::InitFromLower - must be square matrix", b.RowNum(), b.ColNum(), -1, -1);
 
-    ///////////////////////      LU DECOMPOSITION       /////////////////////////////
-    template<class _Type>
-    class LUDecompositionSolver
-    {
-    private:
-        int n;
-        const Matrix<_Type> &refOrig;
+            MatrixSym ret(b.RowNum());
+            for( int i=0; i<b.RowNum(); i++ )
+                for( int j=0; j<=i; j++ )
+                    ret._ptrData[i][j] = b[i][j];
 
-        Matrix<_Type> lu;
-        std::vector<int> indx;
-        Real d;
-    
-    public:
-    // TODO - HIGH, HIGH, TESKO, napraviti da se može odraditi i inplace, a ne da se kao sad uvijek kreira kopija
-        LUDecompositionSolver(const Matrix<_Type>  &inMatRef) : n(inMatRef.RowNum()), refOrig(inMatRef), lu(inMatRef), indx(n) 
-// ne može        LUDecompositionSolver(const Matrix<_Type>  &inMatRef) : n(inMatRef.RowNum()), refOrig(inMatRef), lu(Matrix<_Type>(inMatRef.RowNum(), inMatRef.ColNum())), indx(n) 
-        {
-            // Given a Matrix<Real> a[1..n][1..n], this routine replaces it by the LU decomposition of a rowwise
-            // permutation of itself. a and n are input. a is output, arranged as in equation (NR 2.3.14);
-            // indx[1..n] is an output Vector<Real> that records the row permutation effected by the partial
-            // pivoting; d is output as ±1 depending on whether the number of row interchanges was even
-            // or odd, respectively. This routine is used in combination with lubksb to solve linear equations
-            // or invert a Matrix<Real>.
-            const Real TINY=1.0e-40;
-            int i,imax,j,k;
-            Real big,temp; 
-            _Type temp2;
-            Vector<_Type> vv(n);
-            d=1.0;
-            for (i=0;i<n;i++) {
-                big=0.0;
-                for (j=0;j<n;j++)
-                    if ((temp=Abs(lu[i][j])) > big) big=temp;
-                if (big == 0.0) 
-                    throw SingularMatrixError("LUDecompositionSolver::ctor - Singular Matrix");
-
-                vv[i]=1.0/big;
-            }
-            for (k=0;k<n;k++) {
-                big=0.0;
-                imax=k;
-                for (i=k;i<n;i++) {
-                    temp = Abs(vv[i] * lu[i][k]);
-                    if (temp > big) {
-                        big=temp;
-                        imax=i;
-                    }
-                }
-                if (k != imax) {
-                    for (j=0;j<n;j++) {
-                        temp2=lu[imax][j];
-                        lu[imax][j]=lu[k][j];
-                        lu[k][j]=temp2;
-                    }
-                    d = -d;
-                    vv[imax]=vv[k];
-                }
-                indx[k]=imax;
-                if (lu[k][k] == 0.0) lu[k][k]=TINY;
-                for (i=k+1;i<n;i++) {
-                    temp2=lu[i][k] /= lu[k][k];
-                    for (j=k+1;j<n;j++)
-                        lu[i][j] -= temp2 * lu[k][j];
-                }
-            }
+            return ret;
         }
-        
-        void Solve(Vector<_Type> &b, Vector<_Type> &x)
+        MatrixSym InitFromUpper(Matrix<_Type> &b)
         {
-            // Solves the set of n linear equations A·X = B. Here a[1..n][1..n] is input, not as the Matrix<Real>
-            // A but rather as its LU decomposition, determined by the routine ludcmp. indx[1..n] is input
-            // as the permutation Vector<Real> returned by ludcmp. b[1..n] is input as the right-hand side Vector<Real>
-            // B, and returns with the solution Vector<Real> X. a, n, and indx are not modified by this routine
-            // and can be left in place for successive calls with different right-hand sides b. This routine takes
-            // into account the possibility that b will begin with many zero elements, so it is efficient for use
-            // in Matrix<Real> inversion
-            int i,ii=0,ip,j;
-            _Type sum;
-            if (b.size() != n || x.size() != n)
-                throw("LUdcmp::solve bad sizes");
-            for (i=0;i<n;i++) 
-                x[i] = b[i];
-            for (i=0;i<n;i++) {
-                ip=indx[i];
-                sum=x[ip];
-                x[ip]=x[i];
-                if (ii != 0)
-                    for (j=ii-1;j<i;j++) sum -= lu[i][j]*x[j];
-                else if (sum != 0.0)
-                    ii=i+1;
-                x[i]=sum;
-            }
-            for (i=n-1;i>=0;i--) {
-                sum=x[i];
-                for (j=i+1;j<n;j++) sum -= lu[i][j]*x[j];
-                x[i]=sum/lu[i][i];
-            }
+            if( b.RowNum() != b.ColNum() ) 
+                throw MatrixDimensionError("MatrixSym::InitFromUpper - must be square matrix", b.RowNum(), b.ColNum(), -1, -1);
+
+            MatrixSym ret(b.RowNum());
+            for( int i=0; i<b.RowNum(); i++ )
+                for( int j=i; j<b.RowNum(); j++ )
+                    ret._ptrData[i][j] = b[i][j];
+
+            return ret;
         }
 
-        void Solve(Matrix<_Type> &b, Matrix<_Type> &x)
-        {
-            int i,j,m=b.ColNum();
-            
-            if (b.RowNum() != n || x.RowNum() != n || b.ColNum() != x.ColNum())
-                throw("LUdcmp::solve bad sizes");
-            
-            Vector<_Type> xx(n);
-            
-            for (j=0;j<m;j++) {
-                for (i=0;i<n;i++) 
-                    xx[i] = b[i][j];
-                
-                Solve(xx,xx);
-                
-                for (i=0;i<n;i++) 
-                    x[i][j] = xx[i];
-            }
-        }        
-
-        // Using the stored LU decomposition, return in ainv the matrix inverse 
-        void inverse(Matrix<_Type> &ainv)
-        {
-            int i,j;
-            ainv.Resize(n,n);
-            for (i=0;i<n;i++) {
-                for (j=0;j<n;j++) ainv[i][j] = 0.;
-                ainv[i][i] = 1.;
-            }
-            Solve(ainv,ainv);
-        }
-        
-        _Type det()
-        {
-            Real dd = d;
-            for (int i=0;i<n;i++) 
-                dd *= lu[i][i];
-            return dd;
-        }
-        
-        // Improves a solution Vector<Real> x[1..n] of the linear set of equations A · X = B. The Matrix<Real>
-        // a[1..n][1..n], and the Vector<Real>s b[1..n] and x[1..n] are input, as is the dimension n.
-        // Also input is alud[1..n][1..n], the LU decomposition of a as returned by ludcmp, and
-        // the Vector<Real> indx[1..n] also returned by that routine. On output, only x[1..n] is modified,
-        // to an improved set of values
-        void mprove(Vector<Real> &b, Vector<Real> &x)
-        {
-            int i,j;
-            Vector<Real> r(n);
-            
-            for (i=0;i<n;i++) {
-                long double sdp = -b[i];
-                for (j=0;j<n;j++)
-                    sdp += (long double)refOrig[i][j] * (long double)x[j];
-                r[i]=sdp;
-            }
-            
-            Solve(r,r);
-            
-            for (i=0;i<n;i++) 
-                x[i] -= r[i];
-        }         
-    };
-
-    ///////////////////////   CHOLESKY DECOMPOSITION    /////////////////////////////
-    class CholeskyDecompositionSolver
-    {
-    private:
-        int n;
-        Matrix<Real> el;
-    
-    public:    
-        CholeskyDecompositionSolver(Matrix<Real> &a) : n(a.RowNum()), el(a) 
-        {
-            // Given a positive-definite symmetric Matrix<Real> a[1..n][1..n], this routine constructs its Cholesky
-            // decomposition, A = L · LT . On input, only the upper triangle of a need be given; it is not
-            // modified. The Cholesky factor L is returned in the lower triangle of a, except for its diagonal
-            // elements which are returned in p[1..n]
-            int i,j,k;
-            Real sum;
-            
-            if (el.ColNum() != n) 
-                throw("need square Matrix<Real>");
-            
-            for (i=0;i<n;i++) {
-                for (j=i;j<n;j++) {
-                    for (sum=el[i][j],k=i-1;k>=0;k--) sum -= el[i][k]*el[j][k];
-                    if (i == j) {
-                        if (sum <= 0.0)
-                            throw("Cholesky failed");
-                        el[i][i]=sqrt(sum);
-                    } else el[j][i]=sum/el[i][i];
-                }
-            }
-            for (i=0;i<n;i++) for (j=0;j<i;j++) el[j][i] = 0.;
-        }
-        void Solve(Vector<Real> &b, Vector<Real> &x) 
-        {
-            // Solves the set of n linear equations A · x = b, where a is a positive-definite symmetric Matrix<Real>.
-            // a[1..n][1..n] and p[1..n] are input as the output of the routine choldc. Only the lower
-            // triangle of a is accessed. b[1..n] is input as the right-hand side Vector<Real>. The solution Vector<Real> is
-            // returned in x[1..n]. a, n, and p are not modified and can be left in place for successive calls
-            // with different right-hand sides b. b is not modified unless you identify b and x in the calling
-            // sequence, which is allowed.
-            int i,k;
-            Real sum;
-            if (b.size() != n || x.size() != n) throw("bad lengths in Cholesky");
-            for (i=0;i<n;i++) {
-                for (sum=b[i],k=i-1;k>=0;k--) sum -= el[i][k]*x[k];
-                x[i]=sum/el[i][i];
-            }
-            for (i=n-1;i>=0;i--) {
-                for (sum=x[i],k=i+1;k<n;k++) sum -= el[k][i]*x[k];
-                x[i]=sum/el[i][i];
-            }		
-        }
-        void elmult(Vector<Real> &y, Vector<Real> &b) {
-            int i,j;
-            if (b.size() != n || y.size() != n) throw("bad lengths");
-            for (i=0;i<n;i++) {
-                b[i] = 0.;
-                for (j=0;j<=i;j++) b[i] += el[i][j]*y[j];
-            }
-        }
-        void elsolve(Vector<Real> &b, Vector<Real> &y) {
-            int i,j;
-            Real sum;
-            if (b.size() != n || y.size() != n) throw("bad lengths");
-            for (i=0;i<n;i++) {
-                for (sum=b[i],j=0; j<i; j++) sum -= el[i][j]*y[j];
-                y[i] = sum/el[i][i];
-            }
-        }
-        void inverse(Matrix<Real> &ainv) {
-            int i,j,k;
-            Real sum;
-            ainv.Resize(n,n);
-            for (i=0;i<n;i++) for (j=0;j<=i;j++){
-                sum = (i==j? 1. : 0.);
-                for (k=i-1;k>=j;k--) sum -= el[i][k]*ainv[j][k];
-                ainv[j][i]= sum/el[i][i];
-            }
-            for (i=n-1;i>=0;i--) for (j=0;j<=i;j++){
-                sum = (i<j? 0. : ainv[j][i]);
-                for (k=i+1;k<n;k++) sum -= el[k][i]*ainv[j][k];
-                ainv[i][j] = ainv[j][i] = sum/el[i][i];
-            }				
-        }
-        Real logdet() {
-            Real sum = 0.;
-            for (int  i=0; i<n; i++) sum += log(el[i][i]);
-            return 2.*sum;
-        }
-    };
-
-    ///////////////////////   QR DECOMPOSITION    /////////////////////////////
-    class QRDecompositionSolver
-    {
-    private:
-        int n;
-        Matrix<Real> qt, r;
-        bool sing;    
-
-    public:
-        QRDecompositionSolver(Matrix<Real> &a) : n(a.RowNum()), qt(n,n), r(a), sing(false) 
-        {
-            // Constructs the QR decomposition of a[1..n][1..n]. The upper triangular Matrix<Real> R is returned in the upper triangle of a, 
-            // except for the diagonal elements of R which are returned in d[1..n]. 
-            int i,j,k;
-            Vector<Real> c(n), d(n);
-            Real scale,sigma,sum,tau;
-            for (k=0;k<n-1;k++) {
-                scale=0.0;
-                for (i=k;i<n;i++) scale=std::max(scale,std::abs(r[i][k]));
-                if (scale == 0.0) {
-                    sing=true;
-                    c[k]=d[k]=0.0;
-                } else {
-                    for (i=k;i<n;i++) r[i][k] /= scale;
-                    for (sum=0.0,i=k;i<n;i++) sum += SQR(r[i][k]);
-                    sigma=SIGN(sqrt(sum),r[k][k]);
-                    r[k][k] += sigma;
-                    c[k]=sigma*r[k][k];
-                    d[k] = -scale*sigma;
-                    for (j=k+1;j<n;j++) {
-                        for (sum=0.0,i=k;i<n;i++) sum += r[i][k]*r[i][j];
-                        tau=sum/c[k];
-                        for (i=k;i<n;i++) r[i][j] -= tau*r[i][k];
-                    }
-                }
-            }
-            d[n-1]=r[n-1][n-1];
-            if (d[n-1] == 0.0) sing=true;
-            for (i=0;i<n;i++) {
-                for (j=0;j<n;j++) qt[i][j]=0.0;
-                qt[i][i]=1.0;
-            }
-            for (k=0;k<n-1;k++) {
-                if (c[k] != 0.0) {
-                    for (j=0;j<n;j++) {
-                        sum=0.0;
-                        for (i=k;i<n;i++)
-                            sum += r[i][k]*qt[i][j];
-                        sum /= c[k];
-                        for (i=k;i<n;i++)
-                            qt[i][j] -= sum*r[i][k];
-                    }
-                }
-            }
-            for (i=0;i<n;i++) {
-                r[i][i]=d[i];
-                for (j=0;j<i;j++) r[i][j]=0.0;
-            }
-        }
-
-        // Solves the set of n linear equations A · x = b. a[1..n][1..n], c[1..n], and d[1..n] are
-        // input as the output of the routine qrdcmp and are not modified. b[1..n] is input as the
-        // right-hand side Vector<Real>, and is overwritten with the solution Vector<Real> on output. 
-        void Solve(Vector<Real> &b, Vector<Real> &x) 
+        /////////////////////          Vector-Matrix conversion           /////////////////////
+        Vector<_Type> VectorFromRow(int rowInd)
         {           
-            qtmult(b,x);
-            rsolve(x,x);
-        }
+            if( rowInd >= RowNum() )
+                throw MatrixAccessBoundsError("VectorFromRow - row index must be less then a.RowNum()", rowInd, 0, RowNum(), ColNum());
 
-        void qtmult(Vector<Real> &b, Vector<Real> &x) {
-            int i,j;
-            Real sum;
-            for (i=0;i<n;i++) {
-                sum = 0.;
-                for (j=0;j<n;j++) sum += qt[i][j]*b[j];
-                x[i] = sum;
-            }
-        }
+            Vector<_Type> ret(ColNum());
+            for( int i=0; i<ColNum(); i++)
+                ret[i] = this->a(rowInd,i);
 
-        void rsolve(Vector<Real> &b, Vector<Real> &x) 
+            return ret;
+        }
+        Vector<_Type> VectorFromColumn(int colInd)
         {
-            // Solves the set of n linear equations R · x = b, where R is an upper triangular Matrix<Real> stored in
-            // a and d. a[1..n][1..n] and d[1..n] are input as the output of the routine qrdcmp and
-            // are not modified. b[1..n] is input as the right-hand side Vector<Real>, and is overwritten with the
-            // solution Vector<Real> on output            
-            int i,j;
-            Real sum;
-            if (sing) 
-                throw SingularMatrixError("QRDecompositionSolver::rsolve - attempting solve in a singular QR");
+           if( colInd >= ColNum() )
+                throw MatrixAccessBoundsError("VectorFromColumn - column index must be less then a.ColNum()", 0, colInd, RowNum(), ColNum());
 
-            for (i=n-1;i>=0;i--) {
-                sum=b[i];
-                for (j=i+1;j<n;j++) sum -= r[i][j]*x[j];
-                x[i]=sum/r[i][i];
-            }
+            Vector<_Type> ret(RowNum());
+            for( int i=0; i<RowNum(); i++)
+                ret[i] = this->a(i,colInd);
+
+            return ret;
         }
-        
-        void update(Vector<Real> &u, Vector<Real> &v) 
+        Vector<_Type> VectorFromDiagonal()
         {
-            // Given the QR decomposition of some n × n Matrix<Real>, calculates the QR decomposition of the
-            // Matrix<Real> Q·(R+ u x v). The quantities are dimensioned as r[1..n][1..n], qt[1..n][1..n],
-            // u[1..n], and v[1..n]. Note that QT is input and returned in qt.            
-            int i,k;
-            Vector<Real> w(u);
-            for (k=n-1;k>=0;k--)
-                if (w[k] != 0.0) break;
-            if (k < 0) k=0;
-            for (i=k-1;i>=0;i--) {
-                rotate(i,w[i],-w[i+1]);
-                if (w[i] == 0.0)
-                    w[i]=std::abs(w[i+1]);
-                else if (std::abs(w[i]) > std::abs(w[i+1]))
-                    w[i]=std::abs(w[i])*sqrt(1.0+SQR(w[i+1]/w[i]));
-                else w[i]=std::abs(w[i+1])*sqrt(1.0+SQR(w[i]/w[i+1]));
-            }
-            for (i=0;i<n;i++) r[0][i] += w[0]*v[i];
-            for (i=0;i<k;i++)
-                rotate(i,r[i][i],-r[i+1][i]);
-            for (i=0;i<n;i++)
-                if (r[i][i] == 0.0) sing=true;
+           if( RowNum() != ColNum() ) 
+                throw MatrixDimensionError("VectorFromDiagonal - must be square matrix", RowNum(), ColNum(), -1, -1);
+
+            Vector<_Type> ret(RowNum());
+            for( int i=0; i<RowNum(); i++)
+                ret[i] = this->a(i,i);
+
+            return ret;
         }
 
-        void rotate(const int i, const Real a, const Real b)
+        ///////////////////////////            Operators             ///////////////////////////
+        MatrixSym &operator=(const MatrixSym &m)
         {
-            // Given matrices r[1..n][1..n] and qt[1..n][1..n], carry out a Jacobi rotation on rows
-            // i and i + 1 of each Matrix<Real>. a and b are the parameters of the rotation: cos phi = a=pa2 + b2,
-            // sin phi = b=pa2 + b2.            
-            int j;
-            Real c,fact,s,w,y;
-            if (a == 0.0) {
-                c=0.0;
-                s=(b >= 0.0 ? 1.0 : -1.0);
-            } else if (std::abs(a) > std::abs(b)) {
-                fact=b/a;
-                c=SIGN(1.0/sqrt(1.0+(fact*fact)),a);
-                s=fact*c;
-            } else {
-                fact=a/b;
-                s=SIGN(1.0/sqrt(1.0+(fact*fact)),b);
-                c=fact*s;
-            }
-            for (j=i;j<n;j++) {
-                y=r[i][j];
-                w=r[i+1][j];
-                r[i][j]=c*y-s*w;
-                r[i+1][j]=s*y+c*w;
-            }
-            for (j=0;j<n;j++) {
-                y=qt[i][j];
-                w=qt[i+1][j];
-                qt[i][j]=c*y-s*w;
-                qt[i+1][j]=s*y+c*w;
-            }
-        }    
-    };
+            if (this == &m)
+                return *this;
 
-    /////////////////////////////////   SVD DECOMPOSITION      /////////////////////////////
-    class SVDecompositionSolver 
-    {
-    private:
-        int m,n;
-        Matrix<Real> u,v;
-        Vector<Real> w;
-        Real eps, tsh;
-    
-    public:
-        Vector<Real> getW() { return w;}
-        Matrix<Real> getU() { return u;}
-        Matrix<Real> getV() { return v;}
+            if (_dim != m._dim )
+            {
+                delete[] (_ptrData[0]);
+                delete[] (_ptrData);
 
-    public:
-        SVDecompositionSolver(Matrix<Real> &a) : m(a.RowNum()), n(a.ColNum()), u(a), v(n,n), w(n) 
+                Init(m.Dim());
+            }
+
+            for (size_t i = 0; i < m.Dim(); ++i)
+                for (size_t j = 0; j <= i; ++j)
+                    _ptrData[i][j] = m._ptrData[i][j];
+
+            return *this;
+        }
+        MatrixSym &operator=(MatrixSym &&m)
         {
-            // Given a Matrix<Real> a[1..m][1..n], this routine computes its singular value decomposition, A = U·W ·V T . 
-            // The Matrix<Real> U replaces a on output. 
-            // The diagonal Matrix<Real> of singular values W is output as a Vector<Real> w[1..n]. 
-            // The Matrix<Real> V (not the transpose V T ) is output as v[1..n][1..n].            
-            eps = std::numeric_limits<Real>::epsilon();
-            decompose();
-            reorder();
-            tsh = 0.5*sqrt(m+n+1.)*w[0]*eps;
+            if (this == &m)
+                return *this;
+
+            std::swap(_ptrData, m._ptrData);
+            std::swap(_dim, m._dim);
+
+            return *this;
         }
 
-        Real inv_condition() {
-            return (w[0] <= 0. || w[n-1] <= 0.) ? 0. : w[n-1]/w[0];
+        _Type  operator()(int i, int j) const {
+            if( i < j ) 
+                return _ptrData[j][i]; 
+            else
+                return _ptrData[i][j]; 
         }
-        
-        void solve(Vector<Real> &b, Vector<Real> &x, Real thresh = -1.) 
+        _Type& operator()(int i, int j){ 
+            if( i < j ) 
+                return _ptrData[j][i]; 
+            else
+                return _ptrData[i][j]; 
+        }
+
+        // version with checking bounds
+        // _Type  ElemAt(int i, int j) const 
+        // { 
+        //     if( i<0 || i>=RowNum() || j<0 || j>=ColNum() )
+        //         throw MatrixAccessBoundsError("Matrix::ElemAt", i, j, RowNum(), ColNum());
+
+        //     return _ptrData[i][j]; 
+        // }
+        // _Type& ElemAt(int i, int j)       
+        // {
+        //     if( i<0 || i>=RowNum() || j<0 || j>=ColNum() )
+        //         throw MatrixAccessBoundsError("Matrix::ElemAt", i, j, RowNum(), ColNum());
+
+        //     return _ptrData[i][j]; 
+        // }
+
+        MatrixSym operator+( const MatrixSym &b ) const
         {
-            // Solve A  x D b for a vector x using the pseudoinverse of A as obtained by SVD. If positive,
-            // thresh is the threshold value below which singular values are considered as zero. If thresh is
-            // negative, a default based on expected roundoff error is used.
-            int i,j,jj;
-            Real s;
-            if (b.size() != m || x.size() != n) throw("solve bad sizes");
-            Vector<Real> tmp(n);
-            tsh = (thresh >= 0. ? thresh : 0.5*sqrt(m+n+1.)*w[0]*eps);
-            for (j=0;j<n;j++) {
-                s=0.0;
-                if (w[j] > tsh) {
-                    for (i=0;i<m;i++) s += u[i][j]*b[i];
-                    s /= w[j];
-                }
-                tmp[j]=s;
-            }
-            for (j=0;j<n;j++) {
-                s=0.0;
-                for (jj=0;jj<n;jj++) s += v[j][jj]*tmp[jj];
-                x[j]=s;
-            }
-        }
+            if (_dim != b._dim )
+                throw MatrixDimensionError("MatrixSym::operator+() - must be same dim", _dim, -1, b._dim, -1);
 
-        // Solves m sets of n equations A  X D B using the pseudoinverse of A. The right-hand sides are
-        // input as b[0..n-1][0..m-1], while x[0..n-1][0..m-1] returns the solutions. thresh as above.
-        void solve(Matrix<Real> &b, Matrix<Real> &x, Real thresh = -1.)
+            MatrixSym temp(_dim);
+            for (size_t i = 0; i < Dim(); i++)
+                for (size_t j = 0; j <= i; j++)
+                    temp._ptrData[i][j] = b._ptrData[i][j] + _ptrData[i][j];
+
+            return temp;
+        }
+        MatrixSym operator-( const MatrixSym &b ) const
         {
-            int i,j,p=b.ColNum();
-            if (b.RowNum() != m || x.RowNum() != n || x.ColNum() != p)
-                throw("solve bad sizes");
-            Vector<Real> xx(n),bcol(m);
-            for (j=0;j<p;j++) {
-                for (i=0;i<m;i++) bcol[i] = b[i][j];
-                solve(bcol,xx,thresh);
-                for (i=0;i<n;i++) x[i][j] = xx[i];
-            }
-        }
+            if (_dim != b._dim )
+                throw MatrixDimensionError("MatrixSym::operator-() - must be same dim", _dim, -1, b._dim, -1);
 
-        // Return the rank of A, after zeroing any singular values smaller than thresh. If thresh is
-        // negative, a default value based on estimated roundoff is used.        
-        int rank(Real thresh = -1.) {
-            int j,nr=0;
-            tsh = (thresh >= 0. ? thresh : 0.5*sqrt(m+n+1.)*w[0]*eps);
-            for (j=0;j<n;j++) if (w[j] > tsh) nr++;
-            return nr;
-        }
+            MatrixSym temp(_dim);
+            for (size_t i = 0; i < Dim(); i++)
+                for (size_t j = 0; j <= i; j++)
+                    temp._ptrData[i][j] = b._ptrData[i][j] - _ptrData[i][j];
 
-        // Return the nullity of A, after zeroing any singular values smaller than thresh. Default value as above.
-        int nullity(Real thresh = -1.) {
-            int j,nn=0;
-            tsh = (thresh >= 0. ? thresh : 0.5*sqrt(m+n+1.)*w[0]*eps);
-            for (j=0;j<n;j++) if (w[j] <= tsh) nn++;
-            return nn;
-        }
-
-        // Gives an orthonormal basis for the range of A as the columns of a returned matrix. thresh as above.
-        Matrix<Real> range(Real thresh = -1.){
-            int i,j,nr=0;
-            Matrix<Real> rnge(m,rank(thresh));
-            for (j=0;j<n;j++) {
-                if (w[j] > tsh) {
-                    for (i=0;i<m;i++) rnge[i][nr] = u[i][j];
-                    nr++;
-                }
-            }
-            return rnge;
-        }
-
-        // Gives an orthonormal basis for the nullspace of A as the columns of a returned matrix. thresh as above
-        Matrix<Real> nullspace(Real thresh = -1.){
-            int j,jj,nn=0;
-            Matrix<Real> nullsp(n,nullity(thresh));
-            for (j=0;j<n;j++) {
-                if (w[j] <= tsh) {
-                    for (jj=0;jj<n;jj++) nullsp[jj][nn] = v[jj][j];
-                    nn++;
-                }
-            }
-            return nullsp;
-        }
-        
-        void decompose() {
-            bool flag;
-            int i,its,j,jj,k,l,nm;
-            Real anorm,c,f,g,h,s,scale,x,y,z;
-            Vector<Real> rv1(n);
-            g = scale = anorm = 0.0;
-            for (i=0;i<n;i++) {
-                l=i+2;
-                rv1[i]=scale*g;
-                g=s=scale=0.0;
-                if (i < m) {
-                    for (k=i;k<m;k++) scale += std::abs(u[k][i]);
-                    if (scale != 0.0) {
-                        for (k=i;k<m;k++) {
-                            u[k][i] /= scale;
-                            s += u[k][i]*u[k][i];
-                        }
-                        f=u[i][i];
-                        g = -SIGN(sqrt(s),f);
-                        h=f*g-s;
-                        u[i][i]=f-g;
-                        for (j=l-1;j<n;j++) {
-                            for (s=0.0,k=i;k<m;k++) s += u[k][i]*u[k][j];
-                            f=s/h;
-                            for (k=i;k<m;k++) u[k][j] += f*u[k][i];
-                        }
-                        for (k=i;k<m;k++) u[k][i] *= scale;
-                    }
-                }
-                w[i]=scale *g;
-                g=s=scale=0.0;
-                if (i+1 <= m && i+1 != n) {
-                    for (k=l-1;k<n;k++) scale += std::abs(u[i][k]);
-                    if (scale != 0.0) {
-                        for (k=l-1;k<n;k++) {
-                            u[i][k] /= scale;
-                            s += u[i][k]*u[i][k];
-                        }
-                        f=u[i][l-1];
-                        g = -SIGN(sqrt(s),f);
-                        h=f*g-s;
-                        u[i][l-1]=f-g;
-                        for (k=l-1;k<n;k++) rv1[k]=u[i][k]/h;
-                        for (j=l-1;j<m;j++) {
-                            for (s=0.0,k=l-1;k<n;k++) s += u[j][k]*u[i][k];
-                            for (k=l-1;k<n;k++) u[j][k] += s*rv1[k];
-                        }
-                        for (k=l-1;k<n;k++) u[i][k] *= scale;
-                    }
-                }
-                anorm=std::max(anorm,(std::abs(w[i])+std::abs(rv1[i])));
-            }
-            for (i=n-1;i>=0;i--) {
-                if (i < n-1) {
-                    if (g != 0.0) {
-                        for (j=l;j<n;j++)
-                            v[j][i]=(u[i][j]/u[i][l])/g;
-                        for (j=l;j<n;j++) {
-                            for (s=0.0,k=l;k<n;k++) s += u[i][k]*v[k][j];
-                            for (k=l;k<n;k++) v[k][j] += s*v[k][i];
-                        }
-                    }
-                        for (j=l;j<n;j++) v[i][j]=v[j][i]=0.0;
-                    }
-                    v[i][i]=1.0;
-                    g=rv1[i];
-                    l=i;
-                }
-                for (i=std::min(m,n)-1;i>=0;i--) {
-                    l=i+1;
-                    g=w[i];
-                    for (j=l;j<n;j++) u[i][j]=0.0;
-                    if (g != 0.0) {
-                        g=1.0/g;
-                        for (j=l;j<n;j++) {
-                            for (s=0.0,k=l;k<m;k++) s += u[k][i]*u[k][j];
-                            f=(s/u[i][i])*g;
-                            for (k=i;k<m;k++) u[k][j] += f*u[k][i];
-                        }
-                        for (j=i;j<m;j++) u[j][i] *= g;
-                    } else for (j=i;j<m;j++) u[j][i]=0.0;
-                    ++u[i][i];
-                }
-                for (k=n-1;k>=0;k--) {
-                    for (its=0;its<30;its++) {
-                        flag=true;
-                        for (l=k;l>=0;l--) {
-                            nm=l-1;
-                            if (l == 0 || std::abs(rv1[l]) <= eps*anorm) {
-                                flag=false;
-                                break;
-                            }
-                            if (std::abs(w[nm]) <= eps*anorm) break;
-                        }
-                        if (flag) {
-                            c=0.0;
-                            s=1.0;
-                            for (i=l;i<k+1;i++) {
-                                f=s*rv1[i];
-                                rv1[i]=c*rv1[i];
-                                if (std::abs(f) <= eps*anorm) break;
-                                g=w[i];
-                                h=pythag(f,g);
-                                w[i]=h;
-                                h=1.0/h;
-                                c=g*h;
-                                s = -f*h;
-                                for (j=0;j<m;j++) {
-                                    y=u[j][nm];
-                                    z=u[j][i];
-                                    u[j][nm]=y*c+z*s;
-                                    u[j][i]=z*c-y*s;
-                                }
-                            }
-                        }
-                        z=w[k];
-                        if (l == k) {
-                            if (z < 0.0) {
-                                w[k] = -z;
-                                for (j=0;j<n;j++) v[j][k] = -v[j][k];
-                            }
-                            break;
-                        }
-                        if (its == 29) throw("no convergence in 30 svdcmp iterations");
-                        x=w[l];
-                        nm=k-1;
-                        y=w[nm];
-                        g=rv1[nm];
-                        h=rv1[k];
-                        f=((y-z)*(y+z)+(g-h)*(g+h))/(2.0*h*y);
-                        g=pythag(f,1.0);
-                        f=((x-z)*(x+z)+h*((y/(f+SIGN(g,f)))-h))/x;
-                        c=s=1.0;
-                        for (j=l;j<=nm;j++) {
-                            i=j+1;
-                            g=rv1[i];
-                            y=w[i];
-                            h=s*g;
-                            g=c*g;
-                            z=pythag(f,h);
-                            rv1[j]=z;
-                            c=f/z;
-                            s=h/z;
-                            f=x*c+g*s;
-                            g=g*c-x*s;
-                            h=y*s;
-                            y *= c;
-                            for (jj=0;jj<n;jj++) {
-                                x=v[jj][j];
-                                z=v[jj][i];
-                                v[jj][j]=x*c+z*s;
-                                v[jj][i]=z*c-x*s;
-                            }
-                            z=pythag(f,h);
-                            w[j]=z;
-                            if (z) {
-                                z=1.0/z;
-                                c=f*z;
-                                s=h*z;
-                            }
-                            f=c*g+s*y;
-                            x=c*y-s*g;
-                            for (jj=0;jj<m;jj++) {
-                                y=u[jj][j];
-                                z=u[jj][i];
-                                u[jj][j]=y*c+z*s;
-                                u[jj][i]=z*c-y*s;
-                            }
-                        }
-                        rv1[l]=0.0;
-                        rv1[k]=f;
-                        w[k]=x;
-                    }
-                }
-            }
-
-        void reorder() {
-            int i,j,k,s,inc=1;
-            Real sw;
-            Vector<Real> su(m), sv(n);
-            do { inc *= 3; inc++; } while (inc <= n);
-            do {
-                inc /= 3;
-                for (i=inc;i<n;i++) {
-                    sw = w[i];
-                    for (k=0;k<m;k++) su[k] = u[k][i];
-                    for (k=0;k<n;k++) sv[k] = v[k][i];
-                    j = i;
-                    while (w[j-inc] < sw) {
-                        w[j] = w[j-inc];
-                        for (k=0;k<m;k++) u[k][j] = u[k][j-inc];
-                        for (k=0;k<n;k++) v[k][j] = v[k][j-inc];
-                        j -= inc;
-                        if (j < inc) break;
-                    }
-                    w[j] = sw;
-                    for (k=0;k<m;k++) u[k][j] = su[k];
-                    for (k=0;k<n;k++) v[k][j] = sv[k];
-
-                }
-            } while (inc > 1);
-            for (k=0;k<n;k++) {
-                s=0;
-                for (i=0;i<m;i++) if (u[i][k] < 0.) s++;
-                for (j=0;j<n;j++) if (v[j][k] < 0.) s++;
-                if (s > (m+n)/2) {
-                    for (i=0;i<m;i++) u[i][k] = -u[i][k];
-                    for (j=0;j<n;j++) v[j][k] = -v[j][k];
-                }
-            }
-        }
-
-        Real pythag(const Real a, const Real b) {
-            Real absa=std::abs(a), absb=std::abs(b);
-            return (absa > absb ? absa*sqrt(1.0+SQR(absb/absa)) :
-                (absb == 0.0 ? 0.0 : absb*sqrt(1.0+SQR(absa/absb))));
-        }
-    };
-} // end namespace
-///////////////////////////   ./include/core/VectorSpace.h   ///////////////////////////
-
-
-
-namespace MML
-{
-    // TODO - MED, vector space + Gram Schmidt
-    // TODO - MED, linear transformations & OPERATORS
-    template<int N>
-    class RealVectorSpaceN : public HilbertSpace<Real, VectorN<Real, N>>
-    {
-    public:
-        virtual Real  scal_prod(const VectorN<Real, N> &a, const VectorN<Real, N> &b) const
-        {
-            return a.ScalarProductCartesian(b);
-        }
-    };
-
-    template<int N>
-    class ComplexVectorSpaceN : public HilbertSpace<Complex, VectorN<Complex, N>>
-    {
-    public:
-        virtual Real  scal_prod(const VectorN<Complex, N> &a, const VectorN<Complex, N> &b) const
-        {
-            Real product = 0.0;
-            for( int i=0; i<N; i++ )
-                product += (a[i] * std::conj(b[i])).real();
-            return product;
+            return temp;
         }        
+
+        Matrix<_Type> operator*( const MatrixSym &b ) const
+        {
+            if( Dim() != b.Dim() )
+                throw MatrixDimensionError("MatrixSym::operator*(MatrixSym &) - a.colNum must be equal to b.rowNum", _dim, _dim, b._dim, b._dim);
+
+            Matrix<_Type>	ret(RowNum(), b.ColNum());
+            for( int i=0; i<ret.RowNum(); i++ )
+                for( int j=0; j<ret.ColNum(); j++ )
+                {
+                    ret[i][j] = 0;
+                    for(int k=0; k<ColNum(); k++ )
+                        ret[i][j] += (*this)(i,k) * b(k,j);
+                }
+
+            return	ret;
+        }
+
+        Matrix<_Type> operator*( const Matrix<_Type> &b ) const
+        {
+            if( Dim() != b.RowNum() )
+                throw MatrixDimensionError("MatrixSym::operator*(Matrix &) - a.colNum must be equal to b.rowNum", _dim, _dim, b.RowNum(), b.ColNum());
+
+            Matrix<_Type>	ret(RowNum(), b.ColNum());
+            for( int i=0; i<ret.RowNum(); i++ )
+                for( int j=0; j<ret.ColNum(); j++ )
+                {
+                    ret[i][j] = 0;
+                    for(int k=0; k<ColNum(); k++ )
+                        ret[i][j] += (*this)(i,k) * b(k,j);
+                }
+
+            return	ret;
+        }
+
+        friend MatrixSym operator*( const MatrixSym &a, _Type b )
+        {
+            int	i, j;
+            MatrixSym	ret(a.Dim());
+
+            for( i=0; i<a.Dim(); i++ )
+                for( j=0; j<=i; j++ )
+                    ret[i][j] = a._ptrData[i][j] * b;
+
+            return ret;
+        }
+        friend MatrixSym operator*( _Type a, const MatrixSym &b )
+        {
+            int	i, j;
+            MatrixSym	ret(a.Dim());
+
+            for( i=0; i<a.Dim(); i++ )
+                for( j=0; j<=i; j++ )
+                    ret[i][j] = a * b._ptrData[i][j];
+
+            return ret;
+        }
+        friend MatrixSym operator/( const MatrixSym &a, _Type b )
+        {
+            int	i, j;
+            MatrixSym	ret(a.Dim());
+
+            for( i=0; i<a.Dim(); i++ )
+                for( j=0; j<=i; j++ )
+                    ret[i][j] = a._ptrData[i][j] / b;
+
+            return ret;
+        }
+
+        friend Vector<_Type> operator*( const MatrixSym &a, const Vector<_Type> &b )
+        {
+            if( a.Dim() != b.size() )
+                throw MatrixDimensionError("operator*(MatSym a, Vec b) - a.Dim must be equal to vector size", a.Dim(), a.Dim(), (int) b.size(), -1);
+
+            Vector<_Type>	ret(a.RowNum());
+            for( int i=0; i<a.Dim(); i++ )
+            {
+                ret[i] = 0;
+                for( int j=0; j<a.Dim(); j++ )
+                    ret[i] += a(i,j) * b[j];
+            }
+
+            return ret;
+        }
+        friend Vector<_Type> operator*( const Vector<_Type> &a, const MatrixSym &b )
+        {
+            if( a.size() != b.Dim() )
+            {
+                //std::string error = std::format("Hello {}!\n", "world");
+                throw MatrixDimensionError("operator*(Vec a, MatSym b) - vector size must be equal to b.Dim", (int) a.size(), -1, b.Dim(), -1);
+            }
+
+            Vector<_Type>	ret(b.Dim());
+            for( int i=0; i<b.Dim(); i++ )
+            {
+                ret[i] = 0;
+                for( int j=0; j<b.Dim(); j++ )
+                    ret[i] += a[j] * b(i,j);
+            }
+
+            return ret;
+        }
+
+        ////////////////////////            Inverse              ///////////////////////
+        Matrix<_Type> GetInverse() const
+        {
+            if( RowNum() != ColNum() ) 
+                throw MatrixDimensionError("MatrixSym::GetInverse - must be square matrix", _dim, _dim, -1, -1);
+
+            Matrix<_Type> a = this->GetAsMatrix();              // making a copy, where inverse will be stored at the end
+            
+            a.Invert();
+            
+            return a;
+        }     
+
+        ///////////////////////////               I/O                 ///////////////////////////
+        void   Print(std::ostream& stream, int width, int precision) const
+        {
+            stream << "Rows: " << Dim() << std::endl;
+
+            for (int i = 0; i < Dim(); i++)
+            {
+                stream << "[ ";
+                for (int j = 0; j < Dim(); j++)
+                {
+                    stream << std::setw(width) << std::setprecision(precision) << (*this)(i, j) << ", ";
+                }                
+                stream << " ]" << std::endl;
+            }
+        }
+        friend std::ostream& operator<<(std::ostream& stream, const MatrixSym &a)
+        {
+            a.Print(stream, 10, 3);
+
+            return stream;
+        }   
     };
 }
-///////////////////////////   ./include/core/Tensor.h   ///////////////////////////
+///////////////////////////   ./include/base/Tensor.h   ///////////////////////////
 
 
 
@@ -4527,494 +3538,162 @@ namespace MML
         Real  Component(int i, int j, int k, int l) const { return _coeff[i][j][k][l]; }
         Real& Component(int i, int j, int k, int l)       { return _coeff[i][j][k][l];}   
     };
+
+    template <int N>
+    class Tensor5 : public ITensor5<N>
+    {
+        Real _coeff[N][N][N][N][N];
+    public:
+        int _numContravar;
+        int _numCovar;
+        bool _isContravar[5];
+
+        Tensor5(int nContra, int nCo) : _numContravar(nContra), _numCovar(nCo) {
+            if(_numContravar + _numCovar != 5)
+                throw TensorCovarContravarNumError("Tensor5 ctor, wrong number of contravariant and covariant indices", nContra, nCo);
+
+            for(int i=0; i<nContra; i++)
+                _isContravar[i] = true;
+            
+            for(int i=nContra; i<nContra+nCo; i++)
+                _isContravar[i] = false;                
+
+        }
+
+        int   NumContravar() const { return _numContravar; }
+        int   NumCovar()     const { return _numCovar;}
+        
+        Real  Component(int i, int j, int k, int l, int m) const { return _coeff[i][j][k][l][m]; }
+        Real& Component(int i, int j, int k, int l, int m)       { return _coeff[i][j][k][l][m];}   
+    };    
 }
-///////////////////////////   ./include/core/Polynom.h   ///////////////////////////
+///////////////////////////   ./include/base/BaseUtils.h   ///////////////////////////
 
 
 namespace MML
 {
-    // TODO - HIGH, TESKO?, dodati RealPolynom klasu, izvedenu iz IRealFunction implementirati derive (derivs - sve, first, sec, third zasebno)& integrate
-    template <typename _Field, typename _CoefType = Real>
-    class Polynom
+    class Utils
     {
-    private:
-        std::vector<_CoefType> _vecCoef;
     public:
-        Polynom() {}
-        Polynom(int n) { _vecCoef.resize(n+1); }
-        Polynom(const std::vector<_CoefType> &vecCoef) : _vecCoef(vecCoef) {}
-        Polynom(std::initializer_list<_CoefType> list) : _vecCoef(list) {}
-        Polynom(const Polynom &Copy) : _vecCoef(Copy._vecCoef) {}
-        ~Polynom() {}
-
-        Polynom& operator=(const Polynom &Copy) { _vecCoef = Copy._vecCoef; return *this; }
-
-        int  GetDegree() const     { return (int) _vecCoef.size() - 1; }
-        void SetDegree(int newDeg) {  _vecCoef.resize(newDeg+1); }
-
-        _Field  operator[] (int i) const { return _vecCoef[i]; }
-        _Field& operator[] (int i)       { return _vecCoef[i]; }
-
-        _Field operator() (const _Field &x) {
-            int j = GetDegree();
-            _Field p = _vecCoef[j];
-            
-            while (j>0) 
-                p = p*x + _vecCoef[--j];
-            return p;
-        }        
-        // Given the coefficients of a polynomial of degree nc as an array c[0..nc] of size nc+1 (with
-        // c[0] being the constant term), and given a value x, this routine fills an output array pd of size
-        // nd+1 with the value of the polynomial evaluated at x in pd[0], and the first nd derivatives at
-        // x in pd[1..nd].
-        void Derive(const Real x, Vector<Real> &pd)
+        int LeviCivita(int i, int j, int k)
         {
-            int  nnd,j,i;
-            int  nc=GetDegree();
-            int  nd=pd.size()-1;
-            Real cnst=1.0;
+            if( i==j || j==k || i==k )
+                return 0;
 
-            pd[0]=(*this)[nc];
-            for (j=1;j<nd+1;j++) 
-                pd[j]=0.0;
+            if( i==1 && j==2 && k==3 )
+                return 1;
+            if( i==2 && j==3 && k==1 )
+                return 1;
+            if( i==3 && j==1 && k==2 )
+                return 1;
+            if( i==3 && j==2 && k==1 )
+                return -1;
+            if( i==2 && j==1 && k==3 )
+                return -1;
+            if( i==1 && j==3 && k==2 )
+                return -1;
             
-            for (i=nc-1;i>=0;i--) 
-            {
-                nnd=(nd < (nc-i) ? nd : nc-i);
-                for (j=nnd;j>0;j--) 
-                    pd[j]=pd[j]*x+pd[j-1];
-
-                pd[0]=pd[0]*x + (*this)[i];
-            }
-            for (i=2;i<nd+1;i++) {
-                cnst *= i;
-                pd[i] *= cnst;
-            }
-        }        
-
-        bool operator==(const Polynom &b) const
+            return 0;
+        }
+        int LeviCivita(int i, int j, int k, int l)
         {
-            if( _vecCoef.size() != b._vecCoef.size() )
+            int a[4] = {i, j, k, l};
+            int ret = 1;
+
+            // TODO check if 1, 2, 3, 4 are present
+            for( int i=0; i<4; i++ )
+                for( int j=i+1; j<4; j++ )
+                    if( a[i] > a[j] )
+                    {
+                        int tmp = a[i];
+                        a[i] = a[j];
+                        a[j] = tmp;
+                        ret *= -1;
+                    }
+            return ret;
+        }
+        ////////////////////////             Complex helpers               //////////////////////
+        static bool AreEqual(const Complex &a, const Complex &b, double eps=Defaults::ComplexEqualityPrecision)
+        {
+            if( std::abs(a.real() - b.real()) > eps || std::abs(a.imag() - b.imag()) > eps )
                 return false;
-            for( int i=0; i<_vecCoef.size(); i++ )
-                if( _vecCoef[i] != b._vecCoef[i] )
+            return true;
+        }
+        static bool AreEqual(const Vector<Complex> &a, const Vector<Complex> &b, double eps=Defaults::ComplexEqualityPrecision)
+        {
+            if( a.size() != b.size() )
+                return false;
+
+            for( int i=0; i<a.size(); i++ )
+                if( std::abs(a[i].real() - b[i].real()) > eps || std::abs(a[i].imag() - b[i].imag()) > eps )
                     return false;
+
             return true;
         }
 
-        Polynom operator+(const Polynom &b) const
+        /////////////////////////             Vector helpers               //////////////////////
+        static Vector<Real> VectorProjectionParallelTo(const Vector<Real> &orig, const Vector<Real> &b)
         {
-            Polynom result;
-            int n = (int) std::max(_vecCoef.size(), b._vecCoef.size());
-            result._vecCoef.resize(n);
-            for (int i = 0; i < n; i++)
-            {
-                if (i < _vecCoef.size())
-                    result._vecCoef[i] += _vecCoef[i];
-                if (i < b._vecCoef.size())
-                    result._vecCoef[i] += b._vecCoef[i];
-            }
-            return result;
+            return orig.ScalarProductCartesian(b) / b.NormL2() * b;
         }
-
-        Polynom operator-(const Polynom &b) const
+        static Vector<Real> VectorProjectionPerpendicularTo(const Vector<Real> &orig, const Vector<Real> &b)
         {
-            Polynom result;
-            int n = (int) std::max(_vecCoef.size(), b._vecCoef.size());
-            result._vecCoef.resize(n);
-            for (int i = 0; i < n; i++)
-            {
-                if (i < _vecCoef.size())
-                    result._vecCoef[i] += _vecCoef[i];
-                if (i < b._vecCoef.size())
-                    result._vecCoef[i] -= b._vecCoef[i];
-            }
-            return result;
+            return orig - VectorProjectionParallelTo(orig, b);
         }
-
-        Polynom operator*(const Polynom &b) const
-        {
-            Polynom result;
-
-            int n = (int) (_vecCoef.size() + b._vecCoef.size() - 1);
-            result._vecCoef.resize(n);
-            for (int i = 0; i < _vecCoef.size(); i++)
-                for (int j = 0; j < b._vecCoef.size(); j++)
-                    result._vecCoef[i + j] += _vecCoef[i] * b._vecCoef[j];
-            return result;
-        }
-
-        static void poldiv(const Polynom &u, const Polynom &v, Polynom &qout, Polynom &rout)
-        {
-            int k,j,n=u.GetDegree(),nv=v.GetDegree();
-
-            while (nv >= 0 && v._vecCoef[nv] == 0.) nv--;
-
-            if (nv < 0) 
-                throw("poldiv divide by zero polynomial");
-            
-            Polynom r = u;
-            Polynom q(u.GetDegree());
-            for (k=n-nv;k>=0;k--) 
-            {
-                q[k]=r[nv+k]/v[nv];
-                for (j=nv+k-1;j>=k;j--) 
-                    r[j] -= q[k]*v[j-k];
-            }
-            for (j=nv;j<=n;j++) r[j]=0.0;
-
-            int nq=q.GetDegree();            
-            while (nq >= 0 && q[nv] == 0.) 
-                nq--;
-
-            qout.SetDegree(nq-1);
-            for(j=0; j<nq; j++ )
-                qout[j] = q[j];
-
-            rout.SetDegree(nv-1);
-            for(j=0; j<nv; j++ )
-                rout[j] = r[j];
-        }
-        
-        friend Polynom operator*(const Polynom &a, _CoefType b )
-        {
-            Polynom ret;
-            ret._vecCoef.resize(a.GetDegree()+1);
-            for(int i=0; i<=a.GetDegree(); i++)
-                ret._vecCoef[i] = a._vecCoef[i] * b;
-            return ret;
-        }
-
-        friend Polynom operator*(_CoefType a, const Polynom &b )
-        {
-            Polynom ret;
-            ret._vecCoef.resize(b.GetDegree()+1);
-            for(int i=0; i<=b.GetDegree(); i++)
-                ret._vecCoef[i] = a * b._vecCoef[i];
-            return ret;
-        }
-
-        friend Polynom operator/(const Polynom &a, _CoefType b)
-        {
-            Polynom ret;
-            ret._vecCoef.resize(a.GetDegree()+1);
-            for(int i=0; i<=a.GetDegree(); i++)
-                ret._vecCoef[i] = a._vecCoef[i] / b;
-            return ret;
-        }        
-
-        std::ostream& Print(std::ostream& stream, int width, int precision) const
-        {
-            for(int i=(int) _vecCoef.size()-1; i>=0; i--)
-            {
-                if( std::abs(_vecCoef[i]) == 0.0 )
-                    continue;
-
-                if( i != _vecCoef.size()-1 )
-                    stream << " + ";
-
-                if( i == 0 )
-                    stream << std::setw(width) << std::setprecision(precision) << _vecCoef[i];
-                else if ( i == 1 )
-                    stream << std::setw(width) << std::setprecision(precision) << _vecCoef[i] << " * x" << i;
-                else
-                    stream << std::setw(width) << std::setprecision(precision) << _vecCoef[i] << " * x^" << i;
-            }
-
-            return stream;
-        }
-
-        std::ostream& Print(std::ostream& stream) const
-        {
-            for(int i=(int)_vecCoef.size()-1; i>=0; i--)
-            {
-                if( std::abs(_vecCoef[i]) == 0.0 )
-                    continue;
-
-                if( i != _vecCoef.size()-1 )
-                    stream << " + ";
-                
-                if( i == 0 )
-                    stream <<  _vecCoef[i];
-                else if ( i == 1 )
-                    stream <<  _vecCoef[i] << " * x" << i;
-                else
-                    stream <<  _vecCoef[i] << " * x^" << i;
-            }
-
-            return stream;
-        }
-
-        std::string to_string(int width, int precision) const
-        {
-            std::stringstream str;
-
-            Print(str, width, precision);
-
-            return str.str();
-        }
-
-        friend std::ostream& operator<<(std::ostream& stream, Polynom &a)
-        {
-            a.Print(stream);
-
-            return stream;
-        }        
-    };
-
-    // class RealPolynom : public Polynom<Real, Real>
-    // {
-    // };
-        
-    typedef Polynom<Real, Real>         RealPolynom;
-    typedef Polynom<Complex, Complex>   ComplexPolynom;
-
-    typedef Polynom<MatrixNM<Real,2,2>, Real>       MatrixPolynomDim2;
-    typedef Polynom<MatrixNM<Real,3,3>, Real>       MatrixPolynomDim3;
-    typedef Polynom<MatrixNM<Real,4,4>, Real>       MatrixPolynomDim4;
-}
-
-///////////////////////////   ./include/core/MatrixUtils.h   ///////////////////////////
-
-
-namespace MML
-{
-    class MatrixUtils
-    {
-    public:
         template<class _Type>
-        static Matrix<_Type> Commutator(const Matrix<_Type> &a, const Matrix<_Type> &b)
+        static Matrix<_Type> OuterProduct(const Vector<_Type> &a, const Vector<_Type> &b)
         {
-            return a*b - b*a;
-        }
+            Matrix<_Type> ret(a.size(), b.size());
 
-        ///////////////////////             Real matrix helpers               ////////////////////
-        static bool IsOrthogonal(const Matrix<Real> &mat, double eps = Defaults::IsMatrixOrthogonalPrecision)
-        {
-            if( mat.RowNum() != mat.ColNum() )
-                throw MatrixDimensionError("IsOrthogonal - matrix must be square", mat.RowNum(), mat.ColNum(), -1, -1);
-            
-            Matrix<Real> matProd = mat * mat.GetTranspose();
-
-            return matProd.IsUnit(eps);
-        } 
-
-        static Real Det(const Matrix<Real> &mat)
-        {
-            Matrix<Real> matCopy(mat);
-            LUDecompositionSolver<Real> _solver(matCopy);
-
-            return _solver.det();
-        }
-
-        static int Rank(const Matrix<Real> &mat)
-        {
-            Matrix<Real>     matcopy(mat);
-
-            SVDecompositionSolver svdSolver(matcopy);
-
-            return svdSolver.rank();
-        }
-
-        // TODO - HIGH, SREDNJE, Definitness
-        static int Definitness(const Matrix<Real> &mat)
-        {
-            return 3;
-        }
-        
-        static int IsPositiveDefinite(const Matrix<Real> &mat)
-        {
-            return 3;
-        }
-
-        //////////////////////             Complex matrix helpers               ///////////////////
-        static Matrix<Complex> GetConjugateTranspose(const Matrix<Complex> &mat)
-        {
-            Matrix<Complex> ret(mat.ColNum(), mat.RowNum());
-
-            for( int i=0; i<mat.RowNum(); i++ )
-                for( int j=0; j<mat.ColNum(); j++ )
-                    ret[j][i] = std::conj(mat[i][j]);
+            for( int i=0; i<a.size(); i++ )
+                for( int j=0; j<b.size(); j++ )
+                    ret[i][j] = a[i] * b[j];
 
             return ret;
         }
 
-        static Matrix<Complex> CmplxMatFromRealMat(const Matrix<Real> &mat)
+        /////////////          Vector<Complex> - Vector<Real> operations
+        static Vector<Complex> AddVec(const Vector<Complex> &a, const Vector<Real> &b)
         {
-            Matrix<Complex> mat_cmplx(mat.RowNum(), mat.ColNum());
+            if( a.size() != b.size() )
+                throw VectorDimensionError("AddVec(Complex, Real) - must be same dim", a.size(), b.size());
 
-            for(int i=0; i<mat.RowNum(); i++ )
-                for(int j=0; j<mat.ColNum(); j++)
-                    mat_cmplx[i][j] = Complex(mat(i,j), 0.0);
-            
-            return mat_cmplx;         
+            Vector<Complex> ret(b.size());;
+            for (int i = 0; i < b.size(); i++)
+                ret[i] = a[i] + b[i];
+            return ret;
+        }
+        static Vector<Complex> AddVec(const Vector<Real> &a, const Vector<Complex> &b)
+        {
+            if( a.size() != b.size() )
+                throw VectorDimensionError("AddVec(Real, Complex) - must be same dim", a.size(), b.size());
+
+            Vector<Complex> ret(b.size());;
+            for (int i = 0; i < b.size(); i++)
+                ret[i] = a[i] + b[i];
+            return ret;
         }
 
-        static bool IsComplexMatReal(const Matrix<Complex> &mat)
+        static Vector<Complex> SubVec(const Vector<Complex> &a, const Vector<Real> &b)
         {
-            for(int i=0; i<mat.RowNum(); i++ )
-                for(int j=0; j<mat.ColNum(); j++)
-                    if( mat[i][j].imag() != 0.0 )
-                        return false;
-            
-            return true;
+            if( a.size() != b.size() )
+                throw VectorDimensionError("SubVec(Complex, Real) - must be same dim", a.size(), b.size());
+
+            Vector<Complex> ret(b.size());;
+            for (int i = 0; i < b.size(); i++)
+                ret[i] = a[i] - b[i];
+            return ret;
+        }
+        static Vector<Complex> SubVec(const Vector<Real> &a, const Vector<Complex> &b)
+        {
+            if( a.size() != b.size() )
+                throw VectorDimensionError("SubVec(Real, Complex) - must be same dim", a.size(), b.size());
+
+            Vector<Complex> ret(b.size());;
+            for (int i = 0; i < b.size(); i++)
+                ret[i] = a[i] - b[i];
+            return ret;
         }        
-
-        static bool IsHermitian(const Matrix<Complex> &mat)
-        {
-            if( mat.RowNum() != mat.ColNum() )
-                throw MatrixDimensionError("IsHermitian - matrix must be square", mat.RowNum(), mat.ColNum(), -1, -1);
-
-            for(int i=0; i<mat.RowNum(); i++ )
-                for(int j=0; j<mat.ColNum(); j++)
-                    if( mat[i][j] != std::conj(mat[j][i]) )
-                        return false;
-            return true;
-        }
-
-        // IsUnitary - complex square matrix U is unitary if its conjugate transpose U* is also its inverse
-        static bool IsUnitary(const Matrix<Complex> &mat)
-        {
-            if( mat.RowNum() != mat.ColNum() )
-                throw MatrixDimensionError("IsUnitary - matrix must be square", mat.RowNum(), mat.ColNum(), -1, -1);
-            
-            Matrix<Complex> matProd = mat * GetConjugateTranspose(mat);
-
-            return matProd.IsUnit();            
-
-            return false;
-        }
-
-        // enabling Complex - Real Matrix operations
-        static Matrix<Complex> AddMat(const Matrix<Complex> &a, const Matrix<Real> &b)
-        {
-            if (a.RowNum() != b.RowNum() || a.ColNum() != b.ColNum())
-                throw MatrixDimensionError("AddMat(Complex, Real) - must be same dim", a.RowNum(), a.ColNum(), b.RowNum(), b.ColNum());
-
-            Matrix<Complex> ret(a);
-            for (int i = 0; i < b.RowNum(); i++)
-                for (int j = 0; j < b.ColNum(); j++)
-                    ret[i][j] += b[i][j];
-            return ret;
-        }
-        static Matrix<Complex> AddMat(const Matrix<Real> &a, const Matrix<Complex> &b)
-        {
-            if (a.RowNum() != b.RowNum() || a.ColNum() != b.ColNum())
-                throw MatrixDimensionError("AddMat(Real, Complex) - must be same dim", a.RowNum(), a.ColNum(), b.RowNum(), b.ColNum());
-
-            Matrix<Complex> ret(b);
-            for (int i = 0; i < a.RowNum(); i++)
-                for (int j = 0; j < a.ColNum(); j++)
-                    ret[i][j] += a[i][j];
-            return ret;
-        }
-
-        static Matrix<Complex> SubMat(const Matrix<Complex> &a, const Matrix<Real> &b)
-        {
-            if (a.RowNum() != b.RowNum() || a.ColNum() != b.ColNum())
-                throw MatrixDimensionError("AddMat(Complex, Real) - must be same dim", a.RowNum(), a.ColNum(), b.RowNum(), b.ColNum());
-
-            Matrix<Complex> ret(a);
-            for (int i = 0; i < b.RowNum(); i++)
-                for (int j = 0; j < b.ColNum(); j++)
-                    ret[i][j] -= b[i][j];
-            return ret;
-        }
-        static Matrix<Complex> SubMat(const Matrix<Real> &a, const Matrix<Complex> &b)
-        {
-            if (a.RowNum() != b.RowNum() || a.ColNum() != b.ColNum())
-                throw MatrixDimensionError("AddMat(Real, Complex) - must be same dim", a.RowNum(), a.ColNum(), b.RowNum(), b.ColNum());
-
-            Matrix<Complex> ret(b);
-            for (int i = 0; i < a.RowNum(); i++)
-                for (int j = 0; j < a.ColNum(); j++)
-                    ret[i][j] = a[i][j] - b[i][j];
-            return ret;
-        }
-
-        static Matrix<Complex> MulMat(const Matrix<Complex> &a, const Matrix<Real> &b)
-        {
-            if( a.ColNum() != b.RowNum() )
-                throw MatrixDimensionError("Matrix::operator*(Complex, Real)) - a.colNum must be equal to b.rowNum", a.RowNum(), a.ColNum(), b.RowNum(), b.ColNum());
-
-            Matrix<Complex>	ret(a.RowNum(), b.ColNum());
-            for( int i=0; i<ret.RowNum(); i++ )
-                for( int j=0; j<ret.ColNum(); j++ ) {
-                    ret[i][j] = 0.0;
-                    for(int k=0; k<a.ColNum(); k++ )
-                        ret[i][j] += a[i][k] * b[k][j];
-                }
-
-            return	ret;
-        }
-        static Matrix<Complex> MulMat(const Matrix<Real> &a, const Matrix<Complex> &b)
-        {
-            if( a.ColNum() != b.RowNum() )
-                throw MatrixDimensionError("Matrix::operator*(Real, Complex)) - a.colNum must be equal to b.rowNum", a.RowNum(), a.ColNum(), b.RowNum(), b.ColNum());
-
-            Matrix<Complex>	ret(a.RowNum(), b.ColNum());
-            for( int i=0; i<ret.RowNum(); i++ )
-                for( int j=0; j<ret.ColNum(); j++ ) {
-                    ret[i][j] = 0.0;
-                    for(int k=0; k<a.ColNum(); k++ )
-                        ret[i][j] += a[i][k] * b[k][j];
-                }
-
-            return	ret;
-        }
-
-        static Vector<Complex> MulMatVec( const Matrix<Real> &a, const Vector<Complex> &b )
-        {
-            if( a.ColNum() != b.size() )
-                throw MatrixDimensionError("operator*(Mat a, Vec b) - a.colNum must be equal to vector size", a.RowNum(), a.ColNum(), (int) b.size(), -1);
-
-            Vector<Complex>	ret(a.RowNum());
-            for( int i=0; i<a.RowNum(); i++ )
-            {
-                ret[i] = 0;
-                for( int j=0; j<a.ColNum(); j++ )
-                    ret[i] += a[i][j] * b[j];
-            }
-            return ret;
-        }          
-
-        static Vector<Complex> MulVecMat( const Vector<Complex> &a, const Matrix<Real> &b)
-        {
-            if( a.size() != b.RowNum() )
-                throw MatrixDimensionError("operator*(Vec a, Mat b) - vector size must be equal to b.rowNum", (int) a.size(), -1, b.RowNum(), b.ColNum());
-
-            Vector<Complex>	ret(b.ColNum());
-            for( int i=0; i<b.ColNum(); i++ )
-            {
-                ret[i] = 0;
-                for( int j=0; j<b.RowNum(); j++ )
-                    ret[i] += a[j] * b[j][i] ;
-            }
-            return ret;
-        }     
-
-        static Matrix<Real> GetRealPart(const Matrix<Complex> &a)
-        {
-            Matrix<Real> ret(a.RowNum(), a.ColNum());
-
-            for( int i=0; i<ret.RowNum(); i++ )
-                for( int j=0; j<ret.ColNum(); j++ ) {
-                    ret[i][j] = a[i][j].real();
-                }
-
-            return	ret;
-        }
-        static Matrix<Real> GetImagPart(const Matrix<Complex> &a)
-        {
-            Matrix<Real> ret(a.RowNum(), a.ColNum());
-
-            for( int i=0; i<ret.RowNum(); i++ )
-                for( int j=0; j<ret.ColNum(); j++ ) {
-                    ret[i][j] = a[i][j].imag();
-                }
-
-            return	ret;
-        }  
     };
 }
 ///////////////////////////   ./include/interfaces/IFunction.h   ///////////////////////////
@@ -5046,7 +3725,13 @@ namespace MML
                 outY[i] = (*this)(outX[i]);
             } 
         }
-        
+        void Print(Real x1, Real x2, int numPnt)
+        {
+            for (int i=0;i<numPnt;i++) {
+                Real x = x1 + i * (x2 - x1) / (numPnt - 1);
+                std::cout << x << " " << (*this)(x) << std::endl;
+            } 
+        }
         bool SerializeEquallySpaced(Real x1, Real x2, int numPoints, std::string fileName) const
         {
             std::ofstream file(fileName);
@@ -5475,6 +4160,1627 @@ namespace MML
 		virtual void    derivs(const Real, const Vector<Real>&, Vector<Real> &) const = 0;
 		void operator()(const Real t, const Vector<Real> &x, Vector<Real> &dxdt) const { return derivs(t, x, dxdt); }
 	};  
+}
+///////////////////////////   ./include/core/LinAlgEqSolvers.h   ///////////////////////////
+
+
+namespace MML
+{
+    ///////////////////////   GAUSS-JORDAN SOLVER    /////////////////////////////
+    template<class _Type>
+    class GaussJordanSolver
+    {
+    public:
+        static bool Solve(Matrix<_Type> &a, Matrix<_Type> &b)
+        {
+            int i,icol,irow,j,k,l,ll;
+            Real big;
+            _Type dum,pivinv;
+
+            int n=a.RowNum();
+            int m=b.ColNum();
+            std::vector<int> indxc(n),indxr(n),ipiv(n);
+            for (j=0;j<n;j++) ipiv[j]=0;
+            for (i=0;i<n;i++) {
+                big=0.0;
+                for (j=0;j<n;j++)
+                    if (ipiv[j] != 1)
+                        for (k=0;k<n;k++) {
+                            if (ipiv[k] == 0) {
+                                if (Abs(a[j][k]) >= big) {
+                                    big=Abs(a[j][k]);
+                                    irow=j;
+                                    icol=k;
+                                }
+                            }
+                        }
+                ++(ipiv[icol]);
+                if (irow != icol) {
+                    for (l=0;l<n;l++) std::swap(a[irow][l],a[icol][l]);
+                    for (l=0;l<m;l++) std::swap(b[irow][l],b[icol][l]);
+                }
+                indxr[i]=irow;
+                indxc[i]=icol;
+
+                if (a[icol][icol] == 0.0) 
+                    throw SingularMatrixError("GaussJordanSolver::Solve - Singular Matrix");
+
+                pivinv=1.0/a[icol][icol];
+                a[icol][icol]=1.0;
+                for (l=0;l<n;l++) a[icol][l] *= pivinv;
+                for (l=0;l<m;l++) b[icol][l] *= pivinv;
+                for (ll=0;ll<n;ll++)
+                    if (ll != icol) {
+                        dum=a[ll][icol];
+                        a[ll][icol]=0.0;
+                        for (l=0;l<n;l++) a[ll][l] -= a[icol][l]*dum;
+                        for (l=0;l<m;l++) b[ll][l] -= b[icol][l]*dum;
+                    }
+            }
+            for (l=n-1;l>=0;l--) {
+                if (indxr[l] != indxc[l])
+                    for (k=0;k<n;k++)
+                        std::swap(a[k][indxr[l]],a[k][indxc[l]]);
+            }
+
+            return true;
+        }
+        static Vector<_Type> Solve(const Vector<_Type> &b)
+        {
+            Vector<_Type> x(b.size());
+            Solve(b, x);
+            return x;
+        }
+        static bool Solve(Matrix<_Type> &a, Vector<_Type> &b)
+        {
+            Matrix<_Type> bmat(b.size(), 1);
+            for(int i=0;i<b.size();i++)
+                bmat[i][0] = b[i];
+                
+            bool ret = Solve(a, bmat);
+            b = bmat.VectorFromColumn(0);
+            return ret;
+        }
+    };
+
+    ///////////////////////   BAND-DIAGONAL SOLVER    ////////////////////////////
+    class BandDiagLUSolver {
+        int n,m1,m2;
+        Matrix<Real> au,al;
+        Vector<int> indx;
+        Real d;
+
+    public:
+        // TODO - HIGH, SREDNJE, parm mora biti BandDiagonalMatrix!
+        BandDiagLUSolver(Matrix<Real> &a, const int mm1, const int mm2)
+            : n(a.RowNum()), au(a), m1(mm1), m2(mm2), al(n,m1), indx(n)
+        {
+            const Real TINY=1.0e-40;
+            int i,j,k,l,mm;
+            Real dum;
+            mm=m1+m2+1;
+            l=m1;
+            for (i=0;i<m1;i++) {
+                for (j=m1-i;j<mm;j++) au[i][j-l]=au[i][j];
+                l--;
+                for (j=mm-l-1;j<mm;j++) au[i][j]=0.0;
+            }
+            d=1.0;
+            l=m1;
+            for (k=0;k<n;k++) {
+                dum=au[k][0];
+                i=k;
+                if (l<n) l++;
+                for (j=k+1;j<l;j++) {
+                    if (std::abs(au[j][0]) > std::abs(dum)) {
+                        dum=au[j][0];
+                        i=j;
+                    }
+                }
+                indx[k]=i+1;
+                if (dum == 0.0) au[k][0]=TINY;
+                if (i != k) {
+                    d = -d;
+                    for (j=0;j<mm;j++) std::swap(au[k][j],au[i][j]);
+                }
+                for (i=k+1;i<l;i++) {
+                    dum=au[i][0]/au[k][0];
+                    al[k][i-k-1]=dum;
+                    for (j=1;j<mm;j++) au[i][j-1]=au[i][j]-dum*au[k][j];
+                    au[i][mm-1]=0.0;
+                }
+            }
+        }
+        void Solve(const Vector<Real> &b, Vector<Real> &x)
+        {
+            int i,j,k,l,mm;
+            Real dum;
+            mm=m1+m2+1;
+            l=m1;
+            for (k=0;k<n;k++) x[k] = b[k];
+            for (k=0;k<n;k++) {
+                j=indx[k]-1;
+                if (j!=k) std::swap(x[k],x[j]);
+                if (l<n) l++;
+                for (j=k+1;j<l;j++) x[j] -= al[k][j-k-1]*x[k];
+            }
+            l=1;
+            for (i=n-1;i>=0;i--) {
+                dum=x[i];
+                for (k=1;k<l;k++) dum -= au[i][k]*x[k+i];
+                x[i]=dum/au[i][0];
+                if (l<mm) l++;
+            }
+        }
+        
+        Vector<Real> Solve(const Vector<Real> &b)
+        {
+            Vector<Real> x(b.size());
+            Solve(b, x);
+            return x;
+        }
+
+        Real Det() const
+        {
+            Real dd = d;
+            for (int i=0;i<n;i++) 
+                dd *= au[i][0];
+            return dd;
+        }
+    };
+
+    ///////////////////////      LU DECOMPOSITION       /////////////////////////////
+    template<class _Type>
+    class LUDecompositionSolver
+    {
+    private:
+        int n;
+        const Matrix<_Type> &refOrig;
+
+        Matrix<_Type> lu;
+        std::vector<int> indx;
+        Real d;
+    
+    public:
+    // TODO - HIGH, HIGH, TESKO, napraviti da se može odraditi i inplace, a ne da se kao sad uvijek kreira kopija
+        LUDecompositionSolver(const Matrix<_Type>  &inMatRef) : n(inMatRef.RowNum()), refOrig(inMatRef), lu(inMatRef), indx(n) 
+// ne može        LUDecompositionSolver(const Matrix<_Type>  &inMatRef) : n(inMatRef.RowNum()), refOrig(inMatRef), lu(Matrix<_Type>(inMatRef.RowNum(), inMatRef.ColNum())), indx(n) 
+        {
+            // Given a Matrix<Real> a[1..n][1..n], this routine replaces it by the LU decomposition of a rowwise
+            // permutation of itself. a and n are input. a is output, arranged as in equation (NR 2.3.14);
+            // indx[1..n] is an output Vector<Real> that records the row permutation effected by the partial
+            // pivoting; d is output as ±1 depending on whether the number of row interchanges was even
+            // or odd, respectively. This routine is used in combination with lubksb to solve linear equations
+            // or invert a Matrix<Real>.
+            const Real TINY=1.0e-40;
+            int i,imax,j,k;
+            Real big,temp; 
+            _Type temp2;
+            Vector<_Type> vv(n);
+            d=1.0;
+            for (i=0;i<n;i++) {
+                big=0.0;
+                for (j=0;j<n;j++)
+                    if ((temp=Abs(lu[i][j])) > big) big=temp;
+                if (big == 0.0) 
+                    throw SingularMatrixError("LUDecompositionSolver::ctor - Singular Matrix");
+
+                vv[i]=1.0/big;
+            }
+            for (k=0;k<n;k++) {
+                big=0.0;
+                imax=k;
+                for (i=k;i<n;i++) {
+                    temp = Abs(vv[i] * lu[i][k]);
+                    if (temp > big) {
+                        big=temp;
+                        imax=i;
+                    }
+                }
+                if (k != imax) {
+                    for (j=0;j<n;j++) {
+                        temp2=lu[imax][j];
+                        lu[imax][j]=lu[k][j];
+                        lu[k][j]=temp2;
+                    }
+                    d = -d;
+                    vv[imax]=vv[k];
+                }
+                indx[k]=imax;
+                if (lu[k][k] == 0.0) lu[k][k]=TINY;
+                for (i=k+1;i<n;i++) {
+                    temp2=lu[i][k] /= lu[k][k];
+                    for (j=k+1;j<n;j++)
+                        lu[i][j] -= temp2 * lu[k][j];
+                }
+            }
+        }
+        
+        void Solve(const Vector<_Type> &b, Vector<_Type> &x)
+        {
+            // Solves the set of n linear equations A·X = B. Here a[1..n][1..n] is input, not as the Matrix<Real>
+            // A but rather as its LU decomposition, determined by the routine ludcmp. indx[1..n] is input
+            // as the permutation Vector<Real> returned by ludcmp. b[1..n] is input as the right-hand side Vector<Real>
+            // B, and returns with the solution Vector<Real> X. a, n, and indx are not modified by this routine
+            // and can be left in place for successive calls with different right-hand sides b. This routine takes
+            // into account the possibility that b will begin with many zero elements, so it is efficient for use
+            // in Matrix<Real> inversion
+            int i,ii=0,ip,j;
+            _Type sum;
+            if (b.size() != n || x.size() != n)
+                throw("LUdcmp::solve bad sizes");
+            for (i=0;i<n;i++) 
+                x[i] = b[i];
+            for (i=0;i<n;i++) {
+                ip=indx[i];
+                sum=x[ip];
+                x[ip]=x[i];
+                if (ii != 0)
+                    for (j=ii-1;j<i;j++) sum -= lu[i][j]*x[j];
+                else if (sum != 0.0)
+                    ii=i+1;
+                x[i]=sum;
+            }
+            for (i=n-1;i>=0;i--) {
+                sum=x[i];
+                for (j=i+1;j<n;j++) sum -= lu[i][j]*x[j];
+                x[i]=sum/lu[i][i];
+            }
+        }
+
+        Vector<_Type> Solve(const Vector<_Type> &b)
+        {
+            Vector<_Type> x(b.size());
+            Solve(b, x);
+            return x;
+        }
+        
+        void Solve(Matrix<_Type> &b, Matrix<_Type> &x)
+        {
+            int i,j,m=b.ColNum();
+            
+            if (b.RowNum() != n || x.RowNum() != n || b.ColNum() != x.ColNum())
+                throw("LUdcmp::solve bad sizes");
+            
+            Vector<_Type> xx(n);
+            
+            for (j=0;j<m;j++) {
+                for (i=0;i<n;i++) 
+                    xx[i] = b[i][j];
+                
+                Solve(xx,xx);
+                
+                for (i=0;i<n;i++) 
+                    x[i][j] = xx[i];
+            }
+        }        
+
+        // Using the stored LU decomposition, return in ainv the matrix inverse 
+        void inverse(Matrix<_Type> &ainv)
+        {
+            int i,j;
+            ainv.Resize(n,n);
+            for (i=0;i<n;i++) {
+                for (j=0;j<n;j++) ainv[i][j] = 0.;
+                ainv[i][i] = 1.;
+            }
+            Solve(ainv,ainv);
+        }
+        
+        _Type det()
+        {
+            Real dd = d;
+            for (int i=0;i<n;i++) 
+                dd *= lu[i][i];
+            return dd;
+        }
+        
+        // Improves a solution Vector<Real> x[1..n] of the linear set of equations A · X = B. The Matrix<Real>
+        // a[1..n][1..n], and the Vector<Real>s b[1..n] and x[1..n] are input, as is the dimension n.
+        // Also input is alud[1..n][1..n], the LU decomposition of a as returned by ludcmp, and
+        // the Vector<Real> indx[1..n] also returned by that routine. On output, only x[1..n] is modified,
+        // to an improved set of values
+        void mprove(Vector<Real> &b, Vector<Real> &x)
+        {
+            int i,j;
+            Vector<Real> r(n);
+            
+            for (i=0;i<n;i++) {
+                long double sdp = -b[i];
+                for (j=0;j<n;j++)
+                    sdp += (long double)refOrig[i][j] * (long double)x[j];
+                r[i]=sdp;
+            }
+            
+            Solve(r,r);
+            
+            for (i=0;i<n;i++) 
+                x[i] -= r[i];
+        }         
+    };
+
+    ///////////////////////   CHOLESKY DECOMPOSITION    /////////////////////////////
+    // TODO 0.6 - HIGH TEST THIS!
+    class CholeskyDecompositionSolver
+    {
+    private:
+        int n;
+        Matrix<Real> el;
+    
+    public:    
+        CholeskyDecompositionSolver(Matrix<Real> &a) : n(a.RowNum()), el(a) 
+        {
+            // Given a positive-definite symmetric Matrix<Real> a[1..n][1..n], this routine constructs its Cholesky
+            // decomposition, A = L · LT . On input, only the upper triangle of a need be given; it is not
+            // modified. The Cholesky factor L is returned in the lower triangle of a, except for its diagonal
+            // elements which are returned in p[1..n]
+            int i,j,k;
+            Real sum;
+            
+            if (el.ColNum() != n) 
+                throw("need square Matrix<Real>");
+            
+            for (i=0;i<n;i++) {
+                for (j=i;j<n;j++) {
+                    for (sum=el[i][j],k=i-1;k>=0;k--) sum -= el[i][k]*el[j][k];
+                    if (i == j) {
+                        if (sum <= 0.0)
+                            throw("Cholesky failed");
+                        el[i][i]=sqrt(sum);
+                    } else el[j][i]=sum/el[i][i];
+                }
+            }
+            for (i=0;i<n;i++) for (j=0;j<i;j++) el[j][i] = 0.;
+        }
+        void Solve(const Vector<Real> &b, Vector<Real> &x) 
+        {
+            // Solves the set of n linear equations A · x = b, where a is a positive-definite symmetric Matrix<Real>.
+            // a[1..n][1..n] and p[1..n] are input as the output of the routine choldc. Only the lower
+            // triangle of a is accessed. b[1..n] is input as the right-hand side Vector<Real>. The solution Vector<Real> is
+            // returned in x[1..n]. a, n, and p are not modified and can be left in place for successive calls
+            // with different right-hand sides b. b is not modified unless you identify b and x in the calling
+            // sequence, which is allowed.
+            int i,k;
+            Real sum;
+            if (b.size() != n || x.size() != n) throw("bad lengths in Cholesky");
+            for (i=0;i<n;i++) {
+                for (sum=b[i],k=i-1;k>=0;k--) sum -= el[i][k]*x[k];
+                x[i]=sum/el[i][i];
+            }
+            for (i=n-1;i>=0;i--) {
+                for (sum=x[i],k=i+1;k<n;k++) sum -= el[k][i]*x[k];
+                x[i]=sum/el[i][i];
+            }		
+        }
+        Vector<Real> Solve(const Vector<Real> &b)
+        {
+            Vector<Real> x(b.size());
+            Solve(b, x);
+            return x;
+        }
+        void inverse(Matrix<Real> &ainv) {
+            int i,j,k;
+            Real sum;
+            ainv.Resize(n,n);
+            for (i=0;i<n;i++) for (j=0;j<=i;j++){
+                sum = (i==j? 1. : 0.);
+                for (k=i-1;k>=j;k--) sum -= el[i][k]*ainv[j][k];
+                ainv[j][i]= sum/el[i][i];
+            }
+            for (i=n-1;i>=0;i--) for (j=0;j<=i;j++){
+                sum = (i<j? 0. : ainv[j][i]);
+                for (k=i+1;k<n;k++) sum -= el[k][i]*ainv[j][k];
+                ainv[i][j] = ainv[j][i] = sum/el[i][i];
+            }				
+        }
+        Real logdet() {
+            Real sum = 0.;
+            for (int  i=0; i<n; i++) sum += log(el[i][i]);
+            return 2.*sum;
+        }
+
+        void elmult(Vector<Real> &y, Vector<Real> &b) {
+            int i,j;
+            if (b.size() != n || y.size() != n) throw("bad lengths");
+            for (i=0;i<n;i++) {
+                b[i] = 0.;
+                for (j=0;j<=i;j++) b[i] += el[i][j]*y[j];
+            }
+        }
+        void elsolve(Vector<Real> &b, Vector<Real> &y) {
+            int i,j;
+            Real sum;
+            if (b.size() != n || y.size() != n) throw("bad lengths");
+            for (i=0;i<n;i++) {
+                for (sum=b[i],j=0; j<i; j++) sum -= el[i][j]*y[j];
+                y[i] = sum/el[i][i];
+            }
+        }
+    };
+
+    ///////////////////////   QR DECOMPOSITION    /////////////////////////////
+    class QRDecompositionSolver
+    {
+    private:
+        int n;
+        Matrix<Real> qt, r;
+        bool sing;    
+
+    public:
+        QRDecompositionSolver(const Matrix<Real> &a) : n(a.RowNum()), qt(n,n), r(a), sing(false) 
+        {
+            // Constructs the QR decomposition of a[1..n][1..n]. The upper triangular Matrix<Real> R is returned in the upper triangle of a, 
+            // except for the diagonal elements of R which are returned in d[1..n]. 
+            int i,j,k;
+            Vector<Real> c(n), d(n);
+            Real scale,sigma,sum,tau;
+            for (k=0;k<n-1;k++) {
+                scale=0.0;
+                for (i=k;i<n;i++) scale=std::max(scale,std::abs(r[i][k]));
+                if (scale == 0.0) {
+                    sing=true;
+                    c[k]=d[k]=0.0;
+                } else {
+                    for (i=k;i<n;i++) r[i][k] /= scale;
+                    for (sum=0.0,i=k;i<n;i++) sum += SQR(r[i][k]);
+                    sigma=SIGN(sqrt(sum),r[k][k]);
+                    r[k][k] += sigma;
+                    c[k]=sigma*r[k][k];
+                    d[k] = -scale*sigma;
+                    for (j=k+1;j<n;j++) {
+                        for (sum=0.0,i=k;i<n;i++) sum += r[i][k]*r[i][j];
+                        tau=sum/c[k];
+                        for (i=k;i<n;i++) r[i][j] -= tau*r[i][k];
+                    }
+                }
+            }
+            d[n-1]=r[n-1][n-1];
+            if (d[n-1] == 0.0) sing=true;
+            for (i=0;i<n;i++) {
+                for (j=0;j<n;j++) qt[i][j]=0.0;
+                qt[i][i]=1.0;
+            }
+            for (k=0;k<n-1;k++) {
+                if (c[k] != 0.0) {
+                    for (j=0;j<n;j++) {
+                        sum=0.0;
+                        for (i=k;i<n;i++)
+                            sum += r[i][k]*qt[i][j];
+                        sum /= c[k];
+                        for (i=k;i<n;i++)
+                            qt[i][j] -= sum*r[i][k];
+                    }
+                }
+            }
+            for (i=0;i<n;i++) {
+                r[i][i]=d[i];
+                for (j=0;j<i;j++) r[i][j]=0.0;
+            }
+        }
+
+        // Solves the set of n linear equations A · x = b. a[1..n][1..n], c[1..n], and d[1..n] are
+        // input as the output of the routine qrdcmp and are not modified. b[1..n] is input as the
+        // right-hand side Vector<Real>, and is overwritten with the solution Vector<Real> on output. 
+        void Solve(const Vector<Real> &b, Vector<Real> &x) 
+        {           
+            qtmult(b,x);
+            RSolve(x,x);
+        }
+        Vector<Real> Solve(const Vector<Real> &b)
+        {
+            Vector<Real> x(b.size());
+            Solve(b, x);
+            return x;
+        }
+        void RSolve(const Vector<Real> &b, Vector<Real> &x) 
+        {
+            // Solves the set of n linear equations R · x = b, where R is an upper triangular Matrix<Real> stored in
+            // a and d. a[1..n][1..n] and d[1..n] are input as the output of the routine qrdcmp and
+            // are not modified. b[1..n] is input as the right-hand side Vector<Real>, and is overwritten with the
+            // solution Vector<Real> on output            
+            int i,j;
+            Real sum;
+            if (sing) 
+                throw SingularMatrixError("QRDecompositionSolver::rsolve - attempting solve in a singular QR");
+
+            for (i=n-1;i>=0;i--) {
+                sum=b[i];
+                for (j=i+1;j<n;j++) 
+                    sum -= r[i][j] * x[j];
+                x[i] = sum / r[i][i];
+            }
+        }
+    
+    private:
+        void qtmult(const Vector<Real> &b, Vector<Real> &x) {
+            int i,j;
+            Real sum;
+            for (i=0;i<n;i++) {
+                sum = 0.;
+                for (j=0;j<n;j++) 
+                    sum += qt[i][j]*b[j];
+                x[i] = sum;
+            }
+        }
+        void update(Vector<Real> &u, Vector<Real> &v) 
+        {
+            // Given the QR decomposition of some n × n Matrix<Real>, calculates the QR decomposition of the
+            // Matrix<Real> Q·(R+ u x v). The quantities are dimensioned as r[1..n][1..n], qt[1..n][1..n],
+            // u[1..n], and v[1..n]. Note that QT is input and returned in qt.            
+            int i,k;
+            Vector<Real> w(u);
+            for (k=n-1;k>=0;k--)
+                if (w[k] != 0.0) break;
+            if (k < 0) k=0;
+            for (i=k-1;i>=0;i--) {
+                rotate(i,w[i],-w[i+1]);
+                if (w[i] == 0.0)
+                    w[i]=std::abs(w[i+1]);
+                else if (std::abs(w[i]) > std::abs(w[i+1]))
+                    w[i]=std::abs(w[i])*sqrt(1.0+SQR(w[i+1]/w[i]));
+                else w[i]=std::abs(w[i+1])*sqrt(1.0+SQR(w[i]/w[i+1]));
+            }
+            for (i=0;i<n;i++) r[0][i] += w[0]*v[i];
+            for (i=0;i<k;i++)
+                rotate(i,r[i][i],-r[i+1][i]);
+            for (i=0;i<n;i++)
+                if (r[i][i] == 0.0) sing=true;
+        }
+        void rotate(const int i, const Real a, const Real b)
+        {
+            // Given matrices r[1..n][1..n] and qt[1..n][1..n], carry out a Jacobi rotation on rows
+            // i and i + 1 of each Matrix<Real>. a and b are the parameters of the rotation: cos phi = a=pa2 + b2,
+            // sin phi = b=pa2 + b2.            
+            int j;
+            Real c,fact,s,w,y;
+            if (a == 0.0) {
+                c=0.0;
+                s=(b >= 0.0 ? 1.0 : -1.0);
+            } else if (std::abs(a) > std::abs(b)) {
+                fact=b/a;
+                c=SIGN(1.0/sqrt(1.0+(fact*fact)),a);
+                s=fact*c;
+            } else {
+                fact=a/b;
+                s=SIGN(1.0/sqrt(1.0+(fact*fact)),b);
+                c=fact*s;
+            }
+            for (j=i;j<n;j++) {
+                y=r[i][j];
+                w=r[i+1][j];
+                r[i][j]=c*y-s*w;
+                r[i+1][j]=s*y+c*w;
+            }
+            for (j=0;j<n;j++) {
+                y=qt[i][j];
+                w=qt[i+1][j];
+                qt[i][j]=c*y-s*w;
+                qt[i+1][j]=s*y+c*w;
+            }
+        }    
+    };
+
+    /////////////////////////////////   SVD DECOMPOSITION      /////////////////////////////
+    class SVDecompositionSolver 
+    {
+    private:
+        int m,n;
+        Matrix<Real> u,v;
+        Vector<Real> w;
+        Real eps, tsh;
+    
+    public:
+        Vector<Real> getW() { return w;}
+        Matrix<Real> getU() { return u;}
+        Matrix<Real> getV() { return v;}
+
+    public:
+        SVDecompositionSolver(const Matrix<Real> &a) : m(a.RowNum()), n(a.ColNum()), u(a), v(n,n), w(n) 
+        {
+            // Given a Matrix<Real> a[1..m][1..n], this routine computes its singular value decomposition, A = U·W ·V T . 
+            // The Matrix<Real> U replaces a on output. 
+            // The diagonal Matrix<Real> of singular values W is output as a Vector<Real> w[1..n]. 
+            // The Matrix<Real> V (not the transpose V T ) is output as v[1..n][1..n].            
+            eps = std::numeric_limits<Real>::epsilon();
+            decompose();
+            reorder();
+            tsh = 0.5*sqrt(m+n+1.)*w[0]*eps;
+        }
+
+        Real inv_condition() {
+            return (w[0] <= 0. || w[n-1] <= 0.) ? 0. : w[n-1]/w[0];
+        }
+        
+        void Solve(const Vector<Real> &b, Vector<Real> &x, Real thresh = -1.) 
+        {
+            // Solve A  x D b for a vector x using the pseudoinverse of A as obtained by SVD. If positive,
+            // thresh is the threshold value below which singular values are considered as zero. If thresh is
+            // negative, a default based on expected roundoff error is used.
+            int i,j,jj;
+            Real s;
+            if (b.size() != m || x.size() != n) throw("solve bad sizes");
+            Vector<Real> tmp(n);
+            tsh = (thresh >= 0. ? thresh : 0.5*sqrt(m+n+1.)*w[0]*eps);
+            for (j=0;j<n;j++) {
+                s=0.0;
+                if (w[j] > tsh) {
+                    for (i=0;i<m;i++) s += u[i][j]*b[i];
+                    s /= w[j];
+                }
+                tmp[j]=s;
+            }
+            for (j=0;j<n;j++) {
+                s=0.0;
+                for (jj=0;jj<n;jj++) s += v[j][jj]*tmp[jj];
+                x[j]=s;
+            }
+        }
+        
+        Vector<Real> Solve(const Vector<Real> &b, Real thresh = -1.)
+        {
+            Vector<Real> x(b.size());
+            Solve(b, x, thresh);
+            return x;
+        }        
+
+        // Solves m sets of n equations A  X D B using the pseudoinverse of A. The right-hand sides are
+        // input as b[0..n-1][0..m-1], while x[0..n-1][0..m-1] returns the solutions. thresh as above.
+        void Solve(const Matrix<Real> &b, Matrix<Real> &x, Real thresh = -1.)
+        {
+            int i,j,p=b.ColNum();
+            if (b.RowNum() != m || x.RowNum() != n || x.ColNum() != p)
+                throw("solve bad sizes");
+            
+            Vector<Real> xx(n),bcol(m);
+            for (j=0;j<p;j++) {
+                for (i=0;i<m;i++) 
+                    bcol[i] = b[i][j];
+                
+                Solve(bcol,xx,thresh);
+                
+                for (i=0;i<n;i++) 
+                    x[i][j] = xx[i];
+            }
+        }
+
+        // Return the rank of A, after zeroing any singular values smaller than thresh. If thresh is
+        // negative, a default value based on estimated roundoff is used.        
+        int Rank(Real thresh = -1.) {
+            int j,nr=0;
+            tsh = (thresh >= 0. ? thresh : 0.5*sqrt(m+n+1.)*w[0]*eps);
+            for (j=0;j<n;j++) if (w[j] > tsh) nr++;
+            return nr;
+        }
+
+        // Return the nullity of A, after zeroing any singular values smaller than thresh. Default value as above.
+        int Nullity(Real thresh = -1.) {
+            int j,nn=0;
+            tsh = (thresh >= 0. ? thresh : 0.5*sqrt(m+n+1.)*w[0]*eps);
+            for (j=0;j<n;j++) if (w[j] <= tsh) nn++;
+            return nn;
+        }
+
+        // Gives an orthonormal basis for the range of A as the columns of a returned matrix. thresh as above.
+        Matrix<Real> Range(Real thresh = -1.){
+            int i,j,nr=0;
+            Matrix<Real> rnge(m,Rank(thresh));
+            for (j=0;j<n;j++) {
+                if (w[j] > tsh) {
+                    for (i=0;i<m;i++) rnge[i][nr] = u[i][j];
+                    nr++;
+                }
+            }
+            return rnge;
+        }
+
+        // Gives an orthonormal basis for the nullspace of A as the columns of a returned matrix. thresh as above
+        Matrix<Real> Nullspace(Real thresh = -1.){
+            int j,jj,nn=0;
+            Matrix<Real> nullsp(n,Nullity(thresh));
+            for (j=0;j<n;j++) {
+                if (w[j] <= tsh) {
+                    for (jj=0;jj<n;jj++) nullsp[jj][nn] = v[jj][j];
+                    nn++;
+                }
+            }
+            return nullsp;
+        }
+    
+    private:
+        void decompose() {
+            bool flag;
+            int i,its,j,jj,k,l,nm;
+            Real anorm,c,f,g,h,s,scale,x,y,z;
+            Vector<Real> rv1(n);
+            g = scale = anorm = 0.0;
+            for (i=0;i<n;i++) {
+                l=i+2;
+                rv1[i]=scale*g;
+                g=s=scale=0.0;
+                if (i < m) {
+                    for (k=i;k<m;k++) scale += std::abs(u[k][i]);
+                    if (scale != 0.0) {
+                        for (k=i;k<m;k++) {
+                            u[k][i] /= scale;
+                            s += u[k][i]*u[k][i];
+                        }
+                        f=u[i][i];
+                        g = -SIGN(sqrt(s),f);
+                        h=f*g-s;
+                        u[i][i]=f-g;
+                        for (j=l-1;j<n;j++) {
+                            for (s=0.0,k=i;k<m;k++) s += u[k][i]*u[k][j];
+                            f=s/h;
+                            for (k=i;k<m;k++) u[k][j] += f*u[k][i];
+                        }
+                        for (k=i;k<m;k++) u[k][i] *= scale;
+                    }
+                }
+                w[i]=scale *g;
+                g=s=scale=0.0;
+                if (i+1 <= m && i+1 != n) {
+                    for (k=l-1;k<n;k++) scale += std::abs(u[i][k]);
+                    if (scale != 0.0) {
+                        for (k=l-1;k<n;k++) {
+                            u[i][k] /= scale;
+                            s += u[i][k]*u[i][k];
+                        }
+                        f=u[i][l-1];
+                        g = -SIGN(sqrt(s),f);
+                        h=f*g-s;
+                        u[i][l-1]=f-g;
+                        for (k=l-1;k<n;k++) rv1[k]=u[i][k]/h;
+                        for (j=l-1;j<m;j++) {
+                            for (s=0.0,k=l-1;k<n;k++) s += u[j][k]*u[i][k];
+                            for (k=l-1;k<n;k++) u[j][k] += s*rv1[k];
+                        }
+                        for (k=l-1;k<n;k++) u[i][k] *= scale;
+                    }
+                }
+                anorm=std::max(anorm,(std::abs(w[i])+std::abs(rv1[i])));
+            }
+            for (i=n-1;i>=0;i--) {
+                if (i < n-1) {
+                    if (g != 0.0) {
+                        for (j=l;j<n;j++)
+                            v[j][i]=(u[i][j]/u[i][l])/g;
+                        for (j=l;j<n;j++) {
+                            for (s=0.0,k=l;k<n;k++) s += u[i][k]*v[k][j];
+                            for (k=l;k<n;k++) v[k][j] += s*v[k][i];
+                        }
+                    }
+                        for (j=l;j<n;j++) v[i][j]=v[j][i]=0.0;
+                    }
+                    v[i][i]=1.0;
+                    g=rv1[i];
+                    l=i;
+                }
+                for (i=std::min(m,n)-1;i>=0;i--) {
+                    l=i+1;
+                    g=w[i];
+                    for (j=l;j<n;j++) u[i][j]=0.0;
+                    if (g != 0.0) {
+                        g=1.0/g;
+                        for (j=l;j<n;j++) {
+                            for (s=0.0,k=l;k<m;k++) s += u[k][i]*u[k][j];
+                            f=(s/u[i][i])*g;
+                            for (k=i;k<m;k++) u[k][j] += f*u[k][i];
+                        }
+                        for (j=i;j<m;j++) u[j][i] *= g;
+                    } else for (j=i;j<m;j++) u[j][i]=0.0;
+                    ++u[i][i];
+                }
+                for (k=n-1;k>=0;k--) {
+                    for (its=0;its<30;its++) {
+                        flag=true;
+                        for (l=k;l>=0;l--) {
+                            nm=l-1;
+                            if (l == 0 || std::abs(rv1[l]) <= eps*anorm) {
+                                flag=false;
+                                break;
+                            }
+                            if (std::abs(w[nm]) <= eps*anorm) break;
+                        }
+                        if (flag) {
+                            c=0.0;
+                            s=1.0;
+                            for (i=l;i<k+1;i++) {
+                                f=s*rv1[i];
+                                rv1[i]=c*rv1[i];
+                                if (std::abs(f) <= eps*anorm) break;
+                                g=w[i];
+                                h=pythag(f,g);
+                                w[i]=h;
+                                h=1.0/h;
+                                c=g*h;
+                                s = -f*h;
+                                for (j=0;j<m;j++) {
+                                    y=u[j][nm];
+                                    z=u[j][i];
+                                    u[j][nm]=y*c+z*s;
+                                    u[j][i]=z*c-y*s;
+                                }
+                            }
+                        }
+                        z=w[k];
+                        if (l == k) {
+                            if (z < 0.0) {
+                                w[k] = -z;
+                                for (j=0;j<n;j++) v[j][k] = -v[j][k];
+                            }
+                            break;
+                        }
+                        if (its == 29) throw("no convergence in 30 svdcmp iterations");
+                        x=w[l];
+                        nm=k-1;
+                        y=w[nm];
+                        g=rv1[nm];
+                        h=rv1[k];
+                        f=((y-z)*(y+z)+(g-h)*(g+h))/(2.0*h*y);
+                        g=pythag(f,1.0);
+                        f=((x-z)*(x+z)+h*((y/(f+SIGN(g,f)))-h))/x;
+                        c=s=1.0;
+                        for (j=l;j<=nm;j++) {
+                            i=j+1;
+                            g=rv1[i];
+                            y=w[i];
+                            h=s*g;
+                            g=c*g;
+                            z=pythag(f,h);
+                            rv1[j]=z;
+                            c=f/z;
+                            s=h/z;
+                            f=x*c+g*s;
+                            g=g*c-x*s;
+                            h=y*s;
+                            y *= c;
+                            for (jj=0;jj<n;jj++) {
+                                x=v[jj][j];
+                                z=v[jj][i];
+                                v[jj][j]=x*c+z*s;
+                                v[jj][i]=z*c-x*s;
+                            }
+                            z=pythag(f,h);
+                            w[j]=z;
+                            if (z) {
+                                z=1.0/z;
+                                c=f*z;
+                                s=h*z;
+                            }
+                            f=c*g+s*y;
+                            x=c*y-s*g;
+                            for (jj=0;jj<m;jj++) {
+                                y=u[jj][j];
+                                z=u[jj][i];
+                                u[jj][j]=y*c+z*s;
+                                u[jj][i]=z*c-y*s;
+                            }
+                        }
+                        rv1[l]=0.0;
+                        rv1[k]=f;
+                        w[k]=x;
+                    }
+                }
+            }
+
+        void reorder() {
+            int i,j,k,s,inc=1;
+            Real sw;
+            Vector<Real> su(m), sv(n);
+            do { inc *= 3; inc++; } while (inc <= n);
+            do {
+                inc /= 3;
+                for (i=inc;i<n;i++) {
+                    sw = w[i];
+                    for (k=0;k<m;k++) su[k] = u[k][i];
+                    for (k=0;k<n;k++) sv[k] = v[k][i];
+                    j = i;
+                    while (w[j-inc] < sw) {
+                        w[j] = w[j-inc];
+                        for (k=0;k<m;k++) u[k][j] = u[k][j-inc];
+                        for (k=0;k<n;k++) v[k][j] = v[k][j-inc];
+                        j -= inc;
+                        if (j < inc) break;
+                    }
+                    w[j] = sw;
+                    for (k=0;k<m;k++) u[k][j] = su[k];
+                    for (k=0;k<n;k++) v[k][j] = sv[k];
+
+                }
+            } while (inc > 1);
+            for (k=0;k<n;k++) {
+                s=0;
+                for (i=0;i<m;i++) if (u[i][k] < 0.) s++;
+                for (j=0;j<n;j++) if (v[j][k] < 0.) s++;
+                if (s > (m+n)/2) {
+                    for (i=0;i<m;i++) u[i][k] = -u[i][k];
+                    for (j=0;j<n;j++) v[j][k] = -v[j][k];
+                }
+            }
+        }
+
+        Real pythag(const Real a, const Real b) {
+            Real absa=std::abs(a), absb=std::abs(b);
+            return (absa > absb ? absa*sqrt(1.0+SQR(absb/absa)) :
+                (absb == 0.0 ? 0.0 : absb*sqrt(1.0+SQR(absa/absb))));
+        }
+    };
+} // end namespace
+///////////////////////////   ./include/core/VectorSpace.h   ///////////////////////////
+
+
+
+namespace MML
+{
+    // TODO - MED, vector space + Gram Schmidt
+    // TODO - MED, linear transformations & OPERATORS
+    template<int N>
+    class RealVectorSpaceN : public HilbertSpace<Real, VectorN<Real, N>>
+    {
+    public:
+        virtual Real  scal_prod(const VectorN<Real, N> &a, const VectorN<Real, N> &b) const
+        {
+            return a.ScalarProductCartesian(b);
+        }
+    };
+
+    template<int N>
+    class ComplexVectorSpaceN : public HilbertSpace<Complex, VectorN<Complex, N>>
+    {
+    public:
+        virtual Real  scal_prod(const VectorN<Complex, N> &a, const VectorN<Complex, N> &b) const
+        {
+            Real product = 0.0;
+            for( int i=0; i<N; i++ )
+                product += (a[i] * std::conj(b[i])).real();
+            return product;
+        }        
+    };
+}
+///////////////////////////   ./include/core/Polynom.h   ///////////////////////////
+
+
+namespace MML
+{
+    // TODO - HIGH, TESKO?, dodati RealPolynom klasu, izvedenu iz IRealFunction implementirati derive (derivs - sve, first, sec, third zasebno)& integrate
+    template <typename _Field, typename _CoefType = Real>
+    class Polynom
+    {
+    private:
+        std::vector<_CoefType> _vecCoef;
+    public:
+        Polynom() {}
+        Polynom(int n) { _vecCoef.resize(n+1); }
+        Polynom(const std::vector<_CoefType> &vecCoef) : _vecCoef(vecCoef) {}
+        Polynom(std::initializer_list<_CoefType> list) : _vecCoef(list) {}
+        Polynom(const Polynom &Copy) : _vecCoef(Copy._vecCoef) {}
+        ~Polynom() {}
+
+        Polynom& operator=(const Polynom &Copy) { _vecCoef = Copy._vecCoef; return *this; }
+
+        int  GetDegree() const     { return (int) _vecCoef.size() - 1; }
+        void SetDegree(int newDeg) {  _vecCoef.resize(newDeg+1); }
+
+        _Field  operator[] (int i) const { return _vecCoef[i]; }
+        _Field& operator[] (int i)       { return _vecCoef[i]; }
+
+        _Field operator() (const _Field &x) {
+            int j = GetDegree();
+            _Field p = _vecCoef[j];
+            
+            while (j>0) 
+                p = p*x + _vecCoef[--j];
+            return p;
+        }        
+        // Given the coefficients of a polynomial of degree nc as an array c[0..nc] of size nc+1 (with
+        // c[0] being the constant term), and given a value x, this routine fills an output array pd of size
+        // nd+1 with the value of the polynomial evaluated at x in pd[0], and the first nd derivatives at
+        // x in pd[1..nd].
+        void Derive(const Real x, Vector<Real> &pd)
+        {
+            int  nnd,j,i;
+            int  nc=GetDegree();
+            int  nd=pd.size()-1;
+            Real cnst=1.0;
+
+            pd[0]=(*this)[nc];
+            for (j=1;j<nd+1;j++) 
+                pd[j]=0.0;
+            
+            for (i=nc-1;i>=0;i--) 
+            {
+                nnd=(nd < (nc-i) ? nd : nc-i);
+                for (j=nnd;j>0;j--) 
+                    pd[j]=pd[j]*x+pd[j-1];
+
+                pd[0]=pd[0]*x + (*this)[i];
+            }
+            for (i=2;i<nd+1;i++) {
+                cnst *= i;
+                pd[i] *= cnst;
+            }
+        }        
+
+        bool operator==(const Polynom &b) const
+        {
+            if( _vecCoef.size() != b._vecCoef.size() )
+                return false;
+            for( int i=0; i<_vecCoef.size(); i++ )
+                if( _vecCoef[i] != b._vecCoef[i] )
+                    return false;
+            return true;
+        }
+
+        Polynom operator+(const Polynom &b) const
+        {
+            Polynom result;
+            int n = (int) std::max(_vecCoef.size(), b._vecCoef.size());
+            result._vecCoef.resize(n);
+            for (int i = 0; i < n; i++)
+            {
+                if (i < _vecCoef.size())
+                    result._vecCoef[i] += _vecCoef[i];
+                if (i < b._vecCoef.size())
+                    result._vecCoef[i] += b._vecCoef[i];
+            }
+            return result;
+        }
+
+        Polynom operator-(const Polynom &b) const
+        {
+            Polynom result;
+            int n = (int) std::max(_vecCoef.size(), b._vecCoef.size());
+            result._vecCoef.resize(n);
+            for (int i = 0; i < n; i++)
+            {
+                if (i < _vecCoef.size())
+                    result._vecCoef[i] += _vecCoef[i];
+                if (i < b._vecCoef.size())
+                    result._vecCoef[i] -= b._vecCoef[i];
+            }
+            return result;
+        }
+
+        Polynom operator*(const Polynom &b) const
+        {
+            Polynom result;
+
+            int n = (int) (_vecCoef.size() + b._vecCoef.size() - 1);
+            result._vecCoef.resize(n);
+            for (int i = 0; i < _vecCoef.size(); i++)
+                for (int j = 0; j < b._vecCoef.size(); j++)
+                    result._vecCoef[i + j] += _vecCoef[i] * b._vecCoef[j];
+            return result;
+        }
+
+        static void poldiv(const Polynom &u, const Polynom &v, Polynom &qout, Polynom &rout)
+        {
+            int k,j,n=u.GetDegree(),nv=v.GetDegree();
+
+            while (nv >= 0 && v._vecCoef[nv] == 0.) nv--;
+
+            if (nv < 0) 
+                throw("poldiv divide by zero polynomial");
+            
+            Polynom r = u;
+            Polynom q(u.GetDegree());
+            for (k=n-nv;k>=0;k--) 
+            {
+                q[k]=r[nv+k]/v[nv];
+                for (j=nv+k-1;j>=k;j--) 
+                    r[j] -= q[k]*v[j-k];
+            }
+            for (j=nv;j<=n;j++) r[j]=0.0;
+
+            int nq=q.GetDegree();            
+            while (nq >= 0 && q[nv] == 0.) 
+                nq--;
+
+            qout.SetDegree(nq-1);
+            for(j=0; j<nq; j++ )
+                qout[j] = q[j];
+
+            rout.SetDegree(nv-1);
+            for(j=0; j<nv; j++ )
+                rout[j] = r[j];
+        }
+        
+        friend Polynom operator*(const Polynom &a, _CoefType b )
+        {
+            Polynom ret;
+            ret._vecCoef.resize(a.GetDegree()+1);
+            for(int i=0; i<=a.GetDegree(); i++)
+                ret._vecCoef[i] = a._vecCoef[i] * b;
+            return ret;
+        }
+
+        friend Polynom operator*(_CoefType a, const Polynom &b )
+        {
+            Polynom ret;
+            ret._vecCoef.resize(b.GetDegree()+1);
+            for(int i=0; i<=b.GetDegree(); i++)
+                ret._vecCoef[i] = a * b._vecCoef[i];
+            return ret;
+        }
+
+        friend Polynom operator/(const Polynom &a, _CoefType b)
+        {
+            Polynom ret;
+            ret._vecCoef.resize(a.GetDegree()+1);
+            for(int i=0; i<=a.GetDegree(); i++)
+                ret._vecCoef[i] = a._vecCoef[i] / b;
+            return ret;
+        }        
+
+        std::ostream& Print(std::ostream& stream, int width, int precision) const
+        {
+            for(int i=(int) _vecCoef.size()-1; i>=0; i--)
+            {
+                if( std::abs(_vecCoef[i]) == 0.0 )
+                    continue;
+
+                if( i != _vecCoef.size()-1 )
+                    stream << " + ";
+
+                if( i == 0 )
+                    stream << std::setw(width) << std::setprecision(precision) << _vecCoef[i];
+                else if ( i == 1 )
+                    stream << std::setw(width) << std::setprecision(precision) << _vecCoef[i] << " * x" << i;
+                else
+                    stream << std::setw(width) << std::setprecision(precision) << _vecCoef[i] << " * x^" << i;
+            }
+
+            return stream;
+        }
+
+        std::ostream& Print(std::ostream& stream) const
+        {
+            for(int i=(int)_vecCoef.size()-1; i>=0; i--)
+            {
+                if( std::abs(_vecCoef[i]) == 0.0 )
+                    continue;
+
+                if( i != _vecCoef.size()-1 )
+                    stream << " + ";
+                
+                if( i == 0 )
+                    stream <<  _vecCoef[i];
+                else if ( i == 1 )
+                    stream <<  _vecCoef[i] << " * x" << i;
+                else
+                    stream <<  _vecCoef[i] << " * x^" << i;
+            }
+
+            return stream;
+        }
+
+        std::string to_string(int width, int precision) const
+        {
+            std::stringstream str;
+
+            Print(str, width, precision);
+
+            return str.str();
+        }
+
+        friend std::ostream& operator<<(std::ostream& stream, Polynom &a)
+        {
+            a.Print(stream);
+
+            return stream;
+        }        
+    };
+
+    // class RealPolynom : public Polynom<Real, Real>
+    // {
+    // };
+        
+    typedef Polynom<Real, Real>         RealPolynom;
+    typedef Polynom<Complex, Complex>   ComplexPolynom;
+
+    typedef Polynom<MatrixNM<Real,2,2>, Real>       MatrixPolynomDim2;
+    typedef Polynom<MatrixNM<Real,3,3>, Real>       MatrixPolynomDim3;
+    typedef Polynom<MatrixNM<Real,4,4>, Real>       MatrixPolynomDim4;
+}
+
+///////////////////////////   ./include/core/MatrixUtils.h   ///////////////////////////
+
+
+// TODO 0.6 - ovo je problem!!!
+
+namespace MML
+{
+    namespace MatrixUtils
+    {
+        const static inline MatrixNM<Complex, 2, 2> Pauli[]= {
+            MatrixNM<Complex, 2, 2>{ 0, 1, 
+                                     1, 0 },
+            MatrixNM<Complex, 2, 2>{ 0,              Complex(0, -1), 
+                                     Complex(0, 1),  0},
+            MatrixNM<Complex, 2, 2>{ 1,  0, 
+                                     0, -1 }
+        };
+
+        const static inline MatrixNM<Complex, 4, 4> DiracGamma[]= {
+            MatrixNM<Complex, 4, 4>{ 1,  0,  0,  0, 
+                                     0,  1,  0,  0, 
+                                     0,  0, -1,  0, 
+                                     0,  0,  0, -1 },
+            MatrixNM<Complex, 4, 4>{ 0,  0,  0,  1,
+                                     0,  0,  1,  0,
+                                     0, -1,  0,  0,
+                                    -1,  0,  0,  0 },
+            MatrixNM<Complex, 4, 4>{ 0,              0,              0,              Complex(0, -1),
+                                     0,              0,              Complex(0, 1),  0,
+                                     0,              Complex(0, 1),  0,              0,
+                                     Complex(0, -1), 0,              0,              0 },
+            MatrixNM<Complex, 4, 4>{ 0,  0,  1,  0,
+                                     0,  0,  0, -1,
+                                    -1,  0,  0,  0,
+                                     0,  1,  0,  0 }
+        };
+
+        const static inline MatrixNM<Complex, 4, 4> DiracGamma5{0,  0,  1,  0, 
+                                                                0,  0,  0,  1, 
+                                                                1,  0,  0,  0, 
+                                                                0,  1,  0,  0 };
+
+        /////////////////////             Creating Matrix from Vector             ///////////////////
+        template<class _Type>
+        static Matrix<_Type> RowMatrixFromVector(const Vector<_Type> &b)
+        {
+            Matrix<_Type> ret(1, (int) b.size());
+            for( int i=0; i<b.size(); i++)
+                ret[0][i] = b[i];
+
+            return ret;
+        }
+        template<class _Type>
+        static Matrix<_Type> ColumnMatrixFromVector(const Vector<_Type> &b)
+        {
+            Matrix<_Type> ret((int) b.size(), 1);
+            for( int i=0; i<b.size(); i++)
+                ret[i][0] = b[i];
+
+            return ret;
+        }
+        template<class _Type>
+        static Matrix<_Type> DiagonalMatrixFromVector(const Vector<_Type> &b)
+        {
+            Matrix<_Type> ret((int) b.size(), (int) b.size());
+            for( int i=0; i<b.size(); i++)
+                ret[i][i] = b[i];
+
+            return ret;
+        }   
+
+        ///////////////////////             Matrix helpers               ////////////////////
+        template<class _Type>
+        static Matrix<_Type> Commutator(const Matrix<_Type> &a, const Matrix<_Type> &b)
+        {
+            return a*b - b*a;
+        }
+
+        template<class _Type>
+        static Matrix<_Type> AntiCommutator(const Matrix<_Type> &a, const Matrix<_Type> &b)
+        {
+            return a*b + b*a;
+        }
+        
+        template<class _Type>
+        static void MatrixDecompose(const Matrix<_Type> &orig, Matrix<_Type> &outSym, Matrix<_Type> &outAntiSym)
+        {
+            if( orig.RowNum() != orig.ColNum() )
+                throw MatrixDimensionError("MatrixDecompose - matrix must be square", orig.RowNum(), orig.ColNum(), -1, -1);
+
+            outSym = (orig + orig.GetTranspose()) * 0.5;
+            outAntiSym = (orig - orig.GetTranspose()) * 0.5;
+        }
+
+        ///////////////////////             Matrix functions               ////////////////////
+        template<class _Type>
+        static Matrix<_Type> Exp(const Matrix<_Type> &a, int n = 10)
+        {
+            Matrix<_Type> ret(a.RowNum(), a.ColNum());
+            Matrix<_Type> a_pow_n(a);
+
+            double fact = 1.0;
+            ret.MakeUnitMatrix();
+
+            for( int i=1; i<=n; i++ )
+            {
+                ret += a_pow_n / fact;
+                
+                a_pow_n = a_pow_n * a;
+                fact *= (double) i;
+            }
+
+            return ret;
+        }
+
+        ///////////////////////             Real matrix helpers               ////////////////////
+        static bool IsOrthogonal(const Matrix<Real> &mat, double eps = Defaults::IsMatrixOrthogonalPrecision)
+        {
+            if( mat.RowNum() != mat.ColNum() )
+                throw MatrixDimensionError("IsOrthogonal - matrix must be square", mat.RowNum(), mat.ColNum(), -1, -1);
+            
+            Matrix<Real> matProd = mat * mat.GetTranspose();
+
+            return matProd.IsUnit(eps);
+        } 
+
+        static Real Det(const Matrix<Real> &mat)
+        {
+            Matrix<Real> matCopy(mat);
+            LUDecompositionSolver<Real> _solver(matCopy);
+
+            return _solver.det();
+        }
+
+        static int Rank(const Matrix<Real> &mat)
+        {
+            Matrix<Real>     matcopy(mat);
+
+            SVDecompositionSolver svdSolver(matcopy);
+
+            return svdSolver.Rank();
+        }
+
+        static bool IsPositiveDefinite(const Matrix<Real> &mat)
+        {
+            UnsymmEigenSolver eigenSolver(mat);
+
+            if(  eigenSolver.getNumReal() < mat.RowNum() )
+                return false;
+
+            for( int i=0; i<mat.RowNum(); i++ )
+                if( eigenSolver.getRealEigenvalues()[i] <= 0.0 )
+                    return false;
+
+            return true;
+        }
+
+        static bool IsPositiveSemiDefinite(const Matrix<Real> &mat)
+        {
+            UnsymmEigenSolver eigenSolver(mat);
+
+            if(  eigenSolver.getNumReal() < mat.RowNum() )
+                return false;
+
+            for( int i=0; i<mat.RowNum(); i++ )
+                if( eigenSolver.getRealEigenvalues()[i] < 0.0 )
+                    return false;
+
+            return true;
+        }        
+
+        //////////////////////             Complex matrix helpers               ///////////////////
+        static Matrix<Complex> GetConjugateTranspose(const Matrix<Complex> &mat)
+        {
+            Matrix<Complex> ret(mat.ColNum(), mat.RowNum());
+
+            for( int i=0; i<mat.RowNum(); i++ )
+                for( int j=0; j<mat.ColNum(); j++ )
+                    ret[j][i] = std::conj(mat[i][j]);
+
+            return ret;
+        }
+
+        static Matrix<Complex> CmplxMatFromRealMat(const Matrix<Real> &mat)
+        {
+            Matrix<Complex> mat_cmplx(mat.RowNum(), mat.ColNum());
+
+            for(int i=0; i<mat.RowNum(); i++ )
+                for(int j=0; j<mat.ColNum(); j++)
+                    mat_cmplx[i][j] = Complex(mat(i,j), 0.0);
+            
+            return mat_cmplx;         
+        }
+
+        static bool IsComplexMatReal(const Matrix<Complex> &mat)
+        {
+            for(int i=0; i<mat.RowNum(); i++ )
+                for(int j=0; j<mat.ColNum(); j++)
+                    if( mat[i][j].imag() != 0.0 )
+                        return false;
+            
+            return true;
+        }        
+
+        static bool IsHermitian(const Matrix<Complex> &mat)
+        {
+            if( mat.RowNum() != mat.ColNum() )
+                throw MatrixDimensionError("IsHermitian - matrix must be square", mat.RowNum(), mat.ColNum(), -1, -1);
+
+            for(int i=0; i<mat.RowNum(); i++ )
+                for(int j=0; j<mat.ColNum(); j++)
+                    if( mat[i][j] != std::conj(mat[j][i]) )
+                        return false;
+            return true;
+        }
+
+        // IsUnitary - complex square matrix U is unitary if its conjugate transpose U* is also its inverse
+        static bool IsUnitary(const Matrix<Complex> &mat)
+        {
+            if( mat.RowNum() != mat.ColNum() )
+                throw MatrixDimensionError("IsUnitary - matrix must be square", mat.RowNum(), mat.ColNum(), -1, -1);
+            
+            Matrix<Complex> matProd = mat * GetConjugateTranspose(mat);
+
+            return matProd.IsUnit();            
+        }
+
+        //////////////////////         enabling Matrix<Complex> - Matrix<Real>  operations         ///////////////////////
+        static Matrix<Complex> AddMat(const Matrix<Complex> &a, const Matrix<Real> &b)
+        {
+            if (a.RowNum() != b.RowNum() || a.ColNum() != b.ColNum())
+                throw MatrixDimensionError("AddMat(Complex, Real) - must be same dim", a.RowNum(), a.ColNum(), b.RowNum(), b.ColNum());
+
+            Matrix<Complex> ret(a);
+            for (int i = 0; i < b.RowNum(); i++)
+                for (int j = 0; j < b.ColNum(); j++)
+                    ret[i][j] += b[i][j];
+            return ret;
+        }
+        static Matrix<Complex> AddMat(const Matrix<Real> &a, const Matrix<Complex> &b)
+        {
+            if (a.RowNum() != b.RowNum() || a.ColNum() != b.ColNum())
+                throw MatrixDimensionError("AddMat(Real, Complex) - must be same dim", a.RowNum(), a.ColNum(), b.RowNum(), b.ColNum());
+
+            Matrix<Complex> ret(b);
+            for (int i = 0; i < a.RowNum(); i++)
+                for (int j = 0; j < a.ColNum(); j++)
+                    ret[i][j] += a[i][j];
+            return ret;
+        }
+
+        static Matrix<Complex> SubMat(const Matrix<Complex> &a, const Matrix<Real> &b)
+        {
+            if (a.RowNum() != b.RowNum() || a.ColNum() != b.ColNum())
+                throw MatrixDimensionError("AddMat(Complex, Real) - must be same dim", a.RowNum(), a.ColNum(), b.RowNum(), b.ColNum());
+
+            Matrix<Complex> ret(a);
+            for (int i = 0; i < b.RowNum(); i++)
+                for (int j = 0; j < b.ColNum(); j++)
+                    ret[i][j] -= b[i][j];
+            return ret;
+        }
+        static Matrix<Complex> SubMat(const Matrix<Real> &a, const Matrix<Complex> &b)
+        {
+            if (a.RowNum() != b.RowNum() || a.ColNum() != b.ColNum())
+                throw MatrixDimensionError("AddMat(Real, Complex) - must be same dim", a.RowNum(), a.ColNum(), b.RowNum(), b.ColNum());
+
+            Matrix<Complex> ret(b);
+            for (int i = 0; i < a.RowNum(); i++)
+                for (int j = 0; j < a.ColNum(); j++)
+                    ret[i][j] = a[i][j] - b[i][j];
+            return ret;
+        }
+
+        // TODO 0.6 - unitarni minus za Matrix!
+        static Matrix<Complex> MulMat(const Complex &a, const Matrix<Real> &b)
+        {
+            Matrix<Complex>	ret(b.RowNum(), b.ColNum());
+            
+            for( int i=0; i<ret.RowNum(); i++ )
+                for( int j=0; j<ret.ColNum(); j++ ) {
+                    ret[i][j] = a * b[i][j];
+                }
+
+            return	ret;
+        }
+        static Matrix<Complex> MulMat(const Matrix<Complex> &a, const Matrix<Real> &b)
+        {
+            if( a.ColNum() != b.RowNum() )
+                throw MatrixDimensionError("Matrix::operator*(Complex, Real)) - a.colNum must be equal to b.rowNum", a.RowNum(), a.ColNum(), b.RowNum(), b.ColNum());
+
+            Matrix<Complex>	ret(a.RowNum(), b.ColNum());
+            for( int i=0; i<ret.RowNum(); i++ )
+                for( int j=0; j<ret.ColNum(); j++ ) {
+                    ret[i][j] = 0.0;
+                    for(int k=0; k<a.ColNum(); k++ )
+                        ret[i][j] += a[i][k] * b[k][j];
+                }
+
+            return	ret;
+        }       
+        static Matrix<Complex> MulMat(const Matrix<Real> &a, const Matrix<Complex> &b)
+        {
+            if( a.ColNum() != b.RowNum() )
+                throw MatrixDimensionError("Matrix::operator*(Real, Complex)) - a.colNum must be equal to b.rowNum", a.RowNum(), a.ColNum(), b.RowNum(), b.ColNum());
+
+            Matrix<Complex>	ret(a.RowNum(), b.ColNum());
+            for( int i=0; i<ret.RowNum(); i++ )
+                for( int j=0; j<ret.ColNum(); j++ ) {
+                    ret[i][j] = 0.0;
+                    for(int k=0; k<a.ColNum(); k++ )
+                        ret[i][j] += a[i][k] * b[k][j];
+                }
+
+            return	ret;
+        }  
+
+        static Vector<Complex> MulMatVec( const Matrix<Real> &a, const Vector<Complex> &b )
+        {
+            if( a.ColNum() != b.size() )
+                throw MatrixDimensionError("operator*(Mat a, Vec b) - a.colNum must be equal to vector size", a.RowNum(), a.ColNum(), (int) b.size(), -1);
+
+            Vector<Complex>	ret(a.RowNum());
+            for( int i=0; i<a.RowNum(); i++ )
+            {
+                ret[i] = 0;
+                for( int j=0; j<a.ColNum(); j++ )
+                    ret[i] += a[i][j] * b[j];
+            }
+            return ret;
+        }
+        static Vector<Complex> MulMatVec( const Matrix<Complex> &a, const Vector<Real> &b )
+        {
+            if( a.ColNum() != b.size() )
+                throw MatrixDimensionError("operator*(Mat a, Vec b) - a.colNum must be equal to vector size", a.RowNum(), a.ColNum(), (int) b.size(), -1);
+
+            Vector<Complex>	ret(a.RowNum());
+            for( int i=0; i<a.RowNum(); i++ )
+            {
+                ret[i] = 0;
+                for( int j=0; j<a.ColNum(); j++ )
+                    ret[i] += a[i][j] * b[j];
+            }
+            return ret;
+        }
+
+        static Vector<Complex> MulVecMat( const Vector<Complex> &a, const Matrix<Real> &b)
+        {
+            if( a.size() != b.RowNum() )
+                throw MatrixDimensionError("operator*(Vec a, Mat b) - vector size must be equal to b.rowNum", (int) a.size(), -1, b.RowNum(), b.ColNum());
+
+            Vector<Complex>	ret(b.ColNum());
+            for( int i=0; i<b.ColNum(); i++ )
+            {
+                ret[i] = 0;
+                for( int j=0; j<b.RowNum(); j++ )
+                    ret[i] += a[j] * b[j][i] ;
+            }
+            return ret;
+        }     
+        static Vector<Complex> MulVecMat( const Vector<Real> &a, const Matrix<Complex> &b)
+        {
+            if( a.size() != b.RowNum() )
+                throw MatrixDimensionError("operator*(Vec a, Mat b) - vector size must be equal to b.rowNum", (int) a.size(), -1, b.RowNum(), b.ColNum());
+
+            Vector<Complex>	ret(b.ColNum());
+            for( int i=0; i<b.ColNum(); i++ )
+            {
+                ret[i] = 0;
+                for( int j=0; j<b.RowNum(); j++ )
+                    ret[i] += a[j] * b[j][i] ;
+            }
+            return ret;
+        }
+
+        static Matrix<Real> GetRealPart(const Matrix<Complex> &a)
+        {
+            Matrix<Real> ret(a.RowNum(), a.ColNum());
+
+            for( int i=0; i<ret.RowNum(); i++ )
+                for( int j=0; j<ret.ColNum(); j++ ) {
+                    ret[i][j] = a[i][j].real();
+                }
+
+            return	ret;
+        }
+        static Matrix<Real> GetImagPart(const Matrix<Complex> &a)
+        {
+            Matrix<Real> ret(a.RowNum(), a.ColNum());
+
+            for( int i=0; i<ret.RowNum(); i++ )
+                for( int j=0; j<ret.ColNum(); j++ ) {
+                    ret[i][j] = a[i][j].imag();
+                }
+
+            return	ret;
+        }  
+    }
 }
 ///////////////////////////   ./include/core/Derivation.h   ///////////////////////////
 
@@ -8003,8 +8309,6 @@ namespace MML
         RealFunction(Real (*inFunc)(const Real) ) : _func(inFunc)    {}
 
         Real operator()(const Real x) const    { return _func(x); }
-
-        // TODO - HIGH, SREDNJE, expand to Taylor series
     };
     class RealFunctionFromStdFunc : public IRealFunction
     {
@@ -8211,6 +8515,38 @@ namespace MML
 
 namespace MML
 {
+
+    static RealPolynom TaylorSeries2(IRealFunction &f, Real a)
+    {
+        RealPolynom ret(2);
+
+        Real val = f(a);
+        Real coef1 = Derivation::NDer6(f, a);
+        Real coef2 = Derivation::NSecDer4(f, a) / 2.0;
+
+        ret[0] = val - coef1 * a + coef2 * SQR(a);
+        ret[1] = coef1 - 2.0 * coef2 * a;
+        ret[2] = coef2;
+
+        return ret;
+    }
+    static RealPolynom TaylorSeries3(IRealFunction &f, Real a)
+    {
+        RealPolynom ret(3);
+
+        Real val = f(a);
+        Real coef1 = Derivation::NDer6(f, a);
+        Real coef2 = Derivation::NSecDer4(f, a) / 2.0;
+        Real coef3 = Derivation::NThirdDer2(f, a) / 6.0;
+
+        ret[0] = val - coef1 * a + coef2 * SQR(a) - coef3 * pow(a, 3);
+        ret[1] = coef1 - 2.0 * coef2 * a + 3.0 * coef3 * SQR(a);
+        ret[2] = coef2 - 3.0 * coef3 * a;
+        ret[3] = coef3;
+
+        return ret;
+    }
+
      /////////////////////       FUNCTION HELPERS         //////////////////////////////////
     class RealFuncDerivation1 : public IRealFunction
     {
@@ -9116,6 +9452,7 @@ namespace MML
 ///////////////////////////   ./include/core/MetricTensor.h   ///////////////////////////
 
 
+
 namespace MML
 {
     // TODO - MED, SREDNJE, dodati metricke tenzore za specijalnu relativnost (Minkowski varijante)
@@ -9153,7 +9490,7 @@ namespace MML
             }
             return gamma_ijk;
         }
-        // TODO - GetChristoffellSymbolFirstKind
+        // TODO 0.7 - GetChristoffellSymbolFirstKind
     };
 
 
@@ -9244,6 +9581,7 @@ namespace MML
 
 
 
+
 namespace MML
 {
     // ovdje dodati translational, rotational, galilean, lorentzian transf
@@ -9256,9 +9594,8 @@ namespace MML
         {
             VectorTo ret;
 
-            ret[0] = Derivation::NDer4Partial(this->coordTransfFunc(0), ind, pos);
-            ret[1] = Derivation::NDer4Partial(this->coordTransfFunc(1), ind, pos);
-            ret[2] = Derivation::NDer4Partial(this->coordTransfFunc(2), ind, pos);
+            for( int i=0; i<N; i++)
+                ret[i] = Derivation::NDer4Partial(this->coordTransfFunc(i), ind, pos);
             
             return ret;
         }
@@ -9306,9 +9643,8 @@ namespace MML
         {
             VectorFrom ret;
 
-            ret[0] = Derivation::NDer4Partial(this->inverseCoordTransfFunc(ind), 0, pos);
-            ret[1] = Derivation::NDer4Partial(this->inverseCoordTransfFunc(ind), 1, pos);
-            ret[2] = Derivation::NDer4Partial(this->inverseCoordTransfFunc(ind), 2, pos);
+            for( int i=0; i<N; i++)
+                ret[i] = Derivation::NDer4Partial(this->inverseCoordTransfFunc(ind), i, pos);
             
             return ret;
         }
@@ -9443,7 +9779,7 @@ namespace MML
                                             if( tensor._isContravar[3] )
                                                 coef4 = Derivation::NDer1Partial(this->coordTransfFunc(l), p, pos);
                                             else
-                                                coef4 = Derivation::NDer1Partial(this->inverseCoordTransfFunc(p), k, pos);
+                                                coef4 = Derivation::NDer1Partial(this->inverseCoordTransfFunc(p), l, pos);
                                                                                 
                                             ret[i][j][k][l] += coef1 * coef2 * coef3 * coef4 * tensor[m][n][o][p];
                                         }
@@ -9451,6 +9787,56 @@ namespace MML
 
             return ret;
         }
+
+        Tensor5<N> transfTensor5(const Tensor5<N> &tensor, const VectorFrom &pos) 
+        {
+            Tensor5<N> ret;
+
+            for( int i=0; i<N; i++ ) 
+                for( int j=0; j<N; j++ ) 
+                    for( int k=0; k<N; k++) 
+                        for( int l=0; l<N; l++)
+                            for( int m=0; m<N; m++)
+                            {
+                                ret[i][j][k][l][m] = 0;
+                                for( int n=0; n<N; n++)
+                                    for( int o=0; o<N; o++)
+                                        for( int p=0; p<N; p++)
+                                            for( int q=0; q<N; q++)
+                                                for( int r=0; r<N; r++)
+                                                {
+                                                    double coef1, coef2, coef3, coef4, coef5;
+                                                    if( tensor._isContravar[0] )
+                                                        coef1 = Derivation::NDer1Partial(this->coordTransfFunc(i), n, pos);
+                                                    else
+                                                        coef1 = Derivation::NDer1Partial(this->inverseCoordTransfFunc(n), i, pos);
+
+                                                    if( tensor._isContravar[1] )
+                                                        coef2 = Derivation::NDer1Partial(this->coordTransfFunc(j), o, pos);
+                                                    else
+                                                        coef2 = Derivation::NDer1Partial(this->inverseCoordTransfFunc(o), j, pos);
+
+                                                    if( tensor._isContravar[2] )
+                                                        coef3 = Derivation::NDer1Partial(this->coordTransfFunc(k), p, pos);
+                                                    else
+                                                        coef3 = Derivation::NDer1Partial(this->inverseCoordTransfFunc(p), k, pos);
+
+                                                    if( tensor._isContravar[3] )
+                                                        coef4 = Derivation::NDer1Partial(this->coordTransfFunc(l), q, pos);
+                                                    else
+                                                        coef4 = Derivation::NDer1Partial(this->inverseCoordTransfFunc(q), l, pos);
+
+                                                    if( tensor._isContravar[4] )
+                                                        coef4 = Derivation::NDer1Partial(this->coordTransfFunc(m), r, pos);
+                                                    else
+                                                        coef4 = Derivation::NDer1Partial(this->inverseCoordTransfFunc(r), m, pos);
+
+                                                    ret[i][j][k][l][m] += coef1 * coef2 * coef3 * coef4 * coef5 * tensor[n][o][p][q][r];
+                                                }
+                        }
+
+            return ret;
+        }        
     }; 
 
     class CoordTransfPolarToCartesian2D : public CoordTransfWithInverse<Vector2Polar, Vector2Cartesian, 2>
@@ -9458,8 +9844,8 @@ namespace MML
         // q[0] = r     - radial distance
         // q[1] = phi   - polar angle
     public:
-        static Real func1(const VectorN<Real, 2> &q) { return q[0] * cos(q[2]); }
-        static Real func2(const VectorN<Real, 2> &q) { return q[0] * sin(q[2]); }
+        static Real func1(const VectorN<Real, 2> &q) { return q[0] * cos(q[1]); }
+        static Real func2(const VectorN<Real, 2> &q) { return q[0] * sin(q[1]); }
 
         // q[0] = x
         // q[1] = y
@@ -9502,15 +9888,15 @@ namespace MML
                                                         _fInverse1( std::function<Real(const VectorN<Real, 2>&)> { std::bind( &CoordTransfCart2DRotation::funcInverse1, this, std::placeholders::_1 ) } ),
                                                         _fInverse2( std::function<Real(const VectorN<Real, 2>&)> { std::bind( &CoordTransfCart2DRotation::funcInverse2, this, std::placeholders::_1 ) } )
         {
-            _transf[0][0] = cos(_angle);
+            _transf[0][0] =  cos(_angle);
             _transf[0][1] = -sin(_angle);
-            _transf[1][0] = sin(_angle);
-            _transf[1][1] = cos(_angle);
+            _transf[1][0] =  sin(_angle);
+            _transf[1][1] =  cos(_angle);
 
-            _inverse[0][0] = cos(_angle);
-            _inverse[0][1] = sin(_angle);
+            _inverse[0][0] =  cos(_angle);
+            _inverse[0][1] =  sin(_angle);
             _inverse[1][0] = -sin(_angle);
-            _inverse[1][1] = cos(_angle);
+            _inverse[1][1] =  cos(_angle);
         }
 
         Real func1(const VectorN<Real, 2> &q) const { return (_transf * q)[0]; }
@@ -9719,7 +10105,7 @@ namespace MML
         }
     };
 
-    // TODO - LOW, TESKO, finish CoordTransfCart3DRotationGeneralAxis
+    // TODO 0.7 - LOW, TESKO, Euler angles, finish CoordTransfCart3DRotationGeneralAxis
     // class CoordTransfCart3DRotationGeneralAxis  : public CoordTransfWithInverse<Vector3Cartesian, Vector3Cartesian, 3>
     // {
 
@@ -9784,7 +10170,7 @@ namespace MML
             }
         }
 
-        MatrixNM<Real, 3, 3> getAlpha() { return _alpha; }
+        MatrixNM<Real, 3, 3> getAlpha()  { return _alpha; }
         MatrixNM<Real, 3, 3> getTransf() { return _alpha; }
 
         Vector3Cartesian    Base(int i) { return _base[i]; }
@@ -9961,6 +10347,7 @@ namespace MML
 // - cart
 // - spher
 // - cyl
+
 
 
 
@@ -10404,6 +10791,7 @@ namespace MML
         const IRealFunction& getWeightFunc()     { return _weightFunc; }
     };
 
+    // TODO - promijeniti u dinamicki vektor!!!, ali ostaviti N template param
     template<int N>
     class DiscretizedFunctionSpaceN : public VectorSpace<Real, VectorN<Real, N>>
     {
@@ -10800,13 +11188,6 @@ namespace MML
             xval.Resize(numSteps+1);
             yval.Resize(dim, numSteps+1);
         }
-        // InterpRealFunctionLinear getSolution(int component)
-        // {
-        //     // na osnovu xsave i ysave napravi interpoliranu funkciju
-
-        //     return InterpRealFunctionLinear();
-        // }
-
     };
 }
 ///////////////////////////   ./include/basic_types/Geometry2D.h   ///////////////////////////
@@ -10977,24 +11358,24 @@ namespace MML
             _direction = dir.GetAsUnitVector();
         }
 
-        Point3Cartesian StartPoint() const  { return _point; }
-        Point3Cartesian &StartPoint()       { return _point; }
+        Point3Cartesian   StartPoint() const  { return _point; }
+        Point3Cartesian&  StartPoint()        { return _point; }
 
-        Vector3Cartesian Direction() const  { return _direction; }
-        Vector3Cartesian &Direction()       { return _direction; }
+        Vector3Cartesian  Direction() const   { return _direction; }
+        Vector3Cartesian& Direction()         { return _direction; }
 
-        Point3Cartesian PointOnLine(Real t) const
-        {
-            return _point + t * _direction;
-        }
+        Point3Cartesian PointOnLine(Real t) const { return _point + t * _direction;  }
 
         bool IsPerpendicular(const Line3D &b ) const
         {
             return ScalarProd(Direction(), b.Direction()) == 0.0f;
         }
-
-        // TODO distance Line - Point3
-        Real Dist(const Point3Cartesian &pnt)
+        bool IsParallel(const Line3D &b ) const
+        {
+            return ScalarProd(Direction(), b.Direction()) == 0.0f;
+        }
+        // TODO 0.6 - distance Line - Point3
+        Real Dist(const Point3Cartesian &pnt) const
         {
             Real dist = 0.0;
 
@@ -11027,7 +11408,20 @@ namespace MML
 
         //     return numerator.Length() / denominator;
         // }
-        // TODO nearest point on line
+
+        Point3Cartesian NearestPoint(const Point3Cartesian &pnt) const
+        {
+            // https://math.stackexchange.com/questions/1521128/given-a-line-and-a-point-in-3d-how-to-find-the-closest-point-on-the-line         
+            Point3Cartesian Q(StartPoint());
+            Point3Cartesian R = PointOnLine(1.0);
+
+            Vector3Cartesian RQ(Q, R);
+            Vector3Cartesian QP(pnt, StartPoint());
+
+            double t = QP.ScalarProductCartesian(RQ) / RQ.ScalarProductCartesian(RQ);
+
+            return Q - t * RQ;
+        }
         // TODO pravac koji prolazi kroz tocku i sijece zadani pravac okomito
         // TODO - sjeciste dva pravca
     };
@@ -11048,18 +11442,18 @@ namespace MML
             _point2 = pnt1 + t * direction;
         }
 
-        Point3Cartesian StartPoint() const  { return _point1; }
-        Point3Cartesian &StartPoint()       { return _point1; }
+        Point3Cartesian   StartPoint() const  { return _point1; }
+        Point3Cartesian&  StartPoint()       { return _point1; }
 
-        Point3Cartesian EndPoint() const  { return _point2; }
-        Point3Cartesian &EndPoint()       { return _point2; }
+        Point3Cartesian   EndPoint() const  { return _point2; }
+        Point3Cartesian&  EndPoint()       { return _point2; }
 
         Point3Cartesian PointOnSegment(Real t)
         {
-            // check t  u [0,1]
-            Vector3Cartesian dist = t * Direction();
-            Point3Cartesian ret = _point1 + dist;
-            return ret;
+            if( t < 0.0 || t > 1.0 )
+                throw std::runtime_error("SegmentLine3D::PointOnSegment - t not in [0,1]");
+
+            return _point1 + t * Direction();
         }
 
         Real                Length()    const { return _point1.Dist(_point2); }
@@ -11074,7 +11468,9 @@ namespace MML
     public:
         Plane3D(const Point3Cartesian &a, const Vector3Cartesian &normal)
         {
-            // check for normal null vector
+            if( normal.NormL2() == 0.0 )
+                throw std::runtime_error("Plane3D ctor - normal is null vector");
+
             Vector3Cartesian unitNormal = normal.GetAsUnitVector();
 
             _A = unitNormal.X();
@@ -11232,6 +11628,7 @@ namespace MML
         Real DistToPlane(const Plane3D &plane) const
         {
             // TODO finishs
+            // ili su paralelne, pa imamo neki broj, ili se sijeku pa je 0
             return 0.0;
         }     
         // TODO - check implementation IntersectionWithPlane
@@ -11770,7 +12167,7 @@ namespace MML
         // On output, d[0..n-1] contains the eigenvalues of a sorted into descending order, while
         // v[0..n-1][0..n-1] is a matrix whose columns contain the corresponding normalized eigenvectors. nrot contains the number of Jacobi rotations that were required. Only the upper
         // triangle of a is accessed.
-        Jacobi(Matrix<Real> &aa) : n(aa.RowNum()), a(aa), v(n, n), d(n), nrot(0),
+        Jacobi(const Matrix<Real> &aa) : n(aa.RowNum()), a(aa), v(n, n), d(n), nrot(0),
                                    EPS(std::numeric_limits<Real>::epsilon())
         {
             int i, j, ip, iq;
@@ -12190,7 +12587,7 @@ namespace MML
         // For a complex eigenvalue, only the eigenvector corresponding to the eigenvalue with a positive imaginary part is stored, with the real part in zz[0..n-1][i] and the
         // imaginary part in h.zz[0..n-1][i+1]. The eigenvectors are not normalized.
 
-        UnsymmEigenSolver(Matrix<Real> &aa, bool yesvec = true, bool hessenb = false) : n(aa.RowNum()), a(aa), zz(n, n), wri(n), scale(n, 1.0), perm(n),
+        UnsymmEigenSolver(const Matrix<Real> &aa, bool yesvec = true, bool hessenb = false) : n(aa.RowNum()), a(aa), zz(n, n), wri(n), scale(n, 1.0), perm(n),
                                                                                 yesvecs(yesvec), hessen(hessenb)
         {
             balance();
@@ -13769,6 +14166,256 @@ namespace MML
             }
         }
     };
+
+    // TODO - MED, LAKO, ovo dovrsiti
+    class StepperStoerm : public StepperBS {
+    public:
+        using StepperBS::x; using StepperBS::xold; using StepperBS::y;
+        using StepperBS::dydx; using StepperBS::dense; using StepperBS::n;
+        using StepperBS::KMAXX; using StepperBS::IMAXX; using StepperBS::nseq;
+        using StepperBS::cost; using StepperBS::mu; using StepperBS::errfac;
+        using StepperBS::ysave; using StepperBS::fsave;
+        using StepperBS::dens; using StepperBS::neqn;
+        
+        Matrix<Real> ysavep;
+
+
+        // StepperStoerm(ODESystem &sys, Vector<Real> &yy, Vector<Real> &dydxx, Real &xx,
+        //               const Real atol, const Real rtol, bool dens);
+        // void dy(const Vector<Real> &y, const Real htot, const int k, Vector<Real> &yend, int &ipt);
+        // void prepare_dense(const Real h,const Vector<Real> &dydxnew, const Vector<Real> &ysav,
+        //                    const Vector<Real> &scale, const int k, Real &error);
+        // Real dense_out(const int i,const Real x,const Real h);
+        // void dense_interp(const int n, Vector<Real> &y, const int imit);
+
+        StepperStoerm(ODESystem &sys, Vector<Real> &yy, Vector<Real> &dydxx, Real &xx, const Real atoll,const Real rtoll, bool dens)
+            : StepperBS(sys, yy,dydxx,xx,atoll,rtoll,dens),ysavep(IMAXX,n/2) 
+        {
+            neqn=n/2;
+            cost[0]=nseq[0]/2+1;
+            for (int k=0;k<KMAXX;k++)
+                cost[k+1]=cost[k]+nseq[k+1]/2;
+            for (int i=0; i<2*IMAXX+1; i++) {
+                int ip7=i+7;
+                Real fac=1.5/ip7;
+                errfac[i]=fac*fac*fac;
+                Real e = 0.5*sqrt(Real(i+1)/ip7);
+                for (int j=0; j<=i; j++) {
+                    errfac[i] *= e/(j+1);
+                }
+            }
+        }
+
+        void prepare_dense(const Real h,const Vector<Real> &dydxnew,
+                                        const Vector<Real> &ysav,const Vector<Real> &scale,const int k, Real &error) {
+            Real h2=h*h;
+            mu=std::max(1,2*k-3);
+            for (int i=0; i<neqn; i++) {
+                dens[i]=ysav[i];
+                dens[neqn+i]=h*ysav[neqn+i];
+                dens[2*neqn+i]=h2*dydx[i];
+                dens[3*neqn+i]=y[i];
+                dens[4*neqn+i]=h*y[neqn+i];
+                dens[5*neqn+i]=h2*dydxnew[i];
+            }
+            for (int j=1; j<=k; j++) {
+                Real dblenj=nseq[j];
+                for (int l=j; l>=1; l--) {
+                    Real factor=SQR(dblenj/nseq[l-1])-1.0;
+                    for (int i=0; i<neqn; i++) {
+                        ysave[l-1][i]=ysave[l][i]+(ysave[l][i]-ysave[l-1][i])/factor;
+                        ysavep[l-1][i]=ysavep[l][i]+(ysavep[l][i]-ysavep[l-1][i])/factor;
+                    }
+                }
+            }
+            for (int i=0; i<neqn; i++) {
+                dens[6*neqn+i]=ysave[0][i];
+                dens[7*neqn+i]=h*ysavep[0][i];
+            }
+            for (int kmi=2; kmi<=mu; kmi++) {
+                int kbeg=(kmi-2)/2;
+                if (kmi == 2*kbeg+2) {
+                    if (kmi == 2) {
+                        for (int i=0; i<neqn; i++)
+                            ysave[0][i]=0.5*(dydxnew[i]+fsave[0][i]);
+                        kbeg=1;
+                    }
+                    for (int kk=kbeg; kk<=k; kk++) {
+                        Real facnj=0.5*pow(nseq[kk]/2.0,kmi-2);
+                        int ipt=kk*kk+kk+kmi/2-2;
+                        for (int i=0; i<neqn; i++)
+                            ysave[kk][i]=(fsave[ipt][i]+fsave[ipt+1][i])*facnj;
+                    }
+                } else {
+                    for (int kk=kbeg; kk<=k; kk++) {
+                        Real facnj=pow(nseq[kk]/2.0,kmi-2);
+                        int ipt=kk*kk+kk+kbeg;
+                        for (int i=0; i<neqn; i++)
+                            ysave[kk][i]=fsave[ipt][i]*facnj;
+                    }
+                }
+                for (int j=kbeg+1; j<=k; j++) {
+                    Real dblenj=nseq[j];
+                    for (int l=j; l>=kbeg+1; l--) {
+                        Real factor=SQR(dblenj/nseq[l-1])-1.0;
+                        for (int i=0; i<neqn; i++)
+                            ysave[l-1][i]=ysave[l][i]+
+                                (ysave[l][i]-ysave[l-1][i])/factor;
+                    }
+                }
+                for (int i=0; i<neqn; i++)
+                    dens[(kmi+6)*neqn+i]=ysave[kbeg][i]*h2;
+                if (kmi == mu) continue;
+                for (int kk=(kmi-1)/2; kk<=k; kk++) {
+                    int lbeg=kk*kk+kmi-2;
+                    int lend=SQR(kk+1)-1;
+                    if (kmi == 2) lbeg++;
+                    for (int l=lend; l>=lbeg; l--)
+                        for (int i=0; i<neqn; i++)
+                            fsave[l][i]=fsave[l][i]-fsave[l-1][i];
+                    if (kmi == 2) {
+                        int l=lbeg-1;
+                        for (int i=0; i<neqn; i++)
+                            fsave[l][i]=fsave[l][i]-dydx[i];
+                    }
+                }
+            }
+            dense_interp(neqn,dens,mu);
+            error=0.0;
+            if (mu >= 1) {
+                for (int i=0; i<neqn; i++)
+                    error += SQR(dens[(mu+6)*neqn+i]/scale[i]);
+                error=sqrt(error/neqn)*errfac[mu-1];
+            }
+        }
+
+        Real dense_out(const int i,const Real x,const Real h) {
+            Real theta=(x-xold)/h;
+            Real theta1=1.0-theta;
+            int neqn=n/2;
+            if (i>=neqn) throw("no dense output for y' in StepperStoerm");
+            Real yinterp=dens[i]+theta*(dens[neqn+i]+theta1*(dens[2*neqn+i]+
+                theta*(dens[3*neqn+i]+theta1*(dens[4*neqn+i]*theta+
+                dens[5*neqn+i]*theta1))));
+            if (mu<0)
+                return yinterp;
+            Real theta05=theta-0.5;
+            Real t4=theta*theta1;
+            Real c=dens[neqn*(mu+6)+i];
+            for (int j=mu;j>0; j--)
+                c=dens[neqn*(j+5)+i]+c*theta05/j;
+            yinterp += t4*t4*t4*c;
+            return yinterp;
+        }
+
+        void dense_interp(const int n, Vector<Real> &y, const int imit) {
+            Real y0,y1,yp0,yp1,ypp0,ypp1,ydiff,ah,bh,ch,dh,eh,fh,gh,abh,gfh,gmf,
+                ph0,ph1,ph2,ph3,ph4,ph5,fc1,fc2,fc3;
+            Vector<Real> a(41);
+            for (int i=0; i<n; i++) {
+                y0=y[i];
+                y1=y[3*n+i];
+                yp0=y[n+i];
+                yp1=y[4*n+i];
+                ypp0=y[2*n+i]/2.0;
+                ypp1=y[5*n+i]/2.0;
+                ydiff=y1-y0;
+                ah=ydiff-yp0;
+                bh=yp1-ydiff;
+                ch=ah-ypp0;
+                dh=bh-ah;
+                eh=ypp1-bh;
+                fh=dh-ch;
+                gh=eh-dh;
+                y[n+i]=ydiff;
+                y[2*n+i]=-ah;
+                y[3*n+i]=-dh;
+                y[4*n+i]=gh;
+                y[5*n+i]=fh;
+                if (imit < 0) continue;
+                abh=ah+bh;
+                gfh=gh+fh;
+                gmf=gh-fh;
+                ph0=0.5*(y0+y1+0.25*(-abh+0.25*gfh));
+                ph1=ydiff+0.25*(ah-bh+0.25*gmf);
+                ph2=abh-0.5*gfh;
+                ph3=6.0*(bh-ah)-3.0*gmf;
+                ph4=12.0*gfh;
+                ph5=120.0*gmf;
+                if (imit >= 1) {
+                    a[1]=64.0*(y[7*n+i]-ph1);
+                    if (imit >= 3) {
+                        a[3]=64.0*(y[9*n+i]-ph3+a[1]*9.0/8.0);
+                        if (imit >= 5) {
+                            a[5]=64.0*(y[11*n+i]-ph5+a[3]*15.0/4.0-a[1]*90.0);
+                            for (int im=7; im <=imit; im+=2) {
+                                fc1=im*(im-1)*3.0/16.0;
+                                fc2=fc1*(im-2)*(im-3)*4.0;
+                                fc3=im*(im-1)*(im-2)*(im-3)*(im-4)*(im-5);
+                                a[im]=64.0*(y[(im+6)*n+i]+fc1*a[im-2]-fc2*a[im-4]+fc3*a[im-6]);
+                            }
+                        }
+                    }
+                }
+                a[0]=64.0*(y[6*n+i]-ph0);
+                if (imit >= 2) {
+                    a[2]=64.0*(y[n*8+i]-ph2+a[0]*3.0/8.0);
+                    if (imit >= 4) {
+                        a[4]=64.0*(y[n*10+i]-ph4+a[2]*9.0/4.0-a[0]*18.0);
+                        for (int im=6; im<=imit; im+=2) {
+                            fc1=im*(im-1)*3.0/16.0;
+                            fc2=fc1*(im-2)*(im-3)*4.0;
+                            fc3=im*(im-1)*(im-2)*(im-3)*(im-4)*(im-5);
+                            a[im]=64.0*(y[n*(im+6)+i]+a[im-2]*fc1-a[im-4]*fc2+a[im-6]*fc3);
+                        }
+                    }
+                }
+                for (int im=0; im<=imit; im++)
+                    y[n*(im+6)+i]=a[im];
+            }
+        }
+
+        void dy(const Vector<Real> &y, const Real htot, const int k,
+            Vector<Real> &yend, int &ipt) {
+            Vector<Real> ytemp(n);
+            int nstep=nseq[k];
+            Real h=htot/nstep;
+            Real h2=2.0*h;
+            for (int i=0;i<neqn;i++) {
+                ytemp[i]=y[i];
+                int ni=neqn+i;
+                ytemp[ni]=y[ni]+h*dydx[i];
+            }
+            Real xnew=x;
+            int nstp2=nstep/2;
+            for (int nn=1;nn<=nstp2;nn++) {
+                if (dense && nn == (nstp2+1)/2) {
+                    for (int i=0;i<neqn;i++) {
+                        ysavep[k][i]=ytemp[neqn+i];
+                        ysave[k][i]=ytemp[i]+h*ytemp[neqn+i];
+                    }
+                }
+                for (int i=0;i<neqn;i++)
+                    ytemp[i] += h2*ytemp[neqn+i];
+                xnew += h2;
+                _sys.derivs(xnew,ytemp,yend);
+                if (dense && std::abs(nn-(nstp2+1)/2) < k+1) {
+                    ipt++;
+                    for (int i=0;i<neqn;i++)
+                        fsave[ipt][i]=yend[i];
+                }
+                if (nn != nstp2) {
+                    for (int i=0;i<neqn;i++)
+                        ytemp[neqn+i] += h2*yend[i];
+                }
+            }
+            for (int i=0;i<neqn;i++) {
+                int ni=neqn+i;
+                yend[ni]=ytemp[ni]+h*yend[i];
+                yend[i]=ytemp[i];
+            }
+        }
+    };
 }
 ///////////////////////////   ./include/algorithms/ODESystemSteppers_Stiff.h   ///////////////////////////
 
@@ -14317,264 +14964,7 @@ namespace MML
         void dense_interp(const int n, Vector<Real> &y, const int imit);
     };    
 }
-///////////////////////////   ./include/algorithms/ODESystemSteppers_Stoerm.h   ///////////////////////////
-
-
-
-
-namespace MML
-{
-    // TODO - MED, LAKO, ovo dovrsiti
-    class StepperStoerm : public StepperBS {
-    public:
-        using StepperBS::x; using StepperBS::xold; using StepperBS::y;
-        using StepperBS::dydx; using StepperBS::dense; using StepperBS::n;
-        using StepperBS::KMAXX; using StepperBS::IMAXX; using StepperBS::nseq;
-        using StepperBS::cost; using StepperBS::mu; using StepperBS::errfac;
-        using StepperBS::ysave; using StepperBS::fsave;
-        using StepperBS::dens; using StepperBS::neqn;
-        
-        Matrix<Real> ysavep;
-
-
-        // StepperStoerm(ODESystem &sys, Vector<Real> &yy, Vector<Real> &dydxx, Real &xx,
-        //               const Real atol, const Real rtol, bool dens);
-        // void dy(const Vector<Real> &y, const Real htot, const int k, Vector<Real> &yend, int &ipt);
-        // void prepare_dense(const Real h,const Vector<Real> &dydxnew, const Vector<Real> &ysav,
-        //                    const Vector<Real> &scale, const int k, Real &error);
-        // Real dense_out(const int i,const Real x,const Real h);
-        // void dense_interp(const int n, Vector<Real> &y, const int imit);
-
-        StepperStoerm(ODESystem &sys, Vector<Real> &yy, Vector<Real> &dydxx, Real &xx, const Real atoll,const Real rtoll, bool dens)
-            : StepperBS(sys, yy,dydxx,xx,atoll,rtoll,dens),ysavep(IMAXX,n/2) 
-        {
-            neqn=n/2;
-            cost[0]=nseq[0]/2+1;
-            for (int k=0;k<KMAXX;k++)
-                cost[k+1]=cost[k]+nseq[k+1]/2;
-            for (int i=0; i<2*IMAXX+1; i++) {
-                int ip7=i+7;
-                Real fac=1.5/ip7;
-                errfac[i]=fac*fac*fac;
-                Real e = 0.5*sqrt(Real(i+1)/ip7);
-                for (int j=0; j<=i; j++) {
-                    errfac[i] *= e/(j+1);
-                }
-            }
-        }
-
-        void prepare_dense(const Real h,const Vector<Real> &dydxnew,
-                                        const Vector<Real> &ysav,const Vector<Real> &scale,const int k, Real &error) {
-            Real h2=h*h;
-            mu=std::max(1,2*k-3);
-            for (int i=0; i<neqn; i++) {
-                dens[i]=ysav[i];
-                dens[neqn+i]=h*ysav[neqn+i];
-                dens[2*neqn+i]=h2*dydx[i];
-                dens[3*neqn+i]=y[i];
-                dens[4*neqn+i]=h*y[neqn+i];
-                dens[5*neqn+i]=h2*dydxnew[i];
-            }
-            for (int j=1; j<=k; j++) {
-                Real dblenj=nseq[j];
-                for (int l=j; l>=1; l--) {
-                    Real factor=SQR(dblenj/nseq[l-1])-1.0;
-                    for (int i=0; i<neqn; i++) {
-                        ysave[l-1][i]=ysave[l][i]+(ysave[l][i]-ysave[l-1][i])/factor;
-                        ysavep[l-1][i]=ysavep[l][i]+(ysavep[l][i]-ysavep[l-1][i])/factor;
-                    }
-                }
-            }
-            for (int i=0; i<neqn; i++) {
-                dens[6*neqn+i]=ysave[0][i];
-                dens[7*neqn+i]=h*ysavep[0][i];
-            }
-            for (int kmi=2; kmi<=mu; kmi++) {
-                int kbeg=(kmi-2)/2;
-                if (kmi == 2*kbeg+2) {
-                    if (kmi == 2) {
-                        for (int i=0; i<neqn; i++)
-                            ysave[0][i]=0.5*(dydxnew[i]+fsave[0][i]);
-                        kbeg=1;
-                    }
-                    for (int kk=kbeg; kk<=k; kk++) {
-                        Real facnj=0.5*pow(nseq[kk]/2.0,kmi-2);
-                        int ipt=kk*kk+kk+kmi/2-2;
-                        for (int i=0; i<neqn; i++)
-                            ysave[kk][i]=(fsave[ipt][i]+fsave[ipt+1][i])*facnj;
-                    }
-                } else {
-                    for (int kk=kbeg; kk<=k; kk++) {
-                        Real facnj=pow(nseq[kk]/2.0,kmi-2);
-                        int ipt=kk*kk+kk+kbeg;
-                        for (int i=0; i<neqn; i++)
-                            ysave[kk][i]=fsave[ipt][i]*facnj;
-                    }
-                }
-                for (int j=kbeg+1; j<=k; j++) {
-                    Real dblenj=nseq[j];
-                    for (int l=j; l>=kbeg+1; l--) {
-                        Real factor=SQR(dblenj/nseq[l-1])-1.0;
-                        for (int i=0; i<neqn; i++)
-                            ysave[l-1][i]=ysave[l][i]+
-                                (ysave[l][i]-ysave[l-1][i])/factor;
-                    }
-                }
-                for (int i=0; i<neqn; i++)
-                    dens[(kmi+6)*neqn+i]=ysave[kbeg][i]*h2;
-                if (kmi == mu) continue;
-                for (int kk=(kmi-1)/2; kk<=k; kk++) {
-                    int lbeg=kk*kk+kmi-2;
-                    int lend=SQR(kk+1)-1;
-                    if (kmi == 2) lbeg++;
-                    for (int l=lend; l>=lbeg; l--)
-                        for (int i=0; i<neqn; i++)
-                            fsave[l][i]=fsave[l][i]-fsave[l-1][i];
-                    if (kmi == 2) {
-                        int l=lbeg-1;
-                        for (int i=0; i<neqn; i++)
-                            fsave[l][i]=fsave[l][i]-dydx[i];
-                    }
-                }
-            }
-            dense_interp(neqn,dens,mu);
-            error=0.0;
-            if (mu >= 1) {
-                for (int i=0; i<neqn; i++)
-                    error += SQR(dens[(mu+6)*neqn+i]/scale[i]);
-                error=sqrt(error/neqn)*errfac[mu-1];
-            }
-        }
-
-        Real dense_out(const int i,const Real x,const Real h) {
-            Real theta=(x-xold)/h;
-            Real theta1=1.0-theta;
-            int neqn=n/2;
-            if (i>=neqn) throw("no dense output for y' in StepperStoerm");
-            Real yinterp=dens[i]+theta*(dens[neqn+i]+theta1*(dens[2*neqn+i]+
-                theta*(dens[3*neqn+i]+theta1*(dens[4*neqn+i]*theta+
-                dens[5*neqn+i]*theta1))));
-            if (mu<0)
-                return yinterp;
-            Real theta05=theta-0.5;
-            Real t4=theta*theta1;
-            Real c=dens[neqn*(mu+6)+i];
-            for (int j=mu;j>0; j--)
-                c=dens[neqn*(j+5)+i]+c*theta05/j;
-            yinterp += t4*t4*t4*c;
-            return yinterp;
-        }
-
-        void dense_interp(const int n, Vector<Real> &y, const int imit) {
-            Real y0,y1,yp0,yp1,ypp0,ypp1,ydiff,ah,bh,ch,dh,eh,fh,gh,abh,gfh,gmf,
-                ph0,ph1,ph2,ph3,ph4,ph5,fc1,fc2,fc3;
-            Vector<Real> a(41);
-            for (int i=0; i<n; i++) {
-                y0=y[i];
-                y1=y[3*n+i];
-                yp0=y[n+i];
-                yp1=y[4*n+i];
-                ypp0=y[2*n+i]/2.0;
-                ypp1=y[5*n+i]/2.0;
-                ydiff=y1-y0;
-                ah=ydiff-yp0;
-                bh=yp1-ydiff;
-                ch=ah-ypp0;
-                dh=bh-ah;
-                eh=ypp1-bh;
-                fh=dh-ch;
-                gh=eh-dh;
-                y[n+i]=ydiff;
-                y[2*n+i]=-ah;
-                y[3*n+i]=-dh;
-                y[4*n+i]=gh;
-                y[5*n+i]=fh;
-                if (imit < 0) continue;
-                abh=ah+bh;
-                gfh=gh+fh;
-                gmf=gh-fh;
-                ph0=0.5*(y0+y1+0.25*(-abh+0.25*gfh));
-                ph1=ydiff+0.25*(ah-bh+0.25*gmf);
-                ph2=abh-0.5*gfh;
-                ph3=6.0*(bh-ah)-3.0*gmf;
-                ph4=12.0*gfh;
-                ph5=120.0*gmf;
-                if (imit >= 1) {
-                    a[1]=64.0*(y[7*n+i]-ph1);
-                    if (imit >= 3) {
-                        a[3]=64.0*(y[9*n+i]-ph3+a[1]*9.0/8.0);
-                        if (imit >= 5) {
-                            a[5]=64.0*(y[11*n+i]-ph5+a[3]*15.0/4.0-a[1]*90.0);
-                            for (int im=7; im <=imit; im+=2) {
-                                fc1=im*(im-1)*3.0/16.0;
-                                fc2=fc1*(im-2)*(im-3)*4.0;
-                                fc3=im*(im-1)*(im-2)*(im-3)*(im-4)*(im-5);
-                                a[im]=64.0*(y[(im+6)*n+i]+fc1*a[im-2]-fc2*a[im-4]+fc3*a[im-6]);
-                            }
-                        }
-                    }
-                }
-                a[0]=64.0*(y[6*n+i]-ph0);
-                if (imit >= 2) {
-                    a[2]=64.0*(y[n*8+i]-ph2+a[0]*3.0/8.0);
-                    if (imit >= 4) {
-                        a[4]=64.0*(y[n*10+i]-ph4+a[2]*9.0/4.0-a[0]*18.0);
-                        for (int im=6; im<=imit; im+=2) {
-                            fc1=im*(im-1)*3.0/16.0;
-                            fc2=fc1*(im-2)*(im-3)*4.0;
-                            fc3=im*(im-1)*(im-2)*(im-3)*(im-4)*(im-5);
-                            a[im]=64.0*(y[n*(im+6)+i]+a[im-2]*fc1-a[im-4]*fc2+a[im-6]*fc3);
-                        }
-                    }
-                }
-                for (int im=0; im<=imit; im++)
-                    y[n*(im+6)+i]=a[im];
-            }
-        }
-
-        void dy(const Vector<Real> &y, const Real htot, const int k,
-            Vector<Real> &yend, int &ipt) {
-            Vector<Real> ytemp(n);
-            int nstep=nseq[k];
-            Real h=htot/nstep;
-            Real h2=2.0*h;
-            for (int i=0;i<neqn;i++) {
-                ytemp[i]=y[i];
-                int ni=neqn+i;
-                ytemp[ni]=y[ni]+h*dydx[i];
-            }
-            Real xnew=x;
-            int nstp2=nstep/2;
-            for (int nn=1;nn<=nstp2;nn++) {
-                if (dense && nn == (nstp2+1)/2) {
-                    for (int i=0;i<neqn;i++) {
-                        ysavep[k][i]=ytemp[neqn+i];
-                        ysave[k][i]=ytemp[i]+h*ytemp[neqn+i];
-                    }
-                }
-                for (int i=0;i<neqn;i++)
-                    ytemp[i] += h2*ytemp[neqn+i];
-                xnew += h2;
-                _sys.derivs(xnew,ytemp,yend);
-                if (dense && std::abs(nn-(nstp2+1)/2) < k+1) {
-                    ipt++;
-                    for (int i=0;i<neqn;i++)
-                        fsave[ipt][i]=yend[i];
-                }
-                if (nn != nstp2) {
-                    for (int i=0;i<neqn;i++)
-                        ytemp[neqn+i] += h2*yend[i];
-                }
-            }
-            for (int i=0;i<neqn;i++) {
-                int ni=neqn+i;
-                yend[ni]=ytemp[ni]+h*yend[i];
-                yend[i]=ytemp[i];
-            }
-        }
-    };
-}
-///////////////////////////   ./include/algorithms/ODESystemSolvers.h   ///////////////////////////
+///////////////////////////   ./include/algorithms/ODESystemSolver.h   ///////////////////////////
 
 
 
@@ -14756,6 +15146,7 @@ namespace MML
         }        
     };
 
+    // TODO 0.6 - ovo je Dumb
     class RungeKuttaSolverDumb
     {
     public:        
@@ -14815,6 +15206,7 @@ namespace MML
         }    
     };    
 
+    // TODO 0.6 - ovo je Simple
     class RungeKuttaNR2
     {
         void rkck(Vector<Real> &y, Vector<Real> &dydx, const Real x,
@@ -15873,7 +16265,7 @@ namespace MML
                 fvcold[i]=fvec[i];
             }
             fold=f;
-            qr->rsolve(p,p);
+            qr->RSolve(p,p);
             Real slope=0.0;
             for (i=0;i<n;i++) slope += g[i]*p[i];
             if (slope >= 0.0) {

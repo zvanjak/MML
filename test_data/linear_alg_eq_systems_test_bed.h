@@ -4,11 +4,12 @@
 #ifdef MML_USE_SINGLE_HEADER
 #include "MML.h"
 #else
-#include "core/Matrix.h"
-#include "core/MatrixSym.h"
+#include "base/Matrix.h"
+#include "base/MatrixSym.h"
 #endif
 
-#include "linear_alg_eq_systems_defs.h"
+#include "linear_alg_eq_systems_real_defs.h"
+#include "linear_alg_eq_systems_sym_defs.h"
 #include "linear_alg_eq_systems_complex_defs.h"
 
 namespace MML::TestBeds

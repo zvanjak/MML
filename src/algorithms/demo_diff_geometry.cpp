@@ -5,7 +5,7 @@
 
 #include "utilities/Constants.h"
 
-#include "core/VectorN.h"
+#include "base/VectorN.h"
 #include "core/Function.h"
 #include "core/Derivation.h"
 

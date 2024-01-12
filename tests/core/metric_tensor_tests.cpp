@@ -3,7 +3,7 @@
 #ifdef MML_USE_SINGLE_HEADER
 #include "MML.h"
 #else
-#include "core/Tensor.h"
+#include "base/Tensor.h"
 
 #include "core/CoordTransf.h"
 #include "core/MetricTensor.h"
@@ -13,7 +13,7 @@
 
 using namespace MML;
 
-// TODO - HIGH, BIG!!! verify that generating tensor from transf works
+// TODO 0.7 - HIGH, BIG!!! verify that generating tensor from transf works
 TEST_CASE("Test_Metric_Tensors", "[simple]") {
     MetricTensorCartesian<3> metricCart;
     MetricTensorSpherical metricSpher;

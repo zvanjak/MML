@@ -1,4 +1,4 @@
-# VectorScalar and vector field operations
+# Scalar and vector field operations
 
 - grad
 - div

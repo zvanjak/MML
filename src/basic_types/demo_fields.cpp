@@ -3,7 +3,7 @@
 #else
 #include "MMLBase.h"
 
-#include "core/VectorN.h"
+#include "base/VectorN.h"
 #include "core/Function.h"
 #include "core/FieldOperations.h"
 

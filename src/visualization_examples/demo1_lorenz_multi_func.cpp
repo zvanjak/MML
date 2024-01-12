@@ -5,9 +5,9 @@
 
 #include "interfaces/IODESystem.h"
 
-#include "core/Vector.h"
+#include "base/Vector.h"
 
-#include "algorithms/ODESystemSolvers.h"
+#include "algorithms/ODESystemSolver.h"
 #include "algorithms/ODESystemSteppers.h"
 #endif
 

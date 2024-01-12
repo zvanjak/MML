@@ -1,1 +1,1 @@
-# Linear equations solvers
+# Linear system equations solvers

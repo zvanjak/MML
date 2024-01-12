@@ -5,10 +5,10 @@
 
 #include "interfaces/IODESystem.h"
 
-#include "core/Vector.h"
+#include "base/Vector.h"
 #include "basic_types/Curves.h"
 
-#include "algorithms/ODESystemSolvers.h"
+#include "algorithms/ODESystemSolver.h"
 #include "algorithms/ODESystemSteppers.h"
 #endif
 

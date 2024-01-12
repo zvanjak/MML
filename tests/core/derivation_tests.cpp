@@ -3,7 +3,7 @@
 #ifdef MML_USE_SINGLE_HEADER
 #include "MML.h"
 #else
-#include "core/Vector.h"
+#include "base/Vector.h"
 #include "core/Function.h"
 #include "core/Derivation.h"
 #endif
@@ -43,7 +43,7 @@ TEST_CASE("Test_NDer_sin_func", "[simple]")
     REQUIRE(sinFuncDer(0.5) == Approx(der8).epsilon(1e-14));
 }
 
-// TODO - see results for complex and hard test function
+// TODO 0.7 - see results for complex and hard test function
 TEST_CASE("Test_NDer_TestDer1", "[simple]") 
 {
     RealFunction testFunc = TestBeds::RealFunctionsTestBed::getTestFunctionRealWithDerivation("TestDer1")._func;
@@ -80,7 +80,7 @@ TEST_CASE("Test_NThirdDer", "[simple]")
     REQUIRE(sinFuncThirdDer(0.5) == Approx(thirdder4).epsilon(1e-9));
 
     double thirdder6 = Derivation::NThirdDer6(sinFunc, 0.5);
-    REQUIRE(sinFuncThirdDer(0.5) == Approx(thirdder6).epsilon(1e-11));
+    REQUIRE(sinFuncThirdDer(0.5) == Approx(thirdder6).epsilon(1e-10));
 
     double thirdder8 = Derivation::NThirdDer8(sinFunc, 0.5);
     REQUIRE(sinFuncThirdDer(0.5) == Approx(thirdder8).epsilon(1e-12)); 

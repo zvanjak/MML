@@ -3,7 +3,7 @@
 #ifdef MML_USE_SINGLE_HEADER
 #include "MML.h"
 #else
-#include "algorithms/ODESystemSolvers.h"
+#include "algorithms/ODESystemSolver.h"
 #endif
 
 using namespace MML;

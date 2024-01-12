@@ -3,8 +3,8 @@
 #else
 #include "MMLBase.h"
 
-#include "core/Vector.h"
-#include "core/Matrix.h"
+#include "base/Vector.h"
+#include "base/Matrix.h"
 #include "core/MatrixUtils.h"
 
 #endif
@@ -13,6 +13,10 @@ using namespace MML;
 
 void Readme_vectors_matrices()
 {
+    std::cout << "***********************************************************************" << std::endl;
+    std::cout << "****                  README - vectors, matrices                   ****" << std::endl;
+    std::cout << "***********************************************************************" << std::endl;
+
     Vector<double>  vec1({ 1.5, -2.0, 0.5 }), vec2({ 1.0, 1.0, -3.0 }); 
     VectorComplex   vec_cmplx({ Complex(1,1), Complex(-1,2) });
     VectorComplex   vec_cmplx2({ Complex(1,1), Complex(-1,2), Complex(2.5, -1.5) });

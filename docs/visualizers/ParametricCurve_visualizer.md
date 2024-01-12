@@ -1,1 +1,1 @@
-** Parametric curve visualizer **
+# Parametric curve visualizer

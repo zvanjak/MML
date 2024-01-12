@@ -16,8 +16,13 @@
 
 using namespace MML;
 
+// TODO 0.7 - bolji primjer - skalarno polje potencijala, iz njega generirati vektorsko polje, i iz njega grad, div, curl, Laplacian
 void Readme_vector_field_operations()
 {
+    std::cout << "***********************************************************************" << std::endl;
+    std::cout << "****               README - vector field operations                ****" << std::endl;
+    std::cout << "***********************************************************************" << std::endl;
+
     ScalarFunction<3> fPotCart([](const VectorN<Real, 3> &x) -> Real { return InverseRadialPotentialFieldCart(x); });
     ScalarFunction<3> fPotSpher([](const VectorN<Real, 3> &x) -> Real { return InverseRadialPotentialFieldSpher(x); });
     ScalarFunction<3> fPotCyl([](const VectorN<Real, 3> &x) -> Real { return InverseRadialPotentialFieldCyl(x); });

@@ -5,13 +5,14 @@
 #else
 #include "MMLBase.h"
 
-#include "core/Vector.h"
-#include "core/Matrix.h"
-#include "core/MatrixSym.h"
+#include "base/Vector.h"
+#include "base/Matrix.h"
+#include "base/MatrixSym.h"
 #include "core/MatrixUtils.h"
 
 #include "algorithms/EigenSystemSolvers.h"
 #endif
+
 #include "../test_data/linear_alg_eq_systems_test_bed.h"
 
 using namespace MML;

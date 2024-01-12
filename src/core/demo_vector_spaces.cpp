@@ -4,7 +4,7 @@
 #include "MMLBase.h"
 
 #include "core/VectorSpace.h"
-#include "core/VectorN.h"
+#include "base/VectorN.h"
 
 #endif
 
