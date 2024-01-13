@@ -378,13 +378,11 @@ y values: - Rows: 2 Cols: 21
 [      0, -0.197, -0.386, -0.567, -0.738, -0.901,  -1.05,   -1.2,  -1.33,  -1.45,  -1.57,  -1.67,  -1.77,  -1.85,  -1.91,  -1.96,     -2,  -2.01,     -2,  -1.97,  -1.92,  ]
 */
 ~~~
-TODO 0.6 - slika s rješenjem sustava i prikaz koda
 
 ***Fields and field operations - grad, div, curl, Laplacian***
 
 Calculating field gradient, divergence, curl and Laplacian
 ~~~ c++
-// TODO 0.7 - bolji primjer - skalarno polje potencijala, iz njega generirati vektorsko polje, i iz njega grad, div, curl, Laplacian
 ScalarFunction<3> fPotCart([](const VectorN<Real, 3> &x) -> Real { return InverseRadialPotentialFieldCart(x); });
 ScalarFunction<3> fPotSpher([](const VectorN<Real, 3> &x) -> Real { return InverseRadialPotentialFieldSpher(x); });
 ScalarFunction<3> fPotCyl([](const VectorN<Real, 3> &x) -> Real { return InverseRadialPotentialFieldCyl(x); });
@@ -435,11 +433,10 @@ auto curv_vec   = DiffGeometry::getCurvatureVector(test_curve, t);
 auto curvature  = DiffGeometry::getCurvature(test_curve, t);
 auto curvature3 = DiffGeometry::getCurvature3(test_curve, t);
 ~~~
-TODO 0.7 - vizualizirati neku krivulju, i u jednoj točki vizualizirati (World view) 3 vektora tangente, normale i binormale, te vektore zakrivljenosti
 
 ***Visualizators***
 ~~~ c++
-    // TODO 0.6 - visualizators example
+    // TODO 0.7 - visualizators example
 ~~~
 
 ***FunctionAnalyzer***
