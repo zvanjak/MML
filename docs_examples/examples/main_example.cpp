@@ -6,7 +6,7 @@
 #include "core/Function.h"
 #include "core/Derivation.h"
 
-#include "basic_types/Geometry3D.h"
+#include "base/Geometry3D.h"
 #endif
 
 
@@ -39,7 +39,6 @@ public:
     }
 };
 
-// TODO 0.6 - implement main example
 void Main_example()
 {
     std::cout << "***********************************************************************" << std::endl;

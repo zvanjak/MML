@@ -4,7 +4,7 @@
 #include "MML.h"
 #else
 #include "core/CoordTransf.h"
-#include "basic_types/Fields.h"
+#include "core/Fields.h"
 #include "core/FieldOperations.h"
 #endif
 
@@ -81,7 +81,7 @@ TEST_CASE("Test_CoordTransf_Spherical_to_Cartesian", "[simple]")
 
 TEST_CASE("Test_Contravariant_transf_cart_to_spher")
 {
-    // TODO 0.6 - dodati još 5-6 test caseova
+    // TODO 0.7 - dodati još 5-6 test caseova
     Vector3Cartesian v_cart{1.0, 1.0, 0.0};
     Vector3Cartesian posCart{1.0, 1.0, 0.0};
 
@@ -102,7 +102,7 @@ TEST_CASE("Test_Covariant_transf_cart_to_spher")
     Vector3Cartesian  grad_cart = ScalarFieldOperations::GradientCart<3>(fPotCart, p_cart);
 
     Vector3Spherical grad_transf_to_spher = CoordTransfCartToSpher.transfVecCovariant(grad_cart, p_spher);
-    // TODO 0.6 - nekad je -1/3 bilo sqrt(2)???
+    // TODO 0.7 - nekad je -1/3 bilo sqrt(2)???
     REQUIRE(true == grad_transf_to_spher.IsEqual(Vector3Spherical(-1.0/3, 0.0, 0.0), 1e-6));
 
     Vector3Cartesian back_transf_to_cart = CoordTransfSpherToCart.transfVecCovariant(grad_transf_to_spher, p_cart);

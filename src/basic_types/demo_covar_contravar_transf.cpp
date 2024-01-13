@@ -4,7 +4,7 @@
 #include "MMLBase.h"
 
 #include "core/CoordTransf.h"
-#include "basic_types/Fields.h"
+#include "core/Fields.h"
 #include "core/FieldOperations.h"
 
 #endif

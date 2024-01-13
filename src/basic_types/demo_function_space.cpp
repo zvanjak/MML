@@ -4,7 +4,7 @@
 #else
 #include "MMLBase.h"
 
-#include "basic_types/FunctionSpace.h"
+#include "core/FunctionSpace.h"
 #endif
 
 using namespace MML;

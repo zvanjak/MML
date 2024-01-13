@@ -3,14 +3,12 @@
 #else
 #include "MMLBase.h"
 
-#include "utilities/Constants.h"
-
 #include "base/VectorN.h"
 #include "core/Function.h"
 #include "core/Derivation.h"
 
-#include "basic_types/Curves.h"
-#include "basic_types/Geometry3D.h"
+#include "core/Curves.h"
+#include "base/Geometry3D.h"
 
 #include "algorithms/DiffGeometryAlgorithms.h"
 #endif

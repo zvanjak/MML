@@ -7,8 +7,8 @@
 #include "base/Matrix.h"
 
 #include "core/Function.h"
-#include "basic_types/Curves.h"
-#include "basic_types/Geometry3D.h"
+#include "core/Curves.h"
+#include "base/Geometry3D.h"
 #endif
 
 using namespace MML;

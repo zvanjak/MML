@@ -1,8 +1,6 @@
 #ifdef MML_USE_SINGLE_HEADER
 #include "MML.h"
 #else
-#include "utilities/Constants.h"
-
 #include "core/Function.h"
 #include "core/Integration.h"
 #endif

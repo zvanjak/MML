@@ -3,7 +3,7 @@
 #else
 #include "MMLBase.h"
 
-#include "basic_types/CoordSystem.h"
+#include "core/CoordSystem.h"
 #include "core/CoordTransf.h"
 #endif
 

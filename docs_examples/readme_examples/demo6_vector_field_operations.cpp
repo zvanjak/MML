@@ -6,8 +6,8 @@
 #include "core/CoordTransf.h"
 #include "core/FieldOperations.h"
 
-#include "basic_types/Fields.h"
-#include "basic_types/Curves.h"
+#include "core/Fields.h"
+#include "core/Curves.h"
 #endif
 
 #include "../test_data/parametric_curves_test_bed.h"

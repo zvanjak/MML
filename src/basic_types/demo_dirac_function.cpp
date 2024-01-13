@@ -3,7 +3,7 @@
 #else
 #include "MMLBase.h"
 
-#include "basic_types/DiracDeltaFunction.h"
+#include "core/DiracDeltaFunction.h"
 #endif
 
 using namespace MML;

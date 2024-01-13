@@ -10,7 +10,7 @@
 
 using namespace MML;
 
-// TODO 0.6 - HIGH - finish these tests
+// TODO 0.7 - HIGH - finish these tests
 TEST_CASE("Test MatrixUtils::IsOrthogonal")
 {
     Matrix<Real> A(3, 3, {1,0,0,0,1,0,0,0,1});

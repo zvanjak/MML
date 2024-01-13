@@ -3,8 +3,8 @@
 #else
 #include "MMLBase.h"
 
-#include "core/VectorSpace.h"
 #include "base/VectorN.h"
+#include "base/VectorSpace.h"
 
 #endif
 

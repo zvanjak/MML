@@ -9,9 +9,9 @@
 #include "core/Function.h"
 #include "core/FieldOperations.h"
 
-#include "basic_types/Fields.h"
-#include "basic_types/Curves.h"
-#include "basic_types/Surfaces.h"
+#include "core/Fields.h"
+#include "core/Curves.h"
+#include "core/Surfaces.h"
 #endif
 
 #include "../test_data/parametric_curves_test_bed.h"

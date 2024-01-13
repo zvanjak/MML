@@ -49,10 +49,6 @@ typedef std::complex<double> Complex;   // default complex type
 
 namespace MML
 {
-    ////////////                  Constants                ////////////////
-    static const double POS_INF =  std::numeric_limits<double>::infinity();
-    static const double NEG_INF = -std::numeric_limits<double>::infinity();
- 
     template<class _Type>
     static Real Abs(const _Type &a)
     {
@@ -64,9 +60,18 @@ namespace MML
         return sqrt(a.real()*a.real() + a.imag()*a.imag());
     }    
 
-    class Defaults
+    ////////////                  Constants                ////////////////
+    namespace Constants
     {
-    public:
+        static inline const Real PI = std::numbers::pi;
+        static inline const Real Epsilon = std::numeric_limits<Real>::epsilon();
+        static inline const Real PositiveInf =  std::numeric_limits<Real>::max();
+        static inline const Real NegativeInf = -std::numeric_limits<Real>::max();
+        // static constexpr Real EpsilonSqrt = std::sqrt(Epsilon);
+    }
+
+    namespace Defaults
+    {
         //////////               Default precisions             ///////////
         static inline const double ComplexEqualityPrecision = 1e-15;
         static inline const double MatrixEqualityPrecision = 1e-15;
@@ -90,7 +95,7 @@ namespace MML
 
         static inline const double WorkIntegralPrecision = 1e-05;
         static inline const double LineIntegralPrecision = 1e-05;
-    };
+    }
 
     //////////             Vector error exceptions            ///////////
 	class VectorDimensionError : public std::invalid_argument
@@ -154,20 +159,6 @@ namespace MML
 		TensorCovarContravarNumError(std::string inMessage, int size1, int size2) : std::invalid_argument(inMessage), _numContra(size1), _numCo(size2)
 		{ }
 	};	
-}
-///////////////////////////   ./include/utilities/Constants.h   ///////////////////////////
-
-namespace MML
-{
-    class Constants
-    {
-    public:
-        static inline const Real PI = std::numbers::pi;
-        static inline const Real Epsilon = std::numeric_limits<Real>::epsilon();
-        static inline const Real PositiveInf =  std::numeric_limits<Real>::max();
-        static inline const Real NegativeInf = -std::numeric_limits<Real>::max();
-        // static constexpr Real EpsilonSqrt = std::sqrt(Epsilon);
-    };
 }
 ///////////////////////////   ./include/utilities/StdFunctions.h   ///////////////////////////
 
@@ -385,62 +376,6 @@ namespace MML
     };
 }
 
-///////////////////////////   ./include/utilities/Matrix3D.h   ///////////////////////////
-
-namespace MML
-{
-    template <class _Type>
-    class Matrix3D {
-    private:
-        int _n;
-        int _m;
-        int _k;
-        _Type ***_v;
-
-    public:
-        Matrix3D(): _n(0), _m(0), _k(0), _v(nullptr) {}
-
-        Matrix3D(int n, int m, int k) : _n(n), _m(m), _k(k), _v(new _Type**[n])
-        {
-            int i,j;
-            
-            _v[0]    = new _Type*[n*m];
-            _v[0][0] = new _Type[n*m*k];
-            
-            for(j=1; j<m; j++) 
-                _v[0][j] = _v[0][j-1] + k;
-
-            for(i=1; i<n; i++) {
-                _v[i]    = _v[i-1] + m;
-                _v[i][0] = _v[i-1][0] + m*k;
-                
-                for(j=1; j<m; j++) 
-                    _v[i][j] = _v[i][j-1] + k;
-            }
-        }        
-
-        ~Matrix3D()
-        {
-            if (_v != NULL) {
-                delete[] (_v[0][0]);
-                delete[] (_v[0]);
-                delete[] (_v);
-            }
-        }
-
-        //subscripting: pointer to row i
-        inline _Type**              operator[](const int i)       { return _v[i]; }
-        inline const _Type* const * operator[](const int i) const { return _v[i]; }
-
-        _Type  operator()(int i, int j, int k) const { return _v[i][j][k]; }
-        _Type& operator()(int i, int j, int k)       { return _v[i][j][k]; }        
-
-        inline int dim1() const { return _n; }
-        inline int dim2() const { return _m; }
-        inline int dim3() const { return _k; }
-    };
-}
-
 ///////////////////////////   ./include/interfaces/IInterval.h   ///////////////////////////
 
 namespace MML
@@ -576,370 +511,6 @@ namespace MML
 }
 
 
-///////////////////////////   ./include/utilities/Intervals.h   ///////////////////////////
-
-
-namespace MML
-{
-    // TODO - implement intervals properly (and use them in test beds)
-    ///////////////////////////////////////////////   Interfaces    ///////////////////////////////////////////
-    enum class EndpointType
-    {
-        OPEN,
-        CLOSED,
-        NEG_INF,
-        POS_INF
-    };
-    
-    class BaseInterval : public IInterval
-    {
-    protected:
-        Real _lower, _upper;
-        EndpointType _lowerType, _upperType;
-
-        BaseInterval(Real lower, EndpointType lowerType, Real upper, EndpointType upperType) : _lower(lower), _lowerType(lowerType),  _upper(upper), _upperType(upperType) { }
-    public:
-        virtual ~BaseInterval() {}
-        
-        Real getLowerBound() const { return _lower; }
-        Real getUpperBound() const { return _upper; }
-        Real getLength()     const { return _upper - _lower; }
-        
-        bool isContinuous()  const { return true; }
-
-        // bool contains(const IInterval &other) const = 0;
-        // bool intersects(const IInterval &other) const = 0;
-
-        void GetEquidistantCovering(int numPoints) { }
-    };
-
-    class CompleteRInterval : public BaseInterval
-    {
-    public:
-        CompleteRInterval() : BaseInterval(-std::numeric_limits<double>::max(), EndpointType::NEG_INF, std::numeric_limits<double>::max(), EndpointType::POS_INF) { }
-        bool contains(Real x) const { return true; }        
-    };
-    class OpenInterval : public BaseInterval
-    {
-        // for equidistant covering
-        double _lowerRealDif = 0.0000001;
-    public:
-        OpenInterval(Real lower, Real upper) : BaseInterval(lower, EndpointType::OPEN, upper, EndpointType::OPEN) { }
-        bool contains(Real x) const { return (x > _lower) && (x < _upper); }        
-    };
-    class OpenClosedInterval : public BaseInterval
-    {
-    public:
-        OpenClosedInterval(Real lower, Real upper) : BaseInterval(lower, EndpointType::OPEN, upper, EndpointType::CLOSED) { }
-        bool contains(Real x) const { return (x > _lower) && (x <= _upper); }        
-    };
-    class ClosedInterval : public BaseInterval
-    {
-    public:
-        ClosedInterval(Real lower, Real upper) : BaseInterval(lower, EndpointType::CLOSED, upper, EndpointType::CLOSED) { }
-        
-        bool contains(Real x) const {
-            return (x >= _lower) && (x <= _upper);
-        }        
-    };   
-    
-    class ClosedOpenInterval : public BaseInterval
-    {
-    public:
-        ClosedOpenInterval(Real lower, Real upper) : BaseInterval(lower, EndpointType::CLOSED, upper, EndpointType::OPEN) { }
-        
-        bool contains(Real x) const {
-            return (x >= _lower) && (x < _upper);
-        }        
-    };    
-    class NegInfToOpenInterval : public BaseInterval
-    {
-    public:
-        NegInfToOpenInterval(Real upper) : BaseInterval(-std::numeric_limits<double>::max(), EndpointType::NEG_INF, upper, EndpointType::OPEN) { }
-
-        bool contains(Real x) const {
-            return x < _upper;
-        }        
-    };
-
-    class NegInfToClosedInterval : public BaseInterval
-    {
-    public:
-        NegInfToClosedInterval(Real upper) : BaseInterval(-std::numeric_limits<double>::max(), EndpointType::NEG_INF, upper, EndpointType::CLOSED) { }
-
-        bool contains(Real x) const {
-            return x <= _upper;
-        }        
-    };
-
-    class OpenToInfInterval : public BaseInterval
-    {
-    public:
-        OpenToInfInterval(Real lower) : BaseInterval(lower, EndpointType::OPEN, std::numeric_limits<double>::max(), EndpointType::POS_INF) { }
-
-        bool contains(Real x) const {
-            return x > _lower;
-        }        
-    };
-    
-    class ClosedToInfInterval : public BaseInterval
-    {
-    public:
-        ClosedToInfInterval(Real lower) : BaseInterval(lower, EndpointType::CLOSED, std::numeric_limits<double>::max(), EndpointType::POS_INF) { }
-
-        bool contains(Real x) const {
-            return x >= _lower;
-        }        
-    };
-
-    class Interval : public IInterval
-    {
-        Real _lower, _upper;
-        std::vector<std::unique_ptr<BaseInterval>> _intervals;
-    public:
-        Interval() {}
-        Interval(const OpenInterval &interval) : _lower(interval.getLowerBound()), _upper(interval.getUpperBound()) 
-        { 
-            _intervals.emplace_back(std::make_unique<OpenInterval>(interval));
-        }
-
-        template<class _IntervalType>
-        Interval& PerformUnion(const _IntervalType &interval)
-        {
-            _intervals.emplace_back(std::make_unique<_IntervalType>(interval));
-            return *this;
-        }
-
-        // Interval& PerformUnion(const OpenInterval &interval)
-        // {
-        //     _intervals.emplace_back(std::make_unique<OpenInterval>(interval));
-        //     return *this;
-        // }
-        // Interval& PerformUnion(const OpenClosedInterval &interval)
-        // {
-        //     _intervals.emplace_back(std::make_unique<OpenClosedInterval>(interval));
-        //     return *this;
-        // }
-
-        static Interval Union(const BaseInterval &a, const BaseInterval &b)
-        {
-            Interval ret;
-            ret._lower = std::min(a.getLowerBound(), b.getLowerBound());
-            ret._upper = std::max(a.getUpperBound(), b.getUpperBound());
-
-            // TODO - implement union
-            return ret;
-        }
-        static Interval Union(const Interval &a, const BaseInterval &b)
-        {
-            Interval ret;
-            return ret;
-        }
-        static Interval Union(const Interval &a, const Interval &b)
-        {
-            Interval ret;
-            return ret;
-        }
-
-        static Interval Intersection(const IInterval &a, const IInterval &b)
-        {
-            Interval ret;
-            // TODO - implement intersection
-            return ret;
-        }
-        static Interval Difference(const IInterval &a, const IInterval &b)
-        {
-            Interval ret;
-            // TODO - implement diff
-            return ret;
-        }
-        static Interval Complement(const IInterval &a)
-        {
-            Interval ret;
-            // TODO - implement complement
-            return ret;
-        }
-        Real getLowerBound() const { return 0; }
-        Real getUpperBound() const { return 0; }
-        Real getLength()     const { return 0; }
-        
-        bool isContinuous()  const { return false; }
-        bool contains(Real x) const 
-        {
-            // check for each interval if it contains x
-            for (auto &interval : _intervals)
-            {
-                if (interval->contains(x))
-                    return true;
-            }
-            return false;
-        }
-        // bool contains(const IInterval &other) const = 0;
-        // bool intersects(const IInterval &other) const = 0;
-
-        void GetEquidistantCovering(int numPoints) { }
-    };
-
-    class IntervalUnion : public IInterval
-    {
-        IInterval &_left, &_right;
-    public:
-        IntervalUnion(IInterval &left, IInterval &right) : _left(left), _right(right) 
-        { 
-            if( _left.getLowerBound() > _right.getLowerBound() )
-            {
-                IInterval &temp = _left;
-                _left = _right;
-                _right = temp;
-                // std::swap(_left, _right);  // doesn't work???
-            }
-        }
-
-        Real getLowerBound() const { return _left.getLowerBound(); }
-        Real getUpperBound() const { return std::max(_left.getUpperBound(), _right.getUpperBound()); }
-        Real getLength() const { 
-            // FIXME - implement correctly
-            // ako se ne sijeku
-            if( _left.getUpperBound() < _right.getLowerBound() )
-                return _left.getLength() + _right.getLength();
-            else {
-                // ili je jedan sadrzan cijeli u drugome
-
-                // ili se standardno sijeku
-            }
-            return _left.getLength() + _right.getLength(); 
-
-        }
-        
-        bool isContinuous() const { return false; }
-
-        bool contains(Real x) const {
-            return _left.contains(x) || _right.contains(x);
-        }
-        // bool contains(const IInterval &other) const = 0;
-        // bool intersects(const IInterval &other) const = 0;
-
-        void GetEquidistantCovering(int numPoints) { }
-    };    
-}
-
-///////////////////////////   ./include/base/Algebra.h   ///////////////////////////
-
-
-
-namespace MML
-{
-    // TODO - implement example groups - Z6, permutations
-    // TODO - vector space + Gram Schmidt
-    // TODO - linear transformations & OPERATORS
-    
-    // groups
-    // finitve ima i numElem
-    class GroupZ : public IGroup<int>
-    {
-        public:
-        virtual int  identity() const { return 0;}
-        virtual int  inverse(const int& a) const { return -a;}
-        virtual int  op(const int& a, const int& b) const { return a + b;}
-    };
-    // FieldR
-    // FieldC
-}
-///////////////////////////   ./include/base/Geometry.h   ///////////////////////////
-
-
-
-namespace MML
-{
-    // TODO - MED, dodati Dist svugdje
-    class Point2Cartesian
-    {
-    private:
-        Real _x, _y;
-
-    public:
-        Real  X() const   { return _x; }
-        Real& X()         { return _x; }
-        Real  Y() const   { return _y; }
-        Real& Y()         { return _y; }
-
-        Point2Cartesian() {}
-        Point2Cartesian(Real x, Real y) : _x(x), _y(y) {}
-
-        Real Dist(const Point2Cartesian &b) const { return sqrt(SQR(b._x - _x) + SQR(b._y - _y) ); }
-    };
-
-    class Point2Polar
-    {
-    private:
-        Real _r, _phi;
-
-    public:
-        Real  R() const   { return _r; }
-        Real& R()         { return _r; }
-        Real  Phi() const { return _phi; }
-        Real& Phi()       { return _phi; }
-        
-        Point2Polar() {}
-        Point2Polar(Real r, Real phi) : _r(r), _phi(phi) {}
-
-        Real Dist(const Point2Polar &b) const { return sqrt(R() * R() + b.R() * b.R() - 2 * R() * b.R() * cos(b.Phi() - Phi())); }
-    };
-
-    class Point3Cartesian
-    {
-    private:
-        Real _x, _y, _z;
-
-    public:
-        Real  X() const   { return _x; }
-        Real& X()         { return _x; }
-        Real  Y() const   { return _y; }
-        Real& Y()         { return _y; }
-        Real  Z() const   { return _z; }
-        Real& Z()         { return _z; }
-
-        Point3Cartesian() {}
-        Point3Cartesian(Real x, Real y, Real z) : _x(x), _y(y), _z(z) {}
-
-        Real Dist(const Point3Cartesian &b) const { return sqrt(SQR(b._x - _x) + SQR(b._y - _y) + SQR(b._z - _z)); }
-    };     
-
-    class Triangle
-    {
-    private:
-        Real _a, _b, _c;
-
-    public:
-        Real  A() const   { return _a; }
-        Real& A()         { return _a; }
-        Real  B() const   { return _b; }
-        Real& B()         { return _b; }
-        Real  C() const   { return _c; }
-        Real& C()         { return _c; }
-
-        Triangle() {}
-        Triangle(Real a, Real b, Real c) : _a(a), _b(b), _c(c) {}
-
-        Real Area() const
-        {
-            Real s = (_a + _b + _c) / 2.0;
-            return sqrt(s * (s - _a) * (s - _b) * (s - _c));
-        }
-        bool IsRight() const
-        {
-            return (SQR(_a) + SQR(_b) == SQR(_c)) || (SQR(_a) + SQR(_c) == SQR(_b)) || (SQR(_b) + SQR(_c) == SQR(_a));
-        }
-        bool IsIsosceles() const
-        {
-            return (_a == _b) || (_a == _c) || (_b == _c);
-        }
-        bool IsEquilateral() const
-        {
-            return (_a == _b) && (_a == _c);
-        }
-    };
-}
 ///////////////////////////   ./include/base/Vector.h   ///////////////////////////
 
 namespace MML
@@ -1340,255 +911,6 @@ namespace MML
     typedef VectorN<Complex, 4> Vec4C;
 }
 
-///////////////////////////   ./include/base/VectorTypes.h   ///////////////////////////
-
-
-
-namespace MML
-{
-    class Vector2Cartesian : public VectorN<Real, 2>
-    {
-    public:
-        Vector2Cartesian() {}
-        Vector2Cartesian(Real x, Real y) 
-        {
-            _val[0] = x;
-            _val[1] = y;
-        }
-        Vector2Cartesian(const VectorN<Real, 2> &b) : VectorN<Real,2>{b[0], b[1]} { }
-        Vector2Cartesian(std::initializer_list<Real> list)  : VectorN<Real,2>(list) { }
-        Vector2Cartesian(const Point2Cartesian &a, const Point2Cartesian &b) 
-        {
-            _val[0] = b.X() - a.X();
-            _val[1] = b.Y() - a.Y();
-        }
-
-        Real    X() const   { return _val[0]; }
-        Real&   X()         { return _val[0]; }
-        Real    Y() const   { return _val[1]; }
-        Real&   Y()         { return _val[1]; }
-
-        friend Vector2Cartesian operator*(const Vector2Cartesian &a, Real b )
-        {
-            Vector2Cartesian ret;
-            for(int i=0; i<2; i++)
-                ret._val[i] = a[i] * b;
-            return ret;
-        }
-        friend Vector2Cartesian operator*(Real a, const Vector2Cartesian &b )
-        {
-            Vector2Cartesian ret;
-            for(int i=0; i<2; i++)
-                ret._val[i] = a * b[i];
-            return ret;
-        }
-        friend Vector2Cartesian operator/(const Vector2Cartesian &a, Real b)
-        {
-            Vector2Cartesian ret;
-            for(int i=0; i<2; i++)
-                ret._val[i] = a[i] / b;
-            return ret;
-        }
-
-        Vector2Cartesian GetUnitVector() const
-        {
-            VectorN<Real, 2> res = (*this) / NormL2();
-
-            return Vector2Cartesian(res[0], res[1]);
-        }
-
-        friend Point2Cartesian operator+(const Point2Cartesian &a, const Vector2Cartesian &b) { return Point2Cartesian(a.X() + b[0], a.Y() + b[1]); }
-        friend Point2Cartesian operator-(const Point2Cartesian &a, const Vector2Cartesian &b) { return Point2Cartesian(a.X() - b[0], a.Y() - b[1]); }
-        // friend Point2Cartesian operator+(const Point2Cartesian &a, const VectorN<Real, 2> &b) { return Point2Cartesian(a.X() + b[0], a.Y() + b[1]); }
-        // friend Point2Cartesian operator-(const Point2Cartesian &a, const VectorN<Real, 2> &b) { return Point2Cartesian(a.X() - b[0], a.Y() - b[1]); }
-    };
-
-    class Vector2Polar : public VectorN<Real, 2>
-    {
-    public:
-        Real    R() const   { return _val[0]; }
-        Real&   R()         { return _val[0]; }
-        Real    Phi() const { return _val[1]; }
-        Real&   Phi()       { return _val[1]; }
-
-        Vector2Polar() {}
-        Vector2Polar(Real r, Real phi) 
-        {
-            _val[0] = r;
-            _val[1] = phi;
-        }   
-        Vector2Polar(const VectorN<Real, 2> &b) : VectorN<Real,2>{b[0], b[1]} { }        
-    };
-
-    class Vector3Cartesian : public VectorN<Real, 3>
-    {
-    public:
-        Real    X() const   { return _val[0]; }
-        Real&   X()         { return _val[0]; }
-        Real    Y() const   { return _val[1]; }
-        Real&   Y()         { return _val[1]; }
-        Real    Z() const   { return _val[2]; }
-        Real&   Z()         { return _val[2]; }
-
-        Vector3Cartesian()                                  : VectorN<Real,3>{0.0, 0.0, 0.0} { }
-        Vector3Cartesian(const VectorN<Real, 3> &b)         : VectorN<Real,3>{b[0], b[1], b[2]} { }
-        Vector3Cartesian(Real x, Real y, Real z)            : VectorN<Real,3>{x, y, z} { }
-        Vector3Cartesian(std::initializer_list<Real> list)  : VectorN<Real,3>(list) { }
-        Vector3Cartesian(const Point3Cartesian &a, const Point3Cartesian &b) 
-        {
-            _val[0] = b.X() - a.X();
-            _val[1] = b.Y() - a.Y();
-            _val[2] = b.Z() - a.Z();
-        }
-
-        friend Vector3Cartesian operator*(const Vector3Cartesian &a, Real b )
-        {
-            Vector3Cartesian ret;
-            for(int i=0; i<3; i++)
-                ret._val[i] = a[i] * b;
-            return ret;
-        }
-        friend Vector3Cartesian operator*(Real a, const Vector3Cartesian &b )
-        {
-            Vector3Cartesian ret;
-            for(int i=0; i<3; i++)
-                ret._val[i] = a * b[i];
-            return ret;
-        }
-        friend Vector3Cartesian operator/(const Vector3Cartesian &a, Real b)
-        {
-            Vector3Cartesian ret;
-            for(int i=0; i<3; i++)
-                ret._val[i] = a[i] / b;
-            return ret;
-        }
-
-        friend Vector3Cartesian operator-(const Point3Cartesian &a, const Point3Cartesian &b) { return  Vector3Cartesian{a.X() - b.X(), a.Y() - b.Y(), a.Z() - b.Z()}; }
-
-        friend Point3Cartesian operator+(const Point3Cartesian &a, const Vector3Cartesian &b) { return Point3Cartesian(a.X() + b[0], a.Y() + b[1], a.Z() + b[2]); }
-        friend Point3Cartesian operator-(const Point3Cartesian &a, const Vector3Cartesian &b) { return Point3Cartesian(a.X() - b[0], a.Y() - b[1], a.Z() - b[2]); }        
-
-        Point3Cartesian getAsPoint()
-        {
-            return Point3Cartesian(_val[0], _val[1], _val[2]);
-        }
-        bool IsParallelTo(const Vector3Cartesian &b, Real eps = 1e-15) const
-        {
-            Real norm1 = NormL2();
-            Real norm2 = b.NormL2();
-
-            return std::abs(X() / norm1 - b.X() / norm2) < eps &&
-                   std::abs(Y() / norm1 - b.Y() / norm2) < eps &&
-                   std::abs(Z() / norm1 - b.Z() / norm2) < eps;
-        }
-
-        bool IsPerpendicularTo(const Vector3Cartesian &b, Real eps = 1e-15) const
-        {
-            if (std::abs(ScalarProd(*this, b)) < eps)
-                return true;
-            else
-                return false;
-        }
-
-        Vector3Cartesian GetAsUnitVector() const
-        {
-            return Vector3Cartesian{(*this) / NormL2()};
-        }
-        Vector3Cartesian GetAsUnitVectorAtPos(const Vector3Cartesian &pos) const
-        {
-            return Vector3Cartesian{(*this) / NormL2()};
-        }
-
-        friend Real ScalarProd(const Vector3Cartesian &a, const Vector3Cartesian &b)
-        {
-            return a.ScalarProductCartesian(b);
-        }
-        friend Vector3Cartesian VectorProd(const Vector3Cartesian &a, const Vector3Cartesian &b)
-        {
-            Vector3Cartesian ret;
-
-            ret.X() = a.Y() * b.Z() - a.Z() * b.Y();
-            ret.Y() = a.Z() * b.X() - a.X() * b.Z();
-            ret.Z() = a.X() * b.Y() - a.Y() * b.X();
-
-            return ret;
-        }
-
-        friend Real VectorsAngle(const Vector3Cartesian &a, const Vector3Cartesian &b)
-        {
-            Real cos_phi = ScalarProd(a, b) / (a.NormL2() * b.NormL2());
-
-            return acos(cos_phi);
-        }
-    };
-
-    class Vector3Spherical : public VectorN<Real, 3>
-    {
-    public:
-        Real    R()     const   { return _val[0]; }
-        Real&   R()             { return _val[0]; }
-        Real    Theta() const   { return _val[1]; }
-        Real&   Theta()         { return _val[1]; }
-        Real    Phi()   const   { return _val[2]; }
-        Real&   Phi()           { return _val[2]; }
-
-        Vector3Spherical()                                   : VectorN<Real,3>{0.0, 0.0, 0.0} { }
-        Vector3Spherical(const VectorN<Real, 3> &b)          : VectorN<Real,3>{b[0], b[1], b[2]} { }
-        Vector3Spherical(Real r, Real theta, Real phi)       : VectorN<Real,3>{r, theta, phi} { }
-        Vector3Spherical(std::initializer_list<Real> list)   : VectorN<Real,3>(list) { }
-
-        // TODO - HIGH, HARD, osnovne operacije +, -
-        Vector3Spherical GetAsUnitVector() const
-        {
-            return Vector3Spherical{1.0, Theta() , Phi()};
-        } 
-        Vector3Spherical GetAsUnitVectorAtPos(const Vector3Spherical &pos) const
-        {
-            return Vector3Spherical{R(), Theta() / pos.R(), Phi() / (pos.R() * sin(pos.Theta()))};
-        } 
-        std::ostream& PrintDeg(std::ostream& stream, int width, int precision) const
-        {
-            stream << "[ ";
-            stream << std::fixed << std::setw(width) << std::setprecision(precision);
-            stream << R();
-            stream << ", " << Theta() * 180.0 / Constants::PI;
-            stream << ", " << Phi() * 180.0 / Constants::PI << " ]" << std::endl;
-
-            return stream;
-        }          
-    };
-
-    class Vector3Cylindrical : public VectorN<Real, 3>
-    {
-    public:
-        Real    R()   const { return _val[0]; }
-        Real&   R()         { return _val[0]; }
-        Real    Phi() const { return _val[1]; }
-        Real&   Phi()       { return _val[1]; }
-        Real    Z()   const { return _val[2]; }
-        Real&   Z()         { return _val[2]; }
-
-        Vector3Cylindrical()                                 : VectorN<Real,3>{0.0, 0.0, 0.0} { }
-        Vector3Cylindrical(const VectorN<Real, 3> &b)        : VectorN<Real,3>{b[0], b[1], b[2]} { }
-        Vector3Cylindrical(Real r, Real phi, Real z)   : VectorN<Real,3>{r, phi, z} { }
-        Vector3Cylindrical(std::initializer_list<Real> list) : VectorN<Real,3>(list) { }
-
-        // TODO - MED, implement Vector3Cylindrical GetAsUniTVector()
-        // TODO - MED, razmisliti generalno vektor i vektor at point
-        Vector3Cylindrical GetAsUnitVector() const
-        {
-            return Vector3Cylindrical{(*this) / NormL2()};
-        }         
-        Vector3Cylindrical GetAsUnitVectorAtPos(const Vector3Cylindrical &pos) const
-        {
-            return Vector3Cylindrical{R(), Phi() / pos.R(), Z()};
-        }   
-    };    
-
-    typedef Vector3Cartesian    Vec3Cart;
-    typedef Vector3Spherical    Vec3Sph;
-    typedef Vector3Cylindrical  Vec3Cyl;
-}
 ///////////////////////////   ./include/base/Matrix.h   ///////////////////////////
 //#include <format>
 
@@ -2413,8 +1735,8 @@ namespace MML
             return ret;
         }
 
-        // TODO - 0.6 invert
-        // TODO - 0.6 transpose
+        // TODO - 0.7 invert
+        // TODO - 0.7 transpose
 
         void solve(Vector<_Type> &rhs, Vector<_Type> &sol)
         {
@@ -2454,7 +1776,6 @@ namespace MML
         }        
     };
 
-    // TODO - 0.6 HIGH, SREDNJE, finish Band diagonal matrix
     class BandDiagonalMatrix
     {
         // The array a[0..n-1][0..m1+m2] stores A as follows: The diagonal elements are in a[0..n-1][m1].
@@ -3405,6 +2726,62 @@ namespace MML
         }   
     };
 }
+///////////////////////////   ./include/base/Matrix3D.h   ///////////////////////////
+
+namespace MML
+{
+    template <class _Type>
+    class Matrix3D {
+    private:
+        int _n;
+        int _m;
+        int _k;
+        _Type ***_v;
+
+    public:
+        Matrix3D(): _n(0), _m(0), _k(0), _v(nullptr) {}
+
+        Matrix3D(int n, int m, int k) : _n(n), _m(m), _k(k), _v(new _Type**[n])
+        {
+            int i,j;
+            
+            _v[0]    = new _Type*[n*m];
+            _v[0][0] = new _Type[n*m*k];
+            
+            for(j=1; j<m; j++) 
+                _v[0][j] = _v[0][j-1] + k;
+
+            for(i=1; i<n; i++) {
+                _v[i]    = _v[i-1] + m;
+                _v[i][0] = _v[i-1][0] + m*k;
+                
+                for(j=1; j<m; j++) 
+                    _v[i][j] = _v[i][j-1] + k;
+            }
+        }        
+
+        ~Matrix3D()
+        {
+            if (_v != NULL) {
+                delete[] (_v[0][0]);
+                delete[] (_v[0]);
+                delete[] (_v);
+            }
+        }
+
+        //subscripting: pointer to row i
+        inline _Type**              operator[](const int i)       { return _v[i]; }
+        inline const _Type* const * operator[](const int i) const { return _v[i]; }
+
+        _Type  operator()(int i, int j, int k) const { return _v[i][j][k]; }
+        _Type& operator()(int i, int j, int k)       { return _v[i][j][k]; }        
+
+        inline int dim1() const { return _n; }
+        inline int dim2() const { return _m; }
+        inline int dim3() const { return _k; }
+    };
+}
+
 ///////////////////////////   ./include/base/Tensor.h   ///////////////////////////
 
 
@@ -3567,15 +2944,2022 @@ namespace MML
         Real& Component(int i, int j, int k, int l, int m)       { return _coeff[i][j][k][l][m];}   
     };    
 }
+///////////////////////////   ./include/base/Algebra.h   ///////////////////////////
+
+
+
+namespace MML
+{
+    // TODO - implement example groups - Z6, permutations
+    // TODO - vector space + Gram Schmidt
+    // TODO - linear transformations & OPERATORS
+    
+    // groups
+    // finitve ima i numElem
+    class GroupZ : public IGroup<int>
+    {
+        public:
+        virtual int  identity() const { return 0;}
+        virtual int  inverse(const int& a) const { return -a;}
+        virtual int  op(const int& a, const int& b) const { return a + b;}
+    };
+    // FieldR
+    // FieldC
+}
+///////////////////////////   ./include/base/Geometry.h   ///////////////////////////
+
+
+namespace MML
+{
+    // TODO - MED, dodati Dist svugdje
+    class Point2Cartesian
+    {
+    private:
+        Real _x, _y;
+
+    public:
+        Real  X() const   { return _x; }
+        Real& X()         { return _x; }
+        Real  Y() const   { return _y; }
+        Real& Y()         { return _y; }
+
+        Point2Cartesian() {}
+        Point2Cartesian(Real x, Real y) : _x(x), _y(y) {}
+
+        Real Dist(const Point2Cartesian &b) const { return sqrt(SQR(b._x - _x) + SQR(b._y - _y) ); }
+    };
+
+    class Point2Polar
+    {
+    private:
+        Real _r, _phi;
+
+    public:
+        Real  R() const   { return _r; }
+        Real& R()         { return _r; }
+        Real  Phi() const { return _phi; }
+        Real& Phi()       { return _phi; }
+        
+        Point2Polar() {}
+        Point2Polar(Real r, Real phi) : _r(r), _phi(phi) {}
+
+        Real Dist(const Point2Polar &b) const { return sqrt(R() * R() + b.R() * b.R() - 2 * R() * b.R() * cos(b.Phi() - Phi())); }
+    };
+
+    class Point3Cartesian
+    {
+    private:
+        Real _x, _y, _z;
+
+    public:
+        Real  X() const   { return _x; }
+        Real& X()         { return _x; }
+        Real  Y() const   { return _y; }
+        Real& Y()         { return _y; }
+        Real  Z() const   { return _z; }
+        Real& Z()         { return _z; }
+
+        Point3Cartesian() {}
+        Point3Cartesian(Real x, Real y, Real z) : _x(x), _y(y), _z(z) {}
+
+        Real Dist(const Point3Cartesian &b) const { return sqrt(SQR(b._x - _x) + SQR(b._y - _y) + SQR(b._z - _z)); }
+    };     
+
+    class Triangle
+    {
+    private:
+        Real _a, _b, _c;
+
+    public:
+        Real  A() const   { return _a; }
+        Real& A()         { return _a; }
+        Real  B() const   { return _b; }
+        Real& B()         { return _b; }
+        Real  C() const   { return _c; }
+        Real& C()         { return _c; }
+
+        Triangle() {}
+        Triangle(Real a, Real b, Real c) : _a(a), _b(b), _c(c) {}
+
+        Real Area() const
+        {
+            Real s = (_a + _b + _c) / 2.0;
+            return sqrt(s * (s - _a) * (s - _b) * (s - _c));
+        }
+        bool IsRight() const
+        {
+            return (SQR(_a) + SQR(_b) == SQR(_c)) || (SQR(_a) + SQR(_c) == SQR(_b)) || (SQR(_b) + SQR(_c) == SQR(_a));
+        }
+        bool IsIsosceles() const
+        {
+            return (_a == _b) || (_a == _c) || (_b == _c);
+        }
+        bool IsEquilateral() const
+        {
+            return (_a == _b) && (_a == _c);
+        }
+    };
+}
+///////////////////////////   ./include/base/VectorTypes.h   ///////////////////////////
+
+
+namespace MML
+{
+    class Vector2Cartesian : public VectorN<Real, 2>
+    {
+    public:
+        Vector2Cartesian() {}
+        Vector2Cartesian(Real x, Real y) 
+        {
+            _val[0] = x;
+            _val[1] = y;
+        }
+        Vector2Cartesian(const VectorN<Real, 2> &b) : VectorN<Real,2>{b[0], b[1]} { }
+        Vector2Cartesian(std::initializer_list<Real> list)  : VectorN<Real,2>(list) { }
+        Vector2Cartesian(const Point2Cartesian &a, const Point2Cartesian &b) 
+        {
+            _val[0] = b.X() - a.X();
+            _val[1] = b.Y() - a.Y();
+        }
+
+        Real    X() const   { return _val[0]; }
+        Real&   X()         { return _val[0]; }
+        Real    Y() const   { return _val[1]; }
+        Real&   Y()         { return _val[1]; }
+
+        friend Vector2Cartesian operator*(const Vector2Cartesian &a, Real b )
+        {
+            Vector2Cartesian ret;
+            for(int i=0; i<2; i++)
+                ret._val[i] = a[i] * b;
+            return ret;
+        }
+        friend Vector2Cartesian operator*(Real a, const Vector2Cartesian &b )
+        {
+            Vector2Cartesian ret;
+            for(int i=0; i<2; i++)
+                ret._val[i] = a * b[i];
+            return ret;
+        }
+        friend Vector2Cartesian operator/(const Vector2Cartesian &a, Real b)
+        {
+            Vector2Cartesian ret;
+            for(int i=0; i<2; i++)
+                ret._val[i] = a[i] / b;
+            return ret;
+        }
+
+        Vector2Cartesian GetUnitVector() const
+        {
+            VectorN<Real, 2> res = (*this) / NormL2();
+
+            return Vector2Cartesian(res[0], res[1]);
+        }
+
+        friend Point2Cartesian operator+(const Point2Cartesian &a, const Vector2Cartesian &b) { return Point2Cartesian(a.X() + b[0], a.Y() + b[1]); }
+        friend Point2Cartesian operator-(const Point2Cartesian &a, const Vector2Cartesian &b) { return Point2Cartesian(a.X() - b[0], a.Y() - b[1]); }
+        // friend Point2Cartesian operator+(const Point2Cartesian &a, const VectorN<Real, 2> &b) { return Point2Cartesian(a.X() + b[0], a.Y() + b[1]); }
+        // friend Point2Cartesian operator-(const Point2Cartesian &a, const VectorN<Real, 2> &b) { return Point2Cartesian(a.X() - b[0], a.Y() - b[1]); }
+    };
+
+    class Vector2Polar : public VectorN<Real, 2>
+    {
+    public:
+        Real    R() const   { return _val[0]; }
+        Real&   R()         { return _val[0]; }
+        Real    Phi() const { return _val[1]; }
+        Real&   Phi()       { return _val[1]; }
+
+        Vector2Polar() {}
+        Vector2Polar(Real r, Real phi) 
+        {
+            _val[0] = r;
+            _val[1] = phi;
+        }   
+        Vector2Polar(const VectorN<Real, 2> &b) : VectorN<Real,2>{b[0], b[1]} { }        
+    };
+
+    class Vector3Cartesian : public VectorN<Real, 3>
+    {
+    public:
+        Real    X() const   { return _val[0]; }
+        Real&   X()         { return _val[0]; }
+        Real    Y() const   { return _val[1]; }
+        Real&   Y()         { return _val[1]; }
+        Real    Z() const   { return _val[2]; }
+        Real&   Z()         { return _val[2]; }
+
+        Vector3Cartesian()                                  : VectorN<Real,3>{0.0, 0.0, 0.0} { }
+        Vector3Cartesian(const VectorN<Real, 3> &b)         : VectorN<Real,3>{b[0], b[1], b[2]} { }
+        Vector3Cartesian(Real x, Real y, Real z)            : VectorN<Real,3>{x, y, z} { }
+        Vector3Cartesian(std::initializer_list<Real> list)  : VectorN<Real,3>(list) { }
+        Vector3Cartesian(const Point3Cartesian &a, const Point3Cartesian &b) 
+        {
+            _val[0] = b.X() - a.X();
+            _val[1] = b.Y() - a.Y();
+            _val[2] = b.Z() - a.Z();
+        }
+
+        friend Vector3Cartesian operator*(const Vector3Cartesian &a, Real b )
+        {
+            Vector3Cartesian ret;
+            for(int i=0; i<3; i++)
+                ret._val[i] = a[i] * b;
+            return ret;
+        }
+        friend Vector3Cartesian operator*(Real a, const Vector3Cartesian &b )
+        {
+            Vector3Cartesian ret;
+            for(int i=0; i<3; i++)
+                ret._val[i] = a * b[i];
+            return ret;
+        }
+        friend Vector3Cartesian operator/(const Vector3Cartesian &a, Real b)
+        {
+            Vector3Cartesian ret;
+            for(int i=0; i<3; i++)
+                ret._val[i] = a[i] / b;
+            return ret;
+        }
+
+        friend Vector3Cartesian operator-(const Point3Cartesian &a, const Point3Cartesian &b) { return  Vector3Cartesian{a.X() - b.X(), a.Y() - b.Y(), a.Z() - b.Z()}; }
+
+        friend Point3Cartesian operator+(const Point3Cartesian &a, const Vector3Cartesian &b) { return Point3Cartesian(a.X() + b[0], a.Y() + b[1], a.Z() + b[2]); }
+        friend Point3Cartesian operator-(const Point3Cartesian &a, const Vector3Cartesian &b) { return Point3Cartesian(a.X() - b[0], a.Y() - b[1], a.Z() - b[2]); }        
+
+        Point3Cartesian getAsPoint()
+        {
+            return Point3Cartesian(_val[0], _val[1], _val[2]);
+        }
+        bool IsParallelTo(const Vector3Cartesian &b, Real eps = 1e-15) const
+        {
+            Real norm1 = NormL2();
+            Real norm2 = b.NormL2();
+
+            return std::abs(X() / norm1 - b.X() / norm2) < eps &&
+                   std::abs(Y() / norm1 - b.Y() / norm2) < eps &&
+                   std::abs(Z() / norm1 - b.Z() / norm2) < eps;
+        }
+
+        bool IsPerpendicularTo(const Vector3Cartesian &b, Real eps = 1e-15) const
+        {
+            if (std::abs(ScalarProd(*this, b)) < eps)
+                return true;
+            else
+                return false;
+        }
+
+        Vector3Cartesian GetAsUnitVector() const
+        {
+            return Vector3Cartesian{(*this) / NormL2()};
+        }
+        Vector3Cartesian GetAsUnitVectorAtPos(const Vector3Cartesian &pos) const
+        {
+            return Vector3Cartesian{(*this) / NormL2()};
+        }
+
+        friend Real ScalarProd(const Vector3Cartesian &a, const Vector3Cartesian &b)
+        {
+            return a.ScalarProductCartesian(b);
+        }
+        friend Vector3Cartesian VectorProd(const Vector3Cartesian &a, const Vector3Cartesian &b)
+        {
+            Vector3Cartesian ret;
+
+            ret.X() = a.Y() * b.Z() - a.Z() * b.Y();
+            ret.Y() = a.Z() * b.X() - a.X() * b.Z();
+            ret.Z() = a.X() * b.Y() - a.Y() * b.X();
+
+            return ret;
+        }
+
+        friend Real VectorsAngle(const Vector3Cartesian &a, const Vector3Cartesian &b)
+        {
+            Real cos_phi = ScalarProd(a, b) / (a.NormL2() * b.NormL2());
+
+            return acos(cos_phi);
+        }
+    };
+
+    class Vector3Spherical : public VectorN<Real, 3>
+    {
+    public:
+        Real    R()     const   { return _val[0]; }
+        Real&   R()             { return _val[0]; }
+        Real    Theta() const   { return _val[1]; }
+        Real&   Theta()         { return _val[1]; }
+        Real    Phi()   const   { return _val[2]; }
+        Real&   Phi()           { return _val[2]; }
+
+        Vector3Spherical()                                   : VectorN<Real,3>{0.0, 0.0, 0.0} { }
+        Vector3Spherical(const VectorN<Real, 3> &b)          : VectorN<Real,3>{b[0], b[1], b[2]} { }
+        Vector3Spherical(Real r, Real theta, Real phi)       : VectorN<Real,3>{r, theta, phi} { }
+        Vector3Spherical(std::initializer_list<Real> list)   : VectorN<Real,3>(list) { }
+
+        // TODO - HIGH, HARD, osnovne operacije +, -
+        Vector3Spherical GetAsUnitVector() const
+        {
+            return Vector3Spherical{1.0, Theta() , Phi()};
+        } 
+        Vector3Spherical GetAsUnitVectorAtPos(const Vector3Spherical &pos) const
+        {
+            return Vector3Spherical{R(), Theta() / pos.R(), Phi() / (pos.R() * sin(pos.Theta()))};
+        } 
+        std::ostream& PrintDeg(std::ostream& stream, int width, int precision) const
+        {
+            stream << "[ ";
+            stream << std::fixed << std::setw(width) << std::setprecision(precision);
+            stream << R();
+            stream << ", " << Theta() * 180.0 / Constants::PI;
+            stream << ", " << Phi() * 180.0 / Constants::PI << " ]" << std::endl;
+
+            return stream;
+        }          
+    };
+
+    class Vector3Cylindrical : public VectorN<Real, 3>
+    {
+    public:
+        Real    R()   const { return _val[0]; }
+        Real&   R()         { return _val[0]; }
+        Real    Phi() const { return _val[1]; }
+        Real&   Phi()       { return _val[1]; }
+        Real    Z()   const { return _val[2]; }
+        Real&   Z()         { return _val[2]; }
+
+        Vector3Cylindrical()                                 : VectorN<Real,3>{0.0, 0.0, 0.0} { }
+        Vector3Cylindrical(const VectorN<Real, 3> &b)        : VectorN<Real,3>{b[0], b[1], b[2]} { }
+        Vector3Cylindrical(Real r, Real phi, Real z)   : VectorN<Real,3>{r, phi, z} { }
+        Vector3Cylindrical(std::initializer_list<Real> list) : VectorN<Real,3>(list) { }
+
+        // TODO - MED, implement Vector3Cylindrical GetAsUniTVector()
+        // TODO - MED, razmisliti generalno vektor i vektor at point
+        Vector3Cylindrical GetAsUnitVector() const
+        {
+            return Vector3Cylindrical{(*this) / NormL2()};
+        }         
+        Vector3Cylindrical GetAsUnitVectorAtPos(const Vector3Cylindrical &pos) const
+        {
+            return Vector3Cylindrical{R(), Phi() / pos.R(), Z()};
+        }   
+    };    
+
+    typedef Vector3Cartesian    Vec3Cart;
+    typedef Vector3Spherical    Vec3Sph;
+    typedef Vector3Cylindrical  Vec3Cyl;
+}
+///////////////////////////   ./include/base/Geometry2D.h   ///////////////////////////
+
+
+namespace MML
+{
+    class Line2D
+    {
+    private:
+        Point2Cartesian _point;
+        Vector2Cartesian _direction; // unit vector in line direction
+
+    public:
+        Line2D(const Point2Cartesian &pnt, const Vector2Cartesian dir)
+        {
+            _point = pnt;
+            _direction = dir.GetUnitVector();
+        }
+
+        Line2D(const Point2Cartesian &a, const Point2Cartesian &b)
+        {
+            Vector2Cartesian dir(a , b);
+            _point = a;
+            _direction = dir.GetUnitVector();
+        }
+
+        Point2Cartesian     StartPoint() const  { return _point; }
+        Point2Cartesian&    StartPoint()        { return _point; }
+
+        Vector2Cartesian    Direction() const   { return _direction; }
+        Vector2Cartesian&   Direction()         { return _direction; }
+
+        Point2Cartesian PointOnLine(Real t)
+        {
+            Vector2Cartesian dist = t * _direction;
+            Point2Cartesian ret = _point + dist;
+            return ret;
+        }
+    };
+
+   class SegmentLine2D
+    {
+    private:
+        Point2Cartesian _point1;
+        Point2Cartesian _point2;
+
+    public:
+        SegmentLine2D(Point2Cartesian pnt1, Point2Cartesian pnt2) : _point1(pnt1), _point2(pnt2)
+        { }
+
+        SegmentLine2D(const Point2Cartesian &pnt1, const Vector2Cartesian &direction, Real t) : _point1(pnt1)
+        {
+            _point2 = pnt1 + direction * t;
+        }
+
+        Point2Cartesian     StartPoint() const  { return _point1; }
+        Point2Cartesian&    StartPoint()        { return _point1; }
+
+        Point2Cartesian     EndPoint()  const  { return _point2; }
+        Point2Cartesian&    EndPoint()         { return _point2; }
+
+        Point2Cartesian PointOnSegment(Real t)
+        {
+            if( t < 0.0 || t > 1.0)
+                throw std::invalid_argument("t must be in [0,1]");
+
+            Vector2Cartesian dist = t * Direction();
+            Point2Cartesian ret = _point1 + dist;
+            return ret;
+        }
+
+        Real                Length()    const { return _point1.Dist(_point2); }
+        Vector2Cartesian    Direction() const { return Vector2Cartesian(_point1, _point2); }
+    };
+
+    class Triangle2D
+    {
+    private:
+        Point2Cartesian _pnt1, _pnt2, _pnt3;
+
+    public:
+        Triangle2D(Point2Cartesian pnt1, Point2Cartesian pnt2, Point2Cartesian pnt3) : _pnt1(pnt1), _pnt2(pnt2), _pnt3(pnt3)
+        { }
+
+        Point2Cartesian     Pnt1() const { return _pnt1; }
+        Point2Cartesian&    Pnt1()       { return _pnt1; }
+        Point2Cartesian     Pnt2() const { return _pnt2; }
+        Point2Cartesian&    Pnt2()       { return _pnt2; }
+        Point2Cartesian     Pnt3() const { return _pnt3; }
+        Point2Cartesian&    Pnt3()       { return _pnt3; }
+
+        Real Area() const
+        {
+            Real a = _pnt1.Dist(_pnt2);
+            Real b = _pnt2.Dist(_pnt3);
+            Real c = _pnt3.Dist(_pnt1);
+
+            Real s = (a + b + c) / 2.0;
+
+            return sqrt(s * (s - a) * (s - b) * (s - c));
+        }
+    };    
+
+    class Polygon2D
+    {
+    private:
+        std::vector<Point2Cartesian> _points;
+    public:
+        Polygon2D() {}
+        Polygon2D(std::vector<Point2Cartesian> points) : _points(points) {}
+        Polygon2D(std::initializer_list<Point2Cartesian> list) 
+        {
+            for (auto element : list)
+                _points.push_back(element);
+        }
+
+        std::vector<Point2Cartesian>  Points() const { return _points; }
+        std::vector<Point2Cartesian>& Points()       { return _points; }
+
+        Real Area() const
+        {
+            Real area = 0.0;
+            int n = (int) _points.size();
+            for (int i = 0; i < n; i++)
+            {
+                area += _points[i].X() * _points[(i + 1) % n].Y();
+                area -= _points[i].Y() * _points[(i + 1) % n].X();
+            }
+            area /= 2.0;
+            return area;
+        }
+
+        // TODO - IsConvex()
+        // TODO - Triangularization
+        
+        // TODO - IsInside
+        bool IsInside(Point2Cartesian pnt) const
+        {
+            return false;
+        }                 
+    };            
+}
+///////////////////////////   ./include/base/Geometry3D.h   ///////////////////////////
+
+
+namespace MML
+{
+    class Line3D
+    {
+    private:
+        Point3Cartesian  _point;
+        Vector3Cartesian _direction; 
+
+    public:
+        Line3D() {}
+        Line3D(const Point3Cartesian &pnt, const Vector3Cartesian dir)
+        {
+            _point = pnt;
+            _direction = dir.GetAsUnitVector();
+        }
+
+        Line3D(const Point3Cartesian &a, const Point3Cartesian &b)
+        {
+            Vector3Cartesian dir(a, b);
+            _point = a;
+            _direction = dir.GetAsUnitVector();
+        }
+
+        Point3Cartesian   StartPoint() const  { return _point; }
+        Point3Cartesian&  StartPoint()        { return _point; }
+
+        Vector3Cartesian  Direction() const   { return _direction; }
+        Vector3Cartesian& Direction()         { return _direction; }
+
+        Point3Cartesian PointOnLine(Real t) const { return _point + t * _direction;  }
+
+        bool IsPerpendicular(const Line3D &b ) const
+        {
+            return ScalarProd(Direction(), b.Direction()) == 0.0f;
+        }
+        bool IsParallel(const Line3D &b ) const
+        {
+            return ScalarProd(Direction(), b.Direction()) == 0.0f;
+        }
+        // TODO 0.7 - VERIFY distance Line - Point3
+        Real Dist(const Point3Cartesian &pnt) const
+        {
+            Real dist = 0.0;
+
+            const Real a = pnt.X();
+            const Real b = pnt.Y();
+            const Real c = pnt.Z();
+
+            const Real x1 = StartPoint().X();
+            const Real y1 = StartPoint().Y();
+            const Real z1 = StartPoint().Z();
+
+            const Real l = Direction().X();
+            const Real m = Direction().Y();
+            const Real n = Direction().Z();
+
+            dist = SQR((a-x1)*m - (b-y1)*l) + SQR((b-y1)*n - (c-z1)*m) + SQR((c-z1)*l - (a-x1)*n);
+            Real denom = l*l + m*m + n*n;
+
+            return sqrt(dist / denom);
+        }
+
+        // Real DistChatGPT(const Point3Cartesian &pnt)
+        // {
+        //     Vector3Cartesian p0 = StartPoint();
+        //     Vector3Cartesian p1 = p0 + Direction();
+        //     Vector3Cartesian p = pnt;
+
+        //     Vector3Cartesian numerator = (p - p0).CrossProduct(p - p1);
+        //     Real denominator = (p1 - p0).Length();
+
+        //     return numerator.Length() / denominator;
+        // }
+
+        Point3Cartesian NearestPoint(const Point3Cartesian &pnt) const
+        {
+            // https://math.stackexchange.com/questions/1521128/given-a-line-and-a-point-in-3d-how-to-find-the-closest-point-on-the-line         
+            Point3Cartesian Q(StartPoint());
+            Point3Cartesian R = PointOnLine(1.0);
+
+            Vector3Cartesian RQ(Q, R);
+            Vector3Cartesian QP(pnt, StartPoint());
+
+            double t = QP.ScalarProductCartesian(RQ) / RQ.ScalarProductCartesian(RQ);
+
+            return Q - t * RQ;
+        }
+        // TODO pravac koji prolazi kroz tocku i sijece zadani pravac okomito
+        // TODO - sjeciste dva pravca
+    };
+
+    class SegmentLine3D
+    {
+    private:
+        Point3Cartesian _point1;
+        Point3Cartesian _point2;
+
+    public:
+        SegmentLine3D(Point3Cartesian pnt1, Point3Cartesian pnt2) : _point1(pnt1), _point2(pnt2)
+        { }
+
+        SegmentLine3D(Point3Cartesian pnt1, Vector3Cartesian direction, Real t)
+        {
+            _point1 = pnt1;
+            _point2 = pnt1 + t * direction;
+        }
+
+        Point3Cartesian   StartPoint() const  { return _point1; }
+        Point3Cartesian&  StartPoint()       { return _point1; }
+
+        Point3Cartesian   EndPoint() const  { return _point2; }
+        Point3Cartesian&  EndPoint()       { return _point2; }
+
+        Point3Cartesian PointOnSegment(Real t)
+        {
+            if( t < 0.0 || t > 1.0 )
+                throw std::runtime_error("SegmentLine3D::PointOnSegment - t not in [0,1]");
+
+            return _point1 + t * Direction();
+        }
+
+        Real                Length()    const { return _point1.Dist(_point2); }
+        Vector3Cartesian    Direction() const { return Vector3Cartesian(_point1, _point2); }
+    };
+
+    class Plane3D
+    {
+    private:
+        Real _A, _B, _C, _D;
+    
+    public:
+        Plane3D(const Point3Cartesian &a, const Vector3Cartesian &normal)
+        {
+            if( normal.NormL2() == 0.0 )
+                throw std::runtime_error("Plane3D ctor - normal is null vector");
+
+            Vector3Cartesian unitNormal = normal.GetAsUnitVector();
+
+            _A = unitNormal.X();
+            _B = unitNormal.Y();
+            _C = unitNormal.Z();
+            _D = -(a.X() * unitNormal.X() + a.Y() * unitNormal.Y() + a.Z() * unitNormal.Z());
+        }
+
+        Plane3D(const Point3Cartesian &a, const Point3Cartesian &b, const Point3Cartesian &c) 
+            : Plane3D(a, VectorProd(Vector3Cartesian(a, b), Vector3Cartesian(a, c)))
+        { }
+
+        Plane3D(Real alpha, Real beta, Real gamma, Real d)      // Hesseov (normalni) oblik
+        {
+            _A = cos(alpha);
+            _B = cos(beta);
+            _C = cos(gamma);
+            _D = -d;
+        }
+
+        // tri segmenta na koord osima ctor
+        Plane3D(Real seg_x, Real seg_y, Real seg_z) 
+        {
+            Point3Cartesian x(seg_x, 0, 0);
+            Point3Cartesian y(0, seg_y, 0);
+            Point3Cartesian z(0, 0, seg_z);
+
+            if( seg_x == 0 || seg_y == 0 || seg_z == 0 )
+                throw std::runtime_error("Plane3D ctor - zero segment");
+            
+            _A = 1 / seg_x;
+            _B = 1 / seg_y;
+            _C = 1 / seg_z;
+            _D = -1;
+        }
+
+        static Plane3D GetXYPlane() { return Plane3D(Point3Cartesian(0,0,0), Vector3Cartesian(0,0,1)); }
+        static Plane3D GetXZPlane() { return Plane3D(Point3Cartesian(0,0,0), Vector3Cartesian(0,1,0)); }
+        static Plane3D GetYZPlane() { return Plane3D(Point3Cartesian(0,0,0), Vector3Cartesian(1,0,0)); }
+
+        Real  A() const   { return _A; }
+        Real& A()         { return _A; }
+        Real  B() const   { return _B; }
+        Real& B()         { return _B; }
+        Real  C() const   { return _C; }
+        Real& C()         { return _C; }
+        Real  D() const   { return _D; }
+        Real& D()         { return _D; }
+
+        Point3Cartesian GetPointOnPlane() const { 
+            if( _A != 0.0 )
+                return Point3Cartesian(-_D / _A, 0, 0); 
+            else  
+                return Point3Cartesian(0, 0, -_D / _C); 
+        }
+        
+        Vector3Cartesian Normal() const { return Vector3Cartesian(_A, _B, _C); }
+
+        void GetCoordAxisSegments(Real &outseg_x, Real& outseg_y, Real& outseg_z)
+        {
+            outseg_x = - _D /  _A;
+            outseg_y = - _D /  _B;
+            outseg_z = - _D /  _C;
+        }
+        // TODO - GetHesseNormalFormParams
+
+
+        bool IsPointOnPlane(const Point3Cartesian &pnt) const
+        {
+            return _A * pnt.X() + _B * pnt.Y() + _C * pnt.Z() + _D == 0.0;
+        }
+        Real DistToPoint(const Point3Cartesian &pnt) const
+        {
+            Real a = _A * pnt.X() + _B * pnt.Y() + _C * pnt.Z() + _D;
+            Real b = sqrt(_A * _A + _B * _B + _C * _C);
+
+            return std::abs(a / b);
+        }
+
+        Point3Cartesian ProjectionToPlane(const Point3Cartesian &pnt) const
+        {
+            // from given point and normal to plane form a Line3D
+            Line3D line(pnt, Normal());
+            
+            // find intersection of this line with plane
+            Point3Cartesian ret;
+            IntersectionWithLine(line, ret);
+
+            return ret;
+        }
+
+        bool IsLineOnPlane(const Line3D &line) const
+        {
+            // get two points
+            const Point3Cartesian pnt1 = line.StartPoint();
+            const Point3Cartesian pnt2 = line.PointOnLine(1.0);
+
+            if(IsPointOnPlane(pnt1) && IsPointOnPlane(pnt2))
+                return true;
+            else
+                return false;
+        }
+
+        Real AngleToLine(const Line3D &line) const
+        {
+            // angle between line and normal to plane
+            return Constants::PI / 2.0 - line.Direction().AngleToVector(this->Normal());
+        }        
+
+        bool IntersectionWithLine(const Line3D &line, Point3Cartesian &out_inter_pnt) const
+        {
+            // Calculate the direction vector of the line
+            Vector3Cartesian line_dir = line.Direction();
+
+            // Calculate the normal vector of the plane
+            Vector3Cartesian plane_normal = Normal();
+
+            // Check if the line is parallel to the plane
+            if (line_dir.ScalarProductCartesian(plane_normal) == 0) {
+                return false;
+            }
+
+            // Calculate the distance between the line and the plane
+            double dist = Vector3Cartesian(GetPointOnPlane(), line.StartPoint()).ScalarProductCartesian(plane_normal) / line_dir.ScalarProductCartesian(plane_normal);
+
+            // Calculate the point of intersection
+            Point3Cartesian inter_pnt = line.StartPoint() + line_dir * dist;
+
+            // Set the output parameter to the point of intersection
+            out_inter_pnt = inter_pnt;
+
+            return true;
+        }
+
+        bool IsParallelToPlane(const Plane3D &plane) const
+        {
+            Vector3Cartesian norm1(_A, _B, _C);
+
+            Vector3Cartesian norm2(plane._A, plane._B, plane._C);
+
+            return norm1.IsParallelTo(norm2);
+        }        
+        bool IsPerpendicularToPlane(const Plane3D &plane) const
+        {
+            Vector3Cartesian norm1(_A, _B, _C);
+            Vector3Cartesian norm2(plane._A, plane._B, plane._C);
+
+            return norm1.IsPerpendicularTo(norm2);
+        }
+        Real AngleToPlane(const Plane3D &plane) const
+        {
+            // to je kut normala
+            return this->Normal().AngleToVector(plane.Normal());
+        }     
+        Real DistToPlane(const Plane3D &plane) const
+        {
+            // TODO finishs
+            // ili su paralelne, pa imamo neki broj, ili se sijeku pa je 0
+            return 0.0;
+        }     
+        // TODO - check implementation IntersectionWithPlane
+        bool IntersectionWithPlane(const Plane3D &plane, Line3D &out_inter_line) const
+        {
+            Vector3Cartesian inter_dir = VectorProd(Normal(), plane.Normal());
+
+            // Check if the planes are parallel
+            if (inter_dir.NormL2() == 0.0) {
+                return false;
+            }
+
+            // Calculate a point on the intersection line
+            Point3Cartesian inter_pnt = GetPointOnPlane();
+
+            // Calculate the distance between the intersection line and the two planes
+            double dist1 = Vector3Cartesian(inter_pnt, GetPointOnPlane()).ScalarProductCartesian(plane.Normal());
+            double dist2 = Vector3Cartesian(inter_pnt, plane.GetPointOnPlane()).ScalarProductCartesian(Normal());
+
+            // Calculate the point of intersection
+            inter_pnt = inter_pnt - inter_dir * (dist1 / inter_dir.ScalarProductCartesian(plane.Normal()));
+
+            // Set the output parameter to the intersection line
+            out_inter_line = Line3D(inter_pnt, inter_dir);
+
+            return true;            
+            return false;
+        }
+    };
+
+    class Triangle3D
+    {
+    private:
+        Point3Cartesian _pnt1, _pnt2, _pnt3;;
+    };
+}
+
+///////////////////////////   ./include/base/Intervals.h   ///////////////////////////
+
+
+namespace MML
+{
+    // TODO - implement intervals properly (and use them in test beds)
+    ///////////////////////////////////////////////   Interfaces    ///////////////////////////////////////////
+    enum class EndpointType
+    {
+        OPEN,
+        CLOSED,
+        NEG_INF,
+        POS_INF
+    };
+    
+    class BaseInterval : public IInterval
+    {
+    protected:
+        Real _lower, _upper;
+        EndpointType _lowerType, _upperType;
+
+        BaseInterval(Real lower, EndpointType lowerType, Real upper, EndpointType upperType) : _lower(lower), _lowerType(lowerType),  _upper(upper), _upperType(upperType) { }
+    public:
+        virtual ~BaseInterval() {}
+        
+        Real getLowerBound() const { return _lower; }
+        Real getUpperBound() const { return _upper; }
+        Real getLength()     const { return _upper - _lower; }
+        
+        bool isContinuous()  const { return true; }
+
+        // bool contains(const IInterval &other) const = 0;
+        // bool intersects(const IInterval &other) const = 0;
+
+        void GetEquidistantCovering(int numPoints) { }
+    };
+
+    class CompleteRInterval : public BaseInterval
+    {
+    public:
+        CompleteRInterval() : BaseInterval(-std::numeric_limits<double>::max(), EndpointType::NEG_INF, std::numeric_limits<double>::max(), EndpointType::POS_INF) { }
+        bool contains(Real x) const { return true; }        
+    };
+    class OpenInterval : public BaseInterval
+    {
+        // for equidistant covering
+        double _lowerRealDif = 0.0000001;
+    public:
+        OpenInterval(Real lower, Real upper) : BaseInterval(lower, EndpointType::OPEN, upper, EndpointType::OPEN) { }
+        bool contains(Real x) const { return (x > _lower) && (x < _upper); }        
+    };
+    class OpenClosedInterval : public BaseInterval
+    {
+    public:
+        OpenClosedInterval(Real lower, Real upper) : BaseInterval(lower, EndpointType::OPEN, upper, EndpointType::CLOSED) { }
+        bool contains(Real x) const { return (x > _lower) && (x <= _upper); }        
+    };
+    class ClosedInterval : public BaseInterval
+    {
+    public:
+        ClosedInterval(Real lower, Real upper) : BaseInterval(lower, EndpointType::CLOSED, upper, EndpointType::CLOSED) { }
+        
+        bool contains(Real x) const {
+            return (x >= _lower) && (x <= _upper);
+        }        
+    };   
+    
+    class ClosedOpenInterval : public BaseInterval
+    {
+    public:
+        ClosedOpenInterval(Real lower, Real upper) : BaseInterval(lower, EndpointType::CLOSED, upper, EndpointType::OPEN) { }
+        
+        bool contains(Real x) const {
+            return (x >= _lower) && (x < _upper);
+        }        
+    };    
+    class NegInfToOpenInterval : public BaseInterval
+    {
+    public:
+        NegInfToOpenInterval(Real upper) : BaseInterval(-std::numeric_limits<double>::max(), EndpointType::NEG_INF, upper, EndpointType::OPEN) { }
+
+        bool contains(Real x) const {
+            return x < _upper;
+        }        
+    };
+
+    class NegInfToClosedInterval : public BaseInterval
+    {
+    public:
+        NegInfToClosedInterval(Real upper) : BaseInterval(-std::numeric_limits<double>::max(), EndpointType::NEG_INF, upper, EndpointType::CLOSED) { }
+
+        bool contains(Real x) const {
+            return x <= _upper;
+        }        
+    };
+
+    class OpenToInfInterval : public BaseInterval
+    {
+    public:
+        OpenToInfInterval(Real lower) : BaseInterval(lower, EndpointType::OPEN, std::numeric_limits<double>::max(), EndpointType::POS_INF) { }
+
+        bool contains(Real x) const {
+            return x > _lower;
+        }        
+    };
+    
+    class ClosedToInfInterval : public BaseInterval
+    {
+    public:
+        ClosedToInfInterval(Real lower) : BaseInterval(lower, EndpointType::CLOSED, std::numeric_limits<double>::max(), EndpointType::POS_INF) { }
+
+        bool contains(Real x) const {
+            return x >= _lower;
+        }        
+    };
+
+    class Interval : public IInterval
+    {
+        Real _lower, _upper;
+        std::vector<std::unique_ptr<BaseInterval>> _intervals;
+    public:
+        Interval() {}
+        Interval(const OpenInterval &interval) : _lower(interval.getLowerBound()), _upper(interval.getUpperBound()) 
+        { 
+            _intervals.emplace_back(std::make_unique<OpenInterval>(interval));
+        }
+
+        template<class _IntervalType>
+        Interval& PerformUnion(const _IntervalType &interval)
+        {
+            _intervals.emplace_back(std::make_unique<_IntervalType>(interval));
+            return *this;
+        }
+
+        // Interval& PerformUnion(const OpenInterval &interval)
+        // {
+        //     _intervals.emplace_back(std::make_unique<OpenInterval>(interval));
+        //     return *this;
+        // }
+        // Interval& PerformUnion(const OpenClosedInterval &interval)
+        // {
+        //     _intervals.emplace_back(std::make_unique<OpenClosedInterval>(interval));
+        //     return *this;
+        // }
+
+        static Interval Union(const BaseInterval &a, const BaseInterval &b)
+        {
+            Interval ret;
+            ret._lower = std::min(a.getLowerBound(), b.getLowerBound());
+            ret._upper = std::max(a.getUpperBound(), b.getUpperBound());
+
+            // TODO - implement union
+            return ret;
+        }
+        static Interval Union(const Interval &a, const BaseInterval &b)
+        {
+            Interval ret;
+            return ret;
+        }
+        static Interval Union(const Interval &a, const Interval &b)
+        {
+            Interval ret;
+            return ret;
+        }
+
+        static Interval Intersection(const IInterval &a, const IInterval &b)
+        {
+            Interval ret;
+            // TODO - implement intersection
+            return ret;
+        }
+        static Interval Difference(const IInterval &a, const IInterval &b)
+        {
+            Interval ret;
+            // TODO - implement diff
+            return ret;
+        }
+        static Interval Complement(const IInterval &a)
+        {
+            Interval ret;
+            // TODO - implement complement
+            return ret;
+        }
+        Real getLowerBound() const { return 0; }
+        Real getUpperBound() const { return 0; }
+        Real getLength()     const { return 0; }
+        
+        bool isContinuous()  const { return false; }
+        bool contains(Real x) const 
+        {
+            // check for each interval if it contains x
+            for (auto &interval : _intervals)
+            {
+                if (interval->contains(x))
+                    return true;
+            }
+            return false;
+        }
+        // bool contains(const IInterval &other) const = 0;
+        // bool intersects(const IInterval &other) const = 0;
+
+        void GetEquidistantCovering(int numPoints) { }
+    };
+
+    class IntervalUnion : public IInterval
+    {
+        IInterval &_left, &_right;
+    public:
+        IntervalUnion(IInterval &left, IInterval &right) : _left(left), _right(right) 
+        { 
+            if( _left.getLowerBound() > _right.getLowerBound() )
+            {
+                IInterval &temp = _left;
+                _left = _right;
+                _right = temp;
+                // std::swap(_left, _right);  // doesn't work???
+            }
+        }
+
+        Real getLowerBound() const { return _left.getLowerBound(); }
+        Real getUpperBound() const { return std::max(_left.getUpperBound(), _right.getUpperBound()); }
+        Real getLength() const { 
+            // FIXME - implement correctly
+            // ako se ne sijeku
+            if( _left.getUpperBound() < _right.getLowerBound() )
+                return _left.getLength() + _right.getLength();
+            else {
+                // ili je jedan sadrzan cijeli u drugome
+
+                // ili se standardno sijeku
+            }
+            return _left.getLength() + _right.getLength(); 
+
+        }
+        
+        bool isContinuous() const { return false; }
+
+        bool contains(Real x) const {
+            return _left.contains(x) || _right.contains(x);
+        }
+        // bool contains(const IInterval &other) const = 0;
+        // bool intersects(const IInterval &other) const = 0;
+
+        void GetEquidistantCovering(int numPoints) { }
+    };    
+}
+
+///////////////////////////   ./include/base/Polynom.h   ///////////////////////////
+
+
+namespace MML
+{
+    // TODO - HIGH, TESKO?, dodati RealPolynom klasu, izvedenu iz IRealFunction implementirati derive (derivs - sve, first, sec, third zasebno)& integrate
+    template <typename _Field, typename _CoefType = Real>
+    class Polynom
+    {
+    private:
+        std::vector<_CoefType> _vecCoef;
+    public:
+        Polynom() {}
+        Polynom(int n) { _vecCoef.resize(n+1); }
+        Polynom(const std::vector<_CoefType> &vecCoef) : _vecCoef(vecCoef) {}
+        Polynom(std::initializer_list<_CoefType> list) : _vecCoef(list) {}
+        Polynom(const Polynom &Copy) : _vecCoef(Copy._vecCoef) {}
+        ~Polynom() {}
+
+        Polynom& operator=(const Polynom &Copy) { _vecCoef = Copy._vecCoef; return *this; }
+
+        int  GetDegree() const     { return (int) _vecCoef.size() - 1; }
+        void SetDegree(int newDeg) {  _vecCoef.resize(newDeg+1); }
+
+        _Field  operator[] (int i) const { return _vecCoef[i]; }
+        _Field& operator[] (int i)       { return _vecCoef[i]; }
+
+        _Field operator() (const _Field &x) {
+            int j = GetDegree();
+            _Field p = _vecCoef[j];
+            
+            while (j>0) 
+                p = p*x + _vecCoef[--j];
+            return p;
+        }        
+        // Given the coefficients of a polynomial of degree nc as an array c[0..nc] of size nc+1 (with
+        // c[0] being the constant term), and given a value x, this routine fills an output array pd of size
+        // nd+1 with the value of the polynomial evaluated at x in pd[0], and the first nd derivatives at
+        // x in pd[1..nd].
+        void Derive(const Real x, Vector<Real> &pd)
+        {
+            int  nnd,j,i;
+            int  nc=GetDegree();
+            int  nd=pd.size()-1;
+            Real cnst=1.0;
+
+            pd[0]=(*this)[nc];
+            for (j=1;j<nd+1;j++) 
+                pd[j]=0.0;
+            
+            for (i=nc-1;i>=0;i--) 
+            {
+                nnd=(nd < (nc-i) ? nd : nc-i);
+                for (j=nnd;j>0;j--) 
+                    pd[j]=pd[j]*x+pd[j-1];
+
+                pd[0]=pd[0]*x + (*this)[i];
+            }
+            for (i=2;i<nd+1;i++) {
+                cnst *= i;
+                pd[i] *= cnst;
+            }
+        }        
+
+        bool operator==(const Polynom &b) const
+        {
+            if( _vecCoef.size() != b._vecCoef.size() )
+                return false;
+            for( int i=0; i<_vecCoef.size(); i++ )
+                if( _vecCoef[i] != b._vecCoef[i] )
+                    return false;
+            return true;
+        }
+
+        Polynom operator+(const Polynom &b) const
+        {
+            Polynom result;
+            int n = (int) std::max(_vecCoef.size(), b._vecCoef.size());
+            result._vecCoef.resize(n);
+            for (int i = 0; i < n; i++)
+            {
+                if (i < _vecCoef.size())
+                    result._vecCoef[i] += _vecCoef[i];
+                if (i < b._vecCoef.size())
+                    result._vecCoef[i] += b._vecCoef[i];
+            }
+            return result;
+        }
+
+        Polynom operator-(const Polynom &b) const
+        {
+            Polynom result;
+            int n = (int) std::max(_vecCoef.size(), b._vecCoef.size());
+            result._vecCoef.resize(n);
+            for (int i = 0; i < n; i++)
+            {
+                if (i < _vecCoef.size())
+                    result._vecCoef[i] += _vecCoef[i];
+                if (i < b._vecCoef.size())
+                    result._vecCoef[i] -= b._vecCoef[i];
+            }
+            return result;
+        }
+
+        Polynom operator*(const Polynom &b) const
+        {
+            Polynom result;
+
+            int n = (int) (_vecCoef.size() + b._vecCoef.size() - 1);
+            result._vecCoef.resize(n);
+            for (int i = 0; i < _vecCoef.size(); i++)
+                for (int j = 0; j < b._vecCoef.size(); j++)
+                    result._vecCoef[i + j] += _vecCoef[i] * b._vecCoef[j];
+            return result;
+        }
+
+        static void poldiv(const Polynom &u, const Polynom &v, Polynom &qout, Polynom &rout)
+        {
+            int k,j,n=u.GetDegree(),nv=v.GetDegree();
+
+            while (nv >= 0 && v._vecCoef[nv] == 0.) nv--;
+
+            if (nv < 0) 
+                throw("poldiv divide by zero polynomial");
+            
+            Polynom r = u;
+            Polynom q(u.GetDegree());
+            for (k=n-nv;k>=0;k--) 
+            {
+                q[k]=r[nv+k]/v[nv];
+                for (j=nv+k-1;j>=k;j--) 
+                    r[j] -= q[k]*v[j-k];
+            }
+            for (j=nv;j<=n;j++) r[j]=0.0;
+
+            int nq=q.GetDegree();            
+            while (nq >= 0 && q[nv] == 0.) 
+                nq--;
+
+            qout.SetDegree(nq-1);
+            for(j=0; j<nq; j++ )
+                qout[j] = q[j];
+
+            rout.SetDegree(nv-1);
+            for(j=0; j<nv; j++ )
+                rout[j] = r[j];
+        }
+        
+        friend Polynom operator*(const Polynom &a, _CoefType b )
+        {
+            Polynom ret;
+            ret._vecCoef.resize(a.GetDegree()+1);
+            for(int i=0; i<=a.GetDegree(); i++)
+                ret._vecCoef[i] = a._vecCoef[i] * b;
+            return ret;
+        }
+
+        friend Polynom operator*(_CoefType a, const Polynom &b )
+        {
+            Polynom ret;
+            ret._vecCoef.resize(b.GetDegree()+1);
+            for(int i=0; i<=b.GetDegree(); i++)
+                ret._vecCoef[i] = a * b._vecCoef[i];
+            return ret;
+        }
+
+        friend Polynom operator/(const Polynom &a, _CoefType b)
+        {
+            Polynom ret;
+            ret._vecCoef.resize(a.GetDegree()+1);
+            for(int i=0; i<=a.GetDegree(); i++)
+                ret._vecCoef[i] = a._vecCoef[i] / b;
+            return ret;
+        }        
+
+        std::ostream& Print(std::ostream& stream, int width, int precision) const
+        {
+            for(int i=(int) _vecCoef.size()-1; i>=0; i--)
+            {
+                if( std::abs(_vecCoef[i]) == 0.0 )
+                    continue;
+
+                if( i != _vecCoef.size()-1 )
+                    stream << " + ";
+
+                if( i == 0 )
+                    stream << std::setw(width) << std::setprecision(precision) << _vecCoef[i];
+                else if ( i == 1 )
+                    stream << std::setw(width) << std::setprecision(precision) << _vecCoef[i] << " * x" << i;
+                else
+                    stream << std::setw(width) << std::setprecision(precision) << _vecCoef[i] << " * x^" << i;
+            }
+
+            return stream;
+        }
+
+        std::ostream& Print(std::ostream& stream) const
+        {
+            for(int i=(int)_vecCoef.size()-1; i>=0; i--)
+            {
+                if( std::abs(_vecCoef[i]) == 0.0 )
+                    continue;
+
+                if( i != _vecCoef.size()-1 )
+                    stream << " + ";
+                
+                if( i == 0 )
+                    stream <<  _vecCoef[i];
+                else if ( i == 1 )
+                    stream <<  _vecCoef[i] << " * x" << i;
+                else
+                    stream <<  _vecCoef[i] << " * x^" << i;
+            }
+
+            return stream;
+        }
+
+        std::string to_string(int width, int precision) const
+        {
+            std::stringstream str;
+
+            Print(str, width, precision);
+
+            return str.str();
+        }
+
+        friend std::ostream& operator<<(std::ostream& stream, Polynom &a)
+        {
+            a.Print(stream);
+
+            return stream;
+        }        
+    };
+
+    // class RealPolynom : public Polynom<Real, Real>
+    // {
+    // };
+        
+    typedef Polynom<Real, Real>         RealPolynom;
+    typedef Polynom<Complex, Complex>   ComplexPolynom;
+
+    typedef Polynom<MatrixNM<Real,2,2>, Real>       MatrixPolynomDim2;
+    typedef Polynom<MatrixNM<Real,3,3>, Real>       MatrixPolynomDim3;
+    typedef Polynom<MatrixNM<Real,4,4>, Real>       MatrixPolynomDim4;
+}
+
+///////////////////////////   ./include/interfaces/IFunction.h   ///////////////////////////
+
+
+namespace MML
+{
+    //////////////////////////////////////////////////////////////////////
+    template<typename _RetType, typename _ArgType>
+    class IFunction
+    {
+    public:
+        virtual _RetType operator()(_ArgType) const = 0;
+    };
+
+    //////////////////////////////////////////////////////////////////////
+    class IRealFunction : public IFunction<Real, Real>
+    {
+    public:
+        virtual Real operator()(Real) const = 0;
+
+        void GetValues(Real x1, Real x2, int numPnt, Vector<Real> &outX, Vector<Real> &outY)
+        {
+            outX.Resize(numPnt);
+            outY.Resize(numPnt);
+
+            for (int i=0;i<numPnt;i++) {
+                outX[i] = x1 + i * (x2 - x1) / (numPnt - 1);
+                outY[i] = (*this)(outX[i]);
+            } 
+        }
+        void Print(Real x1, Real x2, int numPnt)
+        {
+            for (int i=0;i<numPnt;i++) {
+                Real x = x1 + i * (x2 - x1) / (numPnt - 1);
+                std::cout << x << " " << (*this)(x) << std::endl;
+            } 
+        }
+        bool SerializeEquallySpaced(Real x1, Real x2, int numPoints, std::string fileName) const
+        {
+            std::ofstream file(fileName);
+            if( !file.is_open() )
+                return false;
+
+            file << "REAL_FUNCTION_EQUALLY_SPACED" << std::endl;
+            file << "x1: " << x1 << std::endl;
+            file << "x2: " << x2 << std::endl;
+            file << "NumPoints: " << numPoints << std::endl;
+
+            Real step = (x2 - x1) / (numPoints - 1);
+            for( int i=0; i<numPoints; i++ )
+            {
+                Real x = x1 + i * step;
+                file << (*this)(x) << std::endl;
+            }
+            file.close();
+            return true;            
+        }
+
+        bool SerializeEquallySpacedDetailed(Real x1, Real x2, int numPoints, std::string fileName) const
+        {
+            std::ofstream file(fileName);
+            if( !file.is_open() )
+                return false;
+
+            file << "REAL_FUNCTION_EQUALLY_SPACED_DETAILED" << std::endl;
+            file << "x1: " << x1 << std::endl;
+            file << "x2: " << x2 << std::endl;
+            file << "NumPoints: " << numPoints << std::endl;
+
+            Real step = (x2 - x1) / (numPoints - 1);
+            for( int i=0; i<numPoints; i++ )
+            {
+                Real x = x1 + i * step;
+                file << x << " " << (*this)(x) << std::endl;
+            }
+            file.close();
+            return true;
+        }
+
+        bool SerializeVariableSpaced(Vector<Real> points, std::string fileName) const
+        {
+            std::ofstream file(fileName);
+            if( !file.is_open() )
+                return false;
+
+            file << "REAL_FUNCTION_VARIABLE_SPACED" << std::endl;
+
+            for( int i=0; i<points.size(); i++ )
+            {
+                Real x = points[i];
+                file << x << " " << (*this)(x) << std::endl;
+            }
+            file.close();
+            return true;
+        }
+    };
+
+    //////////////////////////////////////////////////////////////////////
+    template<int N>
+    class IScalarFunction : public IFunction<Real, const VectorN<Real, N> &>
+    {
+    public:
+        virtual Real operator()(const VectorN<Real, N> &x) const = 0;
+
+        bool Serialize2DCartesian(Real x1, Real x2, int numPointsX, Real y1, Real y2, int numPointsY, std::string fileName) const
+        {
+            if( N!= 2 )
+                throw std::runtime_error("IScalarFunction::Serialize2DCartesian() - N != 2");
+
+            std::ofstream file(fileName);
+            if( !file.is_open() )
+                return false;
+
+            file << "SCALAR_FUNCTION_CARTESIAN_2D" << std::endl;
+            file << "x1: " << x1 << std::endl;
+            file << "x2: " << x2 << std::endl;
+            file << "NumPointsX: " << numPointsX << std::endl;
+            file << "y1: " << y1 << std::endl;
+            file << "y2: " << y2 << std::endl;
+            file << "NumPointsY: " << numPointsY << std::endl;
+
+            Real stepX = (x2 - x1) / (numPointsX - 1);
+            Real stepY = (y2 - y1) / (numPointsY - 1);
+            for( int i=0; i<numPointsX; i++ )
+            {
+                for( int j=0; j<numPointsY; j++ )
+                {
+                    Real x = x1 + i * stepX;
+                    Real y = y1 + j * stepY;
+                    file << x << " " << y << " " << (*this)(VectorN<Real, N>{x, y}) << std::endl;
+                }   
+            }            
+            return true;
+        }
+
+        bool Serialize3DCartesian(Real x1, Real x2, int numPointsX, Real y1, Real y2, int numPointsY, Real z1, Real z2, int numPointsZ, std::string fileName) const
+        {
+            if( N != 3 )
+                throw std::runtime_error("IScalarFunction::Serialize3DCartesian() - N != 3");
+             std::ofstream file(fileName);
+            if( !file.is_open() )
+                return false;
+
+            file << "SCALAR_FUNCTION_CARTESIAN_3D" << std::endl;
+            file << "x1: " << x1 << std::endl;
+            file << "x2: " << x2 << std::endl;
+            file << "NumPointsX: " << numPointsX << std::endl;
+            file << "y1: " << y1 << std::endl;
+            file << "y2: " << y2 << std::endl;
+            file << "NumPointsY: " << numPointsY << std::endl;
+            file << "z1: " << z1 << std::endl;
+            file << "z2: " << z2 << std::endl;
+            file << "NumPointsZ: " << numPointsZ << std::endl;
+
+            Real stepX = (x2 - x1) / (numPointsX - 1);
+            Real stepY = (y2 - y1) / (numPointsY - 1);
+            Real stepZ = (z2 - z1) / (numPointsZ - 1);
+            for( int i=0; i<numPointsX; i++ )
+            {
+                for( int j=0; j<numPointsY; j++ )
+                {
+                    for( int k=0; k<numPointsZ; k++ )
+                    {
+                        Real x = x1 + i * stepX;
+                        Real y = y1 + j * stepY;
+                        Real z = z1 + j * stepZ;
+                        file << x << " " << y << " " << z << " " << (*this)(VectorN<Real, N>{x, y, z}) << std::endl;
+                    }
+                }   
+            }           
+            return true;
+        }
+    };
+    
+    //////////////////////////////////////////////////////////////////////
+    template<int N>
+    class IRealToVectorFunction : public IFunction<VectorN<Real, N>, Real>
+    {
+    public:
+        virtual VectorN<Real, N> operator()(Real x) const = 0;
+
+        bool Serialize(std::string inType, Real t1, Real t2, int numPoints, std::string fileName) const
+        {
+            std::ofstream file(fileName);
+            if( !file.is_open() )
+                return false;
+
+            file << inType << std::endl;
+            file << "t1: " << t1 << std::endl;
+            file << "t2: " << t2 << std::endl;
+            file << "NumPoints: " << numPoints << std::endl;
+
+            Real delta = (t2 - t1) / (numPoints - 1);
+            for( Real t=t1; t<=t2; t+= delta )
+            {
+                file << t << " ";
+                for( int i=0; i<N; i++)
+                    file << (*this)(t)[i] << " ";
+                file << std::endl;
+            }
+            file.close();
+            return true;
+        }
+        
+        bool SerializeAtPoints(std::string inType, Vector<Real> points, std::string fileName) const
+        {
+            std::ofstream file(fileName);
+            if( !file.is_open() )
+                return false;
+
+            file << inType << std::endl;
+            for( int i=0; i<points.size(); i++ )
+            {
+                Real t = points[i];
+                file << t << " ";
+                for( int i=0; i<N; i++)
+                    file << (*this)(t)[i] << " ";
+                file << std::endl;
+            }
+
+            file.close();
+            return true;
+        }
+        bool SerializeCartesian2D(Real t1, Real t2, int numPoints, std::string fileName) const
+        {
+            return Serialize("PARAMETRIC_CURVE_CARTESIAN_2D", t1, t2, numPoints, fileName);
+        }
+        bool SerializeCartesian2DAtPoints(Vector<Real> points, std::string fileName) const
+        {
+            return SerializeAtPoints("PARAMETRIC_CURVE_CARTESIAN_2D_AT_POINTS", points, fileName);
+        }
+        bool SerializeCartesian3D(Real t1, Real t2, int numPoints, std::string fileName) const
+        {
+            return Serialize("PARAMETRIC_CURVE_CARTESIAN_3D", t1, t2, numPoints, fileName);
+        }
+        bool SerializeCartesian3DAtPoints(Vector<Real> points, std::string fileName) const
+        {
+            return SerializeAtPoints("PARAMETRIC_CURVE_CARTESIAN_3D_AT_POINTS", points, fileName);
+        }
+        bool SerializePolar(Real t1, Real t2, int numPoints, std::string fileName) const
+        {
+            return Serialize("PARAMETRIC_CURVE_POLAR", t1, t2, numPoints, fileName);
+        }
+        bool SerializePolarAtPoints(Vector<Real> points, std::string fileName) const
+        {
+            return SerializeAtPoints("PARAMETRIC_CURVE_POLAR_AT_POINTS", points, fileName);
+        }
+        bool SerializeSpherical(Real t1, Real t2, int numPoints, std::string fileName) const
+        {
+            return Serialize("PARAMETRIC_CURVE_SPHERICAL", t1, t2, numPoints, fileName);
+        }          
+        bool SerializeSphericalAtPoints(Vector<Real> points, std::string fileName) const
+        {
+            return SerializeAtPoints("PARAMETRIC_CURVE_SPHERICAL_AT_POINTS", points, fileName);
+        }
+    };
+
+    //////////////////////////////////////////////////////////////////////
+    template<int N>
+    class IVectorFunction : public IFunction<VectorN<Real, N>, const VectorN<Real, N> &>
+    {
+    public:
+        virtual VectorN<Real, N> operator()(const VectorN<Real, N> &x) const = 0;
+        virtual Real operator()(const VectorN<Real, N> &x, int component) const
+        {
+            VectorN<Real, N> val = (*this)(x);
+            return val[component];
+        }
+
+        bool Serialize3D(std::string inType, Real x1_start, Real x1_end, int numPointsX1, Real x2_start, Real x2_end, int numPointsX2, Real x3_start, Real x3_end, int numPointsX3, std::string fileName) const
+        {
+            if( N != 3 )
+                throw std::runtime_error("IVectorFunction::Serialize3D() - N != 3");
+
+            std::ofstream file(fileName);
+            if( !file.is_open() )
+                return false;
+
+            file << inType << std::endl;
+
+            Real stepX = (x1_end - x1_start) / (numPointsX1 - 1);
+            Real stepY = (x2_end - x2_start) / (numPointsX2 - 1);
+            Real stepZ = (x3_end - x3_start) / (numPointsX3 - 1);
+            for( int i=0; i<numPointsX1; i++ )
+                for( int j=0; j<numPointsX2; j++ )
+                    for( int k=0; k<numPointsX3; k++ )
+                    {
+                        Real x = x1_start + i * stepX;
+                        Real y = x2_start + j * stepY;
+                        Real z = x3_start + k * stepZ;
+                        auto val = (*this)(VectorN<Real, N>{x, y, z});
+                        file << x << " " << y << " " << z << " " << val[0] << " " << val[1] << " " << val[2] << std::endl;
+                    }
+
+            file.close();
+            return true;
+        }    
+        
+        bool Serialize3D(std::string inType, Real x1_start, Real x1_end, int numPointsX1, Real x2_start, Real x2_end, int numPointsX2, Real x3_start, Real x3_end, int numPointsX3, std::string fileName, Real upper_threshold) const
+        {
+            if( N != 3 )
+                throw std::runtime_error("IVectorFunction::Serialize3D() - N != 3");
+
+            std::ofstream file(fileName);
+            if( !file.is_open() )
+                return false;
+
+            file << inType << std::endl;
+
+            Real stepX = (x1_end - x1_start) / (numPointsX1 - 1);
+            Real stepY = (x2_end - x2_start) / (numPointsX2 - 1);
+            Real stepZ = (x3_end - x3_start) / (numPointsX3 - 1);
+            for( int i=0; i<numPointsX1; i++ )
+                for( int j=0; j<numPointsX2; j++ )
+                    for( int k=0; k<numPointsX3; k++ )
+                    {
+                        Real x = x1_start + i * stepX;
+                        Real y = x2_start + j * stepY;
+                        Real z = x3_start + k * stepZ;
+                        auto val = (*this)(VectorN<Real, N>{x, y, z});
+
+                        if( val.NormL2() < upper_threshold )
+                            file << x << " " << y << " " << z << " " << val[0] << " " << val[1] << " " << val[2] << std::endl;
+                    }
+
+            file.close();
+            return true;
+        }            
+        
+        bool Serialize3DCartesian(Real x1, Real x2, int numPointsX, Real y1, Real y2, int numPointsY, Real z1, Real z2, int numPointsZ, std::string fileName) const
+        {
+            return Serialize3D("VECTOR_FIELD_3D_CARTESIAN", x1, x2, numPointsX, y1, y2, numPointsY, z1, z2, numPointsZ, fileName);
+        }
+        bool Serialize3DCartesian(Real x1, Real x2, int numPointsX, Real y1, Real y2, int numPointsY, Real z1, Real z2, int numPointsZ, std::string fileName, Real upper_threshold) const
+        {
+            return Serialize3D("VECTOR_FIELD_3D_CARTESIAN", x1, x2, numPointsX, y1, y2, numPointsY, z1, z2, numPointsZ, fileName, upper_threshold);
+        }
+        bool SerializeSpherical(Real r1, Real r2, int numPointsR, Real theta1, Real theta2, int numPointsTheta, Real phi1, Real phi2, int numPointsPhi, std::string fileName) const
+        {
+            return Serialize3D("VECTOR_FIELD_SPHERICAL", r1, r2, numPointsR, theta1, theta2, numPointsTheta, phi1, phi2, numPointsPhi, fileName);
+        }               
+        bool SerializeSpherical(Real r1, Real r2, int numPointsR, Real theta1, Real theta2, int numPointsTheta, Real phi1, Real phi2, int numPointsPhi, std::string fileName, Real upper_threshold) const
+        {
+            return Serialize3D("VECTOR_FIELD_SPHERICAL", r1, r2, numPointsR, theta1, theta2, numPointsTheta, phi1, phi2, numPointsPhi, fileName, upper_threshold);
+        }               
+    };
+
+    //////////////////////////////////////////////////////////////////////
+    template<int N, int M>
+    class IVectorFunctionNM : public IFunction<VectorN<Real, M>, const VectorN<Real, N> &>
+    {
+    public:
+        virtual VectorN<Real, M> operator()(const VectorN<Real, N> &x) const = 0;
+        virtual Real operator()(const VectorN<Real, N> &x, int component) const
+        {
+            VectorN<Real, M> val = (*this)(x);
+            return val[component];
+        }
+    };
+
+    //////////////////////////////////////////////////////////////////////
+    template<int N>
+    class IParametricCurve : public IRealToVectorFunction<N>
+    {
+    public:
+        virtual VectorN<Real, N> operator()(Real x) const = 0;
+
+        virtual Real getMinT() const = 0;
+        virtual Real getMaxT() const = 0;
+
+        // TODO - finish IsClosed() 
+        bool isClosed(double tCycleStart, double tCycleEnd, double tVerificationIntervalEnd) const { 
+            // u t1 i t2 moraju biti isti
+            // i onda do kraja intervala provjeriti da li se po tockama trace-a slaze
+            return false; 
+        }
+
+        std::vector<VectorN<Real, N>> GetTrace(double t1, double t2, int numPoints)
+        {
+            std::vector<VectorN<Real, N>> ret;
+            double deltaT = (t2 - t1) / (numPoints - 1);
+            for( Real t=t1; t<=t2; t+=deltaT )
+                ret.push_back((*this)(t));
+            return ret;
+        }
+    };
+
+    //////////////////////////////////////////////////////////////////////
+    template<int N>
+    class IParametricSurface : public IFunction<VectorN<Real, N>, const VectorN<Real, 2> &>
+    {
+    public:
+        virtual VectorN<Real, N> operator()(Real u, Real w) const = 0;
+        
+        virtual Real getMinX() = 0;
+        virtual Real getMaxX() = 0;
+        virtual Real getMinY() = 0;
+        virtual Real getMaxY() = 0;
+
+        virtual VectorN<Real, N> operator()(const VectorN<Real, 2> &coord) const 
+        {
+            return operator()(coord[0], coord[1]);
+        }
+        bool Serialize2DCartesian(Real x1, Real x2, int numPointsX, Real y1, Real y2, int numPointsY, std::string fileName) const
+        {
+            return false;
+        }
+    };
+
+    //////////////////////////////////////////////////////////////////////
+    template<int N>
+    class ITensorField2 : public IFunction<Tensor2<N>, const VectorN<Real, N> & >
+    {
+    public:
+        virtual Real        Component(int i, int j, const VectorN<Real, N> &pos) const = 0;   
+    };
+
+    template<int N>
+    class ITensorField3 : public IFunction<Tensor3<N>, const VectorN<Real, N> & >
+    {
+    public:
+        virtual Real        Component(int i, int j, int k, const VectorN<Real, N> &pos) const = 0;
+    };  
+
+    template<int N>
+    class ITensorField4 : public IFunction<Tensor4<N>, const VectorN<Real, N> & >
+    {
+    public:
+        virtual Real        Component(int i, int j, int k, int l, const VectorN<Real, N> &pos) const = 0;
+    };  
+}
+///////////////////////////   ./include/base/QuadraticForm.h   ///////////////////////////
+
+
+
+namespace MML
+{
+    // TODO - MED, finish this
+    template<int N>
+    class QuadraticFormN : public IScalarFunction<N>
+    {
+        MatrixNM<Real, N, N> _mat;
+    public:
+        Real operator()(const VectorN<Real, N> &x) const
+        {
+            return x.ScalarProductCartesian(_mat * x);
+        }
+
+    };
+}
+///////////////////////////   ./include/base/VectorSpace.h   ///////////////////////////
+
+//#include "interfaces/IFunction.h"
+
+
+namespace MML
+{
+    // TODO - MED, vector space + Gram Schmidt
+    // TODO - MED, linear transformations & OPERATORS
+    template<int N>
+    class RealVectorSpaceN : public HilbertSpace<Real, VectorN<Real, N>>
+    {
+    public:
+        virtual Real  scal_prod(const VectorN<Real, N> &a, const VectorN<Real, N> &b) const
+        {
+            return a.ScalarProductCartesian(b);
+        }
+    };
+
+    template<int N>
+    class ComplexVectorSpaceN : public HilbertSpace<Complex, VectorN<Complex, N>>
+    {
+    public:
+        virtual Real  scal_prod(const VectorN<Complex, N> &a, const VectorN<Complex, N> &b) const
+        {
+            Real product = 0.0;
+            for( int i=0; i<N; i++ )
+                product += (a[i] * std::conj(b[i])).real();
+            return product;
+        }        
+    };
+}
+///////////////////////////   ./include/base/LinearFunctional.h   ///////////////////////////
+
+
+
+namespace MML
+{
+    template <int N, typename _Field = Real>
+    class LinearFunctionalN 
+    {
+    private:
+        // TODO - LOW, this should be an array, not a vector
+        VectorN<_Field, N> _vecCoef;
+    public:
+        LinearFunctionalN() {}
+        LinearFunctionalN(const VectorN<_Field, N> &vecCoef) : _vecCoef(vecCoef) {}
+        LinearFunctionalN(std::initializer_list<_Field> list) : _vecCoef(list) {}
+
+        LinearFunctionalN(const LinearFunctionalN &Copy) : _vecCoef(Copy._vecCoef) {}
+        ~LinearFunctionalN() {}
+
+        LinearFunctionalN& operator=(const LinearFunctionalN &Copy) { _vecCoef = Copy._vecCoef; return *this; }
+
+        int Dim() const { return N; }
+
+        _Field operator()(const VectorN<_Field, N> &vecX) const
+        {
+            _Field result = 0.0;
+            for (int i = 0; i < N; i++)
+                result += _vecCoef[i] * vecX[i];
+            return result;
+        }
+
+        LinearFunctionalN operator+(const LinearFunctionalN &b) const
+        {
+            LinearFunctionalN result;
+            for (int i = 0; i < N; i++)
+                result._vecCoef[i] = _vecCoef[i] + b._vecCoef[i];
+            return result;
+        }
+
+        LinearFunctionalN operator-(const LinearFunctionalN &b) const
+        {
+            LinearFunctionalN result;
+            for (int i = 0; i < N; i++)
+                result._vecCoef[i] = _vecCoef[i] - b._vecCoef[i];
+            return result;
+        }
+
+        LinearFunctionalN operator*(_Field b) const
+        {
+            LinearFunctionalN result;
+            for (int i = 0; i < _vecCoef.size();    i++)
+                result._vecCoef[i] = _vecCoef[i] * b;
+            return result;
+        }
+    };
+
+    template <int N>
+    class RealLinearFunctionalN : public IScalarFunction<N>
+    {
+    private:
+        VectorN<Real, N> _vecCoef;
+    public:
+        RealLinearFunctionalN() {}
+        RealLinearFunctionalN(const VectorN<Real, N> &vecCoef) : _vecCoef(vecCoef) {}
+        RealLinearFunctionalN(std::initializer_list<Real> list) : _vecCoef(list) {}
+
+        RealLinearFunctionalN(const RealLinearFunctionalN &Copy) = default;
+        ~RealLinearFunctionalN() {}
+
+        RealLinearFunctionalN& operator=(const RealLinearFunctionalN &Copy) { _vecCoef = Copy._vecCoef; return *this; }
+
+        int Dim() const { return N; }
+
+        Real operator()(const VectorN<Real, N> &vecX) const
+        {
+            Real result = 0.0;
+            for (int i = 0; i < N; i++)
+                result += _vecCoef[i] * vecX[i];
+            return result;
+        }
+
+        RealLinearFunctionalN operator+(const RealLinearFunctionalN &b) const
+        {
+            RealLinearFunctionalN result;
+            for (int i = 0; i < N; i++)
+                result._vecCoef[i] = _vecCoef[i] + b._vecCoef[i];
+            return result;
+        }
+
+        RealLinearFunctionalN operator-(const RealLinearFunctionalN &b) const
+        {
+            RealLinearFunctionalN result;
+            for (int i = 0; i < N; i++)
+                result._vecCoef[i] = _vecCoef[i] - b._vecCoef[i];
+            return result;
+        }
+
+        RealLinearFunctionalN operator*(Real b) const
+        {
+            RealLinearFunctionalN result;
+            for (int i = 0; i < _vecCoef.size();    i++)
+                result._vecCoef[i] = _vecCoef[i] * b;
+            return result;
+        }
+    };    
+
+    class RealLinearFunctional
+    {
+    private:
+        std::vector<Real> _vecCoef;
+    public:
+        RealLinearFunctional() {}
+        RealLinearFunctional(const std::vector<Real> &vecCoef) : _vecCoef(vecCoef) {}
+        RealLinearFunctional(std::initializer_list<Real> list) : _vecCoef(list) {}
+
+        RealLinearFunctional(const RealLinearFunctional &Copy) : _vecCoef(Copy._vecCoef) {}
+        ~RealLinearFunctional() {}
+
+        int Dim() const { return (int) _vecCoef.size(); }
+
+        RealLinearFunctional& operator=(const RealLinearFunctional &Copy) { _vecCoef = Copy._vecCoef; return *this; }
+
+        Real operator()(const std::vector<Real> &vecX) const
+        {
+            if( vecX.size() != Dim() )
+                throw std::runtime_error("RealLinearFunctional::operator() - incompatible vector size");
+
+            Real result = 0.0;
+            for (int i = 0; i < _vecCoef.size(); i++)
+                result += _vecCoef[i] * vecX[i];
+            return result;
+        }
+
+        RealLinearFunctional operator+(const RealLinearFunctional &b) const
+        {
+            if( b.Dim() != Dim() )
+                throw std::runtime_error("RealLinearFunctional::operator+() - incompatible vector size");
+
+            RealLinearFunctional result;
+            for (int i = 0; i < Dim(); i++)
+                result._vecCoef[i] = _vecCoef[i] + b._vecCoef[i];
+            return result;            
+        }
+
+        RealLinearFunctional operator-(const RealLinearFunctional &b) const
+        {
+            if( b.Dim() != Dim() )
+                throw std::runtime_error("RealLinearFunctional::operator-() - incompatible vector size");
+
+            RealLinearFunctional result;
+            for (int i = 0; i < Dim(); i++)
+                result._vecCoef[i] = _vecCoef[i] - b._vecCoef[i];
+            return result;  
+        }
+
+        RealLinearFunctional operator*(Real b) const
+        {
+            RealLinearFunctional result;
+            for (int i = 0; i < Dim(); i++)
+                result._vecCoef[i] = _vecCoef[i] + b;
+            return result;  
+        }
+    };
+}
+
+///////////////////////////   ./include/base/LinearOperator.h   ///////////////////////////
+
+
+
+namespace MML
+{
+    // TODO - MED, TESKO, finish  this
+    template<int N>
+    class RealLinearOperatorN : public ILinearOperator<VectorN<Real, N>, VectorN<Real, N>>
+    {
+        MatrixNM<Real, N, N> m_matrix;
+    public:
+        VectorN<Real, N>  operator()(const VectorN<Real, N>& x) const 
+        {
+            return m_matrix * x;
+        }
+    };
+
+    template<int N, int M>
+    class RealLinearOperatorNM : public ILinearOperator<VectorN<Real, N>, VectorN<Real, M>>
+    {
+        MatrixNM<Real, N, M> m_matrix;
+    public:
+        VectorN<Real, N>  operator()(const VectorN<Real, M>& x) const 
+        {
+            return m_matrix * x;
+        }
+    };    
+}
 ///////////////////////////   ./include/base/BaseUtils.h   ///////////////////////////
 
 
 namespace MML
 {
-    class Utils
+    namespace Utils
     {
-    public:
-        int LeviCivita(int i, int j, int k)
+        static int LeviCivita(int i, int j, int k)
         {
             if( i==j || j==k || i==k )
                 return 0;
@@ -3595,7 +4979,7 @@ namespace MML
             
             return 0;
         }
-        int LeviCivita(int i, int j, int k, int l)
+        static int LeviCivita(int i, int j, int k, int l)
         {
             int a[4] = {i, j, k, l};
             int ret = 1;
@@ -4043,436 +5427,6 @@ namespace MML
         }  
     }
 }
-///////////////////////////   ./include/interfaces/IFunction.h   ///////////////////////////
-
-
-namespace MML
-{
-    //////////////////////////////////////////////////////////////////////
-    template<typename _RetType, typename _ArgType>
-    class IFunction
-    {
-    public:
-        virtual _RetType operator()(_ArgType) const = 0;
-    };
-
-    //////////////////////////////////////////////////////////////////////
-    class IRealFunction : public IFunction<Real, Real>
-    {
-    public:
-        virtual Real operator()(Real) const = 0;
-
-        void GetValues(Real x1, Real x2, int numPnt, Vector<Real> &outX, Vector<Real> &outY)
-        {
-            outX.Resize(numPnt);
-            outY.Resize(numPnt);
-
-            for (int i=0;i<numPnt;i++) {
-                outX[i] = x1 + i * (x2 - x1) / (numPnt - 1);
-                outY[i] = (*this)(outX[i]);
-            } 
-        }
-        void Print(Real x1, Real x2, int numPnt)
-        {
-            for (int i=0;i<numPnt;i++) {
-                Real x = x1 + i * (x2 - x1) / (numPnt - 1);
-                std::cout << x << " " << (*this)(x) << std::endl;
-            } 
-        }
-        bool SerializeEquallySpaced(Real x1, Real x2, int numPoints, std::string fileName) const
-        {
-            std::ofstream file(fileName);
-            if( !file.is_open() )
-                return false;
-
-            file << "REAL_FUNCTION_EQUALLY_SPACED" << std::endl;
-            file << "x1: " << x1 << std::endl;
-            file << "x2: " << x2 << std::endl;
-            file << "NumPoints: " << numPoints << std::endl;
-
-            Real step = (x2 - x1) / (numPoints - 1);
-            for( int i=0; i<numPoints; i++ )
-            {
-                Real x = x1 + i * step;
-                file << (*this)(x) << std::endl;
-            }
-            file.close();
-            return true;            
-        }
-
-        bool SerializeEquallySpacedDetailed(Real x1, Real x2, int numPoints, std::string fileName) const
-        {
-            std::ofstream file(fileName);
-            if( !file.is_open() )
-                return false;
-
-            file << "REAL_FUNCTION_EQUALLY_SPACED_DETAILED" << std::endl;
-            file << "x1: " << x1 << std::endl;
-            file << "x2: " << x2 << std::endl;
-            file << "NumPoints: " << numPoints << std::endl;
-
-            Real step = (x2 - x1) / (numPoints - 1);
-            for( int i=0; i<numPoints; i++ )
-            {
-                Real x = x1 + i * step;
-                file << x << " " << (*this)(x) << std::endl;
-            }
-            file.close();
-            return true;
-        }
-
-        bool SerializeVariableSpaced(Vector<Real> points, std::string fileName) const
-        {
-            std::ofstream file(fileName);
-            if( !file.is_open() )
-                return false;
-
-            file << "REAL_FUNCTION_VARIABLE_SPACED" << std::endl;
-
-            for( int i=0; i<points.size(); i++ )
-            {
-                Real x = points[i];
-                file << x << " " << (*this)(x) << std::endl;
-            }
-            file.close();
-            return true;
-        }
-    };
-
-    //////////////////////////////////////////////////////////////////////
-    template<int N>
-    class IScalarFunction : public IFunction<Real, const VectorN<Real, N> &>
-    {
-    public:
-        virtual Real operator()(const VectorN<Real, N> &x) const = 0;
-
-        bool Serialize2DCartesian(Real x1, Real x2, int numPointsX, Real y1, Real y2, int numPointsY, std::string fileName) const
-        {
-            if( N!= 2 )
-                throw std::runtime_error("IScalarFunction::Serialize2DCartesian() - N != 2");
-
-            std::ofstream file(fileName);
-            if( !file.is_open() )
-                return false;
-
-            file << "SCALAR_FUNCTION_CARTESIAN_2D" << std::endl;
-            file << "x1: " << x1 << std::endl;
-            file << "x2: " << x2 << std::endl;
-            file << "NumPointsX: " << numPointsX << std::endl;
-            file << "y1: " << y1 << std::endl;
-            file << "y2: " << y2 << std::endl;
-            file << "NumPointsY: " << numPointsY << std::endl;
-
-            Real stepX = (x2 - x1) / (numPointsX - 1);
-            Real stepY = (y2 - y1) / (numPointsY - 1);
-            for( int i=0; i<numPointsX; i++ )
-            {
-                for( int j=0; j<numPointsY; j++ )
-                {
-                    Real x = x1 + i * stepX;
-                    Real y = y1 + j * stepY;
-                    file << x << " " << y << " " << (*this)(VectorN<Real, N>{x, y}) << std::endl;
-                }   
-            }            
-            return true;
-        }
-
-        bool Serialize3DCartesian(Real x1, Real x2, int numPointsX, Real y1, Real y2, int numPointsY, Real z1, Real z2, int numPointsZ, std::string fileName) const
-        {
-            if( N != 3 )
-                throw std::runtime_error("IScalarFunction::Serialize3DCartesian() - N != 3");
-             std::ofstream file(fileName);
-            if( !file.is_open() )
-                return false;
-
-            file << "SCALAR_FUNCTION_CARTESIAN_3D" << std::endl;
-            file << "x1: " << x1 << std::endl;
-            file << "x2: " << x2 << std::endl;
-            file << "NumPointsX: " << numPointsX << std::endl;
-            file << "y1: " << y1 << std::endl;
-            file << "y2: " << y2 << std::endl;
-            file << "NumPointsY: " << numPointsY << std::endl;
-            file << "z1: " << z1 << std::endl;
-            file << "z2: " << z2 << std::endl;
-            file << "NumPointsZ: " << numPointsZ << std::endl;
-
-            Real stepX = (x2 - x1) / (numPointsX - 1);
-            Real stepY = (y2 - y1) / (numPointsY - 1);
-            Real stepZ = (z2 - z1) / (numPointsZ - 1);
-            for( int i=0; i<numPointsX; i++ )
-            {
-                for( int j=0; j<numPointsY; j++ )
-                {
-                    for( int k=0; k<numPointsZ; k++ )
-                    {
-                        Real x = x1 + i * stepX;
-                        Real y = y1 + j * stepY;
-                        Real z = z1 + j * stepZ;
-                        file << x << " " << y << " " << z << " " << (*this)(VectorN<Real, N>{x, y, z}) << std::endl;
-                    }
-                }   
-            }           
-            return true;
-        }
-    };
-    
-    //////////////////////////////////////////////////////////////////////
-    template<int N>
-    class IRealToVectorFunction : public IFunction<VectorN<Real, N>, Real>
-    {
-    public:
-        virtual VectorN<Real, N> operator()(Real x) const = 0;
-
-        bool Serialize(std::string inType, Real t1, Real t2, int numPoints, std::string fileName) const
-        {
-            std::ofstream file(fileName);
-            if( !file.is_open() )
-                return false;
-
-            file << inType << std::endl;
-            file << "t1: " << t1 << std::endl;
-            file << "t2: " << t2 << std::endl;
-            file << "NumPoints: " << numPoints << std::endl;
-
-            Real delta = (t2 - t1) / (numPoints - 1);
-            for( Real t=t1; t<=t2; t+= delta )
-            {
-                file << t << " ";
-                for( int i=0; i<N; i++)
-                    file << (*this)(t)[i] << " ";
-                file << std::endl;
-            }
-            file.close();
-            return true;
-        }
-        
-        bool SerializeAtPoints(std::string inType, Vector<Real> points, std::string fileName) const
-        {
-            std::ofstream file(fileName);
-            if( !file.is_open() )
-                return false;
-
-            file << inType << std::endl;
-            for( int i=0; i<points.size(); i++ )
-            {
-                Real t = points[i];
-                file << t << " ";
-                for( int i=0; i<N; i++)
-                    file << (*this)(t)[i] << " ";
-                file << std::endl;
-            }
-
-            file.close();
-            return true;
-        }
-        bool SerializeCartesian2D(Real t1, Real t2, int numPoints, std::string fileName) const
-        {
-            return Serialize("PARAMETRIC_CURVE_CARTESIAN_2D", t1, t2, numPoints, fileName);
-        }
-        bool SerializeCartesian2DAtPoints(Vector<Real> points, std::string fileName) const
-        {
-            return SerializeAtPoints("PARAMETRIC_CURVE_CARTESIAN_2D_AT_POINTS", points, fileName);
-        }
-        bool SerializeCartesian3D(Real t1, Real t2, int numPoints, std::string fileName) const
-        {
-            return Serialize("PARAMETRIC_CURVE_CARTESIAN_3D", t1, t2, numPoints, fileName);
-        }
-        bool SerializeCartesian3DAtPoints(Vector<Real> points, std::string fileName) const
-        {
-            return SerializeAtPoints("PARAMETRIC_CURVE_CARTESIAN_3D_AT_POINTS", points, fileName);
-        }
-        bool SerializePolar(Real t1, Real t2, int numPoints, std::string fileName) const
-        {
-            return Serialize("PARAMETRIC_CURVE_POLAR", t1, t2, numPoints, fileName);
-        }
-        bool SerializePolarAtPoints(Vector<Real> points, std::string fileName) const
-        {
-            return SerializeAtPoints("PARAMETRIC_CURVE_POLAR_AT_POINTS", points, fileName);
-        }
-        bool SerializeSpherical(Real t1, Real t2, int numPoints, std::string fileName) const
-        {
-            return Serialize("PARAMETRIC_CURVE_SPHERICAL", t1, t2, numPoints, fileName);
-        }          
-        bool SerializeSphericalAtPoints(Vector<Real> points, std::string fileName) const
-        {
-            return SerializeAtPoints("PARAMETRIC_CURVE_SPHERICAL_AT_POINTS", points, fileName);
-        }
-    };
-
-    //////////////////////////////////////////////////////////////////////
-    template<int N>
-    class IVectorFunction : public IFunction<VectorN<Real, N>, const VectorN<Real, N> &>
-    {
-    public:
-        virtual VectorN<Real, N> operator()(const VectorN<Real, N> &x) const = 0;
-        virtual Real operator()(const VectorN<Real, N> &x, int component) const
-        {
-            VectorN<Real, N> val = (*this)(x);
-            return val[component];
-        }
-
-        bool Serialize3D(std::string inType, Real x1_start, Real x1_end, int numPointsX1, Real x2_start, Real x2_end, int numPointsX2, Real x3_start, Real x3_end, int numPointsX3, std::string fileName) const
-        {
-            if( N != 3 )
-                throw std::runtime_error("IVectorFunction::Serialize3D() - N != 3");
-
-            std::ofstream file(fileName);
-            if( !file.is_open() )
-                return false;
-
-            file << inType << std::endl;
-
-            Real stepX = (x1_end - x1_start) / (numPointsX1 - 1);
-            Real stepY = (x2_end - x2_start) / (numPointsX2 - 1);
-            Real stepZ = (x3_end - x3_start) / (numPointsX3 - 1);
-            for( int i=0; i<numPointsX1; i++ )
-                for( int j=0; j<numPointsX2; j++ )
-                    for( int k=0; k<numPointsX3; k++ )
-                    {
-                        Real x = x1_start + i * stepX;
-                        Real y = x2_start + j * stepY;
-                        Real z = x3_start + k * stepZ;
-                        auto val = (*this)(VectorN<Real, N>{x, y, z});
-                        file << x << " " << y << " " << z << " " << val[0] << " " << val[1] << " " << val[2] << std::endl;
-                    }
-
-            file.close();
-            return true;
-        }    
-        
-        bool Serialize3D(std::string inType, Real x1_start, Real x1_end, int numPointsX1, Real x2_start, Real x2_end, int numPointsX2, Real x3_start, Real x3_end, int numPointsX3, std::string fileName, Real upper_threshold) const
-        {
-            if( N != 3 )
-                throw std::runtime_error("IVectorFunction::Serialize3D() - N != 3");
-
-            std::ofstream file(fileName);
-            if( !file.is_open() )
-                return false;
-
-            file << inType << std::endl;
-
-            Real stepX = (x1_end - x1_start) / (numPointsX1 - 1);
-            Real stepY = (x2_end - x2_start) / (numPointsX2 - 1);
-            Real stepZ = (x3_end - x3_start) / (numPointsX3 - 1);
-            for( int i=0; i<numPointsX1; i++ )
-                for( int j=0; j<numPointsX2; j++ )
-                    for( int k=0; k<numPointsX3; k++ )
-                    {
-                        Real x = x1_start + i * stepX;
-                        Real y = x2_start + j * stepY;
-                        Real z = x3_start + k * stepZ;
-                        auto val = (*this)(VectorN<Real, N>{x, y, z});
-
-                        if( val.NormL2() < upper_threshold )
-                            file << x << " " << y << " " << z << " " << val[0] << " " << val[1] << " " << val[2] << std::endl;
-                    }
-
-            file.close();
-            return true;
-        }            
-        
-        bool Serialize3DCartesian(Real x1, Real x2, int numPointsX, Real y1, Real y2, int numPointsY, Real z1, Real z2, int numPointsZ, std::string fileName) const
-        {
-            return Serialize3D("VECTOR_FIELD_3D_CARTESIAN", x1, x2, numPointsX, y1, y2, numPointsY, z1, z2, numPointsZ, fileName);
-        }
-        bool Serialize3DCartesian(Real x1, Real x2, int numPointsX, Real y1, Real y2, int numPointsY, Real z1, Real z2, int numPointsZ, std::string fileName, Real upper_threshold) const
-        {
-            return Serialize3D("VECTOR_FIELD_3D_CARTESIAN", x1, x2, numPointsX, y1, y2, numPointsY, z1, z2, numPointsZ, fileName, upper_threshold);
-        }
-        bool SerializeSpherical(Real r1, Real r2, int numPointsR, Real theta1, Real theta2, int numPointsTheta, Real phi1, Real phi2, int numPointsPhi, std::string fileName) const
-        {
-            return Serialize3D("VECTOR_FIELD_SPHERICAL", r1, r2, numPointsR, theta1, theta2, numPointsTheta, phi1, phi2, numPointsPhi, fileName);
-        }               
-        bool SerializeSpherical(Real r1, Real r2, int numPointsR, Real theta1, Real theta2, int numPointsTheta, Real phi1, Real phi2, int numPointsPhi, std::string fileName, Real upper_threshold) const
-        {
-            return Serialize3D("VECTOR_FIELD_SPHERICAL", r1, r2, numPointsR, theta1, theta2, numPointsTheta, phi1, phi2, numPointsPhi, fileName, upper_threshold);
-        }               
-    };
-
-    //////////////////////////////////////////////////////////////////////
-    template<int N, int M>
-    class IVectorFunctionNM : public IFunction<VectorN<Real, M>, const VectorN<Real, N> &>
-    {
-    public:
-        virtual VectorN<Real, M> operator()(const VectorN<Real, N> &x) const = 0;
-        virtual Real operator()(const VectorN<Real, N> &x, int component) const
-        {
-            VectorN<Real, M> val = (*this)(x);
-            return val[component];
-        }
-    };
-
-    //////////////////////////////////////////////////////////////////////
-    template<int N>
-    class IParametricCurve : public IRealToVectorFunction<N>
-    {
-    public:
-        virtual VectorN<Real, N> operator()(Real x) const = 0;
-
-        virtual Real getMinT() const = 0;
-        virtual Real getMaxT() const = 0;
-
-        // TODO - finish IsClosed() 
-        bool isClosed(double tCycleStart, double tCycleEnd, double tVerificationIntervalEnd) const { 
-            // u t1 i t2 moraju biti isti
-            // i onda do kraja intervala provjeriti da li se po tockama trace-a slaze
-            return false; 
-        }
-
-        std::vector<VectorN<Real, N>> GetTrace(double t1, double t2, int numPoints)
-        {
-            std::vector<VectorN<Real, N>> ret;
-            double deltaT = (t2 - t1) / (numPoints - 1);
-            for( Real t=t1; t<=t2; t+=deltaT )
-                ret.push_back((*this)(t));
-            return ret;
-        }
-    };
-
-    //////////////////////////////////////////////////////////////////////
-    template<int N>
-    class IParametricSurface : public IFunction<VectorN<Real, N>, const VectorN<Real, 2> &>
-    {
-    public:
-        virtual VectorN<Real, N> operator()(Real u, Real w) const = 0;
-        
-        virtual Real getMinX() = 0;
-        virtual Real getMaxX() = 0;
-        virtual Real getMinY() = 0;
-        virtual Real getMaxY() = 0;
-
-        virtual VectorN<Real, N> operator()(const VectorN<Real, 2> &coord) const 
-        {
-            return operator()(coord[0], coord[1]);
-        }
-        bool Serialize2DCartesian(Real x1, Real x2, int numPointsX, Real y1, Real y2, int numPointsY, std::string fileName) const
-        {
-            return false;
-        }
-    };
-
-    //////////////////////////////////////////////////////////////////////
-    template<int N>
-    class ITensorField2 : public IFunction<Tensor2<N>, const VectorN<Real, N> & >
-    {
-    public:
-        virtual Real        Component(int i, int j, const VectorN<Real, N> &pos) const = 0;   
-    };
-
-    template<int N>
-    class ITensorField3 : public IFunction<Tensor3<N>, const VectorN<Real, N> & >
-    {
-    public:
-        virtual Real        Component(int i, int j, int k, const VectorN<Real, N> &pos) const = 0;
-    };  
-
-    template<int N>
-    class ITensorField4 : public IFunction<Tensor4<N>, const VectorN<Real, N> & >
-    {
-    public:
-        virtual Real        Component(int i, int j, int k, int l, const VectorN<Real, N> &pos) const = 0;
-    };  
-}
 ///////////////////////////   ./include/interfaces/ICoordTransf.h   ///////////////////////////
 
 
@@ -4689,14 +5643,14 @@ namespace MML
         Real d;
     
     public:
-    // TODO - HIGH, HIGH, TESKO, napraviti da se moï¿½e odraditi i inplace, a ne da se kao sad uvijek kreira kopija
+    // TODO - HIGH, HIGH, TESKO, napraviti da se može odraditi i inplace, a ne da se kao sad uvijek kreira kopija
         LUDecompositionSolver(const Matrix<_Type>  &inMatRef) : n(inMatRef.RowNum()), refOrig(inMatRef), lu(inMatRef), indx(n) 
-// ne moï¿½e        LUDecompositionSolver(const Matrix<_Type>  &inMatRef) : n(inMatRef.RowNum()), refOrig(inMatRef), lu(Matrix<_Type>(inMatRef.RowNum(), inMatRef.ColNum())), indx(n) 
+// ne može        LUDecompositionSolver(const Matrix<_Type>  &inMatRef) : n(inMatRef.RowNum()), refOrig(inMatRef), lu(Matrix<_Type>(inMatRef.RowNum(), inMatRef.ColNum())), indx(n) 
         {
             // Given a Matrix<Real> a[1..n][1..n], this routine replaces it by the LU decomposition of a rowwise
             // permutation of itself. a and n are input. a is output, arranged as in equation (NR 2.3.14);
             // indx[1..n] is an output Vector<Real> that records the row permutation effected by the partial
-            // pivoting; d is output as ï¿½1 depending on whether the number of row interchanges was even
+            // pivoting; d is output as ±1 depending on whether the number of row interchanges was even
             // or odd, respectively. This routine is used in combination with lubksb to solve linear equations
             // or invert a Matrix<Real>.
             const Real TINY=1.0e-40;
@@ -4745,7 +5699,7 @@ namespace MML
         
         void Solve(const Vector<_Type> &b, Vector<_Type> &x)
         {
-            // Solves the set of n linear equations Aï¿½X = B. Here a[1..n][1..n] is input, not as the Matrix<Real>
+            // Solves the set of n linear equations A·X = B. Here a[1..n][1..n] is input, not as the Matrix<Real>
             // A but rather as its LU decomposition, determined by the routine ludcmp. indx[1..n] is input
             // as the permutation Vector<Real> returned by ludcmp. b[1..n] is input as the right-hand side Vector<Real>
             // B, and returns with the solution Vector<Real> X. a, n, and indx are not modified by this routine
@@ -4822,7 +5776,7 @@ namespace MML
             return dd;
         }
         
-        // Improves a solution Vector<Real> x[1..n] of the linear set of equations A ï¿½ X = B. The Matrix<Real>
+        // Improves a solution Vector<Real> x[1..n] of the linear set of equations A · X = B. The Matrix<Real>
         // a[1..n][1..n], and the Vector<Real>s b[1..n] and x[1..n] are input, as is the dimension n.
         // Also input is alud[1..n][1..n], the LU decomposition of a as returned by ludcmp, and
         // the Vector<Real> indx[1..n] also returned by that routine. On output, only x[1..n] is modified,
@@ -4847,7 +5801,7 @@ namespace MML
     };
 
     ///////////////////////   CHOLESKY DECOMPOSITION    /////////////////////////////
-    // TODO 0.6 - HIGH TEST THIS!
+    // TODO 0.6 - HIGH TEST THIS! cholesky
     class CholeskyDecompositionSolver
     {
     private:
@@ -4858,7 +5812,7 @@ namespace MML
         CholeskyDecompositionSolver(Matrix<Real> &a) : n(a.RowNum()), el(a) 
         {
             // Given a positive-definite symmetric Matrix<Real> a[1..n][1..n], this routine constructs its Cholesky
-            // decomposition, A = L ï¿½ LT . On input, only the upper triangle of a need be given; it is not
+            // decomposition, A = L · LT . On input, only the upper triangle of a need be given; it is not
             // modified. The Cholesky factor L is returned in the lower triangle of a, except for its diagonal
             // elements which are returned in p[1..n]
             int i,j,k;
@@ -4881,7 +5835,7 @@ namespace MML
         }
         void Solve(const Vector<Real> &b, Vector<Real> &x) 
         {
-            // Solves the set of n linear equations A ï¿½ x = b, where a is a positive-definite symmetric Matrix<Real>.
+            // Solves the set of n linear equations A · x = b, where a is a positive-definite symmetric Matrix<Real>.
             // a[1..n][1..n] and p[1..n] are input as the output of the routine choldc. Only the lower
             // triangle of a is accessed. b[1..n] is input as the right-hand side Vector<Real>. The solution Vector<Real> is
             // returned in x[1..n]. a, n, and p are not modified and can be left in place for successive calls
@@ -5005,7 +5959,7 @@ namespace MML
             }
         }
 
-        // Solves the set of n linear equations A ï¿½ x = b. a[1..n][1..n], c[1..n], and d[1..n] are
+        // Solves the set of n linear equations A · x = b. a[1..n][1..n], c[1..n], and d[1..n] are
         // input as the output of the routine qrdcmp and are not modified. b[1..n] is input as the
         // right-hand side Vector<Real>, and is overwritten with the solution Vector<Real> on output. 
         void Solve(const Vector<Real> &b, Vector<Real> &x) 
@@ -5021,7 +5975,7 @@ namespace MML
         }
         void RSolve(const Vector<Real> &b, Vector<Real> &x) 
         {
-            // Solves the set of n linear equations R ï¿½ x = b, where R is an upper triangular Matrix<Real> stored in
+            // Solves the set of n linear equations R · x = b, where R is an upper triangular Matrix<Real> stored in
             // a and d. a[1..n][1..n] and d[1..n] are input as the output of the routine qrdcmp and
             // are not modified. b[1..n] is input as the right-hand side Vector<Real>, and is overwritten with the
             // solution Vector<Real> on output            
@@ -5051,8 +6005,8 @@ namespace MML
         }
         void update(Vector<Real> &u, Vector<Real> &v) 
         {
-            // Given the QR decomposition of some n ï¿½ n Matrix<Real>, calculates the QR decomposition of the
-            // Matrix<Real> Qï¿½(R+ u x v). The quantities are dimensioned as r[1..n][1..n], qt[1..n][1..n],
+            // Given the QR decomposition of some n × n Matrix<Real>, calculates the QR decomposition of the
+            // Matrix<Real> Q·(R+ u x v). The quantities are dimensioned as r[1..n][1..n], qt[1..n][1..n],
             // u[1..n], and v[1..n]. Note that QT is input and returned in qt.            
             int i,k;
             Vector<Real> w(u);
@@ -5124,7 +6078,7 @@ namespace MML
     public:
         SVDecompositionSolver(const Matrix<Real> &a) : m(a.RowNum()), n(a.ColNum()), u(a), v(n,n), w(n) 
         {
-            // Given a Matrix<Real> a[1..m][1..n], this routine computes its singular value decomposition, A = Uï¿½W ï¿½V T . 
+            // Given a Matrix<Real> a[1..m][1..n], this routine computes its singular value decomposition, A = U·W ·V T . 
             // The Matrix<Real> U replaces a on output. 
             // The diagonal Matrix<Real> of singular values W is output as a Vector<Real> w[1..n]. 
             // The Matrix<Real> V (not the transpose V T ) is output as v[1..n][1..n].            
@@ -5453,283 +6407,6 @@ namespace MML
         }
     };
 } // end namespace
-///////////////////////////   ./include/core/VectorSpace.h   ///////////////////////////
-
-
-
-namespace MML
-{
-    // TODO - MED, vector space + Gram Schmidt
-    // TODO - MED, linear transformations & OPERATORS
-    template<int N>
-    class RealVectorSpaceN : public HilbertSpace<Real, VectorN<Real, N>>
-    {
-    public:
-        virtual Real  scal_prod(const VectorN<Real, N> &a, const VectorN<Real, N> &b) const
-        {
-            return a.ScalarProductCartesian(b);
-        }
-    };
-
-    template<int N>
-    class ComplexVectorSpaceN : public HilbertSpace<Complex, VectorN<Complex, N>>
-    {
-    public:
-        virtual Real  scal_prod(const VectorN<Complex, N> &a, const VectorN<Complex, N> &b) const
-        {
-            Real product = 0.0;
-            for( int i=0; i<N; i++ )
-                product += (a[i] * std::conj(b[i])).real();
-            return product;
-        }        
-    };
-}
-///////////////////////////   ./include/core/Polynom.h   ///////////////////////////
-
-
-namespace MML
-{
-    // TODO - HIGH, TESKO?, dodati RealPolynom klasu, izvedenu iz IRealFunction implementirati derive (derivs - sve, first, sec, third zasebno)& integrate
-    template <typename _Field, typename _CoefType = Real>
-    class Polynom
-    {
-    private:
-        std::vector<_CoefType> _vecCoef;
-    public:
-        Polynom() {}
-        Polynom(int n) { _vecCoef.resize(n+1); }
-        Polynom(const std::vector<_CoefType> &vecCoef) : _vecCoef(vecCoef) {}
-        Polynom(std::initializer_list<_CoefType> list) : _vecCoef(list) {}
-        Polynom(const Polynom &Copy) : _vecCoef(Copy._vecCoef) {}
-        ~Polynom() {}
-
-        Polynom& operator=(const Polynom &Copy) { _vecCoef = Copy._vecCoef; return *this; }
-
-        int  GetDegree() const     { return (int) _vecCoef.size() - 1; }
-        void SetDegree(int newDeg) {  _vecCoef.resize(newDeg+1); }
-
-        _Field  operator[] (int i) const { return _vecCoef[i]; }
-        _Field& operator[] (int i)       { return _vecCoef[i]; }
-
-        _Field operator() (const _Field &x) {
-            int j = GetDegree();
-            _Field p = _vecCoef[j];
-            
-            while (j>0) 
-                p = p*x + _vecCoef[--j];
-            return p;
-        }        
-        // Given the coefficients of a polynomial of degree nc as an array c[0..nc] of size nc+1 (with
-        // c[0] being the constant term), and given a value x, this routine fills an output array pd of size
-        // nd+1 with the value of the polynomial evaluated at x in pd[0], and the first nd derivatives at
-        // x in pd[1..nd].
-        void Derive(const Real x, Vector<Real> &pd)
-        {
-            int  nnd,j,i;
-            int  nc=GetDegree();
-            int  nd=pd.size()-1;
-            Real cnst=1.0;
-
-            pd[0]=(*this)[nc];
-            for (j=1;j<nd+1;j++) 
-                pd[j]=0.0;
-            
-            for (i=nc-1;i>=0;i--) 
-            {
-                nnd=(nd < (nc-i) ? nd : nc-i);
-                for (j=nnd;j>0;j--) 
-                    pd[j]=pd[j]*x+pd[j-1];
-
-                pd[0]=pd[0]*x + (*this)[i];
-            }
-            for (i=2;i<nd+1;i++) {
-                cnst *= i;
-                pd[i] *= cnst;
-            }
-        }        
-
-        bool operator==(const Polynom &b) const
-        {
-            if( _vecCoef.size() != b._vecCoef.size() )
-                return false;
-            for( int i=0; i<_vecCoef.size(); i++ )
-                if( _vecCoef[i] != b._vecCoef[i] )
-                    return false;
-            return true;
-        }
-
-        Polynom operator+(const Polynom &b) const
-        {
-            Polynom result;
-            int n = (int) std::max(_vecCoef.size(), b._vecCoef.size());
-            result._vecCoef.resize(n);
-            for (int i = 0; i < n; i++)
-            {
-                if (i < _vecCoef.size())
-                    result._vecCoef[i] += _vecCoef[i];
-                if (i < b._vecCoef.size())
-                    result._vecCoef[i] += b._vecCoef[i];
-            }
-            return result;
-        }
-
-        Polynom operator-(const Polynom &b) const
-        {
-            Polynom result;
-            int n = (int) std::max(_vecCoef.size(), b._vecCoef.size());
-            result._vecCoef.resize(n);
-            for (int i = 0; i < n; i++)
-            {
-                if (i < _vecCoef.size())
-                    result._vecCoef[i] += _vecCoef[i];
-                if (i < b._vecCoef.size())
-                    result._vecCoef[i] -= b._vecCoef[i];
-            }
-            return result;
-        }
-
-        Polynom operator*(const Polynom &b) const
-        {
-            Polynom result;
-
-            int n = (int) (_vecCoef.size() + b._vecCoef.size() - 1);
-            result._vecCoef.resize(n);
-            for (int i = 0; i < _vecCoef.size(); i++)
-                for (int j = 0; j < b._vecCoef.size(); j++)
-                    result._vecCoef[i + j] += _vecCoef[i] * b._vecCoef[j];
-            return result;
-        }
-
-        static void poldiv(const Polynom &u, const Polynom &v, Polynom &qout, Polynom &rout)
-        {
-            int k,j,n=u.GetDegree(),nv=v.GetDegree();
-
-            while (nv >= 0 && v._vecCoef[nv] == 0.) nv--;
-
-            if (nv < 0) 
-                throw("poldiv divide by zero polynomial");
-            
-            Polynom r = u;
-            Polynom q(u.GetDegree());
-            for (k=n-nv;k>=0;k--) 
-            {
-                q[k]=r[nv+k]/v[nv];
-                for (j=nv+k-1;j>=k;j--) 
-                    r[j] -= q[k]*v[j-k];
-            }
-            for (j=nv;j<=n;j++) r[j]=0.0;
-
-            int nq=q.GetDegree();            
-            while (nq >= 0 && q[nv] == 0.) 
-                nq--;
-
-            qout.SetDegree(nq-1);
-            for(j=0; j<nq; j++ )
-                qout[j] = q[j];
-
-            rout.SetDegree(nv-1);
-            for(j=0; j<nv; j++ )
-                rout[j] = r[j];
-        }
-        
-        friend Polynom operator*(const Polynom &a, _CoefType b )
-        {
-            Polynom ret;
-            ret._vecCoef.resize(a.GetDegree()+1);
-            for(int i=0; i<=a.GetDegree(); i++)
-                ret._vecCoef[i] = a._vecCoef[i] * b;
-            return ret;
-        }
-
-        friend Polynom operator*(_CoefType a, const Polynom &b )
-        {
-            Polynom ret;
-            ret._vecCoef.resize(b.GetDegree()+1);
-            for(int i=0; i<=b.GetDegree(); i++)
-                ret._vecCoef[i] = a * b._vecCoef[i];
-            return ret;
-        }
-
-        friend Polynom operator/(const Polynom &a, _CoefType b)
-        {
-            Polynom ret;
-            ret._vecCoef.resize(a.GetDegree()+1);
-            for(int i=0; i<=a.GetDegree(); i++)
-                ret._vecCoef[i] = a._vecCoef[i] / b;
-            return ret;
-        }        
-
-        std::ostream& Print(std::ostream& stream, int width, int precision) const
-        {
-            for(int i=(int) _vecCoef.size()-1; i>=0; i--)
-            {
-                if( std::abs(_vecCoef[i]) == 0.0 )
-                    continue;
-
-                if( i != _vecCoef.size()-1 )
-                    stream << " + ";
-
-                if( i == 0 )
-                    stream << std::setw(width) << std::setprecision(precision) << _vecCoef[i];
-                else if ( i == 1 )
-                    stream << std::setw(width) << std::setprecision(precision) << _vecCoef[i] << " * x" << i;
-                else
-                    stream << std::setw(width) << std::setprecision(precision) << _vecCoef[i] << " * x^" << i;
-            }
-
-            return stream;
-        }
-
-        std::ostream& Print(std::ostream& stream) const
-        {
-            for(int i=(int)_vecCoef.size()-1; i>=0; i--)
-            {
-                if( std::abs(_vecCoef[i]) == 0.0 )
-                    continue;
-
-                if( i != _vecCoef.size()-1 )
-                    stream << " + ";
-                
-                if( i == 0 )
-                    stream <<  _vecCoef[i];
-                else if ( i == 1 )
-                    stream <<  _vecCoef[i] << " * x" << i;
-                else
-                    stream <<  _vecCoef[i] << " * x^" << i;
-            }
-
-            return stream;
-        }
-
-        std::string to_string(int width, int precision) const
-        {
-            std::stringstream str;
-
-            Print(str, width, precision);
-
-            return str.str();
-        }
-
-        friend std::ostream& operator<<(std::ostream& stream, Polynom &a)
-        {
-            a.Print(stream);
-
-            return stream;
-        }        
-    };
-
-    // class RealPolynom : public Polynom<Real, Real>
-    // {
-    // };
-        
-    typedef Polynom<Real, Real>         RealPolynom;
-    typedef Polynom<Complex, Complex>   ComplexPolynom;
-
-    typedef Polynom<MatrixNM<Real,2,2>, Real>       MatrixPolynomDim2;
-    typedef Polynom<MatrixNM<Real,3,3>, Real>       MatrixPolynomDim3;
-    typedef Polynom<MatrixNM<Real,4,4>, Real>       MatrixPolynomDim4;
-}
-
 ///////////////////////////   ./include/core/CoreUtils.h   ///////////////////////////
 
 
@@ -5739,7 +6416,6 @@ namespace MML
 {
     namespace MatrixUtils
     {
-
         static Real Det(const Matrix<Real> &mat)
         {
             Matrix<Real> matCopy(mat);
@@ -5756,12 +6432,9 @@ namespace MML
 
             return svdSolver.Rank();
         }
- 
-
     }
 }
 ///////////////////////////   ./include/core/Derivation.h   ///////////////////////////
-
 
 
 
@@ -8013,7 +8686,7 @@ namespace MML::Integration
     {
         // Returns the integral of the function func from a to b. The parameters EPS can be set to the
         // desired fractional accuracy and JMAX so that 2 to the power JMAX-1 is the maximum allowed
-        // number of steps. Integration is performed by Simpsonï¿½s rule.
+        // number of steps. Integration is performed by Simpson’s rule.
 
         // The routine qsimp will in general be more efficient than qtrap (i.e., require
         // fewer function evaluations) when the function to be integrated has a finite 4th
@@ -8097,8 +8770,8 @@ namespace MML::Integration
 
     static Real IntegrateRomberg(const IRealFunction &func, const Real a, const Real b, Real req_eps)
     {
-        // Returns the integral of the function func from a to b. Integration is performed by Rombergï¿½s
-        // method of order 2K, where, e.g., K=2 is Simpsonï¿½s rule.
+        // Returns the integral of the function func from a to b. Integration is performed by Romberg’s
+        // method of order 2K, where, e.g., K=2 is Simpson’s rule.
 
         // The routine qromb, along with its required trapzd and polint, is quite
         // powerful for sufficiently smooth (e.g., analytic) integrands, integrated over intervals
@@ -8274,6 +8947,7 @@ namespace MML::Integration
 
 } // end namespace
 ///////////////////////////   ./include/core/Function.h   ///////////////////////////
+
 
 
 
@@ -8488,6 +9162,7 @@ namespace MML
 } // end namespace
 
 ///////////////////////////   ./include/core/FunctionHelpers.h   ///////////////////////////
+
 
 
 
@@ -8797,7 +9472,7 @@ namespace MML
         mutable Real dy;
 
         // The user interface to Poly_interp is virtually the same as for Linear_interp
-        // (end of ï¿½3.1), except that an additional argument in the constructor sets M, the number of points used (the order plus one). 
+        // (end of ÷3.1), except that an additional argument in the constructor sets M, the number of points used (the order plus one). 
         PolynomInterpRealFunc(Vector<Real> &xv, Vector<Real> &yv, int m) : RealFunctionInterpolatedBase(xv,yv,m), dy(0.) 
         {}
         
@@ -8835,7 +9510,7 @@ namespace MML
                 y += (dy=(2*(ns+1) < (mm-m) ? c[ns+1] : d[ns--]));
                 // After each column in the tableau is completed, we decide which correction, c or d, we
                 // want to add to our accumulating value of y, i.e., which path to take through the tableau
-                // ï¿½ forking up or down. We do this in such a way as to take the most ï¿½straight lineï¿½
+                // — forking up or down. We do this in such a way as to take the most “straight line”
                 // route through the tableau to its apex, updating ns accordingly to keep track of where
                 // we are. This route keeps the partial approximations centered (insofar as possible) on
                 // the target x. The last dy added is thus the error indication.                
@@ -9213,220 +9888,6 @@ namespace MML
     };       
 }
 
-///////////////////////////   ./include/core/LinearFunctional.h   ///////////////////////////
-
-
-
-namespace MML
-{
-    template <int N, typename _Field = Real>
-    class LinearFunctionalN 
-    {
-    private:
-        // TODO - LOW, this should be an array, not a vector
-        VectorN<_Field, N> _vecCoef;
-    public:
-        LinearFunctionalN() {}
-        LinearFunctionalN(const VectorN<_Field, N> &vecCoef) : _vecCoef(vecCoef) {}
-        LinearFunctionalN(std::initializer_list<_Field> list) : _vecCoef(list) {}
-
-        LinearFunctionalN(const LinearFunctionalN &Copy) : _vecCoef(Copy._vecCoef) {}
-        ~LinearFunctionalN() {}
-
-        LinearFunctionalN& operator=(const LinearFunctionalN &Copy) { _vecCoef = Copy._vecCoef; return *this; }
-
-        int Dim() const { return N; }
-
-        _Field operator()(const VectorN<_Field, N> &vecX) const
-        {
-            _Field result = 0.0;
-            for (int i = 0; i < N; i++)
-                result += _vecCoef[i] * vecX[i];
-            return result;
-        }
-
-        LinearFunctionalN operator+(const LinearFunctionalN &b) const
-        {
-            LinearFunctionalN result;
-            for (int i = 0; i < N; i++)
-                result._vecCoef[i] = _vecCoef[i] + b._vecCoef[i];
-            return result;
-        }
-
-        LinearFunctionalN operator-(const LinearFunctionalN &b) const
-        {
-            LinearFunctionalN result;
-            for (int i = 0; i < N; i++)
-                result._vecCoef[i] = _vecCoef[i] - b._vecCoef[i];
-            return result;
-        }
-
-        LinearFunctionalN operator*(_Field b) const
-        {
-            LinearFunctionalN result;
-            for (int i = 0; i < _vecCoef.size();    i++)
-                result._vecCoef[i] = _vecCoef[i] * b;
-            return result;
-        }
-    };
-
-    template <int N>
-    class RealLinearFunctionalN : public IScalarFunction<N>
-    {
-    private:
-        VectorN<Real, N> _vecCoef;
-    public:
-        RealLinearFunctionalN() {}
-        RealLinearFunctionalN(const VectorN<Real, N> &vecCoef) : _vecCoef(vecCoef) {}
-        RealLinearFunctionalN(std::initializer_list<Real> list) : _vecCoef(list) {}
-
-        RealLinearFunctionalN(const RealLinearFunctionalN &Copy) = default;
-        ~RealLinearFunctionalN() {}
-
-        RealLinearFunctionalN& operator=(const RealLinearFunctionalN &Copy) { _vecCoef = Copy._vecCoef; return *this; }
-
-        int Dim() const { return N; }
-
-        Real operator()(const VectorN<Real, N> &vecX) const
-        {
-            Real result = 0.0;
-            for (int i = 0; i < N; i++)
-                result += _vecCoef[i] * vecX[i];
-            return result;
-        }
-
-        RealLinearFunctionalN operator+(const RealLinearFunctionalN &b) const
-        {
-            RealLinearFunctionalN result;
-            for (int i = 0; i < N; i++)
-                result._vecCoef[i] = _vecCoef[i] + b._vecCoef[i];
-            return result;
-        }
-
-        RealLinearFunctionalN operator-(const RealLinearFunctionalN &b) const
-        {
-            RealLinearFunctionalN result;
-            for (int i = 0; i < N; i++)
-                result._vecCoef[i] = _vecCoef[i] - b._vecCoef[i];
-            return result;
-        }
-
-        RealLinearFunctionalN operator*(Real b) const
-        {
-            RealLinearFunctionalN result;
-            for (int i = 0; i < _vecCoef.size();    i++)
-                result._vecCoef[i] = _vecCoef[i] * b;
-            return result;
-        }
-    };    
-
-    class RealLinearFunctional
-    {
-    private:
-        std::vector<Real> _vecCoef;
-    public:
-        RealLinearFunctional() {}
-        RealLinearFunctional(const std::vector<Real> &vecCoef) : _vecCoef(vecCoef) {}
-        RealLinearFunctional(std::initializer_list<Real> list) : _vecCoef(list) {}
-
-        RealLinearFunctional(const RealLinearFunctional &Copy) : _vecCoef(Copy._vecCoef) {}
-        ~RealLinearFunctional() {}
-
-        int Dim() const { return (int) _vecCoef.size(); }
-
-        RealLinearFunctional& operator=(const RealLinearFunctional &Copy) { _vecCoef = Copy._vecCoef; return *this; }
-
-        Real operator()(const std::vector<Real> &vecX) const
-        {
-            if( vecX.size() != Dim() )
-                throw std::runtime_error("RealLinearFunctional::operator() - incompatible vector size");
-
-            Real result = 0.0;
-            for (int i = 0; i < _vecCoef.size(); i++)
-                result += _vecCoef[i] * vecX[i];
-            return result;
-        }
-
-        RealLinearFunctional operator+(const RealLinearFunctional &b) const
-        {
-            if( b.Dim() != Dim() )
-                throw std::runtime_error("RealLinearFunctional::operator+() - incompatible vector size");
-
-            RealLinearFunctional result;
-            for (int i = 0; i < Dim(); i++)
-                result._vecCoef[i] = _vecCoef[i] + b._vecCoef[i];
-            return result;            
-        }
-
-        RealLinearFunctional operator-(const RealLinearFunctional &b) const
-        {
-            if( b.Dim() != Dim() )
-                throw std::runtime_error("RealLinearFunctional::operator-() - incompatible vector size");
-
-            RealLinearFunctional result;
-            for (int i = 0; i < Dim(); i++)
-                result._vecCoef[i] = _vecCoef[i] - b._vecCoef[i];
-            return result;  
-        }
-
-        RealLinearFunctional operator*(Real b) const
-        {
-            RealLinearFunctional result;
-            for (int i = 0; i < Dim(); i++)
-                result._vecCoef[i] = _vecCoef[i] + b;
-            return result;  
-        }
-    };
-}
-
-///////////////////////////   ./include/core/LinearOperator.h   ///////////////////////////
-
-
-
-namespace MML
-{
-    // TODO - MED, TESKO, finish  this
-    template<int N>
-    class RealLinearOperatorN : public ILinearOperator<VectorN<Real, N>, VectorN<Real, N>>
-    {
-        MatrixNM<Real, N, N> m_matrix;
-    public:
-        VectorN<Real, N>  operator()(const VectorN<Real, N>& x) const 
-        {
-            return m_matrix * x;
-        }
-    };
-
-    template<int N, int M>
-    class RealLinearOperatorNM : public ILinearOperator<VectorN<Real, N>, VectorN<Real, M>>
-    {
-        MatrixNM<Real, N, M> m_matrix;
-    public:
-        VectorN<Real, N>  operator()(const VectorN<Real, M>& x) const 
-        {
-            return m_matrix * x;
-        }
-    };    
-}
-///////////////////////////   ./include/core/QuadraticForm.h   ///////////////////////////
-
-
-
-namespace MML
-{
-    // TODO - MED, finish this
-    template<int N>
-    class QuadraticFormN : public IScalarFunction<N>
-    {
-        MatrixNM<Real, N, N> _mat;
-    public:
-        Real operator()(const VectorN<Real, N> &x) const
-        {
-            return x.ScalarProductCartesian(_mat * x);
-        }
-
-    };
-}
 ///////////////////////////   ./include/core/MetricTensor.h   ///////////////////////////
 
 
@@ -10542,7 +11003,7 @@ class ChebyshevApproximation {
 	
     // Chebyshev fit: Given a function func, lower and upper limits of the interval [a,b], compute and
     // save nn coefficients of the Chebyshev approximation such that func.(x) = sum( ... ), where y and x are related by (5.8.10). 
-    // This routine is intended to be called with moderately large n (e.g., 30 or 50), the array of cï¿½s subsequently to be truncated at the smaller value
+    // This routine is intended to be called with moderately large n (e.g., 30 or 50), the array of c’s subsequently to be truncated at the smaller value
     // m such that cm and subsequent elements are negligible.
     ChebyshevApproximation(const IRealFunction &func, Real aa, Real bb, int nn=50)
         : n(nn), m(nn), c(n), a(aa), b(bb)
@@ -10658,7 +11119,7 @@ class ChebyshevApproximation {
 
 } // namespace MML
 
-///////////////////////////   ./include/basic_types/FunctionSpace.h   ///////////////////////////
+///////////////////////////   ./include/core/FunctionSpace.h   ///////////////////////////
 
 
 
@@ -10793,7 +11254,7 @@ namespace MML
         // crucial, then you can define operators on functions, but actually vectors, and applying operator to function is multiplying matrix with vector
     };
 }
-///////////////////////////   ./include/basic_types/Curves.h   ///////////////////////////
+///////////////////////////   ./include/core/Curves.h   ///////////////////////////
 
 
 
@@ -10974,7 +11435,7 @@ namespace MML
     }
 }
 
-///////////////////////////   ./include/basic_types/Surfaces.h   ///////////////////////////
+///////////////////////////   ./include/core/Surfaces.h   ///////////////////////////
 
 
 namespace MML
@@ -10985,8 +11446,7 @@ namespace MML
     }
 }
 
-///////////////////////////   ./include/basic_types/DiracDeltaFunction.h   ///////////////////////////
-
+///////////////////////////   ./include/core/DiracDeltaFunction.h   ///////////////////////////
 
 
 namespace MML
@@ -11035,7 +11495,7 @@ namespace MML
     };
 }
 
-///////////////////////////   ./include/basic_types/ODESystem.h   ///////////////////////////
+///////////////////////////   ./include/core/ODESystem.h   ///////////////////////////
 
 
 
@@ -11168,484 +11628,7 @@ namespace MML
         }
     };
 }
-///////////////////////////   ./include/basic_types/Geometry2D.h   ///////////////////////////
-
-
-namespace MML
-{
-    class Line2D
-    {
-    private:
-        Point2Cartesian _point;
-        Vector2Cartesian _direction; // unit vector in line direction
-
-    public:
-        Line2D(const Point2Cartesian &pnt, const Vector2Cartesian dir)
-        {
-            _point = pnt;
-            _direction = dir.GetUnitVector();
-        }
-
-        Line2D(const Point2Cartesian &a, const Point2Cartesian &b)
-        {
-            Vector2Cartesian dir(a , b);
-            _point = a;
-            _direction = dir.GetUnitVector();
-        }
-
-        Point2Cartesian     StartPoint() const  { return _point; }
-        Point2Cartesian&    StartPoint()        { return _point; }
-
-        Vector2Cartesian    Direction() const   { return _direction; }
-        Vector2Cartesian&   Direction()         { return _direction; }
-
-        Point2Cartesian PointOnLine(Real t)
-        {
-            Vector2Cartesian dist = t * _direction;
-            Point2Cartesian ret = _point + dist;
-            return ret;
-        }
-    };
-
-   class SegmentLine2D
-    {
-    private:
-        Point2Cartesian _point1;
-        Point2Cartesian _point2;
-
-    public:
-        SegmentLine2D(Point2Cartesian pnt1, Point2Cartesian pnt2) : _point1(pnt1), _point2(pnt2)
-        { }
-
-        SegmentLine2D(const Point2Cartesian &pnt1, const Vector2Cartesian &direction, Real t) : _point1(pnt1)
-        {
-            _point2 = pnt1 + direction * t;
-        }
-
-        Point2Cartesian     StartPoint() const  { return _point1; }
-        Point2Cartesian&    StartPoint()        { return _point1; }
-
-        Point2Cartesian     EndPoint()  const  { return _point2; }
-        Point2Cartesian&    EndPoint()         { return _point2; }
-
-        Point2Cartesian PointOnSegment(Real t)
-        {
-            if( t < 0.0 || t > 1.0)
-                throw std::invalid_argument("t must be in [0,1]");
-
-            Vector2Cartesian dist = t * Direction();
-            Point2Cartesian ret = _point1 + dist;
-            return ret;
-        }
-
-        Real                Length()    const { return _point1.Dist(_point2); }
-        Vector2Cartesian    Direction() const { return Vector2Cartesian(_point1, _point2); }
-    };
-
-    class Triangle2D
-    {
-    private:
-        Point2Cartesian _pnt1, _pnt2, _pnt3;
-
-    public:
-        Triangle2D(Point2Cartesian pnt1, Point2Cartesian pnt2, Point2Cartesian pnt3) : _pnt1(pnt1), _pnt2(pnt2), _pnt3(pnt3)
-        { }
-
-        Point2Cartesian     Pnt1() const { return _pnt1; }
-        Point2Cartesian&    Pnt1()       { return _pnt1; }
-        Point2Cartesian     Pnt2() const { return _pnt2; }
-        Point2Cartesian&    Pnt2()       { return _pnt2; }
-        Point2Cartesian     Pnt3() const { return _pnt3; }
-        Point2Cartesian&    Pnt3()       { return _pnt3; }
-
-        Real Area() const
-        {
-            Real a = _pnt1.Dist(_pnt2);
-            Real b = _pnt2.Dist(_pnt3);
-            Real c = _pnt3.Dist(_pnt1);
-
-            Real s = (a + b + c) / 2.0;
-
-            return sqrt(s * (s - a) * (s - b) * (s - c));
-        }
-    };    
-
-    class Polygon2D
-    {
-    private:
-        std::vector<Point2Cartesian> _points;
-    public:
-        Polygon2D() {}
-        Polygon2D(std::vector<Point2Cartesian> points) : _points(points) {}
-        Polygon2D(std::initializer_list<Point2Cartesian> list) 
-        {
-            for (auto element : list)
-                _points.push_back(element);
-        }
-
-        std::vector<Point2Cartesian>  Points() const { return _points; }
-        std::vector<Point2Cartesian>& Points()       { return _points; }
-
-        Real Area() const
-        {
-            Real area = 0.0;
-            int n = (int) _points.size();
-            for (int i = 0; i < n; i++)
-            {
-                area += _points[i].X() * _points[(i + 1) % n].Y();
-                area -= _points[i].Y() * _points[(i + 1) % n].X();
-            }
-            area /= 2.0;
-            return area;
-        }
-
-        // TODO - IsConvex()
-        // TODO - Triangularization
-        
-        // TODO - IsInside
-        bool IsInside(Point2Cartesian pnt) const
-        {
-            return false;
-        }                 
-    };            
-}
-///////////////////////////   ./include/basic_types/Geometry3D.h   ///////////////////////////
-
-
-
-namespace MML
-{
-    class Line3D
-    {
-    private:
-        Point3Cartesian  _point;
-        Vector3Cartesian _direction; 
-
-    public:
-        Line3D() {}
-        Line3D(const Point3Cartesian &pnt, const Vector3Cartesian dir)
-        {
-            _point = pnt;
-            _direction = dir.GetAsUnitVector();
-        }
-
-        Line3D(const Point3Cartesian &a, const Point3Cartesian &b)
-        {
-            Vector3Cartesian dir(a, b);
-            _point = a;
-            _direction = dir.GetAsUnitVector();
-        }
-
-        Point3Cartesian   StartPoint() const  { return _point; }
-        Point3Cartesian&  StartPoint()        { return _point; }
-
-        Vector3Cartesian  Direction() const   { return _direction; }
-        Vector3Cartesian& Direction()         { return _direction; }
-
-        Point3Cartesian PointOnLine(Real t) const { return _point + t * _direction;  }
-
-        bool IsPerpendicular(const Line3D &b ) const
-        {
-            return ScalarProd(Direction(), b.Direction()) == 0.0f;
-        }
-        bool IsParallel(const Line3D &b ) const
-        {
-            return ScalarProd(Direction(), b.Direction()) == 0.0f;
-        }
-        // TODO 0.6 - distance Line - Point3
-        Real Dist(const Point3Cartesian &pnt) const
-        {
-            Real dist = 0.0;
-
-            const Real a = pnt.X();
-            const Real b = pnt.Y();
-            const Real c = pnt.Z();
-
-            const Real x1 = StartPoint().X();
-            const Real y1 = StartPoint().Y();
-            const Real z1 = StartPoint().Z();
-
-            const Real l = Direction().X();
-            const Real m = Direction().Y();
-            const Real n = Direction().Z();
-
-            dist = SQR((a-x1)*m - (b-y1)*l) + SQR((b-y1)*n - (c-z1)*m) + SQR((c-z1)*l - (a-x1)*n);
-            Real denom = l*l + m*m + n*n;
-
-            return sqrt(dist / denom);
-        }
-
-        // Real DistChatGPT(const Point3Cartesian &pnt)
-        // {
-        //     Vector3Cartesian p0 = StartPoint();
-        //     Vector3Cartesian p1 = p0 + Direction();
-        //     Vector3Cartesian p = pnt;
-
-        //     Vector3Cartesian numerator = (p - p0).CrossProduct(p - p1);
-        //     Real denominator = (p1 - p0).Length();
-
-        //     return numerator.Length() / denominator;
-        // }
-
-        Point3Cartesian NearestPoint(const Point3Cartesian &pnt) const
-        {
-            // https://math.stackexchange.com/questions/1521128/given-a-line-and-a-point-in-3d-how-to-find-the-closest-point-on-the-line         
-            Point3Cartesian Q(StartPoint());
-            Point3Cartesian R = PointOnLine(1.0);
-
-            Vector3Cartesian RQ(Q, R);
-            Vector3Cartesian QP(pnt, StartPoint());
-
-            double t = QP.ScalarProductCartesian(RQ) / RQ.ScalarProductCartesian(RQ);
-
-            return Q - t * RQ;
-        }
-        // TODO pravac koji prolazi kroz tocku i sijece zadani pravac okomito
-        // TODO - sjeciste dva pravca
-    };
-
-    class SegmentLine3D
-    {
-    private:
-        Point3Cartesian _point1;
-        Point3Cartesian _point2;
-
-    public:
-        SegmentLine3D(Point3Cartesian pnt1, Point3Cartesian pnt2) : _point1(pnt1), _point2(pnt2)
-        { }
-
-        SegmentLine3D(Point3Cartesian pnt1, Vector3Cartesian direction, Real t)
-        {
-            _point1 = pnt1;
-            _point2 = pnt1 + t * direction;
-        }
-
-        Point3Cartesian   StartPoint() const  { return _point1; }
-        Point3Cartesian&  StartPoint()       { return _point1; }
-
-        Point3Cartesian   EndPoint() const  { return _point2; }
-        Point3Cartesian&  EndPoint()       { return _point2; }
-
-        Point3Cartesian PointOnSegment(Real t)
-        {
-            if( t < 0.0 || t > 1.0 )
-                throw std::runtime_error("SegmentLine3D::PointOnSegment - t not in [0,1]");
-
-            return _point1 + t * Direction();
-        }
-
-        Real                Length()    const { return _point1.Dist(_point2); }
-        Vector3Cartesian    Direction() const { return Vector3Cartesian(_point1, _point2); }
-    };
-
-    class Plane3D
-    {
-    private:
-        Real _A, _B, _C, _D;
-    
-    public:
-        Plane3D(const Point3Cartesian &a, const Vector3Cartesian &normal)
-        {
-            if( normal.NormL2() == 0.0 )
-                throw std::runtime_error("Plane3D ctor - normal is null vector");
-
-            Vector3Cartesian unitNormal = normal.GetAsUnitVector();
-
-            _A = unitNormal.X();
-            _B = unitNormal.Y();
-            _C = unitNormal.Z();
-            _D = -(a.X() * unitNormal.X() + a.Y() * unitNormal.Y() + a.Z() * unitNormal.Z());
-        }
-
-        Plane3D(const Point3Cartesian &a, const Point3Cartesian &b, const Point3Cartesian &c) 
-            : Plane3D(a, VectorProd(Vector3Cartesian(a, b), Vector3Cartesian(a, c)))
-        { }
-
-        Plane3D(Real alpha, Real beta, Real gamma, Real d)      // Hesseov (normalni) oblik
-        {
-            _A = cos(alpha);
-            _B = cos(beta);
-            _C = cos(gamma);
-            _D = -d;
-        }
-
-        // tri segmenta na koord osima ctor
-        Plane3D(Real seg_x, Real seg_y, Real seg_z) 
-        {
-            Point3Cartesian x(seg_x, 0, 0);
-            Point3Cartesian y(0, seg_y, 0);
-            Point3Cartesian z(0, 0, seg_z);
-
-            if( seg_x == 0 || seg_y == 0 || seg_z == 0 )
-                throw std::runtime_error("Plane3D ctor - zero segment");
-            
-            _A = 1 / seg_x;
-            _B = 1 / seg_y;
-            _C = 1 / seg_z;
-            _D = -1;
-        }
-
-        static Plane3D GetXYPlane() { return Plane3D(Point3Cartesian(0,0,0), Vector3Cartesian(0,0,1)); }
-        static Plane3D GetXZPlane() { return Plane3D(Point3Cartesian(0,0,0), Vector3Cartesian(0,1,0)); }
-        static Plane3D GetYZPlane() { return Plane3D(Point3Cartesian(0,0,0), Vector3Cartesian(1,0,0)); }
-
-        Real  A() const   { return _A; }
-        Real& A()         { return _A; }
-        Real  B() const   { return _B; }
-        Real& B()         { return _B; }
-        Real  C() const   { return _C; }
-        Real& C()         { return _C; }
-        Real  D() const   { return _D; }
-        Real& D()         { return _D; }
-
-        Point3Cartesian GetPointOnPlane() const { 
-            if( _A != 0.0 )
-                return Point3Cartesian(-_D / _A, 0, 0); 
-            else  
-                return Point3Cartesian(0, 0, -_D / _C); 
-        }
-        
-        Vector3Cartesian Normal() const { return Vector3Cartesian(_A, _B, _C); }
-
-        void GetCoordAxisSegments(Real &outseg_x, Real& outseg_y, Real& outseg_z)
-        {
-            outseg_x = - _D /  _A;
-            outseg_y = - _D /  _B;
-            outseg_z = - _D /  _C;
-        }
-        // TODO - GetHesseNormalFormParams
-
-
-        bool IsPointOnPlane(const Point3Cartesian &pnt) const
-        {
-            return _A * pnt.X() + _B * pnt.Y() + _C * pnt.Z() + _D == 0.0;
-        }
-        Real DistToPoint(const Point3Cartesian &pnt) const
-        {
-            Real a = _A * pnt.X() + _B * pnt.Y() + _C * pnt.Z() + _D;
-            Real b = sqrt(_A * _A + _B * _B + _C * _C);
-
-            return std::abs(a / b);
-        }
-
-        Point3Cartesian ProjectionToPlane(const Point3Cartesian &pnt) const
-        {
-            // from given point and normal to plane form a Line3D
-            Line3D line(pnt, Normal());
-            
-            // find intersection of this line with plane
-            Point3Cartesian ret;
-            IntersectionWithLine(line, ret);
-
-            return ret;
-        }
-
-        bool IsLineOnPlane(const Line3D &line) const
-        {
-            // get two points
-            const Point3Cartesian pnt1 = line.StartPoint();
-            const Point3Cartesian pnt2 = line.PointOnLine(1.0);
-
-            if(IsPointOnPlane(pnt1) && IsPointOnPlane(pnt2))
-                return true;
-            else
-                return false;
-        }
-
-        Real AngleToLine(const Line3D &line) const
-        {
-            // angle between line and normal to plane
-            return Constants::PI / 2.0 - line.Direction().AngleToVector(this->Normal());
-        }        
-
-        bool IntersectionWithLine(const Line3D &line, Point3Cartesian &out_inter_pnt) const
-        {
-            // Calculate the direction vector of the line
-            Vector3Cartesian line_dir = line.Direction();
-
-            // Calculate the normal vector of the plane
-            Vector3Cartesian plane_normal = Normal();
-
-            // Check if the line is parallel to the plane
-            if (line_dir.ScalarProductCartesian(plane_normal) == 0) {
-                return false;
-            }
-
-            // Calculate the distance between the line and the plane
-            double dist = Vector3Cartesian(GetPointOnPlane(), line.StartPoint()).ScalarProductCartesian(plane_normal) / line_dir.ScalarProductCartesian(plane_normal);
-
-            // Calculate the point of intersection
-            Point3Cartesian inter_pnt = line.StartPoint() + line_dir * dist;
-
-            // Set the output parameter to the point of intersection
-            out_inter_pnt = inter_pnt;
-
-            return true;
-        }
-
-        bool IsParallelToPlane(const Plane3D &plane) const
-        {
-            Vector3Cartesian norm1(_A, _B, _C);
-
-            Vector3Cartesian norm2(plane._A, plane._B, plane._C);
-
-            return norm1.IsParallelTo(norm2);
-        }        
-        bool IsPerpendicularToPlane(const Plane3D &plane) const
-        {
-            Vector3Cartesian norm1(_A, _B, _C);
-            Vector3Cartesian norm2(plane._A, plane._B, plane._C);
-
-            return norm1.IsPerpendicularTo(norm2);
-        }
-        Real AngleToPlane(const Plane3D &plane) const
-        {
-            // to je kut normala
-            return this->Normal().AngleToVector(plane.Normal());
-        }     
-        Real DistToPlane(const Plane3D &plane) const
-        {
-            // TODO finishs
-            // ili su paralelne, pa imamo neki broj, ili se sijeku pa je 0
-            return 0.0;
-        }     
-        // TODO - check implementation IntersectionWithPlane
-        bool IntersectionWithPlane(const Plane3D &plane, Line3D &out_inter_line) const
-        {
-            Vector3Cartesian inter_dir = VectorProd(Normal(), plane.Normal());
-
-            // Check if the planes are parallel
-            if (inter_dir.NormL2() == 0.0) {
-                return false;
-            }
-
-            // Calculate a point on the intersection line
-            Point3Cartesian inter_pnt = GetPointOnPlane();
-
-            // Calculate the distance between the intersection line and the two planes
-            double dist1 = Vector3Cartesian(inter_pnt, GetPointOnPlane()).ScalarProductCartesian(plane.Normal());
-            double dist2 = Vector3Cartesian(inter_pnt, plane.GetPointOnPlane()).ScalarProductCartesian(Normal());
-
-            // Calculate the point of intersection
-            inter_pnt = inter_pnt - inter_dir * (dist1 / inter_dir.ScalarProductCartesian(plane.Normal()));
-
-            // Set the output parameter to the intersection line
-            out_inter_line = Line3D(inter_pnt, inter_dir);
-
-            return true;            
-            return false;
-        }
-    };
-
-    class Triangle3D
-    {
-    private:
-        Point3Cartesian _pnt1, _pnt2, _pnt3;;
-    };
-}
-
-///////////////////////////   ./include/basic_types/CoordSystem.h   ///////////////////////////
-
+///////////////////////////   ./include/core/CoordSystem.h   ///////////////////////////
 
 
 namespace MML
@@ -11674,11 +11657,11 @@ PlanarRotatingSystem disk_rotation(pocetni phi, brzina rotacije);
 - za dane dvije koord, lat i long, daje poziciju u odnosu na dani fiksni koord sustav
 LocalCartesian disk_surface(disk_rotation, lat, long);
 
-- ï¿½to izracunati? 
+- što izracunati? 
     - artiljerijski hitac s dane pozicije i po danoj paraboli
     - gdje ce pasti - koordinate u jednom i drugom sustavu
 
-- i onda joï¿½ dodati vrtuljak na toj povrï¿½ini!
+- i onda još dodati vrtuljak na toj površini!
 
 MovingDynamicalSytem3D earth_around_sun(funkcija ovisnosti pozicije u odnosu na GLOBALNI KARTEZIJEV sustav);
 RotatingSystem3D earth_rotation(earth_around_sun);
@@ -11853,7 +11836,7 @@ LorentTranslated s3;
 
 }
 
-///////////////////////////   ./include/basic_types/Fields.h   ///////////////////////////
+///////////////////////////   ./include/core/Fields.h   ///////////////////////////
 
 
 
@@ -11963,7 +11946,7 @@ namespace MML
 
 }
 
-///////////////////////////   ./include/basic_types/PermutationGroup.h   ///////////////////////////
+///////////////////////////   ./include/core/PermutationGroup.h   ///////////////////////////
 class PermutationGroup {
 public:
     PermutationGroup() {}
@@ -12103,7 +12086,7 @@ namespace MML
 ///////////////////////////   ./include/algorithms/EigenSystemSolvers.h   ///////////////////////////
 
 
-// Given the eigenvalues d[0..n-1] and (optionally) the eigenvectors v[0..n-1][0..n-1] as determined by Jacobi (ï¿½11.1) or tqli (ï¿½11.4), this routine sorts the eigenvalues into descending
+// Given the eigenvalues d[0..n-1] and (optionally) the eigenvectors v[0..n-1][0..n-1] as determined by Jacobi (÷11.1) or tqli (÷11.4), this routine sorts the eigenvalues into descending
 // order and rearranges the columns of v correspondingly. The method is straight insertion.
 static void eigsrt(MML::Vector<Real> &d, MML::Matrix<Real> *v = NULL)
 {
@@ -12132,7 +12115,7 @@ static void eigsrt(MML::Vector<Real> &d, MML::Matrix<Real> *v = NULL)
 
 namespace MML
 {
-    // Computes all eigenvalues and eigenvectors of a real symmetric matrix by Jacobiï¿½s method.
+    // Computes all eigenvalues and eigenvectors of a real symmetric matrix by Jacobi’s method.
     struct Jacobi
     {
         const int n;
@@ -12381,7 +12364,7 @@ namespace MML
 
         // QL algorithm with implicit shifts to determine the eigenvalues and (optionally) the eigenvectors
         // of a real, symmetric, tridiagonal matrix, or of a real symmetric matrix previously reduced by
-        // tred2 (ï¿½11.3). On input, d[0..n-1] contains the diagonal elements of the tridiagonal matrix.
+        // tred2 (÷11.3). On input, d[0..n-1] contains the diagonal elements of the tridiagonal matrix.
         // On output, it returns the eigenvalues. The vector e[0..n-1] inputs the subdiagonal elements
         // of the tridiagonal matrix, with e[0] arbitrary. On output e is destroyed. If the eigenvectors of
         // a tridiagonal matrix are desired, the matrix z[0..n-1][0..n-1] is input as the identity matrix.
@@ -15124,7 +15107,7 @@ namespace MML
         }        
     };
 
-    // TODO 0.6 - ovo je Dumb
+    // TODO 0.7 - ovo je Dumb
     class RungeKuttaSolverDumb
     {
     public:        
@@ -15184,7 +15167,7 @@ namespace MML
         }    
     };    
 
-    // TODO 0.6 - ovo je Simple
+    // TODO 0.7 - ovo je Simple
     class RungeKuttaNR2
     {
         void rkck(Vector<Real> &y, Vector<Real> &dydx, const Real x,

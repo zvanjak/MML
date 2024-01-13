@@ -4,7 +4,7 @@
 #else
 #include "MMLBase.h"    
 
-#include "core/QuadraticForm.h"
+#include "base/QuadraticForm.h"
 #endif
 
 using namespace MML;

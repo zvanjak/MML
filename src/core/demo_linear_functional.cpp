@@ -4,7 +4,7 @@
 #else
 #include "MMLBase.h"    
 
-#include "core/LinearFunctional.h"
+#include "base/LinearFunctional.h"
 #endif
 
 using namespace MML;

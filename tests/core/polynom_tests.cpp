@@ -3,7 +3,7 @@
 #ifdef MML_USE_SINGLE_HEADER
 #include "MML.h"
 #else
-#include "core/Polynom.h"
+#include "base/Polynom.h"
 #endif
 
 using namespace MML;

@@ -3,7 +3,7 @@
 #ifdef MML_USE_SINGLE_HEADER
 #include "MML.h"
 #else
-#include "basic_types/FunctionSpace.h"
+#include "core/FunctionSpace.h"
 #endif
 
 using namespace MML;

@@ -3,7 +3,7 @@
 #ifdef MML_USE_SINGLE_HEADER
 #include "MML.h"
 #else
-#include "core/LinearFunctional.h"
+#include "base/LinearFunctional.h"
 #endif
 
 using namespace MML;

@@ -6,7 +6,7 @@
 #else
 #include "base/Vector.h"
 #include "base/Matrix.h"
-#include "basic_types/ODESystem.h"
+#include "core/ODESystem.h"
 #endif
 
 namespace MML::TestBeds

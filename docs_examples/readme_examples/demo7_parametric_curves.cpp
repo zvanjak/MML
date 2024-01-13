@@ -5,7 +5,7 @@
 
 #include "core/Function.h"
 
-#include "basic_types/Curves.h"
+#include "core/Curves.h"
 
 #include "algorithms/DiffGeometryAlgorithms.h"
 #endif

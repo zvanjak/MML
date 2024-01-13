@@ -3,8 +3,8 @@
 #else
 #include "MMLBase.h"
 
-#include "core/Polynom.h"
-#include "core/LinearFunctional.h"
+#include "base/Polynom.h"
+#include "base/LinearFunctional.h"
 #endif
 
 using namespace MML;

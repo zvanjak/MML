@@ -3,10 +3,9 @@
 #else
 #include "MMLBase.h"
 
-#include "utilities/Matrix3D.h"
-
 #include "base/Vector.h"
 #include "base/Matrix.h"
+#include "base/Matrix3D.h"
 
 #include "core/CoreUtils.h"
 #endif

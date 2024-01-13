@@ -7,7 +7,7 @@
 #include "core/Function.h"
 #include "core/FieldOperations.h"
 
-#include "basic_types/Fields.h"
+#include "core/Fields.h"
 #endif
 
 using namespace MML;

@@ -8,8 +8,8 @@
 #include "base/VectorN.h"
 #include "core/Function.h"
 
-#include "basic_types/Curves.h"
-#include "basic_types/Surfaces.h"
+#include "core/Curves.h"
+#include "core/Surfaces.h"
 #endif
 
 using namespace MML;

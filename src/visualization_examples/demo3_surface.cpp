@@ -9,7 +9,7 @@
 #include "core/Function.h"
 #include "core/FieldOperations.h"
 
-#include "basic_types/Surfaces.h"
+#include "core/Surfaces.h"
 
 #endif
 

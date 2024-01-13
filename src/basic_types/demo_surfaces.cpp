@@ -3,7 +3,7 @@
 #else
 #include "MMLBase.h"
 
-#include "basic_types/Surfaces.h"
+#include "core/Surfaces.h"
 #endif
 
 using namespace MML;

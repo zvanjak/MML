@@ -6,7 +6,7 @@
 #include "interfaces/IODESystem.h"
 
 #include "base/Vector.h"
-#include "basic_types/Curves.h"
+#include "core/Curves.h"
 
 #include "algorithms/ODESystemSolver.h"
 #include "algorithms/ODESystemSteppers.h"

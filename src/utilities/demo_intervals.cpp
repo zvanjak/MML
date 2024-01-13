@@ -3,7 +3,7 @@
 #else
 #include "MMLBase.h"
 
-#include "utilities/Intervals.h"
+#include "base/Intervals.h"
 #endif
 
 using namespace MML;

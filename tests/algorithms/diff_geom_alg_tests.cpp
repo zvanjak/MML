@@ -3,19 +3,14 @@
 #ifdef MML_USE_SINGLE_HEADER
 #include "MML.h"
 #else
-#include <iostream>
-#include <iomanip>
-#include <cmath>
-
-#include "utilities/Constants.h"
 #include "base/VectorN.h"
+#include "base/Geometry3D.h"
 
 #include "core/Function.h"
-#include "basic_types/Curves.h"
-#include "basic_types/Geometry3D.h"
+#include "core/Curves.h"
+#include "core/Derivation.h"
 
 #include "algorithms/DiffGeometryAlgorithms.h"
-#include "core/Derivation.h"
 #endif
 
 #include "../test_data/parametric_curves_test_bed.h"
