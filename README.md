@@ -163,6 +163,7 @@ With important note that, alas, all of them are still on ToDo list, so it is act
 - electric charge distribution in solid body - [link](/docs/examples/Example6_electric_charge_distribution.md)
 
 **Intro examples**
+
 In the following sections, some basic examples of using the library are given.
 
 ***Vectors, matrices***
@@ -170,65 +171,94 @@ In the following sections, some basic examples of using the library are given.
 Examples of basic vector and matrix operations
 ~~~ c++
 Vector<double>  vec1({ 1.5, -2.0, 0.5 }), vec2({ 1.0, 1.0, -3.0 }); 
-VectorComplex   vec_cmplx({ Complex(1,1), Complex(-1,2) }), vec_cmplx2({ Complex(1,1), Complex(-1,2), Complex(2.5, -1.5) });
+VectorComplex   vec_cmplx1({ Complex(1,1), Complex(-1,2) });
+VectorComplex   vec_cmplx2({ Complex(1,1), Complex(-1,2), Complex(2.5, -1.5) });
 
-Matrix<double>  mat_3x3{ 3, 3, { 1.0, 2.0, -1.0, 
-                                -1.0, 5.0, 6.0, 
-                                    3.0, 1.0, 1.0 }};  
-MatrixComplex   mat_cmplx(2,2, { Complex(1, 1),    Complex(-1, 2), 
-                                 Complex(2, -0.5), Complex(1, 1) });
-MatrixComplex   mat_cmplx2(2,3, { Complex(1, 1),    Complex(-1, 2), Complex(1.5, -2), 
-                                  Complex(2, -0.5), Complex(1, 1),  Complex(-1, 1) });
-
+Matrix<double>  mat_3x3{ 3, 3, { 1.0,  2.0, -1.0, 
+                                -1.0,  5.0,  6.0, 
+                                 3.0, -2.0,  1.0 }};  
+MatrixComplex   mat_cmplx(2,2, { Complex(0.5,1), Complex(-1,2), 
+                                 Complex(-1,-2), Complex(-2,2) });
+MatrixComplex   mat_cmplx2(2,3, { Complex(1,2),    Complex(-1,1), Complex(1.5,-2), 
+                                  Complex(2,-0.5), Complex(3,-2), Complex(-1,1) });
 Matrix<double>  unit_mat3 = MML::Matrix<Real>::GetUnitMatrix(3);
 
-Vector<double> v = 2.0 * (vec1 + vec2) * mat_3x3 / vec1.NormL2();
-VectorComplex  vc = vec_cmplx * mat_cmplx / Complex(1.5, -1.5) / 2.0;
+Vector<double> v_real  = 2.0 * (vec1 + vec2) * mat_3x3 / vec1.NormL2();
+VectorComplex  v_cmplx = vec_cmplx1 * mat_cmplx / Complex(1.5, -1.5) / 2.0;
+
+std::cout << "v_real  = " << v_real << std::endl;
+std::cout << "v_cmplx = " << v_cmplx << std::endl;
 
 // combining real and complex vectors and matrices requires special functions
-VectorComplex vc2 = MatrixUtils::MulVecMat(vec_cmplx2, mat_3x3);
-MatrixComplex mc = MatrixUtils::MulMat(mat_cmplx2, mat_3x3);
+VectorComplex cvec2 = MatrixUtils::MulVecMat(vec_cmplx2, mat_3x3);
+MatrixComplex cmat2 = MatrixUtils::MulMat(mat_cmplx2, mat_3x3);
+
+std::cout << "Matrix mat_3x3   = " << mat_3x3 << std::endl;
+std::cout << "Matrix mat_cmplx = " << mat_cmplx << std::endl;
+
+std::cout << "IsOrthogonal(mat_3x3)  = " << MatrixUtils::IsOrthogonal(mat_3x3) << std::endl;
+std::cout << "IsHermitian(mat_cmplx) = " << MatrixUtils::IsHermitian(mat_cmplx) << std::endl;
+std::cout << "IsUnitary(mat_cmplx)   = " << MatrixUtils::IsUnitary(mat_cmplx) << std::endl;
+
+/* OUTPUT
+    v_real  = [   -3.137858162,     3.922322703,    -8.629109946]
+    v_cmplx = [        (0.5,1), (-0,-1.666666667)]
+    Matrix mat_3x3   = Rows: 3 Cols: 3
+    [          1,          2,         -1,  ]
+    [         -1,          5,          6,  ]
+    [          3,         -2,          1,  ]
+
+    Matrix mat_cmplx = Rows: 2 Cols: 2
+    [    (0.5,1),     (-1,2),  ]
+    [    (-1,-2),     (-2,2),  ]
+
+    IsOrthogonal(mat_3x3)  = 0
+    IsHermitian(mat_cmplx) = 1
+    IsUnitary(mat_cmplx)   = 0
+*/
 ~~~
 
 ***Solving linear systems of equations and calculating eigenvalues***
 
 How to solve linear systems of equations, and calculate eigenvalues
 ~~~ c++
-Matrix<Real>    mat{5, 5, {  0.2,  4.1, -2.1, -7.4,  1.6,
-                             1.6,  1.5, -1.1,  0.7,  5.0,
-                            -3.8, -8.0,  9.6, -5.4, -7.8,
-                             4.6, -8.2,  8.4,  0.4,  8.0,
-                            -2.6,  2.9,  0.1, -9.6, -2.7 } };
+Matrix<Real>    mat{5, 5, { 0.2,  4.1, -2.1, -7.4,  1.6,
+                            1.6,  1.5, -1.1,  0.7,  5.0,
+                           -3.8, -8.0,  9.6, -5.4, -7.8,
+                            4.6, -8.2,  8.4,  0.4,  8.0,
+                           -2.6,  2.9,  0.1, -9.6, -2.7 } };
 Vector<Real> 	rhs{1.1, 4.7, 0.1, 9.3, 0.4};
 
 LUDecompositionSolver<Real> luSolver(mat);
 
 Vector<Real>	vecSol = luSolver.Solve(rhs);
 
-std::cout << "Solution:\n" << vecSol << std::endl;
-std::cout << "Matrix * solution = ";  (mat * vecSol).Print(std::cout,8,4);
+std::cout << "Solution   = " << vecSol << std::endl;
+std::cout << "Right side = "; rhs.Print(std::cout,8,4); std::cout << std::endl;
+std::cout << "Mat * sol  = "; (mat * vecSol).Print(std::cout,8,4); std::cout << std::endl;
 
 Matrix<Real>  matcopy(mat);
 
-UnsymmEigenSolver eigenSolver(matcopy, true, false);
+EigenSolver   eigenSolver(matcopy, true, false);
 
 std::cout << "\nNum real eigenvalues    : " << eigenSolver.getNumReal();
 std::cout << "\nNum complex eigenvalues : " << eigenSolver.getNumComplex() << "\n";
 
-    std::cout << "\nEigenvalues : "; eigenSolver.getEigenvalues().Print(std::cout,10,5); 
-    std::cout << "\nReal        : "; eigenSolver.getRealEigenvalues().Print(std::cout,15,10); 
-    std::cout << "\nComplex     : "; eigenSolver.getComplexEigenvalues().Print(std::cout,15,10); 
+std::cout << "\nEigenvalues : "; eigenSolver.getEigenvalues().Print(std::cout,10,5); 
+std::cout << "\nReal        : "; eigenSolver.getRealEigenvalues().Print(std::cout,15,10); 
+std::cout << "\nComplex     : "; eigenSolver.getComplexEigenvalues().Print(std::cout,15,10); 
 
 /* OUTPUT
-Solution:
-[   -5.568500786,    -5.944693206,    -5.007620645,    -1.393638021,     3.598760994]
-Matrix * solution = [     1.1,      4.7,      0.1,      9.3,      0.4]
-Num real eigenvalues    : 3
-Num complex eigenvalues : 2
+    Solution   = [   -5.568500786,    -5.944693206,    -5.007620645,    -1.393638021,     3.598760994]
+    Right side = [     1.1,      4.7,      0.1,      9.3,      0.4]
+    Mat * sol  = [     1.1,      4.7,      0.1,      9.3,      0.4]
 
-Eigenvalues : [(12.974,0), (0.99944,0), (-0.033184,0), (-2.4701,12.994), (-2.4701,-12.994)]
-Real        : [    12.97392154,    0.9994371124,  -0.03318390189]
-Complex     : [(-2.470087376,12.99433106), (-2.470087376,-12.99433106)]
+    Num real eigenvalues    : 3
+    Num complex eigenvalues : 2
+
+    Eigenvalues : [(12.974,0), (0.99944,0), (-0.033184,0), (-2.4701,12.994), (-2.4701,-12.994)]
+    Real        : [    12.97392154,    0.9994371124,  -0.03318390189]
+    Complex     : [(-2.470087376,12.99433106), (-2.470087376,-12.99433106)]
 */
 ~~~
 
@@ -303,11 +333,13 @@ PolynomInterpRealFunc   f_polynom(x_val, y_val, 3);
 RationalInterpRealFunc  f_rational(x_val, y_val, 3);
 SplineInterpRealFunc    f_spline(x_val, y_val);
 BaryRatInterpRealFunc   f_baryrat(x_val, y_val, 3);
+
+// TODO 0.7 - HIGH parametric curve interpolation
 ~~~
 
 ***Working with functions - derivation, integration***
 
-Examples of working with functions - derivation, integration, interpolation
+Examples of working with functions - derivation & integration
 ~~~ c++
 RealFunction       f1{[](double x) { return sin(x)*(1.0 + 0.5*x*x); } };
 ScalarFunction<3>  f2Scal([](const VectorN<Real, 3> &x) { return 1.0 / pow(x.NormL2(), 2); });
@@ -318,7 +350,7 @@ double der_f1 = Derivation::NDer1(f1, 0.5);
 double der_f4 = Derivation::NDer2(f1, 0.5, 1e-6);   // setting explicit step size
 double err;
 double der_f6 = Derivation::NDer6(f1, 0.5, &err);   // if we need error estimate    
-// we can use default Derive routine (set to NDer4), but it requires error estimate
+// we can use default Derive routine (set to NDer4), but it requires pointer for error estimate
 double num_der4 = Derivation::Derive(f1, 0.5, nullptr);
 
 // second and third derivatives
@@ -343,6 +375,7 @@ double int_romb = Integration::IntegrateRomberg(f1,a,b);
 // we can use default Integrate routine (set to IntegrateSimpson), requires precision
 double int_def = Integration::Integrate(f1, a, b, 1e-04); 
 ~~~
+// TODO 0.7 - line, surface, volume integration
 
 ***Solving ODE system***
 
@@ -378,11 +411,13 @@ y values: - Rows: 2 Cols: 21
 [      0, -0.197, -0.386, -0.567, -0.738, -0.901,  -1.05,   -1.2,  -1.33,  -1.45,  -1.57,  -1.67,  -1.77,  -1.85,  -1.91,  -1.96,     -2,  -2.01,     -2,  -1.97,  -1.92,  ]
 */
 ~~~
+TODO 0.7 - slika s rješenjem sustava i prikaz koda
 
 ***Fields and field operations - grad, div, curl, Laplacian***
 
 Calculating field gradient, divergence, curl and Laplacian
 ~~~ c++
+// TODO 0.7 - bolji primjer - skalarno polje potencijala, iz njega generirati vektorsko polje, i iz njega grad, div, curl, Laplacian
 ScalarFunction<3> fPotCart([](const VectorN<Real, 3> &x) -> Real { return InverseRadialPotentialFieldCart(x); });
 ScalarFunction<3> fPotSpher([](const VectorN<Real, 3> &x) -> Real { return InverseRadialPotentialFieldSpher(x); });
 ScalarFunction<3> fPotCyl([](const VectorN<Real, 3> &x) -> Real { return InverseRadialPotentialFieldCyl(x); });
@@ -433,6 +468,7 @@ auto curv_vec   = DiffGeometry::getCurvatureVector(test_curve, t);
 auto curvature  = DiffGeometry::getCurvature(test_curve, t);
 auto curvature3 = DiffGeometry::getCurvature3(test_curve, t);
 ~~~
+TODO 0.7 - vizualizirati neku krivulju, i u jednoj točki vizualizirati (World view) 3 vektora tangente, normale i binormale, te vektore zakrivljenosti
 
 ***Visualizators***
 ~~~ c++
