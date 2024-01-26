@@ -20,7 +20,6 @@ void Readme_working_with_functions();
 void Readme_ode_solvers();
 void Readme_vector_field_operations();
 void Readme_parametric_curves();
-void Readme_interpolating_functions();
 void Readme_visualizators();
 void Readme_function_analyzer();
 
@@ -43,10 +42,9 @@ void Docs_Readme_Examples()
     Readme_linear_system_solvers();
     Readme_defining_functions();
     Readme_working_with_functions();
-    Readme_ode_solvers();
+    // Readme_ode_solvers();
     Readme_vector_field_operations();
-    Readme_interpolating_functions();
-    Readme_visualizators();
+    // Readme_visualizators();
     Readme_function_analyzer();
 
     Readme_coordinate_transformations();

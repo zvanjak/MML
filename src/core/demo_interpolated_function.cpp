@@ -216,8 +216,8 @@ void Test_RealFunction_Linear_interp()
     std::cout << "Avg rel diff   = " << avgRelDiff << std::endl;
     std::cout << "Max rel diff   = " << maxRelDiff << std::endl;
     
-    linear_interp.SerializeEquallySpacedDetailed(x1, x2, 100, "func_sin_x_lin_interp.txt");
-    auto ret1 = std::system("..\\..\\tools\\visualizers\\real_function_visualizer\\MML_RealFunctionVisualizer.exe func_sin_x_lin_interp.txt");
+    linear_interp.SerializeEquallySpacedDetailed(x1, x2, 100, "..\\..\\results\\func_sin_x_lin_interp.txt");
+    auto ret1 = std::system("..\\..\\tools\\visualizers\\real_function_visualizer\\MML_RealFunctionVisualizer.exe ..\\..\\results\\func_sin_x_lin_interp.txt");
 }
 
 void Demo_Interpolated_Function()

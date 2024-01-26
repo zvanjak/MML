@@ -70,7 +70,7 @@ void Readme_defining_functions_case_3_usage()
     ClassProvidingFuncToDerive   obj1;
     RealFunctionFromStdFunc f1(std::function<double(double)>{obj1});
     
-    ClassProvidingFuncToDerive2   f2;       // usable RealFunction object
+    ClassProvidingFuncToDerive2   f2;     // usable RealFunction object (can be derived, integrated, ...)
 }
 
 /////////////////////////////////////////////////////////////////////////////////////
@@ -100,14 +100,37 @@ void Readme_defining_functions_case_4_usage()
 // CASE 5 - create interpolated function from given data
 void Readme_defining_functions_case_5_usage()
 {
-    // vectors containing values for interpolation
-    Vector<double> x_val(100), y_val(100);
+    const int NumInterpPnt = 12;
+    const Real x1 = 0, x2 = 10.0;
 
+    // we will use this as test func
+    RealFunction test_func{[](double x) { return sin(x)*(1.0 + 0.5*x*x); } };
+    
+    // and using our helper, available for all real functions, create data for interpolation
+    Vector<double> x_val(NumInterpPnt), y_val(NumInterpPnt);
+    test_func.GetValues(x1, x2, NumInterpPnt, x_val, y_val);
+
+    // these are the ways we can interpolate Real function
     LinearInterpRealFunc    f_linear(x_val, y_val);
     PolynomInterpRealFunc   f_polynom(x_val, y_val, 3);
-    RationalInterpRealFunc  f_rational(x_val, y_val, 3);
     SplineInterpRealFunc    f_spline(x_val, y_val);
     BaryRatInterpRealFunc   f_baryrat(x_val, y_val, 3);
+
+    test_func.SerializeEquallySpacedDetailed(x1, x2, 100, "..\\..\\results\\readme_interp_test_func.txt");
+    f_linear.SerializeEquallySpacedDetailed(x1, x2, 500, "..\\..\\results\\readme_interp_linear_5_pnt.txt");
+    f_polynom.SerializeEquallySpacedDetailed(x1, x2, 100, "..\\..\\results\\readme_interp_polynom_5_pnt.txt");
+    f_spline.SerializeEquallySpacedDetailed(x1, x2, 100, "..\\..\\results\\readme_interp_spline_5_pnt.txt");
+    f_baryrat.SerializeEquallySpacedDetailed(x1, x2, 100, "..\\..\\results\\readme_interp_baryrat_5_pnt.txt");
+
+    const char *cmd = "..\\..\\tools\\visualizers\\real_function_visualizer\\MML_RealFunctionVisualizer.exe"
+                        " ..\\..\\results\\readme_interp_test_func.txt"
+                        " ..\\..\\results\\readme_interp_linear_5_pnt.txt"
+                        " ..\\..\\results\\readme_interp_polynom_5_pnt.txt"
+                        " ..\\..\\results\\readme_interp_spline_5_pnt.txt"
+                        " ..\\..\\results\\readme_interp_baryrat_5_pnt.txt";
+    std::system(cmd);
+
+    // TODO 0.8 - HIGH parametric curve interpolation
 }
 
 void Readme_defining_functions()

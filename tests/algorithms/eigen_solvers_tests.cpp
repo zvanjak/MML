@@ -80,7 +80,7 @@ TEST_CASE("Test_Unsymmetric_Matrix_Eigen_solver 3 x 3", "[simple]")
 {
 	Matrix<Real>       mat = TestBeds::mat_3x3;
 
-    UnsymmEigenSolver eigen_solver(mat);
+    EigenSolver eigen_solver(mat);
 
     for(int i=0; i<3; i++) 
     {
@@ -99,7 +99,7 @@ TEST_CASE("Test_Unsymmetric_Matrix_Eigen_solver 5 x 5", "[simple]")
 {
 	Matrix<Real>       mat = TestBeds::mat_5x5;
 
-    UnsymmEigenSolver eigen_solver(mat);
+    EigenSolver eigen_solver(mat);
 
     for(int i=0; i<5; i++)               
     {
@@ -118,7 +118,7 @@ TEST_CASE("Test_Unsymmetric_Matrix_Eigen_solver 8 x 8", "[simple]")
 {
 	Matrix<Real>       mat = TestBeds::mat_8x8;
 
-    UnsymmEigenSolver eigen_solver(mat);
+    EigenSolver eigen_solver(mat);
 
     for(int i=0; i<5; i++)               
     {
@@ -137,7 +137,7 @@ TEST_CASE("Test_Unsymmetric_Matrix_Eigen_solver 10 x 10", "[simple]")
 {
 	Matrix<Real>       mat = TestBeds::mat_10x10;
 
-    UnsymmEigenSolver eigen_solver(mat);
+    EigenSolver eigen_solver(mat);
 
     for(int i=0; i<10; i++)               
     {
@@ -156,7 +156,7 @@ TEST_CASE("Test_Unsymmetric_Matrix_Eigen_solver 20 x 20", "[simple]")
 {
 	Matrix<Real>       mat = TestBeds::mat_20x20;
 
-    UnsymmEigenSolver eigen_solver(mat);
+    EigenSolver eigen_solver(mat);
 
     for(int i=0; i<20; i++)
     {
@@ -175,7 +175,7 @@ TEST_CASE("Test_Unsymmetric_Matrix_Eigen_solver 50 x 50", "[simple]")
 {
 	Matrix<Real>       mat = TestBeds::mat_50x50;
 
-    UnsymmEigenSolver eigen_solver(mat);
+    EigenSolver eigen_solver(mat);
 
     for(int i=0; i<50; i++)
     {

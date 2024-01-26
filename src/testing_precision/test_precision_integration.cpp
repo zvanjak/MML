@@ -38,9 +38,9 @@ void Test_Precision_Integration_Single_Func()
 
         double integral = f_int(x) - f_int(x1);
 
-        double int_trap = MML::Integration::IntegrateTrap(f, x1, x, 1e-3);
-        double int_simp = MML::Integration::IntegrateSimpson(f, x1, x, 1e-3);
-        double int_romb = MML::Integration::IntegrateRomberg(f, x1, x);
+        double int_trap = MML::IntegrateTrap(f, x1, x, 1e-3);
+        double int_simp = MML::IntegrateSimpson(f, x1, x, 1e-3);
+        double int_romb = MML::IntegrateRomberg(f, x1, x);
 
         double err1 = int_trap - integral;
         double err2 = int_simp - integral;

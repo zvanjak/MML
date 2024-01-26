@@ -33,7 +33,7 @@ namespace MML::TestBeds
     class ParametricSurfaceTestBed
     {
     public:
-        static int getNumTestSurfaces3() { return 3; }
+        static int getNumTestSurfaces3() { return 1; }
 
         const static TestParametricSurface3& getTestSurface3(int i)            { return _listSurfaces[i]; }
 
@@ -44,7 +44,7 @@ namespace MML::TestBeds
                 if (_listSurfaces[i]._surfaceName == surfaceName)
                     return _listSurfaces[i];
             }
-            throw std::runtime_error("TestSpaceCurve " + surfaceName + " not found!");
+            throw std::runtime_error("ParametricSurface " + surfaceName + " not found!");
         }
 
     private:
@@ -54,5 +54,34 @@ namespace MML::TestBeds
                 }
         };     
     };
+
+    class ExplicitSurfaceTestBed
+    {
+    public:
+        static int getNumExplicitSurfaces3() { return 2; }
+
+        const static TestParametricSurface3& getExplicitSurface3(int i)            { return _listSurfaces[i]; }
+
+        const static TestParametricSurface3& getExplicitSurface3(const std::string &surfaceName)
+        {
+            for (int i = 0; i < getNumExplicitSurfaces3(); i++)
+            {
+                if (_listSurfaces[i]._surfaceName == surfaceName)
+                    return _listSurfaces[i];
+            }
+            throw std::runtime_error("ExplicitSurface " + surfaceName + " not found!");
+        }
+
+    private:
+        const static inline TestParametricSurface3 _listSurfaces[] = { 
+                // TODO 0.8 - treba modelirati preciznije domenu u x-y ravnini, za sferu
+                {"UpperUnitSphere", "todo", -1.0, 1.0, -1.0, 1.0, 
+                                    [](double x, double y) { return VectorN<Real,3>{ x, y, x*x+y*y>1.0 ? 0.0 : sqrt(1 - x*x - y*y)}; } 
+                },
+                {"Monkey saddle", "todo", -1.0, 1.0, -1.0, 1.0, 
+                                    [](double x, double y) { return VectorN<Real,3>{ x, y, x * (x*x - 3 * y*y)}; } 
+                }
+        };     
+    };    
 }
 #endif

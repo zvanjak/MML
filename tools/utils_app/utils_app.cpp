@@ -61,7 +61,7 @@ void MatrixAnalyzer(std::string matName, const Matrix<Real> &origMat, const Vect
     std::cout << "Inverse " << inv << std::endl;
     std::cout << "Orig * inv = " << origMat * inv << std::endl;    
 
-    UnsymmEigenSolver eigen_solver(matcopy, true, false);
+    EigenSolver eigen_solver(matcopy, true, false);
 
     std::cout << "Num real eigenvalues    : " << eigen_solver.getNumReal() << std::endl;
     std::cout << "Num complex eigenvalues : " << eigen_solver.getNumComplex() << "\n\n";

@@ -44,8 +44,8 @@ void Demo_Lorenz_solve()
     // f.SerializeEquallySpacedDetailed(x1, x2, 100, "ode_lin_interp.txt");
     // auto ret1 = std::system("..\\..\\tools\\visualizers\\real_function_visualizer\\MML_RealFunctionVisualizer.exe ode_lin_interp.txt");
 
-    sol0.Serialize("lorenz_1.txt", "Lorenz system");
-    auto ret2 = std::system("..\\..\\tools\\visualizers\\real_function_visualizer\\MML_RealFunctionVisualizer.exe lorenz_1.txt");
+    sol0.Serialize("..\\..\\results\\lorenz_1.txt", "Lorenz system");
+    auto ret2 = std::system("..\\..\\tools\\visualizers\\real_function_visualizer\\MML_RealFunctionVisualizer.exe ..\\..\\results\\lorenz_1.txt");
 }
 
 void Demo_VanderPol_solve()
@@ -72,11 +72,11 @@ void Demo_VanderPol_solve()
     sol0._yval.Print(std::cout, 6, 3);
 
     LinearInterpRealFunc f = sol0.getSolutionAsLinearInterp(0);
-    f.SerializeEquallySpacedDetailed(0.0, 2.0, 100, "vanderpol_ode_lin_interp.txt");
-    auto ret1 = std::system("..\\..\\tools\\visualizers\\real_function_visualizer\\MML_RealFunctionVisualizer.exe vanderpol_ode_lin_interp.txt");
+    f.SerializeEquallySpacedDetailed(0.0, 2.0, 100, "..\\..\\results\\vanderpol_ode_lin_interp.txt");
+    auto ret1 = std::system("..\\..\\tools\\visualizers\\real_function_visualizer\\MML_RealFunctionVisualizer.exe ..\\..\\results\\vanderpol_ode_lin_interp.txt");
 
-    sol0.Serialize("vanderpol_doppler5.txt", "Van der Pol solution - Doplet 5th order");
-    ret1 = std::system("..\\..\\tools\\visualizers\\real_function_visualizer\\MML_RealFunctionVisualizer.exe vanderpol_doppler5.txt");
+    sol0.Serialize("..\\..\\results\\vanderpol_doppler5.txt", "Van der Pol solution - Doplet 5th order");
+    ret1 = std::system("..\\..\\tools\\visualizers\\real_function_visualizer\\MML_RealFunctionVisualizer.exe ..\\..\\results\\vanderpol_doppler5.txt");
 
     std::cout << "\n***********************************************************\n";
     std::cout << "**********         Dopler 8th order                ********\n";
@@ -92,8 +92,8 @@ void Demo_VanderPol_solve()
     std::cout << "x values:\n";    sol01._xval.Print(std::cout, 6, 3); std::cout << std::endl;
     std::cout << "y values: - ";   sol01._yval.Print(std::cout, 6, 3);
 
-    sol01.Serialize("vanderpol_doppler8.txt", "Van der Pol solution - Dopler 8th order");
-    ret1 = std::system("..\\..\\tools\\visualizers\\real_function_visualizer\\MML_RealFunctionVisualizer.exe vanderpol_doppler8.txt");
+    sol01.Serialize("..\\..\\results\\vanderpol_doppler8.txt", "Van der Pol solution - Dopler 8th order");
+    ret1 = std::system("..\\..\\tools\\visualizers\\real_function_visualizer\\MML_RealFunctionVisualizer.exe ..\\..\\results\\vanderpol_doppler8.txt");
 
     std::cout << "\n***********************************************************\n";
     std::cout << "**********            Bulirsch-Stoer               ********\n";
@@ -109,8 +109,8 @@ void Demo_VanderPol_solve()
     std::cout << "x values:\n";    sol_BS._xval.Print(std::cout, 6, 3); std::cout << std::endl;
     std::cout << "y values: - ";   sol_BS._yval.Print(std::cout, 6, 3);
  
-    sol_BS.Serialize("vanderpol_bulirsch_stoer.txt", "Van der Pol solution - Bulirsch-Stoer");
-    ret1 = std::system("..\\..\\tools\\visualizers\\real_function_visualizer\\MML_RealFunctionVisualizer.exe vanderpol_bulirsch_stoer.txt");
+    sol_BS.Serialize("..\\..\\results\\vanderpol_bulirsch_stoer.txt", "Van der Pol solution - Bulirsch-Stoer");
+    ret1 = std::system("..\\..\\tools\\visualizers\\real_function_visualizer\\MML_RealFunctionVisualizer.exe ..\\..\\results\\vanderpol_bulirsch_stoer.txt");
 
     std::cout << "\n***********************************************************\n";
     std::cout << "******        Runge-Kutta 4th order - Dumb           ******\n";    
@@ -123,8 +123,8 @@ void Demo_VanderPol_solve()
     std::cout << "x values:\n";    sol.xval.Print(std::cout, 6, 3); std::cout << std::endl;
     std::cout << "y values: - ";   sol.yval.Print(std::cout, 6, 3);
 
-    // sol.Serialize("vanderpol_RK_Dumb.txt");
-    // std::system("..\\..\\tools\\visualizers\\real_function_visualizer\\MML_RealFunctionVisualizer.exe vanderpol_RK_Dumb.txt");
+    // sol.Serialize("..\\..\\results\\vanderpol_RK_Dumb.txt");
+    // std::system("..\\..\\tools\\visualizers\\real_function_visualizer\\MML_RealFunctionVisualizer.exe ..\\..\\results\\vanderpol_RK_Dumb.txt");
 
     std::cout << "\n***********************************************************\n";
     std::cout << "******       Runge-Kutta 4th order - stepper         ******\n";  
@@ -138,8 +138,8 @@ void Demo_VanderPol_solve()
     std::cout << "x values:\n";    sol2._xval.Print(std::cout, 7,3); std::cout << std::endl;
     std::cout << "y values: - ";   sol2._yval.Print(std::cout, 7,3); 
 
-    sol2.Serialize("vanderpol_RK_4th.txt", "Van der Pol solution - RK 4th order");
-    ret1 = std::system("..\\..\\tools\\visualizers\\real_function_visualizer\\MML_RealFunctionVisualizer.exe vanderpol_RK_4th.txt");
+    sol2.Serialize("..\\..\\results\\vanderpol_RK_4th.txt", "Van der Pol solution - RK 4th order");
+    ret1 = std::system("..\\..\\tools\\visualizers\\real_function_visualizer\\MML_RealFunctionVisualizer.exe ..\\..\\results\\vanderpol_RK_4th.txt");
 
     std::cout << "\n***********************************************************\n";
     std::cout << "******      Stiff system - Rosenbrock method         ******\n";

@@ -18,9 +18,9 @@ TEST_CASE("Test_Integration", "[simple]") {
 
     double a = 0.0;
     double b = 1.0;
-    double int_trap = Integration::IntegrateTrap(testFunc,a,b);
-    double int_simp = Integration::IntegrateSimpson(testFunc,a,b);
-    double int_romb = Integration::IntegrateRomberg(testFunc,a,b);
+    double int_trap = IntegrateTrap(testFunc,a,b);
+    double int_simp = IntegrateSimpson(testFunc,a,b);
+    double int_romb = IntegrateRomberg(testFunc,a,b);
 
 	REQUIRE(int_trap == Approx(integratedTestFunc(b) - integratedTestFunc(a)).epsilon(1e-5));
 	REQUIRE(int_simp == Approx(integratedTestFunc(b) - integratedTestFunc(a)).epsilon(1e-7));

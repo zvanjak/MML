@@ -24,19 +24,21 @@ void Readme_parametric_curves()
     ParametricCurve<3>        test_curve1( [](double t) -> VectorN<Real, 3> { return VectorN<Real, 3>{t, t*t, t*t*t}; } );
     
     // using predefined curve
-    Curves::HelixCurve        helix(2.0, 2.0);
+    Curves::LemniscateCurve   lemniscate;
+    Curves::ToroidalSpiralCurve torus(3, 2.0);
     
     // using curve from TestData
-    const ParametricCurve<3> &test_curve = TestBeds::ParametricCurvesTestBed::getTestCurve(0)._curve;
+    const ParametricCurve<3> &test_curve = TestBeds::ParametricCurvesTestBed::getTestCurve("Helix")._curve;
 
     double t = 0.5;
-    auto tangent   = Vector3Cartesian( DiffGeometry::getTangent(test_curve, t) );
-    auto unit_tang = Vector3Cartesian( DiffGeometry::getTangentUnit(test_curve, t) );
-    auto normal    = Vector3Cartesian( DiffGeometry::getNormal(test_curve, t) );
-    auto unit_norm = Vector3Cartesian( DiffGeometry::getNormalUnit(test_curve, t) );
-    auto binormal  = VectorProd(unit_tang, unit_norm);
+    auto tangent   = DiffGeometry::getTangent(test_curve, t);
+    auto unit_tang = DiffGeometry::getTangentUnit(test_curve, t);
+    auto normal    = DiffGeometry::getNormal(test_curve, t);
+    auto unit_norm = DiffGeometry::getNormalUnit(test_curve, t);
+    auto binormal  = VectorProd(Vector3Cartesian(unit_tang), Vector3Cartesian(unit_norm));
     
     auto curv_vec   = DiffGeometry::getCurvatureVector(test_curve, t);
     auto curvature  = DiffGeometry::getCurvature(test_curve, t);
     auto curvature3 = DiffGeometry::getCurvature3(test_curve, t);
+    // TODO 0.8 - vizualizirati neku krivulju, i u jednoj točki vizualizirati (World view) 3 vektora tangente, normale i binormale, te vektore zakrivljenosti
 }

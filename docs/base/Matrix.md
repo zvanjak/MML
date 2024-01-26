@@ -1,5 +1,7 @@
 # Matrix objects
 
+// TODO  0.7 - introduction
+
 ## Initializing/creating matrices
 Matrix class
 ~~~ c++

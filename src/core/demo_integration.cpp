@@ -14,7 +14,7 @@ using namespace std;
 using namespace MML;
 
 
-//////////////////////          REAL FUNCTION DERIVATION           ////////////////////////
+//////////////////////          REAL FUNCTION INTEGRATION           ////////////////////////
 double DemoIntRealFunc_TestFunc(double x) 
 { 
     return sin(x)*(1.0 + 0.5*x*x); 
@@ -34,12 +34,12 @@ void Demo_Integration_func_ptr()
 
     double a = 0.0;
     double b = 1.0;
-    double int_trap = Integration::IntegrateTrap(f1,a,b);
-    double int_simp = Integration::IntegrateSimpson(f1,a,b);
-    double int_romb = Integration::IntegrateRomberg(f1,a,b);
+    double int_trap = IntegrateTrap(f1,a,b);
+    double int_simp = IntegrateSimpson(f1,a,b);
+    double int_romb = IntegrateRomberg(f1,a,b);
 
     // we can use default Integrate routine (default set to IntegrateSimpson)
-    double int_def = Integration::Integrate(f1, a, b, 1e-04);
+    double int_def = Integrate(f1, a, b, 1e-04);
 }
 
 // If you CAN change the class where your data for calculation is
@@ -62,9 +62,9 @@ void Demo_Integration_member_fun()
 
     double a = 0.0;
     double b = 1.0;
-    double int_trap = Integration::IntegrateTrap(g,a,b);
-    double int_simp = Integration::IntegrateSimpson(g,a,b);
-    double int_romb = Integration::IntegrateRomberg(g,a,b);
+    double int_trap = IntegrateTrap(g,a,b);
+    double int_simp = IntegrateSimpson(g,a,b);
+    double int_romb = IntegrateRomberg(g,a,b);
 }
 
 // If you CAN'T change the class where your data for calculation is
@@ -96,9 +96,9 @@ void Demo_Integration_member_fun2(const BigComplexClassYouCantChangeInt &ref)
     
     double a = 0.0;
     double b = 1.0;
-    double int_trap = Integration::IntegrateTrap(func_to_integrate,a,b);
-    double int_simp = Integration::IntegrateSimpson(func_to_integrate,a,b);
-    double int_romb = Integration::IntegrateRomberg(func_to_integrate,a,b);
+    double int_trap = IntegrateTrap(func_to_integrate,a,b);
+    double int_simp = IntegrateSimpson(func_to_integrate,a,b);
+    double int_romb = IntegrateRomberg(func_to_integrate,a,b);
 }
 
 void Demo_Integration_Interpolated_RealFunc()
@@ -116,17 +116,17 @@ void Demo_Integration_Interpolated_RealFunc()
 
     double a = 0.0;
     double b = 1.0;
-    double int_trap = Integration::IntegrateTrap(f_linear,a,b);
-    double int_simp = Integration::IntegrateSimpson(f_linear,a,b);
-    double int_romb = Integration::IntegrateRomberg(f_linear,a,b);
+    double int_trap = IntegrateTrap(f_linear,a,b);
+    double int_simp = IntegrateSimpson(f_linear,a,b);
+    double int_romb = IntegrateRomberg(f_linear,a,b);
 }
 
 void Demo_Integration2D()
 {
     ScalarFunction<2> f([](const VectorN<Real, 2> &x) { return 1.0; });
     
-    Real integral = Integration::IntegrateSurface(f, Integration::IntegrationMethod::GAUSS10, 0, 2, [](Real x) { return 1.0;}, [](Real x) { return 4.0;}); 
-    Real integralCircle = Integration::IntegrateSurface(f, Integration::IntegrationMethod::TRAP, -2, 2, [](Real x) { return -sqrt(4 - x*x);}, [](Real x) { return sqrt(4 - x*x);}); 
+    Real integral = IntegrateSurface(f, IntegrationMethod::GAUSS10, 0, 2, [](Real x) { return 1.0;}, [](Real x) { return 4.0;}); 
+    Real integralCircle = IntegrateSurface(f, IntegrationMethod::TRAP, -2, 2, [](Real x) { return -sqrt(4 - x*x);}, [](Real x) { return sqrt(4 - x*x);}); 
 
     std::cout << "Integral = " << integral << std::endl;
     std::cout << "Integral circle = " << integralCircle << "4 * PI = " << 4 * Constants::PI << std::endl;
@@ -136,7 +136,7 @@ void Demo_Integration3D()
 {
     ScalarFunction<3> f([](const VectorN<Real, 3> &x) { return 1.0; });
     
-    Real integral = Integration::IntegrateVolume(f, 0, 1, [](Real x) { return 1.0;}, [](Real x) { return 4.0;}, [](Real x, Real y) { return 1.0;}, [](Real x, Real y) { return 5.0;});
+    Real integral = IntegrateVolume(f, 0, 1, [](Real x) { return 1.0;}, [](Real x) { return 4.0;}, [](Real x, Real y) { return 1.0;}, [](Real x, Real y) { return 5.0;});
 
     std::cout << "Integral = " << integral << std::endl;
 }

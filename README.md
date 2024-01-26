@@ -1,28 +1,29 @@
 # MML - Minimal Math Library
 All your basic (numerical) math needs, contained in a single-header file.
 
-**MML Vision**
+## MML Vision
 - For a C++ developer, on Windows, Mac or Linux
 - Who needs a math library to perform simple (and not so simple) numerical calculations 
-- The Minimal Math Library is a general purpose, pythonesque and easy to use single-header C++ library of classes and functions
-- That is trivial to use in any kind of project, is C++ 20 cross-platform compatible, and comes with a rich set of functionalities for working with vectors, matrices, tensors, polynoms, real, scalar and vector functions, linear systems, differential equations, coordinate systems and transformations, with algorithms for derivation, integration, root finding, interpolation, optimization, statistics, and more.
+- The Minimal Math Library is a general purpose, pythonesque in its focus on simplicity of use single-header C++ library of classes and functions
+- That is trivial to use in any kind of project, is C++ 20 cross-platform compatible, and comes with a rich set of functionalities for working with vectors, matrices, tensors, linear systems, real, scalar and vector functions, polynoms, differential equations, coordinate systems and transformations, with algorithms for derivation, integration, root finding, interpolation, optimization, statistics, and more.
 
-**Basic facts**
+## Basic facts
 - As of now, and for foreseable future, this is unfortunately strictly for personal, research and educational use only (see Licensing at the end)
 - Single-header  - get MML.h, include in your project and go 
 - Cross-platform - tested with Visual Studio Code on Windows (MSVC++, clang), Mac (gcc, clang), Linux (gcc)
 - C++20 standard - but can easily be adapted to C++17, C++14
 - Pythonesque in its focus on simplicity of use, and focused on faithful modeling of mathematical entities (while trying as much as possible to retain C++ computational efficiency)
+- Currently, visualizators are available only on Windows platform
 
 **Is there really a need for another C++ math library?**
-- Main benefit, and the reason I did all this is attempt at completeness, and simplicity of use
+- Main benefit, and the reason I did all this is attempt at completeness, and simplicity of use (also, tensors ❤️).
 - Not hard focused on efficiency so when going gets rough - Boost, Eigen, Armadillo, etc.
 
-**Organization**
+## Organization
 
 Library is organized in three main groups (you could call them layers), with addition of visualizers as external tools.
 
-***Base***
+**Base**
 
 Basic math types. These are the building blocks of the library, sitting at the lowest layer, depending only on standard library headers (and possibly Vector and Matrix class), and are used in all other parts of the library. 
 - [Algebra](/docs/base/Algebra.md) - groups, permutation group (big TODO!)
@@ -36,33 +37,34 @@ Basic math types. These are the building blocks of the library, sitting at the l
 - [Operators](/docs/base/Operators.md)  - linear functional, quadratic form, linear operator (much to do here!)
 - [Base utils](/docs/base/BaseUtils.md) - general utilities including matrix helper (IsOrthogonal, IsUnitary, IsHermitian)
 
-***Core***
+**Core**
 
-Core mathematical objects and operations. These are the core of the library, depending on Base types, and used by algorithms.
+Core mathematical objects and operations of the library, depending on Base types, and used by higher algorithms.
+Function objects, and different algorithms for working with them are the heart of this layer.
 - [Linear alg. equations solvers](/docs/core/Linear_equations_solvers.md) - GJ, LU, QR, SVD, Cholesky
 - [Matrix utils](/docs/core/MatrixUtils.md) - general matrix utilities 
 - [Functions](/docs/core/Function_types.md) - IRealFunction, IScalarFunction<int N>, IVectorFunction<int N>, IParametricCurve<N>, IParametricSurface<N>, ITensorField<N>
 - [Interpolated functions](/docs/core/Interpolated_functions.md) - linear, polynomial, rational polynomial, spline interpolations
 - [Numerical derivation](/docs/core/Derivation.md) - orders 1, 2, 4, 6, 8 for IRealFunction, IScalarFunction, IVectorFunction, IParametricCurve, IParametricSurface, ITensorField
 - [Numerical integration](/docs/core/Integration.md) - Trapezoidal, Simpson, Romberg basic integration algorithms
+- [Multidim integration](/docs/core/Multidim_integration.md) - calculating 2D and 3D (cartesian) integrals
 - [Field operations](/docs/core/Vector_field_operations.md) - grad, div, curl, Laplacian in general, Cartesian, cylindrical and spherical coordinates
 - [Metric tensor](/docs/core/Metric_tensor.md) - predefined metric tensors in General, Cartesian, Cylindrical and Spherical coordinates
 - [Coordinate transformations](/docs/core/Coordinate_transformations.md) - General, Cartesian, Cylindrical, Spherical  
-- [Curves & Surfaces](/docs/basic_types/Curves_and_surfaces.md) - predefined curves and surfaces
-- [Dirac delta function](/docs/basic_types/Dirac_delta_function.md)- predefined distributions for representing Dirac delta function
-- [Fields](/docs/basic_types/Fields.md) - predefined example fields
-- [Standard functions](/docs/basic_types/Functions.md) - definition of available standard functions
-- [Function spaces](/docs/basic_types/Function_spaces.md) - Hermitian, Legendre, Laguerre, Chebyshev, Fourier spaces
-- [ODE system](/docs/basic_types/ODE_system.md) - represents a dynamical system of ordinary differential equations
+- [Curves & Surfaces](/docs/core/Curves_and_surfaces.md) - predefined curves and surfaces
+- [Dirac delta function](/docs/core/Dirac_delta_function.md)- predefined distributions for representing Dirac delta function
+- [Fields](/docs/core/Fields.md) - predefined example fields
+- [Standard functions](/docs/core/Functions.md) - definition of available standard functions
+- [Function spaces](/docs/core/Function_spaces.md) - Hermitian, Legendre, Laguerre, Chebyshev, Fourier spaces
+- [ODE system](/docs/core/ODE_system.md) - represents a dynamical system of ordinary differential equations
 
-***Algorithms***
+**Algorithms**
 
 Algorithms for solving mathematical problems. These are the algorithms of the library, depending on Base and Core types.
 - [Eigen solvers](/docs/algorithms/Eigen_solvers.md) - solving eigenvalue problems for symmetric and non-symmetric real matrices
 - [ODE system solvers](/docs/algorithms/Differential_equations_solvers.md) - solvers for systems of ordinary differential equations
 - [Differential geometry](/docs/algorithms/Differential_geometry.md) - for curves only, so far
 - [Path integration](/docs/algorithms/Path_integration.md) - calculating line and work integrals
-- [Multidim integration](/docs/algorithms/Multidim_integration.md) - calculating surface and volume integrals
 - [Root finding](/docs/algorithms/Root_finding.md) - different root finding algorithms (bracketing, Newton-Raphson)
 - [Statistics](/docs/algorithms/Statistics.md) - basics - avg, std, var, cov, corr
 - [Function analyzer](/docs/algorithms/Function_analyzer.md) - analyzing functions, finding roots, extrema, inflection points, etc.
@@ -78,9 +80,9 @@ Set of external tools, used for visualization of different types of functions. T
 
 Example visualizations:
 
-![My Image](docs/images/visualizers.png)
+![My Image](docs/images/readme_visualizators_example.png)
 
-**Example of real use**
+## Simple example of real use
 
 I decided to try something with electromagnetism, because it nicely intersects special relativity (which I need to figure out first, before going to general theory, main objective of my research) with theory of tensors and differential forms, also my great interest, and I have chosen to calculate and visualize EM field of three infinite line currents.
 ~~~ c++
@@ -123,50 +125,22 @@ EM_field.AddLine(200.0, Line3D(Point3Cartesian(20, -100, 00), Vector3Cartesian(1
 EM_field.Serialize3DCartesian(-300.0, 300.0, 30, -300.0, 300.0, 30, -300.0, 300.0, 30, "EM_field.txt", 3.0);
 std::system("..\\..\\tools\\visualizers\\vector_field_visualizer\\MML_VectorFieldVisualizer.exe EM_field.txt");
 ~~~
-![My Image](docs/images/MainExample_EM_field.png)
+![My Image](docs/images/readme_MainExample_EM_field.png)
 
-**Test beds**
-
-There is a set of test beds for each of the above algorithms, in the /test_data folder.
-They are used for verification of implemented algorithms, but can also be used as predefined inputs for your investigations.
-
-- [Functions](/docs/testbeds/Functions_testbed.md) - real, scalar and vector functions test bed
-- [Parametric curves & surfaces](/docs/testbeds/ParametricCurveSurfaces_testbed.md) - parametric curves & surfaces test bed
-- [Lin.alg.systems](/docs/testbeds/LinAlgSystems_testbed.md) - linear systems of equations test bed
-- [ODE system](/docs/testbeds/ODESystems_testbed.md) - ODE systems test bed
-
-**Evaluating algorithms precision and correctnes**
-
-In applying any kind of numerical procedure on computers, observing precision is of paramount importance.
-Whenever possible, implemented algorithms calculate their error estimates, and provide them as (if possible, optional) output.
-Default precisions for algorithms are set in [Defaults](/docs/testing_precision/DefaaultPrecisions.md) namespace, and can be changed by user.
-
-- [Derivation precision](/docs/testing_precision/TestDerivationPrecision.md) - investigating precision of numerical derivation
-- [Integration precision](/docs/testing_precision/TestIntegrationPrecision.md) - investigating precision of numerical integration
-- [Interpolation precision](/docs/testing_precision/TestInterpolationPrecision.md) - investigating precision of interpolation
-- [Vector fields operations precision](/docs/testing_precision/TestVectorFieldOperationsPrecision.md) - investigating precision vector field operations
-
-**LICENSING**
-- Code is given as it is, without any warranty. Use it at your own risk (and convenience).
-- STRICTLY NON-COMMERCIAL USE ONLY!
-- Unfortunately, also unavailable for Open Source project, due to restrictive Numerical Recipes license (for which code I have only personal license).
-- So basically, it is for personal, educational and research use only.
-
-**Before basic introductory examples, couple of real examples what it can be used for**
-
-With important note that, alas, all of them are still on ToDo list, so it is actually a plan 🙄
+## More real use examples
+Before basic introductory examples, couple of real examples what it can be used for. With important note that, alas, all of them are still on ToDo list, so it is actually a plan 🙄
 - at elevation 45deg, ball is fired with speed 10, 100, 1000, 10e5, 10e7 m/s, where it will be in 1 hour? [link](/docs/examples/Example1_kosi_hitac.md)
 - collision calculator, 2D and 3D - [link](/docs/examples/Example2_collision_calculator.md)
 - calculating tensor of inertia - [link](/docs/examples/Example3_tensor_of_inertia.md)
-- visualizing EM field - [link](/docs/examples/Example4_EM_field_visualization.md)
+- investigating gravity field - [link](/docs/examples/Example4_gravity_field_investigations.md)
 - Voyager travels through Solar system - [link](/docs/examples/Example5_Voyager_travels.md)
 - electric charge distribution in solid body - [link](/docs/examples/Example6_electric_charge_distribution.md)
 
-**Intro examples**
+## Introductory examples
 
 In the following sections, some basic examples of using the library are given.
 
-***Vectors, matrices***
+**Vectors, matrices**
 
 Examples of basic vector and matrix operations
 ~~~ c++
@@ -218,7 +192,7 @@ std::cout << "IsUnitary(mat_cmplx)   = " << MatrixUtils::IsUnitary(mat_cmplx) <<
 */
 ~~~
 
-***Solving linear systems of equations and calculating eigenvalues***
+**Solving linear systems of equations and calculating eigenvalues**
 
 How to solve linear systems of equations, and calculate eigenvalues
 ~~~ c++
@@ -262,9 +236,9 @@ std::cout << "\nComplex     : "; eigenSolver.getComplexEigenvalues().Print(std::
 */
 ~~~
 
-***Defining functions***
+**Defining functions**
 
-Five possibilities for defining/creating functions
+Four (main) possibilities for defining/creating functions of various types
 ~~~ c++
 // CASE 1 - standalone function providing calculation of a function
 double Readme_functions_TestFunc(double x) { 
@@ -304,7 +278,7 @@ class ClassProvidingFuncToDerive2 : public IRealFunction {
         }
 };
 
-ClassProvidingFuncToDerive2   f2;       // usable RealFunction object
+ClassProvidingFuncToDerive2   f2;       // usable RealFunction object (can be derived, integrated, ...)
 
 // CASE 4 - class you CAN'T change has member function that does the calculation
 class BigComplexClassYouCantChange {
@@ -323,41 +297,72 @@ public:
 };
 
 BigComplexClassYouCantChange bigObj;
-BigComplexFunc2    f1(bigObj);     // usable RealFunction object
+BigComplexFunc2    f1(bigObj);          // usable RealFunction object (can be derived, integrated, ...)
+~~~
 
-// CASE 5 - create interpolated function from given data
-Vector<double> x_val(100), y_val(100);    // vectors containing values for interpolation
+**Creating interpolated functions**
 
+If there is no explicit function, but we have data, there are various ways to create interpolated function
+~~~ c++
+const int NumInterpPnt = 5;
+const Real x1 = 0, x2 = 10.0;
+
+// we will use this as test func
+RealFunction test_func{[](double x) { return sin(x)*(1.0 + 0.5*x*x); } };
+
+// and using our helper, available for all real functions, create data for interpolation
+Vector<double> x_val(NumInterpPnt), y_val(NumInterpPnt);
+test_func.GetValues(x1, x2, NumInterpPnt, x_val, y_val);
+
+// these are the ways we can interpolate Real function
 LinearInterpRealFunc    f_linear(x_val, y_val);
 PolynomInterpRealFunc   f_polynom(x_val, y_val, 3);
-RationalInterpRealFunc  f_rational(x_val, y_val, 3);
 SplineInterpRealFunc    f_spline(x_val, y_val);
 BaryRatInterpRealFunc   f_baryrat(x_val, y_val, 3);
 
-// TODO 0.7 - HIGH parametric curve interpolation
+test_func.SerializeEquallySpacedDetailed(x1, x2, 100, "..\\..\\results\\readme_interp_test_func.txt");
+f_linear.SerializeEquallySpacedDetailed(x1, x2, 500, "..\\..\\results\\readme_interp_linear_5_pnt.txt");
+f_polynom.SerializeEquallySpacedDetailed(x1, x2, 100, "..\\..\\results\\readme_interp_polynom_5_pnt.txt");
+f_spline.SerializeEquallySpacedDetailed(x1, x2, 100, "..\\..\\results\\readme_interp_spline_5_pnt.txt");
+f_baryrat.SerializeEquallySpacedDetailed(x1, x2, 100, "..\\..\\results\\readme_interp_baryrat_5_pnt.txt");
+
+const char *cmd = "..\\..\\tools\\visualizers\\real_function_visualizer\\MML_RealFunctionVisualizer.exe"
+                    " ..\\..\\results\\readme_interp_test_func.txt"
+                    " ..\\..\\results\\readme_interp_linear_5_pnt.txt"
+                    " ..\\..\\results\\readme_interp_polynom_5_pnt.txt"
+                    " ..\\..\\results\\readme_interp_spline_5_pnt.txt"
+                    " ..\\..\\results\\readme_interp_baryrat_5_pnt.txt";
+std::system(cmd);
 ~~~
+Visualization of test func, and interpolations for NumInterpPnt = 5, 8 and 12
 
-***Working with functions - derivation, integration***
+![My Image](docs/images/readme_interpolated_functions.png)
 
-Examples of working with functions - derivation & integration
+**Working with functions - derivation**
+
+Examples of various ways of calculating derivation of functions
 ~~~ c++
 RealFunction       f1{[](double x) { return sin(x)*(1.0 + 0.5*x*x); } };
-ScalarFunction<3>  f2Scal([](const VectorN<Real, 3> &x) { return 1.0 / pow(x.NormL2(), 2); });
-VectorFunction<3>  f3Vec([](const VectorN<Real, 3> &x) { return VectorN<Real, 3>{0, x[0] * x[1], 0}; });
 
 // numerical derivation of real function (available orders - 1, 2, 4, 6, 8)
 double der_f1 = Derivation::NDer1(f1, 0.5);
 double der_f4 = Derivation::NDer2(f1, 0.5, 1e-6);   // setting explicit step size
 double err;
 double der_f6 = Derivation::NDer6(f1, 0.5, &err);   // if we need error estimate    
-// we can use default Derive routine (set to NDer4), but it requires pointer for error estimate
+// we can use default Derive routine (set to NDer4), but it requires error estimate
 double num_der4 = Derivation::Derive(f1, 0.5, nullptr);
 
 // second and third derivatives
 double sec_der_f1   = Derivation::NSecDer2(f1, 0.5);
 double third_der_f1 = Derivation::NThirdDer2(f1, 0.5);
 
-VectorN<Real, 3> der_point{1.0, 1.0, 1.0};
+// creating new function that is derivation of existing RealFunction
+RealFuncDerived4    f1_der4(f1);        // 4th order derivation
+
+// scalar and vector functions
+ScalarFunction<3>   f2Scal([](const VectorN<Real, 3> &x) { return 1.0 / pow(x.NormL2(), 2); });
+VectorFunction<3>   f3Vec([](const VectorN<Real, 3> &x) { return VectorN<Real, 3>{0, x[0] * x[1], 0}; });
+VectorN<Real, 3>    der_point{1.0, 1.0, 1.0};
 
 double der_f2               = Derivation::NDer1Partial(f2Scal, 1, der_point);
 VectorN<Real, 3> der_f2_all = Derivation::NDer1PartialByAll(f2Scal, der_point);
@@ -365,97 +370,226 @@ VectorN<Real, 3> der_f2_all = Derivation::NDer1PartialByAll(f2Scal, der_point);
 double der_f3 = Derivation::NDer1Partial(f3Vec, 1, 1, der_point);
 VectorN<Real, 3>     der_f3_by1    = Derivation::NDer2PartialByAll(f3Vec, 1, der_point);
 MatrixNM<Real, 3, 3> der_f3_by_all = Derivation::NDer4PartialAllByAll(f3Vec, der_point);
+~~~
 
+**Working with functions - integration**
+
+Examples of integration real functions, but also 2D and 3D scalar functions
+~~~ c++
 // numerical integration of real function
+RealFunction f1{[](double x) { return sin(x)*(1.0 + 0.5*x*x); } };
+
 double a = 0.0;
 double b = 1.0;
-double int_trap = Integration::IntegrateTrap(f1,a,b);
-double int_simp = Integration::IntegrateSimpson(f1,a,b);
-double int_romb = Integration::IntegrateRomberg(f1,a,b);
+double int_trap = IntegrateTrap(f1,a,b);
+double int_simp = IntegrateSimpson(f1,a,b);
+double int_romb = IntegrateRomberg(f1,a,b);
 // we can use default Integrate routine (set to IntegrateSimpson), requires precision
-double int_def = Integration::Integrate(f1, a, b, 1e-04); 
-~~~
-// TODO 0.7 - line, surface, volume integration
+double int_def = Integrate(f1, a, b, 1e-04);
 
-***Solving ODE system***
+// 2D integration of constant scalar 2D function (ie. we'll get the area of the surface)
+ScalarFunction<2> f2([](const VectorN<Real, 2> &x) { return 1.0; });
+
+// we integrate over circle with radius 2
+Real val = IntegrateSurface(f2, IntegrationMethod::GAUSS10, 
+                                -2, 2,              // x range
+                                [](Real x) { return -sqrt(4 - x*x);},   // y range lower limit
+                                [](Real x) { return sqrt(4 - x*x);});   // y range upper limit
+
+std::cout << "Calc. area = " << val << ", exact value: 4 * PI = " << 4 * Constants::PI << std::endl;
+
+// 3D integration of constant scalar 3D function (ie. we'll get the volume of the solid)
+ScalarFunction<3> f3([](const VectorN<Real, 3> &x) { return 1.0; });
+
+Real vol = IntegrateVolume( f3, 
+                            -1, 1,              
+                            [](Real x) { return -sqrt(1 - x*x);}, 
+                            [](Real x) { return sqrt(1 - x*x);}, 
+                            [](Real x, Real y) { return -sqrt(1 - x*x - y*y);}, 
+                            [](Real x, Real y) { return sqrt(1 - x*x - y*y);});
+
+std::cout << "Calc. vol. = " << vol << ", exact value: 4/3 * PI = " << 4.0/3.0 * Constants::PI << std::endl;
+
+/* OUTPUT 
+    Calc. area = 12.57211164, exact value: 4 * PI = 12.56637061
+    Calc. vol. = 4.190703882, exact value: 4/3 * PI = 4.188790205
+*/
+~~~
+
+**Solving ODE system**
 
 Solving system of ordinary differential equations
 ~~~ c++
-// in-place definition
-ODESystem vanDerPol(2, [](double t, const Vector<Real>& y, Vector<Real>& dydt)
+// in-place definition of Lorenz system (have to fix parameters!)
+ODESystem LorenzSystem(3, [](double t, const Vector<Real>& y, Vector<Real>& dydt)
 {
-    double mju = 0.1;
-    dydt[0] = y[1];
-    dydt[1] = mju * (1.0 - y[0] * y[0]) * y[1] - y[0];
-});
-// get it from predefined test-bed (but, it has a fixed parameter value!)
-auto vanDerPolAlso  = TestBeds::ODESystemTestBed::getODESystem("VanDerPol 0.1");
+    double sigma = 10.0, rho = 28.0, beta = 8.0 / 3.0;
+    dydt[0] = sigma * (y[1] - y[0]);
 
-const double atol=1.0e-3, rtol=atol;
-const double h1=0.01, hmin=0.0;
-const double x1=0.0, x2=2.0;
+    dydt[1] = y[0] * (rho - y[2]) - y[1];
+    dydt[2] = y[0] * y[1] - beta * y[2];
+});    
 
-Vector<Real> init_cond{2.0, 0.0};
-Output out(20);      // saving only 20 points     
+// get it from predefined test-bed 
+TestBeds::LorenzSystemODE alsoLorenzSystem(10.0, 28.0, 8.0/3.0);
 
-ODESystemSolver<StepperDopr853> ode_solver(vanDerPol, atol, rtol, out);
-ODESystemSolution               sol = ode_solver.integrate(init_cond, x1, x2, h1, hmin);
+const double atol=1.0e-3, rtol=atol, h1=0.01, hmin=0.0;
+double x1=0.0, x2=50.0;
 
-std::cout << "x values:\n";  sol._xval.Print(std::cout, 6, 3); std::cout << std::endl;
-std::cout << "y values: - "; sol._yval.Print(std::cout, 6, 3);
-/* OUTPUT
-x values:
-[     0,    0.1,    0.2,    0.3,    0.4,    0.5,    0.6,    0.7,    0.8,    0.9,      1,    1.1,    1.2,    1.3,    1.4,    1.5,    1.6,    1.7,    1.8,    1.9,     2]
-y values: - Rows: 2 Cols: 21
-[      2,   1.99,   1.96,   1.91,   1.85,   1.77,   1.67,   1.56,   1.43,   1.29,   1.14,  0.976,  0.804,  0.623,  0.436,  0.242, 0.0439, -0.157, -0.358, -0.557, -0.752,  ]
-[      0, -0.197, -0.386, -0.567, -0.738, -0.901,  -1.05,   -1.2,  -1.33,  -1.45,  -1.57,  -1.67,  -1.77,  -1.85,  -1.91,  -1.96,     -2,  -2.01,     -2,  -1.97,  -1.92,  ]
-*/
+Vector<Real> init_cond({2.0, 1.0, 1.0});
+Output out0(10000);
+
+ODESystemSolver<StepperDopr5> ode_solver0(LorenzSystem,atol,rtol, out0);
+ODESystemSolution             sol0 = ode_solver0.integrate(init_cond, x1, x2, h1, hmin);
+
+sol0.Serialize("demo5_lorenz_system.txt", "Lorenz system");
+auto ret2 = std::system("..\\..\\tools\\visualizers\\real_function_visualizer\\MML_RealFunctionVisualizer.exe demo5_lorenz_system.txt");
+
+auto curve = sol0.getSolutionAsParametricCurve<3>();
+sol0.SerializeAsParametricCurve3D("demo5_lorenz_system_as_parametric_curve.txt", "Lorenz system as parametric curve");
+std::system("..\\..\\tools\\visualizers\\parametric_curve_visualizer\\MML_ParametricCurveVisualizer.exe demo5_lorenz_system_as_parametric_curve.txt");
 ~~~
-TODO 0.7 - slika s rješenjem sustava i prikaz koda
+Resulting images
 
-***Fields and field operations - grad, div, curl, Laplacian***
+![My Image](docs/images/readme_ODEsolvers.png)
 
-Calculating field gradient, divergence, curl and Laplacian
+**Fields and field operations - grad, div, curl, Laplacian**
+
+Using as example inverse radial field, with its potential and force field, demonstrate calculation of field gradient, divergence, curl and Laplacian
+Calculations are performed in Cartesian and spherical coordinates, along circle in XZ-plane, and covariant vector transformation is also demonstrated
 ~~~ c++
-// TODO 0.7 - bolji primjer - skalarno polje potencijala, iz njega generirati vektorsko polje, i iz njega grad, div, curl, Laplacian
-ScalarFunction<3> fPotCart([](const VectorN<Real, 3> &x) -> Real { return InverseRadialPotentialFieldCart(x); });
-ScalarFunction<3> fPotSpher([](const VectorN<Real, 3> &x) -> Real { return InverseRadialPotentialFieldSpher(x); });
-ScalarFunction<3> fPotCyl([](const VectorN<Real, 3> &x) -> Real { return InverseRadialPotentialFieldCyl(x); });
+// Setting up fields and creating scalar potential and vector force field from predefined functions
+static ScalarFunction<3> pot_cart_exact([](const VectorN<Real, 3> &x_cart) -> Real   { return -InverseRadialPotentialFieldCart(x_cart); });
+static ScalarFunction<3> pot_spher_exact([](const VectorN<Real, 3> &x_spher) -> Real { return -InverseRadialPotentialFieldSpher(x_spher); });
+static VectorFunction<3> force_field_cart_exact([](const VectorN<Real, 3> &x_cart)   { return InverseRadialPotentialForceFieldCart(x_cart); });
+static VectorFunction<3> force_field_spher_exact([](const VectorN<Real, 3> &x_spher) { return InverseRadialPotentialForceFieldSph(x_spher); });
 
-// calculating field gradient around circle
-Curves::Circle3DXZ circle(1.0);
-std::cout << "            Position                   Cartesian gradient              Spherical gradient         Spher.grad.covar.transf. to Cart        Cylindrical gradient         Cyl.grad.covar.transf. to Cart" << std::endl;
-for(double t=0.0; t<2*Constants::PI; t+=0.3)
+// if we have only potential, we can numerical calculate force field from it
+static VectorFunction<3> force_field_cart_from_grad{ [](const VectorN<Real, 3> &x_cart)  { return -ScalarFieldOperations::GradientCart<3>(pot_cart_exact, x_cart); } };  
+static VectorFunction<3> force_field_spher_from_grad([](const VectorN<Real, 3> &x_spher) { return -ScalarFieldOperations::GradientSpher(pot_spher_exact,x_spher); });
+
+// if we have potential in one coord. system, and we need force field in another, we can calculate it 
+// by first calculating force field in the same coord. system as potential, and then transforming it covariantly to desired coordinates
+VectorFunction<3> force_field_cart_from_spher_pot{ [](const VectorN<Real, 3> &x_cart)
+{
+    auto force_spher     = -ScalarFieldOperations::GradientSpher(pot_spher_exact, CoordTransfCartToSpher.transf(x_cart));
+    VectorN<Real, 3> ret = CoordTransfSpherToCart.transfVecCovariant(force_spher, x_cart);
+    return ret;        // returned force field vector is now in Cartesian coordinates
+} };
+VectorFunction<3> force_field_spher_from_cart_pot{ [](const VectorN<Real, 3> &x_spher)
+{
+    auto force_cart      = -ScalarFieldOperations::GradientCart<3>(pot_cart_exact, CoordTransfSpherToCart.transf(x_spher));
+    VectorN<Real, 3> ret = CoordTransfCartToSpher.transfVecCovariant(force_cart, x_spher);
+    return ret;        // returned force field vector is now in Spherical coordinates
+} };
+~~~
+~~~ c++
+// calculating potential and force around circle
+Curves::Circle3DXZ circle(10.0);
+
+// calculating field Gradient in Cart. and Spherical coordinates around circle
+std::cout << "         Position          Pot.(Cart)    Pot.(Spher)        Force exact (Cart. vector)              Force exact (Sph. vector)              Force num.grad (Cart.vector)        Force num.grad (Sph.vector)" << std::endl;
+for(double t=0.0; t<2*Constants::PI; t+=1)
+{
+    Vector3Cartesian   pos_cart = circle(t);
+    Vector3Spherical   pos_spher = CoordTransfCartToSpher.transf(pos_cart);
+
+    double pot_cart  = pot_cart_exact(pos_cart);
+    double pot_spher = pot_spher_exact(pos_spher);
+
+    Vector3Cartesian   force_cart_exact    = force_field_cart_exact(pos_cart);
+    Vector3Spherical   force_spher_exact   = force_field_spher_exact(pos_spher);
+    Vector3Cartesian   force_cart_numgrad  = force_field_cart_from_grad(pos_cart);
+    Vector3Spherical   force_spher_numgrad = force_field_spher_from_grad(pos_spher);
+
+    std::cout << pos_cart.to_string(6,3) << "       " << pot_cart << "           "  << pot_spher << "    "
+            << "  "  << force_cart_exact.to_string(10,4) 
+            << "  "  << force_spher_exact.to_string(10,4) 
+            << "  "  << force_cart_numgrad.to_string(10,4) 
+            << "  "  << force_spher_numgrad.to_string(10,4) 
+            << std::endl;
+}
+~~~
+~~~ c++
+// calculating field Divergence of four defined vector fields around circle
+std::cout << "            Position               Cart.Div of               Cart.Div. of         Sph.Div of              Sph.Div of   " << std::endl;
+std::cout << "                                  exact Cart.field          num.grad.field     exact Spher. field    num.grad.sph.field" << std::endl;
+for(double t=0.0; t<2*Constants::PI; t+=1.0)
+{
+    Vector3Cartesian   pos_cart  = circle(t);
+    Vector3Spherical   pos_spher = CoordTransfCartToSpher.transf(pos_cart);
+
+    auto div_cart_exact  = VectorFieldOperations::DivCart<3>(force_field_cart_exact, pos_cart);
+    auto div_spher_exact = VectorFieldOperations::DivSpher(force_field_spher_exact, pos_spher);
+    
+    auto div_grad_cart_numgrad  = VectorFieldOperations::DivCart<3>(force_field_cart_from_grad, pos_cart);
+    auto div_grad_spher_numgrad = VectorFieldOperations::DivSpher(force_field_spher_from_grad, pos_spher);
+    
+    std::cout << pos_cart.to_string(7,3) << " " << std::setw(20) << div_cart_exact << "      " << std::setw(20) << div_grad_cart_numgrad << "      " 
+                                            << div_spher_exact << "      " << div_grad_spher_numgrad << std::endl;
+}
+~~~
+~~~ c++
+// calculating vector field Curl and field Laplacian
+std::cout << "            Position                    Cartesian curl                        Spherical curl                   Cartesian Laplacian     Spherical Laplacian" << std::endl;
+for(double t=0.0; t<2*Constants::PI; t+=1)
 {
     Vector3Cartesian   pos = circle(t);
-    Vector3Cartesian   grad_cart  = ScalarFieldOperations::GradientCart<3>(fPotCart, pos);
-    Vector3Spherical   grad_spher = ScalarFieldOperations::GradientSpher(fPotSpher, CoordTransfCartToSpher.transf(pos));
-    Vector3Cylindrical grad_cyl   = ScalarFieldOperations::GradientCyl(fPotCyl, CoordTransfCartToCyl.transf(pos));
+    Vector3Spherical   pos_spher = CoordTransfCartToSpher.transf(pos);
 
-    Vector3Cartesian spher_grad_transf_to_cart = CoordTransfSpherToCart.transfVecCovariant(grad_spher, pos);
-    Vector3Cartesian cyl_grad_transf_to_cart   = CoordTransfCylToCart.transfVecCovariant(grad_cyl, pos);
+    Vector3Cartesian   curl_cart  = VectorFieldOperations::CurlCart(force_field_cart_exact, pos);
+    Vector3Spherical   curl_spher = VectorFieldOperations::CurlSpher(force_field_spher_exact, pos_spher);
 
-    std::cout << pos.to_string(8,3) << " = " << grad_cart.to_string(8,4) 
-                                    << "  "  << grad_spher.to_string(8,4) 
-                                    << "  "  << spher_grad_transf_to_cart.to_string(9,4) 
-                                    << "  "  << grad_cyl.to_string(8,4) 
-                                    << "  "  << cyl_grad_transf_to_cart.to_string(10,4) 
+    double   lapl_cart  = ScalarFieldOperations::LaplacianCart(pot_cart_exact, pos);
+    double   lapl_spher = ScalarFieldOperations::LaplacianSpher(pot_spher_exact, pos_spher);
+
+    std::cout << pos.to_string(7,3) << " = " << curl_cart.to_string(10,4) 
+                                    << "  "  << curl_spher.to_string(10,4)
+                                    << "        " << std::setw(16) << lapl_cart
+                                    << "        " << std::setw(16) << lapl_spher
                                     << std::endl;
-    }
+}
+/* OUTPUT
+         Position          Pot.(Cart)    Pot.(Spher)        Force exact (Cart. vector)              Force exact (Sph. vector)              Force num.grad (Cart.vector)        Force num.grad (Sph.vector)
+[    10,      0,      0]       -0.1           -0.1      [     -0.01,         -0,         -0]  [     -0.01,          0,          0]  [     -0.01,         -0,         -0]  [     -0.01,         -0,         -0]
+[   5.4,      0,   8.41]       -0.1           -0.1      [ -0.005403,         -0,  -0.008415]  [     -0.01,          0,          0]  [ -0.005403,         -0,  -0.008415]  [     -0.01,         -0,         -0]
+[ -4.16,      0,   9.09]       -0.1           -0.1      [  0.004161,         -0,  -0.009093]  [     -0.01,          0,          0]  [  0.004161,         -0,  -0.009093]  [     -0.01,         -0,         -0]
+[  -9.9,      0,   1.41]       -0.1           -0.1      [    0.0099,         -0,  -0.001411]  [     -0.01,          0,          0]  [    0.0099,         -0,  -0.001411]  [     -0.01,         -0,         -0]
+[ -6.54,      0,  -7.57]       -0.1           -0.1      [  0.006536,         -0,   0.007568]  [     -0.01,          0,          0]  [  0.006536,         -0,   0.007568]  [     -0.01,         -0,         -0]
+[  2.84,      0,  -9.59]       -0.1           -0.1      [ -0.002837,         -0,   0.009589]  [     -0.01,          0,          0]  [ -0.002837,         -0,   0.009589]  [     -0.01,         -0,         -0]
+[   9.6,      0,  -2.79]       -0.1           -0.1      [ -0.009602,         -0,   0.002794]  [     -0.01,          0,          0]  [ -0.009602,         -0,   0.002794]  [     -0.01,         -0,         -0]
+            Position               Cart.Div of               Cart.Div. of         Sph.Div of              Sph.Div of
+                                  exact Cart.field          num.grad.field     exact Spher. field    num.grad.sph.field
+[     10,       0,       0]     -6.505213035e-18          -9.889788207e-12      -9.728329253e-16      -2.036693314e-12
+[    5.4,       0,    8.41]      1.140363845e-15          -1.403275347e-11      -9.728329253e-16      -2.036693314e-12
+[  -4.16,       0,    9.09]     -2.109857428e-15          -2.632835248e-11      -9.728329253e-16      -2.036693314e-12
+[   -9.9,       0,    1.41]       1.86168355e-15           7.353272722e-13      -9.728329253e-16      -2.036693314e-12
+[  -6.54,       0,   -7.57]     -7.254396736e-16          -1.703953005e-11      -9.728329253e-16      -2.036693314e-12
+[   2.84,       0,   -9.59]     -3.102769777e-15          -1.202754346e-11      -9.728329253e-16      -2.036693314e-12
+[    9.6,       0,   -2.79]      7.181755191e-16           5.078564305e-12      -9.728329253e-16      -2.036693314e-12
+            Position                    Cartesian curl                        Spherical curl                   Cartesian Laplacian     Spherical Laplacian
+[     10,       0,       0] = [         0,          0,          0]  [         0,          0,          0]        -2.865156029e-14         7.464116131e-13
+[    5.4,       0,    8.41] = [         0,  2.408e-15,          0]  [         0,          0,          0]        -3.885927604e-12         7.464116131e-13
+[  -4.16,       0,    9.09] = [         0,  1.806e-16,          0]  [         0,          0,          0]         5.927392041e-12         7.464116131e-13
+[   -9.9,       0,    1.41] = [         0, -1.715e-15,          0]  [         0,          0,          0]         5.756142091e-13         7.464116131e-13
+[  -6.54,       0,   -7.57] = [         0,  6.622e-16,          0]  [         0,          0,          0]        -3.369075635e-12         7.464116131e-13
+[   2.84,       0,   -9.59] = [         0,  1.625e-15,          0]  [         0,          0,          0]        -2.460620032e-12         7.464116131e-13
+[    9.6,       0,   -2.79] = [         0, -2.769e-15,          0]  [         0,          0,          0]         6.892316579e-13         7.464116131e-13
+*/
 ~~~
+**Parametric curves - basic differential geometry**
 
-***Parametric curves - differential geometry***
-
-Calculating tangent, normal, binormal, curvature, curvature3, curvature vector
+Calculating tangent, normal, binormal, curvature, curvature3, curvature vector for Parametric curve.
 ~~~ c++
 // creating curve directly with lambda
 ParametricCurve<3>        test_curve1( [](double t) -> VectorN<Real, 3> { return VectorN<Real, 3>{t, t*t, t*t*t}; } );
 
 // using predefined curve
-Curves::HelixCurve        helix(2.0, 2.0);
+Curves::LemniscateCurve   lemniscate;
+Curves::ToroidalSpiralCurve torus(3, 2.0);
 
-// using curve from TestBeds
-const ParametricCurve<3> &test_curve = TestBeds::ParametricCurvesTestBed::_listCurves[0]._curve;
+// using curve from TestData
+const ParametricCurve<3> &test_curve = TestBeds::ParametricCurvesTestBed::getTestCurve("Helix")._curve;
 
 double t = 0.5;
 auto tangent   = DiffGeometry::getTangent(test_curve, t);
@@ -468,14 +602,119 @@ auto curv_vec   = DiffGeometry::getCurvatureVector(test_curve, t);
 auto curvature  = DiffGeometry::getCurvature(test_curve, t);
 auto curvature3 = DiffGeometry::getCurvature3(test_curve, t);
 ~~~
-TODO 0.7 - vizualizirati neku krivulju, i u jednoj točki vizualizirati (World view) 3 vektora tangente, normale i binormale, te vektore zakrivljenosti
 
-***Visualizators***
+## Visualizators examples
+
+Examples how to use four available visualization tools.
+
+**Real function visualizer**
 ~~~ c++
-    // TODO 0.7 - visualizators example
-~~~
+RealFunction f1{[](double x) { return sin(x) * (x-3)*(x+5) / sqrt(std::abs(2 - x)); } };
 
-***FunctionAnalyzer***
+f1.SerializeEquallySpacedDetailed(-10.0, 10.0, 500, "..\\..\\results\\readme_func1.txt");
+std::system("..\\..\\tools\\visualizers\\real_function_visualizer\\MML_RealFunctionVisualizer.exe ..\\..\\results\\readme_func1.txt");
+
+RealFuncDerived4 f2(f1);        // derivation of f1 function
+
+f2.SerializeEquallySpacedDetailed(-10.0, 10.0, 100, "..\\..\\results\\readme_func2.txt");
+std::system("..\\..\\tools\\visualizers\\real_function_visualizer\\MML_RealFunctionVisualizer.exe ..\\..\\results\\readme_func2.txt");
+
+// shown together
+std::system("..\\..\\tools\\visualizers\\real_function_visualizer\\MML_RealFunctionVisualizer.exe ..\\..\\results\\readme_func1.txt ..\\..\\results\\readme_func2.txt");
+~~~
+Visualization:
+![My Image](docs/images/readme_visualizator_real_function.png)
+
+**Surface visualizer**
+
+~~~ c++
+// Monkey saddle surface
+ScalarFunction<2> testFunc1{[](const VectorN<Real, 2> &x) { return x[0] * (x[0]*x[0] - 3 * x[1]*x[1]); } };
+
+testFunc1.Serialize2DCartesian(-2.0, 2.0, 20, -2.0, 2.0, 20, "..\\..\\results\\readme_surface1.txt");
+std::system("..\\..\\tools\\visualizers\\scalar_function_2d_visualizer\\MML_ScalarFunction2Visualizer.exe ..\\..\\results\\readme_surface1.txt");
+
+ScalarFunction<2> testFunc2{[](const VectorN<Real, 2> &x) { return (std::abs(x[0])-10) * (std::abs(x[1])-10) * sin(x[0]) * cos(x[1]); } };
+
+testFunc2.Serialize2DCartesian(-10.0, 10.0, 50, -10.0, 10.0, 50, "..\\..\\results\\readme_surface2.txt");
+std::system("..\\..\\tools\\visualizers\\scalar_function_2d_visualizer\\MML_ScalarFunction2Visualizer.exe ..\\..\\results\\readme_surface2.txt");    
+~~~
+Visualization:
+![My Image](docs/images/readme_visualizator_surfaces.png)
+
+**Parametric curve visualizer**
+
+~~~ c++
+// using predefined 3D curves for visualization example
+Curves::HelixCurve              helix(20.0, 2.0);
+Curves::ToroidalSpiralCurve     toroid(20.0);
+
+helix.SerializeCartesian3D(-50.0, 50.0, 1000, "readme_curve_helix.txt");
+std::system("..\\..\\tools\\visualizers\\parametric_curve_visualizer\\MML_ParametricCurveVisualizer.exe readme_curve_helix.txt");
+
+toroid.SerializeCartesian3D(0.0, 2 * Constants::PI, 5000, "readme_curve_toroid.txt");
+std::system("..\\..\\tools\\visualizers\\parametric_curve_visualizer\\MML_ParametricCurveVisualizer.exe readme_curve_toroid.txt");
+~~~
+Visualization:
+![My Image](docs/images/readme_visualizator_parametric_curve.png)
+
+**Vector field visualizer**
+
+~~~ c++
+// defining force field of two masses as VectorFunction
+VectorFunction<3> gravity_force_field{ [](const VectorN<Real, 3> &x) 
+{
+    const VectorN<Real, 3> x1{ 100.0, 0.0, 0.0 }, x2{ -100.0, 0.0, 0.0 };
+    const Real m1 = 1000.0, m2 = 1000.0;
+    const Real G = 10;
+    return -G * m1 * (x - x1) / std::pow((x - x1).NormL2(), 3) - G * m2 * (x - x2) / std::pow((x - x2).NormL2(), 3);
+} };
+
+gravity_force_field.Serialize3DCartesian(-200.0, 200.0, 15, -200.0, 200.0, 15, -200.0, 200.0, 15, "readme_vector_field.txt", 5);
+std::system("..\\..\\tools\\visualizers\\vector_field_visualizer\\MML_VectorFieldVisualizer.exe readme_vector_field.txt");
+~~~
+Visualization:
+![My Image](docs/images/readme_visualizator_vector_field.png)
+
+**FunctionAnalyzer**
 ~~~ c++
     // TODO 0.8 - analyzer example
 ~~~
+
+
+## Testing and precision
+
+**Tests**
+
+There is a set of tests for each of the above algorithms, in the /tests folder.
+
+**Demos**
+
+Various examples of using the library are given in the /src folder.
+
+**Test beds**
+
+There is a set of test beds for each of the above algorithms, in the /test_data folder.
+They are used for verification of implemented algorithms, but can also be used as predefined inputs for your investigations.
+
+- [Functions](/docs/testbeds/Functions_testbed.md) - real, scalar and vector functions test bed
+- [Parametric curves & surfaces](/docs/testbeds/ParametricCurvesSurfaces_testbed.md) - parametric curves & surfaces test bed
+- [Lin.alg.systems](/docs/testbeds/LinAlgSystems_testbed.md) - linear systems of equations test bed
+- [ODE system](/docs/testbeds/ODESystems_testbed.md) - ODE systems test bed
+
+**Evaluating algorithms precision and correctnes**
+
+In applying any kind of numerical procedure on computers, observing precision is of paramount importance.
+Whenever possible, implemented algorithms calculate their error estimates, and provide them as (if possible, optional) output.
+Default precisions for algorithms are set in [Defaults](/docs/testing_precision/DefaultPrecisions.md) namespace, and can be changed by user.
+
+- [Derivation precision](/docs/testing_precision/TestDerivationPrecision.md) - investigating precision of numerical derivation
+- [Integration precision](/docs/testing_precision/TestIntegrationPrecision.md) - investigating precision of numerical integration
+- [Interpolation precision](/docs/testing_precision/TestInterpolationPrecision.md) - investigating precision of interpolation
+- [Vector fields operations precision](/docs/testing_precision/TestVectorFieldOperationsPrecision.md) - investigating precision vector field operations
+
+## LICENSING
+- Code is given as it is, without any warranty. Use it at your own risk (and convenience).
+- STRICTLY NON-COMMERCIAL USE ONLY!
+- Unfortunately, also unavailable for Open Source project, due to restrictive Numerical Recipes license (for which code I have only personal license).
+- So basically, it is for personal, educational and research use only.

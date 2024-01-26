@@ -19,32 +19,32 @@ set( MML_DEMO_SOURCES   src/demo_app_main.cpp
                         src/base/demo_tensors.cpp
                         src/base/demo_vector.cpp
                         src/base/demo_vectorn.cpp
+                        src/base/demo_geometry_2d.cpp
+                        src/base/demo_geometry_3d.cpp
+                        src/base/demo_linear_functional.cpp
+                        src/base/demo_linear_operator.cpp
+                        src/base/demo_polynom.cpp
+                        src/base/demo_quadratic_form.cpp
+                        src/base/demo_vector_spaces.cpp
 
                         src/core/demo_chebyshev_approximation.cpp
                         src/core/demo_coord_transf.cpp
+                        src/core/demo_coord_system.cpp
                         src/core/demo_derivation.cpp
                         src/core/demo_function.cpp
                         src/core/demo_integration.cpp
                         src/core/demo_interpolated_function.cpp
                         src/core/demo_linear_alg_eq_solvers.cpp
-                        src/core/demo_linear_functional.cpp
-                        src/core/demo_linear_operator.cpp
-                        src/core/demo_polynom.cpp
-                        src/core/demo_quadratic_form.cpp
                         src/core/demo_serialization.cpp
-                        src/core/demo_vector_spaces.cpp
                         src/core/demo_metric_tensor.cpp
                         src/core/demo_field_operations.cpp
-
-                        src/basic_types/demo_coord_system.cpp
-                        src/basic_types/demo_covar_contravar_transf.cpp                                
-                        src/basic_types/demo_dirac_function.cpp
-                        src/basic_types/demo_fields.cpp
-                        src/basic_types/demo_function_space.cpp
-                        src/basic_types/demo_geometry_2d.cpp
-                        src/basic_types/demo_geometry_3d.cpp
-                        src/basic_types/demo_interpolators.cpp
-                        src/basic_types/demo_surfaces.cpp
+                        src/core/demo_coord_system_old.cpp
+                        src/core/demo_covar_contravar_transf.cpp                                
+                        src/core/demo_dirac_function.cpp
+                        src/core/demo_fields.cpp
+                        src/core/demo_function_space.cpp
+                        src/core/demo_interpolators.cpp
+                        src/core/demo_surfaces.cpp
 
                         src/algorithms/demo_diff_geometry.cpp
                         src/algorithms/demo_eigen_solvers.cpp                                
@@ -104,7 +104,7 @@ set(MML_DOCS_APP_SOURCES    docs_examples/doc_examples_app_main.cpp
                             docs_examples/examples/example1_kosi_hitac.cpp
                             docs_examples/examples/example2_collision_calculator.cpp
                             docs_examples/examples/example3_tensor_of_inertia.cpp
-                            docs_examples/examples/example4_em_field_visualization.cpp
+                            docs_examples/examples/example4_gravity_field_investigations.cpp
                             docs_examples/examples/example5_voyager_travels.cpp
                             docs_examples/examples/example6_electric_charge_distribution.cpp
                             docs_examples/examples/examples.cpp
@@ -127,6 +127,8 @@ file(GLOB MML_TESTS tests/base/algebra_tests.cpp
                     tests/base/tensors_tests.cpp
                     tests/base/vector_tests.cpp
                     tests/base/vectorN_tests.cpp 
+                    tests/base/geometry_2d_tests.cpp
+                    tests/base/geometry_3d_tests.cpp
 
                     tests/core/coord_transf_tests.cpp
                     tests/core/derivation_tests.cpp                    
@@ -140,11 +142,8 @@ file(GLOB MML_TESTS tests/base/algebra_tests.cpp
                     tests/core/matrixutils_tests.cpp
                     tests/core/polynom_tests.cpp
                     tests/core/metric_tensor_tests.cpp
-
-                    tests/basic_types/coord_system_tests.cpp
-                    tests/basic_types/function_space_tests.cpp
-                    tests/basic_types/geometry_2d_tests.cpp
-                    tests/basic_types/geometry_3d_tests.cpp
+                    tests/core/coord_system_tests.cpp
+                    tests/core/function_space_tests.cpp
 
                     tests/algorithms/diff_geom_alg_tests.cpp  
                     tests/algorithms/eigen_solvers_tests.cpp 

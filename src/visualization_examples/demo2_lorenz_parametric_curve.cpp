@@ -45,7 +45,7 @@ void Demo1_Lorenz_parametric_curve()
     // helix.SerializeCartesian3D(0.0, 2.0 * Constants::PI, 100, "helix.txt");
     // std::system("..\\..\\tools\\visualizers\\parametric_curve_visualizer\\MML_ParametricCurveVisualizer.exe helix.txt");
 
-    toroid.SerializeCartesian3D(0.0, 5.0 * Constants::PI, 500, "toroid.txt");
-    auto ret = std::system("..\\..\\tools\\visualizers\\parametric_curve_visualizer\\MML_ParametricCurveVisualizer.exe toroid.txt");    
+    toroid.SerializeCartesian3D(0.0, 5.0 * Constants::PI, 500, "..\\..\\results\\toroid.txt");
+    auto ret = std::system("..\\..\\tools\\visualizers\\parametric_curve_visualizer\\MML_ParametricCurveVisualizer.exe ..\\..\\results\\toroid.txt");    
 }
 

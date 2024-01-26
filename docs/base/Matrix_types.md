@@ -6,6 +6,12 @@ Basic types representing matrices:
 - Matrix\<class T> - matrix with run-time defined size
 - MatrixNM\<class T, int N, int M> - matrix with compile-time defined size
 
+Additional types
+- MatrixSymm
+- MatrixTridiag
+- MatrixBandDiag
+
+
 ## Defined typedefs for easier use
 
 Matrix class

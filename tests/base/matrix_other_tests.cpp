@@ -9,8 +9,8 @@
 
 using namespace MML;
 
-// TODO 0.6 - finish details
-// TODO 0.6 - BandDiag tests
+// TODO 0.7 - finish details
+// TODO 0.7 - Tridiag, BandDiag tests
 namespace MML::Tests::MatrixOtherTests
 {
 TEST_CASE("MatrixSym_default_ctor_init_to_zero", "[simple]") 

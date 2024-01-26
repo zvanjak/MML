@@ -25,7 +25,7 @@ void Example6_electric_charge_distribution();
 
 void Docs_Examples()
 {
-    Main_example();
+    //Main_example();
 
     Example1_kosi_hitac();
     Example2_collision_calculator();

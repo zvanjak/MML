@@ -22,7 +22,7 @@ TEST_CASE("Vector_default_ctor_init_to_zero", "[simple]") {
     Vector<Real> b(0);
     REQUIRE(0 == b.size());
 
-    // TODO 0.6 - check exception thrown when less than zero
+    // TODO 0.7 - check exception thrown when less than zero
 
 }
 

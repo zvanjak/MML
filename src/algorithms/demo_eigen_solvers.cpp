@@ -66,7 +66,7 @@ void Test_Unsymmetric_Eigen_Solver_Single_Mat(Matrix<Real> origMat)
     int dim = origMat.RowNum();
     Matrix<Real>  matcopy(origMat);
 
-    UnsymmEigenSolver eigen_solver(matcopy, true, false);
+    EigenSolver eigen_solver(matcopy, true, false);
 
     std::cout << "Initial matrix:\n";  matcopy.Print(std::cout,10,3);  std::cout << std::endl;
 

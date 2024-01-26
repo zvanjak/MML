@@ -56,6 +56,12 @@ namespace MML::TestBeds
         }
     };
 
+    static void VanDerPol(double mju, const double x, const MML::Vector<Real> &y, MML::Vector<Real> &dydx) {
+        dydx[0] = y[1];
+        dydx[1] = mju * (1.0-y[0]*y[0])*y[1]-y[0];
+    }
+    static void VanDerPolMju0_1(const double x, const MML::Vector<Real> &y, MML::Vector<Real> &dydx) { return VanDerPol(0.1, x, y, dydx); }
+
     class VanDerPolODE : public IODESystem
     {
         double _eps;
@@ -99,11 +105,6 @@ namespace MML::TestBeds
         ret[2] = exp(t) + exp(2*t);
         return ret;
     }
-    static void VanDerPol(double mju, const double x, const MML::Vector<Real> &y, MML::Vector<Real> &dydx) {
-        dydx[0] = y[1];
-        dydx[1] = mju * (1.0-y[0]*y[0])*y[1]-y[0];
-    }
-    static void VanDerPolMju0_1(const double x, const MML::Vector<Real> &y, MML::Vector<Real> &dydx) { return VanDerPol(0.1, x, y, dydx); }
 
     static void  stiff_sys1_derivs(double t, const Vector<Real> &x, Vector<Real> &dydx)
     {

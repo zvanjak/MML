@@ -10,11 +10,8 @@
 
 namespace MML:: TestBeds
 {
-    // TODO - add planar curves
-    // TODO - add planar polar curves
-    // TODO - add curves with arc length parametrization
-    // arbitrary parametrization
-    struct TestSpaceCurve
+    // TODO 1.0 - add couple more curves
+     struct TestSpaceCurve
     {
         std::string _curveName;
         std::string _curveExpr;
@@ -34,11 +31,6 @@ namespace MML:: TestBeds
                             _curvatureFunc(f_curv), _torsionFunc(f_tors)
         {}
     };   
-
-    struct TestCurveArcLengthParametrization
-    {
-
-    };
 
     class ParametricCurvesTestBed
     {
@@ -84,7 +76,7 @@ namespace MML:: TestBeds
                         [](double t) { return 1.0 / (3 * SQR(1 + t*t)); }, 
                         [](double t) { return 2.0 / (3 * SQR(1 + t*t)); } 
                 },
-                {"Schaums2 ", "{ t - sin(t), 1 - cos(t), t}", 0.0, 2.0 * Constants::PI,  
+                {"Schaums2", "{ t - sin(t), 1 - cos(t), t}", 0.0, 2.0 * Constants::PI,  
                         [](double t) { return VectorN<Real,3>{ t - sin(t), 1 - cos(t), t}; }, 
                         [](double t) { return VectorN<Real,3>{0, 0, 0};}, 
                         [](double t) { return VectorN<Real,3>{0, 0, 0};},

@@ -32,12 +32,13 @@ void Readme_linear_system_solvers()
 
 	Vector<Real>	vecSol = luSolver.Solve(rhs);
 
-    std::cout << "Solution:\n" << vecSol << std::endl;
-    std::cout << "Matrix * solution = ";  (mat * vecSol).Print(std::cout,8,4);
+    std::cout << "Solution   = " << vecSol << std::endl;
+    std::cout << "Right side = "; rhs.Print(std::cout,8,4); std::cout << std::endl;
+    std::cout << "Mat * sol  = "; (mat * vecSol).Print(std::cout,8,4); std::cout << std::endl;
 
     Matrix<Real>  matcopy(mat);
 
-    UnsymmEigenSolver eigenSolver(matcopy, true, false);
+    EigenSolver eigenSolver(matcopy, true, false);
 
     std::cout << "\nNum real eigenvalues    : " << eigenSolver.getNumReal();
     std::cout << "\nNum complex eigenvalues : " << eigenSolver.getNumComplex() << "\n";
@@ -49,14 +50,15 @@ void Readme_linear_system_solvers()
     std::cout << "\n";
 
 /* OUTPUT
-Solution:
-[   -5.568500786,    -5.944693206,    -5.007620645,    -1.393638021,     3.598760994]
-Matrix * solution = [     1.1,      4.7,      0.1,      9.3,      0.4]
-Num real eigenvalues    : 3
-Num complex eigenvalues : 2
+    Solution   = [   -5.568500786,    -5.944693206,    -5.007620645,    -1.393638021,     3.598760994]
+    Right side = [     1.1,      4.7,      0.1,      9.3,      0.4]
+    Mat * sol  = [     1.1,      4.7,      0.1,      9.3,      0.4]
 
-Eigenvalues : [(12.974,0), (0.99944,0), (-0.033184,0), (-2.4701,12.994), (-2.4701,-12.994)]
-Real        : [    12.97392154,    0.9994371124,  -0.03318390189]
-Complex     : [(-2.470087376,12.99433106), (-2.470087376,-12.99433106)]
+    Num real eigenvalues    : 3
+    Num complex eigenvalues : 2
+
+    Eigenvalues : [(12.974,0), (0.99944,0), (-0.033184,0), (-2.4701,12.994), (-2.4701,-12.994)]
+    Real        : [    12.97392154,    0.9994371124,  -0.03318390189]
+    Complex     : [(-2.470087376,12.99433106), (-2.470087376,-12.99433106)]
 */
 }

@@ -49,7 +49,7 @@ void Test_Interpolation_2DFunc()
             x2 = -0.1+(j+1)/5.0;
             f=sin(x1)*exp(x2);
 
-            Integration::polin2(x1a,x2a,ya,x1,x2,y,dy);
+            polin2(x1a,x2a,ya,x1,x2,y,dy);
             
             double y_bilin = bilin_int.interp(x1, x2);
             double y_poly = poly_int.interp(x1, x2);

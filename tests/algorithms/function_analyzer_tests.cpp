@@ -30,7 +30,7 @@ TEST_CASE("Test_Function_Analyzer_FuncDiff", "[simple]")
     RealFunction test(test_func_123);
     
     double triangleArea = 6 * test_func_123(3.0) / 2;
-    double parabolaArea = Integration::IntegrateTrap(test, 0.0, 6.0);
+    double parabolaArea = IntegrateTrap(test, 0.0, 6.0);
 
     REQUIRE( FunctionComparer::getIntegratedDiff(myfunc, test, 0.0, 6.0) == Approx(-9.0).epsilon(1e-6) );
     REQUIRE( FunctionComparer::getIntegratedDiff(myfunc, test, 0.0, 6.0) != Approx(-9.0).epsilon(1e-7) );

@@ -37,12 +37,10 @@ void Demo_Fields()
     // predefined scalar fields
     InverseRadialFieldCart  inverseRadialPotentialField(10);
     InverseRadialFieldSpher inverseRadialPotentialFieldSpher(10);
-    InverseRadialFieldCyl   inverseRadialPotentialFieldCyl(10);
 
     // predefined vector fields 
     InverseRadialForceFieldCart  inverseRadialPotentialForceField(10);
     InverseRadialForceFieldSpher inverseRadialPotentialForceFieldSpher(10);
-    InverseRadialForceFieldCyl   inverseRadialPotentialForceFieldCyl(10);
 
     // no need for this, but you can do it
     InverseRadialForceFieldCart test_fun(1000.0);

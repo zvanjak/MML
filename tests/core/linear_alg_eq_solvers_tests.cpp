@@ -368,7 +368,7 @@ TEST_CASE("Test_QRDecomposition_COMPLETE_TEST_BED", "[simple]")
     }
 }
 
-// TODO 0.6 - Cholesky decomposition COMPLETE TEST BED
+// TODO 0.7 - HIGH Cholesky decomposition COMPLETE TEST BED
 
 // TEST_CASE("Test_CholeskyDecomposition_Solve_5_x_5", "[simple]")
 // {

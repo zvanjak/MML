@@ -33,7 +33,7 @@ void Demo1_Lorenz_multi_func()
     ODESystemSolver<StepperDopr5> ode_solver0(sys0,atol,rtol, out0);
     ODESystemSolution             sol0 = ode_solver0.integrate(ystart0, x1, x2, h1, hmin);
 
-    sol0.Serialize("demo1_lorenz_system.txt", "Lorenz system");
-    auto ret2 = std::system("..\\..\\tools\\visualizers\\real_function_visualizer\\MML_RealFunctionVisualizer.exe demo1_lorenz_system.txt");
+    sol0.Serialize("..\\..\\results\\demo1_lorenz_system.txt", "Lorenz system");
+    auto ret2 = std::system("..\\..\\tools\\visualizers\\real_function_visualizer\\MML_RealFunctionVisualizer.exe ..\\..\\results\\demo1_lorenz_system.txt");
 }
 

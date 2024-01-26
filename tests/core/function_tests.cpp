@@ -51,7 +51,7 @@ TEST_CASE("Test_Function_class_obj_overload_op()", "[simple]")
     REQUIRE(f1(1.0) == funcObj(1.0));
     REQUIRE(f1(5.0) == funcObj(5.0));
 
-    // TODO 0.6 - HIGH, OVO RAZRIJESITI
+    // TODO 0.7 - HIGH, OVO RAZRIJESITI
     // VERY IMPORTANT!!!!!!!!!!!!!!!!
     funcObj.setParam(6.0);
     REQUIRE(f1(1.0) != funcObj(1.0));

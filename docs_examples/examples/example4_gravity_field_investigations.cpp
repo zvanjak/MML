@@ -13,6 +13,6 @@ using namespace MML;
 void Example4_EM_field_visualization()
 {
     std::cout << "***********************************************************************" << std::endl;
-    std::cout << "****               EXAMPLE 4 - EM field visualization              ****" << std::endl;
+    std::cout << "****            EXAMPLE 4 - gravity field investigations           ****" << std::endl;
     std::cout << "***********************************************************************" << std::endl;
 }
