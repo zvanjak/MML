@@ -1,4 +1,4 @@
-# Matrix objects
+# Matrix class
 
 // TODO  0.7 - introduction
 

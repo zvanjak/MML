@@ -3,8 +3,8 @@
 ## Defined vector types
 
 Basic types representing vectors:
-- Vector\<class T> - vector with run-time defined size
-- VectorN\<class T, int N> - vector with compile-time defined size
+- [Vector\<class T>](/docs/base/Vector.md) - vector with run-time defined size
+- [VectorN\<class T, int N>](/docs/base/VectorN.md) - vector with compile-time defined size
 
 Specialized types of VectorN class:
 - Vector2Cartesian

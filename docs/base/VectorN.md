@@ -1,4 +1,4 @@
-# VectorN objects
+# VectorN
 
 ## Initializing/creating VectorN objects
 Vector class

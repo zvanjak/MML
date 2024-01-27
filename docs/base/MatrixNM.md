@@ -1,1 +1,1 @@
-# MatrixNM
+# MatrixNM class

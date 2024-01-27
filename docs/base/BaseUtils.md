@@ -2,17 +2,17 @@
 
 ## Levi-Civitta
 
-////////////////////////             Complex helpers               //////////////////////
+## Complex helpers              
 static bool AreEqual(const Complex &a, const Complex &b, double eps=Defaults::ComplexEqualityPrecision)
 static bool AreEqual(const Vector<Complex> &a, const Vector<Complex> &b, double eps=Defaults::ComplexEqualityPrecision)
 
-/////////////////////////             Vector helpers               //////////////////////
+## Vector helpers
 static Vector<Real> VectorProjectionParallelTo(const Vector<Real> &orig, const Vector<Real> &b)
 static Vector<Real> VectorProjectionPerpendicularTo(const Vector<Real> &orig, const Vector<Real> &b)
 template<class _Type>
 static Matrix<_Type> OuterProduct(const Vector<_Type> &a, const Vector<_Type> &b)
 
-/////////////          Vector<Complex> - Vector<Real> operations
+## Vector\<Complex> - Vector<Real> operations
 static Vector<Complex> AddVec(const Vector<Complex> &a, const Vector<Real> &b)
 static Vector<Complex> AddVec(const Vector<Real> &a, const Vector<Complex> &b)
 static Vector<Complex> SubVec(const Vector<Complex> &a, const Vector<Real> &b)
