@@ -1,4 +1,4 @@
-# Vector objects
+# Vector class
 
 ## Initializing/creating vectors
 Vector class

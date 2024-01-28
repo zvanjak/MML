@@ -1,6 +1,6 @@
 # Matrix class
 
-// TODO  0.7 - introduction
+Class representing matrix of statically define type (template parameter) and dynamically defined size.
 
 ## Initializing/creating matrices
 Matrix class

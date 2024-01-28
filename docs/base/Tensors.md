@@ -1,4 +1,4 @@
-# Tensors
+# Tensor classes
 
 Four classes representing tensors of different order, with different number of dimensions.
 Capable of handling various combination of covariant and contravariant indices.

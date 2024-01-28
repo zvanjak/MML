@@ -1,4 +1,4 @@
-# Geometry
+# General geometry classes
 
 ## Point2Cartesian
 

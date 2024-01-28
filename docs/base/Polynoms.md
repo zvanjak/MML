@@ -1,4 +1,4 @@
-# Polynom
+# Polynom class
 
 Class representing general polynom
 

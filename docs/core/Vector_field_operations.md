@@ -3,4 +3,5 @@
 - grad
 - div
 - curl
+- Laplacian
 

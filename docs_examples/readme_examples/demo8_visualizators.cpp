@@ -20,13 +20,6 @@ using namespace MML;
 
 void Readme_Real_function_visualization()
 {
-    // TODO 0.7 - 4 boxa - 4 razlicite vizualizacije funkcije
-    // jedna zanimljiva
-    // druga multi func
-    // treća derivacije
-    // cetvrta derivacije tocno
-    // RealFunction f1{[](double x) { return sin(x) * x; } };
-    
     RealFunction f1{[](double x) { return sin(x) * (x-3)*(x+5) / sqrt(std::abs(2 - x)); } };
 
     f1.SerializeEquallySpacedDetailed(-10.0, 10.0, 500, "..\\..\\results\\readme_real_func1.txt");

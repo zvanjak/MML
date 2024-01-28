@@ -27,14 +27,14 @@ Library is organized in three main groups (you could call them layers), with add
 
 Basic math types. These are the building blocks of the library, sitting at the lowest layer, depending only on standard library headers (and possibly Vector and Matrix class), and are used in all other parts of the library. 
 - [Algebra](/docs/base/Algebra.md) - groups, permutation group (big TODO!)
-- [Vectors](/docs/base/Vector_types.md) - Vector, VectorN<int N>, Vector(2)(3)Cartesian, Vector2Polar, Vector3Spherical, Vector3Cylindrical
-- [Matrices](/docs/base/Matrix_types.md) - Matrix, MatrixNM<int N, int M>, MatrixSym, MatrixTridiag, MatrixBandDiag
+- [Vectors](/docs/base/Vectors.md) - Vector, VectorN<int N>, Vector(2)(3)Cartesian, Vector2Polar, Vector3Spherical, Vector3Cylindrical
+- [Matrices](/docs/base/Matrices.md) - Matrix, MatrixNM<int N, int M>, MatrixSym, MatrixTridiag, MatrixBandDiag
 - [Tensors](/docs/base/Tensors.md) - Tensor2<int Dim>, Tensor3<int Dim>, Tensor4<int Dim>, Tensor5<int Dim> in N dimensions
-- [Polynoms](/docs/base/Polynom.md) - general Polynom class (tested for Real, Complex and Matrix as field type)
+- [Polynoms](/docs/base/Polynoms.md) - general Polynom class (tested for Real, Complex and Matrix as field type)
 - [Geometry](/docs/base/Geometry.md) - pure geometry: points, triangles, bodies
 - [2D & 3D geometry](/docs/base/Geometry_2D_3D.md) - analytic geometry in 2D and 3D
 - [Vector spaces](/docs/base/Vector_spaces.md) - vector space, normed vector space, metric (Hilbert) space (still much to do here!)
-- [Operators](/docs/base/Operators.md)  - linear functional, quadratic form, linear operator (much to do here!)
+- [Functionals, operators, quadratic forms](/docs/base/Operators.md)  - linear functional, quadratic form, linear operator (much to do here!)
 - [Base utils](/docs/base/BaseUtils.md) - general utilities including matrix helper (IsOrthogonal, IsUnitary, IsHermitian)
 
 **Core**
@@ -42,29 +42,29 @@ Basic math types. These are the building blocks of the library, sitting at the l
 Core mathematical objects and operations of the library, depending on Base types, and used by higher algorithms.
 Function objects, and different algorithms for working with them are the heart of this layer.
 - [Linear alg. equations solvers](/docs/core/Linear_equations_solvers.md) - GJ, LU, QR, SVD, Cholesky
-- [Matrix utils](/docs/core/MatrixUtils.md) - general matrix utilities 
 - [Functions](/docs/core/Function_types.md) - IRealFunction, IScalarFunction<int N>, IVectorFunction<int N>, IParametricCurve<N>, IParametricSurface<N>, ITensorField<N>
+- [Standard functions](/docs/core/Functions.md) - definition of available standard functions
 - [Interpolated functions](/docs/core/Interpolated_functions.md) - linear, polynomial, rational polynomial, spline interpolations
+- [Dirac delta function](/docs/core/Dirac_delta_function.md)- predefined distributions for representing Dirac delta function
 - [Numerical derivation](/docs/core/Derivation.md) - orders 1, 2, 4, 6, 8 for IRealFunction, IScalarFunction, IVectorFunction, IParametricCurve, IParametricSurface, ITensorField
 - [Numerical integration](/docs/core/Integration.md) - Trapezoidal, Simpson, Romberg basic integration algorithms
 - [Multidim integration](/docs/core/Multidim_integration.md) - calculating 2D and 3D (cartesian) integrals
+- [Curves & Surfaces](/docs/core/Curves_and_surfaces.md) - predefined curves and surfaces
+- [Fields](/docs/core/Fields.md) - predefined example fields
 - [Field operations](/docs/core/Vector_field_operations.md) - grad, div, curl, Laplacian in general, Cartesian, cylindrical and spherical coordinates
 - [Metric tensor](/docs/core/Metric_tensor.md) - predefined metric tensors in General, Cartesian, Cylindrical and Spherical coordinates
 - [Coordinate transformations](/docs/core/Coordinate_transformations.md) - General, Cartesian, Cylindrical, Spherical  
-- [Curves & Surfaces](/docs/core/Curves_and_surfaces.md) - predefined curves and surfaces
-- [Dirac delta function](/docs/core/Dirac_delta_function.md)- predefined distributions for representing Dirac delta function
-- [Fields](/docs/core/Fields.md) - predefined example fields
-- [Standard functions](/docs/core/Functions.md) - definition of available standard functions
-- [Function spaces](/docs/core/Function_spaces.md) - Hermitian, Legendre, Laguerre, Chebyshev, Fourier spaces
 - [ODE system](/docs/core/ODE_system.md) - represents a dynamical system of ordinary differential equations
+- [Function spaces](/docs/core/Function_spaces.md) - Hermitian, Legendre, Laguerre, Chebyshev, Fourier spaces
+- [Core utils](/docs/core/CoreUtils.md) - general core utilities 
 
 **Algorithms**
 
 Algorithms for solving mathematical problems. These are the algorithms of the library, depending on Base and Core types.
 - [Eigen solvers](/docs/algorithms/Eigen_solvers.md) - solving eigenvalue problems for symmetric and non-symmetric real matrices
+- [Path integration](/docs/algorithms/Path_integration.md) - calculating line and work integrals
 - [ODE system solvers](/docs/algorithms/Differential_equations_solvers.md) - solvers for systems of ordinary differential equations
 - [Differential geometry](/docs/algorithms/Differential_geometry.md) - for curves only, so far
-- [Path integration](/docs/algorithms/Path_integration.md) - calculating line and work integrals
 - [Root finding](/docs/algorithms/Root_finding.md) - different root finding algorithms (bracketing, Newton-Raphson)
 - [Statistics](/docs/algorithms/Statistics.md) - basics - avg, std, var, cov, corr
 - [Function analyzer](/docs/algorithms/Function_analyzer.md) - analyzing functions, finding roots, extrema, inflection points, etc.
@@ -675,11 +675,6 @@ std::system("..\\..\\tools\\visualizers\\vector_field_visualizer\\MML_VectorFiel
 ~~~
 Visualization:
 ![My Image](docs/images/readme_visualizator_vector_field.png)
-
-**FunctionAnalyzer**
-~~~ c++
-    // TODO 0.8 - analyzer example
-~~~
 
 
 ## Testing and precision

@@ -9,7 +9,7 @@
 
 using namespace MML;
 
-// TODO 0.7
+// TODO 0.8
 void Example4_EM_field_visualization()
 {
     std::cout << "***********************************************************************" << std::endl;
