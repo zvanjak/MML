@@ -678,11 +678,6 @@ std::system("..\\..\\tools\\visualizers\\vector_field_visualizer\\MML_VectorFiel
 Visualization:
 ![My Image](docs/images/readme_visualizator_vector_field.png)
 
-**FunctionAnalyzer**
-~~~ c++
-    // TODO 0.8 - analyzer example
-~~~
-
 
 ## Testing and precision
 
