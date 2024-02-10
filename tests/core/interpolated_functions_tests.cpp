@@ -10,7 +10,7 @@
 #else
 #include "core/InterpolatedFunction.h"
 
-#include "algorithms/FunctionAnalyzer.h"
+#include "algorithms/FunctionAnalyzers.h"
 #endif
 
 using namespace MML;
@@ -20,7 +20,7 @@ namespace Tests
 double test_func(const double x)
 {
     const double eps = 1.0;
-    return x*exp(-x)/(SQR(x-1.0)+eps*eps);
+    return x*exp(-x)/(POW2(x-1.0)+eps*eps);
 }
 
 void CreateInterpolatedValues(RealFunction f, Real x1, Real x2, int numPnt, Vector<Real> &outX, Vector<Real> &outY)
@@ -43,21 +43,19 @@ TEST_CASE("Test_LinearInterp_sin_func", "[simple]") {
 
     LinearInterpRealFunc    linear_interp(vec_x, vec_y);
 
-    FunctionComparer      comparer(f, linear_interp);
+    RealFunctionComparer      comparer(f, linear_interp);
 
-    double totalAbsDiff = comparer.getSumAbsDiff(0.0, 2.0*Constants::PI, 100);
-    double avgAbsDiff = comparer.getAvgAbsDiff(0.0, 2.0*Constants::PI, 100);
-    double maxAbsDiff = comparer.getMaxAbsDiff(0.0, 2.0*Constants::PI, 100);
+    double totalAbsDiff = comparer.getAbsDiffSum(0.0, 2.0*Constants::PI, 100);
+    double avgAbsDiff = comparer.getAbsDiffAvg(0.0, 2.0*Constants::PI, 100);
+    double maxAbsDiff = comparer.getAbsDiffMax(0.0, 2.0*Constants::PI, 100);
 
-    double totalRelDiff = comparer.getSumRelativeDiff(0.0, 2.0*Constants::PI, 100);
-    double avgRelDiff = comparer.getAvgRelativeDiff(0.0, 2.0*Constants::PI, 100);
-    double maxRelDiff = comparer.getMaxRelativeDiff(0.0, 2.0*Constants::PI, 100);
-
+    double totalRelDiff = comparer.getRelDiffSum(0.0, 2.0*Constants::PI, 100);
+    double avgRelDiff = comparer.getRelDiffAvg(0.0, 2.0*Constants::PI, 100);
+    double maxRelDiff = comparer.getRelDiffMax(0.0, 2.0*Constants::PI, 100);
 
     // REQUIRE(totalAbsDiff == Approx(0.0).margin(0.0001));
     // REQUIRE(avgAbsDiff == Approx(0.0).margin(0.0001));
     // REQUIRE(maxAbsDiff == Approx(0.0).margin(0.0001));
-
 
     // proci kroz 100 tocaka, i usporediti apsolutne vrijednosti
     // avg razlike, max razlike, min razlike

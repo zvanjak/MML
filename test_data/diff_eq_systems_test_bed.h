@@ -17,15 +17,15 @@ namespace MML::TestBeds
     class TestODESystemWithSolution : public ODESystem
     {
         Vector<Real> _initial_conditions;
-        Vector<Real> (*_solution)(double);
+        Vector<Real> (*_solution)(Real);
 
     public:
         TestODESystemWithSolution(int n, 
-                                  void (*inFunc)(double, const Vector<Real>&, Vector<Real> &),  
+                                  void (*inFunc)(Real, const Vector<Real>&, Vector<Real> &),  
                                   Vector<Real> init_cond,
-                                  Vector<Real> (*inSol)(double) ) : ODESystem(n, inFunc), _initial_conditions(init_cond), _solution(inSol) { }
+                                  Vector<Real> (*inSol)(Real) ) : ODESystem(n, inFunc), _initial_conditions(init_cond), _solution(inSol) { }
 
-        Vector<Real> getSolution(double t)
+        Vector<Real> getSolution(Real t)
         {
             return _solution(t);
         }
@@ -38,14 +38,14 @@ namespace MML::TestBeds
     class TestODESystemWithEndSolution : public ODESystem
     {
         Vector<Real> _initial_conditions;
-        double       _start_time;
-        double       _end_time;
+        Real       _start_time;
+        Real       _end_time;
         Vector<Real> _end_solution;
 
     public:
         TestODESystemWithEndSolution(int n, 
-                                     void (*inFunc)(double, const Vector<Real>&, Vector<Real> &),  
-                                     Vector<Real> init_cond, double start_time, double end_time,
+                                     void (*inFunc)(Real, const Vector<Real>&, Vector<Real> &),  
+                                     Vector<Real> init_cond, Real start_time, Real end_time,
                                      Vector<Real> end_solution ) 
                                         : ODESystem(n, inFunc), 
                                           _initial_conditions(init_cond), _start_time(start_time), _end_time(end_time), _end_solution(end_solution) 
@@ -64,7 +64,7 @@ namespace MML::TestBeds
             { 
                 { "simple 1", ODESystem{3, fnc12} },
                 { "simple 2", ODESystem{2, VanDerPolMju0_1 } },
-                { "VanDerPol 0.1", ODESystem{2, [](double t, const Vector<Real> &x, Vector<Real> &dxdt) { return VanDerPol(0.1, t, x, dxdt); } } }
+                { "VanDerPol 0.1", ODESystem{2, [](Real t, const Vector<Real> &x, Vector<Real> &dxdt) { return VanDerPol(0.1, t, x, dxdt); } } }
             };
         const static inline std::pair<std::string, ODESystemWithJacobian> _listODESystemsWithJac[] = 
             { 
@@ -74,9 +74,9 @@ namespace MML::TestBeds
             { 
                 { "simple 1", TestODESystemWithSolution{3, fnc12, {1, 2, 2}, fnc12_sol} },
                 { "simple 2", TestODESystemWithSolution{3, 
-                                          [](double t, const Vector<Real> &x, Vector<Real> &dxdt)  { dxdt = Vector<Real>{ x[0] + x[1] - x[2], -x[0] + 3*x[1] - x[2], -x[0] + x[1] + x[2] }; },
+                                          [](Real t, const Vector<Real> &x, Vector<Real> &dxdt)  { dxdt = Vector<Real>{ x[0] + x[1] - x[2], -x[0] + 3*x[1] - x[2], -x[0] + x[1] + x[2] }; },
                                           Vector<Real>{1, 2, 2}, 
-                                          [](double t)  { return Vector<Real>{ exp(t), exp(t) + exp(2*t), exp(t) + exp(2*t) }; } } }
+                                          [](Real t)  { return Vector<Real>{ exp(t), exp(t) + exp(2*t), exp(t) + exp(2*t) }; } } }
             };        
         const static inline std::pair<std::string, TestODESystemWithEndSolution> _listODESystemsWithEndSol[] = 
             { 

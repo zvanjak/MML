@@ -1,11 +1,11 @@
 # MML - Minimal Math Library
-All your basic (numerical) math needs, contained in a single-header file.
+All your basic (numerical) math needs, contained in a single-header file (more clickbaitish title would be Numerical Recipes on Steroids).
 
 ## MML Vision
 - For a C++ developer, on Windows, Mac or Linux
 - Who needs a math library to perform simple (and not so simple) numerical calculations 
-- The Minimal Math Library is a general purpose, pythonesque in its focus on simplicity of use single-header C++ library of classes and functions
-- That is trivial to use in any kind of project, is C++ 20 cross-platform compatible, and comes with a rich set of functionalities for working with vectors, matrices, tensors, linear systems, real, scalar and vector functions, polynoms, differential equations, coordinate systems and transformations, with algorithms for derivation, integration, root finding, interpolation, optimization, statistics, and more.
+- The Minimal Math Library is a general purpose, pythonesque in its focus on simplicity of use, single-header C++ library of classes and functions
+- That is trivial to use in any kind of project, is C++ 20 cross-platform compatible, and comes with a rich set of functionalities for working with vectors, matrices, tensors, linear systems, real, scalar and vector functions, polynoms, differential equations, coordinate systems and transformations, 2D & 3D geometry with algorithms for derivation, integration, root finding, interpolation, optimization, statistics, and more.
 
 ## Basic facts
 - As of now, and for foreseable future, this is unfortunately strictly for personal, research and educational use only (see Licensing at the end)
@@ -14,6 +14,7 @@ All your basic (numerical) math needs, contained in a single-header file.
 - C++20 standard - but can easily be adapted to C++17, C++14
 - Pythonesque in its focus on simplicity of use, and focused on faithful modeling of mathematical entities (while trying as much as possible to retain C++ computational efficiency)
 - Currently, visualizators are available only on Windows platform
+- Console based demo and example apps are CMake based, and should work out of the box on Windows, Mac and Linux if you are using Visual Studio Code
 
 **Is there really a need for another C++ math library?**
 - Main benefit, and the reason I did all this is attempt at completeness, and simplicity of use (also, tensors ❤️).
@@ -129,7 +130,7 @@ std::system("..\\..\\tools\\visualizers\\vector_field_visualizer\\MML_VectorFiel
 
 ## More real use examples
 Before basic introductory examples, couple of real examples what it can be used for. With important note that, alas, all of them are still on ToDo list, so it is actually a plan 🙄
-- at elevation 45deg, ball is fired with speed 10, 100, 1000, 10e5, 10e7 m/s, where it will be in 1 hour? [link](/docs/examples/Example1_kosi_hitac.md)
+- at elevation 45deg, ball is fired with speed 10, 100, 1000, 10e5, 10e7 m/s, where it will be in half an hour? [link](/docs/examples/Example1_kosi_hitac.md)
 - collision calculator, 2D and 3D - [link](/docs/examples/Example2_collision_calculator.md)
 - calculating tensor of inertia - [link](/docs/examples/Example3_tensor_of_inertia.md)
 - investigating gravity field - [link](/docs/examples/Example4_gravity_field_investigations.md)
@@ -592,16 +593,17 @@ Curves::ToroidalSpiralCurve torus(3, 2.0);
 const ParametricCurve<3> &test_curve = TestBeds::ParametricCurvesTestBed::getTestCurve("Helix")._curve;
 
 double t = 0.5;
-auto tangent   = DiffGeometry::getTangent(test_curve, t);
-auto unit_tang = DiffGeometry::getTangentUnit(test_curve, t);
-auto normal    = DiffGeometry::getNormal(test_curve, t);
-auto unit_norm = DiffGeometry::getNormalUnit(test_curve, t);
+auto tangent   = ParametricCurveAnalyzer::getTangent(test_curve, t);
+auto unit_tang = ParametricCurveAnalyzer::getTangentUnit(test_curve, t);
+auto normal    = ParametricCurveAnalyzer::getNormal(test_curve, t);
+auto unit_norm = ParametricCurveAnalyzer::getNormalUnit(test_curve, t);
 auto binormal  = VectorProd(Vector3Cartesian(unit_tang), Vector3Cartesian(unit_norm));
 
-auto curv_vec   = DiffGeometry::getCurvatureVector(test_curve, t);
-auto curvature  = DiffGeometry::getCurvature(test_curve, t);
-auto curvature3 = DiffGeometry::getCurvature3(test_curve, t);
+auto curv_vec   = ParametricCurveAnalyzer::getCurvatureVector(test_curve, t);
+auto curvature  = ParametricCurveAnalyzer::getCurvature(test_curve, t);
+auto curvature3 = ParametricCurveAnalyzer::getCurvature3(test_curve, t);
 ~~~
+
 
 ## Visualizators examples
 
@@ -675,6 +677,11 @@ std::system("..\\..\\tools\\visualizers\\vector_field_visualizer\\MML_VectorFiel
 ~~~
 Visualization:
 ![My Image](docs/images/readme_visualizator_vector_field.png)
+
+**FunctionAnalyzer**
+~~~ c++
+    // TODO 0.8 - analyzer example
+~~~
 
 
 ## Testing and precision

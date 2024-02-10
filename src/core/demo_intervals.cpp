@@ -23,7 +23,4 @@ void Demo_Intervals()
 {
     OpenClosedInterval int1(0.0, 1.0);
 
-    Interval int2 = Interval::Union(int1, OpenClosedInterval(2.0, 3.0));
-
-    TestFuncClass listObj[] = { {"Name", int1}, {"Name", int2}, { "Bu", Interval::Union(int1, OpenClosedInterval(2.0, 3.0)) }  };
 }

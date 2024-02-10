@@ -1,6 +1,6 @@
 //  __ __ __ __ _
 // |  |  |  |  | |    Minimal Math Library for Modern C++
-// | | | | | | | |__  version 0.6.0
+// | | | | | | | |__  version 0.8.0
 // |_| |_|_| |_|____| https://github.com/zvanjak/mml
 //
 // Copyright: 2023 - 2024, Zvonimir Vanjak 

@@ -122,8 +122,8 @@ void NDer_Average_Error_Diff_Orders_Single_Func(std::string funcName, const Test
 {
     const RealFunction  &f     = inFunc._func;
     const RealFunction  &f_der = inFunc._funcDerived;
-    double x1 = inFunc._intervalTest.getLowerBound();
-    double x2 = inFunc._intervalTest.getUpperBound();
+    double x1 = inFunc._intervalTest->getLowerBound();
+    double x2 = inFunc._intervalTest->getUpperBound();
 
     const int numPntForEval = 20;
 
@@ -187,8 +187,8 @@ void NDer_Error_Diff_h_Single_Func(int order, std::string funcName, const TestFu
 {
     const RealFunction  &f     = inFunc._func;
     const RealFunction  &f_der = inFunc._funcDerived;
-    double x1 = inFunc._intervalTest.getLowerBound();
-    double x2 = inFunc._intervalTest.getUpperBound();
+    double x1 = inFunc._intervalTest->getLowerBound();
+    double x2 = inFunc._intervalTest->getUpperBound();
 
     const int numPntForEval = 20;
 
@@ -251,8 +251,8 @@ void NDer_Error_Diff_Orders_Multi_Func_comparison()
 
 void Demo_Second_derivation()
 {
-    MML::RealFunction g{[](double x) { return sin(x); } };
-    MML::RealFunction g_sec_der{[](double x) { return -sin(x); } };
+    MML::RealFunction g{[](Real x) { return sin(x); } };
+    MML::RealFunction g_sec_der{[](Real x) { return -sin(x); } };
 
     for( double h=1e-4; h>=1e-10; h/=10.0 )
     {
@@ -277,8 +277,8 @@ void Demo_Second_derivation()
 
 void Demo_Third_derivation()
 {
-    MML::RealFunction g{[](double x) { return sin(x); } };
-    MML::RealFunction g_third_der{[](double x) { return -cos(x); } };
+    MML::RealFunction g{[](Real x) { return sin(x); } };
+    MML::RealFunction g_third_der{[](Real x) { return -cos(x); } };
 
     for( double h=1e-4; h>=1e-6; h/=10.0 )
     {

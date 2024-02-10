@@ -48,7 +48,7 @@ void Matrix_vector_init_operations()
     std::cout << "***********************************************************" << std::endl;
     std::cout << "*******        Matrix-vector init operations        *******" << std::endl;
 
-    Vector a({1.0, 1.0, 1.0});
+    Vector<Real> a({1.0, 1.0, 1.0});
     Matrix<Real> matA = MatrixUtils::RowMatrixFromVector<Real>(a);
     Matrix<Real> matB = MatrixUtils::ColumnMatrixFromVector<Real>(a);
 
@@ -57,9 +57,9 @@ void Matrix_vector_init_operations()
     std::cout << "Matrix matB = Matrix::ColMatrixFromVector(a);\nmatB = " << matB << std::endl;
 
     Matrix<Real> m1(2,2, {1.0, -1.0, 1.5, 3.0});
-    Vector vecRow  = m1.VectorFromRow(0);
-    Vector vecCol  = m1.VectorFromColumn(0);
-    Vector vecDiag = m1.VectorFromDiagonal();
+    Vector<Real> vecRow  = m1.VectorFromRow(0);
+    Vector<Real> vecCol  = m1.VectorFromColumn(0);
+    Vector<Real> vecDiag = m1.VectorFromDiagonal();
 
     std::cout << "Matrix m1 = " << m1 << std::endl;
     std::cout << "Vector vecRow = Matrix::VectorFromRow(a, 0)    = " << vecRow << std::endl;
@@ -96,7 +96,7 @@ void Matrix_Vector_mul()
     std::cout << "***********************************************************" << std::endl;
     std::cout << "*******          Matrix Vector multiplication       *******" << std::endl;
 
-    Vector v1({1.0, 2.0});
+    Vector<Real> v1({1.0, 2.0});
     Matrix<Real> m1(2,2, {1.0, -1.0, 1.5, 3.0});
     
     std::cout << "v1 = " << v1 << std::endl;

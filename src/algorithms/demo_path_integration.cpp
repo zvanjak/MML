@@ -12,10 +12,10 @@ using namespace MML;
 
 void Calc_curve_length()
 {
-    ParametricCurve<3> circle([](double t) { return VectorN<Real, 3>{cos(t), sin(t), 0}; });
-    ParametricCurve<3> helix([](double t)  { return VectorN<Real, 3>{cos(t), sin(t), t}; });
+    ParametricCurve<3> circle([](Real t) { return VectorN<Real, 3>{cos(t), sin(t), 0}; });
+    ParametricCurve<3> helix([](Real t)  { return VectorN<Real, 3>{cos(t), sin(t), t}; });
 
-    double len = PathIntegration::ParametricCurveLength(circle, 0, 2*3.14);
+    Real len = PathIntegration::ParametricCurveLength(circle, 0, 2*3.14);
 
     std::cout << "Length of circle is " << PathIntegration::ParametricCurveLength(circle, 0, 2*3.14) << endl;
     std::cout << "Length of helix is " << PathIntegration::ParametricCurveLength(helix, 0, 2*3.14) << endl;
@@ -23,8 +23,8 @@ void Calc_curve_length()
 
 void Calc_work_integral()
 {
-    ScalarFunction<3>  potential([](const VectorN<Real, 3> &x) { return 10.0 / x.NormL2(); });
-    ParametricCurve<3> circle([](double t) { return VectorN<Real, 3>{cos(t), sin(t), 1}; });
+    ScalarFunction<3>  potential([](const VectorN<Real, 3> &x) { return Real{10.0} / x.NormL2(); });
+    ParametricCurve<3> circle([](Real t) { return VectorN<Real, 3>{cos(t), sin(t), 1}; });
 
     for( auto phi=0.1; phi < 2*3.14159; phi += 0.25 )
     {

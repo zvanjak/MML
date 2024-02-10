@@ -3,7 +3,7 @@
 #else
 #include "MMLBase.h"
 
-#include "algorithms/FunctionAnalyzer.h"
+#include "algorithms/FunctionAnalyzers.h"
 #endif
 
 

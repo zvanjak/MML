@@ -30,6 +30,8 @@ TEST_CASE("Test_Symmetric_Matrix_Eigen_solver 3 x 3", "[simple]")
         Vector<Real>    eigen_vector = eigen_solver.getEigenvector(i);
         
         REQUIRE(eigen_value == Approx(TestBeds::symm_mat_3x3_eigen_val[i]).epsilon(1e-14));
+        REQUIRE_THAT(eigen_value, Catch::Matchers::WithinAbs(TestBeds::symm_mat_3x3_eigen_val[i],1e-14));
+
         REQUIRE(true == eigen_vector.IsEqual(TestBeds::symm_mat_3x3_eigen_vecs[i], 1e-10));
 
         REQUIRE(true == Vector<Real>::AreEqual(mat * eigen_vector, eigen_value * eigen_vector, 1e-14));

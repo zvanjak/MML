@@ -10,7 +10,6 @@
 using namespace MML;
 
 // TODO 0.7 - finish details
-// TODO 0.7 - Tridiag, BandDiag tests
 namespace MML::Tests::MatrixOtherTests
 {
 TEST_CASE("MatrixSym_default_ctor_init_to_zero", "[simple]") 
@@ -38,7 +37,8 @@ TEST_CASE("MatrixSym_default_ctor_init_to_value", "[simple]") {
 	REQUIRE(5.0 ==  a(1,1));
 }
 TEST_CASE("MatrixSym_initializer_list_ctor", "[simple]") {
-    MatrixSym<Real> a(2, {1.0, 2.0, 3.0});
+    MatrixSym<Real> a(2, {1.0, 
+                          2.0, 3.0});
 
 	REQUIRE(2 == a.RowNum());
 	REQUIRE(2 == a.ColNum());
@@ -48,19 +48,26 @@ TEST_CASE("MatrixSym_initializer_list_ctor", "[simple]") {
 	REQUIRE(2.0 ==  a(1,0));
 	REQUIRE(3.0 ==  a(1,1));
 }
+TEST_CASE("MatrixSym_initializer_list_ctor2", "[simple]") {
+    MatrixSym<Real> a(3, {1.0, 
+                          2.0, 3.0, 
+                          4.0, 5.0, 6.0});
+
+	REQUIRE(3 == a.RowNum());
+	REQUIRE(3 == a.ColNum());
+
+	REQUIRE(1.0 ==  a(0,0));
+	
+    REQUIRE(2.0 ==  a(1,0));
+	REQUIRE(3.0 ==  a(1,1));
+	
+    REQUIRE(4.0 ==  a(2,0));
+    REQUIRE(5.0 ==  a(2,1));
+    REQUIRE(6.0 ==  a(2,2));
+}
 TEST_CASE("MatrixSym_initializer_list_ctor_extra_term_throws", "[simple]") {
     
     REQUIRE_THROWS_AS(MatrixSym<Real>(2, {1.0, 2.0, 3.0, 4.0}), MatrixDimensionError); 
-    
-    // MatrixSym<Real> a(2, {1.0, 2.0, 3.0, 4.0});
-
-	// REQUIRE(2 == a.RowNum());
-	// REQUIRE(2 == a.ColNum());
-
-	// REQUIRE(1.0 ==  a(0,0));
-	// REQUIRE(2.0 ==  a(0,1));
-	// REQUIRE(2.0 ==  a(1,0));
-	// REQUIRE(3.0 ==  a(1,1));
 }
 
 // IsEqual
@@ -105,7 +112,7 @@ TEST_CASE("Test_MatrixSym_Op*", "[simple]") {
 // op. sa vektorom
 TEST_CASE("Test_MatrixSym_mul_Vector_right", "[simple]") {
     MatrixSym<Real> a(2, {1.0, 10.0, 5.0});
-    Vector b({1.0, 2.0});
+    Vector<Real> b({1.0, 2.0});
 
 	auto c = a * b;
 
@@ -115,7 +122,7 @@ TEST_CASE("Test_MatrixSym_mul_Vector_right", "[simple]") {
 
 TEST_CASE("Test_MatrixSym_mul_Vector_left", "[simple]") {
     MatrixSym<Real> a(2, {1.0, 10.0, 5.0});
-    Vector b({1.0, 2.0});
+    Vector<Real> b({1.0, 2.0});
 
 	auto d = b * a;
 

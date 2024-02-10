@@ -95,9 +95,9 @@ TEST_CASE("Test_NDerPartial", "[simple]")
     VectorN<Real, 3> point{1.0, 1.0, 3.0 };
 
     ScalarFunction<3> f = TestBeds::ScalarFunctionsTestBed::getTestFunctionScalar3("Scalar func 2")._func;
-    double (*fDer)(const VectorN<Real, 3> &, int ind) = TestBeds::ScalarFunctionsTestBed::getTestFunctionScalar3("Scalar func 2")._funcDerived;
+    Real (*fDer)(const VectorN<Real, 3> &, int ind) = TestBeds::ScalarFunctionsTestBed::getTestFunctionScalar3("Scalar func 2")._funcDerived;
 
-    double der_x, der_y, der_z;
+    Real der_x, der_y, der_z;
 
     der_x = Derivation::NDer1Partial(f, 0, point);
     der_y = Derivation::NDer1Partial(f, 1, point);

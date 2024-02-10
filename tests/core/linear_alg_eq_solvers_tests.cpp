@@ -304,7 +304,62 @@ TEST_CASE("Test_QRDecomposition_Solve_50_x_50", "[simple]")
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
-/**********                         Complete test bed                             ********/
+/**********                      Cholesky decomposition                            *******/
+///////////////////////////////////////////////////////////////////////////////////////////
+TEST_CASE("Test_CholeskyDecomposition_Solve_3_x_3", "[simple]")
+{
+    Matrix<Real>  mat{3, 3, { 2.0, -1.0,  0.0, 
+                             -1.0,  3.0, -2.0, 
+                              0.0, -2.0,  4.0 }};
+    Vector<Real>     vecSol(3), rhs{1, 5, -2 }, solution{ 2.0, 3.0, 1.0 };
+	
+    CholeskyDecompositionSolver choleskySolver(mat);
+
+	choleskySolver.Solve(rhs, vecSol);
+	REQUIRE(true == vecSol.IsEqual(solution, 1e-14));
+
+	Vector<Real>    res_rhs = mat * vecSol;
+	REQUIRE(true == res_rhs.IsEqual(rhs, 1e-14));
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////
+/**********                         SVD decomposition                              *******/
+///////////////////////////////////////////////////////////////////////////////////////////
+
+TEST_CASE("Test_SVDDecomposition_Solve_5_x_5", "[simple]")
+{
+	Matrix<Real>    mat = TestBeds::mat_5x5;
+	Vector<Real> 	rhs = TestBeds::mat_5x5_rhs0;
+	Vector<Real>	vecSol(rhs.size());
+
+	SVDecompositionSolver svdSolver(mat);
+
+	svdSolver.Solve(rhs, vecSol);
+	REQUIRE(true == vecSol.IsEqual(TestBeds::mat_5x5_rhs0_sol, 1e-13));
+
+	Vector<Real>    res_rhs = mat * vecSol;
+	REQUIRE(true == res_rhs.IsEqual(TestBeds::mat_5x5_rhs0, 1e-13));
+}
+
+TEST_CASE("Test_SVDDecomposition_decomposition", "[simple]")
+{
+	Matrix<Real>    mat = TestBeds::mat_5x5;
+
+	SVDecompositionSolver svdSolver(mat);
+
+    Matrix<Real> u = svdSolver.getU();
+    Matrix<Real> v = svdSolver.getV();
+    Vector<Real> w = svdSolver.getW();
+
+    Matrix<Real> wMat = MatrixUtils::DiagonalMatrixFromVector<Real>(w);
+    
+    Matrix<Real> b = u * wMat * v.GetTranspose();
+
+    REQUIRE(true == b.IsEqual(mat, 1e-14));
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////
+/**********                         Complete test beds                             ********/
 ///////////////////////////////////////////////////////////////////////////////////////////
 
 TEST_CASE("Test_GaussJordan_COMPLETE_TEST_BED", "[simple]")
@@ -368,51 +423,22 @@ TEST_CASE("Test_QRDecomposition_COMPLETE_TEST_BED", "[simple]")
     }
 }
 
-// TODO 0.7 - HIGH Cholesky decomposition COMPLETE TEST BED
-
-// TEST_CASE("Test_CholeskyDecomposition_Solve_5_x_5", "[simple]")
-// {
-// 	Matrix<Real>    mat = TestBeds::symm_mat_3x3_1.GetAsMartrix();
-// 	Vector<Real> 	rhs = TestBeds::symm_mat_3x3_rhs0;
-// 	Vector<Real>	vecSol(rhs.size());
-
-// 	CholeskyDecompositionSolver choleskySolver(mat);
-
-// 	choleskySolver.Solve(rhs, vecSol);
-// 	REQUIRE(true == vecSol.IsEqual(TestBeds::symm_mat_3x3_rhs0_sol, 1e-16));
-
-// 	Vector<Real>    res_rhs = mat * vecSol;
-// 	REQUIRE(true == res_rhs.IsEqual(TestBeds::symm_mat_3x3_rhs0, 1e-14));
-// }
-
-TEST_CASE("Test_SVDDecomposition_Solve_5_x_5", "[simple]")
+TEST_CASE("Test_SVDDecomposition_COMPLETE_TEST_BED", "[simple]")
 {
-	Matrix<Real>    mat = TestBeds::mat_5x5;
-	Vector<Real> 	rhs = TestBeds::mat_5x5_rhs0;
-	Vector<Real>	vecSol(rhs.size());
+    for(int i=0; i<TestBeds::LinearAlgEqTestBed::numLinAlgEqSystems(); i++ )
+    {
+        TestBeds::TestLinearSystem testBed = TestBeds::LinearAlgEqTestBed::getLinAlgEqSystem(i);
 
-	SVDecompositionSolver svdSolver(mat);
+        Matrix<Real>     mat = testBed._mat;
+        Vector<Real>     rhs = testBed._rhs;
+        Vector<Real>     sol(rhs.size());
 
-	svdSolver.Solve(rhs, vecSol);
-	REQUIRE(true == vecSol.IsEqual(TestBeds::mat_5x5_rhs0_sol, 1e-13));
+        SVDecompositionSolver svdSolver(mat);
 
-	Vector<Real>    res_rhs = mat * vecSol;
-	REQUIRE(true == res_rhs.IsEqual(TestBeds::mat_5x5_rhs0, 1e-13));
-}
+        svdSolver.Solve(rhs, sol);
+        REQUIRE(true == sol.IsEqual(testBed._sol, 1e-12));
 
-TEST_CASE("Test_SVDDecomposition_decomposition", "[simple]")
-{
-	Matrix<Real>    mat = TestBeds::mat_5x5;
-
-	SVDecompositionSolver svdSolver(mat);
-
-    Matrix<Real> u = svdSolver.getU();
-    Matrix<Real> v = svdSolver.getV();
-    Vector<Real> w = svdSolver.getW();
-
-    Matrix<Real> wMat = MatrixUtils::DiagonalMatrixFromVector<Real>(w);
-    
-    Matrix<Real> b = u * wMat * v.GetTranspose();
-
-    REQUIRE(true == b.IsEqual(mat, 1e-14));
+        Vector<Real>    res_rhs = testBed._mat * sol;
+        REQUIRE(true == res_rhs.IsEqual(testBed._rhs, 1e-12));
+    }
 }

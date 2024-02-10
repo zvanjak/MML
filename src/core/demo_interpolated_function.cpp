@@ -12,7 +12,7 @@
 #include "core/InterpolatedFunction.h"
 
 #include "core/Integration.h"
-#include "algorithms/FunctionAnalyzer.h"
+#include "algorithms/FunctionAnalyzers.h"
 #endif
 
 using namespace MML;
@@ -22,10 +22,10 @@ using namespace std;
 // TODO - testirati 2D interpolaciju
 // TODO - testirati parametric curve interpolaciju
 
-double test_func(const double x)
+Real test_func(const Real x)
 {
     const double eps = 1.0;
-    return x*exp(-x)/(SQR(x-1.0)+eps*eps);
+    return x*exp(-x)/(POW2(x-1.0)+eps*eps);
 }
 
 void CreateInterpolatedValues(RealFunction f, Real x1, Real x2, int numPnt, Vector<Real> &outX, Vector<Real> &outY)
@@ -111,11 +111,11 @@ void Test_RealFunction_interp()
 
     RealFunction test(test_func);
     
-    std::cout << "Linear diff = " << FunctionComparer::getIntegratedDiff(linear_interp, test, 0.0, 2.0) << std::endl;
-    std::cout << "Poly diff   = " << FunctionComparer::getIntegratedDiff(poly_interp, test, 0.0, 2.0) << std::endl;
-    std::cout << "Spline diff = " << FunctionComparer::getIntegratedDiff(spline_interp, test, 0.0, 2.0) << std::endl;
-    std::cout << "Rat diff    = " << FunctionComparer::getIntegratedDiff(rat_interp, test, 0.0, 2.0) << std::endl;
-    std::cout << "Barry diff  = " << FunctionComparer::getIntegratedDiff(barry_interp, test, 0.0, 2.0) << std::endl;
+    std::cout << "Linear diff = " << RealFunctionComparer::getIntegratedDiff(linear_interp, test, 0.0, 2.0) << std::endl;
+    std::cout << "Poly diff   = " << RealFunctionComparer::getIntegratedDiff(poly_interp, test, 0.0, 2.0) << std::endl;
+    std::cout << "Spline diff = " << RealFunctionComparer::getIntegratedDiff(spline_interp, test, 0.0, 2.0) << std::endl;
+    std::cout << "Rat diff    = " << RealFunctionComparer::getIntegratedDiff(rat_interp, test, 0.0, 2.0) << std::endl;
+    std::cout << "Barry diff  = " << RealFunctionComparer::getIntegratedDiff(barry_interp, test, 0.0, 2.0) << std::endl;
 }
 
 void Test_RealFunction_Linear_interp()
@@ -199,15 +199,15 @@ void Test_RealFunction_Linear_interp()
     }
     data.Print();
 
-    FunctionComparer      comparer(f, linear_interp);
+    RealFunctionComparer      comparer(f, linear_interp);
 
-    double totalAbsDiff = comparer.getSumAbsDiff(0.0, 2.0*Constants::PI, 100);
-    double avgAbsDiff = comparer.getAvgAbsDiff(0.0, 2.0*Constants::PI, 100);
-    double maxAbsDiff = comparer.getMaxAbsDiff(0.0, 2.0*Constants::PI, 100);
+    double totalAbsDiff = comparer.getAbsDiffSum(0.0, 2.0*Constants::PI, 100);
+    double avgAbsDiff = comparer.getAbsDiffAvg(0.0, 2.0*Constants::PI, 100);
+    double maxAbsDiff = comparer.getAbsDiffMax(0.0, 2.0*Constants::PI, 100);
 
-    double totalRelDiff = comparer.getSumRelativeDiff(0.0, 2.0*Constants::PI, 100);
-    double avgRelDiff = comparer.getAvgRelativeDiff(0.0, 2.0*Constants::PI, 100);
-    double maxRelDiff = comparer.getMaxRelativeDiff(0.0, 2.0*Constants::PI, 100);  
+    double totalRelDiff = comparer.getRelDiffSum(0.0, 2.0*Constants::PI, 100);
+    double avgRelDiff = comparer.getRelDiffAvg(0.0, 2.0*Constants::PI, 100);
+    double maxRelDiff = comparer.getRelDiffMax(0.0, 2.0*Constants::PI, 100);  
  
     std::cout << "Total abs diff = " << totalAbsDiff << std::endl;
     std::cout << "Avg abs diff   = " << avgAbsDiff << std::endl;

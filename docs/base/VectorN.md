@@ -1,5 +1,19 @@
 # VectorN class
 
+Class representing vector of given type and compile defined size.
+
+**Interesting operations**
+~~~c++
+    bool IsEqual(const VectorN &b, Type eps) const
+
+    Type ScalarProductCartesian(const VectorN &b) const
+    Type AngleToVector(const VectorN &b) const
+    Type NormL2() const
+
+    void Print(std::ostream &out, int width, int precision) const
+    std::string to_string(int width, int precision) const
+~~~
+
 ## Initializing/creating VectorN objects
 Vector class
 ~~~ c++

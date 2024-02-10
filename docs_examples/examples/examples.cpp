@@ -18,7 +18,7 @@ void Main_example();
 void Example1_kosi_hitac();
 void Example2_collision_calculator();
 void Example3_tensor_of_inertia();
-void Example4_EM_field_visualization();
+void Example4_Gravity_field_visualization();
 void Example5_Voyager_travels();
 void Example6_electric_charge_distribution();
 
@@ -27,10 +27,10 @@ void Docs_Examples()
 {
     //Main_example();
 
-    Example1_kosi_hitac();
-    Example2_collision_calculator();
+    //Example1_kosi_hitac();
+    //Example2_collision_calculator();
     Example3_tensor_of_inertia();
-    Example4_EM_field_visualization();
+    Example4_Gravity_field_visualization();
     Example5_Voyager_travels();
     Example6_electric_charge_distribution();
 }

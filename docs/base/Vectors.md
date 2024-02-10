@@ -27,6 +27,7 @@ Vector class
     typedef Vector<double>  VecD;
     typedef Vector<Complex> VecC; 
 ~~~
+
 VectorN class
 ~~~ c++
     typedef VectorN<float, 2> Vector2Flt;

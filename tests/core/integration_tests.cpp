@@ -11,8 +11,8 @@
 
 using namespace MML;
 
-
-TEST_CASE("Test_Integration", "[simple]") {
+// TODO 0.8 - finish
+TEST_CASE("Test_Integration_basic_precision", "[simple]") {
     RealFunction testFunc = TestBeds::RealFunctionsTestBed::getTestFunctionRealWithIntegral("TestInt1")._func;
     RealFunction integratedTestFunc = TestBeds::RealFunctionsTestBed::getTestFunctionRealWithIntegral("TestInt1")._funcIntegrated;
 

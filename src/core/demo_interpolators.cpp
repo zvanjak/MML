@@ -9,7 +9,7 @@
 #include "core/InterpolatedFunction.h"
 
 #include "core/Integration.h"
-#include "algorithms/FunctionAnalyzer.h"
+#include "algorithms/FunctionAnalyzers.h"
 #endif
 
 using namespace std;
@@ -21,7 +21,7 @@ void Test_Interpolation_2DFunc()
     const int N=5;
     const double PI=3.141592653589793238;
     int i,j;
-    double dy,f,x1,x2,y;
+    Real dy,f,x1,x2,y;
     Vector<Real> x1a(N),x2a(N);
     Matrix<Real> ya(N,N);
 

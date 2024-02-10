@@ -7,6 +7,8 @@
 
 #include "base/Vector.h"
 
+#include "core/Vizualizer.h"
+
 #include "algorithms/ODESystemSolver.h"
 #include "algorithms/ODESystemSteppers.h"
 #include "algorithms/ODESystemSteppers_Stiff.h"
@@ -16,7 +18,6 @@
 
 using namespace MML;
 
-// TODO - HIGH, BIG - vizualizacija rjesenja
 void Demo_Lorenz_solve()
 {
     TestBeds::LorenzSystemODE sys0(10.0, 28.0, 8.0/3.0);
@@ -45,7 +46,7 @@ void Demo_Lorenz_solve()
     // auto ret1 = std::system("..\\..\\tools\\visualizers\\real_function_visualizer\\MML_RealFunctionVisualizer.exe ode_lin_interp.txt");
 
     sol0.Serialize("..\\..\\results\\lorenz_1.txt", "Lorenz system");
-    auto ret2 = std::system("..\\..\\tools\\visualizers\\real_function_visualizer\\MML_RealFunctionVisualizer.exe ..\\..\\results\\lorenz_1.txt");
+    std::system("..\\..\\tools\\visualizers\\real_function_visualizer\\MML_RealFunctionVisualizer.exe ..\\..\\results\\lorenz_1.txt");
 }
 
 void Demo_VanderPol_solve()
@@ -75,7 +76,7 @@ void Demo_VanderPol_solve()
     f.SerializeEquallySpacedDetailed(0.0, 2.0, 100, "..\\..\\results\\vanderpol_ode_lin_interp.txt");
     auto ret1 = std::system("..\\..\\tools\\visualizers\\real_function_visualizer\\MML_RealFunctionVisualizer.exe ..\\..\\results\\vanderpol_ode_lin_interp.txt");
 
-    sol0.Serialize("..\\..\\results\\vanderpol_doppler5.txt", "Van der Pol solution - Doplet 5th order");
+    sol0.Serialize("..\\..\\results\\vanderpol_doppler5.txt", "Van der Pol solution - Dormand 5th order");
     ret1 = std::system("..\\..\\tools\\visualizers\\real_function_visualizer\\MML_RealFunctionVisualizer.exe ..\\..\\results\\vanderpol_doppler5.txt");
 
     std::cout << "\n***********************************************************\n";

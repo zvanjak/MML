@@ -21,9 +21,6 @@ TEST_CASE("Vector_default_ctor_init_to_zero", "[simple]") {
 
     Vector<Real> b(0);
     REQUIRE(0 == b.size());
-
-    // TODO 0.7 - check exception thrown when less than zero
-
 }
 
 TEST_CASE("Vector_init_to_value", "[simple]") {
@@ -37,7 +34,7 @@ TEST_CASE("Vector_init_to_value", "[simple]") {
 }
 
 TEST_CASE("Vector_init_from_std::vector", "[simple]") {
-	std::vector<double> x{1.0, 2.0, 3.0};
+	std::vector<Real> x{1.0, 2.0, 3.0};
     Vector<Real> a(x);
 
 	REQUIRE(3 == a.size());
@@ -48,7 +45,7 @@ TEST_CASE("Vector_init_from_std::vector", "[simple]") {
 }
 
 TEST_CASE("Vector_init_from_double_array", "[simple]") {
-	double x[] = {1.0, 2.0, 3.0};
+	Real x[] = {1.0, 2.0, 3.0};
     Vector<Real> a(3, x);
 
 	REQUIRE(3 == a.size());
@@ -74,6 +71,14 @@ TEST_CASE("Test_Vector_IsEqual", "[simple]") {
 
 	REQUIRE(true == a.IsEqual(b, 1e-7));
     REQUIRE(false == a.IsEqual(b, 1e-8));
+}
+
+TEST_CASE("Test_Vector_AreEqual", "[simple]") {
+    Vector a({1.0, 2.0});
+    Vector b({1.0, 2.0000001});
+
+	REQUIRE(true == Vector<Real>::AreEqual(a, b, 1e-7));
+    REQUIRE(false == Vector<Real>::AreEqual(a, b, 1e-8));
 }
 
 // zbrajanje, oduzimanje
@@ -125,6 +130,27 @@ TEST_CASE("Test_Vector_NormL2", "[simple]") {
     Vector a({2.0, 2.0});
 
 	REQUIRE(sqrt(8) == a.NormL2());
+}
+
+TEST_CASE("Test_Vector_AngleToVector", "[simple]") {
+    Vector a({0.0, 0.0, 5.0});
+    Vector b({1.0, 0.0, 0.0});
+
+	REQUIRE( Constants::PI/2 == a.AngleToVector(b) );
+}
+
+TEST_CASE("Test_Vector_AngleToVector2", "[simple]") {
+    Vector a({0.0, 1.0, 1.0});
+    Vector b({1.0, 0.0, 0.0});
+
+	REQUIRE( Constants::PI/2 == a.AngleToVector(b) );
+}
+
+TEST_CASE("Test_Vector_AngleToVector3", "[simple]") {
+    Vector a({1.0, 1.0, 0.0});
+    Vector b({1.0, 0.0, 0.0});
+
+    REQUIRE_THAT(Constants::PI/4, Catch::Matchers::WithinAbs(a.AngleToVector(b), 1e-16));
 }
 
 TEST_CASE("Test_Vector_to_string", "[simple]") {

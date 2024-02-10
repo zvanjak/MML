@@ -1,6 +1,6 @@
 //  __ __ __ __ _
 // |  |  |  |  | |    Minimal Math Library for Modern C++
-// | | | | | | | |__  version 0.6.0
+// | | | | | | | |__  version 0.8.0
 // |_| |_|_| |_|____| https://github.com/zvanjak/mml
 //
 // Copyright: 2023 - 2024, Zvonimir Vanjak 
@@ -37,29 +37,35 @@
 
 
 
-template<class T>
-inline T SQR(const T a) {return ((a)*(a));}
 
-template<class T>
-inline T SIGN(const T &a, const T &b)
-	{return b >= 0 ? (a >= 0 ? a : -a) : (a >= 0 ? -a : a);}
 
+// Complex must have the same underlaying type as Real
 typedef double               Real;      // default real type
 typedef std::complex<double> Complex;   // default complex type
 
 namespace MML
 {
-    template<class _Type>
-    static Real Abs(const _Type &a)
+    template<class Type>
+    static Real Abs(const Type &a)
     {
         return std::abs(a);
     }
-    template<class _Type>
-    static Real Abs(const std::complex<_Type> &a)
+    template<class Type>
+    static Real Abs(const std::complex<Type> &a)
     {
         return sqrt(a.real()*a.real() + a.imag()*a.imag());
     }    
 
+    template<class T> inline T POW2(const T a) {return ((a)*(a));}
+    template<class T> inline T POW3(const T a) {return ((a)*(a)*(a));}
+    template<class T> inline T POW4(const T a) {return ((a)*(a)*(a)*(a));}
+
+    template<class T>
+    inline T SIGN(const T& a, const T& b)
+    {
+        return b >= 0 ? (a >= 0 ? a : -a) : (a >= 0 ? -a : a);
+    }
+ 
     ////////////                  Constants                ////////////////
     namespace Constants
     {
@@ -67,7 +73,6 @@ namespace MML
         static inline const Real Epsilon = std::numeric_limits<Real>::epsilon();
         static inline const Real PositiveInf =  std::numeric_limits<Real>::max();
         static inline const Real NegativeInf = -std::numeric_limits<Real>::max();
-        // static constexpr Real EpsilonSqrt = std::sqrt(Epsilon);
     }
 
     namespace Defaults
@@ -215,10 +220,10 @@ namespace MML
         // Functions of COMPLEX domain
         static inline Complex Sin(Complex x) { return sin(x); }
         static inline Complex Cos(Complex x) { return cos(x); }
-        static inline Complex Sec(Complex x) { return 1.0 / cos(x); }
-        static inline Complex Csc(Complex x) { return 1.0 / sin(x); }
+        static inline Complex Sec(Complex x) { return Real{1.0} / cos(x); }
+        static inline Complex Csc(Complex x) { return Real{1.0} / sin(x); }
         static inline Complex Tan(Complex x) { return tan(x); }
-        static inline Complex Ctg(Complex x) { return 1.0 / tan(x); }
+        static inline Complex Ctg(Complex x) { return Real{1.0} / tan(x); }
         
         static inline Complex Exp(Complex x) { return exp(x); }
         static inline Complex Log(Complex x) { return log(x); }
@@ -227,10 +232,10 @@ namespace MML
         
         static inline Complex Sinh(Complex x) { return sinh(x); }
         static inline Complex Cosh(Complex x) { return cosh(x); }
-        static inline Complex Sech(Complex x) { return 1.0 / cosh(x); }
-        static inline Complex Csch(Complex x) { return 1.0 / sinh(x); }        
+        static inline Complex Sech(Complex x) { return Complex(1.0) / cosh(x); }
+        static inline Complex Csch(Complex x) { return Complex(1.0) / sinh(x); }        
         static inline Complex Tanh(Complex x) { return tanh(x); }
-        static inline Complex Ctgh(Complex x) { return 1.0 / tanh(x); } 
+        static inline Complex Ctgh(Complex x) { return Complex(1.0) / tanh(x); } 
 
         static inline Complex Asin(Complex x) { return asin(x); }
         static inline Complex Acos(Complex x) { return acos(x); }
@@ -509,24 +514,295 @@ namespace MML
 }
 
 
+///////////////////////////   ./include/base/Intervals.h   ///////////////////////////
+
+
+namespace MML
+{
+    // TODO 0.8 - implement intervals properly (and use them in test beds)
+    ///////////////////////////////////////////////   Interfaces    ///////////////////////////////////////////
+    enum class EndpointType
+    {
+        OPEN,
+        CLOSED,
+        NEG_INF,
+        POS_INF
+    };
+    
+    class BaseInterval : public IInterval
+    {
+    protected:
+        Real _lower, _upper;
+        EndpointType _lowerType, _upperType;
+
+        BaseInterval(Real lower, EndpointType lowerType, Real upper, EndpointType upperType) : _lower(lower), _lowerType(lowerType),  _upper(upper), _upperType(upperType) { }
+    public:
+        virtual ~BaseInterval() {}
+        
+        Real getLowerBound() const { return _lower; }
+        Real getUpperBound() const { return _upper; }
+        Real getLength()     const { return _upper - _lower; }
+        
+        bool isContinuous()  const { return true; }
+
+        // bool contains(const IInterval &other) const = 0;
+        // bool intersects(const IInterval &other) const = 0;
+
+        void GetEquidistantCovering(int numPoints) { }
+    };
+
+    class CompleteRInterval : public BaseInterval
+    {
+    public:
+        CompleteRInterval() : BaseInterval(-std::numeric_limits<double>::max(), EndpointType::NEG_INF, std::numeric_limits<double>::max(), EndpointType::POS_INF) { }
+        bool contains(Real x) const { return true; }        
+    };
+    class CompleteRWithReccuringPointHoles : public BaseInterval
+    {
+        Real _hole0, _holeDelta;
+    public:
+        CompleteRWithReccuringPointHoles(Real hole0, Real holeDelta) : BaseInterval(-std::numeric_limits<double>::max(), EndpointType::NEG_INF, std::numeric_limits<double>::max(), EndpointType::POS_INF) 
+        { 
+            _hole0 = hole0;
+            _holeDelta = holeDelta;
+        }
+        
+        bool contains(Real x) const {
+            if( x == _hole0 )
+                return false;
+
+            Real diff = (x - _hole0) / _holeDelta;
+            if( diff == (int)diff )
+                return false;
+           
+            return true;
+        }  
+        bool isContinuous() const { return false; }      
+    };          
+    class OpenInterval : public BaseInterval
+    {
+        // for equidistant covering
+        double _lowerRealDif = 0.0000001;
+    public:
+        OpenInterval(Real lower, Real upper) : BaseInterval(lower, EndpointType::OPEN, upper, EndpointType::OPEN) { }
+        bool contains(Real x) const { return (x > _lower) && (x < _upper); }        
+    };
+    class OpenClosedInterval : public BaseInterval
+    {
+    public:
+        OpenClosedInterval(Real lower, Real upper) : BaseInterval(lower, EndpointType::OPEN, upper, EndpointType::CLOSED) { }
+        bool contains(Real x) const { return (x > _lower) && (x <= _upper); }        
+    };
+    class ClosedInterval : public BaseInterval
+    {
+    public:
+        ClosedInterval(Real lower, Real upper) : BaseInterval(lower, EndpointType::CLOSED, upper, EndpointType::CLOSED) { }
+        
+        bool contains(Real x) const {
+            return (x >= _lower) && (x <= _upper);
+        }        
+    };   
+    class ClosedIntervalWithReccuringPointHoles : public BaseInterval
+    {
+        Real _hole0, _holeDelta;
+    public:
+        ClosedIntervalWithReccuringPointHoles(Real lower, Real upper, Real hole0, Real holeDelta) 
+            : BaseInterval(lower, EndpointType::CLOSED, upper, EndpointType::CLOSED) 
+        { 
+            _hole0 = hole0;
+            _holeDelta = holeDelta;
+        }
+        
+        bool contains(Real x) const {
+            // check for hole!
+            if( x == _hole0 )
+                return false;
+
+            Real diff = (x - _hole0) / _holeDelta;
+            if( diff == (int)diff )
+                return false;
+           
+            return (x >= _lower) && (x <= _upper);
+        }  
+        bool isContinuous() const { return false; }      
+    };      
+    class ClosedOpenInterval : public BaseInterval
+    {
+    public:
+        ClosedOpenInterval(Real lower, Real upper) : BaseInterval(lower, EndpointType::CLOSED, upper, EndpointType::OPEN) { }
+        
+        bool contains(Real x) const {
+            return (x >= _lower) && (x < _upper);
+        }        
+    };    
+    class NegInfToOpenInterval : public BaseInterval
+    {
+    public:
+        NegInfToOpenInterval(Real upper) : BaseInterval(-std::numeric_limits<double>::max(), EndpointType::NEG_INF, upper, EndpointType::OPEN) { }
+
+        bool contains(Real x) const {
+            return x < _upper;
+        }        
+    };
+    class NegInfToClosedInterval : public BaseInterval
+    {
+    public:
+        NegInfToClosedInterval(Real upper) : BaseInterval(-std::numeric_limits<double>::max(), EndpointType::NEG_INF, upper, EndpointType::CLOSED) { }
+
+        bool contains(Real x) const {
+            return x <= _upper;
+        }        
+    };
+    class OpenToInfInterval : public BaseInterval
+    {
+    public:
+        OpenToInfInterval(Real lower) : BaseInterval(lower, EndpointType::OPEN, std::numeric_limits<double>::max(), EndpointType::POS_INF) { }
+
+        bool contains(Real x) const {
+            return x > _lower;
+        }        
+    };
+    class ClosedToInfInterval : public BaseInterval
+    {
+    public:
+        ClosedToInfInterval(Real lower) : BaseInterval(lower, EndpointType::CLOSED, std::numeric_limits<double>::max(), EndpointType::POS_INF) { }
+
+        bool contains(Real x) const {
+            return x >= _lower;
+        }        
+    };
+
+    class Interval : public IInterval
+    {
+        Real _lower, _upper;
+        std::vector<std::shared_ptr<BaseInterval>> _intervals;
+    public:
+        Interval() {}
+        Interval(std::initializer_list<BaseInterval *> intervals) 
+        {
+            for (BaseInterval *interval : intervals)
+            {
+                _intervals.emplace_back(std::shared_ptr<BaseInterval>(interval));
+            }
+        }
+
+        template<class _IntervalType>
+        Interval& AddInterval(const _IntervalType &interval)
+        {
+            _intervals.emplace_back(std::make_shared<_IntervalType>(interval));
+            return *this;
+        }
+
+        // static Interval Union(const BaseInterval &a, const BaseInterval &b)
+        // {
+        //     Interval ret;
+        //     ret._lower = std::min(a.getLowerBound(), b.getLowerBound());
+        //     ret._upper = std::max(a.getUpperBound(), b.getUpperBound());
+
+        //     // TODO - implement union
+        //     return ret;
+        // }
+
+        static Interval Intersection(const IInterval &a, const IInterval &b)
+        {
+            Interval ret;
+            // TODO - implement intersection
+            return ret;
+        }
+        static Interval Difference(const IInterval &a, const IInterval &b)
+        {
+            Interval ret;
+            // TODO - implement diff
+            return ret;
+        }
+        static Interval Complement(const IInterval &a)
+        {
+            Interval ret;
+            // TODO - implement complement
+            return ret;
+        }
+        Real getLowerBound() const { return 0; }
+        Real getUpperBound() const { return 0; }
+        Real getLength()     const { return 0; }
+        
+        bool isContinuous()  const { return false; }
+        bool contains(Real x) const 
+        {
+            // check for each interval if it contains x
+            for (auto &interval : _intervals)
+            {
+                if (interval->contains(x))
+                    return true;
+            }
+            return false;
+        }
+        // bool contains(const IInterval &other) const = 0;
+        // bool intersects(const IInterval &other) const = 0;
+
+        void GetEquidistantCovering(int numPoints) { }
+    };
+
+    class IntervalUnion : public IInterval
+    {
+        IInterval &_left, &_right;
+    public:
+        IntervalUnion(IInterval &left, IInterval &right) : _left(left), _right(right) 
+        { 
+            if( _left.getLowerBound() > _right.getLowerBound() )
+            {
+                IInterval &temp = _left;
+                _left = _right;
+                _right = temp;
+                // std::swap(_left, _right);  // doesn't work???
+            }
+        }
+
+        Real getLowerBound() const { return _left.getLowerBound(); }
+        Real getUpperBound() const { return std::max(_left.getUpperBound(), _right.getUpperBound()); }
+        Real getLength() const { 
+            // FIXME - implement correctly
+            // ako se ne sijeku
+            if( _left.getUpperBound() < _right.getLowerBound() )
+                return _left.getLength() + _right.getLength();
+            else {
+                // ili je jedan sadrzan cijeli u drugome
+
+                // ili se standardno sijeku
+            }
+            return _left.getLength() + _right.getLength(); 
+
+        }
+        
+        bool isContinuous() const { return false; }
+
+        bool contains(Real x) const {
+            return _left.contains(x) || _right.contains(x);
+        }
+        // bool contains(const IInterval &other) const = 0;
+        // bool intersects(const IInterval &other) const = 0;
+
+        void GetEquidistantCovering(int numPoints) { }
+    };    
+}
+
 ///////////////////////////   ./include/base/Vector.h   ///////////////////////////
 
 namespace MML
 {
-    template<class _Type>
+    template<class Type>
     class Vector
     {
     private:
-        std::vector<_Type> _elems;
+        std::vector<Type> _elems;
 
     public:
         ///////////////////////          Constructors and destructor       //////////////////////
         Vector() {}
         Vector(size_t n) : _elems(n) {}
-        Vector(size_t n, _Type val) : _elems(n, val) {}
-        Vector(std::vector<_Type> values) : _elems(values) {}
-        Vector(std::initializer_list<_Type> list) : _elems(list) {}
-        Vector(int n, _Type *vals) : _elems(n) 
+        Vector(size_t n, Type val) : _elems(n, val) {}
+        Vector(std::vector<Type> values) : _elems(values) {}
+        Vector(std::initializer_list<Type> list) : _elems(list) {}
+        Vector(int n, Type *vals) : _elems(n) 
         {
             for(int i=0; i<n; ++i) 
                 _elems[i] = vals[i];
@@ -546,7 +822,7 @@ namespace MML
                 throw VectorDimensionError("Vector::GetUnitVector - wrong unit index", dimVec, indUnit);
 
             Vector ret(dimVec);
-            ret[indUnit] = _Type{1.0};
+            ret[indUnit] = Type{1.0};
             return ret;
         }
         
@@ -562,14 +838,14 @@ namespace MML
             }
             return true;
         }
-        static bool AreEqual(const Vector &a,const Vector &b, _Type eps=Defaults::VectorEqualityPrecision)
+        static bool AreEqual(const Vector &a,const Vector &b, Type eps=Defaults::VectorEqualityPrecision)
         {
             return a.IsEqual(b, eps);
         }
 
         ///////////////////////////            Operators             ///////////////////////////
-        _Type&       operator[](int n)        { return _elems[n]; }
-        const _Type& operator[](int n) const  { return _elems[n]; }
+        Type&       operator[](int n)        { return _elems[n]; }
+        const Type& operator[](int n) const  { return _elems[n]; }
 
         Vector operator-()          // unary minus
         {
@@ -611,21 +887,21 @@ namespace MML
             return true;
         }
 
-        friend Vector operator*(_Type a, const Vector &b )
+        friend Vector operator*(Type a, const Vector &b )
         {
             Vector ret(b.size());;
             for(int i=0; i<b.size(); i++)
                 ret._elems[i] = a * b._elems[i];
             return ret;
         }
-        friend Vector operator*(const Vector &a, _Type b )
+        friend Vector operator*(const Vector &a, Type b )
         {
             Vector ret(a.size());;
             for(int i=0; i<a.size(); i++)
                 ret._elems[i] = b * a._elems[i];
             return ret;
         }
-        friend Vector operator/(const Vector &a, _Type b)
+        friend Vector operator/(const Vector &a, Type b)
         {
             Vector ret(a.size());
             for(int i=0; i<a.size(); i++)
@@ -634,29 +910,29 @@ namespace MML
         }
         
         //////////////////////                 Operations                 ///////////////////////
-        _Type ScalarProductCartesian(const Vector &b) const 
+        Type ScalarProductCartesian(const Vector &b) const 
         {
             if (size() != b.size() )
                 throw VectorDimensionError("Vector::ScalarProductCartesian - vectors must be equal size", size(), b.size());
 
-            _Type product = 0.0;
+            Type product = 0.0;
             for( int i=0; i<size(); i++ )
                 product += (*this)[i] * b[i];
             return product;
         }
-        _Type NormL2() const
+        Type NormL2() const
         {
-            _Type norm = 0.0;
+            Type norm = 0.0;
             for( int i=0; i<size(); i++ )
                 norm += (*this)[i] * (*this)[i];
             return std::sqrt(norm);
         }
-        _Type AngleToVector(const Vector &b) const
+        Type AngleToVector(const Vector &b) const
         {
             if (size() != b.size() )
                 throw VectorDimensionError("Vector::AngleToVector - vectors must be equal size", size(), b.size());
 
-            _Type cosAngle = ScalarProductCartesian(b) / (NormL2() * b.NormL2());
+            Type cosAngle = ScalarProductCartesian(b) / (NormL2() * b.NormL2());
             return std::acos(cosAngle);
         }
 
@@ -673,7 +949,7 @@ namespace MML
         {
             stream << "[";
             bool first = true;
-            for(const _Type& x : _elems)
+            for(const Type& x : _elems)
             {
                 if( !first )
                     stream << ", ";
@@ -708,20 +984,20 @@ namespace MML
 
 namespace MML
 {
-    template<class _Type, int N> 
+    template<class Type, int N> 
     class VectorN
     {
     protected:
-        _Type  _val[N] = {0};
+        Type  _val[N] = {0};
 
     public:
         ///////////////////////          Constructors and destructor       //////////////////////
         VectorN() {}
-        VectorN(const _Type &init_val) {
+        VectorN(const Type &init_val) {
             for(int i=0; i<N; ++i) 
                 _val[i] = init_val;
         }
-        VectorN(std::initializer_list<_Type> list) 
+        VectorN(std::initializer_list<Type> list) 
         { 
             int count{ 0 };
             for (auto element : list)
@@ -733,7 +1009,7 @@ namespace MML
                     break;
             }
         }
-        VectorN(std::vector<_Type> list) 
+        VectorN(std::vector<Type> list) 
         { 
             int count{ 0 };
             for (auto element : list)
@@ -745,7 +1021,7 @@ namespace MML
                     break;
             }
         }        
-        VectorN(_Type *vals)
+        VectorN(Type *vals)
         {
             for(int i=0; i<N; ++i) 
                 _val[i] = vals[i];
@@ -770,7 +1046,7 @@ namespace MML
             return VectorN{(*this) / NormL2()};
         }        
 
-        bool IsEqual(const VectorN &b, _Type eps=Defaults::VectorEqualityPrecision) const
+        bool IsEqual(const VectorN &b, Type eps=Defaults::VectorEqualityPrecision) const
         {
             for( int i=0; i<N; i++ )
             {
@@ -779,14 +1055,14 @@ namespace MML
             }
             return true;
         }
-        static bool AreEqual(const VectorN &a, const VectorN &b, _Type eps=Defaults::VectorEqualityPrecision)
+        static bool AreEqual(const VectorN &a, const VectorN &b, Type eps=Defaults::VectorEqualityPrecision)
         {
             return a.IsEqual(b, eps);
         }
         
         ///////////////////////////            Operators             ///////////////////////////
-        _Type& operator[](int n)       { return _val[n]; }
-        _Type  operator[](int n) const { return _val[n]; }
+        Type& operator[](int n)       { return _val[n]; }
+        Type  operator[](int n) const { return _val[n]; }
 
         VectorN operator+(const VectorN &b ) const
         {
@@ -819,21 +1095,21 @@ namespace MML
             return true;
         }
 
-        friend VectorN operator*(const VectorN &a, _Type b )
+        friend VectorN operator*(const VectorN &a, Type b )
         {
             VectorN ret;
             for(int i=0; i<N; i++)
                 ret._val[i] = a[i] * b;
             return ret;
         }
-        friend VectorN operator*(_Type a, const VectorN &b )
+        friend VectorN operator*(Type a, const VectorN &b )
         {
             VectorN ret;
             for(int i=0; i<N; i++)
                 ret._val[i] = a * b[i];
             return ret;
         }
-        friend VectorN operator/(const VectorN &a, _Type b)
+        friend VectorN operator/(const VectorN &a, Type b)
         {
             VectorN ret;
             for(int i=0; i<N; i++)
@@ -842,26 +1118,26 @@ namespace MML
         }
 
         //////////////////////                 Operations                 ///////////////////////
-        _Type ScalarProductCartesian(const VectorN &b) const
+        Type ScalarProductCartesian(const VectorN &b) const
         {
-            _Type product = 0.0;
+            Type product = 0.0;
             for( int i=0; i<N; i++ )
                 product += (*this)[i] * b[i];
             return product;
         }
-        _Type NormL2() const
+        Type NormL2() const
         {
-            _Type norm = 0.0;
+            Type norm = 0.0;
             for( int i=0; i<size(); i++ )
                 norm += (*this)[i] * (*this)[i];
             return std::sqrt(norm);
         }
-        _Type AngleToVector(const VectorN &b)
+        Type AngleToVector(const VectorN &b) const
         {
             if (size() != b.size() )
                 throw VectorDimensionError("VectorN::AngleToVector - vectors must be equal size", size(), b.size());
 
-            _Type cosAngle = this->ScalarProductCartesian(b) / (NormL2() * b.NormL2());
+            Type cosAngle = this->ScalarProductCartesian(b) / (NormL2() * b.NormL2());
             return std::acos(cosAngle);
         }
         ///////////////////////////               I/O                 ///////////////////////////
@@ -877,7 +1153,7 @@ namespace MML
         {
             stream << "[";
             bool first = true;
-            for(const _Type& x : _val)
+            for(const Type& x : _val)
             {
                 if( !first )
                     stream << ", ";
@@ -890,7 +1166,7 @@ namespace MML
 
             return stream;
         }   
-        friend std::ostream& operator<<(std::ostream& stream, const VectorN<_Type, N> &a)
+        friend std::ostream& operator<<(std::ostream& stream, const VectorN<Type, N> &a)
         {
             a.Print(stream,15,10);
 
@@ -902,9 +1178,9 @@ namespace MML
     typedef VectorN<float, 3> Vector3Flt;
     typedef VectorN<float, 4> Vector4Flt;
 
-    typedef VectorN<Real, 2> Vector2Dbl;
-    typedef VectorN<Real, 3> Vector3Dbl;
-    typedef VectorN<Real, 4> Vector4Dbl;
+    typedef VectorN<double, 2> Vector2Dbl;
+    typedef VectorN<double, 3> Vector3Dbl;
+    typedef VectorN<double, 4> Vector4Dbl;
 
     typedef VectorN<Complex, 2> Vector2Complex;
     typedef VectorN<Complex, 3> Vector3Complex;
@@ -914,9 +1190,9 @@ namespace MML
     typedef VectorN<float, 3> Vec3F;
     typedef VectorN<float, 4> Vec4F;
 
-    typedef VectorN<Real, 2> Vec2D;
-    typedef VectorN<Real, 3> Vec3D;
-    typedef VectorN<Real, 4> Vec4D;
+    typedef VectorN<double, 2> Vec2D;
+    typedef VectorN<double, 3> Vec3D;
+    typedef VectorN<double, 4> Vec4D;
 
     typedef VectorN<Complex, 2> Vec2C;
     typedef VectorN<Complex, 3> Vec3C;
@@ -930,13 +1206,13 @@ namespace MML
 
 namespace MML
 {
-    template<class _Type>
+    template<class Type>
     class Matrix
     {
     private:
         int  _rows;
         int  _cols;
-        _Type **_data;
+        Type **_data;
 
         void Init(int rows, int cols)
         {
@@ -947,10 +1223,10 @@ namespace MML
             _cols = cols;
             int numElem = rows * cols;
 
-            _data = new _Type*[rows];
+            _data = new Type*[rows];
             if (_data) 
             {
-                _data[0] = numElem>0 ? new _Type[numElem] : nullptr;
+                _data[0] = numElem>0 ? new Type[numElem] : nullptr;
             
                 for (int i=1; i<rows; i++) 
                     _data[i] = _data[i-1] + cols;
@@ -969,7 +1245,7 @@ namespace MML
                 for (int j = 0; j < _cols; ++j)
                     _data[i][j] = 0;
         }
-        Matrix(int rows, int cols, _Type val) : _rows(rows), _cols(cols)
+        Matrix(int rows, int cols, Type val) : _rows(rows), _cols(cols)
         {
             Init(rows, cols);
             for (int i = 0; i < _rows; ++i)
@@ -977,7 +1253,7 @@ namespace MML
                     _data[i][j] = val;
         }
         // useful if you have a pointer to continuous (row-wise) 2D array
-        Matrix(int rows, int cols, _Type *val) : _rows(rows), _cols(cols)
+        Matrix(int rows, int cols, Type *val) : _rows(rows), _cols(cols)
         {
             Init(rows, cols);
             for (int i = 0; i < _rows; ++i)
@@ -985,7 +1261,7 @@ namespace MML
                     _data[i][j] = *val++;
         }
         // in strict mode, you must supply ALL necessary values for complete matrix initialization
-        Matrix(int rows, int cols, std::initializer_list<_Type> values, bool strictMode = true) : _rows(rows), _cols(cols)
+        Matrix(int rows, int cols, std::initializer_list<Type> values, bool strictMode = true) : _rows(rows), _cols(cols)
         {
             Init(rows, cols);
             
@@ -1048,7 +1324,7 @@ namespace MML
                     _data[i][j] = 0;
         }
 
-        typedef _Type value_type;      // make T available externally
+        typedef Type value_type;      // make T available externally
 
         ////////////////////////            Standard stuff             ////////////////////////
         int RowNum() const { return _rows; }
@@ -1117,34 +1393,34 @@ namespace MML
         }
 
         /////////////////////          Matrix to Vector conversions           ////////////////////
-        Vector<_Type> VectorFromRow(int rowInd) const
+        Vector<Type> VectorFromRow(int rowInd) const
         {
            if( rowInd < 0 || rowInd >= RowNum() )
                 throw MatrixAccessBoundsError("VectorFromRow - invalid row index", rowInd, 0, RowNum(), ColNum());
 
-            Vector<_Type> ret(ColNum());
+            Vector<Type> ret(ColNum());
             for( int i=0; i<ColNum(); i++)
                 ret[i] = (*this)(rowInd,i);
 
             return ret;
         }
-        Vector<_Type> VectorFromColumn(int colInd) const
+        Vector<Type> VectorFromColumn(int colInd) const
         {
            if( colInd < 0 || colInd >= ColNum() )
                 throw MatrixAccessBoundsError("VectorFromColumn - invalid column index", 0, colInd, RowNum(), ColNum());
 
-            Vector<_Type> ret(RowNum());
+            Vector<Type> ret(RowNum());
             for( int i=0; i<RowNum(); i++)
                 ret[i] = (*this)(i,colInd);
 
             return ret;
         }
-        Vector<_Type> VectorFromDiagonal() const
+        Vector<Type> VectorFromDiagonal() const
         {
            if( RowNum() != ColNum() ) 
                 throw MatrixDimensionError("VectorFromDiagonal - must be square matrix", RowNum(), ColNum(), -1, -1);
 
-            Vector<_Type> ret(RowNum());
+            Vector<Type> ret(RowNum());
             for( int i=0; i<RowNum(); i++)
                 ret[i] = (*this)(i,i);
 
@@ -1183,7 +1459,7 @@ namespace MML
                         return false;
 
             for(int i=0; i<RowNum(); i++ )
-                if( Abs((*this)[i][i] - 1.0) > eps )
+                if( Abs((*this)[i][i] - Real{1.0}) > eps )
                     return false;
             
             return true;
@@ -1193,7 +1469,7 @@ namespace MML
         {
             for(int i=0; i<RowNum(); i++ )
             {
-                _Type sum = 0.0;
+                Type sum = 0.0;
                 for(int j=0; j<ColNum(); j++)
                     if( i != j )
                         sum += Abs((*this)[i][j]);
@@ -1237,21 +1513,21 @@ namespace MML
         }
 
         ////////////////////            Access operators             ///////////////////////
-        _Type* operator[](int i)                    { return _data[i]; }
-        const _Type* operator[](const int i) const  { return _data[i]; }
+        Type* operator[](int i)                    { return _data[i]; }
+        const Type* operator[](const int i) const  { return _data[i]; }
         
-        _Type  operator()(int i, int j) const       { return _data[i][j]; }
-        _Type& operator()(int i, int j)             { return _data[i][j]; }        
+        Type  operator()(int i, int j) const       { return _data[i][j]; }
+        Type& operator()(int i, int j)             { return _data[i][j]; }        
 
         // version with checking bounds
-        _Type  ElemAt(int i, int j) const 
+        Type  ElemAt(int i, int j) const 
         { 
             if( i<0 || i>=RowNum() || j<0 || j>=ColNum() )
                 throw MatrixAccessBoundsError("Matrix::ElemAt", i, j, RowNum(), ColNum());
 
             return _data[i][j]; 
         }
-        _Type& ElemAt(int i, int j)       
+        Type& ElemAt(int i, int j)       
         {
             if( i<0 || i>=RowNum() || j<0 || j>=ColNum() )
                 throw MatrixAccessBoundsError("Matrix::ElemAt", i, j, RowNum(), ColNum());
@@ -1310,7 +1586,7 @@ namespace MML
             return	ret;
         }
 
-        friend Matrix operator*( const Matrix &a, _Type b )
+        friend Matrix operator*( const Matrix &a, Type b )
         {
             int	i, j;
             Matrix	ret(a.RowNum(), a.ColNum());
@@ -1321,7 +1597,7 @@ namespace MML
 
             return ret;
         }
-        friend Matrix operator*( _Type a, const Matrix &b )
+        friend Matrix operator*( Type a, const Matrix &b )
         {
             int	i, j;
             Matrix	ret(b.RowNum(), b.ColNum());
@@ -1332,7 +1608,7 @@ namespace MML
 
             return ret;
         }
-        friend Matrix operator/( const Matrix &a, _Type b )
+        friend Matrix operator/( const Matrix &a, Type b )
         {
             int	i, j;
             Matrix	ret(a.RowNum(), a.ColNum());
@@ -1343,12 +1619,12 @@ namespace MML
 
             return ret;
         }
-        friend Vector<_Type> operator*( const Matrix<_Type> &a, const Vector<_Type> &b )
+        friend Vector<Type> operator*( const Matrix<Type> &a, const Vector<Type> &b )
         {
             if( a.ColNum() != b.size() )
                 throw MatrixDimensionError("operator*(Mat a, Vec b) - a.colNum must be equal to vector size", a._rows, a._cols, (int) b.size(), -1);
 
-            Vector<_Type>	ret(a.RowNum());
+            Vector<Type>	ret(a.RowNum());
             for( int i=0; i<a.RowNum(); i++ )
             {
                 ret[i] = 0;
@@ -1358,7 +1634,7 @@ namespace MML
 
             return ret;
         }
-        friend Vector<_Type> operator*( const Vector<_Type> &a, const Matrix<_Type> &b )
+        friend Vector<Type> operator*( const Vector<Type> &a, const Matrix<Type> &b )
         {
             if( a.size() != b.RowNum() )
             {
@@ -1366,7 +1642,7 @@ namespace MML
                 throw MatrixDimensionError("operator*(Vec a, Mat b) - vector size must be equal to b.rowNum", (int) a.size(), -1, b._rows, b._cols);
             }
 
-            Vector<_Type>	ret(b.ColNum());
+            Vector<Type>	ret(b.ColNum());
             for( int i=0; i<b.ColNum(); i++ )
             {
                 ret[i] = 0;
@@ -1395,7 +1671,7 @@ namespace MML
             return !(*this == b);
         }
 
-        bool IsEqual(const Matrix<_Type> &b, _Type eps=Defaults::MatrixEqualityPrecision) const
+        bool IsEqual(const Matrix<Type> &b, Type eps=Defaults::MatrixEqualityPrecision) const
         {
             if( RowNum() != b.RowNum() || ColNum() != b.ColNum() )
                 return false;
@@ -1409,18 +1685,18 @@ namespace MML
                 
             return true;
         }
-        static bool AreEqual(const Matrix &a, const Matrix &b, _Type eps=Defaults::MatrixEqualityPrecision) 
+        static bool AreEqual(const Matrix &a, const Matrix &b, Type eps=Defaults::MatrixEqualityPrecision) 
         {
             return a.IsEqual(b, eps);
         }
 
         ///////////////////            Trace, Inverse & Transpose             ///////////////////
-        _Type   Trace() const
+        Type   Trace() const
         {
             if( RowNum() != ColNum() ) 
                 throw MatrixDimensionError("Matrix::Trace - must be square matrix", _rows, _cols, -1, -1);
 
-            _Type sum = 0;
+            Type sum = 0;
             for (int i = 0; i < RowNum(); i++)
                 sum += _data[i][i];
 
@@ -1438,7 +1714,7 @@ namespace MML
             b(0,0) = 1.0;
 
             int i,icol,irow,j,k,l,ll;
-            _Type dum,pivinv;
+            Type dum,pivinv;
             Real big;
 
             int n=a.RowNum();
@@ -1620,23 +1896,23 @@ namespace MML
 
 namespace MML
 {
-    template<class _Type>
+    template<class Type>
     class TridiagonalMatrix
     {
     private:
         int _dim;
-        Vector<_Type> _a;
-        Vector<_Type> _diag;
-        Vector<_Type> _c;
+        Vector<Type> _a;
+        Vector<Type> _diag;
+        Vector<Type> _c;
 
     public:
-        TridiagonalMatrix(int dim, const Vector<_Type> &a, const Vector<_Type> &diag, const Vector<_Type> &c) : _a(a), _diag(diag), _c(c), _dim(dim)
+        TridiagonalMatrix(int dim, const Vector<Type> &a, const Vector<Type> &diag, const Vector<Type> &c) : _a(a), _diag(diag), _c(c), _dim(dim)
         {
             if (a.size() != dim || diag.size() != dim || c.size() != dim)
                 throw("Error in TridiagonalMatrix constructor: wrong dimensions");
         }
 
-        TridiagonalMatrix(int dim, std::initializer_list<_Type> values) : _dim(dim), _a(dim), _diag(dim), _c(dim)
+        TridiagonalMatrix(int dim, std::initializer_list<Type> values) : _dim(dim), _a(dim), _diag(dim), _c(dim)
         {
             if (values.size() != dim*3-2)
                 throw("Error in TridiagonalMatrix constructor: wrong dimensions");
@@ -1659,7 +1935,7 @@ namespace MML
         int RowNum() const { return _dim; }
         int ColNum() const { return _dim; }
 
-        _Type  operator()(int i, int j) const {
+        Type  operator()(int i, int j) const {
             if( i == j ) 
                 return _diag[i]; 
             else if( i == j-1 ) 
@@ -1669,7 +1945,7 @@ namespace MML
             else 
                 return 0.0;
         }
-        _Type&  operator()(int i, int j) {
+        Type&  operator()(int i, int j) {
             if( i == j ) 
                 return _diag[i]; 
             else if( i == j-1 ) 
@@ -1680,7 +1956,7 @@ namespace MML
                 throw MatrixAccessBoundsError("TridiagonalMatrix::operator()", i, j, _dim, _dim);
         }
 
-        // TODO 0.7 - dodati IsEqual
+        // TODO 0.8 - dodati IsEqual
         // TODO 1.0 - imaju li smisla operacije s regularnim matricama? I BandDiag?
         TridiagonalMatrix operator+( const TridiagonalMatrix &b ) const
         {
@@ -1713,7 +1989,7 @@ namespace MML
             return temp;
         }        
 
-        friend TridiagonalMatrix operator*( const TridiagonalMatrix &a, _Type b )
+        friend TridiagonalMatrix operator*( const TridiagonalMatrix &a, Type b )
         {
             int	i, j;
             TridiagonalMatrix	ret(a);
@@ -1727,7 +2003,7 @@ namespace MML
 
             return ret;
         }
-        friend TridiagonalMatrix operator*(  _Type a, const TridiagonalMatrix &b )
+        friend TridiagonalMatrix operator*(  Type a, const TridiagonalMatrix &b )
         {
             int	i, j;
             TridiagonalMatrix	ret(b);
@@ -1741,7 +2017,7 @@ namespace MML
 
             return ret;
         }
-        friend TridiagonalMatrix operator/( const TridiagonalMatrix &a, _Type b )
+        friend TridiagonalMatrix operator/( const TridiagonalMatrix &a, Type b )
         {
             int	i, j;
             TridiagonalMatrix	ret(a);
@@ -1757,13 +2033,13 @@ namespace MML
         }
 
         // TODO - 0.8 invert
-        // TODO - 0.7 transpose
+        // TODO - 0.8 transpose
 
-        void solve(Vector<_Type> &rhs, Vector<_Type> &sol)
+        void Solve(Vector<Type> &rhs, Vector<Type> &sol)
         {
             int j,n=_a.size();
             Real bet;
-            Vector<_Type> gam(n);
+            Vector<Type> gam(n);
             
             if (_diag[0] == 0.0) 
                 throw("Error 1 in tridag");
@@ -1782,14 +2058,20 @@ namespace MML
             for (j=(n-2);j>=0;j--)
                 sol[j] -= gam[j+1]*sol[j+1];
         }
+        Vector<Type> Solve(Vector<Type> &rhs)
+        {
+            Vector<Type> sol(rhs.size());
+            Solve(rhs, sol);
+            return sol;
+        }
 
         void   Print(std::ostream& stream, int width, int precision) const
         {
             stream << "Dim: " << _dim << std::endl;
-            for (size_t i = 0; i < _dim; i++) 
+            for (int i = 0; i < _dim; i++) 
             {
                 stream << "[ ";
-                for (size_t j = 0; j < _dim; j++) {
+                for (int j = 0; j < _dim; j++) {
                     stream << std::setw(width) << std::setprecision(precision) << (*this)(i,j) << ", ";
                 }                
                 stream << " ]" << std::endl;
@@ -1810,7 +2092,7 @@ namespace MML
         int RowNum() const { return _dim; }
         int ColNum() const { return _dim; }
 
-        // TODO - 0.7 HIGH, SREDNJE, finish basic operations
+        // TODO - 0.8 HIGH, SREDNJE, finish basic operations
 
         BandDiagonalMatrix(int dim, int m1, int m2, const Matrix<Real> &data) : _dim(dim), _m1(m1), _m2(m2), _data(data)
         {
@@ -1822,14 +2104,15 @@ namespace MML
             if( i > j + _m1 || j > i + _m2 ) 
                 return 0.0;
             else
-            {
                 return _data[i][j-i+_m1];
-            }
         }
         Real&  operator()(int i, int j) {
-
-                throw MatrixAccessBoundsError("TridiagonalMatrix::operator()", i, j, _dim, _dim);
+            if( i > j + _m1 || j > i + _m2 ) 
+                throw MatrixAccessBoundsError("BandDiagonalMatrix::operator()", i, j, _dim, _dim);
+            else
+                return _data[i][j-i+_m1];
         }        
+
         // Matrix multiply b = A * x, where A is band-diagonal with m1 rows below the diagonal and
         // m2 rows above. The input vector is x[0..n-1] and the output vector is b[0..n-1]. 
         void banmul(Matrix<Real> &a, const int m1, const int m2, Vector<Real> &x,	Vector<Real> &b)
@@ -1841,6 +2124,12 @@ namespace MML
                 b[i]=0.0;
                 for (j=std::max(0,-k);j<tmploop;j++) b[i] += a[i][j]*x[j+k];
             }
+        }
+        Vector<Real> operator*(Vector<Real> &x)
+        {
+            Vector<Real> b(x.size());
+            banmul(_data, _m1, _m2, x, b);
+            return b;
         }
 
         void   Print(std::ostream& stream, int width, int precision) const
@@ -1863,16 +2152,16 @@ namespace MML
 
 namespace MML
 {
-    template <class _Type, int N, int M>
+    template <class Type, int N, int M>
     class MatrixNM
     {
     public:
-        _Type _vals[N][M] = {{0}};
+        Type _vals[N][M] = {{0}};
 
     public:
         //////////////////////////             Constructors           /////////////////////////
         MatrixNM() {}
-        MatrixNM(std::initializer_list<_Type> values) 
+        MatrixNM(std::initializer_list<Type> values) 
         {
             auto val = values.begin();
             for (size_t i = 0; i < RowNum(); ++i)
@@ -1888,13 +2177,13 @@ namespace MML
                 for (size_t j = 0; j < ColNum(); ++j)
                     _vals[i][j] = m._vals[i][j];
         }
-        MatrixNM(const _Type &m)        // initialize as diagonal matrix
+        MatrixNM(const Type &m)        // initialize as diagonal matrix
         {
             for( int i=0; i<N; i++ )
-                _vals[i][i] = _Type{m};
+                _vals[i][i] = Type{m};
         }        
 
-        typedef _Type value_type;      // make T available externally
+        typedef Type value_type;      // make T available externally
 
         ////////////////////////            Standard stuff             ////////////////////////
         int RowNum() const { return N; }
@@ -1962,49 +2251,49 @@ namespace MML
         }
 
         /////////////////////          Vector-Matrix conversion           /////////////////////
-        static MatrixNM<_Type, 1, M>  RowMatrixFromVector(const VectorN<_Type, M> &b)
+        static MatrixNM<Type, 1, M>  RowMatrixFromVector(const VectorN<Type, M> &b)
         {
-            MatrixNM<_Type,1,M>  ret;
+            MatrixNM<Type,1,M>  ret;
             for( int j=0; j<M; j++)
                 ret._vals[0][j] = b[j];
 
             return ret;
         }      
-        static MatrixNM<_Type, N, 1>  ColumnMatrixFromVector(const VectorN<_Type, N> &b)
+        static MatrixNM<Type, N, 1>  ColumnMatrixFromVector(const VectorN<Type, N> &b)
         {
-            MatrixNM<_Type,N, 1>  ret;
+            MatrixNM<Type,N, 1>  ret;
             for( int i=0; i<M; i++)
                 ret._vals[i][0] = b[i];
 
             return ret;
         }
-        static MatrixNM<_Type, N, N> DiagonalMatrixFromVector(const VectorN<_Type, N> &b)
+        static MatrixNM<Type, N, N> DiagonalMatrixFromVector(const VectorN<Type, N> &b)
         {
-            MatrixNM<_Type, N, N> ret;
+            MatrixNM<Type, N, N> ret;
             for( int i=0; i<N; i++)
                 ret[i][i] = b[i];
 
             return ret;
         }         
-        static VectorN<_Type, M> VectorFromRow(const MatrixNM<_Type, N,M> &a, int rowInd)
+        static VectorN<Type, M> VectorFromRow(const MatrixNM<Type, N,M> &a, int rowInd)
         {
-            VectorN<_Type, M> ret;
+            VectorN<Type, M> ret;
             for( int j=0; j<M; j++)
                 ret[j] = a._vals[rowInd][j];
 
             return ret;
         }
-        static VectorN<_Type, N> VectorFromColumn(const MatrixNM<_Type, N,M> &a, int colInd)
+        static VectorN<Type, N> VectorFromColumn(const MatrixNM<Type, N,M> &a, int colInd)
         {
-            VectorN<_Type, N> ret;
+            VectorN<Type, N> ret;
             for( int i=0; i<N; i++)
                 ret[i] = a._vals[i][colInd];
 
             return ret;
         }
-        static VectorN<_Type, N> VectorFromDiagonal(const MatrixNM<_Type, N,N> &a)
+        static VectorN<Type, N> VectorFromDiagonal(const MatrixNM<Type, N,N> &a)
         {
-            VectorN<_Type, N> ret;
+            VectorN<Type, N> ret;
             for( int i=0; i<N; i++)
                 ret[i] = a._vals[i][i];
 
@@ -2023,7 +2312,7 @@ namespace MML
 
             return *this;
         }
-        MatrixNM &operator=(const _Type &m)
+        MatrixNM &operator=(const Type &m)
         {
             if (this == &m)
                 return *this;
@@ -2036,21 +2325,21 @@ namespace MML
         }        
 
         ////////////////////            Access operators             ///////////////////////
-        _Type* operator[](int i)                   { return _vals[i]; }
-        const _Type* operator[](const int i) const { return _vals[i]; }
+        Type* operator[](int i)                   { return _vals[i]; }
+        const Type* operator[](const int i) const { return _vals[i]; }
 
-        _Type  operator()(int i, int j) const { return _vals[i][j]; }
-        _Type& operator()(int i, int j)       { return _vals[i][j]; }        
+        Type  operator()(int i, int j) const { return _vals[i][j]; }
+        Type& operator()(int i, int j)       { return _vals[i][j]; }        
 
         // version with checking bounds
-        _Type  ElemAt(int i, int j) const 
+        Type  ElemAt(int i, int j) const 
         { 
             if( i<0 || i>=RowNum() || j<0 || j>=ColNum() )
                 throw MatrixAccessBoundsError("MatrixNM::ElemAt", i, j, RowNum(), ColNum());
 
             return _vals[i][j]; 
         }
-        _Type& ElemAt(int i, int j)       
+        Type& ElemAt(int i, int j)       
         {
             if( i<0 || i>=RowNum() || j<0 || j>=ColNum() )
                 throw MatrixAccessBoundsError("MatrixNM::ElemAt", i, j, RowNum(), ColNum());
@@ -2084,9 +2373,9 @@ namespace MML
             return temp;
         }
         template<int K>
-        MatrixNM<_Type, N, K>  operator*( const MatrixNM<_Type, M, K> &b ) const
+        MatrixNM<Type, N, K>  operator*( const MatrixNM<Type, M, K> &b ) const
         {
-            MatrixNM<_Type, N, K>	ret;
+            MatrixNM<Type, N, K>	ret;
 
             for( int i=0; i<ret.RowNum(); i++ )
                 for( int j=0; j<ret.ColNum(); j++ )
@@ -2099,7 +2388,7 @@ namespace MML
             return	ret;
         }        
 
-        friend MatrixNM operator*( const MatrixNM &a, _Type b )
+        friend MatrixNM operator*( const MatrixNM &a, Type b )
         {
             int	i, j;
             MatrixNM	ret(a);
@@ -2110,7 +2399,7 @@ namespace MML
 
             return ret;
         }
-        friend MatrixNM operator/( const MatrixNM &a, _Type b )
+        friend MatrixNM operator/( const MatrixNM &a, Type b )
         {
             int	i, j;
             MatrixNM	ret(a);
@@ -2121,7 +2410,7 @@ namespace MML
 
             return ret;
         }
-        friend MatrixNM operator*( _Type a, const MatrixNM &b )
+        friend MatrixNM operator*( Type a, const MatrixNM &b )
         {
             int	i, j;
             MatrixNM	ret;
@@ -2133,10 +2422,10 @@ namespace MML
             return ret;
         }
 
-        friend VectorN<_Type, N> operator*( const MatrixNM<_Type, N, M> &a, const VectorN<_Type, M> &b )
+        friend VectorN<Type, N> operator*( const MatrixNM<Type, N, M> &a, const VectorN<Type, M> &b )
         {
             int	i, j;
-            VectorN<_Type, N>	ret;
+            VectorN<Type, N>	ret;
 
             for( i=0; i<a.RowNum(); i++ )
             {
@@ -2147,10 +2436,10 @@ namespace MML
 
             return ret;
         }
-        friend VectorN<_Type, M> operator*( const VectorN<_Type, N> &a, const MatrixNM<_Type, N, M> &b )
+        friend VectorN<Type, M> operator*( const VectorN<Type, N> &a, const MatrixNM<Type, N, M> &b )
         {
             int	i, j;
-            VectorN<_Type, M>	ret;
+            VectorN<Type, M>	ret;
 
             for( i=0; i<b.ColNum(); i++ )
             {
@@ -2177,7 +2466,7 @@ namespace MML
             return !(*this == b);
         }
 
-        bool IsEqual(const MatrixNM &b, _Type eps=Defaults::MatrixEqualityPrecision) const
+        bool IsEqual(const MatrixNM &b, Type eps=Defaults::MatrixEqualityPrecision) const
         {
             for( int i=0; i<RowNum(); i++ )
                 for( int j=0; j<ColNum(); j++ )
@@ -2186,18 +2475,18 @@ namespace MML
                 
             return true;
         }
-        bool AreEqual(const MatrixNM &a, const MatrixNM &b, _Type eps=Defaults::MatrixEqualityPrecision) const
+        bool AreEqual(const MatrixNM &a, const MatrixNM &b, Type eps=Defaults::MatrixEqualityPrecision) const
         {
             return a.IsEqual(b, eps);
         }  
 
         ///////////////////            Trace, Inverse & Transpose             ///////////////////
-        _Type   Trace() const
+        Type   Trace() const
         {
             if( RowNum() != ColNum() ) 
                 throw MatrixDimensionError("MatrixNM::Trace - must be square matrix", N, M, -1, -1);
 
-            _Type sum = 0;
+            Type sum = 0;
             for (int i = 0; i < RowNum(); i++)
                 sum += _vals[i][i];
 
@@ -2210,12 +2499,12 @@ namespace MML
                 throw MatrixDimensionError("MatrixNM::Invert - must be square matrix", N, M, -1, -1);
 
             MatrixNM& a = *this;            
-            MatrixNM<_Type,N,1>  b;      // dummy rhs
+            MatrixNM<Type,N,1>  b;      // dummy rhs
 
             b(0,0) = 1.0;
 
             int i,icol,irow,j,k,l,ll;
-            _Type big,dum,pivinv;
+            Type big,dum,pivinv;
 
             int n=RowNum();
             int m=b.ColNum();
@@ -2284,9 +2573,9 @@ namespace MML
                 for (size_t j = i+1; j < ColNum(); j++)
                     std::swap(_vals[i][j], _vals[j][i]);
         }
-        MatrixNM<_Type, M,N> GetTranspose() const
+        MatrixNM<Type, M,N> GetTranspose() const
         {
-            MatrixNM<_Type,M,N> ret;
+            MatrixNM<Type,M,N> ret;
 
             for (size_t i = 0; i < ColNum(); i++)
                 for (size_t j = 0; j < RowNum(); j++)
@@ -2356,12 +2645,12 @@ namespace MML
 
 namespace MML
 {
-    template<class _Type>
+    template<class Type>
     class MatrixSym
     {
     private:
         int  _dim;
-        _Type **_ptrData;
+        Type **_ptrData;
 
         void Init(int dim)
         {
@@ -2370,11 +2659,11 @@ namespace MML
 
             _dim = dim;
 
-            _ptrData = new _Type*[dim];
+            _ptrData = new Type*[dim];
 
             int numElem = (dim * dim + dim )/ 2;
             if (_ptrData) 
-                _ptrData[0] = numElem>0 ? new _Type[numElem] : nullptr;
+                _ptrData[0] = numElem>0 ? new Type[numElem] : nullptr;
             
             for (int i=1; i<dim; i++) 
                 _ptrData[i] = _ptrData[i-1] + i;
@@ -2390,14 +2679,14 @@ namespace MML
                 for (int j = 0; j < _dim; ++j)
                     _ptrData[i][j] = 0;
         }
-        MatrixSym(int dim, _Type val) : _dim(dim)
+        MatrixSym(int dim, Type val) : _dim(dim)
         {
             Init(dim);
             for (int i = 0; i < _dim; ++i)
                 for (int j = 0; j <= i; ++j)
                     _ptrData[i][j] = val;
         }        
-        MatrixSym(int dim, std::initializer_list<_Type> values) : _dim(dim)
+        MatrixSym(int dim, std::initializer_list<Type> values) : _dim(dim)
         {
             Init(dim);
             if (values.size() != (dim * dim + dim )/ 2)
@@ -2434,14 +2723,14 @@ namespace MML
             }
         }
 
-        typedef _Type value_type;      // make T available externally
+        typedef Type value_type;      // make T available externally
 
         ////////////////////////               Standard stuff             ////////////////////////
         int Dim() const { return (int) _dim; }
         int RowNum() const { return (int) _dim; }
         int ColNum() const { return (int) _dim; }
 
-        bool IsEqual(const MatrixSym &b, _Type eps=Defaults::MatrixEqualityPrecision) const
+        bool IsEqual(const MatrixSym &b, Type eps=Defaults::MatrixEqualityPrecision) const
         {
             if( Dim() != b.Dim() )
                 return false;
@@ -2455,14 +2744,14 @@ namespace MML
                 
             return true;
         }
-        static bool AreEqual(const MatrixSym &a, const MatrixSym &b, _Type eps=Defaults::MatrixEqualityPrecision) 
+        static bool AreEqual(const MatrixSym &a, const MatrixSym &b, Type eps=Defaults::MatrixEqualityPrecision) 
         {
             return a.IsEqual(b, eps);
         }
 
-        Matrix<_Type> GetAsMatrix() const
+        Matrix<Type> GetAsMatrix() const
         {
-            Matrix<_Type> ret(Dim(), Dim());
+            Matrix<Type> ret(Dim(), Dim());
 
             for( int i=0; i<Dim(); i++ )
                 for( int j=0; j<Dim(); j++ )
@@ -2472,7 +2761,7 @@ namespace MML
         }
 
         /////////////////////          Init from regular Matrix           /////////////////////
-        MatrixSym InitFromLower(Matrix<_Type> &b)
+        MatrixSym InitFromLower(Matrix<Type> &b)
         {
             if( b.RowNum() != b.ColNum() ) 
                 throw MatrixDimensionError("MatrixSym::InitFromLower - must be square matrix", b.RowNum(), b.ColNum(), -1, -1);
@@ -2484,7 +2773,7 @@ namespace MML
 
             return ret;
         }
-        MatrixSym InitFromUpper(Matrix<_Type> &b)
+        MatrixSym InitFromUpper(Matrix<Type> &b)
         {
             if( b.RowNum() != b.ColNum() ) 
                 throw MatrixDimensionError("MatrixSym::InitFromUpper - must be square matrix", b.RowNum(), b.ColNum(), -1, -1);
@@ -2498,34 +2787,34 @@ namespace MML
         }
 
         /////////////////////          Vector-Matrix conversion           /////////////////////
-        Vector<_Type> VectorFromRow(int rowInd)
+        Vector<Type> VectorFromRow(int rowInd)
         {           
             if( rowInd >= RowNum() )
                 throw MatrixAccessBoundsError("VectorFromRow - row index must be less then a.RowNum()", rowInd, 0, RowNum(), ColNum());
 
-            Vector<_Type> ret(ColNum());
+            Vector<Type> ret(ColNum());
             for( int i=0; i<ColNum(); i++)
                 ret[i] = this->a(rowInd,i);
 
             return ret;
         }
-        Vector<_Type> VectorFromColumn(int colInd)
+        Vector<Type> VectorFromColumn(int colInd)
         {
            if( colInd >= ColNum() )
                 throw MatrixAccessBoundsError("VectorFromColumn - column index must be less then a.ColNum()", 0, colInd, RowNum(), ColNum());
 
-            Vector<_Type> ret(RowNum());
+            Vector<Type> ret(RowNum());
             for( int i=0; i<RowNum(); i++)
                 ret[i] = this->a(i,colInd);
 
             return ret;
         }
-        Vector<_Type> VectorFromDiagonal()
+        Vector<Type> VectorFromDiagonal()
         {
            if( RowNum() != ColNum() ) 
                 throw MatrixDimensionError("VectorFromDiagonal - must be square matrix", RowNum(), ColNum(), -1, -1);
 
-            Vector<_Type> ret(RowNum());
+            Vector<Type> ret(RowNum());
             for( int i=0; i<RowNum(); i++)
                 ret[i] = this->a(i,i);
 
@@ -2563,13 +2852,14 @@ namespace MML
             return *this;
         }
 
-        _Type  operator()(int i, int j) const {
+        ////////////////////////           Access operators             ///////////////////////
+        Type  operator()(int i, int j) const {
             if( i < j ) 
                 return _ptrData[j][i]; 
             else
                 return _ptrData[i][j]; 
         }
-        _Type& operator()(int i, int j){ 
+        Type& operator()(int i, int j){ 
             if( i < j ) 
                 return _ptrData[j][i]; 
             else
@@ -2577,21 +2867,22 @@ namespace MML
         }
 
         // version with checking bounds
-        // _Type  ElemAt(int i, int j) const 
-        // { 
-        //     if( i<0 || i>=RowNum() || j<0 || j>=ColNum() )
-        //         throw MatrixAccessBoundsError("Matrix::ElemAt", i, j, RowNum(), ColNum());
+        Type  ElemAt(int i, int j) const 
+        { 
+            if( i<0 || i>=RowNum() || j<0 || j>=ColNum() )
+                throw MatrixAccessBoundsError("MatrixSym::ElemAt", i, j, RowNum(), ColNum());
 
-        //     return _ptrData[i][j]; 
-        // }
-        // _Type& ElemAt(int i, int j)       
-        // {
-        //     if( i<0 || i>=RowNum() || j<0 || j>=ColNum() )
-        //         throw MatrixAccessBoundsError("Matrix::ElemAt", i, j, RowNum(), ColNum());
+            return operator()(i,j); 
+        }
+        Type& ElemAt(int i, int j)       
+        {
+            if( i<0 || i>=RowNum() || j<0 || j>=ColNum() )
+                throw MatrixAccessBoundsError("MatrixSym::ElemAt", i, j, RowNum(), ColNum());
 
-        //     return _ptrData[i][j]; 
-        // }
+            return operator()(i,j); 
+        }
 
+        ///////////////////////           Arithmetic operators             //////////////////////
         MatrixSym operator+( const MatrixSym &b ) const
         {
             if (_dim != b._dim )
@@ -2626,12 +2917,12 @@ namespace MML
             return temp;
         }        
 
-        Matrix<_Type> operator*( const MatrixSym &b ) const
+        Matrix<Type> operator*( const MatrixSym &b ) const
         {
             if( Dim() != b.Dim() )
                 throw MatrixDimensionError("MatrixSym::operator*(MatrixSym &) - a.colNum must be equal to b.rowNum", _dim, _dim, b._dim, b._dim);
 
-            Matrix<_Type>	ret(RowNum(), b.ColNum());
+            Matrix<Type>	ret(RowNum(), b.ColNum());
             for( int i=0; i<ret.RowNum(); i++ )
                 for( int j=0; j<ret.ColNum(); j++ )
                 {
@@ -2643,12 +2934,12 @@ namespace MML
             return	ret;
         }
 
-        Matrix<_Type> operator*( const Matrix<_Type> &b ) const
+        Matrix<Type> operator*( const Matrix<Type> &b ) const
         {
             if( Dim() != b.RowNum() )
                 throw MatrixDimensionError("MatrixSym::operator*(Matrix &) - a.colNum must be equal to b.rowNum", _dim, _dim, b.RowNum(), b.ColNum());
 
-            Matrix<_Type>	ret(RowNum(), b.ColNum());
+            Matrix<Type>	ret(RowNum(), b.ColNum());
             for( int i=0; i<ret.RowNum(); i++ )
                 for( int j=0; j<ret.ColNum(); j++ )
                 {
@@ -2660,7 +2951,7 @@ namespace MML
             return	ret;
         }
 
-        friend MatrixSym operator*( const MatrixSym &a, _Type b )
+        friend MatrixSym operator*( const MatrixSym &a, Type b )
         {
             int	i, j;
             MatrixSym	ret(a.Dim());
@@ -2671,7 +2962,7 @@ namespace MML
 
             return ret;
         }
-        friend MatrixSym operator*( _Type a, const MatrixSym &b )
+        friend MatrixSym operator*( Type a, const MatrixSym &b )
         {
             int	i, j;
             MatrixSym	ret(a.Dim());
@@ -2682,7 +2973,7 @@ namespace MML
 
             return ret;
         }
-        friend MatrixSym operator/( const MatrixSym &a, _Type b )
+        friend MatrixSym operator/( const MatrixSym &a, Type b )
         {
             int	i, j;
             MatrixSym	ret(a.Dim());
@@ -2694,12 +2985,12 @@ namespace MML
             return ret;
         }
 
-        friend Vector<_Type> operator*( const MatrixSym &a, const Vector<_Type> &b )
+        friend Vector<Type> operator*( const MatrixSym &a, const Vector<Type> &b )
         {
             if( a.Dim() != b.size() )
                 throw MatrixDimensionError("operator*(MatSym a, Vec b) - a.Dim must be equal to vector size", a.Dim(), a.Dim(), (int) b.size(), -1);
 
-            Vector<_Type>	ret(a.RowNum());
+            Vector<Type>	ret(a.RowNum());
             for( int i=0; i<a.Dim(); i++ )
             {
                 ret[i] = 0;
@@ -2709,7 +3000,7 @@ namespace MML
 
             return ret;
         }
-        friend Vector<_Type> operator*( const Vector<_Type> &a, const MatrixSym &b )
+        friend Vector<Type> operator*( const Vector<Type> &a, const MatrixSym &b )
         {
             if( a.size() != b.Dim() )
             {
@@ -2717,7 +3008,7 @@ namespace MML
                 throw MatrixDimensionError("operator*(Vec a, MatSym b) - vector size must be equal to b.Dim", (int) a.size(), -1, b.Dim(), -1);
             }
 
-            Vector<_Type>	ret(b.Dim());
+            Vector<Type>	ret(b.Dim());
             for( int i=0; i<b.Dim(); i++ )
             {
                 ret[i] = 0;
@@ -2729,12 +3020,12 @@ namespace MML
         }
 
         ////////////////////////            Inverse              ///////////////////////
-        Matrix<_Type> GetInverse() const
+        Matrix<Type> GetInverse() const
         {
             if( RowNum() != ColNum() ) 
                 throw MatrixDimensionError("MatrixSym::GetInverse - must be square matrix", _dim, _dim, -1, -1);
 
-            Matrix<_Type> a = this->GetAsMatrix();              // making a copy, where inverse will be stored at the end
+            Matrix<Type> a = this->GetAsMatrix();              // making a copy, where inverse will be stored at the end
             
             a.Invert();
             
@@ -2768,23 +3059,23 @@ namespace MML
 
 namespace MML
 {
-    template <class _Type>
+    template <class Type>
     class Matrix3D {
     private:
         int _n;
         int _m;
         int _k;
-        _Type ***_v;
+        Type ***_v;
 
     public:
         Matrix3D(): _n(0), _m(0), _k(0), _v(nullptr) {}
 
-        Matrix3D(int n, int m, int k) : _n(n), _m(m), _k(k), _v(new _Type**[n])
+        Matrix3D(int n, int m, int k) : _n(n), _m(m), _k(k), _v(new Type**[n])
         {
             int i,j;
             
-            _v[0]    = new _Type*[n*m];
-            _v[0][0] = new _Type[n*m*k];
+            _v[0]    = new Type*[n*m];
+            _v[0][0] = new Type[n*m*k];
             
             for(j=1; j<m; j++) 
                 _v[0][j] = _v[0][j-1] + k;
@@ -2808,11 +3099,11 @@ namespace MML
         }
 
         //subscripting: pointer to row i
-        inline _Type**              operator[](const int i)       { return _v[i]; }
-        inline const _Type* const * operator[](const int i) const { return _v[i]; }
+        inline Type**              operator[](const int i)       { return _v[i]; }
+        inline const Type* const * operator[](const int i) const { return _v[i]; }
 
-        _Type  operator()(int i, int j, int k) const { return _v[i][j][k]; }
-        _Type& operator()(int i, int j, int k)       { return _v[i][j][k]; }        
+        Type  operator()(int i, int j, int k) const { return _v[i][j][k]; }
+        Type& operator()(int i, int j, int k)       { return _v[i][j][k]; }        
 
         inline int dim1() const { return _n; }
         inline int dim2() const { return _m; }
@@ -2834,7 +3125,7 @@ namespace MML
         // TODO - MED, LAKO, u MatrixNM!
         // TODO - MED, LAKO, osnovne operacije +, -, *
         // TODO - contraction
-        Real _coeff[N][N];
+        Real _coeff[N][N] = { 0 };
     public:
         int _numContravar;
         int _numCovar;
@@ -2901,7 +3192,7 @@ namespace MML
     template <int N>
     class Tensor3 : public ITensor3<N>
     {
-        Real _coeff[N][N][N];
+        Real _coeff[N][N][N] = { 0 };
     public:
         int _numContravar;
         int _numCovar;
@@ -2929,7 +3220,7 @@ namespace MML
     template <int N>
     class Tensor4 : public ITensor4<N>
     {
-        Real _coeff[N][N][N][N];
+        Real _coeff[N][N][N][N] = { 0 };
     public:
         int _numContravar;
         int _numCovar;
@@ -2944,7 +3235,6 @@ namespace MML
             
             for(int i=nContra; i<nContra+nCo; i++)
                 _isContravar[i] = false;                
-
         }
 
         int   NumContravar() const { return _numContravar; }
@@ -2982,1093 +3272,6 @@ namespace MML
         Real& Component(int i, int j, int k, int l, int m)       { return _coeff[i][j][k][l][m];}   
     };    
 }
-///////////////////////////   ./include/base/Algebra.h   ///////////////////////////
-
-
-
-namespace MML
-{
-    // TODO - implement example groups - Z6, permutations
-    // TODO - vector space + Gram Schmidt
-    // TODO - linear transformations & OPERATORS
-    
-    // groups
-    // finitve ima i numElem
-    class GroupZ : public IGroup<int>
-    {
-        public:
-        virtual int  identity() const { return 0;}
-        virtual int  inverse(const int& a) const { return -a;}
-        virtual int  op(const int& a, const int& b) const { return a + b;}
-    };
-    // FieldR
-    // FieldC
-}
-///////////////////////////   ./include/base/Geometry.h   ///////////////////////////
-
-
-namespace MML
-{
-    // TODO - MED, dodati Dist svugdje
-    class Point2Cartesian
-    {
-    private:
-        Real _x, _y;
-
-    public:
-        Real  X() const   { return _x; }
-        Real& X()         { return _x; }
-        Real  Y() const   { return _y; }
-        Real& Y()         { return _y; }
-
-        Point2Cartesian() {}
-        Point2Cartesian(Real x, Real y) : _x(x), _y(y) {}
-
-        Real Dist(const Point2Cartesian &b) const { return sqrt(SQR(b._x - _x) + SQR(b._y - _y) ); }
-    };
-
-    class Point2Polar
-    {
-    private:
-        Real _r, _phi;
-
-    public:
-        Real  R() const   { return _r; }
-        Real& R()         { return _r; }
-        Real  Phi() const { return _phi; }
-        Real& Phi()       { return _phi; }
-        
-        Point2Polar() {}
-        Point2Polar(Real r, Real phi) : _r(r), _phi(phi) {}
-
-        Real Dist(const Point2Polar &b) const { return sqrt(R() * R() + b.R() * b.R() - 2 * R() * b.R() * cos(b.Phi() - Phi())); }
-    };
-
-    class Point3Cartesian
-    {
-    private:
-        Real _x, _y, _z;
-
-    public:
-        Real  X() const   { return _x; }
-        Real& X()         { return _x; }
-        Real  Y() const   { return _y; }
-        Real& Y()         { return _y; }
-        Real  Z() const   { return _z; }
-        Real& Z()         { return _z; }
-
-        Point3Cartesian() {}
-        Point3Cartesian(Real x, Real y, Real z) : _x(x), _y(y), _z(z) {}
-
-        Real Dist(const Point3Cartesian &b) const { return sqrt(SQR(b._x - _x) + SQR(b._y - _y) + SQR(b._z - _z)); }
-    };     
-
-    class Triangle
-    {
-    private:
-        Real _a, _b, _c;
-
-    public:
-        Real  A() const   { return _a; }
-        Real& A()         { return _a; }
-        Real  B() const   { return _b; }
-        Real& B()         { return _b; }
-        Real  C() const   { return _c; }
-        Real& C()         { return _c; }
-
-        Triangle() {}
-        Triangle(Real a, Real b, Real c) : _a(a), _b(b), _c(c) {}
-
-        Real Area() const
-        {
-            Real s = (_a + _b + _c) / 2.0;
-            return sqrt(s * (s - _a) * (s - _b) * (s - _c));
-        }
-        bool IsRight() const
-        {
-            return (SQR(_a) + SQR(_b) == SQR(_c)) || (SQR(_a) + SQR(_c) == SQR(_b)) || (SQR(_b) + SQR(_c) == SQR(_a));
-        }
-        bool IsIsosceles() const
-        {
-            return (_a == _b) || (_a == _c) || (_b == _c);
-        }
-        bool IsEquilateral() const
-        {
-            return (_a == _b) && (_a == _c);
-        }
-    };
-}
-///////////////////////////   ./include/base/VectorTypes.h   ///////////////////////////
-
-
-namespace MML
-{
-    class Vector2Cartesian : public VectorN<Real, 2>
-    {
-    public:
-        Vector2Cartesian() {}
-        Vector2Cartesian(Real x, Real y) 
-        {
-            _val[0] = x;
-            _val[1] = y;
-        }
-        Vector2Cartesian(const VectorN<Real, 2> &b) : VectorN<Real,2>{b[0], b[1]} { }
-        Vector2Cartesian(std::initializer_list<Real> list)  : VectorN<Real,2>(list) { }
-        Vector2Cartesian(const Point2Cartesian &a, const Point2Cartesian &b) 
-        {
-            _val[0] = b.X() - a.X();
-            _val[1] = b.Y() - a.Y();
-        }
-
-        Real    X() const   { return _val[0]; }
-        Real&   X()         { return _val[0]; }
-        Real    Y() const   { return _val[1]; }
-        Real&   Y()         { return _val[1]; }
-
-        friend Vector2Cartesian operator*(const Vector2Cartesian &a, Real b )
-        {
-            Vector2Cartesian ret;
-            for(int i=0; i<2; i++)
-                ret._val[i] = a[i] * b;
-            return ret;
-        }
-        friend Vector2Cartesian operator*(Real a, const Vector2Cartesian &b )
-        {
-            Vector2Cartesian ret;
-            for(int i=0; i<2; i++)
-                ret._val[i] = a * b[i];
-            return ret;
-        }
-        friend Vector2Cartesian operator/(const Vector2Cartesian &a, Real b)
-        {
-            Vector2Cartesian ret;
-            for(int i=0; i<2; i++)
-                ret._val[i] = a[i] / b;
-            return ret;
-        }
-
-        Vector2Cartesian GetUnitVector() const
-        {
-            VectorN<Real, 2> res = (*this) / NormL2();
-
-            return Vector2Cartesian(res[0], res[1]);
-        }
-
-        friend Point2Cartesian operator+(const Point2Cartesian &a, const Vector2Cartesian &b) { return Point2Cartesian(a.X() + b[0], a.Y() + b[1]); }
-        friend Point2Cartesian operator-(const Point2Cartesian &a, const Vector2Cartesian &b) { return Point2Cartesian(a.X() - b[0], a.Y() - b[1]); }
-        // friend Point2Cartesian operator+(const Point2Cartesian &a, const VectorN<Real, 2> &b) { return Point2Cartesian(a.X() + b[0], a.Y() + b[1]); }
-        // friend Point2Cartesian operator-(const Point2Cartesian &a, const VectorN<Real, 2> &b) { return Point2Cartesian(a.X() - b[0], a.Y() - b[1]); }
-    };
-
-    class Vector2Polar : public VectorN<Real, 2>
-    {
-    public:
-        Real    R() const   { return _val[0]; }
-        Real&   R()         { return _val[0]; }
-        Real    Phi() const { return _val[1]; }
-        Real&   Phi()       { return _val[1]; }
-
-        Vector2Polar() {}
-        Vector2Polar(Real r, Real phi) 
-        {
-            _val[0] = r;
-            _val[1] = phi;
-        }   
-        Vector2Polar(const VectorN<Real, 2> &b) : VectorN<Real,2>{b[0], b[1]} { }        
-    };
-
-    class Vector3Cartesian : public VectorN<Real, 3>
-    {
-    public:
-        Real    X() const   { return _val[0]; }
-        Real&   X()         { return _val[0]; }
-        Real    Y() const   { return _val[1]; }
-        Real&   Y()         { return _val[1]; }
-        Real    Z() const   { return _val[2]; }
-        Real&   Z()         { return _val[2]; }
-
-        Vector3Cartesian()                                  : VectorN<Real,3>{0.0, 0.0, 0.0} { }
-        Vector3Cartesian(const VectorN<Real, 3> &b)         : VectorN<Real,3>{b[0], b[1], b[2]} { }
-        Vector3Cartesian(Real x, Real y, Real z)            : VectorN<Real,3>{x, y, z} { }
-        Vector3Cartesian(std::initializer_list<Real> list)  : VectorN<Real,3>(list) { }
-        Vector3Cartesian(const Point3Cartesian &a, const Point3Cartesian &b) 
-        {
-            _val[0] = b.X() - a.X();
-            _val[1] = b.Y() - a.Y();
-            _val[2] = b.Z() - a.Z();
-        }
-
-        friend Vector3Cartesian operator*(const Vector3Cartesian &a, Real b )
-        {
-            Vector3Cartesian ret;
-            for(int i=0; i<3; i++)
-                ret._val[i] = a[i] * b;
-            return ret;
-        }
-        friend Vector3Cartesian operator*(Real a, const Vector3Cartesian &b )
-        {
-            Vector3Cartesian ret;
-            for(int i=0; i<3; i++)
-                ret._val[i] = a * b[i];
-            return ret;
-        }
-        friend Vector3Cartesian operator/(const Vector3Cartesian &a, Real b)
-        {
-            Vector3Cartesian ret;
-            for(int i=0; i<3; i++)
-                ret._val[i] = a[i] / b;
-            return ret;
-        }
-
-        friend Vector3Cartesian operator-(const Point3Cartesian &a, const Point3Cartesian &b) { return  Vector3Cartesian{a.X() - b.X(), a.Y() - b.Y(), a.Z() - b.Z()}; }
-
-        friend Point3Cartesian operator+(const Point3Cartesian &a, const Vector3Cartesian &b) { return Point3Cartesian(a.X() + b[0], a.Y() + b[1], a.Z() + b[2]); }
-        friend Point3Cartesian operator-(const Point3Cartesian &a, const Vector3Cartesian &b) { return Point3Cartesian(a.X() - b[0], a.Y() - b[1], a.Z() - b[2]); }        
-
-        Point3Cartesian getAsPoint()
-        {
-            return Point3Cartesian(_val[0], _val[1], _val[2]);
-        }
-        bool IsParallelTo(const Vector3Cartesian &b, Real eps = 1e-15) const
-        {
-            Real norm1 = NormL2();
-            Real norm2 = b.NormL2();
-
-            return std::abs(X() / norm1 - b.X() / norm2) < eps &&
-                   std::abs(Y() / norm1 - b.Y() / norm2) < eps &&
-                   std::abs(Z() / norm1 - b.Z() / norm2) < eps;
-        }
-
-        bool IsPerpendicularTo(const Vector3Cartesian &b, Real eps = 1e-15) const
-        {
-            if (std::abs(ScalarProd(*this, b)) < eps)
-                return true;
-            else
-                return false;
-        }
-
-        Vector3Cartesian GetAsUnitVector() const
-        {
-            return Vector3Cartesian{(*this) / NormL2()};
-        }
-        Vector3Cartesian GetAsUnitVectorAtPos(const Vector3Cartesian &pos) const
-        {
-            return Vector3Cartesian{(*this) / NormL2()};
-        }
-
-        friend Real ScalarProd(const Vector3Cartesian &a, const Vector3Cartesian &b)
-        {
-            return a.ScalarProductCartesian(b);
-        }
-        friend Vector3Cartesian VectorProd(const Vector3Cartesian &a, const Vector3Cartesian &b)
-        {
-            Vector3Cartesian ret;
-
-            ret.X() = a.Y() * b.Z() - a.Z() * b.Y();
-            ret.Y() = a.Z() * b.X() - a.X() * b.Z();
-            ret.Z() = a.X() * b.Y() - a.Y() * b.X();
-
-            return ret;
-        }
-
-        friend Real VectorsAngle(const Vector3Cartesian &a, const Vector3Cartesian &b)
-        {
-            Real cos_phi = ScalarProd(a, b) / (a.NormL2() * b.NormL2());
-
-            return acos(cos_phi);
-        }
-    };
-
-    class Vector3Spherical : public VectorN<Real, 3>
-    {
-    public:
-        Real    R()     const   { return _val[0]; }
-        Real&   R()             { return _val[0]; }
-        Real    Theta() const   { return _val[1]; }
-        Real&   Theta()         { return _val[1]; }
-        Real    Phi()   const   { return _val[2]; }
-        Real&   Phi()           { return _val[2]; }
-
-        Vector3Spherical()                                   : VectorN<Real,3>{0.0, 0.0, 0.0} { }
-        Vector3Spherical(const VectorN<Real, 3> &b)          : VectorN<Real,3>{b[0], b[1], b[2]} { }
-        Vector3Spherical(Real r, Real theta, Real phi)       : VectorN<Real,3>{r, theta, phi} { }
-        Vector3Spherical(std::initializer_list<Real> list)   : VectorN<Real,3>(list) { }
-
-        // TODO - HIGH, HARD, osnovne operacije +, -
-        Vector3Spherical GetAsUnitVector() const
-        {
-            return Vector3Spherical{1.0, Theta() , Phi()};
-        } 
-        Vector3Spherical GetAsUnitVectorAtPos(const Vector3Spherical &pos) const
-        {
-            return Vector3Spherical{R(), Theta() / pos.R(), Phi() / (pos.R() * sin(pos.Theta()))};
-        } 
-        std::ostream& PrintDeg(std::ostream& stream, int width, int precision) const
-        {
-            stream << "[ ";
-            stream << std::fixed << std::setw(width) << std::setprecision(precision);
-            stream << R();
-            stream << ", " << Theta() * 180.0 / Constants::PI;
-            stream << ", " << Phi() * 180.0 / Constants::PI << " ]" << std::endl;
-
-            return stream;
-        }          
-    };
-
-    class Vector3Cylindrical : public VectorN<Real, 3>
-    {
-    public:
-        Real    R()   const { return _val[0]; }
-        Real&   R()         { return _val[0]; }
-        Real    Phi() const { return _val[1]; }
-        Real&   Phi()       { return _val[1]; }
-        Real    Z()   const { return _val[2]; }
-        Real&   Z()         { return _val[2]; }
-
-        Vector3Cylindrical()                                 : VectorN<Real,3>{0.0, 0.0, 0.0} { }
-        Vector3Cylindrical(const VectorN<Real, 3> &b)        : VectorN<Real,3>{b[0], b[1], b[2]} { }
-        Vector3Cylindrical(Real r, Real phi, Real z)   : VectorN<Real,3>{r, phi, z} { }
-        Vector3Cylindrical(std::initializer_list<Real> list) : VectorN<Real,3>(list) { }
-
-        // TODO - MED, implement Vector3Cylindrical GetAsUniTVector()
-        // TODO - MED, razmisliti generalno vektor i vektor at point
-        Vector3Cylindrical GetAsUnitVector() const
-        {
-            return Vector3Cylindrical{(*this) / NormL2()};
-        }         
-        Vector3Cylindrical GetAsUnitVectorAtPos(const Vector3Cylindrical &pos) const
-        {
-            return Vector3Cylindrical{R(), Phi() / pos.R(), Z()};
-        }   
-    };    
-
-    typedef Vector3Cartesian    Vec3Cart;
-    typedef Vector3Spherical    Vec3Sph;
-    typedef Vector3Cylindrical  Vec3Cyl;
-}
-///////////////////////////   ./include/base/Geometry2D.h   ///////////////////////////
-
-
-namespace MML
-{
-    class Line2D
-    {
-    private:
-        Point2Cartesian _point;
-        Vector2Cartesian _direction; // unit vector in line direction
-
-    public:
-        Line2D(const Point2Cartesian &pnt, const Vector2Cartesian dir)
-        {
-            _point = pnt;
-            _direction = dir.GetUnitVector();
-        }
-
-        Line2D(const Point2Cartesian &a, const Point2Cartesian &b)
-        {
-            Vector2Cartesian dir(a , b);
-            _point = a;
-            _direction = dir.GetUnitVector();
-        }
-
-        Point2Cartesian     StartPoint() const  { return _point; }
-        Point2Cartesian&    StartPoint()        { return _point; }
-
-        Vector2Cartesian    Direction() const   { return _direction; }
-        Vector2Cartesian&   Direction()         { return _direction; }
-
-        Point2Cartesian PointOnLine(Real t)
-        {
-            Vector2Cartesian dist = t * _direction;
-            Point2Cartesian ret = _point + dist;
-            return ret;
-        }
-    };
-
-   class SegmentLine2D
-    {
-    private:
-        Point2Cartesian _point1;
-        Point2Cartesian _point2;
-
-    public:
-        SegmentLine2D(Point2Cartesian pnt1, Point2Cartesian pnt2) : _point1(pnt1), _point2(pnt2)
-        { }
-
-        SegmentLine2D(const Point2Cartesian &pnt1, const Vector2Cartesian &direction, Real t) : _point1(pnt1)
-        {
-            _point2 = pnt1 + direction * t;
-        }
-
-        Point2Cartesian     StartPoint() const  { return _point1; }
-        Point2Cartesian&    StartPoint()        { return _point1; }
-
-        Point2Cartesian     EndPoint()  const  { return _point2; }
-        Point2Cartesian&    EndPoint()         { return _point2; }
-
-        Point2Cartesian PointOnSegment(Real t)
-        {
-            if( t < 0.0 || t > 1.0)
-                throw std::invalid_argument("t must be in [0,1]");
-
-            Vector2Cartesian dist = t * Direction();
-            Point2Cartesian ret = _point1 + dist;
-            return ret;
-        }
-
-        Real                Length()    const { return _point1.Dist(_point2); }
-        Vector2Cartesian    Direction() const { return Vector2Cartesian(_point1, _point2); }
-    };
-
-    class Triangle2D
-    {
-    private:
-        Point2Cartesian _pnt1, _pnt2, _pnt3;
-
-    public:
-        Triangle2D(Point2Cartesian pnt1, Point2Cartesian pnt2, Point2Cartesian pnt3) : _pnt1(pnt1), _pnt2(pnt2), _pnt3(pnt3)
-        { }
-
-        Point2Cartesian     Pnt1() const { return _pnt1; }
-        Point2Cartesian&    Pnt1()       { return _pnt1; }
-        Point2Cartesian     Pnt2() const { return _pnt2; }
-        Point2Cartesian&    Pnt2()       { return _pnt2; }
-        Point2Cartesian     Pnt3() const { return _pnt3; }
-        Point2Cartesian&    Pnt3()       { return _pnt3; }
-
-        Real Area() const
-        {
-            Real a = _pnt1.Dist(_pnt2);
-            Real b = _pnt2.Dist(_pnt3);
-            Real c = _pnt3.Dist(_pnt1);
-
-            Real s = (a + b + c) / 2.0;
-
-            return sqrt(s * (s - a) * (s - b) * (s - c));
-        }
-    };    
-
-    class Polygon2D
-    {
-    private:
-        std::vector<Point2Cartesian> _points;
-    public:
-        Polygon2D() {}
-        Polygon2D(std::vector<Point2Cartesian> points) : _points(points) {}
-        Polygon2D(std::initializer_list<Point2Cartesian> list) 
-        {
-            for (auto element : list)
-                _points.push_back(element);
-        }
-
-        std::vector<Point2Cartesian>  Points() const { return _points; }
-        std::vector<Point2Cartesian>& Points()       { return _points; }
-
-        Real Area() const
-        {
-            Real area = 0.0;
-            int n = (int) _points.size();
-            for (int i = 0; i < n; i++)
-            {
-                area += _points[i].X() * _points[(i + 1) % n].Y();
-                area -= _points[i].Y() * _points[(i + 1) % n].X();
-            }
-            area /= 2.0;
-            return area;
-        }
-
-        // TODO - IsConvex()
-        // TODO - Triangularization
-        
-        // TODO - IsInside
-        bool IsInside(Point2Cartesian pnt) const
-        {
-            return false;
-        }                 
-    };            
-}
-///////////////////////////   ./include/base/Geometry3D.h   ///////////////////////////
-
-
-namespace MML
-{
-    class Line3D
-    {
-    private:
-        Point3Cartesian  _point;
-        Vector3Cartesian _direction; 
-
-    public:
-        Line3D() {}
-        Line3D(const Point3Cartesian &pnt, const Vector3Cartesian dir)
-        {
-            _point = pnt;
-            _direction = dir.GetAsUnitVector();
-        }
-
-        Line3D(const Point3Cartesian &a, const Point3Cartesian &b)
-        {
-            Vector3Cartesian dir(a, b);
-            _point = a;
-            _direction = dir.GetAsUnitVector();
-        }
-
-        Point3Cartesian   StartPoint() const  { return _point; }
-        Point3Cartesian&  StartPoint()        { return _point; }
-
-        Vector3Cartesian  Direction() const   { return _direction; }
-        Vector3Cartesian& Direction()         { return _direction; }
-
-        Point3Cartesian PointOnLine(Real t) const { return _point + t * _direction;  }
-
-        bool IsPerpendicular(const Line3D &b ) const
-        {
-            return ScalarProd(Direction(), b.Direction()) == 0.0f;
-        }
-        bool IsParallel(const Line3D &b ) const
-        {
-            return ScalarProd(Direction(), b.Direction()) == 0.0f;
-        }
-        // TODO 0.7 - VERIFY distance Line - Point3
-        Real Dist(const Point3Cartesian &pnt) const
-        {
-            Real dist = 0.0;
-
-            const Real a = pnt.X();
-            const Real b = pnt.Y();
-            const Real c = pnt.Z();
-
-            const Real x1 = StartPoint().X();
-            const Real y1 = StartPoint().Y();
-            const Real z1 = StartPoint().Z();
-
-            const Real l = Direction().X();
-            const Real m = Direction().Y();
-            const Real n = Direction().Z();
-
-            dist = SQR((a-x1)*m - (b-y1)*l) + SQR((b-y1)*n - (c-z1)*m) + SQR((c-z1)*l - (a-x1)*n);
-            Real denom = l*l + m*m + n*n;
-
-            return sqrt(dist / denom);
-        }
-
-        // Real DistChatGPT(const Point3Cartesian &pnt)
-        // {
-        //     Vector3Cartesian p0 = StartPoint();
-        //     Vector3Cartesian p1 = p0 + Direction();
-        //     Vector3Cartesian p = pnt;
-
-        //     Vector3Cartesian numerator = (p - p0).CrossProduct(p - p1);
-        //     Real denominator = (p1 - p0).Length();
-
-        //     return numerator.Length() / denominator;
-        // }
-
-        Point3Cartesian NearestPoint(const Point3Cartesian &pnt) const
-        {
-            // https://math.stackexchange.com/questions/1521128/given-a-line-and-a-point-in-3d-how-to-find-the-closest-point-on-the-line         
-            Point3Cartesian Q(StartPoint());
-            Point3Cartesian R = PointOnLine(1.0);
-
-            Vector3Cartesian RQ(Q, R);
-            Vector3Cartesian QP(pnt, StartPoint());
-
-            double t = QP.ScalarProductCartesian(RQ) / RQ.ScalarProductCartesian(RQ);
-
-            return Q - t * RQ;
-        }
-        // TODO pravac koji prolazi kroz tocku i sijece zadani pravac okomito
-        // TODO - sjeciste dva pravca
-    };
-
-    class SegmentLine3D
-    {
-    private:
-        Point3Cartesian _point1;
-        Point3Cartesian _point2;
-
-    public:
-        SegmentLine3D(Point3Cartesian pnt1, Point3Cartesian pnt2) : _point1(pnt1), _point2(pnt2)
-        { }
-
-        SegmentLine3D(Point3Cartesian pnt1, Vector3Cartesian direction, Real t)
-        {
-            _point1 = pnt1;
-            _point2 = pnt1 + t * direction;
-        }
-
-        Point3Cartesian   StartPoint() const  { return _point1; }
-        Point3Cartesian&  StartPoint()       { return _point1; }
-
-        Point3Cartesian   EndPoint() const  { return _point2; }
-        Point3Cartesian&  EndPoint()       { return _point2; }
-
-        Point3Cartesian PointOnSegment(Real t)
-        {
-            if( t < 0.0 || t > 1.0 )
-                throw std::runtime_error("SegmentLine3D::PointOnSegment - t not in [0,1]");
-
-            return _point1 + t * Direction();
-        }
-
-        Real                Length()    const { return _point1.Dist(_point2); }
-        Vector3Cartesian    Direction() const { return Vector3Cartesian(_point1, _point2); }
-    };
-
-    class Plane3D
-    {
-    private:
-        Real _A, _B, _C, _D;
-    
-    public:
-        Plane3D(const Point3Cartesian &a, const Vector3Cartesian &normal)
-        {
-            if( normal.NormL2() == 0.0 )
-                throw std::runtime_error("Plane3D ctor - normal is null vector");
-
-            Vector3Cartesian unitNormal = normal.GetAsUnitVector();
-
-            _A = unitNormal.X();
-            _B = unitNormal.Y();
-            _C = unitNormal.Z();
-            _D = -(a.X() * unitNormal.X() + a.Y() * unitNormal.Y() + a.Z() * unitNormal.Z());
-        }
-
-        Plane3D(const Point3Cartesian &a, const Point3Cartesian &b, const Point3Cartesian &c) 
-            : Plane3D(a, VectorProd(Vector3Cartesian(a, b), Vector3Cartesian(a, c)))
-        { }
-
-        Plane3D(Real alpha, Real beta, Real gamma, Real d)      // Hesseov (normalni) oblik
-        {
-            _A = cos(alpha);
-            _B = cos(beta);
-            _C = cos(gamma);
-            _D = -d;
-        }
-
-        // tri segmenta na koord osima ctor
-        Plane3D(Real seg_x, Real seg_y, Real seg_z) 
-        {
-            Point3Cartesian x(seg_x, 0, 0);
-            Point3Cartesian y(0, seg_y, 0);
-            Point3Cartesian z(0, 0, seg_z);
-
-            if( seg_x == 0 || seg_y == 0 || seg_z == 0 )
-                throw std::runtime_error("Plane3D ctor - zero segment");
-            
-            _A = 1 / seg_x;
-            _B = 1 / seg_y;
-            _C = 1 / seg_z;
-            _D = -1;
-        }
-
-        static Plane3D GetXYPlane() { return Plane3D(Point3Cartesian(0,0,0), Vector3Cartesian(0,0,1)); }
-        static Plane3D GetXZPlane() { return Plane3D(Point3Cartesian(0,0,0), Vector3Cartesian(0,1,0)); }
-        static Plane3D GetYZPlane() { return Plane3D(Point3Cartesian(0,0,0), Vector3Cartesian(1,0,0)); }
-
-        Real  A() const   { return _A; }
-        Real& A()         { return _A; }
-        Real  B() const   { return _B; }
-        Real& B()         { return _B; }
-        Real  C() const   { return _C; }
-        Real& C()         { return _C; }
-        Real  D() const   { return _D; }
-        Real& D()         { return _D; }
-
-        Point3Cartesian GetPointOnPlane() const { 
-            if( _A != 0.0 )
-                return Point3Cartesian(-_D / _A, 0, 0); 
-            else  
-                return Point3Cartesian(0, 0, -_D / _C); 
-        }
-        
-        Vector3Cartesian Normal() const { return Vector3Cartesian(_A, _B, _C); }
-
-        void GetCoordAxisSegments(Real &outseg_x, Real& outseg_y, Real& outseg_z)
-        {
-            outseg_x = - _D /  _A;
-            outseg_y = - _D /  _B;
-            outseg_z = - _D /  _C;
-        }
-        // TODO - GetHesseNormalFormParams
-
-
-        bool IsPointOnPlane(const Point3Cartesian &pnt) const
-        {
-            return _A * pnt.X() + _B * pnt.Y() + _C * pnt.Z() + _D == 0.0;
-        }
-        Real DistToPoint(const Point3Cartesian &pnt) const
-        {
-            Real a = _A * pnt.X() + _B * pnt.Y() + _C * pnt.Z() + _D;
-            Real b = sqrt(_A * _A + _B * _B + _C * _C);
-
-            return std::abs(a / b);
-        }
-
-        Point3Cartesian ProjectionToPlane(const Point3Cartesian &pnt) const
-        {
-            // from given point and normal to plane form a Line3D
-            Line3D line(pnt, Normal());
-            
-            // find intersection of this line with plane
-            Point3Cartesian ret;
-            IntersectionWithLine(line, ret);
-
-            return ret;
-        }
-
-        bool IsLineOnPlane(const Line3D &line) const
-        {
-            // get two points
-            const Point3Cartesian pnt1 = line.StartPoint();
-            const Point3Cartesian pnt2 = line.PointOnLine(1.0);
-
-            if(IsPointOnPlane(pnt1) && IsPointOnPlane(pnt2))
-                return true;
-            else
-                return false;
-        }
-
-        Real AngleToLine(const Line3D &line) const
-        {
-            // angle between line and normal to plane
-            return Constants::PI / 2.0 - line.Direction().AngleToVector(this->Normal());
-        }        
-
-        bool IntersectionWithLine(const Line3D &line, Point3Cartesian &out_inter_pnt) const
-        {
-            // Calculate the direction vector of the line
-            Vector3Cartesian line_dir = line.Direction();
-
-            // Calculate the normal vector of the plane
-            Vector3Cartesian plane_normal = Normal();
-
-            // Check if the line is parallel to the plane
-            if (line_dir.ScalarProductCartesian(plane_normal) == 0) {
-                return false;
-            }
-
-            // Calculate the distance between the line and the plane
-            double dist = Vector3Cartesian(GetPointOnPlane(), line.StartPoint()).ScalarProductCartesian(plane_normal) / line_dir.ScalarProductCartesian(plane_normal);
-
-            // Calculate the point of intersection
-            Point3Cartesian inter_pnt = line.StartPoint() + line_dir * dist;
-
-            // Set the output parameter to the point of intersection
-            out_inter_pnt = inter_pnt;
-
-            return true;
-        }
-
-        bool IsParallelToPlane(const Plane3D &plane) const
-        {
-            Vector3Cartesian norm1(_A, _B, _C);
-
-            Vector3Cartesian norm2(plane._A, plane._B, plane._C);
-
-            return norm1.IsParallelTo(norm2);
-        }        
-        bool IsPerpendicularToPlane(const Plane3D &plane) const
-        {
-            Vector3Cartesian norm1(_A, _B, _C);
-            Vector3Cartesian norm2(plane._A, plane._B, plane._C);
-
-            return norm1.IsPerpendicularTo(norm2);
-        }
-        Real AngleToPlane(const Plane3D &plane) const
-        {
-            // to je kut normala
-            return this->Normal().AngleToVector(plane.Normal());
-        }     
-        Real DistToPlane(const Plane3D &plane) const
-        {
-            // TODO finishs
-            // ili su paralelne, pa imamo neki broj, ili se sijeku pa je 0
-            return 0.0;
-        }     
-        // TODO - check implementation IntersectionWithPlane
-        bool IntersectionWithPlane(const Plane3D &plane, Line3D &out_inter_line) const
-        {
-            Vector3Cartesian inter_dir = VectorProd(Normal(), plane.Normal());
-
-            // Check if the planes are parallel
-            if (inter_dir.NormL2() == 0.0) {
-                return false;
-            }
-
-            // Calculate a point on the intersection line
-            Point3Cartesian inter_pnt = GetPointOnPlane();
-
-            // Calculate the distance between the intersection line and the two planes
-            double dist1 = Vector3Cartesian(inter_pnt, GetPointOnPlane()).ScalarProductCartesian(plane.Normal());
-            double dist2 = Vector3Cartesian(inter_pnt, plane.GetPointOnPlane()).ScalarProductCartesian(Normal());
-
-            // Calculate the point of intersection
-            inter_pnt = inter_pnt - inter_dir * (dist1 / inter_dir.ScalarProductCartesian(plane.Normal()));
-
-            // Set the output parameter to the intersection line
-            out_inter_line = Line3D(inter_pnt, inter_dir);
-
-            return true;            
-            return false;
-        }
-    };
-
-    class Triangle3D
-    {
-    private:
-        Point3Cartesian _pnt1, _pnt2, _pnt3;
-        // definirati normalu
-    };
-}
-
-///////////////////////////   ./include/base/Intervals.h   ///////////////////////////
-
-
-namespace MML
-{
-    // TODO - implement intervals properly (and use them in test beds)
-    ///////////////////////////////////////////////   Interfaces    ///////////////////////////////////////////
-    enum class EndpointType
-    {
-        OPEN,
-        CLOSED,
-        NEG_INF,
-        POS_INF
-    };
-    
-    class BaseInterval : public IInterval
-    {
-    protected:
-        Real _lower, _upper;
-        EndpointType _lowerType, _upperType;
-
-        BaseInterval(Real lower, EndpointType lowerType, Real upper, EndpointType upperType) : _lower(lower), _lowerType(lowerType),  _upper(upper), _upperType(upperType) { }
-    public:
-        virtual ~BaseInterval() {}
-        
-        Real getLowerBound() const { return _lower; }
-        Real getUpperBound() const { return _upper; }
-        Real getLength()     const { return _upper - _lower; }
-        
-        bool isContinuous()  const { return true; }
-
-        // bool contains(const IInterval &other) const = 0;
-        // bool intersects(const IInterval &other) const = 0;
-
-        void GetEquidistantCovering(int numPoints) { }
-    };
-
-    class CompleteRInterval : public BaseInterval
-    {
-    public:
-        CompleteRInterval() : BaseInterval(-std::numeric_limits<double>::max(), EndpointType::NEG_INF, std::numeric_limits<double>::max(), EndpointType::POS_INF) { }
-        bool contains(Real x) const { return true; }        
-    };
-    class OpenInterval : public BaseInterval
-    {
-        // for equidistant covering
-        double _lowerRealDif = 0.0000001;
-    public:
-        OpenInterval(Real lower, Real upper) : BaseInterval(lower, EndpointType::OPEN, upper, EndpointType::OPEN) { }
-        bool contains(Real x) const { return (x > _lower) && (x < _upper); }        
-    };
-    class OpenClosedInterval : public BaseInterval
-    {
-    public:
-        OpenClosedInterval(Real lower, Real upper) : BaseInterval(lower, EndpointType::OPEN, upper, EndpointType::CLOSED) { }
-        bool contains(Real x) const { return (x > _lower) && (x <= _upper); }        
-    };
-    class ClosedInterval : public BaseInterval
-    {
-    public:
-        ClosedInterval(Real lower, Real upper) : BaseInterval(lower, EndpointType::CLOSED, upper, EndpointType::CLOSED) { }
-        
-        bool contains(Real x) const {
-            return (x >= _lower) && (x <= _upper);
-        }        
-    };   
-    
-    class ClosedOpenInterval : public BaseInterval
-    {
-    public:
-        ClosedOpenInterval(Real lower, Real upper) : BaseInterval(lower, EndpointType::CLOSED, upper, EndpointType::OPEN) { }
-        
-        bool contains(Real x) const {
-            return (x >= _lower) && (x < _upper);
-        }        
-    };    
-    class NegInfToOpenInterval : public BaseInterval
-    {
-    public:
-        NegInfToOpenInterval(Real upper) : BaseInterval(-std::numeric_limits<double>::max(), EndpointType::NEG_INF, upper, EndpointType::OPEN) { }
-
-        bool contains(Real x) const {
-            return x < _upper;
-        }        
-    };
-
-    class NegInfToClosedInterval : public BaseInterval
-    {
-    public:
-        NegInfToClosedInterval(Real upper) : BaseInterval(-std::numeric_limits<double>::max(), EndpointType::NEG_INF, upper, EndpointType::CLOSED) { }
-
-        bool contains(Real x) const {
-            return x <= _upper;
-        }        
-    };
-
-    class OpenToInfInterval : public BaseInterval
-    {
-    public:
-        OpenToInfInterval(Real lower) : BaseInterval(lower, EndpointType::OPEN, std::numeric_limits<double>::max(), EndpointType::POS_INF) { }
-
-        bool contains(Real x) const {
-            return x > _lower;
-        }        
-    };
-    
-    class ClosedToInfInterval : public BaseInterval
-    {
-    public:
-        ClosedToInfInterval(Real lower) : BaseInterval(lower, EndpointType::CLOSED, std::numeric_limits<double>::max(), EndpointType::POS_INF) { }
-
-        bool contains(Real x) const {
-            return x >= _lower;
-        }        
-    };
-
-    class Interval : public IInterval
-    {
-        Real _lower, _upper;
-        std::vector<std::unique_ptr<BaseInterval>> _intervals;
-    public:
-        Interval() {}
-        Interval(const OpenInterval &interval) : _lower(interval.getLowerBound()), _upper(interval.getUpperBound()) 
-        { 
-            _intervals.emplace_back(std::make_unique<OpenInterval>(interval));
-        }
-
-        template<class _IntervalType>
-        Interval& PerformUnion(const _IntervalType &interval)
-        {
-            _intervals.emplace_back(std::make_unique<_IntervalType>(interval));
-            return *this;
-        }
-
-        // Interval& PerformUnion(const OpenInterval &interval)
-        // {
-        //     _intervals.emplace_back(std::make_unique<OpenInterval>(interval));
-        //     return *this;
-        // }
-        // Interval& PerformUnion(const OpenClosedInterval &interval)
-        // {
-        //     _intervals.emplace_back(std::make_unique<OpenClosedInterval>(interval));
-        //     return *this;
-        // }
-
-        static Interval Union(const BaseInterval &a, const BaseInterval &b)
-        {
-            Interval ret;
-            ret._lower = std::min(a.getLowerBound(), b.getLowerBound());
-            ret._upper = std::max(a.getUpperBound(), b.getUpperBound());
-
-            // TODO - implement union
-            return ret;
-        }
-        static Interval Union(const Interval &a, const BaseInterval &b)
-        {
-            Interval ret;
-            return ret;
-        }
-        static Interval Union(const Interval &a, const Interval &b)
-        {
-            Interval ret;
-            return ret;
-        }
-
-        static Interval Intersection(const IInterval &a, const IInterval &b)
-        {
-            Interval ret;
-            // TODO - implement intersection
-            return ret;
-        }
-        static Interval Difference(const IInterval &a, const IInterval &b)
-        {
-            Interval ret;
-            // TODO - implement diff
-            return ret;
-        }
-        static Interval Complement(const IInterval &a)
-        {
-            Interval ret;
-            // TODO - implement complement
-            return ret;
-        }
-        Real getLowerBound() const { return 0; }
-        Real getUpperBound() const { return 0; }
-        Real getLength()     const { return 0; }
-        
-        bool isContinuous()  const { return false; }
-        bool contains(Real x) const 
-        {
-            // check for each interval if it contains x
-            for (auto &interval : _intervals)
-            {
-                if (interval->contains(x))
-                    return true;
-            }
-            return false;
-        }
-        // bool contains(const IInterval &other) const = 0;
-        // bool intersects(const IInterval &other) const = 0;
-
-        void GetEquidistantCovering(int numPoints) { }
-    };
-
-    class IntervalUnion : public IInterval
-    {
-        IInterval &_left, &_right;
-    public:
-        IntervalUnion(IInterval &left, IInterval &right) : _left(left), _right(right) 
-        { 
-            if( _left.getLowerBound() > _right.getLowerBound() )
-            {
-                IInterval &temp = _left;
-                _left = _right;
-                _right = temp;
-                // std::swap(_left, _right);  // doesn't work???
-            }
-        }
-
-        Real getLowerBound() const { return _left.getLowerBound(); }
-        Real getUpperBound() const { return std::max(_left.getUpperBound(), _right.getUpperBound()); }
-        Real getLength() const { 
-            // FIXME - implement correctly
-            // ako se ne sijeku
-            if( _left.getUpperBound() < _right.getLowerBound() )
-                return _left.getLength() + _right.getLength();
-            else {
-                // ili je jedan sadrzan cijeli u drugome
-
-                // ili se standardno sijeku
-            }
-            return _left.getLength() + _right.getLength(); 
-
-        }
-        
-        bool isContinuous() const { return false; }
-
-        bool contains(Real x) const {
-            return _left.contains(x) || _right.contains(x);
-        }
-        // bool contains(const IInterval &other) const = 0;
-        // bool intersects(const IInterval &other) const = 0;
-
-        void GetEquidistantCovering(int numPoints) { }
-    };    
-}
-
 ///////////////////////////   ./include/base/Polynom.h   ///////////////////////////
 
 
@@ -4303,10 +3506,6 @@ namespace MML
         }        
     };
 
-    // class RealPolynom : public Polynom<Real, Real>
-    // {
-    // };
-        
     typedef Polynom<Real, Real>         RealPolynom;
     typedef Polynom<Complex, Complex>   ComplexPolynom;
 
@@ -4315,6 +3514,375 @@ namespace MML
     typedef Polynom<MatrixNM<Real,4,4>, Real>       MatrixPolynomDim4;
 }
 
+///////////////////////////   ./include/base/Algebra.h   ///////////////////////////
+
+
+
+namespace MML
+{
+    // TODO - implement example groups - Z6, permutations
+    // TODO - vector space + Gram Schmidt
+    // TODO - linear transformations & OPERATORS
+    
+    // groups
+    // finitve ima i numElem
+    class GroupZ : public IGroup<int>
+    {
+        public:
+        virtual int  identity() const { return 0;}
+        virtual int  inverse(const int& a) const { return -a;}
+        virtual int  op(const int& a, const int& b) const { return a + b;}
+    };
+    // FieldR
+    // FieldC
+}
+///////////////////////////   ./include/base/Geometry.h   ///////////////////////////
+
+
+namespace MML
+{
+    // TODO - MED, dodati Dist svugdje
+    class Point2Cartesian
+    {
+    private:
+        Real _x, _y;
+
+    public:
+        Real  X() const   { return _x; }
+        Real& X()         { return _x; }
+        Real  Y() const   { return _y; }
+        Real& Y()         { return _y; }
+
+        Point2Cartesian() {}
+        Point2Cartesian(Real x, Real y) : _x(x), _y(y) {}
+
+        Real Dist(const Point2Cartesian &b) const { return sqrt(POW2(b._x - _x) + POW2(b._y - _y) ); }
+    };
+
+    class Point2Polar
+    {
+    private:
+        Real _r, _phi;
+
+    public:
+        Real  R() const   { return _r; }
+        Real& R()         { return _r; }
+        Real  Phi() const { return _phi; }
+        Real& Phi()       { return _phi; }
+        
+        Point2Polar() {}
+        Point2Polar(Real r, Real phi) : _r(r), _phi(phi) {}
+
+        Real Dist(const Point2Polar &b) const { return sqrt(R() * R() + b.R() * b.R() - 2 * R() * b.R() * cos(b.Phi() - Phi())); }
+    };
+
+    class Point3Cartesian
+    {
+    private:
+        Real _x, _y, _z;
+
+    public:
+        Real  X() const   { return _x; }
+        Real& X()         { return _x; }
+        Real  Y() const   { return _y; }
+        Real& Y()         { return _y; }
+        Real  Z() const   { return _z; }
+        Real& Z()         { return _z; }
+
+        Point3Cartesian() {}
+        Point3Cartesian(Real x, Real y, Real z) : _x(x), _y(y), _z(z) {}
+
+        Real Dist(const Point3Cartesian &b) const { return sqrt(POW2(b._x - _x) + POW2(b._y - _y) + POW2(b._z - _z)); }
+
+        Point3Cartesian operator+(const Point3Cartesian &b) const { return Point3Cartesian(_x + b._x, _y + b._y, _z + b._z); }
+        Point3Cartesian operator-(const Point3Cartesian &b) const { return Point3Cartesian(_x - b._x, _y - b._y, _z - b._z); }
+
+        friend Point3Cartesian operator*(const Point3Cartesian &a, Real b ) { return Point3Cartesian(a._x * b, a._y * b, a._z * b); }
+        friend Point3Cartesian operator*(Real a, const Point3Cartesian &b ) { return Point3Cartesian(a * b._x, a * b._y, a * b._z); }
+        friend Point3Cartesian operator/(const Point3Cartesian &a, Real b)  { return Point3Cartesian(a._x / b, a._y / b, a._z / b); }
+    };     
+
+    class Triangle
+    {
+    private:
+        Real _a, _b, _c;
+
+    public:
+        Real  A() const   { return _a; }
+        Real& A()         { return _a; }
+        Real  B() const   { return _b; }
+        Real& B()         { return _b; }
+        Real  C() const   { return _c; }
+        Real& C()         { return _c; }
+
+        Triangle() {}
+        Triangle(Real a, Real b, Real c) : _a(a), _b(b), _c(c) {}
+
+        Real Area() const
+        {
+            Real s = (_a + _b + _c) / 2.0;
+            return sqrt(s * (s - _a) * (s - _b) * (s - _c));
+        }
+        bool IsRight() const
+        {
+            return (POW2(_a) + POW2(_b) == POW2(_c)) || (POW2(_a) + POW2(_c) == POW2(_b)) || (POW2(_b) + POW2(_c) == POW2(_a));
+        }
+        bool IsIsosceles() const
+        {
+            return (_a == _b) || (_a == _c) || (_b == _c);
+        }
+        bool IsEquilateral() const
+        {
+            return (_a == _b) && (_a == _c);
+        }
+    };
+}
+///////////////////////////   ./include/base/VectorTypes.h   ///////////////////////////
+
+
+namespace MML
+{
+    class Vector2Cartesian : public VectorN<Real, 2>
+    {
+    public:
+        Vector2Cartesian() {}
+        Vector2Cartesian(Real x, Real y) 
+        {
+            _val[0] = x;
+            _val[1] = y;
+        }
+        Vector2Cartesian(const VectorN<Real, 2> &b) : VectorN<Real,2>{b[0], b[1]} { }
+        Vector2Cartesian(std::initializer_list<Real> list)  : VectorN<Real,2>(list) { }
+        Vector2Cartesian(const Point2Cartesian &a, const Point2Cartesian &b) 
+        {
+            _val[0] = b.X() - a.X();
+            _val[1] = b.Y() - a.Y();
+        }
+
+        Real    X() const   { return _val[0]; }
+        Real&   X()         { return _val[0]; }
+        Real    Y() const   { return _val[1]; }
+        Real&   Y()         { return _val[1]; }
+
+        friend Vector2Cartesian operator*(const Vector2Cartesian &a, Real b )
+        {
+            Vector2Cartesian ret;
+            for(int i=0; i<2; i++)
+                ret._val[i] = a[i] * b;
+            return ret;
+        }
+        friend Vector2Cartesian operator*(Real a, const Vector2Cartesian &b )
+        {
+            Vector2Cartesian ret;
+            for(int i=0; i<2; i++)
+                ret._val[i] = a * b[i];
+            return ret;
+        }
+        friend Vector2Cartesian operator/(const Vector2Cartesian &a, Real b)
+        {
+            Vector2Cartesian ret;
+            for(int i=0; i<2; i++)
+                ret._val[i] = a[i] / b;
+            return ret;
+        }
+
+        Vector2Cartesian GetUnitVector() const
+        {
+            VectorN<Real, 2> res = (*this) / NormL2();
+
+            return Vector2Cartesian(res[0], res[1]);
+        }
+
+        friend Point2Cartesian operator+(const Point2Cartesian &a, const Vector2Cartesian &b) { return Point2Cartesian(a.X() + b[0], a.Y() + b[1]); }
+        friend Point2Cartesian operator-(const Point2Cartesian &a, const Vector2Cartesian &b) { return Point2Cartesian(a.X() - b[0], a.Y() - b[1]); }
+    };
+
+    class Vector2Polar : public VectorN<Real, 2>
+    {
+    public:
+        Real    R() const   { return _val[0]; }
+        Real&   R()         { return _val[0]; }
+        Real    Phi() const { return _val[1]; }
+        Real&   Phi()       { return _val[1]; }
+
+        Vector2Polar() {}
+        Vector2Polar(Real r, Real phi) 
+        {
+            _val[0] = r;
+            _val[1] = phi;
+        }   
+        Vector2Polar(const VectorN<Real, 2> &b) : VectorN<Real,2>{b[0], b[1]} { }        
+    };
+
+    class Vector3Cartesian : public VectorN<Real, 3>
+    {
+    public:
+        Real    X() const   { return _val[0]; }
+        Real&   X()         { return _val[0]; }
+        Real    Y() const   { return _val[1]; }
+        Real&   Y()         { return _val[1]; }
+        Real    Z() const   { return _val[2]; }
+        Real&   Z()         { return _val[2]; }
+
+        Vector3Cartesian()                                  : VectorN<Real,3>{0.0, 0.0, 0.0} { }
+        Vector3Cartesian(const VectorN<Real, 3> &b)         : VectorN<Real,3>{b[0], b[1], b[2]} { }
+        Vector3Cartesian(Real x, Real y, Real z)            : VectorN<Real,3>{x, y, z} { }
+        Vector3Cartesian(std::initializer_list<Real> list)  : VectorN<Real,3>(list) { }
+        Vector3Cartesian(const Point3Cartesian &a, const Point3Cartesian &b) 
+        {
+            _val[0] = b.X() - a.X();
+            _val[1] = b.Y() - a.Y();
+            _val[2] = b.Z() - a.Z();
+        }
+
+        friend Vector3Cartesian operator*(const Vector3Cartesian &a, Real b )
+        {
+            Vector3Cartesian ret;
+            for(int i=0; i<3; i++)
+                ret._val[i] = a[i] * b;
+            return ret;
+        }
+        friend Vector3Cartesian operator*(Real a, const Vector3Cartesian &b )
+        {
+            Vector3Cartesian ret;
+            for(int i=0; i<3; i++)
+                ret._val[i] = a * b[i];
+            return ret;
+        }
+        friend Vector3Cartesian operator/(const Vector3Cartesian &a, Real b)
+        {
+            Vector3Cartesian ret;
+            for(int i=0; i<3; i++)
+                ret._val[i] = a[i] / b;
+            return ret;
+        }
+
+        friend Vector3Cartesian operator-(const Point3Cartesian &a, const Point3Cartesian &b) { return  Vector3Cartesian{a.X() - b.X(), a.Y() - b.Y(), a.Z() - b.Z()}; }
+
+        friend Point3Cartesian operator+(const Point3Cartesian &a, const Vector3Cartesian &b) { return Point3Cartesian(a.X() + b[0], a.Y() + b[1], a.Z() + b[2]); }
+        friend Point3Cartesian operator-(const Point3Cartesian &a, const Vector3Cartesian &b) { return Point3Cartesian(a.X() - b[0], a.Y() - b[1], a.Z() - b[2]); }        
+
+        Point3Cartesian getAsPoint()
+        {
+            return Point3Cartesian(_val[0], _val[1], _val[2]);
+        }
+        bool IsParallelTo(const Vector3Cartesian &b, Real eps = 1e-15) const
+        {
+            Real norm1 = NormL2();
+            Real norm2 = b.NormL2();
+
+            return std::abs(X() / norm1 - b.X() / norm2) < eps &&
+                   std::abs(Y() / norm1 - b.Y() / norm2) < eps &&
+                   std::abs(Z() / norm1 - b.Z() / norm2) < eps;
+        }
+
+        bool IsPerpendicularTo(const Vector3Cartesian &b, Real eps = 1e-15) const
+        {
+            if (std::abs(ScalarProd(*this, b)) < eps)
+                return true;
+            else
+                return false;
+        }
+
+        Vector3Cartesian GetAsUnitVector() const
+        {
+            return Vector3Cartesian{(*this) / NormL2()};
+        }
+        Vector3Cartesian GetAsUnitVectorAtPos(const Vector3Cartesian &pos) const
+        {
+            return Vector3Cartesian{(*this) / NormL2()};
+        }
+
+        friend Real ScalarProd(const Vector3Cartesian &a, const Vector3Cartesian &b)
+        {
+            return a.ScalarProductCartesian(b);
+        }
+        friend Vector3Cartesian VectorProd(const Vector3Cartesian &a, const Vector3Cartesian &b)
+        {
+            Vector3Cartesian ret;
+
+            ret.X() = a.Y() * b.Z() - a.Z() * b.Y();
+            ret.Y() = a.Z() * b.X() - a.X() * b.Z();
+            ret.Z() = a.X() * b.Y() - a.Y() * b.X();
+
+            return ret;
+        }
+
+        friend Real VectorsAngle(const Vector3Cartesian &a, const Vector3Cartesian &b)
+        {
+            Real cos_phi = ScalarProd(a, b) / (a.NormL2() * b.NormL2());
+
+            return acos(cos_phi);
+        }
+    };
+
+    class Vector3Spherical : public VectorN<Real, 3>
+    {
+    public:
+        Real    R()     const   { return _val[0]; }
+        Real&   R()             { return _val[0]; }
+        Real    Theta() const   { return _val[1]; }
+        Real&   Theta()         { return _val[1]; }
+        Real    Phi()   const   { return _val[2]; }
+        Real&   Phi()           { return _val[2]; }
+
+        Vector3Spherical()                                   : VectorN<Real,3>{0.0, 0.0, 0.0} { }
+        Vector3Spherical(const VectorN<Real, 3> &b)          : VectorN<Real,3>{b[0], b[1], b[2]} { }
+        Vector3Spherical(Real r, Real theta, Real phi)       : VectorN<Real,3>{r, theta, phi} { }
+        Vector3Spherical(std::initializer_list<Real> list)   : VectorN<Real,3>(list) { }
+
+        // TODO - HIGH, HARD, osnovne operacije +, -
+        Vector3Spherical GetAsUnitVector() const
+        {
+            return Vector3Spherical{1.0, Theta() , Phi()};
+        } 
+        Vector3Spherical GetAsUnitVectorAtPos(const Vector3Spherical &pos) const
+        {
+            return Vector3Spherical{R(), Theta() / pos.R(), Phi() / (pos.R() * sin(pos.Theta()))};
+        } 
+        std::ostream& PrintDeg(std::ostream& stream, int width, int precision) const
+        {
+            stream << "[ ";
+            stream << std::fixed << std::setw(width) << std::setprecision(precision);
+            stream << R();
+            stream << ", " << Theta() * 180.0 / Constants::PI;
+            stream << ", " << Phi() * 180.0 / Constants::PI << " ]" << std::endl;
+
+            return stream;
+        }          
+    };
+
+    class Vector3Cylindrical : public VectorN<Real, 3>
+    {
+    public:
+        Real    R()   const { return _val[0]; }
+        Real&   R()         { return _val[0]; }
+        Real    Phi() const { return _val[1]; }
+        Real&   Phi()       { return _val[1]; }
+        Real    Z()   const { return _val[2]; }
+        Real&   Z()         { return _val[2]; }
+
+        Vector3Cylindrical()                                 : VectorN<Real,3>{0.0, 0.0, 0.0} { }
+        Vector3Cylindrical(const VectorN<Real, 3> &b)        : VectorN<Real,3>{b[0], b[1], b[2]} { }
+        Vector3Cylindrical(Real r, Real phi, Real z)   : VectorN<Real,3>{r, phi, z} { }
+        Vector3Cylindrical(std::initializer_list<Real> list) : VectorN<Real,3>(list) { }
+
+        // TODO - MED, implement Vector3Cylindrical GetAsUniTVector()
+        // TODO - MED, razmisliti generalno vektor i vektor at point
+        Vector3Cylindrical GetAsUnitVector() const
+        {
+            return Vector3Cylindrical{(*this) / NormL2()};
+        }         
+        Vector3Cylindrical GetAsUnitVectorAtPos(const Vector3Cylindrical &pos) const
+        {
+            return Vector3Cylindrical{R(), Phi() / pos.R(), Z()};
+        }   
+    };    
+
+    typedef Vector3Cartesian    Vec3Cart;
+    typedef Vector3Spherical    Vec3Sph;
+    typedef Vector3Cylindrical  Vec3Cyl;
+}
 ///////////////////////////   ./include/interfaces/IFunction.h   ///////////////////////////
 
 
@@ -4412,6 +3980,10 @@ namespace MML
     };
 
     //////////////////////////////////////////////////////////////////////
+    // scalar spherical, cylindrical
+    // kako utjece na derivacije??
+    // mora biti bazna, s generalnim vektor tipom
+    // i onda def. specijalizacije 
     template<int N>
     class IScalarFunction : public IFunction<Real, const VectorN<Real, N> &>
     {
@@ -4489,6 +4061,7 @@ namespace MML
     };
     
     //////////////////////////////////////////////////////////////////////
+    // TODO - real to vector spherical 
     template<int N>
     class IRealToVectorFunction : public IFunction<VectorN<Real, N>, Real>
     {
@@ -4702,6 +4275,7 @@ namespace MML
     };
 
     //////////////////////////////////////////////////////////////////////
+    // simple regular surface, defined on rectangular coordinate patch
     template<int N>
     class IParametricSurface : public IFunction<VectorN<Real, N>, const VectorN<Real, 2> &>
     {
@@ -4723,26 +4297,73 @@ namespace MML
         }
     };
 
+    // complex surface, with fixed u limits, but variable w limits (dependent on u)
+    template<int N>
+    class IParametricSurfaceComplex : public IFunction<VectorN<Real, N>, const VectorN<Real, 2> &>
+    {
+    public:
+        virtual VectorN<Real, N> operator()(Real u, Real w) const = 0;
+        
+        virtual Real getMinX() = 0;
+        virtual Real getMaxX() = 0;
+        virtual Real getMinY(Real x) = 0;
+        virtual Real getMaxY(Real x) = 0;
+
+        virtual VectorN<Real, N> operator()(const VectorN<Real, 2> &coord) const 
+        {
+            return operator()(coord[0], coord[1]);
+        }
+    };
+
     //////////////////////////////////////////////////////////////////////
     template<int N>
     class ITensorField2 : public IFunction<Tensor2<N>, const VectorN<Real, N> & >
     {
+        int _numContravar;
+        int _numCovar;          
     public:
-        virtual Real        Component(int i, int j, const VectorN<Real, N> &pos) const = 0;   
+        ITensorField2(int numContra, int numCo) : _numContravar(numContra), _numCovar(numCo) { }
+
+        int getNumContravar() const { return _numContravar; }
+        int getNumCovar() const { return _numCovar; }
+
+        virtual Real    Component(int i, int j, const VectorN<Real, N> &pos) const = 0;   
     };
 
     template<int N>
     class ITensorField3 : public IFunction<Tensor3<N>, const VectorN<Real, N> & >
     {
+        int _numContravar;
+        int _numCovar;          
     public:
-        virtual Real        Component(int i, int j, int k, const VectorN<Real, N> &pos) const = 0;
+        int getNumContravar() const { return _numContravar; }
+        int getNumCovar() const { return _numCovar; }
+        
+        virtual Real    Component(int i, int j, int k, const VectorN<Real, N> &pos) const = 0;
     };  
 
     template<int N>
     class ITensorField4 : public IFunction<Tensor4<N>, const VectorN<Real, N> & >
     {
+        int _numContravar;
+        int _numCovar;  
     public:
-        virtual Real        Component(int i, int j, int k, int l, const VectorN<Real, N> &pos) const = 0;
+        int getNumContravar() const { return _numContravar; }
+        int getNumCovar() const { return _numCovar; }
+        
+        virtual Real    Component(int i, int j, int k, int l, const VectorN<Real, N> &pos) const = 0;
+    };
+
+    template<int N>
+    class ITensorField5 : public IFunction<Tensor5<N>, const VectorN<Real, N> & >
+    {
+        int _numContravar;
+        int _numCovar;  
+    public:
+        int getNumContravar() const { return _numContravar; }
+        int getNumCovar() const { return _numCovar; }
+        
+        virtual Real    Component(int i, int j, int k, int l, int m, const VectorN<Real, N> &pos) const = 0;
     };  
 }
 ///////////////////////////   ./include/interfaces/ICoordTransf.h   ///////////////////////////
@@ -4760,7 +4381,7 @@ namespace MML
     };     
 
     template<typename VectorFrom, typename VectorTo, int N>
-    class ICoordTransfWithInverse : public ICoordTransf<VectorFrom, VectorTo, N>
+    class ICoordTransfWithInverse : public virtual ICoordTransf<VectorFrom, VectorTo, N>
     {
     public:
         virtual       VectorFrom          transfInverse(const VectorTo &in) const = 0;
@@ -4780,6 +4401,575 @@ namespace MML
 		void operator()(const Real t, const Vector<Real> &x, Vector<Real> &dxdt) const { return derivs(t, x, dxdt); }
 	};  
 }
+///////////////////////////   ./include/base/Geometry2D.h   ///////////////////////////
+
+
+namespace MML
+{
+    class Line2D
+    {
+    private:
+        Point2Cartesian _point;
+        Vector2Cartesian _direction; // unit vector in line direction
+
+    public:
+        Line2D(const Point2Cartesian &pnt, const Vector2Cartesian dir)
+        {
+            _point = pnt;
+            _direction = dir.GetUnitVector();
+        }
+
+        Line2D(const Point2Cartesian &a, const Point2Cartesian &b)
+        {
+            Vector2Cartesian dir(a , b);
+            _point = a;
+            _direction = dir.GetUnitVector();
+        }
+
+        Point2Cartesian     StartPoint() const  { return _point; }
+        Point2Cartesian&    StartPoint()        { return _point; }
+
+        Vector2Cartesian    Direction() const   { return _direction; }
+        Vector2Cartesian&   Direction()         { return _direction; }
+
+        Point2Cartesian PointOnLine(Real t)
+        {
+            Vector2Cartesian dist = t * _direction;
+            Point2Cartesian ret = _point + dist;
+            return ret;
+        }
+    };
+
+   class SegmentLine2D
+    {
+    private:
+        Point2Cartesian _point1;
+        Point2Cartesian _point2;
+
+    public:
+        SegmentLine2D(Point2Cartesian pnt1, Point2Cartesian pnt2) : _point1(pnt1), _point2(pnt2)
+        { }
+
+        SegmentLine2D(const Point2Cartesian &pnt1, const Vector2Cartesian &direction, Real t) : _point1(pnt1)
+        {
+            _point2 = pnt1 + direction * t;
+        }
+
+        Point2Cartesian     StartPoint() const  { return _point1; }
+        Point2Cartesian&    StartPoint()        { return _point1; }
+
+        Point2Cartesian     EndPoint()  const  { return _point2; }
+        Point2Cartesian&    EndPoint()         { return _point2; }
+
+        Point2Cartesian PointOnSegment(Real t)
+        {
+            if( t < 0.0 || t > 1.0)
+                throw std::invalid_argument("t must be in [0,1]");
+
+            Vector2Cartesian dist = t * Direction();
+            Point2Cartesian ret = _point1 + dist;
+            return ret;
+        }
+
+        Real                Length()    const { return _point1.Dist(_point2); }
+        Vector2Cartesian    Direction() const { return Vector2Cartesian(_point1, _point2); }
+    };
+
+    class Triangle2D
+    {
+    private:
+        Point2Cartesian _pnt1, _pnt2, _pnt3;
+
+    public:
+        Triangle2D(Point2Cartesian pnt1, Point2Cartesian pnt2, Point2Cartesian pnt3) : _pnt1(pnt1), _pnt2(pnt2), _pnt3(pnt3)
+        { }
+
+        Point2Cartesian     Pnt1() const { return _pnt1; }
+        Point2Cartesian&    Pnt1()       { return _pnt1; }
+        Point2Cartesian     Pnt2() const { return _pnt2; }
+        Point2Cartesian&    Pnt2()       { return _pnt2; }
+        Point2Cartesian     Pnt3() const { return _pnt3; }
+        Point2Cartesian&    Pnt3()       { return _pnt3; }
+
+        Real Area() const
+        {
+            Real a = _pnt1.Dist(_pnt2);
+            Real b = _pnt2.Dist(_pnt3);
+            Real c = _pnt3.Dist(_pnt1);
+
+            Real s = (a + b + c) / 2.0;
+
+            return sqrt(s * (s - a) * (s - b) * (s - c));
+        }
+    };    
+
+    class Polygon2D
+    {
+    private:
+        std::vector<Point2Cartesian> _points;
+    public:
+        Polygon2D() {}
+        Polygon2D(std::vector<Point2Cartesian> points) : _points(points) {}
+        Polygon2D(std::initializer_list<Point2Cartesian> list) 
+        {
+            for (auto element : list)
+                _points.push_back(element);
+        }
+
+        std::vector<Point2Cartesian>  Points() const { return _points; }
+        std::vector<Point2Cartesian>& Points()       { return _points; }
+
+        Real Area() const
+        {
+            Real area = 0.0;
+            int n = (int) _points.size();
+            for (int i = 0; i < n; i++)
+            {
+                area += _points[i].X() * _points[(i + 1) % n].Y();
+                area -= _points[i].Y() * _points[(i + 1) % n].X();
+            }
+            area /= 2.0;
+            return area;
+        }
+
+        // TODO - IsConvex()
+        // TODO - Triangularization
+        
+        // TODO - IsInside
+        bool IsInside(Point2Cartesian pnt) const
+        {
+            return false;
+        }                 
+    };            
+}
+///////////////////////////   ./include/base/Geometry3D.h   ///////////////////////////
+
+
+
+namespace MML
+{
+    class Line3D
+    {
+    private:
+        Point3Cartesian  _point;
+        Vector3Cartesian _direction; 
+
+    public:
+        Line3D() {}
+        Line3D(const Point3Cartesian &pnt, const Vector3Cartesian dir)
+        {
+            _point = pnt;
+            _direction = dir.GetAsUnitVector();
+        }
+
+        Line3D(const Point3Cartesian &a, const Point3Cartesian &b)
+        {
+            Vector3Cartesian dir(a, b);
+            _point = a;
+            _direction = dir.GetAsUnitVector();
+        }
+
+        Point3Cartesian   StartPoint() const  { return _point; }
+        Point3Cartesian&  StartPoint()        { return _point; }
+
+        Vector3Cartesian  Direction() const   { return _direction; }
+        Vector3Cartesian& Direction()         { return _direction; }
+
+        Point3Cartesian PointOnLine(Real t) const { return _point + t * _direction;  }
+
+        bool IsPerpendicular(const Line3D &b ) const
+        {
+            return ScalarProd(Direction(), b.Direction()) == 0.0f;
+        }
+        bool IsParallel(const Line3D &b ) const
+        {
+            return ScalarProd(Direction(), b.Direction()) == 0.0f;
+        }
+        // TODO 0.8 - VERIFY distance Line - Point3
+        Real Dist(const Point3Cartesian &pnt) const
+        {
+            Real dist = 0.0;
+
+            const Real a = pnt.X();
+            const Real b = pnt.Y();
+            const Real c = pnt.Z();
+
+            const Real x1 = StartPoint().X();
+            const Real y1 = StartPoint().Y();
+            const Real z1 = StartPoint().Z();
+
+            const Real l = Direction().X();
+            const Real m = Direction().Y();
+            const Real n = Direction().Z();
+
+            dist = POW2((a-x1)*m - (b-y1)*l) + POW2((b-y1)*n - (c-z1)*m) + POW2((c-z1)*l - (a-x1)*n);
+            Real denom = l*l + m*m + n*n;
+
+            return sqrt(dist / denom);
+        }
+
+        // Real DistChatGPT(const Point3Cartesian &pnt)
+        // {
+        //     Vector3Cartesian p0 = StartPoint();
+        //     Vector3Cartesian p1 = p0 + Direction();
+        //     Vector3Cartesian p = pnt;
+
+        //     Vector3Cartesian numerator = (p - p0).CrossProduct(p - p1);
+        //     Real denominator = (p1 - p0).Length();
+
+        //     return numerator.Length() / denominator;
+        // }
+
+        Point3Cartesian NearestPoint(const Point3Cartesian &pnt) const
+        {
+            // https://math.stackexchange.com/questions/1521128/given-a-line-and-a-point-in-3d-how-to-find-the-closest-point-on-the-line         
+            Point3Cartesian Q(StartPoint());
+            Point3Cartesian R = PointOnLine(1.0);
+
+            Vector3Cartesian RQ(Q, R);
+            Vector3Cartesian QP(pnt, StartPoint());
+
+            double t = QP.ScalarProductCartesian(RQ) / RQ.ScalarProductCartesian(RQ);
+
+            return Q - t * RQ;
+        }
+        // TODO 0.8 - pravac koji prolazi kroz tocku i sijece zadani pravac okomito
+        // TODO 0.8 - sjeciste dva pravca
+    };
+
+    class SegmentLine3D
+    {
+    private:
+        Point3Cartesian _point1;
+        Point3Cartesian _point2;
+
+    public:
+        SegmentLine3D(Point3Cartesian pnt1, Point3Cartesian pnt2) : _point1(pnt1), _point2(pnt2)
+        { }
+
+        SegmentLine3D(Point3Cartesian pnt1, Vector3Cartesian direction, Real t)
+        {
+            _point1 = pnt1;
+            _point2 = pnt1 + t * direction;
+        }
+
+        Point3Cartesian   StartPoint() const  { return _point1; }
+        Point3Cartesian&  StartPoint()       { return _point1; }
+
+        Point3Cartesian   EndPoint() const  { return _point2; }
+        Point3Cartesian&  EndPoint()       { return _point2; }
+
+        Point3Cartesian PointOnSegment(Real t)
+        {
+            if( t < 0.0 || t > 1.0 )
+                throw std::runtime_error("SegmentLine3D::PointOnSegment - t not in [0,1]");
+
+            return _point1 + t * Direction();
+        }
+
+        Real                Length()    const { return _point1.Dist(_point2); }
+        Vector3Cartesian    Direction() const { return Vector3Cartesian(_point1, _point2); }
+    };
+
+    class Plane3D
+    {
+    private:
+        Real _A, _B, _C, _D;
+    
+    public:
+        Plane3D(const Point3Cartesian &a, const Vector3Cartesian &normal)
+        {
+            if( normal.NormL2() == 0.0 )
+                throw std::runtime_error("Plane3D ctor - normal is null vector");
+
+            Vector3Cartesian unitNormal = normal.GetAsUnitVector();
+
+            _A = unitNormal.X();
+            _B = unitNormal.Y();
+            _C = unitNormal.Z();
+            _D = -(a.X() * unitNormal.X() + a.Y() * unitNormal.Y() + a.Z() * unitNormal.Z());
+        }
+
+        Plane3D(const Point3Cartesian &a, const Point3Cartesian &b, const Point3Cartesian &c) 
+            : Plane3D(a, VectorProd(Vector3Cartesian(a, b), Vector3Cartesian(a, c)))
+        { }
+
+        Plane3D(Real alpha, Real beta, Real gamma, Real d)      // Hesseov (normalni) oblik
+        {
+            _A = cos(alpha);
+            _B = cos(beta);
+            _C = cos(gamma);
+            _D = -d;
+        }
+
+        // tri segmenta na koord osima ctor
+        Plane3D(Real seg_x, Real seg_y, Real seg_z) 
+        {
+            Point3Cartesian x(seg_x, 0, 0);
+            Point3Cartesian y(0, seg_y, 0);
+            Point3Cartesian z(0, 0, seg_z);
+
+            if( seg_x == 0 || seg_y == 0 || seg_z == 0 )
+                throw std::runtime_error("Plane3D ctor - zero segment");
+            
+            _A = 1 / seg_x;
+            _B = 1 / seg_y;
+            _C = 1 / seg_z;
+            _D = -1;
+        }
+
+        static Plane3D GetXYPlane() { return Plane3D(Point3Cartesian(0,0,0), Vector3Cartesian(0,0,1)); }
+        static Plane3D GetXZPlane() { return Plane3D(Point3Cartesian(0,0,0), Vector3Cartesian(0,1,0)); }
+        static Plane3D GetYZPlane() { return Plane3D(Point3Cartesian(0,0,0), Vector3Cartesian(1,0,0)); }
+
+        Real  A() const   { return _A; }
+        Real& A()         { return _A; }
+        Real  B() const   { return _B; }
+        Real& B()         { return _B; }
+        Real  C() const   { return _C; }
+        Real& C()         { return _C; }
+        Real  D() const   { return _D; }
+        Real& D()         { return _D; }
+
+        Point3Cartesian GetPointOnPlane() const { 
+            if( _A != 0.0 )
+                return Point3Cartesian(-_D / _A, 0, 0); 
+            else  
+                return Point3Cartesian(0, 0, -_D / _C); 
+        }
+        
+        Vector3Cartesian Normal() const { return Vector3Cartesian(_A, _B, _C); }
+
+        void GetCoordAxisSegments(Real &outseg_x, Real& outseg_y, Real& outseg_z)
+        {
+            outseg_x = - _D /  _A;
+            outseg_y = - _D /  _B;
+            outseg_z = - _D /  _C;
+        }
+
+        bool IsPointOnPlane(const Point3Cartesian &pnt) const
+        {
+            return _A * pnt.X() + _B * pnt.Y() + _C * pnt.Z() + _D == 0.0;
+        }
+        Real DistToPoint(const Point3Cartesian &pnt) const
+        {
+            Real a = _A * pnt.X() + _B * pnt.Y() + _C * pnt.Z() + _D;
+            Real b = sqrt(_A * _A + _B * _B + _C * _C);
+
+            return std::abs(a / b);
+        }
+
+        Point3Cartesian ProjectionToPlane(const Point3Cartesian &pnt) const
+        {
+            // from given point and normal to plane form a Line3D
+            Line3D line(pnt, Normal());
+            
+            // find intersection of this line with plane
+            Point3Cartesian ret;
+            IntersectionWithLine(line, ret);
+
+            return ret;
+        }
+
+        bool IsLineOnPlane(const Line3D &line) const
+        {
+            // get two points
+            const Point3Cartesian pnt1 = line.StartPoint();
+            const Point3Cartesian pnt2 = line.PointOnLine(1.0);
+
+            if(IsPointOnPlane(pnt1) && IsPointOnPlane(pnt2))
+                return true;
+            else
+                return false;
+        }
+
+        Real AngleToLine(const Line3D &line) const
+        {
+            // angle between line and normal to plane
+            return Constants::PI / 2.0 - line.Direction().AngleToVector(this->Normal());
+        }        
+
+        bool IntersectionWithLine(const Line3D &line, Point3Cartesian &out_inter_pnt) const
+        {
+            // Calculate the direction vector of the line
+            Vector3Cartesian line_dir = line.Direction();
+
+            // Calculate the normal vector of the plane
+            Vector3Cartesian plane_normal = Normal();
+
+            // Check if the line is parallel to the plane
+            if (line_dir.ScalarProductCartesian(plane_normal) == 0) {
+                return false;
+            }
+
+            // Calculate the distance between the line and the plane
+            double dist = Vector3Cartesian(GetPointOnPlane(), line.StartPoint()).ScalarProductCartesian(plane_normal) / line_dir.ScalarProductCartesian(plane_normal);
+
+            // Calculate the point of intersection
+            Point3Cartesian inter_pnt = line.StartPoint() + line_dir * dist;
+
+            // Set the output parameter to the point of intersection
+            out_inter_pnt = inter_pnt;
+
+            return true;
+        }
+
+        bool IsParallelToPlane(const Plane3D &plane) const
+        {
+            Vector3Cartesian norm1(_A, _B, _C);
+
+            Vector3Cartesian norm2(plane._A, plane._B, plane._C);
+
+            return norm1.IsParallelTo(norm2);
+        }        
+        bool IsPerpendicularToPlane(const Plane3D &plane) const
+        {
+            Vector3Cartesian norm1(_A, _B, _C);
+            Vector3Cartesian norm2(plane._A, plane._B, plane._C);
+
+            return norm1.IsPerpendicularTo(norm2);
+        }
+        Real AngleToPlane(const Plane3D &plane) const
+        {
+            // to je kut normala
+            return this->Normal().AngleToVector(plane.Normal());
+        }     
+        Real DistToPlane(const Plane3D &plane) const
+        {
+            // TODO finishs
+            // ili su paralelne, pa imamo neki broj, ili se sijeku pa je 0
+            return 0.0;
+        }     
+        // TODO - check implementation IntersectionWithPlane
+        bool IntersectionWithPlane(const Plane3D &plane, Line3D &out_inter_line) const
+        {
+            Vector3Cartesian inter_dir = VectorProd(Normal(), plane.Normal());
+
+            // Check if the planes are parallel
+            if (inter_dir.NormL2() == 0.0) {
+                return false;
+            }
+
+            // Calculate a point on the intersection line
+            Point3Cartesian inter_pnt = GetPointOnPlane();
+
+            // Calculate the distance between the intersection line and the two planes
+            double dist1 = Vector3Cartesian(inter_pnt, GetPointOnPlane()).ScalarProductCartesian(plane.Normal());
+            double dist2 = Vector3Cartesian(inter_pnt, plane.GetPointOnPlane()).ScalarProductCartesian(Normal());
+
+            // Calculate the point of intersection
+            inter_pnt = inter_pnt - inter_dir * (dist1 / inter_dir.ScalarProductCartesian(plane.Normal()));
+
+            // Set the output parameter to the intersection line
+            out_inter_line = Line3D(inter_pnt, inter_dir);
+
+            return true;            
+            return false;
+        }
+    };
+
+    class Triangle3D
+    {
+    private:
+        Point3Cartesian _pnt1, _pnt2, _pnt3;
+    public:
+        Triangle3D(Point3Cartesian pnt1, Point3Cartesian pnt2, Point3Cartesian pnt3) 
+            : _pnt1(pnt1), _pnt2(pnt2), _pnt3(pnt3)
+        {}
+
+        Point3Cartesian &Pnt1() { return _pnt1; }
+        Point3Cartesian &Pnt2() { return _pnt2; }
+        Point3Cartesian &Pnt3() { return _pnt3; }
+    };
+
+    class RectSurface3D : public IParametricSurface<3>
+    {
+    public:
+        // predstavlja PRAVOKUTNU povrsinu u 3D
+        Point3Cartesian _pnt1, _pnt2, _pnt3, _pnt4;
+        Real _minX, _maxX, _minY, _maxY;
+        Point3Cartesian _center;
+        Vector3Cartesian _localX,_localY;
+
+        RectSurface3D() {}
+        RectSurface3D(Point3Cartesian pnt1, Point3Cartesian pnt2, Point3Cartesian pnt3, Point3Cartesian pnt4) 
+            : _pnt1(pnt1), _pnt2(pnt2), _pnt3(pnt3), _pnt4(pnt4)
+        {
+            // provjeriti da li su sve u ravnini!
+
+            // podesiti min i max
+            Real lenX = _pnt1.Dist(_pnt2);
+            Real lenY = _pnt1.Dist(_pnt4);
+            _minX = -lenX/2;
+            _maxX =  lenX/2;
+            _minY = -lenY/2;
+            _maxY =  lenY/2;
+
+            // calculate center
+            _center = (_pnt1 + _pnt2 + _pnt3 + _pnt4) / 4.0;
+
+            // calculate local coordinate system
+            _localX = Vector3Cartesian(_pnt1, _pnt2).GetAsUnitVector();
+            _localY = Vector3Cartesian(_pnt1, _pnt4).GetAsUnitVector();
+        }
+        virtual Real getMinX() { return _minX;}
+        virtual Real getMaxX() { return _maxX;}
+        virtual Real getMinY() { return _minY;}
+        virtual Real getMaxY() { return _maxY;}
+
+        // vraca dva Triangle3D - i orijentacija je parametar! (kako ce odabrati tocke)
+
+        VectorN<Real, 3> operator()(Real u, Real w) const  { 
+            Point3Cartesian ret = _center + u * _localX + w * _localY;
+            return VectorN<Real, 3>({ret.X(), ret.Y(), ret.Z()});
+        }
+    };
+
+    class Solid3D
+    {
+    protected:
+        // solid body in 3D
+        std::vector<RectSurface3D> _surfaces;
+    
+    public:
+        // isClosed() - iz centra mase (?) odasilje zrake u svim smjerovima i gleda da li je pogodio iti jednu povrsinu
+        // vraca listu povrsina, koje bi TREBALE omedjivati tijelo!
+        
+        // i po tome se moze obaviti surface integracija!!!
+    };
+
+    class Cube3D : public Solid3D
+    {
+        // kocka
+        Real _a;
+        Vector3Cartesian _center;
+    public:
+        Cube3D(Real a) : _a(a)
+        {
+            Point3Cartesian pnt1( a/2,-a/2,-a/2);
+            Point3Cartesian pnt2( a/2, a/2,-a/2);
+            Point3Cartesian pnt3(-a/2, a/2,-a/2);
+            Point3Cartesian pnt4(-a/2,-a/2,-a/2);
+            Point3Cartesian pnt5( a/2,-a/2, a/2);
+            Point3Cartesian pnt6( a/2, a/2, a/2);
+            Point3Cartesian pnt7(-a/2, a/2, a/2);
+            Point3Cartesian pnt8(-a/2,-a/2, a/2);
+
+            // dodati svih 6 stranica u popis povrsina
+            _surfaces.push_back(RectSurface3D(pnt1, pnt4, pnt3, pnt2));     // lower side in xy plane
+            _surfaces.push_back(RectSurface3D(pnt5, pnt6, pnt7, pnt8));     // upper side in xy plane
+            _surfaces.push_back(RectSurface3D(pnt1, pnt2, pnt6, pnt5));     // front side in yz plane
+            _surfaces.push_back(RectSurface3D(pnt4, pnt8, pnt7, pnt3));     // back side in yz plane
+            _surfaces.push_back(RectSurface3D(pnt1, pnt5, pnt8, pnt4));     // left side in xz plane
+            _surfaces.push_back(RectSurface3D(pnt2, pnt3, pnt7, pnt6));     // right side in xz plane
+        }
+        Cube3D(Real a, const Vector3Cartesian &center) : Cube3D(a)
+        {
+            _center = center;
+        }
+    };
+}
+
 ///////////////////////////   ./include/base/QuadraticForm.h   ///////////////////////////
 
 
@@ -5070,7 +5260,18 @@ namespace MML
                     }
             return ret;
         }
-        ////////////////////////             Complex helpers               //////////////////////
+        
+        static void AngleDegToExplicit(Real angle, Real &deg, Real &min, Real &sec)
+        {
+            deg = floor(angle);
+            min = floor((angle - deg) * 60.0);
+            sec = (angle - deg - min / 60.0) * 3600.0;
+        }
+        static void AngleRadToExplicit(Real angleRad, Real &deg, Real &min, Real &sec)  { AngleDegToExplicit(angleRad * 180.0 / Constants::PI, deg, min, sec);}
+        static Real ExplicitToAngleDeg(Real deg, Real min, Real sec)                    { return deg + min / 60.0 + sec / 3600.0; }
+        static Real ExplicitToAngleRad(Real deg, Real min, Real sec)                    { return ExplicitToAngleDeg(deg, min, sec) * Constants::PI / 180.0; }
+
+        ///////////////////                     Complex helpers                   ///////////////////
         static bool AreEqual(const Complex &a, const Complex &b, double eps=Defaults::ComplexEqualityPrecision)
         {
             if( std::abs(a.real() - b.real()) > eps || std::abs(a.imag() - b.imag()) > eps )
@@ -5089,7 +5290,7 @@ namespace MML
             return true;
         }
 
-        /////////////////////////             Vector helpers               //////////////////////
+        ///////////////////                     Vector helpers                     ///////////////////
         static Vector<Real> VectorProjectionParallelTo(const Vector<Real> &orig, const Vector<Real> &b)
         {
             return orig.ScalarProductCartesian(b) / b.NormL2() * b;
@@ -5098,10 +5299,10 @@ namespace MML
         {
             return orig - VectorProjectionParallelTo(orig, b);
         }
-        template<class _Type>
-        static Matrix<_Type> OuterProduct(const Vector<_Type> &a, const Vector<_Type> &b)
+        
+        template<class Type> static Matrix<Type> OuterProduct(const Vector<Type> &a, const Vector<Type> &b)
         {
-            Matrix<_Type> ret(a.size(), b.size());
+            Matrix<Type> ret(a.size(), b.size());
 
             for( int i=0; i<a.size(); i++ )
                 for( int j=0; j<b.size(); j++ )
@@ -5110,7 +5311,7 @@ namespace MML
             return ret;
         }
 
-        /////////////          Vector<Complex> - Vector<Real> operations
+        ///////////////////       Vector<Complex> - Vector<Real> operations       ///////////////////
         static Vector<Complex> AddVec(const Vector<Complex> &a, const Vector<Real> &b)
         {
             if( a.size() != b.size() )
@@ -5164,7 +5365,6 @@ namespace MML
             MatrixNM<Complex, 2, 2>{ 1,  0, 
                                      0, -1 }
         };
-
         const static inline MatrixNM<Complex, 4, 4> DiracGamma[]= {
             MatrixNM<Complex, 4, 4>{ 1,  0,  0,  0, 
                                      0,  1,  0,  0, 
@@ -5183,56 +5383,48 @@ namespace MML
                                     -1,  0,  0,  0,
                                      0,  1,  0,  0 }
         };
-
         const static inline MatrixNM<Complex, 4, 4> DiracGamma5{0,  0,  1,  0, 
                                                                 0,  0,  0,  1, 
                                                                 1,  0,  0,  0, 
                                                                 0,  1,  0,  0 };
 
-        /////////////////////             Creating Matrix from Vector             ///////////////////
-        template<class _Type>
-        static Matrix<_Type> RowMatrixFromVector(const Vector<_Type> &b)
+        ///////////////////             Creating Matrix from Vector              ///////////////////
+        template<class Type> static Matrix<Type> RowMatrixFromVector(const Vector<Type> &b)
         {
-            Matrix<_Type> ret(1, (int) b.size());
+            Matrix<Type> ret(1, (int) b.size());
             for( int i=0; i<b.size(); i++)
                 ret[0][i] = b[i];
 
             return ret;
         }
-        template<class _Type>
-        static Matrix<_Type> ColumnMatrixFromVector(const Vector<_Type> &b)
+        template<class Type> static Matrix<Type> ColumnMatrixFromVector(const Vector<Type> &b)
         {
-            Matrix<_Type> ret((int) b.size(), 1);
+            Matrix<Type> ret((int) b.size(), 1);
             for( int i=0; i<b.size(); i++)
                 ret[i][0] = b[i];
 
             return ret;
         }
-        template<class _Type>
-        static Matrix<_Type> DiagonalMatrixFromVector(const Vector<_Type> &b)
+        template<class Type> static Matrix<Type> DiagonalMatrixFromVector(const Vector<Type> &b)
         {
-            Matrix<_Type> ret((int) b.size(), (int) b.size());
+            Matrix<Type> ret((int) b.size(), (int) b.size());
             for( int i=0; i<b.size(); i++)
                 ret[i][i] = b[i];
 
             return ret;
         }   
 
-        ///////////////////////             Matrix helpers               ////////////////////
-        template<class _Type>
-        static Matrix<_Type> Commutator(const Matrix<_Type> &a, const Matrix<_Type> &b)
+        ///////////////////                   Matrix helpers                     ///////////////////
+        template<class Type> static Matrix<Type> Commutator(const Matrix<Type> &a, const Matrix<Type> &b)
         {
             return a*b - b*a;
         }
-
-        template<class _Type>
-        static Matrix<_Type> AntiCommutator(const Matrix<_Type> &a, const Matrix<_Type> &b)
+        template<class Type> static Matrix<Type> AntiCommutator(const Matrix<Type> &a, const Matrix<Type> &b)
         {
             return a*b + b*a;
         }
         
-        template<class _Type>
-        static void MatrixDecompose(const Matrix<_Type> &orig, Matrix<_Type> &outSym, Matrix<_Type> &outAntiSym)
+        template<class Type> static void MatrixDecompose(const Matrix<Type> &orig, Matrix<Type> &outSym, Matrix<Type> &outAntiSym)
         {
             if( orig.RowNum() != orig.ColNum() )
                 throw MatrixDimensionError("MatrixDecompose - matrix must be square", orig.RowNum(), orig.ColNum(), -1, -1);
@@ -5241,12 +5433,11 @@ namespace MML
             outAntiSym = (orig - orig.GetTranspose()) * 0.5;
         }
 
-        ///////////////////////             Matrix functions               ////////////////////
-        template<class _Type>
-        static Matrix<_Type> Exp(const Matrix<_Type> &a, int n = 10)
+        ///////////////////                  Matrix functions                    ///////////////////
+        template<class Type> static Matrix<Type> Exp(const Matrix<Type> &a, int n = 10)
         {
-            Matrix<_Type> ret(a.RowNum(), a.ColNum());
-            Matrix<_Type> a_pow_n(a);
+            Matrix<Type> ret(a.RowNum(), a.ColNum());
+            Matrix<Type> a_pow_n(a);
 
             double fact = 1.0;
             ret.MakeUnitMatrix();
@@ -5262,7 +5453,7 @@ namespace MML
             return ret;
         }
 
-        ///////////////////////             Real matrix helpers               ////////////////////
+        ///////////////////                Real matrix helpers                   ///////////////////
         static bool IsOrthogonal(const Matrix<Real> &mat, double eps = Defaults::IsMatrixOrthogonalPrecision)
         {
             if( mat.RowNum() != mat.ColNum() )
@@ -5273,7 +5464,30 @@ namespace MML
             return matProd.IsUnit(eps);
         } 
 
-        //////////////////////             Complex matrix helpers               ///////////////////
+        ///////////////////               Complex matrix helpers                 ///////////////////
+        static Matrix<Real> GetRealPart(const Matrix<Complex> &a)
+        {
+            Matrix<Real> ret(a.RowNum(), a.ColNum());
+
+            for( int i=0; i<ret.RowNum(); i++ )
+                for( int j=0; j<ret.ColNum(); j++ ) {
+                    ret[i][j] = a[i][j].real();
+                }
+
+            return	ret;
+        }
+        static Matrix<Real> GetImagPart(const Matrix<Complex> &a)
+        {
+            Matrix<Real> ret(a.RowNum(), a.ColNum());
+
+            for( int i=0; i<ret.RowNum(); i++ )
+                for( int j=0; j<ret.ColNum(); j++ ) {
+                    ret[i][j] = a[i][j].imag();
+                }
+
+            return	ret;
+        }  
+  
         static Matrix<Complex> GetConjugateTranspose(const Matrix<Complex> &mat)
         {
             Matrix<Complex> ret(mat.ColNum(), mat.RowNum());
@@ -5284,7 +5498,6 @@ namespace MML
 
             return ret;
         }
-
         static Matrix<Complex> CmplxMatFromRealMat(const Matrix<Real> &mat)
         {
             Matrix<Complex> mat_cmplx(mat.RowNum(), mat.ColNum());
@@ -5305,7 +5518,6 @@ namespace MML
             
             return true;
         }        
-
         static bool IsHermitian(const Matrix<Complex> &mat)
         {
             if( mat.RowNum() != mat.ColNum() )
@@ -5317,10 +5529,9 @@ namespace MML
                         return false;
             return true;
         }
-
-        // IsUnitary - complex square matrix U is unitary if its conjugate transpose U* is also its inverse
         static bool IsUnitary(const Matrix<Complex> &mat)
         {
+            // IsUnitary - complex square matrix U is unitary if its conjugate transpose U* is also its inverse
             if( mat.RowNum() != mat.ColNum() )
                 throw MatrixDimensionError("IsUnitary - matrix must be square", mat.RowNum(), mat.ColNum(), -1, -1);
             
@@ -5329,7 +5540,7 @@ namespace MML
             return matProd.IsUnit();            
         }
 
-        //////////////////////         enabling Matrix<Complex> - Matrix<Real>  operations         ///////////////////////
+        ///////////////////       Matrix<Complex> - Matrix<Real>  operations     ///////////////////
         static Matrix<Complex> AddMat(const Matrix<Complex> &a, const Matrix<Real> &b)
         {
             if (a.RowNum() != b.RowNum() || a.ColNum() != b.ColNum())
@@ -5376,7 +5587,6 @@ namespace MML
             return ret;
         }
 
-        // TODO 0.7 - unitarni minus za Matrix!
         static Matrix<Complex> MulMat(const Complex &a, const Matrix<Real> &b)
         {
             Matrix<Complex>	ret(b.RowNum(), b.ColNum());
@@ -5476,30 +5686,7 @@ namespace MML
             }
             return ret;
         }
-
-        static Matrix<Real> GetRealPart(const Matrix<Complex> &a)
-        {
-            Matrix<Real> ret(a.RowNum(), a.ColNum());
-
-            for( int i=0; i<ret.RowNum(); i++ )
-                for( int j=0; j<ret.ColNum(); j++ ) {
-                    ret[i][j] = a[i][j].real();
-                }
-
-            return	ret;
-        }
-        static Matrix<Real> GetImagPart(const Matrix<Complex> &a)
-        {
-            Matrix<Real> ret(a.RowNum(), a.ColNum());
-
-            for( int i=0; i<ret.RowNum(); i++ )
-                for( int j=0; j<ret.ColNum(); j++ ) {
-                    ret[i][j] = a[i][j].imag();
-                }
-
-            return	ret;
-        }  
-    }
+  }
 }
 ///////////////////////////   ./include/core/LinAlgEqSolvers.h   ///////////////////////////
 
@@ -5507,15 +5694,15 @@ namespace MML
 namespace MML
 {
     ///////////////////////   GAUSS-JORDAN SOLVER    /////////////////////////////
-    template<class _Type>
+    template<class Type>
     class GaussJordanSolver
     {
     public:
-        static bool Solve(Matrix<_Type> &a, Matrix<_Type> &b)
+        static bool Solve(Matrix<Type> &a, Matrix<Type> &b)
         {
             int i,icol,irow,j,k,l,ll;
             Real big;
-            _Type dum,pivinv;
+            Type dum,pivinv;
 
             int n=a.RowNum();
             int m=b.ColNum();
@@ -5542,10 +5729,11 @@ namespace MML
                 indxr[i]=irow;
                 indxc[i]=icol;
 
-                if (a[icol][icol] == 0.0) 
-                    throw SingularMatrixError("GaussJordanSolver::Solve - Singular Matrix");
+                if (a[icol][icol] == Real{0.0}) 
+                    return false;
+                    // throw SingularMatrixError("GaussJordanSolver::Solve - Singular Matrix");
 
-                pivinv=1.0/a[icol][icol];
+                pivinv=Real{1.0}/a[icol][icol];
                 a[icol][icol]=1.0;
                 for (l=0;l<n;l++) a[icol][l] *= pivinv;
                 for (l=0;l<m;l++) b[icol][l] *= pivinv;
@@ -5565,15 +5753,17 @@ namespace MML
 
             return true;
         }
-        static Vector<_Type> Solve(const Vector<_Type> &b)
+        static Vector<Type> Solve(Matrix<Type> &a, const Vector<Type> &b)
         {
-            Vector<_Type> x(b.size());
-            Solve(b, x);
-            return x;
+            Vector<Type> x(b.size());
+            if( Solve(b, x) == true )
+                return x;
+            else
+                throw SingularMatrixError("GaussJordanSolver::Solve - Singular Matrix");
         }
-        static bool Solve(Matrix<_Type> &a, Vector<_Type> &b)
+        static bool Solve(Matrix<Type> &a, Vector<Type> &b)
         {
-            Matrix<_Type> bmat(b.size(), 1);
+            Matrix<Type> bmat(b.size(), 1);
             for(int i=0;i<b.size();i++)
                 bmat[i][0] = b[i];
                 
@@ -5591,7 +5781,8 @@ namespace MML
         Real d;
 
     public:
-        // TODO - HIGH, SREDNJE, parm mora biti BandDiagonalMatrix!
+        // TODO 0.8 - HIGH, SREDNJE, parm mora biti BandDiagonalMatrix!
+        // TODO - handling singularne matrice
         BandDiagLUSolver(Matrix<Real> &a, const int mm1, const int mm2)
             : n(a.RowNum()), au(a), m1(mm1), m2(mm2), al(n,m1), indx(n)
         {
@@ -5670,33 +5861,34 @@ namespace MML
     };
 
     ///////////////////////      LU DECOMPOSITION       /////////////////////////////
-    template<class _Type>
+    template<class Type>
     class LUDecompositionSolver
     {
     private:
         int n;
-        const Matrix<_Type> &refOrig;
+        const Matrix<Type> &refOrig;
 
-        Matrix<_Type> lu;
+        Matrix<Type> lu;
         std::vector<int> indx;
         Real d;
     
     public:
-    // TODO - HIGH, HIGH, TESKO, napraviti da se moï¿½e odraditi i inplace, a ne da se kao sad uvijek kreira kopija
-        LUDecompositionSolver(const Matrix<_Type>  &inMatRef) : n(inMatRef.RowNum()), refOrig(inMatRef), lu(inMatRef), indx(n) 
-// ne moï¿½e        LUDecompositionSolver(const Matrix<_Type>  &inMatRef) : n(inMatRef.RowNum()), refOrig(inMatRef), lu(Matrix<_Type>(inMatRef.RowNum(), inMatRef.ColNum())), indx(n) 
+    // TODO - HIGH, HIGH, TESKO, napraviti da se može odraditi i inplace, a ne da se kao sad uvijek kreira kopija
+        LUDecompositionSolver(const Matrix<Type>  &inMatRef) : n(inMatRef.RowNum()), refOrig(inMatRef), lu(inMatRef), indx(n) 
+// ne može        LUDecompositionSolver(const Matrix<Type>  &inMatRef) : n(inMatRef.RowNum()), refOrig(inMatRef), lu(Matrix<Type>(inMatRef.RowNum(), inMatRef.ColNum())), indx(n) 
+// lu mora postati pointer!
         {
             // Given a Matrix<Real> a[1..n][1..n], this routine replaces it by the LU decomposition of a rowwise
             // permutation of itself. a and n are input. a is output, arranged as in equation (NR 2.3.14);
             // indx[1..n] is an output Vector<Real> that records the row permutation effected by the partial
-            // pivoting; d is output as ï¿½1 depending on whether the number of row interchanges was even
+            // pivoting; d is output as ±1 depending on whether the number of row interchanges was even
             // or odd, respectively. This routine is used in combination with lubksb to solve linear equations
             // or invert a Matrix<Real>.
             const Real TINY=1.0e-40;
             int i,imax,j,k;
             Real big,temp; 
-            _Type temp2;
-            Vector<_Type> vv(n);
+            Type temp2;
+            Vector<Type> vv(n);
             d=1.0;
             for (i=0;i<n;i++) {
                 big=0.0;
@@ -5727,7 +5919,7 @@ namespace MML
                     vv[imax]=vv[k];
                 }
                 indx[k]=imax;
-                if (lu[k][k] == 0.0) lu[k][k]=TINY;
+                if (lu[k][k] == Real{0.0}) lu[k][k]=TINY;
                 for (i=k+1;i<n;i++) {
                     temp2=lu[i][k] /= lu[k][k];
                     for (j=k+1;j<n;j++)
@@ -5736,9 +5928,9 @@ namespace MML
             }
         }
         
-        void Solve(const Vector<_Type> &b, Vector<_Type> &x)
+        bool Solve(const Vector<Type> &b, Vector<Type> &x)
         {
-            // Solves the set of n linear equations Aï¿½X = B. Here a[1..n][1..n] is input, not as the Matrix<Real>
+            // Solves the set of n linear equations A·X = B. Here a[1..n][1..n] is input, not as the Matrix<Real>
             // A but rather as its LU decomposition, determined by the routine ludcmp. indx[1..n] is input
             // as the permutation Vector<Real> returned by ludcmp. b[1..n] is input as the right-hand side Vector<Real>
             // B, and returns with the solution Vector<Real> X. a, n, and indx are not modified by this routine
@@ -5746,43 +5938,50 @@ namespace MML
             // into account the possibility that b will begin with many zero elements, so it is efficient for use
             // in Matrix<Real> inversion
             int i,ii=0,ip,j;
-            _Type sum;
+            Type sum;
+
             if (b.size() != n || x.size() != n)
-                throw("LUdcmp::solve bad sizes");
+                return false; 
+
             for (i=0;i<n;i++) 
                 x[i] = b[i];
+            
             for (i=0;i<n;i++) {
                 ip=indx[i];
                 sum=x[ip];
                 x[ip]=x[i];
                 if (ii != 0)
                     for (j=ii-1;j<i;j++) sum -= lu[i][j]*x[j];
-                else if (sum != 0.0)
+                else if (sum != Real{0.0})
                     ii=i+1;
                 x[i]=sum;
             }
+            
             for (i=n-1;i>=0;i--) {
                 sum=x[i];
                 for (j=i+1;j<n;j++) sum -= lu[i][j]*x[j];
                 x[i]=sum/lu[i][i];
             }
+            return true;
         }
 
-        Vector<_Type> Solve(const Vector<_Type> &b)
+        Vector<Type> Solve(const Vector<Type> &b)
         {
-            Vector<_Type> x(b.size());
-            Solve(b, x);
-            return x;
+            Vector<Type> x(b.size());
+            if( Solve(b, x) == true )
+                return x;
+            else
+                throw VectorDimensionError("LUDecompositionSolver::Solve - bad sizes", b.size(), n);
         }
         
-        void Solve(Matrix<_Type> &b, Matrix<_Type> &x)
+        void Solve(Matrix<Type> &b, Matrix<Type> &x)
         {
             int i,j,m=b.ColNum();
             
             if (b.RowNum() != n || x.RowNum() != n || b.ColNum() != x.ColNum())
                 throw("LUdcmp::solve bad sizes");
             
-            Vector<_Type> xx(n);
+            Vector<Type> xx(n);
             
             for (j=0;j<m;j++) {
                 for (i=0;i<n;i++) 
@@ -5796,7 +5995,7 @@ namespace MML
         }        
 
         // Using the stored LU decomposition, return in ainv the matrix inverse 
-        void inverse(Matrix<_Type> &ainv)
+        void inverse(Matrix<Type> &ainv)
         {
             int i,j;
             ainv.Resize(n,n);
@@ -5807,7 +6006,7 @@ namespace MML
             Solve(ainv,ainv);
         }
         
-        _Type det()
+        Type det()
         {
             Real dd = d;
             for (int i=0;i<n;i++) 
@@ -5815,12 +6014,12 @@ namespace MML
             return dd;
         }
         
-        // Improves a solution Vector<Real> x[1..n] of the linear set of equations A ï¿½ X = B. The Matrix<Real>
+        // Improves a solution Vector<Real> x[1..n] of the linear set of equations A · X = B. The Matrix<Real>
         // a[1..n][1..n], and the Vector<Real>s b[1..n] and x[1..n] are input, as is the dimension n.
         // Also input is alud[1..n][1..n], the LU decomposition of a as returned by ludcmp, and
         // the Vector<Real> indx[1..n] also returned by that routine. On output, only x[1..n] is modified,
         // to an improved set of values
-        void mprove(Vector<Real> &b, Vector<Real> &x)
+        void mprove(const Vector<Real> &b, Vector<Real> &x)
         {
             int i,j;
             Vector<Real> r(n);
@@ -5840,7 +6039,6 @@ namespace MML
     };
 
     ///////////////////////   CHOLESKY DECOMPOSITION    /////////////////////////////
-    // TODO 0.7 - HIGH TEST THIS! cholesky
     class CholeskyDecompositionSolver
     {
     private:
@@ -5851,7 +6049,7 @@ namespace MML
         CholeskyDecompositionSolver(Matrix<Real> &a) : n(a.RowNum()), el(a) 
         {
             // Given a positive-definite symmetric Matrix<Real> a[1..n][1..n], this routine constructs its Cholesky
-            // decomposition, A = L ï¿½ LT . On input, only the upper triangle of a need be given; it is not
+            // decomposition, A = L · LT . On input, only the upper triangle of a need be given; it is not
             // modified. The Cholesky factor L is returned in the lower triangle of a, except for its diagonal
             // elements which are returned in p[1..n]
             int i,j,k;
@@ -5874,7 +6072,7 @@ namespace MML
         }
         void Solve(const Vector<Real> &b, Vector<Real> &x) 
         {
-            // Solves the set of n linear equations A ï¿½ x = b, where a is a positive-definite symmetric Matrix<Real>.
+            // Solves the set of n linear equations A · x = b, where a is a positive-definite symmetric Matrix<Real>.
             // a[1..n][1..n] and p[1..n] are input as the output of the routine choldc. Only the lower
             // triangle of a is accessed. b[1..n] is input as the right-hand side Vector<Real>. The solution Vector<Real> is
             // returned in x[1..n]. a, n, and p are not modified and can be left in place for successive calls
@@ -5962,7 +6160,7 @@ namespace MML
                     c[k]=d[k]=0.0;
                 } else {
                     for (i=k;i<n;i++) r[i][k] /= scale;
-                    for (sum=0.0,i=k;i<n;i++) sum += SQR(r[i][k]);
+                    for (sum=0.0,i=k;i<n;i++) sum += POW2(r[i][k]);
                     sigma=SIGN(sqrt(sum),r[k][k]);
                     r[k][k] += sigma;
                     c[k]=sigma*r[k][k];
@@ -5998,7 +6196,7 @@ namespace MML
             }
         }
 
-        // Solves the set of n linear equations A ï¿½ x = b. a[1..n][1..n], c[1..n], and d[1..n] are
+        // Solves the set of n linear equations A · x = b. a[1..n][1..n], c[1..n], and d[1..n] are
         // input as the output of the routine qrdcmp and are not modified. b[1..n] is input as the
         // right-hand side Vector<Real>, and is overwritten with the solution Vector<Real> on output. 
         void Solve(const Vector<Real> &b, Vector<Real> &x) 
@@ -6014,7 +6212,7 @@ namespace MML
         }
         void RSolve(const Vector<Real> &b, Vector<Real> &x) 
         {
-            // Solves the set of n linear equations R ï¿½ x = b, where R is an upper triangular Matrix<Real> stored in
+            // Solves the set of n linear equations R · x = b, where R is an upper triangular Matrix<Real> stored in
             // a and d. a[1..n][1..n] and d[1..n] are input as the output of the routine qrdcmp and
             // are not modified. b[1..n] is input as the right-hand side Vector<Real>, and is overwritten with the
             // solution Vector<Real> on output            
@@ -6044,8 +6242,8 @@ namespace MML
         }
         void update(Vector<Real> &u, Vector<Real> &v) 
         {
-            // Given the QR decomposition of some n ï¿½ n Matrix<Real>, calculates the QR decomposition of the
-            // Matrix<Real> Qï¿½(R+ u x v). The quantities are dimensioned as r[1..n][1..n], qt[1..n][1..n],
+            // Given the QR decomposition of some n × n Matrix<Real>, calculates the QR decomposition of the
+            // Matrix<Real> Q·(R+ u x v). The quantities are dimensioned as r[1..n][1..n], qt[1..n][1..n],
             // u[1..n], and v[1..n]. Note that QT is input and returned in qt.            
             int i,k;
             Vector<Real> w(u);
@@ -6057,8 +6255,8 @@ namespace MML
                 if (w[i] == 0.0)
                     w[i]=std::abs(w[i+1]);
                 else if (std::abs(w[i]) > std::abs(w[i+1]))
-                    w[i]=std::abs(w[i])*sqrt(1.0+SQR(w[i+1]/w[i]));
-                else w[i]=std::abs(w[i+1])*sqrt(1.0+SQR(w[i]/w[i+1]));
+                    w[i]=std::abs(w[i])*sqrt(1.0+POW2(w[i+1]/w[i]));
+                else w[i]=std::abs(w[i+1])*sqrt(1.0+POW2(w[i]/w[i+1]));
             }
             for (i=0;i<n;i++) r[0][i] += w[0]*v[i];
             for (i=0;i<k;i++)
@@ -6078,11 +6276,11 @@ namespace MML
                 s=(b >= 0.0 ? 1.0 : -1.0);
             } else if (std::abs(a) > std::abs(b)) {
                 fact=b/a;
-                c=SIGN(1.0/sqrt(1.0+(fact*fact)),a);
+                c=SIGN<Real>(1.0/sqrt(1.0+(fact*fact)),a);
                 s=fact*c;
             } else {
                 fact=a/b;
-                s=SIGN(1.0/sqrt(1.0+(fact*fact)),b);
+                s=SIGN<Real>(1.0/sqrt(1.0+(fact*fact)),b);
                 c=fact*s;
             }
             for (j=i;j<n;j++) {
@@ -6117,7 +6315,7 @@ namespace MML
     public:
         SVDecompositionSolver(const Matrix<Real> &a) : m(a.RowNum()), n(a.ColNum()), u(a), v(n,n), w(n) 
         {
-            // Given a Matrix<Real> a[1..m][1..n], this routine computes its singular value decomposition, A = Uï¿½W ï¿½V T . 
+            // Given a Matrix<Real> a[1..m][1..n], this routine computes its singular value decomposition, A = U·W ·V T . 
             // The Matrix<Real> U replaces a on output. 
             // The diagonal Matrix<Real> of singular values W is output as a Vector<Real> w[1..n]. 
             // The Matrix<Real> V (not the transpose V T ) is output as v[1..n][1..n].            
@@ -6441,8 +6639,8 @@ namespace MML
 
         Real pythag(const Real a, const Real b) {
             Real absa=std::abs(a), absb=std::abs(b);
-            return (absa > absb ? absa*sqrt(1.0+SQR(absb/absa)) :
-                (absb == 0.0 ? 0.0 : absb*sqrt(1.0+SQR(absa/absb))));
+            return (absa > absb ? absa*sqrt(1.0+POW2(absb/absa)) :
+                (absb == 0.0 ? 0.0 : absb*sqrt(1.0+POW2(absa/absb))));
         }
     };
 } // end namespace
@@ -6492,17 +6690,6 @@ namespace MML
         /********                               Numerical derivatives of FIRST order                                 ********/
         /********************************************************************************************************************/
         //////////////////////////              RealFunction            //////////////////////////
-        static Real NDer1(const IRealFunction &f, Real x, Real* error = nullptr)
-        {
-            // Error bound ~eps^1/2
-            // Note that this estimate of h differs from the best estimate by a factor of sqrt((|f(x)| + |f(x+h)|)/|f''(x)|).
-            // Since this factor is invariant under the scaling f -> kf, then we are somewhat justified in approximating it by 1.
-            // This approximation will get better as we move to higher orders of accuracy.
-            return NDer1(f, x, NDer1_h, error);
-        }
-        static Real NDer1Left(const IRealFunction &f, Real x, Real* error = nullptr)  { return NDer1(f, x - 2 * NDer1_h, NDer1_h, error); }
-        static Real NDer1Right(const IRealFunction &f, Real x, Real* error = nullptr) { return NDer1(f, x + 2 * NDer1_h, NDer1_h, error); }
-
         static Real NDer1(const IRealFunction &f, Real x, Real h, Real* error = nullptr)
         {
             Real yh   = f(x + h);
@@ -6518,6 +6705,17 @@ namespace MML
             }
             return diff / h;
         }
+        static Real NDer1(const IRealFunction &f, Real x, Real* error = nullptr)
+        {
+            // Error bound ~eps^1/2
+            // Note that this estimate of h differs from the best estimate by a factor of sqrt((|f(x)| + |f(x+h)|)/|f''(x)|).
+            // Since this factor is invariant under the scaling f -> kf, then we are somewhat justified in approximating it by 1.
+            // This approximation will get better as we move to higher orders of accuracy.
+            return NDer1(f, x, NDer1_h, error);
+        }
+        static Real NDer1Left(const IRealFunction &f, Real x, Real* error = nullptr)  { return NDer1(f, x - 2 * NDer1_h, NDer1_h, error); }
+        static Real NDer1Right(const IRealFunction &f, Real x, Real* error = nullptr) { return NDer1(f, x + 2 * NDer1_h, NDer1_h, error); }
+
         static Real NDer1Left(const IRealFunction &f, Real x, Real h, Real* error = nullptr)  { return NDer1(f, x - 2 * h, h, error); }
         static Real NDer1Right(const IRealFunction &f, Real x, Real h, Real* error = nullptr) { return NDer1(f, x + 2 * h, h, error); }
 
@@ -6857,8 +7055,8 @@ namespace MML
             return NThirdDer1(f, x, NDer1_h, error);
         }
 
-        template <int N>
-        static VectorN<Real, N> NThirdDer1(const IParametricCurve<N> &f, Real x, Real h, Real* error = nullptr)
+            template <int N>
+            static VectorN<Real, N> NThirdDer1(const IParametricCurve<N> &f, Real x, Real h, Real* error = nullptr)
         {
             VectorN<Real, N>  yh   = NSecDer2(f, x + h, h, error);
             VectorN<Real, N>  y0   = NSecDer2(f, x, h, error);
@@ -8318,7 +8516,6 @@ namespace MML
                 Real f9 = (y5h - ym5h) / 2 + 4 * y4 + 27 * y3 / 2 + 24 * y2 + 21 * y1;
 
                 *error = std::abs(f9) / (630 * h) + 7 * (std::abs(yh) + std::abs(ymh)) * Constants::Epsilon / h;
-
             }
 
             return (tmp1 + tmp2) / (105 * h);            
@@ -8725,7 +8922,7 @@ namespace MML
     {
         // Returns the integral of the function func from a to b. The parameters EPS can be set to the
         // desired fractional accuracy and JMAX so that 2 to the power JMAX-1 is the maximum allowed
-        // number of steps. Integration is performed by Simpsonï¿½s rule.
+        // number of steps. Integration is performed by Simpson’s rule.
 
         // The routine qsimp will in general be more efficient than qtrap (i.e., require
         // fewer function evaluations) when the function to be integrated has a finite 4th
@@ -8809,8 +9006,8 @@ namespace MML
 
     static Real IntegrateRomberg(const IRealFunction &func, const Real a, const Real b, Real req_eps)
     {
-        // Returns the integral of the function func from a to b. Integration is performed by Rombergï¿½s
-        // method of order 2K, where, e.g., K=2 is Simpsonï¿½s rule.
+        // Returns the integral of the function func from a to b. Integration is performed by Romberg’s
+        // method of order 2K, where, e.g., K=2 is Simpson’s rule.
 
         // The routine qromb, along with its required trapzd and polint, is quite
         // powerful for sufficiently smooth (e.g., analytic) integrands, integrated over intervals
@@ -8850,7 +9047,7 @@ namespace MML
 
     static Real IntegrateGauss10(const IRealFunction &func, const Real a, const Real b)
     {
-        // Returns the integral of the function or functor func between a and b, by ten-point GaussLegendre integration: 
+        // Returns the integral of the function func between a and b, by ten-point GaussLegendre integration: 
         // the function is evaluated exactly ten times at interior points in the range of integration.        
         static const Real x[]={ 0.1488743389816312,0.4333953941292472,
                                 0.6794095682990244,0.8650633666889845,0.9739065285171717};
@@ -9116,7 +9313,7 @@ namespace MML
     
     /////////////////////       PARAMETRIC SURFACE         //////////////////////////////////
 
-    // TOD 0.7 - x i y pï¿½reimenovati u u i w!!!
+    // TOD 0.7 - x i y preimenovati u u i w!!!
     template<int N>
     class ParametricSurface : public IParametricSurface<N>
     {
@@ -9179,7 +9376,7 @@ namespace MML
         Real coef1 = Derivation::NDer6(f, a);
         Real coef2 = Derivation::NSecDer4(f, a) / 2.0;
 
-        ret[0] = val - coef1 * a + coef2 * SQR(a);
+        ret[0] = val - coef1 * a + coef2 * POW2(a);
         ret[1] = coef1 - 2.0 * coef2 * a;
         ret[2] = coef2;
 
@@ -9194,8 +9391,8 @@ namespace MML
         Real coef2 = Derivation::NSecDer4(f, a) / 2.0;
         Real coef3 = Derivation::NThirdDer2(f, a) / 6.0;
 
-        ret[0] = val - coef1 * a + coef2 * SQR(a) - coef3 * pow(a, 3);
-        ret[1] = coef1 - 2.0 * coef2 * a + 3.0 * coef3 * SQR(a);
+        ret[0] = val - coef1 * a + coef2 * POW2(a) - coef3 * pow(a, 3);
+        ret[1] = coef1 - 2.0 * coef2 * a + 3.0 * coef3 * POW2(a);
         ret[2] = coef2 - 3.0 * coef3 * a;
         ret[3] = coef3;
 
@@ -9302,7 +9499,7 @@ namespace MML
         IRealFunction &_f1, &_f2;
     public:
         RealFuncDiffSqrHelper(IRealFunction &f1, IRealFunction &f2) : _f1(f1), _f2(f2) {}
-        Real operator()(Real x) const { return SQR(_f1(x) - _f2(x)); }
+        Real operator()(Real x) const { return POW2(_f1(x) - _f2(x)); }
     };    
 
 } // end namespace
@@ -9483,7 +9680,7 @@ namespace MML
         mutable Real dy;
 
         // The user interface to Poly_interp is virtually the same as for Linear_interp
-        // (end of ï¿½3.1), except that an additional argument in the constructor sets M, the number of points used (the order plus one). 
+        // (end of ÷3.1), except that an additional argument in the constructor sets M, the number of points used (the order plus one). 
         PolynomInterpRealFunc(Vector<Real> &xv, Vector<Real> &yv, int m) : RealFunctionInterpolatedBase(xv,yv,m), dy(0.) 
         {}
         
@@ -9521,7 +9718,7 @@ namespace MML
                 y += (dy=(2*(ns+1) < (mm-m) ? c[ns+1] : d[ns--]));
                 // After each column in the tableau is completed, we decide which correction, c or d, we
                 // want to add to our accumulating value of y, i.e., which path to take through the tableau
-                // ï¿½ forking up or down. We do this in such a way as to take the most ï¿½straight lineï¿½
+                // — forking up or down. We do this in such a way as to take the most “straight line”
                 // route through the tableau to its apex, updating ns accordingly to keep track of where
                 // we are. This route keeps the partial approximations centered (insofar as possible) on
                 // the target x. The last dy added is thus the error indication.                
@@ -9845,7 +10042,7 @@ namespace MML
 
         // Constructor. The n   dim matrix ptsin inputs the data points. Input close as 0 for
         // an open curve, 1 for a closed curve. (For a closed curve, the last data point should not
-        // duplicate the first ï¿½ the algorithm will connect them.)
+        // duplicate the first — the algorithm will connect them.)
         SplineInterpParametricCurve(const Matrix<Real> &ptsin, bool close=0)
         : n(ptsin.RowNum()), dim(ptsin.ColNum()), in(close ? 2*n : n),
         cls(close), pts(dim,in), s(in), ans(dim), srp(dim) 
@@ -9913,7 +10110,7 @@ namespace MML
         Real rad(const Real *p1, const Real *p2) {
             Real sum = 0.;
             for (int i=0;i<dim;i++) 
-                sum += SQR(p1[i]-p2[i]);
+                sum += POW2(p1[i]-p2[i]);
             return sqrt(sum);
         }
     };
@@ -9921,7 +10118,7 @@ namespace MML
     template<int N>
     class ParametricCurveInterpolated : public IParametricCurve<N>
     {
-        // TODO - HIGH, TESKO, umjesto func pointera dobije niz tocaka kroz shared pointer
+        // TODO - HIGH, verify
         Real _minT;
         Real _maxT;
         std::shared_ptr<Vector<Real>> _xvals;
@@ -9979,16 +10176,14 @@ namespace MML
     // TODO - MED, SREDNJE, dodati metricke tenzore za specijalnu relativnost (Minkowski varijante)
     template<int N> 
     class MetricTensorField : public ITensorField2<N>
-    {
-        int _numContravar;
-        int _numCovar;        
+    {    
     public:
-        MetricTensorField() : _numContravar(2), _numCovar(0){ }
-        MetricTensorField(int numContra, int numCo) : _numContravar(numContra), _numCovar(numCo) { }
+        MetricTensorField() : ITensorField2<N>(2,0) { }
+        MetricTensorField(int numContra, int numCo) : ITensorField2<N>(numContra,numCo) { }
 
         Tensor2<N>   operator()(const VectorN<Real, N> &pos) const 
         {
-            Tensor2<N> val(_numContravar,_numCovar);
+            Tensor2<N> val(this->getNumContravar(), this->getNumCovar());
             for( int i=0; i<N; i++ )
                 for( int j=0; j<N; j++ )
                     val.Component(i,j) = this->Component(i,j, pos);
@@ -10011,7 +10206,7 @@ namespace MML
             }
             return gamma_ijk;
         }
-        // TODO 0.7 - GetChristoffellSymbolFirstKind
+        // TODO 0.8 - GetChristoffellSymbolFirstKind
     };
 
 
@@ -10090,9 +10285,9 @@ namespace MML
         virtual Real Component(int i, int j, const VectorN<Real, N> &pos) const
         {
             Real g_ij = 0.0;
-            for(int l=0; l<N; l++)
+            for(int k=0; k<N; k++)
             {
-                g_ij += Derivation::DerivePartial<N>(_coordTransf.coordTransfFunc(l), i, pos, nullptr) * Derivation::DerivePartial<N>(_coordTransf.coordTransfFunc(l), j, pos, nullptr);
+                g_ij += Derivation::DerivePartial<N>(_coordTransf.coordTransfFunc(k), i, pos, nullptr) * Derivation::DerivePartial<N>(_coordTransf.coordTransfFunc(k), j, pos, nullptr);
             }
             return g_ij;
         }
@@ -10108,7 +10303,7 @@ namespace MML
     // ovdje dodati translational, rotational, galilean, lorentzian transf
     // SVE su to transformacije koordinata
     template<typename VectorFrom, typename VectorTo, int N>
-    class CoordTransf : public ICoordTransf<VectorFrom, VectorTo, N>
+    class CoordTransf : public virtual ICoordTransf<VectorFrom, VectorTo, N>
     {
     public:
         virtual VectorTo getCovariantBasisVec(int ind, const VectorFrom &pos)
@@ -10156,8 +10351,8 @@ namespace MML
     }; 
 
     template<typename VectorFrom, typename VectorTo, int N>
-    class CoordTransfWithInverse : public CoordTransf<VectorFrom, VectorTo, N>,
-                                   public ICoordTransfWithInverse<VectorFrom, VectorTo, N>
+    class CoordTransfWithInverse : public virtual CoordTransf<VectorFrom, VectorTo, N>,
+                                   public virtual ICoordTransfWithInverse<VectorFrom, VectorTo, N>
     {
     public:
         virtual VectorFrom getContravariantBasisVec(int ind, const VectorTo &pos)
@@ -10203,12 +10398,12 @@ namespace MML
 
         Tensor2<N> transfTensor2(const Tensor2<N> &tensor, const VectorFrom &pos) 
         {
-            Tensor2<N> ret;
+            Tensor2<N> ret(tensor.NumContravar(), tensor.NumCovar());
 
             for( int i=0; i<N; i++ ) 
                 for( int j=0; j<N; j++ ) 
                 {
-                    ret[i][j] = 0;
+                    ret.Component(i,j) = 0;
                     for( int k=0; k<N; k++) 
                         for( int l=0; l<N; l++)
                         {
@@ -10223,7 +10418,7 @@ namespace MML
                             else
                                 coef2 = Derivation::NDer1Partial(this->inverseCoordTransfFunc(l), j, pos);
                             
-                            ret[i][j] += coef1 * coef2 * tensor[k][l];
+                            ret.Component(i,j) += coef1 * coef2 * tensor.Component(k,l);
                         }
                 }
 
@@ -10232,13 +10427,13 @@ namespace MML
 
         Tensor3<N> transfTensor3(const Tensor3<N> &tensor, const VectorFrom &pos) 
         {
-            Tensor3<N> ret;
+            Tensor3<N> ret(tensor.NumContravar(), tensor.NumCovar());
 
             for( int i=0; i<N; i++ ) 
                 for( int j=0; j<N; j++ ) 
                     for( int k=0; k<N; k++) 
                     {
-                        ret[i][j][k] = 0;
+                        ret.Component(i,j,k) = 0;
                         for( int l=0; l<N; l++)
                             for( int m=0; m<N; m++)
                                 for( int n=0; n<N; n++)
@@ -10259,7 +10454,7 @@ namespace MML
                                     else
                                         coef3 = Derivation::NDer1Partial(this->inverseCoordTransfFunc(n), k, pos);
                                                                         
-                                    ret[i][j][k] += coef1 * coef2 * coef3 * tensor[l][m][n];
+                                    ret.Component(i, j, k) += coef1 * coef2 * coef3 * tensor.Component(l,m,n);
                                 }
                     }
 
@@ -10268,7 +10463,7 @@ namespace MML
     
         Tensor4<N> transfTensor4(const Tensor4<N> &tensor, const VectorFrom &pos) 
         {
-            Tensor4<N> ret;
+            Tensor4<N> ret(tensor.NumContravar(), tensor.NumCovar());
 
             for( int i=0; i<N; i++ ) 
                 for( int j=0; j<N; j++ ) 
@@ -10311,7 +10506,7 @@ namespace MML
 
         Tensor5<N> transfTensor5(const Tensor5<N> &tensor, const VectorFrom &pos) 
         {
-            Tensor5<N> ret;
+            Tensor5<N> ret(tensor.NumContravar(), tensor.NumCovar());
 
             for( int i=0; i<N; i++ ) 
                 for( int j=0; j<N; j++ ) 
@@ -10443,14 +10638,14 @@ namespace MML
 
     class CoordTransfCart3DRotationXAxis  : public CoordTransfWithInverse<Vector3Cartesian, Vector3Cartesian, 3>
     {
-    private:
+    public:
         Real    _angle;
         MatrixNM<Real,3,3>  _transf;
         MatrixNM<Real,3,3>  _inverse;
         
-        const ScalarFunctionFromStdFunc<3> &_f1;
-        const ScalarFunctionFromStdFunc<3> &_f2;
-        const ScalarFunctionFromStdFunc<3> &_f3;
+        const ScalarFunctionFromStdFunc<3>  _f1;
+        const ScalarFunctionFromStdFunc<3>  _f2;
+        const ScalarFunctionFromStdFunc<3>  _f3;
 
         const ScalarFunctionFromStdFunc<3> _fInverse1;
         const ScalarFunctionFromStdFunc<3> _fInverse2;
@@ -10478,7 +10673,10 @@ namespace MML
             _inverse[2][2] = cos(_angle);
         }
 
-        Real func1(const VectorN<Real, 3> &q) const { return (_transf * q)[0]; }
+        Real func1(const VectorN<Real, 3> &q) const 
+        { 
+            return (_transf * q)[0]; 
+        }
         Real func2(const VectorN<Real, 3> &q) const { return (_transf * q)[1]; }
         Real func3(const VectorN<Real, 3> &q) const { return (_transf * q)[2]; }
 
@@ -10486,8 +10684,8 @@ namespace MML
         Real funcInverse2(const VectorN<Real, 3> &q) const { return (_inverse * q)[1]; }
         Real funcInverse3(const VectorN<Real, 3> &q) const { return (_inverse * q)[2]; }
 
-        Vector3Cartesian    transf(const VectorN<Real, 3> &q) const        { return Vector3Cartesian{ func1(q), func2(q), func3(q) }; }
-        Vector3Cartesian    transfInverse(const VectorN<Real, 3> &q) const { return Vector3Cartesian{ funcInverse1(q), funcInverse2(q), funcInverse3(q) }; }
+        Vector3Cartesian    transf(const Vector3Cartesian &q) const        { return Vector3Cartesian{ func1(q), func2(q), func3(q) }; }
+        Vector3Cartesian    transfInverse(const Vector3Cartesian &q) const { return Vector3Cartesian{ funcInverse1(q), funcInverse2(q), funcInverse3(q) }; }
         
         const IScalarFunction<3>& coordTransfFunc(int i) const
         { 
@@ -10547,8 +10745,8 @@ namespace MML
         Real funcInverse2(const VectorN<Real, 3> &q) const { return (_inverse * q)[1]; }
         Real funcInverse3(const VectorN<Real, 3> &q) const { return (_inverse * q)[2]; }
 
-        VectorN<Real, 3>    transf(const VectorN<Real, 3> &q) const        { return VectorN<Real, 3>{ func1(q), func2(q), func3(q) }; }
-        VectorN<Real, 3>    transfInverse(const VectorN<Real, 3> &q) const { return VectorN<Real, 3>{ funcInverse1(q), funcInverse2(q), funcInverse3(q) }; }
+        Vector3Cartesian    transf(const Vector3Cartesian &q) const        { return Vector3Cartesian{ func1(q), func2(q), func3(q) }; }
+        Vector3Cartesian    transfInverse(const Vector3Cartesian &q) const { return Vector3Cartesian{ funcInverse1(q), funcInverse2(q), funcInverse3(q) }; }
         
         const IScalarFunction<3>& coordTransfFunc(int i) const    
         { 
@@ -10625,7 +10823,7 @@ namespace MML
         }
     };
 
-    // TODO 0.7 - LOW, TESKO, Euler angles, finish CoordTransfCart3DRotationGeneralAxis
+    // TODO 0.8 - LOW, TESKO, Euler angles, finish CoordTransfCart3DRotationGeneralAxis
     // class CoordTransfCart3DRotationGeneralAxis  : public CoordTransfWithInverse<Vector3Cartesian, Vector3Cartesian, 3>
     // {
 
@@ -10880,10 +11078,8 @@ namespace MML
 {
     namespace ScalarFieldOperations
     {
-        // TODO 0.7 - promijenti konkretno NDer4Partial nize u DerivePartial
-        // TODO 0.7 - dodati verzije s redom derivacije kao parametrom
         ////////////////////////////////////////////////////////////////////////////////////////////////////////
-        ///////////////////////////                   GRADIENT                     /////////////////////////////
+        /////////////////                 GENERAL COORD. FIELD OPERATIONS                    ///////////////////
         template<int N>
         static VectorN<Real, N> Gradient(IScalarFunction<N> &scalarField, const MetricTensorField<N>& metricTensor, const VectorN<Real, N> &pos)
         {
@@ -10897,15 +11093,53 @@ namespace MML
             return ret;
         }
 
+        // TODO 0.9 - dodati div i curl za generalne koordinate
+
+        ////////////////////////////////////////////////////////////////////////////////////////////////////////
+        ///////////////////////////                   GRADIENT                     /////////////////////////////
         template<int N>
         static VectorN<Real, N> GradientCart(const IScalarFunction<N> &scalarField, const VectorN<Real, N> &pos)
         {
             return Derivation::DerivePartialAll<N>(scalarField, pos, nullptr);
         }
+        template<int N>
+        static VectorN<Real, N> GradientCart(const IScalarFunction<N> &scalarField, const VectorN<Real, N> &pos, int der_order)
+        {
+            switch(der_order)
+            {
+                case 1: return Derivation::NDer1PartialByAll<N>(scalarField, pos, nullptr);
+                case 2: return Derivation::NDer2PartialByAll<N>(scalarField, pos, nullptr);
+                case 4: return Derivation::NDer4PartialByAll<N>(scalarField, pos, nullptr);
+                case 6: return Derivation::NDer6PartialByAll<N>(scalarField, pos, nullptr);
+                case 8: return Derivation::NDer8PartialByAll<N>(scalarField, pos, nullptr);
+                default: 
+                    throw std::invalid_argument("GradientCart: der_order must be in 1, 2, 4, 6 or 8");
+            }
+        }        
 
         static Vector3Spherical GradientSpher(const IScalarFunction<3> &scalarField, const Vector3Spherical &pos)
         {
             Vector3Spherical ret = Derivation::DerivePartialAll<3>(scalarField, pos, nullptr);
+
+            ret[1] = ret[1] / pos[0];
+            ret[2] = ret[2] / (pos[0] * sin(pos[1]));
+
+            return ret;
+        }
+        static Vector3Spherical GradientSpher(const IScalarFunction<3> &scalarField, const Vector3Spherical &pos, int der_order)
+        {
+            Vector3Spherical ret; 
+
+            switch(der_order)
+            {
+                case 1: ret = Derivation::NDer1PartialByAll<3>(scalarField, pos, nullptr);
+                case 2: ret = Derivation::NDer2PartialByAll<3>(scalarField, pos, nullptr);
+                case 4: ret = Derivation::NDer4PartialByAll<3>(scalarField, pos, nullptr);
+                case 6: ret = Derivation::NDer6PartialByAll<3>(scalarField, pos, nullptr);
+                case 8: ret = Derivation::NDer8PartialByAll<3>(scalarField, pos, nullptr);
+                default: 
+                    throw std::invalid_argument("GradientSpher: der_order must be in 1, 2, 4, 6 or 8");
+            }            
 
             ret[1] = ret[1] / pos[0];
             ret[2] = ret[2] / (pos[0] * sin(pos[1]));
@@ -10921,6 +11155,24 @@ namespace MML
 
             return ret;
         }            
+        static Vector3Cylindrical GradientCyl(const IScalarFunction<3> &scalarField, const Vector3Cylindrical &pos, int der_order)
+        {
+            Vector3Cylindrical ret;
+            
+            switch(der_order)
+            {
+                case 1: ret = Derivation::NDer1PartialByAll<3>(scalarField, pos, nullptr);
+                case 2: ret = Derivation::NDer2PartialByAll<3>(scalarField, pos, nullptr);
+                case 4: ret = Derivation::NDer4PartialByAll<3>(scalarField, pos, nullptr);
+                case 6: ret = Derivation::NDer6PartialByAll<3>(scalarField, pos, nullptr);
+                case 8: ret = Derivation::NDer8PartialByAll<3>(scalarField, pos, nullptr);
+                default: 
+                    throw std::invalid_argument("GradientCyl: der_order must be in 1, 2, 4, 6 or 8");
+            }      
+            ret[1] = ret[1] / pos[0];
+
+            return ret;
+        }            
 
         ////////////////////////////////////////////////////////////////////////////////////////////////////////
         ///////////////////////////                  LAPLACIAN                     /////////////////////////////
@@ -10929,7 +11181,7 @@ namespace MML
         {
             Real lapl = 0.0;
             for( int i=0; i<N; i++ )
-                lapl += Derivation::NSecDer4Partial<N>(scalarField, i, i, pos, nullptr);
+                lapl += Derivation::DeriveSecPartial<N>(scalarField, i, i, pos, nullptr);
 
             return lapl;
         }
@@ -10939,21 +11191,20 @@ namespace MML
             const Real phi   = pos.Phi();
             const Real theta = pos.Theta();
 
-            Real first  = Derivation::NSecDer4Partial(scalarField, 0, 0, pos, nullptr);
-            Real second = 2 / pos.R() * Derivation::NDer4Partial(scalarField, 0, pos, nullptr);
-            Real third  = 1 / (r*r * sin(theta)) * (cos(theta) * Derivation::NDer4Partial(scalarField, 1, pos, nullptr) + sin(theta) * Derivation::NSecDer4Partial(scalarField, 1, 1, pos, nullptr));
+            Real first  = Derivation::DeriveSecPartial<3>(scalarField, 0, 0, pos, nullptr);
+            Real second = 2 / pos.R() * Derivation::DerivePartial<3>(scalarField, 0, pos, nullptr);
+            Real third  = 1 / (r*r * sin(theta)) * (cos(theta) * Derivation::DerivePartial<3>(scalarField, 1, pos, nullptr) + sin(theta) * Derivation::DeriveSecPartial<3>(scalarField, 1, 1, pos, nullptr));
             Real fourth = 1 / (r*r * sin(theta)*sin(theta));
 
             return first + second + third;
         }
-
         static Real LaplacianCyl(const IScalarFunction<3> &scalarField, const Vector3Cylindrical &pos)
         {
             const Real r = pos[0];
 
-            Real first  = 1 / r * (Derivation::NDer4Partial<3>(scalarField, 0, pos, nullptr) + r * Derivation::NSecDer4Partial<3>(scalarField, 0, 0, pos, nullptr));
-            Real second = 1 / (r*r) * Derivation::NSecDer4Partial<3>(scalarField, 1, 1, pos, nullptr);
-            Real third  = Derivation::NSecDer4Partial<3>(scalarField, 2, 2, pos, nullptr);
+            Real first  = 1 / r * (Derivation::DerivePartial<3>(scalarField, 0, pos, nullptr) + r * Derivation::DeriveSecPartial<3>(scalarField, 0, 0, pos, nullptr));
+            Real second = 1 / (r*r) * Derivation::DeriveSecPartial<3>(scalarField, 1, 1, pos, nullptr);
+            Real third  = Derivation::DeriveSecPartial<3>(scalarField, 2, 2, pos, nullptr);
             
             return first + second + third;
         }          
@@ -11061,7 +11312,7 @@ namespace MML
             Real dphidr = Derivation::DeriveVecPartial<3>(vectorField, 1, 0, pos, nullptr);
             Real drdphi = Derivation::DeriveVecPartial<3>(vectorField, 0, 1, pos, nullptr);
 
-            Vector3Cylindrical ret{1.0 / pos[0] * dzdphi - dphidz, drdz - dzdr, 1 / pos[0] * (vals[1] + pos[0] * dphidr - drdphi)};
+            Vector3Cylindrical ret{ (Real) (1.0 / pos[0] * dzdphi - dphidz), drdz - dzdr, 1 / pos[0] * (vals[1] + pos[0] * dphidr - drdphi)};
 
             return ret;
         }
@@ -11087,7 +11338,7 @@ class ChebyshevApproximation {
 	
     // Chebyshev fit: Given a function func, lower and upper limits of the interval [a,b], compute and
     // save nn coefficients of the Chebyshev approximation such that func.(x) = sum( ... ), where y and x are related by (5.8.10). 
-    // This routine is intended to be called with moderately large n (e.g., 30 or 50), the array of cï¿½s subsequently to be truncated at the smaller value
+    // This routine is intended to be called with moderately large n (e.g., 30 or 50), the array of c’s subsequently to be truncated at the smaller value
     // m such that cm and subsequent elements are negligible.
     ChebyshevApproximation(const IRealFunction &func, Real aa, Real bb, int nn=50)
         : n(nn), m(nn), c(n), a(aa), b(bb)
@@ -11228,7 +11479,7 @@ namespace MML
             VectorN<Real, N> ret;
 
             for(int i=0; i<N; i++) {
-                RealFunctionFromStdFunc func_to_integrate([&](double x) { 
+                RealFunctionFromStdFunc func_to_integrate([&](Real x) { 
                     return getWeightFunc()(x) * f(x) * getBasisFunc(i)(x); 
                 });
 
@@ -11247,11 +11498,11 @@ namespace MML
         const static inline RealFunction _weightFunc = RealFunction([](Real x) { return exp(-x*x);});
 
         const static inline RealFunction _basisFunctions[5] = { 
-            RealFunction([](Real x) { return std::hermite(0,x); }), 
-            RealFunction([](Real x) { return std::hermite(1,x); }), 
-            RealFunction([](Real x) { return std::hermite(2,x); }), 
-            RealFunction([](Real x) { return std::hermite(3,x); }), 
-            RealFunction([](Real x) { return std::hermite(4,x); }) 
+            RealFunction([](Real x) { return (Real) std::hermite(0,x); }), 
+            RealFunction([](Real x) { return (Real) std::hermite(1,x); }), 
+            RealFunction([](Real x) { return (Real) std::hermite(2,x); }), 
+            RealFunction([](Real x) { return (Real) std::hermite(3,x); }), 
+            RealFunction([](Real x) { return (Real) std::hermite(4,x); }) 
         };
     public:
         HermitianFunctionSpace5() : OrthogonalFunctionsSpaceN(Constants::NegativeInf, Constants::PositiveInf) {}
@@ -11266,14 +11517,14 @@ namespace MML
     class LegendreFunctionSpace5 : public OrthogonalFunctionsSpaceN<5>
     {
     private:
-        const static inline RealFunction _weightFunc = RealFunction([](Real x) { return 1.0;});
+        const static inline RealFunction _weightFunc = RealFunction([](Real x) { return (Real) 1.0;});
 
         const static inline RealFunction _basisFunctions[5] = { 
-            RealFunction([](Real x) { return std::legendre(0,x); }), 
-            RealFunction([](Real x) { return std::legendre(1,x); }), 
-            RealFunction([](Real x) { return std::legendre(2,x); }), 
-            RealFunction([](Real x) { return std::legendre(3,x); }), 
-            RealFunction([](Real x) { return std::legendre(4,x); }) 
+            RealFunction([](Real x) { return (Real) std::legendre(0,x); }), 
+            RealFunction([](Real x) { return (Real) std::legendre(1,x); }), 
+            RealFunction([](Real x) { return (Real) std::legendre(2,x); }), 
+            RealFunction([](Real x) { return (Real) std::legendre(3,x); }), 
+            RealFunction([](Real x) { return (Real) std::legendre(4,x); }) 
         };
     public:
         LegendreFunctionSpace5() : OrthogonalFunctionsSpaceN(-1.0, 1.0) {}
@@ -11293,11 +11544,11 @@ namespace MML
         RealFunctionFromStdFunc _weightFunc = std::function<Real(Real)> { std::bind( &LaguerreFunctionSpace5::weight_func, this, std::placeholders::_1 ) };
 
         const static inline RealFunction _basisFunctions[5] = { 
-            RealFunction([](Real x) { return std::laguerre(0,x); }), 
-            RealFunction([](Real x) { return std::laguerre(1,x); }), 
-            RealFunction([](Real x) { return std::laguerre(2,x); }), 
-            RealFunction([](Real x) { return std::laguerre(3,x); }), 
-            RealFunction([](Real x) { return std::laguerre(4,x); }) 
+            RealFunction([](Real x) { return (Real) std::laguerre(0,x); }), 
+            RealFunction([](Real x) { return (Real) std::laguerre(1,x); }), 
+            RealFunction([](Real x) { return (Real) std::laguerre(2,x); }), 
+            RealFunction([](Real x) { return (Real) std::laguerre(3,x); }), 
+            RealFunction([](Real x) { return (Real) std::laguerre(4,x); }) 
         };
     public:
         LaguerreFunctionSpace5(Real inAlpha) : OrthogonalFunctionsSpaceN(0.0, Constants::PositiveInf) 
@@ -11344,7 +11595,7 @@ namespace MML
 
 namespace MML
 {
-    namespace Curves
+    namespace Curves2D
     {
         ////////////////////////////////             PLANAR CURVES                  //////////////////////////////////
         class Circle2DCurve : public IParametricCurve<2> 
@@ -11439,9 +11690,32 @@ namespace MML
 
             VectorN<Real, 2> operator()(Real t) const  { return MML::VectorN<Real, 2>{_a * t * cos(t), _a * t * sin(t)}; }
         };
-
+    } // end namespace Curves2D
+    
+    namespace Curves3D
+    {
         /////////////////////////////////             SPACE CURVES                  ///////////////////////////////////
-        // TODO 0.7 - add LineCurve
+        // TODO 0.8 - add SquarePathXY
+        class LineCurve : public IParametricCurve<3>
+        {
+            Line3D  _line;
+            Real _minT;
+            Real _maxT;
+        public:
+            LineCurve(Real minT, Real maxT, const Point3Cartesian &pnt, const Vector3Cartesian dir) : _line(pnt, dir), _minT(minT), _maxT(maxT) {}
+
+            Real getMinT() const { return _minT; }
+            Real getMaxT() const { return _maxT; }
+
+            VectorN<Real, 3> operator()(Real t) const  
+            { 
+                if( t < _minT || t > _maxT ) 
+                    throw std::invalid_argument("LineCurve: t is out of range.");
+
+                auto pnt = _line.PointOnLine(t); 
+                return VectorN<Real, 3>{pnt.X(), pnt.Y(), pnt.Z()};
+            }
+        };
         
         class Circle3DXY : public IParametricCurve<3> {
             Real _radius;
@@ -11489,8 +11763,8 @@ namespace MML
 
             VectorN<Real, 3> operator()(Real t) const  { return MML::VectorN<Real, 3>{_radius * cos(t), _radius * sin(t), _b * t}; }
 
-            Real getCurvature(Real t) const  { return _radius / (SQR(_radius) + SQR(_b)); }
-            Real getTorsion(Real t) const    { return _b / (SQR(_radius) + SQR(_b)); }
+            Real getCurvature(Real t) const  { return _radius / (POW2(_radius) + POW2(_b)); }
+            Real getTorsion(Real t) const    { return _b / (POW2(_radius) + POW2(_b)); }
         };
 
         class TwistedCubicCurve : public IParametricCurve<3> 
@@ -11505,12 +11779,12 @@ namespace MML
         class ToroidalSpiralCurve : public IParametricCurve<3> 
         {
             int _n;
-            double _scale = 1.0;
+            Real _scale = 1.0;
         public:
             ToroidalSpiralCurve() : _n(1) {}
             ToroidalSpiralCurve(int n) : _n(n) {}
-            ToroidalSpiralCurve(double scale) : _scale(scale) {}
-            ToroidalSpiralCurve(int n, double scale) : _n(n), _scale(scale) {}
+            ToroidalSpiralCurve(Real scale) : _scale(scale) {}
+            ToroidalSpiralCurve(int n, Real scale) : _n(n), _scale(scale) {}
 
             Real getMinT() const { return Constants::NegativeInf; }
             Real getMaxT() const { return Constants::PositiveInf; }
@@ -11536,6 +11810,8 @@ namespace MML
 
 namespace MML
 {
+    // TODO 0.8 - implement step function
+    // TODO 0.8 - implement heaviside function  
     class DiracFunction : public IRealFunction
     {
     protected:
@@ -11762,11 +12038,11 @@ PlanarRotatingSystem disk_rotation(pocetni phi, brzina rotacije);
 - za dane dvije koord, lat i long, daje poziciju u odnosu na dani fiksni koord sustav
 LocalCartesian disk_surface(disk_rotation, lat, long);
 
-- ï¿½to izracunati? 
+- što izracunati? 
     - artiljerijski hitac s dane pozicije i po danoj paraboli
     - gdje ce pasti - koordinate u jednom i drugom sustavu
 
-- i onda joï¿½ dodati vrtuljak na toj povrï¿½ini!
+- i onda još dodati vrtuljak na toj površini!
 
 MovingDynamicalSytem3D earth_around_sun(funkcija ovisnosti pozicije u odnosu na GLOBALNI KARTEZIJEV sustav);
 RotatingSystem3D earth_rotation(earth_around_sun);
@@ -12103,6 +12379,26 @@ namespace MML
         }
     };
 }
+///////////////////////////   ./include/core/Vizualizer.h   ///////////////////////////
+
+
+namespace MML
+{
+    class Visualizer
+    {
+        static inline std::string _pathResultFiles{"..\\..\\results\\"};
+
+        static inline std::string _pathRealFuncViz{"..\\..\\tools\\visualizers\\real_function_visualizer\\MML_RealFunctionVisualizer.exe"};
+        static inline std::string _pathSurfaceViz{""};
+        static inline std::string _pathParametricCurveViz{""};
+        static inline std::string _pathVectorFieldViz{""};
+
+        void VisualizeODESysSolMultiFunc(std::string fileName, const ODESystemSolution &sol)
+        {
+
+        }
+    };
+}
 ///////////////////////////   ./include/algorithms/PathIntegration.h   ///////////////////////////
 
 
@@ -12165,7 +12461,8 @@ namespace MML
             
             return IntegrateTrap(helper, a, b);
         }
-
+        // TODO - dodati i Mass, prima funkciju gustoce kao param
+        
         static Real WorkIntegral(const IScalarFunction<3> &potentialField, const IParametricCurve<3> &curve, const Real a, const Real b, const Real eps=Defaults::WorkIntegralPrecision)
         {
             HelperWorkIntegral helper(potentialField, curve);
@@ -12192,8 +12489,31 @@ namespace MML
 	{
               
     public:           
-        // TODO - MED, implement SurfaceIntegral
+        // TODO 0.8 - MED, implement SurfaceIntegral
+        // sto ako imam vector field u nekim drugim koordinatama, a ne u kartezijevim?
         static Real SurfaceIntegral(const IVectorFunction<3> &vectorField, const IParametricSurface<3> &surface, const Real x1, const Real x2, const Real y1, const Real y2)
+        {
+            return 0.0;
+        }
+        static Real SurfaceIntegral(const IVectorFunction<3> &vectorField, const Solid3D &solid)
+        {
+            
+            return 0.0;
+        }
+	};
+} // end namespace
+///////////////////////////   ./include/algorithms/VolumeIntegration.h   ///////////////////////////
+
+
+
+
+namespace MML
+{
+	class VolumeIntegration
+	{
+              
+    public:           
+        static Real VolumeIntegral(const IScalarFunction<3> &scalarField, const Solid3D &solid)
         {
             return 0.0;
         }
@@ -12202,7 +12522,7 @@ namespace MML
 ///////////////////////////   ./include/algorithms/EigenSystemSolvers.h   ///////////////////////////
 
 
-// Given the eigenvalues d[0..n-1] and (optionally) the eigenvectors v[0..n-1][0..n-1] as determined by Jacobi (ï¿½11.1) or tqli (ï¿½11.4), this routine sorts the eigenvalues into descending
+// Given the eigenvalues d[0..n-1] and (optionally) the eigenvectors v[0..n-1][0..n-1] as determined by Jacobi (÷11.1) or tqli (÷11.4), this routine sorts the eigenvalues into descending
 // order and rearranges the columns of v correspondingly. The method is straight insertion.
 static void eigsrt(MML::Vector<Real> &d, MML::Matrix<Real> *v = NULL)
 {
@@ -12231,7 +12551,7 @@ static void eigsrt(MML::Vector<Real> &d, MML::Matrix<Real> *v = NULL)
 
 namespace MML
 {
-    // Computes all eigenvalues and eigenvectors of a real symmetric matrix by Jacobiï¿½s method.
+    // Computes all eigenvalues and eigenvectors of a real symmetric matrix by Jacobi’s method.
     struct Jacobi
     {
         const int n;
@@ -12480,7 +12800,7 @@ namespace MML
 
         // QL algorithm with implicit shifts to determine the eigenvalues and (optionally) the eigenvectors
         // of a real, symmetric, tridiagonal matrix, or of a real symmetric matrix previously reduced by
-        // tred2 (ï¿½11.3). On input, d[0..n-1] contains the diagonal elements of the tridiagonal matrix.
+        // tred2 (÷11.3). On input, d[0..n-1] contains the diagonal elements of the tridiagonal matrix.
         // On output, it returns the eigenvalues. The vector e[0..n-1] inputs the subdiagonal elements
         // of the tridiagonal matrix, with e[0] arbitrary. On output e is destroyed. If the eigenvectors of
         // a tridiagonal matrix are desired, the matrix z[0..n-1][0..n-1] is input as the identity matrix.
@@ -12554,7 +12874,7 @@ namespace MML
         Real pythag(const Real a, const Real b)
         {
             Real absa = std::abs(a), absb = std::abs(b);
-            return (absa > absb ? absa * sqrt(1.0 + SQR(absb / absa)) : (absb == 0.0 ? 0.0 : absb * sqrt(1.0 + SQR(absa / absb))));
+            return (absa > absb ? absa * sqrt(1.0 + POW2(absb / absa)) : (absb == 0.0 ? 0.0 : absb * sqrt(1.0 + POW2(absa / absb))));
         }
     };
     //////////////////////////////////////////////////////////////////////////////
@@ -13179,7 +13499,7 @@ namespace MML
                                 {
                                     x = a[i][i + 1];
                                     y = a[i + 1][i];
-                                    q = SQR(real(wri[i]) - p) + SQR(imag(wri[i]));
+                                    q = POW2(real(wri[i]) - p) + POW2(imag(wri[i]));
                                     t = (x * s - z * r) / q;
                                     a[i][nn] = t;
                                     if (std::abs(x) > std::abs(z))
@@ -13238,7 +13558,7 @@ namespace MML
                                 {
                                     x = a[i][i + 1];
                                     y = a[i + 1][i];
-                                    vr = SQR(real(wri[i]) - p) + SQR(imag(wri[i])) - q * q;
+                                    vr = POW2(real(wri[i]) - p) + POW2(imag(wri[i])) - q * q;
                                     vi = 2.0 * q * (real(wri[i]) - p);
                                     if (vr == 0.0 && vi == 0.0)
                                         vr = EPS * anorm * (std::abs(w) + std::abs(q) + std::abs(x) + std::abs(y) + std::abs(z));
@@ -13464,7 +13784,7 @@ namespace MML
             Real err=0.0,sk;
             for (int i=0;i<n;i++) {
                 sk=atol+rtol*std::max(std::abs(y[i]),std::abs(yout[i]));
-                err += SQR(yerr[i]/sk);
+                err += POW2(yerr[i]/sk);
             }
             return sqrt(err/n);
         }
@@ -13491,10 +13811,10 @@ namespace MML
                         if (scale>maxscale) scale=maxscale;
                     }
                     if (reject)
-                        hnext=h*std::min(scale,1.0);
+                        hnext=h*std::min<Real>(scale,1.0);
                     else
                         hnext=h*scale;
-                    errold=std::max(err,1.0e-4);
+                    errold=std::max<Real>(err,1.0e-4);
                     reject=false;
                     return true;
                 } else {
@@ -13815,8 +14135,8 @@ namespace MML
             Real err=0.0,err2=0.0,sk,deno;
             for (int i=0;i<n;i++) {
                 sk=atol+rtol*std::max(std::abs(y[i]),std::abs(yout[i]));
-                err2 += SQR(yerr[i]/sk);
-                err += SQR(yerr2[i]/sk);
+                err2 += POW2(yerr[i]/sk);
+                err += POW2(yerr2[i]/sk);
             }
             deno=err+0.01*err2;
             if (deno <= 0.0)
@@ -13840,14 +14160,14 @@ namespace MML
                         if (scale>maxscale) scale=maxscale;
                     }
                     if (reject)
-                        hnext=h*std::min(scale,1.0);
+                        hnext=h*std::min<Real>(scale,1.0);
                     else
                         hnext=h*scale;
-                    errold=std::max(err,1.0e-4);
+                    errold=std::max<Real>(err,1.0e-4);
                     reject=false;
                     return true;
                 } else {
-                    scale=std::max(safe*pow(err,-alpha),minscale);
+                    scale=std::max<Real>(safe*pow(err,-alpha),minscale);
                     h *= scale;
                     reject=true;
                     return false;
@@ -13889,8 +14209,8 @@ namespace MML
             cost[0]=nseq[0]+1;
             for (int k=0;k<KMAXX;k++) cost[k+1]=cost[k]+nseq[k+1];
             hnext=-1.0e99;
-            Real logfact=-log10(std::max(1.0e-12,rtol))*0.6+0.5;
-            k_targ=std::max(1,std::min(KMAXX-1,int(logfact)));
+            Real logfact=-log10(std::max<Real>(1.0e-12,rtol))*0.6+0.5;
+            k_targ=std::max<int>(1,std::min<int>(KMAXX-1,int(logfact)));
             for (int k = 0; k<IMAXX; k++) {
                 for (int l=0; l<k; l++) {
                     Real ratio=Real(nseq[k])/nseq[l];
@@ -13958,7 +14278,7 @@ namespace MML
                         err=0.0;
                         for (i=0;i<n;i++) {
                             scale[i]=atol+rtol*std::max(std::abs(ysav[i]),std::abs(y[i]));
-                            err+=SQR((y[i]-table[0][i])/scale[i]);
+                            err+=POW2((y[i]-table[0][i])/scale[i]);
                         }
                         err=sqrt(err/n);
                         Real expo=1.0/(2*k+1);
@@ -13967,7 +14287,7 @@ namespace MML
                             fac=1.0/facmin;
                         else {
                             fac=STEPFAC2/pow(err/STEPFAC1,expo);
-                            fac=std::max(facmin/STEPFAC4,std::min(1.0/facmin,fac));
+                            fac=std::max<Real>(facmin/STEPFAC4,std::min<Real>(1.0/facmin,fac));
                         }
                         hopt[k]=std::abs(h*fac);
                         work[k]=cost[k]/hopt[k];
@@ -13976,7 +14296,7 @@ namespace MML
                         if (k == k_targ-1 && !prev_reject && !first_step && !last_step) {
                             if (err <= 1.0)
                                 break;
-                            else if (err>SQR(nseq[k_targ]*nseq[k_targ+1]/(nseq[0]*nseq[0]))) {
+                            else if (err>POW2(nseq[k_targ]*nseq[k_targ+1]/(nseq[0]*nseq[0]))) {
                                 reject=true;
                                 k_targ=k;
                                 if (k_targ>1 && work[k-1]<KFAC1*work[k])
@@ -13988,7 +14308,7 @@ namespace MML
                         if (k == k_targ) {
                             if (err <= 1.0)
                                 break;
-                            else if (err>SQR(nseq[k+1]/nseq[0])) {
+                            else if (err>POW2(nseq[k+1]/nseq[0])) {
                                 reject=true;
                                 if (k_targ>1 && work[k-1]<KFAC1*work[k])
                                     k_targ--;
@@ -14013,7 +14333,7 @@ namespace MML
             _sys.derivs(x+h,y,dydxnew);
             if (dense) {
                 prepare_dense(h,dydxnew,ysav,scale,k,err);
-                hopt_int=h/std::max(pow(err,1.0/(2*k+3)),0.01);
+                hopt_int=h/std::max<Real>(pow(err,1.0/(2*k+3)),0.01);
                 if (err > 10.0) {
                     hnew=std::abs(hopt_int);
                     reject=true;
@@ -14127,7 +14447,7 @@ namespace MML
             for (int j=1; j<=k; j++) {
                 Real dblenj=nseq[j];
                 for (int l=j; l>=1; l--) {
-                    Real factor=SQR(dblenj/nseq[l-1])-1.0;
+                    Real factor=POW2(dblenj/nseq[l-1])-1.0;
                     for (int i=0; i<n; i++)
                         ysave[l-1][i]=ysave[l][i]+(ysave[l][i]-ysave[l-1][i])/factor;
                 }
@@ -14145,7 +14465,7 @@ namespace MML
                 for (int j=kbeg+1; j<=k; j++) {
                     Real dblenj=nseq[j];
                     for (int l=j; l>=kbeg+1; l--) {
-                        Real factor=SQR(dblenj/nseq[l-1])-1.0;
+                        Real factor=POW2(dblenj/nseq[l-1])-1.0;
                         for (int i=0; i<n; i++)
                             ysave[l-1][i]=ysave[l][i]+
                                 (ysave[l][i]-ysave[l-1][i])/factor;
@@ -14179,7 +14499,7 @@ namespace MML
             error=0.0;
             if (mu >= 1) {
                 for (int i=0; i<n; i++)
-                    error += SQR(dens[(mu+4)*n+i]/scale[i]);
+                    error += POW2(dens[(mu+4)*n+i]/scale[i]);
                 error=sqrt(error/n)*errfac[mu-1];
             }
         }
@@ -14191,7 +14511,7 @@ namespace MML
             if (mu<0)
                 return yinterp;
             Real theta05=theta-0.5;
-            Real t4=SQR(theta*theta1);
+            Real t4=POW2(theta*theta1);
             Real c=dens[n*(mu+4)+i];
             for (int j=mu;j>0; j--)
                 c=dens[n*(j+3)+i]+c*theta05/j;
@@ -14298,7 +14618,7 @@ namespace MML
             for (int j=1; j<=k; j++) {
                 Real dblenj=nseq[j];
                 for (int l=j; l>=1; l--) {
-                    Real factor=SQR(dblenj/nseq[l-1])-1.0;
+                    Real factor=POW2(dblenj/nseq[l-1])-1.0;
                     for (int i=0; i<neqn; i++) {
                         ysave[l-1][i]=ysave[l][i]+(ysave[l][i]-ysave[l-1][i])/factor;
                         ysavep[l-1][i]=ysavep[l][i]+(ysavep[l][i]-ysavep[l-1][i])/factor;
@@ -14334,7 +14654,7 @@ namespace MML
                 for (int j=kbeg+1; j<=k; j++) {
                     Real dblenj=nseq[j];
                     for (int l=j; l>=kbeg+1; l--) {
-                        Real factor=SQR(dblenj/nseq[l-1])-1.0;
+                        Real factor=POW2(dblenj/nseq[l-1])-1.0;
                         for (int i=0; i<neqn; i++)
                             ysave[l-1][i]=ysave[l][i]+
                                 (ysave[l][i]-ysave[l-1][i])/factor;
@@ -14345,7 +14665,7 @@ namespace MML
                 if (kmi == mu) continue;
                 for (int kk=(kmi-1)/2; kk<=k; kk++) {
                     int lbeg=kk*kk+kmi-2;
-                    int lend=SQR(kk+1)-1;
+                    int lend=POW2(kk+1)-1;
                     if (kmi == 2) lbeg++;
                     for (int l=lend; l>=lbeg; l--)
                         for (int i=0; i<neqn; i++)
@@ -14361,7 +14681,7 @@ namespace MML
             error=0.0;
             if (mu >= 1) {
                 for (int i=0; i<neqn; i++)
-                    error += SQR(dens[(mu+6)*neqn+i]/scale[i]);
+                    error += POW2(dens[(mu+6)*neqn+i]/scale[i]);
                 error=sqrt(error/neqn)*errfac[mu-1];
             }
         }
@@ -14666,7 +14986,7 @@ namespace MML
             Real err=0.0,sk;
             for (int i=0;i<n;i++) {
                 sk=atol+rtol*std::max(std::abs(y[i]),std::abs(yout[i]));
-                err += SQR(yerr[i]/sk);
+                err += POW2(yerr[i]/sk);
             }
             return sqrt(err/n);
         }
@@ -14680,7 +15000,7 @@ namespace MML
             Controller() : reject(false), first_step(true) {}
             bool success(Real err, Real &h) {
                 static const Real safe=0.9,fac1=5.0,fac2=1.0/6.0;
-                Real fac=std::max(fac2,std::min(fac1,pow(err,0.25)/safe));
+                Real fac=std::max<Real>(fac2,std::min<Real>(fac1,pow(err,0.25)/safe));
                 Real hnew=h/fac;
                 if (err <= 1.0) {
                     if (!first_step) {
@@ -14691,7 +15011,7 @@ namespace MML
                     }
                     first_step=false;
                     hold=h;
-                    errold=std::max(0.01,err);
+                    errold=std::max<Real>(0.01,err);
                     if (reject)
                         hnew=(h >= 0.0 ? std::min(hnew,h) : std::max(hnew,h));
                     hnext=hnew;
@@ -14734,7 +15054,7 @@ namespace MML
         {
             static const Real costfunc=1.0,costjac=5.0,costlu=1.0,costsolve=1.0;
             EPS=std::numeric_limits<Real>::epsilon();
-            jac_redo=std::min(1.0e-4,rtol);
+            jac_redo=std::min<Real>(1.0e-4,rtol);
             theta=2.0*jac_redo;
             nseq[0]=2;
             nseq[1]=3;
@@ -14816,7 +15136,7 @@ namespace MML
                         err=0.0;
                         for (i=0;i<n;i++) {
                             scale[i]=atol+rtol*std::abs(ysav[i]);
-                            err+=SQR((y[i]-table[0][i])/scale[i]);
+                            err+=POW2((y[i]-table[0][i])/scale[i]);
                         }
                         err=sqrt(err/n);
                         if (err > 1.0/EPS || (k > 1 && err >= errold)) {
@@ -14824,14 +15144,14 @@ namespace MML
                             hnew=std::abs(h)*STEPFAC5;
                             break;
                         }
-                        errold=std::max(4.0*err,1.0);
+                        errold=std::max<Real>(4.0*err,1.0);
                         Real expo=1.0/(k+1);
                         Real facmin=pow(STEPFAC3,expo);
                         if (err == 0.0)
                             fac=1.0/facmin;
                         else {
                             fac=STEPFAC2/pow(err/STEPFAC1,expo);
-                            fac=std::max(facmin/STEPFAC4,std::min(1.0/facmin,fac));
+                            fac=std::max<Real>(facmin/STEPFAC4,std::min<Real>(1.0/facmin,fac));
                         }
                         hopt[k]=std::abs(h*fac);
                         work[k]=cost[k]/hopt[k];
@@ -14952,7 +15272,7 @@ namespace MML
                 if (nn ==1 && k<=1) {
                     Real del1=0.0;
                     for (int i=0;i<n;i++)
-                        del1 += SQR(del[i]/scale[i]);
+                        del1 += POW2(del[i]/scale[i]);
                     del1=sqrt(del1);
                     _sys.derivs(x+h,ytemp,dytemp);
                     for (int i=0;i<n;i++)
@@ -14960,9 +15280,9 @@ namespace MML
                     alu.Solve(del,del);
                     Real del2=0.0;
                     for (int i=0;i<n;i++)
-                        del2 += SQR(del[i]/scale[i]);
+                        del2 += POW2(del[i]/scale[i]);
                     del2=sqrt(del2);
-                    theta=del2/std::max(1.0,del1);
+                    theta=del2/std::max<Real>(1.0,del1);
                     if (theta > 1.0)
                         return false;
                 }
@@ -15223,7 +15543,6 @@ namespace MML
         }        
     };
 
-    // TODO 0.7 - ovo je Dumb
     class RungeKuttaSolverDumb
     {
     public:        
@@ -15336,19 +15655,30 @@ namespace MML
             Vector<Real> yerr(n),ytemp(n);
             for (;;) {
                 rkck(y,dydx,x,h,ytemp,yerr,sys);
+                
                 errmax=0.0;
-                for (i=0;i<n;i++) errmax=std::max(errmax,fabs(yerr[i]/yscal[i]));
+                for (i=0;i<n;i++) 
+                    errmax=std::max(errmax,fabs(yerr[i]/yscal[i]));
                 errmax /= eps;
-                if (errmax <= 1.0) break;
+                if (errmax <= 1.0) 
+                    break;
+                
                 htemp=SAFETY*h*pow(errmax,PSHRNK);
-                h=(h >= 0.0 ? std::max(htemp,0.1*h) : std::min(htemp,0.1*h));
+                h=(h >= Real{0} ? std::max<Real>(htemp,0.1*h) : std::min<Real>(htemp,0.1*h));
                 xnew=x+h;
-                if (xnew == x) throw("stepsize underflow in rkqs");
+                
+                if (xnew == x) 
+                    throw("stepsize underflow in rkqs");
             }
-            if (errmax > ERRCON) hnext=SAFETY*h*pow(errmax,PGROW);
-            else hnext=5.0*h;
+            if (errmax > ERRCON) 
+                hnext=SAFETY*h*pow(errmax,PGROW);
+            else 
+                hnext=5.0*h;
+            
             x += (hdid=h);
-            for (i=0;i<n;i++) y[i]=ytemp[i];
+            
+            for (i=0;i<n;i++) 
+                y[i]=ytemp[i];
         }    
 
     public:
@@ -15397,14 +15727,16 @@ namespace MML
         }
     };
 }
-///////////////////////////   ./include/algorithms/DiffGeometryAlgorithms.h   ///////////////////////////
+///////////////////////////   ./include/algorithms/ParametricCurveAnalyzer.h   ///////////////////////////
 
 
 
 
 namespace MML
 {  
-    class DiffGeometry
+    // TODO - LOW, Curve analyzer - cuspoid i slicne tocke
+
+    class ParametricCurveAnalyzer
     {
     public:
         // TODO - LOW, GetArcLengthParametrization()
@@ -15524,29 +15856,15 @@ namespace MML
 
         static Plane3D getOsculationPlane(const IParametricCurve<3> &curve, Real t)
         {
-            Vector3Cartesian vec_pnt( curve(t) );
-            
-            Plane3D ret( vec_pnt.getAsPoint(), Vector3Cartesian(getNormal(curve, t)) );
-
-            return ret;
+            return Plane3D( Vector3Cartesian(curve(t)).getAsPoint(), Vector3Cartesian(getNormal(curve, t)) );
         }
-
         static Plane3D getNormalPlane(const IParametricCurve<3> &curve, Real t)
         {
-            Vector3Cartesian vec_pnt( curve(t) );
-            
-            Plane3D ret( vec_pnt.getAsPoint(), Vector3Cartesian(getTangentUnit(curve, t)) );
-
-            return ret;
+            return Plane3D( Vector3Cartesian(curve(t)).getAsPoint(), Vector3Cartesian(getTangentUnit(curve, t)) );
         }
-
         static Plane3D getRectifyingPlane(const IParametricCurve<3> &curve, Real t)
         {
-            Vector3Cartesian vec_pnt( curve(t) );
-            
-            Plane3D ret( vec_pnt.getAsPoint(), Vector3Cartesian(getBinormal(curve, t)) );
-
-            return ret;
+            return Plane3D( Vector3Cartesian(curve(t)).getAsPoint(), Vector3Cartesian(getBinormal(curve, t)) );
         }
 
         static void getMovingTrihedron(const IParametricCurve<3> &curve, Real t, Vector3Cartesian &tangent, Vector3Cartesian &normal, Vector3Cartesian &binormal)
@@ -15572,22 +15890,38 @@ namespace MML
     };
 }
 
-///////////////////////////   ./include/algorithms/FunctionAnalyzer.h   ///////////////////////////
+///////////////////////////   ./include/algorithms/FunctionAnalyzers.h   ///////////////////////////
 
 
 
 namespace MML
 {
     // TODO - MED, function point analyzer at point and interval - is continuous, is derivation defined
-    // TODO - LOW, Curve analyzer - cuspoid i slicne tocke
     class RealFunctionAnalyzer
     {
         IRealFunction &_f;        
     public:
         RealFunctionAnalyzer(IRealFunction &f) : _f(f) {}
 
-        // TODO - Roots(x1, x2)
-        bool isDefined(Real x)
+        void PrintIntervalAnalysis(Real x1, Real x2, int numPoints)
+        {
+            std::cout << "Function analysis:" << std::endl;
+            std::cout << "  Defined at point: " << (isDefinedAtPoint(x1) ? "yes" : "no") << std::endl;
+            std::cout << "  Continuous at point: " << (isContinuousAtPoint(x1, 1e-6) ? "yes" : "no") << std::endl;
+            std::cout << "  Monotonic: " << (isMonotonic(x1, x2, numPoints) ? "yes" : "no") << std::endl;
+            if( isMonotonic(x1, x2, numPoints) )
+            {
+                Real min, max;
+                if( isMonotonic(x1, x2, numPoints, min, max) )
+                    std::cout << "  Min: " << min << ", Max: " << max << std::endl;
+            }
+            std::cout << "  Min in " << numPoints << " points: " << MinInNPoints(x1, x2, numPoints) << std::endl;
+            std::cout << "  Max in " << numPoints << " points: " << MaxInNPoints(x1, x2, numPoints) << std::endl;
+        }
+
+        // TODO - GetRoots(x1, x2)
+        // TODO - GetMin(x1, x2, num sart points)
+        bool isDefinedAtPoint(Real x)
         {
             try {
                 Real y = _f(x);                
@@ -15597,11 +15931,18 @@ namespace MML
             }
             return true;
         }
-        bool isContinuous(Real x, Real eps)
+        bool isContinuousAtPoint(Real x, Real eps)
         {
             // TODO - calculate left and right derivation and compare
 
-            return isDefined(x);
+            return isDefinedAtPoint(x);
+        }
+        bool isContinuous(Real x1, Real x2, int numPoints)
+        {
+            // kroz sve tocke
+            // vidjeti gdje se derivacije razlikuju u znaku (potencijalni min/max, ili discontinuity)
+            // istraziti dalje oko te tocke
+            return false;
         }
         bool isMonotonic(Real x1, Real x2, int numPoints)
         {
@@ -15641,7 +15982,7 @@ namespace MML
             }
             return true;
         }   
-        Real Min(Real x1, Real x2, int numPoints)
+        Real MinInNPoints(Real x1, Real x2, int numPoints)
         {
             Real step = (x2-x1) / numPoints;
             Real min = _f(x1);
@@ -15654,7 +15995,7 @@ namespace MML
             }
             return min;
         }
-        Real Max(Real x1, Real x2, int numPoints)
+        Real MaxInNPoints(Real x1, Real x2, int numPoints)
         {
             Real step = (x2-x1) / numPoints;
             Real max = _f(x1);
@@ -15669,15 +16010,15 @@ namespace MML
         }  
     };
 
-    class FunctionComparer
+    class RealFunctionComparer
     {
         IRealFunction &_f1;
         IRealFunction &_f2;
 
     public:
-        FunctionComparer(IRealFunction &f1, IRealFunction &f2) : _f1(f1), _f2(f2) {}
+        RealFunctionComparer(IRealFunction &f1, IRealFunction &f2) : _f1(f1), _f2(f2) {}
 
-        Real getSumAbsDiff(Real a, Real b, int numPoints)
+        Real getAbsDiffSum(Real a, Real b, int numPoints)
         {
             Real step = (b-a) / numPoints;
             Real sum = 0.0;
@@ -15687,14 +16028,14 @@ namespace MML
 
             return sum;
         }
-        Real getAvgAbsDiff(Real a, Real b, int numPoints)
+        Real getAbsDiffAvg(Real a, Real b, int numPoints)
         {
-            return getSumAbsDiff(a, b, numPoints) / numPoints;
+            return getAbsDiffSum(a, b, numPoints) / numPoints;
         }
-        Real getMaxAbsDiff(Real a, Real b, int numPoints)
+        Real getAbsDiffMax(Real a, Real b, int numPoints)
         {
             Real step = (b-a) / numPoints;
-            Real max = 0.0;
+            Real max = std::abs(_f1(a ) - _f2(a));
 
             for( int i=0; i<numPoints; i++ )
             {
@@ -15704,7 +16045,7 @@ namespace MML
             }
             return max;
         }
-        Real getSumRelativeDiff(Real a, Real b, int numPoints)
+        Real getRelDiffSum(Real a, Real b, int numPoints)
         {
             Real step = (b-a) / numPoints;
             Real sum = 0.0;
@@ -15717,11 +16058,11 @@ namespace MML
 
             return sum;
         }
-        Real getAvgRelativeDiff(Real a, Real b, int numPoints)
+        Real getRelDiffAvg(Real a, Real b, int numPoints)
         {
-            return getSumRelativeDiff(a, b, numPoints) / numPoints;
+            return getRelDiffSum(a, b, numPoints) / numPoints;
         }
-        Real getMaxRelativeDiff(Real a, Real b, int numPoints)
+        Real getRelDiffMax(Real a, Real b, int numPoints)
         {
             Real step = (b-a) / numPoints;
             Real max = 0.0;
@@ -15738,6 +16079,7 @@ namespace MML
             return max;
         }
 
+        ///////////                  Integration measures                /////////
         Real getIntegratedDiff(Real a, Real b, IntegrationMethod method = IntegrationMethod::TRAP)
         {
             return getIntegratedDiff(_f1, _f2, a, b, method);
@@ -15794,7 +16136,7 @@ namespace MML
                     return IntegrateTrap(helper, a, b);
             }
         }        
-    };
+    };  
 }
 ///////////////////////////   ./include/algorithms/Fourier.h   ///////////////////////////
 
@@ -16134,7 +16476,7 @@ namespace MML
         if (slope >= 0.0) throw("Roundoff problem in lnsrch.");
         test=0.0;
         for (i=0;i<n;i++) {
-            temp=std::abs(p[i])/std::max(std::abs(xold[i]),1.0);
+            temp=std::abs(p[i])/std::max<Real>(std::abs(xold[i]),1.0);
             if (temp > test) test=temp;
         }
         alamin=TOLX/test;
@@ -16204,7 +16546,7 @@ namespace MML
             n=x.size();
             Real sum=0;
             fvec=func(x);
-            for (int i=0;i<n;i++) sum += SQR(fvec[i]);
+            for (int i=0;i<n;i++) sum += POW2(fvec[i]);
             return 0.5*sum;
         }
     };
@@ -16229,7 +16571,7 @@ namespace MML
             return;
         }
         sum=0.0;
-        for (i=0;i<n;i++) sum += SQR(x[i]);
+        for (i=0;i<n;i++) sum += POW2(x[i]);
         stpmax=STPMX*std::max(sqrt(sum),Real(n));
         for (its=0;its<MAXITS;its++) {
             fjac=fdjac(x,fvec);
@@ -16259,7 +16601,7 @@ namespace MML
                 test=0.0;
                 den=std::max(f,0.5*n);
                 for (i=0;i<n;i++) {
-                    temp=std::abs(g[i])*std::max(std::abs(x[i]),1.0)/den;
+                    temp=std::abs(g[i])*std::max<Real>(std::abs(x[i]),1.0)/den;
                     if (temp > test) test=temp;
                 }
                 check=(test < TOLMIN);
@@ -16267,7 +16609,7 @@ namespace MML
             }
             test=0.0;
             for (i=0;i<n;i++) {
-                temp=(std::abs(x[i]-xold[i]))/std::max(std::abs(x[i]),1.0);
+                temp=(std::abs(x[i]-xold[i]))/std::max<Real>(std::abs(x[i]),1.0);
                 if (temp > test) test=temp;
             }
             if (test < TOLX)
@@ -16297,7 +16639,7 @@ namespace MML
             check=false;
             return;
         }
-        for (sum=0.0,i=0;i<n;i++) sum += SQR(x[i]);
+        for (sum=0.0,i=0;i<n;i++) sum += POW2(x[i]);
         stpmax=STPMX*std::max(sqrt(sum),Real(n));
         restrt=true;
         for (its=1;its<=MAXITS;its++) {
@@ -16324,7 +16666,7 @@ namespace MML
                 }
                 if (!skip) {
                     qr->qtmult(w,t);
-                    for (den=0.0,i=0;i<n;i++) den += SQR(s[i]);
+                    for (den=0.0,i=0;i<n;i++) den += POW2(s[i]);
                     for (i=0;i<n;i++) s[i] /= den;
                     qr->update(t,s);
                     if (qr->sing) throw("singular update in broydn");
@@ -16366,7 +16708,7 @@ namespace MML
                     test=0.0;
                     den=std::max(f,0.5*n);
                     for (i=0;i<n;i++) {
-                        temp=std::abs(g[i])*std::max(std::abs(x[i]),1.0)/den;
+                        temp=std::abs(g[i])*std::max<Real>(std::abs(x[i]),1.0)/den;
                         if (temp > test) test=temp;
                     }
                     if (test < TOLMIN) {
@@ -16379,7 +16721,7 @@ namespace MML
                 restrt=false;
                 test=0.0;
                 for (i=0;i<n;i++) {
-                    temp=(std::abs(x[i]-xold[i]))/std::max(std::abs(x[i]),1.0);
+                    temp=(std::abs(x[i]-xold[i]))/std::max<Real>(std::abs(x[i]),1.0);
                     if (temp > test) test=temp;
                 }
                 if (test < TOLX) {
@@ -16481,7 +16823,7 @@ namespace MML
                 return false;
 
             for( int i=0; i<mat.RowNum(); i++ )
-                if( eigenSolver.getRealEigenvalues()[i] <= 0.0 )
+                if( eigenSolver.getRealEigenvalues()[i] < 0.0 )
                     return false;
 
             return true;
@@ -16495,7 +16837,7 @@ namespace MML
                 return false;
 
             for( int i=0; i<mat.RowNum(); i++ )
-                if( eigenSolver.getRealEigenvalues()[i] < 0.0 )
+                if( eigenSolver.getRealEigenvalues()[i] <= 0.0 )
                     return false;
 
             return true;

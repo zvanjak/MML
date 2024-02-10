@@ -47,7 +47,7 @@ TEST_CASE("Matrix_initializer_list_ctor", "[simple]") {
 }
 
 TEST_CASE("Matrix_double_ptr_ctor", "[simple]") {
-    double vec[4] = {1.0, 2.0, 3.0, 4.0};
+    Real vec[4] = {1.0, 2.0, 3.0, 4.0};
     Matrix<Real> a(2, 2, vec);
 
 	REQUIRE(2 == a.RowNum());
@@ -58,7 +58,7 @@ TEST_CASE("Matrix_double_ptr_ctor", "[simple]") {
 	REQUIRE(3.0 ==  a(1,0));
 	REQUIRE(4.0 ==  a(1,1));
 }
-// Resize
+
 TEST_CASE("Matrix_Resize", "[simple]") {
     Matrix<Real> a(2, 2);
 
@@ -68,7 +68,6 @@ TEST_CASE("Matrix_Resize", "[simple]") {
     REQUIRE(5 == a.ColNum());
 }
 
-// MakeUnitMatrix
 TEST_CASE("Matrix_MakeUnitMatrix", "[simple]") {
     Matrix<Real> a(2, 2);
 
@@ -89,7 +88,6 @@ TEST_CASE("Matrix_GetUnitMatrix", "[simple]") {
     REQUIRE(1.0 ==  a[1][1]);
 }
 
-// IsEqual
 TEST_CASE("Matrix_IsEqual_diff_matrices", "[simple]") {
     Matrix<Real> a(2,3), b(4, 5);
 
@@ -115,7 +113,6 @@ TEST_CASE("Matrix_IsEqual3", "[simple]") {
     REQUIRE(false == a.IsEqual(b, 1e-5));
 }
 
-// MatrixFrom
 TEST_CASE("Matrix_RowMatrixFromVector", "[simple]") {
     Vector<Real> a{1.0, 2.0, 3.0};
 
@@ -182,7 +179,7 @@ TEST_CASE("Matrix_VectorFromColumn_throws_for_wrong_index", "[simple]") {
     REQUIRE_THROWS_AS(b = a.VectorFromColumn(3), MatrixAccessBoundsError); 
 }
 
-// TODO 0.7 - HIGH matrix_tests - test access variants, const, pointers, references
+// TODO 0.8 - HIGH matrix_tests - test access variants, const, pointers, references
 
 TEST_CASE("Test_Matrix_Op+-", "[simple]") {
     Matrix<Real> a(2, 2, {1.0, 2.0, 3.0, 4.0});
@@ -211,7 +208,6 @@ TEST_CASE("Test_Matrix_Op*", "[simple]") {
 	REQUIRE(22.0 ==  c[1][1]);
 }
 
-// op. sa skalarom
 TEST_CASE("Test_Matrix_mul_double", "[simple]") {
     Matrix<Real> a(2, 2, {1.0, 100.0, 50.0, 100.0});
 
@@ -234,10 +230,9 @@ TEST_CASE("Test_Matrix_div_double", "[simple]") {
 	REQUIRE(200.0 ==  b[0][1]);
 }
 
-// op. sa vektorom
 TEST_CASE("Test_Matrix_mul_Vector_right", "[simple]") {
     Matrix<Real> a(2, 2, {1.0, 10.0, 5.0, 2.0});
-    Vector b({1.0, 2.0});
+    Vector<Real> b({1.0, 2.0});
 
 	auto c = a * b;
 
@@ -247,7 +242,7 @@ TEST_CASE("Test_Matrix_mul_Vector_right", "[simple]") {
 
 TEST_CASE("Test_Matrix_mul_Vector_left", "[simple]") {
     Matrix<Real> a(2, 2, {1.0, 10.0, 5.0, 2.0});
-    Vector b({1.0, 2.0});
+    Vector<Real> b({1.0, 2.0});
 
 	auto d = b * a;
 

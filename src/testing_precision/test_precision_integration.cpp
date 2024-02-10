@@ -13,15 +13,12 @@ using namespace MML;
 
 void Test_Precision_Integration_Single_Func()
 {
-    TestBeds::TestFunctionReal  f1_sin = TestBeds::RealFunctionsTestBed::getTestFunctionReal(0);
-    TestBeds::TestFunctionReal  f1_cos = TestBeds::RealFunctionsTestBed::getTestFunctionReal(1);
+    const TestBeds::TestFunctionRealWithIntegral  &f_wrap = TestBeds::RealFunctionsTestBed::getTestFunctionRealWithIntegral(0);
 
-    auto  &f_wrap = f1_sin;
-
-    RealFunction  &f     = f_wrap._func;
-    RealFunction  &f_int = f_wrap._funcIntegrated;
-    double x1 = f_wrap._intervalTest.getLowerBound();
-    double x2 = f_wrap._intervalTest.getUpperBound();
+    const RealFunction  &f     = f_wrap._func;
+    const RealFunction  &f_int = f_wrap._funcIntegrated;
+    double x1 = f_wrap._intervalTest->getLowerBound();
+    double x2 = f_wrap._intervalTest->getUpperBound();
 
     const int numIntervals = 20;
 

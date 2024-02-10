@@ -20,7 +20,7 @@ void Readme_ode_solvers()
     std::cout << "***********************************************************************" << std::endl;
 
     // in-place definition of Lorenz system (have to fix parameters!)
-    ODESystem LorenzSystem(3, [](double t, const Vector<Real>& y, Vector<Real>& dydt)
+    ODESystem LorenzSystem(3, [](Real t, const Vector<Real>& y, Vector<Real>& dydt)
     {
         double sigma = 10.0, rho = 28.0, beta = 8.0 / 3.0;
         dydt[0] = sigma * (y[1] - y[0]);

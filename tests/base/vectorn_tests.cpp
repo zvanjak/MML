@@ -42,7 +42,7 @@ TEST_CASE("VectorN_init_to_value", "[simple]") {
 }
 
 TEST_CASE("VectorN_init_from_std::vector", "[simple]") {
-	std::vector<double> x{1.0, 2.0, 3.0};
+	std::vector<Real> x{1.0, 2.0, 3.0};
     VectorN<Real,3> a(x);
 
 	REQUIRE(3 == a.size());
@@ -53,7 +53,7 @@ TEST_CASE("VectorN_init_from_std::vector", "[simple]") {
 }
 
 TEST_CASE("VectorN_init_from_double_array", "[simple]") {
-	double x[] = {1.0, 2.0, 3.0};
+	Real x[] = {1.0, 2.0, 3.0};
     VectorN<Real, 3> a(x);
 
 	REQUIRE(3 == a.size());
@@ -71,7 +71,6 @@ TEST_CASE("Test_VectorN_IsEqual", "[simple]") {
     REQUIRE(false == a.IsEqual(b, 1e-8));
 }
 
-// zbrajanje, oduzimanje
 TEST_CASE("Test_VectorN_Op+-", "[simple]") {
     Vector2Dbl a({1.0, 2.0});
     Vector2Dbl b({1.0, 2.0});
@@ -86,7 +85,6 @@ TEST_CASE("Test_VectorN_Op+-", "[simple]") {
 	REQUIRE(0.0 ==  d[1]);
 }
 
-// op. sa skalaraom
 TEST_CASE("Test_VectorN_mul_double", "[simple]") {
     Vector2Dbl a({1.0, 100.0});
 

@@ -14,7 +14,7 @@ static bool AreEqual(const Vector<Complex> &a, const Vector<Complex> &b, double 
 ~~~c++
 static Vector<Real> VectorProjectionParallelTo(const Vector<Real> &orig, const Vector<Real> &b);
 static Vector<Real> VectorProjectionPerpendicularTo(const Vector<Real> &orig, const Vector<Real> &b);
-template<class _Type> static Matrix<_Type> OuterProduct(const Vector<_Type> &a, const Vector<_Type> &b);
+template<class Type> static Matrix<Type> OuterProduct(const Vector<Type> &a, const Vector<Type> &b);
 ~~~
 
 ## Vector\<Complex> - Vector\<Real> operations
@@ -33,20 +33,20 @@ const static inline MatrixNM<Complex, 2, 2> Pauli[];
 const static inline MatrixNM<Complex, 4, 4> DiracGamma[];
 
 /////////////////////             Creating Matrix from Vector             ///////////////////
-template<class _Type> static Matrix<_Type> RowMatrixFromVector(const Vector<_Type> &b)
-template<class _Type> static Matrix<_Type> ColumnMatrixFromVector(const Vector<_Type> &b)
-template<class _Type> static Matrix<_Type> DiagonalMatrixFromVector(const Vector<_Type> &b)
+template<class Type> static Matrix<Type> RowMatrixFromVector(const Vector<Type> &b)
+template<class Type> static Matrix<Type> ColumnMatrixFromVector(const Vector<Type> &b)
+template<class Type> static Matrix<Type> DiagonalMatrixFromVector(const Vector<Type> &b)
 
-template<class _Type> static Matrix<_Type> Commutator(const Matrix<_Type> &a, const Matrix<_Type> &b)
-template<class _Type> static Matrix<_Type> AntiCommutator(const Matrix<_Type> &a, const Matrix<_Type> &b)
+template<class Type> static Matrix<Type> Commutator(const Matrix<Type> &a, const Matrix<Type> &b)
+template<class Type> static Matrix<Type> AntiCommutator(const Matrix<Type> &a, const Matrix<Type> &b)
 
-template<class _Type> static void MatrixDecompose(const Matrix<_Type> &orig, Matrix<_Type> &outSym, Matrix<_Type> &outAntiSym)
+template<class Type> static void MatrixDecompose(const Matrix<Type> &orig, Matrix<Type> &outSym, Matrix<Type> &outAntiSym)
 ~~~
 
 ## Matrix functions
 
 ~~~c++
-template<class _Type> static Matrix<_Type> Exp(const Matrix<_Type> &a, int n = 10)
+template<class Type> static Matrix<Type> Exp(const Matrix<Type> &a, int n = 10)
 ~~~
 
 ## Real matrix helpers

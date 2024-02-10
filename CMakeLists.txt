@@ -8,8 +8,6 @@ add_compile_definitions(MML_USE_SINGLE_HEADER)
 
 set( MML_DEMO_SOURCES   src/demo_app_main.cpp 
 
-                        src/utilities/demo_intervals.cpp
-
                         src/base/demo_algebra.cpp
                         src/base/demo_baseutils.cpp
                         src/base/demo_geometry.cpp
@@ -45,6 +43,7 @@ set( MML_DEMO_SOURCES   src/demo_app_main.cpp
                         src/core/demo_function_space.cpp
                         src/core/demo_interpolators.cpp
                         src/core/demo_surfaces.cpp
+                        src/core/demo_intervals.cpp
 
                         src/algorithms/demo_diff_geometry.cpp
                         src/algorithms/demo_eigen_solvers.cpp                                
@@ -53,6 +52,8 @@ set( MML_DEMO_SOURCES   src/demo_app_main.cpp
                         src/algorithms/demo_path_integration.cpp
                         src/algorithms/demo_root_finding.cpp
                         src/algorithms/demo_statistics.cpp
+                        src/algorithms/demo_surface_integration.cpp
+                        src/algorithms/demo_volume_integration.cpp
 
                         src/testing_speed/test_speed_functions.cpp
                         src/testing_speed/test_speed_derivation.cpp
@@ -122,13 +123,17 @@ file(GLOB MML_TESTS tests/base/algebra_tests.cpp
                     tests/base/baseutils_tests.cpp
                     tests/base/geometry_tests.cpp
                     tests/base/matrix_tests.cpp
-                    tests/base/matrix_other_tests.cpp
+                    tests/base/matrix_sym_tests.cpp
+                    tests/base/matrix_tridiag_tests.cpp
+                    tests/base/matrix_banddiag_tests.cpp
                     tests/base/matrixNM_tests.cpp
                     tests/base/tensors_tests.cpp
                     tests/base/vector_tests.cpp
                     tests/base/vectorN_tests.cpp 
+                    tests/base/vector_types_tests.cpp 
                     tests/base/geometry_2d_tests.cpp
                     tests/base/geometry_3d_tests.cpp
+                    tests/base/polynom_tests.cpp
 
                     tests/core/coord_transf_tests.cpp
                     tests/core/derivation_tests.cpp                    
@@ -138,9 +143,9 @@ file(GLOB MML_TESTS tests/base/algebra_tests.cpp
                     tests/core/functional_tests.cpp
                     tests/core/integration_tests.cpp
                     tests/core/interpolated_functions_tests.cpp
+                    tests/core/intervals_tests.cpp
                     tests/core/linear_alg_eq_solvers_tests.cpp 
                     tests/core/matrixutils_tests.cpp
-                    tests/core/polynom_tests.cpp
                     tests/core/metric_tensor_tests.cpp
                     tests/core/coord_system_tests.cpp
                     tests/core/function_space_tests.cpp
@@ -155,8 +160,6 @@ file(GLOB MML_TESTS tests/base/algebra_tests.cpp
 
                     tests/precision/derivation_precision_tests.cpp 
                     tests/precision/integration_precision_tests.cpp 
-
-                    tests/utilities/intervals_tests.cpp
 )
 
 add_executable(MML_Tests "tests/mml_test_runner.cpp" ${MML_TESTS} )

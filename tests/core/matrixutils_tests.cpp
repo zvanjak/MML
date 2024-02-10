@@ -67,7 +67,7 @@ TEST_CASE("Test MatrixUtils::Det")
 
 }
 
-TEST_CASE("Test Rank")
+TEST_CASE("Test Rank on TestBeds matrices")
 {
     Matrix<Real> A(3, 3, {1,2,3,4,5,6,7,8,9});
 

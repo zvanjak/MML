@@ -18,13 +18,13 @@ namespace MML::TestBeds
     {
         std::string _surfaceName;
         std::string _surfaceExpr;
-        double _x1, _x2;
-        double _y1, _y2;
+        Real _x1, _x2;
+        Real _y1, _y2;
 
         MML::ParametricSurface<3> _surface;
 
-        TestParametricSurface3( std::string surfaceName, std::string surfaceExpr, double x1, double x2, double y1, double y2,
-                                VectorN<Real,3> (*f1)(double, double)
+        TestParametricSurface3( std::string surfaceName, std::string surfaceExpr, Real x1, Real x2, Real y1, Real y2,
+                                VectorN<Real,3> (*f1)(Real, Real)
                               ) : _x1(x1), _x2(x2), _surfaceName(surfaceName), _surfaceExpr(surfaceExpr), 
                                   _surface(f1)
         {}
@@ -50,7 +50,7 @@ namespace MML::TestBeds
     private:
         const static inline TestParametricSurface3 _listSurfaces[] = { 
                 {"Test", "{cos(t), sin(t), t}", 0.0, 2.0 * Constants::PI, 0.0, 2.0 * Constants::PI, 
-                        [](double u, double v) { return VectorN<Real,3>{ cos(u), sin(u), u}; } 
+                        [](Real u, Real v) { return VectorN<Real,3>{ cos(u), sin(u), u}; } 
                 }
         };     
     };
@@ -76,10 +76,10 @@ namespace MML::TestBeds
         const static inline TestParametricSurface3 _listSurfaces[] = { 
                 // TODO 0.8 - treba modelirati preciznije domenu u x-y ravnini, za sferu
                 {"UpperUnitSphere", "todo", -1.0, 1.0, -1.0, 1.0, 
-                                    [](double x, double y) { return VectorN<Real,3>{ x, y, x*x+y*y>1.0 ? 0.0 : sqrt(1 - x*x - y*y)}; } 
+                                    [](Real x, Real y) { return VectorN<Real,3>{ x, y, x*x+y*y > (Real) 1.0 ? (Real) 0.0 : sqrt(1 - x*x - y*y)}; } 
                 },
                 {"Monkey saddle", "todo", -1.0, 1.0, -1.0, 1.0, 
-                                    [](double x, double y) { return VectorN<Real,3>{ x, y, x * (x*x - 3 * y*y)}; } 
+                                    [](Real x, Real y) { return VectorN<Real,3>{ x, y, x * (x*x - 3 * y*y)}; } 
                 }
         };     
     };    

@@ -17,15 +17,15 @@ namespace MML::TestBeds
         std::string _funcName;
 
         ScalarFunction<N> _func;
-        double (*_funcDerived)(const VectorN<Real, N> &, int ind);
+        Real (*_funcDerived)(const VectorN<Real, N> &, int ind);
 
         std::string _funcExpr;
         std::string _funcDerivedExpr;
         // gradijent
 
         TestFunctionScalar(std::string funcName,
-                            double (*f1)(const VectorN<Real, N> &), std::string funcExpr, 
-                            double (*f2)(const VectorN<Real, N> &, int ind), std::string funcDerivedExpr
+                            Real (*f1)(const VectorN<Real, N> &), std::string funcExpr, 
+                            Real (*f2)(const VectorN<Real, N> &, int ind), std::string funcDerivedExpr
                             ) : _funcName(funcName),
                                 _func(f1), _funcDerived(f2), 
                                 _funcExpr(funcExpr), _funcDerivedExpr(funcDerivedExpr)
@@ -34,19 +34,19 @@ namespace MML::TestBeds
 
     // TODO - nekoliko primjera različitih realnih skalarnih polja - potencijali
     
-    static double TestScalarFunc1(const VectorN<Real, 3> &x) { return cos(x[0]) + sin(x[1]) + exp(x[2]); }
-    static double TestScalarFunc1_derived(const VectorN<Real, 3> &x, int ind) 
+    static Real TestScalarFunc1(const VectorN<Real, 3> &x) { return cos(x[0]) + sin(x[1]) + exp(x[2]); }
+    static Real TestScalarFunc1_derived(const VectorN<Real, 3> &x, int ind) 
     { 
         if( ind == 0 ) return -sin(x[0]);
         else if( ind == 1 ) return cos(x[1]);
         else return exp(x[2]);
     }
-    static double TestScalarFunc2(const VectorN<Real, 3> &x) { return sin(x[0] * x[1]) * exp(x[2] / (x[1] * x[1] +1 )) / (1 + x[0] * x[0]); }
-    static double TestScalarFunc2_derived(const VectorN<Real, 3> &xVal, int ind) 
+    static Real TestScalarFunc2(const VectorN<Real, 3> &x) { return sin(x[0] * x[1]) * exp(x[2] / (x[1] * x[1] +1 )) / (1 + x[0] * x[0]); }
+    static Real TestScalarFunc2_derived(const VectorN<Real, 3> &xVal, int ind) 
     { 
-        double x = xVal[0];
-        double y = xVal[1];
-        double z = xVal[2];
+        Real x = xVal[0];
+        Real y = xVal[1];
+        Real z = xVal[2];
         if( ind == 0 ) return (exp(z / (y*y + 1)) * ((x*x + 1) * y * cos(x * y) - 2 * x * sin(x * y)))/pow((x*x + 1),2);
         else if( ind == 1 ) return (exp(z/(y*y + 1)) * (x * pow((y*y + 1),2) * cos(x * y) - 2 * y * z * sin(x * y)))/((x*x + 1) * pow((y*y + 1),2));
         else return (exp(z/(y*y + 1)) * sin(x * y))/((x*x + 1) * (y*y + 1));

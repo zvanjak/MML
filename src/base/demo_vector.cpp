@@ -15,17 +15,17 @@ void Demo_Vector()
     std::cout << "****                            VECTOR                             ****" << std::endl;
     std::cout << "***********************************************************************" << std::endl;
     
-    std::vector<double> std_vec{-1.0, 5.0, -2.0, 10.0, 4.0};
+    std::vector<Real> std_vec{-1.0, 5.0, -2.0, 10.0, 4.0};
     float  arr[5] = {-1.0, 5.0, -2.0, 10.0, 4.0};
 
-    Vector<double>   vec_dbl_1(5);                       // init vector with 5 elements
-    VectorDbl        vec_dbl_2(5, 3.14159);              // init with constant value
-    VecD             vec_dbl_3({ 1.0, 2.0, 3.0 });       // init with list of values
-    Vector<double>   vec_dbl_4(vec_dbl_3);               // init with copy ctor
-    Vector<double>   vec_dbl_5 = vec_dbl_2;              // init with assignment
-    Vector<double>   vec_dbl_6(std_vec);                 // init with std::vector<>
-    VectorFlt        vec_flt_1(5, arr);                  // init with C/C++ array
-    Vector<double>   vec_unit(5, 3);                     // unit vector with 1.0 at index 3
+    Vector<Real>    vec_dbl_1(5);                       // init vector with 5 elements
+    VectorDbl       vec_dbl_2(5, 3.14159);              // init with constant value
+    VecD            vec_dbl_3({ 1.0, 2.0, 3.0 });       // init with list of values
+    Vector<Real>    vec_dbl_4(vec_dbl_3);               // init with copy ctor
+    Vector<Real>    vec_dbl_5 = vec_dbl_2;              // init with assignment
+    Vector<Real>    vec_dbl_6(std_vec);                 // init with std::vector<>
+    VectorFlt       vec_flt_1(5, arr);                  // init with C/C++ array
+    Vector<Real>    vec_unit(5, 3);                     // unit vector with 1.0 at index 3
 
     Vector<Complex>  vec_cmplx_1({ 1.0, 2.0, 3.0 });     // init with list of real values
     VecC             vec_cmplx_2({ Complex(1,1), 
@@ -66,7 +66,7 @@ void Demo_Vector()
     }
 
     std::cout << "\nVector operations:" << std::endl;
-    Vector<double> vec_dbl_4_almost_equal(vec_dbl_4);
+    Vector<Real> vec_dbl_4_almost_equal(vec_dbl_4);
     vec_dbl_4_almost_equal[0] = vec_dbl_4_almost_equal[0] + 1e-6;
     std::cout << "vec_dbl_4              = " << vec_dbl_4 << std::endl;
     std::cout << "vec_dbl_4_almost_equal = " << vec_dbl_4_almost_equal << std::endl;

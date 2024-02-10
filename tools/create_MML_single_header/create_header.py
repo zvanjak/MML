@@ -62,15 +62,17 @@ listFiles = ["./include/MMLBase.h",
             "./include/core/PermutationGroup.h",
 
             "./include/core/Serializer.h",
+            "./include/core/Vizualizer.h",
 
             "./include/algorithms/PathIntegration.h",
             "./include/algorithms/SurfaceIntegration.h",
+            "./include/algorithms/VolumeIntegration.h",
             "./include/algorithms/EigenSystemSolvers.h",
             "./include/algorithms/ODESystemSteppers.h",
             "./include/algorithms/ODESystemSteppers_Stiff.h",
             "./include/algorithms/ODESystemSolver.h",
-            "./include/algorithms/DiffGeometryAlgorithms.h",
-            "./include/algorithms/FunctionAnalyzer.h",
+            "./include/algorithms/ParametricCurveAnalyzer.h",
+            "./include/algorithms/FunctionAnalyzers.h",
             "./include/algorithms/Fourier.h",
             "./include/algorithms/RootFinding.h",
             "./include/algorithms/RootFindingMultidim.h",
@@ -81,10 +83,6 @@ listFiles = ["./include/MMLBase.h",
             "./include/systems/DiffEqSystem.h"]
 
 fSingleHeaderFile = open("./include/single_header/MML.h", "w")
-
-# definirati #ifdef -> prebaceno u standard headers
-# fSingleHeaderFile.write("#ifndef MML_SINGLE_HEADER\n")
-# fSingleHeaderFile.write("#define MML_SINGLE_HEADER\n\n")
 
 # iskopirati standard headers 
 fStdHeaders = open("./tools/create_MML_single_header/MMLStandardHeaders.h", "r")

@@ -19,7 +19,7 @@ using namespace MML;
 
 ////////////////////////////////////////////////////////////
 ////                Simple func pointer
-double DemoDerRealFunc_TestFunc(double x) 
+Real DemoDerRealFunc_TestFunc(Real x) 
 { 
     return sin(x)*(1.0 + 0.5*x*x); 
 }
@@ -30,20 +30,20 @@ void Demo_Derivation_func_ptr()
     RealFunction f1(DemoDerRealFunc_TestFunc);
 
     // or creating a function object directly
-    RealFunction f2{[](double x) { return sin(x)*(1.0 + 0.5*x*x); } };
+    RealFunction f2{[](Real x) { return sin(x)*(1 + x*x / 2); } };
 
     // creating a function object from a std::function object
-    std::function<double(double)> h{[](double x) { return sin(x)*(1.0 + 0.5*x*x); } };
+    std::function<Real(Real)> h{[](Real x) { return sin(x)*(1 + x*x / 2); } };
     RealFunctionFromStdFunc f3(h);
 
-    double der_f12 = Derivation::NDer2(f1, 0.5);
-    double der_f14 = Derivation::NDer4(f1, 0.5);
-    double der_f18 = Derivation::NDer8(f1, 0.5);
-    double der_f21 = Derivation::NDer1(f2, 0.5);
-    double der_f36 = Derivation::NDer6(f3, 0.5);
+    Real der_f12 = Derivation::NDer2(f1, 0.5);
+    Real der_f14 = Derivation::NDer4(f1, 0.5);
+    Real der_f18 = Derivation::NDer8(f1, 0.5);
+    Real der_f21 = Derivation::NDer1(f2, 0.5);
+    Real der_f36 = Derivation::NDer6(f3, 0.5);
 
     // we can use default Derive routine (default set to NDer4)
-    double num_der4 = Derivation::Derive(f1, 0.5, nullptr);
+    Real num_der4 = Derivation::Derive(f1, 0.5, nullptr);
 }
 
 ////////////////////////////////////////////////////////////
@@ -53,39 +53,39 @@ void Demo_Derivation_func_ptr()
 class ClassProvidingFuncToDerive
 {
     private:
-        double _param;
+        Real _param;
     public:
-        ClassProvidingFuncToDerive(double param) : _param(param) { }
+        ClassProvidingFuncToDerive(Real param) : _param(param) { }
     
-        double operator()(double x ) const { return _param * sin(x); }
+        Real operator()(Real x ) const { return _param * sin(x); }
 };
 
 void Demo_Derivation_member_fun()
 {
     ClassProvidingFuncToDerive   funcObj(3.0);
     
-    RealFunctionFromStdFunc g(std::function<double(double)>{funcObj});
+    RealFunctionFromStdFunc g(std::function<Real(Real)>{funcObj});
     
-    double der_g = Derivation::NDer4(g, 0.5);
+    Real der_g = Derivation::NDer4(g, 0.5);
 }
 
 // Option 2 - make your class inherit IRearFunction interface, and use the object itself as RealFunction
 class ClassProvidingFuncToDerive2 : public IRealFunction
 {
     private:
-        double _param;
+        Real _param;
     public:
-        ClassProvidingFuncToDerive2(double param) : _param(param) { }
+        ClassProvidingFuncToDerive2(Real param) : _param(param) { }
     
         // just provide operator() for your class
-        double operator()(double x ) const { return _param * sin(x); }
+        Real operator()(Real x ) const { return _param * sin(x); }
 };
 
 void Demo_Derivation_member_fun1()
 {
     ClassProvidingFuncToDerive2   funcObj(3.0);
     
-    double der_g = Derivation::NDer4(funcObj, 0.5);
+    Real der_g = Derivation::NDer4(funcObj, 0.5);
 }
 
 ////////////////////////////////////////////////////////////
@@ -102,9 +102,9 @@ class BigComplexDerivFunc
 public:
     BigComplexDerivFunc(const BigComplexClassYouCantChange &bigClass) : _ref(bigClass) { }
 
-    double operator()(double x ) 
+    Real operator()(Real x ) 
     {
-        double val = 0.0; 
+        Real val = 0.0; 
         // complex calculations using _ref
         return val; 
     }
@@ -113,10 +113,10 @@ public:
 void Demo_Derivation_member_fun2(const BigComplexClassYouCantChange &ref)
 {
     BigComplexDerivFunc         funcObj(ref);  
-    RealFunctionFromStdFunc     func_to_derive(std::function<double(double)>{funcObj});
+    RealFunctionFromStdFunc     func_to_derive(std::function<Real(Real)>{funcObj});
     
-    double der_1 = Derivation::NDer4(func_to_derive, 0.5);
-    double der_2 = Derivation::Derive(func_to_derive, 0.5, nullptr);
+    Real der_1 = Derivation::NDer4(func_to_derive, 0.5);
+    Real der_2 = Derivation::Derive(func_to_derive, 0.5, nullptr);
 }
 
 // Option 2 - Create a helper wrapper class, inherit from IRealFunction and use it as RealFunction
@@ -126,9 +126,9 @@ class BigComplexDerivFunc2 : public IRealFunction
 public:
     BigComplexDerivFunc2(const BigComplexClassYouCantChange &bigClass) : _ref(bigClass) { }
 
-    double operator()(double x ) const
+    Real operator()(Real x ) const
     {
-        double val = 0.0; 
+        Real val = 0.0; 
         // complex calculations using _ref
         return val; 
     }
@@ -138,8 +138,8 @@ void Demo_Derivation_member_fun3(const BigComplexClassYouCantChange &ref)
 {
     BigComplexDerivFunc2    funcObj(ref);  
     
-    double der_1 = Derivation::NDer4(funcObj, 0.5);
-    double der_2 = Derivation::Derive(funcObj, 0.5, nullptr);
+    Real der_1 = Derivation::NDer4(funcObj, 0.5);
+    Real der_2 = Derivation::Derive(funcObj, 0.5, nullptr);
 }
 
 ////////////////////////////////////////////////////////////
@@ -150,15 +150,15 @@ class BigComplexDerivMultipleFunc
 public:
     BigComplexDerivMultipleFunc(const BigComplexClassYouCantChange &bigClass) : _ref(bigClass) { }
 
-    double func1(double x ) 
+    Real func1(Real x ) 
     {
-        double val = 0.0; 
+        Real val = 0.0; 
         // first complex calculations using _ref
         return val; 
     }
-    double func2(double x ) 
+    Real func2(Real x ) 
     {
-        double val = 0.0; 
+        Real val = 0.0; 
         // second complex calculations using _ref
         return val; 
     }
@@ -167,11 +167,11 @@ public:
 void Demo_Derivation_member_fun4(const BigComplexClassYouCantChange &ref)
 {
     BigComplexDerivMultipleFunc     funcObj(ref);  
-    RealFunctionFromStdFunc         func_to_derive1(std::function<double(double)>{std::bind(&BigComplexDerivMultipleFunc::func1, funcObj, std::placeholders::_1)});
-    RealFunctionFromStdFunc         func_to_derive2(std::function<double(double)>{std::bind(&BigComplexDerivMultipleFunc::func2, funcObj, std::placeholders::_1)});
+    RealFunctionFromStdFunc         func_to_derive1(std::function<Real(Real)>{std::bind(&BigComplexDerivMultipleFunc::func1, funcObj, std::placeholders::_1)});
+    RealFunctionFromStdFunc         func_to_derive2(std::function<Real(Real)>{std::bind(&BigComplexDerivMultipleFunc::func2, funcObj, std::placeholders::_1)});
     
-    double der_1 = Derivation::NDer4(func_to_derive1, 0.5);
-    double der_2 = Derivation::Derive(func_to_derive2, 0.5, nullptr);
+    Real der_1 = Derivation::NDer4(func_to_derive1, 0.5);
+    Real der_2 = Derivation::Derive(func_to_derive2, 0.5, nullptr);
 }
 
 ////////////////////////////////////////////////////////////
@@ -179,46 +179,46 @@ void Demo_Derivation_member_fun4(const BigComplexClassYouCantChange &ref)
 void Demo_Derivation_Interpolated_RealFunc()
 {
     // creating interpolated function
-    Vector<double> x_val(100);
-    Vector<double> y_val(100);
+    Vector<Real> x_val(100);
+    Vector<Real> y_val(100);
     for( int i=0; i<100; i++ )
     {
         x_val[i] = i / 100.0;
-        y_val[i] = sin(x_val[i])*(1.0 + 0.5*x_val[i]*x_val[i]);
+        y_val[i] = sin(x_val[i])*(1 + x_val[i]*x_val[i] / 2);
     }
 
     LinearInterpRealFunc f_linear(x_val, y_val);
 
-    double der_f1 = Derivation::NDer1(f_linear, 0.5);
-    double der_f2 = Derivation::NDer2(f_linear, 0.5);
-    double der_f3 = Derivation::NDer4(f_linear, 0.5);
-    double der_f4 = Derivation::NDer6(f_linear, 0.5);
-    double der_f5 = Derivation::NDer8(f_linear, 0.5);
-    double der_f6 = Derivation::Derive(f_linear, 0.5, nullptr);
+    Real der_f1 = Derivation::NDer1(f_linear, 0.5);
+    Real der_f2 = Derivation::NDer2(f_linear, 0.5);
+    Real der_f3 = Derivation::NDer4(f_linear, 0.5);
+    Real der_f4 = Derivation::NDer6(f_linear, 0.5);
+    Real der_f5 = Derivation::NDer8(f_linear, 0.5);
+    Real der_f6 = Derivation::Derive(f_linear, 0.5, nullptr);
 }
 
 void Demo_Derivation_RealFunc_Second_and_Third()
 {
     RealFunction f1(DemoDerRealFunc_TestFunc);
-    RealFunction f2{[](double x) { return sin(x)*(1.0 + 0.5*x*x); } };
+    RealFunction f2{[](Real x) { return sin(x)*(1 + x*x / 2); } };
     
-    std::function<double(double)>   h{[](double x) { return sin(x)*(1.0 + 0.5*x*x); } };
-    RealFunctionFromStdFunc         f3(h);
+    std::function<Real(Real)>   h{[](Real x) { return sin(x)*(1 + x*x / 2); } };
+    RealFunctionFromStdFunc     f3(h);
 
     ClassProvidingFuncToDerive      funcObj(3.0);
     RealFunctionFromStdFunc         f4(std::function<double(double)>{funcObj});
 
-    double sec_der_f1 = Derivation::NSecDer1(f1, 0.5);
-    double sec_der_f2 = Derivation::NSecDer2(f2, 0.5);
-    double sec_der_f3 = Derivation::NSecDer4(f3, 0.5);
-    double sec_der_f4 = Derivation::NSecDer6(f4, 0.5);
-    double sec_der_f5 = Derivation::DeriveSec(f1, 0.5, nullptr);
+    Real sec_der_f1 = Derivation::NSecDer1(f1, 0.5);
+    Real sec_der_f2 = Derivation::NSecDer2(f2, 0.5);
+    Real sec_der_f3 = Derivation::NSecDer4(f3, 0.5);
+    Real sec_der_f4 = Derivation::NSecDer6(f4, 0.5);
+    Real sec_der_f5 = Derivation::DeriveSec(f1, 0.5, nullptr);
 
-    double third_der_f1 = Derivation::NThirdDer1(f1, 0.5);
-    double third_der_f2 = Derivation::NThirdDer2(f2, 0.5);
-    double third_der_f3 = Derivation::NThirdDer4(f3, 0.5);
-    double third_der_f4 = Derivation::NThirdDer6(f4, 0.5);
-    double third_der_f5 = Derivation::DeriveThird(f1, 0.5, nullptr);
+    Real third_der_f1 = Derivation::NThirdDer1(f1, 0.5);
+    Real third_der_f2 = Derivation::NThirdDer2(f2, 0.5);
+    Real third_der_f3 = Derivation::NThirdDer4(f3, 0.5);
+    Real third_der_f4 = Derivation::NThirdDer6(f4, 0.5);
+    Real third_der_f5 = Derivation::DeriveThird(f1, 0.5, nullptr);
 }
 
 // TODO - simple precision comparison for selected function
@@ -233,26 +233,26 @@ void Demo_Derivation_RealFunc_precision_comparison()
 /*****************************************************************************************/
 void Demo_Derivation_Scalar_func_partial()
 {
-    ScalarFunction<3> f{[](const VectorN<double, 3> &x) { return sin(x[0])*(1.0 + 0.5*x[1]*x[2]); } };
+    ScalarFunction<3> f{[](const VectorN<Real, 3> &x) { return sin(x[0])*(1 + x[1]*x[2] / 2); } };
 
-    VectorN<double, 3> pos{0.5, 0.5, 0.5};
+    VectorN<Real, 3> pos{0.5, 0.5, 0.5};
 
-    double der_f1 = Derivation::NDer1Partial(f, 0, pos);
-    double der_f2 = Derivation::NDer1Partial(f, 1, pos);
-    double der_f3 = Derivation::NDer1Partial(f, 2, pos);
+    Real der_f1 = Derivation::NDer1Partial(f, 0, pos);
+    Real der_f2 = Derivation::NDer1Partial(f, 1, pos);
+    Real der_f3 = Derivation::NDer1Partial(f, 2, pos);
 
-    VectorN<double, 3> der_f_all = Derivation::NDer1PartialByAll<3>(f, pos, nullptr);
+    VectorN<Real, 3> der_f_all = Derivation::NDer1PartialByAll<3>(f, pos, nullptr);
 }
 
 void Demo_Derivation_Scalar_func_second()
 {
-    ScalarFunction<3> f{[](const VectorN<double, 3> &x) { return sin(x[0])*(1.0 + 0.5*x[1]*x[2]); } };
+    ScalarFunction<3> f{[](const VectorN<Real, 3> &x) { return sin(x[0])*(1 + x[1]*x[2] / 2); } };
 
-    VectorN<double, 3> pos{0.5, 0.5, 0.5};
+    VectorN<Real, 3> pos{0.5, 0.5, 0.5};
 
-    double der_d2f_dxdx = Derivation::NSecDer1Partial(f, 0, 0, pos);
-    double der_d2f_dydy = Derivation::NSecDer1Partial(f, 1, 1, pos);
-    double der_d2f_dzdx = Derivation::NSecDer1Partial(f, 2, 0, pos);
+    Real der_d2f_dxdx = Derivation::NSecDer1Partial(f, 0, 0, pos);
+    Real der_d2f_dydy = Derivation::NSecDer1Partial(f, 1, 1, pos);
+    Real der_d2f_dzdx = Derivation::NSecDer1Partial(f, 2, 0, pos);
 }
 
 /*****************************************************************************************/
@@ -260,23 +260,23 @@ void Demo_Derivation_Scalar_func_second()
 /*****************************************************************************************/
 void Demo_Derivation_Vector_func()
 {
-    VectorFunction<3> f{[](const VectorN<double, 3> &x) { return VectorN<double, 3>{sin(x[0]), cos(x[1]), x[2]}; } };
+    VectorFunction<3> f{[](const VectorN<Real, 3> &x) { return VectorN<Real, 3>{sin(x[0]), cos(x[1]), x[2]}; } };
 
-    VectorN<double, 3> pos{0.5, 0.5, 0.5};
+    VectorN<Real, 3> pos{0.5, 0.5, 0.5};
 
     double der_f11 = Derivation::NDer1Partial(f, 0, 0, pos);
 
-    VectorN<double, 3> der_f1 = Derivation::NDer1PartialByAll(f, 0, pos);
-    VectorN<double, 3> der_f2 = Derivation::NDer1PartialByAll(f, 1, pos);
-    VectorN<double, 3> der_f3 = Derivation::NDer1PartialByAll(f, 2, pos);
+    VectorN<Real, 3> der_f1 = Derivation::NDer1PartialByAll(f, 0, pos);
+    VectorN<Real, 3> der_f2 = Derivation::NDer1PartialByAll(f, 1, pos);
+    VectorN<Real, 3> der_f3 = Derivation::NDer1PartialByAll(f, 2, pos);
 
-    MatrixNM<double, 3, 3> der_f_all = Derivation::NDer1PartialAllByAll<3>(f, pos, nullptr);
+    MatrixNM<Real, 3, 3> der_f_all = Derivation::NDer1PartialAllByAll<3>(f, pos, nullptr);
 
-    VectorN<double, 3> der_f1_2 = Derivation::NDer2PartialByAll(f, 0, pos);
-    VectorN<double, 3> der_f2_2 = Derivation::NDer2PartialByAll(f, 1, pos);
-    VectorN<double, 3> der_f3_2 = Derivation::NDer2PartialByAll(f, 2, pos);
+    VectorN<Real, 3> der_f1_2 = Derivation::NDer2PartialByAll(f, 0, pos);
+    VectorN<Real, 3> der_f2_2 = Derivation::NDer2PartialByAll(f, 1, pos);
+    VectorN<Real, 3> der_f3_2 = Derivation::NDer2PartialByAll(f, 2, pos);
 
-    MatrixNM<double, 3, 3> der_f_all_2 = Derivation::NDer2PartialAllByAll<3>(f, pos, nullptr);    
+    MatrixNM<Real, 3, 3> der_f_all_2 = Derivation::NDer2PartialAllByAll<3>(f, pos, nullptr);    
     
 }
 
@@ -286,14 +286,14 @@ void Demo_Derivation_Vector_func()
 void Demo_Derivation_Tensor_field()
 {
     MetricTensorCartesian<3> metricCart;
-    VectorN<double, 3> pos{0.5, 0.5, 0.5};
+    VectorN<Real, 3> pos{0.5, 0.5, 0.5};
 
     for(int i=0; i<3; i++)
         for(int j=0; j<3; j++)
         {
-            double g_der_ij_x = Derivation::NDer1Partial(metricCart, i, j, 0, pos);
-            double g_der_ij_y = Derivation::NDer2Partial(metricCart, i, j, 1, pos);
-            double g_der_ij_z = Derivation::NDer4Partial(metricCart, i, j, 2, pos);
+            Real g_der_ij_x = Derivation::NDer1Partial(metricCart, i, j, 0, pos);
+            Real g_der_ij_y = Derivation::NDer2Partial(metricCart, i, j, 1, pos);
+            Real g_der_ij_z = Derivation::NDer4Partial(metricCart, i, j, 2, pos);
         }
 }
 
@@ -303,7 +303,7 @@ void Demo_Derivation_Tensor_field()
 void Demo_Derivation_Parametric_curve()
 {
     // circle in plane
-    ParametricCurve<2> f{[](double t) { return VectorN<double, 2>{sin(t), cos(t)}; } };
+    ParametricCurve<2> f{[](Real t) { return VectorN<Real, 2>{sin(t), cos(t)}; } };
 
     VectorN<Real, 2> der_f1 = Derivation::NDer1(f, 0.5);
     VectorN<Real, 2> der_f2 = Derivation::NDer2(f, 0.5);
@@ -315,7 +315,7 @@ void Demo_Derivation_Parametric_curve()
 void Demo_Derivation_Parametric_curve_second_and_third()
 {
     // helix
-    ParametricCurve<3> f{[](double t) { return VectorN<double, 3>{sin(t), cos(t), t}; } };
+    ParametricCurve<3> f{[](Real t) { return VectorN<Real, 3>{sin(t), cos(t), t}; } };
 
     VectorN<Real, 3> der_f1 = Derivation::NDer1(f, 0.5);
     VectorN<Real, 3> der_f2 = Derivation::NDer2(f, 0.5);

@@ -1,5 +1,23 @@
 # Vector class
 
+Class representing vector of given type, with dynamic size.
+Based on std::vector, supports all expected arithmetic operations.
+
+**Interesting operations**
+~~~c++
+    void Resize(int newLen)
+    
+    VectorN GetAsUnitVector() const
+    bool IsEqual(const VectorN &b, Type eps) const
+
+    Type ScalarProductCartesian(const VectorN &b) const
+    Type AngleToVector(const VectorN &b) const
+    Type NormL2() const
+
+    void Print(std::ostream &out, int width, int precision) const
+    std::string to_string(int width, int precision) const
+~~~
+
 ## Initializing/creating vectors
 Vector class
 ~~~ c++

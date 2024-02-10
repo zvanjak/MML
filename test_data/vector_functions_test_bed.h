@@ -34,21 +34,21 @@ namespace MML::TestBeds
 
     static MML::VectorN<Real, 3> TestVectorFunc1(const VectorN<Real, 3> &xVal) 
     {
-        double x = xVal[0];
-        double y = xVal[1];
-        double z = xVal[2];
+        Real x = xVal[0];
+        Real y = xVal[1];
+        Real z = xVal[2];
 
-        double valx = x*cos(y)*z*z;
-        double valy = sin(x)*(y*y + z*z);
-        double valz = exp(x*y/(z*z+1));
+        Real valx = x*cos(y)*z*z;
+        Real valy = sin(x)*(y*y + z*z);
+        Real valz = exp(x*y/(z*z+1));
 
         return VectorN<Real, 3>{valx, valy, valz};
     }
     static MML::VectorN<Real, 3> TestVectorFunc1_derived(const VectorN<Real, 3> &xVal, int ind) 
     { 
-        double x = xVal[0];
-        double y = xVal[1];
-        double z = xVal[2];
+        Real x = xVal[0];
+        Real y = xVal[1];
+        Real z = xVal[2];
 // d/dx(x cos(y) z z) = z^2 cos(y)
 // d/dy(x cos(y) z z) = -x z^2 sin(y)
 // d/dz(x cos(y) z z) = 2 x z cos(y)
@@ -66,7 +66,7 @@ namespace MML::TestBeds
         else if( ind == 1 ) 
             return VectorN<Real, 3>{cos(x) * (y*y + z*z)                  , 2 * y * sin(x)                      , 2 * z * sin(x)};
         else 
-            return VectorN<Real, 3>{(y * exp((x * y)/(z*z + 1)))/(z*z + 1), x * exp((x * y)/(z*z + 1))/(z*z + 1), -(2 * x * y * z * exp((x * y)/(z*z + 1)))/pow((z*z + 1),2)};
+            return VectorN<Real, 3>{(y * exp((x * y)/(z*z + 1)))/(z*z + 1), x * exp((x * y)/(z*z + 1))/(z*z + 1), -(2 * x * y * z * exp((x * y)/(z*z + 1))) / (Real) pow((z*z + 1),2)};
     }
     
     class VectorFunctionsTestBed

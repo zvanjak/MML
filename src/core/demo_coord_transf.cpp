@@ -15,9 +15,9 @@ void Demo_GetUnitVector()
     Vector3Cartesian p1{2.0, 2.0, 5};
     auto   p1Spher = CoordTransfCartToSpher.transf(p1);
     
-    double r     = p1Spher[0];
-    double theta = p1Spher[1];
-    double phi   = p1Spher[2];
+    Real r     = p1Spher[0];
+    Real theta = p1Spher[1];
+    Real phi   = p1Spher[2];
 
     std::cout << "Point (cartesian)       : " << p1 << std::endl;
     std::cout << "Point (spherical - rad) : " << p1Spher << std::endl;

@@ -53,7 +53,7 @@ Calculations are performed in Cartesian and spherical coordinates, along circle 
     } };
 
     // calculating potential and force around circle
-    Curves::Circle3DXZ circle(10.0);
+    Curves3D::Circle3DXZ circle(10.0);
 
     // calculating field Gradient in Cart. and Spherical coordinates around circle
     std::cout << "         Position          Pot.(Cart)    Pot.(Spher)        Force exact (Cart. vector)              Force exact (Sph. vector)              Force num.grad (Cart.vector)        Force num.grad (Sph.vector)" << std::endl;

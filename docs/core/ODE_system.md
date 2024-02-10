@@ -1,11 +1,11 @@
 # ODE system
 
 - RKDumb
-- RK4
-- Doppler5
-- Doppler8
-- BulirschStoer
+- RK4 adaptive
+- Dormand-Prince Runge-Kutta 5th order
+- Dormand-Prince Runge-Kutta 8th order
+- Bulirsch-Stoer
 
 ## Stiff system
-- SemiImplicitEuler
+- Semi-Implicit Extrapolation method
 - Rosenbrock4

@@ -10,7 +10,7 @@
 #include "core/Curves.h"
 #include "core/Derivation.h"
 
-#include "algorithms/DiffGeometryAlgorithms.h"
+#include "algorithms/ParametricCurveAnalyzer.h"
 #endif
 
 #include "../test_data/parametric_curves_test_bed.h"
@@ -55,7 +55,7 @@ TEST_CASE("Test_Helix_Curvature", "[simple]")
     const ParametricCurve<3>  &schaum_curve = TestBeds::ParametricCurvesTestBed::getTestCurve(2)._curve;
     const RealFunction  &schaum_curve_curv = TestBeds::ParametricCurvesTestBed::getTestCurve(2)._curvatureFunc;
 
-    double curv = DiffGeometry::getCurvature(schaum_curve, 0.5);
+    double curv = ParametricCurveAnalyzer::getCurvature(schaum_curve, 0.5);
     REQUIRE( schaum_curve_curv(0.5) == Approx(curv) );
 }
 

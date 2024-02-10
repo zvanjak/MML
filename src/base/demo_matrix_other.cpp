@@ -23,6 +23,13 @@ void Demo_Matrix_Sym()
     MatrixSym<Real> a(3, {1.0, 2.0, 3.0, 4.0, 5.0, 6.0});
     
     a.Print(std::cout, 10, 3);
+
+    MatrixSym<Real> b(3, {1.0, 
+                          2.0, 3.0, 
+                          4.0, 5.0, 6.0}); 
+
+    b.Print(std::cout, 10, 3);
+
 }
 
 void Demo_Matrix_Tridiag()
@@ -58,8 +65,8 @@ void Demo_Matrix_Tridiag()
     Vector<Real> sol_a(4);
     Vector<Real> sol_b(4);
 
-    a.solve(rhs, sol_a);
-    b.solve(rhs, sol_b);
+    a.Solve(rhs, sol_a);
+    b.Solve(rhs, sol_b);
 
     std::cout << "sol_a: " << sol_a << std::endl;
     std::cout << "sol_b: " << sol_b << std::endl;

@@ -20,24 +20,24 @@ class InertialFrame3D : public ReferentialFrame3D
 class MovingFrame3D : public ReferentialFrame3D
 { 
     // getOriginPositionAtTime - vraca poziciju u odnosu na ReferentialFrame3D
-    // getSppedAtTime - vraca brzinu u odnosu na ReferentialFrame3D
+    // getSpeedAtTime - vraca brzinu u odnosu na ReferentialFrame3D
 };
 
 // TODO - CircleOrbitingCartesianFrame3DToSpherical
-// simulacija solarnog sustava u sfernim koordinatama oko centra mase
+// ovo je referentni frame koji se rotira oko nekog centra mase, i treba ga zamisliti kao kocku koja rotira oko CM
 class CircleOrbitingCartesianFrame3DToCartesian : public MovingFrame3D
 {
     // koristimo Cartesian sustav - vraca pozicije u odnosu na CM oko kojeg orbitira U CARTESIAN KOORDINATAMA
     // što ukoliko parametre orbite ne zelim u Cartesian sustavu? - nova klasa
 public:
-    double _radius;
-    double _speed;
-    double _period;
-    double _angle_at_t0;
+    Real _radius;
+    Real _speed;
+    Real _period;
+    Real _angle_at_t0;
     // axis, za 3d slucaj
     ReferentialFrame3D _parentFrame;
 
-    CircleOrbitingCartesianFrame3DToCartesian(ReferentialFrame3D parentFrame, double radius, double period)
+    CircleOrbitingCartesianFrame3DToCartesian(ReferentialFrame3D parentFrame, Real radius, Real period)
     {
         _radius = radius;
         // _speed = speed; // izracunati
@@ -45,7 +45,7 @@ public:
         _parentFrame = parentFrame;
         _angle_at_t0 = 0;
     }
-    CircleOrbitingCartesianFrame3DToCartesian(ReferentialFrame3D parentFrame, double radius, double period, double angle_at_t0)
+    CircleOrbitingCartesianFrame3DToCartesian(ReferentialFrame3D parentFrame, Real radius, Real period, Real angle_at_t0)
     {
         _radius = radius;
         // _speed = speed;
@@ -54,25 +54,29 @@ public:
         _parentFrame = parentFrame;
     }
 
-    Vector3Cartesian GetOriginPositionAtTime(double t)
+    // OVO JE KLJUCNA FUNKCIJA
+    Vector3Cartesian GetOriginPositionAtTime(Real t)
     {
-        // calculate evolution of position of center of mass
-        double angle = _angle_at_t0 + 2 * Constants::PI * t / _period;
+        // calculate rotational evolution of position of center of mass
+        Real angle = _angle_at_t0 + 2 * Constants::PI * t / _period;
+        // in z-plane!
         Vector3Cartesian CM_pos({_radius * cos(angle), _radius * sin(angle), 0});
 
         return CM_pos;
     }
     // za danu tocku zadanu Cartesian koordinatama u lokalnom sustavu
     // vraca Cartesian poziciju (u LOKALNOM frameu u odnosu na CM), nakon vremena T
-    Vector3Cartesian GetLocalPositionAtTime(Vector3Cartesian pos, double t)
+    Vector3Cartesian GetLocalPositionAtTime(Vector3Cartesian pos, Real t)
     {
         // calculate evolution of position of center of mass
         Vector3Cartesian CM_pos = GetOriginPositionAtTime(t);
 
         // add local coordinates to CM position
+        // BITNA PRETPOSTAVKA - kako naš sustav rotira oko CM, njegova apsolutna orijentacije se ne mijenja
+        // ie, Zemljina (lokalna) os rotacije je jednom nagnuta OD Sunca, a za sest mjeseci nagnuta PREMA Suncu
         return CM_pos + pos;
     }
-    Vector3Cartesian GetLocalPositionAtTime(Vector3Spherical pos, double t)
+    Vector3Cartesian GetLocalPositionAtTime(Vector3Spherical pos, Real t)
     {
         // calculate evolution of position of center of mass
         Vector3Cartesian CM_pos = GetOriginPositionAtTime(t);
@@ -87,20 +91,20 @@ class RotatingFrame3D : public ReferentialFrame3D
 {
     // ovaj frame koristi cilindrični sustav (generalna rotacija oko osi)
 public:
-    double _period;
-    double _angle_at_t0;
+    Real _period;
+    Real _angle_at_t0;
     VectorN<Real, 3> _axis;     // pretpostavljamo z-axis za pocetak
     ReferentialFrame3D _parentFrame;
 
-    RotatingFrame3D(ReferentialFrame3D parentFrame, double period, VectorN<Real, 3> axis)
+    RotatingFrame3D(ReferentialFrame3D parentFrame, Real period, VectorN<Real, 3> axis)
     {
         _period = period;
         _axis = axis;
         _parentFrame = parentFrame;
     }
-    VectorN<Real, 3> GetPositionAtTime(Vector3Cylindrical pos, double t)
+    VectorN<Real, 3> GetPositionAtTime(Vector3Cylindrical pos, Real t)
     {
-        double angle = 2 * Constants::PI * t / _period;
+        Real angle = 2 * Constants::PI * t / _period;
         return VectorN<Real, 3>({_axis[0] * cos(angle), _axis[1] * sin(angle), 0});
         // TODO
     }
@@ -110,10 +114,10 @@ class SphericalRotatingFrame : public RotatingFrame3D
 {
     // ovaj frame radi sa spherical koordinatama
 public:
-    SphericalRotatingFrame(ReferentialFrame3D parentFrame, double period, VectorN<Real, 3> axis) 
+    SphericalRotatingFrame(ReferentialFrame3D parentFrame, Real period, VectorN<Real, 3> axis) 
         : RotatingFrame3D(parentFrame, period, axis) {}
 
-    VectorN<Real, 3> GetPositionAtTime(Vector3Spherical pos, double t)
+    VectorN<Real, 3> GetPositionAtTime(Vector3Spherical pos, Real t)
     {
         return VectorN<Real, 3>({0,0,0});
     }
@@ -128,16 +132,16 @@ class HardSphereRotatingFrameToSpherical : public RotatingFrame3D
 public:
     double _radius;
     
-    HardSphereRotatingFrameToSpherical(ReferentialFrame3D parentFrame, double radius, double period, VectorN<Real, 3> axis) 
+    HardSphereRotatingFrameToSpherical(ReferentialFrame3D parentFrame, Real radius, Real period, VectorN<Real, 3> axis) 
         : _radius(radius), RotatingFrame3D(parentFrame, period, axis) {}
 
-    Vector3Cartesian GetOriginPositionAtTime(double t)
+    Vector3Cartesian GetOriginPositionAtTime(Real t)
     {
         return Vector3Cartesian({0,0,0});       // ne mice se!!!!
     }
 
     // za danu tocku u lokalnom sustavu, vraca spherical poziciju (u LOKALNOM frameu u odnosu na CM), nakon vremena T
-    Vector3Spherical GetPositionAtTime(double latitude, double longitude, double height, double t)
+    Vector3Spherical GetPositionAtTime(Real latitude, Real longitude, Real height, Real t)
     {
         // taking into consideration rotation of the sphere
         // calculate position after time t
@@ -171,12 +175,13 @@ void Demo_Coord_system()
     std::cout << "***********************************************************************" << std::endl;
     
     InertialFrame3D SolarSystemCMFrame;
-    CircleOrbitingCartesianFrame3DToCartesian EarthCMFrame(SolarSystemCMFrame, 150000, 365*24*3600);    // radijus kruženja (jeinica 10^6 m), period kruženja (s)
+    CircleOrbitingCartesianFrame3DToCartesian EarthCMFrame(SolarSystemCMFrame, 150000, 365*24*3600);    // radijus kruženja (jedinica 10^6 m, 1000km), period kruženja (s)
     
     // za bilo koji (x,y,z) u EarthCM frameu, mogu dobiti poziciju u SolarSystem frameu za vrijeme T
     
     // za bilo koji (r,theta,phi) u EarthCM frameu, mogu dobiti poziciju u SolarSystem frameu za vrijeme T
     // to me zanima, jer ce mi tako sustav Zemlje davati svoje lokalne koordinate
+    // problem - Zemlja se rotira!
 
     // sad kreiramo rotirajuci sustav Zemlje, s osi rotacije pod kutom 23 stupnja prema z-osi sustava CM
     // u trenuttku t=0, os rotacije je nagnuta u y-z ravnini

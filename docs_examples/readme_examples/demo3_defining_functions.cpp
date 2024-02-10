@@ -19,8 +19,8 @@ using namespace MML;
 
 /////////////////////////////////////////////////////////////////////////////////////
 // CASE 1 - standalone function providing calculation of a function
-double Readme_functions_TestFunc(double x) { 
-    return sin(x)*(1.0 + 0.5*x*x); 
+Real Readme_functions_TestFunc(Real x) { 
+    return sin(x)*(1 + x*x / 2); 
 }
 
 void Readme_defining_functions_case_1_usage()
@@ -33,14 +33,14 @@ void Readme_defining_functions_case_1_usage()
 // CASE 2 - create it directly with lambda
 void Readme_defining_functions_case_2_usage()
 {
-    RealFunction f2{[](double x) { return sin(x)*(1.0 + 0.5*x*x); } };
+    RealFunction f2{[](Real x) { return (Real) sin(x)*(1 + x*x / 2); } };
 
     // creating directly different types of functions
     ScalarFunction<3>       fScalar([](const VectorN<Real, 3> &x) { return x[0]; });
     VectorFunction<3>       fVector([](const VectorN<Real, 3> &x) { return VectorN<Real, 3>{0, x[0] * x[1], 0}; });
     VectorFunctionNM<2, 3>  fVectorNM([](const VectorN<Real, 2> &x) { return VectorN<Real, 3>{0, x[0] * x[1], 0}; });
-    ParametricCurve<3>      paramCurve([](double x) { return VectorN<Real, 3>{x, 2 * x, 3 * x}; });
-    ParametricSurface<3>    paramSurface([](double x, double y) { return VectorN<Real, 3>{x * y, 2 * x * y, 3 * x}; });  
+    ParametricCurve<3>      paramCurve([](Real x) { return VectorN<Real, 3>{x, 2 * x, 3 * x}; });
+    ParametricSurface<3>    paramSurface([](Real x, Real y) { return VectorN<Real, 3>{x * y, 2 * x * y, 3 * x}; });  
 
     // using predefined functions from TestBeds
     auto fdef1 = TestBeds::RealFunctionsTestBed::getTestFunctionReal("Sin");
@@ -54,21 +54,21 @@ void Readme_defining_functions_case_2_usage()
 // Option 1 - define operator() for your class and create RealFunctionFromStdFunc
 class ClassProvidingFuncToDerive {
     public:
-        double operator()(double x ) const { 
-            return 1.0;     /* calculation using member variables */ 
+        Real operator()(Real x ) const { 
+            return 1;     /* calculation using member variables */ 
         }
 };
 // Option 2 - inherit class from IRealFunction interface, and use the object itself as RealFunction
 class ClassProvidingFuncToDerive2 : public IRealFunction {
     public:
-        double operator()(double x ) const { 
+        Real operator()(Real x ) const { 
             return 1.0;     /* calculation using member variables */ 
         }
 };
 void Readme_defining_functions_case_3_usage()
 {
     ClassProvidingFuncToDerive   obj1;
-    RealFunctionFromStdFunc f1(std::function<double(double)>{obj1});
+    RealFunctionFromStdFunc f1(std::function<Real(Real)>{obj1});
     
     ClassProvidingFuncToDerive2   f2;     // usable RealFunction object (can be derived, integrated, ...)
 }
@@ -85,8 +85,8 @@ class BigComplexFunc2 : public IRealFunction {
 public:
     BigComplexFunc2(const BigComplexClassYouCantChange &bigClass) : _ref(bigClass) { }
 
-    double operator()(double x ) const {
-        return 1.0;     /* calculation using _ref */ 
+    Real operator()(Real x ) const {
+        return 1;     /* calculation using _ref */ 
     }
 };
 void Readme_defining_functions_case_4_usage()
@@ -104,10 +104,10 @@ void Readme_defining_functions_case_5_usage()
     const Real x1 = 0, x2 = 10.0;
 
     // we will use this as test func
-    RealFunction test_func{[](double x) { return sin(x)*(1.0 + 0.5*x*x); } };
+    RealFunction test_func{[](Real x) { return (Real) sin(x)*(1 + x*x / 2); } };
     
     // and using our helper, available for all real functions, create data for interpolation
-    Vector<double> x_val(NumInterpPnt), y_val(NumInterpPnt);
+    Vector<Real> x_val(NumInterpPnt), y_val(NumInterpPnt);
     test_func.GetValues(x1, x2, NumInterpPnt, x_val, y_val);
 
     // these are the ways we can interpolate Real function

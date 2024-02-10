@@ -29,7 +29,6 @@ TEST_CASE("MatrixNM_initializer_list_ctor", "[simple]") {
 	REQUIRE(4.0 ==  a(1,1));
 }
 
-// MakeUnitMatrix
 TEST_CASE("MatrixNM_MakeUnitMatrix", "[simple]") {
     MatrixNM<Real, 2, 2> a;
 
@@ -96,7 +95,6 @@ TEST_CASE("Test_MatrixNM_Op*", "[simple]") {
 	REQUIRE(22.0 ==  c(1,1));
 }
 
-// op. sa skalaraom
 TEST_CASE("Test_MatrixNM_mul_double", "[simple]") {
     MatrixNM<Real, 2, 2> a({1.0, 100.0, 50.0, 100.0});
 
@@ -119,7 +117,6 @@ TEST_CASE("Test_MatrixNM_div_double", "[simple]") {
 	REQUIRE(200.0 ==  b(0,1));
 }
 
-// op. sa vektorom
 TEST_CASE("Test_MatrixNM_mul_Vector", "[simple]") {
     MatrixNM<Real, 2, 2> a({1.0, 10.0, 
                                  5.0, 2.0});

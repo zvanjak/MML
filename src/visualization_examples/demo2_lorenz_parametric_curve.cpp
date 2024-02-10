@@ -39,8 +39,8 @@ void Demo1_Lorenz_parametric_curve()
     // sol0.Serialize("lorenz_1.txt", "Lorenz system");
     // auto ret2 = std::system("..\\..\\tools\\visualizers\\real_function_visualizer\\MML_RealFunctionVisualizer.exe lorenz_1.txt");
 
-    Curves::HelixCurve              helix(20.0, 20.0);
-    Curves::ToroidalSpiralCurve     toroid(20.0);
+    Curves3D::HelixCurve              helix(20.0, 20.0);
+    Curves3D::ToroidalSpiralCurve     toroid(Real{20.0});
 
     // helix.SerializeCartesian3D(0.0, 2.0 * Constants::PI, 100, "helix.txt");
     // std::system("..\\..\\tools\\visualizers\\parametric_curve_visualizer\\MML_ParametricCurveVisualizer.exe helix.txt");

@@ -131,7 +131,7 @@ Calculations are performed in Cartesian and spherical coordinates, along circle 
 
 
     // calculating potential and force around circle
-    Curves::Circle3DXZ circle(10.0);
+    Curves3D::Circle3DXZ circle(10.0);
 
     // calculating field Cart. and Sph. gradient around circle (and demonstrating covariant vector transformation of gradient)
     std::cout << "         Position          Pot.(Cart)    Pot.(Spher)        Force exact (Cart. vector)              Force exact (Sph. vector)          Force num.grad (Cart.vector)        Force num.grad (Sph.vector)" << std::endl;
@@ -217,7 +217,7 @@ void Demo_gradient()
     ScalarFunction<3> fPotCyl([](const VectorN<Real, 3> &x) -> Real { return InverseRadialPotentialFieldCyl(x); });
 
     // calculating field gradient around circle
-    Curves::Circle3DXZ circle(1.0);
+    Curves3D::Circle3DXZ circle(1.0);
     std::cout << "            Position                   Cartesian gradient              Spherical gradient         Spher.grad.covar.transf. to Cart        Cylindrical gradient         Cyl.grad.covar.transf. to Cart" << std::endl;
     for(double t=0.0; t<2*Constants::PI; t+=0.3)
     {
@@ -248,7 +248,7 @@ void Demo_Laplacian()
     ScalarFunction<3> fPotSpher([](const VectorN<Real, 3> &x) -> Real { return InverseRadialPotentialFieldSpher(x); });
     ScalarFunction<3> fPotCyl([](const VectorN<Real, 3> &x) -> Real { return InverseRadialPotentialFieldCyl(x); });
 
-    Curves::Circle3DXZ circle(1.0);
+    Curves3D::Circle3DXZ circle(1.0);
     std::cout << "            Position                 Cart. laplacian         Spher. laplacian         Cylin. laplacian" << std::endl;
     for(double t=0.0; t<2*Constants::PI; t+=0.3)
     {
@@ -312,7 +312,7 @@ void Demo_divergence()
     VectorFunction<3> fSpherGrad(GradientOfSphericalPotential);
     VectorFunction<3> fCylGrad(GradientOfCylindricalPotential);
 
-    Curves::Circle3DXZ circle(1.0);
+    Curves3D::Circle3DXZ circle(1.0);
     std::cout << "            Position                 Cart. divergence    Spher. divergence  Cylin. divergence" << std::endl;
     for(double t=0.0; t<2*Constants::PI; t+=0.3)
     {
@@ -338,7 +338,7 @@ void Demo_curl()
     VectorFunction<3> fSpherGrad(GradientOfSphericalPotential);
     VectorFunction<3> fCylGrad(GradientOfCylindricalPotential);
 
-    Curves::Circle3DXZ circle(1.0);
+    Curves3D::Circle3DXZ circle(1.0);
     std::cout << "            Position                                Cartesian curl                                       Spherical curl                                     Cylindrical curl" << std::endl;
     for(double t=0.0; t<2*Constants::PI; t+=0.3)
     {

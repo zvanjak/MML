@@ -51,6 +51,8 @@ void Demo_Path_Integration();
 void Demo_Function_analyzer();
 void Demo_Statistics();
 void Demo_Root_finding();
+void Demo_Surface_integration();
+void Demo_Volume_integration();
 
 // Speed
 void Test_Speed_Functions();
@@ -113,7 +115,7 @@ int main(int, char**)
 
     // Demo_Derivation();
     // Demo_Integration();
-    // Demo_LinearAlgEqSolvers();
+    Demo_LinearAlgEqSolvers();
 
     // Demo_Diff_geometry();
     // Demo_EigenSolvers();
@@ -123,13 +125,15 @@ int main(int, char**)
     // Demo_Function_analyzer();
     // Demo_Statistics();
     // Demo_Root_finding();
+    Demo_Surface_integration();
+    // Demo_Volume_integration();
 
     // Test_Speed_Functions();
     // Test_Speed_Derivation();
     // Test_Speed_Linear_alg_eq_solvers();
 
     // Test_Precision_Derivation();
-    // Test_Precision_Integration();
+    Test_Precision_Integration();
 
     // Docs_Readme_Examples();
     // Demo_Visualization_Examples();

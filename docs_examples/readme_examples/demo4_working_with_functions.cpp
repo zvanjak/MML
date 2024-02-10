@@ -14,12 +14,12 @@ using namespace MML;
 
 void Readme_deriving_functions()
 {
-    RealFunction       f1{[](double x) { return sin(x)*(1.0 + 0.5*x*x); } };
+    RealFunction       f1{[](Real x) { return (Real) (sin(x)*(1.0 + 0.5*x*x)); } };
 
     // numerical derivation of real function (available orders - 1, 2, 4, 6, 8)
     double der_f1 = Derivation::NDer1(f1, 0.5);
     double der_f4 = Derivation::NDer2(f1, 0.5, 1e-6);   // setting explicit step size
-    double err;
+    Real err;
     double der_f6 = Derivation::NDer6(f1, 0.5, &err);   // if we need error estimate    
     // we can use default Derive routine (set to NDer4), but it requires error estimate
     double num_der4 = Derivation::Derive(f1, 0.5, nullptr);
@@ -32,7 +32,7 @@ void Readme_deriving_functions()
     RealFuncDerived4    f1_der4(f1);        // 4th order derivation
 
     // scalar and vector functions
-    ScalarFunction<3>   f2Scal([](const VectorN<Real, 3> &x) { return 1.0 / pow(x.NormL2(), 2); });
+    ScalarFunction<3>   f2Scal([](const VectorN<Real, 3> &x) { return (Real) (1.0 / pow(x.NormL2(), 2)); });
     VectorFunction<3>   f3Vec([](const VectorN<Real, 3> &x) { return VectorN<Real, 3>{0, x[0] * x[1], 0}; });
     VectorN<Real, 3>    der_point{1.0, 1.0, 1.0};
 
@@ -48,7 +48,7 @@ void Readme_deriving_functions()
 
 void Readme_integrating_functions()
 {
-    RealFunction f1{[](double x) { return sin(x)*(1.0 + 0.5*x*x); } };
+    RealFunction f1{[](Real x) { return (Real) (sin(x)*(1.0 + 0.5*x*x)); } };
 
     double a = 0.0;
     double b = 1.0;
@@ -59,7 +59,7 @@ void Readme_integrating_functions()
     double int_def = Integrate(f1, a, b, 1e-04);
 
     // 2D integration of constant scalar 2D function (ie. we'll get the area of the surface)
-    ScalarFunction<2> f2([](const VectorN<Real, 2> &x) { return 1.0; });
+    ScalarFunction<2> f2([](const VectorN<Real, 2> &x) { return Real{1}; });
     
     // we integrate over circle with radius 2
     Real val = IntegrateSurface(f2, IntegrationMethod::GAUSS10, 
@@ -70,7 +70,7 @@ void Readme_integrating_functions()
     std::cout << "Calc. area = " << val << ", exact value: 4 * PI = " << 4 * Constants::PI << std::endl;
 
     // 3D integration of constant scalar 3D function (ie. we'll get the volume of the solid)
-    ScalarFunction<3> f3([](const VectorN<Real, 3> &x) { return 1.0; });
+    ScalarFunction<3> f3([](const VectorN<Real, 3> &x) { return Real{1}; });
     
     // integration over sphere of radius 1
     Real vol = IntegrateVolume( f3, 

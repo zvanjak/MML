@@ -20,7 +20,7 @@ using namespace MML;
 
 void Readme_Real_function_visualization()
 {
-    RealFunction f1{[](double x) { return sin(x) * (x-3)*(x+5) / sqrt(std::abs(2 - x)); } };
+    RealFunction f1{[](Real x) { return sin(x) * (x-3)*(x+5) / sqrt(std::abs(2 - x)); } };
 
     f1.SerializeEquallySpacedDetailed(-10.0, 10.0, 500, "..\\..\\results\\readme_real_func1.txt");
     std::system("..\\..\\tools\\visualizers\\real_function_visualizer\\MML_RealFunctionVisualizer.exe ..\\..\\results\\readme_real_func1.txt");
@@ -59,8 +59,8 @@ void Readme_Scalar_function_2D_visualization()
 void Readme_Parametric_curve_visualization()
 {
     // using predefine 3D curves for visualization example
-    Curves::HelixCurve              helix(20.0, 2.0);
-    Curves::ToroidalSpiralCurve     toroid(20.0);
+    Curves3D::HelixCurve              helix(20.0, 2.0);
+    Curves3D::ToroidalSpiralCurve     toroid(Real{20.0});
     
     helix.SerializeCartesian3D(-50.0, 50.0, 1000, "..\\..\\results\\readme_curve_helix.txt");
     std::system("..\\..\\tools\\visualizers\\parametric_curve_visualizer\\MML_ParametricCurveVisualizer.exe ..\\..\\results\\readme_curve_helix.txt");

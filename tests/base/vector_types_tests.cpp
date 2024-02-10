@@ -3,7 +3,7 @@
 #ifdef MML_USE_SINGLE_HEADER
 #include "MML.h"
 #else
-#include "base/Geometry2D.h"
+#include "base/VectorTypes.h"
 #endif
 
 using namespace MML;

@@ -15,7 +15,7 @@ namespace Tests::Core::FunctionTests
 //////////////////         RealFunction tests        //////////////////
 ///////////////////////////////////////////////////////////////////////
 
-double FunctionTests_TestFunc(double x) 
+Real FunctionTests_TestFunc(Real x) 
 { 
     return sin(x)*(1.0 + 0.5*x*x); 
 }
@@ -25,7 +25,7 @@ TEST_CASE("Test_Function_func_pointer", "[simple]") {
     RealFunction f1(FunctionTests_TestFunc);
 
     // or creating a function object directly
-    RealFunction f2{[](double x) { return sin(x)*(1.0 + 0.5*x*x); } };
+    RealFunction f2{[](Real x) { return sin(x)*(1 + x*x / 2); } };
 
     REQUIRE(f1(1.0) == FunctionTests_TestFunc(1.0));
     REQUIRE(f2(1.0) == FunctionTests_TestFunc(1.0));
@@ -39,7 +39,7 @@ class ClassProvidingFuncToDerive
         ClassProvidingFuncToDerive(double param) : _param(param) { }
         void setParam(double inParam ) { _param = inParam; }
     
-        double operator()(double x ) { return _param * sin(x); }
+        Real operator()(Real x ) { return _param * sin(x); }
 };
 
 TEST_CASE("Test_Function_class_obj_overload_op()", "[simple]") 
@@ -51,7 +51,7 @@ TEST_CASE("Test_Function_class_obj_overload_op()", "[simple]")
     REQUIRE(f1(1.0) == funcObj(1.0));
     REQUIRE(f1(5.0) == funcObj(5.0));
 
-    // TODO 0.7 - HIGH, OVO RAZRIJESITI
+    // TODO 0.8 - HIGH, OVO RAZRIJESITI
     // VERY IMPORTANT!!!!!!!!!!!!!!!!
     funcObj.setParam(6.0);
     REQUIRE(f1(1.0) != funcObj(1.0));
@@ -66,12 +66,12 @@ TEST_CASE("Test_Function_class_obj_overload_op()", "[simple]")
 class ClassProvidingFuncToDerive2 : public IRealFunction
 {
     private:
-        double _param;
+        Real _param;
     public:
-        ClassProvidingFuncToDerive2(double param) : _param(param) { }
-        void setParam(double inParam ) { _param = inParam; }
+        ClassProvidingFuncToDerive2(Real param) : _param(param) { }
+        void setParam(Real inParam ) { _param = inParam; }
 
-        double operator()(double x ) const { return _param * sin(x); }
+        Real operator()(Real x ) const { return _param * sin(x); }
 };
 
 TEST_CASE("Test_Function_class_inheriting_IRealFunction", "[simple]") 
@@ -93,7 +93,7 @@ class BigComplexClassYouCantChange
     // has data for calculating function you want to derive
     public:
         double _param;
-        double complexCalc(double x) const { return cos(x); }
+        Real complexCalc(Real x) const { return cos(x); }
 };
 
 class BigComplexDerivFunc
@@ -102,7 +102,7 @@ class BigComplexDerivFunc
 public:
     BigComplexDerivFunc(const BigComplexClassYouCantChange &bigClass) : _ref(bigClass) { }
 
-    double operator()(double x ) 
+    Real operator()(Real x ) 
     {
         return _ref._param * _ref.complexCalc(x);
     }

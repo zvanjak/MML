@@ -12,12 +12,12 @@ namespace MML::TestBeds
     /***********************************************************************************************/
     /**************                 3 x 3 symmetric test matrices                           ********/
     /***********************************************************************************************/
-    const static inline MML::MatrixSym  symm_mat_3x3{3, { 7.9, -9.3,  1.7, 
+    const static inline MML::MatrixSym<Real>  symm_mat_3x3{3, { 7.9, -9.3,  1.7, 
                                                                -5.9,  9.9,
                                                                      -5.5 }};
 
-    const static inline Vector          symm_mat_3x3_rhs0{-2.7, 1.3, 5.4};
-    const static inline Vector          symm_mat_3x3_rhs0_sol{-0.45139279169212, 0.103906536346976, -0.310565058032987};
+    const static inline Vector<Real>          symm_mat_3x3_rhs0{-2.7, 1.3, 5.4};
+    const static inline Vector<Real>          symm_mat_3x3_rhs0_sol{-0.45139279169212, 0.103906536346976, -0.310565058032987};
 
     const static inline Vector<Real> symm_mat_3x3_eigen_val{ 19.2792340213883, -2.727695435303, -12.4515385860853 };
     const static inline std::vector<Vector<Real>> symm_mat_3x3_eigen_vecs
@@ -31,20 +31,20 @@ namespace MML::TestBeds
                                                                       2, -1,
                                                                           2 }};
 
-    const static inline Vector          symm_mat_3x3_1_rhs0{-2.7, 1.3, 5.4};
-    const static inline Vector          symm_mat_3x3_1_rhs0_sol{-0.45139279169212, 0.103906536346976, -0.310565058032987};
+    const static inline Vector<Real>          symm_mat_3x3_1_rhs0{-2.7, 1.3, 5.4};
+    const static inline Vector<Real>          symm_mat_3x3_1_rhs0_sol{-0.45139279169212, 0.103906536346976, -0.310565058032987};
 
     /***********************************************************************************************/
     /**************                 5 x 5 symmetric test matrices                           ********/
     /***********************************************************************************************/
-    const static inline MML::MatrixSym  symm_mat_5x5{5,  {1.4, 2.1, 2.1, 7.4, 9.6,
+    const static inline MML::MatrixSym<Real>  symm_mat_5x5{5,  {1.4, 2.1, 2.1, 7.4, 9.6,
                                                                1.5, 1.1, 0.7, 5.0,
                                                                     9.6, 5.4, 8.8,
                                                                          0.4, 8.0,
                                                                               7.7 }};
 
     const static inline Vector<Real>    symm_mat_5x5_rhs0{-2.7, 1.3, 5.4, 1.5, -2.7};
-    const static inline MML::Vector     symm_mat_5x5_rhs0_sol{6.33596564609689, -4.17485303537051, -0.47300554791769, -0.152420675302137, 0.160137642067717};
+    const static inline Vector<Real>     symm_mat_5x5_rhs0_sol{6.33596564609689, -4.17485303537051, -0.47300554791769, -0.152420675302137, 0.160137642067717};
 
     const static inline Vector<Real> symm_mat_5x5_eigen_val{ 24.5884918308427, 8.00842513434593, 3.5416658121729, -0.570094077835055, -13.2684886995265 };
     const static inline std::vector<Vector<Real>> symm_mat_5x5_eigen_vecs

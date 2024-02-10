@@ -18,20 +18,20 @@ void Readme_vectors_matrices()
     std::cout << "****                  README - vectors, matrices                   ****" << std::endl;
     std::cout << "***********************************************************************" << std::endl;
 
-    Vector<double>  vec1({ 1.5, -2.0, 0.5 }), vec2({ 1.0, 1.0, -3.0 }); 
+    Vector<Real>    vec1({ 1.5, -2.0, 0.5 }), vec2({ 1.0, 1.0, -3.0 }); 
     VectorComplex   vec_cmplx1({ Complex(1,1), Complex(-1,2) });
     VectorComplex   vec_cmplx2({ Complex(1,1), Complex(-1,2), Complex(2.5, -1.5) });
 
-    Matrix<double>  mat_3x3{ 3, 3, { 1.0,  2.0, -1.0, 
+    Matrix<Real>    mat_3x3{ 3, 3, { 1.0,  2.0, -1.0, 
                                     -1.0,  5.0,  6.0, 
                                      3.0, -2.0,  1.0 }};  
     MatrixComplex   mat_cmplx(2,2, { Complex(0.5,1), Complex(-1,2), 
                                      Complex(-1,-2), Complex(-2,2) });
     MatrixComplex   mat_cmplx2(2,3, { Complex(1,2),    Complex(-1,1), Complex(1.5,-2), 
                                       Complex(2,-0.5), Complex(3,-2), Complex(-1,1) });
-    Matrix<double>  unit_mat3 = MML::Matrix<Real>::GetUnitMatrix(3);
+    Matrix<Real>  unit_mat3 = MML::Matrix<Real>::GetUnitMatrix(3);
 
-    Vector<double> v_real  = 2.0 * (vec1 + vec2) * mat_3x3 / vec1.NormL2();
+    Vector<Real> v_real  = Real{2.0} * (vec1 + vec2) * mat_3x3 / vec1.NormL2();
     VectorComplex  v_cmplx = vec_cmplx1 * mat_cmplx / Complex(1.5, -1.5) / 2.0;
 
     std::cout << "v_real  = " << v_real << std::endl;
