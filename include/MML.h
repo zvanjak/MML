@@ -8836,6 +8836,59 @@ namespace MML
     };
 }
 
+///////////////////////////   ./include/core/Jacobians.h   ///////////////////////////
+
+
+
+
+namespace MML
+{
+    template<typename VectorFrom, typename VectorTo, int N>
+    class Jacobian
+    {
+    public:
+        static MatrixNM<Real, N, N> calc(const IVectorFunction<N> &func, const VectorN<Real, N> &x)
+        {
+            MatrixNM<Real, N, N> jac;
+
+            for(int i = 0; i < N; ++i)
+                for(int j=0; j < N; ++j)
+                {
+                    jac(i, j) = Derivation::NDer4Partial(func, i, j, x);
+                }
+
+            return jac;
+        }
+
+        template<int M>
+        static MatrixNM<Real, M, N> calc(const IVectorFunctionNM<N, M> &func, const VectorN<Real, N> &x)
+        {
+            MatrixNM<Real, M, N> jac;
+
+            for(int i = 0; i < M; ++i)
+                for(int j=0; j < N; ++j)
+                {
+                    jac(i, j) = Derivation::NDer4Partial(func, i, j, x);
+                }
+
+            return jac;
+        }        
+
+        static MatrixNM<Real, N, N> calc(const ICoordTransf<VectorFrom, VectorTo, N> &func, const VectorN<Real, N> &x)
+        {
+            MatrixNM<Real, N, N> jac;
+
+            for(int i = 0; i < N; ++i)
+                for(int j=0; j < N; ++j)
+                {
+                    jac(i, j) = Derivation::NDer4Partial(func.coordTransfFunc(i), j, x);
+                }
+
+            return jac;
+        }        
+    };
+}
+
 ///////////////////////////   ./include/core/Integration.h   ///////////////////////////
 
 
@@ -9503,59 +9556,6 @@ namespace MML
     };    
 
 } // end namespace
-
-///////////////////////////   ./include/core/Jacobians.h   ///////////////////////////
-
-
-
-
-namespace MML
-{
-    template<typename VectorFrom, typename VectorTo, int N>
-    class Jacobian
-    {
-    public:
-        static MatrixNM<Real, N, N> calc(const IVectorFunction<N> &func, const VectorN<Real, N> &x)
-        {
-            MatrixNM<Real, N, N> jac;
-
-            for(int i = 0; i < N; ++i)
-                for(int j=0; j < N; ++j)
-                {
-                    jac(i, j) = Derivation::NDer4Partial(func, i, j, x);
-                }
-
-            return jac;
-        }
-
-        template<int M>
-        static MatrixNM<Real, M, N> calc(const IVectorFunctionNM<N, M> &func, const VectorN<Real, N> &x)
-        {
-            MatrixNM<Real, M, N> jac;
-
-            for(int i = 0; i < M; ++i)
-                for(int j=0; j < N; ++j)
-                {
-                    jac(i, j) = Derivation::NDer4Partial(func, i, j, x);
-                }
-
-            return jac;
-        }        
-
-        static MatrixNM<Real, N, N> calc(const ICoordTransf<VectorFrom, VectorTo, N> &func, const VectorN<Real, N> &x)
-        {
-            MatrixNM<Real, N, N> jac;
-
-            for(int i = 0; i < N; ++i)
-                for(int j=0; j < N; ++j)
-                {
-                    jac(i, j) = Derivation::NDer4Partial(func.coordTransfFunc(i), j, x);
-                }
-
-            return jac;
-        }        
-    };
-}
 
 ///////////////////////////   ./include/core/InterpolatedFunction.h   ///////////////////////////
 
