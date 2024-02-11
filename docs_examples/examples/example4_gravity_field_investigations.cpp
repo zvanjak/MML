@@ -120,7 +120,6 @@ class GravitySystemMotionSolver : public IODESystem
 {
 protected:
     GravityMultibodyConfigCart _initialConfig;
-    // napraviiti kopiju position i velocity vektora, s kojiima cemo raditi
 
 public:
     GravitySystemMotionSolver(GravityMultibodyConfigCart inConfig) : _initialConfig(inConfig) { }
@@ -128,9 +127,30 @@ public:
     int getDim() const { return 3 * _initialConfig.NumBodies(); }
     void derivs(const Real t, const Vector<Real> &x, Vector<Real> &dxdt) const 
     {
-        // moramo popuniti dxdt vektor s N * 3 derivacija nasih varijabli
+        // moramo popuniti dxdt vektor s N * 6 derivacija nasih varijabli (x, y, z, vx, vy, vz)
         for(int i = 0; i < _initialConfig.NumBodies(); i++)
         {
+            Vector3Cartesian force(0,0,0);
+            // calculating force on body i
+            for(int j = 0; j < _initialConfig.NumBodies(); j++)
+            {
+                if(i != j)      // self-force would be infinite :)
+                {
+                    Vector3Cartesian vec_dist(dxdt[6 * j] - dxdt[6 * i], dxdt[6 * j + 2] - dxdt[6 * i + 2], dxdt[6 * j + 4] - dxdt[6 * i + 4]);
+                    Vector3Cartesian f = InverseRadialPotentialForceFieldCart(6.67430e-11 * _initialConfig.Mass(i) * _initialConfig.Mass(j), vec_dist);
+                    force = force + f;
+                }
+            }
+
+            // x coord
+            dxdt[6 * i]     = x[6 * i + 1];
+            dxdt[6 * i + 1] = 1 / _initialConfig.Mass(i) * force.X();
+            // y coord
+            dxdt[6 * i + 2] = x[6 * i + 3];
+            dxdt[6 * i + 3] = 1 / _initialConfig.Mass(i) * force.Y();
+            // z coord
+            dxdt[6 * i + 4] = x[6 * i + 5];
+            dxdt[6 * i + 5] = 1 / _initialConfig.Mass(i) * force.Z();
         }
     }
 };

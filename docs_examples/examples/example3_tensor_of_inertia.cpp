@@ -6,13 +6,13 @@
 #include "base/VectorTypes.h"
 
 #include "core/Derivation.h"
+#include "core/Integration.h"
 #include "core/CoordTransf.h"
 #endif
 
 
 using namespace MML;
 
-// TODO 0.8
 
 struct DiscreteMass
 {
@@ -36,7 +36,6 @@ struct DiscreteMassesConfig
 class DiscreteMassMomentOfInertiaTensorCalculator
 {
     DiscreteMassesConfig _massesConfig;
-    // treba zadati os kalkulacije
 public:
     DiscreteMassMomentOfInertiaTensorCalculator(const DiscreteMassesConfig& massesConfig)
         : _massesConfig(massesConfig)
@@ -65,29 +64,93 @@ public:
 };
 
 // continuous mass
-// ima kljucno definiranu funkciju gustoce na prostoru
-// treba zadati os kalkulacije
+class IContinuousMass
+{
+public:
+    Real _x1, _x2;
+
+    Real (*_y1)(Real);
+    Real (*_y2)(Real);
+
+    Real (*_z1)(Real, Real);
+    Real (*_z2)(Real, Real);
+
+    IContinuousMass(Real x1, Real x2, Real (*y1)(Real), Real (*y2)(Real), Real (*z1)(Real, Real), Real (*z2)(Real, Real))
+        : _x1(x1), _x2(x2), _y1(y1), _y2(y2), _z1(z1), _z2(z2)
+    { }  
+
+    virtual Real getDensity(const VectorN<Real, 3> &x) = 0;
+};
+
+class ContinuousMass : public IContinuousMass
+{
+    Real (*_density)(const VectorN<Real, 3> &x);
+    //const IScalarFunction<3> &_densityFunc;
+
+public:
+    ContinuousMass(Real x1, Real x2, Real (*y1)(Real), Real (*y2)(Real), Real (*z1)(Real, Real), Real (*z2)(Real, Real))
+        : IContinuousMass(x1, x2, y1, y2, z1, z2)
+    { }  
+
+    ContinuousMass(Real x1, Real x2, Real (*y1)(Real), Real (*y2)(Real), Real (*z1)(Real, Real), Real (*z2)(Real, Real), Real (*density)(const VectorN<Real, 3> &x))
+        : IContinuousMass(x1, x2, y1, y2, z1, z2), _density(density)
+    { } 
+
+    // ContinuousMass(Real x1, Real x2, Real (*y1)(Real), Real (*y2)(Real), Real (*z1)(Real, Real), Real (*z2)(Real, Real), const IScalarFunction<3> &densityFunc)
+    //     : IContinuousMass(x1, x2, y1, y2, z1, z2), _densityFunc(densityFunc)
+    // { } 
+
+    virtual Real getDensity(const VectorN<Real, 3> &x)
+    {
+        return _density(x);
+    }
+};
+
+class ContinuousMassConstDensity : public IContinuousMass
+{
+    Real _density;;
+public:
+    ContinuousMassConstDensity(Real x1, Real x2, Real (*y1)(Real), Real (*y2)(Real), Real (*z1)(Real, Real), Real (*z2)(Real, Real))
+        : IContinuousMass(x1, x2, y1, y2, z1, z2)
+    { }  
+
+    ContinuousMassConstDensity(Real x1, Real x2, Real (*y1)(Real), Real (*y2)(Real), Real (*z1)(Real, Real), Real (*z2)(Real, Real), Real density)
+        : IContinuousMass(x1, x2, y1, y2, z1, z2), _density(density)
+    { } 
+
+    virtual Real getDensity(const VectorN<Real, 3> &x)
+    {
+        return _density;
+    }
+};
+
 class ContinuousMassMomentOfInertiaTensorCalculator
 {
-    // treba zadati os kalkulacije
+    IContinuousMass &_mass;
+    // za os kalkulacije pretpostavljamo z (ali, treba omoguciti to kao param)
 public:
-    ContinuousMassMomentOfInertiaTensorCalculator()
+    ContinuousMassMomentOfInertiaTensorCalculator(IContinuousMass &mass)
+        : _mass(mass)
     {
     }
 
     Tensor2<3> calculate()
     {
         Tensor2<3> tensor(2,0);
+
+        ScalarFunctionFromStdFunc<3> fDensity( std::function<Real(const VectorN<Real, 3>&)>{ std::bind( &IContinuousMass::getDensity, &_mass, std::placeholders::_1) } );
+
+        Real vol = IntegrateVolume( fDensity, 
+                                    _mass._x1, _mass._x2,              
+                                    _mass._y1, _mass._y2,
+                                    _mass._z1, _mass._z2);
+                                    
         return tensor;
     }
 };
 
-void Example3_tensor_of_inertia()
+void Example3_tensor_of_inertia_discrete_masses()
 {
-    std::cout << "***********************************************************************" << std::endl;
-    std::cout << "****                  EXAMPLE 3 - tensor of inertia                ****" << std::endl;
-    std::cout << "***********************************************************************" << std::endl;
-
     // define set of discrete masses
     double a = 1;
     Vector3Cartesian pos1(a, a, 0);
@@ -111,30 +174,47 @@ void Example3_tensor_of_inertia()
     DiscreteMassesConfig massesConfig(masses);
 
     DiscreteMassMomentOfInertiaTensorCalculator calculator(massesConfig);
-    Tensor2<3> tensor = calculator.calculate();
+    Tensor2<3> tensor_orig = calculator.calculate();
 
     std::cout << "Tensor of inertia: " << std::endl;
-    std::cout << tensor << std::endl;
+    std::cout << tensor_orig << std::endl;
 
-    CoordTransfCart3DRotationXAxis transf(30.0 * Constants::PI / 180.0);
+    // investigating what happens if we change coord.system, int two cases:
+    // 1. using coord.system transform we calculate TRANSFORMED (original) tensor
+    // 2. using coord.system transform we calculate NEW set of masses and then calculate tensor
 
-    
-    Tensor2<3> tensor3 = transf.transfTensor2(tensor, Vector3Cartesian(1, 1, 1));
+    // new coord.system is rotated around x axis for 30 degrees
+    CoordTransfCart3DRotationXAxis coord_transf(30.0 * Constants::PI / 180.0);
 
-    std::cout << "Tensor of inertia transf: " << std::endl;
-    std::cout << tensor3 << std::endl;
+    // 1) - calculated tensor transformation
+    Tensor2<3> tensor_transf = coord_transf.transfTensor2(tensor_orig, Vector3Cartesian(1, 1, 1));
 
+    std::cout << "Tensor of inertia transformed: " << std::endl;
+    std::cout << tensor_transf << std::endl;
 
-
+    // 2) - change masses position and calculate new tensor 
     DiscreteMassesConfig massesTransConfig(masses);
     for (auto& mass : massesTransConfig._masses)
-	{
-		mass._position = transf.transf(mass._position);
-	}
+		mass._position = coord_transf.transf(mass._position);
 
     DiscreteMassMomentOfInertiaTensorCalculator calculator2(massesTransConfig);
-    Tensor2<3> tensor2 = calculator2.calculate();
+    Tensor2<3> tensor_changed = calculator2.calculate();
 
     std::cout << "Tensor of inertia rotated maasses: " << std::endl;
-    std::cout << tensor2 << std::endl;
+    std::cout << tensor_changed << std::endl;
+}
+
+void Example3_tensor_of_intertia_continuous_mass()
+{
+
+}
+
+void Example3_tensor_of_inertia()
+{
+    std::cout << "***********************************************************************" << std::endl;
+    std::cout << "****                  EXAMPLE 3 - tensor of inertia                ****" << std::endl;
+    std::cout << "***********************************************************************" << std::endl;
+
+    Example3_tensor_of_inertia_discrete_masses();
+    Example3_tensor_of_intertia_continuous_mass();
 }
