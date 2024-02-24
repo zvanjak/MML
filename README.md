@@ -821,25 +821,25 @@ Set of analyzer classes for real, scalar and vector functions, and parametric cu
 
 Example of using RealFunctionAnalyzer for analyzing real functions.
 ~~~ c++
-	auto fTan = TestBeds::RealFunctionsTestBed::getTestFunctionReal("Tan");
-	RealFunctionAnalyzer anTan(fTan._func, "tan(x)");
-	anTan.PrintIntervalAnalysis(-5.0, 5.0, 50, 1e-4);
+auto fTan = TestBeds::RealFunctionsTestBed::getTestFunctionReal("Tan");
+RealFunctionAnalyzer anTan(fTan._func, "tan(x)");
+anTan.PrintIntervalAnalysis(-5.0, 5.0, 50, 1e-4);
 
-	auto fExp = TestBeds::RealFunctionsTestBed::getTestFunctionReal("Exp");
-	RealFunctionAnalyzer anExp(fExp._func, "exp(x)");
-	anExp.PrintIntervalAnalysis(-5.0, 5.0, 50, 1e-4);
+auto fExp = TestBeds::RealFunctionsTestBed::getTestFunctionReal("Exp");
+RealFunctionAnalyzer anExp(fExp._func, "exp(x)");
+anExp.PrintIntervalAnalysis(-5.0, 5.0, 50, 1e-4);
 
-	RealFunction stepFunc([](Real x) { 
-			if( x < 0) return 0.0;
-			else if( x > 0) return 1.0;
-			else return 0.5;
-		});
-	RealFunctionAnalyzer anStep(stepFunc, "step(x)");
-	anStep.PrintIntervalAnalysis(-5.0, 5.0, 50, 1e-4);
+RealFunction stepFunc([](Real x) { 
+        if( x < 0) return 0.0;
+        else if( x > 0) return 1.0;
+        else return 0.5;
+    });
+RealFunctionAnalyzer anStep(stepFunc, "step(x)");
+anStep.PrintIntervalAnalysis(-5.0, 5.0, 50, 1e-4);
 
-	RealFunction test1([](Real x) { return 1 / (x - 1); });
-	RealFunctionAnalyzer an(test1, "1 / (x - 1)");
-	an.PrintIntervalAnalysis(-5.0, 5.0, 50, 1e-4);
+RealFunction test1([](Real x) { return 1 / (x - 1); });
+RealFunctionAnalyzer an(test1, "1 / (x - 1)");
+an.PrintIntervalAnalysis(-5.0, 5.0, 50, 1e-4);
 
 /* OUTPUT
 f(x) = tan(x) - Function analysis in interval [-5.00000000, 5.00000000] with 50 points:
