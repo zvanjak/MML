@@ -35,19 +35,14 @@ void Demo_Fields()
     VectorFunction<3> user_fun(MyPotentialForceField);
 
     // predefined scalar fields
-    InverseRadialFieldCart  inverseRadialPotentialField(10);
-    InverseRadialFieldSpher inverseRadialPotentialFieldSpher(10);
+    Fields::InverseRadialFieldCart  inverseRadialPotentialField(10);
+    Fields::InverseRadialFieldSpher inverseRadialPotentialFieldSpher(10);
 
     // predefined vector fields 
-    InverseRadialForceFieldCart  inverseRadialPotentialForceField(10);
-    InverseRadialForceFieldSpher inverseRadialPotentialForceFieldSpher(10);
+    Fields::InverseRadialForceFieldCart  inverseRadialPotentialForceField(10);
+    Fields::InverseRadialForceFieldSpher inverseRadialPotentialForceFieldSpher(10);
 
     // no need for this, but you can do it
-    InverseRadialForceFieldCart test_fun(1000.0);
-    VectorFunction<3> test_fun1(InverseRadialPotentialForceFieldCart);
-
-
-    // test_fun.Serialize3DCartesian(-30.0, 30.0, 4, -30.0, 30.0, 4, -30.0, 30.0, 4, "vector_field.txt");
-    // auto ret = std::system("..\\..\\tools\\visualizers\\vector_field_visualizer\\MML_VectorFieldVisualizer.exe vector_field.txt");
-    // std::cout << "Return code = " << ret << std::endl;
+    Fields::InverseRadialForceFieldCart test_fun(1000.0);
+    VectorFunction<3> test_fun1(Fields::InverseRadialPotentialForceFieldCart);
 }

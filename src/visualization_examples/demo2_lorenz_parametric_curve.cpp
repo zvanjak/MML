@@ -6,7 +6,10 @@
 #include "interfaces/IODESystem.h"
 
 #include "base/Vector.h"
+
 #include "core/Curves.h"
+#include "core/Serializer.h"
+#include "core/Vizualizer.h"
 
 #include "algorithms/ODESystemSolver.h"
 #include "algorithms/ODESystemSteppers.h"
@@ -34,18 +37,6 @@ void Demo1_Lorenz_parametric_curve()
     ODESystemSolver<StepperDopr5> ode_solver0(sys0,atol,rtol, out0);
     ODESystemSolution             sol0 = ode_solver0.integrate(ystart0, x1, x2, h1, hmin);
 
-    // TODO - izvuci kao parametric curve rjesenje diff sustava
-
-    // sol0.Serialize("lorenz_1.txt", "Lorenz system");
-    // auto ret2 = std::system("..\\..\\tools\\visualizers\\real_function_visualizer\\MML_RealFunctionVisualizer.exe lorenz_1.txt");
-
-    Curves3D::HelixCurve              helix(20.0, 20.0);
-    Curves3D::ToroidalSpiralCurve     toroid(Real{20.0});
-
-    // helix.SerializeCartesian3D(0.0, 2.0 * Constants::PI, 100, "helix.txt");
-    // std::system("..\\..\\tools\\visualizers\\parametric_curve_visualizer\\MML_ParametricCurveVisualizer.exe helix.txt");
-
-    toroid.SerializeCartesian3D(0.0, 5.0 * Constants::PI, 500, "..\\..\\results\\toroid.txt");
-    auto ret = std::system("..\\..\\tools\\visualizers\\parametric_curve_visualizer\\MML_ParametricCurveVisualizer.exe ..\\..\\results\\toroid.txt");    
+    Visualizer::VisualizeODESysSolAsParamCurve3(sol0, "Lorenz system as parametric curve", "demo_lorenz_1_as_parametric_curve.txt");
 }
 

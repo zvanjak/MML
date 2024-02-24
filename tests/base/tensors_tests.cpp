@@ -8,6 +8,6 @@
 
 using namespace MML;
 
-// TODO 0.7 - BIG, EMPTY!!! - implement tests for tensors
+// TODO 0.9 - BIG, EMPTY!!! - implement tests for tensors
 TEST_CASE("Test_Tensors", "[simple]") {
 }

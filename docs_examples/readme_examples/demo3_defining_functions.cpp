@@ -8,6 +8,7 @@
 
 #include "core/Function.h"
 #include "core/InterpolatedFunction.h"
+#include "core/Serializer.h"
 #endif
 
 #include "../test_data/real_functions_test_bed.h"
@@ -116,11 +117,12 @@ void Readme_defining_functions_case_5_usage()
     SplineInterpRealFunc    f_spline(x_val, y_val);
     BaryRatInterpRealFunc   f_baryrat(x_val, y_val, 3);
 
-    test_func.SerializeEquallySpacedDetailed(x1, x2, 100, "..\\..\\results\\readme_interp_test_func.txt");
-    f_linear.SerializeEquallySpacedDetailed(x1, x2, 500, "..\\..\\results\\readme_interp_linear_5_pnt.txt");
-    f_polynom.SerializeEquallySpacedDetailed(x1, x2, 100, "..\\..\\results\\readme_interp_polynom_5_pnt.txt");
-    f_spline.SerializeEquallySpacedDetailed(x1, x2, 100, "..\\..\\results\\readme_interp_spline_5_pnt.txt");
-    f_baryrat.SerializeEquallySpacedDetailed(x1, x2, 100, "..\\..\\results\\readme_interp_baryrat_5_pnt.txt");
+    // situation - we need different number of points for different functions
+    Serializer::SaveRealFuncEquallySpacedDetailed(test_func, x1, x2, 100, "..\\..\\results\\readme_interp_test_func.txt");
+    Serializer::SaveRealFuncEquallySpacedDetailed(f_linear, x1, x2, 500, "..\\..\\results\\readme_interp_linear_5_pnt.txt");
+    Serializer::SaveRealFuncEquallySpacedDetailed(f_polynom, x1, x2, 100, "..\\..\\results\\readme_interp_polynom_5_pnt.txt");
+    Serializer::SaveRealFuncEquallySpacedDetailed, (x1, x2, 100, "..\\..\\results\\readme_interp_spline_5_pnt.txt");
+    Serializer::SaveRealFuncEquallySpacedDetailed(f_baryrat, x1, x2, 100, "..\\..\\results\\readme_interp_baryrat_5_pnt.txt");
 
     const char *cmd = "..\\..\\tools\\visualizers\\real_function_visualizer\\MML_RealFunctionVisualizer.exe"
                         " ..\\..\\results\\readme_interp_test_func.txt"
@@ -130,7 +132,7 @@ void Readme_defining_functions_case_5_usage()
                         " ..\\..\\results\\readme_interp_baryrat_5_pnt.txt";
     std::system(cmd);
 
-    // TODO 0.8 - HIGH parametric curve interpolation
+    // TODO 0.9 - HIGH parametric curve interpolation
 }
 
 void Readme_defining_functions()

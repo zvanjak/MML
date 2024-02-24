@@ -4,7 +4,6 @@
 #include "MMLBase.h"
 
 #include "core/Function.h"
-
 #include "core/Curves.h"
 
 #include "algorithms/ParametricCurveAnalyzer.h"
@@ -24,7 +23,7 @@ void Readme_parametric_curves()
     ParametricCurve<3>        test_curve1( [](Real t) -> VectorN<Real, 3> { return VectorN<Real, 3>{t, t*t, t*t*t}; } );
     
     // using predefined curve
-    Curves2D::LemniscateCurve   lemniscate;
+    Curves2D::LemniscateCurve     lemniscate;
     Curves3D::ToroidalSpiralCurve torus(3, 2.0);
     
     // using curve from TestData
@@ -40,5 +39,5 @@ void Readme_parametric_curves()
     auto curv_vec   = ParametricCurveAnalyzer::getCurvatureVector(test_curve, t);
     auto curvature  = ParametricCurveAnalyzer::getCurvature(test_curve, t);
     auto curvature3 = ParametricCurveAnalyzer::getCurvature3(test_curve, t);
-    // TODO 0.8 - vizualizirati neku krivulju, i u jednoj točki vizualizirati (World view) 3 vektora tangente, normale i binormale, te vektore zakrivljenosti
+    // TODO 0.9 - vizualizirati neku krivulju, i u jednoj točki vizualizirati (World view) 3 vektora tangente, normale i binormale, te vektore zakrivljenosti
 }

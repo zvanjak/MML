@@ -8,7 +8,7 @@
 
 using namespace MML;
 
-// TODO 0.8 - 2D verzije!!!
+// TODO 0.9 - 2D verzije!!!
 // carousel - rotirajuci sustav
 // 1. simple- carousel promjera 10 km, i na njemu ljudi
 // 2. carousel promjera 10 km, i na njemu ljudi, i na njemu je jos jedan carousel promjera 1 km
@@ -16,7 +16,10 @@ using namespace MML;
 class ReferentialFrame3D
 { };
 class InertialFrame3D : public ReferentialFrame3D
-{ };
+{ 
+    // u odnosu na drugi referential frame ima samo konstantu brzinu
+};
+
 class MovingFrame3D : public ReferentialFrame3D
 { 
     // getOriginPositionAtTime - vraca poziciju u odnosu na ReferentialFrame3D
@@ -166,7 +169,7 @@ class HardSphereToLocalCartesian : public InertialFrame3D
 // za njega NE TREBA davati lat, long i h jer vec ima, a x, y i z transformira lokalno
 
 
-// TODO 0.8 - zanemari sunce, i samo lokalni rotacijski sustav zemlje
+// TODO 0.9 - zanemari sunce, i samo lokalni rotacijski sustav zemlje
 
 void Demo_Coord_system()
 {

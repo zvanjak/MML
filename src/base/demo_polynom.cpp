@@ -28,7 +28,7 @@ void Demo_Polynom()
 
     RealPolynom poly_real({1, 2, 3, 4, 5});
     ComplexPolynom poly_cmplx({Complex(1,1), Complex(1,1)});
-    MatrixPolynomDim2 poly_mat({1, 2, 3});            // matrix polynomial of 3rd order
+    Matrix2Polynom poly_mat({1, 2, 3});            // matrix polynomial of 3rd order
 
     // I/O of polynomials
     std::cout << "pol_constant  : " << pol_constant << std::endl;

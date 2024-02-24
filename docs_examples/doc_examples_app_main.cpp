@@ -3,6 +3,6 @@ void Docs_Readme_Examples();
 
 int main()
 {
-    //Docs_Readme_Examples();
-    Docs_Examples();
+    Docs_Readme_Examples();
+    //Docs_Examples();
 }

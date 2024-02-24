@@ -7,4 +7,4 @@ Also, visualize resulting electric field.
 
 [C++ file with implementation](/docs_examples/examples/example6_electric_charge_distribution.cpp)
 
-// TODO 0.8
+// TODO 0.9

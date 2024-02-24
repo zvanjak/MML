@@ -9,7 +9,7 @@
 
 using namespace MML;
 
-// TODO 0.7 - finish details
+// TODO 0.9 - finish details
 namespace MML::Tests::MatrixOtherTests
 {
 TEST_CASE("MatrixSym_default_ctor_init_to_zero", "[simple]") 

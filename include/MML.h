@@ -1,6 +1,6 @@
 //  __ __ __ __ _
 // |  |  |  |  | |    Minimal Math Library for Modern C++
-// | | | | | | | |__  version 0.8.0
+// | | | | | | | |__  version 0.9
 // |_| |_|_| |_|____| https://github.com/zvanjak/mml
 //
 // Copyright: 2023 - 2024, Zvonimir Vanjak 
@@ -265,53 +265,32 @@ namespace MML
 namespace MML
 {
     template<class _Tag, class _Value>
-    class DataSeriesSingleRow
-    {
-    public:
-        std::string _tagName;
-        std::vector<_Tag> _tags;
-        std::string _valueName;
-        std::vector<_Value> _values;
-    };
-
-    template<class _Tag, class _Value>
-    class DataSeriesMultiRow
+    class TablePrinter
     {
     public:
         std::string _tagName;
         std::vector<_Tag> _tags;
         
         int _tagWidth, _tagPrec;
-        std::vector<std::pair<int, int>> _listWidthPrec;
+        std::vector<std::tuple<int, int, char>> _listFormatSpec;
 
         std::vector<std::string> _valueNames;
         std::vector<std::vector<_Value>> _values;
 
-        DataSeriesMultiRow(std::string tagName, std::vector<std::string> valueNames) : 
+        TablePrinter(std::string tagName, std::vector<std::string> valueNames) : 
             _tagName(tagName), _valueNames(valueNames)
         {
             _tagWidth = 8;
             _tagPrec = 3;
             for (size_t i = 0; i < _valueNames.size(); i++)
             {
-                _listWidthPrec.push_back(std::make_pair(11, 5));
+                _listFormatSpec.push_back(std::make_pair(11, 5));
             }
         }
 
-        DataSeriesMultiRow(std::string tagName, int tagWidth, int tagPrec, std::vector<std::string> valueNames, std::vector<std::pair<int, int>> listWidthPrec): 
-            _tagName(tagName), _tagWidth(tagWidth), _tagPrec(tagPrec), _valueNames(valueNames), _listWidthPrec(listWidthPrec)
+        TablePrinter(std::string tagName, int tagWidth, int tagPrec, std::vector<std::string> valueNames, std::vector<std::tuple<int, int, char>> listWidthPrec): 
+            _tagName(tagName), _tagWidth(tagWidth), _tagPrec(tagPrec), _valueNames(valueNames), _listFormatSpec(listWidthPrec)
         {}
-
-        // DataSeriesMultiRow(std::string tagName, std::vector<_Tag> tags, std::vector<std::string> valueNames, Matrix<_Value> values) : 
-        //     _tagName(tagName), _tags(tags), _valueNames(valueNames), _values(values)
-        // {
-        //     _tagWidth = 8;
-        //     _tagPrec = 3;
-        //     for (size_t i = 0; i < _valueNames.size(); i++)
-        //     {
-        //         _listWidthPrec.push_back(std::make_pair(11, 5));
-        //     }            
-        // }
 
         void addRow(_Tag tag, std::vector<_Value> values)
         {
@@ -324,22 +303,29 @@ namespace MML
 
         void Print()
         {
-            std::cout << std::fixed << std::setw(_tagWidth) << _tagName << " ";
-            for (size_t i = 0; i < _valueNames.size(); i++)
+          std::cout << std::setw(_tagWidth) << _tagName << " ";
+          for (size_t i = 0; i < _valueNames.size(); i++)
+          {
+            std::cout << std::setw(std::get<0>(_listFormatSpec[i])) << std::setprecision(std::get<1>(_listFormatSpec[i])) << _valueNames[i] << " ";
+          }
+          std::cout << std::endl;
+
+          for (size_t i = 0; i < _tags.size(); i++)
+          {
+            
+            if (std::get<2>(_listFormatSpec[0]) == 'S')
+              std::cout << std::scientific << std::setw(_tagWidth) << std::setprecision(_tagPrec) << _tags[i] << " ";
+            else
+              std::cout << std::fixed << std::setw(_tagWidth) << std::setprecision(_tagPrec) << _tags[i] << " ";
+            for (size_t j = 0; j < _values[i].size(); j++)
             {
-                std::cout << std::setw(_listWidthPrec[i].first) << _valueNames[i];
+              if (std::get<2>(_listFormatSpec[j]) == 'S')
+                std::cout << std::scientific << std::setw(std::get<0>(_listFormatSpec[j])) << std::setprecision(std::get<1>(_listFormatSpec[j])) << _values[i][j] << " ";
+              else
+                std::cout << std::fixed << std::setw(std::get<0>(_listFormatSpec[j])) << std::setprecision(std::get<1>(_listFormatSpec[j])) << _values[i][j] << " ";
             }
             std::cout << std::endl;
-
-            for (size_t i = 0; i < _tags.size(); i++)
-            {
-                std::cout << std::setw(_tagWidth) << std::setprecision(_tagPrec) << _tags[i] << " ";
-                for (size_t j = 0; j < _values[i].size(); j++)
-                {
-                    std::cout << std::setw(_listWidthPrec[j].first) << std::setprecision(_listWidthPrec[j].second)  << _values[i][j];
-                }
-                std::cout << std::endl;
-            }
+          }
         }
 
         void Print(int tagWidth, int tagPrec, std::vector<std::pair<int, int>> listWidthPrec)
@@ -360,17 +346,6 @@ namespace MML
                 std::cout << std::endl;
             }
         }
-    };
-
-    template<class _RowTag, class _ValueType>
-    class DataTable
-    {
-        std::vector<_RowTag> _rowTableValues;
-        std::vector<std::string> _colValueNames;
-        
-        std::vector<std::vector<_ValueType>> _values;
-                
-        std::vector<std::pair<int, int>> _listWidthPrec;
     };
 
     class DataCube
@@ -519,7 +494,7 @@ namespace MML
 
 namespace MML
 {
-    // TODO 0.8 - implement intervals properly (and use them in test beds)
+    // TODO - finalize intervals properly (and use them in test beds)
     ///////////////////////////////////////////////   Interfaces    ///////////////////////////////////////////
     enum class EndpointType
     {
@@ -543,10 +518,7 @@ namespace MML
         Real getUpperBound() const { return _upper; }
         Real getLength()     const { return _upper - _lower; }
         
-        bool isContinuous()  const { return true; }
-
-        // bool contains(const IInterval &other) const = 0;
-        // bool intersects(const IInterval &other) const = 0;
+        virtual bool isContinuous()  const { return true; }     // we suppose continuous intervals by default
 
         void GetEquidistantCovering(int numPoints) { }
     };
@@ -693,16 +665,6 @@ namespace MML
             return *this;
         }
 
-        // static Interval Union(const BaseInterval &a, const BaseInterval &b)
-        // {
-        //     Interval ret;
-        //     ret._lower = std::min(a.getLowerBound(), b.getLowerBound());
-        //     ret._upper = std::max(a.getUpperBound(), b.getUpperBound());
-
-        //     // TODO - implement union
-        //     return ret;
-        // }
-
         static Interval Intersection(const IInterval &a, const IInterval &b)
         {
             Interval ret;
@@ -736,53 +698,12 @@ namespace MML
             }
             return false;
         }
+        // TODO - implement this
         // bool contains(const IInterval &other) const = 0;
         // bool intersects(const IInterval &other) const = 0;
 
         void GetEquidistantCovering(int numPoints) { }
     };
-
-    class IntervalUnion : public IInterval
-    {
-        IInterval &_left, &_right;
-    public:
-        IntervalUnion(IInterval &left, IInterval &right) : _left(left), _right(right) 
-        { 
-            if( _left.getLowerBound() > _right.getLowerBound() )
-            {
-                IInterval &temp = _left;
-                _left = _right;
-                _right = temp;
-                // std::swap(_left, _right);  // doesn't work???
-            }
-        }
-
-        Real getLowerBound() const { return _left.getLowerBound(); }
-        Real getUpperBound() const { return std::max(_left.getUpperBound(), _right.getUpperBound()); }
-        Real getLength() const { 
-            // FIXME - implement correctly
-            // ako se ne sijeku
-            if( _left.getUpperBound() < _right.getLowerBound() )
-                return _left.getLength() + _right.getLength();
-            else {
-                // ili je jedan sadrzan cijeli u drugome
-
-                // ili se standardno sijeku
-            }
-            return _left.getLength() + _right.getLength(); 
-
-        }
-        
-        bool isContinuous() const { return false; }
-
-        bool contains(Real x) const {
-            return _left.contains(x) || _right.contains(x);
-        }
-        // bool contains(const IInterval &other) const = 0;
-        // bool intersects(const IInterval &other) const = 0;
-
-        void GetEquidistantCovering(int numPoints) { }
-    };    
 }
 
 ///////////////////////////   ./include/base/Vector.h   ///////////////////////////
@@ -1795,6 +1716,14 @@ namespace MML
         }
 
         ///////////////////////////               I/O                 ///////////////////////////
+        std::string to_string(int width, int precision) const
+        {
+            std::stringstream str;
+
+            Print(str, width, precision);
+
+            return str.str();
+        }
         void   Print(std::ostream& stream, int width, int precision) const
         {
             stream << "Rows: " << RowNum() << " Cols: " << ColNum() << std::endl;
@@ -1956,7 +1885,7 @@ namespace MML
                 throw MatrixAccessBoundsError("TridiagonalMatrix::operator()", i, j, _dim, _dim);
         }
 
-        // TODO 0.8 - dodati IsEqual
+        // TODO 0.9 - dodati IsEqual
         // TODO 1.0 - imaju li smisla operacije s regularnim matricama? I BandDiag?
         TridiagonalMatrix operator+( const TridiagonalMatrix &b ) const
         {
@@ -2032,8 +1961,8 @@ namespace MML
             return ret;
         }
 
-        // TODO - 0.8 invert
-        // TODO - 0.8 transpose
+        // TODO - invert
+        // TODO - 0.9 transpose
 
         void Solve(Vector<Type> &rhs, Vector<Type> &sol)
         {
@@ -2092,8 +2021,6 @@ namespace MML
         int RowNum() const { return _dim; }
         int ColNum() const { return _dim; }
 
-        // TODO - 0.8 HIGH, SREDNJE, finish basic operations
-
         BandDiagonalMatrix(int dim, int m1, int m2, const Matrix<Real> &data) : _dim(dim), _m1(m1), _m2(m2), _data(data)
         {
             if (data.RowNum() != dim || data.ColNum() != m1+m2+1)
@@ -2125,6 +2052,10 @@ namespace MML
                 for (j=std::max(0,-k);j<tmploop;j++) b[i] += a[i][j]*x[j+k];
             }
         }
+
+        // TODO - HIGH, SREDNJE, implement basic operations between BandDiag and BandDiag
+        
+
         Vector<Real> operator*(Vector<Real> &x)
         {
             Vector<Real> b(x.size());
@@ -2585,6 +2516,14 @@ namespace MML
         }             
  
         ///////////////////////////               I/O                 ///////////////////////////
+        std::string to_string(int width, int precision) const
+        {
+            std::stringstream str;
+
+            Print(str, width, precision);
+
+            return str.str();
+        }
         void Print(std::ostream& stream, int width, int precision) const
         {
             stream << "Rows: " << RowNum() << "  Cols: " << ColNum() << std::endl;
@@ -3033,6 +2972,14 @@ namespace MML
         }     
 
         ///////////////////////////               I/O                 ///////////////////////////
+        std::string to_string(int width, int precision) const
+        {
+            std::stringstream str;
+
+            Print(str, width, precision);
+
+            return str.str();
+        }
         void   Print(std::ostream& stream, int width, int precision) const
         {
             stream << "Rows: " << Dim() << std::endl;
@@ -3447,6 +3394,16 @@ namespace MML
             return ret;
         }        
 
+        ///////////////////////////               I/O                 ///////////////////////////
+        std::string to_string(int width, int precision) const
+        {
+            std::stringstream str;
+
+            Print(str, width, precision);
+
+            return str.str();
+        }
+
         std::ostream& Print(std::ostream& stream, int width, int precision) const
         {
             for(int i=(int) _vecCoef.size()-1; i>=0; i--)
@@ -3489,15 +3446,6 @@ namespace MML
             return stream;
         }
 
-        std::string to_string(int width, int precision) const
-        {
-            std::stringstream str;
-
-            Print(str, width, precision);
-
-            return str.str();
-        }
-
         friend std::ostream& operator<<(std::ostream& stream, Polynom &a)
         {
             a.Print(stream);
@@ -3509,9 +3457,9 @@ namespace MML
     typedef Polynom<Real, Real>         RealPolynom;
     typedef Polynom<Complex, Complex>   ComplexPolynom;
 
-    typedef Polynom<MatrixNM<Real,2,2>, Real>       MatrixPolynomDim2;
-    typedef Polynom<MatrixNM<Real,3,3>, Real>       MatrixPolynomDim3;
-    typedef Polynom<MatrixNM<Real,4,4>, Real>       MatrixPolynomDim4;
+    typedef Polynom<MatrixNM<Real,2,2>, Real>       Matrix2Polynom;
+    typedef Polynom<MatrixNM<Real,3,3>, Real>       Matrix3Polynom;
+    typedef Polynom<MatrixNM<Real,4,4>, Real>       Matrix4Polynom;
 }
 
 ///////////////////////////   ./include/base/Algebra.h   ///////////////////////////
@@ -3919,145 +3867,14 @@ namespace MML
                 std::cout << x << " " << (*this)(x) << std::endl;
             } 
         }
-        bool SerializeEquallySpaced(Real x1, Real x2, int numPoints, std::string fileName) const
-        {
-            std::ofstream file(fileName);
-            if( !file.is_open() )
-                return false;
-
-            file << "REAL_FUNCTION_EQUALLY_SPACED" << std::endl;
-            file << "x1: " << x1 << std::endl;
-            file << "x2: " << x2 << std::endl;
-            file << "NumPoints: " << numPoints << std::endl;
-
-            Real step = (x2 - x1) / (numPoints - 1);
-            for( int i=0; i<numPoints; i++ )
-            {
-                Real x = x1 + i * step;
-                file << (*this)(x) << std::endl;
-            }
-            file.close();
-            return true;            
-        }
-
-        bool SerializeEquallySpacedDetailed(Real x1, Real x2, int numPoints, std::string fileName) const
-        {
-            std::ofstream file(fileName);
-            if( !file.is_open() )
-                return false;
-
-            file << "REAL_FUNCTION_EQUALLY_SPACED_DETAILED" << std::endl;
-            file << "x1: " << x1 << std::endl;
-            file << "x2: " << x2 << std::endl;
-            file << "NumPoints: " << numPoints << std::endl;
-
-            Real step = (x2 - x1) / (numPoints - 1);
-            for( int i=0; i<numPoints; i++ )
-            {
-                Real x = x1 + i * step;
-                file << x << " " << (*this)(x) << std::endl;
-            }
-            file.close();
-            return true;
-        }
-
-        bool SerializeVariableSpaced(Vector<Real> points, std::string fileName) const
-        {
-            std::ofstream file(fileName);
-            if( !file.is_open() )
-                return false;
-
-            file << "REAL_FUNCTION_VARIABLE_SPACED" << std::endl;
-
-            for( int i=0; i<points.size(); i++ )
-            {
-                Real x = points[i];
-                file << x << " " << (*this)(x) << std::endl;
-            }
-            file.close();
-            return true;
-        }
     };
 
     //////////////////////////////////////////////////////////////////////
-    // scalar spherical, cylindrical
-    // kako utjece na derivacije??
-    // mora biti bazna, s generalnim vektor tipom
-    // i onda def. specijalizacije 
     template<int N>
     class IScalarFunction : public IFunction<Real, const VectorN<Real, N> &>
     {
     public:
         virtual Real operator()(const VectorN<Real, N> &x) const = 0;
-
-        bool Serialize2DCartesian(Real x1, Real x2, int numPointsX, Real y1, Real y2, int numPointsY, std::string fileName) const
-        {
-            if( N!= 2 )
-                throw std::runtime_error("IScalarFunction::Serialize2DCartesian() - N != 2");
-
-            std::ofstream file(fileName);
-            if( !file.is_open() )
-                return false;
-
-            file << "SCALAR_FUNCTION_CARTESIAN_2D" << std::endl;
-            file << "x1: " << x1 << std::endl;
-            file << "x2: " << x2 << std::endl;
-            file << "NumPointsX: " << numPointsX << std::endl;
-            file << "y1: " << y1 << std::endl;
-            file << "y2: " << y2 << std::endl;
-            file << "NumPointsY: " << numPointsY << std::endl;
-
-            Real stepX = (x2 - x1) / (numPointsX - 1);
-            Real stepY = (y2 - y1) / (numPointsY - 1);
-            for( int i=0; i<numPointsX; i++ )
-            {
-                for( int j=0; j<numPointsY; j++ )
-                {
-                    Real x = x1 + i * stepX;
-                    Real y = y1 + j * stepY;
-                    file << x << " " << y << " " << (*this)(VectorN<Real, N>{x, y}) << std::endl;
-                }   
-            }            
-            return true;
-        }
-
-        bool Serialize3DCartesian(Real x1, Real x2, int numPointsX, Real y1, Real y2, int numPointsY, Real z1, Real z2, int numPointsZ, std::string fileName) const
-        {
-            if( N != 3 )
-                throw std::runtime_error("IScalarFunction::Serialize3DCartesian() - N != 3");
-             std::ofstream file(fileName);
-            if( !file.is_open() )
-                return false;
-
-            file << "SCALAR_FUNCTION_CARTESIAN_3D" << std::endl;
-            file << "x1: " << x1 << std::endl;
-            file << "x2: " << x2 << std::endl;
-            file << "NumPointsX: " << numPointsX << std::endl;
-            file << "y1: " << y1 << std::endl;
-            file << "y2: " << y2 << std::endl;
-            file << "NumPointsY: " << numPointsY << std::endl;
-            file << "z1: " << z1 << std::endl;
-            file << "z2: " << z2 << std::endl;
-            file << "NumPointsZ: " << numPointsZ << std::endl;
-
-            Real stepX = (x2 - x1) / (numPointsX - 1);
-            Real stepY = (y2 - y1) / (numPointsY - 1);
-            Real stepZ = (z2 - z1) / (numPointsZ - 1);
-            for( int i=0; i<numPointsX; i++ )
-            {
-                for( int j=0; j<numPointsY; j++ )
-                {
-                    for( int k=0; k<numPointsZ; k++ )
-                    {
-                        Real x = x1 + i * stepX;
-                        Real y = y1 + j * stepY;
-                        Real z = z1 + j * stepZ;
-                        file << x << " " << y << " " << z << " " << (*this)(VectorN<Real, N>{x, y, z}) << std::endl;
-                    }
-                }   
-            }           
-            return true;
-        }
     };
     
     //////////////////////////////////////////////////////////////////////
@@ -4067,81 +3884,6 @@ namespace MML
     {
     public:
         virtual VectorN<Real, N> operator()(Real x) const = 0;
-
-        bool Serialize(std::string inType, Real t1, Real t2, int numPoints, std::string fileName) const
-        {
-            std::ofstream file(fileName);
-            if( !file.is_open() )
-                return false;
-
-            file << inType << std::endl;
-            file << "t1: " << t1 << std::endl;
-            file << "t2: " << t2 << std::endl;
-            file << "NumPoints: " << numPoints << std::endl;
-
-            Real delta = (t2 - t1) / (numPoints - 1);
-            for( Real t=t1; t<=t2; t+= delta )
-            {
-                file << t << " ";
-                for( int i=0; i<N; i++)
-                    file << (*this)(t)[i] << " ";
-                file << std::endl;
-            }
-            file.close();
-            return true;
-        }
-        
-        bool SerializeAtPoints(std::string inType, Vector<Real> points, std::string fileName) const
-        {
-            std::ofstream file(fileName);
-            if( !file.is_open() )
-                return false;
-
-            file << inType << std::endl;
-            for( int i=0; i<points.size(); i++ )
-            {
-                Real t = points[i];
-                file << t << " ";
-                for( int i=0; i<N; i++)
-                    file << (*this)(t)[i] << " ";
-                file << std::endl;
-            }
-
-            file.close();
-            return true;
-        }
-        bool SerializeCartesian2D(Real t1, Real t2, int numPoints, std::string fileName) const
-        {
-            return Serialize("PARAMETRIC_CURVE_CARTESIAN_2D", t1, t2, numPoints, fileName);
-        }
-        bool SerializeCartesian2DAtPoints(Vector<Real> points, std::string fileName) const
-        {
-            return SerializeAtPoints("PARAMETRIC_CURVE_CARTESIAN_2D_AT_POINTS", points, fileName);
-        }
-        bool SerializeCartesian3D(Real t1, Real t2, int numPoints, std::string fileName) const
-        {
-            return Serialize("PARAMETRIC_CURVE_CARTESIAN_3D", t1, t2, numPoints, fileName);
-        }
-        bool SerializeCartesian3DAtPoints(Vector<Real> points, std::string fileName) const
-        {
-            return SerializeAtPoints("PARAMETRIC_CURVE_CARTESIAN_3D_AT_POINTS", points, fileName);
-        }
-        bool SerializePolar(Real t1, Real t2, int numPoints, std::string fileName) const
-        {
-            return Serialize("PARAMETRIC_CURVE_POLAR", t1, t2, numPoints, fileName);
-        }
-        bool SerializePolarAtPoints(Vector<Real> points, std::string fileName) const
-        {
-            return SerializeAtPoints("PARAMETRIC_CURVE_POLAR_AT_POINTS", points, fileName);
-        }
-        bool SerializeSpherical(Real t1, Real t2, int numPoints, std::string fileName) const
-        {
-            return Serialize("PARAMETRIC_CURVE_SPHERICAL", t1, t2, numPoints, fileName);
-        }          
-        bool SerializeSphericalAtPoints(Vector<Real> points, std::string fileName) const
-        {
-            return SerializeAtPoints("PARAMETRIC_CURVE_SPHERICAL_AT_POINTS", points, fileName);
-        }
     };
 
     //////////////////////////////////////////////////////////////////////
@@ -4150,88 +3892,12 @@ namespace MML
     {
     public:
         virtual VectorN<Real, N> operator()(const VectorN<Real, N> &x) const = 0;
+
         virtual Real operator()(const VectorN<Real, N> &x, int component) const
         {
             VectorN<Real, N> val = (*this)(x);
             return val[component];
-        }
-
-        bool Serialize3D(std::string inType, Real x1_start, Real x1_end, int numPointsX1, Real x2_start, Real x2_end, int numPointsX2, Real x3_start, Real x3_end, int numPointsX3, std::string fileName) const
-        {
-            if( N != 3 )
-                throw std::runtime_error("IVectorFunction::Serialize3D() - N != 3");
-
-            std::ofstream file(fileName);
-            if( !file.is_open() )
-                return false;
-
-            file << inType << std::endl;
-
-            Real stepX = (x1_end - x1_start) / (numPointsX1 - 1);
-            Real stepY = (x2_end - x2_start) / (numPointsX2 - 1);
-            Real stepZ = (x3_end - x3_start) / (numPointsX3 - 1);
-            for( int i=0; i<numPointsX1; i++ )
-                for( int j=0; j<numPointsX2; j++ )
-                    for( int k=0; k<numPointsX3; k++ )
-                    {
-                        Real x = x1_start + i * stepX;
-                        Real y = x2_start + j * stepY;
-                        Real z = x3_start + k * stepZ;
-                        auto val = (*this)(VectorN<Real, N>{x, y, z});
-                        file << x << " " << y << " " << z << " " << val[0] << " " << val[1] << " " << val[2] << std::endl;
-                    }
-
-            file.close();
-            return true;
-        }    
-        
-        bool Serialize3D(std::string inType, Real x1_start, Real x1_end, int numPointsX1, Real x2_start, Real x2_end, int numPointsX2, Real x3_start, Real x3_end, int numPointsX3, std::string fileName, Real upper_threshold) const
-        {
-            if( N != 3 )
-                throw std::runtime_error("IVectorFunction::Serialize3D() - N != 3");
-
-            std::ofstream file(fileName);
-            if( !file.is_open() )
-                return false;
-
-            file << inType << std::endl;
-
-            Real stepX = (x1_end - x1_start) / (numPointsX1 - 1);
-            Real stepY = (x2_end - x2_start) / (numPointsX2 - 1);
-            Real stepZ = (x3_end - x3_start) / (numPointsX3 - 1);
-            for( int i=0; i<numPointsX1; i++ )
-                for( int j=0; j<numPointsX2; j++ )
-                    for( int k=0; k<numPointsX3; k++ )
-                    {
-                        Real x = x1_start + i * stepX;
-                        Real y = x2_start + j * stepY;
-                        Real z = x3_start + k * stepZ;
-                        auto val = (*this)(VectorN<Real, N>{x, y, z});
-
-                        if( val.NormL2() < upper_threshold )
-                            file << x << " " << y << " " << z << " " << val[0] << " " << val[1] << " " << val[2] << std::endl;
-                    }
-
-            file.close();
-            return true;
-        }            
-        
-        bool Serialize3DCartesian(Real x1, Real x2, int numPointsX, Real y1, Real y2, int numPointsY, Real z1, Real z2, int numPointsZ, std::string fileName) const
-        {
-            return Serialize3D("VECTOR_FIELD_3D_CARTESIAN", x1, x2, numPointsX, y1, y2, numPointsY, z1, z2, numPointsZ, fileName);
-        }
-        bool Serialize3DCartesian(Real x1, Real x2, int numPointsX, Real y1, Real y2, int numPointsY, Real z1, Real z2, int numPointsZ, std::string fileName, Real upper_threshold) const
-        {
-            return Serialize3D("VECTOR_FIELD_3D_CARTESIAN", x1, x2, numPointsX, y1, y2, numPointsY, z1, z2, numPointsZ, fileName, upper_threshold);
-        }
-        bool SerializeSpherical(Real r1, Real r2, int numPointsR, Real theta1, Real theta2, int numPointsTheta, Real phi1, Real phi2, int numPointsPhi, std::string fileName) const
-        {
-            return Serialize3D("VECTOR_FIELD_SPHERICAL", r1, r2, numPointsR, theta1, theta2, numPointsTheta, phi1, phi2, numPointsPhi, fileName);
-        }               
-        bool SerializeSpherical(Real r1, Real r2, int numPointsR, Real theta1, Real theta2, int numPointsTheta, Real phi1, Real phi2, int numPointsPhi, std::string fileName, Real upper_threshold) const
-        {
-            return Serialize3D("VECTOR_FIELD_SPHERICAL", r1, r2, numPointsR, theta1, theta2, numPointsTheta, phi1, phi2, numPointsPhi, fileName, upper_threshold);
-        }               
+        }         
     };
 
     //////////////////////////////////////////////////////////////////////
@@ -4264,7 +3930,7 @@ namespace MML
             return false; 
         }
 
-        std::vector<VectorN<Real, N>> GetTrace(double t1, double t2, int numPoints)
+        std::vector<VectorN<Real, N>> GetTrace(double t1, double t2, int numPoints) const 
         {
             std::vector<VectorN<Real, N>> ret;
             double deltaT = (t2 - t1) / (numPoints - 1);
@@ -4282,10 +3948,10 @@ namespace MML
     public:
         virtual VectorN<Real, N> operator()(Real u, Real w) const = 0;
         
-        virtual Real getMinX() = 0;
-        virtual Real getMaxX() = 0;
-        virtual Real getMinY() = 0;
-        virtual Real getMaxY() = 0;
+        virtual Real getMinX() const = 0;
+        virtual Real getMaxX() const = 0;
+        virtual Real getMinY() const = 0;
+        virtual Real getMaxY() const = 0;
 
         virtual VectorN<Real, N> operator()(const VectorN<Real, 2> &coord) const 
         {
@@ -4304,10 +3970,10 @@ namespace MML
     public:
         virtual VectorN<Real, N> operator()(Real u, Real w) const = 0;
         
-        virtual Real getMinX() = 0;
-        virtual Real getMaxX() = 0;
-        virtual Real getMinY(Real x) = 0;
-        virtual Real getMaxY(Real x) = 0;
+        virtual Real getMinX() const = 0;
+        virtual Real getMaxX() const = 0;
+        virtual Real getMinY(Real x) const = 0;
+        virtual Real getMaxY(Real x) const = 0;
 
         virtual VectorN<Real, N> operator()(const VectorN<Real, 2> &coord) const 
         {
@@ -4585,7 +4251,7 @@ namespace MML
         {
             return ScalarProd(Direction(), b.Direction()) == 0.0f;
         }
-        // TODO 0.8 - VERIFY distance Line - Point3
+        // TODO 0.9 - VERIFY distance Line - Point3
         Real Dist(const Point3Cartesian &pnt) const
         {
             Real dist = 0.0;
@@ -4633,8 +4299,8 @@ namespace MML
 
             return Q - t * RQ;
         }
-        // TODO 0.8 - pravac koji prolazi kroz tocku i sijece zadani pravac okomito
-        // TODO 0.8 - sjeciste dva pravca
+        // TODO - pravac koji prolazi kroz tocku i sijece zadani pravac okomito
+        // TODO - sjeciste dva pravca
     };
 
     class SegmentLine3D
@@ -4733,9 +4399,11 @@ namespace MML
 
         Point3Cartesian GetPointOnPlane() const { 
             if( _A != 0.0 )
-                return Point3Cartesian(-_D / _A, 0, 0); 
-            else  
-                return Point3Cartesian(0, 0, -_D / _C); 
+              return Point3Cartesian(-_D / _A, 0, 0); 
+            else  if( _B != 0.0 )
+              return Point3Cartesian(0, -_D / _B, 0);
+            else
+              return Point3Cartesian(0, 0, -_D / _C); 
         }
         
         Vector3Cartesian Normal() const { return Vector3Cartesian(_A, _B, _C); }
@@ -4747,9 +4415,9 @@ namespace MML
             outseg_z = - _D /  _C;
         }
 
-        bool IsPointOnPlane(const Point3Cartesian &pnt) const
+        bool IsPointOnPlane(const Point3Cartesian &pnt, Real defEps = 1e-15) const
         {
-            return _A * pnt.X() + _B * pnt.Y() + _C * pnt.Z() + _D == 0.0;
+            return std::abs(_A * pnt.X() + _B * pnt.Y() + _C * pnt.Z() + _D) < defEps;
         }
         Real DistToPoint(const Point3Cartesian &pnt) const
         {
@@ -4761,6 +4429,7 @@ namespace MML
 
         Point3Cartesian ProjectionToPlane(const Point3Cartesian &pnt) const
         {
+          // TODO - check if it is already ona the plane!
             // from given point and normal to plane form a Line3D
             Line3D line(pnt, Normal());
             
@@ -4882,6 +4551,40 @@ namespace MML
         Point3Cartesian &Pnt3() { return _pnt3; }
     };
 
+    // general surface in 3D, consisting of a set of triangles
+    // BUT, ordered in strips!!!
+    class Surface3D
+    {
+
+    };
+
+    class TriangleSurface3D : public Triangle3D, IParametricSurface<3>
+    {
+    public:
+      Real _minX, _maxX, _minY, _maxY;
+      Point3Cartesian _center;
+      Vector3Cartesian _localX,_localY;
+
+      TriangleSurface3D(Point3Cartesian pnt1, Point3Cartesian pnt2, Point3Cartesian pnt3)
+        : Triangle3D(pnt1, pnt2, pnt3)
+      {
+					// calculate min and max
+					_minX = std::min(pnt1.X(), std::min(pnt2.X(), pnt3.X()));
+					_maxX = std::max(pnt1.X(), std::max(pnt2.X(), pnt3.X()));
+					_minY = std::min(pnt1.Y(), std::min(pnt2.Y(), pnt3.Y()));
+					_maxY = std::max(pnt1.Y(), std::max(pnt2.Y(), pnt3.Y()));
+
+					// calculate center
+					_center = (pnt1 + pnt2 + pnt3) / 3.0;
+
+					// calculate local coordinate system
+					_localX = Vector3Cartesian(pnt1, pnt2).GetAsUnitVector();
+					_localY = Vector3Cartesian(pnt1, pnt3).GetAsUnitVector();
+			}
+
+
+    };
+
     class RectSurface3D : public IParametricSurface<3>
     {
     public:
@@ -4912,10 +4615,19 @@ namespace MML
             _localX = Vector3Cartesian(_pnt1, _pnt2).GetAsUnitVector();
             _localY = Vector3Cartesian(_pnt1, _pnt4).GetAsUnitVector();
         }
-        virtual Real getMinX() { return _minX;}
-        virtual Real getMaxX() { return _maxX;}
-        virtual Real getMinY() { return _minY;}
-        virtual Real getMaxY() { return _maxY;}
+        virtual Real getMinX() const { return _minX;}
+        virtual Real getMaxX() const { return _maxX;}
+        virtual Real getMinY() const { return _minY;}
+        virtual Real getMaxY() const { return _maxY;}
+
+        Vector3Cartesian getNormal() const { 
+            return VectorProd(Vector3Cartesian(_pnt1, _pnt2), Vector3Cartesian(_pnt1, _pnt4)).GetAsUnitVector(); 
+        }
+        Point3Cartesian getCenter() const { return _center; }
+
+        Real getArea() const { 
+			    return VectorProd(Vector3Cartesian(_pnt1, _pnt2), Vector3Cartesian(_pnt1, _pnt4)).NormL2();
+		    }
 
         // vraca dva Triangle3D - i orijentacija je parametar! (kako ce odabrati tocke)
 
@@ -4925,9 +4637,10 @@ namespace MML
         }
     };
 
+    // TODO - IntegrableSolid? koji ima i potrebne funkcije kojima definira granice tijela?
     class Solid3D
     {
-    protected:
+    public:
         // solid body in 3D
         std::vector<RectSurface3D> _surfaces;
     
@@ -4936,6 +4649,14 @@ namespace MML
         // vraca listu povrsina, koje bi TREBALE omedjivati tijelo!
         
         // i po tome se moze obaviti surface integracija!!!
+    };
+
+    // represents solid that is composed of other solids
+    // dobar 
+    // nacin za provjeriti je li composed solid "tight" je izracunati fluks kroz sve povrsine
+    class ComposedSolid3D
+    {
+
     };
 
     class Cube3D : public Solid3D
@@ -4986,6 +4707,8 @@ namespace MML
         {
             return x.ScalarProductCartesian(_mat * x);
         }
+
+        // TODO - treat as polynom! Print
 
     };
 }
@@ -5134,6 +4857,7 @@ namespace MML
         std::vector<Real> _vecCoef;
     public:
         RealLinearFunctional() {}
+        RealLinearFunctional(int n) : _vecCoef(n, 0.0) {}
         RealLinearFunctional(const std::vector<Real> &vecCoef) : _vecCoef(vecCoef) {}
         RealLinearFunctional(std::initializer_list<Real> list) : _vecCoef(list) {}
 
@@ -5781,7 +5505,7 @@ namespace MML
         Real d;
 
     public:
-        // TODO 0.8 - HIGH, SREDNJE, parm mora biti BandDiagonalMatrix!
+        // TODO 0.9 - HIGH, SREDNJE, parm mora biti BandDiagonalMatrix!
         // TODO - handling singularne matrice
         BandDiagLUSolver(Matrix<Real> &a, const int mm1, const int mm2)
             : n(a.RowNum()), au(a), m1(mm1), m2(mm2), al(n,m1), indx(n)
@@ -5873,15 +5597,15 @@ namespace MML
         Real d;
     
     public:
-    // TODO - HIGH, HIGH, TESKO, napraviti da se može odraditi i inplace, a ne da se kao sad uvijek kreira kopija
+    // TODO - HIGH, HIGH, TESKO, napraviti da se moÅ¾e odraditi i inplace, a ne da se kao sad uvijek kreira kopija
         LUDecompositionSolver(const Matrix<Type>  &inMatRef) : n(inMatRef.RowNum()), refOrig(inMatRef), lu(inMatRef), indx(n) 
-// ne može        LUDecompositionSolver(const Matrix<Type>  &inMatRef) : n(inMatRef.RowNum()), refOrig(inMatRef), lu(Matrix<Type>(inMatRef.RowNum(), inMatRef.ColNum())), indx(n) 
+// ne moÅ¾e        LUDecompositionSolver(const Matrix<Type>  &inMatRef) : n(inMatRef.RowNum()), refOrig(inMatRef), lu(Matrix<Type>(inMatRef.RowNum(), inMatRef.ColNum())), indx(n) 
 // lu mora postati pointer!
         {
             // Given a Matrix<Real> a[1..n][1..n], this routine replaces it by the LU decomposition of a rowwise
             // permutation of itself. a and n are input. a is output, arranged as in equation (NR 2.3.14);
             // indx[1..n] is an output Vector<Real> that records the row permutation effected by the partial
-            // pivoting; d is output as ±1 depending on whether the number of row interchanges was even
+            // pivoting; d is output as Â±1 depending on whether the number of row interchanges was even
             // or odd, respectively. This routine is used in combination with lubksb to solve linear equations
             // or invert a Matrix<Real>.
             const Real TINY=1.0e-40;
@@ -5930,7 +5654,7 @@ namespace MML
         
         bool Solve(const Vector<Type> &b, Vector<Type> &x)
         {
-            // Solves the set of n linear equations A·X = B. Here a[1..n][1..n] is input, not as the Matrix<Real>
+            // Solves the set of n linear equations AÂ·X = B. Here a[1..n][1..n] is input, not as the Matrix<Real>
             // A but rather as its LU decomposition, determined by the routine ludcmp. indx[1..n] is input
             // as the permutation Vector<Real> returned by ludcmp. b[1..n] is input as the right-hand side Vector<Real>
             // B, and returns with the solution Vector<Real> X. a, n, and indx are not modified by this routine
@@ -6014,7 +5738,7 @@ namespace MML
             return dd;
         }
         
-        // Improves a solution Vector<Real> x[1..n] of the linear set of equations A · X = B. The Matrix<Real>
+        // Improves a solution Vector<Real> x[1..n] of the linear set of equations A Â· X = B. The Matrix<Real>
         // a[1..n][1..n], and the Vector<Real>s b[1..n] and x[1..n] are input, as is the dimension n.
         // Also input is alud[1..n][1..n], the LU decomposition of a as returned by ludcmp, and
         // the Vector<Real> indx[1..n] also returned by that routine. On output, only x[1..n] is modified,
@@ -6049,7 +5773,7 @@ namespace MML
         CholeskyDecompositionSolver(Matrix<Real> &a) : n(a.RowNum()), el(a) 
         {
             // Given a positive-definite symmetric Matrix<Real> a[1..n][1..n], this routine constructs its Cholesky
-            // decomposition, A = L · LT . On input, only the upper triangle of a need be given; it is not
+            // decomposition, A = L Â· LT . On input, only the upper triangle of a need be given; it is not
             // modified. The Cholesky factor L is returned in the lower triangle of a, except for its diagonal
             // elements which are returned in p[1..n]
             int i,j,k;
@@ -6072,7 +5796,7 @@ namespace MML
         }
         void Solve(const Vector<Real> &b, Vector<Real> &x) 
         {
-            // Solves the set of n linear equations A · x = b, where a is a positive-definite symmetric Matrix<Real>.
+            // Solves the set of n linear equations A Â· x = b, where a is a positive-definite symmetric Matrix<Real>.
             // a[1..n][1..n] and p[1..n] are input as the output of the routine choldc. Only the lower
             // triangle of a is accessed. b[1..n] is input as the right-hand side Vector<Real>. The solution Vector<Real> is
             // returned in x[1..n]. a, n, and p are not modified and can be left in place for successive calls
@@ -6196,7 +5920,7 @@ namespace MML
             }
         }
 
-        // Solves the set of n linear equations A · x = b. a[1..n][1..n], c[1..n], and d[1..n] are
+        // Solves the set of n linear equations A Â· x = b. a[1..n][1..n], c[1..n], and d[1..n] are
         // input as the output of the routine qrdcmp and are not modified. b[1..n] is input as the
         // right-hand side Vector<Real>, and is overwritten with the solution Vector<Real> on output. 
         void Solve(const Vector<Real> &b, Vector<Real> &x) 
@@ -6212,7 +5936,7 @@ namespace MML
         }
         void RSolve(const Vector<Real> &b, Vector<Real> &x) 
         {
-            // Solves the set of n linear equations R · x = b, where R is an upper triangular Matrix<Real> stored in
+            // Solves the set of n linear equations R Â· x = b, where R is an upper triangular Matrix<Real> stored in
             // a and d. a[1..n][1..n] and d[1..n] are input as the output of the routine qrdcmp and
             // are not modified. b[1..n] is input as the right-hand side Vector<Real>, and is overwritten with the
             // solution Vector<Real> on output            
@@ -6242,8 +5966,8 @@ namespace MML
         }
         void update(Vector<Real> &u, Vector<Real> &v) 
         {
-            // Given the QR decomposition of some n × n Matrix<Real>, calculates the QR decomposition of the
-            // Matrix<Real> Q·(R+ u x v). The quantities are dimensioned as r[1..n][1..n], qt[1..n][1..n],
+            // Given the QR decomposition of some n Ã— n Matrix<Real>, calculates the QR decomposition of the
+            // Matrix<Real> QÂ·(R+ u x v). The quantities are dimensioned as r[1..n][1..n], qt[1..n][1..n],
             // u[1..n], and v[1..n]. Note that QT is input and returned in qt.            
             int i,k;
             Vector<Real> w(u);
@@ -6315,7 +6039,7 @@ namespace MML
     public:
         SVDecompositionSolver(const Matrix<Real> &a) : m(a.RowNum()), n(a.ColNum()), u(a), v(n,n), w(n) 
         {
-            // Given a Matrix<Real> a[1..m][1..n], this routine computes its singular value decomposition, A = U·W ·V T . 
+            // Given a Matrix<Real> a[1..m][1..n], this routine computes its singular value decomposition, A = UÂ·W Â·V T . 
             // The Matrix<Real> U replaces a on output. 
             // The diagonal Matrix<Real> of singular values W is output as a Vector<Real> w[1..n]. 
             // The Matrix<Real> V (not the transpose V T ) is output as v[1..n][1..n].            
@@ -6682,7 +6406,7 @@ namespace MML
     public:
         static inline const Real NDer1_h = 2 * std::sqrt(Constants::Epsilon);
         static inline const Real NDer2_h = std::pow(3 * Constants::Epsilon, 1.0 / 3.0);
-        static inline const Real NDer4_h = std::pow(11.25 * Constants::Epsilon, 1.0 / 5.0);
+        static inline const Real NDer4_h = std::pow(11.25 * Constants::Epsilon, 1.0 / 5.0);     // 0.0012009323661373839 for double!
         static inline const Real NDer6_h = std::pow(Constants::Epsilon / 168.0, 1.0 / 7.0);
         static inline const Real NDer8_h = std::pow(551.25 * Constants::Epsilon, 1.0 / 9.0);
         
@@ -7086,8 +6810,8 @@ namespace MML
 
             return NDer2(f, x, NDer2_h, error);
         } 
-        static Real NDer2Left(const IRealFunction &f, Real x, Real* error = nullptr)  { return NDer2(f, x - 3 * NDer2_h, NDer2_h, error); }
-        static Real NDer2Right(const IRealFunction &f, Real x, Real* error = nullptr) { return NDer2(f, x + 3 * NDer2_h, NDer2_h, error); }
+        static Real NDer2Left(const IRealFunction &f, Real x, Real* error = nullptr)  { return NDer2(f, x - 2 * NDer2_h, NDer2_h, error); }
+        static Real NDer2Right(const IRealFunction &f, Real x, Real* error = nullptr) { return NDer2(f, x + 2 * NDer2_h, NDer2_h, error); }
 
         static Real NDer2(const IRealFunction &f, Real x, Real h, Real* error = nullptr)
         {
@@ -8975,7 +8699,7 @@ namespace MML
     {
         // Returns the integral of the function func from a to b. The parameters EPS can be set to the
         // desired fractional accuracy and JMAX so that 2 to the power JMAX-1 is the maximum allowed
-        // number of steps. Integration is performed by Simpson’s rule.
+        // number of steps. Integration is performed by Simpsonâ€™s rule.
 
         // The routine qsimp will in general be more efficient than qtrap (i.e., require
         // fewer function evaluations) when the function to be integrated has a finite 4th
@@ -9059,8 +8783,8 @@ namespace MML
 
     static Real IntegrateRomberg(const IRealFunction &func, const Real a, const Real b, Real req_eps)
     {
-        // Returns the integral of the function func from a to b. Integration is performed by Romberg’s
-        // method of order 2K, where, e.g., K=2 is Simpson’s rule.
+        // Returns the integral of the function func from a to b. Integration is performed by Rombergâ€™s
+        // method of order 2K, where, e.g., K=2 is Simpsonâ€™s rule.
 
         // The routine qromb, along with its required trapzd and polint, is quite
         // powerful for sufficiently smooth (e.g., analytic) integrands, integrated over intervals
@@ -9382,10 +9106,10 @@ namespace MML
         
         VectorN<Real, N> operator()(Real u, Real w) const  { return _func(u,w); }
 
-        virtual Real getMinX() { return _minX; }
-        virtual Real getMaxX() { return _maxX; }
-        virtual Real getMinY() { return _minY; }
-        virtual Real getMaxY() { return _maxY; }
+        virtual Real getMinX() const { return _minX; }
+        virtual Real getMaxX() const { return _maxX; }
+        virtual Real getMinY() const { return _minY; }
+        virtual Real getMaxY() const { return _maxY; }
 
         // TODO - double getStartY(double x) const;     // ako surface patch  nije kvadratni
     };
@@ -9406,10 +9130,10 @@ namespace MML
 
         VectorN<Real, N> operator()(Real u, Real w) const   { return _func(u,w); }
 
-        virtual Real getMinX() { return _minX; }
-        virtual Real getMaxX() { return _maxX; }
-        virtual Real getMinY() { return _minY; }
-        virtual Real getMaxY() { return _maxY; }        
+        virtual Real getMinX() const { return _minX; }
+        virtual Real getMaxX() const { return _maxX; }
+        virtual Real getMinY() const { return _minY; }
+        virtual Real getMaxY() const { return _maxY; }        
     };    
 } // end namespace
 
@@ -9680,7 +9404,7 @@ namespace MML
         mutable Real dy;
 
         // The user interface to Poly_interp is virtually the same as for Linear_interp
-        // (end of ÷3.1), except that an additional argument in the constructor sets M, the number of points used (the order plus one). 
+        // (end of Ã·3.1), except that an additional argument in the constructor sets M, the number of points used (the order plus one). 
         PolynomInterpRealFunc(Vector<Real> &xv, Vector<Real> &yv, int m) : RealFunctionInterpolatedBase(xv,yv,m), dy(0.) 
         {}
         
@@ -9718,7 +9442,7 @@ namespace MML
                 y += (dy=(2*(ns+1) < (mm-m) ? c[ns+1] : d[ns--]));
                 // After each column in the tableau is completed, we decide which correction, c or d, we
                 // want to add to our accumulating value of y, i.e., which path to take through the tableau
-                // — forking up or down. We do this in such a way as to take the most “straight line”
+                // â€” forking up or down. We do this in such a way as to take the most â€œstraight lineâ€
                 // route through the tableau to its apex, updating ns accordingly to keep track of where
                 // we are. This route keeps the partial approximations centered (insofar as possible) on
                 // the target x. The last dy added is thus the error indication.                
@@ -9962,7 +9686,7 @@ namespace MML
         Vector<Real> &x1;
         mutable Vector<Real> yv;
 
-        // TODO - HIGH, ovo popraviti
+        // TODO 0.9 - HIGH, ovo popraviti
         Vector<SplineInterpRealFunc*> srp;
         std::vector<Vector<Real>> _yVals;
 
@@ -10006,7 +9730,7 @@ namespace MML
         virtual Real operator()(Real u, Real w, Real z)
         {
             VectorN<Real, 3> coord{u,w,z};
-            // TODO 0.8 - BIG
+            // TODO 0.9 - BIG
             return operator()(coord);
         }            
     };
@@ -10042,7 +9766,7 @@ namespace MML
 
         // Constructor. The n   dim matrix ptsin inputs the data points. Input close as 0 for
         // an open curve, 1 for a closed curve. (For a closed curve, the last data point should not
-        // duplicate the first — the algorithm will connect them.)
+        // duplicate the first â€” the algorithm will connect them.)
         SplineInterpParametricCurve(const Matrix<Real> &ptsin, bool close=0)
         : n(ptsin.RowNum()), dim(ptsin.ColNum()), in(close ? 2*n : n),
         cls(close), pts(dim,in), s(in), ans(dim), srp(dim) 
@@ -10118,7 +9842,7 @@ namespace MML
     template<int N>
     class ParametricCurveInterpolated : public IParametricCurve<N>
     {
-        // TODO - HIGH, verify
+        // TODO 0.9 - HIGH, verify
         Real _minT;
         Real _maxT;
         std::shared_ptr<Vector<Real>> _xvals;
@@ -10206,7 +9930,7 @@ namespace MML
             }
             return gamma_ijk;
         }
-        // TODO 0.8 - GetChristoffellSymbolFirstKind
+        // TODO 0.9 - GetChristoffellSymbolFirstKind
     };
 
 
@@ -10823,7 +10547,7 @@ namespace MML
         }
     };
 
-    // TODO 0.8 - LOW, TESKO, Euler angles, finish CoordTransfCart3DRotationGeneralAxis
+    // TODO 0.9 - LOW, TESKO, Euler angles, finish CoordTransfCart3DRotationGeneralAxis
     // class CoordTransfCart3DRotationGeneralAxis  : public CoordTransfWithInverse<Vector3Cartesian, Vector3Cartesian, 3>
     // {
 
@@ -10920,7 +10644,7 @@ namespace MML
         }
     };
 
-    // TODO 0.8 - VIDJETI STO S MATH vs PHY konvencijama o redoslijedu koordinata
+    // TODO 0.9 - VIDJETI STO S MATH vs PHY konvencijama o redoslijedu koordinata
     class CoordTransfSphericalToCartesian : public CoordTransfWithInverse<Vector3Spherical, Vector3Cartesian, 3>
     {
     private:
@@ -10954,7 +10678,7 @@ namespace MML
         IScalarFunction<3>&  coordTransfFunc(int i) const        { return _func[i]; }
         IScalarFunction<3>&  inverseCoordTransfFunc(int i) const { return _funcInverse[i]; }
 
-        // TODO 0.8 - overload covar i contravar transf. funkcije s tocno izracunatim jakobijanom derivacija
+        // TODO 0.9 - overload covar i contravar transf. funkcije s analiticki izracunatim jakobijanom derivacija
     };
 
     class CoordTransfCartesianToSpherical : public CoordTransfWithInverse<Vector3Cartesian, Vector3Spherical, 3>
@@ -11093,7 +10817,7 @@ namespace MML
             return ret;
         }
 
-        // TODO 0.9 - dodati div i curl za generalne koordinate
+        // TODO 1.0 - dodati div i curl za generalne koordinate
 
         ////////////////////////////////////////////////////////////////////////////////////////////////////////
         ///////////////////////////                   GRADIENT                     /////////////////////////////
@@ -11338,7 +11062,7 @@ class ChebyshevApproximation {
 	
     // Chebyshev fit: Given a function func, lower and upper limits of the interval [a,b], compute and
     // save nn coefficients of the Chebyshev approximation such that func.(x) = sum( ... ), where y and x are related by (5.8.10). 
-    // This routine is intended to be called with moderately large n (e.g., 30 or 50), the array of c’s subsequently to be truncated at the smaller value
+    // This routine is intended to be called with moderately large n (e.g., 30 or 50), the array of câ€™s subsequently to be truncated at the smaller value
     // m such that cm and subsequent elements are negligible.
     ChebyshevApproximation(const IRealFunction &func, Real aa, Real bb, int nn=50)
         : n(nn), m(nn), c(n), a(aa), b(bb)
@@ -11695,7 +11419,6 @@ namespace MML
     namespace Curves3D
     {
         /////////////////////////////////             SPACE CURVES                  ///////////////////////////////////
-        // TODO 0.8 - add SquarePathXY
         class LineCurve : public IParametricCurve<3>
         {
             Line3D  _line;
@@ -11717,6 +11440,8 @@ namespace MML
             }
         };
         
+        // TODO 0.9 - add SquarePathXY
+
         class Circle3DXY : public IParametricCurve<3> {
             Real _radius;
         public:
@@ -11801,7 +11526,92 @@ namespace MML
 {
     namespace Surfaces
     {
-        static ParametricSurface<3> test1([](Real u, Real w) { return MML::VectorN<Real, 3>{u, w, u+w}; });
+        // TODO - SimplePlane3D, given by point and normal
+
+        // MonkeySaddle
+        class MonkeySaddle : public IParametricSurface<3>
+        {
+        public:
+            Real getMinU() const { return -10; }
+            Real getMaxU() const { return 10; }
+            Real getMinW() const { return -10; }
+            Real getMaxW() const { return 10; }
+
+            VectorN<Real, 3> operator()(Real u, Real w) const  { return MML::VectorN<Real, 3>{u, w, u * (u*u - 3 * w*w)}; }
+        };
+        // MobiusStrip
+        class MobiusStrip : public IParametricSurface<3>
+        {
+        public:
+            Real getMinU() const { return 0; }
+            Real getMaxU() const { return 2 * Constants::PI; }
+            Real getMinW() const { return -1; }
+            Real getMaxW() const { return 1; }
+
+            VectorN<Real, 3> operator()(Real u, Real w) const  { return MML::VectorN<Real, 3>{(1 + w * cos(u / 2)) * cos(u), (1 + w * cos(u / 2)) * sin(u), w * sin(u / 2)}; }
+        };
+        // Torus
+        class Torus : public IParametricSurface<3>
+        {
+            Real _R, _r;
+        public:
+            Torus() : _R(1), _r(0.5) {}
+            Torus(Real R, Real r) : _R(R), _r(r) {}
+
+            Real getMinU() const { return 0; }
+            Real getMaxU() const { return 2 * Constants::PI; }
+            Real getMinW() const { return 0; }
+            Real getMaxW() const { return 2 * Constants::PI; }
+
+            VectorN<Real, 3> operator()(Real u, Real w) const  { return MML::VectorN<Real, 3>{(_R + _r * cos(w)) * cos(u), (_R + _r * cos(w)) * sin(u), _r * sin(w)}; }
+        };
+        // Sphere
+        class Sphere : public IParametricSurface<3>
+        {
+            Real _R;
+        public:
+            Sphere() : _R(1) {}
+            Sphere(Real R) : _R(R) {}
+
+            Real getMinU() const { return 0; }
+            Real getMaxU() const { return Constants::PI; }
+            Real getMinW() const { return 0; }
+            Real getMaxW() const { return 2 * Constants::PI; }
+
+            VectorN<Real, 3> operator()(Real u, Real w) const  { return MML::VectorN<Real, 3>{_R * sin(u) * cos(w), _R * sin(u) * sin(w), _R * cos(u)}; }
+        };
+        // Ellipsoid
+        class Ellipsoid : public IParametricSurface<3>
+        {
+            Real _a, _b, _c;
+        public:
+            Ellipsoid() : _a(1), _b(1), _c(1) {}
+            Ellipsoid(Real a, Real b, Real c) : _a(a), _b(b), _c(c) {}
+
+            Real getMinU() const { return 0; }
+            Real getMaxU() const { return Constants::PI; }
+            Real getMinW() const { return 0; }
+            Real getMaxW() const { return 2 * Constants::PI; }
+
+            VectorN<Real, 3> operator()(Real u, Real w) const  { return MML::VectorN<Real, 3>{_a * sin(u) * cos(w), _b * sin(u) * sin(w), _c * cos(u)}; }
+        };
+        // Cylinder
+        class Cylinder : public IParametricSurface<3>
+        {
+            Real _R, _H;
+        public:
+            Cylinder() : _R(1), _H(1) {}
+            Cylinder(Real R, Real H) : _R(R), _H(H) {}
+
+            Real getMinU() const { return 0; }
+            Real getMaxU() const { return 2 * Constants::PI; }
+            Real getMinW() const { return 0; }
+            Real getMaxW() const { return _H; }
+
+            VectorN<Real, 3> operator()(Real u, Real w) const  { return MML::VectorN<Real, 3>{_R * cos(u), _R * sin(u), w}; }
+        };
+        
+
     }
 }
 
@@ -11810,8 +11620,8 @@ namespace MML
 
 namespace MML
 {
-    // TODO 0.8 - implement step function
-    // TODO 0.8 - implement heaviside function  
+    // TODO 0.9 - implement step function
+    // TODO 0.9 - implement heaviside function  
     class DiracFunction : public IRealFunction
     {
     protected:
@@ -11916,33 +11726,33 @@ namespace MML
         }
 
         template<int N>
-        ParametricCurveInterpolated<N> getSolutionAsParametricCurve()
+        ParametricCurveInterpolated<N> getSolutionAsParametricCurve() const
         {
             ParametricCurveInterpolated<N> curve(_xval, _yval);
             return curve;
         }
 
         template<int N>
-        SplineInterpParametricCurve<N> getSolutionAsSplineParametricCurve()
+        SplineInterpParametricCurve<N> getSolutionAsSplineParametricCurve() const
         {
             return SplineInterpParametricCurve<N>(_yval);
         }
 
-        LinearInterpRealFunc getSolutionAsLinearInterp(int component)
+        LinearInterpRealFunc getSolutionAsLinearInterp(int component) const
         {
             Vector<Real> xsave = _xval;
             Vector<Real> ysave = _yval.VectorFromRow(component);
 
             return LinearInterpRealFunc(xsave, ysave);
         }
-        PolynomInterpRealFunc getSolutionAsPolynomInterp(int component, int polynomDegree)
+        PolynomInterpRealFunc getSolutionAsPolynomInterp(int component, int polynomDegree) const
         {
             Vector<Real> xsave = _xval;
             Vector<Real> ysave = _yval.VectorFromRow(component);
 
             return PolynomInterpRealFunc(xsave, ysave, polynomDegree);
         }
-        SplineInterpRealFunc getSolutionAsSplineInterp(int component)
+        SplineInterpRealFunc getSolutionAsSplineInterp(int component) const
         {
             Vector<Real> xsave = _xval;
             Vector<Real> ysave = _yval.VectorFromRow(component);
@@ -11950,7 +11760,7 @@ namespace MML
             return SplineInterpRealFunc(xsave, ysave);
         }        
 
-        bool Serialize(std::string fileName, std::string title)
+        bool Serialize(std::string fileName, std::string title) const
         {
             std::ofstream file(fileName);
             if (!file.is_open())
@@ -11976,7 +11786,7 @@ namespace MML
             file.close();
             return true;
         }
-        bool SerializeAsParametricCurve3D(std::string fileName, std::string title)
+        bool SerializeAsParametricCurve3D(std::string fileName, std::string title) const
         {
             if( _sys_dim != 3 )
                 return false;
@@ -12038,11 +11848,11 @@ PlanarRotatingSystem disk_rotation(pocetni phi, brzina rotacije);
 - za dane dvije koord, lat i long, daje poziciju u odnosu na dani fiksni koord sustav
 LocalCartesian disk_surface(disk_rotation, lat, long);
 
-- što izracunati? 
+- Å¡to izracunati? 
     - artiljerijski hitac s dane pozicije i po danoj paraboli
     - gdje ce pasti - koordinate u jednom i drugom sustavu
 
-- i onda još dodati vrtuljak na toj površini!
+- i onda joÅ¡ dodati vrtuljak na toj povrÅ¡ini!
 
 MovingDynamicalSytem3D earth_around_sun(funkcija ovisnosti pozicije u odnosu na GLOBALNI KARTEZIJEV sustav);
 RotatingSystem3D earth_rotation(earth_around_sun);
@@ -12222,9 +12032,8 @@ LorentTranslated s3;
 
 
 
-namespace MML
+namespace MML::Fields
 {
-    // TODO 0.7 - namespace Fields
     ////////////////////             INVERSE RADIAL FIELD                /////////////////
     // Potential fields
     static Real InverseRadialPotentialFieldCart(const VectorN<Real, 3> &x )                  { return 1.0 / x.NormL2(); }
@@ -12261,7 +12070,7 @@ namespace MML
         InverseRadialFieldCart() : _constant(-1.0) {}
         InverseRadialFieldCart(Real constant) : _constant(constant) {}
 
-        Real operator()(const VectorN<Real, 3> &x) const  { return _constant * InverseRadialPotentialFieldCart(x); }
+        Real operator()(const VectorN<Real, 3> &x) const  { return _constant * Fields::InverseRadialPotentialFieldCart(x); }
     };
     class InverseRadialFieldSpher : public IScalarFunction<3>
     {
@@ -12282,7 +12091,7 @@ namespace MML
         InverseRadialForceFieldCart() : _constant(-1.0) {}
         InverseRadialForceFieldCart(Real constant) : _constant(constant) {}
 
-        VectorN<Real, 3> operator()(const VectorN<Real, 3> &x) const  { return _constant * InverseRadialPotentialForceFieldCart(x); }        
+        VectorN<Real, 3> operator()(const VectorN<Real, 3> &x) const  { return _constant * Fields::InverseRadialPotentialForceFieldCart(x); }        
     };
     class InverseRadialForceFieldSpher : public IVectorFunction<3>
     {
@@ -12301,46 +12110,53 @@ namespace MML
 }
 
 ///////////////////////////   ./include/core/PermutationGroup.h   ///////////////////////////
-class PermutationGroup {
-public:
-    PermutationGroup() {}
 
-    PermutationGroup(const std::vector<std::vector<int>>& cycles) {
-        for (const auto& cycle : cycles) {
-            add_cycle(cycle);
-        }
-    }
 
-    void add_cycle(const std::vector<int>& cycle) {
-        m_cycles.push_back(cycle);
-    }
 
-    std::vector<int> apply(const std::vector<int>& perm) const {
-        std::vector<int> result = perm;
-        for (const auto& cycle : m_cycles) {
-            for (size_t i = 0; i < cycle.size(); ++i) {
-                result[cycle[i]] = perm[cycle[(i + 1) % cycle.size()]];
+namespace MML
+{
+    // TODO - verify this!!!
+    class PermutationGroup {
+    public:
+        PermutationGroup() {}
+
+        PermutationGroup(const std::vector<std::vector<int>>& cycles) {
+            for (const auto& cycle : cycles) {
+                add_cycle(cycle);
             }
         }
-        return result;
-    }
 
-    PermutationGroup inverse() const {
-        std::vector<std::vector<int>> inverse_cycles;
-        for (const auto& cycle : m_cycles) {
-            std::vector<int> inverse_cycle(cycle.size());
-            for (size_t i = 0; i < cycle.size(); ++i) {
-                inverse_cycle[cycle[i]] = cycle[(i + 1) % cycle.size()];
-            }
-            std::reverse(inverse_cycle.begin(), inverse_cycle.end());
-            inverse_cycles.push_back(inverse_cycle);
+        void add_cycle(const std::vector<int>& cycle) {
+            m_cycles.push_back(cycle);
         }
-        return PermutationGroup(inverse_cycles);
-    }
 
-private:
-    std::vector<std::vector<int>> m_cycles;
-};
+        std::vector<int> apply(const std::vector<int>& perm) const {
+            std::vector<int> result = perm;
+            for (const auto& cycle : m_cycles) {
+                for (size_t i = 0; i < cycle.size(); ++i) {
+                    result[cycle[i]] = perm[cycle[(i + 1) % cycle.size()]];
+                }
+            }
+            return result;
+        }
+
+        PermutationGroup inverse() const {
+            std::vector<std::vector<int>> inverse_cycles;
+            for (const auto& cycle : m_cycles) {
+                std::vector<int> inverse_cycle(cycle.size());
+                for (size_t i = 0; i < cycle.size(); ++i) {
+                    inverse_cycle[cycle[i]] = cycle[(i + 1) % cycle.size()];
+                }
+                std::reverse(inverse_cycle.begin(), inverse_cycle.end());
+                inverse_cycles.push_back(inverse_cycle);
+            }
+            return PermutationGroup(inverse_cycles);
+        }
+
+    private:
+        std::vector<std::vector<int>> m_cycles;
+    };
+}
 ///////////////////////////   ./include/core/Serializer.h   ///////////////////////////
 
 
@@ -12349,7 +12165,8 @@ namespace MML
     class Serializer
     {
     public:
-        bool SerializeMultiFunc(std::string fileName, std::string title, std::vector<IRealFunction *> funcs, Real x1, Real x2, int count)
+        // Real function serialization 
+        static bool SaveRealMultiFunc(std::vector<IRealFunction *> funcs, std::string title, Real x1, Real x2, int count, std::string fileName )
         {
             std::ofstream file(fileName);
             if (!file.is_open())
@@ -12377,6 +12194,284 @@ namespace MML
             file.close();
             return true;
         }
+
+        static bool SaveRealFuncEquallySpaced(const IRealFunction &f, Real x1, Real x2, int numPoints, std::string fileName)
+        {
+            std::ofstream file(fileName);
+            if (!file.is_open())
+                return false;
+
+            file << "REAL_FUNCTION_EQUALLY_SPACED" << std::endl;
+            file << "x1: " << x1 << std::endl;
+            file << "x2: " << x2 << std::endl;
+            file << "NumPoints: " << numPoints << std::endl;
+
+            Real step = (x2 - x1) / (numPoints - 1);
+            for (int i = 0; i < numPoints; i++)
+            {
+                Real x = x1 + i * step;
+                file << f(x) << std::endl;
+            }
+            file.close();
+            return true;
+        }
+
+        static bool SaveRealFuncEquallySpacedDetailed(const IRealFunction& f, Real x1, Real x2, int numPoints, std::string fileName) 
+        {
+            std::ofstream file(fileName);
+            if (!file.is_open())
+                return false;
+
+            file << "REAL_FUNCTION_EQUALLY_SPACED_DETAILED" << std::endl;
+            file << "x1: " << x1 << std::endl;
+            file << "x2: " << x2 << std::endl;
+            file << "NumPoints: " << numPoints << std::endl;
+
+            Real step = (x2 - x1) / (numPoints - 1);
+            for (int i = 0; i < numPoints; i++)
+            {
+                Real x = x1 + i * step;
+                file << x << " " << f(x) << std::endl;
+            }
+            file.close();
+            return true;
+        }
+
+        static bool SaveRealFuncVariableSpaced(const IRealFunction& f, Vector<Real> points, std::string fileName)
+        {
+            std::ofstream file(fileName);
+            if (!file.is_open())
+                return false;
+
+            file << "REAL_FUNCTION_VARIABLE_SPACED" << std::endl;
+
+            for (int i = 0; i < points.size(); i++)
+            {
+                Real x = points[i];
+                file << x << " " << f(x) << std::endl;
+            }
+            file.close();
+            return true;
+        }
+
+        // Scalar function serialization
+        static bool SaveScalarFunc2DCartesian(const IScalarFunction<2> &f, Real x1, Real x2, int numPointsX, Real y1, Real y2, int numPointsY, std::string fileName)
+        {
+            std::ofstream file(fileName);
+            if (!file.is_open())
+                return false;
+
+            file << "SCALAR_FUNCTION_CARTESIAN_2D" << std::endl;
+            file << "x1: " << x1 << std::endl;
+            file << "x2: " << x2 << std::endl;
+            file << "NumPointsX: " << numPointsX << std::endl;
+            file << "y1: " << y1 << std::endl;
+            file << "y2: " << y2 << std::endl;
+            file << "NumPointsY: " << numPointsY << std::endl;
+
+            Real stepX = (x2 - x1) / (numPointsX - 1);
+            Real stepY = (y2 - y1) / (numPointsY - 1);
+            for (int i = 0; i < numPointsX; i++)
+            {
+                for (int j = 0; j < numPointsY; j++)
+                {
+                    Real x = x1 + i * stepX;
+                    Real y = y1 + j * stepY;
+                    file << x << " " << y << " " << f(VectorN<Real, 2>{x, y}) << std::endl;
+                }
+            }
+            return true;
+        }
+
+        static bool SaveScalarFunc3DCartesian(const IScalarFunction<3>& f, Real x1, Real x2, int numPointsX, Real y1, Real y2, int numPointsY, Real z1, Real z2, int numPointsZ, std::string fileName)
+        {
+            std::ofstream file(fileName);
+            if (!file.is_open())
+                return false;
+
+            file << "SCALAR_FUNCTION_CARTESIAN_3D" << std::endl;
+            file << "x1: " << x1 << std::endl;
+            file << "x2: " << x2 << std::endl;
+            file << "NumPointsX: " << numPointsX << std::endl;
+            file << "y1: " << y1 << std::endl;
+            file << "y2: " << y2 << std::endl;
+            file << "NumPointsY: " << numPointsY << std::endl;
+            file << "z1: " << z1 << std::endl;
+            file << "z2: " << z2 << std::endl;
+            file << "NumPointsZ: " << numPointsZ << std::endl;
+
+            Real stepX = (x2 - x1) / (numPointsX - 1);
+            Real stepY = (y2 - y1) / (numPointsY - 1);
+            Real stepZ = (z2 - z1) / (numPointsZ - 1);
+            for (int i = 0; i < numPointsX; i++)
+            {
+                for (int j = 0; j < numPointsY; j++)
+                {
+                    for (int k = 0; k < numPointsZ; k++)
+                    {
+                        Real x = x1 + i * stepX;
+                        Real y = y1 + j * stepY;
+                        Real z = z1 + j * stepZ;
+                        file << x << " " << y << " " << z << " " << f(VectorN<Real, 3>{x, y, z}) << std::endl;
+                    }
+                }
+            }
+            return true;
+        }
+
+        // Parametric curve serialization
+        template<int N>
+        static bool SaveParamCurve(const IRealToVectorFunction<N> &f, std::string inType, Real t1, Real t2, int numPoints, std::string fileName)
+        {
+            std::ofstream file(fileName);
+            if (!file.is_open())
+                return false;
+
+            file << inType << std::endl;
+            file << "t1: " << t1 << std::endl;
+            file << "t2: " << t2 << std::endl;
+            file << "NumPoints: " << numPoints << std::endl;
+
+            Real delta = (t2 - t1) / (numPoints - 1);
+            for (Real t = t1; t <= t2; t += delta)
+            {
+                file << t << " ";
+                for (int i = 0; i < N; i++)
+                    file << f(t)[i] << " ";
+                file << std::endl;
+            }
+            file.close();
+            return true;
+        }
+        
+        template<int N>
+        static bool SaveParamCurve(const IRealToVectorFunction<N>& f, std::string inType, Vector<Real> points, std::string fileName)
+        {
+            std::ofstream file(fileName);
+            if (!file.is_open())
+                return false;
+
+            file << inType << std::endl;
+            file << "t1: " << points[0] << std::endl;
+            file << "t2: " << points[points.size()-1] << std::endl;
+            file << "NumPoints: " << points.size() << std::endl;
+            for (int i = 0; i < points.size(); i++)
+            {
+                Real t = points[i];
+                file << t << " ";
+                for (int i = 0; i < N; i++)
+                    file << f(t)[i] << " ";
+                file << std::endl;
+            }
+
+            file.close();
+            return true;
+        }
+        //bool SerializeCartesian2D(Real t1, Real t2, int numPoints, std::string fileName) const
+        //{
+        //    return SaveParamCurve<2>("PARAMETRIC_CURVE_CARTESIAN_2D", t1, t2, numPoints, fileName);
+        //}
+        //bool SerializeCartesian2DAtPoints(Vector<Real> points, std::string fileName) const
+        //{
+        //    return SaveParamCurveAtPoints<2>("PARAMETRIC_CURVE_CARTESIAN_2D_AT_POINTS", points, fileName);
+        //}
+        static bool SaveParamCurveCartesian3D(const IRealToVectorFunction<3>& f, Real t1, Real t2, int numPoints, std::string fileName)
+        {
+            return SaveParamCurve<3>(f, "PARAMETRIC_CURVE_CARTESIAN_3D", t1, t2, numPoints, fileName);
+        }
+        //bool SerializeCartesian3DAtPoints(Vector<Real> points, std::string fileName) const
+        //{
+        //    return SaveParamCurveAtPoints("PARAMETRIC_CURVE_CARTESIAN_3D", points, fileName);
+        //}
+        //bool SerializePolar(Real t1, Real t2, int numPoints, std::string fileName) const
+        //{
+        //    return SaveParamCurve("PARAMETRIC_CURVE_POLAR", t1, t2, numPoints, fileName);
+        //}
+        //bool SerializePolarAtPoints(Vector<Real> points, std::string fileName) const
+        //{
+        //    return SaveParamCurveAtPoints("PARAMETRIC_CURVE_POLAR", points, fileName);
+        //}
+        //bool SerializeSpherical(Real t1, Real t2, int numPoints, std::string fileName) const
+        //{
+        //    return SaveParamCurve("PARAMETRIC_CURVE_SPHERICAL", t1, t2, numPoints, fileName);
+        //}
+        //bool SerializeSphericalAtPoints(Vector<Real> points, std::string fileName) const
+        //{
+        //    return SaveParamCurveAtPoints("PARAMETRIC_CURVE_SPHERICAL", points, fileName);
+        //}
+
+        // vector function serialization
+
+        static bool SaveVectorFunc3D(const IVectorFunction<3> &f, std::string inType, Real x1_start, Real x1_end, int numPointsX1, Real x2_start, Real x2_end, int numPointsX2, Real x3_start, Real x3_end, int numPointsX3, std::string fileName)
+        {
+            std::ofstream file(fileName);
+            if (!file.is_open())
+                return false;
+
+            file << inType << std::endl;
+
+            Real stepX = (x1_end - x1_start) / (numPointsX1 - 1);
+            Real stepY = (x2_end - x2_start) / (numPointsX2 - 1);
+            Real stepZ = (x3_end - x3_start) / (numPointsX3 - 1);
+            for (int i = 0; i < numPointsX1; i++)
+                for (int j = 0; j < numPointsX2; j++)
+                    for (int k = 0; k < numPointsX3; k++)
+                    {
+                        Real x = x1_start + i * stepX;
+                        Real y = x2_start + j * stepY;
+                        Real z = x3_start + k * stepZ;
+                        auto val = f(VectorN<Real, 3>{x, y, z});
+                        file << x << " " << y << " " << z << " " << val[0] << " " << val[1] << " " << val[2] << std::endl;
+                    }
+
+            file.close();
+            return true;
+        }
+
+        static bool SaveVectorFunc3D(const IVectorFunction<3>& f, std::string inType, Real x1_start, Real x1_end, int numPointsX1, Real x2_start, Real x2_end, int numPointsX2, Real x3_start, Real x3_end, int numPointsX3, std::string fileName, Real upper_threshold)
+        {
+            std::ofstream file(fileName);
+            if (!file.is_open())
+                return false;
+
+            file << inType << std::endl;
+
+            Real stepX = (x1_end - x1_start) / (numPointsX1 - 1);
+            Real stepY = (x2_end - x2_start) / (numPointsX2 - 1);
+            Real stepZ = (x3_end - x3_start) / (numPointsX3 - 1);
+            for (int i = 0; i < numPointsX1; i++)
+                for (int j = 0; j < numPointsX2; j++)
+                    for (int k = 0; k < numPointsX3; k++)
+                    {
+                        Real x = x1_start + i * stepX;
+                        Real y = x2_start + j * stepY;
+                        Real z = x3_start + k * stepZ;
+                        auto val = f(VectorN<Real, 3>{x, y, z});
+
+                        if (val.NormL2() < upper_threshold)
+                            file << x << " " << y << " " << z << " " << val[0] << " " << val[1] << " " << val[2] << std::endl;
+                    }
+
+            file.close();
+            return true;
+        }
+
+        static bool SaveVectorFunc3DCartesian(const IVectorFunction<3>& f, Real x1, Real x2, int numPointsX, Real y1, Real y2, int numPointsY, Real z1, Real z2, int numPointsZ, std::string fileName)
+        {
+            return SaveVectorFunc3D(f, "VECTOR_FIELD_3D_CARTESIAN", x1, x2, numPointsX, y1, y2, numPointsY, z1, z2, numPointsZ, fileName);
+        }
+        static bool SaveVectorFunc3DCartesian(const IVectorFunction<3>& f, Real x1, Real x2, int numPointsX, Real y1, Real y2, int numPointsY, Real z1, Real z2, int numPointsZ, std::string fileName, Real upper_threshold)
+        {
+            return SaveVectorFunc3D(f, "VECTOR_FIELD_3D_CARTESIAN", x1, x2, numPointsX, y1, y2, numPointsY, z1, z2, numPointsZ, fileName, upper_threshold);
+        }
+        static bool SaveVectorFuncSpherical(const IVectorFunction<3>& f, Real r1, Real r2, int numPointsR, Real theta1, Real theta2, int numPointsTheta, Real phi1, Real phi2, int numPointsPhi, std::string fileName)
+        {
+            return SaveVectorFunc3D(f, "VECTOR_FIELD_SPHERICAL", r1, r2, numPointsR, theta1, theta2, numPointsTheta, phi1, phi2, numPointsPhi, fileName);
+        }
+        static bool SaveVectorFuncSpherical(const IVectorFunction<3>& f, Real r1, Real r2, int numPointsR, Real theta1, Real theta2, int numPointsTheta, Real phi1, Real phi2, int numPointsPhi, std::string fileName, Real upper_threshold)
+        {
+            return SaveVectorFunc3D(f, "VECTOR_FIELD_SPHERICAL", r1, r2, numPointsR, theta1, theta2, numPointsTheta, phi1, phi2, numPointsPhi, fileName, upper_threshold);
+        }
     };
 }
 ///////////////////////////   ./include/core/Vizualizer.h   ///////////////////////////
@@ -12384,20 +12479,94 @@ namespace MML
 
 namespace MML
 {
-    class Visualizer
-    {
-        static inline std::string _pathResultFiles{"..\\..\\results\\"};
+	class Visualizer
+	{
+		static inline std::string _pathResultFiles{ "E:\\Projects\\MinimalMathLibrary\\results\\" };
 
-        static inline std::string _pathRealFuncViz{"..\\..\\tools\\visualizers\\real_function_visualizer\\MML_RealFunctionVisualizer.exe"};
-        static inline std::string _pathSurfaceViz{""};
-        static inline std::string _pathParametricCurveViz{""};
-        static inline std::string _pathVectorFieldViz{""};
+		static inline std::string _pathRealFuncViz{ "E:\\Projects\\MinimalMathLibrary\\tools\\visualizers\\real_function_visualizer\\MML_RealFunctionVisualizer.exe" };
+		static inline std::string _pathSurfaceViz{ "E:\\Projects\\MinimalMathLibrary\\tools\\visualizers\\scalar_function_2d_visualizer\\MML_ScalarFunction2Visualizer.exe" };
+		static inline std::string _pathParametricCurveViz{ "E:\\Projects\\MinimalMathLibrary\\tools\\visualizers\\parametric_curve_visualizer\\MML_ParametricCurveVisualizer.exe" };
+		static inline std::string _pathVectorFieldViz{ "E:\\Projects\\MinimalMathLibrary\\tools\\visualizers\\vector_field_visualizer\\MML_VectorFieldVisualizer.exe" };
 
-        void VisualizeODESysSolMultiFunc(std::string fileName, const ODESystemSolution &sol)
-        {
+	public:
+		static void VisualizeRealFunction(const IRealFunction& f, std::string title, Real x1, Real x2, int numPoints, std::string fileName)
+		{
+			std::string name = _pathResultFiles + fileName;
+			Serializer::SaveRealFuncEquallySpacedDetailed(f, x1, x2, numPoints, name);
 
-        }
-    };
+			std::string command = _pathRealFuncViz + " " + name;
+			system(command.c_str());
+		}
+
+		static void VisualizeMultiRealFunction(std::vector<IRealFunction*> funcs, std::string title, Real x1, Real x2, int numPoints, std::string fileName)
+		{
+			std::string name = _pathResultFiles + fileName;
+			Serializer::SaveRealMultiFunc(funcs, title, x1, x2, numPoints, name);
+
+			std::string command = _pathRealFuncViz + " " + name;
+			system(command.c_str());
+		}
+
+		static void VisualizeScalarFunc2DCartesian(const ScalarFunction<2>& func, std::string title, Real x1, Real x2, int numPointsX, Real y1, Real y2, int numPointsY, std::string fileName)
+		{
+			std::string name = _pathResultFiles + fileName;
+			Serializer::SaveScalarFunc2DCartesian(func, -10.0, 10.0, 50, -10.0, 10.0, 50, name);
+
+			std::string command = _pathSurfaceViz + " " + name;
+			system(command.c_str());
+		}
+
+		static void VisualizeVectorField3DCartesian(const IVectorFunction<3>& func, std::string title, Real x1, Real x2, int numPointsX, Real y1, Real y2, int numPointsY, Real z1, Real z2, int numPointsZ, std::string fileName)
+		{
+			std::string name = _pathResultFiles + fileName;
+			Serializer::SaveVectorFunc3DCartesian(func, x1, x2, numPointsX, y1, y2, numPointsY, z1, z2, numPointsZ, name);
+
+			std::string command = _pathVectorFieldViz + " " + name;
+			system(command.c_str());
+		}
+
+		static void VisualizeParamCurve3D(const IRealToVectorFunction<3>& f, std::string title, Real t1, Real t2, int numPoints, std::string fileName)
+		{
+			std::string name = _pathResultFiles + fileName;
+			Serializer::SaveParamCurveCartesian3D(f, t1, t2, numPoints, name);
+
+			std::string command = _pathParametricCurveViz + " " + name;
+			system(command.c_str());
+		}
+
+		static void VisualizeMultiParamCurve3D(std::vector<std::string> fileNames)
+		{
+			std::string params;
+			for (auto& name : fileNames)
+			{
+				params = params + (_pathResultFiles + name + " ");
+			}
+
+			std::string command = _pathParametricCurveViz + " " + params;
+			system(command.c_str());
+		}
+
+		static void VisualizeODESysSolAsMultiFunc(const ODESystemSolution& sol, std::string title, std::string fileName)
+		{
+			std::string name = _pathResultFiles + fileName;
+			sol.Serialize(name, title);
+
+			std::string command = _pathRealFuncViz + " " + name;
+			system(command.c_str());
+		}
+
+		static void VisualizeODESysSolAsParamCurve3(const ODESystemSolution& sol, std::string title, std::string fileName)
+		{
+			if (sol._sys_dim != 3)
+				throw std::runtime_error("VisualizeODESysSolAsParamCurve3: system dimension must be 3");
+
+			std::string name = _pathResultFiles + fileName;
+			sol.SerializeAsParametricCurve3D(name, title);
+
+			std::string command = _pathParametricCurveViz + " " + name;
+			system(command.c_str());
+		}
+	};
 }
 ///////////////////////////   ./include/algorithms/PathIntegration.h   ///////////////////////////
 
@@ -12478,7 +12647,8 @@ namespace MML
         }
 	};
 } // end namespace
-///////////////////////////   ./include/algorithms/SurfaceIntegration.h   ///////////////////////////
+///////////////////////////   ./include/algorithms/SurfaceIntegration.h   ///////////////////////////ï»¿#if !defined MML_SURFACE_INTEGRATION_H
+
 
 
 
@@ -12487,20 +12657,82 @@ namespace MML
 {
 	class SurfaceIntegration
 	{
-              
     public:           
-        // TODO 0.8 - MED, implement SurfaceIntegral
-        // sto ako imam vector field u nekim drugim koordinatama, a ne u kartezijevim?
         static Real SurfaceIntegral(const IVectorFunction<3> &vectorField, const IParametricSurface<3> &surface, const Real x1, const Real x2, const Real y1, const Real y2)
         {
             return 0.0;
         }
         static Real SurfaceIntegral(const IVectorFunction<3> &vectorField, const Solid3D &solid)
         {
-            
-            return 0.0;
+            Real total = 0.0;
+            for(int i = 0; i < solid._surfaces.size(); i++)
+				total += SurfaceIntegral(vectorField, solid._surfaces[i]);
+
+            return total;
         }
-	};
+        static Real CalcSurfaceContrib(const IVectorFunction<3>& vectorField, const RectSurface3D& surface)
+        {
+            Real result = 0.0;
+            Vector3Cartesian    normal = surface.getNormal();
+            Real area = surface.getArea();
+            Point3Cartesian    center = surface.getCenter();
+
+            Vector3Cartesian    value = vectorField(Vector3Cartesian(center.X(), center.Y(), center.Z()));
+
+            Real dotProduct = ScalarProd(normal, value);
+
+            result = dotProduct * area;
+
+			return result;
+        }
+
+        static Real SurfaceIntegralImproveRecursively(const IVectorFunction<3>& vectorField, const RectSurface3D& surface, Real prev_value, int level)
+        {
+			// now we will calculate integral for surface divided to 4 equal parts
+			Real result = 0.0;
+			Point3Cartesian pnt_mid12 = (surface._pnt1 + surface._pnt2) / 2.0;
+			Point3Cartesian pnt_mid23 = (surface._pnt2 + surface._pnt3) / 2.0;
+			Point3Cartesian pnt_mid34 = (surface._pnt3 + surface._pnt4) / 2.0;
+			Point3Cartesian pnt_mid41 = (surface._pnt4 + surface._pnt1) / 2.0;
+			Point3Cartesian center = surface.getCenter();
+
+			RectSurface3D s1(surface._pnt1, pnt_mid12, center, pnt_mid41);
+			RectSurface3D s2(pnt_mid12, surface._pnt2, pnt_mid23, center);
+			RectSurface3D s3(center, pnt_mid23, surface._pnt3, pnt_mid34);
+			RectSurface3D s4(pnt_mid41, center, pnt_mid34, surface._pnt4);
+
+			result += CalcSurfaceContrib(vectorField, s1);
+			result += CalcSurfaceContrib(vectorField, s2);
+			result += CalcSurfaceContrib(vectorField, s3);
+			result += CalcSurfaceContrib(vectorField, s4);
+
+            // compare to prev_value
+            if (fabs(result - prev_value) < 0.0001 || level == 0)
+			{
+				return result;
+			}
+            else
+            {
+                Real new_result = 0.0;
+                
+                new_result += SurfaceIntegralImproveRecursively(vectorField, s1, result, level - 1);
+                new_result += SurfaceIntegralImproveRecursively(vectorField, s2, result, level - 1);
+                new_result += SurfaceIntegralImproveRecursively(vectorField, s3, result, level - 1);
+                new_result += SurfaceIntegralImproveRecursively(vectorField, s4, result, level - 1);
+                
+                return new_result;
+            }
+
+			return result;
+        }
+
+        static Real SurfaceIntegral(const IVectorFunction<3>& vectorField, const RectSurface3D& surface)
+        {
+            Real result = CalcSurfaceContrib(vectorField, surface);
+
+            return SurfaceIntegralImproveRecursively(vectorField, surface, result, 7);
+        }
+    };
 } // end namespace
 ///////////////////////////   ./include/algorithms/VolumeIntegration.h   ///////////////////////////
 
@@ -12522,7 +12754,7 @@ namespace MML
 ///////////////////////////   ./include/algorithms/EigenSystemSolvers.h   ///////////////////////////
 
 
-// Given the eigenvalues d[0..n-1] and (optionally) the eigenvectors v[0..n-1][0..n-1] as determined by Jacobi (÷11.1) or tqli (÷11.4), this routine sorts the eigenvalues into descending
+// Given the eigenvalues d[0..n-1] and (optionally) the eigenvectors v[0..n-1][0..n-1] as determined by Jacobi (Ã·11.1) or tqli (Ã·11.4), this routine sorts the eigenvalues into descending
 // order and rearranges the columns of v correspondingly. The method is straight insertion.
 static void eigsrt(MML::Vector<Real> &d, MML::Matrix<Real> *v = NULL)
 {
@@ -12551,7 +12783,7 @@ static void eigsrt(MML::Vector<Real> &d, MML::Matrix<Real> *v = NULL)
 
 namespace MML
 {
-    // Computes all eigenvalues and eigenvectors of a real symmetric matrix by Jacobi’s method.
+    // Computes all eigenvalues and eigenvectors of a real symmetric matrix by Jacobiâ€™s method.
     struct Jacobi
     {
         const int n;
@@ -12800,7 +13032,7 @@ namespace MML
 
         // QL algorithm with implicit shifts to determine the eigenvalues and (optionally) the eigenvectors
         // of a real, symmetric, tridiagonal matrix, or of a real symmetric matrix previously reduced by
-        // tred2 (÷11.3). On input, d[0..n-1] contains the diagonal elements of the tridiagonal matrix.
+        // tred2 (Ã·11.3). On input, d[0..n-1] contains the diagonal elements of the tridiagonal matrix.
         // On output, it returns the eigenvalues. The vector e[0..n-1] inputs the subdiagonal elements
         // of the tridiagonal matrix, with e[0] arbitrary. On output e is destroyed. If the eigenvectors of
         // a tridiagonal matrix are desired, the matrix z[0..n-1][0..n-1] is input as the identity matrix.
@@ -14563,256 +14795,6 @@ namespace MML
             }
         }
     };
-
-    // TODO - MED, LAKO, ovo dovrsiti
-    class StepperStoerm : public StepperBS {
-    public:
-        using StepperBS::x; using StepperBS::xold; using StepperBS::y;
-        using StepperBS::dydx; using StepperBS::dense; using StepperBS::n;
-        using StepperBS::KMAXX; using StepperBS::IMAXX; using StepperBS::nseq;
-        using StepperBS::cost; using StepperBS::mu; using StepperBS::errfac;
-        using StepperBS::ysave; using StepperBS::fsave;
-        using StepperBS::dens; using StepperBS::neqn;
-        
-        Matrix<Real> ysavep;
-
-
-        // StepperStoerm(ODESystem &sys, Vector<Real> &yy, Vector<Real> &dydxx, Real &xx,
-        //               const Real atol, const Real rtol, bool dens);
-        // void dy(const Vector<Real> &y, const Real htot, const int k, Vector<Real> &yend, int &ipt);
-        // void prepare_dense(const Real h,const Vector<Real> &dydxnew, const Vector<Real> &ysav,
-        //                    const Vector<Real> &scale, const int k, Real &error);
-        // Real dense_out(const int i,const Real x,const Real h);
-        // void dense_interp(const int n, Vector<Real> &y, const int imit);
-
-        StepperStoerm(ODESystem &sys, Vector<Real> &yy, Vector<Real> &dydxx, Real &xx, const Real atoll,const Real rtoll, bool dens)
-            : StepperBS(sys, yy,dydxx,xx,atoll,rtoll,dens),ysavep(IMAXX,n/2) 
-        {
-            neqn=n/2;
-            cost[0]=nseq[0]/2+1;
-            for (int k=0;k<KMAXX;k++)
-                cost[k+1]=cost[k]+nseq[k+1]/2;
-            for (int i=0; i<2*IMAXX+1; i++) {
-                int ip7=i+7;
-                Real fac=1.5/ip7;
-                errfac[i]=fac*fac*fac;
-                Real e = 0.5*sqrt(Real(i+1)/ip7);
-                for (int j=0; j<=i; j++) {
-                    errfac[i] *= e/(j+1);
-                }
-            }
-        }
-
-        void prepare_dense(const Real h,const Vector<Real> &dydxnew,
-                                        const Vector<Real> &ysav,const Vector<Real> &scale,const int k, Real &error) {
-            Real h2=h*h;
-            mu=std::max(1,2*k-3);
-            for (int i=0; i<neqn; i++) {
-                dens[i]=ysav[i];
-                dens[neqn+i]=h*ysav[neqn+i];
-                dens[2*neqn+i]=h2*dydx[i];
-                dens[3*neqn+i]=y[i];
-                dens[4*neqn+i]=h*y[neqn+i];
-                dens[5*neqn+i]=h2*dydxnew[i];
-            }
-            for (int j=1; j<=k; j++) {
-                Real dblenj=nseq[j];
-                for (int l=j; l>=1; l--) {
-                    Real factor=POW2(dblenj/nseq[l-1])-1.0;
-                    for (int i=0; i<neqn; i++) {
-                        ysave[l-1][i]=ysave[l][i]+(ysave[l][i]-ysave[l-1][i])/factor;
-                        ysavep[l-1][i]=ysavep[l][i]+(ysavep[l][i]-ysavep[l-1][i])/factor;
-                    }
-                }
-            }
-            for (int i=0; i<neqn; i++) {
-                dens[6*neqn+i]=ysave[0][i];
-                dens[7*neqn+i]=h*ysavep[0][i];
-            }
-            for (int kmi=2; kmi<=mu; kmi++) {
-                int kbeg=(kmi-2)/2;
-                if (kmi == 2*kbeg+2) {
-                    if (kmi == 2) {
-                        for (int i=0; i<neqn; i++)
-                            ysave[0][i]=0.5*(dydxnew[i]+fsave[0][i]);
-                        kbeg=1;
-                    }
-                    for (int kk=kbeg; kk<=k; kk++) {
-                        Real facnj=0.5*pow(nseq[kk]/2.0,kmi-2);
-                        int ipt=kk*kk+kk+kmi/2-2;
-                        for (int i=0; i<neqn; i++)
-                            ysave[kk][i]=(fsave[ipt][i]+fsave[ipt+1][i])*facnj;
-                    }
-                } else {
-                    for (int kk=kbeg; kk<=k; kk++) {
-                        Real facnj=pow(nseq[kk]/2.0,kmi-2);
-                        int ipt=kk*kk+kk+kbeg;
-                        for (int i=0; i<neqn; i++)
-                            ysave[kk][i]=fsave[ipt][i]*facnj;
-                    }
-                }
-                for (int j=kbeg+1; j<=k; j++) {
-                    Real dblenj=nseq[j];
-                    for (int l=j; l>=kbeg+1; l--) {
-                        Real factor=POW2(dblenj/nseq[l-1])-1.0;
-                        for (int i=0; i<neqn; i++)
-                            ysave[l-1][i]=ysave[l][i]+
-                                (ysave[l][i]-ysave[l-1][i])/factor;
-                    }
-                }
-                for (int i=0; i<neqn; i++)
-                    dens[(kmi+6)*neqn+i]=ysave[kbeg][i]*h2;
-                if (kmi == mu) continue;
-                for (int kk=(kmi-1)/2; kk<=k; kk++) {
-                    int lbeg=kk*kk+kmi-2;
-                    int lend=POW2(kk+1)-1;
-                    if (kmi == 2) lbeg++;
-                    for (int l=lend; l>=lbeg; l--)
-                        for (int i=0; i<neqn; i++)
-                            fsave[l][i]=fsave[l][i]-fsave[l-1][i];
-                    if (kmi == 2) {
-                        int l=lbeg-1;
-                        for (int i=0; i<neqn; i++)
-                            fsave[l][i]=fsave[l][i]-dydx[i];
-                    }
-                }
-            }
-            dense_interp(neqn,dens,mu);
-            error=0.0;
-            if (mu >= 1) {
-                for (int i=0; i<neqn; i++)
-                    error += POW2(dens[(mu+6)*neqn+i]/scale[i]);
-                error=sqrt(error/neqn)*errfac[mu-1];
-            }
-        }
-
-        Real dense_out(const int i,const Real x,const Real h) {
-            Real theta=(x-xold)/h;
-            Real theta1=1.0-theta;
-            int neqn=n/2;
-            if (i>=neqn) throw("no dense output for y' in StepperStoerm");
-            Real yinterp=dens[i]+theta*(dens[neqn+i]+theta1*(dens[2*neqn+i]+
-                theta*(dens[3*neqn+i]+theta1*(dens[4*neqn+i]*theta+
-                dens[5*neqn+i]*theta1))));
-            if (mu<0)
-                return yinterp;
-            Real theta05=theta-0.5;
-            Real t4=theta*theta1;
-            Real c=dens[neqn*(mu+6)+i];
-            for (int j=mu;j>0; j--)
-                c=dens[neqn*(j+5)+i]+c*theta05/j;
-            yinterp += t4*t4*t4*c;
-            return yinterp;
-        }
-
-        void dense_interp(const int n, Vector<Real> &y, const int imit) {
-            Real y0,y1,yp0,yp1,ypp0,ypp1,ydiff,ah,bh,ch,dh,eh,fh,gh,abh,gfh,gmf,
-                ph0,ph1,ph2,ph3,ph4,ph5,fc1,fc2,fc3;
-            Vector<Real> a(41);
-            for (int i=0; i<n; i++) {
-                y0=y[i];
-                y1=y[3*n+i];
-                yp0=y[n+i];
-                yp1=y[4*n+i];
-                ypp0=y[2*n+i]/2.0;
-                ypp1=y[5*n+i]/2.0;
-                ydiff=y1-y0;
-                ah=ydiff-yp0;
-                bh=yp1-ydiff;
-                ch=ah-ypp0;
-                dh=bh-ah;
-                eh=ypp1-bh;
-                fh=dh-ch;
-                gh=eh-dh;
-                y[n+i]=ydiff;
-                y[2*n+i]=-ah;
-                y[3*n+i]=-dh;
-                y[4*n+i]=gh;
-                y[5*n+i]=fh;
-                if (imit < 0) continue;
-                abh=ah+bh;
-                gfh=gh+fh;
-                gmf=gh-fh;
-                ph0=0.5*(y0+y1+0.25*(-abh+0.25*gfh));
-                ph1=ydiff+0.25*(ah-bh+0.25*gmf);
-                ph2=abh-0.5*gfh;
-                ph3=6.0*(bh-ah)-3.0*gmf;
-                ph4=12.0*gfh;
-                ph5=120.0*gmf;
-                if (imit >= 1) {
-                    a[1]=64.0*(y[7*n+i]-ph1);
-                    if (imit >= 3) {
-                        a[3]=64.0*(y[9*n+i]-ph3+a[1]*9.0/8.0);
-                        if (imit >= 5) {
-                            a[5]=64.0*(y[11*n+i]-ph5+a[3]*15.0/4.0-a[1]*90.0);
-                            for (int im=7; im <=imit; im+=2) {
-                                fc1=im*(im-1)*3.0/16.0;
-                                fc2=fc1*(im-2)*(im-3)*4.0;
-                                fc3=im*(im-1)*(im-2)*(im-3)*(im-4)*(im-5);
-                                a[im]=64.0*(y[(im+6)*n+i]+fc1*a[im-2]-fc2*a[im-4]+fc3*a[im-6]);
-                            }
-                        }
-                    }
-                }
-                a[0]=64.0*(y[6*n+i]-ph0);
-                if (imit >= 2) {
-                    a[2]=64.0*(y[n*8+i]-ph2+a[0]*3.0/8.0);
-                    if (imit >= 4) {
-                        a[4]=64.0*(y[n*10+i]-ph4+a[2]*9.0/4.0-a[0]*18.0);
-                        for (int im=6; im<=imit; im+=2) {
-                            fc1=im*(im-1)*3.0/16.0;
-                            fc2=fc1*(im-2)*(im-3)*4.0;
-                            fc3=im*(im-1)*(im-2)*(im-3)*(im-4)*(im-5);
-                            a[im]=64.0*(y[n*(im+6)+i]+a[im-2]*fc1-a[im-4]*fc2+a[im-6]*fc3);
-                        }
-                    }
-                }
-                for (int im=0; im<=imit; im++)
-                    y[n*(im+6)+i]=a[im];
-            }
-        }
-
-        void dy(const Vector<Real> &y, const Real htot, const int k,
-            Vector<Real> &yend, int &ipt) {
-            Vector<Real> ytemp(n);
-            int nstep=nseq[k];
-            Real h=htot/nstep;
-            Real h2=2.0*h;
-            for (int i=0;i<neqn;i++) {
-                ytemp[i]=y[i];
-                int ni=neqn+i;
-                ytemp[ni]=y[ni]+h*dydx[i];
-            }
-            Real xnew=x;
-            int nstp2=nstep/2;
-            for (int nn=1;nn<=nstp2;nn++) {
-                if (dense && nn == (nstp2+1)/2) {
-                    for (int i=0;i<neqn;i++) {
-                        ysavep[k][i]=ytemp[neqn+i];
-                        ysave[k][i]=ytemp[i]+h*ytemp[neqn+i];
-                    }
-                }
-                for (int i=0;i<neqn;i++)
-                    ytemp[i] += h2*ytemp[neqn+i];
-                xnew += h2;
-                _sys.derivs(xnew,ytemp,yend);
-                if (dense && std::abs(nn-(nstp2+1)/2) < k+1) {
-                    ipt++;
-                    for (int i=0;i<neqn;i++)
-                        fsave[ipt][i]=yend[i];
-                }
-                if (nn != nstp2) {
-                    for (int i=0;i<neqn;i++)
-                        ytemp[neqn+i] += h2*yend[i];
-                }
-            }
-            for (int i=0;i<neqn;i++) {
-                int ni=neqn+i;
-                yend[ni]=ytemp[ni]+h*yend[i];
-                yend[i]=ytemp[i];
-            }
-        }
-    };
 }
 ///////////////////////////   ./include/algorithms/ODESystemSteppers_Stiff.h   ///////////////////////////
 
@@ -15602,7 +15584,7 @@ namespace MML
         }    
     };    
 
-    // TODO 0.7 - ovo je Simple
+    // TODO 0.9 - ovo je Simple
     class RungeKuttaNR2
     {
         void rkck(Vector<Real> &y, Vector<Real> &dydx, const Real x,
@@ -15890,254 +15872,6 @@ namespace MML
     };
 }
 
-///////////////////////////   ./include/algorithms/FunctionAnalyzers.h   ///////////////////////////
-
-
-
-namespace MML
-{
-    // TODO - MED, function point analyzer at point and interval - is continuous, is derivation defined
-    class RealFunctionAnalyzer
-    {
-        IRealFunction &_f;        
-    public:
-        RealFunctionAnalyzer(IRealFunction &f) : _f(f) {}
-
-        void PrintIntervalAnalysis(Real x1, Real x2, int numPoints)
-        {
-            std::cout << "Function analysis:" << std::endl;
-            std::cout << "  Defined at point: " << (isDefinedAtPoint(x1) ? "yes" : "no") << std::endl;
-            std::cout << "  Continuous at point: " << (isContinuousAtPoint(x1, 1e-6) ? "yes" : "no") << std::endl;
-            std::cout << "  Monotonic: " << (isMonotonic(x1, x2, numPoints) ? "yes" : "no") << std::endl;
-            if( isMonotonic(x1, x2, numPoints) )
-            {
-                Real min, max;
-                if( isMonotonic(x1, x2, numPoints, min, max) )
-                    std::cout << "  Min: " << min << ", Max: " << max << std::endl;
-            }
-            std::cout << "  Min in " << numPoints << " points: " << MinInNPoints(x1, x2, numPoints) << std::endl;
-            std::cout << "  Max in " << numPoints << " points: " << MaxInNPoints(x1, x2, numPoints) << std::endl;
-        }
-
-        // TODO - GetRoots(x1, x2)
-        // TODO - GetMin(x1, x2, num sart points)
-        bool isDefinedAtPoint(Real x)
-        {
-            try {
-                Real y = _f(x);                
-            }
-            catch(const std::exception& ) {
-                return false;
-            }
-            return true;
-        }
-        bool isContinuousAtPoint(Real x, Real eps)
-        {
-            // TODO - calculate left and right derivation and compare
-
-            return isDefinedAtPoint(x);
-        }
-        bool isContinuous(Real x1, Real x2, int numPoints)
-        {
-            // kroz sve tocke
-            // vidjeti gdje se derivacije razlikuju u znaku (potencijalni min/max, ili discontinuity)
-            // istraziti dalje oko te tocke
-            return false;
-        }
-        bool isMonotonic(Real x1, Real x2, int numPoints)
-        {
-            Real step = (x2-x1) / numPoints;
-            Real prev = _f(x1);
-            Real curr = 0.0;
-
-            for( int i=1; i<numPoints; i++ )
-            {
-                curr = _f(x1 + i*step);
-                if( (curr - prev) * (curr - prev) < 0.0 )
-                    return false;
-                prev = curr;
-            }
-            return true;
-        }   
-        bool isMonotonic(Real x1, Real x2, int numPoints, Real &min, Real &max)
-        {
-            Real step = (x2-x1) / numPoints;
-            Real prev = _f(x1);
-            Real curr = 0.0;
-
-            min = prev;
-            max = prev;
-
-            for( int i=1; i<numPoints; i++ )
-            {
-                curr = _f(x1 + i*step);
-                if( (curr - prev) * (curr - prev) < 0.0 )
-                    return false;
-                prev = curr;
-
-                if( curr < min )
-                    min = curr;
-                if( curr > max )
-                    max = curr;
-            }
-            return true;
-        }   
-        Real MinInNPoints(Real x1, Real x2, int numPoints)
-        {
-            Real step = (x2-x1) / numPoints;
-            Real min = _f(x1);
-
-            for( int i=1; i<numPoints; i++ )
-            {
-                Real curr = _f(x1 + i*step);
-                if( curr < min )
-                    min = curr;
-            }
-            return min;
-        }
-        Real MaxInNPoints(Real x1, Real x2, int numPoints)
-        {
-            Real step = (x2-x1) / numPoints;
-            Real max = _f(x1);
-
-            for( int i=1; i<numPoints; i++ )
-            {
-                Real curr = _f(x1 + i*step);
-                if( curr > max )
-                    max = curr;
-            }
-            return max;
-        }  
-    };
-
-    class RealFunctionComparer
-    {
-        IRealFunction &_f1;
-        IRealFunction &_f2;
-
-    public:
-        RealFunctionComparer(IRealFunction &f1, IRealFunction &f2) : _f1(f1), _f2(f2) {}
-
-        Real getAbsDiffSum(Real a, Real b, int numPoints)
-        {
-            Real step = (b-a) / numPoints;
-            Real sum = 0.0;
-
-            for( int i=0; i<numPoints; i++ )
-                sum += std::abs(_f1(a + i*step) - _f2(a + i*step));
-
-            return sum;
-        }
-        Real getAbsDiffAvg(Real a, Real b, int numPoints)
-        {
-            return getAbsDiffSum(a, b, numPoints) / numPoints;
-        }
-        Real getAbsDiffMax(Real a, Real b, int numPoints)
-        {
-            Real step = (b-a) / numPoints;
-            Real max = std::abs(_f1(a ) - _f2(a));
-
-            for( int i=0; i<numPoints; i++ )
-            {
-                Real diff = std::abs(_f1(a + i*step) - _f2(a + i*step));
-                if( diff > max )
-                    max = diff;
-            }
-            return max;
-        }
-        Real getRelDiffSum(Real a, Real b, int numPoints)
-        {
-            Real step = (b-a) / numPoints;
-            Real sum = 0.0;
-
-            for( int i=0; i<numPoints; i++ )
-                if( _f1(a + i*step) != 0.0 )
-                    sum += std::abs(_f1(a + i*step) - _f2(a + i*step)) / std::abs(_f1(a + i*step));
-                else
-                    --numPoints;
-
-            return sum;
-        }
-        Real getRelDiffAvg(Real a, Real b, int numPoints)
-        {
-            return getRelDiffSum(a, b, numPoints) / numPoints;
-        }
-        Real getRelDiffMax(Real a, Real b, int numPoints)
-        {
-            Real step = (b-a) / numPoints;
-            Real max = 0.0;
-
-            for( int i=0; i<numPoints; i++ )
-            {
-                if( _f1(a + i*step) != 0.0 )
-                {
-                    Real diff = std::abs(_f1(a + i*step) - _f2(a + i*step)) / std::abs(_f1(a + i*step));
-                    if( diff > max )
-                        max = diff;
-                }
-            }
-            return max;
-        }
-
-        ///////////                  Integration measures                /////////
-        Real getIntegratedDiff(Real a, Real b, IntegrationMethod method = IntegrationMethod::TRAP)
-        {
-            return getIntegratedDiff(_f1, _f2, a, b, method);
-        }
-        static Real getIntegratedDiff(IRealFunction &f1, IRealFunction &f2, Real a, Real b, IntegrationMethod method = IntegrationMethod::TRAP)
-        {
-            RealFuncDiffHelper helper(f1, f2);
-
-            switch (method)
-            {
-                case IntegrationMethod::SIMPSON:
-                    return IntegrateSimpson(helper, a, b);
-                case IntegrationMethod::ROMBERG:
-                    return IntegrateRomberg(helper, a, b);
-                default:
-                    return IntegrateTrap(helper, a, b);
-            }
-        }
-
-        Real getIntegratedAbsDiff(Real a, Real b, IntegrationMethod method = IntegrationMethod::TRAP)
-        {
-            return getIntegratedAbsDiff(_f1, _f2, a, b, method);
-        }
-        static Real getIntegratedAbsDiff(IRealFunction &f1, IRealFunction &f2, Real a, Real b, IntegrationMethod method = IntegrationMethod::TRAP)
-        {
-            RealFuncDiffAbsHelper helper(f1, f2);
-
-            switch (method)
-            {
-                case IntegrationMethod::SIMPSON:
-                    return IntegrateSimpson(helper, a, b);
-                case IntegrationMethod::ROMBERG:
-                    return IntegrateRomberg(helper, a, b);
-                default:
-                    return IntegrateTrap(helper, a, b);
-            }
-        }
-        
-        Real getIntegratedSqrDiff(Real a, Real b, IntegrationMethod method = IntegrationMethod::TRAP)
-        {
-            return getIntegratedSqrDiff(_f1, _f2, a, b, method);
-        }
-        static Real getIntegratedSqrDiff(IRealFunction &f1, IRealFunction &f2, Real a, Real b, IntegrationMethod method = IntegrationMethod::TRAP)
-        {
-            RealFuncDiffSqrHelper helper(f1, f2);
-
-            switch (method)
-            {
-                case IntegrationMethod::SIMPSON:
-                    return IntegrateSimpson(helper, a, b);
-                case IntegrationMethod::ROMBERG:
-                    return IntegrateRomberg(helper, a, b);
-                default:
-                    return IntegrateTrap(helper, a, b);
-            }
-        }        
-    };  
-}
 ///////////////////////////   ./include/algorithms/Fourier.h   ///////////////////////////
 
 namespace MML
@@ -16150,17 +15884,20 @@ namespace MML
 }
 
 
-///////////////////////////   ./include/algorithms/RootFinding.h   ///////////////////////////
+///////////////////////////   ./include/algorithms/RootFinding.h   ///////////////////////////ï»¿#if !defined MML_ROOTFINDING_H
+
+
 
 
 
 namespace MML
 {
-    class RootFinding
+    namespace RootFinding
     {
-    public:
-        // TODO - HIGH, SREDNJE - newt i rtsafe dodati num. deriv moj
-        // dodati dokumentaciju
+        // Given a function or functor func and an initial guessed range x1 to x2, the routine expands
+        // the range geometrically until a root is bracketed by the returned values x1 and x2(in which
+        // case zbrac returns true) or until the range becomes unacceptably large(in which case zbrac
+        // returns false).
         static bool zbrac(const IRealFunction &func, double &x1, double &x2)
         {
             const int NTRY=50;
@@ -16171,8 +15908,12 @@ namespace MML
             
             double f1=func(x1);
             double f2=func(x2);
-            for (int j=0;j<NTRY;j++) {
-                if (f1*f2 < 0.0) return true;
+
+            for (int j=0;j<NTRY;j++) 
+            {
+                if (f1*f2 < 0.0) 
+                    return true;
+                
                 if (std::abs(f1) < std::abs(f2))
                     f1=func(x1 += FACTOR*(x1-x2));
                 else
@@ -16181,6 +15922,11 @@ namespace MML
             return false;
         }     
 
+        // Given a function or functor fx defined on the interval[x1, x2], subdivide the interval into
+        // n equally spaced segments, and search for zero crossings of the function.nroot will be set
+        // to the number of bracketing pairs found.If it is positive, the arrays xb1[0..nroot - 1] and
+        // xb2[0..nroot - 1] will be filled sequentially with any bracketing pairs that are found.On input,
+        // these vectors may have any size, including zero; they will be resized to   nroot.
         static void zbrak(const IRealFunction &fx, const Real x1, const Real x2, const int n, Vector<Real> &xb1,
                    Vector<Real> &xb2, int &nroot)
         {
@@ -16191,16 +15937,22 @@ namespace MML
             Real dx=(x2-x1)/n;
             Real x=x1;
             Real fp=fx(x1);
-            for (int i=0;i<n;i++) {
-                Real fc=fx(x += dx);
-                if (fc*fp <= 0.0) {
+
+            for (int i=0;i<n;i++) 
+            {
+                Real fc = fx(x += dx);
+
+                if (fc*fp <= 0.0) 
+                {
                     xb1[nroot]=x-dx;
                     xb2[nroot++]=x;
-                    if(nroot == nb) {
+                    if(nroot == nb) 
+                    {
                         Vector<Real> tempvec1(xb1),tempvec2(xb2);
                         xb1.Resize(2*nb);
                         xb2.Resize(2*nb);
-                        for (int j=0; j<nb; j++) {
+                        for (int j=0; j<nb; j++) 
+                        {
                             xb1[j]=tempvec1[j];
                             xb2[j]=tempvec2[j];
                         }
@@ -16211,27 +15963,47 @@ namespace MML
             }
         }     
 
-        static Real rtbis(const IRealFunction &func, const Real x1, const Real x2, const Real xacc) {
+        // Using bisection, return the root of a function or functor func known to lie between x1 and x2.
+        // The root will be refined until its accuracy is Ë™xacc.
+        static Real FindRootBisection(const IRealFunction &func, const Real x1, const Real x2, const Real xacc) 
+        {
             const int JMAX=50;
             Real dx,xmid,rtb;
-            Real f=func(x1);
-            Real fmid=func(x2);
-            if (f*fmid >= 0.0) throw("Root must be bracketed for bisection in rtbis");
+            
+            Real f = func(x1);
+            Real fmid = func(x2);
+
+            if (f*fmid >= 0.0) 
+                throw("Root must be bracketed for bisection in FindRootBisection");
+            
             rtb = f < 0.0 ? (dx=x2-x1,x1) : (dx=x1-x2,x2);
-            for (int j=0;j<JMAX;j++) {
-                fmid=func(xmid=rtb+(dx *= 0.5));
-                if (fmid <= 0.0) rtb=xmid;
-                if (std::abs(dx) < xacc || fmid == 0.0) return rtb;
+            for (int j=0;j<JMAX;j++) 
+            {
+                fmid = func(xmid=rtb+(dx *= 0.5));
+
+                if (fmid <= 0.0) 
+                    rtb=xmid;
+
+                if (std::abs(dx) < xacc || fmid == 0.0) 
+                    return rtb;
             }
-            throw("Too many bisections in rtbis");
+            throw("Too many bisections in FindRootBisection");
         }
 
-        static Real rtflsp(const IRealFunction &func, const Real x1, const Real x2, const Real xacc) {
+        // Using the false - position method, return the root of a function or functor func known to lie
+        // between x1 and x2.The root is refined until its accuracy is Ë™xacc
+        static Real FindRootFalsePosition(const IRealFunction &func, const Real x1, const Real x2, const Real xacc) 
+        {
             const int MAXIT=30;
+
             Real xl,xh,del;
+
             Real fl=func(x1);
             Real fh=func(x2);
-            if (fl*fh > 0.0) throw("Root must be bracketed in rtflsp");
+
+            if (fl*fh > 0.0) 
+                throw("Root must be bracketed in FindRootFalsePosition");
+
             if (fl < 0.0) {
                 xl=x1;
                 xh=x2;
@@ -16241,9 +16013,11 @@ namespace MML
                 std::swap(fl,fh);
             }
             Real dx=xh-xl;
-            for (int j=0;j<MAXIT;j++) {
+            for (int j=0;j<MAXIT;j++) 
+            {
                 Real rtf=xl+dx*fl/(fl-fh);
                 Real f=func(rtf);
+
                 if (f < 0.0) {
                     del=xl-rtf;
                     xl=rtf;
@@ -16254,12 +16028,15 @@ namespace MML
                     fh=f;
                 }
                 dx=xh-xl;
-                if (std::abs(del) < xacc || f == 0.0) return rtf;
+                if (std::abs(del) < xacc || f == 0.0) 
+                    return rtf;
             }
-            throw("Maximum number of iterations exceeded in rtflsp");
+            throw("Maximum number of iterations exceeded in FindRootFalsePosition");
         }
 
-        static Real rtsec(const IRealFunction &func, const Real x1, const Real x2, const Real xacc) {
+        // Using the secant method, return the root of a function or functor func thought to lie between
+        // x1 and x2.The root is refined until its accuracy is Ë™xacc.
+        static Real FindRootSecant(const IRealFunction &func, const Real x1, const Real x2, const Real xacc) {
             const int MAXIT=30;
             Real xl,rts;
             Real fl=func(x1);
@@ -16272,35 +16049,52 @@ namespace MML
                 xl=x1;
                 rts=x2;
             }
-            for (int j=0;j<MAXIT;j++) {
+            for (int j=0;j<MAXIT;j++) 
+            {
                 Real dx=(xl-rts)*f/(f-fl);
                 xl=rts;
                 fl=f;
                 rts += dx;
                 f=func(rts);
-                if (std::abs(dx) < xacc || f == 0.0) return rts;
+
+                if (std::abs(dx) < xacc || f == 0.0) 
+                    return rts;
             }
-            throw("Maximum number of iterations exceeded in rtsec");
+            throw("Maximum number of iterations exceeded in FindRootSecant");
         }
 
-        static Real zriddr(const IRealFunction &func, const Real x1, const Real x2, const Real xacc) {
+        // Using Riddersâ€™ method, return the root of a function or functor func known to lie between x1
+        // and x2.The root will be refined to an approximate accuracy xacc.
+        static Real FindRootRidders(const IRealFunction &func, const Real x1, const Real x2, const Real xacc) {
             const int MAXIT=60;
             Real fl=func(x1);
             Real fh=func(x2);
-            if ((fl > 0.0 && fh < 0.0) || (fl < 0.0 && fh > 0.0)) {
+            if ((fl > 0.0 && fh < 0.0) || (fl < 0.0 && fh > 0.0)) 
+            {
                 Real xl=x1;
                 Real xh=x2;
                 Real ans=-9.99e99;
-                for (int j=0;j<MAXIT;j++) {
+
+                for (int j=0;j<MAXIT;j++) 
+                {
                     Real xm=0.5*(xl+xh);
                     Real fm=func(xm);
                     Real s=sqrt(fm*fm-fl*fh);
-                    if (s == 0.0) return ans;
+
+                    if (s == 0.0) 
+                        return ans;
+
                     Real xnew=xm+(xm-xl)*((fl >= fh ? 1.0 : -1.0)*fm/s);
-                    if (std::abs(xnew-ans) <= xacc) return ans;
+
+                    if (std::abs(xnew-ans) <= xacc) 
+                        return ans;
+
                     ans=xnew;
                     Real fnew=func(ans);
-                    if (fnew == 0.0) return ans;
+
+                    if (fnew == 0.0) 
+                        return ans;
+
                     if (SIGN(fm,fnew) != fm) {
                         xl=xm;
                         fl=fm;
@@ -16313,26 +16107,36 @@ namespace MML
                         xl=ans;
                         fl=fnew;
                     } else throw("never get here.");
-                    if (std::abs(xh-xl) <= xacc) return ans;
+
+                    if (std::abs(xh-xl) <= xacc) 
+                        return ans;
                 }
-                throw("zriddr exceed maximum iterations");
+                throw("FindRootRidders exceed maximum iterations");
             }
             else {
-                if (fl == 0.0) return x1;
-                if (fh == 0.0) return x2;
-                throw("root must be bracketed in zriddr.");
+                if (fl == 0.0) 
+                    return x1;
+                if (fh == 0.0) 
+                    return x2;
+
+                throw("root must be bracketed in FindRootRidders.");
             }
         }        
 
-        static Real zbrent(IRealFunction &func, const Real x1, const Real x2, const Real tol)
+        // Using Brentâ€™s method, return the root of a function or functor func known to lie between x1
+        // and x2.The root will be refined until its accuracy is tol.
+        static Real FindRootBrent(IRealFunction &func, const Real x1, const Real x2, const Real tol)
         {
             const int ITMAX=100;
             const Real EPS=std::numeric_limits<Real>::epsilon();
             Real a=x1,b=x2,c=x2,d,e,fa=func(a),fb=func(b),fc,p,q,r,s,tol1,xm;
+
             if ((fa > 0.0 && fb > 0.0) || (fa < 0.0 && fb < 0.0))
-                throw("Root must be bracketed in zbrent");
+                throw("Root must be bracketed in FindRootBrent");
+            
             fc=fb;
-            for (int iter=0;iter<ITMAX;iter++) {
+            for (int iter=0;iter<ITMAX;iter++) 
+            {
                 if ((fb > 0.0 && fc > 0.0) || (fb < 0.0 && fc < 0.0)) {
                     c=a;
                     fc=fa;
@@ -16346,9 +16150,13 @@ namespace MML
                     fb=fc;
                     fc=fa;
                 }
+
                 tol1=2.0*EPS*std::abs(b)+0.5*tol;
                 xm=0.5*(c-b);
-                if (std::abs(xm) <= tol1 || fb == 0.0) return b;
+
+                if (std::abs(xm) <= tol1 || fb == 0.0) 
+                    return b;
+
                 if (std::abs(e) >= tol1 && std::abs(fa) > std::abs(fb)) {
                     s=fb/fa;
                     if (a == c) {
@@ -16360,10 +16168,14 @@ namespace MML
                         p=s*(2.0*xm*q*(q-r)-(b-a)*(r-1.0));
                         q=(q-1.0)*(r-1.0)*(s-1.0);
                     }
-                    if (p > 0.0) q = -q;
+
+                    if (p > 0.0) 
+                        q = -q;
                     p=std::abs(p);
+
                     Real min1=3.0*xm*q-abs(tol1*q);
                     Real min2=std::abs(e*q);
+
                     if (2.0*p < (min1 < min2 ? min1 : min2)) {
                         e=d;
                         d=p/q;
@@ -16383,80 +16195,106 @@ namespace MML
                     b += SIGN(tol1,xm);
                     fb=func(b);
             }
-            throw("Maximum number of iterations exceeded in zbrent");
+            throw("Maximum number of iterations exceeded in FindRootBrent");
         }
 
-        // TODO - MED, MED - transformirati
-        // static Real rtnewt(const IRealFunction &funcd, const Real x1, const Real x2, const Real xacc) {
-        //     const int JMAX=20;
-        //     Real rtn=0.5*(x1+x2);
-        //     for (int j=0;j<JMAX;j++) {
-        //         Real f=funcd(rtn);
-        //         Real df=funcd.df(rtn);
-        //         Real dx=f/df;
-        //         rtn -= dx;
-        //         if ((x1-rtn)*(rtn-x2) < 0.0)
-        //             throw("Jumped out of brackets in rtnewt");
-        //         if (std::abs(dx) < xacc) return rtn;
-        //     }
-        //     throw("Maximum number of iterations exceeded in rtnewt");
-        // }
+        // Using the Newton-Raphson method, return the root of a function known to lie in the interval
+        // x1; x2Â.The root will be refined until its accuracy is known within Ë™xacc.
+         static Real rtnewt(const IRealFunction &funcd, const Real x1, const Real x2, const Real xacc) {
+             const int JMAX=20;
+             Real rtn=0.5*(x1+x2);
+             for (int j=0;j<JMAX;j++) 
+             {
+                 Real f=funcd(rtn);
+                 Real df = Derivation::NDer4(funcd, rtn);
+                 Real dx=f/df;
+                 rtn -= dx;
+                 if ((x1-rtn)*(rtn-x2) < 0.0)
+                     throw("Jumped out of brackets in rtnewt");
+                 if (std::abs(dx) < xacc) 
+                     return rtn;
+             }
+             throw("Maximum number of iterations exceeded in rtnewt");
+         }
 
-        // static Real rtsafe(const IRealFunction &funcd, const Real x1, const Real x2, const Real xacc) {
-        //     const int MAXIT=100;
-        //     Real xh,xl;
-        //     Real fl=funcd(x1);
-        //     Real fh=funcd(x2);
-        //     if ((fl > 0.0 && fh > 0.0) || (fl < 0.0 && fh < 0.0))
-        //         throw("Root must be bracketed in rtsafe");
-        //     if (fl == 0.0) return x1;
-        //     if (fh == 0.0) return x2;
-        //     if (fl < 0.0) {
-        //         xl=x1;
-        //         xh=x2;
-        //     } else {
-        //         xh=x1;
-        //         xl=x2;
-        //     }
-        //     Real rts=0.5*(x1+x2);
-        //     Real dxold=std::abs(x2-x1);
-        //     Real dx=dxold;
-        //     Real f=funcd(rts);
-        //     Real df=funcd.df(rts);
-        //     for (int j=0;j<MAXIT;j++) {
-        //         if ((((rts-xh)*df-f)*((rts-xl)*df-f) > 0.0)
-        //             || (std::abs(2.0*f) > std::abs(dxold*df))) {
-        //             dxold=dx;
-        //             dx=0.5*(xh-xl);
-        //             rts=xl+dx;
-        //             if (xl == rts) return rts;
-        //         } else {
-        //             dxold=dx;
-        //             dx=f/df;
-        //             Real temp=rts;
-        //             rts -= dx;
-        //             if (temp == rts) return rts;
-        //         }
-        //         if (std::abs(dx) < xacc) return rts;
-        //         f=funcd(rts);
-        //         df=funcd.df(rts);
-        //         if (f < 0.0)
-        //             xl=rts;
-        //         else
-        //             xh=rts;
-        //     }
-        //     throw("Maximum number of iterations exceeded in rtsafe");
-        // }    
+         //Using a combination of Newton - Raphson and bisection, return the root of a function bracketed
+         //between x1 and x2.The root will be refined until its accuracy is known within Ë™xacc.funcd
+         //is a user - supplied struct that returns the function value as a functor and the first derivative of
+         //the function at the point x as the function df(see text).
+         static Real rtsafe(const IRealFunction &funcd, const Real x1, const Real x2, const Real xacc) {
+             const int MAXIT=100;
+             Real xh,xl;
+             Real fl=funcd(x1);
+             Real fh=funcd(x2);
+
+             if ((fl > 0.0 && fh > 0.0) || (fl < 0.0 && fh < 0.0))
+                 throw("Root must be bracketed in rtsafe");
+             
+             if (fl == 0.0) return x1;
+             if (fh == 0.0) return x2;
+             
+             if (fl < 0.0) {
+                 xl=x1;
+                 xh=x2;
+             } else {
+                 xh=x1;
+                 xl=x2;
+             }
+             Real rts=0.5*(x1+x2);
+             Real dxold=std::abs(x2-x1);
+             Real dx=dxold;
+
+             Real f=funcd(rts);
+             Real df= Derivation::NDer4(funcd, rts);
+
+             for (int j=0;j<MAXIT;j++) 
+             {
+                 if ((((rts-xh)*df-f)*((rts-xl)*df-f) > 0.0)
+                     || (std::abs(2.0*f) > std::abs(dxold*df))) {
+                     dxold=dx;
+                     dx=0.5*(xh-xl);
+                     rts=xl+dx;
+                     if (xl == rts) return rts;
+                 } else {
+                     dxold=dx;
+                     dx=f/df;
+                     Real temp=rts;
+                     rts -= dx;
+                     if (temp == rts) return rts;
+                 }
+                 if (std::abs(dx) < xacc) 
+                     return rts;
+                 
+                 f  = funcd(rts);
+                 df = Derivation::NDer4(funcd, rts);
+                 
+                 if (f < 0.0)
+                     xl=rts;
+                 else
+                     xh=rts;
+             }
+             throw("Maximum number of iterations exceeded in rtsafe");
+         }    
     };
 }
 
 
-///////////////////////////   ./include/algorithms/RootFindingMultidim.h   ///////////////////////////
+///////////////////////////   ./include/algorithms/RootFindingMultidim.h   ///////////////////////////ï»¿#if !defined MML_ROOTFINDING_MULTIDIM_H
 
 
-namespace MML
+
+namespace MML::RootFinding
 {
-    // TODO - HIGH, SREDNJE!!! finish
+    // TODO 0.9 - HIGH, SREDNJE!!! finish
+    //Given an n - dimensional point xold[0..n - 1], the value of the function and gradient there, fold
+    //and g[0..n - 1], and a direction p[0..n - 1], finds a new point x[0..n - 1] along the direction
+    //p from xold where the function or functor func has decreased â€œsufficiently.â€ The new function
+    //value is returned in f.stpmax is an input quantity that limits the length of the steps so that you
+    //do not try to evaluate the function in regions where it is undefined or subject to overflow.p is
+    //usually the Newton direction.The output quantity check is false on a normal exit.It is true
+    //when x is too close to xold.In a minimization algorithm, this usually signals convergence and
+    //can be ignored.However, in a zero - finding algorithm the calling program should check whether
+    //the convergence is spurious.
     template <class T>
     void lnsrch(Vector<Real> &xold, const Real fold, Vector<Real> &g, Vector<Real> &p,
                 Vector<Real> &x, Real &f, const Real stpmax, bool &check, T &func) 
@@ -16550,11 +16388,22 @@ namespace MML
             return 0.5*sum;
         }
     };
+
+    //Given an initial guess x[0..n - 1] for a root in n dimensions, find the root by a globally convergent
+    //Newtonâ€™s method.The vector of functions to be zeroed, called fvec[0..n - 1] in the routine
+    //below, is returned by the user - supplied function or functor vecfunc(see text).The output
+    //quantity check is false on a normal return and true if the routine has converged to a local
+    //minimum of the function fmin defined below.In this case try restarting from a different initial
+    //guess
     template <class T>
     void newt(Vector<Real> &x, bool &check, T &vecfunc) {
         const int MAXITS=200;
         const Real TOLF=1.0e-8,TOLMIN=1.0e-12,STPMX=100.0;
         const Real TOLX=std::numeric_limits<Real>::epsilon();
+        //Here MAXITS is the maximum number of iterations; TOLF sets the convergence criterion on
+        //function values; TOLMIN sets the criterion for deciding whether spurious convergence to a
+        //minimum of fmin has occurred; STPMX is the scaled maximum step length allowed in line
+        //searches; and TOLX is the convergence criterion on delta x
         int i,j,its,n=x.size();
         Real den,f,fold,stpmax,sum,temp,test;
         Vector<Real> g(n),p(n),xold(n);
@@ -16617,12 +16466,24 @@ namespace MML
         }
         throw("MAXITS exceeded in newt");
     }
+
+    //Given an initial guess x[0..n - 1] for a root in n dimensions, find the root by Broydenâ€™s
+    //method embedded in a globally convergent strategy.The vector of functions to be zeroed,
+    //called fvec[0..n - 1] in the routine below, is returned by the user - supplied function or functor
+    //vecfunc.The routines NRfdjac and NRfmin from newt are used.The output quantity check
+    //is false on a normal return and true if the routine has converged to a local minimum of the
+    //function fmin or if Broydenâ€™s method can make no further progress.In this case try restarting
+    //from a different initial guess
     template <class T>
     void broydn(Vector<Real> &x, bool &check, T &vecfunc) 
     {
         const int MAXITS=200;
         const Real EPS=std::numeric_limits<Real>::epsilon();
         const Real TOLF=1.0e-8, TOLX=EPS, STPMX=100.0, TOLMIN=1.0e-12;
+        //Here MAXITS is the maximum number of iterations; EPS is the machine precision; TOLF
+        //is the convergence criterion on function values; TOLX is the convergence criterion on delta x;
+        //STPMX is the scaled maximum step length allowed in line searches; and TOLMIN is used to
+        //decide whether spurious convergence to a minimum of fmin has occurred.
         bool restrt,skip;
         int i,its,j,n=x.size();
         Real den,f,fold,stpmax,sum,temp,test;
@@ -16844,43 +16705,383 @@ namespace MML
         }        
     }
 }
-///////////////////////////   ./include/systems/LinAlgEqSystem.h   ///////////////////////////
+///////////////////////////   ./include/algorithms/FunctionAnalyzers.h   ///////////////////////////
+
+
+
+
+
 
 namespace MML
 {
-    class LinAlgEqSystem
-    {
-        // dva ctora - Matrix, Matrix i Matrix, Vector
+	// TODO 0.9 - MED, function point analyzer at point and interval - is continuous, is derivation defined
+	class RealFunctionAnalyzer
+	{
+		IRealFunction& _f;
+		std::string _funcName;
+	public:
+		RealFunctionAnalyzer(IRealFunction& f) : _f(f) {}
+		RealFunctionAnalyzer(IRealFunction& f, std::string inName) : _f(f), _funcName(inName) {}
 
-        // solve by GJ
+		void PrintPointAnalysis(Real x, Real eps = 1e-6)
+		{
+			std::cout << "Function analysis at point: " << x << ":" << std::endl;
+			std::cout << "  Defined at point:    " << (isDefinedAtPoint(x) ? "yes" : "no") << std::endl;
+			std::cout << "  Continuous at point: " << (isContinuousAtPoint(x, eps) ? "yes" : "no") << std::endl;
+			std::cout << "  Is inflection point: " << (isInflectionPoint(x, eps) ? "yes" : "no") << std::endl;
+		}
 
-        // solve by LU - dvije verzije - in place, i verzija koja vraca dekompoziciju
-        // perform LU
-        //
-        // QR, Cholesky
-        
-        // SVD decomposition
-        
-        // find eigenvalues
+		void PrintIntervalAnalysis(Real x1, Real x2, int numPoints, Real eps = 1e-6)
+		{
+			if( _funcName != "" )
+				std::cout << std::fixed << "f(x) = " << _funcName << " - Function analysis in interval [" << x1 << ", " << x2 << "] with " << numPoints << " points:" << std::endl;
+			else
+				std::cout << std::fixed << "Function analysis in interval [" << x1 << ", " << x2 << "] with " << numPoints << " points:" << std::endl;
+			
+			bool isDef = true;
+			bool isCont = true;
+			std::vector<Real> _notDefinedPoints;
+			std::vector<Real> _notContinuousPoints;
 
-        // ima i Verify - das mu solution i onda vidis kolika je norma razlike u odnosu na zadani rhs
+			for (int i = 0; i < numPoints; i++)
+			{
+				Real x = x1 + i * (x2 - x1) / numPoints;
+				if (!isDefinedAtPoint(x))
+				{
+					isDef = false;
+					_notDefinedPoints.push_back(x);
+				}
+				else if (!isContinuousAtPoint(x, eps))
+				{
+					isCont = false;
+					_notContinuousPoints.push_back(x);
+				}
+			}
 
-    };
+			std::cout << "  Defined    : " << (isDef ? "yes" : "no");
+			if (!_notDefinedPoints.empty())
+			{
+				std::cout << "  Not defined at points: ";
+				for (int i = 0; i < _notDefinedPoints.size(); i++)
+					std::cout << _notDefinedPoints[i] << " ";
+				std::cout << std::endl;
+			}
+			else
+				std::cout << std::endl;
+			std::cout << "  Continuous : " << (isCont ? "yes" : "no");
+			if (!_notContinuousPoints.empty())
+			{
+				std::cout << "  Not continuous at points: ";
+				for (int i = 0; i < _notContinuousPoints.size(); i++)
+					std::cout << _notContinuousPoints[i] << " ";
+				std::cout << std::endl;
+			}
+			else
+				std::cout << std::endl;
+			std::cout << "  Monotonic  : " << (isMonotonic(x1, x2, numPoints) ? "yes" : "no") << std::endl;
+			std::cout << "  Min        : " << MinInNPoints(x1, x2, numPoints) << std::endl;
+			std::cout << "  Max        : " << MaxInNPoints(x1, x2, numPoints) << std::endl;
+		}
+		void PrintDetailedIntervalAnalysis(Real x1, Real x2, int numPoints, Real eps = 1e-6)
+		{
+			std::cout << std::fixed << "Function analysis in interval [" << x1 << ", " << x2 << "] with " << numPoints << " points:" << std::endl;
+			std::cout << " Point " << "           Value     " << "         First.der.     " << "     Sec.der.     " << "Defined " << " Continuous " << " Inflection " << std::endl;
+			for (int i = 0; i < numPoints; i++)
+			{
+				Real x = x1 + i * (x2 - x1) / numPoints;
+
+				std::cout << std::setw(6) << x << " :  ";
+				std::cout << std::setw(16) << _f(x) << " :  ";
+				std::cout << std::setw(16) << Derivation::NDer1(_f, x) << " :  ";
+				std::cout << std::setw(16) << Derivation::NSecDer2(_f, x) << " :  ";
+				std::cout << (isDefinedAtPoint(x) ? "   yes   " : "    no   ");
+				std::cout << (isContinuousAtPoint(x, eps) ? "   yes   " : "    no   ");
+				std::cout << (isInflectionPoint(x, eps) ? "     yes   " : "      no   ") << std::endl;
+			}
+		}
+
+		std::vector<Real> GetRoots(Real x1, Real x2, Real eps)
+		{
+			std::vector<Real> roots;
+			Real step = (x2 - x1) / 1000;
+			Real prev = _f(x1);
+			for (int i = 1; i < 1000; i++)
+			{
+				Real curr = _f(x1 + i * step);
+				if (prev * curr < 0)
+				{
+					Real root = RootFinding::FindRootBisection(_f, x1 + (i - 1) * step, x1 + i * step, eps);
+					roots.push_back(root);
+				}
+				prev = curr;
+			}
+			return roots;
+		}
+		Vector<Real> GetLocalOptimums(Real x1, Real x2)
+		{
+			Vector<Real> optimums;
+
+			return optimums;
+		}
+		Vector<Real> GetInflectionPoints(Real x1, Real x2)
+		{
+			Vector<Real> inflection_points;
+
+			return inflection_points;
+		}
+		// TODO - GetMin(x1, x2, num sart points)
+		bool isDefinedAtPoint(Real x)
+		{
+			Real y = _f(x);
+			return !std::isnan(y) && !std::isinf(y);
+		}
+		bool isContinuousAtPoint(Real x, Real eps)
+		{
+			if (!isDefinedAtPoint(x))
+				return false;
+
+			Real h = eps;
+			Real val = _f(x);
+			Real left = _f(x - h);
+			Real right = _f(x + h);
+
+			// handling case of constant function
+			if( val == left && val == right)
+				return true;
+			
+			Real abs_dif = std::abs(left - right);
+
+			// smanji tu abs razliku na pola, i nadji h za koji to vrijedi
+			Real req_new_abs = abs_dif / 2;
+			h /= 2.0;
+			while (h > eps / 1000.0)
+			{
+				left = _f(x - h);
+				right = _f(x + h);
+
+				if(std::abs(left - right) < req_new_abs)
+					return true;
+
+				h /= 2.0;
+			}
+			return false;
+			
+
+			//Real der = Derivation::NDer1(_f, x);
+			//Real fact = pow(10, (int)log10(std::abs(der)) + 3);
+			////Real left_der = Derivation::NDer1Left(_f, x, eps / fact);
+			////Real right_der = Derivation::NDer1Right(_f, x, eps / fact);
+
+			//Real left_der = Derivation::NDer4Left(_f, x);
+			//Real right_der = Derivation::NDer4Right(_f, x);
+
+			//Real dif = std::abs(left_der - right_der);
+
+			//return std::abs(left_der - right_der) < eps * fact;
+		}
+		bool isLocalOptimum(Real x, Real eps)
+		{
+			Real left_sec_der = Derivation::NSecDer4(_f, x - 4 * eps);
+			Real right_sec_der = Derivation::NSecDer4(_f, x + 4 * eps);
+
+			return left_sec_der * right_sec_der > 0;
+		}
+		bool isInflectionPoint(Real x, Real eps)
+		{
+			// TODO - bolje - mora biti first der == 0!
+			Real left_sec_der = Derivation::NSecDer4(_f, x - 4 * eps);
+			Real right_sec_der = Derivation::NSecDer4(_f, x + 4 * eps);
+
+			return std::abs(left_sec_der - right_sec_der) < eps;
+		}
+		bool isContinuous(Real x1, Real x2, int numPoints)
+		{
+			// kroz sve tocke
+			// vidjeti gdje se derivacije razlikuju u znaku (potencijalni min/max, ili discontinuity)
+			// istraziti dalje oko te tocke
+			return false;
+		}
+		bool isMonotonic(Real x1, Real x2, int numPoints)
+		{
+			Real step = (x2 - x1) / numPoints;
+			Real prev = _f(x1 + step);
+			if (_f(x1) < _f(x1 + step))
+			{
+				for (int i = 2; i < numPoints; i++)
+				{
+					Real curr = _f(x1 + i * step);
+					if (curr < prev)
+						return false;
+					prev = curr;
+				}
+			}
+			else
+			{
+				for (int i = 2; i < numPoints; i++)
+				{
+					Real curr = _f(x1 + i * step);
+					if (curr > prev)
+						return false;
+					prev = curr;
+				}
+			}
+			return true;
+		}
+		Real MinInNPoints(Real x1, Real x2, int numPoints)
+		{
+			Real step = (x2 - x1) / numPoints;
+			Real min = _f(x1);
+
+			for (int i = 1; i < numPoints; i++)
+			{
+				Real curr = _f(x1 + i * step);
+				if (curr < min)
+					min = curr;
+			}
+			return min;
+		}
+		Real MaxInNPoints(Real x1, Real x2, int numPoints)
+		{
+			Real step = (x2 - x1) / numPoints;
+			Real max = _f(x1);
+
+			for (int i = 1; i < numPoints; i++)
+			{
+				Real curr = _f(x1 + i * step);
+				if (curr > max)
+					max = curr;
+			}
+			return max;
+		}
+	};
+
+	class RealFunctionComparer
+	{
+		IRealFunction& _f1;
+		IRealFunction& _f2;
+
+	public:
+		RealFunctionComparer(IRealFunction& f1, IRealFunction& f2) : _f1(f1), _f2(f2) {}
+
+		Real getAbsDiffSum(Real a, Real b, int numPoints)
+		{
+			Real step = (b - a) / numPoints;
+			Real sum = 0.0;
+
+			for (int i = 0; i < numPoints; i++)
+				sum += std::abs(_f1(a + i * step) - _f2(a + i * step));
+
+			return sum;
+		}
+		Real getAbsDiffAvg(Real a, Real b, int numPoints)
+		{
+			return getAbsDiffSum(a, b, numPoints) / numPoints;
+		}
+		Real getAbsDiffMax(Real a, Real b, int numPoints)
+		{
+			Real step = (b - a) / numPoints;
+			Real max = std::abs(_f1(a) - _f2(a));
+
+			for (int i = 0; i < numPoints; i++)
+			{
+				Real diff = std::abs(_f1(a + i * step) - _f2(a + i * step));
+				if (diff > max)
+					max = diff;
+			}
+			return max;
+		}
+		Real getRelDiffSum(Real a, Real b, int numPoints)
+		{
+			Real step = (b - a) / numPoints;
+			Real sum = 0.0;
+
+			for (int i = 0; i < numPoints; i++)
+				if (_f1(a + i * step) != 0.0)
+					sum += std::abs(_f1(a + i * step) - _f2(a + i * step)) / std::abs(_f1(a + i * step));
+				else
+					--numPoints;
+
+			return sum;
+		}
+		Real getRelDiffAvg(Real a, Real b, int numPoints)
+		{
+			return getRelDiffSum(a, b, numPoints) / numPoints;
+		}
+		Real getRelDiffMax(Real a, Real b, int numPoints)
+		{
+			Real step = (b - a) / numPoints;
+			Real max = 0.0;
+
+			for (int i = 0; i < numPoints; i++)
+			{
+				if (_f1(a + i * step) != 0.0)
+				{
+					Real diff = std::abs(_f1(a + i * step) - _f2(a + i * step)) / std::abs(_f1(a + i * step));
+					if (diff > max)
+						max = diff;
+				}
+			}
+			return max;
+		}
+
+		///////////                  Integration measures                /////////
+		Real getIntegratedDiff(Real a, Real b, IntegrationMethod method = IntegrationMethod::TRAP)
+		{
+			return getIntegratedDiff(_f1, _f2, a, b, method);
+		}
+		static Real getIntegratedDiff(IRealFunction& f1, IRealFunction& f2, Real a, Real b, IntegrationMethod method = IntegrationMethod::TRAP)
+		{
+			RealFuncDiffHelper helper(f1, f2);
+
+			switch (method)
+			{
+			case IntegrationMethod::SIMPSON:
+				return IntegrateSimpson(helper, a, b);
+			case IntegrationMethod::ROMBERG:
+				return IntegrateRomberg(helper, a, b);
+			default:
+				return IntegrateTrap(helper, a, b);
+			}
+		}
+
+		Real getIntegratedAbsDiff(Real a, Real b, IntegrationMethod method = IntegrationMethod::TRAP)
+		{
+			return getIntegratedAbsDiff(_f1, _f2, a, b, method);
+		}
+		static Real getIntegratedAbsDiff(IRealFunction& f1, IRealFunction& f2, Real a, Real b, IntegrationMethod method = IntegrationMethod::TRAP)
+		{
+			RealFuncDiffAbsHelper helper(f1, f2);
+
+			switch (method)
+			{
+			case IntegrationMethod::SIMPSON:
+				return IntegrateSimpson(helper, a, b);
+			case IntegrationMethod::ROMBERG:
+				return IntegrateRomberg(helper, a, b);
+			default:
+				return IntegrateTrap(helper, a, b);
+			}
+		}
+
+		Real getIntegratedSqrDiff(Real a, Real b, IntegrationMethod method = IntegrationMethod::TRAP)
+		{
+			return getIntegratedSqrDiff(_f1, _f2, a, b, method);
+		}
+		static Real getIntegratedSqrDiff(IRealFunction& f1, IRealFunction& f2, Real a, Real b, IntegrationMethod method = IntegrationMethod::TRAP)
+		{
+			RealFuncDiffSqrHelper helper(f1, f2);
+
+			switch (method)
+			{
+			case IntegrationMethod::SIMPSON:
+				return IntegrateSimpson(helper, a, b);
+			case IntegrationMethod::ROMBERG:
+				return IntegrateRomberg(helper, a, b);
+			default:
+				return IntegrateTrap(helper, a, b);
+			}
+		}
+	};
 }
-
-
-///////////////////////////   ./include/systems/DiffEqSystem.h   ///////////////////////////
-
-namespace MML
-{
-    class DiffEqEqSystem
-    {
-        // zdaje mu se skup funkcija i pocetni uvjeti
-        // dvije vrste - initial & boundary conditions
-
-    };
-}
-
-
 
 #endif

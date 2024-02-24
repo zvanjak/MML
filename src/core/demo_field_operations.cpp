@@ -86,10 +86,10 @@ Using as example inverse radial field, with its potential and force field, demon
 Calculations are performed in Cartesian and spherical coordinates, along circle in XZ-plane, and covariant vector transformation is also demonstrated
 */
     // creating scalar potential and vector force field, from predefined functions
-    static ScalarFunction<3> fPotCart([](const VectorN<Real, 3> &x_cart) -> Real { return InverseRadialPotentialFieldCart(x_cart); });
-    static ScalarFunction<3> fPotSpher([](const VectorN<Real, 3> &x_spher) -> Real { return InverseRadialPotentialFieldSpher(x_spher); });
-    static VectorFunction<3> fForceFieldCartExact([](const VectorN<Real, 3> &x_cart)  { return InverseRadialPotentialForceFieldCart(x_cart); });
-    static VectorFunction<3> fForceFieldSpherExact([](const VectorN<Real, 3> &x_spher)  { return InverseRadialPotentialForceFieldSph(x_spher); });
+    static ScalarFunction<3> fPotCart([](const VectorN<Real, 3> &x_cart) -> Real { return Fields::InverseRadialPotentialFieldCart(x_cart); });
+    static ScalarFunction<3> fPotSpher([](const VectorN<Real, 3> &x_spher) -> Real { return Fields::InverseRadialPotentialFieldSpher(x_spher); });
+    static VectorFunction<3> fForceFieldCartExact([](const VectorN<Real, 3> &x_cart)  { return Fields::InverseRadialPotentialForceFieldCart(x_cart); });
+    static VectorFunction<3> fForceFieldSpherExact([](const VectorN<Real, 3> &x_spher)  { return Fields::InverseRadialPotentialForceFieldSph(x_spher); });
 
     // if we have only potential, we can numerical calculate force field from it
     static VectorFunction<3> fForceFieldCart_numgrad{ [](const VectorN<Real, 3> &x_cart)  { return (-1) * ScalarFieldOperations::GradientCart<3>(fPotCart, x_cart); } };  
@@ -212,9 +212,9 @@ void Demo_gradient()
     std::cout << "****                           GRADIENT                            ****" << std::endl;
     std::cout << "***********************************************************************" << std::endl;
 
-    ScalarFunction<3> fPotCart([](const VectorN<Real, 3> &x) -> Real { return InverseRadialPotentialFieldCart(x); });
-    ScalarFunction<3> fPotSpher([](const VectorN<Real, 3> &x) -> Real { return InverseRadialPotentialFieldSpher(x); });
-    ScalarFunction<3> fPotCyl([](const VectorN<Real, 3> &x) -> Real { return InverseRadialPotentialFieldCyl(x); });
+    ScalarFunction<3> fPotCart([](const VectorN<Real, 3> &x) -> Real { return Fields::InverseRadialPotentialFieldCart(x); });
+    ScalarFunction<3> fPotSpher([](const VectorN<Real, 3> &x) -> Real { return Fields::InverseRadialPotentialFieldSpher(x); });
+    ScalarFunction<3> fPotCyl([](const VectorN<Real, 3> &x) -> Real { return Fields::InverseRadialPotentialFieldCyl(x); });
 
     // calculating field gradient around circle
     Curves3D::Circle3DXZ circle(1.0);
@@ -244,9 +244,9 @@ void Demo_Laplacian()
     std::cout << "****                           LAPLACIAN                           ****" << std::endl;
     std::cout << "***********************************************************************" << std::endl;
 
-    ScalarFunction<3> fPotCart([](const VectorN<Real, 3> &x) -> Real { return InverseRadialPotentialFieldCart(x); });
-    ScalarFunction<3> fPotSpher([](const VectorN<Real, 3> &x) -> Real { return InverseRadialPotentialFieldSpher(x); });
-    ScalarFunction<3> fPotCyl([](const VectorN<Real, 3> &x) -> Real { return InverseRadialPotentialFieldCyl(x); });
+    ScalarFunction<3> fPotCart([](const VectorN<Real, 3> &x) -> Real { return Fields::InverseRadialPotentialFieldCart(x); });
+    ScalarFunction<3> fPotSpher([](const VectorN<Real, 3> &x) -> Real { return Fields::InverseRadialPotentialFieldSpher(x); });
+    ScalarFunction<3> fPotCyl([](const VectorN<Real, 3> &x) -> Real { return Fields::InverseRadialPotentialFieldCyl(x); });
 
     Curves3D::Circle3DXZ circle(1.0);
     std::cout << "            Position                 Cart. laplacian         Spher. laplacian         Cylin. laplacian" << std::endl;
@@ -264,14 +264,14 @@ void Demo_Laplacian()
 
 VectorN<Real, 3> GradientOfCartesianPotential(const VectorN<Real, 3> &x )
 {
-    ScalarFunction<3> fPotCart(InverseRadialPotentialFieldCart);    
+    ScalarFunction<3> fPotCart(Fields::InverseRadialPotentialFieldCart);    
 
     return ScalarFieldOperations::GradientCart<3>(fPotCart, x);
 }
 
 VectorN<Real, 3> GradientOfSphericalPotential(const VectorN<Real, 3> &x )
 {
-    ScalarFunction<3> fPotSpher(InverseRadialPotentialFieldSpher);    
+    ScalarFunction<3> fPotSpher(Fields::InverseRadialPotentialFieldSpher);    
     Vector3Spherical pos = x;
 
     return ScalarFieldOperations::GradientSpher(fPotSpher, pos);
@@ -279,7 +279,7 @@ VectorN<Real, 3> GradientOfSphericalPotential(const VectorN<Real, 3> &x )
 
 VectorN<Real, 3> GradientOfCylindricalPotential(const VectorN<Real, 3> &x )
 {
-    ScalarFunction<3> fPotCart(InverseRadialPotentialFieldCyl);    
+    ScalarFunction<3> fPotCart(Fields::InverseRadialPotentialFieldCyl);    
     Vector3Cylindrical pos {x};
 
     return ScalarFieldOperations::GradientCyl(fPotCart, pos);

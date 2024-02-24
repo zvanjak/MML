@@ -22,10 +22,5 @@ void Demo4_vector_field_gravity()
     // config.AddBody(100, Vector3Cartesian{0.0, 0.0, 100.0});
 
     // MultibodyGravityForceFieldCart gravity_force_field(20.0, config);
-
-    // int numPnt = 10;
-    // gravity_force_field.Serialize3DCartesian(-150.0, 150.0, numPnt, -150.0, 150.0, numPnt, -150.0, 150.0, numPnt, "multibody_gravity_field.txt");
-    // auto ret = std::system("..\\tools\\visualizers\\vector_field_visualizer\\MML_VectorFieldVisualizer.exe multibody_gravity_field.txt");
-
 }
 

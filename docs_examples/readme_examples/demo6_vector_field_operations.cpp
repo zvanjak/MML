@@ -13,7 +13,7 @@
 
 using namespace MML;
 
-// TODO 0.8 - odraditi line work integral
+// TODO 0.9 - odraditi line work integral
 // 	- kako to odraditi u sfernim koord?
 void Readme_vector_field_operations()
 {
@@ -28,10 +28,10 @@ Using as example inverse radial field, with its potential and force field, demon
 Calculations are performed in Cartesian and spherical coordinates, along circle in XZ-plane, and covariant vector transformation is also demonstrated
 */
     // Setting up fields and creating scalar potential and vector force field from predefined functions
-    static ScalarFunction<3> pot_cart_exact([](const VectorN<Real, 3> &x_cart) -> Real   { return -InverseRadialPotentialFieldCart(x_cart); });
-    static ScalarFunction<3> pot_spher_exact([](const VectorN<Real, 3> &x_spher) -> Real { return -InverseRadialPotentialFieldSpher(x_spher); });
-    static VectorFunction<3> force_field_cart_exact([](const VectorN<Real, 3> &x_cart)   { return InverseRadialPotentialForceFieldCart(x_cart); });
-    static VectorFunction<3> force_field_spher_exact([](const VectorN<Real, 3> &x_spher) { return InverseRadialPotentialForceFieldSph(x_spher); });
+    static ScalarFunction<3> pot_cart_exact([](const VectorN<Real, 3> &x_cart) -> Real   { return -Fields::InverseRadialPotentialFieldCart(x_cart); });
+    static ScalarFunction<3> pot_spher_exact([](const VectorN<Real, 3> &x_spher) -> Real { return -Fields::InverseRadialPotentialFieldSpher(x_spher); });
+    static VectorFunction<3> force_field_cart_exact([](const VectorN<Real, 3> &x_cart)   { return Fields::InverseRadialPotentialForceFieldCart(x_cart); });
+    static VectorFunction<3> force_field_spher_exact([](const VectorN<Real, 3> &x_spher) { return Fields::InverseRadialPotentialForceFieldSph(x_spher); });
 
     // if we have only potential, we can numerical calculate force field from it
     static VectorFunction<3> force_field_cart_from_grad{ [](const VectorN<Real, 3> &x_cart)  { return -ScalarFieldOperations::GradientCart<3>(pot_cart_exact, x_cart); } };  

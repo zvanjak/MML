@@ -10,8 +10,10 @@
 
 #include "core/Function.h"
 #include "core/InterpolatedFunction.h"
-
 #include "core/Integration.h"
+#include "core/Serializer.h"
+#include "core/Vizualizer.h"
+
 #include "algorithms/FunctionAnalyzers.h"
 #endif
 
@@ -58,7 +60,7 @@ void Test_RealFunction_interp()
 
     // TODO - interval -10, 10 : 10 pnts, 50 pnts, 100 pnts
 
-    DataSeriesMultiRow<double, double> data("x", 8, 3, 
+    TablePrinter<double, double> data("x", 8, 3, 
                                                 { "exact", 
                                                   "linear", "abs.err", "rel.err", 
                                                   "poly", "abs.err", "rel.err", 
@@ -66,12 +68,12 @@ void Test_RealFunction_interp()
                                                   "rat", "abs.err", "rel.err", 
                                                   "barry", "abs.err", "rel.err"
                                                 },
-                                                { {10,5}, 
-                                                  {11,5}, {9,5}, {9,3},
-                                                  {11,5}, {9,5}, {9,3},
-                                                  {11,5}, {9,5}, {9,3},
-                                                  {11,5}, {9,5}, {9,3},
-                                                  {11,5}, {9,5}, {9,3}
+                                                { {10,5,'F'},
+                                                  {11,5,'F'}, {9,5,'F'}, {9,3,'F'},
+                                                  {11,5,'F'}, {9,5,'F'}, {9,3,'F'},
+                                                  {11,5,'F'}, {9,5,'F'}, {9,3,'F'},
+                                                  {11,5,'F'}, {9,5,'F'}, {9,3,'F'},
+                                                  {11,5,'F'}, {9,5,'F'}, {9,3,'F'}
                                                 } 
                                             );
 
@@ -145,7 +147,7 @@ void Test_RealFunction_Linear_interp()
 
     std::cout << "\nINTERPOLATION PRECISION:\n";
 
-    DataSeriesMultiRow<double, double> data("x", 8, 3, 
+    TablePrinter<double, double> data("x", 8, 3, 
                                                 { "exact", 
                                                   "linear", "abs.err", "rel.err", "rel.perc.err"
                                                 //   "poly", "abs.err", "rel.err", 
@@ -153,8 +155,8 @@ void Test_RealFunction_Linear_interp()
                                                 //   "rat", "abs.err", "rel.err", 
                                                 //   "barry", "abs.err", "rel.err"
                                                 },
-                                                { {10,5}, 
-                                                  {11,5}, {9,5}, {9,3}, {15,3}
+                                                { {10,5,'F'},
+                                                  {11,5,'F'}, {9,5,'F'}, {9,3,'F'}, {15,3,'F'}
                                                 //   {11,5}, {9,5}, {9,3},
                                                 //   {11,5}, {9,5}, {9,3},
                                                 //   {11,5}, {9,5}, {9,3},
@@ -216,8 +218,7 @@ void Test_RealFunction_Linear_interp()
     std::cout << "Avg rel diff   = " << avgRelDiff << std::endl;
     std::cout << "Max rel diff   = " << maxRelDiff << std::endl;
     
-    linear_interp.SerializeEquallySpacedDetailed(x1, x2, 100, "..\\..\\results\\func_sin_x_lin_interp.txt");
-    auto ret1 = std::system("..\\..\\tools\\visualizers\\real_function_visualizer\\MML_RealFunctionVisualizer.exe ..\\..\\results\\func_sin_x_lin_interp.txt");
+    Visualizer::VisualizeRealFunction(linear_interp, "sin(x) linear interpolation", x1, x2, 100, "func_sin_x_lin_interp.txt");
 }
 
 void Demo_Interpolated_Function()

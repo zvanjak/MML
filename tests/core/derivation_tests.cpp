@@ -43,7 +43,7 @@ TEST_CASE("Test_NDer_sin_func", "[simple]")
     REQUIRE(sinFuncDer(0.5) == Approx(der8).epsilon(1e-14));
 }
 
-// TODO 0.7 - see results for complex and hard test function
+// TODO 0.9 - see results for complex and hard test function
 TEST_CASE("Test_NDer_TestDer1", "[simple]") 
 {
     RealFunction testFunc = TestBeds::RealFunctionsTestBed::getTestFunctionRealWithDerivation("TestDer1")._func;

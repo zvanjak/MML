@@ -115,7 +115,7 @@ int main(int, char**)
 
     // Demo_Derivation();
     // Demo_Integration();
-    Demo_LinearAlgEqSolvers();
+    // Demo_LinearAlgEqSolvers();
 
     // Demo_Diff_geometry();
     // Demo_EigenSolvers();
@@ -132,7 +132,7 @@ int main(int, char**)
     // Test_Speed_Derivation();
     // Test_Speed_Linear_alg_eq_solvers();
 
-    // Test_Precision_Derivation();
+    Test_Precision_Derivation();
     Test_Precision_Integration();
 
     // Docs_Readme_Examples();

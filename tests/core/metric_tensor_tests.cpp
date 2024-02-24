@@ -13,7 +13,7 @@
 
 using namespace MML;
 
-// TODO 0.8 - HIGH, BIG!!! verify that generating tensor from transf works
+// TODO 0.9 - HIGH, BIG!!! verify that generating tensor from transf works
 TEST_CASE("Test_Metric_Tensors", "[simple]") {
     MetricTensorCartesian<3> metricCart;
     MetricTensorSpherical metricSpher;

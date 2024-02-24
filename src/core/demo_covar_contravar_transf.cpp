@@ -53,10 +53,10 @@ void Demo_gradient_covariant_transf()
     cout << "\n******   Working with SPHERICAL TO CARTESIAN transformation   *******\n";
     cout << "\n******   Potential in spherical coordinates  *******\n";
     
-    ScalarFunction<3> fPotSpher(InverseRadialPotentialFieldSpher);    
+    ScalarFunction<3> fPotSpher(Fields::InverseRadialPotentialFieldSpher);    
     Vector3Spherical  grad_spher = ScalarFieldOperations::GradientSpher(fPotSpher, p_spher);
 
-    cout << "Field at     : " << p_spher << " = " << InverseRadialPotentialFieldSpher(p_spher) << std::endl;
+    cout << "Field at     : " << p_spher << " = " << Fields::InverseRadialPotentialFieldSpher(p_spher) << std::endl;
     cout << "Grad(sph) at : " << p_spher << " = " << grad_spher << std::endl;
 
     Vector3Cartesian grad_transf_to_cart  = CoordTransfSpherToCart.transfVecCovariant(grad_spher, p_cart);
@@ -68,10 +68,10 @@ void Demo_gradient_covariant_transf()
     cout << "\n******   Working with CARTESIAN TO SPHERICAL transformation   *******\n";
     cout << "\n******   Potential in cartesian coordinates:  *******\n";
     
-    ScalarFunction<3> fPotCart(InverseRadialPotentialFieldCart);    
+    ScalarFunction<3> fPotCart(Fields::InverseRadialPotentialFieldCart);    
     Vector3Cartesian  grad_cart = ScalarFieldOperations::GradientCart<3>(fPotCart, p_cart);
 
-    cout << "Field at      : " << p_cart << " = " << InverseRadialPotentialFieldCart(p_cart) << std::endl;
+    cout << "Field at      : " << p_cart << " = " << Fields::InverseRadialPotentialFieldCart(p_cart) << std::endl;
     cout << "Grad.Cart. at : " << p_cart << " = " << grad_cart << std::endl;
 
     Vector3Spherical grad_transf_to_spher = CoordTransfCartToSpher.transfVecCovariant(grad_cart, p_spher);

@@ -13,6 +13,17 @@
 
 using namespace MML;
 
+
+TEST_CASE("Test_Function_Analyzer_isDefined", "[simple]")
+{
+    RealFunction test1([](Real x) { return 1 / (x - 1); } );
+
+    RealFunctionAnalyzer an(test1);
+
+    REQUIRE( an.isDefinedAtPoint(0.0) == true );
+    REQUIRE( an.isDefinedAtPoint(1.0) == false );
+}
+
 Real test_func_123(Real x)
 {
     return 9 - (x-3)*(x-3);

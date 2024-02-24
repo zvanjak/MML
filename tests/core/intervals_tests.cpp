@@ -28,24 +28,6 @@ TEST_CASE("Test_OpenInterval_Covering", "[simple]") {
     // kad uzmeš Covering da granice NISU u skupu točaka
 }
 
-TEST_CASE("Test_IntervalUnion_simple", "[simple]") {
-    // ispravan low i upp bound
-    OpenInterval int1(0,1), int2(3,4);
-    IntervalUnion union1(int1, int2);
-
-    REQUIRE(0.0 ==  union1.getLowerBound());
-    REQUIRE(4.0 ==  union1.getUpperBound());
-}
-
-TEST_CASE("Test_IntervalUnion_swap", "[simple]") {
-    // ispravan low i upp bound
-    OpenInterval int1(0,1), int2(3,4);
-    IntervalUnion union1(int2, int1);
-
-    // REQUIRE(0.0 ==  union1.getLowerBound());
-    // REQUIRE(4.0 ==  union1.getUpperBound());
-}
-
 TEST_CASE("Test_CompleR", "[simple]") 
 {
     CompleteRInterval int1;

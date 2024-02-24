@@ -6,4 +6,4 @@ What is position of the ball after one hour, if the initial velocity of the ball
 
 [C++ file with implementation](/docs_examples/examples/example1_kosi_hitac.cpp)
 
-// TODO 0.8
+// TODO 0.9

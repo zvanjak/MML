@@ -12,7 +12,7 @@
 using namespace MML;
 
 
-// TODO 0.7 - Tridiag tests
+// TODO 0.9 - Tridiag tests
 namespace MML::Tests::TridiagMatrixTests
 {
     TEST_CASE("MatrixTridiag_init_from_3_vectors", "[simple]") 

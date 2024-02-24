@@ -19,8 +19,8 @@ void Demo_Surface_integration()
     std::cout << "****                  SURFACE INTEGRATION                          ****" << endl;
     std::cout << "***********************************************************************" << endl;
 
-    Cube3D cube(10.0);
-    static VectorFunction<3> field([](const VectorN<Real, 3> &x_cart)   { return InverseRadialPotentialForceFieldCart(x_cart); });
+    Cube3D cube(7);
+    static VectorFunction<3> field([](const VectorN<Real, 3> &x_cart)   { return Fields::InverseRadialPotentialForceFieldCart(1/(4*Constants::PI), x_cart); });
 
     Real integral = SurfaceIntegration::SurfaceIntegral(field, cube);
     

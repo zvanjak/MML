@@ -179,7 +179,7 @@ TEST_CASE("Matrix_VectorFromColumn_throws_for_wrong_index", "[simple]") {
     REQUIRE_THROWS_AS(b = a.VectorFromColumn(3), MatrixAccessBoundsError); 
 }
 
-// TODO 0.8 - HIGH matrix_tests - test access variants, const, pointers, references
+// TODO 0.9 - HIGH matrix_tests - test access variants, const, pointers, references
 
 TEST_CASE("Test_Matrix_Op+-", "[simple]") {
     Matrix<Real> a(2, 2, {1.0, 2.0, 3.0, 4.0});

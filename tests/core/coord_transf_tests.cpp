@@ -81,12 +81,12 @@ TEST_CASE("Test_CoordTransf_Spherical_to_Cartesian", "[simple]")
 
 TEST_CASE("Test_Contravariant_transf_cart_to_spher")
 {
-    // TODO 0.7 - dodati još 5-6 test caseova
+    // TODO 0.9 - dodati još 5-6 test caseova
     Vector3Cartesian v_cart{1.0, 1.0, 0.0};
     Vector3Cartesian posCart{1.0, 1.0, 0.0};
 
     Vector3Spherical v_transf_to_spher = CoordTransfCartToSpher.transfVecContravariant(v_cart, posCart);
-    REQUIRE(true == v_transf_to_spher.IsEqual(Vector3Spherical(sqrt(2), 0.0, 0.0), 1e-7));
+    REQUIRE(true == v_transf_to_spher.IsEqual(Vector3Spherical(sqrt(2), 0.0, 0.0), 1e-8));
 
     Vector3Spherical x1_spher{ CoordTransfCartToSpher.transf(posCart) };
     Vector3Cartesian v_back_transf_to_cart = CoordTransfSpherToCart.transfVecContravariant(v_transf_to_spher, x1_spher);
@@ -98,12 +98,12 @@ TEST_CASE("Test_Covariant_transf_cart_to_spher")
     Vector3Cartesian p_cart{1.0, 1.0, 1.0};
     Vector3Spherical p_spher(CoordTransfSpherToCart.transfInverse(p_cart));
 
-    ScalarFunction<3> fPotCart(InverseRadialPotentialFieldCart);    
+    ScalarFunction<3> fPotCart(Fields::InverseRadialPotentialFieldCart);    
     Vector3Cartesian  grad_cart = ScalarFieldOperations::GradientCart<3>(fPotCart, p_cart);
 
     Vector3Spherical grad_transf_to_spher = CoordTransfCartToSpher.transfVecCovariant(grad_cart, p_spher);
     // TODO 0.9 - nekad je -1/3 bilo sqrt(2)???
-    REQUIRE(true == grad_transf_to_spher.IsEqual(Vector3Spherical(-1.0/3, 0.0, 0.0), 1e-5));
+    REQUIRE(true == grad_transf_to_spher.IsEqual(Vector3Spherical(-1.0/3, 0.0, 0.0), 1e-6));
 
     Vector3Cartesian back_transf_to_cart = CoordTransfSpherToCart.transfVecCovariant(grad_transf_to_spher, p_cart);
     REQUIRE(true == back_transf_to_cart.IsEqual(grad_cart, 1e-7));

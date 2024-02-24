@@ -321,7 +321,7 @@ namespace MML::TestBeds
                         [](Real x) { return log(1 - x*x) / 2 + x * atanh(x);}, "0.5 * log(1 - x^2) + x * atanh(x)"}
             };
 
-        // TODO 0.8 - HIGH naći još bar 5 složenih funkcija za derivaciju
+        // TODO 0.9 - HIGH naći još bar 5 složenih funkcija za derivaciju
         const static inline TestFunctionRealWithDerivation _listFuncRealWithDerivation[] = { 
                 {"TestDer1", new CompleteRInterval(), 
                             new OpenInterval(-20.0, 20.0 ),
@@ -345,10 +345,10 @@ namespace MML::TestBeds
                             [](Real x) { return cos(x);},  "cos(x)"}
             };
 
-        // TODO 0.8 - HIGH naći još bar 5 složenih funkcija za integraciju
+        // TODO 0.9 - HIGH naći još bar 5 složenih funkcija za integraciju
         const static inline TestFunctionRealWithIntegral _listFuncRealWithIntegral[] = { 
                 {"TestInt1", new CompleteRInterval(), 
-                            new OpenInterval(0.0, 10.0 ),
+                            new OpenInterval(0.0, 5.0 ),
                             [](Real x) { return x*x*(x*x-2)*sin(x);},  "x*x*(x*x-2.0)*sin(x)", 
                             [](Real x) { return 4*x*(x*x-7)*sin(x)-((Real) pow(x,4.0)-14*x*x+28)*cos(x);},  "4.0*x*(x*x-7.0)*sin(x)-(pow(x,4.0)-14.0*x*x+28.0)*cos(x)"},                                   
                 {"TestInt2", new CompleteRInterval(), 

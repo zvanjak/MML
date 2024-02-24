@@ -14,7 +14,7 @@
 
 using namespace MML;
 
-// TODO 0.8
+// TODO 0.9
 class GravityMass
 {
 public:
@@ -56,7 +56,7 @@ public:
         Real pot = 0.0;
         for(int i = 0; i < _config.NumBodies(); i++)
         {
-            pot += InverseRadialPotentialFieldCart(_G * _config.Mass(i), _config.Position(i) - x);
+            pot += Fields::InverseRadialPotentialFieldCart(_G * _config.Mass(i), _config.Position(i) - x);
         }
         return pot;
     }
@@ -75,7 +75,7 @@ public:
         VectorN<Real, 3> force(0.0);
         for(int i = 0; i < _config.NumBodies(); i++)
         {
-            force = force + InverseRadialPotentialForceFieldCart(_G * _config.Mass(i), _config.Position(i) - x);
+            force = force + Fields::InverseRadialPotentialForceFieldCart(_G * _config.Mass(i), _config.Position(i) - x);
         }
         return force;
     }
@@ -104,7 +104,7 @@ public:
             {
                 if(i != j)
                 {
-                    force = force + InverseRadialPotentialForceFieldCart(6.67430e-11 * _config.Mass(j), _config.Position(j) - _config.Position(i));
+                    force = force + Fields::InverseRadialPotentialForceFieldCart(6.67430e-11 * _config.Mass(j), _config.Position(j) - _config.Position(i));
                 }
             }
             // update velocity and position
@@ -137,7 +137,7 @@ public:
                 if(i != j)      // self-force would be infinite :)
                 {
                     Vector3Cartesian vec_dist(dxdt[6 * j] - dxdt[6 * i], dxdt[6 * j + 2] - dxdt[6 * i + 2], dxdt[6 * j + 4] - dxdt[6 * i + 4]);
-                    Vector3Cartesian f = InverseRadialPotentialForceFieldCart(6.67430e-11 * _initialConfig.Mass(i) * _initialConfig.Mass(j), vec_dist);
+                    Vector3Cartesian f = Fields::InverseRadialPotentialForceFieldCart(6.67430e-11 * _initialConfig.Mass(i) * _initialConfig.Mass(j), vec_dist);
                     force = force + f;
                 }
             }

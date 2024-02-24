@@ -9,7 +9,7 @@
 
 using namespace MML;
 
-// TODO 0.8
+// TODO 0.9
 /*
 0. odrediti tocne koordinate!
 1. lokalna ravnina za prva tri slucaja, i onda vec za treci Coriolis

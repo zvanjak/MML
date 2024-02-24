@@ -306,10 +306,10 @@ void Test_Precision_Derivation()
     //std::vector<Real> intervalPoints{-10.0, -5.0, -3.0, -1.0, -0.5, -0.1, -0.025, 0.0, 0.025, 0.1, 0.5, 1.0, 3.0, 5.0, 10.0};
     std::vector<Real> intervalPoints{0.0, 0.5, 1.0, 2.0, 3.0, 5.0 };
 
-    //NDer_Error_Order_Diff_Der_Orders_Single_Func("Sin", RealFunctionsTestBed::getTestFunctionReal("Sin"), intervalPoints);
-    NSecDer_Error_Order_Diff_Der_Orders_Single_Func("Sin", RealFunctionsTestBed::getTestFunctionReal("Sin"), intervalPoints);
+    NDer_Error_Order_Diff_Der_Orders_Single_Func("Sin", RealFunctionsTestBed::getTestFunctionReal("Sin"), intervalPoints);
+    // NSecDer_Error_Order_Diff_Der_Orders_Single_Func("Sin", RealFunctionsTestBed::getTestFunctionReal("Sin"), intervalPoints);
 
-    // NDer_Average_Error_Diff_Orders_Single_Func("Sin", RealFunctionsTestBed::getTestFunctionReal(0));
+    NDer_Average_Error_Diff_Orders_Single_Func("Sin", RealFunctionsTestBed::getTestFunctionReal(0));
 
     // NDer_Error_Diff_h_Single_Func(1, "Sin", RealFunctionsTestBed::getTestFunctionReal("Sin"));
     // NDer_Error_Diff_h_Single_Func(2, "Sin", RealFunctionsTestBed::getTestFunctionReal("Sin"));

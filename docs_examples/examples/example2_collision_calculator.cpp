@@ -11,7 +11,7 @@
 
 using namespace MML;
 
-// TODO 0.8
+// TODO 0.9
 class Body2D
 {
     double _mass;

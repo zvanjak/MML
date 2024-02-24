@@ -12,7 +12,7 @@
 
 using namespace MML;
 
-// TODO 0.7 - HIGH, - Demo matrix others
+// TODO 0.9 - HIGH, - Demo matrix others
 
 void Demo_Matrix_Sym()
 {

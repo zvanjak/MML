@@ -7,4 +7,4 @@ Second, calculation for a continuous mass distribution (solid body), using volum
 
 [C++ file with implementation](/docs_examples/examples/example3_tensor_of_inertia.cpp)
 
-// TODO 0.7 - HIGH, implement
+// TODO 0.9 - HIGH, implement

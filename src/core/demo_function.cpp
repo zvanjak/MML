@@ -53,8 +53,6 @@ void Demo_Function()
     ParametricCurve<3>      paramCurve([](Real x) { return VectorN<Real, 3>{x, 2 * x, 3 * x}; });
     ParametricSurface<3>    paramSurface([](Real x, Real y) { return VectorN<Real, 3>{x * y, 2 * x * y, 3 * x}; });
 
-    auto val2 = Surfaces::test1(1.0, 1.0);
-
     VectorN<Real, 3> p1{2.0, 2.0, 5};
     
     MatrixNM<Real, 3, 3> jac = funcVector.jacobian(p1);    

@@ -74,7 +74,7 @@ namespace MML::TestBeds
 
     private:
         const static inline TestParametricSurface3 _listSurfaces[] = { 
-                // TODO 0.8 - treba modelirati preciznije domenu u x-y ravnini, za sferu
+                // TODO 0.9 - treba modelirati preciznije domenu u x-y ravnini, za sferu
                 {"UpperUnitSphere", "todo", -1.0, 1.0, -1.0, 1.0, 
                                     [](Real x, Real y) { return VectorN<Real,3>{ x, y, x*x+y*y > (Real) 1.0 ? (Real) 0.0 : sqrt(1 - x*x - y*y)}; } 
                 },

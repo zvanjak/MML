@@ -341,7 +341,7 @@ Visualization of test func, and interpolations for NumInterpPnt = 5, 8 and 12
 
 **Working with functions - derivation**
 
-Examples of various ways of calculating derivation of functions
+How to calculate numerical derivation of various types of functions
 ~~~ c++
 RealFunction       f1{[](double x) { return sin(x)*(1.0 + 0.5*x*x); } };
 
@@ -371,6 +371,90 @@ VectorN<Real, 3> der_f2_all = Derivation::NDer1PartialByAll(f2Scal, der_point);
 double der_f3 = Derivation::NDer1Partial(f3Vec, 1, 1, der_point);
 VectorN<Real, 3>     der_f3_by1    = Derivation::NDer2PartialByAll(f3Vec, 1, der_point);
 MatrixNM<Real, 3, 3> der_f3_by_all = Derivation::NDer4PartialAllByAll(f3Vec, der_point);
+~~~
+
+Testing precision of numerical derivation
+~~~ c++
+  // our test function
+  RealFunction       f{ [](Real x)     { return (Real)(sin(x) * (1.0 + 0.5 * x * x)); } };
+  // and its exact derivation
+  RealFunction       f_der{ [](Real x) { return (Real)(cos(x) * (1.0 + 0.5 * x * x) + sin(x) * x); } };
+
+  double x1 = -7.0, x2 = 7.0;
+  double err_sum1 = 0.0, err_sum2 = 0.0, err_sum4 = 0.0, err_sum6 = 0.0, err_sum8 = 0.0;
+  int    numPntForEval = 20;
+
+  std::cout << "\nAVERAGE DERIVATION ERROR FOR DIFFERENT ORDERS" << std::endl;
+
+  TablePrinter<double, double> print_data("x", 8, 3,
+    { "Exact der.",
+      "Nder1", "Nder1 err.", "Nder2", "Nder2 err.", "Nder4", "Nder4 err.", "Nder6", "Nder6 err.", "Nder8", "Nder8 err."
+    },
+    { {12,7,'F'},
+      {13,7,'F'}, {15,6,'S'}, {13,7,'F'}, {15,6,'S'}, {13,7,'F'}, {15,6,'S'}, {13,7,'F'}, {15,6,'S'}, {13,7,'F'}, {15,6,'S'}
+    }
+  );
+
+  for (int i = 0; i < numPntForEval; i++) {
+    double x = x1 + (x2 - x1) * i / (numPntForEval - 1);
+
+    double exact_der = f_der(x);
+
+    double num_der1 = MML::Derivation::NDer1(f, x);
+    double num_der2 = MML::Derivation::NDer2(f, x);
+    double num_der4 = MML::Derivation::NDer4(f, x);
+    double num_der6 = MML::Derivation::NDer6(f, x);
+    double num_der8 = MML::Derivation::NDer8(f, x);
+
+    double err1 = num_der1 - exact_der;
+    double err2 = num_der2 - exact_der;
+    double err4 = num_der4 - exact_der;
+    double err6 = num_der6 - exact_der;
+    double err8 = num_der8 - exact_der;
+
+    print_data.addRow(x, { exact_der, num_der1, err1, num_der2, err2, num_der4, err4, num_der6, err6, num_der8, err8 });
+
+    err_sum1 += std::abs(err1);
+    err_sum2 += std::abs(err2);
+    err_sum4 += std::abs(err4);
+    err_sum6 += std::abs(err6);
+    err_sum8 += std::abs(err8);
+  }
+  print_data.Print();
+
+  std::cout << "---------------------------------------------------------------------------------------------------------------------------------------------------------------------------" << std::endl;
+  std::cout << "Total abs error =                      " << std::scientific << err_sum1 << "                  "
+    << err_sum2 << "                  "
+    << err_sum4 << "                  "
+    << err_sum6 << "                  "
+    << err_sum8 << std::endl;
+
+  /* OUTPUT
+ AVERAGE DERIVATION ERROR FOR DIFFERENT ORDERS
+       x   Exact der.         Nder1      Nder1 err.         Nder2      Nder2 err.         Nder4      Nder4 err.         Nder6      Nder6 err.         Nder8      Nder8 err.
+  -7.000   23.8234137    23.8234137    5.288187e-08    23.8234137   -8.782806e-10    23.8234137   -1.159250e-11    23.8234137    3.481659e-13    23.8234137   -8.881784e-14
+  -6.263   20.4840131    20.4840129   -1.939339e-07    20.4840131   -3.526814e-10    20.4840131   -8.846257e-12    20.4840131    4.369838e-13    20.4840131    1.634248e-13
+  -5.526    8.0335341     8.0335339   -2.569286e-07     8.0335341    2.451923e-10     8.0335341   -2.472689e-12     8.0335341    3.339551e-13     8.0335341    2.540190e-13
+  -4.789   -3.8149928    -3.8149929   -1.382276e-07    -3.8149928    2.549019e-10    -3.8149928    3.900436e-12    -3.8149928   -4.605205e-13    -3.8149928    2.198242e-13
+  -4.053   -8.8483626    -8.8483626   -6.771076e-09    -8.8483626    1.632490e-10    -8.8483626    4.400036e-12    -8.8483626    1.030287e-13    -8.8483626    1.598721e-14
+  -3.316   -6.9735845    -6.9735844    8.421828e-08    -6.9735845    1.058416e-10    -6.9735845   -1.277201e-12    -6.9735845   -2.193801e-13    -6.9735845   -1.927347e-13
+  -2.579   -2.2830219    -2.2830218    9.390760e-08    -2.2830219   -4.583889e-11    -2.2830219   -1.086242e-12    -2.2830219   -9.459100e-14    -2.2830219   -2.216005e-13
+  -1.842    1.0520333     1.0520333    4.414189e-08     1.0520333   -8.739320e-11     1.0520333   -5.551115e-13     1.0520333   -1.398881e-13     1.0520333   -1.421085e-13
+  -1.105    1.7107321     1.7107321   -6.558459e-09     1.7107321   -5.454659e-11     1.7107321   -3.994582e-13     1.7107321    5.573320e-14     1.7107321    3.264056e-14
+  -0.368    1.1288943     1.1288943   -8.092415e-09     1.1288943    1.287215e-11     1.1288943    5.462297e-13     1.1288943    6.439294e-15     1.1288943    1.654232e-13
+   0.368    1.1288943     1.1288944    1.053404e-08     1.1288943    1.287215e-11     1.1288943    5.462297e-13     1.1288943    6.439294e-15     1.1288943    1.654232e-13
+   1.105    1.7107321     1.7107321    1.579328e-08     1.7107321   -4.183387e-11     1.7107321   -3.990142e-13     1.7107321    1.276756e-13     1.7107321    3.730349e-14
+   1.842    1.0520333     1.0520332   -3.036391e-08     1.0520333   -8.739098e-11     1.0520333   -1.045830e-12     1.0520333   -2.109424e-14     1.0520333   -1.376677e-13
+   2.579   -2.2830219    -2.2830220   -7.000517e-08    -2.2830219    5.014655e-12    -2.2830219   -8.353318e-13    -2.2830219   -6.616929e-14    -2.2830219   -2.358114e-13
+   3.316   -6.9735845    -6.9735846   -8.714507e-08    -6.9735845    1.058416e-10    -6.9735845   -1.277201e-12    -6.9735845   -2.193801e-13    -6.9735845   -1.927347e-13
+   4.053   -8.8483626    -8.8483625    8.263589e-08    -8.8483626    1.632490e-10    -8.8483626    4.400036e-12    -8.8483626    1.030287e-13    -8.8483626    1.598721e-14
+   4.789   -3.8149928    -3.8149926    1.597957e-07    -3.8149928    2.549019e-10    -3.8149928    3.900436e-12    -3.8149928   -4.605205e-13    -3.8149928    2.198242e-13
+   5.526    8.0335341     8.0335344    2.795132e-07     8.0335341    4.177991e-11     8.0335341   -3.844036e-12     8.0335341    2.238210e-13     8.0335341    3.073097e-13
+   6.263   20.4840131    20.4840133    1.934963e-07    20.4840131   -3.526814e-10    20.4840131   -8.846257e-12    20.4840131    4.369838e-13    20.4840131    1.634248e-13
+   7.000   23.8234137    23.8234136   -6.632742e-08    23.8234137   -8.782806e-10    23.8234137   -1.159250e-11    23.8234137    3.481659e-13    23.8234137   -8.881784e-14
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Total abs error =                      1.881272e-06                  4.144644e-09                  7.176304e-11                  4.211964e-12                  3.060885e-12  
+*/
 ~~~
 
 **Working with functions - integration**
@@ -417,16 +501,84 @@ std::cout << "Calc. vol. = " << vol << ", exact value: 4/3 * PI = " << 4.0/3.0 *
 */
 ~~~
 
+Testing precision of different integration algorithms
+~~~ c++
+// our test function
+RealFunction f{ [](Real x)     { return (Real)(sin(x) * (1.0 + 0.5 * x * x)); } };
+// and its exact interval
+RealFunction f_int{ [](Real x) { return (Real)(x * (-0.5 * x * cos(x) + sin(x))); } };
+
+double x1 = 0.0, x2 = 10.0;
+double err_sum1 = 0.0, err_sum2 = 0.0, err_sum3 = 0.0;
+const int numIntervals = 10;
+
+std::cout << "\nAVERAGE INTEGRATION ERROR FOR DIFFERENT INTEGRATORS" << std::endl;
+std::cout << "   Interval           Exact int.      Trap         Trap err.           Simpson      Simpson  err.       Romberg       Romberg err.          " << std::endl;
+std::cout << "--------------------------------------------------------------------------------------------------------------------------------------------" << std::endl;
+
+for (int i = 1; i < numIntervals; i++) {
+  double x = x1 + (x2 - x1) * i / (numIntervals - 1);
+
+  double integral = f_int(x) - f_int(x1);
+
+  double int_trap = MML::IntegrateTrap(f, x1, x, 1e-3);
+  double int_simp = MML::IntegrateSimpson(f, x1, x, 1e-3);
+  double int_romb = MML::IntegrateRomberg(f, x1, x);
+
+  double err1 = int_trap - integral;
+  double err2 = int_simp - integral;
+  double err3 = int_romb - integral;
+
+  std::cout << "[" << std::fixed
+            << std::setw(6) << std::setprecision(3) << x1 << ", "
+            << std::setw(6) << std::setprecision(3) << x << "]  "
+            << std::setw(13) << std::setprecision(8) << integral << " "
+            << std::setw(13) << std::setprecision(8) << int_trap << "   "
+            << std::scientific << std::setw(15) << err1 << "   " << std::fixed
+            << std::setw(13) << std::setprecision(8) << int_simp << "   "
+            << std::scientific << std::setw(15) << err2 << "   " << std::fixed
+            << std::setw(13) << std::setprecision(8) << int_romb << "   "
+            << std::scientific << std::setw(15) << err3 << "   " << std::fixed
+            << std::endl;
+
+  err_sum1 += std::abs(err1);
+  err_sum2 += std::abs(err2);
+  err_sum3 += std::abs(err3);
+}
+
+std::cout << "--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------" << std::endl;
+std::cout << "Total abs error =                                " 
+          << std::scientific << err_sum1 << "                    "
+          << err_sum2 << "                    "
+          << err_sum3 << std::endl;
+
+/* OUTPUT
+AVERAGE INTEGRATION ERROR FOR DIFFERENT INTEGRATORS
+   Interval           Exact int.      Trap         Trap err.           Simpson      Simpson  err.       Romberg       Romberg err.
+------------------------------------------------------------------------------------------------------------------------------------
+[ 0.000,  1.111]     0.72190120    0.72191911    1.79168330e-05      0.72190120   -2.20768637e-09      0.72190120    1.74171788e-12
+[ 0.000,  2.222]     3.26424438    3.26411014   -1.34238455e-04      3.26424432   -5.66896650e-08      3.26424438    5.37498046e-09
+[ 0.000,  3.333]     4.81851793    4.81806182   -4.56106873e-04      4.81851807    1.38713693e-07      4.81851833    4.00889971e-07
+[ 0.000,  4.444]    -1.67104024   -1.67124534   -2.05095264e-04     -1.67103857    1.67321678e-06     -1.67104024    4.24239088e-10
+[ 0.000,  5.556]   -15.21897376  -15.21421664    4.75711807e-03    -15.21897406   -2.96904277e-07    -15.21897377   -9.82410597e-09
+[ 0.000,  6.667]   -18.11382964  -18.10862331    5.20633435e-03    -18.11384814   -1.84979419e-05    -18.11382939    2.51947842e-07
+[ 0.000,  7.778]     5.45250452    5.45320716    7.02639753e-04      5.45247119   -3.33281723e-05      5.45250452    1.91555927e-09
+[ 0.000,  8.889]    38.50671730   38.49414238   -1.25749240e-02     38.50675166    3.43570339e-05     38.50673638    1.90788434e-05
+[ 0.000, 10.000]    36.51336534   36.50710489   -6.26045832e-03     36.51354664    1.81295066e-04     36.51339597    3.06248120e-05
+------------------------------------------------------------------------------------------------------------------------------------
+Total abs error =                                3.03148319e-02                    2.69645946e-04                    5.03740338e-05
+*/
+~~~
+
 **Solving ODE system**
 
 Solving system of ordinary differential equations
 ~~~ c++
 // in-place definition of Lorenz system (have to fix parameters!)
-ODESystem LorenzSystem(3, [](double t, const Vector<Real>& y, Vector<Real>& dydt)
+ODESystem lorenzSystem(3, [](Real t, const Vector<Real>& y, Vector<Real>& dydt)
 {
     double sigma = 10.0, rho = 28.0, beta = 8.0 / 3.0;
     dydt[0] = sigma * (y[1] - y[0]);
-
     dydt[1] = y[0] * (rho - y[2]) - y[1];
     dydt[2] = y[0] * y[1] - beta * y[2];
 });    
@@ -436,19 +588,15 @@ TestBeds::LorenzSystemODE alsoLorenzSystem(10.0, 28.0, 8.0/3.0);
 
 const double atol=1.0e-3, rtol=atol, h1=0.01, hmin=0.0;
 double x1=0.0, x2=50.0;
-
+    
 Vector<Real> init_cond({2.0, 1.0, 1.0});
 Output out0(10000);
-
-ODESystemSolver<StepperDopr5> ode_solver0(LorenzSystem,atol,rtol, out0);
+    
+ODESystemSolver<StepperDopr5> ode_solver0(lorenzSystem,atol,rtol, out0);
 ODESystemSolution             sol0 = ode_solver0.integrate(init_cond, x1, x2, h1, hmin);
 
-sol0.Serialize("demo5_lorenz_system.txt", "Lorenz system");
-auto ret2 = std::system("..\\..\\tools\\visualizers\\real_function_visualizer\\MML_RealFunctionVisualizer.exe demo5_lorenz_system.txt");
-
-auto curve = sol0.getSolutionAsParametricCurve<3>();
-sol0.SerializeAsParametricCurve3D("demo5_lorenz_system_as_parametric_curve.txt", "Lorenz system as parametric curve");
-std::system("..\\..\\tools\\visualizers\\parametric_curve_visualizer\\MML_ParametricCurveVisualizer.exe demo5_lorenz_system_as_parametric_curve.txt");
+Visualizer::VisualizeODESysSolAsMultiFunc(sol0, "demo5_lorenz_system.txt", "Lorenz system");
+Visualizer::VisualizeODESysSolAsParamCurve3(sol0, "demo5_lorenz_system_as_parametric_curve.txt", "Lorenz system as parametric curve");~~~
 ~~~
 Resulting images
 
@@ -460,9 +608,9 @@ Using as example inverse radial field, with its potential and force field, demon
 Calculations are performed in Cartesian and spherical coordinates, along circle in XZ-plane, and covariant vector transformation is also demonstrated
 ~~~ c++
 // Setting up fields and creating scalar potential and vector force field from predefined functions
-static ScalarFunction<3> pot_cart_exact([](const VectorN<Real, 3> &x_cart) -> Real   { return -InverseRadialPotentialFieldCart(x_cart); });
+static ScalarFunction<3> pot_cart_exact([](const VectorN<Real, 3> &x_cart) -> Real   { return -Fields::InverseRadialPotentialFieldCart(x_cart); });
 static ScalarFunction<3> pot_spher_exact([](const VectorN<Real, 3> &x_spher) -> Real { return -InverseRadialPotentialFieldSpher(x_spher); });
-static VectorFunction<3> force_field_cart_exact([](const VectorN<Real, 3> &x_cart)   { return InverseRadialPotentialForceFieldCart(x_cart); });
+static VectorFunction<3> force_field_cart_exact([](const VectorN<Real, 3> &x_cart)   { return Fields::InverseRadialPotentialForceFieldCart(x_cart); });
 static VectorFunction<3> force_field_spher_exact([](const VectorN<Real, 3> &x_spher) { return InverseRadialPotentialForceFieldSph(x_spher); });
 
 // if we have only potential, we can numerical calculate force field from it
@@ -611,18 +759,14 @@ Examples how to use four available visualization tools.
 
 **Real function visualizer**
 ~~~ c++
-RealFunction f1{[](double x) { return sin(x) * (x-3)*(x+5) / sqrt(std::abs(2 - x)); } };
-
-f1.SerializeEquallySpacedDetailed(-10.0, 10.0, 500, "..\\..\\results\\readme_func1.txt");
-std::system("..\\..\\tools\\visualizers\\real_function_visualizer\\MML_RealFunctionVisualizer.exe ..\\..\\results\\readme_func1.txt");
+RealFunction f1{[](Real x) { return sin(x) * (x-3)*(x+5) / sqrt(std::abs(2 - x)); } };
+Visualizer::VisualizeRealFunction(f1, -10.0, 10.0, 500, "readme_real_func1.txt", "readme_real_func1");
 
 RealFuncDerived4 f2(f1);        // derivation of f1 function
-
-f2.SerializeEquallySpacedDetailed(-10.0, 10.0, 100, "..\\..\\results\\readme_func2.txt");
-std::system("..\\..\\tools\\visualizers\\real_function_visualizer\\MML_RealFunctionVisualizer.exe ..\\..\\results\\readme_func2.txt");
-
+Visualizer::VisualizeRealFunction(f2, -10.0, 10.0, 100, "readme_real_func2.txt", "readme_real_func2");
+    
 // shown together
-std::system("..\\..\\tools\\visualizers\\real_function_visualizer\\MML_RealFunctionVisualizer.exe ..\\..\\results\\readme_func1.txt ..\\..\\results\\readme_func2.txt");
+Visualizer::VisualizeMultiRealFunction({&f1, &f2}, -10.0, 10.0, 500, "readme_multi_real_func.txt", "readme_multi_real_func");
 ~~~
 Visualization:
 ![My Image](docs/images/readme_visualizator_real_function.png)
@@ -630,16 +774,13 @@ Visualization:
 **Surface visualizer**
 
 ~~~ c++
-// Monkey saddle surface
-ScalarFunction<2> testFunc1{[](const VectorN<Real, 2> &x) { return x[0] * (x[0]*x[0] - 3 * x[1]*x[1]); } };
+ScalarFunction<2> testFunc1{[](const VectorN<Real, 2> &x) { return 3*x[0]/5 * (x[0]*x[0]/25 - 3 * x[1]*x[1]/25); } };
 
-testFunc1.Serialize2DCartesian(-2.0, 2.0, 20, -2.0, 2.0, 20, "..\\..\\results\\readme_surface1.txt");
-std::system("..\\..\\tools\\visualizers\\scalar_function_2d_visualizer\\MML_ScalarFunction2Visualizer.exe ..\\..\\results\\readme_surface1.txt");
+Visualizer::VisualizeScalarFunc2DCartesian(testFunc1, -10.0, 10.0, 20, -10.0, 10.0, 20, "readme_surface1.txt", "readme_surface1");
 
 ScalarFunction<2> testFunc2{[](const VectorN<Real, 2> &x) { return (std::abs(x[0])-10) * (std::abs(x[1])-10) * sin(x[0]) * cos(x[1]); } };
 
-testFunc2.Serialize2DCartesian(-10.0, 10.0, 50, -10.0, 10.0, 50, "..\\..\\results\\readme_surface2.txt");
-std::system("..\\..\\tools\\visualizers\\scalar_function_2d_visualizer\\MML_ScalarFunction2Visualizer.exe ..\\..\\results\\readme_surface2.txt");    
+Visualizer::VisualizeScalarFunc2DCartesian(testFunc2, -10.0, 10.0, 50, -10.0, 10.0, 50, "readme_surface2.txt", "readme_surface2");
 ~~~
 Visualization:
 ![My Image](docs/images/readme_visualizator_surfaces.png)
@@ -648,14 +789,11 @@ Visualization:
 
 ~~~ c++
 // using predefined 3D curves for visualization example
-Curves::HelixCurve              helix(20.0, 2.0);
-Curves::ToroidalSpiralCurve     toroid(20.0);
-
-helix.SerializeCartesian3D(-50.0, 50.0, 1000, "readme_curve_helix.txt");
-std::system("..\\..\\tools\\visualizers\\parametric_curve_visualizer\\MML_ParametricCurveVisualizer.exe readme_curve_helix.txt");
-
-toroid.SerializeCartesian3D(0.0, 2 * Constants::PI, 5000, "readme_curve_toroid.txt");
-std::system("..\\..\\tools\\visualizers\\parametric_curve_visualizer\\MML_ParametricCurveVisualizer.exe readme_curve_toroid.txt");
+Curves3D::HelixCurve              helix(20.0, 2.0);
+Curves3D::ToroidalSpiralCurve     toroid(Real{20.0});
+    
+Visualizer::VisualizeParamCurve3D(helix, -50.0, 50.0, 1000, "readme_curve_helix.txt", "helix");
+Visualizer::VisualizeParamCurve3D(toroid, 0.0, 2 * Constants::PI, 5000, "readme_curve_toroid.txt", "toroid");
 ~~~
 Visualization:
 ![My Image](docs/images/readme_visualizator_parametric_curve.png)
@@ -672,11 +810,64 @@ VectorFunction<3> gravity_force_field{ [](const VectorN<Real, 3> &x)
     return -G * m1 * (x - x1) / std::pow((x - x1).NormL2(), 3) - G * m2 * (x - x2) / std::pow((x - x2).NormL2(), 3);
 } };
 
-gravity_force_field.Serialize3DCartesian(-200.0, 200.0, 15, -200.0, 200.0, 15, -200.0, 200.0, 15, "readme_vector_field.txt", 5);
-std::system("..\\..\\tools\\visualizers\\vector_field_visualizer\\MML_VectorFieldVisualizer.exe readme_vector_field.txt");
+Visualizer::VisualizeVectorField3DCartesian(gravity_force_field, -200.0, 200.0, 15, -200.0, 200.0, 15, -200.0, 200.0, 15, "readme_vector_field.txt", "gravity_force_field");
 ~~~
 Visualization:
 ![My Image](docs/images/readme_visualizator_vector_field.png)
+
+**FunctionAnalyzer**
+
+Set of analyzer classes for real, scalar and vector functions, and parametric curves and surfaces.
+
+Example of using RealFunctionAnalyzer for analyzing real functions.
+~~~ c++
+	auto fTan = TestBeds::RealFunctionsTestBed::getTestFunctionReal("Tan");
+	RealFunctionAnalyzer anTan(fTan._func, "tan(x)");
+	anTan.PrintIntervalAnalysis(-5.0, 5.0, 50, 1e-4);
+
+	auto fExp = TestBeds::RealFunctionsTestBed::getTestFunctionReal("Exp");
+	RealFunctionAnalyzer anExp(fExp._func, "exp(x)");
+	anExp.PrintIntervalAnalysis(-5.0, 5.0, 50, 1e-4);
+
+	RealFunction stepFunc([](Real x) { 
+			if( x < 0) return 0.0;
+			else if( x > 0) return 1.0;
+			else return 0.5;
+		});
+	RealFunctionAnalyzer anStep(stepFunc, "step(x)");
+	anStep.PrintIntervalAnalysis(-5.0, 5.0, 50, 1e-4);
+
+	RealFunction test1([](Real x) { return 1 / (x - 1); });
+	RealFunctionAnalyzer an(test1, "1 / (x - 1)");
+	an.PrintIntervalAnalysis(-5.0, 5.0, 50, 1e-4);
+
+/* OUTPUT
+f(x) = tan(x) - Function analysis in interval [-5.00000000, 5.00000000] with 50 points:
+  Defined    : yes
+  Continuous : yes
+  Monotonic  : no
+  Min        : -34.23253274
+  Max        : 34.23253274
+f(x) = exp(x) - Function analysis in interval [-5.00000000, 5.00000000] with 50 points:
+  Defined    : yes
+  Continuous : yes
+  Monotonic  : yes
+  Min        : 0.00673795
+  Max        : 121.51041752
+f(x) = step(x) - Function analysis in interval [-5.00000000, 5.00000000] with 50 points:
+  Defined    : yes
+  Continuous : no  Not continuous at points: 0.00000000
+  Monotonic  : no
+  Min        : 0.00000000
+  Max        : 1.00000000
+f(x) = 1 / (x - 1) - Function analysis in interval [-5.00000000, 5.00000000] with 50 points:
+  Defined    : no  Not defined at points: 1.00000000
+  Continuous : yes
+  Monotonic  : no
+  Min        : -5.00000000
+  Max        : inf
+*/
+~~~
 
 
 ## Testing and precision
