@@ -394,6 +394,8 @@ namespace MML
         // bool intersects(const IInterval &other) const = 0;
 
         virtual void GetEquidistantCovering(int numPoints) = 0;
+
+        virtual ~IInterval() {}
     };
 }
 ///////////////////////////   ./include/interfaces/IAlgebra.h   ///////////////////////////

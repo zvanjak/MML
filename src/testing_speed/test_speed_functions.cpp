@@ -90,45 +90,46 @@ void Test_Speed_Functions()
 {
     std::cout << "TESTING SPEED OF FUNCTION EVALUATION\n";
 
-    using std::chrono::duration;
-    using std::chrono::duration_cast;
-    using std::chrono::high_resolution_clock;
-    using std::chrono::milliseconds;
-    double x = 0.0;
-    double y = 0.0;
+    // Messing up clang build, so commented out for now
+    //using std::chrono::duration;
+    //using std::chrono::duration_cast;
+    //using std::chrono::high_resolution_clock;
+    //using std::chrono::milliseconds;
+    //double x = 0.0;
+    //double y = 0.0;
 
-    for (auto f : vec_func)
-    {
-        auto t1 = high_resolution_clock::now();
-        for (int i = 0; i < num_evals; i++)
-        {
-            x = rand() % 1000 * (f._up - f._low) / 1000.0 + f._low;
-            y = f._func(x);
-        }
-        auto t2 = high_resolution_clock::now();
+    //for (auto f : vec_func)
+    //{
+    //    auto t1 = high_resolution_clock::now();
+    //    for (int i = 0; i < num_evals; i++)
+    //    {
+    //        x = rand() % 1000 * (f._up - f._low) / 1000.0 + f._low;
+    //        y = f._func(x);
+    //    }
+    //    auto t2 = high_resolution_clock::now();
 
-        duration<double, std::milli> rand_time = t2 - t1;
+    //    duration<double, std::milli> rand_time = t2 - t1;
 
-        int num_repeats = 1000;
-        double vals[10000];
-        for (int i = 0; i < 10000; i++)
-        {
-            vals[i] = rand() % 1000 * (f._up - f._low) / 1000.0 + f._low;
-        }
+    //    int num_repeats = 1000;
+    //    double vals[10000];
+    //    for (int i = 0; i < 10000; i++)
+    //    {
+    //        vals[i] = rand() % 1000 * (f._up - f._low) / 1000.0 + f._low;
+    //    }
 
-        auto t3 = high_resolution_clock::now();
-        for (int j = 0; j < num_repeats; j++)
-        {
-            for (int i = 0; i < 10000; i++)
-            {
-                y = f._func(vals[i]);
-            }
-        }
-        auto t4 = high_resolution_clock::now();
+    //    auto t3 = high_resolution_clock::now();
+    //    for (int j = 0; j < num_repeats; j++)
+    //    {
+    //        for (int i = 0; i < 10000; i++)
+    //        {
+    //            y = f._func(vals[i]);
+    //        }
+    //    }
+    //    auto t4 = high_resolution_clock::now();
 
-        duration<double, std::milli> array_time = t4 - t3;
+    //    duration<double, std::milli> array_time = t4 - t3;
 
-        double diff = rand_time.count() - array_time.count(); 
-        std::cout << std::setw(20) << f._name << " - " << rand_time.count() << " ; " << array_time.count() << " ; " << diff << "\n";
-    }
+    //    double diff = rand_time.count() - array_time.count(); 
+    //    std::cout << std::setw(20) << f._name << " - " << rand_time.count() << " ; " << array_time.count() << " ; " << diff << "\n";
+    //}
 }
