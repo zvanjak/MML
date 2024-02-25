@@ -8,6 +8,7 @@
 
 //#include <chrono>
 
+
 /*
 FUNKCIJA
 - exp, log, log10, log2,

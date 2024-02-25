@@ -31,6 +31,6 @@ void Docs_Examples()
     //Example2_collision_calculator();
     Example3_tensor_of_inertia();
     Example4_Gravity_field_visualization();
-    Example5_Voyager_travels();
-    Example6_electric_charge_distribution();
+    //Example5_Voyager_travels();
+    //Example6_electric_charge_distribution();
 }
