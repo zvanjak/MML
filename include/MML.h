@@ -35,21 +35,6 @@
 ///////////////////////////   ./include/MMLBase.h   ///////////////////////////
 
 
-
-
-
-// Complex must have the same underlaying type as Real
-typedef double               Real;      // default real type
-typedef std::complex<double> Complex;   // default complex type
-
-// Global paths for Visualizers
-static const std::string GLOB_PATH_ResultFiles = "E:\\Projects\\MinimalMathLibrary\\results\\";
-static const std::string GLOB_PATH_RealFuncViz = "E:\\Projects\\MinimalMathLibrary\\tools\\visualizers\\real_function_visualizer\\MML_RealFunctionVisualizer.exe";
-static const std::string GLOB_PATH_SurfaceViz  = "E:\\Projects\\MinimalMathLibrary\\tools\\visualizers\\scalar_function_2d_visualizer\\MML_ScalarFunction2Visualizer.exe";
-static const std::string GLOB_PATH_ParametricCurveViz = "E:\\Projects\\MinimalMathLibrary\\tools\\visualizers\\parametric_curve_visualizer\\MML_ParametricCurveVisualizer.exe";
-static const std::string GLOB_PATH_VectorFieldViz     = "E:\\Projects\\MinimalMathLibrary\\tools\\visualizers\\vector_field_visualizer\\MML_VectorFieldVisualizer.exe";
-
-
 // https://opensource.apple.com/source/CarbonHeaders/CarbonHeaders-18.1/TargetConditionals.h.auto.html
 #ifdef __APPLE__
 #  include <TargetConditionals.h>
@@ -66,6 +51,18 @@ static const std::string GLOB_PATH_VectorFieldViz     = "E:\\Projects\\MinimalMa
 #elif defined(WIN32) || defined(__WIN32__) || defined(_WIN32) || defined(_MSC_VER) || defined(__MINGW32__)
 #  define MML_PLATFORM_WINDOWS
 #endif
+
+
+// Complex must have the same underlaying type as Real
+typedef double               Real;      // default real type
+typedef std::complex<double> Complex;   // default complex type
+
+// Global paths for Visualizers
+static const std::string GLOB_PATH_ResultFiles = "E:\\Projects\\MinimalMathLibrary\\results\\";
+static const std::string GLOB_PATH_RealFuncViz = "E:\\Projects\\MinimalMathLibrary\\tools\\visualizers\\real_function_visualizer\\MML_RealFunctionVisualizer.exe";
+static const std::string GLOB_PATH_SurfaceViz  = "E:\\Projects\\MinimalMathLibrary\\tools\\visualizers\\scalar_function_2d_visualizer\\MML_ScalarFunction2Visualizer.exe";
+static const std::string GLOB_PATH_ParametricCurveViz = "E:\\Projects\\MinimalMathLibrary\\tools\\visualizers\\parametric_curve_visualizer\\MML_ParametricCurveVisualizer.exe";
+static const std::string GLOB_PATH_VectorFieldViz     = "E:\\Projects\\MinimalMathLibrary\\tools\\visualizers\\vector_field_visualizer\\MML_VectorFieldVisualizer.exe";
 
 
 namespace MML
@@ -5888,7 +5885,7 @@ namespace MML
     ///////////////////////   QR DECOMPOSITION    /////////////////////////////
     class QRDecompositionSolver
     {
-    private:
+    public:         // TODO make private!
         int n;
         Matrix<Real> qt, r;
         bool sing;    
@@ -16257,7 +16254,7 @@ namespace MML
                         q = -q;
                     p=std::abs(p);
 
-                    Real min1=3.0*xm*q-abs(tol1*q);
+                    Real min1=3.0*xm*q-std::abs(tol1*q);
                     Real min2=std::abs(e*q);
 
                     if (2.0*p < (min1 < min2 ? min1 : min2)) {
