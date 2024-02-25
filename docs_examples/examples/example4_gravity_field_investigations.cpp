@@ -18,7 +18,6 @@
 
 using namespace MML;
 
-// TODO 0.9
 class GravityMass
 {
 public:
@@ -104,11 +103,9 @@ public:
 	{
 		std::vector<Vector3Cartesian> force(_config.NumBodies(), Vector3Cartesian(0.0, 0.0, 0.0));
 
-		for (int i = 0; i < _config.NumBodies(); i++)
-		{
+		for (int i = 0; i < _config.NumBodies(); i++) {
 			// calculate force on body i
-			for (int j = 0; j < _config.NumBodies(); j++)
-			{
+			for (int j = 0; j < _config.NumBodies(); j++) {
 				if (i != j)
 					force[i] = force[i] + Fields::InverseRadialPotentialForceFieldCart(10000 * _config.Mass(j), _config.Position(i) - _config.Position(j));
 			}
@@ -133,9 +130,7 @@ public:
 			simulateOneStep(dt);
 
 			for (int i = 0; i < _config.NumBodies(); i++)
-			{
 				trajectories[i].push_back(_config.Position(i));
-			}
 		}
 		return trajectories;
 	}
@@ -187,6 +182,7 @@ void Example4_Gravity_field_visualization()
 	std::cout << "***********************************************************************" << std::endl;
 
 	// prvo, simulacija 5 tijela
+
 	GravityMultibodyConfigCart config;
 	config.AddBody(1000, Vector3Cartesian{ 0.0,    0.0,    0.0 }, Vector3Cartesian{ 0.0,   0.0,   0.0 });
 	config.AddBody(20, Vector3Cartesian{ -110.0,  -50.0,   10.0 }, Vector3Cartesian{ 0.0,   50,   0.0 });
@@ -194,7 +190,6 @@ void Example4_Gravity_field_visualization()
 	config.AddBody(20, Vector3Cartesian{ -20.0,  100.0, -110.0 }, Vector3Cartesian{ 50,   0.0,   0.0 });
 	config.AddBody(10, Vector3Cartesian{ 70.0, -110.0,   70.0 }, Vector3Cartesian{ -50,   50,   50.0 });
 
-	// simulacija
 	GravitySystemMotionSolverSimple solver(config);
 
 	const Real dt = 0.1;
@@ -204,7 +199,8 @@ void Example4_Gravity_field_visualization()
 
 	for (int i = 0; i < config.NumBodies(); i++)
 	{
-		Serializer::SaveAsParamCurve<3>(res[i], "PARAMETRIC_CURVE_CARTESIAN_3D", 0.0, dt*steps, steps+1, GLOB_PATH_ResultFiles + "body" + std::to_string(i) + ".txt");
+		Serializer::SaveAsParamCurve<3>(res[i], "PARAMETRIC_CURVE_CARTESIAN_3D", 0.0, dt*steps, steps+1, 
+																		GLOB_PATH_ResultFiles + "body" + std::to_string(i) + ".txt");
 	}
 
 	Visualizer::VisualizeMultiParamCurve3D({"body0.txt", "body1.txt", "body2.txt", "body3.txt", "body4.txt" });
