@@ -5975,7 +5975,6 @@ namespace MML
             }
         }
     
-    private:
         void qtmult(const Vector<Real> &b, Vector<Real> &x) {
             int i,j;
             Real sum;
@@ -16603,7 +16602,7 @@ namespace MML::RootFinding
                 for (i=0;i<n;i++) {
                     for (sum=0.0,j=0;j<n;j++) sum += qr->qt[j][i]*t[j];
                     w[i]=fvec[i]-fvcold[i]-sum;
-                    if (std::abs(w[i]) >= EPS*(std::abs(fvec[i])+abs(fvcold[i]))) skip=false;
+                    if (std::abs(w[i]) >= EPS*(std::abs(fvec[i])+std::abs(fvcold[i]))) skip=false;
                     else w[i]=0.0;
                 }
                 if (!skip) {
