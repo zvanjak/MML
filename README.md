@@ -35,7 +35,7 @@ Basic math types. These are the building blocks of the library, sitting at the l
 - [2D & 3D geometry](/docs/base/Geometry_2D_3D.md) - analytic geometry in 2D and 3D
 - [Vector spaces](/docs/base/Vector_spaces.md) - vector space, normed vector space, metric (Hilbert) space (still much to do here!)
 - [Functionals, operators, quadratic forms](/docs/base/Operators.md)  - linear functional, quadratic form, linear operator (much to do here!)
-- [Standard functions](/docs/base/Standard_Functions.md) - definition of available standard functions
+- [Standard functions](/docs/base/Standard_functions.md) - definition of available standard functions
 - [Base utils](/docs/base/BaseUtils.md) - general utilities including matrix helper (IsOrthogonal, IsUnitary, IsHermitian)
 - [Algebra](/docs/base/Algebra.md) - groups, permutation group (big TODO!)
 
