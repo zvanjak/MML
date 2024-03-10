@@ -88,3 +88,18 @@ Vector class
     std::cout << vec_cmplx_2.to_string(10, 5) << std::endl;
     vec_cmplx_2.Print(std::cout, 7, 3);
 ~~~
+
+## Defined typedefs for easier use
+
+Vector class
+~~~ c++
+    typedef Vector<int>     VectorInt;
+    typedef Vector<float>   VectorFlt;
+    typedef Vector<double>  VectorDbl;
+    typedef Vector<Complex> VectorComplex;
+
+    typedef Vector<int>     VecI;
+    typedef Vector<float>   VecF;
+    typedef Vector<double>  VecD;
+    typedef Vector<Complex> VecC; 
+~~~

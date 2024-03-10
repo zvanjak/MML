@@ -14,13 +14,13 @@ using namespace MML;
 
 void Demo_Root_finding()
 {
-    std::cout << endl;
-    std::cout << "***********************************************************************" << endl;
-    std::cout << "****                       ROOT FINDING                            ****" << endl;
-    std::cout << "***********************************************************************" << endl;
+	std::cout << endl;
+	std::cout << "***********************************************************************" << endl;
+	std::cout << "****                       ROOT FINDING                            ****" << endl;
+	std::cout << "***********************************************************************" << endl;
 
-    RealFunction f([](Real x) { return x*x - 2; });
-    double a = 0.0;
-    double b = 2.0;
-    bool isBracketed = RootFinding::zbrac(f, a, b);
+	RealFunction f([](Real x) { return x * x - 2; });
+	double a = 0.0;
+	double b = 2.0;
+	bool isBracketed = RootFinding::zbrac(f, a, b);
 }

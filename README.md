@@ -5,7 +5,7 @@ All your basic (numerical) math needs, contained in a single-header file (more c
 - For a C++ developer, on Windows, Mac or Linux
 - Who needs a math library to perform simple (and not so simple) numerical calculations 
 - The Minimal Math Library is a general purpose, pythonesque in its focus on simplicity of use, single-header C++ library of classes and functions
-- That is trivial to use in any kind of project, is C++ 20 cross-platform compatible, and comes with a rich set of functionalities for working with vectors, matrices, tensors, linear systems, real, scalar and vector functions, polynoms, differential equations, coordinate systems and transformations, 2D & 3D geometry with algorithms for derivation, integration, root finding, interpolation, optimization, statistics, and more.
+- That is trivial to use in any kind of project, is C++ 20 cross-platform compatible, and comes with a rich set of functionalities for working with vectors, matrices, tensors, linear systems, polynoms, real, scalar and vector functions, coordinate systems and their transformations, 2D & 3D geometry with algorithms for derivation, integration, interpolation, differential equations solving, root finding, statistics, and more.
 
 ## Basic facts
 - As of now, and for foreseable future, this is unfortunately strictly for personal, research and educational use only (see Licensing at the end)
@@ -27,43 +27,42 @@ Library is organized in three main groups (you could call them layers), with add
 **Base**
 
 Basic math types. These are the building blocks of the library, sitting at the lowest layer, depending only on standard library headers (and possibly Vector and Matrix class), and are used in all other parts of the library. 
-- [Algebra](/docs/base/Algebra.md) - groups, permutation group (big TODO!)
 - [Vectors](/docs/base/Vectors.md) - Vector, VectorN<int N>, Vector(2)(3)Cartesian, Vector2Polar, Vector3Spherical, Vector3Cylindrical
 - [Matrices](/docs/base/Matrices.md) - Matrix, MatrixNM<int N, int M>, MatrixSym, MatrixTridiag, MatrixBandDiag
 - [Tensors](/docs/base/Tensors.md) - Tensor2<int Dim>, Tensor3<int Dim>, Tensor4<int Dim>, Tensor5<int Dim> in N dimensions
 - [Polynoms](/docs/base/Polynoms.md) - general Polynom class (tested for Real, Complex and Matrix as field type)
-- [Geometry](/docs/base/Geometry.md) - pure geometry: points, triangles, bodies
+- [Geometry](/docs/base/Geometry.md) - pure geometry: points, triangles
 - [2D & 3D geometry](/docs/base/Geometry_2D_3D.md) - analytic geometry in 2D and 3D
 - [Vector spaces](/docs/base/Vector_spaces.md) - vector space, normed vector space, metric (Hilbert) space (still much to do here!)
 - [Functionals, operators, quadratic forms](/docs/base/Operators.md)  - linear functional, quadratic form, linear operator (much to do here!)
+- [Standard functions](/docs/base/Standard_Functions.md) - definition of available standard functions
 - [Base utils](/docs/base/BaseUtils.md) - general utilities including matrix helper (IsOrthogonal, IsUnitary, IsHermitian)
+- [Algebra](/docs/base/Algebra.md) - groups, permutation group (big TODO!)
 
 **Core**
 
-Core mathematical objects and operations of the library, depending on Base types, and used by higher algorithms.
+Core mathematical objects and operations of the library, depending on Base types, and used by MML algorithms.
 Function objects, and different algorithms for working with them are the heart of this layer.
 - [Linear alg. equations solvers](/docs/core/Linear_equations_solvers.md) - GJ, LU, QR, SVD, Cholesky
-- [Functions](/docs/core/Function_types.md) - IRealFunction, IScalarFunction<int N>, IVectorFunction<int N>, IParametricCurve<N>, IParametricSurface<N>, ITensorField<N>
-- [Standard functions](/docs/core/Functions.md) - definition of available standard functions
+- [Functions](/docs/core/Functions.md) - IRealFunction, IScalarFunction<int N>, IVectorFunction<int N>, IParametricCurve<N>, IParametricSurface<N>, ITensorField<N>
 - [Interpolated functions](/docs/core/Interpolated_functions.md) - linear, polynomial, rational polynomial, spline interpolations
 - [Dirac delta function](/docs/core/Dirac_delta_function.md)- predefined distributions for representing Dirac delta function
-- [Numerical derivation](/docs/core/Derivation.md) - orders 1, 2, 4, 6, 8 for IRealFunction, IScalarFunction, IVectorFunction, IParametricCurve, IParametricSurface, ITensorField
-- [Numerical integration](/docs/core/Integration.md) - Trapezoidal, Simpson, Romberg basic integration algorithms
-- [Multidim integration](/docs/core/Multidim_integration.md) - calculating 2D and 3D (cartesian) integrals
 - [Curves & Surfaces](/docs/core/Curves_and_surfaces.md) - predefined curves and surfaces
 - [Fields](/docs/core/Fields.md) - predefined example fields
+- [Numerical derivation](/docs/core/Derivation.md) - orders 1, 2, 4, 6, 8 for IRealFunction, IScalarFunction, IVectorFunction, IParametricCurve, IParametricSurface, ITensorField
 - [Field operations](/docs/core/Vector_field_operations.md) - grad, div, curl, Laplacian in general, Cartesian, cylindrical and spherical coordinates
-- [Metric tensor](/docs/core/Metric_tensor.md) - predefined metric tensors in General, Cartesian, Cylindrical and Spherical coordinates
-- [Coordinate transformations](/docs/core/Coordinate_transformations.md) - General, Cartesian, Cylindrical, Spherical  
+- [Numerical integration](/docs/core/Integration.md) - Trapezoidal, Simpson, Romberg basic integration algorithms
+- [Multidim integration](/docs/core/Multidim_integration.md) - calculating 2D and 3D (cartesian) integrals
 - [ODE system](/docs/core/ODE_system.md) - represents a dynamical system of ordinary differential equations
-- [Function spaces](/docs/core/Function_spaces.md) - Hermitian, Legendre, Laguerre, Chebyshev, Fourier spaces
-- [Core utils](/docs/core/CoreUtils.md) - general core utilities 
+- [Coordinate transformations](/docs/core/Coordinate_transformations.md) - General, Cartesian, Cylindrical, Spherical  
+- [Metric tensor](/docs/core/Metric_tensor.md) - predefined metric tensors in General, Cartesian, Cylindrical and Spherical coordinates
+- [Function spaces](/docs/core/Function_spaces.md) - Hermitian, Legendre, Laguerre, Chebyshev, Fourier spaces (much to do here!)
 
 **Algorithms**
 
 Algorithms for solving mathematical problems. These are the algorithms of the library, depending on Base and Core types.
 - [Eigen solvers](/docs/algorithms/Eigen_solvers.md) - solving eigenvalue problems for symmetric and non-symmetric real matrices
-- [Path integration](/docs/algorithms/Path_integration.md) - calculating line and work integrals
+- [Path integration](/docs/algorithms/Path_integration.md) - calculating path integrals (curve len, line and work integrals)
 - [ODE system solvers](/docs/algorithms/Differential_equations_solvers.md) - solvers for systems of ordinary differential equations
 - [Differential geometry](/docs/algorithms/Differential_geometry.md) - for curves only, so far
 - [Root finding](/docs/algorithms/Root_finding.md) - different root finding algorithms (bracketing, Newton-Raphson)
@@ -463,6 +462,7 @@ Examples of integration real functions, but also 2D and 3D scalar functions
 ~~~ c++
 // numerical integration of real function
 RealFunction f1{[](double x) { return sin(x)*(1.0 + 0.5*x*x); } };
+RealFunction f1_integral{ [](Real x) { return (Real)(x * (-0.5 * x * cos(x) + sin(x))); } };
 
 double a = 0.0;
 double b = 1.0;
@@ -471,6 +471,12 @@ double int_simp = IntegrateSimpson(f1,a,b);
 double int_romb = IntegrateRomberg(f1,a,b);
 // we can use default Integrate routine (set to IntegrateSimpson), requires precision
 double int_def = Integrate(f1, a, b, 1e-04);
+
+std::cout << "Integrating function f1 from " << a << " to " << b << std::endl;
+std::cout << "Exact integral   = " << f1_integral(b) - f1_integral(a) << std::endl;
+std::cout << "IntegrateTrap    = " << int_trap << std::endl;
+std::cout << "IntegrateSimpson = " << int_simp << std::endl;
+std::cout << "IntegrateRomberg = " << int_romb << std::endl;
 
 // 2D integration of constant scalar 2D function (ie. we'll get the area of the surface)
 ScalarFunction<2> f2([](const VectorN<Real, 2> &x) { return 1.0; });
@@ -496,8 +502,14 @@ Real vol = IntegrateVolume( f3,
 std::cout << "Calc. vol. = " << vol << ", exact value: 4/3 * PI = " << 4.0/3.0 * Constants::PI << std::endl;
 
 /* OUTPUT 
-    Calc. area = 12.57211164, exact value: 4 * PI = 12.56637061
-    Calc. vol. = 4.190703882, exact value: 4/3 * PI = 4.188790205
+Integrating function f1 from 0 to 10
+Exact integral   = 36.5134
+IntegrateTrap    = 36.5133
+IntegrateSimpson = 36.5134
+IntegrateRomberg = 36.5134
+
+Calc. area = 12.57211164, exact value: 4 * PI = 12.56637061
+Calc. vol. = 4.190703882, exact value: 4/3 * PI = 4.188790205
 */
 ~~~
 

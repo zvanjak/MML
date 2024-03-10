@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.20.0)
 
 set (CMAKE_CXX_STANDARD 20)
 
-project(MML_Demo VERSION 0.1.0)
+project(MML_Demo VERSION 1.0)
 
 add_compile_definitions(MML_USE_SINGLE_HEADER)
 
@@ -69,17 +69,17 @@ set( MML_DEMO_SOURCES   src/demo_app_main.cpp
                         src/visualization_examples/demo4_vector_field_gravity.cpp
                         src/visualization_examples/demo5_vector_field_EM.cpp
                         src/visualization_examples/visualization_examples.cpp
-                        
-                        docs_examples/readme_examples/demo1_vectors_matrices.cpp
-                        docs_examples/readme_examples/demo2_lin_alg_solvers.cpp
-                        docs_examples/readme_examples/demo3_defining_functions.cpp
-                        docs_examples/readme_examples/demo4_working_with_functions.cpp
-                        docs_examples/readme_examples/demo5_ode_solvers.cpp
-                        docs_examples/readme_examples/demo6_vector_field_operations.cpp
-                        docs_examples/readme_examples/demo7_parametric_curves.cpp
-                        docs_examples/readme_examples/demo8_visualizators.cpp
-                        docs_examples/readme_examples/demo9_function_analyzer.cpp
-                        docs_examples/readme_examples/readme_examples.cpp
+                            
+                        docs_examples/readme_examples/readme1_vectors_matrices.cpp
+                        docs_examples/readme_examples/readme2_lin_alg_solvers.cpp
+                        docs_examples/readme_examples/readme3_defining_functions.cpp
+                        docs_examples/readme_examples/readme4_working_with_functions.cpp
+                        docs_examples/readme_examples/readme5_ode_solvers.cpp
+                        docs_examples/readme_examples/readme6_vector_field_operations.cpp
+                        docs_examples/readme_examples/readme7_parametric_curves.cpp
+                        docs_examples/readme_examples/readme8_visualizators.cpp
+                        docs_examples/readme_examples/readme9_function_analyzer.cpp
+                        docs_examples/readme_examples/main_readme_examples.cpp
                       )
 
 
@@ -87,28 +87,59 @@ add_executable(MML_Demo ${MML_DEMO_SOURCES})
 target_include_directories(MML_Demo PRIVATE include)
 
 
-project(DocsApp VERSION 0.5.0)
-set(MML_DOCS_APP_SOURCES    docs_examples/doc_examples_app_main.cpp
+project(DocsApp VERSION 1.0)
+set(MML_DOCS_APP_SOURCES    docs_examples/docs_app_main.cpp
 
-                            docs_examples/readme_examples/demo1_vectors_matrices.cpp
-                            docs_examples/readme_examples/demo2_lin_alg_solvers.cpp
-                            docs_examples/readme_examples/demo3_defining_functions.cpp
-                            docs_examples/readme_examples/demo4_working_with_functions.cpp
-                            docs_examples/readme_examples/demo5_ode_solvers.cpp
-                            docs_examples/readme_examples/demo6_vector_field_operations.cpp
-                            docs_examples/readme_examples/demo7_parametric_curves.cpp
-                            docs_examples/readme_examples/demo8_visualizators.cpp
-                            docs_examples/readme_examples/demo9_function_analyzer.cpp
-                            docs_examples/readme_examples/readme_examples.cpp
+                            docs_examples/readme_examples/readme1_vectors_matrices.cpp
+                            docs_examples/readme_examples/readme2_lin_alg_solvers.cpp
+                            docs_examples/readme_examples/readme3_defining_functions.cpp
+                            docs_examples/readme_examples/readme4_working_with_functions.cpp
+                            docs_examples/readme_examples/readme5_ode_solvers.cpp
+                            docs_examples/readme_examples/readme6_vector_field_operations.cpp
+                            docs_examples/readme_examples/readme7_parametric_curves.cpp
+                            docs_examples/readme_examples/readme8_visualizators.cpp
+                            docs_examples/readme_examples/readme9_function_analyzer.cpp
+                            
+                            docs_examples/readme_examples/main_readme_examples.cpp
 
-                            docs_examples/examples/main_example.cpp
+                            docs_examples/examples/example_main.cpp
                             docs_examples/examples/example1_kosi_hitac.cpp
                             docs_examples/examples/example2_collision_calculator.cpp
                             docs_examples/examples/example3_tensor_of_inertia.cpp
                             docs_examples/examples/example4_gravity_field_investigations.cpp
                             docs_examples/examples/example5_voyager_travels.cpp
                             docs_examples/examples/example6_electric_charge_distribution.cpp
-                            docs_examples/examples/examples.cpp
+                            docs_examples/examples/example7_covariant_derivation.cpp
+                            docs_examples/examples/example8_EM_field_investigations.cpp
+                            docs_examples/examples/example9_thermodynamics_simulator.cpp
+                            
+                            docs_examples/examples/main_docs_examples.cpp
+
+                            docs_examples/demos/docs_demo_coord_transf.cpp
+                            docs_examples/demos/docs_demo_derivation.cpp
+                            docs_examples/demos/docs_demo_diff_geometry.cpp
+                            docs_examples/demos/docs_demo_eigen_solvers.cpp
+                            docs_examples/demos/docs_demo_field_operations.cpp
+                            docs_examples/demos/docs_demo_functions.cpp
+                            docs_examples/demos/docs_demo_integration.cpp
+                            docs_examples/demos/docs_demo_integration_multidim.cpp
+                            docs_examples/demos/docs_demo_integration_path.cpp
+                            docs_examples/demos/docs_demo_integration_surface.cpp
+                            docs_examples/demos/docs_demo_interpolated_functions.cpp
+                            docs_examples/demos/docs_demo_geometry_2d_3d.cpp
+                            docs_examples/demos/docs_demo_lin_alg_solvers.cpp
+                            docs_examples/demos/docs_demo_matrix.cpp
+                            docs_examples/demos/docs_demo_matrixnm.cpp
+                            docs_examples/demos/docs_demo_ode_solvers.cpp
+                            docs_examples/demos/docs_demo_polynom.cpp
+                            docs_examples/demos/docs_demo_root_finding.cpp
+                            docs_examples/demos/docs_demo_surface_integration.cpp
+                            docs_examples/demos/docs_demo_tensors.cpp
+                            docs_examples/demos/docs_demo_vector.cpp
+                            docs_examples/demos/docs_demo_visualizers.cpp
+                            docs_examples/demos/docs_demo_volume_integration.cpp
+                            
+                            docs_examples/demos/main_docs_demos.cpp
 )
 add_executable(DocsApp ${MML_DOCS_APP_SOURCES})
 target_include_directories(DocsApp PRIVATE include)

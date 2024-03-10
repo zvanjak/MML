@@ -9,7 +9,6 @@
 
 using namespace MML;
 
-// TODO 0.9
 void Example6_electric_charge_distribution()
 {
     std::cout << "***********************************************************************" << std::endl;

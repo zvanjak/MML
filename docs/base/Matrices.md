@@ -11,19 +11,3 @@ Additional types
 - MatrixTridiag
 - MatrixBandDiag
 
-
-## Defined typedefs for easier use
-
-Matrix class
-~~~ c++
-    typedef Matrix<int>     MatrixInt;
-    typedef Matrix<float>   MatrixFlt;
-    typedef Matrix<double>  MatrixDbl;
-    typedef Matrix<Complex> MatrixComplex;
-
-    typedef Matrix<int>     MatI;
-    typedef Matrix<float>   MatF;
-    typedef Matrix<double>  MatD;
-    typedef Matrix<Complex> MatC; 
-~~~
-

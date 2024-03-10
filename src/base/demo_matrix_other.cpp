@@ -39,7 +39,7 @@ void Demo_Matrix_Tridiag()
     std::cout << "***********************************************************" << std::endl;
 
     // initializing with 3 vectors
-    TridiagonalMatrix<Real> a(4, {0.0, 4.5, 9.0, 10.0}, {4.0, 1.5, 6.0, 7.0}, {1.0, 2.0, 3.0, 0.0}  );
+//    TridiagonalMatrix<Real> a(4, {0.0, 4.5, 9.0, 10.0}, {4.0, 1.5, 6.0, 7.0}, {1.0, 2.0, 3.0, 0.0}  );
 
     // initializing with values in single initializer list
     TridiagonalMatrix<Real> b(4, {  4.0, 1.0,
@@ -58,14 +58,14 @@ void Demo_Matrix_Tridiag()
                             0.0, 0.0, 10.0, 7.0 });   
     Vector<Real> rhs{1.0, 2.0, 3.0, 4.0};
 
-    a.Print(std::cout, 10, 3);
+    //a.Print(std::cout, 10, 3);
     b.Print(std::cout, 10, 3);
     std::cout << "rhs: " << rhs << std::endl;
 
     Vector<Real> sol_a(4);
     Vector<Real> sol_b(4);
 
-    a.Solve(rhs, sol_a);
+    //a.Solve(rhs, sol_a);
     b.Solve(rhs, sol_b);
 
     std::cout << "sol_a: " << sol_a << std::endl;

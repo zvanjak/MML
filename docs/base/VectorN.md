@@ -74,3 +74,32 @@ Vector class
     std::cout << vec_cmplx_2.to_string(10, 5) << std::endl;
     vec_cmplx_2.Print(std::cout, 7, 3);  
 ~~~
+
+## Defined typedefs for easier use
+
+VectorN class
+~~~ c++
+    typedef VectorN<float, 2> Vector2Flt;
+    typedef VectorN<float, 3> Vector3Flt;
+    typedef VectorN<float, 4> Vector4Flt;
+
+    typedef VectorN<double, 2> Vector2Dbl;
+    typedef VectorN<double, 3> Vector3Dbl;
+    typedef VectorN<double, 4> Vector4Dbl;
+
+    typedef VectorN<Complex, 2> Vector2Complex;
+    typedef VectorN<Complex, 3> Vector3Complex;
+    typedef VectorN<Complex, 4> Vector4Complex;
+
+    typedef VectorN<float, 2> Vec2F;
+    typedef VectorN<float, 3> Vec3F;
+    typedef VectorN<float, 4> Vec4F;
+
+    typedef VectorN<double, 2> Vec2D;
+    typedef VectorN<double, 3> Vec3D;
+    typedef VectorN<double, 4> Vec4D;
+
+    typedef VectorN<Complex, 2> Vec2C;
+    typedef VectorN<Complex, 3> Vec3C;
+    typedef VectorN<Complex, 4> Vec4C;
+~~~

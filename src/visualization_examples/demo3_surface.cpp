@@ -3,7 +3,7 @@
 #else
 #include "MMLBase.h"
 
-#include "utilities/StdFunctions.h"
+#include "base/StdFunctions.h"
 
 #include "base/VectorN.h"
 
@@ -11,7 +11,7 @@
 #include "core/FieldOperations.h"
 #include "core/Surfaces.h"
 #include "core/Serializer.h"
-#include "core/Vizualizer.h"
+#include "core/Visualizer.h"
 
 #endif
 

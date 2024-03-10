@@ -12,7 +12,7 @@
 
 using namespace MML;
 
-void Matirx_Simple_demo()
+void Matrix_Simple_demo()
 {
     // initialize a matrix with 5 rows and 3 columns
     Matrix<Real> mat(3, 3, {1, 2, 3,

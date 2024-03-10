@@ -3,11 +3,10 @@
 #else
 #include "MMLBase.h"
 
-#include "utilities/StdFunctions.h"
-
+#include "base/StdFunctions.h"
 #include "base/VectorN.h"
-#include "core/Function.h"
 
+#include "core/Function.h"
 #include "core/Curves.h"
 #include "core/Surfaces.h"
 #endif
@@ -52,6 +51,16 @@ void Demo_Function()
     VectorFunctionNM<2, 3>  funcVectorNM([](const VectorN<Real, 2> &x) { return VectorN<Real, 3>{0, x[0] * x[1], 0}; });
     ParametricCurve<3>      paramCurve([](Real x) { return VectorN<Real, 3>{x, 2 * x, 3 * x}; });
     ParametricSurface<3>    paramSurface([](Real x, Real y) { return VectorN<Real, 3>{x * y, 2 * x * y, 3 * x}; });
+
+    ScalarFunction<3> two_masses_gravity_field_potential{ [](const VectorN<Real, 3>& x)
+    {
+        const VectorN<Real, 3> x1{ 10.0, 0.0, 0.0 };
+        const VectorN<Real, 3> x2{ -10.0, 0.0, 0.0 };
+        const Real m1 = 1000.0;
+        const Real m2 = 1000.0;
+        const Real G = 1.0;
+        return -G * m1 / (x - x1).NormL2() - G * m2 / (x - x2).NormL2();
+    } };
 
     VectorN<Real, 3> p1{2.0, 2.0, 5};
     

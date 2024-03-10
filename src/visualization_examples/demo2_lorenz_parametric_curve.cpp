@@ -9,7 +9,7 @@
 
 #include "core/Curves.h"
 #include "core/Serializer.h"
-#include "core/Vizualizer.h"
+#include "core/Visualizer.h"
 
 #include "algorithms/ODESystemSolver.h"
 #include "algorithms/ODESystemSteppers.h"

@@ -192,8 +192,8 @@ void NDer_Error_Diff_h_Single_Func(int order, std::string funcName, const TestFu
 
     const int numPntForEval = 20;
 
-    Vector<Real> h_list  = {0.1, 0.01, 0.001, 0.0001, 0.00001};
-    Vector<Real> h_list2 = {0.000001, 0.0000001, 0.00000001, 0.000000001, 0.0000000001};
+    Vector<Real> h_list{0.1, 0.01, 0.001, 0.0001, 0.00001};
+    Vector<Real> h_list2{0.000001, 0.0000001, 0.00000001, 0.000000001, 0.0000000001};
     Vector<Real> err_list(h_list.size(), 0.0);
 
     std::cout << "\nNDer" << order << " DERIVATION ERROR FOR DIFFERENT STEP SIZES" << std::endl;

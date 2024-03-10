@@ -3,16 +3,16 @@
 #else
 #include "MMLBase.h"
 
-#include "utilities/DataContainers.h"
-
 #include "base/Vector.h"
 #include "base/Matrix.h"
 
 #include "core/Function.h"
 #include "core/InterpolatedFunction.h"
 #include "core/Integration.h"
+
+#include "core/ConsolePrinter.h"
 #include "core/Serializer.h"
-#include "core/Vizualizer.h"
+#include "core/Visualizer.h"
 
 #include "algorithms/FunctionAnalyzers.h"
 #endif

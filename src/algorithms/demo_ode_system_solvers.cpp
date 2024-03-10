@@ -7,7 +7,7 @@
 
 #include "base/Vector.h"
 
-#include "core/Vizualizer.h"
+#include "core/Visualizer.h"
 #include "core/Serializer.h"
 
 #include "algorithms/ODESystemSolver.h"
@@ -45,7 +45,6 @@ void Demo_Lorenz_solve()
 void Demo_VanderPol_solve()
 {
     auto sys0 = TestBeds::ODESystemTestBed::getODESystem(1);
-    auto sys_stiff = TestBeds::ODESystemTestBed::getODESystemWithJacobian(0);
 
     const double atol=1.0e-3, rtol=atol, h1=0.01, hmin=0.0, x1=0.0, x2=2.0;
 
@@ -119,7 +118,7 @@ void Demo_VanderPol_solve()
     int nok,  nbad;
     ystart0[0]=2.0;
     ystart0[1]=0.0;
-    RungeKuttaNR2    rkNR2;
+    RungeKuttaSolverSimple   rkNR2;
     ODESystemSolution sol2 = rkNR2.integrate(sys0, ystart0, 0.0, 2.0, 100, 0.1, 1e-06, h1, hmin, nok, nbad);
 
     std::cout << "x values:\n";    sol2._xval.Print(std::cout, 7,3); std::cout << std::endl;
@@ -129,6 +128,8 @@ void Demo_VanderPol_solve()
 
     std::cout << "\n***********************************************************\n";
     std::cout << "******      Stiff system - Rosenbrock method         ******\n";
+
+    auto sys_stiff = TestBeds::ODESystemTestBed::getODESystemWithJacobian(0);
 
     Vector<Real> ystart02(sys_stiff.getDim());
     ystart02[0]=1.0;
@@ -171,7 +172,7 @@ void Demo_SimpleLinearODE_solve()
     std::cout << "x values:\n";    sol.xval.Print(std::cout, 7, 3); std::cout << std::endl;
     std::cout << "y values: - ";   sol.yval.Print(std::cout, 7, 3);
     
-    RungeKuttaNR2    rkNR2;
+    RungeKuttaSolverSimple    rkNR2;
     int nok,  nbad;
     ODESystemSolution sol2 = rkNR2.integrate(sys, sys.getInitialConditions(), 0.0, 2.0, 20, 0.1, 1e-06, h1, hmin, nok, nbad);
 

@@ -32,6 +32,8 @@ public:
 };
 ~~~
 
+Similar definitions for:
+
 **Tensor3\<int Dim>**
 
 **Tensor4\<int Dim>**

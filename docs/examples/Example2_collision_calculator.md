@@ -4,4 +4,4 @@ This example shows how to calculate the collision between two solid spheres in 2
 
 [C++ file with implementation](/docs_examples/examples/example2_collision_calculator.cpp)
 
-// TODO 0.9 - HIGH; implement
+

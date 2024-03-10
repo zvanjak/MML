@@ -12,7 +12,7 @@
 #include "core/Function.h"
 #include "core/InterpolatedFunction.h"
 #include "core/Serializer.h"
-#include "core/Vizualizer.h"
+#include "core/Visualizer.h"
 #endif
 
 
@@ -199,7 +199,7 @@ void Example4_Gravity_field_visualization()
 
 	for (int i = 0; i < config.NumBodies(); i++)
 	{
-		Serializer::SaveAsParamCurve<3>(res[i], "PARAMETRIC_CURVE_CARTESIAN_3D", 0.0, dt*steps, steps+1, 
+		Serializer::SaveAsParamCurve<3>(res[i], "PARAMETRIC_CURVE_CARTESIAN_3D", "Body" + std::to_string(i+1), 0.0, dt * steps, steps + 1,
 																		GLOB_PATH_ResultFiles + "body" + std::to_string(i) + ".txt");
 	}
 

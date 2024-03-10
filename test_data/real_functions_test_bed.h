@@ -6,7 +6,7 @@
 #ifdef MML_USE_SINGLE_HEADER
 #include "MML.h"
 #else
-#include "utilities/StdFunctions.h"
+#include "base/StdFunctions.h"
 
 #include "base/Intervals.h"
 
