@@ -1,14 +1,46 @@
 # MML - Minimal Math Library
-All your basic (numerical) math needs, contained in a single-header file (more clickbaitish title would be Numerical Recipes on Steroids).
+All your basic (numerical) math needs, contained in a single-header file 
 
-## MML Vision
-- For a C++ developer, on Windows, Mac or Linux
-- Who needs a math library to perform simple (and not so simple) numerical calculations 
-- The Minimal Math Library is a general purpose, pythonesque in its focus on simplicity of use, single-header C++ library of classes and functions
+- [Vision](#vision)
+- [Design goals](#design-goals)
+- [Basic facts](#basic-facts)
+- [Organization](#organization)
+    - [Base types](#base-types)
+    - [Core](#core)
+    - [Algorithms](#algorithms)
+- [Examples of real use](#simple-example-of-real-use)
+- [Introductory examples](#introductory-examples)
+    - [Vectors, matrices](#vectors-matrices)
+    - [Solving linear systems of equations and calculating eigenvalues](#solving-linear-systems-of-equations-and-calculating-eigenvalues)
+    - [Defining functions](#defining-functions)
+    - [Creating interpolated functions](#creating-interpolated-functions)
+    - [Working with functions - derivation](#working-with-functions-\--derivation)
+    - [Working with functions - integration](#working-with-functions-\--integration)
+    - [Solving ODE systems](#solving-ODE-system)
+    - [Fields and field operations - grad, div, curl, Laplacian](#fields-and-field-operations-\--grad-div-curl-Laplacian)
+    - [Parametric curves - basic differential geometry](#parametric-curves-\--basic-differential-geometry)
+- [Visualization examples](#visualizators-examples)
+- [Testing and precision](#testing-and-precision)
+- [LICENSING](#LICENSING)
+
+## Vision
+- For a C++ developer, on Windows, Mac or Linux, or ... (with a C++ 20 compliant compiler)
+- Who needs to perform simple (and not so simple) numerical calculations 
+- The Minimal Math Library is a general purpose single-header C++ library of classes and functions, pythonesque in its focus on simplicity of use 
 - That is trivial to use in any kind of project, is C++ 20 cross-platform compatible, and comes with a rich set of functionalities for working with vectors, matrices, tensors, linear systems, polynoms, real, scalar and vector functions, coordinate systems and their transformations, 2D & 3D geometry with algorithms for derivation, integration, interpolation, differential equations solving, root finding, statistics, and more.
 
+## Design goals
+
+There are many, many C++ math libraries in existence, each with its own strengths and weaknesses. MML is designed with the following goals in mind:
+
+- **Simplicity of use**. Making math objects first-class citizens.
+
+- **Trivial integration**. Whole code consists of a single header file [mml.h](https://github.com/zvanjak/MML/blob/master/include/MML.h). No library, no subproject, no dependencies, no complex build system. The code is written in standard C++20.
+
+- **Serious testing and focus on precision**. MML code is heavily [unit-tested](https://github.com/zvanjak/MinimalMathLibrary/tree/master/tests) with a big focus on precision of performed calculations. 
+
+
 ## Basic facts
-- As of now, and for foreseable future, this is unfortunately strictly for personal, research and educational use only (see Licensing at the end)
 - Single-header  - get MML.h, include in your project and go 
 - Cross-platform - tested with Visual Studio Code on Windows (MSVC++, clang), Mac (gcc, clang), Linux (gcc)
 - C++20 standard - but can easily be adapted to C++17, C++14
@@ -24,7 +56,7 @@ All your basic (numerical) math needs, contained in a single-header file (more c
 
 Library is organized in three main groups (you could call them layers), with addition of visualizers as external tools.
 
-**Base**
+### Base types
 
 Basic math types. These are the building blocks of the library, sitting at the lowest layer, depending only on standard library headers (and possibly Vector and Matrix class), and are used in all other parts of the library. 
 - [Vectors](/docs/base/Vectors.md) - Vector, VectorN<int N>, Vector(2)(3)Cartesian, Vector2Polar, Vector3Spherical, Vector3Cylindrical
@@ -39,7 +71,7 @@ Basic math types. These are the building blocks of the library, sitting at the l
 - [Base utils](/docs/base/BaseUtils.md) - general utilities including matrix helper (IsOrthogonal, IsUnitary, IsHermitian)
 - [Algebra](/docs/base/Algebra.md) - groups, permutation group (big TODO!)
 
-**Core**
+### Core 
 
 Core mathematical objects and operations of the library, depending on Base types, and used by MML algorithms.
 Function objects, and different algorithms for working with them are the heart of this layer.
@@ -127,8 +159,8 @@ std::system("..\\..\\tools\\visualizers\\vector_field_visualizer\\MML_VectorFiel
 ~~~
 ![My Image](docs/images/readme_MainExample_EM_field.png)
 
-## More real use examples
-Before basic introductory examples, couple of real examples what it can be used for. With important note that, alas, all of them are still on ToDo list, so it is actually a plan 🙄
+### And some more real use examples
+With important note that, alas, all of them are still on ToDo list, so it is actually a plan 🙄.
 - at elevation 45deg, ball is fired with speed 10, 100, 1000, 10e5, 10e7 m/s, where it will be in half an hour? [link](/docs/examples/Example1_kosi_hitac.md)
 - collision calculator, 2D and 3D - [link](/docs/examples/Example2_collision_calculator.md)
 - calculating tensor of inertia - [link](/docs/examples/Example3_tensor_of_inertia.md)
@@ -140,7 +172,7 @@ Before basic introductory examples, couple of real examples what it can be used 
 
 In the following sections, some basic examples of using the library are given.
 
-**Vectors, matrices**
+### Vectors, matrices
 
 Examples of basic vector and matrix operations
 ~~~ c++
@@ -192,7 +224,7 @@ std::cout << "IsUnitary(mat_cmplx)   = " << MatrixUtils::IsUnitary(mat_cmplx) <<
 */
 ~~~
 
-**Solving linear systems of equations and calculating eigenvalues**
+### Solving linear systems of equations and calculating eigenvalues
 
 How to solve linear systems of equations, and calculate eigenvalues
 ~~~ c++
@@ -236,7 +268,7 @@ std::cout << "\nComplex     : "; eigenSolver.getComplexEigenvalues().Print(std::
 */
 ~~~
 
-**Defining functions**
+### Defining functions
 
 Four (main) possibilities for defining/creating functions of various types
 ~~~ c++
@@ -300,7 +332,7 @@ BigComplexClassYouCantChange bigObj;
 BigComplexFunc2    f1(bigObj);          // usable RealFunction object (can be derived, integrated, ...)
 ~~~
 
-**Creating interpolated functions**
+### Creating interpolated functions
 
 If there is no explicit function, but we have data, there are various ways to create interpolated function
 ~~~ c++
@@ -338,7 +370,7 @@ Visualization of test func, and interpolations for NumInterpPnt = 5, 8 and 12
 
 ![My Image](docs/images/readme_interpolated_functions.png)
 
-**Working with functions - derivation**
+### Working with functions - derivation
 
 How to calculate numerical derivation of various types of functions
 ~~~ c++
@@ -456,7 +488,7 @@ Total abs error =                      1.881272e-06                  4.144644e-0
 */
 ~~~
 
-**Working with functions - integration**
+### Working with functions - integration
 
 Examples of integration real functions, but also 2D and 3D scalar functions
 ~~~ c++
@@ -582,7 +614,7 @@ Total abs error =                                3.03148319e-02                 
 */
 ~~~
 
-**Solving ODE system**
+### Solving ODE system
 
 Solving system of ordinary differential equations
 ~~~ c++
@@ -614,7 +646,7 @@ Resulting images
 
 ![My Image](docs/images/readme_ODEsolvers.png)
 
-**Fields and field operations - grad, div, curl, Laplacian**
+### Fields and field operations - grad, div, curl, Laplacian
 
 Using as example inverse radial field, with its potential and force field, demonstrate calculation of field gradient, divergence, curl and Laplacian
 Calculations are performed in Cartesian and spherical coordinates, along circle in XZ-plane, and covariant vector transformation is also demonstrated
@@ -738,7 +770,8 @@ for(double t=0.0; t<2*Constants::PI; t+=1)
 [    9.6,       0,   -2.79] = [         0, -2.769e-15,          0]  [         0,          0,          0]         6.892316579e-13         7.464116131e-13
 */
 ~~~
-**Parametric curves - basic differential geometry**
+
+### Parametric curves - basic differential geometry
 
 Calculating tangent, normal, binormal, curvature, curvature3, curvature vector for Parametric curve.
 ~~~ c++
@@ -763,7 +796,6 @@ auto curv_vec   = ParametricCurveAnalyzer::getCurvatureVector(test_curve, t);
 auto curvature  = ParametricCurveAnalyzer::getCurvature(test_curve, t);
 auto curvature3 = ParametricCurveAnalyzer::getCurvature3(test_curve, t);
 ~~~
-
 
 ## Visualizators examples
 
@@ -880,7 +912,6 @@ f(x) = 1 / (x - 1) - Function analysis in interval [-5.00000000, 5.00000000] wit
   Max        : inf
 */
 ~~~
-
 
 ## Testing and precision
 
