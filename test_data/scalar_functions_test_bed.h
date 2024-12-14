@@ -80,7 +80,6 @@ namespace MML::TestBeds
             // d/dz((sin(x y) exp(z/(y y + 1)))/(1 + x x)) = (e^(z/(y^2 + 1)) sin(x y))/((x^2 + 1) (y^2 + 1))
               TestScalarFunc2_derived, "(e^(z/(y^2 + 1)) ((x^2 + 1) y cos(x y) - 2 x sin(x y)))/(x^2 + 1)^2; (e^(z/(y^2 + 1)) (x (y^2 + 1)^2 cos(x y) - 2 y z sin(x y)))/((x^2 + 1) (y^2 + 1)^2); (e^(z/(y^2 + 1)) sin(x y))/((x^2 + 1) (y^2 + 1))" }               
         };
-        
     };
 }
 

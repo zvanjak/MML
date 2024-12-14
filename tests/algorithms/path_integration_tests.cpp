@@ -8,4 +8,8 @@
 
 using namespace MML;
 
-// TODO - HIGH, EMPTY!!! - Test for path integration
+namespace MML::Tests::Algorithms::PathIntegrationTests
+{
+	TEST_CASE("Test_Path_integration", "[simple]") {
+	}
+}

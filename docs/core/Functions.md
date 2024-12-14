@@ -304,7 +304,6 @@ public:
 template<int N>
 class ParametricSurface : public IParametricSurface<N>
 {
-	// TODO - ensure that N is at least 3!!!
 	Real _minX;
 	Real _maxX;
 	Real _minY;
@@ -321,8 +320,6 @@ public:
 	virtual Real getMaxX() const { return _maxX; }
 	virtual Real getMinY() const { return _minY; }
 	virtual Real getMaxY() const { return _maxY; }
-
-	// TODO - double getStartY(double x) const;     // ako surface patch  nije kvadratni
 };
 
 // imati cemo i surface Discrete, kreiran od triangles?

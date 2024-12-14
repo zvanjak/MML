@@ -1,6 +1,6 @@
 # Matrix class
 
-Class representing matrix of statically define type (template parameter) and dynamically defined size.
+Class representing matrix of statically defined type (template parameter) and dynamically defined size.
 
 ## Class definition
 ~~~ c++

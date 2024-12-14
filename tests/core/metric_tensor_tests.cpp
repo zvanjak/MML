@@ -6,6 +6,8 @@
 #include "base/Tensor.h"
 
 #include "core/CoordTransf.h"
+#include "core/CoordTransf/CoordTransfSpherical.h"
+#include "core/CoordTransf/CoordTransfCylindrical.h"
 #include "core/MetricTensor.h"
 
 #include "base/Geometry3D.h"
@@ -13,26 +15,28 @@
 
 using namespace MML;
 
-// TODO 0.9 - HIGH, BIG!!! verify that generating tensor from transf works
-TEST_CASE("Test_Metric_Tensors", "[simple]") {
-    MetricTensorCartesian<3> metricCart;
-    MetricTensorSpherical metricSpher;
-    MetricTensorCylindrical metricCyl;
-    
-    CoordTransfSphericalToCartesian coordTransfSpherToCart;
+namespace MML::Tests::Core::MetricTensorTests
+{
+	// TODO 0.9 - HIGH, BIG!!! verify that generating tensor from transf works
+	TEST_CASE("Test_Metric_Tensors", "[simple]") {
+		MetricTensorCartesian<3> metricCart;
+		MetricTensorSpherical metricSpher;
+		MetricTensorCylindrical metricCyl;
 
-    MetricTensorFromCoordTransf<Vector3Spherical, Vector3Cartesian, 3> metricSpherFromCart(coordTransfSpherToCart);
-    // using static 
-    MetricTensorFromCoordTransf<Vector3Spherical, Vector3Cartesian, 3> metricSpherFromCart2(CoordTransfSpherToCart);
+		CoordTransfSphericalToCartesian coordTransfSpherToCart;
 
-    Vector3Cartesian pos(1.0, 2.0, -1.0);
-    Vector3Spherical posSpher = CoordTransfSpherToCart.transf(pos);
-    Vector3Cylindrical posCyl = CoordTransfCylToCart.transf(pos);
+		MetricTensorFromCoordTransf<Vector3Spherical, Vector3Cartesian, 3> metricSpherFromCart(coordTransfSpherToCart);
+		// using static 
+		MetricTensorFromCoordTransf<Vector3Spherical, Vector3Cartesian, 3> metricSpherFromCart2(CoordTransfSpherToCart);
 
-    auto cart_metric = metricCart(pos);
+		Vector3Cartesian pos(1.0, 2.0, -1.0);
+		Vector3Spherical posSpher = CoordTransfSpherToCart.transf(pos);
+		Vector3Cylindrical posCyl = CoordTransfCylToCart.transf(pos);
 
-    auto spher_metric = metricSpher(posSpher);
+		auto cart_metric = metricCart(pos);
 
-    auto cyl_metric = metricCyl(posCyl);
-}
+		auto spher_metric = metricSpher(posSpher);
 
+		auto cyl_metric = metricCyl(posCyl);
+	}
+} // namespace MML::Tests::Core::MetricTensorTests

@@ -15,7 +15,9 @@ using namespace MML::TestBeds;
 // For given RealFunction
 // and given interval of test points
 // produces table of first derivation error order for different derivation orders
-void NDer_Error_Order_Diff_Der_Orders_Single_Func(std::string funcName, const TestFunctionReal  &inFunc, std::vector<Real> intervalPoints)
+
+// TODO - napraviti slicnu funkciju, ali koja dobiva DVIJE RealFunction, funkciju i njenu eksplicitnu derivaju, i pdorucira usporedbu
+void NDer_Error_Order_Diff_Der_Orders_Single_Func(std::string funcName, const TestFunctionReal &inFunc, std::vector<Real> intervalPoints)
 {
     std::vector<int> nder_orders{1, 2, 4, 6, 8};
 

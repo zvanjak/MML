@@ -8,6 +8,9 @@
 
 using namespace MML;
 
-// TODO - HIGH, EMPTY!!! - implement these tests
-TEST_CASE("Test_Root_finding_multidim", "[simple]") {
+namespace MML::Tests::Algorithms::RootFindingTests
+{
+	// TODO - HIGH, EMPTY!!! - implement these tests
+	TEST_CASE("Test_Root_finding", "[simple]") {
+	}
 }

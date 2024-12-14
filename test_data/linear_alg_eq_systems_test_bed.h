@@ -50,7 +50,7 @@ namespace MML::TestBeds
     {
     public:
         int _n;
-        MatrixSym<Real> _mat;        // MatrixSymm is not implemented yet
+        MatrixSym<Real> _mat;
         VectorDbl _rhs;
         VectorDbl _sol;
         VectorDbl _eigen_values;

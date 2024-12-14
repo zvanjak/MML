@@ -35,13 +35,9 @@ void Test_Precision_Integration_Single_Func()
 
 		double integral = f_int(x) - f_int(x1);
 
-		double int_trap = MML::IntegrateTrap(f, x1, x, 1e-3);
-		double int_simp = MML::IntegrateSimpson(f, x1, x, 1e-3);
-		double int_romb = MML::IntegrateRomberg(f, x1, x);
+		double int_trap = MML::IntegrateTrap(f, x1, x, 1e-3, nullptr);
 
 		double err1 = int_trap - integral;
-		double err2 = int_simp - integral;
-		double err3 = int_romb - integral;
 
 		std::cout << "[" << std::fixed
 			<< std::setw(6) << std::setprecision(3) << x1 << ", "
@@ -49,15 +45,9 @@ void Test_Precision_Integration_Single_Func()
 			<< std::setw(13) << std::setprecision(8) << integral << " "
 			<< std::setw(13) << std::setprecision(8) << int_trap << "   "
 			<< std::scientific << std::setw(15) << err1 << "   " << std::fixed
-			<< std::setw(13) << std::setprecision(8) << int_simp << "   "
-			<< std::scientific << std::setw(15) << err2 << "   " << std::fixed
-			<< std::setw(13) << std::setprecision(8) << int_romb << "   "
-			<< std::scientific << std::setw(15) << err3 << "   " << std::fixed
 			<< std::endl;
 
 		err_sum1 += std::abs(err1);
-		err_sum2 += std::abs(err2);
-		err_sum3 += std::abs(err3);
 	}
 
 	std::cout << "--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------" << std::endl;

@@ -8,8 +8,19 @@
 
 using namespace MML;
 
-// TODO - HIGH, EMPTY!!! - implement these tests
-TEST_CASE("Test_Diff_Eq_Solvers", "[simple]") {
-}
+namespace MML::Tests::Algorithms::ODESystemSolverTests
+{
 
-// najprije RK dumb
+	// TODO - HIGH, EMPTY!!! - implement these tests
+	TEST_CASE("Test_Diff_Eq_Solvers", "[simple]") {
+	}
+
+	/*********************************************************************/
+	/*****               RungeKuttaSolverDumb tests                  *****/
+	/*********************************************************************/
+
+	/*********************************************************************/
+	/*****              RungeKuttaSolverSimple tests                 *****/
+	/*********************************************************************/
+
+}

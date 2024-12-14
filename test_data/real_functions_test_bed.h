@@ -6,7 +6,7 @@
 #ifdef MML_USE_SINGLE_HEADER
 #include "MML.h"
 #else
-#include "base/StdFunctions.h"
+#include "base/StandardFunctions.h"
 
 #include "base/Intervals.h"
 
@@ -353,8 +353,8 @@ namespace MML::TestBeds
                             [](Real x) { return 4*x*(x*x-7)*sin(x)-((Real) pow(x,4.0)-14*x*x+28)*cos(x);},  "4.0*x*(x*x-7.0)*sin(x)-(pow(x,4.0)-14.0*x*x+28.0)*cos(x)"},                                   
                 {"TestInt2", new CompleteRInterval(), 
                             new OpenInterval(-20.0, 20.0 ),
-                            [](Real x) { return sin(x);},  "sin(x)", 
-                            [](Real x) { return -cos(x);},  "-cos(x)"},
+                            [](Real x) { return 1.0 / (4.0 + x*x);},  "1 / (4 + x*x)", 
+                            [](Real x) { return 0.5 * atan(x/2);},  "1 / 2 * atan(x/2)"},
                 {"TestInt3", new CompleteRInterval(), 
                             new OpenInterval(-20.0, 20.0 ),
                             [](Real x) { return sin(x);},  "sin(x)", 

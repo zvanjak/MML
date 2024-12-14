@@ -5,9 +5,9 @@
 
 #include "core/Function.h"
 
-#include "core/Fields.h"
 #endif
 
+#include "../test_data/Fields.h"
 
 using namespace MML;
 

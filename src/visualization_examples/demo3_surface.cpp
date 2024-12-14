@@ -3,15 +3,16 @@
 #else
 #include "MMLBase.h"
 
-#include "base/StdFunctions.h"
+#include "base/StandardFunctions.h"
 
 #include "base/VectorN.h"
 
 #include "core/Function.h"
 #include "core/FieldOperations.h"
-#include "core/Surfaces.h"
-#include "core/Serializer.h"
-#include "core/Visualizer.h"
+#include "core/CurvesSurfaces.h"
+
+#include "tools/Serializer.h"
+#include "tools/Visualizer.h"
 
 #endif
 
