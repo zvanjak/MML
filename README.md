@@ -1,5 +1,5 @@
 # MML - Minimal Math Library
-Minimal Math Library is my attempt at creating simple and widely usable math library for C++, where with just one #include "mml.h" directive you can get most of the basic math objects and operations you might need. 
+Minimal Math Library is my attempt at creating a simple and widely usable math library for C++, where with just one #include "mml.h" directive you can get most of the basic math objects and operations you might need. 
 
 It started as a simple wrapper around routines from Numerical Recipes in C++ but as it evolved I decided to separate my contributions from Numerical Recipes algorithms so I could be able to release it under my own licensing terms.
 
@@ -107,7 +107,6 @@ Algorithms for solving mathematical problems. These are the algorithms of the li
 - [Root finding](/docs/algorithms/Root_finding.md) - different root finding algorithms (bracketing, Newton-Raphson)
 - [Statistics](/docs/algorithms/Statistics.md) - basics - avg, std, var, cov, corr
 - [Function analyzer](/docs/algorithms/Function_analyzer.md) - analyzing functions, finding roots, extrema, inflection points, etc.
-- [Fourier transformation](/docs/algorithms/Fourier_transformation.md) - TODO
 
 **Visualizers**
 
