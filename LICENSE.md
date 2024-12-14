@@ -1,8 +1,15 @@
-Code is given as it is, without any warranty. Use it at your own risk.
+If you would like to use this code in some kind of personal, educational or research project, without any commercial association, you should head to [Numerical Recipes on Steroids](https://github.com/zvanjak/NRS) repository. 
 
-STRICTLY NON-COMMERCIAL USE ONLY!
+If you would like to use this code in an Open Source project, your destination is [OpenSourceMML](https://github.com/zvanjak/OpenSourceMML) repository.
 
-Unfortunately, also unavailable for Open Source project, due to restrictive Numerical Recipes license.
+If something in this code could be useful to you in a commercial project, contact me at [zvonimir.vanjak@quantum-soft.hr](mailto:zvonimir.vanjak@quantum-soft.hr]), and these are the general terms:
 
-So basically, it is for personal, educational and research use only.
-```
+- Price of license is 10 USD
+- One time payment for unlimited use of code as it is given
+- And the right to one year of support, including any updates and bug fixes
+
+Clarifications:
+- I will figure payment when there is some interes :), but it will probabl be Paypal for start
+- Code is given for USE, not MODIFICIATION, but I am open to suggestions
+- For one year after your purchase you have a right to acquire and use any code changes, updates or bug fixes that are made in the code
+

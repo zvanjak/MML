@@ -1,5 +1,14 @@
 # MML - Minimal Math Library
-All your basic (numerical) math needs, contained in a single-header file 
+Minimal Math Library is my attempt at creating simple and widely usable math library for C++, where with just one #include "mml.h" directive you can get most of the basic math objects and operations you might need. 
+
+It started as a simple wrapper around routines from Numerical Recipes in C++ but as it evolved I decided to separate my contributions from Numerical Recipes algorithms so I could be able to release it under my own licensing terms.
+
+You can find version of MML with included Numerical Recipes algorithms in the [Numerical Recipes on Steroids](https://github.com/zvanjak/NRS) Git repository, which is your preferred starting point for all personal, educational or research projects as it is a much more powerful library with a lot of Numerical Recipes functionality.
+
+For use in Open Source project, there is [OpenSourceMML](https://github.com/zvanjak/OpenSourceMML), released with GPL 3.0 license.
+
+
+### Page contents
 
 - [Vision](#vision)
 - [Design goals](#design-goals)
@@ -21,23 +30,24 @@ All your basic (numerical) math needs, contained in a single-header file
     - [Parametric curves - basic differential geometry](#parametric-curves-\--basic-differential-geometry)
 - [Visualization examples](#visualizators-examples)
 - [Testing and precision](#testing-and-precision)
-- [LICENSING](#LICENSING)
+
 
 ## Vision
-- For a C++ developer, on Windows, Mac or Linux, or ... (with a C++ 20 compliant compiler)
-- Who needs to perform simple (and not so simple) numerical calculations 
-- The Minimal Math Library is a general purpose single-header C++ library of classes and functions, pythonesque in its focus on simplicity of use 
-- That is trivial to use in any kind of project, is C++ 20 cross-platform compatible, and comes with a rich set of functionalities for working with vectors, matrices, tensors, linear systems, polynoms, real, scalar and vector functions, coordinate systems and their transformations, 2D & 3D geometry with algorithms for derivation, integration, interpolation, differential equations solving, root finding, statistics, and more.
+- For a C++ developer, on Windows, Mac or Linux, or any kind of platform with a C++ 20 compliant compiler
+- Who needs a simple way to perform common numerical calculations 
+- The Minimal Math Library is a general purpose single-header C++ library of classes and functions, primarily focused on completness and simplicity of use 
+- That is C++ 20 cross-platform compatible, and comes with a rich set of functionalities for working with vectors, matrices, tensors, linear systems, polynoms, real, scalar and vector functions, coordinate systems and their transformations, 2D & 3D geometry with algorithms for derivation, integration, interpolation, differential equations solving, root finding, statistics, and more.
+- Unlike most of the other C++ math libraries with similar scope and capabilities, MML is trivial to use in any kind of project with just one header file you need to include
 
 ## Design goals
 
 There are many, many C++ math libraries in existence, each with its own strengths and weaknesses. MML is designed with the following goals in mind:
 
-- **Simplicity of use**. Making math objects first-class citizens.
+- **Completness and simplicity of use**. Making math objects first-class citizens and covering most of the relevant numerical calculations one might need.
 
-- **Trivial integration**. Whole code consists of a single header file [mml.h](https://github.com/zvanjak/MML/blob/master/include/MML.h). No library, no subproject, no dependencies, no complex build system. The code is written in standard C++20.
+- **Trivial integration**. Whole code is contained in a single header file [mml.h](https://github.com/zvanjak/MML/blob/master/include/MML.h). No library, no subproject, no dependencies, no complex build system. The code is written in standard C++20.
 
-- **Serious testing and focus on precision**. MML code is heavily [unit-tested](https://github.com/zvanjak/MinimalMathLibrary/tree/master/tests) with a big focus on precision of performed calculations. 
+- **Testing and focus on precision**. MML code is heavily [unit-tested](https://github.com/zvanjak/MML/tree/master/tests) with a big focus on precision of performed calculations. 
 
 
 ## Basic facts
@@ -46,7 +56,7 @@ There are many, many C++ math libraries in existence, each with its own strength
 - C++20 standard - but can easily be adapted to C++17, C++14
 - Pythonesque in its focus on simplicity of use, and focused on faithful modeling of mathematical entities (while trying as much as possible to retain C++ computational efficiency)
 - Currently, visualizators are available only on Windows platform
-- Console based demo and example apps are CMake based, and should work out of the box on Windows, Mac and Linux if you are using Visual Studio Code
+- Console based demos and example apps are CMake based, and should work out of the box on Windows, Mac and Linux if you are using Visual Studio Code
 
 **Is there really a need for another C++ math library?**
 - Main benefit, and the reason I did all this is attempt at completeness, and simplicity of use (also, tensors ❤️).
@@ -65,11 +75,8 @@ Basic math types. These are the building blocks of the library, sitting at the l
 - [Polynoms](/docs/base/Polynoms.md) - general Polynom class (tested for Real, Complex and Matrix as field type)
 - [Geometry](/docs/base/Geometry.md) - pure geometry: points, triangles
 - [2D & 3D geometry](/docs/base/Geometry_2D_3D.md) - analytic geometry in 2D and 3D
-- [Vector spaces](/docs/base/Vector_spaces.md) - vector space, normed vector space, metric (Hilbert) space (still much to do here!)
-- [Functionals, operators, quadratic forms](/docs/base/Operators.md)  - linear functional, quadratic form, linear operator (much to do here!)
 - [Standard functions](/docs/base/Standard_functions.md) - definition of available standard functions
 - [Base utils](/docs/base/BaseUtils.md) - general utilities including matrix helper (IsOrthogonal, IsUnitary, IsHermitian)
-- [Algebra](/docs/base/Algebra.md) - groups, permutation group (big TODO!)
 
 ### Core 
 
@@ -84,13 +91,13 @@ Function objects, and different algorithms for working with them are the heart o
 - [Numerical derivation](/docs/core/Derivation.md) - orders 1, 2, 4, 6, 8 for IRealFunction, IScalarFunction, IVectorFunction, IParametricCurve, IParametricSurface, ITensorField
 - [Field operations](/docs/core/Vector_field_operations.md) - grad, div, curl, Laplacian in general, Cartesian, cylindrical and spherical coordinates
 - [Numerical integration](/docs/core/Integration.md) - Trapezoidal, Simpson, Romberg basic integration algorithms
-- [Multidim integration](/docs/core/Multidim_integration.md) - calculating 2D and 3D (cartesian) integrals
+- [Multidimensinal integration](/docs/core/Multidim_integration.md) - calculating 2D and 3D (cartesian) integrals
 - [ODE system](/docs/core/ODE_system.md) - represents a dynamical system of ordinary differential equations
 - [Coordinate transformations](/docs/core/Coordinate_transformations.md) - General, Cartesian, Cylindrical, Spherical  
 - [Metric tensor](/docs/core/Metric_tensor.md) - predefined metric tensors in General, Cartesian, Cylindrical and Spherical coordinates
-- [Function spaces](/docs/core/Function_spaces.md) - Hermitian, Legendre, Laguerre, Chebyshev, Fourier spaces (much to do here!)
 
-**Algorithms**
+
+### Algorithms
 
 Algorithms for solving mathematical problems. These are the algorithms of the library, depending on Base and Core types.
 - [Eigen solvers](/docs/algorithms/Eigen_solvers.md) - solving eigenvalue problems for symmetric and non-symmetric real matrices
@@ -943,9 +950,3 @@ Default precisions for algorithms are set in [Defaults](/docs/testing_precision/
 - [Integration precision](/docs/testing_precision/TestIntegrationPrecision.md) - investigating precision of numerical integration
 - [Interpolation precision](/docs/testing_precision/TestInterpolationPrecision.md) - investigating precision of interpolation
 - [Vector fields operations precision](/docs/testing_precision/TestVectorFieldOperationsPrecision.md) - investigating precision vector field operations
-
-## LICENSING
-- Code is given as it is, without any warranty. Use it at your own risk (and convenience).
-- STRICTLY NON-COMMERCIAL USE ONLY!
-- Unfortunately, also unavailable for Open Source project, due to restrictive Numerical Recipes license (for which code I have only personal license).
-- So basically, it is for personal, educational and research use only.
