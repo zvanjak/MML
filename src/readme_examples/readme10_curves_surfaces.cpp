@@ -3,10 +3,8 @@
 #else
 #include "MMLBase.h"
 
-#include "core/Function.h"
-#include "core/CurvesSurfaces.h"
-
-#include "algorithms/ParametricCurveAnalyzer.h"
+#include "base/Function.h"
+#include "core/Curves.h"
 #endif
 
 #include "../test_data/parametric_curves_test_bed.h"
@@ -20,29 +18,28 @@ void Readme_curves_surfaces()
     std::cout << "***********************************************************************" << std::endl;
 
     // creating curve directly with lambda
-    ParametricCurve<3>        test_curve1( [](Real t) -> VectorN<Real, 3> { return VectorN<Real, 3>{t, t*t, t*t*t}; } );
+    Curves::CurveCartesian3D test_curve1([](Real t) -> VectorN<Real, 3> { return VectorN<Real, 3>{t, t*t, t*t*t}; });
     
     // using predefined curve
-    Curves2D::LemniscateCurve     lemniscate;
-    Curves3D::ToroidalSpiralCurve torus(3, 2.0);
+    Curves::LemniscateCurve     lemniscate;
+    Curves::ToroidalSpiralCurve torus(3, 2.0);
     
     // using curve from TestData
-    const ParametricCurve<3> &test_curve = TestBeds::ParametricCurvesTestBed::getTestCurve("Helix")._curve;
+    const Curves::CurveCartesian3D &test_curve = TestBeds::ParametricCurvesTestBed::getTestCurve("Helix")._curve;
 
     // interpolated curve
 
     // as a result of OE solution
 
     double t = 0.5;
-    auto tangent   = ParametricCurveAnalyzer::getTangent(test_curve, t);
-    auto unit_tang = ParametricCurveAnalyzer::getTangentUnit(test_curve, t);
-    auto normal    = ParametricCurveAnalyzer::getNormal(test_curve, t);
-    auto unit_norm = ParametricCurveAnalyzer::getNormalUnit(test_curve, t);
-    auto binormal  = VectorProd(Vector3Cartesian(unit_tang), Vector3Cartesian(unit_norm));
+    auto tangent   = test_curve1.getTangent(t);
+    auto unit_tang = test_curve1.getTangentUnit(t);
+    auto normal    = test_curve1.getNormal(t);
+    auto unit_norm = test_curve1.getNormalUnit(t);
+    auto binormal  = test_curve1.getBinormal(t);
     
-    auto curv_vec   = ParametricCurveAnalyzer::getCurvatureVector(test_curve, t);
-    auto curvature  = ParametricCurveAnalyzer::getCurvature(test_curve, t);
-    auto curvature3 = ParametricCurveAnalyzer::getCurvature3(test_curve, t);
+    auto curv_vec   = test_curve1.getCurvatureVector(t);
+    auto curvature  = test_curve1.getCurvature(t);
     
     // TODO 1.0 - vizualizirati neku krivulju, i u jednoj točki vizualizirati (World view) 3 vektora tangente, normale i binormale, te vektore zakrivljenosti
 }

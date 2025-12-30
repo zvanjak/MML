@@ -21,7 +21,7 @@ void Matrix_Simple_demo()
     // right side vector
     Vector<Real> rhs({1, 2, 3});
 
-    GaussJordanSolver<Real>::Solve(mat, rhs);
+    GaussJordanSolver<Real>::SolveInPlace(mat, rhs);
 }
 
 void Test_GaussJordan_solver()
@@ -35,7 +35,7 @@ void Test_GaussJordan_solver()
     std::cout << "Initial matrix:\n";    matcopy.Print(std::cout,10,3);
     std::cout << "Right side:\n";        rhscopy.Print(std::cout,10,3);
 
-    GaussJordanSolver<Real>::Solve(matcopy, rhscopy);
+    GaussJordanSolver<Real>::SolveInPlace(matcopy, rhscopy);
 
     Vector<Real> solVec = rhscopy.VectorFromColumn(0);
     std::cout << "Solution:\n" << solVec << std::endl;

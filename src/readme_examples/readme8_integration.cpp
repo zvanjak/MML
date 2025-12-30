@@ -3,7 +3,7 @@
 #else
 #include "MMLBase.h"
 
-#include "core/Function.h"
+#include "base/Function.h"
 #include "core/FunctionHelpers.h"
 #include "core/Derivation.h"
 #include "core/Integration.h"
@@ -23,7 +23,7 @@ void Readme_integrating_functions()
 	double b = 10.0;
 	double int_trap = IntegrateTrap(f1, a, b);
 	// we can use default Integrate routine (set to IntegrateSimpson), requires precision
-	double int_def = Integrate(f1, a, b, 1e-04, nullptr);
+	double int_def = Integrate(f1, a, b, 1e-04);  // Returns IntegrationResult, implicit conversion to Real
 
 	std::cout << "Integrating function f1 from " << a << " to " << b << std::endl;
 	std::cout << "Exact integral   = " << f1_integral(b) - f1_integral(a) << std::endl;
@@ -33,7 +33,7 @@ void Readme_integrating_functions()
 	ScalarFunction<2> f2([](const VectorN<Real, 2>& x) { return Real{ 1 }; });
 
 	// we integrate over circle with radius 2
-	Real val = IntegrateSurface(f2, IntegrationMethod::GAUSS10,
+	Real val = Integrate2D(f2, IntegrationMethod::GAUSS10,
 		-2, 2,              // x range
 		[](Real x) { return -sqrt(4 - x * x); },   // y range lower limit
 		[](Real x) { return sqrt(4 - x * x); });   // y range upper limit
@@ -44,12 +44,12 @@ void Readme_integrating_functions()
 	ScalarFunction<3> f3([](const VectorN<Real, 3>& x) { return Real{ 1 }; });
 
 	// integration over sphere of radius 1
-	Real vol = IntegrateVolume(f3,
-		-1, 1,
-		[](Real x) { return -sqrt(1 - x * x); },
-		[](Real x) { return sqrt(1 - x * x); },
-		[](Real x, Real y) { return -sqrt(1 - x * x - y * y); },
-		[](Real x, Real y) { return sqrt(1 - x * x - y * y); });
+	Real vol = Integrate3D(f3,
+												-1, 1,
+												[](Real x) { return -sqrt(1 - x * x); },
+												[](Real x) { return sqrt(1 - x * x); },
+												[](Real x, Real y) { return -sqrt(1 - x * x - y * y); },
+												[](Real x, Real y) { return sqrt(1 - x * x - y * y); });
 
 	std::cout << "Calc. vol. = " << vol << ", exact value: 4/3 * PI = " << 4.0 / 3.0 * Constants::PI << std::endl;
 
@@ -79,7 +79,7 @@ void Readme_Integration_precision()
 
 		double integral = f_int(x) - f_int(x1);
 
-		double int_trap = MML::IntegrateTrap(f, x1, x, 1e-3, nullptr);
+		double int_trap = MML::IntegrateTrap(f, x1, x, nullptr, nullptr, 1e-3);
 
 		double err1 = int_trap - integral;
 

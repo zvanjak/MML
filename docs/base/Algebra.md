@@ -1,3 +1,0 @@
-# Algebra
-
-## GroupZ

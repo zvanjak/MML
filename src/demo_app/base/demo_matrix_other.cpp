@@ -29,6 +29,8 @@ void Demo_Matrix_Sym()
                           4.0, 5.0, 6.0}); 
 
     b.Print(std::cout, 10, 3);
+
+    auto c = b.VectorFromRow(0);
 }
 
 void Demo_Matrix_Tridiag()

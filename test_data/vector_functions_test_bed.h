@@ -2,11 +2,12 @@
 #define __MML_VECTOR_FUNCTIONS_TEST_BED_H
 
 #include <string>
+#include <cmath>
 
 #ifdef MML_USE_SINGLE_HEADER
 #include "MML.h"
 #else
-#include "core/Function.h"
+#include "base/Function.h"
 #endif
 
 namespace MML::TestBeds
@@ -21,58 +22,179 @@ namespace MML::TestBeds
 
         std::string _funcExpr;
         std::string _funcDerivedExpr;
-        // curl
+        
+        // Expected vector calculus properties for validation
+        Real _expectedDiv;      // Expected divergence (NaN if position-dependent)
+        Real _expectedCurlMag;  // Expected curl magnitude (NaN if position-dependent)
+        bool _isSolenoidal;     // div F = 0 (incompressible)
+        bool _isIrrotational;   // curl F = 0 (conservative)
 
         TestFunctionVector( std::string funcName,
                             VectorN<Real, N> (*f1)(const VectorN<Real, N> &), std::string funcExpr, 
-                            VectorN<Real, N> (*f2)(const VectorN<Real, N> &, int ind), std::string funcDerivedExpr
+                            VectorN<Real, N> (*f2)(const VectorN<Real, N> &, int ind), std::string funcDerivedExpr,
+                            Real expectedDiv = std::numeric_limits<Real>::quiet_NaN(),
+                            Real expectedCurlMag = std::numeric_limits<Real>::quiet_NaN(),
+                            bool isSolenoidal = false, bool isIrrotational = false
                             ) : _funcName(funcName),
                                 _func(f1), _funcDerived(f2), 
-                                _funcExpr(funcExpr), _funcDerivedExpr(funcDerivedExpr)
+                                _funcExpr(funcExpr), _funcDerivedExpr(funcDerivedExpr),
+                                _expectedDiv(expectedDiv), _expectedCurlMag(expectedCurlMag),
+                                _isSolenoidal(isSolenoidal), _isIrrotational(isIrrotational)
         {}
     };    
 
-    static MML::VectorN<Real, 3> TestVectorFunc1(const VectorN<Real, 3> &xVal) 
+    ///////////////////////////////////////////////////////////////////////////////////////////
+    //                    FUNCTION 1: IDENTITY FIELD (Baseline)                              //
+    ///////////////////////////////////////////////////////////////////////////////////////////
+    // F(x,y,z) = (x, y, z)
+    // Jacobian = Identity matrix
+    // div F = 3 (constant), curl F = 0
+    // Use: Simplest possible test, sanity check for Jacobian computation
+    
+    static MML::VectorN<Real, 3> TestVectorFunc_Identity(const VectorN<Real, 3> &v) 
     {
-        Real x = xVal[0];
-        Real y = xVal[1];
-        Real z = xVal[2];
-
-        Real valx = x*cos(y)*z*z;
-        Real valy = sin(x)*(y*y + z*z);
-        Real valz = exp(x*y/(z*z+1));
-
-        return VectorN<Real, 3>{valx, valy, valz};
+        return VectorN<Real, 3>{v[0], v[1], v[2]};
     }
-    static MML::VectorN<Real, 3> TestVectorFunc1_derived(const VectorN<Real, 3> &xVal, int ind) 
+    static MML::VectorN<Real, 3> TestVectorFunc_Identity_derived(const VectorN<Real, 3> &v, int ind) 
     { 
-        Real x = xVal[0];
-        Real y = xVal[1];
-        Real z = xVal[2];
-// d/dx(x cos(y) z z) = z^2 cos(y)
-// d/dy(x cos(y) z z) = -x z^2 sin(y)
-// d/dz(x cos(y) z z) = 2 x z cos(y)
-
-// d/dx(sin(x) (y y + z z)) = cos(x) (y^2 + z^2)
-// d/dy(sin(x) (y y + z z)) = 2 y sin(x)
-// d/dz(sin(x) (y y + z z)) = 2 z sin(x)
-
-// d/dx(exp((x y)/(z z + 1))) = (y e^((x y)/(z^2 + 1)))/(z^2 + 1)
-// d/dy(exp((x y)/(z z + 1))) = (x e^((x y)/(z^2 + 1)))/(z^2 + 1)
-// d/dz(exp((x y)/(z z + 1))) = -(2 x y z e^((x y)/(z^2 + 1)))/(z^2 + 1)^2
-
-        if( ind == 0 ) 
-            return VectorN<Real, 3>{z*z*cos(y)                            , -x * z*z * sin(y)                   , 2 * x * z * cos(y)};
-        else if( ind == 1 ) 
-            return VectorN<Real, 3>{cos(x) * (y*y + z*z)                  , 2 * y * sin(x)                      , 2 * z * sin(x)};
-        else 
-            return VectorN<Real, 3>{(y * exp((x * y)/(z*z + 1)))/(z*z + 1), x * exp((x * y)/(z*z + 1))/(z*z + 1), -(2 * x * y * z * exp((x * y)/(z*z + 1))) / (Real) pow((z*z + 1),2)};
+        // Jacobian row 'ind': d(F_i)/dx_ind for all i
+        // J = I, so row 0 = (1,0,0), row 1 = (0,1,0), row 2 = (0,0,1)
+        if (ind == 0) return VectorN<Real, 3>{1, 0, 0};
+        else if (ind == 1) return VectorN<Real, 3>{0, 1, 0};
+        else return VectorN<Real, 3>{0, 0, 1};
     }
+
+    ///////////////////////////////////////////////////////////////////////////////////////////
+    //                    FUNCTION 2: VORTEX/ROTATION FIELD                                  //
+    ///////////////////////////////////////////////////////////////////////////////////////////
+    // F(x,y,z) = (-y, x, 0)
+    // Rigid body rotation around z-axis with angular velocity ω=1
+    // Jacobian = [[0, -1, 0], [1, 0, 0], [0, 0, 0]]
+    // div F = 0 (solenoidal/incompressible), curl F = (0, 0, 2) (constant vorticity)
+    // Use: Tests divergence-free fields, constant non-zero curl
+    
+    static MML::VectorN<Real, 3> TestVectorFunc_Vortex(const VectorN<Real, 3> &v) 
+    {
+        return VectorN<Real, 3>{-v[1], v[0], 0};
+    }
+    static MML::VectorN<Real, 3> TestVectorFunc_Vortex_derived(const VectorN<Real, 3> &v, int ind) 
+    { 
+        // dF/dx = (0, 1, 0), dF/dy = (-1, 0, 0), dF/dz = (0, 0, 0)
+        if (ind == 0) return VectorN<Real, 3>{0, 1, 0};
+        else if (ind == 1) return VectorN<Real, 3>{-1, 0, 0};
+        else return VectorN<Real, 3>{0, 0, 0};
+    }
+
+    ///////////////////////////////////////////////////////////////////////////////////////////
+    //                    FUNCTION 3: RADIAL INVERSE-SQUARE FIELD                            //
+    ///////////////////////////////////////////////////////////////////////////////////////////
+    // F(x,y,z) = (x, y, z) / r³  where r = sqrt(x²+y²+z²)
+    // This is the unit radial direction scaled by 1/r² (gravitational/Coulomb field direction)
+    // div F = 0 (away from origin), curl F = 0 (irrotational)
+    // Jacobian_ij = δ_ij/r³ - 3*x_i*x_j/r⁵
+    // Use: Tests Laplacian fields, both solenoidal and irrotational (harmonic)
+    
+    static MML::VectorN<Real, 3> TestVectorFunc_RadialInvSq(const VectorN<Real, 3> &v) 
+    {
+        Real r2 = v[0]*v[0] + v[1]*v[1] + v[2]*v[2];
+        if (r2 < 1e-20) return VectorN<Real, 3>{0, 0, 0};  // Regularize at origin
+        Real r3_inv = 1.0 / (r2 * std::sqrt(r2));
+        return VectorN<Real, 3>{v[0] * r3_inv, v[1] * r3_inv, v[2] * r3_inv};
+    }
+    static MML::VectorN<Real, 3> TestVectorFunc_RadialInvSq_derived(const VectorN<Real, 3> &v, int ind) 
+    { 
+        // dF_i/dx_j = δ_ij/r³ - 3*x_i*x_j/r⁵
+        Real r2 = v[0]*v[0] + v[1]*v[1] + v[2]*v[2];
+        if (r2 < 1e-20) return VectorN<Real, 3>{0, 0, 0};
+        Real r = std::sqrt(r2);
+        Real r3_inv = 1.0 / (r2 * r);
+        Real r5_inv = r3_inv / r2;
+        
+        // Row ind of Jacobian: [dF_0/dx_ind, dF_1/dx_ind, dF_2/dx_ind]
+        Real x_ind = v[ind];
+        return VectorN<Real, 3>{
+            (ind == 0 ? r3_inv : 0) - 3 * v[0] * x_ind * r5_inv,
+            (ind == 1 ? r3_inv : 0) - 3 * v[1] * x_ind * r5_inv,
+            (ind == 2 ? r3_inv : 0) - 3 * v[2] * x_ind * r5_inv
+        };
+    }
+
+    ///////////////////////////////////////////////////////////////////////////////////////////
+    //                    FUNCTION 4: GRADIENT OF PRODUCT (Conservative)                     //
+    ///////////////////////////////////////////////////////////////////////////////////////////
+    // F(x,y,z) = ∇(xyz) = (yz, xz, xy)
+    // Gradient of scalar field f=xyz, so F is conservative (curl F = 0)
+    // Jacobian = [[0, z, y], [z, 0, x], [y, x, 0]] (symmetric!)
+    // div F = 0, curl F = 0
+    // Use: Tests conservative fields, symmetric Jacobian
+    
+    static MML::VectorN<Real, 3> TestVectorFunc_GradProduct(const VectorN<Real, 3> &v) 
+    {
+        return VectorN<Real, 3>{v[1]*v[2], v[0]*v[2], v[0]*v[1]};
+    }
+    static MML::VectorN<Real, 3> TestVectorFunc_GradProduct_derived(const VectorN<Real, 3> &v, int ind) 
+    { 
+        // dF/dx = (0, z, y), dF/dy = (z, 0, x), dF/dz = (y, x, 0)
+        if (ind == 0) return VectorN<Real, 3>{0, v[2], v[1]};
+        else if (ind == 1) return VectorN<Real, 3>{v[2], 0, v[0]};
+        else return VectorN<Real, 3>{v[1], v[0], 0};
+    }
+
+    ///////////////////////////////////////////////////////////////////////////////////////////
+    //                    FUNCTION 5: COMPLEX MIXED (Original)                               //
+    ///////////////////////////////////////////////////////////////////////////////////////////
+    // F(x,y,z) = (x*cos(y)*z², sin(x)*(y²+z²), exp(xy/(z²+1)))
+    // Complex function with trigonometric, polynomial, and exponential terms
+    // Non-trivial Jacobian, tests full numerical differentiation accuracy
+    // Use: Thorough test of general vector function handling
+    
+    static MML::VectorN<Real, 3> TestVectorFunc_Complex(const VectorN<Real, 3> &v) 
+    {
+        Real x = v[0], y = v[1], z = v[2];
+        return VectorN<Real, 3>{
+            x * std::cos(y) * z * z,
+            std::sin(x) * (y*y + z*z),
+            std::exp(x*y / (z*z + 1))
+        };
+    }
+    static MML::VectorN<Real, 3> TestVectorFunc_Complex_derived(const VectorN<Real, 3> &v, int ind) 
+    { 
+        Real x = v[0], y = v[1], z = v[2];
+        Real zz1 = z*z + 1;
+        Real expTerm = std::exp(x*y / zz1);
+        
+        // dF/dx: (z²cos(y), cos(x)(y²+z²), y*exp(xy/(z²+1))/(z²+1))
+        // dF/dy: (-xz²sin(y), 2y*sin(x), x*exp(xy/(z²+1))/(z²+1))
+        // dF/dz: (2xz*cos(y), 2z*sin(x), -2xyz*exp(xy/(z²+1))/(z²+1)²)
+        
+        if (ind == 0) 
+            return VectorN<Real, 3>{
+                z*z * std::cos(y),
+                std::cos(x) * (y*y + z*z),
+                y * expTerm / zz1
+            };
+        else if (ind == 1) 
+            return VectorN<Real, 3>{
+                -x * z*z * std::sin(y),
+                2 * y * std::sin(x),
+                x * expTerm / zz1
+            };
+        else 
+            return VectorN<Real, 3>{
+                2 * x * z * std::cos(y),
+                2 * z * std::sin(x),
+                -2 * x * y * z * expTerm / (zz1 * zz1)
+            };
+    }
+    
+    ///////////////////////////////////////////////////////////////////////////////////////////
+    //                             TEST BED CLASS                                            //
+    ///////////////////////////////////////////////////////////////////////////////////////////
     
     class VectorFunctionsTestBed
     {
     public:
-        static int getNumTestFunctionVector() { return 1; }
+        static int getNumTestFunctionVector() { return 5; }
 
         const static TestFunctionVector<3>& getTestFunctionVector(int i)  { return _listFuncVector3[i]; }
 
@@ -87,9 +209,36 @@ namespace MML::TestBeds
         }
     private:
         const static inline TestFunctionVector<3> _listFuncVector3[] = { 
-            { "Simple vector func", 
-              TestVectorFunc1, "( x*cos(y)*z*z , sin(x)*(y*y + z*z) , exp(x*y/(z*z+1)) )", 
-              TestVectorFunc1_derived, "( -sin(x[0]), 0, 0 ); ( 0, cos(x[1]), 0 ); ( 0, 0, exp(x[2] )" } 
+            // Function 1: Identity - simplest baseline
+            { "Identity", 
+              TestVectorFunc_Identity, "F = (x, y, z)", 
+              TestVectorFunc_Identity_derived, "J = I",
+              3.0, 0.0, false, true },  // div=3, curl=0, not solenoidal, is irrotational
+              
+            // Function 2: Vortex - solenoidal with constant curl
+            { "Vortex", 
+              TestVectorFunc_Vortex, "F = (-y, x, 0)", 
+              TestVectorFunc_Vortex_derived, "J = [[0,-1,0],[1,0,0],[0,0,0]]",
+              0.0, 2.0, true, false },  // div=0, |curl|=2, is solenoidal, not irrotational
+              
+            // Function 3: Radial inverse-square - harmonic (both solenoidal and irrotational)
+            { "Radial Inverse Square", 
+              TestVectorFunc_RadialInvSq, "F = r/|r|^3", 
+              TestVectorFunc_RadialInvSq_derived, "J_ij = delta_ij/r^3 - 3*x_i*x_j/r^5",
+              0.0, 0.0, true, true },  // div=0, curl=0 (away from origin)
+              
+            // Function 4: Gradient of xyz - conservative with symmetric Jacobian
+            { "Gradient of xyz", 
+              TestVectorFunc_GradProduct, "F = grad(xyz) = (yz, xz, xy)", 
+              TestVectorFunc_GradProduct_derived, "J = [[0,z,y],[z,0,x],[y,x,0]]",
+              0.0, 0.0, true, true },  // div=0, curl=0
+              
+            // Function 5: Complex mixed - thorough testing
+            { "Complex Mixed", 
+              TestVectorFunc_Complex, "F = (x*cos(y)*z^2, sin(x)*(y^2+z^2), exp(xy/(z^2+1)))", 
+              TestVectorFunc_Complex_derived, "complex Jacobian",
+              std::numeric_limits<Real>::quiet_NaN(), std::numeric_limits<Real>::quiet_NaN(), 
+              false, false }  // position-dependent div/curl
         };
     };
 

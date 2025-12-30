@@ -1,0 +1,99 @@
+# clang-format configuration for MinimalMathLibrary
+# Approximates the project's existing formatting style
+
+---
+Language: Cpp
+BasedOnStyle: LLVM
+
+# Indentation - uses TABS
+UseTab: Always
+TabWidth: 4
+IndentWidth: 4
+ContinuationIndentWidth: 4
+
+# Brace wrapping - Attach style (opening brace on same line)
+BreakBeforeBraces: Attach
+
+# Namespace handling - content IS indented in this project
+NamespaceIndentation: All
+
+# Short functions on single line (like Real X() const { return _val[0]; })
+AllowShortFunctionsOnASingleLine: All
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+AllowShortBlocksOnASingleLine: Empty
+AllowShortCaseLabelsOnASingleLine: false
+AllowShortLambdasOnASingleLine: All
+
+# Column limit - the project uses long lines
+ColumnLimit: 140
+
+# Pointer and reference alignment - attached to type
+PointerAlignment: Left
+ReferenceAlignment: Left
+DerivePointerAlignment: false
+
+# Template style: template<class Type> (no space before <)
+SpaceAfterTemplateKeyword: false
+
+# Access modifiers - not outdented (same indent as class members in this codebase)
+AccessModifierOffset: -4
+
+# Include sorting - preserve original order to avoid breaking includes
+SortIncludes: Never
+IncludeBlocks: Preserve
+
+# Keep blank lines reasonable
+MaxEmptyLinesToKeep: 2
+KeepEmptyLinesAtTheStartOfBlocks: true
+
+# Space settings
+SpaceBeforeParens: ControlStatements
+SpaceInEmptyParentheses: false
+SpacesInParentheses: false
+SpacesInSquareBrackets: false
+SpacesInAngles: Never
+SpaceBeforeSquareBrackets: false
+SpaceAfterCStyleCast: false
+SpaceBeforeAssignmentOperators: true
+
+# Braces around single-line blocks
+# The codebase sometimes omits braces for single if/for statements
+# but generally uses them
+
+# Alignment (the codebase doesn't aggressively align)
+AlignConsecutiveAssignments: false
+AlignConsecutiveDeclarations: false
+AlignOperands: Align
+AlignTrailingComments: true
+
+# Constructor initializer lists
+BreakConstructorInitializers: BeforeComma
+ConstructorInitializerIndentWidth: 4
+
+# Function declarations and definitions
+AlwaysBreakAfterReturnType: None
+AlwaysBreakTemplateDeclarations: Yes
+BinPackArguments: true
+BinPackParameters: true
+
+# Other settings
+BreakBeforeBinaryOperators: None
+BreakBeforeTernaryOperators: true
+IndentCaseLabels: false
+IndentPPDirectives: None
+
+# Don't reflow comments (preserve manual formatting)
+ReflowComments: false
+
+# C++ standard
+Standard: c++20
+
+# Penalties (discourage certain breaks)
+PenaltyBreakBeforeFirstCallParameter: 19
+PenaltyBreakComment: 300
+PenaltyBreakFirstLessLess: 120
+PenaltyBreakString: 1000
+PenaltyExcessCharacter: 1000000
+PenaltyReturnTypeOnItsOwnLine: 60
+...

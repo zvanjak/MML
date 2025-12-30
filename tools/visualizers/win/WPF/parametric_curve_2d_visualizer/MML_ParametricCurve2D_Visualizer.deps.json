@@ -1,0 +1,70 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v8.0",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v8.0": {
+      "MML_ParametricCurve2D_Visualizer/1.0.0": {
+        "dependencies": {
+          "MML_VisualizersBase": "1.0.0",
+          "MathLibCSharp": "1.0.0",
+          "WPF3DHelperLib": "1.0.0"
+        },
+        "runtime": {
+          "MML_ParametricCurve2D_Visualizer.dll": {}
+        }
+      },
+      "MathLibCSharp/1.0.0": {
+        "runtime": {
+          "MathLibCSharp.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      },
+      "MML_VisualizersBase/1.0.0": {
+        "runtime": {
+          "MML_VisualizersBase.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      },
+      "WPF3DHelperLib/1.0.0": {
+        "dependencies": {
+          "MathLibCSharp": "1.0.0"
+        },
+        "runtime": {
+          "WPF3DHelperLib.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      }
+    }
+  },
+  "libraries": {
+    "MML_ParametricCurve2D_Visualizer/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "MathLibCSharp/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "MML_VisualizersBase/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "WPF3DHelperLib/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    }
+  }
+}

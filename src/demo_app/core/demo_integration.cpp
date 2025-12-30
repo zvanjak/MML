@@ -3,8 +3,8 @@
 #else
 #include "MMLBase.h"
 
-#include "core/Function.h"
-#include "core/InterpolatedFunction.h"
+#include "base/Function.h"
+#include "base/InterpolatedFunction.h"
 
 #include "core/Integration.h"
 
@@ -36,8 +36,8 @@ void Demo_Integration_func_ptr()
     Real b = 1.0;
     Real int_trap = IntegrateTrap(f1,a,b);
 
-    // we can use default Integrate routine (default set to IntegrateSimpson)
-    Real int_def = Integrate(f1, a, b, 1e-04, nullptr);
+    // we can use default Integrate routine (default set to IntegrateTrap)
+    Real int_def = Integrate(f1, a, b, 1e-04);  // Returns IntegrationResult, implicit conversion to Real
 }
 
 // If you CAN change the class where your data for calculation is
@@ -49,7 +49,7 @@ class ClassProvidingFuncToIntegrate
         ClassProvidingFuncToIntegrate(Real param) : _param(param) { }
     
         // just provide operator() for your class
-        Real operator()(Real x ) { return _param * sin(x); }
+        Real operator()(Real x ) const { return _param * sin(x); }
 };
 
 void Demo_Integration_member_fun()
@@ -117,8 +117,8 @@ void Demo_Integration2D()
 {
     ScalarFunction<2> f([](const VectorN<Real, 2> &x) { return Real{1.0}; });
     
-    Real integral     = IntegrateSurface(f, IntegrationMethod::GAUSS10, 0, 2, [](Real x) { return Real{1.0};}, [](Real x) { return Real{4.0};}); 
-    Real integralCircle = IntegrateSurface(f, IntegrationMethod::TRAP, -2, 2, [](Real x) { return -sqrt(4 - x*x);}, [](Real x) { return sqrt(4 - x*x);}); 
+    Real integral     = Integrate2D(f, IntegrationMethod::GAUSS10, 0, 2, [](Real x) { return Real{1.0};}, [](Real x) { return Real{4.0};}); 
+    Real integralCircle = Integrate2D(f, IntegrationMethod::TRAP, -2, 2, [](Real x) { return -sqrt(4 - x*x);}, [](Real x) { return sqrt(4 - x*x);}); 
 
     std::cout << "Integral = " << integral << std::endl;
     std::cout << "Integral circle = " << integralCircle << "4 * PI = " << 4 * Constants::PI << std::endl;
@@ -128,7 +128,12 @@ void Demo_Integration3D()
 {
     ScalarFunction<3> f([](const VectorN<Real, 3> &x) { return Real{1.0}; });
     
-    Real integral = IntegrateVolume(f, 0, 1, [](Real x) { return Real{1.0};}, [](Real x) { return Real{4.0};}, [](Real x, Real y) { return Real{1.0};}, [](Real x, Real y) { return Real{5.0};});
+    Real integral = Integrate3D(f, 
+                                0, 1, 
+                                [](Real x) { return Real{1.0};}, 
+                                [](Real x) { return Real{4.0};}, 
+                                [](Real x, Real y) { return Real{1.0};}, 
+                                [](Real x, Real y) { return Real{5.0};} );
 
     std::cout << "Integral = " << integral << std::endl;
 }

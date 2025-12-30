@@ -1,1 +1,0 @@
-# Testing derivation algorithms precision

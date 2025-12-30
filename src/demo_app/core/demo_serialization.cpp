@@ -4,17 +4,17 @@
 #include "MMLBase.h"
 
 #include "base/StandardFunctions.h"
-
 #include "base/VectorN.h"
+#include "base/Function.h"
 
-#include "core/Function.h"
 #include "core/FieldOperations.h"
-#include "core/CurvesSurfaces.h"
+#include "core/Curves.h"
+#include "core/Fields.h"
+
 #include "tools/Serializer.h"
 #endif
 
 #include "../test_data/parametric_curves_test_bed.h"
-#include "../test_data/Fields.h"
 
 using namespace MML;
 
@@ -23,7 +23,7 @@ void Demo_Real_function_serialization()
     RealFunction f1{[](Real x) { return sin(x) * x; } };
 
     //f1.SerializeEquallySpacedDetailed(-10.0, 10.0, 100, "..\\..\\results\\func_sin_x_x.txt");
-    Serializer::SaveRealFuncEquallySpacedDetailed(f1, "Func y = sin(x) * x", - 10.0, 10.0, 100, "..\\..\\results\\func_sin_x_x.txt");
+    Serializer::SaveRealFunc(f1, "Func y = sin(x) * x", - 10.0, 10.0, 100, "..\\..\\results\\func_sin_x_x.txt");
     auto ret1 = std::system("..\\..\\tools\\visualizers\\real_function_visualizer\\MML_RealFunctionVisualizer.exe ..\\..\\results\\func_sin_x_x.txt");
 }
 
@@ -44,8 +44,8 @@ void Demo_Scalar_function_3D_serialization()
 
 void Demo_Parametric_curve_serialization()
 {
-    Curves3D::HelixCurve              helix(20.0, 20.0);
-    Curves3D::ToroidalSpiralCurve     toroid(Real{20.0});
+    Curves::HelixCurve              helix(20.0, 20.0);
+    Curves::ToroidalSpiralCurve     toroid(Real{20.0});
 
     // helix.SerializeCartesian3D(0.0, 2.0 * Constants::PI, 100, "helix.txt");
     // std::system("..\\..\\tools\\visualizers\\parametric_curve_visualizer\\MML_ParametricCurveVisualizer.exe helix.txt");

@@ -3,7 +3,7 @@
 #else
 #include "MMLBase.h"
 
-#include "core/Function.h"
+#include "base/Function.h"
 
 #include "algorithms/RootFinding.h"
 #endif
@@ -19,7 +19,7 @@ void Demo_Root_finding()
 	std::cout << "***********************************************************************" << endl;
 
 	RealFunction f([](Real x) { return x * x - 2; });
-	double a = 0.0;
-	double b = 2.0;
-	bool isBracketed = RootFinding::zbrac(f, a, b);
+	Real a = 0.0;
+	Real b = 2.0;
+	bool isBracketed = RootFinding::BracketRoot(f, a, b);
 }

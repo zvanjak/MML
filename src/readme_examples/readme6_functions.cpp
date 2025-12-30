@@ -6,8 +6,8 @@
 #include "base/Vector.h"
 #include "base/Matrix.h"
 
-#include "core/Function.h"
-#include "core/InterpolatedFunction.h"
+#include "base/Function.h"
+#include "base/InterpolatedFunction.h"
 
 #include "tools/Serializer.h"
 #endif
@@ -42,10 +42,10 @@ void Readme_defining_functions_case_2_usage()
     VectorFunction<3>       fVector([](const VectorN<Real, 3> &x) { return VectorN<Real, 3>{0, x[0] * x[1], 0}; });
     VectorFunctionNM<2, 3>  fVectorNM([](const VectorN<Real, 2> &x) { return VectorN<Real, 3>{0, x[0] * x[1], 0}; });
     ParametricCurve<3>      paramCurve([](Real x) { return VectorN<Real, 3>{x, 2 * x, 3 * x}; });
-    ParametricSurface<3>    paramSurface([](Real x, Real y) { return VectorN<Real, 3>{x * y, 2 * x * y, 3 * x}; });  
+    ParametricSurfaceRect<3>    paramSurface([](Real x, Real y) { return VectorN<Real, 3>{x * y, 2 * x * y, 3 * x}; });  
 
     // using predefined functions from TestBeds
-    auto fdef1 = TestBeds::RealFunctionsTestBed::getTestFunctionReal("Sin");
+    auto fdef1 = TestBeds::RealFunctionsTestBed::getFunc("Sin");
     auto fdef2 = TestBeds::ScalarFunctionsTestBed::getTestFunctionScalar3(0);
     auto fdef3 = TestBeds::VectorFunctionsTestBed::getTestFunctionVector(0);
     auto fdef4 = TestBeds::ParametricCurvesTestBed::getTestCurve("Helix"); 

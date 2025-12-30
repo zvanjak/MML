@@ -1,4 +1,6 @@
-#include "../catch/catch.hpp"
+#include <catch2/catch_all.hpp>
+#include "../TestPrecision.h"
+#include "../TestMatchers.h"
 
 #ifdef MML_USE_SINGLE_HEADER
 #include "MML.h"
@@ -7,166 +9,185 @@
 #endif
 
 using namespace MML;
+using namespace MML::Testing;
 
 namespace MML::Tests::Base::MatrixNMTests
 {
-	TEST_CASE("MatrixNM_default_ctor_init_to_zero", "[simple]") {
+	TEST_CASE("MatrixNM::default_ctor_init_to_zero", "[simple]") {
+			TEST_PRECISION_INFO();
 		MatrixNM<Real, 2, 2> a;
 
-		REQUIRE(0.0 == a(0, 0));
-		REQUIRE(0.0 == a(0, 1));
-		REQUIRE(0.0 == a(1, 0));
-		REQUIRE(0.0 == a(1, 1));
+		REQUIRE(REAL(0.0) == a(0, 0));
+		REQUIRE(REAL(0.0) == a(0, 1));
+		REQUIRE(REAL(0.0) == a(1, 0));
+		REQUIRE(REAL(0.0) == a(1, 1));
 	}
 
-	TEST_CASE("MatrixNM_initializer_list_ctor", "[simple]") {
-		MatrixNM<Real, 2, 2> a({ 1.0, 2.0, 3.0, 4.0 });
+	TEST_CASE("MatrixNM::initializer_list_ctor", "[simple]") {
+			TEST_PRECISION_INFO();
+		MatrixNM<Real, 2, 2> a({ REAL(1.0), REAL(2.0), REAL(3.0), REAL(4.0) });
 
 		REQUIRE(2 == a.RowNum());
 		REQUIRE(2 == a.ColNum());
 
-		REQUIRE(1.0 == a(0, 0));
-		REQUIRE(2.0 == a(0, 1));
-		REQUIRE(3.0 == a(1, 0));
-		REQUIRE(4.0 == a(1, 1));
+		REQUIRE(REAL(1.0) == a(0, 0));
+		REQUIRE(REAL(2.0) == a(0, 1));
+		REQUIRE(REAL(3.0) == a(1, 0));
+		REQUIRE(REAL(4.0) == a(1, 1));
 	}
 
-	TEST_CASE("MatrixNM_MakeUnitMatrix", "[simple]") {
+	TEST_CASE("MatrixNM::MakeUnitMatrix", "[simple]") {
+			TEST_PRECISION_INFO();
 		MatrixNM<Real, 2, 2> a;
 
 		a.MakeUnitMatrix();
 
-		REQUIRE(1.0 == a(0, 0));
-		REQUIRE(0.0 == a(0, 1));
-		REQUIRE(0.0 == a(1, 0));
-		REQUIRE(1.0 == a(1, 1));
+		REQUIRE(REAL(1.0) == a(0, 0));
+		REQUIRE(REAL(0.0) == a(0, 1));
+		REQUIRE(REAL(0.0) == a(1, 0));
+		REQUIRE(REAL(1.0) == a(1, 1));
 	}
 
-	TEST_CASE("MatrixNM_GetUnitMatrix", "[simple]") {
+	TEST_CASE("MatrixNM::GetUnitMatrix", "[simple]") {
+			TEST_PRECISION_INFO();
 		auto a = MatrixNM<Real, 2, 2>::GetUnitMatrix();
 
-		REQUIRE(1.0 == a[0][0]);
-		REQUIRE(0.0 == a[0][1]);
-		REQUIRE(0.0 == a[1][0]);
-		REQUIRE(1.0 == a[1][1]);
+		REQUIRE(REAL(1.0) == a[0][0]);
+		REQUIRE(REAL(0.0) == a[0][1]);
+		REQUIRE(REAL(0.0) == a[1][0]);
+		REQUIRE(REAL(1.0) == a[1][1]);
 	}
 
-	TEST_CASE("MatrixNM_IsEqual", "[simple]") {
-		MatrixNM<Real, 2, 2> a({ 1.0, 2.0, 3.0, 4.0 });
-		MatrixNM<Real, 2, 2> b({ 1.0, 2.0, 3.0, 4.0 });
+	TEST_CASE("MatrixNM::IsEqual", "[simple]") {
+			TEST_PRECISION_INFO();
+		MatrixNM<Real, 2, 2> a({ REAL(1.0), REAL(2.0), REAL(3.0), REAL(4.0) });
+		MatrixNM<Real, 2, 2> b({ REAL(1.0), REAL(2.0), REAL(3.0), REAL(4.0) });
 
 		REQUIRE(true == a.IsEqual(b));
 	}
-	TEST_CASE("MatrixNM_IsEqual2", "[simple]") {
-		MatrixNM<Real, 2, 2> a({ 1.0, 2.0, 3.0, 4.0 });
-		MatrixNM<Real, 2, 2> b({ 1.0, 2.0, 3.0, 5.0 });
+	TEST_CASE("MatrixNM::IsEqual2", "[simple]") {
+			TEST_PRECISION_INFO();
+		MatrixNM<Real, 2, 2> a({ REAL(1.0), REAL(2.0), REAL(3.0), REAL(4.0) });
+		MatrixNM<Real, 2, 2> b({ REAL(1.0), REAL(2.0), REAL(3.0), REAL(5.0) });
 
 		REQUIRE(false == a.IsEqual(b));
 	}
-	TEST_CASE("MatrixNM_IsEqual3", "[simple]") {
-		MatrixNM<Real, 2, 2> a({ 1.0, 2.0, 3.0, 4.0 });
-		MatrixNM<Real, 2, 2> b({ 1.0, 2.0, 3.0, 4.0001 });
+	TEST_CASE("MatrixNM::IsEqual3", "[simple]") {
+			TEST_PRECISION_INFO();
+		MatrixNM<Real, 2, 2> a({ REAL(1.0), REAL(2.0), REAL(3.0), REAL(4.0) });
+		MatrixNM<Real, 2, 2> b({ REAL(1.0), REAL(2.0), REAL(3.0), REAL(4.0001) });
 
-		REQUIRE(true == a.IsEqual(b, 1e-4));
-		REQUIRE(false == a.IsEqual(b, 1e-5));
+		// Difference is 1e-4, use 1e-3 (yes) and 1e-7 (no)
+		// 1e-3 scales to 1e-1 (float), 1e-7 scales to 1e-5 (float)
+		REQUIRE(true == a.IsEqual(b, ScaleTolerance(REAL(1e-3))));
+		REQUIRE(false == a.IsEqual(b, ScaleTolerance(REAL(1e-7))));
 	}
 
-	TEST_CASE("Test_MatrixNM_Op+-", "[simple]") {
-		MatrixNM<Real, 2, 2> a({ 1.0, 2.0, 3.0, 4.0 });
-		MatrixNM<Real, 2, 2> b({ 1.0, 2.0, 3.0, 4.0 });
+	TEST_CASE("MatrixNM::Op+-", "[simple]") {
+			TEST_PRECISION_INFO();
+		MatrixNM<Real, 2, 2> a({ REAL(1.0), REAL(2.0), REAL(3.0), REAL(4.0) });
+		MatrixNM<Real, 2, 2> b({ REAL(1.0), REAL(2.0), REAL(3.0), REAL(4.0) });
 
 		auto c = a + b;
 		auto d = a - b;
 
-		REQUIRE(2.0 == c(0, 0));
-		REQUIRE(4.0 == c(0, 1));
+		REQUIRE(REAL(2.0) == c(0, 0));
+		REQUIRE(REAL(4.0) == c(0, 1));
 
-		REQUIRE(0.0 == d(0, 0));
-		REQUIRE(0.0 == d(0, 1));
+		REQUIRE(REAL(0.0) == d(0, 0));
+		REQUIRE(REAL(0.0) == d(0, 1));
 	}
 
-	TEST_CASE("Test_MatrixNM_Op*", "[simple]") {
-		MatrixNM<Real, 2, 2> a({ 1.0, 2.0, 3.0, 4.0 });
-		MatrixNM<Real, 2, 2> b({ 1.0, 2.0, 3.0, 4.0 });
+	TEST_CASE("MatrixNM::Op*", "[simple]") {
+			TEST_PRECISION_INFO();
+		MatrixNM<Real, 2, 2> a({ REAL(1.0), REAL(2.0), REAL(3.0), REAL(4.0) });
+		MatrixNM<Real, 2, 2> b({ REAL(1.0), REAL(2.0), REAL(3.0), REAL(4.0) });
 
 		auto c = a * b;
 
-		REQUIRE(7.0 == c(0, 0));
-		REQUIRE(10.0 == c(0, 1));
-		REQUIRE(15.0 == c(1, 0));
-		REQUIRE(22.0 == c(1, 1));
+		REQUIRE(REAL(7.0) == c(0, 0));
+		REQUIRE(REAL(10.0) == c(0, 1));
+		REQUIRE(REAL(15.0) == c(1, 0));
+		REQUIRE(REAL(22.0) == c(1, 1));
 	}
 
-	TEST_CASE("Test_MatrixNM_mul_double", "[simple]") {
-		MatrixNM<Real, 2, 2> a({ 1.0, 100.0, 50.0, 100.0 });
+	TEST_CASE("MatrixNM::mul_double", "[simple]") {
+			TEST_PRECISION_INFO();
+		MatrixNM<Real, 2, 2> a({ REAL(1.0), REAL(100.0), REAL(50.0), REAL(100.0) });
 
-		auto b = a * 2.0;
-		auto c = 2.0 * a;
+		auto b = a * REAL(2.0);
+		auto c = REAL(2.0) * a;
 
-		REQUIRE(2.0 == b(0, 0));
-		REQUIRE(2.0 == c(0, 0));
+		REQUIRE(REAL(2.0) == b(0, 0));
+		REQUIRE(REAL(2.0) == c(0, 0));
 
-		REQUIRE(200.0 == b(0, 1));
-		REQUIRE(200.0 == c(0, 1));
+		REQUIRE(REAL(200.0) == b(0, 1));
+		REQUIRE(REAL(200.0) == c(0, 1));
 	}
 
-	TEST_CASE("Test_MatrixNM_div_double", "[simple]") {
-		MatrixNM<Real, 2, 2> a({ 4.0, 400.0, 1.0, 1 });
+	TEST_CASE("MatrixNM::div_double", "[simple]") {
+			TEST_PRECISION_INFO();
+		MatrixNM<Real, 2, 2> a({ REAL(4.0), REAL(400.0), REAL(1.0), 1 });
 
-		auto b = a / 2.0;
+		auto b = a / REAL(2.0);
 
-		REQUIRE(2.0 == b(0, 0));
-		REQUIRE(200.0 == b(0, 1));
+		REQUIRE(REAL(2.0) == b(0, 0));
+		REQUIRE(REAL(200.0) == b(0, 1));
 	}
 
-	TEST_CASE("Test_MatrixNM_mul_Vector", "[simple]") {
-		MatrixNM<Real, 2, 2> a({ 1.0, 10.0,
-																 5.0, 2.0 });
-		VectorN<Real, 2> b({ 1.0, 2.0 });
+	TEST_CASE("MatrixNM::mul_Vector", "[simple]") {
+			TEST_PRECISION_INFO();
+		MatrixNM<Real, 2, 2> a({ REAL(1.0), REAL(10.0),
+																 REAL(5.0), REAL(2.0) });
+		VectorN<Real, 2> b({ REAL(1.0), REAL(2.0) });
 
 		auto c = a * b;
 		auto d = b * a;
 
-		REQUIRE(21.0 == c[0]);
-		REQUIRE(9.0 == c[1]);
+		REQUIRE(REAL(21.0) == c[0]);
+		REQUIRE(REAL(9.0) == c[1]);
 
-		REQUIRE(11.0 == d[0]);
-		REQUIRE(14.0 == d[1]);
+		REQUIRE(REAL(11.0) == d[0]);
+		REQUIRE(REAL(14.0) == d[1]);
 	}
 
-	TEST_CASE("MatrixNM_Transpose", "[simple]")
+	TEST_CASE("MatrixNM::Transpose", "[simple]")
 	{
-		MatrixNM<Real, 2, 2> mat({ 1.0, 2.0, 3.0, 4.0 });
-		MatrixNM<Real, 2, 2> matTransp({ 1.0, 3.0, 2.0, 4.0 });
+			TEST_PRECISION_INFO();
+		MatrixNM<Real, 2, 2> mat({ REAL(1.0), REAL(2.0), REAL(3.0), REAL(4.0) });
+		MatrixNM<Real, 2, 2> matTransp({ REAL(1.0), REAL(3.0), REAL(2.0), REAL(4.0) });
 
 		mat.Transpose();
 
 		REQUIRE(mat.IsEqual(matTransp));
 	}
 
-	TEST_CASE("MatrixNM_GetTranspose", "[simple]")
+	TEST_CASE("MatrixNM::GetTranspose", "[simple]")
 	{
-		MatrixNM<Real, 2, 2> mat({ 1.0, 2.0, 3.0, 4.0 });
-		MatrixNM<Real, 2, 2> matTransp({ 1.0, 3.0, 2.0, 4.0 });
+			TEST_PRECISION_INFO();
+		MatrixNM<Real, 2, 2> mat({ REAL(1.0), REAL(2.0), REAL(3.0), REAL(4.0) });
+		MatrixNM<Real, 2, 2> matTransp({ REAL(1.0), REAL(3.0), REAL(2.0), REAL(4.0) });
 
 		auto trans = mat.GetTranspose();
 
 		REQUIRE(trans.IsEqual(matTransp));
 	}
 
-	TEST_CASE("MatrixNM_GetTranspose_nonrectangular", "[simple]")
+	TEST_CASE("MatrixNM::GetTranspose_nonrectangular", "[simple]")
 	{
-		MatrixNM<Real, 2, 3> mat({ 1.0, 2.0, 3.0, 4.0, 5.0, 6.0 });
-		MatrixNM<Real, 3, 2> matTransp({ 1.0, 4.0, 2.0, 5.0, 3.0, 6.0 });
+			TEST_PRECISION_INFO();
+		MatrixNM<Real, 2, 3> mat({ REAL(1.0), REAL(2.0), REAL(3.0), REAL(4.0), REAL(5.0), REAL(6.0) });
+		MatrixNM<Real, 3, 2> matTransp({ REAL(1.0), REAL(4.0), REAL(2.0), REAL(5.0), REAL(3.0), REAL(6.0) });
 
 		auto trans = mat.GetTranspose();
 
 		REQUIRE(trans.IsEqual(matTransp));
 	}
 
-	TEST_CASE("MatrixNM_GetInverse", "[simple]")
+	TEST_CASE("MatrixNM::GetInverse", "[simple]")
 	{
-		MatrixNM<Real, 2, 2> mat({ 1.0, 2.0, 3.0, 4.0 });
+			TEST_PRECISION_INFO();
+		MatrixNM<Real, 2, 2> mat({ REAL(1.0), REAL(2.0), REAL(3.0), REAL(4.0) });
 
 		auto b = mat.GetInverse();
 
@@ -178,8 +199,9 @@ namespace MML::Tests::Base::MatrixNMTests
 		REQUIRE(c.IsEqual(d));
 	}
 
-	TEST_CASE("Test_MatrixNM_exceptions", "[simple]")
+	TEST_CASE("MatrixNM::exceptions", "[simple]")
 	{
+			TEST_PRECISION_INFO();
 		MatrixNM<Real, 3, 4> mat_3;
 
 		REQUIRE_THROWS_AS(mat_3.Invert(), MatrixDimensionError);

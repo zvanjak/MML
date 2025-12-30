@@ -19,7 +19,7 @@ using namespace MML;
 
 void Demo_Metric_Tensors_comparison()
 {
-	MetricTensorCartesian<3> metricCart;
+	MetricTensorCartesian3D metricCart;
 	MetricTensorSpherical metricSpher;
 	MetricTensorCylindrical metricCyl;
 

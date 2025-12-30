@@ -3,6 +3,8 @@
 #else
 #include "MMLBase.h"
 
+#include "base/BaseUtils.h"
+
 #include "base/MatrixNM.h"
 #endif
 
@@ -35,24 +37,24 @@ void MatrixNM_vector_init_operations()
   std::cout << "-----------------------------------------------------------------------" << std::endl;
 
 	VectorN<Real, 3> a({ 1.0, 1.0, 1.0 });
-	MatrixNM<Real, 1, 3> matA = MatrixNM<Real, 1, 3>::RowMatrixFromVector(a);
-	auto matAauto = MatrixNM<Real, 1, 3>::RowMatrixFromVector(a);
-	MatrixNM<Real, 3, 1> matB = MatrixNM<Real, 3, 1>::ColumnMatrixFromVector(a);
-	auto matBauto = MatrixNM<Real, 3, 1>::ColumnMatrixFromVector(a);
+	MatrixNM<Real, 1, 3> matA = Utils::RowMatrixFromVector<Real, 3>(a);
+	auto matAauto = Utils::RowMatrixFromVector<Real, 3>(a);
+	MatrixNM<Real, 3, 1> matB = Utils::ColumnMatrixFromVector<Real, 3>(a);
+	auto matBauto = Utils::ColumnMatrixFromVector<Real, 3>(a);
 
 	std::cout << "VectorN<Real, 3> a = " << a << std::endl;
 	std::cout << "MatrixNM<Real, 1, 3> matA = MatrixNM<Real, 1, 3>::RowMatrixFromVector(a);\nmatA = " << matA << std::endl;
 	std::cout << "MatrixNM<Real, 3, 1> matB = MatrixNM<Real, 3, 1>::ColMatrixFromVector(a);\nmatB = " << matB << std::endl;
 
 	MatrixNM<Real, 2, 2> m1({ 1.0, -1.0, 1.5, 3.0 });
-	VectorN<Real, 2> vecRow = MatrixNM<Real, 2, 2>::VectorFromRow(m1, 0);
-	VectorN<Real, 2> vecCol = MatrixNM<Real, 2, 2>::VectorFromColumn(m1, 0);
-	VectorN<Real, 2> vecDiag = MatrixNM<Real, 2, 2>::VectorFromDiagonal(m1);
+	VectorN<Real, 2> vecRow = m1.VectorFromRow(0);
+	VectorN<Real, 2> vecCol = m1.VectorFromColumn(0);
+	VectorN<Real, 2> vecDiag = m1.VectorFromDiagonal();
 
 	std::cout << "MatrixNM<Real, 2, 2> m1 = " << m1 << std::endl;
-	std::cout << "VectorN<Real, 2> vecRow = MatrixNM<Real, 2, 2>::VectorFromRow(a,0)     = " << vecRow << std::endl;
-	std::cout << "VectorN<Real, 2> vecCol = MatrixNM<Real, 2, 2>::VectorFromColumn(a, 0) = " << vecCol << std::endl;
-	std::cout << "VectorN<Real, 2> vecCol = MatrixNM<Real, 2, 2>::VectorFromDiagonal(a)  = " << vecDiag << std::endl;
+	std::cout << "VectorN<Real, 2> vecRow = m1.VectorFromRow(0)     = " << vecRow << std::endl;
+	std::cout << "VectorN<Real, 2> vecCol = m1.VectorFromColumn(0)  = " << vecCol << std::endl;
+	std::cout << "VectorN<Real, 2> vecCol = m1.VectorFromDiagonal() = " << vecDiag << std::endl;
 }
 
 void MatrixNM_accessing_elements()

@@ -38,15 +38,15 @@ void Readme_matrices()
     std::cout << "v_cmplx = " << v_cmplx << std::endl;
 
     // combining real and complex vectors and matrices requires special functions
-    VectorComplex cvec2 = MatrixUtils::MulVecMat(vec_cmplx2, mat_3x3);
-    MatrixComplex cmat2 = MatrixUtils::MulMat(mat_cmplx2, mat_3x3);
+    VectorComplex cvec2 = Utils::MulVecMat(vec_cmplx2, mat_3x3);
+    MatrixComplex cmat2 = Utils::MulMat(mat_cmplx2, mat_3x3);
 
     std::cout << "Matrix mat_3x3   = " << mat_3x3 << std::endl;
     std::cout << "Matrix mat_cmplx = " << mat_cmplx << std::endl;
 
-    std::cout << "IsOrthogonal(mat_3x3)  = " << MatrixUtils::IsOrthogonal(mat_3x3) << std::endl;
-    std::cout << "IsHermitian(mat_cmplx) = " << MatrixUtils::IsHermitian(mat_cmplx) << std::endl;
-    std::cout << "IsUnitary(mat_cmplx)   = " << MatrixUtils::IsUnitary(mat_cmplx) << std::endl;
+    std::cout << "IsOrthogonal(mat_3x3)  = " << Utils::IsOrthogonal(mat_3x3) << std::endl;
+    std::cout << "IsHermitian(mat_cmplx) = " << Utils::IsHermitian(mat_cmplx) << std::endl;
+    std::cout << "IsUnitary(mat_cmplx)   = " << Utils::IsUnitary(mat_cmplx) << std::endl;
 
 /* OUTPUT
     v_real  = [   -3.137858162,     3.922322703,    -8.629109946]

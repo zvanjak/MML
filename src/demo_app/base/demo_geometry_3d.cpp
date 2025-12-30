@@ -4,6 +4,7 @@
 #include "MMLBase.h"
 
 #include "base/Geometry3D.h"
+#include "base/BaseUtils.h"
 #endif
 
 using namespace MML;
@@ -56,8 +57,8 @@ void Demo_Geometry_3D_operations()
     auto vec7 = vec1 / 3.0;
 
     auto norm = vec1.NormL2();
-    auto scal_prod = ScalarProd(vec1, vec2);
-    auto vec_prod  = VectorProd(vec1, vec2);
+    auto scal_prod = ScalarProduct(vec1, vec2);
+    auto vec_prod  = VectorProduct(vec1, vec2);
 
     bool b = vec1.IsParallelTo(vec2);
     bool c = vec1.IsPerpendicularTo(vec2);

@@ -17,13 +17,11 @@ void Demo_Polynom()
 	std::cout << "***********************************************************************" << std::endl;
 
 	// Initialization of polynomials
-	RealPolynom pol_constant({ -2.5 });
-	RealPolynom pol_linear({ -1, 2 });
-	RealPolynom pol_quadratic({ -2, -1, -1 });
-	RealPolynom pol_cubic({ -1, 2, 3, -4 });
-	RealPolynom pol_quartic({ 1, -2, 3, 4, 1 });
-
-	PolynomFunc b({ 1, 2, 3 });
+	PolynomRealFunc pol_constant({ -2.5 });
+	PolynomRealFunc pol_linear({ -1, 2 });
+	PolynomRealFunc pol_quadratic({ -2, -1, -1 });
+	PolynomRealFunc pol_cubic({ -1, 2, 3, -4 });
+	PolynomRealFunc pol_quartic({ 1, -2, 3, 4, 1 });
 
 	// I/O of polynomials
 	std::cout << "Polynomial initialization:\n";
@@ -33,8 +31,8 @@ void Demo_Polynom()
 	std::cout << "pol_cubic     : " << pol_cubic << std::endl;
 	std::cout << "pol_quartic   : " << pol_quartic << std::endl;
 
-	RealPolynom		 poly_real({ 1, 2, 3, 4, 5 });
-	ComplexPolynom poly_cmplx({ 2, -1, 3 });
+	PolynomRealFunc		 poly_real({ 1, 2, 3, 4, 5 });
+	PolynomComplex poly_cmplx({ 2, -1, 3 });
 	Matrix2Polynom poly_mat({ 1, -1, 2 });            // matrix polynomial of 3rd order
 
 	// Evaluation of polynomials
@@ -47,32 +45,32 @@ void Demo_Polynom()
 	MatrixNM<Real, 2, 2> m2_2 = poly_mat(eval_mat);       // evaluate the polynomial at the given matrix value
 
 	// Operations on polynomials
-	RealPolynom pol_sum = pol_quadratic + pol_cubic;
+	PolynomRealFunc pol_sum = pol_quadratic + pol_cubic;
 	std::cout << "\nAdd : (" << pol_quadratic << ")  +  (" << pol_cubic << ") = " << pol_quadratic + pol_cubic << std::endl;
 
-	RealPolynom pol_diff = pol_quadratic - pol_cubic;
+	PolynomRealFunc pol_diff = pol_quadratic - pol_cubic;
 	std::cout << "Sub : (" << pol_quadratic << ")  -  (" << pol_cubic << ") = " << pol_quadratic - pol_cubic << std::endl;
 
-	RealPolynom pol_prod = pol_quadratic * pol_cubic;
+	PolynomRealFunc pol_prod = pol_quadratic * pol_cubic;
 	std::cout << "Mul : (" << pol_quadratic << ")  *  (" << pol_cubic << ") = " << pol_quadratic * pol_cubic << std::endl;
 
-	RealPolynom pol_sum2 = pol_quadratic * 2.0;
-	RealPolynom pol_diff2 = pol_quadratic / 2.0;
-	RealPolynom pol_prod2 = 2.0 * pol_quadratic;
+	PolynomRealFunc pol_sum2 = pol_quadratic * 2.0;
+	PolynomRealFunc pol_diff2 = pol_quadratic / 2.0;
+	PolynomRealFunc pol_prod2 = 2.0 * pol_quadratic;
 
-	RealPolynom pol_quot, pol_rem;
-	RealPolynom::poldiv(pol_quartic, pol_quadratic, pol_quot, pol_rem);
+	PolynomRealFunc pol_quot, pol_rem;
+	PolynomRealFunc::poldiv(pol_quartic, pol_quadratic, pol_quot, pol_rem);
 	std::cout << "Div : (" << pol_quartic << ")  /  (" << pol_quadratic << ") = " << pol_quot << "  remainder: " << pol_rem << std::endl;
 
-	RealPolynom pol_calc = pol_quadratic * pol_quot + pol_rem;
+	PolynomRealFunc pol_calc = pol_quadratic * pol_quot + pol_rem;
 	std::cout << "Div check : (" << pol_quadratic << ")  *  (" << pol_quot << ") + (" << pol_rem << ") = " << pol_quadratic * pol_quot + pol_rem << std::endl;
 
 	// create polynom respresenting sinus and cosinus functions up to x^5
-	RealPolynom pol_sin5({1./120,     0, -1./6,     0, 1, 0});
-	RealPolynom pol_cos5({     0, 1./24,     0, -1./2, 0, 1});
+	PolynomRealFunc pol_sin5({1./120,     0, -1./6,     0, 1, 0});
+	PolynomRealFunc pol_cos5({     0, 1./24,     0, -1./2, 0, 1});
 
-	RealPolynom pol_sin7({-1./5040,    0   , 1./120,   0  , -1./6,   0  , 1, 0});
-	RealPolynom pol_cos7({    0   , -1./720,    0  , 1./24,   0  , -1./2, 0, 1});
+	PolynomRealFunc pol_sin7({-1./5040,    0   , 1./120,   0  , -1./6,   0  , 1, 0});
+	PolynomRealFunc pol_cos7({    0   , -1./720,    0  , 1./24,   0  , -1./2, 0, 1});
 
 	std::cout << "\nPolynom output:\n";
 	std::cout << "std::cout << poly_real                  => " << poly_real << std::endl;

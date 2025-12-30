@@ -1,0 +1,5 @@
+project(Chapter19App VERSION 1.0)
+
+file(GLOB CHAPTER_SOURCES "*.cpp")
+add_executable(Chapter19App ${CHAPTER_SOURCES})
+set_target_properties(Chapter19App PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/book_chapters)

@@ -4,11 +4,12 @@
 #include "MMLBase.h"
 
 #include "base/VectorN.h"
-#include "core/Function.h"
+#include "base/Function.h"
 #include "core/FieldOperations.h"
+#include "core/Fields.h"
+
 #endif
 
-#include "../test_data/Fields.h"
 
 using namespace MML;
 

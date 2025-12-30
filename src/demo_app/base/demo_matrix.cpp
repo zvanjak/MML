@@ -47,12 +47,12 @@ void Matrix_vector_init_operations()
 	std::cout << "-----------------------------------------------------------------------" << std::endl;
 
 	Vector<Real> a({ 1.0, 1.0, 1.0 });
-	Matrix<Real> matA = MatrixUtils::RowMatrixFromVector<Real>(a);
-	Matrix<Real> matB = MatrixUtils::ColumnMatrixFromVector<Real>(a);
+	Matrix<Real> matA = Utils::RowMatrixFromVector<Real>(a);
+	Matrix<Real> matB = Utils::ColumnMatrixFromVector<Real>(a);
 
 	std::cout << "Vector a = " << a << std::endl;
-	std::cout << "Matrix matA = MatrixUtils::RowMatrixFromVector(a);\nmatA = " << matA << std::endl;
-	std::cout << "Matrix matB = MatrixUtils::ColMatrixFromVector(a);\nmatB = " << matB << std::endl;
+	std::cout << "Matrix matA = Utils::RowMatrixFromVector(a);\nmatA = " << matA << std::endl;
+	std::cout << "Matrix matB = Utils::ColMatrixFromVector(a);\nmatB = " << matB << std::endl;
 
 	Matrix<Real> m1(2, 2, { 1.0, -1.0, 1.5, 3.0 });
 	Vector<Real> vecRow = m1.VectorFromRow(0);

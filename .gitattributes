@@ -1,0 +1,5 @@
+# Use bd merge for beads JSONL files
+.beads/issues.jsonl merge=beads
+results/*.txt filter=lfs diff=lfs merge=lfs -text
+
+*.jsonl text eol=lf

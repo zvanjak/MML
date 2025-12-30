@@ -11,9 +11,9 @@
 #include "core/CoordTransf/CoordTransfCylindrical.h"
 
 #include "core/FieldOperations.h"
+#include "core/Fields.h"
 #endif
 
-#include "../test_data/Fields.h"
 
 using namespace MML;
 
@@ -40,7 +40,7 @@ void Demo_2DPolar()
 	// new basis vectors (keeping z coordinate out of it ;)
 	Vector3Cartesian e1_base{ 1, 3, 0 }, e2_base{ 4, 0, 0 }, e3_base{ 0, 0, 1 };
 
-	CoordTransf3DCartOblique transf(e1_base, e2_base, e3_base);
+	CoordTransfCartesianToOblique3D transf(e1_base, e2_base, e3_base);
 
 	std::cout << "Is right-handed? - " << transf.IsRightHanded() << std::endl;
 
@@ -54,8 +54,8 @@ void Demo_2DPolar()
 	std::cout << "e2 dual = "; transf.Dual(1).Print(std::cout, 10, 5) << std::endl;
 	std::cout << "e3 dual = "; transf.Dual(2).Print(std::cout, 10, 5) << std::endl;
 
-	std::cout << "\nTransf. matrix:\n" << transf.getAlpha() << std::endl;
-	std::cout << "Inverse transf. matrix:\n" << transf.getTransf() << std::endl;
+	//std::cout << "\nTransf. matrix:\n" << transf.getAlpha() << std::endl;
+	//std::cout << "Inverse transf. matrix:\n" << transf.getTransf() << std::endl;
 
 	Vector3Cartesian vec_A{ 7, 2, 0 };
 	std::cout << "Vector A (orig)      = "; vec_A.Print(std::cout, 10, 5) << std::endl;
@@ -90,7 +90,7 @@ void Demo_CoordTransf_RectilinearOblique()
 	//    Vector3Cartesian e1_base{1, 0, 0}, e2_base{0, 1, 0}, e3_base{0, 0.1, 1};      // ovo definira dot koord system
 	Vector3Cartesian e1_base{ 1, 3, 0 }, e2_base{ 4, 0, 0 }, e3_base{ 0, 0, 1 };
 
-	CoordTransf3DCartOblique transf(e1_base, e2_base, e3_base);
+	CoordTransfCartesianToOblique3D transf(e1_base, e2_base, e3_base);
 
 	std::cout << "e1 = " << e1_base << std::endl;
 	std::cout << "e2 = " << e2_base << std::endl;
@@ -114,9 +114,9 @@ void Demo_CoordTransf_RectilinearOblique()
 	auto contravar_trans = transf.transfVecContravariant(vec_A, Vector3Cartesian(1, 0, -1));
 	std::cout << "Contravar transf.: " << contravar_trans << std::endl;
 
-	Vector3Cartesian covar_coef{ ScalarProd(vec_A, Vector3Cartesian(e1_base)),
-																	 ScalarProd(vec_A, Vector3Cartesian(e2_base)),
-																	 ScalarProd(vec_A, Vector3Cartesian(e3_base)) };
+	Vector3Cartesian covar_coef{ ScalarProduct(vec_A, Vector3Cartesian(e1_base)),
+															 ScalarProduct(vec_A, Vector3Cartesian(e2_base)),
+															 ScalarProduct(vec_A, Vector3Cartesian(e3_base)) };
 	std::cout << "Covar. coeff.    : " << covar_coef << std::endl;
 
 	VectorN<Real, 3> covar_expanded = covar_coef[0] * transf.Dual(0) +
@@ -346,7 +346,7 @@ void Demo_SpherToCart_BasisVectors()
 	posSpher1.PrintLine(std::cout, "posSpher1       = ", 10,3);
 	std::cout << "posSpher1 (deg) = "; posSpher1.PrintDeg(std::cout, 10, 3);
 
-	std::cout << "\nCOVARIANT BASIS VECTORS - at posSpher1, expressed in terms of (i, j, k) = (e_x, e_y, e_z)\n";
+	std::cout << "\nCOVARIANT BASIS VECTORS - at posSpher1, (e_r, e_theta, e_phi) expressed in terms of (i, j, k) = (e_x, e_y, e_z)\n";
 	std::cout << "getBasisVec(i) - NOT normalized!!!\n";
 	Vector3Cartesian e_r_cart     = CoordTransfSpherToCart.getBasisVec(0, posSpher1);
 	Vector3Cartesian e_theta_cart = CoordTransfSpherToCart.getBasisVec(1, posSpher1);
@@ -355,13 +355,13 @@ void Demo_SpherToCart_BasisVectors()
 	e_theta_cart.PrintLine(std::cout, "e_theta_cart       = ", 10, 3);
 	e_phi_cart.PrintLine(std::cout, "e_phi_cart         = ", 10, 3);
 
-	std::cout << "\nExplicit form for Spher.base vectors (e_r, e_theta, e_phi) \n";
-	Vector3Cartesian e_r_cart1 = CoordTransfSpherToCart.getBasisVectorExplicit(0, posSpher1);
-	Vector3Cartesian e_theta_cart1 = CoordTransfSpherToCart.getBasisVectorExplicit(1, posSpher1);
-	Vector3Cartesian e_phi_cart1 = CoordTransfSpherToCart.getBasisVectorExplicit(2, posSpher1);
-	e_r_cart1.PrintLine(std::cout, "e_r_cart           = ", 10, 3);
-	e_theta_cart1.PrintLine(std::cout, "e_theta_cart       = ", 10, 3);
-	e_phi_cart1.PrintLine(std::cout, "e_phi_cart         = ", 10, 3);
+	//std::cout << "\nExplicit form for Spher.base vectors (e_r, e_theta, e_phi) \n";
+	//Vector3Cartesian e_r_cart1 = CoordTransfSpherToCart.getBasisVectorExplicit(0, posSpher1);
+	//Vector3Cartesian e_theta_cart1 = CoordTransfSpherToCart.getBasisVectorExplicit(1, posSpher1);
+	//Vector3Cartesian e_phi_cart1 = CoordTransfSpherToCart.getBasisVectorExplicit(2, posSpher1);
+	//e_r_cart1.PrintLine(std::cout, "e_r_cart           = ", 10, 3);
+	//e_theta_cart1.PrintLine(std::cout, "e_theta_cart       = ", 10, 3);
+	//e_phi_cart1.PrintLine(std::cout, "e_phi_cart         = ", 10, 3);
 
 	std::cout << "\nNormalizing base vectors with GetAsUnitVector()\n";
 	e_r_cart.GetAsUnitVector().PrintLine(std::cout, "e_r_cart.GetAs ... = ", 10, 3);
@@ -369,14 +369,14 @@ void Demo_SpherToCart_BasisVectors()
 	e_phi_cart.GetAsUnitVector().PrintLine(std::cout, "e_phi_cart.GetAs . = ", 10, 3);
 
 	std::cout << "\nExplicit form for UNIT Spher.base vectors (e_r, e_theta, e_phi) \n";
-	Vector3Cartesian e_r_cart_unit = CoordTransfSpherToCart.getUnitBasisVectorExplicit(0, posSpher1);
-	Vector3Cartesian e_theta_cart_unit = CoordTransfSpherToCart.getUnitBasisVectorExplicit(1, posSpher1);
-	Vector3Cartesian e_phi_cart_unit = CoordTransfSpherToCart.getUnitBasisVectorExplicit(2, posSpher1);
+	Vector3Cartesian e_r_cart_unit = CoordTransfSpherToCart.getUnitBasisVec(0, posSpher1);
+	Vector3Cartesian e_theta_cart_unit = CoordTransfSpherToCart.getUnitBasisVec(1, posSpher1);
+	Vector3Cartesian e_phi_cart_unit = CoordTransfSpherToCart.getUnitBasisVec(2, posSpher1);
 	e_r_cart_unit.PrintLine(std::cout, "e_r_cart_unit1     = ", 10, 3);
 	e_theta_cart_unit.PrintLine(std::cout, "e_theta_cart_unit1 = ", 10, 3);
 	e_phi_cart_unit.PrintLine(std::cout, "e_phi_cart_unit1   = ", 10, 3);
 
-	std::cout << "\nINVERSE COVARIANT BASIS VECTORS - at posSpher1, expressed in terms of (e_r, e_theta, e_phi)\n";
+	std::cout << "\nINVERSE COVARIANT BASIS VECTORS - at posSpher1, (i, j, k) = (e_x, e_y, e_z) expressed in terms of (e_r, e_theta, e_phi)\n";
 	std::cout << "getInverseBasisVec(i) - NOT normalized\n";
 	Vector3Spherical e_i_sph = CoordTransfSpherToCart.getInverseBasisVec(0, posSpher1);
 	Vector3Spherical e_j_sph = CoordTransfSpherToCart.getInverseBasisVec(1, posSpher1);
@@ -385,15 +385,15 @@ void Demo_SpherToCart_BasisVectors()
 	e_j_sph.PrintLine(std::cout, "e_j_sph            = ", 10, 3);
 	e_k_sph.PrintLine(std::cout, "e_k_sph            = ", 10, 3);
 
-	std::cout << "\nExplicit form for Cart.base vectors (i, j, k) = (e_x, e_y, e_z)\n";
-	Vector3Spherical e_i_sph1 = CoordTransfSpherToCart.getInverseBasisVectorExplicit(0, posSpher1);
-	Vector3Spherical e_j_sph1 = CoordTransfSpherToCart.getInverseBasisVectorExplicit(1, posSpher1);
-	Vector3Spherical e_k_sph1 = CoordTransfSpherToCart.getInverseBasisVectorExplicit(2, posSpher1);
-	e_i_sph1.PrintLine(std::cout, "e_i_sph            = ", 10, 3);
-	e_j_sph1.PrintLine(std::cout, "e_j_sph            = ", 10, 3);
-	e_k_sph1.PrintLine(std::cout, "e_k_sph            = ", 10, 3);
+	//std::cout << "\nExplicit form for Cart.base vectors (i, j, k) = (e_x, e_y, e_z)\n";
+	//Vector3Spherical e_i_sph1 = CoordTransfSpherToCart.getInverseBasisVectorExplicit(0, posSpher1);
+	//Vector3Spherical e_j_sph1 = CoordTransfSpherToCart.getInverseBasisVectorExplicit(1, posSpher1);
+	//Vector3Spherical e_k_sph1 = CoordTransfSpherToCart.getInverseBasisVectorExplicit(2, posSpher1);
+	//e_i_sph1.PrintLine(std::cout, "e_i_sph            = ", 10, 3);
+	//e_j_sph1.PrintLine(std::cout, "e_j_sph            = ", 10, 3);
+	//e_k_sph1.PrintLine(std::cout, "e_k_sph            = ", 10, 3);
 
-	//// We can obtain same set of vectors by using getContravarBasissVec, BUT WITH THE INVERSE TRANSFORMATION - CoordTransfCartToSpher!!!
+	//// We can obtain same set of vectors by using getContravarBasisVec, BUT WITH THE INVERSE TRANSFORMATION - CoordTransfCartToSpher!!!
 	//std::cout << "\nInverse covariant basis vectors, at posSpher1, expressed in terms of (e_r, e_theta, e_phi)  - NOT normalized - using getContravarBasisVec(i)\n";
 	//Vector3Spherical e_i_sph = CoordTransfCartToSpher.getContravarBasisVec(0, posSpher1);
 	//Vector3Spherical e_j_sph = CoordTransfCartToSpher.getContravarBasisVec(1, posSpher1);
@@ -408,9 +408,9 @@ void Demo_SpherToCart_BasisVectors()
 	e_k_sph.GetAsUnitVectorAtPos(posSpher1).PrintLine(std::cout, "e_k_sph.GetAs .... = ", 10, 3);
 
 	std::cout << "\nExplicit form for UNIT Cart.base vectors (i, j, k) = (e_x, e_y, e_z)\n";
-	Vector3Spherical e_i_sph_unit = CoordTransfSpherToCart.getInverseUnitBasisVectorExplicit(0, posSpher1);
-	Vector3Spherical e_j_sph_unit = CoordTransfSpherToCart.getInverseUnitBasisVectorExplicit(1, posSpher1);
-	Vector3Spherical e_k_sph_unit = CoordTransfSpherToCart.getInverseUnitBasisVectorExplicit(2, posSpher1);
+	Vector3Spherical e_i_sph_unit = CoordTransfSpherToCart.getInverseUnitBasisVec(0, posSpher1);
+	Vector3Spherical e_j_sph_unit = CoordTransfSpherToCart.getInverseUnitBasisVec(1, posSpher1);
+	Vector3Spherical e_k_sph_unit = CoordTransfSpherToCart.getInverseUnitBasisVec(2, posSpher1);
 	e_i_sph_unit.PrintLine(std::cout, "e_i_sph_unit       = ", 10, 3);
 	e_j_sph_unit.PrintLine(std::cout, "e_j_sph_unit       = ", 10, 3);
 	e_k_sph_unit.PrintLine(std::cout, "e_k_sph_unit       = ", 10, 3);

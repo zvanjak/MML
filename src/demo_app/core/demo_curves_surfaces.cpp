@@ -3,7 +3,8 @@
 #else
 #include "MMLBase.h"
 
-#include "core/CurvesSurfaces.h"
+#include "core/Curves.h"
+#include "core/Surfaces.h"
 #endif
 
 using namespace MML;

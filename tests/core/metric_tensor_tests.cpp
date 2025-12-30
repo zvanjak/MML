@@ -1,4 +1,6 @@
-#include "../catch/catch.hpp"
+#include <catch2/catch_all.hpp>
+#include "../TestPrecision.h"
+#include "../TestMatchers.h"
 
 #ifdef MML_USE_SINGLE_HEADER
 #include "MML.h"
@@ -14,12 +16,14 @@
 #endif
 
 using namespace MML;
+using namespace MML::Testing;
 
 namespace MML::Tests::Core::MetricTensorTests
 {
-	// TODO 0.9 - HIGH, BIG!!! verify that generating tensor from transf works
+	// TODO REAL(0.9) - HIGH, BIG!!! verify that generating tensor from transf works
 	TEST_CASE("Test_Metric_Tensors", "[simple]") {
-		MetricTensorCartesian<3> metricCart;
+			TEST_PRECISION_INFO();
+		MetricTensorCartesian3D metricCart;
 		MetricTensorSpherical metricSpher;
 		MetricTensorCylindrical metricCyl;
 
@@ -29,7 +33,7 @@ namespace MML::Tests::Core::MetricTensorTests
 		// using static 
 		MetricTensorFromCoordTransf<Vector3Spherical, Vector3Cartesian, 3> metricSpherFromCart2(CoordTransfSpherToCart);
 
-		Vector3Cartesian pos(1.0, 2.0, -1.0);
+		Vector3Cartesian pos(REAL(1.0), REAL(2.0), -REAL(1.0));
 		Vector3Spherical posSpher = CoordTransfSpherToCart.transf(pos);
 		Vector3Cylindrical posCyl = CoordTransfCylToCart.transf(pos);
 

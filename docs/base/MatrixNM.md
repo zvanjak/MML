@@ -1,353 +1,191 @@
-# MatrixNM class
+# MatrixNM\<T, N, M\> - Fixed-Size Matrix
 
-Class representing matrix of statically define type and size (as template parameters).
+**File**: `mml/base/MatrixNM.h`
 
-## Class definition
-~~~ c++
-template <class Type, int N, int M>
-class MatrixNM
-{
-public:
-	Type _vals[N][M] = { {0} };
+Fixed-size matrix with compile-time dimensions. Template parameters: `T` = element type, `N` = rows, `M` = columns.
 
-public:
-	//////////////////////////             Constructors           /////////////////////////
-	MatrixNM() {}
-	MatrixNM(std::initializer_list<Type> values)
-	MatrixNM(const MatrixNM& m)
-	MatrixNM(const Type& m)        // initialize as diagonal matrix
+## Quick Reference
 
-	typedef Type value_type;      // make T available externally
+```cpp
+MatrixNM<double, 3, 3> A;                    // 3×3 zero matrix
+MatrixNM<double, 2, 3> B(2.5);               // 2×3 filled with 2.5
+MatrixNM<double, 3, 3> I = MatrixNM<double,3,3>::GetUnitMatrix();  // Identity
+```
 
-	////////////////////////            Standard stuff             ////////////////////////
-	int RowNum() const { return N; }
-	int ColNum() const { return M; }
+## Why Use MatrixNM?
 
-	static MatrixNM GetUnitMatrix()
-	void   MakeUnitMatrix(void)
+- ✅ **Stack allocation** - No heap memory, faster
+- ✅ **Compile-time size** - Catches dimension errors at compile time
+- ✅ **Zero overhead** - Optimizes to direct array access
+- ✅ **Perfect for small matrices** - 2×2, 3×3, 4×4 transformations
+- ✅ **Type-safe operations** - Dimension compatibility checked at compile time
 
-	MatrixNM GetLower(bool includeDiagonal = true) const
-	MatrixNM GetUpper(bool includeDiagonal = true) const
+**Use MatrixNM when**: Matrix dimensions are known at compile time and small (≤ 10×10).
 
-	/////////////////////          Vector-Matrix conversion           /////////////////////
-	static MatrixNM<Type, 1, M>  RowMatrixFromVector(const VectorN<Type, M>& b)
-	static MatrixNM<Type, N, 1>  ColumnMatrixFromVector(const VectorN<Type, N>& b)
-	static MatrixNM<Type, N, N> DiagonalMatrixFromVector(const VectorN<Type, N>& b)
-	static VectorN<Type, M> VectorFromRow(const MatrixNM<Type, N, M>& a, int rowInd)
-	static VectorN<Type, N> VectorFromColumn(const MatrixNM<Type, N, M>& a, int colInd)
-	static VectorN<Type, N> VectorFromDiagonal(const MatrixNM<Type, N, N>& a)
+**Use Matrix\<T\> when**: Dimensions are runtime-dependent or matrices are large.
 
-	/////////////////////            Assignment operators             ////////////////////
-	MatrixNM& operator=(const MatrixNM& m)
-	MatrixNM& operator=(const Type& m)
+### Runnable Examples
 
-	////////////////////            Access operators             ///////////////////////
-	Type* operator[](int i) { return _vals[i]; }
-	const Type* operator[](const int i) const { return _vals[i]; }
+| Demo Function | Description | Location |
+|--------------|-------------|----------|
+| `Docs_Demo_MatrixNM_initializations()` | Construction and initialization | `src/docs_demos/docs_demo_matrixnm.cpp` |
+| `Docs_Demo_MatrixNM_vector_init_operations()` | `VectorFromRow/Column`, Utils | `src/docs_demos/docs_demo_matrixnm.cpp` |
+| `Docs_Demo_Basic_MatrixNM_operations()` | Arithmetic, transpose, trace | `src/docs_demos/docs_demo_matrixnm.cpp` |
 
-	Type  operator()(int i, int j) const { return _vals[i][j]; }
-	Type& operator()(int i, int j) { return _vals[i][j]; }
+**Build and Run:**
+```bash
+cmake --build build --target MML_DocsApp
+./build/src/MML_DocsApp   # Linux/macOS
+.\build\src\Release\MML_DocsApp.exe   # Windows
+```
 
-	// version with checking bounds
-	Type  ElemAt(int i, int j) const
-	Type& ElemAt(int i, int j)
+## Construction
 
-	////////////////////            Arithmetic operators             ////////////////////
-	MatrixNM operator-()            // unary minus
-	MatrixNM operator+(const MatrixNM& b) const
-	MatrixNM operator-(const MatrixNM& b) const
-	template<int K>
-	MatrixNM<Type, N, K>  operator*(const MatrixNM<Type, M, K>& b) const
+```cpp
+// Default and value initialization
+MatrixNM<double, 3, 3> zeros;           // Zero-initialized
+MatrixNM<double, 2, 3> filled(5.0);     // All values = 5.0
 
-	friend MatrixNM operator*(const MatrixNM& a, Type b)
-	friend MatrixNM operator/(const MatrixNM& a, Type b)
-	friend MatrixNM operator*(Type a, const MatrixNM& b)
+// From initializer list (row-wise)
+MatrixNM<double, 3, 3> A{1, 2, 3,
+                         4, 5, 6,
+                         7, 8, 9};
 
-	friend VectorN<Type, N> operator*(const MatrixNM<Type, N, M>& a, const VectorN<Type, M>& b)
-	friend VectorN<Type, M> operator*(const VectorN<Type, N>& a, const MatrixNM<Type, N, M>& b)
+// Identity matrix
+auto I = MatrixNM<double, 4, 4>::GetUnitMatrix();
+```
 
-	///////////////////////            Equality operations             //////////////////////
-	bool operator==(const MatrixNM& b) const
-	bool operator!=(const MatrixNM& b) const
+## Access & Properties
 
-	bool IsEqual(const MatrixNM& b, Type eps = Defaults::MatrixEqualityPrecision) const
-	bool AreEqual(const MatrixNM& a, const MatrixNM& b, Type eps = Defaults::MatrixEqualityPrecision) const
+```cpp
+MatrixNM<double, 3, 3> A{1,2,3,4,5,6,7,8,9};
 
-	///////////////////            Trace, Inverse & Transpose             ///////////////////
-	Type   Trace() const
+// Dimensions (compile-time constants)
+int rows = A.RowNum();    // Returns N (3)
+int cols = A.ColNum();    // Returns M (3)
 
-	void Invert()
-	MatrixNM GetInverse() const
+// Element access: (row, col)
+double val = A(1, 2);     // Get element
+A(0, 0) = 10.0;           // Set element
 
-	void Transpose()
-	MatrixNM<Type, M, N> GetTranspose() const
+// Row/column access
+auto row = A.VectorFromRow(1);     // Get row 1 as VectorN
+auto col = A.VectorFromColumn(2); // Get column 2 as VectorN
+```
 
-	///////////////////////////               I/O                 ///////////////////////////
-	std::string to_string(int width, int precision) const
-	void Print(std::ostream& stream, int width, int precision) const
-	friend std::ostream& operator<<(std::ostream& stream, const MatrixNM& a)
+## Arithmetic Operations
+
+```cpp
+MatrixNM<double, 2, 2> A{1,2,3,4}, B{5,6,7,8};
+
+// Addition/Subtraction (same dimensions required)
+auto sum = A + B;
+auto diff = A - B;
+
+// Scalar multiplication
+auto scaled = A * 2.0;
+auto scaled2 = 3.0 * A;
+
+// Matrix multiplication (dimension-compatible)
+MatrixNM<double, 2, 3> C;
+MatrixNM<double, 3, 4> D;
+auto product = C * D;  // Results in 2×4 matrix
+
+// Matrix-Vector multiplication
+VectorN<double, 2> v{1, 2};
+auto result = A * v;
+```
+
+## Matrix Operations
+
+```cpp
+MatrixNM<double, 3, 3> A{1,2,3,4,5,6,7,8,9};
+
+// Transpose (returns new matrix with swapped dimensions)
+auto At = A.GetTranspose();  // MatrixNM<double, 3, 3>
+
+// In-place transpose (only for square matrices)
+A.Transpose();  // Modifies A in place
+
+// Trace (square matrices only)
+double tr = A.Trace();
+```
+
+## Type Aliases
+
+Common fixed-size matrix types:
+
+```cpp
+// Square matrices
+typedef MatrixNM<Real, 2, 2> Mat22;
+typedef MatrixNM<Real, 3, 3> Mat33;
+typedef MatrixNM<Real, 4, 4> Mat44;
+
+// Rectangular matrices
+typedef MatrixNM<Real, 2, 3> Mat23;
+typedef MatrixNM<Real, 3, 4> Mat34;
+
+// Complex matrices
+typedef MatrixNM<Complex, 2, 2> Mat22Complex;
+typedef MatrixNM<Complex, 3, 3> Mat33Complex;
+```
+
+## Examples
+
+### Example 1: 3D Rotation Matrix
+```cpp
+#include "MML.h"
+using namespace MML;
+
+// Rotation around Z-axis
+double theta = M_PI / 4;  // 45 degrees
+Mat33 Rz{
+    cos(theta), -sin(theta), 0,
+    sin(theta),  cos(theta), 0,
+    0,           0,          1
 };
-~~~
 
-## MatrixNM initialization
-~~~ c++
-MatrixNM<Real, 2, 2> a;
-MatrixNM<Real, 2, 2> b({ 1.0, 0.0, 0.0, 1.0 });
-MatrixNM<Real, 2, 2> c(b);
-MatrixNM<Real, 2, 2> d = c;
-auto e = MatrixNM<Real, 3, 3>::GetUnitMatrix();
+Vec3 v{1, 0, 0};
+Vec3 rotated = Rz * v;  // Type-safe multiplication
 
-std::cout << "a = " << a << std::endl;
-std::cout << "b = " << b << std::endl;
-std::cout << "c = " << c << std::endl;
-std::cout << "d = " << d << std::endl;
-std::cout << "e = " << e << std::endl;
+std::cout << "Original: " << v << std::endl;
+std::cout << "Rotated: " << rotated << std::endl;
+```
 
-	/* OUTPUT
-a = Rows: 2  Cols: 2
-[          0,          0,  ]
-[          0,          0,  ]
+### Example 2: 2D Transformation
+```cpp
+// Scaling and rotation combined
+Mat22 scale{2, 0,
+            0, 3};
 
-b = Rows: 2  Cols: 2
-[          1,          0,  ]
-[          0,          1,  ]
+Mat22 rot{cos(M_PI/6), -sin(M_PI/6),
+          sin(M_PI/6),  cos(M_PI/6)};
 
-c = Rows: 2  Cols: 2
-[          1,          0,  ]
-[          0,          1,  ]
+Mat22 transform = scale * rot;
 
-d = Rows: 2  Cols: 2
-[          1,          0,  ]
-[          0,          1,  ]
+Vec2 point{1, 1};
+Vec2 transformed = transform * point;
+```
 
-e = Rows: 3  Cols: 3
-[          1,          0,          0,  ]
-[          0,          1,          0,  ]
-[          0,          0,          1,  ]
-	*/
-~~~
+### Example 3: Compile-Time Safety
+```cpp
+MatrixNM<double, 2, 3> A;
+MatrixNM<double, 3, 4> B;
 
-## MatrixNM - VectorN init operations
-~~~ c++
+auto C = A * B;  // ✓ Results in MatrixNM<double, 2, 4>
 
-VectorN<Real, 3> a({ 1.0, 1.0, 1.0 });
-MatrixNM<Real, 1, 3> matA = MatrixNM<Real, 1, 3>::RowMatrixFromVector(a);
-auto matAauto = MatrixNM<Real, 1, 3>::RowMatrixFromVector(a);
-MatrixNM<Real, 3, 1> matB = MatrixNM<Real, 3, 1>::ColumnMatrixFromVector(a);
-auto matBauto = MatrixNM<Real, 3, 1>::ColumnMatrixFromVector(a);
+// auto D = B * A;  // ✗ Compile error: incompatible dimensions!
+```
 
-std::cout << "Vector a = " << a << std::endl;
-std::cout << "Matrix matA = Matrix::RowMatrixFromVector(a);\nmatA = " << matA << std::endl;
-std::cout << "Matrix matB = Matrix::ColMatrixFromVector(a);\nmatB = " << matB << std::endl;
+## Performance Notes
 
-MatrixNM<Real, 2, 2> m1({ 1.0, -1.0, 1.5, 3.0 });
-VectorN<Real, 2> vecRow = MatrixNM<Real, 2, 2>::VectorFromRow(m1, 0);
-VectorN<Real, 2> vecCol = MatrixNM<Real, 2, 2>::VectorFromColumn(m1, 0);
-VectorN<Real, 2> vecDiag = MatrixNM<Real, 2, 2>::VectorFromDiagonal(m1);
+- **Zero allocation overhead**: Stack storage, no heap
+- **Compiler optimizations**: Loop unrolling, SIMD vectorization
+- **Cache-friendly**: Small matrices fit in cache
+- **Best for**: Graphics transformations, small linear algebra, physics calculations
 
-std::cout << "Matrix m1 = " << m1 << std::endl;
-std::cout << "Vector vecRow = Matrix::VectorFromRow(a,0)     = " << vecRow << std::endl;
-std::cout << "Vector vecCol = Matrix::VectorFromColumn(a, 0) = " << vecCol << std::endl;
-std::cout << "Vector vecCol = Matrix::VectorFromDiagonal(a)  = " << vecDiag << std::endl;
-
-/* OUTPUT
-Vector a = [              1,               1,               1]
-Matrix matA = Matrix::RowMatrixFromVector(a);
-matA = Rows: 1  Cols: 3
-[          1,          1,          1,  ]
-
-Matrix matB = Matrix::ColMatrixFromVector(a);
-matB = Rows: 3  Cols: 1
-[          1,  ]
-[          0,  ]
-[          0,  ]
-
-Matrix m1 = Rows: 2  Cols: 2
-[          1,         -1,  ]
-[        1.5,          3,  ]
-
-Vector vecRow = Matrix::VectorFromRow(a,0)     = [              1,              -1]
-Vector vecCol = Matrix::VectorFromColumn(a, 0) = [              1,             1.5]
-Vector vecCol = Matrix::VectorFromDiagonal(a)  = [              1,               3]
-*/
-~~~
-
-## MatrixNM Basic operations
-~~~ c++
-MatrixNM<Real, 2, 2> m1({ 1.0, -1.0, 1.5, 3.0 }), m2;
-m2.MakeUnitMatrix();
-
-std::cout << "m1 = " << m1 << std::endl;
-std::cout << "m2 = " << m2 << std::endl;
-
-std::cout << "m1 + m2 = " << m1 + m2 << std::endl;
-std::cout << "m1 - m2 = " << m1 - m2 << std::endl;
-std::cout << "m1 * m2 = " << m1 * m2 << std::endl;
-std::cout << "2.0 * m1 = " << 2.0 * m1 << std::endl;
-std::cout << "m1 * 2.0 = " << m1 * 2.0 << std::endl;
-std::cout << "m1 / 2.0 = " << m1 / 2.0 << std::endl;
-
-/* OUTPUT
-m1 = Rows: 2  Cols: 2
-[          1,         -1,  ]
-[        1.5,          3,  ]
-
-m2 = Rows: 2  Cols: 2
-[          1,          0,  ]
-[          0,          1,  ]
-
-m1 + m2 = Rows: 2  Cols: 2
-[          2,         -1,  ]
-[        1.5,          4,  ]
-
-m1 - m2 = Rows: 2  Cols: 2
-[          0,         -1,  ]
-[        1.5,          2,  ]
-
-m1 * m2 = Rows: 2  Cols: 2
-[          1,         -1,  ]
-[        1.5,          3,  ]
-
-2.0 * m1 = Rows: 2  Cols: 2
-[          2,         -2,  ]
-[          3,          6,  ]
-
-m1 * 2.0 = Rows: 2  Cols: 2
-[          2,         -2,  ]
-[          3,          6,  ]
-
-m1 / 2.0 = Rows: 2  Cols: 2
-[        0.5,       -0.5,  ]
-[       0.75,        1.5,  ]
-*/
-~~~
-
-## MatrixNM-VectorN multiplication
-~~~ c++
-VectorN<Real, 2> v1({ 1.0, 2.0 });
-MatrixNM<Real, 2, 2> m1({ 1.0, -1.0, 1.5, 3.0 });
-
-std::cout << "v1 = " << v1 << std::endl;
-std::cout << "m1 = " << m1 << std::endl;
-
-std::cout << "v1 * m1 = " << v1 * m1 << std::endl;
-std::cout << "m1 * v1 = " << m1 * v1 << std::endl;
-
-/* OUTPUT
-v1 = [              1,               2]
-m1 = Rows: 2  Cols: 2
-[          1,         -1,  ]
-[        1.5,          3,  ]
-
-v1 * m1 = [              4,               5]
-m1 * v1 = [             -1,             7.5]
-*/
-~~~
-
-## MatrixNM-MatrixNM multiplication
-~~~ c++
-MatrixNM<Real, 1, 3> m3{ 1.0, -2.0, 3.0 };
-MatrixNM<Real, 3, 4> m4{ 1.0, 0.0, 0.0, 0.0,
-												0.0, 1.0, 0.0, 0.0,
-												0.0, 0.0, 1.0, 1.0 };
-MatrixNM<Real, 1, 4> m5 = m3 * m4;
-
-std::cout << "m3 = " << m3 << std::endl;
-std::cout << "m4 = " << m4 << std::endl;
-std::cout << "m3 * m4 = " << m5 << std::endl;
-
-/* OUTPUT
-m3 = Rows: 1  Cols: 3
-[          1,         -2,          3,  ]
-
-m4 = Rows: 3  Cols: 4
-[          1,          0,          0,          0,  ]
-[          0,          1,          0,          0,  ]
-[          0,          0,          1,          1,  ]
-
-m3 * m4 = Rows: 1  Cols: 4
-[          1,         -2,          3,          3,  ]
-*/
-~~~
-
-## MatrixNM Invert
-~~~ c++
-MatrixNM<Real, 2, 2> m1({ 1.0, -1.0, 1.5, 3.0 });
-
-std::cout << "m1 = " << m1 << std::endl;
-auto m2 = m1.GetInverse();
-
-std::cout << "m2 (inv) = " << m2 << std::endl;
-
-auto munit = m1 * m2;
-std::cout << "m1 * m2 = " << munit << std::endl;
-
-/* OUTPUT
-m1 = Rows: 2  Cols: 2
-[          1,         -1,  ]
-[        1.5,          3,  ]
-
-m2 (inv) = Rows: 2  Cols: 2
-[      0.667,      0.222,  ]
-[     -0.333,      0.222,  ]
-
-m1 * m2 = Rows: 2  Cols: 2
-[          1,          0,  ]
-[          0,          1,  ]
-*/
-~~~
-
-## MatrixNM Transpose
-~~~ c++
-MatrixNM<Real, 2, 2> m1({ 1.0, -1.0, 1.5, 3.0 });
-std::cout << "m1 = " << m1 << std::endl;
-
-auto m2 = m1.GetTranspose();
-std::cout << "m2 (transp) = " << m2 << std::endl;
-
-m1.Transpose();
-std::cout << "Transposing m1 (in place) = " << m1 << std::endl;
-
-/* OUTPUT
-m1 = Rows: 2  Cols: 2
-[          1,         -1,  ]
-[        1.5,          3,  ]
-
-m2 (transp) = Rows: 2  Cols: 2
-[          1,        1.5,  ]
-[         -1,          3,  ]
-
-Transposing m1 (in place) = Rows: 2  Cols: 2
-[          1,        1.5,  ]
-[         -1,          3,  ]
-*/
-~~~
-
-## Defined typedefs for easier use
-
-MatrixNM class
-~~~ c++
-    typedef MatrixNM<float, 2, 2> Matrix22Flt;
-    typedef MatrixNM<float, 3, 3> Matrix33Flt;
-    typedef MatrixNM<float, 4, 4> Matrix44Flt;
-
-    typedef MatrixNM<double, 2, 2> Matrix22Dbl;
-    typedef MatrixNM<double, 3, 3> Matrix33Dbl;
-    typedef MatrixNM<double, 4, 4> Matrix44Dbl;
-
-    typedef MatrixNM<Complex, 2, 2> Matrix22Complex;
-    typedef MatrixNM<Complex, 3, 3> Matrix33Complex;
-    typedef MatrixNM<Complex, 4, 4> Matrix44Complex;
-
-    typedef MatrixNM<float, 2, 2> Mat22F;
-    typedef MatrixNM<float, 3, 3> Mat33F;
-    typedef MatrixNM<float, 4, 4> Mat44F;
-
-    typedef MatrixNM<double, 2, 2> Mat22D;
-    typedef MatrixNM<double, 3, 3> Mat33D;
-    typedef MatrixNM<double, 4, 4> Mat44D;
-
-    typedef MatrixNM<Complex, 2, 2> Mat22C;
-    typedef MatrixNM<Complex, 3, 3> Mat33C;
-    typedef MatrixNM<Complex, 4, 4> Mat44C;
-~~~
+## See Also
+- [Matrices.md](Matrices.md) - Matrix types overview  
+- [Matrix.md](Matrix.md) - Dynamic-size matrices
+- [VectorN.md](VectorN.md) - Fixed-size vectors
+- [Coordinate_transformations.md](../core/Coordinate_transformations.md) - Using matrices for transformations

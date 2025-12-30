@@ -1,10 +1,10 @@
-#include "../catch/catch.hpp"
+#include <catch2/catch_all.hpp>
 
 #ifdef MML_USE_SINGLE_HEADER
 #include "MML.h"
 #else
 #include "base/Vector.h"
-#include "core/Function.h"
+#include "base/Function.h"
 #include "core/Derivation.h"
 #endif
 
@@ -13,6 +13,9 @@
 #include "../test_data/vector_functions_test_bed.h"
 
 using namespace MML;
+
+using Catch::Matchers::WithinAbs;
+using Catch::Matchers::WithinRel;
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -23,10 +26,10 @@ using namespace MML;
 
 TEST_CASE("Test_1st_derivation_precision_sin_func_default_step_size", "[simple]") 
 {
-    RealFunction  f_sin = TestBeds::RealFunctionsTestBed::getTestFunctionReal(0)._func;
-    RealFunction  f_der = TestBeds::RealFunctionsTestBed::getTestFunctionReal(0)._funcDerived;
+    RealFunction  f_sin = TestBeds::RealFunctionsTestBed::getFunc(0)._func;
+    RealFunction  f_der = TestBeds::RealFunctionsTestBed::getFunc(0)._funcDerived;
 
-    RealFunction  f_cos = TestBeds::RealFunctionsTestBed::getTestFunctionReal(1)._func;
+    RealFunction  f_cos = TestBeds::RealFunctionsTestBed::getFunc(1)._func;
 
     Vector<Real> x_val{0.0, 0.5, 1.0, 2.0, 3.0, 5.0 };
 
@@ -55,24 +58,24 @@ TEST_CASE("Test_1st_derivation_precision_sin_func_default_step_size", "[simple]"
         double x = x_val[i];
 
         double num_der = Derivation::NDer1(f_sin, x);
-        REQUIRE(f_der(x) == Approx(num_der).epsilon(nder1_prec[i]));
-        REQUIRE(f_der(x) != Approx(num_der).epsilon(nder1_prec[i]*0.1));
+        REQUIRE_THAT(f_der(x) , WithinRel(num_der, nder1_prec[i]));
+        REQUIRE_THAT(f_der(x) , !WithinRel(num_der, nder1_prec[i]*0.1));
 
         num_der = Derivation::NDer2(f_sin, x);
-        REQUIRE(f_der(x) == Approx(num_der).epsilon(nder2_prec[i]));
-        REQUIRE(f_der(x) != Approx(num_der).epsilon(nder2_prec[i]*0.1));
+        REQUIRE_THAT(f_der(x) , WithinRel(num_der, nder2_prec[i]));
+        REQUIRE_THAT(f_der(x) , !WithinRel(num_der, nder2_prec[i]*0.1));
 
         num_der = Derivation::NDer4(f_sin, x);
-        REQUIRE(f_der(x) == Approx(num_der).epsilon(nder4_prec[i]));
-        REQUIRE(f_der(x) != Approx(num_der).epsilon(nder4_prec[i]*0.1));  
+        REQUIRE_THAT(f_der(x) , WithinRel(num_der, nder4_prec[i]));
+        REQUIRE_THAT(f_der(x) , !WithinRel(num_der, nder4_prec[i]*0.1));  
 
         num_der = Derivation::NDer6(f_sin, x);
-        REQUIRE(f_der(x) == Approx(num_der).epsilon(nder6_prec[i]));
-        REQUIRE(f_der(x) != Approx(num_der).epsilon(nder6_prec[i]*0.1));              
+        REQUIRE_THAT(f_der(x) , WithinRel(num_der, nder6_prec[i]));
+        REQUIRE_THAT(f_der(x) , !WithinRel(num_der, nder6_prec[i]*0.1));              
 
         num_der = Derivation::NDer8(f_sin, x);
-        REQUIRE(f_der(x) == Approx(num_der).epsilon(nder8_prec[i]));
-        REQUIRE(f_der(x) != Approx(num_der).epsilon(nder8_prec[i]*0.1));              
+        REQUIRE_THAT(f_der(x) , WithinRel(num_der, nder8_prec[i]));
+        REQUIRE_THAT(f_der(x) , !WithinRel(num_der, nder8_prec[i]*0.1));              
     }   
 }
 

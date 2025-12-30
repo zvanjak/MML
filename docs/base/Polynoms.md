@@ -1,159 +1,351 @@
-# Polynom class
+# Polynom\<CoefT, FieldT\> - Polynomial Class
 
-Class representing general polynom
+**File**: `mml/base/Polynom.h`
 
-~~~ c++
-template <typename _Field, typename _CoefType = Real>
-class Polynom
-{
-private:
-    std::vector<_CoefType> _vecCoef;
+General polynomial class supporting operations over Real, Complex, and Matrix fields.
 
-public:
-    int  GetDegree() const     { return (int) _vecCoef.size() - 1; }
-    void SetDegree(int newDeg) {  _vecCoef.resize(newDeg+1); }
+## Table of Contents
+- [Overview](#overview)
+- [Construction](#construction)
+- [Polynomial Evaluation](#polynomial-evaluation)
+- [Arithmetic Operations](#arithmetic-operations)
+- [Calculus Operations](#calculus-operations)
+- [Polynomial Division](#polynomial-division)
+- [Root Finding](#root-finding)
+- [Examples](#examples)
 
-    _Field  operator[] (int i) const { return _vecCoef[i]; }
-    _Field& operator[] (int i)       { return _vecCoef[i]; }
+---
 
-    _Field operator() (const _Field &x);
+## Overview
 
-    // Given the coefficients of a polynomial of degree nc as an array c[0..nc] of size nc+1 (with
-    // c[0] being the constant term), and given a value x, this routine fills an output array pd of size
-    // nd+1 with the value of the polynomial evaluated at x in pd[0], and the first nd derivatives at
-    // x in pd[1..nd].
-    void Derive(const Real x, Vector<Real> &pd);
+`Polynom<CoefT, FieldT>` represents polynomials with coefficients of type `CoefT`, evaluated over field `FieldT`.
 
-    bool operator==(const Polynom &b) const;
+**Template Parameters:**
+- `CoefT` - Coefficient type (Real, Complex)
+- `FieldT` - Evaluation field type (defaults to CoefT)
 
-    Polynom operator+(const Polynom &b) const;
-    Polynom operator-(const Polynom &b) const;
-    Polynom operator*(const Polynom &b) const;
+**Key Features:**
+- ✅ **Horner's method** - Efficient polynomial evaluation
+- ✅ **Complete arithmetic** - Add, subtract, multiply, divide with remainder
+- ✅ **Calculus support** - Derivatives, integrals
+- ✅ **Root finding** - Numerical root computation
+- ✅ **Matrix evaluation** - Evaluate polynomials at matrix arguments
+- ✅ **Interpolation** - Construct polynomials from data points
 
-    static void poldiv(const Polynom &u, const Polynom &v, Polynom &qout, Polynom &rout);
+### Runnable Examples
 
-    friend Polynom operator*(const Polynom &a, _CoefType b );
-    friend Polynom operator*(_CoefType a, const Polynom &b );
-    friend Polynom operator/(const Polynom &a, _CoefType b);
+| Demo Function | Description | Location |
+|--------------|-------------|----------|
+| `Docs_Demo_Polynom()` | Construction, evaluation, arithmetic, output | `src/docs_demos/docs_demo_polynom.cpp` |
+| `Docs_Demo_Polynom_Calculus()` | `Derive()`, `Integrate()` operations | `src/docs_demos/docs_demo_polynom.cpp` |
+| `Docs_Demo_Polynom_RootFinding()` | `RootFinding::LaguerreRoots()` usage | `src/docs_demos/docs_demo_polynom.cpp` |
 
-    std::string to_string(int width, int precision) const;
-    std::ostream& Print(std::ostream& stream, int width, int precision) const;
-    std::ostream& Print(std::ostream& stream) const;
-    friend std::ostream& operator<<(std::ostream& stream, Polynom &a);
-};
+**Build and Run:**
+```bash
+cmake --build build --target MML_DocsApp
+./build/src/MML_DocsApp   # Linux/macOS
+.\build\src\Release\MML_DocsApp.exe   # Windows
+```
 
-// predefined typedefs
-typedef Polynom<Real, Real>         RealPolynom;
-typedef Polynom<Complex, Complex>   ComplexPolynom;
+---
 
-typedef Polynom<MatrixNM<Real,2,2>, Real>       MatrixPolynomDim2;
-typedef Polynom<MatrixNM<Real,3,3>, Real>       MatrixPolynomDim3;
-typedef Polynom<MatrixNM<Real,4,4>, Real>       MatrixPolynomDim4;
-~~~
+## Construction
 
-Example of basic usage
+### Basic Construction
+```cpp
+// Empty polynomial
+Polynom<Real> p1;
 
-~~~C++
-// Initialization of polynomials
-RealPolynom pol_constant({ 1 });
-RealPolynom pol_linear({ 1, 2 });					
-RealPolynom pol_quadratic({ 1, 2, 3 });			
-RealPolynom pol_cubic({ 1, 2, 3, 4 });			
-RealPolynom pol_quartic({ 1, 2, 3, 4, 5 });
+// Degree-n polynomial (zero coefficients)
+Polynom<Real> p2(3);  // Degree 3: p(x) = 0
 
-RealPolynom    poly_real({ -1, 0.25, 1.3, -2, 0.4 });
-ComplexPolynom poly_cmplx_r({ 1, 2, 3, 4 });
-ComplexPolynom poly_cmplx({ Complex(0.5,-1), Complex(-2,3) });
-Matrix2Polynom poly_mat({ 1, -1.0/2, 1./6 });            // matrix polynomial of 3rd order
+// From coefficient vector (constant term first)
+Polynom<Real> p3({1, 2, 3});  // p(x) = 1 + 2x + 3x²
 
-// Basic output of polynomials
-std::cout << "pol_constant  : " << pol_constant << std::endl;
-std::cout << "pol_linear    : " << pol_linear << std::endl;
-std::cout << "pol_quadratic : " << pol_quadratic << std::endl;
-std::cout << "pol_cubic     : " << pol_cubic << std::endl;
-std::cout << "pol_quartic   : " << pol_quartic << std::endl;
-std::cout << "poly_real     : " << poly_real << std::endl;
-std::cout << "poly_cmplx_r  : " << poly_cmplx_r << std::endl;
-std::cout << "poly_cmplx    : " << poly_cmplx << std::endl;
-std::cout << "m2            : " << poly_mat << std::endl << std::endl;
+// From std::vector
+std::vector<Real> coefs = {1, -2, 1};  // p(x) = 1 - 2x + x²
+Polynom<Real> p4(coefs);
+```
 
-// Evaluation of polynomials
-std::cout << "poly_real(5.0)   = " << poly_real(1.0) << std::endl;
-std::cout << "poly_real(-2.0)  = " << poly_real(-2.0) << std::endl;
-std::cout << "poly_real(1.276) = " << poly_real(1.276) << std::endl << std::endl;
-	
-std::cout << "poly_cmplx( 2 + 3i) = " << poly_cmplx(Complex(2, 3)) << std::endl;
-std::cout << "poly_cmplx(-1 - i)  = " << poly_cmplx(Complex(-1, -1)) << std::endl;
-std::cout << "poly_cmplx( 1 - 2i) = " << poly_cmplx(Complex(1, -2)) << std::endl << std::endl;
+### Static Factory Methods
+```cpp
+// Zero polynomial
+auto zero = Polynom<Real>::Zero();  // p(x) = 0
 
-// evaluate the polynomial at the given matrix value
-std::cout << "poly_mat({ 1, 0.5, -1.4, 2.8 }) = " << poly_mat(MatrixNM<Real, 2, 2>({ 1, 0.5, -1.4, 2.8 })) << std::endl << std::endl;
+// Constant polynomial
+auto c = Polynom<Real>::Constant(5);  // p(x) = 5
 
-// evaluation of matrix polynom in detail
-MatrixNM<Real, 2, 2> eval_mat({ 1, 2, 3, 4 });     // matrix to evaluate the polynomial at
-MatrixNM<Real, 2, 2> m2_2 = poly_mat(eval_mat);    // evaluate the polynomial at the given matrix value
+// Monomial x^n
+auto x3 = Polynom<Real>::Monomial(3);  // p(x) = x³
 
-// Operations on polynomials
-RealPolynom pol_sum = pol_quadratic + pol_cubic;
-std::cout << "( " << pol_quadratic << " )  +  ( " << pol_cubic << " ) = " << pol_sum << std::endl;
-RealPolynom pol_diff = pol_quadratic - pol_cubic;
-std::cout << "( " << pol_quadratic << " )  -  ( " << pol_cubic << " ) = " << pol_diff << std::endl;
-RealPolynom pol_prod = pol_quadratic * pol_cubic;
-std::cout << "( " << pol_quadratic << " )  *  ( " << pol_cubic << " ) = " << pol_prod << std::endl;
-RealPolynom pol_div, pol_rem;
-RealPolynom::poldiv(pol_prod, pol_cubic, pol_div, pol_rem);
-std::cout << "( " << pol_prod << " )  /  ( " << pol_cubic << " ) = " << pol_div << "  remainder: " << pol_rem << std::endl;
+// Linear polynomial ax + b
+auto linear = Polynom<Real>::Linear(2, -1);  // p(x) = 2x - 1
+```
 
-RealPolynom pol_sum2 = pol_quadratic * 2.0;
-RealPolynom pol_diff2 = pol_quadratic / 2.0;
-RealPolynom pol_prod2 = 2.0 * pol_quadratic;
+### Polynomial Interpolation
+```cpp
+// Construct polynomial from points
+std::vector<Real> x = {0, 1, 2, 3};
+std::vector<Real> y = {1, 2, 5, 10};
 
-std::cout << "\nReal coef. polynom output:\n";
-std::cout << poly_real << std::endl;
-std::cout << poly_real.to_string(10, 5) << std::endl;
-poly_real.Print(std::cout, 7, 3);
+// Find polynomial p such that p(x[i]) = y[i]
+auto p = Polynom<Real>::FromValues(x, y);
 
-std::cout << "\nComplex coef. polynom output:\n";
-std::cout << poly_cmplx << std::endl;
-std::cout << poly_cmplx.to_string(10, 5) << std::endl;
-poly_cmplx.Print(std::cout, 7, 3);
+std::cout << "p(1.5) = " << p(1.5) << std::endl;
+```
 
-/* OUTPUT
-pol_constant  : 1
-pol_linear    : 2 * x1 + 1
-pol_quadratic : 3 * x^2 + 2 * x1 + 1
-pol_cubic     : 4 * x^3 + 3 * x^2 + 2 * x1 + 1
-pol_quartic   : 5 * x^4 + 4 * x^3 + 3 * x^2 + 2 * x1 + 1
-poly_real     : 0.4 * x^4 + -2 * x^3 + 1.3 * x^2 + 0.25 * x1 + -1
-poly_cmplx_r  : (4,0) * x^3 + (3,0) * x^2 + (2,0) * x1 + (1,0)
-poly_cmplx    : (-2,3) * x1 + (0.5,-1)
-m2            : 0.166667 * x^2 + -0.5 * x1 + 1
+---
 
-poly_real(5.0)   = -1.05
-poly_real(-2.0)  = 26.1
-poly_real(1.276) = -1.65909
+## Polynomial Evaluation
 
-poly_cmplx( 2 + 3i) = (-12.5,-1)
-poly_cmplx(-1 - i)  = (5.5,-2)
-poly_cmplx( 1 - 2i) = (4.5,6)
+### Using Horner's Method
+```cpp
+Polynom<Real> p({1, -2, 3});  // p(x) = 1 - 2x + 3x²
 
-poly_mat({ 1, 0.5, -1.4, 2.8 }) = Rows: 2  Cols: 2
-[       0.55,     0.0667,  ]
-[     -0.187,       0.79,  ]
+// Evaluate at a point
+Real val = p(2.0);  // p(2) = 1 - 4 + 12 = 9
 
+// Evaluate at multiple points
+for (Real x = 0; x <= 2; x += 0.5) {
+    std::cout << "p(" << x << ") = " << p(x) << std::endl;
+}
+```
 
-( 3 * x^2 + 2 * x1 + 1 )  +  ( 4 * x^3 + 3 * x^2 + 2 * x1 + 1 ) = 4 * x^3 + 6 * x^2 + 4 * x1 + 2
-( 3 * x^2 + 2 * x1 + 1 )  -  ( 4 * x^3 + 3 * x^2 + 2 * x1 + 1 ) = -4 * x^3
-( 3 * x^2 + 2 * x1 + 1 )  *  ( 4 * x^3 + 3 * x^2 + 2 * x1 + 1 ) = 12 * x^5 + 17 * x^4 + 16 * x^3 + 10 * x^2 + 4 * x1 + 1( 12 * x^5 + 17 * x^4 + 16 * x^3 + 10 * x^2 + 4 * x1 + 1 )  /  ( 4 * x^3 + 3 * x^2 + 2 * x1 + 1 ) = 2 * x1 + 1  remainder:
+### Matrix Evaluation
+```cpp
+// Evaluate polynomial at a matrix
+Polynom<Real> p({1, 0, 1});  // p(x) = 1 + x²
 
-Real coef. polynom output:
-0.4 * x^4 + -2 * x^3 + 1.3 * x^2 + 0.25 * x1 + -1
-			 0.4 * x^4 +         -2 * x^3 +        1.3 * x^2 +       0.25 * x1 +         -1
-		0.4 * x^4 +      -2 * x^3 +     1.3 * x^2 +    0.25 * x1 +      -1
-Complex coef. polynom output:
-(-2,3) * x1 + (0.5,-1)
-		(-2,3) * x1 +   (0.5,-1)
- (-2,3) * x1 + (0.5,-1)
-*/
-~~~
+MatrixNM<Real, 2, 2> A{1, 2,
+                       3, 4};
+
+// p(A) = I + A²
+auto result = p(A);
+```
+
+---
+
+## Arithmetic Operations
+
+### Addition and Subtraction
+```cpp
+Polynom<Real> p({1, 2});     // p(x) = 1 + 2x
+Polynom<Real> q({3, -1, 1}); // q(x) = 3 - x + x²
+
+auto sum = p + q;   // (1+3) + (2-1)x + x² = 4 + x + x²
+auto diff = q - p;  // (3-1) + (-1-2)x + x² = 2 - 3x + x²
+```
+
+### Multiplication
+```cpp
+Polynom<Real> p({1, 1});  // p(x) = 1 + x
+Polynom<Real> q({1, -1}); // q(x) = 1 - x
+
+auto product = p * q;  // (1 + x)(1 - x) = 1 - x²
+// Result: {1, 0, -1} representing 1 - x²
+```
+
+### Scalar Operations
+```cpp
+Polynom<Real> p({1, 2, 3});  // 1 + 2x + 3x²
+
+auto scaled = p * 2.0;   // 2 + 4x + 6x²
+auto divided = p / 3.0;  // 1/3 + 2/3·x + x²
+```
+
+---
+
+## Calculus Operations
+
+### Derivatives
+```cpp
+Polynom<Real> p({1, -3, 2, 1});  // p(x) = 1 - 3x + 2x² + x³
+
+// First derivative: p'(x) = -3 + 4x + 3x²
+auto dp = p.Derive();
+
+// Second derivative: p''(x) = 4 + 6x
+auto d2p = dp.Derive();
+
+// Evaluate polynomial and all derivatives at a point
+Real x = 2.0;
+Vector<Real> derivs(4);  // Store p, p', p'', p'''
+p.Derive(x, derivs);     // Fills derivs[0] = p(2), derivs[1] = p'(2), ...
+```
+
+### Integration
+```cpp
+Polynom<Real> p({1, 2, 3});  // p(x) = 1 + 2x + 3x²
+
+// Indefinite integral: ∫p dx = x + x² + x³ + C
+auto integral = p.Integrate();  // Constant C = 0
+
+// Definite integral from a to b
+Real a = 0, b = 1;
+Real area = integral(b) - integral(a);
+```
+
+---
+
+## Polynomial Division
+
+### Division with Remainder
+```cpp
+Polynom<Real> u({-1, 0, 1});  // u(x) = x² - 1
+Polynom<Real> v({1, 1});      // v(x) = x + 1
+
+Polynom<Real> q, r;  // quotient and remainder
+Polynom<Real>::poldiv(u, v, q, r);
+
+// x² - 1 = (x + 1)(x - 1) + 0
+// q(x) = x - 1, r(x) = 0
+```
+
+---
+
+## Root Finding
+
+> **Note:** Polynomial root finding is in `mml/algorithms/RootFindingPolynoms.h`.
+
+### Finding Roots with Laguerre's Method
+```cpp
+#include "algorithms/RootFindingPolynoms.h"
+
+Polynom<Real> p({-6, 11, -6, 1});  // p(x) = x³ - 6x² + 11x - 6 = (x-1)(x-2)(x-3)
+
+// Find all complex roots using Laguerre's method
+Vector<Complex> roots = RootFinding::LaguerreRoots(p);
+
+// To verify roots, use a complex polynomial
+Polynom<Complex> pc({-6, 11, -6, 1});  // same coefficients
+for (const auto& r : roots) {
+    std::cout << "Root: " << r << ", p(r) = " << pc(r) << std::endl;
+}
+```
+
+### Finding Roots via Companion Matrix
+```cpp
+Polynom<Real> p({1, 0, 1});  // p(x) = x² + 1
+
+// Find roots as eigenvalues of companion matrix
+Vector<Complex> roots = RootFinding::CompanionMatrixRoots(p);
+// roots = {(0,1), (0,-1)} = {i, -i}
+```
+
+---
+
+## Properties and Utilities
+
+### Degree and Coefficients
+```cpp
+Polynom<Real> p({1, 0, 3, 0, 5});  // 1 + 3x² + 5x⁴
+
+int deg = p.GetDegree();      // 4
+Real leading = p.leadingTerm();    // 5
+Real constant = p.constantTerm();  // 1
+
+// Access coefficients
+Real c2 = p[2];  // 3 (coefficient of x²)
+```
+
+### Polynomial Reduction
+```cpp
+Polynom<Real> p({1, 2, 0, 0, 0});  // 1 + 2x + 0x² + 0x³ + 0x⁴
+
+p.Reduce();  // Remove trailing zeros
+// p is now {1, 2} representing 1 + 2x
+```
+
+---
+
+## Type Aliases
+
+```cpp
+typedef Polynom<Real>      PolynomReal;
+typedef Polynom<Complex>   PolynomComplex;
+
+// Matrix polynomials
+typedef Polynom<Real, MatrixNM<Real, 2, 2>>   Matrix2Polynom;
+typedef Polynom<Real, MatrixNM<Real, 3, 3>>   Matrix3Polynom;
+typedef Polynom<Real, MatrixNM<Real, 4, 4>>   Matrix4Polynom;
+```
+
+---
+
+## Examples
+
+### Example 1: Quadratic Formula Verification
+```cpp
+#include "algorithms/RootFindingPolynoms.h"
+
+// p(x) = x² - 5x + 6 = (x-2)(x-3)
+Polynom<Real> p({6, -5, 1});
+
+Vector<Complex> roots = RootFinding::LaguerreRoots(p);
+// Real parts ≈ {2.0, 3.0}
+
+for (const auto& r : roots) {
+    std::cout << "Root: " << r.real() << std::endl;
+}
+```
+
+### Example 2: Polynomial Interpolation
+```cpp
+// Fit polynomial through points (0,1), (1,0), (2,3)
+std::vector<Real> x = {0, 1, 2};
+std::vector<Real> y = {1, 0, 3};
+
+auto p = Polynom<Real>::FromValues(x, y);
+
+std::cout << "Polynomial degree: " << p.GetDegree() << std::endl;
+std::cout << "p(0.5) = " << p(0.5) << std::endl;
+```
+
+### Example 3: Calculus
+```cpp
+#include "algorithms/RootFindingPolynoms.h"
+
+// p(x) = x³ - 3x² + 2x
+Polynom<Real> p({0, 2, -3, 1});
+
+// Find derivative
+auto dp = p.Derive();  // 2 - 6x + 3x²
+
+// Find critical points (where p'(x) = 0) using root finding
+Vector<Complex> critical = RootFinding::LaguerreRoots(dp);
+
+for (const auto& z : critical) {
+    if (std::abs(z.imag()) < 1e-10) {  // Real root
+        Real x = z.real();
+        std::cout << "Critical point at x = " << x;
+        std::cout << ", p(x) = " << p(x) << std::endl;
+    }
+}
+```
+
+### Example 4: Complex Polynomials
+```cpp
+// p(z) = z² + 2iz - 1
+Polynom<Complex> p({Complex(-1,0), Complex(0,2), Complex(1,0)});
+
+Complex z(1, 1);  // Evaluate at z = 1 + i
+Complex result = p(z);
+
+std::cout << "p(" << z << ") = " << result << std::endl;
+```
+
+---
+
+## Performance Notes
+
+- **Horner's method**: O(n) evaluation vs O(n²) naive
+- **Polynomial multiplication**: O(n²) standard algorithm
+- **Root finding**: Iterative methods, O(n·k) where k = iterations
+
+---
+
+## See Also
+- [Functions.md](../core/Functions.md) - Polynomial functions
+- [Root_finding.md](../algorithms/Root_finding.md) - Root finding algorithms
+- [Interpolated_functions.md](../core/Interpolated_functions.md) - Polynomial interpolation
 

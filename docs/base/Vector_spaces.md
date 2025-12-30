@@ -1,5 +1,0 @@
-# Vector spaces
-
-## RealVectorSpaceN
-
-## ComplexVectorSpaceN

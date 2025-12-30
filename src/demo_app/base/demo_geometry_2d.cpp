@@ -6,6 +6,8 @@
 #include "base/Geometry.h"
 #include "base/Geometry2D.h"
 #include "base/Geometry3D.h"
+#include "base/BaseUtils.h"
+
 #endif
 
 using namespace MML;
@@ -53,7 +55,7 @@ void Demo_Geometry_2D_operations()
     auto vec6 = vec1 * 3.0;
     auto vec7 = vec1 / 3.0;
     auto norm = vec1.NormL2();
-    auto scal_prod = vec1.ScalarProductCartesian(vec2);
+    auto scal_prod = ScalarProduct(vec1, vec2);
 }
 
 void Demo_Geometry_2D()

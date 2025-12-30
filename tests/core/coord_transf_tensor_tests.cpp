@@ -1,13 +1,13 @@
-#include "../catch/catch.hpp"
+#include <catch2/catch_all.hpp>
 
 #ifdef MML_USE_SINGLE_HEADER
 #include "MML.h"
 #else
 #include "core/CoordTransf.h"
 #include "core/FieldOperations.h"
+#include "core/Fields.h"
 #endif
 
-#include "../test_data/Fields.h"
 
 using namespace MML;
 

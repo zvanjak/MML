@@ -7,11 +7,11 @@
 #include "core/CoordTransf/CoordTransfSpherical.h"
 
 #include "core/FieldOperations.h"
-#include "core/CurvesSurfaces.h"
+#include "core/Curves.h"
+#include "core/Fields.h"
 #endif
 
 #include "../test_data/parametric_curves_test_bed.h"
-#include "../test_data/Fields.h"
 
 using namespace MML;
 
@@ -36,8 +36,8 @@ Calculations are performed in Cartesian and spherical coordinates, along circle 
     static VectorFunction<3> force_field_spher_exact([](const VectorN<Real, 3> &x_spher) { return Fields::InverseRadialPotentialForceFieldSph(x_spher); });
 
     // if we have only potential, we can numerical calculate force field from it
-    static VectorFunction<3> force_field_cart_from_grad{ [](const VectorN<Real, 3> &x_cart)  { return -ScalarFieldOperations::GradientCart<3>(pot_cart_exact, x_cart); } };  
-    static VectorFunction<3> force_field_spher_from_grad([](const VectorN<Real, 3> &x_spher) { return -ScalarFieldOperations::GradientSpher(pot_spher_exact,x_spher); });
+    static VectorFunction<3> force_field_cart_from_grad{ [](const VectorN<Real, 3> &x_cart)  { return (-1.0) * ScalarFieldOperations::GradientCart<3>(pot_cart_exact, x_cart); }};
+    static VectorFunction<3> force_field_spher_from_grad{ [](const VectorN<Real, 3>& x_spher) { return (-1.0) * ScalarFieldOperations::GradientSpher(pot_spher_exact,x_spher); }};
 
     // if we have potential in one coord. system, and we need force field in another, we can calculate it 
     // by first calculating force field in the same coord. system as potential, and then transforming it covariantly to desired coordinates
@@ -55,7 +55,7 @@ Calculations are performed in Cartesian and spherical coordinates, along circle 
     } };
 
     // calculating potential and force around circle
-    Curves3D::Circle3DXZ circle(10.0);
+    Curves::Circle3DXZ circle(10.0);
 
     // calculating field Gradient in Cart. and Spherical coordinates around circle
     std::cout << "         Position          Pot.(Cart)    Pot.(Spher)        Force exact (Cart. vector)              Force exact (Sph. vector)              Force num.grad (Cart.vector)        Force num.grad (Sph.vector)" << std::endl;

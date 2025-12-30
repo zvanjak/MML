@@ -3,10 +3,11 @@
 #else
 #include "MMLBase.h"
 
-#include "core/Function.h"
-#include "core/CurvesSurfaces.h"
+#include "base/Function.h"
 
-#include "algorithms/PathIntegration.h"
+#include "core/Curves.h"
+
+#include "core/Integration/PathIntegration.h"
 #endif
 
 using namespace std;
@@ -57,7 +58,7 @@ void Calc_line_integral()
 	double t1 = 0.0;
 	double t2 = 1.0;
 
-	Curves3D::LineCurve  line(t1, pnt1, t2, pnt2);
+	Curves::LineCurve  line(t1, pnt1, t2, pnt2);
 	int numPnt = 10;
 	double dt = (t2 - t1) / numPnt;
 	double sum = 0.0;
@@ -84,8 +85,8 @@ void Calc_line_integral()
 	std::cout << "Work integral between points is : " << PathIntegration::LineIntegral(force_field_exact, line, t1, t2, 1e-03) << endl;
 	std::cout << "Work integral 2 between points is : " << PathIntegration::LineIntegral(force_field_calc, line, t1, t2, 1e-03) << endl;
 
-	Curves3D::LineCurve  line1(t1, pnt1, t2, pntmid);
-	Curves3D::LineCurve  line2(t1, pntmid, t2, pnt2);
+	Curves::LineCurve  line1(t1, pnt1, t2, pntmid);
+	Curves::LineCurve  line2(t1, pntmid, t2, pnt2);
 
 	std::cout << "Line 1 : " << PathIntegration::LineIntegral(potential_field, line1, t1, t2, 1e-03) << endl;
 	std::cout << "Line 2 : " << PathIntegration::LineIntegral(potential_field, line2, t1, t2, 1e-03) << endl;

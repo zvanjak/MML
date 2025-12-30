@@ -27,12 +27,24 @@ namespace MML::TestBeds
 			Vector<Real>{ 0.03439277556,  0.5879639066, -0.8081556666 },
 	};
 
+	// Matrix properties for symm_mat_3x3
+	const static inline Real              symm_mat_3x3_det = 658.7220000000001;
+	const static inline MML::Vector<Real> symm_mat_3x3_singular_values{19.279234021388303, 12.451538586085298, 2.727695435303002};
+	const static inline Real              symm_mat_3x3_cond_2 = 7.068434587696746;
+	const static inline int               symm_mat_3x3_rank = 3;
+
 	const static inline MML::MatrixSym<Real>  symm_mat_3x3_1{ 3, { 2, -1,  0,
 																																		2, -1,
 																																				2 } };
 
 	const static inline Vector<Real>          symm_mat_3x3_1_rhs0{ -2.7, 1.3, 5.4 };
 	const static inline Vector<Real>          symm_mat_3x3_1_rhs0_sol{ -0.45139279169212, 0.103906536346976, -0.310565058032987 };
+
+	// Matrix properties for symm_mat_3x3_1
+	const static inline Real              symm_mat_3x3_1_det = 4.0;
+	const static inline MML::Vector<Real> symm_mat_3x3_1_singular_values{3.414213562373095, 2.0, 0.5857864376269049};
+	const static inline Real              symm_mat_3x3_1_cond_2 = 5.828427124746191;
+	const static inline int               symm_mat_3x3_1_rank = 3;
 
 	/***********************************************************************************************/
 	/**************                 5 x 5 symmetric test matrices                           ********/
@@ -55,6 +67,12 @@ namespace MML::TestBeds
 			Vector<Real>{ 0.8045643778, -0.5452049336, -0.1559364946, -0.09146643767, 0.1508159234 },
 			Vector<Real>{ 0.3545137387,  0.5449546933, -0.6014305388,  0.2373783201, -0.3990955168 },
 	};
+
+	// Matrix properties for symm_mat_5x5
+	const static inline Real              symm_mat_5x5_det = 3958.6609039999995;
+	const static inline MML::Vector<Real> symm_mat_5x5_singular_values{24.588491830842698, 13.268488699526523, 8.00842513434593, 3.5416658121729, 0.5700940778350548};
+	const static inline Real              symm_mat_5x5_cond_2 = 43.13301067461779;
+	const static inline int               symm_mat_5x5_rank = 5;
 
 	/***********************************************************************************************/
 	/*************              10 x 10 symmetric test matrices                         ************/
@@ -87,6 +105,12 @@ namespace MML::TestBeds
 			Vector<Real>{  0.1887690916,  -0.2204005835,  0.2333845627,   0.3990940422,   0.2008414292,  0.3745029919,  0.1232095207, -0.3413452318,   -0.5660476865,   0.2633410279 },
 			Vector<Real>{ -0.5739400396,  -0.1931526915, -0.2451823337,  -0.3631199308,   0.04702991421, 0.4006823686, -0.3041151033, -0.2246111993,    0.04762110897,  0.3651743111 },
 	};
+
+	// Matrix properties for symm_mat_10x10
+	const static inline Real              symm_mat_10x10_det = -0.31016234912654906;
+	const static inline MML::Vector<Real> symm_mat_10x10_singular_values{3.79147049468958, 2.46552276858711, 2.07894422432798, 1.7781174097899468, 1.6832219375604082, 1.3153839661540222, 1.1263721073714085, 0.8777054601504407, 0.28994614552401766, 0.06959539328104801};
+	const static inline Real              symm_mat_10x10_cond_2 = 54.47879912099627;
+	const static inline int               symm_mat_10x10_rank = 10;
 }
 
 #endif // MML_LINEAR_ALG_EQ_SYSTEMS_SYM_DEFS_H

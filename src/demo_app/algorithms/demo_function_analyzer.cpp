@@ -3,8 +3,8 @@
 #else
 #include "MMLBase.h"
 
-#include "core/Function.h"
-#include "algorithms/PathIntegration.h"
+#include "base/Function.h"
+#include "core/Integration/PathIntegration.h"
 #endif
 
 using namespace std;

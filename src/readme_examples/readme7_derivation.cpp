@@ -3,7 +3,7 @@
 #else
 #include "MMLBase.h"
 
-#include "core/Function.h"
+#include "base/Function.h"
 #include "core/FunctionHelpers.h"
 #include "core/Derivation.h"
 #include "core/Integration.h"

@@ -6,8 +6,8 @@
 #include "base/Vector.h"
 #include "base/Matrix.h"
 
-#include "core/Function.h"
-#include "core/InterpolatedFunction.h"
+#include "base/Function.h"
+#include "base/InterpolatedFunction.h"
 #include "core/Integration.h"
 
 #include "algorithms/FunctionsAnalyzer.h"
@@ -32,8 +32,8 @@ Real test_func(const Real x)
 
 void CreateInterpolatedValues(RealFunction f, Real x1, Real x2, int numPnt, Vector<Real> &outX, Vector<Real> &outY)
 {
-    outX.resize(numPnt);
-    outY.resize(numPnt);
+    outX.Resize(numPnt);
+    outY.Resize(numPnt);
 
     for (int i=0;i<numPnt;i++) {
         outX[i] = x1 + i * (x2 - x1) / (numPnt - 1);

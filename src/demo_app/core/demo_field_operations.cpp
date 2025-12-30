@@ -8,10 +8,10 @@
 #include "core/CoordTransf/CoordTransfCylindrical.h"
 
 #include "core/FieldOperations.h"
-#include "core/CurvesSurfaces.h"
+#include "core/Curves.h"
+#include "core/Fields.h"
 #endif
 
-#include "../test_data/Fields.h"
 
 using namespace MML;
 
@@ -49,13 +49,13 @@ void Investigating_vector_field_operations()
     // defining force field of two masses as VectorFunction - BASED ON NUM.GRADIENT CALCULATION OF POTENTIAL
     static VectorFunction<3> gr_forcefield_cart_num_from_grad{ [](const VectorN<Real, 3> &x) 
     {
-        return (-1) * ScalarFieldOperations::GradientCart<3>(gr_potfield_cart_exact, x);
+        return (-1.0) * ScalarFieldOperations::GradientCart<3>(gr_potfield_cart_exact, x);
     } };    
     // defining force field of two masses as VectorFunction - BASED ON NUM.GRADIENT CALCULATION OF SPHERICAL POTENTIAL
     static VectorFunction<3> gr_forcefield_spher_num_from_grad{ [](const VectorN<Real, 3> &x) 
     {
         // input vector is Vector3Spherical position
-        return (-1) * ScalarFieldOperations::GradientSpher(gr_potfield_spher_exact, x);
+        return (-1.0) * ScalarFieldOperations::GradientSpher(gr_potfield_spher_exact, x);
     } };    
 
     ////////////////////////////////////////////////////////////////////////////////////////
@@ -95,8 +95,8 @@ Calculations are performed in Cartesian and spherical coordinates, along circle 
     static VectorFunction<3> fForceFieldSpherExact([](const VectorN<Real, 3> &x_spher)  { return Fields::InverseRadialPotentialForceFieldSph(x_spher); });
 
     // if we have only potential, we can numerical calculate force field from it
-    static VectorFunction<3> fForceFieldCart_numgrad{ [](const VectorN<Real, 3> &x_cart)  { return (-1) * ScalarFieldOperations::GradientCart<3>(fPotCart, x_cart); } };  
-    static VectorFunction<3> fForceFieldSpher_numgrad([](const VectorN<Real, 3> &x_spher) { return -1 * ScalarFieldOperations::GradientSpher(fPotSpher,x_spher); });
+    static VectorFunction<3> fForceFieldCart_numgrad{ [](const VectorN<Real, 3> &x_cart)  { return (-1.0) * ScalarFieldOperations::GradientCart<3>(fPotCart, x_cart); } };  
+    static VectorFunction<3> fForceFieldSpher_numgrad{ [](const VectorN<Real, 3>& x_spher) { return (-1.0) * ScalarFieldOperations::GradientSpher(fPotSpher, x_spher); } };
 
     // if we have potential in one coord. system, and we need force field in another, we can calculate it 
     // by first calculating force field in the same coord. system as potential, and then transforming it covariantly
@@ -134,7 +134,7 @@ Calculations are performed in Cartesian and spherical coordinates, along circle 
 
 
     // calculating potential and force around circle
-    Curves3D::Circle3DXZ circle(10.0);
+    Curves::Circle3DXZ circle(10.0);
 
     // calculating field Cart. and Sph. gradient around circle (and demonstrating covariant vector transformation of gradient)
     std::cout << "         Position          Pot.(Cart)    Pot.(Spher)        Force exact (Cart. vector)              Force exact (Sph. vector)          Force num.grad (Cart.vector)        Force num.grad (Sph.vector)" << std::endl;
@@ -220,7 +220,7 @@ void Demo_gradient()
     ScalarFunction<3> fPotCyl([](const VectorN<Real, 3> &x) -> Real { return Fields::InverseRadialPotentialFieldCyl(x); });
 
     // calculating field gradient around circle
-    Curves3D::Circle3DXZ circle(1.0);
+    Curves::Circle3DXZ circle(1.0);
     std::cout << "            Position                   Cartesian gradient              Spherical gradient         Spher.grad.covar.transf. to Cart        Cylindrical gradient         Cyl.grad.covar.transf. to Cart" << std::endl;
     for(double t=0.0; t<2*Constants::PI; t+=0.3)
     {
@@ -251,7 +251,7 @@ void Demo_Laplacian()
     ScalarFunction<3> fPotSpher([](const VectorN<Real, 3> &x) -> Real { return Fields::InverseRadialPotentialFieldSpher(x); });
     ScalarFunction<3> fPotCyl([](const VectorN<Real, 3> &x) -> Real { return Fields::InverseRadialPotentialFieldCyl(x); });
 
-    Curves3D::Circle3DXZ circle(1.0);
+    Curves::Circle3DXZ circle(1.0);
     std::cout << "            Position                 Cart. laplacian         Spher. laplacian         Cylin. laplacian" << std::endl;
     for(double t=0.0; t<2*Constants::PI; t+=0.3)
     {
@@ -315,7 +315,7 @@ void Demo_divergence()
     VectorFunction<3> fSpherGrad(GradientOfSphericalPotential);
     VectorFunction<3> fCylGrad(GradientOfCylindricalPotential);
 
-    Curves3D::Circle3DXZ circle(1.0);
+    Curves::Circle3DXZ circle(1.0);
     std::cout << "            Position                 Cart. divergence    Spher. divergence  Cylin. divergence" << std::endl;
     for(double t=0.0; t<2*Constants::PI; t+=0.3)
     {
@@ -341,7 +341,7 @@ void Demo_curl()
     VectorFunction<3> fSpherGrad(GradientOfSphericalPotential);
     VectorFunction<3> fCylGrad(GradientOfCylindricalPotential);
 
-    Curves3D::Circle3DXZ circle(1.0);
+    Curves::Circle3DXZ circle(1.0);
     std::cout << "            Position                                Cartesian curl                                       Spherical curl                                     Cylindrical curl" << std::endl;
     for(double t=0.0; t<2*Constants::PI; t+=0.3)
     {

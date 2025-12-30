@@ -9087,7 +9087,7 @@ namespace detail {
         std::transform( srcLC.begin(), srcLC.end(), srcLC.begin(), []( unsigned char c ) { return static_cast<char>( std::tolower(c) ); } );
         if (srcLC == "y" || srcLC == "1" || srcLC == "true" || srcLC == "yes" || srcLC == "on")
             target = true;
-        else if (srcLC == "n" || srcLC == "0" || srcLC == "false" || srcLC == "no" || srcLC == "off")
+        else if (srcLC == "_numPoints" || srcLC == "0" || srcLC == "false" || srcLC == "no" || srcLC == "off")
             target = false;
         else
             return ParserResult::runtimeError( "Expected a boolean value but did not recognise: '" + source + "'" );
@@ -9839,7 +9839,7 @@ namespace Catch {
                 ["-r"]["--reporter"]
                 ( "reporter to use (defaults to console)" )
             | Opt( config.name, "name" )
-                ["-n"]["--name"]
+                ["-_numPoints"]["--name"]
                 ( "suite name" )
             | Opt( [&]( bool ){ config.abortAfter = 1; } )
                 ["-a"]["--abort"]
@@ -12244,7 +12244,7 @@ namespace {
     }
 
     void SimplePcg32::discard(uint64_t skip) {
-        // We could implement this to run in O(log n) steps, but this
+        // We could implement this to run in O(log _numPoints) steps, but this
         // should suffice for our use case.
         for (uint64_t s = 0; s < skip; ++s) {
             static_cast<void>((*this)());
@@ -12604,7 +12604,7 @@ namespace Catch {
                 // tracker.
                 // A case where this check is important is e.g.
                 //     for (int i = 0; i < 5; ++i) {
-                //         int n = GENERATE(1, 2);
+                //         int _numPoints = GENERATE(1, 2);
                 //     }
                 //
                 // without it, the code above creates 5 nested generators.
@@ -15238,7 +15238,7 @@ std::string StringMaker<double>::convert(double value) {
 std::string ratio_string<std::atto>::symbol() { return "a"; }
 std::string ratio_string<std::femto>::symbol() { return "f"; }
 std::string ratio_string<std::pico>::symbol() { return "p"; }
-std::string ratio_string<std::nano>::symbol() { return "n"; }
+std::string ratio_string<std::nano>::symbol() { return "_numPoints"; }
 std::string ratio_string<std::micro>::symbol() { return "u"; }
 std::string ratio_string<std::milli>::symbol() { return "m"; }
 
@@ -16949,7 +16949,7 @@ namespace Catch {
         TestCaseStats const& stats = testCaseNode.value;
 
         // All test cases have exactly one section - which represents the
-        // test case itself. That section may have 0-n nested sections
+        // test case itself. That section may have 0-_numPoints nested sections
         assert( testCaseNode.children.size() == 1 );
         SectionNode const& rootSection = *testCaseNode.children.front();
 

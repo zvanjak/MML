@@ -4,6 +4,7 @@
 #include "MMLBase.h"
 
 #include "base/Vector.h"
+#include "base/BaseUtils.h"
 #endif
 
 using namespace MML;
@@ -19,8 +20,8 @@ void Demo_Vector()
     float  arr[5] = {-1.0, 5.0, -2.0, 10.0, 4.0};
 
     Vector<Real>    vec_dbl_1(5);                       // init vector with 5 elements
-    VectorDbl       vec_dbl_2(5, 3.14159);              // init with constant value
-    VecD            vec_dbl_3({ 1.0, 2.0, 3.0 });       // init with list of values
+    Vector<Real>    vec_dbl_2(5, 3.14159);              // init with constant value
+    Vector<Real>    vec_dbl_3({ 1.0, 2.0, 3.0 });       // init with list of values
     Vector<Real>    vec_dbl_4(vec_dbl_3);               // init with copy ctor
     Vector<Real>    vec_dbl_5 = vec_dbl_2;              // init with assignment
     Vector<Real>    vec_dbl_6(std_vec);                 // init with std::vector<>
@@ -38,8 +39,8 @@ void Demo_Vector()
     std::cout << "float  arr[5] = {-1.0, 5.0, -2.0, 10.0, 4.0};" << std::endl;
 
     std::cout << "Vector<Real>    vec_dbl_1(5);                 vec_dbl_1 = " << vec_dbl_1 << std::endl;
-    std::cout << "VectorDbl       vec_dbl_2(5, 3.14159);        vec_dbl_2 = " << vec_dbl_2 << std::endl;
-    std::cout << "VecD            vec_dbl_3({ 1.0, 2.0, 3.0 }); vec_dbl_3 = " << vec_dbl_3 << std::endl;
+    std::cout << "Vector<Real>    vec_dbl_2(5, 3.14159);        vec_dbl_2 = " << vec_dbl_2 << std::endl;
+    std::cout << "Vector<Real>    vec_dbl_3({ 1.0, 2.0, 3.0 }); vec_dbl_3 = " << vec_dbl_3 << std::endl;
     std::cout << "Vector<Real>    vec_dbl_4(vec_dbl_3);         vec_dbl_4 = " << vec_dbl_4 << std::endl;
     std::cout << "Vector<Real>    vec_dbl_5 = vec_dbl_2;        vec_dbl_5 = " << vec_dbl_5 << std::endl;
     std::cout << "Vector<Real>    vec_dbl_6(std_vec);           vec_dbl_6 = " << vec_dbl_6 << std::endl;
@@ -75,8 +76,8 @@ void Demo_Vector()
     std::cout << "IsEqual(vec_dbl_4, vec_dbl_4_almost_equal, 1e-05) = " << vec_dbl_4.IsEqualTo(vec_dbl_4_almost_equal, 1e-05) << std::endl;
 
     std::cout << "NormL2(vec_dbl_3) = " << vec_dbl_3.NormL2() << std::endl;
-    std::cout << "vec_dbl_2.ScalarProductCartesian(vec_dbl_6) = " << vec_dbl_2.ScalarProductCartesian(vec_dbl_6) << std::endl;
-    std::cout << "vec_dbl_2.AngleToVector(vecN_dbl_6)         = " << vec_dbl_2.AngleToVector(vec_dbl_6) << std::endl;
+    std::cout << "Utils::ScalarProduct(vec_dbl_2, vec_dbl_6) = " << Utils::ScalarProduct(vec_dbl_2, vec_dbl_6) << std::endl;
+    std::cout << "Utils::VectorsAngle(vec_dbl_2, vecN_dbl_6) = " << Utils::VectorsAngle(vec_dbl_2, vec_dbl_6) << std::endl;
 
     std::cout << "\nReal vector output:\n";
     std::cout << "std::cout << vec_dbl_6                  => " << vec_dbl_6 << std::endl;

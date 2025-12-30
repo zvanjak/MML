@@ -3,12 +3,13 @@
 #else
 #include "MMLBase.h"
 
-#include "core/Function.h"
+#include "base/Function.h"
+#include "base/Geometry3DBodies.h"
 
-#include "algorithms/SurfaceIntegration.h"
+#include "core/Integration/SurfaceIntegration.h"
+#include "core/Fields.h"
 #endif
 
-#include "../test_data/Fields.h"
 
 using namespace std;
 using namespace MML;

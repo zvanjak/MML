@@ -30,6 +30,12 @@ namespace MML::TestBeds
         VectorComplex{ Complex(-0.6589654354,-0.4832617401), Complex(-0.189800524, 0.8080623097), Complex(0.4219347887,-0.6441149315) }
     };
 
+    // Matrix properties for mat_3x3
+    const static inline Real              mat_3x3_det = 53.0;
+    const static inline MML::Vector<Real> mat_3x3_singular_values{7.965662078134766, 3.4347838553531793, 1.9371568814853632};
+    const static inline Real              mat_3x3_cond_2 = 4.112039181691377;
+    const static inline int               mat_3x3_rank = 3;
+
     /////////////////////////////////////////////////////////////////////////////////////////////////
     const static inline MML::Matrix<Real>     mat_3x3_1{3, 3, { 7.9, -9.3,  1.7, 
                                                          -0.2, -5.9,  9.9,
@@ -47,6 +53,12 @@ namespace MML::TestBeds
         VectorComplex{ Complex(2.079510346,  3.918389998),  Complex(0.3482526373,  1.501465973),  Complex(0.5478748356,  1.780339716) },
         VectorComplex{ Complex(0.3779164014, 0),            Complex(0.7857438063,  0),            Complex(-0.6714919285, 0) },
     };
+
+    // Matrix properties for mat_3x3_1
+    const static inline Real              mat_3x3_1_det = -440.90999999999997;
+    const static inline MML::Vector<Real> mat_3x3_1_singular_values{15.295430696803915, 9.47802912117893, 2.7024686119413866};
+    const static inline Real              mat_3x3_1_cond_2 = 5.659467704099285;
+    const static inline int               mat_3x3_1_rank = 3;
 
     /////////////////////////////////////////////////////////////////////////////////////////////////
     const static inline MML::Matrix<Real>     mat_3x3_2{3, 3, { 8.4, -6.2,  -1.8,
@@ -66,6 +78,12 @@ namespace MML::TestBeds
         VectorComplex{ Complex(-1.282399738, 2.181195455),  Complex(-2.600069205, 3.962415168), Complex(-0.6776425516, -0.1402727199) },
     };
 
+    // Matrix properties for mat_3x3_2
+    const static inline Real              mat_3x3_2_det = -168.30419999999998;
+    const static inline MML::Vector<Real> mat_3x3_2_singular_values{15.42890679847377, 7.254626549155315, 1.5033009610851878};
+    const static inline Real              mat_3x3_2_cond_2 = 10.263003929645958;
+    const static inline int               mat_3x3_2_rank = 3;
+
     /////////////////////////////////////////////////////////////////////////////////////////////////
     const static inline MML::Matrix<Real>     mat_3x3_3{3, 3, {  87.35,  8.29,  46.55,
                                                            36.8, -73.95, -34.93,
@@ -84,6 +102,12 @@ namespace MML::TestBeds
         VectorComplex{ Complex(0.1399593296, -0.3985031897),Complex(0.955380624, 0.3147053029),  Complex(-1.07341571, 0.9318814637) },
     };
 
+    // Matrix properties for mat_3x3_3
+    const static inline Real              mat_3x3_3_det = 847266.98379825;
+    const static inline MML::Vector<Real> mat_3x3_3_singular_values{135.72660679697067, 85.93413339282395, 72.68476527693695};
+    const static inline Real              mat_3x3_3_cond_2 = 1.867436561355866;
+    const static inline int               mat_3x3_3_rank = 3;
+
     /////////////////////////////////////////////////////////////////////////////////////////////////
     const static inline MML::Matrix<Real>     mat_3x3_4{3, 3, {  88.9,   957.3,  421.9,
                                                           -41.4,    -2.1, -294.8,
@@ -101,6 +125,12 @@ namespace MML::TestBeds
         VectorComplex{ Complex(1.022107908,  1.717596383), Complex(-0.6390705688, -0.439484576), Complex(-1.715145955,  0.2557564424) },
         VectorComplex{ Complex(1.022107908, -1.717596383), Complex(-0.6390705688,  0.439484576), Complex(-1.715145955, -0.2557564424) },
     };
+
+    // Matrix properties for mat_3x3_4
+    const static inline Real              mat_3x3_4_det = -73946970.76700002;
+    const static inline MML::Vector<Real> mat_3x3_4_singular_values{1227.2376055098887, 377.09206785684096, 159.74135817131626};
+    const static inline Real              mat_3x3_4_cond_2 = 7.682416135523855;
+    const static inline int               mat_3x3_4_rank = 3;
 
     /***********************************************************************************************/
     /**************                     5 x 5 test matrices                           **************/
@@ -139,6 +169,12 @@ namespace MML::TestBeds
                                                                      -3.2920957702478550,   4.4111268480786325, 
                                                                      -1.7183300108528281,   0.21432757972725644, 
                                                                       1.5832710097423177,  -0.70999930382454612 } }; 
+
+    // Matrix properties for mat_5x5
+    const static inline Real              mat_5x5_det = 1065.4135120000007;
+    const static inline MML::Vector<Real> mat_5x5_singular_values{26.85889523891259, 10.061746755879054, 5.706553149461028, 3.8538626847096626, 1.4283773905419738};
+    const static inline Real              mat_5x5_cond_2 = 18.80231654149755;
+    const static inline int               mat_5x5_rank = 5;
     
     /////////////////////////////////////////////////////////////////////////////////////////////////
     const static inline MML::Matrix<Real>     mat_5x5_1{5, 5, { -0.97, -0.54, -0.89, -0.6,  -0.43,
@@ -164,6 +200,12 @@ namespace MML::TestBeds
         VectorComplex{ Complex(-1.346159863, 0.860377487),    Complex(-0.6840966347, -1.019169356), Complex(-0.4274109301, -0.711938979), Complex(-0.2175379485, -0.4584380024), Complex(0.2005900439, 0.7446774705) },
     };
 
+    // Matrix properties for mat_5x5_1
+    const static inline Real              mat_5x5_1_det = 0.1392296979999999;
+    const static inline MML::Vector<Real> mat_5x5_1_singular_values{2.036028631629766, 1.4481680543905968, 0.9962287076568174, 0.6376261587571424, 0.11910095009740832};
+    const static inline Real              mat_5x5_1_cond_2 = 17.09486086685839;
+    const static inline int               mat_5x5_1_rank = 5;
+
     /////////////////////////////////////////////////////////////////////////////////////////////////
     const static inline MML::Matrix<Real>     mat_5x5_2{5, 5, { -9.85, -4.31, -4.82,  1.82, -3.87,
                                                           -8.24, -4.38,  2.59,  3.57, -7.77,
@@ -188,6 +230,12 @@ namespace MML::TestBeds
         VectorComplex{ Complex(0.7036697484, 0),            Complex(0.814788073, 0),            Complex(-0.315553478, 0),           Complex(0.4334017105, 0),               Complex(0.2372838806, 0) },
     };
 
+    // Matrix properties for mat_5x5_2
+    const static inline Real              mat_5x5_2_det = -3498.814598756992;
+    const static inline MML::Vector<Real> mat_5x5_2_singular_values{20.84206168618682, 14.086671591188667, 7.934949952093689, 3.969780508963523, 3.323933085330893};
+    const static inline Real              mat_5x5_2_cond_2 = 6.2718091858946765;
+    const static inline int               mat_5x5_2_rank = 5;
+
     /////////////////////////////////////////////////////////////////////////////////////////////////
     const static inline MML::Matrix<Real>     mat_5x5_3{5, 5, { -94.96,  99.82,  68.97, -91.92,   30.24,
                                                             7.63, -43.38,  27.79,  75.1,     5.319,
@@ -211,6 +259,13 @@ namespace MML::TestBeds
         VectorComplex{ Complex(4.283509833, -2.688049759),Complex(-1.29109907, 0.3914375845), Complex(1.747741704, -2.966247008), Complex(-1.05496402, 2.638277166), Complex(0.7773493231, -1.391092301) },
         VectorComplex{ Complex(-0.6082031038, 0),           Complex(0.2340398899, 0),       Complex(-0.3884798384, 0),              Complex(0.02683323092, 0),          Complex(0.2134475473, 0) },
     };
+
+    // Matrix properties for mat_5x5_3
+    const static inline Real              mat_5x5_3_det = 4398232024.4588947;
+    const static inline MML::Vector<Real> mat_5x5_3_singular_values{215.24879668046827, 134.2011040095887, 96.99006096765817, 73.15649108181813, 29.012011499571655};
+    const static inline Real              mat_5x5_3_cond_2 = 7.41958619614969;
+    const static inline int               mat_5x5_3_rank = 5;
+
     /////////////////////////////////////////////////////////////////////////////////////////////////
     const static inline MML::Matrix<Real>     mat_5x5_4{5, 5, { -941.4,  -104.59, -606.31, -702.2,  114.05,
                                                            -97.21, -645.13,  952.57,   70.22, 668.02,
@@ -234,6 +289,12 @@ namespace MML::TestBeds
         VectorComplex{ Complex(0.970671365, -0.5803928803), Complex(0.06210115412, 0.7299459215), Complex(-0.6433592684, -0.490206122), Complex(0.09013989409, -0.2777912283), Complex(0.4565035355, 0.4459754168) },
         VectorComplex{ Complex(0.970671365, 0.5803928803),  Complex(0.06210115412, -0.7299459215), Complex(-0.6433592684, 0.490206122), Complex(0.09013989409, 0.2777912283), Complex(0.4565035355, -0.4459754168) },
     };
+
+    // Matrix properties for mat_5x5_4
+    const static inline Real              mat_5x5_4_det = -1028788453740256.6;
+    const static inline MML::Vector<Real> mat_5x5_4_singular_values{2138.6912091891006, 1419.1584970048614, 868.0102161653653, 684.9905605688737, 505.67614291588556};
+    const static inline Real              mat_5x5_4_cond_2 = 4.229684119971308;
+    const static inline int               mat_5x5_4_rank = 5;
 
     /***********************************************************************************************/
     /**************                     8 x 8 test matrices                           **************/

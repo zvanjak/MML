@@ -3,8 +3,8 @@
 #else
 #include "MMLBase.h"
 
-#include "core/Function.h"
-#include "core/InterpolatedFunction.h"
+#include "base/Function.h"
+#include "base/InterpolatedFunction.h"
 
 #include "algorithms/FunctionsAnalyzer.h"
 #endif
@@ -20,18 +20,18 @@ void Readme_function_analyzer()
 	std::cout << "****                  README - function analyzer                   ****" << std::endl;
 	std::cout << "***********************************************************************" << std::endl;
 
-	auto fTan = TestBeds::RealFunctionsTestBed::getTestFunctionReal("Tan");
+	auto fTan = TestBeds::RealFunctionsTestBed::getFunc("Tan");
 	RealFunctionAnalyzer anTan(fTan._func, "tan(x)");
 	anTan.PrintIntervalAnalysis(-5.0, 5.0, 50, 1e-4);
 
-	auto fExp = TestBeds::RealFunctionsTestBed::getTestFunctionReal("Exp");
+	auto fExp = TestBeds::RealFunctionsTestBed::getFunc("Exp");
 	RealFunctionAnalyzer anExp(fExp._func, "exp(x)");
 	anExp.PrintIntervalAnalysis(-5.0, 5.0, 50, 1e-4);
 
-	RealFunction stepFunc([](Real x) { 
-			if( x < 0) return 0.0;
-			else if( x > 0) return 1.0;
-			else return 0.5;
+	RealFunctionFromStdFunc stepFunc([](Real x) { 
+			if( x < 0) return Real(0.0);
+			else if( x > 0) return Real(1.0);
+			else return Real(0.5);
 		});
 	RealFunctionAnalyzer anStep(stepFunc, "step(x)");
 	anStep.PrintIntervalAnalysis(-5.0, 5.0, 50, 1e-4);

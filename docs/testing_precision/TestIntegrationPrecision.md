@@ -1,1 +1,0 @@
-# Testing integration algorithms precision

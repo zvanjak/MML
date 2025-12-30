@@ -45,13 +45,13 @@ void Demo_CoordSystem()
 
 	// sad kreiramo rotirajuci sustav Zemlje, s osi rotacije pod kutom 23 stupnja prema z-osi sustava CM
 	// u trenuttku t=0, os rotacije je nagnuta u y-z ravnini
-	VectorN<Real, 3> axis({ 0, sin(23 * Constants::PI / 180), cos(23 * Constants::PI / 180) });
-	HardSphereRotatingFrame EarthSurfaceFrame(&EarthCMFrame, 6.4, 24 * 3600, axis);
+	VectorN<Real, 3> axis({ REAL(0), REAL(sin(23 * Constants::PI / 180)), REAL(cos(23 * Constants::PI / 180)) });
+	HardSphereRotatingFrame EarthSurfaceFrame(&EarthCMFrame, REAL(6.4), 24 * 3600, axis);
 
 	// pozicija na površini zemlje - izračunati u EarthCM i SolarSystemCM frameu
-	double latitude = 45;
-	double longitude = 16;
-	double height = 0;          // on the surface
+	Real latitude = 45;
+	Real longitude = 16;
+	Real height = 0;          // on the surface
 	//VectorN<Real, 3> Pos_eval({ 45, 16, 0 });			// Zagreb
 	//VectorN<Real, 3> Pos_eval({ latitude, longitude, height });
 	VectorN<Real, 3> Pos_eval({ 0, 0, 0 });

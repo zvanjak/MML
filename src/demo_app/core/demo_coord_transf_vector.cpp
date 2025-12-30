@@ -6,10 +6,10 @@
 #include "core/CoordTransf.h"
 #include "core/CoordTransf/CoordTransfSpherical.h"
 #include "core/FieldOperations.h"
+#include "core/Fields.h"
 
 #endif
 
-#include "../test_data/Fields.h"
 
 using namespace MML;
 
