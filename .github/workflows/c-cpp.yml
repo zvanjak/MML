@@ -1,0 +1,110 @@
+name: CMake Build Matrix
+
+on:
+  push:
+    branches: [ master, main, develop ]
+  pull_request:
+    branches: [ master, main, develop ]
+  workflow_dispatch:
+
+env:
+  BUILD_TYPE: Release
+
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Windows builds
+          - name: Windows MSVC 2022
+            os: windows-latest
+            compiler: msvc
+            
+          - name: Windows Clang
+            os: windows-latest
+            compiler: clang
+            
+          #- name: Windows MinGWre
+          #  os: windows-latest
+          #  compiler: mingw
+            
+          # Linux builds
+          - name: Ubuntu GCC
+            os: ubuntu-latest
+            compiler: gcc
+            
+          - name: Ubuntu Clang
+            os: ubuntu-latest
+            compiler: clang
+            
+          # macOS builds
+          - name: macOS Clang
+            os: macos-latest
+            compiler: clang
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup MSVC
+      if: runner.os == 'Windows' && matrix.compiler == 'msvc'
+      uses: ilammy/msvc-dev-cmd@v1
+
+    - name: Setup Clang (Windows)
+      if: runner.os == 'Windows' && matrix.compiler == 'clang'
+      run: |
+        echo "CC=clang" >> $GITHUB_ENV
+        echo "CXX=clang++" >> $GITHUB_ENV
+
+    - name: Setup MinGW
+      if: runner.os == 'Windows' && matrix.compiler == 'mingw'
+      run: |
+        echo "CC=gcc" >> $GITHUB_ENV
+        echo "CXX=g++" >> $GITHUB_ENV
+
+    - name: Setup GCC (Linux)
+      if: runner.os == 'Linux' && matrix.compiler == 'gcc'
+      run: |
+        echo "CC=gcc" >> $GITHUB_ENV
+        echo "CXX=g++" >> $GITHUB_ENV
+
+    - name: Setup Clang (Linux)
+      if: runner.os == 'Linux' && matrix.compiler == 'clang'
+      run: |
+        echo "CC=clang" >> $GITHUB_ENV
+        echo "CXX=clang++" >> $GITHUB_ENV
+
+    - name: Setup Clang (macOS)
+      if: runner.os == 'macOS'
+      run: |
+        echo "CC=clang" >> $GITHUB_ENV
+        echo "CXX=clang++" >> $GITHUB_ENV
+
+    - name: Configure CMake
+      run: |
+        cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
+
+    - name: Build
+      run: |
+        if [ "$RUNNER_OS" == "Linux" ] || [ "$RUNNER_OS" == "macOS" ]; then
+          # Limit parallel jobs on Linux/macOS to avoid OOM (header-heavy template library)
+          cmake --build build --config ${{ env.BUILD_TYPE }} --parallel 2
+        else
+          cmake --build build --config ${{ env.BUILD_TYPE }} --parallel
+        fi
+      shell: bash
+
+    - name: Test
+      working-directory: build
+      run: ctest -C ${{ env.BUILD_TYPE }} --output-on-failure --parallel
+
+    - name: Upload test results on failure
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-results-${{ matrix.name }}
+        path: build/Testing/Temporary/
+        retention-days: 7

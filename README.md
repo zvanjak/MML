@@ -10,8 +10,8 @@ Using C++17 and working on all platforms (Windows, Linux, Mac), it also comes wi
 
 Build status:
 
-[![Ubuntu](https://github.com/zvanjak/MinimalMathLibrary/workflows/Ubuntu/badge.svg)](https://github.com/zvanjak/MinimalMathLibrary/actions?query=workflow%3AUbuntu)
-[![Windows](https://github.com/zvanjak/MinimalMathLibrary/workflows/Windows/badge.svg)](https://github.com/zvanjak/MinimalMathLibrary/actions?query=workflow%3AWindows)
+[![Ubuntu](https://github.com/zvanjak/MML/workflows/Ubuntu/badge.svg)](https://github.com/zvanjak/MML/actions?query=workflow%3AUbuntu)
+[![Windows](https://github.com/zvanjak/MML/workflows/Windows/badge.svg)](https://github.com/zvanjak/MML/actions?query=workflow%3AWindows)
 [![C++17](https://img.shields.io/badge/C%2B%2B-17-blue.svg)](https://isocpp.org/std/the-standard)
 [![Tests](https://img.shields.io/badge/tests-2193%20passing-brightgreen.svg)](tests/)
 [![License](https://img.shields.io/badge/license-Custom-blue.svg)](LICENSE.md)
@@ -119,7 +119,7 @@ But, you can still use it piece-wise, by including only selected headers from `m
 **Option 1: Single Header (Recommended)**
 ```bash
 # Download MML.h from releases
-wget https://github.com/zvanjak/MinimalMathLibrary/releases/latest/download/MML.h
+wget https://github.com/zvanjak/MML/releases/latest/download/MML.h
 
 # Include in your project
 #include "MML.h"
@@ -127,8 +127,8 @@ wget https://github.com/zvanjak/MinimalMathLibrary/releases/latest/download/MML.
 
 **Option 2: Build from Source**
 ```bash
-git clone https://github.com/zvanjak/MinimalMathLibrary.git
-cd MinimalMathLibrary
+git clone https://github.com/zvanjak/MML.git
+cd MML
 cmake -B build
 cmake --build build
 ```
@@ -139,7 +139,7 @@ cmake --build build
 2. Type **"Git: Clone"** and press Enter
 3. Paste the repository URL:
    ```
-   https://github.com/zvanjak/MinimalMathLibrary.git
+   https://github.com/zvanjak/MML.git
    ```
 4. Select a folder and open the cloned repository
 5. When prompted, install recommended extensions (C/C++, CMake Tools)
@@ -1094,7 +1094,7 @@ cd build && ctest
 ### Project Structure
 
 ```
-MinimalMathLibrary/
+MML/
 ├── mml/                    # Header-only library code
 │   ├── base/               # Base types
 │   ├── core/               # Core functionality
