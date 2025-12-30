@@ -441,9 +441,9 @@ namespace MML
 		const ScalarFunctionFromStdFunc<3> _f1, _f2, _f3;
 		const ScalarFunctionFromStdFunc<3> _fInverse1, _fInverse2, _fInverse3;
 
-		Real func1(const VectorN<Real, 3>& q) const { return ScalarProduct(q, Vec3Cart(_dual[0])); }
-		Real func2(const VectorN<Real, 3>& q) const { return ScalarProduct(q, Vec3Cart(_dual[1])); }
-		Real func3(const VectorN<Real, 3>& q) const { return ScalarProduct(q, Vec3Cart(_dual[2])); }
+		Real func1(const VectorN<Real, 3>& q) const { return Utils::ScalarProduct<3>(q, static_cast<const VectorN<Real, 3>&>(_dual[0])); }
+		Real func2(const VectorN<Real, 3>& q) const { return Utils::ScalarProduct<3>(q, static_cast<const VectorN<Real, 3>&>(_dual[1])); }
+		Real func3(const VectorN<Real, 3>& q) const { return Utils::ScalarProduct<3>(q, static_cast<const VectorN<Real, 3>&>(_dual[2])); }
 
 		Real funcInverse1(const VectorN<Real, 3>& q) const { return (_baseMat * q)[0]; }
 		Real funcInverse2(const VectorN<Real, 3>& q) const { return (_baseMat * q)[1]; }

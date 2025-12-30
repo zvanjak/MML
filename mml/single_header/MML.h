@@ -21661,9 +21661,9 @@ namespace MML
 		const ScalarFunctionFromStdFunc<3> _f1, _f2, _f3;
 		const ScalarFunctionFromStdFunc<3> _fInverse1, _fInverse2, _fInverse3;
 
-		Real func1(const VectorN<Real, 3>& q) const { return ScalarProduct(q, Vec3Cart(_dual[0])); }
-		Real func2(const VectorN<Real, 3>& q) const { return ScalarProduct(q, Vec3Cart(_dual[1])); }
-		Real func3(const VectorN<Real, 3>& q) const { return ScalarProduct(q, Vec3Cart(_dual[2])); }
+		Real func1(const VectorN<Real, 3>& q) const { return Utils::ScalarProduct<3>(q, static_cast<const VectorN<Real, 3>&>(_dual[0])); }
+		Real func2(const VectorN<Real, 3>& q) const { return Utils::ScalarProduct<3>(q, static_cast<const VectorN<Real, 3>&>(_dual[1])); }
+		Real func3(const VectorN<Real, 3>& q) const { return Utils::ScalarProduct<3>(q, static_cast<const VectorN<Real, 3>&>(_dual[2])); }
 
 		Real funcInverse1(const VectorN<Real, 3>& q) const { return (_baseMat * q)[0]; }
 		Real funcInverse2(const VectorN<Real, 3>& q) const { return (_baseMat * q)[1]; }
@@ -23905,7 +23905,7 @@ namespace MML
 				// then we have to project uAxisDirection onto the plane defined by point and normal
 				_point = point;
 				_normal = normal.Normalized();
-				Vec3Cart uAxis = uAxisDirection - (ScalarProduct(uAxisDirection, _normal) * _normal);
+				Vec3Cart uAxis = uAxisDirection - (uAxisDirection.ScalarProduct(_normal) * _normal);
 
 				// now we can compute the vAxis as cross product of normal and uAxis
 				_vAxis = VectorProduct(_normal, uAxis).Normalized();
@@ -48199,11 +48199,7 @@ namespace MML
 			try
 			{
 				file.precision(precision);
-				file << "REAL_FUNCTION" << std::endl;
-				file << title << std::endl;
-				file << "x1: " << x1 << std::endl;
-				file << "x2: " << x2 << std::endl;
-				file << "NumPoints: " << numPoints << std::endl;
+				WriteRealFuncHeader(file, "REAL_FUNCTION", title, x1, x2, numPoints);
 
 				Real step = (x2 - x1) / (numPoints - 1);
 				for (int i = 0; i < numPoints; i++)
@@ -48254,11 +48250,7 @@ namespace MML
 			try
 			{
 				file.precision(precision);
-				file << "REAL_FUNCTION" << std::endl;
-				file << title << std::endl;
-				file << "x1: " << points[0] << std::endl;
-				file << "x2: " << points[points.size() - 1] << std::endl;
-				file << "NumPoints: " << points.size() << std::endl;
+				WriteRealFuncHeader(file, "REAL_FUNCTION", title, points[0], points[points.size() - 1], static_cast<int>(points.size()));
 
 				for (int i = 0; i < points.size(); i++)
 				{
@@ -48311,11 +48303,7 @@ namespace MML
 			try
 			{
 				file.precision(precision);
-				file << "REAL_FUNCTION_EQUALLY_SPACED" << std::endl;
-				file << title << std::endl;
-				file << "x1: " << x1 << std::endl;
-				file << "x2: " << x2 << std::endl;
-				file << "NumPoints: " << numPoints << std::endl;
+				WriteRealFuncHeader(file, "REAL_FUNCTION_EQUALLY_SPACED", title, x1, x2, numPoints);
 
 				Real step = (x2 - x1) / (numPoints - 1);
 				for (int i = 0; i < numPoints; i++)
@@ -48330,6 +48318,22 @@ namespace MML
 			{
 				return {false, SerializeError::WRITE_FAILED, std::string("Write error: ") + e.what()};
 			}
+		}
+
+		// Helper function for writing real function headers
+		static bool WriteRealFuncHeader(std::ofstream& file, std::string type, std::string title,
+																Real x1, Real x2, int numPoints)
+		{
+			if (!file.is_open())
+				return false;
+
+			file << type << std::endl;
+			file << title << std::endl;
+			file << "x1: " << x1 << std::endl;
+			file << "x2: " << x2 << std::endl;
+			file << "NumPoints: " << numPoints << std::endl;
+
+			return true;
 		}
 
 		// serializing multiple functions in a single files
@@ -48544,6 +48548,23 @@ namespace MML
 			}
 		}
 
+		// Helper function for writing parametric curve headers
+		static bool WriteParamCurveHeader(std::ofstream& file, std::string type, std::string title,
+																			Real t1, Real t2, int numPoints)
+		{
+			if (!file.is_open())
+				return false;
+
+			file << type << std::endl;
+			if (!title.empty())
+				file << title << std::endl;
+			file << "t1: " << t1 << std::endl;
+			file << "t2: " << t2 << std::endl;
+			file << "NumPoints: " << numPoints << std::endl;
+
+			return true;
+		}
+
 		// Parametric curve serialization
 		template<int N>
 		static bool SaveParamCurve(const IRealToVectorFunction<N>& f, std::string inType, std::string title, 
@@ -48553,11 +48574,7 @@ namespace MML
 			if (!file.is_open())
 				return false;
 
-			file << inType << std::endl;
-			file << title << std::endl;
-			file << "t1: " << t1 << std::endl;
-			file << "t2: " << t2 << std::endl;
-			file << "NumPoints: " << numPoints << std::endl;
+			WriteParamCurveHeader(file, inType, title, t1, t2, numPoints);
 
 			Real delta = (t2 - t1) / (numPoints - 1);
 			for (Real t = t1; t <= t2; t += delta)
@@ -48579,11 +48596,8 @@ namespace MML
 			if (!file.is_open())
 				return false;
 
-			file << inType << std::endl;
-			file << title << std::endl;
-			file << "t1: " << points[0] << std::endl;
-			file << "t2: " << points[points.size() - 1] << std::endl;
-			file << "NumPoints: " << points.size() << std::endl;
+			WriteParamCurveHeader(file, inType, title, points[0], points[points.size() - 1], static_cast<int>(points.size()));
+
 			for (int i = 0; i < points.size(); i++)
 			{
 				Real t = points[i];
@@ -48605,11 +48619,7 @@ namespace MML
 			if (!file.is_open())
 				return false;
 
-			file << inType << std::endl;
-			file << title << std::endl;
-			file << "t1: " << t1 << std::endl;
-			file << "t2: " << t2 << std::endl;
-			file << "NumPoints: " << numPoints << std::endl;
+			WriteParamCurveHeader(file, inType, title, t1, t2, numPoints);
 
 			Real delta = (t2 - t1) / (numPoints - 1);
 			for (int i = 0; i < numPoints; i++)
@@ -48631,11 +48641,9 @@ namespace MML
 			std::ofstream file(fileName);
 			if (!file.is_open())
 				return false;
-			file << inType << std::endl;
-			file << title << std::endl;
-			file << "t1: " << points[0] << std::endl;
-			file << "t2: " << points[points.size() - 1] << std::endl;
-			file << "NumPoints: " << points.size() << std::endl;
+
+			WriteParamCurveHeader(file, inType, title, points[0], points[points.size() - 1], static_cast<int>(points.size()));
+
 			for (int i = 0; i < points.size(); i++)
 			{
 				Real t = points[i];
@@ -48665,11 +48673,11 @@ namespace MML
 		 * @example
 		 *   Vector<Real> xs = {0, 1, 2, 1, 0};
 		 *   Vector<Real> ys = {0, 1.732, 0, -1.732, 0};
-		 *   auto result = Serializer::SaveAsParamCurve2D(xs, ys, "curve.txt", 0, 2*M_PI);
+		 *   auto result = Serializer::SaveAsParamCurve2D(xs, ys, "Pentagon", "curve.txt", 0, 2*M_PI);
 		 */
 		// save parametric curve in 2D as a list of points
 		static SerializeResult SaveAsParamCurve2D(const Vector<Real>& vec_x, const Vector<Real>& vec_y, 
-													std::string fileName, Real t1 = 0.0, Real t2 = 1.0)
+													std::string title, std::string fileName, Real t1 = 0.0, Real t2 = 1.0)
 		{
 			// Validate parameters
 			if (fileName.empty()) {
@@ -48691,10 +48699,8 @@ namespace MML
 			}
 
 			try {
-				file << "PARAMETRIC_CURVE_CARTESIAN_2D" << std::endl;
-				file << "t1: " << t1 << std::endl;
-				file << "t2: " << t2 << std::endl;
-				file << "NumPoints: " << vec_x.size() << std::endl;
+				WriteParamCurveHeader(file, "PARAMETRIC_CURVE_CARTESIAN_2D", title, t1, t2, static_cast<int>(vec_x.size()));
+
 				for (int i = 0; i < vec_x.size(); i++)
 				{
 					Real t = t1 + (t2 - t1) * i / (vec_x.size() - 1);
@@ -48870,6 +48876,15 @@ namespace MML
 			}
 		}
 
+		///////////////////////////////////////////////////////////////////////////////////////
+		// Vector field header writer - centralizes header generation for all vector field types
+		///////////////////////////////////////////////////////////////////////////////////////
+		static void WriteVectorFieldHeader(std::ofstream& file, const std::string& type, const std::string& title)
+		{
+			file << type << std::endl;
+			file << title << std::endl;
+		}
+
 		// 2D vector function serialization
 		static SerializeResult SaveVectorFunc2D( const IVectorFunction<2>& f, std::string inType, std::string title,
 																	Real x1_start, Real x1_end, int numPointsX1,
@@ -48889,8 +48904,8 @@ namespace MML
 
 			try
 			{
-				file << inType << std::endl;
-				file << title << std::endl;
+				WriteVectorFieldHeader(file, inType, title);
+
 				Real stepX = (x1_end - x1_start) / (numPointsX1 - 1);
 				Real stepY = (x2_end - x2_start) / (numPointsX2 - 1);
 				for (int i = 0; i < numPointsX1; i++)
@@ -48931,8 +48946,8 @@ namespace MML
 
 			try
 			{
-				file << inType << std::endl;
-				file << title << std::endl;
+				WriteVectorFieldHeader(file, inType, title);
+
 				Real stepX = (x1_end - x1_start) / (numPointsX1 - 1);
 				Real stepY = (x2_end - x2_start) / (numPointsX2 - 1);
 				for (int i = 0; i < numPointsX1; i++)
@@ -48988,8 +49003,7 @@ namespace MML
 
 			try
 			{
-				file << inType << std::endl;
-				file << title << std::endl;
+				WriteVectorFieldHeader(file, inType, title);
 
 				Real stepX = (x1_end - x1_start) / (numPointsX1 - 1);
 				Real stepY = (x2_end - x2_start) / (numPointsX2 - 1);
@@ -49036,8 +49050,7 @@ namespace MML
 
 			try
 			{
-				file << inType << std::endl;
-				file << title << std::endl;
+				WriteVectorFieldHeader(file, inType, title);
 
 				Real stepX = (x1_end - x1_start) / (numPointsX1 - 1);
 				Real stepY = (x2_end - x2_start) / (numPointsX2 - 1);
@@ -49107,11 +49120,7 @@ namespace MML
 
 			try
 			{
-				file << "REAL_FUNCTION" << std::endl;
-				file << title << std::endl;
-				file << "x1: " << sol.getT1() << std::endl;
-				file << "x2: " << sol.getT2() << std::endl;
-				file << "NumPoints: " << sol.getTotalSavedSteps() << std::endl;
+				WriteRealFuncHeader(file, "REAL_FUNCTION", title, sol.getT1(), sol.getT2(), sol.getTotalSavedSteps());
 				
 				for (int i = 0; i < sol.getTotalSavedSteps(); i++)
 				{
@@ -49178,12 +49187,7 @@ namespace MML
 
 			try
 			{
-				file << "PARAMETRIC_CURVE_CARTESIAN_2D" << std::endl;
-				
-				file << title << std::endl;
-				file << "t1: " << sol.getT1() << std::endl;
-				file << "t2: " << sol.getT2() << std::endl;
-				file << "NumPoints: " << sol.getTotalSavedSteps() << std::endl;
+				WriteParamCurveHeader(file, "PARAMETRIC_CURVE_CARTESIAN_2D", title, sol.getT1(), sol.getT2(), sol.getTotalSavedSteps());
 				
 				for (int i = 0; i < sol.getTotalSavedSteps(); i++)
 				{
@@ -49219,12 +49223,7 @@ namespace MML
 
 			try
 			{
-				file << "PARAMETRIC_CURVE_CARTESIAN_3D" << std::endl;
-
-				file << title << std::endl;
-				file << "t1: " << sol.getT1() << std::endl;
-				file << "t2: " << sol.getT2() << std::endl;
-				file << "NumPoints: " << sol.getTotalSavedSteps() << std::endl;
+				WriteParamCurveHeader(file, "PARAMETRIC_CURVE_CARTESIAN_3D", title, sol.getT1(), sol.getT2(), sol.getTotalSavedSteps());
 
 				for (int i = 0; i < sol.getTotalSavedSteps(); i++)
 				{

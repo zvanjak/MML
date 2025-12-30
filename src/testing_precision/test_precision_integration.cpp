@@ -128,7 +128,7 @@ void Test_1D_ToleranceSweep()
                              "How accuracy varies with requested tolerance");
     
     // Use sin(x) from 0 to pi (integral = 2)
-    RealFunction f = [](Real x) { return sin(x); };
+    RealFunctionFromStdFunc f([](Real x) { return sin(x); });
     double a = 0.0;
     double b = Constants::PI;
     double exact = 2.0;
@@ -167,15 +167,15 @@ void Test_1D_GaussLegendre_PointSweep()
                              "Accuracy vs number of quadrature points");
     
     // Test with polynomial: x^5 on [0, 1] (integral = 1/6)
-    RealFunction f_poly = [](Real x) { return x*x*x*x*x; };
+    RealFunctionFromStdFunc f_poly([](Real x) { return x*x*x*x*x; });
     double exact_poly = 1.0 / 6.0;
     
     // Test with sin(x) on [0, pi] (integral = 2)
-    RealFunction f_sin = [](Real x) { return sin(x); };
+    RealFunctionFromStdFunc f_sin([](Real x) { return sin(x); });
     double exact_sin = 2.0;
     
     // Test with exp(x) on [0, 1] (integral = e - 1)
-    RealFunction f_exp = [](Real x) { return exp(x); };
+    RealFunctionFromStdFunc f_exp([](Real x) { return exp(x); });
     double exact_exp = exp(1.0) - 1.0;
     
     std::vector<int> n_points = {5, 10, 15, 20, 30, 50};
@@ -226,7 +226,7 @@ void Test_1D_ChallengingFunctions()
                              "Functions that stress numerical methods");
     
     // 1. Highly oscillatory: sin(50x) on [0, 2pi] (integral = 0)
-    RealFunction f_osc = [](Real x) { return sin(50*x); };
+    RealFunctionFromStdFunc f_osc([](Real x) { return sin(50*x); });
     double exact_osc = 0.0;
     
     auto r_osc_trap = IntegrateTrap(f_osc, 0.0, 2*Constants::PI);
@@ -238,7 +238,7 @@ void Test_1D_ChallengingFunctions()
     suite.addResult("Romberg", "sin(50x)", exact_osc, r_osc_romb.value);
     
     // 2. Peaked function: 1/(1+100x^2) on [-1, 1] (integral = 2*atan(10)/10)
-    RealFunction f_peak = [](Real x) { return 1.0 / (1.0 + 100*x*x); };
+    RealFunctionFromStdFunc f_peak([](Real x) { return 1.0 / (1.0 + 100*x*x); });
     double exact_peak = 2.0 * atan(10.0) / 10.0;
     
     auto r_peak_trap = IntegrateTrap(f_peak, -1.0, 1.0);
@@ -250,7 +250,7 @@ void Test_1D_ChallengingFunctions()
     suite.addResult("Romberg", "peaked", exact_peak, r_peak_romb.value);
     
     // 3. Near-singular: sqrt(x) on [0, 1] (integral = 2/3)
-    RealFunction f_sqrt = [](Real x) { return (x > 1e-15) ? sqrt(x) : 0.0; };
+    RealFunctionFromStdFunc f_sqrt([](Real x) { return (x > 1e-15) ? sqrt(x) : 0.0; });
     double exact_sqrt = 2.0 / 3.0;
     
     auto r_sqrt_trap = IntegrateTrap(f_sqrt, 0.0, 1.0);
@@ -262,7 +262,7 @@ void Test_1D_ChallengingFunctions()
     suite.addResult("Romberg", "sqrt(x)", exact_sqrt, r_sqrt_romb.value);
     
     // 4. Exponentially decaying: exp(-x^2) on [0, 5] (approx sqrt(pi)/2)
-    RealFunction f_gauss = [](Real x) { return exp(-x*x); };
+    RealFunctionFromStdFunc f_gauss([](Real x) { return exp(-x*x); });
     double exact_gauss = 0.5 * sqrt(Constants::PI) * std::erf(5.0);
     
     auto r_gauss_trap = IntegrateTrap(f_gauss, 0.0, 5.0);
@@ -341,7 +341,7 @@ void Test_2D_SurfaceIntegration()
                              "Integrate over rectangular regions");
     
     // 1. f(x,y) = x*y over [0,1]x[0,1] (integral = 0.25)
-    ScalarFunction<2> f_xy = [](const VectorN<Real, 2>& p) { return p[0] * p[1]; };
+    ScalarFunctionFromStdFunc<2> f_xy([](const VectorN<Real, 2>& p) { return p[0] * p[1]; });
     double exact_xy = 0.25;
     
     auto result_xy = Integrate2D(f_xy, IntegrationMethod::ROMBERG, 0.0, 1.0, ConstY0, ConstY1);
@@ -350,7 +350,7 @@ void Test_2D_SurfaceIntegration()
     suite.addResult(r_xy);
     
     // 2. f(x,y) = sin(x)*cos(y) over [0,pi]x[0,pi/2] (integral = 2)
-    ScalarFunction<2> f_sincos = [](const VectorN<Real, 2>& p) { return sin(p[0]) * cos(p[1]); };
+    ScalarFunctionFromStdFunc<2> f_sincos([](const VectorN<Real, 2>& p) { return sin(p[0]) * cos(p[1]); });
     double exact_sincos = 2.0;
     
     auto result_sincos = Integrate2D(f_sincos, IntegrationMethod::ROMBERG, 0.0, Constants::PI, ConstY0, ConstYPiHalf);
@@ -359,7 +359,7 @@ void Test_2D_SurfaceIntegration()
     suite.addResult(r_sincos);
     
     // 3. f(x,y) = x^2 + y^2 over [0,1]x[0,1] (integral = 2/3)
-    ScalarFunction<2> f_circ = [](const VectorN<Real, 2>& p) { return p[0]*p[0] + p[1]*p[1]; };
+    ScalarFunctionFromStdFunc<2> f_circ([](const VectorN<Real, 2>& p) { return p[0]*p[0] + p[1]*p[1]; });
     double exact_circ = 2.0 / 3.0;
     
     auto result_circ = Integrate2D(f_circ, IntegrationMethod::ROMBERG, 0.0, 1.0, ConstY0, ConstY1);
@@ -368,7 +368,7 @@ void Test_2D_SurfaceIntegration()
     suite.addResult(r_circ);
     
     // 4. f(x,y) = exp(-(x^2+y^2)) over [-1,1]x[-1,1] (approx pi*(1-exp(-2)))
-    ScalarFunction<2> f_gauss2d = [](const VectorN<Real, 2>& p) { return exp(-(p[0]*p[0] + p[1]*p[1])); };
+    ScalarFunctionFromStdFunc<2> f_gauss2d([](const VectorN<Real, 2>& p) { return exp(-(p[0]*p[0] + p[1]*p[1])); });
     // Exact value for [-1,1]x[-1,1]: (sqrt(pi)*erf(1))^2
     double erf1 = std::erf(1.0);
     double exact_gauss2d = Constants::PI * erf1 * erf1;
@@ -401,7 +401,7 @@ void Test_3D_VolumeIntegration()
     auto z4 = [](Real, Real) { return 4.0; };
     
     // 1. f(x,y,z) = x*y*z over [0,1]^3 (integral = 1/8)
-    ScalarFunction<3> f_xyz = [](const VectorN<Real, 3>& p) { return p[0] * p[1] * p[2]; };
+    ScalarFunctionFromStdFunc<3> f_xyz([](const VectorN<Real, 3>& p) { return p[0] * p[1] * p[2]; });
     double exact_xyz = 1.0 / 8.0;
     
     auto result_xyz = Integrate3D(f_xyz, IntegrationMethod::ROMBERG, 0.0, 1.0, ConstY0, ConstY1, ConstZ0, ConstZ1);
@@ -410,7 +410,7 @@ void Test_3D_VolumeIntegration()
     suite.addResult(r_xyz);
     
     // 2. f(x,y,z) = x^2 + y^2 + z^2 over [0,1]^3 (integral = 1)
-    ScalarFunction<3> f_r2 = [](const VectorN<Real, 3>& p) { return p[0]*p[0] + p[1]*p[1] + p[2]*p[2]; };
+    ScalarFunctionFromStdFunc<3> f_r2([](const VectorN<Real, 3>& p) { return p[0]*p[0] + p[1]*p[1] + p[2]*p[2]; });
     double exact_r2 = 1.0;
     
     auto result_r2 = Integrate3D(f_r2, IntegrationMethod::ROMBERG, 0.0, 1.0, ConstY0, ConstY1, ConstZ0, ConstZ1);
@@ -419,7 +419,7 @@ void Test_3D_VolumeIntegration()
     suite.addResult(r_r2);
     
     // 3. f(x,y,z) = 1 over [0,2]x[0,3]x[0,4] (integral = 24)
-    ScalarFunction<3> f_const = [](const VectorN<Real, 3>& p) { return 1.0; };
+    ScalarFunctionFromStdFunc<3> f_const([](const VectorN<Real, 3>& p) { return 1.0; });
     double exact_const = 24.0;  // 2 * 3 * 4
     
     auto result_const = Integrate3D(f_const, IntegrationMethod::ROMBERG, 0.0, 2.0, ConstY0, ConstY3, ConstZ0, ConstZ4);

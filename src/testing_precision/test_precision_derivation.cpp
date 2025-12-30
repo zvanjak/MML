@@ -241,8 +241,8 @@ void Test_SecondDerivative_StepSize()
     PrecisionTestSuite suite("Second Derivative: Step Size Analysis", 
                              "NSecDer4 with sin(x) at x=1");
     
-    RealFunction f = [](Real x) { return sin(x); };
-    RealFunction f_sec = [](Real x) { return -sin(x); };
+    RealFunctionFromStdFunc f([](Real x) { return sin(x); });
+    RealFunctionFromStdFunc f_sec([](Real x) { return -sin(x); });
     
     double x = 1.0;
     double exact = f_sec(x);
@@ -275,15 +275,15 @@ void Test_ThirdDerivative()
                              "Third derivative accuracy for standard functions");
     
     // Test with sin (third derivative = -cos)
-    RealFunction f_sin = [](Real x) { return sin(x); };
-    RealFunction f_sin_3rd = [](Real x) { return -cos(x); };
+    RealFunctionFromStdFunc f_sin([](Real x) { return sin(x); });
+    RealFunctionFromStdFunc f_sin_3rd([](Real x) { return -cos(x); });
     
     // Test with x^4 (third derivative = 24x)
-    RealFunction f_x4 = [](Real x) { return x*x*x*x; };
-    RealFunction f_x4_3rd = [](Real x) { return 24*x; };
+    RealFunctionFromStdFunc f_x4([](Real x) { return x*x*x*x; });
+    RealFunctionFromStdFunc f_x4_3rd([](Real x) { return 24*x; });
     
     // Test with exp (third derivative = exp)
-    RealFunction f_exp = [](Real x) { return exp(x); };
+    RealFunctionFromStdFunc f_exp([](Real x) { return exp(x); });
     
     std::vector<double> test_points = {0.5, 1.0, 1.5, 2.0};
     
@@ -313,8 +313,8 @@ void Test_EdgeCases()
                              "Derivatives near challenging points");
     
     // 1. Near-zero: f(x) = x^3, test near x=0
-    RealFunction f_cubic = [](Real x) { return x*x*x; };
-    RealFunction f_cubic_der = [](Real x) { return 3*x*x; };
+    RealFunctionFromStdFunc f_cubic([](Real x) { return x*x*x; });
+    RealFunctionFromStdFunc f_cubic_der([](Real x) { return 3*x*x; });
     
     std::vector<double> near_zero = {0.001, 0.01, 0.1};
     for (double x : near_zero) {
@@ -324,7 +324,7 @@ void Test_EdgeCases()
     }
     
     // 2. Steep gradient: f(x) = exp(x), large x
-    RealFunction f_exp = [](Real x) { return exp(x); };
+    RealFunctionFromStdFunc f_exp([](Real x) { return exp(x); });
     std::vector<double> steep_points = {5.0, 10.0, 15.0};
     for (double x : steep_points) {
         std::ostringstream xStr;
@@ -333,8 +333,8 @@ void Test_EdgeCases()
     }
     
     // 3. Oscillatory: f(x) = sin(10x), high frequency
-    RealFunction f_osc = [](Real x) { return sin(10*x); };
-    RealFunction f_osc_der = [](Real x) { return 10*cos(10*x); };
+    RealFunctionFromStdFunc f_osc([](Real x) { return sin(10*x); });
+    RealFunctionFromStdFunc f_osc_der([](Real x) { return 10*cos(10*x); });
     std::vector<double> osc_points = {0.1, 0.5, 1.0};
     for (double x : osc_points) {
         std::ostringstream xStr;

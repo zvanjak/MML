@@ -295,7 +295,7 @@ namespace MML
 				// then we have to project uAxisDirection onto the plane defined by point and normal
 				_point = point;
 				_normal = normal.Normalized();
-				Vec3Cart uAxis = uAxisDirection - (ScalarProduct(uAxisDirection, _normal) * _normal);
+				Vec3Cart uAxis = uAxisDirection - (uAxisDirection.ScalarProduct(_normal) * _normal);
 
 				// now we can compute the vAxis as cross product of normal and uAxis
 				_vAxis = VectorProduct(_normal, uAxis).Normalized();
