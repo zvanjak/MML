@@ -7,13 +7,20 @@ on:
     branches: [ master, main, develop ]
   workflow_dispatch:
 
+# Cancel in-progress runs when a new run is triggered on the same branch
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   BUILD_TYPE: Release
 
 jobs:
+  # Primary builds: Ubuntu and Windows (fast, cheap)
   build:
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 30  # Kill runaway builds after 30 minutes
     strategy:
       fail-fast: false
       matrix:
@@ -27,7 +34,7 @@ jobs:
             os: windows-latest
             compiler: clang
             
-          #- name: Windows MinGWre
+          #- name: Windows MinGW
           #  os: windows-latest
           #  compiler: mingw
             
@@ -38,11 +45,6 @@ jobs:
             
           - name: Ubuntu Clang
             os: ubuntu-latest
-            compiler: clang
-            
-          # macOS builds
-          - name: macOS Clang
-            os: macos-latest
             compiler: clang
 
     steps:
@@ -77,34 +79,61 @@ jobs:
         echo "CC=clang" >> $GITHUB_ENV
         echo "CXX=clang++" >> $GITHUB_ENV
 
-    - name: Setup Clang (macOS)
-      if: runner.os == 'macOS'
-      run: |
-        echo "CC=clang" >> $GITHUB_ENV
-        echo "CXX=clang++" >> $GITHUB_ENV
-
     - name: Configure CMake
-      run: |
-        cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
+      run: cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
 
     - name: Build
-      run: |
-        if [ "$RUNNER_OS" == "Linux" ] || [ "$RUNNER_OS" == "macOS" ]; then
-          # Limit parallel jobs on Linux/macOS to avoid OOM (header-heavy template library)
-          cmake --build build --config ${{ env.BUILD_TYPE }} --parallel 2
-        else
-          cmake --build build --config ${{ env.BUILD_TYPE }} --parallel
-        fi
+      timeout-minutes: 20  # Build-specific timeout
+      run: cmake --build build --config ${{ env.BUILD_TYPE }} --parallel 4
       shell: bash
 
     - name: Test
+      timeout-minutes: 10  # Test-specific timeout
       working-directory: build
-      run: ctest -C ${{ env.BUILD_TYPE }} --output-on-failure --parallel
+      run: ctest -C ${{ env.BUILD_TYPE }} --output-on-failure --parallel 4 --timeout 120
 
     - name: Upload test results on failure
       if: failure()
       uses: actions/upload-artifact@v4
       with:
         name: test-results-${{ matrix.name }}
+        path: build/Testing/Temporary/
+        retention-days: 7
+
+  # macOS build: separate job, only on master/main or manual trigger (expensive!)
+  build-macos:
+    name: macOS Clang
+    runs-on: macos-latest
+    timeout-minutes: 45  # macOS can be slower
+    # Only run on master/main push OR manual trigger (saves 10x cost on PRs/develop)
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'))
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Clang (macOS)
+      run: |
+        echo "CC=clang" >> $GITHUB_ENV
+        echo "CXX=clang++" >> $GITHUB_ENV
+
+    - name: Configure CMake
+      run: cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
+
+    - name: Build
+      timeout-minutes: 30  # Build-specific timeout
+      run: cmake --build build --config ${{ env.BUILD_TYPE }} --parallel 2
+      shell: bash
+
+    - name: Test
+      timeout-minutes: 10  # Test-specific timeout
+      working-directory: build
+      run: ctest -C ${{ env.BUILD_TYPE }} --output-on-failure --parallel 2 --timeout 120
+
+    - name: Upload test results on failure
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-results-macOS-Clang
         path: build/Testing/Temporary/
         retention-days: 7
