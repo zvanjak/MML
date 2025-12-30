@@ -14,8 +14,6 @@ endif()
 include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/mml
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/book
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/book/mpl
 )
 
 # Enable testing at the root level
@@ -35,14 +33,8 @@ list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/extras)
 add_subdirectory(src/demo_app)
 add_subdirectory(src/docs_demos)
 add_subdirectory(src/readme_examples)
-add_subdirectory(src/book)
 add_subdirectory(src/visualization_examples)
-add_subdirectory(src/tryouts/test_linux_viz)
-add_subdirectory(tools/utils_app)
 add_subdirectory(src/examples)
-
-# Book chapters (standalone applications)
-add_subdirectory(src/book/chapters)
 
 # Precision testing application
 add_subdirectory(src/testing_precision)
@@ -57,22 +49,6 @@ add_custom_target(examples
         MML_DocsApp
         MML_DemoApp
         MML_VisualizationApp
-        test_linux_viz_standalone
-        test_backend_switching
-        test_all_visualizers
 )
 
-# If individual example executables exist, include them in the aggregate target
-foreach(example_target
-    Example00_ShockWave
-    Example01_ProjectileLaunch
-    Example02_DoublePendulum
-    Example03_CollisionSimulator2D
-    Example04_NBodyGravity
-    Example05_LorentzTransformations
-)
-    if(TARGET ${example_target})
-        add_dependencies(examples ${example_target})
-    endif()
-endforeach()
 
