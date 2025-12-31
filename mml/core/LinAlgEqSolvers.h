@@ -148,9 +148,9 @@ namespace MML
 		LUSolver(const Matrix<Type>& inMatRef) 
 			: _n(inMatRef.RowNum()), _lu(inMatRef), _indx(_n)
 		{
-			int i, imax, j, k;
-			Real big, temp;
-			Type temp2;
+			int i = 0, imax = 0, j = 0, k = 0;
+			Real big = 0.0, temp = 0.0;
+			Type temp2 = Type{0};
 			Vector<Type> vv(_n);
 			
 			_d = 1.0;
@@ -331,9 +331,9 @@ namespace MML
 			: _n(inMatRef.RowNum()), _lu(inMatRef), _indx(_n)
 		{
 			const Real TINY = 1.0e-40;
-			int i, imax, j, k;
-			Real big, temp;
-			Type temp2;
+			int i = 0, imax = 0, j = 0, k = 0;
+			Real big = 0.0, temp = 0.0;
+			Type temp2 = Type{0};
 			Vector<Type> vv(_n);
 			_d = 1.0;
 			for (i = 0; i < _n; i++) {
@@ -839,8 +839,8 @@ namespace MML
 			if (m < n)
 				throw MatrixDimensionError("QRSolver: Matrix must have m >= n (rows >= columns)", m, n, m, n);
 
-			int i, j, k;
-			Type scale, sigma, sum, tau;
+			int i = 0, j = 0, k = 0;
+			Type scale = Type{0}, sigma = Type{0}, sum = Type{0}, tau = Type{0};
 			Vector<Type> vec(m);
 
 			// Perform Householder reduction
@@ -1308,9 +1308,9 @@ namespace MML
 
 	inline void SVDecompositionSolver::decompose()
 	{
-		bool flag;
-		int i, its, j, jj, k, l, nm;
-		Real anorm, c, f, g, h, s, scale, x, y, z;
+		bool flag = false;
+		int i = 0, its = 0, j = 0, jj = 0, k = 0, l = 0, nm = 0;
+		Real anorm = 0.0, c = 0.0, f = 0.0, g = 0.0, h = 0.0, s = 0.0, scale = 0.0, x = 0.0, y = 0.0, z = 0.0;
 		Vector<Real> rv1(n);
 
 		g = scale = anorm = 0.0;
