@@ -103,7 +103,12 @@ namespace MML {
 			/// @return Recommended number of bins
 			static int RiceBinCount(int n) {
 				if (n <= 0) return 1;
-				return static_cast<int>(std::ceil(2.0 * std::cbrt(static_cast<double>(n))));
+				double value = 2.0 * std::cbrt(static_cast<double>(n));
+				// Round to nearest integer if very close (within 1e-9) to handle floating-point precision
+				double rounded = std::round(value);
+				if (std::abs(value - rounded) < 1e-9)
+					return static_cast<int>(rounded);
+				return static_cast<int>(std::ceil(value));
 			}
 
 			/// @brief Estimate optimal number of bins using square root rule
