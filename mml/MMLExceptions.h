@@ -14,6 +14,7 @@
 #define MML_EXCEPTIONS_H
 
 #include <stdexcept>
+#include <string>
 
 namespace MML
 {

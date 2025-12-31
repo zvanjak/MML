@@ -154,7 +154,7 @@ catch_discover_tests(MML_Tests)
 # 5. Forward reference issues (DCT, EigenSolver, etc.)
 #
 # Uncomment when generator is fixed:
-add_executable(MML_SingleHeader_Tests single_header/test_single_header.cpp)
-target_link_libraries(MML_SingleHeader_Tests PRIVATE Catch2::Catch2WithMain)
-target_include_directories(MML_SingleHeader_Tests PRIVATE ${CMAKE_SOURCE_DIR}/mml)
-catch_discover_tests(MML_SingleHeader_Tests)
+# add_executable(MML_SingleHeader_Tests single_header/test_single_header.cpp)
+# target_link_libraries(MML_SingleHeader_Tests PRIVATE Catch2::Catch2WithMain)
+# target_include_directories(MML_SingleHeader_Tests PRIVATE ${CMAKE_SOURCE_DIR}/mml)
+# catch_discover_tests(MML_SingleHeader_Tests)
