@@ -836,8 +836,28 @@ namespace MML
 		// The Householder vectors are stored in the lower triangle of QR
 		QRSolver(const Matrix<Type>& a) : m(a.RowNum()), n(a.ColNum()), QR(a), c(n), d(n), sing(false), num_reflections(0)
 		{
+			// Validate input matrix dimensions
+			if (m <= 0 || n <= 0)
+				throw MatrixDimensionError("QRSolver: Matrix dimensions must be positive", m, n, 1, 1);
 			if (m < n)
 				throw MatrixDimensionError("QRSolver: Matrix must have m >= n (rows >= columns)", m, n, m, n);
+			
+			// Verify QR copy succeeded correctly - this catches potential static initialization issues
+			if (QR.RowNum() != m || QR.ColNum() != n) {
+				// Detailed error for debugging
+				std::string msg = "QRSolver: Matrix copy validation failed. Input: " + 
+					std::to_string(a.RowNum()) + "x" + std::to_string(a.ColNum()) +
+					", m=" + std::to_string(m) + ", n=" + std::to_string(n) +
+					", QR: " + std::to_string(QR.RowNum()) + "x" + std::to_string(QR.ColNum());
+				throw std::runtime_error(msg);
+			}
+			
+			// Verify vectors were initialized correctly
+			if (static_cast<int>(c.size()) != n || static_cast<int>(d.size()) != n) {
+				std::string msg = "QRSolver: Vector initialization failed. n=" + std::to_string(n) +
+					", c.size=" + std::to_string(c.size()) + ", d.size=" + std::to_string(d.size());
+				throw std::runtime_error(msg);
+			}
 
 			int i = 0, j = 0, k = 0;
 			Type scale = Type{0}, sigma = Type{0}, sum = Type{0}, tau = Type{0};
@@ -897,7 +917,12 @@ namespace MML
 			// For square matrices, handle the last diagonal element separately
 			if (m == n)
 			{
-				d[n - 1] = QR[n - 1][n - 1];
+				// Debug: verify matrix dimensions before access
+				if (n <= 0 || QR.RowNum() != m || QR.ColNum() != n) {
+					throw MatrixDimensionError("QRSolver internal error: matrix dimensions corrupted", 
+						QR.RowNum(), QR.ColNum(), m, n);
+				}
+				d[n - 1] = QR(n - 1, n - 1);  // Use operator() for bounds checking potential
 				c[n - 1] = 0.0;  // No Householder reflection for last column in square matrix
 				if (d[n - 1] == 0.0)
 					sing = true;
