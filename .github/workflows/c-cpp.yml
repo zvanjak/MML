@@ -103,7 +103,12 @@ jobs:
 
     - name: Configure CMake (Linux)
       if: runner.os == 'Linux'
-      run: cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+      run: |
+        # Enable AddressSanitizer for debugging memory issues
+        cmake -B build -DCMAKE_BUILD_TYPE=Debug \
+          -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+          -DCMAKE_CXX_FLAGS="-fsanitize=address -fno-omit-frame-pointer -g" \
+          -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address"
 
     # Build ONLY the test target - not demos/examples (saves huge time!)
     - name: Build Tests
@@ -114,7 +119,10 @@ jobs:
     - name: Test
       timeout-minutes: 30  # Test-specific timeout
       working-directory: build
-      run: ctest -C ${{ env.BUILD_TYPE }} --output-on-failure --parallel --timeout 120
+      # ASan needs ASAN_OPTIONS for useful output
+      env:
+        ASAN_OPTIONS: detect_leaks=0:print_stacktrace=1:halt_on_error=1
+      run: ctest -C ${{ env.BUILD_TYPE }} --output-on-failure --parallel 1 --timeout 120
 
     - name: ccache stats (Linux)
       if: runner.os == 'Linux'
