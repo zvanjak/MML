@@ -14,6 +14,7 @@ concurrency:
 
 env:
   BUILD_TYPE: Release
+  CCACHE_DIR: ${{ github.workspace }}/.ccache
 
 jobs:
   # Primary builds: Ubuntu and Windows (fast, cheap)
@@ -51,6 +52,23 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
+    # Setup ccache for faster rebuilds
+    - name: Setup ccache (Linux)
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y ccache
+        echo "CMAKE_CXX_COMPILER_LAUNCHER=ccache" >> $GITHUB_ENV
+
+    - name: Cache ccache (Linux)
+      if: runner.os == 'Linux'
+      uses: actions/cache@v4
+      with:
+        path: ${{ env.CCACHE_DIR }}
+        key: ccache-${{ matrix.name }}-${{ github.sha }}
+        restore-keys: |
+          ccache-${{ matrix.name }}-
+
     - name: Setup MSVC
       if: runner.os == 'Windows' && matrix.compiler == 'msvc'
       uses: ilammy/msvc-dev-cmd@v1
@@ -80,17 +98,24 @@ jobs:
         echo "CXX=clang++" >> $GITHUB_ENV
 
     - name: Configure CMake
-      run: cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
+      run: |
+        cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
+          -DCMAKE_CXX_COMPILER_LAUNCHER=${{ runner.os == 'Linux' && 'ccache' || '' }}
 
-    - name: Build
+    # Build ONLY the test target - not demos/examples (saves huge time!)
+    - name: Build Tests
       timeout-minutes: 120  # Build-specific timeout
-      run: cmake --build build --config ${{ env.BUILD_TYPE }} --parallel 4
+      run: cmake --build build --config ${{ env.BUILD_TYPE }} --target MML_Tests --parallel
       shell: bash
 
     - name: Test
       timeout-minutes: 30  # Test-specific timeout
       working-directory: build
-      run: ctest -C ${{ env.BUILD_TYPE }} --output-on-failure --parallel 4 --timeout 120
+      run: ctest -C ${{ env.BUILD_TYPE }} --output-on-failure --parallel --timeout 120
+
+    - name: ccache stats (Linux)
+      if: runner.os == 'Linux'
+      run: ccache --show-stats
 
     - name: Upload test results on failure
       if: failure()
@@ -98,6 +123,64 @@ jobs:
       with:
         name: test-results-${{ matrix.name }}
         path: build/Testing/Temporary/
+        retention-days: 7
+
+  # macOS build: separate job, only on master/main or manual trigger (expensive!)
+  build-macos:
+    name: macOS Clang
+    runs-on: macos-latest
+    timeout-minutes: 180  # macOS can be slower
+    # Only run on master/main push OR manual trigger (saves 10x cost on PRs/develop)
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'))
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup ccache (macOS)
+      run: |
+        brew install ccache
+        echo "CMAKE_CXX_COMPILER_LAUNCHER=ccache" >> $GITHUB_ENV
+
+    - name: Cache ccache (macOS)
+      uses: actions/cache@v4
+      with:
+        path: ${{ env.CCACHE_DIR }}
+        key: ccache-macos-${{ github.sha }}
+        restore-keys: |
+          ccache-macos-
+
+    - name: Setup Clang (macOS)
+      run: |
+        echo "CC=clang" >> $GITHUB_ENV
+        echo "CXX=clang++" >> $GITHUB_ENV
+
+    - name: Configure CMake
+      run: |
+        cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
+          -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+
+    # Build ONLY the test target - not demos/examples
+    - name: Build Tests
+      timeout-minutes: 120  # Build-specific timeout
+      run: cmake --build build --config ${{ env.BUILD_TYPE }} --target MML_Tests --parallel
+      shell: bash
+
+    - name: Test
+      timeout-minutes: 30  # Test-specific timeout
+      working-directory: build
+      run: ctest -C ${{ env.BUILD_TYPE }} --output-on-failure --parallel --timeout 120
+
+    - name: ccache stats
+      run: ccache --show-stats
+
+    - name: Upload test results on failure
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-results-macOS-Clang
+        path: build/Testing/Temporary/
+        retention-days: 7
         retention-days: 7
 
   # macOS build: separate job, only on master/main or manual trigger (expensive!)
