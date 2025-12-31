@@ -828,5 +828,58 @@ namespace MML::TestBeds
                                                                      19.72, -30.93,  37.58,  24.44, -39.57, -58.37,  94.06,  57.91,  75.13,  80.65,  42.13,     75, -29.94,  -32.9,  39.69, -0.6073, -18.03, -32.98, -40.09, -1.993, -49.07,  38.07, -3.732, -9.128, -84.69, -30.56, -32.05,  60.01, -89.57, -88.77, -43.14,  63.32,  -48.2,  -50.6,  7.566,  59.73, -15.51, -17.25, -78.62,   52.1,  79.79,  58.15,  75.77,  53.77,  60.24,  20.13, -99.48, -14.69,  34.59,  31.25,
                                                                     -58.33,  7.505,  23.65,  19.35, -55.34, -2.988, -41.48,   8.09,  87.87, -29.23,  32.21, -13.14, -2.268, -34.46,  86.14,  76.44,  76.87,  -21.3,  12.57,   46.6, -23.83,  76.75,  54.36, -58.06, -57.52,  77.48, -16.79,  72.08,  72.78, -87.65,  37.64, -77.32,  6.278,  75.14,  2.066,  43.33,   85.7,  63.15, -91.92,  68.69, -81.09,  17.31, -60.77, -70.99, -27.77,  67.31,  20.65,  6.491, -73.42, -11.94,
                                                                      74.59,  93.41,  27.82,  73.73,  23.31, -91.36, -37.57,  35.63, -79.56,  28.47,  89.91,  30.19,  92.15, -11.76, -37.05,  23.21,  69.23,  10.83, -33.13, -3.262,  -8.42, -81.54,  9.366,  4.752,  66.12,  83.84,  91.91, -16.07, -40.52,  -22.9,  94.07, -74.26, -93.28, -35.38,  1.956, -83.89,  17.33, -83.89, -87.98,  48.96, -40.31,  76.08,  41.59, -80.29, -94.61,  -43.9,  77.17, -94.71, -85.56, -96.08 } };
+
+    /***********************************************************************************************/
+    /*   ACCESSOR FUNCTIONS - Use these to avoid C++ Static Initialization Order Fiasco (SIOF)    */
+    /*   These use the "construct on first use" idiom to guarantee initialization order           */
+    /***********************************************************************************************/
+    
+    // 20x20 matrix accessors - construct on first use to avoid SIOF
+    inline const MML::Matrix<Real>& get_mat_20x20() {
+        static const MML::Matrix<Real> m = mat_20x20;
+        return m;
+    }
+    inline const MML::Vector<Real>& get_mat_20x20_rhs0() {
+        static const MML::Vector<Real> v = mat_20x20_rhs0;
+        return v;
+    }
+    inline const MML::Vector<Real>& get_mat_20x20_rhs0_sol() {
+        static const MML::Vector<Real> v = mat_20x20_rhs0_sol;
+        return v;
+    }
+    
+    // 50x50 matrix accessors - construct on first use to avoid SIOF
+    inline const MML::Matrix<Real>& get_mat_50x50() {
+        static const MML::Matrix<Real> m = mat_50x50;
+        return m;
+    }
+    inline const MML::Vector<Real>& get_mat_50x50_rhs0() {
+        static const MML::Vector<Real> v = mat_50x50_rhs0;
+        return v;
+    }
+    inline const MML::Vector<Real>& get_mat_50x50_rhs0_sol() {
+        static const MML::Vector<Real> v = mat_50x50_rhs0_sol;
+        return v;
+    }
+    
+    // Additional 20x20 matrix variants - construct on first use to avoid SIOF
+    inline const MML::Matrix<Real>& get_mat_20x20_1() {
+        static const MML::Matrix<Real> m = mat_20x20_1;
+        return m;
+    }
+    inline const MML::Matrix<Real>& get_mat_20x20_2() {
+        static const MML::Matrix<Real> m = mat_20x20_2;
+        return m;
+    }
+    
+    // Additional 50x50 matrix variants - construct on first use to avoid SIOF
+    inline const MML::Matrix<Real>& get_mat_50x50_1() {
+        static const MML::Matrix<Real> m = mat_50x50_1;
+        return m;
+    }
+    inline const MML::Matrix<Real>& get_mat_50x50_2() {
+        static const MML::Matrix<Real> m = mat_50x50_2;
+        return m;
+    }
 }
 #endif

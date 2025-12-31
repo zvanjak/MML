@@ -140,32 +140,32 @@ namespace MML::Tests::Core::LinearAlgSolversTests
 	TEST_CASE("Test_LUSolve_20_x_20", "[LUSolver]")
 	{
 			TEST_PRECISION_INFO();
-		Matrix<Real>    mat = TestBeds::mat_20x20;
-		Vector<Real> 	rhs = TestBeds::mat_20x20_rhs0;
+		Matrix<Real>    mat = TestBeds::get_mat_20x20();
+		Vector<Real> 	rhs = TestBeds::get_mat_20x20_rhs0();
 		Vector<Real>	vecSol(rhs.size());
 
 		LUSolver<Real> luSolver(mat);
 
 		vecSol = luSolver.Solve(rhs);
-		REQUIRE(true == vecSol.IsEqualTo(TestBeds::mat_20x20_rhs0_sol, 1e-13));
+		REQUIRE(true == vecSol.IsEqualTo(TestBeds::get_mat_20x20_rhs0_sol(), 1e-13));
 
 		Vector<Real>    res_rhs = mat * vecSol;
-		REQUIRE(true == res_rhs.IsEqualTo(TestBeds::mat_20x20_rhs0, 1e-13));
+		REQUIRE(true == res_rhs.IsEqualTo(TestBeds::get_mat_20x20_rhs0(), 1e-13));
 	}
 	TEST_CASE("Test_LUSolve_50_x_50", "[LUSolver]")
 	{
 			TEST_PRECISION_INFO();
-		Matrix<Real>    mat = TestBeds::mat_50x50;
-		Vector<Real> 	rhs = TestBeds::mat_50x50_rhs0;
+		Matrix<Real>    mat = TestBeds::get_mat_50x50();
+		Vector<Real> 	rhs = TestBeds::get_mat_50x50_rhs0();
 		Vector<Real>	vecSol(rhs.size());
 
 		LUSolver<Real> luSolver(mat);
 
 		vecSol = luSolver.Solve(rhs);
-		REQUIRE(true == vecSol.IsEqualTo(TestBeds::mat_50x50_rhs0_sol, 1e-13));
+		REQUIRE(true == vecSol.IsEqualTo(TestBeds::get_mat_50x50_rhs0_sol(), 1e-13));
 
 		Vector<Real>    res_rhs = mat * vecSol;
-		REQUIRE(true == res_rhs.IsEqualTo(TestBeds::mat_50x50_rhs0, 1e-12));
+		REQUIRE(true == res_rhs.IsEqualTo(TestBeds::get_mat_50x50_rhs0(), 1e-12));
 	}
 
 	/*********************************************************************/
@@ -219,32 +219,32 @@ namespace MML::Tests::Core::LinearAlgSolversTests
 	TEST_CASE("Test_QRSolve_20_x_20", "[QRSolver]")
 	{
 			TEST_PRECISION_INFO();
-		Matrix<Real>    mat = TestBeds::mat_20x20;
-		Vector<Real> 	rhs = TestBeds::mat_20x20_rhs0;
+		Matrix<Real>    mat = TestBeds::get_mat_20x20();
+		Vector<Real> 	rhs = TestBeds::get_mat_20x20_rhs0();
 		Vector<Real>	vecSol(rhs.size());
 
 		QRSolver<Real> qrSolver(mat);
 
 		vecSol = qrSolver.Solve(rhs);
-		REQUIRE(true == vecSol.IsEqualTo(TestBeds::mat_20x20_rhs0_sol, 1e-11));
+		REQUIRE(true == vecSol.IsEqualTo(TestBeds::get_mat_20x20_rhs0_sol(), 1e-11));
 
 		Vector<Real>    res_rhs = mat * vecSol;
-		REQUIRE(true == res_rhs.IsEqualTo(TestBeds::mat_20x20_rhs0, 1e-11));
+		REQUIRE(true == res_rhs.IsEqualTo(TestBeds::get_mat_20x20_rhs0(), 1e-11));
 	}
 	TEST_CASE("Test_QRSolve_50_x_50", "[QRSolver]")
 	{
 			TEST_PRECISION_INFO();
-		Matrix<Real>    mat = TestBeds::mat_50x50;
-		Vector<Real> 	rhs = TestBeds::mat_50x50_rhs0;
+		Matrix<Real>    mat = TestBeds::get_mat_50x50();
+		Vector<Real> 	rhs = TestBeds::get_mat_50x50_rhs0();
 		Vector<Real>	vecSol(rhs.size());
 
 		QRSolver<Real> qrSolver(mat);
 
 		vecSol = qrSolver.Solve(rhs);
-		REQUIRE(true == vecSol.IsEqualTo(TestBeds::mat_50x50_rhs0_sol, 1e-12));
+		REQUIRE(true == vecSol.IsEqualTo(TestBeds::get_mat_50x50_rhs0_sol(), 1e-12));
 
 		Vector<Real>    res_rhs = mat * vecSol;
-		REQUIRE(true == res_rhs.IsEqualTo(TestBeds::mat_50x50_rhs0, 1e-11));
+		REQUIRE(true == res_rhs.IsEqualTo(TestBeds::get_mat_50x50_rhs0(), 1e-11));
 	}
 
 	/*********************************************************************/
@@ -308,30 +308,30 @@ namespace MML::Tests::Core::LinearAlgSolversTests
 	TEST_CASE("Test_SVDSolve_20_x_20", "[SVDSolver]")
 	{
 			TEST_PRECISION_INFO();
-		Matrix<Real>    mat = TestBeds::mat_20x20;
-		Vector<Real> 	rhs = TestBeds::mat_20x20_rhs0;
+		Matrix<Real>    mat = TestBeds::get_mat_20x20();
+		Vector<Real> 	rhs = TestBeds::get_mat_20x20_rhs0();
 
 		SVDecompositionSolver svd(mat);
 
 		Vector<Real> vecSol = svd.Solve(rhs);
-		REQUIRE(true == vecSol.IsEqualTo(TestBeds::mat_20x20_rhs0_sol, 1e-12));
+		REQUIRE(true == vecSol.IsEqualTo(TestBeds::get_mat_20x20_rhs0_sol(), 1e-12));
 
 		Vector<Real>    res_rhs = mat * vecSol;
-		REQUIRE(true == res_rhs.IsEqualTo(TestBeds::mat_20x20_rhs0, 1e-12));
+		REQUIRE(true == res_rhs.IsEqualTo(TestBeds::get_mat_20x20_rhs0(), 1e-12));
 	}
 	TEST_CASE("Test_SVDSolve_50_x_50", "[SVDSolver]")
 	{
 			TEST_PRECISION_INFO();
-		Matrix<Real>    mat = TestBeds::mat_50x50;
-		Vector<Real> 	rhs = TestBeds::mat_50x50_rhs0;
+		Matrix<Real>    mat = TestBeds::get_mat_50x50();
+		Vector<Real> 	rhs = TestBeds::get_mat_50x50_rhs0();
 
 		SVDecompositionSolver svd(mat);
 
 		Vector<Real> vecSol = svd.Solve(rhs);
-		REQUIRE(true == vecSol.IsEqualTo(TestBeds::mat_50x50_rhs0_sol, 1e-11));
+		REQUIRE(true == vecSol.IsEqualTo(TestBeds::get_mat_50x50_rhs0_sol(), 1e-11));
 
 		Vector<Real>    res_rhs = mat * vecSol;
-		REQUIRE(true == res_rhs.IsEqualTo(TestBeds::mat_50x50_rhs0, 1e-11));
+		REQUIRE(true == res_rhs.IsEqualTo(TestBeds::get_mat_50x50_rhs0(), 1e-11));
 	}
 
 	/*********************************************************************/

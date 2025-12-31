@@ -216,13 +216,13 @@ namespace MML::Tests::Core::MatrixUtilsTests
 		REQUIRE(10 == Utils::Rank(TestBeds::mat_10x10_1));
 		REQUIRE(10 == Utils::Rank(TestBeds::mat_10x10_2));
 
-		REQUIRE(20 == Utils::Rank(TestBeds::mat_20x20));
-		REQUIRE(20 == Utils::Rank(TestBeds::mat_20x20_1));
-		REQUIRE(20 == Utils::Rank(TestBeds::mat_20x20_2));
+		REQUIRE(20 == Utils::Rank(TestBeds::get_mat_20x20()));
+		REQUIRE(20 == Utils::Rank(TestBeds::get_mat_20x20_1()));
+		REQUIRE(20 == Utils::Rank(TestBeds::get_mat_20x20_2()));
 
-		REQUIRE(50 == Utils::Rank(TestBeds::mat_50x50));
-		REQUIRE(50 == Utils::Rank(TestBeds::mat_50x50_1));
-		REQUIRE(50 == Utils::Rank(TestBeds::mat_50x50_2));
+		REQUIRE(50 == Utils::Rank(TestBeds::get_mat_50x50()));
+		REQUIRE(50 == Utils::Rank(TestBeds::get_mat_50x50_1()));
+		REQUIRE(50 == Utils::Rank(TestBeds::get_mat_50x50_2()));
 	}
 
 	TEST_CASE("Rank of zero complex matrix is 0", "[MatrixRank][Complex]") {
