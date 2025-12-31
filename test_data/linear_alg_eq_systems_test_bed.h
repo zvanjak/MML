@@ -242,7 +242,7 @@ namespace MML::TestBeds
                 { "mat_5x5", { 5, mat_5x5, mat_5x5_rhs0, mat_5x5_rhs0_sol, mat_5x5_eigen_val, mat_5x5_eigen_vecs } },
                 { "mat_8x8", { 8, mat_8x8, mat_8x8_rhs0, mat_8x8_rhs0_sol, mat_8x8_eigen_val, mat_8x8_eigen_vecs } },
                 { "mat_10x10", { 10, mat_10x10, mat_10x10_rhs0, mat_10x10_rhs0_sol, mat_10x10_eigen_val, mat_10x10_eigen_vecs } },
-                { "mat_20x20", { 20, mat_20x20, mat_20x20_rhs0, mat_20x20_rhs0_sol, mat_20x20_eigen_val, mat_20x20_eigen_vecs } },
+                { "mat_20x20", { 20, get_mat_20x20(), get_mat_20x20_rhs0(), get_mat_20x20_rhs0_sol(), mat_20x20_eigen_val, mat_20x20_eigen_vecs } },
                 { "hilbert_3x3", { 3, hilbert_3x3, hilbert_3x3_rhs0, hilbert_3x3_rhs0_sol, hilbert_3x3_eigen_val } },
                 { "hilbert_4x4", { 4, hilbert_4x4, hilbert_4x4_rhs0, hilbert_4x4_rhs0_sol, hilbert_4x4_eigen_val } },
                 { "hilbert_5x5", { 5, hilbert_5x5, hilbert_5x5_rhs0, hilbert_5x5_rhs0_sol, hilbert_5x5_eigen_val } },
