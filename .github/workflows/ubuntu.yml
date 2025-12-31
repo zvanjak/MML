@@ -1,0 +1,86 @@
+name: Ubuntu
+
+on:
+  push:
+    branches: [ master, main, develop ]
+  pull_request:
+    branches: [ master, main, develop ]
+  workflow_dispatch:
+
+concurrency:
+  group: ubuntu-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  BUILD_TYPE: Release
+  CCACHE_DIR: ${{ github.workspace }}/.ccache
+
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: GCC
+            compiler: gcc
+            
+          - name: Clang
+            compiler: clang
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup ccache
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y ccache
+        echo "CMAKE_CXX_COMPILER_LAUNCHER=ccache" >> $GITHUB_ENV
+
+    - name: Cache ccache
+      uses: actions/cache@v4
+      with:
+        path: ${{ env.CCACHE_DIR }}
+        key: ccache-ubuntu-${{ matrix.name }}-${{ github.sha }}
+        restore-keys: |
+          ccache-ubuntu-${{ matrix.name }}-
+
+    - name: Setup GCC
+      if: matrix.compiler == 'gcc'
+      run: |
+        echo "CC=gcc" >> $GITHUB_ENV
+        echo "CXX=g++" >> $GITHUB_ENV
+
+    - name: Setup Clang
+      if: matrix.compiler == 'clang'
+      run: |
+        echo "CC=clang" >> $GITHUB_ENV
+        echo "CXX=clang++" >> $GITHUB_ENV
+
+    - name: Configure CMake
+      run: |
+        cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
+          -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+
+    - name: Build Tests
+      timeout-minutes: 90
+      run: cmake --build build --config ${{ env.BUILD_TYPE }} --target MML_Tests --parallel
+
+    - name: Test
+      timeout-minutes: 30
+      working-directory: build
+      run: ctest -C ${{ env.BUILD_TYPE }} --output-on-failure --parallel --timeout 120
+
+    - name: ccache stats
+      run: ccache --show-stats
+
+    - name: Upload test results on failure
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-results-ubuntu-${{ matrix.name }}
+        path: build/Testing/Temporary/
+        retention-days: 7

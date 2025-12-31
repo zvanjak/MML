@@ -1,0 +1,67 @@
+name: macOS
+
+on:
+  push:
+    branches: [ master, main ]
+  workflow_dispatch:
+
+concurrency:
+  group: macos-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  BUILD_TYPE: Release
+  CCACHE_DIR: ${{ github.workspace }}/.ccache
+
+jobs:
+  build:
+    name: Clang
+    runs-on: macos-latest
+    timeout-minutes: 180
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup ccache
+      run: |
+        brew install ccache
+        echo "CMAKE_CXX_COMPILER_LAUNCHER=ccache" >> $GITHUB_ENV
+
+    - name: Cache ccache
+      uses: actions/cache@v4
+      with:
+        path: ${{ env.CCACHE_DIR }}
+        key: ccache-macos-${{ github.sha }}
+        restore-keys: |
+          ccache-macos-
+
+    - name: Setup Clang
+      run: |
+        echo "CC=clang" >> $GITHUB_ENV
+        echo "CXX=clang++" >> $GITHUB_ENV
+
+    - name: Configure CMake
+      run: |
+        cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
+          -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+
+    - name: Build Tests
+      timeout-minutes: 120
+      run: cmake --build build --config ${{ env.BUILD_TYPE }} --target MML_Tests --parallel
+
+    - name: Test
+      timeout-minutes: 30
+      working-directory: build
+      run: ctest -C ${{ env.BUILD_TYPE }} --output-on-failure --parallel --timeout 120
+
+    - name: ccache stats
+      run: ccache --show-stats
+
+    - name: Upload test results on failure
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-results-macOS-Clang
+        path: build/Testing/Temporary/
+        retention-days: 7

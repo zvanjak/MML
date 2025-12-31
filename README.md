@@ -10,7 +10,9 @@ Using C++17 and working on all platforms (Windows, Linux, Mac), it also comes wi
 
 Build status:
 
-[![Build Status](https://github.com/zvanjak/MML/actions/workflows/c-cpp.yml/badge.svg)](https://github.com/zvanjak/MML/actions/workflows/c-cpp.yml)
+[![Ubuntu](https://github.com/zvanjak/MML/actions/workflows/ubuntu.yml/badge.svg)](https://github.com/zvanjak/MML/actions/workflows/ubuntu.yml)
+[![Windows](https://github.com/zvanjak/MML/actions/workflows/windows.yml/badge.svg)](https://github.com/zvanjak/MML/actions/workflows/windows.yml)
+[![macOS](https://github.com/zvanjak/MML/actions/workflows/macos.yml/badge.svg)](https://github.com/zvanjak/MML/actions/workflows/macos.yml)
 [![C++17](https://img.shields.io/badge/C%2B%2B-17-blue.svg)](https://isocpp.org/std/the-standard)
 [![Tests](https://img.shields.io/badge/tests-2175%20passing-brightgreen.svg)](tests/)
 [![License](https://img.shields.io/badge/license-Custom-blue.svg)](LICENSE.md)

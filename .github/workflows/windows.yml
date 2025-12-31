@@ -1,0 +1,64 @@
+name: Windows
+
+on:
+  push:
+    branches: [ master, main, develop ]
+  pull_request:
+    branches: [ master, main, develop ]
+  workflow_dispatch:
+
+concurrency:
+  group: windows-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  BUILD_TYPE: Release
+
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    runs-on: windows-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: MSVC 2022
+            compiler: msvc
+            
+          - name: Clang
+            compiler: clang
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup MSVC
+      if: matrix.compiler == 'msvc'
+      uses: ilammy/msvc-dev-cmd@v1
+
+    - name: Setup Clang
+      if: matrix.compiler == 'clang'
+      run: |
+        echo "CC=clang" >> $env:GITHUB_ENV
+        echo "CXX=clang++" >> $env:GITHUB_ENV
+
+    - name: Configure CMake
+      run: cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
+
+    - name: Build Tests
+      timeout-minutes: 90
+      run: cmake --build build --config ${{ env.BUILD_TYPE }} --target MML_Tests --parallel
+
+    - name: Test
+      timeout-minutes: 30
+      working-directory: build
+      run: ctest -C ${{ env.BUILD_TYPE }} --output-on-failure --parallel --timeout 120
+
+    - name: Upload test results on failure
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-results-windows-${{ matrix.name }}
+        path: build/Testing/Temporary/
+        retention-days: 7
