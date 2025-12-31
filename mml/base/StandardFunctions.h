@@ -17,6 +17,16 @@
 
 #include "MMLBase.h"
 
+// Detect if C++17 special math functions are available
+// Apple's libc++ doesn't implement them, nor does older MSVC
+#if defined(__cpp_lib_math_special_functions) || \
+    (defined(__GNUC__) && !defined(__clang__) && !defined(__apple_build_version__)) || \
+    (defined(_MSC_VER) && _MSC_VER >= 1914)
+    #define MML_HAS_SPECIAL_MATH_FUNCTIONS 1
+#else
+    #define MML_HAS_SPECIAL_MATH_FUNCTIONS 0
+#endif
+
 namespace MML
 {
 	namespace Functions
@@ -80,6 +90,10 @@ namespace MML
 
 		static inline Real TGamma(Real x) { return std::tgamma(x); }
 		static inline Real LGamma(Real x) { return std::lgamma(x); }
+
+#if MML_HAS_SPECIAL_MATH_FUNCTIONS
+		// C++17 Special Mathematical Functions
+		// Note: Not available on Apple platforms (libc++ doesn't implement them)
 		static inline Real RiemannZeta(Real x) { return std::riemann_zeta(x); }
 
 		static inline Real Hermite(unsigned int n, Real x) { return std::hermite(n, x); }
@@ -115,6 +129,32 @@ namespace MML
 
     // Alias for Bessel function of the second kind (same as CylNeumann)
     static inline Real CylBesselY(Real n, Real x) { return std::cyl_neumann(n, x); }
+#else
+		// Stub implementations for platforms without C++17 special math functions (e.g., macOS)
+		// These throw runtime errors if called - users should implement their own or use a different library
+		static inline Real RiemannZeta(Real) { throw std::runtime_error("RiemannZeta not available on this platform"); }
+		static inline Real Hermite(unsigned int, Real) { throw std::runtime_error("Hermite not available on this platform"); }
+		static inline Real Legendre(unsigned int, Real) { throw std::runtime_error("Legendre not available on this platform"); }
+		static inline Real Laguerre(unsigned int, Real) { throw std::runtime_error("Laguerre not available on this platform"); }
+		static inline Real SphBessel(unsigned int, Real) { throw std::runtime_error("SphBessel not available on this platform"); }
+		static inline Real SphLegendre(int, int, Real) { throw std::runtime_error("SphLegendre not available on this platform"); }
+		static inline Real Ellint_1(Real, Real) { throw std::runtime_error("Ellint_1 not available on this platform"); }
+		static inline Real Ellint_2(Real, Real) { throw std::runtime_error("Ellint_2 not available on this platform"); }
+		static inline Real Ellint_3(Real, Real, Real) { throw std::runtime_error("Ellint_3 not available on this platform"); }
+		static inline Real Comp_ellint_1(Real) { throw std::runtime_error("Comp_ellint_1 not available on this platform"); }
+		static inline Real Comp_ellint_2(Real) { throw std::runtime_error("Comp_ellint_2 not available on this platform"); }
+		static inline Real Comp_ellint_3(Real, Real) { throw std::runtime_error("Comp_ellint_3 not available on this platform"); }
+		static inline Real CylBesselJ(Real, Real) { throw std::runtime_error("CylBesselJ not available on this platform"); }
+		static inline Real CylBesselI(Real, Real) { throw std::runtime_error("CylBesselI not available on this platform"); }
+		static inline Real CylBesselK(Real, Real) { throw std::runtime_error("CylBesselK not available on this platform"); }
+		static inline Real CylNeumann(Real, Real) { throw std::runtime_error("CylNeumann not available on this platform"); }
+		static inline Real SphNeumann(unsigned int, Real) { throw std::runtime_error("SphNeumann not available on this platform"); }
+		static inline Real AssocLegendre(unsigned int, unsigned int, Real) { throw std::runtime_error("AssocLegendre not available on this platform"); }
+		static inline Real AssocLaguerre(unsigned int, unsigned int, Real) { throw std::runtime_error("AssocLaguerre not available on this platform"); }
+		static inline Real Beta(Real, Real) { throw std::runtime_error("Beta not available on this platform"); }
+		static inline Real Expint(Real) { throw std::runtime_error("Expint not available on this platform"); }
+		static inline Real CylBesselY(Real, Real) { throw std::runtime_error("CylBesselY not available on this platform"); }
+#endif
 
     // Note: Basic math functions (Sin, Cos, Exp, Log, etc.) now templated above.
     // They work with Real, Complex, float, long double, etc. - no separate Complex overloads needed.
