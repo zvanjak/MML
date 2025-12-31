@@ -229,16 +229,119 @@ namespace MML::TestBeds
      *******************************************************************************************************************/
     class LinearAlgEqTestBed
     {
+    private:
+        // Helper to initialize linear systems array - uses construct-on-first-use idiom
+        // to avoid static initialization order fiasco
+        static const std::vector<std::pair<std::string, TestLinearSystem>>& getLinearSystemsArray() {
+            static const std::vector<std::pair<std::string, TestLinearSystem>> systems = {
+                { "mat_3x3", { 3, mat_3x3, mat_3x3_rhs0, mat_3x3_rhs0_sol, mat_3x3_eigen_val, mat_3x3_eigen_vecs } },
+                { "mat_3x3_1", { 3, mat_3x3_1, mat_3x3_1_rhs0, mat_3x3_1_rhs0_sol, mat_3x3_1_eigen_val, mat_3x3_1_eigen_vecs } },
+                { "mat_3x3_2", { 3, mat_3x3_2, mat_3x3_2_rhs0, mat_3x3_2_rhs0_sol, mat_3x3_2_eigen_val, mat_3x3_2_eigen_vecs } },
+                { "mat_3x3_3", { 3, mat_3x3_3, mat_3x3_3_rhs0, mat_3x3_3_rhs0_sol, mat_3x3_3_eigen_val, mat_3x3_3_eigen_vecs } },
+                { "mat_3x3_4", { 3, mat_3x3_4, mat_3x3_4_rhs0, mat_3x3_4_rhs0_sol, mat_3x3_4_eigen_val, mat_3x3_4_eigen_vecs } },
+                { "mat_5x5", { 5, mat_5x5, mat_5x5_rhs0, mat_5x5_rhs0_sol, mat_5x5_eigen_val, mat_5x5_eigen_vecs } },
+                { "mat_8x8", { 8, mat_8x8, mat_8x8_rhs0, mat_8x8_rhs0_sol, mat_8x8_eigen_val, mat_8x8_eigen_vecs } },
+                { "mat_10x10", { 10, mat_10x10, mat_10x10_rhs0, mat_10x10_rhs0_sol, mat_10x10_eigen_val, mat_10x10_eigen_vecs } },
+                { "mat_20x20", { 20, mat_20x20, mat_20x20_rhs0, mat_20x20_rhs0_sol, mat_20x20_eigen_val, mat_20x20_eigen_vecs } },
+                { "hilbert_3x3", { 3, hilbert_3x3, hilbert_3x3_rhs0, hilbert_3x3_rhs0_sol, hilbert_3x3_eigen_val } },
+                { "hilbert_4x4", { 4, hilbert_4x4, hilbert_4x4_rhs0, hilbert_4x4_rhs0_sol, hilbert_4x4_eigen_val } },
+                { "hilbert_5x5", { 5, hilbert_5x5, hilbert_5x5_rhs0, hilbert_5x5_rhs0_sol, hilbert_5x5_eigen_val } },
+                { "hilbert_8x8", { 8, hilbert_8x8, hilbert_8x8_rhs0, hilbert_8x8_rhs0_sol, hilbert_8x8_eigen_val } },
+                { "pascal_3x3", { 3, pascal_3x3, pascal_3x3_rhs0, pascal_3x3_rhs0_sol, pascal_3x3_eigen_val } },
+                { "pascal_4x4", { 4, pascal_4x4, pascal_4x4_rhs0, pascal_4x4_rhs0_sol, pascal_4x4_eigen_val } },
+                { "pascal_5x5", { 5, pascal_5x5, pascal_5x5_rhs0, pascal_5x5_rhs0_sol, pascal_5x5_eigen_val } },
+                { "vandermonde_3x3", { 3, vandermonde_3x3, vandermonde_3x3_rhs0, vandermonde_3x3_rhs0_sol, vandermonde_3x3_eigen_val } },
+                { "vandermonde_4x4", { 4, vandermonde_4x4, vandermonde_4x4_rhs0, vandermonde_4x4_rhs0_sol, vandermonde_4x4_eigen_val } },
+                { "vandermonde_5x5", { 5, vandermonde_5x5, vandermonde_5x5_rhs0, vandermonde_5x5_rhs0_sol, vandermonde_5x5_eigen_val } },
+                { "frank_3x3", { 3, frank_3x3, frank_3x3_rhs0, frank_3x3_rhs0_sol, frank_3x3_eigen_val } },
+                { "frank_4x4", { 4, frank_4x4, frank_4x4_rhs0, frank_4x4_rhs0_sol, frank_4x4_eigen_val } },
+                { "frank_5x5", { 5, frank_5x5, frank_5x5_rhs0, frank_5x5_rhs0_sol, frank_5x5_eigen_val } },
+                { "kahan_3x3", { 3, kahan_3x3, kahan_3x3_rhs0, kahan_3x3_rhs0_sol, kahan_3x3_eigen_val } },
+                { "kahan_5x5", { 5, kahan_5x5, kahan_5x5_rhs0, kahan_5x5_rhs0_sol, kahan_5x5_eigen_val } },
+                { "diag_dominant_4x4", { 4, diag_dominant_4x4_mat, diag_dominant_4x4_rhs, diag_dominant_4x4_sol, diag_dominant_4x4_eigen } },
+                { "diag_dominant_5x5_tridiag", { 5, diag_dominant_5x5_tridiag_mat, diag_dominant_5x5_tridiag_rhs, diag_dominant_5x5_tridiag_sol, diag_dominant_5x5_tridiag_eigen } },
+                { "diag_dominant_6x6_poisson2d", { 6, diag_dominant_6x6_poisson2d_mat, diag_dominant_6x6_poisson2d_rhs, diag_dominant_6x6_poisson2d_sol, diag_dominant_6x6_poisson2d_eigen } }
+            };
+            return systems;
+        }
+
+        static const std::vector<std::pair<std::string, TestLinearSystemSymmetric>>& getSymmetricSystemsArray() {
+            static const std::vector<std::pair<std::string, TestLinearSystemSymmetric>> systems = {
+                { "symm_mat_3x3", { 3, symm_mat_3x3, symm_mat_3x3_rhs0, symm_mat_3x3_rhs0_sol, symm_mat_3x3_eigen_val, symm_mat_3x3_eigen_vecs } },
+                { "symm_mat_5x5", { 5, symm_mat_5x5, symm_mat_5x5_rhs0, symm_mat_5x5_rhs0_sol, symm_mat_5x5_eigen_val, symm_mat_5x5_eigen_vecs } },
+                { "symm_mat_10x10", { 10, symm_mat_10x10, symm_mat_10x10_rhs0, symm_mat_10x10_rhs0_sol, symm_mat_10x10_eigen_val, symm_mat_10x10_eigen_vecs } },
+                { "spd_3x3", { 3, spd_3x3_mat, spd_3x3_rhs, spd_3x3_sol, spd_3x3_eigen } },
+                { "spd_4x4_correlation", { 4, spd_4x4_correlation_mat, spd_4x4_correlation_rhs, spd_4x4_correlation_sol, spd_4x4_correlation_eigen } },
+                { "spd_5x5_mass_matrix", { 5, spd_5x5_mass_matrix_mat, spd_5x5_mass_matrix_rhs, spd_5x5_mass_matrix_sol, spd_5x5_mass_matrix_eigen } },
+                { "spd_6x6_graph_laplacian", { 6, spd_6x6_graph_laplacian_mat, spd_6x6_graph_laplacian_rhs, spd_6x6_graph_laplacian_sol, spd_6x6_graph_laplacian_eigen } }
+            };
+            return systems;
+        }
+
+        static const std::vector<std::pair<std::string, TestLinearSystemMultiRHS>>& getMultiRHSSystemsArray() {
+            static const std::vector<std::pair<std::string, TestLinearSystemMultiRHS>> systems = {
+                {
+                    "mat_5x5_multi_rhs1",
+                    {
+                        5, 
+                        Matrix<Real>{5, 5, {1.4, 2.1, 2.1, 7.4, 9.6,
+                                        1.6, 1.5, 1.1, 0.7, 5.0,
+                                        3.8, 8.0, 9.6, 5.4, 8.8,
+                                        4.6, 8.2, 8.4, 0.4, 8.0,
+                                        2.6, 2.9, 0.1, 9.6, 7.7}},
+                        Matrix<Real>{5, 2, {1.1, 1.6, 
+                                        4.7, 9.1, 
+                                        0.1, 4.0, 
+                                        9.3, 8.4, 
+                                        0.4, 4.1}},
+                        Matrix<Real>{5, 2, {-3.9032710424808688,  15.643114174796667, 
+                                        5.2353433160849479, -11.587503332831671, 
+                                        -3.2920957702478550,   4.4111268480786325, 
+                                        -1.7183300108528281,   0.21432757972725644, 
+                                        1.5832710097423177,  -0.70999930382454612}}
+                    }
+                }
+            };
+            return systems;
+        }
+
+        static const std::vector<std::pair<std::string, TestLinearSystemComplex>>& getComplexSystemsArray() {
+            static const std::vector<std::pair<std::string, TestLinearSystemComplex>> systems = {
+                { "mat_cmplx_3x3", { 3, mat_cmplx_3x3, mat_cmplx_3x3_rhs0, mat_cmplx_3x3_rhs0_sol, mat_cmplx_3x3_det_abs, mat_cmplx_3x3_singular_values, mat_cmplx_3x3_cond_2, mat_cmplx_3x3_rank } },
+                { "mat_cmplx_1_3x3", { 3, mat_cmplx_1_3x3, mat_cmplx_1_3x3_rhs0, mat_cmplx_1_3x3_rhs0_sol, mat_cmplx_1_3x3_det_abs, mat_cmplx_1_3x3_singular_values, mat_cmplx_1_3x3_cond_2, mat_cmplx_1_3x3_rank } },
+                { "mat_cmplx_1_5x5", { 5, mat_cmplx_1_5x5, mat_cmplx_1_5x5_rhs0, mat_cmplx_1_5x5_rhs0_sol, mat_cmplx_1_5x5_det_abs, mat_cmplx_1_5x5_singular_values, mat_cmplx_1_5x5_cond_2, mat_cmplx_1_5x5_rank } },
+                { "mat_cmplx_2_5x5", { 5, mat_cmplx_2_5x5, mat_cmplx_2_5x5_rhs0, mat_cmplx_2_5x5_rhs0_sol, mat_cmplx_2_5x5_det_abs, mat_cmplx_2_5x5_singular_values, mat_cmplx_2_5x5_cond_2, mat_cmplx_2_5x5_rank } },
+                { "mat_cmplx_3_5x5", { 5, mat_cmplx_3_5x5, mat_cmplx_3_5x5_rhs0, mat_cmplx_3_5x5_rhs0_sol, mat_cmplx_3_5x5_det_abs, mat_cmplx_3_5x5_singular_values, mat_cmplx_3_5x5_cond_2, mat_cmplx_3_5x5_rank } },
+                { "mat_cmplx_4_5x5", { 5, mat_cmplx_4_5x5, mat_cmplx_4_5x5_rhs0, mat_cmplx_4_5x5_rhs0_sol, mat_cmplx_4_5x5_det_abs, mat_cmplx_4_5x5_singular_values, mat_cmplx_4_5x5_cond_2, mat_cmplx_4_5x5_rank } },
+                { "mat_cmplx_1_8x8", { 8, mat_cmplx_1_8x8, mat_cmplx_1_8x8_rhs0, mat_cmplx_1_8x8_rhs0_sol, mat_cmplx_1_8x8_det_abs, mat_cmplx_1_8x8_singular_values, mat_cmplx_1_8x8_cond_2, mat_cmplx_1_8x8_rank } },
+                { "mat_cmplx_2_8x8", { 8, mat_cmplx_2_8x8, mat_cmplx_2_8x8_rhs0, mat_cmplx_2_8x8_rhs0_sol, mat_cmplx_2_8x8_det_abs, mat_cmplx_2_8x8_singular_values, mat_cmplx_2_8x8_cond_2, mat_cmplx_2_8x8_rank } },
+                { "mat_cmplx_3_8x8", { 8, mat_cmplx_3_8x8, mat_cmplx_3_8x8_rhs0, mat_cmplx_3_8x8_rhs0_sol, mat_cmplx_3_8x8_det_abs, mat_cmplx_3_8x8_singular_values, mat_cmplx_3_8x8_cond_2, mat_cmplx_3_8x8_rank } },
+                { "mat_cmplx_1_10x10", { 10, mat_cmplx_1_10x10, mat_cmplx_1_10x10_rhs0, mat_cmplx_1_10x10_rhs0_sol, mat_cmplx_1_10x10_det_abs, mat_cmplx_1_10x10_singular_values, mat_cmplx_1_10x10_cond_2, mat_cmplx_1_10x10_rank } },
+                { "mat_cmplx_2_10x10", { 10, mat_cmplx_2_10x10, mat_cmplx_2_10x10_rhs0, mat_cmplx_2_10x10_rhs0_sol, mat_cmplx_2_10x10_det_abs, mat_cmplx_2_10x10_singular_values, mat_cmplx_2_10x10_cond_2, mat_cmplx_2_10x10_rank } },
+                { "mat_cmplx_3_10x10", { 10, mat_cmplx_3_10x10, mat_cmplx_3_10x10_rhs0, mat_cmplx_3_10x10_rhs0_sol, mat_cmplx_3_10x10_det_abs, mat_cmplx_3_10x10_singular_values, mat_cmplx_3_10x10_cond_2, mat_cmplx_3_10x10_rank } }
+            };
+            return systems;
+        }
+
+        static const std::vector<std::pair<std::string, TestLinearSystemOverdetermined>>& getOverdeterminedSystemsArray() {
+            static const std::vector<std::pair<std::string, TestLinearSystemOverdetermined>> systems = {
+                { "overdetermined_4x3", { 4, 3, overdetermined_4x3_mat, overdetermined_4x3_rhs, overdetermined_4x3_sol, overdetermined_4x3_singular_values, overdetermined_4x3_cond_2, overdetermined_4x3_rank } },
+                { "overdetermined_5x3_regression", { 5, 3, overdetermined_5x3_regression_mat, overdetermined_5x3_regression_rhs, overdetermined_5x3_regression_sol, overdetermined_5x3_regression_singular_values, overdetermined_5x3_regression_cond_2, overdetermined_5x3_regression_rank } },
+                { "overdetermined_6x4_polynomial", { 6, 4, overdetermined_6x4_polynomial_mat, overdetermined_6x4_polynomial_rhs, overdetermined_6x4_polynomial_sol, overdetermined_6x4_polynomial_singular_values, overdetermined_6x4_polynomial_cond_2, overdetermined_6x4_polynomial_rank } }
+            };
+            return systems;
+        }
+
     public:
         //==============================================================================================================
         // ORIGINAL INTERFACE (backward compatible)
         //==============================================================================================================
-        static int numLinAlgEqSystems()     { return 27; }
+        static int numLinAlgEqSystems()     { return static_cast<int>(getLinearSystemsArray().size()); }
         
-        static const TestLinearSystem& getLinAlgEqSystem(int index) { return _listLinearSystems[index].second; }
+        static const TestLinearSystem& getLinAlgEqSystem(int index) { return getLinearSystemsArray()[index].second; }
         static const TestLinearSystem& getLinAlgEqSystem(std::string sysName)
         {
-            for (auto &sys : _listLinearSystems)
+            for (const auto &sys : getLinearSystemsArray())
             {
                 if (sys.first == sysName)
                     return sys.second;
@@ -246,11 +349,11 @@ namespace MML::TestBeds
             throw std::runtime_error("LinearAlgEqTestBed::getLinAlgEqSystem: system with name " + sysName + " not found");
         }
         
-        static int numLinAlgEqSystemsSymmetric() { return 7; }
-        static const TestLinearSystemSymmetric& getLinAlgEqSystemSymmetric(int index) { return _listLinearSystemsSym[index].second; }
+        static int numLinAlgEqSystemsSymmetric() { return static_cast<int>(getSymmetricSystemsArray().size()); }
+        static const TestLinearSystemSymmetric& getLinAlgEqSystemSymmetric(int index) { return getSymmetricSystemsArray()[index].second; }
         static const TestLinearSystemSymmetric& getLinAlgEqSystemSymmetric(std::string sysName)
         {
-            for (auto &sys : _listLinearSystemsSym)
+            for (const auto &sys : getSymmetricSystemsArray())
             {
                 if (sys.first == sysName)
                     return sys.second;
@@ -258,11 +361,11 @@ namespace MML::TestBeds
             throw std::runtime_error("LinearAlgEqTestBed::getLinAlgEqSystemSymmetric: system with name " + sysName + " not found");
         }
         
-        static int numLinAlgEqSystemsMultiRHS() { return 1; }
-        static const TestLinearSystemMultiRHS& getLinAlgEqSystemMultiRHS(int index) { return _listLinearSystemsMultiRHS[index].second; }
+        static int numLinAlgEqSystemsMultiRHS() { return static_cast<int>(getMultiRHSSystemsArray().size()); }
+        static const TestLinearSystemMultiRHS& getLinAlgEqSystemMultiRHS(int index) { return getMultiRHSSystemsArray()[index].second; }
         static const TestLinearSystemMultiRHS& getLinAlgEqSystemMultiRHS(std::string sysName)
         {
-            for (auto &sys : _listLinearSystemsMultiRHS)
+            for (const auto &sys : getMultiRHSSystemsArray())
             {
                 if (sys.first == sysName)
                     return sys.second;
@@ -273,11 +376,11 @@ namespace MML::TestBeds
         //==============================================================================================================
         // COMPLEX MATRICES
         //==============================================================================================================
-        static int numComplexSystems() { return 12; }
-        static const TestLinearSystemComplex& getComplexSystem(int index) { return _listComplexSystems[index].second; }
+        static int numComplexSystems() { return static_cast<int>(getComplexSystemsArray().size()); }
+        static const TestLinearSystemComplex& getComplexSystem(int index) { return getComplexSystemsArray()[index].second; }
         static const TestLinearSystemComplex& getComplexSystem(std::string sysName)
         {
-            for (auto &sys : _listComplexSystems)
+            for (const auto &sys : getComplexSystemsArray())
             {
                 if (sys.first == sysName)
                     return sys.second;
@@ -288,7 +391,7 @@ namespace MML::TestBeds
         static std::vector<std::pair<std::string, const TestLinearSystemComplex*>> getComplexSystemsBySize(int n)
         {
             std::vector<std::pair<std::string, const TestLinearSystemComplex*>> result;
-            for (auto &sys : _listComplexSystems)
+            for (const auto &sys : getComplexSystemsArray())
             {
                 if (sys.second._n == n)
                     result.push_back({sys.first, &sys.second});
@@ -299,11 +402,11 @@ namespace MML::TestBeds
         //==============================================================================================================
         // OVERDETERMINED MATRICES (for least squares)
         //==============================================================================================================
-        static int numOverdeterminedSystems() { return 3; }
-        static const TestLinearSystemOverdetermined& getOverdeterminedSystem(int index) { return _listOverdeterminedSystems[index].second; }
+        static int numOverdeterminedSystems() { return static_cast<int>(getOverdeterminedSystemsArray().size()); }
+        static const TestLinearSystemOverdetermined& getOverdeterminedSystem(int index) { return getOverdeterminedSystemsArray()[index].second; }
         static const TestLinearSystemOverdetermined& getOverdeterminedSystem(std::string sysName)
         {
-            for (auto &sys : _listOverdeterminedSystems)
+            for (const auto &sys : getOverdeterminedSystemsArray())
             {
                 if (sys.first == sysName)
                     return sys.second;
@@ -432,7 +535,7 @@ namespace MML::TestBeds
         static std::vector<std::pair<std::string, const TestLinearSystem*>> getAllSystems()
         {
             std::vector<std::pair<std::string, const TestLinearSystem*>> result;
-            for (auto &sys : _listLinearSystems)
+            for (const auto &sys : getLinearSystemsArray())
                 result.push_back({sys.first, &sys.second});
             return result;
         }
@@ -440,7 +543,7 @@ namespace MML::TestBeds
         static std::vector<std::pair<std::string, const TestLinearSystemSymmetric*>> getAllSymmetricSystems()
         {
             std::vector<std::pair<std::string, const TestLinearSystemSymmetric*>> result;
-            for (auto &sys : _listLinearSystemsSym)
+            for (const auto &sys : getSymmetricSystemsArray())
                 result.push_back({sys.first, &sys.second});
             return result;
         }
@@ -448,7 +551,7 @@ namespace MML::TestBeds
         static std::vector<std::pair<std::string, const TestLinearSystemComplex*>> getAllComplexSystems()
         {
             std::vector<std::pair<std::string, const TestLinearSystemComplex*>> result;
-            for (auto &sys : _listComplexSystems)
+            for (const auto &sys : getComplexSystemsArray())
                 result.push_back({sys.first, &sys.second});
             return result;
         }
@@ -456,7 +559,7 @@ namespace MML::TestBeds
         static std::vector<std::pair<std::string, const TestLinearSystemOverdetermined*>> getAllOverdeterminedSystems()
         {
             std::vector<std::pair<std::string, const TestLinearSystemOverdetermined*>> result;
-            for (auto &sys : _listOverdeterminedSystems)
+            for (const auto &sys : getOverdeterminedSystemsArray())
                 result.push_back({sys.first, &sys.second});
             return result;
         }
@@ -469,7 +572,7 @@ namespace MML::TestBeds
             std::function<bool(const std::string&)> predicate)
         {
             std::vector<std::pair<std::string, const TestLinearSystem*>> result;
-            for (auto &sys : _listLinearSystems)
+            for (const auto &sys : getLinearSystemsArray())
             {
                 if (predicate(sys.first))
                     result.push_back({sys.first, &sys.second});
@@ -481,7 +584,7 @@ namespace MML::TestBeds
             std::function<bool(const std::string&, const TestLinearSystem&)> predicate)
         {
             std::vector<std::pair<std::string, const TestLinearSystem*>> result;
-            for (auto &sys : _listLinearSystems)
+            for (const auto &sys : getLinearSystemsArray())
             {
                 if (predicate(sys.first, sys.second))
                     result.push_back({sys.first, &sys.second});
@@ -493,7 +596,7 @@ namespace MML::TestBeds
             std::function<bool(const std::string&)> predicate)
         {
             std::vector<std::pair<std::string, const TestLinearSystemSymmetric*>> result;
-            for (auto &sys : _listLinearSystemsSym)
+            for (const auto &sys : getSymmetricSystemsArray())
             {
                 if (predicate(sys.first))
                     result.push_back({sys.first, &sys.second});
@@ -505,231 +608,13 @@ namespace MML::TestBeds
             std::function<bool(const std::string&, const TestLinearSystemSymmetric&)> predicate)
         {
             std::vector<std::pair<std::string, const TestLinearSystemSymmetric*>> result;
-            for (auto &sys : _listLinearSystemsSym)
+            for (const auto &sys : getSymmetricSystemsArray())
             {
                 if (predicate(sys.first, sys.second))
                     result.push_back({sys.first, &sys.second});
             }
             return result;
         }
-
-        //==============================================================================================================
-        // DATA STORAGE
-        //==============================================================================================================
-        const static inline std::pair<std::string, TestLinearSystem> _listLinearSystems[] = { 
-            {  
-                "mat_3x3", { 3, mat_3x3, mat_3x3_rhs0, mat_3x3_rhs0_sol, mat_3x3_eigen_val, mat_3x3_eigen_vecs }
-            },
-            {  
-                "mat_3x3_1", { 3, mat_3x3_1, mat_3x3_1_rhs0, mat_3x3_1_rhs0_sol, mat_3x3_1_eigen_val, mat_3x3_1_eigen_vecs }
-            },
-            {  
-                "mat_3x3_2", { 3, mat_3x3_2, mat_3x3_2_rhs0, mat_3x3_2_rhs0_sol, mat_3x3_2_eigen_val, mat_3x3_2_eigen_vecs }
-            },
-            {  
-                "mat_3x3_3", { 3, mat_3x3_3, mat_3x3_3_rhs0, mat_3x3_3_rhs0_sol, mat_3x3_3_eigen_val, mat_3x3_3_eigen_vecs }
-            },
-            {  
-                "mat_3x3_4", { 3, mat_3x3_4, mat_3x3_4_rhs0, mat_3x3_4_rhs0_sol, mat_3x3_4_eigen_val, mat_3x3_4_eigen_vecs }
-            },            
-            {  
-                "mat_5x5", { 5, mat_5x5, mat_5x5_rhs0, mat_5x5_rhs0_sol, mat_5x5_eigen_val, mat_5x5_eigen_vecs }
-            },
-            {  
-                "mat_8x8", { 8, mat_8x8, mat_8x8_rhs0, mat_8x8_rhs0_sol, mat_8x8_eigen_val, mat_8x8_eigen_vecs }
-            },
-            {  
-                "mat_10x10", { 10, mat_10x10, mat_10x10_rhs0, mat_10x10_rhs0_sol, mat_10x10_eigen_val, mat_10x10_eigen_vecs }
-            },
-            {  
-                "mat_20x20", { 20, mat_20x20, mat_20x20_rhs0, mat_20x20_rhs0_sol, mat_20x20_eigen_val, mat_20x20_eigen_vecs }
-            },
-            // Classic test matrices - Hilbert (ill-conditioned)
-            {  
-                "hilbert_3x3", { 3, hilbert_3x3, hilbert_3x3_rhs0, hilbert_3x3_rhs0_sol, hilbert_3x3_eigen_val }
-            },
-            {  
-                "hilbert_4x4", { 4, hilbert_4x4, hilbert_4x4_rhs0, hilbert_4x4_rhs0_sol, hilbert_4x4_eigen_val }
-            },
-            {  
-                "hilbert_5x5", { 5, hilbert_5x5, hilbert_5x5_rhs0, hilbert_5x5_rhs0_sol, hilbert_5x5_eigen_val }
-            },
-            {  
-                "hilbert_8x8", { 8, hilbert_8x8, hilbert_8x8_rhs0, hilbert_8x8_rhs0_sol, hilbert_8x8_eigen_val }
-            },
-            // Classic test matrices - Pascal (exact arithmetic)
-            {  
-                "pascal_3x3", { 3, pascal_3x3, pascal_3x3_rhs0, pascal_3x3_rhs0_sol, pascal_3x3_eigen_val }
-            },
-            {  
-                "pascal_4x4", { 4, pascal_4x4, pascal_4x4_rhs0, pascal_4x4_rhs0_sol, pascal_4x4_eigen_val }
-            },
-            {  
-                "pascal_5x5", { 5, pascal_5x5, pascal_5x5_rhs0, pascal_5x5_rhs0_sol, pascal_5x5_eigen_val }
-            },
-            // Classic test matrices - Vandermonde (polynomial interpolation)
-            {  
-                "vandermonde_3x3", { 3, vandermonde_3x3, vandermonde_3x3_rhs0, vandermonde_3x3_rhs0_sol, vandermonde_3x3_eigen_val }
-            },
-            {  
-                "vandermonde_4x4", { 4, vandermonde_4x4, vandermonde_4x4_rhs0, vandermonde_4x4_rhs0_sol, vandermonde_4x4_eigen_val }
-            },
-            {  
-                "vandermonde_5x5", { 5, vandermonde_5x5, vandermonde_5x5_rhs0, vandermonde_5x5_rhs0_sol, vandermonde_5x5_eigen_val }
-            },
-            // Classic test matrices - Frank (eigenvalue computation)
-            {  
-                "frank_3x3", { 3, frank_3x3, frank_3x3_rhs0, frank_3x3_rhs0_sol, frank_3x3_eigen_val }
-            },
-            {  
-                "frank_4x4", { 4, frank_4x4, frank_4x4_rhs0, frank_4x4_rhs0_sol, frank_4x4_eigen_val }
-            },
-            {  
-                "frank_5x5", { 5, frank_5x5, frank_5x5_rhs0, frank_5x5_rhs0_sol, frank_5x5_eigen_val }
-            },
-            // Classic test matrices - Kahan (backward stability)
-            {  
-                "kahan_3x3", { 3, kahan_3x3, kahan_3x3_rhs0, kahan_3x3_rhs0_sol, kahan_3x3_eigen_val }
-            },
-            {
-                "kahan_5x5", { 5, kahan_5x5, kahan_5x5_rhs0, kahan_5x5_rhs0_sol, kahan_5x5_eigen_val }
-            },
-            // Solver-specific matrices - Diagonally dominant (SQUARE matrices only)
-            {  
-                "diag_dominant_4x4", { 4, diag_dominant_4x4_mat, diag_dominant_4x4_rhs, diag_dominant_4x4_sol, diag_dominant_4x4_eigen }
-            },
-            {  
-                "diag_dominant_5x5_tridiag", { 5, diag_dominant_5x5_tridiag_mat, diag_dominant_5x5_tridiag_rhs, diag_dominant_5x5_tridiag_sol, diag_dominant_5x5_tridiag_eigen }
-            },
-            {  
-                "diag_dominant_6x6_poisson2d", { 6, diag_dominant_6x6_poisson2d_mat, diag_dominant_6x6_poisson2d_rhs, diag_dominant_6x6_poisson2d_sol, diag_dominant_6x6_poisson2d_eigen }
-            }
-        };
-
-        const static inline std::pair<std::string, TestLinearSystemSymmetric> _listLinearSystemsSym[] = { 
-            {  
-                "symm_mat_3x3", { 3, symm_mat_3x3, symm_mat_3x3_rhs0, symm_mat_3x3_rhs0_sol, symm_mat_3x3_eigen_val, symm_mat_3x3_eigen_vecs }
-            },
-            {  
-                "symm_mat_5x5", { 5, symm_mat_5x5, symm_mat_5x5_rhs0, symm_mat_5x5_rhs0_sol, symm_mat_5x5_eigen_val, symm_mat_5x5_eigen_vecs }
-            },
-            {
-                "symm_mat_10x10", { 10, symm_mat_10x10, symm_mat_10x10_rhs0, symm_mat_10x10_rhs0_sol, symm_mat_10x10_eigen_val, symm_mat_10x10_eigen_vecs }
-            },
-            // Solver-specific matrices - SPD for Cholesky and CG
-            {
-                "spd_3x3", { 3, spd_3x3_mat, spd_3x3_rhs, spd_3x3_sol, spd_3x3_eigen }
-            },
-            {
-                "spd_4x4_correlation", { 4, spd_4x4_correlation_mat, spd_4x4_correlation_rhs, spd_4x4_correlation_sol, spd_4x4_correlation_eigen }
-            },
-            {
-                "spd_5x5_mass_matrix", { 5, spd_5x5_mass_matrix_mat, spd_5x5_mass_matrix_rhs, spd_5x5_mass_matrix_sol, spd_5x5_mass_matrix_eigen }
-            },
-            {
-                "spd_6x6_graph_laplacian", { 6, spd_6x6_graph_laplacian_mat, spd_6x6_graph_laplacian_rhs, spd_6x6_graph_laplacian_sol, spd_6x6_graph_laplacian_eigen }
-            }
-        };        
-
-        const static inline std::pair<std::string, TestLinearSystemMultiRHS> _listLinearSystemsMultiRHS[] = { 
-            {
-                "mat_5x5_multi_rhs1",
-                {
-                    5, 
-                    Matrix<Real>{5, 5, {1.4, 2.1, 2.1, 7.4, 9.6,
-                                    1.6, 1.5, 1.1, 0.7, 5.0,
-                                    3.8, 8.0, 9.6, 5.4, 8.8,
-                                    4.6, 8.2, 8.4, 0.4, 8.0,
-                                    2.6, 2.9, 0.1, 9.6, 7.7}},
-                    Matrix<Real>{5, 2, {1.1, 1.6, 
-                                    4.7, 9.1, 
-                                    0.1, 4.0, 
-                                    9.3, 8.4, 
-                                    0.4, 4.1}},
-                    Matrix<Real>{5, 2, {-3.9032710424808688,  15.643114174796667, 
-                                    5.2353433160849479, -11.587503332831671, 
-                                    -3.2920957702478550,   4.4111268480786325, 
-                                    -1.7183300108528281,   0.21432757972725644, 
-                                    1.5832710097423177,  -0.70999930382454612}}
-                }
-            }
-        };
-
-        //==============================================================================================================
-        // COMPLEX SYSTEMS
-        //==============================================================================================================
-        const static inline std::pair<std::string, TestLinearSystemComplex> _listComplexSystems[] = {
-            // 3x3 complex matrices
-            {
-                "mat_cmplx_3x3", { 3, mat_cmplx_3x3, mat_cmplx_3x3_rhs0, mat_cmplx_3x3_rhs0_sol,
-                                   mat_cmplx_3x3_det_abs, mat_cmplx_3x3_singular_values, mat_cmplx_3x3_cond_2, mat_cmplx_3x3_rank }
-            },
-            {
-                "mat_cmplx_1_3x3", { 3, mat_cmplx_1_3x3, mat_cmplx_1_3x3_rhs0, mat_cmplx_1_3x3_rhs0_sol,
-                                     mat_cmplx_1_3x3_det_abs, mat_cmplx_1_3x3_singular_values, mat_cmplx_1_3x3_cond_2, mat_cmplx_1_3x3_rank }
-            },
-            // 5x5 complex matrices
-            {
-                "mat_cmplx_1_5x5", { 5, mat_cmplx_1_5x5, mat_cmplx_1_5x5_rhs0, mat_cmplx_1_5x5_rhs0_sol,
-                                     mat_cmplx_1_5x5_det_abs, mat_cmplx_1_5x5_singular_values, mat_cmplx_1_5x5_cond_2, mat_cmplx_1_5x5_rank }
-            },
-            {
-                "mat_cmplx_2_5x5", { 5, mat_cmplx_2_5x5, mat_cmplx_2_5x5_rhs0, mat_cmplx_2_5x5_rhs0_sol,
-                                     mat_cmplx_2_5x5_det_abs, mat_cmplx_2_5x5_singular_values, mat_cmplx_2_5x5_cond_2, mat_cmplx_2_5x5_rank }
-            },
-            {
-                "mat_cmplx_3_5x5", { 5, mat_cmplx_3_5x5, mat_cmplx_3_5x5_rhs0, mat_cmplx_3_5x5_rhs0_sol,
-                                     mat_cmplx_3_5x5_det_abs, mat_cmplx_3_5x5_singular_values, mat_cmplx_3_5x5_cond_2, mat_cmplx_3_5x5_rank }
-            },
-            {
-                "mat_cmplx_4_5x5", { 5, mat_cmplx_4_5x5, mat_cmplx_4_5x5_rhs0, mat_cmplx_4_5x5_rhs0_sol,
-                                     mat_cmplx_4_5x5_det_abs, mat_cmplx_4_5x5_singular_values, mat_cmplx_4_5x5_cond_2, mat_cmplx_4_5x5_rank }
-            },
-            // 8x8 complex matrices
-            {
-                "mat_cmplx_1_8x8", { 8, mat_cmplx_1_8x8, mat_cmplx_1_8x8_rhs0, mat_cmplx_1_8x8_rhs0_sol,
-                                     mat_cmplx_1_8x8_det_abs, mat_cmplx_1_8x8_singular_values, mat_cmplx_1_8x8_cond_2, mat_cmplx_1_8x8_rank }
-            },
-            {
-                "mat_cmplx_2_8x8", { 8, mat_cmplx_2_8x8, mat_cmplx_2_8x8_rhs0, mat_cmplx_2_8x8_rhs0_sol,
-                                     mat_cmplx_2_8x8_det_abs, mat_cmplx_2_8x8_singular_values, mat_cmplx_2_8x8_cond_2, mat_cmplx_2_8x8_rank }
-            },
-            {
-                "mat_cmplx_3_8x8", { 8, mat_cmplx_3_8x8, mat_cmplx_3_8x8_rhs0, mat_cmplx_3_8x8_rhs0_sol,
-                                     mat_cmplx_3_8x8_det_abs, mat_cmplx_3_8x8_singular_values, mat_cmplx_3_8x8_cond_2, mat_cmplx_3_8x8_rank }
-            },
-            // 10x10 complex matrices
-            {
-                "mat_cmplx_1_10x10", { 10, mat_cmplx_1_10x10, mat_cmplx_1_10x10_rhs0, mat_cmplx_1_10x10_rhs0_sol,
-                                        mat_cmplx_1_10x10_det_abs, mat_cmplx_1_10x10_singular_values, mat_cmplx_1_10x10_cond_2, mat_cmplx_1_10x10_rank }
-            },
-            {
-                "mat_cmplx_2_10x10", { 10, mat_cmplx_2_10x10, mat_cmplx_2_10x10_rhs0, mat_cmplx_2_10x10_rhs0_sol,
-                                        mat_cmplx_2_10x10_det_abs, mat_cmplx_2_10x10_singular_values, mat_cmplx_2_10x10_cond_2, mat_cmplx_2_10x10_rank }
-            },
-            {
-                "mat_cmplx_3_10x10", { 10, mat_cmplx_3_10x10, mat_cmplx_3_10x10_rhs0, mat_cmplx_3_10x10_rhs0_sol,
-                                        mat_cmplx_3_10x10_det_abs, mat_cmplx_3_10x10_singular_values, mat_cmplx_3_10x10_cond_2, mat_cmplx_3_10x10_rank }
-            }
-        };
-
-        //==============================================================================================================
-        // OVERDETERMINED SYSTEMS (for least squares)
-        //==============================================================================================================
-        const static inline std::pair<std::string, TestLinearSystemOverdetermined> _listOverdeterminedSystems[] = {
-            {
-                "overdetermined_4x3", { 4, 3, overdetermined_4x3_mat, overdetermined_4x3_rhs, overdetermined_4x3_sol,
-                                        overdetermined_4x3_singular_values, overdetermined_4x3_cond_2, overdetermined_4x3_rank }
-            },
-            {
-                "overdetermined_5x3_regression", { 5, 3, overdetermined_5x3_regression_mat, overdetermined_5x3_regression_rhs, overdetermined_5x3_regression_sol,
-                                                   overdetermined_5x3_regression_singular_values, overdetermined_5x3_regression_cond_2, overdetermined_5x3_regression_rank }
-            },
-            {
-                "overdetermined_6x4_polynomial", { 6, 4, overdetermined_6x4_polynomial_mat, overdetermined_6x4_polynomial_rhs, overdetermined_6x4_polynomial_sol,
-                                                   overdetermined_6x4_polynomial_singular_values, overdetermined_6x4_polynomial_cond_2, overdetermined_6x4_polynomial_rank }
-            }
-        };        
     };
 }
 
