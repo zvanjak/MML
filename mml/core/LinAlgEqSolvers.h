@@ -31,7 +31,7 @@ namespace MML
 		// Throws SingularMatrixError or MatrixNumericalError on failure
 		static void SolveInPlace(Matrix<Type>& a, Matrix<Type>& b)
 		{
-			int i, icol, irow, j, k, l, ll;
+			int i, icol = 0, irow = 0, j, k, l, ll;
 			Real big;
 			Type dum, pivinv;
 
@@ -898,6 +898,7 @@ namespace MML
 			if (m == n)
 			{
 				d[n - 1] = QR[n - 1][n - 1];
+				c[n - 1] = 0.0;  // No Householder reflection for last column in square matrix
 				if (d[n - 1] == 0.0)
 					sing = true;
 			}
@@ -1065,7 +1066,10 @@ namespace MML
 					Q[i][j] = (i == j) ? 1.0 : 0.0;
 
 			// Apply Householder transformations in reverse order
-			for (int k = n - 1; k >= 0; k--)
+			// For square matrices: only n-1 reflections were performed
+			// For overdetermined: all n reflections were performed
+			int ncols = (m == n) ? n - 1 : n;
+			for (int k = ncols - 1; k >= 0; k--)
 			{
 				if (c[k] != 0.0)
 				{

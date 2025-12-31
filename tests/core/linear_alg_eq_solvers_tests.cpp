@@ -483,8 +483,7 @@ namespace MML::Tests::Core::LinearAlgSolversTests
 		}
 	}
 
-	// NOTE: This test may segfault on Linux/GCC - under investigation
-	TEST_CASE("Test_SVDSolver_COMPLETE_TEST_BED", "[SVDSolver][!mayfail]")
+	TEST_CASE("Test_SVDSolver_COMPLETE_TEST_BED", "[SVDSolver]")
 	{
 			TEST_PRECISION_INFO();
 		for (int i = 0; i < TestBeds::LinearAlgEqTestBed::numLinAlgEqSystems(); i++)
@@ -1159,8 +1158,7 @@ namespace MML::Tests::Core::LinearAlgSolversTests
 		REQUIRE(residual.IsEqualTo(rhs, 1e-14));
 	}
 
-	// NOTE: This test may segfault on Linux/GCC - under investigation
-	TEST_CASE("Test_QRSolver_5x5", "[QRSolver][!mayfail]")
+	TEST_CASE("Test_QRSolver_5x5", "[QRSolver]")
 	{
 			TEST_PRECISION_INFO();
 		// Test QR on 5x5 system
@@ -1423,8 +1421,7 @@ namespace MML::Tests::Core::LinearAlgSolversTests
 		}
 	}
 
-	// NOTE: This test may segfault on Linux/Clang - under investigation
-	TEST_CASE("Test_QRSolver_Consistency_QR_vs_LU", "[QRSolver][consistency][!mayfail]")
+	TEST_CASE("Test_QRSolver_Consistency_QR_vs_LU", "[QRSolver][consistency]")
 	{
 			TEST_PRECISION_INFO();
 		// Verify QR and LU give consistent results on square systems
