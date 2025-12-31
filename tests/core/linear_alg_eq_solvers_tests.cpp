@@ -21,6 +21,34 @@ using namespace MML::Testing;
 namespace MML::Tests::Core::LinearAlgSolversTests
 {
 	/*********************************************************************/
+	/*****           Test bed initialization sanity check            *****/
+	/*********************************************************************/
+	TEST_CASE("Test_TestBed_Initialization", "[TestBed][sanity]")
+	{
+		// Verify that static test data is properly initialized
+		// This should catch C++ static initialization order issues
+		
+		// Check mat_3x3 directly
+		REQUIRE(TestBeds::mat_3x3.RowNum() == 3);
+		REQUIRE(TestBeds::mat_3x3.ColNum() == 3);
+		REQUIRE(TestBeds::mat_3x3(0, 0) == 1.0);  // First element should be 1.0
+		
+		// Check test bed access
+		const auto& sys0 = TestBeds::LinearAlgEqTestBed::getLinAlgEqSystem(0);
+		INFO("System 0 name should be mat_3x3");
+		REQUIRE(sys0._n == 3);
+		REQUIRE(sys0._mat.RowNum() == 3);
+		REQUIRE(sys0._mat.ColNum() == 3);
+		REQUIRE(sys0._mat(0, 0) == 1.0);
+		
+		// Verify a copy works correctly
+		Matrix<Real> mat_copy = sys0._mat;
+		REQUIRE(mat_copy.RowNum() == 3);
+		REQUIRE(mat_copy.ColNum() == 3);
+		REQUIRE(mat_copy(0, 0) == 1.0);
+	}
+
+	/*********************************************************************/
 	/*****                 Gauss Jordan solver real                  *****/
 	/*********************************************************************/
 	TEST_CASE("Test_GaussJordan_Solve_5_x_5", "[GaussJordanSolver]")
