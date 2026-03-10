@@ -5,11 +5,13 @@
 #ifdef MML_USE_SINGLE_HEADER
 #include "MML.h"
 #else
-#include "base/Geometry3DBodies.h"
+#include "mml/base/Geometry/Geometry3DBodies.h"
 #endif
 
 using namespace MML;
 using namespace MML::Testing;
+
+namespace MML::Tests::Base::Geometry3DBodies::Sphere3DTests {
 
 TEST_CASE("Sphere3D::Volume", "[geometry][sphere][volume]")
 {
@@ -102,7 +104,7 @@ TEST_CASE("Sphere3D::GetBoundingBox", "[geometry][sphere][bounding]")
     SECTION("Unit sphere centered at origin")
     {
         Sphere3D sphere(1.0);
-        BoundingBox3D bbox = sphere.GetBoundingBox();
+        Box3D bbox = sphere.GetBoundingBox();
         
         REQUIRE_THAT(bbox.Min().X() , RealApprox(-1.0));
         REQUIRE_THAT(bbox.Min().Y() , RealApprox(-1.0));
@@ -116,7 +118,7 @@ TEST_CASE("Sphere3D::GetBoundingBox", "[geometry][sphere][bounding]")
     SECTION("Sphere with radius 5 centered at origin")
     {
         Sphere3D sphere(5.0);
-        BoundingBox3D bbox = sphere.GetBoundingBox();
+        Box3D bbox = sphere.GetBoundingBox();
         
         REQUIRE_THAT(bbox.Min().X() , RealApprox(-5.0));
         REQUIRE_THAT(bbox.Min().Y() , RealApprox(-5.0));
@@ -131,7 +133,7 @@ TEST_CASE("Sphere3D::GetBoundingBox", "[geometry][sphere][bounding]")
     {
         Pnt3Cart center(10.0, 20.0, 30.0);
         Sphere3D sphere(3.0, center);
-        BoundingBox3D bbox = sphere.GetBoundingBox();
+        Box3D bbox = sphere.GetBoundingBox();
         
         REQUIRE_THAT(bbox.Min().X() , RealApprox(7.0));
         REQUIRE_THAT(bbox.Min().Y() , RealApprox(17.0));
@@ -145,7 +147,7 @@ TEST_CASE("Sphere3D::GetBoundingBox", "[geometry][sphere][bounding]")
     SECTION("Bounding box dimensions match diameter")
     {
         Sphere3D sphere(7.5);
-        BoundingBox3D bbox = sphere.GetBoundingBox();
+        Box3D bbox = sphere.GetBoundingBox();
         Real width = bbox.Max().X() - bbox.Min().X();
         Real height = bbox.Max().Y() - bbox.Min().Y();
         Real depth = bbox.Max().Z() - bbox.Min().Z();
@@ -300,3 +302,5 @@ TEST_CASE("Sphere3D::IsInside", "[geometry][sphere][inside]")
         REQUIRE(sphere3.IsInside(Pnt3Cart(3.0, 4.0, 5.0)) == false);
     }
 }
+
+} // namespace MML::Tests::Base::Geometry3DBodies::Sphere3DTests

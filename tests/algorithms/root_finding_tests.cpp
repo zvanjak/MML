@@ -6,6 +6,7 @@
 #include "MML.h"
 #else
 #include "algorithms/RootFinding.h"
+#include "mml/algorithms/RootFinding/RootFindingPolynoms.h"
 #include "base/Function.h"
 #endif
 

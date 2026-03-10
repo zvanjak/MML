@@ -8,10 +8,10 @@
 #else
 #include "MMLBase.h"
 
-#include "base/Vector.h"
-#include "base/VectorN.h"
-#include "base/Matrix.h"
-#include "base/MatrixNM.h"
+#include "base/Vector/Vector.h"
+#include "base/Vector/VectorN.h"
+#include "base/Matrix/Matrix.h"
+#include "base/Matrix/MatrixNM.h"
 #include "base/BaseUtils.h"
 #endif
 
@@ -246,24 +246,6 @@ void Demo_MatrixProperties()
     std::cout << "Conjugate transpose H†:" << std::endl << Hdagger << std::endl;
 }
 
-void Demo_PhysicsConstants()
-{
-    std::cout << "\n=== PHYSICS CONSTANTS ===" << std::endl;
-    
-    // Pauli matrices
-    std::cout << "Pauli matrices σ_x, σ_y, σ_z:" << std::endl;
-    std::cout << "σ_x:" << std::endl << Utils::Pauli[0] << std::endl;
-    std::cout << "σ_y:" << std::endl << Utils::Pauli[1] << std::endl;
-    std::cout << "σ_z:" << std::endl << Utils::Pauli[2] << std::endl;
-    
-    // Dirac gamma matrices (just show first one as example)
-    std::cout << "Dirac γ⁰ matrix:" << std::endl;
-    std::cout << Utils::DiracGamma[0] << std::endl;
-    
-    std::cout << "Dirac γ⁵ matrix:" << std::endl;
-    std::cout << Utils::DiracGamma5 << std::endl;
-}
-
 void Demo_LeviCivita()
 {
     std::cout << "\n=== LEVI-CIVITA SYMBOL ===" << std::endl;
@@ -295,7 +277,6 @@ void Docs_Demo_BaseUtils()
     Demo_MatrixOperations();
     Demo_MatrixFunctions();
     Demo_MatrixProperties();
-    Demo_PhysicsConstants();
     Demo_LeviCivita();
     
     std::cout << "\n" << std::string(70, '=') << std::endl;

@@ -12,21 +12,21 @@
 ///               - Long-time integration stability                                   ///
 ///               - Step size vs accuracy tradeoffs                                   ///
 ///                                                                                   ///
-///  Copyright:   (c) 2024-2025 Zvonimir Vanjak                                       ///
-///  License:     Licensed under MML dual-license (see LICENSE.md)                    ///
+///  Copyright:   (c) 2024-2026 Zvonimir Vanjak                                       ///
+///  License:     MIT License (see LICENSE.md)                    ///
 ///////////////////////////////////////////////////////////////////////////////////////////
 
 #include "PrecisionTestFramework.h"
 
 #include "MMLBase.h"
 
-#include "base/Vector.h"
+#include "base/Vector/Vector.h"
 #include "base/ODESystem.h"
 #include "base/ODESystemSolution.h"
 
-#include "algorithms/ODESystemSolver.h"
-#include "algorithms/ODESystemStepCalculators.h"
-#include "algorithms/ODEAdaptiveIntegrator.h"
+#include "mml/algorithms/ODESolvers/ODEFixedStepIntegrators.h"
+#include "mml/algorithms/ODESolvers/ODESystemStepCalculators.h"
+#include "mml/algorithms/ODESolvers/ODEAdaptiveIntegrator.h"
 
 using namespace MML;
 using namespace MML::PrecisionTesting;

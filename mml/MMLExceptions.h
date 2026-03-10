@@ -5,10 +5,9 @@
 ///  Description: Custom exception classes for error handling across MML              ///
 ///               Vector, Matrix, Algorithm, and Numerical errors                     ///
 ///                                                                                   ///
-///  Copyright:   (c) 2024-2025 Zvonimir Vanjak                                       ///
-///  License:     Licensed under MML dual-license (see LICENSE.md)                    ///
-///               - Free for non-commercial use                                       ///
-///               - Commercial license available                                      ///
+///  Copyright:   (c) 2024-2026 Zvonimir Vanjak                                       ///
+///  License:     MIT License (see LICENSE.md)                                         ///
+///                                                                                   ///
 ///////////////////////////////////////////////////////////////////////////////////////////
 #if !defined MML_EXCEPTIONS_H
 #define MML_EXCEPTIONS_H
@@ -18,6 +17,59 @@
 
 namespace MML
 {
+	//////////             Base error exceptions              ///////////
+	/// @brief Generic argument validation error for invalid parameters.
+	/// Use when function arguments violate preconditions (negative where positive required,
+	/// empty containers where non-empty required, etc.)
+	class ArgumentError : public std::invalid_argument
+	{
+	public:
+		explicit ArgumentError(const std::string& message) 
+			: std::invalid_argument(message) { }
+	};
+
+	/// @brief Error for operations outside valid domain.
+	/// Use for mathematical domain violations (e.g., sqrt of negative, log of zero,
+	/// parameter outside valid range).
+	class DomainError : public std::domain_error
+	{
+	public:
+		explicit DomainError(const std::string& message) 
+			: std::domain_error(message) { }
+	};
+
+	/// @brief Error for division by zero.
+	/// Use when division or modulo by zero is attempted.
+	class DivisionByZeroError : public std::domain_error
+	{
+	public:
+		explicit DivisionByZeroError(const std::string& message) 
+			: std::domain_error(message) { }
+	};
+
+	/// @brief Error for unimplemented methods.
+	/// Use for abstract base class methods or features not yet implemented.
+	class NotImplementedError : public std::logic_error
+	{
+	public:
+		explicit NotImplementedError(const std::string& message) 
+			: std::logic_error(message) { }
+	};
+
+	/// @brief Generic index out of bounds error.
+	/// Use for array/container index access violations.
+	class IndexError : public std::out_of_range
+	{
+		int _index;
+		int _size;
+	public:
+		IndexError(const std::string& message, int index = -1, int size = -1)
+			: std::out_of_range(message), _index(index), _size(size) { }
+		
+		int index() const noexcept { return _index; }
+		int size() const noexcept { return _size; }
+	};
+
 	//////////             Vector error exceptions            ///////////
 	class VectorInitializationError : public std::invalid_argument
 	{
@@ -277,7 +329,15 @@ namespace MML
 		DataError(std::string inMessage) : std::runtime_error(inMessage)
 		{ }
 	};
-
+	//////////      Numeric input validation exceptions     ///////////
+	/// @brief Error for non-finite numeric values (NaN, Inf) passed to algorithms.
+	/// Use when algorithm input or intermediate values are not finite.
+	class NumericInputError : public std::domain_error
+	{
+	public:
+		explicit NumericInputError(const std::string& message)
+			: std::domain_error("Numeric input error: " + message) { }
+	};
 }
 
 #endif // MML_EXCEPTIONS_H

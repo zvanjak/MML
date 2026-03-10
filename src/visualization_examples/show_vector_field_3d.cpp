@@ -10,7 +10,7 @@
 #include "MML.h"
 #else
 #include "MMLBase.h"
-#include "base/VectorN.h"
+#include "base/Vector/VectorN.h"
 #include "core/Fields.h"
 #include "tools/Visualizer.h"
 #endif
@@ -28,7 +28,7 @@ void Show_Vector_Field_3D_Examples()
     }};
     Visualizer::VisualizeVectorField3DCartesian(constantFlow, "Constant Flow",
                                                 -5.0, 5.0, 8, -5.0, 5.0, 8, -5.0, 5.0, 8,
-                                                "viz_vector3d_constant.txt");
+                                                "viz_vector3d_constant.mml");
 
     // Example 2: Radial field (3D source)
     std::cout << "2. Radial field (3D source): F = r/|r|\n";
@@ -39,7 +39,7 @@ void Show_Vector_Field_3D_Examples()
     }};
     Visualizer::VisualizeVectorField3DCartesian(radialField, "3D Radial Source",
                                                 -5.0, 5.0, 8, -5.0, 5.0, 8, -5.0, 5.0, 8,
-                                                "viz_vector3d_radial.txt");
+                                                "viz_vector3d_radial.mml");
 
     // Example 3: Gravitational field of two masses
     std::cout << "3. Two-body gravity: masses at (3,0,0) and (-3,0,0)\n";
@@ -67,7 +67,7 @@ void Show_Vector_Field_3D_Examples()
     }};
     Visualizer::VisualizeVectorField3DCartesian(gravityField, "Two-Body Gravity",
                                                 -8.0, 8.0, 10, -5.0, 5.0, 7, -5.0, 5.0, 7,
-                                                "viz_vector3d_gravity.txt");
+                                                "viz_vector3d_gravity.mml");
 
     // Example 4: Magnetic field of a current loop (simplified)
     std::cout << "4. Magnetic field pattern (simplified dipole)\n";
@@ -91,7 +91,7 @@ void Show_Vector_Field_3D_Examples()
     }};
     Visualizer::VisualizeVectorField3DCartesian(magneticField, "Magnetic Dipole",
                                                 -4.0, 4.0, 8, -4.0, 4.0, 8, -4.0, 4.0, 8,
-                                                "viz_vector3d_magnetic.txt");
+                                                "viz_vector3d_magnetic.mml");
 
     // Example 5: Swirling flow (helical)
     std::cout << "5. Helical flow: rotation + upward flow\n";
@@ -109,7 +109,7 @@ void Show_Vector_Field_3D_Examples()
     }};
     Visualizer::VisualizeVectorField3DCartesian(helicalFlow, "Helical Flow",
                                                 -5.0, 5.0, 8, -5.0, 5.0, 8, -5.0, 5.0, 8,
-                                                "viz_vector3d_helical.txt");
+                                                "viz_vector3d_helical.mml");
 
     // Example 6: Saddle flow in 3D
     std::cout << "6. 3D Saddle: F = (x, -y, 0)\n";
@@ -118,7 +118,7 @@ void Show_Vector_Field_3D_Examples()
     }};
     Visualizer::VisualizeVectorField3DCartesian(saddleFlow, "3D Saddle Flow",
                                                 -5.0, 5.0, 8, -5.0, 5.0, 8, -3.0, 3.0, 5,
-                                                "viz_vector3d_saddle.txt");
+                                                "viz_vector3d_saddle.mml");
 
     std::cout << "\n3D vector field visualization examples complete!\n";
 }

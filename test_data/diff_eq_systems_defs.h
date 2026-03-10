@@ -4,8 +4,8 @@
 #ifdef MML_USE_SINGLE_HEADER
 #include "MML.h"
 #else
-#include "base/Vector.h"
-#include "base/Matrix.h"
+#include "base/Vector/Vector.h"
+#include "base/Matrix/Matrix.h"
 #include "base/ODESystem.h"
 #endif
 

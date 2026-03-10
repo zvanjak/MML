@@ -3,7 +3,7 @@
 #else
 #include "MMLBase.h"
 
-#include "base/VectorN.h"
+#include "base/Vector/VectorN.h"
 #include "base/BaseUtils.h"
 #endif
 

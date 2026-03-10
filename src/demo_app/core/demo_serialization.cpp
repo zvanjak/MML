@@ -4,7 +4,7 @@
 #include "MMLBase.h"
 
 #include "base/StandardFunctions.h"
-#include "base/VectorN.h"
+#include "base/Vector/VectorN.h"
 #include "base/Function.h"
 
 #include "core/FieldOperations.h"
@@ -14,7 +14,7 @@
 #include "tools/Serializer.h"
 #endif
 
-#include "../test_data/parametric_curves_test_bed.h"
+#include "../test_beds/parametric_curves_test_bed.h"
 
 using namespace MML;
 
@@ -22,24 +22,24 @@ void Demo_Real_function_serialization()
 {
     RealFunction f1{[](Real x) { return sin(x) * x; } };
 
-    //f1.SerializeEquallySpacedDetailed(-10.0, 10.0, 100, "..\\..\\results\\func_sin_x_x.txt");
-    Serializer::SaveRealFunc(f1, "Func y = sin(x) * x", - 10.0, 10.0, 100, "..\\..\\results\\func_sin_x_x.txt");
-    auto ret1 = std::system("..\\..\\tools\\visualizers\\real_function_visualizer\\MML_RealFunctionVisualizer.exe ..\\..\\results\\func_sin_x_x.txt");
+    //f1.SerializeEquallySpacedDetailed(-10.0, 10.0, 100, "..\\..\\results\\func_sin_x_x.mml");
+    Serializer::SaveRealFunc(f1, "Func y = sin(x) * x", - 10.0, 10.0, 100, "..\\..\\results\\func_sin_x_x.mml");
+    auto ret1 = std::system("..\\..\\tools\\visualizers\\real_function_visualizer\\MML_RealFunctionVisualizer.exe ..\\..\\results\\func_sin_x_x.mml");
 }
 
 void Demo_Scalar_function_2D_serialization()
 {
     ScalarFunction<2> testFunc{[](const VectorN<Real, 2> &x) { return x[0] * x[1]; } };
 
-    Serializer::SaveScalarFunc2DCartesian(testFunc , "Simple func z = x * y",  - 10.0, 10.0, 20, -10.0, 10.0, 20, "..\\..\\results\\func_cart_2d.txt");
-    auto ret2 = std::system("..\\..\\tools\\visualizers\\scalar_function_2d_visualizer\\MML_ScalarFunction2Visualizer.exe ..\\..\\results\\func_cart_2d.txt");
+    Serializer::SaveScalarFunc2DCartesian(testFunc , "Simple func z = x * y",  - 10.0, 10.0, 20, -10.0, 10.0, 20, "..\\..\\results\\func_cart_2d.mml");
+    auto ret2 = std::system("..\\..\\tools\\visualizers\\scalar_function_2d_visualizer\\MML_ScalarFunction2Visualizer.exe ..\\..\\results\\func_cart_2d.mml");
 }
 
 void Demo_Scalar_function_3D_serialization()
 {
     ScalarFunction<3> testFunc{[](const VectorN<Real, 3> &x) { return x[0] * x[1] * x[2]; } };
 
-    Serializer::SaveScalarFunc3DCartesian(testFunc, "Simple func f = x * y * z", - 10.0, 10.0, 10, -10.0, 10.0, 10, -10.0, 10.0, 10, "..\\..\\results\\func_cart_3d.txt");
+    Serializer::SaveScalarFunc3DCartesian(testFunc, "Simple func f = x * y * z", - 10.0, 10.0, 10, -10.0, 10.0, 10, -10.0, 10.0, 10, "..\\..\\results\\func_cart_3d.mml");
 }
 
 void Demo_Parametric_curve_serialization()
@@ -47,25 +47,25 @@ void Demo_Parametric_curve_serialization()
     Curves::HelixCurve              helix(20.0, 20.0);
     Curves::ToroidalSpiralCurve     toroid(Real{20.0});
 
-    // helix.SerializeCartesian3D(0.0, 2.0 * Constants::PI, 100, "helix.txt");
-    // std::system("..\\..\\tools\\visualizers\\parametric_curve_visualizer\\MML_ParametricCurveVisualizer.exe helix.txt");
+    // helix.SerializeCartesian3D(0.0, 2.0 * Constants::PI, 100, "helix.mml");
+    // std::system("..\\..\\tools\\visualizers\\parametric_curve_visualizer\\MML_ParametricCurveVisualizer.exe helix.mml");
 
-    Serializer::SaveParamCurveCartesian3D(toroid, "Toroid", 0.0, 5.0 * Constants::PI, 500, "..\\..\\results\\toroid.txt");
-    auto ret = std::system("..\\..\\tools\\visualizers\\parametric_curve_visualizer\\MML_ParametricCurveVisualizer.exe ..\\..\\results\\toroid.txt");
+    Serializer::SaveParamCurveCartesian3DResult(toroid, "Toroid", 0.0, 5.0 * Constants::PI, 500, "..\\..\\results\\toroid.mml");
+    auto ret = std::system("..\\..\\tools\\visualizers\\parametric_curve_visualizer\\MML_ParametricCurveVisualizer.exe ..\\..\\results\\toroid.mml");
 }
 
 void Demo_Vector_field_serialization()
 {
     Fields::InverseRadialForceFieldCart field_cart(1000.0);
 
-    Serializer::SaveVectorFunc3DCartesian(field_cart, "Simple vector field",  - 30.0, 30.0, 4, -30.0, 30.0, 4, -30.0, 30.0, 4, "..\\..\\results\\vector_field.txt");
-    auto ret2 = std::system("..\\..\\tools\\visualizers\\vector_field_visualizer\\MML_VectorFieldVisualizer.exe ..\\..\\results\\vector_field.txt");
+    Serializer::SaveVectorFunc3DCartesian(field_cart, "Simple vector field",  - 30.0, 30.0, 4, -30.0, 30.0, 4, -30.0, 30.0, 4, "..\\..\\results\\vector_field.mml");
+    auto ret2 = std::system("..\\..\\tools\\visualizers\\vector_field_visualizer\\MML_VectorFieldVisualizer.exe ..\\..\\results\\vector_field.mml");
     std::cout << "Return code = " << ret2 << std::endl;    
 
     Fields::InverseRadialForceFieldSpher field_spher(1000.0);
 
-    Serializer::SaveVectorFuncSpherical(field_spher, "Simple vector field - spherical", 0.1, 50.1, 5, -30.0, 30.0, 4, -30.0, 30.0, 4, "..\\..\\results\\vector_field_spherical.txt");
-    auto ret3 = std::system("..\\..\\tools\\visualizers\\vector_field_visualizer\\MML_VectorFieldVisualizer.exe ..\\..\\results\\vector_field_spherical.txt");
+    Serializer::SaveVectorFuncSpherical(field_spher, "Simple vector field - spherical", 0.1, 50.1, 5, -30.0, 30.0, 4, -30.0, 30.0, 4, "..\\..\\results\\vector_field_spherical.mml");
+    auto ret3 = std::system("..\\..\\tools\\visualizers\\vector_field_visualizer\\MML_VectorFieldVisualizer.exe ..\\..\\results\\vector_field_spherical.mml");
     std::cout << "Return code = " << ret3 << std::endl; 
 }
 

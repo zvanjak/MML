@@ -3,20 +3,21 @@
 #ifdef MML_USE_SINGLE_HEADER
 #include "MML.h"
 #else
-#include "base/Vector.h"
+#include "base/Vector/Vector.h"
 #include "base/Function.h"
 #include "core/Derivation.h"
 #endif
 
-#include "../test_data/real_functions_test_bed.h"
-#include "../test_data/scalar_functions_test_bed.h"
-#include "../test_data/vector_functions_test_bed.h"
+#include "../test_beds/real_functions_test_bed.h"
+#include "../test_beds/scalar_functions_test_bed.h"
+#include "../test_beds/vector_functions_test_bed.h"
 
 using namespace MML;
 
 using Catch::Matchers::WithinAbs;
 using Catch::Matchers::WithinRel;
 
+namespace MML::Tests::Precision::DerivationPrecisionTests {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////         Derivation of REAL functions
@@ -86,3 +87,5 @@ TEST_CASE("Test_2nd_derivation_precision_sin_func_default_step_size", "[simple]"
 TEST_CASE("Test_3rd_derivation_precision_sin_func_default_step_size", "[simple]") 
 {
 }
+
+} // namespace MML::Tests::Precision::DerivationPrecisionTests

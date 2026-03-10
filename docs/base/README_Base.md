@@ -205,7 +205,7 @@ VectorN<double, 3> acceleration = force / mass;
 Matrix<double> A;                         // Empty matrix
 Matrix<double> B(m, n);                   // m×n matrix, zero-initialized
 Matrix<double> C(m, n, value);            // m×n matrix, all elements = value
-Matrix<double> I = Matrix<double>::GetUnitMatrix(n);     // n×n identity
+Matrix<double> I = Matrix<double>::Identity(n);     // n×n identity
 
 // Special constructors
 Matrix<double> D = Matrix<double>::MakeRowVector(vec);   // 1×n from Vector
@@ -221,7 +221,7 @@ A.Print(std::cout, 2)   // Print with 2 decimal places
 A + B, A - B            // Matrix addition/subtraction
 A * B                   // Matrix multiplication
 A * scalar              // Scalar multiplication
-A.GetTranspose()        // Returns transposed matrix
+A.transpose()        // Returns transposed matrix
 A.GetInverse()          // Returns inverse matrix (throws if singular)
 
 // In-place operations
@@ -267,7 +267,7 @@ Vector<double> check = A * x;
 double error = (check - b).NormL2();  // Should be ~0
 
 // Matrix operations
-Matrix<double> AtA = A.GetTranspose() * A;   // Normal equations
+Matrix<double> AtA = A.transpose() * A;   // Normal equations
 // Note: Condition number available via SVDecompositionSolver
 ```
 
@@ -508,7 +508,7 @@ public:
     virtual Real Volume() const = 0;
     virtual Real SurfaceArea() const = 0;
     virtual Pnt3Cart GetCenter() const = 0;
-    virtual BoundingBox3D GetBoundingBox() const = 0;
+    virtual Box3D GetBoundingBox() const = 0;
     virtual BoundingSphere3D GetBoundingSphere() const = 0;
     virtual bool IsInside(const Pnt3Cart& pnt) const = 0;
     virtual std::string ToString() const = 0;
@@ -521,7 +521,7 @@ Two bounding volume types for spatial queries and collision detection:
 
 ```cpp
 // Axis-Aligned Bounding Box (AABB)
-BoundingBox3D bbox(minPoint, maxPoint);
+Box3D bbox(minPoint, maxPoint);
 bool hit = bbox.Contains(point);
 bool overlap = bbox.Intersects(otherBox);
 Real vol = bbox.Volume();
@@ -550,7 +550,7 @@ Real sa = sphere.SurfaceArea();     // 4π·25 ≈ 314.159
 Pnt3Cart c = sphere.GetCenter();    // (0, 0, 0)
 
 // Bounding volumes for collision detection
-BoundingBox3D bbox = cube.GetBoundingBox();
+Box3D bbox = cube.GetBoundingBox();
 BoundingSphere3D bsphere = cube.GetBoundingSphere();
 
 // Point-in-body test

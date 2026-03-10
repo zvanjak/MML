@@ -3,9 +3,9 @@
 #else
 #include "MMLBase.h"
 
-#include "base/Vector.h"
-#include "base/Matrix.h"
-#include "base/MatrixSym.h"
+#include "base/Vector/Vector.h"
+#include "base/Matrix/Matrix.h"
+#include "base/Matrix/MatrixSym.h"
 #include "algorithms/EigenSystemSolvers.h"
 #endif
 
@@ -85,7 +85,7 @@ void Docs_Demo_Eigen_Jacobi_Properties()
 	std::cout << "\n--- Orthogonality of Eigenvectors ---\n";
 	std::cout << "For symmetric matrices, eigenvectors form orthonormal basis.\n";
 	
-	Matrix<Real> VtV = result.eigenvectors.GetTranspose() * result.eigenvectors;
+	Matrix<Real> VtV = result.eigenvectors.transpose() * result.eigenvectors;
 	std::cout << "\nV^T * V (should be identity):\n";
 	VtV.Print(std::cout, 10, 6);
 	

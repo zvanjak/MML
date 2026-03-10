@@ -5,8 +5,8 @@
 #ifdef MML_USE_SINGLE_HEADER
 #include "MML.h"
 #else
-#include "base/Vector.h"
-#include "base/Matrix.h"
+#include "base/Vector/Vector.h"
+#include "base/Matrix/Matrix.h"
 #include "core/LinAlgEqSolvers.h"
 #endif
 
@@ -18,8 +18,8 @@ namespace MML::Tests::Core::SVDTests
 	// Helper function to verify orthogonality
 	bool IsOrthogonal(const Matrix<Real>& mat, Real tolerance = 1e-10)
 	{
-		int n = mat.ColNum();
-		Matrix<Real> prod = mat.GetTranspose() * mat;
+		int n = mat.cols();
+		Matrix<Real> prod = mat.transpose() * mat;
 		
 		for (int i = 0; i < n; i++)
 		{
@@ -38,8 +38,8 @@ namespace MML::Tests::Core::SVDTests
 	                         const Vector<Real>& W, const Matrix<Real>& V, 
 	                         Real tolerance = 1e-10)
 	{
-		int m = A.RowNum();
-		int n = A.ColNum();
+		int m = A.rows();
+		int n = A.cols();
 		
 		// Reconstruct: A_reconstructed = U * W * V^T
 		Matrix<Real> reconstructed(m, n);
@@ -169,10 +169,10 @@ namespace MML::Tests::Core::SVDTests
 		auto V = svd.getV();
 
 		// Check dimensions
-		REQUIRE(U.RowNum() == 4);
-		REQUIRE(U.ColNum() == 3);
-		REQUIRE(V.RowNum() == 3);
-		REQUIRE(V.ColNum() == 3);
+		REQUIRE(U.rows() == 4);
+		REQUIRE(U.cols() == 3);
+		REQUIRE(V.rows() == 3);
+		REQUIRE(V.cols() == 3);
 		REQUIRE(W.size() == 3);
 
 		// Singular values should be non-negative and descending
@@ -205,10 +205,10 @@ namespace MML::Tests::Core::SVDTests
 		auto V = svd.getV();
 
 		// Check dimensions
-		REQUIRE(U.RowNum() == 3);
-		REQUIRE(U.ColNum() == 4);
-		REQUIRE(V.RowNum() == 4);
-		REQUIRE(V.ColNum() == 4);
+		REQUIRE(U.rows() == 3);
+		REQUIRE(U.cols() == 4);
+		REQUIRE(V.rows() == 4);
+		REQUIRE(V.cols() == 4);
 		REQUIRE(W.size() == 4);
 
 		// Singular values should be non-negative and descending
@@ -454,8 +454,8 @@ namespace MML::Tests::Core::SVDTests
 		Matrix<Real> range = svd.Range();
 		
 		// Range should have correct dimensions
-		REQUIRE(range.RowNum() == 3);
-		REQUIRE(range.ColNum() == 2);
+		REQUIRE(range.rows() == 3);
+		REQUIRE(range.cols() == 2);
 
 		// Columns of range should be orthonormal
 		for (int i = 0; i < 2; i++)
@@ -485,8 +485,8 @@ namespace MML::Tests::Core::SVDTests
 		Matrix<Real> nullspace = svd.Nullspace();
 		
 		// Nullspace should have correct dimensions
-		REQUIRE(nullspace.RowNum() == 3);
-		REQUIRE(nullspace.ColNum() == 2);
+		REQUIRE(nullspace.rows() == 3);
+		REQUIRE(nullspace.cols() == 2);
 
 		// Verify A * v = 0 for each nullspace vector v
 		for (int col = 0; col < 2; col++)

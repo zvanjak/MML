@@ -39,7 +39,7 @@ RealFunction sine(f);
 // Save to file (100 points from 0 to 2π)
 auto result = Serializer::SaveRealFunc(sine, "Sine Function", 
                                        0.0, 2*M_PI, 100, 
-                                       "sine.txt", 8);
+                                       "sine.mml", 8);
 
 if (!result.success) {
     std::cerr << "Error: " << result.message << std::endl;
@@ -55,7 +55,7 @@ ODESystemSolution solution = solver.solve(system, initial_conditions);
 // Save all components as multi-function
 std::vector<std::string> legend = {"x", "y", "vx", "vy"};
 auto result = Serializer::SaveODESolutionAsMultiFunc(
-    solution, "Pendulum Motion", legend, "pendulum.txt");
+    solution, "Pendulum Motion", legend, "pendulum.mml");
 ```
 
 ### Save 2D Parametric Curve
@@ -66,7 +66,7 @@ Vector<Real> x_vals = {0.0, 0.5, 1.0, 1.5, 2.0};
 Vector<Real> y_vals = {0.0, 0.25, 1.0, 2.25, 4.0};
 
 auto result = Serializer::SaveAsParamCurve2D(
-    x_vals, y_vals, "Parabola", "parabola.txt");
+    x_vals, y_vals, "Parabola", "parabola.mml");
 ```
 
 ---
@@ -157,7 +157,7 @@ auto sine = [](Real x) { return std::sin(x); };
 RealFunction f(sine);
 
 auto result = Serializer::SaveRealFunc(
-    f, "sin(x)", 0.0, 2*M_PI, 100, "sine.txt", 8);
+    f, "sin(x)", 0.0, 2*M_PI, 100, "sine.mml", 8);
 ```
 
 ---
@@ -184,7 +184,7 @@ static SerializeResult SaveRealFunc(
 // Evaluate at specific interesting points
 Vector<Real> points = {0.0, M_PI/6, M_PI/4, M_PI/3, M_PI/2};
 auto result = Serializer::SaveRealFunc(
-    f, "Sine at special angles", points, "sine_special.txt", 6);
+    f, "Sine at special angles", points, "sine_special.mml", 6);
 ```
 
 ---
@@ -260,7 +260,7 @@ std::vector<IRealFunction*> funcs = {&f1, &f2};
 std::vector<std::string> legend = {"sin(x)", "cos(x)"};
 
 auto result = Serializer::SaveRealMultiFunc(
-    funcs, "Trig Functions", 0, 2*M_PI, 100, legend, "trig.txt", 8);
+    funcs, "Trig Functions", 0, 2*M_PI, 100, legend, "trig.mml", 8);
 ```
 
 ### SaveRealMultiFunc (Interpolated Functions)
@@ -318,7 +318,7 @@ for (int i = 0; i < n; i++) {
     y[i] = std::sin(t);
 }
 
-auto result = Serializer::SaveAsParamCurve2D(x, y, "Circle", "circle.txt");
+auto result = Serializer::SaveAsParamCurve2D(x, y, "Circle", "circle.mml");
 ```
 
 ---
@@ -358,7 +358,7 @@ auto gaussian = [](const Vector<Real>& v) {
 ScalarFunction<2> f(gaussian);
 
 auto result = Serializer::SaveScalarFunc2DCartesian(
-    f, "2D Gaussian", -3, 3, 50, -3, 3, 50, "gaussian2d.txt");
+    f, "2D Gaussian", -3, 3, 50, -3, 3, 50, "gaussian2d.mml");
 ```
 
 ### SaveScalarFunc3DCartesian
@@ -414,7 +414,7 @@ VectorFunction<2> field(grad_field);
 
 auto result = Serializer::SaveVectorFunc2DCartesian(
     field, "Gradient toward origin", 
-    -2, 2, 20, -2, 2, 20, "gradient.txt");
+    -2, 2, 20, -2, 2, 20, "gradient.mml");
 ```
 
 ### SaveVectorFunc3DCartesian
@@ -456,7 +456,7 @@ ODESystemSolution solution = solver.solve(pendulum, init_cond);
 
 std::vector<std::string> legend = {"angle", "angular_velocity"};
 auto result = Serializer::SaveODESolutionAsMultiFunc(
-    solution, "Simple Pendulum", legend, "pendulum.txt");
+    solution, "Simple Pendulum", legend, "pendulum.mml");
 ```
 
 ### SaveODESolutionComponentAsFunc
@@ -491,7 +491,7 @@ static SerializeResult SaveODESolAsParametricCurve2D(
 ```cpp
 // Plot position vs velocity
 auto result = Serializer::SaveODESolAsParametricCurve2D(
-    solution, "phase_portrait.txt", 
+    solution, "phase_portrait.mml", 
     0, 1,  // Components 0 and 1
     "Position", "Velocity");
 ```
@@ -560,7 +560,7 @@ for (int frame = 0; frame < numFrames; frame++) {
 }
 
 auto result = Serializer::SaveParticleSimulation2D(
-    "animation.txt", numBalls, 10.0, 10.0, trajectory);
+    "animation.mml", numBalls, 10.0, 10.0, trajectory);
 ```
 
 ### SaveParticleSimulation3D
@@ -598,7 +598,7 @@ std::vector<std::string> legend = {"Linear", "Polynomial", "Spline"};
 
 auto result = Serializer::SaveRealMultiFunc(
     funcs, "Interpolation Comparison", 
-    0, 4, 100, legend, "interp_compare.txt", 8);
+    0, 4, 100, legend, "interp_compare.mml", 8);
 ```
 
 ### Example 2: Save Numerical vs Analytical Solution
@@ -614,10 +614,10 @@ ODESystemSolution numerical = solver.solve(ode, init);
 // Save both
 std::vector<IRealFunction*> funcs = {&exact};
 auto result1 = Serializer::SaveRealFunc(
-    exact, "Exact", 0, 5, 100, "exact.txt");
+    exact, "Exact", 0, 5, 100, "exact.mml");
 
 auto result2 = Serializer::SaveODESolutionComponentAsFunc(
-    numerical, 0, "Numerical", "numerical.txt");
+    numerical, 0, "Numerical", "numerical.mml");
 ```
 
 ### Example 3: Vector Field Visualization
@@ -636,7 +636,7 @@ VectorFunction<2> field(electric_field);
 
 auto result = Serializer::SaveVectorFunc2DCartesian(
     field, "Electric Dipole", 
-    -3, 3, 30, -3, 3, 30, "dipole.txt");
+    -3, 3, 30, -3, 3, 30, "dipole.mml");
 ```
 
 ### Example 4: 3D Trajectory
@@ -647,7 +647,7 @@ ODESystemSolution lorenz_sol = solver.solve(lorenz_system, init);
 
 // Save 3D trajectory
 auto result = Serializer::SaveODESolAsParametricCurve3D(
-    lorenz_sol, "lorenz_attractor.txt",
+    lorenz_sol, "lorenz_attractor.mml",
     0, 1, 2,  // x, y, z components
     "x", "y", "z");
 ```
@@ -740,9 +740,9 @@ auto result = Serializer::SaveRealFunc(f, title, x1, x2, n, file);
 
 ```cpp
 // Use descriptive filenames and organize in directories
-Serializer::SaveRealFunc(f, title, x1, x2, n, "results/functions/sine.txt");
-Serializer::SaveODESolutionAsMultiFunc(sol, title, legend, "results/ode/pendulum.txt");
-Serializer::SaveVectorFunc2DCartesian(field, title, x1,x2,nx, y1,y2,ny, "results/fields/gradient.txt");
+Serializer::SaveRealFunc(f, title, x1, x2, n, "results/functions/sine.mml");
+Serializer::SaveODESolutionAsMultiFunc(sol, title, legend, "results/ode/pendulum.mml");
+Serializer::SaveVectorFunc2DCartesian(field, title, x1,x2,nx, y1,y2,ny, "results/fields/gradient.mml");
 ```
 
 ---
@@ -753,11 +753,11 @@ Serialized files are designed to be easily loaded by MML Visualizers:
 
 ```cpp
 // Save data
-Serializer::SaveRealFunc(f, "sin(x)", 0, 2*M_PI, 100, "sine.txt");
+Serializer::SaveRealFunc(f, "sin(x)", 0, 2*M_PI, 100, "sine.mml");
 
 // Visualize (in separate application or later)
 Visualizer viz;
-viz.AddRealFunction("sine.txt");
+viz.AddRealFunction("sine.mml");
 viz.Show();
 ```
 

@@ -5,15 +5,15 @@
 #ifdef MML_USE_SINGLE_HEADER
 #include "MML.h"
 #else
-#include "base/VectorN.h"
-#include "base/Geometry3D.h"
+#include "base/Vector/VectorN.h"
+#include "mml/base/Geometry/Geometry3D.h"
 
 #include "base/Function.h"
 #include "core/Curves.h"
 #include "core/Derivation.h"
 #endif
 
-#include "../test_data/parametric_curves_test_bed.h"
+#include "../test_beds/parametric_curves_test_bed.h"
 
 using namespace MML;
 using namespace MML::Testing;
@@ -184,26 +184,23 @@ namespace MML::Tests::Core::CurvesTests
 		{
 			Vec3Cart curvature_vec = helix_curve.getCurvatureVector(t);
 			Vec3Cart tangent = helix_curve.getTangent(t);
-			Vec3Cart normal = helix_curve.getNormal(t);
 
 			// Curvature vector should be orthogonal to tangent
 			Real dot_product = Utils::ScalarProduct(curvature_vec, tangent);
 			REQUIRE_THAT(dot_product, WithinAbs(REAL(0.0), REAL(1e-6)));
 
 			// Curvature vector should point in direction of principal normal
-			Vec3Cart normal_unit = helix_curve.getNormalUnit(t);
+			Vec3Cart normal_unit = helix_curve.getNormal(t);  // Now returns Frenet principal normal
 			Vec3Cart curvature_direction = curvature_vec / curvature_vec.NormL2();
 
 			REQUIRE_THAT(curvature_direction[0], WithinAbs(normal_unit[0], REAL(1e-7)));
 			REQUIRE_THAT(curvature_direction[1], WithinAbs(normal_unit[1], REAL(1e-7)));
 			REQUIRE_THAT(curvature_direction[2], WithinAbs(normal_unit[2], REAL(1e-7)));
 
-			// Verify relationship: getCurvatureVector formula from code
-			// curvature_vec = vec2 / res1 where:
-			// res1 = |r'|^(-2), vec2 = r'' - res1 * <r', r''> * r'
-			Real res1 = std::pow(tangent.NormL2(), -REAL(2.0));
-			Vec3Cart vec2 = normal - res1 * Utils::ScalarProduct(tangent, normal) * tangent;
-			Vec3Cart expected_curvature_vec = vec2 / res1;
+			// Verify relationship: getCurvatureVector = κ * N
+			// Should equal curvature * normal
+			Real curvature = helix_curve.getCurvature(t);
+			Vec3Cart expected_curvature_vec = curvature * normal_unit;
 
 			REQUIRE_THAT(curvature_vec[0], WithinAbs(expected_curvature_vec[0], REAL(1e-7)));
 			REQUIRE_THAT(curvature_vec[1], WithinAbs(expected_curvature_vec[1], REAL(1e-7)));

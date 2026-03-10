@@ -5,10 +5,10 @@
 ///  Description: Unified framework for precision testing of numerical algorithms     ///
 ///               Provides standardized result collection, statistics, and output     ///
 ///                                                                                   ///
-///  Copyright:   (c) 2024-2025 Zvonimir Vanjak                                       ///
-///  License:     Licensed under MML dual-license (see LICENSE.md)                    ///
-///               - Free for non-commercial use                                       ///
-///               - Commercial license available                                      ///
+///  Copyright:   (c) 2024-2026 Zvonimir Vanjak                                       ///
+///  License:     MIT License (see LICENSE.md)                    ///
+///               Copyright (c) 2024-2026 Zvonimir Vanjak                                       ///
+///                                                     ///
 ///////////////////////////////////////////////////////////////////////////////////////////
 #ifndef MML_PRECISION_TEST_FRAMEWORK_H
 #define MML_PRECISION_TEST_FRAMEWORK_H

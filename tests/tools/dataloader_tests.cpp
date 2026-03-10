@@ -4,8 +4,8 @@
 ///  File:        dataloader_tests.cpp                                                ///
 ///  Description: Unit tests for DataLoader                                           ///
 ///                                                                                   ///
-///  Copyright:   (c) 2024-2025 Zvonimir Vanjak                                       ///
-///  License:     Licensed under MML dual-license (see LICENSE.md)                    ///
+///  Copyright:   (c) 2024-2026 Zvonimir Vanjak                                       ///
+///  License:     MIT License (see LICENSE.md)                    ///
 ///////////////////////////////////////////////////////////////////////////////////////////
 
 #include <catch2/catch_all.hpp>
@@ -528,6 +528,182 @@ namespace MML::Tests::Tools::DataLoaderTests {
 			REQUIRE(ds["id"].type == ColumnType::INT);
 			REQUIRE(ds["x"].type == ColumnType::REAL);
 			REQUIRE(ds["y"].type == ColumnType::INT);
+		}
+	}
+
+	/////////////////////////////////////////////////////////////////////////////////////
+	///                         LOAD RESULT TESTS                                      ///
+	/////////////////////////////////////////////////////////////////////////////////////
+
+	TEST_CASE("DataLoader - LoadResult success", "[dataloader][loadresult]") {
+		TEST_PRECISION_INFO();
+
+		SECTION("LoadCSVSafe success with valid data") {
+			// Create a temporary CSV file
+			std::ofstream tmpFile("test_loadresult.csv");
+			tmpFile << "name,value\n";
+			tmpFile << "Alice,10\n";
+			tmpFile << "Bob,20\n";
+			tmpFile.close();
+
+			auto result = LoadCSVSafe("test_loadresult.csv");
+
+			REQUIRE(result.success);
+			REQUIRE(result.errorMessage.empty());
+			REQUIRE(result.data.NumRows() == 2);
+			REQUIRE(result.data.NumColumns() == 2);
+			REQUIRE(result);  // Test operator bool()
+
+			// Cleanup
+			std::remove("test_loadresult.csv");
+		}
+
+		SECTION("LoadTSVSafe success with valid data") {
+			// Create a temporary TSV file
+			std::ofstream tmpFile("test_loadresult.tsv");
+			tmpFile << "name\tvalue\n";
+			tmpFile << "Alice\t10\n";
+			tmpFile << "Bob\t20\n";
+			tmpFile.close();
+
+			auto result = LoadTSVSafe("test_loadresult.tsv");
+
+			REQUIRE(result.success);
+			REQUIRE(result.errorMessage.empty());
+			REQUIRE(result.data.NumRows() == 2);
+			REQUIRE(result);
+
+			// Cleanup
+			std::remove("test_loadresult.tsv");
+		}
+
+		SECTION("LoadJSONSafe success with valid data") {
+			// Create a temporary JSON file
+			std::ofstream tmpFile("test_loadresult.json");
+			tmpFile << "[{\"name\":\"Alice\",\"value\":10},{\"name\":\"Bob\",\"value\":20}]";
+			tmpFile.close();
+
+			auto result = LoadJSONSafe("test_loadresult.json");
+
+			REQUIRE(result.success);
+			REQUIRE(result.errorMessage.empty());
+			REQUIRE(result.data.NumRows() == 2);
+			REQUIRE(result);
+
+			// Cleanup
+			std::remove("test_loadresult.json");
+		}
+	}
+
+	TEST_CASE("DataLoader - LoadResult failure", "[dataloader][loadresult]") {
+		TEST_PRECISION_INFO();
+
+		SECTION("LoadCSVSafe file not found") {
+			auto result = LoadCSVSafe("nonexistent_file.csv");
+
+			REQUIRE_FALSE(result.success);
+			REQUIRE_FALSE(result.errorMessage.empty());
+			REQUIRE(result.errorMessage.find("Cannot open file") != std::string::npos);
+			REQUIRE_FALSE(result);  // Test operator bool()
+			REQUIRE(result.data.NumRows() == 0);  // Empty dataset on error
+		}
+
+		SECTION("LoadTSVSafe file not found") {
+			auto result = LoadTSVSafe("nonexistent_file.tsv");
+
+			REQUIRE_FALSE(result.success);
+			REQUIRE_FALSE(result.errorMessage.empty());
+			REQUIRE_FALSE(result);
+		}
+
+		SECTION("LoadJSONSafe file not found") {
+			auto result = LoadJSONSafe("nonexistent_file.json");
+
+			REQUIRE_FALSE(result.success);
+			REQUIRE_FALSE(result.errorMessage.empty());
+			REQUIRE_FALSE(result);
+		}
+
+		SECTION("LoadCSVSafe empty file") {
+			// Create an empty file
+			std::ofstream tmpFile("test_empty.csv");
+			tmpFile.close();
+
+			auto result = LoadCSVSafe("test_empty.csv");
+
+			REQUIRE_FALSE(result.success);
+			REQUIRE_FALSE(result.errorMessage.empty());
+			REQUIRE(result.errorMessage.find("empty") != std::string::npos);
+
+			// Cleanup
+			std::remove("test_empty.csv");
+		}
+	}
+
+	TEST_CASE("DataLoader - LoadResult static factory methods", "[dataloader][loadresult]") {
+		TEST_PRECISION_INFO();
+
+		SECTION("Success factory") {
+			Dataset ds;
+			ds.name = "TestDataset";
+			ds.rowCount = 5;
+
+			auto result = LoadResult::Success(ds);
+
+			REQUIRE(result.success);
+			REQUIRE(result.errorMessage.empty());
+			REQUIRE(result.data.name == "TestDataset");
+			REQUIRE(result.data.NumRows() == 5);
+		}
+
+		SECTION("Failure factory") {
+			auto result = LoadResult::Failure("Test error message");
+
+			REQUIRE_FALSE(result.success);
+			REQUIRE(result.errorMessage == "Test error message");
+			REQUIRE(result.data.NumRows() == 0);
+		}
+	}
+
+	TEST_CASE("DataLoader - LoadResult usage patterns", "[dataloader][loadresult]") {
+		TEST_PRECISION_INFO();
+
+		SECTION("Conditional usage pattern") {
+			// Create a valid CSV file
+			std::ofstream tmpFile("test_pattern.csv");
+			tmpFile << "x,y\n1,2\n3,4\n";
+			tmpFile.close();
+
+			// Pattern 1: if (result) { use result.data }
+			if (auto result = LoadCSVSafe("test_pattern.csv")) {
+				REQUIRE(result.data.NumRows() == 2);
+				REQUIRE(result.data["x"].intData[0] == 1);
+			}
+			else {
+				FAIL("Expected successful load");
+			}
+
+			// Pattern 2: Check success explicitly
+			auto result2 = LoadCSVSafe("test_pattern.csv");
+			if (result2.success) {
+				REQUIRE(result2.data.NumRows() == 2);
+			}
+
+			// Cleanup
+			std::remove("test_pattern.csv");
+		}
+
+		SECTION("Error handling pattern") {
+			auto result = LoadCSVSafe("missing_file.csv");
+
+			if (!result) {
+				// Expected error path
+				REQUIRE(!result.errorMessage.empty());
+				SUCCEED("Error handling pattern works");
+			}
+			else {
+				FAIL("Expected file not found error");
+			}
 		}
 	}
 

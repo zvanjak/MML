@@ -6,15 +6,21 @@
  * making the example self-contained without MPL dependencies.
  * 
  * Contents:
- *   - IProjectile2DODE: Base interface for projectile ODE systems
+ *   - IProjectile2DODE: Base interface (extends IODESystemWithEvents for
+ *                        automatic ground-hit detection via zero-crossing)
  *   - Projectile2DInVacuumODE: Ideal parabolic motion (analytical solutions)
  *   - Projectile2DWithAirResistanceODE: Quadratic drag model
  *   - Projectile2DChangingAirDensityODE: Altitude-dependent drag
  *   - BaseballWithDragCoeffDependentOnSpeedODE: Speed-dependent drag
  *   - ProjectileTrajectory2D: Trajectory storage and interpolation
- *   - ProjectileMotionSolver2D: ODE solver wrapper with ground detection
+ *   - ProjectileMotionSolver2D: ODE solver with event-detection ground hit
  * 
  * Physics: F = mg - kv² (quadratic drag model)
+ * 
+ * Ground Detection:
+ *   Uses MML's event detection (IODESystemWithEvents + integrateWithEvents)
+ *   to precisely locate ground impact via zero-crossing of y(t) to 1e-12
+ *   tolerance. No more crude "if(y<0) zero derivatives" hack!
  * 
  *****************************************************************************/
 
@@ -24,9 +30,9 @@
 #include "MMLBase.h"
 #include "interfaces/IODESystem.h"
 #include "base/InterpolatedFunction.h"
-#include "algorithms/ODESystemSolver.h"
-#include "algorithms/ODESystemStepCalculators.h"
-#include "algorithms/ODESystemSteppers.h"
+#include "mml/algorithms/ODESolvers/ODEAdaptiveIntegrator.h"
+#include "mml/algorithms/ODESolvers/ODEFixedStepIntegrators.h"
+#include "mml/algorithms/ODESolvers/ODESystemStepCalculators.h"
 
 namespace Projectile
 {
@@ -34,9 +40,13 @@ namespace Projectile
 
     /**************************************************************************
      * BASE INTERFACE
+     * 
+     * Extends IODESystemWithEvents so all projectile models get automatic
+     * ground-hit detection. Event 0 monitors y position crossing zero
+     * in the decreasing direction and stops integration on contact.
      **************************************************************************/
 
-    class IProjectile2DODE : public IODESystem
+    class IProjectile2DODE : public IODESystemWithEvents
     {
     public:
         virtual std::string getVarName(int ind) const override
@@ -60,6 +70,24 @@ namespace Projectile
             initCond[3] = velocity * sin(angle);        // initial y velocity (m/s)
             return initCond;
         }
+
+        // ---- Event detection: ground contact (y = 0) ----
+        int getNumEvents() const override { return 1; }
+
+        Real eventFunction(int /*eventIndex*/, Real /*t*/, const Vector<Real>& x) const override
+        {
+            return x[1];  // y position — zero means ground contact
+        }
+
+        EventDirection getEventDirection(int /*eventIndex*/) const override
+        {
+            return EventDirection::Decreasing;  // falling toward ground
+        }
+
+        EventAction getEventAction(int /*eventIndex*/) const override
+        {
+            return EventAction::Stop;  // terminate integration on ground hit
+        }
     };
 
     /**************************************************************************
@@ -79,15 +107,6 @@ namespace Projectile
             dxdt[1] = x[3];
             dxdt[2] = 0;
             dxdt[3] = -g;
-
-            // Stop motion when projectile hits the ground
-            if (x[1] < 0)
-            {
-                dxdt[0] = 0;
-                dxdt[1] = 0;
-                dxdt[2] = 0;
-                dxdt[3] = 0;
-            }
         }
 
         // Analytical solutions for vacuum motion
@@ -132,14 +151,6 @@ namespace Projectile
             dxdt[1] = x[3];
             dxdt[2] = -_dragCoefficient * v * x[2];
             dxdt[3] = -9.81 - _dragCoefficient * v * x[3];
-
-            if (x[1] < 0)
-            {
-                dxdt[0] = 0;
-                dxdt[1] = 0;
-                dxdt[2] = 0;
-                dxdt[3] = 0;
-            }
         }
     };
 
@@ -176,14 +187,6 @@ namespace Projectile
             dxdt[1] = x[3];
             dxdt[2] = -dragCoefficient(x[3], v) * v * x[2];
             dxdt[3] = -9.81 - dragCoefficient(x[3], v) * v * x[3];
-
-            if (x[1] < 0)
-            {
-                dxdt[0] = 0;
-                dxdt[1] = 0;
-                dxdt[2] = 0;
-                dxdt[3] = 0;
-            }
         }
 
         // Isothermal air density model (exponential decrease)
@@ -265,14 +268,6 @@ namespace Projectile
             dxdt[1] = x[3];
             dxdt[2] = -dragCoefficient(v) * v * x[2];
             dxdt[3] = -9.81 - dragCoefficient(v) * v * x[3];
-
-            if (x[1] < 0)
-            {
-                dxdt[0] = 0;
-                dxdt[1] = 0;
-                dxdt[2] = 0;
-                dxdt[3] = 0;
-            }
         }
 
         Real dragCoefficient(Real v) const
@@ -369,6 +364,10 @@ namespace Projectile
 
     /**************************************************************************
      * PROJECTILE MOTION SOLVER
+     * 
+     * Primary solver: solveAdaptive() — uses DormandPrince5 with event
+     * detection for precise ground-hit location (1e-12 tolerance).
+     * Legacy: solveEuler() kept for accuracy comparison.
      **************************************************************************/
 
     class ProjectileMotionSolver2D
@@ -404,123 +403,53 @@ namespace Projectile
 
         ODESystemSolution& getLastODESolution() { return _lastSol; }
 
-        // Helper: Prepare results with ground-hit interpolation
-        static ProjectileTrajectory2D prepareResults(
-            Real angle, Real initHeight, Real velocity,
-            const Vector<Real>& sol_t, const Vector<Real>& sol_x, const Vector<Real>& sol_y,
-            const Vector<Real>& sol_vx, const Vector<Real>& sol_vy)
+        //---------------------------------------------------------------------
+        // PRIMARY: Adaptive solver with event-detected ground impact
+        //---------------------------------------------------------------------
+
+        /// @brief Solve using DormandPrince5 adaptive integrator with ground-hit event detection.
+        ///
+        /// Integration stops automatically when y(t) crosses zero (decreasing).
+        /// The ground-hit time and position are located to ~1e-12 precision
+        /// using the Illinois root-finding method on the stepper's dense output.
+        ///
+        /// @param angle        Launch angle (radians)
+        /// @param initHeight   Initial height (m)
+        /// @param velocity     Launch speed (m/s)
+        /// @param outputDt     Output interval — controls trajectory resolution (s)
+        /// @param eps          ODE solver tolerance (default 1e-10)
+        /// @return             Trajectory truncated precisely at ground impact
+        ProjectileTrajectory2D solveAdaptive(
+            Real angle, Real initHeight, Real velocity, 
+            Real outputDt = 0.01, Real eps = 1e-10)
         {
-            ProjectileTrajectory2D result(angle, initHeight, velocity);
-            int numPoints = sol_t.size();
+            Vector<Real> initCond = _projectileODESystem.getInitCond(angle, initHeight, velocity);
 
-            // Check if projectile hit the ground
-            if (sol_y.back() < 0)
-            {
-                // Find last point above ground
-                int lastIndex = sol_y.size() - 1;
-                while (lastIndex > 0 && sol_y[lastIndex] < 0)
-                    lastIndex--;
+            // Generous upper bound — event detection will stop us at ground hit
+            Real tMax = 2.0 * getTimeOfFlightVacuum(angle, initHeight, velocity) + 10.0;
 
-                if (lastIndex < 0 || lastIndex + 1 >= (int)sol_y.size())
-                {
-                    // Fallback: use raw data
-                    result._tValues = sol_t;
-                    result._xValues = sol_x;
-                    result._yValues = sol_y;
-                    result._vxValues = sol_vx;
-                    result._vyValues = sol_vy;
-                    result._timeOfFlight = sol_t.back();
-                    result._range = sol_x.back();
-                    return result;
-                }
+            DormandPrince5Integrator integrator(_projectileODESystem);
+            auto eventResult = integrator.integrateWithEvents(
+                _projectileODESystem, initCond, 0.0, tMax, outputDt, eps);
 
-                // Interpolate exact ground hit
-                Real t1 = sol_t[lastIndex], y1 = sol_y[lastIndex];
-                Real t2 = sol_t[lastIndex + 1], y2 = sol_y[lastIndex + 1];
-                Real x1 = sol_x[lastIndex], x2 = sol_x[lastIndex + 1];
-
-                Real alpha = (0 - y1) / (y2 - y1);
-                Real tHitGround = t1 + alpha * (t2 - t1);
-                Real xHitGround = x1 + alpha * (x2 - x1);
-                Real vxHitGround = sol_vx[lastIndex] + alpha * (sol_vx[lastIndex + 1] - sol_vx[lastIndex]);
-                Real vyHitGround = sol_vy[lastIndex] + alpha * (sol_vy[lastIndex + 1] - sol_vy[lastIndex]);
-
-                result._timeOfFlight = tHitGround;
-                result._range = xHitGround;
-
-                result._tValues.Resize(numPoints);
-                result._xValues.Resize(numPoints);
-                result._yValues.Resize(numPoints);
-                result._vxValues.Resize(numPoints);
-                result._vyValues.Resize(numPoints);
-
-                // Copy up to ground hit
-                for (int i = 0; i <= lastIndex; i++)
-                {
-                    result._tValues[i] = sol_t[i];
-                    result._xValues[i] = sol_x[i];
-                    result._yValues[i] = sol_y[i];
-                    result._vxValues[i] = sol_vx[i];
-                    result._vyValues[i] = sol_vy[i];
-                }
-
-                // Add exact hit point
-                result._tValues[lastIndex + 1] = tHitGround;
-                result._xValues[lastIndex + 1] = xHitGround;
-                result._yValues[lastIndex + 1] = 0;
-                result._vxValues[lastIndex + 1] = vxHitGround;
-                result._vyValues[lastIndex + 1] = vyHitGround;
-
-                // Fill rest with zeros
-                for (int i = lastIndex + 2; i < numPoints; i++)
-                {
-                    result._tValues[i] = sol_t[i];
-                    result._xValues[i] = xHitGround;
-                    result._yValues[i] = 0;
-                    result._vxValues[i] = 0;
-                    result._vyValues[i] = 0;
-                }
-            }
-            else
-            {
-                result._tValues = sol_t;
-                result._xValues = sol_x;
-                result._yValues = sol_y;
-                result._vxValues = sol_vx;
-                result._vyValues = sol_vy;
-                result._timeOfFlight = sol_t.back();
-                result._range = sol_x.back();
-            }
-
-            return result;
+            return extractTrajectory(eventResult, angle, initHeight, velocity);
         }
 
-        // Multi-angle solving
-        Vector<ProjectileTrajectory2D> solveForAnglesEuler(
-            const Vector<Real>& angles, Real initHeight, Real velocity, Real tMax, Real dt)
+        /// @brief Solve multiple launch angles using adaptive event detection.
+        Vector<ProjectileTrajectory2D> solveForAngles(
+            const Vector<Real>& angles, Real initHeight, Real velocity,
+            Real outputDt = 0.01, Real eps = 1e-10)
         {
             Vector<ProjectileTrajectory2D> results;
             for (Real angle : angles)
-                results.push_back(solveEuler(angle, initHeight, velocity, tMax, dt));
+                results.push_back(solveAdaptive(angle, initHeight, velocity, outputDt, eps));
             return results;
         }
 
-        Vector<ProjectileTrajectory2D> solveForAnglesEuler(
-            const Vector<Real>& angles, Real initHeight, Real velocity, Real dt)
-        {
-            // Find max time of flight
-            Real tMax = 0.0;
-            for (Real angle : angles)
-            {
-                Real t = getTimeOfFlightVacuum(angle, initHeight, velocity);
-                if (t > tMax) tMax = t;
-            }
-            tMax *= 1.1;  // margin
+        //---------------------------------------------------------------------
+        // LEGACY: Euler (1st order) — kept for accuracy comparison
+        //---------------------------------------------------------------------
 
-            return solveForAnglesEuler(angles, initHeight, velocity, tMax, dt);
-        }
-
-        // Euler method solver
         ProjectileTrajectory2D solveEuler(
             Real angle, Real initHeight, Real velocity, Real tMax, Real dt)
         {
@@ -535,35 +464,153 @@ namespace Projectile
             Vector<Real> sol_y{ sol.getXValues(1) }, sol_vx{ sol.getXValues(2) };
             Vector<Real> sol_vy{ sol.getXValues(3) };
 
-            return prepareResults(angle, initHeight, velocity, sol_t, sol_x, sol_y, sol_vx, sol_vy);
+            return prepareResultsLegacy(angle, initHeight, velocity, sol_t, sol_x, sol_y, sol_vx, sol_vy);
         }
 
-        // RK4 method (placeholder)
-        ProjectileTrajectory2D solveRK4(
-            Real angle, Real initHeight, Real velocity, Real tMax, Real dt)
+        Vector<ProjectileTrajectory2D> solveForAnglesEuler(
+            const Vector<Real>& angles, Real initHeight, Real velocity, Real dt)
         {
-            ProjectileTrajectory2D result;
-            result._angle = angle;
-            result._initHeight = initHeight;
-            result._velocity = velocity;
+            Real tMax = 0.0;
+            for (Real angle : angles)
+            {
+                Real t = getTimeOfFlightVacuum(angle, initHeight, velocity);
+                if (t > tMax) tMax = t;
+            }
+            tMax *= 1.1;
+
+            Vector<ProjectileTrajectory2D> results;
+            for (Real angle : angles)
+                results.push_back(solveEuler(angle, initHeight, velocity, tMax, dt));
+            return results;
+        }
+
+    private:
+        /// @brief Extract trajectory from event result (clean, no post-ground zeros)
+        static ProjectileTrajectory2D extractTrajectory(
+            const DormandPrince5Integrator::EventResult& eventResult,
+            Real angle, Real initHeight, Real velocity)
+        {
+            ProjectileTrajectory2D result(angle, initHeight, velocity);
+            const auto& sol = eventResult.solution;
+
+            // Count valid output points (up to event termination).
+            // The solution is pre-allocated for full tMax, but event detection
+            // stops early — unfilled entries remain as 0. Detect them by
+            // checking that t values remain strictly increasing.
+            int numPoints = 0;
+            auto tVals = sol.getTValues();
+            for (int i = 0; i < (int)tVals.size(); i++)
+            {
+                if (tVals[i] > eventResult.finalTime + 1e-10)
+                    break;
+                // After the first point, detect unfilled zeros (t not increasing)
+                if (i > 0 && tVals[i] <= tVals[i - 1])
+                    break;
+                numPoints++;
+            }
+
+            // Include the precise ground-hit point if event detected
+            bool addEventPoint = eventResult.terminatedByEvent;
+            int totalPoints = numPoints + (addEventPoint ? 1 : 0);
+
+            result._tValues.Resize(totalPoints);
+            result._xValues.Resize(totalPoints);
+            result._yValues.Resize(totalPoints);
+            result._vxValues.Resize(totalPoints);
+            result._vyValues.Resize(totalPoints);
+
+            for (int i = 0; i < numPoints; i++)
+            {
+                result._tValues[i]  = sol.getTValues()[i];
+                result._xValues[i]  = sol.getXValues(0)[i];
+                result._yValues[i]  = sol.getXValues(1)[i];
+                result._vxValues[i] = sol.getXValues(2)[i];
+                result._vyValues[i] = sol.getXValues(3)[i];
+            }
+
+            if (addEventPoint)
+            {
+                int idx = numPoints;
+                result._tValues[idx]  = eventResult.finalTime;
+                result._xValues[idx]  = eventResult.finalState[0];
+                result._yValues[idx]  = 0.0;  // exact ground
+                result._vxValues[idx] = eventResult.finalState[2];
+                result._vyValues[idx] = eventResult.finalState[3];
+
+                result._timeOfFlight = eventResult.finalTime;
+                result._range = eventResult.finalState[0];
+            }
+            else
+            {
+                result._timeOfFlight = sol.getTValues()[numPoints - 1];
+                result._range = sol.getXValues(0)[numPoints - 1];
+            }
+
             return result;
         }
 
-        // RK5 Cash-Karp adaptive method
-        ProjectileTrajectory2D solveRK5(
-            Real angle, Real initHeight, Real velocity, Real tMax, Real eps = 1e-7)
+        /// @brief Legacy ground-hit interpolation for Euler solver
+        static ProjectileTrajectory2D prepareResultsLegacy(
+            Real angle, Real initHeight, Real velocity,
+            const Vector<Real>& sol_t, const Vector<Real>& sol_x, const Vector<Real>& sol_y,
+            const Vector<Real>& sol_vx, const Vector<Real>& sol_vy)
         {
-            Vector<Real> initCond = _projectileODESystem.getInitCond(angle, initHeight, velocity);
+            ProjectileTrajectory2D result(angle, initHeight, velocity);
+            int numPoints = sol_t.size();
 
-            ODESystemSolver<RK5_CashKarp_Stepper> odeSolver(_projectileODESystem);
-            ODESystemSolution sol = odeSolver.integrate(initCond, 0.0, tMax, 0.01, eps, 0.01);
-            _lastSol = sol;
+            if (sol_y.back() < 0)
+            {
+                int lastIndex = sol_y.size() - 1;
+                while (lastIndex > 0 && sol_y[lastIndex] < 0) lastIndex--;
 
-            Vector<Real> sol_t{ sol.getTValues() }, sol_x{ sol.getXValues(0) };
-            Vector<Real> sol_y{ sol.getXValues(1) }, sol_vx{ sol.getXValues(2) };
-            Vector<Real> sol_vy{ sol.getXValues(3) };
+                if (lastIndex < 0 || lastIndex + 1 >= (int)sol_y.size())
+                {
+                    result._tValues = sol_t;  result._xValues = sol_x;
+                    result._yValues = sol_y;  result._vxValues = sol_vx;
+                    result._vyValues = sol_vy;
+                    result._timeOfFlight = sol_t.back();
+                    result._range = sol_x.back();
+                    return result;
+                }
 
-            return prepareResults(angle, initHeight, velocity, sol_t, sol_x, sol_y, sol_vx, sol_vy);
+                Real alpha = (0 - sol_y[lastIndex]) / (sol_y[lastIndex + 1] - sol_y[lastIndex]);
+                Real tHit = sol_t[lastIndex] + alpha * (sol_t[lastIndex + 1] - sol_t[lastIndex]);
+                Real xHit = sol_x[lastIndex] + alpha * (sol_x[lastIndex + 1] - sol_x[lastIndex]);
+
+                result._timeOfFlight = tHit;
+                result._range = xHit;
+
+                // Store only up to ground hit + exact hit point
+                int trimmedSize = lastIndex + 2;
+                result._tValues.Resize(trimmedSize);
+                result._xValues.Resize(trimmedSize);
+                result._yValues.Resize(trimmedSize);
+                result._vxValues.Resize(trimmedSize);
+                result._vyValues.Resize(trimmedSize);
+
+                for (int i = 0; i <= lastIndex; i++)
+                {
+                    result._tValues[i] = sol_t[i];
+                    result._xValues[i] = sol_x[i];
+                    result._yValues[i] = sol_y[i];
+                    result._vxValues[i] = sol_vx[i];
+                    result._vyValues[i] = sol_vy[i];
+                }
+                result._tValues[lastIndex + 1] = tHit;
+                result._xValues[lastIndex + 1] = xHit;
+                result._yValues[lastIndex + 1] = 0.0;
+                result._vxValues[lastIndex + 1] = sol_vx[lastIndex];
+                result._vyValues[lastIndex + 1] = sol_vy[lastIndex];
+            }
+            else
+            {
+                result._tValues = sol_t;  result._xValues = sol_x;
+                result._yValues = sol_y;  result._vxValues = sol_vx;
+                result._vyValues = sol_vy;
+                result._timeOfFlight = sol_t.back();
+                result._range = sol_x.back();
+            }
+            return result;
         }
     };
 

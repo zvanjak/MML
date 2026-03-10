@@ -17,13 +17,15 @@ using namespace MML::Testing;
 using namespace MML::Surfaces;
 using namespace Catch::Matchers;
 
+namespace MML::Tests::Core::SurfacesTests {
+
 ///////////////////////////////////////////////////////////////////////////////
 // Helper Functions
 
 // Calculate angle between two vectors
 inline Real AngleBetweenVectors(const VectorN<Real, 3>& v1, const VectorN<Real, 3>& v2)
 {
-    Real dot = ScalarProduct(v1, v2);
+    Real dot = Utils::ScalarProduct(v1, v2);
     Real norm_prod = v1.NormL2() * v2.NormL2();
     if (norm_prod < 1e-12) return REAL(0.0);
     return std::acos(std::clamp(dot / norm_prod, -REAL(1.0), REAL(1.0)));
@@ -181,11 +183,11 @@ TEST_CASE("Sphere - Principal Curvatures (k1 = k2 = 1/R)", "[surfaces]")
 ///////////////////////////////////////////////////////////////////////////////
 // CYLINDER TESTS
 
-TEST_CASE("Cylinder - Point on Surface", "[surfaces]")
+TEST_CASE("CylinderSurface - Point on Surface", "[surfaces]")
 {
     Real R = REAL(1.0);
     Real H = REAL(2.0);
-    Cylinder cylinder(R, H);
+    CylinderSurface cylinder(R, H);
     
     // Point at u=0 (x-axis direction), w=1
     VectorN<Real, 3> point = cylinder(REAL(0.0), REAL(1.0));
@@ -199,10 +201,10 @@ TEST_CASE("Cylinder - Point on Surface", "[surfaces]")
     REQUIRE_THAT(radius, WithinAbs(R, REAL(1e-9)));
 }
 
-TEST_CASE("Cylinder - Normal Vector (Should Be Radial in xy-plane)", "[surfaces]")
+TEST_CASE("CylinderSurface - Normal Vector (Should Be Radial in xy-plane)", "[surfaces]")
 {
     Real R = REAL(1.5);
-    Cylinder cylinder(R, REAL(2.0));
+    CylinderSurface cylinder(R, REAL(2.0));
     
     Real u = Constants::PI / REAL(3.0);
     Real w = REAL(0.5);
@@ -220,22 +222,22 @@ TEST_CASE("Cylinder - Normal Vector (Should Be Radial in xy-plane)", "[surfaces]
     REQUIRE_THAT(normal[1], WithinAbs(expected_y, REAL(1e-6)));
 }
 
-TEST_CASE("Cylinder - Gaussian Curvature (Should Be Zero)", "[surfaces]")
+TEST_CASE("CylinderSurface - Gaussian Curvature (Should Be Zero)", "[surfaces]")
 {
-    Cylinder cylinder(REAL(1.0), REAL(2.0));
+    CylinderSurface cylinder(REAL(1.0), REAL(2.0));
     
-    // Cylinder is developable: Gaussian curvature should be exactly 0
+    // CylinderSurface is developable: Gaussian curvature should be exactly 0
     Real K = cylinder.GaussianCurvature(Constants::PI / REAL(4.0), REAL(1.0));
     
     REQUIRE_THAT(K, WithinAbs(REAL(0.0), REAL(1e-9)));
-    // Cylinder IS flat (K=0) - it's a developable surface!
+    // CylinderSurface IS flat (K=0) - it's a developable surface!
     REQUIRE(cylinder.isFlat(Constants::PI / REAL(4.0), REAL(1.0)));
 }
 
-TEST_CASE("Cylinder - Mean Curvature (H = 1/(2R))", "[surfaces]")
+TEST_CASE("CylinderSurface - Mean Curvature (H = 1/(2R))", "[surfaces]")
 {
     Real R = REAL(2.0);
-    Cylinder cylinder(R, REAL(3.0));
+    CylinderSurface cylinder(R, REAL(3.0));
     
     Real H = cylinder.MeanCurvature(Constants::PI / REAL(6.0), REAL(1.5));
     Real expected_H = -REAL(1.0) / (REAL(2.0) * R);
@@ -243,10 +245,10 @@ TEST_CASE("Cylinder - Mean Curvature (H = 1/(2R))", "[surfaces]")
     REQUIRE_THAT(H, WithinAbs(expected_H, REAL(1e-6)));
 }
 
-TEST_CASE("Cylinder - Principal Curvatures (k1 = 0, k2 = 1/R)", "[surfaces]")
+TEST_CASE("CylinderSurface - Principal Curvatures (k1 = 0, k2 = 1/R)", "[surfaces]")
 {
     Real R = REAL(1.0);
-    Cylinder cylinder(R, REAL(2.0));
+    CylinderSurface cylinder(R, REAL(2.0));
     
     Real k1, k2;
     cylinder.PrincipalCurvatures(Constants::PI / REAL(4.0), REAL(1.0), k1, k2);
@@ -434,10 +436,10 @@ TEST_CASE("Sphere - First Fundamental Form Coefficients", "[surfaces]")
     REQUIRE_THAT(G, WithinAbs(expected_G, REAL(1e-6)));
 }
 
-TEST_CASE("Cylinder - Second Fundamental Form Coefficients", "[surfaces]")
+TEST_CASE("CylinderSurface - Second Fundamental Form Coefficients", "[surfaces]")
 {
     Real R = REAL(1.5);
-    Cylinder cylinder(R, REAL(2.0));
+    CylinderSurface cylinder(R, REAL(2.0));
     
     Real u = Constants::PI / REAL(3.0);
     Real w = REAL(1.0);
@@ -458,7 +460,7 @@ TEST_CASE("Cylinder - Second Fundamental Form Coefficients", "[surfaces]")
 TEST_CASE("Surfaces - Regularity Check", "[surfaces]")
 {
     Sphere sphere(REAL(1.0));
-    Cylinder cylinder(REAL(1.0), REAL(2.0));
+    CylinderSurface cylinder(REAL(1.0), REAL(2.0));
     Torus torus(REAL(3.0), REAL(1.0));
     
     // All these surfaces should be regular at generic points
@@ -480,9 +482,11 @@ TEST_CASE("Surfaces - Tangent Vectors Orthogonality to Normal", "[surfaces]")
     VectorN<Real, 3> normal = sphere.Normal(u, w);
     
     // Tangents should be perpendicular to normal
-    Real dot_tU_n = ScalarProduct(tU, normal);
-    Real dot_tW_n = ScalarProduct(tW, normal);
+    Real dot_tU_n = Utils::ScalarProduct(tU, normal);
+    Real dot_tW_n = Utils::ScalarProduct(tW, normal);
     
     REQUIRE_THAT(dot_tU_n, WithinAbs(REAL(0.0), REAL(1e-6)));
     REQUIRE_THAT(dot_tW_n, WithinAbs(REAL(0.0), REAL(1e-6)));
 }
+
+} // namespace MML::Tests::Core::SurfacesTests

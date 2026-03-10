@@ -20,7 +20,7 @@ MML provides a complete framework for working with orthogonal function bases - o
 - Quantum mechanics (periodic potentials)
 
 ```cpp
-#include "algorithms/Fourier/FourierBasis.h"
+#include "Fourier/FourierBasis.h"
 
 FourierBasis fourier(Constants::PI);  // Half-period L = π
 

@@ -3,8 +3,8 @@
 #else
 #include "MMLBase.h"
 
-#include "base/Vector.h"
-#include "base/Matrix.h"
+#include "base/Vector/Vector.h"
+#include "base/Matrix/Matrix.h"
 #include "base/BaseUtils.h"
 #endif
 
@@ -21,7 +21,7 @@ void Matrix_initializations()
 	Matrix<Real> c(2, 2, { 1.0, -2.0, 3.75, -1.0 });     // matrix with initialized values
 	Matrix<Real> d(c);
 	Matrix<Real> e = c;
-	Matrix<Real> f = Matrix<Real>::GetUnitMatrix(3);
+	Matrix<Real> f = Matrix<Real>::Identity(3);
 
 	MatrixInt      mat_int;
 	MatrixDbl      mat_dbl(3, 3);
@@ -57,7 +57,7 @@ void Matrix_vector_init_operations()
 	Matrix<Real> m1(2, 2, { 1.0, -1.0, 1.5, 3.0 });
 	Vector<Real> vecRow = m1.VectorFromRow(0);
 	Vector<Real> vecCol = m1.VectorFromColumn(0);
-	Vector<Real> vecDiag = m1.VectorFromDiagonal();
+	Vector<Real> vecDiag = m1.diagonal();
 
 	std::cout << "Matrix m1 = " << m1 << std::endl;
 	std::cout << "Vector vecRow = Matrix::VectorFromRow(a, 0)    = " << vecRow << std::endl;
@@ -132,7 +132,7 @@ void Matrix_invert()
 	Matrix<Real> m1(2, 2, { 1.0, -1.0, 1.5, 3.0 });
 
 	std::cout << "m1       = " << m1 << std::endl;
-	auto m2 = m1.GetInverse();
+	auto m2 = m1.inverse();
 
 	std::cout << "m2 (inv) = " << m2 << std::endl;
 
@@ -149,7 +149,7 @@ void Matrix_transpose()
 	Matrix<Real> m1(2, 2, { 1.0, -1.0, 1.5, 3.0 });
 	std::cout << "m1          = " << m1 << std::endl;
 
-	auto m2 = m1.GetTranspose();
+	auto m2 = m1.transpose();
 	std::cout << "m2 (transp) = " << m2 << std::endl;
 
 	m1.Transpose();

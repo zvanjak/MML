@@ -6,6 +6,8 @@
 using namespace MML::Testing;
 using namespace MML::Testing::Matchers;
 
+namespace MML::Tests::TestInfrastructure::PrecisionHelpersTests {
+
 TEST_CASE("TestPrecision - Precision Detection", "[test-infrastructure]") {
     TEST_PRECISION_INFO();
     
@@ -146,3 +148,5 @@ TEST_CASE("TestPrecision - REAL macro", "[test-infrastructure]") {
         REQUIRE(d == REAL(1.0));
     }
 }
+
+} // namespace MML::Tests::TestInfrastructure::PrecisionHelpersTests

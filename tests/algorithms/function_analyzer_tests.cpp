@@ -5,7 +5,7 @@
 #ifdef MML_USE_SINGLE_HEADER
 #include "MML.h"
 #else
-#include "base/Vector.h"
+#include "base/Vector/Vector.h"
 
 #include "base/Function.h"
 #include "base/InterpolatedFunction.h"
@@ -770,6 +770,118 @@ namespace MML::Tests::Algorithms::FunctionAnalyzerTests
 
 		// Should find no inflection points
 		REQUIRE(inflections.size() == 0);
+	}
+
+	//////////////////////////////////////////////////////////////////////////
+	// OVERFLOW PROTECTION TESTS
+	//////////////////////////////////////////////////////////////////////////
+
+	TEST_CASE("FunctionAnalyzer::OverflowProtection_1_over_x", "[overflow]")
+	{
+		TEST_PRECISION_INFO();
+		// f(x) = 1/x has singularity at x=0
+		RealFunction f([](Real x) { return REAL(1.0) / x; });
+		RealFunctionAnalyzer analyzer(f);
+
+		// Test ComputeLeftLimit near singularity - approaching 0 from left gives -infinity
+		Real leftLimit = analyzer.ComputeLeftLimit(REAL(0.0));
+		// Left limit should be very large negative (approaching -infinity)
+		// The function returns large values as we approach 0 from left
+		REQUIRE(leftLimit < REAL(0.0)); // Must be negative when approaching from left
+
+		// Test ComputeRightLimit near singularity - approaching 0 from right gives +infinity
+		Real rightLimit = analyzer.ComputeRightLimit(REAL(0.0));
+		// Right limit should be very large positive (approaching +infinity)
+		REQUIRE(rightLimit > REAL(0.0)); // Must be positive when approaching from right
+
+		// isContinuousAtPoint should return false at singularity
+		REQUIRE(analyzer.isContinuousAtPoint(REAL(0.0), 1e-6) == false);
+
+		// Should be continuous away from singularity
+		REQUIRE(analyzer.isContinuousAtPoint(REAL(1.0), 1e-6) == true);
+		REQUIRE(analyzer.isContinuousAtPoint(REAL(-1.0), 1e-6) == true);
+	}
+
+	TEST_CASE("FunctionAnalyzer::OverflowProtection_1_over_x_squared", "[overflow]")
+	{
+		TEST_PRECISION_INFO();
+		// f(x) = 1/x^2 has singularity at x=0 (both sides go to +infinity)
+		RealFunction f([](Real x) { return REAL(1.0) / (x * x); });
+		RealFunctionAnalyzer analyzer(f);
+
+		// Both limits should be +infinity or very large
+		Real leftLimit = analyzer.ComputeLeftLimit(REAL(0.0));
+		Real rightLimit = analyzer.ComputeRightLimit(REAL(0.0));
+
+		REQUIRE((std::isinf(leftLimit) || leftLimit > REAL(1e10)));
+		REQUIRE((std::isinf(rightLimit) || rightLimit > REAL(1e10)));
+
+		// isContinuousAtPoint should return false at singularity
+		REQUIRE(analyzer.isContinuousAtPoint(REAL(0.0), 1e-6) == false);
+	}
+
+	TEST_CASE("FunctionAnalyzer::OverflowProtection_MinMax_with_singularity", "[overflow]")
+	{
+		TEST_PRECISION_INFO();
+		// f(x) = 1/(x-5) has singularity at x=5
+		// Test MinInNPoints and MaxInNPoints over interval containing singularity
+		RealFunction f([](Real x) { return REAL(1.0) / (x - REAL(5.0)); });
+		RealFunctionAnalyzer analyzer(f);
+
+		// These should handle overflow gracefully and not crash
+		Real minVal = analyzer.MinInNPoints(REAL(0.0), REAL(10.0), 100);
+		Real maxVal = analyzer.MaxInNPoints(REAL(0.0), REAL(10.0), 100);
+
+		// Should return valid values (ignoring the singularity points)
+		// The values around x=5 will overflow, but other values should be captured
+		REQUIRE_FALSE(std::isnan(minVal)); // Should have found some valid minimum
+		REQUIRE_FALSE(std::isnan(maxVal)); // Should have found some valid maximum
+	}
+
+	TEST_CASE("FunctionAnalyzer::OverflowProtection_tan", "[overflow]")
+	{
+		TEST_PRECISION_INFO();
+		// f(x) = tan(x) has singularities at x = ±π/2, ±3π/2, etc.
+		RealFunction f([](Real x) { return std::tan(x); });
+		RealFunctionAnalyzer analyzer(f);
+
+		const Real pi = REAL(3.14159265358979323846);
+		const Real halfPi = pi / REAL(2.0);
+
+		// Near π/2, should detect discontinuity/overflow
+		REQUIRE(analyzer.isContinuousAtPoint(halfPi, 1e-6) == false);
+
+		// Away from singularity, should be continuous
+		REQUIRE(analyzer.isContinuousAtPoint(REAL(0.0), 1e-6) == true);
+		REQUIRE(analyzer.isContinuousAtPoint(REAL(1.0), 1e-6) == true);
+	}
+
+	TEST_CASE("FunctionAnalyzer::SafeEvaluate_utility", "[overflow]")
+	{
+		TEST_PRECISION_INFO();
+		// Test the SafeEvaluate utility directly
+		RealFunction normalFunc([](Real x) { return x * x; });
+		RealFunction singularFunc([](Real x) { return REAL(1.0) / x; });
+		RealFunction nanFunc([](Real x) { return std::sqrt(x); }); // NaN for negative x
+
+		// Normal evaluation
+		SafeEvalResult result1 = SafeEvaluate(normalFunc, REAL(2.0));
+		REQUIRE(result1.isValid == true);
+		REQUIRE(result1.isOverflow == false);
+		REQUIRE(result1.isNaN == false);
+		REQUIRE_THAT(result1.value, WithinAbs(REAL(4.0), REAL(1e-10)));
+
+		// Very small x gives very large but finite result - test the threshold
+		// Use threshold of 1e100 to test overflow detection
+		SafeEvalResult result2 = SafeEvaluate(singularFunc, REAL(1e-200), REAL(1e100));
+		// 1/1e-200 = 1e200, which exceeds threshold of 1e100
+		REQUIRE(result2.isOverflow == true);
+		REQUIRE(result2.isValid == false);
+
+		// NaN result
+		SafeEvalResult result3 = SafeEvaluate(nanFunc, REAL(-1.0));
+		REQUIRE(result3.isNaN == true);
+		REQUIRE(result3.isValid == false);
 	}
 
 }

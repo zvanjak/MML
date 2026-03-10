@@ -5,17 +5,17 @@
 
 #include "interfaces/IODESystem.h"
 
-#include "base/Vector.h"
+#include "base/Vector/Vector.h"
 
 #include "tools/Visualizer.h"
 #include "tools/Serializer.h"
 
-#include "algorithms/ODESystemSolver.h"
-#include "algorithms/ODESystemStepCalculators.h"
-#include "algorithms/ODESystemSteppers.h"
+#include "mml/algorithms/ODESolvers/ODEAdaptiveIntegrator.h"
+#include "mml/algorithms/ODESolvers/ODEFixedStepIntegrators.h"
+#include "mml/algorithms/ODESolvers/ODESystemStepCalculators.h"
 #endif
 
-#include "../test_data/diff_eq_systems_test_bed.h"
+#include "../test_beds/diff_eq_systems_test_bed.h"
 
 using namespace MML;
 
@@ -39,7 +39,7 @@ void Demo_Lorenz_solve()
 	//std::cout << "y values: - ";
 	//sol0._xval.Print(std::cout, 6, 3);
 
-	//Visualizer::VisualizeODESysSolAsMultiFunc(sol0, "Lorenz system as multi function", "lorenz_1_as_multi_func.txt");
+	//Visualizer::VisualizeODESysSolAsMultiFunc(sol0, "Lorenz system as multi function", "lorenz_1_as_multi_func.mml");
 }
 
 void Demo_VanderPol_solve()
@@ -67,13 +67,13 @@ void Demo_VanderPol_solve()
 
 	ystart0[0] = 2.0;
 	ystart0[1] = 0.0;
-	ODESystemSolver<RK5_CashKarp_Stepper> solver2(sys0);
-	ODESystemSolution sol2 = solver2.integrate(ystart0, 0.0, 2.0, 0.1, 1e-06, h1, hmin);
+	CashKarpIntegrator solver2(sys0);
+	ODESystemSolution sol2 = solver2.integrate(ystart0, 0.0, 2.0, 0.1, 1e-06, h1);
 
 	std::cout << "x values:\n";    sol2.getTValues().Print(std::cout, 7, 3); std::cout << std::endl;
 	std::cout << "y values: - ";   sol2.getXValues().Print(std::cout, 7, 3);
 
-	Visualizer::VisualizeODESysSolAsMultiFunc(sol2, "Van der Pol solution - RK 4th order", std::vector<std::string>{"comp 1", "comp 2"}, "vanderpol_RK_4th.txt");
+	Visualizer::VisualizeODESysSolAsMultiFunc(sol2, "Van der Pol solution - RK 4th order", std::vector<std::string>{"comp 1", "comp 2"}, "vanderpol_RK_4th.mml");
 
 }
 
@@ -91,8 +91,8 @@ void Demo_SimpleLinearODE_solve()
 	//std::cout << "x values:\n";    sol.getTValues().Print(std::cout, 7, 3); std::cout << std::endl;
 	//std::cout << "y values: - ";   sol.getXValues().Print(std::cout, 7, 3);
 
-	//ODESystemSolver<RK5_CashKarp_Stepper> solver2(*sys.getODESystem());
-	//ODESystemSolution sol2 = solver2.integrate(sys.getInitialConditions(), 0.0, 2.0, 0.1, 1e-06, h1, hmin);
+	//CashKarpIntegrator solver2(*sys.getODESystem());
+	//ODESystemSolution sol2 = solver2.integrate(sys.getInitialConditions(), 0.0, 2.0, 0.1, 1e-06, h1);
 
 	//std::cout << "**********    Runge-Kutta 4th order - stepper    ********\n";
 	//std::cout << "x values:\n";    sol2.getTValues().Print(std::cout, 7, 3); std::cout << std::endl;

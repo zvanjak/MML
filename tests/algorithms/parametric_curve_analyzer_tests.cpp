@@ -5,15 +5,15 @@
 #ifdef MML_USE_SINGLE_HEADER
 #include "MML.h"
 #else
-#include "base/VectorN.h"
-#include "base/Geometry3D.h"
+#include "base/Vector/VectorN.h"
+#include "mml/base/Geometry/Geometry3D.h"
 
 #include "base/Function.h"
 #include "core/Curves.h"
 #include "core/Derivation.h"
 #endif
 
-#include "../test_data/parametric_curves_test_bed.h"
+#include "../test_beds/parametric_curves_test_bed.h"
 
 using namespace MML;
 using namespace MML::Testing;
@@ -46,7 +46,7 @@ namespace MML::Tests::Algorithms::CurveAnalysisTests
 			TEST_PRECISION_INFO();
 		// Circle in XY plane: r(t) = {cos(t), sin(t), 0}
 		// Unit tangent should have norm = 1
-		const auto& circle = TestBeds::ParametricCurvesTestBed::getTestCurve("Circle3DXY");
+		const auto& circle = TestBeds::ParametricCurvesTestBed::getTestCurve("Circle3DXYCurve");
 		
 		Real t = Constants::PI / REAL(3.0);
 		auto unitTangent = circle._curve.getTangentUnit(t);
@@ -118,7 +118,7 @@ namespace MML::Tests::Algorithms::CurveAnalysisTests
 	{
 			TEST_PRECISION_INFO();
 		// For a circle, principal normal points toward center
-		const auto& circle = TestBeds::ParametricCurvesTestBed::getTestCurve("Circle3DXY");
+		const auto& circle = TestBeds::ParametricCurvesTestBed::getTestCurve("Circle3DXYCurve");
 		
 		Real t = Constants::PI / REAL(2.0);
 		auto principalNormal = circle._curve.getNormalUnit(t);
@@ -156,7 +156,7 @@ namespace MML::Tests::Algorithms::CurveAnalysisTests
 	{
 			TEST_PRECISION_INFO();
 		// Unit circle has constant curvature κ = 1
-		const auto& circle = TestBeds::ParametricCurvesTestBed::getTestCurve("Circle3DXY");
+		const auto& circle = TestBeds::ParametricCurvesTestBed::getTestCurve("Circle3DXYCurve");
 		
 		std::vector<Real> test_points = {REAL(0.0), Constants::PI/4, Constants::PI/2, Constants::PI};
 		
@@ -222,7 +222,7 @@ namespace MML::Tests::Algorithms::CurveAnalysisTests
 	{
 			TEST_PRECISION_INFO();
 		// For a circle, curvature vector points toward center
-		const auto& circle = TestBeds::ParametricCurvesTestBed::getTestCurve("Circle3DXY");
+		const auto& circle = TestBeds::ParametricCurvesTestBed::getTestCurve("Circle3DXYCurve");
 		
 		Real t = Constants::PI / REAL(4.0);
 		auto curvatureVec = circle._curve.getCurvatureVector(t);
@@ -296,7 +296,7 @@ namespace MML::Tests::Algorithms::CurveAnalysisTests
 	{
 			TEST_PRECISION_INFO();
 		// Unit circle is NOT arc-length parametrized with standard parametrization
-		const auto& circle = TestBeds::ParametricCurvesTestBed::getTestCurve("Circle3DXY");
+		const auto& circle = TestBeds::ParametricCurvesTestBed::getTestCurve("Circle3DXYCurve");
 		
 		// Standard parametrization has constant speed |r'(t)| = 1, so it IS arc-length parametrized
 		bool isArcLen = circle._curve.isArcLengthParametrized(REAL(0.0), Constants::PI);

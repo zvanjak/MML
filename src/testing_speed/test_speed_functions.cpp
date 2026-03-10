@@ -6,6 +6,8 @@
 #include <string>
 #include <vector>
 
+#include "base/StandardFunctions.h"  // For MML_HAS_STD_SPECIAL_FUNCTIONS
+
 //#include <chrono>
 
 
@@ -19,6 +21,8 @@ FUNKCIJA
 - Special func - assoc_laguerre, assoc_legendre, beta, comp_ellint_1(2,3), cyl_bessel_I(j,k)
                 - hermite, legendre, lagurre, riemann_zeta, sph_bessel, sph_legendre
 */
+
+#if MML_HAS_STD_SPECIAL_FUNCTIONS
 
 inline double eval_hermite(int n, double x) { return std::hermite(n, x); }
 
@@ -134,3 +138,13 @@ void Test_Speed_Functions()
     //    std::cout << std::setw(20) << f._name << " - " << rand_time.count() << " ; " << array_time.count() << " ; " << diff << "\n";
     //}
 }
+
+#else
+// C++17 special math functions not available (e.g., macOS libc++)
+void Test_Speed_Functions()
+{
+    std::cout << "TESTING SPEED OF FUNCTION EVALUATION\n";
+    std::cout << "Note: C++17 special math functions not available on this platform.\n";
+    std::cout << "Speed tests for special functions are disabled.\n";
+}
+#endif

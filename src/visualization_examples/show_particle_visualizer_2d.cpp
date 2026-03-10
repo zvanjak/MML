@@ -27,7 +27,7 @@ void Show_Particle_Visualizer_2D_Examples()
     // We need to construct the path based on where the executable is run from
     
     std::string dataFolder = "src/visualization_examples/visualization_data/";
-    std::string dataFile = "particle_visualizer_2d_1.txt";
+    std::string dataFile = "particle_visualizer_2d_1.mml";
     
     // First, try to find the file relative to current working directory
     std::filesystem::path filePath = dataFolder + dataFile;

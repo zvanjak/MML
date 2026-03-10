@@ -8,7 +8,7 @@
 #include "core/Integration/PathIntegration.h"
 #endif
 
-#include "../test_data/parametric_curves_test_bed.h"
+#include "../test_beds/parametric_curves_test_bed.h"
 
 using namespace MML;
 using namespace MML::Curves;
@@ -117,10 +117,10 @@ void Docs_Demo_Curves_3D_Basic()
 	std::cout << "  Unit tangent: "; line_tang.Print(std::cout, 8, 4); std::cout << std::endl;
 
 	// Circles in coordinate planes
-	std::cout << "\n--- Circle3DXY, Circle3DXZ, Circle3DYZ ---" << std::endl;
-	Circle3DXY circleXY(3.0);
-	Circle3DXZ circleXZ(2.0);
-	Circle3DYZ circleYZ(4.0);
+	std::cout << "\n--- Circle3DXYCurve, Circle3DXZCurve, Circle3DYZCurve ---" << std::endl;
+	Circle3DXYCurve circleXY(3.0);
+	Circle3DXZCurve circleXZ(2.0);
+	Circle3DYZCurve circleYZ(4.0);
 	
 	std::cout << "CircleXY (R=3) at t=PI: "; circleXY(Constants::PI).Print(std::cout, 8, 4); std::cout << std::endl;
 	std::cout << "CircleXZ (R=2) at t=PI: "; circleXZ(Constants::PI).Print(std::cout, 8, 4); std::cout << std::endl;
@@ -130,7 +130,7 @@ void Docs_Demo_Curves_3D_Basic()
 	std::cout << "\n--- Circle (General 3D) ---" << std::endl;
 	Vec3Cart normal(1, 1, 1);  // Will be normalized
 	Pnt3Cart center(0, 0, 5);
-	Circle circle3D(2.0, normal, center);
+	Circle3DCurve circle3D(2.0, normal, center);
 	
 	std::cout << "Circle: R=2, normal=(1,1,1), center=(0,0,5)" << std::endl;
 	Vec3Cart pt_circle3D = circle3D(Constants::PI / 4);
@@ -237,7 +237,7 @@ void Docs_Demo_Curves_Curvature_Torsion()
 
 	// Circle - zero torsion, constant curvature
 	std::cout << "\n--- Circle (zero torsion, constant curvature) ---" << std::endl;
-	Circle3DXY circle(3.0);  // Radius 3
+	Circle3DXYCurve circle(3.0);  // Radius 3
 	
 	std::cout << "Circle: R=3" << std::endl;
 	std::cout << "  Expected curvature: 1/R = " << 1.0/3.0 << std::endl;
@@ -273,7 +273,7 @@ void Docs_Demo_Curves_Arc_Length()
 
 	// Circle arc length
 	std::cout << "\n--- Circle Arc Length ---" << std::endl;
-	Circle3DXY circle(2.0);  // Radius 2
+	Circle3DXYCurve circle(2.0);  // Radius 2
 	
 	Real circle_full = PathIntegration::ParametricCurveLength(circle, 0.0, 2*Constants::PI);
 	Real circle_half = PathIntegration::ParametricCurveLength(circle, 0.0, Constants::PI);
@@ -364,14 +364,14 @@ void Docs_Demo_Surfaces_Basic()
 	std::cout << "  Mean curvature H = 1/R = " << sphere.MeanCurvature(u, w) 
 			  << " (expected " << 1.0/5.0 << ")" << std::endl;
 
-	// Cylinder
-	std::cout << "\n--- Cylinder ---" << std::endl;
-	Cylinder cylinder(2.0, 5.0);  // R=2, H=5
+	// CylinderSurface
+	std::cout << "\n--- CylinderSurface ---" << std::endl;
+	CylinderSurface cylinder(2.0, 5.0);  // R=2, H=5
 	
 	u = Constants::PI / 4;
 	w = 2.5;  // Middle height
 	
-	std::cout << "Cylinder R=2, H=5:" << std::endl;
+	std::cout << "CylinderSurface R=2, H=5:" << std::endl;
 	pt = cylinder(u, w);
 	std::cout << "  Point at (u=PI/4, w=2.5): "; pt.Print(std::cout, 8, 4); std::cout << std::endl;
 	
@@ -640,9 +640,9 @@ void Docs_Demo_Surfaces_Classification()
 	Real K = sphere.GaussianCurvature(Constants::PI/2, 0.0);
 	std::cout << "  K = " << K << " > 0: elliptic (dome)" << std::endl;
 
-	// Cylinder - parabolic everywhere
-	std::cout << "\n--- Cylinder (parabolic everywhere) ---" << std::endl;
-	Cylinder cylinder(2.0, 3.0);
+	// CylinderSurface - parabolic everywhere
+	std::cout << "\n--- CylinderSurface (parabolic everywhere) ---" << std::endl;
+	CylinderSurface cylinder(2.0, 3.0);
 	K = cylinder.GaussianCurvature(Constants::PI/4, 1.0);
 	std::cout << "  K = " << K << " = 0: parabolic" << std::endl;
 	std::cout << "  isFlat: " << (cylinder.isFlat(Constants::PI/4, 1.0) ? "yes" : "no") << std::endl;

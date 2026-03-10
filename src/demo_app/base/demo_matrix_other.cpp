@@ -3,9 +3,9 @@
 #else
 #include "MMLBase.h"
 
-#include "base/Vector.h"
-#include "base/MatrixSym.h"
-#include "base/MatrixTriDiag.h"
+#include "base/Vector/Vector.h"
+#include "base/Matrix/MatrixSym.h"
+#include "base/Matrix/MatrixTriDiag.h"
 
 #include "core/LinAlgEqSolvers.h"
 #endif

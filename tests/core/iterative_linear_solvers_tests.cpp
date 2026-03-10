@@ -5,13 +5,13 @@
 #ifdef MML_USE_SINGLE_HEADER
 #include "MML.h"
 #else
-#include "base/Vector.h"
-#include "base/Matrix.h"
+#include "base/Vector/Vector.h"
+#include "base/Matrix/Matrix.h"
 #include "base/BaseUtils.h"
-#include "core/LinAlgEqSolvers_iterative.h"
+#include "core/LinAlgEqSolvers/LinAlgEqSolvers_iterative.h"
 #endif
 
-#include "../test_data/linear_alg_eq_systems_test_bed.h"
+#include "../test_beds/linear_alg_eq_systems_test_bed.h"
 
 using namespace MML;
 using namespace MML::Testing;
@@ -362,6 +362,242 @@ namespace MML::Tests::Core::IterativeLinearSolversTests
 		
 		REQUIRE(result.converged);
 		REQUIRE(result.solution.IsEqualTo(sys._sol, 1e-8));
+	}
+
+	/*********************************************************************/
+	/*****              RESULT STRUCTURE TESTS                       *****/
+	/*********************************************************************/
+
+	TEST_CASE("IterativeSolverResult_AllFields", "[Iterative][Result]")
+	{
+		TEST_PRECISION_INFO();
+		auto sys = TestBeds::diag_dominant_4x4();
+		
+		auto result = JacobiSolver::Solve(sys._mat, sys._rhs);
+		
+		// Verify all fields are populated correctly
+		REQUIRE(result.converged == true);
+		REQUIRE(result.iterations > 0);
+		REQUIRE(result.iterations <= 1000);  // Within max iterations
+		REQUIRE(result.residual >= REAL(0.0));
+		REQUIRE(result.residual < REAL(1e-10));  // Within tolerance
+		REQUIRE(result.solution.size() == sys._sol.size());
+	}
+
+	TEST_CASE("IterativeSolverResult_ResidualComputation", "[Iterative][Result]")
+	{
+		TEST_PRECISION_INFO();
+		auto sys = TestBeds::diag_dominant_5x5_tridiag();
+		
+		auto result = GaussSeidelSolver::Solve(sys._mat, sys._rhs);
+		
+		// Manually compute residual ||Ax - b|| / ||b||
+		Vector<Real> Ax = sys._mat * result.solution;
+		Vector<Real> residual_vec = Ax - sys._rhs;
+		Real computed_residual = residual_vec.NormL2() / sys._rhs.NormL2();
+		
+		// Result residual should match (approximately, due to final iteration)
+		REQUIRE(std::abs(result.residual - computed_residual) < REAL(1e-12));
+	}
+
+	/*********************************************************************/
+	/*****              LARGER SYSTEM TESTS                          *****/
+	/*********************************************************************/
+
+	TEST_CASE("Jacobi_LargeSystem_20x20", "[JacobiSolver][Iterative][Large]")
+	{
+		TEST_PRECISION_INFO();
+		// Create a 20x20 diagonally dominant system
+		int n = 20;
+		Matrix<Real> A(n, n);
+		Vector<Real> b(n);
+		
+		// Fill with diagonally dominant pattern
+		for (int i = 0; i < n; i++)
+		{
+			Real diag_sum = REAL(0.0);
+			for (int j = 0; j < n; j++)
+			{
+				if (i != j)
+				{
+					A[i][j] = REAL(1.0) / (REAL(1.0) + std::abs(i - j));
+					diag_sum += std::abs(A[i][j]);
+				}
+			}
+			A[i][i] = diag_sum + REAL(1.0);  // Strictly diagonally dominant
+			b[i] = REAL(i + 1);
+		}
+		
+		auto result = JacobiSolver::Solve(A, b);
+		
+		REQUIRE(result.converged);
+		
+		// Verify Ax = b
+		Vector<Real> Ax = A * result.solution;
+		REQUIRE(Ax.IsEqualTo(b, REAL(1e-8)));
+	}
+
+	TEST_CASE("GaussSeidel_LargeSystem_50x50", "[GaussSeidelSolver][Iterative][Large]")
+	{
+		TEST_PRECISION_INFO();
+		// Create a 50x50 tridiagonal system (1D Poisson-like)
+		int n = 50;
+		Matrix<Real> A(n, n);
+		Vector<Real> b(n);
+		
+		for (int i = 0; i < n; i++)
+		{
+			A[i][i] = REAL(4.0);
+			if (i > 0) A[i][i-1] = REAL(-1.0);
+			if (i < n-1) A[i][i+1] = REAL(-1.0);
+			b[i] = REAL(1.0);
+		}
+		
+		auto result = GaussSeidelSolver::Solve(A, b);
+		
+		REQUIRE(result.converged);
+		
+		// Verify solution
+		Vector<Real> Ax = A * result.solution;
+		REQUIRE(Ax.IsEqualTo(b, REAL(1e-8)));
+	}
+
+	TEST_CASE("SOR_LargeSystem_50x50", "[SORSolver][Iterative][Large]")
+	{
+		TEST_PRECISION_INFO();
+		// 50x50 tridiagonal system with SOR
+		int n = 50;
+		Matrix<Real> A(n, n);
+		Vector<Real> b(n);
+		
+		for (int i = 0; i < n; i++)
+		{
+			A[i][i] = REAL(4.0);
+			if (i > 0) A[i][i-1] = REAL(-1.0);
+			if (i < n-1) A[i][i+1] = REAL(-1.0);
+			b[i] = REAL(1.0);
+		}
+		
+		// Use omega slightly above 1 (mild over-relaxation)
+		// The "optimal omega" formula is for specific Poisson BCs and may not apply here
+		auto sor_result = SORSolver::Solve(A, b, REAL(1.2));
+		
+		REQUIRE(sor_result.converged);
+		
+		// Verify solution
+		Vector<Real> Ax = A * sor_result.solution;
+		REQUIRE(Ax.IsEqualTo(b, REAL(1e-8)));
+	}
+
+	/*********************************************************************/
+	/*****              EDGE CASE TESTS                              *****/
+	/*********************************************************************/
+
+	TEST_CASE("Jacobi_NonSquareMatrix_Throws", "[JacobiSolver][Iterative]")
+	{
+		TEST_PRECISION_INFO();
+		Matrix<Real> A(3, 4);  // Non-square
+		Vector<Real> b(3);
+		
+		REQUIRE_THROWS_AS(JacobiSolver::Solve(A, b), MatrixDimensionError);
+	}
+
+	TEST_CASE("GaussSeidel_NonSquareMatrix_Throws", "[GaussSeidelSolver][Iterative]")
+	{
+		TEST_PRECISION_INFO();
+		Matrix<Real> A(4, 3);  // Non-square
+		Vector<Real> b(4);
+		
+		REQUIRE_THROWS_AS(GaussSeidelSolver::Solve(A, b), MatrixDimensionError);
+	}
+
+	TEST_CASE("SOR_NonSquareMatrix_Throws", "[SORSolver][Iterative]")
+	{
+		TEST_PRECISION_INFO();
+		Matrix<Real> A(3, 5);  // Non-square
+		Vector<Real> b(3);
+		
+		REQUIRE_THROWS_AS(SORSolver::Solve(A, b, REAL(1.2)), MatrixDimensionError);
+	}
+
+	TEST_CASE("GaussSeidel_SolveSimple_Throws_OnNonConvergence", "[GaussSeidelSolver][Iterative]")
+	{
+		TEST_PRECISION_INFO();
+		auto sys = TestBeds::diag_dominant_5x5_tridiag();
+		
+		// Very tight tolerance with very few iterations - should not converge
+		REQUIRE_THROWS_AS(
+			GaussSeidelSolver::SolveSimple(sys._mat, sys._rhs, REAL(1e-20), 3),
+			std::runtime_error
+		);
+	}
+
+	TEST_CASE("SOR_SolveSimple_Throws_OnNonConvergence", "[SORSolver][Iterative]")
+	{
+		TEST_PRECISION_INFO();
+		auto sys = TestBeds::diag_dominant_5x5_tridiag();
+		
+		// Very tight tolerance with very few iterations - should not converge
+		REQUIRE_THROWS_AS(
+			SORSolver::SolveSimple(sys._mat, sys._rhs, REAL(1.2), REAL(1e-20), 3),
+			std::runtime_error
+		);
+	}
+
+	TEST_CASE("Jacobi_ZeroRHS", "[JacobiSolver][Iterative]")
+	{
+		TEST_PRECISION_INFO();
+		// When b = 0, solution should be x = 0
+		auto sys = TestBeds::diag_dominant_4x4();
+		Vector<Real> zero_b(sys._rhs.size());
+		for (int i = 0; i < zero_b.size(); i++)
+			zero_b[i] = REAL(0.0);
+		
+		auto result = JacobiSolver::Solve(sys._mat, zero_b);
+		
+		REQUIRE(result.converged);
+		for (int i = 0; i < result.solution.size(); i++)
+		{
+			REQUIRE(std::abs(result.solution[i]) < REAL(1e-12));
+		}
+	}
+
+	TEST_CASE("Iterative_CustomInitialGuess_Accuracy", "[Iterative]")
+	{
+		TEST_PRECISION_INFO();
+		auto sys = TestBeds::diag_dominant_5x5_tridiag();
+		
+		// Start with a "close" initial guess
+		Vector<Real> close_guess = sys._sol;
+		for (int i = 0; i < close_guess.size(); i++)
+			close_guess[i] *= REAL(1.1);  // 10% off
+		
+		// With close guess, should converge faster than from zero
+		auto result_close = JacobiSolver::Solve(sys._mat, sys._rhs, close_guess);
+		auto result_zero = JacobiSolver::Solve(sys._mat, sys._rhs);
+		
+		REQUIRE(result_close.converged);
+		REQUIRE(result_zero.converged);
+		REQUIRE(result_close.iterations <= result_zero.iterations);
+		
+		// Both should give correct solution (verified against expected)
+		REQUIRE(result_close.solution.IsEqualTo(sys._sol, REAL(1e-8)));
+		REQUIRE(result_zero.solution.IsEqualTo(sys._sol, REAL(1e-8)));
+	}
+
+	TEST_CASE("Iterative_ToleranceSensitivity", "[Iterative]")
+	{
+		TEST_PRECISION_INFO();
+		auto sys = TestBeds::diag_dominant_4x4();
+		
+		// Tighter tolerance should need more iterations
+		auto loose = JacobiSolver::Solve(sys._mat, sys._rhs, Vector<Real>(), REAL(1e-6), 1000);
+		auto tight = JacobiSolver::Solve(sys._mat, sys._rhs, Vector<Real>(), REAL(1e-12), 1000);
+		
+		REQUIRE(loose.converged);
+		REQUIRE(tight.converged);
+		REQUIRE(tight.iterations >= loose.iterations);
+		REQUIRE(tight.residual < loose.residual);  // Tighter should have smaller residual
 	}
 
 } // namespace MML::Tests::Core::IterativeLinearSolversTests

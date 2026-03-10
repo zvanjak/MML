@@ -557,5 +557,439 @@ namespace MML::Tests::Core::InterpolatedFunctionsTests
 		REQUIRE_THAT(result, WithinAbs(expected, 0.05));
 	}
 
+	TEST_CASE("BilinearInterp_derivatives", "[interpolation][2d]") {
+		// Test interpWithDerivatives for a linear function f(x,y) = 2x + 3y
+		int nx = 4, ny = 4;
+		Vector<Real> x1(nx), x2(ny);
+		Matrix<Real> z(nx, ny);
+
+		for (int i = 0; i < nx; i++) x1[i] = i * 1.0;
+		for (int j = 0; j < ny; j++) x2[j] = j * 1.0;
+		for (int i = 0; i < nx; i++)
+			for (int j = 0; j < ny; j++)
+				z[i][j] = 2.0 * x1[i] + 3.0 * x2[j];
+
+		BilinearInterp2D interp(x1, x2, z);
+
+		Real val, dz_dx1, dz_dx2;
+		interp.interpWithDerivatives(1.5, 2.5, val, dz_dx1, dz_dx2);
+
+		REQUIRE_THAT(val, WithinAbs(2.0 * 1.5 + 3.0 * 2.5, 1e-10));
+		REQUIRE_THAT(dz_dx1, WithinAbs(2.0, 1e-10));
+		REQUIRE_THAT(dz_dx2, WithinAbs(3.0, 1e-10));
+	}
+
+	TEST_CASE("BilinearInterp_grid_info", "[interpolation][2d]") {
+		int nx = 5, ny = 7;
+		Vector<Real> x1(nx), x2(ny);
+		Matrix<Real> z(nx, ny);
+
+		for (int i = 0; i < nx; i++) x1[i] = i;
+		for (int j = 0; j < ny; j++) x2[j] = j;
+		for (int i = 0; i < nx; i++)
+			for (int j = 0; j < ny; j++)
+				z[i][j] = 1.0;
+
+		BilinearInterp2D interp(x1, x2, z);
+
+		REQUIRE(interp.getGridDim1() == nx);
+		REQUIRE(interp.getGridDim2() == ny);
+	}
+
+	/////////////////////////////////////////////////////////////////////////////
+	// BicubicSplineInterp2D Tests
+	/////////////////////////////////////////////////////////////////////////////
+
+	TEST_CASE("BicubicSplineInterp_constant_function", "[interpolation][2d][bicubic]") {
+		// For a constant function, bicubic should return the constant everywhere
+		int nx = 5, ny = 5;
+		Vector<Real> x1(nx), x2(ny);
+		Matrix<Real> z(nx, ny);
+
+		for (int i = 0; i < nx; i++) x1[i] = i * 1.0;
+		for (int j = 0; j < ny; j++) x2[j] = j * 1.0;
+		for (int i = 0; i < nx; i++)
+			for (int j = 0; j < ny; j++)
+				z[i][j] = 7.5;
+
+		BicubicSplineInterp2D interp(x1, x2, z);
+
+		REQUIRE_THAT(interp(0.5, 0.5), WithinAbs(7.5, 1e-10));
+		REQUIRE_THAT(interp(2.5, 2.5), WithinAbs(7.5, 1e-10));
+		REQUIRE_THAT(interp(3.7, 1.2), WithinAbs(7.5, 1e-10));
+	}
+
+	TEST_CASE("BicubicSplineInterp_linear_function", "[interpolation][2d][bicubic]") {
+		// For f(x,y) = x + y, bicubic spline should be exact (or very close)
+		int nx = 5, ny = 5;
+		Vector<Real> x1(nx), x2(ny);
+		Matrix<Real> z(nx, ny);
+
+		for (int i = 0; i < nx; i++) x1[i] = i * 1.0;
+		for (int j = 0; j < ny; j++) x2[j] = j * 1.0;
+		for (int i = 0; i < nx; i++)
+			for (int j = 0; j < ny; j++)
+				z[i][j] = x1[i] + x2[j];
+
+		BicubicSplineInterp2D interp(x1, x2, z);
+
+		REQUIRE_THAT(interp(0.5, 0.5), WithinAbs(1.0, 1e-8));
+		REQUIRE_THAT(interp(1.5, 2.5), WithinAbs(4.0, 1e-8));
+		REQUIRE_THAT(interp(2.7, 3.3), WithinAbs(6.0, 1e-8));
+	}
+
+	TEST_CASE("BicubicSplineInterp_exact_at_grid_points", "[interpolation][2d][bicubic]") {
+		int nx = 5, ny = 5;
+		Vector<Real> x1(nx), x2(ny);
+		Matrix<Real> z(nx, ny);
+
+		for (int i = 0; i < nx; i++) x1[i] = i * 0.5;
+		for (int j = 0; j < ny; j++) x2[j] = j * 0.5;
+		for (int i = 0; i < nx; i++)
+			for (int j = 0; j < ny; j++)
+				z[i][j] = sin(x1[i]) * cos(x2[j]);
+
+		BicubicSplineInterp2D interp(x1, x2, z);
+
+		// Should be exact at grid points
+		for (int i = 0; i < nx; i++) {
+			for (int j = 0; j < ny; j++) {
+				REQUIRE_THAT(interp(x1[i], x2[j]), WithinAbs(z[i][j], 1e-10));
+			}
+		}
+	}
+
+	TEST_CASE("BicubicSplineInterp_smooth_function", "[interpolation][2d][bicubic]") {
+		// Test on a smooth 2D function - bicubic should be more accurate than bilinear
+		auto f = [](Real x, Real y) { return sin(x) * cos(y); };
+
+		int nx = 10, ny = 10;
+		Vector<Real> x1(nx), x2(ny);
+		Matrix<Real> z(nx, ny);
+
+		for (int i = 0; i < nx; i++) x1[i] = i * Constants::PI / (nx - 1);
+		for (int j = 0; j < ny; j++) x2[j] = j * Constants::PI / (ny - 1);
+		for (int i = 0; i < nx; i++)
+			for (int j = 0; j < ny; j++)
+				z[i][j] = f(x1[i], x2[j]);
+
+		BicubicSplineInterp2D interp(x1, x2, z);
+
+		// Test at several intermediate points - bicubic should be more accurate
+		Real x_test = Constants::PI / 4;
+		Real y_test = Constants::PI / 3;
+		Real result = interp(x_test, y_test);
+		Real expected = f(x_test, y_test);
+
+		// Bicubic is more accurate than bilinear for smooth functions
+		REQUIRE_THAT(result, WithinAbs(expected, 0.01));
+	}
+
+	TEST_CASE("BicubicSplineInterp_derivatives", "[interpolation][2d][bicubic]") {
+		// Test interpWithDerivatives for f(x,y) = x^2 + y^2
+		// df/dx = 2x, df/dy = 2y
+		int nx = 10, ny = 10;
+		Vector<Real> x1(nx), x2(ny);
+		Matrix<Real> z(nx, ny);
+
+		for (int i = 0; i < nx; i++) x1[i] = i * 0.5;
+		for (int j = 0; j < ny; j++) x2[j] = j * 0.5;
+		for (int i = 0; i < nx; i++)
+			for (int j = 0; j < ny; j++)
+				z[i][j] = x1[i] * x1[i] + x2[j] * x2[j];
+
+		BicubicSplineInterp2D interp(x1, x2, z);
+
+		Real val, dz_dx1, dz_dx2;
+		Real test_x1 = 1.5, test_x2 = 2.0;
+		interp.interpWithDerivatives(test_x1, test_x2, val, dz_dx1, dz_dx2);
+
+		Real expected_val = test_x1 * test_x1 + test_x2 * test_x2;
+		Real expected_dx1 = 2.0 * test_x1;
+		Real expected_dx2 = 2.0 * test_x2;
+
+		REQUIRE_THAT(val, WithinAbs(expected_val, 0.01));
+		REQUIRE_THAT(dz_dx1, WithinAbs(expected_dx1, 0.1));
+		REQUIRE_THAT(dz_dx2, WithinAbs(expected_dx2, 0.1));
+	}
+
+	TEST_CASE("BicubicSplineInterp_grid_info", "[interpolation][2d][bicubic]") {
+		int nx = 6, ny = 8;
+		Vector<Real> x1(nx), x2(ny);
+		Matrix<Real> z(nx, ny);
+
+		for (int i = 0; i < nx; i++) x1[i] = i;
+		for (int j = 0; j < ny; j++) x2[j] = j;
+		for (int i = 0; i < nx; i++)
+			for (int j = 0; j < ny; j++)
+				z[i][j] = 1.0;
+
+		BicubicSplineInterp2D interp(x1, x2, z);
+
+		REQUIRE(interp.getGridDim1() == nx);
+		REQUIRE(interp.getGridDim2() == ny);
+	}
+
+	TEST_CASE("BicubicSplineInterp_more_accurate_than_bilinear", "[interpolation][2d][bicubic]") {
+		// Verify that bicubic is more accurate than bilinear for curved functions
+		auto f = [](Real x, Real y) { return sin(x * y); };
+
+		int nx = 8, ny = 8;
+		Vector<Real> x1(nx), x2(ny);
+		Matrix<Real> z(nx, ny);
+
+		for (int i = 0; i < nx; i++) x1[i] = 0.5 + i * 0.25;
+		for (int j = 0; j < ny; j++) x2[j] = 0.5 + j * 0.25;
+		for (int i = 0; i < nx; i++)
+			for (int j = 0; j < ny; j++)
+				z[i][j] = f(x1[i], x2[j]);
+
+		BilinearInterp2D bilinear(x1, x2, z);
+		BicubicSplineInterp2D bicubic(x1, x2, z);
+
+		// Test at multiple interior points and compare errors
+		Real bilinear_err = 0.0, bicubic_err = 0.0;
+		int num_tests = 0;
+		for (Real tx = 0.6; tx < 2.2; tx += 0.3) {
+			for (Real ty = 0.6; ty < 2.2; ty += 0.3) {
+				Real expected = f(tx, ty);
+				bilinear_err += std::abs(bilinear(tx, ty) - expected);
+				bicubic_err += std::abs(bicubic(tx, ty) - expected);
+				num_tests++;
+			}
+		}
+
+		// Bicubic should have smaller total error
+		REQUIRE(bicubic_err < bilinear_err);
+	}
+
+	/////////////////////////////////////////////////////////////////////////////
+	// Additional SplineInterp tests
+	/////////////////////////////////////////////////////////////////////////////
+
+	TEST_CASE("SplineInterp_GetSecondDerivative", "[interpolation][spline]") {
+		// Test access to stored second derivatives
+		Vector<Real> x(5), y(5);
+		Real xvals[] = {0.0, 1.0, 2.0, 3.0, 4.0};
+		Real yvals[] = {0.0, 1.0, 0.0, 1.0, 0.0};
+		for (int i = 0; i < 5; i++) { x[i] = xvals[i]; y[i] = yvals[i]; }
+
+		SplineInterpRealFunc spline(x, y);
+
+		// Second derivatives should be accessible for all points
+		for (int i = 0; i < 5; i++) {
+			Real d2 = spline.GetSecondDerivative(i);
+			// Just verify it doesn't throw and returns a reasonable value
+			REQUIRE(std::isfinite(d2));
+		}
+	}
+
+	TEST_CASE("SplineInterp_GetSecondDerivative_throws_on_invalid_index", "[interpolation][spline]") {
+		Vector<Real> x(3), y(3);
+		x[0] = 0.0; x[1] = 1.0; x[2] = 2.0;
+		y[0] = 0.0; y[1] = 1.0; y[2] = 0.0;
+
+		SplineInterpRealFunc spline(x, y);
+
+		REQUIRE_THROWS_AS(spline.GetSecondDerivative(-1), IndexError);
+		REQUIRE_THROWS_AS(spline.GetSecondDerivative(3), IndexError);
+	}
+
+	/////////////////////////////////////////////////////////////////////////////
+	// Additional Polynomial Interpolation tests
+	/////////////////////////////////////////////////////////////////////////////
+
+	TEST_CASE("PolynomInterp_higher_order", "[interpolation][polynomial]") {
+		// Test with higher order polynomial (degree 4)
+		Vector<Real> x(5), y(5);
+		for (int i = 0; i < 5; i++) {
+			x[i] = static_cast<Real>(i);
+			// y = x^4 - 2x^2 + 1
+			y[i] = std::pow(x[i], 4) - 2 * x[i] * x[i] + 1;
+		}
+
+		PolynomInterpRealFunc poly(x, y, 5);  // Use all 5 points
+
+		// Should be exact at data points
+		for (int i = 0; i < 5; i++) {
+			REQUIRE_THAT(poly(x[i]), WithinAbs(y[i], 1e-10));
+		}
+
+		// Check midpoint
+		Real mid = 2.5;
+		Real expected = std::pow(mid, 4) - 2 * mid * mid + 1;
+		REQUIRE_THAT(poly(mid), WithinAbs(expected, 1e-8));
+	}
+
+	/////////////////////////////////////////////////////////////////////////////
+	// Additional Barycentric Interpolation tests
+	/////////////////////////////////////////////////////////////////////////////
+
+	TEST_CASE("BarycentricInterp_weight_access", "[interpolation][barycentric]") {
+		Vector<Real> x(5), y(5);
+		Real xvals[] = {0.0, 1.0, 2.0, 3.0, 4.0};
+		Real yvals[] = {1.0, 2.0, 1.5, 2.5, 1.0};
+		for (int i = 0; i < 5; i++) { x[i] = xvals[i]; y[i] = yvals[i]; }
+
+		BarycentricRationalInterp interp(x, y, 2);
+
+		// Verify weights are accessible
+		for (int i = 0; i < 5; i++) {
+			Real w = interp.getWeight(i);
+			REQUIRE(std::isfinite(w));
+			REQUIRE(w != 0.0);  // Weights should be non-zero
+		}
+	}
+
+	TEST_CASE("BarycentricInterp_range_accessors", "[interpolation][barycentric]") {
+		Vector<Real> x(5), y(5);
+		x[0] = -1.0; x[1] = 0.0; x[2] = 1.0; x[3] = 2.0; x[4] = 3.0;
+		y[0] = 1.0; y[1] = 2.0; y[2] = 1.5; y[3] = 2.5; y[4] = 1.0;
+
+		BarycentricRationalInterp interp(x, y, 2);
+
+		REQUIRE(interp.MinX() == -1.0);
+		REQUIRE(interp.MaxX() == 3.0);
+		REQUIRE(interp.getNumPoints() == 5);
+		REQUIRE(interp.getBlendingParameter() == 2);
+	}
+
+	TEST_CASE("BarycentricInterp_invalid_d_throws", "[interpolation][barycentric]") {
+		Vector<Real> x(3), y(3);
+		x[0] = 0.0; x[1] = 1.0; x[2] = 2.0;
+		y[0] = 1.0; y[1] = 2.0; y[2] = 1.0;
+
+		// d >= n should throw
+		REQUIRE_THROWS_AS(BarycentricRationalInterp(x, y, 3), RealFuncInterpInitError);
+		REQUIRE_THROWS_AS(BarycentricRationalInterp(x, y, 10), RealFuncInterpInitError);
+		// d < 0 should throw
+		REQUIRE_THROWS_AS(BarycentricRationalInterp(x, y, -1), RealFuncInterpInitError);
+	}
+
+	TEST_CASE("BarycentricInterp_weight_throws_on_invalid_index", "[interpolation][barycentric]") {
+		Vector<Real> x(3), y(3);
+		x[0] = 0.0; x[1] = 1.0; x[2] = 2.0;
+		y[0] = 1.0; y[1] = 2.0; y[2] = 1.0;
+
+		BarycentricRationalInterp interp(x, y, 1);
+
+		REQUIRE_THROWS_AS(interp.getWeight(-1), IndexError);
+		REQUIRE_THROWS_AS(interp.getWeight(3), IndexError);
+	}
+
+	/////////////////////////////////////////////////////////////////////////////
+	// Additional RationalInterp tests
+	/////////////////////////////////////////////////////////////////////////////
+
+	TEST_CASE("RationalInterp_exact_at_data_point", "[interpolation][rational]") {
+		// When evaluating exactly at a data point, should return the value
+		Vector<Real> x(5), y(5);
+		Real xvals[] = {0.0, 1.0, 2.0, 3.0, 4.0};
+		Real yvals[] = {1.0, 2.0, 1.5, 2.5, 1.0};
+		for (int i = 0; i < 5; i++) { x[i] = xvals[i]; y[i] = yvals[i]; }
+
+		RationalInterpRealFunc interp(x, y, 3);
+
+		for (int i = 0; i < 5; i++) {
+			Real result = interp(x[i]);
+			REQUIRE_THAT(result, WithinAbs(y[i], 1e-10));
+			// Error estimate should be zero at exact points
+			REQUIRE_THAT(interp.getLastErrorEst(), WithinAbs(0.0, 1e-10));
+		}
+	}
+
+	/////////////////////////////////////////////////////////////////////////////
+	// Base class RealFunctionInterpolated tests
+	/////////////////////////////////////////////////////////////////////////////
+
+	TEST_CASE("InterpolatedFunc_data_accessors", "[interpolation][base]") {
+		Vector<Real> x(5), y(5);
+		Real xvals[] = {0.0, 1.0, 2.0, 3.0, 4.0};
+		Real yvals[] = {1.0, 4.0, 9.0, 16.0, 25.0};
+		for (int i = 0; i < 5; i++) { x[i] = xvals[i]; y[i] = yvals[i]; }
+
+		LinearInterpRealFunc interp(x, y);
+
+		// Test individual accessors
+		for (int i = 0; i < 5; i++) {
+			REQUIRE_THAT(interp.X(i), WithinAbs(x[i], 1e-15));
+			REQUIRE_THAT(interp.Y(i), WithinAbs(y[i], 1e-15));
+		}
+
+		// Test count and range
+		REQUIRE(interp.getNumPoints() == 5);
+		REQUIRE(interp.getInterpOrder() == 2);  // Linear uses 2 points
+		REQUIRE(interp.MinX() == 0.0);
+		REQUIRE(interp.MaxX() == 4.0);
+	}
+
+	TEST_CASE("InterpolatedFunc_descending_x_values", "[interpolation][base]") {
+		// Test that interpolation works with descending x values
+		Vector<Real> x(5), y(5);
+		x[0] = 4.0; x[1] = 3.0; x[2] = 2.0; x[3] = 1.0; x[4] = 0.0;  // Descending
+		y[0] = 16.0; y[1] = 9.0; y[2] = 4.0; y[3] = 1.0; y[4] = 0.0; // y = x^2
+
+		// Use extrapolation=true to handle boundary issues
+		LinearInterpRealFunc interp(x, y, true);
+
+		// Should work at midpoints (linear interp between table values)
+		REQUIRE_THAT(interp(3.5), WithinAbs(12.5, 0.1));  // Midpoint between 16 and 9
+		REQUIRE_THAT(interp(0.5), WithinAbs(0.5, 0.1));   // Midpoint between 1 and 0
+	}
+
+	/////////////////////////////////////////////////////////////////////////////
+	// Parametric Curve additional tests
+	/////////////////////////////////////////////////////////////////////////////
+
+	TEST_CASE("LinInterpParametricCurve_closed_curve", "[interpolation][parametric]") {
+		// Test closed curve - a square
+		Matrix<Real> pts(4, 2);
+		pts[0][0] = 0.0; pts[0][1] = 0.0;  // Bottom-left
+		pts[1][0] = 1.0; pts[1][1] = 0.0;  // Bottom-right
+		pts[2][0] = 1.0; pts[2][1] = 1.0;  // Top-right
+		pts[3][0] = 0.0; pts[3][1] = 1.0;  // Top-left
+
+		LinInterpParametricCurve<2> curve(pts, true);  // closed = true
+
+		// Start and end should be the same corner
+		auto p0 = curve(0.0);
+		REQUIRE_THAT(p0[0], WithinAbs(0.0, 1e-10));
+		REQUIRE_THAT(p0[1], WithinAbs(0.0, 1e-10));
+
+		// Test parameter range
+		REQUIRE(curve.getMinT() == 0.0);
+		REQUIRE(curve.getMaxT() == 1.0);
+	}
+
+	TEST_CASE("SplineInterpParametricCurve_3D_line", "[interpolation][parametric]") {
+		// 3D straight line - spline should reproduce it exactly
+		int n = 5;
+		Matrix<Real> pts(n, 3);
+		for (int i = 0; i < n; i++) {
+			pts[i][0] = i * 1.0;
+			pts[i][1] = i * 2.0;
+			pts[i][2] = i * 3.0;
+		}
+
+		SplineInterpParametricCurve<3> curve(0.0, 1.0, pts, false);
+
+		// Check endpoints
+		auto p0 = curve(0.0);
+		REQUIRE_THAT(p0[0], WithinAbs(0.0, 1e-8));
+		REQUIRE_THAT(p0[1], WithinAbs(0.0, 1e-8));
+		REQUIRE_THAT(p0[2], WithinAbs(0.0, 1e-8));
+
+		auto p1 = curve(1.0);
+		REQUIRE_THAT(p1[0], WithinAbs(4.0, 1e-8));
+		REQUIRE_THAT(p1[1], WithinAbs(8.0, 1e-8));
+		REQUIRE_THAT(p1[2], WithinAbs(12.0, 1e-8));
+
+		// Check midpoint - should be linear
+		auto pmid = curve(0.5);
+		REQUIRE_THAT(pmid[0], WithinAbs(2.0, 0.1));
+		REQUIRE_THAT(pmid[1], WithinAbs(4.0, 0.1));
+		REQUIRE_THAT(pmid[2], WithinAbs(6.0, 0.1));
+	}
+
 } // end namespace
 #endif

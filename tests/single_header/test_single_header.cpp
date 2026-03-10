@@ -44,8 +44,8 @@ namespace MML::Tests::SingleHeader
         // Matrix multiplication: (2x3) * (3x2) = (2x2)
         auto C = A * B;
         
-        REQUIRE(C.RowNum() == 2);
-        REQUIRE(C.ColNum() == 2);
+        REQUIRE(C.rows() == 2);
+        REQUIRE(C.cols() == 2);
         
         // C[0][0] = 1*7 + 2*9 + 3*11 = 7 + 18 + 33 = 58
         REQUIRE(C[0][0] == REAL(58.0));

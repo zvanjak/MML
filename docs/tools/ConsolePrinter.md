@@ -521,12 +521,12 @@ roster.print(std::cerr);
 std::string table_str = roster.toString();
 
 // Print to file
-std::ofstream outfile("roster.txt");
+std::ofstream outfile("roster.mml");
 roster.print(outfile);
 outfile.close();
 
 // Or use convenience method
-roster.printToFile("roster.txt");
+roster.printToFile("roster.mml");
 ```
 
 ### Example 5: Convergence Analysis Table
@@ -572,7 +572,7 @@ table.print();
 ```cpp
 TablePrinter<std::string, std::string> fileTable("File", {"Size", "Modified"});
 
-fileTable.addRow("data.txt", {"1.2 MB", "2025-01-15"});
+fileTable.addRow("data.mml", {"1.2 MB", "2025-01-15"});
 fileTable.addRow("results.csv", {"3.5 MB", "2025-01-16"});
 fileTable.addRow("plot.png", {"512 KB", "2025-01-14"});
 
@@ -661,7 +661,7 @@ table.print(std::cerr);
 table.print(std::clog);
 
 // File stream
-std::ofstream file("output.txt");
+std::ofstream file("output.mml");
 table.print(file);
 
 // String stream

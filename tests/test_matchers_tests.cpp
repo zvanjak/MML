@@ -3,6 +3,8 @@
 
 // No using namespace - avoiding potential macro conflicts
 
+namespace MML::Tests::TestInfrastructure::MatchersTests {
+
 TEST_CASE("TestMatchers - RealEquals", "[test-infrastructure][matchers]") {
     TEST_PRECISION_INFO();
     
@@ -183,3 +185,5 @@ TEST_CASE("TestMatchers - Real-world usage examples", "[test-infrastructure][mat
         REQUIRE_THAT(mean, RealWithinRel(expected, Tolerance::Statistics::Standard));
     }
 }
+
+} // namespace MML::Tests::TestInfrastructure::MatchersTests

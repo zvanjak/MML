@@ -42,11 +42,11 @@ Matrix<Real> A{3, 3, {2, -1,  0,
                       0, -1,  2}};
 
 // Fixed-size matrix (identity)
-MatrixNM<Real, 3, 3> I = MatrixNM<Real, 3, 3>::GetUnitMatrix();
+MatrixNM<Real, 3, 3> I = MatrixNM<Real, 3, 3>::Identity();
 
 // Matrix operations
 double det = Utils::Det(A);         // Determinant via Utils
-Matrix<Real> At = A.GetTranspose(); // Returns transposed copy
+Matrix<Real> At = A.transpose(); // Returns transposed copy
 Matrix<Real> Ainv = A.GetInverse(); // Returns inverse copy
 ```
 

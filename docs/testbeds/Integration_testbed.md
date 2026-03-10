@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Integration Test Bed provides a comprehensive collection of test integrals for validating and benchmarking MML's numerical integration algorithms. Located in `test_data/integration_test_bed.h` and `test_data/integration_defs.h`, it offers 15 carefully selected test cases organized by difficulty and integral type.
+The Integration Test Bed provides a comprehensive collection of test integrals for validating and benchmarking MML's numerical integration algorithms. Located in `test_beds/integration_test_bed.h` and `test_data/integration_defs.h`, it offers 15 carefully selected test cases organized by difficulty and integral type.
 
 **Key Features:**
 - 15 test integrals with known analytical results
@@ -17,7 +17,7 @@ The Integration Test Bed provides a comprehensive collection of test integrals f
 
 | File | Purpose |
 |------|---------|
-| [integration_test_bed.h](../../test_data/integration_test_bed.h) | Test structures, collection generators, utilities |
+| [integration_test_bed.h](../../test_beds/integration_test_bed.h) | Test structures, collection generators, utilities |
 | [integration_defs.h](../../test_data/integration_defs.h) | Test function implementations and exact results |
 
 ### Data Structures
@@ -255,7 +255,7 @@ bool checkResult(Real computed, Real expected, Real tolerance);
 ### Basic Integration with Test Bed
 
 ```cpp
-#include "test_data/integration_test_bed.h"
+#include "test_beds/integration_test_bed.h"
 #include "core/Integration.h"
 
 using namespace MML;
@@ -278,7 +278,7 @@ std::cout << "Converged: " << (result.converged ? "yes" : "no") << "\n";
 ### Comparing Integration Methods
 
 ```cpp
-#include "test_data/integration_test_bed.h"
+#include "test_beds/integration_test_bed.h"
 #include "core/Integration.h"
 
 using namespace MML;
@@ -314,7 +314,7 @@ std::cout << "Gauss10       " << gaussResult.value << "  "
 ### Running All Tests in a Category
 
 ```cpp
-#include "test_data/integration_test_bed.h"
+#include "test_beds/integration_test_bed.h"
 #include "core/Integration.h"
 
 using namespace MML;
@@ -338,7 +338,7 @@ for (const auto& test : tests) {
 ### Handling Oscillatory Integrals
 
 ```cpp
-#include "test_data/integration_test_bed.h"
+#include "test_beds/integration_test_bed.h"
 #include "core/Integration.h"
 
 using namespace MML;
@@ -369,7 +369,7 @@ for (const auto& test : oscillatory) {
 ### Using Gaussian Quadrature for Improper Integrals
 
 ```cpp
-#include "test_data/integration_test_bed.h"
+#include "test_beds/integration_test_bed.h"
 #include "core/Integration.h"
 #include "core/Integration/GaussianQuadrature.h"
 
@@ -396,7 +396,7 @@ std::cout << "∫e^(-x²) = " << result2.value << " (exact: " << std::sqrt(Const
 ### Filtering by Difficulty
 
 ```cpp
-#include "test_data/integration_test_bed.h"
+#include "test_beds/integration_test_bed.h"
 
 using namespace MML::TestBeds;
 
@@ -416,7 +416,7 @@ std::cout << "All tests: " << allTests.size() << "\n";  // 15
 ### Using the Unified Integrate Function
 
 ```cpp
-#include "test_data/integration_test_bed.h"
+#include "test_beds/integration_test_bed.h"
 #include "core/Integration.h"
 
 using namespace MML;
@@ -491,4 +491,4 @@ struct IntegrationResult {
 
 - [Integration.md](../core/Integration.md) - Core integration algorithms documentation
 - [GaussianQuadrature.h](../../mml/core/Integration/GaussianQuadrature.h) - Gaussian quadrature implementation
-- [real_functions_test_bed.h](../../test_data/real_functions_test_bed.h) - Related function test bed
+- [real_functions_test_bed.h](../../test_beds/real_functions_test_bed.h) - Related function test bed

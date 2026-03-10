@@ -9,7 +9,7 @@ Fixed-size matrix with compile-time dimensions. Template parameters: `T` = eleme
 ```cpp
 MatrixNM<double, 3, 3> A;                    // 3×3 zero matrix
 MatrixNM<double, 2, 3> B(2.5);               // 2×3 filled with 2.5
-MatrixNM<double, 3, 3> I = MatrixNM<double,3,3>::GetUnitMatrix();  // Identity
+MatrixNM<double, 3, 3> I = MatrixNM<double,3,3>::Identity();  // Identity
 ```
 
 ## Why Use MatrixNM?
@@ -52,7 +52,7 @@ MatrixNM<double, 3, 3> A{1, 2, 3,
                          7, 8, 9};
 
 // Identity matrix
-auto I = MatrixNM<double, 4, 4>::GetUnitMatrix();
+auto I = MatrixNM<double, 4, 4>::Identity();
 ```
 
 ## Access & Properties
@@ -102,7 +102,7 @@ auto result = A * v;
 MatrixNM<double, 3, 3> A{1,2,3,4,5,6,7,8,9};
 
 // Transpose (returns new matrix with swapped dimensions)
-auto At = A.GetTranspose();  // MatrixNM<double, 3, 3>
+auto At = A.transpose();  // MatrixNM<double, 3, 3>
 
 // In-place transpose (only for square matrices)
 A.Transpose();  // Modifies A in place

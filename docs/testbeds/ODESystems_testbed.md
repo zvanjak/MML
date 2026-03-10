@@ -22,7 +22,7 @@ The ODE Systems Test Beds provide comprehensive test infrastructure for validati
 
 | File | Purpose |
 |------|---------|
-| [diff_eq_systems_test_bed.h](../../test_data/diff_eq_systems_test_bed.h) | `ODESystemTestBed` class, interfaces, accessors |
+| [diff_eq_systems_test_bed.h](../../test_beds/diff_eq_systems_test_bed.h) | `ODESystemTestBed` class, interfaces, accessors |
 | [diff_eq_systems_defs.h](../../test_data/diff_eq_systems_defs.h) | ODE system class definitions |
 
 ### Interfaces
@@ -148,7 +148,7 @@ Pre-computed solutions for quick integration tests:
 
 | File | Purpose |
 |------|---------|
-| [stiff_ode_test_bed.h](../../test_data/stiff_ode_test_bed.h) | `TestStiffODE` struct, retrieval functions |
+| [stiff_ode_test_bed.h](../../test_beds/stiff_ode_test_bed.h) | `TestStiffODE` struct, retrieval functions |
 | [stiff_ode_defs.h](../../test_data/stiff_ode_defs.h) | Stiff ODE system class definitions with Jacobians |
 
 ### Data Structure
@@ -311,7 +311,7 @@ bool verifyNonNegative(const Vector<Real>& y);
 ### Example 1: Test Adaptive Solver with Analytical Solution
 
 ```cpp
-#include "test_data/diff_eq_systems_test_bed.h"
+#include "test_beds/diff_eq_systems_test_bed.h"
 #include "algorithms/ODEAdaptiveIntegrator.h"
 
 using namespace MML;
@@ -344,7 +344,7 @@ void testAdaptiveSolver() {
 ### Example 2: Test Fixed-Step Solver with Linear System
 
 ```cpp
-#include "test_data/diff_eq_systems_test_bed.h"
+#include "test_beds/diff_eq_systems_test_bed.h"
 #include "algorithms/ODESystemSolver.h"
 
 void testFixedStepSolver() {
@@ -374,7 +374,7 @@ void testFixedStepSolver() {
 ### Example 3: Test Stiff Solver with Robertson Problem
 
 ```cpp
-#include "test_data/stiff_ode_test_bed.h"
+#include "test_beds/stiff_ode_test_bed.h"
 #include "algorithms/ODEStiffSolvers.h"
 
 void testStiffSolver() {
@@ -429,7 +429,7 @@ void filterSystems() {
 ### Example 5: Verify Lorenz Attractor (Chaotic System)
 
 ```cpp
-#include "test_data/diff_eq_systems_test_bed.h"
+#include "test_beds/diff_eq_systems_test_bed.h"
 
 void testLorenzSystem() {
     // Get Lorenz system

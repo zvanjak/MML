@@ -16,7 +16,7 @@ The Root Finding Test Bed provides comprehensive test infrastructure for validat
 
 | File | Purpose |
 |------|---------|
-| [root_finding_test_bed.h](../../test_data/root_finding_test_bed.h) | `TestRootFunction` struct, retrieval functions, verification utilities |
+| [root_finding_test_bed.h](../../test_beds/root_finding_test_bed.h) | `TestRootFunction` struct, retrieval functions, verification utilities |
 | [root_finding_defs.h](../../test_data/root_finding_defs.h) | All test function implementations and root constants |
 
 ---
@@ -269,7 +269,7 @@ public:
 ### Example 1: Test Bisection Method
 
 ```cpp
-#include "test_data/root_finding_test_bed.h"
+#include "test_beds/root_finding_test_bed.h"
 #include "algorithms/RootFinding.h"
 
 using namespace MML;

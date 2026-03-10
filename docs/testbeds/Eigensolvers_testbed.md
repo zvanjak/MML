@@ -17,7 +17,7 @@ The Eigenvalue Test Bed provides comprehensive test infrastructure for validatin
 
 | File | Purpose |
 |------|---------|
-| [eigenvalue_test_bed.h](../../test_data/eigenvalue_test_bed.h) | `TestEigenSystem` struct, retrieval functions, verification utilities |
+| [eigenvalue_test_bed.h](../../test_beds/eigenvalue_test_bed.h) | `TestEigenSystem` struct, retrieval functions, verification utilities |
 | [eigenvalue_defs.h](../../test_data/eigenvalue_defs.h) | All test matrix definitions and known eigenvalues |
 
 ---
@@ -320,7 +320,7 @@ Real computeResidual(const Matrix<Real>& A, const Vector<Real>& v, Real lambda);
 ### Example 1: Test Jacobi Solver on Symmetric Matrices
 
 ```cpp
-#include "test_data/eigenvalue_test_bed.h"
+#include "test_beds/eigenvalue_test_bed.h"
 #include "algorithms/EigenSystemSolvers.h"
 
 using namespace MML;

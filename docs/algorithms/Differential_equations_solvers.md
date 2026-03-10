@@ -740,7 +740,7 @@ void Example2() {
     std::cout << "Solved in " << sol.numSavedSteps() << " saved steps\n";
     
     // Visualize (write to file for plotting)
-    std::ofstream out("lorenz.txt");
+    std::ofstream out("lorenz.mml");
     for (int i = 0; i < sol.numSavedSteps(); ++i) {
         out << sol._xval[i] << " "
             << sol._yval[i][0] << " "
@@ -942,12 +942,12 @@ ODESystemSolver<RK5_CashKarp_Stepper> solver(sys);
 Visualizer::VisualizeODESysSolAsMultiFunc(
     sol, 
     "Lorenz System Components vs Time", 
-    "lorenz_components.txt");
+    "lorenz_components.mml");
 
 Visualizer::VisualizeODESysSolAsParamCurve3(
     sol,
     "Lorenz Attractor 3D",
-    "lorenz_attractor_3d.txt");
+    "lorenz_attractor_3d.mml");
 ```
 
 **Output format**: Space-separated text files for gnuplot, Python, etc.

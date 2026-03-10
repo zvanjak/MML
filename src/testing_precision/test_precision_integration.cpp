@@ -22,7 +22,7 @@
 #endif
 
 #include "PrecisionTestFramework.h"
-#include "../test_data/real_functions_test_bed.h"
+#include "../test_beds/real_functions_test_bed.h"
 
 using namespace MML;
 using namespace MML::TestBeds;

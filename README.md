@@ -1,115 +1,133 @@
-# MML - Minimal Math Library
+<div align="center">
 
-**A comprehensive, single-header C++ mathematical library for numerical computing**
+# 🔢 MML — Minimal Math Library
 
-Minimal Math Library is my attempt at creating a simple, but comprehensive and widely usable math library for C++, where with just one #include "MML.h" directive you can get most of the basic math objects and operations you might need.
+### **The Complete C++ Numerical Computing Toolkit**
 
-Using C++17 and working on all platforms (Windows, Linux, Mac), it also comes with extensive set of cross-platform visualization utilities.
+*Single-header • Cross-platform • Visualization included*
 
----
-
-Build status:
-
-[![Ubuntu](https://github.com/zvanjak/MML/actions/workflows/ubuntu.yml/badge.svg)](https://github.com/zvanjak/MML/actions/workflows/ubuntu.yml)
-[![Windows](https://github.com/zvanjak/MML/actions/workflows/windows.yml/badge.svg)](https://github.com/zvanjak/MML/actions/workflows/windows.yml)
-[![macOS](https://github.com/zvanjak/MML/actions/workflows/macos.yml/badge.svg)](https://github.com/zvanjak/MML/actions/workflows/macos.yml)
+[![Ubuntu](https://github.com/zvanjak/MinimalMathLibrary/workflows/Ubuntu/badge.svg)](https://github.com/zvanjak/MinimalMathLibrary/actions?query=workflow%3AUbuntu)
+[![Windows](https://github.com/zvanjak/MinimalMathLibrary/workflows/Windows/badge.svg)](https://github.com/zvanjak/MinimalMathLibrary/actions?query=workflow%3AWindows)
+[![macOS](https://github.com/zvanjak/MinimalMathLibrary/workflows/macOS/badge.svg)](https://github.com/zvanjak/MinimalMathLibrary/actions?query=workflow%3AmacOS)
 [![C++17](https://img.shields.io/badge/C%2B%2B-17-blue.svg)](https://isocpp.org/std/the-standard)
-[![Tests](https://img.shields.io/badge/tests-2175%20passing-brightgreen.svg)](tests/)
-[![License](https://img.shields.io/badge/license-Custom-blue.svg)](LICENSE.md)
+[![Tests](https://img.shields.io/badge/tests-4540%20passing-brightgreen.svg)](tests/)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE.md)
 
 ---
 
-## 📖 Table of Contents
+##  Mission 
 
-- [Vision](#-vision)
-- [Design Philosophy](#-design-philosophy)
-- [Quick Start](#-quick-start)
-- [Key Features](#-key-features)
-- [Library Organization](#-library-organization)
-  - [Base Types](#base-types)
-  - [Core Components](#core-components)
-  - [Algorithms](#algorithms)
-  - [Tools & Utilities](#tools--utilities)
-- [Real Examples](#-real-examples--physics-simulations)
-- [Code Examples](#-code-examples)
-- [Visualization](#-visualization)
-- [Testing & Validation](#-testing--validation)
-- [Demo Applications](#-demo-applications)
-- [Documentation](#-documentation)
-- [License](#-license)
+**🚀 Just `#include "MML.h"` and compute** — vectors, matrices, tensors, ODE solvers, eigenvalues, integration, and more!
+
+[Quick Start](#-quick-start) • [Features](#-key-features) • [Documentation](#-documentation) • [Pro Extensions](#-pro-extensions)
+
+</div>
 
 ---
 
-## 🎯 Vision
+## 🎯 What is MML?
 
-**For C++ developers** on Windows, Mac, or Linux  
-**Who need** simple yet powerful numerical computation capabilities  
-**MML is a** modern, comprehensive, single-header mathematical library  
-**That provides** vectors, matrices, tensors, functions, polynoms, coordinate systems, 2D and 3D geometry objects, ODE systems, with extensive set of numerical algorithms to work with them  
-**Unlike** other C++ math libraries that require complex build systems and dependencies  
-**MML** offers **trivial integration** - just include one header file and you're ready to compute
+MML is a **comprehensive, single-header C++ mathematical library** for numerical computing. With just one `#include "MML.h"` directive, you get access to a complete toolkit of mathematical objects and algorithms — from basic vectors and matrices to ODE solvers and field operations.
+And as a bonus, you also get cross-platform visualization tools for plotting functions, curves, surfaces, and vector fields!
+
+<table>
+<tr>
+<td width="50%">
+
+### The Problem
+
+Most C++ math libraries require:
+- Complex build systems and dependencies
+- Linking against multiple libraries
+- Platform-specific configuration
+- Steep learning curves
+
+**Result:** Possibly hours of setup before writing actual code.
+
+</td>
+<td width="50%">
+
+### The MML Solution
+
+**Zero-friction integration:**
+
+```cpp
+#include "MML.h"
+// That's it. Start computing.
+```
+
+- ✅ Single header file
+- ✅ Pure C++17, no dependencies
+- ✅ Works on Windows, Linux, Mac
+- ✅ 4,540 tests ensure correctness
+
+</td>
+</tr>
+</table>
+
+If needed, you can also use it piece-wise by including only selected headers from `mml/` directory.
 
 ---
 
-## 🏗️ Design Philosophy
+## 🏛️ Design Philosophy
 
 MML is built on three core principles:
 
-### 1. **Completeness & Simplicity**
-It is a comprehensive numerical computing toolkit — from vectors and matrices to differential equations and field operations — with simple and intuitive syntax that makes mathematical objects first-class citizens in C++ without sacrificing performance.
+<table>
+<tr>
+<td align="center" width="33%">
+
+### 🎯 Completeness & Simplicity
+
+A **comprehensive toolkit** covering vectors, matrices, tensors, ODEs, integration, field operations, and more. **Intuitive syntax** makes mathematical objects first-class citizens in C++.
+
+</td>
+<td align="center" width="33%">
+
+### 🔬 Correctness & Precision
+
+**4,540 unit tests** validate every algorithm against known analytical solutions. Numerical methods **report achieved precision**, and dedicated testbeds demonstrate accuracy.
+
+</td>
+<td align="center" width="33%">
+
+### ⚡ Trivial Integration & Visualization
+
+**Single header, zero dependencies** — just `#include "MML.h"` and start computing immediately. **Cross-platform visualizers** for functions, surfaces, vector fields, and particle systems on Windows, Linux and Mac.
+
+</td>
+</tr>
+</table>
+
+### Flagship Example: Verify Gauss's Divergence Theorem
+
+📄 *[View full source](src/readme_examples/readme00_fundamental_theorems.cpp)*
 
 ```cpp
-// Verify Gauss's Divergence Theorem: ∫∫∫(∇·F)dV = ∮∮(F·n̂)dS
-// Define (non-separable) vector field F(x,y,z) = (sin(xy), cos(yz), exp(xz))
+// Verify ∫∫∫(∇·F)dV = ∮∮(F·n̂)dS over a unit cube
+// Define vector field F(x,y,z) = (x², y², z²)
 VectorFunction<3> F([](const VectorN<Real, 3>& p) {
-    return VectorN<Real, 3>{ sin(p[0]*p[1]), cos(p[1]*p[2]), exp(p[0]*p[2]) };
+    return VectorN<Real, 3>{ p[0]*p[0], p[1]*p[1], p[2]*p[2] };
 });
 
-// Compute divergence NUMERICALLY - no analytical formula needed!
+// Compute divergence NUMERICALLY - MML calculates ∇·F automatically!
 ScalarFunctionFromStdFunc<3> divF([&F](const VectorN<Real, 3>& p) {
-    return VectorFieldOperations::DivCart<3>(F, p);  // MML computes ∇·F for you
+    return VectorFieldOperations::DivCart<3>(F, p);
 });
 
-// Integration limits for unit cube [0,1]³
+// Volume integral: ∫∫∫(∇·F)dV
 auto y_lo = [](Real) { return 0.0; };  auto y_hi = [](Real) { return 1.0; };
 auto z_lo = [](Real,Real) { return 0.0; };  auto z_hi = [](Real,Real) { return 1.0; };
+Real volIntegral = Integrate3D(divF, GAUSS10, 0, 1, y_lo, y_hi, z_lo, z_hi).value;
 
-// Volume integral with different methods
-Real volGauss = Integrate3D(divF, GAUSS10, 0, 1, y_lo, y_hi, z_lo, z_hi);  // 1.01945050739879
-Real volTrap  = Integrate3D(divF, TRAP,    0, 1, y_lo, y_hi, z_lo, z_hi);  // 1.01946656155684
-
-// Surface integral (flux) through all 6 faces of the cube
+// Surface integral: ∮∮(F·n̂)dS through all 6 faces
 Cube3D unitCube(1.0, Point3Cartesian(0.5, 0.5, 0.5));
-Real flux = SurfaceIntegration::SurfaceIntegral(F, unitCube, 1e-8);        // 1.01944989298179
+Real surfIntegral = SurfaceIntegration::SurfaceIntegral(F, unitCube, 1e-8);
 
-std::cout << "GAUSS10 vs Surface: " << std::abs(volGauss - flux) << "\n";  // 6.14e-07  ✓
-std::cout << "TRAP vs Surface:    " << std::abs(volTrap - flux) << "\n";   // 1.67e-05
+std::cout << "Volume integral:  " << volIntegral << "\n";   // 3.0000000000
+std::cout << "Surface integral: " << surfIntegral << "\n";  // 3.0000000000
+std::cout << "Error: " << std::abs(volIntegral - surfIntegral) << "\n";  // 9.77e-15 ✓
 ```
-
-### 2. **Correctness & Precision**
-Rigorous numerical validation with **2,193 unit tests** across 93 test files, including dedicated testbeds that verify algorithms against known analytical solutions. Numerical methods are stress-tested with edge cases, ill-conditioned inputs, and long-time stability checks.
-
-| Test Category | Tests | Validation Approach |
-|---------------|-------|---------------------|
-| Linear Algebra | 450+ | Known solutions, eigenvalues, SVD, condition numbers up to 10¹⁵ |
-| Integration | 180+ | Analytical solutions, improper integrals, oscillatory & singular integrands |
-| Derivation | 200+ | Analytical derivatives, multi-variable functions, tensor field Jacobians |
-| ODE Solvers | 150+ | Energy conservation, stiff systems (λ = -10⁶), long-time stability |
-| Root Finding | 120+ | Known roots, multiplicities, convergence rates |
-| Interpolation | 100+ | Runge phenomenon, boundary effects, high-degree polynomials |
-
-� **Precision Testing Application:** A dedicated command-line tool (`MML_TestingPrecisionApp`) runs comprehensive precision analysis across all numerical algorithms, comparing achieved vs theoretical precision and generating detailed reports.
-
-📚 **Precision Analysis Reports:** [Overview](docs/testing_precision/README.md) · [Derivation](docs/testing_precision/DERIVATION_ANALYSIS.md) · [Integration](docs/testing_precision/INTEGRATION_ANALYSIS.md) · [Interpolation](docs/testing_precision/INTERPOLATION_ANALYSIS.md) · [ODE Solvers](docs/testing_precision/ODE_SOLVER_ANALYSIS.md) · [Root Finding](docs/testing_precision/ROOT_FINDING_ANALYSIS.md) · [Linear Algebra](docs/testing_precision/LINEAR_ALGEBRA_ANALYSIS.md)
-
-### 3. **Trivial Integration**
-The entire library in a single header file: **`MML.h`**
-- No build system configuration
-- No external dependencies
-- No linking hassles
-- Standard C++17
-
-But, you can still use it piece-wise, by including only selected headers from `mml/` directory.
 
 ---
 
@@ -117,22 +135,23 @@ But, you can still use it piece-wise, by including only selected headers from `m
 
 ### Installation
 
-**Option 1: Single Header (Recommended)**
+**Option 1: Simply get single header (Recommended)**
 ```bash
-# Download MML.h from releases
-wget https://github.com/zvanjak/MML/releases/latest/download/MML.h
+# Download MML.h directly from the repository
+curl -O https://raw.githubusercontent.com/zvanjak/MML/master/mml/single_header/MML.h
 
 # Include in your project
 #include "MML.h"
 ```
 
-**Option 2: Build from Source**
+**Option 2: Get whole repository (if you need individual modules)**
 ```bash
 git clone https://github.com/zvanjak/MML.git
 cd MML
 cmake -B build
 cmake --build build
 ```
+
 
 **Option 3: Visual Studio Code**
 
@@ -156,40 +175,17 @@ cmake --build build
 using namespace MML;
 
 int main() {
-    // Create a 4x4 general (non-symmetric) matrix with complex eigenvalues
-    Matrix<Real> A{4, 4, { 0, -1,  0,  0,
-                           1,  0,  0,  0,
-                           0,  0,  0, -2,
-                           0,  0,  2,  0}};
-    Vector<Real> b{1, 2, 3, 4};
+    // Create a matrix and solve a linear system
+    Matrix<Real> A{3, 3, {4, 1, 2, 
+                          1, 5, 1, 
+                          2, 1, 6}};
+    Vector<Real> b{1, 2, 3};
     
-    // Solve linear system Ax = b using LU decomposition
     LUSolver<Real> solver(A);
     Vector<Real> x = solver.Solve(b);
     
-    std::cout << "=== Linear System Solution ===" << std::endl;
-    std::cout << "Matrix A:\n" << A << std::endl;
-    std::cout << "RHS b: " << b << std::endl;
-    std::cout << "Solution x: " << x << std::endl;
-    
-    // Verify: compute residual ||Ax - b||
-    Vector<Real> residual = A * x - b;
-    std::cout << "Residual ||Ax - b||: " << residual.NormL2() << std::endl;
-    
-    // Compute eigenvalues (general matrix - may have complex eigenvalues!)
-    auto eigen = EigenSolver::Solve(A);
-    
-    std::cout << "\n=== Eigenvalue Decomposition ===" << std::endl;
-    std::cout << "Eigenvalues (complex):" << std::endl;
-    for (size_t i = 0; i < eigen.eigenvalues.size(); ++i) {
-        auto& ev = eigen.eigenvalues[i];
-        std::cout << "  λ[" << i << "] = " << ev.real;
-        if (ev.isComplex()) 
-            std::cout << " + " << ev.imag << "i";
-        std::cout << std::endl;
-    }
-    std::cout << "Converged: " << (eigen.converged ? "YES" : "NO") 
-              << " in " << eigen.iterations << " iterations" << std::endl;
+    std::cout << "Solution: " << x << std::endl;
+    std::cout << "Residual: " << (A * x - b).NormL2() << std::endl;
     
     return 0;
 }
@@ -198,167 +194,88 @@ int main() {
 **Compile:**
 ```bash
 g++ -std=c++17 -O3 myprogram.cpp -o myprogram
-./myprogram
 ```
 
 ---
 
 ## ✨ Key Features
 
-### Mathematical Objects
-- ✅ **Vectors** - Generic, fixed-size, 2D/3D Cartesian, Polar, Spherical, Cylindrical
-- ✅ **Matrices** - Generic, symmetric, tridiagonal, band-diagonal
-- ✅ **Tensors** - Rank 2-5 tensors in N dimensions
-- ✅ **Quaternions** - Rotation representation, SLERP interpolation, Euler angles
-- ✅ **Polynomials** - Generic over Real, Complex, Matrix fields
-- ✅ **Functions** - Real, Scalar, Vector, Parametric curves/surfaces, Tensor fields
-- ✅ **Geometry** - 2D/3D points, lines, planes, triangles, geometric bodies
+### 🏗️ Library Architecture
 
-### Numerical Methods
-- ✅ **Linear Solvers** - Gauss-Jordan, LU, QR, SVD, Cholesky decomposition
-- ✅ **Eigensolvers** - Symmetric and general real matrices
-- ✅ **Derivation** - Orders 1, 2, 4, 6, 8 for all function types
-- ✅ **Integration** - 1D, 2D, 3D; Trapezoidal, Simpson, Romberg, Monte Carlo
-- ✅ **Path Integration** - Curve length, line integrals, work integrals
-- ✅ **Surface Integration** - Flux integrals, surface area, parametric surfaces
-- ✅ **Interpolation** - Linear, polynomial, rational, spline
-- ✅ **ODE Solvers** - Euler, RK4, adaptive methods, BVP shooting
-- ✅ **Root Finding** - Bracketing, Newton-Raphson, secant methods
-- ✅ **Statistics** - Descriptive stats, distributions, hypothesis tests, ANOVA, confidence intervals
-
-### Advanced Features
-- ✅ **Fourier Analysis** - FFT, DFT, spectrum, windowing, convolution
-- ✅ **Curve Fitting** - Linear, polynomial, exponential least squares
-- ✅ **Optimization** - Gradient descent, Newton, conjugate gradient, simulated annealing
-- ✅ **Field Operations** - grad, div, curl, Laplacian in multiple coordinate systems
-- ✅ **Differential Geometry** - Curvature, torsion, Frenet frames
-- ✅ **Coordinate Transforms** - Cartesian ↔ Cylindrical ↔ Spherical
-- ✅ **Metric Tensors** - General, Cartesian, Cylindrical, Spherical coordinates
-- ✅ **Function Analysis** - Find roots, extrema, inflection points
-
-### Tools & Utilities
-- ✅ **ConsolePrinter** - Beautiful table formatting with multiple export formats
-- ✅ **Serializer** - Save mathematical objects to files
-- ✅ **Visualizers** - External tools for plotting functions, fields, curves, surfaces
-- ✅ **Test Beds** - 8 comprehensive test suites with 250+ validated test cases
-
----
-
-## 📚 Library Organization
-
-MML is organized into four main layers:
-
-### Top-Level Navigation
-- **Base layer**: Start with foundational types — see [base/README_Base.md](docs/base/README_Base.md). Highlights: [base/Vectors.md](docs/base/Vectors.md), [base/VectorN.md](docs/base/VectorN.md), [base/Matrices.md](docs/base/Matrices.md), [base/Matrix.md](docs/base/Matrix.md), [base/MatrixNM.md](docs/base/MatrixNM.md), [base/Tensors.md](docs/base/Tensors.md), [base/Geometry.md](docs/base/Geometry.md).
-- **Core layer**: Operations and calculus — see [core/README_Core.md](docs/core/README_Core.md). Highlights: [core/Derivation.md](docs/core/Derivation.md), [core/Linear_equations_solvers.md](docs/core/Linear_equations_solvers.md), [core/Field_operations.md](docs/core/Field_operations.md), [core/Coordinate_transformations.md](docs/core/Coordinate_transformations.md), [core/Metric_tensor.md](docs/core/Metric_tensor.md).
-- **Algorithms layer**: Problem-solving methods — see [algorithms/README_Algorithms.md](docs/algorithms/README_Algorithms.md). Highlights: [algorithms/Root_finding.md](docs/algorithms/Root_finding.md), [algorithms/Differential_equations_solvers.md](docs/algorithms/Differential_equations_solvers.md), [algorithms/Eigen_solvers.md](docs/algorithms/Eigen_solvers.md), [algorithms/MonteCarlo_integration.md](docs/algorithms/MonteCarlo_integration.md).
-- **Tools layer**: Practical utilities for output, serialization, and visualization. Highlights: [tools/ConsolePrinter.md](docs/tools/ConsolePrinter.md), [tools/Serializer.md](docs/tools/Serializer.md), [tools/Visualizers.md](docs/tools/Visualizers.md).
-
-### Base Types
-
-**Foundation classes** - the building blocks used throughout the library.
-
-| Component | Description | Documentation |
-|-----------|-------------|---------------|
-| **Vectors** | Generic `Vector<T>`, fixed-size `VectorN<T,N>`, specialized 2D/3D types | [Vectors.md](docs/base/Vectors.md) |
-| **Matrices** | Generic `Matrix<T>`, `MatrixNM<N,M>`, Symmetric, Tridiagonal, Band-diagonal | [Matrices.md](docs/base/Matrices.md) |
-| **Tensors** | Rank 2-5 tensors: `Tensor2<Dim>`, `Tensor3<Dim>`, etc. | [Tensors.md](docs/base/Tensors.md) |
-| **Polynomials** | Generic `Polynom<T>` over Real, Complex, Matrix fields | [Polynoms.md](docs/base/Polynoms.md) |
-| **Functions** | `IRealFunction`, `IScalarFunction<N>`, `IVectorFunction<N>` | [Functions.md](docs/base/Functions.md) |
-| **Interpolation** | Linear, polynomial, rational, barycentric, spline, 2D | [Interpolated_functions.md](docs/base/Interpolated_functions.md) |
-| **Geometry** | Points, lines, segments, planes, triangles, geometric bodies | [Geometry.md](docs/base/Geometry.md), [Geometry_2D_3D.md](docs/base/Geometry_2D_3D.md) |
-| **Quaternions** | Rotation representation, SLERP interpolation, Euler angles | [Quaternions.md](docs/base/Quaternions.md) |
-| **Standard Functions** | Predefined mathematical functions | [Standard_functions.md](docs/base/Standard_functions.md) |
-| **Utilities** | Matrix helpers (IsOrthogonal, IsUnitary, IsHermitian) | [BaseUtils.md](docs/base/BaseUtils.md) |
-
-**Key Vector Types:**
-```cpp
-Vector<Real>              // Dynamic size
-VectorN<Real, 3>          // Fixed size
-Vector2Cartesian          // 2D Cartesian (x, y)
-Vector2Polar              // 2D Polar (r, θ)
-Vector3Cartesian          // 3D Cartesian (x, y, z)
-Vector3Spherical          // 3D Spherical (r, θ, φ)
-Vector3Cylindrical        // 3D Cylindrical (ρ, φ, z)
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                          MML.h (single header)                      │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│   mml/                                                              │
+│   ├── base/        Vectors, Matrices, Tensors, Functions, Geometry  │
+│   ├── core/        Derivation, Integration, Linear Solvers, Fields  │
+│   ├── algorithms/  ODE, Root Finding, Interpolation, Eigen Solvers  │
+│   ├── systems/     Dynamical Systems, Linear Systems, Attractors    │
+│   ├── interfaces/  Abstract interfaces                              │
+│   └── tools/       Visualization, Serialization, Console Printing   │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
-**Key Matrix Types:**
-```cpp
-Matrix<Real>              // Generic mxn matrix
-MatrixNM<N, M>            // Fixed-size NxM matrix
-MatrixSym                 // Symmetric matrix
-MatrixTridiag             // Tridiagonal matrix
-MatrixBandDiag            // Band-diagonal matrix
-```
+MML is organized into four main layers, each building on the previous one:
 
-**Tensor Types:**
-```cpp
-Tensor2<3>                // Rank-2 tensor in 3D (3x3 matrix-like)
-Tensor3<3>                // Rank-3 tensor in 3D (3x3x3)
-Tensor4<3>                // Rank-4 tensor in 3D
-```
+- **[Base](docs/base/README_Base.md)** — The mathematical foundation. Vectors, matrices, tensors, functions, polynomials, quaternions, and geometry primitives. These are the objects you compute with — designed with intuitive syntax so mathematical expressions in code read naturally.
+- **[Core](docs/core/README_Core.md)** — Numerical operations on base objects. Numerical differentiation (up to 8th order accuracy), integration (1D/2D/3D with adaptive quadrature), linear system solvers (LU, QR, SVD, Cholesky), vector field operations (gradient, divergence, curl, Laplacian), coordinate transformations, and metric tensors.
+- **[Algorithms](docs/algorithms/README_Algorithms.md)** — Higher-level problem-solving methods. ODE solvers (fixed and adaptive step), root finding (Bisection, Newton, Brent), eigenvalue decomposition, interpolation, curve fitting, path and surface integration, differential geometry, and function analysis.
+- **[Tools](docs/tools/)** — Bridging computation and presentation. Console printing with publication-quality formatting (6 export formats), file serialization for all mathematical objects, and cross-platform visualizers for functions, surfaces, vector fields, and particle systems.
 
-**Function Interfaces:**
-```cpp
-IRealFunction             // f: ℝ → ℝ
-IScalarFunction<N>        // f: ℝⁿ → ℝ
-IVectorFunction<N>        // f: ℝⁿ → ℝⁿ
-IParametricCurve<N>       // r: ℝ → ℝⁿ
-IParametricSurface<N>     // r: ℝ² → ℝⁿ
-ITensorField<N>           // T: ℝⁿ → Tensor
-```
 
----
+### 📐 Mathematical Objects
 
-### Core Components
+| Category | Types | Description |
+|----------|-------|-------------|
+| [**Vectors**](docs/base/Vectors.md) | `Vector<T>`, `VectorN<T,N>`, 2D/3D Cartesian, Polar, Spherical | Dynamic and fixed-size vectors in multiple coordinate systems |
+| [**Matrices**](docs/base/Matrices.md) | `Matrix<T>`, `MatrixNM<N,M>`, Symmetric, Tridiagonal, Band | Full matrix algebra with specialized storage |
+| [**Tensors**](docs/base/Tensors.md) | `Tensor2<N>` through `Tensor5<N>` | Rank 2-5 tensors for advanced computations |
+| [**Functions**](docs/base/Functions.md) | `IRealFunction`, `IScalarFunction<N>`, `IVectorFunction<N>` | First-class function objects with calculus support |
+| [**Curves & Surfaces**](docs/core/Curves_and_surfaces.md) | `ParametricCurve<N>`, `ParametricSurface<N>`, predefined 2D/3D | Parametric curves, surfaces, arc length, Frenet frames |
+| [**Geometry**](docs/base/Geometry.md) | Points, Lines, Planes, Triangles, Bodies | 2D and 3D geometric primitives |
+| [**Polynomials**](docs/base/Polynoms.md) | `Polynom<T>` | Generic polynomials over any field |
+| [**Quaternions**](docs/base/Quaternions.md) | Full quaternion algebra | 3D rotations, SLERP interpolation |
 
-**Mathematical objects and operations** - the heart of MML.
+### 🔢 Numerical Algorithms
 
-| Component | Description | Documentation |
-|-----------|-------------|---------------|
-| **Curves & Surfaces** | Parametric curves, surfaces, predefined examples | [Curves_and_surfaces.md](docs/core/Curves_and_surfaces.md) |
-| **Linear Solvers** | GJ, LU, QR, SVD, Cholesky decomposition | [Linear_equations_solvers.md](docs/core/Linear_equations_solvers.md) |
-| **Derivation** | Numerical derivatives (orders 1, 2, 4, 6, 8) | [Derivation.md](docs/core/Derivation.md) |
-| **Integration** | 1D, 2D, 3D integration algorithms | [Integration.md](docs/core/Integration.md), [Multidim_integration.md](docs/core/Multidim_integration.md) |
-| **Path Integration** | Curve length, line integrals, work integrals | [Path_integration.md](docs/algorithms/Path_integration.md) |
-| **Surface Integration** | Flux integrals, surface area, parametric surfaces | [Integration.md](docs/core/Integration.md) |
-| **Field Operations** | grad, div, curl, Laplacian | [Field_operations.md](docs/core/Field_operations.md) |
-| **ODE Systems** | Differential equation systems | [ODE_system.md](docs/base/ODE_system.md) |
-| **Coordinates** | Transformations between coordinate systems | [Coordinate_transformations.md](docs/core/Coordinate_transformations.md) |
-| **Metric Tensors** | Coordinate system metrics | [Metric_tensor.md](docs/core/Metric_tensor.md) |
-| **Dirac Delta** | Distributions for delta function | [Dirac_delta_function.md](docs/core/Dirac_delta_function.md) |
-| **Fields** | Predefined example fields | [Fields.md](docs/core/Fields.md) |
+| Category | Algorithms | Description |
+|----------|------------|-------------|
+| [**Linear Algebra**](docs/core/Linear_equations_solvers.md) | LUSolver, QRSolver, SVD, Cholesky | Matrix decompositions and solvers |
+| [**Eigensolvers**](docs/algorithms/Eigen_solvers.md) | EigenSolver (symmetric & general) | Real matrix eigenvalue computation |
+| [**Derivation**](docs/core/Derivation.md) | NDer1-8, NSecDer, NThirdDer, Gradient, Jacobian | 1st/2nd/3rd derivatives, O(h) to O(h⁸) accuracy |
+| [**Integration 1D**](docs/core/Integration.md) | Trap, Simpson, Romberg, Gauss-Kronrod (G7K15, G10K21) | Adaptive quadrature with error estimates |
+| [**Integration 2D/3D**](docs/core/Multidim_integration.md) | Integrate2D, Integrate3D, Monte Carlo | Multidimensional integration |
+| [**Improper Integrals**](docs/core/Integration.md) | IntegrateUpperInf, IntegrateLowerInf, IntegrateInfInf | Semi-infinite and infinite bounds |
+| [**Path & Surface**](docs/algorithms/Path_integration.md) | PathIntegration, SurfaceIntegration | Curve and surface integrals, flux |
+| [**ODE Solvers**](docs/algorithms/Differential_equations_solvers.md) | ODESystemFixedStepSolver, Euler, RK4, Adaptive | Ordinary differential equations |
+| [**Dynamical Systems**](docs/systems/) | DynamicalSystem, fixed points, Lyapunov exponents | Phase space analysis and stability |
+| [**Root Finding**](docs/algorithms/Root_finding.md) | Bisection, Newton, Secant, Brent | Equation solving |
+| [**Interpolation**](docs/base/Interpolated_functions.md) | LinearInterpRealFunc, SplineInterpRealFunc, PolynomInterpRealFunc | Function approximation |
 
----
+### 🌀 Advanced Capabilities
 
-### Algorithms
+| Feature | Description |
+|---------|-------------|
+| [**Field Operations**](docs/core/Field_operations.md) | `GradientCart`, `DivCart`, `CurlCart`, `LaplacianCart` in Cartesian, cylindrical, spherical |
+| [**Coordinate Transforms**](docs/core/Coordinate_transformations.md) | `CoordTransfSphericalToCartesian`, `CoordTransfLorentzXAxis`, rotations |
+| [**Metric Tensors**](docs/core/Metric_tensor.md) | General coordinate system support |
+| [**Differential Geometry**](docs/algorithms/Differential_geometry.md) | Curvature, torsion, Frenet frames |
+| [**Dynamical Systems**](docs/systems/) | Fixed point classification, Lyapunov exponents, bifurcation analysis |
+| [**Function Analysis**](docs/algorithms/Function_analyzer.md) | Find roots, extrema, inflection points |
 
-**Problem-solving algorithms** - advanced numerical methods.
-
-| Algorithm | Description | Documentation |
-|-----------|-------------|---------------|
-| **Root Finding** | Bracketing, Newton-Raphson, secant methods | [Root_finding.md](docs/algorithms/Root_finding.md) |
-| **Eigensolvers** | Symmetric and general real matrix eigenvalues | [Eigen_solvers.md](docs/algorithms/Eigen_solvers.md) |
-| **ODE Solvers** | Euler, RK4, adaptive methods for ODE systems | [Differential_equations_solvers.md](docs/algorithms/Differential_equations_solvers.md) |
-| **Optimization** | Gradient descent, Newton, CG, BFGS, simulated annealing | [Function_optimization.md](docs/algorithms/Function_optimization.md) |
-| **Monte Carlo** | Monte Carlo integration with importance sampling | [MonteCarlo_integration.md](docs/algorithms/MonteCarlo_integration.md) |
-| **Fourier Transform** | FFT, DFT, spectrum analysis, windowing, convolution | [Fourier_transformation.md](docs/algorithms/Fourier_transformation.md) |
-| **Differential Geometry** | Curvature, torsion, Frenet frames | [Differential_geometry.md](docs/algorithms/Differential_geometry.md) |
-| **Statistics** | Distributions, hypothesis tests, ANOVA, confidence intervals | [Statistics.md](docs/algorithms/Statistics.md) |
-| **Function Analyzer** | Find roots, extrema, inflection points | [Function_analyzer.md](docs/algorithms/Function_analyzer.md) |
-
----
-
-### Tools & Utilities
+## 📚 Tools & Utilities
 
 **Practical tools** for working with mathematical objects — the fourth layer of MML.
 
-| Tool | Description | Documentation |
-|------|-------------|---------------|
-| **ConsolePrinter** | Beautiful table formatting, 6 export formats (TXT, CSV, JSON, HTML, LaTeX, Markdown), 5 border styles | [ConsolePrinter.md](docs/tools/ConsolePrinter.md) |
-| **Serializer** | Save functions, ODE solutions, particle simulations, vector fields to files | [Serializer.md](docs/tools/Serializer.md) |
-| **Visualizers** | Cross-platform plotting for functions, fields, curves, surfaces, particles | [Visualizers.md](docs/tools/Visualizers.md) |
-| **Random** | Random number generators for simulations and Monte Carlo | Built-in utility |
+| Tool | Description |
+|------|-------------|
+| [**ConsolePrinter**](docs/tools/ConsolePrinter.md) | Beautiful table formatting, 6 export formats (TXT, CSV, JSON, HTML, LaTeX, Markdown), 5 border styles |
+| [**Serializer**](docs/tools/Serializer.md) | Save functions, ODE solutions, particle simulations, vector fields to files |
+| [**Visualizers**](docs/tools/Visualizers.md) | Cross-platform plotting for functions, fields, curves, surfaces, particles |
+| **Random** | Random number generators for simulations and Monte Carlo |
 
 **Why Tools Matter:**
 
@@ -368,11 +285,7 @@ The Tools layer bridges the gap between computation and presentation. Whether yo
 - **Serializer**: Persist simulation results for later analysis or visualization in external tools
 - **Visualizers**: Launch real-time viewers directly from code — no manual data export needed
 
-#### 🖼️ Visualization Preview
 
-| Real Functions | 3D Surfaces | Parametric Curves | Vector Fields |
-|:--------------:|:-----------:|:-----------------:|:-------------:|
-| ![Real](docs/images/_Win%20-%20Real%20func%201.png) | ![Surface](docs/images/_Win%20-%20Scalar%20func%201.png) | ![Curve](docs/images/_Win%20-%20Parametric%20curve%203D%201.png) | ![Field](docs/images/_Win%20-%20Vector%20field%202D%201.png) |
 
 See the full [Visualization Gallery](#-visualization-gallery) below for all visualizer types.
 
@@ -384,52 +297,194 @@ See the full [Visualization Gallery](#-visualization-gallery) below for all visu
 
 ### 🌌 [Example 00: N-Body Gravity](docs/examples/Example_00_N_body_gravity.md) — *Flagship Example*
 
-**Solar System & Star Cluster Simulations**
+**Solar System & Star Cluster Simulations** — Newton's law of universal gravitation with **7 integrators** (Euler, RK4, Verlet, Leapfrog, RK5, DP5, DP8). Symplectic integrators for long-term orbital stability, adaptive methods for highest accuracy. Self-contained physics engine (~870 lines).
 
-| Solar System Simulation | Star Cluster Collision |
-|:-----------------------:|:----------------------:|
-| ![Solar System](docs/images/_Example00_solar_system.png) | ![Star Clusters](docs/images/_Example00_star_clusters.png) |
-| *Inner planets orbital mechanics* | *Two star clusters gravitational interaction* |
+<table>
+<tr>
+<td align="center" width="33%">
 
-| Particle Simulation View | Cluster Collision Dynamics |
-|:------------------------:|:--------------------------:|
-| ![Particle Sim](docs/images/_Example00_solar_system_particle_sim.png) | ![Cluster Overview](docs/images/_Example00_star_clusters_particle_overview.png) |
-| *Real-time particle visualization* | *Multi-body gravitational chaos* |
+![Solar System](docs/images/readme/examples/00_N_body_gravity/_Example00_solar_system.png)
 
-- Newton's law of universal gravitation with configurable G
-- **7 integrators** with different accuracy/performance tradeoffs:
-  | Solver | Type | Best For |
-  |--------|------|----------|
-  | `SolveEuler()` | Fixed-step | Educational (terrible energy conservation) |
-  | `SolveRK4()` | Fixed-step | Short simulations (energy drifts over time) |
-  | `SolveVerlet()` | **Symplectic** | Long-term orbits (excellent energy conservation!) |
-  | `SolveLeapfrog()` | **Symplectic** | Long-term orbits (equivalent to Verlet) |
-  | `SolveRK5()` | Adaptive Cash-Karp | High accuracy with step control |
-  | `SolveDP5()` | Adaptive Dormand-Prince 5 | High accuracy, FSAL optimization |
-  | `SolveDP8()` | Adaptive Dormand-Prince 8 | **Highest accuracy** |
-- Two pre-configured scenarios: Solar System and Star Cluster Collision
-- Self-contained physics engine (~870 lines) — no MML dependency for physics!
+*Solar system orbital mechanics*
+
+</td>
+<td align="center" width="33%">
+
+![Particle Sim](docs/images/readme/examples/00_N_body_gravity/_Example00_solar_system_particle_sim.png)
+
+*Real-time particle visualization*
+
+</td>
+<td align="center" width="33%">
+
+![Cluster Overview](docs/images/readme/examples/00_N_body_gravity/_Example00_star_clusters_particle_overview.png)
+
+*Star cluster collision overview*
+
+</td>
+</tr>
+<tr>
+<td align="center">
+
+![Cluster Step 1](docs/images/readme/examples/00_N_body_gravity/_Example00_star_clusters_particle_step%201.png)
+
+*Cluster approach*
+
+</td>
+<td align="center">
+
+![Cluster Step 3](docs/images/readme/examples/00_N_body_gravity/_Example00_star_clusters_particle_step%203.png)
+
+*Gravitational interaction*
+
+</td>
+<td align="center">
+
+![Cluster Trajectories](docs/images/readme/examples/00_N_body_gravity/_Example00_star_clusters_trajectories_visualization.png)
+
+*Full trajectory visualization*
+
+</td>
+</tr>
+</table>
 
 ```cpp
-// Simulate the Solar System for 10 years with different solvers
 NBodyGravitySimConfig config = NBodyGravityConfigGenerator::Config1_Solar_system();
 NBodyGravitySimulator solver(config);
 
-// For long-term orbital stability, use symplectic integrators:
-auto results_verlet = solver.SolveVerlet(0.01, 365000);      // 10 years, dt=0.01 days
-
-// For highest accuracy on shorter runs:
+auto results_verlet = solver.SolveVerlet(0.01, 365000);       // 10 years, symplectic
 auto results_dp8 = solver.SolveDP8(10.0, 1e-12, 0.01, 0.001); // 10 years, adaptive DP8
 ```
 
-### Other Examples
+---
 
-| # | Example | Description | Key Features |
-|---|---------|-------------|--------------|
-| 01 | **[Projectile Launch](docs/examples/Example_01_projectile_launch.md)** | Ballistic trajectory with air resistance | Drag models, vacuum vs air comparison, ODE integration |
-| 02 | **[Double Pendulum](docs/examples/Example_02_double_pendulum.md)** | Chaotic dynamics visualization | Sensitivity to initial conditions, phase space, Lyapunov behavior |
-| 03 | **[2D Collision Simulator](docs/examples/Example_03_collision_simulator_2d.md)** | Large-scale elastic collisions | **30,000+ balls**, spatial subdivision, parallel execution, shock waves |
-| 04 | **[Lorentz Transformations](docs/examples/Example_04_Lorentz_transformations.md)** | Special relativity & Twin Paradox | Time dilation, worldlines, coordinate transforms |
+### 🎾 [Example 02: Double Pendulum](docs/examples/Example_02_double_pendulum.md) — *Chaos Theory*
+
+Deterministic chaos in action — infinitely small differences in initial conditions lead to completely different outcomes.
+
+<table>
+<tr>
+<td align="center" width="33%">
+
+![Trajectory](docs/images/readme/examples/02_double_pendulum/01_trajectory_for%20both%20angles.png)
+
+*Angle trajectories*
+
+</td>
+<td align="center" width="33%">
+
+![Phase Space](docs/images/readme/examples/02_double_pendulum/02_phase_space.png)
+
+*Phase space portrait*
+
+</td>
+<td align="center" width="33%">
+
+![Butterfly Effect](docs/images/readme/examples/02_double_pendulum/03_butterfly_effect.png)
+
+*Butterfly effect divergence*
+
+</td>
+</tr>
+</table>
+
+---
+
+### 🏎️ [Example 03: Formula 1 G-Force Analysis](docs/examples/Example_03_F1_GForce_analysis.md) — *Parametric Curves*
+
+Real F1 telemetry data (Silverstone, Monza) analyzed using MML's parametric curve and curvature calculations. Lateral G = v²κ/g, longitudinal G = (1/g)·dv/dt.
+
+<table>
+<tr>
+<td align="center" width="33%">
+
+![Track Path](docs/images/readme/examples/03_formula_1_sim/01_track_path.png)
+
+*Track layout from telemetry*
+
+</td>
+<td align="center" width="33%">
+
+![G-Forces](docs/images/readme/examples/03_formula_1_sim/02_g_forces.png)
+
+*G-force profile around lap*
+
+</td>
+<td align="center" width="33%">
+
+![Speed Profile](docs/images/readme/examples/03_formula_1_sim/03_speed_profile.png)
+
+*Speed profile analysis*
+
+</td>
+</tr>
+</table>
+
+---
+
+### 💥 [Example 04: 2D Collision Simulator](docs/examples/Example_04_collision_simulator_2d.md) — *Kinetic Theory*
+
+**30,000+ particles** with exact elastic collision physics, spatial partitioning for O(N) performance, and multi-threaded execution. Watch shock waves propagate!
+
+<table>
+<tr>
+<td align="center" width="33%">
+
+![Shock 1](docs/images/readme/examples/04_collision_simulator_2d/01_shock_wave.png)
+
+*Initial shock front*
+
+</td>
+<td align="center" width="33%">
+
+![Shock 2](docs/images/readme/examples/04_collision_simulator_2d/02_shock_wave.png)
+
+*Wave propagation*
+
+</td>
+<td align="center" width="33%">
+
+![Shock 3](docs/images/readme/examples/04_collision_simulator_2d/03_shock_wave.png)
+
+*Shock wave dispersion*
+
+</td>
+</tr>
+</table>
+
+---
+
+### 📦 [Example 05: Rigid Body Collisions](docs/examples/Example_05_rigid_body.md) — *3D Dynamics*
+
+Two parallelepipeds and a sphere in a cubic container with elastic collisions, full rotational dynamics using quaternions and inertia tensors.
+
+<table>
+<tr>
+<td align="center" width="50%">
+
+![Start](docs/images/readme/examples/05_rigid_body/01_rigid_body_start.png)
+
+*Initial configuration*
+
+</td>
+<td align="center" width="50%">
+
+![Collision](docs/images/readme/examples/05_rigid_body/02_rigid_body.png)
+
+*Mid-collision dynamics*
+
+</td>
+</tr>
+</table>
+
+---
+
+### More Examples
+
+| # | Example | Description |
+|---|---------|-------------|
+| 01 | [**Projectile Launch**](docs/examples/Example_01_projectile_launch.md) | Ballistic trajectory with air resistance — drag models, vacuum vs air comparison |
+| 06 | [**Lorentz Transformations**](docs/examples/Example_06_Lorentz_transformations.md) | Special relativity — time dilation, length contraction, Twin Paradox |
 
 ### 🚀 Try It Now
 
@@ -443,328 +498,378 @@ cmake -B build && cmake --build build
 
 All examples produce visualization output viewable with the included Qt-based viewers.
 
-> ⚠️ **Qt Visualizer Compatibility Note:** The prebuilt Qt visualizers for Linux require **Qt 6.9.0** runtime libraries. If you have a different Qt version installed, you may need to rebuild the visualizers from source (see Github repo `https://github.com/zvanjak/MML_Linux_Visualizers`). The WPF visualizers on Windows depend on NET 8 runtime libraries being installed on the system.
-
 ---
 
-## 💡 Code Examples
+## 📊 Visualization Suite
 
-### Vectors & Matrices
 
-Basic vector and matrix operations with complex number support:
+MML includes a powerful **cross-platform visualization suite** for functions, fields, curves, surfaces, and particle systems. All visualizers work on Windows (WPF), Linux (Qt), and macOS (Qt).
 
-```cpp
-#include "MML.h"
-using namespace MML;
+### Visualization Gallery
 
-// Real vectors and matrices
-Vector<double> vec1{1.5, -2.0, 0.5}, vec2{1.0, 1.0, -3.0};
-Matrix<double> mat_3x3{3, 3, {1.0,  2.0, -1.0,
-                             -1.0,  5.0,  6.0,
-                              3.0, -2.0,  1.0}};
-Matrix<double> unit_mat = Matrix<double>::GetUnitMatrix(3);
-
-// Vector and matrix arithmetic
-Vector<double> result = 2.0 * (vec1 + vec2) * mat_3x3 / vec1.NormL2();
-std::cout << "Result: " << result << std::endl;
-
-// Complex vectors and matrices
-VectorComplex vec_cmplx{{Complex(1,1), Complex(-1,2)}};
-MatrixComplex mat_cmplx{2, 2, {Complex(0.5,1),  Complex(-1,2),
-                               Complex(-1,-2), Complex(-2,2)}};
-
-VectorComplex complex_result = vec_cmplx * mat_cmplx / Complex(1.5, -1.5);
-
-// Matrix properties
-std::cout << "IsOrthogonal(mat_3x3)  = " << Utils::IsOrthogonal(mat_3x3) << std::endl;
-std::cout << "IsHermitian(mat_cmplx) = " << Utils::IsHermitian(mat_cmplx) << std::endl;
-std::cout << "IsUnitary(mat_cmplx)   = " << Utils::IsUnitary(mat_cmplx) << std::endl;
-```
-
----
-
-### Linear Systems & Eigenvalues
-
-Solve linear systems and compute eigenvalues:
-
-```cpp
-// Define a linear system Ax = b
-Matrix<Real> A{5, 5, {0.2,  4.1, -2.1, -7.4,  1.6,
-                      1.6,  1.5, -1.1,  0.7,  5.0,
-                     -3.8, -8.0,  9.6, -5.4, -7.8,
-                      4.6, -8.2,  8.4,  0.4,  8.0,
-                     -2.6,  2.9,  0.1, -9.6, -2.7}};
-Vector<Real> b{1.1, 4.7, 0.1, 9.3, 0.4};
-
-// Solve using LU decomposition
-LUDecompositionSolver<Real> luSolver(A);
-Vector<Real> x = luSolver.Solve(b);
-
-std::cout << "Solution: " << x << std::endl;
-std::cout << "Verification: " << (A * x) << std::endl;
-
-// Compute eigenvalues
-Matrix<Real> mat_copy(A);
-EigenSolver eigenSolver(mat_copy, true, false);
-
-std::cout << "\nNum real eigenvalues: " << eigenSolver.getNumReal() << std::endl;
-std::cout << "Eigenvalues: " << eigenSolver.getEigenvalues() << std::endl;
-```
-
-**Output:**
-```
-Solution: [-5.56850, -5.94469, -5.00762, -1.39364, 3.59876]
-Eigenvalues: [(12.974,0), (0.99944,0), (-0.033184,0), (-2.4701,12.994), (-2.4701,-12.994)]
-```
-
----
-
-### Functions & Interpolation
-
-MML provides multiple ways to define and use functions: real-valued (`IRealFunction`), scalar fields (`IScalarFunction<N>`), vector fields (`IVectorFunction<N>`), parametric curves/surfaces, and interpolated functions with linear/polynomial/spline strategies. Visualizers can plot 1D/2D/3D functions and fields.
-
-Create and work with mathematical functions:
-
-```cpp
-// Method 1: Lambda function
-RealFunction f1{[](double x) { return sin(x) * (1.0 + 0.5*x*x); }};
-
-// Method 2: Different function types
-ScalarFunction<3> scalar_func([](const VectorN<Real, 3> &x) { 
-    return x[0]*x[0] + x[1]*x[1] + x[2]*x[2]; 
-});
-
-VectorFunction<3> vector_func([](const VectorN<Real, 3> &x) -> VectorN<Real, 3> { 
-    return {x[1]*x[2], x[0]*x[2], x[0]*x[1]}; 
-});
-
-ParametricCurve<3> helix([](double t) -> VectorN<Real, 3> { 
-    return {cos(t), sin(t), 0.2*t}; 
-});
-
-// Interpolation from data
-Vector<Real> x_data{0, 2.5, 5.0, 7.5, 10.0};
-Vector<Real> y_data{0, 1.5, 4.0, 9.5, 16.0};
-
-LinearInterpRealFunc   linear_interp(x_data, y_data);
-PolynomInterpRealFunc  poly_interp(x_data, y_data, 3);
-SplineInterpRealFunc   spline_interp(x_data, y_data);
-
-Real x = 3.7;
-std::cout << "Linear: " << linear_interp(x) << std::endl;
-std::cout << "Spline: " << spline_interp(x) << std::endl;
-```
-
----
-
-### Numerical Calculus
-
-MML provides high-order numerical derivatives and integration with error estimates.
-
-**Numerical Derivatives with Precision Analysis:**
-
-```cpp
-// Compare derivative orders on f(x) = sin(x) at x = 1.0
-// Analytical derivative: f'(1) = cos(1) ≈ 0.5403023058681398
-
-RealFunction f{[](Real x) { return std::sin(x); }};
-Real x = 1.0;
-Real analytical = std::cos(1.0);
-
-Real der1 = Derivation::NDer1(f, x);   // O(h²) - 2-point
-Real der2 = Derivation::NDer2(f, x);   // O(h⁴) - 4-point  
-Real der4 = Derivation::NDer4(f, x);   // O(h⁶) - 6-point
-Real der6 = Derivation::NDer6(f, x);   // O(h⁸) - 8-point
-Real der8 = Derivation::NDer8(f, x);   // O(h¹⁰) - 10-point
-
-std::cout << std::scientific << std::setprecision(10);
-std::cout << "Order 1 error: " << std::abs(der1 - analytical) << std::endl;  // ~1e-11
-std::cout << "Order 6 error: " << std::abs(der6 - analytical) << std::endl;  // ~1e-14
-std::cout << "Order 8 error: " << std::abs(der8 - analytical) << std::endl;  // ~1e-15
-```
-
-**Numerical Integration with Convergence:**
-
-```cpp
-// Integrate f(x) = sin(x) from 0 to π
-// Analytical result: ∫sin(x)dx = 2.0
-
-RealFunction f{[](Real x) { return std::sin(x); }};
-Real a = 0.0, b = M_PI;
-Real analytical = 2.0;
-
-Real trap  = Integration::Trapezoid(f, a, b, 100);
-Real simp  = Integration::Simpson(f, a, b, 100);
-Real romb  = Integration::Romberg(f, a, b, 1e-10);
-
-std::cout << "Trapezoid error: " << std::abs(trap - analytical) << std::endl;  // ~2e-4
-std::cout << "Simpson error:   " << std::abs(simp - analytical) << std::endl;  // ~2e-9
-std::cout << "Romberg error:   " << std::abs(romb - analytical) << std::endl;  // ~1e-14
-
-// Multi-dimensional integration
-ScalarFunction<3> volume_func([](const VectorN<Real, 3>& x) {
-    return x[0]*x[0] + x[1]*x[1] + x[2]*x[2];  // x² + y² + z²
-});
-
-// Monte Carlo for high-dimensional integrals
-auto mc_result = MonteCarloIntegration::IntegrateBox(
-    volume_func, 
-    {0, 0, 0},      // Lower bounds
-    {1, 1, 1},      // Upper bounds
-    100000          // Samples
-);
-std::cout << "MC estimate: " << mc_result.value 
-          << " ± " << mc_result.error_estimate << std::endl;
-```
-
-**Field Operations:**
-
-```cpp
-// Scalar field: gravitational potential φ(x,y,z) = -1/r
-ScalarFunction<3> potential([](const VectorN<Real, 3>& x) {
-    return -1.0 / x.NormL2();
-});
-VectorN<Real, 3> pos{1.0, 2.0, 2.0};
-
-// Gradient ∇φ (gives force direction)
-auto grad = ScalarFieldOperations::GradientCart<3>(potential, pos);
-
-// Laplacian ∇²φ (zero outside mass for gravity!)
-Real laplacian = ScalarFieldOperations::LaplacianCart<3>(potential, pos);
-
-// Vector field: velocity field v(x,y,z)
-VectorFunction<3> velocity([](const VectorN<Real, 3>& x) -> VectorN<Real, 3> {
-    return {x[1], -x[0], x[2]};  // Rotating flow
-});
-
-// Divergence ∇·v (compression/expansion rate)
-Real div = VectorFieldOperations::DivergenceCart(velocity, pos);
-
-// Curl ∇×v (rotation/vorticity)
-auto curl = VectorFieldOperations::CurlCart(velocity, pos);
-```
-
----
-
-### Differential Equations
-
-Solve ODE systems:
-
-```cpp
-// Define ODE system: dx/dt = f(t, x)
-// Example: Simple harmonic oscillator
-auto oscillator = [](Real t, const Vector<Real> &y) -> Vector<Real> {
-    // y[0] = position, y[1] = velocity
-    Real omega = 2.0;
-    return Vector<Real>{y[1], -omega*omega*y[0]};
-};
-
-ODESystem system(oscillator, 2);
-Vector<Real> initial_cond{1.0, 0.0};  // x(0) = 1, v(0) = 0
-
-// Solve with RK4
-ODESolver solver(/*params*/);
-ODESystemSolution solution = solver.solve(system, initial_cond, 0.0, 10.0, 0.01);
-
-// Visualize
-Visualizer::VisualizeODESysSolAsMultiFunc(
-    solution, "Harmonic Oscillator", 
-    {"Position", "Velocity"}, "oscillator.txt");
-```
-
----
-
-## 📊 Visualization
-
-MML includes a powerful **cross-platform visualization suite** for functions, fields, curves, surfaces, and particle systems. All visualizers work on both Windows (WPF) and Linux (Qt).
-
-### 🖼️ Visualization Gallery
+#### Windows — WPF Visualizers
 
 <table>
 <tr>
-<td align="center" width="33%">
+<td align="center" width="25%">
 
 **Real Functions**
 
-![Real Function](docs/images/_Win%20-%20Real%20func%201.png)
-
-*sin(x) × (x-3)(x+5) / √|2-x|*
+![WPF Real](docs/images/readme/visualization_suite/win/wpf_real_func_multi_damped_oscillations.png)
 
 </td>
-<td align="center" width="33%">
+<td align="center" width="25%">
 
-**Multi-Function Comparison**
+**Real Functions (Lorentz)**
 
-![Multi Function](docs/images/_Win%20-%20Real%20func%20-%20multi%201.png)
-
-*Compare f(x) and f'(x)*
+![WPF Lorentz](docs/images/readme/visualization_suite/win/wpf_real_func_multi_Lorentz.png)
 
 </td>
-<td align="center" width="33%">
+<td align="center" width="25%">
 
-**3D Scalar Surfaces**
+**Scalar Function 2D**
 
-![Scalar Surface](docs/images/_Win%20-%20Scalar%20func%202.png)
-
-*f(x,y) = 3x(x²-3y²)/25*
+![WPF Scalar 2D](docs/images/readme/visualization_suite/win/wpf_scalar_func_2d.png)
 
 </td>
-</tr>
-<tr>
-<td align="center">
+<td align="center" width="25%">
 
-**2D Parametric Curves**
+**Scalar Function 3D**
 
-![Curve 2D](docs/images/_Win%20-%20Parametric%20curve%202D%201.png)
-
-*Lissajous figures*
-
-</td>
-<td align="center">
-
-**3D Parametric Curves**
-
-![Curve 3D](docs/images/_Win%20-%20Parametric%20curve%203D%202.png)
-
-*Helix & toroidal spirals*
-
-</td>
-<td align="center">
-
-**2D Vector Fields**
-
-![Vector Field](docs/images/_Win%20-%20Vector%20field%202D%202.png)
-
-*Two-body gravity field*
+![WPF Scalar 3D](docs/images/readme/visualization_suite/win/wpf_scalar_func_3d.png)
 
 </td>
 </tr>
 <tr>
 <td align="center">
 
-**2D Particle Systems**
+**Parametric Curve 2D**
 
-![Particle 2D](docs/images/_Win%20-%20Particle%20visualizer%202D.png)
-
-*Animated with playback*
+![WPF Curve 2D](docs/images/readme/visualization_suite/win/wpf_param_curve_2d_butterfly.png)
 
 </td>
 <td align="center">
 
-**3D Particle Systems**
+**Parametric Curve 3D**
 
-![Particle 3D](docs/images/_Win%20-%20Particle%20visualizer%203D.png)
-
-*N-body trajectories*
+![WPF Curve 3D](docs/images/readme/visualization_suite/win/wpf_param_curve_3d.png)
 
 </td>
 <td align="center">
 
-**Linux Support**
+**Parametric Surface**
 
-![Linux](docs/images/_Linux%20-%20Parametric%20curve%203D%20-%201.png)
+![WPF Surface](docs/images/readme/visualization_suite/win/wpf_param_surface.png)
 
-*Qt-based cross-platform*
+</td>
+<td align="center">
+
+**Vector Field 3D**
+
+![WPF VecField](docs/images/readme/visualization_suite/win/wpf_vector_field_3d.png)
+
+</td>
+</tr>
+<tr>
+<td align="center">
+
+**Particle Visualizer 2D**
+
+![WPF Particle 2D](docs/images/readme/visualization_suite/win/wpf_particle_vis_2d.png)
+
+</td>
+<td align="center">
+
+**Particle Visualizer 3D**
+
+![WPF Particle 3D](docs/images/readme/visualization_suite/win/wpf_particle_vis_3d.png)
+
+</td>
+<td align="center">
+
+**Rigid Body Simulation**
+
+![WPF Rigid](docs/images/readme/visualization_suite/win/wpf_rigid_body.png)
+
+</td>
+<td align="center">
+
+</td>
+</tr>
+</table>
+
+#### Windows — Qt Visualizers
+
+<table>
+<tr>
+<td align="center" width="25%">
+
+**Real Functions**
+
+![Qt Real](docs/images/readme/visualization_suite/win/win_qt_real_func_multi.png)
+
+</td>
+<td align="center" width="25%">
+
+**Scalar Function 2D**
+
+![Qt Scalar 2D](docs/images/readme/visualization_suite/win/win_qt_scalar_func_2d.png)
+
+</td>
+<td align="center" width="25%">
+
+**Scalar Function 3D**
+
+![Qt Scalar 3D](docs/images/readme/visualization_suite/win/win_qt_scalar_func_3d.png)
+
+</td>
+<td align="center" width="25%">
+
+**Parametric Surface**
+
+![Qt Surface](docs/images/readme/visualization_suite/win/win_qt_param_surface.png)
+
+</td>
+</tr>
+<tr>
+<td align="center">
+
+**Parametric Curve 2D**
+
+![Qt Curve 2D](docs/images/readme/visualization_suite/win/win_qt_param_curve_2d.png)
+
+</td>
+<td align="center">
+
+**Parametric Curve 3D**
+
+![Qt Curve 3D](docs/images/readme/visualization_suite/win/win_qt_param_curve_3d.png)
+
+</td>
+<td align="center">
+
+**Vector Field 3D**
+
+![Qt VecField](docs/images/readme/visualization_suite/win/win_qt_vector_field_3d.png)
+
+</td>
+<td align="center">
+
+**Rigid Body Simulation**
+
+![Qt Rigid](docs/images/readme/visualization_suite/win/win_qt_rigid_body.png)
+
+</td>
+</tr>
+<tr>
+<td align="center">
+
+**Particle Visualizer 2D**
+
+![Qt Particle 2D](docs/images/readme/visualization_suite/win/win_qt_particle_vis_2d.png)
+
+</td>
+<td align="center">
+
+**Particle Visualizer 3D**
+
+![Qt Particle 3D](docs/images/readme/visualization_suite/win/win_qt_particle_vis_3d.png)
+
+</td>
+<td align="center">
+
+</td>
+<td align="center">
+
+</td>
+</tr>
+</table>
+
+#### Linux — Qt Visualizers
+
+<table>
+<tr>
+<td align="center" width="25%">
+
+**Real Functions**
+
+![Linux Real](docs/images/readme/visualization_suite/linux/linux_qt_real_func_multri.png)
+
+</td>
+<td align="center" width="25%">
+
+**Scalar Function 2D**
+
+![Linux Scalar 2D](docs/images/readme/visualization_suite/linux/linux_qt_scalar_func_2d.png)
+
+</td>
+<td align="center" width="25%">
+
+**Scalar Function 3D**
+
+![Linux Scalar 3D](docs/images/readme/visualization_suite/linux/linux_qt_scalar_func_3d.png)
+
+</td>
+<td align="center" width="25%">
+
+**Parametric Surface**
+
+![Linux Surface](docs/images/readme/visualization_suite/linux/linux_qt_param_surface.png)
+
+</td>
+</tr>
+<tr>
+<td align="center">
+
+**Parametric Curve 2D**
+
+![Linux Curve 2D](docs/images/readme/visualization_suite/linux/linux_qt_param_curve_2d.png)
+
+</td>
+<td align="center">
+
+**Parametric Curve 3D**
+
+![Linux Curve 3D](docs/images/readme/visualization_suite/linux/linux_qt_param_curve_3d.png)
+
+</td>
+<td align="center">
+
+**Vector Field 3D**
+
+![Linux VecField](docs/images/readme/visualization_suite/linux/linux_qt_vector_field_3d.png)
+
+</td>
+<td align="center">
+
+**Rigid Body Simulation**
+
+![Linux Rigid](docs/images/readme/visualization_suite/linux/linux_qt_rigid_body_vis.png)
+
+</td>
+</tr>
+<tr>
+<td align="center">
+
+**Particle Visualizer 2D**
+
+![Linux Particle 2D](docs/images/readme/visualization_suite/linux/linux_qt_particle_vis_2d.png)
+
+</td>
+<td align="center">
+
+**Particle Visualizer 3D**
+
+![Linux Particle 3D](docs/images/readme/visualization_suite/linux/linux_qt_particle_vis_3d.png)
+
+</td>
+<td align="center">
+
+**Scalar 2D (Dark Theme)**
+
+![Linux Scalar Dark](docs/images/readme/visualization_suite/linux/linux_qt_scalar_func_2d_dark.png)
+
+</td>
+<td align="center">
+
+**Parametric Surface (Dark)**
+
+![Linux Surface Dark](docs/images/readme/visualization_suite/linux/linux_qt_param_surface_dark.png)
+
+</td>
+</tr>
+</table>
+
+#### macOS — Qt Visualizers
+
+<table>
+<tr>
+<td align="center" width="25%">
+
+**Real Functions**
+
+![Mac Real](docs/images/readme/visualization_suite/mac/mac_qt_real_func_multi.png)
+
+</td>
+<td align="center" width="25%">
+
+**Real Functions (Lorentz)**
+
+![Mac Lorentz](docs/images/readme/visualization_suite/mac/mac_qt_real_func_multi_Lorentz_system.png)
+
+</td>
+<td align="center" width="25%">
+
+**Scalar Function 2D**
+
+![Mac Scalar 2D](docs/images/readme/visualization_suite/mac/mac_qt_scalar_func_2d_monkey_saddle.png)
+
+</td>
+<td align="center" width="25%">
+
+**Scalar Function 3D**
+
+![Mac Scalar 3D](docs/images/readme/visualization_suite/mac/mac_qt_scalar_function_3d_gyroid.png)
+
+</td>
+</tr>
+<tr>
+<td align="center">
+
+**Parametric Curve 2D**
+
+![Mac Curve 2D](docs/images/readme/visualization_suite/mac/mac_qt_param_curve_2de_butterfly.png)
+
+</td>
+<td align="center">
+
+**Parametric Curve 3D**
+
+![Mac Curve 3D](docs/images/readme/visualization_suite/mac/mac_qt_param_curve_3d_trefoil.png)
+
+</td>
+<td align="center">
+
+**Parametric Surface**
+
+![Mac Surface](docs/images/readme/visualization_suite/mac/mac_qt_param_surface_klein.png)
+
+</td>
+<td align="center">
+
+**Vector Field 3D**
+
+![Mac VecField](docs/images/readme/visualization_suite/mac/mac_qt_vector_field_3d_gravity.png)
+
+</td>
+</tr>
+<tr>
+<td align="center">
+
+**Particle Visualizer 2D**
+
+![Mac Particle 2D](docs/images/readme/visualization_suite/mac/mac_qt_particle_visualizer_2d.png)
+
+</td>
+<td align="center">
+
+**Particle Visualizer 3D**
+
+![Mac Particle 3D](docs/images/readme/visualization_suite/mac/mac_qt_partice_visualizer_3d.png)
+
+</td>
+<td align="center">
+
+**Scalar Function 2D (Ripple)**
+
+![Mac Ripple](docs/images/readme/visualization_suite/mac/mac_qt_scalar_func_2d_ripple.png)
+
+</td>
+<td align="center">
+
+**Rigid Body Simulation**
+
+![Mac Rigid](docs/images/readme/visualization_suite/mac/mac_qt_rigid_body.png)
 
 </td>
 </tr>
@@ -773,108 +878,117 @@ MML includes a powerful **cross-platform visualization suite** for functions, fi
 ### Available Visualizers
 
 All visualizers have **complete cross-platform support** with multiple backend options:
-- **Windows**: WPF-based visualizers (primary)
+- **Windows**: WPF-based visualizers (primary), Qt and FLTK also available
 - **Linux**: Qt-based visualizers (primary), FLTK for lightweight 2D
+- **macOS**: Qt-based visualizers (primary), FLTK for lightweight 2D
 
 | Visualizer | Purpose | Output | Platform |
 |------------|---------|--------|----------|
-| **RealFunctionVisualizer** | Plot 1D functions | 2D graphs | Windows (WPF), Linux (Qt/FLTK) |
-| **MultiRealFunctionVisualizer** | Compare multiple 1D functions | 2D overlaid graphs | Windows (WPF), Linux (Qt/FLTK) |
-| **ScalarFunction2DVisualizer** | 3D surface plots | 3D surfaces | Windows (WPF), Linux (Qt) |
-| **ParametricCurve2DVisualizer** | 2D parametric curves | 2D curves | Windows (WPF), Linux (Qt/FLTK) |
-| **ParametricCurve3DVisualizer** | 3D parametric curves | 3D curves | Windows (WPF), Linux (Qt) |
-| **VectorField2DVisualizer** | 2D vector field arrows | 2D arrow plots | Windows (WPF), Linux (Qt/FLTK) |
-| **VectorField3DVisualizer** | 3D vector field arrows | 3D arrow plots | Windows (WPF), Linux (Qt) |
-| **ParticleVisualizer2D** | Animated 2D particle systems | 2D animations with playback | Windows (WPF), Linux (Qt) |
-| **ParticleVisualizer3D** | Animated 3D particle systems | 3D animations with playback | Windows (WPF), Linux (Qt) |
-| **ODESolutionVisualizer** | ODE solution trajectories | Multi-function plots | Windows (WPF), Linux (Qt/FLTK) |
+| **RealFunctionVisualizer** | Plot 1D functions | 2D graphs | Windows (WPF), Linux/macOS (Qt/FLTK) |
+| **MultiRealFunctionVisualizer** | Compare multiple 1D functions | 2D overlaid graphs | Windows (WPF), Linux/macOS (Qt/FLTK) |
+| **ScalarFunction2DVisualizer** | 3D surface plots | 3D surfaces | Windows (WPF), Linux/macOS (Qt) |
+| **ParametricCurve2DVisualizer** | 2D parametric curves | 2D curves | Windows (WPF), Linux/macOS (Qt/FLTK) |
+| **ParametricCurve3DVisualizer** | 3D parametric curves | 3D curves | Windows (WPF), Linux/macOS (Qt) |
+| **VectorField2DVisualizer** | 2D vector field arrows | 2D arrow plots | Windows (WPF), Linux/macOS (Qt/FLTK) |
+| **VectorField3DVisualizer** | 3D vector field arrows | 3D arrow plots | Windows (WPF), Linux/macOS (Qt) |
+| **ParticleVisualizer2D** | Animated 2D particle systems | 2D animations with playback | Windows (WPF), Linux/macOS (Qt) |
+| **ParticleVisualizer3D** | Animated 3D particle systems | 3D animations with playback | Windows (WPF), Linux/macOS (Qt) |
 
-**Visualization Examples** (`src/visualization_examples/`):
-- Comprehensive demos for every visualizer type
-- Ready-to-run code showing all visualization capabilities
-- Examples of custom styling, multi-plot layouts, and animation controls
 
 ### Visualization Examples
+- `src/visualization_examples/` — Ready-to-run demos for every visualizer type
+- `src/book/chapters/Chapter_02_vizualization/` — Comprehensive examples from the companion book
+- Examples of custom styling, multi-plot layouts, and animation controls
 
-**Real Function Plotting:**
+**Real Function Plotting — Lorenz System Time Series:**
 
 ```cpp
-RealFunction f{[](Real x) { return sin(x) * (x-3)*(x+5) / sqrt(std::abs(2 - x)); }};
-Visualizer::VisualizeRealFunction(f, "Complex Function", 
-                                  -10.0, 10.0, 500, "function.txt");
+// Lorenz attractor — chaotic time evolution of x(t), y(t), z(t)
+ODESystem lorenz_system(3, [](Real t, const Vector<Real>& x, Vector<Real>& dxdt) {
+    const Real sigma = 10.0, rho = 28.0, beta = 8.0 / 3.0;
+    dxdt[0] = sigma * (x[1] - x[0]);
+    dxdt[1] = x[0] * (rho - x[2]) - x[1];
+    dxdt[2] = x[0] * x[1] - beta * x[2];
+});
 
-// Compare original and derivative
-RealFuncDerived4 df(f);
+Vector<Real> initial_state({ 1.0, 1.0, 1.0 });
+CashKarpIntegrator solver(lorenz_system);
+ODESystemSolution sol = solver.integrate(initial_state, 0.0, 50.0, 0.001, 1e-10, 0.001);
+
+// Extract solution components as real functions via spline interpolation
+Vector<Real> t_vals = sol.getTValues();
+SplineInterpRealFunc x_t(t_vals, sol.getXValues(0));
+SplineInterpRealFunc y_t(t_vals, sol.getXValues(1));
+SplineInterpRealFunc z_t(t_vals, sol.getXValues(2));
+
+std::vector<IRealFunction*> time_series = { &x_t, &y_t, &z_t };
 Visualizer::VisualizeMultiRealFunction(
-    {&f, &df}, "Function and Derivative",
-    {"f(x)", "f'(x)"}, -10.0, 10.0, 500, "comparison.txt");
+    time_series, "Lorenz System: Chaotic Time Evolution",
+    { "x(t)", "y(t)", "z(t)" }, 0.0, 50.0, 1000, "lorenz_time_series.mml");
 ```
 
-| Windows | Linux |
-|:-------:|:-----:|
-| ![Real Win](docs/images/_Win%20-%20Real%20func%202.png) | ![Real Linux](docs/images/_Linux%20-%20Real%20function%20visualization.png) |
+| Windows (WPF) | Linux (Qt) | macOS (Qt) |
+|:-------------:|:----------:|:----------:|
+| ![Lorenz Win](docs/images/readme/visualization_suite/win/wpf_real_func_multi_Lorentz.png) | ![Lorenz Linux](docs/images/readme/visualization_suite/linux/linux_qt_real_func_multri.png) | ![Lorenz Mac](docs/images/readme/visualization_suite/mac/mac_qt_real_func_multi_Lorentz_system.png) |
 
-**3D Surface Plotting:**
+**Scalar Function 2D — Ripple (2D Sinc / Sombrero):**
 
 ```cpp
-ScalarFunction<2> surface{[](const VectorN<Real, 2> &x) { 
-    return 3*x[0]/5 * (x[0]*x[0]/25 - 3*x[1]*x[1]/25); 
+// 2D Sinc function — concentric ripples with central peak
+ScalarFunction<2> sinc_2d{ [](const VectorN<Real, 2>& v) {
+    Real r = std::sqrt(v[0]*v[0] + v[1]*v[1]);
+    if (r < 1e-10) return Real(50.0);
+    return 50.0 * std::sin(r) / r;
 }};
 
 Visualizer::VisualizeScalarFunc2DCartesian(
-    surface, "3D Surface", 
-    -10, 10, 50, -10, 10, 50, "surface.txt");
+    sinc_2d, "2D Sinc (Sombrero): z = 50·sin(r)/r",
+    -15.0, 15.0, 80, -15.0, 15.0, 80, "sinc_2d.mml");
 ```
 
-| Windows (Two Gaussian Bumps) | Linux (Qt - Beautiful Rendering) |
-|:----------------------------:|:--------------------------------:|
-| ![Surface Win](docs/images/_Win%20-%20Scalar%20func%201.png) | ![Surface Linux](docs/images/_Linux%20-%20Surface%20visualization.png) |
+| Windows (WPF) | Linux (Qt) | macOS (Qt) |
+|:-------------:|:----------:|:----------:|
+| ![Ripple Win](docs/images/readme/visualization_suite/win/wpf_scalar_func_2d.png) | ![Ripple Linux](docs/images/readme/visualization_suite/linux/linux_qt_scalar_func_2d.png) | ![Ripple Mac](docs/images/readme/visualization_suite/mac/mac_qt_scalar_func_2d_ripple.png) |
 
-| More Windows Surfaces |
-|:---------------------:|
-| ![Surface 2](docs/images/_Win%20-%20Scalar%20func%203.png) |
-| ![Surface 3](docs/images/_Win%20-%20Scalar%20func%204.png) |
-
-**Parametric Curves:**
+**Parametric Curves — Trefoil Knot:**
 
 ```cpp
-// Helix curve
-Curves3D::HelixCurve helix(20.0, 2.0);
-Visualizer::VisualizeParamCurve3D(
-    helix, "Helix", -50.0, 50.0, 1000, "helix.txt");
+// Trefoil knot: x = sin(t) + 2sin(2t), y = cos(t) - 2cos(2t), z = -sin(3t)
+auto trefoil = [](Real t) {
+    Real x = 50.0 * (std::sin(t) + 2.0*std::sin(2.0*t));
+    Real y = 50.0 * (std::cos(t) - 2.0*std::cos(2.0*t));
+    Real z = 50.0 * (-std::sin(3.0*t));
+    return VectorN<Real, 3>{x, y, z};
+};
 
-// Toroidal spiral
-Curves3D::ToroidalSpiralCurve toroid(20.0);
+ParametricCurve<3> knot(trefoil);
 Visualizer::VisualizeParamCurve3D(
-    toroid, "Toroidal Spiral", 
-    0, 2*M_PI, 5000, "toroid.txt");
+    knot, "Trefoil Knot", 0.0, 2.0*Constants::PI, 500, "trefoil.mml");
 ```
 
-| 2D Curves | 3D Curves |
-|:---------:|:---------:|
-| ![Curve 2D](docs/images/_Win%20-%20Parametric%20curve%202D%202.png) | ![Curve 3D](docs/images/_Win%20-%20Parametric%20curve%203D%203.png) |
-| ![Curve 2D 2](docs/images/_Win%20-%20Parametric%20curve%202D%203.png) | ![Curve 3D 2](docs/images/_Win%20-%20Parametric%20curve%203D%204.png) |
+| Windows (WPF) | Linux (Qt) | macOS (Qt) |
+|:-------------:|:----------:|:----------:|
+| ![Trefoil Win](docs/images/readme/visualization_suite/win/wpf_param_curve_3d.png) | ![Trefoil Linux](docs/images/readme/visualization_suite/linux/linux_qt_param_curve_3d.png) | ![Trefoil Mac](docs/images/readme/visualization_suite/mac/mac_qt_param_curve_3d_trefoil.png) |
 
-**Vector Fields:**
+**Vector Fields — Two-Body Gravity:**
 
 ```cpp
 // Gravity field of two masses
 VectorFunction<3> gravity{[](const VectorN<Real, 3> &x) {
     const VectorN<Real, 3> x1{100, 0, 0}, x2{-100, 0, 0};
     const Real m1 = 1000, m2 = 1000, G = 10;
-    
     return -G * m1 * (x - x1) / pow((x - x1).NormL2(), 3)
            -G * m2 * (x - x2) / pow((x - x2).NormL2(), 3);
 }};
 
 Visualizer::VisualizeVectorField3DCartesian(
     gravity, "Gravity Field",
-    -200, 200, 15, -200, 200, 15, -200, 200, 15, "gravity.txt");
+    -200, 200, 15, -200, 200, 15, -200, 200, 15, "gravity.mml");
 ```
 
-| Windows | Linux |
-|:-------:|:-----:|
-| ![Field Win](docs/images/_Win%20-%20Vector%20field%202D%204.png) | ![Field Linux](docs/images/_Linux%20-%20Vector%20field%202D.png) |
+| Windows (WPF) | Linux (Qt) | macOS (Qt) |
+|:-------------:|:----------:|:----------:|
+| ![Field Win](docs/images/readme/visualization_suite/win/wpf_vector_field_3d.png) | ![Field Linux](docs/images/readme/visualization_suite/linux/linux_qt_vector_field_3d.png) | ![Field Mac](docs/images/readme/visualization_suite/mac/mac_qt_vector_field_3d_gravity.png) |
 
 ### Data Export
 
@@ -893,289 +1007,842 @@ Serializer::SaveVectorFunc2DCartesian(
     field, "Vector Field", -10, 10, 20, -10, 10, 20, "field_data.txt");
 ```
 
+
 ---
 
-## 🧪 Testing & Validation
+## 📝 Code Examples
 
-MML emphasizes correctness and numerical precision.
+### Vectors & Matrices
 
-### Test Organization
-
-Tests are organized by library layer for easy navigation:
-
-```
-tests/
-├── base/                      # Base types tests
-│   ├── vector_tests.cpp           # Vector operations
-│   ├── vectorn_tests.cpp          # VectorN<T,N> operations
-│   ├── matrix_tests.cpp           # Matrix operations
-│   ├── tensors_tests.cpp          # Tensor operations
-│   ├── polynom_tests.cpp          # Polynomial operations
-│   ├── geometry_2d_tests.cpp      # 2D geometry
-│   ├── geometry_3d_tests.cpp      # 3D geometry
-│   ├── interpolated_functions_tests.cpp
-│   └── ...
-├── core/                      # Core functionality tests
-│   ├── derivation_tests.cpp       # Numerical derivatives
-│   ├── integration_tests.cpp      # Numerical integration
-│   ├── linear_alg_eq_solvers_tests.cpp
-│   ├── field_operations_tests.cpp
-│   ├── metric_tensor_tests.cpp
-│   ├── coord_transf_tests.cpp
-│   └── ...
-├── algorithms/                # Algorithm tests
-│   ├── root_finding_tests.cpp
-│   ├── eigensystem_solvers_tests.cpp
-│   ├── ode_system_solvers_tests.cpp
-│   ├── bvp_shooting_method_tests.cpp
-│   ├── fourier_fft_tests.cpp
-│   ├── fourier_spectrum_tests.cpp
-│   ├── monte_carlo_integration_tests.cpp
-│   ├── curve_fitting_tests.cpp
-│   ├── optimization_tests.cpp
-│   ├── statistics_tests.cpp
-│   └── ...
-└── precision/                 # Numerical precision tests
-    └── ...
-```
-
-### Running Tests
-
-```bash
-# Build and run all tests
-cmake -B build
-cmake --build build
-cd build && ctest
-
-# Run specific test
-ctest -R test_derivation -V
-
-# Run with detailed output
-ctest --output-on-failure
-```
-
-### Test Beds
-
-Predefined test cases with known analytical solutions for validation and experimentation:
-
-| Test Bed | Description | Documentation |
-|----------|-------------|---------------|
-| **Functions** | 50+ real, scalar, vector test functions with derivatives | [Functions_testbed.md](docs/testbeds/Functions_testbed.md) |
-| **Curves & Surfaces** | 40+ parametric curves and surfaces with curvature | [ParametricCurvesSurfaces_testbed.md](docs/testbeds/ParametricCurvesSurfaces_testbed.md) |
-| **Linear Systems** | 37 systems incl. Hilbert, Vandermonde, ill-conditioned | [LinAlgSystems_testbed.md](docs/testbeds/LinAlgSystems_testbed.md) |
-| **ODE Systems** | 30+ ODEs: Lorenz, pendulum, stiff systems | [ODESystems_testbed.md](docs/testbeds/ODESystems_testbed.md) |
-| **Integration** | 40+ integrands: oscillatory, singular, improper | [Integration_testbed.md](docs/testbeds/Integration_testbed.md) |
-| **Optimization** | 25+ functions: Rosenbrock, Rastrigin, constrained | [Optimization_testbed.md](docs/testbeds/Optimization_testbed.md) |
-| **Root Finding** | 30+ equations: polynomials, transcendental, multiple roots | [RootFinding_testbed.md](docs/testbeds/RootFinding_testbed.md) |
-| **Eigensolvers** | 27 matrices: defective, clustered, ill-conditioned | [Eigensolvers_testbed.md](docs/testbeds/Eigensolvers_testbed.md) |
-
-**Using Test Beds:**
+📄 *[View full source](src/readme_examples/readme02_vectors_matrices.cpp)*
 
 ```cpp
-// Get predefined test function
-auto test_func = TestBeds::RealFunctionsTestBed::getTestFunctionReal("Sin");
-RealFunction f = test_func._func;
+#include "MML.h"
+using namespace MML;
 
-// Get predefined curve
-auto test_curve = TestBeds::ParametricCurvesTestBed::getTestCurve("Helix");
-ParametricCurve<3> curve = test_curve._curve;
+// Real vectors and matrices
+Vector<Real> vec1{1.5, -2.0, 0.5}, vec2{1.0, 1.0, -3.0};
+Matrix<Real> mat_3x3{3, 3, {1.0,  2.0, -1.0,
+                           -1.0,  5.0,  6.0,
+                            3.0, -2.0,  1.0}};
 
-// Get predefined linear system
-auto test_system = TestBeds::LinAlgSystemsTestBed::getTestSystem("Hilbert5");
-Matrix<Real> A = test_system._matrix;
-Vector<Real> b = test_system._rhs;
-```
+// Vector and matrix arithmetic
+Vector<Real> result = Real{2.0} * (vec1 + vec2) * mat_3x3 / vec1.NormL2();
+std::cout << "Result: " << result << std::endl;
 
-### Precision Testing
+// Complex vectors and matrices
+VectorComplex vec_cmplx{{Complex(1,1), Complex(-1,2)}};
+MatrixComplex mat_cmplx{2, 2, {Complex(0.5,1),  Complex(-1,2),
+                               Complex(-1,-2), Complex(-2,2)}};
 
-Detailed precision analysis for numerical methods:
+// Matrix properties
+std::cout << "IsOrthogonal:  " << Utils::IsOrthogonal(mat_3x3) << std::endl;
+std::cout << "IsHermitian:   " << Utils::IsHermitian(mat_cmplx) << std::endl;
 
-- [Derivation Precision](docs/testing_precision/TestDerivationPrecision.md) - Error analysis for numerical derivatives
-- [Integration Precision](docs/testing_precision/TestIntegrationPrecision.md) - Convergence studies for integration
-- [Interpolation Precision](docs/testing_precision/TestInterpolationPrecision.md) - Interpolation error analysis
-- [Vector Field Operations](docs/testing_precision/TestVectorFieldOperationsPrecision.md) - Field operation accuracy
-
-**Example - Function Analysis:**
-
-```cpp
-// Analyze function properties
-RealFunction f{[](Real x) { return 1 / (x - 1); }};
-RealFunctionAnalyzer analyzer(f, "1 / (x - 1)");
-analyzer.PrintIntervalAnalysis(-5.0, 5.0, 50, 1e-4);
-
-/* OUTPUT:
-f(x) = 1 / (x - 1) - Function analysis in interval [-5.00, 5.00]:
-  Defined    : no  (Not defined at: 1.0)
-  Continuous : yes
-  Monotonic  : no
-  Min        : -5.0
-  Max        : inf
+/* Expected OUTPUT:
+    Result: [   -3.137858162,     3.922322703,    -8.629109946]
+    IsOrthogonal:  0
+    IsHermitian:   1
 */
 ```
 
 ---
 
-## 🎮 Demo Applications
+### Linear Systems & Eigenvalues
 
-MML includes comprehensive demos showcasing library capabilities.
+📄 *[View full source](src/readme_examples/readme03_linear_systems.cpp)*
 
-### Directory Structure
+```cpp
+// Define a linear system Ax = b
+Matrix<Real> A{5, 5, {0.2,  4.1, -2.1, -7.4,  1.6,
+                      1.6,  1.5, -1.1,  0.7,  5.0,
+                     -3.8, -8.0,  9.6, -5.4, -7.8,
+                      4.6, -8.2,  8.4,  0.4,  8.0,
+                     -2.6,  2.9,  0.1, -9.6, -2.7}};
+Vector<Real> b{1.1, 4.7, 0.1, 9.3, 0.4};
 
+// Solve using LU decomposition
+LUSolver<Real> luSolver(A);
+Vector<Real> x = luSolver.Solve(b);
+
+std::cout << "Solution: " << x << std::endl;
+std::cout << "Verification A*x: " << (A * x) << std::endl;
+std::cout << "Residual norm: " << (A*x - b).NormL2() << std::endl;
+
+// Compute eigenvalues and eigenvectors
+auto eigenResult = EigenSolver::Solve(A);
+
+std::cout << "Eigenvalues:" << std::endl;
+for (const auto& ev : eigenResult.eigenvalues)
+    std::cout << "  λ = " << ev.real << " + " << ev.imag << "i" << std::endl;
+
+// QR decomposition
+QRSolver<Real> qr(A);
+Matrix<Real> Q = qr.GetQ();
+Matrix<Real> R = qr.GetR();
+std::cout << "QR valid: " << Matrix<Real>::AreEqual(A, Q * R, 1e-10) << std::endl;
 ```
-src/
-├── demo_app/                # General library demos
-├── readme_examples/         # Examples from this README
-├── examples/                # Practical end-to-end examples
-├── visualization_examples/  # Visualizer demonstrations
-├── testing_precision/       # Precision analysis demos
-├── testing_speed/           # Performance benchmarks
-├── book/                    # Physics book examples (MPL)
-└── docs_demos/              # Documentation code samples
+
+---
+
+### Polynomials & Algebra
+
+📄 *[View full source](src/readme_examples/readme09_polynomials.cpp)*
+
+```cpp
+// Create polynomials: p(x) = 2x³ - 3x² + x - 5
+PolynomReal p{-5, 1, -3, 2};  // Coefficients: [constant, x, x², x³]
+
+// Evaluate at a point
+Real val = p(2.0);  // p(2) = 2(8) - 3(4) + 2 - 5 = 16 - 12 + 2 - 5 = 1
+std::cout << "p(2) = " << val << std::endl;
+
+// Polynomial arithmetic
+PolynomReal q{1, 2};           // q(x) = 2x + 1
+PolynomReal sum = p + q;       // Addition
+PolynomReal prod = p * q;      // Multiplication
+std::cout << "Degree of p*q: " << prod.degree() << std::endl;
+
+// Calculus on polynomials
+PolynomReal dp = p.derivative();        // p'(x) = 6x² - 6x + 1
+PolynomReal ip = p.integral();          // ∫p(x)dx (constant = 0)
+std::cout << "p'(x) at x=1: " << dp(1.0) << std::endl;
+
+// Solve quadratic: x² - 5x + 6 = 0 → x = 2, 3
+Complex r1, r2;
+int numReal = SolveQuadratic(1.0, -5.0, 6.0, r1, r2);
+std::cout << "Roots: " << r1.real() << ", " << r2.real() << std::endl;
+
+// Solve cubic: x³ - 6x² + 11x - 6 = 0 → x = 1, 2, 3
+Complex c1, c2, c3;
+SolveCubic(1.0, -6.0, 11.0, -6.0, c1, c2, c3);
+std::cout << "Cubic roots: " << c1.real() << ", " << c2.real() 
+          << ", " << c3.real() << std::endl;
 ```
 
-### Building Demos
+---
+
+### Defining Functions
+
+📄 *[View full source](src/readme_examples/readme04_functions_interpolation.cpp)*
+
+MML provides multiple ways to create function objects that can be derived, integrated, and analyzed:
+
+```cpp
+// =====================================================================
+// CASE 1: From standalone function
+// =====================================================================
+double MyFunction(double x) { return sin(x) * (1.0 + 0.5*x*x); }
+RealFunction f1(MyFunction);
+
+// =====================================================================
+// CASE 2: Direct lambda creation (most common and recommended)
+// =====================================================================
+RealFunction f2{[](Real x) { return sin(x) * (1.0 + 0.5*x*x); }};
+
+// Different function types — all created with lambdas
+ScalarFunction<3> scalar([](const VectorN<Real,3>& x) { 
+    return x[0]*x[0] + x[1]*x[1] + x[2]*x[2];   // scalar field: r²
+});
+
+VectorFunction<3> vector([](const VectorN<Real,3>& x) -> VectorN<Real,3> { 
+    return {x[1]*x[2], x[0]*x[2], x[0]*x[1]};   // vector field
+});
+
+ParametricCurve<3> helix([](Real t) -> VectorN<Real,3> { 
+    return {cos(t), sin(t), 0.2*t};             // 3D parametric curve
+});
+
+ParametricSurface<3> torus([](Real u, Real v) -> VectorN<Real,3> { 
+    Real R = 3.0, r = 1.0;                      // parametric surface
+    return {(R + r*cos(v))*cos(u), (R + r*cos(v))*sin(u), r*sin(v)}; 
+});
+
+// =====================================================================
+// CASE 3a: From class with operator() — useful for stateful functions
+// =====================================================================
+class FunctionFromClassOperator {
+    double _amplitude;
+public:
+    FunctionFromClassOperator(double amp) : _amplitude(amp) {}
+    double operator()(double x) const { return _amplitude * std::sin(x); }
+};
+
+FunctionFromClassOperator obj(2.5);  // amplitude = 2.5
+RealFunctionFromStdFunc f3(std::function<double(double)>{obj});
+
+// =====================================================================
+// CASE 3b: Class inheriting IRealFunction directly
+// =====================================================================
+class MyDerivedFunction : public IRealFunction {
+    double _frequency;
+public:
+    MyDerivedFunction(double freq) : _frequency(freq) {}
+    double operator()(double x) const override { return std::cos(_frequency * x); }
+};
+MyDerivedFunction f4(2.0);  // frequency = 2.0 → cos(2x)
+
+// =====================================================================
+// CASE 4: Wrapper for external/legacy class you can't modify
+// =====================================================================
+class ExternalComplexClass {
+public:
+    double ComputeValue(double x) const { return std::exp(-x*x); }
+};
+
+class ExternalClassWrapper : public IRealFunction {
+    const ExternalComplexClass& _ref;
+public:
+    ExternalClassWrapper(const ExternalComplexClass& obj) : _ref(obj) {}
+    double operator()(double x) const override { return _ref.ComputeValue(x); }
+};
+
+ExternalComplexClass externalObj;
+ExternalClassWrapper f5(externalObj);  // Now usable with all MML algorithms!
+
+// All these functions can now be derived, integrated, analyzed...
+std::cout << "f2(1) = " << f2(1.0) << std::endl;           // 1.26147
+std::cout << "f2'(1) = " << Derivation::NDer4(f2, 1.0) << std::endl;  // derivative
+std::cout << "∫f2 = " << IntegrateSimpson(f2, 0, 1).value << std::endl;  // integral
+```
+
+---
+
+### Interpolation
+
+📄 *[View full source](src/readme_examples/readme04_functions_interpolation.cpp)*
+
+Create smooth functions from discrete data points:
+
+```cpp
+// Data points (could be from experiment, simulation, file...)
+Vector<Real> x_data{0, 2.5, 5.0, 7.5, 10.0};
+Vector<Real> y_data{0, 1.5, 4.0, 9.5, 16.0};
+
+// Three interpolation methods — each creates a callable function
+LinearInterpRealFunc   linear_interp(x_data, y_data);      // Piecewise linear
+SplineInterpRealFunc   spline_interp(x_data, y_data);      // Cubic spline (smooth)
+PolynomInterpRealFunc  poly_interp(x_data, y_data, 3);     // Polynomial degree 3
+
+// Evaluate anywhere in the interpolation range
+Real x = 3.7;
+std::cout << "Linear:     " << linear_interp(x) << std::endl;  // 2.70
+std::cout << "Spline:     " << spline_interp(x) << std::endl;  // 2.41 (smoother)
+std::cout << "Polynomial: " << poly_interp(x) << std::endl;    // 2.43
+
+// Comparison at multiple points:
+//     x     Linear   Spline   Polynom
+//   -----  -------  -------  -------
+//    1.0    0.600    0.576    0.480
+//    3.0    2.000    1.842    1.760
+//    5.0    4.000    4.000    4.000
+//    7.0    7.400    6.954    7.680
+//    9.0   12.200   12.654   14.240
+```
+
+---
+
+### Numerical Derivatives
+
+📄 *[View full source](src/readme_examples/readme05_numerical_calculus.cpp)*
+
+```cpp
+// Compare derivative orders on f(x) = sin(x) at x = 1.0
+// Analytical derivative: f'(1) = cos(1) ≈ 0.5403023058681398
+
+RealFunction f{[](Real x) { return std::sin(x); }};
+Real x = 1.0;
+Real analytical = std::cos(1.0);
+
+Real der1 = Derivation::NDer1(f, x);   // O(h) - forward difference
+Real der2 = Derivation::NDer2(f, x);   // O(h²) - central difference
+Real der4 = Derivation::NDer4(f, x);   // O(h⁴) - 5-point stencil
+Real der6 = Derivation::NDer6(f, x);   // O(h⁶) - 7-point stencil
+Real der8 = Derivation::NDer8(f, x);   // O(h⁸) - 9-point stencil
+
+std::cout << std::scientific << std::setprecision(10);
+std::cout << "NDer1 error: " << std::abs(der1 - analytical) << std::endl;  // ~1e-8
+std::cout << "NDer2 error: " << std::abs(der2 - analytical) << std::endl;  // ~1e-11
+std::cout << "NDer8 error: " << std::abs(der8 - analytical) << std::endl;  // ~1e-14
+```
+
+---
+
+### Numerical Integration
+
+📄 *[View full source](src/readme_examples/readme05_numerical_calculus.cpp)*
+
+```cpp
+// Integrate f(x) = sin(x) from 0 to π — Analytical result: 2.0
+RealFunction f{[](Real x) { return std::sin(x); }};
+Real a = 0.0, b = Constants::PI;
+
+auto trap = IntegrateTrap(f, a, b, 1e-8);
+auto simp = IntegrateSimpson(f, a, b, 1e-8);
+auto romb = IntegrateRomberg(f, a, b, 1e-10);
+
+std::cout << "Trapezoid: " << trap.value << " (error: " << trap.error_estimate << ")\n";
+std::cout << "Simpson:   " << simp.value << " (error: " << simp.error_estimate << ")\n";
+std::cout << "Romberg:   " << romb.value << " (error: " << romb.error_estimate << ")\n";
+
+// Monte Carlo for high-dimensional integrals
+ScalarFunction<3> volume_func([](const VectorN<Real, 3>& v) {
+    return v[0]*v[0] + v[1]*v[1] + v[2]*v[2];
+});
+MonteCarloIntegrator<3> mc_integrator;
+VectorN<Real, 3> lower{0, 0, 0}, upper{1, 1, 1};
+auto mc_result = mc_integrator.integrate(volume_func, lower, upper, 
+                                          MonteCarloConfig().samples(100000));
+std::cout << "MC estimate: " << mc_result.value 
+          << " +/- " << mc_result.error_estimate << std::endl;
+```
+
+---
+
+### Root Finding Algorithms
+
+📄 *[View full source](src/readme_examples/readme10_root_finding.cpp)*
+
+```cpp
+// Find root of f(x) = x³ - 2x - 5 (has root near x ≈ 2.0945)
+RealFunction f{[](Real x) { return x*x*x - 2*x - 5; }};
+
+// Compare different methods
+Real root_bisect = RootFinding::FindRootBisection(f, 2.0, 3.0, 1e-12);
+Real root_brent  = RootFinding::FindRootBrent(f, 2.0, 3.0, 1e-12);
+Real root_newton = RootFinding::FindRootNewton(f, 2.0, 3.0, 1e-12);
+Real root_ridder = RootFinding::FindRootRidders(f, 2.0, 3.0, 1e-12);
+
+std::cout << std::setprecision(15);
+std::cout << "Bisection: " << root_bisect << std::endl;
+std::cout << "Brent:     " << root_brent << std::endl;
+std::cout << "Newton:    " << root_newton << std::endl;
+std::cout << "Ridders:   " << root_ridder << std::endl;
+
+// Get detailed convergence info using config
+RootFinding::RootFindingConfig config;
+config.tolerance = 1e-14;
+config.max_iterations = 100;
+
+auto result = RootFinding::FindRootBrent(f, 2.0, 3.0, config);
+std::cout << "Iterations: " << result.iterations_used << std::endl;
+std::cout << "f(root) =   " << result.function_value << std::endl;
+
+// Find multiple roots by bracketing
+Vector<Real> brackets_lo, brackets_hi;
+int numRoots = RootFinding::FindRootBrackets(f, -10.0, 10.0, 100, 
+                                              brackets_lo, brackets_hi);
+std::cout << "Found " << numRoots << " root bracket(s)" << std::endl;
+```
+
+---
+
+### Field Operations
+
+📄 *[View full source](src/readme_examples/readme06_field_operations.cpp)*
+
+```cpp
+// Scalar field: gravitational potential φ(x,y,z) = -1/r
+ScalarFunction<3> potential([](const VectorN<Real, 3>& x) {
+    return -1.0 / x.NormL2();
+});
+VectorN<Real, 3> pos{1.0, 2.0, 2.0};
+
+// Gradient ∇φ (gives force direction)
+auto grad = ScalarFieldOperations::GradientCart<3>(potential, pos);
+std::cout << "Gradient at (1,2,2): " << grad << std::endl;
+
+// Laplacian ∇²φ (zero outside mass for gravity!)
+Real laplacian = ScalarFieldOperations::LaplacianCart<3>(potential, pos);
+std::cout << "Laplacian at (1,2,2): " << laplacian << std::endl;
+
+// Vector field: rotating velocity field v = (y, -x, z)
+VectorFunction<3> velocity([](const VectorN<Real, 3>& x) -> VectorN<Real, 3> {
+    return {x[1], -x[0], x[2]};
+});
+
+// Divergence ∇·v (compression/expansion rate)
+Real div = VectorFieldOperations::DivCart<3>(velocity, pos);
+std::cout << "Divergence at (1,2,2): " << div << std::endl;
+
+// Curl ∇×v (rotation/vorticity)
+auto curl = VectorFieldOperations::CurlCart(velocity, pos);
+std::cout << "Curl at (1,2,2): " << curl << std::endl;
+```
+
+---
+
+### Coordinate Transformations
+
+📄 *[View full source](src/readme_examples/readme11_coord_transforms.cpp)*
+
+```cpp
+// Cartesian point
+Vector3Cartesian cart_pos{1.0, 1.0, 1.0};
+
+// Convert to Spherical (r, θ, φ) - Math/ISO convention
+// θ = polar angle from z-axis, φ = azimuthal angle in xy-plane
+Vector3Spherical sph_pos = CoordTransfCartToSpher.transf(cart_pos);
+std::cout << "Spherical: r=" << sph_pos[0] << ", θ=" << sph_pos[1] 
+          << ", φ=" << sph_pos[2] << std::endl;
+
+// Convert to Cylindrical (r, φ, z)
+Vector3Cylindrical cyl_pos = CoordTransfCartToCyl.transf(cart_pos);
+std::cout << "Cylindrical: r=" << cyl_pos[0] << ", φ=" << cyl_pos[1] 
+          << ", z=" << cyl_pos[2] << std::endl;
+
+// Convert back to Cartesian
+Vector3Cartesian back = CoordTransfSpherToCart.transf(sph_pos);
+std::cout << "Back to Cartesian: " << back << std::endl;
+
+// Field operations in spherical coordinates
+// Inverse-square potential: φ = -1/r
+ScalarFunction<3> pot_spher([](const VectorN<Real, 3>& x) { return -1.0/x[0]; });
+
+// Use a point away from origin for gradient
+Vector3Spherical test_sph{2.0, Constants::PI/4, Constants::PI/4};
+auto grad_spher = ScalarFieldOperations::GradientSpher(pot_spher, test_sph);
+std::cout << "Gradient of -1/r in spherical at r=2:" << std::endl;
+std::cout << "  ∂φ/∂r = " << grad_spher[0] << " (analytical: 1/r² = 0.25)" << std::endl;
+
+// Covariant vector transformation (transform gradient to Cartesian coords)
+Vector3Cartesian test_cart = CoordTransfSpherToCart.transf(test_sph);
+auto force_cart = CoordTransfSpherToCart.transfVecCovariant(grad_spher, test_cart);
+std::cout << "Force vector in Cartesian: " << force_cart << std::endl;
+```
+
+---
+
+### Parametric Curves
+
+📄 *[View full source](src/readme_examples/readme12_parametric_curves.cpp)*
+
+```cpp
+// Define a 3D helix: r(t) = (cos(t), sin(t), 0.2t)
+Curves::CurveCartesian3D helix([](Real t) -> VectorN<Real, 3> { 
+    return {cos(t), sin(t), 0.2*t}; 
+});
+
+Real t = Constants::PI / 4;
+
+// Curve properties at parameter t
+auto pos = helix(t);                    // Position on curve
+auto tangent = helix.getTangent(t);     // Tangent vector dr/dt
+auto unit_tan = helix.getTangentUnit(t);// Unit tangent T
+auto normal = helix.getNormal(t);       // Normal vector (acceleration)
+auto binormal = helix.getBinormal(t);   // Binormal B = T × N
+
+std::cout << std::setprecision(6);
+std::cout << "Position:       " << pos << std::endl;
+std::cout << "Tangent dr/dt:  " << tangent << std::endl;
+std::cout << "Unit tangent:   " << unit_tan << std::endl;
+std::cout << "Normal (accel): " << normal << std::endl;
+std::cout << "Binormal:       " << binormal << std::endl;
+
+// Curvature κ (Frenet-Serret apparatus)
+Real curvature = helix.getCurvature(t);
+std::cout << "Curvature κ:    " << curvature << std::endl;
+
+// Predefined curves
+Curves::LemniscateCurve lemniscate;       // Figure-eight curve
+Curves::ToroidalSpiralCurve torus(5, 2);  // Spiral on torus
+Curves::Circle3DXZCurve circle(3.0);      // Circle in XZ plane
+```
+
+---
+
+### Path & Line Integrals
+
+📄 *[View full source](src/readme_examples/readme13_path_integrals.cpp)*
+
+```cpp
+// Line integral of vector field along a curve
+// ∫ F·dr where F = (y, -x, 0) along unit circle
+
+VectorFunction<3> F([](const VectorN<Real, 3>& p) -> VectorN<Real, 3> {
+    return {p[1], -p[0], 0.0};
+});
+
+// Unit circle in XY plane: r(t) = (cos(t), sin(t), 0), t ∈ [0, 2π]
+ParametricCurve<3> circle([](Real t) -> VectorN<Real, 3> {
+    return {cos(t), sin(t), 0.0};
+});
+
+// Work integral: W = ∫₀^{2π} F(r(t)) · r'(t) dt
+Real work = PathIntegration::LineIntegral(F, circle, 0.0, 2*Constants::PI, 1e-8);
+std::cout << "Work integral ∮ F·dr:" << std::endl;
+std::cout << "  Numerical:  " << work << std::endl;
+std::cout << "  Analytical: -2π = " << -2*Constants::PI << std::endl;
+
+// Arc length computation: ∫ ds
+Real arc_length = PathIntegration::ParametricCurveLength<3>(circle, 0.0, 2*Constants::PI);
+std::cout << "Arc length of unit circle:" << std::endl;
+std::cout << "  Numerical:  " << arc_length << std::endl;
+std::cout << "  Analytical: 2π = " << 2*Constants::PI << std::endl;
+```
+
+---
+
+### Function Analysis
+
+📄 *[View full source](src/readme_examples/readme14_function_analysis.cpp)*
+
+```cpp
+// Analyze function behavior over an interval
+RealFunction f{[](Real x) { return x*x*x - 3*x + 1; }};
+
+RealFunctionAnalyzer analyzer(f, "x³ - 3x + 1");
+analyzer.PrintIntervalAnalysis(-3.0, 3.0, 100, 1e-6);
+/*  Output:
+    f(x) = x³ - 3x + 1 - Analysis in interval [-3.00, 3.00]:
+      Defined    : yes
+      Continuous : yes
+      Monotonic  : no
+      Min        : -0.999...
+      Max        : 2.999...
+*/
+
+// Find roots using root bracket search + bisection
+Vector<Real> xb1, xb2;
+int numBrackets = RootFinding::FindRootBrackets(f, -3.0, 3.0, 100, xb1, xb2);
+std::cout << "Found " << numBrackets << " root brackets:" << std::endl;
+std::cout << std::setprecision(10);
+for (int i = 0; i < numBrackets; i++) {
+    Real root = RootFinding::FindRootBisection(f, xb1[i], xb2[i], 1e-10);
+    std::cout << "  x = " << root << ", f(x) = " << f(root) << std::endl;
+}
+
+// Analyze a function with discontinuity
+RealFunctionFromStdFunc step([](Real x) -> Real { 
+    if (x < 0) return 0.0;
+    else if (x > 0) return 1.0;
+    else return 0.5;
+});
+RealFunctionAnalyzer step_analyzer(step, "step(x)");
+step_analyzer.PrintIntervalAnalysis(-2.0, 2.0, 100, 1e-6);
+// Detects discontinuity at x = 0
+```
+
+---
+
+### Differential Equations
+
+📄 *[View full source](src/readme_examples/readme07_ode_solvers.cpp)*
+
+```cpp
+// Simple harmonic oscillator: d²x/dt² = -ω²x
+// As system: dx/dt = v, dv/dt = -ω²x
+const Real omega = 2.0;
+
+ODESystem system(2, [](Real t, const Vector<Real>& y, Vector<Real>& dydt) {
+    const Real omega = 2.0;
+    dydt[0] = y[1];                    // dx/dt = v
+    dydt[1] = -omega*omega * y[0];     // dv/dt = -ω²x
+});
+
+Vector<Real> initial_cond{1.0, 0.0};  // x(0) = 1, v(0) = 0
+
+// Solve with RK4 stepper
+RungeKutta4_StepCalculator stepper;
+ODESystemFixedStepSolver solver(system, stepper);
+ODESystemSolution solution = solver.integrate(initial_cond, 0.0, 10.0, 1000);
+
+// Access final values (index 999 for 1000 points)
+int last = solution.size() - 1;
+std::cout << "Final position: " << solution.getXValue(last, 0) << std::endl;
+std::cout << "Final velocity: " << solution.getXValue(last, 1) << std::endl;
+
+// Analytical solution at t=10: x(t) = cos(ωt), v(t) = -ω sin(ωt)
+Real t_final = 10.0;
+std::cout << "Analytical x:   " << std::cos(omega * t_final) << std::endl;
+std::cout << "Analytical v:   " << -omega * std::sin(omega * t_final) << std::endl;
+```
+
+---
+
+### 🦋 Dynamical Systems Analysis — *The Crown Jewel*
+
+📄 *[View full source](src/readme_examples/readme15_dynamical_systems.cpp)*
+
+```cpp
+// THE LORENZ SYSTEM - The butterfly effect in action
+// dx/dt = σ(y - x), dy/dt = x(ρ - z) - y, dz/dt = xy - βz
+using namespace MML::Systems;
+
+LorenzSystem lorenz(10.0, 28.0, 8.0/3.0);  // Classic chaotic parameters
+
+std::cout << "Dissipative: " << (lorenz.isDissipative() ? "yes" : "no") << std::endl;
+std::cout << "Flow divergence: " << lorenz.getDivergence() << " (always negative -> attractor exists)" << std::endl;
+
+// FIXED POINT ANALYSIS - Find equilibria and classify stability
+std::vector<Vector<Real>> guesses = {
+    Vector<Real>{0.0, 0.0, 0.0},      // Origin
+    Vector<Real>{8.0, 8.0, 27.0},     // Near C+
+    Vector<Real>{-8.0, -8.0, 27.0}    // Near C-
+};
+
+auto fixedPoints = FixedPointFinder::FindMultiple(lorenz, guesses);
+
+std::cout << "Found " << fixedPoints.size() << " fixed points:" << std::endl;
+for (const auto& fp : fixedPoints) {
+    std::cout << "  Fixed Point: (" << fp.location[0] << ", " 
+              << fp.location[1] << ", " << fp.location[2] << ")" << std::endl;
+    std::cout << "    Type: " << ToString(fp.type) << std::endl;
+    std::cout << "    Stable: " << (fp.isStable ? "yes" : "NO (unstable)") << std::endl;
+    std::cout << "    Eigenvalues: ";
+    for (const auto& ev : fp.eigenvalues)
+        std::cout << "(" << ev.real() << "+" << ev.imag() << "i) ";
+    std::cout << std::endl;
+}
+
+// LYAPUNOV EXPONENTS - Quantify chaos via sensitivity to initial conditions
+Vector<Real> x0 = lorenz.getDefaultInitialCondition();
+auto lyapResult = LyapunovAnalyzer::Compute(lorenz, x0, 
+                                             500.0,   // Total integration time
+                                             1.0,     // Orthonormalization interval
+                                             0.01);   // Step size
+
+std::cout << "Lyapunov spectrum: [" << lyapResult.exponents[0] << ", "
+          << lyapResult.exponents[1] << ", " << lyapResult.exponents[2] << "]" << std::endl;
+std::cout << "Maximum exponent: " << lyapResult.maxExponent;
+if (lyapResult.maxExponent > 0) std::cout << " (POSITIVE -> CHAOS!)";
+std::cout << std::endl;
+std::cout << "Kaplan-Yorke dimension: " << lyapResult.kaplanYorkeDimension 
+          << " (fractal attractor!)" << std::endl;
+std::cout << "System is " << (lyapResult.isChaotic ? "CHAOTIC" : "regular") << std::endl;
+
+// COMPARE CLASSIC CHAOTIC SYSTEMS
+RosslerSystem rossler(0.2, 0.2, 5.7);       // Spiral chaos
+VanDerPolSystem vanderpol(1.0);             // Limit cycle (NOT chaotic)
+DoublePendulumSystem pendulum(1.0, 1.0, 9.81);  // Mechanical chaos
+
+// Compute their Lyapunov spectra...
+// Lorenz:       λ₁ ≈ +0.91  (CHAOTIC)
+// Rössler:      λ₁ ≈ +0.07  (CHAOTIC)
+// Van der Pol:  λ₁ ≈  0.00  (periodic)
+// Double Pend:  λ₁ ≈ +1.5   (CHAOTIC)
+
+// BIFURCATION ANALYSIS - Route to chaos via parameter sweeps
+LorenzSystem lorenzSweep;
+Vector<Real> sweepIC{1.0, 1.0, 1.0};
+
+auto bifurcation = BifurcationAnalyzer::Sweep(
+    lorenzSweep,
+    1,              // Parameter index (rho)
+    20.0, 30.0,     // Parameter range
+    6,              // Number of parameter values
+    sweepIC,
+    2,              // Record z-component maxima
+    50.0,           // Transient time
+    20.0,           // Recording time
+    0.01            // Step size
+);
+
+// Reveals: rho < 24: periodic → period-doubling cascade → rho ≈ 24.74: chaos onset!
+```
+
+---
+
+## 🔬 Precision & Testing
+
+MML takes numerical accuracy seriously. Every algorithm is rigorously validated against analytical solutions, and precision characteristics are documented.
+
+### Test Suite Overview
+
+**4,540 unit tests** across **111 test files**, organized by domain:
+
+| Domain | Files | Key Validations |
+|--------|-------|-----------------|
+| **Linear Algebra** | 18 | LU/QR/SVD decomposition, eigensolvers, condition numbers up to 10¹⁵ |
+| **Calculus** | 14 | Derivation (orders 1-8), integration (1D/2D/3D), Gauss-Kronrod |
+| **ODE Solvers** | 6 | All steppers, event detection, stiff systems (λ = -10⁶) |
+| **Geometry** | 22 | 2D/3D primitives, convex hull, Voronoi, KD-tree, triangulation |
+| **Functions** | 12 | Real, scalar, vector, parametric curves/surfaces, interpolation |
+| **Field Operations** | 8 | Gradient, divergence, curl in Cartesian/spherical/cylindrical |
+| **Root Finding** | 4 | Bisection, Newton, Brent, Ridders with convergence verification |
+
+### Predefined Test Beds
+
+The `TestBeds::` namespace provides **battle-tested inputs** for algorithm validation:
+
+| Test Bed | Contents | Purpose |
+|----------|----------|---------|
+| **Linear Systems** | Hilbert, Vandermonde, Kahan matrices | Stress-test solvers (κ = 10³ to 10¹⁵) |
+| **ODE Systems** | Lorenz, Van der Pol, Robertson stiff problem | Validate adaptive stepping |
+| **Integration** | Oscillatory, singular (1/√x), discontinuous | Test quadrature robustness |
+| **Eigenvalues** | Symmetric, non-symmetric, repeated roots | Verify decomposition accuracy |
+| **Functions** | sin, exp, polynomials with known derivatives | Precision benchmarks |
+| **Parametric Curves** | Helix, Lemniscate, Torus Spiral | Differential geometry (analytical curvature) |
+
+### Precision Benchmarks
+
+**Numerical Derivation** — Error vs analytical derivative of sin(x) at x = 1.0:
+
+| Method | Stencil | Error |
+|--------|---------|-------|
+| `NDer1` | 2-point forward | ~10⁻⁸ |
+| `NDer2` | 3-point central | ~10⁻¹¹ |
+| `NDer4` | 5-point | ~10⁻¹³ |
+| `NDer6` | 7-point | ~10⁻¹⁴ |
+| `NDer8` | 9-point | ~10⁻¹⁵ (machine ε!) |
+
+**ODE Solver Energy Conservation** — Kepler orbit after 1000 periods:
+
+| Solver | Relative Energy Drift |
+|--------|----------------------|
+| RK4 (fixed step) | ~10⁻⁶ |
+| RKF45 (adaptive) | ~10⁻¹² |
+| Dormand-Prince 8(5,3) | ~10⁻¹⁴ |
+
+**Ill-Conditioned Problems** — MML handles edge cases:
+
+```cpp
+// Hilbert matrix — notoriously ill-conditioned (κ ≈ 10¹⁵ for n=10)
+Matrix<Real> H = TestBeds::hilbert_10x10();   // condition number ~10¹³
+LUSolver<Real> solver(H);
+Vector<Real> x = solver.Solve(b);
+// Achieves residual ||Ax - b|| / ||b|| < 10⁻³ despite extreme ill-conditioning
+
+// Stiff ODE — Robertson chemical kinetics (λ ratio = 10⁸)
+TestBeds::RobertsonStiffODE stiff;  // λ = {-0.04, -3×10⁴, -10⁸}
+// Implicit solvers handle this; explicit solvers would need dt < 10⁻⁸
+```
+
+### Running the Test Suite
 
 ```bash
-# Build all demos
+# Build and run all tests
+cd build && ctest -j8 --output-on-failure
+
+# Run specific test category
+ctest -R "integration" -V
+
+# Output: 4540 tests pass in ~30 seconds
+```
+
+📚 **Precision Analysis Reports:** [Overview](docs/testing_precision/README.md) • [Derivation](docs/testing_precision/DERIVATION_ANALYSIS.md) • [Integration](docs/testing_precision/INTEGRATION_ANALYSIS.md) • [ODE Solvers](docs/testing_precision/ODE_SOLVER_ANALYSIS.md)
+
+📁 **Test Bed Documentation:** [Functions](docs/testbeds/Functions_testbed.md) • [ODE Systems](docs/testbeds/ODESystems_testbed.md) • [Linear Systems](docs/testbeds/LinAlgSystems_testbed.md) • [Curves & Surfaces](docs/testbeds/ParametricCurvesSurfaces_testbed.md)
+
+---
+
+## 📚 Documentation
+
+| Resource | Description |
+|----------|-------------|
+| [Base Types](docs/base/README_Base.md) | Vectors, Matrices, Tensors, Functions |
+| [Core Operations](docs/core/README_Core.md) | Derivation, Integration, Field Operations |
+| [Algorithms](docs/algorithms/README_Algorithms.md) | ODE Solvers, Root Finding, Interpolation |
+| [Systems](docs/systems/) | Dynamical Systems, Phase Space, Stability Analysis |
+| [Tools](docs/tools/) | Visualization, Serialization, Console Output |
+| [Examples](examples/) | Complete working examples |
+| [Test Suites](docs/testbeds/) | Physics simulations and validation |
+| [📖 Book References](references/book_references.md) | Foundational textbooks that informed MML |
+| [📄 Paper References](references/paperes_references.md) | Academic papers behind the algorithms |
+
+---
+
+## 💎 Pro Extensions
+
+> **Unlock advanced capabilities** with our commercial add-on packages.
+
+### 📦 MML Packages
+
+**Domain-specific numerical libraries** extending core MML functionality.
+
+| Package | Capabilities |
+|---------|-------------|
+| **Fourier** | FFT, DFT, DCT, spectral analysis, windowing functions |
+| **Optimization** | Nelder-Mead, BFGS, Powell, genetic algorithms, constrained optimization |
+| **PDE** | Sparse matrices, finite differences, Poisson/Heat/Wave equation solvers |
+| **Statistics** | 20+ distributions, hypothesis testing, regression, time series analysis |
+| **Symbolic** | Automatic differentiation, expression trees, symbolic manipulation |
+
+[Learn more about MML Packages →](mml_packages/README.md)
+
+---
+
+### Σ Sigma Engine
+
+```
+███████╗██╗ ██████╗ ███╗   ███╗ █████╗ 
+██╔════╝██║██╔════╝ ████╗ ████║██╔══██╗
+███████╗██║██║  ███╗██╔████╔██║███████║
+╚════██║██║██║   ██║██║╚██╔╝██║██╔══██║
+███████║██║╚██████╔╝██║ ╚═╝ ██║██║  ██║
+╚══════╝╚═╝ ╚═════╝ ╚═╝     ╚═╝╚═╝  ╚═╝
+```
+
+**Interactive Mathematical Expression Engine** for runtime computation with **C++ code generation**.
+
+| Feature | Description |
+|---------|-------------|
+| **Expression Parsing** | Parse & evaluate mathematical expressions in real-time |
+| **Session State** | Variables, constants, persistent state across evaluations |
+| **User Functions** | Define custom functions: `func f(x,y) = x^2 + y^2` |
+| **Typed Functions** | `scalarfunc f(v:3) = norm(v)`, `vectorfunc F(v:3) = v/norm(v)` |
+| **Built-in Library** | 40+ functions: trig, exp, log, special functions |
+| **Data Types** | Scalars, vectors, matrices, polynomials |
+| **Save/Load** | Save sessions to `.sigma` files and reload them |
+| **C++ Code Gen** | Live preview of your session as compilable C++ code! |
+
+```cpp
+Session session;
+session.evaluate("x = 5");
+session.evaluate("v = [1, 2, 3]");
+session.evaluate("M = [[1,2],[3,4]]");
+session.evaluate("func f(t) = sin(t) * exp(-t)");
+session.evaluate("scalarfunc len(v:3) = norm(v)");
+auto result = session.evaluate("f(x) + pi");  // Returns 3.1096...
+```
+
+[Learn more about Sigma Engine →](math_engine/README.md)
+
+---
+
+## 🛠️ Building & Testing
+
+```bash
+# Configure and build
 cmake -B build
 cmake --build build
 
-# Run specific demo
-./build/src/book/example8_gravity
-
-# On Windows
-.\build\src\book\Release\example8_gravity.exe
-```
-
----
-
-## 📖 Documentation
-
-Comprehensive documentation organized by topic:
-
-### Core Documentation
-
-- **Base Types**: [Vectors](docs/base/Vectors.md) | [Matrices](docs/base/Matrices.md) | [Tensors](docs/base/Tensors.md) | [Polynomials](docs/base/Polynoms.md) | [Quaternions](docs/base/Quaternions.md)
-- **Functions**: [Functions](docs/base/Functions.md) | [Interpolation](docs/base/Interpolated_functions.md) | [Curves & Surfaces](docs/core/Curves_and_surfaces.md)
-- **Numerical Methods**: [Derivation](docs/core/Derivation.md) | [Integration](docs/core/Integration.md) | [Linear Solvers](docs/core/Linear_equations_solvers.md)
-- **Algorithms**: [Root Finding](docs/algorithms/Root_finding.md) | [ODE Solvers](docs/algorithms/Differential_equations_solvers.md) | [Eigensolvers](docs/algorithms/Eigen_solvers.md)
-- **Tools**: [ConsolePrinter](docs/tools/ConsolePrinter.md) | [Serializer](docs/tools/Serializer.md) | [Visualizers](docs/tools/Visualizers.md)
-
-### Additional Resources
-
-- [Lines of Code Report](docs/LOC_REPORT.md) - Project statistics
-- [Test Beds](docs/testbeds/) - Predefined test cases
-- [Examples](docs/examples/) - Real-world use cases
-
----
-
-### Development Setup
-
-```bash
-# Clone repository
-git clone https://github.com/zvanjak/MML.git
-cd MML
-
-# Build with tests
-cmake -B build -DBUILD_TESTING=ON
-cmake --build build
-
 # Run tests
-cd build && ctest
-```
+cd build && ctest -j8 --output-on-failure
 
-### Coding Standards
-
-- C++17 standard
-- Follow existing code style
-- Add unit tests for new features
-- Document public APIs
-- Ensure cross-platform compatibility
-
-### Project Structure
-
-```
-MML/
-├── mml/                    # Header-only library code
-│   ├── base/               # Base types
-│   ├── core/               # Core functionality
-│   ├── algorithms/         # Numerical algorithms
-│   ├── interfaces/         # Interfaces
-│   └── tools/              # Utilities
-├── src/                    # Demo applications
-├── tests/                  # Unit tests
-├── docs/                   # Documentation
-└── tools/visualizers/      # Visualization tools
+# Build examples
+cmake --build build --target examples
 ```
 
 ---
 
-## 📄 License
+## 📜 License
 
-MML is released under a custom license. See [LICENSE.md](LICENSE.md) for details.
+MML is released under the **MIT License** — free for personal, academic, and commercial use.
+
+See [LICENSE.md](LICENSE.md) for details.
+
+---
+
+## ☕ Support MML
+
+If MML has been useful to you, consider supporting its continued development:
+
+<p align="center">
+  <a href="https://github.com/sponsors/zvanjak">
+    <img src="https://img.shields.io/badge/Sponsor-❤️-pink?logo=github&style=for-the-badge" alt="GitHub Sponsors">
+  </a>
+
+</p>
+
+Your support helps maintain and improve MML! 🚀
 
 ---
 
 <div align="center">
 
-### 🔗 Related Projects
+**Made with ❤️ for the C++ scientific computing community**
 
-| Project | Description |
-|---------|-------------|
-| **[Minimal Physics Library](https://github.com/zvanjak/MPL)** | Library of physics objects and simulations built on MML |
-| **[Exploring Physics with C++](https://github.com/zvanjak/ExploringPhysicsWithCpp)** | Forthcoming book on computational physics using MML and MPL |
-
-</div>
-
----
-
-## 🌟 Roadmap
-
-<details>
-<summary><b>✅ Recently Implemented</b></summary>
-
-- [x] **Curve Fitting** - Linear, polynomial, exponential least squares fitting
-- [x] **Monte Carlo Integration** - Plain, stratified, and importance sampling
-- [x] **Fourier Transforms** - FFT, DFT, spectrum analysis, windowing, convolution, correlation
-- [x] **Optimization** - Gradient descent, Newton, conjugate gradient, BFGS, simulated annealing
-- [x] **BVP Shooting Method** - Boundary value problem solver with N-dimensional shooting
-- [x] **Self-Contained Examples** - Complete physics examples with embedded simulation code
-- [x] **Cross-Platform Visualizers** - Full Windows/Linux support for all visualization tools
-- [x] **Parallel Collision Simulation** - Multi-threaded physics with 30K+ particle support
-
-</details>
-
-<details>
-<summary><b>🎯 Near-Term Goals (Q1 2026)</b></summary>
-
-- [ ] **Genetic Algorithms** - Evolutionary optimization for complex search spaces
-- [ ] **Sparse Matrix Support** - Efficient storage and operations for large sparse systems
-- [ ] **PDE Solvers** - Finite difference methods for heat, wave, and Laplace equations
-- [ ] **Extended Statistics** - Regression analysis, time series, moving averages
-
-</details>
-
-<details>
-<summary><b>🚀 Medium-Term Goals (2026)</b></summary>
-
-- [ ] **Symbolic Differentiation** - Automatic differentiation for gradient computation
-- [ ] **Symbolic Math Engine** - Expression trees with simplification and symbolic integration
-- [ ] **Linear Programming** - Simplex method for constrained optimization
-
-</details>
-
-### Version History
-
-See [releases](https://github.com/zvanjak/MML/releases) for version history and changelogs.
-
----
-
-<div align="center">
-
-**Built with ❤️ for the C++ numerical computing community**
-
-⭐ **Star this repo** if MML helps your project!
-
-*Last updated: December 2025*
+[⬆ Back to Top](#-mml--minimal-math-library)
 
 </div>

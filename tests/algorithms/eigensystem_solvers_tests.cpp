@@ -5,8 +5,8 @@
 #include "../../test_data/linear_alg_eq_systems_classic_defs.h"
 #include "../../test_data/linear_alg_eq_systems_sym_defs.h"
 #include "../../test_data/linear_alg_eq_systems_solverspecific_defs.h"
-#include "../../test_data/linear_alg_eq_systems_test_bed.h"
-#include "../../test_data/eigenvalue_test_bed.h"
+#include "../../test_beds/linear_alg_eq_systems_test_bed.h"
+#include "../../test_beds/eigenvalue_test_bed.h"
 
 #include "../../mml/algorithms/EigenSystemSolvers.h"
 #include "../../mml/base/BaseUtils.h"
@@ -16,6 +16,9 @@
 using namespace MML;
 using namespace MML::Testing;
 using namespace MML::TestBeds;
+
+namespace MML::Tests::Algorithms::EigensystemSolversTests
+{
 
 /***************************************************************************************************
  * JACOBI EIGENSOLVER TESTS
@@ -102,23 +105,25 @@ TEST_CASE("JacobiEigen_SymmetricMatrix_3x3", "[EigenSolvers][Jacobi][TestData]")
 {
 		TEST_PRECISION_INFO();
 	// Use test data: symm_mat_3x3 with known eigenvalues
-	auto result = SymmMatEigenSolverJacobi::Solve(symm_mat_3x3);
+	MatrixSym<Real> mat_copy = symm_mat_3x3();
+	auto result = SymmMatEigenSolverJacobi::Solve(mat_copy);
 	
 	REQUIRE(result.converged);
 	REQUIRE(result.eigenvalues.size() == 3);
 	
 	// Compare with known eigenvalues (sorted)
-	Vector<Real> expected = symm_mat_3x3_eigen_val;
+	Vector<Real> expected = symm_mat_3x3_eigen_val();
 	std::sort(expected.begin(), expected.end());
 	
 	for (int i = 0; i < 3; i++)
 		REQUIRE(std::abs(result.eigenvalues[i] - expected[i]) < 1e-6);
 	
 	// Verify A*V = V*Λ
+	const auto& symm_mat = symm_mat_3x3();
 	Matrix<Real> A_full(3, 3);
 	for (int i = 0; i < 3; i++)
 		for (int j = 0; j < 3; j++)
-			A_full[i][j] = (i <= j) ? symm_mat_3x3(i, j) : symm_mat_3x3(j, i);
+			A_full[i][j] = (i <= j) ? symm_mat(i, j) : symm_mat(j, i);
 	
 	for (int i = 0; i < 3; i++)
 	{
@@ -135,13 +140,14 @@ TEST_CASE("JacobiEigen_SymmetricMatrix_5x5", "[EigenSolvers][Jacobi][TestData]")
 {
 		TEST_PRECISION_INFO();
 	// Use test data: symm_mat_5x5 with known eigenvalues
-	auto result = SymmMatEigenSolverJacobi::Solve(symm_mat_5x5);
+	MatrixSym<Real> mat_copy = symm_mat_5x5();
+	auto result = SymmMatEigenSolverJacobi::Solve(mat_copy);
 	
 	REQUIRE(result.converged);
 	REQUIRE(result.eigenvalues.size() == 5);
 	
 	// Compare with known eigenvalues
-	Vector<Real> expected = symm_mat_5x5_eigen_val;
+	Vector<Real> expected = symm_mat_5x5_eigen_val();
 	std::sort(expected.begin(), expected.end());
 	
 	for (int i = 0; i < 5; i++)
@@ -168,13 +174,14 @@ TEST_CASE("JacobiEigen_SymmetricMatrix_10x10", "[EigenSolvers][Jacobi][TestData]
 {
 		TEST_PRECISION_INFO();
 	// Use test data: symm_mat_10x10 with known eigenvalues
-	auto result = SymmMatEigenSolverJacobi::Solve(symm_mat_10x10);
+	MatrixSym<Real> mat_copy = symm_mat_10x10();
+	auto result = SymmMatEigenSolverJacobi::Solve(mat_copy);
 	
 	REQUIRE(result.converged);
 	REQUIRE(result.eigenvalues.size() == 10);
 	
 	// Compare with known eigenvalues
-	Vector<Real> expected = symm_mat_10x10_eigen_val;
+	Vector<Real> expected = symm_mat_10x10_eigen_val();
 	std::sort(expected.begin(), expected.end());
 	
 	for (int i = 0; i < 10; i++)
@@ -185,20 +192,22 @@ TEST_CASE("JacobiEigen_SymmetricMatrix_3x3_Verified", "[EigenSolvers][Jacobi][Ve
 {
 		TEST_PRECISION_INFO();
 	// Test with verified symmetric matrix from test data
-	auto result = SymmMatEigenSolverJacobi::Solve(symm_mat_3x3);
+	MatrixSym<Real> mat_copy = symm_mat_3x3();
+	auto result = SymmMatEigenSolverJacobi::Solve(mat_copy);
 	
 	REQUIRE(result.converged);
 	REQUIRE(result.eigenvalues.size() == 3);
 	
 	// Compare with verified eigenvalues (sorted ascending)
-	Vector<Real> expected = symm_mat_3x3_eigen_val;
+	Vector<Real> expected = symm_mat_3x3_eigen_val();
 	std::sort(expected.begin(), expected.end());
 	
 	for (int i = 0; i < 3; i++)
 		REQUIRE(std::abs(result.eigenvalues[i] - expected[i]) < 1e-6);
 	
 	// Verify trace = sum of eigenvalues
-	Real trace = symm_mat_3x3(0,0) + symm_mat_3x3(1,1) + symm_mat_3x3(2,2);
+	const auto& mat = symm_mat_3x3();
+	Real trace = mat(0,0) + mat(1,1) + mat(2,2);
 	Real eigensum = result.eigenvalues[0] + result.eigenvalues[1] + result.eigenvalues[2];
 	REQUIRE(std::abs(trace - eigensum) < 1e-10);
 }
@@ -207,22 +216,24 @@ TEST_CASE("JacobiEigen_SymmetricMatrix_5x5_Verified", "[EigenSolvers][Jacobi][Ve
 {
 		TEST_PRECISION_INFO();
 	// Test with verified 5x5 symmetric matrix from test data
-	auto result = SymmMatEigenSolverJacobi::Solve(symm_mat_5x5);
+	MatrixSym<Real> mat_copy = symm_mat_5x5();
+	auto result = SymmMatEigenSolverJacobi::Solve(mat_copy);
 	
 	REQUIRE(result.converged);
 	REQUIRE(result.eigenvalues.size() == 5);
 	
 	// Compare with verified eigenvalues (sorted ascending)
-	Vector<Real> expected = symm_mat_5x5_eigen_val;
+	Vector<Real> expected = symm_mat_5x5_eigen_val();
 	std::sort(expected.begin(), expected.end());
 	
 	for (int i = 0; i < 5; i++)
 		REQUIRE(std::abs(result.eigenvalues[i] - expected[i]) < 1e-6);
 	
 	// Verify trace = sum of eigenvalues
+	const auto& mat = symm_mat_5x5();
 	Real trace = REAL(0.0);
 	for (int i = 0; i < 5; i++)
-		trace += symm_mat_5x5(i, i);
+		trace += mat(i, i);
 	
 	Real eigensum = REAL(0.0);
 	for (int i = 0; i < 5; i++)
@@ -235,22 +246,24 @@ TEST_CASE("JacobiEigen_SymmetricMatrix_10x10_Verified", "[EigenSolvers][Jacobi][
 {
 		TEST_PRECISION_INFO();
 	// Test with verified 10x10 symmetric matrix from test data
-	auto result = SymmMatEigenSolverJacobi::Solve(symm_mat_10x10);
+	MatrixSym<Real> mat_copy = symm_mat_10x10();
+	auto result = SymmMatEigenSolverJacobi::Solve(mat_copy);
 	
 	REQUIRE(result.converged);
 	REQUIRE(result.eigenvalues.size() == 10);
 	
 	// Compare with verified eigenvalues (sorted ascending)
-	Vector<Real> expected = symm_mat_10x10_eigen_val;
+	Vector<Real> expected = symm_mat_10x10_eigen_val();
 	std::sort(expected.begin(), expected.end());
 	
 	for (int i = 0; i < 10; i++)
 		REQUIRE(std::abs(result.eigenvalues[i] - expected[i]) < 1e-6);
 	
 	// Verify trace = sum of eigenvalues
+	const auto& mat = symm_mat_10x10();
 	Real trace = REAL(0.0);
 	for (int i = 0; i < 10; i++)
-		trace += symm_mat_10x10(i, i);
+		trace += mat(i, i);
 	
 	Real eigensum = REAL(0.0);
 	for (int i = 0; i < 10; i++)
@@ -283,12 +296,13 @@ TEST_CASE("JacobiEigen_EigenvectorOrthonormality", "[EigenSolvers][Jacobi][Prope
 		TEST_PRECISION_INFO();
 	// Test that V^T * V = I for various matrices
 	
-	auto result = SymmMatEigenSolverJacobi::Solve(symm_mat_5x5);
+	MatrixSym<Real> mat_copy = symm_mat_5x5();
+	auto result = SymmMatEigenSolverJacobi::Solve(mat_copy);
 	
 	REQUIRE(result.converged);
 	
 	int n = 5;
-	Matrix<Real> VtV = result.eigenvectors.GetTranspose() * result.eigenvectors;
+	Matrix<Real> VtV = result.eigenvectors.transpose() * result.eigenvectors;
 	
 	// Check V^T * V = I
 	for (int i = 0; i < n; i++)
@@ -306,7 +320,8 @@ TEST_CASE("JacobiEigen_ReconstructMatrix", "[EigenSolvers][Jacobi][Properties]")
 		TEST_PRECISION_INFO();
 	// Test that A = V * Λ * V^T
 	
-	auto result = SymmMatEigenSolverJacobi::Solve(symm_mat_3x3);
+	MatrixSym<Real> mat_copy = symm_mat_3x3();
+	auto result = SymmMatEigenSolverJacobi::Solve(mat_copy);
 	
 	REQUIRE(result.converged);
 	
@@ -319,13 +334,14 @@ TEST_CASE("JacobiEigen_ReconstructMatrix", "[EigenSolvers][Jacobi][Properties]")
 	
 	// Reconstruct A = V * Λ * V^T
 	Matrix<Real> VL = result.eigenvectors * Lambda;
-	Matrix<Real> A_reconstructed = VL * result.eigenvectors.GetTranspose();
+	Matrix<Real> A_reconstructed = VL * result.eigenvectors.transpose();
 	
 	// Convert original to full matrix
+	const auto& symm_mat = symm_mat_3x3();
 	Matrix<Real> A_original(n, n);
 	for (int i = 0; i < n; i++)
 		for (int j = 0; j < n; j++)
-			A_original[i][j] = (i <= j) ? symm_mat_3x3(i, j) : symm_mat_3x3(j, i);
+			A_original[i][j] = (i <= j) ? symm_mat(i, j) : symm_mat(j, i);
 	
 	// Compare
 	for (int i = 0; i < n; i++)
@@ -338,7 +354,8 @@ TEST_CASE("JacobiEigen_ConvergenceSpeed", "[EigenSolvers][Jacobi][Performance]")
 		TEST_PRECISION_INFO();
 	// Test that Jacobi converges reasonably fast
 	
-	auto result = SymmMatEigenSolverJacobi::Solve(symm_mat_10x10, 1e-10, 100);
+	MatrixSym<Real> mat_copy = symm_mat_10x10();
+	auto result = SymmMatEigenSolverJacobi::Solve(mat_copy, 1e-10, 100);
 	
 	REQUIRE(result.converged);
 	
@@ -356,7 +373,8 @@ TEST_CASE("JacobiEigen_NonConvergence", "[EigenSolvers][Jacobi][EdgeCases]")
 		TEST_PRECISION_INFO();
 	// Test behavior with very small maxIter
 	
-	auto result = SymmMatEigenSolverJacobi::Solve(symm_mat_10x10, 1e-15, 1);  // Only 1 iteration
+	MatrixSym<Real> mat_copy = symm_mat_10x10();
+	auto result = SymmMatEigenSolverJacobi::Solve(mat_copy, 1e-15, 1);  // Only 1 iteration
 	
 	// Should not converge
 	REQUIRE_FALSE(result.converged);
@@ -368,14 +386,15 @@ TEST_CASE("JacobiEigen_TraceAndDeterminant", "[EigenSolvers][Jacobi][Properties]
 		TEST_PRECISION_INFO();
 	// Test that trace(A) = sum(eigenvalues) and det(A) = product(eigenvalues)
 	
-	auto result = SymmMatEigenSolverJacobi::Solve(symm_mat_5x5);
+	MatrixSym<Real> mat_copy = symm_mat_5x5();
+	auto result = SymmMatEigenSolverJacobi::Solve(mat_copy);
 	
 	REQUIRE(result.converged);
 	
 	// Compute trace
 	Real trace = REAL(0.0);
 	for (int i = 0; i < 5; i++)
-		trace += symm_mat_5x5(i, i);
+		trace += symm_mat_5x5()(i, i);
 	
 	// Sum of eigenvalues
 	Real eigensum = REAL(0.0);
@@ -466,10 +485,11 @@ TEST_CASE("QREigen_SymmetricMatrix_3x3_Verified", "[EigenSolvers][QR][Verified]"
 {
 		TEST_PRECISION_INFO();
 	// Use verified 3x3 symmetric matrix from test data
+	const auto& symm_mat = symm_mat_3x3();
 	Matrix<Real> A_full(3, 3);
 	for (int i = 0; i < 3; i++)
 		for (int j = 0; j < 3; j++)
-			A_full(i, j) = symm_mat_3x3(i, j);
+			A_full(i, j) = symm_mat(i, j);
 	
 	MatrixSym<Real> A(3);
 	for (int i = 0; i < 3; i++)
@@ -482,7 +502,8 @@ TEST_CASE("QREigen_SymmetricMatrix_3x3_Verified", "[EigenSolvers][QR][Verified]"
 	REQUIRE(result.eigenvalues.size() == 3);
 	
 	// Check eigenvalues against verified values (sorted)
-	Real expected_eigenvals[3] = {symm_mat_3x3_eigen_val[0], symm_mat_3x3_eigen_val[1], symm_mat_3x3_eigen_val[2]};
+	const auto& eigen_vals = symm_mat_3x3_eigen_val();
+	Real expected_eigenvals[3] = {eigen_vals[0], eigen_vals[1], eigen_vals[2]};
 	std::sort(std::begin(expected_eigenvals), std::end(expected_eigenvals));
 	
 	for (int i = 0; i < 3; i++)
@@ -509,11 +530,12 @@ TEST_CASE("QREigen_SymmetricMatrix_5x5_Verified", "[EigenSolvers][QR][Verified]"
 {
 		TEST_PRECISION_INFO();
 	// Use verified 5x5 symmetric matrix from test data
+	const auto& symm_mat = symm_mat_5x5();
 	MatrixSym<Real> A(5);
 	int idx = 0;
 	for (int i = 0; i < 5; i++)
 		for (int j = i; j < 5; j++)
-			A(i, j) = symm_mat_5x5(i, j);
+			A(i, j) = symm_mat(i, j);
 	
 	auto result = SymmMatEigenSolverQR::Solve(A);
 	
@@ -521,9 +543,10 @@ TEST_CASE("QREigen_SymmetricMatrix_5x5_Verified", "[EigenSolvers][QR][Verified]"
 	REQUIRE(result.eigenvalues.size() == 5);
 	
 	// Check eigenvalues against verified values (sorted)
-	Real expected_eigenvals[5] = {symm_mat_5x5_eigen_val[0], symm_mat_5x5_eigen_val[1], 
-	                              symm_mat_5x5_eigen_val[2], symm_mat_5x5_eigen_val[3],
-	                              symm_mat_5x5_eigen_val[4]};
+	const auto& eigen_vals = symm_mat_5x5_eigen_val();
+	Real expected_eigenvals[5] = {eigen_vals[0], eigen_vals[1], 
+	                              eigen_vals[2], eigen_vals[3],
+	                              eigen_vals[4]};
 	std::sort(std::begin(expected_eigenvals), std::end(expected_eigenvals));
 	
 	for (int i = 0; i < 5; i++)
@@ -552,10 +575,11 @@ TEST_CASE("QREigen_SymmetricMatrix_10x10_Verified", "[EigenSolvers][QR][Verified
 {
 		TEST_PRECISION_INFO();
 	// Use verified 10x10 symmetric matrix from test data
+	const auto& symm_mat = symm_mat_10x10();
 	MatrixSym<Real> A(10);
 	for (int i = 0; i < 10; i++)
 		for (int j = i; j < 10; j++)
-			A(i, j) = symm_mat_10x10(i, j);
+			A(i, j) = symm_mat(i, j);
 	
 	auto result = SymmMatEigenSolverQR::Solve(A);
 	
@@ -563,9 +587,10 @@ TEST_CASE("QREigen_SymmetricMatrix_10x10_Verified", "[EigenSolvers][QR][Verified
 	REQUIRE(result.eigenvalues.size() == 10);
 	
 	// Check eigenvalues against verified values (sorted)
+	const auto& eigen_vals = symm_mat_10x10_eigen_val();
 	std::vector<Real> expected_eigenvals(10);
 	for (int i = 0; i < 10; i++)
-		expected_eigenvals[i] = symm_mat_10x10_eigen_val[i];
+		expected_eigenvals[i] = eigen_vals[i];
 	std::sort(expected_eigenvals.begin(), expected_eigenvals.end());
 	
 	for (int i = 0; i < 10; i++)
@@ -580,7 +605,7 @@ TEST_CASE("QREigen_SymmetricMatrix_10x10_Verified", "[EigenSolvers][QR][Verified
 		Lambda(i, i) = result.eigenvalues[i];
 	
 	Matrix<Real> Q = result.eigenvectors;
-	Matrix<Real> Qt = Q.GetTranspose();
+	Matrix<Real> Qt = Q.transpose();
 	Matrix<Real> A_reconstructed = Q * Lambda * Qt;
 	
 	// Check reconstruction accuracy
@@ -599,10 +624,11 @@ TEST_CASE("QREigen_CompareWithJacobi_3x3", "[EigenSolvers][QR][Jacobi][Compariso
 {
 		TEST_PRECISION_INFO();
 	// Both algorithms should give the same eigenvalues
+	const auto& symm_mat = symm_mat_3x3();
 	MatrixSym<Real> A(3);
 	for (int i = 0; i < 3; i++)
 		for (int j = i; j < 3; j++)
-			A(i, j) = symm_mat_3x3(i, j);
+			A(i, j) = symm_mat(i, j);
 	
 	auto qr_result = SymmMatEigenSolverQR::Solve(A);
 	auto jacobi_result = SymmMatEigenSolverJacobi::Solve(A);
@@ -619,10 +645,11 @@ TEST_CASE("QREigen_CompareWithJacobi_5x5", "[EigenSolvers][QR][Jacobi][Compariso
 {
 		TEST_PRECISION_INFO();
 	// Both algorithms should give the same eigenvalues for 5x5
+	const auto& symm_mat = symm_mat_5x5();
 	MatrixSym<Real> A(5);
 	for (int i = 0; i < 5; i++)
 		for (int j = i; j < 5; j++)
-			A(i, j) = symm_mat_5x5(i, j);
+			A(i, j) = symm_mat(i, j);
 	
 	auto qr_result = SymmMatEigenSolverQR::Solve(A);
 	auto jacobi_result = SymmMatEigenSolverJacobi::Solve(A);
@@ -639,10 +666,11 @@ TEST_CASE("QREigen_Convergence", "[EigenSolvers][QR][Convergence]")
 {
 		TEST_PRECISION_INFO();
 	// Test with tighter tolerance
+	const auto& symm_mat = symm_mat_3x3();
 	MatrixSym<Real> A(3);
 	for (int i = 0; i < 3; i++)
 		for (int j = i; j < 3; j++)
-			A(i, j) = symm_mat_3x3(i, j);
+			A(i, j) = symm_mat(i, j);
 	
 	auto result = SymmMatEigenSolverQR::Solve(A, 1e-12, 1000);
 	
@@ -656,10 +684,11 @@ TEST_CASE("QREigen_Performance_vs_Jacobi", "[EigenSolvers][QR][Jacobi][Performan
 {
 		TEST_PRECISION_INFO();
 	// QR should converge faster than Jacobi for larger matrices
+	const auto& symm_mat = symm_mat_10x10();
 	MatrixSym<Real> A(10);
 	for (int i = 0; i < 10; i++)
 		for (int j = i; j < 10; j++)
-			A(i, j) = symm_mat_10x10(i, j);
+			A(i, j) = symm_mat(i, j);
 	
 	auto qr_result = SymmMatEigenSolverQR::Solve(A);
 	auto jacobi_result = SymmMatEigenSolverJacobi::Solve(A);
@@ -682,7 +711,7 @@ TEST_CASE("QREigen_Trace_Property", "[EigenSolvers][QR][Properties]")
 	MatrixSym<Real> A(5);
 	for (int i = 0; i < 5; i++)
 		for (int j = i; j < 5; j++)
-			A(i, j) = symm_mat_5x5(i, j);
+			A(i, j) = symm_mat_5x5()(i, j);
 	
 	auto result = SymmMatEigenSolverQR::Solve(A);
 	
@@ -711,7 +740,7 @@ TEST_CASE("QREigen_Trace_Property", "[EigenSolvers][QR][Properties]")
 // Helper to convert Matrix to MatrixSym (assumes input is symmetric)
 static MatrixSym<Real> toMatrixSym(const Matrix<Real>& M)
 {
-	int n = M.RowNum();
+	int n = M.rows();
 	MatrixSym<Real> result(n);
 	for (int i = 0; i < n; i++)
 		for (int j = i; j < n; j++)
@@ -1061,3 +1090,4 @@ TEST_CASE("EigenSolvers_RepeatedEigenvalueTestBed", "[EigenSolvers][TestBed][Rep
 	}
 }
 
+} // namespace MML::Tests::Algorithms::EigensystemSolversTests

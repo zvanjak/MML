@@ -5,10 +5,9 @@
 ///  Description: Precision constants and tolerances for float/double types           ///
 ///               Configurable thresholds for numerical comparisons                   ///
 ///                                                                                   ///
-///  Copyright:   (c) 2024-2025 Zvonimir Vanjak                                       ///
-///  License:     Licensed under MML dual-license (see LICENSE.md)                    ///
-///               - Free for non-commercial use                                       ///
-///               - Commercial license available                                      ///
+///  Copyright:   (c) 2024-2026 Zvonimir Vanjak                                       ///
+///  License:     MIT License (see LICENSE.md)                                         ///
+///                                                                                   ///
 ///////////////////////////////////////////////////////////////////////////////////////////
 #if !defined MML_PRECISION_H
 #define MML_PRECISION_H
@@ -41,6 +40,12 @@ namespace MML
 
 		static constexpr float Vec3SphIsEqualTolerance = 1e-6f;
 
+		// Angle comparison tolerance (for wrap-aware angle equality)
+		static constexpr float AngleIsEqualTolerance = 1e-6f;
+
+		// Shape property tolerance (for geometric shape classification: IsRight, IsSquare, etc.)
+		static constexpr float ShapePropertyTolerance = 1e-6f;
+
 		static constexpr float Line3DAreEqualTolerance = 1e-6f;
 		static constexpr float Line3DIsPointOnLineTolerance = 1e-6f;
 		static constexpr float Line3DIsPerpendicularTolerance = 1e-6f;
@@ -55,6 +60,7 @@ namespace MML
 		static constexpr float IsMatrixSymmetricTolerance = 1e-6f;
 		static constexpr float IsMatrixDiagonalTolerance = 1e-6f;
 		static constexpr float IsMatrixUnitTolerance = 1e-6f;
+		static constexpr float IsMatrixZeroTolerance = 1e-6f;
 		static constexpr float IsMatrixOrthogonalTolerance = 1e-6f;
 
 		static constexpr float RankAlgEPS = 1e-10f;
@@ -99,6 +105,12 @@ namespace MML
 
 		static constexpr double Vec3SphIsEqualTolerance = 1e-10;
 
+		// Angle comparison tolerance (for wrap-aware angle equality)
+		static constexpr double AngleIsEqualTolerance = 1e-10;
+
+		// Shape property tolerance (for geometric shape classification: IsRight, IsSquare, etc.)
+		static constexpr double ShapePropertyTolerance = 1e-10;
+
 		static constexpr double Line3DAreEqualTolerance = 1e-10;
 		static constexpr double Line3DIsPointOnLineTolerance = 1e-10;
 		static constexpr double Line3DIsPerpendicularTolerance = 1e-10;
@@ -113,6 +125,7 @@ namespace MML
 		static constexpr double IsMatrixSymmetricTolerance = 1e-10;
 		static constexpr double IsMatrixDiagonalTolerance = 1e-10;
 		static constexpr double IsMatrixUnitTolerance = 1e-10;
+		static constexpr double IsMatrixZeroTolerance = 1e-10;
 		static constexpr double IsMatrixOrthogonalTolerance = 1e-10;
 
 		static constexpr double RankAlgEPS = 1e-12f;
@@ -157,6 +170,12 @@ namespace MML
 
 		static constexpr long double Vec3SphIsEqualTolerance = 1e-15;
 
+		// Angle comparison tolerance (for wrap-aware angle equality)
+		static constexpr long double AngleIsEqualTolerance = 1e-15L;
+
+		// Shape property tolerance (for geometric shape classification: IsRight, IsSquare, etc.)
+		static constexpr long double ShapePropertyTolerance = 1e-15L;
+
 		static constexpr long double Line3DAreEqualTolerance = 1e-15;
 		static constexpr long double Line3DIsPointOnLineTolerance = 1e-15;
 		static constexpr long double Line3DIsPerpendicularTolerance = 1e-15;
@@ -171,6 +190,7 @@ namespace MML
 		static constexpr long double IsMatrixSymmetricTolerance = 1e-15;
 		static constexpr long double IsMatrixDiagonalTolerance = 1e-15;
 		static constexpr long double IsMatrixUnitTolerance = 1e-15;
+		static constexpr long double IsMatrixZeroTolerance = 1e-15;
 		static constexpr long double IsMatrixOrthogonalTolerance = 1e-15;
 
 		static constexpr long double RankAlgEPS = 1e-13f;

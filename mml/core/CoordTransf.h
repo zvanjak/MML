@@ -5,10 +5,9 @@
 ///  Description: Coordinate transformation implementations                           ///
 ///               Spherical-Cartesian, Cylindrical-Cartesian conversions              ///
 ///                                                                                   ///
-///  Copyright:   (c) 2024-2025 Zvonimir Vanjak                                       ///
-///  License:     Licensed under MML dual-license (see LICENSE.md)                    ///
-///               - Free for non-commercial use                                       ///
-///               - Commercial license available                                      ///
+///  Copyright:   (c) 2024-2026 Zvonimir Vanjak                                       ///
+///  License:     MIT License (see LICENSE.md)                                         ///
+///                                                                                   ///
 ///////////////////////////////////////////////////////////////////////////////////////////
 #if !defined MML_COORD_TRANSF_H
 #define MML_COORD_TRANSF_H
@@ -17,10 +16,10 @@
 
 #include "interfaces/ICoordTransf.h"
 
-#include "base/Vector.h"
-#include "base/VectorTypes.h"
-#include "base/Matrix.h"
-#include "base/MatrixNM.h"
+#include "base/Vector/Vector.h"
+#include "base/Vector/VectorTypes.h"
+#include "base/Matrix/Matrix.h"
+#include "base/Matrix/MatrixNM.h"
 #include "base/Tensor.h"
 #include "base/Function.h"
 
@@ -28,11 +27,49 @@
 
 namespace MML
 {
+	///////////////////////////////////////////////////////////////////////////////
+	// COORDINATE TRANSFORMATION CONVENTIONS
+	//
+	//   Jacobian:       J_ij = ∂x'_i / ∂x_j  where x' = target, x = source
+	//                   Matrix layout: J[row=target_dim][col=source_dim]
+	//
+	//   Basis vectors:  Covariant  eᵢ = ∂r/∂qⁱ  (tangent vectors, unnormalized)
+	//                   Contravariant eⁱ = ∇qⁱ   (gradient 1-forms, dual basis)
+	//                   Contravariant = rows of inverse Jacobian
+	//
+	//   Vector transforms:
+	//     Contravariant components (velocity-like):  v'ⁱ = J_ij · vʲ
+	//     Covariant components (gradient-like):       v'ᵢ = (J⁻¹)ʲᵢ · vⱼ
+	//
+	//   Indexing:       0-based throughout (q[0], q[1], q[2])
+	//
+	//   Numerical diff: Jacobian computed via NDer4 (4th-order central differences,
+	//                   error ~h⁴) unless analytic Jacobian is provided.
+	//
+	//   Handedness:     Right-handed orientation assumed for all
+	//                   standard coordinate systems.
+	//
+	// Coordinate conventions per system:
+	//   Spherical:    (r, θ, φ)  — see CoordTransfSpherical.h for full details
+	//   Cylindrical:  (r, φ, z)  — see CoordTransfCylindrical.h for full details
+	//
+	// See also: MetricTensor.h, FieldOperations.h
+	///////////////////////////////////////////////////////////////////////////////
+
+	/// @brief Base coordinate transformation class
+	/// 
+	/// Implements coordinate transformations between different coordinate systems.
+	/// Provides basis vectors, Jacobians, and vector transformations.
+	/// @tparam VectorFrom Source coordinate system vector type
+	/// @tparam VectorTo Target coordinate system vector type
+	/// @tparam N Dimension of coordinate space
 	template<typename VectorFrom, typename VectorTo, int N>
 	class CoordTransf : public virtual ICoordTransf<VectorFrom, VectorTo, N>
 	{
 	public:
-		// inherited from IVectorFunction
+		/// @brief Transform coordinates from source to target system
+		/// @param x Position in source coordinate system
+		/// @return Position in target coordinate system
 		VectorN<Real, N> operator()(const VectorN<Real, N>& x) const
     {
       VectorN<Real, N> ret;
@@ -41,6 +78,10 @@ namespace MML
       return ret;
     }
 
+		/// @brief Get basis vector e_i at position (covariant basis)
+		/// @param ind Index of basis vector (0 to N-1)
+		/// @param pos Position in source coordinates
+		/// @return Covariant basis vector in target coordinates
 		virtual VectorTo   getBasisVec(int ind, const VectorFrom& pos)
 		{
 			VectorTo ret;
@@ -50,6 +91,10 @@ namespace MML
 
 			return ret;
 		}
+		/// @brief Get inverse basis vector (contravariant dual basis)
+		/// @param ind Index of basis vector (0 to N-1)
+		/// @param pos Position in source coordinates
+		/// @return Contravariant basis vector
 		virtual VectorFrom getInverseBasisVec(int ind, const VectorFrom& pos)
 		{
 			VectorFrom ret;
@@ -60,6 +105,9 @@ namespace MML
 			return ret;
 		}
 
+		/// @brief Compute Jacobian matrix of transformation at position
+		/// @param pos Position in source coordinates
+		/// @return Jacobian matrix J_ij = ∂x'_i/∂x_j
 		MatrixNM<Real, N, N> jacobian(const VectorN<Real, N>& pos)
 		{
 			MatrixNM<Real, N, N> jac;
@@ -73,9 +121,13 @@ namespace MML
 			return jac;
 		}
 
+		/// @brief Transform contravariant vector (tangent vector)
+		/// @param vec Vector in source coordinates
+		/// @param pos Position where transformation is evaluated
+		/// @return Transformed contravariant vector
 		VectorTo   transfVecContravariant(const VectorFrom& vec, const VectorFrom& pos)
 		{
-			VectorFrom ret;
+			VectorTo ret;
 			for (int i = 0; i < N; i++) {
 				ret[i] = 0;
 				for (int j = 0; j < N; j++)
@@ -83,6 +135,10 @@ namespace MML
 			}
 			return ret;
 		}
+		/// @brief Transform covariant vector inversely (gradient-like vector)
+		/// @param vec Vector in target coordinates
+		/// @param pos Position in source coordinates
+		/// @return Transformed covariant vector
 		VectorFrom transfInverseVecCovariant(const VectorTo& vec, const VectorFrom& pos)
 		{
 			VectorFrom ret;
@@ -96,11 +152,22 @@ namespace MML
 		}
 	};
  
+	/// @brief Coordinate transformation with explicit inverse
+	/// 
+	/// Extends CoordTransf with inverse transformation capabilities.
+	/// Allows transformations in both directions and tensor transformations.
+	/// @tparam VectorFrom Source coordinate system vector type
+	/// @tparam VectorTo Target coordinate system vector type
+	/// @tparam N Dimension of coordinate space
 	template<typename VectorFrom, typename VectorTo, int N>
 	class CoordTransfWithInverse : public virtual CoordTransf<VectorFrom, VectorTo, N>,
 																 public virtual ICoordTransfWithInverse<VectorFrom, VectorTo, N>
 	{
 	public:
+		/// @brief Get contravariant basis vector using inverse transformation
+		/// @param ind Index of basis vector (0 to N-1)
+		/// @param pos Position in target coordinates
+		/// @return Contravariant basis vector in source coordinates
 		virtual VectorFrom getContravarBasisVec(int ind, const VectorTo& pos)
 		{
 			VectorFrom ret;
@@ -110,9 +177,13 @@ namespace MML
 
 			return ret;
 		}
+		/// @brief Get inverse contravariant basis vector
+		/// @param ind Index of basis vector (0 to N-1)
+		/// @param pos Position in target coordinates
+		/// @return Contravariant basis vector in target coordinates
 		virtual VectorTo   getInverseContravarBasisVec(int ind, const VectorTo& pos)
 		{
-			VectorFrom ret;
+			VectorTo ret;
 
 			for (int i = 0; i < N; i++)
 				ret[i] = Derivation::NDer4Partial(this->inverseCoordTransfFunc(i), ind, pos);
@@ -120,6 +191,10 @@ namespace MML
 			return ret;
 		}
 
+		/// @brief Transform covariant vector (one-form, gradient-like)
+		/// @param vec Vector in source coordinates
+		/// @param pos Position in target coordinates where transformation is evaluated
+		/// @return Transformed covariant vector
 		VectorTo   transfVecCovariant(const VectorFrom& vec, const VectorTo& pos)
 		{
 			VectorTo ret;
@@ -132,6 +207,10 @@ namespace MML
 
 			return ret;
 		}
+		/// @brief Transform contravariant vector inversely
+		/// @param vec Vector in target coordinates
+		/// @param pos Position in target coordinates
+		/// @return Transformed contravariant vector in source coordinates
 		VectorFrom transfInverseVecContravariant(const VectorTo& vec, const VectorTo& pos)
 		{
 			VectorFrom ret;
@@ -145,6 +224,10 @@ namespace MML
 			return ret;
 		}
 
+		/// @brief Transform rank-2 tensor (matrix-like object)
+		/// @param tensor Input tensor with mixed contravariant/covariant indices
+		/// @param pos Position in source coordinates
+		/// @return Transformed tensor in target coordinates
 		Tensor2<N> transfTensor2(const Tensor2<N>& tensor, const VectorFrom& pos)
 		{
 			Tensor2<N> ret(tensor.NumContravar(), tensor.NumCovar());
@@ -173,6 +256,10 @@ namespace MML
 
 			return ret;
 		}
+		/// @brief Transform rank-3 tensor
+		/// @param tensor Input tensor with mixed contravariant/covariant indices
+		/// @param pos Position in source coordinates
+		/// @return Transformed tensor in target coordinates
 		Tensor3<N> transfTensor3(const Tensor3<N>& tensor, const VectorFrom& pos)
 		{
 			Tensor3<N> ret(tensor.NumContravar(), tensor.NumCovar());
@@ -208,6 +295,10 @@ namespace MML
 
 			return ret;
 		}
+		/// @brief Transform rank-4 tensor (e.g., Riemann curvature tensor)
+		/// @param tensor Input tensor with mixed contravariant/covariant indices
+		/// @param pos Position in source coordinates
+		/// @return Transformed tensor in target coordinates
 		Tensor4<N> transfTensor4(const Tensor4<N>& tensor, const VectorFrom& pos)
 		{
 			Tensor4<N> ret(tensor.NumContravar(), tensor.NumCovar());
@@ -250,6 +341,10 @@ namespace MML
 
 			return ret;
 		}
+		/// @brief Transform rank-5 tensor
+		/// @param tensor Input tensor with mixed contravariant/covariant indices
+		/// @param pos Position in source coordinates
+		/// @return Transformed tensor in target coordinates
 		Tensor5<N> transfTensor5(const Tensor5<N>& tensor, const VectorFrom& pos)
 		{
 			Tensor5<N> ret(tensor.NumContravar(), tensor.NumCovar());

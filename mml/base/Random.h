@@ -5,10 +5,9 @@
 ///  Description: Random number generation utilities                                  ///
 ///               Uniform and Gaussian distributions using Mersenne Twister           ///
 ///                                                                                   ///
-///  Copyright:   (c) 2024-2025 Zvonimir Vanjak                                       ///
-///  License:     Licensed under MML dual-license (see LICENSE.md)                    ///
-///               - Free for non-commercial use                                       ///
-///               - Commercial license available                                      ///
+///  Copyright:   (c) 2024-2026 Zvonimir Vanjak                                       ///
+///  License:     MIT License (see LICENSE.md)                                         ///
+///                                                                                   ///
 ///////////////////////////////////////////////////////////////////////////////////////////
 #if !defined MML_RANDOM_H
 #define MML_RANDOM_H
@@ -47,12 +46,15 @@ namespace MML
 		}
 		static Real UniformVecDirection3(Real& vx, Real& vy, Real& vz, Real abs)
 		{
-			// Generate a random direction on the sphere with radus 'abs'
+			// Generate a uniformly distributed random direction on the sphere with radius 'abs'
+			// Correct method: sample u ~ Uniform(-1, 1) and set cos(phi) = u
+			// This ensures uniform distribution over the sphere surface
 			Real theta = UniformReal(0, 2 * Constants::PI); // azimuthal angle
-			Real phi = UniformReal(0, Constants::PI); // polar angle
-			vx = abs * std::sin(phi) * std::cos(theta);
-			vy = abs * std::sin(phi) * std::sin(theta);
-			vz = abs * std::cos(phi);
+			Real u = UniformReal(-1.0, 1.0);               // cos(polar angle)
+			Real sin_phi = std::sqrt(1.0 - u * u);         // sin(phi) = sqrt(1 - cos²(phi))
+			vx = abs * sin_phi * std::cos(theta);
+			vy = abs * sin_phi * std::sin(theta);
+			vz = abs * u;  // cos(phi) = u
 			return abs;
 		}
 	};

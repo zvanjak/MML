@@ -5,7 +5,7 @@
 
 #include "base/Function.h"
 #include "algorithms/Optimization.h"
-#include "algorithms/Optimization/OptimizationMultidim.h"
+#include "OptimizationMultidim.h"
 #endif
 
 using namespace MML;

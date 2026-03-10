@@ -13,16 +13,16 @@
 #include "MMLBase.h"
 
 #include "base/Function.h"
-#include "base/VectorN.h"
+#include "base/Vector/VectorN.h"
 #include "core/Fields.h"
 #include "core/Curves.h"
 #include "core/FunctionHelpers.h"
 
 #include "base/ODESystem.h"
 #include "base/ODESystemSolution.h"
-#include "algorithms/ODESystemSolver.h"
-#include "algorithms/ODESystemStepCalculators.h"
-#include "algorithms/ODESystemSteppers.h"
+#include "mml/algorithms/ODESolvers/ODEAdaptiveIntegrator.h"
+#include "mml/algorithms/ODESolvers/ODEFixedStepIntegrators.h"
+#include "mml/algorithms/ODESolvers/ODESystemStepCalculators.h"
 
 #include "tools/Visualizer.h"
 #include "tools/Serializer.h"
@@ -57,7 +57,7 @@ void Docs_Demo_Visualizers_Example1_FunctionAnalysis()
         "Gaussian exp(-x^2)",
         -3.0, 3.0,
         200,
-        "docs_gaussian.txt"
+        "docs_gaussian.mml"
     );
     std::cout << "    Result: " << (result1.success ? "Success" : "Failed: " + result1.errorMessage) << "\n";
     
@@ -79,7 +79,7 @@ void Docs_Demo_Visualizers_Example1_FunctionAnalysis()
         legend,
         -2.0, 2.0,
         150,
-        "docs_taylor_comparison.txt"
+        "docs_taylor_comparison.mml"
     );
     std::cout << "    Result: " << (result2.success ? "Success" : "Failed: " + result2.errorMessage) << "\n";
 }
@@ -118,7 +118,7 @@ void Docs_Demo_Visualizers_Example2_VectorField()
         "Electric Field (Point Charge)",
         -5.0, 5.0, 25,
         -5.0, 5.0, 25,
-        "docs_electric_field.txt"
+        "docs_electric_field.mml"
     );
     std::cout << "Result: " << (result.success ? "Success" : "Failed: " + result.errorMessage) << "\n";
 }
@@ -164,14 +164,14 @@ void Docs_Demo_Visualizers_Example3_ODEPendulum()
     // 3a. Time series of angle
     std::cout << "3a. Visualizing angle θ(t) vs time\n";
     auto result1 = Visualizer::VisualizeODESysSolCompAsFunc(
-        sol, 0, "Pendulum Angle vs Time", "docs_theta_t.txt"
+        sol, 0, "Pendulum Angle vs Time", "docs_theta_t.mml"
     );
     std::cout << "    Result: " << (result1.success ? "Success" : "Failed: " + result1.errorMessage) << "\n";
     
     // 3b. Phase portrait (ω vs θ)
     std::cout << "3b. Visualizing phase portrait (ω vs θ)\n";
     auto result2 = Visualizer::VisualizeODESysSolAsParamCurve2(
-        sol, 0, 1, "Pendulum Phase Portrait", "docs_phase.txt"
+        sol, 0, 1, "Pendulum Phase Portrait", "docs_phase.mml"
     );
     std::cout << "    Result: " << (result2.success ? "Success" : "Failed: " + result2.errorMessage) << "\n";
     
@@ -179,7 +179,7 @@ void Docs_Demo_Visualizers_Example3_ODEPendulum()
     std::cout << "3c. Visualizing both variables θ(t) and ω(t)\n";
     std::vector<std::string> labels = {"θ (angle)", "ω (angular velocity)"};
     auto result3 = Visualizer::VisualizeODESysSolAsMultiFunc(
-        sol, "Pendulum State Variables", labels, "docs_pendulum_state.txt"
+        sol, "Pendulum State Variables", labels, "docs_pendulum_state.mml"
     );
     std::cout << "    Result: " << (result3.success ? "Success" : "Failed: " + result3.errorMessage) << "\n";
 }
@@ -224,7 +224,7 @@ void Docs_Demo_Visualizers_Example4_3DCurves()
         "Trefoil Knot",
         0.0, 2.0*Constants::PI,
         500,
-        "docs_trefoil.txt"
+        "docs_trefoil.mml"
     );
     std::cout << "Result: " << (result.success ? "Success" : "Failed: " + result.errorMessage) << "\n";
 }
@@ -257,7 +257,7 @@ void Docs_Demo_Visualizers_ScalarFunction()
         "sin(x)*cos(y)",
         -Constants::PI, Constants::PI, 50,
         -Constants::PI, Constants::PI, 50,
-        "docs_wave_surface.txt"
+        "docs_wave_surface.mml"
     );
     std::cout << "Result: " << (result.success ? "Success" : "Failed: " + result.errorMessage) << "\n";
 }
@@ -285,7 +285,7 @@ void Docs_Demo_Visualizers_ParamCurve2D()
         "Lissajous 3:4",
         0.0, 2.0*Constants::PI,
         500,
-        "docs_lissajous.txt"
+        "docs_lissajous.mml"
     );
     std::cout << "Result: " << (result.success ? "Success" : "Failed: " + result.errorMessage) << "\n";
 }
@@ -316,7 +316,7 @@ void Docs_Demo_Visualizers_MultiFunctions()
         legend,
         0.0, 2.0*Constants::PI,
         200,
-        "docs_trig_compare.txt"
+        "docs_trig_compare.mml"
     );
     std::cout << "Result: " << (result.success ? "Success" : "Failed: " + result.errorMessage) << "\n";
 }
@@ -358,7 +358,7 @@ void Docs_Demo_Visualizers_LorenzAttractor()
     std::cout << "Solution obtained: " << sol.getTotalSavedSteps() << " steps\n\n";
 
     auto result = Visualizer::VisualizeODESysSolAsParamCurve3(
-        sol, 0, 1, 2, "Lorenz Attractor", "docs_lorenz_attractor.txt"
+        sol, 0, 1, 2, "Lorenz Attractor", "docs_lorenz_attractor.mml"
     );
     std::cout << "Result: " << (result.success ? "Success" : "Failed: " + result.errorMessage) << "\n";
 }
@@ -387,7 +387,7 @@ void Docs_Demo_Visualizers_VectorField3D()
         -3.0, 3.0, 8,
         -3.0, 3.0, 8,
         -3.0, 3.0, 8,
-        "docs_vector3d_cyclic.txt"
+        "docs_vector3d_cyclic.mml"
     );
     std::cout << "Result: " << (result.success ? "Success" : "Failed: " + result.errorMessage) << "\n";
 }

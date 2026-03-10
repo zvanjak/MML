@@ -21,6 +21,7 @@ add_executable(MML_PrecisionTestingApp
 target_include_directories(MML_PrecisionTestingApp PRIVATE 
     ${CMAKE_SOURCE_DIR}/mml
     ${CMAKE_SOURCE_DIR}/test_data
+    ${CMAKE_SOURCE_DIR}/test_beds
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
 

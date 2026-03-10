@@ -5,11 +5,13 @@
 #ifdef MML_USE_SINGLE_HEADER
 #include "MML.h"
 #else
-#include "base/Geometry3DBodies.h"
+#include "mml/base/Geometry/Geometry3DBodies.h"
 #endif
 
 using namespace MML;
 using namespace MML::Testing;
+
+namespace MML::Tests::Base::Geometry3DBodies::CubeWithTriangles3DTests {
 
 TEST_CASE("CubeWithTriangles3D::Volume", "[geometry][cubewithtriangles][volume]")
 {
@@ -87,7 +89,7 @@ TEST_CASE("CubeWithTriangles3D::GetBoundingBox", "[geometry][cubewithtriangles][
     SECTION("Cube at origin")
     {
         CubeWithTriangles3D cube(10.0);
-        BoundingBox3D bbox = cube.GetBoundingBox();
+        Box3D bbox = cube.GetBoundingBox();
         
         REQUIRE_THAT(bbox.Min().X() , RealApprox(-5.0));
         REQUIRE_THAT(bbox.Min().Y() , RealApprox(-5.0));
@@ -102,7 +104,7 @@ TEST_CASE("CubeWithTriangles3D::GetBoundingBox", "[geometry][cubewithtriangles][
     {
         Pnt3Cart center(10.0, 20.0, 30.0);
         CubeWithTriangles3D cube(6.0, center);
-        BoundingBox3D bbox = cube.GetBoundingBox();
+        Box3D bbox = cube.GetBoundingBox();
         
         REQUIRE_THAT(bbox.Min().X() , RealApprox(7.0));
         REQUIRE_THAT(bbox.Min().Y() , RealApprox(17.0));
@@ -278,3 +280,5 @@ TEST_CASE("CubeWithTriangles3D::TriangleSurfaces", "[geometry][cubewithtriangles
         REQUIRE(cube.ToString().find("Triangles=12") != std::string::npos);
     }
 }
+
+} // namespace MML::Tests::Base::Geometry3DBodies::CubeWithTriangles3DTests

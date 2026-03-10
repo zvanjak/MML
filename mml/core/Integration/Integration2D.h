@@ -3,14 +3,18 @@
 ///                                                                                   ///
 ///  File:        Integration2D.h                                                     ///
 ///  Description: 2D numerical integration (double integrals)                         ///
-///               Rectangular and triangular domain integration                       ///
+///               Variable limits: ∬_D f(x,y) dx dy where D = [x1,x2] × [y1(x),y2(x)] ///
 ///                                                                                   ///
-///  Copyright:   (c) 2024-2025 Zvonimir Vanjak                                       ///
-///  License:     Licensed under MML dual-license (see LICENSE.md)                    ///
-///               - Free for non-commercial use                                       ///
-///               - Commercial license available                                      ///
+///  Usage:       // Integrate over triangular region                                 ///
+///               auto y_lo = [](Real x) { return 0.0; };                             ///
+///               auto y_hi = [](Real x) { return 1.0 - x; };                         ///
+///               auto r = Integrate2D(f, SIMPSON, 0, 1, y_lo, y_hi);                 ///
+///                                                                                   ///
+///  Copyright:   (c) 2024-2026 Zvonimir Vanjak                                       ///
+///  License:     MIT License (see LICENSE.md)                                         ///
+///                                                                                   ///
 ///////////////////////////////////////////////////////////////////////////////////////////
-#if !defined MML_INTEGRATION_2D_H
+#ifndef MML_INTEGRATION_2D_H
 #define MML_INTEGRATION_2D_H
 
 #include "MMLBase.h"
@@ -20,6 +24,7 @@
 
 namespace MML
 {
+	/// @brief Helper: integrates f(x,y) over y for fixed x
 	struct Integral2DInner : public IRealFunction
 	{
 		mutable Real				_currX;
@@ -34,6 +39,7 @@ namespace MML
 		}
 	};
 
+	/// @brief Helper: outer integrator that calls inner for each x value
 	struct Integral2DOuter : public IRealFunction
 	{
 		mutable Integral2DInner _fInner;
@@ -56,17 +62,24 @@ namespace MML
 			switch (_integrMethod)
 			{
 				case SIMPSON:
-					return IntegrateSimpson(_fInner, _yRangeLow(x), _yRangeUpp(x));
+					return IntegrateSimpson(_fInner, _yRangeLow(x), _yRangeUpp(x)).value;
 				case ROMBERG:
-					return IntegrateRomberg(_fInner, _yRangeLow(x), _yRangeUpp(x));
+					return IntegrateRomberg(_fInner, _yRangeLow(x), _yRangeUpp(x)).value;
 				case GAUSS10:
-					return IntegrateGauss10(_fInner, _yRangeLow(x), _yRangeUpp(x));
+					return IntegrateGauss10(_fInner, _yRangeLow(x), _yRangeUpp(x)).value;
+				case GAUSS10KRONROD21:
+					return IntegrateGK21(_fInner, _yRangeLow(x), _yRangeUpp(x)).value;
 				default:
-					return IntegrateTrap(_fInner, _yRangeLow(x), _yRangeUpp(x));
+					return IntegrateTrap(_fInner, _yRangeLow(x), _yRangeUpp(x)).value;
 			}
 		}
 	};
-
+	/// @brief Double integral ∬_D f(x,y) dx dy with variable y-limits
+	/// @param func Scalar function f: ℝ² → ℝ to integrate
+	/// @param method Integration method (TRAP, SIMPSON, ROMBERG, GAUSS10)
+	/// @param x1,x2 Fixed x-integration bounds
+	/// @param y1,y2 Functions defining y-bounds: y ∈ [y1(x), y2(x)]
+	/// @return IntegrationResult with value, error_estimate, iterations, converged
 	static IntegrationResult Integrate2D(const IScalarFunction<2>& func, IntegrationMethod method, 
 																			 const Real x1, const Real x2, 
 																			 Real y1(Real), Real y2(Real))
@@ -81,6 +94,8 @@ namespace MML
 				return IntegrateRomberg(f1, x1, x2);
 			case GAUSS10:
 				return IntegrateGauss10(f1, x1, x2);  // Now returns IntegrationResult directly
+			case GAUSS10KRONROD21:
+				return IntegrateGK21(f1, x1, x2);
 			default:
 				return IntegrateTrap(f1, x1, x2);
 		}

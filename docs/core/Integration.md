@@ -121,40 +121,22 @@ enum IntegrationMethod {
 ### Trapezoidal Integration
 
 ```cpp
-// Modern interface: returns IntegrationResult
+// Returns IntegrationResult with adaptive error estimation
 IntegrationResult IntegrateTrap(
     const IRealFunction& func,
     Real a, Real b,
     Real eps = Defaults::TrapezoidIntegrationEPS  // Default: 1e-6
-);
-
-// Legacy interface: returns value only
-Real IntegrateTrap(
-    const IRealFunction& func,
-    Real a, Real b,
-    int* doneSteps = nullptr,      // Output: iterations performed
-    Real* achievedPrec = nullptr,  // Output: achieved error estimate
-    Real eps = Defaults::TrapezoidIntegrationEPS
 );
 ```
 
 ### Simpson Integration
 
 ```cpp
-// Modern interface: returns IntegrationResult
+// Returns IntegrationResult with adaptive error estimation
 IntegrationResult IntegrateSimpson(
     const IRealFunction& func,
     Real a, Real b,
     Real eps = Defaults::SimpsonIntegrationEPS  // Default: 1e-6
-);
-
-// Legacy interface: returns value only
-Real IntegrateSimpson(
-    const IRealFunction& func,
-    Real a, Real b,
-    int* doneSteps = nullptr,
-    Real* achievedPrec = nullptr,
-    Real eps = Defaults::SimpsonIntegrationEPS
 );
 ```
 
@@ -173,8 +155,8 @@ IntegrationResult IntegrateRomberg(
 
 ```cpp
 // Fixed 10-point Gauss-Legendre quadrature
-// Always exactly 10 function evaluations
-Real IntegrateGauss10(
+// Returns IntegrationResult (error_estimate = 0 for non-adaptive method)
+IntegrationResult IntegrateGauss10(
     const IRealFunction& func,
     Real a, Real b
 );
@@ -505,16 +487,15 @@ if (result.converged) {
 }
 ```
 
-**Legacy interface (deprecated):**
+**Using IntegrationResult structure:**
 
 ```cpp
-int steps;
-Real achieved_prec;
-Real value = IntegrateSimpson(func, 0.0, 1.0, &steps, &achieved_prec, 1e-8);
+auto result = IntegrateSimpson(func, 0.0, 1.0, 1e-8);
 
-std::cout << "Value: " << value << std::endl;
-std::cout << "Steps: " << steps << std::endl;
-std::cout << "Achieved precision: " << achieved_prec << std::endl;
+std::cout << "Value: " << result.value << std::endl;
+std::cout << "Iterations: " << result.iterations << std::endl;
+std::cout << "Error estimate: " << result.error_estimate << std::endl;
+std::cout << "Converged: " << (result.converged ? "yes" : "no") << std::endl;
 ```
 
 ### Error Estimate Interpretation

@@ -23,7 +23,7 @@ namespace MML::Tests::Base::PolynomTests
   {
     PolynomRealFunc poly4({REAL(REAL(1.0)), REAL(REAL(0.0)), REAL(REAL(0.0)), REAL(REAL(0.0)), REAL(REAL(5.0))});   // polynom 1 + 5 * x^4
     
-    REQUIRE(poly4.GetDegree() == 4);
+    REQUIRE(poly4.degree() == 4);
     REQUIRE(poly4[0] == REAL(REAL(1.0)));
     REQUIRE(poly4[4] == REAL(REAL(5.0)));
 
@@ -33,13 +33,13 @@ namespace MML::Tests::Base::PolynomTests
   TEST_CASE("Polynom::Init, GetDegree, operator[]", "[simple]")
   {
     PolynomRealFunc poly_empty;
-    REQUIRE(poly_empty.GetDegree() == -1);
+    REQUIRE(poly_empty.degree() == -1);
 
     PolynomRealFunc poly3(3);
-    REQUIRE(poly3.GetDegree() == 3);
+    REQUIRE(poly3.degree() == 3);
 
     PolynomRealFunc poly4({REAL(REAL(1.0)), REAL(REAL(2.0)), REAL(REAL(3.0)), REAL(REAL(4.0)), REAL(REAL(5.0))});
-    REQUIRE(poly4.GetDegree() == 4);
+    REQUIRE(poly4.degree() == 4);
     REQUIRE(poly4[0] == REAL(REAL(1.0)));
     REQUIRE(poly4[1] == REAL(REAL(2.0)));
     REQUIRE(poly4[2] == REAL(REAL(3.0)));
@@ -48,7 +48,7 @@ namespace MML::Tests::Base::PolynomTests
 
     std::vector<Real> coefs{-REAL(REAL(1.0)), -REAL(REAL(2.0)), -REAL(REAL(3.0)), -REAL(REAL(4.0)), -REAL(REAL(5.0))};
     PolynomRealFunc poly4b(coefs);
-    REQUIRE(poly4b.GetDegree() == 4);
+    REQUIRE(poly4b.degree() == 4);
     REQUIRE(poly4b[0] == -REAL(REAL(1.0)));
     REQUIRE(poly4b[1] == -REAL(REAL(2.0)));
     REQUIRE(poly4b[2] == -REAL(REAL(3.0)));
@@ -63,10 +63,10 @@ namespace MML::Tests::Base::PolynomTests
   TEST_CASE("Polynom::SetDegree", "[simple]")
   {
     PolynomRealFunc poly;
-    REQUIRE(poly.GetDegree() == -1);
+    REQUIRE(poly.degree() == -1);
 
     poly.SetDegree(3);
-    REQUIRE(poly.GetDegree() == 3);
+    REQUIRE(poly.degree() == 3);
   }
 
   TEST_CASE("Polynom::operator()", "[simple]")
@@ -137,7 +137,7 @@ namespace MML::Tests::Base::PolynomTests
 
     PolynomRealFunc poly3 = poly1 + poly2;
 
-    REQUIRE(poly3.GetDegree() == 2);
+    REQUIRE(poly3.degree() == 2);
     REQUIRE(poly3[0] == REAL(REAL(4.5)));
     REQUIRE(poly3[1] == REAL(REAL(0.5)));
     REQUIRE(poly3[2] == REAL(REAL(2.0)));
@@ -149,7 +149,7 @@ namespace MML::Tests::Base::PolynomTests
 
     PolynomRealFunc poly3 = poly1 - poly2;
 
-    REQUIRE(poly3.GetDegree() == 2);
+    REQUIRE(poly3.degree() == 2);
     REQUIRE(poly3[0] == REAL(REAL(2.5)));
     REQUIRE(poly3[1] == -REAL(REAL(0.5)));
     REQUIRE(poly3[2] == -REAL(REAL(2.0)));
@@ -160,7 +160,7 @@ namespace MML::Tests::Base::PolynomTests
     PolynomRealFunc poly2({1, 2});
 
     PolynomRealFunc poly3 = poly1 * poly2;
-    REQUIRE(poly3.GetDegree() == 3);
+    REQUIRE(poly3.degree() == 3);
     REQUIRE(poly3[0] == 2);
     REQUIRE(poly3[1] == 5);
     REQUIRE(poly3[2] == 5);
@@ -171,7 +171,7 @@ namespace MML::Tests::Base::PolynomTests
     PolynomRealFunc poly({1, 2, 3});
 
     PolynomRealFunc poly2 = poly * REAL(REAL(3.0));
-    REQUIRE(poly2.GetDegree() == 2);
+    REQUIRE(poly2.degree() == 2);
     REQUIRE(poly2[0] == REAL(REAL(3.0)));
     REQUIRE(poly2[1] == REAL(REAL(6.0)));
     REQUIRE(poly2[2] == REAL(REAL(9.0)));
@@ -181,7 +181,7 @@ namespace MML::Tests::Base::PolynomTests
     PolynomRealFunc poly({1, 2, 3});
 
     PolynomRealFunc poly2 = REAL(REAL(3.0)) * poly;
-    REQUIRE(poly2.GetDegree() == 2);
+    REQUIRE(poly2.degree() == 2);
     REQUIRE(poly2[0] == REAL(REAL(3.0)));
     REQUIRE(poly2[1] == REAL(REAL(6.0)));
     REQUIRE(poly2[2] == REAL(REAL(9.0)));
@@ -191,7 +191,7 @@ namespace MML::Tests::Base::PolynomTests
     PolynomRealFunc poly({2, 4, 6});
 
     PolynomRealFunc poly2 = poly / REAL(REAL(2.0));
-    REQUIRE(poly2.GetDegree() == 2);
+    REQUIRE(poly2.degree() == 2);
     REQUIRE(poly2[0] == REAL(REAL(1.0)));
     REQUIRE(poly2[1] == REAL(REAL(2.0)));
     REQUIRE(poly2[2] == REAL(REAL(3.0)));
@@ -212,7 +212,7 @@ namespace MML::Tests::Base::PolynomTests
 
     PolynomRealFunc p = p1 * p2 * p3;
 
-    REQUIRE(p.GetDegree() == 3);
+    REQUIRE(p.degree() == 3);
     REQUIRE(p[0] == -REAL(REAL(6.0)));
     REQUIRE(p[1] == REAL(REAL(11.0)));
     REQUIRE(p[2] == -REAL(REAL(6.0)));
@@ -269,8 +269,8 @@ namespace MML::Tests::Base::PolynomTests
 
     PolynomRealFunc::poldiv(p3_u, p3_v, res, rem);
 
-    REQUIRE(res.GetDegree() == -1);
-    REQUIRE(res.IsNullPolynom() == true);
+    REQUIRE(res.degree() == -1);
+    REQUIRE(res.isNull() == true);
     REQUIRE(rem == p3_u);
   }
 
@@ -344,24 +344,24 @@ namespace MML::Tests::Base::PolynomTests
   {
     // Test Zero polynomial
     auto zero = PolynomRealFunc::Zero();
-    REQUIRE(zero.GetDegree() == 0);
+    REQUIRE(zero.degree() == 0);
     REQUIRE_THAT(zero(REAL(REAL(5.0))) , RealWithinRel(REAL(REAL(0.0)), 1e-5));
     
     // Test Monomial x^3
     auto monomial = PolynomRealFunc::Monomial(3);
-    REQUIRE(monomial.GetDegree() == 3);
+    REQUIRE(monomial.degree() == 3);
     REQUIRE_THAT(monomial(REAL(REAL(2.0))) , RealWithinRel(REAL(REAL(8.0)), 1e-5));   // 2^3 = 8
     REQUIRE_THAT(monomial(REAL(REAL(3.0))) , RealWithinRel(REAL(REAL(27.0)), 1e-5));  // 3^3 = 27
     
     // Test Constant polynomial
     auto constant = PolynomRealFunc::Constant(REAL(REAL(7.5)));
-    REQUIRE(constant.GetDegree() == 0);
+    REQUIRE(constant.degree() == 0);
     REQUIRE_THAT(constant(REAL(REAL(100.0))) , RealWithinRel(REAL(REAL(7.5)), 1e-5));
     REQUIRE_THAT(constant(-REAL(REAL(50.0))) , RealWithinRel(REAL(REAL(7.5)), 1e-5));
     
     // Test Linear polynomial: 3x + 5
     auto linear = PolynomRealFunc::Linear(REAL(REAL(3.0)), REAL(REAL(5.0)));
-    REQUIRE(linear.GetDegree() == 1);
+    REQUIRE(linear.degree() == 1);
     REQUIRE_THAT(linear(REAL(REAL(0.0))) , RealWithinRel(REAL(REAL(5.0)), 1e-5));
     REQUIRE_THAT(linear(REAL(REAL(1.0))) , RealWithinRel(REAL(REAL(8.0)), 1e-5));
     REQUIRE_THAT(linear(REAL(REAL(2.0))) , RealWithinRel(REAL(REAL(11.0)), 1e-5));
@@ -467,11 +467,11 @@ namespace MML::Tests::Base::PolynomTests
     // Polynomial with trailing zeros: 2x^2 + 3x + 1 + 0x^3 + 0x^4
     PolynomRealFunc poly({REAL(REAL(1.0)), REAL(REAL(3.0)), REAL(REAL(2.0)), REAL(REAL(0.0)), REAL(REAL(0.0))});
     
-    REQUIRE(poly.GetDegree() == 4);  // Before reduction
+    REQUIRE(poly.degree() == 4);  // Before reduction
     
     poly.Reduce();
     
-    REQUIRE(poly.GetDegree() == 2);  // After reduction
+    REQUIRE(poly.degree() == 2);  // After reduction
     REQUIRE_THAT(poly[0] , RealWithinRel(REAL(REAL(1.0)), 1e-5));
     REQUIRE_THAT(poly[1] , RealWithinRel(REAL(REAL(3.0)), 1e-5));
     REQUIRE_THAT(poly[2] , RealWithinRel(REAL(REAL(2.0)), 1e-5));
@@ -486,7 +486,7 @@ namespace MML::Tests::Base::PolynomTests
     
     PolynomReal poly = PolynomReal::FromValues(x_vals, y_vals);
     
-    REQUIRE(poly.GetDegree() == 2);
+    REQUIRE(poly.degree() == 2);
     
     // Verify coefficients: 2, 3, -1
     REQUIRE_THAT(poly[0], WithinAbs(REAL(REAL(2.0)), 1e-10));
@@ -511,7 +511,7 @@ namespace MML::Tests::Base::PolynomTests
     
     PolynomReal poly = PolynomReal::FromValues(x_vals, y_vals);
     
-    REQUIRE(poly.GetDegree() == 3);
+    REQUIRE(poly.degree() == 3);
     
     // The key requirement is that it passes through all points
     // (The specific coefficients depend on the interpolation algorithm)
@@ -542,7 +542,7 @@ namespace MML::Tests::Base::PolynomTests
     
     PolynomReal poly = PolynomReal::FromValues(x_vals, y_vals);
     
-    REQUIRE(poly.GetDegree() == 5);
+    REQUIRE(poly.degree() == 5);
     
     // Verify coefficients (all should be REAL(REAL(1.0)))
     REQUIRE_THAT(poly[0], WithinAbs(REAL(REAL(1.0)), 1e-8));
@@ -591,7 +591,7 @@ namespace MML::Tests::Base::PolynomTests
     
     PolynomReal poly = PolynomReal::FromValues(x_vals, y_vals);
     
-    REQUIRE(poly.GetDegree() == 8);
+    REQUIRE(poly.degree() == 8);
     
     // Verify coefficients (with reasonable tolerance for high-degree polynomials)
     for (size_t i = 0; i < coeffs.size(); i++) {
@@ -622,7 +622,7 @@ namespace MML::Tests::Base::PolynomTests
       
       PolynomReal poly = PolynomReal::FromValues(x_vals, y_vals);
       
-      REQUIRE(poly.GetDegree() == 0);
+      REQUIRE(poly.degree() == 0);
       REQUIRE_THAT(poly[0], WithinAbs(REAL(REAL(5.0)), 1e-10));
       REQUIRE_THAT(poly(REAL(REAL(1.0))), WithinAbs(REAL(REAL(5.0)), 1e-10));
       REQUIRE_THAT(poly(REAL(REAL(10.0))), WithinAbs(REAL(REAL(5.0)), 1e-10));  // Constant everywhere
@@ -635,7 +635,7 @@ namespace MML::Tests::Base::PolynomTests
       
       PolynomReal poly = PolynomReal::FromValues(x_vals, y_vals);
       
-      REQUIRE(poly.GetDegree() == 1);
+      REQUIRE(poly.degree() == 1);
       REQUIRE_THAT(poly[0], WithinAbs(REAL(REAL(2.0)), 1e-10));
       REQUIRE_THAT(poly[1], WithinAbs(REAL(REAL(3.0)), 1e-10));
       REQUIRE_THAT(poly(REAL(REAL(0.5))), WithinAbs(REAL(REAL(3.5)), 1e-10));
@@ -665,7 +665,7 @@ namespace MML::Tests::Base::PolynomTests
     // Zero polynomial: p(x) = 0 for all x
     PolynomReal zero({REAL(0.0)});
     
-    REQUIRE(zero.GetDegree() == 0);
+    REQUIRE(zero.degree() == 0);
     REQUIRE(zero(REAL(0.0)) == REAL(0.0));
     REQUIRE(zero(REAL(100.0)) == REAL(0.0));
     REQUIRE(zero(REAL(-50.0)) == REAL(0.0));
@@ -685,7 +685,7 @@ namespace MML::Tests::Base::PolynomTests
     // Constant polynomial: p(x) = 7 for all x
     PolynomReal constant({REAL(7.0)});
     
-    REQUIRE(constant.GetDegree() == 0);
+    REQUIRE(constant.degree() == 0);
     REQUIRE(constant(REAL(0.0)) == REAL(7.0));
     REQUIRE(constant(REAL(1000.0)) == REAL(7.0));
     REQUIRE(constant(REAL(-999.0)) == REAL(7.0));
@@ -703,7 +703,7 @@ namespace MML::Tests::Base::PolynomTests
     coeffs[10] = REAL(1.0);  // x^10
     PolynomReal highDeg(coeffs);
     
-    REQUIRE(highDeg.GetDegree() == 10);
+    REQUIRE(highDeg.degree() == 10);
     REQUIRE(highDeg(REAL(1.0)) == REAL(1.0));     // 1^10 = 1
     REQUIRE(highDeg(REAL(2.0)) == REAL(1024.0));  // 2^10 = 1024
     REQUIRE(highDeg(REAL(0.0)) == REAL(0.0));     // 0^10 = 0
@@ -718,5 +718,345 @@ namespace MML::Tests::Base::PolynomTests
     REQUIRE(negQuad(REAL(0.0)) == REAL(-1.0));
     REQUIRE(negQuad(REAL(2.0)) == REAL(-1.0));
     REQUIRE(negQuad(REAL(3.0)) < REAL(0.0));    // Always negative except at x=1
+  }
+
+  /*********************************************************************/
+  /*****           Integration Method                              *****/
+  /*********************************************************************/
+  TEST_CASE("Polynom::Integrate_simple", "[Polynom][integration]")
+  {
+    TEST_PRECISION_INFO();
+    // p(x) = 3x^2 + 2x + 1
+    // Integral: x^3 + x^2 + x + C (with C=0)
+    PolynomRealFunc poly({REAL(1.0), REAL(2.0), REAL(3.0)});
+    
+    PolynomRealFunc integral = poly.integral();
+    
+    REQUIRE(integral.degree() == 3);
+    REQUIRE_THAT(integral[0], RealApprox(REAL(0.0)).margin(Tolerance::Strict));   // C = 0
+    REQUIRE_THAT(integral[1], RealApprox(REAL(1.0)).margin(Tolerance::Strict));   // 1/1
+    REQUIRE_THAT(integral[2], RealApprox(REAL(1.0)).margin(Tolerance::Strict));   // 2/2
+    REQUIRE_THAT(integral[3], RealApprox(REAL(1.0)).margin(Tolerance::Strict));   // 3/3
+  }
+
+  TEST_CASE("Polynom::Integrate_constant", "[Polynom][integration]")
+  {
+    TEST_PRECISION_INFO();
+    // p(x) = 5
+    // Integral: 5x + C
+    PolynomRealFunc constant({REAL(5.0)});
+    
+    PolynomRealFunc integral = constant.integral();
+    
+    REQUIRE(integral.degree() == 1);
+    REQUIRE_THAT(integral[0], RealApprox(REAL(0.0)).margin(Tolerance::Strict));
+    REQUIRE_THAT(integral[1], RealApprox(REAL(5.0)).margin(Tolerance::Strict));
+  }
+
+  TEST_CASE("Polynom::Integrate_high_degree", "[Polynom][integration]")
+  {
+    TEST_PRECISION_INFO();
+    // p(x) = x^4 (degree 4)
+    // Integral: x^5 / 5
+    PolynomRealFunc poly({REAL(0.0), REAL(0.0), REAL(0.0), REAL(0.0), REAL(1.0)});
+    
+    PolynomRealFunc integral = poly.integral();
+    
+    REQUIRE(integral.degree() == 5);
+    REQUIRE_THAT(integral[5], RealApprox(REAL(0.2)).margin(Tolerance::Strict));  // 1/5
+  }
+
+  /*********************************************************************/
+  /*****           Symbolic Derivative Method                      *****/
+  /*********************************************************************/
+  TEST_CASE("Polynom::Derive_symbolic", "[Polynom][derivatives]")
+  {
+    TEST_PRECISION_INFO();
+    // p(x) = 3x^3 + 2x^2 + x + 5
+    // p'(x) = 9x^2 + 4x + 1
+    PolynomRealFunc poly({REAL(5.0), REAL(1.0), REAL(2.0), REAL(3.0)});
+    
+    PolynomRealFunc deriv = poly.derivative();
+    
+    REQUIRE(deriv.degree() == 2);
+    REQUIRE_THAT(deriv[0], RealApprox(REAL(1.0)).margin(Tolerance::Strict));   // 1*1
+    REQUIRE_THAT(deriv[1], RealApprox(REAL(4.0)).margin(Tolerance::Strict));   // 2*2
+    REQUIRE_THAT(deriv[2], RealApprox(REAL(9.0)).margin(Tolerance::Strict));   // 3*3
+  }
+
+  TEST_CASE("Polynom::Derive_constant_symbolic", "[Polynom][derivatives]")
+  {
+    TEST_PRECISION_INFO();
+    // p(x) = 7 (constant)
+    // p'(x) = 0 (empty polynomial)
+    PolynomRealFunc constant({REAL(7.0)});
+    
+    PolynomRealFunc deriv = constant.derivative();
+    
+    REQUIRE(deriv.degree() <= 0);
+  }
+
+  TEST_CASE("Polynom::Derive_then_Integrate", "[Polynom][calculus]")
+  {
+    TEST_PRECISION_INFO();
+    // For a polynomial without constant term: Integrate(Derive(p)) = p (up to constant)
+    // p(x) = x^3 + 2x^2 + 3x
+    PolynomRealFunc poly({REAL(0.0), REAL(3.0), REAL(2.0), REAL(1.0)});
+    
+    PolynomRealFunc deriv = poly.derivative();
+    PolynomRealFunc reintegrated = deriv.integral();
+    
+    // Should match original (constant term may differ)
+    REQUIRE_THAT(reintegrated[1], RealApprox(poly[1]).margin(Tolerance::Strict));
+    REQUIRE_THAT(reintegrated[2], RealApprox(poly[2]).margin(Tolerance::Strict));
+    REQUIRE_THAT(reintegrated[3], RealApprox(poly[3]).margin(Tolerance::Strict));
+  }
+
+  /*********************************************************************/
+  /*****           Iterators                                       *****/
+  /*********************************************************************/
+  TEST_CASE("Polynom::iterators", "[Polynom][iterators]")
+  {
+    TEST_PRECISION_INFO();
+    PolynomRealFunc poly({REAL(1.0), REAL(2.0), REAL(3.0), REAL(4.0)});
+    
+    // Range-based for loop
+    std::vector<Real> coeffs;
+    for (const auto& c : poly) {
+      coeffs.push_back(c);
+    }
+    
+    REQUIRE(coeffs.size() == 4);
+    REQUIRE(coeffs[0] == REAL(1.0));
+    REQUIRE(coeffs[1] == REAL(2.0));
+    REQUIRE(coeffs[2] == REAL(3.0));
+    REQUIRE(coeffs[3] == REAL(4.0));
+  }
+
+  TEST_CASE("Polynom::const_iterators", "[Polynom][iterators]")
+  {
+    TEST_PRECISION_INFO();
+    const PolynomRealFunc poly({REAL(5.0), REAL(6.0), REAL(7.0)});
+    
+    // Test cbegin/cend
+    auto it = poly.cbegin();
+    REQUIRE(*it == REAL(5.0));
+    ++it;
+    REQUIRE(*it == REAL(6.0));
+    ++it;
+    REQUIRE(*it == REAL(7.0));
+    ++it;
+    REQUIRE(it == poly.cend());
+  }
+
+  TEST_CASE("Polynom::mutable_iterator", "[Polynom][iterators]")
+  {
+    TEST_PRECISION_INFO();
+    PolynomRealFunc poly({REAL(1.0), REAL(2.0), REAL(3.0)});
+    
+    // Modify via iterator
+    for (auto& c : poly) {
+      c *= REAL(2.0);
+    }
+    
+    REQUIRE(poly[0] == REAL(2.0));
+    REQUIRE(poly[1] == REAL(4.0));
+    REQUIRE(poly[2] == REAL(6.0));
+  }
+
+  /*********************************************************************/
+  /*****           Copy and Move Semantics                         *****/
+  /*********************************************************************/
+  TEST_CASE("Polynom::copy_constructor", "[Polynom][copy_move]")
+  {
+    TEST_PRECISION_INFO();
+    PolynomRealFunc original({REAL(1.0), REAL(2.0), REAL(3.0)});
+    
+    PolynomRealFunc copy(original);
+    
+    REQUIRE(copy == original);
+    
+    // Modify copy, original unchanged
+    copy[0] = REAL(999.0);
+    REQUIRE(original[0] == REAL(1.0));
+  }
+
+  TEST_CASE("Polynom::copy_assignment", "[Polynom][copy_move]")
+  {
+    TEST_PRECISION_INFO();
+    PolynomRealFunc a({REAL(1.0), REAL(2.0), REAL(3.0)});
+    PolynomRealFunc b;
+    
+    b = a;
+    
+    REQUIRE(b == a);
+    b[0] = REAL(100.0);
+    REQUIRE(a[0] == REAL(1.0));
+  }
+
+  TEST_CASE("Polynom::move_constructor", "[Polynom][copy_move]")
+  {
+    TEST_PRECISION_INFO();
+    PolynomRealFunc original({REAL(1.0), REAL(2.0), REAL(3.0)});
+    Real val_before = original(REAL(2.0));
+    
+    PolynomRealFunc moved(std::move(original));
+    
+    REQUIRE(moved(REAL(2.0)) == val_before);
+    REQUIRE(moved.degree() == 2);
+  }
+
+  TEST_CASE("Polynom::move_assignment", "[Polynom][copy_move]")
+  {
+    TEST_PRECISION_INFO();
+    PolynomRealFunc a({REAL(5.0), REAL(6.0), REAL(7.0), REAL(8.0)});
+    Real val_before = a(REAL(1.0));
+    
+    PolynomRealFunc b;
+    b = std::move(a);
+    
+    REQUIRE(b(REAL(1.0)) == val_before);
+    REQUIRE(b.degree() == 3);
+  }
+
+  /*********************************************************************/
+  /*****           IsEqualTo (Tolerance-based)                     *****/
+  /*********************************************************************/
+  TEST_CASE("Polynom::IsEqualTo_tolerance", "[Polynom][equality]")
+  {
+    TEST_PRECISION_INFO();
+    PolynomRealFunc a({REAL(1.0), REAL(2.0), REAL(3.0)});
+    PolynomRealFunc b({REAL(1.0000001), REAL(2.0000001), REAL(3.0000001)});
+    
+    REQUIRE(a.IsEqualTo(b, REAL(1e-5)));       // Within tolerance
+    REQUIRE_FALSE(a.IsEqualTo(b, REAL(1e-9))); // Outside tolerance
+  }
+
+  TEST_CASE("Polynom::IsEqualTo_different_degrees", "[Polynom][equality]")
+  {
+    TEST_PRECISION_INFO();
+    // Polynomial with trailing zeros should be equal to reduced version
+    PolynomRealFunc a({REAL(1.0), REAL(2.0), REAL(3.0)});
+    PolynomRealFunc b({REAL(1.0), REAL(2.0), REAL(3.0), REAL(0.0), REAL(0.0)});
+    
+    REQUIRE(a.IsEqualTo(b, REAL(1e-10)));
+  }
+
+  /*********************************************************************/
+  /*****           Print / Stream Output                           *****/
+  /*********************************************************************/
+  TEST_CASE("Polynom::stream_output", "[Polynom][output]")
+  {
+    TEST_PRECISION_INFO();
+    PolynomRealFunc poly({REAL(1.0), REAL(2.0), REAL(3.0)});  // 3x^2 + 2x + 1
+    
+    std::stringstream ss;
+    ss << poly;
+    
+    std::string output = ss.str();
+    REQUIRE(!output.empty());
+    REQUIRE(output.find("x") != std::string::npos);
+  }
+
+  TEST_CASE("Polynom::Print_method", "[Polynom][output]")
+  {
+    TEST_PRECISION_INFO();
+    PolynomRealFunc poly({REAL(-5.0), REAL(0.0), REAL(3.0)});  // 3x^2 - 5
+    
+    std::stringstream ss;
+    poly.Print(ss, 8, 3);
+    
+    std::string output = ss.str();
+    REQUIRE(!output.empty());
+    // Should show coefficients
+  }
+
+  TEST_CASE("Polynom::to_string_format", "[Polynom][output]")
+  {
+    TEST_PRECISION_INFO();
+    // Zero coefficients should be skipped
+    PolynomRealFunc poly({REAL(1.0), REAL(0.0), REAL(0.0), REAL(4.0)});  // 4x^3 + 1
+    
+    std::string str = poly.to_string(8, 2);
+    
+    REQUIRE(!str.empty());
+    // The string should represent the polynomial
+  }
+
+  /*********************************************************************/
+  /*****           Complex Polynomial                              *****/
+  /*********************************************************************/
+  TEST_CASE("Polynom::complex_polynomial", "[Polynom][complex]")
+  {
+    TEST_PRECISION_INFO();
+    // p(z) = z^2 + (1+i)z + i
+    Complex c0(0.0, 1.0);        // i
+    Complex c1(1.0, 1.0);        // 1 + i
+    Complex c2(1.0, 0.0);        // 1
+    
+    PolynomComplex poly({c0, c1, c2});
+    
+    REQUIRE(poly.degree() == 2);
+    
+    // Evaluate at z = 1
+    Complex z1(1.0, 0.0);
+    Complex result1 = poly(z1);
+    // = 1 + (1+i)*1 + i = 1 + 1 + i + i = 2 + 2i
+    REQUIRE_THAT(result1.real(), WithinAbs(2.0, 1e-10));
+    REQUIRE_THAT(result1.imag(), WithinAbs(2.0, 1e-10));
+    
+    // Evaluate at z = i
+    Complex zi(0.0, 1.0);
+    Complex result_i = poly(zi);
+    // = i^2 + (1+i)*i + i = -1 + i + i^2 + i = -1 + i - 1 + i = -2 + 2i
+    REQUIRE_THAT(result_i.real(), WithinAbs(-2.0, 1e-10));
+    REQUIRE_THAT(result_i.imag(), WithinAbs(2.0, 1e-10));
+  }
+
+  TEST_CASE("Polynom::complex_arithmetic", "[Polynom][complex]")
+  {
+    TEST_PRECISION_INFO();
+    Complex c0(1.0, 0.0);
+    Complex c1(0.0, 1.0);
+    
+    PolynomComplex p1({c0, c1});        // i*z + 1
+    PolynomComplex p2({c1, c0});        // z + i
+    
+    PolynomComplex sum = p1 + p2;
+    
+    // (i*z + 1) + (z + i) = (1+i)*z + (1+i)
+    REQUIRE(sum.degree() == 1);
+    REQUIRE_THAT(sum[0].real(), WithinAbs(1.0, 1e-10));
+    REQUIRE_THAT(sum[0].imag(), WithinAbs(1.0, 1e-10));
+    REQUIRE_THAT(sum[1].real(), WithinAbs(1.0, 1e-10));
+    REQUIRE_THAT(sum[1].imag(), WithinAbs(1.0, 1e-10));
+  }
+
+  /*********************************************************************/
+  /*****           isNull                                   *****/
+  /*********************************************************************/
+  TEST_CASE("Polynom::isNull", "[Polynom][properties]")
+  {
+    TEST_PRECISION_INFO();
+    PolynomRealFunc empty;
+    PolynomRealFunc nonEmpty({REAL(1.0)});
+    
+    REQUIRE(empty.isNull() == true);
+    REQUIRE(nonEmpty.isNull() == false);
+  }
+
+  /*********************************************************************/
+  /*****           Unary Negation                                  *****/
+  /*********************************************************************/
+  TEST_CASE("Polynom::unary_negation_via_scalar", "[Polynom][arithmetic]")
+  {
+    TEST_PRECISION_INFO();
+    PolynomRealFunc poly({REAL(1.0), REAL(-2.0), REAL(3.0)});
+    
+    PolynomRealFunc neg = poly * REAL(-1.0);
+    
+    REQUIRE(neg[0] == REAL(-1.0));
+    REQUIRE(neg[1] == REAL(2.0));
+    REQUIRE(neg[2] == REAL(-3.0));
   }
 }

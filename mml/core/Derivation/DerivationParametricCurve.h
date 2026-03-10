@@ -5,10 +5,9 @@
 ///  Description: Derivatives of parametric curves                                    ///
 ///               Tangent, normal, binormal, curvature, torsion calculations          ///
 ///                                                                                   ///
-///  Copyright:   (c) 2024-2025 Zvonimir Vanjak                                       ///
-///  License:     Licensed under MML dual-license (see LICENSE.md)                    ///
-///               - Free for non-commercial use                                       ///
-///               - Commercial license available                                      ///
+///  Copyright:   (c) 2024-2026 Zvonimir Vanjak                                       ///
+///  License:     MIT License (see LICENSE.md)                                         ///
+///                                                                                   ///
 ///////////////////////////////////////////////////////////////////////////////////////////
 #if !defined MML_DERIVATION_PARAMETRIC_CURVE_H
 #define MML_DERIVATION_PARAMETRIC_CURVE_H
@@ -17,8 +16,8 @@
 
 #include "DerivationBase.h"
 
-#include "base/VectorN.h"
-#include "base/MatrixNM.h"
+#include "base/Vector/VectorN.h"
+#include "base/Matrix/MatrixNM.h"
 
 namespace MML
 {

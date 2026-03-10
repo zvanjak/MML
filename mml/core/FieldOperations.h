@@ -9,10 +9,9 @@
 ///               - Laplacian: scalar field → scalar field (∇²f)                      ///
 ///               Supports Cartesian, spherical, and cylindrical coordinates          ///
 ///                                                                                   ///
-///  Copyright:   (c) 2024-2025 Zvonimir Vanjak                                       ///
-///  License:     Licensed under MML dual-license (see LICENSE.md)                    ///
-///               - Free for non-commercial use                                       ///
-///               - Commercial license available                                      ///
+///  Copyright:   (c) 2024-2026 Zvonimir Vanjak                                       ///
+///  License:     MIT License (see LICENSE.md)                                         ///
+///                                                                                   ///
 ///////////////////////////////////////////////////////////////////////////////////////////
 ///
 /// MATHEMATICAL BACKGROUND
@@ -98,14 +97,18 @@
 
 #include "interfaces/IFunction.h"
 
-#include "base/Geometry.h"
-#include "base/VectorN.h"
-#include "base/VectorTypes.h"
-#include "base/MatrixNM.h"
+#include "mml/base/Geometry/Geometry.h"
+#include "base/Vector/VectorN.h"
+#include "base/Vector/VectorTypes.h"
+#include "base/Matrix/MatrixNM.h"
+#include "base/Matrix/Matrix.h"
+#include "base/Function.h"
 #include "base/Tensor.h"
 
 #include "core/Derivation.h"
 #include "core/MetricTensor.h"
+#include "core/MatrixUtils.h"
+#include "core/SingularityHandling.h"
 
 namespace MML
 {
@@ -228,12 +231,20 @@ namespace MML
 		/// @return            Gradient vector in spherical basis (êᵣ, êθ, êφ)
 		///
 		/// @warning Position must have r > 0 and θ ≠ 0, π to avoid singularities.
-		static VectorN<Real, 3> GradientSpher(const IScalarFunction<3>& scalarField, const Vec3Sph& pos)
+		/// @param policy Singularity handling policy (default: Throw)
+		static VectorN<Real, 3> GradientSpher(const IScalarFunction<3>& scalarField, const Vec3Sph& pos,
+		                                      SingularityPolicy policy = Singularity::DEFAULT_POLICY)
 		{
 			Vector3Spherical ret = Derivation::DerivePartialAll<3>(scalarField, pos, nullptr);
 
-			ret[1] = ret[1] / pos[0];                    // θ-component: (1/r) ∂f/∂θ
-			ret[2] = ret[2] / (pos[0] * sin(pos[1]));    // φ-component: (1/r·sinθ) ∂f/∂φ
+			const Real r = pos[0];
+			const Real theta = pos[1];
+			
+			// θ-component: (1/r) ∂f/∂θ - singular at r=0
+			ret[1] = ret[1] * Singularity::SafeInverseR(r, policy, "GradientSpher θ-component");
+			
+			// φ-component: (1/(r·sinθ)) ∂f/∂φ - singular at r=0 or poles
+			ret[2] = ret[2] * Singularity::SafeInverseRSinTheta(r, theta, policy, "GradientSpher φ-component");
 
 			return ret;
 		}
@@ -243,10 +254,13 @@ namespace MML
 		/// @param scalarField Scalar function f(r, θ, φ)
 		/// @param pos         Position vector (r, θ, φ)
 		/// @param der_order   Derivative accuracy: 1, 2, 4, 6, or 8
+		/// @param policy      Singularity handling policy (default: Throw)
 		/// @return            Gradient vector in spherical basis
 		/// @throws std::invalid_argument if der_order is not in {1, 2, 4, 6, 8}
+		/// @throws DomainError if at singularity and policy is Throw
 		static Vec3Sph GradientSpher(const IScalarFunction<3>& scalarField, const Vec3Sph& pos, 
-																 int der_order)
+		                             int der_order,
+		                             SingularityPolicy policy = Singularity::DEFAULT_POLICY)
 		{
 			Vector3Spherical ret;
 
@@ -261,8 +275,14 @@ namespace MML
 				throw std::invalid_argument("GradientSpher: der_order must be in 1, 2, 4, 6 or 8");
 			}
 
-			ret[1] = ret[1] / pos[0];                    // θ-component
-			ret[2] = ret[2] / (pos[0] * sin(pos[1]));    // φ-component
+			const Real r = pos[0];
+			const Real theta = pos[1];
+			
+			// θ-component: (1/r) ∂f/∂θ - singular at r=0
+			ret[1] = ret[1] * Singularity::SafeInverseR(r, policy, "GradientSpher θ-component");
+			
+			// φ-component: (1/(r·sinθ)) ∂f/∂φ - singular at r=0 or poles
+			ret[2] = ret[2] * Singularity::SafeInverseRSinTheta(r, theta, policy, "GradientSpher φ-component");
 
 			return ret;
 		}
@@ -285,11 +305,16 @@ namespace MML
 		/// @return            Gradient vector in cylindrical basis (êᵣ, êφ, êz)
 		///
 		/// @warning Position must have r > 0 to avoid singularity at z-axis.
-		static Vec3Cyl GradientCyl(const IScalarFunction<3>& scalarField, const Vec3Cyl& pos)
+		/// @param policy Singularity handling policy (default: Throw)
+		static Vec3Cyl GradientCyl(const IScalarFunction<3>& scalarField, const Vec3Cyl& pos,
+		                           SingularityPolicy policy = Singularity::DEFAULT_POLICY)
 		{
 			Vector3Cylindrical ret = Derivation::DerivePartialAll<3>(scalarField, pos, nullptr);
 
-			ret[1] = ret[1] / pos[0];    // φ-component: (1/r) ∂f/∂φ
+			const Real r = pos[0];
+			
+			// φ-component: (1/r) ∂f/∂φ - singular at r=0
+			ret[1] = ret[1] * Singularity::SafeInverseR(r, policy, "GradientCyl φ-component");
 
 			return ret;
 		}
@@ -299,10 +324,13 @@ namespace MML
 		/// @param scalarField Scalar function f(r, φ, z)
 		/// @param pos         Position vector (r, φ, z)
 		/// @param der_order   Derivative accuracy: 1, 2, 4, 6, or 8
+		/// @param policy      Singularity handling policy (default: Throw)
 		/// @return            Gradient vector in cylindrical basis
 		/// @throws std::invalid_argument if der_order is not in {1, 2, 4, 6, 8}
+		/// @throws DomainError if at singularity and policy is Throw
 		static Vec3Cyl GradientCyl(const IScalarFunction<3>& scalarField, const Vec3Cyl& pos, 
-															 int der_order)
+		                           int der_order,
+		                           SingularityPolicy policy = Singularity::DEFAULT_POLICY)
 		{
 			Vector3Cylindrical ret;
 
@@ -316,7 +344,11 @@ namespace MML
 			default:
 				throw std::invalid_argument("GradientCyl: der_order must be in 1, 2, 4, 6 or 8");
 			}
-			ret[1] = ret[1] / pos[0];    // φ-component
+			
+			const Real r = pos[0];
+			
+			// φ-component: (1/r) ∂f/∂φ - singular at r=0
+			ret[1] = ret[1] * Singularity::SafeInverseR(r, policy, "GradientCyl φ-component");
 
 			return ret;
 		}
@@ -360,33 +392,39 @@ namespace MML
 		///
 		/// @param scalarField Scalar function f(r, θ, φ)
 		/// @param pos         Position (r, θ, φ) with r > 0, 0 < θ < π
+		/// @param policy      Singularity handling policy (default: Throw)
 		/// @return            Scalar Laplacian value ∇²f
 		///
 		/// @warning Singular at r = 0 and θ = 0, π (coordinate singularities)
-		static Real LaplacianSpher(const IScalarFunction<3>& scalarField, const Vec3Sph& pos)
+		/// @throws DomainError if at singularity and policy is Throw
+		static Real LaplacianSpher(const IScalarFunction<3>& scalarField, const Vec3Sph& pos,
+		                           SingularityPolicy policy = Singularity::DEFAULT_POLICY)
 		{
 			const Real r = pos.R();
 			const Real theta = pos.Theta();
 			// Note: phi = pos.Phi() is not needed directly in the Laplacian formula
 
-			// ∇²f = ∂²f/∂r² + (2/r)∂f/∂r + (1/r²sinθ)[cosθ·∂f/∂θ + sinθ·∂²f/∂θ²] + (1/r²sin²θ)∂²f/∂φ²
-			//     = ∂²f/∂r² + (2/r)∂f/∂r + (cotθ/r²)∂f/∂θ + (1/r²)∂²f/∂θ² + (1/r²sin²θ)∂²f/∂φ²
+			// ∇²f = ∂²f/∂r² + (2/r)∂f/∂r + (cotθ/r²)∂f/∂θ + (1/r²)∂²f/∂θ² + (1/r²sin²θ)∂²f/∂φ²
 			
 			// Radial term: ∂²f/∂r²
 			Real d2f_dr2 = Derivation::DeriveSecPartial<3>(scalarField, 0, 0, pos, nullptr);
 			
-			// Radial correction: (2/r)∂f/∂r
+			// Radial correction: (2/r)∂f/∂r - singular at r=0
 			Real df_dr = Derivation::DerivePartial<3>(scalarField, 0, pos, nullptr);
-			Real radial_correction = (2.0 / r) * df_dr;
+			Real inv_r = Singularity::SafeInverseR(r, policy, "LaplacianSpher radial term");
+			Real radial_correction = Real(2) * inv_r * df_dr;
 			
-			// Polar (θ) term: (cotθ/r²)∂f/∂θ + (1/r²)∂²f/∂θ²
+			// Polar (θ) terms - singular at r=0 and poles
 			Real df_dtheta = Derivation::DerivePartial<3>(scalarField, 1, pos, nullptr);
 			Real d2f_dtheta2 = Derivation::DeriveSecPartial<3>(scalarField, 1, 1, pos, nullptr);
-			Real theta_term = (cos(theta) / (r * r * sin(theta))) * df_dtheta + (1.0 / (r * r)) * d2f_dtheta2;
+			Real inv_r2 = Singularity::SafeInverseR2(r, policy, "LaplacianSpher 1/r²");
+			Real cot_over_r2 = Singularity::SafeCotThetaOverR2(r, theta, policy, "LaplacianSpher cotθ/r²");
+			Real theta_term = cot_over_r2 * df_dtheta + inv_r2 * d2f_dtheta2;
 			
-			// Azimuthal (φ) term: (1/r²sin²θ)∂²f/∂φ²
+			// Azimuthal (φ) term: (1/r²sin²θ)∂²f/∂φ² - singular at r=0 and poles
 			Real d2f_dphi2 = Derivation::DeriveSecPartial<3>(scalarField, 2, 2, pos, nullptr);
-			Real phi_term = (1.0 / (r * r * sin(theta) * sin(theta))) * d2f_dphi2;
+			Real inv_r2_sin2 = Singularity::SafeInverseR2Sin2Theta(r, theta, policy, "LaplacianSpher φ-term");
+			Real phi_term = inv_r2_sin2 * d2f_dphi2;
 
 			return d2f_dr2 + radial_correction + theta_term + phi_term;
 		}
@@ -398,26 +436,31 @@ namespace MML
 		///
 		/// @param scalarField Scalar function f(r, φ, z)
 		/// @param pos         Position (r, φ, z) with r > 0
+		/// @param policy      Singularity handling policy (default: Throw)
 		/// @return            Scalar Laplacian value ∇²f
 		///
 		/// @warning Singular at r = 0 (z-axis singularity)
-		static Real LaplacianCyl(const IScalarFunction<3>& scalarField, const Vec3Cyl& pos)
+		/// @throws DomainError if at singularity and policy is Throw
+		static Real LaplacianCyl(const IScalarFunction<3>& scalarField, const Vec3Cyl& pos,
+		                         SingularityPolicy policy = Singularity::DEFAULT_POLICY)
 		{
 			const Real r = pos[0];
 
 			// ∇²f = (1/r)∂/∂r(r·∂f/∂r) + (1/r²)∂²f/∂φ² + ∂²f/∂z²
 			//     = (1/r)∂f/∂r + ∂²f/∂r² + (1/r²)∂²f/∂φ² + ∂²f/∂z²
 			
-			// Radial term: (1/r)∂f/∂r + ∂²f/∂r²
+			// Radial term: (1/r)∂f/∂r + ∂²f/∂r² - singular at r=0
 			Real df_dr = Derivation::DerivePartial<3>(scalarField, 0, pos, nullptr);
 			Real d2f_dr2 = Derivation::DeriveSecPartial<3>(scalarField, 0, 0, pos, nullptr);
-			Real radial_term = (1.0 / r) * df_dr + d2f_dr2;
+			Real inv_r = Singularity::SafeInverseR(r, policy, "LaplacianCyl radial term");
+			Real radial_term = inv_r * df_dr + d2f_dr2;
 			
-			// Azimuthal term: (1/r²)∂²f/∂φ²
+			// Azimuthal term: (1/r²)∂²f/∂φ² - singular at r=0
 			Real d2f_dphi2 = Derivation::DeriveSecPartial<3>(scalarField, 1, 1, pos, nullptr);
-			Real phi_term = (1.0 / (r * r)) * d2f_dphi2;
+			Real inv_r2 = Singularity::SafeInverseR2(r, policy, "LaplacianCyl φ-term");
+			Real phi_term = inv_r2 * d2f_dphi2;
 			
-			// Axial term: ∂²f/∂z²
+			// Axial term: ∂²f/∂z² (no singularity)
 			Real d2f_dz2 = Derivation::DeriveSecPartial<3>(scalarField, 2, 2, pos, nullptr);
 
 			return radial_term + phi_term + d2f_dz2;
@@ -481,6 +524,54 @@ namespace MML
 			return div;
 		}
 
+		/// Computes divergence via the metric determinant formula (alternative method).
+		///
+		/// Uses the identity:
+		///   ∇·F = (1/√g) ∂ᵢ(√g Fⁱ)
+		///
+		/// where g = det(gᵢⱼ) is the determinant of the covariant metric tensor.
+		/// This is mathematically equivalent to the Christoffel-based formula but:
+		///   - Avoids computing N² Christoffel symbols
+		///   - Uses only the metric determinant (single scalar per point)
+		///   - Can be more numerically stable for some coordinate systems
+		///
+		/// @tparam N                Number of dimensions
+		/// @param vectorField       Vector function F: ℝᴺ → ℝᴺ (contravariant components)
+		/// @param pos               Position vector in the coordinate system
+		/// @param metricTensorField Metric tensor field defining the coordinate geometry
+		/// @return                  Scalar divergence value ∇·F
+		///
+		/// @note For Cartesian coordinates, √g = 1 everywhere and this reduces to DivCart.
+		/// @note For spherical coordinates, √g = r²sinθ.
+		/// @note For cylindrical coordinates, √g = r.
+		/// @see Divergence, DivCart
+		template<int N>
+		static Real DivergenceViaDet(const IVectorFunction<N>& vectorField, const VectorN<Real, N>& pos,
+		                             const MetricTensorField<N>& metricTensorField)
+		{
+			// Compute √g at the evaluation point
+			Real g = Utils::Det(metricTensorField.GetCovariantMetric(pos));
+			Real sqrt_g = std::sqrt(std::abs(g));
+
+			if (sqrt_g < Defaults::DefaultTolerance)
+				return Real(0);  // Degenerate metric — divergence undefined
+
+			Real div = 0.0;
+			for (int i = 0; i < N; i++)
+			{
+				// Differentiate the scalar function √g(x) · Fⁱ(x) with respect to xⁱ
+				ScalarFunctionFromStdFunc<N> sqrt_g_Fi(
+					[&vectorField, &metricTensorField, i](const VectorN<Real, N>& x) -> Real {
+						Real gx = Utils::Det(metricTensorField.GetCovariantMetric(x));
+						return std::sqrt(std::abs(gx)) * vectorField(x)[i];
+					}
+				);
+				div += Derivation::DerivePartial<N>(sqrt_g_Fi, i, pos, nullptr);
+			}
+
+			return div / sqrt_g;
+		}
+
 		///////////////////////////////////////////////////////////////////////////////////////////
 		//                              DIVERGENCE - CARTESIAN
 		///////////////////////////////////////////////////////////////////////////////////////////
@@ -528,24 +619,34 @@ namespace MML
 		///
 		/// @param vectorField Vector function F(r, θ, φ) = (Fᵣ, Fθ, Fφ)
 		/// @param x           Position (r, θ, φ) with r > 0, 0 < θ < π
+		/// @param policy      Singularity handling policy (default: Throw)
 		/// @return            Scalar divergence value ∇·F
 		///
 		/// @warning Singular at r = 0 and θ = 0, π (coordinate singularities)
-		static Real DivSpher(const IVectorFunction<3>& vectorField, const VectorN<Real, 3>& x)
+		/// @throws DomainError if at singularity and policy is Throw
+		static Real DivSpher(const IVectorFunction<3>& vectorField, const VectorN<Real, 3>& x,
+		                     SingularityPolicy policy = Singularity::DEFAULT_POLICY)
 		{
+			const Real r = x[0];
+			const Real theta = x[1];
+			
 			VectorN<Real, 3> vals = vectorField(x);
 
 			VectorN<Real, 3> derivs;
 			for (int i = 0; i < 3; i++)
 				derivs[i] = Derivation::DeriveVecPartial<3>(vectorField, i, i, x, nullptr);
 
+			// Calculate inverse factors with singularity handling
+			Real inv_r2 = Singularity::SafeInverseR2(r, policy, "DivSpher 1/r²");
+			Real inv_r_sin = Singularity::SafeInverseRSinTheta(r, theta, policy, "DivSpher 1/(r·sinθ)");
+
 			Real div = 0.0;
 			// r-component: (1/r²)∂(r²Fᵣ)/∂r = (2/r)Fᵣ + ∂Fᵣ/∂r
-			div += 1 / (x[0] * x[0]) * (2 * x[0] * vals[0] + x[0] * x[0] * derivs[0]);
+			div += inv_r2 * (2 * r * vals[0] + r * r * derivs[0]);
 			// θ-component: (1/r·sinθ)∂(sinθ·Fθ)/∂θ = (cotθ/r)Fθ + (1/r)∂Fθ/∂θ
-			div += 1 / (x[0] * sin(x[1])) * (cos(x[1]) * vals[1] + sin(x[1]) * derivs[1]);
+			div += inv_r_sin * (cos(theta) * vals[1] + sin(theta) * derivs[1]);
 			// φ-component: (1/r·sinθ)∂Fφ/∂φ
-			div += 1 / (x[0] * sin(x[1])) * derivs[2];
+			div += inv_r_sin * derivs[2];
 
 			return div;
 		}
@@ -561,22 +662,30 @@ namespace MML
 		///
 		/// @param vectorField Vector function F(r, φ, z) = (Fᵣ, Fφ, Fz)
 		/// @param x           Position (r, φ, z) with r > 0
+		/// @param policy      Singularity handling policy (default: Throw)
 		/// @return            Scalar divergence value ∇·F
 		///
 		/// @warning Singular at r = 0 (z-axis singularity)
-		static Real DivCyl(const IVectorFunction<3>& vectorField, const VectorN<Real, 3>& x)
+		/// @throws DomainError if at singularity and policy is Throw
+		static Real DivCyl(const IVectorFunction<3>& vectorField, const VectorN<Real, 3>& x,
+		                   SingularityPolicy policy = Singularity::DEFAULT_POLICY)
 		{
+			const Real r = x[0];
+			
 			VectorN<Real, 3> vals = vectorField(x);
 
 			VectorN<Real, 3> derivs;
 			for (int i = 0; i < 3; i++)
 				derivs[i] = Derivation::DeriveVecPartial<3>(vectorField, i, i, x, nullptr);
 
+			// Calculate inverse factor with singularity handling
+			Real inv_r = Singularity::SafeInverseR(r, policy, "DivCyl 1/r");
+
 			Real div = 0.0;
 			// r-component: (1/r)∂(r·Fᵣ)/∂r = (1/r)Fᵣ + ∂Fᵣ/∂r
-			div += 1 / x[0] * (vals[0] + x[0] * derivs[0]);
+			div += inv_r * (vals[0] + r * derivs[0]);
 			// φ-component: (1/r)∂Fφ/∂φ
-			div += 1 / x[0] * derivs[1];
+			div += inv_r * derivs[1];
 			// z-component: ∂Fz/∂z
 			div += derivs[2];
 
@@ -643,10 +752,13 @@ namespace MML
 		///
 		/// @param vectorField Vector function F(r, θ, φ) = (Fᵣ, Fθ, Fφ)
 		/// @param pos         Position (r, θ, φ) with r > 0, 0 < θ < π
+		/// @param policy      Singularity handling policy (default: Throw)
 		/// @return            Curl vector ∇×F in spherical basis (êᵣ, êθ, êφ)
 		///
 		/// @warning Singular at r = 0 and θ = 0, π
-		static Vec3Sph CurlSpher(const IVectorFunction<3>& vectorField, const VectorN<Real, 3>& pos)
+		/// @throws DomainError if at singularity and policy is Throw
+		static Vec3Sph CurlSpher(const IVectorFunction<3>& vectorField, const VectorN<Real, 3>& pos,
+		                         SingularityPolicy policy = Singularity::DEFAULT_POLICY)
 		{
 			VectorN<Real, 3> vals = vectorField(pos);
 
@@ -660,17 +772,21 @@ namespace MML
 			Real dthetadr = Derivation::DeriveVecPartial<3>(vectorField, 1, 0, pos, nullptr);    // ∂Fθ/∂r
 			Real drdtheta = Derivation::DeriveVecPartial<3>(vectorField, 0, 1, pos, nullptr);    // ∂Fᵣ/∂θ
 
-			Vector3Spherical ret;
 			const Real& r = pos[0];
 			const Real& theta = pos[1];
-			const Real& phi = pos[2];
 
+			// Calculate inverse factors with singularity handling
+			Real inv_r = Singularity::SafeInverseR(r, policy, "CurlSpher 1/r");
+			Real inv_r_sin = Singularity::SafeInverseRSinTheta(r, theta, policy, "CurlSpher 1/(r·sinθ)");
+			Real inv_sin = Singularity::SafeDivide(1.0, sin(theta), policy, "CurlSpher 1/sinθ");
+
+			Vector3Spherical ret;
 			// r-component: (1/r·sinθ)[cosθ·Fφ + sinθ·∂Fφ/∂θ - ∂Fθ/∂φ]
-			ret[0] = 1 / (r * sin(theta)) * (cos(theta) * vals[2] + sin(theta) * dphidtheta - dthetadphi);
+			ret[0] = inv_r_sin * (cos(theta) * vals[2] + sin(theta) * dphidtheta - dthetadphi);
 			// θ-component: (1/r)[(1/sinθ)∂Fᵣ/∂φ - Fφ - r·∂Fφ/∂r]
-			ret[1] = 1 / r * (1 / sin(theta) * drdphi - vals[2] - r * dphidr);
+			ret[1] = inv_r * (inv_sin * drdphi - vals[2] - r * dphidr);
 			// φ-component: (1/r)[Fθ + r·∂Fθ/∂r - ∂Fᵣ/∂θ]
-			ret[2] = 1 / r * (vals[1] + r * dthetadr - drdtheta);
+			ret[2] = inv_r * (vals[1] + r * dthetadr - drdtheta);
 
 			return ret;
 		}
@@ -688,11 +804,16 @@ namespace MML
 		///
 		/// @param vectorField Vector function F(r, φ, z) = (Fᵣ, Fφ, Fz)
 		/// @param pos         Position (r, φ, z) with r > 0
+		/// @param policy      Singularity handling policy (default: Throw)
 		/// @return            Curl vector ∇×F in cylindrical basis (êᵣ, êφ, êz)
 		///
 		/// @warning Singular at r = 0 (z-axis singularity)
-		static Vec3Cyl CurlCyl(const IVectorFunction<3>& vectorField, const VectorN<Real, 3>& pos)
+		/// @throws DomainError if at singularity and policy is Throw
+		static Vec3Cyl CurlCyl(const IVectorFunction<3>& vectorField, const VectorN<Real, 3>& pos,
+		                       SingularityPolicy policy = Singularity::DEFAULT_POLICY)
 		{
+			const Real r = pos[0];
+			
 			VectorN<Real, 3> vals = vectorField(pos);
 
 			// Partial derivatives
@@ -705,13 +826,16 @@ namespace MML
 			Real dphidr = Derivation::DeriveVecPartial<3>(vectorField, 1, 0, pos, nullptr);  // ∂Fφ/∂r
 			Real drdphi = Derivation::DeriveVecPartial<3>(vectorField, 0, 1, pos, nullptr);  // ∂Fᵣ/∂φ
 
+			// Calculate inverse factor with singularity handling
+			Real inv_r = Singularity::SafeInverseR(r, policy, "CurlCyl 1/r");
+
 			// r-component: (1/r)∂Fz/∂φ - ∂Fφ/∂z
 			// φ-component: ∂Fᵣ/∂z - ∂Fz/∂r
 			// z-component: (1/r)[Fφ + r·∂Fφ/∂r - ∂Fᵣ/∂φ]
 			Vector3Cylindrical ret{
-				(1 / pos[0] * dzdphi - dphidz), 
+				(inv_r * dzdphi - dphidz), 
 				drdz - dzdr, 
-				1 / pos[0] * (vals[1] + pos[0] * dphidr - drdphi)
+				inv_r * (vals[1] + r * dphidr - drdphi)
 			};
 
 			return ret;

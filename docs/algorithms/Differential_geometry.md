@@ -358,7 +358,7 @@ namespace TestBeds {
 **Curves available**:
 - `"Helix"`: Standard helix (a=1, b=1)
 - `"Helix2"`: Scaled helix (a=2, b=0.5)
-- `"Circle3DXY"`: Unit circle in xy-plane
+- `"Circle3DXYCurve"`: Unit circle in xy-plane
 - `"TwistedCubic"`: r(t) = (t, t², t³)
 - `"TorusKnot_3_2"`: (3,2) torus knot
 - `"Viviani"`: Viviani's curve
@@ -379,7 +379,7 @@ Classic space curve with constant curvature and torsion:
 
 ```cpp
 #include "core/Curves.h"
-#include "test_data/parametric_curves_test_bed.h"
+#include "test_beds/parametric_curves_test_bed.h"
 
 void Example1() {
     // Get helix from test bed: r(t) = (cos t, sin t, t)

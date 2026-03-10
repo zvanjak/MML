@@ -3,16 +3,17 @@
 #else
 #include "MMLBase.h"
 
-#include "base/Vector.h"
-#include "algorithms/Fourier/DFT.h"
-#include "algorithms/Fourier/FFT.h"
-#include "algorithms/Fourier/RealFFT.h"
-#include "algorithms/Fourier/Spectrum.h"
-#include "algorithms/Fourier/Convolution.h"
-#include "algorithms/Fourier/Windowing.h"
+#include "base/Vector/Vector.h"
+#include "DFT.h"
+#include "FFT.h"
+#include "RealFFT.h"
+#include "Spectrum.h"
+#include "Convolution.h"
+#include "Windowing.h"
 #endif
 
 using namespace MML;
+using namespace MML::Fourier;
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 ///                    DISCRETE FOURIER TRANSFORM (DFT)                                 ///

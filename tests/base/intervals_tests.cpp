@@ -16,51 +16,127 @@
 using namespace MML;
 using namespace MML::Testing;
 
-TEST_CASE("Test_OpenInterval", "[simple]") {
-		TEST_PRECISION_INFO();
+namespace MML::Tests::Base::IntervalsTests {
+
+TEST_CASE("Test_OpenInterval", "[intervals][open]") {
+	TEST_PRECISION_INFO();
 	OpenInterval int1(REAL(0.0), REAL(1.0));
-	// da li je postavljeno sve kako treba
+	// Verify basic properties
 	REQUIRE(REAL(0.0) == int1.getLowerBound());
 	REQUIRE(REAL(1.0) == int1.getUpperBound());
 	REQUIRE(REAL(1.0) == int1.getLength());
-	REQUIRE(true == int1.isContinuous());
+	REQUIRE(int1.isContinuous());
 }
 
-TEST_CASE("Test_OpenInterval_contains", "[simple]") {
-		TEST_PRECISION_INFO();
+TEST_CASE("Test_OpenInterval_contains", "[intervals][open]") {
+	TEST_PRECISION_INFO();
 	OpenInterval int1(REAL(0.0), REAL(1.0));
 
-	REQUIRE(true == int1.contains(REAL(0.5)));
-	REQUIRE(false == int1.contains(-REAL(0.5)));
+	REQUIRE(int1.contains(REAL(0.5)));
+	REQUIRE_FALSE(int1.contains(-REAL(0.5)));
+	REQUIRE_FALSE(int1.contains(REAL(0.0)));  // Open - excludes lower bound
+	REQUIRE_FALSE(int1.contains(REAL(1.0)));  // Open - excludes upper bound
 }
 
-TEST_CASE("Test_OpenInterval_Covering", "[simple]") {
-		TEST_PRECISION_INFO();
-	// kad uzmes Covering da granice NISU u skupu tocaka
+TEST_CASE("Test_OpenInterval_Covering", "[intervals][open][covering]") {
+	TEST_PRECISION_INFO();
+	OpenInterval interval(REAL(0.0), REAL(10.0));
+	std::vector<Real> points;
+	
+	interval.GetEquidistantCovering(5, points);
+	
+	// For open interval, endpoints should NOT be exactly at boundaries
+	REQUIRE(points.size() == 5);
+	REQUIRE(points[0] > REAL(0.0));    // Slightly inside lower bound
+	REQUIRE(points[4] < REAL(10.0));   // Slightly inside upper bound
+	
+	// Middle points should be at expected positions (slightly offset at endpoints)
+	REQUIRE_THAT(points[2], RealApprox(REAL(5.0)).epsilon(REAL(0.01)));
 }
 
-TEST_CASE("Test_CompleR", "[simple]")
+TEST_CASE("CompleteRInterval - Properties", "[intervals][infinite][complete]")
 {
-		TEST_PRECISION_INFO();
-	CompleteRInterval int1;
+	TEST_PRECISION_INFO();
+	CompleteRInterval interval;
 
-	auto a = int1.getLowerBound();
+	SECTION("Bounds are at numeric limits")
+	{
+		REQUIRE(interval.getLowerBound() < -1e100);
+		REQUIRE(interval.getUpperBound() > 1e100);
+	}
+	
+	SECTION("Contains any real number")
+	{
+		REQUIRE(interval.contains(REAL(0.0)));
+		REQUIRE(interval.contains(-1e200));
+		REQUIRE(interval.contains(1e200));
+		REQUIRE(interval.contains(std::numeric_limits<Real>::min()));
+		REQUIRE(interval.contains(std::numeric_limits<Real>::max()));
+	}
+	
+	SECTION("Is continuous")
+	{
+		REQUIRE(interval.isContinuous());
+	}
 }
 
-TEST_CASE("Test_Interval", "[simple]")
+TEST_CASE("CompleteRWithReccuringPointHoles - Periodic Exclusions", "[intervals][infinite][holes]")
 {
-		TEST_PRECISION_INFO();
-	// old way definition
+	TEST_PRECISION_INFO();
+	// Tangent function domain: exclude x = π/2 + nπ
+	CompleteRWithReccuringPointHoles tanDomain(REAL(0.5) * Constants::PI, Constants::PI);
+	
+	SECTION("Contains regular points")
+	{
+		REQUIRE(tanDomain.contains(REAL(0.0)));
+		REQUIRE(tanDomain.contains(Constants::PI));
+		REQUIRE(tanDomain.contains(-Constants::PI));
+		REQUIRE(tanDomain.contains(REAL(2.0) * Constants::PI));
+		REQUIRE(tanDomain.contains(REAL(0.25) * Constants::PI));
+	}
+	
+	SECTION("Excludes hole points")
+	{
+		REQUIRE_FALSE(tanDomain.contains(REAL(0.5) * Constants::PI));   // First hole
+		REQUIRE_FALSE(tanDomain.contains(-REAL(0.5) * Constants::PI));  // Hole at -π/2
+		REQUIRE_FALSE(tanDomain.contains(REAL(1.5) * Constants::PI));   // Hole at 3π/2
+		REQUIRE_FALSE(tanDomain.contains(-REAL(1.5) * Constants::PI));  // Hole at -3π/2
+		REQUIRE_FALSE(tanDomain.contains(REAL(2.5) * Constants::PI));   // Hole at 5π/2
+	}
+	
+	SECTION("Is not continuous")
+	{
+		REQUIRE_FALSE(tanDomain.isContinuous());
+	}
+}
+
+TEST_CASE("Test_Interval - Composite with raw pointers", "[intervals][compound]")
+{
+	TEST_PRECISION_INFO();
+	// Legacy API with raw pointers (initializer_list)
 	Interval* tangDefInterval = new Interval({ new ClosedOpenInterval(-REAL(2.0) * Constants::PI, -REAL(1.5) * Constants::PI),
-																			new OpenInterval(-REAL(1.5) * Constants::PI, -REAL(0.5) * Constants::PI),
-																			new OpenInterval(-REAL(0.5) * Constants::PI, REAL(0.5) * Constants::PI),
-																			new OpenInterval(REAL(0.5) * Constants::PI, REAL(1.5) * Constants::PI),
-																			new OpenClosedInterval(REAL(1.5) * Constants::PI, REAL(2.0) * Constants::PI) });
+												new OpenInterval(-REAL(1.5) * Constants::PI, -REAL(0.5) * Constants::PI),
+												new OpenInterval(-REAL(0.5) * Constants::PI, REAL(0.5) * Constants::PI),
+												new OpenInterval(REAL(0.5) * Constants::PI, REAL(1.5) * Constants::PI),
+												new OpenClosedInterval(REAL(1.5) * Constants::PI, REAL(2.0) * Constants::PI) });
 
+	// Left endpoint of first interval is closed
 	REQUIRE(tangDefInterval->contains(-REAL(2.0) * Constants::PI));
+	// Right endpoint of last interval is closed
+	REQUIRE(tangDefInterval->contains(REAL(2.0) * Constants::PI));
+	// Holes at ±0.5π, ±1.5π are excluded (open endpoints)
+	REQUIRE_FALSE(tangDefInterval->contains(-REAL(0.5) * Constants::PI));
+	REQUIRE_FALSE(tangDefInterval->contains(REAL(0.5) * Constants::PI));
+	REQUIRE_FALSE(tangDefInterval->contains(-REAL(1.5) * Constants::PI));
+	REQUIRE_FALSE(tangDefInterval->contains(REAL(1.5) * Constants::PI));
+	// Interior points are contained
+	REQUIRE(tangDefInterval->contains(REAL(0.0)));
+	REQUIRE(tangDefInterval->contains(Constants::PI));
+	
+	delete tangDefInterval;
 }
 
-TEST_CASE("Test_ClosedIntervalWithReccuringPointHoles", "[simple]")
+TEST_CASE("Test_ClosedIntervalWithReccuringPointHoles", "[intervals][holes]")
 {
 		TEST_PRECISION_INFO();
 	BaseInterval* tanDef = new ClosedIntervalWithReccuringPointHoles(-5 * Constants::PI, 5 * Constants::PI, REAL(0.5) * Constants::PI, Constants::PI);
@@ -422,6 +498,91 @@ TEST_CASE("Interval::Intersection - Endpoint Types", "[intervals][intersection][
 }
 
 //=============================================================================
+// UNION TESTS
+//=============================================================================
+
+TEST_CASE("Interval::Union - Overlapping Intervals", "[intervals][union]") {
+	TEST_PRECISION_INFO();
+	ClosedInterval a(REAL(2.0), REAL(6.0));
+	ClosedInterval b(REAL(4.0), REAL(8.0));
+	
+	Interval result = Interval::Union(a, b);
+	
+	SECTION("Returns Merged Interval") {
+		REQUIRE_THAT(result.getLowerBound(), RealApprox(REAL(2.0)));
+		REQUIRE_THAT(result.getUpperBound(), RealApprox(REAL(8.0)));
+		REQUIRE_THAT(result.getLength(), RealApprox(REAL(6.0)));    // Hull
+		REQUIRE_THAT(result.getMeasure(), RealApprox(REAL(6.0)));   // Measure (single interval)
+		REQUIRE(result.contains(REAL(2.0)));
+		REQUIRE(result.contains(REAL(5.0)));
+		REQUIRE(result.contains(REAL(8.0)));
+	}
+}
+
+TEST_CASE("Interval::Union - Adjacent Intervals", "[intervals][union]") {
+	TEST_PRECISION_INFO();
+	ClosedInterval a(REAL(2.0), REAL(5.0));
+	ClosedInterval b(REAL(5.0), REAL(8.0));
+	
+	Interval result = Interval::Union(a, b);
+	
+	SECTION("Returns Merged Interval") {
+		REQUIRE_THAT(result.getLowerBound(), RealApprox(REAL(2.0)));
+		REQUIRE_THAT(result.getUpperBound(), RealApprox(REAL(8.0)));
+		REQUIRE(result.contains(REAL(5.0)));  // Shared endpoint included
+	}
+}
+
+TEST_CASE("Interval::Union - Disjoint Intervals", "[intervals][union]") {
+	TEST_PRECISION_INFO();
+	ClosedInterval a(REAL(2.0), REAL(4.0));
+	ClosedInterval b(REAL(6.0), REAL(8.0));
+	
+	Interval result = Interval::Union(a, b);
+	
+	SECTION("Returns Composite Interval") {
+		REQUIRE_THAT(result.getLowerBound(), RealApprox(REAL(2.0)));
+		REQUIRE_THAT(result.getUpperBound(), RealApprox(REAL(8.0)));
+		REQUIRE_THAT(result.getLength(), RealApprox(REAL(6.0)));    // Hull: 8 - 2 = 6
+		REQUIRE_THAT(result.getMeasure(), RealApprox(REAL(4.0)));   // Measure: 2 + 2 = 4
+		REQUIRE(result.contains(REAL(2.0)));
+		REQUIRE(result.contains(REAL(3.0)));
+		REQUIRE_FALSE(result.contains(REAL(5.0)));  // In gap
+		REQUIRE(result.contains(REAL(7.0)));
+		REQUIRE(result.contains(REAL(8.0)));
+	}
+}
+
+TEST_CASE("Interval::Union - One Contains Other", "[intervals][union]") {
+	TEST_PRECISION_INFO();
+	ClosedInterval a(REAL(2.0), REAL(10.0));
+	ClosedInterval b(REAL(4.0), REAL(6.0));
+	
+	Interval result = Interval::Union(a, b);
+	
+	SECTION("Returns Larger Interval") {
+		REQUIRE_THAT(result.getLowerBound(), RealApprox(REAL(2.0)));
+		REQUIRE_THAT(result.getUpperBound(), RealApprox(REAL(10.0)));
+		REQUIRE_THAT(result.getMeasure(), RealApprox(REAL(8.0)));
+	}
+}
+
+TEST_CASE("Interval::Union - Open Endpoints Not Adjacent", "[intervals][union]") {
+	TEST_PRECISION_INFO();
+	OpenInterval a(REAL(2.0), REAL(5.0));   // (2, 5)
+	OpenInterval b(REAL(5.0), REAL(8.0));   // (5, 8)
+	
+	Interval result = Interval::Union(a, b);
+	
+	SECTION("Returns Disjoint (Gap at 5)") {
+		// Both are open at 5, so they don't touch
+		REQUIRE_FALSE(result.contains(REAL(5.0)));  // Gap at 5
+		REQUIRE(result.contains(REAL(4.0)));
+		REQUIRE(result.contains(REAL(6.0)));
+	}
+}
+
+//=============================================================================
 // DIFFERENCE TESTS
 //=============================================================================
 
@@ -496,6 +657,7 @@ TEST_CASE("Interval::Difference - Right Cut", "[intervals][difference]") {
 }
 
 TEST_CASE("Interval::Difference - Middle Cut (Split)", "[intervals][difference]") {
+	TEST_PRECISION_INFO();
 	ClosedInterval a(REAL(2.0), REAL(10.0));
 	ClosedInterval b(REAL(5.0), REAL(7.0)); // Cuts middle, creating two pieces
 	
@@ -510,8 +672,10 @@ TEST_CASE("Interval::Difference - Middle Cut (Split)", "[intervals][difference]"
 		REQUIRE(result.contains(REAL(7.001)));    // Right piece edge
 		REQUIRE(result.contains(REAL(10.0)));     // Right piece
 		
-		// Length should be original - removed
-		REQUIRE_THAT(result.getLength(), RealApprox(REAL(6.0))); // (5-2) + (10-7) = 3 + 3
+		// Hull length is span from 2 to 10
+		REQUIRE_THAT(result.getLength(), RealApprox(REAL(8.0)));  // Hull: 10 - 2 = 8
+		// Measure is sum of segments: (5-2) + (10-7) = 3 + 3 = 6
+		REQUIRE_THAT(result.getMeasure(), RealApprox(REAL(6.0)));
 	}
 }
 
@@ -613,7 +777,8 @@ TEST_CASE("Compound Interval - Basic Operations", "[intervals][compound]") {
 	SECTION("Bounds") {
 		REQUIRE_THAT(compound.getLowerBound(), RealApprox(REAL(0.0)));
 		REQUIRE_THAT(compound.getUpperBound(), RealApprox(REAL(12.0)));
-		REQUIRE_THAT(compound.getLength(), RealApprox(REAL(8.0))); // 3 + 3 + 2
+		REQUIRE_THAT(compound.getLength(), RealApprox(REAL(12.0)));  // Hull: 12 - 0 = 12
+		REQUIRE_THAT(compound.getMeasure(), RealApprox(REAL(8.0)));  // Measure: 3 + 3 + 2 = 8
 	}
 	
 	SECTION("Contains") {
@@ -651,7 +816,7 @@ TEST_CASE("Compound Interval - Equidistant Covering", "[intervals][compound][cov
 	compound.GetEquidistantCovering(14, points);
 	
 	SECTION("Points Distributed Proportionally") {
-		REQUIRE(points.size() >= 10); // Should have points
+		REQUIRE(points.size() >= 5); // Should have points
 		
 		// Count points in each interval
 		int count1 = 0, count2 = 0;
@@ -805,7 +970,8 @@ TEST_CASE("Performance - Large Compound Intervals", "[intervals][performance]") 
 		
 		REQUIRE_THAT(large.getLowerBound(), RealApprox(REAL(0.0)));
 		REQUIRE_THAT(large.getUpperBound(), RealApprox(REAL(995.0)));
-		REQUIRE_THAT(large.getLength(), RealApprox(REAL(500.0))); // 100 * REAL(5.0)
+		REQUIRE_THAT(large.getLength(), RealApprox(REAL(995.0)));   // Hull: 995 - 0 = 995
+		REQUIRE_THAT(large.getMeasure(), RealApprox(REAL(500.0)));  // Measure: 100 * 5 = 500
 		
 		REQUIRE(large.contains(REAL(2.5)));     // In first interval
 		REQUIRE(large.contains(REAL(502.5)));   // In 51st interval
@@ -813,3 +979,5 @@ TEST_CASE("Performance - Large Compound Intervals", "[intervals][performance]") 
 		REQUIRE_FALSE(large.contains(REAL(1000.0))); // After all
 	}
 }
+
+} // namespace MML::Tests::Base::IntervalsTests

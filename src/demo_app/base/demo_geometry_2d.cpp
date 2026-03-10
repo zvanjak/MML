@@ -3,9 +3,9 @@
 #else
 #include "MMLBase.h"
 
-#include "base/Geometry.h"
-#include "base/Geometry2D.h"
-#include "base/Geometry3D.h"
+#include "mml/base/Geometry/Geometry.h"
+#include "mml/base/Geometry/Geometry2D.h"
+#include "mml/base/Geometry/Geometry3D.h"
 #include "base/BaseUtils.h"
 
 #endif

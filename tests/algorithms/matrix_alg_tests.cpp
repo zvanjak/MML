@@ -5,17 +5,19 @@
 #ifdef MML_USE_SINGLE_HEADER
 #include "MML.h"
 #else
-#include "base/Vector.h"
-#include "base/Matrix.h"
-#include "base/MatrixSym.h"
+#include "base/Vector/Vector.h"
+#include "base/Matrix/Matrix.h"
+#include "base/Matrix/MatrixSym.h"
+#include "core/MatrixUtils.h"
 #include "algorithms/MatrixAlg.h"
 #endif
 
-#include "../test_data/linear_alg_eq_systems_test_bed.h"
+#include "../test_beds/linear_alg_eq_systems_test_bed.h"
 
 using namespace MML;
 using namespace MML::Testing;
 using namespace MML::MatrixAlg;
+using namespace MML::Utils;
 
 namespace MML::Tests::Algorithms::MatrixAlgTests
 {
@@ -261,7 +263,7 @@ namespace MML::Tests::Algorithms::MatrixAlgTests
 	TEST_CASE("ConditionNumber_Identity", "[MatrixAlg][SVD]")
 	{
 			TEST_PRECISION_INFO();
-		auto I = Matrix<Real>::GetUnitMatrix(5);
+		auto I = Matrix<Real>::Identity(5);
 		
 		Real cond = ConditionNumber(I);
 		REQUIRE(std::abs(cond - REAL(1.0)) < 1e-10);
@@ -275,7 +277,7 @@ namespace MML::Tests::Algorithms::MatrixAlgTests
 		Matrix<Real> ns = NullSpace(sys._mat);
 		
 		// Full rank matrix has trivial null space
-		REQUIRE(ns.ColNum() == 0);
+		REQUIRE(ns.cols() == 0);
 	}
 	
 	TEST_CASE("NullSpace_RankDeficient", "[MatrixAlg][SVD]")
@@ -291,11 +293,11 @@ namespace MML::Tests::Algorithms::MatrixAlgTests
 		Matrix<Real> ns = NullSpace(A);
 		
 		// Should have 2-dimensional null space
-		REQUIRE(ns.ColNum() == 2);
-		REQUIRE(ns.RowNum() == 3);
+		REQUIRE(ns.cols() == 2);
+		REQUIRE(ns.rows() == 3);
 		
 		// Verify: A * x should be zero for each null space vector
-		for (int col = 0; col < ns.ColNum(); col++)
+		for (int col = 0; col < ns.cols(); col++)
 		{
 			Vector<Real> x(3);
 			for (int i = 0; i < 3; i++)
@@ -318,8 +320,8 @@ namespace MML::Tests::Algorithms::MatrixAlgTests
 		Matrix<Real> ns = NullSpace(A);
 		Matrix<Real> ker = Kernel(A);
 		
-		REQUIRE(ns.RowNum() == ker.RowNum());
-		REQUIRE(ns.ColNum() == ker.ColNum());
+		REQUIRE(ns.rows() == ker.rows());
+		REQUIRE(ns.cols() == ker.cols());
 	}
 	
 	TEST_CASE("ColumnSpace_FullRank", "[MatrixAlg][SVD]")
@@ -330,8 +332,8 @@ namespace MML::Tests::Algorithms::MatrixAlgTests
 		Matrix<Real> cs = ColumnSpace(sys._mat);
 		
 		// Full rank 4x4 → column space is R^4
-		REQUIRE(cs.ColNum() == 4);
-		REQUIRE(cs.RowNum() == 4);
+		REQUIRE(cs.cols() == 4);
+		REQUIRE(cs.rows() == 4);
 	}
 	
 	TEST_CASE("ColumnSpace_RankDeficient", "[MatrixAlg][SVD]")
@@ -347,8 +349,8 @@ namespace MML::Tests::Algorithms::MatrixAlgTests
 		Matrix<Real> cs = ColumnSpace(A);
 		
 		// Column space is 1-dimensional
-		REQUIRE(cs.ColNum() == 1);
-		REQUIRE(cs.RowNum() == 3);
+		REQUIRE(cs.cols() == 1);
+		REQUIRE(cs.rows() == 3);
 	}
 	
 	TEST_CASE("FundamentalSubspaces_RankNullityTheorem", "[MatrixAlg][SVD]")
@@ -364,20 +366,20 @@ namespace MML::Tests::Algorithms::MatrixAlgTests
 		
 		auto fs = ComputeFundamentalSubspaces(A);
 		
-		int m = A.RowNum();  // 4
-		int n = A.ColNum();  // 3
+		int m = A.rows();  // 4
+		int n = A.cols();  // 3
 		
 		// Rank-nullity theorem: rank + nullity = n
-		REQUIRE(fs.rank + fs.nullSpace.ColNum() == n);
+		REQUIRE(fs.rank + fs.nullSpace.cols() == n);
 		
 		// dim(col space) = rank
-		REQUIRE(fs.columnSpace.ColNum() == fs.rank);
+		REQUIRE(fs.columnSpace.cols() == fs.rank);
 		
 		// dim(row space) = rank
-		REQUIRE(fs.rowSpace.ColNum() == fs.rank);
+		REQUIRE(fs.rowSpace.cols() == fs.rank);
 		
 		// dim(left null space) = m - rank
-		REQUIRE(fs.leftNullSpace.ColNum() == m - fs.rank);
+		REQUIRE(fs.leftNullSpace.cols() == m - fs.rank);
 	}
 	
 	TEST_CASE("PseudoInverse_FullRankSquare", "[MatrixAlg][SVD]")

@@ -258,7 +258,7 @@ Eigenpair 2 error: 1.5e-15
 
 ```cpp
 // Verify eigenvectors are orthonormal: V^T · V = I
-Matrix<Real> VtV = result.eigenvectors.GetTranspose() * result.eigenvectors;
+Matrix<Real> VtV = result.eigenvectors.transpose() * result.eigenvectors;
 
 std::cout << "V^T · V:" << std::endl;
 VtV.Print(std::cout, 8, 4);
@@ -918,8 +918,8 @@ for (int i = 0; i < n; i++)
 ### With Matrix Classes
 
 ```cpp
-#include "base/Matrix.h"
-#include "base/MatrixSym.h"
+#include "base/Matrix/Matrix.h"
+#include "base/Matrix/MatrixSym.h"
 #include "algorithms/EigenSystemSolvers.h"
 
 // Direct usage

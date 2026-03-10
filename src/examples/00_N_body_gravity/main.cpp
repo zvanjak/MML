@@ -83,7 +83,7 @@ void Demo_SolarSystem()
     std::cout << "Done!\n\n";
 
     // Output trajectory data
-    std::string outputFile = "results/solar_system_trajectories.txt";
+    std::string outputFile = "results/solar_system_trajectories.mml";
     std::cout << "Writing trajectories to: " << outputFile << "\n";
 
     std::ofstream ofs(outputFile);
@@ -161,7 +161,7 @@ void Demo_ManyBodies()
     std::cout << "Done!\n\n";
 
     // Output
-    std::string outputFile = "results/many_body_trajectories.txt";
+    std::string outputFile = "results/many_body_trajectories.mml";
     std::cout << "Writing trajectories to: " << outputFile << "\n";
 
     std::ofstream ofs(outputFile);
@@ -279,7 +279,7 @@ void Demo_StarClusterCollision()
     std::cout << "    (Note: Euler method has energy drift; RK5 would preserve better)\n\n";
 
     // Output trajectory file
-    std::string outputFile = "results/star_cluster_collision.txt";
+    std::string outputFile = "results/star_cluster_collision.mml";
     std::cout << "Writing trajectories to: " << outputFile << "\n";
 
     std::ofstream ofs(outputFile);
@@ -351,7 +351,7 @@ int main()
 
     std::cout << "MML Visualization:\n";
     std::cout << "  Trajectories automatically visualized using MML's built-in\n";
-    std::cout << "  Visualizer class with gnuplot integration.\n";
+    std::cout << "  Visualizer class with external visualizer apps.\n";
     std::cout << "  See: VisualizeAsParamCurve() and VisualizeAsParticleSimulation()\n\n";
 
     return 0;

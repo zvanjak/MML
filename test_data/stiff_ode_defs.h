@@ -8,8 +8,8 @@
 #include "MML.h"
 #else
 #include "MMLBase.h"
-#include "base/Vector.h"
-#include "base/Matrix.h"
+#include "base/Vector/Vector.h"
+#include "base/Matrix/Matrix.h"
 #include "base/ODESystem.h"
 #endif
 

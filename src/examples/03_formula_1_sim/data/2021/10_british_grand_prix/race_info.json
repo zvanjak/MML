@@ -1,0 +1,11 @@
+{
+  "year": 2021,
+  "round": 10,
+  "circuit_name": "British Grand Prix",
+  "circuit_short": "Silverstone",
+  "country": "Great Britain",
+  "date": "2021-07-18 00:00:00",
+  "session_type": "Race",
+  "total_laps": 52,
+  "num_drivers": 20
+}

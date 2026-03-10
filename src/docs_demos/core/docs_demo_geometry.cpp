@@ -3,7 +3,7 @@
 #else
 #include "MMLBase.h"
 
-#include "base/Geometry.h"
+#include "mml/base/Geometry/Geometry.h"
 #endif
 
 using namespace MML;
@@ -46,7 +46,7 @@ void Docs_Demo_Geometry_2D_Points()
     Point2Cartesian c(1.0, 2.0);
     Point2Cartesian d(1.0 + 1e-12, 2.0 + 1e-12);
     std::cout << "  a == c: " << (a == c ? "true" : "false") << std::endl;
-    std::cout << "  a.IsEqual(d, 1e-10): " << (a.IsEqual(d, 1e-10) ? "true" : "false") << std::endl << std::endl;
+    std::cout << "  a.IsEqualTo(d, 1e-10): " << (a.IsEqualTo(d, 1e-10) ? "true" : "false") << std::endl << std::endl;
     
     // Point2Polar - construction and conversion
     std::cout << "Point2Polar:" << std::endl;

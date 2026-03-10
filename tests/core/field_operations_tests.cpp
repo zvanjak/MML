@@ -5,10 +5,11 @@
 #ifdef MML_USE_SINGLE_HEADER
 #include "MML.h"
 #else
-#include "base/VectorN.h"
-#include "base/VectorTypes.h"
+#include "base/Vector/VectorN.h"
+#include "base/Vector/VectorTypes.h"
 #include "base/Function.h"
 #include "core/FieldOperations.h"
+#include "core/MetricTensor.h"
 #endif
 
 using namespace MML;
@@ -556,6 +557,445 @@ namespace MML::Tests::Core::FieldOperationsTests
 		
 		// f = r² → ∇²f = (1/r)(r·2) + 2 = 2 + 2 = 4
 		REQUIRE_THAT(lapl, WithinRel(REAL(4.0), REAL(1e-5)));
+	}
+
+	/*********************************************************************/
+	/*****             SPHERICAL DIVERGENCE TESTS                    *****/
+	/*********************************************************************/
+
+	// Radial field F = (r, 0, 0) in spherical coordinates
+	// ∇·F = (1/r²)∂(r²·r)/∂r = (1/r²)∂(r³)/∂r = (1/r²)·3r² = 3
+	class SphericalRadialVectorField : public IVectorFunction<3>
+	{
+	public:
+		VectorN<Real, 3> operator()(const VectorN<Real, 3>& pos) const override
+		{
+			// F = (Fᵣ, Fθ, Fφ) = (r, 0, 0)
+			return VectorN<Real, 3>{pos[0], REAL(0.0), REAL(0.0)};
+		}
+	};
+
+	TEST_CASE("Divergence_Spherical_RadialField", "[field_operations][divergence][spherical]")
+	{
+		TEST_PRECISION_INFO();
+		
+		SphericalRadialVectorField F;
+		Vec3Sph pos{REAL(2.0), REAL(0.8), REAL(1.2)};  // (r, θ, φ) - avoid poles
+		
+		Real div = VectorFieldOperations::DivSpher(F, pos);
+		
+		// F = (r, 0, 0) → ∇·F = 3 (constant)
+		REQUIRE_THAT(div, WithinRel(REAL(3.0), REAL(1e-5)));
+	}
+
+	// Purely θ-dependent field: F = (0, sinθ, 0)
+	// ∇·F = (1/r·sinθ)∂(sinθ·sinθ)/∂θ = (1/r·sinθ)∂(sin²θ)/∂θ
+	//     = (1/r·sinθ)·2sinθ·cosθ = (2cosθ)/r
+	class SphericalThetaVectorField : public IVectorFunction<3>
+	{
+	public:
+		VectorN<Real, 3> operator()(const VectorN<Real, 3>& pos) const override
+		{
+			// F = (Fᵣ, Fθ, Fφ) = (0, sinθ, 0)
+			return VectorN<Real, 3>{REAL(0.0), sin(pos[1]), REAL(0.0)};
+		}
+	};
+
+	TEST_CASE("Divergence_Spherical_ThetaField", "[field_operations][divergence][spherical]")
+	{
+		TEST_PRECISION_INFO();
+		
+		SphericalThetaVectorField F;
+		Real r = REAL(2.0);
+		Real theta = REAL(0.8);  // θ in radians
+		Vec3Sph pos{r, theta, REAL(1.2)};
+		
+		Real div = VectorFieldOperations::DivSpher(F, pos);
+		
+		// F = (0, sinθ, 0) → ∇·F = 2cosθ/r
+		Real expected = REAL(2.0) * cos(theta) / r;
+		REQUIRE_THAT(div, WithinRel(expected, REAL(1e-5)));
+	}
+
+	/*********************************************************************/
+	/*****            CYLINDRICAL DIVERGENCE TESTS                   *****/
+	/*********************************************************************/
+
+	// Radial field F = (r, 0, 0) in cylindrical coordinates
+	// ∇·F = (1/r)∂(r·r)/∂r + 0 + 0 = (1/r)·2r = 2
+	class CylindricalRadialVectorField : public IVectorFunction<3>
+	{
+	public:
+		VectorN<Real, 3> operator()(const VectorN<Real, 3>& pos) const override
+		{
+			// F = (Fᵣ, Fφ, Fz) = (r, 0, 0)
+			return VectorN<Real, 3>{pos[0], REAL(0.0), REAL(0.0)};
+		}
+	};
+
+	TEST_CASE("Divergence_Cylindrical_RadialField", "[field_operations][divergence][cylindrical]")
+	{
+		TEST_PRECISION_INFO();
+		
+		CylindricalRadialVectorField F;
+		Vec3Cyl pos{REAL(3.0), REAL(1.5), REAL(2.0)};  // (r, φ, z)
+		
+		Real div = VectorFieldOperations::DivCyl(F, pos);
+		
+		// F = (r, 0, 0) → ∇·F = 2 (constant)
+		REQUIRE_THAT(div, WithinRel(REAL(2.0), REAL(1e-5)));
+	}
+
+	// Combined field: F = (r, 0, z)
+	// ∇·F = (1/r)∂(r²)/∂r + 0 + ∂z/∂z = 2 + 1 = 3
+	class CylindricalCombinedVectorField : public IVectorFunction<3>
+	{
+	public:
+		VectorN<Real, 3> operator()(const VectorN<Real, 3>& pos) const override
+		{
+			// F = (Fᵣ, Fφ, Fz) = (r, 0, z)
+			return VectorN<Real, 3>{pos[0], REAL(0.0), pos[2]};
+		}
+	};
+
+	TEST_CASE("Divergence_Cylindrical_CombinedField", "[field_operations][divergence][cylindrical]")
+	{
+		TEST_PRECISION_INFO();
+		
+		CylindricalCombinedVectorField F;
+		Vec3Cyl pos{REAL(2.5), REAL(0.7), REAL(4.0)};  // (r, φ, z)
+		
+		Real div = VectorFieldOperations::DivCyl(F, pos);
+		
+		// F = (r, 0, z) → ∇·F = 2 + 1 = 3
+		REQUIRE_THAT(div, WithinRel(REAL(3.0), REAL(1e-5)));
+	}
+
+	/*********************************************************************/
+	/*****               SPHERICAL CURL TESTS                        *****/
+	/*********************************************************************/
+
+	// Radial field F = (r², 0, 0) in spherical coordinates
+	// ∇×F = 0 (radial fields are irrotational)
+	class SphericalIrrotationalField : public IVectorFunction<3>
+	{
+	public:
+		VectorN<Real, 3> operator()(const VectorN<Real, 3>& pos) const override
+		{
+			Real r = pos[0];
+			return VectorN<Real, 3>{r*r, REAL(0.0), REAL(0.0)};
+		}
+	};
+
+	TEST_CASE("Curl_Spherical_Irrotational", "[field_operations][curl][spherical][irrotational]")
+	{
+		TEST_PRECISION_INFO();
+		
+		SphericalIrrotationalField F;
+		Vec3Sph pos{REAL(2.0), REAL(0.8), REAL(1.2)};  // (r, θ, φ) - avoid poles
+		
+		auto curl = VectorFieldOperations::CurlSpher(F, pos);
+		
+		// Radial field → ∇×F = 0
+		REQUIRE_THAT(curl[0], WithinAbs(REAL(0.0), REAL(1e-6)));
+		REQUIRE_THAT(curl[1], WithinAbs(REAL(0.0), REAL(1e-6)));
+		REQUIRE_THAT(curl[2], WithinAbs(REAL(0.0), REAL(1e-6)));
+	}
+
+	// Azimuthal field F = (0, 0, r·sinθ) in spherical coordinates
+	// This is like a "φ-rotation" field
+	class SphericalAzimuthalField : public IVectorFunction<3>
+	{
+	public:
+		VectorN<Real, 3> operator()(const VectorN<Real, 3>& pos) const override
+		{
+			Real r = pos[0];
+			Real theta = pos[1];
+			// F = (0, 0, r·sinθ)
+			return VectorN<Real, 3>{REAL(0.0), REAL(0.0), r * sin(theta)};
+		}
+	};
+
+	TEST_CASE("Curl_Spherical_AzimuthalField", "[field_operations][curl][spherical]")
+	{
+		TEST_PRECISION_INFO();
+		
+		SphericalAzimuthalField F;
+		Real r = REAL(2.0);
+		Real theta = REAL(0.8);
+		Vec3Sph pos{r, theta, REAL(1.2)};
+		
+		auto curl = VectorFieldOperations::CurlSpher(F, pos);
+		
+		// For F = (0, 0, r·sinθ):
+		// (∇×F)ᵣ = (1/r·sinθ)[∂(sinθ·r·sinθ)/∂θ - 0] = (1/r·sinθ)[∂(r·sin²θ)/∂θ]
+		//        = (1/r·sinθ)·2r·sinθ·cosθ = 2cosθ
+		// (∇×F)θ = (1/r)[0 - ∂(r·r·sinθ)/∂r] = (1/r)[-2r·sinθ] = -2sinθ
+		// (∇×F)φ = (1/r)[0 - 0] = 0
+		Real expected_r = REAL(2.0) * cos(theta);
+		Real expected_theta = REAL(-2.0) * sin(theta);
+		
+		REQUIRE_THAT(curl[0], WithinRel(expected_r, REAL(1e-4)));
+		REQUIRE_THAT(curl[1], WithinRel(expected_theta, REAL(1e-4)));
+		REQUIRE_THAT(curl[2], WithinAbs(REAL(0.0), REAL(1e-6)));
+	}
+
+	/*********************************************************************/
+	/*****               CYLINDRICAL CURL TESTS                      *****/
+	/*********************************************************************/
+
+	// Radial field F = (r, 0, 0) in cylindrical coordinates
+	// ∇×F = 0 (radial fields are irrotational)
+	class CylindricalIrrotationalField : public IVectorFunction<3>
+	{
+	public:
+		VectorN<Real, 3> operator()(const VectorN<Real, 3>& pos) const override
+		{
+			return VectorN<Real, 3>{pos[0], REAL(0.0), REAL(0.0)};
+		}
+	};
+
+	TEST_CASE("Curl_Cylindrical_Irrotational", "[field_operations][curl][cylindrical][irrotational]")
+	{
+		TEST_PRECISION_INFO();
+		
+		CylindricalIrrotationalField F;
+		Vec3Cyl pos{REAL(3.0), REAL(1.5), REAL(2.0)};  // (r, φ, z)
+		
+		auto curl = VectorFieldOperations::CurlCyl(F, pos);
+		
+		// Radial field → ∇×F = 0
+		REQUIRE_THAT(curl[0], WithinAbs(REAL(0.0), REAL(1e-8)));
+		REQUIRE_THAT(curl[1], WithinAbs(REAL(0.0), REAL(1e-8)));
+		REQUIRE_THAT(curl[2], WithinAbs(REAL(0.0), REAL(1e-8)));
+	}
+
+	// Azimuthal field F = (0, r, 0) in cylindrical coordinates
+	// This represents solid body rotation about the z-axis
+	// (∇×F)z = (1/r)[Fφ + r·∂Fφ/∂r - ∂Fᵣ/∂φ] = (1/r)[r + r·1 - 0] = (1/r)·2r = 2
+	class CylindricalRotationalField : public IVectorFunction<3>
+	{
+	public:
+		VectorN<Real, 3> operator()(const VectorN<Real, 3>& pos) const override
+		{
+			// F = (Fᵣ, Fφ, Fz) = (0, r, 0) - solid body rotation
+			return VectorN<Real, 3>{REAL(0.0), pos[0], REAL(0.0)};
+		}
+	};
+
+	TEST_CASE("Curl_Cylindrical_Rotational", "[field_operations][curl][cylindrical]")
+	{
+		TEST_PRECISION_INFO();
+		
+		CylindricalRotationalField F;
+		Vec3Cyl pos{REAL(2.0), REAL(1.0), REAL(3.0)};  // (r, φ, z)
+		
+		auto curl = VectorFieldOperations::CurlCyl(F, pos);
+		
+		// F = (0, r, 0) → (∇×F)z = 2 (uniform rotation)
+		REQUIRE_THAT(curl[0], WithinAbs(REAL(0.0), REAL(1e-8)));
+		REQUIRE_THAT(curl[1], WithinAbs(REAL(0.0), REAL(1e-8)));
+		REQUIRE_THAT(curl[2], WithinRel(REAL(2.0), REAL(1e-5)));
+	}
+
+	// Field with z-dependence: F = (0, z, 0) in cylindrical coordinates
+	// (∇×F)ᵣ = (1/r)∂Fz/∂φ - ∂Fφ/∂z = 0 - 1 = -1
+	// (∇×F)φ = ∂Fᵣ/∂z - ∂Fz/∂r = 0 - 0 = 0
+	// (∇×F)z = (1/r)[Fφ + r·∂Fφ/∂r - ∂Fᵣ/∂φ] = (1/r)[z + 0 - 0] = z/r
+	class CylindricalZDependentField : public IVectorFunction<3>
+	{
+	public:
+		VectorN<Real, 3> operator()(const VectorN<Real, 3>& pos) const override
+		{
+			// F = (Fᵣ, Fφ, Fz) = (0, z, 0)
+			return VectorN<Real, 3>{REAL(0.0), pos[2], REAL(0.0)};
+		}
+	};
+
+	TEST_CASE("Curl_Cylindrical_ZDependentField", "[field_operations][curl][cylindrical]")
+	{
+		TEST_PRECISION_INFO();
+		
+		CylindricalZDependentField F;
+		Real r = REAL(3.0);
+		Real z = REAL(6.0);
+		Vec3Cyl pos{r, REAL(1.0), z};  // (r, φ, z)
+		
+		auto curl = VectorFieldOperations::CurlCyl(F, pos);
+		
+		// F = (0, z, 0) → ∇×F = (-1, 0, z/r)
+		REQUIRE_THAT(curl[0], WithinRel(REAL(-1.0), REAL(1e-6)));
+		REQUIRE_THAT(curl[1], WithinAbs(REAL(0.0), REAL(1e-8)));
+		REQUIRE_THAT(curl[2], WithinRel(z / r, REAL(1e-5)));
+	}
+
+	/*********************************************************************/
+	/*****        GENERAL COORDINATE GRADIENT/DIVERGENCE TESTS       *****/
+	/*********************************************************************/
+
+	TEST_CASE("Gradient_General_Cartesian_Matches_CartesianGradient", "[field_operations][gradient][general][metric]")
+	{
+		TEST_PRECISION_INFO();
+		
+		QuadraticScalarField f;
+		VectorN<Real, 3> pos{REAL(1.0), REAL(2.0), REAL(3.0)};
+		
+		// Using Cartesian metric tensor (identity matrix)
+		MetricTensorCartesian3D cartMetric;
+		
+		auto grad_general = ScalarFieldOperations::Gradient<3>(f, pos, cartMetric);
+		auto grad_cart = ScalarFieldOperations::GradientCart<3>(f, pos);
+		
+		// Both should give same result for Cartesian coordinates
+		REQUIRE_THAT(grad_general[0], WithinRel(grad_cart[0], REAL(1e-8)));
+		REQUIRE_THAT(grad_general[1], WithinRel(grad_cart[1], REAL(1e-8)));
+		REQUIRE_THAT(grad_general[2], WithinRel(grad_cart[2], REAL(1e-8)));
+	}
+
+	TEST_CASE("Divergence_General_Cartesian_Matches_CartesianDivergence", "[field_operations][divergence][general][metric]")
+	{
+		TEST_PRECISION_INFO();
+		
+		RadialVectorField F;
+		VectorN<Real, 3> pos{REAL(1.0), REAL(2.0), REAL(3.0)};
+		
+		// Using Cartesian metric tensor (identity matrix)
+		MetricTensorCartesian3D cartMetric;
+		
+		Real div_general = VectorFieldOperations::Divergence<3>(F, pos, cartMetric);
+		Real div_cart = VectorFieldOperations::DivCart<3>(F, pos);
+		
+		// Both should give same result for Cartesian coordinates
+		REQUIRE_THAT(div_general, WithinRel(div_cart, REAL(1e-6)));
+	}
+
+	/*********************************************************************/
+	/*****            EDGE CASES AND ERROR HANDLING                  *****/
+	/*********************************************************************/
+
+	TEST_CASE("Gradient_Cartesian_AtOrigin", "[field_operations][gradient][cartesian][edge]")
+	{
+		TEST_PRECISION_INFO();
+		
+		QuadraticScalarField f;
+		VectorN<Real, 3> origin{REAL(0.0), REAL(0.0), REAL(0.0)};
+		
+		auto grad = ScalarFieldOperations::GradientCart<3>(f, origin);
+		
+		// ∇f = (2x, 2y, 2z) at origin = (0, 0, 0)
+		REQUIRE_THAT(grad[0], WithinAbs(REAL(0.0), REAL(1e-10)));
+		REQUIRE_THAT(grad[1], WithinAbs(REAL(0.0), REAL(1e-10)));
+		REQUIRE_THAT(grad[2], WithinAbs(REAL(0.0), REAL(1e-10)));
+	}
+
+	TEST_CASE("Laplacian_Cartesian_AtOrigin", "[field_operations][laplacian][cartesian][edge]")
+	{
+		TEST_PRECISION_INFO();
+		
+		QuadraticScalarField f;
+		VectorN<Real, 3> origin{REAL(0.0), REAL(0.0), REAL(0.0)};
+		
+		Real lapl = ScalarFieldOperations::LaplacianCart<3>(f, origin);
+		
+		// ∇²f = 6 everywhere (constant)
+		REQUIRE_THAT(lapl, WithinRel(REAL(6.0), REAL(1e-6)));
+	}
+
+	TEST_CASE("Divergence_Cartesian_AtOrigin", "[field_operations][divergence][cartesian][edge]")
+	{
+		TEST_PRECISION_INFO();
+		
+		RadialVectorField F;
+		VectorN<Real, 3> origin{REAL(0.0), REAL(0.0), REAL(0.0)};
+		
+		Real div = VectorFieldOperations::DivCart<3>(F, origin);
+		
+		// ∇·F = 3 everywhere (constant)
+		REQUIRE_THAT(div, WithinRel(REAL(3.0), REAL(1e-8)));
+	}
+
+	TEST_CASE("Curl_Cartesian_AtOrigin", "[field_operations][curl][cartesian][edge]")
+	{
+		TEST_PRECISION_INFO();
+		
+		RotationalVectorField F;
+		VectorN<Real, 3> origin{REAL(0.0), REAL(0.0), REAL(0.0)};
+		
+		auto curl = VectorFieldOperations::CurlCart(F, origin);
+		
+		// F = (y, -x, 0) → ∇×F = (0, 0, -2) everywhere
+		REQUIRE_THAT(curl[0], WithinAbs(REAL(0.0), REAL(1e-10)));
+		REQUIRE_THAT(curl[1], WithinAbs(REAL(0.0), REAL(1e-10)));
+		REQUIRE_THAT(curl[2], WithinRel(REAL(-2.0), REAL(1e-8)));
+	}
+
+	/*********************************************************************/
+	/*****         HIGHER DIMENSIONAL TESTS (N=4, N=5)               *****/
+	/*********************************************************************/
+
+	// 4D scalar field: f(x,y,z,w) = x² + y² + z² + w²
+	// ∇f = (2x, 2y, 2z, 2w)
+	// ∇²f = 8
+	class Quadratic4DField : public IScalarFunction<4>
+	{
+	public:
+		Real operator()(const VectorN<Real, 4>& pos) const override
+		{
+			return pos[0]*pos[0] + pos[1]*pos[1] + pos[2]*pos[2] + pos[3]*pos[3];
+		}
+	};
+
+	TEST_CASE("Gradient_Cartesian_4D", "[field_operations][gradient][cartesian][4d]")
+	{
+		TEST_PRECISION_INFO();
+		
+		Quadratic4DField f;
+		VectorN<Real, 4> pos{REAL(1.0), REAL(2.0), REAL(3.0), REAL(4.0)};
+		
+		auto grad = ScalarFieldOperations::GradientCart<4>(f, pos);
+		
+		// ∇f = (2x, 2y, 2z, 2w) = (2, 4, 6, 8)
+		REQUIRE_THAT(grad[0], WithinRel(REAL(2.0), REAL(1e-8)));
+		REQUIRE_THAT(grad[1], WithinRel(REAL(4.0), REAL(1e-8)));
+		REQUIRE_THAT(grad[2], WithinRel(REAL(6.0), REAL(1e-8)));
+		REQUIRE_THAT(grad[3], WithinRel(REAL(8.0), REAL(1e-8)));
+	}
+
+	TEST_CASE("Laplacian_Cartesian_4D", "[field_operations][laplacian][cartesian][4d]")
+	{
+		TEST_PRECISION_INFO();
+		
+		Quadratic4DField f;
+		VectorN<Real, 4> pos{REAL(1.0), REAL(2.0), REAL(3.0), REAL(4.0)};
+		
+		Real lapl = ScalarFieldOperations::LaplacianCart<4>(f, pos);
+		
+		// ∇²f = 2 + 2 + 2 + 2 = 8
+		REQUIRE_THAT(lapl, WithinRel(REAL(8.0), REAL(1e-6)));
+	}
+
+	// 4D radial vector field: F(x,y,z,w) = (x, y, z, w)
+	// ∇·F = 1 + 1 + 1 + 1 = 4
+	class Radial4DVectorField : public IVectorFunction<4>
+	{
+	public:
+		VectorN<Real, 4> operator()(const VectorN<Real, 4>& pos) const override
+		{
+			return pos;
+		}
+	};
+
+	TEST_CASE("Divergence_Cartesian_4D", "[field_operations][divergence][cartesian][4d]")
+	{
+		TEST_PRECISION_INFO();
+		
+		Radial4DVectorField F;
+		VectorN<Real, 4> pos{REAL(1.0), REAL(2.0), REAL(3.0), REAL(4.0)};
+		
+		Real div = VectorFieldOperations::DivCart<4>(F, pos);
+		
+		// ∇·F = 4
+		REQUIRE_THAT(div, WithinRel(REAL(4.0), REAL(1e-8)));
 	}
 
 	/*********************************************************************/

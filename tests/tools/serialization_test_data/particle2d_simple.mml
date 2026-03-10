@@ -1,0 +1,22 @@
+PARTICLE_SIMULATION_DATA_2D
+Width: 100
+Height: 100
+NumBalls: 2
+Ball_1 red 5
+Ball_2 blue 7.5
+NumSteps: 5
+Step 0 0
+0 10 50
+1 30 60
+Step 1 0.01
+0 12 53
+1 32 63
+Step 2 0.02
+0 14 56
+1 34 66
+Step 3 0.03
+0 16 59
+1 36 69
+Step 4 0.04
+0 18 62
+1 38 72

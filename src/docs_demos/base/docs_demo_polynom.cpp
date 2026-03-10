@@ -4,7 +4,7 @@
 #include "MMLBase.h"
 
 #include "base/Polynom.h"
-#include "algorithms/RootFindingPolynoms.h"
+#include "mml/algorithms/RootFinding/RootFindingPolynoms.h"
 #endif
 
 using namespace MML;
@@ -135,15 +135,15 @@ void Docs_Demo_Polynom_Calculus()
 	std::cout << "p(x)  = " << p << std::endl;
 
 	// Derivative - returns a new polynomial
-	PolynomReal dp = p.Derive();
+	PolynomReal dp = p.derivative();
 	std::cout << "p'(x) = " << dp << std::endl;
 
 	// Second derivative
-	PolynomReal ddp = dp.Derive();
+	PolynomReal ddp = dp.derivative();
 	std::cout << "p''(x)= " << ddp << std::endl;
 
 	// Integration - returns a polynomial with constant term = 0
-	PolynomReal int_p = p.Integrate();
+	PolynomReal int_p = p.integral();
 	std::cout << "∫p(x) = " << int_p << " (+ C)" << std::endl;
 
 	// Derive() with position: evaluates polynomial and derivatives at a point

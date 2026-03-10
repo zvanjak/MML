@@ -2,29 +2,39 @@
 ///                         MinimalMathLibrary (MML)                                  ///
 ///                                                                                   ///
 ///  File:        Integration1D.h                                                     ///
-///  Description: 1D numerical integration (Trapezoidal, Simpson, Romberg)            ///
-///               Adaptive quadrature with error control                              ///
+///  Description: 1D numerical integration (Trapezoidal, Simpson, Romberg, Gauss)     ///
+///               Adaptive quadrature with error control and convergence diagnostics  ///
 ///                                                                                   ///
-///  Copyright:   (c) 2024-2025 Zvonimir Vanjak                                       ///
-///  License:     Licensed under MML dual-license (see LICENSE.md)                    ///
-///               - Free for non-commercial use                                       ///
-///               - Commercial license available                                      ///
+///  Methods:     TRAP     - Extended trapezoidal rule (adaptive)                     ///
+///               SIMPSON  - Simpson's rule with Richardson extrapolation             ///
+///               ROMBERG  - Romberg integration (exponentially fast for smooth f)    ///
+///               GAUSS10  - 10-point Gauss-Legendre (exact for poly deg ≤ 19)        ///
+///                                                                                   ///
+///  Usage:       IntegrationResult r = IntegrateSimpson(f, a, b, eps);               ///
+///               if (r.converged) std::cout << r.value << " ± " << r.error_estimate; ///
+///                                                                                   ///
+///  Copyright:   (c) 2024-2026 Zvonimir Vanjak                                       ///
+///  License:     MIT License (see LICENSE.md)                                         ///
+///                                                                                   ///
 ///////////////////////////////////////////////////////////////////////////////////////////
-#if !defined MML_INTEGRATION_1D_H
+#ifndef MML_INTEGRATION_1D_H
 #define MML_INTEGRATION_1D_H
 
 #include <vector>
 
 #include "MMLBase.h"
+#include "IntegrationBase.h"
+#include "GaussKronrod.h"
 
 #include "interfaces/IFunction.h"
 
 
 namespace MML
 {
+	/// Integration method selection for 1D/2D/3D integration
+	enum IntegrationMethod { TRAP, SIMPSON, ROMBERG, GAUSS10, GAUSS10KRONROD21 };
 
-	enum IntegrationMethod { TRAP, SIMPSON, ROMBERG, GAUSS10 };
-
+	/// @brief Abstract base for quadrature refinement
 	class IQuadrature {
 	protected:
 		int _currStep = 0;
@@ -34,6 +44,8 @@ namespace MML
 		virtual Real next() = 0;
 	};
 
+	/// @brief Trapezoidal rule integrator with progressive refinement
+	/// @details Each call to next() doubles the number of evaluation points
 	class TrapIntegrator : IQuadrature
 	{
 	public:
@@ -68,9 +80,11 @@ namespace MML
 		}
 	};
 
-	// Using extended trapezoidal rule, returns the integral of the function func from a to b.
-	// Returns IntegrationResult with convergence status and diagnostics.
-	// Parameter eps sets the desired fractional accuracy.
+	/// @brief Extended trapezoidal rule with adaptive refinement
+	/// @param func Function to integrate
+	/// @param a,b Integration bounds
+	/// @param eps Desired relative accuracy (default: 1e-6)
+	/// @return IntegrationResult with value, error_estimate, iterations, converged flag
 	static IntegrationResult IntegrateTrap(const IRealFunction& func, Real a, Real b,
 																		 const Real eps = Defaults::TrapezoidIntegrationEPS)	{
 		int		j;
@@ -96,20 +110,13 @@ namespace MML
 		Real final_error = std::abs(currSum - oldSum);
 		return IntegrationResult(currSum, final_error, j, false);
 	}
-	
-	// Legacy interface with output parameters (deprecated)
-	static Real IntegrateTrap(const IRealFunction& func, Real a, Real b,
-												int* doneSteps, Real* achievedPrec,
-												const Real eps = Defaults::TrapezoidIntegrationEPS)	{
-		auto result = IntegrateTrap(func, a, b, eps);
-		if (doneSteps != nullptr)			*doneSteps = result.iterations;
-		if (achievedPrec != nullptr)  *achievedPrec = result.error_estimate;
-		return result.value;
-	}
 
-	// Using Simpson's rule, returns the integral of the function func from a to b.
-	// Returns IntegrationResult with convergence status and diagnostics.
-	// Parameter eps sets the desired fractional accuracy.
+	/// @brief Simpson's rule with adaptive refinement
+	/// @details Uses 4/3 Richardson extrapolation on trapezoidal estimates
+	/// @param func Function to integrate
+	/// @param a,b Integration bounds
+	/// @param eps Desired relative accuracy (default: 1e-8)
+	/// @return IntegrationResult with value, error_estimate, iterations, converged flag
 	static IntegrationResult IntegrateSimpson(const IRealFunction& func, Real a, Real b,
 																			 const Real eps = Defaults::SimpsonIntegrationEPS)
 	{
@@ -139,17 +146,7 @@ namespace MML
 		Real final_error = std::abs(currSum - oldSum);
 		return IntegrationResult(currSum, final_error, j, false);
 	}
-	
-	// Legacy interface with output parameters (deprecated)
-	static Real IntegrateSimpson(const IRealFunction& func, Real a, Real b, 
-													 int* doneSteps, Real* achievedPrec,
-													 const Real eps = Defaults::SimpsonIntegrationEPS)
-	{
-		auto result = IntegrateSimpson(func, a, b, eps);
-		if (doneSteps != nullptr)			*doneSteps = result.iterations;
-		if (achievedPrec != nullptr)	*achievedPrec = result.error_estimate;
-		return result.value;
-	}
+
 
 	/**
 	 * @brief IntegrateRomberg - Romberg integration using Richardson extrapolation.
@@ -283,17 +280,7 @@ namespace MML
 		// Did not converge within max iterations
 		return IntegrationResult(ss, std::abs(dss), JMAX, false);
 	}
-	
-	// Legacy interface with output parameters (deprecated)
-	static Real IntegrateRomberg(const IRealFunction& func, Real a, Real b, 
-													 int* doneSteps, Real* achievedPrec,
-													 const Real eps = Defaults::RombergIntegrationEPS)
-	{
-		auto result = IntegrateRomberg(func, a, b, eps);
-		if (doneSteps != nullptr)			*doneSteps = result.iterations;
-		if (achievedPrec != nullptr)	*achievedPrec = result.error_estimate;
-		return result.value;
-	}
+
 
 	/**
 	 * @brief IntegrateGauss10 - Ten-point Gauss-Legendre quadrature.
@@ -367,11 +354,22 @@ namespace MML
 		// iterations=1 indicates single-pass evaluation (10 function calls)
 		return IntegrationResult(result, 0.0, 1, true);
 	}
-	
-	// Legacy interface for backward compatibility (returns raw Real)
-	static Real IntegrateGauss10Raw(const IRealFunction& func, const Real a, const Real b)
+
+	/**
+	 * @brief 21-point Gauss-Kronrod integration (G10K21 rule)
+	 * @details Uses 21-point Kronrod rule with embedded 10-point Gauss for error estimation.
+	 *          Provides built-in error estimate from difference between Gauss and Kronrod results.
+	 *          More accurate than GAUSS10 with only 21 function evaluations.
+	 * @param func Function to integrate
+	 * @param a Lower bound of integration
+	 * @param b Upper bound of integration
+	 * @return IntegrationResult with value, error_estimate, iterations=21, converged=true
+	 */
+	static IntegrationResult IntegrateGK21(const IRealFunction& func, Real a, Real b)
 	{
-		return IntegrateGauss10(func, a, b).value;
+		// Wrap in lambda to avoid passing abstract class by value to template
+		auto gkResult = Integration::IntegrateGK21([&func](Real x) { return func(x); }, a, b);
+		return IntegrationResult(gkResult.value, gkResult.error_estimate, gkResult.function_evals, gkResult.converged);
 	}
 
 	/**
@@ -407,6 +405,8 @@ namespace MML
 			return IntegrateRomberg(func, a, b, eps);
 		case GAUSS10:
 			return IntegrateGauss10(func, a, b);
+		case GAUSS10KRONROD21:
+			return IntegrateGK21(func, a, b);
 		default:
 			return IntegrateTrap(func, a, b, eps);
 		}
@@ -442,34 +442,10 @@ namespace MML
 			return IntegrateRomberg(func, a, b, eps);
 		else if constexpr (Method == GAUSS10)
 			return IntegrateGauss10(func, a, b);
+		else if constexpr (Method == GAUSS10KRONROD21)
+			return IntegrateGK21(func, a, b);
 		else
 			return IntegrateTrap(func, a, b, eps);
-	}
-
-	// ============================================================================
-	// DEPRECATED: Global function pointer
-	// ============================================================================
-	// This global mutable function pointer is DEPRECATED and will be removed.
-	// 
-	// Problems with this approach:
-	// 1. Process-global mutable state - thread-unsafe
-	// 2. Hidden coupling across translation units
-	// 3. Hard-to-debug behavior changes
-	// 
-	// Migration path:
-	//   OLD: Integrate = IntegrateSimpson;
-	//        auto result = Integrate(f, a, b, eps);
-	//
-	//   NEW: auto result = Integrate(f, a, b, SIMPSON, eps);
-	//    or: auto result = Integrate<SIMPSON>(f, a, b, eps);
-	//    or: auto result = IntegrateSimpson(f, a, b, eps);  // Direct call
-	//
-	// The function pointer is kept temporarily for backward compatibility but
-	// should not be used in new code.
-	// ============================================================================
-	[[deprecated("Use Integrate(func, a, b, method, eps) or call IntegrateTrap/Simpson/Romberg directly")]]
-	static inline IntegrationResult IntegrateDefault(const MML::IRealFunction& f, Real a, Real b, Real eps) {
-		return IntegrateTrap(f, a, b, eps);
 	}
 }
 

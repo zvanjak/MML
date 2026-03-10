@@ -3,10 +3,10 @@
 #else
 #include "MMLBase.h"
 
-#include "base/VectorN.h"
+#include "base/Vector/VectorN.h"
 #include "base/Function.h"
 #include "interfaces/IFunction.h"
-#include "algorithms/MonteCarloIntegration.h"
+#include "core/Integration/MonteCarloIntegration.h"
 #endif
 
 using namespace MML;

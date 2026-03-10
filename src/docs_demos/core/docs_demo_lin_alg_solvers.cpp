@@ -7,7 +7,7 @@
 
 #endif
 
-#include "../test_data/linear_alg_eq_systems_test_bed.h"
+#include "../test_beds/linear_alg_eq_systems_test_bed.h"
 
 using namespace MML;
 
@@ -27,9 +27,9 @@ void Docs_Demo_LinAlgSolvers_GaussJordan()
 	
 	// Example 1: Single RHS
 	std::cout << "\n--- Single Right-Hand Side ---\n";
-	Matrix<Real> A = TestBeds::mat_5x5;
+	Matrix<Real> A = TestBeds::mat_5x5();
 	Matrix<Real> A_copy(A);
-	Vector<Real> b = TestBeds::mat_5x5_rhs0;
+	Vector<Real> b = TestBeds::mat_5x5_rhs0();
 	Vector<Real> b_copy(b);
 	
 	std::cout << "System A*x = b, where A is 5x5:\n";
@@ -56,7 +56,7 @@ void Docs_Demo_LinAlgSolvers_GaussJordan()
 	// Example 3: Multiple RHS
 	std::cout << "\n--- Multiple Right-Hand Sides ---\n";
 	A_copy = A;
-	Matrix<Real> B = TestBeds::mat_5x5_rhs_multi;
+	Matrix<Real> B = TestBeds::mat_5x5_rhs_multi();
 	std::cout << "Solving A*X = B where B has 2 columns:\n";
 	
 	GaussJordanSolver<Real>::SolveInPlace(A_copy, B);
@@ -78,11 +78,11 @@ void Docs_Demo_LinAlgSolvers_LU()
 	std::cout << "Best for: Multiple RHS, general square systems\n";
 	
 	// Create solver (performs decomposition)
-	Matrix<Real> A = TestBeds::mat_5x5;
+	Matrix<Real> A = TestBeds::mat_5x5();
 	LUSolver<Real> lu(A);
 	
 	std::cout << "\n--- Solve single RHS ---\n";
-	Vector<Real> b = TestBeds::mat_5x5_rhs0;
+	Vector<Real> b = TestBeds::mat_5x5_rhs0();
 	Vector<Real> x = lu.Solve(b);
 	
 	std::cout << "Solution x = "; x.Print(std::cout, 10, 6); std::cout << std::endl;
@@ -131,10 +131,10 @@ void Docs_Demo_LinAlgSolvers_QR()
 	
 	// Square system
 	std::cout << "\n--- Square System ---\n";
-	Matrix<Real> A = TestBeds::mat_5x5;
+	Matrix<Real> A = TestBeds::mat_5x5();
 	QRSolver<Real> qr(A);
 	
-	Vector<Real> b = TestBeds::mat_5x5_rhs0;
+	Vector<Real> b = TestBeds::mat_5x5_rhs0();
 	Vector<Real> x = qr.Solve(b);
 	
 	std::cout << "Solution x = "; x.Print(std::cout, 10, 6); std::cout << std::endl;
@@ -179,10 +179,10 @@ void Docs_Demo_LinAlgSolvers_SVD()
 	
 	// Regular system
 	std::cout << "\n--- Regular System ---\n";
-	Matrix<Real> A = TestBeds::mat_5x5;
+	Matrix<Real> A = TestBeds::mat_5x5();
 	SVDecompositionSolver svd(A);
 	
-	Vector<Real> b = TestBeds::mat_5x5_rhs0;
+	Vector<Real> b = TestBeds::mat_5x5_rhs0();
 	Vector<Real> x = svd.Solve(b);
 	
 	std::cout << "Solution x = "; x.Print(std::cout, 10, 6); std::cout << std::endl;
@@ -236,7 +236,7 @@ void Docs_Demo_LinAlgSolvers_Cholesky()
 	B(1,0)=1; B(1,1)=3; B(1,2)=1; B(1,3)=0;
 	B(2,0)=0; B(2,1)=1; B(2,2)=4; B(2,3)=1;
 	B(3,0)=0; B(3,1)=0; B(3,2)=1; B(3,3)=5;
-	Matrix<Real> A_spd = B.GetTranspose() * B;
+	Matrix<Real> A_spd = B.transpose() * B;
 	
 	std::cout << "A (SPD) =\n"; A_spd.Print(std::cout, 8, 3);
 	
@@ -266,6 +266,139 @@ void Docs_Demo_LinAlgSolvers_Cholesky()
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
+///                       ILL-CONDITIONED SYSTEM (HILBERT MATRIX)                      ///
+///////////////////////////////////////////////////////////////////////////////////////////
+
+// Demo: Compare solver accuracy on ill-conditioned Hilbert matrix
+void Docs_Demo_LinAlgSolvers_IllConditioned()
+{
+	std::cout << "\n==========================================================================\n";
+	std::cout << "Demo: Ill-Conditioned System (Hilbert Matrix)\n";
+	std::cout << "==========================================================================\n";
+	
+	std::cout << "\nHilbert matrix H[i,j] = 1/(i+j+1) is notoriously ill-conditioned\n";
+	std::cout << "Demonstrates: QR and SVD provide much better accuracy than LU\n";
+	
+	// Create Hilbert matrix
+	int n = 5;
+	Matrix<Real> H(n, n);
+	for (int i = 0; i < n; i++)
+		for (int j = 0; j < n; j++)
+			H[i][j] = 1.0 / (i + j + 1.0);
+	
+	std::cout << "\nHilbert matrix (5x5):\n"; H.Print(std::cout, 10, 6);
+	
+	// Known solution
+	Vector<Real> x_exact({1.0, 2.0, 3.0, 4.0, 5.0});
+	Vector<Real> b = H * x_exact;
+	
+	std::cout << "\nExact solution: "; x_exact.Print(std::cout, 8, 3); std::cout << std::endl;
+	std::cout << "RHS b = H*x_exact: "; b.Print(std::cout, 10, 6); std::cout << std::endl;
+	
+	// Method 1: LU (may lose accuracy)
+	std::cout << "\n--- LU Decomposition ---\n";
+	LUSolver<Real> luSolver(H);
+	Vector<Real> x_lu = luSolver.Solve(b);
+	Real error_lu = (x_lu - x_exact).NormL2();
+	std::cout << "LU solution: "; x_lu.Print(std::cout, 10, 6); std::cout << std::endl;
+	std::cout << "Error ||x_LU - x_exact||_2 = " << error_lu << std::endl;
+	
+	// Method 2: QR (more stable)
+	std::cout << "\n--- QR Decomposition ---\n";
+	QRSolver<Real> qrSolver(H);
+	Vector<Real> x_qr = qrSolver.Solve(b);
+	Real error_qr = (x_qr - x_exact).NormL2();
+	std::cout << "QR solution: "; x_qr.Print(std::cout, 10, 6); std::cout << std::endl;
+	std::cout << "Error ||x_QR - x_exact||_2 = " << error_qr << std::endl;
+	
+	// Method 3: SVD (most stable)
+	std::cout << "\n--- SVD Decomposition ---\n";
+	SVDecompositionSolver svdSolver(H);
+	Vector<Real> x_svd = svdSolver.Solve(b);
+	Real error_svd = (x_svd - x_exact).NormL2();
+	std::cout << "SVD solution: "; x_svd.Print(std::cout, 10, 6); std::cout << std::endl;
+	std::cout << "Error ||x_SVD - x_exact||_2 = " << error_svd << std::endl;
+	
+	// Condition number
+	Vector<Real> w = svdSolver.getW();
+	Real cond = w[0] / w[w.size()-1];
+	std::cout << "\nHilbert matrix condition number: " << cond << std::endl;
+	
+	// Summary
+	std::cout << "\n--- Error Comparison ---\n";
+	std::cout << "LU  error: " << error_lu << std::endl;
+	std::cout << "QR  error: " << error_qr << "  (improvement: " << error_lu/error_qr << "x)\n";
+	std::cout << "SVD error: " << error_svd << "  (improvement: " << error_lu/error_svd << "x)\n";
+	std::cout << "\nConclusion: For ill-conditioned systems, QR and SVD provide\n";
+	std::cout << "            significantly better accuracy (often 100-1000x better)!\n";
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////
+///                       RANK-DEFICIENT SYSTEM WITH NULLSPACE                         ///
+///////////////////////////////////////////////////////////////////////////////////////////
+
+// Demo: Rank-deficient system with nullspace analysis
+void Docs_Demo_LinAlgSolvers_RankDeficient()
+{
+	std::cout << "\n==========================================================================\n";
+	std::cout << "Demo: Rank-Deficient System (SVD with Nullspace)\n";
+	std::cout << "==========================================================================\n";
+	
+	std::cout << "\nRank-deficient matrix: column 3 = 2*column 1 + column 2\n";
+	std::cout << "Only SVD can handle this robustly!\n";
+	
+	// Rank-deficient matrix (column 3 = 2*col1 + col2)
+	Matrix<Real> A(4, 3);
+	A(0,0)=1.0; A(0,1)=2.0; A(0,2)=4.0;   // Row 1
+	A(1,0)=2.0; A(1,1)=1.0; A(1,2)=5.0;   // Row 2
+	A(2,0)=1.0; A(2,1)=3.0; A(2,2)=5.0;   // Row 3
+	A(3,0)=3.0; A(3,1)=2.0; A(3,2)=8.0;   // Row 4
+	
+	std::cout << "\nMatrix A (4x3, rank-deficient):\n"; A.Print(std::cout, 8, 3);
+	
+	Vector<Real> b({1.0, 2.0, 3.0, 4.0});
+	std::cout << "RHS b: "; b.Print(std::cout, 8, 3); std::cout << std::endl;
+	
+	// SVD can handle rank-deficient matrices
+	SVDecompositionSolver svd(A);
+	
+	std::cout << "\n--- Singular Value Analysis ---\n";
+	Vector<Real> w = svd.getW();
+	std::cout << "Singular values: "; w.Print(std::cout, 15, 8); std::cout << std::endl;
+	std::cout << "Rank: " << svd.Rank() << " (should be 2, not 3!)\n";
+	std::cout << "Nullity: " << svd.Nullity() << " (dimension of null space)\n";
+	
+	// Solve with automatic thresholding
+	std::cout << "\n--- Minimum-Norm Solution ---\n";
+	Vector<Real> x = svd.Solve(b);
+	std::cout << "SVD solution (minimum norm): "; x.Print(std::cout, 10, 6); std::cout << std::endl;
+	
+	// Verify residual
+	Vector<Real> residual = A * x - b;
+	std::cout << "Residual ||A*x - b||_2 = " << residual.NormL2() << std::endl;
+	
+	// Extract nullspace basis
+	std::cout << "\n--- Null Space Basis ---\n";
+	Matrix<Real> nullBasis = svd.Nullspace();
+	std::cout << "Null space dimension: " << nullBasis.cols() << std::endl;
+	
+	if (nullBasis.cols() > 0) {
+		std::cout << "Null space basis vectors:\n"; nullBasis.Print(std::cout, 10, 6);
+		
+		// Verify: A*v should be zero for null space vectors
+		std::cout << "\nVerification A*v = 0 for null space vectors:\n";
+		for (int i = 0; i < nullBasis.cols(); i++) {
+			Vector<Real> v = nullBasis.VectorFromColumn(i);
+			Vector<Real> Av = A * v;
+			std::cout << "  ||A*v[" << i << "]||_2 = " << Av.NormL2() << " (should be ~0)\n";
+		}
+	}
+	
+	std::cout << "\nNote: LU/QR would fail with 'singular matrix' exception.\n";
+	std::cout << "      Only SVD handles rank deficiency robustly!\n";
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////
 ///                       SOLVER COMPARISON                                            ///
 ///////////////////////////////////////////////////////////////////////////////////////////
 
@@ -276,8 +409,8 @@ void Docs_Demo_LinAlgSolvers_Comparison()
 	std::cout << "Demo: Solver Comparison\n";
 	std::cout << "==========================================================================\n";
 	
-	Matrix<Real> A = TestBeds::mat_5x5;
-	Vector<Real> b = TestBeds::mat_5x5_rhs0;
+	Matrix<Real> A = TestBeds::mat_5x5();
+	Vector<Real> b = TestBeds::mat_5x5_rhs0();
 	
 	std::cout << "Solving same 5x5 system with all methods:\n\n";
 	
@@ -322,5 +455,7 @@ void Docs_Demo_LinAlgSolvers()
 	Docs_Demo_LinAlgSolvers_QR();
 	Docs_Demo_LinAlgSolvers_SVD();
 	Docs_Demo_LinAlgSolvers_Cholesky();
+	Docs_Demo_LinAlgSolvers_IllConditioned();
+	Docs_Demo_LinAlgSolvers_RankDeficient();
 	Docs_Demo_LinAlgSolvers_Comparison();
 }

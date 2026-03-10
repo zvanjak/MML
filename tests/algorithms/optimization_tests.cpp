@@ -1,6 +1,6 @@
 #include <catch2/catch_all.hpp>
-#include "../TestPrecision.h"
-#include "../TestMatchers.h"
+#include "TestPrecision.h"
+#include "TestMatchers.h"
 
 #ifdef MML_USE_SINGLE_HEADER
 #include "MML.h"
@@ -597,7 +597,7 @@ using namespace MML::Testing;
  * complete coverage of the 1D optimization algorithms.
  ***************************************************************************************************/
 
-#include "../../test_data/optimization_test_bed.h"
+#include "../../test_beds/optimization_test_bed.h"
 
 using namespace MML::TestBeds;
 

@@ -204,12 +204,12 @@ roster.print(std::cerr);
 std::string table_str = roster.toString();
 
 // Print to file
-std::ofstream outfile("roster.txt");
+std::ofstream outfile("roster.mml");
 roster.print(outfile);
 outfile.close();
 
 // Or use convenience method
-roster.printToFile("roster.txt");
+roster.printToFile("roster.mml");
 ```
 
 ---
@@ -526,7 +526,7 @@ table.print(std::cerr);
 table.print(std::clog);
 
 // File stream
-std::ofstream file("output.txt");
+std::ofstream file("output.mml");
 table.print(file);
 
 // String stream

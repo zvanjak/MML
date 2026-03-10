@@ -20,7 +20,7 @@ All code examples in this document are available as runnable code in `src/docs_d
 | `Docs_Demo_Matrix_Vector_mul()` | Matrix-vector multiplication |
 | `Docs_Demo_Matrix_Matrix_mul()` | Matrix-matrix multiplication |
 | `Docs_Demo_Matrix_invert()` | GetInverse() |
-| `Docs_Demo_Matrix_transpose()` | Transpose(), GetTranspose() |
+| `Docs_Demo_Matrix_transpose()` | Transpose(), transpose() |
 
 ## Quick Reference
 
@@ -30,7 +30,7 @@ Matrix<double> B(3, 3, 2.5);         // 3×3 filled with 2.5
 Matrix<double> C{3, 3, {1,2,3,       // From initializer list
                         4,5,6,
                         7,8,9}};
-Matrix<double> I = Matrix<double>::GetUnitMatrix(3);  // Identity matrix
+Matrix<double> I = Matrix<double>::Identity(3);  // Identity matrix
 ```
 
 ## Construction
@@ -51,7 +51,7 @@ std::vector<std::vector<double>> data = {{1,2},{3,4}};
 Matrix<double> B(data);
 
 // Special matrices
-auto I = Matrix<double>::GetUnitMatrix(5);     // 5×5 identity
+auto I = Matrix<double>::Identity(5);     // 5×5 identity
 auto diag = Matrix<double>::GetDiagonalMatrix(Vector<double>({1,2,3})); // Diagonal matrix
 ```
 
@@ -108,7 +108,7 @@ Vector<double> result = A * v;
 Matrix<double> A{3,3,{1,2,3,4,5,6,7,8,9}};
 
 // Transpose
-Matrix<double> At = A.GetTranspose();  // Returns copy
+Matrix<double> At = A.transpose();  // Returns copy
 A.Transpose();                          // In-place (square only)
 
 // Determinant (free function)

@@ -43,7 +43,7 @@ All curves and surfaces support:
 | Class | Type | Parameters | Description |
 |-------|------|------------|-------------|
 | `LineCurve` | Cartesian | pnt, dir, t₁, t₂ | Parametric line segment |
-| `Circle3DXY`, `Circle3DXZ`, `Circle3DYZ` | Cartesian | radius | Axis-aligned circles |
+| `Circle3DXYCurve`, `Circle3DXZCurve`, `Circle3DYZCurve` | Cartesian | radius, center | Axis-aligned circles |
 | `Circle` | Cartesian | R, normal, center | General 3D circle |
 | `HelixCurve` | Cartesian | R, b | Circular helix |
 | `TwistedCubicCurve` | Cartesian | — | Polynomial space curve |
@@ -292,13 +292,14 @@ Vec3Cart mid = line(0.5);  // Midpoint
 Real curv = line.getCurvature(0.5);  // 0 (straight line)
 ```
 
-### Circle3DXY, Circle3DXZ, Circle3DYZ
+### Circle3DXYCurve, Circle3DXZCurve, Circle3DYZCurve
 
 Axis-aligned circles in coordinate planes.
 
 **Example:**
 ```cpp
-Circle3DXY circleXY(3.0);  // Radius 3 in XY plane
+Circle3DXYCurve circleXY(3.0);  // Radius 3 in XY plane at origin
+Circle3DXYCurve circleXY2(3.0, Pnt3Cart(1, 2, 3));  // Radius 3 with center at (1,2,3)
 
 Vec3Cart pt = circleXY(Constants::PI);  // (-3, 0, 0)
 ```

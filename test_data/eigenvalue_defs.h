@@ -10,9 +10,9 @@
 #include "MML.h"
 #else
 #include "MMLBase.h"
-#include "base/Matrix.h"
-#include "base/MatrixSym.h"
-#include "base/Vector.h"
+#include "base/Matrix/Matrix.h"
+#include "base/Matrix/MatrixSym.h"
+#include "base/Vector/Vector.h"
 #endif
 
 namespace MML::TestBeds
@@ -90,7 +90,7 @@ namespace MML::TestBeds
 
     // Identity matrix - all eigenvalues = 1 (multiplicity n)
     inline Matrix<Real> getIdentity(int n) {
-        return Matrix<Real>::GetUnitMatrix(n);
+        return Matrix<Real>::Identity(n);
     }
 
     // Double eigenvalue: diag(1, 2, 2, 3) - eigenvalue 2 has multiplicity 2

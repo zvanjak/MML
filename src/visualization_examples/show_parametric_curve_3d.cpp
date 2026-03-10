@@ -10,7 +10,7 @@
 #include "MML.h"
 #else
 #include "MMLBase.h"
-#include "base/VectorN.h"
+#include "base/Vector/VectorN.h"
 #include "core/Curves.h"
 #include "tools/Visualizer.h"
 #endif
@@ -28,21 +28,21 @@ void Show_Parametric_Curve_3D_Examples()
     }};
     Visualizer::VisualizeParamCurve3D(helix, "Helix",
                                       0.0, 10*Constants::PI, 500,
-                                      "viz_curve3d_helix.txt");
+                                      "viz_curve3d_helix.mml");
 
     // Example 2: Using predefined Helix curve from library
     std::cout << "2. Library Helix (radius=5, pitch=1)\n";
     Curves::HelixCurve libHelix(5.0, 1.0);
     Visualizer::VisualizeParamCurve3D(libHelix, "Library Helix",
                                       -20.0, 20.0, 500,
-                                      "viz_curve3d_lib_helix.txt");
+                                      "viz_curve3d_lib_helix.mml");
 
     // Example 3: Toroidal spiral
     std::cout << "3. Toroidal Spiral\n";
     Curves::ToroidalSpiralCurve toroid(50.0);
     Visualizer::VisualizeParamCurve3D(toroid, "Toroidal Spiral",
                                       0.0, 2*Constants::PI, 2000,
-                                      "viz_curve3d_toroidal.txt");
+                                      "viz_curve3d_toroidal.mml");
 
     // Example 4: Trefoil knot
     std::cout << "4. Trefoil Knot\n";
@@ -55,7 +55,7 @@ void Show_Parametric_Curve_3D_Examples()
     }};
     Visualizer::VisualizeParamCurve3D(trefoil, "Trefoil Knot",
                                       0.0, 2*Constants::PI, 300,
-                                      "viz_curve3d_trefoil.txt");
+                                      "viz_curve3d_trefoil.mml");
 
     // Example 5: Viviani's curve (intersection of sphere and cylinder)
     std::cout << "5. Viviani's Curve\n";
@@ -69,7 +69,7 @@ void Show_Parametric_Curve_3D_Examples()
     }};
     Visualizer::VisualizeParamCurve3D(viviani, "Viviani's Curve",
                                       0.0, 4*Constants::PI, 300,
-                                      "viz_curve3d_viviani.txt");
+                                      "viz_curve3d_viviani.mml");
 
     // Example 6: Conical helix (helix on a cone)
     std::cout << "6. Conical Helix\n";
@@ -83,7 +83,7 @@ void Show_Parametric_Curve_3D_Examples()
     }};
     Visualizer::VisualizeParamCurve3D(conicalHelix, "Conical Helix",
                                       0.1, 10*Constants::PI, 500,
-                                      "viz_curve3d_conical_helix.txt");
+                                      "viz_curve3d_conical_helix.mml");
 
     // Example 7: Figure-8 in 3D space
     std::cout << "7. 3D Figure-8\n";
@@ -96,7 +96,7 @@ void Show_Parametric_Curve_3D_Examples()
     }};
     Visualizer::VisualizeParamCurve3D(figure8_3d, "3D Figure-8",
                                       0.0, 2*Constants::PI, 200,
-                                      "viz_curve3d_figure8.txt");
+                                      "viz_curve3d_figure8.mml");
 
     // Example 8: Spherical spiral
     std::cout << "8. Spherical Spiral (loxodrome)\n";
@@ -112,7 +112,7 @@ void Show_Parametric_Curve_3D_Examples()
     }};
     Visualizer::VisualizeParamCurve3D(sphericalSpiral, "Spherical Spiral",
                                       0.0, Constants::PI, 500,
-                                      "viz_curve3d_spherical_spiral.txt");
+                                      "viz_curve3d_spherical_spiral.mml");
 
     // Example 9: Cinquefoil knot (5_1 knot)
     std::cout << "9. Cinquefoil Knot\n";
@@ -125,7 +125,7 @@ void Show_Parametric_Curve_3D_Examples()
     }};
     Visualizer::VisualizeParamCurve3D(cinquefoil, "Cinquefoil Knot",
                                       0.0, 2*Constants::PI, 500,
-                                      "viz_curve3d_cinquefoil.txt");
+                                      "viz_curve3d_cinquefoil.mml");
 
     // Example 10: Slinky curve
     std::cout << "10. Slinky Curve\n";
@@ -141,7 +141,7 @@ void Show_Parametric_Curve_3D_Examples()
     }};
     Visualizer::VisualizeParamCurve3D(slinky, "Slinky Curve",
                                       0.0, 2*Constants::PI, 1000,
-                                      "viz_curve3d_slinky.txt");
+                                      "viz_curve3d_slinky.mml");
 
     std::cout << "\n3D parametric curve visualization examples complete!\n";
 }

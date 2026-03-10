@@ -3,8 +3,8 @@
 #else
 #include "MMLBase.h"
 
-#include "base/Vector.h"
-#include "base/Matrix.h"
+#include "base/Vector/Vector.h"
+#include "base/Matrix/Matrix.h"
 
 #include "base/Function.h"
 #include "base/InterpolatedFunction.h"
@@ -218,7 +218,7 @@ void Test_RealFunction_Linear_interp()
     std::cout << "Avg rel diff   = " << avgRelDiff << std::endl;
     std::cout << "Max rel diff   = " << maxRelDiff << std::endl;
     
-    Visualizer::VisualizeRealFunction(linear_interp, "sin(x) linear interpolation", x1, x2, 100, "func_sin_x_lin_interp.txt");
+    Visualizer::VisualizeRealFunction(linear_interp, "sin(x) linear interpolation", x1, x2, 100, "func_sin_x_lin_interp.mml");
 }
 
 void Demo_Interpolated_Function()

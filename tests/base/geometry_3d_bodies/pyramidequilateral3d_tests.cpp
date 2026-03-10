@@ -5,11 +5,13 @@
 #ifdef MML_USE_SINGLE_HEADER
 #include "MML.h"
 #else
-#include "base/Geometry3DBodies.h"
+#include "mml/base/Geometry/Geometry3DBodies.h"
 #endif
 
 using namespace MML;
 using namespace MML::Testing;
+
+namespace MML::Tests::Base::Geometry3DBodies::PyramidEquilateral3DTests {
 
 TEST_CASE("PyramidEquilateral3D::Constructor", "[geometry][pyramidequilateral][constructor]")
 {
@@ -109,7 +111,7 @@ TEST_CASE("PyramidEquilateral3D::GetBoundingBox", "[geometry][pyramidequilateral
     SECTION("Bounding box from base to apex")
     {
         PyramidEquilateral3D pyramid(8.0);
-        BoundingBox3D bbox = pyramid.GetBoundingBox();
+        Box3D bbox = pyramid.GetBoundingBox();
         
         Real h = 8.0 / std::sqrt(3.0);
         REQUIRE_THAT(bbox.Min().X() , RealApprox(-4.0));
@@ -245,7 +247,7 @@ TEST_CASE("PyramidEquilateral3D::InheritedMethods", "[geometry][pyramidequilater
         Real volume = pyramid.Volume();
         Real surfaceArea = pyramid.SurfaceArea();
         Pnt3Cart center = pyramid.GetCenter();
-        BoundingBox3D bbox = pyramid.GetBoundingBox();
+        Box3D bbox = pyramid.GetBoundingBox();
         BoundingSphere3D bsphere = pyramid.GetBoundingSphere();
         std::string str = pyramid.ToString();
         
@@ -300,3 +302,5 @@ TEST_CASE("PyramidEquilateral3D::GeometricProperties", "[geometry][pyramidequila
         REQUIRE_THAT(ratio , RealApprox(4.0));
     }
 }
+
+} // namespace MML::Tests::Base::Geometry3DBodies::PyramidEquilateral3DTests

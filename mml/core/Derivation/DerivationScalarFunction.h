@@ -5,10 +5,9 @@
 ///  Description: Partial derivatives of scalar functions f:R^n->R                    ///
 ///               Gradient, Hessian, directional derivatives                          ///
 ///                                                                                   ///
-///  Copyright:   (c) 2024-2025 Zvonimir Vanjak                                       ///
-///  License:     Licensed under MML dual-license (see LICENSE.md)                    ///
-///               - Free for non-commercial use                                       ///
-///               - Commercial license available                                      ///
+///  Copyright:   (c) 2024-2026 Zvonimir Vanjak                                       ///
+///  License:     MIT License (see LICENSE.md)                                         ///
+///                                                                                   ///
 ///////////////////////////////////////////////////////////////////////////////////////////
 #if !defined MML_DERIVATION_SCALAR_FUNCTION_H
 #define MML_DERIVATION_SCALAR_FUNCTION_H
@@ -17,7 +16,7 @@
 
 #include "DerivationBase.h"
 
-#include "base/VectorN.h"
+#include "base/Vector/VectorN.h"
 
 namespace MML
 {
@@ -25,7 +24,14 @@ namespace MML
 	{
 		/********************************************************************************************************************/
 		/********                               Numerical derivatives of FIRST order                                 ********/
-		/********************************************************************************************************************/
+		/********************************************************************************************************************/		/// @brief First-order partial derivative ∂f/∂xᵢ using forward difference (O(h) accuracy)
+		/// @tparam N Dimension of domain R^N
+		/// @param f Scalar function f:R^N→R
+		/// @param deriv_index Index i of variable (0-based)
+		/// @param point Evaluation point
+		/// @param h Step size
+		/// @param error Output: error estimate (optional)
+		/// @return ∂f/∂xᵢ(point) ≈ [f(x+h·eᵢ) - f(x)] / h
 		template <int N>
 		static Real NDer1Partial(const IScalarFunction<N>& f, int deriv_index, const VectorN<Real, N>& point, 
 														 Real h, Real* error = nullptr)
@@ -54,6 +60,8 @@ namespace MML
 		{
 			return NDer1Partial(f, deriv_index, point, NDer1_h, error);
 		}
+		/// @brief Compute all N first-order partial derivatives (gradient components) at once
+		/// @return Vector [∂f/∂x₁, ∂f/∂x₂, ..., ∂f/∂xₙ] (gradient ∇f)
 		template <int N>
 		static VectorN<Real, N> NDer1PartialByAll(const IScalarFunction<N>& f, const VectorN<Real, N>& point, 
 																							Real h, VectorN<Real, N>* error = nullptr)
@@ -80,6 +88,8 @@ namespace MML
 		/********************************************************************************************************************/
 		/********                               Numerical derivatives of SECOND order                                ********/
 		/********************************************************************************************************************/
+		/// @brief Second-order partial derivative ∂f/∂xᵢ using central difference (O(h²) accuracy)
+		/// @note More accurate than 1st order: [f(x+h·eᵢ) - f(x-h·eᵢ)] / (2h)
 		template <int N>
 		static Real NDer2Partial(const IScalarFunction<N>& f, int deriv_index, const VectorN<Real, N>& point, Real h, Real* error = nullptr)
 		{
@@ -137,6 +147,8 @@ namespace MML
 		/********************************************************************************************************************/
 		/********                               Numerical derivatives of FOURTH order                                ********/
 		/********************************************************************************************************************/
+		/// @brief Fourth-order partial derivative ∂f/∂xᵢ using 5-point stencil (O(h⁴) accuracy)
+		/// @note High accuracy: [f(x-2h) - 8f(x-h) + 8f(x+h) - f(x+2h)] / (12h)
 		template <int N>
 		static Real NDer4Partial(const IScalarFunction<N>& f, int deriv_index, const VectorN<Real, N>& point, 
 														 Real h, Real* error = nullptr)
@@ -203,6 +215,8 @@ namespace MML
 		/********************************************************************************************************************/
 		/********                               Numerical derivatives of SIXTH order                                 ********/
 		/********************************************************************************************************************/
+		/// @brief Sixth-order partial derivative ∂f/∂xᵢ using 7-point stencil (O(h⁶) accuracy)
+		/// @note Very high accuracy for smooth functions
 		template <int N>
 		static Real NDer6Partial(const IScalarFunction<N>& f, int deriv_index, const VectorN<Real, N>& point, Real h, Real* error = nullptr)
 		{
@@ -276,6 +290,8 @@ namespace MML
 		/********************************************************************************************************************/
 		/********                               Numerical derivatives of EIGHTH order                                ********/
 		/********************************************************************************************************************/
+		/// @brief Eighth-order partial derivative ∂f/∂xᵢ using 9-point stencil (O(h⁸) accuracy)
+		/// @note Highest accuracy, 9 function evaluations
 		template <int N>
 		static Real NDer8Partial(const IScalarFunction<N>& f, int deriv_index, const VectorN<Real, N>& point, Real h, Real* error = nullptr)
 		{
@@ -450,6 +466,8 @@ namespace MML
 			return NSecDer2Partial(f, der_ind1, der_ind2, point, NDer2_h, error);
 		}
 
+		/// @brief Fourth-order accurate (O(h⁴)) second partial derivative
+		/// @note Pure (i=j): 5-point formula, mixed (i≠j): Richardson extrapolation (13 evals)
 		// Fourth-order accurate (O(h⁴)) second partial derivative
 		// For pure second partial (∂²f/∂xᵢ²): [-f(x-2h) + 16f(x-h) - 30f(x) + 16f(x+h) - f(x+2h)] / (12h²) - 5 evaluations
 		// For mixed partial (∂²f/∂xᵢ∂xⱼ): Higher-order cross-difference stencil - 13 evaluations

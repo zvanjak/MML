@@ -489,7 +489,7 @@ public:
 ### Example
 
 ```cpp
-#include "base/MatrixBandDiag.h"
+#include "base/Matrix/MatrixBandDiag.h"
 #include "core/LinAlgEqSolvers.h"
 
 // Create tridiagonal matrix (lower bandwidth = 1, upper bandwidth = 1)
@@ -993,7 +993,7 @@ Null space dimension: 1
 | Example | Source File | Description |
 |---------|-------------|-------------|
 | Gauss-Jordan Solver | [docs_demo_lin_alg_solvers.cpp](../../src/docs_demos/docs_demo_lin_alg_solvers.cpp) | Gauss-Jordan elimination with matrix inversion |
-| Linear System Tests | [linear_alg_eq_systems_test_bed.h](../../test_data/linear_alg_eq_systems_test_bed.h) | Test matrices for linear algebra |
+| Linear System Tests | [linear_alg_eq_systems_test_bed.h](../../test_beds/linear_alg_eq_systems_test_bed.h) | Test matrices for linear algebra |
 
 ---
 

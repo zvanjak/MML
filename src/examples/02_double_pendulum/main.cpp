@@ -26,9 +26,9 @@
 #include "MMLBase.h"
 #include "mml/base/BaseUtils.h"
 #include "mml/core/Derivation.h"
-#include "mml/algorithms/ODESystemSolver.h"
-#include "mml/algorithms/ODESystemStepCalculators.h"
-#include "mml/algorithms/ODESystemSteppers.h"
+#include "mml/algorithms/ODESolvers/ODEAdaptiveIntegrator.h"
+#include "mml/algorithms/ODESolvers/ODEFixedStepIntegrators.h"
+#include "mml/algorithms/ODESolvers/ODESystemStepCalculators.h"
 #include "mml/tools/Visualizer.h"
 #include "mml/tools/Serializer.h"
 #endif
@@ -72,6 +72,21 @@ void anglesToCartesian(Real l1, Real l2, Real theta1, Real theta2,
     y2 = y1 - l2 * cos(theta2);
 }
 
+/// @brief Wrap angle to [-π, π] for visualization
+static Real wrapAngle(Real theta) {
+    theta = std::fmod(theta + Constants::PI, 2.0 * Constants::PI);
+    if (theta < 0) theta += 2.0 * Constants::PI;
+    return theta - Constants::PI;
+}
+
+/// @brief Create wrapped-angle vectors from solution data
+static Vector<Real> wrapAngles(const Vector<Real>& angles) {
+    Vector<Real> wrapped(angles.size());
+    for (int i = 0; i < angles.size(); i++)
+        wrapped[i] = wrapAngle(angles[i]);
+    return wrapped;
+}
+
 
 /******************************************************************************
  * SCENARIO 1: Single Trajectory - Chaotic Motion
@@ -107,8 +122,8 @@ void Demo_SingleTrajectory()
     DoublePendulumODE pendulum(m1, m2, l1, l2);
 
     // Solve with fixed-step RK4 (fast!)
-    Real t_end = 10.0;  // 10 seconds
-    int numSteps = 2000;
+    Real t_end = 30.0;  // 30 seconds (longer for richer phase space)
+    int numSteps = 6000;
     Vector<Real> initCond{ theta1_init, omega1_init, theta2_init, omega2_init };
 
     std::cout << "Solving for " << t_end << " seconds... " << std::flush;
@@ -136,30 +151,33 @@ void Demo_SingleTrajectory()
     std::cout << "  Final energy:   " << E_final << " J\n";
     std::cout << "  Energy drift:   " << std::abs((E_final - E_init) / E_init) * 100 << "%\n\n";
 
-    // Visualize angles over time
-    PolynomInterpRealFunc theta1_func = sol.getSolAsPolyInterp(0, 3);
-    PolynomInterpRealFunc theta2_func = sol.getSolAsPolyInterp(2, 3);
+    // Visualize angles over time (wrapped to [-π, π])
+    Vector<Real> theta1_wrapped = wrapAngles(theta1_vals);
+    Vector<Real> theta2_wrapped = wrapAngles(theta2_vals);
+    PolynomInterpRealFunc theta1_func(t_vals, theta1_wrapped, 3);
+    PolynomInterpRealFunc theta2_func(t_vals, theta2_wrapped, 3);
 
     Visualizer::VisualizeMultiRealFunction(
         std::vector<IRealFunction*>{ &theta1_func, &theta2_func },
-        "Double Pendulum Angles vs Time",
+        "Double Pendulum Angles vs Time (wrapped)",
         { "Theta 1", "Theta 2" },
-        0.0, t_end, 1000, "double_pendulum_angles.txt");
+        0.0, t_end, 1000, "double_pendulum_angles.mml");
 
-    // Phase space trajectory (theta1 vs theta2)
+    // Phase space trajectory (theta1 vs theta2) - already wrapped
+
     Matrix<Real> phase_points(t_vals.size(), 2);
     for (int i = 0; i < t_vals.size(); i++)
     {
-        phase_points(i, 0) = theta1_vals[i];
-        phase_points(i, 1) = theta2_vals[i];
+        phase_points(i, 0) = wrapAngle(theta1_vals[i]);
+        phase_points(i, 1) = wrapAngle(theta2_vals[i]);
     }
     SplineInterpParametricCurve<2> phase_curve(0.0, 1.0, phase_points);
     
     Visualizer::VisualizeParamCurve2D(phase_curve, "Double Pendulum Phase Space",
-        0.0, 1.0, t_vals.size(), "double_pendulum_phase_space.txt");
+        0.0, 1.0, t_vals.size(), "double_pendulum_phase_space.mml");
 
     // Output trajectory file for animation
-    std::ofstream ofs("results/double_pendulum_trajectory.txt");
+    std::ofstream ofs("results/double_pendulum_trajectory.mml");
     ofs << "# Double Pendulum Trajectory\n";
     ofs << "# t theta1 theta2 x1 y1 x2 y2\n";
     ofs << std::fixed << std::setprecision(6);
@@ -196,25 +214,25 @@ void Demo_ButterflyEffect()
     Real m1 = 1.0, m2 = 1.0;
     Real l1 = 1.0, l2 = 1.0;
 
-    // Two nearly identical initial conditions
-    Real theta1_A = Utils::DegToRad(90.0);
-    Real theta2_A = Utils::DegToRad(90.0);
+    // Two nearly identical initial conditions - use high-energy start for chaos
+    Real theta1_A = Utils::DegToRad(135.0);
+    Real theta2_A = Utils::DegToRad(135.0);
     
     Real epsilon = Utils::DegToRad(0.001);  // Just 0.001 degree difference!
     Real theta1_B = theta1_A + epsilon;
     Real theta2_B = theta2_A;
 
     std::cout << "Initial Conditions:\n";
-    std::cout << "  Pendulum A: theta1 = 90.000°, theta2 = 90°\n";
-    std::cout << "  Pendulum B: theta1 = 90.001°, theta2 = 90°\n";
+    std::cout << "  Pendulum A: theta1 = 135.000°, theta2 = 135°\n";
+    std::cout << "  Pendulum B: theta1 = 135.001°, theta2 = 135°\n";
     std::cout << "  Difference: just 0.001 degrees!\n\n";
 
     // Create and solve both systems with fixed-step RK4
     DoublePendulumODE pendulum(m1, m2, l1, l2);
     ODESystemFixedStepSolver solver(pendulum, StepCalculators::RK4_Basic);
 
-    Real t_end = 8.0;  // 8 seconds (enough to see divergence)
-    int numSteps = 1600;
+    Real t_end = 30.0;  // 30 seconds to see divergence
+    int numSteps = 6000;
     
     Vector<Real> initCond_A{ theta1_A, 0.0, theta2_A, 0.0 };
     Vector<Real> initCond_B{ theta1_B, 0.0, theta2_B, 0.0 };
@@ -236,7 +254,7 @@ void Demo_ButterflyEffect()
     std::cout << std::setw(10) << "Time (s)" << std::setw(20) << "Angle Difference\n";
     std::cout << std::string(30, '-') << "\n";
     
-    std::vector<Real> divergence_times{ 0, 2, 5, 10, 15, 20 };
+    std::vector<Real> divergence_times{ 0, 2, 5, 8, 12, 16, 20, 25, 30 };
     for (Real check_t : divergence_times)
     {
         // Find closest time index
@@ -254,15 +272,17 @@ void Demo_ButterflyEffect()
     std::cout << "  → Grows EXPONENTIALLY over time!\n";
     std::cout << "  This is DETERMINISTIC CHAOS!\n\n";
 
-    // Visualize both trajectories
-    PolynomInterpRealFunc theta1_A_func = sol_A.getSolAsPolyInterp(0, 3);
-    PolynomInterpRealFunc theta1_B_func = sol_B.getSolAsPolyInterp(0, 3);
+    // Visualize both trajectories (wrapped to [-π, π])
+    Vector<Real> theta1_A_wrapped = wrapAngles(theta1_A_vals);
+    Vector<Real> theta1_B_wrapped = wrapAngles(theta1_B_vals);
+    PolynomInterpRealFunc theta1_A_func(t_vals, theta1_A_wrapped, 3);
+    PolynomInterpRealFunc theta1_B_func(t_vals, theta1_B_wrapped, 3);
 
     Visualizer::VisualizeMultiRealFunction(
         std::vector<IRealFunction*>{ &theta1_A_func, &theta1_B_func },
-        "Butterfly Effect: Pendulum A vs B (theta1)",
+        "Butterfly Effect: Pendulum A vs B (theta1, wrapped)",
         { "Pendulum A", "Pendulum B (+ 0.001 deg)" },
-        0.0, t_end, 1000, "double_pendulum_butterfly.txt");
+        0.0, t_end, 1000, "double_pendulum_butterfly.mml");
 
     std::cout << "Visualization saved to: results/double_pendulum_butterfly.txt\n";
     std::cout << "\n✓ Butterfly effect demonstration complete!\n";

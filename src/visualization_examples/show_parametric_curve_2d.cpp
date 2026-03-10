@@ -10,7 +10,7 @@
 #include "MML.h"
 #else
 #include "MMLBase.h"
-#include "base/VectorN.h"
+#include "base/Vector/VectorN.h"
 #include "core/Curves.h"
 #include "tools/Visualizer.h"
 #endif
@@ -28,7 +28,7 @@ void Show_Parametric_Curve_2D_Examples()
     }};
     Visualizer::VisualizeParamCurve2D(circle, "Circle",
                                       0.0, 2*Constants::PI, 100,
-                                      "viz_curve2d_circle.txt");
+                                      "viz_curve2d_circle.mml");
 
     // Example 2: Ellipse
     std::cout << "2. Ellipse: (3*cos(t), 2*sin(t))\n";
@@ -37,7 +37,7 @@ void Show_Parametric_Curve_2D_Examples()
     }};
     Visualizer::VisualizeParamCurve2D(ellipse, "Ellipse (a=3, b=2)",
                                       0.0, 2*Constants::PI, 100,
-                                      "viz_curve2d_ellipse.txt");
+                                      "viz_curve2d_ellipse.mml");
 
     // Example 3: Lissajous curve
     std::cout << "3. Lissajous curve: (sin(3t), sin(4t))\n";
@@ -46,7 +46,7 @@ void Show_Parametric_Curve_2D_Examples()
     }};
     Visualizer::VisualizeParamCurve2D(lissajous, "Lissajous (3:4)",
                                       0.0, 2*Constants::PI, 500,
-                                      "viz_curve2d_lissajous.txt");
+                                      "viz_curve2d_lissajous.mml");
 
     // Example 4: Cardioid
     std::cout << "4. Cardioid: a*(1-cos(t)) in polar\n";
@@ -56,7 +56,7 @@ void Show_Parametric_Curve_2D_Examples()
     }};
     Visualizer::VisualizeParamCurve2D(cardioid, "Cardioid",
                                       0.0, 2*Constants::PI, 200,
-                                      "viz_curve2d_cardioid.txt");
+                                      "viz_curve2d_cardioid.mml");
 
     // Example 5: Spiral (Archimedean)
     std::cout << "5. Archimedean spiral: r = a*t\n";
@@ -66,7 +66,7 @@ void Show_Parametric_Curve_2D_Examples()
     }};
     Visualizer::VisualizeParamCurve2D(spiral, "Archimedean Spiral",
                                       0.0, 6*Constants::PI, 500,
-                                      "viz_curve2d_spiral.txt");
+                                      "viz_curve2d_spiral.mml");
 
     // Example 6: Figure-8 (Lemniscate)
     std::cout << "6. Lemniscate (figure-8)\n";
@@ -80,7 +80,7 @@ void Show_Parametric_Curve_2D_Examples()
     }};
     Visualizer::VisualizeParamCurve2D(lemniscate, "Lemniscate",
                                       0.0, 2*Constants::PI, 200,
-                                      "viz_curve2d_lemniscate.txt");
+                                      "viz_curve2d_lemniscate.mml");
 
     // Example 7: Rose curve (4 petals)
     std::cout << "7. Rose curve: r = cos(2t)\n";
@@ -90,7 +90,7 @@ void Show_Parametric_Curve_2D_Examples()
     }};
     Visualizer::VisualizeParamCurve2D(rose, "4-Petal Rose",
                                       0.0, 2*Constants::PI, 200,
-                                      "viz_curve2d_rose.txt");
+                                      "viz_curve2d_rose.mml");
 
     // Example 8: Epicycloid (3 cusps)
     std::cout << "8. Epicycloid (3 cusps)\n";
@@ -104,7 +104,7 @@ void Show_Parametric_Curve_2D_Examples()
     }};
     Visualizer::VisualizeParamCurve2D(epicycloid, "Epicycloid (3 cusps)",
                                       0.0, 2*Constants::PI, 300,
-                                      "viz_curve2d_epicycloid.txt");
+                                      "viz_curve2d_epicycloid.mml");
 
     // Example 9: Butterfly curve
     std::cout << "9. Butterfly curve\n";
@@ -117,7 +117,7 @@ void Show_Parametric_Curve_2D_Examples()
     }};
     Visualizer::VisualizeParamCurve2D(butterfly, "Butterfly Curve",
                                       0.0, 12*Constants::PI, 1000,
-                                      "viz_curve2d_butterfly.txt");
+                                      "viz_curve2d_butterfly.mml");
 
     std::cout << "\n2D parametric curve visualization examples complete!\n";
 }

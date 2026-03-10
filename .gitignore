@@ -4,6 +4,9 @@ results/*.txt
 # Ignore build outputs
 build/
 
+# FastF1 cache (large, regenerable from API)
+testing/fastf1_cache/
+
 # VSCode settings
 .vscode/
 
@@ -372,3 +375,10 @@ MigrationBackup/
 
 build
 .DS_Store
+build_clang
+# Large simulation output files (exceed GitHub 100MB limit)
+results/collision_shock_wave.mml
+
+# Dolt database files (added by bd init)
+.dolt/
+*.db

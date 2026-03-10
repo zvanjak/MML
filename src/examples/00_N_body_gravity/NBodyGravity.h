@@ -38,15 +38,14 @@
 #include "base/BaseUtils.h"
 #include "base/Random.h"
 #include "base/Function.h"
-#include "base/VectorTypes.h"
-#include "base/Geometry3D.h"
+#include "base/Vector/VectorTypes.h"
+#include "mml/base/Geometry/Geometry3D.h"
 
 #include "interfaces/IODESystem.h"
 
-#include "algorithms/ODEAdaptiveIntegrator.h"
-#include "algorithms/ODESystemSolver.h"
-#include "algorithms/ODESystemStepCalculators.h"
-#include "algorithms/ODESystemSteppers.h"
+#include "mml/algorithms/ODESolvers/ODEAdaptiveIntegrator.h"
+#include "mml/algorithms/ODESolvers/ODEFixedStepIntegrators.h"
+#include "mml/algorithms/ODESolvers/ODESystemStepCalculators.h"
 
 #include "tools/Serializer.h"
 #include "tools/Visualizer.h"
@@ -565,7 +564,7 @@ namespace NBody
                 for (int j = 0; j < t_vals.size(); j++)
                     res.push_back(VectorN<Real, 3>{body_x[j], body_y[j], body_z[j]});
                 
-                std::string fileName = baseFileName + std::to_string(i) + ".txt";
+                std::string fileName = baseFileName + std::to_string(i) + ".mml";
                 fileNames.push_back(fileName);
                 
                 Real t1 = t_vals[0];
@@ -623,7 +622,7 @@ namespace NBody
             height = std::max(height, 1.0);
             depth  = std::max(depth, 1.0);
             
-            std::string fullFileName = baseFileName + ".txt";
+            std::string fullFileName = baseFileName + ".mml";
             Serializer::SaveParticleSimulation3D(GetResultFilesPath() + fullFileName,
                 NumBodies(), width, height, depth, res2, vecColors, vecRad, dT);
             
@@ -759,7 +758,7 @@ namespace NBody
         {
             NBodyGravitySystemODE ode(_config);
             
-            ODESystemSolver<RK5_CashKarp_Stepper> rk5solver(ode);
+            CashKarpIntegrator rk5solver(ode);
             ODESystemSolution sol = rk5solver.integrate(_config.getInitCond(), 0, duration, 
                                                        minSaveInterval, eps, hStart);
             

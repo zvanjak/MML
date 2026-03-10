@@ -10,7 +10,7 @@
 #include "MML.h"
 #else
 #include "MMLBase.h"
-#include "base/VectorN.h"
+#include "base/Vector/VectorN.h"
 #include "core/Fields.h"
 #include "tools/Visualizer.h"
 #endif
@@ -28,7 +28,7 @@ void Show_Vector_Field_2D_Examples()
     }};
     Visualizer::VisualizeVectorField2DCartesian(constantFlow, "Constant Flow",
                                                 -5.0, 5.0, 15, -5.0, 5.0, 15,
-                                                "viz_vector2d_constant.txt");
+                                                "viz_vector2d_constant.mml");
 
     // Example 2: Radial field (source/sink)
     std::cout << "2. Radial field (source): F(x,y) = (x, y) / r\n";
@@ -39,7 +39,7 @@ void Show_Vector_Field_2D_Examples()
     }};
     Visualizer::VisualizeVectorField2DCartesian(radialField, "Radial Source Field",
                                                 -5.0, 5.0, 15, -5.0, 5.0, 15,
-                                                "viz_vector2d_radial.txt");
+                                                "viz_vector2d_radial.mml");
 
     // Example 3: Rotational field (vortex)
     std::cout << "3. Rotational field (vortex): F(x,y) = (-y, x) / r\n";
@@ -50,7 +50,7 @@ void Show_Vector_Field_2D_Examples()
     }};
     Visualizer::VisualizeVectorField2DCartesian(vortexField, "Vortex Field",
                                                 -5.0, 5.0, 15, -5.0, 5.0, 15,
-                                                "viz_vector2d_vortex.txt");
+                                                "viz_vector2d_vortex.mml");
 
     // Example 4: Saddle point field
     std::cout << "4. Saddle point: F(x,y) = (x, -y)\n";
@@ -59,7 +59,7 @@ void Show_Vector_Field_2D_Examples()
     }};
     Visualizer::VisualizeVectorField2DCartesian(saddleField, "Saddle Point Field",
                                                 -5.0, 5.0, 15, -5.0, 5.0, 15,
-                                                "viz_vector2d_saddle.txt");
+                                                "viz_vector2d_saddle.mml");
 
     // Example 5: Dipole field (two opposite charges)
     std::cout << "5. Dipole field: two opposite charges at (-2,0) and (2,0)\n";
@@ -84,7 +84,7 @@ void Show_Vector_Field_2D_Examples()
     }};
     Visualizer::VisualizeVectorField2DCartesian(dipoleField, "Electric Dipole Field",
                                                 -6.0, 6.0, 20, -4.0, 4.0, 15,
-                                                "viz_vector2d_dipole.txt");
+                                                "viz_vector2d_dipole.mml");
 
     // Example 6: Shear flow
     std::cout << "6. Shear flow: F(x,y) = (y, 0)\n";
@@ -93,7 +93,7 @@ void Show_Vector_Field_2D_Examples()
     }};
     Visualizer::VisualizeVectorField2DCartesian(shearFlow, "Shear Flow",
                                                 -5.0, 5.0, 15, -5.0, 5.0, 15,
-                                                "viz_vector2d_shear.txt");
+                                                "viz_vector2d_shear.mml");
 
     // Example 7: Double vortex
     std::cout << "7. Double vortex: two counter-rotating vortices\n";
@@ -117,7 +117,7 @@ void Show_Vector_Field_2D_Examples()
     }};
     Visualizer::VisualizeVectorField2DCartesian(doubleVortex, "Double Vortex",
                                                 -6.0, 6.0, 20, -4.0, 4.0, 15,
-                                                "viz_vector2d_double_vortex.txt");
+                                                "viz_vector2d_double_vortex.mml");
 
     std::cout << "\n2D vector field visualization examples complete!\n";
 }

@@ -5,13 +5,15 @@
  * This file demonstrates all visualization capabilities of the MinimalMathLibrary.
  * Each visualization type has its own dedicated file:
  * 
- * - show_real_function.cpp      : Single real-valued functions y = f(x)
+ * - show_real_function.cpp       : Single real-valued functions y = f(x)
  * - show_multi_real_function.cpp : Multiple functions on same plot
  * - show_scalar_function.cpp     : 2D scalar fields as 3D surfaces
+ * - show_scalar_function_3d.cpp  : 3D scalar fields (volumetric/isosurface)
  * - show_vector_field_2d.cpp     : 2D vector fields
  * - show_vector_field_3d.cpp     : 3D vector fields  
  * - show_parametric_curve_2d.cpp : Parametric curves in 2D
  * - show_parametric_curve_3d.cpp : Parametric curves in 3D
+ * - show_parametric_surface.cpp  : Parametric surfaces in 3D
  * - show_particle_visualizer_2d.cpp : 2D particle simulations
  * - show_particle_visualizer_3d.cpp : 3D particle simulations
  * 
@@ -60,12 +62,15 @@ using namespace MML;
 void Show_Real_Function_Examples();
 void Show_Multi_Real_Function_Examples();
 void Show_Scalar_Function_Examples();
+void Show_Scalar_Function_3D_Examples();
 void Show_Vector_Field_2D_Examples();
 void Show_Vector_Field_3D_Examples();
 void Show_Parametric_Curve_2D_Examples();
 void Show_Parametric_Curve_3D_Examples();
+void Show_Parametric_Surface_Examples();
 void Show_Particle_Visualizer_2D_Examples();
 void Show_Particle_Visualizer_3D_Examples();
+void Show_Readme_Files();
 
 /**
  * @brief Print usage information
@@ -77,12 +82,15 @@ void Print_Usage(const char* program_name)
     std::cout << "  real_function   - Real-valued functions y = f(x)\n";
     std::cout << "  multi_function  - Multiple real functions on same plot\n";
     std::cout << "  scalar_function - 2D scalar fields as 3D surfaces\n";
+    std::cout << "  scalar_3d       - 3D scalar fields (volumetric/isosurface)\n";
     std::cout << "  curve_2d        - Parametric curves in 2D\n";
     std::cout << "  curve_3d        - Parametric curves in 3D\n";
+    std::cout << "  surface         - Parametric surfaces in 3D\n";
     std::cout << "  field_2d        - 2D vector fields\n";
     std::cout << "  field_3d        - 3D vector fields\n";
     std::cout << "  particle_2d     - 2D particle simulations\n";
     std::cout << "  particle_3d     - 3D particle simulations\n";
+    std::cout << "  readme          - One sample of each visualization type\n";
     std::cout << "  all             - Run all visualizations\n";
     std::cout << "\nIf no argument is provided, runs the default demo.\n\n";
 }
@@ -101,7 +109,19 @@ void Print_Visualization_Info()
 
     std::cout << "Configuration:\n";
     std::cout << "  Results folder: " << GetResultFilesPath() << "\n";
-    std::cout << "  Backend: " << (GetVisualizerBackend() == VisualizerBackend::FLTK ? "FLTK" : "Qt") << "\n";
+    
+    auto backend = GetVisualizerBackend();
+    std::string backendName;
+    switch (backend) {
+        case VisualizerBackend::WPF:  backendName = "WPF"; break;
+        case VisualizerBackend::Qt:   backendName = "Qt"; break;
+        case VisualizerBackend::FLTK: backendName = "FLTK"; break;
+        case VisualizerBackend::Auto: backendName = "Auto"; break;
+    }
+    std::cout << "  Backend: " << backendName << "\n";
+    
+    // Show the actual path to the visualizer
+    std::cout << "  RealFunc Visualizer: " << GetRealFuncVisualizerPath() << "\n";
     
 #ifdef _WIN32
     std::cout << "  Platform: Windows\n";
@@ -133,12 +153,20 @@ bool Run_Visualization(const char* viz_type)
         Show_Scalar_Function_Examples();
         return true;
     }
+    else if (strcmp(viz_type, "scalar_3d") == 0) {
+        Show_Scalar_Function_3D_Examples();
+        return true;
+    }
     else if (strcmp(viz_type, "curve_2d") == 0) {
         Show_Parametric_Curve_2D_Examples();
         return true;
     }
     else if (strcmp(viz_type, "curve_3d") == 0) {
         Show_Parametric_Curve_3D_Examples();
+        return true;
+    }
+    else if (strcmp(viz_type, "surface") == 0) {
+        Show_Parametric_Surface_Examples();
         return true;
     }
     else if (strcmp(viz_type, "field_2d") == 0) {
@@ -157,12 +185,18 @@ bool Run_Visualization(const char* viz_type)
         Show_Particle_Visualizer_3D_Examples();
         return true;
     }
+    else if (strcmp(viz_type, "readme") == 0) {
+        Show_Readme_Files();
+        return true;
+    }
     else if (strcmp(viz_type, "all") == 0) {
         Show_Real_Function_Examples();
         Show_Multi_Real_Function_Examples();
         Show_Scalar_Function_Examples();
+        Show_Scalar_Function_3D_Examples();
         Show_Parametric_Curve_2D_Examples();
         Show_Parametric_Curve_3D_Examples();
+        Show_Parametric_Surface_Examples();
         Show_Vector_Field_2D_Examples();
         Show_Vector_Field_3D_Examples();
         Show_Particle_Visualizer_2D_Examples();
@@ -196,20 +230,33 @@ void Demo_Visualization_Examples()
     // Show_Scalar_Function_Examples();         // 2D scalar fields as surfaces
     
     // ═══════════════════════════════════════════════════════════════════
+    // SCALAR FUNCTIONS (3D → Isosurfaces/Volumetric)
+    // ═══════════════════════════════════════════════════════════════════
+    
+    // Show_Scalar_Function_3D_Examples();      // 3D scalar fields (Gaussian, Gyroid, SDFs)
+    
+    // ═══════════════════════════════════════════════════════════════════
+    // PARAMETRIC SURFACES
+    // ═══════════════════════════════════════════════════════════════════
+    
+    // Show_Parametric_Surface_Examples();      // 3D parametric surfaces (Sphere, Torus, Möbius)
+    
+    // ═══════════════════════════════════════════════════════════════════
     // VECTOR FIELDS
     // ═══════════════════════════════════════════════════════════════════
     
     // Show_Vector_Field_2D_Examples();         // 2D vector fields
-    Show_Vector_Field_3D_Examples();         // 3D vector fields
+    // Show_Vector_Field_3D_Examples();         // 3D vector fields
     
     // ═══════════════════════════════════════════════════════════════════
     // PARAMETRIC CURVES
     // ═══════════════════════════════════════════════════════════════════
     
-    // Show_Parametric_Curve_2D_Examples();     // 2D parametric curves
-    Show_Parametric_Curve_3D_Examples();     // 3D parametric curves
+    Show_Parametric_Curve_2D_Examples();     // 2D parametric curves
+    // Show_Parametric_Curve_3D_Examples();     // 3D parametric curves
     
     // ═══════════════════════════════════════════════════════════════════
+
     // PARTICLE SIMULATIONS
     // ═══════════════════════════════════════════════════════════════════
     
@@ -228,6 +275,11 @@ void Demo_Visualization_Examples()
  */
 int main(int argc, char* argv[])
 {
+    // Uncomment ONE of these to override the default WPF backend on Windows:
+    // SetVisualizerBackend(VisualizerBackend::Qt);
+    // SetVisualizerBackend(VisualizerBackend::FLTK);
+    SetVisualizerBackend(VisualizerBackend::WPF);
+    
     Print_Visualization_Info();
     
     if (argc > 1) {

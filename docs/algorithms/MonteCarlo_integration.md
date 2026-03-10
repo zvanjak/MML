@@ -601,7 +601,7 @@ if (dimension <= 3) {
 Compare MC with exact answer:
 
 ```cpp
-#include "algorithms/MonteCarloIntegration.h"
+#include "core/Integration/MonteCarloIntegration.h"
 
 class Polynomial : public IRealFunction {
 public:
@@ -1268,4 +1268,4 @@ auto cfg = MonteCarloConfig()
 
 ---
 
-**Part of MinimalMathLibrary** - `mml/algorithms/MonteCarloIntegration.h`
+**Part of MinimalMathLibrary** - `mml/core/Integration/MonteCarloIntegration.h`

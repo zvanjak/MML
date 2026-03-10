@@ -5,10 +5,9 @@
 ///  Description: Derivatives of tensor fields                                        ///
 ///               Covariant derivatives, Lie derivatives, tensor calculus             ///
 ///                                                                                   ///
-///  Copyright:   (c) 2024-2025 Zvonimir Vanjak                                       ///
-///  License:     Licensed under MML dual-license (see LICENSE.md)                    ///
-///               - Free for non-commercial use                                       ///
-///               - Commercial license available                                      ///
+///  Copyright:   (c) 2024-2026 Zvonimir Vanjak                                       ///
+///  License:     MIT License (see LICENSE.md)                                         ///
+///                                                                                   ///
 ///////////////////////////////////////////////////////////////////////////////////////////
 #if !defined MML_DERIVATION_TENSOR_FIELD_H
 #define MML_DERIVATION_TENSOR_FIELD_H
@@ -18,8 +17,8 @@
 #include "interfaces/IFunction.h"
 #include "interfaces/ITensorField.h"
 
-#include "base/VectorN.h"
-#include "base/MatrixNM.h"
+#include "base/Vector/VectorN.h"
+#include "base/Matrix/MatrixNM.h"
 
 #include "DerivationBase.h"
 

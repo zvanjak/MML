@@ -99,7 +99,7 @@ v.front() = 99.0;          // Modify first element
 ### Size and State
 ```cpp
 int n = v.size();       // Vector dimension
-bool empty = v.isEmpty();  // True if size() == 0
+bool empty = v.empty();  // True if size() == 0
 ```
 
 ### Iteration

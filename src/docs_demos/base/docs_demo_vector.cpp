@@ -13,9 +13,9 @@
 #else
 #include "MMLBase.h"
 
-#include "base/Vector.h"
-#include "base/VectorN.h"
-#include "base/VectorTypes.h"
+#include "base/Vector/Vector.h"
+#include "base/Vector/VectorN.h"
+#include "base/Vector/VectorTypes.h"
 #include "base/BaseUtils.h"
 #endif
 
@@ -115,7 +115,7 @@ void Demo_Vector_Access()
     // Size and state
     std::cout << "\nSize and state:" << std::endl;
     std::cout << "  v.size()    = " << v.size() << std::endl;
-    std::cout << "  v.isEmpty() = " << (v.isEmpty() ? "true" : "false") << std::endl;
+    std::cout << "  v.empty() = " << (v.empty() ? "true" : "false") << std::endl;
 
     // Range-based iteration
     std::cout << "\nRange-based iteration:" << std::endl;
@@ -322,7 +322,7 @@ void Demo_Vector_Modification()
     Vector<double> toClear({1, 2, 3, 4, 5});
     std::cout << "  Before Clear(): " << toClear << " (size=" << toClear.size() << ")" << std::endl;
     toClear.Clear();
-    std::cout << "  After Clear():  size=" << toClear.size() << ", isEmpty=" << (toClear.isEmpty() ? "true" : "false") << std::endl;
+    std::cout << "  After Clear():  size=" << toClear.size() << ", empty=" << (toClear.empty() ? "true" : "false") << std::endl;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -440,8 +440,8 @@ void Demo_Vector_Equality()
     std::cout << "\nNull vector check:" << std::endl;
     Vector<double> zero(5);  // All zeros
     Vector<double> nonzero({0, 0, 0.0001, 0, 0});
-    std::cout << "  Vector(5).IsNullVec():     " << (zero.IsNullVec() ? "true" : "false") << std::endl;
-    std::cout << "  {0,0,0.0001,0,0}.IsNullVec(): " << (nonzero.IsNullVec() ? "true" : "false") << std::endl;
+    std::cout << "  Vector(5).isZero():     " << (zero.isZero() ? "true" : "false") << std::endl;
+    std::cout << "  {0,0,0.0001,0,0}.isZero(): " << (nonzero.isZero() ? "true" : "false") << std::endl;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////

@@ -19,7 +19,7 @@ The Parametric Curves & Surfaces Test Beds provide comprehensive test infrastruc
 
 | File | Purpose |
 |------|---------|
-| [parametric_curves_test_bed.h](../../test_data/parametric_curves_test_bed.h) | `TestCartesianCurve3D` struct, `ParametricCurvesTestBed` class |
+| [parametric_curves_test_bed.h](../../test_beds/parametric_curves_test_bed.h) | `TestCartesianCurve3D` struct, `ParametricCurvesTestBed` class |
 | [parametric_curves_defs.h](../../test_data/parametric_curves_defs.h) | Curve function definitions (position, derivatives, curvature, torsion) |
 
 ### Data Structure
@@ -53,7 +53,7 @@ struct TestCartesianCurve3D {
 | 2 | Helix2 | {2cos(t), 2sin(t), 0.5t} | [0, 2π] | 2/4.25 | 0.5/4.25 |
 | 3 | Schaums1 | {3t-t³, 3t², 3t+t³} | [0, 2π] | 1/(3(1+t²)²) | 1/(3(1+t²)²) |
 | 4 | Schaums2 | {t-sin(t), 1-cos(t), t} | [0, 2π] | varies | varies |
-| 5 | Circle3DXY | {cos(t), sin(t), 0} | [0, 2π] | 1.0 (const) | 0.0 (planar) |
+| 5 | Circle3DXYCurve | {cos(t), sin(t), 0} | [0, 2π] | 1.0 (const) | 0.0 (planar) |
 
 #### Polynomial Curves
 
@@ -110,7 +110,7 @@ public:
 
 | File | Purpose |
 |------|---------|
-| [parametric_surfaces_test_bed.h](../../test_data/parametric_surfaces_test_bed.h) | `TestParametricSurfaceRect3` struct, test bed classes |
+| [parametric_surfaces_test_bed.h](../../test_beds/parametric_surfaces_test_bed.h) | `TestParametricSurfaceRect3` struct, test bed classes |
 | [parametric_surfaces_defs.h](../../test_data/parametric_surfaces_defs.h) | Surface function definitions |
 
 ### Data Structure
@@ -263,7 +263,7 @@ public:
 ### Testing Curve Curvature
 
 ```cpp
-#include "test_data/parametric_curves_test_bed.h"
+#include "test_beds/parametric_curves_test_bed.h"
 #include "core/Curves.h"
 
 using namespace MML;
@@ -286,7 +286,7 @@ for (Real t = 0; t < 2 * Constants::PI; t += 0.5) {
 ### Testing Curve Torsion
 
 ```cpp
-#include "test_data/parametric_curves_test_bed.h"
+#include "test_beds/parametric_curves_test_bed.h"
 
 using namespace MML::TestBeds;
 
@@ -304,11 +304,11 @@ std::cout << "Torsion at t=" << t << ": " << torsion
 ### Testing Frenet Frame
 
 ```cpp
-#include "test_data/parametric_curves_test_bed.h"
+#include "test_beds/parametric_curves_test_bed.h"
 
 using namespace MML::TestBeds;
 
-const auto& circle = ParametricCurvesTestBed::getTestCurve("Circle3DXY");
+const auto& circle = ParametricCurvesTestBed::getTestCurve("Circle3DXYCurve");
 
 Real t = Constants::PI / 3;
 Vector3Cartesian T, N, B;
@@ -332,7 +332,7 @@ Real dot_NB = ScalarProduct(N, B);  // Should be ~0
 ### Testing Surface Curvature
 
 ```cpp
-#include "test_data/parametric_surfaces_test_bed.h"
+#include "test_beds/parametric_surfaces_test_bed.h"
 #include "core/Surfaces.h"
 
 using namespace MML;
@@ -355,7 +355,7 @@ std::cout << "  Mean curvature H = " << H << " (expected: -1.0)\n";
 ### Testing Minimal Surfaces
 
 ```cpp
-#include "test_data/parametric_surfaces_test_bed.h"
+#include "test_beds/parametric_surfaces_test_bed.h"
 
 using namespace MML::TestBeds;
 
@@ -375,7 +375,7 @@ for (Real u = 0; u < Constants::PI; u += 0.5) {
 ### Testing Developable Surfaces
 
 ```cpp
-#include "test_data/parametric_surfaces_test_bed.h"
+#include "test_beds/parametric_surfaces_test_bed.h"
 
 using namespace MML::TestBeds;
 
@@ -395,7 +395,7 @@ std::cout << "Is developable: " << (isDev ? "yes" : "no") << "\n";
 ### Testing Principal Curvatures
 
 ```cpp
-#include "test_data/parametric_surfaces_test_bed.h"
+#include "test_beds/parametric_surfaces_test_bed.h"
 
 using namespace MML::TestBeds;
 
@@ -419,7 +419,7 @@ std::cout << "H = (k1+k2)/2 = " << H << "\n";
 ### Iterating Through All Curves
 
 ```cpp
-#include "test_data/parametric_curves_test_bed.h"
+#include "test_beds/parametric_curves_test_bed.h"
 
 using namespace MML::TestBeds;
 
@@ -440,7 +440,7 @@ for (int i = 0; i < ParametricCurvesTestBed::getNumTestCurves(); ++i) {
 ### Iterating Through All Surfaces
 
 ```cpp
-#include "test_data/parametric_surfaces_test_bed.h"
+#include "test_beds/parametric_surfaces_test_bed.h"
 
 using namespace MML::TestBeds;
 

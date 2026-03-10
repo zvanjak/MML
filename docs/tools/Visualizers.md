@@ -55,6 +55,101 @@ The `Visualizer` class provides a high-level interface for visualizing mathemati
 > 
 > Source code: [MML_Linux_Visualizers](https://github.com/zvanjak/MML_Linux_Visualizers)
 
+---
+
+## Backend Selection API
+
+MML provides a unified cross-platform backend selection system that allows you to choose which visualization framework to use at runtime.
+
+### VisualizerBackend Enum
+
+```cpp
+enum class VisualizerBackend {
+  WPF,   // Windows Presentation Foundation (Windows only, highest quality)
+  Qt,    // Qt5/Qt6 (Cross-platform, feature-rich)
+  FLTK,  // Fast Light Toolkit (Cross-platform, lightweight)
+  Auto   // Platform-specific default (WPF on Windows, Qt on Linux)
+};
+```
+
+### Backend Priority Order
+
+The backend is determined in this order:
+1. **Environment variable** `MML_VISUALIZER_BACKEND` (highest priority)
+2. **Runtime API** setting via `SetVisualizerBackend()`
+3. **Platform default** (WPF on Windows, Qt on Linux)
+
+### Environment Variable
+
+Override the backend without recompiling:
+
+```bash
+# Windows (Command Prompt)
+set MML_VISUALIZER_BACKEND=Qt
+
+# Windows (PowerShell)
+$env:MML_VISUALIZER_BACKEND = "Qt"
+
+# Linux
+export MML_VISUALIZER_BACKEND=FLTK
+```
+
+Valid values: `WPF`, `Qt`, `QT5`, `QT6`, `FLTK`, `AUTO` (case-insensitive)
+
+### Runtime API
+
+```cpp
+#include "MMLBase.h"  // or "MML.h" for single-header
+
+using namespace MML;
+
+// Check if a backend is available on this platform
+bool available = IsBackendAvailable(VisualizerBackend::Qt);
+
+// Set the backend at runtime
+SetVisualizerBackend(VisualizerBackend::Qt);
+
+// Get the currently active backend (never returns Auto, always resolves)
+VisualizerBackend current = GetVisualizerBackend();
+```
+
+### Platform Defaults
+
+| Platform | Default Backend | Available Backends |
+|----------|-----------------|-------------------|
+| Windows  | WPF | WPF, Qt, FLTK |
+| Linux    | Qt  | Qt, FLTK |
+| Other    | FLTK | FLTK |
+
+### Example: Force Qt on Windows
+
+```cpp
+#include "MML.h"
+using namespace MML;
+
+int main() {
+    // Use Qt instead of WPF on Windows for consistency with Linux
+    if (IsBackendAvailable(VisualizerBackend::Qt)) {
+        SetVisualizerBackend(VisualizerBackend::Qt);
+    }
+    
+    // All subsequent visualizations use Qt
+    RealFunction f([](Real x) { return std::sin(x); });
+    Visualizer::VisualizeRealFunction(f, "sin(x)", 0, 2*M_PI, 100, "sine.mml");
+    
+    return 0;
+}
+```
+
+### Notes
+
+- If a requested backend is not available, `SetVisualizerBackend()` prints a warning and falls back to `Auto`.
+- `GetVisualizerBackend()` always returns a concrete backend (never `Auto`).
+- Backend availability is determined by checking for visualizer executables in `tools/visualizers/`.
+- See `src/tryouts/test_linux_viz/test_backend_switching.cpp` for more examples.
+
+---
+
 **Key Features:**
 - **Multiple visualization types**: Real functions, scalar/vector fields, parametric curves, surfaces, particles, ODE solutions
 - **External visualizer integration**: Launches WPF (Windows) or Qt/FLTK (Linux) applications
@@ -110,9 +205,9 @@ All examples are verified to compile and run correctly.
 ```cpp
 // Example: Visualize a real function
 IRealFunction& f = /* ... */;
-Visualizer::VisualizeRealFunction(f, "sin(x)", 0.0, 2*M_PI, 100, "sine.txt");
+Visualizer::VisualizeRealFunction(f, "sin(x)", 0.0, 2*M_PI, 100, "sine.mml");
 // Creates: results/sine.txt
-// Launches: visualizers/RealFuncVisualizer.exe "results/sine.txt"
+// Launches: visualizers/RealFuncVisualizer.exe "results/sine.mml"
 ```
 
 ### Path Configuration
@@ -165,7 +260,7 @@ Visualizer::VisualizeRealFunction(
     "Sine Function", 
     0.0, 2*M_PI, 
     100, 
-    "sine_curve.txt"
+    "sine_curve.mml"
 );
 ```
 
@@ -184,7 +279,7 @@ static void VisualizeRealFunction(
 ```cpp
 // Visualize at specific points
 Vector<Real> xValues = {0.0, 0.5, 1.0, 1.5, 2.0, 3.14159};
-Visualizer::VisualizeRealFunction(f, "Sample Points", xValues, "samples.txt");
+Visualizer::VisualizeRealFunction(f, "Sample Points", xValues, "samples.mml");
 ```
 
 ---
@@ -222,7 +317,7 @@ Visualizer::VisualizeMultiRealFunction(
     legend, 
     0.0, 2*M_PI, 
     200, 
-    "trig_comparison.txt"
+    "trig_comparison.mml"
 );
 ```
 
@@ -278,7 +373,7 @@ Visualizer::VisualizeMultiRealFunction(
     legend, 
     0.0, 4.0, 
     100, 
-    "interp_comparison.txt"
+    "interp_comparison.mml"
 );
 ```
 
@@ -292,7 +387,7 @@ static void VisualizeMultiRealFunctionSeparately(
     std::string title,
     std::vector<std::string> func_legend,
     Real x1, Real x2, int numPoints,
-    std::string fileName  // Base name; "_1.txt", "_2.txt" appended
+    std::string fileName  // Base name; "_1.mml", "_2.mml" appended
 );
 ```
 
@@ -342,7 +437,7 @@ Visualizer::VisualizeScalarFunc2DCartesian(
     "sin(x)*cos(y)",
     -M_PI, M_PI, 50,     // X: [-π, π] with 50 points
     -M_PI, M_PI, 50,     // Y: [-π, π] with 50 points
-    "wave_surface.txt"
+    "wave_surface.mml"
 );
 ```
 
@@ -379,7 +474,7 @@ Visualizer::VisualizeVectorField2DCartesian(
     "Radial Field",
     -5.0, 5.0, 20,
     -5.0, 5.0, 20,
-    "radial_field.txt"
+    "radial_field.mml"
 );
 ```
 
@@ -415,7 +510,7 @@ Visualizer::VisualizeVectorField3DCartesian(
     -2.0, 2.0, 10,
     -2.0, 2.0, 10,
     -1.0, 1.0, 10,
-    "magnetic_field.txt"
+    "magnetic_field.mml"
 );
 ```
 
@@ -450,7 +545,7 @@ Visualizer::VisualizeParamCurve2D(
     "Unit Circle",
     0.0, 2*M_PI,
     100,
-    "circle.txt"
+    "circle.mml"
 );
 ```
 
@@ -530,7 +625,7 @@ Visualizer::VisualizeParamCurve3D(
     "Helix",
     0.0, 4*M_PI,
     200,
-    "helix.txt"
+    "helix.mml"
 );
 ```
 
@@ -591,7 +686,7 @@ Visualizer::VisualizeODESysSolCompAsFunc(
     sol,
     0,  // Position component
     "Position vs Time",
-    "position_time.txt"
+    "position_time.mml"
 );
 ```
 
@@ -615,7 +710,7 @@ Visualizer::VisualizeODESysSolAsMultiFunc(
     sol,
     "State Variables",
     labels,
-    "all_states.txt"
+    "all_states.mml"
 );
 ```
 
@@ -638,7 +733,7 @@ Visualizer::VisualizeODESysSolAsParamCurve2(
     0,  // Position (x-axis)
     2,  // Velocity (y-axis)
     "Phase Portrait",
-    "phase_portrait.txt"
+    "phase_portrait.mml"
 );
 ```
 
@@ -662,7 +757,7 @@ Visualizer::VisualizeODESysSolAsParamCurve3(
     sol,
     0, 1, 2,  // x, y, z components
     "3D Trajectory",
-    "trajectory_3d.txt"
+    "trajectory_3d.mml"
 );
 ```
 
@@ -683,7 +778,7 @@ static void VisualizeParticleSimulation2D(std::string fileName);
 **Example:**
 ```cpp
 // Data already saved by simulation code
-Visualizer::VisualizeParticleSimulation2D("collision_sim_100_balls.txt");
+Visualizer::VisualizeParticleSimulation2D("collision_sim_100_balls.mml");
 ```
 
 **Data Format:** File should contain particle positions/velocities over time (format depends on specific visualizer).
@@ -697,7 +792,7 @@ static void VisualizeParticleSimulation3D(std::string fileName);
 **Example:**
 ```cpp
 // 3D N-body simulation
-Visualizer::VisualizeParticleSimulation3D("nbody_galaxy.txt");
+Visualizer::VisualizeParticleSimulation3D("nbody_galaxy.mml");
 ```
 
 ---
@@ -725,7 +820,7 @@ void analyzeFunctionVisually() {
         "Gaussian exp(-x²)",
         -3.0, 3.0,
         200,
-        "gaussian.txt"
+        "gaussian.mml"
     );
     
     // Compare with approximations
@@ -742,7 +837,7 @@ void analyzeFunctionVisually() {
         legend,
         -2.0, 2.0,
         150,
-        "taylor_comparison.txt"
+        "taylor_comparison.mml"
     );
 }
 ```
@@ -771,7 +866,7 @@ void visualizeElectricField() {
         "Electric Field (Point Charge)",
         -5.0, 5.0, 25,
         -5.0, 5.0, 25,
-        "electric_field.txt"
+        "electric_field.mml"
     );
 }
 ```
@@ -803,18 +898,18 @@ void visualizePendulum() {
     
     // Time series of angle
     Visualizer::VisualizeODESysSolCompAsFunc(
-        sol, 0, "Angle vs Time", "theta_t.txt"
+        sol, 0, "Angle vs Time", "theta_t.mml"
     );
     
     // Phase portrait (ω vs θ)
     Visualizer::VisualizeODESysSolAsParamCurve2(
-        sol, 0, 1, "Phase Portrait", "phase.txt"
+        sol, 0, 1, "Phase Portrait", "phase.mml"
     );
     
     // Both variables
     std::vector<std::string> labels = {"θ", "ω"};
     Visualizer::VisualizeODESysSolAsMultiFunc(
-        sol, "Pendulum State", labels, "state.txt"
+        sol, "Pendulum State", labels, "state.mml"
     );
 }
 ```
@@ -841,7 +936,7 @@ void visualize3DCurves() {
         "Trefoil Knot",
         0.0, 2.0*Constants::PI,
         500,
-        "trefoil.txt"
+        "trefoil.mml"
     );
 }
 ```
@@ -1022,13 +1117,13 @@ All `Visualizer` methods export data files regardless of platform. Even if the v
 
 ```cpp
 // Too sparse - misses details
-Visualizer::VisualizeRealFunction(f, "Undersampled", 0, 10, 10, "bad.txt");
+Visualizer::VisualizeRealFunction(f, "Undersampled", 0, 10, 10, "bad.mml");
 
 // Good - captures features
-Visualizer::VisualizeRealFunction(f, "Well Sampled", 0, 10, 200, "good.txt");
+Visualizer::VisualizeRealFunction(f, "Well Sampled", 0, 10, 200, "good.mml");
 
 // Overkill - wastes resources
-Visualizer::VisualizeRealFunction(f, "Oversampled", 0, 10, 10000, "slow.txt");
+Visualizer::VisualizeRealFunction(f, "Oversampled", 0, 10, 10000, "slow.mml");
 ```
 
 **Guidelines:**
@@ -1040,14 +1135,14 @@ Visualizer::VisualizeRealFunction(f, "Oversampled", 0, 10, 10000, "slow.txt");
 
 ```cpp
 // Poor
-Visualizer::VisualizeRealFunction(f, "f", 0, 1, 100, "out.txt");
+Visualizer::VisualizeRealFunction(f, "f", 0, 1, 100, "out.mml");
 
 // Good
 Visualizer::VisualizeRealFunction(
     f, 
     "Velocity Profile (Re=1000)", 
     0, 1, 100, 
-    "velocity_profile_re1000.txt"
+    "velocity_profile_re1000.mml"
 );
 ```
 
@@ -1055,8 +1150,8 @@ Visualizer::VisualizeRealFunction(
 
 ```cpp
 // Organize results by category
-Visualizer::VisualizeRealFunction(f, "...", 0, 1, 100, "analysis/case1_func.txt");
-Visualizer::VisualizeScalarFunc2DCartesian(s, "...", -1, 1, 50, -1, 1, 50, "analysis/case1_field.txt");
+Visualizer::VisualizeRealFunction(f, "...", 0, 1, 100, "analysis/case1_func.mml");
+Visualizer::VisualizeScalarFunc2DCartesian(s, "...", -1, 1, 50, -1, 1, 50, "analysis/case1_field.mml");
 ```
 
 ### 4. Verify Data Before Visualization
@@ -1064,7 +1159,7 @@ Visualizer::VisualizeScalarFunc2DCartesian(s, "...", -1, 1, 50, -1, 1, 50, "anal
 ```cpp
 // Check ODE solution validity before visualizing
 if (sol.IsValid()) {
-    Visualizer::VisualizeODESysSolAsMultiFunc(sol, "...", legend, "ode_sol.txt");
+    Visualizer::VisualizeODESysSolAsMultiFunc(sol, "...", legend, "ode_sol.mml");
 } else {
     std::cerr << "ODE solution invalid - visualization skipped" << std::endl;
 }
@@ -1078,7 +1173,7 @@ std::vector<ODESystemSolution> solutions = {solEuler, solRK4, solRKCK};
 std::vector<std::string> methods = {"Euler", "RK4", "RKCK"};
 
 for (size_t i = 0; i < solutions.size(); ++i) {
-    std::string filename = "method_" + methods[i] + ".txt";
+    std::string filename = "method_" + methods[i] + ".mml";
     Visualizer::VisualizeODESysSolAsParamCurve2(
         solutions[i], 0, 1, methods[i] + " Phase Portrait", filename
     );
@@ -1099,7 +1194,7 @@ for (size_t i = 0; i < solutions.size(); ++i) {
 
 ```cpp
 // system() call blocks until visualizer closes
-Visualizer::VisualizeRealFunction(f, "...", 0, 1, 100, "data.txt");
+Visualizer::VisualizeRealFunction(f, "...", 0, 1, 100, "data.mml");
 // Execution continues only after user closes visualizer window
 ```
 
@@ -1114,7 +1209,7 @@ Visualizer::VisualizeRealFunction(f, "...", 0, 1, 100, "data.txt");
 // High memory for dense sampling
 int nx = 1000, ny = 1000;  // 1 million points
 Visualizer::VisualizeScalarFunc2DCartesian(
-    surface, "Dense Grid", -10, 10, nx, -10, 10, ny, "dense.txt"
+    surface, "Dense Grid", -10, 10, nx, -10, 10, ny, "dense.mml"
 );
 // Requires ~30 MB file + evaluation overhead
 ```
@@ -1129,10 +1224,10 @@ Visualizer::VisualizeScalarFunc2DCartesian(
 
 ```cpp
 // Manual export for custom processing
-Serializer::SaveRealFunc(f, "Function", 0, 10, 100, "results/data.txt");
+Serializer::SaveRealFunc(f, "Function", 0, 10, 100, "results/data.mml");
 
 // Then use Visualizer for same data (re-exports)
-Visualizer::VisualizeRealFunction(f, "Function", 0, 10, 100, "data.txt");
+Visualizer::VisualizeRealFunction(f, "Function", 0, 10, 100, "data.mml");
 ```
 
 **Tip:** Use `Serializer` directly when you only need data export without visualization.
@@ -1145,9 +1240,9 @@ ODESystemFixedStepSolver<4> solver(system);
 auto sol = solver.integrate_RK4(initState, 0.0, 100.0, 0.01);
 
 // Visualize multiple aspects
-Visualizer::VisualizeODESysSolAsMultiFunc(sol, "All Vars", labels, "all.txt");
-Visualizer::VisualizeODESysSolAsParamCurve2(sol, 0, 1, "Phase", "phase.txt");
-Visualizer::VisualizeODESysSolCompAsFunc(sol, 0, "X vs t", "x_t.txt");
+Visualizer::VisualizeODESysSolAsMultiFunc(sol, "All Vars", labels, "all.mml");
+Visualizer::VisualizeODESysSolAsParamCurve2(sol, 0, 1, "Phase", "phase.mml");
+Visualizer::VisualizeODESysSolCompAsFunc(sol, 0, "X vs t", "x_t.mml");
 ```
 
 ### With Function Analysis
@@ -1164,8 +1259,8 @@ for (size_t i = 0; i < criticalPoints.size(); ++i) {
     xCritical[i] = criticalPoints[i].position;
 }
 
-Visualizer::VisualizeRealFunction(f, "Function", a, b, 200, "func.txt");
-Visualizer::VisualizeRealFunction(f, "Critical Points", xCritical, "critical.txt");
+Visualizer::VisualizeRealFunction(f, "Function", a, b, 200, "func.mml");
+Visualizer::VisualizeRealFunction(f, "Critical Points", xCritical, "critical.mml");
 ```
 
 ---
@@ -1185,9 +1280,9 @@ Visualizer::VisualizeRealFunction(f, "Critical Points", xCritical, "critical.txt
 // Verify GetRealFuncVisualizerPath() returns valid path
 
 // Data is still exported - use external tool:
-// Python: plt.loadtxt("results/data.txt"); plt.plot(...)
-// gnuplot: plot "results/data.txt" using 1:2 with lines
-// MATLAB: data = load("results/data.txt"); plot(data(:,1), data(:,2))
+// Python: plt.loadtxt("results/data.mml"); plt.plot(...)
+// gnuplot: plot "results/data.mml" using 1:2 with lines
+// MATLAB: data = load("results/data.mml"); plot(data(:,1), data(:,2))
 ```
 
 ### Issue: File Not Found Error
@@ -1219,7 +1314,7 @@ std::filesystem::create_directory("results");
 **Solution:**
 ```cpp
 // Increase numPoints
-Visualizer::VisualizeRealFunction(f, "Better", 0, 10, 500, "better.txt");  // Was 50
+Visualizer::VisualizeRealFunction(f, "Better", 0, 10, 500, "better.mml");  // Was 50
 
 // Or use adaptive sampling via Serializer with custom points
 ```

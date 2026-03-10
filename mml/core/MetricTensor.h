@@ -5,10 +5,9 @@
 ///  Description: Metric tensor calculations for curvilinear coordinates              ///
 ///               Jacobians, Christoffel symbols, geodesics                           ///
 ///                                                                                   ///
-///  Copyright:   (c) 2024-2025 Zvonimir Vanjak                                       ///
-///  License:     Licensed under MML dual-license (see LICENSE.md)                    ///
-///               - Free for non-commercial use                                       ///
-///               - Commercial license available                                      ///
+///  Copyright:   (c) 2024-2026 Zvonimir Vanjak                                       ///
+///  License:     MIT License (see LICENSE.md)                                         ///
+///                                                                                   ///
 ///////////////////////////////////////////////////////////////////////////////////////////
 #if !defined  MML_METRIC_TENSOR_H
 #define MML_METRIC_TENSOR_H
@@ -16,19 +15,53 @@
 #include "interfaces/IFunction.h"
 #include "interfaces/ICoordTransf.h"
 
-#include "base/VectorN.h"
-#include "base/MatrixNM.h"
+#include "base/Vector/VectorN.h"
+#include "base/Matrix/MatrixNM.h"
 
 #include "core/Derivation.h"
 #include "core/Derivation/DerivationTensorField.h"
 
 namespace MML
 {
+	///////////////////////////////////////////////////////////////////////////////
+	// DIFFERENTIAL GEOMETRY CONVENTIONS
+	//
+	//   Index convention:  0-based indexing for all tensor components
+	//                      (i, j, k ∈ {0, 1, ..., N-1})
+	//
+	//   Metric tensor:     gᵢⱼ = eᵢ · eⱼ  (covariant metric, symmetric)
+	//                      gⁱʲ = inverse of gᵢⱼ  (contravariant metric)
+	//                      Used to raise/lower indices.
+	//
+	//   Metric signature:  Positive-definite (Riemannian) assumed.
+	//                      For Lorentzian metrics, see CoordTransfLorentz.h.
+	//
+	//   Christoffel symbols:
+	//     First kind:   Γᵢⱼₖ = ½(∂gᵢₖ/∂qʲ + ∂gⱼₖ/∂qⁱ - ∂gᵢⱼ/∂qᵏ)
+	//     Second kind:  Γⁱⱼₖ = gⁱˡ Γₗⱼₖ  (connection coefficients)
+	//                   Symmetric in lower indices: Γⁱⱼₖ = Γⁱₖⱼ
+	//
+	//   Covariant derivative:  ∇ⱼvⁱ = ∂vⁱ/∂qʲ + Γⁱⱼₖ vᵏ
+	//
+	//   Numerical diff:  All derivatives computed via NDer4 (4th-order central
+	//                    differences) unless analytic forms are provided.
+	//
+	// See also: CoordTransf.h, FieldOperations.h
+	///////////////////////////////////////////////////////////////////////////////
+
+	/// @brief Metric tensor field for curvilinear coordinates in differential geometry
+	/// @tparam N Dimension of the manifold
+	/// @note Provides covariant/contravariant metrics gᵢⱼ, Christoffel symbols Γᵢⱼₖ, covariant derivatives
+	/// @note Used for geodesic equations, parallel transport, curvature calculations
 	template<int N>
 	class MetricTensorField : public ITensorField2<N>
 	{
 	public:
+		/// @brief Default constructor (2 contravariant indices, 0 covariant)
 		MetricTensorField() : ITensorField2<N>(2, 0) { }
+		/// @brief Constructor with custom index configuration
+		/// @param numContra Number of contravariant indices
+		/// @param numCo Number of covariant indices
 		MetricTensorField(int numContra, int numCo) : ITensorField2<N>(numContra, numCo) { }
 
 		// implementing operator() required by IFunction interface
@@ -43,6 +76,10 @@ namespace MML
 			return ret;
 		}
 
+		/// @brief Get covariant metric tensor components gᵢⱼ at a point
+		/// @param pos Position in coordinate space
+		/// @return N×N matrix of covariant metric components
+		/// @note Measures squared arc length: ds² = gᵢⱼ dxⁱ dxʲ
 		// Get the covariant metric tensor components at a point (gᵢⱼ)
 		MatrixNM<Real, N, N> GetCovariantMetric(const VectorN<Real, N>& pos) const
 		{
@@ -53,6 +90,10 @@ namespace MML
 			return g_covar;
 		}
 
+		/// @brief Get contravariant metric tensor components gⁱʲ (inverse of gᵢⱼ)
+		/// @param pos Position in coordinate space
+		/// @return N×N matrix of contravariant metric components
+		/// @note Used for raising indices: vⁱ = gⁱʲ vⱼ
 		// Get the contravariant metric tensor components at a point (gⁱʲ = inverse of gᵢⱼ)
 		MatrixNM<Real, N, N> GetContravariantMetric(const VectorN<Real, N>& pos) const
 		{
@@ -60,6 +101,10 @@ namespace MML
 			return g_covar.GetInverse();
 		}
 
+		/// @brief Get Christoffel symbol of the first kind Γᵢⱼₖ (all indices lowered)
+		/// @param i,j,k Indices
+		/// @param pos Position in coordinate space
+		/// @return Γᵢⱼₖ = gₘₖ Γᵐᵢⱼ (related to second kind via metric)
 		Real GetChristoffelSymbolFirstKind(int i, int j, int k, const VectorN<Real, N>& pos) const
 		{
 			const MetricTensorField<N>& g = *this;
@@ -71,6 +116,11 @@ namespace MML
 			}
 			return gamma_ijk;
 		}
+		/// @brief Get Christoffel symbol of the second kind Γᵐᵢⱼ (one index raised)
+		/// @param i,j,k Indices (i=contravariant, j,k=covariant)
+		/// @param pos Position in coordinate space
+		/// @return Γᵐᵢⱼ = ½ gᵐˡ (∂ⱼ gˡₖ + ∂ₖ gˡⱼ - ∂ˡ gⱼₖ) (connection coefficients)
+		/// @note Used in geodesic equation and covariant derivatives
 		Real GetChristoffelSymbolSecondKind(int i, int j, int k, const VectorN<Real, N>& pos) const
 		{
 			const MetricTensorField<N>& g = *this;
@@ -91,6 +141,11 @@ namespace MML
 			return gamma_ijk;
 		}
 
+		/// @brief Covariant derivative of contravariant vector: ∇ⱼ vⁱ = ∂ⱼ vⁱ + Γⁱₖⱼ vₖ
+		/// @param func Vector field
+		/// @param j Derivative direction
+		/// @param pos Position
+		/// @return Vector of covariant derivatives
 		VectorN<Real, N> CovariantDerivativeContravar(const IVectorFunction<N>& func, int j, 
 																									const VectorN<Real, N>& pos) const
 		{
@@ -107,6 +162,7 @@ namespace MML
 			}
 			return ret;
 		}
+		/// @brief Single component of covariant derivative (contravariant)
 		Real CovariantDerivativeContravarComp(const IVectorFunction<N>& func, int i, int j, 
 																					const VectorN<Real, N>& pos) const
 		{
@@ -118,6 +174,7 @@ namespace MML
 			return ret;
 		}
 
+		/// @brief Covariant derivative of covariant vector: ∇ⱼ vᵢ = ∂ⱼ vᵢ - Γₖᵢⱼ vₖ
 		VectorN<Real, N> CovariantDerivativeCovar(const IVectorFunction<N>& func, int j, 
 																							const VectorN<Real, N>& pos) const
 		{
@@ -134,6 +191,7 @@ namespace MML
 			}
 			return ret;
 		}
+		/// @brief Single component of covariant derivative (covariant)
 		Real CovariantDerivativeCovarComp(const IVectorFunction<N>& func, int i, int j, 
 																			const VectorN<Real, N>& pos) const
 		{
@@ -146,6 +204,7 @@ namespace MML
 		}
 	};
 
+	/// @brief Flat metric tensor for Cartesian 3D (gᵢⱼ = δᵢⱼ, all Christoffel symbols vanish)
 	class MetricTensorCartesian3D : public MetricTensorField<3>
 	{
 	public:
@@ -160,6 +219,10 @@ namespace MML
 		}
 	};
 
+	/// @brief Metric for spherical coords (r,θ,φ): ds²=dr²+r²dθ²+r²sin²θdφ²
+	/// @note Diagonal: g=diag(1, r², r²sin²θ)
+	/// @brief Metric for spherical coords (r,θ,φ): ds²=dr²+r²dθ²+r²sin²θdφ²
+	/// @note Diagonal: g=diag(1, r², r²sin²θ)
 	class MetricTensorSpherical : public MetricTensorField<3>
 	{
 	public:
@@ -177,6 +240,7 @@ namespace MML
 				return 0.0;
 		}
 	};
+	/// @brief Contravariant spherical metric: gⁱʲ=diag(1, 1/r², 1/(r²sin²θ))
 	class MetricTensorSphericalContravar : public MetricTensorField<3>
 	{
 	public:
@@ -194,6 +258,7 @@ namespace MML
 				return 0.0;
 		}
 	};
+	/// @brief Metric for cylindrical coords (ρ,φ,z): ds²=dρ²+ρ²dφ²+dz², g=diag(1,ρ²,1)
 	class MetricTensorCylindrical : public MetricTensorField<3>
 	{
 	public:
@@ -212,6 +277,7 @@ namespace MML
 		}
 	};
 
+	/// @brief Compute metric from coord transformation Jacobian: gᵢⱼ=∂xₖ/∂ξⁱ ∂xₖ/∂ξʲ
 	template<typename VectorFrom, typename VectorTo, int N>
 	class MetricTensorFromCoordTransf : public MetricTensorField<N>
 	{
@@ -235,6 +301,8 @@ namespace MML
 		}
 	};
 
+	/// @brief Minkowski metric for special relativity: η=diag(-1,1,1,1), signature (−,+,+,+)
+	/// @note Flat spacetime with coords (ct,x,y,z), ds²=-c²dt²+dx²+dy²+dz²
 	class MetricTensorMinkowski : public MetricTensorField<4>
 	{
 	public:

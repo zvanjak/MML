@@ -5,10 +5,9 @@
 ///  Description: Solution container for ODE integration results                      ///
 ///               Storage and interpolation of computed trajectories                  ///
 ///                                                                                   ///
-///  Copyright:   (c) 2024-2025 Zvonimir Vanjak                                       ///
-///  License:     Licensed under MML dual-license (see LICENSE.md)                    ///
-///               - Free for non-commercial use                                       ///
-///               - Commercial license available                                      ///
+///  Copyright:   (c) 2024-2026 Zvonimir Vanjak                                       ///
+///  License:     MIT License (see LICENSE.md)                                         ///
+///                                                                                   ///
 ///////////////////////////////////////////////////////////////////////////////////////////
 #if !defined  MML_ODE_SYSTEM_SOLUTON_H
 #define MML_ODE_SYSTEM_SOLUTON_H
@@ -17,7 +16,6 @@
 #include "MMLExceptions.h"
 
 #include "base/InterpolatedFunction.h"
-//#include "base/ODESystem.h"
 
 
 namespace MML
@@ -112,32 +110,32 @@ namespace MML
 		
 		/// @brief Get t-value at a specific saved point
 		/// @param ind Index of saved point
-		/// @throws std::out_of_range if index is invalid
+		/// @throws IndexError if index is invalid
 		Real getTValue(int ind) const { 
 			if (ind < 0 || ind >= _totalSavedSteps)
-				throw std::out_of_range("Index out of range in ODESystemSolution::getTValue");
+				throw IndexError("Index out of range in ODESystemSolution::getTValue");
 			return _tval[ind]; 
 		}
 		
 		/// @brief Get x-value for a component at a specific saved point
 		/// @param ind Index of saved point
 		/// @param component Component index (0 to dim-1)
-		/// @throws std::out_of_range if indices are invalid
+		/// @throws IndexError if indices are invalid
 		Real getXValue(int ind, int component) const { 
 			if (ind < 0 || ind >= _totalSavedSteps)
-				throw std::out_of_range("Index out of range in ODESystemSolution::getXValue(ind)");
+				throw IndexError("Index out of range in ODESystemSolution::getXValue(ind)");
 			if (component < 0 || component >= _sysDim)
-				throw std::out_of_range("Component out of range in ODESystemSolution::getXValue(component)");
+				throw IndexError("Component out of range in ODESystemSolution::getXValue(component)");
 			return _xval[component][ind]; 
 		}
 		
 		/// @brief Get all values for a specific component as vector
 		/// @param component Component index (0 to dim-1)
-		/// @throws std::out_of_range if component index is invalid
+		/// @throws IndexError if component index is invalid
 		Vector<Real> getXValues(int component) const 
 		{ 
 			if (component < 0 || component >= _sysDim)
-				throw std::out_of_range("Component out of range in ODESystemSolution::getXValues(component)");
+				throw IndexError("Component out of range in ODESystemSolution::getXValues(component)");
 			
 			return _xval.VectorFromRow(component); 
 		}
@@ -155,11 +153,11 @@ namespace MML
 		/// @brief Set time value at specified index
 		/// @param ind Index where to store time value
 		/// @param x Time value to store
-		/// @throws std::out_of_range if index is negative
+		/// @throws IndexError if index is negative
 		void setTVal(int ind, Real x)
 		{
 			if (ind < 0 )
-				throw std::out_of_range("Index must be non-negative in ODESystemSolution::setTVal");
+				throw IndexError("Index must be non-negative in ODESystemSolution::setTVal");
 			
 			if (ind >= _totalSavedSteps)
 				ExtendSavedSteps();
@@ -170,14 +168,14 @@ namespace MML
 		/// @param ind Index where to store value
 		/// @param component Component index (0 to dim-1)
 		/// @param x Value to store
-		/// @throws std::out_of_range if indices are invalid
+		/// @throws IndexError if indices are invalid
 		void setXVal(int ind, int component, Real x)
 		{
 			if (ind < 0)
-				throw std::out_of_range("Index must be non-negative in ODESystemSolution::setXVal(ind)");
+				throw IndexError("Index must be non-negative in ODESystemSolution::setXVal(ind)");
 
 			if (component < 0 || component >= _sysDim)
-				throw std::out_of_range("Component index out of range in ODESystemSolution::setXVal(component)");
+				throw IndexError("Component index out of range in ODESystemSolution::setXVal(component)");
 
 			if (ind >= _totalSavedSteps)
 				ExtendSavedSteps();
@@ -189,15 +187,15 @@ namespace MML
 		/// @param ind Index where to store values
 		/// @param x Time value
 		/// @param y State vector (must match system dimension)
-		/// @throws std::out_of_range if index is negative
-		/// @throws std::invalid_argument if vector size doesn't match system dimension
+		/// @throws IndexError if index is negative
+		/// @throws ArgumentError if vector size doesn't match system dimension
 		void fillValues(int ind, Real x, const Vector<Real>& y)
 		{
 			if (ind < 0 )
-				throw std::out_of_range("Index must be non-negative in ODESystemSolution::fillValues");
+				throw IndexError("Index must be non-negative in ODESystemSolution::fillValues");
 
 			if( y.size() != _sysDim )
-				throw std::invalid_argument("Vector size mismatch in ODESystemSolution::fillValues");
+				throw ArgumentError("Vector size mismatch in ODESystemSolution::fillValues");
 
 			if(ind >= _totalSavedSteps)
 				ExtendSavedSteps();

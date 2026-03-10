@@ -4,7 +4,7 @@
 #include "MMLBase.h"
 
 #include "base/StandardFunctions.h"
-#include "base/VectorN.h"
+#include "base/Vector/VectorN.h"
 #include "base/Function.h"
 #include "core/Surfaces.h"
 

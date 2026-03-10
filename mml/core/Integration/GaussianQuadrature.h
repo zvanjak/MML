@@ -5,10 +5,9 @@
 ///  Description: N-point Gaussian quadrature (Legendre, Laguerre, Hermite, Jacobi)   ///
 ///               Computed nodes and weights for high-accuracy integration            ///
 ///                                                                                   ///
-///  Copyright:   (c) 2024-2025 Zvonimir Vanjak                                       ///
-///  License:     Licensed under MML dual-license (see LICENSE.md)                    ///
-///               - Free for non-commercial use                                       ///
-///               - Commercial license available                                      ///
+///  Copyright:   (c) 2024-2026 Zvonimir Vanjak                                       ///
+///  License:     MIT License (see LICENSE.md)                                         ///
+///                                                                                   ///
 ///////////////////////////////////////////////////////////////////////////////////////////
 
 #if !defined MML_GAUSSIAN_QUADRATURE_H
@@ -20,6 +19,7 @@
 
 #include "MMLBase.h"
 #include "base/StandardFunctions.h"
+#include "IntegrationBase.h"
 
 namespace MML
 {

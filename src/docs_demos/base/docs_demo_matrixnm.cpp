@@ -3,7 +3,7 @@
 #else
 #include "MMLBase.h"
 
-#include "base/MatrixNM.h"
+#include "base/Matrix/MatrixNM.h"
 
 #include "base/BaseUtils.h"
 #endif
@@ -20,7 +20,7 @@ void Docs_Demo_MatrixNM_initializations()
 	MatrixNM<Real, 2, 2> b({ 1.0, 0.0, 0.0, 1.0 });
 	MatrixNM<Real, 2, 2> c(b);
 	MatrixNM<Real, 2, 2> d = c;
-	auto e = MatrixNM<Real, 3, 3>::GetUnitMatrix();
+	auto e = MatrixNM<Real, 3, 3>::Identity();
 
 	std::cout << "a = " << a << std::endl;
 	std::cout << "b = " << b << std::endl;
@@ -244,7 +244,7 @@ void Docs_Demo_MatrixNM_transpose()
 	MatrixNM<Real, 2, 2> m1({ 1.0, -1.0, 1.5, 3.0 });
 	std::cout << "m1 = " << m1 << std::endl;
 
-	auto m2 = m1.GetTranspose();
+	auto m2 = m1.transpose();
 	std::cout << "m2 (transp) = " << m2 << std::endl;
 
 	m1.Transpose();

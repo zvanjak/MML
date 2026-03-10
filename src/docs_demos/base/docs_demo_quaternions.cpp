@@ -10,7 +10,7 @@
 
 #include "MMLBase.h"
 #include "base/Quaternions.h"
-#include "base/VectorTypes.h"
+#include "base/Vector/VectorTypes.h"
 
 using namespace MML;
 
@@ -150,8 +150,8 @@ void Docs_Demo_Quaternions_Operations()
 	std::cout << "||Normalized()|| = " << qNorm.Norm() << " (should be 1)\n";
 
 	std::cout << "\n--- Unit Checks ---\n";
-	std::cout << "q.IsUnit(): " << (q.IsUnit() ? "yes" : "no") << "\n";
-	std::cout << "qNorm.IsUnit(): " << (qNorm.IsUnit() ? "yes" : "no") << "\n";
+	std::cout << "q.IsIdentity(): " << (q.IsIdentity() ? "yes" : "no") << "\n";
+	std::cout << "qNorm.IsIdentity(): " << (qNorm.IsIdentity() ? "yes" : "no") << "\n";
 	std::cout << "Identity().IsIdentity(): " << (Quaternion::Identity().IsIdentity() ? "yes" : "no") << "\n";
 
 	std::cout << "\n--- Dot Product ---\n";

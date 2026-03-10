@@ -5,10 +5,9 @@
 ///  Description: Console output utilities for vectors, matrices, functions           ///
 ///               Formatted printing with precision and alignment control             ///
 ///                                                                                   ///
-///  Copyright:   (c) 2024-2025 Zvonimir Vanjak                                       ///
-///  License:     Licensed under MML dual-license (see LICENSE.md)                    ///
-///               - Free for non-commercial use                                       ///
-///               - Commercial license available                                      ///
+///  Copyright:   (c) 2024-2026 Zvonimir Vanjak                                       ///
+///  License:     MIT License (see LICENSE.md)                                         ///
+///                                                                                   ///
 ///////////////////////////////////////////////////////////////////////////////////////////
 #if !defined MML_CONSOLE_PRINTER_H
 #define MML_CONSOLE_PRINTER_H
@@ -25,9 +24,134 @@
 #include <stdexcept>
 #include <memory>
 
-#include "../base/Vector.h"
+#include "../base/Vector/Vector.h"
 
 namespace MML {
+
+	///////////////////////////       UTF-8 HELPERS       ///////////////////////////
+
+	/// @brief Namespace for UTF-8 safe string operations in console printing
+	namespace Utf8 {
+		/// @brief Repeat a string (possibly multi-byte) a given number of times.
+		///
+		/// This function correctly handles UTF-8 multi-byte characters like box-drawing
+		/// characters (─, ═, ━, etc.) which are 3 bytes each.
+		///
+		/// @param str The string to repeat (can be multi-byte UTF-8 character)
+		/// @param count Number of times to repeat
+		/// @return Concatenated string
+		inline std::string repeatString(const std::string& str, size_t count) {
+			if (str.empty() || count == 0) return "";
+			std::string result;
+			result.reserve(str.size() * count);
+			for (size_t i = 0; i < count; ++i) {
+				result += str;
+			}
+			return result;
+		}
+
+		/// @brief Check if a string represents exactly one display character.
+		///
+		/// A display character can be:
+		/// - 1 byte: ASCII (0x00-0x7F)
+		/// - 2 bytes: UTF-8 (0xC0-0xDF lead byte)
+		/// - 3 bytes: UTF-8 (0xE0-0xEF lead byte) - most box-drawing chars
+		/// - 4 bytes: UTF-8 (0xF0-0xF7 lead byte)
+		///
+		/// @param str The string to check
+		/// @return true if the string is exactly one UTF-8 display character
+		inline bool isSingleDisplayChar(const std::string& str) {
+			if (str.empty()) return false;
+			unsigned char lead = static_cast<unsigned char>(str[0]);
+			size_t expectedLen = 1;
+			if ((lead & 0x80) == 0x00) expectedLen = 1;       // ASCII
+			else if ((lead & 0xE0) == 0xC0) expectedLen = 2;  // 2-byte
+			else if ((lead & 0xF0) == 0xE0) expectedLen = 3;  // 3-byte (box-drawing)
+			else if ((lead & 0xF8) == 0xF0) expectedLen = 4;  // 4-byte
+			else return false; // Invalid lead byte
+			return str.size() == expectedLen;
+		}
+	} // namespace Utf8
+
+	///////////////////////////       CSV HELPERS       ///////////////////////////
+
+	/// @brief Namespace for RFC 4180 compliant CSV utilities
+	namespace Csv {
+		/// @brief Check if a string needs quoting per RFC 4180
+		///
+		/// A field needs quoting if it contains:
+		/// - Comma (,) - field delimiter
+		/// - Double quote (") - must be escaped
+		/// - Newline (\n or \r) - record delimiter
+		///
+		/// @param str The string to check
+		/// @return true if the string needs to be quoted
+		inline bool needsQuoting(const std::string& str) {
+			return str.find_first_of(",\"\n\r") != std::string::npos;
+		}
+
+		/// @brief Escape a string for RFC 4180 compliant CSV output
+		///
+		/// Per RFC 4180:
+		/// - Fields containing comma, quote, or newline must be quoted
+		/// - Double quotes inside fields are escaped by doubling them
+		/// - Example: 'He said "Hi"' becomes '"He said ""Hi"""'
+		///
+		/// @param str The string to escape
+		/// @return The escaped string (quoted if necessary)
+		inline std::string escape(const std::string& str) {
+			if (!needsQuoting(str)) {
+				return str;
+			}
+
+			std::string result;
+			result.reserve(str.size() + 2);  // At least for the surrounding quotes
+			result += '"';
+
+			for (char c : str) {
+				if (c == '"') {
+					result += "\"\"";	// Escape quote by doubling
+				} else {
+					result += c;
+				}
+			}
+
+			result += '"';
+			return result;
+		}
+
+		/// @brief Parse an RFC 4180 escaped CSV field back to original value
+		///
+		/// This reverses the escape() operation:
+		/// - Removes surrounding quotes if present
+		/// - Converts doubled quotes back to single quotes
+		///
+		/// @param str The escaped string to unescape
+		/// @return The original unescaped string
+		inline std::string unescape(const std::string& str) {
+			if (str.empty()) return str;
+
+			// Check if quoted
+			if (str.front() != '"' || str.back() != '"' || str.size() < 2) {
+				return str;  // Not quoted, return as-is
+			}
+
+			std::string result;
+			result.reserve(str.size() - 2);
+
+			// Skip opening and closing quotes
+			for (size_t i = 1; i < str.size() - 1; ++i) {
+				if (str[i] == '"' && i + 1 < str.size() - 1 && str[i + 1] == '"') {
+					result += '"';
+					++i;	// Skip the second quote
+				} else {
+					result += str[i];
+				}
+			}
+
+			return result;
+		}
+	} // namespace Csv
 
 	///////////////////////////       MODERN API       ///////////////////////////
 
@@ -505,20 +629,27 @@ namespace MML {
 			}
 		}
 
-		// CSV export
+		// CSV export (RFC 4180 compliant)
 		void exportCSV(std::ostream& os) const {
-			// Header
-			os << m_tagFormat.name();
+			// Header - escape column names in case they contain special characters
+			os << Csv::escape(m_tagFormat.name());
 			for (const auto& fmt : m_columnFormats) {
-				os << "," << fmt.name();
+				os << "," << Csv::escape(fmt.name());
 			}
 			os << "\n";
 
-			// Data
+			// Data - escape row tags and values
 			for (size_t row = 0; row < m_data.size(); ++row) {
-				os << m_rowTags[row];
+				// Row tag (convert to string and escape)
+				std::ostringstream tagStr;
+				tagStr << m_rowTags[row];
+				os << Csv::escape(tagStr.str());
+
+				// Values (convert to string and escape)
 				for (const auto& value : m_data[row]) {
-					os << "," << value;
+					std::ostringstream valStr;
+					valStr << value;
+					os << "," << Csv::escape(valStr.str());
 				}
 				os << "\n";
 			}
@@ -625,15 +756,15 @@ namespace MML {
 			os << "</table>\n";
 		}
 
-		// Helper: print horizontal line for borders
+		// Helper: print horizontal line for borders (UTF-8 safe)
 		void printHorizontalLine(std::ostream& os, const std::string& left, const std::string& horiz, const std::string& cross,
 								 const std::string& right) const {
 			os << left;
-			os << std::string(static_cast<size_t>(m_tagFormat.width() + 2), horiz[0]);
+			os << Utf8::repeatString(horiz, static_cast<size_t>(m_tagFormat.width() + 2));
 
 			for (size_t i = 0; i < m_columnFormats.size(); ++i) {
 				os << cross;
-				os << std::string(static_cast<size_t>(m_columnFormats[i].width() + 2), horiz[0]);
+				os << Utf8::repeatString(horiz, static_cast<size_t>(m_columnFormats[i].width() + 2));
 			}
 
 			os << right << "\n";
@@ -787,6 +918,7 @@ namespace MML {
 		}
 
 	private:
+		// Helper: print horizontal line for borders (UTF-8 safe)
 		void printHorizontalLine(std::ostream& os, const std::string& left, const std::string& horiz, const std::string& cross,
 								 const std::string& right) const {
 			os << left;
@@ -794,17 +926,12 @@ namespace MML {
 			for (size_t i = 0; i < m_formats.size(); ++i) {
 				if (i > 0)
 					os << cross;
-				os << std::string(static_cast<size_t>(m_formats[i].width() + 2), horiz[0]);
+				os << Utf8::repeatString(horiz, static_cast<size_t>(m_formats[i].width() + 2));
 			}
 
 			os << right << "\n";
 		}
 	};
-
-	///////////////////////////       LEGACY API (Deprecated)       ///////////////////////////
-
-	// Legacy ColDesc - aliased to ColumnFormat for compatibility
-	using ColDesc [[deprecated("Use ColumnFormat instead")]] = ColumnFormat;
 
 } // namespace MML
 

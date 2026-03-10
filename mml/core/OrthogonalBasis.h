@@ -5,10 +5,9 @@
 ///  Description: Orthogonal function bases (Legendre, Hermite, Laguerre)             ///
 ///               Gram-Schmidt orthogonalization and inner products                   ///
 ///                                                                                   ///
-///  Copyright:   (c) 2024-2025 Zvonimir Vanjak                                       ///
-///  License:     Licensed under MML dual-license (see LICENSE.md)                    ///
-///               - Free for non-commercial use                                       ///
-///               - Commercial license available                                      ///
+///  Copyright:   (c) 2024-2026 Zvonimir Vanjak                                       ///
+///  License:     MIT License (see LICENSE.md)                                         ///
+///                                                                                   ///
 ///////////////////////////////////////////////////////////////////////////////////////////
 #if !defined MML_ORTHOGONAL_BASIS_H
 #define MML_ORTHOGONAL_BASIS_H

@@ -15,8 +15,10 @@
 #ifdef MML_USE_SINGLE_HEADER
 #include "MML.h"
 #else
-#include "base/Vector.h"
-#include "base/Matrix.h"
+#include "base/Vector/Vector.h"
+#include "base/Matrix/Matrix.h"
+#include "base/BaseUtils.h"
+#include "core/MatrixUtils.h"
 #include "algorithms/EigenSolverHelpers.h"
 #include "algorithms/EigenSystemSolvers.h"  // For EigenSolver
 #endif
@@ -27,6 +29,9 @@
 
 using namespace MML;
 using namespace MML::Testing;
+
+namespace MML::Tests::Algorithms::EigensolverBuildingBlocksTests
+{
 
 // Tolerance for numerical comparisons
 constexpr Real TOL = 1e-10;
@@ -44,11 +49,11 @@ TEST_CASE("Hessenberg - 2x2 matrix unchanged", "[eigensolver][building-block][he
     auto result = EigenSolverHelpers::ReduceToHessenberg(A);
     
     // H should equal A for 2x2
-    REQUIRE(EigenSolverHelpers::MaxAbsDiff(result.H, A) < TOL);
+    REQUIRE(Utils::MaxAbsDiff(result.H, A) < TOL);
     
     // Q should be identity
-    Matrix<Real> I = Matrix<Real>::GetUnitMatrix(2);
-    REQUIRE(EigenSolverHelpers::MaxAbsDiff(result.Q, I) < TOL);
+    Matrix<Real> I = Matrix<Real>::Identity(2);
+    REQUIRE(Utils::MaxAbsDiff(result.Q, I) < TOL);
 }
 
 TEST_CASE("Hessenberg - 3x3 produces upper Hessenberg", "[eigensolver][building-block][hessenberg]")
@@ -60,7 +65,7 @@ TEST_CASE("Hessenberg - 3x3 produces upper Hessenberg", "[eigensolver][building-
     auto result = EigenSolverHelpers::ReduceToHessenberg(A);
     
     // Check H is upper Hessenberg
-    REQUIRE(EigenSolverHelpers::IsUpperHessenberg(result.H, TOL));
+    REQUIRE(Utils::IsUpperHessenberg(result.H, TOL));
     INFO("H(2,0) = " << result.H(2, 0));
     REQUIRE(std::abs(result.H(2, 0)) < TOL);
 }
@@ -74,7 +79,7 @@ TEST_CASE("Hessenberg - 3x3 Q is orthogonal", "[eigensolver][building-block][hes
     auto result = EigenSolverHelpers::ReduceToHessenberg(A);
     
     // Check Q is orthogonal: Q^T * Q = I
-    REQUIRE(EigenSolverHelpers::IsOrthogonal(result.Q, TOL));
+    REQUIRE(Utils::IsOrthogonal(result.Q, TOL));
 }
 
 TEST_CASE("Hessenberg - 3x3 similarity preserved (Q^T*A*Q = H)", "[eigensolver][building-block][hessenberg]")
@@ -86,9 +91,9 @@ TEST_CASE("Hessenberg - 3x3 similarity preserved (Q^T*A*Q = H)", "[eigensolver][
     auto result = EigenSolverHelpers::ReduceToHessenberg(A);
     
     // Verify Q^T * A * Q = H
-    Matrix<Real> reconstructed = EigenSolverHelpers::SimilarityTransform(result.Q, A);
+    Matrix<Real> reconstructed = Utils::SimilarityTransform(result.Q, A);
     
-    Real diff = EigenSolverHelpers::MaxAbsDiff(reconstructed, result.H);
+    Real diff = Utils::MaxAbsDiff(reconstructed, result.H);
     INFO("Max diff between Q^T*A*Q and H: " << diff);
     REQUIRE(diff < TOL);
 }
@@ -101,8 +106,8 @@ TEST_CASE("Hessenberg - 3x3 trace preserved", "[eigensolver][building-block][hes
     
     auto result = EigenSolverHelpers::ReduceToHessenberg(A);
     
-    Real traceA = EigenSolverHelpers::Trace(A);
-    Real traceH = EigenSolverHelpers::Trace(result.H);
+    Real traceA = Utils::Trace(A);
+    Real traceH = Utils::Trace(result.H);
     
     INFO("trace(A) = " << traceA << ", trace(H) = " << traceH);
     REQUIRE(std::abs(traceA - traceH) < TOL);
@@ -120,7 +125,7 @@ TEST_CASE("Hessenberg - 4x4 all criteria", "[eigensolver][building-block][hessen
     // Check all criteria
     SECTION("H is upper Hessenberg")
     {
-        REQUIRE(EigenSolverHelpers::IsUpperHessenberg(result.H, TOL));
+        REQUIRE(Utils::IsUpperHessenberg(result.H, TOL));
         REQUIRE(std::abs(result.H(2, 0)) < TOL);
         REQUIRE(std::abs(result.H(3, 0)) < TOL);
         REQUIRE(std::abs(result.H(3, 1)) < TOL);
@@ -128,18 +133,18 @@ TEST_CASE("Hessenberg - 4x4 all criteria", "[eigensolver][building-block][hessen
     
     SECTION("Q is orthogonal")
     {
-        REQUIRE(EigenSolverHelpers::IsOrthogonal(result.Q, TOL));
+        REQUIRE(Utils::IsOrthogonal(result.Q, TOL));
     }
     
     SECTION("Similarity: Q^T*A*Q = H")
     {
-        Matrix<Real> reconstructed = EigenSolverHelpers::SimilarityTransform(result.Q, A);
-        REQUIRE(EigenSolverHelpers::MaxAbsDiff(reconstructed, result.H) < TOL);
+        Matrix<Real> reconstructed = Utils::SimilarityTransform(result.Q, A);
+        REQUIRE(Utils::MaxAbsDiff(reconstructed, result.H) < TOL);
     }
     
     SECTION("Trace preserved")
     {
-        REQUIRE(std::abs(EigenSolverHelpers::Trace(A) - EigenSolverHelpers::Trace(result.H)) < TOL);
+        REQUIRE(std::abs(Utils::Trace(A) - Utils::Trace(result.H)) < TOL);
     }
 }
 
@@ -155,23 +160,23 @@ TEST_CASE("Hessenberg - 5x5 all criteria", "[eigensolver][building-block][hessen
     
     SECTION("H is upper Hessenberg")
     {
-        REQUIRE(EigenSolverHelpers::IsUpperHessenberg(result.H, TOL));
+        REQUIRE(Utils::IsUpperHessenberg(result.H, TOL));
     }
     
     SECTION("Q is orthogonal")
     {
-        REQUIRE(EigenSolverHelpers::IsOrthogonal(result.Q, TOL));
+        REQUIRE(Utils::IsOrthogonal(result.Q, TOL));
     }
     
     SECTION("Similarity: Q^T*A*Q = H")
     {
-        Matrix<Real> reconstructed = EigenSolverHelpers::SimilarityTransform(result.Q, A);
-        REQUIRE(EigenSolverHelpers::MaxAbsDiff(reconstructed, result.H) < TOL);
+        Matrix<Real> reconstructed = Utils::SimilarityTransform(result.Q, A);
+        REQUIRE(Utils::MaxAbsDiff(reconstructed, result.H) < TOL);
     }
     
     SECTION("Trace preserved")
     {
-        REQUIRE(std::abs(EigenSolverHelpers::Trace(A) - EigenSolverHelpers::Trace(result.H)) < TOL);
+        REQUIRE(std::abs(Utils::Trace(A) - Utils::Trace(result.H)) < TOL);
     }
 }
 
@@ -185,12 +190,12 @@ TEST_CASE("Hessenberg - already Hessenberg matrix", "[eigensolver][building-bloc
     
     auto result = EigenSolverHelpers::ReduceToHessenberg(H);
     
-    REQUIRE(EigenSolverHelpers::IsUpperHessenberg(result.H, TOL));
-    REQUIRE(EigenSolverHelpers::IsOrthogonal(result.Q, TOL));
+    REQUIRE(Utils::IsUpperHessenberg(result.H, TOL));
+    REQUIRE(Utils::IsOrthogonal(result.Q, TOL));
     
     // Similarity should hold
-    Matrix<Real> reconstructed = EigenSolverHelpers::SimilarityTransform(result.Q, H);
-    REQUIRE(EigenSolverHelpers::MaxAbsDiff(reconstructed, result.H) < TOL);
+    Matrix<Real> reconstructed = Utils::SimilarityTransform(result.Q, H);
+    REQUIRE(Utils::MaxAbsDiff(reconstructed, result.H) < TOL);
 }
 
 TEST_CASE("Hessenberg - random-like structured matrix", "[eigensolver][building-block][hessenberg]")
@@ -207,11 +212,11 @@ TEST_CASE("Hessenberg - random-like structured matrix", "[eigensolver][building-
     INFO("H(3,0) = " << result.H(3, 0));
     INFO("H(3,1) = " << result.H(3, 1));
     
-    REQUIRE(EigenSolverHelpers::IsUpperHessenberg(result.H, TOL));
-    REQUIRE(EigenSolverHelpers::IsOrthogonal(result.Q, TOL));
+    REQUIRE(Utils::IsUpperHessenberg(result.H, TOL));
+    REQUIRE(Utils::IsOrthogonal(result.Q, TOL));
     
-    Matrix<Real> reconstructed = EigenSolverHelpers::SimilarityTransform(result.Q, A);
-    Real diff = EigenSolverHelpers::MaxAbsDiff(reconstructed, result.H);
+    Matrix<Real> reconstructed = Utils::SimilarityTransform(result.Q, A);
+    Real diff = Utils::MaxAbsDiff(reconstructed, result.H);
     INFO("Reconstruction error: " << diff);
     REQUIRE(diff < TOL);
 }
@@ -333,7 +338,7 @@ TEST_CASE("QRStep - Single step preserves Hessenberg form", "[eigensolver][build
     
     auto result = EigenSolverHelpers::SingleQRStep(H);
     
-    REQUIRE(EigenSolverHelpers::IsUpperHessenberg(result.H, TOL));
+    REQUIRE(Utils::IsUpperHessenberg(result.H, TOL));
 }
 
 TEST_CASE("QRStep - Single step Q is orthogonal", "[eigensolver][building-block][qrstep]")
@@ -345,7 +350,7 @@ TEST_CASE("QRStep - Single step Q is orthogonal", "[eigensolver][building-block]
     
     auto result = EigenSolverHelpers::SingleQRStep(H, true);
     
-    REQUIRE(EigenSolverHelpers::IsOrthogonal(result.Q, TOL));
+    REQUIRE(Utils::IsOrthogonal(result.Q, TOL));
 }
 
 TEST_CASE("QRStep - Single step preserves similarity", "[eigensolver][building-block][qrstep]")
@@ -358,9 +363,9 @@ TEST_CASE("QRStep - Single step preserves similarity", "[eigensolver][building-b
     auto result = EigenSolverHelpers::SingleQRStep(H, true);
     
     // Verify Q^T * H * Q = H_new
-    Matrix<Real> reconstructed = EigenSolverHelpers::SimilarityTransform(result.Q, H);
+    Matrix<Real> reconstructed = Utils::SimilarityTransform(result.Q, H);
     
-    Real diff = EigenSolverHelpers::MaxAbsDiff(reconstructed, result.H);
+    Real diff = Utils::MaxAbsDiff(reconstructed, result.H);
     INFO("Similarity error: " << diff);
     REQUIRE(diff < TOL);
 }
@@ -372,9 +377,9 @@ TEST_CASE("QRStep - Single step preserves trace", "[eigensolver][building-block]
                           REAL(0.0), REAL(3.0), REAL(6.0), REAL(1.0),
                           REAL(0.0), REAL(0.0), REAL(2.0), REAL(7.0)}};
     
-    Real traceBefore = EigenSolverHelpers::Trace(H);
+    Real traceBefore = Utils::Trace(H);
     auto result = EigenSolverHelpers::SingleQRStep(H);
-    Real traceAfter = EigenSolverHelpers::Trace(result.H);
+    Real traceAfter = Utils::Trace(result.H);
     
     INFO("Trace before: " << traceBefore << ", after: " << traceAfter);
     REQUIRE(std::abs(traceBefore - traceAfter) < TOL);
@@ -437,7 +442,7 @@ TEST_CASE("DoubleShift - Preserves Hessenberg form", "[eigensolver][building-blo
     
     auto result = EigenSolverHelpers::FrancisDoubleShift(H, 0, 3, true);
     
-    REQUIRE(EigenSolverHelpers::IsUpperHessenberg(result.H, TOL));
+    REQUIRE(Utils::IsUpperHessenberg(result.H, TOL));
 }
 
 TEST_CASE("DoubleShift - Q is orthogonal", "[eigensolver][building-block][doubleshift]")
@@ -449,7 +454,7 @@ TEST_CASE("DoubleShift - Q is orthogonal", "[eigensolver][building-block][double
     
     auto result = EigenSolverHelpers::FrancisDoubleShift(H, 0, 3, true);
     
-    REQUIRE(EigenSolverHelpers::IsOrthogonal(result.Q, TOL));
+    REQUIRE(Utils::IsOrthogonal(result.Q, TOL));
 }
 
 TEST_CASE("DoubleShift - Preserves similarity", "[eigensolver][building-block][doubleshift]")
@@ -462,9 +467,9 @@ TEST_CASE("DoubleShift - Preserves similarity", "[eigensolver][building-block][d
     auto result = EigenSolverHelpers::FrancisDoubleShift(H, 0, 3, true);
     
     // Verify Q^T * H * Q = H_new
-    Matrix<Real> reconstructed = EigenSolverHelpers::SimilarityTransform(result.Q, H);
+    Matrix<Real> reconstructed = Utils::SimilarityTransform(result.Q, H);
     
-    Real diff = EigenSolverHelpers::MaxAbsDiff(reconstructed, result.H);
+    Real diff = Utils::MaxAbsDiff(reconstructed, result.H);
     INFO("Similarity error: " << diff);
     REQUIRE(diff < TOL);
 }
@@ -476,9 +481,9 @@ TEST_CASE("DoubleShift - Preserves trace", "[eigensolver][building-block][double
                           REAL(0.0), REAL(2.0), REAL(5.0), REAL(1.0),
                           REAL(0.0), REAL(0.0), REAL(1.0), REAL(6.0)}};
     
-    Real traceBefore = EigenSolverHelpers::Trace(H);
+    Real traceBefore = Utils::Trace(H);
     auto result = EigenSolverHelpers::FrancisDoubleShift(H, 0, 3, false);
-    Real traceAfter = EigenSolverHelpers::Trace(result.H);
+    Real traceAfter = Utils::Trace(result.H);
     
     INFO("Trace before: " << traceBefore << ", after: " << traceAfter);
     REQUIRE(std::abs(traceBefore - traceAfter) < TOL);
@@ -502,7 +507,7 @@ TEST_CASE("DoubleShift - Converges on complex eigenvalue matrix", "[eigensolver]
     REQUIRE(iters <= 50);
     
     // Matrix should still be upper Hessenberg
-    REQUIRE(EigenSolverHelpers::IsUpperHessenberg(Hcopy, 1e-6));
+    REQUIRE(Utils::IsUpperHessenberg(Hcopy, 1e-6));
 }
 
 TEST_CASE("DoubleShift - 2x2 complex block extraction", "[eigensolver][building-block][doubleshift]")
@@ -706,12 +711,12 @@ TEST_CASE("Eigenvectors - Multiple real eigenvalues", "[eigensolver][building-bl
     Matrix<Real> T{3, 3, {REAL(1.0), REAL(1.0), REAL(1.0),
                           REAL(0.0), REAL(2.0), REAL(1.0),
                           REAL(0.0), REAL(0.0), REAL(3.0)}};
-    Matrix<Real> Q = Matrix<Real>::GetUnitMatrix(3);  // Identity (T is already Schur form)
+    Matrix<Real> Q = Matrix<Real>::Identity(3);  // Identity (T is already Schur form)
     
     auto result = EigenSolverHelpers::ComputeEigenvectorsFromSchur(T, Q, 1e-10);
     
-    REQUIRE(result.vectors.RowNum() == 3);
-    REQUIRE(result.vectors.ColNum() == 3);
+    REQUIRE(result.vectors.rows() == 3);
+    REQUIRE(result.vectors.cols() == 3);
     
     // Verify each eigenvector
     for (int col = 0; col < 3; col++)
@@ -814,7 +819,7 @@ TEST_CASE("Eigenvectors - Complex eigenvalue pair", "[eigensolver][building-bloc
     Matrix<Real> T{3, 3, {REAL(2.0), REAL(1.0), REAL(1.0),
                           REAL(0.0), REAL(0.0),-REAL(1.0),  // 2x2 block with eigenvalues ±i
                           REAL(0.0), REAL(1.0), REAL(0.0)}};
-    Matrix<Real> Q = Matrix<Real>::GetUnitMatrix(3);
+    Matrix<Real> Q = Matrix<Real>::Identity(3);
     
     auto result = EigenSolverHelpers::ComputeEigenvectorsFromSchur(T, Q, 1e-10);
     
@@ -840,7 +845,7 @@ TEST_CASE("Eigenvectors - Normalized output", "[eigensolver][building-block][eig
     Matrix<Real> T{3, 3, {REAL(1.0), REAL(2.0), REAL(3.0),
                           REAL(0.0), REAL(4.0), REAL(5.0),
                           REAL(0.0), REAL(0.0), REAL(6.0)}};
-    Matrix<Real> Q = Matrix<Real>::GetUnitMatrix(3);
+    Matrix<Real> Q = Matrix<Real>::Identity(3);
     
     auto result = EigenSolverHelpers::ComputeEigenvectorsFromSchur(T, Q, 1e-10);
     
@@ -1055,3 +1060,4 @@ TEST_CASE("EigenSolver - Eigenvector verification", "[eigensolver][integration]"
     }
 }
 
+} // namespace MML::Tests::Algorithms::EigensolverBuildingBlocksTests

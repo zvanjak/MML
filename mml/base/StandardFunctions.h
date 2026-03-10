@@ -5,10 +5,9 @@
 ///  Description: Standard mathematical functions (Bessel, Gamma, Legendre, etc.)     ///
 ///               Special functions from C++ math spec                                ///
 ///                                                                                   ///
-///  Copyright:   (c) 2024-2025 Zvonimir Vanjak                                       ///
-///  License:     Licensed under MML dual-license (see LICENSE.md)                    ///
-///               - Free for non-commercial use                                       ///
-///               - Commercial license available                                      ///
+///  Copyright:   (c) 2024-2026 Zvonimir Vanjak                                       ///
+///  License:     MIT License (see LICENSE.md)                                         ///
+///                                                                                   ///
 ///////////////////////////////////////////////////////////////////////////////////////////
 #define __STDCPP_WANT_MATH_SPEC_FUNCS__ 1
 
@@ -17,14 +16,15 @@
 
 #include "MMLBase.h"
 
-// Detect if C++17 special math functions are available
-// Apple's libc++ doesn't implement them, nor does older MSVC
+// Feature detection for C++17 special math functions
+// macOS libc++ doesn't support these yet, so we need fallbacks
 #if defined(__cpp_lib_math_special_functions) || \
-    (defined(__GNUC__) && !defined(__clang__) && !defined(__apple_build_version__)) || \
-    (defined(_MSC_VER) && _MSC_VER >= 1914)
-    #define MML_HAS_SPECIAL_MATH_FUNCTIONS 1
+    (defined(_MSC_VER) && _MSC_VER >= 1910) || \
+    (defined(__GNUC__) && !defined(__clang__) && __GNUC__ >= 7) || \
+    (defined(__clang__) && !defined(__APPLE__) && __clang_major__ >= 10)
+    #define MML_HAS_STD_SPECIAL_FUNCTIONS 1
 #else
-    #define MML_HAS_SPECIAL_MATH_FUNCTIONS 0
+    #define MML_HAS_STD_SPECIAL_FUNCTIONS 0
 #endif
 
 namespace MML
@@ -91,9 +91,10 @@ namespace MML
 		static inline Real TGamma(Real x) { return std::tgamma(x); }
 		static inline Real LGamma(Real x) { return std::lgamma(x); }
 
-#if MML_HAS_SPECIAL_MATH_FUNCTIONS
-		// C++17 Special Mathematical Functions
-		// Note: Not available on Apple platforms (libc++ doesn't implement them)
+#if MML_HAS_STD_SPECIAL_FUNCTIONS
+		// C++17 special math functions (not available on macOS libc++)
+		// NOTE: These are ONLY wrappers around std:: functions. They are NOT used by MML internally.
+		//       MML uses its own implementations in mml/algorithms/ which work on all platforms.
 		static inline Real RiemannZeta(Real x) { return std::riemann_zeta(x); }
 
 		static inline Real Hermite(unsigned int n, Real x) { return std::hermite(n, x); }
@@ -123,37 +124,143 @@ namespace MML
 		static inline Real AssocLegendre(unsigned int l, unsigned int m, Real x) { return std::assoc_legendre(l, m, x); }
 		static inline Real AssocLaguerre(unsigned int n, unsigned int m, Real x) { return std::assoc_laguerre(n, m, x); }
 
-    // Beta and exponential integral functions
-    static inline Real Beta(Real x, Real y) { return std::beta(x, y); }
-    static inline Real Expint(Real x) { return std::expint(x); }
+		// Beta and exponential integral functions
+		static inline Real Beta(Real x, Real y) { return std::beta(x, y); }
+		static inline Real Expint(Real x) { return std::expint(x); }
 
-    // Alias for Bessel function of the second kind (same as CylNeumann)
-    static inline Real CylBesselY(Real n, Real x) { return std::cyl_neumann(n, x); }
+		// Alias for Bessel function of the second kind (same as CylNeumann)
+		static inline Real CylBesselY(Real n, Real x) { return std::cyl_neumann(n, x); }
 #else
-		// Stub implementations for platforms without C++17 special math functions (e.g., macOS)
-		// These throw runtime errors if called - users should implement their own or use a different library
-		static inline Real RiemannZeta(Real) { throw std::runtime_error("RiemannZeta not available on this platform"); }
-		static inline Real Hermite(unsigned int, Real) { throw std::runtime_error("Hermite not available on this platform"); }
-		static inline Real Legendre(unsigned int, Real) { throw std::runtime_error("Legendre not available on this platform"); }
-		static inline Real Laguerre(unsigned int, Real) { throw std::runtime_error("Laguerre not available on this platform"); }
-		static inline Real SphBessel(unsigned int, Real) { throw std::runtime_error("SphBessel not available on this platform"); }
-		static inline Real SphLegendre(int, int, Real) { throw std::runtime_error("SphLegendre not available on this platform"); }
-		static inline Real Ellint_1(Real, Real) { throw std::runtime_error("Ellint_1 not available on this platform"); }
-		static inline Real Ellint_2(Real, Real) { throw std::runtime_error("Ellint_2 not available on this platform"); }
-		static inline Real Ellint_3(Real, Real, Real) { throw std::runtime_error("Ellint_3 not available on this platform"); }
-		static inline Real Comp_ellint_1(Real) { throw std::runtime_error("Comp_ellint_1 not available on this platform"); }
-		static inline Real Comp_ellint_2(Real) { throw std::runtime_error("Comp_ellint_2 not available on this platform"); }
-		static inline Real Comp_ellint_3(Real, Real) { throw std::runtime_error("Comp_ellint_3 not available on this platform"); }
-		static inline Real CylBesselJ(Real, Real) { throw std::runtime_error("CylBesselJ not available on this platform"); }
-		static inline Real CylBesselI(Real, Real) { throw std::runtime_error("CylBesselI not available on this platform"); }
-		static inline Real CylBesselK(Real, Real) { throw std::runtime_error("CylBesselK not available on this platform"); }
-		static inline Real CylNeumann(Real, Real) { throw std::runtime_error("CylNeumann not available on this platform"); }
-		static inline Real SphNeumann(unsigned int, Real) { throw std::runtime_error("SphNeumann not available on this platform"); }
-		static inline Real AssocLegendre(unsigned int, unsigned int, Real) { throw std::runtime_error("AssocLegendre not available on this platform"); }
-		static inline Real AssocLaguerre(unsigned int, unsigned int, Real) { throw std::runtime_error("AssocLaguerre not available on this platform"); }
-		static inline Real Beta(Real, Real) { throw std::runtime_error("Beta not available on this platform"); }
-		static inline Real Expint(Real) { throw std::runtime_error("Expint not available on this platform"); }
-		static inline Real CylBesselY(Real, Real) { throw std::runtime_error("CylBesselY not available on this platform"); }
+		// =====================================================================================
+		// FALLBACK IMPLEMENTATIONS for platforms without C++17 special math (e.g., macOS libc++)
+		// These provide the same interface as the std:: functions above.
+		// =====================================================================================
+
+		// Legendre polynomial Pₙ(x) using Bonnet's recurrence
+		static inline Real Legendre(unsigned int n, Real x) {
+			if (n == 0) return 1.0;
+			if (n == 1) return x;
+			Real P_prev2 = 1.0, P_prev1 = x, P_n = 0.0;
+			for (unsigned int k = 2; k <= n; ++k) {
+				P_n = ((2.0 * k - 1.0) * x * P_prev1 - (k - 1.0) * P_prev2) / k;
+				P_prev2 = P_prev1;
+				P_prev1 = P_n;
+			}
+			return P_n;
+		}
+
+		// Hermite polynomial Hₙ(x) (physicist's convention) using recurrence
+		static inline Real Hermite(unsigned int n, Real x) {
+			if (n == 0) return 1.0;
+			if (n == 1) return 2.0 * x;
+			Real H_prev2 = 1.0, H_prev1 = 2.0 * x, H_n = 0.0;
+			for (unsigned int k = 2; k <= n; ++k) {
+				H_n = 2.0 * x * H_prev1 - 2.0 * (k - 1.0) * H_prev2;
+				H_prev2 = H_prev1;
+				H_prev1 = H_n;
+			}
+			return H_n;
+		}
+
+		// Laguerre polynomial Lₙ(x) using recurrence
+		static inline Real Laguerre(unsigned int n, Real x) {
+			if (n == 0) return 1.0;
+			if (n == 1) return 1.0 - x;
+			Real L_prev2 = 1.0, L_prev1 = 1.0 - x, L_n = 0.0;
+			for (unsigned int k = 2; k <= n; ++k) {
+				L_n = ((2.0 * k - 1.0 - x) * L_prev1 - (k - 1.0) * L_prev2) / k;
+				L_prev2 = L_prev1;
+				L_prev1 = L_n;
+			}
+			return L_n;
+		}
+
+		// Associated Legendre polynomial Pₗᵐ(x) using recurrence
+		static inline Real AssocLegendre(unsigned int l, unsigned int m, Real x) {
+			if (m > l) return 0.0;
+			// Start with P_m^m
+			Real P_mm = 1.0;
+			if (m > 0) {
+				Real sqrt1mx2 = std::sqrt(1.0 - x * x);
+				Real fact = 1.0;
+				for (unsigned int i = 1; i <= m; ++i) {
+					P_mm *= -fact * sqrt1mx2;
+					fact += 2.0;
+				}
+			}
+			if (l == m) return P_mm;
+			// P_{m+1}^m
+			Real P_mp1_m = x * (2.0 * m + 1.0) * P_mm;
+			if (l == m + 1) return P_mp1_m;
+			// Recurrence for higher l
+			Real P_l_m = 0.0;
+			for (unsigned int ll = m + 2; ll <= l; ++ll) {
+				P_l_m = (x * (2.0 * ll - 1.0) * P_mp1_m - (ll + m - 1.0) * P_mm) / (ll - m);
+				P_mm = P_mp1_m;
+				P_mp1_m = P_l_m;
+			}
+			return P_l_m;
+		}
+
+		// Associated Laguerre polynomial Lₙᵐ(x) using recurrence
+		static inline Real AssocLaguerre(unsigned int n, unsigned int m, Real x) {
+			if (n == 0) return 1.0;
+			if (n == 1) return 1.0 + m - x;
+			Real L_prev2 = 1.0;
+			Real L_prev1 = 1.0 + m - x;
+			Real L_n = 0.0;
+			for (unsigned int k = 2; k <= n; ++k) {
+				L_n = ((2.0 * k - 1.0 + m - x) * L_prev1 - (k - 1.0 + m) * L_prev2) / k;
+				L_prev2 = L_prev1;
+				L_prev1 = L_n;
+			}
+			return L_n;
+		}
+
+		// Spherical Legendre function Y_l^m(theta) (real, normalized)
+		static inline Real SphLegendre(unsigned int l, unsigned int m, Real theta) {
+			// Y_l^m(theta) = K_l^m * P_l^m(cos(theta))
+			// Normalization: K_l^m = sqrt((2l+1)/(4π) * (l-m)!/(l+m)!)
+			Real x = std::cos(theta);
+			Real P_lm = AssocLegendre(l, m, x);
+			// Compute (l-m)! / (l+m)!
+			Real ratio = 1.0;
+			for (unsigned int i = l - m + 1; i <= l + m; ++i)
+				ratio /= i;
+			Real K = std::sqrt((2.0 * l + 1.0) / (4.0 * Constants::PI) * ratio);
+			return K * P_lm;
+		}
+
+		// Complete elliptic integral of the first kind K(k) using AGM
+		static inline Real Comp_ellint_1(Real k) {
+			Real a = 1.0, b = std::sqrt(1.0 - k * k);
+			while (std::abs(a - b) > 1e-15) {
+				Real temp = (a + b) / 2.0;
+				b = std::sqrt(a * b);
+				a = temp;
+			}
+			return Constants::PI / (2.0 * a);
+		}
+
+		// Complete elliptic integral of the second kind E(k) using AGM
+		static inline Real Comp_ellint_2(Real k) {
+			Real a = 1.0, b = std::sqrt(1.0 - k * k);
+			Real c = k, sum = k * k / 2.0;
+			Real power_of_2 = 1.0;
+			while (std::abs(c) > 1e-15) {
+				Real a_new = (a + b) / 2.0;
+				Real b_new = std::sqrt(a * b);
+				c = (a - b) / 2.0;
+				power_of_2 *= 2.0;
+				sum += power_of_2 * c * c;
+				a = a_new;
+				b = b_new;
+			}
+			return Constants::PI / (2.0 * a) * (1.0 - sum);
+		}
+
+		// Note: More special functions (Bessel, Beta, etc.) can be added here if needed.
+		// For now, use MML's own implementations from mml/algorithms/ for those.
 #endif
 
     // Note: Basic math functions (Sin, Cos, Exp, Log, etc.) now templated above.

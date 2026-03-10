@@ -376,7 +376,7 @@ table.print();
 ```cpp
 TablePrinter<std::string, std::string> fileTable("File", {"Size", "Modified"});
 
-fileTable.addRow("data.txt", {"1.2 MB", "2025-01-15"});
+fileTable.addRow("data.mml", {"1.2 MB", "2025-01-15"});
 fileTable.addRow("results.csv", {"3.5 MB", "2025-01-16"});
 fileTable.addRow("plot.png", {"512 KB", "2025-01-14"});
 

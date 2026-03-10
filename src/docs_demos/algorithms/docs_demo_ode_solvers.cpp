@@ -10,13 +10,12 @@
 #include "base/ODESystem.h"
 #include "base/ODESystemSolution.h"
 
-#include "algorithms/ODESystemSolver.h"
-#include "algorithms/ODESystemStepCalculators.h"
-#include "algorithms/ODESystemSteppers.h"
-#include "algorithms/ODEAdaptiveIntegrator.h"
+#include "mml/algorithms/ODESolvers/ODEAdaptiveIntegrator.h"
+#include "mml/algorithms/ODESolvers/ODEFixedStepIntegrators.h"
+#include "mml/algorithms/ODESolvers/ODESystemStepCalculators.h"
 #endif
 
-#include "../test_data/diff_eq_systems_test_bed.h"
+#include "../test_beds/diff_eq_systems_test_bed.h"
 
 using namespace MML;
 
@@ -202,24 +201,21 @@ void Docs_Demo_Adaptive_Integrators()
 void Docs_Demo_Legacy_Solver_Interface()
 {
 	std::cout << "\n==========================================================================\n";
-	std::cout << "Demo: Legacy ODESystemSolver Interface\n";
+	std::cout << "Demo: Modern CashKarpIntegrator Interface\n";
 	std::cout << "==========================================================================\n";
 	
-	std::cout << "\nLegacy interface (still supported):\n";
-	std::cout << "  ODESystemSolver<RK5_CashKarp_Stepper> solver(system);\n";
-	std::cout << "  solver.integrate(y0, t1, t2, saveInterval, eps, h1, hmin);\n";
-	std::cout << "\nPreferred modern interface:\n";
-	std::cout << "  CashKarpIntegrator integrator(system);\n";
-	std::cout << "  integrator.integrate(y0, t1, t2, saveInterval, eps);\n";
+	std::cout << "\nModern adaptive integrator interface:\n";
+	std::cout << "  CashKarpIntegrator solver(system);\n";
+	std::cout << "  solver.integrate(y0, t1, t2, saveInterval, eps, h1);\n";
 	
-	// Example using legacy interface
+	// Example using CashKarpIntegrator
 	TestBeds::SimpleHarmonicOscillatorODE sho(1.0);
 	Vector<Real> y0({1.0, 0.0});
 	
-	ODESystemSolver<RK5_CashKarp_Stepper> legacySolver(sho);
-	auto sol = legacySolver.integrate(y0, 0.0, 10.0, 0.1, 1e-6, 0.01, 0.0);
+	CashKarpIntegrator solver(sho);
+	auto sol = solver.integrate(y0, 0.0, 10.0, 0.1, 1e-6, 0.01);
 	
-	std::cout << "\nLegacy solver result:\n";
+	std::cout << "\nModern solver result:\n";
 	std::cout << "  Saved points: " << sol.size() << std::endl;
 	std::cout << "  Final state: "; sol.getXValuesAtEnd().Print(std::cout, 8, 4);
 	std::cout << std::endl;
@@ -497,15 +493,15 @@ void Docs_Demo_ODE_solvers_RungeKutta_4th_order()
 	ystart0[0] = 2.0;
 	ystart0[1] = 1.0;
 	ystart0[2] = 1.0;
-	ODESystemSolver<RK5_CashKarp_Stepper> solver2(sys0);
-	ODESystemSolution sol2 = solver2.integrate(ystart0, 0.0, 2.0, 0.1, 1e-06, h1, hmin);
+	CashKarpIntegrator solver2(sys0);
+	ODESystemSolution sol2 = solver2.integrate(ystart0, 0.0, 2.0, 0.1, 1e-06, h1);
 
 	std::cout << "Integrated from t=0 to t=2 with adaptive steps\n";
 	std::cout << "Steps OK/rejected: " << sol2.getNumStepsOK() << "/" << sol2.getNumStepsBad() << std::endl;
 	std::cout << "Final state: "; sol2.getXValuesAtEnd().Print(std::cout, 8, 4);
 	std::cout << std::endl;
 
-	Visualizer::VisualizeODESysSolAsMultiFunc(sol2, "Lorenz system solution - RK 4th order", std::vector<std::string>{"x", "y", "z"}, "lorenz_RK_4th.txt");
+	Visualizer::VisualizeODESysSolAsMultiFunc(sol2, "Lorenz system solution - RK 4th order", std::vector<std::string>{"x", "y", "z"}, "lorenz_RK_4th.mml");
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////

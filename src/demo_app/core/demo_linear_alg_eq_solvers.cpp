@@ -7,7 +7,7 @@
 
 #endif
 
-#include "../test_data/linear_alg_eq_systems_test_bed.h"
+#include "../test_beds/linear_alg_eq_systems_test_bed.h"
 
 using namespace MML;
 
@@ -28,9 +28,9 @@ void Test_GaussJordan_solver()
 {
     std::cout << "SOLVING VIA GAUSS-JORDAN ELIMINATION:\n";
 
-    Matrix<Real>     origMat = TestBeds::mat_5x5;
+    Matrix<Real>     origMat = TestBeds::mat_5x5();
     Matrix<Real>     matcopy(origMat);
-    Matrix<Real>     rhscopy(TestBeds::mat_5x5_rhs_multi);
+    Matrix<Real>     rhscopy(TestBeds::mat_5x5_rhs_multi());
 
     std::cout << "Initial matrix:\n";    matcopy.Print(std::cout,10,3);
     std::cout << "Right side:\n";        rhscopy.Print(std::cout,10,3);

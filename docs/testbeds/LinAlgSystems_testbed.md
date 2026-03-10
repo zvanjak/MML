@@ -340,7 +340,7 @@ for (auto& [name, sys] : LinearAlgEqTestBed::getAllSystems()) {
 ### Testing a Linear Solver
 
 ```cpp
-#include "test_data/linear_alg_eq_systems_test_bed.h"
+#include "test_beds/linear_alg_eq_systems_test_bed.h"
 #include "MML.h"
 
 using namespace MML;
@@ -461,7 +461,7 @@ TEST_CASE("QR Least Squares on Overdetermined Systems", "[QR][LeastSquares]") {
         REQUIRE(x.IsEqualTo(sys._sol, 1e-10));
         
         // Verify normal equations: AᵀAx = Aᵀb
-        Matrix<Real> At = sys._mat.GetTranspose();
+        Matrix<Real> At = sys._mat.transpose();
         Matrix<Real> AtA = At * sys._mat;
         Vector<Real> Atb = At * sys._rhs;
         Vector<Real> AtAx = AtA * x;

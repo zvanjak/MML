@@ -5,11 +5,13 @@
 #ifdef MML_USE_SINGLE_HEADER
 #include "MML.h"
 #else
-#include "base/Geometry3DBodies.h"
+#include "mml/base/Geometry/Geometry3DBodies.h"
 #endif
 
 using namespace MML;
 using namespace MML::Testing;
+
+namespace MML::Tests::Base::Geometry3DBodies::Cylinder3DTests {
 
 TEST_CASE("Cylinder3D::Volume", "[geometry][cylinder][volume]")
 {
@@ -20,14 +22,14 @@ TEST_CASE("Cylinder3D::Volume", "[geometry][cylinder][volume]")
         REQUIRE_THAT(cyl.Volume() , RealApprox(expected));
     }
 
-    SECTION("Cylinder with radius 2, height 5")
+    SECTION("CylinderSurface with radius 2, height 5")
     {
         Cylinder3D cyl(2.0, 5.0);
         Real expected = Constants::PI * 4.0 * 5.0;  // π * 4 * 5 = 20π
         REQUIRE_THAT(cyl.Volume() , RealApprox(expected));
     }
 
-    SECTION("Cylinder centered at arbitrary point")
+    SECTION("CylinderSurface centered at arbitrary point")
     {
         Pnt3Cart base(10.0, 20.0, 30.0);
         Cylinder3D cyl(3.0, 10.0, base);
@@ -53,7 +55,7 @@ TEST_CASE("Cylinder3D::SurfaceArea", "[geometry][cylinder][surface]")
         REQUIRE_THAT(cyl.SurfaceArea() , RealApprox(expected));
     }
 
-    SECTION("Cylinder with radius 2, height 5")
+    SECTION("CylinderSurface with radius 2, height 5")
     {
         Cylinder3D cyl(2.0, 5.0);
         // SA = 2π(4) + 2π(2)(5) = 8π + 20π = 28π
@@ -61,7 +63,7 @@ TEST_CASE("Cylinder3D::SurfaceArea", "[geometry][cylinder][surface]")
         REQUIRE_THAT(cyl.SurfaceArea() , RealApprox(expected));
     }
 
-    SECTION("Cylinder centered at arbitrary point")
+    SECTION("CylinderSurface centered at arbitrary point")
     {
         Pnt3Cart base(10.0, 20.0, 30.0);
         Cylinder3D cyl(3.0, 10.0, base);
@@ -81,7 +83,7 @@ TEST_CASE("Cylinder3D::SurfaceArea", "[geometry][cylinder][surface]")
 
 TEST_CASE("Cylinder3D::GetCenter", "[geometry][cylinder][center]")
 {
-    SECTION("Cylinder with base at origin")
+    SECTION("CylinderSurface with base at origin")
     {
         Cylinder3D cyl(5.0, 10.0);
         Pnt3Cart center = cyl.GetCenter();
@@ -91,7 +93,7 @@ TEST_CASE("Cylinder3D::GetCenter", "[geometry][cylinder][center]")
         REQUIRE_THAT(center.Z() , RealApprox(0.0));
     }
 
-    SECTION("Cylinder with custom base position")
+    SECTION("CylinderSurface with custom base position")
     {
         Pnt3Cart base(10.0, 20.0, 30.0);
         Cylinder3D cyl(5.0, 20.0, base);
@@ -105,10 +107,10 @@ TEST_CASE("Cylinder3D::GetCenter", "[geometry][cylinder][center]")
 
 TEST_CASE("Cylinder3D::GetBoundingBox", "[geometry][cylinder][bounding]")
 {
-    SECTION("Cylinder with base at origin")
+    SECTION("CylinderSurface with base at origin")
     {
         Cylinder3D cyl(5.0, 10.0);
-        BoundingBox3D bbox = cyl.GetBoundingBox();
+        Box3D bbox = cyl.GetBoundingBox();
         
         // Base at z=-5, so cylinder goes from z=-5 to z=5
         // But constructor sets _center to (0,0,-H/2), so actually z=0 to z=10
@@ -121,11 +123,11 @@ TEST_CASE("Cylinder3D::GetBoundingBox", "[geometry][cylinder][bounding]")
         REQUIRE_THAT(bbox.Max().Z() , RealApprox(5.0));
     }
 
-    SECTION("Cylinder with custom base position")
+    SECTION("CylinderSurface with custom base position")
     {
         Pnt3Cart base(10.0, 20.0, 30.0);
         Cylinder3D cyl(3.0, 12.0, base);
-        BoundingBox3D bbox = cyl.GetBoundingBox();
+        Box3D bbox = cyl.GetBoundingBox();
         
         REQUIRE_THAT(bbox.Min().X() , RealApprox(7.0));
         REQUIRE_THAT(bbox.Min().Y() , RealApprox(17.0));
@@ -139,7 +141,7 @@ TEST_CASE("Cylinder3D::GetBoundingBox", "[geometry][cylinder][bounding]")
     SECTION("Bounding box dimensions")
     {
         Cylinder3D cyl(4.0, 8.0);
-        BoundingBox3D bbox = cyl.GetBoundingBox();
+        Box3D bbox = cyl.GetBoundingBox();
         Real width = bbox.Max().X() - bbox.Min().X();
         Real depth = bbox.Max().Y() - bbox.Min().Y();
         Real height = bbox.Max().Z() - bbox.Min().Z();
@@ -198,7 +200,7 @@ TEST_CASE("Cylinder3D::GetBoundingSphere", "[geometry][cylinder][bounding]")
 
 TEST_CASE("Cylinder3D::ToString", "[geometry][cylinder][string]")
 {
-    SECTION("Cylinder at default position")
+    SECTION("CylinderSurface at default position")
     {
         Cylinder3D cyl(5.0, 10.0);
         std::string str = cyl.ToString();
@@ -211,7 +213,7 @@ TEST_CASE("Cylinder3D::ToString", "[geometry][cylinder][string]")
         REQUIRE(str.find("SurfaceArea") != std::string::npos);
     }
 
-    SECTION("Cylinder at custom position")
+    SECTION("CylinderSurface at custom position")
     {
         Pnt3Cart base(10.0, 20.0, 30.0);
         Cylinder3D cyl(3.0, 12.0, base);
@@ -309,7 +311,7 @@ TEST_CASE("Cylinder3D::IsInside", "[geometry][cylinder][inside]")
         REQUIRE(cyl.IsInside(Pnt3Cart(2.0, 0.0, 11.0)) == false);   // Above and within radius
     }
 
-    SECTION("Cylinder at arbitrary position")
+    SECTION("CylinderSurface at arbitrary position")
     {
         Pnt3Cart base(10.0, 20.0, 30.0);
         Cylinder3D cyl(3.0, 12.0, base);
@@ -336,3 +338,5 @@ TEST_CASE("Cylinder3D::IsInside", "[geometry][cylinder][inside]")
         REQUIRE(cyl.IsInside(Pnt3Cart(3.0, 4.1, 5.0)) == false);
     }
 }
+
+} // namespace MML::Tests::Base::Geometry3DBodies::Cylinder3DTests

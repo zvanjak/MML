@@ -334,4 +334,128 @@ namespace MML::Tests::Base::DiracDeltaFunctionTests
 		REQUIRE(deltaExp2(testPoint) < deltaExp1(testPoint));
 		REQUIRE(deltaSqr2(testPoint) < deltaSqr1(testPoint));
 	}
+
+	/*********************************************************************/
+	/*****              Additional Property Tests                   *****/
+	/*********************************************************************/
+	
+	TEST_CASE("DiracSin::ExactZeroHandling", "[DiracDeltaFunction][DiracSin]")
+	{
+		TEST_PRECISION_INFO();
+		// DiracSin has special handling for x=0 (the limit sin(Nx)/(PI*x) -> N/PI)
+		DiracSin delta10(10);
+		DiracSin delta100(100);
+		
+		// Exact x=0 should return N/PI
+		REQUIRE_THAT(delta10(REAL(0.0)), WithinAbs(REAL(10.0) / Constants::PI, REAL(1e-10)));
+		REQUIRE_THAT(delta100(REAL(0.0)), WithinAbs(REAL(100.0) / Constants::PI, REAL(1e-10)));
+		
+		// Very small x should also be close to N/PI
+		REQUIRE_THAT(delta10(1e-15), WithinAbs(REAL(10.0) / Constants::PI, REAL(1e-10)));
+		REQUIRE_THAT(delta10(-1e-15), WithinAbs(REAL(10.0) / Constants::PI, REAL(1e-10)));
+	}
+
+	TEST_CASE("DiracExp::GaussianFormula", "[DiracDeltaFunction][DiracExp]")
+	{
+		TEST_PRECISION_INFO();
+		// Verify formula: N / sqrt(2*PI) * exp(-N^2 * x^2 / 2)
+		DiracExp delta(10);
+		
+		Real x = REAL(0.1);
+		Real N = REAL(10.0);
+		Real expected = N / std::sqrt(2 * Constants::PI) * std::exp(-N * N * x * x / 2);
+		
+		REQUIRE_THAT(delta(x), WithinAbs(expected, REAL(1e-12)));
+		
+		// At x=0, should equal N / sqrt(2*PI)
+		Real peak_expected = N / std::sqrt(2 * Constants::PI);
+		REQUIRE_THAT(delta(REAL(0.0)), WithinAbs(peak_expected, REAL(1e-12)));
+	}
+
+	TEST_CASE("DiracSqr::LorentzianFormula", "[DiracDeltaFunction][DiracSqr]")
+	{
+		TEST_PRECISION_INFO();
+		// Verify formula: N / (PI * (1 + N^2 * x^2))
+		DiracSqr delta(10);
+		
+		Real x = REAL(0.1);
+		Real N = REAL(10.0);
+		Real expected = N / (Constants::PI * (1 + N * N * x * x));
+		
+		REQUIRE_THAT(delta(x), WithinAbs(expected, REAL(1e-12)));
+		
+		// At x = 1/N, should be N / (2*PI) (half maximum)
+		Real x_half = REAL(1.0) / N;
+		Real half_expected = N / (2 * Constants::PI);
+		REQUIRE_THAT(delta(x_half), WithinAbs(half_expected, REAL(1e-12)));
+	}
+
+	TEST_CASE("DiracStep::AreaEqualsOne", "[DiracDeltaFunction][DiracStep]")
+	{
+		TEST_PRECISION_INFO();
+		// Rectangle: height N, width 1/N, so area = N * (1/N) = 1
+		// We verify this by computing the "effective area" = height * width
+		int N = 10;
+		DiracStep delta(N);
+		
+		Real height = delta(REAL(0.0));  // Should be N
+		Real width = REAL(1.0) / N;      // Interval is [-1/(2N), 1/(2N)], width = 1/N
+		Real area = height * width;
+		
+		REQUIRE_THAT(area, WithinAbs(REAL(1.0), REAL(1e-10)));
+	}
+
+	TEST_CASE("DecayComparison::GaussianVsLorentzian", "[DiracDeltaFunction][Comparison]")
+	{
+		TEST_PRECISION_INFO();
+		// Gaussian decays faster than Lorentzian away from origin
+		DiracExp gaussian(10);
+		DiracSqr lorentzian(10);
+		
+		// At origin, they're both peaked (different heights)
+		Real gaussPeak = gaussian(REAL(0.0));
+		Real lorentzPeak = lorentzian(REAL(0.0));
+		
+		// Both should be positive
+		REQUIRE(gaussPeak > REAL(0.0));
+		REQUIRE(lorentzPeak > REAL(0.0));
+		
+		// At moderate distance, normalize and compare decay
+		// Gaussian: exp(-50*x^2), Lorentzian: 1/(1 + 100*x^2)
+		// At x=0.5, Gaussian ~ exp(-12.5) << Lorentzian ~ 1/26
+		Real gaussFar = gaussian(REAL(0.5));
+		Real lorentzFar = lorentzian(REAL(0.5));
+		
+		// Gaussian normalized decay is much smaller
+		Real gaussDecay = gaussFar / gaussPeak;
+		Real lorentzDecay = lorentzFar / lorentzPeak;
+		
+		REQUIRE(gaussDecay < lorentzDecay);  // Gaussian decays faster
+	}
+
+	TEST_CASE("DiracSin::OscillatoryBehavior", "[DiracDeltaFunction][DiracSin]")
+	{
+		TEST_PRECISION_INFO();
+		DiracSin delta(10);
+		
+		// Sinc oscillates: positive at 0, negative between first and second zero
+		Real peak = delta(REAL(0.0));
+		REQUIRE(peak > REAL(0.0));
+		
+		// First zero at x = PI/N
+		Real firstZero = Constants::PI / REAL(10.0);
+		REQUIRE_THAT(delta(firstZero), WithinAbs(REAL(0.0), REAL(1e-10)));
+		
+		// Negative between first and second zero
+		Real midpoint = REAL(1.5) * Constants::PI / REAL(10.0);
+		REQUIRE(delta(midpoint) < REAL(0.0));
+		
+		// Second zero at x = 2*PI/N
+		Real secondZero = 2 * Constants::PI / REAL(10.0);
+		REQUIRE_THAT(delta(secondZero), WithinAbs(REAL(0.0), REAL(1e-10)));
+		
+		// Positive between second and third zero
+		Real midpoint2 = REAL(2.5) * Constants::PI / REAL(10.0);
+		REQUIRE(delta(midpoint2) > REAL(0.0));
+	}
 }

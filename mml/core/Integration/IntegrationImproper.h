@@ -5,10 +5,9 @@
 ///  Description: Improper integrals with infinite bounds                             ///
 ///               Variable substitution for semi-infinite and infinite intervals      ///
 ///                                                                                   ///
-///  Copyright:   (c) 2024-2025 Zvonimir Vanjak                                       ///
-///  License:     Licensed under MML dual-license (see LICENSE.md)                    ///
-///               - Free for non-commercial use                                       ///
-///               - Commercial license available                                      ///
+///  Copyright:   (c) 2024-2026 Zvonimir Vanjak                                       ///
+///  License:     MIT License (see LICENSE.md)                                         ///
+///                                                                                   ///
 ///////////////////////////////////////////////////////////////////////////////////////////
 
 #if !defined MML_INTEGRATION_IMPROPER_H
@@ -19,6 +18,8 @@
 
 #include "MMLBase.h"
 #include "interfaces/IFunction.h"
+
+#include "IntegrationBase.h"
 #include "Integration1D.h"
 
 namespace MML

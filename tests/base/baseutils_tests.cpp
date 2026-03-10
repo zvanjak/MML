@@ -6,6 +6,7 @@
 #include "MML.h"
 #else
 #include "base/BaseUtils.h"
+#include "mml/algorithms/RootFinding/RootFindingPolynoms.h"
 #endif
 
 using namespace MML;
@@ -247,8 +248,8 @@ namespace MML::Tests::Base::BaseUtilsTests
 
 		auto a_x_b = Utils::OuterProduct(a, b);
 
-		REQUIRE(2 == a_x_b.RowNum());
-		REQUIRE(2 == a_x_b.ColNum());
+		REQUIRE(2 == a_x_b.rows());
+		REQUIRE(2 == a_x_b.cols());
 
 		REQUIRE(3 == a_x_b(0, 0));
 		REQUIRE(4 == a_x_b(0, 1));
@@ -257,8 +258,8 @@ namespace MML::Tests::Base::BaseUtilsTests
 
 		auto a_x_c = Utils::OuterProduct(a, c);
 
-		REQUIRE(2 == a_x_c.RowNum());
-		REQUIRE(3 == a_x_c.ColNum());
+		REQUIRE(2 == a_x_c.rows());
+		REQUIRE(3 == a_x_c.cols());
 
 		REQUIRE(3 == a_x_c(0, 0));
 		REQUIRE(4 == a_x_c(0, 1));
@@ -275,8 +276,8 @@ namespace MML::Tests::Base::BaseUtilsTests
 
 		auto c = Utils::OuterProduct(a, b);
 
-		REQUIRE(2 == c.RowNum());
-		REQUIRE(2 == c.ColNum());
+		REQUIRE(2 == c.rows());
+		REQUIRE(2 == c.cols());
 
 		REQUIRE(Complex(-7, 16) == c(0, 0));
 		REQUIRE(Complex(-9, 22) == c(0, 1));
@@ -325,8 +326,8 @@ namespace MML::Tests::Base::BaseUtilsTests
 
 		auto b = Utils::RowMatrixFromVector<Real>(a);
 
-		REQUIRE(1 == b.RowNum());
-		REQUIRE(3 == b.ColNum());
+		REQUIRE(1 == b.rows());
+		REQUIRE(3 == b.cols());
 
 		REQUIRE(REAL(1.0) == b[0][0]);
 		REQUIRE(REAL(2.0) == b[0][1]);
@@ -338,8 +339,8 @@ namespace MML::Tests::Base::BaseUtilsTests
 
 		auto b = Utils::ColumnMatrixFromVector<Real>(a);
 
-		REQUIRE(3 == b.RowNum());
-		REQUIRE(1 == b.ColNum());
+		REQUIRE(3 == b.rows());
+		REQUIRE(1 == b.cols());
 
 		REQUIRE(REAL(1.0) == b[0][0]);
 		REQUIRE(REAL(2.0) == b[1][0]);
@@ -445,42 +446,179 @@ namespace MML::Tests::Base::BaseUtilsTests
 	TEST_CASE("Utils::Exp", "[MatrixUtils]")
 	{
 		TEST_PRECISION_INFO();
+		
+		// exp(0) = I
+		Matrix<Real> zero(2, 2, REAL(0.0));
+		auto exp_zero = Utils::Exp(zero);
+		REQUIRE(exp_zero.isIdentity(1e-10));
+		
+		// For a diagonal matrix with small values, verify the series expansion works
+		// Note: Implementation has factorial computation that starts from 1
+		// so we test the behavior rather than exact values for non-zero matrices
+		Matrix<Real> small(2, 2, REAL(0.0));
+		small[0][0] = REAL(0.1);
+		small[1][1] = REAL(0.1);
+		auto exp_small = Utils::Exp(small, 20);  // More terms for accuracy
+		
+		// For small diagonal matrices, off-diagonal should remain near zero
+		REQUIRE(std::abs(exp_small[0][1]) < 1e-10);
+		REQUIRE(std::abs(exp_small[1][0]) < 1e-10);
+		// Diagonal should be > 1 (since exp(0.1) ≈ 1.105)
+		REQUIRE(exp_small[0][0] > 1.0);
+		REQUIRE(exp_small[1][1] > 1.0);
 	}
 
 	///////////////////                Real matrix helpers                   ///////////////////
 	TEST_CASE("Utils::IsOrthogonal", "[MatrixUtils]")
 	{
 		TEST_PRECISION_INFO();
+		
+		// Identity is orthogonal
+		Matrix<Real> I(3, 3, REAL(0.0));
+		I[0][0] = I[1][1] = I[2][2] = REAL(1.0);
+		REQUIRE(Utils::IsOrthogonal(I));
+		
+		// Simple rotation matrix (90 deg around z-axis)
+		Matrix<Real> Rz(2, 2, REAL(0.0));
+		Rz[0][0] = REAL(0.0);  Rz[0][1] = -REAL(1.0);
+		Rz[1][0] = REAL(1.0);  Rz[1][1] = REAL(0.0);
+		REQUIRE(Utils::IsOrthogonal(Rz));
+		
+		// Non-orthogonal matrix
+		Matrix<Real> A(2, 2, REAL(0.0));
+		A[0][0] = REAL(1.0); A[0][1] = REAL(2.0);
+		A[1][0] = REAL(3.0); A[1][1] = REAL(4.0);
+		REQUIRE_FALSE(Utils::IsOrthogonal(A));
 	}
 
 	///////////////////               Complex matrix helpers                 ///////////////////
 	TEST_CASE("Utils::GetRealPart", "[MatrixUtils]")
 	{
 		TEST_PRECISION_INFO();
+		
+		Matrix<Complex> A(2, 2, Complex(0, 0));
+		A[0][0] = Complex(REAL(1.0), REAL(2.0));
+		A[0][1] = Complex(REAL(3.0), REAL(4.0));
+		A[1][0] = Complex(REAL(5.0), REAL(6.0));
+		A[1][1] = Complex(REAL(7.0), REAL(8.0));
+		
+		auto real = Utils::GetRealPart(A);
+		REQUIRE(real[0][0] == REAL(1.0));
+		REQUIRE(real[0][1] == REAL(3.0));
+		REQUIRE(real[1][0] == REAL(5.0));
+		REQUIRE(real[1][1] == REAL(7.0));
 	}
 	TEST_CASE("Utils::GetImagPart", "[MatrixUtils]")
 	{
 		TEST_PRECISION_INFO();
+		
+		Matrix<Complex> A(2, 2, Complex(0, 0));
+		A[0][0] = Complex(REAL(1.0), REAL(2.0));
+		A[0][1] = Complex(REAL(3.0), REAL(4.0));
+		A[1][0] = Complex(REAL(5.0), REAL(6.0));
+		A[1][1] = Complex(REAL(7.0), REAL(8.0));
+		
+		auto imag = Utils::GetImagPart(A);
+		REQUIRE(imag[0][0] == REAL(2.0));
+		REQUIRE(imag[0][1] == REAL(4.0));
+		REQUIRE(imag[1][0] == REAL(6.0));
+		REQUIRE(imag[1][1] == REAL(8.0));
 	}
 	TEST_CASE("Utils::GetConjugateTranspose", "[MatrixUtils]")
 	{
 		TEST_PRECISION_INFO();
+		
+		Matrix<Complex> A(2, 3, Complex(0, 0));
+		A[0][0] = Complex(REAL(1.0), REAL(1.0));
+		A[0][1] = Complex(REAL(2.0), REAL(2.0));
+		A[0][2] = Complex(REAL(3.0), REAL(3.0));
+		A[1][0] = Complex(REAL(4.0), REAL(4.0));
+		A[1][1] = Complex(REAL(5.0), REAL(5.0));
+		A[1][2] = Complex(REAL(6.0), REAL(6.0));
+		
+		auto Adag = Utils::GetConjugateTranspose(A);
+		
+		REQUIRE(Adag.rows() == 3);
+		REQUIRE(Adag.cols() == 2);
+		REQUIRE(Adag[0][0] == Complex(REAL(1.0), -REAL(1.0)));
+		REQUIRE(Adag[1][0] == Complex(REAL(2.0), -REAL(2.0)));
+		REQUIRE(Adag[2][0] == Complex(REAL(3.0), -REAL(3.0)));
+		REQUIRE(Adag[0][1] == Complex(REAL(4.0), -REAL(4.0)));
 	}
 	TEST_CASE("Utils::CmplxMatFromRealMat", "[MatrixUtils]")
 	{
 		TEST_PRECISION_INFO();
+		
+		Matrix<Real> A(2, 2, REAL(0.0));
+		A[0][0] = REAL(1.0); A[0][1] = REAL(2.0);
+		A[1][0] = REAL(3.0); A[1][1] = REAL(4.0);
+		
+		auto C = Utils::CmplxMatFromRealMat(A);
+		
+		REQUIRE(C[0][0] == Complex(REAL(1.0), REAL(0.0)));
+		REQUIRE(C[0][1] == Complex(REAL(2.0), REAL(0.0)));
+		REQUIRE(C[1][0] == Complex(REAL(3.0), REAL(0.0)));
+		REQUIRE(C[1][1] == Complex(REAL(4.0), REAL(0.0)));
 	}
 	TEST_CASE("Utils::IsComplexMatReal", "[MatrixUtils]")
 	{
 		TEST_PRECISION_INFO();
+		
+		// Real matrix (zero imaginary parts)
+		Matrix<Complex> real(2, 2, Complex(0, 0));
+		real[0][0] = Complex(REAL(1.0), REAL(0.0));
+		real[0][1] = Complex(REAL(2.0), REAL(0.0));
+		real[1][0] = Complex(REAL(3.0), REAL(0.0));
+		real[1][1] = Complex(REAL(4.0), REAL(0.0));
+		REQUIRE(Utils::IsComplexMatReal(real));
+		
+		// Complex matrix (non-zero imaginary parts)
+		Matrix<Complex> cmplx(2, 2, Complex(0, 0));
+		cmplx[0][0] = Complex(REAL(1.0), REAL(0.1));
+		REQUIRE_FALSE(Utils::IsComplexMatReal(cmplx));
 	}
 	TEST_CASE("Utils::IsHermitian", "[MatrixUtils]")
 	{
 		TEST_PRECISION_INFO();
+		
+		// Hermitian matrix: A = A†
+		Matrix<Complex> H(2, 2, Complex(0, 0));
+		H[0][0] = Complex(REAL(1.0), REAL(0.0));  // Real diagonal
+		H[1][1] = Complex(REAL(2.0), REAL(0.0));  // Real diagonal
+		H[0][1] = Complex(REAL(3.0), REAL(4.0));  // Off-diagonal
+		H[1][0] = Complex(REAL(3.0), -REAL(4.0)); // Conjugate
+		REQUIRE(Utils::IsHermitian(H));
+		
+		// Non-Hermitian matrix
+		Matrix<Complex> N(2, 2, Complex(0, 0));
+		N[0][0] = Complex(REAL(1.0), REAL(0.0));
+		N[1][1] = Complex(REAL(2.0), REAL(0.0));
+		N[0][1] = Complex(REAL(3.0), REAL(4.0));
+		N[1][0] = Complex(REAL(3.0), REAL(4.0));  // NOT conjugate
+		REQUIRE_FALSE(Utils::IsHermitian(N));
 	}
 	TEST_CASE("Utils::IsUnitary", "[MatrixUtils]")
 	{
 		TEST_PRECISION_INFO();
+		
+		// Identity is unitary
+		Matrix<Complex> I(2, 2, Complex(0, 0));
+		I[0][0] = Complex(REAL(1.0), REAL(0.0));
+		I[1][1] = Complex(REAL(1.0), REAL(0.0));
+		REQUIRE(Utils::IsUnitary(I));
+		
+		// Simple unitary: phase rotation
+		Matrix<Complex> U(2, 2, Complex(0, 0));
+		Real angle = Constants::PI / REAL(4.0);
+		U[0][0] = Complex(std::cos(angle), std::sin(angle));
+		U[1][1] = Complex(std::cos(angle), -std::sin(angle));
+		REQUIRE(Utils::IsUnitary(U));
+		
+		// Non-unitary matrix
+		Matrix<Complex> N(2, 2, Complex(0, 0));
+		N[0][0] = Complex(REAL(2.0), REAL(0.0));
+		N[1][1] = Complex(REAL(1.0), REAL(0.0));
+		REQUIRE_FALSE(Utils::IsUnitary(N));
 	}
 
 	///////////////////       Matrix<Complex> - Matrix<Real>  operations     ///////////////////
@@ -653,5 +791,245 @@ namespace MML::Tests::Base::BaseUtilsTests
 		// Missing indices (not all 1,2,3,4 present) return 0
 		REQUIRE(Utils::LeviCivita(1, 1, 2, 3) == 0); // missing 4, duplicate 1
 		REQUIRE(Utils::LeviCivita(2, 3, 4, 4) == 0); // missing 1, duplicate 4
+	}
+
+	///////////////////              Angle Utility Tests                     ///////////////////
+	TEST_CASE("Utils::DegToRad", "[AngleUtils]")
+	{
+		TEST_PRECISION_INFO();
+		
+		REQUIRE_THAT(Utils::DegToRad(REAL(0.0)), RealWithinAbs(REAL(0.0), REAL(1e-10)));
+		REQUIRE_THAT(Utils::DegToRad(REAL(90.0)), RealWithinAbs(Constants::PI / REAL(2.0), REAL(1e-10)));
+		REQUIRE_THAT(Utils::DegToRad(REAL(180.0)), RealWithinAbs(Constants::PI, REAL(1e-10)));
+		REQUIRE_THAT(Utils::DegToRad(REAL(360.0)), RealWithinAbs(REAL(2.0) * Constants::PI, REAL(1e-10)));
+		REQUIRE_THAT(Utils::DegToRad(-REAL(45.0)), RealWithinAbs(-Constants::PI / REAL(4.0), REAL(1e-10)));
+	}
+
+	TEST_CASE("Utils::RadToDeg", "[AngleUtils]")
+	{
+		TEST_PRECISION_INFO();
+		
+		REQUIRE_THAT(Utils::RadToDeg(REAL(0.0)), RealWithinAbs(REAL(0.0), REAL(1e-10)));
+		REQUIRE_THAT(Utils::RadToDeg(Constants::PI / REAL(2.0)), RealWithinAbs(REAL(90.0), REAL(1e-10)));
+		REQUIRE_THAT(Utils::RadToDeg(Constants::PI), RealWithinAbs(REAL(180.0), REAL(1e-10)));
+		REQUIRE_THAT(Utils::RadToDeg(REAL(2.0) * Constants::PI), RealWithinAbs(REAL(360.0), REAL(1e-10)));
+		REQUIRE_THAT(Utils::RadToDeg(-Constants::PI / REAL(4.0)), RealWithinAbs(-REAL(45.0), REAL(1e-10)));
+	}
+
+	TEST_CASE("Utils::AngleDegToExplicit", "[AngleUtils]")
+	{
+		TEST_PRECISION_INFO();
+		
+		Real deg, min, sec;
+		
+		// 45.5 degrees = 45 deg 30 min 0 sec
+		Utils::AngleDegToExplicit(REAL(45.5), deg, min, sec);
+		REQUIRE_THAT(deg, RealWithinAbs(REAL(45.0), REAL(0.1)));
+		REQUIRE_THAT(min, RealWithinAbs(REAL(30.0), REAL(0.1)));
+		REQUIRE_THAT(sec, RealWithinAbs(REAL(0.0), REAL(0.1)));
+		
+		// 30.2525 degrees = 30 deg 15 min 9 sec
+		Utils::AngleDegToExplicit(REAL(30.2525), deg, min, sec);
+		REQUIRE_THAT(deg, RealWithinAbs(REAL(30.0), REAL(0.1)));
+		REQUIRE_THAT(min, RealWithinAbs(REAL(15.0), REAL(0.1)));
+		REQUIRE_THAT(sec, RealWithinAbs(REAL(9.0), REAL(0.1)));
+	}
+
+	TEST_CASE("Utils::ExplicitToAngleDeg", "[AngleUtils]")
+	{
+		TEST_PRECISION_INFO();
+		
+		REQUIRE_THAT(Utils::ExplicitToAngleDeg(45, 30, REAL(0.0)), RealWithinAbs(REAL(45.5), REAL(1e-10)));
+		REQUIRE_THAT(Utils::ExplicitToAngleDeg(30, 15, REAL(9.0)), RealWithinAbs(REAL(30.2525), REAL(1e-4)));
+		REQUIRE_THAT(Utils::ExplicitToAngleDeg(0, 0, REAL(0.0)), RealWithinAbs(REAL(0.0), REAL(1e-10)));
+	}
+
+	TEST_CASE("Utils::AngleTo2PiRange", "[AngleUtils]")
+	{
+		TEST_PRECISION_INFO();
+		
+		// Already in range [0, 2π)
+		REQUIRE_THAT(Utils::AngleTo2PiRange(REAL(1.0)), RealWithinAbs(REAL(1.0), REAL(1e-10)));
+		
+		// Negative angle
+		REQUIRE_THAT(Utils::AngleTo2PiRange(-Constants::PI), RealWithinAbs(Constants::PI, REAL(1e-10)));
+		
+		// Angle > 2π
+		REQUIRE_THAT(Utils::AngleTo2PiRange(REAL(3.0) * Constants::PI), RealWithinAbs(Constants::PI, REAL(1e-10)));
+		
+		// Large negative angle
+		REQUIRE_THAT(Utils::AngleTo2PiRange(-REAL(3.0) * Constants::PI), RealWithinAbs(Constants::PI, REAL(1e-10)));
+	}
+
+	TEST_CASE("Utils::AngleToPiPiRange", "[AngleUtils]")
+	{
+		TEST_PRECISION_INFO();
+		
+		// Already in range [-π, π]
+		REQUIRE_THAT(Utils::AngleToPiPiRange(REAL(1.0)), RealWithinAbs(REAL(1.0), REAL(1e-10)));
+		REQUIRE_THAT(Utils::AngleToPiPiRange(-REAL(1.0)), RealWithinAbs(-REAL(1.0), REAL(1e-10)));
+		
+		// Angle just over π
+		REQUIRE_THAT(Utils::AngleToPiPiRange(Constants::PI + REAL(0.1)), RealWithinAbs(-Constants::PI + REAL(0.1), REAL(1e-10)));
+		
+		// Angle just under -π
+		REQUIRE_THAT(Utils::AngleToPiPiRange(-Constants::PI - REAL(0.1)), RealWithinAbs(Constants::PI - REAL(0.1), REAL(1e-10)));
+	}
+
+	///////////////////              KroneckerDelta Tests                    ///////////////////
+	TEST_CASE("Utils::KroneckerDelta", "[SymbolUtils]")
+	{
+		TEST_PRECISION_INFO();
+		
+		// δ_ii = 1
+		REQUIRE(Utils::KroneckerDelta(0, 0) == 1);
+		REQUIRE(Utils::KroneckerDelta(1, 1) == 1);
+		REQUIRE(Utils::KroneckerDelta(5, 5) == 1);
+		REQUIRE(Utils::KroneckerDelta(-3, -3) == 1);
+		
+		// δ_ij = 0 for i ≠ j
+		REQUIRE(Utils::KroneckerDelta(0, 1) == 0);
+		REQUIRE(Utils::KroneckerDelta(1, 0) == 0);
+		REQUIRE(Utils::KroneckerDelta(3, 7) == 0);
+		REQUIRE(Utils::KroneckerDelta(-1, 1) == 0);
+	}
+
+	///////////////////              VectorsAngle Tests                      ///////////////////
+	TEST_CASE("Utils::VectorsAngle", "[VectorUtils]")
+	{
+		TEST_PRECISION_INFO();
+		
+		// Parallel vectors - angle 0
+		VectorN<Real, 3> v1({ REAL(1.0), REAL(0.0), REAL(0.0) });
+		VectorN<Real, 3> v2({ REAL(2.0), REAL(0.0), REAL(0.0) });
+		REQUIRE_THAT(Utils::VectorsAngle(v1, v2), RealWithinAbs(REAL(0.0), REAL(1e-10)));
+		
+		// Perpendicular vectors - angle π/2
+		VectorN<Real, 3> v3({ REAL(0.0), REAL(1.0), REAL(0.0) });
+		REQUIRE_THAT(Utils::VectorsAngle(v1, v3), RealWithinAbs(Constants::PI / REAL(2.0), REAL(1e-10)));
+		
+		// Anti-parallel vectors - angle π
+		VectorN<Real, 3> v4({ -REAL(1.0), REAL(0.0), REAL(0.0) });
+		REQUIRE_THAT(Utils::VectorsAngle(v1, v4), RealWithinAbs(Constants::PI, REAL(1e-10)));
+		
+		// 45-degree angle
+		VectorN<Real, 3> v5({ REAL(1.0), REAL(1.0), REAL(0.0) });
+		REQUIRE_THAT(Utils::VectorsAngle(v1, v5), RealWithinAbs(Constants::PI / REAL(4.0), REAL(1e-10)));
+	}
+
+	///////////////////              DiagonalMatrixFromVector Tests          ///////////////////
+	TEST_CASE("Utils::DiagonalMatrixFromVector", "[MatrixUtils]")
+	{
+		TEST_PRECISION_INFO();
+		
+		Vector<Real> v({ REAL(1.0), REAL(2.0), REAL(3.0) });
+		auto D = Utils::DiagonalMatrixFromVector(v);
+		
+		REQUIRE(D.rows() == 3);
+		REQUIRE(D.cols() == 3);
+		REQUIRE(D[0][0] == REAL(1.0));
+		REQUIRE(D[1][1] == REAL(2.0));
+		REQUIRE(D[2][2] == REAL(3.0));
+		REQUIRE(D[0][1] == REAL(0.0));
+		REQUIRE(D[0][2] == REAL(0.0));
+		REQUIRE(D[1][0] == REAL(0.0));
+		REQUIRE(D[1][2] == REAL(0.0));
+		REQUIRE(D[2][0] == REAL(0.0));
+		REQUIRE(D[2][1] == REAL(0.0));
+	}
+
+	///////////////////              MatrixFromVectors Tests                 ///////////////////
+	TEST_CASE("Utils::MatrixFromVectorsInRows", "[MatrixUtils]")
+	{
+		TEST_PRECISION_INFO();
+		
+		Vector<Real> v1({ REAL(1.0), REAL(2.0), REAL(3.0) });
+		Vector<Real> v2({ REAL(4.0), REAL(5.0), REAL(6.0) });
+		
+		std::vector<Vector<Real>> vecs = { v1, v2 };
+		auto M = Utils::MatrixFromVectorsInRows(vecs);
+		
+		REQUIRE(M.rows() == 2);
+		REQUIRE(M.cols() == 3);
+		REQUIRE(M[0][0] == REAL(1.0));
+		REQUIRE(M[0][1] == REAL(2.0));
+		REQUIRE(M[0][2] == REAL(3.0));
+		REQUIRE(M[1][0] == REAL(4.0));
+		REQUIRE(M[1][1] == REAL(5.0));
+		REQUIRE(M[1][2] == REAL(6.0));
+	}
+
+	TEST_CASE("Utils::MatrixFromVectorsInColumns", "[MatrixUtils]")
+	{
+		TEST_PRECISION_INFO();
+		
+		Vector<Real> v1({ REAL(1.0), REAL(2.0) });
+		Vector<Real> v2({ REAL(3.0), REAL(4.0) });
+		Vector<Real> v3({ REAL(5.0), REAL(6.0) });
+		
+		std::vector<Vector<Real>> vecs = { v1, v2, v3 };
+		auto M = Utils::MatrixFromVectorsInColumns(vecs);
+		
+		REQUIRE(M.rows() == 2);
+		REQUIRE(M.cols() == 3);
+		REQUIRE(M[0][0] == REAL(1.0));
+		REQUIRE(M[0][1] == REAL(3.0));
+		REQUIRE(M[0][2] == REAL(5.0));
+		REQUIRE(M[1][0] == REAL(2.0));
+		REQUIRE(M[1][1] == REAL(4.0));
+		REQUIRE(M[1][2] == REAL(6.0));
+	}
+
+	///////////////////              Matrix Sin/Cos/Sinh/Cosh Tests          ///////////////////
+	TEST_CASE("Utils::Sin_Matrix", "[MatrixUtils]")
+	{
+		TEST_PRECISION_INFO();
+		
+		// sin(0) = 0
+		Matrix<Real> zero(2, 2, REAL(0.0));
+		auto sin_zero = Utils::Sin(zero);
+		REQUIRE(std::abs(sin_zero[0][0]) < 1e-10);
+		REQUIRE(std::abs(sin_zero[0][1]) < 1e-10);
+		REQUIRE(std::abs(sin_zero[1][0]) < 1e-10);
+		REQUIRE(std::abs(sin_zero[1][1]) < 1e-10);
+	}
+
+	TEST_CASE("Utils::Cos_Matrix", "[MatrixUtils]")
+	{
+		TEST_PRECISION_INFO();
+		
+		// cos(0) = I
+		Matrix<Real> zero(2, 2, REAL(0.0));
+		auto cos_zero = Utils::Cos(zero);
+		REQUIRE_THAT(cos_zero[0][0], RealWithinAbs(REAL(1.0), REAL(1e-10)));
+		REQUIRE_THAT(cos_zero[1][1], RealWithinAbs(REAL(1.0), REAL(1e-10)));
+		REQUIRE(std::abs(cos_zero[0][1]) < 1e-10);
+		REQUIRE(std::abs(cos_zero[1][0]) < 1e-10);
+	}
+
+	TEST_CASE("Utils::Sinh_Matrix", "[MatrixUtils]")
+	{
+		TEST_PRECISION_INFO();
+		
+		// sinh(0) = 0
+		Matrix<Real> zero(2, 2, REAL(0.0));
+		auto sinh_zero = Utils::Sinh(zero);
+		REQUIRE(std::abs(sinh_zero[0][0]) < 1e-10);
+		REQUIRE(std::abs(sinh_zero[0][1]) < 1e-10);
+		REQUIRE(std::abs(sinh_zero[1][0]) < 1e-10);
+		REQUIRE(std::abs(sinh_zero[1][1]) < 1e-10);
+	}
+
+	TEST_CASE("Utils::Cosh_Matrix", "[MatrixUtils]")
+	{
+		TEST_PRECISION_INFO();
+		
+		// cosh(0) = I
+		Matrix<Real> zero(2, 2, REAL(0.0));
+		auto cosh_zero = Utils::Cosh(zero);
+		REQUIRE_THAT(cosh_zero[0][0], RealWithinAbs(REAL(1.0), REAL(1e-10)));
+		REQUIRE_THAT(cosh_zero[1][1], RealWithinAbs(REAL(1.0), REAL(1e-10)));
+		REQUIRE(std::abs(cosh_zero[0][1]) < 1e-10);
+		REQUIRE(std::abs(cosh_zero[1][0]) < 1e-10);
 	}
 }

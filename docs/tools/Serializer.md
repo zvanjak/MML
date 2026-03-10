@@ -67,7 +67,7 @@ RealFunction sine(f);
 // Save to file (100 points from 0 to 2π)
 auto result = Serializer::SaveRealFunc(sine, "Sine Function", 
                                        0.0, 2*M_PI, 100, 
-                                       "sine.txt", 8);
+                                       "sine.mml", 8);
 
 if (!result.success) {
     std::cerr << "Error: " << result.message << std::endl;
@@ -83,7 +83,7 @@ ODESystemSolution solution = solver.solve(system, initial_conditions);
 // Save all components as multi-function
 std::vector<std::string> legend = {"x", "y", "vx", "vy"};
 auto result = Serializer::SaveODESolutionAsMultiFunc(
-    solution, "Pendulum Motion", legend, "pendulum.txt");
+    solution, "Pendulum Motion", legend, "pendulum.mml");
 ```
 
 ### Save 2D Parametric Curve
@@ -94,7 +94,7 @@ Vector<Real> x_vals = {0.0, 0.5, 1.0, 1.5, 2.0};
 Vector<Real> y_vals = {0.0, 0.25, 1.0, 2.25, 4.0};
 
 auto result = Serializer::SaveAsParamCurve2D(
-    x_vals, y_vals, "Parabola", "parabola.txt");
+    x_vals, y_vals, "Parabola", "parabola.mml");
 ```
 
 ---
@@ -125,7 +125,7 @@ struct SerializeResult {
 ### Error Handling Pattern
 
 ```cpp
-auto result = Serializer::SaveRealFunc(f, "data", 0, 1, 100, "out.txt");
+auto result = Serializer::SaveRealFunc(f, "data", 0, 1, 100, "out.mml");
 if (!result.success) {
     switch (result.error) {
         case SerializeError::FILE_NOT_OPENED:
@@ -206,7 +206,7 @@ auto sine = [](Real x) { return std::sin(x); };
 RealFunction f(sine);
 
 auto result = Serializer::SaveRealFunc(
-    f, "sin(x)", 0.0, 2*M_PI, 100, "sine.txt", 8);
+    f, "sin(x)", 0.0, 2*M_PI, 100, "sine.mml", 8);
 ```
 
 ---
@@ -233,7 +233,7 @@ static SerializeResult SaveRealFunc(
 // Evaluate at specific interesting points
 Vector<Real> points = {0.0, M_PI/6, M_PI/4, M_PI/3, M_PI/2};
 auto result = Serializer::SaveRealFunc(
-    f, "Sine at special angles", points, "sine_special.txt", 6);
+    f, "Sine at special angles", points, "sine_special.mml", 6);
 ```
 
 ---
@@ -314,7 +314,7 @@ std::vector<IRealFunction*> funcs = {&f1, &f2};
 std::vector<std::string> legend = {"sin(x)", "cos(x)"};
 
 auto result = Serializer::SaveRealMultiFunc(
-    funcs, "Trig Functions", 0, 2*M_PI, 100, legend, "trig.txt", 8);
+    funcs, "Trig Functions", 0, 2*M_PI, 100, legend, "trig.mml", 8);
 ```
 
 #### SaveRealMultiFunc (Interpolated Functions)
@@ -376,7 +376,7 @@ for (int i = 0; i < n; i++) {
     y[i] = std::sin(t);
 }
 
-auto result = Serializer::SaveAsParamCurve2D(x, y, "Circle", "circle.txt", 0.0, 2*M_PI);
+auto result = Serializer::SaveAsParamCurve2D(x, y, "Circle", "circle.mml", 0.0, 2*M_PI);
 ```
 
 #### SaveParamCurveCartesian2D
@@ -401,7 +401,7 @@ auto spiral = [](Real t) {
 RealToVectorFunction<2> curve(spiral);
 
 Serializer::SaveParamCurveCartesian2D(
-    curve, "Archimedean Spiral", 0, 4*M_PI, 500, "spiral.txt"
+    curve, "Archimedean Spiral", 0, 4*M_PI, 500, "spiral.mml"
 );
 ```
 
@@ -461,7 +461,7 @@ auto gaussian = [](const Vector<Real>& v) {
 ScalarFunction<2> f(gaussian);
 
 auto result = Serializer::SaveScalarFunc2DCartesian(
-    f, "2D Gaussian", -3, 3, 50, -3, 3, 50, "gaussian2d.txt");
+    f, "2D Gaussian", -3, 3, 50, -3, 3, 50, "gaussian2d.mml");
 ```
 
 #### SaveScalarFunc3DCartesian
@@ -535,7 +535,7 @@ VectorFunction<2> field(grad_field);
 
 auto result = Serializer::SaveVectorFunc2DCartesian(
     field, "Gradient toward origin", 
-    -2, 2, 20, -2, 2, 20, "gradient.txt");
+    -2, 2, 20, -2, 2, 20, "gradient.mml");
 ```
 
 **Example with Threshold:**
@@ -551,7 +551,7 @@ VectorFunction<2> field(electricField);
 // Filter out very large vectors
 Serializer::SaveVectorFunc2DCartesian(
     field, "E-field", -5, 5, 30, -5, 5, 30,
-    "efield.txt", 50.0  // Exclude ||E|| >= 50
+    "efield.mml", 50.0  // Exclude ||E|| >= 50
 );
 ```
 
@@ -605,7 +605,7 @@ ODESystemSolution solution = solver.solve(pendulum, init_cond);
 
 std::vector<std::string> legend = {"angle", "angular_velocity"};
 auto result = Serializer::SaveODESolutionAsMultiFunc(
-    solution, "Simple Pendulum", legend, "pendulum.txt");
+    solution, "Simple Pendulum", legend, "pendulum.mml");
 ```
 
 #### SaveODESolutionComponentAsFunc
@@ -625,7 +625,7 @@ static SerializeResult SaveODESolutionComponentAsFunc(
 ```cpp
 // After solving ODE system
 auto result = Serializer::SaveODESolutionComponentAsFunc(
-    sol, 0, "Position vs Time", "position.txt"
+    sol, 0, "Position vs Time", "position.mml"
 );
 ```
 
@@ -648,7 +648,7 @@ static SerializeResult SaveODESolAsParametricCurve2D(
 ```cpp
 // Plot position vs velocity
 auto result = Serializer::SaveODESolAsParametricCurve2D(
-    solution, "phase_portrait.txt", 
+    solution, "phase_portrait.mml", 
     0, 1,  // Components 0 and 1
     "Position", "Velocity");
 ```
@@ -675,7 +675,7 @@ ODESystemSolution lorenz_sol = solver.solve(lorenz_system, init);
 
 // Save 3D trajectory
 auto result = Serializer::SaveODESolAsParametricCurve3D(
-    lorenz_sol, "lorenz_attractor.txt",
+    lorenz_sol, "lorenz_attractor.mml",
     0, 1, 2,  // x, y, z components
     "x", "y", "z");
 ```
@@ -742,7 +742,7 @@ for (int frame = 0; frame < numFrames; frame++) {
 }
 
 auto result = Serializer::SaveParticleSimulation2D(
-    "animation.txt", numBalls, 10.0, 10.0, trajectory,
+    "animation.mml", numBalls, 10.0, 10.0, trajectory,
     ballColors, ballRadii, dT);
 ```
 
@@ -785,7 +785,7 @@ std::vector<std::string> legend = {"Linear", "Polynomial", "Spline"};
 
 auto result = Serializer::SaveRealMultiFunc(
     funcs, "Interpolation Comparison", 
-    0, 4, 100, legend, "interp_compare.txt", 8);
+    0, 4, 100, legend, "interp_compare.mml", 8);
 ```
 
 ### Numerical vs Analytical Solution
@@ -801,10 +801,10 @@ ODESystemSolution numerical = solver.solve(ode, init);
 // Save both
 std::vector<IRealFunction*> funcs = {&exact};
 auto result1 = Serializer::SaveRealFunc(
-    exact, "Exact", 0, 5, 100, "exact.txt");
+    exact, "Exact", 0, 5, 100, "exact.mml");
 
 auto result2 = Serializer::SaveODESolutionComponentAsFunc(
-    numerical, 0, "Numerical", "numerical.txt");
+    numerical, 0, "Numerical", "numerical.mml");
 ```
 
 ### Vector Field Visualization
@@ -823,7 +823,7 @@ VectorFunction<2> field(electric_field);
 
 auto result = Serializer::SaveVectorFunc2DCartesian(
     field, "Electric Dipole", 
-    -3, 3, 30, -3, 3, 30, "dipole.txt");
+    -3, 3, 30, -3, 3, 30, "dipole.mml");
 ```
 
 ---
@@ -836,7 +836,7 @@ auto result = Serializer::SaveVectorFunc2DCartesian(
 // Save data
 RealFunction sine([](Real x) { return std::sin(x); });
 auto result = Serializer::SaveRealFunc(
-    sine, "Sine Wave", 0.0, 2*M_PI, 200, "results/sine.txt", 8
+    sine, "Sine Wave", 0.0, 2*M_PI, 200, "results/sine.mml", 8
 );
 
 if (result.success) {
@@ -852,9 +852,9 @@ auto sol = solver.integrate_RK4(initState, 0.0, 10.0, 0.01);
 
 // Export multiple views
 std::vector<std::string> labels = {"x", "y", "vx", "vy"};
-Serializer::SaveODESolutionAsMultiFunc(sol, "All", labels, "all.txt");
-Serializer::SaveODESolAsParametricCurve2D(sol, "phase.txt", 0, 1, "Phase");
-Serializer::SaveODESolutionComponentAsFunc(sol, 0, "X(t)", "x_t.txt");
+Serializer::SaveODESolutionAsMultiFunc(sol, "All", labels, "all.mml");
+Serializer::SaveODESolAsParametricCurve2D(sol, "phase.mml", 0, 1, "Phase");
+Serializer::SaveODESolutionComponentAsFunc(sol, 0, "X(t)", "x_t.mml");
 ```
 
 ### Example 3: Batch Processing
@@ -865,14 +865,14 @@ for (int i = 0; i < numCases; ++i) {
     auto sol = solveProblem(params[i]);
     solutions.push_back(&sol);
     
-    std::string filename = "case_" + std::to_string(i) + ".txt";
+    std::string filename = "case_" + std::to_string(i) + ".mml";
     Serializer::SaveRealFunc(*solutions[i], "Case " + std::to_string(i),
                              0, 10, 100, filename);
 }
 
 // Also save comparison
 Serializer::SaveRealMultiFunc(solutions, "All Cases", legends,
-                              0, 10, 100, "comparison.txt");
+                              0, 10, 100, "comparison.mml");
 ```
 
 ---
@@ -885,10 +885,10 @@ The Visualizer class provides static methods that internally use Serializer to s
 
 ```cpp
 // Direct visualization (Visualizer handles serialization internally)
-Visualizer::VisualizeRealFunction(f, "sin(x)", 0, 2*M_PI, 100, "sine.txt");
+Visualizer::VisualizeRealFunction(f, "sin(x)", 0, 2*M_PI, 100, "sine.mml");
 
 // Or with precision parameter
-Visualizer::VisualizeRealFunction(f, "sin(x)", 0, 2*M_PI, 100, "sine.txt", 8);
+Visualizer::VisualizeRealFunction(f, "sin(x)", 0, 2*M_PI, 100, "sine.mml", 8);
 ```
 
 **When to use Serializer directly:**
@@ -912,15 +912,15 @@ std::vector<std::string> legend = {"x", "y", "z"};
 
 // Time series of all components
 Serializer::SaveODESolutionAsMultiFunc(
-    solution, "State Variables", legend, "states.txt");
+    solution, "State Variables", legend, "states.mml");
 
 // Phase space trajectory
 Serializer::SaveODESolAsParametricCurve3D(
-    solution, "phase_space.txt", 0, 1, 2, "Phase Portrait");
+    solution, "phase_space.mml", 0, 1, 2, "Phase Portrait");
 
 // Individual component analysis
 Serializer::SaveODESolutionComponentAsFunc(
-    solution, 0, "X-component", "x_component.txt");
+    solution, 0, "X-component", "x_component.mml");
 ```
 
 ---
@@ -993,16 +993,16 @@ std::filesystem::create_directories("results/functions");
 std::filesystem::create_directories("results/ode");
 std::filesystem::create_directories("results/fields");
 
-Serializer::SaveRealFunc(f, title, x1, x2, n, "results/functions/sine.txt");
-Serializer::SaveODESolutionAsMultiFunc(sol, title, legend, "results/ode/pendulum.txt");
-Serializer::SaveVectorFunc2DCartesian(field, title, x1,x2,nx, y1,y2,ny, "results/fields/gradient.txt");
+Serializer::SaveRealFunc(f, title, x1, x2, n, "results/functions/sine.mml");
+Serializer::SaveODESolutionAsMultiFunc(sol, title, legend, "results/ode/pendulum.mml");
+Serializer::SaveVectorFunc2DCartesian(field, title, x1,x2,nx, y1,y2,ny, "results/fields/gradient.mml");
 ```
 
 ### 6. Use Space-Optimized Format When Appropriate
 
 ```cpp
 // For regular grids, use equally-spaced format
-Serializer::SaveRealFuncEquallySpaced(f, title, x1, x2, n, "data.txt");
+Serializer::SaveRealFuncEquallySpaced(f, title, x1, x2, n, "data.mml");
 // Saves ~33% disk space compared to REAL_FUNCTION
 ```
 
@@ -1021,7 +1021,7 @@ VectorFunction<2> field(electricField);
 // Filter out very large vectors
 Serializer::SaveVectorFunc2DCartesian(
     field, "E-field", -5, 5, 30, -5, 5, 30,
-    "efield.txt", 50.0  // Exclude ||E|| >= 50
+    "efield.mml", 50.0  // Exclude ||E|| >= 50
 );
 ```
 
@@ -1029,8 +1029,8 @@ Serializer::SaveVectorFunc2DCartesian(
 
 ```cpp
 // Match sampling to feature scale
-Serializer::SaveRealFunc(smoothFunc, "Smooth", 0, 10, 100, "smooth.txt");     // Sparse OK
-Serializer::SaveRealFunc(oscillatory, "Osc", 0, 10, 1000, "oscillatory.txt"); // Dense needed
+Serializer::SaveRealFunc(smoothFunc, "Smooth", 0, 10, 100, "smooth.mml");     // Sparse OK
+Serializer::SaveRealFunc(oscillatory, "Osc", 0, 10, 1000, "oscillatory.mml"); // Dense needed
 ```
 
 **Sampling Recommendations:**
@@ -1055,7 +1055,7 @@ auto result = Serializer::SaveRealMultiFunc(funcs, "...", legend, ...);
 ```cpp
 // Save every 5th frame to reduce file size
 Serializer::SaveParticleSimulation2D(
-    "sim.txt", numBalls, width, height,
+    "sim.mml", numBalls, width, height,
     ballPositions, ballColors, ballRadii, dT,
     5  // saveEveryNSteps
 );
@@ -1102,7 +1102,7 @@ Serializer methods don't load entire datasets into memory - they write increment
 ```cpp
 #include <filesystem>
 std::filesystem::create_directories("results/subfolder");
-auto result = Serializer::SaveRealFunc(f, "...", 0, 1, 100, "results/subfolder/data.txt");
+auto result = Serializer::SaveRealFunc(f, "...", 0, 1, 100, "results/subfolder/data.mml");
 ```
 
 ### Issue 2: Too Many Data Points
@@ -1112,11 +1112,11 @@ auto result = Serializer::SaveRealFunc(f, "...", 0, 1, 100, "results/subfolder/d
 **Solution:**
 ```cpp
 // Reduce sampling
-Serializer::SaveScalarFunc2DCartesian(f, "...", -10, 10, 50, -10, 10, 50, "data.txt");  
+Serializer::SaveScalarFunc2DCartesian(f, "...", -10, 10, 50, -10, 10, 50, "data.mml");  
 // Was 200x200 (40K points), now 50x50 (2500 points)
 
 // Or reduce precision
-Serializer::SaveRealFunc(f, "...", 0, 100, 10000, "data.txt", 4);  // 4 digits
+Serializer::SaveRealFunc(f, "...", 0, 100, 10000, "data.mml", 4);  // 4 digits
 ```
 
 ### Issue 3: Legend Size Mismatch
@@ -1140,7 +1140,7 @@ auto result = Serializer::SaveRealMultiFunc(funcs, "...", legend, ...);
 ```cpp
 Serializer::SaveVectorFunc2DCartesian(
     field, "...", -5, 5, 30, -5, 5, 30,
-    "field.txt", 100.0  // Filter ||v|| >= 100
+    "field.mml", 100.0  // Filter ||v|| >= 100
 );
 ```
 

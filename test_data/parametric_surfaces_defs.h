@@ -6,8 +6,8 @@
 #ifdef MML_USE_SINGLE_HEADER
 #include "MML.h"
 #else
-#include "base/VectorN.h"
-#include "base/Matrix.h"
+#include "base/Vector/VectorN.h"
+#include "base/Matrix/Matrix.h"
 #include "base/Function.h"
 #endif
 

@@ -5,7 +5,7 @@
 #ifdef MML_USE_SINGLE_HEADER
 #include "MML.h"
 #else
-#include "algorithms/RootFindingPolynoms.h"
+#include "mml/algorithms/RootFinding/RootFindingPolynoms.h"
 #include "base/Polynom.h"
 #endif
 
@@ -14,6 +14,9 @@
 
 using namespace MML;
 using namespace MML::Testing;
+
+namespace MML::Tests::Algorithms::PolynomialRootsTests
+{
 
 // Helper function to check if a complex number is close to expected
 bool isCloseComplex(const Complex& actual, const Complex& expected, Real tol = 1e-8)
@@ -37,7 +40,7 @@ void sortRootsByMagnitude(Vector<Complex>& roots)
 bool verifyRoot(const PolynomReal& poly, const Complex& root, Real tol = 1e-6)
 {
   // Evaluate polynomial at complex root using Horner's method
-  int degree = poly.GetDegree();
+  int degree = poly.degree();
   Complex result = Complex(poly[degree], REAL(0.0));
   
   for (int i = degree - 1; i >= 0; i--)
@@ -330,7 +333,7 @@ TEST_CASE("PolynomialRoots::Edge cases", "[polynomial][roots][edge]")
   {
     PolynomReal poly = PolynomReal::Constant(5.0);  // Constant polynomial p(x) = 5
     auto roots = RootFinding::LaguerreRoots(poly);
-    CHECK(roots.isEmpty());  // A constant polynomial has no roots
+    CHECK(roots.empty());  // A constant polynomial has no roots
   }
   
   SECTION("Linear polynomial")
@@ -396,3 +399,5 @@ TEST_CASE("PolynomialRoots::Wilkinson polynomial (ill-conditioned)", "[polynomia
     CHECK(found);
   }
 }
+
+} // namespace MML::Tests::Algorithms::PolynomialRootsTests

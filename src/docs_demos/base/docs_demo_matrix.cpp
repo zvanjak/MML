@@ -3,9 +3,9 @@
 #else
 #include "MMLBase.h"
 
-#include "base/Matrix.h"
-#include "base/MatrixSym.h"
-#include "base/MatrixTriDiag.h"
+#include "base/Matrix/Matrix.h"
+#include "base/Matrix/MatrixSym.h"
+#include "base/Matrix/MatrixTriDiag.h"
 
 #include "base/BaseUtils.h"
 #include "core/MatrixUtils.h"
@@ -24,7 +24,7 @@ void Docs_Demo_Matrix_initializations()
   Matrix<Real>  mat3(3, 3, { 2.0, 0.7, -1.2, 		// matrix with initialized values
 														 1.3, 1.5,  2.0,
 													  -0.8, 0.0, -1.0 });     
-  Matrix<Real>  mat_unit = Matrix<Real>::GetUnitMatrix(4);
+  Matrix<Real>  mat_unit = Matrix<Real>::Identity(4);
 
   Matrix<int>   mat_int1(2, 2, { 1, 2, 3, 4 });
   MatrixComplex mat_cmplx1(2, 2, { Complex(-1, 1.5), Complex(-4.3,-2.1),
@@ -91,7 +91,7 @@ Matrix::ColMatrixFromVector(a) = Rows: 3 Cols: 1
   //Matrix<Real> m1(2, 2, { 1.0, -1.0, 1.5, 3.0 });
   //Vector<Real> vecRow = m1.VectorFromRow(0);
   //Vector<Real> vecCol = m1.VectorFromColumn(0);
-  //Vector<Real> vecDiag = m1.VectorFromDiagonal();
+  //Vector<Real> vecDiag = m1.diagonal();
 
   //std::cout << "Matrix m1 = " << m1 << std::endl;
   //std::cout << "Vector vecRow = Matrix::VectorFromRow(a, 0)    = " << vecRow << std::endl;
@@ -303,7 +303,7 @@ void Docs_Demo_Matrix_invert()
                           3.0, 1.0,  1.0 });
 
   std::cout << "m1       = " << m1 << std::endl;
-  auto m2 = m1.GetInverse();
+  auto m2 = m1.inverse();
 
   std::cout << "m2 (inv) = " << m2 << std::endl;
 
@@ -336,16 +336,16 @@ void Docs_Demo_Matrix_transpose()
   Matrix<Real> m1(2, 2, { 1.0, -1.0, 
                           1.5, 3.0 });
   std::cout << "m1          = " << m1 << std::endl;
-  std::cout << "m1 (transp) = " << m1.GetTranspose() << std::endl;
+  std::cout << "m1 (transp) = " << m1.transpose() << std::endl;
 
   Matrix<Real> m2(2, 4, { 1.0, -1.0, 2.0, 1.0,
                           1.5,  3.0, 7.0, 4.0 });
   std::cout << "m2          = " << m2 << std::endl;
-  std::cout << "m2 (transp) = " << m2.GetTranspose() << std::endl;
+  std::cout << "m2 (transp) = " << m2.transpose() << std::endl;
 
   Matrix<Real> m3(5, 1, { 1.0, -1.0, 2.0, 1.0, 3.0 });
   std::cout << "m3          = " << m3 << std::endl;
-  std::cout << "m3 (transp) = " << m3.GetTranspose() << std::endl;
+  std::cout << "m3 (transp) = " << m3.transpose() << std::endl;
 
   // we can do transposing in place (BUT ONLY FOR SQUARE MATRICES!)
   m1.Transpose();
@@ -493,7 +493,7 @@ void Docs_Demo_Matrix_Row_Col_Access()
   // Extract row and column
   Vector<Real> row = A.VectorFromRow(1);     // Get row 1 (second row)
   Vector<Real> col = A.VectorFromColumn(2);  // Get column 2 (third column)
-  Vector<Real> diag = A.GetDiagonal();       // Get main diagonal
+  Vector<Real> diag = A.diagonal();       // Get main diagonal
   
   std::cout << "VectorFromRow(1):    " << row << std::endl;
   std::cout << "VectorFromColumn(2): " << col << std::endl;
@@ -551,7 +551,7 @@ void Docs_Demo_Matrix_Properties()
   std::cout << "***********************************************************" << std::endl;
   std::cout << "*****              Matrix Properties                *******" << std::endl;
 
-  Matrix<Real> I = Matrix<Real>::GetUnitMatrix(3);
+  Matrix<Real> I = Matrix<Real>::Identity(3);
   Matrix<Real> D{3, 3, {1, 0, 0,
                         0, 2, 0,
                         0, 0, 3}};
@@ -568,15 +568,15 @@ void Docs_Demo_Matrix_Properties()
   std::cout << "General matrix A:\n" << A << std::endl;
 
   // Property checks
-  std::cout << "I.IsUnit():      " << (I.IsUnit() ? "true" : "false") << std::endl;
-  std::cout << "A.IsUnit():      " << (A.IsUnit() ? "true" : "false") << std::endl;
-  std::cout << "D.IsDiagonal():  " << (D.IsDiagonal() ? "true" : "false") << std::endl;
-  std::cout << "A.IsDiagonal():  " << (A.IsDiagonal() ? "true" : "false") << std::endl;
-  std::cout << "S.IsSymmetric(): " << (S.IsSymmetric() ? "true" : "false") << std::endl;
-  std::cout << "A.IsSymmetric(): " << (A.IsSymmetric() ? "true" : "false") << std::endl;
+  std::cout << "I.isIdentity():      " << (I.isIdentity() ? "true" : "false") << std::endl;
+  std::cout << "A.isIdentity():      " << (A.isIdentity() ? "true" : "false") << std::endl;
+  std::cout << "D.isDiagonal():  " << (D.isDiagonal() ? "true" : "false") << std::endl;
+  std::cout << "A.isDiagonal():  " << (A.isDiagonal() ? "true" : "false") << std::endl;
+  std::cout << "S.isSymmetric(): " << (S.isSymmetric() ? "true" : "false") << std::endl;
+  std::cout << "A.isSymmetric(): " << (A.isSymmetric() ? "true" : "false") << std::endl;
 
   // Trace
-  std::cout << "\nD.Trace(): " << D.Trace() << " (1+2+3 = 6)" << std::endl;
+  std::cout << "\nD.trace(): " << D.trace() << " (1+2+3 = 6)" << std::endl;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////

@@ -105,10 +105,10 @@ auto res = solver.simulate(dt, steps);
 for (int i = 0; i < config.NumBodies(); i++)
 {
 Serializer::SaveAsParamCurve<3>(res[i], "PARAMETRIC_CURVE_CARTESIAN_3D", 0.0, dt*steps, steps+1, 
-																GLOB_PATH_ResultFiles + "body" + std::to_string(i) + ".txt");
+																GLOB_PATH_ResultFiles + "body" + std::to_string(i) + ".mml");
 }
 
-Visualizer::VisualizeMultiParamCurve3D({"body0.txt", "body1.txt", "body2.txt", "body3.txt", "body4.txt" });
+Visualizer::VisualizeMultiParamCurve3D({"body0.mml", "body1.mml", "body2.mml", "body3.mml", "body4.mml" });
 ~~~
 
 Result of the simulation is shown in the figure below showing the trajectories of the bodies in the gravity field.

@@ -5,11 +5,13 @@
 #ifdef MML_USE_SINGLE_HEADER
 #include "MML.h"
 #else
-#include "base/Geometry3DBodies.h"
+#include "mml/base/Geometry/Geometry3DBodies.h"
 #endif
 
 using namespace MML;
 using namespace MML::Testing;
+
+namespace MML::Tests::Base::Geometry3DBodies::Torus3DTests {
 
 TEST_CASE("Torus3D::Volume", "[geometry][torus][volume]")
 {
@@ -110,7 +112,7 @@ TEST_CASE("Torus3D::GetBoundingBox", "[geometry][torus][bounding]")
     SECTION("Torus centered at origin with R=3, r=1")
     {
         Torus3D torus(3.0, 1.0);
-        BoundingBox3D bbox = torus.GetBoundingBox();
+        Box3D bbox = torus.GetBoundingBox();
         
         // Outer radius = R + r = 4, extends ±4 in XY, ±r in Z
         REQUIRE_THAT(bbox.Min().X() , RealApprox(-4.0));
@@ -126,7 +128,7 @@ TEST_CASE("Torus3D::GetBoundingBox", "[geometry][torus][bounding]")
     {
         Pnt3Cart center(10.0, 20.0, 30.0);
         Torus3D torus(5.0, 2.0, center);
-        BoundingBox3D bbox = torus.GetBoundingBox();
+        Box3D bbox = torus.GetBoundingBox();
         
         // Outer radius = 7, so XY extends ±7 from center, Z extends ±2
         REQUIRE_THAT(bbox.Min().X() , RealApprox(3.0));
@@ -141,7 +143,7 @@ TEST_CASE("Torus3D::GetBoundingBox", "[geometry][torus][bounding]")
     SECTION("Bounding box dimensions")
     {
         Torus3D torus(6.0, 2.0);
-        BoundingBox3D bbox = torus.GetBoundingBox();
+        Box3D bbox = torus.GetBoundingBox();
         Real width = bbox.Max().X() - bbox.Min().X();
         Real depth = bbox.Max().Y() - bbox.Min().Y();
         Real height = bbox.Max().Z() - bbox.Min().Z();
@@ -343,3 +345,5 @@ TEST_CASE("Torus3D::IsInside", "[geometry][torus][inside]")
         REQUIRE(torus.IsInside(Pnt3Cart(5.0 + offset, 0.0, offset)) == true);
     }
 }
+
+} // namespace MML::Tests::Base::Geometry3DBodies::Torus3DTests

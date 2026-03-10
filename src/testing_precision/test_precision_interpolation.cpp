@@ -12,15 +12,15 @@
 ///               - Convergence with increasing data points                           ///
 ///               - Runge phenomenon demonstration                                    ///
 ///                                                                                   ///
-///  Copyright:   (c) 2024-2025 Zvonimir Vanjak                                       ///
-///  License:     Licensed under MML dual-license (see LICENSE.md)                    ///
+///  Copyright:   (c) 2024-2026 Zvonimir Vanjak                                       ///
+///  License:     MIT License (see LICENSE.md)                    ///
 ///////////////////////////////////////////////////////////////////////////////////////////
 
 #include "PrecisionTestFramework.h"
 
 #include "MMLBase.h"
 
-#include "base/Vector.h"
+#include "base/Vector/Vector.h"
 #include "base/InterpolatedFunction.h"
 
 using namespace MML;

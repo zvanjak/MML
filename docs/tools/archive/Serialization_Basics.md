@@ -420,17 +420,17 @@ Step 1 0.01
 ### Saving a Function
 ```cpp
 // 1D function
-Serializer::SaveRealFunc(myFunc, "My Function", -5.0, 5.0, 100, "output.txt");
+Serializer::SaveRealFunc(myFunc, "My Function", -5.0, 5.0, 100, "output.mml");
 
 // Multiple 1D functions
 std::vector<IRealFunction*> funcs = {&f1, &f2, &f3};
 Serializer::SaveRealMultiFunc(funcs, "Comparison", {"f(x)", "g(x)", "h(x)"}, 
-                              -5.0, 5.0, 100, "output.txt");
+                              -5.0, 5.0, 100, "output.mml");
 ```
 
 ### Saving a 2D Curve
 ```cpp
-Serializer::SaveParamCurveCartesian2D(myCurve, "Spiral", 0.0, 10.0, 200, "spiral.txt");
+Serializer::SaveParamCurveCartesian2D(myCurve, "Spiral", 0.0, 10.0, 200, "spiral.mml");
 ```
 
 ### Saving a 3D Surface
@@ -439,7 +439,7 @@ Serializer::SaveScalarFunc3DCartesian(myScalar, "Potential Field",
                                      -5, 5, 50,
                                      -5, 5, 50,
                                      -5, 5, 50,
-                                     "field.txt");
+                                     "field.mml");
 ```
 
 ### Saving a Vector Field
@@ -448,21 +448,21 @@ Serializer::SaveScalarFunc3DCartesian(myScalar, "Potential Field",
 Serializer::SaveVectorFunc2DCartesian(myField, "Gradient",
                                      -3, 3, 30,
                                      -3, 3, 30,
-                                     "field.txt", 10.0);  // max magnitude: 10.0
+                                     "field.mml", 10.0);  // max magnitude: 10.0
 ```
 
 ### Saving ODE Solution
 ```cpp
 Serializer::SaveODESolutionAsMultiFunc(solution, "ODE System", 
-                                      {"x(t)", "y(t)", "z(t)"}, "solution.txt");
+                                      {"x(t)", "y(t)", "z(t)"}, "solution.mml");
 
 // Phase space projection
-Serializer::SaveODESolAsParametricCurve3D(solution, "phase_space.txt", 0, 1, 2, "Phase Space");
+Serializer::SaveODESolAsParametricCurve3D(solution, "phase_space.mml", 0, 1, 2, "Phase Space");
 ```
 
 ### Saving Particle Simulation
 ```cpp
-Serializer::SaveParticleSimulation2D("sim.txt", numBalls, width, height,
+Serializer::SaveParticleSimulation2D("sim.mml", numBalls, width, height,
                                     ballPositions, ballColors, ballRadii, dT);
 ```
 

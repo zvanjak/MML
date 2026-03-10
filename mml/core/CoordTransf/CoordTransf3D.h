@@ -1,14 +1,13 @@
-﻿///////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////
 ///                         MinimalMathLibrary (MML)                                  ///
 ///                                                                                   ///
 ///  File:        CoordTransf3D.h                                                     ///
 ///  Description: 3D coordinate transformations (rotation, scaling, translation)      ///
 ///               Euler angles, quaternion rotations, rigid body transformations      ///
 ///                                                                                   ///
-///  Copyright:   (c) 2024-2025 Zvonimir Vanjak                                       ///
-///  License:     Licensed under MML dual-license (see LICENSE.md)                    ///
-///               - Free for non-commercial use                                       ///
-///               - Commercial license available                                      ///
+///  Copyright:   (c) 2024-2026 Zvonimir Vanjak                                       ///
+///  License:     MIT License (see LICENSE.md)                                         ///
+///                                                                                   ///
 ///////////////////////////////////////////////////////////////////////////////////////////
 #if !defined MML_COORD_TRANSF_3D_H
 #define MML_COORD_TRANSF_3D_H
@@ -19,10 +18,13 @@
 #include "core/CoordTransf.h"
 #include "core/LinAlgEqSolvers.h"
 
-using namespace MML::Utils;
-
 namespace MML
 {
+	/// @brief 3D Cartesian rotation around X-axis
+	/// 
+	/// Rotates 3D Cartesian coordinates around the X-axis by a fixed angle.
+	/// Rotation matrix: [1 0 0; 0 cos(?) -sin(?); 0 sin(?) cos(?)]
+	/// X-coordinate remains unchanged, Y and Z coordinates rotate in YZ-plane.
 	class CoordTransfCart3DRotationXAxis : 
 		public CoordTransfWithInverse<Vec3Cart, Vec3Cart, 3>
 	{
@@ -35,6 +37,8 @@ namespace MML
 		const ScalarFunctionFromStdFunc<3> _fInverse1, _fInverse2, _fInverse3;
 
 	public:
+		/// @brief Constructor for X-axis rotation
+		/// @param inAngle Rotation angle in radians (counterclockwise looking down positive X-axis)
 		CoordTransfCart3DRotationXAxis(Real inAngle) : _angle(inAngle),
 			_f1([this](const VectorN<Real, 3>& q) { return func1(q); }),
 			_f2([this](const VectorN<Real, 3>& q) { return func2(q); }),
@@ -56,8 +60,19 @@ namespace MML
 			_inverse[2][2] = cos(_angle);
 		}
 
+		/// @brief X component unchanged by X-axis rotation
+		/// @param q Input Cartesian coordinates
+		/// @return x coordinate (unchanged)
 		Real func1(const VectorN<Real, 3>& q) const { return q[0]; }
+		
+		/// @brief Rotated Y component: y' = y�cos(?) - z�sin(?)
+		/// @param q Input Cartesian coordinates
+		/// @return y component after X-axis rotation
 		Real func2(const VectorN<Real, 3>& q) const { return q[1] * cos(_angle) - q[2] * sin(_angle); }
+		
+		/// @brief Rotated Z component: z' = y�sin(?) + z�cos(?)
+		/// @param q Input Cartesian coordinates
+		/// @return z component after X-axis rotation
 		Real func3(const VectorN<Real, 3>& q) const { return q[1] * sin(_angle) + q[2] * cos(_angle); }
 
 		Real funcInverse1(const VectorN<Real, 3>& q) const { return q[0]; }
@@ -80,6 +95,11 @@ namespace MML
 			else return _fInverse3;
 		}
 	};
+	/// @brief 3D Cartesian rotation around Y-axis
+	/// 
+	/// Rotates 3D Cartesian coordinates around the Y-axis by a fixed angle.
+	/// Rotation matrix: [cos(?) 0 sin(?); 0 1 0; -sin(?) 0 cos(?)]
+	/// Y-coordinate remains unchanged, X and Z coordinates rotate in XZ-plane.
 	class CoordTransfCart3DRotationYAxis : public CoordTransfWithInverse<Vec3Cart, Vec3Cart, 3>
 	{
 	private:
@@ -136,6 +156,11 @@ namespace MML
 			else return _fInverse3;
 		}
 	};
+	/// @brief 3D Cartesian rotation around Z-axis
+	/// 
+	/// Rotates 3D Cartesian coordinates around the Z-axis by a fixed angle.
+	/// Rotation matrix: [cos(?) -sin(?) 0; sin(?) cos(?) 0; 0 0 1]
+	/// Z-coordinate remains unchanged, X and Y coordinates rotate in XY-plane.
 	class CoordTransfCart3DRotationZAxis : public CoordTransfWithInverse<Vec3Cart, Vec3Cart, 3>
 	{
 	private:
@@ -193,13 +218,17 @@ namespace MML
 		}
 	};
 
-	// General orthogonal 3D Cartesian transformation, specified by Euler angles (ZXZ convention, physics standard)
+	/// @brief General 3D rotation using Euler angles (ZXZ convention)
+	/// 
+	/// Implements 3D rotation using Euler angles with ZXZ convention (physics standard).
+	/// Three successive rotations: a around Z, � around X', ? around Z''.
+	/// This convention avoids gimbal lock in many physical applications.
 	class CoordTransfCart3DRotationEuler : public CoordTransfWithInverse<Vec3Cart, Vec3Cart, 3>
 	{
 	private:
-		Real _alpha; // rotation about Z axis
-		Real _beta;  // rotation about X' axis
-		Real _gamma; // rotation about Z'' axis
+		Real _alpha; ///< First rotation angle around Z axis (radians)
+		Real _beta;  ///< Second rotation angle around X' axis (radians)
+		Real _gamma; ///< Third rotation angle around Z'' axis (radians)
 
 		MatrixNM<Real, 3, 3> _transf;
 		MatrixNM<Real, 3, 3> _inverse;
@@ -207,7 +236,11 @@ namespace MML
 		const ScalarFunctionFromStdFunc<3> _f1, _f2, _f3;
 		const ScalarFunctionFromStdFunc<3> _fInverse1, _fInverse2, _fInverse3;
 
-		// Helper: build rotation matrix for ZXZ convention
+		/// @brief Build ZXZ Euler angle rotation matrix
+		/// @param alpha First angle (Z-axis rotation)
+		/// @param beta Second angle (X'-axis rotation)
+		/// @param gamma Third angle (Z''-axis rotation)
+		/// @return 3x3 rotation matrix
 		static MatrixNM<Real, 3, 3> buildEulerZXZMatrix(Real alpha, Real beta, Real gamma)
 		{
 			Real ca = std::cos(alpha), sa = std::sin(alpha);
@@ -228,7 +261,10 @@ namespace MML
 		}
 
 	public:
-		// alpha, beta, gamma: ZXZ Euler angles (physics convention)
+		/// @brief Constructor using ZXZ Euler angles (physics convention)
+		/// @param alpha First rotation around Z-axis (radians)
+		/// @param beta Second rotation around X'-axis (radians)
+		/// @param gamma Third rotation around Z''-axis (radians)
 		CoordTransfCart3DRotationEuler(Real alpha, Real beta, Real gamma)
 			: _alpha(alpha), _beta(beta), _gamma(gamma),
 				_transf(buildEulerZXZMatrix(alpha, beta, gamma)),
@@ -272,8 +308,11 @@ namespace MML
 		}
 	};
 
-	// Performs tranformation from original (Cartesian) system to orthogonal system defined by 
-	// its base vectors expressed in original system.
+	/// @brief Transformation to orthogonal Cartesian coordinate system
+	/// 
+	/// Transforms from original Cartesian system to another orthogonal Cartesian
+	/// system defined by three mutually orthogonal basis vectors.
+	/// Verifies orthogonality and provides right/left-handed orientation check.
 	class CoordTransf3DCartOrthogonal : public CoordTransfWithInverse<Vec3Cart, Vec3Cart, 3>
 	{
 	private:
@@ -294,6 +333,11 @@ namespace MML
 		Real funcInverse3(const VectorN<Real, 3>& q) const { return (_transfInverse * q)[2]; }
 
 	public:
+		/// @brief Constructor for orthogonal transformation
+		/// @param b1 First basis vector (must be orthogonal to b2, b3)
+		/// @param b2 Second basis vector (must be orthogonal to b1, b3)
+		/// @param b3 Third basis vector (must be orthogonal to b1, b2)
+		/// @throws GeometryError if basis vectors are not mutually orthogonal
 		CoordTransf3DCartOrthogonal(const VectorN<Real, 3>& b1, const VectorN<Real, 3>& b2, const VectorN<Real, 3>& b3) :
 			_f1([this](const VectorN<Real, 3>& q) { return func1(q); }),
 			_f2([this](const VectorN<Real, 3>& q) { return func2(q); }),
@@ -358,7 +402,13 @@ namespace MML
 		}
 	};
 
-	// General 3D Cartesian transformation, given by matrix
+	/// @brief General 3D Cartesian transformation from matrix
+	/// 
+	/// General 3D Cartesian coordinate transformation specified by an arbitrary 3x3 matrix.
+	/// Handles any linear transformation including rotation, scaling, shearing, and combinations.
+	/// The inverse transformation uses the matrix inverse (computed via LU decomposition).
+	/// @note For orthogonal matrices (rotations), the inverse equals the transpose, but this
+	///       class handles the general non-orthogonal case correctly.
 	class CoordTransf3DCartGeneral : public CoordTransfWithInverse<Vec3Cart, Vec3Cart, 3>
 	{
 	private:
@@ -379,6 +429,9 @@ namespace MML
 		Real funcInverse3(const VectorN<Real, 3>& q) const { return (_transfInverse * q)[2]; }
 
 	public:
+		/// @brief Constructor from transformation matrix
+		/// @param transfMat 3x3 transformation matrix (must be non-singular)
+		/// @throws SingularMatrixError if matrix is singular (determinant ≈ 0)
 		CoordTransf3DCartGeneral(const MatrixNM<Real, 3, 3>& transfMat) :
 			_f1([this](const VectorN<Real, 3>& q) { return func1(q); }),
 			_f2([this](const VectorN<Real, 3>& q) { return func2(q); }),
@@ -387,18 +440,18 @@ namespace MML
 			_fInverse2([this](const VectorN<Real, 3>& q) { return funcInverse2(q); }),
 			_fInverse3([this](const VectorN<Real, 3>& q) { return funcInverse3(q); })
 		{
-			// check that input matrix is not singular!
-
-
 			_transf = transfMat;
 
+			// Store basis vectors (rows of transformation matrix)
 			for (int i = 0; i < 3; i++) {
 				for (int j = 0; j < 3; j++)
 				{
 					_base[i][j] = _transf(i, j);
-					_transfInverse(i, j) = _transf[j][i];
 				}
 			}
+
+			// Compute proper matrix inverse (throws SingularMatrixError if singular)
+			_transfInverse = _transf.GetInverse();
 		}
 
 		MatrixNM<Real, 3, 3> getTransfMatrix() { return _transf; }
@@ -430,13 +483,18 @@ namespace MML
 		}
 	};
 
+	/// @brief Cartesian to oblique 3D coordinate transformation
+	/// 
+	/// Transforms from Cartesian to oblique (non-orthogonal) coordinate system.
+	/// Uses dual basis for transformation: q? = dual_i � r
+	/// Handles arbitrary non-orthogonal basis with automatic dual basis computation.
 	class CoordTransfCartesianToOblique3D : public CoordTransfWithInverse<Vec3Cart, Vec3Cart, 3>
 	{
 	private:
-		Vec3Cart _base[3];					// base vectors as columns
-		Vec3Cart _dual[3];					// dual basis
-		MatrixNM<Real, 3, 3> _baseMat;      // columns = base vectors
-		MatrixNM<Real, 3, 3> _baseMatInv;   // inverse of _baseMat
+		Vec3Cart _base[3];                                ///< Oblique basis vectors (covariant)
+		Vec3Cart _dual[3];                                ///< Dual basis vectors (contravariant)
+		MatrixNM<Real, 3, 3> _baseMat;                    ///< Matrix with basis vectors as columns
+		MatrixNM<Real, 3, 3> _baseMatInv;                 ///< Inverse of basis matrix
 
 		const ScalarFunctionFromStdFunc<3> _f1, _f2, _f3;
 		const ScalarFunctionFromStdFunc<3> _fInverse1, _fInverse2, _fInverse3;
@@ -450,6 +508,11 @@ namespace MML
 		Real funcInverse3(const VectorN<Real, 3>& q) const { return (_baseMat * q)[2]; }
 
 	public:
+		/// @brief Constructor for oblique coordinate system
+		/// @param b1 First basis vector (need not be orthogonal)
+		/// @param b2 Second basis vector (need not be orthogonal)
+		/// @param b3 Third basis vector (need not be orthogonal)
+		/// @throws SingularMatrixError if basis vectors are linearly dependent
 		CoordTransfCartesianToOblique3D(const VectorN<Real, 3>& b1, const VectorN<Real, 3>& b2, const VectorN<Real, 3>& b3) :
 			_f1([this](const VectorN<Real, 3>& q) { return func1(q); }),
 			_f2([this](const VectorN<Real, 3>& q) { return func2(q); }),
@@ -477,12 +540,21 @@ namespace MML
 
 		// Compute inverse of base matrix for alternative transformation method
 		_baseMatInv = _baseMat.GetInverse();
-	}		Vec3Cart    Base(int i) { return _base[i]; }
+	}		/// @brief Get oblique basis vector
+		/// @param i Index (0, 1, or 2)
+		/// @return Oblique basis vector i
+		Vec3Cart    Base(int i) { return _base[i]; }
+		
+		/// @brief Get dual basis vector (contravariant)
+		/// @param i Index (0, 1, or 2)
+		/// @return Dual basis vector i
 		Vec3Cart    Dual(int i) { return _dual[i]; }
 
-		// Cartesian (input) → Oblique (output)
+		/// @brief Transform Cartesian to oblique coordinates
+		/// @param cartesian Cartesian position vector
+		/// @return Oblique coordinates q? = dual_i � cartesian
 		Vec3Cart transf(const Vec3Cart& cartesian) const {
-			// q^i = dual_i ⋅ cartesian
+			// q^i = dual_i � cartesian
 			return Vec3Cart{
 					ScalarProduct(cartesian, _dual[0]),
 					ScalarProduct(cartesian, _dual[1]),
@@ -491,7 +563,9 @@ namespace MML
 			// Or, if you have _baseMatInv: return _baseMatInv * cartesian;
 		}
 
-		// Oblique (input) → Cartesian (output)
+		/// @brief Transform oblique to Cartesian coordinates
+		/// @param oblique Oblique coordinates q?
+		/// @return Cartesian position r = q? � base_i
 		Vec3Cart transfInverse(const Vec3Cart& oblique) const {
 			// r = q^i * base_i
 			return _baseMat * oblique;

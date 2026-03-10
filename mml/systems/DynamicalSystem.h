@@ -2,17 +2,32 @@
 ///                         MinimalMathLibrary (MML)                                  ///
 ///                                                                                   ///
 ///  File:        DynamicalSystem.h                                                   ///
-///  Description: Placeholder for future dynamical system implementation              ///
-///               Reserved for phase space analysis and stability tools               ///
+///  Description: Umbrella header for dynamical systems framework                     ///
+///               Includes all dynamical system components                            ///
 ///                                                                                   ///
-///  Copyright:   (c) 2024-2025 Zvonimir Vanjak                                       ///
-///  License:     Licensed under MML dual-license (see LICENSE.md)                    ///
-///               - Free for non-commercial use                                       ///
-///               - Commercial license available                                      ///
+///  Copyright:   (c) 2024-2026 Zvonimir Vanjak                                       ///
+///  License:     MIT License (see LICENSE.md)                                        ///
+///                                                                                   ///
 ///////////////////////////////////////////////////////////////////////////////////////////
 #if !defined MML_DYNAMICAL_SYSTEM_H
 #define MML_DYNAMICAL_SYSTEM_H
 
-// Note: Deferred - not in current scope
+// Types and result structures
+#include "systems/DynamicalSystemTypes.h"
+
+// Base class for dynamical systems
+#include "systems/DynamicalSystemBase.h"
+
+// Analysis tools (fixed points, Lyapunov, bifurcations, phase space)
+#include "systems/DynamicalSystemAnalyzers.h"
+
+// Classic continuous systems (Lorenz, Rössler, Van der Pol, etc.)
+#include "systems/ContinuousSystems.h"
+
+// Discrete maps (Logistic, Hénon, Standard, Tent)
+#include "systems/DiscreteMaps.h"
+
+// Unified analyzer facade
+#include "systems/DynamicalSystemAnalyzer.h"
 
 #endif // MML_DYNAMICAL_SYSTEM_H

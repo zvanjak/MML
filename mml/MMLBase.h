@@ -5,10 +5,9 @@
 ///  Description: Core definitions, constants, type aliases, and precision settings   ///
 ///               Foundation header included by all MML components                    ///
 ///                                                                                   ///
-///  Copyright:   (c) 2024-2025 Zvonimir Vanjak                                       ///
-///  License:     Licensed under MML dual-license (see LICENSE.md)                    ///
-///               - Free for non-commercial use                                       ///
-///               - Commercial license available                                      ///
+///  Copyright:   (c) 2024-2026 Zvonimir Vanjak                                       ///
+///  License:     MIT License (see LICENSE.md)                                         ///
+///                                                                                   ///
 ///////////////////////////////////////////////////////////////////////////////////////////
 #if !defined MML_BASE_H
 #define MML_BASE_H
@@ -28,20 +27,80 @@
 
 // HAJDUK ZIVI VJECNO!!!
 
+///////////////////////////////////////////////////////////////////////////////////////////
+// Real Type Configuration
+///////////////////////////////////////////////////////////////////////////////////////////
+//
+// CONFIGURATION MODEL: Per-Library Build (NOT Per-Translation-Unit)
+//
+// The Real typedef defines the floating-point precision for the entire library.
+// This is a **build-time configuration** that must be consistent across ALL translation
+// units that use MML together in the same program.
+//
+// USAGE:
+//   1. Choose ONE Real type for your build (double, float, long double, or __float128)
+//   2. Ensure ALL source files in your project see the SAME definition
+//   3. Do NOT mix different Real types in the same executable
+//
+// CURRENT CONFIGURATION:
 typedef double						 Real; // default real type
-
-// other possibilites:
-// typedef float						 Real;
-// typedef long double       Real;
-// typedef __float128				 Real;    // only for GCC!
+//
+// OTHER SUPPORTED OPTIONS (uncomment ONE, comment others):
+// typedef float						 Real;    // Lower precision, faster, smaller memory
+// typedef long double       Real;    // Extended precision (80-bit on x86, 128-bit on some platforms)
+// typedef __float128				 Real;    // Quad precision (GCC only, 128-bit IEEE 754)
+//
+// ABI AND COMPATIBILITY GUARANTEES:
+//
+// 1. BINARY COMPATIBILITY:
+//    - Changing Real breaks ABI compatibility
+//    - All libraries/object files must be recompiled with the same Real type
+//    - Linking objects built with different Real types causes undefined behavior
+//
+// 2. SERIALIZATION:
+//    - Data serialized with one Real type may NOT be readable with another
+//    - Binary format depends on Real's size and representation
+//    - Always document which Real type was used when saving data
+//    - Consider text-based formats for cross-precision compatibility
+//
+// 3. PRECISION CONSTANTS:
+//    - Constants in MML::Constants are stored as 'double' literals
+//    - For float builds: implicit conversion (acceptable precision loss)
+//    - For long double/__float128: constants may have less precision than Real
+//    - Use REAL() macro for literals that should match Real precision
+//
+// 4. API CONTRACTS:
+//    - All MML APIs use Real consistently
+//    - Template parameters like Vector<Real>, Matrix<Real> must match the global Real
+//    - Mixing Real with explicit float/double types is supported but requires care
+//
+// 5. THREAD SAFETY:
+//    - Real type is compile-time constant (no runtime changes)
+//    - Safe to use across multiple threads
+//    - Thread-local contexts (Defaults) are independent of Real choice
+//
+// RECOMMENDATIONS:
+//   - Use 'double' (default) for most applications (good balance of speed/precision)
+//   - Use 'float' when memory or performance is critical and precision allows
+//   - Use 'long double' for extended precision needs (note: compiler/platform dependent)
+//   - Use '__float128' for maximum precision (GCC only, slower, requires libquadmath)
+//
+// PORTABILITY NOTES:
+//   - 'double' and 'float' are fully portable (C++ standard)
+//   - 'long double' precision varies by platform (80-bit x86, 128-bit ARM/PowerPC, 64-bit MSVC)
+//   - '__float128' requires GCC and libquadmath linkage
+//
+///////////////////////////////////////////////////////////////////////////////////////////
 
 // Macro for type-safe numeric literals that match Real type
 // This ensures literals like 0.0, 1.0 match the current Real precision
+// Usage: Real x = REAL(3.14159265358979323846);
 #ifndef REAL
 #define REAL(x) static_cast<Real>(x)
 #endif
 
-// Complex must have the same underlaying type as Real
+// Complex must have the same underlying type as Real
+// Changing Real automatically changes Complex precision
 typedef std::complex<Real> Complex; // default complex type
 
 namespace MML 
@@ -54,11 +113,45 @@ namespace MML
   }
 
 
+  ////////////         Floating-Point Comparison Functions         ////////////
+  /// @brief Check if two values are equal within absolute tolerance.
+  /// @details Use for values expected to be near zero.
   inline bool isWithinAbsPrec(Real a, Real b, Real eps) {
     return std::abs(a - b) < eps;
   }
+
+  /// @brief Check if two values are equal within relative tolerance.
+  /// @details Use for values of similar magnitude away from zero.
   inline bool isWithinRelPrec(Real a, Real b, Real eps) {
     return std::abs(a - b) < eps * std::max(Abs(a), Abs(b));
+  }
+
+  /// @brief Check if two values are nearly equal using combined absolute and relative tolerance.
+  /// @details This is the recommended comparison for general floating-point equality.
+  ///          Handles both small values (where absolute tolerance dominates) and
+  ///          large values (where relative tolerance dominates) correctly.
+  /// @param a First value
+  /// @param b Second value  
+  /// @param absEps Absolute tolerance (dominates for values near zero)
+  /// @param relEps Relative tolerance (dominates for large values)
+  /// @return true if |a - b| < absEps + relEps * max(|a|, |b|)
+  inline bool isNearlyEqual(Real a, Real b, Real absEps, Real relEps) {
+    return std::abs(a - b) < absEps + relEps * std::max(Abs(a), Abs(b));
+  }
+
+  /// @brief Check if two values are nearly equal using a single tolerance for both abs and rel.
+  /// @details Convenience overload that uses the same tolerance for absolute and relative comparison.
+  inline bool isNearlyEqual(Real a, Real b, Real eps) {
+    return isNearlyEqual(a, b, eps, eps);
+  }
+
+  /// @brief Check if a value is nearly zero (within tolerance of zero).
+  /// @details Use for checking if a value is effectively zero in numerical computations.
+  /// @param a Value to check
+  /// @param eps Tolerance (defaults to NumericalZeroThreshold)
+  /// @return true if |a| < eps
+  inline bool isNearlyZero(Real a, Real eps = PrecisionValues<Real>::NumericalZeroThreshold) {
+    return std::abs(a) < eps;
   }
 
   template <class T> inline T POW2(const T &a) {
@@ -93,143 +186,67 @@ namespace MML
     static inline constexpr double SQRT2      = 1.41421356237309504880;  // sqrt(2)
     static inline constexpr double SQRT3      = 1.73205080756887729353;  // sqrt(3)
 
+    static inline constexpr double GoldenRatio = 1.61803398874989484820; // (1 + sqrt(5)) / 2
+
+    // Geometry epsilon for floating-point comparisons in geometric algorithms
+    static inline constexpr double GEOMETRY_EPSILON = 1e-10;
+
     // Precision constants - use Real type for consistency with library's floating-point type
     static inline const Real Eps = std::numeric_limits<Real>::epsilon();
     static inline const Real PosInf = std::numeric_limits<Real>::infinity();
     static inline const Real NegInf = -std::numeric_limits<Real>::infinity();
   } // namespace Constants
 
-  // a * x^2 + b * x + c = 0
-  inline int SolveQuadratic(Real a, Real b, Real c, Complex &x1, Complex &x2) {
-    Real D = b * b - 4 * a * c;
-    if (D >= 0) {
-      Real sqrtD = sqrt(D);
-      x1 = (-b + sqrtD) / (2 * a);
-      x2 = (-b - sqrtD) / (2 * a);
-      return 2;
-    } else {
-      Complex sqrtD = std::sqrt(Complex(D));
-      x1 = (-b + sqrtD) / (2 * a);
-      x2 = (-b - sqrtD) / (2 * a);
-      return 0;
-    }
+  ////////////       Binary File Format Constants        ////////////
+  /// @brief Magic numbers and version constants for MML binary file formats.
+  /// @details These constants identify MML binary files and their format versions.
+  ///          Magic numbers are 4-byte ASCII identifiers stored as uint32_t.
+  ///          All binary files use little-endian byte order.
+  namespace BinaryFormat {
+    // Magic numbers (4-byte ASCII identifiers)
+    static inline constexpr uint32_t MAGIC_MATRIX         = 0x4D4D4C4D;  // "MMLM" - MML Matrix
+    static inline constexpr uint32_t MAGIC_VECTOR         = 0x4D4D4C56;  // "MMLV" - MML Vector (real)
+    static inline constexpr uint32_t MAGIC_VECTOR_COMPLEX = 0x4D4D4C43;  // "MMLC" - MML Vector Complex
+    static inline constexpr uint32_t MAGIC_SPARSE         = 0x4D4D4C53;  // "MMLS" - MML Sparse Matrix (reserved)
+    static inline constexpr uint32_t MAGIC_TENSOR         = 0x4D4D4C54;  // "MMLT" - MML Tensor (reserved)
+    
+    // Current format versions
+    static inline constexpr uint32_t VERSION_MATRIX         = 1;
+    static inline constexpr uint32_t VERSION_VECTOR         = 1;
+    static inline constexpr uint32_t VERSION_VECTOR_COMPLEX = 1;
+    static inline constexpr uint32_t VERSION_SPARSE         = 1;  // reserved
+    static inline constexpr uint32_t VERSION_TENSOR         = 1;  // reserved
+    
+    // File extensions (without dot)
+    static inline constexpr const char* EXT_MATRIX         = "mmlm";
+    static inline constexpr const char* EXT_VECTOR         = "mmlv";
+    static inline constexpr const char* EXT_VECTOR_COMPLEX = "mmlc";  // complex vector
+    static inline constexpr const char* EXT_SPARSE         = "mmls";  // reserved
+    static inline constexpr const char* EXT_TENSOR         = "mmlt";  // reserved
+  } // namespace BinaryFormat
+
+  ////////////         Angle Comparison Functions         ////////////
+  /// @brief Normalize angle to [-π, π) range for comparison.
+  /// @param rad Angle in radians
+  /// @return Normalized angle in [-π, π)
+  inline Real normalizeAngle(Real rad) {
+    while (rad < -Constants::PI)
+      rad += 2 * Constants::PI;
+    while (rad >= Constants::PI)
+      rad -= 2 * Constants::PI;
+    return rad;
   }
-  inline void SolveQuadratic(const Complex &a, const Complex &b, const Complex &c,
-                            Complex &x1, Complex &x2) {
-    Complex D = b * b - Real(4.0) * a * c;
-    Complex sqrtD = std::sqrt(D);
-    x1 = (-b + sqrtD) / (Real(2.0) * a);
-    x2 = (-b - sqrtD) / (Real(2.0) * a);
-  }
-  // Solving cubic equation a * x^3 + b * x^2 + c * x + d = 0
-  inline int SolveCubic(Real a, Real b, Real c, Real d, Complex &x1, Complex &x2,
-                        Complex &x3) {
-    // Normalize the coefficients
-    Real A = b / a;
-    Real B = c / a;
-    Real C = d / a;
 
-    // Calculate the discriminant
-    Real Q = (Real(3.0) * B - POW2(A)) / Real(9.0);
-    Real R =
-        (Real(9.0) * A * B - Real(27.0) * C - Real(2.0) * POW3(A)) / Real(54.0);
-    Real D = POW3(Q) + POW2(R); // Discriminant
-
-    if (D >= 0) // Complex or duplicate roots
-    {
-      Real S = std::cbrt(R + std::sqrt(D));
-      Real T = std::cbrt(R - std::sqrt(D));
-
-      x1 = -A / Real(3.0) + (S + T); // Real root
-      x2 = -A / Real(3.0) - (S + T) / Real(2.0) +
-          Complex(0, std::sqrt(Real(3.0)) * (S - T) / Real(2.0)); // Complex root
-      x3 = -A / Real(3.0) - (S + T) / Real(2.0) -
-          Complex(0, std::sqrt(Real(3.0)) * (S - T) / Real(2.0)); // Complex root
-
-      return 1;
-    } else // Three real roots
-    {
-      Real theta = std::acos(R / std::sqrt(-POW3(Q)));
-      x1 =
-          Real(2.0) * std::sqrt(-Q) * std::cos(theta / Real(3.0)) - A / Real(3.0);
-      x2 = Real(2.0) * std::sqrt(-Q) *
-              std::cos((theta + Real(2.0) * Constants::PI) / Real(3.0)) -
-          A / Real(3.0);
-      x3 = Real(2.0) * std::sqrt(-Q) *
-              std::cos((theta + Real(4.0) * Constants::PI) / Real(3.0)) -
-          A / Real(3.0);
-
-      return 3;
-    }
-  }
-  // Solving quartic equation a * x^4 + b * x^3 + c * x^2 + d * x + e = 0
-  inline void SolveQuartic(Real a, Real b, Real c, Real d, Real e, Complex &x1,
-                          Complex &x2, Complex &x3, Complex &x4) {
-    // Degenerate: reduce to cubic
-    if (std::abs(a) < Constants::Eps) {
-      SolveCubic(b, c, d, e, x1, x2, x3);
-      x4 = Complex(0);
-      return;
-    }
-
-    // Normalize coefficients
-    Real A = b / a;
-    Real B = c / a;
-    Real C = d / a;
-    Real D = e / a;
-
-    // Depressed quartic y = x + A/4: y^4 + P y^2 + Q y + R = 0
-    Real AA = A * A;
-    Real P = B - Real(3.0) * AA / Real(8.0);
-    Real Q = C - Real(0.5) * A * B + AA * A / Real(8.0);
-    Real R = D - Real(0.25) * A * C + AA * B / Real(16.0) -
-            Real(3.0) * AA * AA / Real(256.0);
-
-    // Special case: biquadratic (Q ≈ 0) -> solve t^2 + P t + R = 0 where t = y^2
-    if (std::abs(Q) <= Constants::Eps) {
-      Complex t1, t2;
-      SolveQuadratic(Complex(Real(1.0)), Complex(P), Complex(R), t1, t2);
-
-      x1 = std::sqrt(t1) - A / Real(4.0);
-      x2 = -std::sqrt(t1) - A / Real(4.0);
-      x3 = std::sqrt(t2) - A / Real(4.0);
-      x4 = -std::sqrt(t2) - A / Real(4.0);
-      return;
-    }
-
-    // General case (Ferrari)
-    Complex z1, z2, z3;
-    SolveCubic(Real(1.0), -P / Real(2.0), -R,
-              R * P / Real(2.0) - Q * Q / Real(8.0), z1, z2, z3);
-
-    auto U_from = [P](const Complex &z) {
-      return std::sqrt(Complex(Real(2.0)) * z - P);
-    };
-
-    // Choose z to maximize |U| to avoid division by small numbers
-    Complex candidates[3] = {z1, z2, z3};
-    Complex z = candidates[0];
-    Complex U = U_from(z);
-    for (int i = 1; i < 3; ++i) {
-      Complex Ui = U_from(candidates[i]);
-      if (std::abs(Ui) > std::abs(U)) {
-        z = candidates[i];
-        U = Ui;
-      }
-    }
-
-    Complex W = Q / (Complex(Real(2.0)) * U);
-
-    // Solve two quadratics in y
-    Complex y1, y2, y3, y4;
-    SolveQuadratic(Complex(Real(1.0)), U, z - W, y1, y2);
-    SolveQuadratic(Complex(Real(1.0)), -U, z + W, y3, y4);
-
-    // Back-substitute x = y - A/4
-    x1 = y1 - A / Real(4.0);
-    x2 = y2 - A / Real(4.0);
-    x3 = y3 - A / Real(4.0);
-    x4 = y4 - A / Real(4.0);
+  /// @brief Check if two angles are equal, accounting for wrap-around at ±π.
+  /// @details Normalizes the difference to [-π, π) before comparing.
+  ///          Correctly handles cases like comparing -π and π (which are equal).
+  /// @param a First angle in radians
+  /// @param b Second angle in radians
+  /// @param eps Tolerance for comparison
+  /// @return true if angles are equivalent within tolerance
+  inline bool AnglesAreEqual(Real a, Real b, Real eps) {
+    Real diff = normalizeAngle(a - b);
+    return std::abs(diff) < eps;
   }
 
   // is_simple_numeric helper
@@ -242,48 +259,6 @@ namespace MML
   template <typename T>
   inline constexpr bool is_MML_simple_numeric = is_simple_numeric<T>::value;
 
-  ///////////////////////////////////////////////////////////////////////////////
-  //                      ALGORITHM RESULT STRUCTURES
-  ///////////////////////////////////////////////////////////////////////////////
-
-  /// Result structure for numerical integration algorithms
-  /// Provides convergence status and diagnostics
-  /// @note For production code, check error_estimate and converged fields!
-  struct IntegrationResult {
-    Real value;          ///< Computed integral value
-    Real error_estimate; ///< Estimated absolute error
-    int iterations;      ///< Number of iterations/refinements performed
-    bool converged;      ///< True if convergence criteria met
-
-    /// Implicit conversion to Real for backward compatibility
-    /// @warning Silently discards error_estimate, iterations, and converged!
-    /// @deprecated Prefer explicit .value access in new code
-    operator Real() const { return value; }
-
-    /// Constructor for easy initialization
-    IntegrationResult(Real val = 0.0, Real err = 0.0, int iter = 0,
-                      bool conv = true)
-        : value(val), error_estimate(err), iterations(iter), converged(conv) {}
-  };
-
-  /// Result structure for root finding algorithms
-  /// Provides convergence status and diagnostics
-  /// @note For production code, check function_value and converged fields!
-  struct RootFindingResult {
-    Real root;           ///< Found root value
-    Real function_value; ///< f(root) - should be near zero
-    int iterations;      ///< Number of iterations performed
-    bool converged;      ///< True if convergence criteria met
-
-    /// Implicit conversion to Real for backward compatibility
-    /// @warning Silently discards function_value, iterations, and converged!
-    /// @deprecated Prefer explicit .root access in new code
-    operator Real() const { return root; }
-
-    RootFindingResult(Real r = 0.0, Real fval = 0.0, int iter = 0,
-                      bool conv = true)
-        : root(r), function_value(fval), iterations(iter), converged(conv) {}
-  };
 
   struct AlgorithmContext {
     // Integration parameters (using PrecisionValues for consistency)
@@ -367,6 +342,14 @@ namespace MML
     static inline const double Vec3SphIsEqualTolerance =
         PrecisionValues<Real>::Vec3SphIsEqualTolerance;
 
+    // Angle comparison tolerance (for wrap-aware angle equality)
+    static inline const double AngleIsEqualTolerance =
+        PrecisionValues<Real>::AngleIsEqualTolerance;
+
+    // Shape property tolerance (for geometric shape classification)
+    static inline const double ShapePropertyTolerance =
+        PrecisionValues<Real>::ShapePropertyTolerance;
+
     static inline const double Line3DAreEqualTolerance =
         PrecisionValues<Real>::Line3DAreEqualTolerance;
     static inline const double Line3DIsPointOnLineTolerance =
@@ -396,10 +379,18 @@ namespace MML
         PrecisionValues<Real>::IsMatrixDiagonalTolerance;
     static inline const double IsMatrixUnitTolerance =
         PrecisionValues<Real>::IsMatrixUnitTolerance;
+    static inline const double IsMatrixZeroTolerance =
+        PrecisionValues<Real>::IsMatrixZeroTolerance;
     static inline const double IsMatrixOrthogonalTolerance =
         PrecisionValues<Real>::IsMatrixOrthogonalTolerance;
 
     static inline const double RankAlgEPS = PrecisionValues<Real>::RankAlgEPS;
+
+    // Numerical thresholds from PrecisionValues
+    static inline const double DefaultTolerance =
+        PrecisionValues<Real>::DefaultTolerance;
+    static inline const double OrthogonalityTolerance =
+        PrecisionValues<Real>::OrthogonalityTolerance;
 
     // Algorithm parameters (thread-safe - changed from static constants to
     // thread_local) Usage: Defaults::TrapezoidIntegrationEPS = 1e-6; (now

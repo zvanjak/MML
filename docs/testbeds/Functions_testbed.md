@@ -447,7 +447,7 @@ const static TestFunctionVector<3>& getTestFunctionVector(const std::string& fun
 ## Testing Numerical Differentiation
 
 ```cpp
-#include "test_data/real_functions_test_bed.h"
+#include "test_beds/real_functions_test_bed.h"
 #include "MML.h"
 
 using namespace MML;
@@ -494,7 +494,7 @@ TEST_CASE("Higher Order Derivatives", "[differentiation]") {
 ## Testing Numerical Integration
 
 ```cpp
-#include "test_data/real_functions_test_bed.h"
+#include "test_beds/real_functions_test_bed.h"
 #include "MML.h"
 
 using namespace MML;
@@ -555,7 +555,7 @@ TEST_CASE("Gauss-Legendre Quadrature", "[integration]") {
 ## Testing Gradient Computation
 
 ```cpp
-#include "test_data/scalar_functions_test_bed.h"
+#include "test_beds/scalar_functions_test_bed.h"
 #include "MML.h"
 
 using namespace MML;
@@ -598,7 +598,7 @@ TEST_CASE("Gradient with Different Accuracy Orders", "[gradient]") {
 ## Testing Vector Field Properties
 
 ```cpp
-#include "test_data/vector_functions_test_bed.h"
+#include "test_beds/vector_functions_test_bed.h"
 #include "MML.h"
 
 using namespace MML;

@@ -7,9 +7,9 @@ BasedOnStyle: LLVM
 
 # Indentation - uses TABS
 UseTab: Always
-TabWidth: 4
-IndentWidth: 4
-ContinuationIndentWidth: 4
+TabWidth: 2
+IndentWidth: 2
+ContinuationIndentWidth: 2
 
 # Brace wrapping - Attach style (opening brace on same line)
 BreakBeforeBraces: Attach
@@ -36,8 +36,8 @@ DerivePointerAlignment: false
 # Template style: template<class Type> (no space before <)
 SpaceAfterTemplateKeyword: false
 
-# Access modifiers - not outdented (same indent as class members in this codebase)
-AccessModifierOffset: -4
+# Access modifiers - indented one tab from class brace
+AccessModifierOffset: -2
 
 # Include sorting - preserve original order to avoid breaking includes
 SortIncludes: Never
@@ -87,7 +87,7 @@ IndentPPDirectives: None
 ReflowComments: false
 
 # C++ standard
-Standard: c++20
+Standard: c++17
 
 # Penalties (discourage certain breaks)
 PenaltyBreakBeforeFirstCallParameter: 19

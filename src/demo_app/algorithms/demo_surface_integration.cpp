@@ -4,7 +4,7 @@
 #include "MMLBase.h"
 
 #include "base/Function.h"
-#include "base/Geometry3DBodies.h"
+#include "mml/base/Geometry/Geometry3DBodies.h"
 
 #include "core/Integration/SurfaceIntegration.h"
 #include "core/Fields.h"

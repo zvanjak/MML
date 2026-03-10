@@ -5,11 +5,13 @@
 #ifdef MML_USE_SINGLE_HEADER
 #include "MML.h"
 #else
-#include "base/Geometry3DBodies.h"
+#include "mml/base/Geometry/Geometry3DBodies.h"
 #endif
 
 using namespace MML;
 using namespace MML::Testing;
+
+namespace MML::Tests::Base::Geometry3DBodies::Pyramid3DTests {
 
 TEST_CASE("Pyramid3D::Volume", "[geometry][pyramid][volume]")
 {
@@ -126,7 +128,7 @@ TEST_CASE("Pyramid3D::GetBoundingBox", "[geometry][pyramid][bounding]")
     SECTION("Pyramid at origin")
     {
         Pyramid3D pyramid(10.0, 8.0);
-        BoundingBox3D bbox = pyramid.GetBoundingBox();
+        Box3D bbox = pyramid.GetBoundingBox();
         
         REQUIRE_THAT(bbox.Min().X() , RealApprox(-5.0));
         REQUIRE_THAT(bbox.Min().Y() , RealApprox(-5.0));
@@ -141,7 +143,7 @@ TEST_CASE("Pyramid3D::GetBoundingBox", "[geometry][pyramid][bounding]")
     {
         Vec3Cart base(10.0, 20.0, 30.0);
         Pyramid3D pyramid(6.0, 12.0, base);
-        BoundingBox3D bbox = pyramid.GetBoundingBox();
+        Box3D bbox = pyramid.GetBoundingBox();
         
         REQUIRE_THAT(bbox.Min().X() , RealApprox(7.0));
         REQUIRE_THAT(bbox.Min().Y() , RealApprox(17.0));
@@ -155,7 +157,7 @@ TEST_CASE("Pyramid3D::GetBoundingBox", "[geometry][pyramid][bounding]")
     SECTION("Bounding box dimensions")
     {
         Pyramid3D pyramid(8.0, 10.0);
-        BoundingBox3D bbox = pyramid.GetBoundingBox();
+        Box3D bbox = pyramid.GetBoundingBox();
         Real width = bbox.Max().X() - bbox.Min().X();
         Real depth = bbox.Max().Y() - bbox.Min().Y();
         Real height = bbox.Max().Z() - bbox.Min().Z();
@@ -374,3 +376,5 @@ TEST_CASE("Pyramid3D::IsInside", "[geometry][pyramid][inside]")
         REQUIRE(pyramid.IsInside(Pnt3Cart(2.51, 0.0, 5.0)) == false);
     }
 }
+
+} // namespace MML::Tests::Base::Geometry3DBodies::Pyramid3DTests

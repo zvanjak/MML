@@ -4,6 +4,10 @@
 
 using namespace MML::Testing::Matchers;
 
+namespace MML::Tests::TestInfrastructure::SimpleMatcherTest {
+
 TEST_CASE("Simple matcher test", "[minimal]") {
     REQUIRE_THAT(REAL(1.0), RealEquals(REAL(1.0)));
 }
+
+} // namespace MML::Tests::TestInfrastructure::SimpleMatcherTest

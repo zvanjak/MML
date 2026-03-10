@@ -5,10 +5,9 @@
 ///  Description: Numerical derivatives of real-valued functions f:R->R               ///
 ///               Forward, backward, central differences, higher order                ///
 ///                                                                                   ///
-///  Copyright:   (c) 2024-2025 Zvonimir Vanjak                                       ///
-///  License:     Licensed under MML dual-license (see LICENSE.md)                    ///
-///               - Free for non-commercial use                                       ///
-///               - Commercial license available                                      ///
+///  Copyright:   (c) 2024-2026 Zvonimir Vanjak                                       ///
+///  License:     MIT License (see LICENSE.md)                                         ///
+///                                                                                   ///
 ///////////////////////////////////////////////////////////////////////////////////////////
 #if !defined MML_DERIVATION_REAL_FUNCTION_H
 #define MML_DERIVATION_REAL_FUNCTION_H
@@ -389,6 +388,262 @@ namespace MML
 		static Real NThirdDer4(const IRealFunction& f, Real x, Real* error = nullptr)
 		{
 			return NThirdDer4(f, x, NDer4_h, error);
+		}
+
+		/********************************************************************************************************************/
+		/********              RICHARDSON EXTRAPOLATION DERIVATIVES (dfridr-style adaptive)                          ********/
+		/********  Uses tableau-based Richardson extrapolation to achieve high accuracy automatically               ********/
+		/********  Based on Numerical Recipes "dfridr" algorithm with MML Richardson utility                        ********/
+		/********************************************************************************************************************/
+		
+		/// @brief First derivative using Richardson extrapolation (dfridr algorithm).
+		/// @details Builds a Richardson tableau using successively smaller step sizes,
+		///          automatically finding the optimal step size. Uses central differences.
+		///          Typically achieves ~10-12 digits of accuracy for smooth functions.
+		/// @param f Function to differentiate
+		/// @param x Point at which to evaluate derivative
+		/// @param h Initial step size (will be refined automatically). Default: 0.1
+		/// @param error Output parameter for error estimate (optional)
+		/// @param max_iter Maximum tableau depth (default 10)
+		/// @param con Step shrinking factor (default 1.4)
+		/// @return Derivative estimate with error estimate if requested
+		static Real NDerRichardson(const IRealFunction& f, Real x, Real h = 0.1, 
+		                           Real* error = nullptr, int max_iter = 10, Real con = 1.4)
+		{
+			const Real con2 = con * con;
+			const Real big = std::numeric_limits<Real>::max();
+			const Real safe = 2.0;
+
+			if (h == 0.0)
+			{
+				if (error) *error = big;
+				return 0.0;
+			}
+
+			// Allocate tableau (triangular matrix stored as 2D)
+			std::vector<std::vector<Real>> a(max_iter, std::vector<Real>(max_iter));
+
+			Real hh = h;
+			a[0][0] = (f(x + hh) - f(x - hh)) / (2.0 * hh);
+			Real err = big;
+			Real ans = a[0][0];
+
+			for (int i = 1; i < max_iter; i++)
+			{
+				// Shrink step size
+				hh /= con;
+				a[0][i] = (f(x + hh) - f(x - hh)) / (2.0 * hh);
+
+				// Richardson extrapolation: eliminate error terms
+				Real fac = con2;
+				for (int j = 1; j <= i; j++)
+				{
+					// A_j(h) = (con^(2j) * A_{j-1}(h/con) - A_{j-1}(h)) / (con^(2j) - 1)
+					a[j][i] = (a[j - 1][i] * fac - a[j - 1][i - 1]) / (fac - 1.0);
+					fac *= con2;
+
+					// Error estimate: max difference from neighboring tableau entries
+					Real errt = std::max(std::abs(a[j][i] - a[j - 1][i]),
+					                     std::abs(a[j][i] - a[j - 1][i - 1]));
+
+					// Track best answer (lowest error)
+					if (errt <= err)
+					{
+						err = errt;
+						ans = a[j][i];
+					}
+				}
+
+				// Convergence check: error growing means we've passed optimal h
+				if (std::abs(a[i][i] - a[i - 1][i - 1]) >= safe * err)
+					break;
+			}
+
+			if (error) *error = err;
+			return ans;
+		}
+
+		/// @brief First derivative using Richardson extrapolation with default parameters.
+		/// @param f Function to differentiate
+		/// @param x Point at which to evaluate derivative
+		/// @param error Output parameter for error estimate (optional)
+		/// @return Derivative estimate
+		static Real NDerRichardson(const IRealFunction& f, Real x, Real* error)
+		{
+			return NDerRichardson(f, x, 0.1, error, 10, 1.4);
+		}
+
+		/// @brief Second derivative using Richardson extrapolation.
+		/// @details Uses central difference formula for second derivative with Richardson 
+		///          extrapolation to achieve high accuracy automatically.
+		/// @param f Function to differentiate
+		/// @param x Point at which to evaluate second derivative
+		/// @param h Initial step size (will be refined automatically). Default: 0.1
+		/// @param error Output parameter for error estimate (optional)
+		/// @param max_iter Maximum tableau depth (default 10)
+		/// @param con Step shrinking factor (default 1.4)
+		/// @return Second derivative estimate
+		static Real NSecDerRichardson(const IRealFunction& f, Real x, Real h = 0.1,
+		                              Real* error = nullptr, int max_iter = 10, Real con = 1.4)
+		{
+			const Real con2 = con * con;
+			const Real big = std::numeric_limits<Real>::max();
+			const Real safe = 2.0;
+
+			if (h == 0.0)
+			{
+				if (error) *error = big;
+				return 0.0;
+			}
+
+			std::vector<std::vector<Real>> a(max_iter, std::vector<Real>(max_iter));
+
+			Real hh = h;
+			Real fx = f(x);
+			a[0][0] = (f(x + hh) - 2.0 * fx + f(x - hh)) / (hh * hh);
+			Real err = big;
+			Real ans = a[0][0];
+
+			for (int i = 1; i < max_iter; i++)
+			{
+				hh /= con;
+				a[0][i] = (f(x + hh) - 2.0 * fx + f(x - hh)) / (hh * hh);
+
+				Real fac = con2;
+				for (int j = 1; j <= i; j++)
+				{
+					a[j][i] = (a[j - 1][i] * fac - a[j - 1][i - 1]) / (fac - 1.0);
+					fac *= con2;
+
+					Real errt = std::max(std::abs(a[j][i] - a[j - 1][i]),
+					                     std::abs(a[j][i] - a[j - 1][i - 1]));
+
+					if (errt <= err)
+					{
+						err = errt;
+						ans = a[j][i];
+					}
+				}
+
+				if (std::abs(a[i][i] - a[i - 1][i - 1]) >= safe * err)
+					break;
+			}
+
+			if (error) *error = err;
+			return ans;
+		}
+
+		/// @brief Second derivative using Richardson extrapolation with default parameters.
+		static Real NSecDerRichardson(const IRealFunction& f, Real x, Real* error)
+		{
+			return NSecDerRichardson(f, x, 0.1, error, 10, 1.4);
+		}
+
+		/// @brief Third derivative using Richardson extrapolation.
+		/// @details Uses central difference formula for third derivative with Richardson
+		///          extrapolation. Requires more iterations for convergence.
+		/// @param f Function to differentiate
+		/// @param x Point at which to evaluate third derivative
+		/// @param h Initial step size (default 0.2, larger than for lower derivatives)
+		/// @param error Output parameter for error estimate (optional)
+		/// @param max_iter Maximum tableau depth (default 10)
+		/// @param con Step shrinking factor (default 1.4)
+		/// @return Third derivative estimate
+		static Real NThirdDerRichardson(const IRealFunction& f, Real x, Real h = 0.2,
+		                                Real* error = nullptr, int max_iter = 10, Real con = 1.4)
+		{
+			const Real con2 = con * con;
+			const Real big = std::numeric_limits<Real>::max();
+			const Real safe = 2.0;
+
+			if (h == 0.0)
+			{
+				if (error) *error = big;
+				return 0.0;
+			}
+
+			std::vector<std::vector<Real>> a(max_iter, std::vector<Real>(max_iter));
+
+			Real hh = h;
+			// f'''(x) ≈ [f(x+2h) - 2f(x+h) + 2f(x-h) - f(x-2h)] / (2h³)
+			Real h3 = hh * hh * hh;
+			a[0][0] = (f(x + 2*hh) - 2.0*f(x + hh) + 2.0*f(x - hh) - f(x - 2*hh)) / (2.0 * h3);
+			Real err = big;
+			Real ans = a[0][0];
+
+			for (int i = 1; i < max_iter; i++)
+			{
+				hh /= con;
+				h3 = hh * hh * hh;
+				a[0][i] = (f(x + 2*hh) - 2.0*f(x + hh) + 2.0*f(x - hh) - f(x - 2*hh)) / (2.0 * h3);
+
+				Real fac = con2;
+				for (int j = 1; j <= i; j++)
+				{
+					a[j][i] = (a[j - 1][i] * fac - a[j - 1][i - 1]) / (fac - 1.0);
+					fac *= con2;
+
+					Real errt = std::max(std::abs(a[j][i] - a[j - 1][i]),
+					                     std::abs(a[j][i] - a[j - 1][i - 1]));
+
+					if (errt <= err)
+					{
+						err = errt;
+						ans = a[j][i];
+					}
+				}
+
+				if (std::abs(a[i][i] - a[i - 1][i - 1]) >= safe * err)
+					break;
+			}
+
+			if (error) *error = err;
+			return ans;
+		}
+
+		/// @brief Third derivative using Richardson extrapolation with default parameters.
+		static Real NThirdDerRichardson(const IRealFunction& f, Real x, Real* error)
+		{
+			return NThirdDerRichardson(f, x, 0.2, error, 10, 1.4);
+		}
+
+		/********************************************************************************************************************/
+		/********                          ADAPTIVE STEP SIZE DERIVATIVES (Aliases)                                  ********/
+		/********  These are aliases for Richardson extrapolation methods, which automatically                       ********/
+		/********  find the optimal step size through tableau-based refinement.                                     ********/
+		/********************************************************************************************************************/
+
+		/// @brief Adaptive first derivative (alias for NDerRichardson).
+		/// @details Automatically finds optimal step size using Richardson extrapolation.
+		///          This solves the fundamental problem of choosing h: too small causes
+		///          cancellation error, too large causes truncation error.
+		/// @param f Function to differentiate
+		/// @param x Point at which to evaluate derivative
+		/// @param error Output parameter for error estimate (optional)
+		/// @return Derivative estimate
+		static Real NDerAdaptive(const IRealFunction& f, Real x, Real* error = nullptr)
+		{
+			return NDerRichardson(f, x, 0.1, error, 10, 1.4);
+		}
+
+		/// @brief Adaptive second derivative (alias for NSecDerRichardson).
+		/// @param f Function to differentiate
+		/// @param x Point at which to evaluate second derivative
+		/// @param error Output parameter for error estimate (optional)
+		/// @return Second derivative estimate
+		static Real NSecDerAdaptive(const IRealFunction& f, Real x, Real* error = nullptr)
+		{
+			return NSecDerRichardson(f, x, 0.1, error, 10, 1.4);
+		}
+
+		/// @brief Adaptive third derivative (alias for NThirdDerRichardson).
+		/// @param f Function to differentiate
+		/// @param x Point at which to evaluate third derivative
+		/// @param error Output parameter for error estimate (optional)
+		/// @return Third derivative estimate
+		static Real NThirdDerAdaptive(const IRealFunction& f, Real x, Real* error = nullptr)
+		{
+			return NThirdDerRichardson(f, x, 0.2, error, 10, 1.4);
 		}
 
 		/********************************************************************************************************************/

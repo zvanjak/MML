@@ -13,7 +13,7 @@
 #else
 #include "MMLBase.h"
 
-#include "base/VectorN.h"
+#include "base/Vector/VectorN.h"
 #include "base/BaseUtils.h"
 #endif
 
@@ -112,8 +112,8 @@ void Demo_VectorN_Access()
     // IsNullVec
     VectorN<double, 3> zero;
     VectorN<double, 3> nonzero{0, 0.001, 0};
-    std::cout << "  VectorN<3>().IsNullVec() = " << (zero.IsNullVec() ? "true" : "false") << std::endl;
-    std::cout << "  {0, 0.001, 0}.IsNullVec() = " << (nonzero.IsNullVec() ? "true" : "false") << std::endl;
+    std::cout << "  VectorN<3>().isZero() = " << (zero.isZero() ? "true" : "false") << std::endl;
+    std::cout << "  {0, 0.001, 0}.isZero() = " << (nonzero.isZero() ? "true" : "false") << std::endl;
 
     // Clear
     VectorN<double, 3> toClear{1, 2, 3};

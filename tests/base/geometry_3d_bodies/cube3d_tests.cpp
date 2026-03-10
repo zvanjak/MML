@@ -5,11 +5,13 @@
 #ifdef MML_USE_SINGLE_HEADER
 #include "MML.h"
 #else
-#include "base/Geometry3DBodies.h"
+#include "mml/base/Geometry/Geometry3DBodies.h"
 #endif
 
 using namespace MML;
 using namespace MML::Testing;
+
+namespace MML::Tests::Base::Geometry3DBodies::Cube3DTests {
 
 TEST_CASE("Cube3D::Volume", "[geometry][cube][volume]")
 {
@@ -94,7 +96,7 @@ TEST_CASE("Cube3D::GetBoundingBox", "[geometry][cube][bounding]")
     SECTION("Unit cube centered at origin")
     {
         Cube3D cube(1.0);
-        BoundingBox3D bbox = cube.GetBoundingBox();
+        Box3D bbox = cube.GetBoundingBox();
         
         REQUIRE_THAT(bbox.Min().X() , RealApprox(-0.5));
         REQUIRE_THAT(bbox.Min().Y() , RealApprox(-0.5));
@@ -108,7 +110,7 @@ TEST_CASE("Cube3D::GetBoundingBox", "[geometry][cube][bounding]")
     SECTION("Cube with side 10 centered at origin")
     {
         Cube3D cube(10.0);
-        BoundingBox3D bbox = cube.GetBoundingBox();
+        Box3D bbox = cube.GetBoundingBox();
         
         REQUIRE_THAT(bbox.Min().X() , RealApprox(-5.0));
         REQUIRE_THAT(bbox.Min().Y() , RealApprox(-5.0));
@@ -123,7 +125,7 @@ TEST_CASE("Cube3D::GetBoundingBox", "[geometry][cube][bounding]")
     {
         Pnt3Cart center(10.0, 20.0, 30.0);
         Cube3D cube(6.0, center);
-        BoundingBox3D bbox = cube.GetBoundingBox();
+        Box3D bbox = cube.GetBoundingBox();
         
         REQUIRE_THAT(bbox.Min().X() , RealApprox(7.0));
         REQUIRE_THAT(bbox.Min().Y() , RealApprox(17.0));
@@ -137,7 +139,7 @@ TEST_CASE("Cube3D::GetBoundingBox", "[geometry][cube][bounding]")
     SECTION("Bounding box dimensions match cube side")
     {
         Cube3D cube(8.0);
-        BoundingBox3D bbox = cube.GetBoundingBox();
+        Box3D bbox = cube.GetBoundingBox();
         Real width = bbox.Max().X() - bbox.Min().X();
         Real height = bbox.Max().Y() - bbox.Min().Y();
         Real depth = bbox.Max().Z() - bbox.Min().Z();
@@ -312,3 +314,5 @@ TEST_CASE("Cube3D::IsInside", "[geometry][cube][inside]")
         REQUIRE(cube.IsInside(Pnt3Cart(-4.0, 5.0, -6.0)) == true);
     }
 }
+
+} // namespace MML::Tests::Base::Geometry3DBodies::Cube3DTests

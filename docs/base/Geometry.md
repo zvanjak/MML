@@ -1,12 +1,13 @@
-# Geometry - Basic Point Types
+# Geometry - Points and Pure Geometric Shapes
 
 **Files**: `mml/base/Geometry.h`, `mml/base/GeometrySpherical.h`
 
-Lightweight point types for 2D and 3D coordinate systems.
+Lightweight point types for 2D/3D coordinate systems, plus **coordinate-free pure geometric shapes**.
 
 ## Table of Contents
 - [2D Points](#2d-points)
 - [3D Points](#3d-points)
+- [Pure Geometric Shapes](#pure-geometric-shapes)
 - [Examples](#examples)
 
 ---
@@ -170,6 +171,72 @@ Point3Cylindrical cyl(cart);
 
 Point3Cartesian back = cyl.TransfToCart();
 ```
+
+---
+
+## Pure Geometric Shapes
+
+Coordinate-free shapes defined by intrinsic parameters only (no position/orientation).
+
+### 2D Shapes
+
+| Class | Parameters | Key Methods |
+|-------|------------|-------------|
+| `Triangle` | sides a, b, c | `Area()`, `Perimeter()`, angles, medians, `Inradius()`, `Circumradius()`, `IsRight()`, `IsEquilateral()` |
+| `Circle` | radius | `Area()`, `Circumference()`, `ArcLength(θ)`, `SectorArea(θ)`, `SegmentArea(θ)` |
+| `Ellipse` | semi-axes a, b | `Area()`, `Circumference()`, `Eccentricity()`, `FocalDistance()` |
+| `CircularSector` | radius, angle | `Area()`, `ArcLength()`, `ChordLength()` |
+| `CircularSegment` | radius, angle | `Area()`, `Sagitta()`, `FromSagitta()` factory |
+| `Annulus` | inner/outer radius | `Area()`, inner/outer circumferences |
+| `RegularPolygon` | n sides, length | `Area()`, `Apothem()`, `Circumradius()`, named factories |
+| `Rectangle` | width, height | `Area()`, `Diagonal()`, `AspectRatio()`, `GoldenRectangle()` |
+| `Parallelogram` | sides a, b, angle | `Area()`, diagonals, heights |
+| `Rhombus` | diagonals d1, d2 | `Area()`, angles, `Inradius()` |
+| `Trapezoid` | parallel sides, height | `Area()`, `Median()`, `Isosceles()` factory |
+
+### 3D Shapes
+
+| Class | Parameters | Key Methods |
+|-------|------------|-------------|
+| `SphereGeom` | radius | `Volume()`, `SurfaceArea()`, `CapVolume(h)`, `GreatCircle()` |
+| `CylinderGeom` | radius, height | `Volume()`, `LateralArea()`, `SurfaceArea()` |
+| `ConeGeom` | radius, height | `Volume()`, `SlantHeight()`, `ApexAngle()` |
+| `Frustum` | two radii, height | `Volume()`, `SlantHeight()`, `SurfaceArea()` |
+| `Tetrahedron` | 6 edge lengths | `Volume()` (Cayley-Menger), `SurfaceArea()`, face triangles |
+| `Spheroid` | equatorial, polar radii | `Volume()`, `Flattening()`, `Eccentricity()`, `Earth()` |
+| `TorusGeom` | major, minor radius | `Volume()`, `SurfaceArea()`, `IsRingTorus()` |
+
+### Quick Examples
+
+```cpp
+// Triangle from sides (Heron's formula)
+Triangle t(3, 4, 5);
+Real area = t.Area();           // 6.0
+bool right = t.IsRight();       // true
+Real inr = t.Inradius();        // 1.0
+
+// Circle
+Circle c(5.0);
+Real circ = c.Circumference();  // 2πr ≈ 31.42
+Real sector = c.SectorArea(Constants::PI/2);  // quarter circle
+
+// Ellipse
+Ellipse e(5, 3);
+Real ecc = e.Eccentricity();    // 0.8
+
+// Regular polygon
+auto hex = RegularPolygon::Hexagon(10.0);
+Real apothem = hex.Apothem();
+
+// 3D shapes
+SphereGeom s(1.0);
+Real vol = s.Volume();          // 4π/3 ≈ 4.19
+
+Tetrahedron tet = Tetrahedron::Regular(1.0);
+Real tetVol = tet.Volume();     // Regular tetrahedron volume
+```
+
+> **Note**: 3D shape classes use `Geom` suffix (e.g., `SphereGeom`) to avoid conflicts with parametric surface classes in `Surfaces.h`.
 
 ---
 

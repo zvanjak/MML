@@ -5,18 +5,16 @@
 ///  Description: Chebyshev polynomial basis functions (first and second kind)        ///
 ///               Orthogonal on [-1, 1] with weight w(x) = 1/√(1-x²)                 ///
 ///                                                                                   ///
-///  Copyright:   (c) 2024-2025 Zvonimir Vanjak                                       ///
-///  License:     Licensed under MML dual-license (see LICENSE.md)                    ///
-///               - Free for non-commercial use                                       ///
-///               - Commercial license available                                      ///
+///  Copyright:   (c) 2024-2026 Zvonimir Vanjak                                       ///
+///  License:     MIT License (see LICENSE.md)                                         ///
+///                                                                                   ///
 ///////////////////////////////////////////////////////////////////////////////////////////
 #if !defined MML_CHEBYSHEV_BASIS_H
 #define MML_CHEBYSHEV_BASIS_H
 
 #include "MMLBase.h"
 
-#include "algorithms/ChebyshevApproximation.h"
-#include "interfaces/IFunction.h"
+#include "base/ChebyshevPolynom.h"
 #include "core/OrthogonalBasis.h"
 
 #include <cmath>

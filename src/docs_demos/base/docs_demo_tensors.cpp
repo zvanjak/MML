@@ -4,7 +4,7 @@
 #include "MMLBase.h"
 
 #include "base/Tensor.h"
-#include "base/VectorN.h"
+#include "base/Vector/VectorN.h"
 #endif
 
 using namespace MML;

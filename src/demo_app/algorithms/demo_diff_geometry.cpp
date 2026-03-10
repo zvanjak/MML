@@ -6,8 +6,8 @@
 #include "core/Curves.h"
 #endif
 
-#include "../test_data/parametric_curves_test_bed.h"
-#include "../test_data/parametric_surfaces_test_bed.h"
+#include "../test_beds/parametric_curves_test_bed.h"
+#include "../test_beds/parametric_surfaces_test_bed.h"
 
 using namespace MML;
 

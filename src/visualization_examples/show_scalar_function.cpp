@@ -11,7 +11,7 @@
 #include "MML.h"
 #else
 #include "MMLBase.h"
-#include "base/VectorN.h"
+#include "base/Vector/VectorN.h"
 #include "core/Fields.h"
 #include "tools/Visualizer.h"
 #endif
@@ -29,7 +29,7 @@ void Show_Scalar_Function_Examples()
     }};
     Visualizer::VisualizeScalarFunc2DCartesian(paraboloid, "Paraboloid z = x^2 + y^2",
                                                -5.0, 5.0, 30, -5.0, 5.0, 30,
-                                               "viz_scalar_paraboloid.txt");
+                                               "viz_scalar_paraboloid.mml");
 
     // Example 2: Saddle surface (hyperbolic paraboloid)
     std::cout << "2. Saddle: f(x,y) = x^2 - y^2\n";
@@ -38,7 +38,7 @@ void Show_Scalar_Function_Examples()
     }};
     Visualizer::VisualizeScalarFunc2DCartesian(saddle, "Saddle z = x^2 - y^2",
                                                -5.0, 5.0, 30, -5.0, 5.0, 30,
-                                               "viz_scalar_saddle.txt");
+                                               "viz_scalar_saddle.mml");
 
     // Example 3: Monkey saddle
     std::cout << "3. Monkey Saddle: f(x,y) = x^3 - 3xy^2\n";
@@ -47,7 +47,7 @@ void Show_Scalar_Function_Examples()
     }};
     Visualizer::VisualizeScalarFunc2DCartesian(monkeySaddle, "Monkey Saddle z = x^3 - 3xy^2",
                                                -3.0, 3.0, 40, -3.0, 3.0, 40,
-                                               "viz_scalar_monkey_saddle.txt");
+                                               "viz_scalar_monkey_saddle.mml");
 
     // Example 4: Ripple surface
     std::cout << "4. Ripple: f(x,y) = sin(sqrt(x^2 + y^2))\n";
@@ -58,7 +58,7 @@ void Show_Scalar_Function_Examples()
     }};
     Visualizer::VisualizeScalarFunc2DCartesian(ripple, "Sinc Ripple",
                                                -15.0, 15.0, 50, -15.0, 15.0, 50,
-                                               "viz_scalar_ripple.txt");
+                                               "viz_scalar_ripple.mml");
 
     // Example 5: Gaussian bump
     std::cout << "5. Gaussian: f(x,y) = exp(-(x^2 + y^2)/10)\n";
@@ -67,7 +67,7 @@ void Show_Scalar_Function_Examples()
     }};
     Visualizer::VisualizeScalarFunc2DCartesian(gaussian, "Gaussian Bump",
                                                -8.0, 8.0, 40, -8.0, 8.0, 40,
-                                               "viz_scalar_gaussian.txt");
+                                               "viz_scalar_gaussian.mml");
 
     // Example 6: Two-bump surface
     std::cout << "6. Two Bumps: sum of two Gaussians\n";
@@ -78,7 +78,7 @@ void Show_Scalar_Function_Examples()
     }};
     Visualizer::VisualizeScalarFunc2DCartesian(twoBumps, "Two Gaussian Bumps",
                                                -6.0, 6.0, 50, -4.0, 4.0, 40,
-                                               "viz_scalar_two_bumps.txt");
+                                               "viz_scalar_two_bumps.mml");
 
     // Example 7: Egg crate surface
     std::cout << "7. Egg Crate: f(x,y) = sin(x)*sin(y)\n";
@@ -88,7 +88,7 @@ void Show_Scalar_Function_Examples()
     Visualizer::VisualizeScalarFunc2DCartesian(eggCrate, "Egg Crate sin(x)*sin(y)",
                                                -2*Constants::PI, 2*Constants::PI, 40,
                                                -2*Constants::PI, 2*Constants::PI, 40,
-                                               "viz_scalar_egg_crate.txt");
+                                               "viz_scalar_egg_crate.mml");
 
     std::cout << "\nScalar function visualization examples complete!\n";
 }

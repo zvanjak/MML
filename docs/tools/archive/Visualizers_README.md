@@ -39,7 +39,7 @@ RealFunction sine(f);
 // Visualize immediately
 Visualizer::VisualizeRealFunction(sine, "sin(x)", 
                                   0.0, 2*M_PI, 200, 
-                                  "sine.txt");
+                                  "sine.mml");
 // Window opens automatically showing the plot
 ```
 
@@ -55,7 +55,7 @@ std::vector<std::string> legend = {"sin(x)", "cos(x)"};
 
 Visualizer::VisualizeMultiRealFunction(
     funcs, "Trigonometric Functions", legend,
-    0, 2*M_PI, 200, "trig.txt");
+    0, 2*M_PI, 200, "trig.mml");
 ```
 
 ### Visualize 3D Parametric Curve
@@ -68,7 +68,7 @@ auto helix = [](Real t) -> Vector<Real> {
 VectorFunction<3> curve(helix);
 
 Visualizer::VisualizeParamCurve3D(
-    curve, "Helix", 0, 4*M_PI, 300, "helix.txt");
+    curve, "Helix", 0, 4*M_PI, 300, "helix.mml");
 ```
 
 ---
@@ -126,7 +126,7 @@ auto cubic = [](Real x) { return x*x*x - 3*x + 1; };
 RealFunction f(cubic);
 
 Visualizer::VisualizeRealFunction(
-    f, "Cubic Function", -2, 2, 100, "cubic.txt");
+    f, "Cubic Function", -2, 2, 100, "cubic.mml");
 ```
 
 #### VisualizeRealFunction (Arbitrary Points)
@@ -152,7 +152,7 @@ for (int i = 0; i < 100; i++) {
 }
 
 Visualizer::VisualizeRealFunction(
-    f, "Adaptive Sampling", points, "adaptive.txt");
+    f, "Adaptive Sampling", points, "adaptive.mml");
 ```
 
 ---
@@ -187,7 +187,7 @@ std::vector<std::string> legend = {"1", "x", "x²", "x³"};
 
 Visualizer::VisualizeMultiRealFunction(
     funcs, "Polynomial Basis", legend, 
-    -1, 1, 100, "polynomials.txt");
+    -1, 1, 100, "polynomials.mml");
 ```
 
 #### VisualizeMultiRealFunction (Interpolated Functions)
@@ -255,7 +255,7 @@ Visualizer::VisualizeScalarFunc2DCartesian(
     f, "2D Gaussian", 
     -3, 3, 50,   // 50 points in x
     -3, 3, 50,   // 50 points in y
-    "gaussian2d.txt");
+    "gaussian2d.mml");
 ```
 
 ---
@@ -286,7 +286,7 @@ VectorFunction<2> field(vortex);
 
 Visualizer::VisualizeVectorField2DCartesian(
     field, "Vortex Field", 
-    -2, 2, 20, -2, 2, 20, "vortex.txt");
+    -2, 2, 20, -2, 2, 20, "vortex.mml");
 ```
 
 #### VisualizeVectorField3DCartesian
@@ -330,7 +330,7 @@ auto lissajous = [](Real t) -> Vector<Real> {
 VectorFunction<2> curve(lissajous);
 
 Visualizer::VisualizeParamCurve2D(
-    curve, "Lissajous 3:2", 0, 2*M_PI, 500, "lissajous.txt");
+    curve, "Lissajous 3:2", 0, 2*M_PI, 500, "lissajous.mml");
 ```
 
 #### VisualizeMultiParamCurve2D (Direct)
@@ -362,7 +362,7 @@ for (int r = 1; r <= 3; r++) {
 
 Visualizer::VisualizeMultiParamCurve2D(
     circles, "Concentric Circles", legend,
-    0, 2*M_PI, 100, "circles.txt");
+    0, 2*M_PI, 100, "circles.mml");
 ```
 
 #### VisualizeMultiParamCurve2D (Pre-Serialized)
@@ -403,7 +403,7 @@ auto trefoil = [](Real t) -> Vector<Real> {
 VectorFunction<3> knot(trefoil);
 
 Visualizer::VisualizeParamCurve3D(
-    knot, "Trefoil Knot", 0, 2*M_PI, 500, "trefoil.txt");
+    knot, "Trefoil Knot", 0, 2*M_PI, 500, "trefoil.mml");
 ```
 
 #### VisualizeMultiParamCurve3D
@@ -444,7 +444,7 @@ ODESystemSolution solution = solver.solve(pendulum, init_cond);
 
 // Plot angle vs time (component 0)
 Visualizer::VisualizeODESysSolCompAsFunc(
-    solution, 0, "Pendulum Angle θ(t)", "angle.txt");
+    solution, 0, "Pendulum Angle θ(t)", "angle.mml");
 ```
 
 #### VisualizeODESysSolAsMultiFunc
@@ -464,7 +464,7 @@ static void VisualizeODESysSolAsMultiFunc(
 ```cpp
 std::vector<std::string> legend = {"x", "y", "vx", "vy"};
 Visualizer::VisualizeODESysSolAsMultiFunc(
-    solution, "2D Projectile Motion", legend, "projectile.txt");
+    solution, "2D Projectile Motion", legend, "projectile.mml");
 ```
 
 #### VisualizeODESysSolAsParamCurve2
@@ -484,7 +484,7 @@ static void VisualizeODESysSolAsParamCurve2(
 ```cpp
 // Plot position vs velocity
 Visualizer::VisualizeODESysSolAsParamCurve2(
-    solution, 0, 1, "Phase Portrait: x vs v", "phase.txt");
+    solution, 0, 1, "Phase Portrait: x vs v", "phase.mml");
 ```
 
 #### VisualizeODESysSolAsParamCurve3
@@ -504,7 +504,7 @@ static void VisualizeODESysSolAsParamCurve3(
 ```cpp
 Visualizer::VisualizeODESysSolAsParamCurve3(
     lorenz_solution, 0, 1, 2,
-    "Lorenz Attractor", "lorenz.txt");
+    "Lorenz Attractor", "lorenz.mml");
 ```
 
 ---
@@ -529,10 +529,10 @@ std::vector<std::vector<Vector2Cartesian>> trajectory;
 
 // 2. Serialize to file
 Serializer::SaveParticleSimulation2D(
-    "animation.txt", numBalls, width, height, trajectory);
+    "animation.mml", numBalls, width, height, trajectory);
 
 // 3. Visualize
-Visualizer::VisualizeParticleSimulation2D("animation.txt");
+Visualizer::VisualizeParticleSimulation2D("animation.mml");
 ```
 
 #### VisualizeParticleSimulation3D
@@ -573,18 +573,18 @@ std::vector<std::string> legend = {"Exact"};
 // Plot exact solution
 Visualizer::VisualizeMultiRealFunction(
     funcs, "Gaussian Function", legend, 
-    0, 2, 200, "gaussian_exact.txt");
+    0, 2, 200, "gaussian_exact.mml");
 
 // Compare interpolation methods
 std::vector<LinearInterpRealFunc> linear_vec = {linear};
 Visualizer::VisualizeMultiRealFunction(
     linear_vec, "Linear Interpolation", {"Linear"},
-    0, 2, 200, "linear_interp.txt");
+    0, 2, 200, "linear_interp.mml");
 
 std::vector<SplineInterpRealFunc> spline_vec = {spline};
 Visualizer::VisualizeMultiRealFunction(
     spline_vec, "Spline Interpolation", {"Spline"},
-    0, 2, 200, "spline_interp.txt");
+    0, 2, 200, "spline_interp.mml");
 ```
 
 ### Example 2: ODE Solution Analysis
@@ -606,20 +606,20 @@ ODESystemSolution sol = solver.solve(system, init, 0, 20, 0.01);
 
 // Visualize position vs time
 Visualizer::VisualizeODESysSolCompAsFunc(
-    sol, 0, "Position x(t)", "position.txt");
+    sol, 0, "Position x(t)", "position.mml");
 
 // Visualize velocity vs time
 Visualizer::VisualizeODESysSolCompAsFunc(
-    sol, 1, "Velocity v(t)", "velocity.txt");
+    sol, 1, "Velocity v(t)", "velocity.mml");
 
 // Visualize both on same plot
 std::vector<std::string> legend = {"Position", "Velocity"};
 Visualizer::VisualizeODESysSolAsMultiFunc(
-    sol, "Damped Oscillator", legend, "both.txt");
+    sol, "Damped Oscillator", legend, "both.mml");
 
 // Phase portrait
 Visualizer::VisualizeODESysSolAsParamCurve2(
-    sol, 0, 1, "Phase Portrait: x vs v", "phase.txt");
+    sol, 0, 1, "Phase Portrait: x vs v", "phase.mml");
 ```
 
 ### Example 3: 3D Trajectory Visualization
@@ -647,7 +647,7 @@ ODESystemSolution sol = solver.solve(system, init, 0, 10, 0.01);
 // Visualize 3D helical trajectory
 Visualizer::VisualizeODESysSolAsParamCurve3(
     sol, 0, 1, 2,  // x, y, z components
-    "Charged Particle Trajectory", "helix.txt");
+    "Charged Particle Trajectory", "helix.mml");
 ```
 
 ### Example 4: Vector Field and Trajectories
@@ -663,7 +663,7 @@ VectorFunction<2> field(flow_field);
 // Visualize the field
 Visualizer::VisualizeVectorField2DCartesian(
     field, "Rotation Field", 
-    -2, 2, 15, -2, 2, 15, "field.txt");
+    -2, 2, 15, -2, 2, 15, "field.mml");
 
 // Now simulate particles in this field and visualize trajectories
 // ... (create trajectories) ...
@@ -674,7 +674,7 @@ std::vector<IRealToVectorFunction<2>*> paths;
 
 Visualizer::VisualizeMultiParamCurve2D(
     paths, "Particle Trajectories in Flow Field",
-    0, 10, 200, "trajectories.txt");
+    0, 10, 200, "trajectories.mml");
 ```
 
 ---
@@ -715,21 +715,21 @@ Visualizer::VisualizeRealFunction(f, title, x1, x2, 5000, file);
 ```cpp
 // Good
 Visualizer::VisualizeRealFunction(
-    f, "sin(x)", 0, 2*M_PI, 200, "sine.txt");
+    f, "sin(x)", 0, 2*M_PI, 200, "sine.mml");
 
 // Better
 Visualizer::VisualizeRealFunction(
     f, "Sine function: period=2π, amplitude=1", 
-    0, 2*M_PI, 200, "sine.txt");
+    0, 2*M_PI, 200, "sine.mml");
 ```
 
 ### 3. Organize Output Files
 
 ```cpp
 // Group by category
-Visualizer::VisualizeRealFunction(f, title, x1, x2, n, "functions/sine.txt");
-Visualizer::VisualizeODESysSolAsMultiFunc(sol, title, legend, "ode/pendulum.txt");
-Visualizer::VisualizeVectorField2DCartesian(field, title, x1,x2,nx, y1,y2,ny, "fields/gradient.txt");
+Visualizer::VisualizeRealFunction(f, title, x1, x2, n, "functions/sine.mml");
+Visualizer::VisualizeODESysSolAsMultiFunc(sol, title, legend, "ode/pendulum.mml");
+Visualizer::VisualizeVectorField2DCartesian(field, title, x1,x2,nx, y1,y2,ny, "fields/gradient.mml");
 ```
 
 ### 4. Balance Grid Resolution
@@ -737,11 +737,11 @@ Visualizer::VisualizeVectorField2DCartesian(field, title, x1,x2,nx, y1,y2,ny, "f
 ```cpp
 // 2D scalar field: 50×50 = 2500 points (good balance)
 Visualizer::VisualizeScalarFunc2DCartesian(
-    f, title, -3, 3, 50, -3, 3, 50, "field.txt");
+    f, title, -3, 3, 50, -3, 3, 50, "field.mml");
 
 // 3D vector field: 20×20×20 = 8000 points (reasonable)
 Visualizer::VisualizeVectorField3DCartesian(
-    field, title, -2, 2, 20, -2, 2, 20, -2, 2, 20, "field3d.txt");
+    field, title, -2, 2, 20, -2, 2, 20, -2, 2, 20, "field3d.mml");
 ```
 
 ### 5. Check Platform Before Specialized Features
@@ -749,11 +749,11 @@ Visualizer::VisualizeVectorField3DCartesian(
 ```cpp
 #ifdef _WIN32
     Visualizer::VisualizeODESysSolAsParamCurve3(
-        sol, 0, 1, 2, title, "trajectory.txt");
+        sol, 0, 1, 2, title, "trajectory.mml");
 #else
     // Fallback: save data only
     Serializer::SaveODESolAsParametricCurve3D(
-        sol, "trajectory.txt", 0, 1, 2, title);
+        sol, "trajectory.mml", 0, 1, 2, title);
     std::cout << "Data saved. Use external viewer." << std::endl;
 #endif
 ```
@@ -893,7 +893,7 @@ for (int i = 0; i < 10; i++) {
     auto f = [freq](Real x) { return std::sin(freq * x); };
     RealFunction func(f);
     
-    std::string filename = "sine_" + std::to_string(i) + ".txt";
+    std::string filename = "sine_" + std::to_string(i) + ".mml";
     Visualizer::VisualizeRealFunction(
         func, "sin(" + std::to_string(freq) + "x)", 
         0, 2*M_PI, 200, filename);

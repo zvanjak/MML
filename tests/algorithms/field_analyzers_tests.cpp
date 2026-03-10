@@ -17,7 +17,7 @@ using namespace MML::Testing;
 using Catch::Matchers::WithinAbs;
 using Catch::Matchers::WithinRel;
 
-namespace FieldAnalyzersTests
+namespace MML::Tests::Algorithms::FieldAnalyzersTests
 {
 	/////////////////////////////////////////////////////////////////////////////////////
 	///                       TEST SCALAR FIELDS                                      ///
@@ -339,4 +339,4 @@ namespace FieldAnalyzersTests
 		REQUIRE_THAT(circulation, WithinAbs(REAL(0.0), REAL(0.1)));
 	}
 
-} // namespace FieldAnalyzersTests
+} // namespace MML::Tests::Algorithms::FieldAnalyzersTests

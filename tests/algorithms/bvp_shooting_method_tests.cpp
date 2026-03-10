@@ -6,7 +6,7 @@
 #include "MML.h"
 #else
 #include "MMLBase.h"
-#include "algorithms/BVPShootingMethod.h"
+#include "mml/algorithms/ODESolvers/BVPShootingMethod.h"
 #endif
 
 using namespace MML;

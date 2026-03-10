@@ -17,7 +17,7 @@ The Optimization Test Bed provides comprehensive test infrastructure for validat
 
 | File | Purpose |
 |------|---------|
-| [optimization_test_bed.h](../../test_data/optimization_test_bed.h) | `TestOptimization1D`, `TestOptimizationND<N>` structs, retrieval functions |
+| [optimization_test_bed.h](../../test_beds/optimization_test_bed.h) | `TestOptimization1D`, `TestOptimizationND<N>` structs, retrieval functions |
 | [optimization_defs.h](../../test_data/optimization_defs.h) | All optimization test function implementations |
 
 ---
@@ -305,7 +305,7 @@ public:
 ### Example 1: Test Golden Section Search (1D)
 
 ```cpp
-#include "test_data/optimization_test_bed.h"
+#include "test_beds/optimization_test_bed.h"
 #include "algorithms/Optimization.h"
 
 using namespace MML;
@@ -359,7 +359,7 @@ void testBrentWithDerivative() {
 ### Example 3: Test Nelder-Mead on 2D Functions
 
 ```cpp
-#include "test_data/optimization_test_bed.h"
+#include "test_beds/optimization_test_bed.h"
 #include "algorithms/Optimization/OptimizationMultidim.h"
 
 void testNelderMead2D() {

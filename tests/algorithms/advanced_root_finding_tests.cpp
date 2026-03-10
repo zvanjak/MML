@@ -300,7 +300,7 @@ TEST_CASE("RootFinding::Brent_error_not_bracketed", "[brent][error]")
 //                      TEST BED INTEGRATION TESTS                                       //
 ///////////////////////////////////////////////////////////////////////////////////////////
 
-#include "../../test_data/root_finding_test_bed.h"
+#include "../../test_beds/root_finding_test_bed.h"
 
 namespace MML::Tests::Algorithms::RootFindingTestBed
 {

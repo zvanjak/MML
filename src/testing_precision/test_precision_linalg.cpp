@@ -13,17 +13,17 @@
 ///               - Overdetermined system (least squares)                             ///
 ///               - Matrix inversion accuracy                                         ///
 ///                                                                                   ///
-///  Copyright:   (c) 2024-2025 Zvonimir Vanjak                                       ///
-///  License:     Licensed under MML dual-license (see LICENSE.md)                    ///
+///  Copyright:   (c) 2024-2026 Zvonimir Vanjak                                       ///
+///  License:     MIT License (see LICENSE.md)                    ///
 ///////////////////////////////////////////////////////////////////////////////////////////
 
 #include "PrecisionTestFramework.h"
 
 #include "MMLBase.h"
 
-#include "base/Vector.h"
-#include "base/Matrix.h"
-#include "base/MatrixSym.h"
+#include "base/Vector/Vector.h"
+#include "base/Matrix/Matrix.h"
+#include "base/Matrix/MatrixSym.h"
 
 #include "core/LinAlgEqSolvers.h"
 #include "algorithms/MatrixAlg.h"
@@ -141,7 +141,7 @@ Matrix<Real> CreateDiagonalEigenMatrix(int n)
  */
 Matrix<Real> CreateRotationMatrix(int n, Real theta)
 {
-    Matrix<Real> R = Matrix<Real>::GetUnitMatrix(n);
+    Matrix<Real> R = Matrix<Real>::Identity(n);
     Real c = std::cos(theta);
     Real s = std::sin(theta);
     R[0][0] = c;  R[0][1] = -s;
@@ -154,8 +154,8 @@ Matrix<Real> CreateRotationMatrix(int n, Real theta)
  */
 Vector<Real> MatVecMul(const Matrix<Real>& A, const Vector<Real>& x)
 {
-    int m = A.RowNum();
-    int n = A.ColNum();
+    int m = A.rows();
+    int n = A.cols();
     Vector<Real> y(m);
     for (int i = 0; i < m; i++) {
         y[i] = 0.0;
@@ -911,14 +911,14 @@ void Test_HessenbergReduction(PrecisionTestSuite& suite)
             auto result = MatrixAlg::ReduceToHessenberg(A);
             
             // Check H is upper Hessenberg
-            bool is_hess = MatrixAlg::IsUpperHessenberg(result.H, 1e-10);
+            bool is_hess = Utils::IsUpperHessenberg(result.H, 1e-10);
             
             // Check Q is orthogonal
-            bool is_ortho = MatrixAlg::IsOrthogonal(result.Q, 1e-10);
+            bool is_ortho = Utils::IsOrthogonal(result.Q, 1e-10);
             
             // Verify H = Q^T * A * Q
-            Matrix<Real> QTAQ = MatrixAlg::SimilarityTransform(result.Q, A);
-            Real recon_error = MatrixAlg::MaxAbsDiff(result.H, QTAQ);
+            Matrix<Real> QTAQ = Utils::SimilarityTransform(result.Q, A);
+            Real recon_error = Utils::MaxAbsDiff(result.H, QTAQ);
             
             suite.addResult("Hessenberg", func_name, 0.0, recon_error);
             std::cout << "  " << n << "x" << n << ": Hess=" << (is_hess ? "Yes" : "No")

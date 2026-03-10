@@ -3,7 +3,7 @@
 #else
 #include "MMLBase.h"
 
-#include "base/Geometry.h"
+#include "mml/base/Geometry/Geometry.h"
 #endif
 
 using namespace MML;

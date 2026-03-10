@@ -3,12 +3,12 @@
 ///                                                                                   ///
 ///  File:        MMLVisualizators.h                                                  ///
 ///  Description: Visualization utilities for functions, curves, fields               ///
-///               Cross-platform support via FLTK/Qt backend                          ///
+///               Cross-platform support: Windows (WPF/Qt/FLTK),                      ///
+///               Linux (Qt/FLTK), macOS (Qt/FLTK)                                    ///
 ///                                                                                   ///
-///  Copyright:   (c) 2024-2025 Zvonimir Vanjak                                       ///
-///  License:     Licensed under MML dual-license (see LICENSE.md)                    ///
-///               - Free for non-commercial use                                       ///
-///               - Commercial license available                                      ///
+///  Copyright:   (c) 2024-2026 Zvonimir Vanjak                                       ///
+///  License:     MIT License (see LICENSE.md)                                         ///
+///                                                                                   ///
 ///////////////////////////////////////////////////////////////////////////////////////////
 #if !defined MML_VISUALIZATORS_H
 #define MML_VISUALIZATORS_H
@@ -167,6 +167,16 @@ namespace MML
     } else if (backend == VisualizerBackend::Auto) {
       return true;  // Auto always available (selects default)
     }
+#elif defined(__APPLE__)
+    if (backend == VisualizerBackend::WPF) {
+      return false;  // WPF is Windows-only
+    } else if (backend == VisualizerBackend::Qt) {
+      return std::filesystem::exists(projectPath + "/tools/visualizers/mac/Qt");
+    } else if (backend == VisualizerBackend::FLTK) {
+      return std::filesystem::exists(projectPath + "/tools/visualizers/mac/FLTK");
+    } else if (backend == VisualizerBackend::Auto) {
+      return true;  // Auto always available (selects default)
+    }
 #endif
     
     return false;
@@ -218,6 +228,8 @@ namespace MML
       return VisualizerBackend::WPF;  // Default to WPF on Windows
 #elif defined(__linux__)
       return VisualizerBackend::Qt;   // Default to Qt on Linux
+#elif defined(__APPLE__)
+      return VisualizerBackend::Qt;   // Default to Qt on macOS
 #else
       return VisualizerBackend::FLTK; // FLTK for other platforms
 #endif
@@ -253,51 +265,12 @@ namespace MML
   //          GENERIC VISUALIZER PATH DISPATCHER
   ///////////////////////////////////////////////////////////////////////////////
 
-  /// Helper: Convert visualizer name to WPF directory name
-  /// WPF uses lowercase directory names with underscores
-  /// Example: "MML_RealFunctionVisualizer" -> "real_function_visualizer"
+  /// Helper: Get WPF directory name for a visualizer
+  /// New WPF structure uses MML_ prefixed folder names matching the executable
+  /// Example: "MML_RealFunctionVisualizer" -> "MML_RealFunctionVisualizer"
   inline std::string ConvertToWPFDirName(const std::string& visualizerName) {
-    // Special-case mappings to existing WPF directory names
-    if (visualizerName == "MML_ParticleVisualizer2D") return "particle_2d_visualizer";
-    if (visualizerName == "MML_ParticleVisualizer3D") return "particle_3d_visualizer";
-    if (visualizerName == "MML_ParametricCurve2D_Visualizer") return "parametric_curve_2d_visualizer";
-    if (visualizerName == "MML_ParametricCurve3D_Visualizer") return "parametric_curve_3d_visualizer";
-    if (visualizerName == "MML_VectorField2D_Visualizer") return "vector_field_2d_visualizer";
-    if (visualizerName == "MML_VectorField3D_Visualizer") return "vector_field_3d_visualizer";
-    if (visualizerName == "MML_ScalarFunction2D_Visualizer") return "scalar_function_2d_visualizer";
-    if (visualizerName == "MML_RealFunctionVisualizer") return "real_function_visualizer";
-
-    std::string result = visualizerName;
-    
-    // Remove "MML_" prefix if present
-    if (result.find("MML_") == 0) {
-      result = result.substr(4);
-    }
-    
-    // Convert to lowercase and replace capital letters with underscore + lowercase
-    std::string converted;
-    for (size_t i = 0; i < result.length(); ++i) {
-      if (std::isupper(result[i])) {
-        if (i > 0 && result[i-1] != '_') {
-          converted += '_';
-        }
-        converted += std::tolower(result[i]);
-      } else {
-        converted += result[i];
-      }
-    }
-    
-    // Remove duplicate underscores
-    std::string final;
-    char prev = '\0';
-    for (char c : converted) {
-      if (c != '_' || prev != '_') {
-        final += c;
-      }
-      prev = c;
-    }
-    
-    return final;
+    // New WPF folder structure: folder name matches executable name (MML_ prefix)
+    return visualizerName;
   }
 
   /// Generic visualizer path resolution with backend dispatch
@@ -325,9 +298,9 @@ namespace MML
       return projectPath + "/tools/visualizers/win/WPF/" + wpfDir + "/" + 
              visualizerName + ".exe";
     } else if (backend == VisualizerBackend::Qt) {
-      // Qt structure: tools/visualizers/win/Qt/<name>/<name>.exe
-      return projectPath + "/tools/visualizers/win/Qt/" + visualizerName + "/" +
-             visualizerName + ".exe";
+      // Qt flat structure: all visualizers share Qt DLLs in one folder
+      // tools/visualizers/win/Qt/<name>.exe
+      return projectPath + "/tools/visualizers/win/Qt/" + visualizerName + ".exe";
     } else if (backend == VisualizerBackend::FLTK) {
       // FLTK flat structure: tools/visualizers/win/FLTK/<name>_FLTK.exe
       return projectPath + "/tools/visualizers/win/FLTK/" + 
@@ -335,12 +308,23 @@ namespace MML
     }
 #elif defined(__linux__)
     if (backend == VisualizerBackend::Qt) {
-      // Qt structure: tools/visualizers/linux/Qt/<name>_Qt
+      // Qt structure: tools/visualizers/linux/Qt/<name>
       return projectPath + "/tools/visualizers/linux/Qt/" + 
-             visualizerName + "_Qt";
+             visualizerName;
     } else if (backend == VisualizerBackend::FLTK) {
       // FLTK structure: tools/visualizers/linux/FLTK/<name>_FLTK
       return projectPath + "/tools/visualizers/linux/FLTK/" + 
+             visualizerName + "_FLTK";
+    }
+#elif defined(__APPLE__)
+    if (backend == VisualizerBackend::Qt) {
+      // Qt apps are .app bundles on macOS - executable is inside Contents/MacOS/
+      // Structure: tools/visualizers/mac/Qt/<name>.app/Contents/MacOS/<name>
+      return projectPath + "/tools/visualizers/mac/Qt/" + 
+             visualizerName + ".app/Contents/MacOS/" + visualizerName;
+    } else if (backend == VisualizerBackend::FLTK) {
+      // FLTK structure: tools/visualizers/mac/FLTK/<name>_FLTK
+      return projectPath + "/tools/visualizers/mac/FLTK/" + 
              visualizerName + "_FLTK";
     }
 #endif
@@ -385,6 +369,18 @@ namespace MML
 
   inline std::string GetParticle3DVisualizerPath() {
     return GetVisualizerPath("MML_ParticleVisualizer3D");
+  }
+
+  inline std::string GetParametricSurfaceVisualizerPath() {
+    return GetVisualizerPath("MML_ParametricSurface_Visualizer");
+  }
+
+  inline std::string GetScalarFunction3DVisualizerPath() {
+    return GetVisualizerPath("MML_ScalarFunction3D_Visualizer");
+  }
+
+  inline std::string GetRigidBodyVisualizerPath() {
+    return GetVisualizerPath("MML_RigidBodyMovement_Visualizer");
   }
 
 } // namespace MML

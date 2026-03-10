@@ -6,7 +6,7 @@
 #include "base/Tensor.h"
 
 #include "core/CoordTransf.h"
-#include "base/Geometry3D.h"
+#include "mml/base/Geometry/Geometry3D.h"
 #include "core/MetricTensor.h"
 #endif
 

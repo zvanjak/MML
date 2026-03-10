@@ -160,6 +160,91 @@ namespace MML::Tests::Base::ChebyshevTests
         REQUIRE_THROWS_AS(ChebyshevU(-1, REAL(0.5)), std::invalid_argument);
     }
 
+    TEST_CASE("ChebyshevT and ChebyshevU - Derivative relationship", "[chebyshev][polynomial]")
+    {
+        // Key property: dT_n/dx = n · U_{n-1}(x)
+        // We verify this numerically using finite differences
+        const Real h = 1e-6;
+        
+        for (int n = 1; n <= 10; n++)
+        {
+            for (Real x : {-REAL(0.8), -REAL(0.3), REAL(0.0), REAL(0.5), REAL(0.9)})
+            {
+                // Numerical derivative of T_n
+                Real dT_dx = (ChebyshevT(n, x + h) - ChebyshevT(n, x - h)) / (2 * h);
+                
+                // Expected: n * U_{n-1}(x)
+                Real expected = n * ChebyshevU(n - 1, x);
+                
+                INFO("n = " << n << ", x = " << x);
+                REQUIRE_THAT(dT_dx, WithinAbs(expected, REAL(1e-5)));
+            }
+        }
+    }
+
+    TEST_CASE("ChebyshevT - High degree stability", "[chebyshev][polynomial]")
+    {
+        // Test that high-degree polynomials remain stable and bounded
+        for (int n : {25, 50, 100})
+        {
+            for (Real x : {-REAL(0.99), -REAL(0.5), REAL(0.0), REAL(0.5), REAL(0.99)})
+            {
+                Real T_n = ChebyshevT(n, x);
+                INFO("n = " << n << ", x = " << x);
+                REQUIRE(std::abs(T_n) <= REAL(1.0) + 1e-10);
+            }
+        }
+        
+        // At endpoints, always T_n(1)=1 and T_n(-1)=(-1)^n
+        REQUIRE_THAT(ChebyshevT(100, REAL(1.0)), WithinAbs(REAL(1.0), REAL(1e-10)));
+        REQUIRE_THAT(ChebyshevT(100, -REAL(1.0)), WithinAbs(REAL(1.0), REAL(1e-10)));  // 100 is even
+        REQUIRE_THAT(ChebyshevT(101, -REAL(1.0)), WithinAbs(-REAL(1.0), REAL(1e-10))); // 101 is odd
+    }
+
+    TEST_CASE("ChebyshevU - High degree stability", "[chebyshev][polynomial]")
+    {
+        // Test high-degree second kind polynomials
+        // U_n(1) = n+1, U_n(-1) = (-1)^n * (n+1)
+        for (int n : {25, 50, 100})
+        {
+            REQUIRE_THAT(ChebyshevU(n, REAL(1.0)), WithinAbs(static_cast<Real>(n + 1), REAL(1e-8)));
+            Real expected_neg = ((n % 2 == 0) ? REAL(1.0) : -REAL(1.0)) * (n + 1);
+            REQUIRE_THAT(ChebyshevU(n, -REAL(1.0)), WithinAbs(expected_neg, REAL(1e-8)));
+        }
+    }
+
+    TEST_CASE("ChebyshevT - Recurrence relation verification", "[chebyshev][polynomial]")
+    {
+        // Verify the recurrence: T_{n+1}(x) = 2x·T_n(x) - T_{n-1}(x)
+        for (Real x : {-REAL(0.7), REAL(0.0), REAL(0.3), REAL(0.8)})
+        {
+            for (int n = 2; n <= 15; n++)
+            {
+                Real T_n_plus_1 = ChebyshevT(n, x);
+                Real recurrence = 2 * x * ChebyshevT(n - 1, x) - ChebyshevT(n - 2, x);
+                
+                INFO("n = " << n << ", x = " << x);
+                REQUIRE_THAT(T_n_plus_1, WithinAbs(recurrence, REAL(1e-12)));
+            }
+        }
+    }
+
+    TEST_CASE("ChebyshevU - Recurrence relation verification", "[chebyshev][polynomial]")
+    {
+        // Verify the recurrence: U_{n+1}(x) = 2x·U_n(x) - U_{n-1}(x)
+        for (Real x : {-REAL(0.7), REAL(0.0), REAL(0.3), REAL(0.8)})
+        {
+            for (int n = 2; n <= 15; n++)
+            {
+                Real U_n_plus_1 = ChebyshevU(n, x);
+                Real recurrence = 2 * x * ChebyshevU(n - 1, x) - ChebyshevU(n - 2, x);
+                
+                INFO("n = " << n << ", x = " << x);
+                REQUIRE_THAT(U_n_plus_1, WithinAbs(recurrence, REAL(1e-12)));
+            }
+        }
+    }
+
     ///////////////////////////////////////////////////////////////////////////////////////////
     ///                         CHEBYSHEV ROOTS AND EXTREMA                                 ///
     ///////////////////////////////////////////////////////////////////////////////////////////

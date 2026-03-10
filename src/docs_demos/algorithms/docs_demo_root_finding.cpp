@@ -4,7 +4,7 @@
 #include "MMLBase.h"
 
 #include "base/Function.h"
-#include "base/Vector.h"
+#include "base/Vector/Vector.h"
 
 #include "algorithms/RootFinding.h"
 #endif

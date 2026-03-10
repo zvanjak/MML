@@ -11,6 +11,9 @@ using namespace MML::Testing;
 using Catch::Matchers::WithinAbs;
 using Catch::Matchers::WithinRel;
 
+namespace MML::Tests::Algorithms::CurveFittingTests
+{
+
 TEST_CASE("LinearLeastSquares - Exact fit through two points", "[CurveFitting][LinearLeastSquares]")
 {
     Vector<Real> x_data({0.0, 1.0});
@@ -656,3 +659,5 @@ TEST_CASE("PolynomialFit - Error: negative degree", "[CurveFitting][PolynomialFi
     
     REQUIRE_THROWS_AS(PolynomialFit(x_data, y_data, -1), std::invalid_argument);
 }
+
+} // namespace MML::Tests::Algorithms::CurveFittingTests

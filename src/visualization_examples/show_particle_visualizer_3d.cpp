@@ -24,7 +24,7 @@ void Show_Particle_Visualizer_3D_Examples()
 
     // Get the path to the visualization data folder
     std::string dataFolder = "src/visualization_examples/visualization_data/";
-    std::string dataFile = "particle_visualizer_3d_1.txt";
+    std::string dataFile = "particle_visualizer_3d_1.mml";
     
     // First, try to find the file relative to current working directory
     std::filesystem::path filePath = dataFolder + dataFile;

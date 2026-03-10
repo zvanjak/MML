@@ -8,7 +8,7 @@
 #include "MML.h"
 #else
 #include "MMLBase.h"
-#include "base/Vector.h"
+#include "base/Vector/Vector.h"
 #endif
 
 namespace MML::TestBeds
