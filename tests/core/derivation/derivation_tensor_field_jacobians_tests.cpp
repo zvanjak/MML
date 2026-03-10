@@ -2,12 +2,12 @@
 #include "../../TestPrecision.h"
 #include "../../TestMatchers.h"
 
-#include "../../mml/core/Derivation/DerivationTensorField.h"
-#include "../../mml/core/Derivation/Jacobians.h"
-#include "../../mml/interfaces/ITensorField.h"
-#include "../../mml/interfaces/IFunction.h"
-#include "../../mml/base/Vector/VectorN.h"
-#include "../../mml/base/Matrix/MatrixNM.h"
+#include "core/Derivation/DerivationTensorField.h"
+#include "core/Derivation/Jacobians.h"
+#include "interfaces/ITensorField.h"
+#include "interfaces/IFunction.h"
+#include "base/Vector/VectorN.h"
+#include "base/Matrix/MatrixNM.h"
 
 using namespace MML;
 using namespace MML::Testing;

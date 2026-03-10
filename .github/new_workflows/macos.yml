@@ -3,7 +3,7 @@ name: macOS
 # SIOF Phase 1 complete - re-enabled CI testing
 on:
   push:
-    branches: [ master ]
+    branches: [ main ]
   workflow_dispatch:
 
 concurrency:

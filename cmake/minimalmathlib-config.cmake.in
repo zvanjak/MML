@@ -1,0 +1,10 @@
+@PACKAGE_INIT@
+
+include("${CMAKE_CURRENT_LIST_DIR}/minimalmathlib-targets.cmake")
+
+check_required_components(minimalmathlib)
+
+# Provide helpful message
+if(NOT TARGET minimalmathlib::minimalmathlib)
+    message(FATAL_ERROR "minimalmathlib::minimalmathlib target not found")
+endif()

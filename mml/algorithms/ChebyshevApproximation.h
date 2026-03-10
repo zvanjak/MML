@@ -18,13 +18,10 @@
 #include "../base/Polynom.h"
 #include "../base/ChebyshevPolynom.h"
 
-#include "DCT.h"
-
 #include <functional>
 
 namespace MML {
 
-	using Fourier::DCT;  // DCT is now in MML::Fourier namespace
 	///////////////////////////////////////////////////////////////////////////////////////////
 	///                           CHEBYSHEV APPROXIMATION CLASS                             ///
 	///////////////////////////////////////////////////////////////////////////////////////////
@@ -88,9 +85,15 @@ namespace MML {
 				f[k] = func(y * bma + bpa);			   // Map to [a,b] and evaluate
 			}
 
-			// Compute Chebyshev coefficients via DCT-II
-			// This implements the discrete orthogonality relation for Chebyshev polynomials
-			_coef = DCT::ForwardII(f);
+			// Compute Chebyshev coefficients via DCT-II formula
+			// c_k = (2/n) * Σ_{j=0}^{n-1} f[j] * cos(π * k * (j + 0.5) / n)
+			Real fac = 2.0 / n;
+			for (int k = 0; k < n; k++) {
+				Real sum = 0.0;
+				for (int j = 0; j < n; j++)
+					sum += f[j] * std::cos(pi * k * (j + 0.5) / n);
+				_coef[k] = fac * sum;
+			}
 		}
 
 		// Construct from std::function for convenience (lambdas, etc.)
@@ -114,8 +117,14 @@ namespace MML {
 				f[k] = func(y * bma + bpa);
 			}
 
-			// Compute Chebyshev coefficients via DCT-II
-			_coef = DCT::ForwardII(f);
+			// Compute Chebyshev coefficients via DCT-II formula
+			Real fac = 2.0 / n;
+			for (int k = 0; k < n; k++) {
+				Real sum = 0.0;
+				for (int j = 0; j < n; j++)
+					sum += f[j] * std::cos(pi * k * (j + 0.5) / n);
+				_coef[k] = fac * sum;
+			}
 		}
 
 		// Construct from existing Chebyshev coefficients.

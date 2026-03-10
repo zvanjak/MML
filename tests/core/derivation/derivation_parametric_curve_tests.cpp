@@ -1,5 +1,5 @@
-#include "../../test_beds/parametric_curves_test_bed.h"
-#include "../../mml/core/Derivation/DerivationParametricCurve.h"
+#include "parametric_curves_test_bed.h"
+#include "core/Derivation/DerivationParametricCurve.h"
 
 #include <string>
 

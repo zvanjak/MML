@@ -6,9 +6,9 @@
 
 *Single-header • Cross-platform • Visualization included*
 
-[![Ubuntu](https://github.com/zvanjak/MinimalMathLibrary/workflows/Ubuntu/badge.svg)](https://github.com/zvanjak/MinimalMathLibrary/actions?query=workflow%3AUbuntu)
-[![Windows](https://github.com/zvanjak/MinimalMathLibrary/workflows/Windows/badge.svg)](https://github.com/zvanjak/MinimalMathLibrary/actions?query=workflow%3AWindows)
-[![macOS](https://github.com/zvanjak/MinimalMathLibrary/workflows/macOS/badge.svg)](https://github.com/zvanjak/MinimalMathLibrary/actions?query=workflow%3AmacOS)
+[![Ubuntu](https://github.com/zvanjak/MML/workflows/Ubuntu/badge.svg)](https://github.com/zvanjak/MML/actions?query=workflow%3AUbuntu)
+[![Windows](https://github.com/zvanjak/MML/workflows/Windows/badge.svg)](https://github.com/zvanjak/MML/actions?query=workflow%3AWindows)
+[![macOS](https://github.com/zvanjak/MML/workflows/macOS/badge.svg)](https://github.com/zvanjak/MML/actions?query=workflow%3AmacOS)
 [![C++17](https://img.shields.io/badge/C%2B%2B-17-blue.svg)](https://isocpp.org/std/the-standard)
 [![Tests](https://img.shields.io/badge/tests-4540%20passing-brightgreen.svg)](tests/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE.md)

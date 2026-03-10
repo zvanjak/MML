@@ -13,7 +13,7 @@
 #include "mml/algorithms/ODESolvers/ODEAdaptiveIntegrator.h"
 #endif
 
-#include "../../test_beds/diff_eq_systems_test_bed.h"
+#include "diff_eq_systems_test_bed.h"
 
 using Catch::Matchers::WithinAbs;
 using Catch::Matchers::WithinRel;
@@ -372,7 +372,7 @@ namespace MML::Tests::Algorithms::ODESystemSolverTests
 //                      STIFF ODE TEST BED INTEGRATION TESTS                             //
 ///////////////////////////////////////////////////////////////////////////////////////////
 
-#include "../../test_beds/stiff_ode_test_bed.h"
+#include "stiff_ode_test_bed.h"
 
 namespace MML::Tests::Algorithms::StiffODETestBed {
 	using namespace MML::TestBeds;
