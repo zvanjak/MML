@@ -18,7 +18,7 @@ jobs:
   build:
     name: ${{ matrix.name }}
     runs-on: windows-latest
-    timeout-minutes: 120
+    timeout-minutes: 150
     strategy:
       fail-fast: false
       matrix:
@@ -47,7 +47,7 @@ jobs:
       run: cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
 
     - name: Build Tests
-      timeout-minutes: 90
+      timeout-minutes: 110
       run: cmake --build build --config ${{ env.BUILD_TYPE }} --target MML_Tests --parallel
 
     - name: Test

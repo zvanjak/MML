@@ -27,17 +27,17 @@ namespace MML::Tests::Algorithms::ODESystemSolverTests
 {
 	TEST_CASE("Test_Diff_Eq_Solvers_EulerMethod_LinSys1", "[ODESystemFixedStepSolver]") {
 		TEST_PRECISION_INFO();
-		auto odeSys = TestBeds::ODESystemTestBed::getTestODESystemWithEndSolution(0);
+		auto odeSys = TestBeds::ODESystemTestBed::getSystemWithEndSolution(0);
 
-		auto initCond = odeSys.getInitialConditions();
-		Real t1 = REAL(0.0), t2 = odeSys.getEndTime();
+		auto initCond = odeSys.ic;
+		Real t1 = REAL(0.0), t2 = odeSys.tEnd;
 		int numSteps = 1000;
 
-		ODESystemFixedStepSolver fixedSolver(*odeSys.getODESystem(), StepCalculators::EulerStepCalc);
+		ODESystemFixedStepSolver fixedSolver(*odeSys.system, StepCalculators::EulerStepCalc);
 		ODESystemSolution sol = fixedSolver.integrate(initCond, t1, t2, numSteps);
 
 		Vector<Real> finalX = sol.getXValuesAtEnd();
-		Vector<Real> exactSol = odeSys.getEndSolution();
+		Vector<Real> exactSol = odeSys.endSolution;
 
 		// compare with exact solution
 		for (int i = 0; i < finalX.size(); i++) {
@@ -47,17 +47,17 @@ namespace MML::Tests::Algorithms::ODESystemSolverTests
 
 	TEST_CASE("Test_Diff_Eq_Solvers_EulerMethod_HarmOsc1", "[ODESystemFixedStepSolver]") {
 		TEST_PRECISION_INFO();
-		auto odeSys = TestBeds::ODESystemTestBed::getTestODESystemWithEndSolution(3);
+		auto odeSys = TestBeds::ODESystemTestBed::getSystemWithEndSolution(3);
 
-		auto initCond = odeSys.getInitialConditions();
-		Real t1 = REAL(0.0), t2 = odeSys.getEndTime();
+		auto initCond = odeSys.ic;
+		Real t1 = REAL(0.0), t2 = odeSys.tEnd;
 		int numSteps = 1000;
 
-		ODESystemFixedStepSolver fixedSolver(*odeSys.getODESystem(), StepCalculators::EulerStepCalc);
+		ODESystemFixedStepSolver fixedSolver(*odeSys.system, StepCalculators::EulerStepCalc);
 		ODESystemSolution sol = fixedSolver.integrate(initCond, t1, t2, numSteps);
 
 		Vector<Real> finalX = sol.getXValuesAtEnd();
-		Vector<Real> exactSol = odeSys.getEndSolution();
+		Vector<Real> exactSol = odeSys.endSolution;
 
 		// compare with exact solution
 		for (int i = 0; i < finalX.size(); i++) {
@@ -67,17 +67,17 @@ namespace MML::Tests::Algorithms::ODESystemSolverTests
 
 	TEST_CASE("Test_Diff_Eq_Solvers_RungeKutta4_LinSys1", "[ODESystemFixedStepSolver]") {
 		TEST_PRECISION_INFO();
-		auto odeSys = TestBeds::ODESystemTestBed::getTestODESystemWithEndSolution(0);
+		auto odeSys = TestBeds::ODESystemTestBed::getSystemWithEndSolution(0);
 
-		auto initCond = odeSys.getInitialConditions();
-		Real t1 = REAL(0.0), t2 = odeSys.getEndTime();
+		auto initCond = odeSys.ic;
+		Real t1 = REAL(0.0), t2 = odeSys.tEnd;
 		int numSteps = 1000;
 
-		ODESystemFixedStepSolver fixedSolver(*odeSys.getODESystem(), StepCalculators::RK4_Basic);
+		ODESystemFixedStepSolver fixedSolver(*odeSys.system, StepCalculators::RK4_Basic);
 		ODESystemSolution sol = fixedSolver.integrate(initCond, t1, t2, numSteps);
 
 		Vector<Real> finalX = sol.getXValuesAtEnd();
-		Vector<Real> exactSol = odeSys.getEndSolution();
+		Vector<Real> exactSol = odeSys.endSolution;
 
 		// compare with exact solution
 		for (int i = 0; i < finalX.size(); i++) {
@@ -87,17 +87,17 @@ namespace MML::Tests::Algorithms::ODESystemSolverTests
 
 	TEST_CASE("Test_Diff_Eq_Solvers_RungeKutta4_LinSys2", "[ODESystemFixedStepSolver]") {
 		TEST_PRECISION_INFO();
-		auto odeSys = TestBeds::ODESystemTestBed::getTestODESystemWithEndSolution(1);
+		auto odeSys = TestBeds::ODESystemTestBed::getSystemWithEndSolution(1);
 
-		auto initCond = odeSys.getInitialConditions();
-		Real t1 = REAL(0.0), t2 = odeSys.getEndTime();
+		auto initCond = odeSys.ic;
+		Real t1 = REAL(0.0), t2 = odeSys.tEnd;
 		int numSteps = 1000;
 
-		ODESystemFixedStepSolver fixedSolver(*odeSys.getODESystem(), StepCalculators::RK4_Basic);
+		ODESystemFixedStepSolver fixedSolver(*odeSys.system, StepCalculators::RK4_Basic);
 		ODESystemSolution sol = fixedSolver.integrate(initCond, t1, t2, numSteps);
 
 		Vector<Real> finalX = sol.getXValuesAtEnd();
-		Vector<Real> exactSol = odeSys.getEndSolution();
+		Vector<Real> exactSol = odeSys.endSolution;
 
 		// compare with exact solution
 		for (int i = 0; i < finalX.size(); i++) {
@@ -107,17 +107,17 @@ namespace MML::Tests::Algorithms::ODESystemSolverTests
 
 	TEST_CASE("Test_Diff_Eq_Solvers_RungeKutta4_HarmOsc1", "[ODESystemFixedStepSolver]") {
 		TEST_PRECISION_INFO();
-		auto odeSys = TestBeds::ODESystemTestBed::getTestODESystemWithEndSolution(3);
+		auto odeSys = TestBeds::ODESystemTestBed::getSystemWithEndSolution(3);
 
-		auto initCond = odeSys.getInitialConditions();
-		Real t1 = REAL(0.0), t2 = odeSys.getEndTime();
+		auto initCond = odeSys.ic;
+		Real t1 = REAL(0.0), t2 = odeSys.tEnd;
 		int numSteps = 1000;
 
-		ODESystemFixedStepSolver fixedSolver(*odeSys.getODESystem(), StepCalculators::RK4_Basic);
+		ODESystemFixedStepSolver fixedSolver(*odeSys.system, StepCalculators::RK4_Basic);
 		ODESystemSolution sol = fixedSolver.integrate(initCond, t1, t2, numSteps);
 
 		Vector<Real> finalX = sol.getXValuesAtEnd();
-		Vector<Real> exactSol = odeSys.getEndSolution();
+		Vector<Real> exactSol = odeSys.endSolution;
 
 		// compare with exact solution
 		for (int i = 0; i < finalX.size(); i++) {
@@ -129,12 +129,14 @@ namespace MML::Tests::Algorithms::ODESystemSolverTests
 	TEST_CASE("Test_Diff_Eq_Solvers_AllCases", "[ODESystemFixedStepSolver]") {
 		TEST_PRECISION_INFO();
 		// ODE systems we wll be solving
-		auto odeSys0 = TestBeds::ODESystemTestBed::getTestODESystemWithEndSolution(0);
-		auto odeSys1 = TestBeds::ODESystemTestBed::getTestODESystemWithEndSolution(1);
-		auto odeSys2 = TestBeds::ODESystemTestBed::getTestODESystemWithEndSolution(2);
-		auto odeSys3 = TestBeds::ODESystemTestBed::getTestODESystemWithEndSolution(3);
+		auto odeSys0 = TestBeds::ODESystemTestBed::getSystemWithEndSolution(0);
+		auto odeSys1 = TestBeds::ODESystemTestBed::getSystemWithEndSolution(1);
+		auto odeSys2 = TestBeds::ODESystemTestBed::getSystemWithEndSolution(2);
+		auto odeSys3 = TestBeds::ODESystemTestBed::getSystemWithEndSolution(3);
 
-		std::vector<ITestODESystemWithEndSolution*> odeSysList = {&odeSys0, &odeSys3};
+		auto* sys0 = &odeSys0;
+		auto* sys3 = &odeSys3;
+		std::vector<decltype(sys0)> odeSysList = {sys0, sys3};
 
 		// Step calculators we will be using
 		std::vector<std::pair<std::string, IODESystemStepCalculator*>> stepCalcs = {{"Euler", &StepCalculators::EulerStepCalc},
@@ -151,16 +153,16 @@ namespace MML::Tests::Algorithms::ODESystemSolverTests
 		// Now, run the tests
 		for (size_t i = 0; i < odeSysList.size(); i++) {
 			auto odeSys = odeSysList[i];
-			auto initCond = odeSys->getInitialConditions();
-			Real t1 = REAL(0.0), t2 = odeSys->getEndTime();
+			auto initCond = odeSys->ic;
+			Real t1 = REAL(0.0), t2 = odeSys->tEnd;
 
-			Vector<Real> exactSol = odeSys->getEndSolution();
+			Vector<Real> exactSol = odeSys->endSolution;
 
 			for (size_t j = 0; j < stepCalcs.size(); j++) {
 				auto [stepCalcName, stepCalc] = stepCalcs[j];
 				double expectedPrecision = expectedPrecisions[i][j];
 
-				ODESystemFixedStepSolver fixedSolver(*(odeSys->getODESystem()), *stepCalc);
+				ODESystemFixedStepSolver fixedSolver(*(odeSys->system), *stepCalc);
 				ODESystemSolution sol = fixedSolver.integrate(initCond, t1, t2, numSteps);
 
 				Vector<Real> finalX = sol.getXValuesAtEnd();
@@ -179,17 +181,17 @@ namespace MML::Tests::Algorithms::ODESystemSolverTests
 
 	TEST_CASE("Test_DormandPrince5_LinearSystem", "[ODESystemFixedStepSolver][DormandPrince5]") {
 		TEST_PRECISION_INFO();
-		auto odeSys = TestBeds::ODESystemTestBed::getTestODESystemWithEndSolution(0);
+		auto odeSys = TestBeds::ODESystemTestBed::getSystemWithEndSolution(0);
 
-		auto initCond = odeSys.getInitialConditions();
-		Real t1 = REAL(0.0), t2 = odeSys.getEndTime();
+		auto initCond = odeSys.ic;
+		Real t1 = REAL(0.0), t2 = odeSys.tEnd;
 		int numSteps = 1000;
 
-		ODESystemFixedStepSolver fixedSolver(*odeSys.getODESystem(), StepCalculators::DormandPrince5StepCalc);
+		ODESystemFixedStepSolver fixedSolver(*odeSys.system, StepCalculators::DormandPrince5StepCalc);
 		ODESystemSolution sol = fixedSolver.integrate(initCond, t1, t2, numSteps);
 
 		Vector<Real> finalX = sol.getXValuesAtEnd();
-		Vector<Real> exactSol = odeSys.getEndSolution();
+		Vector<Real> exactSol = odeSys.endSolution;
 
 		// DormandPrince5 should give excellent precision
 		for (int i = 0; i < finalX.size(); i++) {
@@ -199,17 +201,17 @@ namespace MML::Tests::Algorithms::ODESystemSolverTests
 
 	TEST_CASE("Test_DormandPrince5_HarmonicOscillator", "[ODESystemFixedStepSolver][DormandPrince5]") {
 		TEST_PRECISION_INFO();
-		auto odeSys = TestBeds::ODESystemTestBed::getTestODESystemWithEndSolution(3);
+		auto odeSys = TestBeds::ODESystemTestBed::getSystemWithEndSolution(3);
 
-		auto initCond = odeSys.getInitialConditions();
-		Real t1 = REAL(0.0), t2 = odeSys.getEndTime();
+		auto initCond = odeSys.ic;
+		Real t1 = REAL(0.0), t2 = odeSys.tEnd;
 		int numSteps = 1000;
 
-		ODESystemFixedStepSolver fixedSolver(*odeSys.getODESystem(), StepCalculators::DormandPrince5StepCalc);
+		ODESystemFixedStepSolver fixedSolver(*odeSys.system, StepCalculators::DormandPrince5StepCalc);
 		ODESystemSolution sol = fixedSolver.integrate(initCond, t1, t2, numSteps);
 
 		Vector<Real> finalX = sol.getXValuesAtEnd();
-		Vector<Real> exactSol = odeSys.getEndSolution();
+		Vector<Real> exactSol = odeSys.endSolution;
 
 		// DormandPrince5 should maintain excellent precision over long integration
 		for (int i = 0; i < finalX.size(); i++) {
@@ -219,17 +221,17 @@ namespace MML::Tests::Algorithms::ODESystemSolverTests
 
 	TEST_CASE("Test_CashKarp_LinearSystem", "[ODESystemFixedStepSolver][CashKarp]") {
 		TEST_PRECISION_INFO();
-		auto odeSys = TestBeds::ODESystemTestBed::getTestODESystemWithEndSolution(0);
+		auto odeSys = TestBeds::ODESystemTestBed::getSystemWithEndSolution(0);
 
-		auto initCond = odeSys.getInitialConditions();
-		Real t1 = REAL(0.0), t2 = odeSys.getEndTime();
+		auto initCond = odeSys.ic;
+		Real t1 = REAL(0.0), t2 = odeSys.tEnd;
 		int numSteps = 1000;
 
-		ODESystemFixedStepSolver fixedSolver(*odeSys.getODESystem(), StepCalculators::RK5_CashKarp);
+		ODESystemFixedStepSolver fixedSolver(*odeSys.system, StepCalculators::RK5_CashKarp);
 		ODESystemSolution sol = fixedSolver.integrate(initCond, t1, t2, numSteps);
 
 		Vector<Real> finalX = sol.getXValuesAtEnd();
-		Vector<Real> exactSol = odeSys.getEndSolution();
+		Vector<Real> exactSol = odeSys.endSolution;
 
 		// CashKarp should also give excellent precision
 		for (int i = 0; i < finalX.size(); i++) {
@@ -239,17 +241,17 @@ namespace MML::Tests::Algorithms::ODESystemSolverTests
 
 	TEST_CASE("Test_CashKarp_HarmonicOscillator", "[ODESystemFixedStepSolver][CashKarp]") {
 		TEST_PRECISION_INFO();
-		auto odeSys = TestBeds::ODESystemTestBed::getTestODESystemWithEndSolution(3);
+		auto odeSys = TestBeds::ODESystemTestBed::getSystemWithEndSolution(3);
 
-		auto initCond = odeSys.getInitialConditions();
-		Real t1 = REAL(0.0), t2 = odeSys.getEndTime();
+		auto initCond = odeSys.ic;
+		Real t1 = REAL(0.0), t2 = odeSys.tEnd;
 		int numSteps = 1000;
 
-		ODESystemFixedStepSolver fixedSolver(*odeSys.getODESystem(), StepCalculators::RK5_CashKarp);
+		ODESystemFixedStepSolver fixedSolver(*odeSys.system, StepCalculators::RK5_CashKarp);
 		ODESystemSolution sol = fixedSolver.integrate(initCond, t1, t2, numSteps);
 
 		Vector<Real> finalX = sol.getXValuesAtEnd();
-		Vector<Real> exactSol = odeSys.getEndSolution();
+		Vector<Real> exactSol = odeSys.endSolution;
 
 		// CashKarp should maintain excellent precision
 		for (int i = 0; i < finalX.size(); i++) {
@@ -303,17 +305,17 @@ namespace MML::Tests::Algorithms::ODESystemSolverTests
 		// Simple harmonic oscillator: x'' = -x
 		// State: [x, v] where v = x'
 		// System: dx/dt = v, dv/dt = -x
-		auto odeSys = TestBeds::ODESystemTestBed::getTestODESystemWithEndSolution(3); // HarmOscillator1
+		auto odeSys = TestBeds::ODESystemTestBed::getSystemWithEndSolution(3); // HarmOscillator1
 
-		auto initCond = odeSys.getInitialConditions();
-		Real t1 = REAL(0.0), t2 = odeSys.getEndTime();
+		auto initCond = odeSys.ic;
+		Real t1 = REAL(0.0), t2 = odeSys.tEnd;
 		int numSteps = 1000;
 
-		ODESystemFixedStepSolver fixedSolver(*odeSys.getODESystem(), StepCalculators::LeapfrogStepCalc);
+		ODESystemFixedStepSolver fixedSolver(*odeSys.system, StepCalculators::LeapfrogStepCalc);
 		ODESystemSolution sol = fixedSolver.integrate(initCond, t1, t2, numSteps);
 
 		Vector<Real> finalX = sol.getXValuesAtEnd();
-		Vector<Real> exactSol = odeSys.getEndSolution();
+		Vector<Real> exactSol = odeSys.endSolution;
 
 		// Leapfrog should be accurate for harmonic oscillator
 		for (int i = 0; i < finalX.size(); i++) {
@@ -1140,21 +1142,21 @@ namespace MML::Tests::Algorithms::AdaptiveIntegratorTests {
 
 		// Test with systems from the test bed
 		for (int sysIdx = 0; sysIdx < 4; sysIdx++) {
-			auto odeSys = TestBeds::ODESystemTestBed::getTestODESystemWithEndSolution(sysIdx);
+			auto odeSys = TestBeds::ODESystemTestBed::getSystemWithEndSolution(sysIdx);
 
 			DYNAMIC_SECTION("TestBed system " << sysIdx) {
-				DormandPrince5Integrator integrator(*odeSys.getODESystem());
+				DormandPrince5Integrator integrator(*odeSys.system);
 
-				auto initCond = odeSys.getInitialConditions();
-				Real t0 = odeSys.getStartTime();
-				Real tEnd = odeSys.getEndTime();
+				auto initCond = odeSys.ic;
+				Real t0 = odeSys.t0;
+				Real tEnd = odeSys.tEnd;
 				Real outputInterval = (tEnd - t0) / 10.0;
 				Real eps = 1e-10;
 
 				ODESystemSolution sol = integrator.integrate(initCond, t0, tEnd, outputInterval, eps);
 
 				Vector<Real> finalX = sol.getXValuesAtEnd();
-				Vector<Real> exactSol = odeSys.getEndSolution();
+				Vector<Real> exactSol = odeSys.endSolution;
 
 				auto stats = integrator.getStatistics();
 				INFO("Accepted: " << stats.acceptedSteps << ", Rejected: " << stats.rejectedSteps);
