@@ -333,7 +333,7 @@ namespace MML
 			Real error = volume * std_error;
 
 			bool converged = (std::abs(integral) < PrecisionValues<Real>::DivisionSafetyThreshold) ||
-											 (error / std::abs(integral) < PrecisionValues<Real>::DefaultToleranceRelaxed);
+											 (error / std::abs(integral) < PrecisionValues<Real>::DefaultToleranceStrict);
 
 			return MonteCarloResult(integral, error, variance, total_samples, converged);
 		}

@@ -48,7 +48,7 @@ namespace MML
 		template <int N>
 		static VectorN<Real, N> NDer1(const IParametricCurve<N>& f, Real t, Real* error = nullptr)
 		{
-			return NDer1(f, t, NDer1_h, error);
+			return NDer1(f, t, ScaleStep(NDer1_h, t), error);
 		}
 
 		/********************************************************************************************************************/
@@ -74,7 +74,7 @@ namespace MML
 		template <int N>
 		static VectorN<Real, N> NDer2(const IParametricCurve<N>& f, Real t, Real* error = nullptr)
 		{
-			return NDer2(f, t, NDer2_h, error);
+			return NDer2(f, t, ScaleStep(NDer2_h, t), error);
 		}
 
 		/********************************************************************************************************************/
@@ -105,7 +105,7 @@ namespace MML
 		template <int N>
 		static VectorN<Real, N> NDer4(const IParametricCurve<N>& f, Real t, Real* error = nullptr)
 		{
-			return NDer4(f, t, NDer4_h, error);
+			return NDer4(f, t, ScaleStep(NDer4_h, t), error);
 		}
 
 		/********************************************************************************************************************/
@@ -132,7 +132,7 @@ namespace MML
 		template <int N>
 		static VectorN<Real, N> NDer6(const IParametricCurve<N>& f, Real t, Real* error = nullptr)
 		{
-			return NDer6(f, t, NDer6_h, error);
+			return NDer6(f, t, ScaleStep(NDer6_h, t), error);
 		}	
 		/********************************************************************************************************************/
 		/********                               Numerical derivatives of EIGHTH order                                ********/
@@ -162,7 +162,7 @@ namespace MML
 		template <int N>
 		static VectorN<Real, N> NDer8(const IParametricCurve<N>& f, Real t, Real* error = nullptr)
 		{
-			return NDer8(f, t, NDer8_h, error);
+			return NDer8(f, t, ScaleStep(NDer8_h, t), error);
 		}
 
 		/********************************************************************************************************************/
@@ -200,7 +200,7 @@ namespace MML
 		template <int N>
 		static VectorN<Real, N> NSecDer2(const IParametricCurve<N>& f, Real t, Real* error = nullptr)
 		{
-			return NSecDer2(f, t, NDer2_h, error);
+			return NSecDer2(f, t, ScaleStep(NDer2_h, t), error);
 		}
 
 		// f''(t) ≈ [-f(t-2h) + 16f(t-h) - 30f(t) + 16f(t+h) - f(t+2h)] / (12h²)
@@ -234,7 +234,7 @@ namespace MML
 		template <int N>
 		static VectorN<Real, N> NSecDer4(const IParametricCurve<N>& f, Real t, Real* error = nullptr)
 		{
-			return NSecDer4(f, t, NDer4_h, error);
+			return NSecDer4(f, t, ScaleStep(NDer4_h, t), error);
 		}
 
 		/********************************************************************************************************************/
@@ -274,7 +274,7 @@ namespace MML
 		static VectorN<Real, N> NThirdDer2(const IParametricCurve<N>& f, Real t, Real* error = nullptr)
 		{
 			// Use larger step size for third derivatives (h³ in denominator needs bigger h)
-			return NThirdDer2(f, t, NDer4_h, error);
+			return NThirdDer2(f, t, ScaleStep(NDer4_h, t), error);
 		}
 
 		// f'''(t) ≈ [f(t-3h) - 8f(t-2h) + 13f(t-h) - 13f(t+h) + 8f(t+2h) - f(t+3h)] / (8h³)
@@ -309,7 +309,7 @@ namespace MML
 		template <int N>
 		static VectorN<Real, N> NThirdDer4(const IParametricCurve<N>& f, Real t, Real* error = nullptr)
 		{
-			return NThirdDer4(f, t, NDer4_h, error);
+			return NThirdDer4(f, t, ScaleStep(NDer4_h, t), error);
 		}
 		
 		/********************************************************************************************************************/

@@ -209,10 +209,10 @@ namespace MML
 
 			for (int i = 1; i <= n; i++)
 			{
+				fact *= (double)i;
 				ret += a_pow_n / fact;
 
 				a_pow_n = a_pow_n * a;
-				fact *= (double)i;
 			}
 
 			return ret;

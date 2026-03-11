@@ -290,7 +290,7 @@ namespace MML
 
 			for (int j = 0; j < n; ++j) {
 				// Adaptive step size based on x[j] magnitude
-				Real hj = eps * std::max(std::abs(x[j]), 1.0);
+				Real hj = eps * std::max<Real>(std::abs(x[j]), Real(1.0));
 
 				// Central difference
 				xp[j] = x[j] + hj;
@@ -348,7 +348,7 @@ namespace MML
 			Real eps = (h > 0.0) ? h : std::sqrt(std::numeric_limits<Real>::epsilon());
 
 			for (int j = 0; j < n; ++j) {
-				Real hj = eps * std::max(std::abs(x[j]), 1.0);
+				Real hj = eps * std::max<Real>(std::abs(x[j]), Real(1.0));
 
 				xp[j] = x[j] + hj;
 				Vector<Real> f_plus = mapFunc(xp);

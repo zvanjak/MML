@@ -138,10 +138,10 @@ namespace MML
 			Real sy = std::sin(yaw * 0.5);
 
 			return Quaternion(
-				cr * cp * cy + sr * sp * sy,
-				sr * cp * cy - cr * sp * sy,
-				cr * sp * cy + sr * cp * sy,
-				cr * cp * sy - sr * sp * cy
+				cr * cp * cy - sr * sp * sy,
+				sr * cp * cy + cr * sp * sy,
+				cr * sp * cy - sr * cp * sy,
+				cr * cp * sy + sr * sp * cy
 			);
 		}
 

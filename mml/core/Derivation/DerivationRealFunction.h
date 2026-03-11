@@ -39,21 +39,17 @@ namespace MML
 		}
 		static Real NDer1(const IRealFunction& f, Real x, Real* error)
 		{
-			// Error bound ~eps^1/2
-			// Note that this estimate of h differs from the best estimate by a factor of sqrt((|f(x)| + |f(x+h)|)/|f''(x)|).
-			// Since this factor is invariant under the scaling f -> kf, then we are somewhat justified in approximating it by 1.
-			// This approximation will get better as we move to higher orders of accuracy.
-			return NDer1(f, x, NDer1_h, error);
+			return NDer1(f, x, ScaleStep(NDer1_h, x), error);
 		}
 		static Real NDer1(const IRealFunction& f, Real x)
 		{
-			return NDer1(f, x, NDer1_h, nullptr);
+			return NDer1(f, x, ScaleStep(NDer1_h, x), nullptr);
 		}
 		
 		static Real NDer1Left(const IRealFunction& f, Real x, Real* error = nullptr) 
-		{ return NDer1(f, x - 2 * NDer1_h, NDer1_h, error); }
+		{ Real h = ScaleStep(NDer1_h, x); return NDer1(f, x - 2 * h, h, error); }
 		static Real NDer1Right(const IRealFunction& f, Real x, Real* error = nullptr) 
-		{ return NDer1(f, x + 2 * NDer1_h, NDer1_h, error); }
+		{ Real h = ScaleStep(NDer1_h, x); return NDer1(f, x + 2 * h, h, error); }
 		static Real NDer1Left(const IRealFunction& f, Real x, Real h, Real* error = nullptr) 
 		{ return NDer1(f, x - 2 * h, h, error); }
 		static Real NDer1Right(const IRealFunction& f, Real x, Real h, Real* error = nullptr) 
@@ -90,19 +86,15 @@ namespace MML
 		}
 		static Real NDer2(const IRealFunction& f, Real x, Real* error)
 		{
-			// Error bound ~eps^2/3
-			// See the previous discussion to understand determination of h and the error bound.
-			// Series[(f[x+h] - f[x-h])/(2*h), {h, 0, 4}]
-
-			return NDer2(f, x, NDer2_h, error);
+			return NDer2(f, x, ScaleStep(NDer2_h, x), error);
 		}
 		static Real NDer2(const IRealFunction& f, Real x)
 		{
-			return NDer2(f, x, NDer2_h, nullptr);
+			return NDer2(f, x, ScaleStep(NDer2_h, x), nullptr);
 		}
 		
-		static Real NDer2Left(const IRealFunction& f, Real x, Real* error = nullptr) { return NDer2(f, x - 2 * NDer2_h, NDer2_h, error); }
-		static Real NDer2Right(const IRealFunction& f, Real x, Real* error = nullptr) { return NDer2(f, x + 2 * NDer2_h, NDer2_h, error); }
+		static Real NDer2Left(const IRealFunction& f, Real x, Real* error = nullptr) { Real h = ScaleStep(NDer2_h, x); return NDer2(f, x - 2 * h, h, error); }
+		static Real NDer2Right(const IRealFunction& f, Real x, Real* error = nullptr) { Real h = ScaleStep(NDer2_h, x); return NDer2(f, x + 2 * h, h, error); }
 		static Real NDer2Left(const IRealFunction& f, Real x, Real h, Real* error = nullptr) { return NDer2(f, x - 3 * h, h, error); }
 		static Real NDer2Right(const IRealFunction& f, Real x, Real h, Real* error = nullptr) { return NDer2(f, x + 3 * h, h, error); }
 
@@ -147,16 +139,15 @@ namespace MML
 		}
 		static Real NDer4(const IRealFunction& f, Real x, Real* error)
 		{
-			// Error bound ~eps^4/5
-			return NDer4(f, x, NDer4_h, error);
+			return NDer4(f, x, ScaleStep(NDer4_h, x), error);
 		}
 		static Real NDer4(const IRealFunction& f, Real x)
 		{
-			return NDer4(f, x, NDer4_h, nullptr);
+			return NDer4(f, x, ScaleStep(NDer4_h, x), nullptr);
 		}
 
-		static Real NDer4Left(const IRealFunction& f, Real x, Real* error = nullptr) { return NDer4(f, x - 4 * NDer4_h, NDer4_h, error); }
-		static Real NDer4Right(const IRealFunction& f, Real x, Real* error = nullptr) { return NDer4(f, x + 4 * NDer4_h, NDer4_h, error); }
+		static Real NDer4Left(const IRealFunction& f, Real x, Real* error = nullptr) { Real h = ScaleStep(NDer4_h, x); return NDer4(f, x - 4 * h, h, error); }
+		static Real NDer4Right(const IRealFunction& f, Real x, Real* error = nullptr) { Real h = ScaleStep(NDer4_h, x); return NDer4(f, x + 4 * h, h, error); }
 		static Real NDer4Left(const IRealFunction& f, Real x, Real h, Real* error = nullptr) { return NDer4(f, x - 4 * h, h, error); }
 		static Real NDer4Right(const IRealFunction& f, Real x, Real h, Real* error = nullptr) { return NDer4(f, x + 4 * h, h, error); }
 
@@ -187,19 +178,15 @@ namespace MML
 		}
 		static Real NDer6(const IRealFunction& f, Real x, Real* error)
 		{
-			// Error bound ~eps^6/7
-			// Error: h^6f^(7)(x)/140 + 5|f(x)|eps/h
-			return NDer6(f, x, NDer6_h, error);
+			return NDer6(f, x, ScaleStep(NDer6_h, x), error);
 		}
 		static Real NDer6(const IRealFunction& f, Real x)
 		{
-			// Error bound ~eps^6/7
-			// Error: h^6f^(7)(x)/140 + 5|f(x)|eps/h
-			return NDer6(f, x, NDer6_h, nullptr);
+			return NDer6(f, x, ScaleStep(NDer6_h, x), nullptr);
 		}
 
-		static Real NDer6Left(const IRealFunction& f, Real x, Real* error = nullptr) { return NDer6(f, x - 5 * NDer6_h, NDer6_h, error); }
-		static Real NDer6Right(const IRealFunction& f, Real x, Real* error = nullptr) { return NDer6(f, x + 5 * NDer6_h, NDer6_h, error); }
+		static Real NDer6Left(const IRealFunction& f, Real x, Real* error = nullptr) { Real h = ScaleStep(NDer6_h, x); return NDer6(f, x - 5 * h, h, error); }
+		static Real NDer6Right(const IRealFunction& f, Real x, Real* error = nullptr) { Real h = ScaleStep(NDer6_h, x); return NDer6(f, x + 5 * h, h, error); }
 		static Real NDer6Left(const IRealFunction& f, Real x, Real h, Real* error = nullptr) { return NDer6(f, x - 5 * h, h, error); }
 		static Real NDer6Right(const IRealFunction& f, Real x, Real h, Real* error = nullptr) { return NDer6(f, x + 5 * h, h, error); }
 
@@ -232,22 +219,15 @@ namespace MML
 		}
 		static Real NDer8(const IRealFunction& f, Real x, Real* error)
 		{
-			// Error bound ~eps^8/9.
-			// In Real precision, we only expect to lose two digits of precision while using this formula, at the cost of 8 function evaluations.
-			// Error: h^8|f^(9)(x)|/630 + 7|f(x)|eps/h assuming 7 unstabilized additions.
-			// Mathematica code to get the error:
-			// Series[(f[x+h]-f[x-h])*(4/5) + (1/5)*(f[x-2*h] - f[x+2*h]) + (4/105)*(f[x+3*h] - f[x-3*h]) + (1/280)*(f[x-4*h] - f[x+4*h]), {h, 0, 9}]
-			// If we used Kahan summation, we could get the max error down to h^8|f^(9)(x)|/630 + |f(x)|eps/h.
-
-			return NDer8(f, x, NDer8_h, error);
+			return NDer8(f, x, ScaleStep(NDer8_h, x), error);
 		}
 		static Real NDer8(const IRealFunction& f, Real x)
 		{
-			return NDer8(f, x, NDer8_h, nullptr);
+			return NDer8(f, x, ScaleStep(NDer8_h, x), nullptr);
 		}
 
-		static Real NDer8Left(const IRealFunction& f, Real x, Real* error = nullptr) { return NDer8(f, x - 6 * NDer8_h, NDer8_h, error); }
-		static Real NDer8Right(const IRealFunction& f, Real x, Real* error = nullptr) { return NDer8(f, x + 6 * NDer8_h, NDer8_h, error); }
+		static Real NDer8Left(const IRealFunction& f, Real x, Real* error = nullptr) { Real h = ScaleStep(NDer8_h, x); return NDer8(f, x - 6 * h, h, error); }
+		static Real NDer8Right(const IRealFunction& f, Real x, Real* error = nullptr) { Real h = ScaleStep(NDer8_h, x); return NDer8(f, x + 6 * h, h, error); }
 		static Real NDer8Left(const IRealFunction& f, Real x, Real h, Real* error = nullptr) { return NDer8(f, x - 6 * h, h, error); }
 		static Real NDer8Right(const IRealFunction& f, Real x, Real h, Real* error = nullptr) { return NDer8(f, x + 6 * h, h, error); }
 
@@ -284,7 +264,7 @@ namespace MML
 		}
 		static Real NSecDer2(const IRealFunction& f, Real x, Real* error = nullptr)
 		{
-			return NSecDer2(f, x, NDer2_h, error);
+			return NSecDer2(f, x, ScaleStep(NDer2_h, x), error);
 		}
 
 		// f''(x) ≈ [-f(x-2h) + 16f(x-h) - 30f(x) + 16f(x+h) - f(x+2h)] / (12h²)
@@ -316,7 +296,7 @@ namespace MML
 		}
 		static Real NSecDer4(const IRealFunction& f, Real x, Real* error = nullptr)
 		{
-			return NSecDer4(f, x, NDer4_h, error);
+			return NSecDer4(f, x, ScaleStep(NDer4_h, x), error);
 		}
 
 		/********************************************************************************************************************/
@@ -353,8 +333,7 @@ namespace MML
 		}
 		static Real NThirdDer2(const IRealFunction& f, Real x, Real* error = nullptr)
 		{
-			// Use larger step size for third derivatives (h³ in denominator needs bigger h)
-			return NThirdDer2(f, x, NDer4_h, error);
+			return NThirdDer2(f, x, ScaleStep(NDer4_h, x), error);
 		}
 
 		// f'''(x) ≈ [f(x-3h) - 8f(x-2h) + 13f(x-h) - 13f(x+h) + 8f(x+2h) - f(x+3h)] / (8h³)
@@ -387,7 +366,7 @@ namespace MML
 		}
 		static Real NThirdDer4(const IRealFunction& f, Real x, Real* error = nullptr)
 		{
-			return NThirdDer4(f, x, NDer4_h, error);
+			return NThirdDer4(f, x, ScaleStep(NDer4_h, x), error);
 		}
 
 		/********************************************************************************************************************/

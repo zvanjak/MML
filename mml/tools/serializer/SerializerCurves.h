@@ -48,8 +48,9 @@ namespace MML
 					return headerResult;
 
 				Real delta = (t2 - t1) / (numPoints - 1);
-				for (Real t = t1; t <= t2; t += delta)
+				for (int n = 0; n < numPoints; n++)
 				{
+					Real t = t1 + n * delta;
 					file << t << " ";
 					for (int i = 0; i < N; i++)
 						file << f(t)[i] << " ";

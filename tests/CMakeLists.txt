@@ -3,8 +3,9 @@ project(MML_Tests VERSION 1.0)
 # Catch2 v3 is fetched in root CMakeLists.txt via FetchContent
 
 # =============================================================================
-# MML Core Tests
+# MML Core Tests - Tests for the core MML library only
 # =============================================================================
+# Package tests are now in mml_packages/tests/CMakeLists.txt (MML_Packages_Tests)
 
 ###############################################################################
 # BASE TESTS - Fundamental data structures and utilities
@@ -193,8 +194,10 @@ add_executable(MML_Tests
     ${INFRASTRUCTURE_TESTS}
 )
 
+# Link against Catch2WithMain and MML_Packages for includes
 target_link_libraries(MML_Tests PRIVATE 
     Catch2::Catch2WithMain
+    MML_Packages
 )
 
 target_include_directories(MML_Tests PRIVATE 
@@ -209,15 +212,13 @@ if(MSVC)
     target_compile_options(MML_Tests PRIVATE /FS)
 endif()
 
-# NOTE: PCH for catch2 disabled - caused test executable to hang at startup on CI
-# target_precompile_headers(MML_Tests PRIVATE <catch2/catch_all.hpp>)
-
-# Register test executable with CTest directly (simple, no discovery overhead)
-add_test(NAME MML_Tests 
-    COMMAND MML_Tests --reporter compact
+# Use catch_discover_tests for better CTest integration
+# Label allows filtering: ctest -L core -j8
+include(Catch)
+catch_discover_tests(MML_Tests 
+    PROPERTIES LABELS "core"
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
-set_tests_properties(MML_Tests PROPERTIES LABELS "core" TIMEOUT 600)
 
 # ============================================================================
 # Single Header Test - DISABLED pending generator fixes

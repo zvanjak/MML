@@ -64,7 +64,7 @@ TEST_CASE("IntegrateAdaptive2D - exponential exp(x+y)", "[adaptive][integration]
     
     auto result = IntegrateAdaptive2D(f, 0.0, 1.0, 0.0, 1.0, 1e-8);
     
-    REQUIRE_THAT(result.value, WithinRel(expected, 1e-7));
+    REQUIRE_THAT(result.value, WithinRel((double)expected, 1e-7));
     REQUIRE(result.converged);
     INFO("Expected: " << expected << ", Got: " << result.value);
 }
@@ -118,7 +118,7 @@ TEST_CASE("IntegrateAdaptive2D - Gaussian peak (adaptive advantage)", "[adaptive
     auto result = IntegrateAdaptive2D(f, 0.0, 1.0, 0.0, 1.0, 1e-6);
     
     // The integral should be close to π/100 (with some truncation error at boundaries)
-    REQUIRE_THAT(result.value, WithinRel(expected, 0.01));  // 1% tolerance
+    REQUIRE_THAT(result.value, WithinRel((double)expected, 0.01));  // 1% tolerance
     INFO("Expected: " << expected << ", Got: " << result.value);
     INFO("Function evaluations: " << result.function_evaluations);
     INFO("Cells subdivided: " << result.cells_subdivided);
@@ -199,7 +199,7 @@ TEST_CASE("IntegrateAdaptive2D - error estimation reliability", "[adaptive][inte
         { 0.25, [](Real x, Real y) { return x * y; } },
         { 2.0/3.0, [](Real x, Real y) { return x*x + y*y; } },
         { 1.0, [](Real x, Real y) { return x + y; } },
-        { (std::exp(1.0) - 1.0) * (std::exp(1.0) - 1.0), 
+        { static_cast<Real>((std::exp(1.0) - 1.0) * (std::exp(1.0) - 1.0)), 
           [](Real x, Real y) { return std::exp(x + y); } },
     };
     
@@ -270,7 +270,7 @@ TEST_CASE("IntegrateAdaptive3D - exponential exp(x+y+z)", "[adaptive][integratio
     
     auto result = IntegrateAdaptive3D(f, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 1e-6);
     
-    REQUIRE_THAT(result.value, WithinRel(expected, 1e-4));
+    REQUIRE_THAT(result.value, WithinRel((double)expected, 1e-4));
     REQUIRE(result.converged);
     INFO("Expected: " << expected << ", Got: " << result.value);
 }
@@ -313,7 +313,7 @@ TEST_CASE("IntegrateAdaptive3D - Gaussian peak (adaptive advantage)", "[adaptive
     
     auto result = IntegrateAdaptive3D(f, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 1e-4);
     
-    REQUIRE_THAT(result.value, WithinRel(expected, 0.10));  // 10% tolerance for sharp peak
+    REQUIRE_THAT(result.value, WithinRel((double)expected, 0.10));  // 10% tolerance for sharp peak
     INFO("Expected: " << expected << ", Got: " << result.value);
     INFO("Function evaluations: " << result.function_evaluations);
     INFO("Cells subdivided: " << result.cells_subdivided);
@@ -397,7 +397,7 @@ TEST_CASE("IntegrateAdaptive3D - error estimation reliability", "[adaptive][inte
         { 0.125, [](Real x, Real y, Real z) { return x * y * z; } },
         { 1.0, [](Real x, Real y, Real z) { return x*x + y*y + z*z; } },
         { 1.5, [](Real x, Real y, Real z) { return x + y + z; } },
-        { std::pow(std::exp(1.0) - 1.0, 3), 
+        { static_cast<Real>(std::pow(std::exp(1.0) - 1.0, 3)), 
           [](Real x, Real y, Real z) { return std::exp(x + y + z); } },
     };
     
@@ -438,7 +438,7 @@ TEST_CASE("IntegrateAdaptive2D - weak singularity 1/sqrt(x)", "[adaptive][integr
     
     auto result = IntegrateAdaptive2D(f, epsilon, 1.0, 0.0, 1.0, 1e-4);
     
-    REQUIRE_THAT(result.value, WithinRel(expected, 0.02));  // 2% tolerance for singularity
+    REQUIRE_THAT(result.value, WithinRel((double)expected, 0.02));  // 2% tolerance for singularity
     INFO("Expected: " << expected << ", Got: " << result.value);
     INFO("Function evaluations: " << result.function_evaluations);
 }
@@ -475,7 +475,7 @@ TEST_CASE("IntegrateAdaptive3D - weak singularity 1/sqrt(x)", "[adaptive][integr
     
     auto result = IntegrateAdaptive3D(f, epsilon, 1.0, 0.0, 1.0, 0.0, 1.0, 1e-3);
     
-    REQUIRE_THAT(result.value, WithinRel(expected, 0.02));  // 2% tolerance
+    REQUIRE_THAT(result.value, WithinRel((double)expected, 0.02));  // 2% tolerance
     INFO("Expected: " << expected << ", Got: " << result.value);
 }
 
@@ -523,7 +523,7 @@ TEST_CASE("IntegrateAdaptive3D - divergence theorem (radial field)", "[adaptive]
     auto result = IntegrateAdaptive3D(f, -1.0, 1.0, -1.0, 1.0, -1.0, 1.0, 1e-3);
     
     // Discontinuous indicator function is challenging - use looser tolerance
-    REQUIRE_THAT(result.value, WithinRel(expected, 0.05));  // 5% tolerance
+    REQUIRE_THAT(result.value, WithinRel((double)expected, 0.05));  // 5% tolerance
     INFO("Expected 4π ≈ " << expected << ", Got: " << result.value);
     INFO("Function evaluations: " << result.function_evaluations);
 }
@@ -544,7 +544,7 @@ TEST_CASE("IntegrateAdaptive2D - Green's theorem area formula", "[adaptive][inte
     
     auto result = IntegrateAdaptive2D(f, -1.0, 1.0, -1.0, 1.0, 1e-3);
     
-    REQUIRE_THAT(result.value, WithinRel(expected, 0.02));  // 2% for discontinuous
+    REQUIRE_THAT(result.value, WithinRel((double)expected, 0.02));  // 2% for discontinuous
     INFO("Expected π ≈ " << expected << ", Got: " << result.value);
 }
 
@@ -559,7 +559,7 @@ TEST_CASE("IntegrateAdaptive3D - sphere volume 4pi/3", "[adaptive][integration][
     
     auto result = IntegrateAdaptive3D(sphere_indicator, -1.0, 1.0, -1.0, 1.0, -1.0, 1.0, 1e-3);
     
-    REQUIRE_THAT(result.value, WithinRel(expected, 0.03));  // 3% for indicator
+    REQUIRE_THAT(result.value, WithinRel((double)expected, 0.03));  // 3% for indicator
     INFO("Expected 4π/3 ≈ " << expected << ", Got: " << result.value);
 }
 

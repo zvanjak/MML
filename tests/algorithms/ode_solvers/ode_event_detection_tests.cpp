@@ -222,14 +222,14 @@ namespace MML::Tests::Algorithms::ODEEventDetectionTests
 			
 			// For free fall from h=10: t = sqrt(2h/g) ≈ 1.428 s
 			Real expectedTime = std::sqrt(2.0 * 10.0 / 9.81);
-			REQUIRE_THAT(firstEvent.time, WithinRel(expectedTime, 1e-4));
+			REQUIRE_THAT(firstEvent.time, WithinRel((double)expectedTime, 1e-4));
 			
 			// Position should be at ground (≈ 0)
 			REQUIRE_THAT(firstEvent.state[0], WithinAbs(0.0, 1e-10));
 			
 			// Velocity should be ≈ sqrt(2gh) = 14.0 m/s downward
 			Real expectedVelocity = -std::sqrt(2.0 * 9.81 * 10.0);
-			REQUIRE_THAT(firstEvent.state[1], WithinRel(expectedVelocity, 1e-4));
+			REQUIRE_THAT(firstEvent.state[1], WithinRel((double)expectedVelocity, 1e-4));
 			
 			// Direction should be decreasing
 			REQUIRE(firstEvent.direction == EventDirection::Decreasing);
@@ -312,12 +312,12 @@ namespace MML::Tests::Algorithms::ODEEventDetectionTests
 		
 		SECTION("Termination time is accurate") {
 			Real expectedTime = -std::log(threshold);  // ln(10) ≈ 2.303
-			REQUIRE_THAT(result.events[0].time, WithinRel(expectedTime, 1e-4));
-			REQUIRE_THAT(result.finalTime, WithinRel(expectedTime, 1e-4));
+			REQUIRE_THAT(result.events[0].time, WithinRel((double)expectedTime, 1e-4));
+			REQUIRE_THAT(result.finalTime, WithinRel((double)expectedTime, 1e-4));
 		}
 		
 		SECTION("State at termination") {
-			REQUIRE_THAT(result.finalState[0], WithinRel(threshold, 1e-4));
+			REQUIRE_THAT(result.finalState[0], WithinRel((double)threshold, 1e-4));
 		}
 	}
 
@@ -362,7 +362,7 @@ namespace MML::Tests::Algorithms::ODEEventDetectionTests
 			
 			// Flight time: t = 2 * v0 * sin(angle) / g
 			Real expectedFlightTime = 2.0 * v0 * std::sin(angle) / g;
-			REQUIRE_THAT(lastEvent.time, WithinRel(expectedFlightTime, 1e-3));
+			REQUIRE_THAT(lastEvent.time, WithinRel((double)expectedFlightTime, 1e-3));
 		}
 	}
 

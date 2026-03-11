@@ -204,8 +204,8 @@ namespace MML::Tests::Base::BaseUtilsTests
 		auto c = Utils::VectorProjectionParallelTo(a, b);
 
 		REQUIRE(2 == c.size());
-		REQUIRE_THAT(REAL(6.6), WithinAbs(c[0], REAL(1e-15)));
-		REQUIRE_THAT(REAL(8.8), WithinAbs(c[1], REAL(1e-15)));
+		REQUIRE_THAT(REAL(1.32), WithinAbs(c[0], REAL(1e-14)));
+		REQUIRE_THAT(REAL(1.76), WithinAbs(c[1], REAL(1e-14)));
 	}
 	TEST_CASE("BaseUtils::VectorProjectionPerpendicularTo", "[simple]")
 	{
@@ -216,8 +216,8 @@ namespace MML::Tests::Base::BaseUtilsTests
 		auto c = Utils::VectorProjectionPerpendicularTo(a, b);
 
 		REQUIRE(2 == c.size());
-		REQUIRE_THAT(-REAL(5.6), WithinAbs(c[0], REAL(1e-15)));
-		REQUIRE_THAT(-REAL(6.8), WithinAbs(c[1], REAL(1e-15)));
+		REQUIRE_THAT(-REAL(0.32), WithinAbs(c[0], REAL(1e-14)));
+		REQUIRE_THAT(REAL(0.24), WithinAbs(c[1], REAL(1e-14)));
 	}
 	TEST_CASE("BaseUtils::VectorScalarProductReal", "[simple]")
 	{

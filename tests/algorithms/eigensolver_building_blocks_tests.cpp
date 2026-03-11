@@ -507,7 +507,7 @@ TEST_CASE("DoubleShift - Converges on complex eigenvalue matrix", "[eigensolver]
     REQUIRE(iters <= 50);
     
     // Matrix should still be upper Hessenberg
-    REQUIRE(Utils::IsUpperHessenberg(Hcopy, 1e-6));
+    REQUIRE(Utils::IsUpperHessenberg(Hcopy, Real(1e-6)));
 }
 
 TEST_CASE("DoubleShift - 2x2 complex block extraction", "[eigensolver][building-block][doubleshift]")

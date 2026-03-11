@@ -245,12 +245,12 @@ public:
 		Real deltaMax = std::max(dx, dy);
 		
 		// Ensure deltaMax is large enough for numerical stability
-		deltaMax = std::max(deltaMax, std::max(std::abs(minX), std::abs(minY)) * 1e-10);
-		deltaMax = std::max(deltaMax, std::max(std::abs(maxX), std::abs(maxY)) * 1e-10);
-		deltaMax = std::max(deltaMax, 1e-10);  // Absolute minimum
+		deltaMax = std::max<Real>(deltaMax, std::max<Real>(std::abs(minX), std::abs(minY)) * Real(1e-10));
+		deltaMax = std::max<Real>(deltaMax, std::max<Real>(std::abs(maxX), std::abs(maxY)) * Real(1e-10));
+		deltaMax = std::max<Real>(deltaMax, Real(1e-10));  // Absolute minimum
 		
-		Real midX = (minX + maxX) / 2.0;
-		Real midY = (minY + maxY) / 2.0;
+		Real midX = (minX + maxX) / Real(2.0);
+		Real midY = (minY + maxY) / Real(2.0);
 
 		// Super-triangle vertices in CCW order (very large to contain all points)
 		Point2Cartesian st1(midX - 20 * deltaMax, midY - deltaMax);

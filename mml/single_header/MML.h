@@ -1106,13 +1106,12 @@ namespace MML
 
     // 2. Try to find project root by looking for characteristic directories
     std::filesystem::path current = std::filesystem::current_path();
-    std::filesystem::path prev;
-    while (current != prev && current.has_parent_path()) {
+    while (current.has_parent_path()) {
       if (std::filesystem::exists(current / "mml") &&
+          std::filesystem::exists(current / "results") &&
           std::filesystem::exists(current / "tools")) {
         return current.string();
       }
-      prev = current;
       current = current.parent_path();
     }
 
@@ -12728,10 +12727,10 @@ namespace MML
 
 			for (int i = 1; i <= n; i++)
 			{
+				fact *= (double)i;
 				ret += a_pow_n / fact;
 
 				a_pow_n = a_pow_n * a;
-				fact *= (double)i;
 			}
 
 			return ret;

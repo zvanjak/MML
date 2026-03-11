@@ -262,31 +262,34 @@ namespace RKCoeff {
 	//                    COMPILE-TIME CONSISTENCY CHECKS
 	//=============================================================================
 
+	// Precision-dependent tolerance: float has ~7 digits, double has ~15
+	constexpr Real RK_COEFF_TOL = sizeof(Real) >= 8 ? Real(1e-14) : Real(1e-5);
+
 	// Verify row sums for consistency (sum of a[i][j] should equal c[i])
 	// These are fundamental Butcher tableau consistency conditions
 
 	// Cash-Karp row sum checks
-	static_assert(cabs(CashKarp5::a21 - CashKarp5::c2) < 1e-14, "CK5: row 2 sum != c2");
-	static_assert(cabs(CashKarp5::a31 + CashKarp5::a32 - CashKarp5::c3) < 1e-14, "CK5: row 3 sum != c3");
-	static_assert(cabs(CashKarp5::a41 + CashKarp5::a42 + CashKarp5::a43 - CashKarp5::c4) < 1e-14, "CK5: row 4 sum != c4");
-	static_assert(cabs(CashKarp5::a51 + CashKarp5::a52 + CashKarp5::a53 + CashKarp5::a54 - CashKarp5::c5) < 1e-14, "CK5: row 5 sum != c5");
-	static_assert(cabs(CashKarp5::a61 + CashKarp5::a62 + CashKarp5::a63 + CashKarp5::a64 + CashKarp5::a65 - CashKarp5::c6) < 1e-14, "CK5: row 6 sum != c6");
+	static_assert(cabs(CashKarp5::a21 - CashKarp5::c2) < RK_COEFF_TOL, "CK5: row 2 sum != c2");
+	static_assert(cabs(CashKarp5::a31 + CashKarp5::a32 - CashKarp5::c3) < RK_COEFF_TOL, "CK5: row 3 sum != c3");
+	static_assert(cabs(CashKarp5::a41 + CashKarp5::a42 + CashKarp5::a43 - CashKarp5::c4) < RK_COEFF_TOL, "CK5: row 4 sum != c4");
+	static_assert(cabs(CashKarp5::a51 + CashKarp5::a52 + CashKarp5::a53 + CashKarp5::a54 - CashKarp5::c5) < RK_COEFF_TOL, "CK5: row 5 sum != c5");
+	static_assert(cabs(CashKarp5::a61 + CashKarp5::a62 + CashKarp5::a63 + CashKarp5::a64 + CashKarp5::a65 - CashKarp5::c6) < RK_COEFF_TOL, "CK5: row 6 sum != c6");
 
 	// Verify b weights sum to 1 (required for consistency)
-	static_assert(cabs(CashKarp5::b1 + CashKarp5::b2 + CashKarp5::b3 + CashKarp5::b4 + CashKarp5::b5 + CashKarp5::b6 - 1.0) < 1e-14, "CK5: b weights don't sum to 1");
-	static_assert(cabs(CashKarp5::bstar1 + CashKarp5::bstar2 + CashKarp5::bstar3 + CashKarp5::bstar4 + CashKarp5::bstar5 + CashKarp5::bstar6 - 1.0) < 1e-14, "CK5: bstar weights don't sum to 1");
+	static_assert(cabs(CashKarp5::b1 + CashKarp5::b2 + CashKarp5::b3 + CashKarp5::b4 + CashKarp5::b5 + CashKarp5::b6 - 1.0) < RK_COEFF_TOL, "CK5: b weights don't sum to 1");
+	static_assert(cabs(CashKarp5::bstar1 + CashKarp5::bstar2 + CashKarp5::bstar3 + CashKarp5::bstar4 + CashKarp5::bstar5 + CashKarp5::bstar6 - 1.0) < RK_COEFF_TOL, "CK5: bstar weights don't sum to 1");
 
 	// Dormand-Prince 5 row sum checks
-	static_assert(cabs(DormandPrince5::a21 - DormandPrince5::c2) < 1e-14, "DP5: row 2 sum != c2");
-	static_assert(cabs(DormandPrince5::a31 + DormandPrince5::a32 - DormandPrince5::c3) < 1e-14, "DP5: row 3 sum != c3");
-	static_assert(cabs(DormandPrince5::a41 + DormandPrince5::a42 + DormandPrince5::a43 - DormandPrince5::c4) < 1e-14, "DP5: row 4 sum != c4");
-	static_assert(cabs(DormandPrince5::a51 + DormandPrince5::a52 + DormandPrince5::a53 + DormandPrince5::a54 - DormandPrince5::c5) < 1e-14, "DP5: row 5 sum != c5");
-	static_assert(cabs(DormandPrince5::a61 + DormandPrince5::a62 + DormandPrince5::a63 + DormandPrince5::a64 + DormandPrince5::a65 - DormandPrince5::c6) < 1e-14, "DP5: row 6 sum != c6");
-	static_assert(cabs(DormandPrince5::a71 + DormandPrince5::a72 + DormandPrince5::a73 + DormandPrince5::a74 + DormandPrince5::a75 + DormandPrince5::a76 - DormandPrince5::c7) < 1e-14, "DP5: row 7 sum != c7");
+	static_assert(cabs(DormandPrince5::a21 - DormandPrince5::c2) < RK_COEFF_TOL, "DP5: row 2 sum != c2");
+	static_assert(cabs(DormandPrince5::a31 + DormandPrince5::a32 - DormandPrince5::c3) < RK_COEFF_TOL, "DP5: row 3 sum != c3");
+	static_assert(cabs(DormandPrince5::a41 + DormandPrince5::a42 + DormandPrince5::a43 - DormandPrince5::c4) < RK_COEFF_TOL, "DP5: row 4 sum != c4");
+	static_assert(cabs(DormandPrince5::a51 + DormandPrince5::a52 + DormandPrince5::a53 + DormandPrince5::a54 - DormandPrince5::c5) < RK_COEFF_TOL, "DP5: row 5 sum != c5");
+	static_assert(cabs(DormandPrince5::a61 + DormandPrince5::a62 + DormandPrince5::a63 + DormandPrince5::a64 + DormandPrince5::a65 - DormandPrince5::c6) < RK_COEFF_TOL, "DP5: row 6 sum != c6");
+	static_assert(cabs(DormandPrince5::a71 + DormandPrince5::a72 + DormandPrince5::a73 + DormandPrince5::a74 + DormandPrince5::a75 + DormandPrince5::a76 - DormandPrince5::c7) < RK_COEFF_TOL, "DP5: row 7 sum != c7");
 
 	// Verify b weights sum to 1
-	static_assert(cabs(DormandPrince5::b1 + DormandPrince5::b2 + DormandPrince5::b3 + DormandPrince5::b4 + DormandPrince5::b5 + DormandPrince5::b6 + DormandPrince5::b7 - 1.0) < 1e-14, "DP5: b weights don't sum to 1");
-	static_assert(cabs(DormandPrince5::bstar1 + DormandPrince5::bstar2 + DormandPrince5::bstar3 + DormandPrince5::bstar4 + DormandPrince5::bstar5 + DormandPrince5::bstar6 + DormandPrince5::bstar7 - 1.0) < 1e-14, "DP5: bstar weights don't sum to 1");
+	static_assert(cabs(DormandPrince5::b1 + DormandPrince5::b2 + DormandPrince5::b3 + DormandPrince5::b4 + DormandPrince5::b5 + DormandPrince5::b6 + DormandPrince5::b7 - 1.0) < RK_COEFF_TOL, "DP5: b weights don't sum to 1");
+	static_assert(cabs(DormandPrince5::bstar1 + DormandPrince5::bstar2 + DormandPrince5::bstar3 + DormandPrince5::bstar4 + DormandPrince5::bstar5 + DormandPrince5::bstar6 + DormandPrince5::bstar7 - 1.0) < RK_COEFF_TOL, "DP5: bstar weights don't sum to 1");
 
 	// Verify FSAL property: a7x = bx for DP5
 	static_assert(DormandPrince5::a71 == DormandPrince5::b1, "DP5: FSAL violated (a71 != b1)");

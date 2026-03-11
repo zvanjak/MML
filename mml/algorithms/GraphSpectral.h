@@ -77,16 +77,16 @@ namespace MML
 		return (eigenvalues.size() >= 2) ? eigenvalues[1] : 0;
 	}
 
-	/// Compute approximate eigenvalues of the Laplacian matrix
-	/// @warning APPROXIMATE! Returns diagonal elements as estimate, not true eigenvalues.
-	///          For exact eigenvalues, use LaplacianEigenvalues() instead.
-	/// Complexity: O(V) for this approximation (O(V^3) for exact decomposition)
-	/// @see LaplacianEigenvalues() for exact computation using Jacobi iteration
+	/// Compute degree sequence from the Laplacian matrix diagonal
+	/// @note Returns vertex degrees (diagonal of Laplacian), NOT eigenvalue approximations.
+	///       For actual eigenvalues, use LaplacianEigenvalues() instead.
+	/// Complexity: O(V)
+	/// @see LaplacianEigenvalues() for exact eigenvalue computation using Jacobi iteration
 	///
 	/// @param graph  The graph
-	/// @return Vector of approximate eigenvalues in ascending order
+	/// @return Vector of vertex degrees in ascending order
 	template<typename V, typename E>
-	std::vector<Real> LaplacianEigenvaluesApprox(const Graph<V, E>& graph)
+	std::vector<Real> LaplacianDegreeSequence(const Graph<V, E>& graph)
 	{
 		size_t n = graph.numVertices();
 		if (n == 0)
@@ -108,16 +108,16 @@ namespace MML
 		return eigenvalues;
 	}
 
-	/// Compute approximate algebraic connectivity (Fiedler value estimate)
-	/// @warning APPROXIMATE! Uses Cheeger-like bound instead of true λ₂ computation.
-	///          For exact algebraic connectivity, use AlgebraicConnectivity() instead.
-	/// Complexity: O(V) for this approximation (O(V^3) for exact decomposition)
+	/// Compute lower bound on algebraic connectivity using Cheeger-like inequality
+	/// @note Returns a lower bound, not the exact Fiedler value.
+	///       For exact algebraic connectivity, use AlgebraicConnectivity() instead.
+	/// Complexity: O(V)
 	/// @see AlgebraicConnectivity() for exact computation using Jacobi iteration
 	///
 	/// @param graph  The graph (should be connected for meaningful results)
-	/// @return Approximate algebraic connectivity (0 if graph is disconnected)
+	/// @return Lower bound on algebraic connectivity (0 if graph is disconnected)
 	template<typename V, typename E>
-	Real AlgebraicConnectivityApprox(const Graph<V, E>& graph)
+	Real AlgebraicConnectivityBound(const Graph<V, E>& graph)
 	{
 		size_t n = graph.numVertices();
 		if (n <= 1)

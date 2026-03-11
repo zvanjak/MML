@@ -16,6 +16,8 @@
 
 #include "core/CoordTransf.h"
 
+#include <algorithm>
+
 
 namespace MML
 {
@@ -79,7 +81,11 @@ namespace MML
 		/// @brief Convert Cartesian to spherical radial distance
 		static Real r(const VectorN<Real, 3>& q)		 { return sqrt(q[0]*q[0] + q[1]*q[1] + q[2]*q[2]); }
 		/// @brief Convert Cartesian to spherical polar angle (inclination from z-axis)
-		static Real theta(const VectorN<Real, 3>& q) { return acos(q[2] / sqrt(q[0]*q[0] + q[1]*q[1] + q[2]*q[2])); }
+		static Real theta(const VectorN<Real, 3>& q) {
+			Real r = sqrt(q[0]*q[0] + q[1]*q[1] + q[2]*q[2]);
+			if (r < std::numeric_limits<Real>::epsilon() * 100) return Real(0);
+			return acos(std::clamp(q[2] / r, Real(-1), Real(1)));
+		}
 		/// @brief Convert Cartesian to spherical azimuthal angle
 		static Real phi(const VectorN<Real, 3>& q)	 { return atan2(q[1], q[0]); }
 
@@ -185,7 +191,11 @@ namespace MML
 		/// @brief Convert Cartesian to spherical radial distance
 		static Real r(const VectorN<Real, 3>& q) { return sqrt(q[0] * q[0] + q[1] * q[1] + q[2] * q[2]); }
 		/// @brief Convert Cartesian to spherical polar angle
-		static Real theta(const VectorN<Real, 3>& q) { return acos(q[2] / sqrt(q[0] * q[0] + q[1] * q[1] + q[2] * q[2])); }
+		static Real theta(const VectorN<Real, 3>& q) {
+			Real r = sqrt(q[0] * q[0] + q[1] * q[1] + q[2] * q[2]);
+			if (r < std::numeric_limits<Real>::epsilon() * 100) return Real(0);
+			return acos(std::clamp(q[2] / r, Real(-1), Real(1)));
+		}
 		/// @brief Convert Cartesian to spherical azimuthal angle
 		static Real phi(const VectorN<Real, 3>& q) { return atan2(q[1], q[0]); }
 

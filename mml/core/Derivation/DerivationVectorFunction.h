@@ -53,7 +53,7 @@ namespace MML
 		static Real NDer1Partial(const IVectorFunction<N>& f, int func_index, int deriv_index, 
 														 const VectorN<Real, N>& point, Real* error = nullptr)
 		{
-			return NDer1Partial(f, func_index, deriv_index, point, NDer1_h, error);
+			return NDer1Partial(f, func_index, deriv_index, point, ScaleStep(NDer1_h, point[deriv_index]), error);
 		}
 
 		template <int N>
@@ -77,7 +77,15 @@ namespace MML
 		static VectorN<Real, N> NDer1PartialByAll(const IVectorFunction<N>& f, int func_index, 
 																							const VectorN<Real, N>& point, VectorN<Real, N>* error = nullptr)
 		{
-			return NDer1PartialByAll(f, func_index, point, NDer1_h, error);
+			VectorN<Real, N> ret;
+			for (int i = 0; i < N; i++)
+			{
+				if (error)
+					ret[i] = NDer1Partial(f, func_index, i, point, &(*error)[i]);
+				else
+					ret[i] = NDer1Partial(f, func_index, i, point);
+			}
+			return ret;
 		}
 
 		template <int N>
@@ -102,7 +110,16 @@ namespace MML
 		static MatrixNM<Real, N, N> NDer1PartialAllByAll(const IVectorFunction<N>& f, const VectorN<Real, N>& point, 
 																										 MatrixNM<Real, N, N>* error = nullptr)
 		{
-			return NDer1PartialAllByAll(f, point, NDer1_h, error);
+			MatrixNM<Real, N, N> ret;
+			for (int i = 0; i < N; i++)
+				for (int j = 0; j < N; j++)
+				{
+					if (error)
+						ret(i, j) = NDer1Partial(f, i, j, point, &((*error)(i, j)));
+					else
+						ret(i, j) = NDer1Partial(f, i, j, point);
+				}
+			return ret;
 		}
 
 		/********************************************************************************************************************/
@@ -140,7 +157,7 @@ namespace MML
 		template <int N>
 		static Real NDer2Partial(const IVectorFunction<N>& f, int func_index, int deriv_index, const VectorN<Real, N>& point, Real* error = nullptr)
 		{
-			return NDer2Partial(f, func_index, deriv_index, point, NDer2_h, error);
+			return NDer2Partial(f, func_index, deriv_index, point, ScaleStep(NDer2_h, point[deriv_index]), error);
 		}
 
 		template <int N>
@@ -162,7 +179,15 @@ namespace MML
 		template <int N>
 		static VectorN<Real, N> NDer2PartialByAll(const IVectorFunction<N>& f, int func_index, const VectorN<Real, N>& point, VectorN<Real, N>* error = nullptr)
 		{
-			return NDer2PartialByAll(f, func_index, point, NDer2_h, error);
+			VectorN<Real, N> ret;
+			for (int i = 0; i < N; i++)
+			{
+				if (error)
+					ret[i] = NDer2Partial(f, func_index, i, point, &(*error)[i]);
+				else
+					ret[i] = NDer2Partial(f, func_index, i, point);
+			}
+			return ret;
 		}
 
 		template <int N>
@@ -185,7 +210,16 @@ namespace MML
 		template <int N>
 		static MatrixNM<Real, N, N> NDer2PartialAllByAll(const IVectorFunction<N>& f, const VectorN<Real, N>& point, MatrixNM<Real, N, N>* error = nullptr)
 		{
-			return NDer2PartialAllByAll(f, point, NDer2_h, error);
+			MatrixNM<Real, N, N> ret;
+			for (int i = 0; i < N; i++)
+				for (int j = 0; j < N; j++)
+				{
+					if (error)
+						ret(i, j) = NDer2Partial(f, i, j, point, &((*error)(i, j)));
+					else
+						ret(i, j) = NDer2Partial(f, i, j, point);
+				}
+			return ret;
 		}
 
 		/********************************************************************************************************************/
@@ -230,7 +264,7 @@ namespace MML
 		static Real NDer4Partial(const IVectorFunction<N>& f, int func_index, int deriv_index, const VectorN<Real, N>& point, 
 														 Real* error = nullptr)
 		{
-			return NDer4Partial(f, func_index, deriv_index, point, NDer4_h, error);
+			return NDer4Partial(f, func_index, deriv_index, point, ScaleStep(NDer4_h, point[deriv_index]), error);
 		}
 		template <int N>
 		static VectorN<Real, N> NDer4PartialByAll(const IVectorFunction<N>& f, int func_index, const VectorN<Real, N>& point, Real h, 
@@ -252,7 +286,15 @@ namespace MML
 		static VectorN<Real, N> NDer4PartialByAll(const IVectorFunction<N>& f, int func_index, const VectorN<Real, N>& point, 
 																							VectorN<Real, N>* error = nullptr)
 		{
-			return NDer4PartialByAll(f, func_index, point, NDer4_h, error);
+			VectorN<Real, N> ret;
+			for (int i = 0; i < N; i++)
+			{
+				if (error)
+					ret[i] = NDer4Partial(f, func_index, i, point, &(*error)[i]);
+				else
+					ret[i] = NDer4Partial(f, func_index, i, point);
+			}
+			return ret;
 		}
 
 		template <int N>
@@ -276,7 +318,16 @@ namespace MML
 		static MatrixNM<Real, N, N> NDer4PartialAllByAll(const IVectorFunction<N>& f, const VectorN<Real, N>& point, 
 																										 MatrixNM<Real, N, N>* error = nullptr)
 		{
-			return NDer4PartialAllByAll(f, point, NDer4_h, error);
+			MatrixNM<Real, N, N> ret;
+			for (int i = 0; i < N; i++)
+				for (int j = 0; j < N; j++)
+				{
+					if (error)
+						ret(i, j) = NDer4Partial(f, i, j, point, &((*error)(i, j)));
+					else
+						ret(i, j) = NDer4Partial(f, i, j, point);
+				}
+			return ret;
 		}
 
 		/********************************************************************************************************************/
@@ -328,7 +379,7 @@ namespace MML
 		template <int N>
 		static Real NDer6Partial(const IVectorFunction<N>& f, int func_index, int deriv_index, const VectorN<Real, N>& point, Real* error = nullptr)
 		{
-			return NDer6Partial(f, func_index, deriv_index, point, NDer6_h, error);
+			return NDer6Partial(f, func_index, deriv_index, point, ScaleStep(NDer6_h, point[deriv_index]), error);
 		}
 
 		template <int N>
@@ -349,7 +400,15 @@ namespace MML
 		template <int N>
 		static VectorN<Real, N> NDer6PartialByAll(const IVectorFunction<N>& f, int func_index, const VectorN<Real, N>& point, VectorN<Real, N>* error = nullptr)
 		{
-			return NDer6PartialByAll(f, func_index, point, NDer6_h, error);
+			VectorN<Real, N> ret;
+			for (int i = 0; i < N; i++)
+			{
+				if (error)
+					ret[i] = NDer6Partial(f, func_index, i, point, &(*error)[i]);
+				else
+					ret[i] = NDer6Partial(f, func_index, i, point);
+			}
+			return ret;
 		}
 
 		template <int N>
@@ -371,7 +430,16 @@ namespace MML
 		template <int N>
 		static MatrixNM<Real, N, N> NDer6PartialAllByAll(const IVectorFunction<N>& f, const VectorN<Real, N>& point, MatrixNM<Real, N, N>* error = nullptr)
 		{
-			return NDer6PartialAllByAll(f, point, NDer6_h, error);
+			MatrixNM<Real, N, N> ret;
+			for (int i = 0; i < N; i++)
+				for (int j = 0; j < N; j++)
+				{
+					if (error)
+						ret(i, j) = NDer6Partial(f, i, j, point, &((*error)(i, j)));
+					else
+						ret(i, j) = NDer6Partial(f, i, j, point);
+				}
+			return ret;
 		}
 
 		/********************************************************************************************************************/
@@ -434,7 +502,7 @@ namespace MML
 		template <int N>
 		static Real NDer8Partial(const IVectorFunction<N>& f, int func_index, int deriv_index, const VectorN<Real, N>& point, Real* error = nullptr)
 		{
-			return NDer8Partial(f, func_index, deriv_index, point, NDer8_h, error);
+			return NDer8Partial(f, func_index, deriv_index, point, ScaleStep(NDer8_h, point[deriv_index]), error);
 		}
 
 		template <int N>
@@ -456,7 +524,15 @@ namespace MML
 		template <int N>
 		static VectorN<Real, N> NDer8PartialByAll(const IVectorFunction<N>& f, int func_index, const VectorN<Real, N>& point, VectorN<Real, N>* error = nullptr)
 		{
-			return NDer8PartialByAll(f, func_index, point, NDer8_h, error);
+			VectorN<Real, N> ret;
+			for (int i = 0; i < N; i++)
+			{
+				if (error)
+					ret[i] = NDer8Partial(f, func_index, i, point, &(*error)[i]);
+				else
+					ret[i] = NDer8Partial(f, func_index, i, point);
+			}
+			return ret;
 		}
 
 		template <int N>
@@ -479,7 +555,16 @@ namespace MML
 		template <int N>
 		static MatrixNM<Real, N, N> NDer8PartialAllByAll(const IVectorFunction<N>& f, const VectorN<Real, N>& point, MatrixNM<Real, N, N>* error = nullptr)
 		{
-			return NDer8PartialAllByAll(f, point, NDer8_h, error);
+			MatrixNM<Real, N, N> ret;
+			for (int i = 0; i < N; i++)
+				for (int j = 0; j < N; j++)
+				{
+					if (error)
+						ret(i, j) = NDer8Partial(f, i, j, point, &((*error)(i, j)));
+					else
+						ret(i, j) = NDer8Partial(f, i, j, point);
+				}
+			return ret;
 		}
 
 		/********************************************************************************************************************/

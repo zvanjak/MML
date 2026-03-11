@@ -303,8 +303,8 @@ TEST_CASE("Gauss-Kronrod edge cases", "[gauss-kronrod][integration]")
 	SECTION("Large interval")
 	{
 		// ∫₀^100 sin(x)/x dx (converges slowly)
-		auto f = [](Real x) { 
-			if (std::abs(x) < 1e-10) return 1.0;  // sinc(0) = 1
+		auto f = [](Real x) -> Real { 
+			if (std::abs(x) < Real(1e-10)) return Real(1.0);  // sinc(0) = 1
 			return std::sin(x) / x; 
 		};
 		auto result = IntegrateGKAdaptive(f, 0.001, 100.0, 1e-6, 1e-6);

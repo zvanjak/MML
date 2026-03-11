@@ -92,7 +92,7 @@ namespace MML
 			Real eps = std::sqrt(std::numeric_limits<Real>::epsilon());
 
 			for (int j = 0; j < n; ++j) {
-				Real h = eps * std::max(std::abs(x[j]), 1.0);
+				Real h = eps * std::max<Real>(std::abs(x[j]), Real(1.0));
 				xp[j] = x[j] + h;
 				derivs(t, xp, f1);
 				xp[j] = x[j] - h;

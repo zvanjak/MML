@@ -373,7 +373,7 @@ namespace MML::Tests::Core::InterpolatedFunctionsTests
 
 	TEST_CASE("RationalInterp_smooth_function", "[interpolation][rational]") {
 		// Rational interpolation for a smooth function
-		RealFunction f{ [](Real x) { return 1.0 / (1.0 + x * x); } };  // Runge function
+		RealFunction f([](Real x) -> Real { return Real(1.0) / (Real(1.0) + x * x); });  // Runge function
 
 		Vector<Real> vec_x, vec_y;
 		CreateInterpolatedValues(f, -3.0, 3.0, 15, vec_x, vec_y);
@@ -402,7 +402,7 @@ namespace MML::Tests::Core::InterpolatedFunctionsTests
 
 	TEST_CASE("RationalInterp_handles_near_pole", "[interpolation][rational]") {
 		// Rational interpolation should handle functions with poles better
-		RealFunction f{ [](Real x) { return 1.0 / (x - 2.5); } };
+		RealFunction f([](Real x) -> Real { return Real(1.0) / (x - Real(2.5)); });
 
 		// Sample away from the pole
 		Vector<Real> x{ 0.0, 0.5, 1.0, 1.5, 2.0, 3.0, 3.5, 4.0 };

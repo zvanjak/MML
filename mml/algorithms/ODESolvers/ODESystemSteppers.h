@@ -254,13 +254,13 @@ namespace MML {
 					factor = std::max(MIN_FACTOR, std::min(MAX_FACTOR, factor));
 					result.hNext = h * factor;
 
-					_errOld = std::max(errMax, 1e-4); // Prevent extreme growth
+					_errOld = std::max<Real>(errMax, Real(1e-4)); // Prevent extreme growth
 					break;
 				}
 
 				// Step rejected - reduce h and try again
 				Real factor = SAFETY * std::pow(errMax, -ALPHA);
-				factor = std::max(MIN_FACTOR, factor);
+				factor = std::max<Real>(MIN_FACTOR, factor);
 				h *= factor;
 				_haveFSAL = false;
 
@@ -457,14 +457,14 @@ namespace MML {
 					if (errMax > ERRCON)
 						result.hNext = SAFETY * h * std::pow(errMax, PGROW);
 					else
-						result.hNext = 5.0 * h;
+						result.hNext = Real(5.0) * h;
 
 					break;
 				}
 
 				// Reduce step size
 				Real htemp = SAFETY * h * std::pow(errMax, PSHRINK);
-				h = (h >= 0) ? std::max(htemp, 0.1 * h) : std::min(htemp, 0.1 * h);
+				h = (h >= 0) ? std::max<Real>(htemp, Real(0.1) * h) : std::min<Real>(htemp, Real(0.1) * h);
 
 				if (std::abs(h) < Constants::Eps)
 					throw ODESolverError("Step size underflow in CashKarp_Stepper");
@@ -697,16 +697,16 @@ namespace MML {
 
 					// Step size control for next step
 					Real factor = SAFETY * std::pow(errMax, -ALPHA);
-					factor = std::max(MIN_FACTOR, std::min(MAX_FACTOR, factor));
+					factor = std::max<Real>(MIN_FACTOR, std::min<Real>(MAX_FACTOR, factor));
 					result.hNext = h * factor;
 
-					_errOld = std::max(errMax, 1e-4);
+					_errOld = std::max<Real>(errMax, Real(1e-4));
 					break;
 				}
 
 				// Reduce step size
 				Real factor = SAFETY * std::pow(errMax, -ALPHA);
-				factor = std::max(MIN_FACTOR, factor);
+				factor = std::max<Real>(MIN_FACTOR, factor);
 				h *= factor;
 				_haveFSAL = false;
 
@@ -905,9 +905,9 @@ namespace MML {
 					// Compute scaled error
 					Real errMax = 0.0;
 					for (int i = 0; i < _n; ++i) {
-						Real scale = eps * (std::abs(ysav[i]) + std::abs(yest[i]) + 1e-30);
+						Real scale = eps * (std::abs(ysav[i]) + std::abs(yest[i]) + Real(1e-30));
 						Real errRatio = std::abs(yerr[i]) / scale;
-						errMax = std::max(errMax, errRatio);
+						errMax = std::max<Real>(errMax, errRatio);
 					}
 
 					result.errMax = errMax;
@@ -925,8 +925,8 @@ namespace MML {
 						result.hDone = h;
 
 						// Step size control - be conservative
-						Real factor = 0.9 * std::pow(errMax, -1.0 / (2 * k + 1));
-						factor = std::max(0.1, std::min(factor, 4.0));
+						Real factor = Real(0.9) * std::pow(errMax, Real(-1.0) / (2 * k + 1));
+						factor = std::max<Real>(Real(0.1), std::min<Real>(factor, Real(4.0)));
 						result.hNext = h * factor;
 
 						return result;
@@ -937,8 +937,8 @@ namespace MML {
 			// Failed to converge - reduce step size
 			result.accepted = false;
 			result.hDone = h;
-			result.hNext = h * 0.5;
-			result.errMax = 999.0;
+			result.hNext = h * Real(0.5);
+			result.errMax = Real(999.0);
 
 			return result;
 		}
@@ -1111,9 +1111,9 @@ namespace MML {
 					// Compute scaled error
 					Real errMax = 0.0;
 					for (int i = 0; i < _n; ++i) {
-						Real scale = eps * (std::abs(ysav[i]) + std::abs(yest[i]) + 1e-30);
+						Real scale = eps * (std::abs(ysav[i]) + std::abs(yest[i]) + Real(1e-30));
 						Real errRatio = std::abs(yerr[i]) / scale;
-						errMax = std::max(errMax, errRatio);
+						errMax = std::max<Real>(errMax, errRatio);
 					}
 
 					result.errMax = errMax;
@@ -1131,8 +1131,8 @@ namespace MML {
 						result.hDone = h;
 
 						// Step size control - be conservative
-						Real factor = 0.9 * std::pow(errMax, -1.0 / (2 * k + 1));
-						factor = std::max(0.1, std::min(factor, 4.0));
+						Real factor = Real(0.9) * std::pow(errMax, Real(-1.0) / (2 * k + 1));
+						factor = std::max<Real>(Real(0.1), std::min<Real>(factor, Real(4.0)));
 						result.hNext = h * factor;
 
 						return result;
@@ -1143,8 +1143,8 @@ namespace MML {
 			// Failed to converge - reduce step size
 			result.accepted = false;
 			result.hDone = h;
-			result.hNext = h * 0.5;
-			result.errMax = 999.0;
+			result.hNext = h * Real(0.5);
+			result.errMax = Real(999.0);
 
 			return result;
 		}

@@ -393,13 +393,16 @@ namespace MML
 
 			for (int col = 0; col < cols; ++col)
 			{
+				// Partial pivoting: find row with largest absolute value in this column
 				int pivot_row = -1;
+				Real best = 0;
 				for (int row = 0; row < rows; ++row)
 				{
-					if (!row_selected[row] && std::abs(mat(row, col)) > EPS)
+					Real val = std::abs(mat(row, col));
+					if (!row_selected[row] && val > EPS && val > best)
 					{
+						best = val;
 						pivot_row = row;
-						break;
 					}
 				}
 				if (pivot_row == -1)

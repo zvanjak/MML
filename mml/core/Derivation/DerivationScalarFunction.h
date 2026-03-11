@@ -58,7 +58,7 @@ namespace MML
 		static Real NDer1Partial(const IScalarFunction<N>& f, int deriv_index, const VectorN<Real, N>& point, 
 														 Real* error = nullptr)
 		{
-			return NDer1Partial(f, deriv_index, point, NDer1_h, error);
+			return NDer1Partial(f, deriv_index, point, ScaleStep(NDer1_h, point[deriv_index]), error);
 		}
 		/// @brief Compute all N first-order partial derivatives (gradient components) at once
 		/// @return Vector [∂f/∂x₁, ∂f/∂x₂, ..., ∂f/∂xₙ] (gradient ∇f)
@@ -82,11 +82,16 @@ namespace MML
 		static VectorN<Real, N> NDer1PartialByAll(const IScalarFunction<N>& f, const VectorN<Real, N>& point, 
 																							VectorN<Real, N>* error = nullptr)
 		{
-			return NDer1PartialByAll(f, point, NDer1_h, error);
+			VectorN<Real, N> ret;
+			for (int i = 0; i < N; i++) {
+				if (error)
+					ret[i] = NDer1Partial(f, i, point, &(*error)[i]);
+				else
+					ret[i] = NDer1Partial(f, i, point);
+			}
+			return ret;
 		}
 
-		/********************************************************************************************************************/
-		/********                               Numerical derivatives of SECOND order                                ********/
 		/********************************************************************************************************************/
 		/// @brief Second-order partial derivative ∂f/∂xᵢ using central difference (O(h²) accuracy)
 		/// @note More accurate than 1st order: [f(x+h·eᵢ) - f(x-h·eᵢ)] / (2h)
@@ -120,7 +125,7 @@ namespace MML
 		template <int N>
 		static Real NDer2Partial(const IScalarFunction<N>& f, int deriv_index, const VectorN<Real, N>& point, Real* error = nullptr)
 		{
-			return NDer2Partial(f, deriv_index, point, NDer2_h, error);
+			return NDer2Partial(f, deriv_index, point, ScaleStep(NDer2_h, point[deriv_index]), error);
 		}
 		
 		template <int N>
@@ -141,7 +146,14 @@ namespace MML
 		template <int N>
 		static VectorN<Real, N> NDer2PartialByAll(const IScalarFunction<N>& f, const VectorN<Real, N>& point, VectorN<Real, N>* error = nullptr)
 		{
-			return NDer2PartialByAll(f, point, NDer2_h, error);
+			VectorN<Real, N> ret;
+			for (int i = 0; i < N; i++) {
+				if (error)
+					ret[i] = NDer2Partial(f, i, point, &(*error)[i]);
+				else
+					ret[i] = NDer2Partial(f, i, point);
+			}
+			return ret;
 		}
 		
 		/********************************************************************************************************************/
@@ -188,7 +200,7 @@ namespace MML
 		template <int N>
 		static Real NDer4Partial(const IScalarFunction<N>& f, int deriv_index, const VectorN<Real, N>& point, Real* error = nullptr)
 		{
-			return NDer4Partial(f, deriv_index, point, NDer4_h, error);
+			return NDer4Partial(f, deriv_index, point, ScaleStep(NDer4_h, point[deriv_index]), error);
 		}
 
 		template <int N>
@@ -209,7 +221,14 @@ namespace MML
 		template <int N>
 		static VectorN<Real, N> NDer4PartialByAll(const IScalarFunction<N>& f, const VectorN<Real, N>& point, VectorN<Real, N>* error = nullptr)
 		{
-			return NDer4PartialByAll(f, point, NDer4_h, error);
+			VectorN<Real, N> ret;
+			for (int i = 0; i < N; i++) {
+				if (error)
+					ret[i] = NDer4Partial(f, i, point, &(*error)[i]);
+				else
+					ret[i] = NDer4Partial(f, i, point);
+			}
+			return ret;
 		}
 		
 		/********************************************************************************************************************/
@@ -263,7 +282,7 @@ namespace MML
 		template <int N>
 		static Real NDer6Partial(const IScalarFunction<N>& f, int deriv_index, const VectorN<Real, N>& point, Real* error = nullptr)
 		{
-			return NDer6Partial(f, deriv_index, point, NDer6_h, error);
+			return NDer6Partial(f, deriv_index, point, ScaleStep(NDer6_h, point[deriv_index]), error);
 		}
 
 		template <int N>
@@ -284,7 +303,14 @@ namespace MML
 		template <int N>
 		static VectorN<Real, N> NDer6PartialByAll(const IScalarFunction<N>& f, const VectorN<Real, N>& point, VectorN<Real, N>* error = nullptr)
 		{
-			return NDer6PartialByAll(f, point, NDer6_h, error);
+			VectorN<Real, N> ret;
+			for (int i = 0; i < N; i++) {
+				if (error)
+					ret[i] = NDer6Partial(f, i, point, &(*error)[i]);
+				else
+					ret[i] = NDer6Partial(f, i, point);
+			}
+			return ret;
 		}
 		
 		/********************************************************************************************************************/
@@ -349,7 +375,7 @@ namespace MML
 		template <int N>
 		static Real NDer8Partial(const IScalarFunction<N>& f, int deriv_index, const VectorN<Real, N>& point, Real* error = nullptr)
 		{
-			return NDer8Partial(f, deriv_index, point, NDer8_h, error);
+			return NDer8Partial(f, deriv_index, point, ScaleStep(NDer8_h, point[deriv_index]), error);
 		}
 
 		template <int N>
@@ -370,7 +396,14 @@ namespace MML
 		template <int N>
 		static VectorN<Real, N> NDer8PartialByAll(const IScalarFunction<N>& f, const VectorN<Real, N>& point, VectorN<Real, N>* error = nullptr)
 		{
-			return NDer8PartialByAll(f, point, NDer8_h, error);
+			VectorN<Real, N> ret;
+			for (int i = 0; i < N; i++) {
+				if (error)
+					ret[i] = NDer8Partial(f, i, point, &(*error)[i]);
+				else
+					ret[i] = NDer8Partial(f, i, point);
+			}
+			return ret;
 		}
 		
 		/********************************************************************************************************************/
@@ -463,7 +496,8 @@ namespace MML
 		static Real NSecDer2Partial(const IScalarFunction<N>& f, int der_ind1, int der_ind2, 
 		                            const VectorN<Real, N>& point, Real* error = nullptr)
 		{
-			return NSecDer2Partial(f, der_ind1, der_ind2, point, NDer2_h, error);
+			Real scale = std::max(std::abs(point[der_ind1]), std::abs(point[der_ind2]));
+			return NSecDer2Partial(f, der_ind1, der_ind2, point, NDer2_h * std::max(Real(1), scale), error);
 		}
 
 		/// @brief Fourth-order accurate (O(h⁴)) second partial derivative
@@ -571,7 +605,8 @@ namespace MML
 		static Real NSecDer4Partial(const IScalarFunction<N>& f, int der_ind1, int der_ind2, 
 		                            const VectorN<Real, N>& point, Real* error = nullptr)
 		{
-			return NSecDer4Partial(f, der_ind1, der_ind2, point, NDer4_h, error);
+			Real scale = std::max(std::abs(point[der_ind1]), std::abs(point[der_ind2]));
+			return NSecDer4Partial(f, der_ind1, der_ind2, point, NDer4_h * std::max(Real(1), scale), error);
 		}
 
 		/********************************************************************************************************************/

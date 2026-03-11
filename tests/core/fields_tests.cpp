@@ -412,12 +412,12 @@ TEST_CASE("Fields - Force is negative gradient of potential", "[Fields][Physics]
     // But InverseRadialPotentialForceFieldCart uses F = -r/|r|³ (attractive)
     // This is F = ∇Φ (not -∇Φ), representing attractive force toward origin
     
-    VectorN<Real, 3> x{2.0, 0.0, 0.0};
+    VectorN<Real, 3> x{Real(2.0), Real(0.0), Real(0.0)};
     
     // Numerical gradient of potential (Φ = 1/|r|)
     Real h = 1e-6;
-    VectorN<Real, 3> xph{2.0 + h, 0.0, 0.0};
-    VectorN<Real, 3> xmh{2.0 - h, 0.0, 0.0};
+    VectorN<Real, 3> xph{Real(2.0) + h, Real(0.0), Real(0.0)};
+    VectorN<Real, 3> xmh{Real(2.0) - h, Real(0.0), Real(0.0)};
     Real phi_ph = InverseRadialPotentialFieldCart(xph);
     Real phi_mh = InverseRadialPotentialFieldCart(xmh);
     Real dPhi_dx = (phi_ph - phi_mh) / (2 * h);

@@ -71,7 +71,7 @@ namespace MML
 		static constexpr float SurfaceNormalThreshold = 1e-12f;      // Surface normal magnitude threshold
 		static constexpr float DerivativeStepSize = 1e-6f;           // Default step for numerical derivatives
 		static constexpr float DefaultTolerance = 1e-6f;             // General purpose tolerance
-		static constexpr float DefaultToleranceRelaxed = 1e-8f;      // Relaxed tolerance for geometric tests
+		static constexpr float DefaultToleranceStrict = 1e-8f;        // Strict tolerance for precise geometric tests
 
 		// Algorithm-specific thresholds
 		static constexpr float EigenSolverZeroThreshold = 1e-12f;    // Eigenvalue solver zero detection
@@ -119,7 +119,7 @@ namespace MML
 
 		static constexpr double Plane3DIsPointOnPlaneTolerance = 1e-10;
 
-		static constexpr double Triangle3DIsPointInsideTolerance = 1e-10f;	static constexpr double Triangle3DIsRightTolerance = 1e-10;
+		static constexpr double Triangle3DIsPointInsideTolerance = 1e-10;	static constexpr double Triangle3DIsRightTolerance = 1e-10;
 	static constexpr double Triangle3DIsIsoscelesTolerance = 1e-10;
 	static constexpr double Triangle3DIsEquilateralTolerance = 1e-10;
 		static constexpr double IsMatrixSymmetricTolerance = 1e-10;
@@ -128,7 +128,7 @@ namespace MML
 		static constexpr double IsMatrixZeroTolerance = 1e-10;
 		static constexpr double IsMatrixOrthogonalTolerance = 1e-10;
 
-		static constexpr double RankAlgEPS = 1e-12f;
+		static constexpr double RankAlgEPS = 1e-12;
 
 		// Numerical computation thresholds
 		static constexpr double NumericalZeroThreshold = 1e-12;      // For checking near-zero values
@@ -136,7 +136,7 @@ namespace MML
 		static constexpr double SurfaceNormalThreshold = 1e-12;      // Surface normal magnitude threshold
 		static constexpr double DerivativeStepSize = 1e-6;           // Default step for numerical derivatives
 		static constexpr double DefaultTolerance = 1e-6;             // General purpose tolerance
-		static constexpr double DefaultToleranceRelaxed = 1e-8;      // Relaxed tolerance for geometric tests
+		static constexpr double DefaultToleranceStrict = 1e-8;        // Strict tolerance for precise geometric tests
 
 		// Algorithm-specific thresholds
 		static constexpr double EigenSolverZeroThreshold = 1e-15;    // Eigenvalue solver zero detection
@@ -184,7 +184,7 @@ namespace MML
 
 		static constexpr long double Plane3DIsPointOnPlaneTolerance = 1e-15;
 
-		static constexpr long double Triangle3DIsPointInsideTolerance = 1e-15f;	static constexpr long double Triangle3DIsRightTolerance = 1e-12L;
+		static constexpr long double Triangle3DIsPointInsideTolerance = 1e-15L;	static constexpr long double Triangle3DIsRightTolerance = 1e-12L;
 	static constexpr long double Triangle3DIsIsoscelesTolerance = 1e-12L;
 	static constexpr long double Triangle3DIsEquilateralTolerance = 1e-12L;
 		static constexpr long double IsMatrixSymmetricTolerance = 1e-15;
@@ -193,7 +193,7 @@ namespace MML
 		static constexpr long double IsMatrixZeroTolerance = 1e-15;
 		static constexpr long double IsMatrixOrthogonalTolerance = 1e-15;
 
-		static constexpr long double RankAlgEPS = 1e-13f;
+		static constexpr long double RankAlgEPS = 1e-13L;
 
 		// Numerical computation thresholds
 		static constexpr long double NumericalZeroThreshold = 1e-12L;      // For checking near-zero values
@@ -201,7 +201,7 @@ namespace MML
 		static constexpr long double SurfaceNormalThreshold = 1e-12L;      // Surface normal magnitude threshold
 		static constexpr long double DerivativeStepSize = 1e-6L;           // Default step for numerical derivatives
 		static constexpr long double DefaultTolerance = 1e-6L;             // General purpose tolerance
-		static constexpr long double DefaultToleranceRelaxed = 1e-8L;      // Relaxed tolerance for geometric tests
+		static constexpr long double DefaultToleranceStrict = 1e-8L;        // Strict tolerance for precise geometric tests
 
 		// Algorithm-specific thresholds
 		static constexpr long double EigenSolverZeroThreshold = 1e-18L;    // Eigenvalue solver zero detection

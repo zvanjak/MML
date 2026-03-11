@@ -532,7 +532,7 @@ namespace MML
 				for (Real t = t1 + delta; t < t2; t += delta)
 				{
 					Real len = PathIntegration::ParametricCurveLength(*this, t1, t);
-					if (fabs(len - (t - t1)) > PrecisionValues<Real>::DefaultToleranceRelaxed)
+					if (fabs(len - (t - t1)) > PrecisionValues<Real>::DefaultToleranceStrict)
 						return false;
 				}
 				return true;

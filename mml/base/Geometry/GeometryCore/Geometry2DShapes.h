@@ -474,8 +474,8 @@ namespace MML {
 		Real DiagonalQ() const { return sqrt(_a * _a + _b * _b + 2 * _a * _b * cos(_angle)); }
 
 		// The two angles
-		Real AcuteAngle() const { return std::min(_angle, Constants::PI - _angle); }
-		Real ObtuseAngle() const { return std::max(_angle, Constants::PI - _angle); }
+		Real AcuteAngle() const { return std::min<Real>(_angle, Constants::PI - _angle); }
+		Real ObtuseAngle() const { return std::max<Real>(_angle, Constants::PI - _angle); }
 
 		static Parallelogram FromDiagonals(Real p, Real q, Real angleBetween) {
 			// Diagonals bisect each other; use parallelogram law

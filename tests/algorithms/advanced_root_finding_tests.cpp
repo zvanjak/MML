@@ -158,7 +158,7 @@ namespace MML::Tests::Algorithms::AdvancedRootFindingTests
 	{
 			TEST_PRECISION_INFO();
 		// f(x) = x^5 - x - 1, verify fast convergence
-		RealFunction func([](Real x) { return std::pow(x, 5) - x - REAL(1.0); });
+		RealFunction func([](Real x) -> Real { return std::pow(x, 5) - x - REAL(1.0); });
 
 	Real root = RootFinding::FindRootRidders(func, REAL(1.0), REAL(2.0), REAL(1e-15));
 	}
@@ -217,7 +217,7 @@ namespace MML::Tests::Algorithms::AdvancedRootFindingTests
 	{
 			TEST_PRECISION_INFO();
 		// f(x) = x^7 - x - 1, challenging function
-		RealFunction func([](Real x) { return std::pow(x, 7) - x - REAL(1.0); });
+		RealFunction func([](Real x) -> Real { return std::pow(x, 7) - x - REAL(1.0); });
 
 	Real root = RootFinding::FindRootBrent(func, REAL(1.0), REAL(2.0), REAL(1e-15));
 
@@ -229,7 +229,7 @@ TEST_CASE("RootFinding::Brent_difficult_function", "[brent]")
 {
 		TEST_PRECISION_INFO();
 	// f(x) = x^20 - 1, very flat near x=1
-	RealFunction func([](Real x) { return std::pow(x, 20) - REAL(1.0); });
+	RealFunction func([](Real x) -> Real { return std::pow(x, 20) - REAL(1.0); });
 
 	Real root = RootFinding::FindRootBrent(func, REAL(0.5), REAL(1.5), REAL(1e-10));
 

@@ -158,7 +158,7 @@ namespace   // Anonymous namespace for test helpers
             Real analytical = grad_analytical[deriv_var];
             
             INFO("Partial derivative w.r.t. x[" << deriv_var << "]");
-            REQUIRE_THAT(numerical, WithinAbs(analytical, REAL(1e-12)));  // 8th order best
+            REQUIRE_THAT(numerical, WithinAbs(analytical, REAL(1e-10)));  // Relaxed: ScaleStep scales h for |x|>1
         }
     }
 
@@ -237,7 +237,7 @@ namespace   // Anonymous namespace for test helpers
         for (int i = 0; i < 3; i++)
         {
             INFO("Gradient component [" << i << "]");
-            REQUIRE_THAT(grad_numerical[i], WithinAbs(grad_analytical[i], REAL(1e-12)));
+            REQUIRE_THAT(grad_numerical[i], WithinAbs(grad_analytical[i], REAL(1e-10)));  // Relaxed: ScaleStep scales h for |x|>1
         }
     }
 
@@ -341,7 +341,7 @@ namespace   // Anonymous namespace for test helpers
             
             for (int i = 0; i < 3; i++)
             {
-                REQUIRE_THAT(grad_numerical[i], WithinAbs(grad_analytical[i], REAL(1e-10)));
+                REQUIRE_THAT(grad_numerical[i], WithinAbs(grad_analytical[i], REAL(1e-8)));  // Relaxed: ScaleStep scales h for |x|>1
             }
         }
     }

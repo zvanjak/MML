@@ -69,7 +69,8 @@ namespace MML
 				}
 
 				int numSteps = ballPositions[0].size() ;
-				buffer << "NumSteps: " << numSteps / saveEveryNSteps << std::endl;
+				int actualFrames = (numSteps + saveEveryNSteps - 1) / saveEveryNSteps;
+				buffer << "NumSteps: " << actualFrames << std::endl;
 
 				int realStep = 0;
 				for (int i = 0; i < numSteps; i+=saveEveryNSteps, realStep++)

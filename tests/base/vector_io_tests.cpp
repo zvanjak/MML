@@ -123,7 +123,7 @@ TEST_CASE("Vector I/O - Text format single element", "[Vector][IO][Text]")
     
     REQUIRE(loaded.size() == 1);
     // Text format uses default stream precision (~6 digits)
-    REQUIRE_THAT(loaded[0], WithinRel(original[0], 1e-5));
+    REQUIRE_THAT(loaded[0], WithinRel((double)original[0], 1e-5));
 }
 
 TEST_CASE("Vector I/O - Text format special values", "[Vector][IO][Text]")

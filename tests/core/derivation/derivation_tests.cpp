@@ -342,7 +342,7 @@ namespace MML::Tests::Core::DerivationTests
 
 		REQUIRE_THAT(fDer(point, 0) , WithinRel(der_x, REAL(1e-9)));
 		REQUIRE_THAT(fDer(point, 1) , WithinRel(der_y, REAL(1e-11)));
-		REQUIRE_THAT(fDer(point, 2) , WithinRel(der_z, REAL(1e-11)));
+		REQUIRE_THAT(fDer(point, 2) , WithinRel(der_z, REAL(1e-9)));  // Relaxed: ScaleStep triples h for |x|=3
 
 		der_x = Derivation::NDer4Partial(f, 0, point);
 		der_y = Derivation::NDer4Partial(f, 1, point);
@@ -350,7 +350,7 @@ namespace MML::Tests::Core::DerivationTests
 
 		REQUIRE_THAT(fDer(point, 0) , WithinRel(der_x, REAL(1e-12)));
 		REQUIRE_THAT(fDer(point, 1) , WithinRel(der_y, REAL(1e-10)));
-		REQUIRE_THAT(fDer(point, 2) , WithinRel(der_z, REAL(1e-14)));
+		REQUIRE_THAT(fDer(point, 2) , WithinRel(der_z, REAL(1e-11)));  // Relaxed: ScaleStep triples h for |x|=3
 
 		der_x = Derivation::NDer6Partial(f, 0, point);
 		der_y = Derivation::NDer6Partial(f, 1, point);
@@ -358,7 +358,7 @@ namespace MML::Tests::Core::DerivationTests
 
 		REQUIRE_THAT(fDer(point, 0) , WithinRel(der_x, REAL(1e-12)));
 		REQUIRE_THAT(fDer(point, 1) , WithinRel(der_y, REAL(1e-13)));
-		REQUIRE_THAT(fDer(point, 2) , WithinRel(der_z, REAL(1e-14)));
+		REQUIRE_THAT(fDer(point, 2) , WithinRel(der_z, REAL(1e-10)));  // Relaxed: ScaleStep triples h for |x|=3
 
 		der_x = Derivation::NDer8Partial(f, 0, point);
 		der_y = Derivation::NDer8Partial(f, 1, point);
@@ -366,7 +366,7 @@ namespace MML::Tests::Core::DerivationTests
 
 		REQUIRE_THAT(fDer(point, 0) , WithinRel(der_x, REAL(1e-11)));
 		REQUIRE_THAT(fDer(point, 1) , WithinRel(der_y, REAL(1e-8)));
-		REQUIRE_THAT(fDer(point, 2) , WithinRel(der_z, REAL(1e-13)));
+		REQUIRE_THAT(fDer(point, 2) , WithinRel(der_z, REAL(1e-8)));  // Relaxed: ScaleStep triples h for |x|=3
 	}
 
 	TEST_CASE("Test_NSecDerPartial", "[simple]")

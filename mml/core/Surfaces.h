@@ -284,15 +284,15 @@ namespace MML
 				constexpr Real eps = PrecisionValues<Real>::NumericalZeroThreshold;
 				return n.NormL2() > eps;
 			}
-			bool isFlat(Real u, Real w, Real eps = PrecisionValues<Real>::DefaultToleranceRelaxed)
+			bool isFlat(Real u, Real w, Real eps = PrecisionValues<Real>::DefaultToleranceStrict)
 			{
 				return std::abs(GaussianCurvature(u, w)) < eps;
 			}
-			bool isParabolic(Real u, Real w, Real eps = PrecisionValues<Real>::DefaultToleranceRelaxed)
+			bool isParabolic(Real u, Real w, Real eps = PrecisionValues<Real>::DefaultToleranceStrict)
 			{
 				return std::abs(GaussianCurvature(u, w)) < eps && !isFlat(u, w, eps);
 			}
-			bool isHyperbolic(Real u, Real w, Real eps = PrecisionValues<Real>::DefaultToleranceRelaxed)
+			bool isHyperbolic(Real u, Real w, Real eps = PrecisionValues<Real>::DefaultToleranceStrict)
 			{
 				return GaussianCurvature(u, w) < -eps;
 			}
@@ -553,9 +553,9 @@ namespace MML
 
 			VectorN<Real, 3> operator()(Real u, Real v) const { 
 				return VectorN<Real, 3>{
-					_scale * (u - u*u*u/3.0 + u*v*v),
-					_scale * (v - v*v*v/3.0 + v*u*u),
-					_scale * (u*u - v*v)
+					static_cast<Real>(_scale * (u - u*u*u/3.0 + u*v*v)),
+					static_cast<Real>(_scale * (v - v*v*v/3.0 + v*u*u)),
+					static_cast<Real>(_scale * (u*u - v*v))
 				}; 
 			}
 		};

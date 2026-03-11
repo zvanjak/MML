@@ -514,7 +514,7 @@ namespace MML {
 								// Illinois method (modified regula falsi)
 								Real tMid = tLo - gLo * (tHi - tLo) / (gHi - gLo);
 								// Clamp to interval
-								tMid = std::max(tLo + 0.1 * (tHi - tLo), std::min(tHi - 0.1 * (tHi - tLo), tMid));
+								tMid = std::max<Real>(tLo + Real(0.1) * (tHi - tLo), std::min<Real>(tHi - Real(0.1) * (tHi - tLo), tMid));
 
 								Vector<Real> xMid = _stepper.interpolate(tMid);
 								Real gMid = sys.eventFunction(i, tMid, xMid);

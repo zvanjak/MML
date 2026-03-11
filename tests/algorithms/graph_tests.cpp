@@ -1558,7 +1558,7 @@ TEST_CASE("AlgebraicConnectivity - connected graph is positive", "[Graph][Spectr
 {
 	auto g = createCompleteGraph<int, Real>(5);
 
-	Real lambda2 = AlgebraicConnectivityApprox(g);
+	Real lambda2 = AlgebraicConnectivityBound(g);
 
 	REQUIRE(lambda2 > 0);
 }
@@ -1569,7 +1569,7 @@ TEST_CASE("AlgebraicConnectivity - disconnected graph is zero", "[Graph][Spectra
 	g.addEdge(0, 1);
 	// 2, 3 isolated
 
-	Real lambda2 = AlgebraicConnectivityApprox(g);
+	Real lambda2 = AlgebraicConnectivityBound(g);
 
 	REQUIRE_THAT(lambda2, Catch::Matchers::WithinAbs(0.0, 1e-10));
 }

@@ -536,7 +536,7 @@ namespace MML {
 				}
 
 				// Avoid division by zero
-				err_norm = std::max(err_norm, 1e-10);
+				err_norm = std::max<Real>(err_norm, Real(1e-10));
 
 				// Accept or reject step
 				if (err_norm <= 1.0) {

@@ -1275,8 +1275,8 @@ TEST_CASE("DAE::RCCircuit_analyticalComparison", "[dae][solver][realistic]")
 		Real I_analytical = circuit.analyticalI(t_actual);
 
 		// BDF2 should be accurate to ~0.1% with these step sizes
-		REQUIRE_THAT(Vc_numerical, WithinRel(Vc_analytical, 0.001));
-		REQUIRE_THAT(I_numerical, WithinRel(I_analytical, 0.001));
+		REQUIRE_THAT(Vc_numerical, WithinRel((double)Vc_analytical, 0.001));
+		REQUIRE_THAT(I_numerical, WithinRel((double)I_analytical, 0.001));
 	}
 
 	// Check final values (at 5τ, Vc ≈ 4.966V, I ≈ 0.034mA)

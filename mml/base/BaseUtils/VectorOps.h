@@ -74,6 +74,7 @@ namespace MML
 				throw VectorDimensionError("Vector::AngleToVector - vectors must be equal size", a.size(), b.size());
 
 			Real cosAngle = ScalarProduct(a, b) / (a.NormL2() * b.NormL2());
+			cosAngle = std::clamp(cosAngle, Real(-1), Real(1));
 			return std::acos(cosAngle);
 		}
 
@@ -83,7 +84,7 @@ namespace MML
 		/// @return Component of orig parallel to b
 		static Vector<Real> VectorProjectionParallelTo(const Vector<Real>& orig, const Vector<Real>& b)
 		{
-			return ScalarProduct(orig, b) / b.NormL2() * b;
+			return ScalarProduct(orig, b) / ScalarProduct(b, b) * b;
 		}
 
 		/// @brief Computes rejection of vector from direction of another vector.
@@ -137,6 +138,7 @@ namespace MML
 		static Real VectorsAngle(const VectorN<Real, N> &a, const VectorN<Real, N> &b)
 		{
 			Real cosAngle = ScalarProduct(a, b) / (a.NormL2() * b.NormL2());
+			cosAngle = std::clamp(cosAngle, Real(-1), Real(1));
 			return std::acos(cosAngle);
 		}
 

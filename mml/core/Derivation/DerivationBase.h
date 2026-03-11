@@ -35,6 +35,12 @@ namespace MML
 		/// @brief Optimal step size for 8th order derivative (9-point stencil)
 		/// @note h = (551.25ε)^(1/9) for O(h⁸) methods
 		static inline const Real NDer8_h = std::pow(551.25 * Constants::Eps, 1.0 / 9.0);
+
+		/// @brief Scale step size relative to |x| to avoid cancellation at large x
+		/// @details For |x| > 1 scales h proportionally; for |x| <= 1 returns h unchanged
+		static inline Real ScaleStep(Real h, Real x) {
+			return h * std::max(Real(1), std::abs(x));
+		}
 	}
 }
 

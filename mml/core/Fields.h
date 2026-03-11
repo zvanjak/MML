@@ -400,9 +400,9 @@ namespace MML::Fields
 			
 			// v = (3(p·r)r - r²p) / r^5
 			return VectorN<Real, 3>{
-				(3.0 * p_dot_r * r[0] - r_sq * _moment[0]) / r5,
-				(3.0 * p_dot_r * r[1] - r_sq * _moment[1]) / r5,
-				(3.0 * p_dot_r * r[2] - r_sq * _moment[2]) / r5
+				static_cast<Real>((3.0 * p_dot_r * r[0] - r_sq * _moment[0]) / r5),
+				static_cast<Real>((3.0 * p_dot_r * r[1] - r_sq * _moment[1]) / r5),
+				static_cast<Real>((3.0 * p_dot_r * r[2] - r_sq * _moment[2]) / r5)
 			};
 		}
 	};
