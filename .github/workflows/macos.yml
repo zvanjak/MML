@@ -53,8 +53,11 @@ jobs:
 
     - name: Test
       timeout-minutes: 30
-      working-directory: build
-      run: ctest -C ${{ env.BUILD_TYPE }} -L core --output-on-failure --timeout 600
+      working-directory: build/tests
+      run: |
+        echo "=== Starting tests ==="
+        ./MML_Tests --reporter console --durations yes 2>&1
+        echo "=== Tests completed with exit code $? ==="
 
     - name: ccache stats
       run: ccache --show-stats
