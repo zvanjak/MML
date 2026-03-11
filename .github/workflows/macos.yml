@@ -49,7 +49,7 @@ jobs:
 
     - name: Build Tests
       timeout-minutes: 120
-      run: cmake --build build --config ${{ env.BUILD_TYPE }} --target MML_Tests --parallel
+      run: cmake --build build --config ${{ env.BUILD_TYPE }} --target MML_Tests --parallel 2
 
     - name: Test
       timeout-minutes: 30

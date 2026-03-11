@@ -19,7 +19,7 @@ jobs:
   build:
     name: ${{ matrix.name }}
     runs-on: ubuntu-latest
-    timeout-minutes: 180
+    timeout-minutes: 150
     strategy:
       fail-fast: false
       matrix:
@@ -66,8 +66,14 @@ jobs:
           -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
 
     - name: Build Tests
-      timeout-minutes: 120
-      run: cmake --build build --config ${{ env.BUILD_TYPE }} --target MML_Tests --parallel
+      timeout-minutes: 110
+      # GCC uses significantly more memory than Clang - limit parallelism to avoid OOM
+      run: |
+        if [ "${{ matrix.compiler }}" = "gcc" ]; then
+          cmake --build build --config ${{ env.BUILD_TYPE }} --target MML_Tests --parallel 2
+        else
+          cmake --build build --config ${{ env.BUILD_TYPE }} --target MML_Tests --parallel
+        fi
 
     - name: Test
       timeout-minutes: 30
