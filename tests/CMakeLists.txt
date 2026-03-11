@@ -5,7 +5,7 @@ project(MML_Tests VERSION 1.0)
 # =============================================================================
 # MML Core Tests - Tests for the core MML library only
 # =============================================================================
-# Package tests are now in mml_packages/tests/CMakeLists.txt (MML_Packages_Tests)
+
 
 ###############################################################################
 # BASE TESTS - Fundamental data structures and utilities
@@ -194,10 +194,8 @@ add_executable(MML_Tests
     ${INFRASTRUCTURE_TESTS}
 )
 
-# Link against Catch2WithMain and MML_Packages for includes
 target_link_libraries(MML_Tests PRIVATE 
     Catch2::Catch2WithMain
-    MML_Packages
 )
 
 target_include_directories(MML_Tests PRIVATE 
