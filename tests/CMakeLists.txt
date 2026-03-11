@@ -215,13 +215,12 @@ target_precompile_headers(MML_Tests PRIVATE
     <catch2/catch_all.hpp>
 )
 
-# Use catch_discover_tests for better CTest integration
-# Label allows filtering: ctest -L core -j8
-include(Catch)
-catch_discover_tests(MML_Tests 
-    PROPERTIES LABELS "core"
+# Register test executable with CTest directly (simple, no discovery overhead)
+add_test(NAME MML_Tests 
+    COMMAND MML_Tests --reporter compact
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
+set_tests_properties(MML_Tests PROPERTIES LABELS "core" TIMEOUT 120)
 
 # ============================================================================
 # Single Header Test - DISABLED pending generator fixes
