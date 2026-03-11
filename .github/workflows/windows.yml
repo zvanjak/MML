@@ -50,13 +50,10 @@ jobs:
       timeout-minutes: 110
       run: cmake --build build --config ${{ env.BUILD_TYPE }} --target MML_Tests --parallel
 
-    - name: Test
-      timeout-minutes: 5
-      working-directory: build/tests
-      run: |
-        echo "=== Starting tests ==="
-        ./Release/MML_Tests.exe --reporter console --durations yes 2>&1
-        echo "=== Tests completed with exit code $? ==="
+    - name: Run Tests
+      timeout-minutes: 30
+      working-directory: build
+      run: ctest -j1 --timeout 600 --output-on-failure -C Release
 
     - name: Upload test results on failure
       if: failure()

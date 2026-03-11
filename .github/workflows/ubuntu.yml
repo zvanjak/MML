@@ -82,20 +82,10 @@ jobs:
         path: ${{ env.CCACHE_DIR }}
         key: ccache-ubuntu-${{ matrix.name }}-${{ github.sha }}
 
-    - name: Test
-      timeout-minutes: 5
-      working-directory: build/tests
-      run: |
-        echo "=== Checking executable ==="
-        ls -la MML_Tests
-        file MML_Tests
-        echo "=== Testing --help ==="
-        timeout 30 ./MML_Tests --help || echo "help timed out with $?"
-        echo "=== Listing tests (first 20) ==="
-        timeout 60 ./MML_Tests --list-tests 2>&1 | head -20 || echo "list timed out with $?"
-        echo "=== Running just one test ==="
-        timeout 120 ./MML_Tests "Vector3Cartesian - basic" --reporter console 2>&1 || echo "single test exit: $?"
-        echo "=== Diagnostics done ==="
+    - name: Run Tests
+      timeout-minutes: 30
+      working-directory: build
+      run: ctest -j1 --timeout 600 --output-on-failure
 
     - name: ccache stats
       run: ccache --show-stats

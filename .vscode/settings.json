@@ -140,5 +140,8 @@
         "editor.defaultFormatter": "ms-vscode.cpptools",
         "editor.formatOnSave": false
     },
-    "C_Cpp.clang_format_style": "file"
+    "C_Cpp.clang_format_style": "file",
+    "chat.tools.terminal.autoApprove": {
+      "fc.exe": true
+    }
 }
