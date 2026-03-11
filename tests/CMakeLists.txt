@@ -209,6 +209,12 @@ if(MSVC)
     target_compile_options(MML_Tests PRIVATE /FS)
 endif()
 
+# Precompiled header - dramatically reduces compile time by pre-parsing
+# catch2 headers once instead of 100+ times
+target_precompile_headers(MML_Tests PRIVATE
+    <catch2/catch_all.hpp>
+)
+
 # Use catch_discover_tests for better CTest integration
 # Label allows filtering: ctest -L core -j8
 include(Catch)
