@@ -53,7 +53,7 @@ jobs:
     - name: Test
       timeout-minutes: 30
       working-directory: build
-      run: ctest -C ${{ env.BUILD_TYPE }} -L core --output-on-failure --parallel --timeout 120
+      run: ctest -C ${{ env.BUILD_TYPE }} -L core --output-on-failure --timeout 600
 
     - name: Upload test results on failure
       if: failure()

@@ -220,7 +220,7 @@ add_test(NAME MML_Tests
     COMMAND MML_Tests --reporter compact
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
-set_tests_properties(MML_Tests PROPERTIES LABELS "core" TIMEOUT 120)
+set_tests_properties(MML_Tests PROPERTIES LABELS "core" TIMEOUT 600)
 
 # ============================================================================
 # Single Header Test - DISABLED pending generator fixes

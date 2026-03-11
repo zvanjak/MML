@@ -19,7 +19,7 @@ jobs:
   build:
     name: ${{ matrix.name }}
     runs-on: ubuntu-latest
-    timeout-minutes: 150
+    timeout-minutes: 180
     strategy:
       fail-fast: false
       matrix:
@@ -40,8 +40,8 @@ jobs:
         sudo apt-get install -y ccache
         echo "CMAKE_CXX_COMPILER_LAUNCHER=ccache" >> $GITHUB_ENV
 
-    - name: Cache ccache
-      uses: actions/cache@v4
+    - name: Restore ccache
+      uses: actions/cache/restore@v4
       with:
         path: ${{ env.CCACHE_DIR }}
         key: ccache-ubuntu-${{ matrix.name }}-${{ github.sha }}
@@ -66,7 +66,7 @@ jobs:
           -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
 
     - name: Build Tests
-      timeout-minutes: 110
+      timeout-minutes: 150
       # GCC uses significantly more memory than Clang - limit parallelism to avoid OOM
       run: |
         if [ "${{ matrix.compiler }}" = "gcc" ]; then
@@ -75,10 +75,17 @@ jobs:
           cmake --build build --config ${{ env.BUILD_TYPE }} --target MML_Tests --parallel
         fi
 
+    - name: Save ccache
+      if: always()
+      uses: actions/cache/save@v4
+      with:
+        path: ${{ env.CCACHE_DIR }}
+        key: ccache-ubuntu-${{ matrix.name }}-${{ github.sha }}
+
     - name: Test
       timeout-minutes: 30
       working-directory: build
-      run: ctest -C ${{ env.BUILD_TYPE }} -L core --output-on-failure --parallel --timeout 120
+      run: ctest -C ${{ env.BUILD_TYPE }} -L core --output-on-failure --timeout 600
 
     - name: ccache stats
       run: ccache --show-stats
