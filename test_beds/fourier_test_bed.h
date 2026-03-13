@@ -91,7 +91,7 @@ namespace MML::TestBeds
         for (int i = 0; i < N; i++)
         {
             Real t = i / sampleRate;
-            test.data[i] = amplitude * std::sin(2.0 * M_PI * freq * t);
+            test.data[i] = amplitude * std::sin(2.0 * Constants::PI * freq * t);
             energy += test.data[i] * test.data[i];
         }
         
@@ -125,7 +125,7 @@ namespace MML::TestBeds
         for (int i = 0; i < N; i++)
         {
             Real t = i / sampleRate;
-            test.data[i] = amplitude * std::cos(2.0 * M_PI * freq * t);
+            test.data[i] = amplitude * std::cos(2.0 * Constants::PI * freq * t);
             energy += test.data[i] * test.data[i];
         }
         
@@ -165,8 +165,8 @@ namespace MML::TestBeds
         for (int i = 0; i < N; i++)
         {
             Real t = i / sampleRate;
-            test.data[i] = amp1 * std::sin(2.0 * M_PI * freq1 * t) +
-                          amp2 * std::sin(2.0 * M_PI * freq2 * t);
+            test.data[i] = amp1 * std::sin(2.0 * Constants::PI * freq1 * t) +
+                          amp2 * std::sin(2.0 * Constants::PI * freq2 * t);
             energy += test.data[i] * test.data[i];
         }
         
@@ -205,7 +205,7 @@ namespace MML::TestBeds
             test.data[i] = 0.0;
             for (int h = 1; h <= numHarmonics; h++)
             {
-                test.data[i] += amplitudes[h-1] * std::sin(2.0 * M_PI * h * fundamental * t);
+                test.data[i] += amplitudes[h-1] * std::sin(2.0 * Constants::PI * h * fundamental * t);
             }
             energy += test.data[i] * test.data[i];
         }
@@ -250,7 +250,7 @@ namespace MML::TestBeds
         for (int i = 0; i < N; i++)
         {
             Real t = i / sampleRate;
-            Real phase = 2.0 * M_PI * (f0 * t + 0.5 * k * t * t);
+            Real phase = 2.0 * Constants::PI * (f0 * t + 0.5 * k * t * t);
             test.data[i] = std::sin(phase);
             energy += test.data[i] * test.data[i];
         }
@@ -285,7 +285,7 @@ namespace MML::TestBeds
         {
             Real t = i / sampleRate;
             Real freq = f0 * std::pow(k, t);
-            Real phase = 2.0 * M_PI * f0 * (std::pow(k, t) - 1.0) / std::log(k);
+            Real phase = 2.0 * Constants::PI * f0 * (std::pow(k, t) - 1.0) / std::log(k);
             test.data[i] = std::sin(phase);
             energy += test.data[i] * test.data[i];
         }
@@ -373,7 +373,7 @@ namespace MML::TestBeds
             test.data[i] = 0.0;
             for (int k = 1; k <= 20; k++)
             {
-                test.data[i] += std::sin(2.0 * M_PI * k * i / N + k) / (20.0);
+                test.data[i] += std::sin(2.0 * Constants::PI * k * i / N + k) / (20.0);
             }
             energy += test.data[i] * test.data[i];
         }
@@ -516,7 +516,7 @@ namespace MML::TestBeds
         for (int i = 0; i < N; i++)
         {
             Real t = i / sampleRate;
-            test.signal1[i] = std::sin(2.0 * M_PI * freq * t);
+            test.signal1[i] = std::sin(2.0 * Constants::PI * freq * t);
         }
         
         test.signal2 = test.signal1;

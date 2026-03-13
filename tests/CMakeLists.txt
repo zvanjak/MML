@@ -5,7 +5,7 @@ project(MML_Tests VERSION 1.0)
 # =============================================================================
 # MML Core Tests - Tests for the core MML library only
 # =============================================================================
-
+# Package tests are now in mml_packages/tests/CMakeLists.txt (MML_Packages_Tests)
 
 ###############################################################################
 # BASE TESTS - Fundamental data structures and utilities
@@ -44,6 +44,7 @@ file(GLOB BASE_TESTS
     "base/ode_system_tests.cpp"
     "base/polynom_tests.cpp"
     "base/quaternion_tests.cpp"
+    "base/exception_tests.cpp"
     "base/random_tests.cpp"
     "base/standard_functions_tests.cpp"
     "base/tensors_tests.cpp"
@@ -150,8 +151,14 @@ file(GLOB ALGORITHMS_TESTS
     "algorithms/genetic_algorithm_tests.cpp"
     # Optimization algorithms (1D minimization)
     "algorithms/optimization_tests.cpp"
+    # Optimization algorithms (multidimensional)
+    "algorithms/optimization_multidim_tests.cpp"
     # Statistics tests
     "algorithms/statistics_tests.cpp"
+    # Distributions tests
+    "algorithms/distributions_tests.cpp"
+    # Fourier tests
+    "algorithms/fourier_tests.cpp"
 )
 
 ###############################################################################
@@ -194,6 +201,7 @@ add_executable(MML_Tests
     ${INFRASTRUCTURE_TESTS}
 )
 
+# Link against Catch2WithMain 
 target_link_libraries(MML_Tests PRIVATE 
     Catch2::Catch2WithMain
 )
