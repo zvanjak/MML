@@ -39,11 +39,11 @@ void Show_Scalar_Function_3D_Examples()
     // Example 2: Sinusoidal Wave
     std::cout << "2. Triply Periodic Wave: f = sin(pi*x) * sin(pi*y) * sin(pi*z)\n";
     std::cout << "   Creates a 3D checkerboard-like pattern\n";
-    ScalarFunction<3> sinusoidalWave{[](const VectorN<Real, 3>& v) {
-        return std::sin(Constants::PI * v[0]) * 
-               std::sin(Constants::PI * v[1]) * 
-               std::sin(Constants::PI * v[2]);
-    }};
+    ScalarFunctionFromStdFunc<3> sinusoidalWave([](const VectorN<Real, 3>& v) -> Real {
+        return static_cast<Real>(std::sin(Constants::PI * v[0]) *
+               std::sin(Constants::PI * v[1]) *
+               std::sin(Constants::PI * v[2]));
+    });
     Visualizer::VisualizeScalarFunc3DCartesian(sinusoidalWave, "Triply Periodic Wave",
                                                -2.0, 2.0, 30,
                                                -2.0, 2.0, 30,

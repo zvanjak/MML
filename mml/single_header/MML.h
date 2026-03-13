@@ -66,8 +66,6 @@
 #include <sys/wait.h>
 #endif
 
-// HAJDUK ZIVI VJECNO!!!
-
 
 ///////////////////////////   mml/MMLPrecision.h   ///////////////////////////
 
@@ -283,8 +281,6 @@ namespace MML
 // MML headers first (catches missing includes in them)
 
 // Standard headers - only what MMLBase.h actually uses
-
-// HAJDUK ZIVI VJECNO!!!
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 // Real Type Configuration

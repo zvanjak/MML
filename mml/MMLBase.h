@@ -25,8 +25,6 @@
 #include <limits>
 #include <type_traits>
 
-// HAJDUK ZIVI VJECNO!!!
-
 ///////////////////////////////////////////////////////////////////////////////////////////
 // Real Type Configuration
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -172,20 +170,21 @@ namespace MML
 
   ////////////                  Constants                ////////////////
   namespace Constants {
-    // Mathematical constants with maximum double precision (C++17 compatible)
-    // These values match std::numbers from C++20 to full double precision
-    static inline constexpr double PI         = 3.14159265358979323846;  // pi
-    static inline constexpr double INV_PI     = 0.31830988618379067154;  // 1/pi
-    static inline constexpr double INV_SQRTPI = 0.56418958354775628695;  // 1/sqrt(pi)
+    // Mathematical constants with full long double precision
+    // When Real=double, implicit narrowing is lossless
+    // When Real=long double, these preserve maximum available precision
+    static inline constexpr long double PI         = 3.141592653589793238462643383279502884L;  // pi
+    static inline constexpr long double INV_PI     = 0.318309886183790671537767526745028724L;  // 1/pi
+    static inline constexpr long double INV_SQRTPI = 0.564189583547756286948079451560772586L;  // 1/sqrt(pi)
 
-    static inline constexpr double E          = 2.71828182845904523536;  // e
-    static inline constexpr double LN2        = 0.69314718055994530942;  // ln(2)
-    static inline constexpr double LN10       = 2.30258509299404568402;  // ln(10)
+    static inline constexpr long double E          = 2.718281828459045235360287471352662498L;  // e
+    static inline constexpr long double LN2        = 0.693147180559945309417232121458176568L;  // ln(2)
+    static inline constexpr long double LN10       = 2.302585092994045684017991454684364208L;  // ln(10)
 
-    static inline constexpr double SQRT2      = 1.41421356237309504880;  // sqrt(2)
-    static inline constexpr double SQRT3      = 1.73205080756887729353;  // sqrt(3)
+    static inline constexpr long double SQRT2      = 1.414213562373095048801688724209698079L;  // sqrt(2)
+    static inline constexpr long double SQRT3      = 1.732050807568877293527446341505872367L;  // sqrt(3)
 
-    static inline constexpr double GoldenRatio = 1.61803398874989484820; // (1 + sqrt(5)) / 2
+    static inline constexpr long double GoldenRatio = 1.618033988749894848204586834365638118L; // (1 + sqrt(5)) / 2
 
     // Geometry epsilon for floating-point comparisons in geometric algorithms
     static inline constexpr double GEOMETRY_EPSILON = 1e-10;

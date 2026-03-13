@@ -81,7 +81,7 @@ public:
 class HelixCurve3D : public IRealToVectorFunction<3> {
 public:
     VectorN<Real, 3> operator()(Real t) const override {
-        return VectorN<Real, 3>{std::cos(t), std::sin(t), t / (2 * Constants::PI)};
+        return VectorN<Real, 3>{std::cos(t), std::sin(t), static_cast<Real>(t / (2 * Constants::PI))};
     }
 };
 

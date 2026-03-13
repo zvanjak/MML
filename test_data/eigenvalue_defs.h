@@ -416,21 +416,21 @@ namespace MML::TestBeds
     }
 
     // Matrix with huge eigenvalue spread
-    inline Matrix<Real> getHugeSpread3x3(Real scale = 1e15) {
+    inline Matrix<Real> getHugeSpread3x3(Real scale = Real(1e15)) {
         return Matrix<Real>(3, 3, {
-            1.0/scale, 0.0, 0.0,
-            0.0, 1.0, 0.0,
-            0.0, 0.0, scale
+            Real(1.0)/scale, Real(0.0), Real(0.0),
+            Real(0.0), Real(1.0), Real(0.0),
+            Real(0.0), Real(0.0), scale
         });
     }
 
     // Almost rank-deficient: smallest eigenvalue ≈ 0
-    inline Matrix<Real> getAlmostSingular4x4(Real eps = 1e-12) {
+    inline Matrix<Real> getAlmostSingular4x4(Real eps = Real(1e-12)) {
         Matrix<Real> A(4, 4, {
-            1.0 + eps, 1.0, 1.0, 1.0,
-            1.0, 1.0 + eps, 1.0, 1.0,
-            1.0, 1.0, 1.0 + eps, 1.0,
-            1.0, 1.0, 1.0, 1.0 + eps
+            Real(1.0) + eps, Real(1.0), Real(1.0), Real(1.0),
+            Real(1.0), Real(1.0) + eps, Real(1.0), Real(1.0),
+            Real(1.0), Real(1.0), Real(1.0) + eps, Real(1.0),
+            Real(1.0), Real(1.0), Real(1.0), Real(1.0) + eps
         });
         return A;
     }

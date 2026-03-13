@@ -153,6 +153,9 @@ namespace MML
 		bool isNull() const noexcept { return _vecCoef.size() == 0; }
 		/// @brief Removes trailing zero coefficients.
 		void Reduce() { while (!_vecCoef.empty() && _vecCoef.back() == CoefT(0)) _vecCoef.pop_back(); }
+		/// @brief Removes trailing coefficients smaller than eps in absolute value.
+		/// @param eps Tolerance threshold for near-zero coefficients
+		void Reduce(CoefT eps) { while (!_vecCoef.empty() && std::abs(_vecCoef.back()) < eps) _vecCoef.pop_back(); }
 		
 		/// @brief Returns leading coefficient.
 		CoefT leadingTerm() const noexcept { return _vecCoef.empty() ? CoefT(0) : _vecCoef.back(); }

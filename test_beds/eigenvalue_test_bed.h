@@ -490,12 +490,12 @@ namespace MML::TestBeds
         return test;
     }
 
-    inline TestEigenSystem getHugeSpread3x3Test(Real scale = 1e15)
+    inline TestEigenSystem getHugeSpread3x3Test(Real scale = Real(1e15))
     {
         TestEigenSystem test;
         test.name = "Huge Spread 3x3";
         test.getMatrix = [scale]() { return getHugeSpread3x3(scale); };
-        test.realEigenvalues = Vector<Real>{1.0/scale, 1.0, scale};
+        test.realEigenvalues = Vector<Real>{Real(1.0)/scale, Real(1.0), scale};
         test.dimension = 3;
         test.isSymmetric = true;
         test.hasRealEigenvalues = true;

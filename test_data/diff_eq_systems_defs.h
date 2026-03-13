@@ -357,7 +357,7 @@ namespace MML::TestBeds
         Vector<Real> getSolution(const Vector<Real>& y0, Real t) const
         {
             Real ratio = (_K - y0[0]) / y0[0];
-            return Vector<Real>{ _K / (1.0 + ratio * std::exp(-_r * t)) };
+            return Vector<Real>{ static_cast<Real>(_K / (1.0 + ratio * std::exp(-_r * t))) };
         }
     };
 

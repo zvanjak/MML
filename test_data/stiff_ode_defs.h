@@ -506,9 +506,9 @@ namespace MML::TestBeds
         static Vector<Real> getExactSolution(Real t)
         {
             return Vector<Real>{
-                std::exp(-t),
-                std::exp(-1000.0 * t),
-                std::exp(-10000.0 * t)
+                static_cast<Real>(std::exp(-t)),
+                static_cast<Real>(std::exp(-1000.0 * t)),
+                static_cast<Real>(std::exp(-10000.0 * t))
             };
         }
         static std::string getDescription() { return "Linear diagonal (3D, stiffness 10^4, exact solution)"; }

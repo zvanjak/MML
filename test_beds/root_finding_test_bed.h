@@ -348,7 +348,7 @@ namespace MML::TestBeds
             "(x-1)³ - 0.001 (flat near root)",
             Patho_flat_cubic,
             Patho_flat_cubic_deriv,
-            { 1.0 + std::cbrt(0.001) },  // ≈ 1.1
+            { static_cast<Real>(1.0 + std::cbrt(0.001)) },  // ≈ 1.1
             { 1 },
             { {0.5, 1.5} },
             "pathological",
