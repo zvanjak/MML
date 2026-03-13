@@ -991,5 +991,15 @@ namespace MML::Tests::Core::InterpolatedFunctionsTests
 		REQUIRE_THAT(pmid[2], WithinAbs(6.0, 0.1));
 	}
 
+	TEST_CASE("InterpolatedFunction - duplicate x-values throw", "[Interpolation]")
+	{
+		Vector<Real> x(4), y(4);
+		x[0] = 1.0; x[1] = 2.0; x[2] = 2.0; x[3] = 4.0;
+		y[0] = 1.0; y[1] = 4.0; y[2] = 4.0; y[3] = 16.0;
+
+		REQUIRE_THROWS_AS(PolynomInterpRealFunc(x, y, 3), RealFuncInterpInitError);
+		REQUIRE_THROWS_AS(LinearInterpRealFunc(x, y), RealFuncInterpInitError);
+	}
+
 } // end namespace
 #endif

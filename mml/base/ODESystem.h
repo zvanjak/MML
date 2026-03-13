@@ -18,6 +18,8 @@
 
 #include "base/Matrix/Matrix.h"
 
+#include <functional>
+
 
 namespace MML
 {
@@ -95,8 +97,49 @@ namespace MML
 		/// @param dydx Output: Jacobian matrix J[i][j] = ∂f_i/∂x_j
 		void jacobian(const Real t, const Vector<Real>& x, Vector<Real>& dxdt, Matrix<Real>& dydx) const
 		{
-			if (_funcJac != nullptr)
-				_funcJac(t, x, dxdt, dydx);
+			if (_funcJac == nullptr)
+				throw NotImplementedError("ODESystemWithJacobian::jacobian() - no Jacobian function provided");
+			_funcJac(t, x, dxdt, dydx);
+		}
+	};
+
+	/// @brief ODE system using std::function for lambdas with captured state
+	/// @details Wraps a std::function callable, enabling lambdas, functors, and
+	///          std::bind expressions as ODE right-hand sides.
+	class ODESystemFromStdFunc : public IODESystem
+	{
+	private:
+		int _dim;
+		std::function<void(Real, const Vector<Real>&, Vector<Real>&)> _func;
+
+	public:
+		ODESystemFromStdFunc(int n, std::function<void(Real, const Vector<Real>&, Vector<Real>&)> inFunc)
+			: _dim(n), _func(std::move(inFunc)) { }
+
+		int  getDim() const { return _dim; }
+		void derivs(const Real t, const Vector<Real>& x, Vector<Real>& dxdt) const { _func(t, x, dxdt); }
+		void operator()(const Real t, const Vector<Real>& x, Vector<Real>& dxdt) const { _func(t, x, dxdt); }
+	};
+
+	/// @brief ODE system with Jacobian using std::function callables
+	class ODESystemWithJacobianFromStdFunc : public ODESystemFromStdFunc, public IODESystemWithJacobian
+	{
+	private:
+		std::function<void(const Real, const Vector<Real>&, Vector<Real>&, Matrix<Real>&)> _funcJac;
+
+	public:
+		ODESystemWithJacobianFromStdFunc(int n,
+			std::function<void(Real, const Vector<Real>&, Vector<Real>&)> inFunc,
+			std::function<void(const Real, const Vector<Real>&, Vector<Real>&, Matrix<Real>&)> inFuncJac)
+			: ODESystemFromStdFunc(n, std::move(inFunc)), _funcJac(std::move(inFuncJac)) { }
+
+		// Disambiguate IODESystem methods inherited from both bases
+		int  getDim() const override { return ODESystemFromStdFunc::getDim(); }
+		void derivs(const Real t, const Vector<Real>& x, Vector<Real>& dxdt) const override { ODESystemFromStdFunc::derivs(t, x, dxdt); }
+
+		void jacobian(const Real t, const Vector<Real>& x, Vector<Real>& dxdt, Matrix<Real>& dydx) const override
+		{
+			_funcJac(t, x, dxdt, dydx);
 		}
 	};
 

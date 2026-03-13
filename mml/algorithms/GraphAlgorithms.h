@@ -40,7 +40,7 @@ namespace MML
 		if (start >= n)
 			return result;
 
-		result.parent.resize(n, static_cast<size_t>(-1));
+		result.parent.resize(n, GRAPH_NOT_FOUND);
 		result.distance.resize(n, std::numeric_limits<Real>::infinity());
 
 		std::vector<bool> visited(n, false);
@@ -125,7 +125,7 @@ namespace MML
 		if (start >= n)
 			return result;
 
-		result.parent.resize(n, static_cast<size_t>(-1));
+		result.parent.resize(n, GRAPH_NOT_FOUND);
 		result.distance.resize(n, std::numeric_limits<Real>::infinity());
 
 		std::vector<bool> visited(n, false);
@@ -153,7 +153,7 @@ namespace MML
 				size_t v = it->to;
 				if (!visited[v])
 				{
-					if (result.parent[v] == static_cast<size_t>(-1))
+					if (result.parent[v] == GRAPH_NOT_FOUND)
 					{
 						result.parent[v] = u;
 						result.distance[v] = result.distance[u] + 1;
@@ -220,7 +220,7 @@ namespace MML
 		if (start >= n)
 			return result;
 
-		result.parent.resize(n, static_cast<size_t>(-1));
+		result.parent.resize(n, GRAPH_NOT_FOUND);
 		result.distance.resize(n, std::numeric_limits<Real>::infinity());
 		result.distance[start] = 0;
 
@@ -282,7 +282,7 @@ namespace MML
 		}
 
 		std::vector<Real> dist(n, std::numeric_limits<Real>::infinity());
-		std::vector<size_t> parent(n, static_cast<size_t>(-1));
+		std::vector<size_t> parent(n, GRAPH_NOT_FOUND);
 		dist[start] = 0;
 
 		using PQEntry = std::pair<Real, size_t>;
@@ -303,7 +303,7 @@ namespace MML
 				result.totalWeight = dist[target];
 
 				size_t curr = target;
-				while (curr != static_cast<size_t>(-1))
+				while (curr != GRAPH_NOT_FOUND)
 				{
 					result.path.push_back(curr);
 					curr = parent[curr];
@@ -352,13 +352,13 @@ namespace MML
 		if (n == 0)
 			return result;
 
-		result.componentId.resize(n, static_cast<size_t>(-1));
+		result.componentId.resize(n, GRAPH_NOT_FOUND);
 
 		size_t componentNum = 0;
 
 		for (size_t v = 0; v < n; ++v)
 		{
-			if (result.componentId[v] != static_cast<size_t>(-1))
+			if (result.componentId[v] != GRAPH_NOT_FOUND)
 				continue;  // Already assigned
 
 			// BFS to find all vertices in this component
@@ -376,7 +376,7 @@ namespace MML
 
 				for (const auto& edge : graph.neighbors(u))
 				{
-					if (result.componentId[edge.to] == static_cast<size_t>(-1))
+					if (result.componentId[edge.to] == GRAPH_NOT_FOUND)
 					{
 						result.componentId[edge.to] = componentNum;
 						queue.push(edge.to);
@@ -418,11 +418,11 @@ namespace MML
 		if (target >= parent.size())
 			return path;
 
-		if (parent[target] == static_cast<size_t>(-1) && target != start)
+		if (parent[target] == GRAPH_NOT_FOUND && target != start)
 			return path;  // No path exists
 
 		size_t curr = target;
-		while (curr != static_cast<size_t>(-1))
+		while (curr != GRAPH_NOT_FOUND)
 		{
 			path.push_back(curr);
 			if (curr == start)
@@ -494,7 +494,7 @@ namespace MML
 		if (start >= n)
 			return result;
 
-		result.parent.resize(n, static_cast<size_t>(-1));
+		result.parent.resize(n, GRAPH_NOT_FOUND);
 		result.distance.resize(n, std::numeric_limits<Real>::infinity());
 		result.distance[start] = 0;
 

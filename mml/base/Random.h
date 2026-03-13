@@ -26,6 +26,9 @@ namespace MML
 		inline static thread_local std::mt19937 gen{std::random_device{}()};
 
 	public:
+		// Seeds the thread-local RNG for reproducible results (affects calling thread only)
+		static void SetSeed(unsigned int seed) { gen.seed(seed); }
+
 		static Real UniformReal(Real min, Real max)
 		{
 			std::uniform_real_distribution<Real> dis(min, max);

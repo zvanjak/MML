@@ -97,6 +97,12 @@ namespace MML
       if (n == 0)
         throw ArgumentError("FromValues: arrays cannot be empty");
 
+      // Check for duplicate x-values (causes division by zero in interpolation)
+      for (int i = 0; i < n; i++)
+        for (int j = i + 1; j < n; j++)
+          if (x[i] == x[j])
+            throw ArgumentError("FromValues: duplicate x-value at indices " + std::to_string(i) + " and " + std::to_string(j));
+
       std::vector<FieldT> cof(n, FieldT(0));
       std::vector<FieldT> s(n);
       

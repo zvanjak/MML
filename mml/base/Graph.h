@@ -28,6 +28,9 @@
 
 namespace MML
 {
+	/// @brief Sentinel value for "no parent" / "not found" in graph algorithms
+	static constexpr size_t GRAPH_NOT_FOUND = static_cast<size_t>(-1);
+
 	///////////////////////////////////////////////////////////////////////////
 	///                         RESULT STRUCTS                              ///
 	///////////////////////////////////////////////////////////////////////////
@@ -48,7 +51,7 @@ namespace MML
 	struct TraversalResult
 	{
 		std::vector<size_t> visitOrder;   ///< Order in which vertices were visited
-		std::vector<size_t> parent;       ///< Parent of each vertex in traversal tree (-1 if root/unvisited)
+		std::vector<size_t> parent;       ///< Parent of each vertex in traversal tree (GRAPH_NOT_FOUND if root/unvisited)
 		std::vector<Real>   distance;     ///< Distance from start (BFS: hops, Dijkstra: weighted)
 		size_t              nodesVisited; ///< Total nodes visited
 

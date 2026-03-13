@@ -502,11 +502,8 @@ namespace MML::Tests::Base::VectorNTests
 	TEST_CASE("VectorN::initializer_list_truncation", "[VectorN][edge_cases]")
 	{
 		TEST_PRECISION_INFO();
-		// More elements than N - should truncate
-		Vec2 v({REAL(1.0), REAL(2.0), REAL(3.0), REAL(4.0)});
-		REQUIRE(v.size() == 2);
-		REQUIRE(v[0] == REAL(1.0));
-		REQUIRE(v[1] == REAL(2.0));
+		// More elements than N - should throw VectorDimensionError
+		REQUIRE_THROWS_AS(Vec2({REAL(1.0), REAL(2.0), REAL(3.0), REAL(4.0)}), VectorDimensionError);
 	}
 
 	TEST_CASE("VectorN::initializer_list_fewer", "[VectorN][edge_cases]")

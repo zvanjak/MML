@@ -54,6 +54,15 @@ namespace MML
 			if (a.rows() != b.rows())
 				throw MatrixDimensionError("GaussJordanSolver::SolveInPlace - A rows must match B rows", a.rows(), a.cols(), b.rows(), b.cols());
 			std::vector<int> indxc(n), indxr(n), ipiv(n);
+
+			// Compute infinity norm for norm-scaled singularity threshold
+			Real norm_a = 0.0;
+			for (int ii = 0; ii < n; ii++)
+				for (int jj = 0; jj < n; jj++)
+					if (Abs(a[ii][jj]) > norm_a)
+						norm_a = Abs(a[ii][jj]);
+			Real singularity_threshold = std::numeric_limits<Real>::epsilon() * norm_a * n;
+
 			for (j = 0; j < n; j++) ipiv[j] = 0;
 			for (i = 0; i < n; i++) {
 				big = 0.0;
@@ -76,8 +85,8 @@ namespace MML
 				indxr[i] = irow;
 				indxc[i] = icol;
 
-				if (a[icol][icol] == Real{ 0.0 })
-					throw SingularMatrixError("GaussJordanSolver::SolveInPlace - Singular Matrix");
+				if (Abs(a[icol][icol]) < singularity_threshold)
+					throw SingularMatrixError("GaussJordanSolver::SolveInPlace - Singular Matrix", Abs(a[icol][icol]));
 
 				pivinv = Real{ 1.0 } / a[icol][icol];
 				
@@ -208,7 +217,8 @@ namespace MML
 			Vector<Type> vv(_n);
 			
 			_d = 1.0;
-			// finding biggest element in each row, and saving its invers in vv[]
+			// finding biggest element in each row, and saving its inverse in vv[]
+			Real norm_a = 0.0;
 			for (i = 0; i < _n; i++) 
 			{
 				big = 0.0;
@@ -223,10 +233,12 @@ namespace MML
 				}
 				
 				if (big == 0.0)
-					throw SingularMatrixError("LUSolver::ctor - Singular Matrix");
+					throw SingularMatrixError("LUSolver::ctor - Singular Matrix (zero row)");
 
+				if (big > norm_a) norm_a = big;
 				vv[i] = 1.0 / big;
 			}
+			Real singularity_threshold = std::numeric_limits<Real>::epsilon() * norm_a * _n;
 
 			// main loop
 			for (k = 0; k < _n; k++) 
@@ -255,8 +267,8 @@ namespace MML
 				}
 
 				_indx[k] = imax;
-				if (_lu[k][k] == Real{ 0.0 }) 
-					throw SingularMatrixError("LUSolver::ctor - Singular Matrix");
+				if (Abs(_lu[k][k]) < singularity_threshold) 
+					throw SingularMatrixError("LUSolver::ctor - Singular Matrix", Abs(_lu[k][k]));
 				
 				for (i = k + 1; i < _n; i++) 
 				{

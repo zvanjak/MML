@@ -827,4 +827,71 @@ TEST_CASE("ODESystem - Negative State Values", "[ode_system]")
     REQUIRE_THAT(dydt[1], WithinAbs(REAL(3.0), REAL(1e-10)));   // dv/dt = -x = 3
 }
 
+///////////////////////////////////////////////////////////////////////////////
+// ODESystemFromStdFunc Tests
+
+TEST_CASE("ODESystemFromStdFunc - Lambda with capture", "[ode_system_stdfunc]")
+{
+    Real k = REAL(2.0);  // captured parameter
+    ODESystemFromStdFunc sys(1, [k](Real, const Vector<Real>& y, Vector<Real>& dydt) {
+        dydt[0] = k * y[0];
+    });
+
+    REQUIRE(sys.getDim() == 1);
+
+    Vector<Real> y(1), dydt(1);
+    y[0] = REAL(3.0);
+    sys.derivs(REAL(0.0), y, dydt);
+    REQUIRE_THAT(dydt[0], WithinAbs(REAL(6.0), REAL(1e-10)));
+}
+
+TEST_CASE("ODESystemFromStdFunc - Operator() call", "[ode_system_stdfunc]")
+{
+    ODESystemFromStdFunc sys(2, [](Real, const Vector<Real>& y, Vector<Real>& dydt) {
+        dydt[0] = y[1];
+        dydt[1] = -y[0];
+    });
+
+    Vector<Real> y(2), dydt(2);
+    y[0] = REAL(1.0); y[1] = REAL(0.0);
+    sys(REAL(0.0), y, dydt);
+    REQUIRE_THAT(dydt[0], WithinAbs(REAL(0.0), REAL(1e-10)));
+    REQUIRE_THAT(dydt[1], WithinAbs(-REAL(1.0), REAL(1e-10)));
+}
+
+TEST_CASE("ODESystemWithJacobianFromStdFunc - Jacobian", "[ode_system_stdfunc]")
+{
+    auto derivFunc = [](Real, const Vector<Real>& y, Vector<Real>& dydt) {
+        dydt[0] = y[1];
+        dydt[1] = -y[0];
+    };
+    auto jacFunc = [](const Real, const Vector<Real>&, Vector<Real>& dydt, Matrix<Real>& J) {
+        J.Resize(2, 2);
+        J[0][0] = REAL(0.0);  J[0][1] = REAL(1.0);
+        J[1][0] = -REAL(1.0); J[1][1] = REAL(0.0);
+    };
+
+    ODESystemWithJacobianFromStdFunc sys(2, derivFunc, jacFunc);
+    REQUIRE(sys.getDim() == 2);
+
+    Vector<Real> y(2), dydt(2);
+    Matrix<Real> J(2, 2);
+    y[0] = REAL(1.0); y[1] = REAL(0.0);
+    sys.jacobian(REAL(0.0), y, dydt, J);
+    REQUIRE_THAT(J[0][1], WithinAbs(REAL(1.0), REAL(1e-10)));
+    REQUIRE_THAT(J[1][0], WithinAbs(-REAL(1.0), REAL(1e-10)));
+}
+
+TEST_CASE("ODESystemWithJacobian - Null jacobian throws NotImplementedError", "[ode_system_jacobian]")
+{
+    // Default constructor leaves _funcJac as nullptr
+    ODESystemWithJacobian sys(2, harmonicOscillator, nullptr);
+
+    Vector<Real> y(2), dydt(2);
+    Matrix<Real> J(2, 2);
+    y[0] = REAL(1.0); y[1] = REAL(0.0);
+
+    REQUIRE_THROWS_AS(sys.jacobian(REAL(0.0), y, dydt, J), NotImplementedError);
+}
+
 } // namespace MML::Tests::Base::ODESystemTests

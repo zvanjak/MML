@@ -47,31 +47,31 @@ namespace MML
 				_val[i] = init_val;
 		}
 		/// @brief Constructs vector from initializer list.
-		/// @param list Initializer list (truncated if > N elements)
+		/// @param list Initializer list (must have <= N elements)
+		/// @throws VectorDimensionError if list.size() > N
 		VectorN(std::initializer_list<Type> list)
 		{
+			if (static_cast<int>(list.size()) > N)
+				throw VectorDimensionError("VectorN initializer list has more elements than vector dimension", N, static_cast<int>(list.size()));
 			int count = 0;
 			for (auto element : list)
 			{
 				_val[count] = element;
 				++count;
-
-				if (count >= N)
-					break;
 			}
 		}
 		/// @brief Constructs vector from std::vector.
-		/// @param list Vector of values (truncated if > N elements)
+		/// @param list Vector of values (must have <= N elements)
+		/// @throws VectorDimensionError if list.size() > N
 		VectorN(std::vector<Type> list)
 		{
+			if (static_cast<int>(list.size()) > N)
+				throw VectorDimensionError("VectorN std::vector has more elements than vector dimension", N, static_cast<int>(list.size()));
 			int count{ 0 };
 			for (auto element : list)
 			{
 				_val[count] = element;
 				++count;
-
-				if (count >= N)
-					break;
 			}
 		}
 		/// @brief Constructs vector from raw array.
@@ -88,7 +88,7 @@ namespace MML
 		{
 			VectorN ret;
 			ret[indUnit] = 1.0;
-			return std::move(ret);
+			return ret;
 		}
 		/// @brief Returns normalized vector (unit length).
 		VectorN Normalized() const
@@ -99,7 +99,7 @@ namespace MML
 				throw VectorDimensionError("VectorN::Normalized - cannot normalize zero vector", N, 0);
 			for (int i = 0; i < N; ++i)
 				ret._val[i] = _val[i] / norm;
-			return std::move(ret);
+			return ret;
 		}
 		////////////////////////            Standard stuff             ////////////////////////
 		/// @brief Returns vector dimension.
@@ -190,7 +190,7 @@ namespace MML
 			VectorN ret;
 			for (int i = 0; i < N; i++)
 				ret._val[i] = Type{ -1 } *_val[i];
-			return std::move(ret);
+			return ret;
 		}
 		
 		/// @brief Vector addition.
@@ -200,7 +200,7 @@ namespace MML
 			VectorN ret;
 			for (int i = 0; i < N; i++)
 				ret._val[i] = _val[i] + b._val[i];
-			return std::move(ret);
+			return ret;
 		}
 		/// @brief In-place addition.
 		/// @param b Vector to add
@@ -217,7 +217,7 @@ namespace MML
 			VectorN ret;
 			for (int i = 0; i < N; i++)
 				ret._val[i] = _val[i] - b._val[i];
-			return std::move(ret);
+			return ret;
 		}
 		/// @brief In-place subtraction.
 		/// @param b Vector to subtract
@@ -235,7 +235,7 @@ namespace MML
 			VectorN ret;
 			for (int i = 0; i < N; i++)
 				ret._val[i] = _val[i] * b;
-			return std::move(ret);
+			return ret;
 		}
 		/// @brief In-place scalar multiplication.
 		/// @param b Scalar multiplier
@@ -252,7 +252,7 @@ namespace MML
 			VectorN ret;
 			for (int i = 0; i < N; i++)
 				ret._val[i] = _val[i] / b;
-			return std::move(ret);
+			return ret;
 		}		
 		/// @brief In-place scalar division.
 		/// @param b Scalar divisor
@@ -271,7 +271,7 @@ namespace MML
 			VectorN ret;
 			for (int i = 0; i < N; i++)
 				ret._val[i] = a * b[i];
-			return std::move(ret);
+			return ret;
 		}
 
 		//////////////////////                 Operations                 ///////////////////////

@@ -159,20 +159,10 @@ namespace MML
 		
 		/// @brief Resize the vector
 		/// @param newLen New size
-		/// @param preserveElements If true, existing elements are preserved up to min(oldSize, newLen)
-		void Resize(int newLen, bool preserveElements = false)	
+		/// @param preserveElements Ignored (std::vector::resize always preserves existing elements)
+		void Resize(int newLen, [[maybe_unused]] bool preserveElements = false)	
 		{ 
-			if (preserveElements == true)
-			{
-				std::vector<Type> oldElems(_elems);
-
-				_elems.resize(newLen); 
-
-				for (int i = 0; i < oldElems.size() && i < newLen; i++)
-					_elems[i] = oldElems[i];
-			}
-			else
-				_elems.resize(newLen); 
+			_elems.resize(newLen); 
 		}
 
 		/////////////////////            Accessing elements             ///////////////////////
@@ -209,7 +199,7 @@ namespace MML
 			Vector ret(size());
 			for (int i = 0; i < size(); i++)
 				ret._elems[i] = Type{ -1 } * (*this)[i];
-			return std::move(ret);
+			return ret;
 		}
 		
 		/// @brief Vector addition
@@ -222,7 +212,7 @@ namespace MML
 			Vector ret(b.size());;
 			for (int i = 0; i < b.size(); i++)
 				ret._elems[i] = (*this)[i] + b._elems[i];
-			return std::move(ret);
+			return ret;
 		}
 		
 		/// @brief In-place vector addition
@@ -247,7 +237,7 @@ namespace MML
 			Vector ret(b.size());;
 			for (int i = 0; i < b.size(); i++)
 				ret._elems[i] = (*this)[i] - b._elems[i];
-			return std::move(ret);
+			return ret;
 		}
 		
 		/// @brief In-place vector subtraction
@@ -268,7 +258,7 @@ namespace MML
 			Vector ret(size());;
 			for (int i = 0; i < size(); i++)
 				ret._elems[i] = b * _elems[i];
-			return std::move(ret);
+			return ret;
 		}
 		
 		/// @brief In-place scalar multiplication
@@ -285,7 +275,7 @@ namespace MML
 			Vector ret(size());
 			for (int i = 0; i < size(); i++)
 				ret._elems[i] = _elems[i] / b;
-			return std::move(ret);
+			return ret;
 		}
 		
 		/// @brief In-place scalar division
@@ -302,7 +292,7 @@ namespace MML
 			Vector ret(b.size());;
 			for (int i = 0; i < b.size(); i++)
 				ret._elems[i] = a * b._elems[i];
-			return std::move(ret);
+			return ret;
 		}
 
 		///////////////////////             Testing equality             ////////////////////////

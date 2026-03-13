@@ -57,8 +57,8 @@ namespace MML
 	class MetricTensorField : public ITensorField2<N>
 	{
 	public:
-		/// @brief Default constructor (2 contravariant indices, 0 covariant)
-		MetricTensorField() : ITensorField2<N>(2, 0) { }
+		/// @brief Default constructor (0 contravariant indices, 2 covariant)
+		MetricTensorField() : ITensorField2<N>(0, 2) { }
 		/// @brief Constructor with custom index configuration
 		/// @param numContra Number of contravariant indices
 		/// @param numCo Number of covariant indices
@@ -67,7 +67,7 @@ namespace MML
 		// implementing operator() required by IFunction interface
 		virtual Tensor2<N>   operator()(const VectorN<Real, N>& pos) const override
 		{
-			Tensor2<N> ret(this->getNumContravar(), this->getNumCovar());
+			Tensor2<N> ret(this->getNumCovar(), this->getNumContravar());
 
 			for (int i = 0; i < N; i++)
 				for (int j = 0; j < N; j++)
@@ -99,6 +99,86 @@ namespace MML
 		{
 			MatrixNM<Real, N, N> g_covar = GetCovariantMetric(pos);
 			return g_covar.GetInverse();
+		}
+
+		/// @brief Raise a covariant vector index: vⁱ = gⁱʲ vⱼ
+		/// @param v_covar Covariant (lower-index) vector
+		/// @param pos Position where metric is evaluated
+		/// @return Contravariant (upper-index) vector
+		VectorN<Real, N> RaiseIndex(const VectorN<Real, N>& v_covar, const VectorN<Real, N>& pos) const
+		{
+			MatrixNM<Real, N, N> g_inv = GetContravariantMetric(pos);
+			VectorN<Real, N> result;
+			for (int i = 0; i < N; i++) {
+				result[i] = 0.0;
+				for (int j = 0; j < N; j++)
+					result[i] += g_inv[i][j] * v_covar[j];
+			}
+			return result;
+		}
+
+		/// @brief Lower a contravariant vector index: vᵢ = gᵢⱼ vʲ
+		/// @param v_contra Contravariant (upper-index) vector
+		/// @param pos Position where metric is evaluated
+		/// @return Covariant (lower-index) vector
+		VectorN<Real, N> LowerIndex(const VectorN<Real, N>& v_contra, const VectorN<Real, N>& pos) const
+		{
+			MatrixNM<Real, N, N> g = GetCovariantMetric(pos);
+			VectorN<Real, N> result;
+			for (int i = 0; i < N; i++) {
+				result[i] = 0.0;
+				for (int j = 0; j < N; j++)
+					result[i] += g[i][j] * v_contra[j];
+			}
+			return result;
+		}
+
+		/// @brief Raise one index of a rank-2 tensor: T^i_j = gⁱᵏ T_kj
+		/// @param t Rank-2 covariant tensor T_ij (must have numContravar == 0)
+		/// @param index_to_raise Which index to raise (0 or 1)
+		/// @param pos Position where metric is evaluated
+		/// @return Mixed tensor with one raised index
+		Tensor2<N> RaiseIndex(const Tensor2<N>& t, int index_to_raise, const VectorN<Real, N>& pos) const
+		{
+			MatrixNM<Real, N, N> g_inv = GetContravariantMetric(pos);
+			Tensor2<N> result(1, 1);  // one covariant, one contravariant
+
+			for (int i = 0; i < N; i++)
+				for (int j = 0; j < N; j++) {
+					result(i, j) = 0.0;
+					for (int k = 0; k < N; k++) {
+						if (index_to_raise == 0)
+							result(i, j) += g_inv[i][k] * t(k, j);
+						else
+							result(i, j) += g_inv[j][k] * t(i, k);
+					}
+				}
+
+			return result;
+		}
+
+		/// @brief Lower one index of a rank-2 tensor: T_ij = g_ik T^k_j
+		/// @param t Rank-2 tensor with at least one contravariant index
+		/// @param index_to_lower Which index to lower (0 or 1)
+		/// @param pos Position where metric is evaluated
+		/// @return Tensor with one lowered index
+		Tensor2<N> LowerIndex(const Tensor2<N>& t, int index_to_lower, const VectorN<Real, N>& pos) const
+		{
+			MatrixNM<Real, N, N> g = GetCovariantMetric(pos);
+			Tensor2<N> result(1, 1);  // one covariant, one contravariant
+
+			for (int i = 0; i < N; i++)
+				for (int j = 0; j < N; j++) {
+					result(i, j) = 0.0;
+					for (int k = 0; k < N; k++) {
+						if (index_to_lower == 0)
+							result(i, j) += g[i][k] * t(k, j);
+						else
+							result(i, j) += g[j][k] * t(i, k);
+					}
+				}
+
+			return result;
 		}
 
 		/// @brief Get Christoffel symbol of the first kind Γᵢⱼₖ (all indices lowered)
@@ -208,7 +288,7 @@ namespace MML
 	class MetricTensorCartesian3D : public MetricTensorField<3>
 	{
 	public:
-		MetricTensorCartesian3D() : MetricTensorField<3>(2, 0) { }
+		MetricTensorCartesian3D() : MetricTensorField<3>(0, 2) { }
 
 		Real Component(int i, int j, const VectorN<Real, 3>& pos) const
 		{
@@ -262,7 +342,7 @@ namespace MML
 	class MetricTensorCylindrical : public MetricTensorField<3>
 	{
 	public:
-		MetricTensorCylindrical() : MetricTensorField<3>(2, 0) { }
+		MetricTensorCylindrical() : MetricTensorField<3>(0, 2) { }
 
 		virtual Real Component(int i, int j, const VectorN<Real, 3>& pos) const
 		{
@@ -306,7 +386,7 @@ namespace MML
 	class MetricTensorMinkowski : public MetricTensorField<4>
 	{
 	public:
-		MetricTensorMinkowski() : MetricTensorField<4>(2, 0) {}
+		MetricTensorMinkowski() : MetricTensorField<4>(0, 2) {}
 
 		virtual Real Component(int i, int j, const VectorN<Real, 4>& pos) const override
 		{

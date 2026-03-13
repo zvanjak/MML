@@ -75,6 +75,12 @@ namespace MML
 		/** @brief Get the number of covariant (lower) indices. */
 		virtual int   NumCovar() const = 0;
 
+		/** @brief Check if the index at position `index` is contravariant (upper). */
+		virtual bool  IsContravar(int index) const = 0;
+
+		/** @brief Check if the index at position `index` is covariant (lower). */
+		bool IsCovar(int index) const { return !IsContravar(index); }
+
 		/**
 		 * @brief Access tensor component (const).
 		 * @param i First index (0 to N-1)
@@ -134,6 +140,12 @@ namespace MML
 		virtual int   NumContravar() const = 0;
 		virtual int   NumCovar() const = 0;
 
+		/** @brief Check if the index at position `index` is contravariant (upper). */
+		virtual bool  IsContravar(int index) const = 0;
+
+		/** @brief Check if the index at position `index` is covariant (lower). */
+		bool IsCovar(int index) const { return !IsContravar(index); }
+
 		/**
 		 * @brief Access tensor component.
 		 * @param i First index
@@ -190,6 +202,12 @@ namespace MML
 		virtual int   NumContravar() const = 0;
 		virtual int   NumCovar() const = 0;
 
+		/** @brief Check if the index at position `index` is contravariant (upper). */
+		virtual bool  IsContravar(int index) const = 0;
+
+		/** @brief Check if the index at position `index` is covariant (lower). */
+		bool IsCovar(int index) const { return !IsContravar(index); }
+
 		/**
 		 * @brief Access tensor component.
 		 * @param i First index
@@ -245,6 +263,12 @@ namespace MML
 
 		virtual int   NumContravar() const = 0;
 		virtual int   NumCovar() const = 0;
+
+		/** @brief Check if the index at position `index` is contravariant (upper). */
+		virtual bool  IsContravar(int index) const = 0;
+
+		/** @brief Check if the index at position `index` is covariant (lower). */
+		bool IsCovar(int index) const { return !IsContravar(index); }
 
 		/**
 		 * @brief Access tensor component.

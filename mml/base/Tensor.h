@@ -92,10 +92,10 @@ namespace MML
 	class Tensor2 : public ITensor2<N>
 	{
 		MatrixNM<Real, N, N> _coeff;   ///< Storage for tensor components
-	public:
 		int _numContravar = 0;         ///< Number of contravariant (upper) indices
 		int _numCovar = 0;             ///< Number of covariant (lower) indices
 		bool _isContravar[2];          ///< Per-index variance: true = contravariant, false = covariant
+	public:
 
 		///////////////////////////////////////////////////////////////////////
 		///                        Constructors                             ///
@@ -160,11 +160,14 @@ namespace MML
 
 		/// @brief Checks if index i is contravariant (upper index).
 		/// @param i Index position (0 or 1)
-		bool IsContravar(int i) const { return _isContravar[i]; }
+		bool IsContravar(int i) const override { return _isContravar[i]; }
 
 		/// @brief Checks if index i is covariant (lower index).
 		/// @param i Index position (0 or 1)
 		bool IsCovar(int i) const			{ return !_isContravar[i]; }
+
+		/// @brief Sets the variance of index i.
+		void setContravar(int i, bool val) { _isContravar[i] = val; }
 
 		///////////////////////////////////////////////////////////////////////
 		///                        Element Access                           ///
@@ -223,7 +226,7 @@ namespace MML
 			if (_numContravar != other._numContravar || _numCovar != other._numCovar)
 				throw TensorCovarContravarArithmeticError("Tensor2 operator+, wrong number of contravariant and covariant indices", _numContravar, _numCovar, other._numContravar, other._numCovar);
 
-			Tensor2 result(_numContravar, _numCovar);
+			Tensor2 result(_numCovar, _numContravar);
 
 			result._coeff = _coeff + other._coeff;
 
@@ -237,7 +240,7 @@ namespace MML
 			if (_numContravar != other._numContravar || _numCovar != other._numCovar)
 				throw TensorCovarContravarArithmeticError("Tensor2 operator-, wrong number of contravariant and covariant indices", _numContravar, _numCovar, other._numContravar, other._numCovar);
 
-			Tensor2 result(_numContravar, _numCovar);
+			Tensor2 result(_numCovar, _numContravar);
 
 			result._coeff = _coeff - other._coeff;
 
@@ -247,7 +250,7 @@ namespace MML
 		/// @brief Multiply tensor by a scalar.
 		Tensor2 operator*(Real scalar) const
 		{
-			Tensor2 result(_numContravar, _numCovar);
+			Tensor2 result(_numCovar, _numContravar);
 
 			result._coeff = _coeff * scalar;
 
@@ -257,7 +260,7 @@ namespace MML
 		/// @brief Divide tensor by a scalar.
 		Tensor2 operator/(Real scalar) const
 		{
-			Tensor2 result(_numContravar, _numCovar);
+			Tensor2 result(_numCovar, _numContravar);
 
 			result._coeff = _coeff / scalar;
 
@@ -267,7 +270,7 @@ namespace MML
 		/// @brief Scalar multiplication from the left (scalar * tensor).
 		friend Tensor2 operator*(Real scalar, const Tensor2& b)
 		{
-			Tensor2 result(b.NumContravar(), b.NumCovar());
+			Tensor2 result(b.NumCovar(), b.NumContravar());
 
 			result._coeff = b._coeff * scalar;
 
@@ -365,10 +368,10 @@ namespace MML
 	class Tensor3 : public ITensor3<N>
 	{
 		Real _coeff[N][N][N] = { 0 };  ///< Storage for N³ tensor components
-	public:
 		int _numContravar;             ///< Number of contravariant (upper) indices
 		int _numCovar;                 ///< Number of covariant (lower) indices
 		bool _isContravar[3];          ///< Per-index variance: true = contravariant, false = covariant
+	public:
 
 		///////////////////////////////////////////////////////////////////////
 		///                        Constructors                             ///
@@ -425,6 +428,15 @@ namespace MML
 
 		/// @brief Returns the number of covariant (lower) indices.
 		int   NumCovar()     const override { return _numCovar; }
+
+		/// @brief Checks if index i is contravariant (upper index).
+		bool IsContravar(int i) const override { return _isContravar[i]; }
+
+		/// @brief Checks if index i is covariant (lower index).
+		bool IsCovar(int i) const { return !_isContravar[i]; }
+
+		/// @brief Sets the variance of index i.
+		void setContravar(int i, bool val) { _isContravar[i] = val; }
 
 		///////////////////////////////////////////////////////////////////////
 		///                        Element Access                           ///
@@ -551,10 +563,10 @@ namespace MML
 	class Tensor4 : public ITensor4<N>
 	{
 		Real _coeff[N][N][N][N] = { 0 };  ///< Storage for N⁴ tensor components
-	public:
 		int _numContravar;                 ///< Number of contravariant (upper) indices
 		int _numCovar;                     ///< Number of covariant (lower) indices
 		bool _isContravar[4];              ///< Per-index variance: true = contravariant, false = covariant
+	public:
 
 		///////////////////////////////////////////////////////////////////////
 		///                        Constructors                             ///
@@ -585,6 +597,15 @@ namespace MML
 
 		/// @brief Returns the number of covariant (lower) indices.
 		int   NumCovar()     const override { return _numCovar; }
+
+		/// @brief Checks if index i is contravariant (upper index).
+		bool IsContravar(int i) const override { return _isContravar[i]; }
+
+		/// @brief Checks if index i is covariant (lower index).
+		bool IsCovar(int i) const { return !_isContravar[i]; }
+
+		/// @brief Sets the variance of index i.
+		void setContravar(int i, bool val) { _isContravar[i] = val; }
 
 		///////////////////////////////////////////////////////////////////////
 		///                        Element Access                           ///
@@ -683,7 +704,7 @@ namespace MML
 
 			// Properly propagate index variance from original tensor
 			for (int i = 0; i < 2; i++)
-				result._isContravar[i] = _isContravar[map[i]];
+				result.setContravar(i, _isContravar[map[i]]);
 
 			// Contract: sum over the contracted index
 			for (int a = 0; a < N; a++)        // result index 0
@@ -733,10 +754,10 @@ namespace MML
 	class Tensor5 : public ITensor5<N>
 	{
 		Real _coeff[N][N][N][N][N] = { 0 };  ///< Storage for N⁵ tensor components
-	public:
 		int _numContravar;                    ///< Number of contravariant (upper) indices
 		int _numCovar;                        ///< Number of covariant (lower) indices
 		bool _isContravar[5];                 ///< Per-index variance: true = contravariant, false = covariant
+	public:
 
 		///////////////////////////////////////////////////////////////////////
 		///                        Constructors                             ///
@@ -768,6 +789,15 @@ namespace MML
 
 		/// @brief Returns the number of covariant (lower) indices.
 		int   NumCovar()     const override { return _numCovar; }
+
+		/// @brief Checks if index i is contravariant (upper index).
+		bool IsContravar(int i) const { return _isContravar[i]; }
+
+		/// @brief Checks if index i is covariant (lower index).
+		bool IsCovar(int i) const { return !_isContravar[i]; }
+
+		/// @brief Sets the variance of index i.
+		void setContravar(int i, bool val) { _isContravar[i] = val; }
 
 		///////////////////////////////////////////////////////////////////////
 		///                        Element Access                           ///
@@ -870,7 +900,7 @@ namespace MML
 
 			// Properly propagate index variance from original tensor
 			for (int i = 0; i < 3; i++)
-				result._isContravar[i] = _isContravar[map[i]];
+				result.setContravar(i, _isContravar[map[i]]);
 
 			// Contract: sum over the contracted index
 			for (int a = 0; a < N; a++)        // result index 0

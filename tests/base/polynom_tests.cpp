@@ -1059,4 +1059,12 @@ namespace MML::Tests::Base::PolynomTests
     REQUIRE(neg[1] == REAL(2.0));
     REQUIRE(neg[2] == REAL(-3.0));
   }
+
+  TEST_CASE("Polynom::FromValues_duplicate_x_throws", "[Polynom][interpolation]")
+  {
+    std::vector<Real> x = {REAL(1.0), REAL(2.0), REAL(2.0), REAL(4.0)};
+    std::vector<Real> y = {REAL(1.0), REAL(4.0), REAL(4.0), REAL(16.0)};
+
+    REQUIRE_THROWS_AS(PolynomRealFunc::FromValues(x, y), ArgumentError);
+  }
 }

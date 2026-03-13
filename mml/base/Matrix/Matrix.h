@@ -37,6 +37,10 @@ namespace MML
 	/// @brief Lightweight non-owning view into a Matrix block
 	/// @details Provides strided access to a rectangular subregion of a Matrix without copying.
 	///          Used for efficient submatrix operations.
+	/// @warning This view stores a raw pointer into the parent Matrix's internal storage.
+	///          The view becomes invalid (dangling) if the parent Matrix is destroyed,
+	///          resized, or otherwise reallocated. Do not store views beyond the
+	///          parent's lifetime or across Resize() calls.
 	/// @tparam Type Element type
 	template<class Type>
 	class MatrixViewNew {
@@ -513,7 +517,7 @@ namespace MML
 				for (int j = 0; j < jEnd; ++j)
 					ret(i, j) = (*this)(i, j);
 			}
-			return std::move(ret);
+			return ret;
 		}
 		
 		/// @brief Extract upper triangular part
@@ -531,7 +535,7 @@ namespace MML
 				for (int j = jStart; j < _cols; ++j)
 					ret(i, j) = (*this)(i, j);
 			}
-			return std::move(ret);
+			return ret;
 		}
 		
 		/// @brief Extract rectangular submatrix
@@ -608,6 +612,7 @@ namespace MML
 		///////////////////////              Creating views                //////////////////////
 		
 		/// @brief Create mutable view of a rectangular block
+		/// @warning The returned view is invalidated by Resize() or destruction of this matrix.
 		/// @param startRow Starting row index
 		/// @param startCol Starting column index
 		/// @param numRows Number of rows in block
@@ -622,6 +627,7 @@ namespace MML
 		}
 		
 		/// @brief Create const view of a rectangular block
+		/// @warning The returned view is invalidated by Resize() or destruction of this matrix.
 		const MatrixViewNew<Type> block(int startRow, int startCol, int numRows, int numCols) const
 		{
 			if (startRow < 0 || startCol < 0 || numRows <= 0 || numCols <= 0 ||
@@ -916,7 +922,7 @@ namespace MML
 			Matrix ret(_rows, _cols);
 			for (size_t i = 0; i < _data.size(); ++i)
 				ret._data[i] = -_data[i];
-			return std::move(ret);
+			return ret;
 		}
 		
 		/// @brief Matrix addition
@@ -929,7 +935,7 @@ namespace MML
 			Matrix ret(_rows, _cols);
 			for (size_t i = 0; i < _data.size(); ++i)
 				ret._data[i] = _data[i] + b._data[i];
-			return std::move(ret);
+			return ret;
 		}
 		
 		/// @brief In-place matrix addition
@@ -953,7 +959,7 @@ namespace MML
 			Matrix ret(_rows, _cols);
 			for (size_t i = 0; i < _data.size(); ++i)
 				ret._data[i] = _data[i] - b._data[i];
-			return std::move(ret);
+			return ret;
 		}
 		
 		/// @brief In-place matrix subtraction
@@ -983,7 +989,7 @@ namespace MML
 					ret(i, j) = sum;
 				}
 			}
-			return std::move(ret);
+			return ret;
 		}
 		
 		/// @brief Scalar multiplication: M * s
@@ -992,7 +998,7 @@ namespace MML
 			Matrix ret(_rows, _cols);
 			for (size_t i = 0; i < _data.size(); ++i)
 				ret._data[i] = _data[i] * scalar;
-			return std::move(ret);
+			return ret;
 		}
 		
 		/// @brief In-place scalar multiplication
@@ -1009,7 +1015,7 @@ namespace MML
 			Matrix ret(_rows, _cols);
 			for (size_t i = 0; i < _data.size(); ++i)
 				ret._data[i] = _data[i] / scalar;
-			return std::move(ret);
+			return ret;
 		}
 		
 		/// @brief In-place scalar division
@@ -1087,7 +1093,16 @@ namespace MML
 			int n = _rows;
 			Matrix& a = *this;
 			std::vector<int> indxc(n), indxr(n), ipiv(n, 0);
-			
+
+			// Compute infinity norm for norm-scaled singularity threshold
+			Real norm_a = 0.0;
+			for (int ii = 0; ii < n; ii++)
+				for (int jj = 0; jj < n; jj++) {
+					Real abs_val = Abs(a(ii, jj));
+					if (abs_val > norm_a) norm_a = abs_val;
+				}
+			Real singularity_threshold = std::numeric_limits<Real>::epsilon() * norm_a * n;
+
 			for (int i = 0; i < n; ++i) {
 				Real big{0};
 				int irow = 0, icol = 0;
@@ -1117,8 +1132,8 @@ namespace MML
 				indxr[i] = irow;
 				indxc[i] = icol;
 				
-				if (a(icol, icol) == Type{0})
-					throw SingularMatrixError("Matrix::Invert - Singular Matrix");
+				if (Abs(a(icol, icol)) < singularity_threshold)
+					throw SingularMatrixError("Matrix::Invert - Singular Matrix", Abs(a(icol, icol)));
 				
 				Type pivinv = Type{1} / a(icol, icol);
 				a(icol, icol) = Type{1};
@@ -1150,7 +1165,7 @@ namespace MML
 		{
 			Matrix ret(*this);
 			ret.Invert();
-			return std::move(ret);
+			return ret;
 		}
 
 		/// @brief Transpose matrix in-place (only for square matrices)
@@ -1173,7 +1188,7 @@ namespace MML
 			for (int i = 0; i < _rows; ++i)
 				for (int j = 0; j < _cols; ++j)
 					ret(j, i) = (*this)(i, j);
-			return std::move(ret);
+			return ret;
 		}
 
 		///////////////////////                    I/O                    //////////////////////

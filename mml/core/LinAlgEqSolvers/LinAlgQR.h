@@ -62,9 +62,9 @@ namespace MML
 				for (i = k; i < m; i++)
 					scale = std::max(scale, Abs(QR[i][k]));
 
-				if (scale == 0.0)
+				if (scale < std::numeric_limits<Real>::epsilon())
 				{
-					// Singular case
+					// Singular case: column below diagonal is effectively zero
 					sing = true;
 					c[k] = d[k] = 0.0;
 				}
@@ -106,7 +106,14 @@ namespace MML
 			if (m == n)
 			{
 				d[n - 1] = QR[n - 1][n - 1];
-				if (d[n - 1] == 0.0)
+				// Use norm-scaled threshold instead of exact zero
+				Real norm_a = 0.0;
+				for (int ii = 0; ii < m; ii++)
+					for (int jj = 0; jj < n; jj++)
+						if (Abs(a(ii, jj)) > norm_a)
+							norm_a = Abs(a(ii, jj));
+				Real threshold = std::numeric_limits<Real>::epsilon() * norm_a * n;
+				if (Abs(d[n - 1]) < threshold)
 					sing = true;
 			}
 		}

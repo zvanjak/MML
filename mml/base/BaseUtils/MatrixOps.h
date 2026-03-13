@@ -109,7 +109,7 @@ namespace MML
 		{
 			MatrixNM<Type, 1, N>  ret;
 			for (int j = 0; j < N; j++)
-				ret._vals[0][j] = b[j];
+				ret(0, j) = b[j];
 
 			return ret;
 		}
@@ -124,7 +124,7 @@ namespace MML
 		{
 			MatrixNM<Type, N, 1>  ret;
 			for (int i = 0; i < N; i++)
-				ret._vals[i][0] = b[i];
+				ret(i, 0) = b[i];
 			return ret;
 		}
 

@@ -17,11 +17,28 @@
 
 namespace MML
 {
+	/// @brief Base marker class for all MML library exceptions.
+	/// All MML exceptions inherit from both this class and a standard exception class,
+	/// preserving the std:: exception hierarchy for backward compatibility.
+	/// Use catch(const MMLException&) to handle any MML library error.
+	/// Call message() to get the error string.
+	class MMLException {
+	public:
+		virtual ~MMLException() = default;
+
+		/// @brief Get error message (delegates to std::exception::what()).
+		const char* message() const noexcept {
+			if (auto* e = dynamic_cast<const std::exception*>(this))
+				return e->what();
+			return "unknown MML error";
+		}
+	};
+
 	//////////             Base error exceptions              ///////////
 	/// @brief Generic argument validation error for invalid parameters.
 	/// Use when function arguments violate preconditions (negative where positive required,
 	/// empty containers where non-empty required, etc.)
-	class ArgumentError : public std::invalid_argument
+	class ArgumentError : public std::invalid_argument, public MMLException
 	{
 	public:
 		explicit ArgumentError(const std::string& message) 
@@ -31,7 +48,7 @@ namespace MML
 	/// @brief Error for operations outside valid domain.
 	/// Use for mathematical domain violations (e.g., sqrt of negative, log of zero,
 	/// parameter outside valid range).
-	class DomainError : public std::domain_error
+	class DomainError : public std::domain_error, public MMLException
 	{
 	public:
 		explicit DomainError(const std::string& message) 
@@ -40,7 +57,7 @@ namespace MML
 
 	/// @brief Error for division by zero.
 	/// Use when division or modulo by zero is attempted.
-	class DivisionByZeroError : public std::domain_error
+	class DivisionByZeroError : public std::domain_error, public MMLException
 	{
 	public:
 		explicit DivisionByZeroError(const std::string& message) 
@@ -49,7 +66,7 @@ namespace MML
 
 	/// @brief Error for unimplemented methods.
 	/// Use for abstract base class methods or features not yet implemented.
-	class NotImplementedError : public std::logic_error
+	class NotImplementedError : public std::logic_error, public MMLException
 	{
 	public:
 		explicit NotImplementedError(const std::string& message) 
@@ -58,7 +75,7 @@ namespace MML
 
 	/// @brief Generic index out of bounds error.
 	/// Use for array/container index access violations.
-	class IndexError : public std::out_of_range
+	class IndexError : public std::out_of_range, public MMLException
 	{
 		int _index;
 		int _size;
@@ -71,7 +88,7 @@ namespace MML
 	};
 
 	//////////             Vector error exceptions            ///////////
-	class VectorInitializationError : public std::invalid_argument
+	class VectorInitializationError : public std::invalid_argument, public MMLException
 	{
 		int _size1;
 	public:
@@ -81,7 +98,7 @@ namespace MML
 		int size() const noexcept { return _size1; }
 	};
 	
-	class VectorDimensionError : public std::invalid_argument
+	class VectorDimensionError : public std::invalid_argument, public MMLException
 	{
 		int _size1, _size2;
 	public:
@@ -92,7 +109,7 @@ namespace MML
 		int actual() const noexcept { return _size2; }
 	};
 	
-	class VectorAccessBoundsError : public std::out_of_range
+	class VectorAccessBoundsError : public std::out_of_range, public MMLException
 	{
 		int _i, _n;
 	public:
@@ -104,7 +121,7 @@ namespace MML
 	};
 
 	//////////             Matrix error exceptions            ///////////
-	class MatrixAllocationError : public std::out_of_range
+	class MatrixAllocationError : public std::out_of_range, public MMLException
 	{
 		int _rows, _cols;
 	public:
@@ -114,7 +131,7 @@ namespace MML
 		int rows() const noexcept { return _rows; }
 		int cols() const noexcept { return _cols; }
 	};
-	class MatrixAccessBoundsError : public std::out_of_range
+	class MatrixAccessBoundsError : public std::out_of_range, public MMLException
 	{
 		int _i, _j, _rows, _cols;
 	public:
@@ -126,7 +143,7 @@ namespace MML
 		int rows() const noexcept { return _rows; }
 		int cols() const noexcept { return _cols; }
 	};
-	class MatrixDimensionError : public std::invalid_argument
+	class MatrixDimensionError : public std::invalid_argument, public MMLException
 	{
 		int _rows1, _cols1, _rows2, _cols2;
 	public:
@@ -143,7 +160,7 @@ namespace MML
 		int actual_rows() const noexcept { return _rows2; }
 		int actual_cols() const noexcept { return _cols2; }
 	};
-	class SingularMatrixError : public std::domain_error
+	class SingularMatrixError : public std::domain_error, public MMLException
 	{
 		double _determinant;
 		int _pivot_row;
@@ -156,7 +173,7 @@ namespace MML
 	};
 
 	//////////             Integration exceptions            ///////////
-	class IntegrationTooManySteps : public std::domain_error
+	class IntegrationTooManySteps : public std::domain_error, public MMLException
 	{
 		int _steps;
 		double _achieved_precision;
@@ -173,14 +190,14 @@ namespace MML
 	};
 
 	//////////           Interpolation exceptions            ///////////
-	class RealFuncInterpInitError: public std::domain_error
+	class RealFuncInterpInitError: public std::domain_error, public MMLException
 	{
 	public:
 		RealFuncInterpInitError(std::string inMessage) : std::domain_error(inMessage)
 		{ }
 	};
 
-	class RealFuncInterpRuntimeError: public std::runtime_error
+	class RealFuncInterpRuntimeError: public std::runtime_error, public MMLException
 	{
 	public:
 		RealFuncInterpRuntimeError(std::string inMessage) : std::runtime_error(inMessage)
@@ -188,7 +205,7 @@ namespace MML
 	};
 
 	////////////             Tensor exceptions             /////////////
-	class TensorCovarContravarNumError : public std::invalid_argument
+	class TensorCovarContravarNumError : public std::invalid_argument, public MMLException
 	{
 		int _numContra, _numCo;
 	public:
@@ -198,7 +215,7 @@ namespace MML
 		int num_contravariant() const noexcept { return _numContra; }
 		int num_covariant() const noexcept { return _numCo; }
 	};
-	class TensorCovarContravarArithmeticError : public std::invalid_argument
+	class TensorCovarContravarArithmeticError : public std::invalid_argument, public MMLException
 	{
 		int _numContra, _numCo;
 		int _bContra, _bCo;
@@ -211,7 +228,7 @@ namespace MML
 		int other_contravariant() const noexcept { return _bContra; }
 		int other_covariant() const noexcept { return _bCo; }
 	};
-	class TensorIndexError : public std::invalid_argument
+	class TensorIndexError : public std::invalid_argument, public MMLException
 	{
 	public:
 		TensorIndexError(std::string inMessage) : std::invalid_argument(inMessage)
@@ -219,7 +236,7 @@ namespace MML
 	};    
 
 	//////////           Root finding exceptions            ///////////
-	class RootFindingError: public std::runtime_error
+	class RootFindingError: public std::runtime_error, public MMLException
 	{
 	public:
 		RootFindingError(std::string inMessage) : std::runtime_error(inMessage)
@@ -227,7 +244,7 @@ namespace MML
 	};
 
 	//////////            ODE solver exceptions             ///////////
-	class ODESolverError: public std::runtime_error
+	class ODESolverError: public std::runtime_error, public MMLException
 	{
 	public:
 		ODESolverError(std::string inMessage) : std::runtime_error(inMessage)
@@ -235,7 +252,7 @@ namespace MML
 	};
 
 	//////////            Statistics exceptions             ///////////
-	class StatisticsError : public std::runtime_error
+	class StatisticsError : public std::runtime_error, public MMLException
 	{
 	public:
 		StatisticsError(std::string inMessage) : std::runtime_error(inMessage)
@@ -244,14 +261,14 @@ namespace MML
 	};
 
 	//////////      Numerical method exceptions             ///////////
-	class NumericalMethodError : public std::runtime_error
+	class NumericalMethodError : public std::runtime_error, public MMLException
 	{
 	public:
 		NumericalMethodError(std::string inMessage) : std::runtime_error(inMessage)
 		{ }
 	};
 	
-	class MatrixNumericalError : public std::runtime_error
+	class MatrixNumericalError : public std::runtime_error, public MMLException
 	{
 	public:
 		MatrixNumericalError(std::string inMessage) : std::runtime_error(inMessage)
@@ -259,7 +276,7 @@ namespace MML
 	};
 
 	//////////          Convergence exceptions              ///////////
-	class ConvergenceError : public std::runtime_error
+	class ConvergenceError : public std::runtime_error, public MMLException
 	{
 		int _iterations;
 		double _residual;
@@ -272,7 +289,7 @@ namespace MML
 	};
 
 	//////////            Geometry exceptions               ///////////
-	class GeometryError : public std::domain_error
+	class GeometryError : public std::domain_error, public MMLException
 	{
 	public:
 		GeometryError(std::string inMessage) : std::domain_error(inMessage)
@@ -280,7 +297,7 @@ namespace MML
 	};
 
 	//////////           Quaternion exceptions              ///////////
-	class QuaternionError : public std::domain_error
+	class QuaternionError : public std::domain_error, public MMLException
 	{
 	public:
 		QuaternionError(std::string inMessage) : std::domain_error(inMessage)
@@ -288,7 +305,7 @@ namespace MML
 	};
 
 	//////////             File I/O exceptions              ///////////
-	class FileIOError : public std::runtime_error
+	class FileIOError : public std::runtime_error, public MMLException
 	{
 		std::string _filename;
 	public:
@@ -299,7 +316,7 @@ namespace MML
 	};
 
 	//////////            Fourier exceptions                ///////////
-	class FourierError : public std::invalid_argument
+	class FourierError : public std::invalid_argument, public MMLException
 	{
 	public:
 		FourierError(std::string inMessage) : std::invalid_argument(inMessage)
@@ -307,7 +324,7 @@ namespace MML
 	};
 
 	//////////          Visualization exceptions            ///////////
-	class VisualizerError : public std::runtime_error
+	class VisualizerError : public std::runtime_error, public MMLException
 	{
 	public:
 		VisualizerError(std::string inMessage) : std::runtime_error(inMessage)
@@ -315,7 +332,7 @@ namespace MML
 	};
 
 	//////////        Curve Fitting exceptions              ///////////
-	class CurveFittingError : public std::invalid_argument
+	class CurveFittingError : public std::invalid_argument, public MMLException
 	{
 	public:
 		CurveFittingError(std::string inMessage) : std::invalid_argument(inMessage)
@@ -323,7 +340,7 @@ namespace MML
 	};
 
 	//////////             Data I/O exceptions              ///////////
-	class DataError : public std::runtime_error
+	class DataError : public std::runtime_error, public MMLException
 	{
 	public:
 		DataError(std::string inMessage) : std::runtime_error(inMessage)
@@ -332,7 +349,7 @@ namespace MML
 	//////////      Numeric input validation exceptions     ///////////
 	/// @brief Error for non-finite numeric values (NaN, Inf) passed to algorithms.
 	/// Use when algorithm input or intermediate values are not finite.
-	class NumericInputError : public std::domain_error
+	class NumericInputError : public std::domain_error, public MMLException
 	{
 	public:
 		explicit NumericInputError(const std::string& message)

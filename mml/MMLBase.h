@@ -112,7 +112,6 @@ namespace MML
     return hypot(a.real(), a.imag());
   }
 
-
   ////////////         Floating-Point Comparison Functions         ////////////
   /// @brief Check if two values are equal within absolute tolerance.
   /// @details Use for values expected to be near zero.
@@ -230,11 +229,10 @@ namespace MML
   /// @param rad Angle in radians
   /// @return Normalized angle in [-π, π)
   inline Real normalizeAngle(Real rad) {
-    while (rad < -Constants::PI)
+    rad = std::fmod(rad + Constants::PI, 2 * Constants::PI);
+    if (rad < 0)
       rad += 2 * Constants::PI;
-    while (rad >= Constants::PI)
-      rad -= 2 * Constants::PI;
-    return rad;
+    return rad - Constants::PI;
   }
 
   /// @brief Check if two angles are equal, accounting for wrap-around at ±π.

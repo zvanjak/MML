@@ -16,7 +16,7 @@
 #include "MMLExceptions.h"
 
 #include "base/Vector/VectorN.h"
-#include "mml/base/Geometry/Geometry.h"
+#include "base/Geometry/Geometry.h"
 #include "base/BaseUtils.h"
 
 // Standard headers - include what we use

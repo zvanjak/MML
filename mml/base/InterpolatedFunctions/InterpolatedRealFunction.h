@@ -69,6 +69,11 @@ namespace MML {
 			// throw if not enough points
 			if (_numPoints < 2 || _usedPoints < 2 || _usedPoints > _numPoints)
 				throw RealFuncInterpInitError("RealFunctionInterpolated size error");
+			// Check for duplicate x-values (causes division by zero in interpolation)
+			for (int i = 0; i < _numPoints; i++)
+				for (int j = i + 1; j < _numPoints; j++)
+					if (_x[i] == _x[j])
+						throw RealFuncInterpInitError("RealFunctionInterpolated: duplicate x-value at indices " + std::to_string(i) + " and " + std::to_string(j));
 		}
 
 		virtual ~RealFunctionInterpolated() {}

@@ -93,8 +93,11 @@ namespace MML {
 
 	template<class Type, int N, int M>
 	class MatrixNM {
-	public:
+		static_assert(N > 0 && M > 0, "MatrixNM dimensions must be positive");
+	private:
 		Type _vals[N][M] = {{0}}; ///< Row-major storage array (stack allocated)
+
+		template<class U, int P, int Q> friend class MatrixNM;
 
 	public:
 		typedef Type value_type; ///< Element type alias for STL compatibility
@@ -257,7 +260,7 @@ namespace MML {
 						ret[i][j] = _vals[i][j];
 			}
 
-			return std::move(ret);
+			return ret;
 		}
 
 		/// @brief Extracts upper triangular part.
@@ -279,7 +282,7 @@ namespace MML {
 						ret[i][j] = _vals[i][j];
 			}
 
-			return std::move(ret);
+			return ret;
 		}
 		/// /** @} */
 
@@ -297,7 +300,7 @@ namespace MML {
 			for (int j = 0; j < M; j++)
 				ret[j] = _vals[rowInd][j];
 
-			return std::move(ret);
+			return ret;
 		}
 
 		/// @brief Extracts a column as a vector.
@@ -309,7 +312,7 @@ namespace MML {
 			for (int i = 0; i < N; i++)
 				ret[i] = _vals[i][colInd];
 
-			return std::move(ret);
+			return ret;
 		}
 
 		/// @brief Extracts the main diagonal as a vector.
@@ -320,7 +323,7 @@ namespace MML {
 			for (int i = 0; i < N; i++)
 				ret[i] = _vals[i][i];
 
-			return std::move(ret);
+			return ret;
 		}
 		/// /** @} */
 
@@ -424,7 +427,7 @@ namespace MML {
 			for (size_t i = 0; i < RowNum(); i++)
 				for (size_t j = 0; j < ColNum(); j++)
 					temp._vals[i][j] = -_vals[i][j];
-			return std::move(temp);
+			return temp;
 		}
 
 		/// @brief Matrix addition (A + B).
@@ -433,7 +436,7 @@ namespace MML {
 			for (size_t i = 0; i < RowNum(); i++)
 				for (size_t j = 0; j < ColNum(); j++)
 					temp._vals[i][j] = b._vals[i][j] + _vals[i][j];
-			return std::move(temp);
+			return temp;
 		}
 
 		/// @brief Matrix subtraction (A - B).
@@ -442,7 +445,7 @@ namespace MML {
 			for (size_t i = 0; i < RowNum(); i++)
 				for (size_t j = 0; j < ColNum(); j++)
 					temp._vals[i][j] = _vals[i][j] - b._vals[i][j];
-			return std::move(temp);
+			return temp;
 		}
 
 		/// @brief Matrix multiplication with compile-time dimension checking.
@@ -463,7 +466,7 @@ namespace MML {
 						ret._vals[i][j] += _vals[i][k] * b._vals[k][j];
 				}
 
-			return std::move(ret);
+			return ret;
 		}
 
 		/// @brief Scalar multiplication (A * b).
@@ -475,7 +478,7 @@ namespace MML {
 				for (j = 0; j < ColNum(); j++)
 					ret._vals[i][j] *= b;
 
-			return std::move(ret);
+			return ret;
 		}
 
 		/// @brief In-place scalar multiplication (A *= b).
@@ -498,7 +501,7 @@ namespace MML {
 				for (j = 0; j < ColNum(); j++)
 					ret._vals[i][j] /= b;
 
-			return std::move(ret);
+			return ret;
 		}
 
 		/// @brief Matrix-vector multiplication (A * v).
@@ -515,7 +518,7 @@ namespace MML {
 					ret[i] += _vals[i][j] * b[j];
 			}
 
-			return std::move(ret);
+			return ret;
 		}
 
 		/// @brief Scalar-matrix multiplication (a * B, commutative).
@@ -527,7 +530,7 @@ namespace MML {
 				for (j = 0; j < b.cols(); j++)
 					ret._vals[i][j] = a * b._vals[i][j];
 
-			return std::move(ret);
+			return ret;
 		}
 
 		/// @brief Row vector times matrix (v^T * A).
@@ -545,7 +548,7 @@ namespace MML {
 					ret[i] += a[j] * b._vals[j][i];
 			}
 
-			return std::move(ret);
+			return ret;
 		}
 		/// /** @} */
 
@@ -627,6 +630,16 @@ namespace MML {
 			std::vector<int> indxc(n), indxr(n), ipiv(n);
 			for (j = 0; j < n; j++)
 				ipiv[j] = 0;
+
+			// Compute infinity norm for norm-scaled singularity threshold
+			Real norm_a = 0.0;
+			for (int ii = 0; ii < n; ii++)
+				for (int jj = 0; jj < n; jj++) {
+					Real abs_val = std::abs(a._vals[ii][jj]);
+					if (abs_val > norm_a) norm_a = abs_val;
+				}
+			Real singularity_threshold = std::numeric_limits<Real>::epsilon() * norm_a * n;
+
 			for (i = 0; i < n; i++) {
 				big = 0.0;
 				for (j = 0; j < n; j++)
@@ -650,8 +663,8 @@ namespace MML {
 				indxr[i] = irow;
 				indxc[i] = icol;
 
-				if (a._vals[icol][icol] == 0.0)
-					throw SingularMatrixError("MatrixNM::Invert, gaussj: Singular Matrix");
+				if (std::abs(a._vals[icol][icol]) < singularity_threshold)
+					throw SingularMatrixError("MatrixNM::Invert, gaussj: Singular Matrix", std::abs(a._vals[icol][icol]));
 
 				pivinv = 1.0 / a._vals[icol][icol];
 				a._vals[icol][icol] = 1.0;
@@ -712,7 +725,7 @@ namespace MML {
 			for (size_t i = 0; i < cols(); i++)
 				for (size_t j = 0; j < rows(); j++)
 					ret._vals[i][j] = _vals[j][i];
-			return std::move(ret);
+			return ret;
 		}
 
 		/// /** @} */

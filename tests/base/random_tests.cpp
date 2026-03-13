@@ -595,4 +595,20 @@ TEST_CASE("Random - Thread-local RNG ensures reproducible behavior", "[Random][T
     }
 }
 
+TEST_CASE("Random::SetSeed - Reproducible sequences", "[Random][SetSeed]")
+{
+    Random::SetSeed(42);
+    std::vector<Real> seq1(10);
+    for (int i = 0; i < 10; ++i)
+        seq1[i] = Random::UniformReal(0.0, 1.0);
+
+    Random::SetSeed(42);
+    std::vector<Real> seq2(10);
+    for (int i = 0; i < 10; ++i)
+        seq2[i] = Random::UniformReal(0.0, 1.0);
+
+    for (int i = 0; i < 10; ++i)
+        REQUIRE(seq1[i] == seq2[i]);
+}
+
 } // namespace MML::Tests::Base::RandomTests

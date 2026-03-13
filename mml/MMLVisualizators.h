@@ -150,11 +150,11 @@ namespace MML
     
 #ifdef _WIN32
     if (backend == VisualizerBackend::WPF) {
-      return std::filesystem::exists(projectPath + "/tools/visualizers/win/WPF");
+      return std::filesystem::exists(std::filesystem::path(projectPath) / "tools" / "visualizers" / "win" / "WPF");
     } else if (backend == VisualizerBackend::Qt) {
-      return std::filesystem::exists(projectPath + "/tools/visualizers/win/Qt");
+      return std::filesystem::exists(std::filesystem::path(projectPath) / "tools" / "visualizers" / "win" / "Qt");
     } else if (backend == VisualizerBackend::FLTK) {
-      return std::filesystem::exists(projectPath + "/tools/visualizers/win/FLTK");
+      return std::filesystem::exists(std::filesystem::path(projectPath) / "tools" / "visualizers" / "win" / "FLTK");
     } else if (backend == VisualizerBackend::Auto) {
       return true;  // Auto always available (selects default)
     }
@@ -162,9 +162,9 @@ namespace MML
     if (backend == VisualizerBackend::WPF) {
       return false;  // WPF is Windows-only
     } else if (backend == VisualizerBackend::Qt) {
-      return std::filesystem::exists(projectPath + "/tools/visualizers/linux/Qt");
+      return std::filesystem::exists(std::filesystem::path(projectPath) / "tools" / "visualizers" / "linux" / "Qt");
     } else if (backend == VisualizerBackend::FLTK) {
-      return std::filesystem::exists(projectPath + "/tools/visualizers/linux/FLTK");
+      return std::filesystem::exists(std::filesystem::path(projectPath) / "tools" / "visualizers" / "linux" / "FLTK");
     } else if (backend == VisualizerBackend::Auto) {
       return true;  // Auto always available (selects default)
     }
@@ -172,9 +172,9 @@ namespace MML
     if (backend == VisualizerBackend::WPF) {
       return false;  // WPF is Windows-only
     } else if (backend == VisualizerBackend::Qt) {
-      return std::filesystem::exists(projectPath + "/tools/visualizers/mac/Qt");
+      return std::filesystem::exists(std::filesystem::path(projectPath) / "tools" / "visualizers" / "mac" / "Qt");
     } else if (backend == VisualizerBackend::FLTK) {
-      return std::filesystem::exists(projectPath + "/tools/visualizers/mac/FLTK");
+      return std::filesystem::exists(std::filesystem::path(projectPath) / "tools" / "visualizers" / "mac" / "FLTK");
     } else if (backend == VisualizerBackend::Auto) {
       return true;  // Auto always available (selects default)
     }
@@ -245,8 +245,7 @@ namespace MML
                                           const std::string &wpfDir) {
     std::string projectPath = GetProjectPath();
   #ifdef _WIN32
-    return projectPath + "/tools/visualizers/win/WPF/" + wpfDir + "/" + name +
-          ".exe";
+    return (std::filesystem::path(projectPath) / "tools" / "visualizers" / "win" / "WPF" / wpfDir / (name + ".exe")).string();
   #else
     return ""; // Not available on non-Windows
   #endif
@@ -259,7 +258,7 @@ namespace MML
   }
 
   inline std::string GetResultFilesPath() {
-    return GetGlobalPath() + "/results/";
+    return (std::filesystem::path(GetGlobalPath()) / "results").string() + std::string(1, std::filesystem::path::preferred_separator);
   }
 
   ///////////////////////////////////////////////////////////////////////////////
@@ -296,37 +295,31 @@ namespace MML
     if (backend == VisualizerBackend::WPF) {
       // WPF has subdirectory structure: tools/visualizers/win/WPF/<dir>/<name>.exe
       std::string wpfDir = ConvertToWPFDirName(visualizerName);
-      return projectPath + "/tools/visualizers/win/WPF/" + wpfDir + "/" + 
-             visualizerName + ".exe";
+      return (std::filesystem::path(projectPath) / "tools" / "visualizers" / "win" / "WPF" / wpfDir / (visualizerName + ".exe")).string();
     } else if (backend == VisualizerBackend::Qt) {
       // Qt flat structure: all visualizers share Qt DLLs in one folder
       // tools/visualizers/win/Qt/<name>.exe
-      return projectPath + "/tools/visualizers/win/Qt/" + visualizerName + ".exe";
+      return (std::filesystem::path(projectPath) / "tools" / "visualizers" / "win" / "Qt" / (visualizerName + ".exe")).string();
     } else if (backend == VisualizerBackend::FLTK) {
       // FLTK flat structure: tools/visualizers/win/FLTK/<name>_FLTK.exe
-      return projectPath + "/tools/visualizers/win/FLTK/" + 
-             visualizerName + "_FLTK.exe";
+      return (std::filesystem::path(projectPath) / "tools" / "visualizers" / "win" / "FLTK" / (visualizerName + "_FLTK.exe")).string();
     }
 #elif defined(__linux__)
     if (backend == VisualizerBackend::Qt) {
       // Qt structure: tools/visualizers/linux/Qt/<name>
-      return projectPath + "/tools/visualizers/linux/Qt/" + 
-             visualizerName;
+      return (std::filesystem::path(projectPath) / "tools" / "visualizers" / "linux" / "Qt" / visualizerName).string();
     } else if (backend == VisualizerBackend::FLTK) {
       // FLTK structure: tools/visualizers/linux/FLTK/<name>_FLTK
-      return projectPath + "/tools/visualizers/linux/FLTK/" + 
-             visualizerName + "_FLTK";
+      return (std::filesystem::path(projectPath) / "tools" / "visualizers" / "linux" / "FLTK" / (visualizerName + "_FLTK")).string();
     }
 #elif defined(__APPLE__)
     if (backend == VisualizerBackend::Qt) {
       // Qt apps are .app bundles on macOS - executable is inside Contents/MacOS/
       // Structure: tools/visualizers/mac/Qt/<name>.app/Contents/MacOS/<name>
-      return projectPath + "/tools/visualizers/mac/Qt/" + 
-             visualizerName + ".app/Contents/MacOS/" + visualizerName;
+      return (std::filesystem::path(projectPath) / "tools" / "visualizers" / "mac" / "Qt" / (visualizerName + ".app") / "Contents" / "MacOS" / visualizerName).string();
     } else if (backend == VisualizerBackend::FLTK) {
       // FLTK structure: tools/visualizers/mac/FLTK/<name>_FLTK
-      return projectPath + "/tools/visualizers/mac/FLTK/" + 
-             visualizerName + "_FLTK";
+      return (std::filesystem::path(projectPath) / "tools" / "visualizers" / "mac" / "FLTK" / (visualizerName + "_FLTK")).string();
     }
 #endif
     
