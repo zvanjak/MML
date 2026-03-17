@@ -21,6 +21,7 @@
 // Standard headers - only what MMLBase.h actually uses
 #include <cmath>
 #include <complex>
+#include <cstdint>
 #include <limits>
 #include <type_traits>
 
