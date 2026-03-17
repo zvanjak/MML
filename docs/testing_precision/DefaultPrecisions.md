@@ -83,7 +83,7 @@ float tol_f = MML::PrecisionValues<float>::DefaultTolerance;  // 1e-6f
 | `SurfaceNormalThreshold` | 1e-12 | 1e-12 | 1e-12 | Surface normal magnitude |
 | `DerivativeStepSize` | 1e-6 | 1e-6 | 1e-6 | Numerical derivative h |
 | `DefaultTolerance` | 1e-6 | 1e-6 | 1e-6 | General purpose tolerance |
-| `DefaultToleranceRelaxed` | 1e-8 | 1e-8 | 1e-8 | Relaxed geometric tests |
+| `DefaultToleranceStrict` | 1e-8 | 1e-8 | 1e-8 | Strict geometric tests |
 
 ### Algorithm-Specific Thresholds
 

@@ -255,7 +255,7 @@ void Test_BasicLinearSystem(PrecisionTestSuite& suite)
     
     // Test SVD Solver
     try {
-        SVDecompositionSolver svd(A);
+        SVDecompositionSolver<Real> svd(A);
         Vector<Real> x_svd = svd.Solve(b);
         Real error = VectorDiffNorm(x_svd, x_exact);
         suite.addResult("SVD", "Basic5x5", 0.0, error);
@@ -368,7 +368,7 @@ void Test_HilbertMatrix(PrecisionTestSuite& suite)
         
         // Test SVD
         try {
-            SVDecompositionSolver svd(H);
+            SVDecompositionSolver<Real> svd(H);
             Vector<Real> x_svd = svd.Solve(b);
             Real error = VectorDiffNorm(x_svd, x_exact);
             suite.addResult("SVD", func_name, 0.0, error);
@@ -570,7 +570,7 @@ void Test_SVDDecomposition(PrecisionTestSuite& suite)
         std::string func_name = "SVD" + std::to_string(n) + "x" + std::to_string(n);
         
         try {
-            SVDecompositionSolver svd(A);
+            SVDecompositionSolver<Real> svd(A);
             Matrix<Real> U = svd.getU();
             Matrix<Real> V = svd.getV();
             Vector<Real> W = svd.getW();
@@ -834,7 +834,7 @@ void Test_LeastSquares(PrecisionTestSuite& suite)
         
         // SVD least squares
         try {
-            SVDecompositionSolver svd(A);
+            SVDecompositionSolver<Real> svd(A);
             Vector<Real> x = svd.Solve(b);
             
             Real slope_error = std::abs(x[0] - 2.0);

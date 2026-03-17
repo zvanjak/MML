@@ -269,7 +269,7 @@ namespace MML::Tests::Core::LinearAlgSolversTests
 		Matrix<Real>    mat = TestBeds::mat_3x3();
 		Vector<Real> 	rhs = TestBeds::mat_3x3_rhs0();
 
-		SVDecompositionSolver svd(mat);
+		SVDecompositionSolver<Real> svd(mat);
 
 		Vector<Real> vecSol = svd.Solve(rhs);
 		REQUIRE(true == vecSol.IsEqualTo(TestBeds::mat_3x3_rhs0_sol(), 1e-14));
@@ -284,7 +284,7 @@ namespace MML::Tests::Core::LinearAlgSolversTests
 		Matrix<Real> 	rhs{ TestBeds::mat_5x5_rhs_multi() };
 		Matrix<Real> 	sol(5, 2);
 
-		SVDecompositionSolver svd(mat);
+		SVDecompositionSolver<Real> svd(mat);
 
 		svd.Solve(rhs, sol);
 
@@ -296,7 +296,7 @@ namespace MML::Tests::Core::LinearAlgSolversTests
 		Matrix<Real>    mat = TestBeds::mat_8x8();
 		Vector<Real> 	rhs = TestBeds::mat_8x8_rhs0();
 
-		SVDecompositionSolver svd(mat);
+		SVDecompositionSolver<Real> svd(mat);
 
 		Vector<Real> vecSol = svd.Solve(rhs);
 		REQUIRE(true == vecSol.IsEqualTo(TestBeds::mat_8x8_rhs0_sol(), 1e-13));
@@ -310,7 +310,7 @@ namespace MML::Tests::Core::LinearAlgSolversTests
 		Matrix<Real>    mat = TestBeds::mat_10x10();
 		Vector<Real> 	rhs = TestBeds::mat_10x10_rhs0();
 
-		SVDecompositionSolver svd(mat);
+		SVDecompositionSolver<Real> svd(mat);
 
 		Vector<Real> vecSol = svd.Solve(rhs);
 		REQUIRE(true == vecSol.IsEqualTo(TestBeds::mat_10x10_rhs0_sol(), 1e-13));
@@ -324,7 +324,7 @@ namespace MML::Tests::Core::LinearAlgSolversTests
 		Matrix<Real>    mat = TestBeds::get_mat_20x20();
 		Vector<Real> 	rhs = TestBeds::get_mat_20x20_rhs0();
 
-		SVDecompositionSolver svd(mat);
+		SVDecompositionSolver<Real> svd(mat);
 
 		Vector<Real> vecSol = svd.Solve(rhs);
 		REQUIRE(true == vecSol.IsEqualTo(TestBeds::get_mat_20x20_rhs0_sol(), 1e-12));
@@ -338,7 +338,7 @@ namespace MML::Tests::Core::LinearAlgSolversTests
 		Matrix<Real>    mat = TestBeds::get_mat_50x50();
 		Vector<Real> 	rhs = TestBeds::get_mat_50x50_rhs0();
 
-		SVDecompositionSolver svd(mat);
+		SVDecompositionSolver<Real> svd(mat);
 
 		Vector<Real> vecSol = svd.Solve(rhs);
 		REQUIRE(true == vecSol.IsEqualTo(TestBeds::get_mat_50x50_rhs0_sol(), 1e-11));
@@ -626,7 +626,7 @@ namespace MML::Tests::Core::LinearAlgSolversTests
 			Matrix<Real>     mat = testBed._mat;
 			Vector<Real>     rhs = testBed._rhs;
 
-			SVDecompositionSolver svd(mat);
+			SVDecompositionSolver<Real> svd(mat);
 			Vector<Real> sol = svd.Solve(rhs);
 
 			// SVD uses pseudoinverse and is more robust for ill-conditioned systems
@@ -658,7 +658,7 @@ namespace MML::Tests::Core::LinearAlgSolversTests
 			Matrix<Real>     rhs = testBed._rhs;
 			Matrix<Real>     sol(rhs.rows(), rhs.cols());
 
-			SVDecompositionSolver svd(mat);
+			SVDecompositionSolver<Real> svd(mat);
 
 			svd.Solve(rhs, sol);
 			// SVD handles multi-RHS well, use appropriate tolerance
@@ -681,14 +681,14 @@ namespace MML::Tests::Core::LinearAlgSolversTests
 		well_cond[1][0] = REAL(0.0); well_cond[1][1] = REAL(2.0); well_cond[1][2] = REAL(0.0);
 		well_cond[2][0] = REAL(0.0); well_cond[2][1] = REAL(0.0); well_cond[2][2] = REAL(2.0);
 		
-		SVDecompositionSolver svd_well(well_cond);
+		SVDecompositionSolver<Real> svd_well(well_cond);
 		Real inv_cond_well = svd_well.inv_condition();
 		// For identity-like matrix, inverse condition should be 1.0
 		REQUIRE(std::abs(inv_cond_well - REAL(1.0)) < REAL(1e-14));
 		
 		// Ill-conditioned matrix (large condition number = small inverse condition)
 		TestBeds::TestLinearSystem hilbert = TestBeds::LinearAlgEqTestBed::getLinAlgEqSystem("hilbert_5x5");
-		SVDecompositionSolver svd_hilbert(hilbert._mat);
+		SVDecompositionSolver<Real> svd_hilbert(hilbert._mat);
 		Real inv_cond_hilbert = svd_hilbert.inv_condition();
 		// Hilbert 5x5 has condition number ~943,656, so inverse condition ~1e-6
 		REQUIRE(inv_cond_hilbert < REAL(1e-4));
@@ -701,7 +701,7 @@ namespace MML::Tests::Core::LinearAlgSolversTests
 		// Full-rank matrix should have rank equal to min(m,n)
 		TestBeds::TestLinearSystem testBed = TestBeds::LinearAlgEqTestBed::getLinAlgEqSystem("mat_5x5");
 		
-		SVDecompositionSolver svd(testBed._mat);
+		SVDecompositionSolver<Real> svd(testBed._mat);
 		int rank = svd.Rank();
 		
 		REQUIRE(rank == 5);
@@ -717,7 +717,7 @@ namespace MML::Tests::Core::LinearAlgSolversTests
 		rank_deficient[1][0] = REAL(4.0); rank_deficient[1][1] = REAL(5.0); rank_deficient[1][2] = REAL(6.0);
 		rank_deficient[2][0] = REAL(5.0); rank_deficient[2][1] = REAL(7.0); rank_deficient[2][2] = REAL(9.0);  // Row 3 = Row 1 + Row 2
 		
-		SVDecompositionSolver svd(rank_deficient);
+		SVDecompositionSolver<Real> svd(rank_deficient);
 		int rank = svd.Rank();
 		int nullity = svd.Nullity();
 		
@@ -735,7 +735,7 @@ namespace MML::Tests::Core::LinearAlgSolversTests
 		A[1][0] = REAL(4.0); A[1][1] = REAL(5.0); A[1][2] = REAL(6.0);
 		A[2][0] = REAL(5.0); A[2][1] = REAL(7.0); A[2][2] = REAL(9.0);  // Row 3 = Row 1 + Row 2
 		
-		SVDecompositionSolver svd(A);
+		SVDecompositionSolver<Real> svd(A);
 		Matrix<Real> nullspace = svd.Nullspace();
 		
 		// Should have 1 column (nullity = 1)
@@ -763,7 +763,7 @@ namespace MML::Tests::Core::LinearAlgSolversTests
 		A[1][0] = REAL(4.0); A[1][1] = REAL(5.0); A[1][2] = REAL(6.0);
 		A[2][0] = REAL(5.0); A[2][1] = REAL(7.0); A[2][2] = REAL(9.0);
 		
-		SVDecompositionSolver svd(A);
+		SVDecompositionSolver<Real> svd(A);
 		Matrix<Real> range = svd.Range();
 		
 		// Should have 2 columns (rank = 2)
@@ -795,7 +795,7 @@ namespace MML::Tests::Core::LinearAlgSolversTests
 		TestBeds::TestLinearSystem testBed = TestBeds::LinearAlgEqTestBed::getLinAlgEqSystem("mat_3x3");
 		Matrix<Real> A = testBed._mat;
 		
-		SVDecompositionSolver svd(A);
+		SVDecompositionSolver<Real> svd(A);
 		Matrix<Real> U = svd.getU();
 		Vector<Real> W = svd.getW();
 		Matrix<Real> V = svd.getV();
@@ -833,7 +833,7 @@ namespace MML::Tests::Core::LinearAlgSolversTests
 		TestBeds::TestLinearSystem testBed = TestBeds::LinearAlgEqTestBed::getLinAlgEqSystem("mat_5x5");
 		Matrix<Real> A = testBed._mat;
 		
-		SVDecompositionSolver svd(A);
+		SVDecompositionSolver<Real> svd(A);
 		Matrix<Real> U = svd.getU();
 		Matrix<Real> V = svd.getV();
 		
@@ -872,7 +872,7 @@ namespace MML::Tests::Core::LinearAlgSolversTests
 		// Verify singular values are in descending order
 		TestBeds::TestLinearSystem testBed = TestBeds::LinearAlgEqTestBed::getLinAlgEqSystem("mat_5x5");
 		
-		SVDecompositionSolver svd(testBed._mat);
+		SVDecompositionSolver<Real> svd(testBed._mat);
 		Vector<Real> W = svd.getW();
 		
 		for (int i = 0; i < W.size() - 1; i++)
@@ -891,7 +891,7 @@ namespace MML::Tests::Core::LinearAlgSolversTests
 		Matrix<Real> mat = testBed._mat;  // 4x3 matrix
 		Vector<Real> rhs = testBed._rhs;  // 4 elements
 		
-		SVDecompositionSolver svd(mat);
+		SVDecompositionSolver<Real> svd(mat);
 		Vector<Real> solution = svd.Solve(rhs);
 		
 		// Solution should match expected least-squares solution
@@ -914,7 +914,7 @@ namespace MML::Tests::Core::LinearAlgSolversTests
 		A[2][0] = REAL(3.0); A[2][1] = REAL(6.0); A[2][2] = REAL(9.0);  // Row 3 = 3 * Row 1
 		
 		// This matrix has rank 1
-		SVDecompositionSolver svd(A);
+		SVDecompositionSolver<Real> svd(A);
 		REQUIRE(svd.Rank() == 1);
 		
 		// Create a consistent RHS (in the range of A)

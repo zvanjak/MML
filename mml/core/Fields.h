@@ -469,6 +469,9 @@ namespace MML::Fields
 			return _amplitude * (1.0 - r_sq / sigma_sq) * std::exp(-r_sq / (2.0 * sigma_sq));
 		}
 	};
+
+	// TODO - dodati multibody gravity
+
 }
 
 #endif

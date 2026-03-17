@@ -6,6 +6,8 @@
 #include "mml/base/Geometry/Geometry.h"
 #endif
 
+#include <iostream>
+
 using namespace MML;
 
 void Docs_Demo_Geometry_2D_Points()

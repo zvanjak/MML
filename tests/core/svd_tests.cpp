@@ -77,7 +77,7 @@ namespace MML::Tests::Core::SVDTests
 			REAL(0.0), REAL(0.0), REAL(1.0)
 		});
 
-		SVDecompositionSolver svd(A);
+		SVDecompositionSolver<Real> svd(A);
 		
 		auto U = svd.getU();
 		auto W = svd.getW();
@@ -105,7 +105,7 @@ namespace MML::Tests::Core::SVDTests
 			REAL(0.0), REAL(0.0), REAL(1.0)
 		});
 
-		SVDecompositionSolver svd(A);
+		SVDecompositionSolver<Real> svd(A);
 		
 		auto U = svd.getU();
 		auto W = svd.getW();
@@ -132,7 +132,7 @@ namespace MML::Tests::Core::SVDTests
 			REAL(3.0), -REAL(5.0)
 		});
 
-		SVDecompositionSolver svd(A);
+		SVDecompositionSolver<Real> svd(A);
 		
 		auto U = svd.getU();
 		auto W = svd.getW();
@@ -162,7 +162,7 @@ namespace MML::Tests::Core::SVDTests
 			REAL(10.0), REAL(11.0), REAL(12.0)
 		});
 
-		SVDecompositionSolver svd(A);
+		SVDecompositionSolver<Real> svd(A);
 		
 		auto U = svd.getU();
 		auto W = svd.getW();
@@ -198,7 +198,7 @@ namespace MML::Tests::Core::SVDTests
 			REAL(9.0), REAL(10.0), REAL(11.0), REAL(12.0)
 		});
 
-		SVDecompositionSolver svd(A);
+		SVDecompositionSolver<Real> svd(A);
 		
 		auto U = svd.getU();
 		auto W = svd.getW();
@@ -235,7 +235,7 @@ namespace MML::Tests::Core::SVDTests
 			REAL(2.0), REAL(1.0), REAL(5.0)
 		});
 
-		SVDecompositionSolver svd(A);
+		SVDecompositionSolver<Real> svd(A);
 		
 		auto U = svd.getU();
 		auto W = svd.getW();
@@ -262,7 +262,7 @@ namespace MML::Tests::Core::SVDTests
 			REAL(0.0), REAL(0.0), REAL(2.0)
 		});
 
-		SVDecompositionSolver svd(A);
+		SVDecompositionSolver<Real> svd(A);
 		
 		// Condition number should be REAL(1.0) (all singular values equal)
 		Real cond = svd.inv_condition();
@@ -275,7 +275,7 @@ namespace MML::Tests::Core::SVDTests
 			REAL(0.0), REAL(0.0), REAL(0.1)
 		});
 
-		SVDecompositionSolver svd2(B);
+		SVDecompositionSolver<Real> svd2(B);
 		Real cond2 = svd2.inv_condition();
 		
 		// Condition should be REAL(0.1)/10 = REAL(0.01)
@@ -297,7 +297,7 @@ namespace MML::Tests::Core::SVDTests
 		Vector<Real> b(3);
 		b[0] = REAL(6.0); b[1] = REAL(15.0); b[2] = REAL(26.0);  // A * [1, 1, 1]^T = b (approximately)
 
-		SVDecompositionSolver svd(A);
+		SVDecompositionSolver<Real> svd(A);
 		Vector<Real> x = svd.Solve(b);
 
 		// Check solution by computing A*x
@@ -329,7 +329,7 @@ namespace MML::Tests::Core::SVDTests
 		Vector<Real> b(4);
 		b[0] = REAL(1.0); b[1] = REAL(2.0); b[2] = REAL(3.0); b[3] = REAL(5.0);  // Inconsistent system
 
-		SVDecompositionSolver svd(A);
+		SVDecompositionSolver<Real> svd(A);
 		Vector<Real> x = svd.Solve(b);
 
 		// Check that x minimizes ||A*x - b||
@@ -363,7 +363,7 @@ namespace MML::Tests::Core::SVDTests
 		Vector<Real> b(3);
 		b[0] = REAL(5.0); b[1] = REAL(7.0); b[2] = REAL(9.0);
 
-		SVDecompositionSolver svd(A);
+		SVDecompositionSolver<Real> svd(A);
 		Vector<Real> x = svd.Solve(b);
 
 		// For identity matrix, solution should equal b
@@ -388,7 +388,7 @@ namespace MML::Tests::Core::SVDTests
 			REAL(16.0), REAL(20.0)
 		});
 
-		SVDecompositionSolver svd(A);
+		SVDecompositionSolver<Real> svd(A);
 		Matrix<Real> X(3, 2);
 		svd.Solve(B, X);
 
@@ -412,7 +412,7 @@ namespace MML::Tests::Core::SVDTests
 			REAL(0.0), REAL(0.0), REAL(1.0)
 		});
 
-		SVDecompositionSolver svd(A);
+		SVDecompositionSolver<Real> svd(A);
 		REQUIRE(svd.Rank() == 3);
 		REQUIRE(svd.Nullity() == 0);
 	}
@@ -427,7 +427,7 @@ namespace MML::Tests::Core::SVDTests
 			REAL(3.0), REAL(6.0), REAL(9.0)
 		});
 
-		SVDecompositionSolver svd(A);
+		SVDecompositionSolver<Real> svd(A);
 		
 		int rank = svd.Rank();
 		int nullity = svd.Nullity();
@@ -446,7 +446,7 @@ namespace MML::Tests::Core::SVDTests
 			REAL(0.0), REAL(0.0), REAL(0.0)  // Zero row - rank 2
 		});
 
-		SVDecompositionSolver svd(A);
+		SVDecompositionSolver<Real> svd(A);
 		
 		int rank = svd.Rank();
 		REQUIRE(rank == 2);
@@ -477,7 +477,7 @@ namespace MML::Tests::Core::SVDTests
 			REAL(3.0), REAL(6.0), REAL(9.0)
 		});
 
-		SVDecompositionSolver svd(A);
+		SVDecompositionSolver<Real> svd(A);
 		
 		int nullity = svd.Nullity();
 		REQUIRE(nullity == 2);
@@ -522,7 +522,7 @@ namespace MML::Tests::Core::SVDTests
 			REAL(4.0), REAL(5.0), REAL(6.0),
 			REAL(7.0), REAL(8.0), REAL(10.0)
 		});
-		SVDecompositionSolver svd1(A1);
+		SVDecompositionSolver<Real> svd1(A1);
 		REQUIRE(svd1.Rank() + svd1.Nullity() == 3);
 
 		// Rank deficient
@@ -532,7 +532,7 @@ namespace MML::Tests::Core::SVDTests
 			REAL(0.0), REAL(0.0), REAL(0.0),
 			REAL(0.0), REAL(0.0), REAL(0.0)
 		});
-		SVDecompositionSolver svd2(A2);
+		SVDecompositionSolver<Real> svd2(A2);
 		REQUIRE(svd2.Rank() + svd2.Nullity() == 3);
 	}
 }

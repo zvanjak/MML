@@ -6,6 +6,7 @@ add_executable(Example00_NBodyGravity
 )
 target_include_directories(Example00_NBodyGravity PRIVATE 
     ${CMAKE_SOURCE_DIR}/mml
+    ${CMAKE_SOURCE_DIR}/src/book
 )
 
 # Example 01: Projectile launch
@@ -14,6 +15,7 @@ add_executable(Example01_ProjectileLaunch
 )
 target_include_directories(Example01_ProjectileLaunch PRIVATE 
     ${CMAKE_SOURCE_DIR}/mml
+    ${CMAKE_SOURCE_DIR}/src/book
 )
 
 # Example 02: Double pendulum
@@ -22,6 +24,7 @@ add_executable(Example02_DoublePendulum
 )
 target_include_directories(Example02_DoublePendulum PRIVATE 
     ${CMAKE_SOURCE_DIR}/mml
+    ${CMAKE_SOURCE_DIR}/src/book
 )
 
 # Example 03: Formula 1 G-Force analysis

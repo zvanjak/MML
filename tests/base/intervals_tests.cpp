@@ -139,40 +139,37 @@ TEST_CASE("Test_Interval - Composite with raw pointers", "[intervals][compound]"
 TEST_CASE("Test_ClosedIntervalWithReccuringPointHoles", "[intervals][holes]")
 {
 		TEST_PRECISION_INFO();
-	BaseInterval* tanDef = new ClosedIntervalWithReccuringPointHoles(-REAL(5) * REAL(Constants::PI), REAL(5) * REAL(Constants::PI), REAL(0.5) * REAL(Constants::PI), REAL(Constants::PI));
+	BaseInterval* tanDef = new ClosedIntervalWithReccuringPointHoles(-5 * Constants::PI, 5 * Constants::PI, REAL(0.5) * Constants::PI, Constants::PI);
 
 	REQUIRE(tanDef->contains(REAL(0.0)));
 
 	// investigation around half PI
-	// Note: REAL(Constants::PI) forces double precision to avoid 80-bit long double
-	// promotion on Linux/GCC, where 1e-16 would remain distinguishable and not
-	// collapse into the hole value when cast back to double.
-	REQUIRE_FALSE(tanDef->contains(REAL(0.5) * REAL(Constants::PI)));
-	REQUIRE(tanDef->contains(REAL(0.5) * REAL(Constants::PI) + REAL(0.0001)));
-	REQUIRE(tanDef->contains(REAL(0.5) * REAL(Constants::PI) + REAL(1e-8)));
-	REQUIRE(tanDef->contains(REAL(0.5) * REAL(Constants::PI) + REAL(1e-15)));
-	REQUIRE_FALSE(tanDef->contains(REAL(0.5) * REAL(Constants::PI) + REAL(1e-16)));
-	REQUIRE(tanDef->contains(REAL(0.5) * REAL(Constants::PI) - REAL(0.0001)));
-	REQUIRE(tanDef->contains(REAL(0.5) * REAL(Constants::PI) - REAL(1e-8)));
-	REQUIRE(tanDef->contains(REAL(0.5) * REAL(Constants::PI) - REAL(1e-15)));
-	REQUIRE_FALSE(tanDef->contains(REAL(0.5) * REAL(Constants::PI) - REAL(1e-16)));
+	REQUIRE_FALSE(tanDef->contains(REAL(0.5) * Constants::PI));
+	REQUIRE(tanDef->contains(REAL(0.5) * Constants::PI + REAL(0.0001)));
+	REQUIRE(tanDef->contains(REAL(0.5) * Constants::PI + 1e-8));
+	REQUIRE(tanDef->contains(REAL(0.5) * Constants::PI + 1e-15));
+	REQUIRE_FALSE(tanDef->contains(REAL(0.5) * Constants::PI + 1e-16));
+	REQUIRE(tanDef->contains(REAL(0.5) * Constants::PI - REAL(0.0001)));
+	REQUIRE(tanDef->contains(REAL(0.5) * Constants::PI - 1e-8));
+	REQUIRE(tanDef->contains(REAL(0.5) * Constants::PI - 1e-15));
+	REQUIRE_FALSE(tanDef->contains(REAL(0.5) * Constants::PI - 1e-16));
 
 	// verification of all the holes
-	REQUIRE_FALSE(tanDef->contains(-REAL(0.5) * REAL(Constants::PI)));
-	REQUIRE_FALSE(tanDef->contains(REAL(1.5) * REAL(Constants::PI)));
-	REQUIRE_FALSE(tanDef->contains(-REAL(1.5) * REAL(Constants::PI)));
-	REQUIRE_FALSE(tanDef->contains(REAL(2.5) * REAL(Constants::PI)));
-	REQUIRE_FALSE(tanDef->contains(-REAL(2.5) * REAL(Constants::PI)));
-	REQUIRE_FALSE(tanDef->contains(REAL(3.5) * REAL(Constants::PI)));
-	REQUIRE_FALSE(tanDef->contains(-REAL(3.5) * REAL(Constants::PI)));
-	REQUIRE_FALSE(tanDef->contains(REAL(4.5) * REAL(Constants::PI)));
-	REQUIRE_FALSE(tanDef->contains(-REAL(5.5) * REAL(Constants::PI)));
+	REQUIRE_FALSE(tanDef->contains(-REAL(0.5) * Constants::PI));
+	REQUIRE_FALSE(tanDef->contains(REAL(1.5) * Constants::PI));
+	REQUIRE_FALSE(tanDef->contains(-REAL(1.5) * Constants::PI));
+	REQUIRE_FALSE(tanDef->contains(REAL(2.5) * Constants::PI));
+	REQUIRE_FALSE(tanDef->contains(-REAL(2.5) * Constants::PI));
+	REQUIRE_FALSE(tanDef->contains(REAL(3.5) * Constants::PI));
+	REQUIRE_FALSE(tanDef->contains(-REAL(3.5) * Constants::PI));
+	REQUIRE_FALSE(tanDef->contains(REAL(4.5) * Constants::PI));
+	REQUIRE_FALSE(tanDef->contains(-REAL(5.5) * Constants::PI));
 
 	// precision verification on end holes
-	REQUIRE(tanDef->contains(REAL(4.5) * REAL(Constants::PI) + REAL(1e-15)));
-	REQUIRE_FALSE(tanDef->contains(REAL(4.5) * REAL(Constants::PI) + REAL(1e-16)));
-	REQUIRE(tanDef->contains(REAL(4.5) * REAL(Constants::PI) - REAL(1e-15)));
-	REQUIRE_FALSE(tanDef->contains(REAL(4.5) * REAL(Constants::PI) - REAL(1e-16)));
+	REQUIRE(tanDef->contains(REAL(4.5) * Constants::PI + 1e-15));
+	REQUIRE_FALSE(tanDef->contains(REAL(4.5) * Constants::PI + 1e-16));
+	REQUIRE(tanDef->contains(REAL(4.5) * Constants::PI - 1e-15));
+	REQUIRE_FALSE(tanDef->contains(REAL(4.5) * Constants::PI - 1e-16));
 
 }
 

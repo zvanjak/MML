@@ -135,6 +135,16 @@ namespace MML
 				return _val[n];
 		}
 
+		///////////////////////            Iterator support                ///////////////////////
+		Type*       begin()        noexcept { return _val; }
+		Type*       end()          noexcept { return _val + N; }
+		const Type* begin()  const noexcept { return _val; }
+		const Type* end()    const noexcept { return _val + N; }
+		const Type* cbegin() const noexcept { return _val; }
+		const Type* cend()   const noexcept { return _val + N; }
+		Type*       data()         noexcept { return _val; }
+		const Type* data()   const noexcept { return _val; }
+
 		///////////////////////            Testing equality                ///////////////////////
 		/// @brief Exact equality comparison.
 		/// @param b Vector to compare

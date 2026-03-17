@@ -1,7 +1,7 @@
 /////////////////////////////////////////////////////////////////////////////////////
 //  __ __ __ __ _                                                                  //
 // |  |  |  |  | |    Minimal Math Library for Modern C++                          //
-// | | | | | | | |__  version 1.1                                                  //
+// | | | | | | | |__  version 1.2.1                                                  //
 // |_| |_|_| |_|____| https://github.com/zvanjak/mml                               //
 //                                                                                 //
 // Copyright: 2023 - 2026, Zvonimir Vanjak                                         //
@@ -55,6 +55,7 @@
 #include <condition_variable>
 #include <future>
 #include <queue>
+#include <stack>
 
 
 #ifdef _WIN32
@@ -111,33 +112,34 @@ namespace MML
 
 		static constexpr float Plane3DIsPointOnPlaneTolerance = 1e-6f;
 
-		static constexpr float Triangle3DIsPointInsideTolerance = 1e-6f;	static constexpr float Triangle3DIsRightTolerance = 1e-6f;
-	static constexpr float Triangle3DIsIsoscelesTolerance = 1e-6f;
-	static constexpr float Triangle3DIsEquilateralTolerance = 1e-6f;
+		static constexpr float Triangle3DIsPointInsideTolerance = 1e-6f;
+		static constexpr float Triangle3DIsRightTolerance = 1e-6f;
+		static constexpr float Triangle3DIsIsoscelesTolerance = 1e-6f;
+		static constexpr float Triangle3DIsEquilateralTolerance = 1e-6f;
 		static constexpr float IsMatrixSymmetricTolerance = 1e-6f;
 		static constexpr float IsMatrixDiagonalTolerance = 1e-6f;
 		static constexpr float IsMatrixUnitTolerance = 1e-6f;
 		static constexpr float IsMatrixZeroTolerance = 1e-6f;
 		static constexpr float IsMatrixOrthogonalTolerance = 1e-6f;
 
-		static constexpr float RankAlgEPS = 1e-10f;
+		static constexpr float RankAlgEPS = 1e-5f;
 
 		// Numerical computation thresholds
-		static constexpr float NumericalZeroThreshold = 1e-12f;      // For checking near-zero values
-		static constexpr float QuaternionZeroThreshold = 1e-12f;     // Quaternion singularity detection
-		static constexpr float SurfaceNormalThreshold = 1e-12f;      // Surface normal magnitude threshold
-		static constexpr float DerivativeStepSize = 1e-6f;           // Default step for numerical derivatives
+		static constexpr float NumericalZeroThreshold = 1e-6f;       // For checking near-zero values
+		static constexpr float QuaternionZeroThreshold = 1e-6f;      // Quaternion singularity detection
+		static constexpr float SurfaceNormalThreshold = 1e-6f;       // Surface normal magnitude threshold
+		static constexpr float DerivativeStepSize = 5e-3f;           // Default step for numerical derivatives
 		static constexpr float DefaultTolerance = 1e-6f;             // General purpose tolerance
-		static constexpr float DefaultToleranceRelaxed = 1e-8f;      // Relaxed tolerance for geometric tests
+		static constexpr float DefaultToleranceStrict = 1e-6f;       // Strict tolerance for precise geometric tests
 
 		// Algorithm-specific thresholds
-		static constexpr float EigenSolverZeroThreshold = 1e-12f;    // Eigenvalue solver zero detection
-		static constexpr float PolynomialCoeffZeroThreshold = 1e-10f; // Polynomial coefficient zero check
-		static constexpr float MatrixElementZeroThreshold = 1e-12f;  // Matrix element near-zero check
-		static constexpr float DeterminantZeroThreshold = 1e-12f;    // Determinant zero detection
-		static constexpr float DivisionSafetyThreshold = 1e-25f;     // Safe division threshold
-		static constexpr float OrthogonalityTolerance = 1e-8f;       // Orthogonal vector check tolerance
-		static constexpr float LinearDependenceTolerance = 1e-10f;   // Linear dependence check tolerance
+		static constexpr float EigenSolverZeroThreshold = 1e-6f;     // Eigenvalue solver zero detection
+		static constexpr float PolynomialCoeffZeroThreshold = 1e-5f; // Polynomial coefficient zero check
+		static constexpr float MatrixElementZeroThreshold = 1e-6f;   // Matrix element near-zero check
+		static constexpr float DeterminantZeroThreshold = 1e-6f;     // Determinant zero detection
+		static constexpr float DivisionSafetyThreshold = 1e-20f;     // Safe division threshold
+		static constexpr float OrthogonalityTolerance = 1e-5f;       // Orthogonal vector check tolerance
+		static constexpr float LinearDependenceTolerance = 1e-5f;    // Linear dependence check tolerance
 	};
 
 	// Specialization for double
@@ -176,16 +178,17 @@ namespace MML
 
 		static constexpr double Plane3DIsPointOnPlaneTolerance = 1e-10;
 
-		static constexpr double Triangle3DIsPointInsideTolerance = 1e-10f;	static constexpr double Triangle3DIsRightTolerance = 1e-10;
-	static constexpr double Triangle3DIsIsoscelesTolerance = 1e-10;
-	static constexpr double Triangle3DIsEquilateralTolerance = 1e-10;
+		static constexpr double Triangle3DIsPointInsideTolerance = 1e-10;
+		static constexpr double Triangle3DIsRightTolerance = 1e-10;
+		static constexpr double Triangle3DIsIsoscelesTolerance = 1e-10;
+		static constexpr double Triangle3DIsEquilateralTolerance = 1e-10;
 		static constexpr double IsMatrixSymmetricTolerance = 1e-10;
 		static constexpr double IsMatrixDiagonalTolerance = 1e-10;
 		static constexpr double IsMatrixUnitTolerance = 1e-10;
 		static constexpr double IsMatrixZeroTolerance = 1e-10;
 		static constexpr double IsMatrixOrthogonalTolerance = 1e-10;
 
-		static constexpr double RankAlgEPS = 1e-12f;
+		static constexpr double RankAlgEPS = 1e-12;
 
 		// Numerical computation thresholds
 		static constexpr double NumericalZeroThreshold = 1e-12;      // For checking near-zero values
@@ -193,7 +196,7 @@ namespace MML
 		static constexpr double SurfaceNormalThreshold = 1e-12;      // Surface normal magnitude threshold
 		static constexpr double DerivativeStepSize = 1e-6;           // Default step for numerical derivatives
 		static constexpr double DefaultTolerance = 1e-6;             // General purpose tolerance
-		static constexpr double DefaultToleranceRelaxed = 1e-8;      // Relaxed tolerance for geometric tests
+		static constexpr double DefaultToleranceStrict = 1e-8;        // Strict tolerance for precise geometric tests
 
 		// Algorithm-specific thresholds
 		static constexpr double EigenSolverZeroThreshold = 1e-15;    // Eigenvalue solver zero detection
@@ -215,17 +218,17 @@ namespace MML
 		static constexpr long double MatrixIsEqualTolerance = 1e-15L;
 		static constexpr long double VectorIsEqualTolerance = 1e-15L;
 
-		static constexpr long double Pnt2CartIsEqualTolerance = 1e-15;
-		static constexpr long double Pnt2PolarIsEqualTolerance = 1e-15;
-		static constexpr long double Pnt3CartIsEqualTolerance = 1e-15;
-		static constexpr long double Pnt3SphIsEqualTolerance = 1e-15;
-		static constexpr long double Pnt3CylIsEqualTolerance = 1e-15;
+		static constexpr long double Pnt2CartIsEqualTolerance = 1e-15L;
+		static constexpr long double Pnt2PolarIsEqualTolerance = 1e-15L;
+		static constexpr long double Pnt3CartIsEqualTolerance = 1e-15L;
+		static constexpr long double Pnt3SphIsEqualTolerance = 1e-15L;
+		static constexpr long double Pnt3CylIsEqualTolerance = 1e-15L;
 
-		static constexpr long double Vec2CartIsEqualTolerance = 1e-15;
-		static constexpr long double Vec3CartIsEqualTolerance = 1e-15;
-		static constexpr long double Vec3CartIsParallelTolerance = 1e-15;
+		static constexpr long double Vec2CartIsEqualTolerance = 1e-15L;
+		static constexpr long double Vec3CartIsEqualTolerance = 1e-15L;
+		static constexpr long double Vec3CartIsParallelTolerance = 1e-15L;
 
-		static constexpr long double Vec3SphIsEqualTolerance = 1e-15;
+		static constexpr long double Vec3SphIsEqualTolerance = 1e-15L;
 
 		// Angle comparison tolerance (for wrap-aware angle equality)
 		static constexpr long double AngleIsEqualTolerance = 1e-15L;
@@ -233,32 +236,33 @@ namespace MML
 		// Shape property tolerance (for geometric shape classification: IsRight, IsSquare, etc.)
 		static constexpr long double ShapePropertyTolerance = 1e-15L;
 
-		static constexpr long double Line3DAreEqualTolerance = 1e-15;
-		static constexpr long double Line3DIsPointOnLineTolerance = 1e-15;
-		static constexpr long double Line3DIsPerpendicularTolerance = 1e-15;
-		static constexpr long double Line3DIsParallelTolerance = 1e-15;
-		static constexpr long double Line3DIntersectionTolerance = 1e-15;
+		static constexpr long double Line3DAreEqualTolerance = 1e-15L;
+		static constexpr long double Line3DIsPointOnLineTolerance = 1e-15L;
+		static constexpr long double Line3DIsPerpendicularTolerance = 1e-15L;
+		static constexpr long double Line3DIsParallelTolerance = 1e-15L;
+		static constexpr long double Line3DIntersectionTolerance = 1e-15L;
 
-		static constexpr long double Plane3DIsPointOnPlaneTolerance = 1e-15;
+		static constexpr long double Plane3DIsPointOnPlaneTolerance = 1e-15L;
 
-		static constexpr long double Triangle3DIsPointInsideTolerance = 1e-15f;	static constexpr long double Triangle3DIsRightTolerance = 1e-12L;
-	static constexpr long double Triangle3DIsIsoscelesTolerance = 1e-12L;
-	static constexpr long double Triangle3DIsEquilateralTolerance = 1e-12L;
-		static constexpr long double IsMatrixSymmetricTolerance = 1e-15;
-		static constexpr long double IsMatrixDiagonalTolerance = 1e-15;
-		static constexpr long double IsMatrixUnitTolerance = 1e-15;
-		static constexpr long double IsMatrixZeroTolerance = 1e-15;
-		static constexpr long double IsMatrixOrthogonalTolerance = 1e-15;
+		static constexpr long double Triangle3DIsPointInsideTolerance = 1e-15L;
+		static constexpr long double Triangle3DIsRightTolerance = 1e-12L;
+		static constexpr long double Triangle3DIsIsoscelesTolerance = 1e-12L;
+		static constexpr long double Triangle3DIsEquilateralTolerance = 1e-12L;
+		static constexpr long double IsMatrixSymmetricTolerance = 1e-15L;
+		static constexpr long double IsMatrixDiagonalTolerance = 1e-15L;
+		static constexpr long double IsMatrixUnitTolerance = 1e-15L;
+		static constexpr long double IsMatrixZeroTolerance = 1e-15L;
+		static constexpr long double IsMatrixOrthogonalTolerance = 1e-15L;
 
-		static constexpr long double RankAlgEPS = 1e-13f;
+		static constexpr long double RankAlgEPS = 1e-13L;
 
 		// Numerical computation thresholds
-		static constexpr long double NumericalZeroThreshold = 1e-12L;      // For checking near-zero values
-		static constexpr long double QuaternionZeroThreshold = 1e-12L;     // Quaternion singularity detection
-		static constexpr long double SurfaceNormalThreshold = 1e-12L;      // Surface normal magnitude threshold
-		static constexpr long double DerivativeStepSize = 1e-6L;           // Default step for numerical derivatives
+		static constexpr long double NumericalZeroThreshold = 1e-15L;      // For checking near-zero values
+		static constexpr long double QuaternionZeroThreshold = 1e-15L;     // Quaternion singularity detection
+		static constexpr long double SurfaceNormalThreshold = 1e-15L;      // Surface normal magnitude threshold
+		static constexpr long double DerivativeStepSize = 1e-8L;           // Default step for numerical derivatives
 		static constexpr long double DefaultTolerance = 1e-6L;             // General purpose tolerance
-		static constexpr long double DefaultToleranceRelaxed = 1e-8L;      // Relaxed tolerance for geometric tests
+		static constexpr long double DefaultToleranceStrict = 1e-8L;        // Strict tolerance for precise geometric tests
 
 		// Algorithm-specific thresholds
 		static constexpr long double EigenSolverZeroThreshold = 1e-18L;    // Eigenvalue solver zero detection
@@ -298,7 +302,7 @@ namespace MML
 //   3. Do NOT mix different Real types in the same executable
 //
 // CURRENT CONFIGURATION:
-typedef double						 Real; // default real type
+typedef double Real; // default real type
 //
 // OTHER SUPPORTED OPTIONS (uncomment ONE, comment others):
 // typedef float						 Real;    // Lower precision, faster, smaller memory
@@ -358,328 +362,283 @@ typedef double						 Real; // default real type
 // Changing Real automatically changes Complex precision
 typedef std::complex<Real> Complex; // default complex type
 
-namespace MML 
-{
+namespace MML {
 
-  // Generic absolute value functions
-  template <class Type> static Real Abs(const Type &a) { return std::abs(a); }
-  template <class Type> static Real Abs(const std::complex<Type> &a) {
-    return hypot(a.real(), a.imag());
-  }
+	// Generic absolute value functions
+	template<class Type>
+	static Real Abs(const Type& a) {
+		return std::abs(a);
+	}
+	template<class Type>
+	static Real Abs(const std::complex<Type>& a) {
+		return hypot(a.real(), a.imag());
+	}
+
+	////////////         Floating-Point Comparison Functions         ////////////
+	/// @brief Check if two values are equal within absolute tolerance.
+	/// @details Use for values expected to be near zero.
+	inline bool isWithinAbsPrec(Real a, Real b, Real eps) { return std::abs(a - b) < eps; }
+
+	/// @brief Check if two values are equal within relative tolerance.
+	/// @details Use for values of similar magnitude away from zero.
+	inline bool isWithinRelPrec(Real a, Real b, Real eps) { return std::abs(a - b) < eps * std::max(Abs(a), Abs(b)); }
+
+	/// @brief Check if two values are nearly equal using combined absolute and relative tolerance.
+	/// @details This is the recommended comparison for general floating-point equality.
+	///          Handles both small values (where absolute tolerance dominates) and
+	///          large values (where relative tolerance dominates) correctly.
+	/// @param a First value
+	/// @param b Second value
+	/// @param absEps Absolute tolerance (dominates for values near zero)
+	/// @param relEps Relative tolerance (dominates for large values)
+	/// @return true if |a - b| < absEps + relEps * max(|a|, |b|)
+	inline bool isNearlyEqual(Real a, Real b, Real absEps, Real relEps) {
+		return std::abs(a - b) < absEps + relEps * std::max(Abs(a), Abs(b));
+	}
+
+	/// @brief Check if two values are nearly equal using a single tolerance for both abs and rel.
+	/// @details Convenience overload that uses the same tolerance for absolute and relative comparison.
+	inline bool isNearlyEqual(Real a, Real b, Real eps) { return isNearlyEqual(a, b, eps, eps); }
+
+	/// @brief Check if a value is nearly zero (within tolerance of zero).
+	/// @details Use for checking if a value is effectively zero in numerical computations.
+	/// @param a Value to check
+	/// @param eps Tolerance (defaults to NumericalZeroThreshold)
+	/// @return true if |a| < eps
+	inline bool isNearlyZero(Real a, Real eps = PrecisionValues<Real>::NumericalZeroThreshold) { return std::abs(a) < eps; }
+
+	template<class T>
+	inline T POW2(const T& a) {
+		const T& t = a;
+		return t * t;
+	}
+	template<class T>
+	inline T POW3(const T& a) {
+		const T& t = a;
+		return t * t * t;
+	}
+	template<class T>
+	inline T POW4(const T& a) {
+		const T& t = a * a;
+		return t * t;
+	}
+	template<class T>
+	inline T POW5(const T& a) {
+		const T& t = a;
+		return t * t * t * t * t;
+	}
+
+	////////////                  Constants                ////////////////
+	namespace Constants {
+		// Mathematical constants — stored as Real for zero-friction use in expressions.
+		// Long-double literals preserve maximum precision during compile-time narrowing.
+		// When Real=double: lossless compile-time narrowing from long double literal
+		// When Real=long double: full extended precision preserved
+		static inline constexpr Real PI = Real(3.141592653589793238462643383279502884L);				 // pi
+		static inline constexpr Real INV_PI = Real(0.318309886183790671537767526745028724L);		 // 1/pi
+		static inline constexpr Real INV_SQRTPI = Real(0.564189583547756286948079451560772586L); // 1/sqrt(pi)
+
+		static inline constexpr Real E = Real(2.718281828459045235360287471352662498L);		 // e
+		static inline constexpr Real LN2 = Real(0.693147180559945309417232121458176568L);	 // ln(2)
+		static inline constexpr Real LN10 = Real(2.302585092994045684017991454684364208L); // ln(10)
+
+		static inline constexpr Real SQRT2 = Real(1.414213562373095048801688724209698079L); // sqrt(2)
+		static inline constexpr Real SQRT3 = Real(1.732050807568877293527446341505872367L); // sqrt(3)
+
+		static inline constexpr Real GoldenRatio = Real(1.618033988749894848204586834365638118L); // (1 + sqrt(5)) / 2
+
+		// Geometry epsilon for floating-point comparisons in geometric algorithms
+		static inline constexpr double GEOMETRY_EPSILON = 1e-10;
+
+		// Precision constants - use Real type for consistency with library's floating-point type
+		static inline const Real Eps = std::numeric_limits<Real>::epsilon();
+		static inline const Real PosInf = std::numeric_limits<Real>::infinity();
+		static inline const Real NegInf = -std::numeric_limits<Real>::infinity();
+	} // namespace Constants
+
+	////////////       Binary File Format Constants        ////////////
+	/// @brief Magic numbers and version constants for MML binary file formats.
+	/// @details These constants identify MML binary files and their format versions.
+	///          Magic numbers are 4-byte ASCII identifiers stored as uint32_t.
+	///          All binary files use little-endian byte order.
+	namespace BinaryFormat {
+		// Magic numbers (4-byte ASCII identifiers)
+		static inline constexpr uint32_t MAGIC_MATRIX = 0x4D4D4C4D;					// "MMLM" - MML Matrix
+		static inline constexpr uint32_t MAGIC_VECTOR = 0x4D4D4C56;					// "MMLV" - MML Vector (real)
+		static inline constexpr uint32_t MAGIC_VECTOR_COMPLEX = 0x4D4D4C43; // "MMLC" - MML Vector Complex
+		static inline constexpr uint32_t MAGIC_SPARSE = 0x4D4D4C53;					// "MMLS" - MML Sparse Matrix (reserved)
+		static inline constexpr uint32_t MAGIC_TENSOR = 0x4D4D4C54;					// "MMLT" - MML Tensor (reserved)
+
+		// Current format versions
+		static inline constexpr uint32_t VERSION_MATRIX = 1;
+		static inline constexpr uint32_t VERSION_VECTOR = 1;
+		static inline constexpr uint32_t VERSION_VECTOR_COMPLEX = 1;
+		static inline constexpr uint32_t VERSION_SPARSE = 1; // reserved
+		static inline constexpr uint32_t VERSION_TENSOR = 1; // reserved
+
+		// File extensions (without dot)
+		static inline constexpr const char* EXT_MATRIX = "mmlm";
+		static inline constexpr const char* EXT_VECTOR = "mmlv";
+		static inline constexpr const char* EXT_VECTOR_COMPLEX = "mmlc"; // complex vector
+		static inline constexpr const char* EXT_SPARSE = "mmls";				 // reserved
+		static inline constexpr const char* EXT_TENSOR = "mmlt";				 // reserved
+	} // namespace BinaryFormat
+
+	////////////         Angle Comparison Functions         ////////////
+	/// @brief Normalize angle to [-π, π) range for comparison.
+	/// @param rad Angle in radians
+	/// @return Normalized angle in [-π, π)
+	inline Real normalizeAngle(Real rad) {
+		rad = std::fmod(rad + Constants::PI, 2 * Constants::PI);
+		if (rad < 0)
+			rad += 2 * Constants::PI;
+		return rad - Constants::PI;
+	}
+
+	/// @brief Check if two angles are equal, accounting for wrap-around at ±π.
+	/// @details Normalizes the difference to [-π, π) before comparing.
+	///          Correctly handles cases like comparing -π and π (which are equal).
+	/// @param a First angle in radians
+	/// @param b Second angle in radians
+	/// @param eps Tolerance for comparison
+	/// @return true if angles are equivalent within tolerance
+	inline bool AnglesAreEqual(Real a, Real b, Real eps) {
+		Real diff = normalizeAngle(a - b);
+		return std::abs(diff) < eps;
+	}
+
+	// is_simple_numeric helper
+	template<typename T>
+	struct is_simple_numeric : std::is_arithmetic<T> {};
+
+	template<typename T>
+	struct is_simple_numeric<std::complex<T>> : std::is_arithmetic<T> {};
+
+	// Helper variable template (C++14 and later)
+	template<typename T>
+	inline constexpr bool is_MML_simple_numeric = is_simple_numeric<T>::value;
 
 
-  ////////////         Floating-Point Comparison Functions         ////////////
-  /// @brief Check if two values are equal within absolute tolerance.
-  /// @details Use for values expected to be near zero.
-  inline bool isWithinAbsPrec(Real a, Real b, Real eps) {
-    return std::abs(a - b) < eps;
-  }
+	struct AlgorithmContext {
+		// Integration parameters (using PrecisionValues for consistency)
+		Real trapezoidIntegrationEPS = REAL(1.0e-4);
+		Real simpsonIntegrationEPS = REAL(1.0e-5);
+		Real rombergIntegrationEPS = PrecisionValues<Real>::DefaultTolerance;
+		Real workIntegralPrecision = REAL(1e-05);
+		Real lineIntegralPrecision = REAL(1e-05);
 
-  /// @brief Check if two values are equal within relative tolerance.
-  /// @details Use for values of similar magnitude away from zero.
-  inline bool isWithinRelPrec(Real a, Real b, Real eps) {
-    return std::abs(a - b) < eps * std::max(Abs(a), Abs(b));
-  }
+		int trapezoidIntegrationMaxSteps = 20;
+		int simpsonIntegrationMaxSteps = 20;
+		int rombergIntegrationMaxSteps = 20;
+		int rombergIntegrationUsedPnts = 5;
 
-  /// @brief Check if two values are nearly equal using combined absolute and relative tolerance.
-  /// @details This is the recommended comparison for general floating-point equality.
-  ///          Handles both small values (where absolute tolerance dominates) and
-  ///          large values (where relative tolerance dominates) correctly.
-  /// @param a First value
-  /// @param b Second value  
-  /// @param absEps Absolute tolerance (dominates for values near zero)
-  /// @param relEps Relative tolerance (dominates for large values)
-  /// @return true if |a - b| < absEps + relEps * max(|a|, |b|)
-  inline bool isNearlyEqual(Real a, Real b, Real absEps, Real relEps) {
-    return std::abs(a - b) < absEps + relEps * std::max(Abs(a), Abs(b));
-  }
+		// Root finding parameters
+		int bisectionMaxSteps = 50;
+		int newtonRaphsonMaxSteps = 20;
+		int brentMaxSteps = 100; // Brent typically needs more steps but converges reliably
 
-  /// @brief Check if two values are nearly equal using a single tolerance for both abs and rel.
-  /// @details Convenience overload that uses the same tolerance for absolute and relative comparison.
-  inline bool isNearlyEqual(Real a, Real b, Real eps) {
-    return isNearlyEqual(a, b, eps, eps);
-  }
+		// ODE solver parameters
+		int odeSolverMaxSteps = 100000;
 
-  /// @brief Check if a value is nearly zero (within tolerance of zero).
-  /// @details Use for checking if a value is effectively zero in numerical computations.
-  /// @param a Value to check
-  /// @param eps Tolerance (defaults to NumericalZeroThreshold)
-  /// @return true if |a| < eps
-  inline bool isNearlyZero(Real a, Real eps = PrecisionValues<Real>::NumericalZeroThreshold) {
-    return std::abs(a) < eps;
-  }
+		static AlgorithmContext& Get() {
+			thread_local static AlgorithmContext ctx;
+			return ctx;
+		}
+	};
 
-  template <class T> inline T POW2(const T &a) {
-    const T &t = a;
-    return t * t;
-  }
-  template <class T> inline T POW3(const T &a) {
-    const T &t = a;
-    return t * t * t;
-  }
-  template <class T> inline T POW4(const T &a) {
-    const T &t = a * a;
-    return t * t;
-  }
-  template <class T> inline T POW5(const T &a) {
-    const T &t = a;
-    return t * t * t * t * t;
-  }
+	// Thread-safe configuration contexts
+	struct PrintContext {
+		int vectorWidth = 15;
+		int vectorPrecision = 10;
+		int vectorNWidth = 15;
+		int vectorNPrecision = 10;
 
-  ////////////                  Constants                ////////////////
-  namespace Constants {
-    // Mathematical constants with maximum double precision (C++17 compatible)
-    // These values match std::numbers from C++20 to full double precision
-    static inline constexpr double PI         = 3.14159265358979323846;  // pi
-    static inline constexpr double INV_PI     = 0.31830988618379067154;  // 1/pi
-    static inline constexpr double INV_SQRTPI = 0.56418958354775628695;  // 1/sqrt(pi)
+		static PrintContext& Get() {
+			thread_local static PrintContext ctx;
+			return ctx;
+		}
+	};
 
-    static inline constexpr double E          = 2.71828182845904523536;  // e
-    static inline constexpr double LN2        = 0.69314718055994530942;  // ln(2)
-    static inline constexpr double LN10       = 2.30258509299404568402;  // ln(10)
+	// Backward compatible Defaults namespace (now thread-safe via thread_local
+	// contexts)
+	namespace Defaults {
+		// Output defaults (thread-safe - changed from static globals to thread_local)
+		// Usage: Defaults::VectorPrintWidth = 20; (now thread-safe!)
+		static inline int& VectorPrintWidth = PrintContext::Get().vectorWidth;
+		static inline int& VectorPrintPrecision = PrintContext::Get().vectorPrecision;
+		static inline int& VectorNPrintWidth = PrintContext::Get().vectorNWidth;
+		static inline int& VectorNPrintPrecision = PrintContext::Get().vectorNPrecision;
 
-    static inline constexpr double SQRT2      = 1.41421356237309504880;  // sqrt(2)
-    static inline constexpr double SQRT3      = 1.73205080756887729353;  // sqrt(3)
+		//////////               Default precisions             ///////////
+		// Use the precision values based on the Real type
+		static inline const double ComplexAreEqualTolerance = PrecisionValues<Real>::ComplexAreEqualTolerance;
+		static inline const double ComplexAreEqualAbsTolerance = PrecisionValues<Real>::ComplexAreEqualAbsTolerance;
+		static inline const double VectorIsEqualTolerance = PrecisionValues<Real>::VectorIsEqualTolerance;
+		static inline const double MatrixIsEqualTolerance = PrecisionValues<Real>::MatrixIsEqualTolerance;
 
-    static inline constexpr double GoldenRatio = 1.61803398874989484820; // (1 + sqrt(5)) / 2
+		static inline const double Pnt2CartIsEqualTolerance = PrecisionValues<Real>::Pnt2CartIsEqualTolerance;
+		static inline const double Pnt2PolarIsEqualTolerance = PrecisionValues<Real>::Pnt2PolarIsEqualTolerance;
+		static inline const double Pnt3CartIsEqualTolerance = PrecisionValues<Real>::Pnt3CartIsEqualTolerance;
+		static inline const double Pnt3SphIsEqualTolerance = PrecisionValues<Real>::Pnt3SphIsEqualTolerance;
+		static inline const double Pnt3CylIsEqualTolerance = PrecisionValues<Real>::Pnt3CylIsEqualTolerance;
 
-    // Geometry epsilon for floating-point comparisons in geometric algorithms
-    static inline constexpr double GEOMETRY_EPSILON = 1e-10;
+		static inline const double Vec2CartIsEqualTolerance = PrecisionValues<Real>::Vec2CartIsEqualTolerance;
+		static inline const double Vec3CartIsEqualTolerance = PrecisionValues<Real>::Vec3CartIsEqualTolerance;
+		static inline const double Vec3CartIsParallelTolerance = PrecisionValues<Real>::Vec3CartIsParallelTolerance;
 
-    // Precision constants - use Real type for consistency with library's floating-point type
-    static inline const Real Eps = std::numeric_limits<Real>::epsilon();
-    static inline const Real PosInf = std::numeric_limits<Real>::infinity();
-    static inline const Real NegInf = -std::numeric_limits<Real>::infinity();
-  } // namespace Constants
+		static inline const double Vec3SphIsEqualTolerance = PrecisionValues<Real>::Vec3SphIsEqualTolerance;
 
-  ////////////       Binary File Format Constants        ////////////
-  /// @brief Magic numbers and version constants for MML binary file formats.
-  /// @details These constants identify MML binary files and their format versions.
-  ///          Magic numbers are 4-byte ASCII identifiers stored as uint32_t.
-  ///          All binary files use little-endian byte order.
-  namespace BinaryFormat {
-    // Magic numbers (4-byte ASCII identifiers)
-    static inline constexpr uint32_t MAGIC_MATRIX         = 0x4D4D4C4D;  // "MMLM" - MML Matrix
-    static inline constexpr uint32_t MAGIC_VECTOR         = 0x4D4D4C56;  // "MMLV" - MML Vector (real)
-    static inline constexpr uint32_t MAGIC_VECTOR_COMPLEX = 0x4D4D4C43;  // "MMLC" - MML Vector Complex
-    static inline constexpr uint32_t MAGIC_SPARSE         = 0x4D4D4C53;  // "MMLS" - MML Sparse Matrix (reserved)
-    static inline constexpr uint32_t MAGIC_TENSOR         = 0x4D4D4C54;  // "MMLT" - MML Tensor (reserved)
-    
-    // Current format versions
-    static inline constexpr uint32_t VERSION_MATRIX         = 1;
-    static inline constexpr uint32_t VERSION_VECTOR         = 1;
-    static inline constexpr uint32_t VERSION_VECTOR_COMPLEX = 1;
-    static inline constexpr uint32_t VERSION_SPARSE         = 1;  // reserved
-    static inline constexpr uint32_t VERSION_TENSOR         = 1;  // reserved
-    
-    // File extensions (without dot)
-    static inline constexpr const char* EXT_MATRIX         = "mmlm";
-    static inline constexpr const char* EXT_VECTOR         = "mmlv";
-    static inline constexpr const char* EXT_VECTOR_COMPLEX = "mmlc";  // complex vector
-    static inline constexpr const char* EXT_SPARSE         = "mmls";  // reserved
-    static inline constexpr const char* EXT_TENSOR         = "mmlt";  // reserved
-  } // namespace BinaryFormat
+		// Angle comparison tolerance (for wrap-aware angle equality)
+		static inline const double AngleIsEqualTolerance = PrecisionValues<Real>::AngleIsEqualTolerance;
 
-  ////////////         Angle Comparison Functions         ////////////
-  /// @brief Normalize angle to [-π, π) range for comparison.
-  /// @param rad Angle in radians
-  /// @return Normalized angle in [-π, π)
-  inline Real normalizeAngle(Real rad) {
-    while (rad < -Constants::PI)
-      rad += 2 * Constants::PI;
-    while (rad >= Constants::PI)
-      rad -= 2 * Constants::PI;
-    return rad;
-  }
+		// Shape property tolerance (for geometric shape classification)
+		static inline const double ShapePropertyTolerance = PrecisionValues<Real>::ShapePropertyTolerance;
 
-  /// @brief Check if two angles are equal, accounting for wrap-around at ±π.
-  /// @details Normalizes the difference to [-π, π) before comparing.
-  ///          Correctly handles cases like comparing -π and π (which are equal).
-  /// @param a First angle in radians
-  /// @param b Second angle in radians
-  /// @param eps Tolerance for comparison
-  /// @return true if angles are equivalent within tolerance
-  inline bool AnglesAreEqual(Real a, Real b, Real eps) {
-    Real diff = normalizeAngle(a - b);
-    return std::abs(diff) < eps;
-  }
+		static inline const double Line3DAreEqualTolerance = PrecisionValues<Real>::Line3DAreEqualTolerance;
+		static inline const double Line3DIsPointOnLineTolerance = PrecisionValues<Real>::Line3DIsPointOnLineTolerance;
+		static inline const double Line3DIsPerpendicularTolerance = PrecisionValues<Real>::Line3DIsPerpendicularTolerance;
+		static inline const double Line3DIsParallelTolerance = PrecisionValues<Real>::Line3DIsParallelTolerance;
+		static inline const double Line3DIntersectionTolerance = PrecisionValues<Real>::Line3DIntersectionTolerance;
 
-  // is_simple_numeric helper
-  template <typename T> struct is_simple_numeric : std::is_arithmetic<T> {};
+		static inline const double Plane3DIsPointOnPlaneTolerance = PrecisionValues<Real>::Plane3DIsPointOnPlaneTolerance;
 
-  template <typename T>
-  struct is_simple_numeric<std::complex<T>> : std::is_arithmetic<T> {};
+		static inline const double Triangle3DIsPointInsideTolerance = PrecisionValues<Real>::Triangle3DIsPointInsideTolerance;
+		static inline const double Triangle3DIsRightTolerance = PrecisionValues<Real>::Triangle3DIsRightTolerance;
+		static inline const double Triangle3DIsIsoscelesTolerance = PrecisionValues<Real>::Triangle3DIsIsoscelesTolerance;
+		static inline const double Triangle3DIsEquilateralTolerance = PrecisionValues<Real>::Triangle3DIsEquilateralTolerance;
 
-  // Helper variable template (C++14 and later)
-  template <typename T>
-  inline constexpr bool is_MML_simple_numeric = is_simple_numeric<T>::value;
+		static inline const double IsMatrixSymmetricTolerance = PrecisionValues<Real>::IsMatrixSymmetricTolerance;
+		static inline const double IsMatrixDiagonalTolerance = PrecisionValues<Real>::IsMatrixDiagonalTolerance;
+		static inline const double IsMatrixUnitTolerance = PrecisionValues<Real>::IsMatrixUnitTolerance;
+		static inline const double IsMatrixZeroTolerance = PrecisionValues<Real>::IsMatrixZeroTolerance;
+		static inline const double IsMatrixOrthogonalTolerance = PrecisionValues<Real>::IsMatrixOrthogonalTolerance;
 
+		static inline const double RankAlgEPS = PrecisionValues<Real>::RankAlgEPS;
 
-  struct AlgorithmContext {
-    // Integration parameters (using PrecisionValues for consistency)
-    Real trapezoidIntegrationEPS = REAL(1.0e-4);
-    Real simpsonIntegrationEPS = REAL(1.0e-5);
-    Real rombergIntegrationEPS = PrecisionValues<Real>::DefaultTolerance;
-    Real workIntegralPrecision = REAL(1e-05);
-    Real lineIntegralPrecision = REAL(1e-05);
+		// Numerical thresholds from PrecisionValues
+		static inline const double DefaultTolerance = PrecisionValues<Real>::DefaultTolerance;
+		static inline const double OrthogonalityTolerance = PrecisionValues<Real>::OrthogonalityTolerance;
 
-    int trapezoidIntegrationMaxSteps = 20;
-    int simpsonIntegrationMaxSteps = 20;
-    int rombergIntegrationMaxSteps = 20;
-    int rombergIntegrationUsedPnts = 5;
+		// Algorithm parameters (thread-safe - changed from static constants to
+		// thread_local) Usage: Defaults::TrapezoidIntegrationEPS = 1e-6; (now
+		// thread-safe and mutable!)
+		static inline Real& TrapezoidIntegrationEPS = AlgorithmContext::Get().trapezoidIntegrationEPS;
+		static inline Real& SimpsonIntegrationEPS = AlgorithmContext::Get().simpsonIntegrationEPS;
+		static inline Real& RombergIntegrationEPS = AlgorithmContext::Get().rombergIntegrationEPS;
+		static inline Real& WorkIntegralPrecision = AlgorithmContext::Get().workIntegralPrecision;
+		static inline Real& LineIntegralPrecision = AlgorithmContext::Get().lineIntegralPrecision;
 
-    // Root finding parameters
-    int bisectionMaxSteps = 50;
-    int newtonRaphsonMaxSteps = 20;
-    int brentMaxSteps = 100;  // Brent typically needs more steps but converges reliably
+		static inline int& BisectionMaxSteps = AlgorithmContext::Get().bisectionMaxSteps;
+		static inline int& NewtonRaphsonMaxSteps = AlgorithmContext::Get().newtonRaphsonMaxSteps;
+		static inline int& BrentMaxSteps = AlgorithmContext::Get().brentMaxSteps;
 
-    // ODE solver parameters
-    int odeSolverMaxSteps = 100000;
+		static inline int& TrapezoidIntegrationMaxSteps = AlgorithmContext::Get().trapezoidIntegrationMaxSteps;
+		static inline int& SimpsonIntegrationMaxSteps = AlgorithmContext::Get().simpsonIntegrationMaxSteps;
+		static inline int& RombergIntegrationMaxSteps = AlgorithmContext::Get().rombergIntegrationMaxSteps;
+		static inline int& RombergIntegrationUsedPnts = AlgorithmContext::Get().rombergIntegrationUsedPnts;
 
-    static AlgorithmContext &Get() {
-      thread_local static AlgorithmContext ctx;
-      return ctx;
-    }
-  };
-
-  // Thread-safe configuration contexts
-  struct PrintContext {
-    int vectorWidth = 15;
-    int vectorPrecision = 10;
-    int vectorNWidth = 15;
-    int vectorNPrecision = 10;
-
-    static PrintContext &Get() {
-      thread_local static PrintContext ctx;
-      return ctx;
-    }
-  };  
-
-  // Backward compatible Defaults namespace (now thread-safe via thread_local
-  // contexts)
-  namespace Defaults {
-    // Output defaults (thread-safe - changed from static globals to thread_local)
-    // Usage: Defaults::VectorPrintWidth = 20; (now thread-safe!)
-    static inline int &VectorPrintWidth = PrintContext::Get().vectorWidth;
-    static inline int &VectorPrintPrecision = PrintContext::Get().vectorPrecision;
-    static inline int &VectorNPrintWidth = PrintContext::Get().vectorNWidth;
-    static inline int &VectorNPrintPrecision = PrintContext::Get().vectorNPrecision;
-
-    //////////               Default precisions             ///////////
-    // Use the precision values based on the Real type
-    static inline const double ComplexAreEqualTolerance =
-        PrecisionValues<Real>::ComplexAreEqualTolerance;
-    static inline const double ComplexAreEqualAbsTolerance =
-        PrecisionValues<Real>::ComplexAreEqualAbsTolerance;
-    static inline const double VectorIsEqualTolerance =
-        PrecisionValues<Real>::VectorIsEqualTolerance;
-    static inline const double MatrixIsEqualTolerance =
-        PrecisionValues<Real>::MatrixIsEqualTolerance;
-
-    static inline const double Pnt2CartIsEqualTolerance =
-        PrecisionValues<Real>::Pnt2CartIsEqualTolerance;
-    static inline const double Pnt2PolarIsEqualTolerance =
-        PrecisionValues<Real>::Pnt2PolarIsEqualTolerance;
-    static inline const double Pnt3CartIsEqualTolerance =
-        PrecisionValues<Real>::Pnt3CartIsEqualTolerance;
-    static inline const double Pnt3SphIsEqualTolerance =
-        PrecisionValues<Real>::Pnt3SphIsEqualTolerance;
-    static inline const double Pnt3CylIsEqualTolerance =
-        PrecisionValues<Real>::Pnt3CylIsEqualTolerance;
-
-    static inline const double Vec2CartIsEqualTolerance =
-        PrecisionValues<Real>::Vec2CartIsEqualTolerance;
-    static inline const double Vec3CartIsEqualTolerance =
-        PrecisionValues<Real>::Vec3CartIsEqualTolerance;
-    static inline const double Vec3CartIsParallelTolerance =
-        PrecisionValues<Real>::Vec3CartIsParallelTolerance;
-
-    static inline const double Vec3SphIsEqualTolerance =
-        PrecisionValues<Real>::Vec3SphIsEqualTolerance;
-
-    // Angle comparison tolerance (for wrap-aware angle equality)
-    static inline const double AngleIsEqualTolerance =
-        PrecisionValues<Real>::AngleIsEqualTolerance;
-
-    // Shape property tolerance (for geometric shape classification)
-    static inline const double ShapePropertyTolerance =
-        PrecisionValues<Real>::ShapePropertyTolerance;
-
-    static inline const double Line3DAreEqualTolerance =
-        PrecisionValues<Real>::Line3DAreEqualTolerance;
-    static inline const double Line3DIsPointOnLineTolerance =
-        PrecisionValues<Real>::Line3DIsPointOnLineTolerance;
-    static inline const double Line3DIsPerpendicularTolerance =
-        PrecisionValues<Real>::Line3DIsPerpendicularTolerance;
-    static inline const double Line3DIsParallelTolerance =
-        PrecisionValues<Real>::Line3DIsParallelTolerance;
-    static inline const double Line3DIntersectionTolerance =
-        PrecisionValues<Real>::Line3DIntersectionTolerance;
-
-    static inline const double Plane3DIsPointOnPlaneTolerance =
-        PrecisionValues<Real>::Plane3DIsPointOnPlaneTolerance;
-
-    static inline const double Triangle3DIsPointInsideTolerance =
-        PrecisionValues<Real>::Triangle3DIsPointInsideTolerance;
-    static inline const double Triangle3DIsRightTolerance =
-        PrecisionValues<Real>::Triangle3DIsRightTolerance;
-    static inline const double Triangle3DIsIsoscelesTolerance =
-        PrecisionValues<Real>::Triangle3DIsIsoscelesTolerance;
-    static inline const double Triangle3DIsEquilateralTolerance =
-        PrecisionValues<Real>::Triangle3DIsEquilateralTolerance;
-
-    static inline const double IsMatrixSymmetricTolerance =
-        PrecisionValues<Real>::IsMatrixSymmetricTolerance;
-    static inline const double IsMatrixDiagonalTolerance =
-        PrecisionValues<Real>::IsMatrixDiagonalTolerance;
-    static inline const double IsMatrixUnitTolerance =
-        PrecisionValues<Real>::IsMatrixUnitTolerance;
-    static inline const double IsMatrixZeroTolerance =
-        PrecisionValues<Real>::IsMatrixZeroTolerance;
-    static inline const double IsMatrixOrthogonalTolerance =
-        PrecisionValues<Real>::IsMatrixOrthogonalTolerance;
-
-    static inline const double RankAlgEPS = PrecisionValues<Real>::RankAlgEPS;
-
-    // Numerical thresholds from PrecisionValues
-    static inline const double DefaultTolerance =
-        PrecisionValues<Real>::DefaultTolerance;
-    static inline const double OrthogonalityTolerance =
-        PrecisionValues<Real>::OrthogonalityTolerance;
-
-    // Algorithm parameters (thread-safe - changed from static constants to
-    // thread_local) Usage: Defaults::TrapezoidIntegrationEPS = 1e-6; (now
-    // thread-safe and mutable!)
-    static inline Real &TrapezoidIntegrationEPS =
-        AlgorithmContext::Get().trapezoidIntegrationEPS;
-    static inline Real &SimpsonIntegrationEPS =
-        AlgorithmContext::Get().simpsonIntegrationEPS;
-    static inline Real &RombergIntegrationEPS =
-        AlgorithmContext::Get().rombergIntegrationEPS;
-    static inline Real &WorkIntegralPrecision =
-        AlgorithmContext::Get().workIntegralPrecision;
-    static inline Real &LineIntegralPrecision =
-        AlgorithmContext::Get().lineIntegralPrecision;
-
-    static inline int &BisectionMaxSteps =
-        AlgorithmContext::Get().bisectionMaxSteps;
-    static inline int &NewtonRaphsonMaxSteps =
-        AlgorithmContext::Get().newtonRaphsonMaxSteps;
-    static inline int &BrentMaxSteps =
-        AlgorithmContext::Get().brentMaxSteps;
-
-    static inline int &TrapezoidIntegrationMaxSteps =
-        AlgorithmContext::Get().trapezoidIntegrationMaxSteps;
-    static inline int &SimpsonIntegrationMaxSteps =
-        AlgorithmContext::Get().simpsonIntegrationMaxSteps;
-    static inline int &RombergIntegrationMaxSteps =
-        AlgorithmContext::Get().rombergIntegrationMaxSteps;
-    static inline int &RombergIntegrationUsedPnts =
-        AlgorithmContext::Get().rombergIntegrationUsedPnts;
-
-    static inline int &ODESolverMaxSteps =
-        AlgorithmContext::Get().odeSolverMaxSteps;
-  } // namespace Defaults
+		static inline int& ODESolverMaxSteps = AlgorithmContext::Get().odeSolverMaxSteps;
+	} // namespace Defaults
 } // namespace MML
 
 ///////////////////////////   mml/MMLExceptions.h   ///////////////////////////
@@ -687,11 +646,28 @@ namespace MML
 
 namespace MML
 {
+	/// @brief Base marker class for all MML library exceptions.
+	/// All MML exceptions inherit from both this class and a standard exception class,
+	/// preserving the std:: exception hierarchy for backward compatibility.
+	/// Use catch(const MMLException&) to handle any MML library error.
+	/// Call message() to get the error string.
+	class MMLException {
+	public:
+		virtual ~MMLException() = default;
+
+		/// @brief Get error message (delegates to std::exception::what()).
+		const char* message() const noexcept {
+			if (auto* e = dynamic_cast<const std::exception*>(this))
+				return e->what();
+			return "unknown MML error";
+		}
+	};
+
 	//////////             Base error exceptions              ///////////
 	/// @brief Generic argument validation error for invalid parameters.
 	/// Use when function arguments violate preconditions (negative where positive required,
 	/// empty containers where non-empty required, etc.)
-	class ArgumentError : public std::invalid_argument
+	class ArgumentError : public std::invalid_argument, public MMLException
 	{
 	public:
 		explicit ArgumentError(const std::string& message) 
@@ -701,7 +677,7 @@ namespace MML
 	/// @brief Error for operations outside valid domain.
 	/// Use for mathematical domain violations (e.g., sqrt of negative, log of zero,
 	/// parameter outside valid range).
-	class DomainError : public std::domain_error
+	class DomainError : public std::domain_error, public MMLException
 	{
 	public:
 		explicit DomainError(const std::string& message) 
@@ -710,7 +686,7 @@ namespace MML
 
 	/// @brief Error for division by zero.
 	/// Use when division or modulo by zero is attempted.
-	class DivisionByZeroError : public std::domain_error
+	class DivisionByZeroError : public std::domain_error, public MMLException
 	{
 	public:
 		explicit DivisionByZeroError(const std::string& message) 
@@ -719,7 +695,7 @@ namespace MML
 
 	/// @brief Error for unimplemented methods.
 	/// Use for abstract base class methods or features not yet implemented.
-	class NotImplementedError : public std::logic_error
+	class NotImplementedError : public std::logic_error, public MMLException
 	{
 	public:
 		explicit NotImplementedError(const std::string& message) 
@@ -728,7 +704,7 @@ namespace MML
 
 	/// @brief Generic index out of bounds error.
 	/// Use for array/container index access violations.
-	class IndexError : public std::out_of_range
+	class IndexError : public std::out_of_range, public MMLException
 	{
 		int _index;
 		int _size;
@@ -741,7 +717,7 @@ namespace MML
 	};
 
 	//////////             Vector error exceptions            ///////////
-	class VectorInitializationError : public std::invalid_argument
+	class VectorInitializationError : public std::invalid_argument, public MMLException
 	{
 		int _size1;
 	public:
@@ -751,7 +727,7 @@ namespace MML
 		int size() const noexcept { return _size1; }
 	};
 	
-	class VectorDimensionError : public std::invalid_argument
+	class VectorDimensionError : public std::invalid_argument, public MMLException
 	{
 		int _size1, _size2;
 	public:
@@ -762,7 +738,7 @@ namespace MML
 		int actual() const noexcept { return _size2; }
 	};
 	
-	class VectorAccessBoundsError : public std::out_of_range
+	class VectorAccessBoundsError : public std::out_of_range, public MMLException
 	{
 		int _i, _n;
 	public:
@@ -774,7 +750,7 @@ namespace MML
 	};
 
 	//////////             Matrix error exceptions            ///////////
-	class MatrixAllocationError : public std::out_of_range
+	class MatrixAllocationError : public std::out_of_range, public MMLException
 	{
 		int _rows, _cols;
 	public:
@@ -784,7 +760,7 @@ namespace MML
 		int rows() const noexcept { return _rows; }
 		int cols() const noexcept { return _cols; }
 	};
-	class MatrixAccessBoundsError : public std::out_of_range
+	class MatrixAccessBoundsError : public std::out_of_range, public MMLException
 	{
 		int _i, _j, _rows, _cols;
 	public:
@@ -796,7 +772,7 @@ namespace MML
 		int rows() const noexcept { return _rows; }
 		int cols() const noexcept { return _cols; }
 	};
-	class MatrixDimensionError : public std::invalid_argument
+	class MatrixDimensionError : public std::invalid_argument, public MMLException
 	{
 		int _rows1, _cols1, _rows2, _cols2;
 	public:
@@ -813,7 +789,7 @@ namespace MML
 		int actual_rows() const noexcept { return _rows2; }
 		int actual_cols() const noexcept { return _cols2; }
 	};
-	class SingularMatrixError : public std::domain_error
+	class SingularMatrixError : public std::domain_error, public MMLException
 	{
 		double _determinant;
 		int _pivot_row;
@@ -826,7 +802,7 @@ namespace MML
 	};
 
 	//////////             Integration exceptions            ///////////
-	class IntegrationTooManySteps : public std::domain_error
+	class IntegrationTooManySteps : public std::domain_error, public MMLException
 	{
 		int _steps;
 		double _achieved_precision;
@@ -843,14 +819,14 @@ namespace MML
 	};
 
 	//////////           Interpolation exceptions            ///////////
-	class RealFuncInterpInitError: public std::domain_error
+	class RealFuncInterpInitError: public std::domain_error, public MMLException
 	{
 	public:
 		RealFuncInterpInitError(std::string inMessage) : std::domain_error(inMessage)
 		{ }
 	};
 
-	class RealFuncInterpRuntimeError: public std::runtime_error
+	class RealFuncInterpRuntimeError: public std::runtime_error, public MMLException
 	{
 	public:
 		RealFuncInterpRuntimeError(std::string inMessage) : std::runtime_error(inMessage)
@@ -858,7 +834,7 @@ namespace MML
 	};
 
 	////////////             Tensor exceptions             /////////////
-	class TensorCovarContravarNumError : public std::invalid_argument
+	class TensorCovarContravarNumError : public std::invalid_argument, public MMLException
 	{
 		int _numContra, _numCo;
 	public:
@@ -868,7 +844,7 @@ namespace MML
 		int num_contravariant() const noexcept { return _numContra; }
 		int num_covariant() const noexcept { return _numCo; }
 	};
-	class TensorCovarContravarArithmeticError : public std::invalid_argument
+	class TensorCovarContravarArithmeticError : public std::invalid_argument, public MMLException
 	{
 		int _numContra, _numCo;
 		int _bContra, _bCo;
@@ -881,7 +857,7 @@ namespace MML
 		int other_contravariant() const noexcept { return _bContra; }
 		int other_covariant() const noexcept { return _bCo; }
 	};
-	class TensorIndexError : public std::invalid_argument
+	class TensorIndexError : public std::invalid_argument, public MMLException
 	{
 	public:
 		TensorIndexError(std::string inMessage) : std::invalid_argument(inMessage)
@@ -889,7 +865,7 @@ namespace MML
 	};    
 
 	//////////           Root finding exceptions            ///////////
-	class RootFindingError: public std::runtime_error
+	class RootFindingError: public std::runtime_error, public MMLException
 	{
 	public:
 		RootFindingError(std::string inMessage) : std::runtime_error(inMessage)
@@ -897,7 +873,7 @@ namespace MML
 	};
 
 	//////////            ODE solver exceptions             ///////////
-	class ODESolverError: public std::runtime_error
+	class ODESolverError: public std::runtime_error, public MMLException
 	{
 	public:
 		ODESolverError(std::string inMessage) : std::runtime_error(inMessage)
@@ -905,7 +881,7 @@ namespace MML
 	};
 
 	//////////            Statistics exceptions             ///////////
-	class StatisticsError : public std::runtime_error
+	class StatisticsError : public std::runtime_error, public MMLException
 	{
 	public:
 		StatisticsError(std::string inMessage) : std::runtime_error(inMessage)
@@ -914,14 +890,14 @@ namespace MML
 	};
 
 	//////////      Numerical method exceptions             ///////////
-	class NumericalMethodError : public std::runtime_error
+	class NumericalMethodError : public std::runtime_error, public MMLException
 	{
 	public:
 		NumericalMethodError(std::string inMessage) : std::runtime_error(inMessage)
 		{ }
 	};
 	
-	class MatrixNumericalError : public std::runtime_error
+	class MatrixNumericalError : public std::runtime_error, public MMLException
 	{
 	public:
 		MatrixNumericalError(std::string inMessage) : std::runtime_error(inMessage)
@@ -929,7 +905,7 @@ namespace MML
 	};
 
 	//////////          Convergence exceptions              ///////////
-	class ConvergenceError : public std::runtime_error
+	class ConvergenceError : public std::runtime_error, public MMLException
 	{
 		int _iterations;
 		double _residual;
@@ -942,7 +918,7 @@ namespace MML
 	};
 
 	//////////            Geometry exceptions               ///////////
-	class GeometryError : public std::domain_error
+	class GeometryError : public std::domain_error, public MMLException
 	{
 	public:
 		GeometryError(std::string inMessage) : std::domain_error(inMessage)
@@ -950,7 +926,7 @@ namespace MML
 	};
 
 	//////////           Quaternion exceptions              ///////////
-	class QuaternionError : public std::domain_error
+	class QuaternionError : public std::domain_error, public MMLException
 	{
 	public:
 		QuaternionError(std::string inMessage) : std::domain_error(inMessage)
@@ -958,7 +934,7 @@ namespace MML
 	};
 
 	//////////             File I/O exceptions              ///////////
-	class FileIOError : public std::runtime_error
+	class FileIOError : public std::runtime_error, public MMLException
 	{
 		std::string _filename;
 	public:
@@ -969,7 +945,7 @@ namespace MML
 	};
 
 	//////////            Fourier exceptions                ///////////
-	class FourierError : public std::invalid_argument
+	class FourierError : public std::invalid_argument, public MMLException
 	{
 	public:
 		FourierError(std::string inMessage) : std::invalid_argument(inMessage)
@@ -977,7 +953,7 @@ namespace MML
 	};
 
 	//////////          Visualization exceptions            ///////////
-	class VisualizerError : public std::runtime_error
+	class VisualizerError : public std::runtime_error, public MMLException
 	{
 	public:
 		VisualizerError(std::string inMessage) : std::runtime_error(inMessage)
@@ -985,7 +961,7 @@ namespace MML
 	};
 
 	//////////        Curve Fitting exceptions              ///////////
-	class CurveFittingError : public std::invalid_argument
+	class CurveFittingError : public std::invalid_argument, public MMLException
 	{
 	public:
 		CurveFittingError(std::string inMessage) : std::invalid_argument(inMessage)
@@ -993,7 +969,7 @@ namespace MML
 	};
 
 	//////////             Data I/O exceptions              ///////////
-	class DataError : public std::runtime_error
+	class DataError : public std::runtime_error, public MMLException
 	{
 	public:
 		DataError(std::string inMessage) : std::runtime_error(inMessage)
@@ -1002,7 +978,7 @@ namespace MML
 	//////////      Numeric input validation exceptions     ///////////
 	/// @brief Error for non-finite numeric values (NaN, Inf) passed to algorithms.
 	/// Use when algorithm input or intermediate values are not finite.
-	class NumericInputError : public std::domain_error
+	class NumericInputError : public std::domain_error, public MMLException
 	{
 	public:
 		explicit NumericInputError(const std::string& message)
@@ -1010,6 +986,10 @@ namespace MML
 	};
 }
 
+
+///////////////////////////   mml/MMLTypeDefs.h   ///////////////////////////
+// Real
+// Complex
 
 ///////////////////////////   mml/MMLVisualizators.h   ///////////////////////////
 
@@ -1049,41 +1029,9 @@ inline const char *GetEnv(const char *name) noexcept {
   return result;
 }
 
+
 namespace MML
 {
-
-  // Matrix printing format options
-  struct MatrixPrintFormat {
-    int width = 10;               // Field width for each element
-    int precision = 3;            // Number of decimal places
-    bool scientific = false;      // Use scientific notation (e.g., 1.23e+05)
-    bool fixed = true;            // Use fixed-point notation
-    bool showHeader = true;       // Show "Rows: N Cols: M" header
-    bool showBrackets = true;     // Show [ ] brackets around rows
-    bool compactMode = false;     // Single line for small matrices
-    std::string delimiter = ", "; // Delimiter between elements
-
-    // Predefined formats
-    static MatrixPrintFormat Default() {
-      return MatrixPrintFormat{10, 3, false, true, true, true, false, ", "};
-    }
-
-    static MatrixPrintFormat Compact() {
-      return MatrixPrintFormat{8, 2, false, true, false, true, true, ", "};
-    }
-
-    static MatrixPrintFormat Scientific() {
-      return MatrixPrintFormat{12, 6, true, false, true, true, false, ", "};
-    }
-
-    static MatrixPrintFormat HighPrecision() {
-      return MatrixPrintFormat{15, 10, false, true, true, true, false, ", "};
-    }
-
-    static MatrixPrintFormat NoDelimiter() {
-      return MatrixPrintFormat{10, 3, false, true, true, true, false, " "};
-    }
-  };
 
   ///////////////////////////////////////////////////////////////////////////////
   //                    LINUX VISUALIZER BACKEND SELECTION
@@ -1102,12 +1050,13 @@ namespace MML
 
     // 2. Try to find project root by looking for characteristic directories
     std::filesystem::path current = std::filesystem::current_path();
-    while (current.has_parent_path()) {
+    std::filesystem::path prev;
+    while (current != prev && current.has_parent_path()) {
       if (std::filesystem::exists(current / "mml") &&
-          std::filesystem::exists(current / "results") &&
           std::filesystem::exists(current / "tools")) {
         return current.string();
       }
+      prev = current;
       current = current.parent_path();
     }
 
@@ -1144,11 +1093,11 @@ namespace MML
     
 #ifdef _WIN32
     if (backend == VisualizerBackend::WPF) {
-      return std::filesystem::exists(projectPath + "/tools/visualizers/win/WPF");
+      return std::filesystem::exists(std::filesystem::path(projectPath) / "tools" / "visualizers" / "win" / "WPF");
     } else if (backend == VisualizerBackend::Qt) {
-      return std::filesystem::exists(projectPath + "/tools/visualizers/win/Qt");
+      return std::filesystem::exists(std::filesystem::path(projectPath) / "tools" / "visualizers" / "win" / "Qt");
     } else if (backend == VisualizerBackend::FLTK) {
-      return std::filesystem::exists(projectPath + "/tools/visualizers/win/FLTK");
+      return std::filesystem::exists(std::filesystem::path(projectPath) / "tools" / "visualizers" / "win" / "FLTK");
     } else if (backend == VisualizerBackend::Auto) {
       return true;  // Auto always available (selects default)
     }
@@ -1156,9 +1105,9 @@ namespace MML
     if (backend == VisualizerBackend::WPF) {
       return false;  // WPF is Windows-only
     } else if (backend == VisualizerBackend::Qt) {
-      return std::filesystem::exists(projectPath + "/tools/visualizers/linux/Qt");
+      return std::filesystem::exists(std::filesystem::path(projectPath) / "tools" / "visualizers" / "linux" / "Qt");
     } else if (backend == VisualizerBackend::FLTK) {
-      return std::filesystem::exists(projectPath + "/tools/visualizers/linux/FLTK");
+      return std::filesystem::exists(std::filesystem::path(projectPath) / "tools" / "visualizers" / "linux" / "FLTK");
     } else if (backend == VisualizerBackend::Auto) {
       return true;  // Auto always available (selects default)
     }
@@ -1166,9 +1115,9 @@ namespace MML
     if (backend == VisualizerBackend::WPF) {
       return false;  // WPF is Windows-only
     } else if (backend == VisualizerBackend::Qt) {
-      return std::filesystem::exists(projectPath + "/tools/visualizers/mac/Qt");
+      return std::filesystem::exists(std::filesystem::path(projectPath) / "tools" / "visualizers" / "mac" / "Qt");
     } else if (backend == VisualizerBackend::FLTK) {
-      return std::filesystem::exists(projectPath + "/tools/visualizers/mac/FLTK");
+      return std::filesystem::exists(std::filesystem::path(projectPath) / "tools" / "visualizers" / "mac" / "FLTK");
     } else if (backend == VisualizerBackend::Auto) {
       return true;  // Auto always available (selects default)
     }
@@ -1239,8 +1188,7 @@ namespace MML
                                           const std::string &wpfDir) {
     std::string projectPath = GetProjectPath();
   #ifdef _WIN32
-    return projectPath + "/tools/visualizers/win/WPF/" + wpfDir + "/" + name +
-          ".exe";
+    return (std::filesystem::path(projectPath) / "tools" / "visualizers" / "win" / "WPF" / wpfDir / (name + ".exe")).string();
   #else
     return ""; // Not available on non-Windows
   #endif
@@ -1253,7 +1201,7 @@ namespace MML
   }
 
   inline std::string GetResultFilesPath() {
-    return GetGlobalPath() + "/results/";
+    return (std::filesystem::path(GetGlobalPath()) / "results").string() + std::string(1, std::filesystem::path::preferred_separator);
   }
 
   ///////////////////////////////////////////////////////////////////////////////
@@ -1290,37 +1238,31 @@ namespace MML
     if (backend == VisualizerBackend::WPF) {
       // WPF has subdirectory structure: tools/visualizers/win/WPF/<dir>/<name>.exe
       std::string wpfDir = ConvertToWPFDirName(visualizerName);
-      return projectPath + "/tools/visualizers/win/WPF/" + wpfDir + "/" + 
-             visualizerName + ".exe";
+      return (std::filesystem::path(projectPath) / "tools" / "visualizers" / "win" / "WPF" / wpfDir / (visualizerName + ".exe")).string();
     } else if (backend == VisualizerBackend::Qt) {
       // Qt flat structure: all visualizers share Qt DLLs in one folder
       // tools/visualizers/win/Qt/<name>.exe
-      return projectPath + "/tools/visualizers/win/Qt/" + visualizerName + ".exe";
+      return (std::filesystem::path(projectPath) / "tools" / "visualizers" / "win" / "Qt" / (visualizerName + ".exe")).string();
     } else if (backend == VisualizerBackend::FLTK) {
       // FLTK flat structure: tools/visualizers/win/FLTK/<name>_FLTK.exe
-      return projectPath + "/tools/visualizers/win/FLTK/" + 
-             visualizerName + "_FLTK.exe";
+      return (std::filesystem::path(projectPath) / "tools" / "visualizers" / "win" / "FLTK" / (visualizerName + "_FLTK.exe")).string();
     }
 #elif defined(__linux__)
     if (backend == VisualizerBackend::Qt) {
       // Qt structure: tools/visualizers/linux/Qt/<name>
-      return projectPath + "/tools/visualizers/linux/Qt/" + 
-             visualizerName;
+      return (std::filesystem::path(projectPath) / "tools" / "visualizers" / "linux" / "Qt" / visualizerName).string();
     } else if (backend == VisualizerBackend::FLTK) {
       // FLTK structure: tools/visualizers/linux/FLTK/<name>_FLTK
-      return projectPath + "/tools/visualizers/linux/FLTK/" + 
-             visualizerName + "_FLTK";
+      return (std::filesystem::path(projectPath) / "tools" / "visualizers" / "linux" / "FLTK" / (visualizerName + "_FLTK")).string();
     }
 #elif defined(__APPLE__)
     if (backend == VisualizerBackend::Qt) {
       // Qt apps are .app bundles on macOS - executable is inside Contents/MacOS/
       // Structure: tools/visualizers/mac/Qt/<name>.app/Contents/MacOS/<name>
-      return projectPath + "/tools/visualizers/mac/Qt/" + 
-             visualizerName + ".app/Contents/MacOS/" + visualizerName;
+      return (std::filesystem::path(projectPath) / "tools" / "visualizers" / "mac" / "Qt" / (visualizerName + ".app") / "Contents" / "MacOS" / visualizerName).string();
     } else if (backend == VisualizerBackend::FLTK) {
       // FLTK structure: tools/visualizers/mac/FLTK/<name>_FLTK
-      return projectPath + "/tools/visualizers/mac/FLTK/" + 
-             visualizerName + "_FLTK";
+      return (std::filesystem::path(projectPath) / "tools" / "visualizers" / "mac" / "FLTK" / (visualizerName + "_FLTK")).string();
     }
 #endif
     
@@ -2268,6 +2210,47 @@ namespace MML {
 } // namespace MML
 
 
+///////////////////////////   mml/base/MatrixPrintFormat.h   ///////////////////////////
+
+
+namespace MML
+{
+  // Matrix printing format options
+  struct MatrixPrintFormat {
+    int width = 10;               // Field width for each element
+    int precision = 3;            // Number of decimal places
+    bool scientific = false;      // Use scientific notation (e.g., 1.23e+05)
+    bool fixed = true;            // Use fixed-point notation
+    bool showHeader = true;       // Show "Rows: N Cols: M" header
+    bool showBrackets = true;     // Show [ ] brackets around rows
+    bool compactMode = false;     // Single line for small matrices
+    std::string delimiter = ", "; // Delimiter between elements
+
+    // Predefined formats
+    static MatrixPrintFormat Default() {
+      return MatrixPrintFormat{10, 3, false, true, true, true, false, ", "};
+    }
+
+    static MatrixPrintFormat Compact() {
+      return MatrixPrintFormat{8, 2, false, true, false, true, true, ", "};
+    }
+
+    static MatrixPrintFormat Scientific() {
+      return MatrixPrintFormat{12, 6, true, false, true, true, false, ", "};
+    }
+
+    static MatrixPrintFormat HighPrecision() {
+      return MatrixPrintFormat{15, 10, false, true, true, true, false, ", "};
+    }
+
+    static MatrixPrintFormat NoDelimiter() {
+      return MatrixPrintFormat{10, 3, false, true, true, true, false, " "};
+    }
+  };
+
+} // namespace MML
+
+
 ///////////////////////////   mml/base/StandardFunctions.h   ///////////////////////////
 #define __STDCPP_WANT_MATH_SPEC_FUNCS__ 1
 
@@ -2686,20 +2669,10 @@ namespace MML
 		
 		/// @brief Resize the vector
 		/// @param newLen New size
-		/// @param preserveElements If true, existing elements are preserved up to min(oldSize, newLen)
-		void Resize(int newLen, bool preserveElements = false)	
+		/// @param preserveElements Ignored (std::vector::resize always preserves existing elements)
+		void Resize(int newLen, [[maybe_unused]] bool preserveElements = false)	
 		{ 
-			if (preserveElements == true)
-			{
-				std::vector<Type> oldElems(_elems);
-
-				_elems.resize(newLen); 
-
-				for (int i = 0; i < oldElems.size() && i < newLen; i++)
-					_elems[i] = oldElems[i];
-			}
-			else
-				_elems.resize(newLen); 
+			_elems.resize(newLen); 
 		}
 
 		/////////////////////            Accessing elements             ///////////////////////
@@ -2736,7 +2709,7 @@ namespace MML
 			Vector ret(size());
 			for (int i = 0; i < size(); i++)
 				ret._elems[i] = Type{ -1 } * (*this)[i];
-			return std::move(ret);
+			return ret;
 		}
 		
 		/// @brief Vector addition
@@ -2749,7 +2722,7 @@ namespace MML
 			Vector ret(b.size());;
 			for (int i = 0; i < b.size(); i++)
 				ret._elems[i] = (*this)[i] + b._elems[i];
-			return std::move(ret);
+			return ret;
 		}
 		
 		/// @brief In-place vector addition
@@ -2774,7 +2747,7 @@ namespace MML
 			Vector ret(b.size());;
 			for (int i = 0; i < b.size(); i++)
 				ret._elems[i] = (*this)[i] - b._elems[i];
-			return std::move(ret);
+			return ret;
 		}
 		
 		/// @brief In-place vector subtraction
@@ -2795,7 +2768,7 @@ namespace MML
 			Vector ret(size());;
 			for (int i = 0; i < size(); i++)
 				ret._elems[i] = b * _elems[i];
-			return std::move(ret);
+			return ret;
 		}
 		
 		/// @brief In-place scalar multiplication
@@ -2812,7 +2785,7 @@ namespace MML
 			Vector ret(size());
 			for (int i = 0; i < size(); i++)
 				ret._elems[i] = _elems[i] / b;
-			return std::move(ret);
+			return ret;
 		}
 		
 		/// @brief In-place scalar division
@@ -2829,7 +2802,7 @@ namespace MML
 			Vector ret(b.size());;
 			for (int i = 0; i < b.size(); i++)
 				ret._elems[i] = a * b._elems[i];
-			return std::move(ret);
+			return ret;
 		}
 
 		///////////////////////             Testing equality             ////////////////////////
@@ -3171,31 +3144,31 @@ namespace MML
 				_val[i] = init_val;
 		}
 		/// @brief Constructs vector from initializer list.
-		/// @param list Initializer list (truncated if > N elements)
+		/// @param list Initializer list (must have <= N elements)
+		/// @throws VectorDimensionError if list.size() > N
 		VectorN(std::initializer_list<Type> list)
 		{
+			if (static_cast<int>(list.size()) > N)
+				throw VectorDimensionError("VectorN initializer list has more elements than vector dimension", N, static_cast<int>(list.size()));
 			int count = 0;
 			for (auto element : list)
 			{
 				_val[count] = element;
 				++count;
-
-				if (count >= N)
-					break;
 			}
 		}
 		/// @brief Constructs vector from std::vector.
-		/// @param list Vector of values (truncated if > N elements)
+		/// @param list Vector of values (must have <= N elements)
+		/// @throws VectorDimensionError if list.size() > N
 		VectorN(std::vector<Type> list)
 		{
+			if (static_cast<int>(list.size()) > N)
+				throw VectorDimensionError("VectorN std::vector has more elements than vector dimension", N, static_cast<int>(list.size()));
 			int count{ 0 };
 			for (auto element : list)
 			{
 				_val[count] = element;
 				++count;
-
-				if (count >= N)
-					break;
 			}
 		}
 		/// @brief Constructs vector from raw array.
@@ -3212,7 +3185,7 @@ namespace MML
 		{
 			VectorN ret;
 			ret[indUnit] = 1.0;
-			return std::move(ret);
+			return ret;
 		}
 		/// @brief Returns normalized vector (unit length).
 		VectorN Normalized() const
@@ -3223,7 +3196,7 @@ namespace MML
 				throw VectorDimensionError("VectorN::Normalized - cannot normalize zero vector", N, 0);
 			for (int i = 0; i < N; ++i)
 				ret._val[i] = _val[i] / norm;
-			return std::move(ret);
+			return ret;
 		}
 		////////////////////////            Standard stuff             ////////////////////////
 		/// @brief Returns vector dimension.
@@ -3258,6 +3231,16 @@ namespace MML
 			else
 				return _val[n];
 		}
+
+		///////////////////////            Iterator support                ///////////////////////
+		Type*       begin()        noexcept { return _val; }
+		Type*       end()          noexcept { return _val + N; }
+		const Type* begin()  const noexcept { return _val; }
+		const Type* end()    const noexcept { return _val + N; }
+		const Type* cbegin() const noexcept { return _val; }
+		const Type* cend()   const noexcept { return _val + N; }
+		Type*       data()         noexcept { return _val; }
+		const Type* data()   const noexcept { return _val; }
 
 		///////////////////////            Testing equality                ///////////////////////
 		/// @brief Exact equality comparison.
@@ -3314,7 +3297,7 @@ namespace MML
 			VectorN ret;
 			for (int i = 0; i < N; i++)
 				ret._val[i] = Type{ -1 } *_val[i];
-			return std::move(ret);
+			return ret;
 		}
 		
 		/// @brief Vector addition.
@@ -3324,7 +3307,7 @@ namespace MML
 			VectorN ret;
 			for (int i = 0; i < N; i++)
 				ret._val[i] = _val[i] + b._val[i];
-			return std::move(ret);
+			return ret;
 		}
 		/// @brief In-place addition.
 		/// @param b Vector to add
@@ -3341,7 +3324,7 @@ namespace MML
 			VectorN ret;
 			for (int i = 0; i < N; i++)
 				ret._val[i] = _val[i] - b._val[i];
-			return std::move(ret);
+			return ret;
 		}
 		/// @brief In-place subtraction.
 		/// @param b Vector to subtract
@@ -3359,7 +3342,7 @@ namespace MML
 			VectorN ret;
 			for (int i = 0; i < N; i++)
 				ret._val[i] = _val[i] * b;
-			return std::move(ret);
+			return ret;
 		}
 		/// @brief In-place scalar multiplication.
 		/// @param b Scalar multiplier
@@ -3376,7 +3359,7 @@ namespace MML
 			VectorN ret;
 			for (int i = 0; i < N; i++)
 				ret._val[i] = _val[i] / b;
-			return std::move(ret);
+			return ret;
 		}		
 		/// @brief In-place scalar division.
 		/// @param b Scalar divisor
@@ -3395,7 +3378,7 @@ namespace MML
 			VectorN ret;
 			for (int i = 0; i < N; i++)
 				ret._val[i] = a * b[i];
-			return std::move(ret);
+			return ret;
 		}
 
 		//////////////////////                 Operations                 ///////////////////////
@@ -4477,8 +4460,8 @@ namespace MML {
 		Real DiagonalQ() const { return sqrt(_a * _a + _b * _b + 2 * _a * _b * cos(_angle)); }
 
 		// The two angles
-		Real AcuteAngle() const { return std::min(_angle, Constants::PI - _angle); }
-		Real ObtuseAngle() const { return std::max(_angle, Constants::PI - _angle); }
+		Real AcuteAngle() const { return std::min<Real>(_angle, Constants::PI - _angle); }
+		Real ObtuseAngle() const { return std::max<Real>(_angle, Constants::PI - _angle); }
 
 		static Parallelogram FromDiagonals(Real p, Real q, Real angleBetween) {
 			// Diagonals bisect each other; use parallelogram law
@@ -4964,6 +4947,10 @@ namespace MML
 	/// @brief Lightweight non-owning view into a Matrix block
 	/// @details Provides strided access to a rectangular subregion of a Matrix without copying.
 	///          Used for efficient submatrix operations.
+	/// @warning This view stores a raw pointer into the parent Matrix's internal storage.
+	///          The view becomes invalid (dangling) if the parent Matrix is destroyed,
+	///          resized, or otherwise reallocated. Do not store views beyond the
+	///          parent's lifetime or across Resize() calls.
 	/// @tparam Type Element type
 	template<class Type>
 	class MatrixViewNew {
@@ -5440,7 +5427,7 @@ namespace MML
 				for (int j = 0; j < jEnd; ++j)
 					ret(i, j) = (*this)(i, j);
 			}
-			return std::move(ret);
+			return ret;
 		}
 		
 		/// @brief Extract upper triangular part
@@ -5458,7 +5445,7 @@ namespace MML
 				for (int j = jStart; j < _cols; ++j)
 					ret(i, j) = (*this)(i, j);
 			}
-			return std::move(ret);
+			return ret;
 		}
 		
 		/// @brief Extract rectangular submatrix
@@ -5535,6 +5522,7 @@ namespace MML
 		///////////////////////              Creating views                //////////////////////
 		
 		/// @brief Create mutable view of a rectangular block
+		/// @warning The returned view is invalidated by Resize() or destruction of this matrix.
 		/// @param startRow Starting row index
 		/// @param startCol Starting column index
 		/// @param numRows Number of rows in block
@@ -5549,6 +5537,7 @@ namespace MML
 		}
 		
 		/// @brief Create const view of a rectangular block
+		/// @warning The returned view is invalidated by Resize() or destruction of this matrix.
 		const MatrixViewNew<Type> block(int startRow, int startCol, int numRows, int numCols) const
 		{
 			if (startRow < 0 || startCol < 0 || numRows <= 0 || numCols <= 0 ||
@@ -5843,7 +5832,7 @@ namespace MML
 			Matrix ret(_rows, _cols);
 			for (size_t i = 0; i < _data.size(); ++i)
 				ret._data[i] = -_data[i];
-			return std::move(ret);
+			return ret;
 		}
 		
 		/// @brief Matrix addition
@@ -5856,7 +5845,7 @@ namespace MML
 			Matrix ret(_rows, _cols);
 			for (size_t i = 0; i < _data.size(); ++i)
 				ret._data[i] = _data[i] + b._data[i];
-			return std::move(ret);
+			return ret;
 		}
 		
 		/// @brief In-place matrix addition
@@ -5880,7 +5869,7 @@ namespace MML
 			Matrix ret(_rows, _cols);
 			for (size_t i = 0; i < _data.size(); ++i)
 				ret._data[i] = _data[i] - b._data[i];
-			return std::move(ret);
+			return ret;
 		}
 		
 		/// @brief In-place matrix subtraction
@@ -5910,7 +5899,7 @@ namespace MML
 					ret(i, j) = sum;
 				}
 			}
-			return std::move(ret);
+			return ret;
 		}
 		
 		/// @brief Scalar multiplication: M * s
@@ -5919,7 +5908,7 @@ namespace MML
 			Matrix ret(_rows, _cols);
 			for (size_t i = 0; i < _data.size(); ++i)
 				ret._data[i] = _data[i] * scalar;
-			return std::move(ret);
+			return ret;
 		}
 		
 		/// @brief In-place scalar multiplication
@@ -5936,7 +5925,7 @@ namespace MML
 			Matrix ret(_rows, _cols);
 			for (size_t i = 0; i < _data.size(); ++i)
 				ret._data[i] = _data[i] / scalar;
-			return std::move(ret);
+			return ret;
 		}
 		
 		/// @brief In-place scalar division
@@ -6014,7 +6003,16 @@ namespace MML
 			int n = _rows;
 			Matrix& a = *this;
 			std::vector<int> indxc(n), indxr(n), ipiv(n, 0);
-			
+
+			// Compute infinity norm for norm-scaled singularity threshold
+			Real norm_a = 0.0;
+			for (int ii = 0; ii < n; ii++)
+				for (int jj = 0; jj < n; jj++) {
+					Real abs_val = Abs(a(ii, jj));
+					if (abs_val > norm_a) norm_a = abs_val;
+				}
+			Real singularity_threshold = std::numeric_limits<Real>::epsilon() * norm_a * n;
+
 			for (int i = 0; i < n; ++i) {
 				Real big{0};
 				int irow = 0, icol = 0;
@@ -6044,8 +6042,8 @@ namespace MML
 				indxr[i] = irow;
 				indxc[i] = icol;
 				
-				if (a(icol, icol) == Type{0})
-					throw SingularMatrixError("Matrix::Invert - Singular Matrix");
+				if (Abs(a(icol, icol)) < singularity_threshold)
+					throw SingularMatrixError("Matrix::Invert - Singular Matrix", Abs(a(icol, icol)));
 				
 				Type pivinv = Type{1} / a(icol, icol);
 				a(icol, icol) = Type{1};
@@ -6077,7 +6075,7 @@ namespace MML
 		{
 			Matrix ret(*this);
 			ret.Invert();
-			return std::move(ret);
+			return ret;
 		}
 
 		/// @brief Transpose matrix in-place (only for square matrices)
@@ -6100,7 +6098,7 @@ namespace MML
 			for (int i = 0; i < _rows; ++i)
 				for (int j = 0; j < _cols; ++j)
 					ret(j, i) = (*this)(i, j);
-			return std::move(ret);
+			return ret;
 		}
 
 		///////////////////////                    I/O                    //////////////////////
@@ -6914,8 +6912,11 @@ namespace MML {
 
 	template<class Type, int N, int M>
 	class MatrixNM {
-	public:
+		static_assert(N > 0 && M > 0, "MatrixNM dimensions must be positive");
+	private:
 		Type _vals[N][M] = {{0}}; ///< Row-major storage array (stack allocated)
+
+		template<class U, int P, int Q> friend class MatrixNM;
 
 	public:
 		typedef Type value_type; ///< Element type alias for STL compatibility
@@ -7078,7 +7079,7 @@ namespace MML {
 						ret[i][j] = _vals[i][j];
 			}
 
-			return std::move(ret);
+			return ret;
 		}
 
 		/// @brief Extracts upper triangular part.
@@ -7100,7 +7101,7 @@ namespace MML {
 						ret[i][j] = _vals[i][j];
 			}
 
-			return std::move(ret);
+			return ret;
 		}
 		/// /** @} */
 
@@ -7118,7 +7119,7 @@ namespace MML {
 			for (int j = 0; j < M; j++)
 				ret[j] = _vals[rowInd][j];
 
-			return std::move(ret);
+			return ret;
 		}
 
 		/// @brief Extracts a column as a vector.
@@ -7130,7 +7131,7 @@ namespace MML {
 			for (int i = 0; i < N; i++)
 				ret[i] = _vals[i][colInd];
 
-			return std::move(ret);
+			return ret;
 		}
 
 		/// @brief Extracts the main diagonal as a vector.
@@ -7141,7 +7142,7 @@ namespace MML {
 			for (int i = 0; i < N; i++)
 				ret[i] = _vals[i][i];
 
-			return std::move(ret);
+			return ret;
 		}
 		/// /** @} */
 
@@ -7245,7 +7246,7 @@ namespace MML {
 			for (size_t i = 0; i < RowNum(); i++)
 				for (size_t j = 0; j < ColNum(); j++)
 					temp._vals[i][j] = -_vals[i][j];
-			return std::move(temp);
+			return temp;
 		}
 
 		/// @brief Matrix addition (A + B).
@@ -7254,7 +7255,7 @@ namespace MML {
 			for (size_t i = 0; i < RowNum(); i++)
 				for (size_t j = 0; j < ColNum(); j++)
 					temp._vals[i][j] = b._vals[i][j] + _vals[i][j];
-			return std::move(temp);
+			return temp;
 		}
 
 		/// @brief Matrix subtraction (A - B).
@@ -7263,7 +7264,7 @@ namespace MML {
 			for (size_t i = 0; i < RowNum(); i++)
 				for (size_t j = 0; j < ColNum(); j++)
 					temp._vals[i][j] = _vals[i][j] - b._vals[i][j];
-			return std::move(temp);
+			return temp;
 		}
 
 		/// @brief Matrix multiplication with compile-time dimension checking.
@@ -7284,7 +7285,7 @@ namespace MML {
 						ret._vals[i][j] += _vals[i][k] * b._vals[k][j];
 				}
 
-			return std::move(ret);
+			return ret;
 		}
 
 		/// @brief Scalar multiplication (A * b).
@@ -7296,7 +7297,7 @@ namespace MML {
 				for (j = 0; j < ColNum(); j++)
 					ret._vals[i][j] *= b;
 
-			return std::move(ret);
+			return ret;
 		}
 
 		/// @brief In-place scalar multiplication (A *= b).
@@ -7319,7 +7320,7 @@ namespace MML {
 				for (j = 0; j < ColNum(); j++)
 					ret._vals[i][j] /= b;
 
-			return std::move(ret);
+			return ret;
 		}
 
 		/// @brief Matrix-vector multiplication (A * v).
@@ -7336,7 +7337,7 @@ namespace MML {
 					ret[i] += _vals[i][j] * b[j];
 			}
 
-			return std::move(ret);
+			return ret;
 		}
 
 		/// @brief Scalar-matrix multiplication (a * B, commutative).
@@ -7348,7 +7349,7 @@ namespace MML {
 				for (j = 0; j < b.cols(); j++)
 					ret._vals[i][j] = a * b._vals[i][j];
 
-			return std::move(ret);
+			return ret;
 		}
 
 		/// @brief Row vector times matrix (v^T * A).
@@ -7366,7 +7367,7 @@ namespace MML {
 					ret[i] += a[j] * b._vals[j][i];
 			}
 
-			return std::move(ret);
+			return ret;
 		}
 		/// /** @} */
 
@@ -7448,6 +7449,16 @@ namespace MML {
 			std::vector<int> indxc(n), indxr(n), ipiv(n);
 			for (j = 0; j < n; j++)
 				ipiv[j] = 0;
+
+			// Compute infinity norm for norm-scaled singularity threshold
+			Real norm_a = 0.0;
+			for (int ii = 0; ii < n; ii++)
+				for (int jj = 0; jj < n; jj++) {
+					Real abs_val = std::abs(a._vals[ii][jj]);
+					if (abs_val > norm_a) norm_a = abs_val;
+				}
+			Real singularity_threshold = std::numeric_limits<Real>::epsilon() * norm_a * n;
+
 			for (i = 0; i < n; i++) {
 				big = 0.0;
 				for (j = 0; j < n; j++)
@@ -7471,8 +7482,8 @@ namespace MML {
 				indxr[i] = irow;
 				indxc[i] = icol;
 
-				if (a._vals[icol][icol] == 0.0)
-					throw SingularMatrixError("MatrixNM::Invert, gaussj: Singular Matrix");
+				if (std::abs(a._vals[icol][icol]) < singularity_threshold)
+					throw SingularMatrixError("MatrixNM::Invert, gaussj: Singular Matrix", std::abs(a._vals[icol][icol]));
 
 				pivinv = 1.0 / a._vals[icol][icol];
 				a._vals[icol][icol] = 1.0;
@@ -7533,7 +7544,7 @@ namespace MML {
 			for (size_t i = 0; i < cols(); i++)
 				for (size_t j = 0; j < rows(); j++)
 					ret._vals[i][j] = _vals[j][i];
-			return std::move(ret);
+			return ret;
 		}
 
 		/// /** @} */
@@ -9276,6 +9287,12 @@ namespace MML
 		/** @brief Get the number of covariant (lower) indices. */
 		virtual int   NumCovar() const = 0;
 
+		/** @brief Check if the index at position `index` is contravariant (upper). */
+		virtual bool  IsContravar(int index) const = 0;
+
+		/** @brief Check if the index at position `index` is covariant (lower). */
+		bool IsCovar(int index) const { return !IsContravar(index); }
+
 		/**
 		 * @brief Access tensor component (const).
 		 * @param i First index (0 to N-1)
@@ -9335,6 +9352,12 @@ namespace MML
 		virtual int   NumContravar() const = 0;
 		virtual int   NumCovar() const = 0;
 
+		/** @brief Check if the index at position `index` is contravariant (upper). */
+		virtual bool  IsContravar(int index) const = 0;
+
+		/** @brief Check if the index at position `index` is covariant (lower). */
+		bool IsCovar(int index) const { return !IsContravar(index); }
+
 		/**
 		 * @brief Access tensor component.
 		 * @param i First index
@@ -9391,6 +9414,12 @@ namespace MML
 		virtual int   NumContravar() const = 0;
 		virtual int   NumCovar() const = 0;
 
+		/** @brief Check if the index at position `index` is contravariant (upper). */
+		virtual bool  IsContravar(int index) const = 0;
+
+		/** @brief Check if the index at position `index` is covariant (lower). */
+		bool IsCovar(int index) const { return !IsContravar(index); }
+
 		/**
 		 * @brief Access tensor component.
 		 * @param i First index
@@ -9446,6 +9475,12 @@ namespace MML
 
 		virtual int   NumContravar() const = 0;
 		virtual int   NumCovar() const = 0;
+
+		/** @brief Check if the index at position `index` is contravariant (upper). */
+		virtual bool  IsContravar(int index) const = 0;
+
+		/** @brief Check if the index at position `index` is covariant (lower). */
+		bool IsCovar(int index) const { return !IsContravar(index); }
 
 		/**
 		 * @brief Access tensor component.
@@ -9566,10 +9601,10 @@ namespace MML
 	class Tensor2 : public ITensor2<N>
 	{
 		MatrixNM<Real, N, N> _coeff;   ///< Storage for tensor components
-	public:
 		int _numContravar = 0;         ///< Number of contravariant (upper) indices
 		int _numCovar = 0;             ///< Number of covariant (lower) indices
 		bool _isContravar[2];          ///< Per-index variance: true = contravariant, false = covariant
+	public:
 
 		///////////////////////////////////////////////////////////////////////
 		///                        Constructors                             ///
@@ -9634,11 +9669,14 @@ namespace MML
 
 		/// @brief Checks if index i is contravariant (upper index).
 		/// @param i Index position (0 or 1)
-		bool IsContravar(int i) const { return _isContravar[i]; }
+		bool IsContravar(int i) const override { return _isContravar[i]; }
 
 		/// @brief Checks if index i is covariant (lower index).
 		/// @param i Index position (0 or 1)
 		bool IsCovar(int i) const			{ return !_isContravar[i]; }
+
+		/// @brief Sets the variance of index i.
+		void setContravar(int i, bool val) { _isContravar[i] = val; }
 
 		///////////////////////////////////////////////////////////////////////
 		///                        Element Access                           ///
@@ -9697,7 +9735,7 @@ namespace MML
 			if (_numContravar != other._numContravar || _numCovar != other._numCovar)
 				throw TensorCovarContravarArithmeticError("Tensor2 operator+, wrong number of contravariant and covariant indices", _numContravar, _numCovar, other._numContravar, other._numCovar);
 
-			Tensor2 result(_numContravar, _numCovar);
+			Tensor2 result(_numCovar, _numContravar);
 
 			result._coeff = _coeff + other._coeff;
 
@@ -9711,7 +9749,7 @@ namespace MML
 			if (_numContravar != other._numContravar || _numCovar != other._numCovar)
 				throw TensorCovarContravarArithmeticError("Tensor2 operator-, wrong number of contravariant and covariant indices", _numContravar, _numCovar, other._numContravar, other._numCovar);
 
-			Tensor2 result(_numContravar, _numCovar);
+			Tensor2 result(_numCovar, _numContravar);
 
 			result._coeff = _coeff - other._coeff;
 
@@ -9721,7 +9759,7 @@ namespace MML
 		/// @brief Multiply tensor by a scalar.
 		Tensor2 operator*(Real scalar) const
 		{
-			Tensor2 result(_numContravar, _numCovar);
+			Tensor2 result(_numCovar, _numContravar);
 
 			result._coeff = _coeff * scalar;
 
@@ -9731,7 +9769,7 @@ namespace MML
 		/// @brief Divide tensor by a scalar.
 		Tensor2 operator/(Real scalar) const
 		{
-			Tensor2 result(_numContravar, _numCovar);
+			Tensor2 result(_numCovar, _numContravar);
 
 			result._coeff = _coeff / scalar;
 
@@ -9741,7 +9779,7 @@ namespace MML
 		/// @brief Scalar multiplication from the left (scalar * tensor).
 		friend Tensor2 operator*(Real scalar, const Tensor2& b)
 		{
-			Tensor2 result(b.NumContravar(), b.NumCovar());
+			Tensor2 result(b.NumCovar(), b.NumContravar());
 
 			result._coeff = b._coeff * scalar;
 
@@ -9839,10 +9877,10 @@ namespace MML
 	class Tensor3 : public ITensor3<N>
 	{
 		Real _coeff[N][N][N] = { 0 };  ///< Storage for N³ tensor components
-	public:
 		int _numContravar;             ///< Number of contravariant (upper) indices
 		int _numCovar;                 ///< Number of covariant (lower) indices
 		bool _isContravar[3];          ///< Per-index variance: true = contravariant, false = covariant
+	public:
 
 		///////////////////////////////////////////////////////////////////////
 		///                        Constructors                             ///
@@ -9899,6 +9937,15 @@ namespace MML
 
 		/// @brief Returns the number of covariant (lower) indices.
 		int   NumCovar()     const override { return _numCovar; }
+
+		/// @brief Checks if index i is contravariant (upper index).
+		bool IsContravar(int i) const override { return _isContravar[i]; }
+
+		/// @brief Checks if index i is covariant (lower index).
+		bool IsCovar(int i) const { return !_isContravar[i]; }
+
+		/// @brief Sets the variance of index i.
+		void setContravar(int i, bool val) { _isContravar[i] = val; }
 
 		///////////////////////////////////////////////////////////////////////
 		///                        Element Access                           ///
@@ -10025,10 +10072,10 @@ namespace MML
 	class Tensor4 : public ITensor4<N>
 	{
 		Real _coeff[N][N][N][N] = { 0 };  ///< Storage for N⁴ tensor components
-	public:
 		int _numContravar;                 ///< Number of contravariant (upper) indices
 		int _numCovar;                     ///< Number of covariant (lower) indices
 		bool _isContravar[4];              ///< Per-index variance: true = contravariant, false = covariant
+	public:
 
 		///////////////////////////////////////////////////////////////////////
 		///                        Constructors                             ///
@@ -10059,6 +10106,15 @@ namespace MML
 
 		/// @brief Returns the number of covariant (lower) indices.
 		int   NumCovar()     const override { return _numCovar; }
+
+		/// @brief Checks if index i is contravariant (upper index).
+		bool IsContravar(int i) const override { return _isContravar[i]; }
+
+		/// @brief Checks if index i is covariant (lower index).
+		bool IsCovar(int i) const { return !_isContravar[i]; }
+
+		/// @brief Sets the variance of index i.
+		void setContravar(int i, bool val) { _isContravar[i] = val; }
 
 		///////////////////////////////////////////////////////////////////////
 		///                        Element Access                           ///
@@ -10157,7 +10213,7 @@ namespace MML
 
 			// Properly propagate index variance from original tensor
 			for (int i = 0; i < 2; i++)
-				result._isContravar[i] = _isContravar[map[i]];
+				result.setContravar(i, _isContravar[map[i]]);
 
 			// Contract: sum over the contracted index
 			for (int a = 0; a < N; a++)        // result index 0
@@ -10207,10 +10263,10 @@ namespace MML
 	class Tensor5 : public ITensor5<N>
 	{
 		Real _coeff[N][N][N][N][N] = { 0 };  ///< Storage for N⁵ tensor components
-	public:
 		int _numContravar;                    ///< Number of contravariant (upper) indices
 		int _numCovar;                        ///< Number of covariant (lower) indices
 		bool _isContravar[5];                 ///< Per-index variance: true = contravariant, false = covariant
+	public:
 
 		///////////////////////////////////////////////////////////////////////
 		///                        Constructors                             ///
@@ -10242,6 +10298,15 @@ namespace MML
 
 		/// @brief Returns the number of covariant (lower) indices.
 		int   NumCovar()     const override { return _numCovar; }
+
+		/// @brief Checks if index i is contravariant (upper index).
+		bool IsContravar(int i) const { return _isContravar[i]; }
+
+		/// @brief Checks if index i is covariant (lower index).
+		bool IsCovar(int i) const { return !_isContravar[i]; }
+
+		/// @brief Sets the variance of index i.
+		void setContravar(int i, bool val) { _isContravar[i] = val; }
 
 		///////////////////////////////////////////////////////////////////////
 		///                        Element Access                           ///
@@ -10344,7 +10409,7 @@ namespace MML
 
 			// Properly propagate index variance from original tensor
 			for (int i = 0; i < 3; i++)
-				result._isContravar[i] = _isContravar[map[i]];
+				result.setContravar(i, _isContravar[map[i]]);
 
 			// Contract: sum over the contracted index
 			for (int a = 0; a < N; a++)        // result index 0
@@ -11226,7 +11291,7 @@ namespace MML
 			Real eps = std::sqrt(std::numeric_limits<Real>::epsilon());
 
 			for (int j = 0; j < n; ++j) {
-				Real h = eps * std::max(std::abs(x[j]), 1.0);
+				Real h = eps * std::max<Real>(std::abs(x[j]), Real(1.0));
 				xp[j] = x[j] + h;
 				derivs(t, xp, f1);
 				xp[j] = x[j] - h;
@@ -12439,6 +12504,7 @@ namespace MML
 				throw VectorDimensionError("Vector::AngleToVector - vectors must be equal size", a.size(), b.size());
 
 			Real cosAngle = ScalarProduct(a, b) / (a.NormL2() * b.NormL2());
+			cosAngle = std::clamp(cosAngle, Real(-1), Real(1));
 			return std::acos(cosAngle);
 		}
 
@@ -12448,7 +12514,7 @@ namespace MML
 		/// @return Component of orig parallel to b
 		static Vector<Real> VectorProjectionParallelTo(const Vector<Real>& orig, const Vector<Real>& b)
 		{
-			return ScalarProduct(orig, b) / b.NormL2() * b;
+			return ScalarProduct(orig, b) / ScalarProduct(b, b) * b;
 		}
 
 		/// @brief Computes rejection of vector from direction of another vector.
@@ -12502,6 +12568,7 @@ namespace MML
 		static Real VectorsAngle(const VectorN<Real, N> &a, const VectorN<Real, N> &b)
 		{
 			Real cosAngle = ScalarProduct(a, b) / (a.NormL2() * b.NormL2());
+			cosAngle = std::clamp(cosAngle, Real(-1), Real(1));
 			return std::acos(cosAngle);
 		}
 
@@ -12623,7 +12690,7 @@ namespace MML
 		{
 			MatrixNM<Type, 1, N>  ret;
 			for (int j = 0; j < N; j++)
-				ret._vals[0][j] = b[j];
+				ret(0, j) = b[j];
 
 			return ret;
 		}
@@ -12638,7 +12705,7 @@ namespace MML
 		{
 			MatrixNM<Type, N, 1>  ret;
 			for (int i = 0; i < N; i++)
-				ret._vals[i][0] = b[i];
+				ret(i, 0) = b[i];
 			return ret;
 		}
 
@@ -13313,6 +13380,9 @@ namespace MML
 		inline static thread_local std::mt19937 gen{std::random_device{}()};
 
 	public:
+		// Seeds the thread-local RNG for reproducible results (affects calling thread only)
+		static void SetSeed(unsigned int seed) { gen.seed(seed); }
+
 		static Real UniformReal(Real min, Real max)
 		{
 			std::uniform_real_distribution<Real> dis(min, max);
@@ -14542,10 +14612,10 @@ namespace MML
 			Real sy = std::sin(yaw * 0.5);
 
 			return Quaternion(
-				cr * cp * cy + sr * sp * sy,
-				sr * cp * cy - cr * sp * sy,
-				cr * sp * cy + sr * cp * sy,
-				cr * cp * sy - sr * sp * cy
+				cr * cp * cy - sr * sp * sy,
+				sr * cp * cy + cr * sp * sy,
+				cr * sp * cy - sr * cp * sy,
+				cr * cp * sy + sr * sp * cy
 			);
 		}
 
@@ -15082,6 +15152,12 @@ namespace MML
       if (n == 0)
         throw ArgumentError("FromValues: arrays cannot be empty");
 
+      // Check for duplicate x-values (causes division by zero in interpolation)
+      for (int i = 0; i < n; i++)
+        for (int j = i + 1; j < n; j++)
+          if (x[i] == x[j])
+            throw ArgumentError("FromValues: duplicate x-value at indices " + std::to_string(i) + " and " + std::to_string(j));
+
       std::vector<FieldT> cof(n, FieldT(0));
       std::vector<FieldT> s(n);
       
@@ -15132,6 +15208,9 @@ namespace MML
 		bool isNull() const noexcept { return _vecCoef.size() == 0; }
 		/// @brief Removes trailing zero coefficients.
 		void Reduce() { while (!_vecCoef.empty() && _vecCoef.back() == CoefT(0)) _vecCoef.pop_back(); }
+		/// @brief Removes trailing coefficients smaller than eps in absolute value.
+		/// @param eps Tolerance threshold for near-zero coefficients
+		void Reduce(CoefT eps) { while (!_vecCoef.empty() && std::abs(_vecCoef.back()) < eps) _vecCoef.pop_back(); }
 		
 		/// @brief Returns leading coefficient.
 		CoefT leadingTerm() const noexcept { return _vecCoef.empty() ? CoefT(0) : _vecCoef.back(); }
@@ -20235,6 +20314,11 @@ namespace MML {
 			// throw if not enough points
 			if (_numPoints < 2 || _usedPoints < 2 || _usedPoints > _numPoints)
 				throw RealFuncInterpInitError("RealFunctionInterpolated size error");
+			// Check for duplicate x-values (causes division by zero in interpolation)
+			for (int i = 0; i < _numPoints; i++)
+				for (int j = i + 1; j < _numPoints; j++)
+					if (_x[i] == _x[j])
+						throw RealFuncInterpInitError("RealFunctionInterpolated: duplicate x-value at indices " + std::to_string(i) + " and " + std::to_string(j));
 		}
 
 		virtual ~RealFunctionInterpolated() {}
@@ -21583,6 +21667,7 @@ namespace MML
 
 
 
+
 namespace MML
 {
 	/// @brief Basic ODE system representation using function pointers
@@ -21659,8 +21744,49 @@ namespace MML
 		/// @param dydx Output: Jacobian matrix J[i][j] = ∂f_i/∂x_j
 		void jacobian(const Real t, const Vector<Real>& x, Vector<Real>& dxdt, Matrix<Real>& dydx) const
 		{
-			if (_funcJac != nullptr)
-				_funcJac(t, x, dxdt, dydx);
+			if (_funcJac == nullptr)
+				throw NotImplementedError("ODESystemWithJacobian::jacobian() - no Jacobian function provided");
+			_funcJac(t, x, dxdt, dydx);
+		}
+	};
+
+	/// @brief ODE system using std::function for lambdas with captured state
+	/// @details Wraps a std::function callable, enabling lambdas, functors, and
+	///          std::bind expressions as ODE right-hand sides.
+	class ODESystemFromStdFunc : public IODESystem
+	{
+	private:
+		int _dim;
+		std::function<void(Real, const Vector<Real>&, Vector<Real>&)> _func;
+
+	public:
+		ODESystemFromStdFunc(int n, std::function<void(Real, const Vector<Real>&, Vector<Real>&)> inFunc)
+			: _dim(n), _func(std::move(inFunc)) { }
+
+		int  getDim() const { return _dim; }
+		void derivs(const Real t, const Vector<Real>& x, Vector<Real>& dxdt) const { _func(t, x, dxdt); }
+		void operator()(const Real t, const Vector<Real>& x, Vector<Real>& dxdt) const { _func(t, x, dxdt); }
+	};
+
+	/// @brief ODE system with Jacobian using std::function callables
+	class ODESystemWithJacobianFromStdFunc : public ODESystemFromStdFunc, public IODESystemWithJacobian
+	{
+	private:
+		std::function<void(const Real, const Vector<Real>&, Vector<Real>&, Matrix<Real>&)> _funcJac;
+
+	public:
+		ODESystemWithJacobianFromStdFunc(int n,
+			std::function<void(Real, const Vector<Real>&, Vector<Real>&)> inFunc,
+			std::function<void(const Real, const Vector<Real>&, Vector<Real>&, Matrix<Real>&)> inFuncJac)
+			: ODESystemFromStdFunc(n, std::move(inFunc)), _funcJac(std::move(inFuncJac)) { }
+
+		// Disambiguate IODESystem methods inherited from both bases
+		int  getDim() const override { return ODESystemFromStdFunc::getDim(); }
+		void derivs(const Real t, const Vector<Real>& x, Vector<Real>& dxdt) const override { ODESystemFromStdFunc::derivs(t, x, dxdt); }
+
+		void jacobian(const Real t, const Vector<Real>& x, Vector<Real>& dxdt, Matrix<Real>& dydx) const override
+		{
+			_funcJac(t, x, dxdt, dydx);
 		}
 	};
 
@@ -22440,6 +22566,9 @@ namespace MML
 
 namespace MML
 {
+	/// @brief Sentinel value for "no parent" / "not found" in graph algorithms
+	static constexpr size_t GRAPH_NOT_FOUND = static_cast<size_t>(-1);
+
 	///////////////////////////////////////////////////////////////////////////
 	///                         RESULT STRUCTS                              ///
 	///////////////////////////////////////////////////////////////////////////
@@ -22460,7 +22589,7 @@ namespace MML
 	struct TraversalResult
 	{
 		std::vector<size_t> visitOrder;   ///< Order in which vertices were visited
-		std::vector<size_t> parent;       ///< Parent of each vertex in traversal tree (-1 if root/unvisited)
+		std::vector<size_t> parent;       ///< Parent of each vertex in traversal tree (GRAPH_NOT_FOUND if root/unvisited)
 		std::vector<Real>   distance;     ///< Distance from start (BFS: hops, Dijkstra: weighted)
 		size_t              nodesVisited; ///< Total nodes visited
 
@@ -23295,6 +23424,15 @@ namespace MML
 			if (a.rows() != b.rows())
 				throw MatrixDimensionError("GaussJordanSolver::SolveInPlace - A rows must match B rows", a.rows(), a.cols(), b.rows(), b.cols());
 			std::vector<int> indxc(n), indxr(n), ipiv(n);
+
+			// Compute infinity norm for norm-scaled singularity threshold
+			Real norm_a = 0.0;
+			for (int ii = 0; ii < n; ii++)
+				for (int jj = 0; jj < n; jj++)
+					if (Abs(a[ii][jj]) > norm_a)
+						norm_a = Abs(a[ii][jj]);
+			Real singularity_threshold = std::numeric_limits<Real>::epsilon() * norm_a * n;
+
 			for (j = 0; j < n; j++) ipiv[j] = 0;
 			for (i = 0; i < n; i++) {
 				big = 0.0;
@@ -23317,8 +23455,8 @@ namespace MML
 				indxr[i] = irow;
 				indxc[i] = icol;
 
-				if (a[icol][icol] == Real{ 0.0 })
-					throw SingularMatrixError("GaussJordanSolver::SolveInPlace - Singular Matrix");
+				if (Abs(a[icol][icol]) < singularity_threshold)
+					throw SingularMatrixError("GaussJordanSolver::SolveInPlace - Singular Matrix", Abs(a[icol][icol]));
 
 				pivinv = Real{ 1.0 } / a[icol][icol];
 				
@@ -23449,7 +23587,8 @@ namespace MML
 			Vector<Type> vv(_n);
 			
 			_d = 1.0;
-			// finding biggest element in each row, and saving its invers in vv[]
+			// finding biggest element in each row, and saving its inverse in vv[]
+			Real norm_a = 0.0;
 			for (i = 0; i < _n; i++) 
 			{
 				big = 0.0;
@@ -23464,10 +23603,12 @@ namespace MML
 				}
 				
 				if (big == 0.0)
-					throw SingularMatrixError("LUSolver::ctor - Singular Matrix");
+					throw SingularMatrixError("LUSolver::ctor - Singular Matrix (zero row)");
 
+				if (big > norm_a) norm_a = big;
 				vv[i] = 1.0 / big;
 			}
+			Real singularity_threshold = std::numeric_limits<Real>::epsilon() * norm_a * _n;
 
 			// main loop
 			for (k = 0; k < _n; k++) 
@@ -23496,8 +23637,8 @@ namespace MML
 				}
 
 				_indx[k] = imax;
-				if (_lu[k][k] == Real{ 0.0 }) 
-					throw SingularMatrixError("LUSolver::ctor - Singular Matrix");
+				if (Abs(_lu[k][k]) < singularity_threshold) 
+					throw SingularMatrixError("LUSolver::ctor - Singular Matrix", Abs(_lu[k][k]));
 				
 				for (i = k + 1; i < _n; i++) 
 				{
@@ -24178,86 +24319,100 @@ namespace MML
 	template<class Type>
 	class QRSolver
 	{
-	public:
-		int m;              // number of rows
-		int n;              // number of columns
-		Matrix<Type> QR;    // Combined QR storage: R in upper triangle, Householder vectors in lower
-		Vector<Type> c;     // Diagonal of R (stored separately)
-		Vector<Type> d;     // Householder scaling factors
-		bool sing;          // Singularity flag
-		int num_reflections; // Number of Householder reflections performed (for determinant sign)
+	private:
+		int _m;              // number of rows
+		int _n;              // number of columns
+		Matrix<Type> _QR;    // Combined QR storage: R in upper triangle, Householder vectors in lower
+		Vector<Type> _c;     // Diagonal of R (stored separately)
+		Vector<Type> _d;     // Householder scaling factors
+		bool _sing;          // Singularity flag
+		int _num_reflections; // Number of Householder reflections performed (for determinant sign)
 
 	public:
+		/// @brief Get number of rows of the decomposed matrix
+		int rows() const { return _m; }
+		/// @brief Get number of columns of the decomposed matrix
+		int cols() const { return _n; }
+		/// @brief Check if the decomposed matrix is singular
+		bool isSingular() const { return _sing; }
+
 		/// @brief Constructor - performs QR decomposition using Householder reflections
 		/// @param a Input matrix (m×n with m≥n)
 		/// @throws MatrixDimensionError if m<n
 		/// @note Stores R in upper triangle of QR, Householder vectors in lower triangle
-		QRSolver(const Matrix<Type>& a) : m(a.rows()), n(a.cols()), QR(a), c(n), d(n), sing(false), num_reflections(0)
+		QRSolver(const Matrix<Type>& a) : _m(a.rows()), _n(a.cols()), _QR(a), _c(_n), _d(_n), _sing(false), _num_reflections(0)
 		{
-			if (m < n)
-				throw MatrixDimensionError("QRSolver: Matrix must have m >= n (rows >= columns)", m, n, m, n);
+			if (_m < _n)
+				throw MatrixDimensionError("QRSolver: Matrix must have m >= n (rows >= columns)", _m, _n, _m, _n);
 
 			int i, j, k;
 			Type scale, sigma, sum, tau;
-			Vector<Type> vec(m);
+			Vector<Type> vec(_m);
 
 			// Perform Householder reduction
 			// For square matrices: process n-1 columns (last has no elements below diagonal)
 			// For overdetermined: process all n columns (last column still has elements below diagonal)
-			int ncols = (m == n) ? n - 1 : n;
+			int ncols = (_m == _n) ? _n - 1 : _n;
 			for (k = 0; k < ncols; k++)
 			{
 				// Compute the norm of the k-th column below the diagonal
 				scale = 0.0;
-				for (i = k; i < m; i++)
-					scale = std::max(scale, Abs(QR[i][k]));
+				for (i = k; i < _m; i++)
+					scale = std::max(scale, Abs(_QR[i][k]));
 
-				if (scale == 0.0)
+				if (scale < std::numeric_limits<Real>::epsilon())
 				{
-					// Singular case
-					sing = true;
-					c[k] = d[k] = 0.0;
+					// Singular case: column below diagonal is effectively zero
+					_sing = true;
+					_c[k] = _d[k] = 0.0;
 				}
 				else
 				{
 					// Form the Householder vector
-					for (i = k; i < m; i++)
-						QR[i][k] /= scale;
+					for (i = k; i < _m; i++)
+						_QR[i][k] /= scale;
 
 					sum = 0.0;
-					for (i = k; i < m; i++)
-						sum += QR[i][k] * QR[i][k];
+					for (i = k; i < _m; i++)
+						sum += _QR[i][k] * _QR[i][k];
 
 					// Choose sign of sigma to avoid cancellation errors
-					sigma = (QR[k][k] >= 0.0 ? std::sqrt(sum) : -std::sqrt(sum));
-					QR[k][k] += sigma;
-					c[k] = sigma * QR[k][k];
-					d[k] = -scale * sigma;
+					sigma = (_QR[k][k] >= 0.0 ? std::sqrt(sum) : -std::sqrt(sum));
+					_QR[k][k] += sigma;
+					_c[k] = sigma * _QR[k][k];
+					_d[k] = -scale * sigma;
 
 					// Count this reflection for determinant
-					num_reflections++;
+					_num_reflections++;
 
 					// Apply the transformation to remaining columns
-					for (j = k + 1; j < n; j++)
+					for (j = k + 1; j < _n; j++)
 					{
 						sum = 0.0;
-						for (i = k; i < m; i++)
-							sum += QR[i][k] * QR[i][j];
+						for (i = k; i < _m; i++)
+							sum += _QR[i][k] * _QR[i][j];
 
-						tau = sum / c[k];
+						tau = sum / _c[k];
 
-						for (i = k; i < m; i++)
-							QR[i][j] -= tau * QR[i][k];
+						for (i = k; i < _m; i++)
+							_QR[i][j] -= tau * _QR[i][k];
 					}
 				}
 			}
 
 			// For square matrices, handle the last diagonal element separately
-			if (m == n)
+			if (_m == _n)
 			{
-				d[n - 1] = QR[n - 1][n - 1];
-				if (d[n - 1] == 0.0)
-					sing = true;
+				_d[_n - 1] = _QR[_n - 1][_n - 1];
+				// Use norm-scaled threshold instead of exact zero
+				Real norm_a = 0.0;
+				for (int ii = 0; ii < _m; ii++)
+					for (int jj = 0; jj < _n; jj++)
+						if (Abs(a(ii, jj)) > norm_a)
+							norm_a = Abs(a(ii, jj));
+				Real threshold = std::numeric_limits<Real>::epsilon() * norm_a * _n;
+				if (Abs(_d[_n - 1]) < threshold)
+					_sing = true;
 			}
 		}
 
@@ -24265,11 +24420,11 @@ namespace MML
 		// Uses back-substitution on R after applying Q^T to b
 		void Solve(const Vector<Type>& b, Vector<Type>& x)
 		{
-			if (m != n)
-				throw MatrixDimensionError("QRSolver::Solve - Use LeastSquaresSolve for overdetermined systems (m > n)", m, n, m, m);
-			if (b.size() != static_cast<size_t>(m))
-				throw VectorDimensionError("QRSolver::Solve - Vector size mismatch", m, b.size());
-			if (sing)
+			if (_m != _n)
+				throw MatrixDimensionError("QRSolver::Solve - Use LeastSquaresSolve for overdetermined systems (m > n)", _m, _n, _m, _m);
+			if (b.size() != static_cast<size_t>(_m))
+				throw VectorDimensionError("QRSolver::Solve - Vector size mismatch", _m, b.size());
+			if (_sing)
 				throw SingularMatrixError("QRSolver::Solve - Singular matrix");
 
 			// Apply Q^T to b
@@ -24281,7 +24436,7 @@ namespace MML
 
 		Vector<Type> Solve(const Vector<Type>& b)
 		{
-			Vector<Type> x(n);
+			Vector<Type> x(_n);
 			Solve(b, x);
 			return x;
 		}
@@ -24290,18 +24445,18 @@ namespace MML
 		// Minimizes ||Ax - b||₂ by solving R*x = Q^T*b
 		void LeastSquaresSolve(const Vector<Type>& b, Vector<Type>& x)
 		{
-			if (b.size() != static_cast<size_t>(m))
-				throw VectorDimensionError("QRSolver::LeastSquaresSolve - Vector size mismatch", m, b.size());
-			if (sing)
+			if (b.size() != static_cast<size_t>(_m))
+				throw VectorDimensionError("QRSolver::LeastSquaresSolve - Vector size mismatch", _m, b.size());
+			if (_sing)
 				throw SingularMatrixError("QRSolver::LeastSquaresSolve - Singular matrix");
 
 			// Apply Q^T to b
-			Vector<Type> qtb(m);
+			Vector<Type> qtb(_m);
 			QtMultiply(b, qtb);
 
 			// Back-substitution on R (using only first n elements of qtb)
-			x.Resize(n);
-			for (int i = 0; i < n; i++)
+			x.Resize(_n);
+			for (int i = 0; i < _n; i++)
 				x[i] = qtb[i];
 
 			RSolve(x, x);
@@ -24309,7 +24464,7 @@ namespace MML
 
 		Vector<Type> LeastSquaresSolve(const Vector<Type>& b)
 		{
-			Vector<Type> x(n);
+			Vector<Type> x(_n);
 			LeastSquaresSolve(b, x);
 			return x;
 		}
@@ -24318,22 +24473,22 @@ namespace MML
 		// b and x can be the same vector (in-place operation)
 		void RSolve(const Vector<Type>& b, Vector<Type>& x)
 		{
-			if (b.size() != static_cast<size_t>(n))
-				throw VectorDimensionError("QRSolver::RSolve - Vector size mismatch", n, b.size());
-			if (sing)
+			if (b.size() != static_cast<size_t>(_n))
+				throw VectorDimensionError("QRSolver::RSolve - Vector size mismatch", _n, b.size());
+			if (_sing)
 				throw SingularMatrixError("QRSolver::RSolve - Singular matrix");
 
-			x.Resize(n);
-			for (int i = 0; i < n; i++)
+			x.Resize(_n);
+			for (int i = 0; i < _n; i++)
 				x[i] = b[i];
 
 			// Back-substitution
-			for (int i = n - 1; i >= 0; i--)
+			for (int i = _n - 1; i >= 0; i--)
 			{
 				Type sum = x[i];
-				for (int j = i + 1; j < n; j++)
-					sum -= QR[i][j] * x[j];
-				x[i] = sum / d[i];
+				for (int j = i + 1; j < _n; j++)
+					sum -= _QR[i][j] * x[j];
+				x[i] = sum / _d[i];
 			}
 		}
 
@@ -24341,27 +24496,27 @@ namespace MML
 		// Uses the Householder vectors stored in QR
 		void QtMultiply(const Vector<Type>& b, Vector<Type>& qtb)
 		{
-			if (b.size() != static_cast<size_t>(m))
-				throw VectorDimensionError("QRSolver::QtMultiply - Vector size mismatch", m, b.size());
+			if (b.size() != static_cast<size_t>(_m))
+				throw VectorDimensionError("QRSolver::QtMultiply - Vector size mismatch", _m, b.size());
 
-			qtb.Resize(m);
-			for (int i = 0; i < m; i++)
+			qtb.Resize(_m);
+			for (int i = 0; i < _m; i++)
 				qtb[i] = b[i];
 
 			// Apply Householder transformations (n-1 for square, n for overdetermined)
-			int ncols = (m == n) ? n - 1 : n;
+			int ncols = (_m == _n) ? _n - 1 : _n;
 			for (int k = 0; k < ncols; k++)
 			{
-				if (c[k] != 0.0)
+				if (_c[k] != 0.0)
 				{
 					Type sum = 0.0;
-					for (int i = k; i < m; i++)
-						sum += QR[i][k] * qtb[i];
+					for (int i = k; i < _m; i++)
+						sum += _QR[i][k] * qtb[i];
 
-					Type tau = sum / c[k];
+					Type tau = sum / _c[k];
 
-					for (int i = k; i < m; i++)
-						qtb[i] -= tau * QR[i][k];
+					for (int i = k; i < _m; i++)
+						qtb[i] -= tau * _QR[i][k];
 				}
 			}
 		}
@@ -24370,27 +24525,27 @@ namespace MML
 		// Useful for computing residuals and verifying decomposition
 		void QMultiply(const Vector<Type>& b, Vector<Type>& qb)
 		{
-			if (b.size() != static_cast<size_t>(m))
-				throw VectorDimensionError("QRSolver::QMultiply - Vector size mismatch", m, b.size());
+			if (b.size() != static_cast<size_t>(_m))
+				throw VectorDimensionError("QRSolver::QMultiply - Vector size mismatch", _m, b.size());
 
-			qb.Resize(m);
-			for (int i = 0; i < m; i++)
+			qb.Resize(_m);
+			for (int i = 0; i < _m; i++)
 				qb[i] = b[i];
 
 			// Apply Householder transformations in reverse order (n-1 for square, n for overdetermined)
-			int ncols = (m == n) ? n - 1 : n;
+			int ncols = (_m == _n) ? _n - 1 : _n;
 			for (int k = ncols - 1; k >= 0; k--)
 			{
-				if (c[k] != 0.0)
+				if (_c[k] != 0.0)
 				{
 					Type sum = 0.0;
-					for (int i = k; i < m; i++)
-						sum += QR[i][k] * qb[i];
+					for (int i = k; i < _m; i++)
+						sum += _QR[i][k] * qb[i];
 
-					Type tau = sum / c[k];
+					Type tau = sum / _c[k];
 
-					for (int i = k; i < m; i++)
-						qb[i] -= tau * QR[i][k];
+					for (int i = k; i < _m; i++)
+						qb[i] -= tau * _QR[i][k];
 				}
 			}
 		}
@@ -24398,13 +24553,13 @@ namespace MML
 		// Extract the upper triangular matrix R
 		Matrix<Type> GetR() const
 		{
-			Matrix<Type> R(n, n);
-			for (int i = 0; i < n; i++)
+			Matrix<Type> R(_n, _n);
+			for (int i = 0; i < _n; i++)
 			{
-				for (int j = 0; j < n; j++)
+				for (int j = 0; j < _n; j++)
 				{
 					if (j >= i)
-						R[i][j] = (i == j) ? d[i] : QR[i][j];
+						R[i][j] = (i == j) ? _d[i] : _QR[i][j];
 					else
 						R[i][j] = 0.0;
 				}
@@ -24415,28 +24570,28 @@ namespace MML
 		// Extract the orthogonal matrix Q (expensive - use sparingly)
 		Matrix<Type> GetQ() const
 		{
-			Matrix<Type> Q(m, n);
+			Matrix<Type> Q(_m, _n);
 
 			// Initialize Q as I (first n columns)
-			for (int i = 0; i < m; i++)
-				for (int j = 0; j < n; j++)
+			for (int i = 0; i < _m; i++)
+				for (int j = 0; j < _n; j++)
 					Q[i][j] = (i == j) ? 1.0 : 0.0;
 
 			// Apply Householder transformations in reverse order
-			for (int k = n - 1; k >= 0; k--)
+			for (int k = _n - 1; k >= 0; k--)
 			{
-				if (c[k] != 0.0)
+				if (_c[k] != 0.0)
 				{
-					for (int j = 0; j < n; j++)
+					for (int j = 0; j < _n; j++)
 					{
 						Type sum = 0.0;
-						for (int i = k; i < m; i++)
-							sum += QR[i][k] * Q[i][j];
+						for (int i = k; i < _m; i++)
+							sum += _QR[i][k] * Q[i][j];
 
-						Type tau = sum / c[k];
+						Type tau = sum / _c[k];
 
-						for (int i = k; i < m; i++)
-							Q[i][j] -= tau * QR[i][k];
+						for (int i = k; i < _m; i++)
+							Q[i][j] -= tau * _QR[i][k];
 					}
 				}
 			}
@@ -24447,49 +24602,49 @@ namespace MML
 		// det(A) = det(Q) * det(R), where det(Q) = (-1)^num_reflections and det(R) = product of diagonal
 		Type det() const
 		{
-			if (m != n)
-				throw MatrixDimensionError("QRSolver::det - Determinant only defined for square matrices", m, n, m, m);
-			if (sing)
+			if (_m != _n)
+				throw MatrixDimensionError("QRSolver::det - Determinant only defined for square matrices", _m, _n, _m, _m);
+			if (_sing)
 				return 0.0;
 
 			Type dd = 1.0;
-			for (int i = 0; i < n; i++)
-				dd *= d[i];
+			for (int i = 0; i < _n; i++)
+				dd *= _d[i];
 
 			// Each Householder reflection has determinant -1
 			// So det(Q) = (-1)^num_reflections
-			if (num_reflections % 2 == 1)
+			if (_num_reflections % 2 == 1)
 				dd = -dd;
 
 			return dd;
 		}
 
 		// Check if matrix is singular
-		bool IsSingular() const { return sing; }
+		bool IsSingular() const { return _sing; }
 
 		// Matrix inversion using QR decomposition (only for square matrices)
 		void inverse(Matrix<Type>& ainv)
 		{
-			if (m != n)
-				throw MatrixDimensionError("QRSolver::inverse - Inverse only defined for square matrices", m, n, m, m);
-			if (sing)
+			if (_m != _n)
+				throw MatrixDimensionError("QRSolver::inverse - Inverse only defined for square matrices", _m, _n, _m, _m);
+			if (_sing)
 				throw SingularMatrixError("QRSolver::inverse - Cannot invert singular matrix");
 
-			ainv.Resize(n, n);
-			Vector<Type> ei(n), col(n);
+			ainv.Resize(_n, _n);
+			Vector<Type> ei(_n), col(_n);
 
 			// Solve A * ainv[,j] = e_j for each column of the inverse
-			for (int j = 0; j < n; j++)
+			for (int j = 0; j < _n; j++)
 			{
 				// Set up unit vector e_j
-				for (int i = 0; i < n; i++)
+				for (int i = 0; i < _n; i++)
 					ei[i] = (i == j) ? 1.0 : 0.0;
 
 				// Solve A * col = e_j
 				Solve(ei, col);
 
 				// Store result in j-th column of ainv
-				for (int i = 0; i < n; i++)
+				for (int i = 0; i < _n; i++)
 					ainv[i][j] = col[i];
 			}
 		}
@@ -25954,13 +26109,16 @@ namespace MML
 
 			for (int col = 0; col < cols; ++col)
 			{
+				// Partial pivoting: find row with largest absolute value in this column
 				int pivot_row = -1;
+				Real best = 0;
 				for (int row = 0; row < rows; ++row)
 				{
-					if (!row_selected[row] && std::abs(mat(row, col)) > EPS)
+					Real val = std::abs(mat(row, col));
+					if (!row_selected[row] && val > EPS && val > best)
 					{
+						best = val;
 						pivot_row = row;
-						break;
 					}
 				}
 				if (pivot_row == -1)
@@ -26983,6 +27141,12 @@ namespace MML
 		/// @brief Optimal step size for 8th order derivative (9-point stencil)
 		/// @note h = (551.25ε)^(1/9) for O(h⁸) methods
 		static inline const Real NDer8_h = std::pow(551.25 * Constants::Eps, 1.0 / 9.0);
+
+		/// @brief Scale step size relative to |x| to avoid cancellation at large x
+		/// @details For |x| > 1 scales h proportionally; for |x| <= 1 returns h unchanged
+		static inline Real ScaleStep(Real h, Real x) {
+			return h * std::max(Real(1), std::abs(x));
+		}
 	}
 }
 
@@ -27014,21 +27178,17 @@ namespace MML
 		}
 		static Real NDer1(const IRealFunction& f, Real x, Real* error)
 		{
-			// Error bound ~eps^1/2
-			// Note that this estimate of h differs from the best estimate by a factor of sqrt((|f(x)| + |f(x+h)|)/|f''(x)|).
-			// Since this factor is invariant under the scaling f -> kf, then we are somewhat justified in approximating it by 1.
-			// This approximation will get better as we move to higher orders of accuracy.
-			return NDer1(f, x, NDer1_h, error);
+			return NDer1(f, x, ScaleStep(NDer1_h, x), error);
 		}
 		static Real NDer1(const IRealFunction& f, Real x)
 		{
-			return NDer1(f, x, NDer1_h, nullptr);
+			return NDer1(f, x, ScaleStep(NDer1_h, x), nullptr);
 		}
 		
 		static Real NDer1Left(const IRealFunction& f, Real x, Real* error = nullptr) 
-		{ return NDer1(f, x - 2 * NDer1_h, NDer1_h, error); }
+		{ Real h = ScaleStep(NDer1_h, x); return NDer1(f, x - 2 * h, h, error); }
 		static Real NDer1Right(const IRealFunction& f, Real x, Real* error = nullptr) 
-		{ return NDer1(f, x + 2 * NDer1_h, NDer1_h, error); }
+		{ Real h = ScaleStep(NDer1_h, x); return NDer1(f, x + 2 * h, h, error); }
 		static Real NDer1Left(const IRealFunction& f, Real x, Real h, Real* error = nullptr) 
 		{ return NDer1(f, x - 2 * h, h, error); }
 		static Real NDer1Right(const IRealFunction& f, Real x, Real h, Real* error = nullptr) 
@@ -27065,19 +27225,15 @@ namespace MML
 		}
 		static Real NDer2(const IRealFunction& f, Real x, Real* error)
 		{
-			// Error bound ~eps^2/3
-			// See the previous discussion to understand determination of h and the error bound.
-			// Series[(f[x+h] - f[x-h])/(2*h), {h, 0, 4}]
-
-			return NDer2(f, x, NDer2_h, error);
+			return NDer2(f, x, ScaleStep(NDer2_h, x), error);
 		}
 		static Real NDer2(const IRealFunction& f, Real x)
 		{
-			return NDer2(f, x, NDer2_h, nullptr);
+			return NDer2(f, x, ScaleStep(NDer2_h, x), nullptr);
 		}
 		
-		static Real NDer2Left(const IRealFunction& f, Real x, Real* error = nullptr) { return NDer2(f, x - 2 * NDer2_h, NDer2_h, error); }
-		static Real NDer2Right(const IRealFunction& f, Real x, Real* error = nullptr) { return NDer2(f, x + 2 * NDer2_h, NDer2_h, error); }
+		static Real NDer2Left(const IRealFunction& f, Real x, Real* error = nullptr) { Real h = ScaleStep(NDer2_h, x); return NDer2(f, x - 2 * h, h, error); }
+		static Real NDer2Right(const IRealFunction& f, Real x, Real* error = nullptr) { Real h = ScaleStep(NDer2_h, x); return NDer2(f, x + 2 * h, h, error); }
 		static Real NDer2Left(const IRealFunction& f, Real x, Real h, Real* error = nullptr) { return NDer2(f, x - 3 * h, h, error); }
 		static Real NDer2Right(const IRealFunction& f, Real x, Real h, Real* error = nullptr) { return NDer2(f, x + 3 * h, h, error); }
 
@@ -27122,16 +27278,15 @@ namespace MML
 		}
 		static Real NDer4(const IRealFunction& f, Real x, Real* error)
 		{
-			// Error bound ~eps^4/5
-			return NDer4(f, x, NDer4_h, error);
+			return NDer4(f, x, ScaleStep(NDer4_h, x), error);
 		}
 		static Real NDer4(const IRealFunction& f, Real x)
 		{
-			return NDer4(f, x, NDer4_h, nullptr);
+			return NDer4(f, x, ScaleStep(NDer4_h, x), nullptr);
 		}
 
-		static Real NDer4Left(const IRealFunction& f, Real x, Real* error = nullptr) { return NDer4(f, x - 4 * NDer4_h, NDer4_h, error); }
-		static Real NDer4Right(const IRealFunction& f, Real x, Real* error = nullptr) { return NDer4(f, x + 4 * NDer4_h, NDer4_h, error); }
+		static Real NDer4Left(const IRealFunction& f, Real x, Real* error = nullptr) { Real h = ScaleStep(NDer4_h, x); return NDer4(f, x - 4 * h, h, error); }
+		static Real NDer4Right(const IRealFunction& f, Real x, Real* error = nullptr) { Real h = ScaleStep(NDer4_h, x); return NDer4(f, x + 4 * h, h, error); }
 		static Real NDer4Left(const IRealFunction& f, Real x, Real h, Real* error = nullptr) { return NDer4(f, x - 4 * h, h, error); }
 		static Real NDer4Right(const IRealFunction& f, Real x, Real h, Real* error = nullptr) { return NDer4(f, x + 4 * h, h, error); }
 
@@ -27162,19 +27317,15 @@ namespace MML
 		}
 		static Real NDer6(const IRealFunction& f, Real x, Real* error)
 		{
-			// Error bound ~eps^6/7
-			// Error: h^6f^(7)(x)/140 + 5|f(x)|eps/h
-			return NDer6(f, x, NDer6_h, error);
+			return NDer6(f, x, ScaleStep(NDer6_h, x), error);
 		}
 		static Real NDer6(const IRealFunction& f, Real x)
 		{
-			// Error bound ~eps^6/7
-			// Error: h^6f^(7)(x)/140 + 5|f(x)|eps/h
-			return NDer6(f, x, NDer6_h, nullptr);
+			return NDer6(f, x, ScaleStep(NDer6_h, x), nullptr);
 		}
 
-		static Real NDer6Left(const IRealFunction& f, Real x, Real* error = nullptr) { return NDer6(f, x - 5 * NDer6_h, NDer6_h, error); }
-		static Real NDer6Right(const IRealFunction& f, Real x, Real* error = nullptr) { return NDer6(f, x + 5 * NDer6_h, NDer6_h, error); }
+		static Real NDer6Left(const IRealFunction& f, Real x, Real* error = nullptr) { Real h = ScaleStep(NDer6_h, x); return NDer6(f, x - 5 * h, h, error); }
+		static Real NDer6Right(const IRealFunction& f, Real x, Real* error = nullptr) { Real h = ScaleStep(NDer6_h, x); return NDer6(f, x + 5 * h, h, error); }
 		static Real NDer6Left(const IRealFunction& f, Real x, Real h, Real* error = nullptr) { return NDer6(f, x - 5 * h, h, error); }
 		static Real NDer6Right(const IRealFunction& f, Real x, Real h, Real* error = nullptr) { return NDer6(f, x + 5 * h, h, error); }
 
@@ -27207,22 +27358,15 @@ namespace MML
 		}
 		static Real NDer8(const IRealFunction& f, Real x, Real* error)
 		{
-			// Error bound ~eps^8/9.
-			// In Real precision, we only expect to lose two digits of precision while using this formula, at the cost of 8 function evaluations.
-			// Error: h^8|f^(9)(x)|/630 + 7|f(x)|eps/h assuming 7 unstabilized additions.
-			// Mathematica code to get the error:
-			// Series[(f[x+h]-f[x-h])*(4/5) + (1/5)*(f[x-2*h] - f[x+2*h]) + (4/105)*(f[x+3*h] - f[x-3*h]) + (1/280)*(f[x-4*h] - f[x+4*h]), {h, 0, 9}]
-			// If we used Kahan summation, we could get the max error down to h^8|f^(9)(x)|/630 + |f(x)|eps/h.
-
-			return NDer8(f, x, NDer8_h, error);
+			return NDer8(f, x, ScaleStep(NDer8_h, x), error);
 		}
 		static Real NDer8(const IRealFunction& f, Real x)
 		{
-			return NDer8(f, x, NDer8_h, nullptr);
+			return NDer8(f, x, ScaleStep(NDer8_h, x), nullptr);
 		}
 
-		static Real NDer8Left(const IRealFunction& f, Real x, Real* error = nullptr) { return NDer8(f, x - 6 * NDer8_h, NDer8_h, error); }
-		static Real NDer8Right(const IRealFunction& f, Real x, Real* error = nullptr) { return NDer8(f, x + 6 * NDer8_h, NDer8_h, error); }
+		static Real NDer8Left(const IRealFunction& f, Real x, Real* error = nullptr) { Real h = ScaleStep(NDer8_h, x); return NDer8(f, x - 6 * h, h, error); }
+		static Real NDer8Right(const IRealFunction& f, Real x, Real* error = nullptr) { Real h = ScaleStep(NDer8_h, x); return NDer8(f, x + 6 * h, h, error); }
 		static Real NDer8Left(const IRealFunction& f, Real x, Real h, Real* error = nullptr) { return NDer8(f, x - 6 * h, h, error); }
 		static Real NDer8Right(const IRealFunction& f, Real x, Real h, Real* error = nullptr) { return NDer8(f, x + 6 * h, h, error); }
 
@@ -27259,7 +27403,7 @@ namespace MML
 		}
 		static Real NSecDer2(const IRealFunction& f, Real x, Real* error = nullptr)
 		{
-			return NSecDer2(f, x, NDer2_h, error);
+			return NSecDer2(f, x, ScaleStep(NDer2_h, x), error);
 		}
 
 		// f''(x) ≈ [-f(x-2h) + 16f(x-h) - 30f(x) + 16f(x+h) - f(x+2h)] / (12h²)
@@ -27291,7 +27435,7 @@ namespace MML
 		}
 		static Real NSecDer4(const IRealFunction& f, Real x, Real* error = nullptr)
 		{
-			return NSecDer4(f, x, NDer4_h, error);
+			return NSecDer4(f, x, ScaleStep(NDer4_h, x), error);
 		}
 
 		/********************************************************************************************************************/
@@ -27328,8 +27472,7 @@ namespace MML
 		}
 		static Real NThirdDer2(const IRealFunction& f, Real x, Real* error = nullptr)
 		{
-			// Use larger step size for third derivatives (h³ in denominator needs bigger h)
-			return NThirdDer2(f, x, NDer4_h, error);
+			return NThirdDer2(f, x, ScaleStep(NDer4_h, x), error);
 		}
 
 		// f'''(x) ≈ [f(x-3h) - 8f(x-2h) + 13f(x-h) - 13f(x+h) + 8f(x+2h) - f(x+3h)] / (8h³)
@@ -27362,7 +27505,7 @@ namespace MML
 		}
 		static Real NThirdDer4(const IRealFunction& f, Real x, Real* error = nullptr)
 		{
-			return NThirdDer4(f, x, NDer4_h, error);
+			return NThirdDer4(f, x, ScaleStep(NDer4_h, x), error);
 		}
 
 		/********************************************************************************************************************/
@@ -27680,7 +27823,7 @@ namespace MML
 		static Real NDer1Partial(const IScalarFunction<N>& f, int deriv_index, const VectorN<Real, N>& point, 
 														 Real* error = nullptr)
 		{
-			return NDer1Partial(f, deriv_index, point, NDer1_h, error);
+			return NDer1Partial(f, deriv_index, point, ScaleStep(NDer1_h, point[deriv_index]), error);
 		}
 		/// @brief Compute all N first-order partial derivatives (gradient components) at once
 		/// @return Vector [∂f/∂x₁, ∂f/∂x₂, ..., ∂f/∂xₙ] (gradient ∇f)
@@ -27704,11 +27847,16 @@ namespace MML
 		static VectorN<Real, N> NDer1PartialByAll(const IScalarFunction<N>& f, const VectorN<Real, N>& point, 
 																							VectorN<Real, N>* error = nullptr)
 		{
-			return NDer1PartialByAll(f, point, NDer1_h, error);
+			VectorN<Real, N> ret;
+			for (int i = 0; i < N; i++) {
+				if (error)
+					ret[i] = NDer1Partial(f, i, point, &(*error)[i]);
+				else
+					ret[i] = NDer1Partial(f, i, point);
+			}
+			return ret;
 		}
 
-		/********************************************************************************************************************/
-		/********                               Numerical derivatives of SECOND order                                ********/
 		/********************************************************************************************************************/
 		/// @brief Second-order partial derivative ∂f/∂xᵢ using central difference (O(h²) accuracy)
 		/// @note More accurate than 1st order: [f(x+h·eᵢ) - f(x-h·eᵢ)] / (2h)
@@ -27742,7 +27890,7 @@ namespace MML
 		template <int N>
 		static Real NDer2Partial(const IScalarFunction<N>& f, int deriv_index, const VectorN<Real, N>& point, Real* error = nullptr)
 		{
-			return NDer2Partial(f, deriv_index, point, NDer2_h, error);
+			return NDer2Partial(f, deriv_index, point, ScaleStep(NDer2_h, point[deriv_index]), error);
 		}
 		
 		template <int N>
@@ -27763,7 +27911,14 @@ namespace MML
 		template <int N>
 		static VectorN<Real, N> NDer2PartialByAll(const IScalarFunction<N>& f, const VectorN<Real, N>& point, VectorN<Real, N>* error = nullptr)
 		{
-			return NDer2PartialByAll(f, point, NDer2_h, error);
+			VectorN<Real, N> ret;
+			for (int i = 0; i < N; i++) {
+				if (error)
+					ret[i] = NDer2Partial(f, i, point, &(*error)[i]);
+				else
+					ret[i] = NDer2Partial(f, i, point);
+			}
+			return ret;
 		}
 		
 		/********************************************************************************************************************/
@@ -27810,7 +27965,7 @@ namespace MML
 		template <int N>
 		static Real NDer4Partial(const IScalarFunction<N>& f, int deriv_index, const VectorN<Real, N>& point, Real* error = nullptr)
 		{
-			return NDer4Partial(f, deriv_index, point, NDer4_h, error);
+			return NDer4Partial(f, deriv_index, point, ScaleStep(NDer4_h, point[deriv_index]), error);
 		}
 
 		template <int N>
@@ -27831,7 +27986,14 @@ namespace MML
 		template <int N>
 		static VectorN<Real, N> NDer4PartialByAll(const IScalarFunction<N>& f, const VectorN<Real, N>& point, VectorN<Real, N>* error = nullptr)
 		{
-			return NDer4PartialByAll(f, point, NDer4_h, error);
+			VectorN<Real, N> ret;
+			for (int i = 0; i < N; i++) {
+				if (error)
+					ret[i] = NDer4Partial(f, i, point, &(*error)[i]);
+				else
+					ret[i] = NDer4Partial(f, i, point);
+			}
+			return ret;
 		}
 		
 		/********************************************************************************************************************/
@@ -27885,7 +28047,7 @@ namespace MML
 		template <int N>
 		static Real NDer6Partial(const IScalarFunction<N>& f, int deriv_index, const VectorN<Real, N>& point, Real* error = nullptr)
 		{
-			return NDer6Partial(f, deriv_index, point, NDer6_h, error);
+			return NDer6Partial(f, deriv_index, point, ScaleStep(NDer6_h, point[deriv_index]), error);
 		}
 
 		template <int N>
@@ -27906,7 +28068,14 @@ namespace MML
 		template <int N>
 		static VectorN<Real, N> NDer6PartialByAll(const IScalarFunction<N>& f, const VectorN<Real, N>& point, VectorN<Real, N>* error = nullptr)
 		{
-			return NDer6PartialByAll(f, point, NDer6_h, error);
+			VectorN<Real, N> ret;
+			for (int i = 0; i < N; i++) {
+				if (error)
+					ret[i] = NDer6Partial(f, i, point, &(*error)[i]);
+				else
+					ret[i] = NDer6Partial(f, i, point);
+			}
+			return ret;
 		}
 		
 		/********************************************************************************************************************/
@@ -27971,7 +28140,7 @@ namespace MML
 		template <int N>
 		static Real NDer8Partial(const IScalarFunction<N>& f, int deriv_index, const VectorN<Real, N>& point, Real* error = nullptr)
 		{
-			return NDer8Partial(f, deriv_index, point, NDer8_h, error);
+			return NDer8Partial(f, deriv_index, point, ScaleStep(NDer8_h, point[deriv_index]), error);
 		}
 
 		template <int N>
@@ -27992,7 +28161,14 @@ namespace MML
 		template <int N>
 		static VectorN<Real, N> NDer8PartialByAll(const IScalarFunction<N>& f, const VectorN<Real, N>& point, VectorN<Real, N>* error = nullptr)
 		{
-			return NDer8PartialByAll(f, point, NDer8_h, error);
+			VectorN<Real, N> ret;
+			for (int i = 0; i < N; i++) {
+				if (error)
+					ret[i] = NDer8Partial(f, i, point, &(*error)[i]);
+				else
+					ret[i] = NDer8Partial(f, i, point);
+			}
+			return ret;
 		}
 		
 		/********************************************************************************************************************/
@@ -28085,7 +28261,8 @@ namespace MML
 		static Real NSecDer2Partial(const IScalarFunction<N>& f, int der_ind1, int der_ind2, 
 		                            const VectorN<Real, N>& point, Real* error = nullptr)
 		{
-			return NSecDer2Partial(f, der_ind1, der_ind2, point, NDer2_h, error);
+			Real scale = std::max(std::abs(point[der_ind1]), std::abs(point[der_ind2]));
+			return NSecDer2Partial(f, der_ind1, der_ind2, point, NDer2_h * std::max(Real(1), scale), error);
 		}
 
 		/// @brief Fourth-order accurate (O(h⁴)) second partial derivative
@@ -28193,7 +28370,8 @@ namespace MML
 		static Real NSecDer4Partial(const IScalarFunction<N>& f, int der_ind1, int der_ind2, 
 		                            const VectorN<Real, N>& point, Real* error = nullptr)
 		{
-			return NSecDer4Partial(f, der_ind1, der_ind2, point, NDer4_h, error);
+			Real scale = std::max(std::abs(point[der_ind1]), std::abs(point[der_ind2]));
+			return NSecDer4Partial(f, der_ind1, der_ind2, point, NDer4_h * std::max(Real(1), scale), error);
 		}
 
 		/********************************************************************************************************************/
@@ -28251,7 +28429,7 @@ namespace MML
 		static Real NDer1Partial(const IVectorFunction<N>& f, int func_index, int deriv_index, 
 														 const VectorN<Real, N>& point, Real* error = nullptr)
 		{
-			return NDer1Partial(f, func_index, deriv_index, point, NDer1_h, error);
+			return NDer1Partial(f, func_index, deriv_index, point, ScaleStep(NDer1_h, point[deriv_index]), error);
 		}
 
 		template <int N>
@@ -28275,7 +28453,15 @@ namespace MML
 		static VectorN<Real, N> NDer1PartialByAll(const IVectorFunction<N>& f, int func_index, 
 																							const VectorN<Real, N>& point, VectorN<Real, N>* error = nullptr)
 		{
-			return NDer1PartialByAll(f, func_index, point, NDer1_h, error);
+			VectorN<Real, N> ret;
+			for (int i = 0; i < N; i++)
+			{
+				if (error)
+					ret[i] = NDer1Partial(f, func_index, i, point, &(*error)[i]);
+				else
+					ret[i] = NDer1Partial(f, func_index, i, point);
+			}
+			return ret;
 		}
 
 		template <int N>
@@ -28300,7 +28486,16 @@ namespace MML
 		static MatrixNM<Real, N, N> NDer1PartialAllByAll(const IVectorFunction<N>& f, const VectorN<Real, N>& point, 
 																										 MatrixNM<Real, N, N>* error = nullptr)
 		{
-			return NDer1PartialAllByAll(f, point, NDer1_h, error);
+			MatrixNM<Real, N, N> ret;
+			for (int i = 0; i < N; i++)
+				for (int j = 0; j < N; j++)
+				{
+					if (error)
+						ret(i, j) = NDer1Partial(f, i, j, point, &((*error)(i, j)));
+					else
+						ret(i, j) = NDer1Partial(f, i, j, point);
+				}
+			return ret;
 		}
 
 		/********************************************************************************************************************/
@@ -28338,7 +28533,7 @@ namespace MML
 		template <int N>
 		static Real NDer2Partial(const IVectorFunction<N>& f, int func_index, int deriv_index, const VectorN<Real, N>& point, Real* error = nullptr)
 		{
-			return NDer2Partial(f, func_index, deriv_index, point, NDer2_h, error);
+			return NDer2Partial(f, func_index, deriv_index, point, ScaleStep(NDer2_h, point[deriv_index]), error);
 		}
 
 		template <int N>
@@ -28360,7 +28555,15 @@ namespace MML
 		template <int N>
 		static VectorN<Real, N> NDer2PartialByAll(const IVectorFunction<N>& f, int func_index, const VectorN<Real, N>& point, VectorN<Real, N>* error = nullptr)
 		{
-			return NDer2PartialByAll(f, func_index, point, NDer2_h, error);
+			VectorN<Real, N> ret;
+			for (int i = 0; i < N; i++)
+			{
+				if (error)
+					ret[i] = NDer2Partial(f, func_index, i, point, &(*error)[i]);
+				else
+					ret[i] = NDer2Partial(f, func_index, i, point);
+			}
+			return ret;
 		}
 
 		template <int N>
@@ -28383,7 +28586,16 @@ namespace MML
 		template <int N>
 		static MatrixNM<Real, N, N> NDer2PartialAllByAll(const IVectorFunction<N>& f, const VectorN<Real, N>& point, MatrixNM<Real, N, N>* error = nullptr)
 		{
-			return NDer2PartialAllByAll(f, point, NDer2_h, error);
+			MatrixNM<Real, N, N> ret;
+			for (int i = 0; i < N; i++)
+				for (int j = 0; j < N; j++)
+				{
+					if (error)
+						ret(i, j) = NDer2Partial(f, i, j, point, &((*error)(i, j)));
+					else
+						ret(i, j) = NDer2Partial(f, i, j, point);
+				}
+			return ret;
 		}
 
 		/********************************************************************************************************************/
@@ -28428,7 +28640,7 @@ namespace MML
 		static Real NDer4Partial(const IVectorFunction<N>& f, int func_index, int deriv_index, const VectorN<Real, N>& point, 
 														 Real* error = nullptr)
 		{
-			return NDer4Partial(f, func_index, deriv_index, point, NDer4_h, error);
+			return NDer4Partial(f, func_index, deriv_index, point, ScaleStep(NDer4_h, point[deriv_index]), error);
 		}
 		template <int N>
 		static VectorN<Real, N> NDer4PartialByAll(const IVectorFunction<N>& f, int func_index, const VectorN<Real, N>& point, Real h, 
@@ -28450,7 +28662,15 @@ namespace MML
 		static VectorN<Real, N> NDer4PartialByAll(const IVectorFunction<N>& f, int func_index, const VectorN<Real, N>& point, 
 																							VectorN<Real, N>* error = nullptr)
 		{
-			return NDer4PartialByAll(f, func_index, point, NDer4_h, error);
+			VectorN<Real, N> ret;
+			for (int i = 0; i < N; i++)
+			{
+				if (error)
+					ret[i] = NDer4Partial(f, func_index, i, point, &(*error)[i]);
+				else
+					ret[i] = NDer4Partial(f, func_index, i, point);
+			}
+			return ret;
 		}
 
 		template <int N>
@@ -28474,7 +28694,16 @@ namespace MML
 		static MatrixNM<Real, N, N> NDer4PartialAllByAll(const IVectorFunction<N>& f, const VectorN<Real, N>& point, 
 																										 MatrixNM<Real, N, N>* error = nullptr)
 		{
-			return NDer4PartialAllByAll(f, point, NDer4_h, error);
+			MatrixNM<Real, N, N> ret;
+			for (int i = 0; i < N; i++)
+				for (int j = 0; j < N; j++)
+				{
+					if (error)
+						ret(i, j) = NDer4Partial(f, i, j, point, &((*error)(i, j)));
+					else
+						ret(i, j) = NDer4Partial(f, i, j, point);
+				}
+			return ret;
 		}
 
 		/********************************************************************************************************************/
@@ -28526,7 +28755,7 @@ namespace MML
 		template <int N>
 		static Real NDer6Partial(const IVectorFunction<N>& f, int func_index, int deriv_index, const VectorN<Real, N>& point, Real* error = nullptr)
 		{
-			return NDer6Partial(f, func_index, deriv_index, point, NDer6_h, error);
+			return NDer6Partial(f, func_index, deriv_index, point, ScaleStep(NDer6_h, point[deriv_index]), error);
 		}
 
 		template <int N>
@@ -28547,7 +28776,15 @@ namespace MML
 		template <int N>
 		static VectorN<Real, N> NDer6PartialByAll(const IVectorFunction<N>& f, int func_index, const VectorN<Real, N>& point, VectorN<Real, N>* error = nullptr)
 		{
-			return NDer6PartialByAll(f, func_index, point, NDer6_h, error);
+			VectorN<Real, N> ret;
+			for (int i = 0; i < N; i++)
+			{
+				if (error)
+					ret[i] = NDer6Partial(f, func_index, i, point, &(*error)[i]);
+				else
+					ret[i] = NDer6Partial(f, func_index, i, point);
+			}
+			return ret;
 		}
 
 		template <int N>
@@ -28569,7 +28806,16 @@ namespace MML
 		template <int N>
 		static MatrixNM<Real, N, N> NDer6PartialAllByAll(const IVectorFunction<N>& f, const VectorN<Real, N>& point, MatrixNM<Real, N, N>* error = nullptr)
 		{
-			return NDer6PartialAllByAll(f, point, NDer6_h, error);
+			MatrixNM<Real, N, N> ret;
+			for (int i = 0; i < N; i++)
+				for (int j = 0; j < N; j++)
+				{
+					if (error)
+						ret(i, j) = NDer6Partial(f, i, j, point, &((*error)(i, j)));
+					else
+						ret(i, j) = NDer6Partial(f, i, j, point);
+				}
+			return ret;
 		}
 
 		/********************************************************************************************************************/
@@ -28632,7 +28878,7 @@ namespace MML
 		template <int N>
 		static Real NDer8Partial(const IVectorFunction<N>& f, int func_index, int deriv_index, const VectorN<Real, N>& point, Real* error = nullptr)
 		{
-			return NDer8Partial(f, func_index, deriv_index, point, NDer8_h, error);
+			return NDer8Partial(f, func_index, deriv_index, point, ScaleStep(NDer8_h, point[deriv_index]), error);
 		}
 
 		template <int N>
@@ -28654,7 +28900,15 @@ namespace MML
 		template <int N>
 		static VectorN<Real, N> NDer8PartialByAll(const IVectorFunction<N>& f, int func_index, const VectorN<Real, N>& point, VectorN<Real, N>* error = nullptr)
 		{
-			return NDer8PartialByAll(f, func_index, point, NDer8_h, error);
+			VectorN<Real, N> ret;
+			for (int i = 0; i < N; i++)
+			{
+				if (error)
+					ret[i] = NDer8Partial(f, func_index, i, point, &(*error)[i]);
+				else
+					ret[i] = NDer8Partial(f, func_index, i, point);
+			}
+			return ret;
 		}
 
 		template <int N>
@@ -28677,7 +28931,16 @@ namespace MML
 		template <int N>
 		static MatrixNM<Real, N, N> NDer8PartialAllByAll(const IVectorFunction<N>& f, const VectorN<Real, N>& point, MatrixNM<Real, N, N>* error = nullptr)
 		{
-			return NDer8PartialAllByAll(f, point, NDer8_h, error);
+			MatrixNM<Real, N, N> ret;
+			for (int i = 0; i < N; i++)
+				for (int j = 0; j < N; j++)
+				{
+					if (error)
+						ret(i, j) = NDer8Partial(f, i, j, point, &((*error)(i, j)));
+					else
+						ret(i, j) = NDer8Partial(f, i, j, point);
+				}
+			return ret;
 		}
 
 		/********************************************************************************************************************/
@@ -28731,7 +28994,7 @@ namespace MML
 		template <int N>
 		static VectorN<Real, N> NDer1(const IParametricCurve<N>& f, Real t, Real* error = nullptr)
 		{
-			return NDer1(f, t, NDer1_h, error);
+			return NDer1(f, t, ScaleStep(NDer1_h, t), error);
 		}
 
 		/********************************************************************************************************************/
@@ -28757,7 +29020,7 @@ namespace MML
 		template <int N>
 		static VectorN<Real, N> NDer2(const IParametricCurve<N>& f, Real t, Real* error = nullptr)
 		{
-			return NDer2(f, t, NDer2_h, error);
+			return NDer2(f, t, ScaleStep(NDer2_h, t), error);
 		}
 
 		/********************************************************************************************************************/
@@ -28788,7 +29051,7 @@ namespace MML
 		template <int N>
 		static VectorN<Real, N> NDer4(const IParametricCurve<N>& f, Real t, Real* error = nullptr)
 		{
-			return NDer4(f, t, NDer4_h, error);
+			return NDer4(f, t, ScaleStep(NDer4_h, t), error);
 		}
 
 		/********************************************************************************************************************/
@@ -28815,7 +29078,7 @@ namespace MML
 		template <int N>
 		static VectorN<Real, N> NDer6(const IParametricCurve<N>& f, Real t, Real* error = nullptr)
 		{
-			return NDer6(f, t, NDer6_h, error);
+			return NDer6(f, t, ScaleStep(NDer6_h, t), error);
 		}	
 		/********************************************************************************************************************/
 		/********                               Numerical derivatives of EIGHTH order                                ********/
@@ -28845,7 +29108,7 @@ namespace MML
 		template <int N>
 		static VectorN<Real, N> NDer8(const IParametricCurve<N>& f, Real t, Real* error = nullptr)
 		{
-			return NDer8(f, t, NDer8_h, error);
+			return NDer8(f, t, ScaleStep(NDer8_h, t), error);
 		}
 
 		/********************************************************************************************************************/
@@ -28883,7 +29146,7 @@ namespace MML
 		template <int N>
 		static VectorN<Real, N> NSecDer2(const IParametricCurve<N>& f, Real t, Real* error = nullptr)
 		{
-			return NSecDer2(f, t, NDer2_h, error);
+			return NSecDer2(f, t, ScaleStep(NDer2_h, t), error);
 		}
 
 		// f''(t) ≈ [-f(t-2h) + 16f(t-h) - 30f(t) + 16f(t+h) - f(t+2h)] / (12h²)
@@ -28917,7 +29180,7 @@ namespace MML
 		template <int N>
 		static VectorN<Real, N> NSecDer4(const IParametricCurve<N>& f, Real t, Real* error = nullptr)
 		{
-			return NSecDer4(f, t, NDer4_h, error);
+			return NSecDer4(f, t, ScaleStep(NDer4_h, t), error);
 		}
 
 		/********************************************************************************************************************/
@@ -28957,7 +29220,7 @@ namespace MML
 		static VectorN<Real, N> NThirdDer2(const IParametricCurve<N>& f, Real t, Real* error = nullptr)
 		{
 			// Use larger step size for third derivatives (h³ in denominator needs bigger h)
-			return NThirdDer2(f, t, NDer4_h, error);
+			return NThirdDer2(f, t, ScaleStep(NDer4_h, t), error);
 		}
 
 		// f'''(t) ≈ [f(t-3h) - 8f(t-2h) + 13f(t-h) - 13f(t+h) + 8f(t+2h) - f(t+3h)] / (8h³)
@@ -28992,7 +29255,7 @@ namespace MML
 		template <int N>
 		static VectorN<Real, N> NThirdDer4(const IParametricCurve<N>& f, Real t, Real* error = nullptr)
 		{
-			return NThirdDer4(f, t, NDer4_h, error);
+			return NThirdDer4(f, t, ScaleStep(NDer4_h, t), error);
 		}
 		
 		/********************************************************************************************************************/
@@ -29790,7 +30053,7 @@ namespace MML
 
 			for (int j = 0; j < n; ++j) {
 				// Adaptive step size based on x[j] magnitude
-				Real hj = eps * std::max(std::abs(x[j]), 1.0);
+				Real hj = eps * std::max<Real>(std::abs(x[j]), Real(1.0));
 
 				// Central difference
 				xp[j] = x[j] + hj;
@@ -29848,7 +30111,7 @@ namespace MML
 			Real eps = (h > 0.0) ? h : std::sqrt(std::numeric_limits<Real>::epsilon());
 
 			for (int j = 0; j < n; ++j) {
-				Real hj = eps * std::max(std::abs(x[j]), 1.0);
+				Real hj = eps * std::max<Real>(std::abs(x[j]), Real(1.0));
 
 				xp[j] = x[j] + hj;
 				Vector<Real> f_plus = mapFunc(xp);
@@ -29866,6 +30129,380 @@ namespace MML
 
 	}  // namespace Derivation
 }  // namespace MML
+
+
+///////////////////////////   mml/core/Derivation/ForwardAD.h   ///////////////////////////
+
+
+
+namespace MML::Symbolic
+{
+    //////////////////////////////////////////////////////////////////////////////////////////
+    /// @brief Dual number for forward-mode automatic differentiation
+    /// 
+    /// A dual number extends real numbers with an infinitesimal part ε where ε² = 0.
+    /// A dual number is written as: a + b*ε
+    /// 
+    /// This property enables exact derivative computation:
+    /// f(a + ε) = f(a) + f'(a)*ε
+    /// 
+    /// Usage:
+    /// @code
+    ///   Dual x(2.0, 1.0);  // x = 2, dx/dx = 1
+    ///   Dual y = sin(x*x); // y.value = sin(4), y.deriv = cos(4)*2*2
+    /// @endcode
+    /// 
+    /// Forward AD is efficient for functions f: R → R^m (one pass per input variable).
+    /// For f: R^n → R with large n, consider reverse-mode AD instead.
+    //////////////////////////////////////////////////////////////////////////////////////////
+    template<typename T = double>
+    struct Dual
+    {
+        T value;  ///< Function value f(x)
+        T deriv;  ///< Derivative f'(x)
+
+        /// Default constructor: zero dual number
+        Dual() : value(T(0)), deriv(T(0)) {}
+
+        /// Construct from value only (constant, derivative = 0)
+        explicit Dual(T val) : value(val), deriv(T(0)) {}
+
+        /// Construct with both value and derivative
+        Dual(T val, T d) : value(val), deriv(d) {}
+
+        /// Implicit conversion from scalar (treated as constant)
+        template<typename U, typename = std::enable_if_t<std::is_arithmetic_v<U>>>
+        Dual(U val) : value(static_cast<T>(val)), deriv(T(0)) {}
+
+        //////////////////////////////////////////////////////////////////////////////////
+        // Compound assignment operators
+        //////////////////////////////////////////////////////////////////////////////////
+
+        Dual& operator+=(const Dual& other) {
+            value += other.value;
+            deriv += other.deriv;
+            return *this;
+        }
+
+        Dual& operator-=(const Dual& other) {
+            value -= other.value;
+            deriv -= other.deriv;
+            return *this;
+        }
+
+        Dual& operator*=(const Dual& other) {
+            // (a + a'ε)(b + b'ε) = ab + (a'b + ab')ε
+            deriv = deriv * other.value + value * other.deriv;
+            value *= other.value;
+            return *this;
+        }
+
+        Dual& operator/=(const Dual& other) {
+            // (a + a'ε)/(b + b'ε) = a/b + (a'b - ab')/b² ε
+            deriv = (deriv * other.value - value * other.deriv) / (other.value * other.value);
+            value /= other.value;
+            return *this;
+        }
+    };
+
+    //////////////////////////////////////////////////////////////////////////////////////////
+    // Arithmetic operators
+    //////////////////////////////////////////////////////////////////////////////////////////
+
+    template<typename T>
+    Dual<T> operator+(const Dual<T>& a, const Dual<T>& b) {
+        return Dual<T>(a.value + b.value, a.deriv + b.deriv);
+    }
+
+    template<typename T>
+    Dual<T> operator-(const Dual<T>& a, const Dual<T>& b) {
+        return Dual<T>(a.value - b.value, a.deriv - b.deriv);
+    }
+
+    template<typename T>
+    Dual<T> operator*(const Dual<T>& a, const Dual<T>& b) {
+        // Product rule: (a,a') * (b,b') = (ab, a'b + ab')
+        return Dual<T>(a.value * b.value, a.deriv * b.value + a.value * b.deriv);
+    }
+
+    template<typename T>
+    Dual<T> operator/(const Dual<T>& a, const Dual<T>& b) {
+        // Quotient rule: (a,a') / (b,b') = (a/b, (a'b - ab')/b²)
+        T inv = T(1) / b.value;
+        return Dual<T>(a.value * inv, (a.deriv * b.value - a.value * b.deriv) * inv * inv);
+    }
+
+    template<typename T>
+    Dual<T> operator-(const Dual<T>& a) {
+        return Dual<T>(-a.value, -a.deriv);
+    }
+
+    template<typename T>
+    Dual<T> operator+(const Dual<T>& a) {
+        return a;
+    }
+
+    // Mixed operations with scalars
+    template<typename T, typename S, typename = std::enable_if_t<std::is_arithmetic_v<S>>>
+    Dual<T> operator+(const Dual<T>& a, S b) { return a + Dual<T>(static_cast<T>(b)); }
+    
+    template<typename T, typename S, typename = std::enable_if_t<std::is_arithmetic_v<S>>>
+    Dual<T> operator+(S a, const Dual<T>& b) { return Dual<T>(static_cast<T>(a)) + b; }
+    
+    template<typename T, typename S, typename = std::enable_if_t<std::is_arithmetic_v<S>>>
+    Dual<T> operator-(const Dual<T>& a, S b) { return a - Dual<T>(static_cast<T>(b)); }
+    
+    template<typename T, typename S, typename = std::enable_if_t<std::is_arithmetic_v<S>>>
+    Dual<T> operator-(S a, const Dual<T>& b) { return Dual<T>(static_cast<T>(a)) - b; }
+    
+    template<typename T, typename S, typename = std::enable_if_t<std::is_arithmetic_v<S>>>
+    Dual<T> operator*(const Dual<T>& a, S b) { return a * Dual<T>(static_cast<T>(b)); }
+    
+    template<typename T, typename S, typename = std::enable_if_t<std::is_arithmetic_v<S>>>
+    Dual<T> operator*(S a, const Dual<T>& b) { return Dual<T>(static_cast<T>(a)) * b; }
+    
+    template<typename T, typename S, typename = std::enable_if_t<std::is_arithmetic_v<S>>>
+    Dual<T> operator/(const Dual<T>& a, S b) { return a / Dual<T>(static_cast<T>(b)); }
+    
+    template<typename T, typename S, typename = std::enable_if_t<std::is_arithmetic_v<S>>>
+    Dual<T> operator/(S a, const Dual<T>& b) { return Dual<T>(static_cast<T>(a)) / b; }
+
+    //////////////////////////////////////////////////////////////////////////////////////////
+    // Comparison operators (compare values only)
+    //////////////////////////////////////////////////////////////////////////////////////////
+
+    template<typename T>
+    bool operator==(const Dual<T>& a, const Dual<T>& b) { return a.value == b.value; }
+    
+    template<typename T>
+    bool operator!=(const Dual<T>& a, const Dual<T>& b) { return a.value != b.value; }
+    
+    template<typename T>
+    bool operator<(const Dual<T>& a, const Dual<T>& b) { return a.value < b.value; }
+    
+    template<typename T>
+    bool operator<=(const Dual<T>& a, const Dual<T>& b) { return a.value <= b.value; }
+    
+    template<typename T>
+    bool operator>(const Dual<T>& a, const Dual<T>& b) { return a.value > b.value; }
+    
+    template<typename T>
+    bool operator>=(const Dual<T>& a, const Dual<T>& b) { return a.value >= b.value; }
+
+    //////////////////////////////////////////////////////////////////////////////////////////
+    // Mathematical functions
+    //////////////////////////////////////////////////////////////////////////////////////////
+
+    /// Square root: d/dx(sqrt(x)) = 1/(2*sqrt(x))
+    template<typename T>
+    Dual<T> sqrt(const Dual<T>& x) {
+        T sq = std::sqrt(x.value);
+        return Dual<T>(sq, x.deriv / (T(2) * sq));
+    }
+
+    /// Power function: d/dx(x^n) = n*x^(n-1)
+    template<typename T>
+    Dual<T> pow(const Dual<T>& base, const Dual<T>& exp) {
+        if (exp.deriv == T(0)) {
+            // Constant exponent: d/dx(f^n) = n*f^(n-1)*f'
+            T p = std::pow(base.value, exp.value);
+            return Dual<T>(p, exp.value * std::pow(base.value, exp.value - T(1)) * base.deriv);
+        } else if (base.deriv == T(0)) {
+            // Constant base: d/dx(a^g) = a^g * ln(a) * g'
+            T p = std::pow(base.value, exp.value);
+            return Dual<T>(p, p * std::log(base.value) * exp.deriv);
+        } else {
+            // General case: d/dx(f^g) = f^g * (g' * ln(f) + g * f'/f)
+            T p = std::pow(base.value, exp.value);
+            T d = p * (exp.deriv * std::log(base.value) + exp.value * base.deriv / base.value);
+            return Dual<T>(p, d);
+        }
+    }
+
+    template<typename T, typename S, typename = std::enable_if_t<std::is_arithmetic_v<S>>>
+    Dual<T> pow(const Dual<T>& base, S exp) {
+        T p = std::pow(base.value, static_cast<T>(exp));
+        return Dual<T>(p, static_cast<T>(exp) * std::pow(base.value, static_cast<T>(exp) - T(1)) * base.deriv);
+    }
+
+    template<typename T, typename S, typename = std::enable_if_t<std::is_arithmetic_v<S>>>
+    Dual<T> pow(S base, const Dual<T>& exp) {
+        T b = static_cast<T>(base);
+        T p = std::pow(b, exp.value);
+        return Dual<T>(p, p * std::log(b) * exp.deriv);
+    }
+
+    /// Exponential: d/dx(e^x) = e^x
+    template<typename T>
+    Dual<T> exp(const Dual<T>& x) {
+        T ex = std::exp(x.value);
+        return Dual<T>(ex, ex * x.deriv);
+    }
+
+    /// Natural logarithm: d/dx(ln(x)) = 1/x
+    template<typename T>
+    Dual<T> log(const Dual<T>& x) {
+        return Dual<T>(std::log(x.value), x.deriv / x.value);
+    }
+
+    /// Base-10 logarithm: d/dx(log10(x)) = 1/(x*ln(10))
+    template<typename T>
+    Dual<T> log10(const Dual<T>& x) {
+        static const T ln10 = std::log(T(10));
+        return Dual<T>(std::log10(x.value), x.deriv / (x.value * ln10));
+    }
+
+    /// Sine: d/dx(sin(x)) = cos(x)
+    template<typename T>
+    Dual<T> sin(const Dual<T>& x) {
+        return Dual<T>(std::sin(x.value), std::cos(x.value) * x.deriv);
+    }
+
+    /// Cosine: d/dx(cos(x)) = -sin(x)
+    template<typename T>
+    Dual<T> cos(const Dual<T>& x) {
+        return Dual<T>(std::cos(x.value), -std::sin(x.value) * x.deriv);
+    }
+
+    /// Tangent: d/dx(tan(x)) = sec²(x) = 1/cos²(x)
+    template<typename T>
+    Dual<T> tan(const Dual<T>& x) {
+        T c = std::cos(x.value);
+        return Dual<T>(std::tan(x.value), x.deriv / (c * c));
+    }
+
+    /// Arc sine: d/dx(asin(x)) = 1/sqrt(1-x²)
+    template<typename T>
+    Dual<T> asin(const Dual<T>& x) {
+        return Dual<T>(std::asin(x.value), x.deriv / std::sqrt(T(1) - x.value * x.value));
+    }
+
+    /// Arc cosine: d/dx(acos(x)) = -1/sqrt(1-x²)
+    template<typename T>
+    Dual<T> acos(const Dual<T>& x) {
+        return Dual<T>(std::acos(x.value), -x.deriv / std::sqrt(T(1) - x.value * x.value));
+    }
+
+    /// Arc tangent: d/dx(atan(x)) = 1/(1+x²)
+    template<typename T>
+    Dual<T> atan(const Dual<T>& x) {
+        return Dual<T>(std::atan(x.value), x.deriv / (T(1) + x.value * x.value));
+    }
+
+    /// Hyperbolic sine: d/dx(sinh(x)) = cosh(x)
+    template<typename T>
+    Dual<T> sinh(const Dual<T>& x) {
+        return Dual<T>(std::sinh(x.value), std::cosh(x.value) * x.deriv);
+    }
+
+    /// Hyperbolic cosine: d/dx(cosh(x)) = sinh(x)
+    template<typename T>
+    Dual<T> cosh(const Dual<T>& x) {
+        return Dual<T>(std::cosh(x.value), std::sinh(x.value) * x.deriv);
+    }
+
+    /// Hyperbolic tangent: d/dx(tanh(x)) = sech²(x) = 1 - tanh²(x)
+    template<typename T>
+    Dual<T> tanh(const Dual<T>& x) {
+        T th = std::tanh(x.value);
+        return Dual<T>(th, (T(1) - th * th) * x.deriv);
+    }
+
+    /// Absolute value: d/dx(|x|) = sign(x) = x/|x|
+    template<typename T>
+    Dual<T> abs(const Dual<T>& x) {
+        if (x.value >= T(0)) {
+            return x;
+        } else {
+            return Dual<T>(-x.value, -x.deriv);
+        }
+    }
+
+    /// Floor function (derivative is 0 almost everywhere)
+    template<typename T>
+    Dual<T> floor(const Dual<T>& x) {
+        return Dual<T>(std::floor(x.value), T(0));
+    }
+
+    /// Ceiling function (derivative is 0 almost everywhere)
+    template<typename T>
+    Dual<T> ceil(const Dual<T>& x) {
+        return Dual<T>(std::ceil(x.value), T(0));
+    }
+
+    /// Two-argument arc tangent: atan2(y, x)
+    template<typename T>
+    Dual<T> atan2(const Dual<T>& y, const Dual<T>& x) {
+        // d/dx atan2(y,x) = -y/(x²+y²)
+        // d/dy atan2(y,x) = x/(x²+y²)
+        T denom = x.value * x.value + y.value * y.value;
+        T d = (x.value * y.deriv - y.value * x.deriv) / denom;
+        return Dual<T>(std::atan2(y.value, x.value), d);
+    }
+
+    /// Fused multiply-add: fma(a, b, c) = a*b + c
+    template<typename T>
+    Dual<T> fma(const Dual<T>& a, const Dual<T>& b, const Dual<T>& c) {
+        return a * b + c;
+    }
+
+    //////////////////////////////////////////////////////////////////////////////////////////
+    // Stream output
+    //////////////////////////////////////////////////////////////////////////////////////////
+
+    template<typename T>
+    std::ostream& operator<<(std::ostream& os, const Dual<T>& d) {
+        os << "Dual(" << d.value << ", " << d.deriv << ")";
+        return os;
+    }
+
+    //////////////////////////////////////////////////////////////////////////////////////////
+    // Utility functions for derivative computation
+    //////////////////////////////////////////////////////////////////////////////////////////
+
+    /// Compute derivative of f at x using forward-mode AD
+    /// @tparam F Callable type (function, lambda, functor)
+    /// @param f Function to differentiate
+    /// @param x Point at which to compute derivative
+    /// @return Pair of (f(x), f'(x))
+    template<typename F, typename T = double>
+    std::pair<T, T> derivative(F&& f, T x) {
+        Dual<T> xd(x, T(1));  // dx/dx = 1
+        Dual<T> result = f(xd);
+        return {result.value, result.deriv};
+    }
+
+    /// Compute gradient of f: R^n -> R at point x using forward-mode AD
+    /// Requires n evaluations of f
+    template<typename F, typename T = double>
+    std::vector<T> gradient(F&& f, const std::vector<T>& x) {
+        std::vector<T> grad(x.size());
+        std::vector<Dual<T>> xd(x.size());
+        
+        for (size_t i = 0; i < x.size(); ++i) {
+            // Initialize with zero derivative
+            for (size_t j = 0; j < x.size(); ++j) {
+                xd[j] = Dual<T>(x[j], T(0));
+            }
+            // Set derivative seed for variable i
+            xd[i].deriv = T(1);
+            
+            // Evaluate
+            Dual<T> result = f(xd);
+            grad[i] = result.deriv;
+        }
+        
+        return grad;
+    }
+
+    //////////////////////////////////////////////////////////////////////////////////////////
+    // Type alias for convenience
+    //////////////////////////////////////////////////////////////////////////////////////////
+
+    using DualD = Dual<double>;
+    using DualF = Dual<float>;
+
+} // namespace MML::Symbolic
 
 
 ///////////////////////////   mml/core/Integration/IntegrationBase.h   ///////////////////////////
@@ -33884,7 +34521,7 @@ namespace MML
 			Real error = volume * std_error;
 
 			bool converged = (std::abs(integral) < PrecisionValues<Real>::DivisionSafetyThreshold) ||
-											 (error / std::abs(integral) < PrecisionValues<Real>::DefaultToleranceRelaxed);
+											 (error / std::abs(integral) < PrecisionValues<Real>::DefaultToleranceStrict);
 
 			return MonteCarloResult(integral, error, variance, total_samples, converged);
 		}
@@ -34450,8 +35087,8 @@ namespace MML
 	class MetricTensorField : public ITensorField2<N>
 	{
 	public:
-		/// @brief Default constructor (2 contravariant indices, 0 covariant)
-		MetricTensorField() : ITensorField2<N>(2, 0) { }
+		/// @brief Default constructor (0 contravariant indices, 2 covariant)
+		MetricTensorField() : ITensorField2<N>(0, 2) { }
 		/// @brief Constructor with custom index configuration
 		/// @param numContra Number of contravariant indices
 		/// @param numCo Number of covariant indices
@@ -34460,7 +35097,7 @@ namespace MML
 		// implementing operator() required by IFunction interface
 		virtual Tensor2<N>   operator()(const VectorN<Real, N>& pos) const override
 		{
-			Tensor2<N> ret(this->getNumContravar(), this->getNumCovar());
+			Tensor2<N> ret(this->getNumCovar(), this->getNumContravar());
 
 			for (int i = 0; i < N; i++)
 				for (int j = 0; j < N; j++)
@@ -34492,6 +35129,86 @@ namespace MML
 		{
 			MatrixNM<Real, N, N> g_covar = GetCovariantMetric(pos);
 			return g_covar.GetInverse();
+		}
+
+		/// @brief Raise a covariant vector index: vⁱ = gⁱʲ vⱼ
+		/// @param v_covar Covariant (lower-index) vector
+		/// @param pos Position where metric is evaluated
+		/// @return Contravariant (upper-index) vector
+		VectorN<Real, N> RaiseIndex(const VectorN<Real, N>& v_covar, const VectorN<Real, N>& pos) const
+		{
+			MatrixNM<Real, N, N> g_inv = GetContravariantMetric(pos);
+			VectorN<Real, N> result;
+			for (int i = 0; i < N; i++) {
+				result[i] = 0.0;
+				for (int j = 0; j < N; j++)
+					result[i] += g_inv[i][j] * v_covar[j];
+			}
+			return result;
+		}
+
+		/// @brief Lower a contravariant vector index: vᵢ = gᵢⱼ vʲ
+		/// @param v_contra Contravariant (upper-index) vector
+		/// @param pos Position where metric is evaluated
+		/// @return Covariant (lower-index) vector
+		VectorN<Real, N> LowerIndex(const VectorN<Real, N>& v_contra, const VectorN<Real, N>& pos) const
+		{
+			MatrixNM<Real, N, N> g = GetCovariantMetric(pos);
+			VectorN<Real, N> result;
+			for (int i = 0; i < N; i++) {
+				result[i] = 0.0;
+				for (int j = 0; j < N; j++)
+					result[i] += g[i][j] * v_contra[j];
+			}
+			return result;
+		}
+
+		/// @brief Raise one index of a rank-2 tensor: T^i_j = gⁱᵏ T_kj
+		/// @param t Rank-2 covariant tensor T_ij (must have numContravar == 0)
+		/// @param index_to_raise Which index to raise (0 or 1)
+		/// @param pos Position where metric is evaluated
+		/// @return Mixed tensor with one raised index
+		Tensor2<N> RaiseIndex(const Tensor2<N>& t, int index_to_raise, const VectorN<Real, N>& pos) const
+		{
+			MatrixNM<Real, N, N> g_inv = GetContravariantMetric(pos);
+			Tensor2<N> result(1, 1);  // one covariant, one contravariant
+
+			for (int i = 0; i < N; i++)
+				for (int j = 0; j < N; j++) {
+					result(i, j) = 0.0;
+					for (int k = 0; k < N; k++) {
+						if (index_to_raise == 0)
+							result(i, j) += g_inv[i][k] * t(k, j);
+						else
+							result(i, j) += g_inv[j][k] * t(i, k);
+					}
+				}
+
+			return result;
+		}
+
+		/// @brief Lower one index of a rank-2 tensor: T_ij = g_ik T^k_j
+		/// @param t Rank-2 tensor with at least one contravariant index
+		/// @param index_to_lower Which index to lower (0 or 1)
+		/// @param pos Position where metric is evaluated
+		/// @return Tensor with one lowered index
+		Tensor2<N> LowerIndex(const Tensor2<N>& t, int index_to_lower, const VectorN<Real, N>& pos) const
+		{
+			MatrixNM<Real, N, N> g = GetCovariantMetric(pos);
+			Tensor2<N> result(1, 1);  // one covariant, one contravariant
+
+			for (int i = 0; i < N; i++)
+				for (int j = 0; j < N; j++) {
+					result(i, j) = 0.0;
+					for (int k = 0; k < N; k++) {
+						if (index_to_lower == 0)
+							result(i, j) += g[i][k] * t(k, j);
+						else
+							result(i, j) += g[j][k] * t(i, k);
+					}
+				}
+
+			return result;
 		}
 
 		/// @brief Get Christoffel symbol of the first kind Γᵢⱼₖ (all indices lowered)
@@ -34601,7 +35318,7 @@ namespace MML
 	class MetricTensorCartesian3D : public MetricTensorField<3>
 	{
 	public:
-		MetricTensorCartesian3D() : MetricTensorField<3>(2, 0) { }
+		MetricTensorCartesian3D() : MetricTensorField<3>(0, 2) { }
 
 		Real Component(int i, int j, const VectorN<Real, 3>& pos) const
 		{
@@ -34655,7 +35372,7 @@ namespace MML
 	class MetricTensorCylindrical : public MetricTensorField<3>
 	{
 	public:
-		MetricTensorCylindrical() : MetricTensorField<3>(2, 0) { }
+		MetricTensorCylindrical() : MetricTensorField<3>(0, 2) { }
 
 		virtual Real Component(int i, int j, const VectorN<Real, 3>& pos) const
 		{
@@ -34699,7 +35416,7 @@ namespace MML
 	class MetricTensorMinkowski : public MetricTensorField<4>
 	{
 	public:
-		MetricTensorMinkowski() : MetricTensorField<4>(2, 0) {}
+		MetricTensorMinkowski() : MetricTensorField<4>(0, 2) {}
 
 		virtual Real Component(int i, int j, const VectorN<Real, 4>& pos) const override
 		{
@@ -35101,9 +35818,9 @@ namespace MML::Fields
 			
 			// v = (3(p·r)r - r²p) / r^5
 			return VectorN<Real, 3>{
-				(3.0 * p_dot_r * r[0] - r_sq * _moment[0]) / r5,
-				(3.0 * p_dot_r * r[1] - r_sq * _moment[1]) / r5,
-				(3.0 * p_dot_r * r[2] - r_sq * _moment[2]) / r5
+				static_cast<Real>((3.0 * p_dot_r * r[0] - r_sq * _moment[0]) / r5),
+				static_cast<Real>((3.0 * p_dot_r * r[1] - r_sq * _moment[1]) / r5),
+				static_cast<Real>((3.0 * p_dot_r * r[2] - r_sq * _moment[2]) / r5)
 			};
 		}
 	};
@@ -35397,12 +36114,12 @@ namespace MML
 						for (int l = 0; l < N; l++)
 						{
 							double coef1, coef2;
-							if (tensor._isContravar[0])
+							if (tensor.IsContravar(0))
 								coef1 = Derivation::NDer1Partial(this->coordTransfFunc(i), k, pos);
 							else
 								coef1 = Derivation::NDer1Partial(this->inverseCoordTransfFunc(k), i, pos);
 
-							if (tensor._isContravar[1])
+							if (tensor.IsContravar(1))
 								coef2 = Derivation::NDer1Partial(this->coordTransfFunc(j), l, pos);
 							else
 								coef2 = Derivation::NDer1Partial(this->inverseCoordTransfFunc(l), j, pos);
@@ -35431,17 +36148,17 @@ namespace MML
 								for (int n = 0; n < N; n++)
 								{
 									double coef1, coef2, coef3;
-									if (tensor._isContravar[0])
+									if (tensor.IsContravar(0))
 										coef1 = Derivation::NDer1Partial(this->coordTransfFunc(i), l, pos);
 									else
 										coef1 = Derivation::NDer1Partial(this->inverseCoordTransfFunc(l), i, pos);
 
-									if (tensor._isContravar[1])
+									if (tensor.IsContravar(1))
 										coef2 = Derivation::NDer1Partial(this->coordTransfFunc(j), m, pos);
 									else
 										coef2 = Derivation::NDer1Partial(this->inverseCoordTransfFunc(m), j, pos);
 
-									if (tensor._isContravar[2])
+									if (tensor.IsContravar(2))
 										coef3 = Derivation::NDer1Partial(this->coordTransfFunc(k), n, pos);
 									else
 										coef3 = Derivation::NDer1Partial(this->inverseCoordTransfFunc(n), k, pos);
@@ -35472,22 +36189,22 @@ namespace MML
 										for (int p = 0; p < N; p++)
 										{
 											double coef1, coef2, coef3, coef4;
-											if (tensor._isContravar[0])
+											if (tensor.IsContravar(0))
 												coef1 = Derivation::NDer1Partial(this->coordTransfFunc(i), m, pos);
 											else
 												coef1 = Derivation::NDer1Partial(this->inverseCoordTransfFunc(m), i, pos);
 
-											if (tensor._isContravar[1])
+											if (tensor.IsContravar(1))
 												coef2 = Derivation::NDer1Partial(this->coordTransfFunc(j), n, pos);
 											else
 												coef2 = Derivation::NDer1Partial(this->inverseCoordTransfFunc(n), j, pos);
 
-											if (tensor._isContravar[2])
+											if (tensor.IsContravar(2))
 												coef3 = Derivation::NDer1Partial(this->coordTransfFunc(k), o, pos);
 											else
 												coef3 = Derivation::NDer1Partial(this->inverseCoordTransfFunc(o), k, pos);
 
-											if (tensor._isContravar[3])
+											if (tensor.IsContravar(3))
 												coef4 = Derivation::NDer1Partial(this->coordTransfFunc(l), p, pos);
 											else
 												coef4 = Derivation::NDer1Partial(this->inverseCoordTransfFunc(p), l, pos);
@@ -35520,31 +36237,30 @@ namespace MML
 												for (int r = 0; r < N; r++)
 												{
 													double coef1, coef2, coef3, coef4, coef5;
-													if (tensor._isContravar[0])
+													if (tensor.IsContravar(0))
 														coef1 = Derivation::NDer1Partial(this->coordTransfFunc(i), n, pos);
 													else
 														coef1 = Derivation::NDer1Partial(this->inverseCoordTransfFunc(n), i, pos);
 
-													if (tensor._isContravar[1])
+													if (tensor.IsContravar(1))
 														coef2 = Derivation::NDer1Partial(this->coordTransfFunc(j), o, pos);
 													else
 														coef2 = Derivation::NDer1Partial(this->inverseCoordTransfFunc(o), j, pos);
 
-													if (tensor._isContravar[2])
+													if (tensor.IsContravar(2))
 														coef3 = Derivation::NDer1Partial(this->coordTransfFunc(k), p, pos);
 													else
 														coef3 = Derivation::NDer1Partial(this->inverseCoordTransfFunc(p), k, pos);
 
-													if (tensor._isContravar[3])
+													if (tensor.IsContravar(3))
 														coef4 = Derivation::NDer1Partial(this->coordTransfFunc(l), q, pos);
 													else
 														coef4 = Derivation::NDer1Partial(this->inverseCoordTransfFunc(q), l, pos);
 
-													if (tensor._isContravar[4])
-														coef4 = Derivation::NDer1Partial(this->coordTransfFunc(m), r, pos);
-													else
-														coef4 = Derivation::NDer1Partial(this->inverseCoordTransfFunc(r), m, pos);
-
+													if (tensor.IsContravar(4))
+												coef5 = Derivation::NDer1Partial(this->coordTransfFunc(m), r, pos);
+											else
+												coef5 = Derivation::NDer1Partial(this->inverseCoordTransfFunc(r), m, pos);
 													ret[i][j][k][l][m] += coef1 * coef2 * coef3 * coef4 * coef5 * tensor[n][o][p][q][r];
 												}
 							}
@@ -36621,6 +37337,7 @@ namespace MML
 
 
 
+
 namespace MML
 {
 	///////////////////////////////////////////////////////////////////////////////
@@ -36683,7 +37400,11 @@ namespace MML
 		/// @brief Convert Cartesian to spherical radial distance
 		static Real r(const VectorN<Real, 3>& q)		 { return sqrt(q[0]*q[0] + q[1]*q[1] + q[2]*q[2]); }
 		/// @brief Convert Cartesian to spherical polar angle (inclination from z-axis)
-		static Real theta(const VectorN<Real, 3>& q) { return acos(q[2] / sqrt(q[0]*q[0] + q[1]*q[1] + q[2]*q[2])); }
+		static Real theta(const VectorN<Real, 3>& q) {
+			Real r = sqrt(q[0]*q[0] + q[1]*q[1] + q[2]*q[2]);
+			if (r < std::numeric_limits<Real>::epsilon() * 100) return Real(0);
+			return acos(std::clamp(q[2] / r, Real(-1), Real(1)));
+		}
 		/// @brief Convert Cartesian to spherical azimuthal angle
 		static Real phi(const VectorN<Real, 3>& q)	 { return atan2(q[1], q[0]); }
 
@@ -36789,7 +37510,11 @@ namespace MML
 		/// @brief Convert Cartesian to spherical radial distance
 		static Real r(const VectorN<Real, 3>& q) { return sqrt(q[0] * q[0] + q[1] * q[1] + q[2] * q[2]); }
 		/// @brief Convert Cartesian to spherical polar angle
-		static Real theta(const VectorN<Real, 3>& q) { return acos(q[2] / sqrt(q[0] * q[0] + q[1] * q[1] + q[2] * q[2])); }
+		static Real theta(const VectorN<Real, 3>& q) {
+			Real r = sqrt(q[0] * q[0] + q[1] * q[1] + q[2] * q[2]);
+			if (r < std::numeric_limits<Real>::epsilon() * 100) return Real(0);
+			return acos(std::clamp(q[2] / r, Real(-1), Real(1)));
+		}
 		/// @brief Convert Cartesian to spherical azimuthal angle
 		static Real phi(const VectorN<Real, 3>& q) { return atan2(q[1], q[0]); }
 
@@ -38004,10 +38729,10 @@ namespace MML
 		                             const MetricTensorField<N>& metricTensorField)
 		{
 			// Compute √g at the evaluation point
-			Real g = MatrixUtils::Det(metricTensorField.GetCovariantMetric(pos));
+			Real g = Utils::Det(metricTensorField.GetCovariantMetric(pos));
 			Real sqrt_g = std::sqrt(std::abs(g));
 
-			if (sqrt_g < Defaults::IsZero)
+			if (sqrt_g < Defaults::DefaultTolerance)
 				return Real(0);  // Degenerate metric — divergence undefined
 
 			Real div = 0.0;
@@ -38016,7 +38741,7 @@ namespace MML
 				// Differentiate the scalar function √g(x) · Fⁱ(x) with respect to xⁱ
 				ScalarFunctionFromStdFunc<N> sqrt_g_Fi(
 					[&vectorField, &metricTensorField, i](const VectorN<Real, N>& x) -> Real {
-						Real gx = MatrixUtils::Det(metricTensorField.GetCovariantMetric(x));
+						Real gx = Utils::Det(metricTensorField.GetCovariantMetric(x));
 						return std::sqrt(std::abs(gx)) * vectorField(x)[i];
 					}
 				);
@@ -38811,7 +39536,7 @@ namespace MML
 				for (Real t = t1 + delta; t < t2; t += delta)
 				{
 					Real len = PathIntegration::ParametricCurveLength(*this, t1, t);
-					if (fabs(len - (t - t1)) > PrecisionValues<Real>::DefaultToleranceRelaxed)
+					if (fabs(len - (t - t1)) > PrecisionValues<Real>::DefaultToleranceStrict)
 						return false;
 				}
 				return true;
@@ -39275,15 +40000,15 @@ namespace MML
 				constexpr Real eps = PrecisionValues<Real>::NumericalZeroThreshold;
 				return n.NormL2() > eps;
 			}
-			bool isFlat(Real u, Real w, Real eps = PrecisionValues<Real>::DefaultToleranceRelaxed)
+			bool isFlat(Real u, Real w, Real eps = PrecisionValues<Real>::DefaultToleranceStrict)
 			{
 				return std::abs(GaussianCurvature(u, w)) < eps;
 			}
-			bool isParabolic(Real u, Real w, Real eps = PrecisionValues<Real>::DefaultToleranceRelaxed)
+			bool isParabolic(Real u, Real w, Real eps = PrecisionValues<Real>::DefaultToleranceStrict)
 			{
 				return std::abs(GaussianCurvature(u, w)) < eps && !isFlat(u, w, eps);
 			}
-			bool isHyperbolic(Real u, Real w, Real eps = PrecisionValues<Real>::DefaultToleranceRelaxed)
+			bool isHyperbolic(Real u, Real w, Real eps = PrecisionValues<Real>::DefaultToleranceStrict)
 			{
 				return GaussianCurvature(u, w) < -eps;
 			}
@@ -39544,9 +40269,9 @@ namespace MML
 
 			VectorN<Real, 3> operator()(Real u, Real v) const { 
 				return VectorN<Real, 3>{
-					_scale * (u - u*u*u/3.0 + u*v*v),
-					_scale * (v - v*v*v/3.0 + v*u*u),
-					_scale * (u*u - v*v)
+					static_cast<Real>(_scale * (u - u*u*u/3.0 + u*v*v)),
+					static_cast<Real>(_scale * (v - v*v*v/3.0 + v*u*u)),
+					static_cast<Real>(_scale * (u*u - v*v))
 				}; 
 			}
 		};
@@ -39682,6 +40407,696 @@ namespace MML
         }
     };
   }
+
+
+///////////////////////////   mml/core/OrthogonalBasis/LegendreBasis.h   ///////////////////////////
+
+
+
+
+namespace MML
+{
+    ///////////////////////////////////////////////////////////////////////////////////////////
+    // LegendreBasis - Legendre polynomial orthogonal basis
+    //
+    // Basis functions: Pₙ(x) - Legendre polynomials
+    //
+    // Orthogonality: ∫₋₁¹ Pₘ(x)Pₙ(x) dx = 0 for m ≠ n
+    // Normalization: ∫₋₁¹ Pₙ²(x) dx = 2/(2n+1)
+    //
+    // Domain: [-1, 1]
+    // Weight function: w(x) = 1 (uniform)
+    //
+    // Recurrence relation (Bonnet's formula):
+    //   P₀(x) = 1
+    //   P₁(x) = x
+    //   (n+1)Pₙ₊₁(x) = (2n+1)xPₙ(x) - nPₙ₋₁(x)
+    //
+    // Physical applications:
+    //   - Solutions to Laplace equation in spherical coordinates
+    //   - Angular momentum eigenstates in quantum mechanics
+    //   - Multipole expansion in electrostatics
+    //   - Scattering theory
+    ///////////////////////////////////////////////////////////////////////////////////////////
+    class LegendreBasis : public OrthogonalBasis
+    {
+    public:
+        LegendreBasis() = default;
+
+        // Evaluate Legendre polynomial Pₙ(x)
+        Real Evaluate(int n, Real x) const override
+        {
+            if (n < 0)
+                throw std::invalid_argument("LegendreBasis::Evaluate: n must be non-negative");
+            
+            return Functions::Legendre(static_cast<unsigned int>(n), x);
+        }
+
+        // Weight function w(x) = 1 (uniform)
+        Real WeightFunction(Real /*x*/) const override 
+        { 
+            return 1.0; 
+        }
+
+        // Normalization: ||Pₙ||² = ∫₋₁¹ Pₙ²(x) dx = 2/(2n+1)
+        Real Normalization(int n) const override
+        {
+            if (n < 0)
+                throw std::invalid_argument("LegendreBasis::Normalization: n must be non-negative");
+            
+            return 2.0 / (2.0 * n + 1.0);
+        }
+
+        // Domain bounds
+        Real DomainMin() const override { return -1.0; }
+        Real DomainMax() const override { return 1.0; }
+
+        // Recurrence coefficients for three-term recurrence:
+        // Pₙ₊₁(x) = (aₙx + bₙ)Pₙ(x) + cₙPₙ₋₁(x)
+        // 
+        // Standard form: (n+1)Pₙ₊₁ = (2n+1)xPₙ - nPₙ₋₁
+        // So: aₙ = (2n+1)/(n+1), bₙ = 0, cₙ = -n/(n+1)
+        void RecurrenceCoefficients(int n, Real& a, Real& b, Real& c) const
+        {
+            if (n < 0)
+                throw std::invalid_argument("LegendreBasis::RecurrenceCoefficients: n must be non-negative");
+            
+            Real n_real = static_cast<Real>(n);
+            a = (2.0 * n_real + 1.0) / (n_real + 1.0);
+            b = 0.0;
+            c = -n_real / (n_real + 1.0);
+        }
+    };
+
+    ///////////////////////////////////////////////////////////////////////////////////////////
+    // Associated Legendre functions Pₗᵐ(x) for spherical harmonics
+    //
+    // Used in:
+    //   - Spherical harmonics Yₗᵐ(θ,φ) = √[(2l+1)(l-m)!/(4π(l+m)!)] Pₗᵐ(cos θ) e^(imφ)
+    //   - Solutions to Laplace equation in spherical coordinates
+    //   - Quantum angular momentum states
+    ///////////////////////////////////////////////////////////////////////////////////////////
+    class AssociatedLegendreBasis
+    {
+    private:
+        int _m;  // Order (fixed for this basis)
+
+    public:
+        explicit AssociatedLegendreBasis(int m) : _m(m)
+        {
+            if (m < 0)
+                throw std::invalid_argument("AssociatedLegendreBasis: m must be non-negative");
+        }
+
+        int Order() const { return _m; }
+
+        // Evaluate associated Legendre function Pₗᵐ(x) for given degree l
+        Real Evaluate(int l, Real x) const
+        {
+            if (l < _m)
+                throw std::invalid_argument("AssociatedLegendreBasis::Evaluate: l must be >= m");
+            
+            return Functions::SphLegendre(static_cast<unsigned int>(l), static_cast<unsigned int>(_m), x);
+        }
+
+        // Domain bounds
+        Real DomainMin() const { return -1.0; }
+        Real DomainMax() const { return 1.0; }
+    };
+
+} // namespace MML
+
+
+///////////////////////////   mml/core/OrthogonalBasis/ChebyshevBasis.h   ///////////////////////////
+
+
+
+
+namespace MML
+{
+    ///////////////////////////////////////////////////////////////////////////////////////////
+    // ChebyshevBasis - Chebyshev polynomials of the first kind Tₙ(x)
+    //
+    // Basis functions: Tₙ(x) - Chebyshev polynomials of the first kind
+    //
+    // Orthogonality: ∫₋₁¹ Tₘ(x)Tₙ(x)/√(1-x²) dx = 0 for m ≠ n
+    // Normalization: ∫₋₁¹ Tₙ²(x)/√(1-x²) dx = { π    if n = 0
+    //                                           { π/2  if n > 0
+    //
+    // Domain: [-1, 1]
+    // Weight function: w(x) = 1/√(1-x²)
+    //
+    // Recurrence relation:
+    //   T₀(x) = 1
+    //   T₁(x) = x
+    //   Tₙ₊₁(x) = 2xTₙ(x) - Tₙ₋₁(x)
+    //
+    // Special property: Tₙ(cos θ) = cos(nθ)
+    //
+    // Applications:
+    //   - Polynomial approximation (minimax property)
+    //   - Spectral methods (Chebyshev collocation)
+    //   - Signal processing (DCT, discrete cosine transform)
+    //   - Numerical analysis (Clenshaw-Curtis quadrature)
+    //
+    // Properties:
+    //   - |Tₙ(x)| ≤ 1 for x ∈ [-1, 1]
+    //   - Extrema at xₖ = cos(kπ/n), k = 0, 1, ..., n
+    //   - Zeros at xₖ = cos((2k-1)π/(2n)), k = 1, 2, ..., n
+    ///////////////////////////////////////////////////////////////////////////////////////////
+    class ChebyshevBasis : public OrthogonalBasis
+    {
+    public:
+        ChebyshevBasis() = default;
+
+        // Evaluate Chebyshev polynomial Tₙ(x)
+        Real Evaluate(int n, Real x) const override
+        {
+            if (n < 0)
+                throw std::invalid_argument("ChebyshevBasis::Evaluate: n must be non-negative");
+            
+            return ChebyshevT(n, x);
+        }
+
+        // Weight function w(x) = 1/√(1-x²)
+        Real WeightFunction(Real x) const override 
+        { 
+            if (std::abs(x) >= 1.0)
+            {
+                // At boundaries, weight is undefined but we can use a large value
+                // For practical computation, return a finite value
+                return 1e10;  // Singular at x = ±1
+            }
+            return 1.0 / std::sqrt(1.0 - x * x); 
+        }
+
+        // Normalization: ||Tₙ||² = { π    if n = 0
+        //                           { π/2  if n > 0
+        Real Normalization(int n) const override
+        {
+            if (n < 0)
+                throw std::invalid_argument("ChebyshevBasis::Normalization: n must be non-negative");
+            
+            if (n == 0)
+                return Constants::PI;
+            else
+                return Constants::PI / 2.0;
+        }
+
+        // Domain bounds
+        Real DomainMin() const override { return -1.0; }
+        Real DomainMax() const override { return 1.0; }
+
+        // Recurrence coefficients for three-term recurrence:
+        // Tₙ₊₁(x) = (aₙx + bₙ)Tₙ(x) + cₙTₙ₋₁(x)
+        // 
+        // Standard form: Tₙ₊₁ = 2xTₙ - Tₙ₋₁
+        // So: aₙ = 2, bₙ = 0, cₙ = -1
+        void RecurrenceCoefficients(int n, Real& a, Real& b, Real& c) const
+        {
+            if (n < 0)
+                throw std::invalid_argument("ChebyshevBasis::RecurrenceCoefficients: n must be non-negative");
+            
+            a = 2.0;
+            b = 0.0;
+            c = -1.0;
+        }
+
+        // Chebyshev extrema: xₖ = cos(kπ/n) for k = 0, 1, ..., n
+        std::vector<Real> GetExtrema(int n) const
+        {
+            if (n < 0)
+                throw std::invalid_argument("ChebyshevBasis::GetExtrema: n must be non-negative");
+            
+            std::vector<Real> extrema(n + 1);
+            for (int k = 0; k <= n; k++)
+                extrema[k] = std::cos(k * Constants::PI / n);
+            return extrema;
+        }
+
+        // Chebyshev zeros (roots): xₖ = cos((2k-1)π/(2n)) for k = 1, 2, ..., n
+        std::vector<Real> GetZeros(int n) const
+        {
+            if (n <= 0)
+                throw std::invalid_argument("ChebyshevBasis::GetZeros: n must be positive");
+            
+            std::vector<Real> zeros(n);
+            for (int k = 1; k <= n; k++)
+                zeros[k-1] = std::cos((2.0*k - 1.0) * Constants::PI / (2.0 * n));
+            return zeros;
+        }
+    };
+
+    ///////////////////////////////////////////////////////////////////////////////////////////
+    // ChebyshevBasisSecondKind - Chebyshev polynomials of the second kind Uₙ(x)
+    //
+    // Basis functions: Uₙ(x) - Chebyshev polynomials of the second kind
+    //
+    // Orthogonality: ∫₋₁¹ Uₘ(x)Uₙ(x)√(1-x²) dx = 0 for m ≠ n
+    // Normalization: ∫₋₁¹ Uₙ²(x)√(1-x²) dx = π/2
+    //
+    // Domain: [-1, 1]
+    // Weight function: w(x) = √(1-x²)
+    //
+    // Recurrence relation:
+    //   U₀(x) = 1
+    //   U₁(x) = 2x
+    //   Uₙ₊₁(x) = 2xUₙ(x) - Uₙ₋₁(x)
+    //
+    // Special property: Uₙ(cos θ) = sin((n+1)θ)/sin(θ)
+    //
+    // Relation to Tₙ: Uₙ(x) = dTₙ₊₁(x)/dx / (n+1)
+    //                 (1-x²)Uₙ(x) = xTₙ₊₁(x) - Tₙ₊₂(x)
+    ///////////////////////////////////////////////////////////////////////////////////////////
+    class ChebyshevBasisSecondKind
+    {
+    public:
+        ChebyshevBasisSecondKind() = default;
+
+        // Evaluate Chebyshev polynomial Uₙ(x) of the second kind
+        Real Evaluate(int n, Real x) const
+        {
+            if (n < 0)
+                throw std::invalid_argument("ChebyshevBasisSecondKind::Evaluate: n must be non-negative");
+            
+            return ChebyshevU(n, x);
+        }
+
+        // Weight function w(x) = √(1-x²)
+        Real WeightFunction(Real x) const 
+        { 
+            if (std::abs(x) >= 1.0)
+                return 0.0;  // Zero at boundaries
+            return std::sqrt(1.0 - x * x); 
+        }
+
+        // Normalization: ||Uₙ||² = π/2 for all n ≥ 0
+        Real Normalization(int n) const
+        {
+            if (n < 0)
+                throw std::invalid_argument("ChebyshevBasisSecondKind::Normalization: n must be non-negative");
+            
+            return Constants::PI / 2.0;
+        }
+
+        // Domain bounds
+        Real DomainMin() const { return -1.0; }
+        Real DomainMax() const { return 1.0; }
+
+        // Recurrence coefficients (same as first kind)
+        void RecurrenceCoefficients(int n, Real& a, Real& b, Real& c) const
+        {
+            if (n < 0)
+                throw std::invalid_argument("ChebyshevBasisSecondKind::RecurrenceCoefficients: n must be non-negative");
+            
+            a = 2.0;
+            b = 0.0;
+            c = -1.0;
+        }
+
+        // Zeros of Uₙ: xₖ = cos(kπ/(n+1)) for k = 1, 2, ..., n
+        std::vector<Real> GetZeros(int n) const
+        {
+            if (n <= 0)
+                throw std::invalid_argument("ChebyshevBasisSecondKind::GetZeros: n must be positive");
+            
+            std::vector<Real> zeros(n);
+            for (int k = 1; k <= n; k++)
+                zeros[k-1] = std::cos(k * Constants::PI / (n + 1.0));
+            return zeros;
+        }
+    };
+
+} // namespace MML
+
+
+///////////////////////////   mml/core/OrthogonalBasis/HermiteBasis.h   ///////////////////////////
+
+
+
+
+namespace MML
+{
+    ///////////////////////////////////////////////////////////////////////////////////////////
+    // HermiteBasis - Hermite polynomial orthogonal basis (physicist's convention)
+    //
+    // Basis functions: Hₙ(x) - Hermite polynomials
+    //
+    // Orthogonality: ∫₋∞^∞ Hₘ(x)Hₙ(x)e^(-x²) dx = 0 for m ≠ n
+    // Normalization: ∫₋∞^∞ Hₙ²(x)e^(-x²) dx = 2ⁿn!√π
+    //
+    // Domain: (-∞, ∞)
+    // Weight function: w(x) = e^(-x²)
+    //
+    // Recurrence relation:
+    //   H₀(x) = 1
+    //   H₁(x) = 2x
+    //   Hₙ₊₁(x) = 2xHₙ(x) - 2nHₙ₋₁(x)
+    //
+    // Physical applications:
+    //   - Quantum harmonic oscillator wavefunctions
+    //   - Gaussian beam modes in optics
+    //   - Heat equation solutions
+    //   - Signal processing (Gabor transform)
+    //
+    // Properties:
+    //   - Hₙ(-x) = (-1)ⁿHₙ(x)  (parity)
+    //   - d/dx Hₙ(x) = 2nHₙ₋₁(x)
+    //   - Hₙ solves: y'' - 2xy' + 2ny = 0  (Hermite differential equation)
+    ///////////////////////////////////////////////////////////////////////////////////////////
+    class HermiteBasis : public OrthogonalBasis
+    {
+    public:
+        HermiteBasis() = default;
+
+        // Evaluate Hermite polynomial Hₙ(x) using physicist's convention
+        Real Evaluate(int n, Real x) const override
+        {
+            if (n < 0)
+                throw std::invalid_argument("HermiteBasis::Evaluate: n must be non-negative");
+            
+            return Functions::Hermite(static_cast<unsigned int>(n), x);
+        }
+
+        // Weight function w(x) = e^(-x²)
+        Real WeightFunction(Real x) const override 
+        { 
+            return std::exp(-x * x); 
+        }
+
+        // Normalization: ||Hₙ||² = ∫₋∞^∞ Hₙ²(x)e^(-x²) dx = 2ⁿn!√π
+        Real Normalization(int n) const override
+        {
+            if (n < 0)
+                throw std::invalid_argument("HermiteBasis::Normalization: n must be non-negative");
+            
+            // 2^n * n! * sqrt(π)
+            Real two_to_n = std::pow(2.0, static_cast<Real>(n));
+            Real n_factorial = 1.0;
+            for (int k = 1; k <= n; k++)
+                n_factorial *= k;
+            
+            return two_to_n * n_factorial * std::sqrt(Constants::PI);
+        }
+
+        // Domain bounds (unbounded, but return practical limits)
+        Real DomainMin() const override 
+        { 
+            return -std::numeric_limits<Real>::infinity(); 
+        }
+        
+        Real DomainMax() const override 
+        { 
+            return std::numeric_limits<Real>::infinity(); 
+        }
+
+        // Recurrence coefficients for three-term recurrence:
+        // Hₙ₊₁(x) = (aₙx + bₙ)Hₙ(x) + cₙHₙ₋₁(x)
+        // 
+        // Standard form: Hₙ₊₁ = 2xHₙ - 2nHₙ₋₁
+        // So: aₙ = 2, bₙ = 0, cₙ = -2n
+        void RecurrenceCoefficients(int n, Real& a, Real& b, Real& c) const
+        {
+            if (n < 0)
+                throw std::invalid_argument("HermiteBasis::RecurrenceCoefficients: n must be non-negative");
+            
+            a = 2.0;
+            b = 0.0;
+            c = -2.0 * n;
+        }
+
+        // Quantum harmonic oscillator wavefunction ψₙ(x) = Nₙ Hₙ(x) e^(-x²/2)
+        // where Nₙ = 1/√(2ⁿn!√π) is normalization constant
+        Real QuantumWavefunction(int n, Real x) const
+        {
+            if (n < 0)
+                throw std::invalid_argument("HermiteBasis::QuantumWavefunction: n must be non-negative");
+            
+            Real Hn = Evaluate(n, x);
+            Real norm_factor = 1.0 / std::sqrt(Normalization(n));
+            Real gaussian = std::exp(-0.5 * x * x);
+            
+            return norm_factor * Hn * gaussian;
+        }
+    };
+
+    ///////////////////////////////////////////////////////////////////////////////////////////
+    // Probabilist's Hermite polynomials Heₙ(x)
+    //
+    // Weight function: w(x) = e^(-x²/2)
+    // Recurrence: Heₙ₊₁(x) = xHeₙ(x) - nHeₙ₋₁(x)
+    // Normalization: ∫₋∞^∞ Heₙ²(x)e^(-x²/2) dx = n!√(2π)
+    //
+    // Relation to physicist's: Heₙ(x) = 2^(-n/2) Hₙ(x/√2)
+    //
+    // Used in probability theory and statistics
+    ///////////////////////////////////////////////////////////////////////////////////////////
+    class ProbabilistHermiteBasis
+    {
+    public:
+        ProbabilistHermiteBasis() = default;
+
+        // Evaluate probabilist's Hermite polynomial Heₙ(x)
+        Real Evaluate(int n, Real x) const
+        {
+            if (n < 0)
+                throw std::invalid_argument("ProbabilistHermiteBasis::Evaluate: n must be non-negative");
+            
+            // Convert: Heₙ(x) = 2^(-n/2) Hₙ(x/√2)
+            Real x_scaled = x / Constants::SQRT2;
+            Real Hn = Functions::Hermite(static_cast<unsigned int>(n), x_scaled);
+            Real scale = std::pow(2.0, -0.5 * n);
+            
+            return scale * Hn;
+        }
+
+        // Weight function w(x) = e^(-x²/2)
+        Real WeightFunction(Real x) const 
+        { 
+            return std::exp(-0.5 * x * x); 
+        }
+
+        // Normalization: ||Heₙ||² = n!√(2π)
+        Real Normalization(int n) const
+        {
+            if (n < 0)
+                throw std::invalid_argument("ProbabilistHermiteBasis::Normalization: n must be non-negative");
+            
+            Real n_factorial = 1.0;
+            for (int k = 1; k <= n; k++)
+                n_factorial *= k;
+            
+            return n_factorial * std::sqrt(2.0 * Constants::PI);
+        }
+
+        // Domain bounds
+        Real DomainMin() const { return -std::numeric_limits<Real>::infinity(); }
+        Real DomainMax() const { return std::numeric_limits<Real>::infinity(); }
+    };
+
+} // namespace MML
+
+
+///////////////////////////   mml/core/OrthogonalBasis/LaguerreBasis.h   ///////////////////////////
+
+
+
+
+namespace MML
+{
+    ///////////////////////////////////////////////////////////////////////////////////////////
+    // LaguerreBasis - Laguerre polynomial orthogonal basis
+    //
+    // Basis functions: Lₙ(x) - Laguerre polynomials
+    //
+    // Orthogonality: ∫₀^∞ Lₘ(x)Lₙ(x)e^(-x) dx = 0 for m ≠ n
+    // Normalization: ∫₀^∞ Lₙ²(x)e^(-x) dx = 1
+    //
+    // Domain: [0, ∞)
+    // Weight function: w(x) = e^(-x)
+    //
+    // Recurrence relation:
+    //   L₀(x) = 1
+    //   L₁(x) = 1 - x
+    //   (n+1)Lₙ₊₁(x) = (2n + 1 - x)Lₙ(x) - nLₙ₋₁(x)
+    //
+    // Physical applications:
+    //   - Hydrogen atom wavefunctions (radial part)
+    //   - Quantum harmonic oscillator in 3D
+    //   - Heat conduction in semi-infinite domains
+    //   - Time-dependent perturbation theory
+    //
+    // Properties:
+    //   - Lₙ(0) = 1 for all n
+    //   - Lₙ solves: xy'' + (1-x)y' + ny = 0  (Laguerre differential equation)
+    //   - d/dx Lₙ(x) = -Lₙ₋₁^(1)(x) = -(Lₙ₋₁(x) + Lₙ₋₂(x) + ... + L₀(x))
+    ///////////////////////////////////////////////////////////////////////////////////////////
+    class LaguerreBasis : public OrthogonalBasis
+    {
+    public:
+        LaguerreBasis() = default;
+
+        // Evaluate Laguerre polynomial Lₙ(x)
+        Real Evaluate(int n, Real x) const override
+        {
+            if (n < 0)
+                throw std::invalid_argument("LaguerreBasis::Evaluate: n must be non-negative");
+            
+            return Functions::Laguerre(static_cast<unsigned int>(n), x);
+        }
+
+        // Weight function w(x) = e^(-x)
+        Real WeightFunction(Real x) const override 
+        { 
+            return std::exp(-x); 
+        }
+
+        // Normalization: ||Lₙ||² = ∫₀^∞ Lₙ²(x)e^(-x) dx = 1
+        Real Normalization(int n) const override
+        {
+            if (n < 0)
+                throw std::invalid_argument("LaguerreBasis::Normalization: n must be non-negative");
+            
+            return 1.0;
+        }
+
+        // Domain bounds
+        Real DomainMin() const override { return 0.0; }
+        Real DomainMax() const override 
+        { 
+            return std::numeric_limits<Real>::infinity(); 
+        }
+
+        // Recurrence coefficients for three-term recurrence:
+        // (n+1)Lₙ₊₁(x) = (2n + 1 - x)Lₙ(x) - nLₙ₋₁(x)
+        // 
+        // Divide by (n+1):
+        // Lₙ₊₁(x) = ((2n+1)/(n+1) - x/(n+1))Lₙ(x) - (n/(n+1))Lₙ₋₁(x)
+        //
+        // So in form Lₙ₊₁ = (aₙx + bₙ)Lₙ + cₙLₙ₋₁:
+        // aₙ = -1/(n+1), bₙ = (2n+1)/(n+1), cₙ = -n/(n+1)
+        void RecurrenceCoefficients(int n, Real& a, Real& b, Real& c) const
+        {
+            if (n < 0)
+                throw std::invalid_argument("LaguerreBasis::RecurrenceCoefficients: n must be non-negative");
+            
+            Real n_real = static_cast<Real>(n);
+            Real n_plus_1 = n_real + 1.0;
+            
+            a = -1.0 / n_plus_1;
+            b = (2.0 * n_real + 1.0) / n_plus_1;
+            c = -n_real / n_plus_1;
+        }
+    };
+
+    ///////////////////////////////////////////////////////////////////////////////////////////
+    // Associated Laguerre polynomials Lₙ^(α)(x)
+    //
+    // Generalized Laguerre polynomials with parameter α
+    //
+    // Orthogonality: ∫₀^∞ Lₘ^(α)(x)Lₙ^(α)(x)x^α e^(-x) dx = 0 for m ≠ n
+    // Normalization: ∫₀^∞ [Lₙ^(α)(x)]²x^α e^(-x) dx = Γ(n+α+1)/n!
+    //
+    // Weight function: w(x) = x^α e^(-x)
+    //
+    // Physical applications:
+    //   - Hydrogen atom (α = 2l + 1, where l is angular momentum quantum number)
+    //   - 3D quantum harmonic oscillator
+    //
+    // Relation to simple Laguerre: Lₙ^(0)(x) = Lₙ(x)
+    ///////////////////////////////////////////////////////////////////////////////////////////
+    class AssociatedLaguerreBasis
+    {
+    private:
+        Real _alpha;  // Order parameter (α > -1)
+
+    public:
+        explicit AssociatedLaguerreBasis(Real alpha) : _alpha(alpha)
+        {
+            if (alpha <= -1.0)
+                throw std::invalid_argument("AssociatedLaguerreBasis: alpha must be > -1");
+        }
+
+        Real Alpha() const { return _alpha; }
+
+        // Evaluate associated Laguerre polynomial Lₙ^(α)(x)
+        Real Evaluate(int n, Real x) const
+        {
+            if (n < 0)
+                throw std::invalid_argument("AssociatedLaguerreBasis::Evaluate: n must be non-negative");
+            
+            // Use recurrence relation:
+            // (n+1)Lₙ₊₁^(α) = (2n + α + 1 - x)Lₙ^(α) - (n + α)Lₙ₋₁^(α)
+            
+            if (n == 0)
+                return 1.0;
+            if (n == 1)
+                return 1.0 + _alpha - x;
+            
+            Real Ln_minus_1 = 1.0;
+            Real Ln = 1.0 + _alpha - x;
+            Real Ln_plus_1 = 0.0;
+            
+            for (int k = 1; k < n; k++)
+            {
+                Real k_real = static_cast<Real>(k);
+                Ln_plus_1 = ((2.0*k_real + _alpha + 1.0 - x) * Ln 
+                             - (k_real + _alpha) * Ln_minus_1) / (k_real + 1.0);
+                Ln_minus_1 = Ln;
+                Ln = Ln_plus_1;
+            }
+            
+            return Ln_plus_1;
+        }
+
+        // Weight function w(x) = x^α e^(-x)
+        Real WeightFunction(Real x) const 
+        { 
+            return std::pow(x, _alpha) * std::exp(-x); 
+        }
+
+        // Normalization: Γ(n+α+1)/n!
+        Real Normalization(int n) const
+        {
+            if (n < 0)
+                throw std::invalid_argument("AssociatedLaguerreBasis::Normalization: n must be non-negative");
+            
+            // Γ(n+α+1)/n! = (n+α)(n+α-1)...(α+1)Γ(α+1)
+            // For simplicity, use: (n+α)!/n! * Γ(α+1)/α!
+            
+            Real gamma_alpha_plus_1 = std::tgamma(_alpha + 1.0);
+            Real n_factorial = 1.0;
+            for (int k = 1; k <= n; k++)
+                n_factorial *= k;
+            
+            Real result = gamma_alpha_plus_1;
+            for (int k = 1; k <= n; k++)
+                result *= (_alpha + k);
+            result /= n_factorial;
+            
+            return result;
+        }
+
+        // Domain bounds
+        Real DomainMin() const { return 0.0; }
+        Real DomainMax() const { return std::numeric_limits<Real>::infinity(); }
+
+        // Recurrence coefficients
+        void RecurrenceCoefficients(int n, Real& a, Real& b, Real& c) const
+        {
+            if (n < 0)
+                throw std::invalid_argument("AssociatedLaguerreBasis::RecurrenceCoefficients: n must be non-negative");
+            
+            Real n_real = static_cast<Real>(n);
+            Real n_plus_1 = n_real + 1.0;
+            
+            a = -1.0 / n_plus_1;
+            b = (2.0 * n_real + _alpha + 1.0) / n_plus_1;
+            c = -(n_real + _alpha) / n_plus_1;
+        }
+    };
+
+} // namespace MML
 
 
 ///////////////////////////   mml/algorithms/EigenSolverHelpers.h   ///////////////////////////
@@ -44405,31 +45820,34 @@ namespace RKCoeff {
 	//                    COMPILE-TIME CONSISTENCY CHECKS
 	//=============================================================================
 
+	// Precision-dependent tolerance: float has ~7 digits, double has ~15
+	constexpr Real RK_COEFF_TOL = sizeof(Real) >= 8 ? Real(1e-14) : Real(1e-5);
+
 	// Verify row sums for consistency (sum of a[i][j] should equal c[i])
 	// These are fundamental Butcher tableau consistency conditions
 
 	// Cash-Karp row sum checks
-	static_assert(cabs(CashKarp5::a21 - CashKarp5::c2) < 1e-14, "CK5: row 2 sum != c2");
-	static_assert(cabs(CashKarp5::a31 + CashKarp5::a32 - CashKarp5::c3) < 1e-14, "CK5: row 3 sum != c3");
-	static_assert(cabs(CashKarp5::a41 + CashKarp5::a42 + CashKarp5::a43 - CashKarp5::c4) < 1e-14, "CK5: row 4 sum != c4");
-	static_assert(cabs(CashKarp5::a51 + CashKarp5::a52 + CashKarp5::a53 + CashKarp5::a54 - CashKarp5::c5) < 1e-14, "CK5: row 5 sum != c5");
-	static_assert(cabs(CashKarp5::a61 + CashKarp5::a62 + CashKarp5::a63 + CashKarp5::a64 + CashKarp5::a65 - CashKarp5::c6) < 1e-14, "CK5: row 6 sum != c6");
+	static_assert(cabs(CashKarp5::a21 - CashKarp5::c2) < RK_COEFF_TOL, "CK5: row 2 sum != c2");
+	static_assert(cabs(CashKarp5::a31 + CashKarp5::a32 - CashKarp5::c3) < RK_COEFF_TOL, "CK5: row 3 sum != c3");
+	static_assert(cabs(CashKarp5::a41 + CashKarp5::a42 + CashKarp5::a43 - CashKarp5::c4) < RK_COEFF_TOL, "CK5: row 4 sum != c4");
+	static_assert(cabs(CashKarp5::a51 + CashKarp5::a52 + CashKarp5::a53 + CashKarp5::a54 - CashKarp5::c5) < RK_COEFF_TOL, "CK5: row 5 sum != c5");
+	static_assert(cabs(CashKarp5::a61 + CashKarp5::a62 + CashKarp5::a63 + CashKarp5::a64 + CashKarp5::a65 - CashKarp5::c6) < RK_COEFF_TOL, "CK5: row 6 sum != c6");
 
 	// Verify b weights sum to 1 (required for consistency)
-	static_assert(cabs(CashKarp5::b1 + CashKarp5::b2 + CashKarp5::b3 + CashKarp5::b4 + CashKarp5::b5 + CashKarp5::b6 - 1.0) < 1e-14, "CK5: b weights don't sum to 1");
-	static_assert(cabs(CashKarp5::bstar1 + CashKarp5::bstar2 + CashKarp5::bstar3 + CashKarp5::bstar4 + CashKarp5::bstar5 + CashKarp5::bstar6 - 1.0) < 1e-14, "CK5: bstar weights don't sum to 1");
+	static_assert(cabs(CashKarp5::b1 + CashKarp5::b2 + CashKarp5::b3 + CashKarp5::b4 + CashKarp5::b5 + CashKarp5::b6 - 1.0) < RK_COEFF_TOL, "CK5: b weights don't sum to 1");
+	static_assert(cabs(CashKarp5::bstar1 + CashKarp5::bstar2 + CashKarp5::bstar3 + CashKarp5::bstar4 + CashKarp5::bstar5 + CashKarp5::bstar6 - 1.0) < RK_COEFF_TOL, "CK5: bstar weights don't sum to 1");
 
 	// Dormand-Prince 5 row sum checks
-	static_assert(cabs(DormandPrince5::a21 - DormandPrince5::c2) < 1e-14, "DP5: row 2 sum != c2");
-	static_assert(cabs(DormandPrince5::a31 + DormandPrince5::a32 - DormandPrince5::c3) < 1e-14, "DP5: row 3 sum != c3");
-	static_assert(cabs(DormandPrince5::a41 + DormandPrince5::a42 + DormandPrince5::a43 - DormandPrince5::c4) < 1e-14, "DP5: row 4 sum != c4");
-	static_assert(cabs(DormandPrince5::a51 + DormandPrince5::a52 + DormandPrince5::a53 + DormandPrince5::a54 - DormandPrince5::c5) < 1e-14, "DP5: row 5 sum != c5");
-	static_assert(cabs(DormandPrince5::a61 + DormandPrince5::a62 + DormandPrince5::a63 + DormandPrince5::a64 + DormandPrince5::a65 - DormandPrince5::c6) < 1e-14, "DP5: row 6 sum != c6");
-	static_assert(cabs(DormandPrince5::a71 + DormandPrince5::a72 + DormandPrince5::a73 + DormandPrince5::a74 + DormandPrince5::a75 + DormandPrince5::a76 - DormandPrince5::c7) < 1e-14, "DP5: row 7 sum != c7");
+	static_assert(cabs(DormandPrince5::a21 - DormandPrince5::c2) < RK_COEFF_TOL, "DP5: row 2 sum != c2");
+	static_assert(cabs(DormandPrince5::a31 + DormandPrince5::a32 - DormandPrince5::c3) < RK_COEFF_TOL, "DP5: row 3 sum != c3");
+	static_assert(cabs(DormandPrince5::a41 + DormandPrince5::a42 + DormandPrince5::a43 - DormandPrince5::c4) < RK_COEFF_TOL, "DP5: row 4 sum != c4");
+	static_assert(cabs(DormandPrince5::a51 + DormandPrince5::a52 + DormandPrince5::a53 + DormandPrince5::a54 - DormandPrince5::c5) < RK_COEFF_TOL, "DP5: row 5 sum != c5");
+	static_assert(cabs(DormandPrince5::a61 + DormandPrince5::a62 + DormandPrince5::a63 + DormandPrince5::a64 + DormandPrince5::a65 - DormandPrince5::c6) < RK_COEFF_TOL, "DP5: row 6 sum != c6");
+	static_assert(cabs(DormandPrince5::a71 + DormandPrince5::a72 + DormandPrince5::a73 + DormandPrince5::a74 + DormandPrince5::a75 + DormandPrince5::a76 - DormandPrince5::c7) < RK_COEFF_TOL, "DP5: row 7 sum != c7");
 
 	// Verify b weights sum to 1
-	static_assert(cabs(DormandPrince5::b1 + DormandPrince5::b2 + DormandPrince5::b3 + DormandPrince5::b4 + DormandPrince5::b5 + DormandPrince5::b6 + DormandPrince5::b7 - 1.0) < 1e-14, "DP5: b weights don't sum to 1");
-	static_assert(cabs(DormandPrince5::bstar1 + DormandPrince5::bstar2 + DormandPrince5::bstar3 + DormandPrince5::bstar4 + DormandPrince5::bstar5 + DormandPrince5::bstar6 + DormandPrince5::bstar7 - 1.0) < 1e-14, "DP5: bstar weights don't sum to 1");
+	static_assert(cabs(DormandPrince5::b1 + DormandPrince5::b2 + DormandPrince5::b3 + DormandPrince5::b4 + DormandPrince5::b5 + DormandPrince5::b6 + DormandPrince5::b7 - 1.0) < RK_COEFF_TOL, "DP5: b weights don't sum to 1");
+	static_assert(cabs(DormandPrince5::bstar1 + DormandPrince5::bstar2 + DormandPrince5::bstar3 + DormandPrince5::bstar4 + DormandPrince5::bstar5 + DormandPrince5::bstar6 + DormandPrince5::bstar7 - 1.0) < RK_COEFF_TOL, "DP5: bstar weights don't sum to 1");
 
 	// Verify FSAL property: a7x = bx for DP5
 	static_assert(DormandPrince5::a71 == DormandPrince5::b1, "DP5: FSAL violated (a71 != b1)");
@@ -45148,13 +46566,13 @@ namespace MML {
 					factor = std::max(MIN_FACTOR, std::min(MAX_FACTOR, factor));
 					result.hNext = h * factor;
 
-					_errOld = std::max(errMax, 1e-4); // Prevent extreme growth
+					_errOld = std::max<Real>(errMax, Real(1e-4)); // Prevent extreme growth
 					break;
 				}
 
 				// Step rejected - reduce h and try again
 				Real factor = SAFETY * std::pow(errMax, -ALPHA);
-				factor = std::max(MIN_FACTOR, factor);
+				factor = std::max<Real>(MIN_FACTOR, factor);
 				h *= factor;
 				_haveFSAL = false;
 
@@ -45351,14 +46769,14 @@ namespace MML {
 					if (errMax > ERRCON)
 						result.hNext = SAFETY * h * std::pow(errMax, PGROW);
 					else
-						result.hNext = 5.0 * h;
+						result.hNext = Real(5.0) * h;
 
 					break;
 				}
 
 				// Reduce step size
 				Real htemp = SAFETY * h * std::pow(errMax, PSHRINK);
-				h = (h >= 0) ? std::max(htemp, 0.1 * h) : std::min(htemp, 0.1 * h);
+				h = (h >= 0) ? std::max<Real>(htemp, Real(0.1) * h) : std::min<Real>(htemp, Real(0.1) * h);
 
 				if (std::abs(h) < Constants::Eps)
 					throw ODESolverError("Step size underflow in CashKarp_Stepper");
@@ -45591,16 +47009,16 @@ namespace MML {
 
 					// Step size control for next step
 					Real factor = SAFETY * std::pow(errMax, -ALPHA);
-					factor = std::max(MIN_FACTOR, std::min(MAX_FACTOR, factor));
+					factor = std::max<Real>(MIN_FACTOR, std::min<Real>(MAX_FACTOR, factor));
 					result.hNext = h * factor;
 
-					_errOld = std::max(errMax, 1e-4);
+					_errOld = std::max<Real>(errMax, Real(1e-4));
 					break;
 				}
 
 				// Reduce step size
 				Real factor = SAFETY * std::pow(errMax, -ALPHA);
-				factor = std::max(MIN_FACTOR, factor);
+				factor = std::max<Real>(MIN_FACTOR, factor);
 				h *= factor;
 				_haveFSAL = false;
 
@@ -45799,9 +47217,9 @@ namespace MML {
 					// Compute scaled error
 					Real errMax = 0.0;
 					for (int i = 0; i < _n; ++i) {
-						Real scale = eps * (std::abs(ysav[i]) + std::abs(yest[i]) + 1e-30);
+						Real scale = eps * (std::abs(ysav[i]) + std::abs(yest[i]) + Real(1e-30));
 						Real errRatio = std::abs(yerr[i]) / scale;
-						errMax = std::max(errMax, errRatio);
+						errMax = std::max<Real>(errMax, errRatio);
 					}
 
 					result.errMax = errMax;
@@ -45819,8 +47237,8 @@ namespace MML {
 						result.hDone = h;
 
 						// Step size control - be conservative
-						Real factor = 0.9 * std::pow(errMax, -1.0 / (2 * k + 1));
-						factor = std::max(0.1, std::min(factor, 4.0));
+						Real factor = Real(0.9) * std::pow(errMax, Real(-1.0) / (2 * k + 1));
+						factor = std::max<Real>(Real(0.1), std::min<Real>(factor, Real(4.0)));
 						result.hNext = h * factor;
 
 						return result;
@@ -45831,8 +47249,8 @@ namespace MML {
 			// Failed to converge - reduce step size
 			result.accepted = false;
 			result.hDone = h;
-			result.hNext = h * 0.5;
-			result.errMax = 999.0;
+			result.hNext = h * Real(0.5);
+			result.errMax = Real(999.0);
 
 			return result;
 		}
@@ -46005,9 +47423,9 @@ namespace MML {
 					// Compute scaled error
 					Real errMax = 0.0;
 					for (int i = 0; i < _n; ++i) {
-						Real scale = eps * (std::abs(ysav[i]) + std::abs(yest[i]) + 1e-30);
+						Real scale = eps * (std::abs(ysav[i]) + std::abs(yest[i]) + Real(1e-30));
 						Real errRatio = std::abs(yerr[i]) / scale;
-						errMax = std::max(errMax, errRatio);
+						errMax = std::max<Real>(errMax, errRatio);
 					}
 
 					result.errMax = errMax;
@@ -46025,8 +47443,8 @@ namespace MML {
 						result.hDone = h;
 
 						// Step size control - be conservative
-						Real factor = 0.9 * std::pow(errMax, -1.0 / (2 * k + 1));
-						factor = std::max(0.1, std::min(factor, 4.0));
+						Real factor = Real(0.9) * std::pow(errMax, Real(-1.0) / (2 * k + 1));
+						factor = std::max<Real>(Real(0.1), std::min<Real>(factor, Real(4.0)));
 						result.hNext = h * factor;
 
 						return result;
@@ -46037,8 +47455,8 @@ namespace MML {
 			// Failed to converge - reduce step size
 			result.accepted = false;
 			result.hDone = h;
-			result.hNext = h * 0.5;
-			result.errMax = 999.0;
+			result.hNext = h * Real(0.5);
+			result.errMax = Real(999.0);
 
 			return result;
 		}
@@ -46623,7 +48041,7 @@ namespace MML {
 								// Illinois method (modified regula falsi)
 								Real tMid = tLo - gLo * (tHi - tLo) / (gHi - gLo);
 								// Clamp to interval
-								tMid = std::max(tLo + 0.1 * (tHi - tLo), std::min(tHi - 0.1 * (tHi - tLo), tMid));
+								tMid = std::max<Real>(tLo + Real(0.1) * (tHi - tLo), std::min<Real>(tHi - Real(0.1) * (tHi - tLo), tMid));
 
 								Vector<Real> xMid = _stepper.interpolate(tMid);
 								Real gMid = sys.eventFunction(i, tMid, xMid);
@@ -47241,7 +48659,7 @@ namespace MML {
 				}
 
 				// Avoid division by zero
-				err_norm = std::max(err_norm, 1e-10);
+				err_norm = std::max<Real>(err_norm, Real(1e-10));
 
 				// Accept or reject step
 				if (err_norm <= 1.0) {
@@ -49939,6 +51357,2561 @@ namespace MML {
 	} // namespace Statistics
 } // namespace MML
 
+///////////////////////////   mml/algorithms/Statistics/Distributions.h   ///////////////////////////
+// Distributions.h
+// 
+// Probability distributions for MML (MinimalMathLibrary)
+//
+// Core:     Normal, Student's T, Chi-Square, F distributions
+// Extended: Cauchy, Exponential, Logistic, Uniform, Gamma, Beta,
+//           Weibull, Pareto, Log-Normal distributions
+///////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+namespace MML
+{
+	namespace Statistics
+	{
+		/// @brief Normal (Gaussian) distribution
+		/// The normal distribution is the most important continuous distribution,
+		/// central to the Central Limit Theorem and statistical inference.
+		/// PDF: f(x) = (1 / (σ√(2π))) · exp(-½((x-μ)/σ)²)
+		/// where μ is the mean and σ is the standard deviation
+		/// The standard normal has μ=0 and σ=1.
+		struct NormalDistribution
+		{
+			Real mu;    // Mean (location parameter)
+			Real sigma; // Standard deviation (scale parameter)
+
+			/// @brief Construct a normal distribution
+			///
+			/// @param mean Mean parameter μ (default: 0)
+			/// @param stddev Standard deviation σ (default: 1, must be > 0)
+			NormalDistribution(Real mean = 0.0, Real stddev = 1.0)
+				: mu(mean), sigma(stddev)
+			{
+				if (sigma <= 0.0)
+					throw StatisticsError("Standard deviation must be positive in NormalDistribution");
+			}
+
+			/// @brief Probability density function (PDF)
+			///
+			/// @param x Value at which to evaluate the PDF
+			/// @return Probability density at x
+			Real pdf(Real x) const
+			{
+				Real z = (x - mu) / sigma;
+				return std::exp(-0.5 * z * z) / (sigma * std::sqrt(2.0 * Constants::PI));
+			}
+
+			/// @brief Cumulative distribution function (CDF)
+			///
+			/// Uses the error function: Φ(x) = 0.5 * (1 + erf(x/√2))
+			/// @param x Value at which to evaluate the CDF
+			///
+			/// @return Probability that X <= x
+			Real cdf(Real x) const
+			{
+				Real z = (x - mu) / (sigma * std::sqrt(2.0));
+				return 0.5 * (1.0 + std::erf(z));
+			}
+
+			/// @brief Inverse cumulative distribution function (quantile/probit function)
+			///
+			/// Uses Abramowitz and Stegun approximation for the inverse error function.
+			/// @param p Probability (must be in (0, 1))
+			///
+			/// @return Value x such that P(X <= x) = p
+			Real inverseCdf(Real p) const
+			{
+				if (p <= 0.0 || p >= 1.0)
+					throw StatisticsError("Probability must be in (0, 1) in NormalDistribution::inverseCdf");
+
+				// Use rational approximation for inverse normal CDF
+				// Based on Abramowitz and Stegun approximation 26.2.23
+				Real z = inverseStandardNormalCdf(p);
+				return mu + sigma * z;
+			}
+
+			/// @brief Z-score: standardize a value
+			///
+			/// @param x Raw value
+			/// @return Standardized value (z-score)
+			Real zScore(Real x) const
+			{
+				return (x - mu) / sigma;
+			}
+
+			/// @brief Convert z-score back to raw value
+			///
+			/// @param z Standardized value
+			/// @return Raw value
+			Real fromZScore(Real z) const
+			{
+				return mu + sigma * z;
+			}
+
+			/// @brief Mean of the distribution
+			Real mean() const { return mu; }
+
+			/// @brief Variance of the distribution
+			Real variance() const { return sigma * sigma; }
+
+			/// @brief Standard deviation of the distribution
+			Real stddev() const { return sigma; }
+
+		private:
+			/// @brief Inverse of the standard normal CDF (probit function)
+			/// Uses rational approximation from Abramowitz and Stegun (26.2.23)
+			/// with refinement for tails. Accurate to ~1e-9.
+			static Real inverseStandardNormalCdf(Real p)
+			{
+				if (p <= 0.0 || p >= 1.0)
+					throw StatisticsError("Probability must be in (0, 1) in inverseStandardNormalCdf");
+
+				// Coefficients for rational approximation
+				const Real a[] = {
+					-3.969683028665376e+01,
+					 2.209460984245205e+02,
+					-2.759285104469687e+02,
+					 1.383577518672690e+02,
+					-3.066479806614716e+01,
+					 2.506628277459239e+00
+				};
+				const Real b[] = {
+					-5.447609879822406e+01,
+					 1.615858368580409e+02,
+					-1.556989798598866e+02,
+					 6.680131188771972e+01,
+					-1.328068155288572e+01
+				};
+				const Real c[] = {
+					-7.784894002430293e-03,
+					-3.223964580411365e-01,
+					-2.400758277161838e+00,
+					-2.549732539343734e+00,
+					 4.374664141464968e+00,
+					 2.938163982698783e+00
+				};
+				const Real d[] = {
+					 7.784695709041462e-03,
+					 3.224671290700398e-01,
+					 2.445134137142996e+00,
+					 3.754408661907416e+00
+				};
+
+				const Real pLow = 0.02425;
+				const Real pHigh = 1.0 - pLow;
+
+				Real q, r;
+
+				if (p < pLow) {
+					// Lower tail
+					q = std::sqrt(-2.0 * std::log(p));
+					return (((((c[0]*q + c[1])*q + c[2])*q + c[3])*q + c[4])*q + c[5]) /
+					        ((((d[0]*q + d[1])*q + d[2])*q + d[3])*q + 1.0);
+				} else if (p <= pHigh) {
+					// Central region
+					q = p - 0.5;
+					r = q * q;
+					return (((((a[0]*r + a[1])*r + a[2])*r + a[3])*r + a[4])*r + a[5]) * q /
+					       (((((b[0]*r + b[1])*r + b[2])*r + b[3])*r + b[4])*r + 1.0);
+				} else {
+					// Upper tail
+					q = std::sqrt(-2.0 * std::log(1.0 - p));
+					return -(((((c[0]*q + c[1])*q + c[2])*q + c[3])*q + c[4])*q + c[5]) /
+					         ((((d[0]*q + d[1])*q + d[2])*q + d[3])*q + 1.0);
+				}
+			}
+		};
+
+		/// @brief Standard normal distribution (mean=0, stddev=1)
+		///
+		/// Convenience functions for the standard normal distribution.
+		struct StandardNormal
+		{
+			/// @brief PDF of standard normal
+			static Real pdf(Real z)
+			{
+				return std::exp(-0.5 * z * z) / std::sqrt(2.0 * Constants::PI);
+			}
+
+			/// @brief CDF of standard normal (Φ function)
+			static Real cdf(Real z)
+			{
+				return 0.5 * (1.0 + std::erf(z / std::sqrt(2.0)));
+			}
+
+			/// @brief Inverse CDF (probit function)
+			static Real inverseCdf(Real p)
+			{
+				NormalDistribution standard(0.0, 1.0);
+				return standard.inverseCdf(p);
+			}
+
+			/// @brief Survival function: P(Z > z) = 1 - Φ(z)
+			static Real sf(Real z)
+			{
+				return 1.0 - cdf(z);
+			}
+
+			/// @brief Two-tailed p-value: P(|Z| > |z|)
+			static Real twoTailedPValue(Real z)
+			{
+				return 2.0 * sf(std::abs(z));
+			}
+		};
+
+		/// @brief Student's t-distribution
+		///
+		/// The t-distribution is used for inference about means when the sample size
+		/// is small and/or the population standard deviation is unknown. It has heavier
+		///
+		/// tails than the normal distribution, with the tail weight controlled by
+		/// degrees of freedom (df).
+		///
+		/// As df → ∞, the t-distribution approaches the standard normal distribution.
+		/// PDF: f(x) = Γ((ν+1)/2) / (√(νπ) · Γ(ν/2)) · (1 + x²/ν)^(-(ν+1)/2)
+		///
+		/// where ν is the degrees of freedom
+		struct TDistribution
+		{
+			int df;  // Degrees of freedom
+
+			/// @brief Construct a Student's t-distribution
+			///
+			/// @param degreesOfFreedom Degrees of freedom (must be >= 1)
+			TDistribution(int degreesOfFreedom) : df(degreesOfFreedom)
+			{
+				if (df < 1)
+					throw StatisticsError("Degrees of freedom must be at least 1 in TDistribution");
+			}
+
+			/// @brief Probability density function (PDF)
+			///
+			/// @param x Value at which to evaluate the PDF
+			/// @return Probability density at x
+			Real pdf(Real x) const
+			{
+				Real nu = static_cast<Real>(df);
+				
+				// Log-space computation for numerical stability
+				Real logNumerator = std::lgamma((nu + 1.0) / 2.0);
+				Real logDenominator = 0.5 * std::log(nu * Constants::PI) + std::lgamma(nu / 2.0);
+				Real logBase = -(nu + 1.0) / 2.0 * std::log(1.0 + x * x / nu);
+				
+				return std::exp(logNumerator - logDenominator + logBase);
+			}
+
+			/// @brief Cumulative distribution function (CDF)
+			///
+			/// Uses the regularized incomplete beta function.
+			/// @param x Value at which to evaluate the CDF
+			///
+			/// @return Probability that T <= x
+			Real cdf(Real x) const
+			{
+				if (df == 1) {
+					// Special case: df=1 is Cauchy distribution centered at 0
+					return 0.5 + std::atan(x) / Constants::PI;
+				}
+
+				Real nu = static_cast<Real>(df);
+				
+				if (x == 0.0)
+					return 0.5;
+				
+				// Standard formula for t-distribution CDF:
+				// For t > 0: P(T <= t) = 1 - 0.5 * I_x(df/2, 0.5)
+				// where x = df/(df + t²)
+				// For t < 0: Use symmetry P(T <= -|t|) = 1 - P(T <= |t|)
+				
+				Real absX = std::abs(x);
+				Real x2 = absX * absX;
+				Real xBeta = nu / (nu + x2);
+				Real betaReg = incompleteBetaRegularized(xBeta, nu / 2.0, 0.5);
+				
+				Real result = 1.0 - 0.5 * betaReg;
+				
+				// If x < 0, use symmetry
+				if (x < 0.0)
+					result = 1.0 - result;
+				
+				return result;
+			}
+
+			/// @brief Inverse cumulative distribution function (quantile function)
+			///
+			/// Uses iterative root finding for the inverse.
+			/// @param p Probability (must be in (0, 1))
+			///
+			/// @return Value t such that P(T <= t) = p
+			Real inverseCdf(Real p) const
+			{
+				if (p <= 0.0 || p >= 1.0)
+					throw StatisticsError("Probability must be in (0, 1) in TDistribution::inverseCdf");
+
+				if (p == 0.5)
+					return 0.0;
+
+				if (df == 1) {
+					// Special case: df=1 is Cauchy
+					return std::tan(Constants::PI * (p - 0.5));
+				}
+
+				// Use Newton-Raphson iteration
+				// Start with normal approximation
+				Real t = StandardNormal::inverseCdf(p);
+				
+				// Refine with Newton-Raphson
+				for (int iter = 0; iter < 10; iter++) {
+					Real f = cdf(t) - p;
+					Real fprime = pdf(t);
+					
+					if (std::abs(fprime) < 1e-14)
+						break;
+					
+					Real delta = f / fprime;
+					t -= delta;
+					
+					if (std::abs(delta) < 1e-10)
+						break;
+				}
+				
+				return t;
+			}
+
+			/// @brief Survival function: P(T > t)
+			Real sf(Real x) const
+			{
+				return 1.0 - cdf(x);
+			}
+
+			/// @brief Two-tailed p-value: P(|T| > |t|)
+			///
+			/// This is the standard p-value used in t-tests.
+			Real twoTailedPValue(Real t) const
+			{
+				return 2.0 * sf(std::abs(t));
+			}
+
+			/// @brief Critical value for given significance level (two-tailed)
+			///
+			/// Returns t* such that P(|T| > t*) = alpha
+			/// @param alpha Significance level (e.g., 0.05 for 95% confidence)
+			///
+			/// @return Critical value t*
+			Real criticalValue(Real alpha) const
+			{
+				if (alpha <= 0.0 || alpha >= 1.0)
+					throw StatisticsError("Alpha must be in (0, 1) in TDistribution::criticalValue");
+				
+				// Two-tailed: find t* where P(T > t*) = alpha/2
+				return inverseCdf(1.0 - alpha / 2.0);
+			}
+
+			/// @brief Mean of the distribution (if it exists)
+			///
+			/// Mean exists only for df >= 2, and equals 0.
+			Real mean() const
+			{
+				if (df < 2)
+					throw StatisticsError("Mean does not exist for df < 2 in TDistribution");
+				return 0.0;
+			}
+
+			/// @brief Variance of the distribution (if it exists)
+			///
+			/// Variance exists only for df >= 3.
+			/// Var(T) = ν/(ν-2) for ν > 2
+			Real variance() const
+			{
+				if (df <= 2)
+					throw StatisticsError("Variance does not exist for df <= 2 in TDistribution");
+				
+				Real nu = static_cast<Real>(df);
+				return nu / (nu - 2.0);
+			}
+
+		private:
+			/// @brief Regularized incomplete beta function I_x(a, b)
+			/// Uses continued fraction expansion (Lentz's method).
+			/// Based on Numerical Recipes formula 6.4.5
+			static Real incompleteBetaRegularized(Real x, Real a, Real b)
+			{
+				if (x < 0.0 || x > 1.0)
+					return 0.0;
+				if (x == 0.0)
+					return 0.0;
+				if (x == 1.0)
+					return 1.0;
+
+				// Use symmetry relation if x > (a+1)/(a+b+2)
+				bool useSymmetry = (x > (a + 1.0) / (a + b + 2.0));
+				if (useSymmetry) {
+					return 1.0 - incompleteBetaRegularized(1.0 - x, b, a);
+				}
+
+				// Compute log of beta function B(a, b) = Γ(a)Γ(b)/Γ(a+b)
+				Real logBeta = std::lgamma(a) + std::lgamma(b) - std::lgamma(a + b);
+				
+				// Front factor: exp(a*ln(x) + b*ln(1-x) - ln(B(a,b))) / a
+				Real front = std::exp(a * std::log(x) + b * std::log(1.0 - x) - logBeta) / a;
+
+				// Modified Lentz's method for continued fraction
+				// Formula from Numerical Recipes (Press et al.)
+				const Real fpmin = 1.0e-30;
+				const Real eps = 1.0e-15;
+				const int maxIter = 200;
+				
+				Real qab = a + b;
+				Real qap = a + 1.0;
+				Real qam = a - 1.0;
+				Real c = 1.0;
+				Real d = 1.0 - qab * x / qap;
+				if (std::abs(d) < fpmin) d = fpmin;
+				d = 1.0 / d;
+				Real h = d;
+				
+				for (int m = 1; m <= maxIter; m++) {
+					int m2 = 2 * m;
+					Real aa = m * (b - m) * x / ((qam + m2) * (a + m2));
+					d = 1.0 + aa * d;
+					if (std::abs(d) < fpmin) d = fpmin;
+					c = 1.0 + aa / c;
+					if (std::abs(c) < fpmin) c = fpmin;
+					d = 1.0 / d;
+					h *= d * c;
+					
+					aa = -(a + m) * (qab + m) * x / ((a + m2) * (qap + m2));
+					d = 1.0 + aa * d;
+					if (std::abs(d) < fpmin) d = fpmin;
+					c = 1.0 + aa / c;
+					if (std::abs(c) < fpmin) c = fpmin;
+					d = 1.0 / d;
+					Real del = d * c;
+					h *= del;
+					
+					if (std::abs(del - 1.0) < eps)
+						break;
+				}
+
+				return front * h;
+			}
+		};
+
+		/// @brief Chi-square (χ²) distribution
+		///
+		/// The chi-square distribution is the distribution of a sum
+		/// of a sum of the squares of k independent standard normal random variables.
+		///
+		/// PDF: f(x; k) = (1 / (2^(k/2) * Γ(k/2))) * x^(k/2-1) * e^(-x/2) for x ≥ 0
+		/// Mean: k
+		///
+		/// Variance: 2k
+		/// Used extensively in hypothesis testing (goodness-of-fit, independence tests)
+		///
+		/// @param df Degrees of freedom (must be positive)
+		class ChiSquareDistribution
+		{
+		private:
+			int _df;  // degrees of freedom
+
+		public:
+			ChiSquareDistribution(int df) : _df(df)
+			{
+				if (df <= 0)
+					throw StatisticsError("Chi-square distribution requires positive degrees of freedom");
+			}
+
+			int df() const { return _df; }
+			Real mean() const { return static_cast<Real>(_df); }
+			Real variance() const { return 2.0 * _df; }
+			Real stddev() const { return std::sqrt(variance()); }
+
+			/// @brief Probability Density Function
+			Real pdf(Real x) const
+			{
+				if (x < 0.0) return 0.0;
+				if (x == 0.0) return (_df == 2) ? 0.5 : 0.0;
+
+				Real k2 = _df / 2.0;
+				return std::exp((k2 - 1.0) * std::log(x) - x / 2.0 - k2 * std::log(2.0) - std::lgamma(k2));
+			}
+
+			/// @brief Cumulative Distribution Function (CDF)
+			///
+			/// P(X ≤ x) using the incomplete gamma function
+			Real cdf(Real x) const
+			{
+				if (x <= 0.0) return 0.0;
+				
+				// CDF = P(k/2, x/2) where P is regularized lower incomplete gamma
+				return incompleteGammaP(_df / 2.0, x / 2.0);
+			}
+
+			/// @brief Right-tail probability P(X ≥ x)
+			///
+			/// This is the p-value for chi-square tests
+			Real rightTailPValue(Real chiSquare) const
+			{
+				return 1.0 - cdf(chiSquare);
+			}
+
+			/// @brief Critical value for given significance level (right-tail test)
+			///
+			/// Returns x such that P(X ≥ x) = alpha
+			Real criticalValue(Real alpha) const
+			{
+				if (alpha <= 0.0 || alpha >= 1.0)
+					throw StatisticsError("Alpha must be in (0, 1)");
+
+				// Find x where CDF(x) = 1 - alpha using binary search
+				Real low = 0.0;
+				Real high = mean() + 10.0 * stddev();  // Start with reasonable upper bound
+				Real tolerance = 1e-9;
+				int maxIterations = 100;
+
+				for (int iter = 0; iter < maxIterations; iter++) {
+					Real mid = (low + high) / 2.0;
+					Real cdf_mid = cdf(mid);
+					Real target = 1.0 - alpha;
+
+					if (std::abs(cdf_mid - target) < tolerance)
+						return mid;
+
+					if (cdf_mid < target)
+						low = mid;
+					else
+						high = mid;
+				}
+
+				return (low + high) / 2.0;
+			}
+
+		private:
+			/// @brief Regularized lower incomplete gamma function P(a,x)
+			/// P(a,x) = γ(a,x) / Γ(a)
+			Real incompleteGammaP(Real a, Real x) const
+			{
+				if (x < 0.0 || a <= 0.0)
+					return 0.0;
+
+				if (x == 0.0)
+					return 0.0;
+
+				// Use series expansion for x < a+1
+				if (x < a + 1.0) {
+					return gammaSeriesExpansion(a, x);
+				}
+				// Use continued fraction for x >= a+1
+				else {
+					return 1.0 - gammaContinuedFraction(a, x);
+				}
+			}
+
+			/// @brief Series expansion for incomplete gamma
+			Real gammaSeriesExpansion(Real a, Real x) const
+			{
+				Real sum = 1.0 / a;
+				Real term = 1.0 / a;
+				Real tolerance = 1e-12;
+
+				for (int n = 1; n <= 1000; n++) {
+					term *= x / (a + n);
+					sum += term;
+
+					if (std::abs(term) < std::abs(sum) * tolerance)
+						break;
+				}
+
+				return sum * std::exp(-x + a * std::log(x) - std::lgamma(a));
+			}
+
+			/// @brief Continued fraction for incomplete gamma
+			Real gammaContinuedFraction(Real a, Real x) const
+			{
+				Real tolerance = 1e-12;
+				Real fpmin = 1e-30;
+
+				Real b = x + 1.0 - a;
+				Real c = 1.0 / fpmin;
+				Real d = 1.0 / b;
+				Real h = d;
+
+				for (int i = 1; i <= 1000; i++) {
+					Real an = -i * (i - a);
+					b += 2.0;
+					d = an * d + b;
+					if (std::abs(d) < fpmin) d = fpmin;
+					c = b + an / c;
+					if (std::abs(c) < fpmin) c = fpmin;
+					d = 1.0 / d;
+					Real delta = d * c;
+					h *= delta;
+
+					if (std::abs(delta - 1.0) < tolerance)
+						break;
+				}
+
+				return h * std::exp(-x + a * std::log(x) - std::lgamma(a));
+			}
+		};
+
+    /// @brief F-Distribution (Fisher-Snedecor Distribution)
+    ///
+    /// The F-distribution is the ratio of two scaled chi-square distributions.
+    /// F = (χ²₁/df₁) / (χ²₂/df₂)
+    ///
+    /// Used extensively in ANOVA, regression analysis, and comparing variances.
+    /// PDF: f(x; d₁, d₂) = [complex formula involving beta function]
+    ///
+    /// Mean: d₂/(d₂-2) for d₂ > 2
+    /// Variance: 2d₂²(d₁+d₂-2) / [d₁(d₂-2)²(d₂-4)] for d₂ > 4
+    ///
+    /// @param df1 Numerator degrees of freedom
+    /// @param df2 Denominator degrees of freedom
+    class FDistribution
+    {
+    private:
+      int _df1;  // numerator df
+      int _df2;  // denominator df
+
+    public:
+      FDistribution(int df1, int df2) : _df1(df1), _df2(df2)
+      {
+        if (df1 <= 0 || df2 <= 0)
+          throw StatisticsError("F-distribution requires positive degrees of freedom");
+      }
+
+      int df1() const { return _df1; }
+      int df2() const { return _df2; }
+
+      Real mean() const
+      {
+        if (_df2 <= 2)
+          throw StatisticsError("F-distribution mean undefined for df2 <= 2");
+        return static_cast<Real>(_df2) / (_df2 - 2);
+      }
+
+      Real variance() const
+      {
+        if (_df2 <= 4)
+          throw StatisticsError("F-distribution variance undefined for df2 <= 4");
+        Real d1 = static_cast<Real>(_df1);
+        Real d2 = static_cast<Real>(_df2);
+        return (2.0 * d2 * d2 * (d1 + d2 - 2.0)) /
+              (d1 * (d2 - 2.0) * (d2 - 2.0) * (d2 - 4.0));
+      }
+
+      /// @brief Probability Density Function
+      Real pdf(Real x) const
+      {
+        if (x < 0.0) return 0.0;
+        if (x == 0.0) return (_df1 == 2) ? 1.0 : 0.0;
+
+        Real d1 = _df1 / 2.0;
+        Real d2 = _df2 / 2.0;
+
+        // log PDF to avoid overflow
+        Real logPdf = d1 * std::log(_df1) + d2 * std::log(_df2) +
+                      (d1 - 1.0) * std::log(x) -
+                      (d1 + d2) * std::log(_df2 + _df1 * x) +
+                      std::lgamma(d1 + d2) - std::lgamma(d1) - std::lgamma(d2);
+
+        return std::exp(logPdf);
+      }
+
+      /// @brief Cumulative Distribution Function
+      ///
+      /// Uses relationship with regularized incomplete beta function
+      Real cdf(Real x) const
+      {
+        if (x <= 0.0) return 0.0;
+
+        // F-CDF = I_y(df1/2, df2/2) where y = (df1*x)/(df1*x + df2)
+        // I is regularized incomplete beta function
+        Real y = (_df1 * x) / (_df1 * x + _df2);
+        return incompleteBeta(_df1 / 2.0, _df2 / 2.0, y);
+      }
+
+      /// @brief Right-tail probability P(F ≥ f)
+      ///
+      /// This is the p-value for F-tests (ANOVA, regression)
+      Real rightTailPValue(Real f) const
+      {
+        return 1.0 - cdf(f);
+      }
+
+      /// @brief Critical value for given significance level (right-tail test)
+      ///
+      /// Returns f such that P(F ≥ f) = alpha
+      Real criticalValue(Real alpha) const
+      {
+        if (alpha <= 0.0 || alpha >= 1.0)
+          throw StatisticsError("Alpha must be in (0, 1)");
+
+        // Binary search for critical value
+        Real low = 0.0;
+        Real high = 100.0;  // Start with reasonable upper bound
+        Real tolerance = 1e-9;
+        int maxIterations = 100;
+
+        for (int iter = 0; iter < maxIterations; iter++) {
+          Real mid = (low + high) / 2.0;
+          Real pValue = rightTailPValue(mid);
+
+          if (std::abs(pValue - alpha) < tolerance)
+            return mid;
+
+          if (pValue > alpha)  // Need larger F
+            low = mid;
+          else  // Need smaller F
+            high = mid;
+        }
+
+        return (low + high) / 2.0;
+      }
+
+    private:
+      /// @brief Regularized incomplete beta function I_x(a,b)
+      Real incompleteBeta(Real a, Real b, Real x) const
+      {
+        if (x < 0.0 || x > 1.0)
+          return 0.0;
+        if (x == 0.0) return 0.0;
+        if (x == 1.0) return 1.0;
+
+        // Use symmetry relation if needed
+        if (x > (a + 1.0) / (a + b + 2.0)) {
+          return 1.0 - incompleteBeta(b, a, 1.0 - x);
+        }
+
+        // Continued fraction evaluation
+        Real bt = std::exp(std::lgamma(a + b) - std::lgamma(a) - std::lgamma(b) +
+                          a * std::log(x) + b * std::log(1.0 - x));
+
+        if (x < (a + 1.0) / (a + b + 2.0))
+          return bt * betaContinuedFraction(a, b, x) / a;
+        else
+          return 1.0 - bt * betaContinuedFraction(b, a, 1.0 - x) / b;
+      }
+
+      /// @brief Continued fraction for incomplete beta
+      Real betaContinuedFraction(Real a, Real b, Real x) const
+      {
+        Real tolerance = 1e-12;
+        Real fpmin = 1e-30;
+        Real qab = a + b;
+        Real qap = a + 1.0;
+        Real qam = a - 1.0;
+        Real c = 1.0;
+        Real d = 1.0 - qab * x / qap;
+
+        if (std::abs(d) < fpmin) d = fpmin;
+        d = 1.0 / d;
+        Real h = d;
+
+        for (int m = 1; m <= 1000; m++) {
+          int m2 = 2 * m;
+          Real aa = m * (b - m) * x / ((qam + m2) * (a + m2));
+          d = 1.0 + aa * d;
+          if (std::abs(d) < fpmin) d = fpmin;
+          c = 1.0 + aa / c;
+          if (std::abs(c) < fpmin) c = fpmin;
+          d = 1.0 / d;
+          h *= d * c;
+
+          aa = -(a + m) * (qab + m) * x / ((a + m2) * (qap + m2));
+          d = 1.0 + aa * d;
+          if (std::abs(d) < fpmin) d = fpmin;
+          c = 1.0 + aa / c;
+          if (std::abs(c) < fpmin) c = fpmin;
+          d = 1.0 / d;
+          Real delta = d * c;
+          h *= delta;
+
+          if (std::abs(delta - 1.0) < tolerance)
+            break;
+        }
+
+        return h;
+      }
+    };
+
+/// @brief Cauchy distribution (Lorentz distribution)
+		/// @note Heavy tails, undefined mean/variance, PDF: f(x) = 1/(π·σ·(1+((x-μ)/σ)²))
+		struct CauchyDistribution
+		{
+			Real mu;   // Location parameter (peak location)
+			Real sigma; // Scale parameter (half-width at half-maximum)
+
+			/// @brief Construct a Cauchy distribution
+			/// @param location Location parameter (default: 0)
+			/// @param scale Scale parameter (default: 1, must be > 0)
+			CauchyDistribution(Real location = 0.0, Real scale = 1.0) 
+				: mu(location), sigma(scale)
+			{
+				if (sigma <= 0.0)
+					throw StatisticsError("Scale parameter must be positive in CauchyDistribution");
+			}
+
+			/// @brief Probability density function (PDF)
+			///
+			/// @param x Value at which to evaluate the PDF
+			/// @return Probability density at x
+			Real pdf(Real x) const
+			{
+				Real z = (x - mu) / sigma;
+				return 1.0 / (Constants::PI * sigma * (1.0 + z * z));
+			}
+
+			/// @brief Cumulative distribution function (CDF)
+			///
+			/// @param x Value at which to evaluate the CDF
+			/// @return Probability that X <= x
+			Real cdf(Real x) const
+			{
+				return 0.5 + std::atan2(x - mu, sigma) / Constants::PI;
+			}
+
+			/// @brief Inverse cumulative distribution function (quantile function)
+			///
+			/// @param p Probability (must be in (0, 1))
+			/// @return Value x such that P(X <= x) = p
+			Real inverseCdf(Real p) const
+			{
+				if (p <= 0.0 || p >= 1.0)
+					throw StatisticsError("Probability must be in (0, 1) in CauchyDistribution::inverseCdf");
+				return mu + sigma * std::tan(Constants::PI * (p - 0.5));
+			}
+		};
+
+		/// @brief Exponential distribution (memoryless property)
+		/// @note Models time between Poisson events, PDF: f(x) = λ·exp(-λ·x), λ = rate = 1/mean
+		struct ExponentialDistribution
+		{
+			Real lambda; // Rate parameter (inverse of mean)
+
+			/// @brief Construct an exponential distribution
+			/// @param rate Rate parameter λ (must be > 0)
+			ExponentialDistribution(Real rate) : lambda(rate)
+			{
+				if (lambda <= 0.0)
+					throw StatisticsError("Rate parameter must be positive in ExponentialDistribution");
+			}
+
+			/// @brief Probability density function (PDF)
+			/// @param x Value at which to evaluate the PDF (must be >= 0)
+			/// @return Probability density at x
+			Real pdf(Real x) const
+			{
+				if (x < 0.0)
+					throw StatisticsError("x must be non-negative in ExponentialDistribution::pdf");
+				return lambda * std::exp(-lambda * x);
+			}
+
+			/// @brief Cumulative distribution function (CDF)
+			/// @param x Value at which to evaluate the CDF (must be >= 0)
+			/// @return Probability that X <= x
+			Real cdf(Real x) const
+			{
+				if (x < 0.0)
+					throw StatisticsError("x must be non-negative in ExponentialDistribution::cdf");
+				return 1.0 - std::exp(-lambda * x);
+			}
+
+			/// @brief Inverse CDF (quantile function)
+			/// @param p Probability (must be in [0, 1))
+			/// @return Value x such that P(X <= x) = p
+			Real inverseCdf(Real p) const
+			{
+				if (p < 0.0 || p >= 1.0)
+					throw StatisticsError("Probability must be in [0, 1) in ExponentialDistribution::inverseCdf");
+				return -std::log(1.0 - p) / lambda;
+			}
+
+			/// @brief Get the mean of the distribution
+			/// @return Mean = 1/λ
+			Real mean() const { return 1.0 / lambda; }
+
+			/// @brief Get the variance of the distribution
+			/// @return Variance = 1/λ²
+			Real variance() const { return 1.0 / (lambda * lambda); }
+		};
+
+		/// @brief Logistic distribution (used in logistic regression, neural networks)
+		/// @note Resembles normal with heavier tails, PDF: f(x) = exp(-z)/(σ·(1+exp(-z))²), z=(x-μ)/σ
+		struct LogisticDistribution
+		{
+			Real mu;    // Location parameter (mean and median)
+			Real sigma; // Scale parameter (related to variance by σ² = 3·s²/π²)
+
+			/// @brief Construct a logistic distribution
+			/// @param location Location parameter (default: 0)
+			/// @param scale Scale parameter (default: 1, must be > 0)
+			LogisticDistribution(Real location = 0.0, Real scale = 1.0)
+				: mu(location), sigma(scale)
+			{
+				if (sigma <= 0.0)
+					throw StatisticsError("Scale parameter must be positive in LogisticDistribution");
+			}
+
+			/// @brief Probability density function (PDF)
+			///
+			/// @param x Value at which to evaluate the PDF
+			/// @return Probability density at x
+			Real pdf(Real x) const
+			{
+				// Standard logistic PDF: f(x) = e^(-z) / (σ(1 + e^(-z))²)
+				// where z = (x - μ) / σ
+				Real z = (x - mu) / sigma;
+				Real exp_neg_z = std::exp(-z);
+				Real denom = 1.0 + exp_neg_z;
+				return exp_neg_z / (sigma * denom * denom);
+			}
+
+			/// @brief Cumulative distribution function (CDF)
+			///
+			/// @param x Value at which to evaluate the CDF
+			/// @return Probability that X <= x
+			Real cdf(Real x) const
+			{
+				// Numerically stable computation using the logistic function
+				Real z = (x - mu) / sigma;
+				Real exp_z = std::exp(-std::abs(z));
+				
+				if (z >= 0.0)
+					return 1.0 / (1.0 + exp_z);
+				else
+					return exp_z / (1.0 + exp_z);
+			}
+
+			/// @brief Inverse cumulative distribution function (quantile function)
+			///
+			/// @param p Probability (must be in (0, 1))
+			/// @return Value x such that P(X <= x) = p
+			Real inverseCdf(Real p) const
+			{
+				if (p <= 0.0 || p >= 1.0)
+					throw StatisticsError("Probability must be in (0, 1) in LogisticDistribution::inverseCdf");
+				return mu + sigma * std::log(p / (1.0 - p));
+			}
+
+			/// @brief Get the mean of the distribution
+			/// @return Mean = μ
+			Real mean() const { return mu; }
+
+			/// @brief Get the variance of the distribution
+			/// @return Variance = (π·σ)²/3
+			Real variance() const 
+			{ 
+				return (Constants::PI * sigma) * (Constants::PI * sigma) / 3.0;
+			}
+		};
+
+		//=========================================================================
+		// UNIFORM DISTRIBUTION
+		//=========================================================================
+
+		/// @brief Continuous Uniform distribution
+		/// @note Constant probability over [a, b], PDF: f(x) = 1/(b-a) for x ∈ [a,b]
+		struct UniformDistribution
+		{
+			Real a;  // Lower bound
+			Real b;  // Upper bound
+
+			/// @brief Construct a uniform distribution
+			/// @param lower Lower bound (default: 0)
+			/// @param upper Upper bound (default: 1, must be > lower)
+			UniformDistribution(Real lower = 0.0, Real upper = 1.0)
+				: a(lower), b(upper)
+			{
+				if (b <= a)
+					throw StatisticsError("Upper bound must be greater than lower bound in UniformDistribution");
+			}
+
+			/// @brief Probability density function (PDF)
+			Real pdf(Real x) const
+			{
+				if (x < a || x > b)
+					return 0.0;
+				return 1.0 / (b - a);
+			}
+
+			/// @brief Cumulative distribution function (CDF)
+			Real cdf(Real x) const
+			{
+				if (x < a) return 0.0;
+				if (x > b) return 1.0;
+				return (x - a) / (b - a);
+			}
+
+			/// @brief Inverse CDF (quantile function)
+			Real inverseCdf(Real p) const
+			{
+				if (p < 0.0 || p > 1.0)
+					throw StatisticsError("Probability must be in [0, 1] in UniformDistribution::inverseCdf");
+				return a + p * (b - a);
+			}
+
+			Real mean() const { return (a + b) / 2.0; }
+			Real variance() const { return (b - a) * (b - a) / 12.0; }
+		};
+
+		//=========================================================================
+		// GAMMA DISTRIBUTION
+		//=========================================================================
+
+		/// @brief Gamma distribution
+		/// @note Generalizes exponential and chi-square distributions
+		/// PDF: f(x; k, θ) = x^(k-1) * exp(-x/θ) / (θ^k * Γ(k))
+		/// where k = shape, θ = scale
+		struct GammaDistribution
+		{
+			Real shape;  // Shape parameter k (also called α)
+			Real scale;  // Scale parameter θ (also called β)
+
+			/// @brief Construct a gamma distribution
+			/// @param k Shape parameter (must be > 0)
+			/// @param theta Scale parameter (must be > 0)
+			GammaDistribution(Real k, Real theta = 1.0)
+				: shape(k), scale(theta)
+			{
+				if (shape <= 0.0)
+					throw StatisticsError("Shape parameter must be positive in GammaDistribution");
+				if (scale <= 0.0)
+					throw StatisticsError("Scale parameter must be positive in GammaDistribution");
+			}
+
+			/// @brief Probability density function (PDF)
+			Real pdf(Real x) const
+			{
+				if (x < 0.0) return 0.0;
+				if (x == 0.0) return (shape < 1.0) ? std::numeric_limits<Real>::infinity() 
+				                                  : (shape == 1.0 ? 1.0/scale : 0.0);
+				
+				// Use log-space for numerical stability
+				Real logPdf = (shape - 1.0) * std::log(x) - x / scale 
+				            - shape * std::log(scale) - std::lgamma(shape);
+				return std::exp(logPdf);
+			}
+
+			/// @brief Cumulative distribution function (CDF)
+			/// Uses regularized incomplete gamma function
+			Real cdf(Real x) const
+			{
+				if (x <= 0.0) return 0.0;
+				return incompleteGammaP(shape, x / scale);
+			}
+
+			/// @brief Inverse CDF (quantile function) - uses Newton-Raphson
+			Real inverseCdf(Real p) const
+			{
+				if (p <= 0.0) return 0.0;
+				if (p >= 1.0) return std::numeric_limits<Real>::infinity();
+
+				// Initial guess using Wilson-Hilferty approximation for large shape
+				Real x;
+				if (shape >= 1.0) {
+					Real z = inverseStandardNormalCdf(p);
+					Real h = 1.0 / (9.0 * shape);
+					x = shape * scale * std::pow(1.0 - h + z * std::sqrt(h), 3);
+					if (x <= 0.0) x = 0.5 * shape * scale;
+				} else {
+					x = 0.5 * shape * scale;
+				}
+
+				// Newton-Raphson refinement
+				for (int iter = 0; iter < 50; iter++) {
+					Real f = cdf(x) - p;
+					Real fp = pdf(x);
+					if (std::abs(fp) < 1e-30) break;
+					Real dx = f / fp;
+					x -= dx;
+					if (x <= 0.0) x = 1e-10;
+					if (std::abs(dx) < 1e-12 * x) break;
+				}
+				return x;
+			}
+
+			Real mean() const { return shape * scale; }
+			Real variance() const { return shape * scale * scale; }
+
+		private:
+			/// @brief Regularized lower incomplete gamma function P(a,x)
+			static Real incompleteGammaP(Real a, Real x)
+			{
+				if (x < 0.0) return 0.0;
+				if (x == 0.0) return 0.0;
+
+				if (x < a + 1.0) {
+					// Series representation
+					Real ap = a;
+					Real sum = 1.0 / a;
+					Real del = sum;
+					for (int n = 1; n <= 200; n++) {
+						ap += 1.0;
+						del *= x / ap;
+						sum += del;
+						if (std::abs(del) < std::abs(sum) * 1e-15) break;
+					}
+					return sum * std::exp(-x + a * std::log(x) - std::lgamma(a));
+				} else {
+					// Continued fraction representation
+					Real b = x + 1.0 - a;
+					Real c = 1.0 / 1e-30;
+					Real d = 1.0 / b;
+					Real h = d;
+					for (int n = 1; n <= 200; n++) {
+						Real an = -n * (n - a);
+						b += 2.0;
+						d = an * d + b;
+						if (std::abs(d) < 1e-30) d = 1e-30;
+						c = b + an / c;
+						if (std::abs(c) < 1e-30) c = 1e-30;
+						d = 1.0 / d;
+						Real del = d * c;
+						h *= del;
+						if (std::abs(del - 1.0) < 1e-15) break;
+					}
+					return 1.0 - h * std::exp(-x + a * std::log(x) - std::lgamma(a));
+				}
+			}
+
+			/// @brief Inverse standard normal CDF (probit)
+			static Real inverseStandardNormalCdf(Real p)
+			{
+				// Rational approximation from Abramowitz and Stegun
+				const Real a[] = { -3.969683028665376e+01, 2.209460984245205e+02,
+				                   -2.759285104469687e+02, 1.383577518672690e+02,
+				                   -3.066479806614716e+01, 2.506628277459239e+00 };
+				const Real b[] = { -5.447609879822406e+01, 1.615858368580409e+02,
+				                   -1.556989798598866e+02, 6.680131188771972e+01,
+				                   -1.328068155288572e+01 };
+				const Real c[] = { -7.784894002430293e-03, -3.223964580411365e-01,
+				                   -2.400758277161838e+00, -2.549732539343734e+00,
+				                    4.374664141464968e+00,  2.938163982698783e+00 };
+				const Real d[] = { 7.784695709041462e-03, 3.224671290700398e-01,
+				                   2.445134137142996e+00, 3.754408661907416e+00 };
+
+				const Real pLow = 0.02425, pHigh = 1.0 - pLow;
+				Real q, r;
+
+				if (p < pLow) {
+					q = std::sqrt(-2.0 * std::log(p));
+					return (((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5]) /
+					        ((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1.0);
+				} else if (p <= pHigh) {
+					q = p - 0.5;
+					r = q * q;
+					return (((((a[0]*r+a[1])*r+a[2])*r+a[3])*r+a[4])*r+a[5])*q /
+					       (((((b[0]*r+b[1])*r+b[2])*r+b[3])*r+b[4])*r+1.0);
+				} else {
+					q = std::sqrt(-2.0 * std::log(1.0 - p));
+					return -(((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5]) /
+					         ((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1.0);
+				}
+			}
+		};
+
+		//=========================================================================
+		// BETA DISTRIBUTION
+		//=========================================================================
+
+		/// @brief Beta distribution
+		/// @note Defined on [0, 1], models proportions and probabilities
+		/// PDF: f(x; α, β) = x^(α-1) * (1-x)^(β-1) / B(α, β)
+		struct BetaDistribution
+		{
+			Real alpha;  // Shape parameter α
+			Real beta;   // Shape parameter β
+
+			/// @brief Construct a beta distribution
+			/// @param a Shape parameter α (must be > 0)
+			/// @param b Shape parameter β (must be > 0)
+			BetaDistribution(Real a, Real b)
+				: alpha(a), beta(b)
+			{
+				if (alpha <= 0.0)
+					throw StatisticsError("Alpha parameter must be positive in BetaDistribution");
+				if (beta <= 0.0)
+					throw StatisticsError("Beta parameter must be positive in BetaDistribution");
+			}
+
+			/// @brief Probability density function (PDF)
+			Real pdf(Real x) const
+			{
+				if (x < 0.0 || x > 1.0) return 0.0;
+				if (x == 0.0) return (alpha < 1.0) ? std::numeric_limits<Real>::infinity()
+				                                  : (alpha == 1.0 ? beta : 0.0);
+				if (x == 1.0) return (beta < 1.0) ? std::numeric_limits<Real>::infinity()
+				                                 : (beta == 1.0 ? alpha : 0.0);
+
+				// Log-space for numerical stability
+				Real logPdf = (alpha - 1.0) * std::log(x) + (beta - 1.0) * std::log(1.0 - x)
+				            - std::lgamma(alpha) - std::lgamma(beta) + std::lgamma(alpha + beta);
+				return std::exp(logPdf);
+			}
+
+			/// @brief Cumulative distribution function (CDF)
+			/// Uses regularized incomplete beta function
+			Real cdf(Real x) const
+			{
+				if (x <= 0.0) return 0.0;
+				if (x >= 1.0) return 1.0;
+				return incompleteBetaRegularized(x, alpha, beta);
+			}
+
+			/// @brief Inverse CDF (quantile function) - uses Newton-Raphson
+			Real inverseCdf(Real p) const
+			{
+				if (p <= 0.0) return 0.0;
+				if (p >= 1.0) return 1.0;
+
+				// Initial guess
+				Real x = 0.5;
+				if (alpha > 1.0 && beta > 1.0) {
+					// Mode-based initial guess
+					x = (alpha - 1.0) / (alpha + beta - 2.0);
+				}
+
+				// Newton-Raphson
+				for (int iter = 0; iter < 50; iter++) {
+					Real f = cdf(x) - p;
+					Real fp = pdf(x);
+					if (std::abs(fp) < 1e-30) break;
+					Real dx = f / fp;
+					x -= dx;
+					if (x <= 0.0) x = 1e-10;
+					if (x >= 1.0) x = 1.0 - 1e-10;
+					if (std::abs(dx) < 1e-12) break;
+				}
+				return x;
+			}
+
+			Real mean() const { return alpha / (alpha + beta); }
+			Real variance() const 
+			{ 
+				Real ab = alpha + beta;
+				return (alpha * beta) / (ab * ab * (ab + 1.0));
+			}
+
+		private:
+			/// @brief Regularized incomplete beta function I_x(a,b)
+			static Real incompleteBetaRegularized(Real x, Real a, Real b)
+			{
+				if (x <= 0.0) return 0.0;
+				if (x >= 1.0) return 1.0;
+
+				// Use symmetry if needed for convergence
+				if (x > (a + 1.0) / (a + b + 2.0)) {
+					return 1.0 - incompleteBetaRegularized(1.0 - x, b, a);
+				}
+
+				Real bt = std::exp(std::lgamma(a + b) - std::lgamma(a) - std::lgamma(b)
+				                 + a * std::log(x) + b * std::log(1.0 - x));
+
+				// Continued fraction (Lentz's method)
+				Real qab = a + b, qap = a + 1.0, qam = a - 1.0;
+				Real c = 1.0, d = 1.0 - qab * x / qap;
+				if (std::abs(d) < 1e-30) d = 1e-30;
+				d = 1.0 / d;
+				Real h = d;
+
+				for (int m = 1; m <= 200; m++) {
+					int m2 = 2 * m;
+					Real aa = m * (b - m) * x / ((qam + m2) * (a + m2));
+					d = 1.0 + aa * d; if (std::abs(d) < 1e-30) d = 1e-30;
+					c = 1.0 + aa / c; if (std::abs(c) < 1e-30) c = 1e-30;
+					d = 1.0 / d;
+					h *= d * c;
+
+					aa = -(a + m) * (qab + m) * x / ((a + m2) * (qap + m2));
+					d = 1.0 + aa * d; if (std::abs(d) < 1e-30) d = 1e-30;
+					c = 1.0 + aa / c; if (std::abs(c) < 1e-30) c = 1e-30;
+					d = 1.0 / d;
+					Real del = d * c;
+					h *= del;
+					if (std::abs(del - 1.0) < 1e-15) break;
+				}
+				return bt * h / a;
+			}
+		};
+
+		//=========================================================================
+		// WEIBULL DISTRIBUTION
+		//=========================================================================
+
+		/// @brief Weibull distribution
+		/// @note Used in reliability analysis, failure modeling
+		/// PDF: f(x; k, λ) = (k/λ) * (x/λ)^(k-1) * exp(-(x/λ)^k)
+		struct WeibullDistribution
+		{
+			Real shape;  // Shape parameter k
+			Real scale;  // Scale parameter λ
+
+			/// @brief Construct a Weibull distribution
+			/// @param k Shape parameter (must be > 0)
+			/// @param lambda Scale parameter (must be > 0)
+			WeibullDistribution(Real k, Real lambda = 1.0)
+				: shape(k), scale(lambda)
+			{
+				if (shape <= 0.0)
+					throw StatisticsError("Shape parameter must be positive in WeibullDistribution");
+				if (scale <= 0.0)
+					throw StatisticsError("Scale parameter must be positive in WeibullDistribution");
+			}
+
+			/// @brief Probability density function (PDF)
+			Real pdf(Real x) const
+			{
+				if (x < 0.0) return 0.0;
+				if (x == 0.0) return (shape < 1.0) ? std::numeric_limits<Real>::infinity()
+				                                  : (shape == 1.0 ? 1.0/scale : 0.0);
+				Real z = x / scale;
+				return (shape / scale) * std::pow(z, shape - 1.0) * std::exp(-std::pow(z, shape));
+			}
+
+			/// @brief Cumulative distribution function (CDF)
+			Real cdf(Real x) const
+			{
+				if (x <= 0.0) return 0.0;
+				return 1.0 - std::exp(-std::pow(x / scale, shape));
+			}
+
+			/// @brief Inverse CDF (quantile function) - closed form
+			Real inverseCdf(Real p) const
+			{
+				if (p <= 0.0) return 0.0;
+				if (p >= 1.0) return std::numeric_limits<Real>::infinity();
+				return scale * std::pow(-std::log(1.0 - p), 1.0 / shape);
+			}
+
+			Real mean() const { return scale * std::tgamma(1.0 + 1.0 / shape); }
+			Real variance() const 
+			{
+				Real g1 = std::tgamma(1.0 + 1.0 / shape);
+				Real g2 = std::tgamma(1.0 + 2.0 / shape);
+				return scale * scale * (g2 - g1 * g1);
+			}
+		};
+
+		//=========================================================================
+		// PARETO DISTRIBUTION
+		//=========================================================================
+
+		/// @brief Pareto distribution (Type I)
+		/// @note Power-law distribution, models wealth, file sizes, etc.
+		/// PDF: f(x; α, x_m) = α * x_m^α / x^(α+1) for x >= x_m
+		struct ParetoDistribution
+		{
+			Real alpha;  // Shape parameter (tail index)
+			Real xm;     // Scale parameter (minimum value)
+
+			/// @brief Construct a Pareto distribution
+			/// @param shape Shape parameter α (must be > 0)
+			/// @param scale Minimum value x_m (must be > 0)
+			ParetoDistribution(Real shape, Real scale = 1.0)
+				: alpha(shape), xm(scale)
+			{
+				if (alpha <= 0.0)
+					throw StatisticsError("Shape parameter must be positive in ParetoDistribution");
+				if (xm <= 0.0)
+					throw StatisticsError("Scale parameter must be positive in ParetoDistribution");
+			}
+
+			/// @brief Probability density function (PDF)
+			Real pdf(Real x) const
+			{
+				if (x < xm) return 0.0;
+				return alpha * std::pow(xm, alpha) / std::pow(x, alpha + 1.0);
+			}
+
+			/// @brief Cumulative distribution function (CDF)
+			Real cdf(Real x) const
+			{
+				if (x < xm) return 0.0;
+				return 1.0 - std::pow(xm / x, alpha);
+			}
+
+			/// @brief Inverse CDF (quantile function) - closed form
+			Real inverseCdf(Real p) const
+			{
+				if (p <= 0.0) return xm;
+				if (p >= 1.0) return std::numeric_limits<Real>::infinity();
+				return xm / std::pow(1.0 - p, 1.0 / alpha);
+			}
+
+			/// @brief Mean (only defined for α > 1)
+			Real mean() const
+			{
+				if (alpha <= 1.0)
+					throw StatisticsError("Mean undefined for alpha <= 1 in ParetoDistribution");
+				return alpha * xm / (alpha - 1.0);
+			}
+
+			/// @brief Variance (only defined for α > 2)
+			Real variance() const
+			{
+				if (alpha <= 2.0)
+					throw StatisticsError("Variance undefined for alpha <= 2 in ParetoDistribution");
+				return (xm * xm * alpha) / ((alpha - 1.0) * (alpha - 1.0) * (alpha - 2.0));
+			}
+		};
+
+		//=========================================================================
+		// LOG-NORMAL DISTRIBUTION
+		//=========================================================================
+
+		/// @brief Log-Normal distribution
+		/// @note X is log-normal if ln(X) is normal; models multiplicative processes
+		/// PDF: f(x; μ, σ) = (1/(x·σ·√(2π))) * exp(-((ln(x)-μ)²)/(2σ²))
+		struct LogNormalDistribution
+		{
+			Real mu;     // Mean of ln(X)
+			Real sigma;  // Std dev of ln(X)
+
+			/// @brief Construct a log-normal distribution
+			/// @param logMean Mean of the log (μ)
+			/// @param logStdDev Standard deviation of the log (σ, must be > 0)
+			LogNormalDistribution(Real logMean = 0.0, Real logStdDev = 1.0)
+				: mu(logMean), sigma(logStdDev)
+			{
+				if (sigma <= 0.0)
+					throw StatisticsError("Sigma must be positive in LogNormalDistribution");
+			}
+
+			/// @brief Probability density function (PDF)
+			Real pdf(Real x) const
+			{
+				if (x <= 0.0) return 0.0;
+				Real z = (std::log(x) - mu) / sigma;
+				return std::exp(-0.5 * z * z) / (x * sigma * std::sqrt(2.0 * Constants::PI));
+			}
+
+			/// @brief Cumulative distribution function (CDF)
+			Real cdf(Real x) const
+			{
+				if (x <= 0.0) return 0.0;
+				Real z = (std::log(x) - mu) / (sigma * std::sqrt(2.0));
+				return 0.5 * (1.0 + std::erf(z));
+			}
+
+			/// @brief Inverse CDF (quantile function)
+			Real inverseCdf(Real p) const
+			{
+				if (p <= 0.0) return 0.0;
+				if (p >= 1.0) return std::numeric_limits<Real>::infinity();
+				// Use inverse normal for ln(x)
+				Real z = inverseStandardNormalCdf(p);
+				return std::exp(mu + sigma * z);
+			}
+
+			Real mean() const { return std::exp(mu + 0.5 * sigma * sigma); }
+			Real variance() const 
+			{
+				Real expSigma2 = std::exp(sigma * sigma);
+				return std::exp(2.0 * mu + sigma * sigma) * (expSigma2 - 1.0);
+			}
+			Real median() const { return std::exp(mu); }
+
+		private:
+			static Real inverseStandardNormalCdf(Real p)
+			{
+				const Real a[] = { -3.969683028665376e+01, 2.209460984245205e+02,
+				                   -2.759285104469687e+02, 1.383577518672690e+02,
+				                   -3.066479806614716e+01, 2.506628277459239e+00 };
+				const Real b[] = { -5.447609879822406e+01, 1.615858368580409e+02,
+				                   -1.556989798598866e+02, 6.680131188771972e+01,
+				                   -1.328068155288572e+01 };
+				const Real c[] = { -7.784894002430293e-03, -3.223964580411365e-01,
+				                   -2.400758277161838e+00, -2.549732539343734e+00,
+				                    4.374664141464968e+00,  2.938163982698783e+00 };
+				const Real d[] = { 7.784695709041462e-03, 3.224671290700398e-01,
+				                   2.445134137142996e+00, 3.754408661907416e+00 };
+
+				const Real pLow = 0.02425, pHigh = 1.0 - pLow;
+				Real q, r;
+
+				if (p < pLow) {
+					q = std::sqrt(-2.0 * std::log(p));
+					return (((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5]) /
+					        ((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1.0);
+				} else if (p <= pHigh) {
+					q = p - 0.5;
+					r = q * q;
+					return (((((a[0]*r+a[1])*r+a[2])*r+a[3])*r+a[4])*r+a[5])*q /
+					       (((((b[0]*r+b[1])*r+b[2])*r+b[3])*r+b[4])*r+1.0);
+				} else {
+					q = std::sqrt(-2.0 * std::log(1.0 - p));
+					return -(((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5]) /
+					         ((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1.0);
+				}
+			}
+		};
+
+  }
+}
+
+
+///////////////////////////   mml/algorithms/Statistics/StatisticsConfidence.h   ///////////////////////////
+// ConfidenceIntervals.h
+//
+// Confidence interval functions for MML (MinimalMathLibrary)
+// Extracted from Statistics.h as part of refactoring to improve organization
+//
+// Requires: Statistics.h (for basic stats functions and distributions)
+///////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+
+namespace MML {
+	namespace Statistics {
+		/// @brief Structure to hold confidence interval results
+		struct ConfidenceInterval {
+			Real estimate;		   // Point estimate
+			Real lowerBound;	   // Lower confidence limit
+			Real upperBound;	   // Upper confidence limit
+			Real marginOfError;	   // Half-width of interval
+			Real confidenceLevel;  // Confidence level (e.g., 0.95 for 95%)
+			std::string parameter; // What we're estimating (e.g., "Mean", "Proportion")
+
+			ConfidenceInterval(Real est, Real lower, Real upper, Real margin, Real conf, const std::string& param)
+				: estimate(est)
+				, lowerBound(lower)
+				, upperBound(upper)
+				, marginOfError(margin)
+				, confidenceLevel(conf)
+				, parameter(param) {}
+		};
+
+		/// @brief Confidence Interval for Population Mean (single sample)
+		///
+		/// Uses t-distribution for unknown population variance.
+		/// CI = x̄ ± t(α/2, df) × (s/√n)
+		///
+		/// @param sample Sample data
+		/// @param confidenceLevel Confidence level (default: 0.95 for 95% CI)
+		///
+		/// @return ConfidenceInterval with bounds
+		inline ConfidenceInterval ConfidenceIntervalMean(const Vector<Real>& sample, Real confidenceLevel = 0.95) {
+			if (sample.size() < 2)
+				throw StatisticsError("ConfidenceIntervalMean requires at least 2 samples");
+
+			if (confidenceLevel <= 0.0 || confidenceLevel >= 1.0)
+				throw StatisticsError("Confidence level must be in (0, 1)");
+
+			Real sampleMean = Mean(sample);
+			Real sampleStd = StdDev(sample);
+			int n = static_cast<int>(sample.size());
+			int df = n - 1;
+
+			// Standard error
+			Real standardError = sampleStd / std::sqrt(static_cast<Real>(n));
+
+			// Critical value from t-distribution
+			Real alpha = 1.0 - confidenceLevel;
+			TDistribution tDist(df);
+			Real tCritical = tDist.criticalValue(alpha);
+
+			// Margin of error
+			Real marginOfError = tCritical * standardError;
+
+			return ConfidenceInterval(sampleMean, sampleMean - marginOfError, sampleMean + marginOfError, marginOfError, confidenceLevel,
+									  "Mean");
+		}
+
+		/// @brief Confidence Interval for Difference of Two Means (independent samples)
+		///
+		/// Uses pooled variance assuming equal population variances.
+		/// CI = (x̄₁ - x̄₂) ± t(α/2, df) × SE
+		///
+		/// @param sample1 First sample
+		/// @param sample2 Second sample
+		///
+		/// @param confidenceLevel Confidence level (default: 0.95)
+		/// @return ConfidenceInterval for μ₁ - μ₂
+		inline ConfidenceInterval ConfidenceIntervalMeanDifference(const Vector<Real>& sample1, const Vector<Real>& sample2,
+																   Real confidenceLevel = 0.95) {
+			if (sample1.size() < 2 || sample2.size() < 2)
+				throw StatisticsError("ConfidenceIntervalMeanDifference requires at least 2 samples per group");
+
+			if (confidenceLevel <= 0.0 || confidenceLevel >= 1.0)
+				throw StatisticsError("Confidence level must be in (0, 1)");
+
+			Real mean1 = Mean(sample1);
+			Real mean2 = Mean(sample2);
+			Real var1 = Variance(sample1);
+			Real var2 = Variance(sample2);
+			int n1 = static_cast<int>(sample1.size());
+			int n2 = static_cast<int>(sample2.size());
+
+			// Pooled variance
+			Real pooledVar = ((n1 - 1) * var1 + (n2 - 1) * var2) / (n1 + n2 - 2);
+			Real pooledStd = std::sqrt(pooledVar);
+
+			// Standard error
+			Real standardError = pooledStd * std::sqrt(1.0 / n1 + 1.0 / n2);
+
+			// Degrees of freedom
+			int df = n1 + n2 - 2;
+
+			// Critical value
+			Real alpha = 1.0 - confidenceLevel;
+			TDistribution tDist(df);
+			Real tCritical = tDist.criticalValue(alpha);
+
+			// Margin of error
+			Real marginOfError = tCritical * standardError;
+
+			// Difference
+			Real difference = mean1 - mean2;
+
+			return ConfidenceInterval(difference, difference - marginOfError, difference + marginOfError, marginOfError, confidenceLevel,
+									  "Mean Difference");
+		}
+
+		/// @brief Confidence Interval for Population Proportion
+		///
+		/// Uses normal approximation (valid for large samples).
+		/// CI = p̂ ± z(α/2) × √(p̂(1-p̂)/n)
+		///
+		/// @param successes Number of successes
+		/// @param trials Total number of trials
+		///
+		/// @param confidenceLevel Confidence level (default: 0.95)
+		/// @return ConfidenceInterval for proportion
+		inline ConfidenceInterval ConfidenceIntervalProportion(int successes, int trials, Real confidenceLevel = 0.95) {
+			if (trials <= 0)
+				throw StatisticsError("Number of trials must be positive");
+
+			if (successes < 0 || successes > trials)
+				throw StatisticsError("Successes must be between 0 and trials");
+
+			if (confidenceLevel <= 0.0 || confidenceLevel >= 1.0)
+				throw StatisticsError("Confidence level must be in (0, 1)");
+
+			// Sample proportion
+			Real pHat = static_cast<Real>(successes) / trials;
+
+			// Standard error
+			Real standardError = std::sqrt(pHat * (1.0 - pHat) / trials);
+
+			// Critical value from standard normal
+			Real alpha = 1.0 - confidenceLevel;
+			NormalDistribution norm(0.0, 1.0);
+			Real zCritical = norm.inverseCdf(1.0 - alpha / 2.0);
+
+			// Margin of error
+			Real marginOfError = zCritical * standardError;
+
+			// Bounds (clamped to [0, 1])
+			Real lower = std::max<Real>(Real(0.0), pHat - marginOfError);
+			Real upper = std::min<Real>(Real(1.0), pHat + marginOfError);
+
+			return ConfidenceInterval(pHat, lower, upper, marginOfError, confidenceLevel, "Proportion");
+		}
+
+		/// @brief Confidence Interval for Difference of Two Proportions
+		///
+		/// Uses normal approximation.
+		/// CI = (p̂₁ - p̂₂) ± z(α/2) × √(p̂₁(1-p̂₁)/n₁ + p̂₂(1-p̂₂)/n₂)
+		///
+		/// @param successes1 Successes in first sample
+		/// @param trials1 Trials in first sample
+		///
+		/// @param successes2 Successes in second sample
+		/// @param trials2 Trials in second sample
+		///
+		/// @param confidenceLevel Confidence level (default: 0.95)
+		/// @return ConfidenceInterval for p₁ - p₂
+		inline ConfidenceInterval ConfidenceIntervalProportionDifference(int successes1, int trials1, int successes2, int trials2,
+																		 Real confidenceLevel = 0.95) {
+			if (trials1 <= 0 || trials2 <= 0)
+				throw StatisticsError("Number of trials must be positive");
+
+			if (successes1 < 0 || successes1 > trials1 || successes2 < 0 || successes2 > trials2)
+				throw StatisticsError("Successes must be between 0 and trials");
+
+			if (confidenceLevel <= 0.0 || confidenceLevel >= 1.0)
+				throw StatisticsError("Confidence level must be in (0, 1)");
+
+			// Sample proportions
+			Real p1 = static_cast<Real>(successes1) / trials1;
+			Real p2 = static_cast<Real>(successes2) / trials2;
+
+			// Standard error
+			Real standardError = std::sqrt(p1 * (1.0 - p1) / trials1 + p2 * (1.0 - p2) / trials2);
+
+			// Critical value
+			Real alpha = 1.0 - confidenceLevel;
+			NormalDistribution norm(0.0, 1.0);
+			Real zCritical = norm.inverseCdf(1.0 - alpha / 2.0);
+
+			// Margin of error
+			Real marginOfError = zCritical * standardError;
+
+			// Difference
+			Real difference = p1 - p2;
+
+			return ConfidenceInterval(difference, difference - marginOfError, difference + marginOfError, marginOfError, confidenceLevel,
+									  "Proportion Difference");
+		}
+
+		/// @brief Confidence Interval for Mean of Paired Differences
+		///
+		/// For paired data (before-after, matched pairs).
+		/// CI = d̄ ± t(α/2, df) × (s_d/√n)
+		///
+		/// @param before First measurements
+		/// @param after Second measurements
+		///
+		/// @param confidenceLevel Confidence level (default: 0.95)
+		/// @return ConfidenceInterval for mean difference
+		inline ConfidenceInterval ConfidenceIntervalPairedDifference(const Vector<Real>& before, const Vector<Real>& after,
+																	 Real confidenceLevel = 0.95) {
+			if (before.size() != after.size())
+				throw StatisticsError("ConfidenceIntervalPairedDifference requires equal sample sizes");
+
+			if (before.size() < 2)
+				throw StatisticsError("ConfidenceIntervalPairedDifference requires at least 2 pairs");
+
+			if (confidenceLevel <= 0.0 || confidenceLevel >= 1.0)
+				throw StatisticsError("Confidence level must be in (0, 1)");
+
+			// Compute differences
+			Vector<Real> differences(before.size());
+			for (size_t i = 0; i < before.size(); i++)
+				differences[i] = after[i] - before[i];
+
+			// Use standard mean CI on differences
+			return ConfidenceIntervalMean(differences, confidenceLevel);
+		}
+
+	} // namespace Statistics
+} // namespace MML
+
+
+///////////////////////////   mml/algorithms/Statistics/StatisticsHypothesis.h   ///////////////////////////
+// HypothesisTesting.h
+// 
+// Statistical hypothesis testing functions for MML (MinimalMathLibrary)
+// Extracted from Statistics.h as part of refactoring to improve organization
+//
+// Requires: Statistics.h (for basic stats functions and distributions)
+///////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+
+namespace MML
+{
+	namespace Statistics
+	{
+		/// @brief Result structure for hypothesis tests
+		/// Contains all relevant information from a hypothesis test:
+		/// - Test statistic and its distribution
+		/// - P-value and decision at given confidence level
+		/// - Degrees of freedom if applicable
+		struct HypothesisTestResult
+		{
+			Real testStatistic;      ///< Computed test statistic (t, z, chi-square, F, etc.)
+			Real pValue;             ///< P-value for the test
+			Real criticalValue;      ///< Critical value at the given significance level
+			bool rejectNull;         ///< Whether to reject the null hypothesis
+			Real confidenceLevel;    ///< Confidence level used (e.g., 0.95 for 95%)
+			int degreesOfFreedom;    ///< Degrees of freedom (if applicable, -1 otherwise)
+			std::string testName;    ///< Descriptive name of the test
+			///
+			/// @brief Construct a hypothesis test result
+			HypothesisTestResult(
+				Real statistic = 0.0,
+				Real p = 0.0,
+				Real critical = 0.0,
+				bool reject = false,
+				Real confidence = 0.95,
+				int df = -1,
+				const std::string& name = "Hypothesis Test"
+			) : testStatistic(statistic),
+			    pValue(p),
+			    criticalValue(critical),
+			    rejectNull(reject),
+			    confidenceLevel(confidence),
+			    degreesOfFreedom(df),
+			    testName(name)
+			{}
+		};
+
+		/// @brief One-sample t-test
+		///
+		/// Tests the null hypothesis H0: μ = μ0 against H1: μ ≠ μ0
+		/// where μ is the population mean.
+		///
+		/// Test statistic: t = (x̄ - μ0) / (s / √n)
+		/// where x̄ is sample mean, s is sample standard deviation, n is sample size
+		///
+		/// @param sample Vector of sample values
+		/// @param mu0 Hypothesized population mean
+		///
+		/// @param alpha Significance level (default: 0.05 for 95% confidence)
+		/// @return HypothesisTestResult with test details
+		inline HypothesisTestResult OneSampleTTest(
+			const Vector<Real>& sample,
+			Real mu0,
+			Real alpha = 0.05
+		)
+		{
+			if (sample.size() < 2)
+				throw StatisticsError("OneSampleTTest requires at least 2 samples");
+
+			if (alpha <= 0.0 || alpha >= 1.0)
+				throw StatisticsError("Significance level alpha must be in (0, 1)");
+
+			// Compute sample statistics
+			Real sampleMean = Mean(sample);
+			Real sampleStd = StdDev(sample);
+			int n = static_cast<int>(sample.size());
+			int df = n - 1;
+
+			// Handle zero variance edge case
+			if (sampleStd == 0.0) {
+				// All values are identical
+				Real diff = std::abs(sampleMean - mu0);
+				if (diff < std::numeric_limits<Real>::epsilon()) {
+					// Perfect match with mu0 - cannot reject null
+					return HypothesisTestResult(0.0, 1.0, 0.0, false, 1.0 - alpha, df, "One-Sample t-Test");
+				}
+				else {
+					// All values identical but different from mu0 - strong evidence against null
+					// Return large finite t-statistic instead of infinity
+					Real largeT = (sampleMean > mu0) ? 1000.0 : -1000.0;
+					return HypothesisTestResult(largeT, 0.0, 0.0, true, 1.0 - alpha, df, "One-Sample t-Test");
+				}
+			}
+
+			// Compute t-statistic
+			Real standardError = sampleStd / std::sqrt(static_cast<Real>(n));
+			Real tStatistic = (sampleMean - mu0) / standardError;
+
+			// Create t-distribution with appropriate degrees of freedom
+			TDistribution tDist(df);
+
+			// Compute two-tailed p-value
+			Real pValue = tDist.twoTailedPValue(tStatistic);
+
+			// Critical value for two-tailed test
+			Real criticalValue = tDist.criticalValue(alpha);
+
+			// Decision: reject if |t| > critical value (or equivalently, p < alpha)
+			bool rejectNull = std::abs(tStatistic) > criticalValue;
+
+			return HypothesisTestResult(
+				tStatistic,
+				pValue,
+				criticalValue,
+				rejectNull,
+				1.0 - alpha,
+				df,
+				"One-Sample t-Test"
+			);
+		}
+
+		/// @brief Two-sample t-test with equal variances (pooled)
+		///
+		/// Tests H0: μ1 = μ2 against H1: μ1 ≠ μ2
+		/// Assumes equal population variances (use Welch's t-test if unequal).
+		///
+		/// Test statistic: t = (x̄1 - x̄2) / (sp · √(1/n1 + 1/n2))
+		/// where sp² = ((n1-1)s1² + (n2-1)s2²) / (n1 + n2 - 2) is pooled variance
+		///
+		/// @param sample1 First sample
+		/// @param sample2 Second sample
+		///
+		/// @param alpha Significance level (default: 0.05)
+		/// @return HypothesisTestResult with test details
+		inline HypothesisTestResult TwoSampleTTest(
+			const Vector<Real>& sample1,
+			const Vector<Real>& sample2,
+			Real alpha = 0.05
+		)
+		{
+			if (sample1.size() < 2 || sample2.size() < 2)
+				throw StatisticsError("TwoSampleTTest requires at least 2 samples in each group");
+
+			if (alpha <= 0.0 || alpha >= 1.0)
+				throw StatisticsError("Significance level alpha must be in (0, 1)");
+
+			// Compute sample statistics
+			Real mean1 = Mean(sample1);
+			Real mean2 = Mean(sample2);
+			Real var1 = Variance(sample1);
+			Real var2 = Variance(sample2);
+			int n1 = static_cast<int>(sample1.size());
+			int n2 = static_cast<int>(sample2.size());
+
+			// Pooled variance
+			Real pooledVar = ((n1 - 1) * var1 + (n2 - 1) * var2) / (n1 + n2 - 2);
+			Real pooledStd = std::sqrt(pooledVar);
+
+			// Standard error
+			Real standardError = pooledStd * std::sqrt(1.0 / n1 + 1.0 / n2);
+
+			// t-statistic
+			Real tStatistic = (mean1 - mean2) / standardError;
+
+			// Degrees of freedom
+			int df = n1 + n2 - 2;
+
+			// Create t-distribution
+			TDistribution tDist(df);
+
+			// Two-tailed p-value
+			Real pValue = tDist.twoTailedPValue(tStatistic);
+
+			// Critical value
+			Real criticalValue = tDist.criticalValue(alpha);
+
+			// Decision
+			bool rejectNull = std::abs(tStatistic) > criticalValue;
+
+			return HypothesisTestResult(
+				tStatistic,
+				pValue,
+				criticalValue,
+				rejectNull,
+				1.0 - alpha,
+				df,
+				"Two-Sample t-Test (Pooled)"
+			);
+		}
+
+		/// @brief Welch's t-test (unequal variances)
+		///
+		/// Tests H0: μ1 = μ2 against H1: μ1 ≠ μ2
+		/// Does NOT assume equal variances (more robust than pooled t-test).
+		///
+		/// Test statistic: t = (x̄1 - x̄2) / √(s1²/n1 + s2²/n2)
+		/// Degrees of freedom use Welch-Satterthwaite equation
+		///
+		/// @param sample1 First sample
+		/// @param sample2 Second sample
+		///
+		/// @param alpha Significance level (default: 0.05)
+		/// @return HypothesisTestResult with test details
+		inline HypothesisTestResult WelchTTest(
+			const Vector<Real>& sample1,
+			const Vector<Real>& sample2,
+			Real alpha = 0.05
+		)
+		{
+			if (sample1.size() < 2 || sample2.size() < 2)
+				throw StatisticsError("WelchTTest requires at least 2 samples in each group");
+
+			if (alpha <= 0.0 || alpha >= 1.0)
+				throw StatisticsError("Significance level alpha must be in (0, 1)");
+
+			// Compute sample statistics
+			Real mean1 = Mean(sample1);
+			Real mean2 = Mean(sample2);
+			Real var1 = Variance(sample1);
+			Real var2 = Variance(sample2);
+			int n1 = static_cast<int>(sample1.size());
+			int n2 = static_cast<int>(sample2.size());
+
+			// Standard error (Welch's formula)
+			Real se1 = var1 / n1;
+			Real se2 = var2 / n2;
+			Real standardError = std::sqrt(se1 + se2);
+
+			// t-statistic
+			Real tStatistic = (mean1 - mean2) / standardError;
+
+			// Welch-Satterthwaite degrees of freedom
+			Real numerator = (se1 + se2) * (se1 + se2);
+			Real denominator = (se1 * se1) / (n1 - 1) + (se2 * se2) / (n2 - 1);
+			int df = static_cast<int>(std::floor(numerator / denominator));
+
+			// Ensure df is at least 1
+			if (df < 1) df = 1;
+
+			// Create t-distribution
+			TDistribution tDist(df);
+
+			// Two-tailed p-value
+			Real pValue = tDist.twoTailedPValue(tStatistic);
+
+			// Critical value
+			Real criticalValue = tDist.criticalValue(alpha);
+
+			// Decision
+			bool rejectNull = std::abs(tStatistic) > criticalValue;
+
+			return HypothesisTestResult(
+				tStatistic,
+				pValue,
+				criticalValue,
+				rejectNull,
+				1.0 - alpha,
+				df,
+				"Welch's t-Test (Unequal Variances)"
+			);
+		}
+
+		/// @brief Paired t-test
+		///
+		/// Tests H0: μd = 0 against H1: μd ≠ 0
+		/// where μd is the mean difference between paired observations.
+		///
+		/// Equivalent to one-sample t-test on differences.
+		/// @param before First measurement (e.g., before treatment)
+		///
+		/// @param after Second measurement (e.g., after treatment)
+		/// @param alpha Significance level (default: 0.05)
+		///
+		/// @return HypothesisTestResult with test details
+		inline HypothesisTestResult PairedTTest(
+			const Vector<Real>& before,
+			const Vector<Real>& after,
+			Real alpha = 0.05
+		)
+		{
+			if (before.size() != after.size())
+				throw StatisticsError("PairedTTest requires equal sample sizes");
+
+			if (before.size() < 2)
+				throw StatisticsError("PairedTTest requires at least 2 pairs");
+
+			if (alpha <= 0.0 || alpha >= 1.0)
+				throw StatisticsError("Significance level alpha must be in (0, 1)");
+
+			// Compute differences
+			Vector<Real> differences(before.size());
+			for (size_t i = 0; i < before.size(); i++)
+				differences[i] = after[i] - before[i];
+
+			// Perform one-sample t-test on differences (testing mean = 0)
+			auto result = OneSampleTTest(differences, 0.0, alpha);
+
+			// Update test name
+			result.testName = "Paired t-Test";
+
+			return result;
+		}
+
+		/// @brief Chi-Square Goodness-of-Fit Test
+		///
+		/// Tests whether observed frequencies match expected frequencies.
+		/// H0: Data follows the expected distribution
+		///
+		/// H1: Data does not follow the expected distribution
+		/// Test statistic: χ² = Σ((O_i - E_i)² / E_i)
+		///
+		/// @param observed Vector of observed frequencies
+		/// @param expected Vector of expected frequencies (must sum to same as observed)
+		///
+		/// @param alpha Significance level (default: 0.05)
+		/// @return HypothesisTestResult with test details
+		///
+		/// @throws StatisticsError if sizes don't match, frequencies invalid, or expected has zeros
+		inline HypothesisTestResult ChiSquareGoodnessOfFit(
+			const Vector<Real>& observed,
+			const Vector<Real>& expected,
+			Real alpha = 0.05
+		)
+		{
+			int n = observed.size();
+			if (n < 2)
+				throw StatisticsError("ChiSquareGoodnessOfFit requires at least 2 categories");
+
+			if (expected.size() != n)
+				throw StatisticsError("Observed and expected must have the same size");
+
+			if (alpha <= 0.0 || alpha >= 1.0)
+				throw StatisticsError("Significance level alpha must be in (0, 1)");
+
+			// Validate frequencies
+			Real obsSum = 0.0, expSum = 0.0;
+			for (int i = 0; i < n; i++) {
+				if (observed[i] < 0.0)
+					throw StatisticsError("Observed frequencies must be non-negative");
+				if (expected[i] <= 0.0)
+					throw StatisticsError("Expected frequencies must be positive");
+				obsSum += observed[i];
+				expSum += expected[i];
+			}
+
+			// Check that sums match (within tolerance)
+			if (std::abs(obsSum - expSum) > 1e-6 * std::max(obsSum, expSum))
+				throw StatisticsError("Observed and expected frequencies must sum to the same value");
+
+			// Compute chi-square statistic
+			Real chiSquare = 0.0;
+			for (int i = 0; i < n; i++) {
+				Real diff = observed[i] - expected[i];
+				chiSquare += (diff * diff) / expected[i];
+			}
+
+			// Degrees of freedom = number of categories - 1
+			int df = n - 1;
+
+			// Create chi-square distribution
+			ChiSquareDistribution chiDist(df);
+
+			// Compute p-value (right-tail)
+			Real pValue = chiDist.rightTailPValue(chiSquare);
+
+			// Critical value
+			Real criticalValue = chiDist.criticalValue(alpha);
+
+			// Decision: reject if χ² > critical value
+			bool rejectNull = chiSquare > criticalValue;
+
+			return HypothesisTestResult(
+				chiSquare,
+				pValue,
+				criticalValue,
+				rejectNull,
+				1.0 - alpha,
+				df,
+				"Chi-Square Goodness-of-Fit"
+			);
+		}
+
+		/// @brief Chi-Square Test of Independence
+		///
+		/// Tests whether two categorical variables are independent.
+		/// H0: Variables are independent
+		///
+		/// H1: Variables are dependent (associated)
+		/// @param contingencyTable Matrix of observed frequencies (rows × columns)
+		///
+		/// @param alpha Significance level (default: 0.05)
+		/// @return HypothesisTestResult with test details
+		///
+		/// @throws StatisticsError if table too small or has invalid frequencies
+		inline HypothesisTestResult ChiSquareIndependence(
+			const Matrix<Real>& contingencyTable,
+			Real alpha = 0.05
+		)
+		{
+			int rows = contingencyTable.rows();
+			int cols = contingencyTable.cols();
+
+			if (rows < 2 || cols < 2)
+				throw StatisticsError("ChiSquareIndependence requires at least 2x2 table");
+
+			if (alpha <= 0.0 || alpha >= 1.0)
+				throw StatisticsError("Significance level alpha must be in (0, 1)");
+
+			// Compute row and column totals
+			Vector<Real> rowTotals(rows);
+			Vector<Real> colTotals(cols);
+			Real grandTotal = 0.0;
+
+			for (int i = 0; i < rows; i++) {
+				rowTotals[i] = 0.0;
+				for (int j = 0; j < cols; j++) {
+					if (contingencyTable(i, j) < 0.0)
+						throw StatisticsError("Frequencies must be non-negative");
+					rowTotals[i] += contingencyTable(i, j);
+					grandTotal += contingencyTable(i, j);
+				}
+			}
+
+			for (int j = 0; j < cols; j++) {
+				colTotals[j] = 0.0;
+				for (int i = 0; i < rows; i++) {
+					colTotals[j] += contingencyTable(i, j);
+				}
+			}
+
+			if (grandTotal <= 0.0)
+				throw StatisticsError("Table must have positive total frequency");
+
+			// Compute chi-square statistic
+			Real chiSquare = 0.0;
+			for (int i = 0; i < rows; i++) {
+				for (int j = 0; j < cols; j++) {
+					// Expected frequency under independence
+					Real expected = (rowTotals[i] * colTotals[j]) / grandTotal;
+					if (expected < 1.0) {
+						// Warning: expected frequency < 1 may give unreliable results
+						// But we'll continue (user should be aware)
+					}
+					Real observed = contingencyTable(i, j);
+					Real diff = observed - expected;
+					chiSquare += (diff * diff) / expected;
+				}
+			}
+
+			// Degrees of freedom = (rows - 1) * (cols - 1)
+			int df = (rows - 1) * (cols - 1);
+
+			// Create chi-square distribution
+			ChiSquareDistribution chiDist(df);
+
+			// Compute p-value (right-tail)
+			Real pValue = chiDist.rightTailPValue(chiSquare);
+
+			// Critical value
+			Real criticalValue = chiDist.criticalValue(alpha);
+
+			// Decision: reject if χ² > critical value
+			bool rejectNull = chiSquare > criticalValue;
+
+			return HypothesisTestResult(
+				chiSquare,
+				pValue,
+				criticalValue,
+				rejectNull,
+				1.0 - alpha,
+				df,
+				"Chi-Square Independence Test"
+			);
+		}
+
+		/// @brief One-Way ANOVA (Analysis of Variance)
+		///
+		/// Tests whether the means of three or more groups are equal.
+		/// H0: μ₁ = μ₂ = μ₃ = ... = μₖ (all group means equal)
+		///
+		/// H1: At least one mean differs
+		/// F-statistic = (Between-group variance) / (Within-group variance)
+		///
+		/// = (SSB/df_between) / (SSW/df_within)
+		/// @param groups Vector of groups, where each group is a vector of observations
+		///
+		/// @param alpha Significance level (default: 0.05)
+		/// @return HypothesisTestResult with F-statistic and p-value
+		///
+		/// @throws StatisticsError if fewer than 2 groups, any group too small, or empty groups
+		inline HypothesisTestResult OneWayANOVA(
+			const std::vector<Vector<Real>>& groups,
+			Real alpha = 0.05
+		)
+		{
+			int k = static_cast<int>(groups.size());  // number of groups
+			if (k < 2)
+				throw StatisticsError("OneWayANOVA requires at least 2 groups");
+
+			if (alpha <= 0.0 || alpha >= 1.0)
+				throw StatisticsError("Significance level alpha must be in (0, 1)");
+
+			// Validate groups and compute total sample size
+			int N = 0;  // total number of observations
+			for (int i = 0; i < k; i++) {
+				if (groups[i].size() < 2)
+					throw StatisticsError("OneWayANOVA requires at least 2 observations per group");
+				N += static_cast<int>(groups[i].size());
+			}
+
+			// Compute group means and grand mean
+			Vector<Real> groupMeans(k);
+			Vector<int> groupSizes(k);
+			Real grandSum = 0.0;
+
+			for (int i = 0; i < k; i++) {
+				groupMeans[i] = Mean(groups[i]);
+				groupSizes[i] = static_cast<int>(groups[i].size());
+				grandSum += groupMeans[i] * groupSizes[i];
+			}
+
+			Real grandMean = grandSum / N;
+
+			// Compute Sum of Squares Between groups (SSB)
+			Real SSB = 0.0;
+			for (int i = 0; i < k; i++) {
+				Real diff = groupMeans[i] - grandMean;
+				SSB += groupSizes[i] * diff * diff;
+			}
+
+			// Compute Sum of Squares Within groups (SSW)
+			Real SSW = 0.0;
+			for (int i = 0; i < k; i++) {
+				for (int j = 0; j < groupSizes[i]; j++) {
+					Real diff = groups[i][j] - groupMeans[i];
+					SSW += diff * diff;
+				}
+			}
+
+			// Degrees of freedom
+			int df_between = k - 1;           // between groups
+			int df_within = N - k;            // within groups
+			int df_total = N - 1;             // total
+
+			// Mean squares
+			Real MSB = SSB / df_between;      // Mean square between
+			Real MSW = SSW / df_within;       // Mean square within
+
+			// F-statistic
+			Real F = MSB / MSW;
+
+			// Create F-distribution
+			FDistribution fDist(df_between, df_within);
+
+			// Compute p-value (right-tail)
+			Real pValue = fDist.rightTailPValue(F);
+
+			// Critical value
+			Real criticalValue = fDist.criticalValue(alpha);
+
+			// Decision: reject if F > critical value
+			bool rejectNull = F > criticalValue;
+
+			return HypothesisTestResult(
+				F,
+				pValue,
+				criticalValue,
+				rejectNull,
+				1.0 - alpha,
+				df_between,  // Store between-groups df in result
+				"One-Way ANOVA"
+			);
+		}
+
+	} // namespace Statistics
+}  // namespace MML
+
+
+///////////////////////////   mml/algorithms/Statistics/StatisticsRank.h   ///////////////////////////
+// RankCorrelation.h
+// 
+// Rank-based correlation methods for MML (MinimalMathLibrary)
+// Extracted from Statistics.h as part of refactoring to improve organization
+//
+// Contains: Spearman's rho, Kendall's tau, and helper functions
+///////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+namespace MML
+{
+	namespace Statistics
+	{
+		/// @brief Compute ranks for a dataset
+		/// Converts raw data values to ranks (1-based). Tied values receive
+		/// the average of the ranks they would have received.
+		/// Example: [5, 2, 2, 8] → [3, 1.5, 1.5, 4]
+		/// @param data Vector of values to rank
+		/// @return Vector of ranks (1-based, with average ranks for ties)
+		/// @note Uses average ranking for ties: if values at positions 2,3,4
+		/// are tied, they all receive rank (2+3+4)/3 = 3
+		/// Complexity: O(n log n) for sorting
+		static Vector<Real> ComputeRanks(const Vector<Real>& data)
+		{
+			int n = data.size();
+			if (n == 0)
+				return Vector<Real>();
+
+			// Create index array and sort by values
+			std::vector<int> indices(n);
+			for (int i = 0; i < n; i++)
+				indices[i] = i;
+
+			std::sort(indices.begin(), indices.end(), [&data](int a, int b) {
+				return data[a] < data[b];
+			});
+
+			// Assign ranks with tie handling (average ranks for ties)
+			Vector<Real> ranks(n);
+			int i = 0;
+			while (i < n) {
+				int j = i;
+				// Find extent of tied values
+				while (j < n - 1 && std::abs(data[indices[j + 1]] - data[indices[i]]) < 1e-14)
+					j++;
+
+				// Average rank for tied values
+				Real avgRank = (i + 1 + j + 1) / 2.0;  // 1-based ranks
+				for (int k = i; k <= j; k++)
+					ranks[indices[k]] = avgRank;
+
+				i = j + 1;
+			}
+
+			return ranks;
+		}
+
+		/// @brief Compute Spearman's rank correlation coefficient
+		///
+		/// ρ (rho) = 1 - 6·Σd²ᵢ / (n(n²-1))  [no ties formula]
+		/// For data with ties, computes Pearson correlation on ranks.
+		///
+		/// Spearman correlation measures monotonic relationship (not just linear).
+		/// Values range from -1 (perfect negative monotonic) to +1 (perfect positive).
+		///
+		/// @param x First variable (vector of values)
+		/// @param y Second variable (must have same size as x)
+		///
+		/// @return Spearman correlation coefficient ρ in [-1, 1]
+		/// @throws StatisticsError if vectors are empty, have different sizes,
+		///
+		/// or have fewer than 2 elements
+		/// Complexity: O(n log n) due to ranking
+		static Real SpearmanCorrelation(const Vector<Real>& x, const Vector<Real>& y)
+		{
+			int n = x.size();
+			if (n < 2)
+				throw StatisticsError("Vector size must be at least 2 in SpearmanCorrelation");
+			if (y.size() != n)
+				throw StatisticsError("Vectors must have the same size in SpearmanCorrelation");
+
+			// Compute ranks
+			Vector<Real> rankX = ComputeRanks(x);
+			Vector<Real> rankY = ComputeRanks(y);
+
+			// Use Pearson correlation on ranks (handles ties correctly)
+			return PearsonCorrelation(rankX, rankY);
+		}
+
+		/// @brief Result structure for rank correlation with significance test
+		struct RankCorrelationResult
+		{
+			Real rho;              ///< Correlation coefficient (Spearman or Kendall)
+			Real zScore;           ///< z-score for large sample approximation
+			int n;                 ///< Sample size
+			///
+			/// @brief Check if correlation is significant at given alpha level
+			/// Uses normal approximation (valid for n > 10)
+			///
+			/// Critical z-values: α=0.05 → z=1.96, α=0.01 → z=2.576
+			bool IsSignificant(Real alpha = 0.05) const
+			{
+				Real criticalZ = (alpha <= 0.01) ? 2.576 : 1.96;
+				return std::abs(zScore) > criticalZ;
+			}
+		};
+
+		/// @brief Compute Spearman correlation with significance test
+		///
+		/// Returns correlation coefficient with z-score for significance testing.
+		/// Uses large-sample approximation: z = ρ·√(n-1)
+		///
+		/// @param x First variable
+		/// @param y Second variable
+		///
+		/// @return RankCorrelationResult with rho, zScore, and n
+		/// @throws StatisticsError if vectors are invalid
+		static RankCorrelationResult SpearmanCorrelationWithTest(const Vector<Real>& x, const Vector<Real>& y)
+		{
+			int n = x.size();
+			if (n < 3)
+				throw StatisticsError("Need at least 3 observations for significance test in SpearmanCorrelationWithTest");
+
+			Real rho = SpearmanCorrelation(x, y);
+
+			// Large sample approximation: z = rho * sqrt(n - 1)
+			Real zScore = rho * std::sqrt(static_cast<Real>(n - 1));
+
+			return RankCorrelationResult{rho, zScore, n};
+		}
+
+		/// @brief Compute Kendall's tau-b rank correlation coefficient
+		///
+		/// τ_b = (C - D) / √((C + D + Tx)(C + D + Ty))
+		/// where:
+		///
+		/// - C = number of concordant pairs
+		/// - D = number of discordant pairs
+		///
+		/// - Tx = pairs tied only in x
+		/// - Ty = pairs tied only in y
+		///
+		/// Kendall's tau is more robust than Spearman for small samples
+		/// and has a more intuitive interpretation (probability difference).
+		///
+		/// @param x First variable (vector of values)
+		/// @param y Second variable (must have same size as x)
+		///
+		/// @return Kendall tau-b coefficient in [-1, 1]
+		/// @throws StatisticsError if vectors are empty, have different sizes,
+		///
+		/// or have fewer than 2 elements
+		/// Complexity: O(n²) - naive implementation
+		static Real KendallCorrelation(const Vector<Real>& x, const Vector<Real>& y)
+		{
+			int n = x.size();
+			if (n < 2)
+				throw StatisticsError("Vector size must be at least 2 in KendallCorrelation");
+			if (y.size() != n)
+				throw StatisticsError("Vectors must have the same size in KendallCorrelation");
+
+			long long concordant = 0;
+			long long discordant = 0;
+			long long tiedX = 0;
+			long long tiedY = 0;
+
+			const Real eps = 1e-14;
+
+			// Count all pairs
+			for (int i = 0; i < n - 1; i++) {
+				for (int j = i + 1; j < n; j++) {
+					Real dx = x[j] - x[i];
+					Real dy = y[j] - y[i];
+
+					bool xTied = std::abs(dx) < eps;
+					bool yTied = std::abs(dy) < eps;
+
+					if (xTied && yTied) {
+						// Both tied - don't count
+						continue;
+					} else if (xTied) {
+						tiedX++;
+					} else if (yTied) {
+						tiedY++;
+					} else if ((dx > 0 && dy > 0) || (dx < 0 && dy < 0)) {
+						concordant++;
+					} else {
+						discordant++;
+					}
+				}
+			}
+
+			// tau-b formula with tie correction
+			Real numerator = static_cast<Real>(concordant - discordant);
+			Real denom1 = static_cast<Real>(concordant + discordant + tiedX);
+			Real denom2 = static_cast<Real>(concordant + discordant + tiedY);
+
+			if (denom1 <= 0.0 || denom2 <= 0.0)
+				return 0.0;  // All pairs tied
+
+			return numerator / std::sqrt(denom1 * denom2);
+		}
+
+		/// @brief Compute Kendall correlation with significance test
+		///
+		/// Returns correlation coefficient with z-score for significance testing.
+		/// Uses asymptotic normal approximation:
+		///
+		/// z = τ / √(2(2n+5) / 9n(n-1))
+		/// @param x First variable
+		///
+		/// @param y Second variable
+		/// @return RankCorrelationResult with tau (as rho), zScore, and n
+		///
+		/// @throws StatisticsError if vectors are invalid
+		static RankCorrelationResult KendallCorrelationWithTest(const Vector<Real>& x, const Vector<Real>& y)
+		{
+			int n = x.size();
+			if (n < 3)
+				throw StatisticsError("Need at least 3 observations for significance test in KendallCorrelationWithTest");
+
+			Real tau = KendallCorrelation(x, y);
+
+			// Standard error for Kendall's tau (no ties):
+			// SE = sqrt(2(2n+5) / 9n(n-1))
+			Real variance = (2.0 * (2.0 * n + 5.0)) / (9.0 * n * (n - 1));
+			Real zScore = tau / std::sqrt(variance);
+
+			return RankCorrelationResult{tau, zScore, n};
+		}
+	}
+}
+
+
 ///////////////////////////   mml/algorithms/Optimization.h   ///////////////////////////
 
 
@@ -50926,6 +54899,2053 @@ namespace MML {
 	} // namespace Minimization
 } // namespace MML
 
+
+///////////////////////////   mml/algorithms/OptimizationMultidim.h   ///////////////////////////
+
+
+
+
+
+namespace MML::Optimization {
+	/////////////////////////////////////////////////////////////////////
+	///                 MULTIDIMENSIONAL OPTIMIZATION                 ///
+	/////////////////////////////////////////////////////////////////////
+
+	///////////////////////////////////////////////////////////////////////////
+	///                     MultidimOptimizationError                       ///
+	///////////////////////////////////////////////////////////////////////////
+	class MultidimOptimizationError : public std::runtime_error {
+	public:
+		explicit MultidimOptimizationError(const std::string& message)
+			: std::runtime_error("MultidimOptimizationError: " + message) {}
+	};
+
+	///////////////////////////////////////////////////////////////////////////
+	///                  MultidimOptimizationInputError                     ///
+	///////////////////////////////////////////////////////////////////////////
+	/// @brief Exception for invalid inputs to multidimensional optimization routines
+	class MultidimOptimizationInputError : public std::domain_error {
+	public:
+		explicit MultidimOptimizationInputError(const std::string& message)
+			: std::domain_error("MultidimOptimizationInputError: " + message) {}
+	};
+
+	///////////////////////////////////////////////////////////////////////////
+	///               Input Validation Helper Functions                     ///
+	///////////////////////////////////////////////////////////////////////////
+
+	/// @brief Check if a vector contains any NaN or Inf values
+	/// @tparam N Dimension of vector
+	/// @param v Vector to check
+	/// @return true if all elements are finite
+	template<int N>
+	inline bool IsVectorFinite(const VectorN<Real, N>& v) {
+		for (int i = 0; i < N; ++i) {
+			if (!std::isfinite(v[i]))
+				return false;
+		}
+		return true;
+	}
+
+	/// @brief Validate that a vector contains no NaN or Inf values
+	/// @tparam N Dimension of vector
+	/// @param v Vector to check
+	/// @param context Description for error message
+	/// @throws MultidimOptimizationInputError if vector contains NaN or Inf
+	template<int N>
+	inline void ValidateVectorFinite(const VectorN<Real, N>& v, const char* context = "vector") {
+		for (int i = 0; i < N; ++i) {
+			if (!std::isfinite(v[i])) {
+				throw MultidimOptimizationInputError(std::string(context) + ": component " + 
+					std::to_string(i) + " is " + (std::isnan(v[i]) ? "NaN" : "Inf"));
+			}
+		}
+	}
+
+	/// @brief Validate tolerance parameter
+	/// @param tol Tolerance to check
+	/// @param context Description for error message
+	/// @throws MultidimOptimizationInputError if tolerance is invalid
+	inline void ValidateMultidimTolerance(Real tol, const char* context = "optimization") {
+		if (!std::isfinite(tol) || tol <= 0) {
+			throw MultidimOptimizationInputError(std::string(context) + ": tolerance must be positive and finite, got " +
+				std::to_string(tol));
+		}
+	}
+
+	/// @brief Validate a function value returned from evaluation
+	/// @param fval Function value to check
+	/// @param context Description for error message
+	/// @throws MultidimOptimizationInputError if function value is NaN or Inf
+	inline void ValidateMultidimFunctionValue(Real fval, const char* context = "function evaluation") {
+		if (!std::isfinite(fval)) {
+			throw MultidimOptimizationInputError(std::string(context) + ": returned " +
+				(std::isnan(fval) ? "NaN" : "Inf"));
+		}
+	}
+
+	///////////////////////////////////////////////////////////////////////////
+	///                  MultidimMinimizationResult                        ///
+	///////////////////////////////////////////////////////////////////////////
+	/**
+     * @brief Result structure for multidimensional minimization
+     */
+	struct MultidimMinimizationResult {
+		Vector<Real> xmin; ///< Location of minimum
+		Real fmin;		   ///< Function value at minimum
+		int iterations;	   ///< Number of iterations (or function evaluations)
+		bool converged;	   ///< True if converged within tolerance
+		
+		// Enhanced diagnostic fields (API Standardization Phase 4)
+		std::string algorithm_name;  ///< Name of the algorithm used
+		AlgorithmStatus status = AlgorithmStatus::Success;  ///< Algorithm termination status
+		std::string error_message;   ///< Error message if failed
+		double elapsed_time_ms = 0;  ///< Execution time in milliseconds
+		int function_evaluations = 0; ///< Number of function evaluations
+
+		MultidimMinimizationResult()
+			: fmin(0.0)
+			, iterations(0)
+			, converged(false) {}
+
+		MultidimMinimizationResult(const Vector<Real>& x, Real f, int iter, bool conv)
+			: xmin(x)
+			, fmin(f)
+			, iterations(iter)
+			, converged(conv)
+			, function_evaluations(iter) {}
+	};
+
+	///////////////////////////////////////////////////////////////////////////
+	///                  MultidimOptimizationConfig                        ///
+	///////////////////////////////////////////////////////////////////////////
+	/**
+     * @brief Configuration for multidimensional optimization algorithms
+     * 
+     * Standardized config object following API Standardization Phase 4 pattern.
+     */
+	struct MultidimOptimizationConfig {
+		Real tolerance = 1e-8;           ///< Convergence tolerance
+		int max_iterations = 5000;       ///< Maximum iterations
+		bool verbose = false;            ///< Enable verbose output
+		Real initial_delta = 1.0;        ///< Initial simplex/step size
+		int lbfgs_memory_size = 10;      ///< L-BFGS: number of correction pairs (typical: 3-20)
+
+		/// Default constructor
+		MultidimOptimizationConfig() = default;
+
+		/// Constructor with key parameters
+		MultidimOptimizationConfig(Real tol, int max_iter = 5000)
+			: tolerance(tol)
+			, max_iterations(max_iter) {}
+
+		/// Factory: High precision configuration
+		static MultidimOptimizationConfig HighPrecision() {
+			MultidimOptimizationConfig cfg;
+			cfg.tolerance = 1e-12;
+			cfg.max_iterations = 10000;
+			return cfg;
+		}
+
+		/// Factory: Fast configuration (lower precision, fewer iterations)
+		static MultidimOptimizationConfig Fast() {
+			MultidimOptimizationConfig cfg;
+			cfg.tolerance = 1e-4;
+			cfg.max_iterations = 500;
+			return cfg;
+		}
+
+		/// Factory: Large-scale configuration (for L-BFGS with many variables)
+		static MultidimOptimizationConfig LargeScale(int memory_size = 20) {
+			MultidimOptimizationConfig cfg;
+			cfg.tolerance = 1e-8;
+			cfg.max_iterations = 10000;
+			cfg.lbfgs_memory_size = memory_size;
+			return cfg;
+		}
+	};
+
+	///////////////////////////////////////////////////////////////////////////
+	///                 Simplex (Nelder-Mead) Minimization                 ///
+	///////////////////////////////////////////////////////////////////////////
+	/**
+     * @brief Downhill simplex (Nelder-Mead) method for multidimensional minimization
+     * 
+     * The Nelder-Mead simplex method is a direct search method that does not require 
+     * derivatives. It works by maintaining a simplex (a geometric figure with N+1 vertices 
+     * in N dimensions) and iteratively replacing the worst vertex.
+     * 
+     * Reference: Numerical Recipes Chapter 10.5, Nelder & Mead (1965)
+     * 
+     * The algorithm uses four basic operations:
+     * - Reflection: Reflect the worst point through the centroid
+     * - Expansion: If reflection is good, try going further
+     * - Contraction: If reflection is bad, try a point between worst and centroid
+     * - Shrink: If all else fails, shrink the simplex toward the best point
+     * 
+     * Standard coefficients:
+     * - alpha = 1.0 (reflection coefficient)
+     * - gamma = 2.0 (expansion coefficient)
+     * - rho = 0.5 (contraction coefficient)  
+     * - sigma = 0.5 (shrink coefficient)
+     */
+	class NelderMead {
+	public:
+		// Simplex coefficients
+		static constexpr Real ALPHA = 1.0; // Reflection coefficient
+		static constexpr Real GAMMA = 2.0; // Expansion coefficient
+		static constexpr Real RHO = 0.5;   // Contraction coefficient
+		static constexpr Real SIGMA = 0.5; // Shrink coefficient
+
+	private:
+		Real _ftol;	  // Fractional tolerance for convergence
+		int _maxIter; // Maximum iterations
+		int _nfunc;	  // Number of function evaluations
+		int _ndim;	  // Problem dimension
+		int _mpts;	  // Number of simplex points (ndim + 1)
+
+		Matrix<Real> _p; // Simplex vertices [mpts x ndim]
+		Vector<Real> _y; // Function values at vertices [mpts]
+
+	public:
+		/**
+         * @brief Construct Nelder-Mead optimizer
+         * @param ftol Fractional convergence tolerance (default 1e-8)
+         * @param maxIter Maximum iterations (default 5000)
+         */
+		NelderMead(Real ftol = 1.0e-8, int maxIter = 5000)
+			: _ftol(ftol)
+			, _maxIter(maxIter)
+			, _nfunc(0)
+			, _ndim(0)
+			, _mpts(0) {}
+
+		Real getFtol() const { return _ftol; }
+		void setFtol(Real ftol) { _ftol = ftol; }
+
+		int getMaxIter() const { return _maxIter; }
+		void setMaxIter(int maxIter) { _maxIter = maxIter; }
+
+		int getNumFuncEvals() const { return _nfunc; }
+
+		/**
+         * @brief Get the final simplex (for analysis/debugging)
+         */
+		const Matrix<Real>& getSimplex() const { return _p; }
+
+		/**
+         * @brief Get function values at simplex vertices
+         */
+		const Vector<Real>& getSimplexValues() const { return _y; }
+
+		///////////////////////////////////////////////////////////////////////////
+		///                      Minimize with uniform delta                    ///
+		///////////////////////////////////////////////////////////////////////////
+		/**
+         * @brief Minimize using a starting point with uniform perturbation
+         * @tparam N Dimension of the problem
+         * @param func Scalar function to minimize
+         * @param start Starting point
+         * @param delta Uniform perturbation for creating initial simplex (default 1.0)
+         * @return Minimization result
+         * @throws MultidimOptimizationInputError if inputs are invalid
+         * 
+         * Creates initial simplex by adding delta to each coordinate of start
+         */
+		template<int N>
+		MultidimMinimizationResult Minimize(const IScalarFunction<N>& func, const VectorN<Real, N>& start, Real delta = 1.0) {
+			// Validate inputs
+			ValidateVectorFinite<N>(start, "NelderMead::Minimize starting point");
+			if (!std::isfinite(delta) || delta == 0.0)
+				throw MultidimOptimizationInputError("NelderMead::Minimize: delta must be finite and non-zero");
+			
+			Vector<Real> deltas(N, delta);
+			return Minimize(func, start, deltas);
+		}
+
+		///////////////////////////////////////////////////////////////////////////
+		///                    Minimize with per-dimension deltas               ///
+		///////////////////////////////////////////////////////////////////////////
+		/**
+         * @brief Minimize using a starting point with per-dimension perturbations
+         * @tparam N Dimension of the problem
+         * @param func Scalar function to minimize
+         * @param start Starting point
+         * @param deltas Per-dimension perturbations for initial simplex
+         * @return Minimization result
+         * @throws MultidimOptimizationInputError if inputs are invalid
+         * 
+         * Creates initial simplex by adding deltas[i] to coordinate i of start
+         */
+		template<int N>
+		MultidimMinimizationResult Minimize(const IScalarFunction<N>& func, const VectorN<Real, N>& start, const Vector<Real>& deltas) {
+			if (deltas.size() != N)
+				throw MultidimOptimizationError("Deltas vector dimension mismatch");
+
+			// Validate inputs
+			ValidateVectorFinite<N>(start, "NelderMead::Minimize starting point");
+			for (int i = 0; i < N; ++i) {
+				if (!std::isfinite(deltas[i]) || deltas[i] == 0.0)
+					throw MultidimOptimizationInputError("NelderMead::Minimize: deltas[" + std::to_string(i) + 
+						"] must be finite and non-zero");
+			}
+
+			// Create initial simplex: N+1 vertices
+			_ndim = N;
+			_mpts = N + 1;
+			_p = Matrix<Real>(_mpts, _ndim);
+			_y = Vector<Real>(_mpts);
+
+			// First vertex is the starting point
+			for (int j = 0; j < _ndim; ++j)
+				_p(0, j) = start[j];
+
+			// Other vertices: perturb one coordinate at a time
+			for (int i = 1; i <= _ndim; ++i) {
+				for (int j = 0; j < _ndim; ++j)
+					_p(i, j) = start[j];
+				_p(i, i - 1) += deltas[i - 1];
+			}
+
+			return MinimizeFromSimplex(func);
+		}
+
+		///////////////////////////////////////////////////////////////////////////
+		///                    Minimize from explicit simplex                   ///
+		///////////////////////////////////////////////////////////////////////////
+		/**
+         * @brief Minimize from an explicitly specified initial simplex
+         * @tparam N Dimension of the problem
+         * @param func Scalar function to minimize
+         * @param simplex Initial simplex as (N+1) x N matrix (rows are vertices)
+         * @return Minimization result
+         * @throws MultidimOptimizationInputError if simplex contains NaN/Inf values
+         */
+		template<int N>
+		MultidimMinimizationResult Minimize(const IScalarFunction<N>& func, const Matrix<Real>& simplex) {
+			if (simplex.rows() != N + 1 || simplex.cols() != N)
+				throw MultidimOptimizationError("Simplex dimensions invalid: expected " + std::to_string(N + 1) + " x " +
+												std::to_string(N));
+
+			// Validate all simplex entries are finite
+			for (int i = 0; i < N + 1; ++i) {
+				for (int j = 0; j < N; ++j) {
+					if (!std::isfinite(simplex(i, j)))
+						throw MultidimOptimizationInputError("NelderMead::Minimize: simplex(" + std::to_string(i) + 
+							"," + std::to_string(j) + ") is " + (std::isnan(simplex(i, j)) ? "NaN" : "Inf"));
+				}
+			}
+
+			_ndim = N;
+			_mpts = N + 1;
+			_p = simplex;
+			_y = Vector<Real>(_mpts);
+
+			return MinimizeFromSimplex(func);
+		}
+
+	private:
+		///////////////////////////////////////////////////////////////////////////
+		///                   Core Nelder-Mead Algorithm                        ///
+		///////////////////////////////////////////////////////////////////////////
+		template<int N>
+		MultidimMinimizationResult MinimizeFromSimplex(const IScalarFunction<N>& func) {
+			// Validate tolerance
+			ValidateMultidimTolerance(_ftol, "NelderMead");
+			if (_maxIter <= 0)
+				throw MultidimOptimizationInputError("NelderMead: maxIter must be positive");
+			
+			const Real TINY = 1.0e-10;
+			int ihi, ilo, inhi;
+			VectorN<Real, N> x;
+			Vector<Real> psum(_ndim);
+
+			// Evaluate function at all simplex vertices
+			for (int i = 0; i < _mpts; ++i) {
+				for (int j = 0; j < _ndim; ++j)
+					x[j] = _p(i, j);
+				_y[i] = func(x);
+				ValidateMultidimFunctionValue(_y[i], "NelderMead initial evaluation");
+			}
+			_nfunc = _mpts;
+
+			// Compute initial psum (sum of vertex coordinates)
+			GetPsum(psum);
+
+			// Main iteration loop
+			for (int iter = 0; iter < _maxIter; ++iter) {
+				// Find lowest (best), highest (worst), and next-highest
+				ilo = 0;
+				if (_y[0] > _y[1]) {
+					ihi = 0;
+					inhi = 1;
+				} else {
+					ihi = 1;
+					inhi = 0;
+				}
+
+				for (int i = 0; i < _mpts; ++i) {
+					if (_y[i] <= _y[ilo])
+						ilo = i;
+					if (_y[i] > _y[ihi]) {
+						inhi = ihi;
+						ihi = i;
+					} else if (_y[i] > _y[inhi] && i != ihi) {
+						inhi = i;
+					}
+				}
+
+				// Check convergence
+				Real rtol = 2.0 * std::abs(_y[ihi] - _y[ilo]) / (std::abs(_y[ihi]) + std::abs(_y[ilo]) + TINY);
+
+				if (rtol < _ftol) {
+					// Converged - swap best to position 0
+					std::swap(_y[0], _y[ilo]);
+					for (int j = 0; j < _ndim; ++j) {
+						std::swap(_p(0, j), _p(ilo, j));
+						x[j] = _p(0, j);
+					}
+
+					Vector<Real> result(_ndim);
+					for (int j = 0; j < _ndim; ++j)
+						result[j] = x[j];
+
+					return MultidimMinimizationResult(result, _y[0], _nfunc, true);
+				}
+
+				// Check iteration limit
+				if (_nfunc >= _maxIter) {
+					Vector<Real> result(_ndim);
+					for (int j = 0; j < _ndim; ++j)
+						result[j] = _p(ilo, j);
+					return MultidimMinimizationResult(result, _y[ilo], _nfunc, false);
+				}
+
+				// Try reflection
+				Real ytry = Amotry<N>(psum, ihi, -ALPHA, func);
+				_nfunc++;
+
+				if (ytry <= _y[ilo]) {
+					// Reflection is better than best - try expansion
+					ytry = Amotry<N>(psum, ihi, GAMMA, func);
+					_nfunc++;
+				} else if (ytry >= _y[inhi]) {
+					// Reflection is worse than second-worst
+					Real ysave = _y[ihi];
+					ytry = Amotry<N>(psum, ihi, RHO, func);
+					_nfunc++;
+
+					if (ytry >= ysave) {
+						// Contraction failed - do shrink
+						for (int i = 0; i < _mpts; ++i) {
+							if (i != ilo) {
+								for (int j = 0; j < _ndim; ++j) {
+									_p(i, j) = SIGMA * (_p(i, j) + _p(ilo, j));
+									x[j] = _p(i, j);
+								}
+								_y[i] = func(x);
+							}
+						}
+						_nfunc += _ndim;
+						GetPsum(psum);
+					}
+				}
+			}
+
+			// Max iterations reached without convergence
+			int ilo_final = 0;
+			for (int i = 1; i < _mpts; ++i)
+				if (_y[i] < _y[ilo_final])
+					ilo_final = i;
+
+			Vector<Real> result(_ndim);
+			for (int j = 0; j < _ndim; ++j)
+				result[j] = _p(ilo_final, j);
+
+			return MultidimMinimizationResult(result, _y[ilo_final], _nfunc, false);
+		}
+
+		///////////////////////////////////////////////////////////////////////////
+		///                           Helper Functions                          ///
+		///////////////////////////////////////////////////////////////////////////
+
+		/**
+         * @brief Compute sum of vertex coordinates (for centroid calculation)
+         */
+		void GetPsum(Vector<Real>& psum) {
+			for (int j = 0; j < _ndim; ++j) {
+				Real sum = 0.0;
+				for (int i = 0; i < _mpts; ++i)
+					sum += _p(i, j);
+				psum[j] = sum;
+			}
+		}
+
+		/**
+         * @brief Extrapolate by a factor through the face opposite the high point
+         * @tparam N Problem dimension
+         * @param psum Sum of vertex coordinates
+         * @param ihi Index of highest (worst) point
+         * @param fac Extrapolation factor
+         * @param func Function to evaluate
+         * @return Function value at trial point
+         * 
+         * This implements the core simplex transformation. The trial point is:
+         * ptry = psum * (1-fac)/ndim - p[ihi] * ((1-fac)/ndim - fac)
+         *      = centroid_of_face - fac * (centroid_of_face - p[ihi])
+         * 
+         * For fac = -1: reflection through centroid
+         * For fac = 2: expansion beyond reflection point
+         * For fac = 0.5: contraction toward centroid
+         */
+		template<int N>
+		Real Amotry(Vector<Real>& psum, int ihi, Real fac, const IScalarFunction<N>& func) {
+			VectorN<Real, N> ptry;
+			Real fac1 = (1.0 - fac) / _ndim;
+			Real fac2 = fac1 - fac;
+
+			for (int j = 0; j < _ndim; ++j)
+				ptry[j] = psum[j] * fac1 - _p(ihi, j) * fac2;
+
+			Real ytry = func(ptry);
+
+			if (ytry < _y[ihi]) {
+				// Accept the new point
+				_y[ihi] = ytry;
+				for (int j = 0; j < _ndim; ++j) {
+					psum[j] += ptry[j] - _p(ihi, j);
+					_p(ihi, j) = ptry[j];
+				}
+			}
+			return ytry;
+		}
+	};
+
+	///////////////////////////////////////////////////////////////////////////
+	///                   Convenience Wrapper Functions                     ///
+	///////////////////////////////////////////////////////////////////////////
+
+	/**
+     * @brief Minimize a scalar function using Nelder-Mead
+     * @tparam N Dimension of the problem
+     * @param func Function to minimize
+     * @param start Starting point
+     * @param delta Initial simplex size (default 1.0)
+     * @param ftol Convergence tolerance (default 1e-8)
+     * @return Minimization result
+     */
+	template<int N>
+	MultidimMinimizationResult NelderMeadMinimize(const IScalarFunction<N>& func, const VectorN<Real, N>& start, Real delta = 1.0,
+												  Real ftol = 1.0e-8) {
+		NelderMead optimizer(ftol);
+		return optimizer.Minimize(func, start, delta);
+	}
+
+	/**
+     * @brief Minimize a scalar function using Nelder-Mead with custom deltas
+     * @tparam N Dimension of the problem
+     * @param func Function to minimize
+     * @param start Starting point
+     * @param deltas Per-dimension simplex sizes
+     * @param ftol Convergence tolerance (default 1e-8)
+     * @return Minimization result
+     */
+	template<int N>
+	MultidimMinimizationResult NelderMeadMinimize(const IScalarFunction<N>& func, const VectorN<Real, N>& start, const Vector<Real>& deltas,
+												  Real ftol = 1.0e-8) {
+		NelderMead optimizer(ftol);
+		return optimizer.Minimize(func, start, deltas);
+	}
+
+	///////////////////////////////////////////////////////////////////////////
+	///                     Maximization Wrapper                            ///
+	///////////////////////////////////////////////////////////////////////////
+
+	/**
+     * @brief Helper class to negate a function for maximization
+     */
+	template<int N>
+	class NegatedScalarFunction : public IScalarFunction<N> {
+	private:
+		const IScalarFunction<N>& _func;
+
+	public:
+		explicit NegatedScalarFunction(const IScalarFunction<N>& func)
+			: _func(func) {}
+
+		Real operator()(const VectorN<Real, N>& x) const override { return -_func(x); }
+	};
+
+	/**
+     * @brief Maximize a scalar function using Nelder-Mead
+     * @tparam N Dimension of the problem
+     * @param func Function to maximize
+     * @param start Starting point
+     * @param delta Initial simplex size (default 1.0)
+     * @param ftol Convergence tolerance (default 1e-8)
+     * @return Maximization result (fmin is negated to give actual maximum value)
+     */
+	template<int N>
+	MultidimMinimizationResult NelderMeadMaximize(const IScalarFunction<N>& func, const VectorN<Real, N>& start, Real delta = 1.0,
+												  Real ftol = 1.0e-8) {
+		NegatedScalarFunction<N> negFunc(func);
+		NelderMead optimizer(ftol);
+		auto result = optimizer.Minimize(negFunc, start, delta);
+		result.fmin = -result.fmin; // Convert back to maximum value
+		return result;
+	}
+
+	///////////////////////////////////////////////////////////////////////////
+	///              Config-Based Overloads (API Standardization)           ///
+	///////////////////////////////////////////////////////////////////////////
+
+	/**
+     * @brief Minimize a scalar function using Nelder-Mead with config
+     * @tparam N Dimension of the problem
+     * @param func Function to minimize
+     * @param start Starting point
+     * @param config Algorithm configuration
+     * @return Minimization result with enhanced diagnostics
+     */
+	template<int N>
+	MultidimMinimizationResult NelderMeadMinimize(const IScalarFunction<N>& func, const VectorN<Real, N>& start,
+												  const MultidimOptimizationConfig& config) {
+		AlgorithmTimer timer;
+		NelderMead optimizer(config.tolerance, config.max_iterations);
+		MultidimMinimizationResult result = optimizer.Minimize(func, start, config.initial_delta);
+		
+		// Fill enhanced diagnostic fields
+		result.algorithm_name = "NelderMead";
+		result.elapsed_time_ms = timer.elapsed_ms();
+		result.function_evaluations = optimizer.getNumFuncEvals();
+		if (!result.converged) {
+			result.status = AlgorithmStatus::MaxIterationsExceeded;
+			result.error_message = "Nelder-Mead did not converge within " + std::to_string(config.max_iterations) + " iterations";
+		}
+		return result;
+	}
+
+	/**
+     * @brief Maximize a scalar function using Nelder-Mead with config
+     * @tparam N Dimension of the problem
+     * @param func Function to maximize
+     * @param start Starting point
+     * @param config Algorithm configuration
+     * @return Maximization result with enhanced diagnostics (fmin is the maximum value)
+     */
+	template<int N>
+	MultidimMinimizationResult NelderMeadMaximize(const IScalarFunction<N>& func, const VectorN<Real, N>& start,
+												  const MultidimOptimizationConfig& config) {
+		AlgorithmTimer timer;
+		NegatedScalarFunction<N> negFunc(func);
+		NelderMead optimizer(config.tolerance, config.max_iterations);
+		MultidimMinimizationResult result = optimizer.Minimize(negFunc, start, config.initial_delta);
+		
+		result.fmin = -result.fmin; // Convert back to maximum value
+		result.algorithm_name = "NelderMead";
+		result.elapsed_time_ms = timer.elapsed_ms();
+		result.function_evaluations = optimizer.getNumFuncEvals();
+		if (!result.converged) {
+			result.status = AlgorithmStatus::MaxIterationsExceeded;
+			result.error_message = "Nelder-Mead did not converge within " + std::to_string(config.max_iterations) + " iterations";
+		}
+		return result;
+	}
+
+	/////////////////////////////////////////////////////////////////////
+	///                     LINE SEARCH METHODS                       ///
+	/////////////////////////////////////////////////////////////////////
+
+	///////////////////////////////////////////////////////////////////////////
+	///            Interface for differentiable scalar functions            ///
+	///////////////////////////////////////////////////////////////////////////
+	/**
+     * @brief Interface for N-dimensional scalar function with gradient
+     * 
+     * Functions that provide gradient information can use more efficient
+     * optimization methods like conjugate gradient or BFGS.
+     */
+	template<int N>
+	class IDifferentiableScalarFunction : public IScalarFunction<N> {
+	public:
+		/**
+         * @brief Compute the gradient at point x
+         * @param x Point at which to evaluate gradient
+         * @param grad Output gradient vector (filled by this method)
+         */
+		virtual void Gradient(const VectorN<Real, N>& x, VectorN<Real, N>& grad) const = 0;
+
+		virtual ~IDifferentiableScalarFunction() = default;
+	};
+
+	///////////////////////////////////////////////////////////////////////////
+	///                    1D function along a line                         ///
+	///////////////////////////////////////////////////////////////////////////
+	/**
+     * @brief Wrapper to convert N-dim function to 1D function along a line
+     * 
+     * Given f(x) in N dimensions, creates g(t) = f(p + t*xi) for line search.
+     * This is used by all line-search based optimizers.
+     */
+	template<int N>
+	class LineFunction : public IRealFunction {
+	private:
+		const IScalarFunction<N>& _func;
+		const VectorN<Real, N>& _p;	 // Base point
+		const VectorN<Real, N>& _xi; // Direction
+
+	public:
+		LineFunction(const IScalarFunction<N>& func, const VectorN<Real, N>& p, const VectorN<Real, N>& xi)
+			: _func(func)
+			, _p(p)
+			, _xi(xi) {}
+
+		Real operator()(Real t) const override {
+			VectorN<Real, N> xt;
+			for (int j = 0; j < N; ++j)
+				xt[j] = _p[j] + t * _xi[j];
+			return _func(xt);
+		}
+	};
+
+	/**
+     * @brief 1D function with derivative along a line (for gradient-based methods)
+     */
+	template<int N>
+	class DLineFunction : public IRealFunction {
+	private:
+		const IDifferentiableScalarFunction<N>& _func;
+		VectorN<Real, N> _p;			// Base point (mutable for evaluation)
+		VectorN<Real, N> _xi;			// Direction
+		mutable VectorN<Real, N> _xt;	// Current point
+		mutable VectorN<Real, N> _grad; // Gradient at current point
+
+	public:
+		DLineFunction(const IDifferentiableScalarFunction<N>& func, const VectorN<Real, N>& p, const VectorN<Real, N>& xi)
+			: _func(func)
+			, _p(p)
+			, _xi(xi) {}
+
+		void updateBasePoint(const VectorN<Real, N>& p) { _p = p; }
+		void updateDirection(const VectorN<Real, N>& xi) { _xi = xi; }
+
+		Real operator()(Real t) const override {
+			for (int j = 0; j < N; ++j)
+				_xt[j] = _p[j] + t * _xi[j];
+			return _func(_xt);
+		}
+
+		/**
+         * @brief Compute directional derivative df/dt = grad(f) · xi
+         */
+		Real derivative(Real t) const {
+			for (int j = 0; j < N; ++j)
+				_xt[j] = _p[j] + t * _xi[j];
+			_func.Gradient(_xt, _grad);
+
+			Real df = 0.0;
+			for (int j = 0; j < N; ++j)
+				df += _grad[j] * _xi[j];
+			return df;
+		}
+	};
+
+	///////////////////////////////////////////////////////////////////////////
+	///                      Line Minimization                              ///
+	///////////////////////////////////////////////////////////////////////////
+	/**
+     * @brief Line minimization helper for N-dimensional optimization
+     * 
+     * Given a point p and direction xi, finds the minimum along the line
+     * p + t*xi using Brent's method, then updates p and xi.
+     */
+	class LineMinimizer {
+	public:
+		/**
+         * @brief Minimize function along line p + t*xi
+         * @tparam N Problem dimension
+         * @param func Function to minimize
+         * @param p Current point (updated to minimum along line)
+         * @param xi Search direction (updated to displacement vector)
+         * @return Function value at minimum
+         */
+		template<int N>
+		static Real Minimize(const IScalarFunction<N>& func, VectorN<Real, N>& p, VectorN<Real, N>& xi, Real tol = 3.0e-8) {
+			LineFunction<N> f1dim(func, p, xi);
+
+			// Bracket the minimum
+			auto bracket = Minimization::BracketMinimum(f1dim, 0.0, 1.0);
+			if (!bracket.valid) {
+				// Try with different initial interval
+				bracket = Minimization::BracketMinimum(f1dim, 0.0, 0.1);
+			}
+
+			// Find minimum using Brent's method
+			auto result = Minimization::BrentMinimize(f1dim, bracket, tol);
+			Real xmin = result.xmin;
+
+			// Update p and xi
+			for (int j = 0; j < N; ++j) {
+				xi[j] *= xmin;
+				p[j] += xi[j];
+			}
+
+			return result.fmin;
+		}
+	};
+
+	///////////////////////////////////////////////////////////////////////////
+	///                      Powell's Method                                ///
+	///////////////////////////////////////////////////////////////////////////
+	/**
+     * @brief Powell's direction set method for multidimensional minimization
+     * 
+     * Powell's method is a derivative-free optimization method that performs
+     * successive line minimizations along a set of directions that are updated
+     * to become mutually conjugate.
+     * 
+     * Reference: Numerical Recipes Chapter 10.7
+     * 
+     * The algorithm:
+     * 1. Start with N unit vectors as search directions
+     * 2. Minimize along each direction in sequence
+     * 3. Construct new direction from total displacement
+     * 4. Replace direction with largest decrease with new direction
+     * 5. Repeat until convergence
+     * 
+     * This method is particularly effective when:
+     * - Derivatives are not available
+     * - Function is smooth and well-behaved
+     * - Problem dimension is moderate (N < 20)
+     */
+	class Powell {
+	private:
+		Real _ftol;	  // Fractional tolerance
+		int _maxIter; // Maximum iterations
+		int _iter;	  // Iteration counter
+		Real _fret;	  // Current function value
+
+	public:
+		Powell(Real ftol = 3.0e-8, int maxIter = 200)
+			: _ftol(ftol)
+			, _maxIter(maxIter)
+			, _iter(0)
+			, _fret(0.0) {}
+
+		Real getFtol() const { return _ftol; }
+		void setFtol(Real ftol) { _ftol = ftol; }
+
+		int getMaxIter() const { return _maxIter; }
+		void setMaxIter(int maxIter) { _maxIter = maxIter; }
+
+		int getIterations() const { return _iter; }
+		Real getCurrentFValue() const { return _fret; }
+
+		/**
+         * @brief Minimize using starting point with identity direction matrix
+         * @throws MultidimOptimizationInputError if inputs are invalid
+         */
+		template<int N>
+		MultidimMinimizationResult Minimize(const IScalarFunction<N>& func, const VectorN<Real, N>& start) {
+			// Validate inputs
+			ValidateVectorFinite<N>(start, "Powell::Minimize starting point");
+			ValidateMultidimTolerance(_ftol, "Powell");
+			if (_maxIter <= 0)
+				throw MultidimOptimizationInputError("Powell: maxIter must be positive");
+			
+			// Initialize direction matrix to identity
+			Matrix<Real> ximat(N, N, 0.0);
+			for (int i = 0; i < N; ++i)
+				ximat(i, i) = 1.0;
+
+			return Minimize(func, start, ximat);
+		}
+
+		/**
+         * @brief Minimize with custom initial direction matrix
+         * @throws MultidimOptimizationInputError if inputs are invalid
+         */
+		template<int N>
+		MultidimMinimizationResult Minimize(const IScalarFunction<N>& func, const VectorN<Real, N>& start, Matrix<Real>& ximat) {
+			// Validate inputs
+			ValidateVectorFinite<N>(start, "Powell::Minimize starting point");
+			ValidateMultidimTolerance(_ftol, "Powell");
+			if (_maxIter <= 0)
+				throw MultidimOptimizationInputError("Powell: maxIter must be positive");
+			// Validate direction matrix
+			for (int i = 0; i < N; ++i) {
+				for (int j = 0; j < N; ++j) {
+					if (!std::isfinite(ximat(i, j)))
+						throw MultidimOptimizationInputError("Powell::Minimize: direction matrix contains NaN/Inf");
+				}
+			}
+			
+			const Real TINY = 1.0e-25;
+
+			VectorN<Real, N> p = start;
+			VectorN<Real, N> pt, ptt, xi;
+
+			_fret = func(p);
+			ValidateMultidimFunctionValue(_fret, "Powell initial evaluation");
+
+			// Save initial point
+			for (int j = 0; j < N; ++j)
+				pt[j] = p[j];
+
+			for (_iter = 0; _iter < _maxIter; ++_iter) {
+				Real fp = _fret;
+				int ibig = 0;
+				Real del = 0.0;
+
+				// Minimize along each direction
+				for (int i = 0; i < N; ++i) {
+					// Extract i-th direction from matrix columns
+					for (int j = 0; j < N; ++j)
+						xi[j] = ximat(j, i);
+
+					Real fptt = _fret;
+					_fret = LineMinimizer::Minimize(func, p, xi, _ftol);
+
+					// Track direction with largest decrease
+					if (fptt - _fret > del) {
+						del = fptt - _fret;
+						ibig = i + 1;
+					}
+				}
+
+				// Check convergence
+				if (2.0 * (fp - _fret) <= _ftol * (std::abs(fp) + std::abs(_fret)) + TINY) {
+					Vector<Real> result(N);
+					for (int j = 0; j < N; ++j)
+						result[j] = p[j];
+					return MultidimMinimizationResult(result, _fret, _iter + 1, true);
+				}
+
+				// Construct extrapolated point and new direction
+				for (int j = 0; j < N; ++j) {
+					ptt[j] = 2.0 * p[j] - pt[j]; // Extrapolated point
+					xi[j] = p[j] - pt[j];		 // New direction
+					pt[j] = p[j];				 // Save current point
+				}
+
+				Real fptt = func(ptt);
+
+				if (fptt < fp) {
+					Real t = 2.0 * (fp - 2.0 * _fret + fptt) * (fp - _fret - del) * (fp - _fret - del) - del * (fp - fptt) * (fp - fptt);
+
+					if (t < 0.0) {
+						// Replace direction ibig with new direction
+						_fret = LineMinimizer::Minimize(func, p, xi, _ftol);
+
+						for (int j = 0; j < N; ++j) {
+							ximat(j, ibig - 1) = ximat(j, N - 1);
+							ximat(j, N - 1) = xi[j];
+						}
+					}
+				}
+			}
+
+			// Max iterations reached
+			Vector<Real> result(N);
+			for (int j = 0; j < N; ++j)
+				result[j] = p[j];
+			return MultidimMinimizationResult(result, _fret, _iter, false);
+		}
+	};
+
+	///////////////////////////////////////////////////////////////////////////
+	///            Conjugate Gradient Method (Fletcher-Reeves-Polak-Ribiere)///
+	///////////////////////////////////////////////////////////////////////////
+	/**
+     * @brief Conjugate gradient method for minimization with derivatives
+     * 
+     * The conjugate gradient method is one of the most effective methods for
+     * minimizing smooth functions when gradients are available. It generates
+     * search directions that are conjugate with respect to the Hessian.
+     * 
+     * Reference: Numerical Recipes Chapter 10.8
+     * 
+     * Two variants are implemented:
+     * - Fletcher-Reeves: gamma = (g_new · g_new) / (g_old · g_old)
+     * - Polak-Ribiere:   gamma = (g_new · (g_new - g_old)) / (g_old · g_old)
+     * 
+     * Polak-Ribiere is generally preferred as it automatically resets to
+     * steepest descent when progress stalls.
+     * 
+     * The algorithm:
+     * 1. Compute gradient at starting point
+     * 2. Set initial search direction to negative gradient (steepest descent)
+     * 3. Minimize along search direction
+     * 4. Compute new gradient
+     * 5. Update search direction using conjugate gradient formula
+     * 6. Repeat until convergence
+     */
+	class ConjugateGradient {
+	public:
+		enum class Method {
+			FletcherReeves, // Original CG formula
+			PolakRibiere	// Generally preferred variant
+		};
+
+	private:
+		Real _ftol;		// Function tolerance
+		Real _gtol;		// Gradient tolerance
+		int _maxIter;	// Maximum iterations
+		int _iter;		// Iteration counter
+		Real _fret;		// Current function value
+		Method _method; // CG variant
+
+	public:
+		ConjugateGradient(Real ftol = 3.0e-8, Real gtol = 1.0e-8, int maxIter = 200, Method method = Method::PolakRibiere)
+			: _ftol(ftol)
+			, _gtol(gtol)
+			, _maxIter(maxIter)
+			, _iter(0)
+			, _fret(0.0)
+			, _method(method) {}
+
+		Real getFtol() const { return _ftol; }
+		void setFtol(Real ftol) { _ftol = ftol; }
+
+		Real getGtol() const { return _gtol; }
+		void setGtol(Real gtol) { _gtol = gtol; }
+
+		int getMaxIter() const { return _maxIter; }
+		void setMaxIter(int maxIter) { _maxIter = maxIter; }
+
+		Method getMethod() const { return _method; }
+		void setMethod(Method method) { _method = method; }
+
+		int getIterations() const { return _iter; }
+		Real getCurrentFValue() const { return _fret; }
+
+		/**
+         * @brief Minimize a differentiable function using conjugate gradient
+         * @throws MultidimOptimizationInputError if inputs are invalid
+         */
+		template<int N>
+		MultidimMinimizationResult Minimize(const IDifferentiableScalarFunction<N>& func, const VectorN<Real, N>& start) {
+			// Validate inputs
+			ValidateVectorFinite<N>(start, "ConjugateGradient::Minimize starting point");
+			ValidateMultidimTolerance(_ftol, "ConjugateGradient ftol");
+			ValidateMultidimTolerance(_gtol, "ConjugateGradient gtol");
+			if (_maxIter <= 0)
+				throw MultidimOptimizationInputError("ConjugateGradient: maxIter must be positive");
+			
+			const Real EPS = 1.0e-18;
+
+			VectorN<Real, N> p = start;
+			VectorN<Real, N> g, h, xi;
+
+			// Evaluate function and gradient at starting point
+			Real fp = func(p);
+			ValidateMultidimFunctionValue(fp, "ConjugateGradient initial evaluation");
+			func.Gradient(p, xi);
+			ValidateVectorFinite<N>(xi, "ConjugateGradient initial gradient");
+
+			// Initialize: g = -gradient, h = xi = g (steepest descent)
+			for (int j = 0; j < N; ++j) {
+				g[j] = -xi[j];
+				xi[j] = h[j] = g[j];
+			}
+
+			for (_iter = 0; _iter < _maxIter; ++_iter) {
+				// Line minimization along xi
+				_fret = LineMinimizer::Minimize(func, p, xi, _ftol);
+
+				// Check function convergence
+				if (2.0 * std::abs(_fret - fp) <= _ftol * (std::abs(_fret) + std::abs(fp) + EPS)) {
+					Vector<Real> result(N);
+					for (int j = 0; j < N; ++j)
+						result[j] = p[j];
+					return MultidimMinimizationResult(result, _fret, _iter + 1, true);
+				}
+
+				fp = _fret;
+
+				// Compute new gradient
+				func.Gradient(p, xi);
+
+				// Check gradient convergence
+				Real test = 0.0;
+				Real den = std::max(std::abs(fp), REAL(1.0));
+				for (int j = 0; j < N; ++j) {
+					Real temp = std::abs(xi[j]) * std::max(std::abs(p[j]), REAL(1.0)) / den;
+					if (temp > test)
+						test = temp;
+				}
+				if (test < _gtol) {
+					Vector<Real> result(N);
+					for (int j = 0; j < N; ++j)
+						result[j] = p[j];
+					return MultidimMinimizationResult(result, _fret, _iter + 1, true);
+				}
+
+				// Compute gamma (CG update coefficient)
+				Real gg = 0.0, dgg = 0.0;
+				for (int j = 0; j < N; ++j) {
+					gg += g[j] * g[j];
+
+					if (_method == Method::FletcherReeves) {
+						dgg += xi[j] * xi[j]; // Fletcher-Reeves
+					} else {
+						dgg += (xi[j] + g[j]) * xi[j]; // Polak-Ribiere
+					}
+				}
+
+				if (gg == 0.0) {
+					// Gradient is zero - we're done
+					Vector<Real> result(N);
+					for (int j = 0; j < N; ++j)
+						result[j] = p[j];
+					return MultidimMinimizationResult(result, _fret, _iter + 1, true);
+				}
+
+				Real gam = dgg / gg;
+
+				// Update search direction
+				for (int j = 0; j < N; ++j) {
+					g[j] = -xi[j];
+					xi[j] = h[j] = g[j] + gam * h[j];
+				}
+			}
+
+			// Max iterations reached
+			Vector<Real> result(N);
+			for (int j = 0; j < N; ++j)
+				result[j] = p[j];
+			return MultidimMinimizationResult(result, _fret, _iter, false);
+		}
+	};
+
+	///////////////////////////////////////////////////////////////////////////
+	///               BFGS Quasi-Newton Method                              ///
+	///////////////////////////////////////////////////////////////////////////
+	/**
+     * @brief BFGS (Broyden-Fletcher-Goldfarb-Shanno) quasi-Newton method
+     * 
+     * BFGS is one of the most effective methods for smooth unconstrained
+     * optimization. It builds an approximation to the inverse Hessian matrix
+     * using only gradient information.
+     * 
+     * The algorithm:
+     * 1. Start with identity approximation to inverse Hessian
+     * 2. Compute search direction p = -H * gradient
+     * 3. Line search to find step size
+     * 4. Update inverse Hessian approximation using BFGS formula
+     * 5. Repeat until convergence
+     * 
+     * Advantages:
+     * - Superlinear convergence rate
+     * - Only requires gradient (not Hessian)
+     * - Self-correcting: recovers from poor initial H estimate
+     * 
+     * Disadvantages:
+     * - O(N²) storage for inverse Hessian approximation
+     * - May be expensive for very large N
+     */
+	class BFGS {
+	private:
+		Real _ftol;	  // Function tolerance
+		Real _gtol;	  // Gradient tolerance
+		int _maxIter; // Maximum iterations
+		int _iter;	  // Iteration counter
+		Real _fret;	  // Current function value
+
+	public:
+		BFGS(Real ftol = 3.0e-8, Real gtol = 1.0e-8, int maxIter = 200)
+			: _ftol(ftol)
+			, _gtol(gtol)
+			, _maxIter(maxIter)
+			, _iter(0)
+			, _fret(0.0) {}
+
+		Real getFtol() const { return _ftol; }
+		void setFtol(Real ftol) { _ftol = ftol; }
+
+		Real getGtol() const { return _gtol; }
+		void setGtol(Real gtol) { _gtol = gtol; }
+
+		int getMaxIter() const { return _maxIter; }
+		void setMaxIter(int maxIter) { _maxIter = maxIter; }
+
+		int getIterations() const { return _iter; }
+		Real getCurrentFValue() const { return _fret; }
+
+		/**
+         * @brief Minimize using BFGS quasi-Newton method
+         * @throws MultidimOptimizationInputError if inputs are invalid
+         */
+		template<int N>
+		MultidimMinimizationResult Minimize(const IDifferentiableScalarFunction<N>& func, const VectorN<Real, N>& start) {
+			// Validate inputs
+			ValidateVectorFinite<N>(start, "BFGS::Minimize starting point");
+			ValidateMultidimTolerance(_ftol, "BFGS ftol");
+			ValidateMultidimTolerance(_gtol, "BFGS gtol");
+			if (_maxIter <= 0)
+				throw MultidimOptimizationInputError("BFGS: maxIter must be positive");
+			
+			const Real EPS = 1.0e-18;
+			const Real STPMX = 100.0; // Maximum step size
+
+			VectorN<Real, N> p = start;
+			VectorN<Real, N> g, dg, hdg, pnew, xi;
+			Matrix<Real> hessin(N, N, 0.0);
+
+			// Initialize inverse Hessian to identity
+			for (int i = 0; i < N; ++i)
+				hessin(i, i) = 1.0;
+
+			// Evaluate function and gradient
+			_fret = func(p);
+			ValidateMultidimFunctionValue(_fret, "BFGS initial evaluation");
+			func.Gradient(p, g);
+			ValidateVectorFinite<N>(g, "BFGS initial gradient");
+
+			// Initial search direction is steepest descent
+			for (int j = 0; j < N; ++j)
+				xi[j] = -g[j];
+
+			// Compute maximum step size
+			Real sum = 0.0;
+			for (int j = 0; j < N; ++j)
+				sum += p[j] * p[j];
+			Real stpmax = STPMX * std::max(std::sqrt(sum), static_cast<Real>(N));
+
+			for (_iter = 0; _iter < _maxIter; ++_iter) {
+				// Line search along xi (strong Wolfe conditions)
+				Real fp = _fret;
+				VectorN<Real, N> pold = p;
+
+				// Perform line minimization with Wolfe conditions
+				_fret = LineSearchWolfe(func, p, g, xi, stpmax);
+
+				// Check for convergence on function value
+				if (2.0 * std::abs(_fret - fp) <= _ftol * (std::abs(_fret) + std::abs(fp) + EPS)) {
+					Vector<Real> result(N);
+					for (int j = 0; j < N; ++j)
+						result[j] = p[j];
+					return MultidimMinimizationResult(result, _fret, _iter + 1, true);
+				}
+
+				// Update xi to be the actual step taken
+				for (int j = 0; j < N; ++j)
+					xi[j] = p[j] - pold[j];
+
+				// Save old gradient and compute new gradient
+				for (int j = 0; j < N; ++j)
+					dg[j] = g[j];
+				func.Gradient(p, g);
+
+				// Check gradient convergence
+				Real test = 0.0;
+				Real den = std::max(std::abs(_fret), REAL(1.0));
+				for (int j = 0; j < N; ++j) {
+					Real temp = std::abs(g[j]) * std::max(std::abs(p[j]), REAL(1.0)) / den;
+					if (temp > test)
+						test = temp;
+				}
+				if (test < _gtol) {
+					Vector<Real> result(N);
+					for (int j = 0; j < N; ++j)
+						result[j] = p[j];
+					return MultidimMinimizationResult(result, _fret, _iter + 1, true);
+				}
+
+				// Compute gradient difference
+				for (int j = 0; j < N; ++j)
+					dg[j] = g[j] - dg[j];
+
+				// Compute H * dg
+				for (int i = 0; i < N; ++i) {
+					hdg[i] = 0.0;
+					for (int j = 0; j < N; ++j)
+						hdg[i] += hessin(i, j) * dg[j];
+				}
+
+				// BFGS update of inverse Hessian
+				Real fac = 0.0, fae = 0.0, sumdg = 0.0, sumxi = 0.0;
+				for (int j = 0; j < N; ++j) {
+					fac += dg[j] * xi[j];
+					fae += dg[j] * hdg[j];
+					sumdg += dg[j] * dg[j];
+					sumxi += xi[j] * xi[j];
+				}
+
+				if (fac > std::sqrt(EPS * sumdg * sumxi)) {
+					fac = 1.0 / fac;
+					Real fad = 1.0 / fae;
+
+					// Vector that makes BFGS different from DFP
+					for (int j = 0; j < N; ++j)
+						dg[j] = fac * xi[j] - fad * hdg[j];
+
+					// BFGS formula for updating inverse Hessian
+					for (int i = 0; i < N; ++i) {
+						for (int j = i; j < N; ++j) {
+							hessin(i, j) += fac * xi[i] * xi[j] - fad * hdg[i] * hdg[j] + fae * dg[i] * dg[j];
+							hessin(j, i) = hessin(i, j);
+						}
+					}
+				}
+
+				// Compute new search direction
+				for (int i = 0; i < N; ++i) {
+					xi[i] = 0.0;
+					for (int j = 0; j < N; ++j)
+						xi[i] -= hessin(i, j) * g[j];
+				}
+			}
+
+			// Max iterations reached
+			Vector<Real> result(N);
+			for (int j = 0; j < N; ++j)
+				result[j] = p[j];
+			return MultidimMinimizationResult(result, _fret, _iter, false);
+		}
+
+	private:
+		/**
+         * @brief Backtracking line search with Armijo condition
+         */
+		template<int N>
+		Real LineSearchBacktrack(const IDifferentiableScalarFunction<N>& func, VectorN<Real, N>& p, const VectorN<Real, N>& g,
+								 VectorN<Real, N>& xi, Real stpmax) {
+			const Real ALF = 1.0e-4;   // Ensures sufficient decrease
+			const Real TOLX = 1.0e-12; // Convergence criterion on x
+
+			// Scale if step is too big
+			Real sum = 0.0;
+			for (int j = 0; j < N; ++j)
+				sum += xi[j] * xi[j];
+			sum = std::sqrt(sum);
+
+			if (sum > stpmax) {
+				Real scale = stpmax / sum;
+				for (int j = 0; j < N; ++j)
+					xi[j] *= scale;
+			}
+
+			// Compute slope
+			Real slope = 0.0;
+			for (int j = 0; j < N; ++j)
+				slope += g[j] * xi[j];
+
+			if (slope >= 0.0) {
+				// Reset to steepest descent if slope is not negative
+				for (int j = 0; j < N; ++j)
+					xi[j] = -g[j];
+				slope = 0.0;
+				for (int j = 0; j < N; ++j)
+					slope += g[j] * xi[j];
+			}
+
+			// Compute lambda_min
+			Real test = 0.0;
+			for (int j = 0; j < N; ++j) {
+				Real temp = std::abs(xi[j]) / std::max(std::abs(p[j]), REAL(1.0));
+				if (temp > test)
+					test = temp;
+			}
+			Real alamin = TOLX / test;
+
+			Real alam = 1.0; // Always try full Newton step first
+			Real f = func(p);
+			Real alam2 = 0.0, f2 = 0.0;
+
+			for (;;) {
+				VectorN<Real, N> pnew;
+				for (int j = 0; j < N; ++j)
+					pnew[j] = p[j] + alam * xi[j];
+
+				Real fnew = func(pnew);
+
+				if (alam < alamin) {
+					// Convergence on delta x
+					for (int j = 0; j < N; ++j)
+						p[j] = pnew[j];
+					return fnew;
+				} else if (fnew <= f + ALF * alam * slope) {
+					// Sufficient decrease - accept step
+					for (int j = 0; j < N; ++j)
+						p[j] = pnew[j];
+					return fnew;
+				} else {
+					// Backtrack
+					Real tmplam;
+					if (alam == 1.0) {
+						// First backtrack: quadratic
+						tmplam = -slope / (2.0 * (fnew - f - slope));
+					} else {
+						// Subsequent backtracks: cubic
+						Real rhs1 = fnew - f - alam * slope;
+						Real rhs2 = f2 - f - alam2 * slope;
+						Real a = (rhs1 / (alam * alam) - rhs2 / (alam2 * alam2)) / (alam - alam2);
+						Real b = (-alam2 * rhs1 / (alam * alam) + alam * rhs2 / (alam2 * alam2)) / (alam - alam2);
+
+						if (a == 0.0) {
+							tmplam = -slope / (2.0 * b);
+						} else {
+							Real disc = b * b - 3.0 * a * slope;
+							if (disc < 0.0)
+								tmplam = 0.5 * alam;
+							else if (b <= 0.0)
+								tmplam = (-b + std::sqrt(disc)) / (3.0 * a);
+							else
+								tmplam = -slope / (b + std::sqrt(disc));
+						}
+
+						// Limit step size reduction
+						if (tmplam > 0.5 * alam)
+							tmplam = 0.5 * alam;
+					}
+
+					alam2 = alam;
+					f2 = fnew;
+					alam = std::max(tmplam, REAL(0.1) * alam);
+				}
+			}
+		}
+
+		/**
+		 * @brief Line search satisfying strong Wolfe conditions
+		 * 
+		 * Implements Nocedal & Wright Algorithms 3.5 (bracket phase) and 3.6 (zoom phase).
+		 * Strong Wolfe conditions guarantee that the BFGS update produces a positive-definite
+		 * Hessian approximation, which is essential for convergence on non-convex problems.
+		 * 
+		 * Conditions enforced:
+		 *   Sufficient decrease (Armijo): f(x + α·d) ≤ f(x) + c₁·α·∇f(x)·d
+		 *   Curvature condition:          |∇f(x + α·d)·d| ≤ c₂·|∇f(x)·d|
+		 * 
+		 * @reference Nocedal & Wright, "Numerical Optimization", 2nd ed., Chapter 3
+		 */
+		template<int N>
+		Real LineSearchWolfe(const IDifferentiableScalarFunction<N>& func, VectorN<Real, N>& x, const VectorN<Real, N>& g,
+							 VectorN<Real, N>& d, Real stpmax) {
+			const Real c1 = 1.0e-4;    // Sufficient decrease parameter
+			const Real c2 = 0.9;       // Curvature condition parameter (0.9 for quasi-Newton)
+			const Real alpha_max = 50.0;
+			const int max_ls_iter = 25;
+
+			// Scale direction if step is too large
+			Real dnorm = 0.0;
+			for (int j = 0; j < N; ++j)
+				dnorm += d[j] * d[j];
+			dnorm = std::sqrt(dnorm);
+
+			if (dnorm > stpmax) {
+				Real scale = stpmax / dnorm;
+				for (int j = 0; j < N; ++j)
+					d[j] *= scale;
+			}
+
+			// Directional derivative at alpha = 0: phi'(0) = g · d
+			Real dphi0 = 0.0;
+			for (int j = 0; j < N; ++j)
+				dphi0 += g[j] * d[j];
+
+			if (dphi0 >= 0.0) {
+				// Not a descent direction — fall back to steepest descent
+				for (int j = 0; j < N; ++j)
+					d[j] = -g[j];
+				dphi0 = 0.0;
+				for (int j = 0; j < N; ++j)
+					dphi0 += g[j] * d[j];
+			}
+
+			Real phi0 = func(x);
+
+			Real alpha_prev = 0.0;
+			Real phi_prev = phi0;
+			Real alpha_cur = 1.0; // Full Newton step
+
+			for (int i = 0; i < max_ls_iter; ++i) {
+				// Evaluate phi(alpha_cur) = f(x + alpha_cur * d)
+				VectorN<Real, N> xtrial;
+				for (int j = 0; j < N; ++j)
+					xtrial[j] = x[j] + alpha_cur * d[j];
+				Real phi_cur = func(xtrial);
+
+				// Check Armijo condition or non-decrease from previous
+				if (phi_cur > phi0 + c1 * alpha_cur * dphi0 || (i > 0 && phi_cur >= phi_prev)) {
+					Real alpha_star = WolfeZoom(func, x, d, phi0, dphi0, c1, c2, alpha_prev, alpha_cur, phi_prev, phi_cur);
+					AcceptWolfeStep(func, x, d, alpha_star);
+					return func(x);
+				}
+
+				// Evaluate phi'(alpha_cur)
+				VectorN<Real, N> g_trial;
+				func.Gradient(xtrial, g_trial);
+				Real dphi_cur = 0.0;
+				for (int j = 0; j < N; ++j)
+					dphi_cur += g_trial[j] * d[j];
+
+				// Check curvature condition (strong Wolfe satisfied)
+				if (std::abs(dphi_cur) <= -c2 * dphi0) {
+					AcceptWolfeStep(func, x, d, alpha_cur);
+					return func(x);
+				}
+
+				// Slope is positive — minimum is between alpha_prev and alpha_cur
+				if (dphi_cur >= 0.0) {
+					Real alpha_star = WolfeZoom(func, x, d, phi0, dphi0, c1, c2, alpha_cur, alpha_prev, phi_cur, phi_prev);
+					AcceptWolfeStep(func, x, d, alpha_star);
+					return func(x);
+				}
+
+				// Advance bracket
+				alpha_prev = alpha_cur;
+				phi_prev = phi_cur;
+				alpha_cur = std::min(2.0 * alpha_cur, alpha_max);
+			}
+
+			// Fallback: accept best step found (last alpha_cur)
+			AcceptWolfeStep(func, x, d, alpha_cur);
+			return func(x);
+		}
+
+		/**
+		 * @brief Zoom phase of Wolfe line search (Nocedal & Wright Algorithm 3.6)
+		 * 
+		 * Finds a step length satisfying strong Wolfe conditions within [alpha_lo, alpha_hi].
+		 * Uses bisection for robustness. The interval is guaranteed to contain a Wolfe point.
+		 */
+		template<int N>
+		Real WolfeZoom(const IDifferentiableScalarFunction<N>& func, const VectorN<Real, N>& x, const VectorN<Real, N>& d,
+					   Real phi0, Real dphi0, Real c1, Real c2,
+					   Real alpha_lo, Real alpha_hi, Real phi_lo, Real phi_hi) {
+			const int max_zoom_iter = 20;
+
+			for (int i = 0; i < max_zoom_iter; ++i) {
+				// Bisection interpolant (simple and robust)
+				Real alpha_j = 0.5 * (alpha_lo + alpha_hi);
+
+				VectorN<Real, N> xtrial;
+				for (int j = 0; j < N; ++j)
+					xtrial[j] = x[j] + alpha_j * d[j];
+				Real phi_j = func(xtrial);
+
+				if (phi_j > phi0 + c1 * alpha_j * dphi0 || phi_j >= phi_lo) {
+					alpha_hi = alpha_j;
+					phi_hi = phi_j;
+				} else {
+					VectorN<Real, N> g_trial;
+					func.Gradient(xtrial, g_trial);
+					Real dphi_j = 0.0;
+					for (int j = 0; j < N; ++j)
+						dphi_j += g_trial[j] * d[j];
+
+					// Strong Wolfe satisfied
+					if (std::abs(dphi_j) <= -c2 * dphi0)
+						return alpha_j;
+
+					if (dphi_j * (alpha_hi - alpha_lo) >= 0.0) {
+						alpha_hi = alpha_lo;
+						phi_hi = phi_lo;
+					}
+
+					alpha_lo = alpha_j;
+					phi_lo = phi_j;
+				}
+
+				// Interval too small — accept current best
+				if (std::abs(alpha_hi - alpha_lo) < 1.0e-14)
+					return alpha_lo;
+			}
+
+			return alpha_lo;
+		}
+
+		/**
+		 * @brief Accept a Wolfe step: update position x ← x + alpha * d
+		 */
+		template<int N>
+		void AcceptWolfeStep(const IDifferentiableScalarFunction<N>& /*func*/, VectorN<Real, N>& x,
+							 const VectorN<Real, N>& d, Real alpha) {
+			for (int j = 0; j < N; ++j)
+				x[j] += alpha * d[j];
+		}
+	};
+
+	///////////////////////////////////////////////////////////////////////////
+	///               L-BFGS Limited-Memory Quasi-Newton Method             ///
+	///////////////////////////////////////////////////////////////////////////
+	/**
+     * @brief L-BFGS (Limited-memory BFGS) for large-scale optimization
+     * 
+     * L-BFGS is a quasi-Newton method optimized for problems with many variables
+     * where storing the full N×N inverse Hessian is impractical. Instead of
+     * storing the dense matrix, it maintains only the last m correction pairs
+     * and uses them to implicitly represent the inverse Hessian.
+     * 
+     * Memory Comparison:
+     * - BFGS:   O(N²) for inverse Hessian matrix
+     * - L-BFGS: O(m×N) where m is typically 3-20
+     * 
+     * For N=10,000 variables:
+     * - BFGS:   ~800 MB (100M doubles)
+     * - L-BFGS: ~1.6 MB with m=10 (200K doubles)
+     * 
+     * The algorithm uses the two-loop recursion of Nocedal to efficiently
+     * compute the search direction H_k * g without forming H_k explicitly.
+     * 
+     * @see Jorge Nocedal, "Updating Quasi-Newton Matrices with Limited Storage"
+     *      Mathematics of Computation, Vol. 35, No. 151 (1980), pp. 773-782
+     */
+	class LBFGS {
+	private:
+		Real _ftol;           ///< Function value tolerance
+		Real _gtol;           ///< Gradient tolerance
+		int _maxIter;         ///< Maximum iterations
+		int _memorySize;      ///< Number of correction pairs to store (m)
+		int _iter;            ///< Iteration counter
+		Real _fret;           ///< Current function value
+
+	public:
+		/**
+         * @brief Construct L-BFGS optimizer
+         * @param ftol Function value tolerance for convergence
+         * @param gtol Gradient tolerance for convergence  
+         * @param maxIter Maximum number of iterations
+         * @param memorySize Number of correction pairs to store (typical: 3-20)
+         */
+		LBFGS(Real ftol = 3.0e-8, Real gtol = 1.0e-8, int maxIter = 1000, int memorySize = 10)
+			: _ftol(ftol)
+			, _gtol(gtol)
+			, _maxIter(maxIter)
+			, _memorySize(memorySize)
+			, _iter(0)
+			, _fret(0.0) {}
+
+		// Getters and setters
+		Real getFtol() const { return _ftol; }
+		void setFtol(Real ftol) { _ftol = ftol; }
+
+		Real getGtol() const { return _gtol; }
+		void setGtol(Real gtol) { _gtol = gtol; }
+
+		int getMaxIter() const { return _maxIter; }
+		void setMaxIter(int maxIter) { _maxIter = maxIter; }
+
+		int getMemorySize() const { return _memorySize; }
+		void setMemorySize(int m) { _memorySize = m; }
+
+		int getIterations() const { return _iter; }
+		Real getCurrentFValue() const { return _fret; }
+
+		/**
+         * @brief Minimize using L-BFGS limited-memory quasi-Newton method
+         * @tparam N Dimension of the problem
+         * @param func Differentiable scalar function to minimize
+         * @param start Starting point
+         * @return Optimization result with minimum location and value
+         * @throws MultidimOptimizationInputError if inputs are invalid
+         */
+		template<int N>
+		MultidimMinimizationResult Minimize(const IDifferentiableScalarFunction<N>& func, 
+		                                    const VectorN<Real, N>& start) {
+			// Validate inputs
+			ValidateVectorFinite<N>(start, "LBFGS::Minimize starting point");
+			ValidateMultidimTolerance(_ftol, "LBFGS ftol");
+			ValidateMultidimTolerance(_gtol, "LBFGS gtol");
+			if (_maxIter <= 0)
+				throw MultidimOptimizationInputError("LBFGS: maxIter must be positive");
+			if (_memorySize <= 0)
+				throw MultidimOptimizationInputError("LBFGS: memorySize must be positive");
+
+			const Real EPS = 1.0e-18;
+			const Real STPMX = 100.0;
+
+			// Current position and gradient
+			VectorN<Real, N> x = start;
+			VectorN<Real, N> g, g_old, q, r;
+
+			// Circular buffers for correction pairs
+			// s_k = x_{k+1} - x_k (position difference)
+			// y_k = g_{k+1} - g_k (gradient difference)
+			std::vector<VectorN<Real, N>> s_history(_memorySize);
+			std::vector<VectorN<Real, N>> y_history(_memorySize);
+			std::vector<Real> rho(_memorySize);  // 1 / (y_k^T s_k)
+			std::vector<Real> alpha(_memorySize);
+
+			int history_count = 0;  // Number of stored pairs
+			int history_start = 0;  // Circular buffer start index
+
+			// Initial function and gradient evaluation
+			_fret = func(x);
+			ValidateMultidimFunctionValue(_fret, "LBFGS initial evaluation");
+			func.Gradient(x, g);
+			ValidateVectorFinite<N>(g, "LBFGS initial gradient");
+
+			// Compute maximum step size
+			Real sum = 0.0;
+			for (int j = 0; j < N; ++j)
+				sum += x[j] * x[j];
+			Real stpmax = STPMX * std::max(std::sqrt(sum), static_cast<Real>(N));
+
+			for (_iter = 0; _iter < _maxIter; ++_iter) {
+				Real fp = _fret;
+				VectorN<Real, N> x_old = x;
+				g_old = g;
+
+				// =========================================================
+				// Two-loop recursion to compute search direction r = H * g
+				// Based on Nocedal's algorithm (Algorithm 7.4 in Nocedal & Wright)
+				// =========================================================
+				q = g;
+
+				// First loop: backward through history
+				for (int i = history_count - 1; i >= 0; --i) {
+					int idx = (history_start + i) % _memorySize;
+					alpha[idx] = rho[idx] * DotProduct(s_history[idx], q);
+					for (int j = 0; j < N; ++j)
+						q[j] -= alpha[idx] * y_history[idx][j];
+				}
+
+				// Initial Hessian approximation: H_0 = gamma * I
+				// gamma = (s_{k-1}^T y_{k-1}) / (y_{k-1}^T y_{k-1})
+				Real gamma = 1.0;
+				if (history_count > 0) {
+					int last_idx = (history_start + history_count - 1) % _memorySize;
+					Real yTy = DotProduct(y_history[last_idx], y_history[last_idx]);
+					Real sTy = DotProduct(s_history[last_idx], y_history[last_idx]);
+					if (yTy > EPS)
+						gamma = sTy / yTy;
+				}
+
+				// r = H_0 * q = gamma * q
+				for (int j = 0; j < N; ++j)
+					r[j] = gamma * q[j];
+
+				// Second loop: forward through history
+				for (int i = 0; i < history_count; ++i) {
+					int idx = (history_start + i) % _memorySize;
+					Real beta = rho[idx] * DotProduct(y_history[idx], r);
+					for (int j = 0; j < N; ++j)
+						r[j] += s_history[idx][j] * (alpha[idx] - beta);
+				}
+
+				// Search direction is -H*g
+				VectorN<Real, N> p;
+				for (int j = 0; j < N; ++j)
+					p[j] = -r[j];
+
+				// =========================================================
+				// Line search along direction p
+				// =========================================================
+				_fret = LineSearchBacktrackLBFGS(func, x, g, p, stpmax);
+
+				// Check for convergence on function value
+				if (2.0 * std::abs(_fret - fp) <= _ftol * (std::abs(_fret) + std::abs(fp) + EPS)) {
+					return MakeResult(x, true);
+				}
+
+				// Compute new gradient
+				func.Gradient(x, g);
+
+				// Check gradient convergence
+				Real test = 0.0;
+				Real den = std::max(std::abs(_fret), REAL(1.0));
+				for (int j = 0; j < N; ++j) {
+					Real temp = std::abs(g[j]) * std::max(std::abs(x[j]), REAL(1.0)) / den;
+					if (temp > test)
+						test = temp;
+				}
+				if (test < _gtol) {
+					return MakeResult(x, true);
+				}
+
+				// =========================================================
+				// Update history with new correction pair
+				// =========================================================
+				VectorN<Real, N> s_new, y_new;
+				for (int j = 0; j < N; ++j) {
+					s_new[j] = x[j] - x_old[j];
+					y_new[j] = g[j] - g_old[j];
+				}
+
+				Real sTy = DotProduct(s_new, y_new);
+				if (sTy > EPS) {  // Curvature condition - only update if positive
+					int store_idx;
+					if (history_count < _memorySize) {
+						store_idx = history_count;
+						history_count++;
+					} else {
+						// Circular buffer: overwrite oldest
+						store_idx = history_start;
+						history_start = (history_start + 1) % _memorySize;
+					}
+
+					s_history[store_idx] = s_new;
+					y_history[store_idx] = y_new;
+					rho[store_idx] = 1.0 / sTy;
+				}
+			}
+
+			// Max iterations reached
+			return MakeResult(x, false);
+		}
+
+	private:
+		/// @brief Create result struct from current state
+		template<int N>
+		MultidimMinimizationResult MakeResult(const VectorN<Real, N>& x, bool converged) {
+			Vector<Real> result(N);
+			for (int j = 0; j < N; ++j)
+				result[j] = x[j];
+			return MultidimMinimizationResult(result, _fret, _iter + 1, converged);
+		}
+
+		/// @brief Compute dot product of two VectorN
+		template<int N>
+		static Real DotProduct(const VectorN<Real, N>& a, const VectorN<Real, N>& b) {
+			Real sum = 0.0;
+			for (int j = 0; j < N; ++j)
+				sum += a[j] * b[j];
+			return sum;
+		}
+
+		/**
+         * @brief Backtracking line search with Armijo condition
+         */
+		template<int N>
+		Real LineSearchBacktrackLBFGS(const IDifferentiableScalarFunction<N>& func, 
+		                               VectorN<Real, N>& x, 
+		                               const VectorN<Real, N>& g,
+		                               VectorN<Real, N>& p, 
+		                               Real stpmax) {
+			const Real ALF = 1.0e-4;
+			const Real TOLX = 1.0e-12;
+
+			// Scale if step is too big
+			Real sum = 0.0;
+			for (int j = 0; j < N; ++j)
+				sum += p[j] * p[j];
+			sum = std::sqrt(sum);
+
+			if (sum > stpmax) {
+				Real scale = stpmax / sum;
+				for (int j = 0; j < N; ++j)
+					p[j] *= scale;
+			}
+
+			// Compute slope
+			Real slope = 0.0;
+			for (int j = 0; j < N; ++j)
+				slope += g[j] * p[j];
+
+			if (slope >= 0.0) {
+				// Not a descent direction - fall back to steepest descent
+				for (int j = 0; j < N; ++j)
+					p[j] = -g[j];
+				slope = 0.0;
+				for (int j = 0; j < N; ++j)
+					slope += g[j] * p[j];
+			}
+
+			// Compute lambda_min
+			Real test = 0.0;
+			for (int j = 0; j < N; ++j) {
+				Real temp = std::abs(p[j]) / std::max(std::abs(x[j]), REAL(1.0));
+				if (temp > test)
+					test = temp;
+			}
+			Real alamin = TOLX / test;
+
+			Real alam = 1.0;
+			Real f = func(x);
+			Real alam2 = 0.0, f2 = 0.0;
+
+			for (;;) {
+				VectorN<Real, N> xnew;
+				for (int j = 0; j < N; ++j)
+					xnew[j] = x[j] + alam * p[j];
+
+				Real fnew = func(xnew);
+
+				if (alam < alamin) {
+					for (int j = 0; j < N; ++j)
+						x[j] = xnew[j];
+					return fnew;
+				} else if (fnew <= f + ALF * alam * slope) {
+					for (int j = 0; j < N; ++j)
+						x[j] = xnew[j];
+					return fnew;
+				} else {
+					Real tmplam;
+					if (alam == 1.0) {
+						tmplam = -slope / (2.0 * (fnew - f - slope));
+					} else {
+						Real rhs1 = fnew - f - alam * slope;
+						Real rhs2 = f2 - f - alam2 * slope;
+						Real a = (rhs1 / (alam * alam) - rhs2 / (alam2 * alam2)) / (alam - alam2);
+						Real b = (-alam2 * rhs1 / (alam * alam) + alam * rhs2 / (alam2 * alam2)) / (alam - alam2);
+
+						if (a == 0.0) {
+							tmplam = -slope / (2.0 * b);
+						} else {
+							Real disc = b * b - 3.0 * a * slope;
+							if (disc < 0.0)
+								tmplam = 0.5 * alam;
+							else if (b <= 0.0)
+								tmplam = (-b + std::sqrt(disc)) / (3.0 * a);
+							else
+								tmplam = -slope / (b + std::sqrt(disc));
+						}
+
+						if (tmplam > 0.5 * alam)
+							tmplam = 0.5 * alam;
+					}
+
+					alam2 = alam;
+					f2 = fnew;
+					alam = std::max(tmplam, REAL(0.1) * alam);
+				}
+			}
+		}
+	};
+
+	///////////////////////////////////////////////////////////////////////////
+	///                   Convenience Wrapper Functions                     ///
+	///////////////////////////////////////////////////////////////////////////
+
+	/**
+     * @brief Minimize using Powell's method (no derivatives needed)
+     */
+	template<int N>
+	MultidimMinimizationResult PowellMinimize(const IScalarFunction<N>& func, const VectorN<Real, N>& start, Real ftol = 3.0e-8) {
+		Powell optimizer(ftol);
+		return optimizer.Minimize(func, start);
+	}
+
+	/**
+     * @brief Minimize using conjugate gradient (requires derivatives)
+     */
+	template<int N>
+	MultidimMinimizationResult ConjugateGradientMinimize(const IDifferentiableScalarFunction<N>& func, const VectorN<Real, N>& start,
+														 Real ftol = 3.0e-8,
+														 ConjugateGradient::Method method = ConjugateGradient::Method::PolakRibiere) {
+		ConjugateGradient optimizer(ftol, 1.0e-8, 200, method);
+		return optimizer.Minimize(func, start);
+	}
+
+	/**
+     * @brief Minimize using BFGS quasi-Newton method (requires derivatives)
+     */
+	template<int N>
+	MultidimMinimizationResult BFGSMinimize(const IDifferentiableScalarFunction<N>& func, const VectorN<Real, N>& start,
+											Real ftol = 3.0e-8) {
+		BFGS optimizer(ftol);
+		return optimizer.Minimize(func, start);
+	}
+
+	/**
+     * @brief Minimize using L-BFGS limited-memory quasi-Newton (requires derivatives)
+     * 
+     * Preferred over BFGS for large-scale problems (N > 100) due to O(m×N) memory
+     * instead of O(N²). Uses only the last m correction pairs to approximate
+     * the inverse Hessian.
+     * 
+     * @tparam N Dimension of the problem
+     * @param func Differentiable scalar function to minimize
+     * @param start Starting point
+     * @param ftol Function value tolerance (default: 3e-8)
+     * @param memorySize Number of correction pairs to store (default: 10)
+     * @return Optimization result
+     */
+	template<int N>
+	MultidimMinimizationResult LBFGSMinimize(const IDifferentiableScalarFunction<N>& func, const VectorN<Real, N>& start,
+											 Real ftol = 3.0e-8, int memorySize = 10) {
+		LBFGS optimizer(ftol, 1.0e-8, 1000, memorySize);
+		return optimizer.Minimize(func, start);
+	}
+
+	///////////////////////////////////////////////////////////////////////////
+	///      Config-Based Overloads for Powell/CG/BFGS (API Standardization) ///
+	///////////////////////////////////////////////////////////////////////////
+
+	/**
+     * @brief Minimize using Powell's method with config
+     */
+	template<int N>
+	MultidimMinimizationResult PowellMinimize(const IScalarFunction<N>& func, const VectorN<Real, N>& start,
+											  const MultidimOptimizationConfig& config) {
+		AlgorithmTimer timer;
+		Powell optimizer(config.tolerance, config.max_iterations);
+		MultidimMinimizationResult result = optimizer.Minimize(func, start);
+		
+		result.algorithm_name = "Powell";
+		result.elapsed_time_ms = timer.elapsed_ms();
+		if (!result.converged) {
+			result.status = AlgorithmStatus::MaxIterationsExceeded;
+			result.error_message = "Powell method did not converge within " + std::to_string(config.max_iterations) + " iterations";
+		}
+		return result;
+	}
+
+	/**
+     * @brief Minimize using conjugate gradient with config
+     */
+	template<int N>
+	MultidimMinimizationResult ConjugateGradientMinimize(const IDifferentiableScalarFunction<N>& func, const VectorN<Real, N>& start,
+														 const MultidimOptimizationConfig& config,
+														 ConjugateGradient::Method method = ConjugateGradient::Method::PolakRibiere) {
+		AlgorithmTimer timer;
+		ConjugateGradient optimizer(config.tolerance, 1.0e-8, config.max_iterations, method);
+		MultidimMinimizationResult result = optimizer.Minimize(func, start);
+		
+		result.algorithm_name = "ConjugateGradient";
+		result.elapsed_time_ms = timer.elapsed_ms();
+		if (!result.converged) {
+			result.status = AlgorithmStatus::MaxIterationsExceeded;
+			result.error_message = "Conjugate gradient did not converge within " + std::to_string(config.max_iterations) + " iterations";
+		}
+		return result;
+	}
+
+	/**
+     * @brief Minimize using BFGS with config
+     */
+	template<int N>
+	MultidimMinimizationResult BFGSMinimize(const IDifferentiableScalarFunction<N>& func, const VectorN<Real, N>& start,
+											const MultidimOptimizationConfig& config) {
+		AlgorithmTimer timer;
+		BFGS optimizer(config.tolerance, 1.0e-8, config.max_iterations);
+		MultidimMinimizationResult result = optimizer.Minimize(func, start);
+		
+		result.algorithm_name = "BFGS";
+		result.elapsed_time_ms = timer.elapsed_ms();
+		if (!result.converged) {
+			result.status = AlgorithmStatus::MaxIterationsExceeded;
+			result.error_message = "BFGS did not converge within " + std::to_string(config.max_iterations) + " iterations";
+		}
+		return result;
+	}
+
+	/**
+     * @brief Minimize using L-BFGS with config
+     * 
+     * For large-scale problems where BFGS memory requirements are prohibitive.
+     * Memory usage: O(m×N) where m = config.lbfgs_memory_size (default 10).
+     */
+	template<int N>
+	MultidimMinimizationResult LBFGSMinimize(const IDifferentiableScalarFunction<N>& func, const VectorN<Real, N>& start,
+											 const MultidimOptimizationConfig& config) {
+		AlgorithmTimer timer;
+		LBFGS optimizer(config.tolerance, 1.0e-8, config.max_iterations, config.lbfgs_memory_size);
+		MultidimMinimizationResult result = optimizer.Minimize(func, start);
+		
+		result.algorithm_name = "L-BFGS";
+		result.elapsed_time_ms = timer.elapsed_ms();
+		if (!result.converged) {
+			result.status = AlgorithmStatus::MaxIterationsExceeded;
+			result.error_message = "L-BFGS did not converge within " + std::to_string(config.max_iterations) + " iterations";
+		}
+		return result;
+	}
+
+} // namespace MML::Optimization
 
 ///////////////////////////   mml/algorithms/FunctionsAnalyzer.h   ///////////////////////////
 
@@ -52666,6 +58686,2950 @@ namespace MML {
 } // namespace MML
 
 
+///////////////////////////   mml/algorithms/ChebyshevApproximation.h   ///////////////////////////
+
+
+
+namespace MML {
+
+	///////////////////////////////////////////////////////////////////////////////////////////
+	///                           CHEBYSHEV APPROXIMATION CLASS                             ///
+	///////////////////////////////////////////////////////////////////////////////////////////
+
+	// ChebyshevApproximation - Represents a function as a Chebyshev series expansion.
+	//
+	// A function f(x) on [a,b] is approximated as:
+	//   f(x) ≈ Σ_{j=0}^{n-1} c_j * T_j(y)
+	// where y = (2x - a - b) / (b - a) maps [a,b] to [-1,1]
+	//
+	// Key features:
+	// - Near-minimax polynomial approximation
+	// - Numerically stable Clenshaw evaluation
+	// - Spectral convergence for smooth functions
+	// - Implements IRealFunction for seamless integration
+	//
+	// Reference: Numerical Recipes 3rd Edition, Chapter 5
+	class ChebyshevApproximation : public IRealFunction {
+	private:
+		Vector<Real> _coef; // Chebyshev coefficients c_0, c_1, ..., c_{n-1}
+		Real _a, _b;		// Domain [a, b]
+		int _m;				// Truncation degree (number of terms used in evaluation, ≤ n)
+
+	public:
+		// Default constructor - creates empty approximation
+		ChebyshevApproximation()
+			: _coef()
+			, _a(-1.0)
+			, _b(1.0)
+			, _m(0) {}
+
+		// Construct from a function on interval [a, b] using n Chebyshev coefficients.
+		// Uses DCT-like transform at Chebyshev nodes for coefficient computation.
+		//
+		// Parameters:
+		//   func - Function to approximate (implements IRealFunction)
+		//   a, b - Domain interval [a, b]
+		//   n    - Number of Chebyshev coefficients (default 50)
+		//
+		// Algorithm:
+		// 1. Sample function at Chebyshev nodes: x_k = cos(π(k+0.5)/n)
+		// 2. Compute coefficients via discrete cosine transform
+		ChebyshevApproximation(const IRealFunction& func, Real a, Real b, int n = 50)
+			: _coef(n)
+			, _a(a)
+			, _b(b)
+			, _m(n) {
+			if (n <= 0)
+				throw std::invalid_argument("ChebyshevApproximation: n must be positive");
+			if (a >= b)
+				throw std::invalid_argument("ChebyshevApproximation: require a < b");
+
+			const Real pi = Constants::PI;
+			Real bma = 0.5 * (b - a); // half-width
+			Real bpa = 0.5 * (b + a); // midpoint
+
+			// Sample function at Chebyshev nodes
+			Vector<Real> f(n);
+			for (int k = 0; k < n; k++) {
+				Real y = std::cos(pi * (k + 0.5) / n); // Chebyshev node on [-1,1]
+				f[k] = func(y * bma + bpa);			   // Map to [a,b] and evaluate
+			}
+
+			// Compute Chebyshev coefficients via DCT-II formula
+			// c_k = (2/n) * Σ_{j=0}^{n-1} f[j] * cos(π * k * (j + 0.5) / n)
+			Real fac = 2.0 / n;
+			for (int k = 0; k < n; k++) {
+				Real sum = 0.0;
+				for (int j = 0; j < n; j++)
+					sum += f[j] * std::cos(pi * k * (j + 0.5) / n);
+				_coef[k] = fac * sum;
+			}
+		}
+
+		// Construct from std::function for convenience (lambdas, etc.)
+		ChebyshevApproximation(std::function<Real(Real)> func, Real a, Real b, int n = 50)
+			: _coef(n)
+			, _a(a)
+			, _b(b)
+			, _m(n) {
+			if (n <= 0)
+				throw std::invalid_argument("ChebyshevApproximation: n must be positive");
+			if (a >= b)
+				throw std::invalid_argument("ChebyshevApproximation: require a < b");
+
+			const Real pi = Constants::PI;
+			Real bma = 0.5 * (b - a);
+			Real bpa = 0.5 * (b + a);
+
+			Vector<Real> f(n);
+			for (int k = 0; k < n; k++) {
+				Real y = std::cos(pi * (k + 0.5) / n);
+				f[k] = func(y * bma + bpa);
+			}
+
+			// Compute Chebyshev coefficients via DCT-II formula
+			Real fac = 2.0 / n;
+			for (int k = 0; k < n; k++) {
+				Real sum = 0.0;
+				for (int j = 0; j < n; j++)
+					sum += f[j] * std::cos(pi * k * (j + 0.5) / n);
+				_coef[k] = fac * sum;
+			}
+		}
+
+		// Construct from existing Chebyshev coefficients.
+		// Useful for creating approximations from known coefficient sequences,
+		// or from results of derivative/integral operations.
+		//
+		// Parameters:
+		//   coefficients - Vector of Chebyshev coefficients
+		//   a, b         - Domain interval [a, b]
+		ChebyshevApproximation(const Vector<Real>& coefficients, Real a, Real b)
+			: _coef(coefficients)
+			, _a(a)
+			, _b(b)
+			, _m(coefficients.size()) {
+			if (coefficients.size() == 0)
+				throw std::invalid_argument("ChebyshevApproximation: coefficients cannot be empty");
+			if (a >= b)
+				throw std::invalid_argument("ChebyshevApproximation: require a < b");
+		}
+
+		// Copy constructor
+		ChebyshevApproximation(const ChebyshevApproximation& other) = default;
+
+		// Move constructor
+		ChebyshevApproximation(ChebyshevApproximation&& other) noexcept = default;
+
+		// Copy assignment
+		ChebyshevApproximation& operator=(const ChebyshevApproximation& other) = default;
+
+		// Move assignment
+		ChebyshevApproximation& operator=(ChebyshevApproximation&& other) noexcept = default;
+
+		// Destructor
+		virtual ~ChebyshevApproximation() = default;
+
+		///////////////////////////          EVALUATION          ///////////////////////////
+
+		// Evaluate the Chebyshev approximation at point x using Clenshaw recurrence.
+		// This is the IRealFunction interface implementation.
+		//
+		// The Clenshaw algorithm provides numerically stable O(n) evaluation
+		// without explicitly computing Chebyshev polynomials.
+		//
+		// Algorithm:
+		// 1. Map x from [a,b] to y in [-1,1]
+		// 2. Apply backward Clenshaw recurrence
+		// 3. Return final sum
+		//
+		// Throws if x is outside [a, b] (can be relaxed for extrapolation)
+		Real operator()(Real x) const override {
+			// Check domain (comment out for extrapolation)
+			if ((x - _a) * (x - _b) > 0.0)
+				throw std::domain_error("ChebyshevApproximation: x not in range [a, b]");
+
+			if (_m == 0)
+				return 0.0;
+
+			// Map x from [a,b] to y in [-1,1]
+			Real y = (2.0 * x - _a - _b) / (_b - _a);
+			Real y2 = 2.0 * y;
+
+			// Clenshaw recurrence (backward)
+			Real d = 0.0, dd = 0.0;
+			for (int j = _m - 1; j > 0; j--) {
+				Real sv = d;
+				d = y2 * d - dd + _coef[j];
+				dd = sv;
+			}
+
+			return y * d - dd + 0.5 * _coef[0];
+		}
+
+		// Evaluate using only the first m terms (m ≤ _m)
+		Real Eval(Real x, int m) const {
+			if (m <= 0 || m > _m)
+				throw std::invalid_argument("ChebyshevApproximation::Eval: invalid m");
+
+			if ((x - _a) * (x - _b) > 0.0)
+				throw std::domain_error("ChebyshevApproximation::Eval: x not in range [a, b]");
+
+			Real y = (2.0 * x - _a - _b) / (_b - _a);
+			Real y2 = 2.0 * y;
+
+			Real d = 0.0, dd = 0.0;
+			for (int j = m - 1; j > 0; j--) {
+				Real sv = d;
+				d = y2 * d - dd + _coef[j];
+				dd = sv;
+			}
+
+			return y * d - dd + 0.5 * _coef[0];
+		}
+
+		///////////////////////////         ACCESSORS           ///////////////////////////
+
+		// Get the full degree (number of coefficients - 1)
+		int Degree() const { return static_cast<int>(_coef.size()) - 1; }
+
+		// Get the truncation degree (number of terms used - 1)
+		int TruncatedDegree() const { return _m - 1; }
+
+		// Get number of coefficients stored
+		int NumCoefficients() const { return static_cast<int>(_coef.size()); }
+
+		// Get number of terms used in evaluation
+		int NumTerms() const { return _m; }
+
+		// Get the coefficient vector (read-only)
+		const Vector<Real>& Coefficients() const { return _coef; }
+
+		// Get individual coefficient
+		Real Coefficient(int j) const {
+			if (j < 0 || j >= static_cast<int>(_coef.size()))
+				throw std::out_of_range("ChebyshevApproximation::Coefficient: index out of range");
+			return _coef[j];
+		}
+
+		// Get domain endpoints
+		Real DomainMin() const { return _a; }
+		Real DomainMax() const { return _b; }
+
+		///////////////////////////       TRUNCATION            ///////////////////////////
+
+		// Set the number of terms to use in evaluation.
+		// Allows trading accuracy for speed.
+		void SetNumTerms(int m) {
+			if (m <= 0 || m > static_cast<int>(_coef.size()))
+				throw std::invalid_argument("ChebyshevApproximation::SetNumTerms: invalid m");
+			_m = m;
+		}
+
+		// Automatically truncate based on coefficient magnitude threshold.
+		// Returns the new number of terms.
+		//
+		// Chebyshev coefficients of smooth functions decay rapidly.
+		// This method finds the smallest m such that |c_j| < threshold for all j ≥ m.
+		int Truncate(Real threshold) {
+			while (_m > 1 && std::abs(_coef[_m - 1]) < threshold)
+				_m--;
+			return _m;
+		}
+
+		///////////////////////////     CALCULUS OPERATIONS     ///////////////////////////
+
+		// Compute the derivative of this Chebyshev approximation.
+		// Returns a new ChebyshevApproximation representing f'(x).
+		//
+		// The derivative of a Chebyshev series has a simple recurrence formula:
+		//   c'_{n-1} = 0
+		//   c'_{n-2} = 2(n-1) * c_{n-1}
+		//   c'_{j-1} = c'_{j+1} + 2j * c_j   for j = n-2, ..., 1
+		// Then scale by 2/(b-a) for domain mapping.
+		ChebyshevApproximation Derivative() const {
+			int n = static_cast<int>(_coef.size());
+			if (n <= 1) {
+				// Derivative of constant is zero
+				Vector<Real> zero_coef(1);
+				zero_coef[0] = 0.0;
+				return ChebyshevApproximation(zero_coef, _a, _b);
+			}
+
+			Vector<Real> cder(n);
+			cder[n - 1] = 0.0;
+			cder[n - 2] = 2.0 * (n - 1) * _coef[n - 1];
+
+			for (int j = n - 2; j > 0; j--)
+				cder[j - 1] = cder[j + 1] + 2.0 * j * _coef[j];
+
+			// Scale for domain mapping: d/dx = (2/(b-a)) * d/dy
+			Real con = 2.0 / (_b - _a);
+			for (int j = 0; j < n; j++)
+				cder[j] *= con;
+
+			return ChebyshevApproximation(cder, _a, _b);
+		}
+
+		// Compute the indefinite integral of this Chebyshev approximation.
+		// Returns a new ChebyshevApproximation representing ∫f(x)dx.
+		// The constant of integration is chosen so that the integral is zero at x = a.
+		//
+		// The integral of a Chebyshev series:
+		//   c''_j = (con) * (c_{j-1} - c_{j+1}) / j   for j = 1, ..., n-2
+		//   c''_{n-1} = (con) * c_{n-2} / (n-1)
+		//   c''_0 chosen to make integral(a) = 0
+		// where con = (b-a)/4.
+		ChebyshevApproximation Integral() const {
+			int n = static_cast<int>(_coef.size());
+
+			Vector<Real> cint(n);
+			Real sum = 0.0;
+			Real fac = 1.0;
+			Real con = 0.25 * (_b - _a);
+
+			for (int j = 1; j < n - 1; j++) {
+				cint[j] = con * (_coef[j - 1] - _coef[j + 1]) / j;
+				sum += fac * cint[j];
+				fac = -fac;
+			}
+
+			cint[n - 1] = con * _coef[n - 2] / (n - 1);
+			sum += fac * cint[n - 1];
+
+			// c_0 chosen so integral(a) = 0
+			cint[0] = 2.0 * sum;
+
+			return ChebyshevApproximation(cint, _a, _b);
+		}
+
+		///////////////////////////   POLYNOMIAL CONVERSION     ///////////////////////////
+
+		// Convert Chebyshev coefficients to power series (polynomial) coefficients.
+		// Returns polynomial on [-1, 1]: p(y) = Σ d_j * y^j
+		//
+		// Note: For use on original domain [a,b], apply the substitution
+		//       y = (2x - a - b) / (b - a)
+		//
+		// Uses backward recurrence algorithm from Numerical Recipes.
+		Polynom<Real> ToPolynomial() const { return ToPolynomial(_m); }
+
+		// Convert using only the first m terms
+		Polynom<Real> ToPolynomial(int m) const {
+			if (m <= 0 || m > static_cast<int>(_coef.size()))
+				throw std::invalid_argument("ChebyshevApproximation::ToPolynomial: invalid m");
+
+			std::vector<Real> d(m, 0.0);
+			std::vector<Real> dd(m, 0.0);
+
+			d[0] = _coef[m - 1];
+
+			for (int j = m - 2; j > 0; j--) {
+				for (int k = m - j; k > 0; k--) {
+					Real sv = d[k];
+					d[k] = 2.0 * d[k - 1] - dd[k];
+					dd[k] = sv;
+				}
+				Real sv = d[0];
+				d[0] = -dd[0] + _coef[j];
+				dd[0] = sv;
+			}
+
+			for (int j = m - 1; j > 0; j--)
+				d[j] = d[j - 1] - dd[j];
+
+			d[0] = -dd[0] + 0.5 * _coef[0];
+
+			return Polynom<Real>(d);
+		}
+
+		// Create ChebyshevApproximation from a polynomial.
+		// Evaluates the polynomial at Chebyshev nodes and computes coefficients.
+		static ChebyshevApproximation FromPolynomial(const Polynom<Real>& poly, Real a, Real b, int n = 0) {
+			// If n not specified, use polynomial degree + 1
+			if (n <= 0)
+				n = poly.degree() + 1;
+
+			// Create a wrapper function and use standard constructor
+			return ChebyshevApproximation([&poly](Real x) { return poly(x); }, a, b, n);
+		}
+
+		///////////////////////////         UTILITIES           ///////////////////////////
+
+		// Compute maximum absolute error compared to a reference function
+		// by sampling at many points
+		Real MaxError(const IRealFunction& func, int numSamples = 1000) const {
+			Real maxErr = 0.0;
+			for (int i = 0; i <= numSamples; i++) {
+				Real x = _a + i * (_b - _a) / numSamples;
+				Real err = std::abs((*this)(x)-func(x));
+				if (err > maxErr)
+					maxErr = err;
+			}
+			return maxErr;
+		}
+
+		Real MaxError(std::function<Real(Real)> func, int numSamples = 1000) const {
+			Real maxErr = 0.0;
+			for (int i = 0; i <= numSamples; i++) {
+				Real x = _a + i * (_b - _a) / numSamples;
+				Real err = std::abs((*this)(x)-func(x));
+				if (err > maxErr)
+					maxErr = err;
+			}
+			return maxErr;
+		}
+
+		// Print coefficients for debugging
+		void PrintCoefficients(std::ostream& os = std::cout, int precision = 10) const {
+			os << "ChebyshevApproximation on [" << _a << ", " << _b << "]" << std::endl;
+			os << "Coefficients (" << _coef.size() << " stored, " << _m << " used):" << std::endl;
+			os << std::scientific << std::setprecision(precision);
+			for (int j = 0; j < static_cast<int>(_coef.size()); j++) {
+				os << "  c[" << j << "] = " << _coef[j];
+				if (j >= _m)
+					os << " (truncated)";
+				os << std::endl;
+			}
+		}
+	};
+
+	///////////////////////////////////////////////////////////////////////////////////////////
+	///                           UTILITY FUNCTIONS                                         ///
+	///////////////////////////////////////////////////////////////////////////////////////////
+
+	// Compute the zeros (roots) of Chebyshev polynomial T_n
+	// These are optimal interpolation nodes.
+	// x_k = cos((2k + 1)π / (2n))  for k = 0, 1, ..., n-1
+	inline Vector<Real> ChebyshevRoots(int n) {
+		if (n <= 0)
+			throw std::invalid_argument("ChebyshevRoots: n must be positive");
+
+		Vector<Real> roots(n);
+		const Real pi = Constants::PI;
+
+		for (int k = 0; k < n; k++)
+			roots[k] = std::cos(pi * (2 * k + 1) / (2.0 * n));
+
+		return roots;
+	}
+
+	// Compute the extrema of Chebyshev polynomial T_n (Chebyshev-Lobatto points)
+	// These include the endpoints and are used in Clenshaw-Curtis quadrature.
+	// x_k = cos(kπ / n)  for k = 0, 1, ..., n
+	inline Vector<Real> ChebyshevExtrema(int n) {
+		if (n <= 0)
+			throw std::invalid_argument("ChebyshevExtrema: n must be positive");
+
+		Vector<Real> extrema(n + 1);
+		const Real pi = Constants::PI;
+
+		for (int k = 0; k <= n; k++)
+			extrema[k] = std::cos(pi * k / n);
+
+		return extrema;
+	}
+
+} // namespace MML
+
+
+///////////////////////////   mml/algorithms/Fourier.h   ///////////////////////////
+
+
+
+namespace MML::Fourier 
+{
+	///////////////////////////////////////////////////////////////////////////////////////////
+	// FourierValidation - Reusable validation helpers for Fourier transform functions
+	///////////////////////////////////////////////////////////////////////////////////////////
+	namespace FourierValidation 
+	{
+		///////////////////////////////////////////////////////////////////////////////////////////
+		// Basic size validations
+		///////////////////////////////////////////////////////////////////////////////////////////
+
+		/// @brief Validate that a container is not empty
+		inline void ValidateNonEmpty(int size, const std::string& functionName) {
+			if (size == 0) {
+				throw std::invalid_argument(functionName + " - empty input");
+			}
+		}
+
+		/// @brief Validate that a size is positive (> 0)
+		inline void ValidatePositiveSize(int size, const std::string& paramName, const std::string& functionName) {
+			if (size <= 0) {
+				throw std::invalid_argument(functionName + " - " + paramName + " must be positive");
+			}
+		}
+
+		/// @brief Validate that a size meets a minimum requirement
+		inline void ValidateMinSize(int size, int minSize, const std::string& functionName) {
+			if (size < minSize) {
+				throw std::invalid_argument(functionName + " - size must be at least " + std::to_string(minSize));
+			}
+		}
+
+		///////////////////////////////////////////////////////////////////////////////////////////
+		// Power-of-2 validations (critical for FFT)
+		///////////////////////////////////////////////////////////////////////////////////////////
+
+		inline bool IsPowerOfTwo(int n) { return (n > 0) && ((n & (n - 1)) == 0); }
+
+		inline void ValidatePowerOfTwo(int size, const std::string& functionName) {
+			if (!IsPowerOfTwo(size)) {
+				throw std::invalid_argument(functionName + " - size must be power of 2");
+			}
+		}
+
+		inline void ValidateFFTSize(int size, const std::string& functionName) {
+			ValidateNonEmpty(size, functionName);
+			ValidatePowerOfTwo(size, functionName);
+		}
+
+		inline void ValidateRealFFTSize(int size, int minSize, const std::string& functionName) {
+			if (size < minSize || !IsPowerOfTwo(size)) {
+				throw std::invalid_argument(functionName + " - requires power-of-2 size >= " + std::to_string(minSize));
+			}
+		}
+
+		///////////////////////////////////////////////////////////////////////////////////////////
+		// Window validations
+		///////////////////////////////////////////////////////////////////////////////////////////
+
+		inline void ValidateWindowSize(int n) {
+			if (n <= 0) {
+				throw std::invalid_argument("Window size must be positive");
+			}
+		}
+
+		inline void ValidateWindowMatch(int windowSize, int dataSize, const std::string& functionName) {
+			if (windowSize != dataSize) {
+				throw std::invalid_argument(functionName + " - window size mismatch");
+			}
+		}
+
+		///////////////////////////////////////////////////////////////////////////////////////////
+		// Parameter validations
+		///////////////////////////////////////////////////////////////////////////////////////////
+
+		template<typename T>
+		inline void ValidatePositive(T value, const std::string& paramName, const std::string& functionName) {
+			if (value <= T(0)) {
+				throw std::invalid_argument(functionName + " - " + paramName + " must be positive");
+			}
+		}
+
+		template<typename T>
+		inline void ValidateNonNegative(T value, const std::string& paramName, const std::string& functionName) {
+			if (value < T(0)) {
+				throw std::invalid_argument(functionName + " - " + paramName + " must be non-negative");
+			}
+		}
+
+		///////////////////////////////////////////////////////////////////////////////////////////
+		// Index validations
+		///////////////////////////////////////////////////////////////////////////////////////////
+
+		inline void ValidateIndex(int index, int maxIndex, const std::string& functionName) {
+			if (index < 0 || index >= maxIndex) {
+				throw std::invalid_argument(functionName + " - invalid index");
+			}
+		}
+
+	} // namespace FourierValidation
+
+	///////////////////////////////////////////////////////////////////////////////////////////
+	// DFT - Discrete Fourier Transform
+	//
+	// Naive O(n²) implementation of DFT for reference and testing purposes.
+	//
+	// Forward transform:  X[k] = Σ_{n=0}^{N-1} x[n] * exp(-2πi*k*n/N)
+	// Inverse transform:  x[n] = (1/N) * Σ_{k=0}^{N-1} X[k] * exp(2πi*k*n/N)
+	//
+	// Features:
+	// - Works for any size (not just power of 2)
+	// - Reference for FFT correctness testing
+	// - Educational value - clear implementation of DFT formula
+	//
+	// WARNING: This is O(n²) - use FFT for production code!
+	///////////////////////////////////////////////////////////////////////////////////////////
+	class DFT {
+	public:
+		// Forward DFT: time domain -> frequency domain
+		static Vector<Complex> Forward(const Vector<Complex>& data) {
+			int N = data.size();
+			FourierValidation::ValidateNonEmpty(N, "DFT::Forward");
+
+			Vector<Complex> result(N);
+			const Real two_pi = 2.0 * Constants::PI;
+
+			for (int k = 0; k < N; k++) {
+				Complex sum(0.0, 0.0);
+				for (int n = 0; n < N; n++) {
+					Real angle = -two_pi * k * n / N;
+					Complex twiddle(std::cos(angle), std::sin(angle));
+					sum += data[n] * twiddle;
+				}
+				result[k] = sum;
+			}
+
+			return result;
+		}
+
+		// Forward DFT for real-valued input (converts to complex internally)
+		static Vector<Complex> Forward(const Vector<Real>& data) {
+			int N = data.size();
+			FourierValidation::ValidateNonEmpty(N, "DFT::Forward");
+
+			Vector<Complex> complex_data(N);
+			for (int i = 0; i < N; i++) {
+				complex_data[i] = Complex(data[i], 0.0);
+			}
+
+			return Forward(complex_data);
+		}
+
+		// Inverse DFT: frequency domain -> time domain
+		static Vector<Complex> Inverse(const Vector<Complex>& spectrum) {
+			int N = spectrum.size();
+			FourierValidation::ValidateNonEmpty(N, "DFT::Inverse");
+
+			Vector<Complex> result(N);
+			const Real two_pi = 2.0 * Constants::PI;
+
+			for (int n = 0; n < N; n++) {
+				Complex sum(0.0, 0.0);
+				for (int k = 0; k < N; k++) {
+					Real angle = two_pi * k * n / N; // Positive sign for inverse
+					Complex twiddle(std::cos(angle), std::sin(angle));
+					sum += spectrum[k] * twiddle;
+				}
+				result[n] = sum / static_cast<Real>(N); // Normalization by 1/N
+			}
+
+			return result;
+		}
+
+		// Extract real part from inverse DFT (for real-valued signals)
+		static Vector<Real> InverseReal(const Vector<Complex>& spectrum) {
+			Vector<Complex> complex_result = Inverse(spectrum);
+			int N = complex_result.size();
+
+			Vector<Real> result(N);
+			for (int i = 0; i < N; i++) {
+				result[i] = complex_result[i].real();
+			}
+
+			return result;
+		}
+
+		// Utility: Check if DFT size is reasonable (warn if too large)
+		static bool IsReasonableSize(int n) {
+			// DFT is O(n²), so even moderate sizes get slow
+			// n=1024 -> ~1M operations
+			// n=4096 -> ~16M operations
+			return n <= 4096;
+		}
+
+		// Utility: Compute single frequency bin (useful for testing)
+		static Complex ComputeBin(const Vector<Complex>& data, int k) {
+			int N = data.size();
+			FourierValidation::ValidateIndex(k, N, "DFT::ComputeBin");
+
+			Complex sum(0.0, 0.0);
+			const Real two_pi = 2.0 * Constants::PI;
+
+			for (int n = 0; n < N; n++) {
+				Real angle = -two_pi * k * n / N;
+				Complex twiddle(std::cos(angle), std::sin(angle));
+				sum += data[n] * twiddle;
+			}
+
+			return sum;
+		}
+	};
+
+	///////////////////////////////////////////////////////////////////////////////////////////
+	// FFT - Fast Fourier Transform
+	//
+	// Cooley-Tukey radix-2 FFT algorithm - O(n log n) complexity
+	//
+	// Forward transform:  X[k] = Σ_{n=0}^{N-1} x[n] * exp(-2πi*k*n/N)
+	// Inverse transform:  x[n] = (1/N) * Σ_{k=0}^{N-1} X[k] * exp(2πi*k*n/N)
+	//
+	// Requirements:
+	// - Input size must be a power of 2 (use NextPowerOfTwo to pad if needed)
+	// - For arbitrary sizes, use DFT or zero-pad to next power of 2
+	//
+	// Algorithm: Decimation-in-time (DIT) with bit-reversal permutation
+	//
+	// Performance: ~100x faster than DFT for n=1024, ~1000x for n=4096
+	///////////////////////////////////////////////////////////////////////////////////////////
+	class FFT {
+	public:
+		///////////////////////////////////////////////////////////////////////////////////////////
+		// Core FFT algorithms
+		///////////////////////////////////////////////////////////////////////////////////////////
+
+		// In-place FFT (modifies input array)
+		// isign: +1 for forward, -1 for inverse (caller must normalize by 1/N)
+		static void Transform(Vector<Complex>& data, int isign = 1) {
+			int n = data.size();
+
+			FourierValidation::ValidateFFTSize(n, "FFT::Transform");
+
+			// Bit-reversal permutation
+			BitReversalPermute(data);
+
+			// Cooley-Tukey FFT with iterative decimation-in-time
+			int mmax = 1;
+			while (n > mmax) {
+				int istep = mmax << 1;											// istep = 2 * mmax
+				Real theta = -isign * Constants::PI / mmax; // Negative sign for DIT
+
+				// Complex exponential for twiddle factor
+				Complex wp(std::cos(theta), std::sin(theta));
+				Complex w(1.0, 0.0);
+
+				for (int m = 0; m < mmax; m++) {
+					for (int i = m; i < n; i += istep) {
+						int j = i + mmax;
+
+						// Butterfly operation
+						Complex temp = w * data[j];
+						Complex u = data[i];
+						data[j] = u - temp;
+						data[i] = u + temp;
+					}
+					w *= wp; // Update twiddle factor
+				}
+				mmax = istep;
+			}
+		}
+
+		// Forward FFT: time domain -> frequency domain
+		static Vector<Complex> Forward(const Vector<Complex>& data) {
+			Vector<Complex> result = data; // Copy input
+			Transform(result, 1);
+			return result;
+		}
+
+		// Inverse FFT: frequency domain -> time domain
+		static Vector<Complex> Inverse(const Vector<Complex>& spectrum) {
+			Vector<Complex> result = spectrum; // Copy input
+			Transform(result, -1);						 // Inverse transform
+
+			// Normalize by 1/N
+			Real norm = 1.0 / result.size();
+			for (int i = 0; i < result.size(); i++) {
+				result[i] *= norm;
+			}
+
+			return result;
+		}
+
+		///////////////////////////////////////////////////////////////////////////////////////////
+		// Utility functions
+		///////////////////////////////////////////////////////////////////////////////////////////
+
+		// Check if n is a power of 2
+		static bool IsPowerOfTwo(int n) { return (n > 0) && ((n & (n - 1)) == 0); }
+
+		// Find next power of 2 >= n
+		static int NextPowerOfTwo(int n) {
+			if (n <= 0)
+				return 1;
+			if (IsPowerOfTwo(n))
+				return n;
+
+			int power = 1;
+			while (power < n) {
+				power <<= 1;
+			}
+			return power;
+		}
+
+		// Zero-pad vector to next power of 2
+		static Vector<Complex> ZeroPad(const Vector<Complex>& data) {
+			int n = data.size();
+			int padded_size = NextPowerOfTwo(n);
+
+			if (padded_size == n) {
+				return data; // Already power of 2
+			}
+
+			Vector<Complex> padded(padded_size, Complex(0.0, 0.0));
+			for (int i = 0; i < n; i++) {
+				padded[i] = data[i];
+			}
+
+			return padded;
+		}
+
+		// Compute log2 of n (assumes n is power of 2)
+		static int Log2(int n) {
+			int log = 0;
+			while (n > 1) {
+				n >>= 1;
+				log++;
+			}
+			return log;
+		}
+
+	private:
+		///////////////////////////////////////////////////////////////////////////////////////////
+		// Internal helper functions
+		///////////////////////////////////////////////////////////////////////////////////////////
+
+		// Bit-reversal permutation (in-place)
+		static void BitReversalPermute(Vector<Complex>& data) {
+			int n = data.size();
+			int j = 0;
+
+			for (int i = 0; i < n - 1; i++) {
+				if (i < j) {
+					std::swap(data[i], data[j]);
+				}
+
+				// Bit-reversal increment
+				int k = n >> 1;
+				while (k <= j) {
+					j -= k;
+					k >>= 1;
+				}
+				j += k;
+			}
+		}
+	};
+
+	///////////////////////////////////////////////////////////////////////////////////////////
+	// DCT - Discrete Cosine Transform
+	//
+	// The DCT is widely used in signal processing, image compression (JPEG), and spectral
+	// methods. It's closely related to the Discrete Fourier Transform but operates on real
+	// values and has better energy compaction properties for many real-world signals.
+	//
+	// KEY MATHEMATICAL CONNECTION:
+	// DCT-II is the transform used to compute Chebyshev polynomial coefficients when
+	// sampling at Chebyshev nodes: x_k = cos(π(k+0.5)/N). This is because Chebyshev
+	// polynomials T_n(cos θ) = cos(nθ) form an orthogonal basis, and the DCT implements
+	// the discrete orthogonality relation.
+	//
+	// TYPES IMPLEMENTED:
+	// - DCT-II: Standard "DCT" used in JPEG, spectral methods, Chebyshev approximation
+	// - DCT-III: Inverse of DCT-II (scaled)
+	// - DST-I: Discrete Sine Transform (boundary conditions for PDEs)
+	//
+	// PERFORMANCE:
+	// - Fast DCT via FFT: O(N log N) for power-of-2 sizes
+	// - Reference O(N²) fallback for non-power-of-2 sizes
+	// - Auto-selects fastest algorithm based on input size
+	//
+	// APPLICATIONS:
+	// - Image/audio compression (JPEG, MP3)
+	// - Spectral methods (Chebyshev approximation, PDE solving)
+	// - Feature extraction and dimensionality reduction
+	// - Lossy data compression
+	//
+	// REFERENCE:
+	// - Numerical Recipes 3rd Ed., Chapter 5 (Chebyshev approximation)
+	// - Makhoul, "A fast cosine transform in one and two dimensions" (1980)
+	// - FFTW documentation (www.fftw.org)
+	///////////////////////////////////////////////////////////////////////////////////////////
+	class DCT {
+	private:
+		/// @brief Threshold for using fast FFT-based DCT vs naive O(N²)
+		/// Below this threshold, naive may be faster due to FFT overhead
+		static constexpr int FAST_DCT_THRESHOLD = 32;
+
+	public:
+		///////////////////////////////////////////////////////////////////////////////////////////
+		// ForwardII - DCT Type-II (standard "DCT") - AUTO-SELECTS FASTEST ALGORITHM
+		///////////////////////////////////////////////////////////////////////////////////////////
+		static Vector<Real> ForwardII(const Vector<Real>& data) {
+			int N = data.size();
+			if (N == 0) {
+				throw std::invalid_argument("DCT::ForwardII - empty input");
+			}
+
+			// Small sizes: use reference implementation (lower overhead)
+			// Non-power-of-2: use reference implementation
+			if (N < FAST_DCT_THRESHOLD || !FFT::IsPowerOfTwo(N)) {
+				return ForwardII_Reference(data);
+			}
+
+			// Fast DCT-II via FFT for power-of-2 sizes
+			return ForwardII_Fast(data);
+		}
+
+		///////////////////////////////////////////////////////////////////////////////////////////
+		// InverseII - DCT Type-III (inverse of DCT-II) - AUTO-SELECTS FASTEST ALGORITHM
+		///////////////////////////////////////////////////////////////////////////////////////////
+		static Vector<Real> InverseII(const Vector<Real>& coefficients) {
+			int N = coefficients.size();
+			if (N == 0) {
+				throw std::invalid_argument("DCT::InverseII - empty input");
+			}
+
+			// Small sizes or non-power-of-2: use reference implementation
+			if (N < FAST_DCT_THRESHOLD || !FFT::IsPowerOfTwo(N)) {
+				return InverseII_Reference(coefficients);
+			}
+
+			// Fast DCT-III via FFT
+			return InverseII_Fast(coefficients);
+		}
+
+		///////////////////////////////////////////////////////////////////////////////////////////
+		// ForwardII_Fast - Fast DCT-II via FFT (O(N log N))
+		//
+		// ALGORITHM:
+		// 1. Create mirrored extension: y[n] = x[n] for n<N, y[n] = x[2N-1-n] for n>=N
+		// 2. Compute FFT of length 2N
+		// 3. Extract DCT coefficients: X[k] = Re(exp(-iπk/2N) * Y[k]) * (2/N)
+		//
+		// REQUIREMENTS: N must be a power of 2
+		///////////////////////////////////////////////////////////////////////////////////////////
+		static Vector<Real> ForwardII_Fast(const Vector<Real>& data) {
+			int N = data.size();
+			if (N == 0) {
+				throw std::invalid_argument("DCT::ForwardII_Fast - empty input");
+			}
+			if (!FFT::IsPowerOfTwo(N)) {
+				throw std::invalid_argument("DCT::ForwardII_Fast - size must be power of 2");
+			}
+
+			// Create extended sequence of length 2N with even symmetry
+			int N2 = 2 * N;
+			Vector<Complex> y(N2);
+			for (int n = 0; n < N; ++n) {
+				y[n] = Complex(data[n], 0.0);
+			}
+			for (int n = N; n < N2; ++n) {
+				y[n] = Complex(data[N2 - 1 - n], 0.0);
+			}
+
+			// Compute FFT of extended sequence
+			FFT::Transform(y, 1);
+
+			// Extract DCT coefficients
+			const Real pi = Constants::PI;
+			Real scale = 1.0 / N;
+
+			Vector<Real> result(N);
+			for (int k = 0; k < N; ++k) {
+				Real theta = -pi * k / N2;
+				Complex twiddle(std::cos(theta), std::sin(theta));
+				Complex product = twiddle * y[k];
+				result[k] = scale * product.real();
+			}
+
+			return result;
+		}
+
+		///////////////////////////////////////////////////////////////////////////////////////////
+		// InverseII_Fast - Fast DCT-III (inverse DCT-II) via FFT (O(N log N))
+		//
+		// REQUIREMENTS: N must be a power of 2
+		///////////////////////////////////////////////////////////////////////////////////////////
+		static Vector<Real> InverseII_Fast(const Vector<Real>& coefficients) {
+			int N = coefficients.size();
+			if (N == 0) {
+				throw std::invalid_argument("DCT::InverseII_Fast - empty input");
+			}
+			if (!FFT::IsPowerOfTwo(N)) {
+				throw std::invalid_argument("DCT::InverseII_Fast - size must be power of 2");
+			}
+
+			const Real pi = Constants::PI;
+			int N2 = 2 * N;
+
+			Vector<Complex> Y(N2, Complex(0.0, 0.0));
+
+			for (int k = 0; k < N; ++k) {
+				Real coeff = coefficients[k];
+				if (k == 0) {
+					coeff *= 0.5; // DC term is halved in inverse
+				}
+
+				Real theta = pi * k / N2;
+				Complex twiddle(std::cos(theta), std::sin(theta));
+				Y[k] = coeff * twiddle;
+			}
+
+			// Set up conjugate symmetry for real output
+			for (int k = 1; k < N; ++k) {
+				Y[N2 - k] = std::conj(Y[k]);
+			}
+
+			// Inverse FFT (unnormalized)
+			FFT::Transform(Y, -1);
+
+			// Extract first N samples, divide by 2
+			Vector<Real> result(N);
+			for (int n = 0; n < N; ++n) {
+				result[n] = Y[n].real() * 0.5;
+			}
+
+			return result;
+		}
+
+		///////////////////////////////////////////////////////////////////////////////////////////
+		// ForwardII_Reference - Reference O(N²) implementation
+		///////////////////////////////////////////////////////////////////////////////////////////
+		static Vector<Real> ForwardII_Reference(const Vector<Real>& data) {
+			int N = data.size();
+			if (N == 0) {
+				throw std::invalid_argument("DCT::ForwardII_Reference - empty input");
+			}
+
+			const Real pi = Constants::PI;
+			Real fac = 2.0 / N;
+
+			Vector<Real> result(N);
+			for (int k = 0; k < N; k++) {
+				Real sum = 0.0;
+				for (int n = 0; n < N; n++) {
+					sum += data[n] * std::cos(pi * k * (n + 0.5) / N);
+				}
+				result[k] = fac * sum;
+			}
+
+			return result;
+		}
+
+		///////////////////////////////////////////////////////////////////////////////////////////
+		// InverseII_Reference - Reference O(N²) implementation
+		///////////////////////////////////////////////////////////////////////////////////////////
+		static Vector<Real> InverseII_Reference(const Vector<Real>& coefficients) {
+			int N = coefficients.size();
+			if (N == 0) {
+				throw std::invalid_argument("DCT::InverseII_Reference - empty input");
+			}
+
+			const Real pi = Constants::PI;
+
+			Vector<Real> result(N);
+			for (int n = 0; n < N; n++) {
+				// First term: DC component (halved for orthogonality)
+				Real sum = coefficients[0] / 2.0;
+
+				// Remaining terms
+				for (int k = 1; k < N; k++) {
+					sum += coefficients[k] * std::cos(pi * k * (n + 0.5) / N);
+				}
+				result[n] = sum;
+			}
+
+			return result;
+		}
+
+		///////////////////////////////////////////////////////////////////////////////////////////
+		// ForwardDST - DST Type-I (Discrete Sine Transform)
+		//
+		// FORMULA:
+		//   X[k] = sqrt(2/(N+1)) * Σ_{n=0}^{N-1} x[n] * sin(π * (k+1) * (n+1) / (N+1))
+		//
+		// PROPERTIES:
+		// - Uses orthonormal basis (self-adjoint transform)
+		// - Used for problems with Dirichlet boundary conditions
+		// - Common in PDE solving (finite difference methods)
+		//
+		// PERFORMANCE: O(N²) reference implementation
+		///////////////////////////////////////////////////////////////////////////////////////////
+		static Vector<Real> ForwardDST(const Vector<Real>& data) {
+			int N = data.size();
+			if (N == 0) {
+				throw std::invalid_argument("DCT::ForwardDST - empty input");
+			}
+
+			const Real pi = Constants::PI;
+			Real norm = std::sqrt(2.0 / (N + 1)); // Orthonormal basis
+
+			Vector<Real> result(N);
+			for (int k = 0; k < N; k++) {
+				Real sum = 0.0;
+				for (int n = 0; n < N; n++) {
+					sum += data[n] * std::sin(pi * (k + 1) * (n + 1) / (N + 1));
+				}
+				result[k] = norm * sum;
+			}
+
+			return result;
+		}
+
+		///////////////////////////////////////////////////////////////////////////////////////////
+		// InverseDST - DST Type-I inverse
+		// DST-I with orthonormal basis is self-adjoint (its own inverse)
+		///////////////////////////////////////////////////////////////////////////////////////////
+		static Vector<Real> InverseDST(const Vector<Real>& coefficients) {
+			return ForwardDST(coefficients);
+		}
+
+		///////////////////////////////////////////////////////////////////////////////////////////
+		// HELPER: Verify DCT-II/III round-trip
+		///////////////////////////////////////////////////////////////////////////////////////////
+		static bool VerifyRoundTrip(const Vector<Real>& data, Real tolerance = 1e-12) {
+			Vector<Real> coeffs = ForwardII(data);
+			Vector<Real> recovered = InverseII(coeffs);
+
+			if (recovered.size() != data.size())
+				return false;
+
+			for (int i = 0; i < data.size(); i++) {
+				if (std::abs(recovered[i] - data[i]) > tolerance)
+					return false;
+			}
+			return true;
+		}
+
+		///////////////////////////////////////////////////////////////////////////////////////////
+		// HELPER: Verify fast implementation matches reference
+		///////////////////////////////////////////////////////////////////////////////////////////
+		static bool VerifyFastMatchesReference(const Vector<Real>& data, Real tolerance = 1e-10) {
+			int N = data.size();
+			if (!FFT::IsPowerOfTwo(N)) {
+				return true; // Not applicable for non-power-of-2
+			}
+
+			Vector<Real> fast = ForwardII_Fast(data);
+			Vector<Real> ref = ForwardII_Reference(data);
+
+			if (fast.size() != ref.size())
+				return false;
+
+			for (int i = 0; i < N; ++i) {
+				if (std::abs(fast[i] - ref[i]) > tolerance)
+					return false;
+			}
+			return true;
+		}
+	};
+
+} // namespace MML::Fourier
+
+///////////////////////////   mml/algorithms/FourierRealFFT.h   ///////////////////////////
+
+
+
+namespace MML::Fourier 
+{
+	///////////////////////////////////////////////////////////////////////////////////////////
+	// RealFFT - Optimized FFT for real-valued data using conjugate symmetry
+	//
+	// PERFORMANCE:
+	//   - ~2x faster than complex FFT for real data
+	//   - Uses packed storage format (n real -> n/2+1 complex)
+	//
+	// THEORY:
+	//   Real signals have conjugate-symmetric spectra: X[k] = X*[N-k]
+	//   Only need to compute/store half the spectrum + DC and Nyquist terms
+	//
+	// REFERENCE: Numerical Recipes fourier.h realft()
+	///////////////////////////////////////////////////////////////////////////////////////////
+
+	class RealFFT {
+	public:
+		///////////////////////////////////////////////////////////////////////////////////////////
+		// Forward - Real to complex transform
+		//
+		// INPUT:  n real samples
+		// OUTPUT: n/2+1 complex frequency components
+		//         spectrum[0] = DC component (k=0)
+		//         spectrum[k] = positive frequencies (k=1 to n/2-1)
+		//         spectrum[n/2] = Nyquist frequency (k=n/2)
+		//
+		// CONJUGATE SYMMETRY:
+		//   For k > n/2: X[k] = conj(X[n-k])
+		//   This is implicit - we don't store negative frequencies
+		///////////////////////////////////////////////////////////////////////////////////////////
+		static Vector<Complex> Forward(const Vector<Real>& data) {
+			int n = data.size();
+			FourierValidation::ValidateRealFFTSize(n, 2, "RealFFT::Forward");
+
+			// Pack real data into complex vector (treating pairs as complex numbers)
+			int n2 = n / 2;
+			Vector<Complex> temp(n2);
+			for (int i = 0; i < n2; i++)
+				temp[i] = Complex(data[2 * i], data[2 * i + 1]);
+
+			// Complex FFT of packed data
+			FFT::Transform(temp, 1);
+
+			// Unpack using conjugate symmetry to get real FFT result
+			Vector<Complex> result(n2 + 1);
+
+			// DC component (sum of even + i*sum of odd)
+			result[0] = Complex(temp[0].real() + temp[0].imag(), 0);
+
+			// Nyquist component (difference of even - i*odd)
+			result[n2] = Complex(temp[0].real() - temp[0].imag(), 0);
+
+			// Middle components using symmetry relations
+			Real theta = -Constants::PI / n2; // -pi/n for positive frequencies
+			for (int k = 1; k < n2; k++) {
+				Complex w = std::exp(Complex(0, k * theta)); // exp(-i*2*pi*k/n)
+
+				// Get symmetric pairs
+				Complex z1 = temp[k];
+				Complex z2 = std::conj(temp[n2 - k]);
+
+				// Even part (real DFT of even samples)
+				Complex even = Real(0.5) * (z1 + z2);
+
+				// Odd part (real DFT of odd samples)
+				Complex odd = Complex(0, -0.5) * (z1 - z2);
+
+				// Combine with twiddle factor
+				result[k] = even + w * odd;
+			}
+
+			return result;
+		}
+
+		///////////////////////////////////////////////////////////////////////////////////////////
+		// Inverse - Complex to real transform
+		//
+		// INPUT:  n/2+1 complex frequency components (conjugate-symmetric spectrum)
+		// OUTPUT: n real samples
+		//
+		// NOTE: Input must satisfy conjugate symmetry for real output
+		///////////////////////////////////////////////////////////////////////////////////////////
+		static Vector<Real> Inverse(const Vector<Complex>& spectrum) {
+			int n2p1 = spectrum.size();
+			int n2 = n2p1 - 1;
+			int n = 2 * n2;
+
+			FourierValidation::ValidateMinSize(n2, 1, "RealFFT::Inverse");
+
+			// Pack spectrum back into complex vector using reverse process
+			Vector<Complex> temp(n2);
+
+			// Reconstruct DC and Nyquist into temp[0]
+			temp[0] = Complex(Real(0.5) * (spectrum[0].real() + spectrum[n2].real()), Real(0.5) * (spectrum[0].real() - spectrum[n2].real()));
+
+			// Reconstruct middle components
+			Real theta = Constants::PI / n2; // pi/n for inverse
+			for (int k = 1; k < n2; k++) {
+				Complex w = std::exp(Complex(0, k * theta)); // exp(i*2*pi*k/n)
+
+				// Get spectrum values and conjugate pair
+				Complex z1 = spectrum[k];
+				Complex z2 = std::conj(spectrum[n2 - k]);
+
+				// Even and odd parts
+				Complex even = Real(0.5) * (z1 + z2);
+				Complex odd = Complex(0, 0.5) * (z1 - z2);
+
+				// Recombine
+				temp[k] = even + w * odd;
+			}
+
+			// Inverse complex FFT
+			FFT::Transform(temp, -1);
+
+			// Unpack complex to real (interleaved real/imag become consecutive reals)
+			Vector<Real> result(n);
+			for (int i = 0; i < n2; i++) {
+				result[2 * i] = temp[i].real();
+				result[2 * i + 1] = temp[i].imag();
+			}
+
+			// Apply normalization
+			for (int i = 0; i < n; i++)
+				result[i] /= n2;
+
+			return result;
+		}
+
+		///////////////////////////////////////////////////////////////////////////////////////////
+		// In-place transform (memory-efficient packed format)
+		//
+		// INPUT/OUTPUT: data vector
+		//   isign =  1: Real->Complex (input: n real, output: packed format)
+		//   isign = -1: Complex->Real (input: packed format, output: n real)
+		//
+		// PACKED FORMAT (NR convention):
+		//   data[0] = DC component
+		//   data[1] = Nyquist component
+		//   data[2*k] = real part of X[k] for k=1..n/2-1
+		//   data[2*k+1] = imag part of X[k] for k=1..n/2-1
+		///////////////////////////////////////////////////////////////////////////////////////////
+		static void Transform(Vector<Real>& data, int isign = 1) {
+			int n = data.size();
+			FourierValidation::ValidateRealFFTSize(n, 2, "RealFFT::Transform");
+
+			int n2 = n / 2;
+
+			// Pack into complex and do complex FFT
+			Vector<Complex> temp(n2);
+			for (int i = 0; i < n2; i++)
+				temp[i] = Complex(data[2 * i], data[2 * i + 1]);
+
+			FFT::Transform(temp, isign);
+
+			if (isign == 1) // Real to complex
+			{
+				// Unpack into NR format
+				data[0] = temp[0].real() + temp[0].imag(); // DC
+				data[1] = temp[0].real() - temp[0].imag(); // Nyquist
+
+				Real theta = -Constants::PI / n2;
+				for (int k = 1; k < n2; k++) {
+					Complex w = std::exp(Complex(0, k * theta));
+					Complex z1 = temp[k];
+					Complex z2 = std::conj(temp[n2 - k]);
+
+					Complex even = Real(0.5) * (z1 + z2);
+					Complex odd = Complex(0, -0.5) * (z1 - z2);
+					Complex result = even + w * odd;
+
+					data[2 * k] = result.real();
+					data[2 * k + 1] = result.imag();
+				}
+			} else // Complex to real (inverse)
+			{
+				// Reconstruct temp from packed format
+				temp[0] = Complex(Real(0.5) * (data[0] + data[1]), Real(0.5) * (data[0] - data[1]));
+
+				Real theta = Constants::PI / n2;
+				for (int k = 1; k < n2; k++) {
+					Complex spectrum_k(data[2 * k], data[2 * k + 1]);
+					Complex spectrum_nk(data[n - 2 * k], -data[n - 2 * k + 1]); // Conjugate
+
+					Complex w = std::exp(Complex(0, k * theta));
+					Complex even = Real(0.5) * (spectrum_k + spectrum_nk);
+					Complex odd = Complex(0, 0.5) * (spectrum_k - spectrum_nk);
+
+					temp[k] = even + w * odd;
+				}
+
+				FFT::Transform(temp, -1);
+
+				// Unpack and normalize
+				for (int i = 0; i < n2; i++) {
+					data[2 * i] = temp[i].real() / n2;
+					data[2 * i + 1] = temp[i].imag() / n2;
+				}
+			}
+		}
+	};
+
+} // namespace MML::Fourier
+
+///////////////////////////   mml/algorithms/FourierWindowing.h   ///////////////////////////
+
+
+
+
+
+
+namespace MML::Fourier 
+{
+	///////////////////////////////////////////////////////////////////////////////////////////
+	// Windows - Collection of window functions for spectral analysis
+	//
+	// PURPOSE:
+	//   Window functions reduce spectral leakage in FFT by tapering signal edges.
+	//   They smooth the transition to zero at signal boundaries, minimizing artifacts.
+	//
+	// APPLICATIONS:
+	//   - FFT analysis (reduce spectral leakage)
+	//   - Filter design (finite impulse response filters)
+	//   - Audio processing (smooth transitions)
+	//   - Signal segmentation (overlapping windows)
+	//
+	// TRADE-OFFS:
+	//   - Main lobe width: Narrower = better frequency resolution
+	//   - Side lobe level: Lower = less spectral leakage
+	//   - Each window optimizes different characteristics
+	//
+	// REFERENCE: Numerical Recipes spectrum.h, Harris (1978) "On the use of windows"
+	///////////////////////////////////////////////////////////////////////////////////////////
+	namespace Windows {
+		///////////////////////////////////////////////////////////////////////////////////////////
+		// Rectangular - No windowing (box window)
+		//
+		// PROPERTIES:
+		//   - Narrowest main lobe (best frequency resolution)
+		//   - Highest side lobes (worst spectral leakage: -13 dB)
+		//   - Use when signal exactly matches FFT period
+		//
+		// FORMULA: w[n] = 1 for all n
+		///////////////////////////////////////////////////////////////////////////////////////////
+		inline Vector<Real> Rectangular(int n) {
+			FourierValidation::ValidateWindowSize(n);
+
+			return Vector<Real>(n, 1.0);
+		}
+
+		///////////////////////////////////////////////////////////////////////////////////////////
+		// Hann (Hanning) - Raised cosine window
+		//
+		// PROPERTIES:
+		//   - Moderate main lobe width
+		//   - Good side lobe suppression (-31 dB)
+		//   - General-purpose window, widely used
+		//
+		// FORMULA: w[n] = 0.5 * (1 - cos(2πn/(N-1)))
+		///////////////////////////////////////////////////////////////////////////////////////////
+		inline Vector<Real> Hann(int n) {
+			FourierValidation::ValidateWindowSize(n);
+
+			if (n == 1)
+				return Vector<Real>(1, 1.0);
+
+			Vector<Real> window(n);
+			for (int i = 0; i < n; i++)
+				window[i] = 0.5 * (1.0 - std::cos(2.0 * Constants::PI * i / (n - 1)));
+
+			return window;
+		}
+
+		///////////////////////////////////////////////////////////////////////////////////////////
+		// Hamming - Optimized raised cosine window
+		//
+		// PROPERTIES:
+		//   - Slightly wider main lobe than Hann
+		//   - Better side lobe suppression (-43 dB)
+		//   - Optimized for minimizing first side lobe
+		//
+		// FORMULA: w[n] = 0.54 - 0.46 * cos(2πn/(N-1))
+		///////////////////////////////////////////////////////////////////////////////////////////
+		inline Vector<Real> Hamming(int n) {
+			FourierValidation::ValidateWindowSize(n);
+
+			if (n == 1)
+				return Vector<Real>(1, 1.0);
+
+			Vector<Real> window(n);
+			for (int i = 0; i < n; i++)
+				window[i] = 0.54 - 0.46 * std::cos(2.0 * Constants::PI * i / (n - 1));
+
+			return window;
+		}
+
+		///////////////////////////////////////////////////////////////////////////////////////////
+		// Blackman - Three-term cosine window
+		//
+		// PROPERTIES:
+		//   - Wide main lobe (worst frequency resolution)
+		//   - Excellent side lobe suppression (-58 dB)
+		//   - Use when minimizing spectral leakage is critical
+		//
+		// FORMULA: w[n] = 0.42 - 0.5*cos(2πn/(N-1)) + 0.08*cos(4πn/(N-1))
+		///////////////////////////////////////////////////////////////////////////////////////////
+		inline Vector<Real> Blackman(int n) {
+			FourierValidation::ValidateWindowSize(n);
+
+			if (n == 1)
+				return Vector<Real>(1, 1.0);
+
+			Vector<Real> window(n);
+			for (int i = 0; i < n; i++) {
+				Real angle = 2.0 * Constants::PI * i / (n - 1);
+				window[i] = 0.42 - 0.5 * std::cos(angle) + 0.08 * std::cos(2.0 * angle);
+			}
+
+			return window;
+		}
+
+		///////////////////////////////////////////////////////////////////////////////////////////
+		// Bartlett (Triangular) - Linear taper window
+		//
+		// PROPERTIES:
+		//   - Moderate main lobe width
+		//   - Moderate side lobe suppression (-25 dB)
+		//   - Simple triangular shape
+		//
+		// FORMULA: w[n] = 1 - |2n/(N-1) - 1|
+		///////////////////////////////////////////////////////////////////////////////////////////
+		inline Vector<Real> Bartlett(int n) {
+			FourierValidation::ValidateWindowSize(n);
+
+			if (n == 1)
+				return Vector<Real>(1, 1.0);
+
+			Vector<Real> window(n);
+			for (int i = 0; i < n; i++)
+				window[i] = 1.0 - std::abs(2.0 * i / (n - 1) - 1.0);
+
+			return window;
+		}
+
+		///////////////////////////////////////////////////////////////////////////////////////////
+		// Welch - Parabolic window
+		//
+		// PROPERTIES:
+		//   - Similar to Bartlett but smoother
+		//   - Continuous first derivative (Bartlett has kink at peak)
+		//   - Side lobe suppression: -21 dB
+		//
+		// FORMULA: w[n] = 1 - (2n/(N-1) - 1)²
+		///////////////////////////////////////////////////////////////////////////////////////////
+		inline Vector<Real> Welch(int n) {
+			FourierValidation::ValidateWindowSize(n);
+
+			if (n == 1)
+				return Vector<Real>(1, 1.0);
+
+			Vector<Real> window(n);
+			for (int i = 0; i < n; i++) {
+				Real x = 2.0 * i / (n - 1) - 1.0;
+				window[i] = 1.0 - x * x;
+			}
+
+			return window;
+		}
+
+		///////////////////////////////////////////////////////////////////////////////////////////
+		// Kaiser - Parametric window using modified Bessel function
+		//
+		// PARAMETERS:
+		//   beta: Shape parameter controlling window properties
+		//     - beta = 0: Rectangular window
+		//     - beta = 5: Hamming-like
+		//     - beta = 8.6: Blackman-like (-60 dB side lobes)
+		//     - Higher beta: Wider main lobe, better side lobe suppression
+		//
+		// PROPERTIES:
+		//   - Adjustable trade-off between main lobe width and side lobe level
+		//   - Near-optimal in terms of energy concentration
+		//
+		// FORMULA: w[n] = I₀(β√(1-(2n/(N-1)-1)²)) / I₀(β)
+		//   where I₀ is the zeroth-order modified Bessel function of the first kind
+		///////////////////////////////////////////////////////////////////////////////////////////
+		inline Vector<Real> Kaiser(int n, Real beta) {
+			FourierValidation::ValidateWindowSize(n);
+			FourierValidation::ValidateNonNegative(beta, "beta", "Windows::Kaiser");
+
+			// Modified Bessel function I0(x) using series expansion
+			auto bessel_i0 = [](Real x) -> Real {
+				Real sum = 1.0;
+				Real term = 1.0;
+				Real x_half = x / 2.0;
+
+				for (int k = 1; k <= 50; k++) // Sufficient for typical accuracy
+				{
+					term *= (x_half / k);
+					term *= (x_half / k);
+					sum += term;
+
+					if (term < 1e-12 * sum) // Convergence check
+						break;
+				}
+
+				return sum;
+			};
+
+			Real i0_beta = bessel_i0(beta);
+			Vector<Real> window(n);
+
+			for (int i = 0; i < n; i++) {
+				Real x = 2.0 * i / (n - 1) - 1.0; // Normalize to [-1, 1]
+				Real arg = beta * std::sqrt(1.0 - x * x);
+				window[i] = bessel_i0(arg) / i0_beta;
+			}
+
+			return window;
+		}
+
+		///////////////////////////////////////////////////////////////////////////////////////////
+		// Gaussian - Gaussian-shaped window
+		//
+		// PARAMETERS:
+		//   sigma: Standard deviation (larger = narrower window)
+		//     - Typical: sigma = 0.4 to 0.5
+		//     - sigma = 0.4: Side lobes at -60 dB
+		//
+		// PROPERTIES:
+		//   - Smooth, bell-shaped taper
+		//   - Minimal overshoot in time and frequency domains
+		//   - Good for signals with Gaussian statistics
+		//
+		// FORMULA: w[n] = exp(-0.5 * ((n - (N-1)/2) / (σ * (N-1)/2))²)
+		///////////////////////////////////////////////////////////////////////////////////////////
+		inline Vector<Real> Gaussian(int n, Real sigma) {
+			FourierValidation::ValidateWindowSize(n);
+			FourierValidation::ValidatePositive(sigma, "sigma", "Windows::Gaussian");
+
+			Vector<Real> window(n);
+			Real center = (n - 1) / 2.0;
+			Real denominator = sigma * (n - 1) / 2.0;
+
+			for (int i = 0; i < n; i++) {
+				Real x = (i - center) / denominator;
+				window[i] = std::exp(-0.5 * x * x);
+			}
+
+			return window;
+		}
+	} // namespace Windows
+} // namespace MML::Fourier
+
+
+///////////////////////////   mml/algorithms/GraphAlgorithms.h   ///////////////////////////
+
+
+
+namespace MML
+{
+	///////////////////////////////////////////////////////////////////////////
+	///                    BREADTH-FIRST SEARCH (BFS)                       ///
+	///////////////////////////////////////////////////////////////////////////
+
+	/// Perform BFS from start vertex, visiting all reachable vertices
+	/// Complexity: O(V + E)
+	///
+	/// @param graph  The graph to traverse
+	/// @param start  Starting vertex index
+	/// @return TraversalResult with visit order, parent pointers, and distances (in hops)
+	template<typename V, typename E>
+	TraversalResult BFS(const Graph<V, E>& graph, size_t start)
+	{
+		TraversalResult result;
+		size_t n = graph.numVertices();
+
+		if (start >= n)
+			return result;
+
+		result.parent.resize(n, GRAPH_NOT_FOUND);
+		result.distance.resize(n, std::numeric_limits<Real>::infinity());
+
+		std::vector<bool> visited(n, false);
+		std::queue<size_t> queue;
+
+		visited[start] = true;
+		result.distance[start] = 0;
+		queue.push(start);
+
+		while (!queue.empty())
+		{
+			size_t u = queue.front();
+			queue.pop();
+
+			result.visitOrder.push_back(u);
+			result.nodesVisited++;
+
+			for (const auto& edge : graph.neighbors(u))
+			{
+				size_t v = edge.to;
+				if (!visited[v])
+				{
+					visited[v] = true;
+					result.parent[v] = u;
+					result.distance[v] = result.distance[u] + 1;
+					queue.push(v);
+				}
+			}
+		}
+
+		return result;
+	}
+
+	/// BFS with visitor callback - called for each visited vertex
+	template<typename V, typename E, typename Visitor>
+	void BFSVisit(const Graph<V, E>& graph, size_t start, Visitor visitor)
+	{
+		size_t n = graph.numVertices();
+		if (start >= n) return;
+
+		std::vector<bool> visited(n, false);
+		std::queue<size_t> queue;
+
+		visited[start] = true;
+		queue.push(start);
+
+		while (!queue.empty())
+		{
+			size_t u = queue.front();
+			queue.pop();
+
+			if (!visitor(u))  // Visitor returns false to stop
+				return;
+
+			for (const auto& edge : graph.neighbors(u))
+			{
+				if (!visited[edge.to])
+				{
+					visited[edge.to] = true;
+					queue.push(edge.to);
+				}
+			}
+		}
+	}
+
+	///////////////////////////////////////////////////////////////////////////
+	///                    DEPTH-FIRST SEARCH (DFS)                         ///
+	///////////////////////////////////////////////////////////////////////////
+
+	/// Perform DFS from start vertex (iterative)
+	/// Complexity: O(V + E)
+	///
+	/// @param graph  The graph to traverse
+	/// @param start  Starting vertex index
+	/// @return TraversalResult with visit order and parent pointers
+	template<typename V, typename E>
+	TraversalResult DFS(const Graph<V, E>& graph, size_t start)
+	{
+		TraversalResult result;
+		size_t n = graph.numVertices();
+
+		if (start >= n)
+			return result;
+
+		result.parent.resize(n, GRAPH_NOT_FOUND);
+		result.distance.resize(n, std::numeric_limits<Real>::infinity());
+
+		std::vector<bool> visited(n, false);
+		std::stack<size_t> stack;
+
+		stack.push(start);
+		result.distance[start] = 0;
+
+		while (!stack.empty())
+		{
+			size_t u = stack.top();
+			stack.pop();
+
+			if (visited[u])
+				continue;
+
+			visited[u] = true;
+			result.visitOrder.push_back(u);
+			result.nodesVisited++;
+
+			// Push neighbors in reverse order for consistent traversal
+			const auto& neighbors = graph.neighbors(u);
+			for (auto it = neighbors.rbegin(); it != neighbors.rend(); ++it)
+			{
+				size_t v = it->to;
+				if (!visited[v])
+				{
+					if (result.parent[v] == GRAPH_NOT_FOUND)
+					{
+						result.parent[v] = u;
+						result.distance[v] = result.distance[u] + 1;
+					}
+					stack.push(v);
+				}
+			}
+		}
+
+		return result;
+	}
+
+	/// DFS with visitor callback
+	template<typename V, typename E, typename Visitor>
+	void DFSVisit(const Graph<V, E>& graph, size_t start, Visitor visitor)
+	{
+		size_t n = graph.numVertices();
+		if (start >= n) return;
+
+		std::vector<bool> visited(n, false);
+		std::stack<size_t> stack;
+
+		stack.push(start);
+
+		while (!stack.empty())
+		{
+			size_t u = stack.top();
+			stack.pop();
+
+			if (visited[u])
+				continue;
+
+			visited[u] = true;
+
+			if (!visitor(u))
+				return;
+
+			const auto& neighbors = graph.neighbors(u);
+			for (auto it = neighbors.rbegin(); it != neighbors.rend(); ++it)
+			{
+				if (!visited[it->to])
+					stack.push(it->to);
+			}
+		}
+	}
+
+	///////////////////////////////////////////////////////////////////////////
+	///                    DIJKSTRA'S ALGORITHM                             ///
+	///////////////////////////////////////////////////////////////////////////
+
+	/// Find shortest path from start to all vertices using Dijkstra's algorithm
+	/// Requires non-negative edge weights
+	/// Complexity: O((V + E) log V) with priority queue
+	///
+	/// @param graph  The graph (must have non-negative weights)
+	/// @param start  Starting vertex index
+	/// @return TraversalResult with distances and parent pointers for path reconstruction
+	template<typename V, typename E>
+	TraversalResult Dijkstra(const Graph<V, E>& graph, size_t start)
+	{
+		TraversalResult result;
+		size_t n = graph.numVertices();
+
+		if (start >= n)
+			return result;
+
+		result.parent.resize(n, GRAPH_NOT_FOUND);
+		result.distance.resize(n, std::numeric_limits<Real>::infinity());
+		result.distance[start] = 0;
+
+		// Priority queue: (distance, vertex)
+		using PQEntry = std::pair<Real, size_t>;
+		std::priority_queue<PQEntry, std::vector<PQEntry>, std::greater<PQEntry>> pq;
+
+		pq.push({0, start});
+
+		while (!pq.empty())
+		{
+			auto [dist, u] = pq.top();
+			pq.pop();
+
+			// Skip if we've already found a better path
+			if (dist > result.distance[u])
+				continue;
+
+			result.nodesVisited++;
+
+			for (const auto& edge : graph.neighbors(u))
+			{
+				size_t v = edge.to;
+				Real newDist = result.distance[u] + static_cast<Real>(edge.weight);
+
+				if (newDist < result.distance[v])
+				{
+					result.distance[v] = newDist;
+					result.parent[v] = u;
+					pq.push({newDist, v});
+				}
+			}
+		}
+
+		return result;
+	}
+
+	/// Find shortest path from start to specific target using Dijkstra
+	/// Early termination when target is reached
+	template<typename V, typename E>
+	PathResult DijkstraPath(const Graph<V, E>& graph, size_t start, size_t target)
+	{
+		PathResult result;
+		size_t n = graph.numVertices();
+
+		if (start >= n || target >= n)
+		{
+			result.diagnostics = "Invalid start or target vertex";
+			return result;
+		}
+
+		if (start == target)
+		{
+			result.found = true;
+			result.path.push_back(start);
+			result.totalWeight = 0;
+			result.nodesExplored = 1;
+			return result;
+		}
+
+		std::vector<Real> dist(n, std::numeric_limits<Real>::infinity());
+		std::vector<size_t> parent(n, GRAPH_NOT_FOUND);
+		dist[start] = 0;
+
+		using PQEntry = std::pair<Real, size_t>;
+		std::priority_queue<PQEntry, std::vector<PQEntry>, std::greater<PQEntry>> pq;
+		pq.push({0, start});
+
+		while (!pq.empty())
+		{
+			auto [d, u] = pq.top();
+			pq.pop();
+
+			result.nodesExplored++;
+
+			if (u == target)
+			{
+				// Reconstruct path
+				result.found = true;
+				result.totalWeight = dist[target];
+
+				size_t curr = target;
+				while (curr != GRAPH_NOT_FOUND)
+				{
+					result.path.push_back(curr);
+					curr = parent[curr];
+				}
+				std::reverse(result.path.begin(), result.path.end());
+				return result;
+			}
+
+			if (d > dist[u])
+				continue;
+
+			for (const auto& edge : graph.neighbors(u))
+			{
+				size_t v = edge.to;
+				Real newDist = dist[u] + static_cast<Real>(edge.weight);
+
+				if (newDist < dist[v])
+				{
+					dist[v] = newDist;
+					parent[v] = u;
+					pq.push({newDist, v});
+				}
+			}
+		}
+
+		result.found = false;
+		result.diagnostics = "No path exists from start to target";
+		return result;
+	}
+
+	///////////////////////////////////////////////////////////////////////////
+	///                    CONNECTED COMPONENTS                             ///
+	///////////////////////////////////////////////////////////////////////////
+
+	/// Find all connected components in an undirected graph
+	/// Complexity: O(V + E)
+	///
+	/// @param graph  The graph (should be undirected for meaningful results)
+	/// @return ComponentsResult with component IDs and lists
+	template<typename V, typename E>
+	ComponentsResult ConnectedComponents(const Graph<V, E>& graph)
+	{
+		ComponentsResult result;
+		size_t n = graph.numVertices();
+
+		if (n == 0)
+			return result;
+
+		result.componentId.resize(n, GRAPH_NOT_FOUND);
+
+		size_t componentNum = 0;
+
+		for (size_t v = 0; v < n; ++v)
+		{
+			if (result.componentId[v] != GRAPH_NOT_FOUND)
+				continue;  // Already assigned
+
+			// BFS to find all vertices in this component
+			std::vector<size_t> component;
+			std::queue<size_t> queue;
+
+			queue.push(v);
+			result.componentId[v] = componentNum;
+
+			while (!queue.empty())
+			{
+				size_t u = queue.front();
+				queue.pop();
+				component.push_back(u);
+
+				for (const auto& edge : graph.neighbors(u))
+				{
+					if (result.componentId[edge.to] == GRAPH_NOT_FOUND)
+					{
+						result.componentId[edge.to] = componentNum;
+						queue.push(edge.to);
+					}
+				}
+			}
+
+			result.components.push_back(std::move(component));
+			++componentNum;
+		}
+
+		result.numComponents = componentNum;
+		return result;
+	}
+
+	/// Check if the graph is connected (single component)
+	template<typename V, typename E>
+	bool IsConnected(const Graph<V, E>& graph)
+	{
+		if (graph.numVertices() == 0)
+			return true;
+
+		auto result = BFS(graph, 0);
+		return result.nodesVisited == graph.numVertices();
+	}
+
+	///////////////////////////////////////////////////////////////////////////
+	///                    PATH UTILITIES                                   ///
+	///////////////////////////////////////////////////////////////////////////
+
+	/// Reconstruct path from parent array (used by BFS/DFS/Dijkstra)
+	inline std::vector<size_t> ReconstructPath(
+		const std::vector<size_t>& parent,
+		size_t start,
+		size_t target)
+	{
+		std::vector<size_t> path;
+
+		if (target >= parent.size())
+			return path;
+
+		if (parent[target] == GRAPH_NOT_FOUND && target != start)
+			return path;  // No path exists
+
+		size_t curr = target;
+		while (curr != GRAPH_NOT_FOUND)
+		{
+			path.push_back(curr);
+			if (curr == start)
+				break;
+			curr = parent[curr];
+		}
+
+		std::reverse(path.begin(), path.end());
+		return path;
+	}
+
+	/// Find shortest path (unweighted) using BFS
+	template<typename V, typename E>
+	PathResult ShortestPathUnweighted(const Graph<V, E>& graph, size_t start, size_t target)
+	{
+		PathResult result;
+		size_t n = graph.numVertices();
+
+		if (start >= n || target >= n)
+		{
+			result.diagnostics = "Invalid start or target vertex";
+			return result;
+		}
+
+		if (start == target)
+		{
+			result.found = true;
+			result.path.push_back(start);
+			result.totalWeight = 0;
+			result.nodesExplored = 1;
+			return result;
+		}
+
+		auto bfsResult = BFS(graph, start);
+		result.nodesExplored = bfsResult.nodesVisited;
+
+		if (bfsResult.distance[target] == std::numeric_limits<Real>::infinity())
+		{
+			result.found = false;
+			result.diagnostics = "No path exists from start to target";
+			return result;
+		}
+
+		result.found = true;
+		result.path = ReconstructPath(bfsResult.parent, start, target);
+		result.totalWeight = bfsResult.distance[target];
+
+		return result;
+	}
+
+	///////////////////////////////////////////////////////////////////////////
+	///                    BELLMAN-FORD ALGORITHM                           ///
+	///////////////////////////////////////////////////////////////////////////
+
+	/// Find shortest paths from start vertex using Bellman-Ford algorithm
+	/// Handles negative edge weights, detects negative cycles
+	/// Complexity: O(V * E)
+	///
+	/// @param graph  The graph (can have negative weights)
+	/// @param start  Starting vertex index
+	/// @return TraversalResult with distances and parent pointers
+	///         If negative cycle detected, returns empty result with diagnostics
+	template<typename V, typename E>
+	TraversalResult BellmanFord(const Graph<V, E>& graph, size_t start)
+	{
+		TraversalResult result;
+		size_t n = graph.numVertices();
+
+		if (start >= n)
+			return result;
+
+		result.parent.resize(n, GRAPH_NOT_FOUND);
+		result.distance.resize(n, std::numeric_limits<Real>::infinity());
+		result.distance[start] = 0;
+
+		// Collect all edges
+		std::vector<std::tuple<size_t, size_t, E>> edges;
+		for (size_t u = 0; u < n; ++u)
+		{
+			for (const auto& edge : graph.neighbors(u))
+			{
+				edges.push_back({u, edge.to, edge.weight});
+			}
+		}
+
+		// Relax all edges (V-1) times
+		for (size_t i = 0; i < n - 1; ++i)
+		{
+			bool changed = false;
+			for (const auto& [u, v, w] : edges)
+			{
+				if (result.distance[u] != std::numeric_limits<Real>::infinity())
+				{
+					Real newDist = result.distance[u] + static_cast<Real>(w);
+					if (newDist < result.distance[v])
+					{
+						result.distance[v] = newDist;
+						result.parent[v] = u;
+						changed = true;
+					}
+				}
+			}
+			// Early termination if no changes
+			if (!changed)
+				break;
+		}
+
+		// Check for negative cycles
+		for (const auto& [u, v, w] : edges)
+		{
+			if (result.distance[u] != std::numeric_limits<Real>::infinity())
+			{
+				if (result.distance[u] + static_cast<Real>(w) < result.distance[v])
+				{
+					// Negative cycle detected
+					result.parent.clear();
+					result.distance.clear();
+					result.visitOrder.clear();
+					result.nodesVisited = 0;
+					return result;  // Empty result indicates negative cycle
+				}
+			}
+		}
+
+		// Count reachable nodes
+		for (size_t i = 0; i < n; ++i)
+		{
+			if (result.distance[i] != std::numeric_limits<Real>::infinity())
+				result.nodesVisited++;
+		}
+
+		return result;
+	}
+
+	/// Check if graph contains a negative cycle reachable from start
+	template<typename V, typename E>
+	bool HasNegativeCycle(const Graph<V, E>& graph, size_t start)
+	{
+		auto result = BellmanFord(graph, start);
+		return result.parent.empty();  // Empty if negative cycle found
+	}
+
+	///////////////////////////////////////////////////////////////////////////
+	///                    TOPOLOGICAL SORT                                 ///
+	///////////////////////////////////////////////////////////////////////////
+
+	/// Perform topological sort on a directed acyclic graph (DAG)
+	/// Uses Kahn's algorithm (BFS-based)
+	/// Complexity: O(V + E)
+	///
+	/// @param graph  The graph (must be directed and acyclic)
+	/// @return TopologicalSortResult with sorted order and cycle detection
+	template<typename V, typename E>
+	TopologicalSortResult TopologicalSort(const Graph<V, E>& graph)
+	{
+		TopologicalSortResult result;
+		size_t n = graph.numVertices();
+
+		if (n == 0)
+		{
+			result.isDAG = true;
+			return result;
+		}
+
+		if (!graph.isDirected())
+		{
+			result.isDAG = false;
+			result.diagnostics = "Topological sort requires a directed graph";
+			return result;
+		}
+
+		// Calculate in-degrees
+		std::vector<size_t> inDegree(n, 0);
+		for (size_t u = 0; u < n; ++u)
+		{
+			for (const auto& edge : graph.neighbors(u))
+			{
+				inDegree[edge.to]++;
+			}
+		}
+
+		// Initialize queue with zero in-degree vertices
+		std::queue<size_t> queue;
+		for (size_t v = 0; v < n; ++v)
+		{
+			if (inDegree[v] == 0)
+				queue.push(v);
+		}
+
+		// Process vertices
+		while (!queue.empty())
+		{
+			size_t u = queue.front();
+			queue.pop();
+			result.order.push_back(u);
+
+			for (const auto& edge : graph.neighbors(u))
+			{
+				if (--inDegree[edge.to] == 0)
+					queue.push(edge.to);
+			}
+		}
+
+		// Check if all vertices were processed
+		if (result.order.size() != n)
+		{
+			result.isDAG = false;
+			result.order.clear();
+			result.diagnostics = "Graph contains a cycle";
+			return result;
+		}
+
+		result.isDAG = true;
+		return result;
+	}
+
+	/// Check if a directed graph is a DAG (has no cycles)
+	template<typename V, typename E>
+	bool IsDAG(const Graph<V, E>& graph)
+	{
+		auto result = TopologicalSort(graph);
+		return result.isDAG;
+	}
+
+	///////////////////////////////////////////////////////////////////////////
+	///                    MINIMUM SPANNING TREE (MST)                      ///
+	///////////////////////////////////////////////////////////////////////////
+
+	namespace detail
+	{
+		/// Union-Find (Disjoint Set Union) data structure for Kruskal's algorithm
+		class UnionFind
+		{
+		public:
+			explicit UnionFind(size_t n) : parent(n), rank(n, 0)
+			{
+				for (size_t i = 0; i < n; ++i)
+					parent[i] = i;
+			}
+
+			size_t find(size_t x)
+			{
+				if (parent[x] != x)
+					parent[x] = find(parent[x]);  // Path compression
+				return parent[x];
+			}
+
+			bool unite(size_t x, size_t y)
+			{
+				size_t px = find(x);
+				size_t py = find(y);
+				if (px == py)
+					return false;  // Already in same set
+
+				// Union by rank
+				if (rank[px] < rank[py])
+					std::swap(px, py);
+				parent[py] = px;
+				if (rank[px] == rank[py])
+					++rank[px];
+				return true;
+			}
+
+		private:
+			std::vector<size_t> parent;
+			std::vector<size_t> rank;
+		};
+	}  // namespace detail
+
+	/// Find Minimum Spanning Tree using Kruskal's algorithm
+	/// Complexity: O(E log E)
+	///
+	/// @param graph  The graph (must be connected for a valid MST)
+	/// @return MSTResult with MST edges and total weight
+	template<typename V, typename E>
+	MSTResult Kruskal(const Graph<V, E>& graph)
+	{
+		MSTResult result;
+		size_t n = graph.numVertices();
+
+		if (n == 0)
+		{
+			result.isComplete = true;
+			return result;
+		}
+
+		// Collect all edges (for undirected graph, avoid duplicates)
+		std::vector<std::tuple<E, size_t, size_t>> edges;
+		for (size_t u = 0; u < n; ++u)
+		{
+			for (const auto& edge : graph.neighbors(u))
+			{
+				// For undirected graphs, only add edge once (u < v)
+				if (graph.isDirected() || u < edge.to)
+					edges.push_back({edge.weight, u, edge.to});
+			}
+		}
+
+		// Sort edges by weight
+		std::sort(edges.begin(), edges.end());
+
+		// Kruskal's algorithm
+		detail::UnionFind uf(n);
+
+		for (const auto& [weight, u, v] : edges)
+		{
+			if (uf.unite(u, v))
+			{
+				result.edges.push_back({u, v, static_cast<Real>(weight)});
+				result.totalWeight += static_cast<Real>(weight);
+
+				// MST has exactly V-1 edges
+				if (result.edges.size() == n - 1)
+					break;
+			}
+		}
+
+		result.isComplete = (result.edges.size() == n - 1);
+		if (!result.isComplete)
+		{
+			result.diagnostics = "Graph is not connected - no spanning tree exists";
+		}
+
+		return result;
+	}
+
+	/// Alternative MST using Prim's algorithm
+	/// Better for dense graphs
+	/// Complexity: O((V + E) log V) with priority queue
+	template<typename V, typename E>
+	MSTResult Prim(const Graph<V, E>& graph, size_t start = 0)
+	{
+		MSTResult result;
+		size_t n = graph.numVertices();
+
+		if (n == 0)
+		{
+			result.isComplete = true;
+			return result;
+		}
+
+		if (start >= n)
+			start = 0;
+
+		std::vector<bool> inMST(n, false);
+
+		// Priority queue: (weight, from, to)
+		using PQEntry = std::tuple<E, size_t, size_t>;
+		std::priority_queue<PQEntry, std::vector<PQEntry>, std::greater<PQEntry>> pq;
+
+		// Start from the given vertex
+		inMST[start] = true;
+		for (const auto& edge : graph.neighbors(start))
+		{
+			pq.push({edge.weight, start, edge.to});
+		}
+
+		size_t edgesAdded = 0;
+
+		while (!pq.empty() && edgesAdded < n - 1)
+		{
+			auto [weight, u, v] = pq.top();
+			pq.pop();
+
+			if (inMST[v])
+				continue;
+
+			inMST[v] = true;
+			result.edges.push_back({u, v, static_cast<Real>(weight)});
+			result.totalWeight += static_cast<Real>(weight);
+			edgesAdded++;
+
+			for (const auto& edge : graph.neighbors(v))
+			{
+				if (!inMST[edge.to])
+					pq.push({edge.weight, v, edge.to});
+			}
+		}
+
+		result.isComplete = (result.edges.size() == n - 1);
+		if (!result.isComplete)
+		{
+			result.diagnostics = "Graph is not connected - no spanning tree exists";
+		}
+
+		return result;
+	}
+
+}  // namespace MML
+
+
+///////////////////////////   mml/algorithms/GraphSpectral.h   ///////////////////////////
+
+
+
+namespace MML
+{
+	///////////////////////////////////////////////////////////////////////////
+	///                    SPECTRAL PROPERTIES                              ///
+	///////////////////////////////////////////////////////////////////////////
+
+	/// Compute all eigenvalues of the Laplacian matrix using Jacobi iteration.
+	/// For connected graphs: lambda_1 = 0, lambda_2 > 0 (algebraic connectivity)
+	/// Complexity: O(V^3) for full eigenvalue decomposition
+	///
+	/// @param graph  The graph
+	/// @param tol    Convergence tolerance (default: 1e-10)
+	/// @param maxIter Maximum Jacobi iterations (default: 100)
+	/// @return Vector of eigenvalues in ascending order
+	template<typename V, typename E>
+	std::vector<Real> LaplacianEigenvalues(const Graph<V, E>& graph, Real tol = 1e-10, int maxIter = 100)
+	{
+		size_t n = graph.numVertices();
+		if (n == 0)
+			return {};
+
+		Matrix<Real> L = graph.toLaplacianMatrix();
+		auto result = SymmMatEigenSolverJacobi::Solve(L, tol, maxIter);
+
+		// Convert Vector<Real> to std::vector<Real>
+		std::vector<Real> eigenvalues;
+		eigenvalues.reserve(n);
+		for (size_t i = 0; i < n; ++i)
+			eigenvalues.push_back(result.eigenvalues[static_cast<int>(i)]);
+
+		return eigenvalues;
+	}
+
+	/// Compute algebraic connectivity (Fiedler value) exactly.
+	/// This is the second-smallest eigenvalue of the Laplacian matrix.
+	/// Measures how well-connected the graph is.
+	/// Complexity: O(V^3) for full eigenvalue decomposition
+	///
+	/// @param graph  The graph (should be connected for meaningful results)
+	/// @param tol    Convergence tolerance (default: 1e-10)
+	/// @param maxIter Maximum Jacobi iterations (default: 100)
+	/// @return Algebraic connectivity (0 if graph is disconnected or has < 2 vertices)
+	template<typename V, typename E>
+	Real AlgebraicConnectivity(const Graph<V, E>& graph, Real tol = 1e-10, int maxIter = 100)
+	{
+		size_t n = graph.numVertices();
+		if (n <= 1)
+			return 0;
+
+		auto eigenvalues = LaplacianEigenvalues(graph, tol, maxIter);
+		
+		// Return second smallest eigenvalue (eigenvalues are sorted ascending)
+		// The smallest is always ~0 for the constant eigenvector
+		return (eigenvalues.size() >= 2) ? eigenvalues[1] : 0;
+	}
+
+	/// Compute degree sequence from the Laplacian matrix diagonal
+	/// @note Returns vertex degrees (diagonal of Laplacian), NOT eigenvalue approximations.
+	///       For actual eigenvalues, use LaplacianEigenvalues() instead.
+	/// Complexity: O(V)
+	/// @see LaplacianEigenvalues() for exact eigenvalue computation using Jacobi iteration
+	///
+	/// @param graph  The graph
+	/// @return Vector of vertex degrees in ascending order
+	template<typename V, typename E>
+	std::vector<Real> LaplacianDegreeSequence(const Graph<V, E>& graph)
+	{
+		size_t n = graph.numVertices();
+		if (n == 0)
+			return {};
+
+		Matrix<Real> L = graph.toLaplacianMatrix();
+
+		std::vector<Real> eigenvalues;
+		eigenvalues.reserve(n);
+
+		// Return diagonal elements as approximation (works for special cases like star graphs)
+		// The diagonal elements are the vertex degrees for unweighted graphs
+		for (size_t i = 0; i < n; ++i)
+		{
+			eigenvalues.push_back(L(i, i));
+		}
+
+		std::sort(eigenvalues.begin(), eigenvalues.end());
+		return eigenvalues;
+	}
+
+	/// Compute lower bound on algebraic connectivity using Cheeger-like inequality
+	/// @note Returns a lower bound, not the exact Fiedler value.
+	///       For exact algebraic connectivity, use AlgebraicConnectivity() instead.
+	/// Complexity: O(V)
+	/// @see AlgebraicConnectivity() for exact computation using Jacobi iteration
+	///
+	/// @param graph  The graph (should be connected for meaningful results)
+	/// @return Lower bound on algebraic connectivity (0 if graph is disconnected)
+	template<typename V, typename E>
+	Real AlgebraicConnectivityBound(const Graph<V, E>& graph)
+	{
+		size_t n = graph.numVertices();
+		if (n <= 1)
+			return 0;
+
+		// Check if disconnected (return 0)
+		auto components = ConnectedComponents(graph);
+		if (components.numComponents > 1)
+			return 0;
+
+		// Use Cheeger-like bound: lambda_2 >= 2 * (1 - cos(pi/n)) * min_degree
+		Real minDegree = std::numeric_limits<Real>::max();
+		for (size_t v = 0; v < n; ++v)
+		{
+			Real d = static_cast<Real>(graph.degree(v));
+			if (d < minDegree)
+				minDegree = d;
+		}
+
+		return minDegree > 0 ? 2.0 * (1.0 - std::cos(Constants::PI / n)) * minDegree : 0;
+	}
+
+	/// Check if graph is connected using spectral method
+	/// Graph is connected iff algebraic connectivity > 0
+	template<typename V, typename E>
+	bool IsConnectedSpectral(const Graph<V, E>& graph)
+	{
+		// Count multiplicity of eigenvalue 0 in Laplacian
+		// = number of connected components
+		auto components = ConnectedComponents(graph);
+		return components.numComponents <= 1;
+	}
+
+	///////////////////////////////////////////////////////////////////////////
+	///                    CENTRALITY MEASURES                              ///
+	///////////////////////////////////////////////////////////////////////////
+
+	/// Compute degree centrality for all vertices
+	/// Normalized by (n-1) where n is number of vertices
+	///
+	/// @param graph  The graph
+	/// @return Vector of degree centralities (normalized to [0,1])
+	template<typename V, typename E>
+	std::vector<Real> DegreeCentrality(const Graph<V, E>& graph)
+	{
+		size_t n = graph.numVertices();
+		if (n <= 1)
+			return std::vector<Real>(n, 0);
+
+		std::vector<Real> centrality(n);
+		Real maxDegree = static_cast<Real>(n - 1);
+
+		for (size_t v = 0; v < n; ++v)
+		{
+			centrality[v] = static_cast<Real>(graph.degree(v)) / maxDegree;
+		}
+
+		return centrality;
+	}
+
+	/// Compute closeness centrality for all vertices
+	/// Closeness(v) = (n-1) / sum of shortest distances from v to all other vertices
+	/// Uses BFS for unweighted graphs
+	///
+	/// @param graph  The graph
+	/// @return Vector of closeness centralities
+	template<typename V, typename E>
+	std::vector<Real> ClosenessCentrality(const Graph<V, E>& graph)
+	{
+		size_t n = graph.numVertices();
+		if (n <= 1)
+			return std::vector<Real>(n, 0);
+
+		std::vector<Real> centrality(n);
+
+		for (size_t v = 0; v < n; ++v)
+		{
+			auto bfsResult = BFS(graph, v);
+			
+			Real totalDist = 0;
+			size_t reachable = 0;
+
+			for (size_t u = 0; u < n; ++u)
+			{
+				if (u != v && bfsResult.distance[u] != std::numeric_limits<Real>::infinity())
+				{
+					totalDist += bfsResult.distance[u];
+					++reachable;
+				}
+			}
+
+			if (reachable > 0 && totalDist > 0)
+			{
+				centrality[v] = static_cast<Real>(reachable) / totalDist;
+			}
+			else
+			{
+				centrality[v] = 0;
+			}
+		}
+
+		return centrality;
+	}
+
+	/// Compute betweenness centrality for all vertices
+	/// Measures how often a vertex lies on shortest paths between other vertices
+	/// Uses Brandes' algorithm: O(VE) for unweighted graphs
+	///
+	/// @param graph  The graph
+	/// @param normalized  If true, normalize by 2/((n-1)(n-2))
+	/// @return Vector of betweenness centralities
+	template<typename V, typename E>
+	std::vector<Real> BetweennessCentrality(const Graph<V, E>& graph, bool normalized = true)
+	{
+		size_t n = graph.numVertices();
+		if (n <= 2)
+			return std::vector<Real>(n, 0);
+
+		std::vector<Real> betweenness(n, 0);
+
+		// Brandes' algorithm
+		for (size_t s = 0; s < n; ++s)
+		{
+			// BFS from s
+			std::vector<size_t> dist(n, std::numeric_limits<size_t>::max());
+			std::vector<Real> sigma(n, 0);  // Number of shortest paths through v
+			std::vector<std::vector<size_t>> pred(n);  // Predecessors on shortest paths
+
+			dist[s] = 0;
+			sigma[s] = 1;
+
+			std::queue<size_t> queue;
+			std::stack<size_t> stack;
+			queue.push(s);
+
+			while (!queue.empty())
+			{
+				size_t v = queue.front();
+				queue.pop();
+				stack.push(v);
+
+				for (const auto& edge : graph.neighbors(v))
+				{
+					size_t w = edge.to;
+
+					// First time visiting w
+					if (dist[w] == std::numeric_limits<size_t>::max())
+					{
+						dist[w] = dist[v] + 1;
+						queue.push(w);
+					}
+
+					// Shortest path to w via v
+					if (dist[w] == dist[v] + 1)
+					{
+						sigma[w] += sigma[v];
+						pred[w].push_back(v);
+					}
+				}
+			}
+
+			// Back-propagation of dependencies
+			std::vector<Real> delta(n, 0);
+
+			while (!stack.empty())
+			{
+				size_t w = stack.top();
+				stack.pop();
+
+				for (size_t v : pred[w])
+				{
+					delta[v] += (sigma[v] / sigma[w]) * (1.0 + delta[w]);
+				}
+
+				if (w != s)
+				{
+					betweenness[w] += delta[w];
+				}
+			}
+		}
+
+		// For undirected graphs, divide by 2 (each path counted twice)
+		if (graph.isUndirected())
+		{
+			for (size_t v = 0; v < n; ++v)
+			{
+				betweenness[v] /= 2.0;
+			}
+		}
+
+		// Normalize if requested
+		if (normalized && n > 2)
+		{
+			Real normFactor = 2.0 / ((n - 1) * (n - 2));
+			for (size_t v = 0; v < n; ++v)
+			{
+				betweenness[v] *= normFactor;
+			}
+		}
+
+		return betweenness;
+	}
+
+	/// Compute eigenvector centrality using power iteration
+	/// Vertices with high eigenvector centrality are connected to many
+	/// vertices that themselves have high eigenvector centrality
+	///
+	/// @param graph  The graph
+	/// @param maxIterations  Maximum iterations for power method
+	/// @param tolerance  Convergence tolerance
+	/// @return Vector of eigenvector centralities (L2-normalized)
+	template<typename V, typename E>
+	std::vector<Real> EigenvectorCentrality(
+		const Graph<V, E>& graph,
+		size_t maxIterations = 100,
+		Real tolerance = 1e-6)
+	{
+		size_t n = graph.numVertices();
+		if (n == 0)
+			return {};
+
+		// Initialize with uniform values
+		std::vector<Real> centrality(n, 1.0 / std::sqrt(static_cast<Real>(n)));
+		std::vector<Real> next(n);
+
+		Matrix<Real> A = graph.toAdjacencyMatrix();
+
+		for (size_t iter = 0; iter < maxIterations; ++iter)
+		{
+			// Matrix-vector multiply: next = A * centrality
+			for (size_t i = 0; i < n; ++i)
+			{
+				next[i] = 0;
+				for (size_t j = 0; j < n; ++j)
+				{
+					next[i] += A(i, j) * centrality[j];
+				}
+			}
+
+			// Normalize
+			Real norm = 0;
+			for (size_t i = 0; i < n; ++i)
+			{
+				norm += next[i] * next[i];
+			}
+			norm = std::sqrt(norm);
+
+			if (norm > 0)
+			{
+				for (size_t i = 0; i < n; ++i)
+				{
+					next[i] /= norm;
+				}
+			}
+
+			// Check convergence
+			Real diff = 0;
+			for (size_t i = 0; i < n; ++i)
+			{
+				diff += std::abs(next[i] - centrality[i]);
+			}
+
+			centrality = next;
+
+			if (diff < tolerance)
+				break;
+		}
+
+		return centrality;
+	}
+
+	/// Compute PageRank centrality
+	/// Models a random surfer on the graph
+	///
+	/// @param graph  The graph
+	/// @param dampingFactor  Probability of following a link (typically 0.85)
+	/// @param maxIterations  Maximum iterations
+	/// @param tolerance  Convergence tolerance
+	/// @return Vector of PageRank scores (sum to 1)
+	template<typename V, typename E>
+	std::vector<Real> PageRank(
+		const Graph<V, E>& graph,
+		Real dampingFactor = 0.85,
+		size_t maxIterations = 100,
+		Real tolerance = 1e-6)
+	{
+		size_t n = graph.numVertices();
+		if (n == 0)
+			return {};
+
+		std::vector<Real> rank(n, 1.0 / n);
+		std::vector<Real> next(n);
+		Real teleport = (1.0 - dampingFactor) / n;
+
+		for (size_t iter = 0; iter < maxIterations; ++iter)
+		{
+			// Initialize with teleport probability
+			std::fill(next.begin(), next.end(), teleport);
+
+			// Add contributions from neighbors
+			for (size_t v = 0; v < n; ++v)
+			{
+				size_t outDegree = graph.neighbors(v).size();
+				if (outDegree > 0)
+				{
+					Real contribution = dampingFactor * rank[v] / outDegree;
+					for (const auto& edge : graph.neighbors(v))
+					{
+						next[edge.to] += contribution;
+					}
+				}
+				else
+				{
+					// Dangling node: distribute evenly
+					Real contribution = dampingFactor * rank[v] / n;
+					for (size_t u = 0; u < n; ++u)
+					{
+						next[u] += contribution;
+					}
+				}
+			}
+
+			// Normalize (should sum to 1, but ensure numerical stability)
+			Real sum = 0;
+			for (size_t i = 0; i < n; ++i)
+				sum += next[i];
+			for (size_t i = 0; i < n; ++i)
+				next[i] /= sum;
+
+			// Check convergence
+			Real diff = 0;
+			for (size_t i = 0; i < n; ++i)
+			{
+				diff += std::abs(next[i] - rank[i]);
+			}
+
+			rank = next;
+
+			if (diff < tolerance)
+				break;
+		}
+
+		return rank;
+	}
+
+	///////////////////////////////////////////////////////////////////////////
+	///                    GRAPH DENSITY AND STRUCTURE                      ///
+	///////////////////////////////////////////////////////////////////////////
+
+	/// Compute graph density: ratio of edges to maximum possible edges
+	/// Density = 2E / (V(V-1)) for undirected, E / (V(V-1)) for directed
+	template<typename V, typename E>
+	Real GraphDensity(const Graph<V, E>& graph)
+	{
+		size_t n = graph.numVertices();
+		if (n <= 1)
+			return 0;
+
+		size_t maxEdges = n * (n - 1);
+		if (graph.isUndirected())
+			maxEdges /= 2;
+
+		return static_cast<Real>(graph.numEdges()) / maxEdges;
+	}
+
+	/// Compute average clustering coefficient
+	/// Measures how much vertices tend to cluster together
+	template<typename V, typename E>
+	Real AverageClusteringCoefficient(const Graph<V, E>& graph)
+	{
+		size_t n = graph.numVertices();
+		if (n == 0)
+			return 0;
+
+		Real totalCC = 0;
+		size_t validVertices = 0;
+
+		for (size_t v = 0; v < n; ++v)
+		{
+			const auto& neighbors = graph.neighbors(v);
+			size_t k = neighbors.size();
+
+			if (k < 2)
+				continue;  // Cannot form triangles
+
+			// Count edges between neighbors
+			size_t triangles = 0;
+			for (size_t i = 0; i < k; ++i)
+			{
+				for (size_t j = i + 1; j < k; ++j)
+				{
+					if (graph.hasEdge(neighbors[i].to, neighbors[j].to))
+						++triangles;
+				}
+			}
+
+			// Local clustering coefficient
+			Real maxTriangles = static_cast<Real>(k * (k - 1)) / 2;
+			totalCC += static_cast<Real>(triangles) / maxTriangles;
+			++validVertices;
+		}
+
+		return validVertices > 0 ? totalCC / validVertices : 0;
+	}
+
+	/// Compute graph diameter (longest shortest path)
+	/// Returns infinity for disconnected graphs
+	template<typename V, typename E>
+	Real GraphDiameter(const Graph<V, E>& graph)
+	{
+		size_t n = graph.numVertices();
+		if (n <= 1)
+			return 0;
+
+		Real diameter = 0;
+
+		for (size_t v = 0; v < n; ++v)
+		{
+			auto bfsResult = BFS(graph, v);
+
+			for (size_t u = 0; u < n; ++u)
+			{
+				if (bfsResult.distance[u] > diameter)
+					diameter = bfsResult.distance[u];
+			}
+		}
+
+		return diameter;
+	}
+
+	/// Compute average path length
+	/// Average of all shortest paths between all pairs of vertices
+	template<typename V, typename E>
+	Real AveragePathLength(const Graph<V, E>& graph)
+	{
+		size_t n = graph.numVertices();
+		if (n <= 1)
+			return 0;
+
+		Real totalLength = 0;
+		size_t pathCount = 0;
+
+		for (size_t v = 0; v < n; ++v)
+		{
+			auto bfsResult = BFS(graph, v);
+
+			for (size_t u = v + 1; u < n; ++u)
+			{
+				if (bfsResult.distance[u] != std::numeric_limits<Real>::infinity())
+				{
+					totalLength += bfsResult.distance[u];
+					++pathCount;
+				}
+			}
+		}
+
+		return pathCount > 0 ? totalLength / pathCount : 0;
+	}
+
+}  // namespace MML
+
+
 ///////////////////////////   mml/algorithms/CompGeometry/CompGeometryBase.h   ///////////////////////////
 
 
@@ -53577,12 +62541,12 @@ public:
 		Real deltaMax = std::max(dx, dy);
 		
 		// Ensure deltaMax is large enough for numerical stability
-		deltaMax = std::max(deltaMax, std::max(std::abs(minX), std::abs(minY)) * 1e-10);
-		deltaMax = std::max(deltaMax, std::max(std::abs(maxX), std::abs(maxY)) * 1e-10);
-		deltaMax = std::max(deltaMax, 1e-10);  // Absolute minimum
+		deltaMax = std::max<Real>(deltaMax, std::max<Real>(std::abs(minX), std::abs(minY)) * Real(1e-10));
+		deltaMax = std::max<Real>(deltaMax, std::max<Real>(std::abs(maxX), std::abs(maxY)) * Real(1e-10));
+		deltaMax = std::max<Real>(deltaMax, Real(1e-10));  // Absolute minimum
 		
-		Real midX = (minX + maxX) / 2.0;
-		Real midY = (minY + maxY) / 2.0;
+		Real midX = (minX + maxX) / Real(2.0);
+		Real midY = (minY + maxY) / Real(2.0);
 
 		// Super-triangle vertices in CCW order (very large to contain all points)
 		Point2Cartesian st1(midX - 20 * deltaMax, midY - deltaMax);
@@ -57356,8 +66320,9 @@ namespace MML
 					return headerResult;
 
 				Real delta = (t2 - t1) / (numPoints - 1);
-				for (Real t = t1; t <= t2; t += delta)
+				for (int n = 0; n < numPoints; n++)
 				{
+					Real t = t1 + n * delta;
 					file << t << " ";
 					for (int i = 0; i < N; i++)
 						file << f(t)[i] << " ";
@@ -58154,7 +67119,8 @@ namespace MML
 				}
 
 				int numSteps = ballPositions[0].size() ;
-				buffer << "NumSteps: " << numSteps / saveEveryNSteps << std::endl;
+				int actualFrames = (numSteps + saveEveryNSteps - 1) / saveEveryNSteps;
+				buffer << "NumSteps: " << actualFrames << std::endl;
 
 				int realStep = 0;
 				for (int i = 0; i < numSteps; i+=saveEveryNSteps, realStep++)
@@ -58474,6 +67440,199 @@ namespace MML
 } // namespace MML
 
 
+///////////////////////////   mml/tools/serializer/VectorIO.h   ///////////////////////////
+
+
+
+
+namespace MML
+{
+namespace Serializer
+{
+
+/// @brief Save complex vector to binary file
+/// @tparam T Scalar type (typically Real = double)
+/// @param vec Vector of complex values
+/// @param filename Output file path
+/// @return true if successful
+template<typename T>
+bool SaveComplexVector(const std::vector<std::complex<T>>& vec, 
+                       const std::string& filename)
+{
+    std::ofstream file(filename, std::ios::binary);
+    if (!file.is_open()) {
+        std::cerr << "Error: could not create binary file " << filename << std::endl;
+        return false;
+    }
+    
+    // Write header
+    const uint32_t magic = BinaryFormat::MAGIC_VECTOR_COMPLEX;
+    const uint32_t version = BinaryFormat::VERSION_VECTOR_COMPLEX;
+    const uint32_t count = static_cast<uint32_t>(vec.size());
+    const uint32_t elemSize = static_cast<uint32_t>(sizeof(T));
+    
+    file.write(reinterpret_cast<const char*>(&magic), sizeof(magic));
+    file.write(reinterpret_cast<const char*>(&version), sizeof(version));
+    file.write(reinterpret_cast<const char*>(&count), sizeof(count));
+    file.write(reinterpret_cast<const char*>(&elemSize), sizeof(elemSize));
+    
+    // Write real parts (contiguous for cache efficiency)
+    for (const auto& v : vec) {
+        T realPart = v.real();
+        file.write(reinterpret_cast<const char*>(&realPart), sizeof(T));
+    }
+    
+    // Write imaginary parts (contiguous)
+    for (const auto& v : vec) {
+        T imagPart = v.imag();
+        file.write(reinterpret_cast<const char*>(&imagPart), sizeof(T));
+    }
+    
+    file.close();
+    return true;
+}
+
+/// @brief Load complex vector from binary file
+/// @tparam T Scalar type (typically Real = double)
+/// @param filename Input file path
+/// @param vec Vector to populate with loaded values
+/// @return true if successful
+template<typename T>
+bool LoadComplexVector(const std::string& filename,
+                       std::vector<std::complex<T>>& vec)
+{
+    std::ifstream file(filename, std::ios::binary);
+    if (!file.is_open()) {
+        std::cerr << "Error: could not open binary file " << filename << std::endl;
+        return false;
+    }
+    
+    // Read and verify header
+    uint32_t magic, version, count, elemSize;
+    
+    file.read(reinterpret_cast<char*>(&magic), sizeof(magic));
+    if (magic != BinaryFormat::MAGIC_VECTOR_COMPLEX) {
+        std::cerr << "Error: invalid magic number in " << filename << std::endl;
+        return false;
+    }
+    
+    file.read(reinterpret_cast<char*>(&version), sizeof(version));
+    if (version != BinaryFormat::VERSION_VECTOR_COMPLEX) {
+        std::cerr << "Error: unsupported version " << version << " in " << filename << std::endl;
+        return false;
+    }
+    
+    file.read(reinterpret_cast<char*>(&count), sizeof(count));
+    file.read(reinterpret_cast<char*>(&elemSize), sizeof(elemSize));
+    
+    if (elemSize != sizeof(T)) {
+        std::cerr << "Error: element size mismatch in " << filename 
+                  << " (file: " << elemSize << ", expected: " << sizeof(T) << ")" << std::endl;
+        return false;
+    }
+    
+    // Read real parts
+    std::vector<T> realParts(count);
+    for (uint32_t i = 0; i < count; ++i) {
+        file.read(reinterpret_cast<char*>(&realParts[i]), sizeof(T));
+    }
+    
+    // Read imaginary parts
+    std::vector<T> imagParts(count);
+    for (uint32_t i = 0; i < count; ++i) {
+        file.read(reinterpret_cast<char*>(&imagParts[i]), sizeof(T));
+    }
+    
+    // Construct complex values
+    vec.resize(count);
+    for (uint32_t i = 0; i < count; ++i) {
+        vec[i] = std::complex<T>(realParts[i], imagParts[i]);
+    }
+    
+    file.close();
+    return true;
+}
+
+/// @brief Save real vector as complex (zero imaginary parts)
+/// @details Convenience for storing eigenvalues from symmetric matrices
+/// @tparam T Scalar type
+/// @param vec Vector of real values
+/// @param filename Output file path
+/// @return true if successful
+template<typename T>
+bool SaveRealAsComplex(const std::vector<T>& vec, const std::string& filename)
+{
+    std::vector<std::complex<T>> complexVec;
+    complexVec.reserve(vec.size());
+    for (const auto& v : vec) {
+        complexVec.emplace_back(v, T(0));
+    }
+    return SaveComplexVector(complexVec, filename);
+}
+
+/// @brief Save MML Vector<T> as complex (zero imaginary parts)
+/// @details For symmetric matrix eigenvalues stored as Vector<Real>
+/// @tparam T Scalar type
+/// @param vec MML Vector of real values
+/// @param filename Output file path
+/// @return true if successful
+template<typename T>
+bool SaveVectorAsComplex(const Vector<T>& vec, const std::string& filename)
+{
+    std::vector<std::complex<T>> complexVec;
+    complexVec.reserve(vec.size());
+    for (int i = 0; i < vec.size(); ++i) {
+        complexVec.emplace_back(vec[i], T(0));
+    }
+    return SaveComplexVector(complexVec, filename);
+}
+
+/// @brief Load complex vector as real values (extract real parts only)
+/// @details Use when you know values are real (e.g., symmetric matrix eigenvalues)
+/// @tparam T Scalar type
+/// @param filename Input file path
+/// @param vec Vector to populate with real parts
+/// @return true if successful
+template<typename T>
+bool LoadComplexAsReal(const std::string& filename, std::vector<T>& vec)
+{
+    std::vector<std::complex<T>> complexVec;
+    if (!LoadComplexVector(filename, complexVec)) {
+        return false;
+    }
+    
+    vec.resize(complexVec.size());
+    for (size_t i = 0; i < complexVec.size(); ++i) {
+        vec[i] = complexVec[i].real();
+    }
+    return true;
+}
+
+/// @brief Load complex vector into MML Vector (real parts only)
+/// @details For symmetric matrix eigenvalues as Vector<Real>
+/// @tparam T Scalar type
+/// @param filename Input file path
+/// @param vec MML Vector to populate
+/// @return true if successful
+template<typename T>
+bool LoadComplexAsVector(const std::string& filename, Vector<T>& vec)
+{
+    std::vector<std::complex<T>> complexVec;
+    if (!LoadComplexVector(filename, complexVec)) {
+        return false;
+    }
+    
+    vec = Vector<T>(static_cast<int>(complexVec.size()));
+    for (size_t i = 0; i < complexVec.size(); ++i) {
+        vec[static_cast<int>(i)] = complexVec[i].real();
+    }
+    return true;
+}
+
+} // namespace Serializer
+} // namespace MML
+
+
 ///////////////////////////   mml/tools/Visualizer.h   ///////////////////////////
 
 
@@ -58535,6 +67694,34 @@ namespace MML {
 		static std::string pathParametricSurfaceViz() { return GetParametricSurfaceVisualizerPath(); }
 		static std::string pathScalarFunc3DViz() { return GetScalarFunction3DVisualizerPath(); }
 		static std::string pathRigidBodyViz() { return GetRigidBodyVisualizerPath(); }
+
+		// Helper: resolve a file path for "FromFile" methods.
+		// Tries the path as-is first (absolute or relative), then falls back to the results folder.
+		// Returns the resolved path, or empty string if the file is not found anywhere.
+		static std::string ResolveFilePath(const std::string& fileNameOrPath) {
+			// 1. Try as-is (absolute path or relative to cwd)
+			if (std::filesystem::exists(fileNameOrPath))
+				return std::filesystem::weakly_canonical(fileNameOrPath).string();
+
+			// 2. Try in results folder (legacy: bare filename)
+			std::string inResults = MakeSafeOutputPath(fileNameOrPath);
+			if (!inResults.empty() && std::filesystem::exists(inResults))
+				return inResults;
+
+			return {};  // not found
+		}
+
+		// Helper: resolve multiple file paths (for multi-file visualizers)
+		static std::pair<bool, std::vector<std::string>> ResolveFilePaths(const std::vector<std::string>& fileNames) {
+			std::vector<std::string> resolved;
+			for (const auto& f : fileNames) {
+				std::string path = ResolveFilePath(f);
+				if (path.empty())
+					return {false, {f}};  // store failed name in vector for error reporting
+				resolved.push_back(path);
+			}
+			return {true, resolved};
+		}
 
 		// Helper: validate filename contains only safe basename characters (no path separators)
 		static bool IsFilenameSafe(const std::string& filename) {
@@ -58739,6 +67926,60 @@ namespace MML {
 		static VisualizerResult ExecuteVisualizerPosix(const std::string& executable, 
 																											   const std::vector<std::string>& args,
 																											   int timeout_ms = VISUALIZER_NO_TIMEOUT) {
+#ifdef __APPLE__
+			// On macOS, detect .app bundles and launch via 'open' command.
+			// Direct execv of a GUI binary doesn't register with the window server,
+			// causing the app window to bounce in the Dock without receiving focus.
+			std::string exePath = NormalizePath(executable);
+			auto appPos = exePath.find(".app/Contents/MacOS/");
+			if (appPos != std::string::npos) {
+				// Extract the .app bundle path
+				std::string appBundlePath = exePath.substr(0, appPos + 4); // includes ".app"
+				
+				// Build argv: open -W -a <bundle> --args <file1> <file2> ...
+				// -W = wait for the app to quit before returning
+				// -a = specify application by path
+				std::vector<std::string> openArgs;
+				openArgs.push_back("/usr/bin/open");
+				openArgs.push_back("-W");
+				openArgs.push_back("-a");
+				openArgs.push_back(appBundlePath);
+				if (!args.empty()) {
+					openArgs.push_back("--args");
+					for (const auto& arg : args) {
+						openArgs.push_back(NormalizePath(arg));
+					}
+				}
+				
+				pid_t pid = fork();
+				if (pid < 0) {
+					return VisualizerResult::Failure("Failed to fork process", args.empty() ? "" : args[0], -1);
+				}
+				
+				if (pid == 0) {
+					// Child process
+					std::vector<char*> argv;
+					for (auto& a : openArgs) {
+						argv.push_back(const_cast<char*>(a.c_str()));
+					}
+					argv.push_back(nullptr);
+					
+					execv("/usr/bin/open", argv.data());
+					_exit(127);
+				}
+				
+				// Parent: wait for 'open -W' to return (it waits for the app to quit)
+				int status;
+				waitpid(pid, &status, 0);
+				if (WIFEXITED(status) && WEXITSTATUS(status) == 127) {
+					return VisualizerResult::Failure("Failed to launch app bundle via open", 
+																				  args.empty() ? "" : args[0], 127);
+				}
+				return VisualizerResult::Success(args.empty() ? "" : args[0]);
+			}
+			// Fall through for non-.app executables (e.g., FLTK plain binaries)
+#endif
+
 			pid_t pid = fork();
 
 			if (pid < 0) {
@@ -58760,6 +68001,25 @@ namespace MML {
 				}
 				argv.push_back(nullptr);
 
+#ifdef __linux__
+				// Set Qt environment variables for the child process (Linux only)
+				// Qt visualizers need LD_LIBRARY_PATH, QT_PLUGIN_PATH, and
+				// QT_QPA_PLATFORM_PLUGIN_PATH to find bundled Qt libs and plugins
+				std::string exeDir = exePath.substr(0, exePath.find_last_of('/'));
+				std::string libPath = exeDir + "/lib";
+				std::string pluginPath = exeDir + "/plugins";
+				std::string platformPath = exeDir + "/plugins/platforms";
+				
+				// Prepend to existing LD_LIBRARY_PATH if it exists
+				const char* existingLdPath = getenv("LD_LIBRARY_PATH");
+				std::string fullLdPath = existingLdPath 
+					? libPath + ":" + std::string(existingLdPath) 
+					: libPath;
+				setenv("LD_LIBRARY_PATH", fullLdPath.c_str(), 1);
+				setenv("QT_PLUGIN_PATH", pluginPath.c_str(), 1);
+				setenv("QT_QPA_PLATFORM_PLUGIN_PATH", platformPath.c_str(), 1);
+#endif
+
 				execv(exePath.c_str(), argv.data());
 
 				// If execv returns, it failed
@@ -58768,7 +68028,17 @@ namespace MML {
 
 			// Parent process
 			if (timeout_ms < 0) {
-				// Fire-and-forget mode - don't wait for GUI visualizers
+				// Infinite wait mode (matches Windows INFINITE behavior)
+				// Wait for the visualizer to close before returning
+				int status;
+				pid_t result = waitpid(pid, &status, 0);  // Blocking wait
+				if (result == pid && WIFEXITED(status)) {
+					int exitCode = WEXITSTATUS(status);
+					if (exitCode == 127) {
+						return VisualizerResult::Failure("Failed to execute visualizer", 
+																					  args.empty() ? "" : args[0], 127);
+					}
+				}
 				return VisualizerResult::Success(args.empty() ? "" : args[0]);
 			}
 			
@@ -58959,6 +68229,16 @@ namespace MML {
 			}
 			return ExecuteVisualizer(pathRealFuncViz(), {name});
 		}
+		/// @brief Visualize a pre-saved real function data file
+		/// @param fileNameOrPath Full path or filename (looked up in results folder as fallback)
+		/// @return VisualizerResult indicating success or failure
+		static VisualizerResult VisualizeRealFunctionFromFile(std::string fileNameOrPath) {
+			std::string resolved = ResolveFilePath(fileNameOrPath);
+			if (resolved.empty())
+				return VisualizerResult::Failure("Data file not found: " + fileNameOrPath, fileNameOrPath);
+			return ExecuteVisualizer(pathRealFuncViz(), {resolved});
+		}
+
 		/// @brief Visualize a 2D scalar function as a surface plot
 		static VisualizerResult VisualizeScalarFunc2DCartesian(const IScalarFunction<2>& func, std::string title, Real x1, Real x2,
 																													 int numPointsX, Real y1, Real y2, int numPointsY, std::string fileName) {
@@ -59003,6 +68283,16 @@ namespace MML {
 			return ExecuteVisualizer(pathSurfaceViz(), {name});
 		}
 
+		/// @brief Visualize a pre-saved 2D scalar function data file
+		/// @param fileNameOrPath Full path or filename (looked up in results folder as fallback)
+		/// @return VisualizerResult indicating success or failure
+		static VisualizerResult VisualizeScalarFunc2DFromFile(std::string fileNameOrPath) {
+			std::string resolved = ResolveFilePath(fileNameOrPath);
+			if (resolved.empty())
+				return VisualizerResult::Failure("Data file not found: " + fileNameOrPath, fileNameOrPath);
+			return ExecuteVisualizer(pathSurfaceViz(), {resolved});
+		}
+
 		// visualizations of Vector fields
 		static VisualizerResult VisualizeVectorField2DCartesian(const IVectorFunction<2>& func, std::string title, Real x1, Real x2,
 																														int numPointsX, Real y1, Real y2, int numPointsY, std::string fileName) {
@@ -59030,6 +68320,26 @@ namespace MML {
 				return VisualizerResult::Failure("Failed to save data: " + saveResult.message, name);
 			}
 			return ExecuteVisualizer(pathVectorField3DViz(), {name});
+		}
+
+		/// @brief Visualize a pre-saved 2D vector field data file
+		/// @param fileNameOrPath Full path or filename (looked up in results folder as fallback)
+		/// @return VisualizerResult indicating success or failure
+		static VisualizerResult VisualizeVectorField2DFromFile(std::string fileNameOrPath) {
+			std::string resolved = ResolveFilePath(fileNameOrPath);
+			if (resolved.empty())
+				return VisualizerResult::Failure("Data file not found: " + fileNameOrPath, fileNameOrPath);
+			return ExecuteVisualizer(pathVectorField2DViz(), {resolved});
+		}
+
+		/// @brief Visualize a pre-saved 3D vector field data file
+		/// @param fileNameOrPath Full path or filename (looked up in results folder as fallback)
+		/// @return VisualizerResult indicating success or failure
+		static VisualizerResult VisualizeVectorField3DFromFile(std::string fileNameOrPath) {
+			std::string resolved = ResolveFilePath(fileNameOrPath);
+			if (resolved.empty())
+				return VisualizerResult::Failure("Data file not found: " + fileNameOrPath, fileNameOrPath);
+			return ExecuteVisualizer(pathVectorField3DViz(), {resolved});
 		}
 
 		// visualizations of Parametric curves
@@ -59089,18 +68399,10 @@ namespace MML {
 		}
 
 		static VisualizerResult VisualizeMultiParamCurve2D(std::vector<std::string> fileNames) {
-			std::vector<std::string> fullPaths;
-			for (auto& name : fileNames) {
-				std::string fullPath = MakeSafeOutputPath(name);
-				if (fullPath.empty()) {
-					return VisualizerResult::Failure("Invalid filename: path escapes results folder", name);
-				}
-				if (!std::filesystem::exists(fullPath)) {
-					return VisualizerResult::Failure("Data file not found: " + fullPath, fullPath);
-				}
-				fullPaths.push_back(fullPath);
-			}
-			return ExecuteVisualizer(pathParametricCurve2DViz(), fullPaths);
+			auto [ok, resolved] = ResolveFilePaths(fileNames);
+			if (!ok)
+				return VisualizerResult::Failure("Data file not found: " + resolved[0], resolved[0]);
+			return ExecuteVisualizer(pathParametricCurve2DViz(), resolved);
 		}
 
 		static VisualizerResult VisualizeParamCurve3D(const IRealToVectorFunction<3>& f, std::string title, Real t1, Real t2, int numPoints,
@@ -59138,18 +68440,10 @@ namespace MML {
 		}
 
 		static VisualizerResult VisualizeMultiParamCurve3D(std::vector<std::string> fileNames) {
-			std::vector<std::string> fullPaths;
-			for (auto& name : fileNames) {
-				std::string fullPath = MakeSafeOutputPath(name);
-				if (fullPath.empty()) {
-					return VisualizerResult::Failure("Invalid filename: path escapes results folder", name);
-				}
-				if (!std::filesystem::exists(fullPath)) {
-					return VisualizerResult::Failure("Data file not found: " + fullPath, fullPath);
-				}
-				fullPaths.push_back(fullPath);
-			}
-			return ExecuteVisualizer(pathParametricCurve3DViz(), fullPaths);
+			auto [ok, resolved] = ResolveFilePaths(fileNames);
+			if (!ok)
+				return VisualizerResult::Failure("Data file not found: " + resolved[0], resolved[0]);
+			return ExecuteVisualizer(pathParametricCurve3DViz(), resolved);
 		}
 
 		// ODE Solution visualizations
@@ -59210,26 +68504,18 @@ namespace MML {
 		}
 
 		// Particle simulation visualizations
-		static VisualizerResult VisualizeParticleSimulation2D(std::string fileName) {
-			std::string name = MakeSafeOutputPath(fileName);
-			if (name.empty()) {
-				return VisualizerResult::Failure("Invalid filename: path escapes results folder", fileName);
-			}
-			if (!std::filesystem::exists(name)) {
-				return VisualizerResult::Failure("Data file not found: " + name, name);
-			}
-			return ExecuteVisualizer(pathParticle2DViz(), {name});
+		static VisualizerResult VisualizeParticleSimulation2D(std::string fileNameOrPath) {
+			std::string resolved = ResolveFilePath(fileNameOrPath);
+			if (resolved.empty())
+				return VisualizerResult::Failure("Data file not found: " + fileNameOrPath, fileNameOrPath);
+			return ExecuteVisualizer(pathParticle2DViz(), {resolved});
 		}
 
-		static VisualizerResult VisualizeParticleSimulation3D(std::string fileName) {
-			std::string name = MakeSafeOutputPath(fileName);
-			if (name.empty()) {
-				return VisualizerResult::Failure("Invalid filename: path escapes results folder", fileName);
-			}
-			if (!std::filesystem::exists(name)) {
-				return VisualizerResult::Failure("Data file not found: " + name, name);
-			}
-			return ExecuteVisualizer(pathParticle3DViz(), {name});
+		static VisualizerResult VisualizeParticleSimulation3D(std::string fileNameOrPath) {
+			std::string resolved = ResolveFilePath(fileNameOrPath);
+			if (resolved.empty())
+				return VisualizerResult::Failure("Data file not found: " + fileNameOrPath, fileNameOrPath);
+			return ExecuteVisualizer(pathParticle3DViz(), {resolved});
 		}
 
 		// Parametric surface visualizations
@@ -59308,15 +68594,11 @@ namespace MML {
 		/// @brief Visualize a pre-saved parametric surface data file
 		/// @param fileName Name of the data file (in results folder)
 		/// @return VisualizerResult indicating success or failure
-		static VisualizerResult VisualizeParametricSurfaceFromFile(std::string fileName) {
-			std::string name = MakeSafeOutputPath(fileName);
-			if (name.empty()) {
-				return VisualizerResult::Failure("Invalid filename: path escapes results folder", fileName);
-			}
-			if (!std::filesystem::exists(name)) {
-				return VisualizerResult::Failure("Data file not found: " + name, name);
-			}
-			return ExecuteVisualizer(pathParametricSurfaceViz(), {name});
+		static VisualizerResult VisualizeParametricSurfaceFromFile(std::string fileNameOrPath) {
+			std::string resolved = ResolveFilePath(fileNameOrPath);
+			if (resolved.empty())
+				return VisualizerResult::Failure("Data file not found: " + fileNameOrPath, fileNameOrPath);
+			return ExecuteVisualizer(pathParametricSurfaceViz(), {resolved});
 		}
 
 		// 3D Scalar function visualizations (volumetric data)
@@ -59355,15 +68637,11 @@ namespace MML {
 		/// @brief Visualize a pre-saved 3D scalar function data file
 		/// @param fileName Name of the data file (in results folder)
 		/// @return VisualizerResult indicating success or failure
-		static VisualizerResult VisualizeScalarFunc3DFromFile(std::string fileName) {
-			std::string name = MakeSafeOutputPath(fileName);
-			if (name.empty()) {
-				return VisualizerResult::Failure("Invalid filename: path escapes results folder", fileName);
-			}
-			if (!std::filesystem::exists(name)) {
-				return VisualizerResult::Failure("Data file not found: " + name, name);
-			}
-			return ExecuteVisualizer(pathScalarFunc3DViz(), {name});
+		static VisualizerResult VisualizeScalarFunc3DFromFile(std::string fileNameOrPath) {
+			std::string resolved = ResolveFilePath(fileNameOrPath);
+			if (resolved.empty())
+				return VisualizerResult::Failure("Data file not found: " + fileNameOrPath, fileNameOrPath);
+			return ExecuteVisualizer(pathScalarFunc3DViz(), {resolved});
 		}
 
 		// Rigid body trajectory visualizations
@@ -62469,6 +71747,930 @@ namespace MML::Systems
 
 } // namespace MML::Systems
 
+///////////////////////////   mml/systems/DynamicalSystemTypes.h   ///////////////////////////
+
+
+
+namespace MML::Systems 
+{
+	//=============================================================================
+	// FIXED POINT TYPES
+	//=============================================================================
+
+	/// @brief Classification of fixed point stability (2D and higher)
+	enum class FixedPointType {
+		Unknown,				 ///< Could not classify
+		StableNode,			 ///< All eigenvalues negative real
+		UnstableNode,		 ///< All eigenvalues positive real
+		Saddle,					 ///< Mixed signs
+		StableFocus,		 ///< Complex with negative real part (spiral in)
+		UnstableFocus,	 ///< Complex with positive real part (spiral out)
+		Center,					 ///< Purely imaginary eigenvalues
+		StableStarNode,	 ///< Degenerate stable node
+		UnstableStarNode ///< Degenerate unstable node
+	};
+
+	/// @brief Convert FixedPointType to string
+	inline std::string ToString(FixedPointType type) {
+		switch (type) {
+		case FixedPointType::StableNode:
+			return "Stable Node";
+		case FixedPointType::UnstableNode:
+			return "Unstable Node";
+		case FixedPointType::Saddle:
+			return "Saddle";
+		case FixedPointType::StableFocus:
+			return "Stable Focus";
+		case FixedPointType::UnstableFocus:
+			return "Unstable Focus";
+		case FixedPointType::Center:
+			return "Center";
+		case FixedPointType::StableStarNode:
+			return "Stable Star Node";
+		case FixedPointType::UnstableStarNode:
+			return "Unstable Star Node";
+		default:
+			return "Unknown";
+		}
+	}
+
+	//=============================================================================
+	// RESULT STRUCTURES
+	//=============================================================================
+
+	/// @brief Result of fixed point analysis
+	template<typename Type = Real>
+	struct FixedPoint {
+		Vector<Type> location;											 ///< Position in state space
+		std::vector<std::complex<Type>> eigenvalues; ///< Jacobian eigenvalues
+		Matrix<Type> jacobian;											 ///< Jacobian at fixed point
+		FixedPointType type;												 ///< Stability classification
+		bool isStable;															 ///< Overall stability
+		Type convergenceResidual;										 ///< ||f(x*)|| at convergence
+		int iterations;															 ///< Newton iterations used
+	};
+
+	/// @brief Result of Lyapunov exponent computation
+	template<typename Type = Real>
+	struct LyapunovResult {
+		Vector<Type> exponents;			///< Lyapunov exponents (λ₁ ≥ λ₂ ≥ ... ≥ λₙ)
+		Type maxExponent;						///< Largest exponent (λ₁)
+		Type sum;										///< Sum of all exponents
+		Type kaplanYorkeDimension;	///< Kaplan-Yorke dimension
+		bool isChaotic;							///< True if λ₁ > 0
+		int numOrthonormalizations; ///< Number of QR steps performed
+		Type totalTime;							///< Total integration time
+	};
+
+	/// @brief Result of bifurcation sweep
+	template<typename Type = Real>
+	struct BifurcationDiagram {
+		std::string parameterName;											///< Name of swept parameter
+		std::vector<Type> parameterValues;							///< Parameter values
+		std::vector<std::vector<Type>> attractorValues; ///< Attractor points at each param
+		int numTransientSteps;													///< Transient removal steps
+		int numRecordedPoints;													///< Points recorded per parameter
+	};
+
+	/// @brief Poincaré section definition
+	template<typename Type = Real>
+	struct PoincareSection {
+		int variable;	 ///< Which state variable defines section
+		Type value;		 ///< Section at x[variable] = value
+		int direction; ///< +1 = positive crossing, -1 = negative, 0 = both
+
+		PoincareSection(int var = 0, Type val = 0, int dir = 0)
+				: variable(var)
+				, value(val)
+				, direction(dir) {}
+	};
+
+} // namespace MML::Systems
+
+///////////////////////////   mml/systems/DynamicalSystemBase.h   ///////////////////////////
+
+
+
+namespace MML::Systems 
+{
+	//=============================================================================
+	// DYNAMICAL SYSTEM BASE CLASS
+	//=============================================================================
+
+	/// @brief Template base class for dynamical systems
+	///
+	/// Provides common infrastructure for continuous dynamical systems:
+	/// - Parameter storage and access
+	/// - State and parameter naming
+	/// - Parameter range specifications
+	///
+	/// @tparam N State space dimension
+	/// @tparam P Number of parameters
+	template<int N, int P>
+	class DynamicalSystemBase : public IDynamicalSystem {
+	protected:
+		std::vector<Real> _params;
+		std::vector<std::string> _stateNames;
+		std::vector<std::string> _paramNames;
+		std::vector<std::pair<Real, Real>> _paramRanges;
+
+	public:
+		DynamicalSystemBase()
+				: _params(P, 0.0)
+				, _stateNames(N)
+				, _paramNames(P)
+				, _paramRanges(P, std::make_pair(-1e10, 1e10)) {
+			for (int i = 0; i < N; ++i)
+				_stateNames[i] = "x" + std::to_string(i);
+			for (int i = 0; i < P; ++i)
+				_paramNames[i] = "p" + std::to_string(i);
+		}
+
+		int getDim() const override { return N; }
+		int getNumParam() const override { return P; }
+
+		Real getParam(int i) const override { return _params[i]; }
+		void setParam(int i, Real val) override { _params[i] = val; }
+
+		Vector<Real> getParams() const override {
+			Vector<Real> p(P);
+			for (int i = 0; i < P; ++i)
+				p[i] = _params[i];
+			return p;
+		}
+
+		void setParams(const Vector<Real>& p) override {
+			for (int i = 0; i < P; ++i)
+				_params[i] = p[i];
+		}
+
+		std::string getStateName(int i) const override { return _stateNames[i]; }
+		std::string getParamName(int i) const override { return _paramNames[i]; }
+		std::pair<Real, Real> getParamRange(int i) const override { return _paramRanges[i]; }
+	};
+
+} // namespace MML::Systems
+
+///////////////////////////   mml/systems/ContinuousSystems.h   ///////////////////////////
+
+
+
+namespace MML::Systems 
+{
+	//=============================================================================
+	// LORENZ SYSTEM
+	//=============================================================================
+
+	/// @brief The classic Lorenz attractor
+	///
+	/// dx/dt = σ(y - x)
+	/// dy/dt = x(ρ - z) - y
+	/// dz/dt = xy - βz
+	///
+	/// Classic parameters: σ = 10, ρ = 28, β = 8/3
+	class LorenzSystem : public DynamicalSystemBase<3, 3> {
+	public:
+		/// @brief Construct with default chaotic parameters
+		LorenzSystem(Real sigma = 10.0, Real rho = 28.0, Real beta = 8.0 / 3.0) {
+			_params = {sigma, rho, beta};
+			_stateNames = {"x", "y", "z"};
+			_paramNames = {"sigma", "rho", "beta"};
+			_paramRanges = {{0.0, 50.0}, {0.0, 100.0}, {0.0, 10.0}};
+		}
+
+		void derivs(Real /*t*/, const Vector<Real>& y, Vector<Real>& dydt) const override {
+			Real sigma = _params[0];
+			Real rho = _params[1];
+			Real beta = _params[2];
+
+			dydt[0] = sigma * (y[1] - y[0]);
+			dydt[1] = y[0] * (rho - y[2]) - y[1];
+			dydt[2] = y[0] * y[1] - beta * y[2];
+		}
+
+		void jacobian(Real /*t*/, const Vector<Real>& y, Matrix<Real>& J) const override {
+			Real sigma = _params[0];
+			Real rho = _params[1];
+			Real beta = _params[2];
+
+			J.Resize(3, 3);
+			J(0, 0) = -sigma;
+			J(0, 1) = sigma;
+			J(0, 2) = 0;
+			J(1, 0) = rho - y[2];
+			J(1, 1) = -1;
+			J(1, 2) = -y[0];
+			J(2, 0) = y[1];
+			J(2, 1) = y[0];
+			J(2, 2) = -beta;
+		}
+
+		bool hasAnalyticalJacobian() const override { return true; }
+		bool isDissipative() const override { return true; }
+		Vector<Real> getDefaultInitialCondition() const override { return Vector<Real>({1.0, 1.0, 1.0}); }
+		
+		/// @brief Divergence of flow (always negative for dissipative)
+		Real getDivergence() const { return -(_params[0] + 1 + _params[2]); }
+	};
+
+	//=============================================================================
+	// RÖSSLER SYSTEM
+	//=============================================================================
+
+	/// @brief Rössler attractor
+	///
+	/// dx/dt = -y - z
+	/// dy/dt = x + ay
+	/// dz/dt = b + z(x - c)
+	class RosslerSystem : public DynamicalSystemBase<3, 3> {
+	public:
+		/// @brief Construct with default parameters
+		RosslerSystem(Real a = 0.2, Real b = 0.2, Real c = 5.7) {
+			_params = {a, b, c};
+			_stateNames = {"x", "y", "z"};
+			_paramNames = {"a", "b", "c"};
+			_paramRanges = {{0.0, 1.0}, {0.0, 1.0}, {0.0, 20.0}};
+		}
+
+		void derivs(Real /*t*/, const Vector<Real>& y, Vector<Real>& dydt) const override {
+			Real a = _params[0];
+			Real b = _params[1];
+			Real c = _params[2];
+
+			dydt[0] = -y[1] - y[2];
+			dydt[1] = y[0] + a * y[1];
+			dydt[2] = b + y[2] * (y[0] - c);
+		}
+
+		void jacobian(Real /*t*/, const Vector<Real>& y, Matrix<Real>& J) const override {
+			Real a = _params[0];
+			Real c = _params[2];
+
+			J.Resize(3, 3);
+			J(0, 0) = 0;
+			J(0, 1) = -1;
+			J(0, 2) = -1;
+			J(1, 0) = 1;
+			J(1, 1) = a;
+			J(1, 2) = 0;
+			J(2, 0) = y[2];
+			J(2, 1) = 0;
+			J(2, 2) = y[0] - c;
+		}
+	};
+
+	//=============================================================================
+	// VAN DER POL OSCILLATOR
+	//=============================================================================
+
+	/// @brief Van der Pol oscillator (2D)
+	///
+	/// x'' - μ(1 - x²)x' + x = 0
+	/// Written as:
+	/// dx/dt = y
+	/// dy/dt = μ(1 - x²)y - x
+	class VanDerPolSystem : public DynamicalSystemBase<2, 1> {
+	public:
+		/// @brief Construct with nonlinearity parameter
+		VanDerPolSystem(Real mu = 1.0) {
+			_params = {mu};
+			_stateNames = {"x", "v"};
+			_paramNames = {"mu"};
+			_paramRanges = {{0.0, 10.0}};
+		}
+
+		void derivs(Real /*t*/, const Vector<Real>& y, Vector<Real>& dydt) const override {
+			Real mu = _params[0];
+			dydt[0] = y[1];
+			dydt[1] = mu * (1 - y[0] * y[0]) * y[1] - y[0];
+		}
+
+		void jacobian(Real /*t*/, const Vector<Real>& y, Matrix<Real>& J) const override {
+			Real mu = _params[0];
+			J.Resize(2, 2);
+			J(0, 0) = 0;
+			J(0, 1) = 1;
+			J(1, 0) = -2 * mu * y[0] * y[1] - 1;
+			J(1, 1) = mu * (1 - y[0] * y[0]);
+		}
+	};
+
+	//=============================================================================
+	// DUFFING OSCILLATOR
+	//=============================================================================
+
+	/// @brief Duffing oscillator with forcing
+	///
+	/// x'' + δx' + αx + βx³ = γcos(ωt)
+	/// State: [x, v, θ] where θ = ωt mod 2π
+	class DuffingSystem : public DynamicalSystemBase<3, 5> {
+	public:
+		/// @brief Construct with parameters
+		DuffingSystem(Real delta = 0.3, Real alpha = -1.0, Real beta = 1.0, Real gamma = 0.5, Real omega = 1.2) {
+			_params = {delta, alpha, beta, gamma, omega};
+			_stateNames = {"x", "v", "theta"};
+			_paramNames = {"delta", "alpha", "beta", "gamma", "omega"};
+			_paramRanges = {{0.0, 1.0}, {-2.0, 2.0}, {0.0, 2.0}, {0.0, 1.0}, {0.0, 3.0}};
+		}
+
+		void derivs(Real /*t*/, const Vector<Real>& y, Vector<Real>& dydt) const override {
+			Real delta = _params[0];
+			Real alpha = _params[1];
+			Real beta = _params[2];
+			Real gamma = _params[3];
+			Real omega = _params[4];
+
+			dydt[0] = y[1];
+			dydt[1] = -delta * y[1] - alpha * y[0] - beta * y[0] * y[0] * y[0] + gamma * std::cos(y[2]);
+			dydt[2] = omega;
+		}
+
+		void jacobian(Real /*t*/, const Vector<Real>& y, Matrix<Real>& J) const override {
+			Real delta = _params[0];
+			Real alpha = _params[1];
+			Real beta = _params[2];
+			Real gamma = _params[3];
+
+			J.Resize(3, 3);
+			J(0, 0) = 0;
+			J(0, 1) = 1;
+			J(0, 2) = 0;
+			J(1, 0) = -alpha - 3 * beta * y[0] * y[0];
+			J(1, 1) = -delta;
+			J(1, 2) = -gamma * std::sin(y[2]);
+			J(2, 0) = 0;
+			J(2, 1) = 0;
+			J(2, 2) = 0;
+		}
+
+		bool hasAnalyticalJacobian() const override { return true; }
+		bool isAutonomous() const override { return false; }  // Has periodic forcing
+	};
+
+	//=============================================================================
+	// CHUA'S CIRCUIT
+	//=============================================================================
+
+	/// @brief Chua's circuit - electronic chaos
+	///
+	/// dx/dt = α(y - x - f(x))
+	/// dy/dt = x - y + z
+	/// dz/dt = -βy
+	///
+	/// f(x) = bx + 0.5(a-b)(|x+1| - |x-1|)  (piecewise-linear)
+	class ChuaCircuit : public DynamicalSystemBase<3, 4> {
+	public:
+		ChuaCircuit(Real alpha = 15.6, Real beta = 28.0, Real a = -1.143, Real b = -0.714) {
+			_params = {alpha, beta, a, b};
+			_stateNames = {"x", "y", "z"};
+			_paramNames = {"alpha", "beta", "a", "b"};
+			_paramRanges = {{0.0, 30.0}, {0.0, 50.0}, {-2.0, 0.0}, {-1.0, 0.0}};
+		}
+
+		void derivs(Real /*t*/, const Vector<Real>& y, Vector<Real>& dydt) const override {
+			Real alpha = _params[0];
+			Real beta = _params[1];
+			Real a = _params[2];
+			Real b = _params[3];
+
+			// Chua's nonlinearity
+			Real x = y[0];
+			Real fx = b * x + 0.5 * (a - b) * (std::abs(x + 1) - std::abs(x - 1));
+
+			dydt[0] = alpha * (y[1] - x - fx);
+			dydt[1] = y[0] - y[1] + y[2];
+			dydt[2] = -beta * y[1];
+		}
+
+		void jacobian(Real /*t*/, const Vector<Real>& y, Matrix<Real>& J) const override {
+			Real alpha = _params[0];
+			Real beta = _params[1];
+			Real a = _params[2];
+			Real b = _params[3];
+
+			// Derivative of Chua nonlinearity
+			Real x = y[0];
+			Real dfx;
+			if (x < -1)
+				dfx = b;
+			else if (x > 1)
+				dfx = b;
+			else
+				dfx = a;
+
+			J.Resize(3, 3);
+			J(0, 0) = alpha * (-1 - dfx);
+			J(0, 1) = alpha;
+			J(0, 2) = 0;
+			J(1, 0) = 1;
+			J(1, 1) = -1;
+			J(1, 2) = 1;
+			J(2, 0) = 0;
+			J(2, 1) = -beta;
+			J(2, 2) = 0;
+		}
+	};
+
+	//=============================================================================
+	// HÉNON-HEILES SYSTEM
+	//=============================================================================
+
+	/// @brief Hénon-Heiles Hamiltonian system
+	///
+	/// H = 0.5(px² + py² + x² + y²) + x²y - y³/3
+	/// 4D phase space: [x, y, px, py]
+	class HenonHeilesSystem : public DynamicalSystemBase<4, 1> {
+	public:
+		/// @brief Construct with energy level
+		HenonHeilesSystem(Real energy = 0.1) {
+			_params = {energy};
+			_stateNames = {"x", "y", "px", "py"};
+			_paramNames = {"E"};
+			_paramRanges = {{0.0, 0.166}};
+		}
+
+		void derivs(Real /*t*/, const Vector<Real>& y, Vector<Real>& dydt) const override {
+			// Hamilton's equations
+			dydt[0] = y[2];                          // dx/dt = ∂H/∂px = px
+			dydt[1] = y[3];                          // dy/dt = ∂H/∂py = py
+			dydt[2] = -y[0] - 2 * y[0] * y[1];       // dpx/dt = -∂H/∂x
+			dydt[3] = -y[1] - y[0] * y[0] + y[1] * y[1]; // dpy/dt = -∂H/∂y
+		}
+
+		void jacobian(Real /*t*/, const Vector<Real>& y, Matrix<Real>& J) const override {
+			J.Resize(4, 4);
+			// Zero out
+			for (int i = 0; i < 4; ++i)
+				for (int j = 0; j < 4; ++j)
+					J(i, j) = 0;
+
+			J(0, 2) = 1; // dx/dpx
+			J(1, 3) = 1; // dy/dpy
+			J(2, 0) = -1 - 2 * y[1]; // dpx/dx
+			J(2, 1) = -2 * y[0];     // dpx/dy
+			J(3, 0) = -2 * y[0];     // dpy/dx
+			J(3, 1) = -1 + 2 * y[1]; // dpy/dy
+		}
+
+		bool hasAnalyticalJacobian() const override { return true; }
+		bool isHamiltonian() const override { return true; }
+		bool isDissipative() const override { return false; }
+		
+		Vector<Real> getDefaultInitialCondition() const override { 
+			return Vector<Real>({0.3, 0.0, 0.2, 0.0}); // x=0.3, y=0, px=0.2, py=0
+		}
+
+		int getNumInvariants() const override { return 1; }
+		std::string getInvariantName(int /*i*/) const override { return "Energy"; }
+		Real computeInvariant(int /*i*/, const Vector<Real>& x) const override { return getEnergy(x); }
+
+		/// @brief Get Hamiltonian value
+		Real getEnergy(const Vector<Real>& y) const {
+			Real x = y[0], yc = y[1], px = y[2], py = y[3];
+			return 0.5 * (px * px + py * py + x * x + yc * yc) + x * x * yc - yc * yc * yc / 3.0;
+		}
+	};
+
+	//=============================================================================
+	// DOUBLE PENDULUM
+	//=============================================================================
+
+	/// @brief Double pendulum - classic example of chaos
+	///
+	/// State: [θ1, θ2, ω1, ω2] (angles and angular velocities)
+	/// Parameters: [m1, m2, L1, L2, g]
+	class DoublePendulumSystem : public DynamicalSystemBase<4, 5> {
+	public:
+		DoublePendulumSystem(Real m1 = 1.0, Real m2 = 1.0, Real L1 = 1.0, Real L2 = 1.0, Real gravity = 9.80665) {
+			_params = {m1, m2, L1, L2, gravity};
+			_stateNames = {"theta1", "theta2", "omega1", "omega2"};
+			_paramNames = {"m1", "m2", "L1", "L2", "g"};
+			_paramRanges = {{0.1, 10.0}, {0.1, 10.0}, {0.1, 5.0}, {0.1, 5.0}, {0.0, 20.0}};
+		}
+
+		void derivs(Real /*t*/, const Vector<Real>& y, Vector<Real>& dydt) const override {
+			Real m1 = _params[0], m2 = _params[1];
+			Real L1 = _params[2], L2 = _params[3];
+			Real g = _params[4];
+
+			Real th1 = y[0], th2 = y[1];
+			Real w1 = y[2], w2 = y[3];
+			Real dth = th1 - th2;
+
+			Real c = std::cos(dth);
+			Real s = std::sin(dth);
+
+			// Denominators
+			Real M = m1 + m2;
+			Real d1 = L1 * (M - m2 * c * c);
+			Real d2 = L2 * (M - m2 * c * c);
+
+			// Numerators
+			Real n1 = m2 * L1 * w1 * w1 * s * c + m2 * g * std::sin(th2) * c + m2 * L2 * w2 * w2 * s - M * g * std::sin(th1);
+
+			Real n2 = -m2 * L2 * w2 * w2 * s * c + M * (g * std::sin(th1) * c - L1 * w1 * w1 * s - g * std::sin(th2));
+
+			dydt[0] = w1;
+			dydt[1] = w2;
+			dydt[2] = n1 / d1;
+			dydt[3] = n2 / d2;
+		}
+
+		void jacobian(Real /*t*/, const Vector<Real>& y, Matrix<Real>& J) const override {
+			J.Resize(4, 4);
+			// Numerical approximation for simplicity (analytical is very complex)
+			Real eps = 1e-6;
+			Vector<Real> f0(4), f1(4);
+			Vector<Real> yp = y;
+
+			derivs(0, y, f0);
+
+			for (int j = 0; j < 4; ++j) {
+				yp = y;
+				yp[j] += eps;
+				derivs(0, yp, f1);
+				for (int i = 0; i < 4; ++i)
+					J(i, j) = (f1[i] - f0[i]) / eps;
+			}
+		}
+
+		bool isDissipative() const override { return false; }  // Conservative
+		
+		Vector<Real> getDefaultInitialCondition() const override { 
+			return Vector<Real>({0.5, 0.5, 0.0, 0.0}); // Small angles, at rest
+		}
+
+		int getNumInvariants() const override { return 1; }
+		std::string getInvariantName(int /*i*/) const override { return "Energy"; }
+		Real computeInvariant(int /*i*/, const Vector<Real>& x) const override { return getEnergy(x); }
+
+		/// @brief Total energy (should be conserved)
+		Real getEnergy(const Vector<Real>& y) const {
+			Real m1 = _params[0], m2 = _params[1];
+			Real L1 = _params[2], L2 = _params[3];
+			Real g = _params[4];
+
+			Real th1 = y[0], th2 = y[1];
+			Real w1 = y[2], w2 = y[3];
+
+			// Kinetic energy
+			Real T =
+				0.5 * (m1 + m2) * L1 * L1 * w1 * w1 + 0.5 * m2 * L2 * L2 * w2 * w2 + m2 * L1 * L2 * w1 * w2 * std::cos(th1 - th2);
+
+			// Potential energy (reference at y = 0)
+			Real V = -(m1 + m2) * g * L1 * std::cos(th1) - m2 * g * L2 * std::cos(th2);
+
+			return T + V;
+		}
+	};
+
+} // namespace MML::Systems
+
+///////////////////////////   mml/systems/DiscreteMaps.h   ///////////////////////////
+
+
+
+namespace MML::Systems 
+{
+	//=============================================================================
+	// DISCRETE MAP INTERFACE
+	//=============================================================================
+
+	/// @brief Base interface for discrete maps x_{n+1} = f(x_n)
+	/// @tparam N State dimension
+	template <int N>
+	class IDiscreteMap {
+	public:
+		virtual ~IDiscreteMap() = default;
+
+		/// @brief Apply map once: x_{n+1} = f(x_n)
+		virtual void map(const Vector<Real>& x, Vector<Real>& xNext) const = 0;
+
+		/// @brief Apply map once (convenience version returning result)
+		Vector<Real> iterate(const Vector<Real>& x) const {
+			Vector<Real> xNext(N);
+			map(x, xNext);
+			return xNext;
+		}
+
+		/// @brief Jacobian of map Df(x)
+		virtual void jacobian(const Vector<Real>& x, Matrix<Real>& J) const = 0;
+
+		/// @brief State dimension
+		int getDim() const { return N; }
+
+		/// @brief Get parameter
+		virtual Real getParam(int index) const = 0;
+
+		/// @brief Set parameter
+		virtual void setParam(int index, Real value) = 0;
+
+		/// @brief Get parameter name
+		virtual std::string getParamName(int index) const = 0;
+
+		/// @brief Get state name
+		virtual std::string getStateName(int index) const = 0;
+	};
+
+	//=============================================================================
+	// LOGISTIC MAP
+	//=============================================================================
+
+	/// @brief Logistic map: x_{n+1} = r * x_n * (1 - x_n)
+	///
+	/// Classic 1D map exhibiting period-doubling route to chaos.
+	/// Chaotic for r ≈ 3.57 and above.
+	class LogisticMap : public IDiscreteMap<1> {
+	public:
+		LogisticMap(Real r = 3.9) : _r(r) {}
+
+		void map(const Vector<Real>& x, Vector<Real>& xNext) const override { xNext[0] = _r * x[0] * (1 - x[0]); }
+
+		void jacobian(const Vector<Real>& x, Matrix<Real>& J) const override {
+			J.Resize(1, 1);
+			J(0, 0) = _r * (1 - 2 * x[0]);
+		}
+
+		Real getParam(int index) const override { return (index == 0) ? _r : 0; }
+		void setParam(int index, Real value) override {
+			if (index == 0)
+				_r = value;
+		}
+		std::string getParamName(int /*index*/) const override { return "r"; }
+		std::string getStateName(int /*index*/) const override { return "x"; }
+
+		/// @brief Analytical Lyapunov exponent for r=4: λ = ln(2)
+		Real analyticalLyapunov() const { return (_r == 4.0) ? std::log(2.0) : 0.0; }
+
+		/// @brief Generate orbit of n iterations
+		std::vector<Vector<Real>> orbit(const Vector<Real>& x0, int n) const {
+			std::vector<Vector<Real>> result;
+			Vector<Real> x = x0;
+			for (int i = 0; i < n; ++i) {
+				x = iterate(x);
+				result.push_back(x);
+			}
+			return result;
+		}
+
+	private:
+		Real _r;
+	};
+
+	//=============================================================================
+	// HÉNON MAP
+	//=============================================================================
+
+	/// @brief Hénon map: x_{n+1} = 1 - a*x_n² + y_n
+	///                   y_{n+1} = b*x_n
+	///
+	/// Classic 2D map with a strange attractor.
+	/// Standard parameters: a = 1.4, b = 0.3
+	class HenonMap : public IDiscreteMap<2> {
+	public:
+		HenonMap(Real a = 1.4, Real b = 0.3) : _a(a), _b(b) {}
+
+		void map(const Vector<Real>& x, Vector<Real>& xNext) const override {
+			xNext[0] = 1 - _a * x[0] * x[0] + x[1];
+			xNext[1] = _b * x[0];
+		}
+
+		void jacobian(const Vector<Real>& x, Matrix<Real>& J) const override {
+			J.Resize(2, 2);
+			J(0, 0) = -2 * _a * x[0];
+			J(0, 1) = 1;
+			J(1, 0) = _b;
+			J(1, 1) = 0;
+		}
+
+		Real getParam(int index) const override { return (index == 0) ? _a : _b; }
+		void setParam(int index, Real value) override {
+			if (index == 0)
+				_a = value;
+			else if (index == 1)
+				_b = value;
+		}
+		std::string getParamName(int index) const override { return (index == 0) ? "a" : "b"; }
+		std::string getStateName(int index) const override { return (index == 0) ? "x" : "y"; }
+
+		/// @brief Get parameter a
+		Real getA() const { return _a; }
+
+		/// @brief Get parameter b
+		Real getB() const { return _b; }
+
+		/// @brief Jacobian determinant is constant: det(J) = -b
+		Real jacobianDeterminant() const { return -_b; }
+
+		/// @brief Generate orbit of n iterations
+		std::vector<Vector<Real>> orbit(const Vector<Real>& x0, int n) const {
+			std::vector<Vector<Real>> result;
+			Vector<Real> x = x0;
+			for (int i = 0; i < n; ++i) {
+				x = iterate(x);
+				result.push_back(x);
+			}
+			return result;
+		}
+
+	private:
+		Real _a, _b;
+	};
+
+	//=============================================================================
+	// STANDARD (CHIRIKOV) MAP
+	//=============================================================================
+
+	/// @brief Standard (Chirikov-Taylor) map
+	///
+	/// p_{n+1} = p_n + K*sin(θ_n)    (mod 2π)
+	/// θ_{n+1} = θ_n + p_{n+1}       (mod 2π)
+	///
+	/// Canonical model for Hamiltonian chaos.
+	class StandardMap : public IDiscreteMap<2> {
+	public:
+		StandardMap(Real K = 0.971635) : _K(K) {}
+
+		void map(const Vector<Real>& x, Vector<Real>& xNext) const override {
+			Real p = x[0] + _K * std::sin(x[1]);
+			Real theta = x[1] + p;
+
+			// Wrap to [0, 2π)
+			const Real twopi = 2 * Constants::PI;
+			p = p - twopi * std::floor(p / twopi);
+			theta = theta - twopi * std::floor(theta / twopi);
+
+			xNext[0] = p;
+			xNext[1] = theta;
+		}
+
+		void jacobian(const Vector<Real>& x, Matrix<Real>& J) const override {
+			J.Resize(2, 2);
+			Real c = _K * std::cos(x[1]);
+			J(0, 0) = 1;
+			J(0, 1) = c;
+			J(1, 0) = 1;
+			J(1, 1) = 1 + c;
+		}
+
+		Real getParam(int /*index*/) const override { return _K; }
+		void setParam(int /*index*/, Real value) override { _K = value; }
+		std::string getParamName(int /*index*/) const override { return "K"; }
+		std::string getStateName(int index) const override { return (index == 0) ? "p" : "theta"; }
+
+		/// @brief Standard map preserves area (det(J) = 1)
+		bool isAreaPreserving() const { return true; }
+
+	private:
+		Real _K;
+	};
+
+	//=============================================================================
+	// TENT MAP
+	//=============================================================================
+
+	/// @brief Tent map
+	///
+	/// x_{n+1} = μ * min(x_n, 1 - x_n)
+	///
+	/// Piecewise linear, exhibits chaos for μ = 2.
+	class TentMap : public IDiscreteMap<1> {
+	public:
+		TentMap(Real mu = 2.0) : _mu(mu) {}
+
+		void map(const Vector<Real>& x, Vector<Real>& xNext) const override { xNext[0] = _mu * std::min(x[0], 1 - x[0]); }
+
+		void jacobian(const Vector<Real>& x, Matrix<Real>& J) const override {
+			J.Resize(1, 1);
+			// Derivative is ±μ depending on which side of peak
+			J(0, 0) = (x[0] < 0.5) ? _mu : -_mu;
+		}
+
+		Real getParam(int /*index*/) const override { return _mu; }
+		void setParam(int /*index*/, Real value) override { _mu = value; }
+		std::string getParamName(int /*index*/) const override { return "mu"; }
+		std::string getStateName(int /*index*/) const override { return "x"; }
+
+		/// @brief Analytical Lyapunov exponent for μ=2: λ = ln(2)
+		Real analyticalLyapunov() const { return (_mu == 2.0) ? std::log(2.0) : std::log(_mu); }
+
+	private:
+		Real _mu;
+	};
+
+	//=============================================================================
+	// DISCRETE MAP LYAPUNOV RESULT
+	//=============================================================================
+
+	/// @brief Result of discrete map Lyapunov computation
+	template<typename Type = Real>
+	struct DiscreteMapLyapunovResult {
+		Vector<Type> exponents;  ///< Lyapunov exponents (descending order)
+		Type maxExponent;        ///< Largest exponent (λ₁)
+		bool isChaotic;          ///< True if λ₁ > 0
+	};
+
+	//=============================================================================
+	// DISCRETE MAP LYAPUNOV ANALYZER
+	//=============================================================================
+
+	/// @brief Compute Lyapunov exponent for discrete maps
+	/// @tparam N State dimension
+	template <int N>
+	class DiscreteMapLyapunov {
+	public:
+		/// @brief Compute Lyapunov exponents
+		/// @param map The discrete map
+		/// @param x0 Initial condition
+		/// @param numIterations Total iterations
+		/// @param skipTransient Iterations to skip
+		/// @return DiscreteMapLyapunovResult with exponents and chaos indicator
+		static DiscreteMapLyapunovResult<Real> Compute(IDiscreteMap<N>& map, const Vector<Real>& x0, int numIterations = 10000,
+																int skipTransient = 1000) {
+			Vector<Real> x = x0;
+			Vector<Real> xNext(N);
+			Matrix<Real> J(N, N);
+			Matrix<Real> Q = Matrix<Real>::Identity(N);
+			Vector<Real> lyapunovSums(N, 0.0);
+
+			// Skip transient
+			for (int i = 0; i < skipTransient; ++i) {
+				map.map(x, xNext);
+				x = xNext;
+			}
+
+			// Accumulate stretching
+			for (int iter = 0; iter < numIterations; ++iter) {
+				// Get Jacobian
+				map.jacobian(x, J);
+
+				// Multiply Q by J
+				Matrix<Real> JQ(N, N);
+				for (int i = 0; i < N; ++i) {
+					for (int j = 0; j < N; ++j) {
+						Real sum = 0;
+						for (int k = 0; k < N; ++k)
+							sum += J(i, k) * Q(k, j);
+						JQ(i, j) = sum;
+					}
+				}
+				Q = JQ;
+
+				// Gram-Schmidt orthonormalization
+				for (int j = 0; j < N; ++j) {
+					// Get column j
+					Vector<Real> v(N);
+					for (int i = 0; i < N; ++i)
+						v[i] = Q(i, j);
+
+					// Orthogonalize
+					for (int k = 0; k < j; ++k) {
+						Real dot = 0;
+						for (int i = 0; i < N; ++i)
+							dot += v[i] * Q(i, k);
+						for (int i = 0; i < N; ++i)
+							v[i] -= dot * Q(i, k);
+					}
+
+					// Normalize
+					Real norm = 0;
+					for (int i = 0; i < N; ++i)
+						norm += v[i] * v[i];
+					norm = std::sqrt(norm);
+
+					if (norm > 1e-30) {
+						lyapunovSums[j] += std::log(norm);
+						for (int i = 0; i < N; ++i)
+							Q(i, j) = v[i] / norm;
+					}
+				}
+
+				// Iterate map
+				map.map(x, xNext);
+				x = xNext;
+			}
+
+			// Build result
+			DiscreteMapLyapunovResult<Real> result;
+			result.exponents.Resize(N);
+			for (int i = 0; i < N; ++i)
+				result.exponents[i] = lyapunovSums[i] / numIterations;
+
+			result.maxExponent = result.exponents[0];
+			result.isChaotic = result.maxExponent > 0.01;  // Small threshold
+
+			return result;
+		}
+
+		/// @brief Alias for Compute (lowercase for backwards compatibility)
+		static DiscreteMapLyapunovResult<Real> compute(IDiscreteMap<N>& map, const Vector<Real>& x0, int numIterations = 10000,
+																int skipTransient = 1000) {
+			return Compute(map, x0, numIterations, skipTransient);
+		}
+	};
+
+} // namespace MML::Systems
+
 ///////////////////////////   mml/systems/DynamicalSystem.h   ///////////////////////////
 
 // Types and result structures
@@ -62483,5 +72685,1082 @@ namespace MML::Systems
 
 // Unified analyzer facade
 
+
+///////////////////////////   mml/systems/DynamicalSystemAnalyzers.h   ///////////////////////////
+
+
+
+namespace MML::Systems 
+{
+	//=============================================================================
+	// FIXED POINT FINDER
+	//=============================================================================
+
+	/// @brief Find and classify fixed points of a dynamical system
+	class FixedPointFinder {
+	public:
+		/// @brief Find a fixed point near initial guess using Newton's method
+		/// @param sys The dynamical system
+		/// @param initialGuess Starting point for Newton iteration
+		/// @param tol Convergence tolerance
+		/// @param maxIter Maximum iterations
+		/// @return Fixed point result (check convergenceResidual for success)
+		static FixedPoint<Real> Find(IDynamicalSystem& sys, const Vector<Real>& initialGuess, Real tol = 1e-10, int maxIter = 50) {
+			int n = sys.getDim();
+			FixedPoint<Real> result;
+			result.location = initialGuess;
+			result.jacobian.Resize(n, n);
+
+			Vector<Real> x = initialGuess;
+			Vector<Real> f(n), dx(n);
+			Matrix<Real> J(n, n);
+
+			for (int iter = 0; iter < maxIter; ++iter) {
+				// Evaluate f(x) = derivs(x) - should be zero at fixed point
+				sys.derivs(0.0, x, f);
+
+				Real residual = f.NormL2();
+				if (residual < tol) {
+					result.location = x;
+					result.convergenceResidual = residual;
+					result.iterations = iter;
+
+					// Compute Jacobian and classify
+					sys.jacobian(0.0, x, result.jacobian);
+					ClassifyFixedPoint(result);
+					return result;
+				}
+
+				// Newton step: J * dx = -f
+				sys.jacobian(0.0, x, J);
+
+				// Solve using LU
+				try {
+					LUSolver<Real> solver(J);
+					Vector<Real> negF = f * (-1.0);
+					dx = solver.Solve(negF);
+				} catch (...) {
+					// Jacobian singular - can't continue
+					result.type = FixedPointType::Unknown;
+					result.convergenceResidual = residual;
+					result.iterations = iter;
+					return result;
+				}
+
+				// Update
+				x = x + dx;
+			}
+
+			// Didn't converge
+			sys.derivs(0.0, x, f);
+			result.location = x;
+			result.convergenceResidual = f.NormL2();
+			result.iterations = maxIter;
+			result.type = FixedPointType::Unknown;
+			return result;
+		}
+
+		/// @brief Find multiple fixed points from several initial guesses
+		static std::vector<FixedPoint<Real>> FindMultiple(IDynamicalSystem& sys, const std::vector<Vector<Real>>& initialGuesses,
+																											Real tol = 1e-10, Real uniqueTol = 1e-6) {
+			std::vector<FixedPoint<Real>> results;
+
+			for (const auto& guess : initialGuesses) {
+				auto fp = Find(sys, guess, tol);
+
+				if (fp.convergenceResidual < tol) {
+					// Check if this is a new fixed point
+					bool isNew = true;
+					for (const auto& existing : results) {
+						if ((fp.location - existing.location).NormL2() < uniqueTol) {
+							isNew = false;
+							break;
+						}
+					}
+					if (isNew)
+						results.push_back(fp);
+				}
+			}
+
+			return results;
+		}
+
+		/// @brief Classify fixed point based on eigenvalues
+		static void ClassifyFixedPoint(FixedPoint<Real>& fp) {
+			int n = fp.jacobian.rows();
+
+			// Compute eigenvalues
+			auto eigenResult = EigenSolver::Solve(fp.jacobian);
+
+			fp.eigenvalues.clear();
+			for (const auto& ev : eigenResult.eigenvalues)
+				fp.eigenvalues.push_back(std::complex<Real>(ev.real, ev.imag));
+
+			// Classify based on eigenvalues
+			int numPositiveReal = 0;
+			int numNegativeReal = 0;
+			bool hasComplex = false;
+			Real maxRealPart = -1e30;
+			Real minRealPart = 1e30;
+
+			for (const auto& ev : fp.eigenvalues) {
+				Real re = ev.real();
+				Real im = ev.imag();
+
+				maxRealPart = std::max(maxRealPart, re);
+				minRealPart = std::min(minRealPart, re);
+
+				if (std::abs(im) > 1e-10)
+					hasComplex = true;
+
+				if (re > 1e-10)
+					numPositiveReal++;
+				else if (re < -1e-10)
+					numNegativeReal++;
+			}
+
+			// Determine stability
+			fp.isStable = (maxRealPart < -1e-10);
+
+			// Classify type
+			if (hasComplex) {
+				if (std::abs(maxRealPart) < 1e-10 && std::abs(minRealPart) < 1e-10)
+					fp.type = FixedPointType::Center;
+				else if (maxRealPart < -1e-10)
+					fp.type = FixedPointType::StableFocus;
+				else
+					fp.type = FixedPointType::UnstableFocus;
+			} else {
+				if (numPositiveReal > 0 && numNegativeReal > 0)
+					fp.type = FixedPointType::Saddle;
+				else if (numPositiveReal == 0 && numNegativeReal == n)
+					fp.type = FixedPointType::StableNode;
+				else if (numPositiveReal == n && numNegativeReal == 0)
+					fp.type = FixedPointType::UnstableNode;
+				else
+					fp.type = FixedPointType::Unknown;
+			}
+		}
+	};
+
+	//=============================================================================
+	// LYAPUNOV ANALYZER
+	//=============================================================================
+
+	/// @brief Compute Lyapunov exponents via variational equations
+	///
+	/// Uses the Benettin algorithm:
+	/// 1. Integrate trajectory and n perturbation vectors simultaneously
+	/// 2. Periodically orthonormalize using Gram-Schmidt
+	/// 3. Accumulate stretching factors
+	class LyapunovAnalyzer {
+	public:
+		/// @brief Compute all Lyapunov exponents
+		/// @param sys The dynamical system
+		/// @param x0 Initial condition
+		/// @param tTotal Total integration time
+		/// @param dtOrthonormalize Time between orthonormalizations
+		/// @param h Integration step size
+		/// @return LyapunovResult with exponents and related quantities
+		static LyapunovResult<Real> Compute(IDynamicalSystem& sys, const Vector<Real>& x0, Real tTotal, Real dtOrthonormalize = 1.0,
+																				Real h = 0.01) {
+			int n = sys.getDim();
+			LyapunovResult<Real> result;
+			result.exponents.Resize(n);
+
+			// State vector and perturbation frame
+			Vector<Real> x = x0;
+			Matrix<Real> Q = Matrix<Real>::Identity(n); // Orthonormal frame
+			Vector<Real> lyapunovSums(n, 0.0);
+
+			Real t = 0.0;
+			int numOrth = 0;
+
+			// Create RK4 stepper for trajectory
+			while (t < tTotal) {
+				// Integrate for dtOrthonormalize
+				Real tEnd = std::min(t + dtOrthonormalize, tTotal);
+				IntegrateWithVariational(sys, x, Q, t, tEnd, h);
+
+				// Gram-Schmidt orthonormalization and accumulate stretching
+				GramSchmidtQR(Q, lyapunovSums);
+
+				numOrth++;
+				t = tEnd;
+			}
+
+			// Compute final exponents
+			for (int i = 0; i < n; ++i)
+				result.exponents[i] = lyapunovSums[i] / tTotal;
+
+			// Sort descending
+			std::vector<Real> sorted(n);
+			for (int i = 0; i < n; ++i)
+				sorted[i] = result.exponents[i];
+			std::sort(sorted.begin(), sorted.end(), std::greater<Real>());
+			for (int i = 0; i < n; ++i)
+				result.exponents[i] = sorted[i];
+
+			result.maxExponent = result.exponents[0];
+			result.sum = 0;
+			for (int i = 0; i < n; ++i)
+				result.sum += result.exponents[i];
+
+			result.isChaotic = (result.maxExponent > 1e-6);
+			result.kaplanYorkeDimension = ComputeKaplanYorkeDimension(result.exponents);
+			result.numOrthonormalizations = numOrth;
+			result.totalTime = tTotal;
+
+			return result;
+		}
+
+	private:
+		/// @brief Integrate trajectory and variational equations
+		static void IntegrateWithVariational(IDynamicalSystem& sys, Vector<Real>& x, Matrix<Real>& Q, Real t0, Real t1, Real h) {
+			int n = sys.getDim();
+			Vector<Real> k1(n), k2(n), k3(n), k4(n);
+			Vector<Real> xTemp(n);
+			Matrix<Real> J(n, n);
+			Matrix<Real> dQ1(n, n), dQ2(n, n), dQ3(n, n), dQ4(n, n);
+			Matrix<Real> QTemp(n, n);
+
+			Real t = t0;
+			while (t < t1 - 1e-12) {
+				Real dt = std::min(h, t1 - t);
+
+				// RK4 for trajectory
+				sys.derivs(t, x, k1);
+				for (int i = 0; i < n; ++i)
+					xTemp[i] = x[i] + 0.5 * dt * k1[i];
+				sys.derivs(t + 0.5 * dt, xTemp, k2);
+				for (int i = 0; i < n; ++i)
+					xTemp[i] = x[i] + 0.5 * dt * k2[i];
+				sys.derivs(t + 0.5 * dt, xTemp, k3);
+				for (int i = 0; i < n; ++i)
+					xTemp[i] = x[i] + dt * k3[i];
+				sys.derivs(t + dt, xTemp, k4);
+
+				for (int i = 0; i < n; ++i)
+					x[i] += dt * (k1[i] + 2 * k2[i] + 2 * k3[i] + k4[i]) / 6.0;
+
+				// RK4 for variational equations: dQ/dt = J(x) * Q
+				sys.jacobian(t, x, J);
+				MultiplyJQ(J, Q, dQ1);
+
+				for (int i = 0; i < n; ++i)
+					for (int j = 0; j < n; ++j)
+						QTemp(i, j) = Q(i, j) + 0.5 * dt * dQ1(i, j);
+				sys.jacobian(t + 0.5 * dt, x, J);
+				MultiplyJQ(J, QTemp, dQ2);
+
+				for (int i = 0; i < n; ++i)
+					for (int j = 0; j < n; ++j)
+						QTemp(i, j) = Q(i, j) + 0.5 * dt * dQ2(i, j);
+				MultiplyJQ(J, QTemp, dQ3);
+
+				for (int i = 0; i < n; ++i)
+					for (int j = 0; j < n; ++j)
+						QTemp(i, j) = Q(i, j) + dt * dQ3(i, j);
+				sys.jacobian(t + dt, x, J);
+				MultiplyJQ(J, QTemp, dQ4);
+
+				for (int i = 0; i < n; ++i)
+					for (int j = 0; j < n; ++j)
+						Q(i, j) += dt * (dQ1(i, j) + 2 * dQ2(i, j) + 2 * dQ3(i, j) + dQ4(i, j)) / 6.0;
+
+				t += dt;
+			}
+		}
+
+		/// @brief Multiply J * Q (matrix-matrix)
+		static void MultiplyJQ(const Matrix<Real>& J, const Matrix<Real>& Q, Matrix<Real>& result) {
+			int n = J.rows();
+			for (int i = 0; i < n; ++i) {
+				for (int j = 0; j < n; ++j) {
+					Real sum = 0;
+					for (int k = 0; k < n; ++k)
+						sum += J(i, k) * Q(k, j);
+					result(i, j) = sum;
+				}
+			}
+		}
+
+		/// @brief Gram-Schmidt with accumulation of stretching factors
+		static void GramSchmidtQR(Matrix<Real>& Q, Vector<Real>& lyapunovSums) {
+			int n = Q.rows();
+
+			for (int j = 0; j < n; ++j) {
+				// Get column j
+				Vector<Real> v(n);
+				for (int i = 0; i < n; ++i)
+					v[i] = Q(i, j);
+
+				// Orthogonalize against previous columns
+				for (int k = 0; k < j; ++k) {
+					Real dot = 0;
+					for (int i = 0; i < n; ++i)
+						dot += v[i] * Q(i, k);
+					for (int i = 0; i < n; ++i)
+						v[i] -= dot * Q(i, k);
+				}
+
+				// Compute norm (stretching factor)
+				Real norm = 0;
+				for (int i = 0; i < n; ++i)
+					norm += v[i] * v[i];
+				norm = std::sqrt(norm);
+
+				// Accumulate log of stretching
+				if (norm > 1e-30)
+					lyapunovSums[j] += std::log(norm);
+
+				// Normalize
+				for (int i = 0; i < n; ++i)
+					Q(i, j) = v[i] / norm;
+			}
+		}
+
+		/// @brief Compute Kaplan-Yorke dimension
+		///
+		/// D_KY = j + sum(λ_1..λ_j) / |λ_{j+1}|
+		/// where j is largest int such that sum(λ_1..λ_j) >= 0
+		static Real ComputeKaplanYorkeDimension(const Vector<Real>& exponents) {
+			int n = exponents.size();
+			if (n == 0)
+				return 0;
+
+			Real cumSum = 0;
+			int j = 0;
+
+			for (int i = 0; i < n; ++i) {
+				cumSum += exponents[i];
+				if (cumSum >= 0)
+					j = i + 1;
+				else
+					break;
+			}
+
+			if (j == n)
+				return static_cast<Real>(n); // All positive
+			if (j == 0)
+				return 0; // All negative
+
+			// Recompute partial sum up to j
+			Real partialSum = 0;
+			for (int i = 0; i < j; ++i)
+				partialSum += exponents[i];
+
+			return j + partialSum / std::abs(exponents[j]);
+		}
+	};
+
+	//=============================================================================
+	// BIFURCATION ANALYZER
+	//=============================================================================
+
+	/// @brief Generate bifurcation diagrams via parameter sweeps
+	class BifurcationAnalyzer {
+	public:
+		/// @brief Sweep parameter and record attractor values
+		/// @param sys The dynamical system (will be modified)
+		/// @param paramIndex Which parameter to sweep
+		/// @param paramMin Starting value
+		/// @param paramMax Ending value
+		/// @param numSteps Number of parameter values
+		/// @param x0 Initial condition
+		/// @param component Which state component to record
+		/// @param tTransient Time to integrate before recording
+		/// @param tRecord Time to record
+		/// @param h Integration step size
+		static BifurcationDiagram<Real> Sweep(IDynamicalSystem& sys, int paramIndex, Real paramMin, Real paramMax, int numSteps,
+																					Vector<Real> x0, int component, Real tTransient = 100.0, Real tRecord = 50.0, Real h = 0.01) {
+			BifurcationDiagram<Real> diagram;
+			diagram.parameterName = sys.getParamName(paramIndex);
+
+			Real dParam = (paramMax - paramMin) / (numSteps - 1);
+
+			for (int step = 0; step < numSteps; ++step) {
+				Real param = paramMin + step * dParam;
+				sys.setParam(paramIndex, param);
+
+				// Integrate through transient
+				Vector<Real> x = x0;
+				IntegrateTo(sys, x, tTransient, h);
+
+				// Record local maxima in component
+				std::vector<Real> maxima = FindLocalMaxima(sys, x, component, tRecord, h);
+
+				diagram.parameterValues.push_back(param);
+				diagram.attractorValues.push_back(maxima);
+
+				// Use final state as initial for next parameter (continuation)
+				x0 = x;
+			}
+
+			return diagram;
+		}
+
+	private:
+		/// @brief Simple RK4 integration
+		static void IntegrateTo(IDynamicalSystem& sys, Vector<Real>& x, Real tTotal, Real h) {
+			int n = sys.getDim();
+			Vector<Real> k1(n), k2(n), k3(n), k4(n), xTemp(n);
+
+			Real t = 0;
+			while (t < tTotal) {
+				Real dt = std::min(h, tTotal - t);
+
+				sys.derivs(t, x, k1);
+				for (int i = 0; i < n; ++i)
+					xTemp[i] = x[i] + 0.5 * dt * k1[i];
+				sys.derivs(t + 0.5 * dt, xTemp, k2);
+				for (int i = 0; i < n; ++i)
+					xTemp[i] = x[i] + 0.5 * dt * k2[i];
+				sys.derivs(t + 0.5 * dt, xTemp, k3);
+				for (int i = 0; i < n; ++i)
+					xTemp[i] = x[i] + dt * k3[i];
+				sys.derivs(t + dt, xTemp, k4);
+
+				for (int i = 0; i < n; ++i)
+					x[i] += dt * (k1[i] + 2 * k2[i] + 2 * k3[i] + k4[i]) / 6.0;
+
+				t += dt;
+			}
+		}
+
+		/// @brief Find local maxima of a component during integration
+		static std::vector<Real> FindLocalMaxima(IDynamicalSystem& sys, Vector<Real>& x, int component, Real tTotal, Real h) {
+			std::vector<Real> maxima;
+			int n = sys.getDim();
+			Vector<Real> k1(n), k2(n), k3(n), k4(n), xTemp(n);
+
+			Real prevVal = x[component];
+			Real prevPrevVal = prevVal;
+
+			Real t = 0;
+			while (t < tTotal) {
+				Real dt = std::min(h, tTotal - t);
+
+				sys.derivs(t, x, k1);
+				for (int i = 0; i < n; ++i)
+					xTemp[i] = x[i] + 0.5 * dt * k1[i];
+				sys.derivs(t + 0.5 * dt, xTemp, k2);
+				for (int i = 0; i < n; ++i)
+					xTemp[i] = x[i] + 0.5 * dt * k2[i];
+				sys.derivs(t + 0.5 * dt, xTemp, k3);
+				for (int i = 0; i < n; ++i)
+					xTemp[i] = x[i] + dt * k3[i];
+				sys.derivs(t + dt, xTemp, k4);
+
+				for (int i = 0; i < n; ++i)
+					x[i] += dt * (k1[i] + 2 * k2[i] + 2 * k3[i] + k4[i]) / 6.0;
+
+				Real val = x[component];
+
+				// Check for local maximum
+				if (prevVal > prevPrevVal && prevVal > val)
+					maxima.push_back(prevVal);
+
+				prevPrevVal = prevVal;
+				prevVal = val;
+				t += dt;
+			}
+
+			return maxima;
+		}
+	};
+
+	//=============================================================================
+	// PHASE SPACE ANALYZER
+	//=============================================================================
+
+	/// @brief Phase space analysis tools (Poincaré sections, trajectories)
+	class PhaseSpaceAnalyzer {
+	public:
+		/// @brief Compute Poincaré section intersections
+		static std::vector<Vector<Real>> ComputePoincareSection(IDynamicalSystem& sys, const Vector<Real>& x0,
+																														const PoincareSection<Real>& section, int numIntersections, Real h = 0.01) {
+			std::vector<Vector<Real>> intersections;
+			int n = sys.getDim();
+
+			Vector<Real> x = x0;
+			Vector<Real> xPrev = x;
+			Vector<Real> k1(n), k2(n), k3(n), k4(n), xTemp(n);
+
+			Real t = 0;
+			int count = 0;
+
+			// Skip initial transient
+			Real tTransient = 100.0;
+			while (t < tTransient) {
+				xPrev = x;
+				RK4Step(sys, x, t, h, k1, k2, k3, k4, xTemp);
+				t += h;
+			}
+
+			// Collect intersections
+			while (count < numIntersections) {
+				xPrev = x;
+				Real valPrev = xPrev[section.variable] - section.value;
+
+				RK4Step(sys, x, t, h, k1, k2, k3, k4, xTemp);
+				t += h;
+
+				Real val = x[section.variable] - section.value;
+
+				// Check for crossing
+				if (valPrev * val < 0) {
+					// Check direction
+					bool correctDirection =
+						(section.direction == 0) || (section.direction > 0 && val > valPrev) || (section.direction < 0 && val < valPrev);
+
+					if (correctDirection) {
+						// Linear interpolation to find crossing point
+						Real alpha = -valPrev / (val - valPrev);
+						Vector<Real> xCross(n);
+						for (int i = 0; i < n; ++i)
+							xCross[i] = xPrev[i] + alpha * (x[i] - xPrev[i]);
+
+						intersections.push_back(xCross);
+						count++;
+					}
+				}
+			}
+
+			return intersections;
+		}
+
+		/// @brief Integrate trajectory and return points
+		static std::vector<Vector<Real>> IntegrateTrajectory(IDynamicalSystem& sys, const Vector<Real>& x0, Real tTotal, Real dtOutput,
+																												 Real h = 0.01) {
+			std::vector<Vector<Real>> trajectory;
+			int n = sys.getDim();
+
+			Vector<Real> x = x0;
+			Vector<Real> k1(n), k2(n), k3(n), k4(n), xTemp(n);
+
+			Real t = 0;
+			Real nextOutput = 0;
+
+			trajectory.push_back(x);
+
+			while (t < tTotal) {
+				RK4Step(sys, x, t, h, k1, k2, k3, k4, xTemp);
+				t += h;
+
+				if (t >= nextOutput) {
+					trajectory.push_back(x);
+					nextOutput += dtOutput;
+				}
+			}
+
+			return trajectory;
+		}
+
+	private:
+		static void RK4Step(IDynamicalSystem& sys, Vector<Real>& x, Real t, Real h, Vector<Real>& k1, Vector<Real>& k2, Vector<Real>& k3,
+												Vector<Real>& k4, Vector<Real>& xTemp) {
+			int n = sys.getDim();
+
+			sys.derivs(t, x, k1);
+			for (int i = 0; i < n; ++i)
+				xTemp[i] = x[i] + 0.5 * h * k1[i];
+			sys.derivs(t + 0.5 * h, xTemp, k2);
+			for (int i = 0; i < n; ++i)
+				xTemp[i] = x[i] + 0.5 * h * k2[i];
+			sys.derivs(t + 0.5 * h, xTemp, k3);
+			for (int i = 0; i < n; ++i)
+				xTemp[i] = x[i] + h * k3[i];
+			sys.derivs(t + h, xTemp, k4);
+
+			for (int i = 0; i < n; ++i)
+				x[i] += h * (k1[i] + 2 * k2[i] + 2 * k3[i] + k4[i]) / 6.0;
+		}
+	};
+
+} // namespace MML::Systems
+
+///////////////////////////   mml/systems/DynamicalSystemAnalyzer.h   ///////////////////////////
+
+
+
+namespace MML::Systems 
+{
+	//=============================================================================
+	// COMPREHENSIVE ANALYSIS RESULT
+	//=============================================================================
+
+	/// @brief Complete analysis report for a dynamical system
+	template<typename Type = Real>
+	struct DynamicalSystemReport {
+		// System info
+		int dimension;
+		int numParameters;
+		std::vector<std::string> stateNames;
+		std::vector<std::string> paramNames;
+		Vector<Type> currentParams;
+
+		// Fixed points
+		std::vector<FixedPoint<Type>> fixedPoints;
+		int numStableFixedPoints;
+		int numUnstableFixedPoints;
+		int numSaddlePoints;
+
+		// Lyapunov analysis
+		LyapunovResult<Type> lyapunov;
+		bool isChaotic;
+		bool isDissipative;	  ///< Sum of Lyapunov exponents < 0
+		bool isConservative;  ///< Sum ≈ 0 (Hamiltonian-like)
+
+		// Attractor properties
+		Type kaplanYorkeDimension;
+		Type lyapunovTime;  ///< 1/λ_max - predictability time scale
+
+		// Trajectory info (if computed)
+		std::vector<Vector<Type>> trajectory;
+		std::vector<Vector<Type>> poincareSection;
+
+		// Text report
+		std::string summary;
+	};
+
+	//=============================================================================
+	// DYNAMICAL SYSTEM ANALYZER
+	//=============================================================================
+
+	/// @class DynamicalSystemAnalyzer
+	///
+	/// @brief Unified facade for all MML dynamical systems analysis capabilities
+	///
+	/// DynamicalSystemAnalyzer provides a single, comprehensive interface to:
+	/// - Find and classify fixed points
+	/// - Compute Lyapunov exponents and assess chaos
+	/// - Generate bifurcation diagrams
+	/// - Compute Poincaré sections
+	/// - Integrate trajectories
+	/// - Generate comprehensive analysis reports
+	///
+	/// @par Example: Basic Analysis
+	/// @code
+	/// LorenzSystem lorenz(10, 28, 8.0/3.0);
+	/// DynamicalSystemAnalyzer analyzer(lorenz);
+	///
+	/// // Quick chaos check
+	/// bool chaotic = analyzer.IsChaotic({1, 1, 1});
+	///
+	/// // Full analysis
+	/// auto report = analyzer.Analyze({1, 1, 1});
+	/// std::cout << report.summary;
+	/// @endcode
+	///
+	/// @par Example: Specific Analysis
+	/// @code
+	/// DynamicalSystemAnalyzer analyzer(rossler);
+	///
+	/// // Find fixed points
+	/// auto fps = analyzer.FindFixedPoints({{0,0,0}, {1,1,1}, {-1,-1,1}});
+	///
+	/// // Lyapunov exponents only
+	/// auto lyap = analyzer.ComputeLyapunov({0.1, 0.1, 0.1}, 1000);
+	///
+	/// // Bifurcation diagram
+	/// auto bif = analyzer.ComputeBifurcation(0, 20.0, 30.0, 100, {0.1, 0.1, 0.1});
+	/// @endcode
+	template<typename Type = Real>
+	class DynamicalSystemAnalyzer {
+	public:
+		//=========================================================================
+		// CONSTRUCTOR
+		//=========================================================================
+
+		/// @brief Construct analyzer for a dynamical system
+		/// @param sys Reference to the dynamical system to analyze
+		explicit DynamicalSystemAnalyzer(IDynamicalSystem& sys)
+				: _sys(sys) {}
+
+		//=========================================================================
+		// QUICK QUERIES
+		//=========================================================================
+
+		/// @brief Check if system exhibits chaotic behavior from given initial condition
+		/// @param x0 Initial condition
+		/// @param integrationTime Time to integrate (longer = more accurate)
+		/// @return True if largest Lyapunov exponent > 0
+		bool IsChaotic(const Vector<Type>& x0, Type integrationTime = 500) const {
+			auto result = LyapunovAnalyzer::Compute(_sys, x0, integrationTime);
+			return result.isChaotic;
+		}
+
+		/// @brief Check if system is dissipative (contracting phase space volume)
+		/// @param x0 Initial condition for Lyapunov computation
+		/// @return True if sum of Lyapunov exponents < 0
+		bool IsDissipative(const Vector<Type>& x0, Type integrationTime = 500) const {
+			auto result = LyapunovAnalyzer::Compute(_sys, x0, integrationTime);
+			return result.sum < -1e-6;
+		}
+
+		/// @brief Get the Lyapunov time (predictability horizon)
+		/// @param x0 Initial condition
+		/// @return Time scale 1/λ_max (smaller = less predictable)
+		Type GetLyapunovTime(const Vector<Type>& x0, Type integrationTime = 500) const {
+			auto result = LyapunovAnalyzer::Compute(_sys, x0, integrationTime);
+			if (result.maxExponent > 1e-10)
+				return 1.0 / result.maxExponent;
+			else
+				return std::numeric_limits<Type>::infinity();
+		}
+
+		/// @brief Get the fractal (Kaplan-Yorke) dimension of the attractor
+		Type GetFractalDimension(const Vector<Type>& x0, Type integrationTime = 500) const {
+			auto result = LyapunovAnalyzer::Compute(_sys, x0, integrationTime);
+			return result.kaplanYorkeDimension;
+		}
+
+		//=========================================================================
+		// FIXED POINT ANALYSIS
+		//=========================================================================
+
+		/// @brief Find a single fixed point near initial guess
+		/// @param initialGuess Starting point for Newton iteration
+		/// @param tol Convergence tolerance
+		/// @return Fixed point result (check convergenceResidual for success)
+		FixedPoint<Type> FindFixedPoint(const Vector<Type>& initialGuess, Type tol = 1e-10) const {
+			return FixedPointFinder::Find(_sys, initialGuess, tol);
+		}
+
+		/// @brief Find multiple fixed points from several initial guesses
+		/// @param initialGuesses Vector of starting points
+		/// @param tol Convergence tolerance
+		/// @param uniqueTol Distance below which two points are considered same
+		/// @return Vector of unique fixed points found
+		std::vector<FixedPoint<Type>> FindFixedPoints(const std::vector<Vector<Type>>& initialGuesses,
+																									Type tol = 1e-10, Type uniqueTol = 1e-6) const {
+			return FixedPointFinder::FindMultiple(_sys, initialGuesses, tol, uniqueTol);
+		}
+
+		/// @brief Generate a grid of initial guesses and find all fixed points
+		/// @param boxMin Lower corner of search box
+		/// @param boxMax Upper corner of search box
+		/// @param gridPoints Number of grid points per dimension
+		/// @return Vector of unique fixed points found
+		std::vector<FixedPoint<Type>> FindFixedPointsInBox(const Vector<Type>& boxMin, const Vector<Type>& boxMax,
+																											 int gridPoints = 5) const {
+			int n = _sys.getDim();
+			std::vector<Vector<Type>> guesses;
+
+			// Generate grid
+			std::vector<int> indices(n, 0);
+			bool done = false;
+
+			while (!done) {
+				Vector<Type> guess(n);
+				for (int i = 0; i < n; ++i) {
+					Type t = (gridPoints > 1) ? static_cast<Type>(indices[i]) / (gridPoints - 1) : 0.5;
+					guess[i] = boxMin[i] + t * (boxMax[i] - boxMin[i]);
+				}
+				guesses.push_back(guess);
+
+				// Increment indices (like counting in base gridPoints)
+				int carry = 1;
+				for (int i = 0; i < n && carry; ++i) {
+					indices[i] += carry;
+					if (indices[i] >= gridPoints) {
+						indices[i] = 0;
+						carry = 1;
+					} else {
+						carry = 0;
+					}
+				}
+				if (carry) done = true;
+			}
+
+			return FindFixedPoints(guesses);
+		}
+
+		//=========================================================================
+		// LYAPUNOV ANALYSIS
+		//=========================================================================
+
+		/// @brief Compute all Lyapunov exponents
+		/// @param x0 Initial condition
+		/// @param totalTime Total integration time
+		/// @param orthTime Time between orthonormalizations
+		/// @param stepSize Integration step size
+		/// @return LyapunovResult with exponents and derived quantities
+		LyapunovResult<Type> ComputeLyapunov(const Vector<Type>& x0, Type totalTime = 1000,
+																				 Type orthTime = 1.0, Type stepSize = 0.01) const {
+			return LyapunovAnalyzer::Compute(_sys, x0, totalTime, orthTime, stepSize);
+		}
+
+		/// @brief Compute just the largest Lyapunov exponent (faster)
+		/// @param x0 Initial condition
+		/// @param totalTime Integration time
+		/// @return Largest Lyapunov exponent λ_1
+		Type ComputeMaxLyapunov(const Vector<Type>& x0, Type totalTime = 1000) const {
+			auto result = LyapunovAnalyzer::Compute(_sys, x0, totalTime);
+			return result.maxExponent;
+		}
+
+		//=========================================================================
+		// BIFURCATION ANALYSIS
+		//=========================================================================
+
+		/// @brief Compute bifurcation diagram by sweeping a parameter
+		/// @param paramIndex Which parameter to sweep
+		/// @param paramMin Starting parameter value
+		/// @param paramMax Ending parameter value
+		/// @param numSteps Number of parameter values to sample
+		/// @param x0 Initial condition
+		/// @param component Which state component to record (default: 0)
+		/// @param tTransient Transient integration time
+		/// @param tRecord Recording time after transient
+		/// @return BifurcationDiagram with parameter values and attractor points
+		BifurcationDiagram<Type> ComputeBifurcation(int paramIndex, Type paramMin, Type paramMax, int numSteps,
+																								const Vector<Type>& x0, int component = 0,
+																								Type tTransient = 100, Type tRecord = 50) const {
+			return BifurcationAnalyzer::Sweep(_sys, paramIndex, paramMin, paramMax, numSteps,
+																				x0, component, tTransient, tRecord);
+		}
+
+		//=========================================================================
+		// PHASE SPACE ANALYSIS
+		//=========================================================================
+
+		/// @brief Compute Poincaré section
+		/// @param x0 Initial condition
+		/// @param section Definition of the Poincaré section
+		/// @param numIntersections Number of intersections to collect
+		/// @param stepSize Integration step size
+		/// @return Vector of intersection points
+		std::vector<Vector<Type>> ComputePoincareSection(const Vector<Type>& x0, const PoincareSection<Type>& section,
+																										 int numIntersections = 1000, Type stepSize = 0.01) const {
+			return PhaseSpaceAnalyzer::ComputePoincareSection(_sys, x0, section, numIntersections, stepSize);
+		}
+
+		/// @brief Integrate trajectory from initial condition
+		/// @param x0 Initial condition
+		/// @param totalTime Total integration time
+		/// @param outputInterval Time between output points
+		/// @param stepSize Integration step size
+		/// @return Vector of state points along trajectory
+		std::vector<Vector<Type>> IntegrateTrajectory(const Vector<Type>& x0, Type totalTime,
+																									Type outputInterval = 0.1, Type stepSize = 0.01) const {
+			return PhaseSpaceAnalyzer::IntegrateTrajectory(_sys, x0, totalTime, outputInterval, stepSize);
+		}
+
+		//=========================================================================
+		// COMPREHENSIVE ANALYSIS
+		//=========================================================================
+
+		/// @brief Perform comprehensive analysis of the system
+		/// @param x0 Initial condition for trajectory-based analyses
+		/// @param fixedPointGuesses Initial guesses for fixed point search (optional)
+		/// @param lyapunovTime Integration time for Lyapunov computation
+		/// @return Complete analysis report
+		DynamicalSystemReport<Type> Analyze(const Vector<Type>& x0,
+																				const std::vector<Vector<Type>>& fixedPointGuesses = {},
+																				Type lyapunovTime = 500) const {
+			DynamicalSystemReport<Type> report;
+			int n = _sys.getDim();
+			int p = _sys.getNumParam();
+
+			// Basic info
+			report.dimension = n;
+			report.numParameters = p;
+			report.stateNames.resize(n);
+			report.paramNames.resize(p);
+			report.currentParams.Resize(p);
+
+			for (int i = 0; i < n; ++i)
+				report.stateNames[i] = _sys.getStateName(i);
+			for (int i = 0; i < p; ++i) {
+				report.paramNames[i] = _sys.getParamName(i);
+				report.currentParams[i] = _sys.getParam(i);
+			}
+
+			// Fixed points
+			if (!fixedPointGuesses.empty()) {
+				report.fixedPoints = FindFixedPoints(fixedPointGuesses);
+			} else {
+				// Use origin and a few random-ish points
+				std::vector<Vector<Type>> defaultGuesses;
+				Vector<Type> origin(n, 0.0);
+				defaultGuesses.push_back(origin);
+
+				// Add some points near x0
+				defaultGuesses.push_back(x0);
+				Vector<Type> scaled = x0 * 0.5;
+				defaultGuesses.push_back(scaled);
+				scaled = x0 * (-1.0);
+				defaultGuesses.push_back(scaled);
+
+				report.fixedPoints = FindFixedPoints(defaultGuesses);
+			}
+
+			// Count fixed point types
+			report.numStableFixedPoints = 0;
+			report.numUnstableFixedPoints = 0;
+			report.numSaddlePoints = 0;
+			for (const auto& fp : report.fixedPoints) {
+				if (fp.isStable)
+					report.numStableFixedPoints++;
+				else if (fp.type == FixedPointType::Saddle)
+					report.numSaddlePoints++;
+				else
+					report.numUnstableFixedPoints++;
+			}
+
+			// Lyapunov analysis
+			report.lyapunov = ComputeLyapunov(x0, lyapunovTime);
+			report.isChaotic = report.lyapunov.isChaotic;
+			report.isDissipative = report.lyapunov.sum < -1e-6;
+			report.isConservative = std::abs(report.lyapunov.sum) < 1e-4;
+			report.kaplanYorkeDimension = report.lyapunov.kaplanYorkeDimension;
+
+			if (report.lyapunov.maxExponent > 1e-10)
+				report.lyapunovTime = 1.0 / report.lyapunov.maxExponent;
+			else
+				report.lyapunovTime = std::numeric_limits<Type>::infinity();
+
+			// Generate summary
+			report.summary = GenerateSummary(report);
+
+			return report;
+		}
+
+		//=========================================================================
+		// PARAMETER SENSITIVITY
+		//=========================================================================
+
+		/// @brief Check how chaos depends on a parameter
+		/// @param paramIndex Which parameter to vary
+		/// @param paramMin Starting value
+		/// @param paramMax Ending value
+		/// @param numSteps Number of parameter values
+		/// @param x0 Initial condition
+		/// @return Vector of pairs (param_value, max_lyapunov)
+		std::vector<std::pair<Type, Type>> ScanChaosVsParameter(int paramIndex, Type paramMin, Type paramMax,
+																														int numSteps, const Vector<Type>& x0,
+																														Type lyapunovTime = 200) const {
+			std::vector<std::pair<Type, Type>> results;
+			Type dParam = (paramMax - paramMin) / (numSteps - 1);
+			Type originalParam = _sys.getParam(paramIndex);
+
+			for (int i = 0; i < numSteps; ++i) {
+				Type param = paramMin + i * dParam;
+				_sys.setParam(paramIndex, param);
+
+				auto lyap = ComputeLyapunov(x0, lyapunovTime);
+				results.push_back({param, lyap.maxExponent});
+			}
+
+			// Restore original parameter
+			_sys.setParam(paramIndex, originalParam);
+			return results;
+		}
+
+	private:
+		IDynamicalSystem& _sys;
+
+		/// @brief Generate human-readable summary
+		std::string GenerateSummary(const DynamicalSystemReport<Type>& report) const {
+			std::ostringstream ss;
+			ss << std::fixed << std::setprecision(4);
+
+			ss << "═══════════════════════════════════════════════════════════════\n";
+			ss << "                DYNAMICAL SYSTEM ANALYSIS REPORT                \n";
+			ss << "═══════════════════════════════════════════════════════════════\n\n";
+
+			// System overview
+			ss << "SYSTEM OVERVIEW\n";
+			ss << "───────────────────────────────────────────────────────────────\n";
+			ss << "  Dimension: " << report.dimension << "\n";
+			ss << "  State variables: ";
+			for (int i = 0; i < report.dimension; ++i) {
+				if (i > 0) ss << ", ";
+				ss << report.stateNames[i];
+			}
+			ss << "\n";
+
+			ss << "  Parameters (" << report.numParameters << "): ";
+			for (int i = 0; i < report.numParameters; ++i) {
+				if (i > 0) ss << ", ";
+				ss << report.paramNames[i] << "=" << report.currentParams[i];
+			}
+			ss << "\n\n";
+
+			// Fixed points
+			ss << "FIXED POINTS\n";
+			ss << "───────────────────────────────────────────────────────────────\n";
+			ss << "  Found: " << report.fixedPoints.size() << " fixed point(s)\n";
+			ss << "    Stable:   " << report.numStableFixedPoints << "\n";
+			ss << "    Saddles:  " << report.numSaddlePoints << "\n";
+			ss << "    Unstable: " << report.numUnstableFixedPoints << "\n";
+
+			for (size_t i = 0; i < report.fixedPoints.size(); ++i) {
+				const auto& fp = report.fixedPoints[i];
+				ss << "\n  Fixed Point #" << (i+1) << ": " << ToString(fp.type) << "\n";
+				ss << "    Location: (";
+				for (int j = 0; j < fp.location.size(); ++j) {
+					if (j > 0) ss << ", ";
+					ss << fp.location[j];
+				}
+				ss << ")\n";
+				ss << "    Eigenvalues: ";
+				for (size_t j = 0; j < fp.eigenvalues.size(); ++j) {
+					if (j > 0) ss << ", ";
+					ss << fp.eigenvalues[j].real();
+					if (std::abs(fp.eigenvalues[j].imag()) > 1e-10) {
+						ss << (fp.eigenvalues[j].imag() > 0 ? "+" : "") << fp.eigenvalues[j].imag() << "i";
+					}
+				}
+				ss << "\n";
+			}
+			ss << "\n";
+
+			// Lyapunov analysis
+			ss << "LYAPUNOV ANALYSIS\n";
+			ss << "───────────────────────────────────────────────────────────────\n";
+			ss << "  Lyapunov exponents: (";
+			for (int i = 0; i < report.lyapunov.exponents.size(); ++i) {
+				if (i > 0) ss << ", ";
+				ss << report.lyapunov.exponents[i];
+			}
+			ss << ")\n";
+			ss << "  Maximum exponent (λ₁): " << report.lyapunov.maxExponent << "\n";
+			ss << "  Sum of exponents: " << report.lyapunov.sum << "\n";
+			ss << "  Kaplan-Yorke dimension: " << report.kaplanYorkeDimension << "\n";
+			if (report.lyapunovTime < 1e10)
+				ss << "  Lyapunov time (1/λ₁): " << report.lyapunovTime << "\n";
+			ss << "\n";
+
+			// Classification
+			ss << "DYNAMICAL CLASSIFICATION\n";
+			ss << "───────────────────────────────────────────────────────────────\n";
+			if (report.isChaotic) {
+				ss << "  ⚡ CHAOTIC DYNAMICS (λ₁ > 0)\n";
+				ss << "     Sensitive dependence on initial conditions.\n";
+				ss << "     Predictability horizon ~ " << report.lyapunovTime << " time units.\n";
+			} else {
+				ss << "  ✓ REGULAR DYNAMICS (λ₁ ≤ 0)\n";
+				ss << "     Trajectories converge or remain bounded.\n";
+			}
+
+			if (report.isDissipative) {
+				ss << "  📉 DISSIPATIVE (Σλ < 0)\n";
+				ss << "     Phase space volume contracts.\n";
+				ss << "     Attractor has dimension < state space.\n";
+			} else if (report.isConservative) {
+				ss << "  ⚖ CONSERVATIVE (Σλ ≈ 0)\n";
+				ss << "     Phase space volume preserved (Hamiltonian-like).\n";
+			}
+
+			ss << "\n═══════════════════════════════════════════════════════════════\n";
+
+			return ss.str();
+		}
+	};
+
+} // namespace MML::Systems
 
 #endif   //MML.h 

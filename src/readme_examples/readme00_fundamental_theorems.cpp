@@ -142,7 +142,7 @@ void Readme_StokesTheorem()
 
     // Integrate in polar: ∫∫ f(r,θ) r dr dθ
     auto theta_lo = [](Real) { return 0.0; };
-    auto theta_hi = [](Real) -> Real { return 2.0 * Constants::PI; };
+    auto theta_hi = [](Real) { return 2.0 * Constants::PI; };
 
     // Transform: we integrate 2 × r over the disk
     ScalarFunctionFromStdFunc<2> integrand([](const VectorN<Real, 2>& p) {
@@ -217,7 +217,7 @@ void Readme_GreensTheorem()
         return 2.0 * r;  // (∂Q/∂x - ∂P/∂y) × Jacobian
     });
     auto theta_lo = [](Real) { return 0.0; };
-    auto theta_hi = [](Real) -> Real { return 2.0 * Constants::PI; };
+    auto theta_hi = [](Real) { return 2.0 * Constants::PI; };
 
     Real areaIntegral = Integrate2D(integrand, GAUSS10, 0.0, R, theta_lo, theta_hi).value;
 

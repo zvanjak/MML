@@ -6,6 +6,8 @@
 #include "mml/base/Geometry/Geometry.h"
 #endif
 
+#include <iostream>
+
 using namespace MML;
 
 void Demo_Geometry()

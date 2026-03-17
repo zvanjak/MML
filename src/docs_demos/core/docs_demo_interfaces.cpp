@@ -153,7 +153,7 @@ namespace MML::docs_demos::interfaces
             return VectorN<Real, 3>({
                 radius * std::cos(t),
                 radius * std::sin(t),
-                static_cast<Real>(pitch * t / (2 * Constants::PI))
+                pitch * t / (2 * Constants::PI)
             });
         }
 

@@ -6,6 +6,8 @@
 #include "base/Intervals.h"
 #endif
 
+#include <iostream>
+
 using namespace MML;
 
 void Docs_Demo_Intervals()

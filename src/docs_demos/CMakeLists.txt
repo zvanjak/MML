@@ -1,6 +1,6 @@
 project(MML_DocsApp VERSION 1.0)
 
-# Collect sources from subdirectories (excluding mml_packages-dependent: optimization/, pde/)
+# Collect sources from all subdirectories
 file(GLOB BASE_SOURCES "base/*.cpp")
 file(GLOB CORE_SOURCES "core/*.cpp")
 file(GLOB ALGO_SOURCES "algorithms/*.cpp")
@@ -14,10 +14,6 @@ list(FILTER MAIN_SOURCES EXCLUDE REGEX "quick_start_guide\\.cpp$")
 
 # Exclude geometry demo - uses non-existent APIs (Point2Cartesian ostream, CoordTransf functions, etc)
 list(FILTER BASE_SOURCES EXCLUDE REGEX "docs_demo_geometry\\.cpp$")
-
-# Exclude demos that depend on mml_packages (fourier, optimization)
-list(FILTER ALGO_SOURCES EXCLUDE REGEX "docs_demo_fourier\\.cpp$")
-list(FILTER ALGO_SOURCES EXCLUDE REGEX "docs_demo_optimization\\.cpp$")
 
 add_executable(MML_DocsApp 
     ${MAIN_SOURCES}

@@ -338,7 +338,7 @@ namespace MML::Systems
 		/// @note Most robust for ill-conditioned or rank-deficient systems
 		Vector<Type> SolveBySVD(Type threshold = -1) const {
 			RequireRHS();
-			SVDecompositionSolver solver(_A);
+			SVDecompositionSolver<Type> solver(_A);
 			return solver.Solve(_b, threshold);
 		}
 
@@ -547,7 +547,7 @@ namespace MML::Systems
 		/// @param tol Threshold below which singular values are considered zero
 		int Rank(Type tol = -1) const {
 			if (!_rank.has_value()) {
-				SVDecompositionSolver solver(_A);
+				SVDecompositionSolver<Type> solver(_A);
 				_rank = solver.Rank(tol);
 			}
 			return *_rank;
@@ -561,7 +561,7 @@ namespace MML::Systems
 		/// @note cond(A) = σ_max / σ_min
 		Type ConditionNumber() const {
 			if (!_conditionNumber.has_value()) {
-				SVDecompositionSolver solver(_A);
+				SVDecompositionSolver<Type> solver(_A);
 				Type invCond = solver.inv_condition();
 				_conditionNumber = (invCond > 1e-30) ? (1.0 / invCond) : 1e30;
 			}
@@ -652,7 +652,7 @@ namespace MML::Systems
 		///
 		/// @return Matrix whose columns form orthonormal basis for null(A)
 		Matrix<Type> NullSpace(Type tol = -1) const {
-			SVDecompositionSolver solver(_A);
+			SVDecompositionSolver<Type> solver(_A);
 			return solver.Nullspace(tol);
 		}
 
@@ -660,7 +660,7 @@ namespace MML::Systems
 		///
 		/// @return Matrix whose columns form orthonormal basis for col(A)
 		Matrix<Type> ColumnSpace(Type tol = -1) const {
-			SVDecompositionSolver solver(_A);
+			SVDecompositionSolver<Type> solver(_A);
 			return solver.Range(tol);
 		}
 
@@ -681,7 +681,7 @@ namespace MML::Systems
 
 		/// @brief Compute Moore-Penrose pseudoinverse using SVD
 		Matrix<Type> PseudoInverse(Type tol = -1) const {
-			SVDecompositionSolver solver(_A);
+			SVDecompositionSolver<Type> solver(_A);
 			int m = Rows();
 			int n = Cols();
 
@@ -690,7 +690,7 @@ namespace MML::Systems
 			Matrix<Type> V = solver.getV();
 			Vector<Type> w = solver.getW();
 
-			Type thresh = (tol >= 0) ? tol : 0.5 * std::sqrt(m + n + 1.0) * w[0] * std::numeric_limits<Real>::epsilon();
+			Type thresh = (tol >= 0) ? tol : 0.5 * std::sqrt(m + n + 1.0) * w[0] * std::numeric_limits<Type>::epsilon();
 
 			// Result is n x m
 			Matrix<Type> pinv(n, m);
@@ -932,7 +932,7 @@ namespace MML::Systems
 			if (!_svd.has_value()) {
 				_svd = SVDDecomposition<Type>();
 				try {
-					SVDecompositionSolver solver(_A);
+					SVDecompositionSolver<Type> solver(_A);
 					_svd->U = solver.getU();
 					_svd->V = solver.getV();
 					_svd->singularValues = solver.getW();

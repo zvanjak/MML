@@ -273,7 +273,7 @@ namespace MML {
 		}
 
 		// Use SVD to solve the overdetermined system
-		SVDecompositionSolver svd(A);
+		SVDecompositionSolver<Scalar> svd(A);
 
 		// Solve A*c = y for coefficients c
 		Vector<Scalar> c = svd.Solve(y_data);
@@ -368,7 +368,7 @@ namespace MML {
 		}
 
 		// Use SVD to solve
-		SVDecompositionSolver svd(A);
+		SVDecompositionSolver<Scalar> svd(A);
 		Vector<Scalar> c = svd.Solve(y_data);
 
 		// Compute statistics (same as above)

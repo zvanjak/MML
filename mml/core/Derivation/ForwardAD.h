@@ -240,7 +240,7 @@ namespace MML::Symbolic
         return Dual<T>(std::sin(x.value), std::cos(x.value) * x.deriv);
     }
 
-    /// Cosine: d/dx(cos(x)) = -sin(x)i
+    /// Cosine: d/dx(cos(x)) = -sin(x)
     template<typename T>
     Dual<T> cos(const Dual<T>& x) {
         return Dual<T>(std::cos(x.value), -std::sin(x.value) * x.deriv);

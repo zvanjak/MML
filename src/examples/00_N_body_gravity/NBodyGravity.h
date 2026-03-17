@@ -618,9 +618,9 @@ namespace NBody
             Real depth  = (maxZ - minZ) * (1 + margin);
             
             // Ensure minimum dimensions (avoid zero for 2D orbits)
-            width  = std::max(width, 1.0);
-            height = std::max(height, 1.0);
-            depth  = std::max(depth, 1.0);
+            width  = std::max<Real>(width, Real(1.0));
+            height = std::max<Real>(height, Real(1.0));
+            depth  = std::max<Real>(depth, Real(1.0));
             
             std::string fullFileName = baseFileName + ".mml";
             Serializer::SaveParticleSimulation3D(GetResultFilesPath() + fullFileName,

@@ -160,17 +160,17 @@ namespace MML
 		static constexpr long double MatrixIsEqualTolerance = 1e-15L;
 		static constexpr long double VectorIsEqualTolerance = 1e-15L;
 
-		static constexpr long double Pnt2CartIsEqualTolerance = 1e-15;
-		static constexpr long double Pnt2PolarIsEqualTolerance = 1e-15;
-		static constexpr long double Pnt3CartIsEqualTolerance = 1e-15;
-		static constexpr long double Pnt3SphIsEqualTolerance = 1e-15;
-		static constexpr long double Pnt3CylIsEqualTolerance = 1e-15;
+		static constexpr long double Pnt2CartIsEqualTolerance = 1e-15L;
+		static constexpr long double Pnt2PolarIsEqualTolerance = 1e-15L;
+		static constexpr long double Pnt3CartIsEqualTolerance = 1e-15L;
+		static constexpr long double Pnt3SphIsEqualTolerance = 1e-15L;
+		static constexpr long double Pnt3CylIsEqualTolerance = 1e-15L;
 
-		static constexpr long double Vec2CartIsEqualTolerance = 1e-15;
-		static constexpr long double Vec3CartIsEqualTolerance = 1e-15;
-		static constexpr long double Vec3CartIsParallelTolerance = 1e-15;
+		static constexpr long double Vec2CartIsEqualTolerance = 1e-15L;
+		static constexpr long double Vec3CartIsEqualTolerance = 1e-15L;
+		static constexpr long double Vec3CartIsParallelTolerance = 1e-15L;
 
-		static constexpr long double Vec3SphIsEqualTolerance = 1e-15;
+		static constexpr long double Vec3SphIsEqualTolerance = 1e-15L;
 
 		// Angle comparison tolerance (for wrap-aware angle equality)
 		static constexpr long double AngleIsEqualTolerance = 1e-15L;
@@ -178,23 +178,23 @@ namespace MML
 		// Shape property tolerance (for geometric shape classification: IsRight, IsSquare, etc.)
 		static constexpr long double ShapePropertyTolerance = 1e-15L;
 
-		static constexpr long double Line3DAreEqualTolerance = 1e-15;
-		static constexpr long double Line3DIsPointOnLineTolerance = 1e-15;
-		static constexpr long double Line3DIsPerpendicularTolerance = 1e-15;
-		static constexpr long double Line3DIsParallelTolerance = 1e-15;
-		static constexpr long double Line3DIntersectionTolerance = 1e-15;
+		static constexpr long double Line3DAreEqualTolerance = 1e-15L;
+		static constexpr long double Line3DIsPointOnLineTolerance = 1e-15L;
+		static constexpr long double Line3DIsPerpendicularTolerance = 1e-15L;
+		static constexpr long double Line3DIsParallelTolerance = 1e-15L;
+		static constexpr long double Line3DIntersectionTolerance = 1e-15L;
 
-		static constexpr long double Plane3DIsPointOnPlaneTolerance = 1e-15;
+		static constexpr long double Plane3DIsPointOnPlaneTolerance = 1e-15L;
 
 		static constexpr long double Triangle3DIsPointInsideTolerance = 1e-15L;
 		static constexpr long double Triangle3DIsRightTolerance = 1e-12L;
 		static constexpr long double Triangle3DIsIsoscelesTolerance = 1e-12L;
 		static constexpr long double Triangle3DIsEquilateralTolerance = 1e-12L;
-		static constexpr long double IsMatrixSymmetricTolerance = 1e-15;
-		static constexpr long double IsMatrixDiagonalTolerance = 1e-15;
-		static constexpr long double IsMatrixUnitTolerance = 1e-15;
-		static constexpr long double IsMatrixZeroTolerance = 1e-15;
-		static constexpr long double IsMatrixOrthogonalTolerance = 1e-15;
+		static constexpr long double IsMatrixSymmetricTolerance = 1e-15L;
+		static constexpr long double IsMatrixDiagonalTolerance = 1e-15L;
+		static constexpr long double IsMatrixUnitTolerance = 1e-15L;
+		static constexpr long double IsMatrixZeroTolerance = 1e-15L;
+		static constexpr long double IsMatrixOrthogonalTolerance = 1e-15L;
 
 		static constexpr long double RankAlgEPS = 1e-13L;
 

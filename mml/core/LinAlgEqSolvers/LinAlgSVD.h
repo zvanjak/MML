@@ -20,21 +20,23 @@
 namespace MML
 {
 	/// @brief Singular Value Decomposition solver for general linear systems and least-squares
+	/// @tparam Type Numeric type (Real, float, long double, etc.)
 	/// @note Decomposes A=UΣVᵀ where U (m×n) and V (n×n) are orthogonal, Σ is diagonal with singular values
 	/// @note Works for any m×n matrix (square, overdetermined, underdetermined)
 	/// @note Complexity: O(mn²+n³) for m>n
 	/// @note Provides pseudoinverse solution for rank-deficient and least-squares problems
+	template<class Type>
 	class SVDecompositionSolver
 	{
 	private:
 		int m, n;
-		Matrix<Real> u, v;
-		Vector<Real> w;
-		Real eps, tsh;
+		Matrix<Type> u, v;
+		Vector<Type> w;
+		Type eps, tsh;
 
 		// Helper function: numerically stable sqrt(a^2 + b^2)
-		Real pythag(const Real a, const Real b) const {
-			Real absa = std::abs(a), absb = std::abs(b);
+		Type pythag(const Type a, const Type b) const {
+			Type absa = std::abs(a), absb = std::abs(b);
 			return (absa > absb ? absa * std::sqrt(1.0 + (absb / absa) * (absb / absa)) :
 				(absb == 0.0 ? 0.0 : absb * std::sqrt(1.0 + (absa / absb) * (absa / absb))));
 		}
@@ -47,25 +49,25 @@ namespace MML
 
 	public:
 		/// @brief Get singular values vector σᵢ (descending order)
-		Vector<Real> getW() const { return w; }
+		Vector<Type> getW() const { return w; }
 		/// @brief Get left singular vectors matrix U (m×n)
-		Matrix<Real> getU() const { return u; }
+		Matrix<Type> getU() const { return u; }
 		/// @brief Get right singular vectors matrix V (n×n)
-		Matrix<Real> getV() const { return v; }
+		Matrix<Type> getV() const { return v; }
 
 	public:
 		/// @brief Constructor - performs SVD decomposition A=UΣVᵀ
 		/// @param a Input matrix m×n
 		/// @note Uses Householder reduction to bidiagonal form, then QR iteration
 		/// @note Singular values ordered in descending order on output
-		SVDecompositionSolver(const Matrix<Real>& a) : m(a.rows()), n(a.cols()), u(a), v(n, n), w(n)
+		SVDecompositionSolver(const Matrix<Type>& a) : m(a.rows()), n(a.cols()), u(a), v(n, n), w(n)
 		{
-			// Given a Matrix<Real> a[m][n], this routine computes its singular value decomposition, A = U·W·V^T
+			// Given a Matrix a[m][n], this routine computes its singular value decomposition, A = U·W·V^T
 			// The Matrix U replaces a on output (stored in u)
 			// The diagonal matrix of singular values W is output as a vector w[n]
 			// The matrix V (not the transpose V^T) is output as v[n][n]
 			
-			eps = std::numeric_limits<Real>::epsilon();
+			eps = std::numeric_limits<Type>::epsilon();
 			decompose();
 			reorder();
 			tsh = 0.5 * std::sqrt(m + n + 1.0) * w[0] * eps;
@@ -74,7 +76,7 @@ namespace MML
 		/// @brief Compute inverse condition number (ratio of smallest to largest singular value)
 		/// @return σₘᵢₙ/σₘₐₓ (0 if any singular value ≤0)
 		/// @note Measures numerical stability - smaller values indicate ill-conditioning
-		Real inv_condition() {
+		Type inv_condition() {
 			return (w[0] <= 0. || w[n - 1] <= 0.) ? 0. : w[n - 1] / w[0];
 		}
 
@@ -85,7 +87,7 @@ namespace MML
 		///               If negative, uses default: 0.5√(m+n+1)·σ₁·εₘₐᶜₕᵢₙₑ
 		/// @throws VectorDimensionError if b.size() != m
 		/// @note Computes least-squares solution for overdetermined systems
-		void Solve(const Vector<Real>& b, Vector<Real>& x, Real thresh = -1.)
+		void Solve(const Vector<Type>& b, Vector<Type>& x, Type thresh = -1.)
 		{
 			// Solve A·x = b for a vector x using the pseudoinverse of A as obtained by SVD. If positive,
 			// thresh is the threshold value below which singular values are considered as zero. If thresh is
@@ -99,13 +101,13 @@ namespace MML
 			if (x.size() != n)
 				x.Resize(n);
 			
-			Real tsh = (thresh >= 0. ? thresh : 0.5 * std::sqrt(m + n + 1.0) * w[0] * eps);
+			Type tsh = (thresh >= 0. ? thresh : 0.5 * std::sqrt(m + n + 1.0) * w[0] * eps);
 			
-			Vector<Real> tmp(n);
+			Vector<Type> tmp(n);
 			// Calculate U^T · b
 			for (int j = 0; j < n; j++)
 			{
-				Real s = 0.0;
+				Type s = 0.0;
 				if (w[j] > tsh)  // Only include non-zero singular values
 				{
 					for (int i = 0; i < m; i++)
@@ -118,29 +120,29 @@ namespace MML
 			// Calculate x = V · tmp
 			for (int j = 0; j < n; j++)
 			{
-				Real s = 0.0;
+				Type s = 0.0;
 				for (int jj = 0; jj < n; jj++)
 					s += v[j][jj] * tmp[jj];
 				x[j] = s;
 			}
 		}
 
-		Vector<Real> Solve(const Vector<Real>& b, Real thresh = -1.)
+		Vector<Type> Solve(const Vector<Type>& b, Type thresh = -1.)
 		{
-			Vector<Real> x(n);
+			Vector<Type> x(n);
 			Solve(b, x, thresh);
 			return x;
 		}
 
 		// Solves m sets of n equations A·X = B using the pseudoinverse of A. The right-hand sides are
 		// input as b[m][p], while x[n][p] returns the solutions. thresh as above.
-		void Solve(const Matrix<Real>& b, Matrix<Real>& x, Real thresh = -1.)
+		void Solve(const Matrix<Type>& b, Matrix<Type>& x, Type thresh = -1.)
 		{
 			int p = b.cols();
 			if (b.rows() != m || x.rows() != n || x.cols() != p)
 				throw MatrixDimensionError("SVD::Solve - bad dimensions", m, n, b.rows(), x.rows());
 			
-			Vector<Real> bcol(m), xcol(n);
+			Vector<Type> bcol(m), xcol(n);
 			for (int j = 0; j < p; j++)
 			{
 				// Extract column j from b
@@ -158,8 +160,8 @@ namespace MML
 
 		// Return the rank of A, after zeroing any singular values smaller than thresh. If thresh is
 		// negative, a default value based on estimated roundoff is used.        
-		int Rank(Real thresh = -1.) {
-			Real tsh = (thresh >= 0. ? thresh : 0.5 * std::sqrt(m + n + 1.0) * w[0] * eps);
+		int Rank(Type thresh = -1.) {
+			Type tsh = (thresh >= 0. ? thresh : 0.5 * std::sqrt(m + n + 1.0) * w[0] * eps);
 			int rank = 0;
 			for (int j = 0; j < n; j++)
 				if (w[j] > tsh) rank++;
@@ -167,8 +169,8 @@ namespace MML
 		}
 
 		// Return the nullity of A, after zeroing any singular values smaller than thresh. Default value as above.
-		int Nullity(Real thresh = -1.) {
-			Real tsh = (thresh >= 0. ? thresh : 0.5 * std::sqrt(m + n + 1.0) * w[0] * eps);
+		int Nullity(Type thresh = -1.) {
+			Type tsh = (thresh >= 0. ? thresh : 0.5 * std::sqrt(m + n + 1.0) * w[0] * eps);
 			int nullity = 0;
 			for (int j = 0; j < n; j++)
 				if (w[j] <= tsh) nullity++;
@@ -176,11 +178,11 @@ namespace MML
 		}
 
 		// Gives an orthonormal basis for the range of A as the columns of a returned matrix. thresh as above.
-		Matrix<Real> Range(Real thresh = -1.) {
-			Real tsh = (thresh >= 0. ? thresh : 0.5 * std::sqrt(m + n + 1.0) * w[0] * eps);
+		Matrix<Type> Range(Type thresh = -1.) {
+			Type tsh = (thresh >= 0. ? thresh : 0.5 * std::sqrt(m + n + 1.0) * w[0] * eps);
 			int rank = Rank(tsh);
 			
-			Matrix<Real> range(m, rank);
+			Matrix<Type> range(m, rank);
 			int col = 0;
 			for (int j = 0; j < n; j++)
 			{
@@ -195,11 +197,11 @@ namespace MML
 		}
 
 		// Gives an orthonormal basis for the nullspace of A as the columns of a returned matrix. thresh as above
-		Matrix<Real> Nullspace(Real thresh = -1.) {
-			Real tsh = (thresh >= 0. ? thresh : 0.5 * std::sqrt(m + n + 1.0) * w[0] * eps);
+		Matrix<Type> Nullspace(Type thresh = -1.) {
+			Type tsh = (thresh >= 0. ? thresh : 0.5 * std::sqrt(m + n + 1.0) * w[0] * eps);
 			int nullity = Nullity(tsh);
 			
-			Matrix<Real> nullspace(n, nullity);
+			Matrix<Type> nullspace(n, nullity);
 			int col = 0;
 			for (int j = 0; j < n; j++)
 			{
@@ -216,12 +218,13 @@ namespace MML
 
 	///////////////////// SVDecompositionSolver Implementation /////////////////////
 
-	inline void SVDecompositionSolver::decompose()
+	template<class Type>
+	inline void SVDecompositionSolver<Type>::decompose()
 	{
 		bool flag;
 		int i, its, j, jj, k, l, nm;
-		Real anorm, c, f, g, h, s, scale, x, y, z;
-		Vector<Real> rv1(n);
+		Type anorm, c, f, g, h, s, scale, x, y, z;
+		Vector<Type> rv1(n);
 
 		g = scale = anorm = 0.0;
 
@@ -441,11 +444,12 @@ namespace MML
 		}
 	}
 
-	inline void SVDecompositionSolver::reorder()
+	template<class Type>
+	inline void SVDecompositionSolver<Type>::reorder()
 	{
 		int i, j, k, s, inc = 1;
-		Real sw;
-		Vector<Real> su(m), sv(n);
+		Type sw;
+		Vector<Type> su(m), sv(n);
 
 		// Shell sort to order singular values in descending order
 		do { inc *= 3; inc++; } while (inc <= n);

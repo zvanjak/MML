@@ -535,7 +535,7 @@ namespace MML
 		 */
 		inline SVDResult ComputeSVD(const Matrix<Real>& A, Real tol = -1.0)
 		{
-			SVDecompositionSolver svd(A);
+			SVDecompositionSolver<Real> svd(A);
 			SVDResult result;
 			
 			result.singularValues = svd.getW();
@@ -561,7 +561,7 @@ namespace MML
 		 */
 		inline Vector<Real> SingularValues(const Matrix<Real>& A)
 		{
-			SVDecompositionSolver svd(A);
+			SVDecompositionSolver<Real> svd(A);
 			return svd.getW();
 		}
 
@@ -578,7 +578,7 @@ namespace MML
 		 */
 		inline int RankSVD(const Matrix<Real>& A, Real tol = -1.0)
 		{
-			SVDecompositionSolver svd(A);
+			SVDecompositionSolver<Real> svd(A);
 			return svd.Rank(tol);
 		}
 
@@ -593,7 +593,7 @@ namespace MML
 		 */
 		inline int Nullity(const Matrix<Real>& A, Real tol = -1.0)
 		{
-			SVDecompositionSolver svd(A);
+			SVDecompositionSolver<Real> svd(A);
 			return svd.Nullity(tol);
 		}
 
@@ -615,7 +615,7 @@ namespace MML
 		 */
 		inline Real ConditionNumber(const Matrix<Real>& A)
 		{
-			SVDecompositionSolver svd(A);
+			SVDecompositionSolver<Real> svd(A);
 			Vector<Real> w = svd.getW();
 			int n = w.size();
 			
@@ -638,7 +638,7 @@ namespace MML
 		 */
 		inline Matrix<Real> NullSpace(const Matrix<Real>& A, Real tol = -1.0)
 		{
-			SVDecompositionSolver svd(A);
+			SVDecompositionSolver<Real> svd(A);
 			return svd.Nullspace(tol);
 		}
 
@@ -662,7 +662,7 @@ namespace MML
 		 */
 		inline Matrix<Real> ColumnSpace(const Matrix<Real>& A, Real tol = -1.0)
 		{
-			SVDecompositionSolver svd(A);
+			SVDecompositionSolver<Real> svd(A);
 			return svd.Range(tol);
 		}
 
@@ -738,13 +738,13 @@ namespace MML
 		{
 			FundamentalSubspaces result;
 			
-			SVDecompositionSolver svd(A);
+			SVDecompositionSolver<Real> svd(A);
 			result.columnSpace = svd.Range(tol);
 			result.nullSpace = svd.Nullspace(tol);
 			result.rank = svd.Rank(tol);
 			
 			// For row space and left null space, use SVD of A^T
-			SVDecompositionSolver svdT(A.transpose());
+			SVDecompositionSolver<Real> svdT(A.transpose());
 			result.rowSpace = svdT.Range(tol);
 			result.leftNullSpace = svdT.Nullspace(tol);
 			
@@ -772,7 +772,7 @@ namespace MML
 			int m = A.rows();
 			int n = A.cols();
 			
-			SVDecompositionSolver svd(A);
+			SVDecompositionSolver<Real> svd(A);
 			Vector<Real> w = svd.getW();
 			Matrix<Real> U = svd.getU();
 			Matrix<Real> V = svd.getV();

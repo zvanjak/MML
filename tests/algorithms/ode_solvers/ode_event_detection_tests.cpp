@@ -13,7 +13,7 @@
 #include "MML.h"
 #else
 #include "base/ODESystem.h"
-#include "mml/algorithms/ODESolvers/ODEAdaptiveIntegrator.h"
+#include "mml/algorithms/ODESolvers/ODEEventDetectionIntegrator.h"
 #endif
 
 using Catch::Matchers::WithinAbs;
@@ -210,7 +210,7 @@ namespace MML::Tests::Algorithms::ODEEventDetectionTests
 		BouncingBall ball(9.81, 0.9);  // 10% energy loss per bounce
 		Vector<Real> x0(std::vector<Real>{ 10.0, 0.0 });  // y=10, v=0
 		
-		DormandPrince5Integrator integrator(ball);
+		DormandPrince5EventIntegrator integrator(ball);
 		auto result = integrator.integrateWithEvents(ball, x0, 0.0, 5.0, 0.01, 1e-10, 1e-12);
 		
 		// Should have at least 2 bounces in 5 seconds (first bounce at ~1.43s)
@@ -261,7 +261,7 @@ namespace MML::Tests::Algorithms::ODEEventDetectionTests
 		HarmonicOscillatorWithEvents osc(omega);
 		Vector<Real> x0(std::vector<Real>{ 1.0, 0.0 });  // Start at max displacement
 		
-		DormandPrince5Integrator integrator(osc);
+		DormandPrince5EventIntegrator integrator(osc);
 		auto result = integrator.integrateWithEvents(osc, x0, 0.0, 2.0, 0.01, 1e-10, 1e-12);
 		
 		// In 2 periods, should have 4 zero crossings
@@ -303,7 +303,7 @@ namespace MML::Tests::Algorithms::ODEEventDetectionTests
 		ExponentialDecayWithTermination decay(threshold);
 		Vector<Real> x0(std::vector<Real>{ 1.0 });
 		
-		DormandPrince5Integrator integrator(decay);
+		DormandPrince5EventIntegrator integrator(decay);
 		auto result = integrator.integrateWithEvents(decay, x0, 0.0, 10.0, 0.1, 1e-10, 1e-12);
 		
 		// Should terminate before tEnd
@@ -338,7 +338,7 @@ namespace MML::Tests::Algorithms::ODEEventDetectionTests
 			v0 * std::sin(angle)      // vy
 		});
 		
-		DormandPrince5Integrator integrator(proj);
+		DormandPrince5EventIntegrator integrator(proj);
 		auto result = integrator.integrateWithEvents(proj, x0, 0.0, 10.0, 0.01, 1e-10, 1e-12);
 		
 		// Should detect apex crossing and ground impact
@@ -383,7 +383,7 @@ namespace MML::Tests::Algorithms::ODEEventDetectionTests
 		HarmonicOscillatorIncreasingOnly osc;
 		Vector<Real> x0(std::vector<Real>{ 1.0, 0.0 });
 		
-		DormandPrince5Integrator integrator(osc);
+		DormandPrince5EventIntegrator integrator(osc);
 		auto result = integrator.integrateWithEvents(osc, x0, 0.0, 2.0, 0.01, 1e-10, 1e-12);
 		
 		// Should only have 2 events (one per period, increasing only)
@@ -407,7 +407,7 @@ namespace MML::Tests::Algorithms::ODEEventDetectionTests
 		ExponentialDecayWithTermination decay(0.001);  // Very low threshold
 		Vector<Real> x0(std::vector<Real>{ 1.0 });
 		
-		DormandPrince5Integrator integrator(decay);
+		DormandPrince5EventIntegrator integrator(decay);
 		auto result = integrator.integrateWithEvents(decay, x0, 0.0, 2.0, 0.1, 1e-10, 1e-12);
 		
 		// x(2) = e^(-2) ≈ 0.135, still above threshold 0.001
@@ -424,19 +424,19 @@ namespace MML::Tests::Algorithms::ODEEventDetectionTests
 		Vector<Real> x0(std::vector<Real>{ 5.0, 0.0 });
 		
 		SECTION("DormandPrince5") {
-			DormandPrince5Integrator integrator(ball);
+			DormandPrince5EventIntegrator integrator(ball);
 			auto result = integrator.integrateWithEvents(ball, x0, 0.0, 3.0, 0.01, 1e-10, 1e-12);
 			REQUIRE(result.events.size() >= 2);
 		}
 		
 		SECTION("DormandPrince8") {
-			DormandPrince8Integrator integrator(ball);
+			DormandPrince8EventIntegrator integrator(ball);
 			auto result = integrator.integrateWithEvents(ball, x0, 0.0, 3.0, 0.01, 1e-10, 1e-12);
 			REQUIRE(result.events.size() >= 2);
 		}
 		
 		SECTION("CashKarp") {
-			CashKarpIntegrator integrator(ball);
+			CashKarpEventIntegrator integrator(ball);
 			auto result = integrator.integrateWithEvents(ball, x0, 0.0, 3.0, 0.01, 1e-10, 1e-12);
 			REQUIRE(result.events.size() >= 2);
 		}

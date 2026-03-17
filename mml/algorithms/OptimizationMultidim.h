@@ -1233,12 +1233,12 @@ namespace MML::Optimization {
 			Real stpmax = STPMX * std::max(std::sqrt(sum), static_cast<Real>(N));
 
 			for (_iter = 0; _iter < _maxIter; ++_iter) {
-				// Line search along xi
+				// Line search along xi (strong Wolfe conditions)
 				Real fp = _fret;
 				VectorN<Real, N> pold = p;
 
-				// Perform line minimization
-				_fret = LineSearchBacktrack(func, p, g, xi, stpmax);
+				// Perform line minimization with Wolfe conditions
+				_fret = LineSearchWolfe(func, p, g, xi, stpmax);
 
 				// Check for convergence on function value
 				if (2.0 * std::abs(_fret - fp) <= _ftol * (std::abs(_fret) + std::abs(fp) + EPS)) {
@@ -1425,6 +1425,166 @@ namespace MML::Optimization {
 					alam = std::max(tmplam, REAL(0.1) * alam);
 				}
 			}
+		}
+
+		/**
+		 * @brief Line search satisfying strong Wolfe conditions
+		 * 
+		 * Implements Nocedal & Wright Algorithms 3.5 (bracket phase) and 3.6 (zoom phase).
+		 * Strong Wolfe conditions guarantee that the BFGS update produces a positive-definite
+		 * Hessian approximation, which is essential for convergence on non-convex problems.
+		 * 
+		 * Conditions enforced:
+		 *   Sufficient decrease (Armijo): f(x + α·d) ≤ f(x) + c₁·α·∇f(x)·d
+		 *   Curvature condition:          |∇f(x + α·d)·d| ≤ c₂·|∇f(x)·d|
+		 * 
+		 * @reference Nocedal & Wright, "Numerical Optimization", 2nd ed., Chapter 3
+		 */
+		template<int N>
+		Real LineSearchWolfe(const IDifferentiableScalarFunction<N>& func, VectorN<Real, N>& x, const VectorN<Real, N>& g,
+							 VectorN<Real, N>& d, Real stpmax) {
+			const Real c1 = 1.0e-4;    // Sufficient decrease parameter
+			const Real c2 = 0.9;       // Curvature condition parameter (0.9 for quasi-Newton)
+			const Real alpha_max = 50.0;
+			const int max_ls_iter = 25;
+
+			// Scale direction if step is too large
+			Real dnorm = 0.0;
+			for (int j = 0; j < N; ++j)
+				dnorm += d[j] * d[j];
+			dnorm = std::sqrt(dnorm);
+
+			if (dnorm > stpmax) {
+				Real scale = stpmax / dnorm;
+				for (int j = 0; j < N; ++j)
+					d[j] *= scale;
+			}
+
+			// Directional derivative at alpha = 0: phi'(0) = g · d
+			Real dphi0 = 0.0;
+			for (int j = 0; j < N; ++j)
+				dphi0 += g[j] * d[j];
+
+			if (dphi0 >= 0.0) {
+				// Not a descent direction — fall back to steepest descent
+				for (int j = 0; j < N; ++j)
+					d[j] = -g[j];
+				dphi0 = 0.0;
+				for (int j = 0; j < N; ++j)
+					dphi0 += g[j] * d[j];
+			}
+
+			Real phi0 = func(x);
+
+			Real alpha_prev = 0.0;
+			Real phi_prev = phi0;
+			Real alpha_cur = 1.0; // Full Newton step
+
+			for (int i = 0; i < max_ls_iter; ++i) {
+				// Evaluate phi(alpha_cur) = f(x + alpha_cur * d)
+				VectorN<Real, N> xtrial;
+				for (int j = 0; j < N; ++j)
+					xtrial[j] = x[j] + alpha_cur * d[j];
+				Real phi_cur = func(xtrial);
+
+				// Check Armijo condition or non-decrease from previous
+				if (phi_cur > phi0 + c1 * alpha_cur * dphi0 || (i > 0 && phi_cur >= phi_prev)) {
+					Real alpha_star = WolfeZoom(func, x, d, phi0, dphi0, c1, c2, alpha_prev, alpha_cur, phi_prev, phi_cur);
+					AcceptWolfeStep(func, x, d, alpha_star);
+					return func(x);
+				}
+
+				// Evaluate phi'(alpha_cur)
+				VectorN<Real, N> g_trial;
+				func.Gradient(xtrial, g_trial);
+				Real dphi_cur = 0.0;
+				for (int j = 0; j < N; ++j)
+					dphi_cur += g_trial[j] * d[j];
+
+				// Check curvature condition (strong Wolfe satisfied)
+				if (std::abs(dphi_cur) <= -c2 * dphi0) {
+					AcceptWolfeStep(func, x, d, alpha_cur);
+					return func(x);
+				}
+
+				// Slope is positive — minimum is between alpha_prev and alpha_cur
+				if (dphi_cur >= 0.0) {
+					Real alpha_star = WolfeZoom(func, x, d, phi0, dphi0, c1, c2, alpha_cur, alpha_prev, phi_cur, phi_prev);
+					AcceptWolfeStep(func, x, d, alpha_star);
+					return func(x);
+				}
+
+				// Advance bracket
+				alpha_prev = alpha_cur;
+				phi_prev = phi_cur;
+				alpha_cur = std::min(2.0 * alpha_cur, alpha_max);
+			}
+
+			// Fallback: accept best step found (last alpha_cur)
+			AcceptWolfeStep(func, x, d, alpha_cur);
+			return func(x);
+		}
+
+		/**
+		 * @brief Zoom phase of Wolfe line search (Nocedal & Wright Algorithm 3.6)
+		 * 
+		 * Finds a step length satisfying strong Wolfe conditions within [alpha_lo, alpha_hi].
+		 * Uses bisection for robustness. The interval is guaranteed to contain a Wolfe point.
+		 */
+		template<int N>
+		Real WolfeZoom(const IDifferentiableScalarFunction<N>& func, const VectorN<Real, N>& x, const VectorN<Real, N>& d,
+					   Real phi0, Real dphi0, Real c1, Real c2,
+					   Real alpha_lo, Real alpha_hi, Real phi_lo, Real phi_hi) {
+			const int max_zoom_iter = 20;
+
+			for (int i = 0; i < max_zoom_iter; ++i) {
+				// Bisection interpolant (simple and robust)
+				Real alpha_j = 0.5 * (alpha_lo + alpha_hi);
+
+				VectorN<Real, N> xtrial;
+				for (int j = 0; j < N; ++j)
+					xtrial[j] = x[j] + alpha_j * d[j];
+				Real phi_j = func(xtrial);
+
+				if (phi_j > phi0 + c1 * alpha_j * dphi0 || phi_j >= phi_lo) {
+					alpha_hi = alpha_j;
+					phi_hi = phi_j;
+				} else {
+					VectorN<Real, N> g_trial;
+					func.Gradient(xtrial, g_trial);
+					Real dphi_j = 0.0;
+					for (int j = 0; j < N; ++j)
+						dphi_j += g_trial[j] * d[j];
+
+					// Strong Wolfe satisfied
+					if (std::abs(dphi_j) <= -c2 * dphi0)
+						return alpha_j;
+
+					if (dphi_j * (alpha_hi - alpha_lo) >= 0.0) {
+						alpha_hi = alpha_lo;
+						phi_hi = phi_lo;
+					}
+
+					alpha_lo = alpha_j;
+					phi_lo = phi_j;
+				}
+
+				// Interval too small — accept current best
+				if (std::abs(alpha_hi - alpha_lo) < 1.0e-14)
+					return alpha_lo;
+			}
+
+			return alpha_lo;
+		}
+
+		/**
+		 * @brief Accept a Wolfe step: update position x ← x + alpha * d
+		 */
+		template<int N>
+		void AcceptWolfeStep(const IDifferentiableScalarFunction<N>& /*func*/, VectorN<Real, N>& x,
+							 const VectorN<Real, N>& d, Real alpha) {
+			for (int j = 0; j < N; ++j)
+				x[j] += alpha * d[j];
 		}
 	};
 

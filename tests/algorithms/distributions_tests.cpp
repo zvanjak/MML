@@ -6,7 +6,7 @@
 #include "MML.h"
 #else
 #include "algorithms/Statistics.h"
-#include "algorithms/Distributions.h"
+#include "algorithms/Statistics/Distributions.h"
 #endif
 
 using namespace MML;

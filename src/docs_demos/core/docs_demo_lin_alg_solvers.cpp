@@ -180,7 +180,7 @@ void Docs_Demo_LinAlgSolvers_SVD()
 	// Regular system
 	std::cout << "\n--- Regular System ---\n";
 	Matrix<Real> A = TestBeds::mat_5x5();
-	SVDecompositionSolver svd(A);
+	SVDecompositionSolver<Real> svd(A);
 	
 	Vector<Real> b = TestBeds::mat_5x5_rhs0();
 	Vector<Real> x = svd.Solve(b);
@@ -209,7 +209,7 @@ void Docs_Demo_LinAlgSolvers_SVD()
 	A_sing(1,0)=4; A_sing(1,1)=5; A_sing(1,2)=6;
 	A_sing(2,0)=7; A_sing(2,1)=8; A_sing(2,2)=9.0001;  // Nearly rank-deficient
 	
-	SVDecompositionSolver svd_sing(A_sing);
+	SVDecompositionSolver<Real> svd_sing(A_sing);
 	std::cout << "Singular values: "; svd_sing.getW().Print(std::cout, 15, 10); std::cout << std::endl;
 	std::cout << "Note: Smallest singular value near 0, indicating near-singularity\n";
 }
@@ -313,7 +313,7 @@ void Docs_Demo_LinAlgSolvers_IllConditioned()
 	
 	// Method 3: SVD (most stable)
 	std::cout << "\n--- SVD Decomposition ---\n";
-	SVDecompositionSolver svdSolver(H);
+	SVDecompositionSolver<Real> svdSolver(H);
 	Vector<Real> x_svd = svdSolver.Solve(b);
 	Real error_svd = (x_svd - x_exact).NormL2();
 	std::cout << "SVD solution: "; x_svd.Print(std::cout, 10, 6); std::cout << std::endl;
@@ -360,7 +360,7 @@ void Docs_Demo_LinAlgSolvers_RankDeficient()
 	std::cout << "RHS b: "; b.Print(std::cout, 8, 3); std::cout << std::endl;
 	
 	// SVD can handle rank-deficient matrices
-	SVDecompositionSolver svd(A);
+	SVDecompositionSolver<Real> svd(A);
 	
 	std::cout << "\n--- Singular Value Analysis ---\n";
 	Vector<Real> w = svd.getW();
@@ -431,7 +431,7 @@ void Docs_Demo_LinAlgSolvers_Comparison()
 	std::cout << "QR residual:           " << (A*x_qr - b).NormL2() << std::endl;
 	
 	// SVD
-	SVDecompositionSolver svd(A);
+	SVDecompositionSolver<Real> svd(A);
 	Vector<Real> x_svd = svd.Solve(b);
 	std::cout << "SVD residual:          " << (A*x_svd - b).NormL2() << std::endl;
 	

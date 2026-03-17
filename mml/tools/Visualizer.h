@@ -13,6 +13,7 @@
 #define MML_VIZUALIZER_H
 
 #include "MMLBase.h"
+#include "MMLVisualizators.h"
 
 #include "interfaces/IFunction.h"
 

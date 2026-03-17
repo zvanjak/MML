@@ -22,6 +22,7 @@
 #include <type_traits>
 
 #include "MMLBase.h"
+#include "base/MatrixPrintFormat.h"
 #include "base/Vector/Vector.h"
 
 namespace MML
