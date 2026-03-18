@@ -29,8 +29,10 @@
 
 #include "MMLBase.h"
 #include "interfaces/IODESystem.h"
+#include "interfaces/IODESystemWithEvents.h"
 #include "base/InterpolatedFunction.h"
 #include "mml/algorithms/ODESolvers/ODEAdaptiveIntegrator.h"
+#include "mml/algorithms/ODESolvers/ODEEventDetectionIntegrator.h"
 #include "mml/algorithms/ODESolvers/ODEFixedStepIntegrators.h"
 #include "mml/algorithms/ODESolvers/ODESystemStepCalculators.h"
 
@@ -397,6 +399,8 @@ namespace Projectile
         Real getTimeOfFlightVacuum(Real angle, Real initHeight, Real velocity) const
         {
             Real g = 9.81;
+            #include "interfaces/IODESystemWithEvents.h"
+            #include "mml/algorithms/ODESolvers/ODEEventDetectionIntegrator.h"
             Real v0y = velocity * sin(angle);
             return (v0y + sqrt(v0y * v0y + 2 * g * initHeight)) / g;
         }
@@ -425,17 +429,15 @@ namespace Projectile
         {
             Vector<Real> initCond = _projectileODESystem.getInitCond(angle, initHeight, velocity);
 
+            DormandPrince5EventIntegrator integrator(_projectileODESystem);
             // Generous upper bound — event detection will stop us at ground hit
             Real tMax = 2.0 * getTimeOfFlightVacuum(angle, initHeight, velocity) + 10.0;
-
-            DormandPrince5Integrator integrator(_projectileODESystem);
             auto eventResult = integrator.integrateWithEvents(
                 _projectileODESystem, initCond, 0.0, tMax, outputDt, eps);
 
             return extractTrajectory(eventResult, angle, initHeight, velocity);
         }
 
-        /// @brief Solve multiple launch angles using adaptive event detection.
         Vector<ProjectileTrajectory2D> solveForAngles(
             const Vector<Real>& angles, Real initHeight, Real velocity,
             Real outputDt = 0.01, Real eps = 1e-10)
@@ -487,7 +489,7 @@ namespace Projectile
     private:
         /// @brief Extract trajectory from event result (clean, no post-ground zeros)
         static ProjectileTrajectory2D extractTrajectory(
-            const DormandPrince5Integrator::EventResult& eventResult,
+            const EventResult& eventResult,
             Real angle, Real initHeight, Real velocity)
         {
             ProjectileTrajectory2D result(angle, initHeight, velocity);

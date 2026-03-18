@@ -90,6 +90,56 @@ namespace MML::Tests::Core::DerivationTests
 		REQUIRE_THAT(sinFuncThirdDer(REAL(0.5)) , WithinRel(Real(thirdder4), REAL(1e-7)));
 	}
 
+	TEST_CASE("Test_NDer_detailed_real_derivative_contract", "[derivation][api]")
+	{
+		TEST_PRECISION_INFO();
+
+		RealFunction sinFunc = TestBeds::RealFunctionsTestBed::getFunc("Sin")._func;
+		RealFunction sinFuncDer = TestBeds::RealFunctionsTestBed::getFunc("Sin")._funcDerived;
+
+		DerivativeConfig config;
+		config.step = REAL(1e-3);
+		config.estimate_error = true;
+		config.check_finite = true;
+
+		auto detailed = Derivation::NDer4Detailed(sinFunc, REAL(0.5), config);
+
+		REQUIRE(detailed.IsSuccess());
+		REQUIRE(detailed.status == AlgorithmStatus::Success);
+		REQUIRE(detailed.algorithm_name == "NDer4");
+		REQUIRE(detailed.function_evaluations == 6);
+		REQUIRE(detailed.step_used == config.step);
+		REQUIRE(detailed.error >= REAL(0.0));
+		REQUIRE(detailed.elapsed_time_ms >= 0.0);
+		REQUIRE_THAT(sinFuncDer(REAL(0.5)), WithinRel(detailed.value, REAL(1e-10)));
+
+		Real legacyError = REAL(0.0);
+		Real legacyValue = Derivation::NDer4(sinFunc, REAL(0.5), config.step, &legacyError);
+		REQUIRE(detailed.value == legacyValue);
+		REQUIRE(detailed.error == legacyError);
+	}
+
+	TEST_CASE("Test_NDer_detailed_convert_to_status_on_non_finite", "[derivation][api]")
+	{
+		TEST_PRECISION_INFO();
+
+		RealFunctionFromStdFunc sqrtFunc([](Real x) { return std::sqrt(x); });
+
+		DerivativeConfig config;
+		config.exception_policy = EvaluationExceptionPolicy::ConvertToStatus;
+		config.check_finite = true;
+		config.estimate_error = true;
+
+		auto detailed = Derivation::NDer2Detailed(sqrtFunc, REAL(0.0), config);
+
+		REQUIRE_FALSE(detailed.IsSuccess());
+		REQUIRE_FALSE(static_cast<bool>(detailed));
+		REQUIRE(detailed.status == AlgorithmStatus::NumericalInstability);
+		REQUIRE(detailed.algorithm_name == "NDer2");
+		REQUIRE(detailed.step_used > REAL(0.0));
+		REQUIRE(!detailed.error_message.empty());
+	}
+
 	/*********************************************************************/
 	/*****         Richardson Extrapolation Derivatives              *****/
 	/*********************************************************************/

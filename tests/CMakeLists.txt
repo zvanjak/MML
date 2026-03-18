@@ -100,6 +100,8 @@ file(GLOB CORE_TESTS
     "core/svd_tests.cpp"
     # Numeric validation
     "core/numeric_validation_tests.cpp"
+    # Algorithm contract infrastructure
+    "core/algorithm_types_tests.cpp"
     # Orthogonal basis
     "core/orthogonal_basis_tests.cpp"
     # Richardson extrapolation
@@ -201,9 +203,14 @@ add_executable(MML_Tests
     ${INFRASTRUCTURE_TESTS}
 )
 
-# Link against Catch2WithMain (MML is header-only, no additional libraries needed)
+# Link against Catch2WithMain and MML_Packages for includes
 target_link_libraries(MML_Tests PRIVATE 
     Catch2::Catch2WithMain
+    MML_Fourier
+    MML_Optimization
+    MML_PDE
+    MML_Statistics
+    MML_Symbolic
 )
 
 target_include_directories(MML_Tests PRIVATE 

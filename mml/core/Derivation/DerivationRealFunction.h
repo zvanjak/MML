@@ -14,28 +14,115 @@
 
 #include "MMLBase.h"
 
+#include "core/AlgorithmTypes.h"
+#include "core/NumericValidation.h"
+
 #include "DerivationBase.h"
 
 namespace MML
 {
 	namespace Derivation
 	{
+		namespace Detail
+		{
+			inline Real ResolveDerivativeStep(const DerivativeConfig& config, Real default_step, Real x)
+			{
+				return config.step != REAL(0.0) ? config.step : ScaleStep(default_step, x);
+			}
+
+			template<typename ComputeFn>
+			DerivativeResult<Real> ExecuteDerivativeDetailed(const char* algorithm_name,
+			                                              Real h,
+			                                              const DerivativeConfig& config,
+			                                              int evals_without_error,
+			                                              int evals_with_error,
+			                                              ComputeFn&& compute)
+			{
+				auto execute = [&]() {
+					ValidateStepSize(h, algorithm_name);
+					AlgorithmTimer timer;
+
+					DerivativeResult<Real> result = MakeEvaluationSuccessResult<DerivativeResult<Real>>(
+						algorithm_name,
+						config.estimate_error ? evals_with_error : evals_without_error);
+					result.step_used = h;
+
+					Real error_estimate = REAL(0.0);
+					result.value = compute(config.estimate_error ? &error_estimate : nullptr);
+					result.error = config.estimate_error ? error_estimate : REAL(0.0);
+
+					if (config.check_finite)
+					{
+						if (!IsFinite(result.value))
+							throw NumericalMethodError(std::string(algorithm_name) + ": non-finite derivative result");
+						if (config.estimate_error && !IsFinite(result.error))
+							throw NumericalMethodError(std::string(algorithm_name) + ": non-finite derivative error estimate");
+					}
+
+					result.elapsed_time_ms = timer.elapsed_ms();
+					return result;
+				};
+
+				if (config.exception_policy == EvaluationExceptionPolicy::Propagate)
+					return execute();
+
+				try {
+					return execute();
+				}
+				catch (const NumericInputError& ex) {
+					auto result = MakeEvaluationFailureResult<DerivativeResult<Real>>(
+						AlgorithmStatus::InvalidInput, ex.what(), algorithm_name);
+					result.step_used = h;
+					return result;
+				}
+				catch (const NumericalMethodError& ex) {
+					auto result = MakeEvaluationFailureResult<DerivativeResult<Real>>(
+						AlgorithmStatus::NumericalInstability, ex.what(), algorithm_name);
+					result.step_used = h;
+					return result;
+				}
+				catch (const std::exception& ex) {
+					auto result = MakeEvaluationFailureResult<DerivativeResult<Real>>(
+						AlgorithmStatus::AlgorithmSpecificFailure, ex.what(), algorithm_name);
+					result.step_used = h;
+					return result;
+				}
+			}
+		}
+
 		/********************************************************************************************************************/
 		/********                               Numerical derivatives of FIRST order                                 ********/
 		/********************************************************************************************************************/
+		static DerivativeResult<Real> NDer1Detailed(const IRealFunction& f, Real x, Real h,
+		                                           const DerivativeConfig& config = {})
+		{
+			return Detail::ExecuteDerivativeDetailed("NDer1", h, config, 2, 3,
+				[&](Real* error) {
+					Real yh = f(x + h);
+					Real y0 = f(x);
+					Real diff = yh - y0;
+					if (error)
+					{
+						Real ym = f(x - h);
+						Real ypph = std::abs(yh - 2 * y0 + ym) / h;
+						*error = ypph / 2 + (std::abs(yh) + std::abs(y0)) * Constants::Eps / h;
+					}
+					return diff / h;
+				});
+		}
+		static DerivativeResult<Real> NDer1Detailed(const IRealFunction& f, Real x,
+		                                           const DerivativeConfig& config = {})
+		{
+			return NDer1Detailed(f, x, Detail::ResolveDerivativeStep(config, NDer1_h, x), config);
+		}
 		static Real NDer1(const IRealFunction& f, Real x, Real h, Real* error = nullptr)
 		{
-			Real yh = f(x + h);
-			Real y0 = f(x);
-			Real diff = yh - y0;
+			DerivativeConfig config;
+			config.estimate_error = (error != nullptr);
+			auto result = NDer1Detailed(f, x, h, config);
 			if (error)
-			{
-				Real ym = f(x - h);
-				Real ypph = std::abs(yh - 2 * y0 + ym) / h;
-
-				*error = ypph / 2 + (std::abs(yh) + std::abs(y0)) * Constants::Eps / h;
-			}
-			return diff / h;
+				*error = result.error;
+			return result.value;
 		}
 		static Real NDer1(const IRealFunction& f, Real x, Real* error)
 		{
@@ -58,31 +145,39 @@ namespace MML
 		/********************************************************************************************************************/
 		/********                               Numerical derivatives of SECOND order                                ********/
 		/********************************************************************************************************************/
+		static DerivativeResult<Real> NDer2Detailed(const IRealFunction& f, Real x, Real h,
+		                                           const DerivativeConfig& config = {})
+		{
+			return Detail::ExecuteDerivativeDetailed("NDer2", h, config, 2, 4,
+				[&](Real* error) {
+					Real yh = f(x + h);
+					Real ymh = f(x - h);
+					Real diff = yh - ymh;
+
+					if (error)
+					{
+						Real y2h = f(x + 2 * h);
+						Real ym2h = f(x - 2 * h);
+						*error = Constants::Eps * (std::abs(yh) + std::abs(ymh)) / (2 * h) +
+						         std::abs((y2h - ym2h) / 2 - diff) / (6 * h);
+					}
+
+					return diff / (2 * h);
+				});
+		}
+		static DerivativeResult<Real> NDer2Detailed(const IRealFunction& f, Real x,
+		                                           const DerivativeConfig& config = {})
+		{
+			return NDer2Detailed(f, x, Detail::ResolveDerivativeStep(config, NDer2_h, x), config);
+		}
 		static Real NDer2(const IRealFunction& f, Real x, Real h, Real* error = nullptr)
 		{
-			Real yh = f(x + h);
-			Real ymh = f(x - h);
-			
-			// Check for non-finite function values
-			if (std::isnan(yh) || std::isinf(yh) || std::isnan(ymh) || std::isinf(ymh))
-				throw NumericalMethodError("Non-finite function values in numerical derivative calculation");
-			
-			Real diff = yh - ymh;
+			DerivativeConfig config;
+			config.estimate_error = (error != nullptr);
+			auto result = NDer2Detailed(f, x, h, config);
 			if (error)
-			{
-				Real y2h = f(x + 2 * h);
-				Real ym2h = f(x - 2 * h);
-				*error = Constants::Eps * (std::abs(yh) + std::abs(ymh)) / (2 * h) + 
-								 std::abs((y2h - ym2h) / 2 - diff) / (6 * h);
-			}
-			
-			Real result = diff / (2 * h);
-			
-			// Check for non-finite result
-			if (std::isnan(result) || std::isinf(result))
-				throw NumericalMethodError("Non-finite result in numerical derivative calculation");
-			
-			return result;
+				*error = result.error;
+			return result.value;
 		}
 		static Real NDer2(const IRealFunction& f, Real x, Real* error)
 		{
@@ -101,41 +196,45 @@ namespace MML
 		/********************************************************************************************************************/
 		/********                               Numerical derivatives of FOURTH order                                ********/
 		/********************************************************************************************************************/
+		static DerivativeResult<Real> NDer4Detailed(const IRealFunction& f, Real x, Real h,
+		                                           const DerivativeConfig& config = {})
+		{
+			return Detail::ExecuteDerivativeDetailed("NDer4", h, config, 4, 6,
+				[&](Real* error) {
+					Real yh = f(x + h);
+					Real ymh = f(x - h);
+					Real y2h = f(x + 2 * h);
+					Real ym2h = f(x - 2 * h);
+
+					Real y2 = ym2h - y2h;
+					Real y1 = yh - ymh;
+
+					if (error)
+					{
+						Real y3h = f(x + 3 * h);
+						Real ym3h = f(x - 3 * h);
+
+						*error = std::abs((y3h - ym3h) / 2 + 2 * (ym2h - y2h) + 5 * (yh - ymh) / 2) / (30 * h);
+						*error += Constants::Eps * (std::abs(y2h) + std::abs(ym2h) +
+						                            8 * (std::abs(ymh) + std::abs(yh))) / (12 * h);
+					}
+
+					return (y2 + 8 * y1) / (12 * h);
+				});
+		}
+		static DerivativeResult<Real> NDer4Detailed(const IRealFunction& f, Real x,
+		                                           const DerivativeConfig& config = {})
+		{
+			return NDer4Detailed(f, x, Detail::ResolveDerivativeStep(config, NDer4_h, x), config);
+		}
 		static Real NDer4(const IRealFunction& f, Real x, Real h, Real* error = nullptr)
 		{
-			Real yh = f(x + h);
-			Real ymh = f(x - h);
-			Real y2h = f(x + 2 * h);
-			Real ym2h = f(x - 2 * h);
-
-			// Check for non-finite function values
-			if (!std::isfinite(yh) || !std::isfinite(ymh) || !std::isfinite(y2h) || !std::isfinite(ym2h))
-				throw NumericalMethodError("Non-finite function values in numerical derivative calculation");
-
-			Real y2 = ym2h - y2h;
-			Real y1 = yh - ymh;
-
+			DerivativeConfig config;
+			config.estimate_error = (error != nullptr);
+			auto result = NDer4Detailed(f, x, h, config);
 			if (error)
-			{
-				// Mathematica code to extract the remainder:
-				// Series[(f[x-2*h]+ 8*f[x+h] - 8*f[x-h] - f[x+2*h])/(12*h), {h, 0, 7}]
-				Real y3h = f(x + 3 * h);
-				Real ym3h = f(x - 3 * h);
-
-				// Error from fifth derivative:
-				*error = std::abs((y3h - ym3h) / 2 + 2 * (ym2h - y2h) + 5 * (yh - ymh) / 2) / (30 * h);
-				// Error from function evaluation:
-				*error += Constants::Eps * (std::abs(y2h) + std::abs(ym2h) + 
-																				8 * (std::abs(ymh) + std::abs(yh))) / (12 * h);
-			}
-			
-			Real result = (y2 + 8 * y1) / (12 * h);
-			
-			// Check for non-finite result
-			if (!std::isfinite(result))
-				throw NumericalMethodError("Non-finite result in numerical derivative calculation");
-			
-			return result;
+				*error = result.error;
+			return result.value;
 		}
 		static Real NDer4(const IRealFunction& f, Real x, Real* error)
 		{
@@ -154,27 +253,39 @@ namespace MML
 		/********************************************************************************************************************/
 		/********                               Numerical derivatives of SIXTH order                                 ********/
 		/********************************************************************************************************************/
+		static DerivativeResult<Real> NDer6Detailed(const IRealFunction& f, Real x, Real h,
+		                                           const DerivativeConfig& config = {})
+		{
+			return Detail::ExecuteDerivativeDetailed("NDer6", h, config, 6, 8,
+				[&](Real* error) {
+					Real yh = f(x + h);
+					Real ymh = f(x - h);
+					Real y1 = yh - ymh;
+					Real y2 = f(x - 2 * h) - f(x + 2 * h);
+					Real y3 = f(x + 3 * h) - f(x - 3 * h);
+
+					if (error)
+					{
+						Real y7 = (f(x + 4 * h) - f(x - 4 * h) - 6 * y3 - 14 * y1 - 14 * y2) / 2;
+						*error = std::abs(y7) / (140 * h) + 5 * (std::abs(yh) + std::abs(ymh)) * Constants::Eps / h;
+					}
+
+					return (y3 + 9 * y2 + 45 * y1) / (60 * h);
+				});
+		}
+		static DerivativeResult<Real> NDer6Detailed(const IRealFunction& f, Real x,
+		                                           const DerivativeConfig& config = {})
+		{
+			return NDer6Detailed(f, x, Detail::ResolveDerivativeStep(config, NDer6_h, x), config);
+		}
 		static Real NDer6(const IRealFunction& f, Real x, Real h, Real* error = nullptr)
 		{
-			const Real eps = (std::numeric_limits<Real>::epsilon)();
-
-			Real yh = f(x + h);
-			Real ymh = f(x - h);
-			Real y1 = yh - ymh;
-			Real y2 = f(x - 2 * h) - f(x + 2 * h);
-			Real y3 = f(x + 3 * h) - f(x - 3 * h);
-
+			DerivativeConfig config;
+			config.estimate_error = (error != nullptr);
+			auto result = NDer6Detailed(f, x, h, config);
 			if (error)
-			{
-				// Mathematica code to generate fd scheme for 7th derivative:
-				// Sum[(-1)^i*Binomial[7, i]*(f[x+(3-i)*h] + f[x+(4-i)*h])/2, {i, 0, 7}]
-				// Mathematica to demonstrate that this is a finite difference formula for 7th derivative:
-				// Series[(f[x+4*h]-f[x-4*h] + 6*(f[x-3*h] - f[x+3*h]) + 14*(f[x-h] - f[x+h] + f[x+2*h] - f[x-2*h]))/2, {h, 0, 15}]
-				Real y7 = (f(x + 4 * h) - f(x - 4 * h) - 6 * y3 - 14 * y1 - 14 * y2) / 2;
-
-				*error = std::abs(y7) / (140 * h) + 5 * (std::abs(yh) + std::abs(ymh)) * Constants::Eps / h;
-			}
-			return (y3 + 9 * y2 + 45 * y1) / (60 * h);
+				*error = result.error;
+			return result.value;
 		}
 		static Real NDer6(const IRealFunction& f, Real x, Real* error)
 		{
@@ -193,29 +304,43 @@ namespace MML
 		/********************************************************************************************************************/
 		/********                               Numerical derivatives of EIGHTH order                                ********/
 		/********************************************************************************************************************/
+		static DerivativeResult<Real> NDer8Detailed(const IRealFunction& f, Real x, Real h,
+		                                           const DerivativeConfig& config = {})
+		{
+			return Detail::ExecuteDerivativeDetailed("NDer8", h, config, 8, 10,
+				[&](Real* error) {
+					Real yh = f(x + h);
+					Real ymh = f(x - h);
+					Real y1 = yh - ymh;
+					Real y2 = f(x - 2 * h) - f(x + 2 * h);
+					Real y3 = f(x + 3 * h) - f(x - 3 * h);
+					Real y4 = f(x - 4 * h) - f(x + 4 * h);
+
+					Real tmp1 = 3 * y4 / 8 + 4 * y3;
+					Real tmp2 = 21 * y2 + 84 * y1;
+
+					if (error)
+					{
+						Real f9 = (f(x + 5 * h) - f(x - 5 * h)) / 2 + 4 * y4 + 27 * y3 / 2 + 24 * y2 + 21 * y1;
+						*error = std::abs(f9) / (630 * h) + 7 * (std::abs(yh) + std::abs(ymh)) * Constants::Eps / h;
+					}
+
+					return (tmp1 + tmp2) / (105 * h);
+				});
+		}
+		static DerivativeResult<Real> NDer8Detailed(const IRealFunction& f, Real x,
+		                                           const DerivativeConfig& config = {})
+		{
+			return NDer8Detailed(f, x, Detail::ResolveDerivativeStep(config, NDer8_h, x), config);
+		}
 		static Real NDer8(const IRealFunction& f, Real x, Real h, Real* error = nullptr)
 		{
-			Real yh = f(x + h);
-			Real ymh = f(x - h);
-			Real y1 = yh - ymh;
-			Real y2 = f(x - 2 * h) - f(x + 2 * h);
-			Real y3 = f(x + 3 * h) - f(x - 3 * h);
-			Real y4 = f(x - 4 * h) - f(x + 4 * h);
-
-			Real tmp1 = 3 * y4 / 8 + 4 * y3;
-			Real tmp2 = 21 * y2 + 84 * y1;
-
+			DerivativeConfig config;
+			config.estimate_error = (error != nullptr);
+			auto result = NDer8Detailed(f, x, h, config);
 			if (error)
-			{
-				// Mathematica code to generate fd scheme for 7th derivative:
-				// Sum[(-1)^i*Binomial[9, i]*(f[x+(4-i)*h] + f[x+(5-i)*h])/2, {i, 0, 9}]
-				// Mathematica to demonstrate that this is a finite difference formula for 7th derivative:
-				// Series[(f[x+5*h]-f[x- 5*h])/2 + 4*(f[x-4*h] - f[x+4*h]) + 27*(f[x+3*h] - f[x-3*h])/2 + 24*(f[x-2*h]  - f[x+2*h]) + 21*(f[x+h] - f[x-h]), {h, 0, 15}]
-				Real f9 = (f(x + 5 * h) - f(x - 5 * h)) / 2 + 4 * y4 + 27 * y3 / 2 + 24 * y2 + 21 * y1;
-
-				*error = std::abs(f9) / (630 * h) + 7 * (std::abs(yh) + std::abs(ymh)) * Constants::Eps / h;
-			}
-			return (tmp1 + tmp2) / (105 * h);
+				*error = result.error;
+			return result.value;
 		}
 		static Real NDer8(const IRealFunction& f, Real x, Real* error)
 		{
@@ -240,27 +365,43 @@ namespace MML
 		
 		// f''(x) ≈ [f(x-h) - 2f(x) + f(x+h)] / h²
 		// Second-order accurate (O(h²)), 3 function evaluations
+		static DerivativeResult<Real> NSecDer2Detailed(const IRealFunction& f, Real x, Real h,
+		                                              const DerivativeConfig& config = {})
+		{
+			return Detail::ExecuteDerivativeDetailed("NSecDer2", h, config, 3, 5,
+				[&](Real* error) {
+					Real y0 = f(x);
+					Real yh = f(x + h);
+					Real ymh = f(x - h);
+
+					Real h2 = h * h;
+					Real result = (ymh - 2.0 * y0 + yh) / h2;
+
+					if (error)
+					{
+						Real y2h = f(x + 2 * h);
+						Real ym2h = f(x - 2 * h);
+						Real f4_approx = std::abs(ym2h - 4 * ymh + 6 * y0 - 4 * yh + y2h) / h2;
+						*error = f4_approx * h2 / 12.0 +
+						         Constants::Eps * (std::abs(ymh) + 2 * std::abs(y0) + std::abs(yh)) / h2;
+					}
+
+					return result;
+				});
+		}
+		static DerivativeResult<Real> NSecDer2Detailed(const IRealFunction& f, Real x,
+		                                              const DerivativeConfig& config = {})
+		{
+			return NSecDer2Detailed(f, x, Detail::ResolveDerivativeStep(config, NDer2_h, x), config);
+		}
 		static Real NSecDer2(const IRealFunction& f, Real x, Real h, Real* error = nullptr)
 		{
-			Real y0 = f(x);
-			Real yh = f(x + h);
-			Real ymh = f(x - h);
-			
-			Real h2 = h * h;
-			Real result = (ymh - 2.0 * y0 + yh) / h2;
-			
+			DerivativeConfig config;
+			config.estimate_error = (error != nullptr);
+			auto result = NSecDer2Detailed(f, x, h, config);
 			if (error)
-			{
-				// Error estimate using 4th derivative approximation
-				Real y2h = f(x + 2*h);
-				Real ym2h = f(x - 2*h);
-				Real f4_approx = std::abs(ym2h - 4*ymh + 6*y0 - 4*yh + y2h) / h2;
-				
-				*error = f4_approx * h2 / 12.0 + 
-				         Constants::Eps * (std::abs(ymh) + 2*std::abs(y0) + std::abs(yh)) / h2;
-			}
-			
-			return result;
+				*error = result.error;
+			return result.value;
 		}
 		static Real NSecDer2(const IRealFunction& f, Real x, Real* error = nullptr)
 		{
@@ -269,30 +410,46 @@ namespace MML
 
 		// f''(x) ≈ [-f(x-2h) + 16f(x-h) - 30f(x) + 16f(x+h) - f(x+2h)] / (12h²)
 		// Fourth-order accurate (O(h⁴)), 5 function evaluations
+		static DerivativeResult<Real> NSecDer4Detailed(const IRealFunction& f, Real x, Real h,
+		                                              const DerivativeConfig& config = {})
+		{
+			return Detail::ExecuteDerivativeDetailed("NSecDer4", h, config, 5, 7,
+				[&](Real* error) {
+					Real y0 = f(x);
+					Real yh = f(x + h);
+					Real ymh = f(x - h);
+					Real y2h = f(x + 2 * h);
+					Real ym2h = f(x - 2 * h);
+
+					Real h2 = h * h;
+					Real result = (-ym2h + 16.0 * ymh - 30.0 * y0 + 16.0 * yh - y2h) / (12.0 * h2);
+
+					if (error)
+					{
+						Real y3h = f(x + 3 * h);
+						Real ym3h = f(x - 3 * h);
+						Real f6_approx = std::abs(ym3h - 6 * ym2h + 15 * ymh - 20 * y0 + 15 * yh - 6 * y2h + y3h) / h2;
+						*error = f6_approx * h2 * h2 / 90.0 +
+						         Constants::Eps * (std::abs(ym2h) + 16 * std::abs(ymh) + 30 * std::abs(y0) +
+						                           16 * std::abs(yh) + std::abs(y2h)) / (12.0 * h2);
+					}
+
+					return result;
+				});
+		}
+		static DerivativeResult<Real> NSecDer4Detailed(const IRealFunction& f, Real x,
+		                                              const DerivativeConfig& config = {})
+		{
+			return NSecDer4Detailed(f, x, Detail::ResolveDerivativeStep(config, NDer4_h, x), config);
+		}
 		static Real NSecDer4(const IRealFunction& f, Real x, Real h, Real* error = nullptr)
 		{
-			Real y0 = f(x);
-			Real yh = f(x + h);
-			Real ymh = f(x - h);
-			Real y2h = f(x + 2*h);
-			Real ym2h = f(x - 2*h);
-			
-			Real h2 = h * h;
-			Real result = (-ym2h + 16.0*ymh - 30.0*y0 + 16.0*yh - y2h) / (12.0 * h2);
-			
+			DerivativeConfig config;
+			config.estimate_error = (error != nullptr);
+			auto result = NSecDer4Detailed(f, x, h, config);
 			if (error)
-			{
-				// Error estimate using 6th derivative approximation
-				Real y3h = f(x + 3*h);
-				Real ym3h = f(x - 3*h);
-				Real f6_approx = std::abs(ym3h - 6*ym2h + 15*ymh - 20*y0 + 15*yh - 6*y2h + y3h) / h2;
-				
-				*error = f6_approx * h2 * h2 / 90.0 + 
-				         Constants::Eps * (std::abs(ym2h) + 16*std::abs(ymh) + 30*std::abs(y0) + 
-				                           16*std::abs(yh) + std::abs(y2h)) / (12.0 * h2);
-			}
-			
-			return result;
+				*error = result.error;
+			return result.value;
 		}
 		static Real NSecDer4(const IRealFunction& f, Real x, Real* error = nullptr)
 		{
@@ -308,28 +465,44 @@ namespace MML
 		
 		// f'''(x) ≈ [-f(x-2h) + 2f(x-h) - 2f(x+h) + f(x+2h)] / (2h³)
 		// Second-order accurate (O(h²)), 4 function evaluations
+		static DerivativeResult<Real> NThirdDer2Detailed(const IRealFunction& f, Real x, Real h,
+		                                                const DerivativeConfig& config = {})
+		{
+			return Detail::ExecuteDerivativeDetailed("NThirdDer2", h, config, 4, 6,
+				[&](Real* error) {
+					Real yh = f(x + h);
+					Real ymh = f(x - h);
+					Real y2h = f(x + 2 * h);
+					Real ym2h = f(x - 2 * h);
+
+					Real h3 = h * h * h;
+					Real result = (-ym2h + 2.0 * ymh - 2.0 * yh + y2h) / (2.0 * h3);
+
+					if (error)
+					{
+						Real y3h = f(x + 3 * h);
+						Real ym3h = f(x - 3 * h);
+						Real f5_approx = std::abs(ym3h - 3 * ym2h + 5 * ymh - 5 * yh + 3 * y2h - y3h) / h3;
+						*error = f5_approx * h * h / 4.0 +
+						         Constants::Eps * (std::abs(ym2h) + 2 * std::abs(ymh) + 2 * std::abs(yh) + std::abs(y2h)) / (2.0 * h3);
+					}
+
+					return result;
+				});
+		}
+		static DerivativeResult<Real> NThirdDer2Detailed(const IRealFunction& f, Real x,
+		                                                const DerivativeConfig& config = {})
+		{
+			return NThirdDer2Detailed(f, x, Detail::ResolveDerivativeStep(config, NDer4_h, x), config);
+		}
 		static Real NThirdDer2(const IRealFunction& f, Real x, Real h, Real* error = nullptr)
 		{
-			Real yh = f(x + h);
-			Real ymh = f(x - h);
-			Real y2h = f(x + 2*h);
-			Real ym2h = f(x - 2*h);
-			
-			Real h3 = h * h * h;
-			Real result = (-ym2h + 2.0*ymh - 2.0*yh + y2h) / (2.0 * h3);
-			
+			DerivativeConfig config;
+			config.estimate_error = (error != nullptr);
+			auto result = NThirdDer2Detailed(f, x, h, config);
 			if (error)
-			{
-				// Error estimate using 5th derivative approximation
-				Real y3h = f(x + 3*h);
-				Real ym3h = f(x - 3*h);
-				Real f5_approx = std::abs(ym3h - 3*ym2h + 5*ymh - 5*yh + 3*y2h - y3h) / h3;
-				
-				*error = f5_approx * h * h / 4.0 + 
-				         Constants::Eps * (std::abs(ym2h) + 2*std::abs(ymh) + 2*std::abs(yh) + std::abs(y2h)) / (2.0 * h3);
-			}
-			
-			return result;
+				*error = result.error;
+			return result.value;
 		}
 		static Real NThirdDer2(const IRealFunction& f, Real x, Real* error = nullptr)
 		{
@@ -338,31 +511,47 @@ namespace MML
 
 		// f'''(x) ≈ [f(x-3h) - 8f(x-2h) + 13f(x-h) - 13f(x+h) + 8f(x+2h) - f(x+3h)] / (8h³)
 		// Fourth-order accurate (O(h⁴)), 6 function evaluations
+		static DerivativeResult<Real> NThirdDer4Detailed(const IRealFunction& f, Real x, Real h,
+		                                                const DerivativeConfig& config = {})
+		{
+			return Detail::ExecuteDerivativeDetailed("NThirdDer4", h, config, 6, 8,
+				[&](Real* error) {
+					Real yh = f(x + h);
+					Real ymh = f(x - h);
+					Real y2h = f(x + 2 * h);
+					Real ym2h = f(x - 2 * h);
+					Real y3h = f(x + 3 * h);
+					Real ym3h = f(x - 3 * h);
+
+					Real h3 = h * h * h;
+					Real result = (ym3h - 8.0 * ym2h + 13.0 * ymh - 13.0 * yh + 8.0 * y2h - y3h) / (8.0 * h3);
+
+					if (error)
+					{
+						Real y4h = f(x + 4 * h);
+						Real ym4h = f(x - 4 * h);
+						Real f7_approx = std::abs(ym4h - 4 * ym3h + 9 * ym2h - 13 * ymh + 13 * yh - 9 * y2h + 4 * y3h - y4h) / h3;
+						*error = f7_approx * h * h * h * h / 120.0 +
+						         Constants::Eps * (std::abs(ym3h) + 8 * std::abs(ym2h) + 13 * std::abs(ymh) +
+						                           13 * std::abs(yh) + 8 * std::abs(y2h) + std::abs(y3h)) / (8.0 * h3);
+					}
+
+					return result;
+				});
+		}
+		static DerivativeResult<Real> NThirdDer4Detailed(const IRealFunction& f, Real x,
+		                                                const DerivativeConfig& config = {})
+		{
+			return NThirdDer4Detailed(f, x, Detail::ResolveDerivativeStep(config, NDer4_h, x), config);
+		}
 		static Real NThirdDer4(const IRealFunction& f, Real x, Real h, Real* error = nullptr)
 		{
-			Real yh = f(x + h);
-			Real ymh = f(x - h);
-			Real y2h = f(x + 2*h);
-			Real ym2h = f(x - 2*h);
-			Real y3h = f(x + 3*h);
-			Real ym3h = f(x - 3*h);
-			
-			Real h3 = h * h * h;
-			Real result = (ym3h - 8.0*ym2h + 13.0*ymh - 13.0*yh + 8.0*y2h - y3h) / (8.0 * h3);
-			
+			DerivativeConfig config;
+			config.estimate_error = (error != nullptr);
+			auto result = NThirdDer4Detailed(f, x, h, config);
 			if (error)
-			{
-				// Error estimate using 7th derivative approximation
-				Real y4h = f(x + 4*h);
-				Real ym4h = f(x - 4*h);
-				Real f7_approx = std::abs(ym4h - 4*ym3h + 9*ym2h - 13*ymh + 13*yh - 9*y2h + 4*y3h - y4h) / h3;
-				
-				*error = f7_approx * h * h * h * h / 120.0 + 
-				         Constants::Eps * (std::abs(ym3h) + 8*std::abs(ym2h) + 13*std::abs(ymh) + 
-				                           13*std::abs(yh) + 8*std::abs(y2h) + std::abs(y3h)) / (8.0 * h3);
-			}
-			
-			return result;
+				*error = result.error;
+			return result.value;
 		}
 		static Real NThirdDer4(const IRealFunction& f, Real x, Real* error = nullptr)
 		{

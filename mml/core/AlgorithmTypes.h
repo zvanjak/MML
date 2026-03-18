@@ -169,6 +169,104 @@ namespace MML {
 	};
 
 	/******************************************************************************/
+	/*****              Non-Iterative Evaluation Contract Types               *****/
+	/******************************************************************************/
+
+	/// Policy for handling exceptions raised during evaluation-style algorithms.
+	///
+	/// Numerical differentiation and similar operations often sit on the boundary
+	/// between pure mathematical evaluation and algorithm execution. This policy
+	/// lets detailed APIs either preserve the existing exception behavior or map
+	/// expected runtime failures into AlgorithmStatus-based results.
+	enum class EvaluationExceptionPolicy {
+		/// Preserve existing behavior and rethrow exceptions to the caller
+		Propagate = 0,
+
+		/// Catch supported exceptions and report them via AlgorithmStatus
+		ConvertToStatus = 1
+	};
+
+	/// Base configuration for non-iterative evaluation algorithms.
+	///
+	/// This covers one-shot numerical operations such as differentiation,
+	/// interpolation probes, and other evaluation helpers that do not have a
+	/// converged/iterations lifecycle but still need configurable diagnostics.
+	struct EvaluationConfigBase {
+		/// Whether detailed APIs should compute and populate an error estimate
+		bool estimate_error = true;
+
+		/// Whether detailed APIs should validate finiteness of intermediate values
+		bool check_finite = true;
+
+		/// Whether exceptions should propagate or be converted into status results
+		EvaluationExceptionPolicy exception_policy = EvaluationExceptionPolicy::Propagate;
+	};
+
+	/// Base result for non-iterative evaluation algorithms.
+	///
+	/// Unlike IterativeResultBase, this does not model convergence or iteration
+	/// counts. It captures the shared diagnostics that still matter for single-shot
+	/// numerical operations: structured status, message, timing, and evaluation count.
+	struct EvaluationResultBase {
+		/// Structured status code for programmatic handling
+		AlgorithmStatus status = AlgorithmStatus::Success;
+
+		/// Human-readable error message (empty on success)
+		std::string error_message;
+
+		/// Name of the algorithm that produced this result
+		std::string algorithm_name;
+
+		/// Wall-clock execution time in milliseconds
+		double elapsed_time_ms = 0.0;
+
+		/// Number of function evaluations performed
+		int function_evaluations = 0;
+
+		/// Convenience success check for detailed APIs
+		[[nodiscard]] bool IsSuccess() const noexcept {
+			return status == AlgorithmStatus::Success;
+		}
+
+		/// Allow `if (result)` style checks in user code
+		explicit operator bool() const noexcept {
+			return IsSuccess();
+		}
+	};
+
+	/// Generic value + error result for evaluation algorithms.
+	///
+	/// @tparam TValue Primary output value type
+	/// @tparam TError Error estimate type (defaults to TValue)
+	template<typename TValue, typename TError = TValue>
+	struct EvaluationResult : public EvaluationResultBase {
+		/// Primary computed value
+		TValue value{};
+
+		/// Error estimate associated with the computed value
+		TError error{};
+	};
+
+	/// Configuration for numerical differentiation algorithms.
+	///
+	/// Step selection is derivative-specific, so it lives here rather than in the
+	/// generic EvaluationConfigBase. A zero step means "choose automatically".
+	struct DerivativeConfig : public EvaluationConfigBase {
+		/// User-specified step size; 0 means use algorithm-selected default scaling
+		Real step = 0.0;
+	};
+
+	/// Detailed result for numerical differentiation algorithms.
+	///
+	/// Extends the generic evaluation result with the effective step size used by
+	/// the derivative stencil.
+	template<typename TValue, typename TError = TValue>
+	struct DerivativeResult : public EvaluationResult<TValue, TError> {
+		/// Actual step size used by the derivative evaluation
+		Real step_used = 0.0;
+	};
+
+	/******************************************************************************/
 	/*****                    Algorithm Timer Utility                         *****/
 	/******************************************************************************/
 
@@ -257,6 +355,44 @@ namespace MML {
 		result.status = status;
 		result.error_message = error_message;
 		result.algorithm_name = algorithm_name;
+		return result;
+	}
+
+	/// Create a success result for a non-iterative evaluation algorithm.
+	///
+	/// @tparam ResultType The algorithm-specific evaluation result type
+	/// @param algorithm_name Name of the algorithm
+	/// @param function_evaluations Number of function evaluations performed
+	/// @return ResultType with success fields populated
+	template<typename ResultType>
+	ResultType MakeEvaluationSuccessResult(const std::string& algorithm_name,
+	                                      int function_evaluations = 0) {
+		ResultType result;
+		result.status = AlgorithmStatus::Success;
+		result.error_message.clear();
+		result.algorithm_name = algorithm_name;
+		result.function_evaluations = function_evaluations;
+		return result;
+	}
+
+	/// Create a failure result for a non-iterative evaluation algorithm.
+	///
+	/// @tparam ResultType The algorithm-specific evaluation result type
+	/// @param status The failure status code
+	/// @param error_message Descriptive error message
+	/// @param algorithm_name Name of the algorithm
+	/// @param function_evaluations Number of function evaluations performed
+	/// @return ResultType with failure fields populated
+	template<typename ResultType>
+	ResultType MakeEvaluationFailureResult(AlgorithmStatus status,
+	                                     const std::string& error_message,
+	                                     const std::string& algorithm_name,
+	                                     int function_evaluations = 0) {
+		ResultType result;
+		result.status = status;
+		result.error_message = error_message;
+		result.algorithm_name = algorithm_name;
+		result.function_evaluations = function_evaluations;
 		return result;
 	}
 
