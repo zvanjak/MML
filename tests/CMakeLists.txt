@@ -206,11 +206,6 @@ add_executable(MML_Tests
 # Link against Catch2WithMain and MML_Packages for includes
 target_link_libraries(MML_Tests PRIVATE 
     Catch2::Catch2WithMain
-    MML_Fourier
-    MML_Optimization
-    MML_PDE
-    MML_Statistics
-    MML_Symbolic
 )
 
 target_include_directories(MML_Tests PRIVATE 
