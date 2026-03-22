@@ -145,7 +145,7 @@ namespace MML
 		template <int N>
 		static VectorN<Real, N> NDer2_uw(const IParametricSurfaceRect<N>& f, Real u, Real w, Real h, Real* error = nullptr)
 		{
-			return NDer2_uw(f, u, w, h, h, error);
+			return NDer2_uw<N>(f, u, w, h, h, error);
 		}
 		template <int N>
 		static VectorN<Real, N> NDer2_uw(const IParametricSurfaceRect<N>& f, Real u, Real w, Real h_u, Real h_w, Real* error = nullptr)
