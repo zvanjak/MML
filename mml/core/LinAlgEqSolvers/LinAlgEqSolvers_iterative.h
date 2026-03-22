@@ -146,11 +146,15 @@ namespace MML
 			if (b.size() != n)
 				throw MatrixDimensionError("JacobiSolver::Solve - vector b dimension mismatch", n, n, b.size(), -1);
 			
-			// Check for zero diagonal elements
+			// Check for near-zero diagonal elements (tolerance-based)
+			Real maxDiag = Real{0};
+			for (int i = 0; i < n; i++) { Real mag = std::abs(A(i, i)); if (mag > maxDiag) maxDiag = mag; }
+			Real diagTol = maxDiag * std::numeric_limits<Real>::epsilon();
+			if (diagTol < std::numeric_limits<Real>::epsilon()) diagTol = std::numeric_limits<Real>::epsilon();
 			for (int i = 0; i < n; i++)
 			{
-				if (A(i, i) == 0.0)
-					throw SingularMatrixError("JacobiSolver::Solve - zero diagonal element at row " + std::to_string(i));
+				if (std::abs(A(i, i)) < diagTol)
+					throw SingularMatrixError("JacobiSolver::Solve - near-zero diagonal element at row " + std::to_string(i));
 			}
 			
 			// Initialize solution vector
@@ -296,11 +300,15 @@ namespace MML
 			if (b.size() != n)
 				throw MatrixDimensionError("GaussSeidelSolver::Solve - vector b dimension mismatch", n, n, b.size(), -1);
 			
-			// Check for zero diagonal elements
+			// Check for near-zero diagonal elements (tolerance-based)
+			Real maxDiag = Real{0};
+			for (int i = 0; i < n; i++) { Real mag = std::abs(A(i, i)); if (mag > maxDiag) maxDiag = mag; }
+			Real diagTol = maxDiag * std::numeric_limits<Real>::epsilon();
+			if (diagTol < std::numeric_limits<Real>::epsilon()) diagTol = std::numeric_limits<Real>::epsilon();
 			for (int i = 0; i < n; i++)
 			{
-				if (A(i, i) == 0.0)
-					throw SingularMatrixError("GaussSeidelSolver::Solve - zero diagonal element at row " + std::to_string(i));
+				if (std::abs(A(i, i)) < diagTol)
+					throw SingularMatrixError("GaussSeidelSolver::Solve - near-zero diagonal element at row " + std::to_string(i));
 			}
 			
 			// Initialize solution vector
@@ -460,11 +468,15 @@ namespace MML
 			if (b.size() != n)
 				throw MatrixDimensionError("SORSolver::Solve - vector b dimension mismatch", n, n, b.size(), -1);
 			
-			// Check for zero diagonal elements
+			// Check for near-zero diagonal elements (tolerance-based)
+			Real maxDiag = Real{0};
+			for (int i = 0; i < n; i++) { Real mag = std::abs(A(i, i)); if (mag > maxDiag) maxDiag = mag; }
+			Real diagTol = maxDiag * std::numeric_limits<Real>::epsilon();
+			if (diagTol < std::numeric_limits<Real>::epsilon()) diagTol = std::numeric_limits<Real>::epsilon();
 			for (int i = 0; i < n; i++)
 			{
-				if (A(i, i) == 0.0)
-					throw SingularMatrixError("SORSolver::Solve - zero diagonal element at row " + std::to_string(i));
+				if (std::abs(A(i, i)) < diagTol)
+					throw SingularMatrixError("SORSolver::Solve - near-zero diagonal element at row " + std::to_string(i));
 			}
 			
 			// Initialize solution vector

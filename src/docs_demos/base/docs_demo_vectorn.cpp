@@ -54,9 +54,9 @@ void Demo_VectorN_Construction()
 
     // Unit vectors
     std::cout << "\nUnit vectors:" << std::endl;
-    auto e0 = VectorN<double, 3>::GetUnitVector(0);
-    auto e1 = VectorN<double, 3>::GetUnitVector(1);
-    auto e2 = VectorN<double, 3>::GetUnitVector(2);
+    auto e0 = VectorN<double, 3>::UnitVector(0);
+    auto e1 = VectorN<double, 3>::UnitVector(1);
+    auto e2 = VectorN<double, 3>::UnitVector(2);
     std::cout << "  e0 = GetUnitVector(0): " << e0 << std::endl;
     std::cout << "  e1 = GetUnitVector(1): " << e1 << std::endl;
     std::cout << "  e2 = GetUnitVector(2): " << e2 << std::endl;
@@ -354,9 +354,9 @@ void Demo_VectorN_TypeAliases()
 
     // Unit vector operations with type aliases
     std::cout << "\nUnit vector operations with type aliases:" << std::endl;
-    Vec3 i = Vec3::GetUnitVector(0);  // [1, 0, 0]
-    Vec3 j = Vec3::GetUnitVector(1);  // [0, 1, 0]
-    Vec3 k = Vec3::GetUnitVector(2);  // [0, 0, 1]
+    Vec3 i = Vec3::UnitVector(0);  // [1, 0, 0]
+    Vec3 j = Vec3::UnitVector(1);  // [0, 1, 0]
+    Vec3 k = Vec3::UnitVector(2);  // [0, 0, 1]
 
     Vec3 combined = 3.0*i + 4.0*j + 0.0*k;  // [3, 4, 0]
     std::cout << "  3*i + 4*j + 0*k = " << combined << std::endl;
@@ -422,9 +422,9 @@ void Demo_VectorN_Physics()
 
     // 3D rotation concept (simplified)
     std::cout << "\nUnit vector basis:" << std::endl;
-    Vec3 ex = Vec3::GetUnitVector(0);
-    Vec3 ey = Vec3::GetUnitVector(1);
-    Vec3 ez = Vec3::GetUnitVector(2);
+    Vec3 ex = Vec3::UnitVector(0);
+    Vec3 ey = Vec3::UnitVector(1);
+    Vec3 ez = Vec3::UnitVector(2);
     
     std::cout << "  ex (right):   " << ex << std::endl;
     std::cout << "  ey (up):      " << ey << std::endl;

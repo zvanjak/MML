@@ -100,10 +100,10 @@ namespace MML {
 
 
 		/// @brief Returns the number of rows.
-		int RowNum() const { return _dim; }
+		int rows() const { return _dim; }
 
 		/// @brief Returns the number of columns.
-		int ColNum() const { return _dim; }
+		int cols() const { return _dim; }
 		/// /** @} */
 
 

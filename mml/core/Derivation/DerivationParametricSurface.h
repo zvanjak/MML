@@ -49,7 +49,7 @@ namespace MML
 		template <int N>
 		static VectorN<Real, N> NDer1_u(const IParametricSurfaceRect<N>& f, Real u, Real w, Real* error = nullptr)
 		{
-			return NDer1_u(f, u, w, NDer1_h, error);
+			return NDer1_u(f, u, w, ScaleStep(NDer1_h, u), error);
 		}
 		template <int N>
 		static VectorN<Real, N> NDer1_w(const IParametricSurfaceRect<N>& f, Real u, Real w, Real h, Real* error = nullptr)
@@ -72,7 +72,7 @@ namespace MML
 		template <int N>
 		static VectorN<Real, N> NDer1_w(const IParametricSurfaceRect<N>& f, Real u, Real w, Real* error = nullptr)
 		{
-			return NDer1_w(f, u, w, NDer1_h, error);
+			return NDer1_w(f, u, w, ScaleStep(NDer1_h, w), error);
 		}
 	
 		/********************************************************************************************************************/
@@ -97,7 +97,7 @@ namespace MML
 		template <int N>
 		static VectorN<Real, N> NDer2_u(const IParametricSurfaceRect<N>& f, Real u, Real w, Real* error = nullptr)
 		{
-			return NDer2_u(f, u, w, NDer2_h, error);
+			return NDer2_u(f, u, w, ScaleStep(NDer2_h, u), error);
 		}
 		template <int N>
 		static VectorN<Real, N> NDer2_w(const IParametricSurfaceRect<N>& f, Real u, Real w, Real h, Real* error = nullptr)
@@ -116,7 +116,7 @@ namespace MML
 		template <int N>
 		static VectorN<Real, N> NDer2_w(const IParametricSurfaceRect<N>& f, Real u, Real w, Real* error = nullptr)
 		{
-			return NDer2_w(f, u, w, NDer2_h, error);
+			return NDer2_w(f, u, w, ScaleStep(NDer2_h, w), error);
 		}
 
 		/********************************************************************************************************************/
@@ -139,33 +139,39 @@ namespace MML
 		template <int N>
 		static VectorN<Real, N> NDer2_uu(const IParametricSurfaceRect<N>& f, Real u, Real w, Real* error = nullptr)
 		{
-			return NDer2_uu(f, u, w, NDer2_h, error);
+			return NDer2_uu(f, u, w, ScaleStep(NDer2_h, u), error);
 		}
 
 		template <int N>
 		static VectorN<Real, N> NDer2_uw(const IParametricSurfaceRect<N>& f, Real u, Real w, Real h, Real* error = nullptr)
 		{
-			// Correct formula for mixed partial derivative: ∂²f/∂u∂w
-			// Use central difference: [f(u+h,w+h) - f(u+h,w-h) - f(u-h,w+h) + f(u-h,w-h)] / (4h²)
-			VectorN<Real, N> fpp = f(u + h, w + h);  // f(u+h, w+h)
-			VectorN<Real, N> fpm = f(u + h, w - h);  // f(u+h, w-h)
-			VectorN<Real, N> fmp = f(u - h, w + h);  // f(u-h, w+h)
-			VectorN<Real, N> fmm = f(u - h, w - h);  // f(u-h, w-h)
+			return NDer2_uw(f, u, w, h, h, error);
+		}
+		template <int N>
+		static VectorN<Real, N> NDer2_uw(const IParametricSurfaceRect<N>& f, Real u, Real w, Real h_u, Real h_w, Real* error = nullptr)
+		{
+			// Mixed partial derivative: ∂²f/∂u∂w
+			// Central difference: [f(u+hu,w+hw) - f(u+hu,w-hw) - f(u-hu,w+hw) + f(u-hu,w-hw)] / (4*hu*hw)
+			VectorN<Real, N> fpp = f(u + h_u, w + h_w);
+			VectorN<Real, N> fpm = f(u + h_u, w - h_w);
+			VectorN<Real, N> fmp = f(u - h_u, w + h_w);
+			VectorN<Real, N> fmm = f(u - h_u, w - h_w);
 			
 			VectorN<Real, N> diff = fpp - fpm - fmp + fmm;
 			
 			if (error)
 			{
-				// Error estimate for mixed partial
 				Real norm_sum = fpp.NormL2() + fpm.NormL2() + fmp.NormL2() + fmm.NormL2();
-				*error = norm_sum * Constants::Eps / (4 * h * h);
+				*error = norm_sum * Constants::Eps / (4 * h_u * h_w);
 			}
-			return diff / (4 * h * h);
+			return diff / (4 * h_u * h_w);
 		}
 		template <int N>
 		static VectorN<Real, N> NDer2_uw(const IParametricSurfaceRect<N>& f, Real u, Real w, Real* error = nullptr)
 		{
-			return NDer2_uw(f, u, w, NDer2_h, error);
+			// Scale step by max parameter magnitude for stability at large u, w
+			Real scale = std::max(std::abs(u), std::abs(w));
+			return NDer2_uw(f, u, w, ScaleStep(NDer2_h, scale), error);
 		}
 
 		template <int N>
@@ -185,7 +191,7 @@ namespace MML
 		template <int N>
 		static VectorN<Real, N> NDer2_ww(const IParametricSurfaceRect<N>& f, Real u, Real w, Real* error = nullptr)
 		{
-			return NDer2_ww(f, u, w, NDer2_h, error);
+			return NDer2_ww(f, u, w, ScaleStep(NDer2_h, w), error);
 		}
 	}
 }

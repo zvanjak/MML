@@ -90,8 +90,8 @@ void Demo_MatrixSym_Properties()
     // Dimensions
     std::cout << "\nDimensions:" << std::endl;
     std::cout << "  Dim():    " << S.Dim() << std::endl;
-    std::cout << "  RowNum(): " << S.rows() << std::endl;
-    std::cout << "  ColNum(): " << S.cols() << std::endl;
+    std::cout << "  rows(): " << S.rows() << std::endl;
+    std::cout << "  cols(): " << S.cols() << std::endl;
     std::cout << "  empty():  " << (S.empty() ? "true" : "false") << std::endl;
 
     // Storage efficiency
@@ -207,7 +207,7 @@ void Demo_MatrixTriDiag()
     T.Print(std::cout, 8, 3);
 
     // Storage efficiency
-    int n = T.RowNum();
+    int n = T.rows();
     size_t fullStorage = n * n;
     size_t triStorage = 3 * n - 2;  // Main + above + below
     std::cout << "\nStorage comparison:" << std::endl;

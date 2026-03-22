@@ -85,7 +85,7 @@ namespace MML::Tests::Core::CurvesTests
 		}
 	}
 
-	TEST_CASE("Test_Helix_getNormalUnit", "[curves]")
+	TEST_CASE("Test_Helix_getNormal_unit_vector_property", "[curves]")
 	{
 			TEST_PRECISION_INFO();
 		const CurveCartesian3D& helix_curve = TestBeds::ParametricCurvesTestBed::getTestCurve("Helix")._curve;
@@ -94,17 +94,10 @@ namespace MML::Tests::Core::CurvesTests
 
 		for (Real t : test_params)
 		{
-			Vec3Cart normal_unit = helix_curve.getNormalUnit(t);
-
-			// Unit vector should have norm = 1
-			REQUIRE_THAT(normal_unit.NormL2(), WithinAbs(REAL(1.0), REAL(1e-10)));
-
-			// Should be parallel to normal (second derivative) vector
 			Vec3Cart normal = helix_curve.getNormal(t);
-			Real scale = normal.NormL2();
-			REQUIRE_THAT(normal_unit[0], WithinAbs(normal[0] / scale, REAL(1e-7)));
-			REQUIRE_THAT(normal_unit[1], WithinAbs(normal[1] / scale, REAL(1e-7)));
-			REQUIRE_THAT(normal_unit[2], WithinAbs(normal[2] / scale, REAL(1e-7)));
+
+			// getNormal returns unit vector (Frenet principal normal)
+			REQUIRE_THAT(normal.NormL2(), WithinAbs(REAL(1.0), REAL(1e-10)));
 		}
 	}
 
@@ -122,7 +115,7 @@ namespace MML::Tests::Core::CurvesTests
 
 		for (Real t : test_params)
 		{
-			Vec3Cart principal_normal = helix_curve.getNormalUnit(t);
+			Vec3Cart principal_normal = helix_curve.getNormal(t);
 
 			// For helix, principal normal points radially inward (toward z-axis)
 			// Expected: {-cos(t), -sin(t), 0} normalized
@@ -151,7 +144,7 @@ namespace MML::Tests::Core::CurvesTests
 		{
 			Vec3Cart binormal = helix_curve.getBinormal(t);
 			Vec3Cart tangent_unit = helix_curve.getTangentUnit(t);
-			Vec3Cart normal_unit = helix_curve.getNormalUnit(t);
+			Vec3Cart normal_unit = helix_curve.getNormal(t);
 
 			// Binormal should be unit vector
 			REQUIRE_THAT(binormal.NormL2(), WithinAbs(REAL(1.0), REAL(1e-10)));
@@ -304,5 +297,39 @@ namespace MML::Tests::Core::CurvesTests
 		REQUIRE_THAT(schaum_curve2.getTorsion(REAL(1.5)), WithinAbs(torsion_func(REAL(1.5)), REAL(1e-6)));
 		REQUIRE_THAT(schaum_curve2.getTorsion(REAL(3.5)), WithinAbs(torsion_func(REAL(3.5)), REAL(1e-6)));
 		REQUIRE_THAT(schaum_curve2.getTorsion(REAL(10.5)), WithinAbs(torsion_func(REAL(10.5)), REAL(1e-7)));
+	}
+
+	//=========================================================================
+	// Polar curvature tests
+	//=========================================================================
+
+	// Radial line in polar coords: r(t) = t, θ = const (straight line → κ = 0)
+	class RadialLine : public ICurvePolar2D
+	{
+		Real _angle;
+	public:
+		RadialLine(Real angle = 0.0) : _angle(angle) {}
+		Real getMinT() const { return REAL(0.1); }
+		Real getMaxT() const { return REAL(10.0); }
+		VectorN<Real, 2> operator()(Real t) const { return VectorN<Real, 2>{t, _angle}; }
+	};
+
+	TEST_CASE("getCurvaturePolar2D - Radial line has zero curvature", "[curves][polar]")
+	{
+		TEST_PRECISION_INFO();
+		RadialLine line(Constants::PI / 4);
+		// A straight radial line must have κ = 0
+		REQUIRE_THAT(getCurvaturePolar2D(line, REAL(1.0)), WithinAbs(REAL(0.0), REAL(1e-6)));
+		REQUIRE_THAT(getCurvaturePolar2D(line, REAL(5.0)), WithinAbs(REAL(0.0), REAL(1e-6)));
+	}
+
+	TEST_CASE("getCurvaturePolar2D - Circle has curvature 1/R", "[curves][polar]")
+	{
+		TEST_PRECISION_INFO();
+		Real R = REAL(3.0);
+		Circle2DCurvePolar circle(R);
+		// κ = 1/R for a circle of radius R
+		REQUIRE_THAT(getCurvaturePolar2D(circle, REAL(0.5)), WithinAbs(REAL(1.0) / R, REAL(1e-6)));
+		REQUIRE_THAT(getCurvaturePolar2D(circle, REAL(2.0)), WithinAbs(REAL(1.0) / R, REAL(1e-6)));
 	}
 }

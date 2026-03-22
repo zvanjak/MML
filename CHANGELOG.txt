@@ -1,0 +1,148 @@
+// Changes through versions
+
+Version 1.2.1 - To be released
+================================================================================
+
+Comprehensive correctness, quality, and architecture release following deep
+static analysis by GPT-5.3, GPT-5.4, Claude Sonnet 4.6, and Claude Opus 4.6.
+168 commits since 1.2 (2026-03-10 to 2026-03-21). All fixes verified by the
+full Catch2 test suite.
+
+CORRECTNESS FIXES (46 bugs)
+--------------------------------------------------------------------------------
+
+  The centrepiece of 1.2.1 is a massive correctness sweep driven by four
+  independent AI-assisted deep analyses. Every fix includes new or updated
+  unit tests.
+
+  Critical (P0) - 19 bugs fixed
+
+    First-round patches (epic be6t, 12 bugs):
+    - Fix MatrixOps::Exp() factorial off-by-one producing wrong matrix exponential
+    - Fix VectorProjectionParallelTo returning projection onto wrong axis
+    - Fix FromEulerXYZ producing identical output to FromEulerZYX
+    - Add partial pivoting to RankGaussian elimination
+    - Rename misleading spectral graph functions (AlgebraicConnectivity, etc.)
+    - Fix float-suffix literals in double/long double PrecisionValues (4 sites)
+    - Fix floating-point accumulation drift in SerializerCurves loop
+    - Clamp cosAngle before acos in VectorsAngle (prevent NaN)
+    - Fix step count header/data mismatch in SerializerSimulation
+    - Guard spherical coord theta() against r=0 singularity
+    - Rename DefaultToleranceRelaxed -> DefaultToleranceStrict (name was inverted)
+    - Scale numerical differentiation step sizes with |x| across all overloads
+
+    Deep-analysis CRITICAL fixes (epic z5pg C1-C7, 7 bugs):
+    - Fix Point3Spherical::Dist using wrong formula (41% error on basic case)
+    - Fix periodic hole detection truncation in interval domains
+    - Fix cylindrical unit vector normalization (dimensionally meaningless formula)
+    - Fix LU solver masking singular pivots with TINY (silent garbage solutions)
+    - Fix getCurvaturePolar2D zeroing derivatives for radial curves
+    - Fix surface normal NaN from degenerate cross product at cusps
+    - Fix double pendulum omega-squared sign inversions (4 flipped signs)
+
+  High (P1) - 18 bugs fixed (epic z5pg H1-H18)
+
+    - Fix AngleToVector NaN on zero vector - now throws DivisionByZeroError
+    - Fix DAESystem nullptr silent no-op - validate in constructor
+    - Fix Slerp threshold instability - guard sinTheta directly
+    - Fix Factorial functions on negative input - throw domain_error
+    - Add singularity guards to reciprocal trig functions (csc, sec, cot)
+    - Scale tridiagonal solve epsilon by max diagonal magnitude
+    - Replace exact-zero diagonal checks with tolerance in iterative solvers
+    - Fix surface derivatives missing ScaleStep in parametric derivation
+    - Fix metric tensor unguarded singularities at coordinate poles
+    - Fix DCT InverseII_Fast DC coefficient double-halving
+    - Fix Lyapunov variational Jacobian evaluated at wrong point
+    - Fix polynomial solver missing a=0 degenerate guards (quadratic/cubic/quartic)
+    - Fix DAE Radau IIA final step overshooting t_end
+    - Fix BairstowRoots returning garbage on non-convergence
+    - Fix ThreadPool error_callback data race
+    - Fix 3D SaveParticleSimulation missing saveEveryNSteps filter
+    - Fix CSV LoadFromCSVString DATE/TIME data loss
+    - Fix JSON ParseArrayOfObjects DATE/TIME data loss
+
+  Medium (P1-promoted) - 9 bugs fixed (epic z5pg M-series)
+
+    - Scale Matrix::Invert singularity threshold by matrix norm
+    - Fix ODESystemSolution size/isEmpty reflecting capacity, not actual data
+    - Fix Tensor initializer list silent truncation (now throws on overflow)
+    - Fix IsEqualTo Complex type mismatch in Matrix/MatrixSym/MatrixNM
+    - Fix adaptive 2D integration tolerance underflow to zero in deep recursion
+    - Fix IntegrateTrap/Simpson/Romberg impossible convergence near zero
+    - Fix CoordSystem one_lat_deg_in_km variable naming (was computing longitude)
+    - Fix CashKarp interpolation: proper Hermite endpoint derivative (O(h^4))
+    - Fix reinterpret_cast undefined behaviour in SerializerSurfaces.h
+
+API & DESIGN IMPROVEMENTS
+--------------------------------------------------------------------------------
+
+  API standardization (epic jcta):
+  - Standardize Config/Result/AlgorithmStatus pattern across 11 subsystems:
+    derivation, integration, Fourier, linear algebra, curve fitting, ODE/DAE,
+    dynamic systems, Monte Carlo, Gaussian quadrature, path/surface integration,
+    and statistics
+  - Add Detailed API variants with full diagnostics for all major algorithms
+  - Add strong Wolfe conditions line search to BFGS optimizer
+
+  New APIs and features:
+  - Add MMLException base class for all 32 library exceptions
+  - Add VectorN iterators: begin/end/cbegin/cend/data (STL-compatible)
+  - Add Random::SetSeed() for reproducible simulations
+  - Add std::function-based ODE system interface (ODESystemFromStdFunc)
+  - Add covariant/contravariant tensor index distinction with raising/lowering
+  - Add duplicate x-value validation in polynomial interpolation
+  - Add static_assert for positive dimensions in MatrixNM
+  - Templatize SVDecompositionSolver<Type> to match QRSolver/LUSolver
+  - jacobian() now throws NotImplementedError instead of silent no-op
+
+  Encapsulation improvements:
+  - Make QRSolver fields private with public accessors
+  - Make MatrixNM::_vals private
+  - Make Tensor member variables private
+  - Document MatrixViewNew dangling pointer lifetime risk
+
+CODE QUALITY & PERFORMANCE
+--------------------------------------------------------------------------------
+
+  - Remove return std::move(ret) anti-pattern at 39 call sites (enables NRVO)
+  - Remove redundant copy in Vector::Resize
+  - Fix normalizeAngle from O(n) loop to O(1) with std::fmod
+  - Scale singularity thresholds by matrix norm across Gauss-Jordan/LU/QR
+  - Use std::filesystem::path for OS-portable path construction
+  - Replace GRAPH_NOT_FOUND sentinel (size_t(-1)) with named constant
+  - Naming convention audit: 22 methods renamed, ~183 call sites updated
+
+ARCHITECTURE & REORGANIZATION
+--------------------------------------------------------------------------------
+
+  Module moves (into core mml/algorithms/):
+  - Move DFT/FFT/DCT into algorithms/Fourier.h
+  - Move OptimizationMultidim.h into core algorithms
+  - Move CoreDistributions + Distributions into algorithms/Distributions.h
+  - Move statistics files into algorithms/Statistics/ subfolder
+
+  Header layering:
+  - Extract Real typedef to MMLTypeDefs.h - fix include cycle
+  - Extract MatrixPrintFormat, remove MMLVisualizators.h from MMLBase.h
+  - Break upward VectorTypes -> Geometry3D dependency
+  - Rename 6 ODE header files for consistent naming convention
+
+  Cleanup:
+  - Remove Tier 1 and Tier 2 legacy/backward compatibility code
+  - Archive math_engine/ and mml_packages/ - removed from build
+  - Regenerate single header (MML.h) with all 27 previously missing files
+  - Ensure Real=float compilation across all headers and tests
+
+ANALYSIS & DOCUMENTATION
+--------------------------------------------------------------------------------
+
+  Four independent deep-dive code analyses completed:
+  - GPT-5.3 Codex: 5-phase analysis (base, core, algorithms, tools, final)
+  - GPT-5.4: 5-phase analysis v2
+  - Claude Sonnet 4.6: 5-phase analysis with grading (overall B+/86)
+  - Claude Opus 4.6: correctness-focused analysis identifying 51 bugs
+  Reports archived under analysis/ directory.
+
+================================================================================
+
+Version 1.2 - Released on 2026-03-10

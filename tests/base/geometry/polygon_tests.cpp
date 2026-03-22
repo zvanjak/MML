@@ -375,7 +375,7 @@ TEST_CASE("Polygon2D - Triangularization", "[Polygon2D][Triangularization]")
     REQUIRE(triangles3.size() == 3);
 }
 
-TEST_CASE("Polygon2D - Legacy compatibility", "[Polygon2D][Legacy]")
+TEST_CASE("Polygon2D - Vertices and Contains", "[Polygon2D][access]")
 {
     Polygon2D poly{
         Point2Cartesian(0, 0),
@@ -383,13 +383,13 @@ TEST_CASE("Polygon2D - Legacy compatibility", "[Polygon2D][Legacy]")
         Point2Cartesian(1, 1)
     };
     
-    // Points() should return vertices
-    auto points = poly.Points();
+    // Vertices() should return vertices
+    auto points = poly.Vertices();
     REQUIRE(points.size() == 3);
     
-    // IsInside() should work like Contains()
-    REQUIRE(poly.IsInside(Point2Cartesian(REAL(0.5), REAL(0.25))));
-    REQUIRE_FALSE(poly.IsInside(Point2Cartesian(2, 2)));
+    // Contains() point-in-polygon test
+    REQUIRE(poly.Contains(Point2Cartesian(REAL(0.5), REAL(0.25))));
+    REQUIRE_FALSE(poly.Contains(Point2Cartesian(2, 2)));
 }
 
 TEST_CASE("Polygon2D - Edge cases", "[Polygon2D][EdgeCases]")

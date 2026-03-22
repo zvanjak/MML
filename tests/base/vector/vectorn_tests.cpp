@@ -155,20 +155,20 @@ namespace MML::Tests::Base::VectorNTests
 	//                    Factory Methods Tests                              //
 	///////////////////////////////////////////////////////////////////////////
 
-	TEST_CASE("VectorN::GetUnitVector", "[VectorN][factory]")
+	TEST_CASE("VectorN::UnitVector", "[VectorN][factory]")
 	{
 		TEST_PRECISION_INFO();
-		auto e0 = VectorN<Real, 3>::GetUnitVector(0);
+		auto e0 = VectorN<Real, 3>::UnitVector(0);
 		REQUIRE(e0[0] == REAL(1.0));
 		REQUIRE(e0[1] == REAL(0.0));
 		REQUIRE(e0[2] == REAL(0.0));
 		
-		auto e1 = VectorN<Real, 3>::GetUnitVector(1);
+		auto e1 = VectorN<Real, 3>::UnitVector(1);
 		REQUIRE(e1[0] == REAL(0.0));
 		REQUIRE(e1[1] == REAL(1.0));
 		REQUIRE(e1[2] == REAL(0.0));
 		
-		auto e2 = VectorN<Real, 3>::GetUnitVector(2);
+		auto e2 = VectorN<Real, 3>::UnitVector(2);
 		REQUIRE(e2[0] == REAL(0.0));
 		REQUIRE(e2[1] == REAL(0.0));
 		REQUIRE(e2[2] == REAL(1.0));

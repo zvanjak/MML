@@ -352,12 +352,7 @@ namespace MML::Systems
 			return result;
 		}
 
-		/// @brief Alias for Compute (lowercase for backwards compatibility)
-		static DiscreteMapLyapunovResult<Real> compute(IDiscreteMap<N>& map, const Vector<Real>& x0, int numIterations = 10000,
-																int skipTransient = 1000) {
-			return Compute(map, x0, numIterations, skipTransient);
-		}
-	};
+};
 
 } // namespace MML::Systems
 #endif // MML_DISCRETE_MAPS_H

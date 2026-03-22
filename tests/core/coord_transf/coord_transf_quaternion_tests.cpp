@@ -66,8 +66,8 @@ TEST_CASE("Quaternion - Matrix Conversion", "[quaternion][matrix]")
 
 		// Quaternions q and -q represent the same rotation
 		// Check if they're equal or negatives
-		bool same = q_original.IsApprox(q_reconstructed, 1e-10) ||
-								q_original.IsApprox(-q_reconstructed, 1e-10);
+		bool same = q_original.isApprox(q_reconstructed, 1e-10) ||
+								q_original.isApprox(-q_reconstructed, 1e-10);
 		REQUIRE(same);
 
 		// Verify they rotate vectors the same way
@@ -365,7 +365,7 @@ TEST_CASE("CoordTransfCart3DRotationQuaternion - Accessors", "[coordtransf][quat
 	SECTION("GetQuaternion returns correct quaternion")
 	{
 		Quaternion q = rot.GetQuaternion();
-		REQUIRE(q.IsUnit(1e-10));
+		REQUIRE(q.isUnit(1e-10));
 
 		// Verify it rotates correctly
 		Vec3Cart v(1, 0, 0);

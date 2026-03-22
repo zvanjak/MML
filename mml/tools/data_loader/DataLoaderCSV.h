@@ -309,6 +309,17 @@ namespace MML {
 					case ColumnType::BOOL:
 						col.boolData.resize(dataset.rowCount);
 						break;
+					case ColumnType::STRING:
+						col.stringData.resize(dataset.rowCount);
+						break;
+					case ColumnType::DATE:
+					case ColumnType::TIME:
+						col.stringData.resize(dataset.rowCount);
+						break;
+					case ColumnType::DATETIME:
+						col.dateData.resize(dataset.rowCount);
+						col.timeData.resize(dataset.rowCount);
+						break;
 					default:
 						col.stringData.resize(dataset.rowCount);
 						break;
@@ -340,6 +351,30 @@ namespace MML {
 							break;
 						case ColumnType::BOOL:
 							col.boolData[rowIdx] = parsed ? boolVal : false;
+							break;
+						case ColumnType::STRING:
+							col.stringData[rowIdx] = parsed ? strVal : "";
+							break;
+						case ColumnType::DATE:
+							col.dateData.resize(dataset.rowCount);
+							col.dateData[rowIdx] = parsed ? strVal : "";
+							break;
+						case ColumnType::TIME:
+							col.timeData.resize(dataset.rowCount);
+							col.timeData[rowIdx] = parsed ? strVal : "";
+							break;
+						case ColumnType::DATETIME:
+							if (parsed && !strVal.empty()) {
+								size_t sep = strVal.find_first_of("T ");
+								if (sep != std::string::npos) {
+									col.dateData[rowIdx] = strVal.substr(0, sep);
+									col.timeData[rowIdx] = strVal.substr(sep + 1);
+								}
+								else {
+									col.dateData[rowIdx] = strVal;
+									col.timeData[rowIdx] = "";
+								}
+							}
 							break;
 						default:
 							col.stringData[rowIdx] = parsed ? strVal : "";

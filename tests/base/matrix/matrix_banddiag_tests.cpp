@@ -31,8 +31,8 @@ namespace MML::Tests::Base::BandDiagMatrixTests
 
 		BandDiagonalMatrix mat(5, 1, 2, data);
 
-		REQUIRE(mat.RowNum() == 5);
-		REQUIRE(mat.ColNum() == 5);
+		REQUIRE(mat.rows() == 5);
+		REQUIRE(mat.cols() == 5);
 		REQUIRE(mat.GetLowerBandwidth() == 1);
 		REQUIRE(mat.GetUpperBandwidth() == 2);
 		REQUIRE(mat.GetDimension() == 5);

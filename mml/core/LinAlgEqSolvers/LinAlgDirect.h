@@ -18,9 +18,81 @@
 #include "base/Matrix/Matrix.h"
 #include "base/Matrix/MatrixBandDiag.h"
 #include "base/BaseUtils.h"
+#include "core/AlgorithmTypes.h"
 
 namespace MML
 {
+	///////////////////////////////////////////////////////////////////////////////////////////
+	// LinearSolverConfig - Configuration for direct linear solver detailed APIs
+	///////////////////////////////////////////////////////////////////////////////////////////
+	struct LinearSolverConfig : public EvaluationConfigBase {
+		// Inherits: estimate_error, check_finite, exception_policy
+		// When estimate_error is true, computes residual norm ||Ax - b||
+	};
+
+	///////////////////////////////////////////////////////////////////////////////////////////
+	// LinearSolverResult - Result type for direct linear solver detailed APIs
+	///////////////////////////////////////////////////////////////////////////////////////////
+	template<typename Type>
+	struct LinearSolverResult : public EvaluationResultBase {
+		/// The computed solution vector x
+		Vector<Type> solution{};
+
+		/// Residual norm ||Ax - b|| (populated when config.estimate_error is true)
+		Real residual_norm = 0.0;
+	};
+
+	///////////////////////////////////////////////////////////////////////////////////////////
+	// LinearSolverDetail - Internal helpers for Detailed API execution
+	///////////////////////////////////////////////////////////////////////////////////////////
+	namespace LinearSolverDetail
+	{
+		/// Execute a linear solver Detailed operation with timing and exception handling.
+		template<typename ResultType, typename ComputeFn>
+		ResultType ExecuteLinearSolverDetailed(const char* algorithm_name,
+		                                      const LinearSolverConfig& config,
+		                                      ComputeFn&& compute)
+		{
+			auto execute = [&]() {
+				AlgorithmTimer timer;
+
+				ResultType result = MakeEvaluationSuccessResult<ResultType>(algorithm_name);
+
+				compute(result);
+
+				result.elapsed_time_ms = timer.elapsed_ms();
+				return result;
+			};
+
+			if (config.exception_policy == EvaluationExceptionPolicy::Propagate)
+				return execute();
+
+			try {
+				return execute();
+			}
+			catch (const SingularMatrixError& ex) {
+				return MakeEvaluationFailureResult<ResultType>(
+					AlgorithmStatus::SingularMatrix, ex.what(), algorithm_name);
+			}
+			catch (const MatrixNumericalError& ex) {
+				return MakeEvaluationFailureResult<ResultType>(
+					AlgorithmStatus::NumericalInstability, ex.what(), algorithm_name);
+			}
+			catch (const MatrixDimensionError& ex) {
+				return MakeEvaluationFailureResult<ResultType>(
+					AlgorithmStatus::InvalidInput, ex.what(), algorithm_name);
+			}
+			catch (const VectorDimensionError& ex) {
+				return MakeEvaluationFailureResult<ResultType>(
+					AlgorithmStatus::InvalidInput, ex.what(), algorithm_name);
+			}
+			catch (const std::exception& ex) {
+				return MakeEvaluationFailureResult<ResultType>(
+					AlgorithmStatus::AlgorithmSpecificFailure, ex.what(), algorithm_name);
+			}
+		}
+	} // namespace LinearSolverDetail
+
 	/// @brief Gauss-Jordan elimination solver for linear systems Ax=b
 	/// @tparam Type Numeric type (Real, Complex, etc.)
 	/// @note Uses full pivoting for numerical stability, O(n³) complexity
@@ -414,7 +486,6 @@ namespace MML
 			if (inMatRef.rows() == 0)
 				throw MatrixDimensionError("LUSolverInPlace::ctor - matrix must be non-empty", 0, 0, -1, -1);
 			
-			const Real TINY = 1.0e-40;
 			int i, imax, j, k;
 			Real big, temp;
 			Type temp2;
@@ -450,7 +521,7 @@ namespace MML
 				}
 				_indx[k] = imax;
 				if (_lu[k][k] == Real{ 0.0 })
-					_lu[k][k] = TINY;
+					throw SingularMatrixError("LUSolverInPlace::ctor - zero pivot after partial pivoting");
 
 				for (i = k + 1; i < _n; i++) {
 					temp2 = _lu[i][k] /= _lu[k][k];
@@ -931,6 +1002,99 @@ namespace MML
 			return 2.0 * sum;
 		}
 	};
+
+	///////////////////////////////////////////////////////////////////////////////////////////
+	// Free SolveDetailed functions - full workflow (decompose + solve) with structured results
+	///////////////////////////////////////////////////////////////////////////////////////////
+
+	/// @brief Gauss-Jordan solve with full diagnostics
+	/// @return LinearSolverResult with solution vector, status, timing, and optional residual
+	template<typename Type>
+	LinearSolverResult<Type> GaussJordanSolveDetailed(
+		const Matrix<Type>& A, const Vector<Type>& b,
+		const LinearSolverConfig& config = {})
+	{
+		using ResultType = LinearSolverResult<Type>;
+		return LinearSolverDetail::ExecuteLinearSolverDetailed<ResultType>(
+			"GaussJordanSolver", config,
+			[&](ResultType& result) {
+				result.solution = GaussJordanSolver<Type>::SolveConst(A, b);
+				result.function_evaluations = A.rows() * A.rows() * A.rows(); // O(n³)
+
+				if (config.estimate_error) {
+					// Compute residual norm ||Ax - b||
+					Vector<Type> residual = A * result.solution - b;
+					result.residual_norm = residual.NormL2();
+				}
+			});
+	}
+
+	/// @brief LU decomposition solve with full diagnostics
+	/// @return LinearSolverResult with solution vector, status, timing, and optional residual
+	template<typename Type>
+	LinearSolverResult<Type> LUSolveDetailed(
+		const Matrix<Type>& A, const Vector<Type>& b,
+		const LinearSolverConfig& config = {})
+	{
+		using ResultType = LinearSolverResult<Type>;
+		return LinearSolverDetail::ExecuteLinearSolverDetailed<ResultType>(
+			"LUSolver", config,
+			[&](ResultType& result) {
+				LUSolver<Type> solver(A);
+				result.solution = solver.Solve(b);
+				result.function_evaluations = A.rows() * A.rows() * A.rows(); // O(n³) decomp + O(n²) solve
+
+				if (config.estimate_error) {
+					Vector<Type> residual = A * result.solution - b;
+					result.residual_norm = residual.NormL2();
+				}
+			});
+	}
+
+	/// @brief Cholesky decomposition solve with full diagnostics (symmetric positive-definite)
+	/// @return LinearSolverResult with solution vector, status, timing, and optional residual
+	template<typename Type>
+	LinearSolverResult<Type> CholeskySolveDetailed(
+		const Matrix<Type>& A, const Vector<Type>& b,
+		const LinearSolverConfig& config = {})
+	{
+		using ResultType = LinearSolverResult<Type>;
+		return LinearSolverDetail::ExecuteLinearSolverDetailed<ResultType>(
+			"CholeskySolver", config,
+			[&](ResultType& result) {
+				CholeskySolver<Type> solver(A);
+				result.solution = solver.Solve(b);
+				result.function_evaluations = A.rows() * A.rows() * A.rows() / 3; // O(n³/3)
+
+				if (config.estimate_error) {
+					Vector<Type> residual = A * result.solution - b;
+					result.residual_norm = residual.NormL2();
+				}
+			});
+	}
+
+	/// @brief Band diagonal solve with full diagnostics
+	/// @return LinearSolverResult with solution vector, status, timing, and optional residual
+	inline LinearSolverResult<Real> BandDiagonalSolveDetailed(
+		const BandDiagonalMatrix& A, const Vector<Real>& b,
+		const LinearSolverConfig& config = {})
+	{
+		using ResultType = LinearSolverResult<Real>;
+		return LinearSolverDetail::ExecuteLinearSolverDetailed<ResultType>(
+			"BandDiagonalSolver", config,
+			[&](ResultType& result) {
+				BandDiagonalSolver solver(A);
+				result.solution = solver.Solve(b);
+				int n = A.GetDimension();
+				int m = A.GetLowerBandwidth() + A.GetUpperBandwidth() + 1;
+				result.function_evaluations = n * m * m; // O(n*m²)
+
+				if (config.estimate_error) {
+					Vector<Real> residual = A * result.solution - b;
+					result.residual_norm = residual.NormL2();
+				}
+			});
+	}
 
 } // namespace MML
 

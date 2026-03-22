@@ -246,8 +246,8 @@ TEST_CASE("ColumnFormat - formatAligned content exceeds width", "[ConsolePrinter
     REQUIRE(result == "LongContent");  // Not truncated
 }
 
-TEST_CASE("ColumnFormat - Legacy constructor", "[ConsolePrinter][ColumnFormat]") {
-    ColumnFormat col("Name", 15, 4, 'F');
+TEST_CASE("ColumnFormat - Builder pattern constructor", "[ConsolePrinter][ColumnFormat]") {
+    ColumnFormat col = ColumnFormat("Name").width(15).precision(4).format(FormatType::Fixed);
     
     REQUIRE(col.name() == "Name");
     REQUIRE(col.width() == 15);

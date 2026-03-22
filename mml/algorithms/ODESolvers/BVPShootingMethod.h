@@ -29,8 +29,8 @@
 
 #include <vector>
 
-#include "mml/algorithms/ODESolvers/ODEFixedStepIntegrators.h"
-#include "mml/algorithms/ODESolvers/ODESystemStepCalculators.h"
+#include "mml/algorithms/ODESolvers/ODESolverFixedStep.h"
+#include "mml/algorithms/ODESolvers/ODEStepCalculators.h"
 #include "mml/algorithms/RootFinding.h"
 
 namespace MML {

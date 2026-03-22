@@ -18,12 +18,72 @@
 
 #include "../MMLBase.h"
 #include "../base/Vector/Vector.h"
+#include "../core/AlgorithmTypes.h"
 
 #include <stdexcept>
 #include <string>
 
 namespace MML::Fourier 
 {
+	///////////////////////////////////////////////////////////////////////////////////////////
+	// FourierConfig - Configuration for Fourier transform detailed APIs
+	///////////////////////////////////////////////////////////////////////////////////////////
+	struct FourierConfig : public EvaluationConfigBase {
+		// Inherits: estimate_error, check_finite, exception_policy
+		// No additional parameters needed for Fourier transforms
+	};
+
+	///////////////////////////////////////////////////////////////////////////////////////////
+	// FourierResult - Result type for Fourier transform detailed APIs
+	///////////////////////////////////////////////////////////////////////////////////////////
+	template<typename T>
+	struct FourierResult : public EvaluationResultBase {
+		/// The computed transform output
+		T value{};
+
+		/// Input size that was processed
+		int input_size = 0;
+	};
+
+	///////////////////////////////////////////////////////////////////////////////////////////
+	// FourierDetail - Internal helpers for Detailed API execution
+	///////////////////////////////////////////////////////////////////////////////////////////
+	namespace FourierDetail
+	{
+		/// Execute a Fourier Detailed operation with timing and exception handling.
+		template<typename ResultType, typename ComputeFn>
+		ResultType ExecuteFourierDetailed(const char* algorithm_name,
+		                                 const FourierConfig& config,
+		                                 ComputeFn&& compute)
+		{
+			auto execute = [&]() {
+				AlgorithmTimer timer;
+
+				ResultType result = MakeEvaluationSuccessResult<ResultType>(algorithm_name);
+
+				compute(result);
+
+				result.elapsed_time_ms = timer.elapsed_ms();
+				return result;
+			};
+
+			if (config.exception_policy == EvaluationExceptionPolicy::Propagate)
+				return execute();
+
+			try {
+				return execute();
+			}
+			catch (const std::invalid_argument& ex) {
+				return MakeEvaluationFailureResult<ResultType>(
+					AlgorithmStatus::InvalidInput, ex.what(), algorithm_name);
+			}
+			catch (const std::exception& ex) {
+				return MakeEvaluationFailureResult<ResultType>(
+					AlgorithmStatus::AlgorithmSpecificFailure, ex.what(), algorithm_name);
+			}
+		}
+	} // namespace FourierDetail
+
 	///////////////////////////////////////////////////////////////////////////////////////////
 	// FourierValidation - Reusable validation helpers for Fourier transform functions
 	///////////////////////////////////////////////////////////////////////////////////////////
@@ -232,6 +292,66 @@ namespace MML::Fourier
 
 			return sum;
 		}
+
+		///////////////////////////////////////////////////////////////////////////////////////////
+		// Detailed API variants - return FourierResult with AlgorithmStatus + timing
+		///////////////////////////////////////////////////////////////////////////////////////////
+
+		/// Forward DFT with full diagnostics (complex input)
+		static FourierResult<Vector<Complex>> ForwardDetailed(
+			const Vector<Complex>& data, const FourierConfig& config = {})
+		{
+			using ResultType = FourierResult<Vector<Complex>>;
+			return FourierDetail::ExecuteFourierDetailed<ResultType>(
+				"DFT::Forward", config,
+				[&](ResultType& result) {
+					result.input_size = data.size();
+					result.value = Forward(data);
+					result.function_evaluations = data.size() * data.size(); // O(n²)
+				});
+		}
+
+		/// Forward DFT with full diagnostics (real input)
+		static FourierResult<Vector<Complex>> ForwardDetailed(
+			const Vector<Real>& data, const FourierConfig& config = {})
+		{
+			using ResultType = FourierResult<Vector<Complex>>;
+			return FourierDetail::ExecuteFourierDetailed<ResultType>(
+				"DFT::Forward", config,
+				[&](ResultType& result) {
+					result.input_size = data.size();
+					result.value = Forward(data);
+					result.function_evaluations = data.size() * data.size();
+				});
+		}
+
+		/// Inverse DFT with full diagnostics
+		static FourierResult<Vector<Complex>> InverseDetailed(
+			const Vector<Complex>& spectrum, const FourierConfig& config = {})
+		{
+			using ResultType = FourierResult<Vector<Complex>>;
+			return FourierDetail::ExecuteFourierDetailed<ResultType>(
+				"DFT::Inverse", config,
+				[&](ResultType& result) {
+					result.input_size = spectrum.size();
+					result.value = Inverse(spectrum);
+					result.function_evaluations = spectrum.size() * spectrum.size();
+				});
+		}
+
+		/// Inverse DFT returning real part, with full diagnostics
+		static FourierResult<Vector<Real>> InverseRealDetailed(
+			const Vector<Complex>& spectrum, const FourierConfig& config = {})
+		{
+			using ResultType = FourierResult<Vector<Real>>;
+			return FourierDetail::ExecuteFourierDetailed<ResultType>(
+				"DFT::InverseReal", config,
+				[&](ResultType& result) {
+					result.input_size = spectrum.size();
+					result.value = InverseReal(spectrum);
+					result.function_evaluations = spectrum.size() * spectrum.size();
+				});
+		}
 	};
 
 	///////////////////////////////////////////////////////////////////////////////////////////
@@ -359,6 +479,38 @@ namespace MML::Fourier
 				log++;
 			}
 			return log;
+		}
+
+		///////////////////////////////////////////////////////////////////////////////////////////
+		// Detailed API variants - return FourierResult with AlgorithmStatus + timing
+		///////////////////////////////////////////////////////////////////////////////////////////
+
+		/// Forward FFT with full diagnostics
+		static FourierResult<Vector<Complex>> ForwardDetailed(
+			const Vector<Complex>& data, const FourierConfig& config = {})
+		{
+			using ResultType = FourierResult<Vector<Complex>>;
+			return FourierDetail::ExecuteFourierDetailed<ResultType>(
+				"FFT::Forward", config,
+				[&](ResultType& result) {
+					result.input_size = data.size();
+					result.value = Forward(data);
+					result.function_evaluations = data.size() * Log2(data.size()); // O(n log n)
+				});
+		}
+
+		/// Inverse FFT with full diagnostics
+		static FourierResult<Vector<Complex>> InverseDetailed(
+			const Vector<Complex>& spectrum, const FourierConfig& config = {})
+		{
+			using ResultType = FourierResult<Vector<Complex>>;
+			return FourierDetail::ExecuteFourierDetailed<ResultType>(
+				"FFT::Inverse", config,
+				[&](ResultType& result) {
+					result.input_size = spectrum.size();
+					result.value = Inverse(spectrum);
+					result.function_evaluations = spectrum.size() * Log2(spectrum.size());
+				});
 		}
 
 	private:
@@ -533,9 +685,6 @@ namespace MML::Fourier
 
 			for (int k = 0; k < N; ++k) {
 				Real coeff = coefficients[k];
-				if (k == 0) {
-					coeff *= 0.5; // DC term is halved in inverse
-				}
 
 				Real theta = pi * k / N2;
 				Complex twiddle(std::cos(theta), std::sin(theta));
@@ -688,6 +837,68 @@ namespace MML::Fourier
 					return false;
 			}
 			return true;
+		}
+
+		///////////////////////////////////////////////////////////////////////////////////////////
+		// Detailed API variants - return FourierResult with AlgorithmStatus + timing
+		///////////////////////////////////////////////////////////////////////////////////////////
+
+		/// DCT-II forward with full diagnostics (auto-selects fast/reference)
+		static FourierResult<Vector<Real>> ForwardIIDetailed(
+			const Vector<Real>& data, const FourierConfig& config = {})
+		{
+			using ResultType = FourierResult<Vector<Real>>;
+			return FourierDetail::ExecuteFourierDetailed<ResultType>(
+				"DCT::ForwardII", config,
+				[&](ResultType& result) {
+					result.input_size = data.size();
+					result.value = ForwardII(data);
+					result.function_evaluations = FFT::IsPowerOfTwo(data.size()) ?
+						data.size() * FFT::Log2(data.size()) : data.size() * data.size();
+				});
+		}
+
+		/// DCT-II inverse (DCT-III) with full diagnostics
+		static FourierResult<Vector<Real>> InverseIIDetailed(
+			const Vector<Real>& coefficients, const FourierConfig& config = {})
+		{
+			using ResultType = FourierResult<Vector<Real>>;
+			return FourierDetail::ExecuteFourierDetailed<ResultType>(
+				"DCT::InverseII", config,
+				[&](ResultType& result) {
+					result.input_size = coefficients.size();
+					result.value = InverseII(coefficients);
+					result.function_evaluations = FFT::IsPowerOfTwo(coefficients.size()) ?
+						coefficients.size() * FFT::Log2(coefficients.size()) : coefficients.size() * coefficients.size();
+				});
+		}
+
+		/// DST-I forward with full diagnostics
+		static FourierResult<Vector<Real>> ForwardDSTDetailed(
+			const Vector<Real>& data, const FourierConfig& config = {})
+		{
+			using ResultType = FourierResult<Vector<Real>>;
+			return FourierDetail::ExecuteFourierDetailed<ResultType>(
+				"DCT::ForwardDST", config,
+				[&](ResultType& result) {
+					result.input_size = data.size();
+					result.value = ForwardDST(data);
+					result.function_evaluations = data.size() * data.size();
+				});
+		}
+
+		/// DST-I inverse with full diagnostics
+		static FourierResult<Vector<Real>> InverseDSTDetailed(
+			const Vector<Real>& coefficients, const FourierConfig& config = {})
+		{
+			using ResultType = FourierResult<Vector<Real>>;
+			return FourierDetail::ExecuteFourierDetailed<ResultType>(
+				"DCT::InverseDST", config,
+				[&](ResultType& result) {
+					result.input_size = coefficients.size();
+					result.value = InverseDST(coefficients);
+					result.function_evaluations = coefficients.size() * coefficients.size();
+				});
 		}
 	};
 

@@ -31,7 +31,7 @@ void Demo_curves()
 		auto tangent = Vector3Cartesian(test_curve1.getTangent(t));
 		auto unit_tang = Vector3Cartesian(test_curve1.getTangentUnit(t));
 		auto normal = Vector3Cartesian(test_curve1.getNormal(t));
-		auto unit_norm = Vector3Cartesian(test_curve1.getNormalUnit(t));
+		auto unit_norm = normal;
 		auto binormal = test_curve1.getBinormal(t);
 
 		auto curv_vec = test_curve1.getCurvatureVector(t);

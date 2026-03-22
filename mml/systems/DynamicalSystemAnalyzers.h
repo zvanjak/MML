@@ -19,6 +19,7 @@
 #include "systems/DynamicalSystemTypes.h"
 #include "algorithms/EigenSystemSolvers.h"
 #include "core/LinAlgEqSolvers.h"
+#include "core/AlgorithmTypes.h"
 
 #include <vector>
 #include <cmath>
@@ -253,7 +254,7 @@ namespace MML::Systems
 		static void IntegrateWithVariational(IDynamicalSystem& sys, Vector<Real>& x, Matrix<Real>& Q, Real t0, Real t1, Real h) {
 			int n = sys.getDim();
 			Vector<Real> k1(n), k2(n), k3(n), k4(n);
-			Vector<Real> xTemp(n);
+			Vector<Real> xTemp(n), xOld(n), xMid(n), xEnd(n);
 			Matrix<Real> J(n, n);
 			Matrix<Real> dQ1(n, n), dQ2(n, n), dQ3(n, n), dQ4(n, n);
 			Matrix<Real> QTemp(n, n);
@@ -262,29 +263,40 @@ namespace MML::Systems
 			while (t < t1 - 1e-12) {
 				Real dt = std::min(h, t1 - t);
 
+				// Save x(t) before trajectory update
+				for (int i = 0; i < n; ++i)
+					xOld[i] = x[i];
+
 				// RK4 for trajectory
 				sys.derivs(t, x, k1);
 				for (int i = 0; i < n; ++i)
 					xTemp[i] = x[i] + 0.5 * dt * k1[i];
+				// Save midpoint for Jacobian evaluation
+				for (int i = 0; i < n; ++i)
+					xMid[i] = xTemp[i];
 				sys.derivs(t + 0.5 * dt, xTemp, k2);
 				for (int i = 0; i < n; ++i)
 					xTemp[i] = x[i] + 0.5 * dt * k2[i];
 				sys.derivs(t + 0.5 * dt, xTemp, k3);
 				for (int i = 0; i < n; ++i)
 					xTemp[i] = x[i] + dt * k3[i];
+				// Save endpoint for Jacobian evaluation
+				for (int i = 0; i < n; ++i)
+					xEnd[i] = xTemp[i];
 				sys.derivs(t + dt, xTemp, k4);
 
 				for (int i = 0; i < n; ++i)
 					x[i] += dt * (k1[i] + 2 * k2[i] + 2 * k3[i] + k4[i]) / 6.0;
 
-				// RK4 for variational equations: dQ/dt = J(x) * Q
-				sys.jacobian(t, x, J);
+				// RK4 for variational equations: dQ/dt = J(x(t)) * Q
+				// Jacobian evaluated at trajectory intermediate points (not post-update x)
+				sys.jacobian(t, xOld, J);
 				MultiplyJQ(J, Q, dQ1);
 
 				for (int i = 0; i < n; ++i)
 					for (int j = 0; j < n; ++j)
 						QTemp(i, j) = Q(i, j) + 0.5 * dt * dQ1(i, j);
-				sys.jacobian(t + 0.5 * dt, x, J);
+				sys.jacobian(t + 0.5 * dt, xMid, J);
 				MultiplyJQ(J, QTemp, dQ2);
 
 				for (int i = 0; i < n; ++i)
@@ -295,7 +307,7 @@ namespace MML::Systems
 				for (int i = 0; i < n; ++i)
 					for (int j = 0; j < n; ++j)
 						QTemp(i, j) = Q(i, j) + dt * dQ3(i, j);
-				sys.jacobian(t + dt, x, J);
+				sys.jacobian(t + dt, xEnd, J);
 				MultiplyJQ(J, QTemp, dQ4);
 
 				for (int i = 0; i < n; ++i)
@@ -611,6 +623,184 @@ namespace MML::Systems
 				x[i] += h * (k1[i] + 2 * k2[i] + 2 * k3[i] + k4[i]) / 6.0;
 		}
 	};
+
+	///////////////////////////////////////////////////////////////////////////////////////////
+	// DynSysConfig - Configuration for dynamical system detailed APIs
+	///////////////////////////////////////////////////////////////////////////////////////////
+	struct DynSysConfig : public EvaluationConfigBase {
+		// Inherits: estimate_error, check_finite, exception_policy
+	};
+
+	///////////////////////////////////////////////////////////////////////////////////////////
+	// Result types for dynamical system detailed APIs
+	///////////////////////////////////////////////////////////////////////////////////////////
+
+	/// Result of fixed point finding with full instrumentation
+	template<typename Type = Real>
+	struct FindFixedPointResult : public EvaluationResultBase {
+		/// The found fixed point (location, eigenvalues, stability, etc.)
+		FixedPoint<Type> fixed_point;
+	};
+
+	/// Result of Lyapunov exponent computation with full instrumentation
+	template<typename Type = Real>
+	struct LyapunovAnalysisResult : public EvaluationResultBase {
+		/// Lyapunov exponents and related quantities
+		LyapunovResult<Type> lyapunov;
+	};
+
+	/// Result of bifurcation analysis with full instrumentation
+	template<typename Type = Real>
+	struct BifurcationAnalysisResult : public EvaluationResultBase {
+		/// Bifurcation diagram data
+		BifurcationDiagram<Type> diagram;
+	};
+
+	/// Result of Poincare section computation with full instrumentation
+	template<typename Type = Real>
+	struct PoincareSectionResult : public EvaluationResultBase {
+		/// Section intersection points
+		std::vector<Vector<Type>> intersections;
+	};
+
+	/// Result of trajectory integration with full instrumentation
+	template<typename Type = Real>
+	struct TrajectoryResult : public EvaluationResultBase {
+		/// Trajectory points
+		std::vector<Vector<Type>> points;
+	};
+
+	///////////////////////////////////////////////////////////////////////////////////////////
+	// DynSysDetail - Internal helpers for Detailed API execution
+	///////////////////////////////////////////////////////////////////////////////////////////
+	namespace DynSysDetail
+	{
+		/// Execute a dynamical system Detailed operation with timing and exception handling.
+		template<typename ResultType, typename ComputeFn>
+		ResultType ExecuteDynSysDetailed(const char* algorithm_name,
+		                                 const DynSysConfig& config,
+		                                 ComputeFn&& compute)
+		{
+			auto execute = [&]() {
+				AlgorithmTimer timer;
+				ResultType result = MakeEvaluationSuccessResult<ResultType>(algorithm_name);
+				compute(result);
+				result.elapsed_time_ms = timer.elapsed_ms();
+				return result;
+			};
+
+			if (config.exception_policy == EvaluationExceptionPolicy::Propagate)
+				return execute();
+
+			try {
+				return execute();
+			}
+			catch (const std::exception& ex) {
+				return MakeEvaluationFailureResult<ResultType>(
+					AlgorithmStatus::AlgorithmSpecificFailure, ex.what(), algorithm_name);
+			}
+		}
+	} // namespace DynSysDetail
+
+	///////////////////////////    DETAILED API    ///////////////////////////
+
+	/// Find a fixed point with full instrumentation.
+	/// Maps convergence failure to AlgorithmStatus::MaxIterationsExceeded.
+	inline FindFixedPointResult<Real> FindFixedPointDetailed(
+		IDynamicalSystem& sys,
+		const Vector<Real>& initialGuess,
+		Real tol = 1e-10,
+		int maxIter = 50,
+		const DynSysConfig& config = {})
+	{
+		return DynSysDetail::ExecuteDynSysDetailed<FindFixedPointResult<Real>>(
+			"FixedPointFinder", config,
+			[&](FindFixedPointResult<Real>& result) {
+				result.fixed_point = FixedPointFinder::Find(sys, initialGuess, tol, maxIter);
+				result.function_evaluations = result.fixed_point.iterations;
+
+				if (result.fixed_point.convergenceResidual >= tol) {
+					result.status = AlgorithmStatus::MaxIterationsExceeded;
+					result.error_message = "Newton iteration did not converge (residual="
+						+ std::to_string(result.fixed_point.convergenceResidual) + ")";
+				}
+			});
+	}
+
+	/// Compute all Lyapunov exponents with full instrumentation.
+	inline LyapunovAnalysisResult<Real> ComputeLyapunovDetailed(
+		IDynamicalSystem& sys,
+		const Vector<Real>& x0,
+		Real tTotal,
+		Real dtOrthonormalize = 1.0,
+		Real h = 0.01,
+		const DynSysConfig& config = {})
+	{
+		return DynSysDetail::ExecuteDynSysDetailed<LyapunovAnalysisResult<Real>>(
+			"LyapunovAnalyzer", config,
+			[&](LyapunovAnalysisResult<Real>& result) {
+				result.lyapunov = LyapunovAnalyzer::Compute(sys, x0, tTotal, dtOrthonormalize, h);
+				result.function_evaluations = result.lyapunov.numOrthonormalizations;
+			});
+	}
+
+	/// Bifurcation parameter sweep with full instrumentation.
+	inline BifurcationAnalysisResult<Real> SweepBifurcationDetailed(
+		IDynamicalSystem& sys,
+		int paramIndex,
+		Real paramMin,
+		Real paramMax,
+		int numSteps,
+		Vector<Real> x0,
+		int component,
+		Real tTransient = 100.0,
+		Real tRecord = 50.0,
+		Real h = 0.01,
+		const DynSysConfig& config = {})
+	{
+		return DynSysDetail::ExecuteDynSysDetailed<BifurcationAnalysisResult<Real>>(
+			"BifurcationAnalyzer", config,
+			[&](BifurcationAnalysisResult<Real>& result) {
+				result.diagram = BifurcationAnalyzer::Sweep(sys, paramIndex, paramMin, paramMax,
+					numSteps, x0, component, tTransient, tRecord, h);
+				result.function_evaluations = numSteps;
+			});
+	}
+
+	/// Compute Poincare section with full instrumentation.
+	inline PoincareSectionResult<Real> ComputePoincareSectionDetailed(
+		IDynamicalSystem& sys,
+		const Vector<Real>& x0,
+		const PoincareSection<Real>& section,
+		int numIntersections,
+		Real h = 0.01,
+		const DynSysConfig& config = {})
+	{
+		return DynSysDetail::ExecuteDynSysDetailed<PoincareSectionResult<Real>>(
+			"PoincareSection", config,
+			[&](PoincareSectionResult<Real>& result) {
+				result.intersections = PhaseSpaceAnalyzer::ComputePoincareSection(
+					sys, x0, section, numIntersections, h);
+				result.function_evaluations = numIntersections;
+			});
+	}
+
+	/// Integrate trajectory with full instrumentation.
+	inline TrajectoryResult<Real> IntegrateTrajectoryDetailed(
+		IDynamicalSystem& sys,
+		const Vector<Real>& x0,
+		Real tTotal,
+		Real dtOutput,
+		Real h = 0.01,
+		const DynSysConfig& config = {})
+	{
+		return DynSysDetail::ExecuteDynSysDetailed<TrajectoryResult<Real>>(
+			"TrajectoryIntegration", config,
+			[&](TrajectoryResult<Real>& result) {
+				result.points = PhaseSpaceAnalyzer::IntegrateTrajectory(sys, x0, tTotal, dtOutput, h);
+				result.function_evaluations = static_cast<int>(result.points.size());
+			});
+	}
 
 } // namespace MML::Systems
 #endif // MML_DYNAMICAL_SYSTEM_ANALYZERS_H

@@ -6,11 +6,11 @@
 // solver functionality in the MML library.
 //
 // Components:
-// - ODESystemSteppers.h      - Base stepper classes and interfaces
-// - ODESystemStepCalculators.h - Runge-Kutta and other step calculators
-// - ODEFixedStepIntegrators.h  - Fixed step size integrators
-// - ODEAdaptiveIntegrator.h    - Adaptive step size integrators
-// - ODEStiffSolvers.h          - Solvers for stiff ODEs (implicit methods)
+// - ODESteppers.h      - Base stepper classes and interfaces
+// - ODEStepCalculators.h - Runge-Kutta and other step calculators
+// - ODESolverFixedStep.h  - Fixed step size integrators
+// - ODESolverAdaptive.h    - Adaptive step size integrators
+// - ODESolverStiff.h          - Solvers for stiff ODEs (implicit methods)
 // - BVPShootingMethod.h        - Boundary value problem shooting method
 //
 // Thread Safety:
@@ -23,11 +23,11 @@
 #ifndef MML_ODE_SOLVERS_H
 #define MML_ODE_SOLVERS_H
 
-#include "mml/algorithms/ODESolvers/ODESystemSteppers.h"
-#include "mml/algorithms/ODESolvers/ODESystemStepCalculators.h"
-#include "mml/algorithms/ODESolvers/ODEFixedStepIntegrators.h"
-#include "mml/algorithms/ODESolvers/ODEAdaptiveIntegrator.h"
-#include "mml/algorithms/ODESolvers/ODEStiffSolvers.h"
+#include "mml/algorithms/ODESolvers/ODESteppers.h"
+#include "mml/algorithms/ODESolvers/ODEStepCalculators.h"
+#include "mml/algorithms/ODESolvers/ODESolverFixedStep.h"
+#include "mml/algorithms/ODESolvers/ODESolverAdaptive.h"
+#include "mml/algorithms/ODESolvers/ODESolverStiff.h"
 #include "mml/algorithms/ODESolvers/BVPShootingMethod.h"
 
 #endif // MML_ODE_SOLVERS_H

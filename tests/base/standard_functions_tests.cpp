@@ -160,12 +160,20 @@ TEST_CASE("Functions::FactorialStirling - Approximation quality", "[StandardFunc
         }
     }
 
-    SECTION("FactorialStirling handles negative input gracefully")
+    SECTION("FactorialStirling throws on negative input")
     {
-        // The implementation returns 0 for negative input
-        REQUIRE(FactorialStirling(-1) == Approx(0.0));
-        REQUIRE(FactorialStirling(-10) == Approx(0.0));
+        REQUIRE_THROWS_AS(FactorialStirling(-1), std::domain_error);
+        REQUIRE_THROWS_AS(FactorialStirling(-10), std::domain_error);
     }
+}
+
+TEST_CASE("Functions::Factorial - Negative input throws", "[StandardFunctions][Factorial]")
+{
+    REQUIRE_THROWS_AS(Factorial(-1), std::domain_error);
+    REQUIRE_THROWS_AS(Factorial(-5), std::domain_error);
+    REQUIRE_THROWS_AS(FactorialInt(-1), std::domain_error);
+    REQUIRE_THROWS_AS(FactorialInt(-5), std::domain_error);
+    REQUIRE_THROWS_AS(FactorialStirling(-1), std::domain_error);
 }
 
 TEST_CASE("Functions::FactorialStirling - Convergence to exact", "[StandardFunctions][FactorialStirling]")
@@ -185,6 +193,48 @@ TEST_CASE("Functions::FactorialStirling - Convergence to exact", "[StandardFunct
             
             prev_rel_error = rel_error;
         }
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////
+///                Reciprocal Trig Singularity Tests                                  ///
+///////////////////////////////////////////////////////////////////////////////////////////
+
+TEST_CASE("Functions::Reciprocal trig - singularity guards", "[StandardFunctions][Trig]")
+{
+    const Real pi = Constants::PI;
+
+    SECTION("Sec throws at cos(x)=0")
+    {
+        REQUIRE_THROWS_AS(Sec(pi / 2), std::domain_error);
+        REQUIRE_THROWS_AS(Sec(-pi / 2), std::domain_error);
+        REQUIRE_NOTHROW(Sec(0.0));  // cos(0) = 1
+    }
+
+    SECTION("Csc throws at sin(x)=0")
+    {
+        REQUIRE_THROWS_AS(Csc(0.0), std::domain_error);
+        REQUIRE_THROWS_AS(Csc(pi), std::domain_error);
+        REQUIRE_NOTHROW(Csc(pi / 2));  // sin(pi/2) = 1
+    }
+
+    SECTION("Ctg throws at tan(x)=0")
+    {
+        REQUIRE_THROWS_AS(Ctg(0.0), std::domain_error);
+        REQUIRE_THROWS_AS(Ctg(pi), std::domain_error);
+        REQUIRE_NOTHROW(Ctg(pi / 4));  // tan(pi/4) = 1
+    }
+
+    SECTION("Csch throws at sinh(x)=0")
+    {
+        REQUIRE_THROWS_AS(Csch(0.0), std::domain_error);
+        REQUIRE_NOTHROW(Csch(1.0));  // sinh(1) != 0
+    }
+
+    SECTION("Ctgh throws at tanh(x)=0")
+    {
+        REQUIRE_THROWS_AS(Ctgh(0.0), std::domain_error);
+        REQUIRE_NOTHROW(Ctgh(1.0));  // tanh(1) != 0
     }
 }
 

@@ -59,9 +59,9 @@ TEST_CASE("LinearSystem - Constructors", "[LinearSystem][Constructor]")
 		
 		LinearSystem<Real> sys(A, b);
 		
-		REQUIRE(sys.Rows() == 3);
-		REQUIRE(sys.Cols() == 3);
-		REQUIRE(sys.IsSquare() == true);
+		REQUIRE(sys.rows() == 3);
+		REQUIRE(sys.cols() == 3);
+		REQUIRE(sys.isSquare() == true);
 	}
 	
 	SECTION("Matrix + Matrix constructor (multiple RHS)")
@@ -71,8 +71,8 @@ TEST_CASE("LinearSystem - Constructors", "[LinearSystem][Constructor]")
 		
 		LinearSystem<Real> sys(A, B);
 		
-		REQUIRE(sys.Rows() == 3);
-		REQUIRE(sys.Cols() == 3);
+		REQUIRE(sys.rows() == 3);
+		REQUIRE(sys.cols() == 3);
 	}
 	
 	SECTION("Matrix only constructor (analysis)")
@@ -81,9 +81,9 @@ TEST_CASE("LinearSystem - Constructors", "[LinearSystem][Constructor]")
 		
 		LinearSystem<Real> sys(A);
 		
-		REQUIRE(sys.Rows() == 4);
-		REQUIRE(sys.Cols() == 3);
-		REQUIRE(sys.IsOverdetermined() == true);
+		REQUIRE(sys.rows() == 4);
+		REQUIRE(sys.cols() == 3);
+		REQUIRE(sys.isOverdetermined() == true);
 	}
 	
 	SECTION("Dimension mismatch throws")
@@ -233,7 +233,7 @@ TEST_CASE("LinearSystem - Overdetermined Systems", "[LinearSystem][LeastSquares]
 		Vector<Real> b({1, 2, 4});
 		
 		LinearSystem<Real> sys(A, b);
-		REQUIRE(sys.IsOverdetermined() == true);
+		REQUIRE(sys.isOverdetermined() == true);
 		
 		Vector<Real> x = sys.SolveLeastSquares();
 		
@@ -318,9 +318,9 @@ TEST_CASE("LinearSystem - Dimension Properties", "[LinearSystem][Properties]")
 		Matrix<Real> A(3, 3, {1, 0, 0, 0, 1, 0, 0, 0, 1});
 		LinearSystem<Real> sys(A);
 		
-		REQUIRE(sys.IsSquare() == true);
-		REQUIRE(sys.IsOverdetermined() == false);
-		REQUIRE(sys.IsUnderdetermined() == false);
+		REQUIRE(sys.isSquare() == true);
+		REQUIRE(sys.isOverdetermined() == false);
+		REQUIRE(sys.isUnderdetermined() == false);
 	}
 	
 	SECTION("Overdetermined (tall)")
@@ -328,9 +328,9 @@ TEST_CASE("LinearSystem - Dimension Properties", "[LinearSystem][Properties]")
 		Matrix<Real> A(5, 3);
 		LinearSystem<Real> sys(A);
 		
-		REQUIRE(sys.IsSquare() == false);
-		REQUIRE(sys.IsOverdetermined() == true);
-		REQUIRE(sys.IsUnderdetermined() == false);
+		REQUIRE(sys.isSquare() == false);
+		REQUIRE(sys.isOverdetermined() == true);
+		REQUIRE(sys.isUnderdetermined() == false);
 	}
 	
 	SECTION("Underdetermined (wide)")
@@ -338,9 +338,9 @@ TEST_CASE("LinearSystem - Dimension Properties", "[LinearSystem][Properties]")
 		Matrix<Real> A(3, 5);
 		LinearSystem<Real> sys(A);
 		
-		REQUIRE(sys.IsSquare() == false);
-		REQUIRE(sys.IsOverdetermined() == false);
-		REQUIRE(sys.IsUnderdetermined() == true);
+		REQUIRE(sys.isSquare() == false);
+		REQUIRE(sys.isOverdetermined() == false);
+		REQUIRE(sys.isUnderdetermined() == true);
 	}
 }
 
@@ -351,7 +351,7 @@ TEST_CASE("LinearSystem - Structure Detection", "[LinearSystem][Structure]")
 		Matrix<Real> A(3, 3, {2, 1, 0, 1, 3, 1, 0, 1, 2});
 		LinearSystem<Real> sys(A);
 		
-		REQUIRE(sys.IsSymmetric() == true);
+		REQUIRE(sys.isSymmetric() == true);
 	}
 	
 	SECTION("Non-symmetric matrix")
@@ -359,7 +359,7 @@ TEST_CASE("LinearSystem - Structure Detection", "[LinearSystem][Structure]")
 		Matrix<Real> A(3, 3, {2, 1, 0, 0, 3, 1, 0, 0, 2});
 		LinearSystem<Real> sys(A);
 		
-		REQUIRE(sys.IsSymmetric() == false);
+		REQUIRE(sys.isSymmetric() == false);
 	}
 	
 	SECTION("Positive definite")
@@ -367,8 +367,8 @@ TEST_CASE("LinearSystem - Structure Detection", "[LinearSystem][Structure]")
 		Matrix<Real> A = CreateSPDMatrix(4);
 		LinearSystem<Real> sys(A);
 		
-		REQUIRE(sys.IsSymmetric() == true);
-		REQUIRE(sys.IsPositiveDefinite() == true);
+		REQUIRE(sys.isSymmetric() == true);
+		REQUIRE(sys.isPositiveDefinite() == true);
 	}
 	
 	SECTION("Diagonally dominant")
@@ -376,7 +376,7 @@ TEST_CASE("LinearSystem - Structure Detection", "[LinearSystem][Structure]")
 		Matrix<Real> A(3, 3, {10, 1, 2, 1, 10, 2, 1, 2, 10});
 		LinearSystem<Real> sys(A);
 		
-		REQUIRE(sys.IsDiagonallyDominant() == true);
+		REQUIRE(sys.isDiagonallyDominant() == true);
 	}
 	
 	SECTION("Upper triangular")
@@ -384,8 +384,8 @@ TEST_CASE("LinearSystem - Structure Detection", "[LinearSystem][Structure]")
 		Matrix<Real> A(3, 3, {1, 2, 3, 0, 4, 5, 0, 0, 6});
 		LinearSystem<Real> sys(A);
 		
-		REQUIRE(sys.IsUpperTriangular() == true);
-		REQUIRE(sys.IsLowerTriangular() == false);
+		REQUIRE(sys.isUpperTriangular() == true);
+		REQUIRE(sys.isLowerTriangular() == false);
 	}
 	
 	SECTION("Lower triangular")
@@ -393,8 +393,8 @@ TEST_CASE("LinearSystem - Structure Detection", "[LinearSystem][Structure]")
 		Matrix<Real> A(3, 3, {1, 0, 0, 2, 3, 0, 4, 5, 6});
 		LinearSystem<Real> sys(A);
 		
-		REQUIRE(sys.IsUpperTriangular() == false);
-		REQUIRE(sys.IsLowerTriangular() == true);
+		REQUIRE(sys.isUpperTriangular() == false);
+		REQUIRE(sys.isLowerTriangular() == true);
 	}
 	
 	SECTION("Diagonal")
@@ -402,7 +402,7 @@ TEST_CASE("LinearSystem - Structure Detection", "[LinearSystem][Structure]")
 		Matrix<Real> A(3, 3, {1, 0, 0, 0, 2, 0, 0, 0, 3});
 		LinearSystem<Real> sys(A);
 		
-		REQUIRE(sys.IsDiagonal() == true);
+		REQUIRE(sys.isDiagonal() == true);
 	}
 }
 

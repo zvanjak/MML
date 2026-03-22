@@ -33,6 +33,7 @@
 
 #include "MMLBase.h"
 #include "core/Integration/GaussKronrod.h"
+#include "core/Integration/IntegrationBase.h"
 
 namespace MML
 {
@@ -238,29 +239,6 @@ static GKResult IntegrateCell3D_TensorGK15(Func f, Real x1, Real x2, Real y1, Re
     return GKResult(result_kronrod, error, evals, true);
 }
 
-/// @brief Simpler 3D cell integration using nested 1D GK15
-/// @details Simpler approach: integrate over z for each (x,y), then y, then x.
-/// @deprecated Use IntegrateCell3D_TensorGK15 for proper error estimation.
-template<typename Func>
-static GKResult IntegrateCell3D_Nested(Func f, Real x1, Real x2, Real y1, Real y2, Real z1, Real z2) {
-    // Outer-most integral over x
-    auto outer_integrand = [&](Real x) -> Real {
-        // Middle integral over y
-        auto middle_integrand = [&](Real y) -> Real {
-            // Innermost integral over z
-            auto inner = IntegrateGK15([&](Real z) { return f(x, y, z); }, z1, z2);
-            return inner.value;
-        };
-        auto middle = IntegrateGK15(middle_integrand, y1, y2);
-        return middle.value;
-    };
-    
-    auto result_x = IntegrateGK15(outer_integrand, x1, x2);
-    
-    // 15³ = 3375 evaluations per cell
-    return GKResult(result_x.value, result_x.error_estimate, 15 * 15 * 15, result_x.converged);
-}
-
 } // namespace Detail
 
 /// @brief Recursive helper for adaptive 3D integration
@@ -433,6 +411,62 @@ static AdaptiveResult3D IntegrateAdaptive3D(
         evals_remaining,
         config.rule
     );
+}
+
+/**************************************************************************/
+/*****       Detailed API - Adaptive 3D Integration                   *****/
+/**************************************************************************/
+
+/// Adaptive 3D integration with simple parameters and full diagnostics
+template<typename Func>
+static IntegrationDetailedResult IntegrateAdaptive3DDetailed(
+    Func f,
+    Real x1, Real x2,
+    Real y1, Real y2,
+    Real z1, Real z2,
+    const IntegrationConfig& config = {},
+    Real tolerance = 1e-6,
+    int max_depth = 15,
+    int max_evals = 10000000)
+{
+    return IntegrationDetail::ExecuteIntegrationDetailed<IntegrationDetailedResult>(
+        "IntegrateAdaptive3D", config,
+        [&](IntegrationDetailedResult& result) {
+            auto r = IntegrateAdaptive3D(f, x1, x2, y1, y2, z1, z2, tolerance, max_depth, max_evals);
+            result.value = r.value;
+            result.error_estimate = r.error_estimate;
+            result.function_evaluations = r.function_evaluations;
+            result.converged = r.converged;
+            if (!r.converged) {
+                result.status = AlgorithmStatus::MaxIterationsExceeded;
+                result.error_message = "IntegrateAdaptive3D did not converge";
+            }
+        });
+}
+
+/// Adaptive 3D integration with config object and full diagnostics
+template<typename Func>
+static IntegrationDetailedResult IntegrateAdaptive3DDetailed(
+    Func f,
+    Real x1, Real x2,
+    Real y1, Real y2,
+    Real z1, Real z2,
+    const AdaptiveConfig3D& adaptive_config,
+    const IntegrationConfig& config = {})
+{
+    return IntegrationDetail::ExecuteIntegrationDetailed<IntegrationDetailedResult>(
+        "IntegrateAdaptive3D", config,
+        [&](IntegrationDetailedResult& result) {
+            auto r = IntegrateAdaptive3D(f, x1, x2, y1, y2, z1, z2, adaptive_config);
+            result.value = r.value;
+            result.error_estimate = r.error_estimate;
+            result.function_evaluations = r.function_evaluations;
+            result.converged = r.converged;
+            if (!r.converged) {
+                result.status = AlgorithmStatus::MaxIterationsExceeded;
+                result.error_message = "IntegrateAdaptive3D did not converge";
+            }
+        });
 }
 
 } // namespace Integration

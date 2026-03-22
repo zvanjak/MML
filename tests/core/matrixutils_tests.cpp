@@ -117,14 +117,14 @@ namespace MML::Tests::Core::MatrixUtilsTests
 	TEST_CASE("Rank of all-zero matrix", "[MatrixRank][Edge]") {
 			TEST_PRECISION_INFO();
 		Matrix<Real> mat(4, 4, REAL(0.0));
-		REQUIRE(Utils::Rank(mat) == 0);
+		REQUIRE(Utils::RankGaussian(mat) == 0);
 	}
 
 	TEST_CASE("Rank of identity matrix is full", "[MatrixRank]") {
 			TEST_PRECISION_INFO();
 		Matrix<Real> mat = Matrix<Real>::Identity(4);
 
-		REQUIRE(Utils::Rank(mat) == 4);
+		REQUIRE(Utils::RankGaussian(mat) == 4);
 	}
 
 	TEST_CASE("Rank of matrix with linearly dependent rows", "[MatrixRank]") {
@@ -134,7 +134,7 @@ namespace MML::Tests::Core::MatrixUtilsTests
 		mat(1, 0) = REAL(2.0); mat(1, 1) = REAL(4.0); mat(1, 2) = REAL(6.0); // 2x row 0
 		mat(2, 0) = REAL(3.0); mat(2, 1) = REAL(6.0); mat(2, 2) = REAL(9.0); // 3x row 0
 
-		REQUIRE(Utils::Rank(mat) == 1);
+		REQUIRE(Utils::RankGaussian(mat) == 1);
 	}
 
 	TEST_CASE("Rank of rectangular matrix", "[MatrixRank]") {
@@ -143,21 +143,21 @@ namespace MML::Tests::Core::MatrixUtilsTests
 		mat(0, 0) = REAL(1.0); mat(0, 1) = REAL(2.0); mat(0, 2) = REAL(3.0);
 		mat(1, 0) = REAL(4.0); mat(1, 1) = REAL(5.0); mat(1, 2) = REAL(6.0);
 
-		REQUIRE(Utils::Rank(mat) == 2);
+		REQUIRE(Utils::RankGaussian(mat) == 2);
 	}
 
 	TEST_CASE("Rank of matrix with one nonzero row", "[MatrixRank][Edge]") {
 			TEST_PRECISION_INFO();
 		Matrix<Real> mat(3, 3, REAL(0.0));
 		mat(1, 0) = REAL(1.0); mat(1, 1) = REAL(2.0); mat(1, 2) = REAL(3.0);
-		REQUIRE(Utils::Rank(mat) == 1);
+		REQUIRE(Utils::RankGaussian(mat) == 1);
 	}
 
 	TEST_CASE("Rank of matrix with one nonzero column", "[MatrixRank][Edge]") {
 			TEST_PRECISION_INFO();
 		Matrix<Real> mat(3, 3, REAL(0.0));
 		mat(0, 2) = REAL(5.0); mat(1, 2) = REAL(7.0); mat(2, 2) = REAL(9.0);
-		REQUIRE(Utils::Rank(mat) == 1);
+		REQUIRE(Utils::RankGaussian(mat) == 1);
 	}
 
 	TEST_CASE("Rank of matrix with nearly linearly dependent rows", "[MatrixRank][Edge]") {
@@ -166,10 +166,10 @@ namespace MML::Tests::Core::MatrixUtilsTests
 		mat(0, 0) = REAL(1.0); mat(0, 1) = REAL(1.0);
 		mat(1, 0) = REAL(1.0); mat(1, 1) = REAL(1.0) + 1e-10;		// Very close to row 0
 		
-		REQUIRE(Utils::Rank(mat, 1e-10) == 2); 
+		REQUIRE(Utils::RankGaussian(mat, 1e-10) == 2); 
 
 		// with bigger EPS, we consider them dependent
-		REQUIRE(Utils::Rank(mat, 1e-9) == 1);
+		REQUIRE(Utils::RankGaussian(mat, 1e-9) == 1);
 	}
 
 	TEST_CASE("Rank of rectangular matrix with more columns than rows", "[MatrixRank][Edge]") {
@@ -177,7 +177,7 @@ namespace MML::Tests::Core::MatrixUtilsTests
 		Matrix<Real> mat(2, 5, REAL(0.0));
 		mat(0, 0) = REAL(1.0); mat(0, 1) = REAL(2.0); mat(0, 2) = REAL(3.0); mat(0, 3) = REAL(4.0); mat(0, 4) = REAL(5.0);
 		mat(1, 0) = REAL(2.0); mat(1, 1) = REAL(4.0); mat(1, 2) = REAL(6.0); mat(1, 3) = REAL(8.0); mat(1, 4) = REAL(10.0); // 2x row 0
-		REQUIRE(Utils::Rank(mat) == 1);
+		REQUIRE(Utils::RankGaussian(mat) == 1);
 	}
 
 	TEST_CASE("Rank of rectangular matrix with more rows than columns", "[MatrixRank][Edge]") {
@@ -188,7 +188,7 @@ namespace MML::Tests::Core::MatrixUtilsTests
 		mat(2, 0) = REAL(5.0); mat(2, 1) = REAL(6.0);
 		mat(3, 0) = REAL(7.0); mat(3, 1) = REAL(8.0);
 		mat(4, 0) = REAL(9.0); mat(4, 1) = REAL(10.0);
-		REQUIRE(Utils::Rank(mat) == 2);
+		REQUIRE(Utils::RankGaussian(mat) == 2);
 	}
 
 	TEST_CASE("Test Rank on TestBeds matrices")
@@ -197,32 +197,32 @@ namespace MML::Tests::Core::MatrixUtilsTests
 		Matrix<Real> A(3, 3, { 1,2,3,4,5,6,7,8,9 });
 
 		// interesting
-		REQUIRE(2 == Utils::Rank(A));
+		REQUIRE(2 == Utils::RankGaussian(A));
 
-		REQUIRE(3 == Utils::Rank(TestBeds::mat_3x3()));
-		REQUIRE(3 == Utils::Rank(TestBeds::mat_3x3_1()));
-		REQUIRE(3 == Utils::Rank(TestBeds::mat_3x3_2()));
-		REQUIRE(3 == Utils::Rank(TestBeds::mat_3x3_3()));
-		REQUIRE(3 == Utils::Rank(TestBeds::mat_3x3_4()));
+		REQUIRE(3 == Utils::RankGaussian(TestBeds::mat_3x3()));
+		REQUIRE(3 == Utils::RankGaussian(TestBeds::mat_3x3_1()));
+		REQUIRE(3 == Utils::RankGaussian(TestBeds::mat_3x3_2()));
+		REQUIRE(3 == Utils::RankGaussian(TestBeds::mat_3x3_3()));
+		REQUIRE(3 == Utils::RankGaussian(TestBeds::mat_3x3_4()));
 
-		REQUIRE(5 == Utils::Rank(TestBeds::mat_5x5()));
-		REQUIRE(5 == Utils::Rank(TestBeds::mat_5x5_2()));
-		REQUIRE(5 == Utils::Rank(TestBeds::mat_5x5_3()));
-		REQUIRE(5 == Utils::Rank(TestBeds::mat_5x5_4()));
+		REQUIRE(5 == Utils::RankGaussian(TestBeds::mat_5x5()));
+		REQUIRE(5 == Utils::RankGaussian(TestBeds::mat_5x5_2()));
+		REQUIRE(5 == Utils::RankGaussian(TestBeds::mat_5x5_3()));
+		REQUIRE(5 == Utils::RankGaussian(TestBeds::mat_5x5_4()));
 
-		REQUIRE(8 == Utils::Rank(TestBeds::mat_8x8()));
+		REQUIRE(8 == Utils::RankGaussian(TestBeds::mat_8x8()));
 
-		REQUIRE(10 == Utils::Rank(TestBeds::mat_10x10()));
-		REQUIRE(10 == Utils::Rank(TestBeds::mat_10x10_1()));
-		REQUIRE(10 == Utils::Rank(TestBeds::mat_10x10_2()));
+		REQUIRE(10 == Utils::RankGaussian(TestBeds::mat_10x10()));
+		REQUIRE(10 == Utils::RankGaussian(TestBeds::mat_10x10_1()));
+		REQUIRE(10 == Utils::RankGaussian(TestBeds::mat_10x10_2()));
 
-		REQUIRE(20 == Utils::Rank(TestBeds::get_mat_20x20()));
-		REQUIRE(20 == Utils::Rank(TestBeds::get_mat_20x20_1()));
-		REQUIRE(20 == Utils::Rank(TestBeds::get_mat_20x20_2()));
+		REQUIRE(20 == Utils::RankGaussian(TestBeds::get_mat_20x20()));
+		REQUIRE(20 == Utils::RankGaussian(TestBeds::get_mat_20x20_1()));
+		REQUIRE(20 == Utils::RankGaussian(TestBeds::get_mat_20x20_2()));
 
-		REQUIRE(50 == Utils::Rank(TestBeds::get_mat_50x50()));
-		REQUIRE(50 == Utils::Rank(TestBeds::get_mat_50x50_1()));
-		REQUIRE(50 == Utils::Rank(TestBeds::get_mat_50x50_2()));
+		REQUIRE(50 == Utils::RankGaussian(TestBeds::get_mat_50x50()));
+		REQUIRE(50 == Utils::RankGaussian(TestBeds::get_mat_50x50_1()));
+		REQUIRE(50 == Utils::RankGaussian(TestBeds::get_mat_50x50_2()));
 	}
 
 	TEST_CASE("Rank of zero complex matrix is 0", "[MatrixRank][Complex]") {
@@ -231,7 +231,7 @@ namespace MML::Tests::Core::MatrixUtilsTests
 		for (int i = 0; i < 3; ++i)
 			for (int j = 0; j < 3; ++j)
 				mat(i, j) = Complex(REAL(0.0), REAL(0.0));
-		REQUIRE(Utils::Rank(mat) == 0);
+		REQUIRE(Utils::RankGaussian(mat) == 0);
 	}
 
 	TEST_CASE("Rank of identity complex matrix is full", "[MatrixRank][Complex]") {
@@ -239,7 +239,7 @@ namespace MML::Tests::Core::MatrixUtilsTests
 		Matrix<Complex> mat(3, 3);
 		for (int i = 0; i < 3; ++i)
 			mat(i, i) = Complex(REAL(1.0), REAL(0.0));
-		REQUIRE(Utils::Rank(mat) == 3);
+		REQUIRE(Utils::RankGaussian(mat) == 3);
 	}
 
 	TEST_CASE("Rank of complex matrix with linearly dependent rows", "[MatrixRank][Complex]") {
@@ -248,7 +248,7 @@ namespace MML::Tests::Core::MatrixUtilsTests
 		mat(0, 0) = Complex(REAL(1.0), REAL(1.0)); mat(0, 1) = Complex(REAL(2.0), REAL(2.0)); mat(0, 2) = Complex(REAL(3.0), REAL(3.0));
 		mat(1, 0) = Complex(REAL(2.0), REAL(2.0)); mat(1, 1) = Complex(REAL(4.0), REAL(4.0)); mat(1, 2) = Complex(REAL(6.0), REAL(6.0)); // 2x row 0
 		mat(2, 0) = Complex(REAL(3.0), REAL(3.0)); mat(2, 1) = Complex(REAL(6.0), REAL(6.0)); mat(2, 2) = Complex(REAL(9.0), REAL(9.0)); // 3x row 0
-		REQUIRE(Utils::Rank(mat) == 1);
+		REQUIRE(Utils::RankGaussian(mat) == 1);
 	}
 
 	TEST_CASE("Rank of rectangular complex matrix", "[MatrixRank][Complex]") {
@@ -256,7 +256,7 @@ namespace MML::Tests::Core::MatrixUtilsTests
 		Matrix<Complex> mat(2, 3);
 		mat(0, 0) = Complex(REAL(1.0), REAL(0.0)); mat(0, 1) = Complex(REAL(2.0), REAL(1.0)); mat(0, 2) = Complex(REAL(3.0), -REAL(1.0));
 		mat(1, 0) = Complex(REAL(4.0), REAL(2.0)); mat(1, 1) = Complex(REAL(5.0), REAL(0.0)); mat(1, 2) = Complex(REAL(6.0), REAL(1.0));
-		REQUIRE(Utils::Rank(mat) == 2);
+		REQUIRE(Utils::RankGaussian(mat) == 2);
 	}
 
 	TEST_CASE("Rank of complex matrix with real and imaginary parts", "[MatrixRank][Complex]") {
@@ -264,7 +264,7 @@ namespace MML::Tests::Core::MatrixUtilsTests
 		Matrix<Complex> mat(2, 2);
 		mat(0, 0) = Complex(REAL(1.0), REAL(2.0)); mat(0, 1) = Complex(REAL(3.0), REAL(4.0));
 		mat(1, 0) = Complex(REAL(5.0), REAL(6.0)); mat(1, 1) = Complex(REAL(7.0), REAL(8.0));
-		REQUIRE(Utils::Rank(mat) == 2);
+		REQUIRE(Utils::RankGaussian(mat) == 2);
 	}
 
 	TEST_CASE("Test Utils::IsOrthogonal")

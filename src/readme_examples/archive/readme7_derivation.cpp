@@ -59,12 +59,19 @@ void Readme_Derivation_precision()
 
 	std::cout << "\nAVERAGE DERIVATION ERROR FOR DIFFERENT ORDERS" << std::endl;
 
-	TablePrinter<double, double> print_data("x", 8, 3,
-		{ "Exact der.",
-			"Nder1", "Nder1 err.", "Nder2", "Nder2 err.", "Nder4", "Nder4 err.", "Nder6", "Nder6 err.", "Nder8", "Nder8 err."
-		},
-		{ {12,7,'F'},
-			{13,7,'F'}, {15,6,'S'}, {13,7,'F'}, {15,6,'S'}, {13,7,'F'}, {15,6,'S'}, {13,7,'F'}, {15,6,'S'}, {13,7,'F'}, {15,6,'S'}
+	TablePrinter<double, double> print_data(
+		ColumnFormat("x").width(8).precision(3),
+		{ ColumnFormat("Exact der.").width(12).precision(7).format(FormatType::Fixed),
+		  ColumnFormat("Nder1").width(13).precision(7).format(FormatType::Fixed),
+		  ColumnFormat("Nder1 err.").width(15).precision(6).format(FormatType::Scientific),
+		  ColumnFormat("Nder2").width(13).precision(7).format(FormatType::Fixed),
+		  ColumnFormat("Nder2 err.").width(15).precision(6).format(FormatType::Scientific),
+		  ColumnFormat("Nder4").width(13).precision(7).format(FormatType::Fixed),
+		  ColumnFormat("Nder4 err.").width(15).precision(6).format(FormatType::Scientific),
+		  ColumnFormat("Nder6").width(13).precision(7).format(FormatType::Fixed),
+		  ColumnFormat("Nder6 err.").width(15).precision(6).format(FormatType::Scientific),
+		  ColumnFormat("Nder8").width(13).precision(7).format(FormatType::Fixed),
+		  ColumnFormat("Nder8 err.").width(15).precision(6).format(FormatType::Scientific)
 		}
 	);
 
@@ -93,7 +100,7 @@ void Readme_Derivation_precision()
 		err_sum6 += std::abs(err6);
 		err_sum8 += std::abs(err8);
 	}
-	print_data.Print();
+	print_data.print();
 
 	std::cout << "---------------------------------------------------------------------------------------------------------------------------------------------------------------------------" << std::endl;
 	std::cout << "Total abs error =                      " << std::scientific << err_sum1 << "                  "

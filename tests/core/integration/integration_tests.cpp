@@ -1450,6 +1450,301 @@ REQUIRE_THAT(result3, WithinAbs(REAL(2.0), REAL(1e-8)));
 		auto template_gauss = Integrate<GAUSS10>(f, REAL(0.0), Constants::PI);
 		REQUIRE_THAT(runtime_gauss.value, WithinAbs(template_gauss.value, REAL(1e-14)));
 	}
+
+	/******************************************************************************/
+	/*****              Detailed API Tests - 1D Integration                    *****/
+	/******************************************************************************/
+
+	TEST_CASE("IntegrateTrapDetailed - basic success", "[mml_integration][Detailed]")
+	{
+		RealFunctionFromStdFunc f([](Real x) -> Real { return x * x; });
+
+		auto result = IntegrateTrapDetailed(f, REAL(0.0), REAL(1.0));
+
+		REQUIRE(result.IsSuccess());
+		REQUIRE(result.algorithm_name == "IntegrateTrap");
+		REQUIRE(result.elapsed_time_ms >= 0.0);
+		REQUIRE(result.converged);
+		REQUIRE_THAT(result.value, WithinAbs(REAL(1.0/3.0), REAL(1e-4)));
+		REQUIRE(result.iterations > 0);
+	}
+
+	TEST_CASE("IntegrateSimpsonDetailed - basic success", "[mml_integration][Detailed]")
+	{
+		RealFunctionFromStdFunc f([](Real x) -> Real { return x * x; });
+
+		auto result = IntegrateSimpsonDetailed(f, REAL(0.0), REAL(1.0));
+
+		REQUIRE(result.IsSuccess());
+		REQUIRE(result.algorithm_name == "IntegrateSimpson");
+		REQUIRE(result.converged);
+		REQUIRE_THAT(result.value, WithinAbs(REAL(1.0/3.0), REAL(1e-8)));
+	}
+
+	TEST_CASE("IntegrateRombergDetailed - basic success", "[mml_integration][Detailed]")
+	{
+		RealFunctionFromStdFunc f([](Real x) -> Real { return x * x; });
+
+		auto result = IntegrateRombergDetailed(f, REAL(0.0), REAL(1.0));
+
+		REQUIRE(result.IsSuccess());
+		REQUIRE(result.algorithm_name == "IntegrateRomberg");
+		REQUIRE(result.converged);
+		REQUIRE_THAT(result.value, WithinAbs(REAL(1.0/3.0), REAL(1e-10)));
+	}
+
+	TEST_CASE("IntegrateGauss10Detailed - basic success", "[mml_integration][Detailed]")
+	{
+		RealFunctionFromStdFunc f([](Real x) -> Real { return x * x; });
+
+		auto result = IntegrateGauss10Detailed(f, REAL(0.0), REAL(1.0));
+
+		REQUIRE(result.IsSuccess());
+		REQUIRE(result.algorithm_name == "IntegrateGauss10");
+		REQUIRE(result.converged);
+		REQUIRE(result.function_evaluations == 10);
+		REQUIRE_THAT(result.value, WithinAbs(REAL(1.0/3.0), REAL(1e-14)));
+	}
+
+	TEST_CASE("IntegrateGK21Detailed - basic success", "[mml_integration][Detailed]")
+	{
+		RealFunctionFromStdFunc f([](Real x) -> Real { return x * x; });
+
+		auto result = IntegrateGK21Detailed(f, REAL(0.0), REAL(1.0));
+
+		REQUIRE(result.IsSuccess());
+		REQUIRE(result.algorithm_name == "IntegrateGK21");
+		REQUIRE(result.converged);
+		REQUIRE(result.function_evaluations == 21);
+		REQUIRE_THAT(result.value, WithinAbs(REAL(1.0/3.0), REAL(1e-14)));
+	}
+
+	TEST_CASE("IntegrateDetailed - runtime dispatch", "[mml_integration][Detailed]")
+	{
+		RealFunctionFromStdFunc f([](Real x) -> Real { return std::sin(x); });
+		const Real expected = REAL(2.0);  // ∫[0,π] sin(x) dx = 2
+
+		auto trap = IntegrateDetailed(f, REAL(0.0), Constants::PI, TRAP);
+		REQUIRE(trap.IsSuccess());
+		REQUIRE(trap.algorithm_name == "IntegrateTrap");
+		REQUIRE_THAT(trap.value, WithinAbs(expected, REAL(1e-4)));
+
+		auto simp = IntegrateDetailed(f, REAL(0.0), Constants::PI, SIMPSON);
+		REQUIRE(simp.IsSuccess());
+		REQUIRE(simp.algorithm_name == "IntegrateSimpson");
+		REQUIRE_THAT(simp.value, WithinAbs(expected, REAL(1e-7)));
+
+		auto romb = IntegrateDetailed(f, REAL(0.0), Constants::PI, ROMBERG);
+		REQUIRE(romb.IsSuccess());
+		REQUIRE_THAT(romb.value, WithinAbs(expected, REAL(1e-8)));
+	}
+
+	TEST_CASE("IntegrateDetailed - template dispatch", "[mml_integration][Detailed]")
+	{
+		RealFunctionFromStdFunc f([](Real x) -> Real { return std::sin(x); });
+		const Real expected = REAL(2.0);
+
+		auto trap = IntegrateDetailed<TRAP>(f, REAL(0.0), Constants::PI);
+		auto simp = IntegrateDetailed<SIMPSON>(f, REAL(0.0), Constants::PI);
+		auto gauss = IntegrateDetailed<GAUSS10>(f, REAL(0.0), Constants::PI);
+
+		REQUIRE(trap.IsSuccess());
+		REQUIRE(simp.IsSuccess());
+		REQUIRE(gauss.IsSuccess());
+		REQUIRE_THAT(trap.value, WithinAbs(expected, REAL(1e-4)));
+		REQUIRE_THAT(simp.value, WithinAbs(expected, REAL(1e-7)));
+		REQUIRE_THAT(gauss.value, WithinAbs(expected, REAL(1e-14)));
+	}
+
+	TEST_CASE("IntegrateDetailed - values match simple API", "[mml_integration][Detailed]")
+	{
+		RealFunctionFromStdFunc f([](Real x) -> Real { return std::exp(-x * x); });
+
+		auto simple = IntegrateTrap(f, REAL(0.0), REAL(2.0));
+		auto detailed = IntegrateTrapDetailed(f, REAL(0.0), REAL(2.0));
+
+		REQUIRE_THAT(detailed.value, WithinAbs(simple.value, REAL(1e-15)));
+		REQUIRE(detailed.iterations == simple.iterations);
+		REQUIRE(detailed.converged == simple.converged);
+	}
+
+	/******************************************************************************/
+	/*****             Detailed API Tests - Improper Integration               *****/
+	/******************************************************************************/
+
+	TEST_CASE("IntegrateUpperInfDetailed - Gaussian tail", "[mml_integration][Detailed]")
+	{
+		RealFunctionFromStdFunc f([](Real x) -> Real { return std::exp(-x * x); });
+
+		auto result = IntegrateUpperInfDetailed(f, REAL(0.0));
+
+		REQUIRE(result.IsSuccess());
+		REQUIRE(result.algorithm_name == "IntegrateUpperInf");
+		REQUIRE_THAT(result.value, WithinAbs(REAL(0.886226925452758), REAL(1e-6)));
+	}
+
+	TEST_CASE("IntegrateLowerInfDetailed - Gaussian tail", "[mml_integration][Detailed]")
+	{
+		RealFunctionFromStdFunc f([](Real x) -> Real { return std::exp(-x * x); });
+
+		auto result = IntegrateLowerInfDetailed(f, REAL(0.0));
+
+		REQUIRE(result.IsSuccess());
+		REQUIRE(result.algorithm_name == "IntegrateLowerInf");
+		REQUIRE_THAT(result.value, WithinAbs(REAL(0.886226925452758), REAL(1e-6)));
+	}
+
+	TEST_CASE("IntegrateInfDetailed - full Gaussian", "[mml_integration][Detailed]")
+	{
+		RealFunctionFromStdFunc f([](Real x) -> Real { return std::exp(-x * x); });
+
+		auto result = IntegrateInfDetailed(f);
+
+		REQUIRE(result.IsSuccess());
+		REQUIRE(result.algorithm_name == "IntegrateInf");
+		// ∫(-∞,∞) e^{-x²} dx = √π ≈ 1.7724538509
+		REQUIRE_THAT(result.value, WithinAbs(REAL(1.7724538509055159), REAL(1e-5)));
+	}
+
+	TEST_CASE("IntegrateInteriorSingularDetailed - ConvertToStatus on invalid c", "[mml_integration][Detailed]")
+	{
+		RealFunctionFromStdFunc f([](Real x) -> Real { return REAL(1.0) / std::sqrt(std::abs(x)); });
+
+		IntegrationConfig config;
+		config.exception_policy = EvaluationExceptionPolicy::ConvertToStatus;
+
+		// c=5 is outside (0, 1), should produce InvalidInput
+		auto result = IntegrateInteriorSingularDetailed(f, REAL(0.0), REAL(1.0), REAL(5.0), config);
+
+		REQUIRE_FALSE(result.IsSuccess());
+		REQUIRE(result.status == AlgorithmStatus::InvalidInput);
+		REQUIRE_FALSE(result.error_message.empty());
+	}
+
+	TEST_CASE("IntegrateInteriorSingularDetailed - Propagate policy throws", "[mml_integration][Detailed]")
+	{
+		RealFunctionFromStdFunc f([](Real x) -> Real { return REAL(1.0) / std::sqrt(std::abs(x)); });
+
+		IntegrationConfig config;
+		config.exception_policy = EvaluationExceptionPolicy::Propagate;
+
+		// c=5 is outside (0, 1), should throw
+		REQUIRE_THROWS_AS(
+			IntegrateInteriorSingularDetailed(f, REAL(0.0), REAL(1.0), REAL(5.0), config),
+			std::invalid_argument);
+	}
+
+	TEST_CASE("IntegrateInteriorSingularDetailed - valid singularity", "[mml_integration][Detailed]")
+	{
+		RealFunctionFromStdFunc f([](Real x) -> Real { return REAL(1.0) / std::sqrt(std::abs(x)); });
+
+		auto result = IntegrateInteriorSingularDetailed(f, REAL(-1.0), REAL(1.0), REAL(0.0));
+
+		REQUIRE(result.IsSuccess());
+		REQUIRE(result.algorithm_name == "IntegrateInteriorSingular");
+		// ∫[-1,1] 1/√|x| dx = 4
+		REQUIRE_THAT(result.value, WithinAbs(REAL(4.0), REAL(1e-3)));
+	}
+
+	/******************************************************************************/
+	/*****       Detailed API Tests - Gaussian Quadrature Variants             *****/
+	/******************************************************************************/
+
+	TEST_CASE("IntegrateGaussLegendreDetailed - basic success", "[mml_integration][Detailed]")
+	{
+		RealFunctionFromStdFunc f([](Real x) -> Real { return x * x; });
+		const int n = 10;
+
+		auto result = IntegrateGaussLegendreDetailed(f, REAL(0.0), REAL(1.0), n);
+
+		REQUIRE(result.IsSuccess());
+		REQUIRE(result.algorithm_name == "GaussLegendre");
+		REQUIRE(result.converged);
+		REQUIRE(result.elapsed_time_ms >= 0.0);
+		REQUIRE(result.function_evaluations == n);
+		// ∫[0,1] x² dx = 1/3
+		REQUIRE_THAT(result.value, WithinAbs(REAL(1.0/3.0), REAL(1e-14)));
+	}
+
+	TEST_CASE("IntegrateGaussLaguerreDetailed - basic success", "[mml_integration][Detailed]")
+	{
+		// f(x) = 1, weight = x^0 * e^(-x), ∫[0,∞) e^(-x) dx = 1
+		RealFunctionFromStdFunc f([](Real x) -> Real { return REAL(1.0); });
+		const int n = 10;
+
+		auto result = IntegrateGaussLaguerreDetailed(f, n);
+
+		REQUIRE(result.IsSuccess());
+		REQUIRE(result.algorithm_name == "GaussLaguerre");
+		REQUIRE(result.converged);
+		REQUIRE(result.elapsed_time_ms >= 0.0);
+		REQUIRE(result.function_evaluations == n);
+		REQUIRE_THAT(result.value, WithinAbs(REAL(1.0), REAL(1e-10)));
+	}
+
+	TEST_CASE("IntegrateGaussHermiteDetailed - basic success", "[mml_integration][Detailed]")
+	{
+		// f(x) = 1, weight = e^(-x²), ∫(-∞,∞) e^(-x²) dx = √π
+		RealFunctionFromStdFunc f([](Real x) -> Real { return REAL(1.0); });
+		const int n = 10;
+
+		auto result = IntegrateGaussHermiteDetailed(f, n);
+
+		REQUIRE(result.IsSuccess());
+		REQUIRE(result.algorithm_name == "GaussHermite");
+		REQUIRE(result.converged);
+		REQUIRE(result.elapsed_time_ms >= 0.0);
+		REQUIRE(result.function_evaluations == n);
+		REQUIRE_THAT(result.value, WithinAbs(REAL(1.7724538509055159), REAL(1e-10)));
+	}
+
+	TEST_CASE("IntegrateGaussJacobiDetailed - basic success", "[mml_integration][Detailed]")
+	{
+		// α=β=0 reduces to Gauss-Legendre: ∫[-1,1] x² dx = 2/3
+		RealFunctionFromStdFunc f([](Real x) -> Real { return x * x; });
+		const int n = 10;
+
+		auto result = IntegrateGaussJacobiDetailed(f, REAL(0.0), REAL(0.0), n);
+
+		REQUIRE(result.IsSuccess());
+		REQUIRE(result.algorithm_name == "GaussJacobi");
+		REQUIRE(result.converged);
+		REQUIRE(result.elapsed_time_ms >= 0.0);
+		REQUIRE(result.function_evaluations == n);
+		REQUIRE_THAT(result.value, WithinAbs(REAL(2.0/3.0), REAL(1e-12)));
+	}
+
+	TEST_CASE("IntegrateGaussChebyshev1Detailed - basic success", "[mml_integration][Detailed]")
+	{
+		// f(x) = 1, weight = 1/√(1-x²), ∫[-1,1] 1/√(1-x²) dx = π
+		RealFunctionFromStdFunc f([](Real x) -> Real { return REAL(1.0); });
+		const int n = 20;
+
+		auto result = IntegrateGaussChebyshev1Detailed(f, n);
+
+		REQUIRE(result.IsSuccess());
+		REQUIRE(result.algorithm_name == "GaussChebyshev1");
+		REQUIRE(result.converged);
+		REQUIRE(result.elapsed_time_ms >= 0.0);
+		REQUIRE(result.function_evaluations == n);
+		REQUIRE_THAT(result.value, WithinAbs(Constants::PI, REAL(1e-12)));
+	}
+
+	TEST_CASE("IntegrateGaussChebyshev2Detailed - basic success", "[mml_integration][Detailed]")
+	{
+		// f(x) = 1, weight = √(1-x²), ∫[-1,1] √(1-x²) dx = π/2
+		RealFunctionFromStdFunc f([](Real x) -> Real { return REAL(1.0); });
+		const int n = 20;
+
+		auto result = IntegrateGaussChebyshev2Detailed(f, n);
+
+		REQUIRE(result.IsSuccess());
+		REQUIRE(result.algorithm_name == "GaussChebyshev2");
+		REQUIRE(result.converged);
+		REQUIRE(result.elapsed_time_ms >= 0.0);
+		REQUIRE(result.function_evaluations == n);
+		REQUIRE_THAT(result.value, WithinAbs(Constants::PI / REAL(2.0), REAL(1e-12)));
+	}
 }
 
 

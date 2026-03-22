@@ -136,6 +136,9 @@ namespace MML
 			for (int i = _numCovar; i < _numCovar + _numContravar; i++)
 				_isContravar[i] = true;
 
+			if (values.size() > N * N)
+				throw TensorCovarContravarNumError("Tensor2 ctor, initializer_list has more than N*N elements", static_cast<int>(values.size()), N * N);
+
 			auto val = values.begin();
 			for (size_t i = 0; i < N; ++i)
 				for (size_t j = 0; j < N; ++j)
@@ -409,6 +412,9 @@ namespace MML
 			for (int i = _numCovar; i < _numCovar + _numContravar; i++)
 				_isContravar[i] = true;
 			
+			if (values.size() > N * N * N)
+				throw TensorCovarContravarNumError("Tensor3 ctor, initializer_list has more than N*N*N elements", static_cast<int>(values.size()), N * N * N);
+
 			auto val = values.begin();
 			for (size_t i = 0; i < N; ++i)
 				for (size_t j = 0; j < N; ++j)

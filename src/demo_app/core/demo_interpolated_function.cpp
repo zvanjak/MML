@@ -147,22 +147,14 @@ void Test_RealFunction_Linear_interp()
 
     std::cout << "\nINTERPOLATION PRECISION:\n";
 
-    TablePrinter<double, double> data("x", 8, 3, 
-                                                { "exact", 
-                                                  "linear", "abs.err", "rel.err", "rel.perc.err"
-                                                //   "poly", "abs.err", "rel.err", 
-                                                //   "spline", "abs.err", "rel.err", 
-                                                //   "rat", "abs.err", "rel.err", 
-                                                //   "barry", "abs.err", "rel.err"
-                                                },
-                                                { {10,5,'F'},
-                                                  {11,5,'F'}, {9,5,'F'}, {9,3,'F'}, {15,3,'F'}
-                                                //   {11,5}, {9,5}, {9,3},
-                                                //   {11,5}, {9,5}, {9,3},
-                                                //   {11,5}, {9,5}, {9,3},
-                                                //   {11,5}, {9,5}, {9,3}
-                                                } 
-                                            );
+    TablePrinter<double, double> data(
+		ColumnFormat("x").width(8).precision(3),
+		{ ColumnFormat("exact").width(10).precision(5).format(FormatType::Fixed),
+		  ColumnFormat("linear").width(11).precision(5).format(FormatType::Fixed),
+		  ColumnFormat("abs.err").width(9).precision(5).format(FormatType::Fixed),
+		  ColumnFormat("rel.err").width(9).precision(3).format(FormatType::Fixed),
+		  ColumnFormat("rel.perc.err").width(15).precision(3).format(FormatType::Fixed)
+		});
 
     const int printPnt = 50;
     for (int i=0;i<printPnt;i++) 
@@ -199,7 +191,7 @@ void Test_RealFunction_Linear_interp()
                         // y_barry, barry_err, barry_perc_err 
                         } );
     }
-    data.Print();
+    data.print();
 
     RealFunctionComparer      comparer(f, linear_interp);
 

@@ -405,7 +405,11 @@ namespace MML
 		DAESystem(int diffDim, int algDim,
 		          void (*diffFunc)(Real, const Vector<Real>&, const Vector<Real>&, Vector<Real>&),
 		          void (*algFunc)(Real, const Vector<Real>&, const Vector<Real>&, Vector<Real>&))
-			: _diffDim(diffDim), _algDim(algDim), _diffFunc(diffFunc), _algFunc(algFunc) {}
+			: _diffDim(diffDim), _algDim(algDim), _diffFunc(diffFunc), _algFunc(algFunc)
+		{
+			if (diffFunc == nullptr || algFunc == nullptr)
+				throw std::invalid_argument("DAESystem: function pointers cannot be null");
+		}
 
 		/// @brief Virtual destructor for proper cleanup in derived classes
 		virtual ~DAESystem() = default;

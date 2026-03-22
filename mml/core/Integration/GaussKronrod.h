@@ -27,6 +27,7 @@
 #include <functional>
 
 #include "MMLBase.h"
+#include "core/Integration/IntegrationBase.h"
 
 namespace MML {
 	namespace Integration 
@@ -429,6 +430,87 @@ namespace MML {
 			if (error)
 				*error = result.error_estimate;
 			return result.value;
+		}
+
+		/*****************************************************************/
+		/*****        Detailed API - Gauss-Kronrod                  *****/
+		/*****************************************************************/
+
+		/// Helper to populate IntegrationDetailedResult from GKResult
+		namespace GKDetail
+		{
+			inline void PopulateFromGK(IntegrationDetailedResult& out,
+			                           const GKResult& gk,
+			                           const char* algorithm_name)
+			{
+				out.value = gk.value;
+				out.error_estimate = gk.error_estimate;
+				out.function_evaluations = gk.function_evals;
+				out.converged = gk.converged;
+				if (!gk.converged) {
+					out.status = AlgorithmStatus::MaxIterationsExceeded;
+					out.error_message = std::string(algorithm_name) +
+						" did not converge (error=" + std::to_string(gk.error_estimate) + ")";
+				}
+			}
+		} // namespace GKDetail
+
+		/// GK15 integration with full diagnostics
+		template<typename Func>
+		static IntegrationDetailedResult IntegrateGK15Detailed(
+			Func f, Real a, Real b,
+			const IntegrationConfig& config = {})
+		{
+			return IntegrationDetail::ExecuteIntegrationDetailed<IntegrationDetailedResult>(
+				"IntegrateGK15", config,
+				[&](IntegrationDetailedResult& result) {
+					auto gk = IntegrateGK15(f, a, b);
+					GKDetail::PopulateFromGK(result, gk, "IntegrateGK15");
+				});
+		}
+
+		/// GK21 integration with full diagnostics
+		template<typename Func>
+		static IntegrationDetailedResult IntegrateGK21Detailed(
+			Func f, Real a, Real b,
+			const IntegrationConfig& config = {})
+		{
+			return IntegrationDetail::ExecuteIntegrationDetailed<IntegrationDetailedResult>(
+				"IntegrateGK21", config,
+				[&](IntegrationDetailedResult& result) {
+					auto gk = IntegrateGK21(f, a, b);
+					GKDetail::PopulateFromGK(result, gk, "IntegrateGK21");
+				});
+		}
+
+		/// GK31 integration with full diagnostics
+		template<typename Func>
+		static IntegrationDetailedResult IntegrateGK31Detailed(
+			Func f, Real a, Real b,
+			const IntegrationConfig& config = {})
+		{
+			return IntegrationDetail::ExecuteIntegrationDetailed<IntegrationDetailedResult>(
+				"IntegrateGK31", config,
+				[&](IntegrationDetailedResult& result) {
+					auto gk = IntegrateGK31(f, a, b);
+					GKDetail::PopulateFromGK(result, gk, "IntegrateGK31");
+				});
+		}
+
+		/// Adaptive Gauss-Kronrod with full diagnostics
+		template<typename Func>
+		static IntegrationDetailedResult IntegrateGKAdaptiveDetailed(
+			Func f, Real a, Real b,
+			const IntegrationConfig& config = {},
+			Real tol_abs = 1e-10, Real tol_rel = 1e-10,
+			int max_depth = 50, GKRule rule = GKRule::GK15)
+		{
+			return IntegrationDetail::ExecuteIntegrationDetailed<IntegrationDetailedResult>(
+				"IntegrateGKAdaptive", config,
+				[&](IntegrationDetailedResult& result) {
+					auto gk = IntegrateGKAdaptive(f, a, b, tol_abs, tol_rel, max_depth, rule);
+					GKDetail::PopulateFromGK(result, gk, "IntegrateGKAdaptive");
+				});
 		}
 
 	} // namespace Integration

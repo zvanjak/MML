@@ -26,9 +26,9 @@
 #include "MMLBase.h"
 #include "mml/base/BaseUtils.h"
 #include "mml/core/Derivation.h"
-#include "mml/algorithms/ODESolvers/ODEAdaptiveIntegrator.h"
-#include "mml/algorithms/ODESolvers/ODEFixedStepIntegrators.h"
-#include "mml/algorithms/ODESolvers/ODESystemStepCalculators.h"
+#include "mml/algorithms/ODESolvers/ODESolverAdaptive.h"
+#include "mml/algorithms/ODESolvers/ODESolverFixedStep.h"
+#include "mml/algorithms/ODESolvers/ODEStepCalculators.h"
 #include "mml/tools/Visualizer.h"
 #include "mml/tools/Serializer.h"
 #endif

@@ -43,9 +43,9 @@
 
 #include "interfaces/IODESystem.h"
 
-#include "mml/algorithms/ODESolvers/ODEAdaptiveIntegrator.h"
-#include "mml/algorithms/ODESolvers/ODEFixedStepIntegrators.h"
-#include "mml/algorithms/ODESolvers/ODESystemStepCalculators.h"
+#include "mml/algorithms/ODESolvers/ODESolverAdaptive.h"
+#include "mml/algorithms/ODESolvers/ODESolverFixedStep.h"
+#include "mml/algorithms/ODESolvers/ODEStepCalculators.h"
 
 #include "tools/Serializer.h"
 #include "tools/Visualizer.h"

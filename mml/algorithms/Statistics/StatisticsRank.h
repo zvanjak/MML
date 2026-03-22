@@ -11,6 +11,7 @@
 #define MML_RANK_CORRELATION_H
 
 #include "algorithms/Statistics.h"
+#include "algorithms/Statistics/StatisticsBase.h"
 
 namespace MML
 {
@@ -232,6 +233,77 @@ namespace MML
 			Real zScore = tau / std::sqrt(variance);
 
 			return RankCorrelationResult{tau, zScore, n};
+		}
+
+		/******************************************************************************/
+		/*****             Rank Correlation Detailed API                         *****/
+		/******************************************************************************/
+
+		namespace RankDetail
+		{
+			/// Populate RankCorrelationDetailedResult from RankCorrelationResult
+			inline void PopulateFromResult(RankCorrelationDetailedResult& out, const RankCorrelationResult& r)
+			{
+				out.rho    = r.rho;
+				out.zScore = r.zScore;
+				out.n      = r.n;
+			}
+		} // namespace RankDetail
+
+		/// Detailed variant of SpearmanCorrelation
+		inline RankCorrelationDetailedResult SpearmanCorrelationDetailed(
+			const Vector<Real>& x,
+			const Vector<Real>& y,
+			const StatisticsConfig& config = {})
+		{
+			return StatisticsDetail::ExecuteStatisticsDetailed<RankCorrelationDetailedResult>(
+				"SpearmanCorrelation", config,
+				[&](RankCorrelationDetailedResult& r) {
+					r.rho = SpearmanCorrelation(x, y);
+					r.n   = static_cast<int>(x.size());
+				});
+		}
+
+		/// Detailed variant of SpearmanCorrelationWithTest
+		inline RankCorrelationDetailedResult SpearmanCorrelationWithTestDetailed(
+			const Vector<Real>& x,
+			const Vector<Real>& y,
+			const StatisticsConfig& config = {})
+		{
+			return StatisticsDetail::ExecuteStatisticsDetailed<RankCorrelationDetailedResult>(
+				"SpearmanCorrelationWithTest", config,
+				[&](RankCorrelationDetailedResult& r) {
+					auto simple = SpearmanCorrelationWithTest(x, y);
+					RankDetail::PopulateFromResult(r, simple);
+				});
+		}
+
+		/// Detailed variant of KendallCorrelation
+		inline RankCorrelationDetailedResult KendallCorrelationDetailed(
+			const Vector<Real>& x,
+			const Vector<Real>& y,
+			const StatisticsConfig& config = {})
+		{
+			return StatisticsDetail::ExecuteStatisticsDetailed<RankCorrelationDetailedResult>(
+				"KendallCorrelation", config,
+				[&](RankCorrelationDetailedResult& r) {
+					r.rho = KendallCorrelation(x, y);
+					r.n   = static_cast<int>(x.size());
+				});
+		}
+
+		/// Detailed variant of KendallCorrelationWithTest
+		inline RankCorrelationDetailedResult KendallCorrelationWithTestDetailed(
+			const Vector<Real>& x,
+			const Vector<Real>& y,
+			const StatisticsConfig& config = {})
+		{
+			return StatisticsDetail::ExecuteStatisticsDetailed<RankCorrelationDetailedResult>(
+				"KendallCorrelationWithTest", config,
+				[&](RankCorrelationDetailedResult& r) {
+					auto simple = KendallCorrelationWithTest(x, y);
+					RankDetail::PopulateFromResult(r, simple);
+				});
 		}
 	}
 }

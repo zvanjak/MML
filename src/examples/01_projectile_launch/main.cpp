@@ -30,7 +30,7 @@
 #include "mml/base/BaseUtils.h"
 #include "mml/tools/Visualizer.h"
 #include "mml/tools/Serializer.h"
-#include "mml/algorithms/ODESolvers/ODEAdaptiveIntegrator.h"
+#include "mml/algorithms/ODESolvers/ODESolverAdaptive.h"
 #endif
 
 // Self-contained projectile physics

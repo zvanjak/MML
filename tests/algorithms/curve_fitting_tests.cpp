@@ -660,4 +660,152 @@ TEST_CASE("PolynomialFit - Error: negative degree", "[CurveFitting][PolynomialFi
     REQUIRE_THROWS_AS(PolynomialFit(x_data, y_data, -1), std::invalid_argument);
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////
+///                         DETAILED API TESTS                                          ///
+///////////////////////////////////////////////////////////////////////////////////////////
+
+TEST_CASE("LinearFitDetailed - basic linear fit returns success", "[CurveFitting][Detailed]")
+{
+    // y = 2 + 3x  (a=slope=3, b=intercept=2)
+    Vector<Real> x({1.0, 2.0, 3.0, 4.0, 5.0});
+    Vector<Real> y({5.0, 8.0, 11.0, 14.0, 17.0});
+
+    auto result = LinearFitDetailed(x, y);
+
+    REQUIRE(result.IsSuccess());
+    REQUIRE(result.algorithm_name == "LinearLeastSquares");
+    REQUIRE(result.elapsed_time_ms >= 0.0);
+
+    REQUIRE_THAT(result.coefficients[0], Catch::Matchers::WithinAbs(3.0, 1e-10));  // a = slope
+    REQUIRE_THAT(result.coefficients[1], Catch::Matchers::WithinAbs(2.0, 1e-10));  // b = intercept
+    REQUIRE_THAT(result.r_squared, Catch::Matchers::WithinAbs(1.0, 1e-10));
+    REQUIRE(result.mean_squared_error < 1e-20);
+}
+
+TEST_CASE("LinearFitDetailed - noisy data returns reasonable statistics", "[CurveFitting][Detailed]")
+{
+    Vector<Real> x({1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0});
+    Vector<Real> y({2.1, 3.9, 6.2, 7.8, 10.1, 12.3, 13.8, 16.1});
+
+    auto result = LinearFitDetailed(x, y);
+
+    REQUIRE(result.IsSuccess());
+    REQUIRE(result.r_squared > 0.99);
+    REQUIRE(result.residual_norm > 0.0);
+    REQUIRE(result.mean_squared_error > 0.0);
+}
+
+TEST_CASE("LinearFitDetailed - error with mismatched sizes uses Suppress policy", "[CurveFitting][Detailed]")
+{
+    Vector<Real> x({1.0, 2.0});
+    Vector<Real> y({1.0, 2.0, 3.0});
+
+    CurveFittingConfig config;
+    config.exception_policy = EvaluationExceptionPolicy::ConvertToStatus;
+
+    auto result = LinearFitDetailed(x, y, config);
+
+    REQUIRE_FALSE(result.IsSuccess());
+    REQUIRE(result.status != AlgorithmStatus::Success);
+    REQUIRE_FALSE(result.error_message.empty());
+}
+
+TEST_CASE("LinearFitDetailed - error with Propagate policy throws", "[CurveFitting][Detailed]")
+{
+    Vector<Real> x({1.0, 2.0});
+    Vector<Real> y({1.0, 2.0, 3.0});
+
+    CurveFittingConfig config;
+    config.exception_policy = EvaluationExceptionPolicy::Propagate;
+
+    REQUIRE_THROWS_AS(LinearFitDetailed(x, y, config), CurveFittingError);
+}
+
+TEST_CASE("GeneralLinearFitDetailed - quadratic fit returns enriched result", "[CurveFitting][Detailed]")
+{
+    // y = 1 + 2x + 3x^2
+    Vector<Real> x({0.0, 1.0, 2.0, 3.0, 4.0, 5.0});
+    Vector<Real> y(6);
+    for (int i = 0; i < 6; i++) {
+        Real xi = x[i];
+        y[i] = 1.0 + 2.0 * xi + 3.0 * xi * xi;
+    }
+
+    Vector<std::function<Real(Real)>> basis({
+        [](Real) -> Real { return 1.0; },
+        [](Real t) -> Real { return t; },
+        [](Real t) -> Real { return t * t; }
+    });
+
+    auto result = GeneralLinearFitDetailed(x, y, basis);
+
+    REQUIRE(result.IsSuccess());
+    REQUIRE(result.algorithm_name == "GeneralLinearLeastSquares");
+    REQUIRE(result.elapsed_time_ms >= 0.0);
+
+    REQUIRE_THAT(result.coefficients[0], Catch::Matchers::WithinAbs(1.0, 1e-8));
+    REQUIRE_THAT(result.coefficients[1], Catch::Matchers::WithinAbs(2.0, 1e-8));
+    REQUIRE_THAT(result.coefficients[2], Catch::Matchers::WithinAbs(3.0, 1e-8));
+    REQUIRE_THAT(result.r_squared, Catch::Matchers::WithinAbs(1.0, 1e-10));
+    REQUIRE(result.effective_rank == 3);
+    REQUIRE(result.condition_number > 0.0);
+    REQUIRE(result.adjusted_r_squared > 0.99);
+}
+
+TEST_CASE("GeneralLinearFitDetailed - error suppressed on bad input", "[CurveFitting][Detailed]")
+{
+    Vector<Real> x({1.0});
+    Vector<Real> y({1.0});
+
+    Vector<std::function<Real(Real)>> basis({
+        [](Real) -> Real { return 1.0; },
+        [](Real t) -> Real { return t; },
+        [](Real t) -> Real { return t * t; }
+    });
+
+    CurveFittingConfig config;
+    config.exception_policy = EvaluationExceptionPolicy::ConvertToStatus;
+
+    auto result = GeneralLinearFitDetailed(x, y, basis, config);
+
+    REQUIRE_FALSE(result.IsSuccess());
+}
+
+TEST_CASE("PolynomialFitDetailed - cubic polynomial fit", "[CurveFitting][Detailed]")
+{
+    // y = 1 - x + 0.5x^2 + 0.1x^3
+    Vector<Real> x({-2.0, -1.0, 0.0, 1.0, 2.0, 3.0, 4.0});
+    Vector<Real> y(7);
+    for (int i = 0; i < 7; i++) {
+        Real xi = x[i];
+        y[i] = 1.0 - xi + 0.5 * xi * xi + 0.1 * xi * xi * xi;
+    }
+
+    auto result = PolynomialFitDetailed(x, y, 3);
+
+    REQUIRE(result.IsSuccess());
+    REQUIRE(result.algorithm_name == "PolynomialFit");
+    REQUIRE(result.elapsed_time_ms >= 0.0);
+
+    REQUIRE_THAT(result.coefficients[0], Catch::Matchers::WithinAbs(1.0, 1e-8));
+    REQUIRE_THAT(result.coefficients[1], Catch::Matchers::WithinAbs(-1.0, 1e-8));
+    REQUIRE_THAT(result.coefficients[2], Catch::Matchers::WithinAbs(0.5, 1e-8));
+    REQUIRE_THAT(result.coefficients[3], Catch::Matchers::WithinAbs(0.1, 1e-8));
+    REQUIRE_THAT(result.r_squared, Catch::Matchers::WithinAbs(1.0, 1e-10));
+}
+
+TEST_CASE("PolynomialFitDetailed - negative degree suppressed", "[CurveFitting][Detailed]")
+{
+    Vector<Real> x({1.0, 2.0, 3.0});
+    Vector<Real> y({1.0, 2.0, 3.0});
+
+    CurveFittingConfig config;
+    config.exception_policy = EvaluationExceptionPolicy::ConvertToStatus;
+
+    auto result = PolynomialFitDetailed(x, y, -1, config);
+
+    REQUIRE_FALSE(result.IsSuccess());
+    REQUIRE(result.status == AlgorithmStatus::InvalidInput);
+}
+
 } // namespace MML::Tests::Algorithms::CurveFittingTests

@@ -505,6 +505,32 @@ namespace MML::Tests::Base::GeometryTests
 		
 		// These are at (1,0,0) and (-1,0,0), distance = 2
 		REQUIRE_THAT(a.Dist(a), RealWithinAbs(REAL(0.0), REAL(1e-10)));
+		REQUIRE_THAT(a.Dist(b), RealWithinAbs(REAL(2.0), REAL(1e-10)));
+
+		// Points at same theta, different phi (on equatorial plane)
+		// a=(1, pi/2, 0) -> (1,0,0), c=(1, pi/2, pi/2) -> (0,1,0), distance = sqrt(2)
+		Point3Spherical c(REAL(1.0), Constants::PI / 2, Constants::PI / 2);
+		REQUIRE_THAT(a.Dist(c), RealWithinAbs(std::sqrt(REAL(2.0)), REAL(1e-10)));
+
+		// Same phi, different theta: a=(1, pi/4, 0), d=(1, pi/4, pi)
+		// a -> (sin(pi/4), 0, cos(pi/4)), d -> (-sin(pi/4), 0, cos(pi/4))
+		// distance = 2*sin(pi/4) = sqrt(2)
+		Point3Spherical e(REAL(1.0), Constants::PI / 4, REAL(0.0));
+		Point3Spherical f(REAL(1.0), Constants::PI / 4, Constants::PI);
+		REQUIRE_THAT(e.Dist(f), RealWithinAbs(std::sqrt(REAL(2.0)), REAL(1e-10)));
+
+		// Different radii: (2, pi/2, 0) -> (2,0,0) and (3, pi/2, 0) -> (3,0,0), distance = 1
+		Point3Spherical g(REAL(2.0), Constants::PI / 2, REAL(0.0));
+		Point3Spherical h(REAL(3.0), Constants::PI / 2, REAL(0.0));
+		REQUIRE_THAT(g.Dist(h), RealWithinAbs(REAL(1.0), REAL(1e-10)));
+
+		// Cross-validate with Cartesian distance
+		Point3Spherical s1(REAL(2.0), Constants::PI / 3, Constants::PI / 4);
+		Point3Spherical s2(REAL(3.0), Constants::PI / 6, Constants::PI / 2);
+		Point3Cartesian c1 = s1.TransfToCart();
+		Point3Cartesian c2 = s2.TransfToCart();
+		Real cartDist = c1.Dist(c2);
+		REQUIRE_THAT(s1.Dist(s2), RealWithinAbs(cartDist, REAL(1e-10)));
 	}
 
 	/*********************************************************************/

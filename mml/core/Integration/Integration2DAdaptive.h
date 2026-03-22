@@ -33,6 +33,7 @@
 
 #include "MMLBase.h"
 #include "core/Integration/GaussKronrod.h"
+#include "core/Integration/IntegrationBase.h"
 
 namespace MML
 {
@@ -226,27 +227,6 @@ static GKResult IntegrateCell2D_TensorGK15(Func f, Real x1, Real x2, Real y1, Re
     return GKResult(result_kronrod, error, evals, true);
 }
 
-/// @brief Simpler 2D cell integration using nested 1D GK15
-/// @details Less efficient but simpler: integrate over y for each x sample,
-///          then integrate x. More robust for functions with cross-dependencies.
-/// @deprecated Use IntegrateCell2D_TensorGK15 for proper error estimation.
-template<typename Func>
-static GKResult IntegrateCell2D_Nested(Func f, Real x1, Real x2, Real y1, Real y2) {
-    // Wrap f(x,y) as f_y(y) for fixed x
-    auto outer_integrand = [&](Real x) -> Real {
-        // Inner integral over y
-        auto inner = IntegrateGK15([&](Real y) { return f(x, y); }, y1, y2);
-        return inner.value;
-    };
-    
-    // Outer integral over x
-    auto result_x = IntegrateGK15(outer_integrand, x1, x2);
-    
-    // Error estimation from outer integral only (simplified)
-    // A more sophisticated approach would propagate inner errors
-    return GKResult(result_x.value, result_x.error_estimate, 15 * 15, result_x.converged);
-}
-
 } // namespace Detail
 
 /// @brief Recursive helper for adaptive 2D integration
@@ -276,8 +256,10 @@ static AdaptiveResult2D IntegrateAdaptive2D_Recursive(
     Real cell_area = (x2 - x1) * (y2 - y1);
     Real area_fraction = cell_area / total_area;
     
-    // Tolerance for this cell: scale by area fraction
-    Real cell_tol = std::max(tol_abs * area_fraction, tol_rel * std::abs(cell_result.value));
+    // Tolerance for this cell: scale by area fraction, with epsilon floor to prevent underflow
+    Real cell_tol = std::max({tol_abs * area_fraction, 
+                              tol_rel * std::abs(cell_result.value),
+                              std::numeric_limits<Real>::min()});
 
     // Check convergence
     if (cell_result.error_estimate <= cell_tol || depth >= max_depth || evals_remaining <= 0) {
@@ -396,6 +378,60 @@ static AdaptiveResult2D IntegrateAdaptive2D(
         evals_remaining,
         config.rule
     );
+}
+
+/**************************************************************************/
+/*****       Detailed API - Adaptive 2D Integration                   *****/
+/**************************************************************************/
+
+/// Adaptive 2D integration with simple parameters and full diagnostics
+template<typename Func>
+static IntegrationDetailedResult IntegrateAdaptive2DDetailed(
+    Func f,
+    Real x1, Real x2,
+    Real y1, Real y2,
+    const IntegrationConfig& config = {},
+    Real tolerance = 1e-8,
+    int max_depth = 20,
+    int max_evals = 1000000)
+{
+    return IntegrationDetail::ExecuteIntegrationDetailed<IntegrationDetailedResult>(
+        "IntegrateAdaptive2D", config,
+        [&](IntegrationDetailedResult& result) {
+            auto r = IntegrateAdaptive2D(f, x1, x2, y1, y2, tolerance, max_depth, max_evals);
+            result.value = r.value;
+            result.error_estimate = r.error_estimate;
+            result.function_evaluations = r.function_evaluations;
+            result.converged = r.converged;
+            if (!r.converged) {
+                result.status = AlgorithmStatus::MaxIterationsExceeded;
+                result.error_message = "IntegrateAdaptive2D did not converge";
+            }
+        });
+}
+
+/// Adaptive 2D integration with config object and full diagnostics
+template<typename Func>
+static IntegrationDetailedResult IntegrateAdaptive2DDetailed(
+    Func f,
+    Real x1, Real x2,
+    Real y1, Real y2,
+    const AdaptiveConfig2D& adaptive_config,
+    const IntegrationConfig& config = {})
+{
+    return IntegrationDetail::ExecuteIntegrationDetailed<IntegrationDetailedResult>(
+        "IntegrateAdaptive2D", config,
+        [&](IntegrationDetailedResult& result) {
+            auto r = IntegrateAdaptive2D(f, x1, x2, y1, y2, adaptive_config);
+            result.value = r.value;
+            result.error_estimate = r.error_estimate;
+            result.function_evaluations = r.function_evaluations;
+            result.converged = r.converged;
+            if (!r.converged) {
+                result.status = AlgorithmStatus::MaxIterationsExceeded;
+                result.error_message = "IntegrateAdaptive2D did not converge";
+            }
+        });
 }
 
 } // namespace Integration

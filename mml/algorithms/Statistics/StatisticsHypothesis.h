@@ -11,6 +11,7 @@
 #define MML_HYPOTHESIS_TESTING_H
 
 #include "algorithms/Statistics.h"
+#include "algorithms/Statistics/StatisticsBase.h"
 
 #include "Distributions.h"
 
@@ -577,6 +578,128 @@ namespace MML
 				df_between,  // Store between-groups df in result
 				"One-Way ANOVA"
 			);
+		}
+
+		/******************************************************************************/
+		/*****             Hypothesis Testing Detailed API                       *****/
+		/******************************************************************************/
+
+		namespace HypothesisDetail
+		{
+			/// Populate HypothesisTestDetailedResult from HypothesisTestResult
+			inline void PopulateFromSimple(HypothesisTestDetailedResult& out, const HypothesisTestResult& r)
+			{
+				out.testStatistic    = r.testStatistic;
+				out.pValue           = r.pValue;
+				out.criticalValue    = r.criticalValue;
+				out.rejectNull       = r.rejectNull;
+				out.confidenceLevel  = r.confidenceLevel;
+				out.degreesOfFreedom = r.degreesOfFreedom;
+				out.testName         = r.testName;
+			}
+		} // namespace HypothesisDetail
+
+		/// Detailed variant of OneSampleTTest
+		inline HypothesisTestDetailedResult OneSampleTTestDetailed(
+			const Vector<Real>& sample,
+			Real mu0,
+			Real alpha = 0.05,
+			const StatisticsConfig& config = {})
+		{
+			return StatisticsDetail::ExecuteStatisticsDetailed<HypothesisTestDetailedResult>(
+				"OneSampleTTest", config,
+				[&](HypothesisTestDetailedResult& r) {
+					auto simple = OneSampleTTest(sample, mu0, alpha);
+					HypothesisDetail::PopulateFromSimple(r, simple);
+				});
+		}
+
+		/// Detailed variant of TwoSampleTTest
+		inline HypothesisTestDetailedResult TwoSampleTTestDetailed(
+			const Vector<Real>& sample1,
+			const Vector<Real>& sample2,
+			Real alpha = 0.05,
+			const StatisticsConfig& config = {})
+		{
+			return StatisticsDetail::ExecuteStatisticsDetailed<HypothesisTestDetailedResult>(
+				"TwoSampleTTest", config,
+				[&](HypothesisTestDetailedResult& r) {
+					auto simple = TwoSampleTTest(sample1, sample2, alpha);
+					HypothesisDetail::PopulateFromSimple(r, simple);
+				});
+		}
+
+		/// Detailed variant of WelchTTest
+		inline HypothesisTestDetailedResult WelchTTestDetailed(
+			const Vector<Real>& sample1,
+			const Vector<Real>& sample2,
+			Real alpha = 0.05,
+			const StatisticsConfig& config = {})
+		{
+			return StatisticsDetail::ExecuteStatisticsDetailed<HypothesisTestDetailedResult>(
+				"WelchTTest", config,
+				[&](HypothesisTestDetailedResult& r) {
+					auto simple = WelchTTest(sample1, sample2, alpha);
+					HypothesisDetail::PopulateFromSimple(r, simple);
+				});
+		}
+
+		/// Detailed variant of PairedTTest
+		inline HypothesisTestDetailedResult PairedTTestDetailed(
+			const Vector<Real>& before,
+			const Vector<Real>& after,
+			Real alpha = 0.05,
+			const StatisticsConfig& config = {})
+		{
+			return StatisticsDetail::ExecuteStatisticsDetailed<HypothesisTestDetailedResult>(
+				"PairedTTest", config,
+				[&](HypothesisTestDetailedResult& r) {
+					auto simple = PairedTTest(before, after, alpha);
+					HypothesisDetail::PopulateFromSimple(r, simple);
+				});
+		}
+
+		/// Detailed variant of ChiSquareGoodnessOfFit
+		inline HypothesisTestDetailedResult ChiSquareGoodnessOfFitDetailed(
+			const Vector<Real>& observed,
+			const Vector<Real>& expected,
+			Real alpha = 0.05,
+			const StatisticsConfig& config = {})
+		{
+			return StatisticsDetail::ExecuteStatisticsDetailed<HypothesisTestDetailedResult>(
+				"ChiSquareGoodnessOfFit", config,
+				[&](HypothesisTestDetailedResult& r) {
+					auto simple = ChiSquareGoodnessOfFit(observed, expected, alpha);
+					HypothesisDetail::PopulateFromSimple(r, simple);
+				});
+		}
+
+		/// Detailed variant of ChiSquareIndependence
+		inline HypothesisTestDetailedResult ChiSquareIndependenceDetailed(
+			const Matrix<Real>& contingencyTable,
+			Real alpha = 0.05,
+			const StatisticsConfig& config = {})
+		{
+			return StatisticsDetail::ExecuteStatisticsDetailed<HypothesisTestDetailedResult>(
+				"ChiSquareIndependence", config,
+				[&](HypothesisTestDetailedResult& r) {
+					auto simple = ChiSquareIndependence(contingencyTable, alpha);
+					HypothesisDetail::PopulateFromSimple(r, simple);
+				});
+		}
+
+		/// Detailed variant of OneWayANOVA
+		inline HypothesisTestDetailedResult OneWayANOVADetailed(
+			const std::vector<Vector<Real>>& groups,
+			Real alpha = 0.05,
+			const StatisticsConfig& config = {})
+		{
+			return StatisticsDetail::ExecuteStatisticsDetailed<HypothesisTestDetailedResult>(
+				"OneWayANOVA", config,
+				[&](HypothesisTestDetailedResult& r) {
+					auto simple = OneWayANOVA(groups, alpha);
+					HypothesisDetail::PopulateFromSimple(r, simple);
+				});
 		}
 
 	} // namespace Statistics

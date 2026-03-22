@@ -822,5 +822,22 @@ Vec3 v1{ REAL(1.0), REAL(0.0), REAL(0.0) };
 		REQUIRE_THROWS_AS(Tensor5<2>(0, 6), TensorCovarContravarNumError);  // 0+6=6
 	}
 
+	TEST_CASE("Tensors::Tensor2_initializer_list_overflow_throws", "[Tensor2]")
+	{
+		// 2x2 tensor = 4 elements, providing 5 should throw
+		REQUIRE_THROWS_AS(
+			Tensor2<2>(1, 1, { REAL(1.0), REAL(2.0), REAL(3.0), REAL(4.0), REAL(5.0) }),
+			TensorCovarContravarNumError);
+	}
+
+	TEST_CASE("Tensors::Tensor3_initializer_list_overflow_throws", "[Tensor3]")
+	{
+		// 2x2x2 tensor = 8 elements, providing 9 should throw
+		REQUIRE_THROWS_AS(
+			Tensor3<2>(1, 2, { REAL(1.0), REAL(2.0), REAL(3.0), REAL(4.0),
+			                   REAL(5.0), REAL(6.0), REAL(7.0), REAL(8.0), REAL(9.0) }),
+			TensorCovarContravarNumError);
+	}
+
 }
 

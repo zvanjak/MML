@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.20)
 
-project(MinimalMathLibrary VERSION 1.2.1 LANGUAGES CXX)
+project(MinimalMathLibrary VERSION 1.0.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -12,6 +12,7 @@ endif()
 
 # Options
 option(BUILD_SINGLE_HEADER_TESTS "Build single header tests (requires regenerating MML.h)" OFF)
+option(BUILD_INTEGRATION_TESTS "Build long-running integration tests (N-body, large systems)" OFF)
 option(MML_INSTALL "Generate install target" ON)
 
 # =============================================================================
@@ -29,10 +30,12 @@ target_include_directories(minimalmathlib INTERFACE
 
 target_compile_features(minimalmathlib INTERFACE cxx_std_17)
 
-# Global include directories for MML library (for internal builds)
+# Global include directories for internal builds
 include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/mml
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/book
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/book/mpl
 )
 
 # Enable testing at the root level
@@ -61,6 +64,11 @@ add_subdirectory(src/testing_precision)
 # Tests
 add_subdirectory(tests)
 
+# Integration Tests (optional - long-running validation tests)
+if(BUILD_INTEGRATION_TESTS)
+    add_subdirectory(integration_tests)
+endif()
+
 # Aggregate target to build all example-like executables at once
 add_custom_target(examples
     DEPENDS
@@ -68,17 +76,19 @@ add_custom_target(examples
         MML_DocsApp
         MML_DemoApp
         MML_VisualizationApp
+        test_linux_viz_standalone
+        test_backend_switching
+        test_all_visualizers
 )
 
 # If individual example executables exist, include them in the aggregate target
 foreach(example_target
-    Example00_NBodyGravity
+    Example00_ShockWave
     Example01_ProjectileLaunch
     Example02_DoublePendulum
-    Example03_F1GForces
-    Example04_CollisionSim2D
-    Example05_RigidBody
-    Example06_LorentzTransform
+    Example03_CollisionSimulator2D
+    Example04_NBodyGravity
+    Example05_LorentzTransformations
 )
     if(TARGET ${example_target})
         add_dependencies(examples ${example_target})

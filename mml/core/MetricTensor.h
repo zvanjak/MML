@@ -20,6 +20,7 @@
 
 #include "core/Derivation.h"
 #include "core/Derivation/DerivationTensorField.h"
+#include "core/SingularityHandling.h"
 
 namespace MML
 {
@@ -331,9 +332,17 @@ namespace MML
 			if (i == 0 && j == 0)
 				return 1.0;
 			else if (i == 1 && j == 1)
-				return 1 / (pos[0] * pos[0]);
+			{
+				Real r2 = pos[0] * pos[0];
+				return Singularity::SafeDivide(1.0, r2, SingularityPolicy::Throw,
+					"MetricTensorSphericalContravar g^11: r=0 singularity");
+			}
 			else if (i == 2 && j == 2)
-				return 1 / (pos[0] * pos[0] * sin(pos[1]) * sin(pos[1]));
+			{
+				Real r2sin2 = pos[0] * pos[0] * std::sin(pos[1]) * std::sin(pos[1]);
+				return Singularity::SafeDivide(1.0, r2sin2, SingularityPolicy::Throw,
+					"MetricTensorSphericalContravar g^22: r=0 or theta=0/pi singularity");
+			}
 			else
 				return 0.0;
 		}

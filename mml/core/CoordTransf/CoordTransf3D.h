@@ -643,7 +643,7 @@ namespace MML
 		void initializeMatrices()
 		{
 			// Ensure quaternion is normalized for proper rotation
-			if (!_quat.IsUnit(PrecisionValues<Real>::DefaultTolerance))
+			if (!_quat.isUnit(PrecisionValues<Real>::DefaultTolerance))
 				_quat.Normalize();
 
 			// Convert quaternion to rotation matrix

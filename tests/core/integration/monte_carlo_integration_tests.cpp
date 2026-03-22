@@ -464,4 +464,54 @@ namespace MML::Tests::Algorithms::MonteCarloIntegrationTests
         REQUIRE_THAT(result.value, WithinAbs(expected, REAL(0.05)));
     }
 
+    ///////////////////////////    ALGORITHM STATUS TESTS    ///////////////////////////
+
+    TEST_CASE("MonteCarlo_AlgorithmStatus_Success", "[montecarlo][status]")
+    {
+        ConstantOne<2> func;
+        MonteCarloIntegrator<2> mc(42);
+        
+        VectorN<Real, 2> lower{REAL(0.0), REAL(0.0)}, upper{REAL(1.0), REAL(1.0)};
+        auto result = mc.integrate(func, lower, upper, MonteCarloConfig().samples(1000));
+        
+        REQUIRE(result.status == AlgorithmStatus::Success);
+        REQUIRE(result.IsSuccess());
+        REQUIRE(result.algorithm_name == "MonteCarloIntegrator");
+        REQUIRE(result.elapsed_time_ms >= REAL(0.0));
+        REQUIRE(result.function_evaluations == 1000);
+    }
+
+    TEST_CASE("Stratified_AlgorithmStatus_Success", "[montecarlo][stratified][status]")
+    {
+        ConstantOne<2> func;
+        StratifiedMonteCarloIntegrator<2> smc(42);
+        
+        VectorN<Real, 2> lower{REAL(0.0), REAL(0.0)}, upper{REAL(1.0), REAL(1.0)};
+        auto result = smc.integrate(func, lower, upper, 10, 10);
+        
+        REQUIRE(result.status == AlgorithmStatus::Success);
+        REQUIRE(result.IsSuccess());
+        REQUIRE(result.algorithm_name == "StratifiedMonteCarloIntegrator");
+        REQUIRE(result.elapsed_time_ms >= REAL(0.0));
+        REQUIRE(result.function_evaluations > 0);
+    }
+
+    TEST_CASE("HitOrMiss_AlgorithmStatus_Success", "[montecarlo][hitorrmiss][status]")
+    {
+        auto indicator = [](const VectorN<Real, 2>& x) -> bool {
+            return x[0]*x[0] + x[1]*x[1] <= REAL(1.0);
+        };
+        
+        HitOrMissIntegrator<2> hom(42);
+        
+        VectorN<Real, 2> lower{-REAL(1.0), -REAL(1.0)}, upper{REAL(1.0), REAL(1.0)};
+        auto result = hom.estimateVolume(indicator, lower, upper, 10000);
+        
+        REQUIRE(result.status == AlgorithmStatus::Success);
+        REQUIRE(result.IsSuccess());
+        REQUIRE(result.algorithm_name == "HitOrMissIntegrator");
+        REQUIRE(result.elapsed_time_ms >= REAL(0.0));
+        REQUIRE(result.function_evaluations == 10000);
+    }
+
 }  // namespace

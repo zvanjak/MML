@@ -35,7 +35,7 @@ void Readme_curves_surfaces()
     auto tangent   = test_curve1.getTangent(t);
     auto unit_tang = test_curve1.getTangentUnit(t);
     auto normal    = test_curve1.getNormal(t);
-    auto unit_norm = test_curve1.getNormalUnit(t);
+    auto unit_norm = test_curve1.getNormal(t);
     auto binormal  = test_curve1.getBinormal(t);
     
     auto curv_vec   = test_curve1.getCurvatureVector(t);

@@ -624,5 +624,53 @@ namespace MML::Tests::Algorithms::RootFindingTests
 			REQUIRE_THAT(z4.imag(), WithinAbs(REAL(0.0), REAL(1e-8)));
 		}
 	}
+
+	TEST_CASE("RootFinding::Quadratic_degenerate_a_zero", "[polynomial][quadratic]")
+	{
+		TEST_PRECISION_INFO();
+		// 0*x^2 + 3*x - 6 = 0 => linear: x = 2
+		Complex x1, x2;
+		int n = MML::SolveQuadratic(REAL(0.0), REAL(3.0), -REAL(6.0), x1, x2);
+		REQUIRE(n == 1);
+		REQUIRE_THAT(x1.real(), WithinAbs(REAL(2.0), REAL(1e-10)));
+		REQUIRE_THAT(x1.imag(), WithinAbs(REAL(0.0), REAL(1e-10)));
+	}
+
+	TEST_CASE("RootFinding::Quadratic_degenerate_a_and_b_zero", "[polynomial][quadratic]")
+	{
+		TEST_PRECISION_INFO();
+		// 0*x^2 + 0*x + 5 = 0 => no solution, returns 0 roots
+		Complex x1, x2;
+		int n = MML::SolveQuadratic(REAL(0.0), REAL(0.0), REAL(5.0), x1, x2);
+		REQUIRE(n == 0);
+	}
+
+	TEST_CASE("RootFinding::Cubic_degenerate_a_zero", "[polynomial][cubic]")
+	{
+		TEST_PRECISION_INFO();
+		// 0*x^3 + x^2 - 5*x + 6 = 0 => quadratic: (x-2)(x-3) = 0
+		Complex x1, x2, x3;
+		int n = MML::SolveCubic(REAL(0.0), REAL(1.0), -REAL(5.0), REAL(6.0), x1, x2, x3);
+		REQUIRE(n == 2);
+
+		std::vector<Real> roots;
+		for (auto root : {x1, x2}) {
+			if (std::abs(root.imag()) < 1e-8)
+				roots.push_back(root.real());
+		}
+		std::sort(roots.begin(), roots.end());
+		REQUIRE(roots.size() == 2);
+		REQUIRE_THAT(roots[0], WithinAbs(REAL(2.0), REAL(1e-8)));
+		REQUIRE_THAT(roots[1], WithinAbs(REAL(3.0), REAL(1e-8)));
+	}
+
+	TEST_CASE("RootFinding::BairstowRoots_non_convergence_throws", "[polynomial][roots]")
+	{
+		TEST_PRECISION_INFO();
+		// Use maxIter=1 to force non-convergence
+		MML::PolynomReal poly({1.0, 0.0, -5.0, 0.0, 4.0}); // x^4 - 5x^2 + 4
+		REQUIRE_THROWS_AS(MML::RootFinding::BairstowRoots(poly, {}, 1e-10, 1),
+		                  std::runtime_error);
+	}
 }
 

@@ -105,12 +105,12 @@ namespace MML
 		/// @param indUnit Index of the unit element (0-based)
 		/// @return Unit vector e_i where e_i[indUnit] = 1
 		/// @throws VectorDimensionError if indUnit is out of range
-		static Vector GetUnitVector(int dimVec, int indUnit)
+		static Vector UnitVector(int dimVec, int indUnit)
 		{
-			static_assert(std::is_arithmetic_v<Type>, "GetUnitVector requires arithmetic type");
+			static_assert(std::is_arithmetic_v<Type>, "UnitVector requires arithmetic type");
 			
 			if (indUnit < 0 || indUnit >= dimVec)
-				throw VectorDimensionError("Vector::GetUnitVector - wrong unit index", dimVec, indUnit);
+				throw VectorDimensionError("Vector::UnitVector - wrong unit index", dimVec, indUnit);
 
 			Vector ret(dimVec);
 			ret[indUnit] = Type{ 1.0 };

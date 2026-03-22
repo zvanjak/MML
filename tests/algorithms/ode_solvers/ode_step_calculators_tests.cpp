@@ -7,7 +7,7 @@
 #ifdef MML_USE_SINGLE_HEADER
 #include "MML.h"
 #else
-#include "mml/algorithms/ODESolvers/ODESystemStepCalculators.h"
+#include "mml/algorithms/ODESolvers/ODEStepCalculators.h"
 #include "interfaces/IODESystem.h"
 #endif
 

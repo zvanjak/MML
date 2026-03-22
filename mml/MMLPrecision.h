@@ -12,6 +12,8 @@
 #if !defined MML_PRECISION_H
 #define MML_PRECISION_H
 
+#include "MMLTypeDefs.h"
+
 namespace MML
 {
 	// Template struct for precision values
@@ -215,8 +217,11 @@ namespace MML
 		static constexpr long double OrthogonalityTolerance = 1e-12L;      // Orthogonal vector check tolerance
 		static constexpr long double LinearDependenceTolerance = 1e-15L;   // Linear dependence check tolerance
 	};
-}
 
+	// Convenience alias: PrecisionValues for the current Real type
+	// Usage: MML::Precision::MatrixIsEqualTolerance instead of MML::PrecisionValues<Real>::...
+	using Precision = PrecisionValues<Real>;
+}
 
 #endif
 

@@ -221,7 +221,7 @@ namespace MML {
 		///////////////////////////         ACCESSORS           ///////////////////////////
 
 		// Get the full degree (number of coefficients - 1)
-		int Degree() const { return static_cast<int>(_coef.size()) - 1; }
+		int degree() const { return static_cast<int>(_coef.size()) - 1; }
 
 		// Get the truncation degree (number of terms used - 1)
 		int TruncatedDegree() const { return _m - 1; }

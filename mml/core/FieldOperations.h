@@ -109,9 +109,115 @@
 #include "core/MetricTensor.h"
 #include "core/MatrixUtils.h"
 #include "core/SingularityHandling.h"
+#include "core/AlgorithmTypes.h"
 
 namespace MML
 {
+	/******************************************************************************/
+	/*****               Field Operation Configuration                       *****/
+	/******************************************************************************/
+
+	/// Configuration for field differential operations (gradient, divergence, curl, Laplacian).
+	///
+	/// Extends EvaluationConfigBase with derivative order selection.
+	/// Field operations are non-iterative evaluations that internally use numerical
+	/// differentiation, so derivative accuracy is the primary tunable parameter.
+	struct FieldOperationConfig : public EvaluationConfigBase {
+		/// Derivative order for internal numerical differentiation.
+		/// 0 = use library default (NDer4), or 1, 2, 4, 6, 8.
+		int derivative_order = 0;
+	};
+
+	/******************************************************************************/
+	/*****               Field Operation Detail Helpers                      *****/
+	/******************************************************************************/
+
+	namespace FieldOperationDetail
+	{
+		/// Execute a field operation with structured result reporting.
+		///
+		/// Wraps the raw computation in timing, finiteness checking, and
+		/// exception handling according to the configured policy.
+		///
+		/// @tparam ResultType  EvaluationResult specialization for the output
+		/// @tparam ComputeFn   Lambda (int& func_evals) -> void that populates result.value/error
+		template<typename ResultType, typename ComputeFn>
+		ResultType ExecuteFieldDetailed(const char* algorithm_name,
+		                                const FieldOperationConfig& config,
+		                                ComputeFn&& compute)
+		{
+			auto execute = [&]() {
+				AlgorithmTimer timer;
+
+				ResultType result = MakeEvaluationSuccessResult<ResultType>(algorithm_name);
+
+				int func_evals = 0;
+				compute(result, func_evals);
+				result.function_evaluations = func_evals;
+
+				result.elapsed_time_ms = timer.elapsed_ms();
+				return result;
+			};
+
+			if (config.exception_policy == EvaluationExceptionPolicy::Propagate)
+				return execute();
+
+			try {
+				return execute();
+			}
+			catch (const DomainError& ex) {
+				return MakeEvaluationFailureResult<ResultType>(
+					AlgorithmStatus::InvalidInput, ex.what(), algorithm_name);
+			}
+			catch (const NumericInputError& ex) {
+				return MakeEvaluationFailureResult<ResultType>(
+					AlgorithmStatus::InvalidInput, ex.what(), algorithm_name);
+			}
+			catch (const NumericalMethodError& ex) {
+				return MakeEvaluationFailureResult<ResultType>(
+					AlgorithmStatus::NumericalInstability, ex.what(), algorithm_name);
+			}
+			catch (const std::invalid_argument& ex) {
+				return MakeEvaluationFailureResult<ResultType>(
+					AlgorithmStatus::InvalidInput, ex.what(), algorithm_name);
+			}
+			catch (const std::exception& ex) {
+				return MakeEvaluationFailureResult<ResultType>(
+					AlgorithmStatus::AlgorithmSpecificFailure, ex.what(), algorithm_name);
+			}
+		}
+
+		/// Dispatch derivative-order selection for DerivePartialAll.
+		/// Returns the gradient and optionally populates per-component error estimates.
+		template<int N>
+		VectorN<Real, N> DispatchGradient(const IScalarFunction<N>& f, const VectorN<Real, N>& pos,
+		                                  int order, bool want_error, VectorN<Real, N>* error,
+		                                  int& func_evals)
+		{
+			// Function pointer type for NDerKPartialByAll(f, pos, error*)
+			using DeriveFn = VectorN<Real, N>(*)(const IScalarFunction<N>&,
+			                                     const VectorN<Real, N>&,
+			                                     VectorN<Real, N>*);
+
+			DeriveFn deriveAll = nullptr;
+			int stencil = 0;
+
+			switch (order) {
+			case 1:  deriveAll = &Derivation::template NDer1PartialByAll<N>; stencil = 2; break;
+			case 2:  deriveAll = &Derivation::template NDer2PartialByAll<N>; stencil = 3; break;
+			case 0:  // fall through to default (NDer4)
+			case 4:  deriveAll = &Derivation::template NDer4PartialByAll<N>; stencil = 5; break;
+			case 6:  deriveAll = &Derivation::template NDer6PartialByAll<N>; stencil = 7; break;
+			case 8:  deriveAll = &Derivation::template NDer8PartialByAll<N>; stencil = 9; break;
+			default:
+				throw std::invalid_argument("FieldOperation: derivative_order must be 0, 1, 2, 4, 6, or 8");
+			}
+
+			func_evals = N * (want_error ? stencil + 1 : stencil);
+			return deriveAll(f, pos, want_error ? error : nullptr);
+		}
+	} // namespace FieldOperationDetail
+
 	///////////////////////////////////////////////////////////////////////////////////////////
 	/// ScalarFieldOperations - Differential operations on scalar fields
 	///
@@ -213,6 +319,34 @@ namespace MML
 			}
 		}
 
+		/// Computes gradient in Cartesian coordinates with structured result.
+		///
+		/// Returns an EvaluationResult containing the gradient vector, optional
+		/// per-component error estimates, timing, and AlgorithmStatus.
+		///
+		/// @tparam N          Number of dimensions
+		/// @param scalarField Scalar function f: ℝᴺ → ℝ
+		/// @param pos         Position vector (x₁, x₂, ..., xₙ)
+		/// @param config      Field operation configuration
+		/// @return            EvaluationResult with gradient value and diagnostics
+		template<int N>
+		static EvaluationResult<VectorN<Real, N>, VectorN<Real, N>>
+		GradientCartDetailed(const IScalarFunction<N>& scalarField, const VectorN<Real, N>& pos,
+		                     const FieldOperationConfig& config = {})
+		{
+			using ResultType = EvaluationResult<VectorN<Real, N>, VectorN<Real, N>>;
+			return FieldOperationDetail::ExecuteFieldDetailed<ResultType>(
+				"GradientCart", config,
+				[&](ResultType& result, int& func_evals) {
+					VectorN<Real, N> error_vec{};
+					result.value = FieldOperationDetail::DispatchGradient<N>(
+						scalarField, pos, config.derivative_order,
+						config.estimate_error, &error_vec, func_evals);
+					if (config.estimate_error)
+						result.error = error_vec;
+				});
+		}
+
 		///////////////////////////////////////////////////////////////////////////////////////////
 		//                              GRADIENT - SPHERICAL
 		///////////////////////////////////////////////////////////////////////////////////////////
@@ -287,6 +421,41 @@ namespace MML
 			return ret;
 		}
 
+		/// Computes gradient in spherical coordinates with structured result.
+		///
+		/// @param scalarField Scalar function f(r, θ, φ)
+		/// @param pos         Position (r, θ, φ) with r > 0, 0 < θ < π
+		/// @param config      Field operation configuration
+		/// @param policy      Singularity handling policy (default: Throw)
+		/// @return            EvaluationResult with gradient vector and diagnostics
+		static EvaluationResult<Vec3Sph, Vec3Sph>
+		GradientSpherDetailed(const IScalarFunction<3>& scalarField, const Vec3Sph& pos,
+		                      const FieldOperationConfig& config = {},
+		                      SingularityPolicy policy = Singularity::DEFAULT_POLICY)
+		{
+			using ResultType = EvaluationResult<Vec3Sph, Vec3Sph>;
+			return FieldOperationDetail::ExecuteFieldDetailed<ResultType>(
+				"GradientSpher", config,
+				[&](ResultType& result, int& func_evals) {
+					VectorN<Real, 3> error_vec{};
+					result.value = FieldOperationDetail::DispatchGradient<3>(
+						scalarField, pos, config.derivative_order,
+						config.estimate_error, &error_vec, func_evals);
+					if (config.estimate_error)
+						result.error = error_vec;
+
+					const Real r = pos[0];
+					const Real theta = pos[1];
+					result.value[1] *= Singularity::SafeInverseR(r, policy, "GradientSpher θ-component");
+					result.value[2] *= Singularity::SafeInverseRSinTheta(r, theta, policy, "GradientSpher φ-component");
+					// Scale error estimates by the same factors
+					if (config.estimate_error) {
+						result.error[1] *= std::abs(Singularity::SafeInverseR(r, policy, "GradientSpher θ-error"));
+						result.error[2] *= std::abs(Singularity::SafeInverseRSinTheta(r, theta, policy, "GradientSpher φ-error"));
+					}
+				});
+		}
+
 		///////////////////////////////////////////////////////////////////////////////////////////
 		//                              GRADIENT - CYLINDRICAL
 		///////////////////////////////////////////////////////////////////////////////////////////
@@ -353,6 +522,36 @@ namespace MML
 			return ret;
 		}
 
+		/// Computes gradient in cylindrical coordinates with structured result.
+		///
+		/// @param scalarField Scalar function f(r, φ, z)
+		/// @param pos         Position (r, φ, z) with r > 0
+		/// @param config      Field operation configuration
+		/// @param policy      Singularity handling policy (default: Throw)
+		/// @return            EvaluationResult with gradient vector and diagnostics
+		static EvaluationResult<Vec3Cyl, Vec3Cyl>
+		GradientCylDetailed(const IScalarFunction<3>& scalarField, const Vec3Cyl& pos,
+		                    const FieldOperationConfig& config = {},
+		                    SingularityPolicy policy = Singularity::DEFAULT_POLICY)
+		{
+			using ResultType = EvaluationResult<Vec3Cyl, Vec3Cyl>;
+			return FieldOperationDetail::ExecuteFieldDetailed<ResultType>(
+				"GradientCyl", config,
+				[&](ResultType& result, int& func_evals) {
+					VectorN<Real, 3> error_vec{};
+					result.value = FieldOperationDetail::DispatchGradient<3>(
+						scalarField, pos, config.derivative_order,
+						config.estimate_error, &error_vec, func_evals);
+					if (config.estimate_error)
+						result.error = error_vec;
+
+					const Real r = pos[0];
+					result.value[1] *= Singularity::SafeInverseR(r, policy, "GradientCyl φ-component");
+					if (config.estimate_error)
+						result.error[1] *= std::abs(Singularity::SafeInverseR(r, policy, "GradientCyl φ-error"));
+				});
+		}
+
 		///////////////////////////////////////////////////////////////////////////////////////////
 		//                                    LAPLACIAN
 		///////////////////////////////////////////////////////////////////////////////////////////
@@ -383,6 +582,38 @@ namespace MML
 				lapl += Derivation::DeriveSecPartial<N>(scalarField, i, i, pos, nullptr);
 
 			return lapl;
+		}
+
+		/// Computes Laplacian in Cartesian coordinates with structured result.
+		///
+		/// @tparam N          Number of dimensions
+		/// @param scalarField Scalar function f: ℝᴺ → ℝ
+		/// @param pos         Position vector
+		/// @param config      Field operation configuration
+		/// @return            EvaluationResult with Laplacian value and diagnostics
+		template<int N>
+		static EvaluationResult<Real>
+		LaplacianCartDetailed(const IScalarFunction<N>& scalarField, const VectorN<Real, N>& pos,
+		                      const FieldOperationConfig& config = {})
+		{
+			using ResultType = EvaluationResult<Real>;
+			return FieldOperationDetail::ExecuteFieldDetailed<ResultType>(
+				"LaplacianCart", config,
+				[&](ResultType& result, int& func_evals) {
+					Real lapl = 0.0;
+					Real total_error = 0.0;
+					for (int i = 0; i < N; i++) {
+						Real err = 0.0;
+						lapl += Derivation::DeriveSecPartial<N>(scalarField, i, i, pos,
+						                                        config.estimate_error ? &err : nullptr);
+						if (config.estimate_error)
+							total_error += std::abs(err);
+					}
+					result.value = lapl;
+					if (config.estimate_error)
+						result.error = total_error;
+					func_evals = N * 3; // second derivative uses ~3 evaluations per dimension
+				});
 		}
 
 		/// Computes Laplacian of scalar field in spherical coordinates.
@@ -464,6 +695,48 @@ namespace MML
 			Real d2f_dz2 = Derivation::DeriveSecPartial<3>(scalarField, 2, 2, pos, nullptr);
 
 			return radial_term + phi_term + d2f_dz2;
+		}
+
+		/// Computes Laplacian in spherical coordinates with structured result.
+		///
+		/// @param scalarField Scalar function f(r, θ, φ)
+		/// @param pos         Position (r, θ, φ) with r > 0, 0 < θ < π
+		/// @param config      Field operation configuration
+		/// @param policy      Singularity handling policy (default: Throw)
+		/// @return            EvaluationResult with Laplacian value and diagnostics
+		static EvaluationResult<Real>
+		LaplacianSpherDetailed(const IScalarFunction<3>& scalarField, const Vec3Sph& pos,
+		                       const FieldOperationConfig& config = {},
+		                       SingularityPolicy policy = Singularity::DEFAULT_POLICY)
+		{
+			using ResultType = EvaluationResult<Real>;
+			return FieldOperationDetail::ExecuteFieldDetailed<ResultType>(
+				"LaplacianSpher", config,
+				[&](ResultType& result, int& func_evals) {
+					result.value = LaplacianSpher(scalarField, pos, policy);
+					func_evals = 7; // 2 first partials + 3 second partials + field evals
+				});
+		}
+
+		/// Computes Laplacian in cylindrical coordinates with structured result.
+		///
+		/// @param scalarField Scalar function f(r, φ, z)
+		/// @param pos         Position (r, φ, z) with r > 0
+		/// @param config      Field operation configuration
+		/// @param policy      Singularity handling policy (default: Throw)
+		/// @return            EvaluationResult with Laplacian value and diagnostics
+		static EvaluationResult<Real>
+		LaplacianCylDetailed(const IScalarFunction<3>& scalarField, const Vec3Cyl& pos,
+		                     const FieldOperationConfig& config = {},
+		                     SingularityPolicy policy = Singularity::DEFAULT_POLICY)
+		{
+			using ResultType = EvaluationResult<Real>;
+			return FieldOperationDetail::ExecuteFieldDetailed<ResultType>(
+				"LaplacianCyl", config,
+				[&](ResultType& result, int& func_evals) {
+					result.value = LaplacianCyl(scalarField, pos, policy);
+					func_evals = 5; // 1 first partial + 3 second partials
+				});
 		}
 	};
 
@@ -608,6 +881,38 @@ namespace MML
 			return div;
 		}
 
+		/// Computes divergence in Cartesian coordinates with structured result.
+		///
+		/// @tparam N          Number of dimensions
+		/// @param vectorField Vector function F: ℝᴺ → ℝᴺ
+		/// @param pos         Position vector
+		/// @param config      Field operation configuration
+		/// @return            EvaluationResult with divergence value and diagnostics
+		template<int N>
+		static EvaluationResult<Real>
+		DivCartDetailed(const IVectorFunction<N>& vectorField, const VectorN<Real, N>& pos,
+		                const FieldOperationConfig& config = {})
+		{
+			using ResultType = EvaluationResult<Real>;
+			return FieldOperationDetail::ExecuteFieldDetailed<ResultType>(
+				"DivCart", config,
+				[&](ResultType& result, int& func_evals) {
+					Real div = 0.0;
+					Real total_error = 0.0;
+					for (int i = 0; i < N; i++) {
+						Real err = 0.0;
+						div += Derivation::DeriveVecPartial<N>(vectorField, i, i, pos,
+						                                       config.estimate_error ? &err : nullptr);
+						if (config.estimate_error)
+							total_error += std::abs(err);
+					}
+					result.value = div;
+					if (config.estimate_error)
+						result.error = total_error;
+					func_evals = N * 5; // NDer4 default: ~5 evaluations per component
+				});
+		}
+
 		///////////////////////////////////////////////////////////////////////////////////////////
 		//                              DIVERGENCE - SPHERICAL
 		///////////////////////////////////////////////////////////////////////////////////////////
@@ -651,6 +956,27 @@ namespace MML
 			return div;
 		}
 
+		/// Computes divergence in spherical coordinates with structured result.
+		///
+		/// @param vectorField Vector function F(r, θ, φ) = (Fᵣ, Fθ, Fφ)
+		/// @param pos         Position (r, θ, φ) with r > 0, 0 < θ < π
+		/// @param config      Field operation configuration
+		/// @param policy      Singularity handling policy (default: Throw)
+		/// @return            EvaluationResult with divergence value and diagnostics
+		static EvaluationResult<Real>
+		DivSpherDetailed(const IVectorFunction<3>& vectorField, const VectorN<Real, 3>& pos,
+		                 const FieldOperationConfig& config = {},
+		                 SingularityPolicy policy = Singularity::DEFAULT_POLICY)
+		{
+			using ResultType = EvaluationResult<Real>;
+			return FieldOperationDetail::ExecuteFieldDetailed<ResultType>(
+				"DivSpher", config,
+				[&](ResultType& result, int& func_evals) {
+					result.value = DivSpher(vectorField, pos, policy);
+					func_evals = 3 * 5 + 1; // 3 partial derivs + 1 function eval
+				});
+		}
+
 		///////////////////////////////////////////////////////////////////////////////////////////
 		//                              DIVERGENCE - CYLINDRICAL
 		///////////////////////////////////////////////////////////////////////////////////////////
@@ -690,6 +1016,27 @@ namespace MML
 			div += derivs[2];
 
 			return div;
+		}
+
+		/// Computes divergence in cylindrical coordinates with structured result.
+		///
+		/// @param vectorField Vector function F(r, φ, z) = (Fᵣ, Fφ, Fz)
+		/// @param pos         Position (r, φ, z) with r > 0
+		/// @param config      Field operation configuration
+		/// @param policy      Singularity handling policy (default: Throw)
+		/// @return            EvaluationResult with divergence value and diagnostics
+		static EvaluationResult<Real>
+		DivCylDetailed(const IVectorFunction<3>& vectorField, const VectorN<Real, 3>& pos,
+		               const FieldOperationConfig& config = {},
+		               SingularityPolicy policy = Singularity::DEFAULT_POLICY)
+		{
+			using ResultType = EvaluationResult<Real>;
+			return FieldOperationDetail::ExecuteFieldDetailed<ResultType>(
+				"DivCyl", config,
+				[&](ResultType& result, int& func_evals) {
+					result.value = DivCyl(vectorField, pos, policy);
+					func_evals = 3 * 5 + 1; // 3 partial derivs + 1 function eval
+				});
 		}
 
 		///////////////////////////////////////////////////////////////////////////////////////////
@@ -737,6 +1084,49 @@ namespace MML
 			Vector3Cartesian curl{ dzdy - dydz, dxdz - dzdx, dydx - dxdy };
 
 			return curl;
+		}
+
+		/// Computes curl of vector field in 3D Cartesian coordinates with structured result.
+		///
+		/// @param vectorField Vector function F(x, y, z) = (Fx, Fy, Fz)
+		/// @param pos         Position vector (x, y, z)
+		/// @param config      Field operation configuration
+		/// @return            EvaluationResult with curl vector and per-component error estimates
+		static EvaluationResult<Vec3Cart, Vec3Cart>
+		CurlCartDetailed(const IVectorFunction<3>& vectorField, const VectorN<Real, 3>& pos,
+		                 const FieldOperationConfig& config = {})
+		{
+			using ResultType = EvaluationResult<Vec3Cart, Vec3Cart>;
+			return FieldOperationDetail::ExecuteFieldDetailed<ResultType>(
+				"CurlCart", config,
+				[&](ResultType& result, int& func_evals) {
+					Real e_dzdy = 0, e_dydz = 0, e_dxdz = 0, e_dzdx = 0, e_dydx = 0, e_dxdy = 0;
+					Real* ep = config.estimate_error ? &e_dzdy : nullptr;
+
+					Real dzdy = Derivation::DeriveVecPartial<3>(vectorField, 2, 1, pos, ep);
+					ep = config.estimate_error ? &e_dydz : nullptr;
+					Real dydz = Derivation::DeriveVecPartial<3>(vectorField, 1, 2, pos, ep);
+
+					ep = config.estimate_error ? &e_dxdz : nullptr;
+					Real dxdz = Derivation::DeriveVecPartial<3>(vectorField, 0, 2, pos, ep);
+					ep = config.estimate_error ? &e_dzdx : nullptr;
+					Real dzdx = Derivation::DeriveVecPartial<3>(vectorField, 2, 0, pos, ep);
+
+					ep = config.estimate_error ? &e_dydx : nullptr;
+					Real dydx = Derivation::DeriveVecPartial<3>(vectorField, 1, 0, pos, ep);
+					ep = config.estimate_error ? &e_dxdy : nullptr;
+					Real dxdy = Derivation::DeriveVecPartial<3>(vectorField, 0, 1, pos, ep);
+
+					result.value = Vec3Cart{dzdy - dydz, dxdz - dzdx, dydx - dxdy};
+					if (config.estimate_error) {
+						result.error = Vec3Cart{
+							std::abs(e_dzdy) + std::abs(e_dydz),
+							std::abs(e_dxdz) + std::abs(e_dzdx),
+							std::abs(e_dydx) + std::abs(e_dxdy)
+						};
+					}
+					func_evals = 6 * 5; // 6 partial derivatives, ~5 evals each (NDer4)
+				});
 		}
 
 		///////////////////////////////////////////////////////////////////////////////////////////
@@ -791,6 +1181,27 @@ namespace MML
 			return ret;
 		}
 
+		/// Computes curl of vector field in 3D spherical coordinates with structured result.
+		///
+		/// @param vectorField Vector function F(r, θ, φ) = (Fᵣ, Fθ, Fφ)
+		/// @param pos         Position (r, θ, φ) with r > 0, 0 < θ < π
+		/// @param config      Field operation configuration
+		/// @param policy      Singularity handling policy (default: Throw)
+		/// @return            EvaluationResult with curl vector and diagnostics
+		static EvaluationResult<Vec3Sph, Vec3Sph>
+		CurlSpherDetailed(const IVectorFunction<3>& vectorField, const VectorN<Real, 3>& pos,
+		                  const FieldOperationConfig& config = {},
+		                  SingularityPolicy policy = Singularity::DEFAULT_POLICY)
+		{
+			using ResultType = EvaluationResult<Vec3Sph, Vec3Sph>;
+			return FieldOperationDetail::ExecuteFieldDetailed<ResultType>(
+				"CurlSpher", config,
+				[&](ResultType& result, int& func_evals) {
+					result.value = CurlSpher(vectorField, pos, policy);
+					func_evals = 6 * 5 + 1; // 6 partial derivs + 1 function eval
+				});
+		}
+
 		///////////////////////////////////////////////////////////////////////////////////////////
 		//                                CURL - CYLINDRICAL
 		///////////////////////////////////////////////////////////////////////////////////////////
@@ -839,6 +1250,27 @@ namespace MML
 			};
 
 			return ret;
+		}
+
+		/// Computes curl of vector field in 3D cylindrical coordinates with structured result.
+		///
+		/// @param vectorField Vector function F(r, φ, z) = (Fᵣ, Fφ, Fz)
+		/// @param pos         Position (r, φ, z) with r > 0
+		/// @param config      Field operation configuration
+		/// @param policy      Singularity handling policy (default: Throw)
+		/// @return            EvaluationResult with curl vector and diagnostics
+		static EvaluationResult<Vec3Cyl, Vec3Cyl>
+		CurlCylDetailed(const IVectorFunction<3>& vectorField, const VectorN<Real, 3>& pos,
+		                const FieldOperationConfig& config = {},
+		                SingularityPolicy policy = Singularity::DEFAULT_POLICY)
+		{
+			using ResultType = EvaluationResult<Vec3Cyl, Vec3Cyl>;
+			return FieldOperationDetail::ExecuteFieldDetailed<ResultType>(
+				"CurlCyl", config,
+				[&](ResultType& result, int& func_evals) {
+					result.value = CurlCyl(vectorField, pos, policy);
+					func_evals = 6 * 5 + 1; // 6 partial derivs + 1 function eval
+				});
 		}
 	};
 }

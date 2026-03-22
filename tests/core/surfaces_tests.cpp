@@ -489,4 +489,67 @@ TEST_CASE("Surfaces - Tangent Vectors Orthogonality to Normal", "[surfaces]")
     REQUIRE_THAT(dot_tW_n, WithinAbs(REAL(0.0), REAL(1e-6)));
 }
 
+///////////////////////////////////////////////////////////////////////////////
+// DEGENERATE SURFACE TESTS (C6 fix validation)
+
+// Cone surface: r(u,w) = (w*cos(u), w*sin(u), w) — degenerate at apex (w=0)
+class ConeSurface : public ISurfaceCartesian
+{
+public:
+    Real getMinU() const { return 0; }
+    Real getMaxU() const { return 2 * Constants::PI; }
+    Real getMinW() const { return 0; }
+    Real getMaxW() const { return REAL(2.0); }
+
+    VectorN<Real, 3> operator()(Real u, Real w) const {
+        return VectorN<Real, 3>{ w * std::cos(u), w * std::sin(u), w };
+    }
+};
+
+TEST_CASE("Degenerate Surface - Cone apex returns finite L,M,N", "[surfaces]")
+{
+    ConeSurface cone;
+
+    // At the apex (w=0), r_u = (0,0,0) so cross product is zero → degenerate
+    Real L, M, N;
+    cone.GetSecondNormalFormCoefficients(REAL(0.0), REAL(0.0), L, M, N);
+
+    // Must be finite (no NaN), and zero at degenerate point
+    REQUIRE(std::isfinite(L));
+    REQUIRE(std::isfinite(M));
+    REQUIRE(std::isfinite(N));
+    REQUIRE_THAT(L, WithinAbs(REAL(0.0), REAL(1e-9)));
+    REQUIRE_THAT(M, WithinAbs(REAL(0.0), REAL(1e-9)));
+    REQUIRE_THAT(N, WithinAbs(REAL(0.0), REAL(1e-9)));
+}
+
+TEST_CASE("Degenerate Surface - Cone apex curvatures are finite", "[surfaces]")
+{
+    ConeSurface cone;
+
+    // Gaussian and mean curvature at degenerate apex must not be NaN
+    Real K = cone.GaussianCurvature(REAL(0.0), REAL(0.0));
+    Real H = cone.MeanCurvature(REAL(0.0), REAL(0.0));
+
+    REQUIRE(std::isfinite(K));
+    REQUIRE(std::isfinite(H));
+}
+
+TEST_CASE("Degenerate Surface - Cone is regular away from apex", "[surfaces]")
+{
+    ConeSurface cone;
+
+    // Away from apex, the cone should be regular and have finite curvature
+    REQUIRE(cone.isRegular(Constants::PI / REAL(4.0), REAL(1.0)));
+
+    Real K = cone.GaussianCurvature(Constants::PI / REAL(4.0), REAL(1.0));
+    Real H = cone.MeanCurvature(Constants::PI / REAL(4.0), REAL(1.0));
+
+    REQUIRE(std::isfinite(K));
+    REQUIRE(std::isfinite(H));
+
+    // Cone is developable: Gaussian curvature = 0 away from apex
+    REQUIRE_THAT(K, WithinAbs(REAL(0.0), REAL(1e-4)));
+}
+
 } // namespace MML::Tests::Core::SurfacesTests

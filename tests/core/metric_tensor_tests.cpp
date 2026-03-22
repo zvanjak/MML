@@ -510,4 +510,31 @@ namespace MML::Tests::Core::MetricTensorTests
 		REQUIRE_THAT(cart_metric(1, 1), WithinAbs(REAL(1.0), REAL(1e-12)));
 		REQUIRE_THAT(cart_metric(2, 2), WithinAbs(REAL(1.0), REAL(1e-12)));
 	}
+
+	TEST_CASE("MetricTensorSphericalContravar - Singularity at r=0 throws", "[MetricTensor][Spherical][Singularity]")
+	{
+		MetricTensorSphericalContravar metric;
+		VectorN<Real, 3> at_origin{REAL(0.0), REAL(1.0), REAL(0.5)};
+
+		// g^00 = 1 should be fine
+		REQUIRE_THAT(metric.Component(0, 0, at_origin), WithinAbs(REAL(1.0), REAL(1e-12)));
+
+		// g^11 = 1/r^2 should throw at r=0
+		REQUIRE_THROWS(metric.Component(1, 1, at_origin));
+
+		// g^22 = 1/(r^2*sin^2(theta)) should throw at r=0
+		REQUIRE_THROWS(metric.Component(2, 2, at_origin));
+	}
+
+	TEST_CASE("MetricTensorSphericalContravar - Singularity at pole throws", "[MetricTensor][Spherical][Singularity]")
+	{
+		MetricTensorSphericalContravar metric;
+		VectorN<Real, 3> at_pole{REAL(2.0), REAL(0.0), REAL(0.5)};  // theta=0 (north pole)
+
+		// g^11 = 1/r^2 should be fine at r=2
+		REQUIRE_THAT(metric.Component(1, 1, at_pole), WithinAbs(REAL(0.25), REAL(1e-12)));
+
+		// g^22 = 1/(r^2*sin^2(0)) should throw at theta=0
+		REQUIRE_THROWS(metric.Component(2, 2, at_pole));
+	}
 } // namespace MML::Tests::Core::MetricTensorTests

@@ -393,7 +393,7 @@ TEST_CASE("Helix curve - Frenet frame at t=0", "[curves][edge][endpoint]")
 	const auto& helix_curve = TestBeds::ParametricCurvesTestBed::getTestCurve("Helix")._curve;
 
 	Vec3Cart T = helix_curve.getTangentUnit(REAL(0.0));
-	Vec3Cart N = helix_curve.getNormalUnit(REAL(0.0));
+	Vec3Cart N = helix_curve.getNormal(REAL(0.0));
 	Vec3Cart B = helix_curve.getBinormal(REAL(0.0));
 
 	// All should be unit vectors
@@ -566,7 +566,7 @@ TEST_CASE("Quaternion - gimbal lock: pitch = +pi/2", "[quaternion][edge][gimbal]
 	REQUIRE_THAT(euler[1], WithinAbs(Constants::PI / REAL(2.0), REAL(1e-6)));
 
 	// The quaternion should still be unit
-	REQUIRE(q.IsUnit(1e-10));
+	REQUIRE(q.isUnit(1e-10));
 
 	// Verify the extraction doesn't produce NaN or infinity
 	REQUIRE(!std::isnan(euler[0]));
@@ -584,7 +584,7 @@ TEST_CASE("Quaternion - gimbal lock: pitch = -pi/2", "[quaternion][edge][gimbal]
 
 	// Pitch should be -π/2
 	REQUIRE_THAT(euler[1], WithinAbs(-Constants::PI / REAL(2.0), REAL(1e-6)));
-	REQUIRE(q.IsUnit(1e-10));
+	REQUIRE(q.isUnit(1e-10));
 
 	// Verify the extraction doesn't produce NaN or infinity
 	REQUIRE(!std::isnan(euler[0]));
@@ -602,8 +602,8 @@ TEST_CASE("Quaternion - Slerp with identical quaternions", "[quaternion][edge][s
 	for (Real t : { REAL(0.0), REAL(0.25), REAL(0.5), REAL(0.75), REAL(1.0) })
 	{
 		Quaternion result = Quaternion::Slerp(q, q, t);
-		REQUIRE(result.IsApprox(q, 1e-10));
-		REQUIRE(result.IsUnit(1e-10));
+		REQUIRE(result.isApprox(q, 1e-10));
+		REQUIRE(result.isUnit(1e-10));
 	}
 }
 
@@ -618,7 +618,7 @@ TEST_CASE("Quaternion - Slerp near-antipodal quaternions", "[quaternion][edge][s
 	for (Real t : { REAL(0.0), REAL(0.25), REAL(0.5), REAL(0.75), REAL(1.0) })
 	{
 		Quaternion result = Quaternion::Slerp(q1, q2, t);
-		REQUIRE(result.IsUnit(1e-6));
+		REQUIRE(result.isUnit(1e-6));
 	}
 }
 

@@ -241,17 +241,6 @@ namespace MML {
 			, m_alignment(Alignment::Right)
 			, m_calculatedWidth(-1) {}
 
-		// Legacy compatibility constructor
-		ColumnFormat(std::string name, int width, int precision, char format)
-			: m_name(std::move(name))
-			, m_width(width)
-			, m_precision(precision)
-			, m_formatType(format == 'F'   ? FormatType::Fixed
-						   : format == 'S' ? FormatType::Scientific
-										   : FormatType::General)
-			, m_alignment(Alignment::Right)
-			, m_calculatedWidth(-1) {}
-
 		// Builder pattern methods
 		ColumnFormat& width(int w) {
 			m_width = w;
@@ -449,17 +438,6 @@ namespace MML {
 			, m_tagFormat(std::move(tagFormat))
 			, m_columnFormats(std::move(columnFormats)) {}
 
-		// Legacy constructor for backward compatibility
-		TablePrinter(std::string tagName, int tagWidth, int tagPrecision, std::vector<std::string> valueNames,
-					 std::vector<std::tuple<int, int, char>> formatSpecs)
-			: m_tagColumnName(std::move(tagName))
-			, m_tagFormat(m_tagColumnName, tagWidth, tagPrecision, 'D') {
-			for (size_t i = 0; i < valueNames.size(); ++i) {
-				auto [w, p, f] = formatSpecs[i];
-				m_columnFormats.emplace_back(valueNames[i], w, p, f);
-			}
-		}
-
 		// Builder pattern for configuration
 		TablePrinter& style(const TableStyle& s) {
 			m_style = s;
@@ -505,9 +483,6 @@ namespace MML {
 		// Output to console (default)
 		void print(std::ostream& os = std::cout) const { exportTo(os, ExportFormat::Console); }
 
-		// Legacy compatibility - Print() with capital P
-		void Print() const { print(); }
-
 		// Print to file
 		void printToFile(const std::string& filename) const {
 			std::ofstream file(filename);
@@ -523,9 +498,6 @@ namespace MML {
 			print(oss);
 			return oss.str();
 		}
-
-		// Legacy API compatibility - capital P
-		void Print() { print(std::cout); }
 
 		// Export to different formats
 		void exportTo(std::ostream& os, ExportFormat format) const {

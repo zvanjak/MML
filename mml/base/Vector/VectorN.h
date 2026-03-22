@@ -84,7 +84,7 @@ namespace MML
 		
 		/// @brief Returns unit vector (1 at indUnit, 0 elsewhere).
 		/// @param indUnit Index for the unit component
-		static VectorN GetUnitVector(int indUnit)
+		static VectorN UnitVector(int indUnit)
 		{
 			VectorN ret;
 			ret[indUnit] = 1.0;

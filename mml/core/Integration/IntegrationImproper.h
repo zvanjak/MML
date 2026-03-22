@@ -573,6 +573,138 @@ namespace MML
 	constexpr Real PosInfinity = std::numeric_limits<Real>::infinity();
 	constexpr Real NegInfinity = -std::numeric_limits<Real>::infinity();
 
+	/*************************************************************************/
+	/*****         Detailed API - Improper Integration                   *****/
+	/*************************************************************************/
+
+	/// Open Romberg integration with full diagnostics
+	static IntegrationDetailedResult IntegrateOpenDetailed(
+		const IRealFunction& func, Real a, Real b,
+		const IntegrationConfig& config = {},
+		const Real eps = Defaults::RombergIntegrationEPS)
+	{
+		return IntegrationDetail::ExecuteIntegrationDetailed<IntegrationDetailedResult>(
+			"IntegrateOpen", config,
+			[&](IntegrationDetailedResult& result) {
+				auto r = IntegrateOpen(func, a, b, eps);
+				IntegrationDetail::PopulateFromSimple(result, r, "IntegrateOpen");
+			});
+	}
+
+	/// Semi-infinite ∫[a,∞) with full diagnostics
+	static IntegrationDetailedResult IntegrateUpperInfDetailed(
+		const IRealFunction& func, Real a,
+		const IntegrationConfig& config = {},
+		const Real eps = Defaults::RombergIntegrationEPS)
+	{
+		return IntegrationDetail::ExecuteIntegrationDetailed<IntegrationDetailedResult>(
+			"IntegrateUpperInf", config,
+			[&](IntegrationDetailedResult& result) {
+				auto r = IntegrateUpperInf(func, a, eps);
+				IntegrationDetail::PopulateFromSimple(result, r, "IntegrateUpperInf");
+			});
+	}
+
+	/// Semi-infinite ∫(-∞,b] with full diagnostics
+	static IntegrationDetailedResult IntegrateLowerInfDetailed(
+		const IRealFunction& func, Real b,
+		const IntegrationConfig& config = {},
+		const Real eps = Defaults::RombergIntegrationEPS)
+	{
+		return IntegrationDetail::ExecuteIntegrationDetailed<IntegrationDetailedResult>(
+			"IntegrateLowerInf", config,
+			[&](IntegrationDetailedResult& result) {
+				auto r = IntegrateLowerInf(func, b, eps);
+				IntegrationDetail::PopulateFromSimple(result, r, "IntegrateLowerInf");
+			});
+	}
+
+	/// Full-line ∫(-∞,∞) split at 0, with full diagnostics
+	static IntegrationDetailedResult IntegrateInfDetailed(
+		const IRealFunction& func,
+		const IntegrationConfig& config = {},
+		const Real eps = Defaults::RombergIntegrationEPS)
+	{
+		return IntegrationDetail::ExecuteIntegrationDetailed<IntegrationDetailedResult>(
+			"IntegrateInf", config,
+			[&](IntegrationDetailedResult& result) {
+				auto r = IntegrateInf(func, eps);
+				IntegrationDetail::PopulateFromSimple(result, r, "IntegrateInf");
+			});
+	}
+
+	/// Full-line ∫(-∞,∞) split at custom point, with full diagnostics
+	static IntegrationDetailedResult IntegrateInfSplitDetailed(
+		const IRealFunction& func, Real splitPoint,
+		const IntegrationConfig& config = {},
+		const Real eps = Defaults::RombergIntegrationEPS)
+	{
+		return IntegrationDetail::ExecuteIntegrationDetailed<IntegrationDetailedResult>(
+			"IntegrateInfSplit", config,
+			[&](IntegrationDetailedResult& result) {
+				auto r = IntegrateInfSplit(func, splitPoint, eps);
+				IntegrationDetail::PopulateFromSimple(result, r, "IntegrateInfSplit");
+			});
+	}
+
+	/// Lower singularity at x=a with full diagnostics
+	static IntegrationDetailedResult IntegrateLowerSingularDetailed(
+		const IRealFunction& func, Real a, Real b,
+		const IntegrationConfig& config = {},
+		const Real eps = Defaults::RombergIntegrationEPS)
+	{
+		return IntegrationDetail::ExecuteIntegrationDetailed<IntegrationDetailedResult>(
+			"IntegrateLowerSingular", config,
+			[&](IntegrationDetailedResult& result) {
+				auto r = IntegrateLowerSingular(func, a, b, eps);
+				IntegrationDetail::PopulateFromSimple(result, r, "IntegrateLowerSingular");
+			});
+	}
+
+	/// Upper singularity at x=b with full diagnostics
+	static IntegrationDetailedResult IntegrateUpperSingularDetailed(
+		const IRealFunction& func, Real a, Real b,
+		const IntegrationConfig& config = {},
+		const Real eps = Defaults::RombergIntegrationEPS)
+	{
+		return IntegrationDetail::ExecuteIntegrationDetailed<IntegrationDetailedResult>(
+			"IntegrateUpperSingular", config,
+			[&](IntegrationDetailedResult& result) {
+				auto r = IntegrateUpperSingular(func, a, b, eps);
+				IntegrationDetail::PopulateFromSimple(result, r, "IntegrateUpperSingular");
+			});
+	}
+
+	/// Both-endpoint singularity with full diagnostics
+	static IntegrationDetailedResult IntegrateBothSingularDetailed(
+		const IRealFunction& func, Real a, Real b,
+		const IntegrationConfig& config = {},
+		const Real eps = Defaults::RombergIntegrationEPS)
+	{
+		return IntegrationDetail::ExecuteIntegrationDetailed<IntegrationDetailedResult>(
+			"IntegrateBothSingular", config,
+			[&](IntegrationDetailedResult& result) {
+				auto r = IntegrateBothSingular(func, a, b, eps);
+				IntegrationDetail::PopulateFromSimple(result, r, "IntegrateBothSingular");
+			});
+	}
+
+	/// Interior singularity at x=c with full diagnostics.
+	/// When config.exception_policy == ConvertToStatus, invalid c values produce
+	/// AlgorithmStatus::InvalidInput instead of throwing std::invalid_argument.
+	static IntegrationDetailedResult IntegrateInteriorSingularDetailed(
+		const IRealFunction& func, Real a, Real b, Real c,
+		const IntegrationConfig& config = {},
+		const Real eps = Defaults::RombergIntegrationEPS)
+	{
+		return IntegrationDetail::ExecuteIntegrationDetailed<IntegrationDetailedResult>(
+			"IntegrateInteriorSingular", config,
+			[&](IntegrationDetailedResult& result) {
+				auto r = IntegrateInteriorSingular(func, a, b, c, eps);
+				IntegrationDetail::PopulateFromSimple(result, r, "IntegrateInteriorSingular");
+			});
+	}
+
 } // namespace MML
 
 #endif // MML_INTEGRATION_IMPROPER_H

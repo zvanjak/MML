@@ -600,4 +600,36 @@ namespace MML::Tests::Core::IterativeLinearSolversTests
 		REQUIRE(tight.residual < loose.residual);  // Tighter should have smaller residual
 	}
 
+	/*********************************************************************/
+	/*****           NEAR-ZERO DIAGONAL DETECTION TESTS              *****/
+	/*********************************************************************/
+
+	TEST_CASE("Jacobi_near_zero_diagonal_throws", "[JacobiSolver][Iterative]")
+	{
+		// Matrix with a near-zero diagonal element should be caught
+		Matrix<Real> A(3, 3, { REAL(10.0), REAL(1.0), REAL(0.0),
+		                       REAL(1.0),  REAL(1e-300), REAL(1.0),
+		                       REAL(0.0),  REAL(1.0), REAL(10.0) });
+		Vector<Real> b{REAL(1.0), REAL(2.0), REAL(3.0)};
+		REQUIRE_THROWS_AS(JacobiSolver::Solve(A, b), SingularMatrixError);
+	}
+
+	TEST_CASE("GaussSeidel_near_zero_diagonal_throws", "[GaussSeidelSolver][Iterative]")
+	{
+		Matrix<Real> A(3, 3, { REAL(10.0), REAL(1.0), REAL(0.0),
+		                       REAL(1.0),  REAL(1e-300), REAL(1.0),
+		                       REAL(0.0),  REAL(1.0), REAL(10.0) });
+		Vector<Real> b{REAL(1.0), REAL(2.0), REAL(3.0)};
+		REQUIRE_THROWS_AS(GaussSeidelSolver::Solve(A, b), SingularMatrixError);
+	}
+
+	TEST_CASE("SOR_near_zero_diagonal_throws", "[SORSolver][Iterative]")
+	{
+		Matrix<Real> A(3, 3, { REAL(10.0), REAL(1.0), REAL(0.0),
+		                       REAL(1.0),  REAL(1e-300), REAL(1.0),
+		                       REAL(0.0),  REAL(1.0), REAL(10.0) });
+		Vector<Real> b{REAL(1.0), REAL(2.0), REAL(3.0)};
+		REQUIRE_THROWS_AS(SORSolver::Solve(A, b, REAL(1.0)), SingularMatrixError);
+	}
+
 } // namespace MML::Tests::Core::IterativeLinearSolversTests

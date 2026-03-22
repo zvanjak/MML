@@ -582,6 +582,16 @@ TEST_CASE("Vector3Cartesian - Geometric operations", "[VectorTypes][Vector3Carte
         REQUIRE_THAT(a.AngleToVector(d), RealWithinRel(Constants::PI, REAL(1e-10)));  // 180°
     }
 
+    SECTION("AngleToVector - zero vector throws")
+    {
+        Vector3Cartesian a(REAL(1.0), REAL(0.0), REAL(0.0));
+        Vector3Cartesian zero(REAL(0.0), REAL(0.0), REAL(0.0));
+
+        REQUIRE_THROWS_AS(a.AngleToVector(zero), DivisionByZeroError);
+        REQUIRE_THROWS_AS(zero.AngleToVector(a), DivisionByZeroError);
+        REQUIRE_THROWS_AS(zero.AngleToVector(zero), DivisionByZeroError);
+    }
+
     SECTION("GetPerpendicularVectors")
     {
         Vector3Cartesian v(REAL(1.0), REAL(2.0), REAL(3.0));
@@ -776,6 +786,71 @@ TEST_CASE("Vector3Cylindrical - Arithmetic operations", "[VectorTypes][Vector3Cy
     {
         Vector3Cylindrical v(REAL(5.0), Constants::PI / 4, REAL(3.0));
         REQUIRE_THROWS_AS(v / REAL(0.0), DivisionByZeroError);
+    }
+}
+
+TEST_CASE("Vector3Cylindrical - GetAsUnitVectorAtPos", "[VectorTypes][Vector3Cylindrical]")
+{
+    TEST_PRECISION_INFO();
+
+    SECTION("Radial vector at same position returns unit radial")
+    {
+        // Vector along +R (phi=0), evaluated at pos with phi=0
+        Vector3Cylindrical v(REAL(5.0), REAL(0.0), REAL(0.0));
+        Vector3Cylindrical pos(REAL(3.0), REAL(0.0), REAL(1.0));
+        auto unit = v.GetAsUnitVectorAtPos(pos);
+        REQUIRE_THAT(unit.R(), RealWithinAbs(REAL(1.0), REAL(1e-12)));
+        REQUIRE_THAT(unit.Phi(), RealWithinAbs(REAL(0.0), REAL(1e-12)));
+        REQUIRE_THAT(unit.Z(), RealWithinAbs(REAL(0.0), REAL(1e-12)));
+    }
+
+    SECTION("Z-only vector returns unit Z regardless of position")
+    {
+        Vector3Cylindrical v(REAL(0.0), REAL(0.0), REAL(7.0));
+        Vector3Cylindrical pos(REAL(2.0), Constants::PI / 3, REAL(5.0));
+        auto unit = v.GetAsUnitVectorAtPos(pos);
+        REQUIRE_THAT(unit.R(), RealWithinAbs(REAL(0.0), REAL(1e-12)));
+        REQUIRE_THAT(unit.Phi(), RealWithinAbs(REAL(0.0), REAL(1e-12)));
+        REQUIRE_THAT(unit.Z(), RealWithinAbs(REAL(1.0), REAL(1e-12)));
+    }
+
+    SECTION("Result is unit length")
+    {
+        Vector3Cylindrical v(REAL(3.0), Constants::PI / 6, REAL(4.0));
+        Vector3Cylindrical pos(REAL(1.0), Constants::PI / 4, REAL(0.0));
+        auto unit = v.GetAsUnitVectorAtPos(pos);
+        Real normSq = unit.R() * unit.R() + unit.Phi() * unit.Phi() + unit.Z() * unit.Z();
+        REQUIRE_THAT(normSq, RealWithinAbs(REAL(1.0), REAL(1e-12)));
+    }
+
+    SECTION("Zero vector returns zero")
+    {
+        Vector3Cylindrical v(REAL(0.0), REAL(0.0), REAL(0.0));
+        Vector3Cylindrical pos(REAL(1.0), REAL(0.0), REAL(0.0));
+        auto unit = v.GetAsUnitVectorAtPos(pos);
+        REQUIRE(unit.R() == REAL(0.0));
+        REQUIRE(unit.Phi() == REAL(0.0));
+        REQUIRE(unit.Z() == REAL(0.0));
+    }
+
+    SECTION("Cross-validate with Cartesian unit vector")
+    {
+        // A cylindrical vector at phi=PI/4: Cartesian = (R*cos(pi/4), R*sin(pi/4), Z)
+        Vector3Cylindrical v(REAL(2.0), Constants::PI / 4, REAL(2.0));
+        Vector3Cylindrical pos(REAL(1.0), REAL(0.0), REAL(0.0));
+        auto unit = v.GetAsUnitVectorAtPos(pos);
+
+        // Convert original to Cartesian and normalize manually
+        Real x = REAL(2.0) * std::cos(Constants::PI / 4);
+        Real y = REAL(2.0) * std::sin(Constants::PI / 4);
+        Real z = REAL(2.0);
+        Real norm = std::sqrt(x * x + y * y + z * z);
+
+        // At pos phi=0: ê_R=(1,0,0), ê_Phi=(0,1,0), ê_Z=(0,0,1)
+        // So components equal Cartesian components
+        REQUIRE_THAT(unit.R(), RealWithinAbs(x / norm, REAL(1e-12)));
+        REQUIRE_THAT(unit.Phi(), RealWithinAbs(y / norm, REAL(1e-12)));
+        REQUIRE_THAT(unit.Z(), RealWithinAbs(z / norm, REAL(1e-12)));
     }
 }
 

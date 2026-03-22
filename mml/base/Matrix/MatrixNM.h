@@ -120,8 +120,8 @@ namespace MML {
 
 		MatrixNM(std::initializer_list<Type> values) {
 			auto val = values.begin();
-			for (size_t i = 0; i < RowNum(); ++i)
-				for (size_t j = 0; j < ColNum(); ++j)
+			for (size_t i = 0; i < rows(); ++i)
+				for (size_t j = 0; j < cols(); ++j)
 					if (val != values.end())
 						_vals[i][j] = *val++;
 					else
@@ -163,8 +163,8 @@ namespace MML {
 
 		MatrixNM(const Type* arr, size_t len) {
 			size_t idx = 0;
-			for (size_t i = 0; i < RowNum(); ++i) {
-				for (size_t j = 0; j < ColNum(); ++j) {
+			for (size_t i = 0; i < rows(); ++i) {
+				for (size_t j = 0; j < cols(); ++j) {
 					if (idx < len)
 						_vals[i][j] = arr[idx++];
 					else
@@ -175,8 +175,8 @@ namespace MML {
 
 		/// @brief Copy constructor.
 		MatrixNM(const MatrixNM& m) {
-			for (size_t i = 0; i < RowNum(); ++i)
-				for (size_t j = 0; j < ColNum(); ++j)
+			for (size_t i = 0; i < rows(); ++i)
+				for (size_t j = 0; j < cols(); ++j)
 					_vals[i][j] = m._vals[i][j];
 		}
 
@@ -200,14 +200,8 @@ namespace MML {
 		/// @brief Returns number of rows (compile-time constant N) - preferred API.
 		int rows() const noexcept { return N; }
 
-		/// @brief Returns number of columns (compile-time constant M) - preferred API.
-		int cols() const noexcept { return M; }
-
-		/// @brief Returns number of rows (compile-time constant N).
-		int RowNum() const { return N; }
-
 		/// @brief Returns number of columns (compile-time constant M).
-		int ColNum() const { return M; }
+		int cols() const noexcept { return M; }
 		/// /** @} */
 
 
@@ -231,9 +225,9 @@ namespace MML {
 		/// @throws MatrixDimensionError If matrix is not square.
 
 		void MakeUnitMatrix(void) {
-			if (RowNum() == ColNum()) {
-				for (int i = 0; i < RowNum(); i++)
-					for (int j = 0; j < ColNum(); j++)
+			if (rows() == cols()) {
+				for (int i = 0; i < rows(); i++)
+					for (int j = 0; j < cols(); j++)
 						if (i == j)
 							_vals[i][j] = 1;
 						else
@@ -248,11 +242,11 @@ namespace MML {
 		/// @throws MatrixDimensionError If not square.
 
 		MatrixNM GetLower(bool includeDiagonal = true) const {
-			if (RowNum() != ColNum())
+			if (rows() != cols())
 				throw MatrixDimensionError("Matrix::GetLower - must be square matrix", N, M, -1, -1);
 
 			MatrixNM ret;
-			for (int i = 0; i < RowNum(); i++) {
+			for (int i = 0; i < rows(); i++) {
 				if (includeDiagonal)
 					for (int j = 0; j < i + 1; j++)
 						ret[i][j] = _vals[i][j];
@@ -270,16 +264,16 @@ namespace MML {
 		/// @throws MatrixDimensionError If not square.
 
 		MatrixNM GetUpper(bool includeDiagonal = true) const {
-			if (RowNum() != ColNum())
+			if (rows() != cols())
 				throw MatrixDimensionError("Matrix::GetUpper - must be square matrix", N, M, -1, -1);
 
 			MatrixNM ret;
-			for (int i = 0; i < RowNum(); i++) {
+			for (int i = 0; i < rows(); i++) {
 				if (includeDiagonal)
-					for (int j = i; j < ColNum(); j++)
+					for (int j = i; j < cols(); j++)
 						ret[i][j] = _vals[i][j];
 				else
-					for (int j = i + 1; j < ColNum(); j++)
+					for (int j = i + 1; j < cols(); j++)
 						ret[i][j] = _vals[i][j];
 			}
 
@@ -338,8 +332,8 @@ namespace MML {
 			if (this == &m)
 				return *this;
 
-			for (size_t i = 0; i < RowNum(); ++i)
-				for (size_t j = 0; j < ColNum(); ++j)
+			for (size_t i = 0; i < rows(); ++i)
+				for (size_t j = 0; j < cols(); ++j)
 					_vals[i][j] = m._vals[i][j];
 
 			return *this;
@@ -347,8 +341,8 @@ namespace MML {
 
 		/// @brief Scalar broadcast assignment (sets all elements to scalar).
 		MatrixNM& operator=(const Type& m) {
-			for (size_t i = 0; i < RowNum(); ++i)
-				for (size_t j = 0; j < ColNum(); ++j)
+			for (size_t i = 0; i < rows(); ++i)
+				for (size_t j = 0; j < cols(); ++j)
 					_vals[i][j] = m;
 
 			return *this;
@@ -396,9 +390,9 @@ namespace MML {
 		/// @return Element at (i, j).
 		/// @throws MatrixAccessBoundsError If indices out of range.
 
-		Type ElemAt(int i, int j) const {
-			if (i < 0 || i >= RowNum() || j < 0 || j >= ColNum())
-				throw MatrixAccessBoundsError("MatrixNM::ElemAt", i, j, RowNum(), ColNum());
+		Type at(int i, int j) const {
+			if (i < 0 || i >= rows() || j < 0 || j >= cols())
+				throw MatrixAccessBoundsError("MatrixNM::at", i, j, rows(), cols());
 
 			return _vals[i][j];
 		}
@@ -409,9 +403,9 @@ namespace MML {
 		/// @return Reference to element at (i, j).
 		/// @throws MatrixAccessBoundsError If indices out of range.
 
-		Type& ElemAt(int i, int j) {
-			if (i < 0 || i >= RowNum() || j < 0 || j >= ColNum())
-				throw MatrixAccessBoundsError("MatrixNM::ElemAt", i, j, RowNum(), ColNum());
+		Type& at(int i, int j) {
+			if (i < 0 || i >= rows() || j < 0 || j >= cols())
+				throw MatrixAccessBoundsError("MatrixNM::at", i, j, rows(), cols());
 
 			return _vals[i][j];
 		}
@@ -425,8 +419,8 @@ namespace MML {
 		/// @brief Unary negation (returns -A).
 		[[nodiscard]] MatrixNM operator-() {
 			MatrixNM temp;
-			for (size_t i = 0; i < RowNum(); i++)
-				for (size_t j = 0; j < ColNum(); j++)
+			for (size_t i = 0; i < rows(); i++)
+				for (size_t j = 0; j < cols(); j++)
 					temp._vals[i][j] = -_vals[i][j];
 			return temp;
 		}
@@ -434,8 +428,8 @@ namespace MML {
 		/// @brief Matrix addition (A + B).
 		[[nodiscard]] MatrixNM operator+(const MatrixNM& b) const {
 			MatrixNM temp;
-			for (size_t i = 0; i < RowNum(); i++)
-				for (size_t j = 0; j < ColNum(); j++)
+			for (size_t i = 0; i < rows(); i++)
+				for (size_t j = 0; j < cols(); j++)
 					temp._vals[i][j] = b._vals[i][j] + _vals[i][j];
 			return temp;
 		}
@@ -443,8 +437,8 @@ namespace MML {
 		/// @brief Matrix subtraction (A - B).
 		[[nodiscard]] MatrixNM operator-(const MatrixNM& b) const {
 			MatrixNM temp;
-			for (size_t i = 0; i < RowNum(); i++)
-				for (size_t j = 0; j < ColNum(); j++)
+			for (size_t i = 0; i < rows(); i++)
+				for (size_t j = 0; j < cols(); j++)
 					temp._vals[i][j] = _vals[i][j] - b._vals[i][j];
 			return temp;
 		}
@@ -463,7 +457,7 @@ namespace MML {
 			for (int i = 0; i < ret.rows(); i++)
 				for (int j = 0; j < ret.cols(); j++) {
 					ret._vals[i][j] = 0;
-					for (int k = 0; k < ColNum(); k++)
+					for (int k = 0; k < cols(); k++)
 						ret._vals[i][j] += _vals[i][k] * b._vals[k][j];
 				}
 
@@ -475,8 +469,8 @@ namespace MML {
 			int i, j;
 			MatrixNM ret(*this);
 
-			for (i = 0; i < RowNum(); i++)
-				for (j = 0; j < ColNum(); j++)
+			for (i = 0; i < rows(); i++)
+				for (j = 0; j < cols(); j++)
 					ret._vals[i][j] *= b;
 
 			return ret;
@@ -486,8 +480,8 @@ namespace MML {
 		MatrixNM& operator*=(const Type& b) {
 			int i, j;
 
-			for (i = 0; i < RowNum(); i++)
-				for (j = 0; j < ColNum(); j++)
+			for (i = 0; i < rows(); i++)
+				for (j = 0; j < cols(); j++)
 					_vals[i][j] *= b;
 
 			return *this;
@@ -498,8 +492,8 @@ namespace MML {
 			int i, j;
 			MatrixNM ret(*this);
 
-			for (i = 0; i < RowNum(); i++)
-				for (j = 0; j < ColNum(); j++)
+			for (i = 0; i < rows(); i++)
+				for (j = 0; j < cols(); j++)
 					ret._vals[i][j] /= b;
 
 			return ret;
@@ -576,9 +570,9 @@ namespace MML {
 		/// @param eps Maximum allowed element difference.
 		/// @return True if |A[i][j] - B[i][j]| ≤ eps for all i, j.
 
-		bool IsEqualTo(const MatrixNM& b, Type eps = Defaults::MatrixIsEqualTolerance) const {
-			for (int i = 0; i < RowNum(); i++)
-				for (int j = 0; j < ColNum(); j++)
+		bool IsEqualTo(const MatrixNM& b, Real eps = Defaults::MatrixIsEqualTolerance) const {
+			for (int i = 0; i < rows(); i++)
+				for (int j = 0; j < cols(); j++)
 					if (std::abs(_vals[i][j] - b._vals[i][j]) > eps)
 						return false;
 
@@ -586,7 +580,7 @@ namespace MML {
 		}
 
 		/// @brief Static helper for tolerance-based comparison.
-		static bool AreEqual(const MatrixNM& a, const MatrixNM& b, Type eps = Defaults::MatrixIsEqualTolerance) { return a.IsEqualTo(b, eps); }
+		static bool AreEqual(const MatrixNM& a, const MatrixNM& b, Real eps = Defaults::MatrixIsEqualTolerance) { return a.IsEqualTo(b, eps); }
 		/// /** @} */
 
 
@@ -599,11 +593,11 @@ namespace MML {
 		/// @throws MatrixDimensionError If matrix is not square.
 
 		Type Trace() const {
-			if (RowNum() != ColNum())
+			if (rows() != cols())
 				throw MatrixDimensionError("MatrixNM::Trace - must be square matrix", N, M, -1, -1);
 
 			Type sum = 0;
-			for (int i = 0; i < RowNum(); i++)
+			for (int i = 0; i < rows(); i++)
 				sum += _vals[i][i];
 
 			return sum;
@@ -615,7 +609,7 @@ namespace MML {
 		/// @note Modifies this matrix to contain its inverse.
 
 		void Invert() {
-			if (RowNum() != ColNum())
+			if (rows() != cols())
 				throw MatrixDimensionError("MatrixNM::Invert - must be square matrix", N, M, -1, -1);
 
 			MatrixNM& a = *this;
@@ -626,7 +620,7 @@ namespace MML {
 			int i, icol, irow, j, k, l, ll;
 			Type big, dum, pivinv;
 
-			int n = RowNum();
+			int n = rows();
 			int m = b.cols();
 			std::vector<int> indxc(n), indxr(n), ipiv(n);
 			for (j = 0; j < n; j++)
@@ -696,7 +690,7 @@ namespace MML {
 		/// @throws SingularMatrixError If matrix is singular.
 
 		MatrixNM GetInverse() const {
-			if (RowNum() != ColNum())
+			if (rows() != cols())
 				throw MatrixDimensionError("MatrixNM::GetInverse - must be square matrix", N, M, -1, -1);
 
 			MatrixNM a(*this); // making a copy, where inverse will be stored at the end
@@ -710,11 +704,11 @@ namespace MML {
 		/// @throws MatrixDimensionError If matrix is not square (cannot transpose in-place).
 
 		void Transpose() {
-			if (RowNum() != ColNum())
+			if (rows() != cols())
 				throw MatrixDimensionError("MatrixNM::Transpose - inplace Transpose possible only for square  matrix", N, M, -1, -1);
 
-			for (size_t i = 0; i < RowNum(); i++)
-				for (size_t j = i + 1; j < ColNum(); j++)
+			for (size_t i = 0; i < rows(); i++)
+				for (size_t j = i + 1; j < cols(); j++)
 					std::swap(_vals[i][j], _vals[j][i]);
 		}
 
@@ -757,7 +751,7 @@ namespace MML {
 		void Print(std::ostream& stream, const MatrixPrintFormat& fmt = MatrixPrintFormat::Default()) const {
 			// Show header if requested
 			if (fmt.showHeader) {
-				stream << "Rows: " << RowNum() << " Cols: " << ColNum() << std::endl;
+				stream << "Rows: " << rows() << " Cols: " << cols() << std::endl;
 			}
 
 			// Set formatting flags
@@ -768,16 +762,17 @@ namespace MML {
 				stream << std::fixed;
 
 			// Compact mode - print on one line for small matrices
-			if (fmt.compactMode && RowNum() <= 3 && ColNum() <= 3) {
+			if (fmt.compactMode && rows() <= 3 && cols() <= 3) {
 				if (fmt.showBrackets)
 					stream << "[";
-				for (int i = 0; i < RowNum(); i++) {
+				for (int i = 0; i < rows(); i++) {
 					if (i > 0)
 						stream << "; ";
-					for (int j = 0; j < ColNum(); j++) {
+					for (int j = 0; j < cols(); j++) {
 						if (j > 0)
 							stream << fmt.delimiter;
-						stream << std::setw(fmt.width) << std::setprecision(fmt.precision) << _vals[i][j];
+						Type value = (fmt.zeroThreshold > 0.0 && Abs(_vals[i][j]) <= fmt.zeroThreshold) ? Type{0} : _vals[i][j];
+						stream << std::setw(fmt.width) << std::setprecision(fmt.precision) << value;
 					}
 				}
 				if (fmt.showBrackets)
@@ -785,17 +780,18 @@ namespace MML {
 				stream << std::endl;
 			} else {
 				// Normal multi-line mode
-				for (int i = 0; i < RowNum(); i++) {
+				for (int i = 0; i < rows(); i++) {
 					if (fmt.showBrackets)
 						stream << "[ ";
-					for (int j = 0; j < ColNum(); j++) {
-						stream << std::setw(fmt.width) << std::setprecision(fmt.precision) << _vals[i][j];
-						if (j < ColNum() - 1)
+					for (int j = 0; j < cols(); j++) {
+						Type value = (fmt.zeroThreshold > 0.0 && Abs(_vals[i][j]) <= fmt.zeroThreshold) ? Type{0} : _vals[i][j];
+						stream << std::setw(fmt.width) << std::setprecision(fmt.precision) << value;
+						if (j < cols() - 1)
 							stream << fmt.delimiter;
 					}
 					if (fmt.showBrackets)
 						stream << " ]";
-					if (i < RowNum() - 1)
+					if (i < rows() - 1)
 						stream << std::endl;
 				}
 			}
@@ -804,7 +800,7 @@ namespace MML {
 			stream.flags(oldFlags);
 		}
 
-		/// @brief Legacy print method.
+		/// @brief Print with explicit width and precision.
 		/// @param stream Output stream.
 		/// @param width Field width.
 		/// @param precision Decimal precision.
@@ -823,25 +819,11 @@ namespace MML {
 		/// @param zeroThreshold Values with |value| ≤ threshold shown as 0.
 
 		void Print(std::ostream& stream, int width, int precision, Real zeroThreshold) const {
-			stream << "Rows: " << RowNum() << " Cols: " << ColNum();
-
-			for (int i = 0; i < RowNum(); i++) {
-				stream << "[ ";
-				for (int j = 0; j < ColNum(); j++) {
-					Type value{0};
-					if (Abs(_vals[i][j]) > zeroThreshold)
-						value = _vals[i][j];
-
-					if (j == ColNum() - 1)
-						stream << std::setw(width) << std::setprecision(precision) << value;
-					else
-						stream << std::setw(width) << std::setprecision(precision) << value << ", ";
-				}
-				if (i == RowNum() - 1)
-					stream << " ]";
-				else
-					stream << " ]" << std::endl;
-			}
+			MatrixPrintFormat fmt = MatrixPrintFormat::Default();
+			fmt.width = width;
+			fmt.precision = precision;
+			fmt.zeroThreshold = zeroThreshold;
+			Print(stream, fmt);
 		}
 
 		/// @brief Stream output operator (default formatting).
@@ -857,27 +839,6 @@ namespace MML {
 	/// Convenience typedefs for common matrix sizes and element types.
 	/// @{
 
-
-	/// @name Float Matrices (Legacy Names)
-	/// @{
-	typedef MatrixNM<float, 2, 2> Matrix22Flt; ///< 2×2 single precision
-	typedef MatrixNM<float, 3, 3> Matrix33Flt; ///< 3×3 single precision
-	typedef MatrixNM<float, 4, 4> Matrix44Flt; ///< 4×4 single precision
-	/// @}
-
-	/// @name Double Matrices (Legacy Names)
-	/// @{
-	typedef MatrixNM<Real, 2, 2> Matrix22Dbl; ///< 2×2 double precision
-	typedef MatrixNM<Real, 3, 3> Matrix33Dbl; ///< 3×3 double precision
-	typedef MatrixNM<Real, 4, 4> Matrix44Dbl; ///< 4×4 double precision
-	/// @}
-
-	/// @name Complex Matrices (Legacy Names)
-	/// @{
-	typedef MatrixNM<Complex, 2, 2> Matrix22Complex; ///< 2×2 complex
-	typedef MatrixNM<Complex, 3, 3> Matrix33Complex; ///< 3×3 complex
-	typedef MatrixNM<Complex, 4, 4> Matrix44Complex; ///< 4×4 complex
-	/// @}
 
 	/// @name Short Float Aliases
 	/// @{

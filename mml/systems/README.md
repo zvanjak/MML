@@ -362,4 +362,4 @@ Measures sensitivity of linear system solution to perturbations.
 - [mml_packages/README.md](../README.md) - Package overview
 - [Optimization Package](../optimization/README.md) - Parameter optimization
 - [Symbolic Package](../symbolic/README.md) - Jacobian computation via AD
-- [MML algorithms/ODEAdaptiveIntegrator.h](../../../mml/algorithms/) - ODE solvers
+- [MML algorithms/ODESolverAdaptive.h](../../../mml/algorithms/) - ODE solvers

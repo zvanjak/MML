@@ -58,10 +58,10 @@ void Demo_Vector_Construction()
     std::cout << "From initializer list: " << fromInit << std::endl;
 
     // Unit vectors
-    Vector<double> e1 = Vector<double>::GetUnitVector(4, 0);  // [1, 0, 0, 0]
-    Vector<double> e2 = Vector<double>::GetUnitVector(4, 1);  // [0, 1, 0, 0]
-    Vector<double> e3 = Vector<double>::GetUnitVector(4, 2);  // [0, 0, 1, 0]
-    Vector<double> e4 = Vector<double>::GetUnitVector(4, 3);  // [0, 0, 0, 1]
+    Vector<double> e1 = Vector<double>::UnitVector(4, 0);  // [1, 0, 0, 0]
+    Vector<double> e2 = Vector<double>::UnitVector(4, 1);  // [0, 1, 0, 0]
+    Vector<double> e3 = Vector<double>::UnitVector(4, 2);  // [0, 0, 1, 0]
+    Vector<double> e4 = Vector<double>::UnitVector(4, 3);  // [0, 0, 0, 1]
     
     std::cout << "e1 = " << e1 << std::endl;
     std::cout << "e2 = " << e2 << std::endl;

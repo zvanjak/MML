@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////////////////
 ///                         MinimalMathLibrary (MML)                                  ///
 ///                                                                                   ///
-///  File:        ODESystemSteppers.h                                                 ///
+///  File:        ODESteppers.h                                                 ///
 ///  Description: Adaptive ODE stepper implementations for use with integrators      ///
 ///               Includes: DormandPrince5, CashKarp, DormandPrince8, BulirschStoer   ///
 ///                                                                                   ///
@@ -9,8 +9,8 @@
 ///  License:     MIT License (see LICENSE.md)                   ///
 ///                                                                                   ///
 ///////////////////////////////////////////////////////////////////////////////////////////
-#if !defined MML_ODE_SYSTEM_STEPPERS_H
-#define MML_ODE_SYSTEM_STEPPERS_H
+#if !defined MML_ODE_STEPPERS_H
+#define MML_ODE_STEPPERS_H
 
 #include "mml/MMLBase.h"
 #include "mml/core/AlgorithmTypes.h"
@@ -341,6 +341,7 @@ namespace MML {
 		Real _tOld;
 		Real _hDone;
 		Vector<Real> _xOld;
+		Vector<Real> _dxNew; // Post-step derivative for Hermite interpolation
 		bool _stepReady;
 
 		// Butcher tableau from centralized header
@@ -390,6 +391,7 @@ namespace MML {
 			_xtemp.Resize(_n);
 			_xNew.Resize(_n);
 			_xOld.Resize(_n);
+			_dxNew.Resize(_n);
 		}
 
 		StepResult doStep(Real t, Vector<Real>& x, Vector<Real>& dxdt, Real htry, Real eps) override {
@@ -451,6 +453,7 @@ namespace MML {
 					// Update state
 					x = _xNew;
 					_sys.derivs(t + h, x, dxdt);
+					_dxNew = dxdt; // Store for interpolation
 					result.funcEvals++;
 
 					// Next step size
@@ -490,7 +493,7 @@ namespace MML {
 			Vector<Real> result(_n);
 			for (int i = 0; i < _n; i++) {
 				Real f0 = _hDone * _k1[i];
-				Real f1 = _hDone * (c1 * _k1[i] + c3 * _k3[i] + c4 * _k4[i] + c6 * _k6[i]); // Approximate
+				Real f1 = _hDone * _dxNew[i];
 				result[i] = h00 * _xOld[i] + h10 * f0 + h01 * _xNew[i] + h11 * f1;
 			}
 
@@ -500,8 +503,7 @@ namespace MML {
 		bool isFSAL() const override { return false; }
 
 		const Vector<Real>& getFinalDeriv() const override {
-			static Vector<Real> dummy;
-			return dummy;
+			return _dxNew;
 		}
 
 		int stageCount() const override { return 6; }
@@ -1171,4 +1173,4 @@ namespace MML {
 
 } // namespace MML
 
-#endif // MML_ODE_SYSTEM_STEPPERS_H
+#endif // MML_ODE_STEPPERS_H

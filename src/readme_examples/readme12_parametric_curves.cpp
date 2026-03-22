@@ -56,7 +56,7 @@ void Readme_ParametricCurves()
     std::cout << std::endl << "  Curvature κ:    " << curvature << std::endl;
 
     // Verify orthogonality of Frenet frame
-    auto normal_unit = helix.getNormalUnit(t);
+    auto normal_unit = helix.getNormal(t);
     Real t_dot_n = ScalarProduct(unit_tan, normal_unit);
     std::cout << "  T·N (should be 0): " << t_dot_n << std::endl;
 

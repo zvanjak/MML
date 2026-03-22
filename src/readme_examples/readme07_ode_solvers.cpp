@@ -16,8 +16,8 @@
 #include "base/Vector/Vector.h"
 #include "base/ODESystem.h"
 #include "base/ODESystemSolution.h"
-#include "algorithms/ODESolvers/ODEFixedStepIntegrators.h"
-#include "algorithms/ODESolvers/ODESystemStepCalculators.h"
+#include "algorithms/ODESolvers/ODESolverFixedStep.h"
+#include "algorithms/ODESolvers/ODEStepCalculators.h"
 #endif
 
 using namespace MML;

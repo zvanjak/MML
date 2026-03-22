@@ -615,3 +615,73 @@ TEST_CASE("IntegrateAdaptive3D - efficiency for smooth function", "[adaptive][in
     INFO("Cells subdivided: " << result.cells_subdivided);
     REQUIRE(result.cells_subdivided <= 1);  // Should converge on first cell!
 }
+
+///////////////////////////////////////////////////////////////////////////
+///                   DETAILED API TESTS                                ///
+///////////////////////////////////////////////////////////////////////////
+
+TEST_CASE("IntegrateAdaptive2DDetailed - basic success", "[adaptive][Detailed]")
+{
+    auto f = [](Real x, Real y) { return x + y; };
+
+    auto result = IntegrateAdaptive2DDetailed(f, 0.0, 1.0, 0.0, 1.0);
+
+    REQUIRE(result.IsSuccess());
+    REQUIRE(result.algorithm_name == "IntegrateAdaptive2D");
+    REQUIRE(result.elapsed_time_ms >= 0.0);
+    REQUIRE(result.converged);
+    REQUIRE(result.function_evaluations > 0);
+    REQUIRE_THAT(result.value, WithinAbs(1.0, 1e-6));
+}
+
+TEST_CASE("IntegrateAdaptive2DDetailed - with config object", "[adaptive][Detailed]")
+{
+    auto f = [](Real x, Real y) { return std::exp(-(x*x + y*y)); };
+
+    AdaptiveConfig2D aconfig;
+    aconfig.absoluteTolerance(1e-8).relativeTolerance(1e-6);
+
+    auto result = IntegrateAdaptive2DDetailed(f, -1.0, 1.0, -1.0, 1.0, aconfig);
+
+    REQUIRE(result.IsSuccess());
+    REQUIRE(result.converged);
+    REQUIRE(result.function_evaluations > 0);
+}
+
+TEST_CASE("IntegrateAdaptive2DDetailed - matches simple API", "[adaptive][Detailed]")
+{
+    auto f = [](Real x, Real y) { return x * y; };
+
+    auto simple = IntegrateAdaptive2D(f, 0.0, 1.0, 0.0, 1.0);
+    auto detailed = IntegrateAdaptive2DDetailed(f, 0.0, 1.0, 0.0, 1.0);
+
+    REQUIRE_THAT(detailed.value, WithinAbs(simple.value, 1e-14));
+    REQUIRE(detailed.function_evaluations == simple.function_evaluations);
+}
+
+TEST_CASE("IntegrateAdaptive3DDetailed - basic success", "[adaptive][Detailed]")
+{
+    auto f = [](Real x, Real y, Real z) { return x + y + z; };
+
+    auto result = IntegrateAdaptive3DDetailed(f, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0);
+
+    REQUIRE(result.IsSuccess());
+    REQUIRE(result.algorithm_name == "IntegrateAdaptive3D");
+    REQUIRE(result.elapsed_time_ms >= 0.0);
+    REQUIRE(result.converged);
+    REQUIRE_THAT(result.value, WithinAbs(1.5, 1e-4));
+}
+
+TEST_CASE("IntegrateAdaptive3DDetailed - with config object", "[adaptive][Detailed]")
+{
+    auto f = [](Real x, Real y, Real z) { return x * y * z; };
+
+    AdaptiveConfig3D aconfig;
+    aconfig.absoluteTolerance(1e-8).maxDepth(10);
+
+    auto result = IntegrateAdaptive3DDetailed(f, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, aconfig);
+
+    REQUIRE(result.IsSuccess());
+    REQUIRE(result.converged);
+    REQUIRE_THAT(result.value, WithinAbs(0.125, 1e-6));
+}

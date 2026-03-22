@@ -203,7 +203,7 @@ namespace MML::Tests::Base::Geometry2DTests
 		});
 		REQUIRE(square.IsConvex());
 	}
-	TEST_CASE("Polygon2D::IsInside", "[Polygon2D]")
+	TEST_CASE("Polygon2D::Contains", "[Polygon2D]")
 	{
 		TEST_PRECISION_INFO();
 		Polygon2D square({
@@ -741,8 +741,8 @@ namespace MML::Tests::Base::Geometry2DTests
 		REQUIRE_FALSE(lShape.Contains(Point2Cartesian(-1, -1)));
 		REQUIRE_FALSE(lShape.Contains(Point2Cartesian(5, 5)));
 		
-		// Legacy alias
-		REQUIRE(lShape.IsInside(Point2Cartesian(0.5, 0.5)));
+		// Test Contains directly
+		REQUIRE(lShape.Contains(Point2Cartesian(0.5, 0.5)));
 	}
 
 	TEST_CASE("Polygon2D - Signed area orientation", "[Polygon2D][SignedArea]")

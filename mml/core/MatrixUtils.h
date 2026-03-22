@@ -425,13 +425,6 @@ namespace MML
 			return rank;
 		}
 
-		// Keep old name for backward compatibility
-		template<class Type>
-		int Rank(const Matrix<Type>& A, Real EPS = Defaults::RankAlgEPS)
-		{
-			return RankGaussian(A, EPS);
-		}
-
 		// =========================================================================
 		// DETERMINANT (uses LU decomposition)
 		// =========================================================================

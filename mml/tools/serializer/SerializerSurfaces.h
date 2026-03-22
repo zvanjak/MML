@@ -92,20 +92,6 @@ namespace MML
 			}
 		}
 
-		/// @brief Serialize a 3D parametric surface using its intrinsic bounds
-		/// @details Convenience overload that uses the surface's getMinU/MaxU/MinW/MaxW methods
-		/// to determine the parameter range automatically.
-		inline SerializeResult SaveParametricSurface(const IParametricSurfaceRect<3>& surface, std::string title,
-		                                             int numPointsU, int numPointsW,
-		                                             std::string fileName)
-		{
-			return SaveParametricSurface(
-				reinterpret_cast<const IParametricSurface<3>&>(surface), title,
-				surface.getMinU(), surface.getMaxU(), numPointsU,
-				surface.getMinW(), surface.getMaxW(), numPointsW,
-				fileName);
-		}
-
 		/// @brief Serialize a general R² → R³ function as a parametric surface
 		/// @details Lower-level function that works with any IVectorFunctionNM<2,3>.
 		/// Useful when you have a lambda or custom function that isn't wrapped in IParametricSurface.
@@ -160,6 +146,20 @@ namespace MML
 			{
 				return {false, SerializeError::WRITE_FAILED, std::string("Write error: ") + e.what()};
 			}
+		}
+
+		/// @brief Serialize a 3D parametric surface using its intrinsic bounds
+		/// @details Convenience overload that uses the surface's getMinU/MaxU/MinW/MaxW methods
+		/// to determine the parameter range automatically.
+		inline SerializeResult SaveParametricSurface(const IParametricSurfaceRect<3>& surface, std::string title,
+		                                             int numPointsU, int numPointsW,
+		                                             std::string fileName)
+		{
+			return SaveParametricSurface(
+				static_cast<const IVectorFunctionNM<2, 3>&>(surface), title,
+				surface.getMinU(), surface.getMaxU(), numPointsU,
+				surface.getMinW(), surface.getMaxW(), numPointsW,
+				fileName);
 		}
 
 		//===================================================================================

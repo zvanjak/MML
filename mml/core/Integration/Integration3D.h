@@ -164,6 +164,37 @@ namespace MML
 		return Integrate3D(func, GAUSS10, x1, x2, y1, y2, z1, z2);
 	}
 
+	/******************************************************************************/
+	/*****              Detailed API - 3D Integration                         *****/
+	/******************************************************************************/
+
+	/// 3D integration with method selection and full diagnostics
+	static IntegrationDetailedResult Integrate3DDetailed(
+		const IScalarFunction<3>& func, IntegrationMethod method,
+		const Real x1, const Real x2,
+		Real y1(Real), Real y2(Real),
+		Real z1(Real, Real), Real z2(Real, Real),
+		const IntegrationConfig& config = {})
+	{
+		return IntegrationDetail::ExecuteIntegrationDetailed<IntegrationDetailedResult>(
+			"Integrate3D", config,
+			[&](IntegrationDetailedResult& result) {
+				auto r = Integrate3D(func, method, x1, x2, y1, y2, z1, z2);
+				IntegrationDetail::PopulateFromSimple(result, r, "Integrate3D");
+			});
+	}
+
+	/// 3D integration with default GAUSS10 method and full diagnostics
+	static IntegrationDetailedResult Integrate3DDetailed(
+		const IScalarFunction<3>& func,
+		const Real x1, const Real x2,
+		Real y1(Real), Real y2(Real),
+		Real z1(Real, Real), Real z2(Real, Real),
+		const IntegrationConfig& config = {})
+	{
+		return Integrate3DDetailed(func, GAUSS10, x1, x2, y1, y2, z1, z2, config);
+	}
+
 } // end namespace MML
 
 #endif // MML_INTEGRATION_3D_H

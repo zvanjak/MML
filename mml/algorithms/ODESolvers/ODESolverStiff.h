@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////////////////
 ///                         MinimalMathLibrary (MML)                                  ///
 ///                                                                                   ///
-///  File:        ODEStiffSolvers.h                                                   ///
+///  File:        ODESolverStiff.h                                                   ///
 ///  Description: Implicit methods for stiff ODE systems                              ///
 ///                                                                                   ///
 ///  Methods included:                                                                ///
@@ -34,8 +34,8 @@
 ///  Copyright:   (c) 2024-2026 Zvonimir Vanjak                                       ///
 ///  License:     MIT License (see LICENSE.md)                                         ///
 ///////////////////////////////////////////////////////////////////////////////////////////
-#if !defined MML_ODE_STIFF_SOLVERS_H
-#define MML_ODE_STIFF_SOLVERS_H
+#if !defined MML_ODE_SOLVER_STIFF_H
+#define MML_ODE_SOLVER_STIFF_H
 
 #include "mml/MMLBase.h"
 
@@ -45,6 +45,8 @@
 #include "mml/interfaces/IODESystem.h"
 #include "mml/core/AlgorithmTypes.h"
 #include "mml/core/LinAlgEqSolvers.h"
+
+#include <optional>
 
 namespace MML {
 
@@ -606,6 +608,132 @@ namespace MML {
 		}
 	};
 
+
+	///////////////////////////////////////////////////////////////////////////////////////////
+	// ODEStiffConfig - Configuration for stiff ODE detailed APIs
+	///////////////////////////////////////////////////////////////////////////////////////////
+	struct ODEStiffConfig : public EvaluationConfigBase {
+		/// Embedded stiff solver configuration (step sizes, Newton params, etc.)
+		StiffSolverConfig solver;
+	};
+
+	///////////////////////////////////////////////////////////////////////////////////////////
+	// ODEStiffResult - Result type for stiff ODE detailed APIs
+	///////////////////////////////////////////////////////////////////////////////////////////
+	struct ODEStiffResult : public EvaluationResultBase {
+		std::optional<ODESystemSolution> solution;
+
+		int total_steps = 0;
+		int newton_iterations = 0;
+		int jacobian_evaluations = 0;
+	};
+
+	///////////////////////////////////////////////////////////////////////////////////////////
+	// ODEStiffDetail - Internal helpers for Detailed API execution
+	///////////////////////////////////////////////////////////////////////////////////////////
+	namespace ODEStiffDetail
+	{
+		template<typename ResultType, typename ComputeFn>
+		ResultType ExecuteODEStiffDetailed(const char* algorithm_name,
+		                                   const EvaluationConfigBase& config,
+		                                   ComputeFn&& compute)
+		{
+			auto execute = [&]() {
+				AlgorithmTimer timer;
+				ResultType result = MakeEvaluationSuccessResult<ResultType>(algorithm_name);
+				compute(result);
+				result.elapsed_time_ms = timer.elapsed_ms();
+				return result;
+			};
+
+			if (config.exception_policy == EvaluationExceptionPolicy::Propagate)
+				return execute();
+
+			try {
+				return execute();
+			}
+			catch (const ODESolverError& ex) {
+				return MakeEvaluationFailureResult<ResultType>(
+					AlgorithmStatus::NumericalInstability, ex.what(), algorithm_name);
+			}
+			catch (const std::exception& ex) {
+				return MakeEvaluationFailureResult<ResultType>(
+					AlgorithmStatus::AlgorithmSpecificFailure, ex.what(), algorithm_name);
+			}
+		}
+	} // namespace ODEStiffDetail
+
+	///////////////////////////////////////////////////////////////////////////////////////////
+	// Detailed free function API — Stiff Solvers
+	///////////////////////////////////////////////////////////////////////////////////////////
+
+	/// Backward Euler solve with full instrumentation.
+	inline ODEStiffResult SolveBackwardEulerDetailed(
+		IODESystemWithJacobian& system, Real t0, const Vector<Real>& y0, Real t_end,
+		const ODEStiffConfig& config = {})
+	{
+		return ODEStiffDetail::ExecuteODEStiffDetailed<ODEStiffResult>(
+			"BackwardEuler", config,
+			[&](ODEStiffResult& result) {
+				auto inner = SolveBackwardEuler(system, t0, y0, t_end, config.solver);
+				result.solution             = std::move(inner.solution);
+				result.total_steps          = inner.total_steps;
+				result.newton_iterations    = inner.newton_iterations;
+				result.jacobian_evaluations = inner.jacobian_evaluations;
+				result.function_evaluations = inner.total_steps;
+
+				if (inner.status != AlgorithmStatus::Success) {
+					result.status        = inner.status;
+					result.error_message = inner.error_message;
+				}
+			});
+	}
+
+	/// BDF2 solve with full instrumentation.
+	inline ODEStiffResult SolveBDF2Detailed(
+		IODESystemWithJacobian& system, Real t0, const Vector<Real>& y0, Real t_end,
+		const ODEStiffConfig& config = {})
+	{
+		return ODEStiffDetail::ExecuteODEStiffDetailed<ODEStiffResult>(
+			"BDF2", config,
+			[&](ODEStiffResult& result) {
+				auto inner = SolveBDF2(system, t0, y0, t_end, config.solver);
+				result.solution             = std::move(inner.solution);
+				result.total_steps          = inner.total_steps;
+				result.newton_iterations    = inner.newton_iterations;
+				result.jacobian_evaluations = inner.jacobian_evaluations;
+				result.function_evaluations = inner.total_steps;
+
+				if (inner.status != AlgorithmStatus::Success) {
+					result.status        = inner.status;
+					result.error_message = inner.error_message;
+				}
+			});
+	}
+
+	/// Rosenbrock23 solve with full instrumentation.
+	inline ODEStiffResult SolveRosenbrock23Detailed(
+		IODESystemWithJacobian& system, const Vector<Real>& y0, Real t0, Real t_end,
+		const ODEStiffConfig& config = {})
+	{
+		return ODEStiffDetail::ExecuteODEStiffDetailed<ODEStiffResult>(
+			"Rosenbrock23", config,
+			[&](ODEStiffResult& result) {
+				Rosenbrock23Solver solver(system);
+				auto inner = solver.Solve(y0, t0, t_end, config.solver);
+				result.solution             = std::move(inner.solution);
+				result.total_steps          = inner.total_steps;
+				result.newton_iterations    = inner.newton_iterations;
+				result.jacobian_evaluations = inner.jacobian_evaluations;
+				result.function_evaluations = inner.total_steps;
+
+				if (inner.status != AlgorithmStatus::Success) {
+					result.status        = inner.status;
+					result.error_message = inner.error_message;
+				}
+			});
+	}
+
 } // namespace MML
 
-#endif // MML_ODE_STIFF_SOLVERS_H
+#endif // MML_ODE_SOLVER_STIFF_H

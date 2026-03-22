@@ -28,7 +28,7 @@ TEST_CASE("Quaternion - Construction", "[quaternion]")
 		REQUIRE(q.x() == REAL(0.0));
 		REQUIRE(q.y() == REAL(0.0));
 		REQUIRE(q.z() == REAL(0.0));
-		REQUIRE(q.IsUnit());
+		REQUIRE(q.isUnit());
 	}
 
 	SECTION("Constructor from components")
@@ -63,7 +63,7 @@ TEST_CASE("Quaternion - Construction", "[quaternion]")
 	SECTION("Identity factory method")
 	{
 		Quaternion q = Quaternion::Identity();
-		REQUIRE(q.IsUnit());
+		REQUIRE(q.isUnit());
 	}
 }
 
@@ -81,7 +81,7 @@ TEST_CASE("Quaternion - From Axis-Angle", "[quaternion]")
 		REQUIRE(std::abs(q.x()) < 1e-10);
 		REQUIRE(std::abs(q.y()) < 1e-10);
 		REQUIRE(std::abs(q.z() - std::sin(Constants::PI / REAL(4.0))) < 1e-10);
-		REQUIRE(q.IsUnit());
+		REQUIRE(q.isUnit());
 	}
 
 	SECTION("180 degree rotation around X-axis")
@@ -95,7 +95,7 @@ TEST_CASE("Quaternion - From Axis-Angle", "[quaternion]")
 		REQUIRE(std::abs(q.x() - REAL(1.0)) < 1e-10);
 		REQUIRE(std::abs(q.y()) < 1e-10);
 		REQUIRE(std::abs(q.z()) < 1e-10);
-		REQUIRE(q.IsUnit());
+		REQUIRE(q.isUnit());
 	}
 
 	SECTION("Zero rotation")
@@ -103,7 +103,7 @@ TEST_CASE("Quaternion - From Axis-Angle", "[quaternion]")
 		Vec3Cart axis(1, 0, 0);
 		Real angle = REAL(0.0);
 		Quaternion q = Quaternion::FromAxisAngle(axis, angle);
-		REQUIRE(q.IsUnit());
+		REQUIRE(q.isUnit());
 	}
 }
 
@@ -113,19 +113,19 @@ TEST_CASE("Quaternion - From Euler Angles", "[quaternion]")
 	SECTION("FromEulerZYX - Zero angles gives identity")
 	{
 		Quaternion q = Quaternion::FromEulerZYX(0, 0, 0);
-		REQUIRE(q.IsUnit());
+		REQUIRE(q.isUnit());
 	}
 
 	SECTION("FromEulerXYZ - Zero angles gives identity")
 	{
 		Quaternion q = Quaternion::FromEulerXYZ(0, 0, 0);
-		REQUIRE(q.IsUnit());
+		REQUIRE(q.isUnit());
 	}
 
 	SECTION("FromEulerZYX - 90 degree yaw only")
 	{
 		Quaternion q = Quaternion::FromEulerZYX(Constants::PI / REAL(2.0), 0, 0);
-		REQUIRE(q.IsUnit(1e-10));
+		REQUIRE(q.isUnit(1e-10));
 		
 		// Rotate a point
 		Vec3Cart v(1, 0, 0);
@@ -206,8 +206,8 @@ TEST_CASE("Quaternion - Multiplication", "[quaternion]")
 		Quaternion result1 = q * id;
 		Quaternion result2 = id * q;
 		
-		REQUIRE(result1.IsApprox(q));
-		REQUIRE(result2.IsApprox(q));
+		REQUIRE(result1.isApprox(q));
+		REQUIRE(result2.isApprox(q));
 	}
 
 	SECTION("Non-commutativity")
@@ -219,7 +219,7 @@ TEST_CASE("Quaternion - Multiplication", "[quaternion]")
 		Quaternion result2 = q2 * q1;
 		
 		// Should not be equal (within reasonable tolerance)
-		REQUIRE_FALSE(result1.IsApprox(result2, 1e-6));
+		REQUIRE_FALSE(result1.isApprox(result2, 1e-6));
 	}
 
 	SECTION("Known quaternion multiplication")
@@ -230,7 +230,7 @@ TEST_CASE("Quaternion - Multiplication", "[quaternion]")
 		Quaternion k_expected(0, 0, 0, 1);
 		
 		Quaternion k_result = i * j;
-		REQUIRE(k_result.IsApprox(k_expected, 1e-10));
+		REQUIRE(k_result.isApprox(k_expected, 1e-10));
 	}
 
 	SECTION("Conjugate property: (q1*q2)* = q2* * q1*")
@@ -241,7 +241,7 @@ TEST_CASE("Quaternion - Multiplication", "[quaternion]")
 		Quaternion lhs = (q1 * q2).Conjugate();
 		Quaternion rhs = q2.Conjugate() * q1.Conjugate();
 		
-		REQUIRE(lhs.IsApprox(rhs, 1e-10));
+		REQUIRE(lhs.isApprox(rhs, 1e-10));
 	}
 }
 
@@ -252,7 +252,7 @@ TEST_CASE("Quaternion - Conjugate and Inverse", "[quaternion]")
 	{
 		Quaternion q = Quaternion::Identity();
 		Quaternion conj = q.Conjugate();
-		REQUIRE(conj.IsUnit());
+		REQUIRE(conj.isUnit());
 	}
 
 	SECTION("Conjugate properties")
@@ -270,7 +270,7 @@ TEST_CASE("Quaternion - Conjugate and Inverse", "[quaternion]")
 	{
 		Quaternion q(1, 2, 3, 4);
 		Quaternion double_conj = q.Conjugate().Conjugate();
-		REQUIRE(double_conj.IsApprox(q));
+		REQUIRE(double_conj.isApprox(q));
 	}
 
 	SECTION("Inverse of unit quaternion equals conjugate")
@@ -279,7 +279,7 @@ TEST_CASE("Quaternion - Conjugate and Inverse", "[quaternion]")
 		Quaternion inv = q.Inverse();
 		Quaternion conj = q.Conjugate();
 		
-		REQUIRE(inv.IsApprox(conj, 1e-10));
+		REQUIRE(inv.isApprox(conj, 1e-10));
 	}
 
 	SECTION("q * q^(-1) = identity")
@@ -288,7 +288,7 @@ TEST_CASE("Quaternion - Conjugate and Inverse", "[quaternion]")
 		Quaternion inv = q.Inverse();
 		Quaternion result = q * inv;
 		
-		REQUIRE(result.IsUnit(1e-10));
+		REQUIRE(result.isUnit(1e-10));
 	}
 
 	SECTION("q^(-1) * q = identity")
@@ -297,7 +297,7 @@ TEST_CASE("Quaternion - Conjugate and Inverse", "[quaternion]")
 		Quaternion inv = q.Inverse();
 		Quaternion result = inv * q;
 		
-		REQUIRE(result.IsUnit(1e-10));
+		REQUIRE(result.isUnit(1e-10));
 	}
 }
 
@@ -323,7 +323,7 @@ TEST_CASE("Quaternion - Norm and Normalization", "[quaternion]")
 	{
 		Quaternion q(2, 0, 0, 0);
 		q.Normalize();
-		REQUIRE(q.IsUnit(1e-10));
+		REQUIRE(q.isUnit(1e-10));
 		REQUIRE(std::abs(q.w() - REAL(1.0)) < 1e-10);
 	}
 
@@ -333,8 +333,8 @@ TEST_CASE("Quaternion - Norm and Normalization", "[quaternion]")
 		Quaternion orig = q;
 		Quaternion normalized = q.Normalized();
 		
-		REQUIRE(normalized.IsUnit(1e-10));
-		REQUIRE(q.IsApprox(orig));  // Original unchanged
+		REQUIRE(normalized.isUnit(1e-10));
+		REQUIRE(q.isApprox(orig));  // Original unchanged
 	}
 
 	SECTION("FromAxisAngle produces unit quaternion")
@@ -342,7 +342,7 @@ TEST_CASE("Quaternion - Norm and Normalization", "[quaternion]")
 		Vec3Cart axis(1, 2, 3);
 		axis = axis.Normalized();
 		Quaternion q = Quaternion::FromAxisAngle(axis, REAL(1.5));
-		REQUIRE(q.IsUnit(1e-10));
+		REQUIRE(q.isUnit(1e-10));
 	}
 }
 
@@ -509,13 +509,13 @@ TEST_CASE("Quaternion - Interpolation", "[quaternion]")
 	SECTION("Lerp at t=0 returns first quaternion")
 	{
 		Quaternion result = Quaternion::Lerp(q1, q2, REAL(0.0));
-		REQUIRE(result.IsApprox(q1));
+		REQUIRE(result.isApprox(q1));
 	}
 
 	SECTION("Lerp at t=1 returns second quaternion")
 	{
 		Quaternion result = Quaternion::Lerp(q1, q2, REAL(1.0));
-		REQUIRE(result.IsApprox(q2));
+		REQUIRE(result.isApprox(q2));
 	}
 
 	SECTION("Lerp at t=REAL(0.5) is between quaternions")
@@ -531,22 +531,22 @@ TEST_CASE("Quaternion - Interpolation", "[quaternion]")
 	SECTION("Slerp at t=0 returns first quaternion")
 	{
 		Quaternion result = Quaternion::Slerp(q1, q2, REAL(0.0));
-		REQUIRE(result.IsApprox(q1, 1e-6));
+		REQUIRE(result.isApprox(q1, 1e-6));
 	}
 
 	SECTION("Slerp at t=1 returns second quaternion")
 	{
 		Quaternion result = Quaternion::Slerp(q1, q2, REAL(1.0));
-		REQUIRE(result.IsApprox(q2, 1e-6));
+		REQUIRE(result.isApprox(q2, 1e-6));
 	}
 
 	SECTION("Slerp produces unit quaternions")
 	{
 		Quaternion result = Quaternion::Slerp(q1, q2, REAL(0.3));
-		REQUIRE(result.IsUnit(1e-6));
+		REQUIRE(result.isUnit(1e-6));
 		
 		result = Quaternion::Slerp(q1, q2, REAL(0.7));
-		REQUIRE(result.IsUnit(1e-6));
+		REQUIRE(result.isUnit(1e-6));
 	}
 
 	SECTION("Slerp at t=REAL(0.5) gives halfway rotation")
@@ -568,7 +568,22 @@ TEST_CASE("Quaternion - Interpolation", "[quaternion]")
 		
 		// Slerp should handle this gracefully
 		Quaternion result = Quaternion::Slerp(q_a, q_b, REAL(0.5));
-		REQUIRE(result.IsUnit(1e-6));
+		REQUIRE(result.isUnit(1e-6));
+	}
+
+	SECTION("Slerp near-identical quaternions (sinTheta stability)")
+	{
+		// dot ~ 0.99999 — just past the 0.9995 threshold, sinTheta very small
+		Quaternion q_a = Quaternion::FromAxisAngle(Vec3Cart(0, 0, 1), REAL(0.0));
+		Quaternion q_b = Quaternion::FromAxisAngle(Vec3Cart(0, 0, 1), REAL(0.001));
+
+		// Should not produce NaN or Inf
+		Quaternion result = Quaternion::Slerp(q_a, q_b, REAL(0.5));
+		REQUIRE(result.isUnit(1e-4));
+		REQUIRE_FALSE(std::isnan(result.w()));
+		REQUIRE_FALSE(std::isnan(result.x()));
+		REQUIRE_FALSE(std::isnan(result.y()));
+		REQUIRE_FALSE(std::isnan(result.z()));
 	}
 }
 
@@ -616,8 +631,8 @@ TEST_CASE("Quaternion - Comparison and Equality", "[quaternion]")
 		Quaternion q1(REAL(1.0), REAL(2.0), REAL(3.0), REAL(4.0));
 		Quaternion q2(REAL(1.0) + 1e-7, REAL(2.0), REAL(3.0), REAL(4.0));
 		
-		REQUIRE(q1.IsApprox(q2, 1e-6));
-		REQUIRE_FALSE(q1.IsApprox(q2, 1e-8));
+		REQUIRE(q1.isApprox(q2, 1e-6));
+		REQUIRE_FALSE(q1.isApprox(q2, 1e-8));
 	}
 }
 
@@ -627,7 +642,7 @@ TEST_CASE("Quaternion - Special Cases and Edge Cases", "[quaternion]")
 	SECTION("Zero rotation has identity quaternion")
 	{
 		Quaternion q = Quaternion::FromAxisAngle(Vec3Cart(1, 0, 0), REAL(0.0));
-		REQUIRE(q.IsUnit());
+		REQUIRE(q.isUnit());
 	}
 
 	SECTION("Full rotation (2π) represents same rotation as identity")
@@ -652,14 +667,14 @@ TEST_CASE("Quaternion - Special Cases and Edge Cases", "[quaternion]")
 		Quaternion q_neg = Quaternion::FromAxisAngle(axis, -angle);
 		
 		Quaternion product = q_pos * q_neg;
-		REQUIRE(product.IsUnit(1e-10));
+		REQUIRE(product.isUnit(1e-10));
 	}
 
 	SECTION("IsUnit check with tolerance")
 	{
 		Quaternion q(REAL(1.0) + 1e-7, 0, 0, 0);
-		REQUIRE(q.IsUnit(1e-6));
-		REQUIRE_FALSE(q.IsUnit(1e-8));
+		REQUIRE(q.isUnit(1e-6));
+		REQUIRE_FALSE(q.isUnit(1e-8));
 	}
 
 	SECTION("Rotation of zero vector")
@@ -777,7 +792,7 @@ TEST_CASE("Quaternion - In-place Operations", "[quaternion]")
 		Quaternion expected = q1 * q2;
 		
 		q1 *= q2;
-		REQUIRE(q1.IsApprox(expected, 1e-10));
+		REQUIRE(q1.isApprox(expected, 1e-10));
 	}
 }
 
@@ -865,7 +880,7 @@ TEST_CASE("Quaternion - FromRotationMatrix", "[quaternion][matrix]")
 		Quaternion q_back = Quaternion::FromRotationMatrix(mat);
 		
 		// q and -q represent same rotation
-		bool same = q_orig.IsApprox(q_back, 1e-10) || q_orig.IsApprox(-q_back, 1e-10);
+		bool same = q_orig.isApprox(q_back, 1e-10) || q_orig.isApprox(-q_back, 1e-10);
 		REQUIRE(same);
 	}
 	
@@ -998,7 +1013,7 @@ TEST_CASE("Quaternion - FromEulerXYZ Additional", "[quaternion][euler]")
 	SECTION("FromEulerXYZ produces unit quaternion")
 	{
 		Quaternion q = Quaternion::FromEulerXYZ(REAL(0.3), REAL(0.5), REAL(0.7));
-		REQUIRE(q.IsUnit(1e-10));
+		REQUIRE(q.isUnit(1e-10));
 	}
 	
 	SECTION("FromEulerXYZ rotation verification")

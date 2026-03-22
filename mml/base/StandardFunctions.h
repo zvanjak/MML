@@ -38,13 +38,13 @@ namespace MML
 		template<typename T>
 		static inline T Cos(T x) { return std::cos(x); }
 		template<typename T>
-		static inline T Sec(T x) { return T{1} / std::cos(x); }
+		static inline T Sec(T x) { T c = std::cos(x); if (std::abs(c) < std::numeric_limits<T>::epsilon()) throw std::domain_error("Sec: cos(x) is zero"); return T{1} / c; }
 		template<typename T>
-		static inline T Csc(T x) { return T{1} / std::sin(x); }
+		static inline T Csc(T x) { T s = std::sin(x); if (std::abs(s) < std::numeric_limits<T>::epsilon()) throw std::domain_error("Csc: sin(x) is zero"); return T{1} / s; }
 		template<typename T>
 		static inline T Tan(T x) { return std::tan(x); }
 		template<typename T>
-		static inline T Ctg(T x) { return T{1} / std::tan(x); }
+		static inline T Ctg(T x) { T t = std::tan(x); if (std::abs(t) < std::numeric_limits<T>::epsilon()) throw std::domain_error("Ctg: tan(x) is zero"); return T{1} / t; }
 
 		template<typename T>
 		static inline T Exp(T x) { return std::exp(x); }
@@ -64,11 +64,11 @@ namespace MML
 		template<typename T>
 		static inline T Sech(T x) { return T{1} / std::cosh(x); }
 		template<typename T>
-		static inline T Csch(T x) { return T{1} / std::sinh(x); }
+		static inline T Csch(T x) { T s = std::sinh(x); if (std::abs(s) < std::numeric_limits<T>::epsilon()) throw std::domain_error("Csch: sinh(x) is zero"); return T{1} / s; }
 		template<typename T>
 		static inline T Tanh(T x) { return std::tanh(x); }
 		template<typename T>
-		static inline T Ctgh(T x) { return T{1} / std::tanh(x); }
+		static inline T Ctgh(T x) { T t = std::tanh(x); if (std::abs(t) < std::numeric_limits<T>::epsilon()) throw std::domain_error("Ctgh: tanh(x) is zero"); return T{1} / t; }
 
 		template<typename T>
 		static inline T Asin(T x) { return std::asin(x); }
@@ -268,12 +268,14 @@ namespace MML
 
 		// Factorial functions
 		static inline Real Factorial(int n) {
+			if (n < 0) throw std::domain_error("Factorial: negative argument");
 			Real fact = 1.0;
 			for (int i = 2; i <= n; i++)
 				fact *= i;
 			return fact;
 		}
 		static inline long long FactorialInt(int n) {
+			if (n < 0) throw std::domain_error("FactorialInt: negative argument");
 			long long fact = 1;
 			for (int i = 2; i <= n; i++)
 				fact *= i;
@@ -281,7 +283,7 @@ namespace MML
 		}
 		static inline Real FactorialStirling(int n)
 		{
-			if (n < 0) return 0.0; // Factorial is not defined for negative integers
+			if (n < 0) throw std::domain_error("FactorialStirling: negative argument");
 			if (n == 0 || n == 1) return 1.0;
 			return sqrt(2 * Constants::PI * n) * std::pow(n / Constants::E, n);
 		}

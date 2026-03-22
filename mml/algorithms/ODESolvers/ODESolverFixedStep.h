@@ -1,19 +1,19 @@
 ///////////////////////////////////////////////////////////////////////////////////////////
 ///                         MinimalMathLibrary (MML)                                  ///
 ///                                                                                   ///
-///  File:        ODEFixedStepIntegrators.h                                           ///
+///  File:        ODESolverFixedStep.h                                           ///
 ///  Description: Fixed-step ODE system integrators                                   ///
 ///                                                                                   ///
 ///  Contents:    ODESystemFixedStepSolver - Fixed-step integration with pluggable    ///
 ///                                          step calculators (Euler, RK4, etc.)      ///
 ///                                                                                   ///
-///  For adaptive step-size integration, see ODEAdaptiveIntegrator.h                  ///
+///  For adaptive step-size integration, see ODESolverAdaptive.h                  ///
 ///                                                                                   ///
 ///  Copyright:   (c) 2024-2026 Zvonimir Vanjak                                       ///
 ///  License:     MIT License (see LICENSE.md)                                         ///
 ///////////////////////////////////////////////////////////////////////////////////////////
-#if !defined MML_ODE_FIXED_STEP_INTEGRATORS_H
-#define MML_ODE_FIXED_STEP_INTEGRATORS_H
+#if !defined MML_ODE_SOLVER_FIXED_STEP_H
+#define MML_ODE_SOLVER_FIXED_STEP_H
 
 #include "mml/MMLBase.h"
 
@@ -75,4 +75,4 @@ namespace MML {
 
 } // namespace MML
 
-#endif // MML_ODE_FIXED_STEP_INTEGRATORS_H
+#endif // MML_ODE_SOLVER_FIXED_STEP_H

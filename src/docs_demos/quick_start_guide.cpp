@@ -18,8 +18,8 @@
 #include "core/Derivation.h"
 #include "core/Integration.h"
 #include "algorithms/RootFinding.h"
-#include "mml/algorithms/ODESolvers/ODEFixedStepIntegrators.h"
-#include "mml/algorithms/ODESolvers/ODEAdaptiveIntegrator.h"
+#include "mml/algorithms/ODESolvers/ODESolverFixedStep.h"
+#include "mml/algorithms/ODESolvers/ODESolverAdaptive.h"
 #endif
 
 using namespace MML;

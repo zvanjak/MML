@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////////////////
 ///                         MinimalMathLibrary (MML)                                  ///
 ///                                                                                   ///
-///  File:        ODEEventDetectionIntegrator.h                                       ///
+///  File:        ODESolverEventDetection.h                                       ///
 ///  Description: Adaptive ODE integration with event detection (zero-crossing)       ///
 ///               Extends ODEAdaptiveIntegrator with bisection-based event location   ///
 ///               Supports: state modification, terminal events, direction filtering  ///
@@ -10,10 +10,10 @@
 ///  License:     MIT License (see LICENSE.md)                                         ///
 ///                                                                                   ///
 ///////////////////////////////////////////////////////////////////////////////////////////
-#if !defined MML_ODE_EVENT_DETECTION_INTEGRATOR_H
-#define MML_ODE_EVENT_DETECTION_INTEGRATOR_H
+#if !defined MML_ODE_SOLVER_EVENT_DETECTION_H
+#define MML_ODE_SOLVER_EVENT_DETECTION_H
 
-#include "mml/algorithms/ODESolvers/ODEAdaptiveIntegrator.h"
+#include "mml/algorithms/ODESolvers/ODESolverAdaptive.h"
 #include "mml/interfaces/IODESystemWithEvents.h"
 
 namespace MML {
@@ -294,4 +294,4 @@ namespace MML {
 
 } // namespace MML
 
-#endif // MML_ODE_EVENT_DETECTION_INTEGRATOR_H
+#endif // MML_ODE_SOLVER_EVENT_DETECTION_H

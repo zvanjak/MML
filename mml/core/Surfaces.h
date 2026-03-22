@@ -198,8 +198,18 @@ namespace MML
 				Vec3Cart r_by_u = Derivation::NDer1_u(*this, u, w);
 				Vec3Cart r_by_w = Derivation::NDer1_w(*this, u, w);
 				
-			// normal
-			Vec3Cart n = VectorProduct(r_by_u, r_by_w).Normalized();				// now we can calculate second derivatives
+				// normal — check for degenerate point (parallel tangents / cusp / fold)
+				Vec3Cart cross = VectorProduct(r_by_u, r_by_w);
+				Real mag = cross.NormL2();
+				constexpr Real eps = PrecisionValues<Real>::NumericalZeroThreshold;
+				if (mag < eps) {
+					// Degenerate point: second fundamental form is undefined
+					outL = outM = outN = 0.0;
+					return;
+				}
+				Vec3Cart n = cross / mag;
+
+				// now we can calculate second derivatives
 				Vec3Cart r_by_uu = Derivation::NDer2_uu(*this, u, w);
 				Vec3Cart r_by_uw = Derivation::NDer2_uw(*this, u, w);
 				Vec3Cart r_by_ww = Derivation::NDer2_ww(*this, u, w);

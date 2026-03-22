@@ -429,15 +429,14 @@ namespace MML::Tests::Core::FunctionHelpersTests
         REQUIRE_THAT(dprod(x), RealWithinRel(expected(x), 1e-6));
     }
 
-    TEST_CASE("FunctionHelpers - backward compatibility aliases", "[compatibility]")
+    TEST_CASE("FunctionHelpers - function algebra classes", "[FunctionHelpers]")
     {
         LinearFunc f1(2.0, 0.0);
         LinearFunc f2(1.0, 0.0);
 
-        // Test that aliases work
-        RealFuncDiffHelper diff(f1, f2);
-        RealFuncAbsDiffHelper absdiff(f1, f2);
-        RealFuncDiffSqrHelper diffsqr(f1, f2);
+        RealFuncDiff diff(f1, f2);
+        RealFuncAbsDiff absdiff(f1, f2);
+        RealFuncDiffSqr diffsqr(f1, f2);
 
         REQUIRE_THAT(diff(2.0), RealWithinAbs(2.0, 1e-10));
         REQUIRE_THAT(absdiff(2.0), RealWithinAbs(2.0, 1e-10));

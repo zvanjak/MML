@@ -588,10 +588,10 @@ TEST_CASE("ODESystemSolution - Size and Capacity Methods", "[ode_system_solution
 {
     ODESystemSolution sol(REAL(0.0), REAL(1.0), 2, 50);
     
-    REQUIRE(sol.size() == 51);
-    REQUIRE(sol.capacity() == 51);
-    REQUIRE_FALSE(sol.isEmpty());
-    REQUIRE(sol.getNumSteps() == 50);
+    REQUIRE(sol.size() == 0);       // no data stored yet
+    REQUIRE(sol.capacity() == 51);  // capacity is maxSteps + 1
+    REQUIRE(sol.isEmpty());
+    REQUIRE(sol.getNumSteps() == 0);
 }
 
 TEST_CASE("ODESystemSolution - Reserve Method", "[ode_system_solution]")
@@ -892,6 +892,39 @@ TEST_CASE("ODESystemWithJacobian - Null jacobian throws NotImplementedError", "[
     y[0] = REAL(1.0); y[1] = REAL(0.0);
 
     REQUIRE_THROWS_AS(sys.jacobian(REAL(0.0), y, dydt, J), NotImplementedError);
+}
+
+TEST_CASE("ODESystemSolution - size/isEmpty reflect actual data, not capacity", "[ode_system_solution]")
+{
+    // Create with capacity 500 (internally 501), but no data stored yet
+    ODESystemSolution sol(REAL(0.0), REAL(10.0), 2, 500);
+
+    REQUIRE(sol.isEmpty() == true);
+    REQUIRE(sol.size() == 0);
+    REQUIRE(sol.getNumSteps() == 0);
+    REQUIRE(sol.capacity() == 501);  // capacity is maxSteps + 1
+
+    // Store 3 data points using fillValues
+    Vector<Real> y(2);
+    y[0] = REAL(1.0); y[1] = REAL(2.0);
+    sol.fillValues(0, REAL(0.0), y);
+    REQUIRE(sol.isEmpty() == false);
+    REQUIRE(sol.size() == 1);
+
+    y[0] = REAL(3.0); y[1] = REAL(4.0);
+    sol.fillValues(1, REAL(5.0), y);
+    REQUIRE(sol.size() == 2);
+    REQUIRE(sol.getNumSteps() == 1);  // 1 interval between 2 points
+
+    y[0] = REAL(5.0); y[1] = REAL(6.0);
+    sol.fillValues(2, REAL(10.0), y);
+    REQUIRE(sol.size() == 3);
+    REQUIRE(sol.getNumSteps() == 2);  // 2 intervals between 3 points
+
+    // After setFinalSize, size and capacity should match
+    sol.setFinalSize(2);
+    REQUIRE(sol.size() == 3);
+    REQUIRE(sol.capacity() == 3);
 }
 
 } // namespace MML::Tests::Base::ODESystemTests

@@ -119,6 +119,10 @@ namespace MML {
 		int step = 1;
 		while (t + h/2 <= t_end && step < config.max_steps) {
 
+			// Clamp step size to reach t_end exactly
+			Real h_actual = std::min(h, t_end - t);
+			if (h_actual < 1e-15) break;
+
 			// Initialize stage values to current solution (predictor)
 			X1 = x; X2 = x; X3 = x;
 			Y1 = y; Y2 = y; Y3 = y;
@@ -132,24 +136,24 @@ namespace MML {
 				result.newton_iterations++;
 
 				// Evaluate f and g at each stage point
-				system.diffEqs(t + c1*h, X1, Y1, K1);
-				system.diffEqs(t + c2*h, X2, Y2, K2);
-				system.diffEqs(t + c3*h, X3, Y3, K3);
-				system.algConstraints(t + c1*h, X1, Y1, G1);
-				system.algConstraints(t + c2*h, X2, Y2, G2);
-				system.algConstraints(t + c3*h, X3, Y3, G3);
+				system.diffEqs(t + c1*h_actual, X1, Y1, K1);
+				system.diffEqs(t + c2*h_actual, X2, Y2, K2);
+				system.diffEqs(t + c3*h_actual, X3, Y3, K3);
+				system.algConstraints(t + c1*h_actual, X1, Y1, G1);
+				system.algConstraints(t + c2*h_actual, X2, Y2, G2);
+				system.algConstraints(t + c3*h_actual, X3, Y3, G3);
 
 				// Build residual for the stage equations
-				// Stage equations for differential: X_i = x + h * sum_j(a_ij * K_j)
-				// Residual: R_xi = X_i - x - h*(a_i1*K1 + a_i2*K2 + a_i3*K3)
-				// Stage equations for algebraic: 0 = g(t + c_i*h, X_i, Y_i)
+				// Stage equations for differential: X_i = x + h_actual * sum_j(a_ij * K_j)
+				// Residual: R_xi = X_i - x - h_actual*(a_i1*K1 + a_i2*K2 + a_i3*K3)
+				// Stage equations for algebraic: 0 = g(t + c_i*h_actual, X_i, Y_i)
 				// Residual: R_yi = G_i
 
 				Real residNorm = 0;
 				
 				// Stage 1 residuals
 				for (int i = 0; i < diffDim; ++i) {
-					Real r = X1[i] - x[i] - h*(a11*K1[i] + a12*K2[i] + a13*K3[i]);
+					Real r = X1[i] - x[i] - h_actual*(a11*K1[i] + a12*K2[i] + a13*K3[i]);
 					residual[i] = r;
 					residNorm += r*r;
 				}
@@ -162,7 +166,7 @@ namespace MML {
 				// Stage 2 residuals
 				int off2 = totalDim;
 				for (int i = 0; i < diffDim; ++i) {
-					Real r = X2[i] - x[i] - h*(a21*K1[i] + a22*K2[i] + a23*K3[i]);
+					Real r = X2[i] - x[i] - h_actual*(a21*K1[i] + a22*K2[i] + a23*K3[i]);
 					residual[off2 + i] = r;
 					residNorm += r*r;
 				}
@@ -175,7 +179,7 @@ namespace MML {
 				// Stage 3 residuals
 				int off3 = 2 * totalDim;
 				for (int i = 0; i < diffDim; ++i) {
-					Real r = X3[i] - x[i] - h*(a31*K1[i] + a32*K2[i] + a33*K3[i]);
+					Real r = X3[i] - x[i] - h_actual*(a31*K1[i] + a32*K2[i] + a33*K3[i]);
 					residual[off3 + i] = r;
 					residNorm += r*r;
 				}
@@ -195,8 +199,8 @@ namespace MML {
 				// The unknowns are [X1, Y1, X2, Y2, X3, Y3] (3*totalDim vector)
 				// Jacobian structure (block form):
 				// 
-				// For stage i, diff eq: dR_xi/dXj = delta_ij*I - h*a_ij*df/dx
-				//                       dR_xi/dYj = -h*a_ij*df/dy
+				// For stage i, diff eq: dR_xi/dXj = delta_ij*I - h_actual*a_ij*df/dx
+				//                       dR_xi/dYj = -h_actual*a_ij*df/dy
 				// For stage i, alg eq:  dR_yi/dXj = dg/dx (only for j=i)
 				//                       dR_yi/dYj = dg/dy (only for j=i)
 
@@ -223,11 +227,11 @@ namespace MML {
 						for (int i = 0; i < diffDim; ++i) {
 							for (int j = 0; j < diffDim; ++j) {
 								Real val = (si == sj && i == j) ? 1.0 : 0.0;
-								val -= h * aij * dfDx(i, j);
+								val -= h_actual * aij * dfDx(i, j);
 								Jac_newton(row_off + i, col_off + j) = val;
 							}
 							for (int j = 0; j < algDim; ++j) {
-								Jac_newton(row_off + i, col_off + diffDim + j) = -h * aij * dfDy(i, j);
+								Jac_newton(row_off + i, col_off + diffDim + j) = -h_actual * aij * dfDy(i, j);
 							}
 						}
 
@@ -270,10 +274,10 @@ namespace MML {
 				break;
 			}
 
-			// Update solution using stage 3 (for Radau IIA, c3 = 1, so X3, Y3 is the solution at t+h)
+			// Update solution using stage 3 (for Radau IIA, c3 = 1, so X3, Y3 is the solution at t+h_actual)
 			x = X3;
 			y = Y3;
-			t += h;
+			t += h_actual;
 
 			// Track constraint violation
 			Vector<Real> g_check(algDim);

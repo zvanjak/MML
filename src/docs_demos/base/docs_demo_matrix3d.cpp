@@ -20,8 +20,8 @@ void Docs_Demo_Matrix3D()
     
     // Create 3x4x5 tensor initialized to zero
     Matrix3D<Real> tensor(3, 4, 5, 0.0);
-    std::cout << "Created 3x4x5 tensor: " << tensor.Dim1() << "x" << tensor.Dim2() << "x" << tensor.Dim3() << std::endl;
-    std::cout << "Total elements: " << tensor.Size() << std::endl;
+    std::cout << "Created 3x4x5 tensor: " << tensor.dim1() << "x" << tensor.dim2() << "x" << tensor.dim3() << std::endl;
+    std::cout << "Total elements: " << tensor.size() << std::endl;
     
     // Element access - both notations
     tensor[0][0][0] = 1.0;     // Bracket notation

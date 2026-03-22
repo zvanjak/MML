@@ -30,8 +30,8 @@ namespace MML::Tests::Base::TridiagMatrixTests
 														REAL(0.0), REAL(9.0), REAL(6.0), REAL(3.0),
 														REAL(0.0), REAL(0.0), REAL(10.0), REAL(7.0) });
 
-		REQUIRE(4 == a.RowNum());
-		REQUIRE(4 == a.ColNum());
+		REQUIRE(4 == a.rows());
+		REQUIRE(4 == a.cols());
 
 		REQUIRE(a(0, 0) == REAL(4.0));
 		REQUIRE(a(0, 1) == REAL(1.0));
@@ -68,8 +68,8 @@ namespace MML::Tests::Base::TridiagMatrixTests
 														REAL(0.0), REAL(0.0), REAL(10.0), REAL(7.0) });
 
 
-		REQUIRE(4 == a.RowNum());
-		REQUIRE(4 == a.ColNum());
+		REQUIRE(4 == a.rows());
+		REQUIRE(4 == a.cols());
 
 		REQUIRE(a(0, 0) == REAL(4.0));
 		REQUIRE(a(0, 1) == REAL(1.0));
@@ -138,8 +138,8 @@ namespace MML::Tests::Base::TridiagMatrixTests
 
 		TridiagonalMatrix<Real> at = a.GetTranspose();
 
-		REQUIRE(at.RowNum() == 4);
-		REQUIRE(at.ColNum() == 4);
+		REQUIRE(at.rows() == 4);
+		REQUIRE(at.cols() == 4);
 
 		// Check diagonal (should be unchanged)
 		REQUIRE(at(0, 0) == REAL(4.0));
@@ -376,8 +376,8 @@ namespace MML::Tests::Base::TridiagMatrixTests
 		                               REAL(1.0), REAL(2.0), REAL(1.0),
 		                                    REAL(1.0), REAL(2.0) });
 		
-		REQUIRE(a.RowNum() == 3);
-		REQUIRE(a.ColNum() == 3);
+		REQUIRE(a.rows() == 3);
+		REQUIRE(a.cols() == 3);
 	}
 
 	TEST_CASE("MatrixTridiag_zero_elements", "[tridiag][edge_cases]")
@@ -447,5 +447,35 @@ namespace MML::Tests::Base::TridiagMatrixTests
 	//    REQUIRE_THAT(sol_a[2] , WithinRel(solLU[2], REAL(1e-5)));
 	//    REQUIRE_THAT(sol_a[3] , WithinRel(solLU[3], REAL(1e-5)));         
 	//}
+
+	TEST_CASE("MatrixTridiag_Solve_singular_detected", "[tridiag][solve]")
+	{
+		// Singular tridiagonal matrix (zero diagonal) should throw
+		TridiagonalMatrix<Real> a(3,
+			Vector<Real>{REAL(0.0), REAL(1.0), REAL(1.0)},  // below
+			Vector<Real>{REAL(0.0), REAL(2.0), REAL(3.0)},  // diagonal (first element = 0)
+			Vector<Real>{REAL(1.0), REAL(1.0), REAL(0.0)}); // above
+
+		Vector<Real> rhs{REAL(1.0), REAL(2.0), REAL(3.0)};
+		REQUIRE_THROWS_AS(a.Solve(rhs), SingularMatrixError);
+	}
+
+	TEST_CASE("MatrixTridiag_Solve_large_values_scaled_tolerance", "[tridiag][solve]")
+	{
+		// Large diagonal values - the scaled tolerance should still allow valid solves
+		Real scale = REAL(1e12);
+		TridiagonalMatrix<Real> a(3,
+			Vector<Real>{REAL(0.0), -scale, -scale},           // below
+			Vector<Real>{REAL(2.0)*scale, REAL(2.0)*scale, REAL(2.0)*scale},  // diagonal
+			Vector<Real>{-scale, -scale, REAL(0.0)});          // above
+
+		Vector<Real> rhs{scale, REAL(0.0), scale};
+		Vector<Real> sol = a.Solve(rhs);
+		REQUIRE(sol.size() == 3);
+		// Solution should be [1, 1, 1] for this Laplacian-like system
+		REQUIRE_THAT(sol[0], Catch::Matchers::WithinAbs(REAL(1.0), REAL(1e-3)));
+		REQUIRE_THAT(sol[1], Catch::Matchers::WithinAbs(REAL(1.0), REAL(1e-3)));
+		REQUIRE_THAT(sol[2], Catch::Matchers::WithinAbs(REAL(1.0), REAL(1e-3)));
+	}
 }
 

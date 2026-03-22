@@ -319,7 +319,7 @@ namespace MML
 		/// @param b Matrix to compare with.
 		/// @param eps Maximum allowed element difference.
 		/// @return True if dimensions match and all elements are within tolerance.
-		bool IsEqualTo(const MatrixSym& b, Type eps = Defaults::MatrixIsEqualTolerance) const {
+		bool IsEqualTo(const MatrixSym& b, Real eps = Defaults::MatrixIsEqualTolerance) const {
 			if (_dim != b._dim)
 				return false;
 
@@ -331,7 +331,7 @@ namespace MML
 		}
 
 		/// @brief Static helper for tolerance-based comparison.
-		static bool AreEqual(const MatrixSym& a, const MatrixSym& b, Type eps = Defaults::MatrixIsEqualTolerance) {
+		static bool AreEqual(const MatrixSym& a, const MatrixSym& b, Real eps = Defaults::MatrixIsEqualTolerance) {
 			return a.IsEqualTo(b, eps);
 		}
 
@@ -591,12 +591,6 @@ namespace MML
 			return _data[linearIndex(i, j)];
 		}
 
-		/// @brief Legacy alias for at() (const).
-		Type ElemAt(int i, int j) const { return at(i, j); }
-
-		/// @brief Legacy alias for at() (non-const).
-		Type& ElemAt(int i, int j) { return at(i, j); }
-
 
 		/// /** @name Arithmetic Operators
 
@@ -851,7 +845,7 @@ namespace MML
 			stream.flags(oldFlags);
 		}
 
-		/// @brief Legacy print method.
+		/// @brief Print with explicit width and precision.
 		/// @param stream Output stream.
 		/// @param width Field width.
 		/// @param precision Decimal precision.

@@ -370,9 +370,9 @@ namespace MML::Systems
 			Real d2 = L2 * (M - m2 * c * c);
 
 			// Numerators
-			Real n1 = m2 * L1 * w1 * w1 * s * c + m2 * g * std::sin(th2) * c + m2 * L2 * w2 * w2 * s - M * g * std::sin(th1);
+			Real n1 = -m2 * L1 * w1 * w1 * s * c + m2 * g * std::sin(th2) * c - m2 * L2 * w2 * w2 * s - M * g * std::sin(th1);
 
-			Real n2 = -m2 * L2 * w2 * w2 * s * c + M * (g * std::sin(th1) * c - L1 * w1 * w1 * s - g * std::sin(th2));
+			Real n2 = m2 * L2 * w2 * w2 * s * c + M * (g * std::sin(th1) * c + L1 * w1 * w1 * s - g * std::sin(th2));
 
 			dydt[0] = w1;
 			dydt[1] = w2;

@@ -48,12 +48,12 @@
 /// Matrix3D<double> other(10, 10, 10, 1.0);
 /// auto sum = tensor + other;
 /// // Direct data access for algorithms
-/// double* data = tensor.Data();
-/// int total = tensor.Size();  // = dim1 * dim2 * dim3
+/// double* data = tensor.data();
+/// int total = tensor.size();  // = dim1 * dim2 * dim3
 /// @endcode
 /// @section matrix3d_performance Performance Considerations
 /// - Use bracket notation [i][j][k] for nested loops with good locality
-/// - Use Data() for bulk operations (SIMD, parallel algorithms)
+/// - Use data() for bulk operations (SIMD, parallel algorithms)
 /// - Iterate in k (innermost) → j → i order for cache efficiency
 /// @see Tensor General tensor class (N-dimensional)
 /// @see MatrixNM 2D matrix with similar memory layout
@@ -205,25 +205,25 @@ namespace MML {
 		/// @{ */
 
 		/// @brief Gets the first dimension (depth/number of slices).
-		int Dim1() const { return _dim1; }
+		int dim1() const { return _dim1; }
 
 		/// @brief Gets the second dimension (rows per slice).
-		int Dim2() const { return _dim2; }
+		int dim2() const { return _dim2; }
 
 		/// @brief Gets the third dimension (columns per row).
-		int Dim3() const { return _dim3; }
+		int dim3() const { return _dim3; }
 
 		/// @brief Gets the total number of elements.
-		int Size() const { return _dim1 * _dim2 * _dim3; }
+		int size() const { return _dim1 * _dim2 * _dim3; }
 
 		/// @brief Returns true if the tensor has no elements.
-		bool IsEmpty() const { return _data.empty(); }
+		bool isEmpty() const { return _data.empty(); }
 
 		/// @brief Gets pointer to raw data (for algorithms needing contiguous memory).
-		Type* Data() { return _data.data(); }
+		Type* data() { return _data.data(); }
 
 		/// @brief Gets const pointer to raw data.
-		const Type* Data() const { return _data.data(); }
+		const Type* data() const { return _data.data(); }
 		/// /** @} */
 
 
@@ -405,7 +405,7 @@ namespace MML {
 		Matrix3D& operator+=(const Matrix3D& other) {
 			if (_dim1 != other._dim1 || _dim2 != other._dim2 || _dim3 != other._dim3)
 				throw MatrixDimensionError("Matrix3D dimensions must match for addition");
-			for (int i = 0, n = Size(); i < n; ++i)
+			for (int i = 0, n = size(); i < n; ++i)
 				_data[i] += other._data[i];
 			return *this;
 		}
@@ -416,7 +416,7 @@ namespace MML {
 		Matrix3D& operator-=(const Matrix3D& other) {
 			if (_dim1 != other._dim1 || _dim2 != other._dim2 || _dim3 != other._dim3)
 				throw MatrixDimensionError("Matrix3D dimensions must match for subtraction");
-			for (int i = 0, n = Size(); i < n; ++i)
+			for (int i = 0, n = size(); i < n; ++i)
 				_data[i] -= other._data[i];
 			return *this;
 		}

@@ -898,7 +898,7 @@ namespace MML
 		/// @brief Approximate equality with tolerance
 		/// @param b Matrix to compare with
 		/// @param eps Maximum allowed difference per element
-		bool IsEqualTo(const Matrix& b, Type eps = Defaults::MatrixIsEqualTolerance) const
+		bool IsEqualTo(const Matrix& b, Real eps = Defaults::MatrixIsEqualTolerance) const
 		{
 			if (_rows != b._rows || _cols != b._cols)
 				return false;
@@ -910,7 +910,7 @@ namespace MML
 		}
 		
 		/// @brief Static version of IsEqualTo
-		static bool AreEqual(const Matrix& a, const Matrix& b, Type eps = Defaults::MatrixIsEqualTolerance)
+		static bool AreEqual(const Matrix& a, const Matrix& b, Real eps = Defaults::MatrixIsEqualTolerance)
 		{
 			return a.IsEqualTo(b, eps);
 		}

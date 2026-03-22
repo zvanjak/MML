@@ -138,11 +138,13 @@ namespace MML
 				}
 
 				int numSteps = ballPositions[0].size();
-				file << "NumSteps: " << numSteps << std::endl;
+				int actualFrames = (numSteps + saveEveryNSteps - 1) / saveEveryNSteps;
+				file << "NumSteps: " << actualFrames << std::endl;
 
-				for (int i = 0; i < numSteps; i++)
+				int realStep = 0;
+				for (int i = 0; i < numSteps; i += saveEveryNSteps, realStep++)
 				{
-					file << "Step " << i << " " << i * dT << std::endl;
+					file << "Step " << realStep << " " << i * dT << std::endl;
 					for (int j = 0; j < numBalls; j++)
 					{
 						file << j << " " << ballPositions[j][i].X() << " " << ballPositions[j][i].Y() << " " << ballPositions[j][i].Z() << "\n";

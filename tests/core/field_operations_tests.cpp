@@ -1008,4 +1008,314 @@ namespace MML::Tests::Core::FieldOperationsTests
 		INFO("Field Operations test suite complete");
 		SUCCEED();
 	}
+
+	/*********************************************************************/
+	/*****          DETAILED API TESTS - SCALAR FIELD OPERATIONS     *****/
+	/*********************************************************************/
+
+	TEST_CASE("GradientCartDetailed_MatchesRawMethod", "[field_operations][gradient][cartesian][detailed]")
+	{
+		TEST_PRECISION_INFO();
+
+		QuadraticScalarField f;
+		VectorN<Real, 3> pos{REAL(1.0), REAL(2.0), REAL(3.0)};
+
+		auto raw = ScalarFieldOperations::GradientCart<3>(f, pos);
+		auto result = ScalarFieldOperations::GradientCartDetailed<3>(f, pos);
+
+		REQUIRE(result.IsSuccess());
+		REQUIRE(result.status == AlgorithmStatus::Success);
+		REQUIRE(result.algorithm_name == "GradientCart");
+		REQUIRE(result.elapsed_time_ms >= 0.0);
+		REQUIRE_THAT(result.value[0], WithinRel(raw[0], REAL(1e-12)));
+		REQUIRE_THAT(result.value[1], WithinRel(raw[1], REAL(1e-12)));
+		REQUIRE_THAT(result.value[2], WithinRel(raw[2], REAL(1e-12)));
+	}
+
+	TEST_CASE("GradientCartDetailed_WithErrorEstimate", "[field_operations][gradient][cartesian][detailed]")
+	{
+		TEST_PRECISION_INFO();
+
+		QuadraticScalarField f;
+		VectorN<Real, 3> pos{REAL(1.0), REAL(2.0), REAL(3.0)};
+
+		FieldOperationConfig config;
+		config.estimate_error = true;
+
+		auto result = ScalarFieldOperations::GradientCartDetailed<3>(f, pos, config);
+
+		REQUIRE(result.IsSuccess());
+		// ∇f = (2x, 2y, 2z) = (2, 4, 6)
+		REQUIRE_THAT(result.value[0], WithinRel(REAL(2.0), REAL(1e-8)));
+		REQUIRE_THAT(result.value[1], WithinRel(REAL(4.0), REAL(1e-8)));
+		REQUIRE_THAT(result.value[2], WithinRel(REAL(6.0), REAL(1e-8)));
+		// Error should be small and non-negative
+		REQUIRE(result.error[0] >= 0.0);
+		REQUIRE(result.error[1] >= 0.0);
+		REQUIRE(result.error[2] >= 0.0);
+		REQUIRE(result.error[0] < REAL(1e-5));
+	}
+
+	TEST_CASE("GradientSpherDetailed_MatchesRawMethod", "[field_operations][gradient][spherical][detailed]")
+	{
+		TEST_PRECISION_INFO();
+
+		SphericalRadialField f;
+		Vec3Sph pos{REAL(2.0), REAL(0.8), REAL(1.2)};
+
+		auto raw = ScalarFieldOperations::GradientSpher(f, pos);
+		auto result = ScalarFieldOperations::GradientSpherDetailed(f, pos);
+
+		REQUIRE(result.IsSuccess());
+		REQUIRE(result.algorithm_name == "GradientSpher");
+		REQUIRE_THAT(result.value[0], WithinRel(raw[0], REAL(1e-10)));
+		REQUIRE_THAT(result.value[1], WithinAbs(raw[1], REAL(1e-8)));
+		REQUIRE_THAT(result.value[2], WithinAbs(raw[2], REAL(1e-8)));
+	}
+
+	TEST_CASE("GradientCylDetailed_MatchesRawMethod", "[field_operations][gradient][cylindrical][detailed]")
+	{
+		TEST_PRECISION_INFO();
+
+		CylindricalRadialField f;
+		Vec3Cyl pos{REAL(3.0), REAL(1.0), REAL(2.0)};
+
+		auto raw = ScalarFieldOperations::GradientCyl(f, pos);
+		auto result = ScalarFieldOperations::GradientCylDetailed(f, pos);
+
+		REQUIRE(result.IsSuccess());
+		REQUIRE(result.algorithm_name == "GradientCyl");
+		REQUIRE_THAT(result.value[0], WithinRel(raw[0], REAL(1e-10)));
+		REQUIRE_THAT(result.value[1], WithinAbs(raw[1], REAL(1e-8)));
+		REQUIRE_THAT(result.value[2], WithinAbs(raw[2], REAL(1e-8)));
+	}
+
+	TEST_CASE("LaplacianCartDetailed_MatchesRawMethod", "[field_operations][laplacian][cartesian][detailed]")
+	{
+		TEST_PRECISION_INFO();
+
+		QuadraticScalarField f;
+		VectorN<Real, 3> pos{REAL(1.0), REAL(2.0), REAL(3.0)};
+
+		auto raw = ScalarFieldOperations::LaplacianCart<3>(f, pos);
+		auto result = ScalarFieldOperations::LaplacianCartDetailed<3>(f, pos);
+
+		REQUIRE(result.IsSuccess());
+		REQUIRE(result.algorithm_name == "LaplacianCart");
+		REQUIRE_THAT(result.value, WithinRel(raw, REAL(1e-10)));
+	}
+
+	TEST_CASE("LaplacianCartDetailed_WithErrorEstimate", "[field_operations][laplacian][cartesian][detailed]")
+	{
+		TEST_PRECISION_INFO();
+
+		QuadraticScalarField f;
+		VectorN<Real, 3> pos{REAL(1.0), REAL(2.0), REAL(3.0)};
+
+		FieldOperationConfig config;
+		config.estimate_error = true;
+
+		auto result = ScalarFieldOperations::LaplacianCartDetailed<3>(f, pos, config);
+
+		REQUIRE(result.IsSuccess());
+		// ∇²f = 6
+		REQUIRE_THAT(result.value, WithinRel(REAL(6.0), REAL(1e-6)));
+		// Error should be small (scalar for Laplacian)
+		REQUIRE(result.error >= 0.0);
+		REQUIRE(result.error < REAL(1e-3));
+	}
+
+	TEST_CASE("LaplacianSpherDetailed_MatchesRawMethod", "[field_operations][laplacian][spherical][detailed]")
+	{
+		TEST_PRECISION_INFO();
+
+		SphericalRadialField f;
+		Vec3Sph pos{REAL(2.0), REAL(0.8), REAL(1.2)};
+
+		auto raw = ScalarFieldOperations::LaplacianSpher(f, pos);
+		auto result = ScalarFieldOperations::LaplacianSpherDetailed(f, pos);
+
+		REQUIRE(result.IsSuccess());
+		REQUIRE(result.algorithm_name == "LaplacianSpher");
+		REQUIRE_THAT(result.value, WithinRel(raw, REAL(1e-10)));
+	}
+
+	TEST_CASE("LaplacianCylDetailed_MatchesRawMethod", "[field_operations][laplacian][cylindrical][detailed]")
+	{
+		TEST_PRECISION_INFO();
+
+		CylindricalRadialField f;
+		Vec3Cyl pos{REAL(3.0), REAL(1.5), REAL(2.0)};
+
+		auto raw = ScalarFieldOperations::LaplacianCyl(f, pos);
+		auto result = ScalarFieldOperations::LaplacianCylDetailed(f, pos);
+
+		REQUIRE(result.IsSuccess());
+		REQUIRE(result.algorithm_name == "LaplacianCyl");
+		REQUIRE_THAT(result.value, WithinRel(raw, REAL(1e-10)));
+	}
+
+	/*********************************************************************/
+	/*****          DETAILED API TESTS - VECTOR FIELD OPERATIONS     *****/
+	/*********************************************************************/
+
+	TEST_CASE("DivCartDetailed_MatchesRawMethod", "[field_operations][divergence][cartesian][detailed]")
+	{
+		TEST_PRECISION_INFO();
+
+		RadialVectorField F;
+		VectorN<Real, 3> pos{REAL(1.0), REAL(2.0), REAL(3.0)};
+
+		auto raw = VectorFieldOperations::DivCart<3>(F, pos);
+		auto result = VectorFieldOperations::DivCartDetailed<3>(F, pos);
+
+		REQUIRE(result.IsSuccess());
+		REQUIRE(result.algorithm_name == "DivCart");
+		REQUIRE(result.elapsed_time_ms >= 0.0);
+		REQUIRE_THAT(result.value, WithinRel(raw, REAL(1e-10)));
+	}
+
+	TEST_CASE("DivCartDetailed_WithErrorEstimate", "[field_operations][divergence][cartesian][detailed]")
+	{
+		TEST_PRECISION_INFO();
+
+		SquaredComponentsField F;
+		VectorN<Real, 3> pos{REAL(2.0), REAL(3.0), REAL(4.0)};
+
+		FieldOperationConfig config;
+		config.estimate_error = true;
+
+		auto result = VectorFieldOperations::DivCartDetailed<3>(F, pos, config);
+
+		REQUIRE(result.IsSuccess());
+		// F = (x², y², z²) → ∇·F = 2x + 2y + 2z = 18
+		REQUIRE_THAT(result.value, WithinRel(REAL(18.0), REAL(1e-6)));
+		REQUIRE(result.error >= 0.0);
+		REQUIRE(result.error < REAL(1e-3));
+	}
+
+	TEST_CASE("DivSpherDetailed_MatchesRawMethod", "[field_operations][divergence][spherical][detailed]")
+	{
+		TEST_PRECISION_INFO();
+
+		SphericalRadialVectorField F;
+		Vec3Sph pos{REAL(2.0), REAL(0.8), REAL(1.2)};
+
+		auto raw = VectorFieldOperations::DivSpher(F, pos);
+		auto result = VectorFieldOperations::DivSpherDetailed(F, pos);
+
+		REQUIRE(result.IsSuccess());
+		REQUIRE(result.algorithm_name == "DivSpher");
+		REQUIRE_THAT(result.value, WithinRel(raw, REAL(1e-10)));
+	}
+
+	TEST_CASE("DivCylDetailed_MatchesRawMethod", "[field_operations][divergence][cylindrical][detailed]")
+	{
+		TEST_PRECISION_INFO();
+
+		CylindricalRadialVectorField F;
+		Vec3Cyl pos{REAL(3.0), REAL(1.5), REAL(2.0)};
+
+		auto raw = VectorFieldOperations::DivCyl(F, pos);
+		auto result = VectorFieldOperations::DivCylDetailed(F, pos);
+
+		REQUIRE(result.IsSuccess());
+		REQUIRE(result.algorithm_name == "DivCyl");
+		REQUIRE_THAT(result.value, WithinRel(raw, REAL(1e-10)));
+	}
+
+	TEST_CASE("CurlCartDetailed_MatchesRawMethod", "[field_operations][curl][cartesian][detailed]")
+	{
+		TEST_PRECISION_INFO();
+
+		RotationalVectorField F;
+		VectorN<Real, 3> pos{REAL(2.0), REAL(3.0), REAL(1.0)};
+
+		auto raw = VectorFieldOperations::CurlCart(F, pos);
+		auto result = VectorFieldOperations::CurlCartDetailed(F, pos);
+
+		REQUIRE(result.IsSuccess());
+		REQUIRE(result.algorithm_name == "CurlCart");
+		REQUIRE_THAT(result.value[0], WithinAbs(raw[0], REAL(1e-10)));
+		REQUIRE_THAT(result.value[1], WithinAbs(raw[1], REAL(1e-10)));
+		REQUIRE_THAT(result.value[2], WithinRel(raw[2], REAL(1e-10)));
+	}
+
+	TEST_CASE("CurlCartDetailed_WithErrorEstimate", "[field_operations][curl][cartesian][detailed]")
+	{
+		TEST_PRECISION_INFO();
+
+		RotationalVectorField F;
+		VectorN<Real, 3> pos{REAL(2.0), REAL(3.0), REAL(1.0)};
+
+		FieldOperationConfig config;
+		config.estimate_error = true;
+
+		auto result = VectorFieldOperations::CurlCartDetailed(F, pos, config);
+
+		REQUIRE(result.IsSuccess());
+		// F = (y, -x, 0) → ∇×F = (0, 0, -2)
+		REQUIRE_THAT(result.value[0], WithinAbs(REAL(0.0), REAL(1e-10)));
+		REQUIRE_THAT(result.value[1], WithinAbs(REAL(0.0), REAL(1e-10)));
+		REQUIRE_THAT(result.value[2], WithinRel(REAL(-2.0), REAL(1e-8)));
+		// Per-component error should be small
+		REQUIRE(result.error[0] >= 0.0);
+		REQUIRE(result.error[1] >= 0.0);
+		REQUIRE(result.error[2] >= 0.0);
+	}
+
+	TEST_CASE("CurlSpherDetailed_MatchesRawMethod", "[field_operations][curl][spherical][detailed]")
+	{
+		TEST_PRECISION_INFO();
+
+		SphericalAzimuthalField F;
+		Vec3Sph pos{REAL(2.0), REAL(0.8), REAL(1.2)};
+
+		auto raw = VectorFieldOperations::CurlSpher(F, pos);
+		auto result = VectorFieldOperations::CurlSpherDetailed(F, pos);
+
+		REQUIRE(result.IsSuccess());
+		REQUIRE(result.algorithm_name == "CurlSpher");
+		REQUIRE_THAT(result.value[0], WithinRel(raw[0], REAL(1e-10)));
+		REQUIRE_THAT(result.value[1], WithinRel(raw[1], REAL(1e-10)));
+		REQUIRE_THAT(result.value[2], WithinAbs(raw[2], REAL(1e-8)));
+	}
+
+	TEST_CASE("CurlCylDetailed_MatchesRawMethod", "[field_operations][curl][cylindrical][detailed]")
+	{
+		TEST_PRECISION_INFO();
+
+		CylindricalRotationalField F;
+		Vec3Cyl pos{REAL(2.0), REAL(1.0), REAL(3.0)};
+
+		auto raw = VectorFieldOperations::CurlCyl(F, pos);
+		auto result = VectorFieldOperations::CurlCylDetailed(F, pos);
+
+		REQUIRE(result.IsSuccess());
+		REQUIRE(result.algorithm_name == "CurlCyl");
+		REQUIRE_THAT(result.value[0], WithinAbs(raw[0], REAL(1e-10)));
+		REQUIRE_THAT(result.value[1], WithinAbs(raw[1], REAL(1e-10)));
+		REQUIRE_THAT(result.value[2], WithinRel(raw[2], REAL(1e-10)));
+	}
+
+	TEST_CASE("Detailed_ExceptionPolicy_NoThrow", "[field_operations][detailed][exception_policy]")
+	{
+		TEST_PRECISION_INFO();
+
+		// A singular point for spherical divergence (r=0)
+		SphericalRadialVectorField F;
+		Vec3Sph singular_pos{REAL(0.0), REAL(0.8), REAL(1.2)};
+
+		FieldOperationConfig config;
+		config.exception_policy = EvaluationExceptionPolicy::ConvertToStatus;
+
+		auto result = VectorFieldOperations::DivSpherDetailed(F, singular_pos, config,
+		                                                       Singularity::DEFAULT_POLICY);
+
+		// Should not throw, but status may indicate failure
+		// (the Singularity policy inside DivSpher may still throw,
+		//  which ExecuteFieldDetailed catches and converts to status)
+		// We just verify we don't crash
+		REQUIRE((result.IsSuccess() || !result.error_message.empty()));
+	}
 }

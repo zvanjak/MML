@@ -558,6 +558,31 @@ namespace MML::Tests::Core::LinearAlgSolversTests
 		}
 	}
 
+	TEST_CASE("Test_LUSolverInPlace_SingularMatrix", "[LUSolverInPlace][singular]")
+	{
+		TEST_PRECISION_INFO();
+
+		SECTION("Zero row throws SingularMatrixError")
+		{
+			Matrix<Real> mat({{1.0, 2.0}, {0.0, 0.0}});
+			REQUIRE_THROWS_AS(LUSolverInPlace<Real>(mat), SingularMatrixError);
+		}
+
+		SECTION("Rank-deficient matrix throws SingularMatrixError")
+		{
+			// Rows are linearly dependent: row2 = 2*row1
+			Matrix<Real> mat({{1.0, 2.0}, {2.0, 4.0}});
+			REQUIRE_THROWS_AS(LUSolverInPlace<Real>(mat), SingularMatrixError);
+		}
+
+		SECTION("3x3 singular matrix throws SingularMatrixError")
+		{
+			// Third row is sum of first two
+			Matrix<Real> mat({{1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {1.0, 1.0, 0.0}});
+			REQUIRE_THROWS_AS(LUSolverInPlace<Real>(mat), SingularMatrixError);
+		}
+	}
+
 	TEST_CASE("Test_LUSolverInPlace_MultiRHS", "[LUSolverInPlace][multi-rhs]")
 	{
 			TEST_PRECISION_INFO();
@@ -2209,5 +2234,215 @@ namespace MML::Tests::Core::LinearAlgSolversTests
 		}
 		
 		REQUIRE(max_rel_error < REAL(1e-10));
+	}
+
+	///////////////////////////////////////////////////////////////////////////////////////////
+	//                       DETAILED API TESTS                                               //
+	///////////////////////////////////////////////////////////////////////////////////////////
+
+	TEST_CASE("GaussJordanSolveDetailed - Success", "[LinAlgDirect][Detailed][GaussJordan]") {
+		Matrix<Real> A(3, 3, {2, 1, -1, -3, -1, 2, -2, 1, 2});
+		Vector<Real> b({8, -11, -3});
+
+		auto result = GaussJordanSolveDetailed(A, b);
+
+		REQUIRE(result.IsSuccess());
+		REQUIRE(result.status == AlgorithmStatus::Success);
+		REQUIRE(result.solution.size() == 3);
+		REQUIRE(result.algorithm_name == "GaussJordanSolver");
+		REQUIRE(result.elapsed_time_ms >= 0.0);
+
+		// Verify the solution: Ax = b
+		Vector<Real> residual = A * result.solution - b;
+		REQUIRE(residual.NormL2() < 1e-12);
+	}
+
+	TEST_CASE("GaussJordanSolveDetailed - With Residual", "[LinAlgDirect][Detailed][GaussJordan]") {
+		Matrix<Real> A(3, 3, {2, 1, -1, -3, -1, 2, -2, 1, 2});
+		Vector<Real> b({8, -11, -3});
+
+		LinearSolverConfig config;
+		config.estimate_error = true;
+
+		auto result = GaussJordanSolveDetailed(A, b, config);
+
+		REQUIRE(result.IsSuccess());
+		REQUIRE(result.residual_norm < 1e-12);
+	}
+
+	TEST_CASE("GaussJordanSolveDetailed - Singular Matrix ConvertToStatus", "[LinAlgDirect][Detailed][GaussJordan]") {
+		Matrix<Real> A(3, 3, {1, 2, 3, 4, 5, 6, 7, 8, 9}); // Singular
+		Vector<Real> b({1, 2, 3});
+
+		LinearSolverConfig config;
+		config.exception_policy = EvaluationExceptionPolicy::ConvertToStatus;
+
+		auto result = GaussJordanSolveDetailed(A, b, config);
+
+		REQUIRE_FALSE(result.IsSuccess());
+		REQUIRE(result.status == AlgorithmStatus::SingularMatrix);
+		REQUIRE_FALSE(result.error_message.empty());
+	}
+
+	TEST_CASE("GaussJordanSolveDetailed - Propagate Exception", "[LinAlgDirect][Detailed][GaussJordan]") {
+		Matrix<Real> A(3, 3, {1, 2, 3, 4, 5, 6, 7, 8, 9}); // Singular
+		Vector<Real> b({1, 2, 3});
+
+		LinearSolverConfig config;
+		config.exception_policy = EvaluationExceptionPolicy::Propagate;
+
+		REQUIRE_THROWS_AS(GaussJordanSolveDetailed(A, b, config), SingularMatrixError);
+	}
+
+	TEST_CASE("LUSolveDetailed - Success", "[LinAlgDirect][Detailed][LU]") {
+		Matrix<Real> A(3, 3, {2, 1, -1, -3, -1, 2, -2, 1, 2});
+		Vector<Real> b({8, -11, -3});
+
+		auto result = LUSolveDetailed(A, b);
+
+		REQUIRE(result.IsSuccess());
+		REQUIRE(result.solution.size() == 3);
+		REQUIRE(result.algorithm_name == "LUSolver");
+
+		Vector<Real> residual = A * result.solution - b;
+		REQUIRE(residual.NormL2() < 1e-12);
+	}
+
+	TEST_CASE("LUSolveDetailed - With Residual", "[LinAlgDirect][Detailed][LU]") {
+		Matrix<Real> A(3, 3, {2, 1, -1, -3, -1, 2, -2, 1, 2});
+		Vector<Real> b({8, -11, -3});
+
+		LinearSolverConfig config;
+		config.estimate_error = true;
+
+		auto result = LUSolveDetailed(A, b, config);
+
+		REQUIRE(result.IsSuccess());
+		REQUIRE(result.residual_norm < 1e-12);
+	}
+
+	TEST_CASE("LUSolveDetailed - Singular Matrix ConvertToStatus", "[LinAlgDirect][Detailed][LU]") {
+		Matrix<Real> A(3, 3, {1, 2, 3, 4, 5, 6, 7, 8, 9});
+		Vector<Real> b({1, 2, 3});
+
+		LinearSolverConfig config;
+		config.exception_policy = EvaluationExceptionPolicy::ConvertToStatus;
+
+		auto result = LUSolveDetailed(A, b, config);
+
+		REQUIRE_FALSE(result.IsSuccess());
+		REQUIRE(result.status == AlgorithmStatus::SingularMatrix);
+	}
+
+	TEST_CASE("CholeskySolveDetailed - Success (SPD matrix)", "[LinAlgDirect][Detailed][Cholesky]") {
+		// Construct a symmetric positive-definite matrix: A = L * L^T
+		Matrix<Real> L(3, 3, {2, 0, 0, 1, 3, 0, -1, 2, 4});
+		Matrix<Real> A = L * L.transpose(); // SPD by construction
+
+		Vector<Real> x_exact({1, 2, 3});
+		Vector<Real> b = A * x_exact;
+
+		auto result = CholeskySolveDetailed(A, b);
+
+		REQUIRE(result.IsSuccess());
+		REQUIRE(result.algorithm_name == "CholeskySolver");
+
+		for (int i = 0; i < 3; i++)
+			REQUIRE(std::abs(result.solution[i] - x_exact[i]) < 1e-10);
+	}
+
+	TEST_CASE("CholeskySolveDetailed - With Residual", "[LinAlgDirect][Detailed][Cholesky]") {
+		Matrix<Real> L(3, 3, {2, 0, 0, 1, 3, 0, -1, 2, 4});
+		Matrix<Real> A = L * L.transpose();
+
+		Vector<Real> x_exact({1, 2, 3});
+		Vector<Real> b = A * x_exact;
+
+		LinearSolverConfig config;
+		config.estimate_error = true;
+
+		auto result = CholeskySolveDetailed(A, b, config);
+
+		REQUIRE(result.IsSuccess());
+		REQUIRE(result.residual_norm < 1e-10);
+	}
+
+	TEST_CASE("CholeskySolveDetailed - Not Positive Definite ConvertToStatus", "[LinAlgDirect][Detailed][Cholesky]") {
+		Matrix<Real> A(3, 3, {1, 2, 3, 2, 4, 5, 3, 5, -1}); // Not SPD
+		Vector<Real> b({1, 2, 3});
+
+		LinearSolverConfig config;
+		config.exception_policy = EvaluationExceptionPolicy::ConvertToStatus;
+
+		auto result = CholeskySolveDetailed(A, b, config);
+
+		REQUIRE_FALSE(result.IsSuccess());
+		REQUIRE(result.status == AlgorithmStatus::SingularMatrix);
+	}
+
+	TEST_CASE("BandDiagonalSolveDetailed - Tridiagonal System", "[LinAlgDirect][Detailed][BandDiagonal]") {
+		int n = 10;
+		// Tridiagonal: m1=1 lower, m2=1 upper, data matrix has n rows x (m1+m2+1) cols
+		Matrix<Real> data(n, 3, 0.0);
+		for (int i = 0; i < n; i++) {
+			data[i][1] = 2.0;  // diagonal
+			if (i > 0) data[i][0] = -1.0; // lower
+			if (i < n - 1) data[i][2] = -1.0; // upper
+		}
+		BandDiagonalMatrix A(n, 1, 1, data);
+
+		Vector<Real> x_exact(n);
+		for (int i = 0; i < n; i++)
+			x_exact[i] = std::sin(Constants::PI * (i + 1) / (n + 1));
+
+		Vector<Real> b = A * x_exact;
+
+		auto result = BandDiagonalSolveDetailed(A, b);
+
+		REQUIRE(result.IsSuccess());
+		REQUIRE(result.algorithm_name == "BandDiagonalSolver");
+
+		Real max_err = 0.0;
+		for (int i = 0; i < n; i++)
+			max_err = std::max(max_err, std::abs(result.solution[i] - x_exact[i]));
+		REQUIRE(max_err < 1e-10);
+	}
+
+	TEST_CASE("BandDiagonalSolveDetailed - With Residual", "[LinAlgDirect][Detailed][BandDiagonal]") {
+		int n = 10;
+		Matrix<Real> data(n, 3, 0.0);
+		for (int i = 0; i < n; i++) {
+			data[i][1] = 2.0;
+			if (i > 0) data[i][0] = -1.0;
+			if (i < n - 1) data[i][2] = -1.0;
+		}
+		BandDiagonalMatrix A(n, 1, 1, data);
+
+		Vector<Real> x_exact(n);
+		for (int i = 0; i < n; i++)
+			x_exact[i] = static_cast<Real>(i + 1);
+
+		Vector<Real> b = A * x_exact;
+
+		LinearSolverConfig config;
+		config.estimate_error = true;
+
+		auto result = BandDiagonalSolveDetailed(A, b, config);
+
+		REQUIRE(result.IsSuccess());
+		REQUIRE(result.residual_norm < 1e-10);
+	}
+
+	TEST_CASE("SolveDetailed - Dimension Mismatch ConvertToStatus", "[LinAlgDirect][Detailed]") {
+		Matrix<Real> A(3, 3, {1, 0, 0, 0, 1, 0, 0, 0, 1});
+		Vector<Real> b({1, 2}); // Wrong size
+
+		LinearSolverConfig config;
+		config.exception_policy = EvaluationExceptionPolicy::ConvertToStatus;
+
+		auto result = GaussJordanSolveDetailed(A, b, config);
+
+		REQUIRE_FALSE(result.IsSuccess());
+		REQUIRE(result.status == AlgorithmStatus::InvalidInput);
 	}
 }

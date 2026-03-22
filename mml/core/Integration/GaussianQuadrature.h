@@ -545,6 +545,22 @@ namespace MML
 		return IntegrationResult(value, 0.0, 1, true);
 	}
 
+	/// @brief Detailed variant with AlgorithmStatus, timing, and diagnostics
+	static IntegrationDetailedResult IntegrateGaussLegendreDetailed(const IRealFunction& func, 
+	                                                                 Real a, Real b, int n = 20,
+	                                                                 const IntegrationConfig& config = IntegrationConfig())
+	{
+		return IntegrationDetail::ExecuteIntegrationDetailed<IntegrationDetailedResult>(
+			"GaussLegendre", config, [&](IntegrationDetailedResult& r) {
+				auto rule = GaussLegendreRule(n, a, b);
+				r.value = IntegrateWithRule(func, rule);
+				r.error_estimate = 0.0;
+				r.iterations = 1;
+				r.converged = true;
+				r.function_evaluations = n;
+			});
+	}
+
 	/**
 	 * @brief Integrate f(x)·x^α·e^(-x) on [0,∞) using n-point Gauss-Laguerre
 	 *
@@ -564,6 +580,22 @@ namespace MML
 		return IntegrationResult(value, 0.0, 1, true);
 	}
 
+	/// @brief Detailed variant with AlgorithmStatus, timing, and diagnostics
+	static IntegrationDetailedResult IntegrateGaussLaguerreDetailed(const IRealFunction& func, 
+	                                                                 int n = 20, Real alpha = 0.0,
+	                                                                 const IntegrationConfig& config = IntegrationConfig())
+	{
+		return IntegrationDetail::ExecuteIntegrationDetailed<IntegrationDetailedResult>(
+			"GaussLaguerre", config, [&](IntegrationDetailedResult& r) {
+				auto rule = GaussLaguerreRule(n, alpha);
+				r.value = IntegrateWithRule(func, rule);
+				r.error_estimate = 0.0;
+				r.iterations = 1;
+				r.converged = true;
+				r.function_evaluations = n;
+			});
+	}
+
 	/**
 	 * @brief Integrate f(x)·e^(-x²) on (-∞,∞) using n-point Gauss-Hermite
 	 *
@@ -579,6 +611,22 @@ namespace MML
 		auto rule = GaussHermiteRule(n);
 		Real value = IntegrateWithRule(func, rule);
 		return IntegrationResult(value, 0.0, 1, true);
+	}
+
+	/// @brief Detailed variant with AlgorithmStatus, timing, and diagnostics
+	static IntegrationDetailedResult IntegrateGaussHermiteDetailed(const IRealFunction& func, 
+	                                                                int n = 20,
+	                                                                const IntegrationConfig& config = IntegrationConfig())
+	{
+		return IntegrationDetail::ExecuteIntegrationDetailed<IntegrationDetailedResult>(
+			"GaussHermite", config, [&](IntegrationDetailedResult& r) {
+				auto rule = GaussHermiteRule(n);
+				r.value = IntegrateWithRule(func, rule);
+				r.error_estimate = 0.0;
+				r.iterations = 1;
+				r.converged = true;
+				r.function_evaluations = n;
+			});
 	}
 
 	/**
@@ -606,6 +654,22 @@ namespace MML
 		return IntegrationResult(value, 0.0, 1, true);
 	}
 
+	/// @brief Detailed variant with AlgorithmStatus, timing, and diagnostics
+	static IntegrationDetailedResult IntegrateGaussJacobiDetailed(const IRealFunction& func, 
+	                                                               Real alpha, Real beta, int n = 20,
+	                                                               const IntegrationConfig& config = IntegrationConfig())
+	{
+		return IntegrationDetail::ExecuteIntegrationDetailed<IntegrationDetailedResult>(
+			"GaussJacobi", config, [&](IntegrationDetailedResult& r) {
+				auto rule = GaussJacobiRule(n, alpha, beta);
+				r.value = IntegrateWithRule(func, rule);
+				r.error_estimate = 0.0;
+				r.iterations = 1;
+				r.converged = true;
+				r.function_evaluations = n;
+			});
+	}
+
 	/**
 	 * @brief Integrate f(x)/√(1-x²) on [-1,1] using n-point Gauss-Chebyshev (first kind)
 	 *
@@ -625,6 +689,22 @@ namespace MML
 		return IntegrationResult(value, 0.0, 1, true);
 	}
 
+	/// @brief Detailed variant with AlgorithmStatus, timing, and diagnostics
+	static IntegrationDetailedResult IntegrateGaussChebyshev1Detailed(const IRealFunction& func, 
+	                                                                   int n = 20,
+	                                                                   const IntegrationConfig& config = IntegrationConfig())
+	{
+		return IntegrationDetail::ExecuteIntegrationDetailed<IntegrationDetailedResult>(
+			"GaussChebyshev1", config, [&](IntegrationDetailedResult& r) {
+				auto rule = GaussChebyshev1Rule(n);
+				r.value = IntegrateWithRule(func, rule);
+				r.error_estimate = 0.0;
+				r.iterations = 1;
+				r.converged = true;
+				r.function_evaluations = n;
+			});
+	}
+
 	/**
 	 * @brief Integrate f(x)·√(1-x²) on [-1,1] using n-point Gauss-Chebyshev (second kind)
 	 *
@@ -642,6 +722,22 @@ namespace MML
 		auto rule = GaussChebyshev2Rule(n);
 		Real value = IntegrateWithRule(func, rule);
 		return IntegrationResult(value, 0.0, 1, true);
+	}
+
+	/// @brief Detailed variant with AlgorithmStatus, timing, and diagnostics
+	static IntegrationDetailedResult IntegrateGaussChebyshev2Detailed(const IRealFunction& func, 
+	                                                                   int n = 20,
+	                                                                   const IntegrationConfig& config = IntegrationConfig())
+	{
+		return IntegrationDetail::ExecuteIntegrationDetailed<IntegrationDetailedResult>(
+			"GaussChebyshev2", config, [&](IntegrationDetailedResult& r) {
+				auto rule = GaussChebyshev2Rule(n);
+				r.value = IntegrateWithRule(func, rule);
+				r.error_estimate = 0.0;
+				r.iterations = 1;
+				r.converged = true;
+				r.function_evaluations = n;
+			});
 	}
 
 } // namespace MML

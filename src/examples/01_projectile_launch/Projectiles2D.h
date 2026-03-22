@@ -31,10 +31,10 @@
 #include "interfaces/IODESystem.h"
 #include "interfaces/IODESystemWithEvents.h"
 #include "base/InterpolatedFunction.h"
-#include "mml/algorithms/ODESolvers/ODEAdaptiveIntegrator.h"
-#include "mml/algorithms/ODESolvers/ODEEventDetectionIntegrator.h"
-#include "mml/algorithms/ODESolvers/ODEFixedStepIntegrators.h"
-#include "mml/algorithms/ODESolvers/ODESystemStepCalculators.h"
+#include "mml/algorithms/ODESolvers/ODESolverAdaptive.h"
+#include "mml/algorithms/ODESolvers/ODESolverEventDetection.h"
+#include "mml/algorithms/ODESolvers/ODESolverFixedStep.h"
+#include "mml/algorithms/ODESolvers/ODEStepCalculators.h"
 
 namespace Projectile
 {
@@ -400,7 +400,7 @@ namespace Projectile
         {
             Real g = 9.81;
             #include "interfaces/IODESystemWithEvents.h"
-            #include "mml/algorithms/ODESolvers/ODEEventDetectionIntegrator.h"
+            #include "mml/algorithms/ODESolvers/ODESolverEventDetection.h"
             Real v0y = velocity * sin(angle);
             return (v0y + sqrt(v0y * v0y + 2 * g * initHeight)) / g;
         }

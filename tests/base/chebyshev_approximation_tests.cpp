@@ -627,7 +627,7 @@ namespace MML::Tests::Base::ChebyshevTests
         auto f = [](Real x) { return x*x; };
         ChebyshevApproximation approx(f, -REAL(2.0), REAL(3.0), 15);
 
-        REQUIRE(approx.Degree() == 14);
+        REQUIRE(approx.degree() == 14);
         REQUIRE(approx.NumCoefficients() == 15);
         REQUIRE(approx.NumTerms() == 15);
         REQUIRE_THAT(approx.DomainMin(), WithinAbs(-REAL(2.0), REAL(1e-14)));

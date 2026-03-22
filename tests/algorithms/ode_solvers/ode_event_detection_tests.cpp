@@ -13,7 +13,7 @@
 #include "MML.h"
 #else
 #include "base/ODESystem.h"
-#include "mml/algorithms/ODESolvers/ODEEventDetectionIntegrator.h"
+#include "mml/algorithms/ODESolvers/ODESolverEventDetection.h"
 #endif
 
 using Catch::Matchers::WithinAbs;

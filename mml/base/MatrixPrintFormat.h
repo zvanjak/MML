@@ -25,26 +25,27 @@ namespace MML
     bool showBrackets = true;     // Show [ ] brackets around rows
     bool compactMode = false;     // Single line for small matrices
     std::string delimiter = ", "; // Delimiter between elements
+    double zeroThreshold = 0.0;   // Values with |value| <= threshold shown as 0
 
     // Predefined formats
     static MatrixPrintFormat Default() {
-      return MatrixPrintFormat{10, 3, false, true, true, true, false, ", "};
+      return MatrixPrintFormat{10, 3, false, true, true, true, false, ", ", 0.0};
     }
 
     static MatrixPrintFormat Compact() {
-      return MatrixPrintFormat{8, 2, false, true, false, true, true, ", "};
+      return MatrixPrintFormat{8, 2, false, true, false, true, true, ", ", 0.0};
     }
 
     static MatrixPrintFormat Scientific() {
-      return MatrixPrintFormat{12, 6, true, false, true, true, false, ", "};
+      return MatrixPrintFormat{12, 6, true, false, true, true, false, ", ", 0.0};
     }
 
     static MatrixPrintFormat HighPrecision() {
-      return MatrixPrintFormat{15, 10, false, true, true, true, false, ", "};
+      return MatrixPrintFormat{15, 10, false, true, true, true, false, ", ", 0.0};
     }
 
     static MatrixPrintFormat NoDelimiter() {
-      return MatrixPrintFormat{10, 3, false, true, true, true, false, " "};
+      return MatrixPrintFormat{10, 3, false, true, true, true, false, " ", 0.0};
     }
   };
 

@@ -11,6 +11,7 @@
 #define MML_CONFIDENCE_INTERVALS_H
 
 #include "algorithms/Statistics.h"
+#include "algorithms/Statistics/StatisticsBase.h"
 
 #include "Distributions.h"
 
@@ -235,6 +236,98 @@ namespace MML {
 
 			// Use standard mean CI on differences
 			return ConfidenceIntervalMean(differences, confidenceLevel);
+		}
+
+		/******************************************************************************/
+		/*****             Confidence Interval Detailed API                      *****/
+		/******************************************************************************/
+
+		namespace ConfidenceDetail
+		{
+			/// Populate ConfidenceIntervalDetailedResult from ConfidenceInterval
+			inline void PopulateFromSimple(ConfidenceIntervalDetailedResult& out, const ConfidenceInterval& ci)
+			{
+				out.estimate        = ci.estimate;
+				out.lowerBound      = ci.lowerBound;
+				out.upperBound      = ci.upperBound;
+				out.marginOfError   = ci.marginOfError;
+				out.confidenceLevel = ci.confidenceLevel;
+				out.parameter       = ci.parameter;
+			}
+		} // namespace ConfidenceDetail
+
+		/// Detailed variant of ConfidenceIntervalMean
+		inline ConfidenceIntervalDetailedResult ConfidenceIntervalMeanDetailed(
+			const Vector<Real>& sample,
+			Real confidenceLevel = 0.95,
+			const StatisticsConfig& config = {})
+		{
+			return StatisticsDetail::ExecuteStatisticsDetailed<ConfidenceIntervalDetailedResult>(
+				"ConfidenceIntervalMean", config,
+				[&](ConfidenceIntervalDetailedResult& r) {
+					auto simple = ConfidenceIntervalMean(sample, confidenceLevel);
+					ConfidenceDetail::PopulateFromSimple(r, simple);
+				});
+		}
+
+		/// Detailed variant of ConfidenceIntervalMeanDifference
+		inline ConfidenceIntervalDetailedResult ConfidenceIntervalMeanDifferenceDetailed(
+			const Vector<Real>& sample1,
+			const Vector<Real>& sample2,
+			Real confidenceLevel = 0.95,
+			const StatisticsConfig& config = {})
+		{
+			return StatisticsDetail::ExecuteStatisticsDetailed<ConfidenceIntervalDetailedResult>(
+				"ConfidenceIntervalMeanDifference", config,
+				[&](ConfidenceIntervalDetailedResult& r) {
+					auto simple = ConfidenceIntervalMeanDifference(sample1, sample2, confidenceLevel);
+					ConfidenceDetail::PopulateFromSimple(r, simple);
+				});
+		}
+
+		/// Detailed variant of ConfidenceIntervalProportion
+		inline ConfidenceIntervalDetailedResult ConfidenceIntervalProportionDetailed(
+			int successes,
+			int trials,
+			Real confidenceLevel = 0.95,
+			const StatisticsConfig& config = {})
+		{
+			return StatisticsDetail::ExecuteStatisticsDetailed<ConfidenceIntervalDetailedResult>(
+				"ConfidenceIntervalProportion", config,
+				[&](ConfidenceIntervalDetailedResult& r) {
+					auto simple = ConfidenceIntervalProportion(successes, trials, confidenceLevel);
+					ConfidenceDetail::PopulateFromSimple(r, simple);
+				});
+		}
+
+		/// Detailed variant of ConfidenceIntervalProportionDifference
+		inline ConfidenceIntervalDetailedResult ConfidenceIntervalProportionDifferenceDetailed(
+			int successes1, int trials1,
+			int successes2, int trials2,
+			Real confidenceLevel = 0.95,
+			const StatisticsConfig& config = {})
+		{
+			return StatisticsDetail::ExecuteStatisticsDetailed<ConfidenceIntervalDetailedResult>(
+				"ConfidenceIntervalProportionDifference", config,
+				[&](ConfidenceIntervalDetailedResult& r) {
+					auto simple = ConfidenceIntervalProportionDifference(successes1, trials1, successes2, trials2, confidenceLevel);
+					ConfidenceDetail::PopulateFromSimple(r, simple);
+				});
+		}
+
+		/// Detailed variant of ConfidenceIntervalPairedDifference
+		inline ConfidenceIntervalDetailedResult ConfidenceIntervalPairedDifferenceDetailed(
+			const Vector<Real>& before,
+			const Vector<Real>& after,
+			Real confidenceLevel = 0.95,
+			const StatisticsConfig& config = {})
+		{
+			return StatisticsDetail::ExecuteStatisticsDetailed<ConfidenceIntervalDetailedResult>(
+				"ConfidenceIntervalPairedDifference", config,
+				[&](ConfidenceIntervalDetailedResult& r) {
+					auto simple = ConfidenceIntervalPairedDifference(before, after, confidenceLevel);
+					ConfidenceDetail::PopulateFromSimple(r, simple);
+				});
 		}
 
 	} // namespace Statistics

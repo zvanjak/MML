@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////////////////
 ///                         MinimalMathLibrary (MML)                                  ///
 ///                                                                                   ///
-///  File:        ODESystemStepCalculators.h                                          ///
+///  File:        ODEStepCalculators.h                                          ///
 ///  Description: ODE step calculators (Euler, RK4, RK5, Cash-Karp, Dormand-Prince)   ///
 ///               Single-step methods for ODE integration                             ///
 ///                                                                                   ///
@@ -34,8 +34,8 @@
 ///  License:     MIT License (see LICENSE.md)                                         ///
 ///                                                                                   ///
 ///////////////////////////////////////////////////////////////////////////////////////////
-#if !defined MML_ODE_SYSTEM_STEP_CALCULATORS_H
-#define MML_ODE_SYSTEM_STEP_CALCULATORS_H
+#if !defined MML_ODE_STEP_CALCULATORS_H
+#define MML_ODE_STEP_CALCULATORS_H
 
 #include "mml/MMLBase.h"
 
@@ -49,7 +49,7 @@
 // NOTE: These calculators are stateless single-step implementations used by
 // `ODESystemFixedStepSolver` for fixed-step integration.
 // RK coefficients are centralized in ODERKCoefficients.h for consistency
-// with the adaptive steppers in ODESystemSteppers.h.
+// with the adaptive steppers in ODESteppers.h.
 
 namespace MML {
 	// For a given IODESystem of dimension n, and given initial values for the variables x_start[0..n-1]
@@ -505,4 +505,4 @@ namespace MML {
 	};
 } // namespace MML
 
-#endif // MML_ODE_SYSTEM_STEP_CALCULATORS_H
+#endif // MML_ODE_STEP_CALCULATORS_H

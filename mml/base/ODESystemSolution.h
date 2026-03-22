@@ -30,6 +30,7 @@ namespace MML
 
 		int  _sysDim;
 		int  _totalSavedSteps;
+		int  _count;  // actual number of data points stored (vs capacity)
 	
 		Real _t1, _t2;
 		Vector<Real> _tval;
@@ -53,7 +54,7 @@ namespace MML
 		/// @param maxSteps Initial storage capacity
 		ODESystemSolution(Real x1, Real x2, int dim, int maxSteps)
 			: _t1(x1), _t2(x2), _sysDim(dim),
-				_numStepsOK(0), _numStepsBad(0), _totalSavedSteps(maxSteps + 1)
+				_numStepsOK(0), _numStepsBad(0), _totalSavedSteps(maxSteps + 1), _count(0)
 		{
 			_tval.Resize(_totalSavedSteps);
 			_xval.Resize(dim, _totalSavedSteps);
@@ -84,12 +85,12 @@ namespace MML
 		/// @brief Get current storage capacity
 		int getTotalSavedSteps() const { return _totalSavedSteps; }
 		/// @brief Get number of saved solution intervals
-		int getNumSteps() const { return _totalSavedSteps - 1; }  // Number of intervals
+		int getNumSteps() const { return _count > 0 ? _count - 1 : 0; }  // Number of intervals
 		
 		/// @brief Check if solution is empty (no points saved)
-		bool isEmpty() const { return _totalSavedSteps == 0; }
+		bool isEmpty() const { return _count == 0; }
 		/// @brief Get number of saved solution points
-		int size() const { return _totalSavedSteps; }
+		int size() const { return _count; }
 		/// @brief Get current storage capacity
 		int capacity() const { return _totalSavedSteps; }
 		
@@ -112,7 +113,7 @@ namespace MML
 		/// @param ind Index of saved point
 		/// @throws IndexError if index is invalid
 		Real getTValue(int ind) const { 
-			if (ind < 0 || ind >= _totalSavedSteps)
+			if (ind < 0 || ind >= _count)
 				throw IndexError("Index out of range in ODESystemSolution::getTValue");
 			return _tval[ind]; 
 		}
@@ -122,7 +123,7 @@ namespace MML
 		/// @param component Component index (0 to dim-1)
 		/// @throws IndexError if indices are invalid
 		Real getXValue(int ind, int component) const { 
-			if (ind < 0 || ind >= _totalSavedSteps)
+			if (ind < 0 || ind >= _count)
 				throw IndexError("Index out of range in ODESystemSolution::getXValue(ind)");
 			if (component < 0 || component >= _sysDim)
 				throw IndexError("Component out of range in ODESystemSolution::getXValue(component)");
@@ -144,9 +145,11 @@ namespace MML
 		/// @return Vector of all components at last time point
 		Vector<Real> getXValuesAtEnd() const
 		{
+			if (_count == 0)
+				throw IndexError("No data in ODESystemSolution::getXValuesAtEnd");
 			Vector<Real> res(_sysDim);
 			for (int i = 0; i < _sysDim; i++)
-				res[i] = _xval[i][_totalSavedSteps - 1];
+				res[i] = _xval[i][_count - 1];
 			return res;
 		}
 
@@ -163,6 +166,7 @@ namespace MML
 				ExtendSavedSteps();
 
 			_tval[ind] = x;
+			if (ind + 1 > _count) _count = ind + 1;
 		}
 		/// @brief Set state value for specific component at specified index
 		/// @param ind Index where to store value
@@ -181,6 +185,7 @@ namespace MML
 				ExtendSavedSteps();
 
 			_xval[component][ind] = x;
+			if (ind + 1 > _count) _count = ind + 1;
 		}
 
 		/// @brief Store time and state vector at specified index
@@ -203,6 +208,7 @@ namespace MML
 			_tval[ind] = x;
 			for (int i = 0; i < _sysDim; i++)
 				_xval[i][ind] = y[i];
+			if (ind + 1 > _count) _count = ind + 1;
 		}
 		/// @brief Trim storage to actual number of saved steps
 		/// @param numDoneSteps Number of steps actually completed
@@ -210,6 +216,7 @@ namespace MML
 		void setFinalSize(int numDoneSteps)
 		{
 			_totalSavedSteps = numDoneSteps + 1;
+			_count = numDoneSteps + 1;
 
 			_tval.Resize(_totalSavedSteps, true);
 			_xval.Resize(_sysDim, _totalSavedSteps, true);
@@ -253,8 +260,8 @@ namespace MML
 		/// @return Spline-interpolated parametric curve in 2D
 		SplineInterpParametricCurve<2> getSolAsParamCurve2D(int ind1, int ind2) const
 		{
-			Matrix<Real> curve_points(_totalSavedSteps, 2);
-			for (int i = 0; i < _totalSavedSteps; i++)
+			Matrix<Real> curve_points(_count, 2);
+			for (int i = 0; i < _count; i++)
 			{
 				curve_points(i, 0) = _xval[ind1][i];
 				curve_points(i, 1) = _xval[ind2][i];
@@ -269,8 +276,8 @@ namespace MML
 		/// @return Spline-interpolated parametric curve in 3D
 		SplineInterpParametricCurve<3> getSolAsParamCurve3D(int ind1, int ind2, int ind3) const
 		{
-			Matrix<Real> curve_points(_totalSavedSteps, 3);
-			for (int i = 0; i < _totalSavedSteps; i++)
+			Matrix<Real> curve_points(_count, 3);
+			for (int i = 0; i < _count; i++)
 			{
 				curve_points(i, 0) = _xval[ind1][i];
 				curve_points(i, 1) = _xval[ind2][i];

@@ -205,7 +205,7 @@ namespace MML::Tests::Algorithms::MatrixAlgTests
 			TEST_PRECISION_INFO();
 		auto sys = TestBeds::diag_dominant_4x4();
 		
-		int rank = Rank(sys._mat);
+		int rank = RankGaussian(sys._mat);
 		REQUIRE(rank == 4);
 	}
 	
@@ -219,7 +219,7 @@ namespace MML::Tests::Algorithms::MatrixAlgTests
 			REAL(3.0), REAL(6.0), REAL(9.0)    // Row 3 = 3 * Row 1
 		}};
 		
-		int rank = Rank(A);
+		int rank = RankGaussian(A);
 		REQUIRE(rank == 1);
 	}
 	

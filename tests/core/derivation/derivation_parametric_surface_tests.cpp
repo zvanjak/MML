@@ -308,11 +308,13 @@ namespace MML::Tests::Core::DerivationParametricSurfaceTests
         
         // For plane z = x + 2y, all second derivatives are zero
         // Analytical: r_uw = (0, 0, 0)
+        // Tolerance 1e-6: numerical mixed partial (2nd-order central difference)
+        // precision is limited by floating-point roundoff ~ eps*|f|/h²
         VectorN<Real, 3> r_uw = NDer2_uw(plane, u, w);
         
-        REQUIRE_THAT(r_uw[0], WithinAbs(REAL(0.0), REAL(1e-9)));
-        REQUIRE_THAT(r_uw[1], WithinAbs(REAL(0.0), REAL(1e-9)));
-        REQUIRE_THAT(r_uw[2], WithinAbs(REAL(0.0), REAL(1e-9)));
+        REQUIRE_THAT(r_uw[0], WithinAbs(REAL(0.0), REAL(1e-6)));
+        REQUIRE_THAT(r_uw[1], WithinAbs(REAL(0.0), REAL(1e-6)));
+        REQUIRE_THAT(r_uw[2], WithinAbs(REAL(0.0), REAL(1e-6)));
     }
     
     TEST_CASE("MixedProductSurface - Mixed Derivative (Critical Test!)", "[parametric_surface][nder2_uw][critical]")
@@ -347,11 +349,12 @@ namespace MML::Tests::Core::DerivationParametricSurfaceTests
         
         // Analytical: r(u,w) = (u, w, u² + w²)
         // r_uw = (0, 0, 0)
+        // Tolerance 1e-6: numerical mixed partial precision limited by roundoff
         VectorN<Real, 3> r_uw = NDer2_uw(paraboloid, u, w);
         
-        REQUIRE_THAT(r_uw[0], WithinAbs(REAL(0.0), REAL(1e-9)));
-        REQUIRE_THAT(r_uw[1], WithinAbs(REAL(0.0), REAL(1e-9)));
-        REQUIRE_THAT(r_uw[2], WithinAbs(REAL(0.0), REAL(1e-9)));
+        REQUIRE_THAT(r_uw[0], WithinAbs(REAL(0.0), REAL(1e-6)));
+        REQUIRE_THAT(r_uw[1], WithinAbs(REAL(0.0), REAL(1e-6)));
+        REQUIRE_THAT(r_uw[2], WithinAbs(REAL(0.0), REAL(1e-6)));
     }
     
     TEST_CASE("HyperbolicParaboloid - Mixed Derivative (Should Be Zero)", "[parametric_surface][nder2_uw][critical]")

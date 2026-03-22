@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////////////////
 ///                         MinimalMathLibrary (MML)                                  ///
 ///                                                                                   ///
-///  File:        ODEAdaptiveIntegrator.h                                             ///
+///  File:        ODESolverAdaptive.h                                             ///
 ///  Description: Production-ready adaptive ODE integration with dense output        ///
 ///               Features: FSAL optimization, Hermite interpolation, diagnostics    ///
 ///                                                                                   ///
@@ -9,14 +9,16 @@
 ///  License:     MIT License (see LICENSE.md)                   ///
 ///                                                                                   ///
 ///////////////////////////////////////////////////////////////////////////////////////////
-#if !defined MML_ODE_ADAPTIVE_INTEGRATOR_H
-#define MML_ODE_ADAPTIVE_INTEGRATOR_H
+#if !defined MML_ODE_SOLVER_ADAPTIVE_H
+#define MML_ODE_SOLVER_ADAPTIVE_H
 
 #include "mml/MMLBase.h"
 #include "mml/core/AlgorithmTypes.h"
 #include "mml/interfaces/IODESystem.h"
 #include "mml/base/ODESystemSolution.h"
-#include "mml/algorithms/ODESolvers/ODESystemSteppers.h"
+#include "mml/algorithms/ODESolvers/ODESteppers.h"
+
+#include <optional>
 
 namespace MML {
 
@@ -398,6 +400,91 @@ namespace MML {
 	using BulirschStoerRationalIntegrator = ODEAdaptiveIntegrator<BulirschStoerRational_Stepper>;
 	using BulirschStoerBulirschSeqIntegrator = ODEAdaptiveIntegrator<BulirschStoerRational_Stepper>; // Alias with clearer name
 
+
+	///////////////////////////////////////////////////////////////////////////////////////////
+	// ODEAdaptiveConfig - Configuration for adaptive ODE detailed APIs
+	///////////////////////////////////////////////////////////////////////////////////////////
+	struct ODEAdaptiveConfig : public EvaluationConfigBase {
+		/// Embedded integrator configuration (step sizes, tolerance, etc.)
+		ODEIntegratorConfig integrator;
+	};
+
+	///////////////////////////////////////////////////////////////////////////////////////////
+	// ODEAdaptiveResult - Result type for adaptive ODE detailed APIs
+	///////////////////////////////////////////////////////////////////////////////////////////
+	struct ODEAdaptiveResult : public EvaluationResultBase {
+		std::optional<ODESystemSolution> solution;
+
+		int accepted_steps = 0;
+		int rejected_steps = 0;
+		int total_func_evals = 0;
+		Real min_step_size = 0.0;
+		Real max_step_size = 0.0;
+	};
+
+	///////////////////////////////////////////////////////////////////////////////////////////
+	// ODEAdaptiveDetail - Internal helpers for Detailed API execution
+	///////////////////////////////////////////////////////////////////////////////////////////
+	namespace ODEAdaptiveDetail
+	{
+		template<typename ResultType, typename ComputeFn>
+		ResultType ExecuteODEAdaptiveDetailed(const char* algorithm_name,
+		                                      const EvaluationConfigBase& config,
+		                                      ComputeFn&& compute)
+		{
+			auto execute = [&]() {
+				AlgorithmTimer timer;
+				ResultType result = MakeEvaluationSuccessResult<ResultType>(algorithm_name);
+				compute(result);
+				result.elapsed_time_ms = timer.elapsed_ms();
+				return result;
+			};
+
+			if (config.exception_policy == EvaluationExceptionPolicy::Propagate)
+				return execute();
+
+			try {
+				return execute();
+			}
+			catch (const ODESolverError& ex) {
+				return MakeEvaluationFailureResult<ResultType>(
+					AlgorithmStatus::NumericalInstability, ex.what(), algorithm_name);
+			}
+			catch (const std::exception& ex) {
+				return MakeEvaluationFailureResult<ResultType>(
+					AlgorithmStatus::AlgorithmSpecificFailure, ex.what(), algorithm_name);
+			}
+		}
+	} // namespace ODEAdaptiveDetail
+
+	///////////////////////////////////////////////////////////////////////////////////////////
+	// Detailed free function API
+	///////////////////////////////////////////////////////////////////////////////////////////
+
+	/// Adaptive ODE integration with full instrumentation.
+	/// Returns ODEAdaptiveResult with solution, step statistics, timing, and AlgorithmStatus.
+	template<typename Stepper = DormandPrince5_Stepper>
+	ODEAdaptiveResult ODEAdaptiveIntegrateDetailed(
+		const IODESystem& sys,
+		const Vector<Real>& x0, Real t0, Real tEnd,
+		const ODEAdaptiveConfig& config = {})
+	{
+		return ODEAdaptiveDetail::ExecuteODEAdaptiveDetailed<ODEAdaptiveResult>(
+			"ODEAdaptiveIntegrator", config,
+			[&](ODEAdaptiveResult& result) {
+				ODEAdaptiveIntegrator<Stepper> integrator(sys);
+				result.solution = integrator.integrate(x0, t0, tEnd, config.integrator);
+
+				const auto& stats = integrator.getStatistics();
+				result.accepted_steps   = stats.acceptedSteps;
+				result.rejected_steps   = stats.rejectedSteps;
+				result.total_func_evals = stats.totalFuncEvals;
+				result.min_step_size    = stats.minStepSize;
+				result.max_step_size    = stats.maxStepSize;
+				result.function_evaluations = stats.totalFuncEvals;
+			});
+	}
+
 } // namespace MML
 
-#endif // MML_ODE_ADAPTIVE_INTEGRATOR_H
+#endif // MML_ODE_SOLVER_ADAPTIVE_H

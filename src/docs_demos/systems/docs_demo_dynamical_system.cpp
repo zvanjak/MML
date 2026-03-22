@@ -5,9 +5,9 @@
 
 #include "systems/DynamicalSystem.h"
 
-#include "algorithms/ODESolvers/ODEAdaptiveIntegrator.h"
-#include "algorithms/ODESolvers/ODEFixedStepIntegrators.h"
-#include "algorithms/ODESolvers/ODESystemStepCalculators.h"
+#include "algorithms/ODESolvers/ODESolverAdaptive.h"
+#include "algorithms/ODESolvers/ODESolverFixedStep.h"
+#include "algorithms/ODESolvers/ODEStepCalculators.h"
 #endif
 
 #include <set>
@@ -334,7 +334,7 @@ void Docs_Demo_DynamicalSystem_LogisticMap()
 	// Lyapunov exponent for chaotic case
 	std::cout << "\n--- Lyapunov Exponent ---\n";
 	LogisticMap logistic4(4.0);
-	auto lyap = DiscreteMapLyapunov<1>::compute(logistic4, Vector<Real>({0.3}), 10000, 1000);
+	auto lyap = DiscreteMapLyapunov<1>::Compute(logistic4, Vector<Real>({0.3}), 10000, 1000);
 	
 	std::cout << "r = 4.0: λ = " << std::setprecision(6) << lyap.maxExponent << "\n";
 	std::cout << "Analytical: λ = log(2) = " << std::log(2.0) << "\n";
@@ -377,7 +377,7 @@ void Docs_Demo_DynamicalSystem_HenonMap()
 	
 	// Compute Lyapunov exponents
 	std::cout << "\n--- Lyapunov Spectrum ---\n";
-	auto lyap = DiscreteMapLyapunov<2>::compute(henon, Vector<Real>({0.0, 0.0}), 50000, 1000);
+	auto lyap = DiscreteMapLyapunov<2>::Compute(henon, Vector<Real>({0.0, 0.0}), 50000, 1000);
 	
 	std::cout << "Lyapunov exponents: λ₁ = " << std::setprecision(4) << lyap.exponents[0]
 	          << ", λ₂ = " << lyap.exponents[1] << "\n";
@@ -417,7 +417,7 @@ void Docs_Demo_DynamicalSystem_StandardMap()
 		std::cout << "  Area preserving: " << (stdmap.isAreaPreserving() ? "yes" : "no") << "\n";
 		
 		// Compute Lyapunov exponent
-		auto lyap = DiscreteMapLyapunov<2>::compute(stdmap, 
+		auto lyap = DiscreteMapLyapunov<2>::Compute(stdmap, 
 			Vector<Real>({0.5, 1.0}), 10000, 500);
 		
 		std::cout << "  Max Lyapunov exponent: " << std::setprecision(4) << lyap.maxExponent << "\n";
@@ -449,7 +449,7 @@ void Docs_Demo_DynamicalSystem_TentMap()
 		TentMap tent(mu);
 		
 		// Numerical Lyapunov
-		auto lyap = DiscreteMapLyapunov<1>::compute(tent, Vector<Real>({0.3}), 10000, 500);
+		auto lyap = DiscreteMapLyapunov<1>::Compute(tent, Vector<Real>({0.3}), 10000, 500);
 		
 		std::cout << "μ = " << std::fixed << std::setprecision(1) << mu << ": ";
 		std::cout << "numerical λ = " << std::setprecision(6) << lyap.maxExponent;

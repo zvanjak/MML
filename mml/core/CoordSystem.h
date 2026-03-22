@@ -495,8 +495,8 @@ namespace MML
 			Vector3Cartesian pos(localPos);
 
 			double one_km_in_lat_deg = 1 / 111.32;
-			double one_lat_deg_in_km = 2 * _parentFrame._radius * cos(Utils::DegToRad(_latitude)) * Constants::PI / 360;
-			double one_km_in_long_deg = 1 / one_lat_deg_in_km;
+			double one_lon_deg_in_km = 2 * _parentFrame._radius * cos(Utils::DegToRad(_latitude)) * Constants::PI / 360;
+			double one_km_in_long_deg = 1 / one_lon_deg_in_km;
 
 			// local x axis is oriented towards east, y towards north
 			// so dx is in longitude direction, dy in latitude direction

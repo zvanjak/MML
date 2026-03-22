@@ -190,7 +190,7 @@ void Docs_Demo_Curves_Frenet_Frame()
 		auto tangent = helix.getTangent(t);
 		auto unit_tang = helix.getTangentUnit(t);
 		auto normal = helix.getNormal(t);
-		auto unit_norm = helix.getNormalUnit(t);
+		auto unit_norm = normal;
 		auto binormal = helix.getBinormal(t);
 
 		std::cout << "t=" << std::setw(4) << t << " : ";

@@ -121,7 +121,7 @@ namespace MML::Tests::Algorithms::CurveAnalysisTests
 		const auto& circle = TestBeds::ParametricCurvesTestBed::getTestCurve("Circle3DXYCurve");
 		
 		Real t = Constants::PI / REAL(2.0);
-		auto principalNormal = circle._curve.getNormalUnit(t);
+		auto principalNormal = circle._curve.getNormal(t);
 		
 		// Should be unit vector
 		Real norm = principalNormal.NormL2();
@@ -249,7 +249,7 @@ namespace MML::Tests::Algorithms::CurveAnalysisTests
 		
 		Real t = Constants::PI / REAL(3.0);
 		auto T = helix._curve.getTangentUnit(t);
-		auto N = helix._curve.getNormalUnit(t);
+		auto N = helix._curve.getNormal(t);
 		auto B = helix._curve.getBinormal(t);
 
 		// Each vector should be unit length

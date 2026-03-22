@@ -266,8 +266,6 @@ namespace MML
 		RealFuncDiff(const IRealFunction& f1, const IRealFunction& f2) : _f1(f1), _f2(f2) {}
 		Real operator()(Real x) const { return _f1(x) - _f2(x); }
 	};
-	// Backward compatibility alias
-	using RealFuncDiffHelper = RealFuncDiff;
 
 	/// @brief Product of two functions: h(x) = f(x) * g(x)
 	/// @warning Stores references - ensure f1, f2 outlive this object
@@ -399,8 +397,6 @@ namespace MML
 		RealFuncAbsDiff(const IRealFunction& f1, const IRealFunction& f2) : _f1(f1), _f2(f2) {}
 		Real operator()(Real x) const { return std::abs(_f1(x) - _f2(x)); }
 	};
-	// Backward compatibility alias
-	using RealFuncAbsDiffHelper = RealFuncAbsDiff;
 
 	/// @brief Squared difference: h(x) = [f(x) - g(x)]²
 	/// @note Useful for L² norm computation and least-squares fitting
@@ -416,8 +412,6 @@ namespace MML
 		RealFuncDiffSqr(const IRealFunction& f1, const IRealFunction& f2) : _f1(f1), _f2(f2) {}
 		Real operator()(Real x) const { return POW2(_f1(x) - _f2(x)); }
 	};
-	// Backward compatibility alias
-	using RealFuncDiffSqrHelper = RealFuncDiffSqr;
 
 } // end namespace
 

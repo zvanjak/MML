@@ -66,8 +66,8 @@ namespace MML
 			_aboveDiag[dim - 1] = 0.0;
 		}
 
-		int RowNum() const noexcept { return _dim; }
-		int ColNum() const noexcept { return _dim; }
+		int rows() const noexcept { return _dim; }
+		int cols() const noexcept { return _dim; }
 
 		Type  operator()(int i, int j) const {
 			if (i == j)
@@ -215,8 +215,17 @@ namespace MML
 			Type bet;  // Must be Type to work with complex matrices
 			Vector<Type> gam(n);
 
-			// Use tolerance-based zero check for numerical stability
-			if (std::abs(_diag[0]) < std::numeric_limits<Real>::epsilon())
+			// Compute scale-relative tolerance based on max diagonal magnitude
+			Real maxDiag = Real{0};
+			for (int i = 0; i < n; i++) {
+				Real mag = std::abs(_diag[i]);
+				if (mag > maxDiag) maxDiag = mag;
+			}
+			Real tol = maxDiag * std::numeric_limits<Real>::epsilon();
+			if (tol < std::numeric_limits<Real>::epsilon())
+				tol = std::numeric_limits<Real>::epsilon();
+
+			if (std::abs(_diag[0]) < tol)
 				throw SingularMatrixError("TridiagonalMatrix::Solve - zero pivot at element 0", 0, 0);
 
 			sol[0] = rhs[0] / (bet = _diag[0]);
@@ -225,7 +234,7 @@ namespace MML
 				gam[j] = _aboveDiag[j - 1] / bet;
 				bet = _diag[j] - _belowDiag[j] * gam[j];
 
-				if (std::abs(bet) < std::numeric_limits<Real>::epsilon())
+				if (std::abs(bet) < tol)
 					throw SingularMatrixError("TridiagonalMatrix::Solve - zero pivot during elimination", j, j);
 
 				sol[j] = (rhs[j] - _belowDiag[j] * sol[j - 1]) / bet;
@@ -293,7 +302,7 @@ namespace MML
 			stream.flags(oldFlags);
 		}
 
-		// Legacy print method (backward compatibility)
+		/// @brief Print with explicit width and precision.
 		void   Print(std::ostream& stream, int width, int precision) const
 		{
 			MatrixPrintFormat fmt = MatrixPrintFormat::Default();

@@ -1090,7 +1090,7 @@ namespace MML {
 		}
 		static Real getIntegratedDiff(IRealFunction& f1, IRealFunction& f2, Real a, Real b,
 									  IntegrationMethod method = IntegrationMethod::TRAP) {
-			RealFuncDiffHelper helper(f1, f2);
+			RealFuncDiff helper(f1, f2);
 
 			switch (method) {
 			case IntegrationMethod::SIMPSON:
@@ -1107,7 +1107,7 @@ namespace MML {
 		}
 		static Real getIntegratedAbsDiff(IRealFunction& f1, IRealFunction& f2, Real a, Real b,
 										 IntegrationMethod method = IntegrationMethod::TRAP) {
-			RealFuncAbsDiffHelper helper(f1, f2);
+			RealFuncAbsDiff helper(f1, f2);
 
 			switch (method) {
 			case IntegrationMethod::SIMPSON:
@@ -1124,7 +1124,7 @@ namespace MML {
 		}
 		static Real getIntegratedSqrDiff(IRealFunction& f1, IRealFunction& f2, Real a, Real b,
 										 IntegrationMethod method = IntegrationMethod::TRAP) {
-			RealFuncDiffSqrHelper helper(f1, f2);
+			RealFuncDiffSqr helper(f1, f2);
 
 			switch (method) {
 			case IntegrationMethod::SIMPSON:

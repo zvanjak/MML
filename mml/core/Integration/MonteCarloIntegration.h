@@ -14,6 +14,7 @@
 #define MML_MONTE_CARLO_INTEGRATION_H
 
 #include "MMLBase.h"
+#include "core/AlgorithmTypes.h"
 #include "interfaces/IFunction.h"
 #include "base/Vector/VectorN.h"
 
@@ -27,20 +28,13 @@ namespace MML
 	/// @brief Result of a Monte Carlo integration
 	/// @note For production code, check error_estimate, variance, and converged!
 	//////////////////////////////////////////////////////////////////////////
-	struct MonteCarloResult 
+	struct MonteCarloResult : public EvaluationResultBase
 	{
-		Real value;					 ///< Estimated integral value
-		Real error_estimate; ///< Statistical error estimate (standard error)
-		Real variance;			 ///< Sample variance
-		size_t samples_used; ///< Number of samples actually used
-		bool converged;			 ///< Whether error is below requested tolerance
-
-		MonteCarloResult(Real val = 0.0, Real err = 0.0, Real var = 0.0, size_t n = 0, bool conv = false)
-				: value(val)
-				, error_estimate(err)
-				, variance(var)
-				, samples_used(n)
-				, converged(conv) {}
+		Real value = 0.0;				 ///< Estimated integral value
+		Real error_estimate = 0.0; ///< Statistical error estimate (standard error)
+		Real variance = 0.0;			 ///< Sample variance
+		size_t samples_used = 0; ///< Number of samples actually used
+		bool converged = false;		 ///< Whether error is below requested tolerance
 	};
 
 	//////////////////////////////////////////////////////////////////////////
@@ -107,6 +101,8 @@ namespace MML
 		/// @return MonteCarloResult with value, error estimate, and diagnostics
 		MonteCarloResult integrate(const IScalarFunction<N>& func, const VectorN<Real, N>& lower, const VectorN<Real, N>& upper,
 															 const MonteCarloConfig& config = MonteCarloConfig()) {
+			AlgorithmTimer timer;
+
 			// Compute volume of integration domain
 			Real volume = 1.0;
 			for (int i = 0; i < N; ++i) {
@@ -114,7 +110,12 @@ namespace MML
 			}
 
 			if (volume == 0.0) {
-				return MonteCarloResult(0.0, 0.0, 0.0, 0, true);
+				MonteCarloResult r;
+				r.converged = true;
+				r.status = AlgorithmStatus::Success;
+				r.algorithm_name = "MonteCarloIntegrator";
+				r.elapsed_time_ms = timer.elapsed_ms();
+				return r;
 			}
 
 			// Reseed if specified
@@ -183,7 +184,17 @@ namespace MML
 			bool converged =
 				(std::abs(integral) < PrecisionValues<Real>::DivisionSafetyThreshold) || (error / std::abs(integral) < config.target_error);
 
-			return MonteCarloResult(integral, error, variance, config.use_antithetic ? n * 2 : n, converged);
+			MonteCarloResult result;
+			result.value = integral;
+			result.error_estimate = error;
+			result.variance = variance;
+			result.samples_used = config.use_antithetic ? n * 2 : n;
+			result.converged = converged;
+			result.function_evaluations = static_cast<int>(result.samples_used);
+			result.status = AlgorithmStatus::Success;
+			result.algorithm_name = "MonteCarloIntegrator";
+			result.elapsed_time_ms = timer.elapsed_ms();
+			return result;
 		}
 
 		/// @brief Convenience overload for unit hypercube [0,1]^N
@@ -254,6 +265,8 @@ namespace MML
 		/// @param samples_per_stratum Samples per stratum
 		MonteCarloResult integrate(const IScalarFunction<N>& func, const VectorN<Real, N>& lower, const VectorN<Real, N>& upper,
 															 int strata_per_dim = 10, int samples_per_stratum = 10, unsigned int seed = 0) {
+			AlgorithmTimer timer;
+
 			if (seed != 0) {
 				_rng.seed(seed);
 			}
@@ -267,7 +280,12 @@ namespace MML
 			}
 
 			if (volume == 0.0) {
-				return MonteCarloResult(0.0, 0.0, 0.0, 0, true);
+				MonteCarloResult r;
+				r.converged = true;
+				r.status = AlgorithmStatus::Success;
+				r.algorithm_name = "StratifiedMonteCarloIntegrator";
+				r.elapsed_time_ms = timer.elapsed_ms();
+				return r;
 			}
 
 			// Volume per stratum
@@ -335,7 +353,17 @@ namespace MML
 			bool converged = (std::abs(integral) < PrecisionValues<Real>::DivisionSafetyThreshold) ||
 											 (error / std::abs(integral) < PrecisionValues<Real>::DefaultToleranceStrict);
 
-			return MonteCarloResult(integral, error, variance, total_samples, converged);
+			MonteCarloResult result;
+			result.value = integral;
+			result.error_estimate = error;
+			result.variance = variance;
+			result.samples_used = total_samples;
+			result.converged = converged;
+			result.function_evaluations = static_cast<int>(total_samples);
+			result.status = AlgorithmStatus::Success;
+			result.algorithm_name = "StratifiedMonteCarloIntegrator";
+			result.elapsed_time_ms = timer.elapsed_ms();
+			return result;
 		}
 	};
 
@@ -371,6 +399,8 @@ namespace MML
 		/// @return MonteCarloResult with estimated volume
 		MonteCarloResult estimateVolume(std::function<bool(const VectorN<Real, N>&)> indicator, const VectorN<Real, N>& lower,
 																		const VectorN<Real, N>& upper, size_t num_samples = 100000, unsigned int seed = 0) {
+			AlgorithmTimer timer;
+
 			if (seed != 0) {
 				_rng.seed(seed);
 			}
@@ -401,7 +431,17 @@ namespace MML
 			Real std_error = std::sqrt(variance / num_samples);
 			Real error = bounding_volume * std_error;
 
-			return MonteCarloResult(volume, error, variance, num_samples, true);
+			MonteCarloResult result;
+			result.value = volume;
+			result.error_estimate = error;
+			result.variance = variance;
+			result.samples_used = num_samples;
+			result.converged = true;
+			result.function_evaluations = static_cast<int>(num_samples);
+			result.status = AlgorithmStatus::Success;
+			result.algorithm_name = "HitOrMissIntegrator";
+			result.elapsed_time_ms = timer.elapsed_ms();
+			return result;
 		}
 	};
 

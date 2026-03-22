@@ -326,7 +326,7 @@ namespace MML::Systems
 		Vector<Type> SolveByQR() const {
 			RequireRHS();
 			QRSolver<Type> solver(_A);
-			if (IsOverdetermined())
+			if (isOverdetermined())
 				return solver.LeastSquaresSolve(_b);
 			else
 				return solver.Solve(_b);
@@ -443,24 +443,24 @@ namespace MML::Systems
 		// MATRIX PROPERTIES - DIMENSIONS
 		//=========================================================================
 
-		int Rows() const { return _A.rows(); }
-		int Cols() const { return _A.cols(); }
-		bool IsSquare() const { return _A.rows() == _A.cols(); }
-		bool IsOverdetermined() const { return _A.rows() > _A.cols(); }
-		bool IsUnderdetermined() const { return _A.rows() < _A.cols(); }
+		int rows() const { return _A.rows(); }
+		int cols() const { return _A.cols(); }
+		bool isSquare() const { return _A.rows() == _A.cols(); }
+		bool isOverdetermined() const { return _A.rows() > _A.cols(); }
+		bool isUnderdetermined() const { return _A.rows() < _A.cols(); }
 
 		//=========================================================================
 		// MATRIX PROPERTIES - STRUCTURE
 		//=========================================================================
 
 		/// @brief Check if matrix is symmetric within tolerance
-		bool IsSymmetric(Type tol = 1e-10) const {
+		bool isSymmetric(Type tol = 1e-10) const {
 			if (!_isSymmetric.has_value()) {
-				if (!IsSquare()) {
+				if (!isSquare()) {
 					_isSymmetric = false;
 				} else {
 					_isSymmetric = true;
-					int n = Rows();
+					int n = rows();
 					for (int i = 0; i < n && *_isSymmetric; ++i)
 						for (int j = i + 1; j < n && *_isSymmetric; ++j)
 							if (std::abs(_A(i, j) - _A(j, i)) > tol)
@@ -473,9 +473,9 @@ namespace MML::Systems
 		/// @brief Check if matrix is positive definite
 		///
 		/// @note Attempts Cholesky decomposition
-		bool IsPositiveDefinite(Type tol = 1e-10) const {
+		bool isPositiveDefinite(Type tol = 1e-10) const {
 			if (!_isPositiveDefinite.has_value()) {
-				if (!IsSymmetric(tol)) {
+				if (!isSymmetric(tol)) {
 					_isPositiveDefinite = false;
 				} else {
 					try {
@@ -490,11 +490,11 @@ namespace MML::Systems
 		}
 
 		/// @brief Check if matrix is strictly diagonally dominant
-		bool IsDiagonallyDominant() const {
-			if (!IsSquare())
+		bool isDiagonallyDominant() const {
+			if (!isSquare())
 				return false;
 
-			int n = Rows();
+			int n = rows();
 			for (int i = 0; i < n; ++i) {
 				Type diagAbs = std::abs(_A(i, i));
 				Type offDiagSum = 0;
@@ -508,11 +508,11 @@ namespace MML::Systems
 			return true;
 		}
 
-		bool IsUpperTriangular(Type tol = 1e-10) const { return Utils::IsUpperTriangular(_A, tol); }
+		bool isUpperTriangular(Type tol = 1e-10) const { return Utils::IsUpperTriangular(_A, tol); }
 
-		bool IsLowerTriangular(Type tol = 1e-10) const { return Utils::IsLowerTriangular(_A, tol); }
+		bool isLowerTriangular(Type tol = 1e-10) const { return Utils::IsLowerTriangular(_A, tol); }
 
-		bool IsDiagonal(Type tol = 1e-10) const { return Utils::IsDiagonal(_A, tol); }
+		bool isDiagonal(Type tol = 1e-10) const { return Utils::IsDiagonal(_A, tol); }
 
 		/// @brief Compute fraction of zero elements
 		///
@@ -535,8 +535,8 @@ namespace MML::Systems
 
 		/// @brief Compute determinant using LU decomposition
 		Type Determinant() const {
-			if (!IsSquare())
-				throw MatrixDimensionError("LinearSystem::Determinant - matrix must be square", Rows(), Cols(), -1, -1);
+			if (!isSquare())
+				throw MatrixDimensionError("LinearSystem::Determinant - matrix must be square", rows(), cols(), -1, -1);
 
 			LUSolver<Type> solver(_A);
 			return solver.det();
@@ -554,7 +554,7 @@ namespace MML::Systems
 		}
 
 		/// @brief Compute nullity (dimension of null space)
-		int Nullity(Type tol = -1) const { return Cols() - Rank(tol); }
+		int Nullity(Type tol = -1) const { return cols() - Rank(tol); }
 
 		/// @brief Compute condition number using SVD
 		///
@@ -682,8 +682,8 @@ namespace MML::Systems
 		/// @brief Compute Moore-Penrose pseudoinverse using SVD
 		Matrix<Type> PseudoInverse(Type tol = -1) const {
 			SVDecompositionSolver<Type> solver(_A);
-			int m = Rows();
-			int n = Cols();
+			int m = rows();
+			int n = cols();
 
 			// A+ = V * diag(1/w) * U^T (for non-zero singular values)
 			Matrix<Type> U = solver.getU();
@@ -729,7 +729,7 @@ namespace MML::Systems
 		Vector<Type> Eigenvalues(Type tol = 1e-10) const {
 			RequireSquare();
 			auto result = EigenSolver::Solve(_A, tol);
-			int n = Rows();
+			int n = rows();
 			Vector<Type> eigs(n);
 			for (int i = 0; i < n; ++i)
 				eigs[i] = result.eigenvalues[i].real;
@@ -742,8 +742,8 @@ namespace MML::Systems
 		/// @note Uses Jacobi rotation method, guaranteed real eigenvalues
 		Vector<Type> EigenvaluesSymmetric() const {
 			RequireSquare();
-			if (!IsSymmetric())
-				throw MatrixDimensionError("LinearSystem::EigenvaluesSymmetric - matrix is not symmetric", Rows(), Cols(), Rows(), Cols());
+			if (!isSymmetric())
+				throw MatrixDimensionError("LinearSystem::EigenvaluesSymmetric - matrix is not symmetric", rows(), cols(), rows(), cols());
 
 			auto result = SymmMatEigenSolverJacobi::Solve(_A);
 			return result.eigenvalues;
@@ -785,19 +785,19 @@ namespace MML::Systems
 			SystemAnalysis<Type> result;
 
 			// Dimensions
-			result.rows = Rows();
-			result.cols = Cols();
-			result.isSquare = IsSquare();
-			result.isOverdetermined = IsOverdetermined();
-			result.isUnderdetermined = IsUnderdetermined();
+			result.rows = rows();
+			result.cols = cols();
+			result.isSquare = isSquare();
+			result.isOverdetermined = isOverdetermined();
+			result.isUnderdetermined = isUnderdetermined();
 
 			// Structure
-			result.isSymmetric = IsSymmetric();
-			result.isPositiveDefinite = IsPositiveDefinite();
-			result.isDiagonallyDominant = IsDiagonallyDominant();
-			result.isUpperTriangular = IsUpperTriangular();
-			result.isLowerTriangular = IsLowerTriangular();
-			result.isDiagonal = IsDiagonal();
+			result.isSymmetric = isSymmetric();
+			result.isPositiveDefinite = isPositiveDefinite();
+			result.isDiagonallyDominant = isDiagonallyDominant();
+			result.isUpperTriangular = isUpperTriangular();
+			result.isLowerTriangular = isLowerTriangular();
+			result.isDiagonal = isDiagonal();
 			result.sparsity = Sparsity();
 
 			// Numerical
@@ -889,8 +889,8 @@ namespace MML::Systems
 		}
 
 		void RequireSquare() const {
-			if (!IsSquare())
-				throw MatrixDimensionError("LinearSystem: operation requires square matrix", Rows(), Cols(), -1, -1);
+			if (!isSquare())
+				throw MatrixDimensionError("LinearSystem: operation requires square matrix", rows(), cols(), -1, -1);
 		}
 
 		void EnsureLU() const {
@@ -900,7 +900,7 @@ namespace MML::Systems
 					LUSolver<Type> solver(_A);
 
 					// Extract L and U from the solver's combined storage
-					int n = Rows();
+					int n = rows();
 					_lu->L.Resize(n, n);
 					_lu->U.Resize(n, n);
 
@@ -959,11 +959,11 @@ namespace MML::Systems
 
 		std::string SelectBestSolver() const {
 			// Quick structural checks first
-			if (IsUpperTriangular() || IsLowerTriangular())
+			if (isUpperTriangular() || isLowerTriangular())
 				return "Triangular";
 
 			// For overdetermined systems, use QR (least squares)
-			if (IsOverdetermined())
+			if (isOverdetermined())
 				return "QR";
 
 			// Check condition number for ill-conditioned systems
@@ -972,7 +972,7 @@ namespace MML::Systems
 				return "SVD"; // Most robust for ill-conditioned
 
 			// For SPD matrices, Cholesky is best
-			if (IsSymmetric() && IsPositiveDefinite())
+			if (isSymmetric() && isPositiveDefinite())
 				return "Cholesky";
 
 			// Default: LU with partial pivoting
@@ -981,7 +981,7 @@ namespace MML::Systems
 
 		IterativeMethod SelectIterativeMethod() const {
 			// For diagonally dominant matrices, Gauss-Seidel converges faster
-			if (IsDiagonallyDominant())
+			if (isDiagonallyDominant())
 				return IterativeMethod::GaussSeidel;
 
 			// SOR can be faster but needs tuning
@@ -990,10 +990,10 @@ namespace MML::Systems
 		}
 
 		Vector<Type> SolveTriangular() const {
-			int n = Rows();
+			int n = rows();
 			Vector<Type> x(n);
 
-			if (IsUpperTriangular()) {
+			if (isUpperTriangular()) {
 				// Back substitution
 				for (int i = n - 1; i >= 0; --i) {
 					Type sum = _b[i];

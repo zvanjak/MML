@@ -150,10 +150,15 @@ namespace MML
 									std::lock_guard<std::mutex> lock(this->exceptions_mutex);
 									this->exceptions.push(eptr);
 								}
-								// Invoke error callback if set
-								if (this->error_callback) {
+								// Invoke error callback if set (copy under lock to avoid data race)
+								std::function<void(std::exception_ptr)> cb;
+								{
+									std::lock_guard<std::mutex> lock(this->exceptions_mutex);
+									cb = this->error_callback;
+								}
+								if (cb) {
 									try {
-										this->error_callback(eptr);
+										cb(eptr);
 									}
 									catch (...) {
 										// Ignore exceptions from callback

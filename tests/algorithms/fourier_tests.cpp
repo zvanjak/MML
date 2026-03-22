@@ -86,6 +86,25 @@ namespace MML::Tests::Algorithms::FourierTests {
 		REQUIRE(DCT::VerifyRoundTrip(signal, 1e-12));
 	}
 
+	TEST_CASE("DCT Fast vs Reference - Non-zero DC", "[Fourier][DCT]") {
+		// Verify fast implementation matches reference for non-zero mean signal
+		// This exposes the DC coefficient double-halving bug (0.5 * 0.5 = 0.25 instead of 0.5)
+		int N = 32;
+		Vector<Real> signal(N);
+		for (int i = 0; i < N; i++) {
+			signal[i] = 3.0 + std::sin(2.0 * Constants::PI * i / N); // DC offset of 3.0
+		}
+
+		// Inverse comparison: fast should match reference
+		auto ref_fwd = DCT::ForwardII_Reference(signal);
+		auto inv_fast = DCT::InverseII_Fast(ref_fwd);
+		auto inv_ref = DCT::InverseII_Reference(ref_fwd);
+		REQUIRE(inv_fast.size() == inv_ref.size());
+		for (int i = 0; i < N; i++) {
+			REQUIRE(std::abs(inv_fast[i] - inv_ref[i]) < 1e-10);
+		}
+	}
+
 	TEST_CASE("DCT Fast vs Reference", "[Fourier][DCT]") {
 		// Verify fast implementation matches reference for both forward and inverse
 		int N = 32; // Above threshold, uses fast
@@ -403,6 +422,174 @@ namespace MML::Tests::Algorithms::FourierTests {
 		auto result = FFT::Forward(single);
 		REQUIRE(result.size() == 1);
 		REQUIRE(std::abs(result[0] - Complex(1.0, 0.0)) < 1e-10);
+	}
+
+	///////////////////////////////////////////////////////////////////////////////////////////
+	//                       DETAILED API TESTS                                               //
+	///////////////////////////////////////////////////////////////////////////////////////////
+
+	TEST_CASE("DFT ForwardDetailed - Success", "[Fourier][DFT][Detailed]") {
+		Vector<Complex> data(4);
+		for (int i = 0; i < 4; i++)
+			data[i] = Complex(std::cos(2.0 * Constants::PI * i / 4), 0.0);
+
+		auto result = DFT::ForwardDetailed(data);
+
+		REQUIRE(result.IsSuccess());
+		REQUIRE(result.status == AlgorithmStatus::Success);
+		REQUIRE(result.value.size() == 4);
+		REQUIRE(result.input_size == 4);
+		REQUIRE(result.algorithm_name == "DFT::Forward");
+		REQUIRE(result.elapsed_time_ms >= 0.0);
+	}
+
+	TEST_CASE("DFT ForwardDetailed - Real Input", "[Fourier][DFT][Detailed]") {
+		Vector<Real> data(8);
+		for (int i = 0; i < 8; i++)
+			data[i] = std::sin(2.0 * Constants::PI * i / 8);
+
+		auto result = DFT::ForwardDetailed(data);
+
+		REQUIRE(result.IsSuccess());
+		REQUIRE(result.value.size() == 8);
+		REQUIRE(result.input_size == 8);
+	}
+
+	TEST_CASE("DFT ForwardDetailed - Empty Input Returns Failure", "[Fourier][DFT][Detailed]") {
+		FourierConfig config;
+		config.exception_policy = EvaluationExceptionPolicy::ConvertToStatus;
+		Vector<Complex> empty;
+
+		auto result = DFT::ForwardDetailed(empty, config);
+
+		REQUIRE_FALSE(result.IsSuccess());
+		REQUIRE(result.status == AlgorithmStatus::InvalidInput);
+		REQUIRE_FALSE(result.error_message.empty());
+	}
+
+	TEST_CASE("DFT InverseDetailed - Round Trip", "[Fourier][DFT][Detailed]") {
+		Vector<Complex> data(4);
+		data[0] = Complex(1.0, 0.0);
+		data[1] = Complex(2.0, 0.0);
+		data[2] = Complex(3.0, 0.0);
+		data[3] = Complex(4.0, 0.0);
+
+		auto fwd = DFT::ForwardDetailed(data);
+		REQUIRE(fwd.IsSuccess());
+
+		auto inv = DFT::InverseDetailed(fwd.value);
+		REQUIRE(inv.IsSuccess());
+
+		for (int i = 0; i < 4; i++)
+			REQUIRE(std::abs(inv.value[i] - data[i]) < 1e-12);
+	}
+
+	TEST_CASE("DFT InverseRealDetailed - Round Trip", "[Fourier][DFT][Detailed]") {
+		Vector<Real> data(8);
+		for (int i = 0; i < 8; i++)
+			data[i] = std::sin(2.0 * Constants::PI * i / 8);
+
+		auto fwd = DFT::ForwardDetailed(data);
+		REQUIRE(fwd.IsSuccess());
+
+		auto inv = DFT::InverseRealDetailed(fwd.value);
+		REQUIRE(inv.IsSuccess());
+		REQUIRE(inv.value.size() == 8);
+
+		for (int i = 0; i < 8; i++)
+			REQUIRE(std::abs(inv.value[i] - data[i]) < 1e-12);
+	}
+
+	TEST_CASE("FFT ForwardDetailed - Success", "[Fourier][FFT][Detailed]") {
+		int N = 16;
+		Vector<Complex> data(N);
+		for (int i = 0; i < N; i++)
+			data[i] = Complex(std::sin(2.0 * Constants::PI * i / N), 0.0);
+
+		auto result = FFT::ForwardDetailed(data);
+
+		REQUIRE(result.IsSuccess());
+		REQUIRE(result.value.size() == N);
+		REQUIRE(result.input_size == N);
+		REQUIRE(result.algorithm_name == "FFT::Forward");
+	}
+
+	TEST_CASE("FFT Detailed - Round Trip", "[Fourier][FFT][Detailed]") {
+		int N = 32;
+		Vector<Complex> data(N);
+		for (int i = 0; i < N; i++)
+			data[i] = Complex(std::cos(4.0 * Constants::PI * i / N), std::sin(2.0 * Constants::PI * i / N));
+
+		auto fwd = FFT::ForwardDetailed(data);
+		REQUIRE(fwd.IsSuccess());
+
+		auto inv = FFT::InverseDetailed(fwd.value);
+		REQUIRE(inv.IsSuccess());
+
+		for (int i = 0; i < N; i++)
+			REQUIRE(std::abs(inv.value[i] - data[i]) < 1e-10);
+	}
+
+	TEST_CASE("FFT ForwardDetailed - Empty Input ConvertToStatus", "[Fourier][FFT][Detailed]") {
+		FourierConfig config;
+		config.exception_policy = EvaluationExceptionPolicy::ConvertToStatus;
+		Vector<Complex> empty;
+
+		auto result = FFT::ForwardDetailed(empty, config);
+
+		REQUIRE_FALSE(result.IsSuccess());
+		REQUIRE(result.status == AlgorithmStatus::InvalidInput);
+	}
+
+	TEST_CASE("DCT ForwardIIDetailed - Success", "[Fourier][DCT][Detailed]") {
+		Vector<Real> signal(16);
+		for (int i = 0; i < 16; i++)
+			signal[i] = std::sin(2.0 * Constants::PI * i / 16) + 0.5;
+
+		auto result = DCT::ForwardIIDetailed(signal);
+
+		REQUIRE(result.IsSuccess());
+		REQUIRE(result.value.size() == 16);
+		REQUIRE(result.input_size == 16);
+		REQUIRE(result.algorithm_name == "DCT::ForwardII");
+	}
+
+	TEST_CASE("DCT Detailed - Round Trip", "[Fourier][DCT][Detailed]") {
+		Vector<Real> signal(8);
+		for (int i = 0; i < 8; i++)
+			signal[i] = std::cos(2.0 * Constants::PI * i / 8) + 0.3;
+
+		auto fwd = DCT::ForwardIIDetailed(signal);
+		REQUIRE(fwd.IsSuccess());
+
+		auto inv = DCT::InverseIIDetailed(fwd.value);
+		REQUIRE(inv.IsSuccess());
+
+		for (int i = 0; i < 8; i++)
+			REQUIRE(std::abs(inv.value[i] - signal[i]) < 1e-12);
+	}
+
+	TEST_CASE("DST Detailed - Round Trip", "[Fourier][DCT][Detailed]") {
+		Vector<Real> signal(8);
+		for (int i = 0; i < 8; i++)
+			signal[i] = std::sin(Constants::PI * (i + 1) / 9);
+
+		auto fwd = DCT::ForwardDSTDetailed(signal);
+		REQUIRE(fwd.IsSuccess());
+
+		auto inv = DCT::InverseDSTDetailed(fwd.value);
+		REQUIRE(inv.IsSuccess());
+
+		for (int i = 0; i < 8; i++)
+			REQUIRE(std::abs(inv.value[i] - signal[i]) < 1e-12);
+	}
+
+	TEST_CASE("Detailed API - Propagate Exception Policy", "[Fourier][Detailed]") {
+		FourierConfig config;
+		config.exception_policy = EvaluationExceptionPolicy::Propagate;
+		Vector<Complex> empty;
+
+		REQUIRE_THROWS_AS(DFT::ForwardDetailed(empty, config), std::invalid_argument);
 	}
 
 } // namespace MML::Tests::Algorithms::FourierTests

@@ -754,6 +754,31 @@ namespace MML::Tests::Tools::SerializerTests {
 			
 			CleanupTempFile(testFile);
 		}
+
+		SECTION("3D particle with saveEveryNSteps") {
+			int numBalls = 1;
+			std::vector<std::vector<Pnt3Cart>> positions(numBalls);
+			for (int step = 0; step < 20; ++step) {
+				positions[0].push_back(Pnt3Cart(static_cast<Real>(step), static_cast<Real>(step), static_cast<Real>(step)));
+			}
+
+			std::vector<std::string> colors = {"green"};
+			std::vector<Real> radii = {1.0};
+
+			// Save every 5th step
+			auto result = Serializer::SaveParticleSimulation3D(testFile, numBalls,
+			                                                    100.0, 100.0, 100.0,
+			                                                    positions, colors, radii,
+			                                                    0.01, 5);
+
+			REQUIRE(result.success == true);
+
+			std::string content = ReadFileContents(testFile);
+			// Should have 4 steps (0, 5, 10, 15)
+			REQUIRE(content.find("NumSteps: 4") != std::string::npos);
+
+			CleanupTempFile(testFile);
+		}
 	}
 
 	/////////////////////////////////////////////////////////////////////////////////////

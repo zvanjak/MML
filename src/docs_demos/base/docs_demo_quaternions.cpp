@@ -150,9 +150,9 @@ void Docs_Demo_Quaternions_Operations()
 	std::cout << "||Normalized()|| = " << qNorm.Norm() << " (should be 1)\n";
 
 	std::cout << "\n--- Unit Checks ---\n";
-	std::cout << "q.IsIdentity(): " << (q.IsIdentity() ? "yes" : "no") << "\n";
-	std::cout << "qNorm.IsIdentity(): " << (qNorm.IsIdentity() ? "yes" : "no") << "\n";
-	std::cout << "Identity().IsIdentity(): " << (Quaternion::Identity().IsIdentity() ? "yes" : "no") << "\n";
+	std::cout << "q.isIdentity(): " << (q.isIdentity() ? "yes" : "no") << "\n";
+	std::cout << "qNorm.isIdentity(): " << (qNorm.isIdentity() ? "yes" : "no") << "\n";
+	std::cout << "Identity().isIdentity(): " << (Quaternion::Identity().isIdentity() ? "yes" : "no") << "\n";
 
 	std::cout << "\n--- Dot Product ---\n";
 	Quaternion p = Quaternion::Identity();
@@ -325,7 +325,7 @@ void Docs_Demo_Quaternions_Comparison()
 
 	std::cout << "p == q: " << (p == q ? "true" : "false") << "\n";
 	std::cout << "p == r: " << (p == r ? "true" : "false") << "\n";
-	std::cout << "p.IsApprox(r, 1e-10): " << (p.IsApprox(r, 1e-10) ? "true" : "false") << "\n";
+	std::cout << "p.isApprox(r, 1e-10): " << (p.isApprox(r, 1e-10) ? "true" : "false") << "\n";
 
 	std::cout << "\n--- Note: q and -q represent same rotation ---\n";
 	Quaternion qPos = Quaternion::FromAxisAngle(Vec3Cart(0, 0, 1), Constants::PI / 2);

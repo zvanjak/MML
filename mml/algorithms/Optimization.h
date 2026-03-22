@@ -36,20 +36,6 @@ namespace MML {
 		int iterations() const noexcept { return _iterations; }
 	};
 
-	/// Custom exception for invalid input to optimization algorithms.
-	/// @deprecated Use NumericInputError from NumericValidation.h for new code.
-	///             Kept for backward compatibility with existing code.
-	class OptimizationInputError : public NumericInputError {
-	public:
-		explicit OptimizationInputError(const std::string& message)
-			: NumericInputError(message) {}
-	};
-
-	// Note: IsFinite, ValidateFinite, ValidateBounds, ValidateTolerance,
-	// and ValidateFunctionValue are now provided by NumericValidation.h
-	// Since OptimizationInputError now derives from NumericInputError,
-	// existing catch blocks for OptimizationInputError will still work.
-
 	/******************************************************************************/
 	/*****            1D Minimization Configuration                           *****/
 	/******************************************************************************/
@@ -366,7 +352,7 @@ namespace MML {
 			// Input validation
 			ValidateTolerance(tol, "GoldenSectionSearch");
 			if (!bracket.valid) {
-				throw OptimizationInputError("GoldenSectionSearch: invalid bracket provided");
+				throw NumericInputError("GoldenSectionSearch: invalid bracket provided");
 			}
 			
 			const Real R = 0.61803399; // Golden ratio conjugate (1 - φ) = (√5-1)/2
@@ -504,10 +490,10 @@ namespace MML {
 			// Input validation
 			ValidateTolerance(tol, "BrentMinimize");
 			if (!bracket.valid) {
-				throw OptimizationInputError("BrentMinimize: invalid bracket provided");
+				throw NumericInputError("BrentMinimize: invalid bracket provided");
 			}
 			if (maxIter <= 0) {
-				throw OptimizationInputError("BrentMinimize: maxIter must be positive");
+				throw NumericInputError("BrentMinimize: maxIter must be positive");
 			}
 			
 			const Real CGOLD = 0.3819660; // Golden ratio for section (1 - 1/φ)
@@ -624,12 +610,12 @@ namespace MML {
 		/// @param tol     Fractional tolerance
 		/// @param maxIter Maximum iterations
 		/// @return MinimizationResult with xmin, fmin, and iteration count
-		/// @throws OptimizationInputError if inputs are invalid (NaN/Inf bounds, invalid tolerance)
+		/// @throws NumericInputError if inputs are invalid (NaN/Inf bounds, invalid tolerance)
 		static MinimizationResult BrentMinimize(const IRealFunction& func, Real a, Real b, Real tol = 3.0e-8, int maxIter = 100) {
 			// Validate inputs early for clear error messages
 			ValidateTolerance(tol, "BrentMinimize");
 			if (maxIter <= 0)
-				throw OptimizationInputError("BrentMinimize: maxIter must be positive");
+				throw NumericInputError("BrentMinimize: maxIter must be positive");
 			// BracketMinimum validates bounds a and b
 			
 			MinimumBracket bracket = BracketMinimum(func, a, b);
@@ -687,7 +673,7 @@ namespace MML {
 		/// @return MinimizationResult with xmin, fmin, and iteration count
 		///
 		/// @throws OptimizationError if maximum iterations exceeded
-		/// @throws OptimizationInputError if inputs are invalid
+		/// @throws NumericInputError if inputs are invalid
 		///
 		/// @note Based on Numerical Recipes §10.4 (dbrent)
 		/// @see BrentMinimize for version without derivatives
@@ -696,9 +682,9 @@ namespace MML {
 			// Validate inputs
 			ValidateTolerance(tol, "BrentMinimizeWithDeriv");
 			if (maxIter <= 0)
-				throw OptimizationInputError("BrentMinimizeWithDeriv: maxIter must be positive");
+				throw NumericInputError("BrentMinimizeWithDeriv: maxIter must be positive");
 			if (!bracket.valid)
-				throw OptimizationInputError("BrentMinimizeWithDeriv: bracket is not valid");
+				throw NumericInputError("BrentMinimizeWithDeriv: bracket is not valid");
 			
 			const Real ZEPS = std::numeric_limits<Real>::epsilon() * 1.0e-3;
 
@@ -857,13 +843,13 @@ namespace MML {
 		/// @param tol     Fractional tolerance
 		/// @param maxIter Maximum iterations
 		/// @return MinimizationResult with xmin, fmin, and iteration count
-		/// @throws OptimizationInputError if inputs are invalid (NaN/Inf bounds, invalid tolerance)
+		/// @throws NumericInputError if inputs are invalid (NaN/Inf bounds, invalid tolerance)
 		static MinimizationResult BrentMinimizeWithDeriv(const IRealFunction& func, const IRealFunction& dfunc, Real a, Real b,
 														 Real tol = 3.0e-8, int maxIter = 100) {
 			// Validate inputs early for clear error messages
 			ValidateTolerance(tol, "BrentMinimizeWithDeriv");
 			if (maxIter <= 0)
-				throw OptimizationInputError("BrentMinimizeWithDeriv: maxIter must be positive");
+				throw NumericInputError("BrentMinimizeWithDeriv: maxIter must be positive");
 			// BracketMinimum validates bounds a and b
 			
 			MinimumBracket bracket = BracketMinimum(func, a, b);

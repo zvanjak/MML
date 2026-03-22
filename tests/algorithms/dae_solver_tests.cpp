@@ -350,6 +350,18 @@ TEST_CASE("DAE::DAESystem_construction", "[dae][system]")
 	REQUIRE(sys.getTotalDim() == 2);
 }
 
+TEST_CASE("DAE::DAESystem_nullptr_throws", "[dae][system]")
+{
+	// Both null
+	REQUIRE_THROWS_AS(DAESystem(1, 1, nullptr, nullptr), std::invalid_argument);
+	// diffFunc null
+	REQUIRE_THROWS_AS(DAESystem(1, 1, nullptr, testAlgFunc), std::invalid_argument);
+	// algFunc null
+	REQUIRE_THROWS_AS(DAESystem(1, 1, testDiffFunc, nullptr), std::invalid_argument);
+	// Both valid — no throw
+	REQUIRE_NOTHROW(DAESystem(1, 1, testDiffFunc, testAlgFunc));
+}
+
 TEST_CASE("DAE::DAESystem_evaluation", "[dae][system]")
 {
 	DAESystem sys(1, 1, testDiffFunc, testAlgFunc);

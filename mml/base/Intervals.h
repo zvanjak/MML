@@ -247,13 +247,8 @@ namespace MML {
 
 		/// @brief Returns true if x is not at a hole position.
 		bool contains(Real x) const {
-
-
-			if (x == _hole0)
-				return false;
-
 			Real diff = (x - _hole0) / _holeDelta;
-			if (diff == (int)diff)
+			if (diff == std::round(diff))
 				return false;
 
 			return true;
@@ -339,15 +334,14 @@ namespace MML {
 
 		/// @brief Returns true if x is in [lower, upper] and not at a hole.
 		bool contains(Real x) const {
-			// check for hole!
-			if (x == _hole0)
+			if (x < _lower || x > _upper)
 				return false;
 
 			Real diff = (x - _hole0) / _holeDelta;
-			if (diff == (int)diff)
+			if (diff == std::round(diff))
 				return false;
 
-			return (x >= _lower) && (x <= _upper);
+			return true;
 		}
 		/// @brief Returns false since this interval has discontinuities.
 		bool isContinuous() const { return false; }

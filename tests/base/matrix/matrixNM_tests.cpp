@@ -294,23 +294,23 @@ namespace MML::Tests::Base::MatrixNMTests
 	}
 
 	///////////////////////          Element Access                    //////////////////////
-	TEST_CASE("MatrixNM::ElemAt_bounds_checked", "[MatrixNM][access]")
+	TEST_CASE("MatrixNM::at_bounds_checked", "[MatrixNM][access]")
 	{
 		TEST_PRECISION_INFO();
 		MatrixNM<Real, 2, 3> m({ REAL(1.0), REAL(2.0), REAL(3.0),
 		                         REAL(4.0), REAL(5.0), REAL(6.0) });
 		
-		REQUIRE(m.ElemAt(0, 0) == REAL(1.0));
-		REQUIRE(m.ElemAt(1, 2) == REAL(6.0));
+		REQUIRE(m.at(0, 0) == REAL(1.0));
+		REQUIRE(m.at(1, 2) == REAL(6.0));
 		
 		// Mutable access
-		m.ElemAt(0, 1) = REAL(99.0);
+		m.at(0, 1) = REAL(99.0);
 		REQUIRE(m(0, 1) == REAL(99.0));
 		
 		// Out of bounds throws
-		REQUIRE_THROWS_AS(m.ElemAt(-1, 0), MatrixAccessBoundsError);
-		REQUIRE_THROWS_AS(m.ElemAt(0, 5), MatrixAccessBoundsError);
-		REQUIRE_THROWS_AS(m.ElemAt(10, 0), MatrixAccessBoundsError);
+		REQUIRE_THROWS_AS(m.at(-1, 0), MatrixAccessBoundsError);
+		REQUIRE_THROWS_AS(m.at(0, 5), MatrixAccessBoundsError);
+		REQUIRE_THROWS_AS(m.at(10, 0), MatrixAccessBoundsError);
 	}
 
 	///////////////////////          Triangular Extraction             //////////////////////
@@ -553,16 +553,6 @@ namespace MML::Tests::Base::MatrixNMTests
 		
 		Mat44D md44;
 		REQUIRE(md44.rows() == 4);
-		
-		// Legacy names
-		Matrix22Dbl legacy22;
-		REQUIRE(legacy22.rows() == 2);
-		
-		Matrix33Dbl legacy33;
-		REQUIRE(legacy33.rows() == 3);
-		
-		Matrix44Dbl legacy44;
-		REQUIRE(legacy44.rows() == 4);
 	}
 
 	TEST_CASE("MatrixNM::complex_type", "[MatrixNM][complex]")
@@ -575,10 +565,6 @@ namespace MML::Tests::Base::MatrixNMTests
 		REQUIRE(mc(0, 0).real() == 1.0);
 		REQUIRE(mc(0, 0).imag() == 2.0);
 		REQUIRE(mc(1, 1).real() == 7.0);
-		
-		// Legacy name
-		Matrix22Complex mc2;
-		REQUIRE(mc2.rows() == 2);
 	}
 
 	///////////////////////          Output Methods                    //////////////////////

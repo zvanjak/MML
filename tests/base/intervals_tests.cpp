@@ -108,6 +108,18 @@ TEST_CASE("CompleteRWithReccuringPointHoles - Periodic Exclusions", "[intervals]
 	{
 		REQUIRE_FALSE(tanDomain.isContinuous());
 	}
+
+	SECTION("Negative hole indices via std::round")
+	{
+		// Holes at negative multiples: -π/2, -3π/2, -5π/2, etc.
+		// These require correct rounding (not truncation) of negative diff values
+		REQUIRE_FALSE(tanDomain.contains(-REAL(2.5) * Constants::PI));
+		REQUIRE_FALSE(tanDomain.contains(-REAL(3.5) * Constants::PI));
+		REQUIRE_FALSE(tanDomain.contains(-REAL(4.5) * Constants::PI));
+		// Points between negative holes should be contained
+		REQUIRE(tanDomain.contains(-REAL(2.0) * Constants::PI));
+		REQUIRE(tanDomain.contains(-REAL(3.0) * Constants::PI));
+	}
 }
 
 TEST_CASE("Test_Interval - Composite with raw pointers", "[intervals][compound]")

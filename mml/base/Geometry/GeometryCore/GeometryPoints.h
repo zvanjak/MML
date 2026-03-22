@@ -315,9 +315,10 @@ namespace MML {
 
 		/// @brief Computes distance to another spherical point
 		/// @param b The other point
-		/// @return Euclidean distance between the two points
+		/// @return Euclidean distance between the two points (using spherical law of cosines)
 		Real Dist(const Point3Spherical& b) const {
-			return sqrt(R() * R() + b.R() * b.R() - 2 * R() * b.R() * cos(b.Theta() - Theta()) * cos(b.Phi() - Phi()));
+			Real cosGamma = cos(Theta()) * cos(b.Theta()) + sin(Theta()) * sin(b.Theta()) * cos(b.Phi() - Phi());
+			return sqrt(R() * R() + b.R() * b.R() - 2 * R() * b.R() * cosGamma);
 		}
 	};
 

@@ -36,6 +36,17 @@ namespace MML {
   /// Solve quadratic equation: a*x^2 + b*x + c = 0
   /// @return Number of real roots (0 or 2); complex roots returned via x1, x2
   inline int SolveQuadratic(Real a, Real b, Real c, Complex &x1, Complex &x2) {
+    // Degenerate: a=0 reduces to linear equation b*x + c = 0
+    if (std::abs(a) < Constants::Eps) {
+      if (std::abs(b) < Constants::Eps) {
+        x1 = x2 = Complex(0);
+        return 0;
+      }
+      x1 = Complex(-c / b);
+      x2 = Complex(0);
+      return 1;
+    }
+
     Real D = b * b - 4 * a * c;
     if (D >= 0) {
       Real sqrtD = sqrt(D);
@@ -53,6 +64,13 @@ namespace MML {
   /// Solve quadratic equation with complex coefficients: a*x^2 + b*x + c = 0
   inline void SolveQuadratic(const Complex &a, const Complex &b, const Complex &c,
                              Complex &x1, Complex &x2) {
+    // Degenerate: a=0 reduces to linear equation b*x + c = 0
+    if (std::abs(a) < Constants::Eps) {
+      x1 = (std::abs(b) < Constants::Eps) ? Complex(0) : -c / b;
+      x2 = Complex(0);
+      return;
+    }
+
     Complex D = b * b - Real(4.0) * a * c;
     Complex sqrtD = std::sqrt(D);
     x1 = (-b + sqrtD) / (Real(2.0) * a);
@@ -63,6 +81,13 @@ namespace MML {
   /// @return Number of real roots (1 or 3); all roots returned via x1, x2, x3
   inline int SolveCubic(Real a, Real b, Real c, Real d, Complex &x1, Complex &x2,
                         Complex &x3) {
+    // Degenerate: a=0 reduces to quadratic b*x^2 + c*x + d = 0
+    if (std::abs(a) < Constants::Eps) {
+      int n = SolveQuadratic(b, c, d, x1, x2);
+      x3 = Complex(0);
+      return n;
+    }
+
     // Normalize the coefficients
     Real A = b / a;
     Real B = c / a;
@@ -424,6 +449,9 @@ namespace MML {
 						break;
 					}
 				}
+
+				if (!converged)
+					throw std::runtime_error("BairstowRoots: failed to converge for quadratic factor");
 
 				// Extract roots from quadratic x² + ux + v = 0
 				// x = (-u ± sqrt(u² - 4v)) / 2

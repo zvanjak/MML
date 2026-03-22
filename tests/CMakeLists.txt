@@ -3,9 +3,8 @@ project(MML_Tests VERSION 1.0)
 # Catch2 v3 is fetched in root CMakeLists.txt via FetchContent
 
 # =============================================================================
-# MML Core Tests - Tests for the core MML library only
+# MML Core Tests - Tests for the core MML library
 # =============================================================================
-# Package tests are now in mml_packages/tests/CMakeLists.txt (MML_Packages_Tests)
 
 ###############################################################################
 # BASE TESTS - Fundamental data structures and utilities
@@ -157,6 +156,9 @@ file(GLOB ALGORITHMS_TESTS
     "algorithms/optimization_multidim_tests.cpp"
     # Statistics tests
     "algorithms/statistics_tests.cpp"
+    "algorithms/statistics/hypothesis_testing_tests.cpp"
+    "algorithms/statistics/confidence_intervals_tests.cpp"
+    "algorithms/statistics/rank_correlation_tests.cpp"
     # Distributions tests
     "algorithms/distributions_tests.cpp"
     # Fourier tests
@@ -203,7 +205,6 @@ add_executable(MML_Tests
     ${INFRASTRUCTURE_TESTS}
 )
 
-# Link against Catch2WithMain and MML_Packages for includes
 target_link_libraries(MML_Tests PRIVATE 
     Catch2::Catch2WithMain
 )

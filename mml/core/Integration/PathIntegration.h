@@ -149,7 +149,7 @@ namespace MML
 		/// @param curve The parametric curve r(t)
 		/// @param a Starting parameter value
 		/// @param b Ending parameter value
-		/// @return Arc length of the curve from r(a) to r(b)
+		/// @return IntegrationResult with arc length as value (implicitly converts to Real)
 		///
 		/// @par Example:
 		/// @code
@@ -161,10 +161,10 @@ namespace MML
 		/// // length ≈ 2π√(1 + 1/(4π²)) for one turn
 		/// @endcode
 		template<int N>
-		static Real ParametricCurveLength(const IParametricCurve<N>& curve, const Real a, const Real b)
+		static IntegrationResult ParametricCurveLength(const IParametricCurve<N>& curve, const Real a, const Real b)
 		{
 			HelperCurveLen<N> helper(curve);
-			return IntegrateTrap(helper, a, b).value;
+			return IntegrateTrap(helper, a, b);
 		}
 		
 		///////////////////////////////////////////////////////////////////////
@@ -180,7 +180,7 @@ namespace MML
 		/// @param density Linear density function ρ(t) [mass per unit length]
 		/// @param a Starting parameter value
 		/// @param b Ending parameter value
-		/// @return Total mass of the wire
+		/// @return IntegrationResult with total mass as value (implicitly converts to Real)
 		///
 		/// @par Physical interpretation:
 		/// For a wire bent along curve C with density ρ, the mass element
@@ -196,11 +196,11 @@ namespace MML
 		/// Real mass = PathIntegration::ParametricCurveMass<2>(circle, density, 0, 2*PI);
 		/// @endcode
 		template<int N>
-		static Real ParametricCurveMass(const IParametricCurve<N>& curve, const IRealFunction &density, 
-																		const Real a, const Real b)
+		static IntegrationResult ParametricCurveMass(const IParametricCurve<N>& curve, const IRealFunction &density, 
+															const Real a, const Real b)
 		{
       HelperCurveMass<N> helper(curve, density);
-      return IntegrateTrap(helper, a, b).value;
+      return IntegrateTrap(helper, a, b);
 		}
 
 		///////////////////////////////////////////////////////////////////////
@@ -216,7 +216,7 @@ namespace MML
 		/// @param t1 Starting parameter value
 		/// @param t2 Ending parameter value
 		/// @param eps Desired relative precision (default: WorkIntegralPrecision)
-		/// @return Value of the line integral
+		/// @return IntegrationResult with line integral value (implicitly converts to Real)
 		///
 		/// @par Physical interpretation:
 		/// If f represents a scalar quantity (temperature, density, etc.),
@@ -231,11 +231,11 @@ namespace MML
 		/// });
 		/// Real total = PathIntegration::LineIntegral(temperature, helix, 0, 2*PI);
 		/// @endcode
-		static Real LineIntegral(const IScalarFunction<3>& scalarField, const IParametricCurve<3>& curve, 
+		static IntegrationResult LineIntegral(const IScalarFunction<3>& scalarField, const IParametricCurve<3>& curve, 
 														 const Real t1, const Real t2, const Real eps = Defaults::WorkIntegralPrecision)
 		{
 			HelperLineIntegralScalarFunc<3> helper(scalarField, curve);
-			return IntegrateTrap(helper, t1, t2, eps).value;
+			return IntegrateTrap(helper, t1, t2, eps);
 		}
 
 		///////////////////////////////////////////////////////////////////////
@@ -251,7 +251,7 @@ namespace MML
 		/// @param t1 Starting parameter value
 		/// @param t2 Ending parameter value
 		/// @param eps Desired relative precision (default: LineIntegralPrecision)
-		/// @return Value of the work integral
+		/// @return IntegrationResult with work integral value (implicitly converts to Real)
 		///
 		/// @par Physical interpretation:
 		/// This computes the work done by force field F moving a particle
@@ -276,11 +276,11 @@ namespace MML
 		///
 		/// @note For circulation of vector fields, ensure curve is closed:
 		///       r(t1) = r(t2). For conservative fields, result will be ≈ 0.
-		static Real LineIntegral(const IVectorFunction<3>& vectorField, const IParametricCurve<3>& curve, 
+		static IntegrationResult LineIntegral(const IVectorFunction<3>& vectorField, const IParametricCurve<3>& curve, 
 														 const Real t1, const Real t2, const Real eps = Defaults::LineIntegralPrecision)
 		{
 			HelperLineIntegralVectorFunc<3> helper(vectorField, curve);
-			return IntegrateTrap(helper, t1, t2, eps).value;
+			return IntegrateTrap(helper, t1, t2, eps);
 		}
 	};
 

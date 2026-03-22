@@ -708,3 +708,77 @@ namespace MML::Tests::Tools::DataLoaderTests {
 	}
 
 }  // namespace MML::Tests::Tools::DataLoaderTests
+
+namespace MML::Tests::Tools::DataLoaderCSVDateTests {
+
+	using namespace MML;
+	using namespace MML::Data;
+
+	TEST_CASE("DataLoader - CSV from string with DATE/TIME columns", "[dataloader][csv][date]") {
+		SECTION("DATE column via LoadFromCSVString") {
+			std::string csv = "event,date\nLaunch,2025-01-15\nRelease,2025-06-30";
+
+			Dataset ds = LoadFromCSVString(csv, ',', true);
+
+			REQUIRE(ds.NumColumns() == 2);
+			REQUIRE(ds.NumRows() == 2);
+			REQUIRE(ds["date"].type == ColumnType::DATE);
+			REQUIRE(ds["date"].Size() == 2);
+			REQUIRE(ds["date"].dateData[0] == "2025-01-15");
+			REQUIRE(ds["date"].dateData[1] == "2025-06-30");
+		}
+
+		SECTION("DATETIME column via LoadFromCSVString") {
+			std::string csv = "event,timestamp\nStart,2025-01-15T10:30:00\nEnd,2025-01-15T11:45:00";
+
+			Dataset ds = LoadFromCSVString(csv, ',', true);
+
+			REQUIRE(ds.NumColumns() == 2);
+			REQUIRE(ds.NumRows() == 2);
+			REQUIRE(ds["timestamp"].type == ColumnType::DATETIME);
+			REQUIRE(ds["timestamp"].Size() == 2);
+			REQUIRE(ds["timestamp"].dateData[0] == "2025-01-15");
+			REQUIRE(ds["timestamp"].timeData[0] == "10:30:00");
+			REQUIRE(ds["timestamp"].dateData[1] == "2025-01-15");
+			REQUIRE(ds["timestamp"].timeData[1] == "11:45:00");
+		}
+	}
+
+}  // namespace MML::Tests::Tools::DataLoaderCSVDateTests
+
+namespace MML::Tests::Tools::DataLoaderJSONDateTests {
+
+	using namespace MML;
+	using namespace MML::Data;
+
+	TEST_CASE("DataLoader - JSON with DATE/TIME columns", "[dataloader][json][date]") {
+		SECTION("DATE column via LoadFromJSONString") {
+			std::string json = R"([{"event":"Launch","date":"2025-01-15"},{"event":"Release","date":"2025-06-30"}])";
+
+			Dataset ds = LoadFromJSONString(json);
+
+			REQUIRE(ds.NumColumns() == 2);
+			REQUIRE(ds.NumRows() == 2);
+			REQUIRE(ds["date"].type == ColumnType::DATE);
+			REQUIRE(ds["date"].Size() == 2);
+			REQUIRE(ds["date"].dateData[0] == "2025-01-15");
+			REQUIRE(ds["date"].dateData[1] == "2025-06-30");
+		}
+
+		SECTION("DATETIME column via LoadFromJSONString") {
+			std::string json = R"([{"event":"Start","ts":"2025-01-15T10:30:00"},{"event":"End","ts":"2025-01-15T11:45:00"}])";
+
+			Dataset ds = LoadFromJSONString(json);
+
+			REQUIRE(ds.NumColumns() == 2);
+			REQUIRE(ds.NumRows() == 2);
+			REQUIRE(ds["ts"].type == ColumnType::DATETIME);
+			REQUIRE(ds["ts"].Size() == 2);
+			REQUIRE(ds["ts"].dateData[0] == "2025-01-15");
+			REQUIRE(ds["ts"].timeData[0] == "10:30:00");
+			REQUIRE(ds["ts"].dateData[1] == "2025-01-15");
+			REQUIRE(ds["ts"].timeData[1] == "11:45:00");
+		}
+	}
+
+}  // namespace MML::Tests::Tools::DataLoaderJSONDateTests

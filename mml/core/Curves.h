@@ -100,36 +100,33 @@ namespace MML
 		inline Real getCurvaturePolar2D(const IParametricCurve<2>& curve, Real t)
 		{
 			// For polar curve, output is (r, θ)
-			// We need derivatives of r with respect to θ
-			// If θ = t (common case), then dr/dθ = dr/dt
 			Vec2Cart vals = curve(t);
 			Vec2Cart derivs = Derivation::DeriveCurve<2>(curve, t, nullptr);
 			Vec2Cart derivs2 = Derivation::DeriveCurveSec<2>(curve, t, nullptr);
 
-			Real r = vals[0];           // r value
-			Real theta_prime = derivs[1]; // dθ/dt
-			
-			// dr/dθ = (dr/dt) / (dθ/dt)  using chain rule
-			Real r_prime = (std::abs(theta_prime) > 1e-15) ? derivs[0] / theta_prime : 0.0;
-			
-			// d²r/dθ² requires more careful calculation
-			// d²r/dθ² = d/dθ(dr/dθ) = (d/dt(dr/dθ)) / (dθ/dt)
-			Real theta_double_prime = derivs2[1];
-			Real r_double_prime_dt = derivs2[0];  // d²r/dt²
-			
-			// Using quotient rule: d/dt(r'/θ') = (r''·θ' - r'·θ'')/θ'²
-			// Then divide by θ' to get d²r/dθ²
-			Real r_double_prime = 0.0;
-			if (std::abs(theta_prime) > 1e-15) {
-				Real theta_prime_sq = theta_prime * theta_prime;
-				r_double_prime = (r_double_prime_dt * theta_prime - derivs[0] * theta_double_prime) / (theta_prime_sq * theta_prime);
-			}
+			Real r = vals[0];
+			Real theta = vals[1];
+			Real r_dt = derivs[0];        // dr/dt
+			Real theta_dt = derivs[1];    // dθ/dt
+			Real r_dt2 = derivs2[0];      // d²r/dt²
+			Real theta_dt2 = derivs2[1];  // d²θ/dt²
 
-			// κ = |r² + 2r'² - r·r''| / (r² + r'²)^(3/2)
-			Real r_sq = r * r;
-			Real r_prime_sq = r_prime * r_prime;
-			Real numerator = std::abs(r_sq + 2.0 * r_prime_sq - r * r_double_prime);
-			Real denominator = std::pow(r_sq + r_prime_sq, 1.5);
+			// Convert polar derivatives to Cartesian using x = r·cos(θ), y = r·sin(θ)
+			Real ct = std::cos(theta);
+			Real st = std::sin(theta);
+
+			Real x_dt = r_dt * ct - r * st * theta_dt;
+			Real y_dt = r_dt * st + r * ct * theta_dt;
+
+			Real x_dt2 = r_dt2 * ct - 2 * r_dt * st * theta_dt
+				- r * ct * theta_dt * theta_dt - r * st * theta_dt2;
+			Real y_dt2 = r_dt2 * st + 2 * r_dt * ct * theta_dt
+				- r * st * theta_dt * theta_dt + r * ct * theta_dt2;
+
+			// κ = |x'y'' - y'x''| / (x'² + y'²)^(3/2)
+			Real numerator = std::abs(x_dt * y_dt2 - y_dt * x_dt2);
+			Real speed_sq = x_dt * x_dt + y_dt * y_dt;
+			Real denominator = std::pow(speed_sq, 1.5);
 
 			if (denominator < 1e-15)
 				return 0.0;
@@ -442,12 +439,6 @@ namespace MML
 				Vector3Cartesian result = VectorProduct(Vector3Cartesian(r_prime), cross1);
 				return Vec3Cart(result / (r_prime.NormL2() * cross1.NormL2()));
 			}
-			/// @brief Get principal normal unit vector N(t) (same as getNormal)
-			/// @deprecated Use getNormal() instead
-			Vec3Cart getNormalUnit(Real t) const
-			{
-				return getNormal(t);  // Already unit by definition
-			}
 			/// @brief Get binormal unit vector B(t) = T(t) × N(t)
 			Vec3Cart getBinormal(Real t) const
 			{
@@ -517,7 +508,7 @@ namespace MML
 			void getMovingTrihedron(Real t, Vector3Cartesian& tangent, Vector3Cartesian& normal, Vector3Cartesian& binormal)
 			{
 				tangent = Vector3Cartesian(getTangentUnit(t));
-				normal = Vector3Cartesian(getNormalUnit(t));
+				normal = Vector3Cartesian(getNormal(t));
 				binormal = Vector3Cartesian(getBinormal(t));
 			}
 

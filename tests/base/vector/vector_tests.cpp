@@ -258,8 +258,8 @@ namespace MML::Tests::Base::VectorTests
 		Vector<Real> vec_dim_5(5);
 		Vector<Real> vec_dim_4({ REAL(1.0), REAL(0.0), REAL(0.0), REAL(1.0) });
 
-		REQUIRE_THROWS_AS(Vector<Real>::GetUnitVector(-1, 5), VectorDimensionError);
-		REQUIRE_THROWS_AS(Vector<Real>::GetUnitVector(5, 7), VectorDimensionError);
+		REQUIRE_THROWS_AS(Vector<Real>::UnitVector(-1, 5), VectorDimensionError);
+		REQUIRE_THROWS_AS(Vector<Real>::UnitVector(5, 7), VectorDimensionError);
 
 		REQUIRE_THROWS_AS(vec_dim_4.IsEqualTo(vec_dim_5), VectorDimensionError);
 
@@ -911,23 +911,23 @@ namespace MML::Tests::Base::VectorTests
 	}
 
 	///////////////////////////////////////////////////////////////////////////
-	//                    GetUnitVector Additional Tests                     //
+	//                    UnitVector Additional Tests                     //
 	///////////////////////////////////////////////////////////////////////////
 
-	TEST_CASE("Vector::GetUnitVector", "[Vector][factory]")
+	TEST_CASE("Vector::UnitVector", "[Vector][factory]")
 	{
 		TEST_PRECISION_INFO();
-		Vector<Real> e0 = Vector<Real>::GetUnitVector(3, 0);
+		Vector<Real> e0 = Vector<Real>::UnitVector(3, 0);
 		REQUIRE(e0[0] == REAL(1.0));
 		REQUIRE(e0[1] == REAL(0.0));
 		REQUIRE(e0[2] == REAL(0.0));
 		
-		Vector<Real> e1 = Vector<Real>::GetUnitVector(3, 1);
+		Vector<Real> e1 = Vector<Real>::UnitVector(3, 1);
 		REQUIRE(e1[0] == REAL(0.0));
 		REQUIRE(e1[1] == REAL(1.0));
 		REQUIRE(e1[2] == REAL(0.0));
 		
-		Vector<Real> e2 = Vector<Real>::GetUnitVector(3, 2);
+		Vector<Real> e2 = Vector<Real>::UnitVector(3, 2);
 		REQUIRE(e2[0] == REAL(0.0));
 		REQUIRE(e2[1] == REAL(0.0));
 		REQUIRE(e2[2] == REAL(1.0));

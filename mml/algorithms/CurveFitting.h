@@ -17,11 +17,90 @@
 #include "interfaces/IFunction.h"
 #include "base/Vector/Vector.h"
 #include "base/Matrix/Matrix.h"
+#include "core/AlgorithmTypes.h"
 #include "core/LinAlgEqSolvers.h"
 
 #include <functional>
 
 namespace MML {
+
+	///////////////////////////////////////////////////////////////////////////////////////////
+	// CurveFittingConfig - Configuration for curve fitting detailed APIs
+	///////////////////////////////////////////////////////////////////////////////////////////
+	struct CurveFittingConfig : public EvaluationConfigBase {
+		// Inherits: estimate_error, check_finite, exception_policy
+		// estimate_error: when true, goodness-of-fit statistics (R², MSE) are populated
+	};
+
+	///////////////////////////////////////////////////////////////////////////////////////////
+	// CurveFittingResult - Result type for curve fitting detailed APIs
+	///////////////////////////////////////////////////////////////////////////////////////////
+	template<typename Scalar>
+	struct CurveFittingResult : public EvaluationResultBase {
+		/// Fitted coefficients (for linear: [a, b]; for general: [c0, c1, ...])
+		Vector<Scalar> coefficients{};
+
+		/// Residual norm ||y - y_fitted||_2
+		Scalar residual_norm = 0.0;
+
+		/// Coefficient of determination (0 to 1, 1 = perfect fit)
+		Scalar r_squared = 0.0;
+
+		/// Mean squared error (average squared residual)
+		Scalar mean_squared_error = 0.0;
+
+		/// Adjusted R² (adjusted for number of parameters); -1 if not applicable
+		Scalar adjusted_r_squared = -1.0;
+
+		/// Effective rank of the design matrix (from SVD); -1 if not applicable
+		int effective_rank = -1;
+
+		/// Condition number of the design matrix; -1 if not applicable
+		Scalar condition_number = -1.0;
+	};
+
+	///////////////////////////////////////////////////////////////////////////////////////////
+	// CurveFittingDetail - Internal helpers for Detailed API execution
+	///////////////////////////////////////////////////////////////////////////////////////////
+	namespace CurveFittingDetail
+	{
+		/// Execute a curve fitting Detailed operation with timing and exception handling.
+		template<typename ResultType, typename ComputeFn>
+		ResultType ExecuteCurveFittingDetailed(const char* algorithm_name,
+		                                      const CurveFittingConfig& config,
+		                                      ComputeFn&& compute)
+		{
+			auto execute = [&]() {
+				AlgorithmTimer timer;
+
+				ResultType result = MakeEvaluationSuccessResult<ResultType>(algorithm_name);
+
+				compute(result);
+
+				result.elapsed_time_ms = timer.elapsed_ms();
+				return result;
+			};
+
+			if (config.exception_policy == EvaluationExceptionPolicy::Propagate)
+				return execute();
+
+			try {
+				return execute();
+			}
+			catch (const SingularMatrixError& ex) {
+				return MakeEvaluationFailureResult<ResultType>(
+					AlgorithmStatus::SingularMatrix, ex.what(), algorithm_name);
+			}
+			catch (const CurveFittingError& ex) {
+				return MakeEvaluationFailureResult<ResultType>(
+					AlgorithmStatus::InvalidInput, ex.what(), algorithm_name);
+			}
+			catch (const std::exception& ex) {
+				return MakeEvaluationFailureResult<ResultType>(
+					AlgorithmStatus::AlgorithmSpecificFailure, ex.what(), algorithm_name);
+			}
+		}
+	} // namespace CurveFittingDetail
 	///////////////////////////           LINEAR LEAST SQUARES           ///////////////////////////
 
 	// Fits a linear function y = a*x + b to a set of data points using least squares method
@@ -477,6 +556,78 @@ namespace MML {
 			result = coefficients[i] + x * result;
 		}
 		return result;
+	}
+
+
+	///////////////////////////    DETAILED API    ///////////////////////////
+
+	/// Linear least squares fit with full instrumentation.
+	/// Returns CurveFittingResult with coefficients=[a, b], plus R², MSE, timing, and AlgorithmStatus.
+	template<typename Scalar>
+	CurveFittingResult<Scalar> LinearFitDetailed(
+		const Vector<Scalar>& x_data,
+		const Vector<Scalar>& y_data,
+		const CurveFittingConfig& config = {})
+	{
+		return CurveFittingDetail::ExecuteCurveFittingDetailed<CurveFittingResult<Scalar>>(
+			"LinearLeastSquares", config,
+			[&](CurveFittingResult<Scalar>& result) {
+				auto fit = LinearLeastSquaresDetailed(x_data, y_data);
+
+				result.coefficients = Vector<Scalar>(2);
+				result.coefficients[0] = fit.a;
+				result.coefficients[1] = fit.b;
+				result.residual_norm   = fit.residual_norm;
+				result.r_squared       = fit.r_squared;
+				result.mean_squared_error = fit.mean_squared_error;
+			});
+	}
+
+	/// General linear least squares fit with full instrumentation.
+	/// Accepts std::function basis functions.
+	template<typename Scalar>
+	CurveFittingResult<Scalar> GeneralLinearFitDetailed(
+		const Vector<Scalar>& x_data,
+		const Vector<Scalar>& y_data,
+		const Vector<std::function<Scalar(Scalar)>>& basis_functions,
+		const CurveFittingConfig& config = {})
+	{
+		return CurveFittingDetail::ExecuteCurveFittingDetailed<CurveFittingResult<Scalar>>(
+			"GeneralLinearLeastSquares", config,
+			[&](CurveFittingResult<Scalar>& result) {
+				auto fit = GeneralLinearLeastSquares(x_data, y_data, basis_functions);
+
+				result.coefficients       = fit.coefficients;
+				result.residual_norm      = fit.residual_norm;
+				result.r_squared          = fit.r_squared;
+				result.mean_squared_error = fit.mean_squared_error;
+				result.adjusted_r_squared = fit.adjusted_r_squared;
+				result.effective_rank     = fit.effective_rank;
+				result.condition_number   = fit.condition_number;
+			});
+	}
+
+	/// Polynomial fit with full instrumentation.
+	template<typename Scalar>
+	CurveFittingResult<Scalar> PolynomialFitDetailed(
+		const Vector<Scalar>& x_data,
+		const Vector<Scalar>& y_data,
+		int degree,
+		const CurveFittingConfig& config = {})
+	{
+		return CurveFittingDetail::ExecuteCurveFittingDetailed<CurveFittingResult<Scalar>>(
+			"PolynomialFit", config,
+			[&](CurveFittingResult<Scalar>& result) {
+				auto fit = PolynomialFit(x_data, y_data, degree);
+
+				result.coefficients       = fit.coefficients;
+				result.residual_norm      = fit.residual_norm;
+				result.r_squared          = fit.r_squared;
+				result.mean_squared_error = fit.mean_squared_error;
+				result.adjusted_r_squared = fit.adjusted_r_squared;
+				result.effective_rank     = fit.effective_rank;
+				result.condition_number   = fit.condition_number;
+			});
 	}
 
 } // namespace MML

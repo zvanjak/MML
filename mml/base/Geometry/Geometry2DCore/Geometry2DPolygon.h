@@ -336,13 +336,6 @@ namespace MML
 			return wn;
 		}
 
-		/// @brief Legacy alias for Vertices()
-		std::vector<Point2Cartesian> Points() const { return _vertices; }
-		/// @brief Legacy alias for Vertices() (mutable)
-		std::vector<Point2Cartesian>& Points() { return _vertices; }
-		/// @brief Legacy alias for Contains()
-		bool IsInside(const Point2Cartesian& pnt) const { return Contains(pnt); }
-
 		/// @brief Decomposes polygon into triangles
 		/// @details Uses fan triangulation (works correctly for convex polygons)
 		/// @return Vector of triangles covering the polygon

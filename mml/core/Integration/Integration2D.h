@@ -100,6 +100,25 @@ namespace MML
 				return IntegrateTrap(f1, x1, x2);
 		}
 	}
+
+	/******************************************************************************/
+	/*****              Detailed API - 2D Integration                         *****/
+	/******************************************************************************/
+
+	/// 2D integration with full diagnostics
+	static IntegrationDetailedResult Integrate2DDetailed(
+		const IScalarFunction<2>& func, IntegrationMethod method,
+		const Real x1, const Real x2,
+		Real y1(Real), Real y2(Real),
+		const IntegrationConfig& config = {})
+	{
+		return IntegrationDetail::ExecuteIntegrationDetailed<IntegrationDetailedResult>(
+			"Integrate2D", config,
+			[&](IntegrationDetailedResult& result) {
+				auto r = Integrate2D(func, method, x1, x2, y1, y2);
+				IntegrationDetail::PopulateFromSimple(result, r, "Integrate2D");
+			});
+	}
 }
 
 #endif // MML_INTEGRATION_2D_H

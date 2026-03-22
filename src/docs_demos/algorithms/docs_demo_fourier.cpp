@@ -4,12 +4,12 @@
 #include "MMLBase.h"
 
 #include "base/Vector/Vector.h"
-#include "DFT.h"
-#include "FFT.h"
-#include "RealFFT.h"
-#include "Spectrum.h"
-#include "Convolution.h"
-#include "Windowing.h"
+#include "algorithms/Fourier.h"
+#include "algorithms/FourierRealFFT.h"
+// Spectrum.h and Convolution.h were never migrated from mml_packages - functionality not yet available in core
+// #include "Spectrum.h"
+// #include "Convolution.h"
+#include "algorithms/FourierWindowing.h"
 #endif
 
 using namespace MML;
@@ -263,6 +263,9 @@ void Docs_Demo_Fourier_Windowing()
 ///                    CONVOLUTION                                                      ///
 ///////////////////////////////////////////////////////////////////////////////////////////
 
+// TODO: Convolution class not yet migrated from mml_packages to core
+// Uncomment when Convolution.h is available in mml/algorithms/
+/*
 void Docs_Demo_Fourier_Convolution()
 {
 	std::cout << "\n==========================================================================\n";
@@ -291,6 +294,7 @@ void Docs_Demo_Fourier_Convolution()
 	
 	std::cout << "\nNote: Output length = len(signal) + len(kernel) - 1\n";
 }
+*/
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 ///                         MAIN DEMO FUNCTION                                          ///
@@ -308,7 +312,7 @@ void Docs_Demo_Fourier()
 	Docs_Demo_Fourier_RealFFT();
 	Docs_Demo_Fourier_Spectrum();
 	Docs_Demo_Fourier_Windowing();
-	Docs_Demo_Fourier_Convolution();
+	// Docs_Demo_Fourier_Convolution();  // TODO: Convolution class not yet migrated from mml_packages
 	
 	std::cout << "\n=== All Fourier Transform Demos Complete ===\n";
 }

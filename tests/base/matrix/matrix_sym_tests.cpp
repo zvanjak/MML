@@ -281,16 +281,6 @@ namespace MML::Tests::Base::MatrixSymTests
         REQUIRE_THROWS_AS(a.at(0, 3), MatrixAccessBoundsError);
     }
 
-    TEST_CASE("MatrixSym_ElemAt_bounds_checking", "[MatrixSym][access]")
-    {
-        MatrixSym<Real> a(2, { REAL(1.0), REAL(2.0), REAL(3.0) });
-
-        REQUIRE(REAL(1.0) == a.ElemAt(0, 0));
-        REQUIRE(REAL(2.0) == a.ElemAt(0, 1));
-
-        REQUIRE_THROWS_AS(a.ElemAt(2, 0), MatrixAccessBoundsError);
-    }
-
     TEST_CASE("MatrixSym_data_accessor", "[MatrixSym][access]")
     {
         MatrixSym<Real> a(2, { REAL(1.0), REAL(2.0), REAL(3.0) });

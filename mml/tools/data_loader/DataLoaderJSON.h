@@ -229,6 +229,35 @@ namespace MML {
 									if (i == 0) col.boolData.resize(values.size());
 									col.boolData[i] = parsed ? boolVal : false;
 									break;
+								case ColumnType::STRING:
+									if (i == 0) col.stringData.resize(values.size());
+									col.stringData[i] = parsed ? strVal : "";
+									break;
+								case ColumnType::DATE:
+									if (i == 0) col.dateData.resize(values.size());
+									col.dateData[i] = parsed ? strVal : "";
+									break;
+								case ColumnType::TIME:
+									if (i == 0) col.timeData.resize(values.size());
+									col.timeData[i] = parsed ? strVal : "";
+									break;
+								case ColumnType::DATETIME:
+									if (i == 0) {
+										col.dateData.resize(values.size());
+										col.timeData.resize(values.size());
+									}
+									if (parsed && !strVal.empty()) {
+										size_t sep = strVal.find_first_of("T ");
+										if (sep != std::string::npos) {
+											col.dateData[i] = strVal.substr(0, sep);
+											col.timeData[i] = strVal.substr(sep + 1);
+										}
+										else {
+											col.dateData[i] = strVal;
+											col.timeData[i] = "";
+										}
+									}
+									break;
 								default:
 									if (i == 0) col.stringData.resize(values.size());
 									col.stringData[i] = parsed ? strVal : "";

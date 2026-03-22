@@ -326,13 +326,13 @@ namespace MML
 		}
 
 		/// @brief Check if quaternion is unit (within tolerance)
-		bool IsUnit(Real tolerance = PrecisionValues<Real>::DefaultTolerance) const
+		bool isUnit(Real tolerance = PrecisionValues<Real>::DefaultTolerance) const
 		{
 			return std::abs(NormSquared() - 1.0) < tolerance;
 		}
 
 		/// @brief Check if quaternion is identity
-		bool IsIdentity(Real tolerance = PrecisionValues<Real>::DefaultTolerance) const
+		bool isIdentity(Real tolerance = PrecisionValues<Real>::DefaultTolerance) const
 		{
 			return std::abs(_data[0] - 1.0) < tolerance &&
 						 std::abs(_data[1]) < tolerance &&
@@ -372,7 +372,7 @@ namespace MML
 		/// @return Unit vector along rotation axis
 		Vec3Cart GetRotationAxis() const
 		{
-			if (IsIdentity())
+			if (isIdentity())
 				return Vec3Cart(0, 0, 1);
 			
 			Vec3Cart axis(_data[1], _data[2], _data[3]);
@@ -547,6 +547,12 @@ namespace MML
 			// Perform slerp
 			Real theta = std::acos(dot);
 			Real sinTheta = std::sin(theta);
+
+			// Guard against near-zero sinTheta for numerical stability
+			if (std::abs(sinTheta) < Real{1e-6})
+			{
+				return Lerp(q1, q2_adjusted, t).Normalized();
+			}
 			
 			Real w1 = std::sin((1.0 - t) * theta) / sinTheta;
 			Real w2 = std::sin(t * theta) / sinTheta;
@@ -570,7 +576,7 @@ namespace MML
 		}
 
 		/// @brief Check approximate equality within tolerance
-		bool IsApprox(const Quaternion& q, Real tolerance = PrecisionValues<Real>::DefaultTolerance) const
+		bool isApprox(const Quaternion& q, Real tolerance = PrecisionValues<Real>::DefaultTolerance) const
 		{
 			return std::abs(_data[0] - q._data[0]) < tolerance &&
 						 std::abs(_data[1] - q._data[1]) < tolerance &&

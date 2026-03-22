@@ -313,3 +313,70 @@ TEST_CASE("Gauss-Kronrod edge cases", "[gauss-kronrod][integration]")
 		REQUIRE(result.value > 1.0);  // Sanity check
 	}
 }
+
+///////////////////////////////////////////////////////////////////////////////////////////
+///                        DETAILED API TESTS                                           ///
+///////////////////////////////////////////////////////////////////////////////////////////
+
+TEST_CASE("IntegrateGK15Detailed - basic success", "[gauss-kronrod][Detailed]")
+{
+	auto f = [](Real x) { return x * x; };
+	auto result = IntegrateGK15Detailed(f, 0.0, 1.0);
+
+	REQUIRE(result.IsSuccess());
+	REQUIRE(result.algorithm_name == "IntegrateGK15");
+	REQUIRE(result.elapsed_time_ms >= 0.0);
+	REQUIRE(result.converged);
+	REQUIRE(result.value == Approx(1.0/3.0).epsilon(1e-14));
+	REQUIRE(result.function_evaluations > 0);
+}
+
+TEST_CASE("IntegrateGK21Detailed - basic success", "[gauss-kronrod][Detailed]")
+{
+	auto f = [](Real x) { return std::sin(x); };
+	auto result = IntegrateGK21Detailed(f, 0.0, Constants::PI);
+
+	REQUIRE(result.IsSuccess());
+	REQUIRE(result.algorithm_name == "IntegrateGK21");
+	REQUIRE(result.value == Approx(2.0).epsilon(1e-15));
+}
+
+TEST_CASE("IntegrateGK31Detailed - basic success", "[gauss-kronrod][Detailed]")
+{
+	auto f = [](Real x) { return std::cos(x) * std::cos(x); };
+	auto result = IntegrateGK31Detailed(f, 0.0, Constants::PI);
+
+	REQUIRE(result.IsSuccess());
+	REQUIRE(result.algorithm_name == "IntegrateGK31");
+	REQUIRE(result.value == Approx(Constants::PI / 2.0).epsilon(1e-14));
+}
+
+TEST_CASE("IntegrateGKAdaptiveDetailed - peaked function", "[gauss-kronrod][Detailed]")
+{
+	auto f = [](Real x) {
+		Real t = x - 0.5;
+		return 1.0 / (1.0 + t * t / 0.001);
+	};
+
+	auto result = IntegrateGKAdaptiveDetailed(f, 0.0, 1.0);
+
+	REQUIRE(result.IsSuccess());
+	REQUIRE(result.algorithm_name == "IntegrateGKAdaptive");
+	REQUIRE(result.converged);
+	REQUIRE(result.function_evaluations > 15);  // Must subdivide
+
+	Real sqrtEps = std::sqrt(0.001);
+	Real expected = sqrtEps * 2.0 * std::atan(0.5 / sqrtEps);
+	REQUIRE(result.value == Approx(expected).epsilon(1e-6));
+}
+
+TEST_CASE("IntegrateGKAdaptiveDetailed - values match simple API", "[gauss-kronrod][Detailed]")
+{
+	auto f = [](Real x) { return std::exp(-x * x); };
+
+	auto simple = IntegrateGKAdaptive(f, 0.0, 2.0, 1e-10, 1e-10, 50, GKRule::GK15);
+	auto detailed = IntegrateGKAdaptiveDetailed(f, 0.0, 2.0);
+
+	REQUIRE(detailed.value == Approx(simple.value).epsilon(1e-14));
+	REQUIRE(detailed.function_evaluations == simple.function_evals);
+}

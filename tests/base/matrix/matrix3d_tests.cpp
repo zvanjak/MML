@@ -20,28 +20,28 @@ namespace MML::Tests::Base::Matrix3DTests
 	TEST_CASE("Matrix3D::DefaultConstruction", "[Matrix3D]") {
 		Matrix3D<double> m;
 		
-		REQUIRE(m.Dim1() == 0);
-		REQUIRE(m.Dim2() == 0);
-		REQUIRE(m.Dim3() == 0);
-		REQUIRE(m.Size() == 0);
-		REQUIRE(m.IsEmpty());
+		REQUIRE(m.dim1() == 0);
+		REQUIRE(m.dim2() == 0);
+		REQUIRE(m.dim3() == 0);
+		REQUIRE(m.size() == 0);
+		REQUIRE(m.isEmpty());
 	}
 
 	TEST_CASE("Matrix3D::DimensionConstruction", "[Matrix3D]") {
 		Matrix3D<double> m(3, 4, 5);
 		
-		REQUIRE(m.Dim1() == 3);
-		REQUIRE(m.Dim2() == 4);
-		REQUIRE(m.Dim3() == 5);
-		REQUIRE(m.Size() == 60);
-		REQUIRE_FALSE(m.IsEmpty());
+		REQUIRE(m.dim1() == 3);
+		REQUIRE(m.dim2() == 4);
+		REQUIRE(m.dim3() == 5);
+		REQUIRE(m.size() == 60);
+		REQUIRE_FALSE(m.isEmpty());
 	}
 
 	TEST_CASE("Matrix3D::InitValueConstruction", "[Matrix3D]") {
 		Matrix3D<double> m(2, 3, 4, 7.5);
 		
-		REQUIRE(m.Dim1() == 2);
-		REQUIRE(m.Size() == 24);
+		REQUIRE(m.dim1() == 2);
+		REQUIRE(m.size() == 24);
 		
 		// Check all values are initialized
 		for (int i = 0; i < 2; ++i)
@@ -68,9 +68,9 @@ namespace MML::Tests::Base::Matrix3DTests
 		
 		Matrix3D<double> copy(original);
 		
-		REQUIRE(copy.Dim1() == 2);
-		REQUIRE(copy.Dim2() == 3);
-		REQUIRE(copy.Dim3() == 4);
+		REQUIRE(copy.dim1() == 2);
+		REQUIRE(copy.dim2() == 3);
+		REQUIRE(copy.dim3() == 4);
 		REQUIRE(copy(0, 0, 0) == 99.0);
 		REQUIRE(copy(1, 2, 3) == 77.0);
 		REQUIRE(copy(0, 1, 1) == 1.5);
@@ -86,14 +86,14 @@ namespace MML::Tests::Base::Matrix3DTests
 		
 		target = original;
 		
-		REQUIRE(target.Dim1() == 2);
-		REQUIRE(target.Dim2() == 2);
-		REQUIRE(target.Dim3() == 2);
+		REQUIRE(target.dim1() == 2);
+		REQUIRE(target.dim2() == 2);
+		REQUIRE(target.dim3() == 2);
 		REQUIRE(target(0, 0, 0) == 3.14);
 		
 		// Self-assignment should be safe
 		target = target;
-		REQUIRE(target.Dim1() == 2);
+		REQUIRE(target.dim1() == 2);
 	}
 
 	TEST_CASE("Matrix3D::MoveConstruction", "[Matrix3D]") {
@@ -102,9 +102,9 @@ namespace MML::Tests::Base::Matrix3DTests
 		
 		Matrix3D<double> moved(std::move(original));
 		
-		REQUIRE(moved.Dim1() == 3);
+		REQUIRE(moved.dim1() == 3);
 		REQUIRE(moved(1, 1, 1) == 42.0);
-		REQUIRE(original.IsEmpty());  // Original should be empty after move
+		REQUIRE(original.isEmpty());  // Original should be empty after move
 	}
 
 	TEST_CASE("Matrix3D::MoveAssignment", "[Matrix3D]") {
@@ -113,9 +113,9 @@ namespace MML::Tests::Base::Matrix3DTests
 		
 		target = std::move(original);
 		
-		REQUIRE(target.Dim1() == 2);
+		REQUIRE(target.dim1() == 2);
 		REQUIRE(target(0, 0, 0) == 1.0);
-		REQUIRE(original.IsEmpty());
+		REQUIRE(original.isEmpty());
 	}
 
 	// ============================================================================
@@ -170,7 +170,7 @@ namespace MML::Tests::Base::Matrix3DTests
 		m(0, 0, 1) = 2.0;
 		m(1, 1, 1) = 8.0;
 		
-		double* data = m.Data();
+		double* data = m.data();
 		REQUIRE(data != nullptr);
 		
 		// Data should be contiguous
@@ -209,10 +209,10 @@ namespace MML::Tests::Base::Matrix3DTests
 		
 		m.Resize(3, 4, 5);
 		
-		REQUIRE(m.Dim1() == 3);
-		REQUIRE(m.Dim2() == 4);
-		REQUIRE(m.Dim3() == 5);
-		REQUIRE(m.Size() == 60);
+		REQUIRE(m.dim1() == 3);
+		REQUIRE(m.dim2() == 4);
+		REQUIRE(m.dim3() == 5);
+		REQUIRE(m.size() == 60);
 		
 		// Resize with init value
 		m.Resize(2, 2, 2, 99.0);
@@ -222,12 +222,12 @@ namespace MML::Tests::Base::Matrix3DTests
 
 	TEST_CASE("Matrix3D::ResizeSameDimensions", "[Matrix3D]") {
 		Matrix3D<double> m(3, 3, 3, 5.0);
-		double* originalData = m.Data();
+		double* originalData = m.data();
 		
 		// Resizing to same dimensions should be a no-op
 		m.Resize(3, 3, 3);
 		
-		REQUIRE(m.Data() == originalData);
+		REQUIRE(m.data() == originalData);
 		REQUIRE(m(0, 0, 0) == 5.0);
 	}
 
@@ -373,7 +373,7 @@ namespace MML::Tests::Base::Matrix3DTests
 					m(i, j, k) = val++;
 		
 		// Verify data is contiguous in memory
-		int* data = m.Data();
+		int* data = m.data();
 		for (int i = 0; i < 24; ++i)
 			REQUIRE(data[i] == i);
 	}

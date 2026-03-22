@@ -523,7 +523,11 @@ namespace MML
 		/// @return Angle in radians [0, p]
 		Real AngleToVector(const Vector3Cartesian& b)
 		{
-			Real cos_phi = this->ScalarProduct(b) / (NormL2() * b.NormL2());
+			Real normA = NormL2(), normB = b.NormL2();
+			if (normA < std::numeric_limits<Real>::epsilon() ||
+			    normB < std::numeric_limits<Real>::epsilon())
+				throw DivisionByZeroError("AngleToVector: cannot compute angle with zero vector");
+			Real cos_phi = this->ScalarProduct(b) / (normA * normB);
 			// Clamp to [-1, 1] to prevent NaN from floating-point rounding errors
 			cos_phi = std::max(Real{-1.0}, std::min(Real{1.0}, cos_phi));
 			return std::acos(cos_phi);
@@ -859,11 +863,36 @@ namespace MML
 			return Vector3Cylindrical(b.R() * a, b.Phi(), b.Z() * a);
 		}
 
-		/// @brief Returns unit vector at given position (normalizes in local basis).
+		/// @brief Returns unit vector at given position (local cylindrical basis result).
 		/// @param pos Position in cylindrical coordinates
 		Vector3Cylindrical GetAsUnitVectorAtPos(const Vector3Cylindrical& pos) const
 		{
-			return Vector3Cylindrical{ R(), Phi() / pos.R(), Z() };
+			// Step 1: Convert *this to Cartesian
+			Real x = R() * std::cos(Phi());
+			Real y = R() * std::sin(Phi());
+			Real z = Z();
+
+			// Step 2: Normalize in Cartesian
+			Real norm = std::sqrt(x * x + y * y + z * z);
+			if (norm == REAL(0.0))
+				return Vector3Cylindrical(REAL(0.0), REAL(0.0), REAL(0.0));
+
+			x /= norm;
+			y /= norm;
+			z /= norm;
+
+			// Step 3: Compute local cylindrical basis at pos and project
+			Real cp = std::cos(pos.Phi());
+			Real sp = std::sin(pos.Phi());
+
+			// ê_R   = (cos(φ_pos), sin(φ_pos), 0)
+			// ê_Phi = (-sin(φ_pos), cos(φ_pos), 0)
+			// ê_Z   = (0, 0, 1)
+			Real v_R = x * cp + y * sp;
+			Real v_Phi = -x * sp + y * cp;
+			Real v_Z = z;
+
+			return Vector3Cylindrical(v_R, v_Phi, v_Z);
 		}
 	};
 

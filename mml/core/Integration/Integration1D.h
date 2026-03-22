@@ -92,13 +92,15 @@ namespace MML
 
 		TrapIntegrator t(func, a, b);
 
+		const Real abs_tol = eps * std::numeric_limits<Real>::epsilon();
+
 		for (j = 0; j < Defaults::TrapezoidIntegrationMaxSteps; j++)
 		{
 			currSum = t.next();
 
 			if (j > 5) {
 				Real error = std::abs(currSum - oldSum);
-				if ( error < eps * std::abs(oldSum) || (currSum == 0.0 && oldSum == 0.0) )
+				if ( error < eps * std::abs(oldSum) + abs_tol )
 				{
 					return IntegrationResult(currSum, error, j, true);
 				}
@@ -125,6 +127,8 @@ namespace MML
 
 		TrapIntegrator t(func, a, b);
 
+		const Real abs_tol = eps * std::numeric_limits<Real>::epsilon();
+
 		for (j = 0; j < Defaults::SimpsonIntegrationMaxSteps; j++)
 		{
 			st = t.next();
@@ -133,7 +137,7 @@ namespace MML
 
 			if (j > 5) {
 				Real error = std::abs(currSum - oldSum);
-				if (error < eps * std::abs(oldSum) || (currSum == 0.0 && oldSum == 0.0))
+				if (error < eps * std::abs(oldSum) + abs_tol)
 				{
 					return IntegrationResult(currSum, error, j, true);
 				}
@@ -266,8 +270,9 @@ namespace MML
 					ss += dss;
 				}
 				
-				// Check for convergence
-				if (std::abs(dss) <= eps * std::abs(ss) || (ss == 0.0 && dss == 0.0))
+				// Check for convergence (with absolute tolerance floor for near-zero integrals)
+				const Real abs_tol = eps * std::numeric_limits<Real>::epsilon();
+				if (std::abs(dss) <= eps * std::abs(ss) + abs_tol)
 				{
 					return IntegrationResult(ss, std::abs(dss), j + 1, true);
 				}
@@ -446,6 +451,139 @@ namespace MML
 			return IntegrateGK21(func, a, b);
 		else
 			return IntegrateTrap(func, a, b, eps);
+	}
+
+	/******************************************************************************/
+	/*****              Detailed API - 1D Integration                         *****/
+	/******************************************************************************/
+
+	/// Helper to populate IntegrationDetailedResult from IntegrationResult and set
+	/// failure status when the underlying method did not converge.
+	namespace IntegrationDetail
+	{
+		inline void PopulateFromSimple(IntegrationDetailedResult& out,
+		                               const IntegrationResult& r,
+		                               const char* algorithm_name)
+		{
+			out.value = r.value;
+			out.error_estimate = r.error_estimate;
+			out.iterations = r.iterations;
+			out.converged = r.converged;
+			if (!r.converged) {
+				out.status = AlgorithmStatus::MaxIterationsExceeded;
+				out.error_message = std::string(algorithm_name) +
+					" did not converge after " + std::to_string(r.iterations) + " iterations";
+			}
+		}
+	} // namespace IntegrationDetail
+
+	/// Trapezoidal integration with full diagnostics
+	static IntegrationDetailedResult IntegrateTrapDetailed(
+		const IRealFunction& func, Real a, Real b,
+		const IntegrationConfig& config = {},
+		const Real eps = Defaults::TrapezoidIntegrationEPS)
+	{
+		return IntegrationDetail::ExecuteIntegrationDetailed<IntegrationDetailedResult>(
+			"IntegrateTrap", config,
+			[&](IntegrationDetailedResult& result) {
+				auto r = IntegrateTrap(func, a, b, eps);
+				IntegrationDetail::PopulateFromSimple(result, r, "IntegrateTrap");
+			});
+	}
+
+	/// Simpson integration with full diagnostics
+	static IntegrationDetailedResult IntegrateSimpsonDetailed(
+		const IRealFunction& func, Real a, Real b,
+		const IntegrationConfig& config = {},
+		const Real eps = Defaults::SimpsonIntegrationEPS)
+	{
+		return IntegrationDetail::ExecuteIntegrationDetailed<IntegrationDetailedResult>(
+			"IntegrateSimpson", config,
+			[&](IntegrationDetailedResult& result) {
+				auto r = IntegrateSimpson(func, a, b, eps);
+				IntegrationDetail::PopulateFromSimple(result, r, "IntegrateSimpson");
+			});
+	}
+
+	/// Romberg integration with full diagnostics
+	static IntegrationDetailedResult IntegrateRombergDetailed(
+		const IRealFunction& func, Real a, Real b,
+		const IntegrationConfig& config = {},
+		const Real eps = Defaults::RombergIntegrationEPS)
+	{
+		return IntegrationDetail::ExecuteIntegrationDetailed<IntegrationDetailedResult>(
+			"IntegrateRomberg", config,
+			[&](IntegrationDetailedResult& result) {
+				auto r = IntegrateRomberg(func, a, b, eps);
+				IntegrationDetail::PopulateFromSimple(result, r, "IntegrateRomberg");
+			});
+	}
+
+	/// Gauss10 quadrature with full diagnostics
+	static IntegrationDetailedResult IntegrateGauss10Detailed(
+		const IRealFunction& func, Real a, Real b,
+		const IntegrationConfig& config = {})
+	{
+		return IntegrationDetail::ExecuteIntegrationDetailed<IntegrationDetailedResult>(
+			"IntegrateGauss10", config,
+			[&](IntegrationDetailedResult& result) {
+				auto r = IntegrateGauss10(func, a, b);
+				IntegrationDetail::PopulateFromSimple(result, r, "IntegrateGauss10");
+				result.function_evaluations = 10;
+			});
+	}
+
+	/// GK21 integration with full diagnostics
+	static IntegrationDetailedResult IntegrateGK21Detailed(
+		const IRealFunction& func, Real a, Real b,
+		const IntegrationConfig& config = {})
+	{
+		return IntegrationDetail::ExecuteIntegrationDetailed<IntegrationDetailedResult>(
+			"IntegrateGK21", config,
+			[&](IntegrationDetailedResult& result) {
+				auto r = IntegrateGK21(func, a, b);
+				IntegrationDetail::PopulateFromSimple(result, r, "IntegrateGK21");
+				result.function_evaluations = 21;
+			});
+	}
+
+	/// Unified integration with runtime method selection and full diagnostics
+	static IntegrationDetailedResult IntegrateDetailed(
+		const IRealFunction& func, Real a, Real b,
+		IntegrationMethod method = TRAP,
+		const IntegrationConfig& config = {},
+		Real eps = Defaults::TrapezoidIntegrationEPS)
+	{
+		switch (method)
+		{
+		case TRAP:    return IntegrateTrapDetailed(func, a, b, config, eps);
+		case SIMPSON: return IntegrateSimpsonDetailed(func, a, b, config, eps);
+		case ROMBERG: return IntegrateRombergDetailed(func, a, b, config, eps);
+		case GAUSS10: return IntegrateGauss10Detailed(func, a, b, config);
+		case GAUSS10KRONROD21: return IntegrateGK21Detailed(func, a, b, config);
+		default:      return IntegrateTrapDetailed(func, a, b, config, eps);
+		}
+	}
+
+	/// Template-based integration with compile-time method selection and full diagnostics
+	template<IntegrationMethod Method = TRAP>
+	static IntegrationDetailedResult IntegrateDetailed(
+		const IRealFunction& func, Real a, Real b,
+		const IntegrationConfig& config = {},
+		Real eps = Defaults::TrapezoidIntegrationEPS)
+	{
+		if constexpr (Method == TRAP)
+			return IntegrateTrapDetailed(func, a, b, config, eps);
+		else if constexpr (Method == SIMPSON)
+			return IntegrateSimpsonDetailed(func, a, b, config, eps);
+		else if constexpr (Method == ROMBERG)
+			return IntegrateRombergDetailed(func, a, b, config, eps);
+		else if constexpr (Method == GAUSS10)
+			return IntegrateGauss10Detailed(func, a, b, config);
+		else if constexpr (Method == GAUSS10KRONROD21)
+			return IntegrateGK21Detailed(func, a, b, config);
+		else
+			return IntegrateTrapDetailed(func, a, b, config, eps);
 	}
 }
 
