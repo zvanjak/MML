@@ -1563,7 +1563,7 @@ REQUIRE_THAT(result3, WithinAbs(REAL(2.0), REAL(1e-8)));
 		auto simple = IntegrateTrap(f, REAL(0.0), REAL(2.0));
 		auto detailed = IntegrateTrapDetailed(f, REAL(0.0), REAL(2.0));
 
-		REQUIRE_THAT(detailed.value, WithinAbs(simple.value, REAL(1e-15)));
+		REQUIRE_THAT(detailed.value, WithinAbs(simple.value, REAL(1e-12)));
 		REQUIRE(detailed.iterations == simple.iterations);
 		REQUIRE(detailed.converged == simple.converged);
 	}

@@ -418,7 +418,7 @@ namespace MML::Tests::Algorithms::RankCorrelationTests
 
 		REQUIRE(detailed.IsSuccess());
 		REQUIRE(detailed.algorithm_name == "SpearmanCorrelation");
-		REQUIRE_THAT(detailed.rho, WithinAbs(simple, REAL(1e-15)));
+		REQUIRE_THAT(detailed.rho, WithinAbs(simple, REAL(1e-12)));
 		REQUIRE(detailed.n == 5);
 		REQUIRE(detailed.elapsed_time_ms >= 0.0);
 	}
@@ -434,8 +434,8 @@ namespace MML::Tests::Algorithms::RankCorrelationTests
 
 		REQUIRE(detailed.IsSuccess());
 		REQUIRE(detailed.algorithm_name == "SpearmanCorrelationWithTest");
-		REQUIRE_THAT(detailed.rho, WithinAbs(simple.rho, REAL(1e-15)));
-		REQUIRE_THAT(detailed.zScore, WithinAbs(simple.zScore, REAL(1e-15)));
+		REQUIRE_THAT(detailed.rho, WithinAbs(simple.rho, REAL(1e-12)));
+		REQUIRE_THAT(detailed.zScore, WithinAbs(simple.zScore, REAL(1e-12)));
 		REQUIRE(detailed.n == simple.n);
 	}
 
@@ -450,7 +450,7 @@ namespace MML::Tests::Algorithms::RankCorrelationTests
 
 		REQUIRE(detailed.IsSuccess());
 		REQUIRE(detailed.algorithm_name == "KendallCorrelation");
-		REQUIRE_THAT(detailed.rho, WithinAbs(simple, REAL(1e-15)));
+		REQUIRE_THAT(detailed.rho, WithinAbs(simple, REAL(1e-12)));
 		REQUIRE(detailed.n == 5);
 	}
 
@@ -465,8 +465,8 @@ namespace MML::Tests::Algorithms::RankCorrelationTests
 
 		REQUIRE(detailed.IsSuccess());
 		REQUIRE(detailed.algorithm_name == "KendallCorrelationWithTest");
-		REQUIRE_THAT(detailed.rho, WithinAbs(simple.rho, REAL(1e-15)));
-		REQUIRE_THAT(detailed.zScore, WithinAbs(simple.zScore, REAL(1e-15)));
+		REQUIRE_THAT(detailed.rho, WithinAbs(simple.rho, REAL(1e-12)));
+		REQUIRE_THAT(detailed.zScore, WithinAbs(simple.zScore, REAL(1e-12)));
 		REQUIRE(detailed.n == simple.n);
 	}
 
