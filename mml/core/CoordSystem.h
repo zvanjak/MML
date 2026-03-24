@@ -362,6 +362,7 @@ namespace MML
 		{
 			_period = period;
 			_axis = axis;
+			_angle_at_t0 = 0;
 		}
 
 		/// @brief Get origin position (fixed at parent origin)
@@ -372,16 +373,36 @@ namespace MML
 			return Vector3Cartesian({ 0,0,0 });
 		}
 
-		/// @brief Transform rotating cylindrical position to parent Cartesian coordinates
-		/// @param pos Position in cylindrical coordinates (r, φ, z)
+		/// @brief Transform local Cartesian position to parent frame via rotation
+		/// @param pos Position in rotating frame's Cartesian coordinates
 		/// @param t Time parameter (determines rotation angle)
-		/// @return Position in parent Cartesian frame
+		/// @return Position in parent Cartesian frame (Rodrigues' rotation)
 		virtual Vector3Cartesian GetLocalPosInParentFrameAtTime(const VectorN<Real, 3> &pos, Real t) const override
 		{
-			
-			Real angle = fmod(2 * Constants::PI / _period * t, 2 * Constants::PI);
+			Real angle = _angle_at_t0 + fmod(2 * Constants::PI / _period * t, 2 * Constants::PI);
 
-			return VectorN<Real, 3>({ _axis[0] * cos(angle), _axis[1] * sin(angle), pos[2] });
+			// Rodrigues' rotation formula: v' = v*cos(a) + (k x v)*sin(a) + k*(k.v)*(1-cos(a))
+			Real axisNorm = std::sqrt(_axis[0]*_axis[0] + _axis[1]*_axis[1] + _axis[2]*_axis[2]);
+			Real kx = _axis[0] / axisNorm;
+			Real ky = _axis[1] / axisNorm;
+			Real kz = _axis[2] / axisNorm;
+
+			Real cosA = std::cos(angle);
+			Real sinA = std::sin(angle);
+
+			// k cross pos
+			Real cx = ky * pos[2] - kz * pos[1];
+			Real cy = kz * pos[0] - kx * pos[2];
+			Real cz = kx * pos[1] - ky * pos[0];
+
+			// k dot pos
+			Real dot = kx * pos[0] + ky * pos[1] + kz * pos[2];
+
+			return VectorN<Real, 3>({
+				pos[0] * cosA + cx * sinA + kx * dot * (1 - cosA),
+				pos[1] * cosA + cy * sinA + ky * dot * (1 - cosA),
+				pos[2] * cosA + cz * sinA + kz * dot * (1 - cosA)
+			});
 		}
 	};
 
@@ -445,12 +466,12 @@ namespace MML
 			Real longitudeDeg = localPos[1];
 			Real h = localPos[2];
 
-			// formirati sferni vektor, i vidjeti koliko se zarotira za T
-		Vector3Spherical spherePos({Real(_radius + h), Real(Utils::DegToRad(90 - latitudeDeg)), Real(Utils::DegToRad(longitudeDeg)) });
-			// transf u Cartesian
+			// Convert (lat, lon, alt) to spherical, then to Cartesian
+			Vector3Spherical spherePos({Real(_radius + h), Real(Utils::DegToRad(90 - latitudeDeg)), Real(Utils::DegToRad(longitudeDeg)) });
 			Vector3Cartesian cartPos = CoordTransfSpherToCart.transf(spherePos);
 
-			return cartPos;
+			// Apply rotation via parent's Rodrigues' formula
+			return RotatingFrame3D::GetLocalPosInParentFrameAtTime(cartPos, t);
 		}
 	};
 
@@ -509,13 +530,7 @@ namespace MML
 
 			return ret;
 		}
-	};
-
-	// da li mi treba Local3D koji za parenta ima HardSphereRotatingFrameToSpherical?
-	// lokalni sustav, baziran na TOCNO ODREDJENOJ TOCKI SFERE, s x, y i z
-	// za njega NE TREBA davati lat, long i h jer vec ima, a x, y i z transformira lokalno
-
- 
+	}; 
 }
 
 #endif

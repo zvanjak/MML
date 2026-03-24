@@ -207,18 +207,19 @@ namespace MML
 		/// @param line The line
 		/// @param out_inter_pnt Output: intersection point if exists
 		/// @return false if line is parallel to plane
-		bool IntersectionWithLine(const Line3D& line, Pnt3Cart& out_inter_pnt) const
+		bool IntersectionWithLine(const Line3D& line, Pnt3Cart& out_inter_pnt, Real eps = Defaults::Line3DIsParallelTolerance) const
 		{
 			Vec3Cart line_dir = line.Direction();
 			Vec3Cart plane_normal = Normal();
 
 			// Check if the line is parallel to the plane
-			if (ScalarProduct(line_dir, plane_normal) == 0) {
+			Real dot = ScalarProduct(line_dir, plane_normal);
+			if (std::abs(dot) < eps) {
 				return false;
 			}
 
 			// Calculate the distance between the point on the line and the plane
-			double t = -(plane_normal * line.StartPoint() + D()) / ScalarProduct(line_dir, plane_normal);
+			double t = -(plane_normal * line.StartPoint() + D()) / dot;
 			Pnt3Cart inter_pnt = line.StartPoint() + line_dir * t;
 			out_inter_pnt = inter_pnt;
 			
@@ -274,7 +275,7 @@ namespace MML
 			Vec3Cart n2 = plane.Normal();
 			Vec3Cart dir = VectorProduct(n1, n2);
 
-			if (dir.NormL2() == 0.0) {
+			if (dir.NormL2() < Defaults::Vec3CartIsParallelTolerance) {
 				// Planes are parallel
 				return false;
 			}

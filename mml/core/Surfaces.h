@@ -520,10 +520,10 @@ namespace MML
 			Paraboloid() : _a(1), _h(1) {}
 			Paraboloid(Real a, Real h) : _a(a), _h(h) {}
 
-			Real getMinU() const { return -10; }
+			Real getMinU() const { return 0; }
 			Real getMaxU() const { return 10; }
-			Real getMinW() const { return -10; }
-			Real getMaxW() const { return 10; }
+			Real getMinW() const { return 0; }
+			Real getMaxW() const { return 2 * Constants::PI; }
 
 			VectorN<Real, 3> operator()(Real u, Real w) const { return MML::VectorN<Real, 3>{_a * sqrt(u/_h) * cos(w), _a * sqrt(u/_h) * sin(w), u}; }
 		};

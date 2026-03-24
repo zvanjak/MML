@@ -315,7 +315,8 @@ namespace MML {
 
 		VectorN<Type, N> VectorFromDiagonal() {
 			VectorN<Type, N> ret;
-			for (int i = 0; i < N; i++)
+			constexpr int minDim = (N < M) ? N : M;
+			for (int i = 0; i < minDim; i++)
 				ret[i] = _vals[i][i];
 
 			return ret;

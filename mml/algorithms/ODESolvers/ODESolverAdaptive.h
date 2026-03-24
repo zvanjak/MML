@@ -220,8 +220,9 @@ namespace MML {
 		/// @param outputInterval Spacing between output points (dense output)
 		/// @param eps Error tolerance (default 1e-10)
 		/// @param h0 Initial step size (0 = auto-estimate)
+		/// @param minStepSize Minimum allowed step size (default 1e-15)
 		/// @return Solution with points at regular intervals
-		ODESystemSolution integrate(const Vector<Real>& x0, Real t0, Real tEnd, Real outputInterval, Real eps = 1e-10, Real h0 = 0) {
+		ODESystemSolution integrate(const Vector<Real>& x0, Real t0, Real tEnd, Real outputInterval, Real eps = 1e-10, Real h0 = 0, Real minStepSize = 1e-15) {
 			int n = _sys.getDim();
 			int numOutputPoints = static_cast<int>(std::ceil((tEnd - t0) / outputInterval)) + 1;
 
@@ -278,7 +279,7 @@ namespace MML {
 				}
 
 				// Safety check
-				if (h < Constants::Eps) {
+				if (h < minStepSize) {
 					throw ODESolverError("Step size too small in ODEAdaptiveIntegrator");
 				}
 			}
@@ -296,7 +297,7 @@ namespace MML {
 		/// @param times Vector of output times (must be sorted ascending)
 		/// @param eps Error tolerance
 		/// @return Solution at specified times
-		ODESystemSolution integrateAt(const Vector<Real>& x0, const Vector<Real>& times, Real eps = 1e-10, Real h0 = 0) {
+		ODESystemSolution integrateAt(const Vector<Real>& x0, const Vector<Real>& times, Real eps = 1e-10, Real h0 = 0, Real minStepSize = 1e-15) {
 			if (times.size() < 2) {
 				throw ODESolverError("Need at least 2 output times");
 			}
@@ -353,7 +354,7 @@ namespace MML {
 					h = result.hNext;
 				}
 
-				if (h < Constants::Eps && t < tEnd - Constants::Eps) {
+				if (h < minStepSize && t < tEnd - Constants::Eps) {
 					throw ODESolverError("Step size too small in ODEAdaptiveIntegrator");
 				}
 			}
@@ -376,7 +377,7 @@ namespace MML {
 				: (tEnd - t0) / 100.0;  // Default: 100 output points
 
 			ODESystemSolution sol = integrate(x0, t0, tEnd, outputInterval, 
-				config.tolerance, config.initial_step_size);
+				config.tolerance, config.initial_step_size, config.min_step_size);
 
 			// Populate diagnostic fields in statistics
 			_stats.elapsed_time_ms = timer.elapsed_ms();

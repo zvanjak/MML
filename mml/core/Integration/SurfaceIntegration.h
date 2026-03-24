@@ -256,11 +256,11 @@ namespace MML
 			Triangle3D t3(m31, m23, triangle.Pnt3());  // Corner triangle at vertex 3
 			Triangle3D t4(m12, m23, m31);              // Central triangle
 
-			Real result = 0.0;
-			result += CalcSurfaceContrib(vectorField, t1);
-			result += CalcSurfaceContrib(vectorField, t2);
-			result += CalcSurfaceContrib(vectorField, t3);
-			result += CalcSurfaceContrib(vectorField, t4);
+			Real c1 = CalcSurfaceContrib(vectorField, t1);
+			Real c2 = CalcSurfaceContrib(vectorField, t2);
+			Real c3 = CalcSurfaceContrib(vectorField, t3);
+			Real c4 = CalcSurfaceContrib(vectorField, t4);
+			Real result = c1 + c2 + c3 + c4;
 
 			// Check convergence
 			if (fabs(result - prev_value) < eps || level == 0)
@@ -269,12 +269,12 @@ namespace MML
 			}
 			else
 			{
-				// Recurse on each sub-triangle
+				// Recurse on each sub-triangle with its own contribution as prev_value
 				Real new_result = 0.0;
-				new_result += SurfaceIntegralImproveRecursively(vectorField, t1, result, eps, level - 1);
-				new_result += SurfaceIntegralImproveRecursively(vectorField, t2, result, eps, level - 1);
-				new_result += SurfaceIntegralImproveRecursively(vectorField, t3, result, eps, level - 1);
-				new_result += SurfaceIntegralImproveRecursively(vectorField, t4, result, eps, level - 1);
+				new_result += SurfaceIntegralImproveRecursively(vectorField, t1, c1, eps, level - 1);
+				new_result += SurfaceIntegralImproveRecursively(vectorField, t2, c2, eps, level - 1);
+				new_result += SurfaceIntegralImproveRecursively(vectorField, t3, c3, eps, level - 1);
+				new_result += SurfaceIntegralImproveRecursively(vectorField, t4, c4, eps, level - 1);
 				return new_result;
 			}
 		}

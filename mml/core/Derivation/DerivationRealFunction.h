@@ -134,13 +134,13 @@ namespace MML
 		}
 		
 		static Real NDer1Left(const IRealFunction& f, Real x, Real* error = nullptr) 
-		{ Real h = ScaleStep(NDer1_h, x); return NDer1(f, x - 2 * h, h, error); }
+		{ Real h = ScaleStep(NDer1_h, x); return NDer1(f, x - h, h, error); }
 		static Real NDer1Right(const IRealFunction& f, Real x, Real* error = nullptr) 
-		{ Real h = ScaleStep(NDer1_h, x); return NDer1(f, x + 2 * h, h, error); }
+		{ Real h = ScaleStep(NDer1_h, x); return NDer1(f, x, h, error); }
 		static Real NDer1Left(const IRealFunction& f, Real x, Real h, Real* error = nullptr) 
-		{ return NDer1(f, x - 2 * h, h, error); }
+		{ return NDer1(f, x - h, h, error); }
 		static Real NDer1Right(const IRealFunction& f, Real x, Real h, Real* error = nullptr) 
-		{ return NDer1(f, x + 2 * h, h, error); }
+		{ return NDer1(f, x, h, error); }
 
 		/********************************************************************************************************************/
 		/********                               Numerical derivatives of SECOND order                                ********/

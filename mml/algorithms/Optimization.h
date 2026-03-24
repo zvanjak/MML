@@ -232,8 +232,15 @@ namespace MML {
 
 			Real fu;
 
+			const int MAX_BRACKET_ITER = 200;
+			int iter = 0;
+
 			// Keep bracketing until we have fb < fc (minimum bracketed)
 			while (result.fb > result.fc) {
+				if (++iter > MAX_BRACKET_ITER) {
+					result.valid = false;
+					return result;
+				}
 				// Parabolic extrapolation to find potential minimum
 				Real r = (result.bx - result.ax) * (result.fb - result.fc);
 				Real q = (result.bx - result.cx) * (result.fb - result.fa);

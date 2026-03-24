@@ -376,6 +376,12 @@ namespace MML {
 			std::vector<VectorN<Real, 3>> seeds;
 			seeds.reserve(numPoints);
 
+			if (numPoints <= 1) {
+				if (numPoints == 1)
+					seeds.push_back(VectorN<Real, 3>{center[0] + radius, center[1], center[2]});
+				return seeds;
+			}
+
 			// Fibonacci sphere for uniform distribution
 			const Real goldenRatio = (1.0 + std::sqrt(5.0)) / 2.0;
 			const Real angleIncrement = 2.0 * Constants::PI / goldenRatio;

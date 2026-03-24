@@ -685,32 +685,34 @@ namespace MML
 			return true;
 		}
 
-		/// @brief Check if matrix is symmetric (M = Mᵀ)
-		/// @return true if M(i,j) = M(j,i) for all i,j
-		bool isSymmetric() const
+		/// @brief Check if matrix is symmetric (M = Mᵀ) within tolerance
+		/// @param eps Maximum allowed difference |M(i,j) - M(j,i)|
+		/// @return true if M(i,j) ≈ M(j,i) for all i,j
+		bool isSymmetric(double eps = Defaults::IsMatrixSymmetricTolerance) const
 		{
 			if (_rows != _cols) return false;
 			
 			for (int i = 0; i < _rows; ++i)
 				for (int j = i + 1; j < _cols; ++j)
-					if ((*this)(i, j) != (*this)(j, i))
+					if (Abs((*this)(i, j) - (*this)(j, i)) > eps)
 						return false;
 			return true;
 		}
 
-		/// @brief Check if matrix is anti-symmetric (skew-symmetric)
-		/// @return true if M(i,j) = -M(j,i) (or -conj(M(j,i)) for complex)
-		bool isAntiSymmetric() const
+		/// @brief Check if matrix is anti-symmetric (skew-symmetric) within tolerance
+		/// @param eps Maximum allowed difference |M(i,j) + M(j,i)|
+		/// @return true if M(i,j) ≈ -M(j,i) for all i,j
+		bool isAntiSymmetric(double eps = Defaults::IsMatrixSymmetricTolerance) const
 		{
 			if (_rows != _cols) return false;
 			
 			for (int i = 0; i < _rows; ++i) {
 				for (int j = i + 1; j < _cols; ++j) {
 					if (IsMatrixTypeComplex()) {
-						if ((*this)(i, j) != -std::conj((*this)(j, i)))
+						if (Abs((*this)(i, j) + std::conj((*this)(j, i))) > eps)
 							return false;
 					} else {
-						if ((*this)(i, j) != -(*this)(j, i))
+						if (Abs((*this)(i, j) + (*this)(j, i)) > eps)
 							return false;
 					}
 				}

@@ -84,7 +84,7 @@ namespace MML
 					
 					for (const auto& point : line.points)
 					{
-						file << std::setprecision(8) << point[0] << " " << point[1] << std::endl;
+						file << std::setprecision(std::numeric_limits<Real>::max_digits10) << point[0] << " " << point[1] << std::endl;
 					}
 				}
 
@@ -132,7 +132,7 @@ namespace MML
 					
 					for (const auto& point : line)
 					{
-						file << std::setprecision(8) << point[0] << " " << point[1] << std::endl;
+						file << std::setprecision(std::numeric_limits<Real>::max_digits10) << point[0] << " " << point[1] << std::endl;
 					}
 				}
 
@@ -184,7 +184,7 @@ namespace MML
 					
 					for (const auto& point : line.points)
 					{
-						file << std::setprecision(8) << point[0] << " " << point[1] << " " << point[2] << std::endl;
+						file << std::setprecision(std::numeric_limits<Real>::max_digits10) << point[0] << " " << point[1] << " " << point[2] << std::endl;
 					}
 				}
 
@@ -228,7 +228,7 @@ namespace MML
 					
 					for (const auto& point : line)
 					{
-						file << std::setprecision(8) << point[0] << " " << point[1] << " " << point[2] << std::endl;
+						file << std::setprecision(std::numeric_limits<Real>::max_digits10) << point[0] << " " << point[1] << " " << point[2] << std::endl;
 					}
 				}
 

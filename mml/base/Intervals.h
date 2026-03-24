@@ -248,7 +248,7 @@ namespace MML {
 		/// @brief Returns true if x is not at a hole position.
 		bool contains(Real x) const {
 			Real diff = (x - _hole0) / _holeDelta;
-			if (diff == std::round(diff))
+			if (std::abs(diff - std::round(diff)) < std::numeric_limits<Real>::epsilon() * 100)
 				return false;
 
 			return true;
@@ -338,7 +338,7 @@ namespace MML {
 				return false;
 
 			Real diff = (x - _hole0) / _holeDelta;
-			if (diff == std::round(diff))
+			if (std::abs(diff - std::round(diff)) < std::numeric_limits<Real>::epsilon() * 100)
 				return false;
 
 			return true;

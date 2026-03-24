@@ -55,6 +55,8 @@ namespace MML
 		/// @param dxdt Output: computed derivatives dx/dt
 		void	derivs(const Real t, const Vector<Real> &x, Vector<Real> &dxdt) const
 		{
+			if (_func == nullptr)
+				throw std::runtime_error("ODESystem::derivs() - system function is null (default-constructed ODESystem)");
 			_func(t, x, dxdt);
 		}
 

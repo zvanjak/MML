@@ -788,6 +788,8 @@ namespace MML {
 		mutable Vector<Real> _xOld; ///< State at t
 		mutable Vector<Real> _xNew; ///< State at t+h
 		mutable Vector<Real> _err;	///< Error estimate
+		mutable Vector<Real> _dydxOld;	 ///< Derivative at start of last accepted step
+		mutable Vector<Real> _dydxFinal; ///< Derivative at end of last accepted step
 		mutable Real _tOld;			///< Time at start of step
 		mutable Real _hDone;		///< Actual step size taken
 
@@ -870,7 +872,9 @@ namespace MML {
 			, _hDone(0)
 			, _xOld(_n)
 			, _xNew(_n)
-			, _err(_n) {
+			, _err(_n)
+			, _dydxOld(_n)
+			, _dydxFinal(_n) {
 			// Initialize extrapolation tableau
 			_d.resize(KMAXX + 1);
 			for (int i = 0; i <= KMAXX; ++i) {
@@ -886,6 +890,7 @@ namespace MML {
 
 			_tOld = t;
 			_xOld = x;
+			_dydxOld = dxdt; // Store initial derivative for Hermite interpolation
 			Real h = htry;
 
 			Vector<Real> ysav = x;
@@ -923,6 +928,7 @@ namespace MML {
 
 						x = yest;
 						_sys.derivs(t + h, x, dxdt);
+						_dydxFinal = dxdt;
 						result.funcEvals++;
 						result.hDone = h;
 
@@ -946,16 +952,31 @@ namespace MML {
 		}
 
 		Vector<Real> interpolate(Real t) const override {
-			// Simple linear interpolation
+			// Hermite cubic interpolation using function values and derivatives at both endpoints
 			Real theta = (t - _tOld) / _hDone;
-			return _xOld * (1.0 - theta) + _xNew * theta;
+			Real theta2 = theta * theta;
+			Real theta3 = theta2 * theta;
+
+			// Hermite basis polynomials
+			Real h00 = 2 * theta3 - 3 * theta2 + 1;		// 1 - 3t² + 2t³
+			Real h10 = theta3 - 2 * theta2 + theta;		// t - 2t² + t³
+			Real h01 = -2 * theta3 + 3 * theta2;			// 3t² - 2t³
+			Real h11 = theta3 - theta2;						// t³ - t²
+
+			Vector<Real> result(_n);
+			for (int i = 0; i < _n; i++) {
+				Real f0 = _hDone * _dydxOld[i];
+				Real f1 = _hDone * _dydxFinal[i];
+				result[i] = h00 * _xOld[i] + h10 * f0 + h01 * _xNew[i] + h11 * f1;
+			}
+
+			return result;
 		}
 
 		bool isFSAL() const override { return false; }
 
 		const Vector<Real>& getFinalDeriv() const override {
-			static Vector<Real> dummy;
-			return dummy;
+			return _dydxFinal;
 		}
 
 		int stageCount() const override { return KMAXX; }
@@ -993,6 +1014,8 @@ namespace MML {
 		mutable Vector<Real> _xOld; ///< State at t
 		mutable Vector<Real> _xNew; ///< State at t+h
 		mutable Vector<Real> _err;	///< Error estimate
+		mutable Vector<Real> _dydxOld;	 ///< Derivative at start of last accepted step
+		mutable Vector<Real> _dydxFinal; ///< Derivative at end of last accepted step
 		mutable Real _tOld;			///< Time at start of step
 		mutable Real _hDone;		///< Actual step size taken
 
@@ -1076,7 +1099,9 @@ namespace MML {
 			, _hDone(0)
 			, _xOld(_n)
 			, _xNew(_n)
-			, _err(_n) {
+			, _err(_n)
+			, _dydxOld(_n)
+			, _dydxFinal(_n) {
 			// Initialize extrapolation tableau
 			_d.resize(KMAXX + 1);
 			for (int i = 0; i <= KMAXX; ++i) {
@@ -1092,6 +1117,7 @@ namespace MML {
 
 			_tOld = t;
 			_xOld = x;
+			_dydxOld = dxdt; // Store initial derivative for Hermite interpolation
 			Real h = htry;
 
 			Vector<Real> ysav = x;
@@ -1129,6 +1155,7 @@ namespace MML {
 
 						x = yest;
 						_sys.derivs(t + h, x, dxdt);
+						_dydxFinal = dxdt;
 						result.funcEvals++;
 						result.hDone = h;
 
@@ -1152,16 +1179,31 @@ namespace MML {
 		}
 
 		Vector<Real> interpolate(Real t) const override {
-			// Simple linear interpolation
+			// Hermite cubic interpolation using function values and derivatives at both endpoints
 			Real theta = (t - _tOld) / _hDone;
-			return _xOld * (1.0 - theta) + _xNew * theta;
+			Real theta2 = theta * theta;
+			Real theta3 = theta2 * theta;
+
+			// Hermite basis polynomials
+			Real h00 = 2 * theta3 - 3 * theta2 + 1;		// 1 - 3t² + 2t³
+			Real h10 = theta3 - 2 * theta2 + theta;		// t - 2t² + t³
+			Real h01 = -2 * theta3 + 3 * theta2;			// 3t² - 2t³
+			Real h11 = theta3 - theta2;						// t³ - t²
+
+			Vector<Real> result(_n);
+			for (int i = 0; i < _n; i++) {
+				Real f0 = _hDone * _dydxOld[i];
+				Real f1 = _hDone * _dydxFinal[i];
+				result[i] = h00 * _xOld[i] + h10 * f0 + h01 * _xNew[i] + h11 * f1;
+			}
+
+			return result;
 		}
 
 		bool isFSAL() const override { return false; }
 
 		const Vector<Real>& getFinalDeriv() const override {
-			static Vector<Real> dummy;
-			return dummy;
+			return _dydxFinal;
 		}
 
 		int stageCount() const override { return KMAXX; }

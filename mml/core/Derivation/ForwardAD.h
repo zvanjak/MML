@@ -16,6 +16,7 @@
 
 #include <cmath>
 #include <iostream>
+#include <limits>
 
 namespace MML::Symbolic
 {
@@ -256,13 +257,15 @@ namespace MML::Symbolic
     /// Arc sine: d/dx(asin(x)) = 1/sqrt(1-x²)
     template<typename T>
     Dual<T> asin(const Dual<T>& x) {
-        return Dual<T>(std::asin(x.value), x.deriv / std::sqrt(T(1) - x.value * x.value));
+        T denom = std::sqrt(std::max(T(1) - x.value * x.value, std::numeric_limits<T>::min()));
+        return Dual<T>(std::asin(x.value), x.deriv / denom);
     }
 
     /// Arc cosine: d/dx(acos(x)) = -1/sqrt(1-x²)
     template<typename T>
     Dual<T> acos(const Dual<T>& x) {
-        return Dual<T>(std::acos(x.value), -x.deriv / std::sqrt(T(1) - x.value * x.value));
+        T denom = std::sqrt(std::max(T(1) - x.value * x.value, std::numeric_limits<T>::min()));
+        return Dual<T>(std::acos(x.value), -x.deriv / denom);
     }
 
     /// Arc tangent: d/dx(atan(x)) = 1/(1+x²)

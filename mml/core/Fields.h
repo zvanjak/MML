@@ -23,6 +23,7 @@
 #include "base/Geometry/Geometry3D.h"
 
 #include "core/FieldOperations.h"
+#include "core/SingularityHandling.h"
 
 #endif
 
@@ -167,7 +168,7 @@ namespace MML::Fields
 		VectorN<Real, 3> operator()(const VectorN<Real, 3>& x) const
 		{
 			Real r_sq = x[0] * x[0] + x[1] * x[1];  // Distance squared from z-axis
-			if (r_sq < 1e-15) return VectorN<Real, 3>{0.0, 0.0, 0.0};  // Avoid singularity
+			if (r_sq < Singularity::DEFAULT_SINGULARITY_TOL * Singularity::DEFAULT_SINGULARITY_TOL) return VectorN<Real, 3>{0.0, 0.0, 0.0};  // Avoid singularity
 			Real factor = _constant / r_sq;
 			// B direction is tangential: (-y, x, 0) / r, magnitude is constant/r
 			return VectorN<Real, 3>{-factor * x[1], factor * x[0], 0.0};
@@ -204,7 +205,7 @@ namespace MML::Fields
 			Vec3Cart radial(closest, pos);
 			Real r_sq = radial.NormL2() * radial.NormL2();
 			
-			if (r_sq < 1e-15) return VectorN<Real, 3>{0.0, 0.0, 0.0};  // On the wire
+			if (r_sq < Singularity::DEFAULT_SINGULARITY_TOL * Singularity::DEFAULT_SINGULARITY_TOL) return VectorN<Real, 3>{0.0, 0.0, 0.0};  // On the wire
 			
 			// B direction: d × r̂ (right-hand rule), magnitude: constant/r
 			Vec3Cart B_dir = VectorProduct(_line.Direction(), radial.GetAsUnitVector());
@@ -308,7 +309,7 @@ namespace MML::Fields
 			VectorN<Real, 3> r_perp{x[0] - proj*ax, x[1] - proj*ay, x[2] - proj*az};
 			Real r_sq = r_perp[0]*r_perp[0] + r_perp[1]*r_perp[1] + r_perp[2]*r_perp[2];
 			
-			if (r_sq < 1e-15) return VectorN<Real, 3>{0.0, 0.0, 0.0};  // On the axis
+			if (r_sq < Singularity::DEFAULT_SINGULARITY_TOL * Singularity::DEFAULT_SINGULARITY_TOL) return VectorN<Real, 3>{0.0, 0.0, 0.0};  // On the axis
 			
 			// Tangent direction: axis × r_perp (normalized by r²)
 			Real factor = _constant / r_sq;
@@ -364,7 +365,7 @@ namespace MML::Fields
 		{
 			VectorN<Real, 3> r{x[0] - _center[0], x[1] - _center[1], x[2] - _center[2]};
 			Real r_norm = std::sqrt(r[0]*r[0] + r[1]*r[1] + r[2]*r[2]);
-			if (r_norm < 1e-15) return VectorN<Real, 3>{0.0, 0.0, 0.0};
+			if (r_norm < Singularity::DEFAULT_SINGULARITY_TOL) return VectorN<Real, 3>{0.0, 0.0, 0.0};
 			Real factor = _strength / (r_norm * r_norm * r_norm);
 			return VectorN<Real, 3>{factor * r[0], factor * r[1], factor * r[2]};
 		}
@@ -392,7 +393,7 @@ namespace MML::Fields
 		{
 			VectorN<Real, 3> r{x[0] - _center[0], x[1] - _center[1], x[2] - _center[2]};
 			Real r_sq = r[0]*r[0] + r[1]*r[1] + r[2]*r[2];
-			if (r_sq < 1e-15) return VectorN<Real, 3>{0.0, 0.0, 0.0};
+			if (r_sq < Singularity::DEFAULT_SINGULARITY_TOL * Singularity::DEFAULT_SINGULARITY_TOL) return VectorN<Real, 3>{0.0, 0.0, 0.0};
 			
 			Real r_norm = std::sqrt(r_sq);
 			Real r5 = r_sq * r_sq * r_norm;  // r^5

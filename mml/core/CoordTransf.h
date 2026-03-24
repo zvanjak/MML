@@ -239,16 +239,16 @@ namespace MML
 					for (int k = 0; k < N; k++)
 						for (int l = 0; l < N; l++)
 						{
-							double coef1, coef2;
+Real coef1, coef2;
 							if (tensor.IsContravar(0))
-								coef1 = Derivation::NDer1Partial(this->coordTransfFunc(i), k, pos);
+								coef1 = Derivation::NDer4Partial(this->coordTransfFunc(i), k, pos);
 							else
-								coef1 = Derivation::NDer1Partial(this->inverseCoordTransfFunc(k), i, pos);
+								coef1 = Derivation::NDer4Partial(this->inverseCoordTransfFunc(k), i, pos);
 
 							if (tensor.IsContravar(1))
-								coef2 = Derivation::NDer1Partial(this->coordTransfFunc(j), l, pos);
+								coef2 = Derivation::NDer4Partial(this->coordTransfFunc(j), l, pos);
 							else
-								coef2 = Derivation::NDer1Partial(this->inverseCoordTransfFunc(l), j, pos);
+								coef2 = Derivation::NDer4Partial(this->inverseCoordTransfFunc(l), j, pos);
 
 							ret(i, j) += coef1 * coef2 * tensor(k, l);
 						}
@@ -273,21 +273,21 @@ namespace MML
 							for (int m = 0; m < N; m++)
 								for (int n = 0; n < N; n++)
 								{
-									double coef1, coef2, coef3;
+									Real coef1, coef2, coef3;
 									if (tensor.IsContravar(0))
-										coef1 = Derivation::NDer1Partial(this->coordTransfFunc(i), l, pos);
+										coef1 = Derivation::NDer4Partial(this->coordTransfFunc(i), l, pos);
 									else
-										coef1 = Derivation::NDer1Partial(this->inverseCoordTransfFunc(l), i, pos);
+										coef1 = Derivation::NDer4Partial(this->inverseCoordTransfFunc(l), i, pos);
 
 									if (tensor.IsContravar(1))
-										coef2 = Derivation::NDer1Partial(this->coordTransfFunc(j), m, pos);
+										coef2 = Derivation::NDer4Partial(this->coordTransfFunc(j), m, pos);
 									else
-										coef2 = Derivation::NDer1Partial(this->inverseCoordTransfFunc(m), j, pos);
+										coef2 = Derivation::NDer4Partial(this->inverseCoordTransfFunc(m), j, pos);
 
 									if (tensor.IsContravar(2))
-										coef3 = Derivation::NDer1Partial(this->coordTransfFunc(k), n, pos);
+										coef3 = Derivation::NDer4Partial(this->coordTransfFunc(k), n, pos);
 									else
-										coef3 = Derivation::NDer1Partial(this->inverseCoordTransfFunc(n), k, pos);
+										coef3 = Derivation::NDer4Partial(this->inverseCoordTransfFunc(n), k, pos);
 
 									ret.Component(i, j, k) += coef1 * coef2 * coef3 * tensor.Component(l, m, n);
 								}
@@ -314,26 +314,26 @@ namespace MML
 									for (int o = 0; o < N; o++)
 										for (int p = 0; p < N; p++)
 										{
-											double coef1, coef2, coef3, coef4;
+											Real coef1, coef2, coef3, coef4;
 											if (tensor.IsContravar(0))
-												coef1 = Derivation::NDer1Partial(this->coordTransfFunc(i), m, pos);
+												coef1 = Derivation::NDer4Partial(this->coordTransfFunc(i), m, pos);
 											else
-												coef1 = Derivation::NDer1Partial(this->inverseCoordTransfFunc(m), i, pos);
+												coef1 = Derivation::NDer4Partial(this->inverseCoordTransfFunc(m), i, pos);
 
 											if (tensor.IsContravar(1))
-												coef2 = Derivation::NDer1Partial(this->coordTransfFunc(j), n, pos);
+												coef2 = Derivation::NDer4Partial(this->coordTransfFunc(j), n, pos);
 											else
-												coef2 = Derivation::NDer1Partial(this->inverseCoordTransfFunc(n), j, pos);
+												coef2 = Derivation::NDer4Partial(this->inverseCoordTransfFunc(n), j, pos);
 
 											if (tensor.IsContravar(2))
-												coef3 = Derivation::NDer1Partial(this->coordTransfFunc(k), o, pos);
+												coef3 = Derivation::NDer4Partial(this->coordTransfFunc(k), o, pos);
 											else
-												coef3 = Derivation::NDer1Partial(this->inverseCoordTransfFunc(o), k, pos);
+												coef3 = Derivation::NDer4Partial(this->inverseCoordTransfFunc(o), k, pos);
 
 											if (tensor.IsContravar(3))
-												coef4 = Derivation::NDer1Partial(this->coordTransfFunc(l), p, pos);
+												coef4 = Derivation::NDer4Partial(this->coordTransfFunc(l), p, pos);
 											else
-												coef4 = Derivation::NDer1Partial(this->inverseCoordTransfFunc(p), l, pos);
+												coef4 = Derivation::NDer4Partial(this->inverseCoordTransfFunc(p), l, pos);
 
 											ret[i][j][k][l] += coef1 * coef2 * coef3 * coef4 * tensor[m][n][o][p];
 										}
@@ -362,31 +362,31 @@ namespace MML
 											for (int q = 0; q < N; q++)
 												for (int r = 0; r < N; r++)
 												{
-													double coef1, coef2, coef3, coef4, coef5;
+														Real coef1, coef2, coef3, coef4, coef5;
 													if (tensor.IsContravar(0))
-														coef1 = Derivation::NDer1Partial(this->coordTransfFunc(i), n, pos);
+														coef1 = Derivation::NDer4Partial(this->coordTransfFunc(i), n, pos);
 													else
-														coef1 = Derivation::NDer1Partial(this->inverseCoordTransfFunc(n), i, pos);
+														coef1 = Derivation::NDer4Partial(this->inverseCoordTransfFunc(n), i, pos);
 
 													if (tensor.IsContravar(1))
-														coef2 = Derivation::NDer1Partial(this->coordTransfFunc(j), o, pos);
+														coef2 = Derivation::NDer4Partial(this->coordTransfFunc(j), o, pos);
 													else
-														coef2 = Derivation::NDer1Partial(this->inverseCoordTransfFunc(o), j, pos);
+														coef2 = Derivation::NDer4Partial(this->inverseCoordTransfFunc(o), j, pos);
 
 													if (tensor.IsContravar(2))
-														coef3 = Derivation::NDer1Partial(this->coordTransfFunc(k), p, pos);
+														coef3 = Derivation::NDer4Partial(this->coordTransfFunc(k), p, pos);
 													else
-														coef3 = Derivation::NDer1Partial(this->inverseCoordTransfFunc(p), k, pos);
+														coef3 = Derivation::NDer4Partial(this->inverseCoordTransfFunc(p), k, pos);
 
 													if (tensor.IsContravar(3))
-														coef4 = Derivation::NDer1Partial(this->coordTransfFunc(l), q, pos);
+														coef4 = Derivation::NDer4Partial(this->coordTransfFunc(l), q, pos);
 													else
-														coef4 = Derivation::NDer1Partial(this->inverseCoordTransfFunc(q), l, pos);
+														coef4 = Derivation::NDer4Partial(this->inverseCoordTransfFunc(q), l, pos);
 
 													if (tensor.IsContravar(4))
-												coef5 = Derivation::NDer1Partial(this->coordTransfFunc(m), r, pos);
+												coef5 = Derivation::NDer4Partial(this->coordTransfFunc(m), r, pos);
 											else
-												coef5 = Derivation::NDer1Partial(this->inverseCoordTransfFunc(r), m, pos);
+												coef5 = Derivation::NDer4Partial(this->inverseCoordTransfFunc(r), m, pos);
 													ret[i][j][k][l][m] += coef1 * coef2 * coef3 * coef4 * coef5 * tensor[n][o][p][q][r];
 												}
 							}

@@ -213,6 +213,8 @@ namespace MML
 			_pnt3XCoord = pntOnLine.Dist(pnt1);
 
 			_normal = VectorProduct(_localX, _localY).GetAsUnitVector();
+
+			_origin = pnt1;
 		}
 
 		/// @brief Gets minimum u parameter

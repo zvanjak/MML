@@ -31,7 +31,8 @@ namespace MML::Systems
 		Unknown,				 ///< Could not classify
 		StableNode,			 ///< All eigenvalues negative real
 		UnstableNode,		 ///< All eigenvalues positive real
-		Saddle,					 ///< Mixed signs
+		Saddle,					 ///< Mixed signs (real eigenvalues)
+		SaddleFocus,		 ///< Mixed signs with complex eigenvalues (e.g., Lorenz attractor)
 		StableFocus,		 ///< Complex with negative real part (spiral in)
 		UnstableFocus,	 ///< Complex with positive real part (spiral out)
 		Center,					 ///< Purely imaginary eigenvalues
@@ -48,6 +49,8 @@ namespace MML::Systems
 			return "Unstable Node";
 		case FixedPointType::Saddle:
 			return "Saddle";
+		case FixedPointType::SaddleFocus:
+			return "Saddle-Focus";
 		case FixedPointType::StableFocus:
 			return "Stable Focus";
 		case FixedPointType::UnstableFocus:

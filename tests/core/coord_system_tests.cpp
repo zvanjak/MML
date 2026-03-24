@@ -384,6 +384,58 @@ TEST_CASE("RotatingFrame3D - Basic construction", "[CoordSystem][RotatingFrame]"
 	REQUIRE(frame._axis[2] == Catch::Approx(1.0));
 }
 
+TEST_CASE("RotatingFrame3D - Z-axis rotation transforms correctly", "[CoordSystem][RotatingFrame]")
+{
+	ReferenceFrame3D parent;
+	Real period = 1.0;
+	VectorN<Real, 3> axis({0, 0, 1});
+	RotatingFrame3D frame(&parent, period, axis);
+
+	VectorN<Real, 3> pos({1, 0, 0});  // unit vector along x
+
+	// At t=0, no rotation
+	auto result0 = frame.GetLocalPosInParentFrameAtTime(pos, 0.0);
+	REQUIRE(result0[0] == Catch::Approx(1.0).margin(1e-12));
+	REQUIRE(result0[1] == Catch::Approx(0.0).margin(1e-12));
+	REQUIRE(result0[2] == Catch::Approx(0.0).margin(1e-12));
+
+	// At t=period/4 (90 degrees), x-axis maps to y-axis
+	auto result90 = frame.GetLocalPosInParentFrameAtTime(pos, period / 4.0);
+	REQUIRE(result90[0] == Catch::Approx(0.0).margin(1e-12));
+	REQUIRE(result90[1] == Catch::Approx(1.0).margin(1e-12));
+	REQUIRE(result90[2] == Catch::Approx(0.0).margin(1e-12));
+
+	// At t=period/2 (180 degrees), x-axis maps to -x
+	auto result180 = frame.GetLocalPosInParentFrameAtTime(pos, period / 2.0);
+	REQUIRE(result180[0] == Catch::Approx(-1.0).margin(1e-12));
+	REQUIRE(result180[1] == Catch::Approx(0.0).margin(1e-12));
+	REQUIRE(result180[2] == Catch::Approx(0.0).margin(1e-12));
+
+	// Full period returns to original
+	auto result360 = frame.GetLocalPosInParentFrameAtTime(pos, period);
+	REQUIRE(result360[0] == Catch::Approx(1.0).margin(1e-12));
+	REQUIRE(result360[1] == Catch::Approx(0.0).margin(1e-12));
+	REQUIRE(result360[2] == Catch::Approx(0.0).margin(1e-12));
+}
+
+TEST_CASE("RotatingFrame3D - Z component preserved for z-axis rotation", "[CoordSystem][RotatingFrame]")
+{
+	ReferenceFrame3D parent;
+	Real period = 2.0;
+	VectorN<Real, 3> axis({0, 0, 1});
+	RotatingFrame3D frame(&parent, period, axis);
+
+	VectorN<Real, 3> pos({3, 4, 5});
+	auto result = frame.GetLocalPosInParentFrameAtTime(pos, period / 4.0);
+
+	// z should be unchanged for rotation around z-axis
+	REQUIRE(result[2] == Catch::Approx(5.0).margin(1e-12));
+	// magnitude in xy-plane should be preserved
+	Real rOrig = std::sqrt(3.0*3.0 + 4.0*4.0);
+	Real rNew = std::sqrt(result[0]*result[0] + result[1]*result[1]);
+	REQUIRE(rNew == Catch::Approx(rOrig).margin(1e-12));
+}
+
 ///////////////////////////////////////////////////////////////////////////////////////////
 ///                           HardSphereRotatingFrame                                   ///
 ///////////////////////////////////////////////////////////////////////////////////////////

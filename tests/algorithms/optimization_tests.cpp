@@ -145,12 +145,25 @@ using namespace MML::Testing;
 			TEST_PRECISION_INFO();
 		CubicFunc f;
 		
-		// Search near the local minimum at x=3
-		auto bracket = Minimization::BracketMinimum(f, REAL(2.0), REAL(4.0));
+		// Search near the local minimum at x=3 (use 2,3 so initial downhill
+		// direction points toward the minimum, not toward -infinity)
+		auto bracket = Minimization::BracketMinimum(f, REAL(2.0), REAL(3.0));
 		
 		REQUIRE(bracket.valid);
 		REQUIRE(bracket.fb <= bracket.fa);
 		REQUIRE(bracket.fb <= bracket.fc);
+	}
+
+	TEST_CASE("BracketMinimum_DivergentDirection_ReturnsInvalid", "[Optimization][Bracket]")
+	{
+			TEST_PRECISION_INFO();
+		CubicFunc f;
+		
+		// Starting at (2,4) the algorithm goes downhill toward -infinity
+		// where the cubic diverges; iteration limit should catch this
+		auto bracket = Minimization::BracketMinimum(f, REAL(2.0), REAL(4.0));
+		
+		REQUIRE_FALSE(bracket.valid);
 	}
 
 	/************************************************************************/

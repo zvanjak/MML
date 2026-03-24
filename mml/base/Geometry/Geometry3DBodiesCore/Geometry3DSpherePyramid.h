@@ -207,7 +207,8 @@ namespace MML {
 			Pnt3Cart pnt4(-a / 2, -a / 2, -a / 2);
 			Pnt3Cart pnt5(0, 0, h); // apex
 
-			_surfaces.push_back(TriangleSurface3D(pnt1, pnt4, pnt3)); // base
+			_surfaces.push_back(TriangleSurface3D(pnt1, pnt4, pnt3)); // base triangle 1
+			_surfaces.push_back(TriangleSurface3D(pnt1, pnt3, pnt2)); // base triangle 2
 			_surfaces.push_back(TriangleSurface3D(pnt5, pnt1, pnt2)); // front face
 			_surfaces.push_back(TriangleSurface3D(pnt5, pnt2, pnt3)); // right face
 			_surfaces.push_back(TriangleSurface3D(pnt5, pnt3, pnt4)); // back face

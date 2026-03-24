@@ -161,6 +161,8 @@ namespace MML::Systems
 			if (hasComplex) {
 				if (std::abs(maxRealPart) < 1e-10 && std::abs(minRealPart) < 1e-10)
 					fp.type = FixedPointType::Center;
+				else if (numPositiveReal > 0 && numNegativeReal > 0)
+					fp.type = FixedPointType::SaddleFocus;
 				else if (maxRealPart < -1e-10)
 					fp.type = FixedPointType::StableFocus;
 				else
@@ -422,8 +424,7 @@ namespace MML::Systems
 																					Vector<Real> x0, int component, Real tTransient = 100.0, Real tRecord = 50.0, Real h = 0.01) {
 			BifurcationDiagram<Real> diagram;
 			diagram.parameterName = sys.getParamName(paramIndex);
-
-			Real dParam = (paramMax - paramMin) / (numSteps - 1);
+			Real originalParam = sys.getParam(paramIndex);			Real dParam = (paramMax - paramMin) / (numSteps - 1);
 
 			for (int step = 0; step < numSteps; ++step) {
 				Real param = paramMin + step * dParam;
@@ -443,6 +444,7 @@ namespace MML::Systems
 				x0 = x;
 			}
 
+			sys.setParam(paramIndex, originalParam);
 			return diagram;
 		}
 

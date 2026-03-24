@@ -46,6 +46,7 @@ namespace MML
 		int _diffDim;    ///< Dimension of differential variables
 		int _algDim;     ///< Dimension of algebraic variables
 		int _totalSavedSteps;
+		int _count;      ///< Actual number of data points stored (vs capacity)
 
 		Real _t1, _t2;
 		Vector<Real> _tval;    ///< Time values
@@ -71,7 +72,7 @@ namespace MML
 		/// @param maxSteps Initial storage capacity
 		DAESolution(Real t1, Real t2, int diffDim, int algDim, int maxSteps)
 			: _t1(t1), _t2(t2), _diffDim(diffDim), _algDim(algDim),
-			  _numStepsOK(0), _numStepsBad(0), _totalSavedSteps(maxSteps + 1)
+			  _numStepsOK(0), _numStepsBad(0), _totalSavedSteps(maxSteps + 1), _count(0)
 		{
 			_tval.Resize(_totalSavedSteps);
 			_xval.Resize(diffDim, _totalSavedSteps);
@@ -117,11 +118,13 @@ namespace MML
 		/// @brief Get current storage capacity
 		int getTotalSavedSteps() const { return _totalSavedSteps; }
 		/// @brief Get number of saved solution intervals
-		int getNumSteps() const { return _totalSavedSteps - 1; }
+		int getNumSteps() const { return _count > 0 ? _count - 1 : 0; }
 		/// @brief Check if solution is empty (no points saved)
-		bool isEmpty() const { return _totalSavedSteps == 0; }
+		bool isEmpty() const { return _count == 0; }
 		/// @brief Get number of saved solution points
-		int size() const { return _totalSavedSteps; }
+		int size() const { return _count; }
+		/// @brief Get current storage capacity
+		int capacity() const { return _totalSavedSteps; }
 
 		//=========================================================================
 		//                           Data Access
@@ -139,7 +142,7 @@ namespace MML
 		/// @throws IndexError if index is invalid
 		Real getTValue(int ind) const
 		{
-			if (ind < 0 || ind >= _totalSavedSteps)
+			if (ind < 0 || ind >= _count)
 				throw IndexError("Index out of range in DAESolution::getTValue");
 			return _tval[ind];
 		}
@@ -150,7 +153,7 @@ namespace MML
 		/// @throws IndexError if indices are invalid
 		Real getXValue(int ind, int component) const
 		{
-			if (ind < 0 || ind >= _totalSavedSteps)
+			if (ind < 0 || ind >= _count)
 				throw IndexError("Index out of range in DAESolution::getXValue(ind)");
 			if (component < 0 || component >= _diffDim)
 				throw IndexError("Component out of range in DAESolution::getXValue(component)");
@@ -163,7 +166,7 @@ namespace MML
 		/// @throws IndexError if indices are invalid
 		Real getYValue(int ind, int component) const
 		{
-			if (ind < 0 || ind >= _totalSavedSteps)
+			if (ind < 0 || ind >= _count)
 				throw IndexError("Index out of range in DAESolution::getYValue(ind)");
 			if (component < 0 || component >= _algDim)
 				throw IndexError("Component out of range in DAESolution::getYValue(component)");
@@ -194,9 +197,11 @@ namespace MML
 		/// @return Vector of all differential components at last time point
 		Vector<Real> getXValuesAtEnd() const
 		{
+			if (_count == 0)
+				throw IndexError("No data in DAESolution::getXValuesAtEnd");
 			Vector<Real> res(_diffDim);
 			for (int i = 0; i < _diffDim; i++)
-				res[i] = _xval[i][_totalSavedSteps - 1];
+				res[i] = _xval[i][_count - 1];
 			return res;
 		}
 
@@ -204,9 +209,11 @@ namespace MML
 		/// @return Vector of all algebraic components at last time point
 		Vector<Real> getYValuesAtEnd() const
 		{
+			if (_count == 0)
+				throw IndexError("No data in DAESolution::getYValuesAtEnd");
 			Vector<Real> res(_algDim);
 			for (int i = 0; i < _algDim; i++)
-				res[i] = _yval[i][_totalSavedSteps - 1];
+				res[i] = _yval[i][_count - 1];
 			return res;
 		}
 
@@ -238,6 +245,7 @@ namespace MML
 				_xval[i][ind] = x[i];
 			for (int i = 0; i < _algDim; i++)
 				_yval[i][ind] = y[i];
+			if (ind + 1 > _count) _count = ind + 1;
 		}
 
 		/// @brief Set time value at specified index
@@ -250,6 +258,7 @@ namespace MML
 			if (ind >= _totalSavedSteps)
 				ExtendSavedSteps();
 			_tval[ind] = t;
+			if (ind + 1 > _count) _count = ind + 1;
 		}
 
 		/// @brief Set differential variable value at specified index
@@ -288,6 +297,7 @@ namespace MML
 		void setFinalSize(int numDoneSteps)
 		{
 			_totalSavedSteps = numDoneSteps + 1;
+			_count = _totalSavedSteps;
 			_tval.Resize(_totalSavedSteps, true);
 			_xval.Resize(_diffDim, _totalSavedSteps, true);
 			_yval.Resize(_algDim, _totalSavedSteps, true);

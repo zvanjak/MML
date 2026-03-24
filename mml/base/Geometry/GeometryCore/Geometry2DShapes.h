@@ -64,9 +64,9 @@ namespace MML {
 		}
 
 		// Angles (in radians) - using law of cosines
-		Real AngleA() const { return acos((_b * _b + _c * _c - _a * _a) / (2 * _b * _c)); } // opposite to side a
-		Real AngleB() const { return acos((_a * _a + _c * _c - _b * _b) / (2 * _a * _c)); } // opposite to side b
-		Real AngleC() const { return acos((_a * _a + _b * _b - _c * _c) / (2 * _a * _b)); } // opposite to side c
+		Real AngleA() const { return acos(std::clamp((_b * _b + _c * _c - _a * _a) / (2 * _b * _c), (Real)-1.0, (Real)1.0)); } // opposite to side a
+		Real AngleB() const { return acos(std::clamp((_a * _a + _c * _c - _b * _b) / (2 * _a * _c), (Real)-1.0, (Real)1.0)); } // opposite to side b
+		Real AngleC() const { return acos(std::clamp((_a * _a + _b * _b - _c * _c) / (2 * _a * _b), (Real)-1.0, (Real)1.0)); } // opposite to side c
 
 		// Altitudes (heights)
 		Real AltitudeToA() const { return 2.0 * Area() / _a; }

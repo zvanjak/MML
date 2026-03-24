@@ -215,7 +215,8 @@ namespace MML
 		}
 	};
 
-	/// @brief Second derivative wrapper with 6th order accuracy (7-point stencil)
+	/// @brief Second derivative wrapper with 4th order accuracy (5-point stencil)
+	/// @note Named "6" for future NSecDer6 implementation; currently uses NSecDer4
 	/// @warning Stores reference to f - ensure f outlives this object
 	class RealFuncSecondDerived6 : public IRealFunction
 	{
@@ -228,7 +229,7 @@ namespace MML
 		RealFuncSecondDerived6(const IRealFunction& f, Real step) : _f(f), _step(step) {}
 
 		Real operator()(Real x) const {
-			return _step != 0.0 ? Derivation::NSecDer4(_f, x, _step, nullptr) : Derivation::NSecDer4(_f, x, nullptr);
+			return _step != 0.0 ? Derivation::NSecDer4(_f, x, _step) : Derivation::NSecDer4(_f, x);
 		}
 	};
 

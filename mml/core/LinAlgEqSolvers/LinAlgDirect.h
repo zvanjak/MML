@@ -162,10 +162,14 @@ namespace MML
 
 				pivinv = Real{ 1.0 } / a[icol][icol];
 				
-				// Check for non-finite pivot inverse (overflow from small pivot, Real types only)
+				// Check for non-finite pivot inverse (overflow from small pivot)
 				if constexpr (std::is_same_v<Type, Real>) {
 					if (std::isnan(pivinv) || std::isinf(pivinv))
 						throw MatrixNumericalError("Non-finite pivot inverse in Gauss-Jordan elimination");
+				} else {
+					Real mag = std::abs(pivinv);
+					if (std::isnan(mag) || std::isinf(mag))
+						throw MatrixNumericalError("Non-finite pivot inverse in Gauss-Jordan elimination (Complex)");
 				}
 				
 				a[icol][icol] = 1.0;
@@ -346,10 +350,14 @@ namespace MML
 				{
 					temp2 = _lu[i][k] /= _lu[k][k];
 					
-					// Check for non-finite multiplier (can happen from overflow/underflow, Real types only)
+					// Check for non-finite multiplier (can happen from overflow/underflow)
 					if constexpr (std::is_same_v<Type, Real>) {
 						if (std::isnan(temp2) || std::isinf(temp2))
 							throw MatrixNumericalError("Non-finite multiplier in LU decomposition");
+					} else {
+						Real mag = std::abs(temp2);
+						if (std::isnan(mag) || std::isinf(mag))
+							throw MatrixNumericalError("Non-finite multiplier in LU decomposition (Complex)");
 					}
 					
 					for (j = k + 1; j < _n; j++)
@@ -666,7 +674,6 @@ namespace MML
 			  _al(_n, _m1),
 			  _indx(_n)
 		{
-			const Real TINY = 1.0e-40;
 			int mm = _m1 + _m2 + 1;
 			
 			// Copy band diagonal matrix to working storage
@@ -718,7 +725,7 @@ namespace MML
 				_indx[k] = i + 1;  // Store 1-based index for compatibility
 				
 				if (dum == 0.0)
-					_au[k][0] = TINY;  // Matrix is singular but proceed with tiny pivot
+					throw SingularMatrixError("BandDiagonalSolver::ctor - Singular Matrix (zero pivot)");
 				
 				// Interchange rows if necessary
 				if (i != k)
@@ -882,6 +889,8 @@ namespace MML
 				throw MatrixDimensionError("CholeskySolver::ctor - matrix must be square", a.rows(), a.cols(), -1, -1);
 			if (a.rows() == 0)
 				throw MatrixDimensionError("CholeskySolver::ctor - matrix must be non-empty", 0, 0, -1, -1);
+			if (!a.isSymmetric())
+				throw MatrixDimensionError("CholeskySolver::ctor - matrix must be symmetric", a.rows(), a.cols(), -1, -1);
 			
 			// Perform Cholesky decomposition
 			for (int i = 0; i < n; i++)

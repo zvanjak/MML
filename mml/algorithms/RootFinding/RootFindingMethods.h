@@ -142,6 +142,14 @@ namespace MML {
 		static RootFindingResult FindRootNewton(const IRealFunction& func, Real x1, Real x2,
 												const RootFindingConfig& config) {
 			RootFindingResult result;
+
+			Real f1 = func(x1);
+			Real f2 = func(x2);
+			if (f1 * f2 > 0.0) {
+				result.error_message = "Root must be bracketed for Newton-Raphson method";
+				return result;
+			}
+
 			Real rtn = 0.5 * (x1 + x2);
 			int maxIter = (config.max_iterations > 0) ? config.max_iterations : Defaults::NewtonRaphsonMaxSteps;
 			Real dx = 0.0;
@@ -294,6 +302,11 @@ namespace MML {
 
 			if (!IsFunctionValueValid(f1) || !IsFunctionValueValid(f2)) {
 				result.error_message = "Non-finite function values in FindRootSecant";
+				return result;
+			}
+
+			if (f1 * f2 > 0.0) {
+				result.error_message = "Root must be bracketed for Secant method";
 				return result;
 			}
 

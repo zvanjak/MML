@@ -12,6 +12,7 @@
 #if !defined MML_GEOMETRY_POINTS_H
 #define MML_GEOMETRY_POINTS_H
 
+#include <algorithm>
 #include <cmath>
 
 #include "mml/MMLBase.h"
@@ -318,6 +319,7 @@ namespace MML {
 		/// @return Euclidean distance between the two points (using spherical law of cosines)
 		Real Dist(const Point3Spherical& b) const {
 			Real cosGamma = cos(Theta()) * cos(b.Theta()) + sin(Theta()) * sin(b.Theta()) * cos(b.Phi() - Phi());
+			cosGamma = std::clamp(cosGamma, (Real)-1.0, (Real)1.0);
 			return sqrt(R() * R() + b.R() * b.R() - 2 * R() * b.R() * cosGamma);
 		}
 	};

@@ -153,6 +153,48 @@ namespace MML {
 		}
 	} // namespace Csv
 
+	namespace Html {
+		/// @brief Escape special HTML characters in a string
+		inline std::string escape(const std::string& str) {
+			std::string result;
+			result.reserve(str.size());
+			for (char c : str) {
+				switch (c) {
+					case '&':  result += "&amp;";  break;
+					case '<':  result += "&lt;";   break;
+					case '>':  result += "&gt;";   break;
+					case '"':  result += "&quot;";  break;
+					default:   result += c;        break;
+				}
+			}
+			return result;
+		}
+	} // namespace Html
+
+	namespace Latex {
+		/// @brief Escape special LaTeX characters in a string
+		inline std::string escape(const std::string& str) {
+			std::string result;
+			result.reserve(str.size());
+			for (char c : str) {
+				switch (c) {
+					case '&':  result += "\\&";  break;
+					case '%':  result += "\\%";  break;
+					case '$':  result += "\\$";  break;
+					case '#':  result += "\\#";  break;
+					case '_':  result += "\\_";  break;
+					case '{':  result += "\\{";  break;
+					case '}':  result += "\\}";  break;
+					case '~':  result += "\\textasciitilde{}"; break;
+					case '^':  result += "\\textasciicircum{}"; break;
+					case '\\': result += "\\textbackslash{}"; break;
+					default:   result += c;      break;
+				}
+			}
+			return result;
+		}
+	} // namespace Latex
+
 	///////////////////////////       MODERN API       ///////////////////////////
 
 	// Format type enumeration
@@ -682,17 +724,21 @@ namespace MML {
 			os << "}\n\\hline\n";
 
 			// Header
-			os << m_tagFormat.name();
+			os << Latex::escape(m_tagFormat.name());
 			for (const auto& fmt : m_columnFormats) {
-				os << " & " << fmt.name();
+				os << " & " << Latex::escape(fmt.name());
 			}
 			os << " \\\\\n\\hline\n";
 
 			// Data
 			for (size_t row = 0; row < m_data.size(); ++row) {
-				os << m_rowTags[row];
+				std::ostringstream tagStr;
+				tagStr << m_rowTags[row];
+				os << Latex::escape(tagStr.str());
 				for (const auto& value : m_data[row]) {
-					os << " & " << value;
+					std::ostringstream valStr;
+					valStr << value;
+					os << " & " << Latex::escape(valStr.str());
 				}
 				os << " \\\\\n";
 			}
@@ -707,9 +753,9 @@ namespace MML {
 
 			// Header
 			os << "  <thead>\n    <tr>\n";
-			os << "      <th>" << m_tagFormat.name() << "</th>\n";
+			os << "      <th>" << Html::escape(m_tagFormat.name()) << "</th>\n";
 			for (const auto& fmt : m_columnFormats) {
-				os << "      <th>" << fmt.name() << "</th>\n";
+				os << "      <th>" << Html::escape(fmt.name()) << "</th>\n";
 			}
 			os << "    </tr>\n  </thead>\n";
 
@@ -717,9 +763,13 @@ namespace MML {
 			os << "  <tbody>\n";
 			for (size_t row = 0; row < m_data.size(); ++row) {
 				os << "    <tr>\n";
-				os << "      <td>" << m_rowTags[row] << "</td>\n";
+				std::ostringstream tagStr;
+				tagStr << m_rowTags[row];
+				os << "      <td>" << Html::escape(tagStr.str()) << "</td>\n";
 				for (const auto& value : m_data[row]) {
-					os << "      <td>" << value << "</td>\n";
+					std::ostringstream valStr;
+					valStr << value;
+					os << "      <td>" << Html::escape(valStr.str()) << "</td>\n";
 				}
 				os << "    </tr>\n";
 			}

@@ -1601,13 +1601,8 @@ namespace MML {
 
 		/// @brief Returns true if x is not at a hole position.
 		bool contains(Real x) const {
-
-
-			if (x == _hole0)
-				return false;
-
 			Real diff = (x - _hole0) / _holeDelta;
-			if (diff == (int)diff)
+			if (std::abs(diff - std::round(diff)) < std::numeric_limits<Real>::epsilon() * 100)
 				return false;
 
 			return true;
@@ -1693,15 +1688,14 @@ namespace MML {
 
 		/// @brief Returns true if x is in [lower, upper] and not at a hole.
 		bool contains(Real x) const {
-			// check for hole!
-			if (x == _hole0)
+			if (x < _lower || x > _upper)
 				return false;
 
 			Real diff = (x - _hole0) / _holeDelta;
-			if (diff == (int)diff)
+			if (std::abs(diff - std::round(diff)) < std::numeric_limits<Real>::epsilon() * 100)
 				return false;
 
-			return (x >= _lower) && (x <= _upper);
+			return true;
 		}
 		/// @brief Returns false since this interval has discontinuities.
 		bool isContinuous() const { return false; }
@@ -2283,13 +2277,13 @@ namespace MML
 		template<typename T>
 		static inline T Cos(T x) { return std::cos(x); }
 		template<typename T>
-		static inline T Sec(T x) { return T{1} / std::cos(x); }
+		static inline T Sec(T x) { T c = std::cos(x); if (std::abs(c) < std::numeric_limits<T>::epsilon()) throw std::domain_error("Sec: cos(x) is zero"); return T{1} / c; }
 		template<typename T>
-		static inline T Csc(T x) { return T{1} / std::sin(x); }
+		static inline T Csc(T x) { T s = std::sin(x); if (std::abs(s) < std::numeric_limits<T>::epsilon()) throw std::domain_error("Csc: sin(x) is zero"); return T{1} / s; }
 		template<typename T>
 		static inline T Tan(T x) { return std::tan(x); }
 		template<typename T>
-		static inline T Ctg(T x) { return T{1} / std::tan(x); }
+		static inline T Ctg(T x) { T t = std::tan(x); if (std::abs(t) < std::numeric_limits<T>::epsilon()) throw std::domain_error("Ctg: tan(x) is zero"); return T{1} / t; }
 
 		template<typename T>
 		static inline T Exp(T x) { return std::exp(x); }
@@ -2309,11 +2303,11 @@ namespace MML
 		template<typename T>
 		static inline T Sech(T x) { return T{1} / std::cosh(x); }
 		template<typename T>
-		static inline T Csch(T x) { return T{1} / std::sinh(x); }
+		static inline T Csch(T x) { T s = std::sinh(x); if (std::abs(s) < std::numeric_limits<T>::epsilon()) throw std::domain_error("Csch: sinh(x) is zero"); return T{1} / s; }
 		template<typename T>
 		static inline T Tanh(T x) { return std::tanh(x); }
 		template<typename T>
-		static inline T Ctgh(T x) { return T{1} / std::tanh(x); }
+		static inline T Ctgh(T x) { T t = std::tanh(x); if (std::abs(t) < std::numeric_limits<T>::epsilon()) throw std::domain_error("Ctgh: tanh(x) is zero"); return T{1} / t; }
 
 		template<typename T>
 		static inline T Asin(T x) { return std::asin(x); }
@@ -2513,12 +2507,14 @@ namespace MML
 
 		// Factorial functions
 		static inline Real Factorial(int n) {
+			if (n < 0) throw std::domain_error("Factorial: negative argument");
 			Real fact = 1.0;
 			for (int i = 2; i <= n; i++)
 				fact *= i;
 			return fact;
 		}
 		static inline long long FactorialInt(int n) {
+			if (n < 0) throw std::domain_error("FactorialInt: negative argument");
 			long long fact = 1;
 			for (int i = 2; i <= n; i++)
 				fact *= i;
@@ -2526,7 +2522,7 @@ namespace MML
 		}
 		static inline Real FactorialStirling(int n)
 		{
-			if (n < 0) return 0.0; // Factorial is not defined for negative integers
+			if (n < 0) throw std::domain_error("FactorialStirling: negative argument");
 			if (n == 0 || n == 1) return 1.0;
 			return sqrt(2 * Constants::PI * n) * std::pow(n / Constants::E, n);
 		}
@@ -3914,9 +3910,11 @@ namespace MML {
 
 		/// @brief Computes distance to another spherical point
 		/// @param b The other point
-		/// @return Euclidean distance between the two points
+		/// @return Euclidean distance between the two points (using spherical law of cosines)
 		Real Dist(const Point3Spherical& b) const {
-			return sqrt(R() * R() + b.R() * b.R() - 2 * R() * b.R() * cos(b.Theta() - Theta()) * cos(b.Phi() - Phi()));
+			Real cosGamma = cos(Theta()) * cos(b.Theta()) + sin(Theta()) * sin(b.Theta()) * cos(b.Phi() - Phi());
+			cosGamma = std::clamp(cosGamma, (Real)-1.0, (Real)1.0);
+			return sqrt(R() * R() + b.R() * b.R() - 2 * R() * b.R() * cosGamma);
 		}
 	};
 
@@ -4055,9 +4053,9 @@ namespace MML {
 		}
 
 		// Angles (in radians) - using law of cosines
-		Real AngleA() const { return acos((_b * _b + _c * _c - _a * _a) / (2 * _b * _c)); } // opposite to side a
-		Real AngleB() const { return acos((_a * _a + _c * _c - _b * _b) / (2 * _a * _c)); } // opposite to side b
-		Real AngleC() const { return acos((_a * _a + _b * _b - _c * _c) / (2 * _a * _b)); } // opposite to side c
+		Real AngleA() const { return acos(std::clamp((_b * _b + _c * _c - _a * _a) / (2 * _b * _c), (Real)-1.0, (Real)1.0)); } // opposite to side a
+		Real AngleB() const { return acos(std::clamp((_a * _a + _c * _c - _b * _b) / (2 * _a * _c), (Real)-1.0, (Real)1.0)); } // opposite to side b
+		Real AngleC() const { return acos(std::clamp((_a * _a + _b * _b - _c * _c) / (2 * _a * _b), (Real)-1.0, (Real)1.0)); } // opposite to side c
 
 		// Altitudes (heights)
 		Real AltitudeToA() const { return 2.0 * Area() / _a; }
@@ -5599,32 +5597,34 @@ namespace MML
 			return true;
 		}
 
-		/// @brief Check if matrix is symmetric (M = Mᵀ)
-		/// @return true if M(i,j) = M(j,i) for all i,j
-		bool isSymmetric() const
+		/// @brief Check if matrix is symmetric (M = Mᵀ) within tolerance
+		/// @param eps Maximum allowed difference |M(i,j) - M(j,i)|
+		/// @return true if M(i,j) ≈ M(j,i) for all i,j
+		bool isSymmetric(double eps = Defaults::IsMatrixSymmetricTolerance) const
 		{
 			if (_rows != _cols) return false;
 			
 			for (int i = 0; i < _rows; ++i)
 				for (int j = i + 1; j < _cols; ++j)
-					if ((*this)(i, j) != (*this)(j, i))
+					if (Abs((*this)(i, j) - (*this)(j, i)) > eps)
 						return false;
 			return true;
 		}
 
-		/// @brief Check if matrix is anti-symmetric (skew-symmetric)
-		/// @return true if M(i,j) = -M(j,i) (or -conj(M(j,i)) for complex)
-		bool isAntiSymmetric() const
+		/// @brief Check if matrix is anti-symmetric (skew-symmetric) within tolerance
+		/// @param eps Maximum allowed difference |M(i,j) + M(j,i)|
+		/// @return true if M(i,j) ≈ -M(j,i) for all i,j
+		bool isAntiSymmetric(double eps = Defaults::IsMatrixSymmetricTolerance) const
 		{
 			if (_rows != _cols) return false;
 			
 			for (int i = 0; i < _rows; ++i) {
 				for (int j = i + 1; j < _cols; ++j) {
 					if (IsMatrixTypeComplex()) {
-						if ((*this)(i, j) != -std::conj((*this)(j, i)))
+						if (Abs((*this)(i, j) + std::conj((*this)(j, i))) > eps)
 							return false;
 					} else {
-						if ((*this)(i, j) != -(*this)(j, i))
+						if (Abs((*this)(i, j) + (*this)(j, i)) > eps)
 							return false;
 					}
 				}
@@ -5812,7 +5812,7 @@ namespace MML
 		/// @brief Approximate equality with tolerance
 		/// @param b Matrix to compare with
 		/// @param eps Maximum allowed difference per element
-		bool IsEqualTo(const Matrix& b, Type eps = Defaults::MatrixIsEqualTolerance) const
+		bool IsEqualTo(const Matrix& b, Real eps = Defaults::MatrixIsEqualTolerance) const
 		{
 			if (_rows != b._rows || _cols != b._cols)
 				return false;
@@ -5824,7 +5824,7 @@ namespace MML
 		}
 		
 		/// @brief Static version of IsEqualTo
-		static bool AreEqual(const Matrix& a, const Matrix& b, Type eps = Defaults::MatrixIsEqualTolerance)
+		static bool AreEqual(const Matrix& a, const Matrix& b, Real eps = Defaults::MatrixIsEqualTolerance)
 		{
 			return a.IsEqualTo(b, eps);
 		}
@@ -7138,7 +7138,8 @@ namespace MML {
 
 		VectorN<Type, N> VectorFromDiagonal() {
 			VectorN<Type, N> ret;
-			for (int i = 0; i < N; i++)
+			constexpr int minDim = (N < M) ? N : M;
+			for (int i = 0; i < minDim; i++)
 				ret[i] = _vals[i][i];
 
 			return ret;
@@ -7393,7 +7394,7 @@ namespace MML {
 		/// @param eps Maximum allowed element difference.
 		/// @return True if |A[i][j] - B[i][j]| ≤ eps for all i, j.
 
-		bool IsEqualTo(const MatrixNM& b, Type eps = Defaults::MatrixIsEqualTolerance) const {
+		bool IsEqualTo(const MatrixNM& b, Real eps = Defaults::MatrixIsEqualTolerance) const {
 			for (int i = 0; i < rows(); i++)
 				for (int j = 0; j < cols(); j++)
 					if (std::abs(_vals[i][j] - b._vals[i][j]) > eps)
@@ -7403,7 +7404,7 @@ namespace MML {
 		}
 
 		/// @brief Static helper for tolerance-based comparison.
-		static bool AreEqual(const MatrixNM& a, const MatrixNM& b, Type eps = Defaults::MatrixIsEqualTolerance) { return a.IsEqualTo(b, eps); }
+		static bool AreEqual(const MatrixNM& a, const MatrixNM& b, Real eps = Defaults::MatrixIsEqualTolerance) { return a.IsEqualTo(b, eps); }
 		/// /** @} */
 
 
@@ -7940,7 +7941,7 @@ namespace MML
 		/// @param b Matrix to compare with.
 		/// @param eps Maximum allowed element difference.
 		/// @return True if dimensions match and all elements are within tolerance.
-		bool IsEqualTo(const MatrixSym& b, Type eps = Defaults::MatrixIsEqualTolerance) const {
+		bool IsEqualTo(const MatrixSym& b, Real eps = Defaults::MatrixIsEqualTolerance) const {
 			if (_dim != b._dim)
 				return false;
 
@@ -7952,7 +7953,7 @@ namespace MML
 		}
 
 		/// @brief Static helper for tolerance-based comparison.
-		static bool AreEqual(const MatrixSym& a, const MatrixSym& b, Type eps = Defaults::MatrixIsEqualTolerance) {
+		static bool AreEqual(const MatrixSym& a, const MatrixSym& b, Real eps = Defaults::MatrixIsEqualTolerance) {
 			return a.IsEqualTo(b, eps);
 		}
 
@@ -8683,8 +8684,17 @@ namespace MML
 			Type bet;  // Must be Type to work with complex matrices
 			Vector<Type> gam(n);
 
-			// Use tolerance-based zero check for numerical stability
-			if (std::abs(_diag[0]) < std::numeric_limits<Real>::epsilon())
+			// Compute scale-relative tolerance based on max diagonal magnitude
+			Real maxDiag = Real{0};
+			for (int i = 0; i < n; i++) {
+				Real mag = std::abs(_diag[i]);
+				if (mag > maxDiag) maxDiag = mag;
+			}
+			Real tol = maxDiag * std::numeric_limits<Real>::epsilon();
+			if (tol < std::numeric_limits<Real>::epsilon())
+				tol = std::numeric_limits<Real>::epsilon();
+
+			if (std::abs(_diag[0]) < tol)
 				throw SingularMatrixError("TridiagonalMatrix::Solve - zero pivot at element 0", 0, 0);
 
 			sol[0] = rhs[0] / (bet = _diag[0]);
@@ -8693,7 +8703,7 @@ namespace MML
 				gam[j] = _aboveDiag[j - 1] / bet;
 				bet = _diag[j] - _belowDiag[j] * gam[j];
 
-				if (std::abs(bet) < std::numeric_limits<Real>::epsilon())
+				if (std::abs(bet) < tol)
 					throw SingularMatrixError("TridiagonalMatrix::Solve - zero pivot during elimination", j, j);
 
 				sol[j] = (rhs[j] - _belowDiag[j] * sol[j - 1]) / bet;
@@ -9605,6 +9615,9 @@ namespace MML
 			for (int i = _numCovar; i < _numCovar + _numContravar; i++)
 				_isContravar[i] = true;
 
+			if (values.size() > N * N)
+				throw TensorCovarContravarNumError("Tensor2 ctor, initializer_list has more than N*N elements", static_cast<int>(values.size()), N * N);
+
 			auto val = values.begin();
 			for (size_t i = 0; i < N; ++i)
 				for (size_t j = 0; j < N; ++j)
@@ -9878,6 +9891,9 @@ namespace MML
 			for (int i = _numCovar; i < _numCovar + _numContravar; i++)
 				_isContravar[i] = true;
 			
+			if (values.size() > N * N * N)
+				throw TensorCovarContravarNumError("Tensor3 ctor, initializer_list has more than N*N*N elements", static_cast<int>(values.size()), N * N * N);
+
 			auto val = values.begin();
 			for (size_t i = 0; i < N; ++i)
 				for (size_t j = 0; j < N; ++j)
@@ -13720,7 +13736,11 @@ namespace MML
 		/// @return Angle in radians [0, p]
 		Real AngleToVector(const Vector3Cartesian& b)
 		{
-			Real cos_phi = this->ScalarProduct(b) / (NormL2() * b.NormL2());
+			Real normA = NormL2(), normB = b.NormL2();
+			if (normA < std::numeric_limits<Real>::epsilon() ||
+			    normB < std::numeric_limits<Real>::epsilon())
+				throw DivisionByZeroError("AngleToVector: cannot compute angle with zero vector");
+			Real cos_phi = this->ScalarProduct(b) / (normA * normB);
 			// Clamp to [-1, 1] to prevent NaN from floating-point rounding errors
 			cos_phi = std::max(Real{-1.0}, std::min(Real{1.0}, cos_phi));
 			return std::acos(cos_phi);
@@ -14056,11 +14076,36 @@ namespace MML
 			return Vector3Cylindrical(b.R() * a, b.Phi(), b.Z() * a);
 		}
 
-		/// @brief Returns unit vector at given position (normalizes in local basis).
+		/// @brief Returns unit vector at given position (local cylindrical basis result).
 		/// @param pos Position in cylindrical coordinates
 		Vector3Cylindrical GetAsUnitVectorAtPos(const Vector3Cylindrical& pos) const
 		{
-			return Vector3Cylindrical{ R(), Phi() / pos.R(), Z() };
+			// Step 1: Convert *this to Cartesian
+			Real x = R() * std::cos(Phi());
+			Real y = R() * std::sin(Phi());
+			Real z = Z();
+
+			// Step 2: Normalize in Cartesian
+			Real norm = std::sqrt(x * x + y * y + z * z);
+			if (norm == REAL(0.0))
+				return Vector3Cylindrical(REAL(0.0), REAL(0.0), REAL(0.0));
+
+			x /= norm;
+			y /= norm;
+			z /= norm;
+
+			// Step 3: Compute local cylindrical basis at pos and project
+			Real cp = std::cos(pos.Phi());
+			Real sp = std::sin(pos.Phi());
+
+			// ê_R   = (cos(φ_pos), sin(φ_pos), 0)
+			// ê_Phi = (-sin(φ_pos), cos(φ_pos), 0)
+			// ê_Z   = (0, 0, 1)
+			Real v_R = x * cp + y * sp;
+			Real v_Phi = -x * sp + y * cp;
+			Real v_Z = z;
+
+			return Vector3Cylindrical(v_R, v_Phi, v_Z);
 		}
 	};
 
@@ -14818,6 +14863,12 @@ namespace MML
 			// Perform slerp
 			Real theta = std::acos(dot);
 			Real sinTheta = std::sin(theta);
+
+			// Guard against near-zero sinTheta for numerical stability
+			if (std::abs(sinTheta) < Real{1e-6})
+			{
+				return Lerp(q1, q2_adjusted, t).Normalized();
+			}
 			
 			Real w1 = std::sin((1.0 - t) * theta) / sinTheta;
 			Real w2 = std::sin(t * theta) / sinTheta;
@@ -15057,6 +15108,8 @@ namespace MML
 		/// @param x Evaluation point
 		/// @return P(x)
 		FieldT operator() (const FieldT& x) const {
+			if (_vecCoef.empty())
+				return FieldT(0);
 			int j = degree();
 			FieldT p = _vecCoef[j] * FieldT(1);
 
@@ -17642,18 +17695,19 @@ namespace MML
 		/// @param line The line
 		/// @param out_inter_pnt Output: intersection point if exists
 		/// @return false if line is parallel to plane
-		bool IntersectionWithLine(const Line3D& line, Pnt3Cart& out_inter_pnt) const
+		bool IntersectionWithLine(const Line3D& line, Pnt3Cart& out_inter_pnt, Real eps = Defaults::Line3DIsParallelTolerance) const
 		{
 			Vec3Cart line_dir = line.Direction();
 			Vec3Cart plane_normal = Normal();
 
 			// Check if the line is parallel to the plane
-			if (ScalarProduct(line_dir, plane_normal) == 0) {
+			Real dot = ScalarProduct(line_dir, plane_normal);
+			if (std::abs(dot) < eps) {
 				return false;
 			}
 
 			// Calculate the distance between the point on the line and the plane
-			double t = -(plane_normal * line.StartPoint() + D()) / ScalarProduct(line_dir, plane_normal);
+			double t = -(plane_normal * line.StartPoint() + D()) / dot;
 			Pnt3Cart inter_pnt = line.StartPoint() + line_dir * t;
 			out_inter_pnt = inter_pnt;
 			
@@ -17709,7 +17763,7 @@ namespace MML
 			Vec3Cart n2 = plane.Normal();
 			Vec3Cart dir = VectorProduct(n1, n2);
 
-			if (dir.NormL2() == 0.0) {
+			if (dir.NormL2() < Defaults::Vec3CartIsParallelTolerance) {
 				// Planes are parallel
 				return false;
 			}
@@ -17925,6 +17979,8 @@ namespace MML
 			_pnt3XCoord = pntOnLine.Dist(pnt1);
 
 			_normal = VectorProduct(_localX, _localY).GetAsUnitVector();
+
+			_origin = pnt1;
 		}
 
 		/// @brief Gets minimum u parameter
@@ -19554,7 +19610,8 @@ namespace MML {
 			Pnt3Cart pnt4(-a / 2, -a / 2, -a / 2);
 			Pnt3Cart pnt5(0, 0, h); // apex
 
-			_surfaces.push_back(TriangleSurface3D(pnt1, pnt4, pnt3)); // base
+			_surfaces.push_back(TriangleSurface3D(pnt1, pnt4, pnt3)); // base triangle 1
+			_surfaces.push_back(TriangleSurface3D(pnt1, pnt3, pnt2)); // base triangle 2
 			_surfaces.push_back(TriangleSurface3D(pnt5, pnt1, pnt2)); // front face
 			_surfaces.push_back(TriangleSurface3D(pnt5, pnt2, pnt3)); // right face
 			_surfaces.push_back(TriangleSurface3D(pnt5, pnt3, pnt4)); // back face
@@ -21492,6 +21549,8 @@ namespace MML
 		/// @param dxdt Output: computed derivatives dx/dt
 		void	derivs(const Real t, const Vector<Real> &x, Vector<Real> &dxdt) const
 		{
+			if (_func == nullptr)
+				throw std::runtime_error("ODESystem::derivs() - system function is null (default-constructed ODESystem)");
 			_func(t, x, dxdt);
 		}
 
@@ -21599,6 +21658,7 @@ namespace MML
 
 		int  _sysDim;
 		int  _totalSavedSteps;
+		int  _count;  // actual number of data points stored (vs capacity)
 	
 		Real _t1, _t2;
 		Vector<Real> _tval;
@@ -21622,7 +21682,7 @@ namespace MML
 		/// @param maxSteps Initial storage capacity
 		ODESystemSolution(Real x1, Real x2, int dim, int maxSteps)
 			: _t1(x1), _t2(x2), _sysDim(dim),
-				_numStepsOK(0), _numStepsBad(0), _totalSavedSteps(maxSteps + 1)
+				_numStepsOK(0), _numStepsBad(0), _totalSavedSteps(maxSteps + 1), _count(0)
 		{
 			_tval.Resize(_totalSavedSteps);
 			_xval.Resize(dim, _totalSavedSteps);
@@ -21653,12 +21713,12 @@ namespace MML
 		/// @brief Get current storage capacity
 		int getTotalSavedSteps() const { return _totalSavedSteps; }
 		/// @brief Get number of saved solution intervals
-		int getNumSteps() const { return _totalSavedSteps - 1; }  // Number of intervals
+		int getNumSteps() const { return _count > 0 ? _count - 1 : 0; }  // Number of intervals
 		
 		/// @brief Check if solution is empty (no points saved)
-		bool isEmpty() const { return _totalSavedSteps == 0; }
+		bool isEmpty() const { return _count == 0; }
 		/// @brief Get number of saved solution points
-		int size() const { return _totalSavedSteps; }
+		int size() const { return _count; }
 		/// @brief Get current storage capacity
 		int capacity() const { return _totalSavedSteps; }
 		
@@ -21681,7 +21741,7 @@ namespace MML
 		/// @param ind Index of saved point
 		/// @throws IndexError if index is invalid
 		Real getTValue(int ind) const { 
-			if (ind < 0 || ind >= _totalSavedSteps)
+			if (ind < 0 || ind >= _count)
 				throw IndexError("Index out of range in ODESystemSolution::getTValue");
 			return _tval[ind]; 
 		}
@@ -21691,7 +21751,7 @@ namespace MML
 		/// @param component Component index (0 to dim-1)
 		/// @throws IndexError if indices are invalid
 		Real getXValue(int ind, int component) const { 
-			if (ind < 0 || ind >= _totalSavedSteps)
+			if (ind < 0 || ind >= _count)
 				throw IndexError("Index out of range in ODESystemSolution::getXValue(ind)");
 			if (component < 0 || component >= _sysDim)
 				throw IndexError("Component out of range in ODESystemSolution::getXValue(component)");
@@ -21713,9 +21773,11 @@ namespace MML
 		/// @return Vector of all components at last time point
 		Vector<Real> getXValuesAtEnd() const
 		{
+			if (_count == 0)
+				throw IndexError("No data in ODESystemSolution::getXValuesAtEnd");
 			Vector<Real> res(_sysDim);
 			for (int i = 0; i < _sysDim; i++)
-				res[i] = _xval[i][_totalSavedSteps - 1];
+				res[i] = _xval[i][_count - 1];
 			return res;
 		}
 
@@ -21732,6 +21794,7 @@ namespace MML
 				ExtendSavedSteps();
 
 			_tval[ind] = x;
+			if (ind + 1 > _count) _count = ind + 1;
 		}
 		/// @brief Set state value for specific component at specified index
 		/// @param ind Index where to store value
@@ -21750,6 +21813,7 @@ namespace MML
 				ExtendSavedSteps();
 
 			_xval[component][ind] = x;
+			if (ind + 1 > _count) _count = ind + 1;
 		}
 
 		/// @brief Store time and state vector at specified index
@@ -21772,6 +21836,7 @@ namespace MML
 			_tval[ind] = x;
 			for (int i = 0; i < _sysDim; i++)
 				_xval[i][ind] = y[i];
+			if (ind + 1 > _count) _count = ind + 1;
 		}
 		/// @brief Trim storage to actual number of saved steps
 		/// @param numDoneSteps Number of steps actually completed
@@ -21779,6 +21844,7 @@ namespace MML
 		void setFinalSize(int numDoneSteps)
 		{
 			_totalSavedSteps = numDoneSteps + 1;
+			_count = numDoneSteps + 1;
 
 			_tval.Resize(_totalSavedSteps, true);
 			_xval.Resize(_sysDim, _totalSavedSteps, true);
@@ -21822,8 +21888,8 @@ namespace MML
 		/// @return Spline-interpolated parametric curve in 2D
 		SplineInterpParametricCurve<2> getSolAsParamCurve2D(int ind1, int ind2) const
 		{
-			Matrix<Real> curve_points(_totalSavedSteps, 2);
-			for (int i = 0; i < _totalSavedSteps; i++)
+			Matrix<Real> curve_points(_count, 2);
+			for (int i = 0; i < _count; i++)
 			{
 				curve_points(i, 0) = _xval[ind1][i];
 				curve_points(i, 1) = _xval[ind2][i];
@@ -21838,8 +21904,8 @@ namespace MML
 		/// @return Spline-interpolated parametric curve in 3D
 		SplineInterpParametricCurve<3> getSolAsParamCurve3D(int ind1, int ind2, int ind3) const
 		{
-			Matrix<Real> curve_points(_totalSavedSteps, 3);
-			for (int i = 0; i < _totalSavedSteps; i++)
+			Matrix<Real> curve_points(_count, 3);
+			for (int i = 0; i < _count; i++)
 			{
 				curve_points(i, 0) = _xval[ind1][i];
 				curve_points(i, 1) = _xval[ind2][i];
@@ -21881,6 +21947,7 @@ namespace MML
 		int _diffDim;    ///< Dimension of differential variables
 		int _algDim;     ///< Dimension of algebraic variables
 		int _totalSavedSteps;
+		int _count;      ///< Actual number of data points stored (vs capacity)
 
 		Real _t1, _t2;
 		Vector<Real> _tval;    ///< Time values
@@ -21906,7 +21973,7 @@ namespace MML
 		/// @param maxSteps Initial storage capacity
 		DAESolution(Real t1, Real t2, int diffDim, int algDim, int maxSteps)
 			: _t1(t1), _t2(t2), _diffDim(diffDim), _algDim(algDim),
-			  _numStepsOK(0), _numStepsBad(0), _totalSavedSteps(maxSteps + 1)
+			  _numStepsOK(0), _numStepsBad(0), _totalSavedSteps(maxSteps + 1), _count(0)
 		{
 			_tval.Resize(_totalSavedSteps);
 			_xval.Resize(diffDim, _totalSavedSteps);
@@ -21952,11 +22019,13 @@ namespace MML
 		/// @brief Get current storage capacity
 		int getTotalSavedSteps() const { return _totalSavedSteps; }
 		/// @brief Get number of saved solution intervals
-		int getNumSteps() const { return _totalSavedSteps - 1; }
+		int getNumSteps() const { return _count > 0 ? _count - 1 : 0; }
 		/// @brief Check if solution is empty (no points saved)
-		bool isEmpty() const { return _totalSavedSteps == 0; }
+		bool isEmpty() const { return _count == 0; }
 		/// @brief Get number of saved solution points
-		int size() const { return _totalSavedSteps; }
+		int size() const { return _count; }
+		/// @brief Get current storage capacity
+		int capacity() const { return _totalSavedSteps; }
 
 		//=========================================================================
 		//                           Data Access
@@ -21974,7 +22043,7 @@ namespace MML
 		/// @throws IndexError if index is invalid
 		Real getTValue(int ind) const
 		{
-			if (ind < 0 || ind >= _totalSavedSteps)
+			if (ind < 0 || ind >= _count)
 				throw IndexError("Index out of range in DAESolution::getTValue");
 			return _tval[ind];
 		}
@@ -21985,7 +22054,7 @@ namespace MML
 		/// @throws IndexError if indices are invalid
 		Real getXValue(int ind, int component) const
 		{
-			if (ind < 0 || ind >= _totalSavedSteps)
+			if (ind < 0 || ind >= _count)
 				throw IndexError("Index out of range in DAESolution::getXValue(ind)");
 			if (component < 0 || component >= _diffDim)
 				throw IndexError("Component out of range in DAESolution::getXValue(component)");
@@ -21998,7 +22067,7 @@ namespace MML
 		/// @throws IndexError if indices are invalid
 		Real getYValue(int ind, int component) const
 		{
-			if (ind < 0 || ind >= _totalSavedSteps)
+			if (ind < 0 || ind >= _count)
 				throw IndexError("Index out of range in DAESolution::getYValue(ind)");
 			if (component < 0 || component >= _algDim)
 				throw IndexError("Component out of range in DAESolution::getYValue(component)");
@@ -22029,9 +22098,11 @@ namespace MML
 		/// @return Vector of all differential components at last time point
 		Vector<Real> getXValuesAtEnd() const
 		{
+			if (_count == 0)
+				throw IndexError("No data in DAESolution::getXValuesAtEnd");
 			Vector<Real> res(_diffDim);
 			for (int i = 0; i < _diffDim; i++)
-				res[i] = _xval[i][_totalSavedSteps - 1];
+				res[i] = _xval[i][_count - 1];
 			return res;
 		}
 
@@ -22039,9 +22110,11 @@ namespace MML
 		/// @return Vector of all algebraic components at last time point
 		Vector<Real> getYValuesAtEnd() const
 		{
+			if (_count == 0)
+				throw IndexError("No data in DAESolution::getYValuesAtEnd");
 			Vector<Real> res(_algDim);
 			for (int i = 0; i < _algDim; i++)
-				res[i] = _yval[i][_totalSavedSteps - 1];
+				res[i] = _yval[i][_count - 1];
 			return res;
 		}
 
@@ -22073,6 +22146,7 @@ namespace MML
 				_xval[i][ind] = x[i];
 			for (int i = 0; i < _algDim; i++)
 				_yval[i][ind] = y[i];
+			if (ind + 1 > _count) _count = ind + 1;
 		}
 
 		/// @brief Set time value at specified index
@@ -22085,6 +22159,7 @@ namespace MML
 			if (ind >= _totalSavedSteps)
 				ExtendSavedSteps();
 			_tval[ind] = t;
+			if (ind + 1 > _count) _count = ind + 1;
 		}
 
 		/// @brief Set differential variable value at specified index
@@ -22123,6 +22198,7 @@ namespace MML
 		void setFinalSize(int numDoneSteps)
 		{
 			_totalSavedSteps = numDoneSteps + 1;
+			_count = _totalSavedSteps;
 			_tval.Resize(_totalSavedSteps, true);
 			_xval.Resize(_diffDim, _totalSavedSteps, true);
 			_yval.Resize(_algDim, _totalSavedSteps, true);
@@ -22240,7 +22316,11 @@ namespace MML
 		DAESystem(int diffDim, int algDim,
 		          void (*diffFunc)(Real, const Vector<Real>&, const Vector<Real>&, Vector<Real>&),
 		          void (*algFunc)(Real, const Vector<Real>&, const Vector<Real>&, Vector<Real>&))
-			: _diffDim(diffDim), _algDim(algDim), _diffFunc(diffFunc), _algFunc(algFunc) {}
+			: _diffDim(diffDim), _algDim(algDim), _diffFunc(diffFunc), _algFunc(algFunc)
+		{
+			if (diffFunc == nullptr || algFunc == nullptr)
+				throw std::invalid_argument("DAESystem: function pointers cannot be null");
+		}
 
 		/// @brief Virtual destructor for proper cleanup in derived classes
 		virtual ~DAESystem() = default;
@@ -23457,10 +23537,14 @@ namespace MML
 
 				pivinv = Real{ 1.0 } / a[icol][icol];
 				
-				// Check for non-finite pivot inverse (overflow from small pivot, Real types only)
+				// Check for non-finite pivot inverse (overflow from small pivot)
 				if constexpr (std::is_same_v<Type, Real>) {
 					if (std::isnan(pivinv) || std::isinf(pivinv))
 						throw MatrixNumericalError("Non-finite pivot inverse in Gauss-Jordan elimination");
+				} else {
+					Real mag = std::abs(pivinv);
+					if (std::isnan(mag) || std::isinf(mag))
+						throw MatrixNumericalError("Non-finite pivot inverse in Gauss-Jordan elimination (Complex)");
 				}
 				
 				a[icol][icol] = 1.0;
@@ -23641,10 +23725,14 @@ namespace MML
 				{
 					temp2 = _lu[i][k] /= _lu[k][k];
 					
-					// Check for non-finite multiplier (can happen from overflow/underflow, Real types only)
+					// Check for non-finite multiplier (can happen from overflow/underflow)
 					if constexpr (std::is_same_v<Type, Real>) {
 						if (std::isnan(temp2) || std::isinf(temp2))
 							throw MatrixNumericalError("Non-finite multiplier in LU decomposition");
+					} else {
+						Real mag = std::abs(temp2);
+						if (std::isnan(mag) || std::isinf(mag))
+							throw MatrixNumericalError("Non-finite multiplier in LU decomposition (Complex)");
 					}
 					
 					for (j = k + 1; j < _n; j++)
@@ -23781,7 +23869,6 @@ namespace MML
 			if (inMatRef.rows() == 0)
 				throw MatrixDimensionError("LUSolverInPlace::ctor - matrix must be non-empty", 0, 0, -1, -1);
 			
-			const Real TINY = 1.0e-40;
 			int i, imax, j, k;
 			Real big, temp;
 			Type temp2;
@@ -23817,7 +23904,7 @@ namespace MML
 				}
 				_indx[k] = imax;
 				if (_lu[k][k] == Real{ 0.0 })
-					_lu[k][k] = TINY;
+					throw SingularMatrixError("LUSolverInPlace::ctor - zero pivot after partial pivoting");
 
 				for (i = k + 1; i < _n; i++) {
 					temp2 = _lu[i][k] /= _lu[k][k];
@@ -23962,7 +24049,6 @@ namespace MML
 			  _al(_n, _m1),
 			  _indx(_n)
 		{
-			const Real TINY = 1.0e-40;
 			int mm = _m1 + _m2 + 1;
 			
 			// Copy band diagonal matrix to working storage
@@ -24014,7 +24100,7 @@ namespace MML
 				_indx[k] = i + 1;  // Store 1-based index for compatibility
 				
 				if (dum == 0.0)
-					_au[k][0] = TINY;  // Matrix is singular but proceed with tiny pivot
+					throw SingularMatrixError("BandDiagonalSolver::ctor - Singular Matrix (zero pivot)");
 				
 				// Interchange rows if necessary
 				if (i != k)
@@ -24178,6 +24264,8 @@ namespace MML
 				throw MatrixDimensionError("CholeskySolver::ctor - matrix must be square", a.rows(), a.cols(), -1, -1);
 			if (a.rows() == 0)
 				throw MatrixDimensionError("CholeskySolver::ctor - matrix must be non-empty", 0, 0, -1, -1);
+			if (!a.isSymmetric())
+				throw MatrixDimensionError("CholeskySolver::ctor - matrix must be symmetric", a.rows(), a.cols(), -1, -1);
 			
 			// Perform Cholesky decomposition
 			for (int i = 0; i < n; i++)
@@ -25354,11 +25442,15 @@ namespace MML
 			if (b.size() != n)
 				throw MatrixDimensionError("JacobiSolver::Solve - vector b dimension mismatch", n, n, b.size(), -1);
 			
-			// Check for zero diagonal elements
+			// Check for near-zero diagonal elements (tolerance-based)
+			Real maxDiag = Real{0};
+			for (int i = 0; i < n; i++) { Real mag = std::abs(A(i, i)); if (mag > maxDiag) maxDiag = mag; }
+			Real diagTol = maxDiag * std::numeric_limits<Real>::epsilon();
+			if (diagTol < std::numeric_limits<Real>::epsilon()) diagTol = std::numeric_limits<Real>::epsilon();
 			for (int i = 0; i < n; i++)
 			{
-				if (A(i, i) == 0.0)
-					throw SingularMatrixError("JacobiSolver::Solve - zero diagonal element at row " + std::to_string(i));
+				if (std::abs(A(i, i)) < diagTol)
+					throw SingularMatrixError("JacobiSolver::Solve - near-zero diagonal element at row " + std::to_string(i));
 			}
 			
 			// Initialize solution vector
@@ -25504,11 +25596,15 @@ namespace MML
 			if (b.size() != n)
 				throw MatrixDimensionError("GaussSeidelSolver::Solve - vector b dimension mismatch", n, n, b.size(), -1);
 			
-			// Check for zero diagonal elements
+			// Check for near-zero diagonal elements (tolerance-based)
+			Real maxDiag = Real{0};
+			for (int i = 0; i < n; i++) { Real mag = std::abs(A(i, i)); if (mag > maxDiag) maxDiag = mag; }
+			Real diagTol = maxDiag * std::numeric_limits<Real>::epsilon();
+			if (diagTol < std::numeric_limits<Real>::epsilon()) diagTol = std::numeric_limits<Real>::epsilon();
 			for (int i = 0; i < n; i++)
 			{
-				if (A(i, i) == 0.0)
-					throw SingularMatrixError("GaussSeidelSolver::Solve - zero diagonal element at row " + std::to_string(i));
+				if (std::abs(A(i, i)) < diagTol)
+					throw SingularMatrixError("GaussSeidelSolver::Solve - near-zero diagonal element at row " + std::to_string(i));
 			}
 			
 			// Initialize solution vector
@@ -25668,11 +25764,15 @@ namespace MML
 			if (b.size() != n)
 				throw MatrixDimensionError("SORSolver::Solve - vector b dimension mismatch", n, n, b.size(), -1);
 			
-			// Check for zero diagonal elements
+			// Check for near-zero diagonal elements (tolerance-based)
+			Real maxDiag = Real{0};
+			for (int i = 0; i < n; i++) { Real mag = std::abs(A(i, i)); if (mag > maxDiag) maxDiag = mag; }
+			Real diagTol = maxDiag * std::numeric_limits<Real>::epsilon();
+			if (diagTol < std::numeric_limits<Real>::epsilon()) diagTol = std::numeric_limits<Real>::epsilon();
 			for (int i = 0; i < n; i++)
 			{
-				if (A(i, i) == 0.0)
-					throw SingularMatrixError("SORSolver::Solve - zero diagonal element at row " + std::to_string(i));
+				if (std::abs(A(i, i)) < diagTol)
+					throw SingularMatrixError("SORSolver::Solve - near-zero diagonal element at row " + std::to_string(i));
 			}
 			
 			// Initialize solution vector
@@ -27358,13 +27458,13 @@ namespace MML
 		}
 		
 		static Real NDer1Left(const IRealFunction& f, Real x, Real* error = nullptr) 
-		{ Real h = ScaleStep(NDer1_h, x); return NDer1(f, x - 2 * h, h, error); }
+		{ Real h = ScaleStep(NDer1_h, x); return NDer1(f, x - h, h, error); }
 		static Real NDer1Right(const IRealFunction& f, Real x, Real* error = nullptr) 
-		{ Real h = ScaleStep(NDer1_h, x); return NDer1(f, x + 2 * h, h, error); }
+		{ Real h = ScaleStep(NDer1_h, x); return NDer1(f, x, h, error); }
 		static Real NDer1Left(const IRealFunction& f, Real x, Real h, Real* error = nullptr) 
-		{ return NDer1(f, x - 2 * h, h, error); }
+		{ return NDer1(f, x - h, h, error); }
 		static Real NDer1Right(const IRealFunction& f, Real x, Real h, Real* error = nullptr) 
-		{ return NDer1(f, x + 2 * h, h, error); }
+		{ return NDer1(f, x, h, error); }
 
 		/********************************************************************************************************************/
 		/********                               Numerical derivatives of SECOND order                                ********/
@@ -29584,7 +29684,7 @@ namespace MML
 		template <int N>
 		static VectorN<Real, N> NDer1_u(const IParametricSurfaceRect<N>& f, Real u, Real w, Real* error = nullptr)
 		{
-			return NDer1_u(f, u, w, NDer1_h, error);
+			return NDer1_u(f, u, w, ScaleStep(NDer1_h, u), error);
 		}
 		template <int N>
 		static VectorN<Real, N> NDer1_w(const IParametricSurfaceRect<N>& f, Real u, Real w, Real h, Real* error = nullptr)
@@ -29607,7 +29707,7 @@ namespace MML
 		template <int N>
 		static VectorN<Real, N> NDer1_w(const IParametricSurfaceRect<N>& f, Real u, Real w, Real* error = nullptr)
 		{
-			return NDer1_w(f, u, w, NDer1_h, error);
+			return NDer1_w(f, u, w, ScaleStep(NDer1_h, w), error);
 		}
 	
 		/********************************************************************************************************************/
@@ -29632,7 +29732,7 @@ namespace MML
 		template <int N>
 		static VectorN<Real, N> NDer2_u(const IParametricSurfaceRect<N>& f, Real u, Real w, Real* error = nullptr)
 		{
-			return NDer2_u(f, u, w, NDer2_h, error);
+			return NDer2_u(f, u, w, ScaleStep(NDer2_h, u), error);
 		}
 		template <int N>
 		static VectorN<Real, N> NDer2_w(const IParametricSurfaceRect<N>& f, Real u, Real w, Real h, Real* error = nullptr)
@@ -29651,7 +29751,7 @@ namespace MML
 		template <int N>
 		static VectorN<Real, N> NDer2_w(const IParametricSurfaceRect<N>& f, Real u, Real w, Real* error = nullptr)
 		{
-			return NDer2_w(f, u, w, NDer2_h, error);
+			return NDer2_w(f, u, w, ScaleStep(NDer2_h, w), error);
 		}
 
 		/********************************************************************************************************************/
@@ -29674,33 +29774,39 @@ namespace MML
 		template <int N>
 		static VectorN<Real, N> NDer2_uu(const IParametricSurfaceRect<N>& f, Real u, Real w, Real* error = nullptr)
 		{
-			return NDer2_uu(f, u, w, NDer2_h, error);
+			return NDer2_uu(f, u, w, ScaleStep(NDer2_h, u), error);
 		}
 
 		template <int N>
-		static VectorN<Real, N> NDer2_uw(const IParametricSurfaceRect<N>& f, Real u, Real w, Real h, Real* error = nullptr)
+		static VectorN<Real, N> NDer2_uw(const IParametricSurfaceRect<N>& f, Real u, Real w, Real h_u, Real h_w, Real* error = nullptr)
 		{
-			// Correct formula for mixed partial derivative: ∂²f/∂u∂w
-			// Use central difference: [f(u+h,w+h) - f(u+h,w-h) - f(u-h,w+h) + f(u-h,w-h)] / (4h²)
-			VectorN<Real, N> fpp = f(u + h, w + h);  // f(u+h, w+h)
-			VectorN<Real, N> fpm = f(u + h, w - h);  // f(u+h, w-h)
-			VectorN<Real, N> fmp = f(u - h, w + h);  // f(u-h, w+h)
-			VectorN<Real, N> fmm = f(u - h, w - h);  // f(u-h, w-h)
+			// Mixed partial derivative: ∂²f/∂u∂w
+			// Central difference: [f(u+hu,w+hw) - f(u+hu,w-hw) - f(u-hu,w+hw) + f(u-hu,w-hw)] / (4*hu*hw)
+			VectorN<Real, N> fpp = f(u + h_u, w + h_w);
+			VectorN<Real, N> fpm = f(u + h_u, w - h_w);
+			VectorN<Real, N> fmp = f(u - h_u, w + h_w);
+			VectorN<Real, N> fmm = f(u - h_u, w - h_w);
 			
 			VectorN<Real, N> diff = fpp - fpm - fmp + fmm;
 			
 			if (error)
 			{
-				// Error estimate for mixed partial
 				Real norm_sum = fpp.NormL2() + fpm.NormL2() + fmp.NormL2() + fmm.NormL2();
-				*error = norm_sum * Constants::Eps / (4 * h * h);
+				*error = norm_sum * Constants::Eps / (4 * h_u * h_w);
 			}
-			return diff / (4 * h * h);
+			return diff / (4 * h_u * h_w);
+		}
+		template <int N>
+		static VectorN<Real, N> NDer2_uw(const IParametricSurfaceRect<N>& f, Real u, Real w, Real h, Real* error = nullptr)
+		{
+			return NDer2_uw<N>(f, u, w, h, h, error);
 		}
 		template <int N>
 		static VectorN<Real, N> NDer2_uw(const IParametricSurfaceRect<N>& f, Real u, Real w, Real* error = nullptr)
 		{
-			return NDer2_uw(f, u, w, NDer2_h, error);
+			// Scale step by max parameter magnitude for stability at large u, w
+			Real scale = std::max(std::abs(u), std::abs(w));
+			return NDer2_uw(f, u, w, ScaleStep(NDer2_h, scale), error);
 		}
 
 		template <int N>
@@ -29720,7 +29826,7 @@ namespace MML
 		template <int N>
 		static VectorN<Real, N> NDer2_ww(const IParametricSurfaceRect<N>& f, Real u, Real w, Real* error = nullptr)
 		{
-			return NDer2_ww(f, u, w, NDer2_h, error);
+			return NDer2_ww(f, u, w, ScaleStep(NDer2_h, w), error);
 		}
 	}
 }
@@ -30648,13 +30754,15 @@ namespace MML::Symbolic
     /// Arc sine: d/dx(asin(x)) = 1/sqrt(1-x²)
     template<typename T>
     Dual<T> asin(const Dual<T>& x) {
-        return Dual<T>(std::asin(x.value), x.deriv / std::sqrt(T(1) - x.value * x.value));
+        T denom = std::sqrt(std::max(T(1) - x.value * x.value, std::numeric_limits<T>::min()));
+        return Dual<T>(std::asin(x.value), x.deriv / denom);
     }
 
     /// Arc cosine: d/dx(acos(x)) = -1/sqrt(1-x²)
     template<typename T>
     Dual<T> acos(const Dual<T>& x) {
-        return Dual<T>(std::acos(x.value), -x.deriv / std::sqrt(T(1) - x.value * x.value));
+        T denom = std::sqrt(std::max(T(1) - x.value * x.value, std::numeric_limits<T>::min()));
+        return Dual<T>(std::acos(x.value), -x.deriv / denom);
     }
 
     /// Arc tangent: d/dx(atan(x)) = 1/(1+x²)
@@ -31432,13 +31540,15 @@ namespace MML
 
 		TrapIntegrator t(func, a, b);
 
+		const Real abs_tol = eps * std::numeric_limits<Real>::epsilon();
+
 		for (j = 0; j < Defaults::TrapezoidIntegrationMaxSteps; j++)
 		{
 			currSum = t.next();
 
 			if (j > 5) {
 				Real error = std::abs(currSum - oldSum);
-				if ( error < eps * std::abs(oldSum) || (currSum == 0.0 && oldSum == 0.0) )
+				if ( error < eps * std::abs(oldSum) + abs_tol )
 				{
 					return IntegrationResult(currSum, error, j, true);
 				}
@@ -31465,6 +31575,8 @@ namespace MML
 
 		TrapIntegrator t(func, a, b);
 
+		const Real abs_tol = eps * std::numeric_limits<Real>::epsilon();
+
 		for (j = 0; j < Defaults::SimpsonIntegrationMaxSteps; j++)
 		{
 			st = t.next();
@@ -31473,7 +31585,7 @@ namespace MML
 
 			if (j > 5) {
 				Real error = std::abs(currSum - oldSum);
-				if (error < eps * std::abs(oldSum) || (currSum == 0.0 && oldSum == 0.0))
+				if (error < eps * std::abs(oldSum) + abs_tol)
 				{
 					return IntegrationResult(currSum, error, j, true);
 				}
@@ -31606,8 +31718,9 @@ namespace MML
 					ss += dss;
 				}
 				
-				// Check for convergence
-				if (std::abs(dss) <= eps * std::abs(ss) || (ss == 0.0 && dss == 0.0))
+				// Check for convergence (with absolute tolerance floor for near-zero integrals)
+				const Real abs_tol = eps * std::numeric_limits<Real>::epsilon();
+				if (std::abs(dss) <= eps * std::abs(ss) + abs_tol)
 				{
 					return IntegrationResult(ss, std::abs(dss), j + 1, true);
 				}
@@ -32740,6 +32853,22 @@ namespace MML
 		return IntegrationResult(value, 0.0, 1, true);
 	}
 
+	/// @brief Detailed variant with AlgorithmStatus, timing, and diagnostics
+	static IntegrationDetailedResult IntegrateGaussLegendreDetailed(const IRealFunction& func, 
+	                                                                 Real a, Real b, int n = 20,
+	                                                                 const IntegrationConfig& config = IntegrationConfig())
+	{
+		return IntegrationDetail::ExecuteIntegrationDetailed<IntegrationDetailedResult>(
+			"GaussLegendre", config, [&](IntegrationDetailedResult& r) {
+				auto rule = GaussLegendreRule(n, a, b);
+				r.value = IntegrateWithRule(func, rule);
+				r.error_estimate = 0.0;
+				r.iterations = 1;
+				r.converged = true;
+				r.function_evaluations = n;
+			});
+	}
+
 	/**
 	 * @brief Integrate f(x)·x^α·e^(-x) on [0,∞) using n-point Gauss-Laguerre
 	 *
@@ -32759,6 +32888,22 @@ namespace MML
 		return IntegrationResult(value, 0.0, 1, true);
 	}
 
+	/// @brief Detailed variant with AlgorithmStatus, timing, and diagnostics
+	static IntegrationDetailedResult IntegrateGaussLaguerreDetailed(const IRealFunction& func, 
+	                                                                 int n = 20, Real alpha = 0.0,
+	                                                                 const IntegrationConfig& config = IntegrationConfig())
+	{
+		return IntegrationDetail::ExecuteIntegrationDetailed<IntegrationDetailedResult>(
+			"GaussLaguerre", config, [&](IntegrationDetailedResult& r) {
+				auto rule = GaussLaguerreRule(n, alpha);
+				r.value = IntegrateWithRule(func, rule);
+				r.error_estimate = 0.0;
+				r.iterations = 1;
+				r.converged = true;
+				r.function_evaluations = n;
+			});
+	}
+
 	/**
 	 * @brief Integrate f(x)·e^(-x²) on (-∞,∞) using n-point Gauss-Hermite
 	 *
@@ -32774,6 +32919,22 @@ namespace MML
 		auto rule = GaussHermiteRule(n);
 		Real value = IntegrateWithRule(func, rule);
 		return IntegrationResult(value, 0.0, 1, true);
+	}
+
+	/// @brief Detailed variant with AlgorithmStatus, timing, and diagnostics
+	static IntegrationDetailedResult IntegrateGaussHermiteDetailed(const IRealFunction& func, 
+	                                                                int n = 20,
+	                                                                const IntegrationConfig& config = IntegrationConfig())
+	{
+		return IntegrationDetail::ExecuteIntegrationDetailed<IntegrationDetailedResult>(
+			"GaussHermite", config, [&](IntegrationDetailedResult& r) {
+				auto rule = GaussHermiteRule(n);
+				r.value = IntegrateWithRule(func, rule);
+				r.error_estimate = 0.0;
+				r.iterations = 1;
+				r.converged = true;
+				r.function_evaluations = n;
+			});
 	}
 
 	/**
@@ -32801,6 +32962,22 @@ namespace MML
 		return IntegrationResult(value, 0.0, 1, true);
 	}
 
+	/// @brief Detailed variant with AlgorithmStatus, timing, and diagnostics
+	static IntegrationDetailedResult IntegrateGaussJacobiDetailed(const IRealFunction& func, 
+	                                                               Real alpha, Real beta, int n = 20,
+	                                                               const IntegrationConfig& config = IntegrationConfig())
+	{
+		return IntegrationDetail::ExecuteIntegrationDetailed<IntegrationDetailedResult>(
+			"GaussJacobi", config, [&](IntegrationDetailedResult& r) {
+				auto rule = GaussJacobiRule(n, alpha, beta);
+				r.value = IntegrateWithRule(func, rule);
+				r.error_estimate = 0.0;
+				r.iterations = 1;
+				r.converged = true;
+				r.function_evaluations = n;
+			});
+	}
+
 	/**
 	 * @brief Integrate f(x)/√(1-x²) on [-1,1] using n-point Gauss-Chebyshev (first kind)
 	 *
@@ -32820,6 +32997,22 @@ namespace MML
 		return IntegrationResult(value, 0.0, 1, true);
 	}
 
+	/// @brief Detailed variant with AlgorithmStatus, timing, and diagnostics
+	static IntegrationDetailedResult IntegrateGaussChebyshev1Detailed(const IRealFunction& func, 
+	                                                                   int n = 20,
+	                                                                   const IntegrationConfig& config = IntegrationConfig())
+	{
+		return IntegrationDetail::ExecuteIntegrationDetailed<IntegrationDetailedResult>(
+			"GaussChebyshev1", config, [&](IntegrationDetailedResult& r) {
+				auto rule = GaussChebyshev1Rule(n);
+				r.value = IntegrateWithRule(func, rule);
+				r.error_estimate = 0.0;
+				r.iterations = 1;
+				r.converged = true;
+				r.function_evaluations = n;
+			});
+	}
+
 	/**
 	 * @brief Integrate f(x)·√(1-x²) on [-1,1] using n-point Gauss-Chebyshev (second kind)
 	 *
@@ -32837,6 +33030,22 @@ namespace MML
 		auto rule = GaussChebyshev2Rule(n);
 		Real value = IntegrateWithRule(func, rule);
 		return IntegrationResult(value, 0.0, 1, true);
+	}
+
+	/// @brief Detailed variant with AlgorithmStatus, timing, and diagnostics
+	static IntegrationDetailedResult IntegrateGaussChebyshev2Detailed(const IRealFunction& func, 
+	                                                                   int n = 20,
+	                                                                   const IntegrationConfig& config = IntegrationConfig())
+	{
+		return IntegrationDetail::ExecuteIntegrationDetailed<IntegrationDetailedResult>(
+			"GaussChebyshev2", config, [&](IntegrationDetailedResult& r) {
+				auto rule = GaussChebyshev2Rule(n);
+				r.value = IntegrateWithRule(func, rule);
+				r.error_estimate = 0.0;
+				r.iterations = 1;
+				r.converged = true;
+				r.function_evaluations = n;
+			});
 	}
 
 } // namespace MML
@@ -33759,8 +33968,10 @@ static AdaptiveResult2D IntegrateAdaptive2D_Recursive(
     Real cell_area = (x2 - x1) * (y2 - y1);
     Real area_fraction = cell_area / total_area;
     
-    // Tolerance for this cell: scale by area fraction
-    Real cell_tol = std::max(tol_abs * area_fraction, tol_rel * std::abs(cell_result.value));
+    // Tolerance for this cell: scale by area fraction, with epsilon floor to prevent underflow
+    Real cell_tol = std::max({tol_abs * area_fraction, 
+                              tol_rel * std::abs(cell_result.value),
+                              std::numeric_limits<Real>::min()});
 
     // Check convergence
     if (cell_result.error_estimate <= cell_tol || depth >= max_depth || evals_remaining <= 0) {
@@ -34496,7 +34707,7 @@ namespace MML
 		/// @param curve The parametric curve r(t)
 		/// @param a Starting parameter value
 		/// @param b Ending parameter value
-		/// @return Arc length of the curve from r(a) to r(b)
+		/// @return IntegrationResult with arc length as value (implicitly converts to Real)
 		///
 		/// @par Example:
 		/// @code
@@ -34508,10 +34719,10 @@ namespace MML
 		/// // length ≈ 2π√(1 + 1/(4π²)) for one turn
 		/// @endcode
 		template<int N>
-		static Real ParametricCurveLength(const IParametricCurve<N>& curve, const Real a, const Real b)
+		static IntegrationResult ParametricCurveLength(const IParametricCurve<N>& curve, const Real a, const Real b)
 		{
 			HelperCurveLen<N> helper(curve);
-			return IntegrateTrap(helper, a, b).value;
+			return IntegrateTrap(helper, a, b);
 		}
 		
 		///////////////////////////////////////////////////////////////////////
@@ -34527,7 +34738,7 @@ namespace MML
 		/// @param density Linear density function ρ(t) [mass per unit length]
 		/// @param a Starting parameter value
 		/// @param b Ending parameter value
-		/// @return Total mass of the wire
+		/// @return IntegrationResult with total mass as value (implicitly converts to Real)
 		///
 		/// @par Physical interpretation:
 		/// For a wire bent along curve C with density ρ, the mass element
@@ -34543,11 +34754,11 @@ namespace MML
 		/// Real mass = PathIntegration::ParametricCurveMass<2>(circle, density, 0, 2*PI);
 		/// @endcode
 		template<int N>
-		static Real ParametricCurveMass(const IParametricCurve<N>& curve, const IRealFunction &density, 
-																		const Real a, const Real b)
+		static IntegrationResult ParametricCurveMass(const IParametricCurve<N>& curve, const IRealFunction &density, 
+															const Real a, const Real b)
 		{
       HelperCurveMass<N> helper(curve, density);
-      return IntegrateTrap(helper, a, b).value;
+      return IntegrateTrap(helper, a, b);
 		}
 
 		///////////////////////////////////////////////////////////////////////
@@ -34563,7 +34774,7 @@ namespace MML
 		/// @param t1 Starting parameter value
 		/// @param t2 Ending parameter value
 		/// @param eps Desired relative precision (default: WorkIntegralPrecision)
-		/// @return Value of the line integral
+		/// @return IntegrationResult with line integral value (implicitly converts to Real)
 		///
 		/// @par Physical interpretation:
 		/// If f represents a scalar quantity (temperature, density, etc.),
@@ -34578,11 +34789,11 @@ namespace MML
 		/// });
 		/// Real total = PathIntegration::LineIntegral(temperature, helix, 0, 2*PI);
 		/// @endcode
-		static Real LineIntegral(const IScalarFunction<3>& scalarField, const IParametricCurve<3>& curve, 
+		static IntegrationResult LineIntegral(const IScalarFunction<3>& scalarField, const IParametricCurve<3>& curve, 
 														 const Real t1, const Real t2, const Real eps = Defaults::WorkIntegralPrecision)
 		{
 			HelperLineIntegralScalarFunc<3> helper(scalarField, curve);
-			return IntegrateTrap(helper, t1, t2, eps).value;
+			return IntegrateTrap(helper, t1, t2, eps);
 		}
 
 		///////////////////////////////////////////////////////////////////////
@@ -34598,7 +34809,7 @@ namespace MML
 		/// @param t1 Starting parameter value
 		/// @param t2 Ending parameter value
 		/// @param eps Desired relative precision (default: LineIntegralPrecision)
-		/// @return Value of the work integral
+		/// @return IntegrationResult with work integral value (implicitly converts to Real)
 		///
 		/// @par Physical interpretation:
 		/// This computes the work done by force field F moving a particle
@@ -34623,11 +34834,11 @@ namespace MML
 		///
 		/// @note For circulation of vector fields, ensure curve is closed:
 		///       r(t1) = r(t2). For conservative fields, result will be ≈ 0.
-		static Real LineIntegral(const IVectorFunction<3>& vectorField, const IParametricCurve<3>& curve, 
+		static IntegrationResult LineIntegral(const IVectorFunction<3>& vectorField, const IParametricCurve<3>& curve, 
 														 const Real t1, const Real t2, const Real eps = Defaults::LineIntegralPrecision)
 		{
 			HelperLineIntegralVectorFunc<3> helper(vectorField, curve);
-			return IntegrateTrap(helper, t1, t2, eps).value;
+			return IntegrateTrap(helper, t1, t2, eps);
 		}
 	};
 
@@ -34712,12 +34923,12 @@ namespace MML
 		///
 		/// @note Uses central differences for derivative computation
 		/// @warning Accuracy depends on numU, numV; increase for complex surfaces
-		static Real SurfaceIntegral(const IVectorFunction<3>& vectorField, const IParametricSurfaceRect<3>& surface, 
+		static IntegrationResult SurfaceIntegral(const IVectorFunction<3>& vectorField, const IParametricSurfaceRect<3>& surface, 
 		                            const Real x1, const Real x2, const Real y1, const Real y2, 
 		                            int numU = 20, int numV = 20)
 		{
 			if (x2 <= x1 || y2 <= y1)
-				return 0.0;  // Invalid parameter range
+				return IntegrationResult(0.0, 0.0, 0, true);  // Invalid parameter range
 
 			Real du = (x2 - x1) / numU;
 			Real dv = (y2 - y1) / numV;
@@ -34770,7 +34981,7 @@ namespace MML
 				}
 			}
 
-			return total;
+			return IntegrationResult(total, 0.0, numU * numV, true);
 		}
 
 		///////////////////////////////////////////////////////////////////////
@@ -34801,12 +35012,12 @@ namespace MML
 		/// Real flux = SurfaceIntegration::SurfaceIntegral(F, tetra);
 		/// // Should equal 3 * volume of tetrahedron
 		/// @endcode
-		static Real SurfaceIntegral(const IVectorFunction<3>& vectorField, const BodyWithTriangleSurfaces& solid, Real eps = 0.001)
+		static IntegrationResult SurfaceIntegral(const IVectorFunction<3>& vectorField, const BodyWithTriangleSurfaces& solid, Real eps = 0.001)
 		{
 			Real total = 0.0;
 			for (int i = 0; i < solid.GetSurfaceCount(); i++)
-				total += SurfaceIntegral(vectorField, solid.GetSurface(i), eps);
-			return total;
+				total += SurfaceIntegral(vectorField, solid.GetSurface(i), eps).value;
+			return IntegrationResult(total, 0.0, solid.GetSurfaceCount(), true);
 		}
 
 		/// @brief Flux integral over a single triangle with adaptive refinement
@@ -34830,10 +35041,11 @@ namespace MML
 		///   B-------C             B--m2--C
 		/// @endcode
 		/// where m1, m2, m3 are edge midpoints.
-		static Real SurfaceIntegral(const IVectorFunction<3>& vectorField, const Triangle3D& triangle, Real eps, int maxLevel = 7)
+		static IntegrationResult SurfaceIntegral(const IVectorFunction<3>& vectorField, const Triangle3D& triangle, Real eps, int maxLevel = 7)
 		{
 			Real result = CalcSurfaceContrib(vectorField, triangle);
-			return SurfaceIntegralImproveRecursively(vectorField, triangle, result, eps, maxLevel);
+			Real refined = SurfaceIntegralImproveRecursively(vectorField, triangle, result, eps, maxLevel);
+			return IntegrationResult(refined, 0.0, 1, true);
 		}
 
 	private:
@@ -34851,11 +35063,11 @@ namespace MML
 			Triangle3D t3(m31, m23, triangle.Pnt3());  // Corner triangle at vertex 3
 			Triangle3D t4(m12, m23, m31);              // Central triangle
 
-			Real result = 0.0;
-			result += CalcSurfaceContrib(vectorField, t1);
-			result += CalcSurfaceContrib(vectorField, t2);
-			result += CalcSurfaceContrib(vectorField, t3);
-			result += CalcSurfaceContrib(vectorField, t4);
+			Real c1 = CalcSurfaceContrib(vectorField, t1);
+			Real c2 = CalcSurfaceContrib(vectorField, t2);
+			Real c3 = CalcSurfaceContrib(vectorField, t3);
+			Real c4 = CalcSurfaceContrib(vectorField, t4);
+			Real result = c1 + c2 + c3 + c4;
 
 			// Check convergence
 			if (fabs(result - prev_value) < eps || level == 0)
@@ -34864,12 +35076,12 @@ namespace MML
 			}
 			else
 			{
-				// Recurse on each sub-triangle
+				// Recurse on each sub-triangle with its own contribution as prev_value
 				Real new_result = 0.0;
-				new_result += SurfaceIntegralImproveRecursively(vectorField, t1, result, eps, level - 1);
-				new_result += SurfaceIntegralImproveRecursively(vectorField, t2, result, eps, level - 1);
-				new_result += SurfaceIntegralImproveRecursively(vectorField, t3, result, eps, level - 1);
-				new_result += SurfaceIntegralImproveRecursively(vectorField, t4, result, eps, level - 1);
+				new_result += SurfaceIntegralImproveRecursively(vectorField, t1, c1, eps, level - 1);
+				new_result += SurfaceIntegralImproveRecursively(vectorField, t2, c2, eps, level - 1);
+				new_result += SurfaceIntegralImproveRecursively(vectorField, t3, c3, eps, level - 1);
+				new_result += SurfaceIntegralImproveRecursively(vectorField, t4, c4, eps, level - 1);
 				return new_result;
 			}
 		}
@@ -34920,12 +35132,12 @@ namespace MML
 		/// Real flux = SurfaceIntegration::SurfaceIntegral(F, box);
 		/// // Net flux = 0 (same flux in through left face, out through right)
 		/// @endcode
-		static Real SurfaceIntegral(const IVectorFunction<3>& vectorField, const BodyWithRectSurfaces& solid, Real eps = 0.001)
+		static IntegrationResult SurfaceIntegral(const IVectorFunction<3>& vectorField, const BodyWithRectSurfaces& solid, Real eps = 0.001)
 		{
 			Real total = 0.0;
 			for (int i = 0; i < solid.GetSurfaceCount(); i++)
-				total += SurfaceIntegral(vectorField, solid.GetSurface(i), eps);
-			return total;
+				total += SurfaceIntegral(vectorField, solid.GetSurface(i), eps).value;
+			return IntegrationResult(total, 0.0, solid.GetSurfaceCount(), true);
 		}
 
 		/// @brief Flux integral over a single rectangular surface with adaptive refinement
@@ -34937,11 +35149,12 @@ namespace MML
 		/// @param surface The rectangular surface patch
 		/// @param eps Convergence tolerance
 		/// @param maxLevel Maximum recursion depth (default: 7)
-		/// @return Flux through the rectangle
-		static Real SurfaceIntegral(const IVectorFunction<3>& vectorField, const RectSurface3D& surface, Real eps, int maxLevel = 7)
+		/// @return IntegrationResult with flux value (implicitly converts to Real)
+		static IntegrationResult SurfaceIntegral(const IVectorFunction<3>& vectorField, const RectSurface3D& surface, Real eps, int maxLevel = 7)
 		{
 			Real result = CalcSurfaceContrib(vectorField, surface);
-			return SurfaceIntegralImproveRecursively(vectorField, surface, result, eps, maxLevel);
+			Real refined = SurfaceIntegralImproveRecursively(vectorField, surface, result, eps, maxLevel);
+			return IntegrationResult(refined, 0.0, 1, true);
 		}
 
 	private:
@@ -35015,20 +35228,13 @@ namespace MML
 	/// @brief Result of a Monte Carlo integration
 	/// @note For production code, check error_estimate, variance, and converged!
 	//////////////////////////////////////////////////////////////////////////
-	struct MonteCarloResult 
+	struct MonteCarloResult : public EvaluationResultBase
 	{
-		Real value;					 ///< Estimated integral value
-		Real error_estimate; ///< Statistical error estimate (standard error)
-		Real variance;			 ///< Sample variance
-		size_t samples_used; ///< Number of samples actually used
-		bool converged;			 ///< Whether error is below requested tolerance
-
-		MonteCarloResult(Real val = 0.0, Real err = 0.0, Real var = 0.0, size_t n = 0, bool conv = false)
-				: value(val)
-				, error_estimate(err)
-				, variance(var)
-				, samples_used(n)
-				, converged(conv) {}
+		Real value = 0.0;				 ///< Estimated integral value
+		Real error_estimate = 0.0; ///< Statistical error estimate (standard error)
+		Real variance = 0.0;			 ///< Sample variance
+		size_t samples_used = 0; ///< Number of samples actually used
+		bool converged = false;		 ///< Whether error is below requested tolerance
 	};
 
 	//////////////////////////////////////////////////////////////////////////
@@ -35095,6 +35301,8 @@ namespace MML
 		/// @return MonteCarloResult with value, error estimate, and diagnostics
 		MonteCarloResult integrate(const IScalarFunction<N>& func, const VectorN<Real, N>& lower, const VectorN<Real, N>& upper,
 															 const MonteCarloConfig& config = MonteCarloConfig()) {
+			AlgorithmTimer timer;
+
 			// Compute volume of integration domain
 			Real volume = 1.0;
 			for (int i = 0; i < N; ++i) {
@@ -35102,7 +35310,12 @@ namespace MML
 			}
 
 			if (volume == 0.0) {
-				return MonteCarloResult(0.0, 0.0, 0.0, 0, true);
+				MonteCarloResult r;
+				r.converged = true;
+				r.status = AlgorithmStatus::Success;
+				r.algorithm_name = "MonteCarloIntegrator";
+				r.elapsed_time_ms = timer.elapsed_ms();
+				return r;
 			}
 
 			// Reseed if specified
@@ -35171,7 +35384,17 @@ namespace MML
 			bool converged =
 				(std::abs(integral) < PrecisionValues<Real>::DivisionSafetyThreshold) || (error / std::abs(integral) < config.target_error);
 
-			return MonteCarloResult(integral, error, variance, config.use_antithetic ? n * 2 : n, converged);
+			MonteCarloResult result;
+			result.value = integral;
+			result.error_estimate = error;
+			result.variance = variance;
+			result.samples_used = config.use_antithetic ? n * 2 : n;
+			result.converged = converged;
+			result.function_evaluations = static_cast<int>(result.samples_used);
+			result.status = AlgorithmStatus::Success;
+			result.algorithm_name = "MonteCarloIntegrator";
+			result.elapsed_time_ms = timer.elapsed_ms();
+			return result;
 		}
 
 		/// @brief Convenience overload for unit hypercube [0,1]^N
@@ -35242,6 +35465,8 @@ namespace MML
 		/// @param samples_per_stratum Samples per stratum
 		MonteCarloResult integrate(const IScalarFunction<N>& func, const VectorN<Real, N>& lower, const VectorN<Real, N>& upper,
 															 int strata_per_dim = 10, int samples_per_stratum = 10, unsigned int seed = 0) {
+			AlgorithmTimer timer;
+
 			if (seed != 0) {
 				_rng.seed(seed);
 			}
@@ -35255,7 +35480,12 @@ namespace MML
 			}
 
 			if (volume == 0.0) {
-				return MonteCarloResult(0.0, 0.0, 0.0, 0, true);
+				MonteCarloResult r;
+				r.converged = true;
+				r.status = AlgorithmStatus::Success;
+				r.algorithm_name = "StratifiedMonteCarloIntegrator";
+				r.elapsed_time_ms = timer.elapsed_ms();
+				return r;
 			}
 
 			// Volume per stratum
@@ -35323,7 +35553,17 @@ namespace MML
 			bool converged = (std::abs(integral) < PrecisionValues<Real>::DivisionSafetyThreshold) ||
 											 (error / std::abs(integral) < PrecisionValues<Real>::DefaultToleranceStrict);
 
-			return MonteCarloResult(integral, error, variance, total_samples, converged);
+			MonteCarloResult result;
+			result.value = integral;
+			result.error_estimate = error;
+			result.variance = variance;
+			result.samples_used = total_samples;
+			result.converged = converged;
+			result.function_evaluations = static_cast<int>(total_samples);
+			result.status = AlgorithmStatus::Success;
+			result.algorithm_name = "StratifiedMonteCarloIntegrator";
+			result.elapsed_time_ms = timer.elapsed_ms();
+			return result;
 		}
 	};
 
@@ -35359,6 +35599,8 @@ namespace MML
 		/// @return MonteCarloResult with estimated volume
 		MonteCarloResult estimateVolume(std::function<bool(const VectorN<Real, N>&)> indicator, const VectorN<Real, N>& lower,
 																		const VectorN<Real, N>& upper, size_t num_samples = 100000, unsigned int seed = 0) {
+			AlgorithmTimer timer;
+
 			if (seed != 0) {
 				_rng.seed(seed);
 			}
@@ -35389,7 +35631,17 @@ namespace MML
 			Real std_error = std::sqrt(variance / num_samples);
 			Real error = bounding_volume * std_error;
 
-			return MonteCarloResult(volume, error, variance, num_samples, true);
+			MonteCarloResult result;
+			result.value = volume;
+			result.error_estimate = error;
+			result.variance = variance;
+			result.samples_used = num_samples;
+			result.converged = true;
+			result.function_evaluations = static_cast<int>(num_samples);
+			result.status = AlgorithmStatus::Success;
+			result.algorithm_name = "HitOrMissIntegrator";
+			result.elapsed_time_ms = timer.elapsed_ms();
+			return result;
 		}
 	};
 
@@ -35639,7 +35891,8 @@ namespace MML
 		}
 	};
 
-	/// @brief Second derivative wrapper with 6th order accuracy (7-point stencil)
+	/// @brief Second derivative wrapper with 4th order accuracy (5-point stencil)
+	/// @note Named "6" for future NSecDer6 implementation; currently uses NSecDer4
 	/// @warning Stores reference to f - ensure f outlives this object
 	class RealFuncSecondDerived6 : public IRealFunction
 	{
@@ -35652,7 +35905,7 @@ namespace MML
 		RealFuncSecondDerived6(const IRealFunction& f, Real step) : _f(f), _step(step) {}
 
 		Real operator()(Real x) const {
-			return _step != 0.0 ? Derivation::NSecDer4(_f, x, _step, nullptr) : Derivation::NSecDer4(_f, x, nullptr);
+			return _step != 0.0 ? Derivation::NSecDer4(_f, x, _step) : Derivation::NSecDer4(_f, x);
 		}
 	};
 
@@ -36155,9 +36408,17 @@ namespace MML
 			if (i == 0 && j == 0)
 				return 1.0;
 			else if (i == 1 && j == 1)
-				return 1 / (pos[0] * pos[0]);
+			{
+				Real r2 = pos[0] * pos[0];
+				return Singularity::SafeDivide(1.0, r2, SingularityPolicy::Throw,
+					"MetricTensorSphericalContravar g^11: r=0 singularity");
+			}
 			else if (i == 2 && j == 2)
-				return 1 / (pos[0] * pos[0] * sin(pos[1]) * sin(pos[1]));
+			{
+				Real r2sin2 = pos[0] * pos[0] * std::sin(pos[1]) * std::sin(pos[1]);
+				return Singularity::SafeDivide(1.0, r2sin2, SingularityPolicy::Throw,
+					"MetricTensorSphericalContravar g^22: r=0 or theta=0/pi singularity");
+			}
 			else
 				return 0.0;
 		}
@@ -36379,7 +36640,7 @@ namespace MML::Fields
 		VectorN<Real, 3> operator()(const VectorN<Real, 3>& x) const
 		{
 			Real r_sq = x[0] * x[0] + x[1] * x[1];  // Distance squared from z-axis
-			if (r_sq < 1e-15) return VectorN<Real, 3>{0.0, 0.0, 0.0};  // Avoid singularity
+			if (r_sq < Singularity::DEFAULT_SINGULARITY_TOL * Singularity::DEFAULT_SINGULARITY_TOL) return VectorN<Real, 3>{0.0, 0.0, 0.0};  // Avoid singularity
 			Real factor = _constant / r_sq;
 			// B direction is tangential: (-y, x, 0) / r, magnitude is constant/r
 			return VectorN<Real, 3>{-factor * x[1], factor * x[0], 0.0};
@@ -36416,7 +36677,7 @@ namespace MML::Fields
 			Vec3Cart radial(closest, pos);
 			Real r_sq = radial.NormL2() * radial.NormL2();
 			
-			if (r_sq < 1e-15) return VectorN<Real, 3>{0.0, 0.0, 0.0};  // On the wire
+			if (r_sq < Singularity::DEFAULT_SINGULARITY_TOL * Singularity::DEFAULT_SINGULARITY_TOL) return VectorN<Real, 3>{0.0, 0.0, 0.0};  // On the wire
 			
 			// B direction: d × r̂ (right-hand rule), magnitude: constant/r
 			Vec3Cart B_dir = VectorProduct(_line.Direction(), radial.GetAsUnitVector());
@@ -36520,7 +36781,7 @@ namespace MML::Fields
 			VectorN<Real, 3> r_perp{x[0] - proj*ax, x[1] - proj*ay, x[2] - proj*az};
 			Real r_sq = r_perp[0]*r_perp[0] + r_perp[1]*r_perp[1] + r_perp[2]*r_perp[2];
 			
-			if (r_sq < 1e-15) return VectorN<Real, 3>{0.0, 0.0, 0.0};  // On the axis
+			if (r_sq < Singularity::DEFAULT_SINGULARITY_TOL * Singularity::DEFAULT_SINGULARITY_TOL) return VectorN<Real, 3>{0.0, 0.0, 0.0};  // On the axis
 			
 			// Tangent direction: axis × r_perp (normalized by r²)
 			Real factor = _constant / r_sq;
@@ -36576,7 +36837,7 @@ namespace MML::Fields
 		{
 			VectorN<Real, 3> r{x[0] - _center[0], x[1] - _center[1], x[2] - _center[2]};
 			Real r_norm = std::sqrt(r[0]*r[0] + r[1]*r[1] + r[2]*r[2]);
-			if (r_norm < 1e-15) return VectorN<Real, 3>{0.0, 0.0, 0.0};
+			if (r_norm < Singularity::DEFAULT_SINGULARITY_TOL) return VectorN<Real, 3>{0.0, 0.0, 0.0};
 			Real factor = _strength / (r_norm * r_norm * r_norm);
 			return VectorN<Real, 3>{factor * r[0], factor * r[1], factor * r[2]};
 		}
@@ -36604,7 +36865,7 @@ namespace MML::Fields
 		{
 			VectorN<Real, 3> r{x[0] - _center[0], x[1] - _center[1], x[2] - _center[2]};
 			Real r_sq = r[0]*r[0] + r[1]*r[1] + r[2]*r[2];
-			if (r_sq < 1e-15) return VectorN<Real, 3>{0.0, 0.0, 0.0};
+			if (r_sq < Singularity::DEFAULT_SINGULARITY_TOL * Singularity::DEFAULT_SINGULARITY_TOL) return VectorN<Real, 3>{0.0, 0.0, 0.0};
 			
 			Real r_norm = std::sqrt(r_sq);
 			Real r5 = r_sq * r_sq * r_norm;  // r^5
@@ -36907,16 +37168,16 @@ namespace MML
 					for (int k = 0; k < N; k++)
 						for (int l = 0; l < N; l++)
 						{
-							double coef1, coef2;
+Real coef1, coef2;
 							if (tensor.IsContravar(0))
-								coef1 = Derivation::NDer1Partial(this->coordTransfFunc(i), k, pos);
+								coef1 = Derivation::NDer4Partial(this->coordTransfFunc(i), k, pos);
 							else
-								coef1 = Derivation::NDer1Partial(this->inverseCoordTransfFunc(k), i, pos);
+								coef1 = Derivation::NDer4Partial(this->inverseCoordTransfFunc(k), i, pos);
 
 							if (tensor.IsContravar(1))
-								coef2 = Derivation::NDer1Partial(this->coordTransfFunc(j), l, pos);
+								coef2 = Derivation::NDer4Partial(this->coordTransfFunc(j), l, pos);
 							else
-								coef2 = Derivation::NDer1Partial(this->inverseCoordTransfFunc(l), j, pos);
+								coef2 = Derivation::NDer4Partial(this->inverseCoordTransfFunc(l), j, pos);
 
 							ret(i, j) += coef1 * coef2 * tensor(k, l);
 						}
@@ -36941,21 +37202,21 @@ namespace MML
 							for (int m = 0; m < N; m++)
 								for (int n = 0; n < N; n++)
 								{
-									double coef1, coef2, coef3;
+									Real coef1, coef2, coef3;
 									if (tensor.IsContravar(0))
-										coef1 = Derivation::NDer1Partial(this->coordTransfFunc(i), l, pos);
+										coef1 = Derivation::NDer4Partial(this->coordTransfFunc(i), l, pos);
 									else
-										coef1 = Derivation::NDer1Partial(this->inverseCoordTransfFunc(l), i, pos);
+										coef1 = Derivation::NDer4Partial(this->inverseCoordTransfFunc(l), i, pos);
 
 									if (tensor.IsContravar(1))
-										coef2 = Derivation::NDer1Partial(this->coordTransfFunc(j), m, pos);
+										coef2 = Derivation::NDer4Partial(this->coordTransfFunc(j), m, pos);
 									else
-										coef2 = Derivation::NDer1Partial(this->inverseCoordTransfFunc(m), j, pos);
+										coef2 = Derivation::NDer4Partial(this->inverseCoordTransfFunc(m), j, pos);
 
 									if (tensor.IsContravar(2))
-										coef3 = Derivation::NDer1Partial(this->coordTransfFunc(k), n, pos);
+										coef3 = Derivation::NDer4Partial(this->coordTransfFunc(k), n, pos);
 									else
-										coef3 = Derivation::NDer1Partial(this->inverseCoordTransfFunc(n), k, pos);
+										coef3 = Derivation::NDer4Partial(this->inverseCoordTransfFunc(n), k, pos);
 
 									ret.Component(i, j, k) += coef1 * coef2 * coef3 * tensor.Component(l, m, n);
 								}
@@ -36982,26 +37243,26 @@ namespace MML
 									for (int o = 0; o < N; o++)
 										for (int p = 0; p < N; p++)
 										{
-											double coef1, coef2, coef3, coef4;
+											Real coef1, coef2, coef3, coef4;
 											if (tensor.IsContravar(0))
-												coef1 = Derivation::NDer1Partial(this->coordTransfFunc(i), m, pos);
+												coef1 = Derivation::NDer4Partial(this->coordTransfFunc(i), m, pos);
 											else
-												coef1 = Derivation::NDer1Partial(this->inverseCoordTransfFunc(m), i, pos);
+												coef1 = Derivation::NDer4Partial(this->inverseCoordTransfFunc(m), i, pos);
 
 											if (tensor.IsContravar(1))
-												coef2 = Derivation::NDer1Partial(this->coordTransfFunc(j), n, pos);
+												coef2 = Derivation::NDer4Partial(this->coordTransfFunc(j), n, pos);
 											else
-												coef2 = Derivation::NDer1Partial(this->inverseCoordTransfFunc(n), j, pos);
+												coef2 = Derivation::NDer4Partial(this->inverseCoordTransfFunc(n), j, pos);
 
 											if (tensor.IsContravar(2))
-												coef3 = Derivation::NDer1Partial(this->coordTransfFunc(k), o, pos);
+												coef3 = Derivation::NDer4Partial(this->coordTransfFunc(k), o, pos);
 											else
-												coef3 = Derivation::NDer1Partial(this->inverseCoordTransfFunc(o), k, pos);
+												coef3 = Derivation::NDer4Partial(this->inverseCoordTransfFunc(o), k, pos);
 
 											if (tensor.IsContravar(3))
-												coef4 = Derivation::NDer1Partial(this->coordTransfFunc(l), p, pos);
+												coef4 = Derivation::NDer4Partial(this->coordTransfFunc(l), p, pos);
 											else
-												coef4 = Derivation::NDer1Partial(this->inverseCoordTransfFunc(p), l, pos);
+												coef4 = Derivation::NDer4Partial(this->inverseCoordTransfFunc(p), l, pos);
 
 											ret[i][j][k][l] += coef1 * coef2 * coef3 * coef4 * tensor[m][n][o][p];
 										}
@@ -37030,31 +37291,31 @@ namespace MML
 											for (int q = 0; q < N; q++)
 												for (int r = 0; r < N; r++)
 												{
-													double coef1, coef2, coef3, coef4, coef5;
+														Real coef1, coef2, coef3, coef4, coef5;
 													if (tensor.IsContravar(0))
-														coef1 = Derivation::NDer1Partial(this->coordTransfFunc(i), n, pos);
+														coef1 = Derivation::NDer4Partial(this->coordTransfFunc(i), n, pos);
 													else
-														coef1 = Derivation::NDer1Partial(this->inverseCoordTransfFunc(n), i, pos);
+														coef1 = Derivation::NDer4Partial(this->inverseCoordTransfFunc(n), i, pos);
 
 													if (tensor.IsContravar(1))
-														coef2 = Derivation::NDer1Partial(this->coordTransfFunc(j), o, pos);
+														coef2 = Derivation::NDer4Partial(this->coordTransfFunc(j), o, pos);
 													else
-														coef2 = Derivation::NDer1Partial(this->inverseCoordTransfFunc(o), j, pos);
+														coef2 = Derivation::NDer4Partial(this->inverseCoordTransfFunc(o), j, pos);
 
 													if (tensor.IsContravar(2))
-														coef3 = Derivation::NDer1Partial(this->coordTransfFunc(k), p, pos);
+														coef3 = Derivation::NDer4Partial(this->coordTransfFunc(k), p, pos);
 													else
-														coef3 = Derivation::NDer1Partial(this->inverseCoordTransfFunc(p), k, pos);
+														coef3 = Derivation::NDer4Partial(this->inverseCoordTransfFunc(p), k, pos);
 
 													if (tensor.IsContravar(3))
-														coef4 = Derivation::NDer1Partial(this->coordTransfFunc(l), q, pos);
+														coef4 = Derivation::NDer4Partial(this->coordTransfFunc(l), q, pos);
 													else
-														coef4 = Derivation::NDer1Partial(this->inverseCoordTransfFunc(q), l, pos);
+														coef4 = Derivation::NDer4Partial(this->inverseCoordTransfFunc(q), l, pos);
 
 													if (tensor.IsContravar(4))
-												coef5 = Derivation::NDer1Partial(this->coordTransfFunc(m), r, pos);
+												coef5 = Derivation::NDer4Partial(this->coordTransfFunc(m), r, pos);
 											else
-												coef5 = Derivation::NDer1Partial(this->inverseCoordTransfFunc(r), m, pos);
+												coef5 = Derivation::NDer4Partial(this->inverseCoordTransfFunc(r), m, pos);
 													ret[i][j][k][l][m] += coef1 * coef2 * coef3 * coef4 * coef5 * tensor[n][o][p][q][r];
 												}
 							}
@@ -38919,6 +39180,7 @@ namespace MML
 		{
 			_period = period;
 			_axis = axis;
+			_angle_at_t0 = 0;
 		}
 
 		/// @brief Get origin position (fixed at parent origin)
@@ -38929,16 +39191,36 @@ namespace MML
 			return Vector3Cartesian({ 0,0,0 });
 		}
 
-		/// @brief Transform rotating cylindrical position to parent Cartesian coordinates
-		/// @param pos Position in cylindrical coordinates (r, φ, z)
+		/// @brief Transform local Cartesian position to parent frame via rotation
+		/// @param pos Position in rotating frame's Cartesian coordinates
 		/// @param t Time parameter (determines rotation angle)
-		/// @return Position in parent Cartesian frame
+		/// @return Position in parent Cartesian frame (Rodrigues' rotation)
 		virtual Vector3Cartesian GetLocalPosInParentFrameAtTime(const VectorN<Real, 3> &pos, Real t) const override
 		{
-			
-			Real angle = fmod(2 * Constants::PI / _period * t, 2 * Constants::PI);
+			Real angle = _angle_at_t0 + fmod(2 * Constants::PI / _period * t, 2 * Constants::PI);
 
-			return VectorN<Real, 3>({ _axis[0] * cos(angle), _axis[1] * sin(angle), pos[2] });
+			// Rodrigues' rotation formula: v' = v*cos(a) + (k x v)*sin(a) + k*(k.v)*(1-cos(a))
+			Real axisNorm = std::sqrt(_axis[0]*_axis[0] + _axis[1]*_axis[1] + _axis[2]*_axis[2]);
+			Real kx = _axis[0] / axisNorm;
+			Real ky = _axis[1] / axisNorm;
+			Real kz = _axis[2] / axisNorm;
+
+			Real cosA = std::cos(angle);
+			Real sinA = std::sin(angle);
+
+			// k cross pos
+			Real cx = ky * pos[2] - kz * pos[1];
+			Real cy = kz * pos[0] - kx * pos[2];
+			Real cz = kx * pos[1] - ky * pos[0];
+
+			// k dot pos
+			Real dot = kx * pos[0] + ky * pos[1] + kz * pos[2];
+
+			return VectorN<Real, 3>({
+				pos[0] * cosA + cx * sinA + kx * dot * (1 - cosA),
+				pos[1] * cosA + cy * sinA + ky * dot * (1 - cosA),
+				pos[2] * cosA + cz * sinA + kz * dot * (1 - cosA)
+			});
 		}
 	};
 
@@ -39002,12 +39284,12 @@ namespace MML
 			Real longitudeDeg = localPos[1];
 			Real h = localPos[2];
 
-			// formirati sferni vektor, i vidjeti koliko se zarotira za T
-		Vector3Spherical spherePos({Real(_radius + h), Real(Utils::DegToRad(90 - latitudeDeg)), Real(Utils::DegToRad(longitudeDeg)) });
-			// transf u Cartesian
+			// Convert (lat, lon, alt) to spherical, then to Cartesian
+			Vector3Spherical spherePos({Real(_radius + h), Real(Utils::DegToRad(90 - latitudeDeg)), Real(Utils::DegToRad(longitudeDeg)) });
 			Vector3Cartesian cartPos = CoordTransfSpherToCart.transf(spherePos);
 
-			return cartPos;
+			// Apply rotation via parent's Rodrigues' formula
+			return RotatingFrame3D::GetLocalPosInParentFrameAtTime(cartPos, t);
 		}
 	};
 
@@ -39066,13 +39348,7 @@ namespace MML
 
 			return ret;
 		}
-	};
-
-	// da li mi treba Local3D koji za parenta ima HardSphereRotatingFrameToSpherical?
-	// lokalni sustav, baziran na TOCNO ODREDJENOJ TOCKI SFERE, s x, y i z
-	// za njega NE TREBA davati lat, long i h jer vec ima, a x, y i z transformira lokalno
-
- 
+	}; 
 }
 
 
@@ -40329,36 +40605,33 @@ namespace MML
 		inline Real getCurvaturePolar2D(const IParametricCurve<2>& curve, Real t)
 		{
 			// For polar curve, output is (r, θ)
-			// We need derivatives of r with respect to θ
-			// If θ = t (common case), then dr/dθ = dr/dt
 			Vec2Cart vals = curve(t);
 			Vec2Cart derivs = Derivation::DeriveCurve<2>(curve, t, nullptr);
 			Vec2Cart derivs2 = Derivation::DeriveCurveSec<2>(curve, t, nullptr);
 
-			Real r = vals[0];           // r value
-			Real theta_prime = derivs[1]; // dθ/dt
-			
-			// dr/dθ = (dr/dt) / (dθ/dt)  using chain rule
-			Real r_prime = (std::abs(theta_prime) > 1e-15) ? derivs[0] / theta_prime : 0.0;
-			
-			// d²r/dθ² requires more careful calculation
-			// d²r/dθ² = d/dθ(dr/dθ) = (d/dt(dr/dθ)) / (dθ/dt)
-			Real theta_double_prime = derivs2[1];
-			Real r_double_prime_dt = derivs2[0];  // d²r/dt²
-			
-			// Using quotient rule: d/dt(r'/θ') = (r''·θ' - r'·θ'')/θ'²
-			// Then divide by θ' to get d²r/dθ²
-			Real r_double_prime = 0.0;
-			if (std::abs(theta_prime) > 1e-15) {
-				Real theta_prime_sq = theta_prime * theta_prime;
-				r_double_prime = (r_double_prime_dt * theta_prime - derivs[0] * theta_double_prime) / (theta_prime_sq * theta_prime);
-			}
+			Real r = vals[0];
+			Real theta = vals[1];
+			Real r_dt = derivs[0];        // dr/dt
+			Real theta_dt = derivs[1];    // dθ/dt
+			Real r_dt2 = derivs2[0];      // d²r/dt²
+			Real theta_dt2 = derivs2[1];  // d²θ/dt²
 
-			// κ = |r² + 2r'² - r·r''| / (r² + r'²)^(3/2)
-			Real r_sq = r * r;
-			Real r_prime_sq = r_prime * r_prime;
-			Real numerator = std::abs(r_sq + 2.0 * r_prime_sq - r * r_double_prime);
-			Real denominator = std::pow(r_sq + r_prime_sq, 1.5);
+			// Convert polar derivatives to Cartesian using x = r·cos(θ), y = r·sin(θ)
+			Real ct = std::cos(theta);
+			Real st = std::sin(theta);
+
+			Real x_dt = r_dt * ct - r * st * theta_dt;
+			Real y_dt = r_dt * st + r * ct * theta_dt;
+
+			Real x_dt2 = r_dt2 * ct - 2 * r_dt * st * theta_dt
+				- r * ct * theta_dt * theta_dt - r * st * theta_dt2;
+			Real y_dt2 = r_dt2 * st + 2 * r_dt * ct * theta_dt
+				- r * st * theta_dt * theta_dt + r * ct * theta_dt2;
+
+			// κ = |x'y'' - y'x''| / (x'² + y'²)^(3/2)
+			Real numerator = std::abs(x_dt * y_dt2 - y_dt * x_dt2);
+			Real speed_sq = x_dt * x_dt + y_dt * y_dt;
+			Real denominator = std::pow(speed_sq, 1.5);
 
 			if (denominator < 1e-15)
 				return 0.0;
@@ -40633,7 +40906,11 @@ namespace MML
 			Real getMinT() const { return 0.0; }
 			Real getMaxT() const { return 2 * Constants::PI; }
 			
-			VectorN<Real, 2> operator()(Real t) const { return MML::VectorN<Real, 2>{_radius, t}; }
+			VectorN<Real, 2> operator()(Real t) const {
+				Real x = _center.X() + _radius * cos(t);
+				Real y = _center.Y() + _radius * sin(t);
+				return MML::VectorN<Real, 2>{sqrt(x*x + y*y), atan2(y, x)};
+			}
 		};
 
 		///////////////////////////////             CARTESIAN SPACE CURVES                  ///////////////////////////////
@@ -40727,9 +41004,10 @@ namespace MML
 				return Plane3D(Vector3Cartesian((*this)(t)).getAsPoint(), Vector3Cartesian(getTangentUnit(t)));
 			}
 			/// @brief Get rectifying plane at t (contains tangent and binormal)
+			/// @details The rectifying plane is perpendicular to the principal normal
 			virtual Plane3D getRectifyingPlane(Real t) const
 			{
-				return Plane3D(Vector3Cartesian((*this)(t)).getAsPoint(), Vector3Cartesian(getBinormal(t)));
+				return Plane3D(Vector3Cartesian((*this)(t)).getAsPoint(), Vector3Cartesian(getNormal(t)));
 			}
 
 			/// @brief Get Frenet-Serret moving frame (T, N, B) at parameter t
@@ -40792,10 +41070,9 @@ namespace MML
 			LineCurve(Real minT, Real maxT, const Point3Cartesian& pnt, const Vector3Cartesian& dir) : _line(pnt, dir), _minT(minT), _maxT(maxT) {}
 			LineCurve(Real t1, const Point3Cartesian& pnt1, Real t2, const Point3Cartesian& pnt2)
 			{
-				// tocno samo ako je t1 = 0.0!!!
-				_line.StartPoint() = pnt1;
 				Vec3Cart dir = Vec3Cart(pnt1, pnt2);
 				_line.Direction() = dir.NormL2() / (t2 - t1) * dir.GetAsUnitVector();
+				_line.StartPoint() = pnt1 + (-t1) * _line.Direction();
 				_minT = t1;
 				_maxT = t2;
 			}
@@ -41133,8 +41410,18 @@ namespace MML
 				Vec3Cart r_by_u = Derivation::NDer1_u(*this, u, w);
 				Vec3Cart r_by_w = Derivation::NDer1_w(*this, u, w);
 				
-			// normal
-			Vec3Cart n = VectorProduct(r_by_u, r_by_w).Normalized();				// now we can calculate second derivatives
+				// normal — check for degenerate point (parallel tangents / cusp / fold)
+				Vec3Cart cross = VectorProduct(r_by_u, r_by_w);
+				Real mag = cross.NormL2();
+				constexpr Real eps = PrecisionValues<Real>::NumericalZeroThreshold;
+				if (mag < eps) {
+					// Degenerate point: second fundamental form is undefined
+					outL = outM = outN = 0.0;
+					return;
+				}
+				Vec3Cart n = cross / mag;
+
+				// now we can calculate second derivatives
 				Vec3Cart r_by_uu = Derivation::NDer2_uu(*this, u, w);
 				Vec3Cart r_by_uw = Derivation::NDer2_uw(*this, u, w);
 				Vec3Cart r_by_ww = Derivation::NDer2_ww(*this, u, w);
@@ -41445,10 +41732,10 @@ namespace MML
 			Paraboloid() : _a(1), _h(1) {}
 			Paraboloid(Real a, Real h) : _a(a), _h(h) {}
 
-			Real getMinU() const { return -10; }
+			Real getMinU() const { return 0; }
 			Real getMaxU() const { return 10; }
-			Real getMinW() const { return -10; }
-			Real getMaxW() const { return 10; }
+			Real getMinW() const { return 0; }
+			Real getMaxW() const { return 2 * Constants::PI; }
 
 			VectorN<Real, 3> operator()(Real u, Real w) const { return MML::VectorN<Real, 3>{_a * sqrt(u/_h) * cos(w), _a * sqrt(u/_h) * sin(w), u}; }
 		};
@@ -45896,6 +46183,14 @@ namespace MML {
 		static RootFindingResult FindRootNewton(const IRealFunction& func, Real x1, Real x2,
 												const RootFindingConfig& config) {
 			RootFindingResult result;
+
+			Real f1 = func(x1);
+			Real f2 = func(x2);
+			if (f1 * f2 > 0.0) {
+				result.error_message = "Root must be bracketed for Newton-Raphson method";
+				return result;
+			}
+
 			Real rtn = 0.5 * (x1 + x2);
 			int maxIter = (config.max_iterations > 0) ? config.max_iterations : Defaults::NewtonRaphsonMaxSteps;
 			Real dx = 0.0;
@@ -46048,6 +46343,11 @@ namespace MML {
 
 			if (!IsFunctionValueValid(f1) || !IsFunctionValueValid(f2)) {
 				result.error_message = "Non-finite function values in FindRootSecant";
+				return result;
+			}
+
+			if (f1 * f2 > 0.0) {
+				result.error_message = "Root must be bracketed for Secant method";
 				return result;
 			}
 
@@ -46522,6 +46822,17 @@ namespace MML {
   /// Solve quadratic equation: a*x^2 + b*x + c = 0
   /// @return Number of real roots (0 or 2); complex roots returned via x1, x2
   inline int SolveQuadratic(Real a, Real b, Real c, Complex &x1, Complex &x2) {
+    // Degenerate: a=0 reduces to linear equation b*x + c = 0
+    if (std::abs(a) < Constants::Eps) {
+      if (std::abs(b) < Constants::Eps) {
+        x1 = x2 = Complex(0);
+        return 0;
+      }
+      x1 = Complex(-c / b);
+      x2 = Complex(0);
+      return 1;
+    }
+
     Real D = b * b - 4 * a * c;
     if (D >= 0) {
       Real sqrtD = sqrt(D);
@@ -46539,6 +46850,13 @@ namespace MML {
   /// Solve quadratic equation with complex coefficients: a*x^2 + b*x + c = 0
   inline void SolveQuadratic(const Complex &a, const Complex &b, const Complex &c,
                              Complex &x1, Complex &x2) {
+    // Degenerate: a=0 reduces to linear equation b*x + c = 0
+    if (std::abs(a) < Constants::Eps) {
+      x1 = (std::abs(b) < Constants::Eps) ? Complex(0) : -c / b;
+      x2 = Complex(0);
+      return;
+    }
+
     Complex D = b * b - Real(4.0) * a * c;
     Complex sqrtD = std::sqrt(D);
     x1 = (-b + sqrtD) / (Real(2.0) * a);
@@ -46549,6 +46867,13 @@ namespace MML {
   /// @return Number of real roots (1 or 3); all roots returned via x1, x2, x3
   inline int SolveCubic(Real a, Real b, Real c, Real d, Complex &x1, Complex &x2,
                         Complex &x3) {
+    // Degenerate: a=0 reduces to quadratic b*x^2 + c*x + d = 0
+    if (std::abs(a) < Constants::Eps) {
+      int n = SolveQuadratic(b, c, d, x1, x2);
+      x3 = Complex(0);
+      return n;
+    }
+
     // Normalize the coefficients
     Real A = b / a;
     Real B = c / a;
@@ -46910,6 +47235,9 @@ namespace MML {
 						break;
 					}
 				}
+
+				if (!converged)
+					throw std::runtime_error("BairstowRoots: failed to converge for quadratic factor");
 
 				// Extract roots from quadratic x² + ux + v = 0
 				// x = (-u ± sqrt(u² - 4v)) / 2
@@ -48022,6 +48350,7 @@ namespace MML {
 		Real _tOld;
 		Real _hDone;
 		Vector<Real> _xOld;
+		Vector<Real> _dxNew; // Post-step derivative for Hermite interpolation
 		bool _stepReady;
 
 		// Butcher tableau from centralized header
@@ -48071,6 +48400,7 @@ namespace MML {
 			_xtemp.Resize(_n);
 			_xNew.Resize(_n);
 			_xOld.Resize(_n);
+			_dxNew.Resize(_n);
 		}
 
 		StepResult doStep(Real t, Vector<Real>& x, Vector<Real>& dxdt, Real htry, Real eps) override {
@@ -48132,6 +48462,7 @@ namespace MML {
 					// Update state
 					x = _xNew;
 					_sys.derivs(t + h, x, dxdt);
+					_dxNew = dxdt; // Store for interpolation
 					result.funcEvals++;
 
 					// Next step size
@@ -48171,7 +48502,7 @@ namespace MML {
 			Vector<Real> result(_n);
 			for (int i = 0; i < _n; i++) {
 				Real f0 = _hDone * _k1[i];
-				Real f1 = _hDone * (c1 * _k1[i] + c3 * _k3[i] + c4 * _k4[i] + c6 * _k6[i]); // Approximate
+				Real f1 = _hDone * _dxNew[i];
 				result[i] = h00 * _xOld[i] + h10 * f0 + h01 * _xNew[i] + h11 * f1;
 			}
 
@@ -48181,8 +48512,7 @@ namespace MML {
 		bool isFSAL() const override { return false; }
 
 		const Vector<Real>& getFinalDeriv() const override {
-			static Vector<Real> dummy;
-			return dummy;
+			return _dxNew;
 		}
 
 		int stageCount() const override { return 6; }
@@ -48467,6 +48797,8 @@ namespace MML {
 		mutable Vector<Real> _xOld; ///< State at t
 		mutable Vector<Real> _xNew; ///< State at t+h
 		mutable Vector<Real> _err;	///< Error estimate
+		mutable Vector<Real> _dydxOld;	 ///< Derivative at start of last accepted step
+		mutable Vector<Real> _dydxFinal; ///< Derivative at end of last accepted step
 		mutable Real _tOld;			///< Time at start of step
 		mutable Real _hDone;		///< Actual step size taken
 
@@ -48549,7 +48881,9 @@ namespace MML {
 			, _hDone(0)
 			, _xOld(_n)
 			, _xNew(_n)
-			, _err(_n) {
+			, _err(_n)
+			, _dydxOld(_n)
+			, _dydxFinal(_n) {
 			// Initialize extrapolation tableau
 			_d.resize(KMAXX + 1);
 			for (int i = 0; i <= KMAXX; ++i) {
@@ -48565,6 +48899,7 @@ namespace MML {
 
 			_tOld = t;
 			_xOld = x;
+			_dydxOld = dxdt; // Store initial derivative for Hermite interpolation
 			Real h = htry;
 
 			Vector<Real> ysav = x;
@@ -48602,6 +48937,7 @@ namespace MML {
 
 						x = yest;
 						_sys.derivs(t + h, x, dxdt);
+						_dydxFinal = dxdt;
 						result.funcEvals++;
 						result.hDone = h;
 
@@ -48625,16 +48961,31 @@ namespace MML {
 		}
 
 		Vector<Real> interpolate(Real t) const override {
-			// Simple linear interpolation
+			// Hermite cubic interpolation using function values and derivatives at both endpoints
 			Real theta = (t - _tOld) / _hDone;
-			return _xOld * (1.0 - theta) + _xNew * theta;
+			Real theta2 = theta * theta;
+			Real theta3 = theta2 * theta;
+
+			// Hermite basis polynomials
+			Real h00 = 2 * theta3 - 3 * theta2 + 1;		// 1 - 3t² + 2t³
+			Real h10 = theta3 - 2 * theta2 + theta;		// t - 2t² + t³
+			Real h01 = -2 * theta3 + 3 * theta2;			// 3t² - 2t³
+			Real h11 = theta3 - theta2;						// t³ - t²
+
+			Vector<Real> result(_n);
+			for (int i = 0; i < _n; i++) {
+				Real f0 = _hDone * _dydxOld[i];
+				Real f1 = _hDone * _dydxFinal[i];
+				result[i] = h00 * _xOld[i] + h10 * f0 + h01 * _xNew[i] + h11 * f1;
+			}
+
+			return result;
 		}
 
 		bool isFSAL() const override { return false; }
 
 		const Vector<Real>& getFinalDeriv() const override {
-			static Vector<Real> dummy;
-			return dummy;
+			return _dydxFinal;
 		}
 
 		int stageCount() const override { return KMAXX; }
@@ -48672,6 +49023,8 @@ namespace MML {
 		mutable Vector<Real> _xOld; ///< State at t
 		mutable Vector<Real> _xNew; ///< State at t+h
 		mutable Vector<Real> _err;	///< Error estimate
+		mutable Vector<Real> _dydxOld;	 ///< Derivative at start of last accepted step
+		mutable Vector<Real> _dydxFinal; ///< Derivative at end of last accepted step
 		mutable Real _tOld;			///< Time at start of step
 		mutable Real _hDone;		///< Actual step size taken
 
@@ -48755,7 +49108,9 @@ namespace MML {
 			, _hDone(0)
 			, _xOld(_n)
 			, _xNew(_n)
-			, _err(_n) {
+			, _err(_n)
+			, _dydxOld(_n)
+			, _dydxFinal(_n) {
 			// Initialize extrapolation tableau
 			_d.resize(KMAXX + 1);
 			for (int i = 0; i <= KMAXX; ++i) {
@@ -48771,6 +49126,7 @@ namespace MML {
 
 			_tOld = t;
 			_xOld = x;
+			_dydxOld = dxdt; // Store initial derivative for Hermite interpolation
 			Real h = htry;
 
 			Vector<Real> ysav = x;
@@ -48808,6 +49164,7 @@ namespace MML {
 
 						x = yest;
 						_sys.derivs(t + h, x, dxdt);
+						_dydxFinal = dxdt;
 						result.funcEvals++;
 						result.hDone = h;
 
@@ -48831,16 +49188,31 @@ namespace MML {
 		}
 
 		Vector<Real> interpolate(Real t) const override {
-			// Simple linear interpolation
+			// Hermite cubic interpolation using function values and derivatives at both endpoints
 			Real theta = (t - _tOld) / _hDone;
-			return _xOld * (1.0 - theta) + _xNew * theta;
+			Real theta2 = theta * theta;
+			Real theta3 = theta2 * theta;
+
+			// Hermite basis polynomials
+			Real h00 = 2 * theta3 - 3 * theta2 + 1;		// 1 - 3t² + 2t³
+			Real h10 = theta3 - 2 * theta2 + theta;		// t - 2t² + t³
+			Real h01 = -2 * theta3 + 3 * theta2;			// 3t² - 2t³
+			Real h11 = theta3 - theta2;						// t³ - t²
+
+			Vector<Real> result(_n);
+			for (int i = 0; i < _n; i++) {
+				Real f0 = _hDone * _dydxOld[i];
+				Real f1 = _hDone * _dydxFinal[i];
+				result[i] = h00 * _xOld[i] + h10 * f0 + h01 * _xNew[i] + h11 * f1;
+			}
+
+			return result;
 		}
 
 		bool isFSAL() const override { return false; }
 
 		const Vector<Real>& getFinalDeriv() const override {
-			static Vector<Real> dummy;
-			return dummy;
+			return _dydxFinal;
 		}
 
 		int stageCount() const override { return KMAXX; }
@@ -49115,8 +49487,9 @@ namespace MML {
 		/// @param outputInterval Spacing between output points (dense output)
 		/// @param eps Error tolerance (default 1e-10)
 		/// @param h0 Initial step size (0 = auto-estimate)
+		/// @param minStepSize Minimum allowed step size (default 1e-15)
 		/// @return Solution with points at regular intervals
-		ODESystemSolution integrate(const Vector<Real>& x0, Real t0, Real tEnd, Real outputInterval, Real eps = 1e-10, Real h0 = 0) {
+		ODESystemSolution integrate(const Vector<Real>& x0, Real t0, Real tEnd, Real outputInterval, Real eps = 1e-10, Real h0 = 0, Real minStepSize = 1e-15) {
 			int n = _sys.getDim();
 			int numOutputPoints = static_cast<int>(std::ceil((tEnd - t0) / outputInterval)) + 1;
 
@@ -49173,7 +49546,7 @@ namespace MML {
 				}
 
 				// Safety check
-				if (h < Constants::Eps) {
+				if (h < minStepSize) {
 					throw ODESolverError("Step size too small in ODEAdaptiveIntegrator");
 				}
 			}
@@ -49191,7 +49564,7 @@ namespace MML {
 		/// @param times Vector of output times (must be sorted ascending)
 		/// @param eps Error tolerance
 		/// @return Solution at specified times
-		ODESystemSolution integrateAt(const Vector<Real>& x0, const Vector<Real>& times, Real eps = 1e-10, Real h0 = 0) {
+		ODESystemSolution integrateAt(const Vector<Real>& x0, const Vector<Real>& times, Real eps = 1e-10, Real h0 = 0, Real minStepSize = 1e-15) {
 			if (times.size() < 2) {
 				throw ODESolverError("Need at least 2 output times");
 			}
@@ -49248,7 +49621,7 @@ namespace MML {
 					h = result.hNext;
 				}
 
-				if (h < Constants::Eps && t < tEnd - Constants::Eps) {
+				if (h < minStepSize && t < tEnd - Constants::Eps) {
 					throw ODESolverError("Step size too small in ODEAdaptiveIntegrator");
 				}
 			}
@@ -49271,7 +49644,7 @@ namespace MML {
 				: (tEnd - t0) / 100.0;  // Default: 100 output points
 
 			ODESystemSolution sol = integrate(x0, t0, tEnd, outputInterval, 
-				config.tolerance, config.initial_step_size);
+				config.tolerance, config.initial_step_size, config.min_step_size);
 
 			// Populate diagnostic fields in statistics
 			_stats.elapsed_time_ms = timer.elapsed_ms();
@@ -52074,6 +52447,10 @@ namespace MML {
 		int step = 1;
 		while (t + h/2 <= t_end && step < config.max_steps) {
 
+			// Clamp step size to reach t_end exactly
+			Real h_actual = std::min(h, t_end - t);
+			if (h_actual < 1e-15) break;
+
 			// Initialize stage values to current solution (predictor)
 			X1 = x; X2 = x; X3 = x;
 			Y1 = y; Y2 = y; Y3 = y;
@@ -52087,24 +52464,24 @@ namespace MML {
 				result.newton_iterations++;
 
 				// Evaluate f and g at each stage point
-				system.diffEqs(t + c1*h, X1, Y1, K1);
-				system.diffEqs(t + c2*h, X2, Y2, K2);
-				system.diffEqs(t + c3*h, X3, Y3, K3);
-				system.algConstraints(t + c1*h, X1, Y1, G1);
-				system.algConstraints(t + c2*h, X2, Y2, G2);
-				system.algConstraints(t + c3*h, X3, Y3, G3);
+				system.diffEqs(t + c1*h_actual, X1, Y1, K1);
+				system.diffEqs(t + c2*h_actual, X2, Y2, K2);
+				system.diffEqs(t + c3*h_actual, X3, Y3, K3);
+				system.algConstraints(t + c1*h_actual, X1, Y1, G1);
+				system.algConstraints(t + c2*h_actual, X2, Y2, G2);
+				system.algConstraints(t + c3*h_actual, X3, Y3, G3);
 
 				// Build residual for the stage equations
-				// Stage equations for differential: X_i = x + h * sum_j(a_ij * K_j)
-				// Residual: R_xi = X_i - x - h*(a_i1*K1 + a_i2*K2 + a_i3*K3)
-				// Stage equations for algebraic: 0 = g(t + c_i*h, X_i, Y_i)
+				// Stage equations for differential: X_i = x + h_actual * sum_j(a_ij * K_j)
+				// Residual: R_xi = X_i - x - h_actual*(a_i1*K1 + a_i2*K2 + a_i3*K3)
+				// Stage equations for algebraic: 0 = g(t + c_i*h_actual, X_i, Y_i)
 				// Residual: R_yi = G_i
 
 				Real residNorm = 0;
 				
 				// Stage 1 residuals
 				for (int i = 0; i < diffDim; ++i) {
-					Real r = X1[i] - x[i] - h*(a11*K1[i] + a12*K2[i] + a13*K3[i]);
+					Real r = X1[i] - x[i] - h_actual*(a11*K1[i] + a12*K2[i] + a13*K3[i]);
 					residual[i] = r;
 					residNorm += r*r;
 				}
@@ -52117,7 +52494,7 @@ namespace MML {
 				// Stage 2 residuals
 				int off2 = totalDim;
 				for (int i = 0; i < diffDim; ++i) {
-					Real r = X2[i] - x[i] - h*(a21*K1[i] + a22*K2[i] + a23*K3[i]);
+					Real r = X2[i] - x[i] - h_actual*(a21*K1[i] + a22*K2[i] + a23*K3[i]);
 					residual[off2 + i] = r;
 					residNorm += r*r;
 				}
@@ -52130,7 +52507,7 @@ namespace MML {
 				// Stage 3 residuals
 				int off3 = 2 * totalDim;
 				for (int i = 0; i < diffDim; ++i) {
-					Real r = X3[i] - x[i] - h*(a31*K1[i] + a32*K2[i] + a33*K3[i]);
+					Real r = X3[i] - x[i] - h_actual*(a31*K1[i] + a32*K2[i] + a33*K3[i]);
 					residual[off3 + i] = r;
 					residNorm += r*r;
 				}
@@ -52150,8 +52527,8 @@ namespace MML {
 				// The unknowns are [X1, Y1, X2, Y2, X3, Y3] (3*totalDim vector)
 				// Jacobian structure (block form):
 				// 
-				// For stage i, diff eq: dR_xi/dXj = delta_ij*I - h*a_ij*df/dx
-				//                       dR_xi/dYj = -h*a_ij*df/dy
+				// For stage i, diff eq: dR_xi/dXj = delta_ij*I - h_actual*a_ij*df/dx
+				//                       dR_xi/dYj = -h_actual*a_ij*df/dy
 				// For stage i, alg eq:  dR_yi/dXj = dg/dx (only for j=i)
 				//                       dR_yi/dYj = dg/dy (only for j=i)
 
@@ -52178,11 +52555,11 @@ namespace MML {
 						for (int i = 0; i < diffDim; ++i) {
 							for (int j = 0; j < diffDim; ++j) {
 								Real val = (si == sj && i == j) ? 1.0 : 0.0;
-								val -= h * aij * dfDx(i, j);
+								val -= h_actual * aij * dfDx(i, j);
 								Jac_newton(row_off + i, col_off + j) = val;
 							}
 							for (int j = 0; j < algDim; ++j) {
-								Jac_newton(row_off + i, col_off + diffDim + j) = -h * aij * dfDy(i, j);
+								Jac_newton(row_off + i, col_off + diffDim + j) = -h_actual * aij * dfDy(i, j);
 							}
 						}
 
@@ -52225,10 +52602,10 @@ namespace MML {
 				break;
 			}
 
-			// Update solution using stage 3 (for Radau IIA, c3 = 1, so X3, Y3 is the solution at t+h)
+			// Update solution using stage 3 (for Radau IIA, c3 = 1, so X3, Y3 is the solution at t+h_actual)
 			x = X3;
 			y = Y3;
-			t += h;
+			t += h_actual;
 
 			// Track constraint violation
 			Vector<Real> g_check(algDim);
@@ -56038,8 +56415,15 @@ namespace MML {
 
 			Real fu;
 
+			const int MAX_BRACKET_ITER = 200;
+			int iter = 0;
+
 			// Keep bracketing until we have fb < fc (minimum bracketed)
 			while (result.fb > result.fc) {
+				if (++iter > MAX_BRACKET_ITER) {
+					result.valid = false;
+					return result;
+				}
 				// Parabolic extrapolation to find potential minimum
 				Real r = (result.bx - result.ax) * (result.fb - result.fc);
 				Real q = (result.bx - result.cx) * (result.fb - result.fa);
@@ -60553,6 +60937,12 @@ namespace MML {
 			std::vector<VectorN<Real, 3>> seeds;
 			seeds.reserve(numPoints);
 
+			if (numPoints <= 1) {
+				if (numPoints == 1)
+					seeds.push_back(VectorN<Real, 3>{center[0] + radius, center[1], center[2]});
+				return seeds;
+			}
+
 			// Fibonacci sphere for uniform distribution
 			const Real goldenRatio = (1.0 + std::sqrt(5.0)) / 2.0;
 			const Real angleIncrement = 2.0 * Constants::PI / goldenRatio;
@@ -61697,9 +62087,6 @@ namespace MML::Fourier
 
 			for (int k = 0; k < N; ++k) {
 				Real coeff = coefficients[k];
-				if (k == 0) {
-					coeff *= 0.5; // DC term is halved in inverse
-				}
 
 				Real theta = pi * k / N2;
 				Complex twiddle(std::cos(theta), std::sin(theta));
@@ -66917,6 +67304,48 @@ namespace MML {
 		}
 	} // namespace Csv
 
+	namespace Html {
+		/// @brief Escape special HTML characters in a string
+		inline std::string escape(const std::string& str) {
+			std::string result;
+			result.reserve(str.size());
+			for (char c : str) {
+				switch (c) {
+					case '&':  result += "&amp;";  break;
+					case '<':  result += "&lt;";   break;
+					case '>':  result += "&gt;";   break;
+					case '"':  result += "&quot;";  break;
+					default:   result += c;        break;
+				}
+			}
+			return result;
+		}
+	} // namespace Html
+
+	namespace Latex {
+		/// @brief Escape special LaTeX characters in a string
+		inline std::string escape(const std::string& str) {
+			std::string result;
+			result.reserve(str.size());
+			for (char c : str) {
+				switch (c) {
+					case '&':  result += "\\&";  break;
+					case '%':  result += "\\%";  break;
+					case '$':  result += "\\$";  break;
+					case '#':  result += "\\#";  break;
+					case '_':  result += "\\_";  break;
+					case '{':  result += "\\{";  break;
+					case '}':  result += "\\}";  break;
+					case '~':  result += "\\textasciitilde{}"; break;
+					case '^':  result += "\\textasciicircum{}"; break;
+					case '\\': result += "\\textbackslash{}"; break;
+					default:   result += c;      break;
+				}
+			}
+			return result;
+		}
+	} // namespace Latex
+
 	///////////////////////////       MODERN API       ///////////////////////////
 
 	// Format type enumeration
@@ -67446,17 +67875,21 @@ namespace MML {
 			os << "}\n\\hline\n";
 
 			// Header
-			os << m_tagFormat.name();
+			os << Latex::escape(m_tagFormat.name());
 			for (const auto& fmt : m_columnFormats) {
-				os << " & " << fmt.name();
+				os << " & " << Latex::escape(fmt.name());
 			}
 			os << " \\\\\n\\hline\n";
 
 			// Data
 			for (size_t row = 0; row < m_data.size(); ++row) {
-				os << m_rowTags[row];
+				std::ostringstream tagStr;
+				tagStr << m_rowTags[row];
+				os << Latex::escape(tagStr.str());
 				for (const auto& value : m_data[row]) {
-					os << " & " << value;
+					std::ostringstream valStr;
+					valStr << value;
+					os << " & " << Latex::escape(valStr.str());
 				}
 				os << " \\\\\n";
 			}
@@ -67471,9 +67904,9 @@ namespace MML {
 
 			// Header
 			os << "  <thead>\n    <tr>\n";
-			os << "      <th>" << m_tagFormat.name() << "</th>\n";
+			os << "      <th>" << Html::escape(m_tagFormat.name()) << "</th>\n";
 			for (const auto& fmt : m_columnFormats) {
-				os << "      <th>" << fmt.name() << "</th>\n";
+				os << "      <th>" << Html::escape(fmt.name()) << "</th>\n";
 			}
 			os << "    </tr>\n  </thead>\n";
 
@@ -67481,9 +67914,13 @@ namespace MML {
 			os << "  <tbody>\n";
 			for (size_t row = 0; row < m_data.size(); ++row) {
 				os << "    <tr>\n";
-				os << "      <td>" << m_rowTags[row] << "</td>\n";
+				std::ostringstream tagStr;
+				tagStr << m_rowTags[row];
+				os << "      <td>" << Html::escape(tagStr.str()) << "</td>\n";
 				for (const auto& value : m_data[row]) {
-					os << "      <td>" << value << "</td>\n";
+					std::ostringstream valStr;
+					valStr << value;
+					os << "      <td>" << Html::escape(valStr.str()) << "</td>\n";
 				}
 				os << "    </tr>\n";
 			}
@@ -68701,20 +69138,6 @@ namespace MML
 			}
 		}
 
-		/// @brief Serialize a 3D parametric surface using its intrinsic bounds
-		/// @details Convenience overload that uses the surface's getMinU/MaxU/MinW/MaxW methods
-		/// to determine the parameter range automatically.
-		inline SerializeResult SaveParametricSurface(const IParametricSurfaceRect<3>& surface, std::string title,
-		                                             int numPointsU, int numPointsW,
-		                                             std::string fileName)
-		{
-			return SaveParametricSurface(
-				static_cast<const IVectorFunctionNM<2, 3>&>(surface), title,
-				surface.getMinU(), surface.getMaxU(), numPointsU,
-				surface.getMinW(), surface.getMaxW(), numPointsW,
-				fileName);
-		}
-
 		/// @brief Serialize a general R² → R³ function as a parametric surface
 		/// @details Lower-level function that works with any IVectorFunctionNM<2,3>.
 		/// Useful when you have a lambda or custom function that isn't wrapped in IParametricSurface.
@@ -68769,6 +69192,20 @@ namespace MML
 			{
 				return {false, SerializeError::WRITE_FAILED, std::string("Write error: ") + e.what()};
 			}
+		}
+
+		/// @brief Serialize a 3D parametric surface using its intrinsic bounds
+		/// @details Convenience overload that uses the surface's getMinU/MaxU/MinW/MaxW methods
+		/// to determine the parameter range automatically.
+		inline SerializeResult SaveParametricSurface(const IParametricSurfaceRect<3>& surface, std::string title,
+		                                             int numPointsU, int numPointsW,
+		                                             std::string fileName)
+		{
+			return SaveParametricSurface(
+				static_cast<const IVectorFunctionNM<2, 3>&>(surface), title,
+				surface.getMinU(), surface.getMaxU(), numPointsU,
+				surface.getMinW(), surface.getMaxW(), numPointsW,
+				fileName);
 		}
 
 		//===================================================================================
@@ -69271,11 +69708,13 @@ namespace MML
 				}
 
 				int numSteps = ballPositions[0].size();
-				file << "NumSteps: " << numSteps << std::endl;
+				int actualFrames = (numSteps + saveEveryNSteps - 1) / saveEveryNSteps;
+				file << "NumSteps: " << actualFrames << std::endl;
 
-				for (int i = 0; i < numSteps; i++)
+				int realStep = 0;
+				for (int i = 0; i < numSteps; i += saveEveryNSteps, realStep++)
 				{
-					file << "Step " << i << " " << i * dT << std::endl;
+					file << "Step " << realStep << " " << i * dT << std::endl;
 					for (int j = 0; j < numBalls; j++)
 					{
 						file << j << " " << ballPositions[j][i].X() << " " << ballPositions[j][i].Y() << " " << ballPositions[j][i].Z() << "\n";
@@ -69361,7 +69800,7 @@ namespace MML
 					
 					for (const auto& point : line.points)
 					{
-						file << std::setprecision(8) << point[0] << " " << point[1] << std::endl;
+						file << std::setprecision(std::numeric_limits<Real>::max_digits10) << point[0] << " " << point[1] << std::endl;
 					}
 				}
 
@@ -69409,7 +69848,7 @@ namespace MML
 					
 					for (const auto& point : line)
 					{
-						file << std::setprecision(8) << point[0] << " " << point[1] << std::endl;
+						file << std::setprecision(std::numeric_limits<Real>::max_digits10) << point[0] << " " << point[1] << std::endl;
 					}
 				}
 
@@ -69461,7 +69900,7 @@ namespace MML
 					
 					for (const auto& point : line.points)
 					{
-						file << std::setprecision(8) << point[0] << " " << point[1] << " " << point[2] << std::endl;
+						file << std::setprecision(std::numeric_limits<Real>::max_digits10) << point[0] << " " << point[1] << " " << point[2] << std::endl;
 					}
 				}
 
@@ -69505,7 +69944,7 @@ namespace MML
 					
 					for (const auto& point : line)
 					{
-						file << std::setprecision(8) << point[0] << " " << point[1] << " " << point[2] << std::endl;
+						file << std::setprecision(std::numeric_limits<Real>::max_digits10) << point[0] << " " << point[1] << " " << point[2] << std::endl;
 					}
 				}
 
@@ -70959,10 +71398,15 @@ namespace MML
 									std::lock_guard<std::mutex> lock(this->exceptions_mutex);
 									this->exceptions.push(eptr);
 								}
-								// Invoke error callback if set
-								if (this->error_callback) {
+								// Invoke error callback if set (copy under lock to avoid data race)
+								std::function<void(std::exception_ptr)> cb;
+								{
+									std::lock_guard<std::mutex> lock(this->exceptions_mutex);
+									cb = this->error_callback;
+								}
+								if (cb) {
 									try {
-										this->error_callback(eptr);
+										cb(eptr);
 									}
 									catch (...) {
 										// Ignore exceptions from callback
@@ -72408,6 +72852,17 @@ namespace MML {
 					case ColumnType::BOOL:
 						col.boolData.resize(dataset.rowCount);
 						break;
+					case ColumnType::STRING:
+						col.stringData.resize(dataset.rowCount);
+						break;
+					case ColumnType::DATE:
+					case ColumnType::TIME:
+						col.stringData.resize(dataset.rowCount);
+						break;
+					case ColumnType::DATETIME:
+						col.dateData.resize(dataset.rowCount);
+						col.timeData.resize(dataset.rowCount);
+						break;
 					default:
 						col.stringData.resize(dataset.rowCount);
 						break;
@@ -72439,6 +72894,30 @@ namespace MML {
 							break;
 						case ColumnType::BOOL:
 							col.boolData[rowIdx] = parsed ? boolVal : false;
+							break;
+						case ColumnType::STRING:
+							col.stringData[rowIdx] = parsed ? strVal : "";
+							break;
+						case ColumnType::DATE:
+							col.dateData.resize(dataset.rowCount);
+							col.dateData[rowIdx] = parsed ? strVal : "";
+							break;
+						case ColumnType::TIME:
+							col.timeData.resize(dataset.rowCount);
+							col.timeData[rowIdx] = parsed ? strVal : "";
+							break;
+						case ColumnType::DATETIME:
+							if (parsed && !strVal.empty()) {
+								size_t sep = strVal.find_first_of("T ");
+								if (sep != std::string::npos) {
+									col.dateData[rowIdx] = strVal.substr(0, sep);
+									col.timeData[rowIdx] = strVal.substr(sep + 1);
+								}
+								else {
+									col.dateData[rowIdx] = strVal;
+									col.timeData[rowIdx] = "";
+								}
+							}
 							break;
 						default:
 							col.stringData[rowIdx] = parsed ? strVal : "";
@@ -72663,6 +73142,35 @@ namespace MML {
 								case ColumnType::BOOL:
 									if (i == 0) col.boolData.resize(values.size());
 									col.boolData[i] = parsed ? boolVal : false;
+									break;
+								case ColumnType::STRING:
+									if (i == 0) col.stringData.resize(values.size());
+									col.stringData[i] = parsed ? strVal : "";
+									break;
+								case ColumnType::DATE:
+									if (i == 0) col.dateData.resize(values.size());
+									col.dateData[i] = parsed ? strVal : "";
+									break;
+								case ColumnType::TIME:
+									if (i == 0) col.timeData.resize(values.size());
+									col.timeData[i] = parsed ? strVal : "";
+									break;
+								case ColumnType::DATETIME:
+									if (i == 0) {
+										col.dateData.resize(values.size());
+										col.timeData.resize(values.size());
+									}
+									if (parsed && !strVal.empty()) {
+										size_t sep = strVal.find_first_of("T ");
+										if (sep != std::string::npos) {
+											col.dateData[i] = strVal.substr(0, sep);
+											col.timeData[i] = strVal.substr(sep + 1);
+										}
+										else {
+											col.dateData[i] = strVal;
+											col.timeData[i] = "";
+										}
+									}
 									break;
 								default:
 									if (i == 0) col.stringData.resize(values.size());
@@ -73845,7 +74353,8 @@ namespace MML::Systems
 		Unknown,				 ///< Could not classify
 		StableNode,			 ///< All eigenvalues negative real
 		UnstableNode,		 ///< All eigenvalues positive real
-		Saddle,					 ///< Mixed signs
+		Saddle,					 ///< Mixed signs (real eigenvalues)
+		SaddleFocus,		 ///< Mixed signs with complex eigenvalues (e.g., Lorenz attractor)
 		StableFocus,		 ///< Complex with negative real part (spiral in)
 		UnstableFocus,	 ///< Complex with positive real part (spiral out)
 		Center,					 ///< Purely imaginary eigenvalues
@@ -73862,6 +74371,8 @@ namespace MML::Systems
 			return "Unstable Node";
 		case FixedPointType::Saddle:
 			return "Saddle";
+		case FixedPointType::SaddleFocus:
+			return "Saddle-Focus";
 		case FixedPointType::StableFocus:
 			return "Stable Focus";
 		case FixedPointType::UnstableFocus:
@@ -74349,9 +74860,9 @@ namespace MML::Systems
 			Real d2 = L2 * (M - m2 * c * c);
 
 			// Numerators
-			Real n1 = m2 * L1 * w1 * w1 * s * c + m2 * g * std::sin(th2) * c + m2 * L2 * w2 * w2 * s - M * g * std::sin(th1);
+			Real n1 = -m2 * L1 * w1 * w1 * s * c + m2 * g * std::sin(th2) * c - m2 * L2 * w2 * w2 * s - M * g * std::sin(th1);
 
-			Real n2 = -m2 * L2 * w2 * w2 * s * c + M * (g * std::sin(th1) * c - L1 * w1 * w1 * s - g * std::sin(th2));
+			Real n2 = m2 * L2 * w2 * w2 * s * c + M * (g * std::sin(th1) * c + L1 * w1 * w1 * s - g * std::sin(th2));
 
 			dydt[0] = w1;
 			dydt[1] = w2;
@@ -74904,6 +75415,8 @@ namespace MML::Systems
 			if (hasComplex) {
 				if (std::abs(maxRealPart) < 1e-10 && std::abs(minRealPart) < 1e-10)
 					fp.type = FixedPointType::Center;
+				else if (numPositiveReal > 0 && numNegativeReal > 0)
+					fp.type = FixedPointType::SaddleFocus;
 				else if (maxRealPart < -1e-10)
 					fp.type = FixedPointType::StableFocus;
 				else
@@ -74997,7 +75510,7 @@ namespace MML::Systems
 		static void IntegrateWithVariational(IDynamicalSystem& sys, Vector<Real>& x, Matrix<Real>& Q, Real t0, Real t1, Real h) {
 			int n = sys.getDim();
 			Vector<Real> k1(n), k2(n), k3(n), k4(n);
-			Vector<Real> xTemp(n);
+			Vector<Real> xTemp(n), xOld(n), xMid(n), xEnd(n);
 			Matrix<Real> J(n, n);
 			Matrix<Real> dQ1(n, n), dQ2(n, n), dQ3(n, n), dQ4(n, n);
 			Matrix<Real> QTemp(n, n);
@@ -75006,29 +75519,40 @@ namespace MML::Systems
 			while (t < t1 - 1e-12) {
 				Real dt = std::min(h, t1 - t);
 
+				// Save x(t) before trajectory update
+				for (int i = 0; i < n; ++i)
+					xOld[i] = x[i];
+
 				// RK4 for trajectory
 				sys.derivs(t, x, k1);
 				for (int i = 0; i < n; ++i)
 					xTemp[i] = x[i] + 0.5 * dt * k1[i];
+				// Save midpoint for Jacobian evaluation
+				for (int i = 0; i < n; ++i)
+					xMid[i] = xTemp[i];
 				sys.derivs(t + 0.5 * dt, xTemp, k2);
 				for (int i = 0; i < n; ++i)
 					xTemp[i] = x[i] + 0.5 * dt * k2[i];
 				sys.derivs(t + 0.5 * dt, xTemp, k3);
 				for (int i = 0; i < n; ++i)
 					xTemp[i] = x[i] + dt * k3[i];
+				// Save endpoint for Jacobian evaluation
+				for (int i = 0; i < n; ++i)
+					xEnd[i] = xTemp[i];
 				sys.derivs(t + dt, xTemp, k4);
 
 				for (int i = 0; i < n; ++i)
 					x[i] += dt * (k1[i] + 2 * k2[i] + 2 * k3[i] + k4[i]) / 6.0;
 
-				// RK4 for variational equations: dQ/dt = J(x) * Q
-				sys.jacobian(t, x, J);
+				// RK4 for variational equations: dQ/dt = J(x(t)) * Q
+				// Jacobian evaluated at trajectory intermediate points (not post-update x)
+				sys.jacobian(t, xOld, J);
 				MultiplyJQ(J, Q, dQ1);
 
 				for (int i = 0; i < n; ++i)
 					for (int j = 0; j < n; ++j)
 						QTemp(i, j) = Q(i, j) + 0.5 * dt * dQ1(i, j);
-				sys.jacobian(t + 0.5 * dt, x, J);
+				sys.jacobian(t + 0.5 * dt, xMid, J);
 				MultiplyJQ(J, QTemp, dQ2);
 
 				for (int i = 0; i < n; ++i)
@@ -75039,7 +75563,7 @@ namespace MML::Systems
 				for (int i = 0; i < n; ++i)
 					for (int j = 0; j < n; ++j)
 						QTemp(i, j) = Q(i, j) + dt * dQ3(i, j);
-				sys.jacobian(t + dt, x, J);
+				sys.jacobian(t + dt, xEnd, J);
 				MultiplyJQ(J, QTemp, dQ4);
 
 				for (int i = 0; i < n; ++i)
@@ -75154,8 +75678,7 @@ namespace MML::Systems
 																					Vector<Real> x0, int component, Real tTransient = 100.0, Real tRecord = 50.0, Real h = 0.01) {
 			BifurcationDiagram<Real> diagram;
 			diagram.parameterName = sys.getParamName(paramIndex);
-
-			Real dParam = (paramMax - paramMin) / (numSteps - 1);
+			Real originalParam = sys.getParam(paramIndex);			Real dParam = (paramMax - paramMin) / (numSteps - 1);
 
 			for (int step = 0; step < numSteps; ++step) {
 				Real param = paramMin + step * dParam;
@@ -75175,6 +75698,7 @@ namespace MML::Systems
 				x0 = x;
 			}
 
+			sys.setParam(paramIndex, originalParam);
 			return diagram;
 		}
 

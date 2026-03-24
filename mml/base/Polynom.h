@@ -205,6 +205,8 @@ namespace MML
 		/// @param x Evaluation point
 		/// @return P(x)
 		FieldT operator() (const FieldT& x) const {
+			if (_vecCoef.empty())
+				return FieldT(0);
 			int j = degree();
 			FieldT p = _vecCoef[j] * FieldT(1);
 

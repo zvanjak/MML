@@ -401,7 +401,11 @@ namespace MML
 			Real getMinT() const { return 0.0; }
 			Real getMaxT() const { return 2 * Constants::PI; }
 			
-			VectorN<Real, 2> operator()(Real t) const { return MML::VectorN<Real, 2>{_radius, t}; }
+			VectorN<Real, 2> operator()(Real t) const {
+				Real x = _center.X() + _radius * cos(t);
+				Real y = _center.Y() + _radius * sin(t);
+				return MML::VectorN<Real, 2>{sqrt(x*x + y*y), atan2(y, x)};
+			}
 		};
 
 		///////////////////////////////             CARTESIAN SPACE CURVES                  ///////////////////////////////
@@ -495,9 +499,10 @@ namespace MML
 				return Plane3D(Vector3Cartesian((*this)(t)).getAsPoint(), Vector3Cartesian(getTangentUnit(t)));
 			}
 			/// @brief Get rectifying plane at t (contains tangent and binormal)
+			/// @details The rectifying plane is perpendicular to the principal normal
 			virtual Plane3D getRectifyingPlane(Real t) const
 			{
-				return Plane3D(Vector3Cartesian((*this)(t)).getAsPoint(), Vector3Cartesian(getBinormal(t)));
+				return Plane3D(Vector3Cartesian((*this)(t)).getAsPoint(), Vector3Cartesian(getNormal(t)));
 			}
 
 			/// @brief Get Frenet-Serret moving frame (T, N, B) at parameter t
@@ -560,10 +565,9 @@ namespace MML
 			LineCurve(Real minT, Real maxT, const Point3Cartesian& pnt, const Vector3Cartesian& dir) : _line(pnt, dir), _minT(minT), _maxT(maxT) {}
 			LineCurve(Real t1, const Point3Cartesian& pnt1, Real t2, const Point3Cartesian& pnt2)
 			{
-				// tocno samo ako je t1 = 0.0!!!
-				_line.StartPoint() = pnt1;
 				Vec3Cart dir = Vec3Cart(pnt1, pnt2);
 				_line.Direction() = dir.NormL2() / (t2 - t1) * dir.GetAsUnitVector();
+				_line.StartPoint() = pnt1 + (-t1) * _line.Direction();
 				_minT = t1;
 				_maxT = t2;
 			}
