@@ -5541,12 +5541,12 @@ namespace MML
 		
 		/// @brief Create const view of a rectangular block
 		/// @warning The returned view is invalidated by Resize() or destruction of this matrix.
-		const MatrixViewNew<Type> block(int startRow, int startCol, int numRows, int numCols) const
+		MatrixViewNew<const Type> block(int startRow, int startCol, int numRows, int numCols) const
 		{
 			if (startRow < 0 || startCol < 0 || numRows <= 0 || numCols <= 0 ||
 			    startRow + numRows > _rows || startCol + numCols > _cols)
 				throw MatrixDimensionError("Matrix::block - invalid parameters", _rows, _cols, startRow, startCol);
-			return MatrixViewNew<Type>(const_cast<Type*>(&_data[idx(startRow, startCol)]), numRows, numCols, _cols);
+			return MatrixViewNew<const Type>(&_data[idx(startRow, startCol)], numRows, numCols, _cols);
 		}
 
 		///////////////////////               Matrix properties            //////////////////////
@@ -6243,6 +6243,10 @@ namespace Serializer
 		
 		int rows, cols;
 		file >> rows >> cols;
+		if (file.fail() || rows <= 0 || cols <= 0 || rows > 100000 || cols > 100000) {
+			std::cerr << "Error: invalid dimensions (" << rows << "x" << cols << ") in " << filename << std::endl;
+			return false;
+		}
 		outMat.Resize(rows, cols);
 		
 		for (int i = 0; i < rows; ++i)
@@ -6437,6 +6441,10 @@ namespace Serializer
 		if (elemSize != sizeof(Type)) {
 			std::cerr << "Error: element size mismatch in " << filename 
 			          << " (file: " << elemSize << ", expected: " << sizeof(Type) << ")" << std::endl;
+			return false;
+		}
+		if (rows == 0 || cols == 0 || rows > 100000 || cols > 100000) {
+			std::cerr << "Error: invalid dimensions (" << rows << "x" << cols << ") in " << filename << std::endl;
 			return false;
 		}
 		
@@ -13374,9 +13382,11 @@ namespace MML
 		/// @brief Returns unit vector in this direction.
 		Vector2Cartesian GetAsUnitVector() const
 		{
-			VectorN<Real, 2> res = (*this) / NormL2();
-
-			return Vector2Cartesian(res[0], res[1]);
+			if (NormL2() == 0.0)
+			{
+				return Vector2Cartesian{ REAL(0.0), REAL(0.0) };
+			}
+			return Vector2Cartesian{ (*this) / NormL2() };
 		}
 		/// @brief Returns unit vector at given position (for Cartesian, position doesn't matter).
 		/// @param pos Position (unused in Cartesian coordinates)
@@ -13558,7 +13568,7 @@ namespace MML
 		}
 
 		/// @brief Converts vector to Point3Cartesian.
-		Point3Cartesian getAsPoint()
+		Point3Cartesian getAsPoint() const
 		{
 			return Point3Cartesian(_val[0], _val[1], _val[2]);
 		}
@@ -23869,20 +23879,29 @@ namespace MML
 			if (inMatRef.rows() == 0)
 				throw MatrixDimensionError("LUSolverInPlace::ctor - matrix must be non-empty", 0, 0, -1, -1);
 			
+			// Input validation: check for NaN/Inf
+			for (int ii = 0; ii < _n; ii++)
+				for (int jj = 0; jj < _n; jj++)
+					if (!std::isfinite(static_cast<Real>(Abs(inMatRef(ii, jj)))))
+						throw ArgumentError("LUSolverInPlace::ctor - matrix contains NaN or Inf");
+
 			int i, imax, j, k;
 			Real big, temp;
 			Type temp2;
 			Vector<Type> vv(_n);
+			Real norm_a = 0.0;
 			_d = 1.0;
 			for (i = 0; i < _n; i++) {
 				big = 0.0;
 				for (j = 0; j < _n; j++)
 					if ((temp = Abs(_lu[i][j])) > big) big = temp;
 				if (big == 0.0)
-					throw SingularMatrixError("LUSolverInPlace::ctor - Singular Matrix");
+					throw SingularMatrixError("LUSolverInPlace::ctor - Singular Matrix (zero row)");
 
+				if (big > norm_a) norm_a = big;
 				vv[i] = 1.0 / big;
 			}
+			Real singularity_threshold = std::numeric_limits<Real>::epsilon() * norm_a * _n;
 			for (k = 0; k < _n; k++) {
 				big = 0.0;
 				imax = k;
@@ -23903,8 +23922,8 @@ namespace MML
 					vv[imax] = vv[k];
 				}
 				_indx[k] = imax;
-				if (_lu[k][k] == Real{ 0.0 })
-					throw SingularMatrixError("LUSolverInPlace::ctor - zero pivot after partial pivoting");
+				if (Abs(_lu[k][k]) < singularity_threshold)
+					throw SingularMatrixError("LUSolverInPlace::ctor - Singular Matrix", Abs(_lu[k][k]));
 
 				for (i = k + 1; i < _n; i++) {
 					temp2 = _lu[i][k] /= _lu[k][k];
@@ -24051,19 +24070,24 @@ namespace MML
 		{
 			int mm = _m1 + _m2 + 1;
 			
-			// Copy band diagonal matrix to working storage
+			// Copy band diagonal matrix to working storage and compute matrix norm
 			// _au stores the upper triangle with potential fill-in from pivoting
+			Real norm_a = 0.0;
 			for (int i = 0; i < _n; i++)
 			{
+				Real row_sum = 0.0;
 				for (int j = 0; j < mm; j++)
 				{
 					int col = j - _m1 + i;
-					if (col >= 0 && col < _n)
+					if (col >= 0 && col < _n) {
 						_au[i][j] = a(i, col);
-					else
+						row_sum += Abs(_au[i][j]);
+					} else
 						_au[i][j] = 0.0;
 				}
+				if (row_sum > norm_a) norm_a = row_sum;
 			}
+			Real singularity_threshold = std::numeric_limits<Real>::epsilon() * norm_a * _n;
 			
 			_d = 1.0;
 			int l = _m1;
@@ -24099,8 +24123,8 @@ namespace MML
 				
 				_indx[k] = i + 1;  // Store 1-based index for compatibility
 				
-				if (dum == 0.0)
-					throw SingularMatrixError("BandDiagonalSolver::ctor - Singular Matrix (zero pivot)");
+				if (Abs(dum) < singularity_threshold)
+					throw SingularMatrixError("BandDiagonalSolver::ctor - Singular Matrix", Abs(dum));
 				
 				// Interchange rows if necessary
 				if (i != k)
@@ -24247,11 +24271,13 @@ namespace MML
 	template<class Type>
 	class CholeskySolver
 	{
-	public:
+	private:
 		int n;
 		Matrix<Type> el;
 
 	public:
+		/// @brief Access the lower-triangular Cholesky factor L.
+		const Matrix<Type>& L() const { return el; }
 		/// @brief Constructor - performs Cholesky decomposition A=LLᵀ
 		/// @param a Positive-definite symmetric matrix (only upper triangle needed)
 		/// @throws MatrixDimensionError if matrix is not square or is empty
@@ -24880,10 +24906,8 @@ namespace MML
 		/// @note Singular values ordered in descending order on output
 		SVDecompositionSolver(const Matrix<Type>& a) : m(a.rows()), n(a.cols()), u(a), v(n, n), w(n)
 		{
-			// Given a Matrix a[m][n], this routine computes its singular value decomposition, A = U·W·V^T
-			// The Matrix U replaces a on output (stored in u)
-			// The diagonal matrix of singular values W is output as a vector w[n]
-			// The matrix V (not the transpose V^T) is output as v[n][n]
+			if (m == 0 || n == 0)
+				throw MatrixDimensionError("SVDecompositionSolver::ctor - matrix must be non-empty", m, n, -1, -1);
 			
 			eps = std::numeric_limits<Type>::epsilon();
 			decompose();
@@ -29870,13 +29894,13 @@ namespace MML
 		template <int N>
 		static Real NDer1Partial(const ITensorField2<N>& f, int i, int j, int deriv_index, const VectorN<Real, N>& point, Real* error = nullptr)
 		{
-			return NDer1Partial(f, i, j, deriv_index, point, NDer1_h, error);
+			return NDer1Partial(f, i, j, deriv_index, point, ScaleStep(NDer1_h, point[deriv_index]), error);
 		}
 
 		template <int N>
 		static Real NDer1Partial(const ITensorField3<N>& f, int i, int j, int k, int deriv_index, const VectorN<Real, N>& point, Real* error = nullptr)
 		{
-			return NDer1Partial(f, i, j, k, deriv_index, point, NDer1_h, error);
+			return NDer1Partial(f, i, j, k, deriv_index, point, ScaleStep(NDer1_h, point[deriv_index]), error);
 		}
 
 		template <int N>
@@ -29904,7 +29928,7 @@ namespace MML
 		template <int N>
 		static Real NDer1Partial(const ITensorField4<N>& f, int i, int j, int k, int l, int deriv_index, const VectorN<Real, N>& point, Real* error = nullptr)
 		{
-			return NDer1Partial(f, i, j, k, l, deriv_index, point, NDer1_h, error);
+			return NDer1Partial(f, i, j, k, l, deriv_index, point, ScaleStep(NDer1_h, point[deriv_index]), error);
 		}
 
 		template <int N>
@@ -29963,13 +29987,13 @@ namespace MML
 		template <int N>
 		static Real NDer2Partial(const ITensorField2<N>& f, int i, int j, int deriv_index, const VectorN<Real, N>& point, Real* error = nullptr)
 		{
-			return NDer2Partial(f, i, j, deriv_index, point, NDer2_h, error);
+			return NDer2Partial(f, i, j, deriv_index, point, ScaleStep(NDer2_h, point[deriv_index]), error);
 		}
 
 		template <int N>
 		static Real NDer2Partial(const ITensorField3<N>& f, int i, int j, int k, int deriv_index, const VectorN<Real, N>& point, Real* error = nullptr)
 		{
-			return NDer2Partial(f, i, j, k, deriv_index, point, NDer2_h, error);
+			return NDer2Partial(f, i, j, k, deriv_index, point, ScaleStep(NDer2_h, point[deriv_index]), error);
 		}
 
 		template <int N>
@@ -30003,7 +30027,7 @@ namespace MML
 		template <int N>
 		static Real NDer2Partial(const ITensorField4<N>& f, int i, int j, int k, int l, int deriv_index, const VectorN<Real, N>& point, Real* error = nullptr)
 		{
-			return NDer2Partial(f, i, j, k, l, deriv_index, point, NDer2_h, error);
+			return NDer2Partial(f, i, j, k, l, deriv_index, point, ScaleStep(NDer2_h, point[deriv_index]), error);
 		}
 
 		template <int N>
@@ -30075,13 +30099,13 @@ namespace MML
 		template <int N>
 		static Real NDer4Partial(const ITensorField2<N>& f, int i, int j, int deriv_index, const VectorN<Real, N>& point, Real* error = nullptr)
 		{
-			return NDer4Partial(f, i, j, deriv_index, point, NDer4_h, error);
+			return NDer4Partial(f, i, j, deriv_index, point, ScaleStep(NDer4_h, point[deriv_index]), error);
 		}
 
 		template <int N>
 		static Real NDer4Partial(const ITensorField3<N>& f, int i, int j, int k, int deriv_index, const VectorN<Real, N>& point, Real* error = nullptr)
 		{
-			return NDer4Partial(f, i, j, k, deriv_index, point, NDer4_h, error);
+			return NDer4Partial(f, i, j, k, deriv_index, point, ScaleStep(NDer4_h, point[deriv_index]), error);
 		}
 
 		template <int N>
@@ -30123,7 +30147,7 @@ namespace MML
 		template <int N>
 		static Real NDer4Partial(const ITensorField4<N>& f, int i, int j, int k, int l, int deriv_index, const VectorN<Real, N>& point, Real* error = nullptr)
 		{
-			return NDer4Partial(f, i, j, k, l, deriv_index, point, NDer4_h, error);
+			return NDer4Partial(f, i, j, k, l, deriv_index, point, ScaleStep(NDer4_h, point[deriv_index]), error);
 		}
 
 		template <int N>
@@ -37502,6 +37526,8 @@ namespace MML
 			_fInverse1([this](const VectorN<Real, 2>& q) { return funcInverse1(q); }),
 			_fInverse2([this](const VectorN<Real, 2>& q) { return funcInverse2(q); })
 		{
+			if (std::abs(std::sin(inAngle)) < Constants::Eps)
+				throw MML::ArgumentError("CoordTransfObliqueToCartesian2D: angle must not be a multiple of pi (sin(angle) ~ 0)");
 		}
 
 		/// @brief Transform oblique x-coordinate: x = q1 + q2�cos(?)
@@ -37563,7 +37589,10 @@ namespace MML
 			_f2([this](const VectorN<Real, 2>& q) { return func2(q); }),
 			_fInverse1([this](const VectorN<Real, 2>& q) { return funcInverse1(q); }),
 			_fInverse2([this](const VectorN<Real, 2>& q) { return funcInverse2(q); })
-		{	}
+		{
+			if (std::abs(std::sin(inAngle)) < Constants::Eps)
+				throw MML::ArgumentError("CoordTransfCartesianToOblique2D: angle must not be a multiple of pi (sin(angle) ~ 0)");
+		}
 
 		/// @brief Transform y to oblique: q2 = y/sin(?)
 		/// @param q Cartesian coordinates (x, y)
@@ -37823,12 +37852,12 @@ namespace MML
 		const ScalarFunctionFromStdFunc<3> _f1, _f2, _f3;
 		const ScalarFunctionFromStdFunc<3> _fInverse1, _fInverse2, _fInverse3;
 
-		/// @brief Build ZXZ Euler angle rotation matrix
+		/// @brief Build ZYZ Euler angle rotation matrix
 		/// @param alpha First angle (Z-axis rotation)
-		/// @param beta Second angle (X'-axis rotation)
+		/// @param beta Second angle (Y'-axis rotation)
 		/// @param gamma Third angle (Z''-axis rotation)
 		/// @return 3x3 rotation matrix
-		static MatrixNM<Real, 3, 3> buildEulerZXZMatrix(Real alpha, Real beta, Real gamma)
+		static MatrixNM<Real, 3, 3> buildEulerZYZMatrix(Real alpha, Real beta, Real gamma)
 		{
 			Real ca = std::cos(alpha), sa = std::sin(alpha);
 			Real cb = std::cos(beta), sb = std::sin(beta);
@@ -37848,14 +37877,14 @@ namespace MML
 		}
 
 	public:
-		/// @brief Constructor using ZXZ Euler angles (physics convention)
+		/// @brief Constructor using ZYZ Euler angles
 		/// @param alpha First rotation around Z-axis (radians)
-		/// @param beta Second rotation around X'-axis (radians)
+		/// @param beta Second rotation around Y'-axis (radians)
 		/// @param gamma Third rotation around Z''-axis (radians)
 		CoordTransfCart3DRotationEuler(Real alpha, Real beta, Real gamma)
 			: _alpha(alpha), _beta(beta), _gamma(gamma),
-				_transf(buildEulerZXZMatrix(alpha, beta, gamma)),
-				_inverse(buildEulerZXZMatrix(-gamma, -beta, -alpha)), // Inverse: reverse order and sign
+				_transf(buildEulerZYZMatrix(alpha, beta, gamma)),
+				_inverse(buildEulerZYZMatrix(-gamma, -beta, -alpha)), // Inverse: reverse order and sign
 				_f1([this](const VectorN<Real, 3>& q) { return func1(q); }),
 				_f2([this](const VectorN<Real, 3>& q) { return func2(q); }),
 				_f3([this](const VectorN<Real, 3>& q) { return func3(q); }),
@@ -41512,7 +41541,7 @@ namespace MML
 			}
 			bool isParabolic(Real u, Real w, Real eps = PrecisionValues<Real>::DefaultToleranceStrict)
 			{
-				return std::abs(GaussianCurvature(u, w)) < eps && !isFlat(u, w, eps);
+				return std::abs(GaussianCurvature(u, w)) < eps && std::abs(MeanCurvature(u, w)) > eps;
 			}
 			bool isHyperbolic(Real u, Real w, Real eps = PrecisionValues<Real>::DefaultToleranceStrict)
 			{
@@ -68232,8 +68261,8 @@ namespace MML
 		                                        Real x2_start, Real x2_end, int numPointsX2, std::string fileName)
 		{
 			// Validate parameters
-			if (numPointsX1 < 1 || numPointsX2 < 1)
-				return {false, SerializeError::INVALID_PARAMETERS, "numPointsX1 and numPointsX2 must be >= 1"};
+			if (numPointsX1 < 2 || numPointsX2 < 2)
+				return {false, SerializeError::INVALID_PARAMETERS, "numPointsX1 and numPointsX2 must be >= 2"};
 			if (x1_start >= x1_end || x2_start >= x2_end)
 				return {false, SerializeError::INVALID_PARAMETERS, "x1_start < x1_end and x2_start < x2_end required"};
 			if (fileName.empty())
@@ -68272,8 +68301,8 @@ namespace MML
 		                                        std::string fileName, Real upper_threshold)
 		{
 			// Validate parameters
-			if (numPointsX1 < 1 || numPointsX2 < 1)
-				return {false, SerializeError::INVALID_PARAMETERS, "numPointsX1 and numPointsX2 must be >= 1"};
+			if (numPointsX1 < 2 || numPointsX2 < 2)
+				return {false, SerializeError::INVALID_PARAMETERS, "numPointsX1 and numPointsX2 must be >= 2"};
 			if (x1_start >= x1_end || x2_start >= x2_end)
 				return {false, SerializeError::INVALID_PARAMETERS, "x1_start < x1_end and x2_start < x2_end required"};
 			if (upper_threshold <= 0)
@@ -68334,8 +68363,8 @@ namespace MML
 		                                        Real x3_start, Real x3_end, int numPointsX3, std::string fileName)
 		{
 			// Validate parameters
-			if (numPointsX1 < 1 || numPointsX2 < 1 || numPointsX3 < 1)
-				return {false, SerializeError::INVALID_PARAMETERS, "all numPoints must be >= 1"};
+			if (numPointsX1 < 2 || numPointsX2 < 2 || numPointsX3 < 2)
+				return {false, SerializeError::INVALID_PARAMETERS, "all numPoints must be >= 2"};
 			if (x1_start >= x1_end || x2_start >= x2_end || x3_start >= x3_end)
 				return {false, SerializeError::INVALID_PARAMETERS, "all start bounds must be less than end bounds"};
 			if (fileName.empty())
@@ -68379,8 +68408,8 @@ namespace MML
 		                                        std::string fileName, Real upper_threshold)
 		{
 			// Validate parameters
-			if (numPointsX1 < 1 || numPointsX2 < 1 || numPointsX3 < 1)
-				return {false, SerializeError::INVALID_PARAMETERS, "all numPoints must be >= 1"};
+			if (numPointsX1 < 2 || numPointsX2 < 2 || numPointsX3 < 2)
+				return {false, SerializeError::INVALID_PARAMETERS, "all numPoints must be >= 2"};
 			if (x1_start >= x1_end || x2_start >= x2_end || x3_start >= x3_end)
 				return {false, SerializeError::INVALID_PARAMETERS, "all start bounds must be less than end bounds"};
 			if (upper_threshold <= 0)
@@ -68844,8 +68873,9 @@ namespace MML
 				{
 					Real t = t1 + n * delta;
 					file << t << " ";
+					auto val = f(t);
 					for (int i = 0; i < N; i++)
-						file << f(t)[i] << " ";
+						file << val[i] << " ";
 					file << std::endl;
 				}
 				file.close();
@@ -68883,8 +68913,9 @@ namespace MML
 				{
 					Real t = points[i];
 					file << t << " ";
+					auto val = f(t);
 					for (int j = 0; j < N; j++)
-						file << f(t)[j] << " ";
+						file << val[j] << " ";
 					file << std::endl;
 				}
 
@@ -69620,6 +69651,8 @@ namespace MML
 				return {false, SerializeError::INVALID_PARAMETERS, "ballPositions, ballColors, and ballRadius sizes must equal numBalls"};
 			if (fileName.empty())
 				return {false, SerializeError::INVALID_PARAMETERS, "fileName cannot be empty"};
+			if (saveEveryNSteps < 1)
+				return {false, SerializeError::INVALID_PARAMETERS, "saveEveryNSteps must be >= 1"};
 
 			std::ofstream file(fileName);
 			if (!file.is_open())
@@ -69689,6 +69722,8 @@ namespace MML
 				return {false, SerializeError::INVALID_PARAMETERS, "ballPositions, ballColors, and ballRadius sizes must equal numBalls"};
 			if (fileName.empty())
 				return {false, SerializeError::INVALID_PARAMETERS, "fileName cannot be empty"};
+			if (saveEveryNSteps < 1)
+				return {false, SerializeError::INVALID_PARAMETERS, "saveEveryNSteps must be >= 1"};
 
 			std::ofstream file(fileName);
 			if (!file.is_open())
@@ -70052,7 +70087,21 @@ bool LoadComplexVector(const std::string& filename,
                   << " (file: " << elemSize << ", expected: " << sizeof(T) << ")" << std::endl;
         return false;
     }
-    
+
+    // Validate count against actual file size
+    auto currentPos = file.tellg();
+    file.seekg(0, std::ios::end);
+    auto fileSize = file.tellg();
+    file.seekg(currentPos);
+
+    auto expectedDataSize = static_cast<std::streamoff>(count) * elemSize * 2;
+    if (fileSize - currentPos < expectedDataSize) {
+        std::cerr << "Error: file " << filename << " is too small for declared count "
+                  << count << " (need " << expectedDataSize << " data bytes, have "
+                  << (fileSize - currentPos) << ")" << std::endl;
+        return false;
+    }
+
     // Read real parts
     std::vector<T> realParts(count);
     for (uint32_t i = 0; i < count; ++i) {
@@ -74171,7 +74220,7 @@ namespace MML::Systems
 				_cholesky = CholeskyDecomposition<Type>();
 				try {
 					CholeskySolver<Type> solver(_A);
-					_cholesky->L = solver.el;
+					_cholesky->L = solver.L();
 					_cholesky->valid = true;
 				} catch (...) {
 					_cholesky->valid = false;

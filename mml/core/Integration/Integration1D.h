@@ -85,6 +85,13 @@ namespace MML
 	/// @param a,b Integration bounds
 	/// @param eps Desired relative accuracy (default: 1e-6)
 	/// @return IntegrationResult with value, error_estimate, iterations, converged flag
+	///
+	/// @par Convergence model
+	/// Uses a mixed absolute+relative test:
+	///   |S_n - S_{n-1}| < eps * |S_{n-1}| + eps * machine_epsilon
+	/// The first term (eps * |S|) provides relative accuracy for non-zero integrals.
+	/// The second term (eps * machine_epsilon) provides an absolute floor so that
+	/// near-zero integrals can still converge rather than demanding |error| < 0.
 	static IntegrationResult IntegrateTrap(const IRealFunction& func, Real a, Real b,
 																		 const Real eps = Defaults::TrapezoidIntegrationEPS)	{
 		int		j;
@@ -119,6 +126,10 @@ namespace MML
 	/// @param a,b Integration bounds
 	/// @param eps Desired relative accuracy (default: 1e-8)
 	/// @return IntegrationResult with value, error_estimate, iterations, converged flag
+	///
+	/// @par Convergence model
+	/// Same mixed absolute+relative test as IntegrateTrap:
+	///   |S_n - S_{n-1}| < eps * |S_{n-1}| + eps * machine_epsilon
 	static IntegrationResult IntegrateSimpson(const IRealFunction& func, Real a, Real b,
 																			 const Real eps = Defaults::SimpsonIntegrationEPS)
 	{
@@ -193,6 +204,10 @@ namespace MML
 	 * @param eps Desired relative accuracy (default: Defaults::RombergIntegrationEPS)
 	 * @return IntegrationResult with value, error estimate, iterations, convergence status
 	 *
+	 * @par Convergence model
+	 * Same mixed absolute+relative test as Trap/Simpson:
+	 *   |dss| <= eps * |ss| + eps * machine_epsilon
+	 *
 	 * @note Reference: Numerical Recipes §4.3 "Romberg Integration"
 	 */
 	static IntegrationResult IntegrateRomberg(const IRealFunction& func, Real a, Real b,
@@ -250,7 +265,7 @@ namespace MML
 						Real w = c[i + 1] - d[i];
 						Real den = ho - hp;
 						
-						if (den == 0.0)
+						if (std::abs(den) < Precision::DivisionSafetyThreshold)
 						{
 							// This should not happen with proper h values
 							return IntegrationResult(ss, std::abs(dss), j + 1, false);

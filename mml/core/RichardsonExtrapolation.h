@@ -84,7 +84,7 @@ namespace MML
 					Real w = c[i + 1] - d[i];
 					Real den = ho - hp;
 
-					if (den == 0.0)
+					if (std::abs(den) < Precision::DivisionSafetyThreshold)
 						return RichardsonResult(result, std::abs(error), m, false);
 
 					den = w / den;
@@ -126,7 +126,7 @@ namespace MML
 			const Real con2 = con * con;
 			const Real big = std::numeric_limits<Real>::max();
 
-			if (h0 == 0.0)
+			if (std::abs(h0) < Precision::DivisionSafetyThreshold)
 				return RichardsonResult(0.0, big, 0, false);
 
 			// Allocate tableau (triangular, but use full matrix for clarity)

@@ -161,15 +161,17 @@ namespace MML
 		/// @brief Returns unit vector in this direction.
 		Vector2Cartesian GetAsUnitVector() const
 		{
-			VectorN<Real, 2> res = (*this) / NormL2();
-
-			return Vector2Cartesian(res[0], res[1]);
+			if (NormL2() == 0.0)
+			{
+				return Vector2Cartesian{ REAL(0.0), REAL(0.0) };
+			}
+			return Vector2Cartesian{ (*this) / NormL2() };
 		}
 		/// @brief Returns unit vector at given position (for Cartesian, position doesn't matter).
 		/// @param pos Position (unused in Cartesian coordinates)
 		Vector2Cartesian GetAsUnitVectorAtPos(const Vector2Cartesian& pos) const
 		{
-			return Vector2Cartesian{ (*this) / NormL2() };
+			return GetAsUnitVector();
 		}
 		
 		/// @brief Computes two perpendicular vectors.
@@ -345,7 +347,7 @@ namespace MML
 		}
 
 		/// @brief Converts vector to Point3Cartesian.
-		Point3Cartesian getAsPoint()
+		Point3Cartesian getAsPoint() const
 		{
 			return Point3Cartesian(_val[0], _val[1], _val[2]);
 		}

@@ -494,20 +494,29 @@ namespace MML
 			if (inMatRef.rows() == 0)
 				throw MatrixDimensionError("LUSolverInPlace::ctor - matrix must be non-empty", 0, 0, -1, -1);
 			
+			// Input validation: check for NaN/Inf
+			for (int ii = 0; ii < _n; ii++)
+				for (int jj = 0; jj < _n; jj++)
+					if (!std::isfinite(static_cast<Real>(Abs(inMatRef(ii, jj)))))
+						throw ArgumentError("LUSolverInPlace::ctor - matrix contains NaN or Inf");
+
 			int i, imax, j, k;
 			Real big, temp;
 			Type temp2;
 			Vector<Type> vv(_n);
+			Real norm_a = 0.0;
 			_d = 1.0;
 			for (i = 0; i < _n; i++) {
 				big = 0.0;
 				for (j = 0; j < _n; j++)
 					if ((temp = Abs(_lu[i][j])) > big) big = temp;
 				if (big == 0.0)
-					throw SingularMatrixError("LUSolverInPlace::ctor - Singular Matrix");
+					throw SingularMatrixError("LUSolverInPlace::ctor - Singular Matrix (zero row)");
 
+				if (big > norm_a) norm_a = big;
 				vv[i] = 1.0 / big;
 			}
+			Real singularity_threshold = std::numeric_limits<Real>::epsilon() * norm_a * _n;
 			for (k = 0; k < _n; k++) {
 				big = 0.0;
 				imax = k;
@@ -528,8 +537,8 @@ namespace MML
 					vv[imax] = vv[k];
 				}
 				_indx[k] = imax;
-				if (_lu[k][k] == Real{ 0.0 })
-					throw SingularMatrixError("LUSolverInPlace::ctor - zero pivot after partial pivoting");
+				if (Abs(_lu[k][k]) < singularity_threshold)
+					throw SingularMatrixError("LUSolverInPlace::ctor - Singular Matrix", Abs(_lu[k][k]));
 
 				for (i = k + 1; i < _n; i++) {
 					temp2 = _lu[i][k] /= _lu[k][k];
@@ -676,19 +685,24 @@ namespace MML
 		{
 			int mm = _m1 + _m2 + 1;
 			
-			// Copy band diagonal matrix to working storage
+			// Copy band diagonal matrix to working storage and compute matrix norm
 			// _au stores the upper triangle with potential fill-in from pivoting
+			Real norm_a = 0.0;
 			for (int i = 0; i < _n; i++)
 			{
+				Real row_sum = 0.0;
 				for (int j = 0; j < mm; j++)
 				{
 					int col = j - _m1 + i;
-					if (col >= 0 && col < _n)
+					if (col >= 0 && col < _n) {
 						_au[i][j] = a(i, col);
-					else
+						row_sum += Abs(_au[i][j]);
+					} else
 						_au[i][j] = 0.0;
 				}
+				if (row_sum > norm_a) norm_a = row_sum;
 			}
+			Real singularity_threshold = std::numeric_limits<Real>::epsilon() * norm_a * _n;
 			
 			_d = 1.0;
 			int l = _m1;
@@ -724,8 +738,8 @@ namespace MML
 				
 				_indx[k] = i + 1;  // Store 1-based index for compatibility
 				
-				if (dum == 0.0)
-					throw SingularMatrixError("BandDiagonalSolver::ctor - Singular Matrix (zero pivot)");
+				if (Abs(dum) < singularity_threshold)
+					throw SingularMatrixError("BandDiagonalSolver::ctor - Singular Matrix", Abs(dum));
 				
 				// Interchange rows if necessary
 				if (i != k)
@@ -872,11 +886,13 @@ namespace MML
 	template<class Type>
 	class CholeskySolver
 	{
-	public:
+	private:
 		int n;
 		Matrix<Type> el;
 
 	public:
+		/// @brief Access the lower-triangular Cholesky factor L.
+		const Matrix<Type>& L() const { return el; }
 		/// @brief Constructor - performs Cholesky decomposition A=LLᵀ
 		/// @param a Positive-definite symmetric matrix (only upper triangle needed)
 		/// @throws MatrixDimensionError if matrix is not square or is empty

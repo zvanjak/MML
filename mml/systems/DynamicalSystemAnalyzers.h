@@ -40,7 +40,7 @@ namespace MML::Systems
 		/// @param tol Convergence tolerance
 		/// @param maxIter Maximum iterations
 		/// @return Fixed point result (check convergenceResidual for success)
-		static FixedPoint<Real> Find(IDynamicalSystem& sys, const Vector<Real>& initialGuess, Real tol = 1e-10, int maxIter = 50) {
+		static FixedPoint<Real> Find(IDynamicalSystem& sys, const Vector<Real>& initialGuess, Real tol = Precision::DefaultToleranceStrict, int maxIter = 50) {
 			int n = sys.getDim();
 			FixedPoint<Real> result;
 			result.location = initialGuess;
@@ -145,25 +145,25 @@ namespace MML::Systems
 				maxRealPart = std::max(maxRealPart, re);
 				minRealPart = std::min(minRealPart, re);
 
-				if (std::abs(im) > 1e-10)
+				if (std::abs(im) > Precision::DefaultToleranceStrict)
 					hasComplex = true;
 
-				if (re > 1e-10)
+				if (re > Precision::DefaultToleranceStrict)
 					numPositiveReal++;
-				else if (re < -1e-10)
+				else if (re < -Precision::DefaultToleranceStrict)
 					numNegativeReal++;
 			}
 
 			// Determine stability
-			fp.isStable = (maxRealPart < -1e-10);
+			fp.isStable = (maxRealPart < -Precision::DefaultToleranceStrict);
 
 			// Classify type
 			if (hasComplex) {
-				if (std::abs(maxRealPart) < 1e-10 && std::abs(minRealPart) < 1e-10)
+				if (std::abs(maxRealPart) < Precision::DefaultToleranceStrict && std::abs(minRealPart) < Precision::DefaultToleranceStrict)
 					fp.type = FixedPointType::Center;
 				else if (numPositiveReal > 0 && numNegativeReal > 0)
 					fp.type = FixedPointType::SaddleFocus;
-				else if (maxRealPart < -1e-10)
+				else if (maxRealPart < -Precision::DefaultToleranceStrict)
 					fp.type = FixedPointType::StableFocus;
 				else
 					fp.type = FixedPointType::UnstableFocus;
@@ -243,7 +243,7 @@ namespace MML::Systems
 			for (int i = 0; i < n; ++i)
 				result.sum += result.exponents[i];
 
-			result.isChaotic = (result.maxExponent > 1e-6);
+			result.isChaotic = (result.maxExponent > Precision::DefaultTolerance);
 			result.kaplanYorkeDimension = ComputeKaplanYorkeDimension(result.exponents);
 			result.numOrthonormalizations = numOrth;
 			result.totalTime = tTotal;
@@ -262,7 +262,7 @@ namespace MML::Systems
 			Matrix<Real> QTemp(n, n);
 
 			Real t = t0;
-			while (t < t1 - 1e-12) {
+			while (t < t1 - Precision::NumericalZeroThreshold) {
 				Real dt = std::min(h, t1 - t);
 
 				// Save x(t) before trajectory update
@@ -359,7 +359,7 @@ namespace MML::Systems
 				norm = std::sqrt(norm);
 
 				// Accumulate log of stretching
-				if (norm > 1e-30)
+				if (norm > Precision::DivisionSafetyThreshold)
 					lyapunovSums[j] += std::log(norm);
 
 				// Normalize
@@ -711,7 +711,7 @@ namespace MML::Systems
 	inline FindFixedPointResult<Real> FindFixedPointDetailed(
 		IDynamicalSystem& sys,
 		const Vector<Real>& initialGuess,
-		Real tol = 1e-10,
+		Real tol = Precision::DefaultToleranceStrict,
 		int maxIter = 50,
 		const DynSysConfig& config = {})
 	{

@@ -55,7 +55,7 @@ namespace MML
 			Real speed_squared = x_prime * x_prime + y_prime * y_prime;
 			Real denominator = std::pow(speed_squared, 1.5);
 
-			if (denominator < 1e-15)
+			if (denominator < Precision::NumericalZeroThreshold)
 				return 0.0;  // Avoid division by zero at singular points
 
 			return numerator / denominator;
@@ -84,7 +84,7 @@ namespace MML
 			Real speed_squared = x_prime * x_prime + y_prime * y_prime;
 			Real denominator = std::pow(speed_squared, 1.5);
 
-			if (denominator < 1e-15)
+			if (denominator < Precision::NumericalZeroThreshold)
 				return 0.0;  // Avoid division by zero at singular points
 
 			return numerator / denominator;
@@ -128,7 +128,7 @@ namespace MML
 			Real speed_sq = x_dt * x_dt + y_dt * y_dt;
 			Real denominator = std::pow(speed_sq, 1.5);
 
-			if (denominator < 1e-15)
+			if (denominator < Precision::NumericalZeroThreshold)
 				return 0.0;
 
 			return numerator / denominator;
@@ -172,7 +172,7 @@ namespace MML
 			virtual Real getRadiusOfCurvature(Real t)
 			{
 				Real kappa = getCurvature(t);
-				if (kappa < 1e-15)
+				if (kappa < Precision::NumericalZeroThreshold)
 					return Constants::PosInf;  // Straight line has infinite radius
 				return 1.0 / kappa;
 			}
@@ -380,7 +380,7 @@ namespace MML
 			virtual Real getRadiusOfCurvature(Real t)
 			{
 				Real kappa = getCurvature(t);
-				if (kappa < 1e-15)
+				if (kappa < Precision::NumericalZeroThreshold)
 					return Constants::PosInf;
 				return 1.0 / kappa;
 			}

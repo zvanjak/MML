@@ -29,8 +29,8 @@ namespace MML
 		                                        Real x2_start, Real x2_end, int numPointsX2, std::string fileName)
 		{
 			// Validate parameters
-			if (numPointsX1 < 1 || numPointsX2 < 1)
-				return {false, SerializeError::INVALID_PARAMETERS, "numPointsX1 and numPointsX2 must be >= 1"};
+			if (numPointsX1 < 2 || numPointsX2 < 2)
+				return {false, SerializeError::INVALID_PARAMETERS, "numPointsX1 and numPointsX2 must be >= 2"};
 			if (x1_start >= x1_end || x2_start >= x2_end)
 				return {false, SerializeError::INVALID_PARAMETERS, "x1_start < x1_end and x2_start < x2_end required"};
 			if (fileName.empty())
@@ -69,8 +69,8 @@ namespace MML
 		                                        std::string fileName, Real upper_threshold)
 		{
 			// Validate parameters
-			if (numPointsX1 < 1 || numPointsX2 < 1)
-				return {false, SerializeError::INVALID_PARAMETERS, "numPointsX1 and numPointsX2 must be >= 1"};
+			if (numPointsX1 < 2 || numPointsX2 < 2)
+				return {false, SerializeError::INVALID_PARAMETERS, "numPointsX1 and numPointsX2 must be >= 2"};
 			if (x1_start >= x1_end || x2_start >= x2_end)
 				return {false, SerializeError::INVALID_PARAMETERS, "x1_start < x1_end and x2_start < x2_end required"};
 			if (upper_threshold <= 0)
@@ -131,8 +131,8 @@ namespace MML
 		                                        Real x3_start, Real x3_end, int numPointsX3, std::string fileName)
 		{
 			// Validate parameters
-			if (numPointsX1 < 1 || numPointsX2 < 1 || numPointsX3 < 1)
-				return {false, SerializeError::INVALID_PARAMETERS, "all numPoints must be >= 1"};
+			if (numPointsX1 < 2 || numPointsX2 < 2 || numPointsX3 < 2)
+				return {false, SerializeError::INVALID_PARAMETERS, "all numPoints must be >= 2"};
 			if (x1_start >= x1_end || x2_start >= x2_end || x3_start >= x3_end)
 				return {false, SerializeError::INVALID_PARAMETERS, "all start bounds must be less than end bounds"};
 			if (fileName.empty())
@@ -176,8 +176,8 @@ namespace MML
 		                                        std::string fileName, Real upper_threshold)
 		{
 			// Validate parameters
-			if (numPointsX1 < 1 || numPointsX2 < 1 || numPointsX3 < 1)
-				return {false, SerializeError::INVALID_PARAMETERS, "all numPoints must be >= 1"};
+			if (numPointsX1 < 2 || numPointsX2 < 2 || numPointsX3 < 2)
+				return {false, SerializeError::INVALID_PARAMETERS, "all numPoints must be >= 2"};
 			if (x1_start >= x1_end || x2_start >= x2_end || x3_start >= x3_end)
 				return {false, SerializeError::INVALID_PARAMETERS, "all start bounds must be less than end bounds"};
 			if (upper_threshold <= 0)

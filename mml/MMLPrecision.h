@@ -84,6 +84,10 @@ namespace MML
 		static constexpr float DivisionSafetyThreshold = 1e-20f;     // Safe division threshold
 		static constexpr float OrthogonalityTolerance = 1e-5f;       // Orthogonal vector check tolerance
 		static constexpr float LinearDependenceTolerance = 1e-5f;    // Linear dependence check tolerance
+
+		// ODE solver thresholds
+		static constexpr float ODEDefaultTolerance = 1e-5f;          // ODE default error tolerance
+		static constexpr float ODEMinStepSize = 1e-7f;              // ODE minimum step size
 	};
 
 	// Specialization for double
@@ -150,6 +154,10 @@ namespace MML
 		static constexpr double DivisionSafetyThreshold = 1e-30;     // Safe division threshold
 		static constexpr double OrthogonalityTolerance = 1e-10;      // Orthogonal vector check tolerance
 		static constexpr double LinearDependenceTolerance = 1e-12;   // Linear dependence check tolerance
+
+		// ODE solver thresholds
+		static constexpr double ODEDefaultTolerance = 1e-10;         // ODE default error tolerance
+		static constexpr double ODEMinStepSize = 1e-15;             // ODE minimum step size
 	};
 
 	// Specialization for long double
@@ -216,11 +224,19 @@ namespace MML
 		static constexpr long double DivisionSafetyThreshold = 1e-35L;     // Safe division threshold
 		static constexpr long double OrthogonalityTolerance = 1e-12L;      // Orthogonal vector check tolerance
 		static constexpr long double LinearDependenceTolerance = 1e-15L;   // Linear dependence check tolerance
+
+		// ODE solver thresholds
+		static constexpr long double ODEDefaultTolerance = 1e-14L;         // ODE default error tolerance
+		static constexpr long double ODEMinStepSize = 1e-18L;             // ODE minimum step size
 	};
 
 	// Convenience alias: PrecisionValues for the current Real type
 	// Usage: MML::Precision::MatrixIsEqualTolerance instead of MML::PrecisionValues<Real>::...
 	using Precision = PrecisionValues<Real>;
+
+	// NOTE: PrecisionValues<__float128> does not exist yet.
+	// __float128 support is under active development — see MMLTypeDefs.h and
+	// analysis/2026-01-21/float128 support.md for the implementation roadmap.
 }
 
 #endif

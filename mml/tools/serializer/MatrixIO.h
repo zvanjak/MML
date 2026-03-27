@@ -51,6 +51,10 @@ namespace Serializer
 		
 		int rows, cols;
 		file >> rows >> cols;
+		if (file.fail() || rows <= 0 || cols <= 0 || rows > 100000 || cols > 100000) {
+			std::cerr << "Error: invalid dimensions (" << rows << "x" << cols << ") in " << filename << std::endl;
+			return false;
+		}
 		outMat.Resize(rows, cols);
 		
 		for (int i = 0; i < rows; ++i)
@@ -245,6 +249,10 @@ namespace Serializer
 		if (elemSize != sizeof(Type)) {
 			std::cerr << "Error: element size mismatch in " << filename 
 			          << " (file: " << elemSize << ", expected: " << sizeof(Type) << ")" << std::endl;
+			return false;
+		}
+		if (rows == 0 || cols == 0 || rows > 100000 || cols > 100000) {
+			std::cerr << "Error: invalid dimensions (" << rows << "x" << cols << ") in " << filename << std::endl;
 			return false;
 		}
 		

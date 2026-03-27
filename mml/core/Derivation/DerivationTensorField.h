@@ -54,13 +54,13 @@ namespace MML
 		template <int N>
 		static Real NDer1Partial(const ITensorField2<N>& f, int i, int j, int deriv_index, const VectorN<Real, N>& point, Real* error = nullptr)
 		{
-			return NDer1Partial(f, i, j, deriv_index, point, NDer1_h, error);
+			return NDer1Partial(f, i, j, deriv_index, point, ScaleStep(NDer1_h, point[deriv_index]), error);
 		}
 
 		template <int N>
 		static Real NDer1Partial(const ITensorField3<N>& f, int i, int j, int k, int deriv_index, const VectorN<Real, N>& point, Real* error = nullptr)
 		{
-			return NDer1Partial(f, i, j, k, deriv_index, point, NDer1_h, error);
+			return NDer1Partial(f, i, j, k, deriv_index, point, ScaleStep(NDer1_h, point[deriv_index]), error);
 		}
 
 		template <int N>
@@ -88,7 +88,7 @@ namespace MML
 		template <int N>
 		static Real NDer1Partial(const ITensorField4<N>& f, int i, int j, int k, int l, int deriv_index, const VectorN<Real, N>& point, Real* error = nullptr)
 		{
-			return NDer1Partial(f, i, j, k, l, deriv_index, point, NDer1_h, error);
+			return NDer1Partial(f, i, j, k, l, deriv_index, point, ScaleStep(NDer1_h, point[deriv_index]), error);
 		}
 
 		template <int N>
@@ -147,13 +147,13 @@ namespace MML
 		template <int N>
 		static Real NDer2Partial(const ITensorField2<N>& f, int i, int j, int deriv_index, const VectorN<Real, N>& point, Real* error = nullptr)
 		{
-			return NDer2Partial(f, i, j, deriv_index, point, NDer2_h, error);
+			return NDer2Partial(f, i, j, deriv_index, point, ScaleStep(NDer2_h, point[deriv_index]), error);
 		}
 
 		template <int N>
 		static Real NDer2Partial(const ITensorField3<N>& f, int i, int j, int k, int deriv_index, const VectorN<Real, N>& point, Real* error = nullptr)
 		{
-			return NDer2Partial(f, i, j, k, deriv_index, point, NDer2_h, error);
+			return NDer2Partial(f, i, j, k, deriv_index, point, ScaleStep(NDer2_h, point[deriv_index]), error);
 		}
 
 		template <int N>
@@ -187,7 +187,7 @@ namespace MML
 		template <int N>
 		static Real NDer2Partial(const ITensorField4<N>& f, int i, int j, int k, int l, int deriv_index, const VectorN<Real, N>& point, Real* error = nullptr)
 		{
-			return NDer2Partial(f, i, j, k, l, deriv_index, point, NDer2_h, error);
+			return NDer2Partial(f, i, j, k, l, deriv_index, point, ScaleStep(NDer2_h, point[deriv_index]), error);
 		}
 
 		template <int N>
@@ -259,13 +259,13 @@ namespace MML
 		template <int N>
 		static Real NDer4Partial(const ITensorField2<N>& f, int i, int j, int deriv_index, const VectorN<Real, N>& point, Real* error = nullptr)
 		{
-			return NDer4Partial(f, i, j, deriv_index, point, NDer4_h, error);
+			return NDer4Partial(f, i, j, deriv_index, point, ScaleStep(NDer4_h, point[deriv_index]), error);
 		}
 
 		template <int N>
 		static Real NDer4Partial(const ITensorField3<N>& f, int i, int j, int k, int deriv_index, const VectorN<Real, N>& point, Real* error = nullptr)
 		{
-			return NDer4Partial(f, i, j, k, deriv_index, point, NDer4_h, error);
+			return NDer4Partial(f, i, j, k, deriv_index, point, ScaleStep(NDer4_h, point[deriv_index]), error);
 		}
 
 		template <int N>
@@ -307,7 +307,7 @@ namespace MML
 		template <int N>
 		static Real NDer4Partial(const ITensorField4<N>& f, int i, int j, int k, int l, int deriv_index, const VectorN<Real, N>& point, Real* error = nullptr)
 		{
-			return NDer4Partial(f, i, j, k, l, deriv_index, point, NDer4_h, error);
+			return NDer4Partial(f, i, j, k, l, deriv_index, point, ScaleStep(NDer4_h, point[deriv_index]), error);
 		}
 
 		template <int N>

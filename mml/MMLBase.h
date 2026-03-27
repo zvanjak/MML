@@ -123,7 +123,7 @@ namespace MML {
 		static inline constexpr Real GoldenRatio = Real(1.618033988749894848204586834365638118L); // (1 + sqrt(5)) / 2
 
 		// Geometry epsilon for floating-point comparisons in geometric algorithms
-		static inline constexpr double GEOMETRY_EPSILON = 1e-10;
+		static inline constexpr Real GEOMETRY_EPSILON = Real(1e-10L);
 
 		// Precision constants - use Real type for consistency with library's floating-point type
 		static inline const Real Eps = std::numeric_limits<Real>::epsilon();
@@ -246,53 +246,53 @@ namespace MML {
 
 		//////////               Default precisions             ///////////
 		// Use the precision values based on the Real type
-		static inline const double ComplexAreEqualTolerance = PrecisionValues<Real>::ComplexAreEqualTolerance;
-		static inline const double ComplexAreEqualAbsTolerance = PrecisionValues<Real>::ComplexAreEqualAbsTolerance;
-		static inline const double VectorIsEqualTolerance = PrecisionValues<Real>::VectorIsEqualTolerance;
-		static inline const double MatrixIsEqualTolerance = PrecisionValues<Real>::MatrixIsEqualTolerance;
+		static inline const Real ComplexAreEqualTolerance = PrecisionValues<Real>::ComplexAreEqualTolerance;
+		static inline const Real ComplexAreEqualAbsTolerance = PrecisionValues<Real>::ComplexAreEqualAbsTolerance;
+		static inline const Real VectorIsEqualTolerance = PrecisionValues<Real>::VectorIsEqualTolerance;
+		static inline const Real MatrixIsEqualTolerance = PrecisionValues<Real>::MatrixIsEqualTolerance;
 
-		static inline const double Pnt2CartIsEqualTolerance = PrecisionValues<Real>::Pnt2CartIsEqualTolerance;
-		static inline const double Pnt2PolarIsEqualTolerance = PrecisionValues<Real>::Pnt2PolarIsEqualTolerance;
-		static inline const double Pnt3CartIsEqualTolerance = PrecisionValues<Real>::Pnt3CartIsEqualTolerance;
-		static inline const double Pnt3SphIsEqualTolerance = PrecisionValues<Real>::Pnt3SphIsEqualTolerance;
-		static inline const double Pnt3CylIsEqualTolerance = PrecisionValues<Real>::Pnt3CylIsEqualTolerance;
+		static inline const Real Pnt2CartIsEqualTolerance = PrecisionValues<Real>::Pnt2CartIsEqualTolerance;
+		static inline const Real Pnt2PolarIsEqualTolerance = PrecisionValues<Real>::Pnt2PolarIsEqualTolerance;
+		static inline const Real Pnt3CartIsEqualTolerance = PrecisionValues<Real>::Pnt3CartIsEqualTolerance;
+		static inline const Real Pnt3SphIsEqualTolerance = PrecisionValues<Real>::Pnt3SphIsEqualTolerance;
+		static inline const Real Pnt3CylIsEqualTolerance = PrecisionValues<Real>::Pnt3CylIsEqualTolerance;
 
-		static inline const double Vec2CartIsEqualTolerance = PrecisionValues<Real>::Vec2CartIsEqualTolerance;
-		static inline const double Vec3CartIsEqualTolerance = PrecisionValues<Real>::Vec3CartIsEqualTolerance;
-		static inline const double Vec3CartIsParallelTolerance = PrecisionValues<Real>::Vec3CartIsParallelTolerance;
+		static inline const Real Vec2CartIsEqualTolerance = PrecisionValues<Real>::Vec2CartIsEqualTolerance;
+		static inline const Real Vec3CartIsEqualTolerance = PrecisionValues<Real>::Vec3CartIsEqualTolerance;
+		static inline const Real Vec3CartIsParallelTolerance = PrecisionValues<Real>::Vec3CartIsParallelTolerance;
 
-		static inline const double Vec3SphIsEqualTolerance = PrecisionValues<Real>::Vec3SphIsEqualTolerance;
+		static inline const Real Vec3SphIsEqualTolerance = PrecisionValues<Real>::Vec3SphIsEqualTolerance;
 
 		// Angle comparison tolerance (for wrap-aware angle equality)
-		static inline const double AngleIsEqualTolerance = PrecisionValues<Real>::AngleIsEqualTolerance;
+		static inline const Real AngleIsEqualTolerance = PrecisionValues<Real>::AngleIsEqualTolerance;
 
 		// Shape property tolerance (for geometric shape classification)
-		static inline const double ShapePropertyTolerance = PrecisionValues<Real>::ShapePropertyTolerance;
+		static inline const Real ShapePropertyTolerance = PrecisionValues<Real>::ShapePropertyTolerance;
 
-		static inline const double Line3DAreEqualTolerance = PrecisionValues<Real>::Line3DAreEqualTolerance;
-		static inline const double Line3DIsPointOnLineTolerance = PrecisionValues<Real>::Line3DIsPointOnLineTolerance;
-		static inline const double Line3DIsPerpendicularTolerance = PrecisionValues<Real>::Line3DIsPerpendicularTolerance;
-		static inline const double Line3DIsParallelTolerance = PrecisionValues<Real>::Line3DIsParallelTolerance;
-		static inline const double Line3DIntersectionTolerance = PrecisionValues<Real>::Line3DIntersectionTolerance;
+		static inline const Real Line3DAreEqualTolerance = PrecisionValues<Real>::Line3DAreEqualTolerance;
+		static inline const Real Line3DIsPointOnLineTolerance = PrecisionValues<Real>::Line3DIsPointOnLineTolerance;
+		static inline const Real Line3DIsPerpendicularTolerance = PrecisionValues<Real>::Line3DIsPerpendicularTolerance;
+		static inline const Real Line3DIsParallelTolerance = PrecisionValues<Real>::Line3DIsParallelTolerance;
+		static inline const Real Line3DIntersectionTolerance = PrecisionValues<Real>::Line3DIntersectionTolerance;
 
-		static inline const double Plane3DIsPointOnPlaneTolerance = PrecisionValues<Real>::Plane3DIsPointOnPlaneTolerance;
+		static inline const Real Plane3DIsPointOnPlaneTolerance = PrecisionValues<Real>::Plane3DIsPointOnPlaneTolerance;
 
-		static inline const double Triangle3DIsPointInsideTolerance = PrecisionValues<Real>::Triangle3DIsPointInsideTolerance;
-		static inline const double Triangle3DIsRightTolerance = PrecisionValues<Real>::Triangle3DIsRightTolerance;
-		static inline const double Triangle3DIsIsoscelesTolerance = PrecisionValues<Real>::Triangle3DIsIsoscelesTolerance;
-		static inline const double Triangle3DIsEquilateralTolerance = PrecisionValues<Real>::Triangle3DIsEquilateralTolerance;
+		static inline const Real Triangle3DIsPointInsideTolerance = PrecisionValues<Real>::Triangle3DIsPointInsideTolerance;
+		static inline const Real Triangle3DIsRightTolerance = PrecisionValues<Real>::Triangle3DIsRightTolerance;
+		static inline const Real Triangle3DIsIsoscelesTolerance = PrecisionValues<Real>::Triangle3DIsIsoscelesTolerance;
+		static inline const Real Triangle3DIsEquilateralTolerance = PrecisionValues<Real>::Triangle3DIsEquilateralTolerance;
 
-		static inline const double IsMatrixSymmetricTolerance = PrecisionValues<Real>::IsMatrixSymmetricTolerance;
-		static inline const double IsMatrixDiagonalTolerance = PrecisionValues<Real>::IsMatrixDiagonalTolerance;
-		static inline const double IsMatrixUnitTolerance = PrecisionValues<Real>::IsMatrixUnitTolerance;
-		static inline const double IsMatrixZeroTolerance = PrecisionValues<Real>::IsMatrixZeroTolerance;
-		static inline const double IsMatrixOrthogonalTolerance = PrecisionValues<Real>::IsMatrixOrthogonalTolerance;
+		static inline const Real IsMatrixSymmetricTolerance = PrecisionValues<Real>::IsMatrixSymmetricTolerance;
+		static inline const Real IsMatrixDiagonalTolerance = PrecisionValues<Real>::IsMatrixDiagonalTolerance;
+		static inline const Real IsMatrixUnitTolerance = PrecisionValues<Real>::IsMatrixUnitTolerance;
+		static inline const Real IsMatrixZeroTolerance = PrecisionValues<Real>::IsMatrixZeroTolerance;
+		static inline const Real IsMatrixOrthogonalTolerance = PrecisionValues<Real>::IsMatrixOrthogonalTolerance;
 
-		static inline const double RankAlgEPS = PrecisionValues<Real>::RankAlgEPS;
+		static inline const Real RankAlgEPS = PrecisionValues<Real>::RankAlgEPS;
 
 		// Numerical thresholds from PrecisionValues
-		static inline const double DefaultTolerance = PrecisionValues<Real>::DefaultTolerance;
-		static inline const double OrthogonalityTolerance = PrecisionValues<Real>::OrthogonalityTolerance;
+		static inline const Real DefaultTolerance = PrecisionValues<Real>::DefaultTolerance;
+		static inline const Real OrthogonalityTolerance = PrecisionValues<Real>::OrthogonalityTolerance;
 
 		// Algorithm parameters (thread-safe - changed from static constants to
 		// thread_local) Usage: Defaults::TrapezoidIntegrationEPS = 1e-6; (now

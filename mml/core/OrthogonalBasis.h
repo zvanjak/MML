@@ -57,7 +57,7 @@ namespace MML
         virtual Real DomainMax() const = 0;
 
         // Compute expansion coefficient for function f: cₙ = ⟨f, φₙ⟩ / ||φₙ||²
-        virtual Real ComputeCoefficient(const IRealFunction& f, int n, Real eps = 1e-10) const
+        virtual Real ComputeCoefficient(const IRealFunction& f, int n, Real eps = Precision::DefaultToleranceStrict) const
         {
             // Helper class for integrand f(x) * φₙ(x) * w(x)
             class Integrand : public IRealFunction {

@@ -50,6 +50,8 @@ namespace MML
 				return {false, SerializeError::INVALID_PARAMETERS, "ballPositions, ballColors, and ballRadius sizes must equal numBalls"};
 			if (fileName.empty())
 				return {false, SerializeError::INVALID_PARAMETERS, "fileName cannot be empty"};
+			if (saveEveryNSteps < 1)
+				return {false, SerializeError::INVALID_PARAMETERS, "saveEveryNSteps must be >= 1"};
 
 			std::ofstream file(fileName);
 			if (!file.is_open())
@@ -119,6 +121,8 @@ namespace MML
 				return {false, SerializeError::INVALID_PARAMETERS, "ballPositions, ballColors, and ballRadius sizes must equal numBalls"};
 			if (fileName.empty())
 				return {false, SerializeError::INVALID_PARAMETERS, "fileName cannot be empty"};
+			if (saveEveryNSteps < 1)
+				return {false, SerializeError::INVALID_PARAMETERS, "saveEveryNSteps must be >= 1"};
 
 			std::ofstream file(fileName);
 			if (!file.is_open())

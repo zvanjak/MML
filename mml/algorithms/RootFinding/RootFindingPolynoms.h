@@ -49,9 +49,12 @@ namespace MML {
 
     Real D = b * b - 4 * a * c;
     if (D >= 0) {
-      Real sqrtD = sqrt(D);
-      x1 = (-b + sqrtD) / (2 * a);
-      x2 = (-b - sqrtD) / (2 * a);
+      // Numerically stable formula: avoids catastrophic cancellation when |b| >> |sqrt(D)|
+      // Reference: Numerical Recipes, Press et al., "Quadratic and Cubic Equations"
+      Real sqrtD = std::sqrt(D);
+      Real q = Real(-0.5) * (b + std::copysign(sqrtD, b));
+      x1 = q / a;
+      x2 = c / q;
       return 2;
     } else {
       Complex sqrtD = std::sqrt(Complex(D));

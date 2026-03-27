@@ -188,6 +188,8 @@ namespace MML
 			_fInverse1([this](const VectorN<Real, 2>& q) { return funcInverse1(q); }),
 			_fInverse2([this](const VectorN<Real, 2>& q) { return funcInverse2(q); })
 		{
+			if (std::abs(std::sin(inAngle)) < Constants::Eps)
+				throw MML::ArgumentError("CoordTransfObliqueToCartesian2D: angle must not be a multiple of pi (sin(angle) ~ 0)");
 		}
 
 		/// @brief Transform oblique x-coordinate: x = q1 + q2�cos(?)
@@ -249,7 +251,10 @@ namespace MML
 			_f2([this](const VectorN<Real, 2>& q) { return func2(q); }),
 			_fInverse1([this](const VectorN<Real, 2>& q) { return funcInverse1(q); }),
 			_fInverse2([this](const VectorN<Real, 2>& q) { return funcInverse2(q); })
-		{	}
+		{
+			if (std::abs(std::sin(inAngle)) < Constants::Eps)
+				throw MML::ArgumentError("CoordTransfCartesianToOblique2D: angle must not be a multiple of pi (sin(angle) ~ 0)");
+		}
 
 		/// @brief Transform y to oblique: q2 = y/sin(?)
 		/// @param q Cartesian coordinates (x, y)

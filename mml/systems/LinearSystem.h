@@ -359,7 +359,7 @@ namespace MML::Systems
 		/// @return Solution vector
 		///
 		/// @throws ConvergenceError if method doesn't converge
-		Vector<Type> SolveIterative(IterativeMethod method = IterativeMethod::Auto, Type tol = 1e-10, int maxIter = 1000) const {
+		Vector<Type> SolveIterative(IterativeMethod method = IterativeMethod::Auto, Type tol = Precision::DefaultToleranceStrict, int maxIter = 1000) const {
 			RequireRHS();
 			RequireSquare();
 
@@ -404,7 +404,7 @@ namespace MML::Systems
 		Type RelativeResidual(const Vector<Type>& x) const {
 			RequireRHS();
 			Type bNorm = _b.NormL2();
-			if (bNorm < 1e-30)
+			if (bNorm < Precision::DivisionSafetyThreshold)
 				return ResidualNorm(x); // Avoid division by zero
 			return ResidualNorm(x) / bNorm;
 		}
@@ -415,7 +415,7 @@ namespace MML::Systems
 		/// @param tol Accuracy threshold
 		///
 		/// @return Detailed verification results
-		VerificationResult<Type> Verify(const Vector<Type>& x, Type tol = 1e-10) const {
+		VerificationResult<Type> Verify(const Vector<Type>& x, Type tol = Precision::DefaultToleranceStrict) const {
 			RequireRHS();
 
 			VerificationResult<Type> result;
@@ -425,7 +425,7 @@ namespace MML::Systems
 			// Backward error estimate
 			Type ANorm = Utils::InfinityNorm(_A);
 			Type xNorm = x.NormL2();
-			if (ANorm * xNorm > 1e-30)
+			if (ANorm * xNorm > Precision::DivisionSafetyThreshold)
 				result.backwardError = result.absoluteResidual / (ANorm * xNorm);
 			else
 				result.backwardError = result.absoluteResidual;
@@ -454,7 +454,7 @@ namespace MML::Systems
 		//=========================================================================
 
 		/// @brief Check if matrix is symmetric within tolerance
-		bool isSymmetric(Type tol = 1e-10) const {
+		bool isSymmetric(Type tol = Precision::DefaultToleranceStrict) const {
 			if (!_isSymmetric.has_value()) {
 				if (!isSquare()) {
 					_isSymmetric = false;
@@ -473,7 +473,7 @@ namespace MML::Systems
 		/// @brief Check if matrix is positive definite
 		///
 		/// @note Attempts Cholesky decomposition
-		bool isPositiveDefinite(Type tol = 1e-10) const {
+		bool isPositiveDefinite(Type tol = Precision::DefaultToleranceStrict) const {
 			if (!_isPositiveDefinite.has_value()) {
 				if (!isSymmetric(tol)) {
 					_isPositiveDefinite = false;
@@ -508,16 +508,16 @@ namespace MML::Systems
 			return true;
 		}
 
-		bool isUpperTriangular(Type tol = 1e-10) const { return Utils::IsUpperTriangular(_A, tol); }
+		bool isUpperTriangular(Type tol = Precision::DefaultToleranceStrict) const { return Utils::IsUpperTriangular(_A, tol); }
 
-		bool isLowerTriangular(Type tol = 1e-10) const { return Utils::IsLowerTriangular(_A, tol); }
+		bool isLowerTriangular(Type tol = Precision::DefaultToleranceStrict) const { return Utils::IsLowerTriangular(_A, tol); }
 
-		bool isDiagonal(Type tol = 1e-10) const { return Utils::IsDiagonal(_A, tol); }
+		bool isDiagonal(Type tol = Precision::DefaultToleranceStrict) const { return Utils::IsDiagonal(_A, tol); }
 
 		/// @brief Compute fraction of zero elements
 		///
 		/// @param threshold Elements below this are considered zero
-		Real Sparsity(Type threshold = 1e-15) const {
+		Real Sparsity(Type threshold = Precision::EigenSolverZeroThreshold) const {
 			int zeros = 0;
 			int total = _A.rows() * _A.cols();
 
@@ -563,7 +563,7 @@ namespace MML::Systems
 			if (!_conditionNumber.has_value()) {
 				SVDecompositionSolver<Type> solver(_A);
 				Type invCond = solver.inv_condition();
-				_conditionNumber = (invCond > 1e-30) ? (1.0 / invCond) : 1e30;
+				_conditionNumber = (invCond > Precision::DivisionSafetyThreshold) ? (1.0 / invCond) : static_cast<Type>(1.0 / Precision::DivisionSafetyThreshold);
 			}
 			return *_conditionNumber;
 		}
@@ -717,7 +717,7 @@ namespace MML::Systems
 		///
 		/// @return EigenSolver::Result with eigenvalues (potentially complex) and eigenvectors
 		/// @note Uses implicitly-shifted QR algorithm for general matrices
-		EigenSolver::Result GetEigen(Type tol = 1e-10, int maxIter = 1000) const {
+		EigenSolver::Result GetEigen(Type tol = Precision::DefaultToleranceStrict, int maxIter = 1000) const {
 			RequireSquare();
 			return EigenSolver::Solve(_A, tol, maxIter);
 		}
@@ -726,7 +726,7 @@ namespace MML::Systems
 		///
 		/// @return Vector of real eigenvalues (imaginary parts discarded for complex pairs)
 		/// @note For purely real eigenvalue analysis; use GetEigen() for complex eigenvalues
-		Vector<Type> Eigenvalues(Type tol = 1e-10) const {
+		Vector<Type> Eigenvalues(Type tol = Precision::DefaultToleranceStrict) const {
 			RequireSquare();
 			auto result = EigenSolver::Solve(_A, tol);
 			int n = rows();
@@ -752,7 +752,7 @@ namespace MML::Systems
 		/// @brief Compute spectral radius (largest |eigenvalue|)
 		///
 		/// @return max(|λ_i|) over all eigenvalues
-		Type SpectralRadius(Type tol = 1e-10) const {
+		Type SpectralRadius(Type tol = Precision::DefaultToleranceStrict) const {
 			RequireSquare();
 			auto result = EigenSolver::Solve(_A, tol);
 			Type maxMag = 0;
@@ -764,7 +764,7 @@ namespace MML::Systems
 		/// @brief Check if matrix has any complex eigenvalues
 		///
 		/// @return true if any eigenvalue has non-zero imaginary part
-		bool HasComplexEigenvalues(Type tol = 1e-10) const {
+		bool HasComplexEigenvalues(Type tol = Precision::DefaultToleranceStrict) const {
 			RequireSquare();
 			auto result = EigenSolver::Solve(_A, tol);
 			for (const auto& ev : result.eigenvalues) {
@@ -949,7 +949,7 @@ namespace MML::Systems
 				_cholesky = CholeskyDecomposition<Type>();
 				try {
 					CholeskySolver<Type> solver(_A);
-					_cholesky->L = solver.el;
+					_cholesky->L = solver.L();
 					_cholesky->valid = true;
 				} catch (...) {
 					_cholesky->valid = false;

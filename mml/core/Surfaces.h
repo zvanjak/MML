@@ -300,7 +300,7 @@ namespace MML
 			}
 			bool isParabolic(Real u, Real w, Real eps = PrecisionValues<Real>::DefaultToleranceStrict)
 			{
-				return std::abs(GaussianCurvature(u, w)) < eps && !isFlat(u, w, eps);
+				return std::abs(GaussianCurvature(u, w)) < eps && std::abs(MeanCurvature(u, w)) > eps;
 			}
 			bool isHyperbolic(Real u, Real w, Real eps = PrecisionValues<Real>::DefaultToleranceStrict)
 			{

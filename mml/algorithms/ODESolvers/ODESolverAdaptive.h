@@ -42,17 +42,17 @@ namespace MML {
 		/// Set to 0 to use Hairer's automatic step size estimation
 		Real initial_step_size = 0.0;
 
-		/// Minimum allowed step size (default: 1e-15)
+		/// Minimum allowed step size (default: type-adaptive)
 		/// Integration fails if step size falls below this
-		Real min_step_size = 1e-15;
+		Real min_step_size = Precision::ODEMinStepSize;
 
 		/// Maximum allowed step size (default: infinity)
 		/// Useful to limit step growth in smooth regions
 		Real max_step_size = std::numeric_limits<Real>::infinity();
 
-		/// Error tolerance for step acceptance (default: 1e-10)
+		/// Error tolerance for step acceptance (default: type-adaptive)
 		/// Used for both absolute and relative error control
-		Real tolerance = 1e-10;
+		Real tolerance = Precision::ODEDefaultTolerance;
 
 		/// Maximum number of accepted steps (default: 100000)
 		/// Integration fails if this is exceeded
@@ -68,7 +68,7 @@ namespace MML {
 		/// Factory method for high-precision configuration
 		static ODEIntegratorConfig HighPrecision() {
 			ODEIntegratorConfig config;
-			config.tolerance = 1e-14;
+			config.tolerance = Precision::ODEDefaultTolerance / Real(10000);
 			config.max_steps = 500000;
 			return config;
 		}
@@ -76,7 +76,7 @@ namespace MML {
 		/// Factory method for fast (lower precision) configuration
 		static ODEIntegratorConfig Fast() {
 			ODEIntegratorConfig config;
-			config.tolerance = 1e-6;
+			config.tolerance = Precision::DefaultTolerance;
 			config.max_steps = 10000;
 			return config;
 		}
@@ -84,9 +84,9 @@ namespace MML {
 		/// Factory method for stiff problems
 		static ODEIntegratorConfig Stiff() {
 			ODEIntegratorConfig config;
-			config.tolerance = 1e-8;
+			config.tolerance = Precision::DefaultToleranceStrict;
 			config.max_steps = 1000000;
-			config.min_step_size = 1e-20;
+			config.min_step_size = Precision::DivisionSafetyThreshold;
 			return config;
 		}
 	};

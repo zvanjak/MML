@@ -328,7 +328,7 @@ namespace MML::Systems
 						norm += v[i] * v[i];
 					norm = std::sqrt(norm);
 
-					if (norm > 1e-30) {
+					if (norm > Precision::DivisionSafetyThreshold) {
 						lyapunovSums[j] += std::log(norm);
 						for (int i = 0; i < N; ++i)
 							Q(i, j) = v[i] / norm;

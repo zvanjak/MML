@@ -62,10 +62,8 @@ namespace MML
 		/// @note Singular values ordered in descending order on output
 		SVDecompositionSolver(const Matrix<Type>& a) : m(a.rows()), n(a.cols()), u(a), v(n, n), w(n)
 		{
-			// Given a Matrix a[m][n], this routine computes its singular value decomposition, A = U·W·V^T
-			// The Matrix U replaces a on output (stored in u)
-			// The diagonal matrix of singular values W is output as a vector w[n]
-			// The matrix V (not the transpose V^T) is output as v[n][n]
+			if (m == 0 || n == 0)
+				throw MatrixDimensionError("SVDecompositionSolver::ctor - matrix must be non-empty", m, n, -1, -1);
 			
 			eps = std::numeric_limits<Type>::epsilon();
 			decompose();

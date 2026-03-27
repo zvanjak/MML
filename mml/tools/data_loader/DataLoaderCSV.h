@@ -24,18 +24,24 @@
 namespace MML {
 	namespace Data {
 
+		/// @brief Options for CSV/TSV loading with schema validation
+		struct CSVLoadOptions {
+			bool hasHeader = true;          ///< First row is column names
+			char delimiter = ',';           ///< Field delimiter
+			bool inferTypes = true;         ///< Auto-detect column types
+			bool strictSchema = false;      ///< Throw on row width mismatch
+			std::vector<std::string>* warnings = nullptr;  ///< Collect non-fatal issues (e.g., width mismatches)
+		};
+
 		/////////////////////////////////////////////////////////////////////////////////////
 		///                              CSV/TSV LOADING                                   ///
 		/////////////////////////////////////////////////////////////////////////////////////
-		/// @brief Load dataset from CSV file
+		/// @brief Load dataset from CSV file with full options
 		/// @param filename Path to CSV file
-		/// @param hasHeader If true, first row is column names
-		/// @param delimiter Field delimiter (default ',')
-		/// @param inferTypes If true, automatically infer column types
+		/// @param opts Loading options (schema validation, type inference, etc.)
 		/// @return Loaded dataset
-		/// @throws DataError on file/parse errors
-		inline Dataset LoadCSV(const std::string& filename, bool hasHeader = true,
-		                       char delimiter = ',', bool inferTypes = true) {
+		/// @throws DataError on file/parse errors or schema violations (if strictSchema)
+		inline Dataset LoadCSV(const std::string& filename, const CSVLoadOptions& opts) {
 			std::ifstream file(filename);
 			if (!file.is_open())
 				throw DataError("LoadCSV: Cannot open file '" + filename + "'");
@@ -61,7 +67,7 @@ namespace MML {
 				if (!line.empty() && line.back() == '\r')
 					line.pop_back();
 
-				std::vector<std::string> fields = SplitLine(line, delimiter);
+				std::vector<std::string> fields = SplitLine(line, opts.delimiter);
 				allData.push_back(fields);
 			}
 
@@ -70,13 +76,13 @@ namespace MML {
 
 			// Determine column count
 			size_t numCols = allData[0].size();
-			size_t dataStartRow = hasHeader ? 1 : 0;
+			size_t dataStartRow = opts.hasHeader ? 1 : 0;
 
 			// Setup columns
 			dataset.columns.resize(numCols);
 
 			for (size_t c = 0; c < numCols; ++c) {
-				if (hasHeader) {
+				if (opts.hasHeader) {
 					dataset.columns[c].name = Trim(allData[0][c]);
 					if (dataset.columns[c].name.empty())
 						dataset.columns[c].name = "Column" + std::to_string(c);
@@ -86,8 +92,23 @@ namespace MML {
 				}
 			}
 
+			// Schema validation: check row widths
+			if (opts.strictSchema || opts.warnings) {
+				for (size_t r = dataStartRow; r < allData.size(); ++r) {
+					if (allData[r].size() != numCols) {
+						std::string msg = "Row " + std::to_string(r + 1) + " has " +
+						                  std::to_string(allData[r].size()) + " fields, expected " +
+						                  std::to_string(numCols);
+						if (opts.strictSchema)
+							throw DataError("LoadCSV: Schema mismatch - " + msg);
+						if (opts.warnings)
+							opts.warnings->push_back(msg);
+					}
+				}
+			}
+
 			// Collect string values for type inference
-			if (inferTypes) {
+			if (opts.inferTypes) {
 				for (size_t c = 0; c < numCols; ++c) {
 					std::vector<std::string> colValues;
 					for (size_t r = dataStartRow; r < allData.size(); ++r) {
@@ -150,7 +171,8 @@ namespace MML {
 					bool boolVal = false;
 					std::string strVal;
 
-					bool parsed = ParseValue(value, col.type, realVal, intVal, boolVal, strVal);
+					auto result = ParseValue(value, col.type, realVal, intVal, boolVal, strVal);
+					bool parsed = (result == ParseResult::Parsed);
 					col.missingMask[rowIdx] = !parsed;
 
 					switch (col.type) {
@@ -195,6 +217,22 @@ namespace MML {
 			}
 
 			return dataset;
+		}
+
+		/// @brief Load dataset from CSV file (convenience overload)
+		/// @param filename Path to CSV file
+		/// @param hasHeader If true, first row is column names
+		/// @param delimiter Field delimiter (default ',')
+		/// @param inferTypes If true, automatically infer column types
+		/// @return Loaded dataset
+		/// @throws DataError on file/parse errors
+		inline Dataset LoadCSV(const std::string& filename, bool hasHeader = true,
+		                       char delimiter = ',', bool inferTypes = true) {
+			CSVLoadOptions opts;
+			opts.hasHeader = hasHeader;
+			opts.delimiter = delimiter;
+			opts.inferTypes = inferTypes;
+			return LoadCSV(filename, opts);
 		}
 
 		/// @brief Load dataset from TSV file
@@ -339,7 +377,8 @@ namespace MML {
 					bool boolVal = false;
 					std::string strVal;
 
-					bool parsed = ParseValue(value, col.type, realVal, intVal, boolVal, strVal);
+					auto result = ParseValue(value, col.type, realVal, intVal, boolVal, strVal);
+					bool parsed = (result == ParseResult::Parsed);
 					col.missingMask[rowIdx] = !parsed;
 
 					switch (col.type) {

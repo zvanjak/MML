@@ -118,7 +118,21 @@ bool LoadComplexVector(const std::string& filename,
                   << " (file: " << elemSize << ", expected: " << sizeof(T) << ")" << std::endl;
         return false;
     }
-    
+
+    // Validate count against actual file size
+    auto currentPos = file.tellg();
+    file.seekg(0, std::ios::end);
+    auto fileSize = file.tellg();
+    file.seekg(currentPos);
+
+    auto expectedDataSize = static_cast<std::streamoff>(count) * elemSize * 2;
+    if (fileSize - currentPos < expectedDataSize) {
+        std::cerr << "Error: file " << filename << " is too small for declared count "
+                  << count << " (need " << expectedDataSize << " data bytes, have "
+                  << (fileSize - currentPos) << ")" << std::endl;
+        return false;
+    }
+
     // Read real parts
     std::vector<T> realParts(count);
     for (uint32_t i = 0; i < count; ++i) {

@@ -269,7 +269,7 @@ namespace MML
 			return *this;
 		}
 		
-		/// @brief Scalar division
+		/// @brief Scalar division (unchecked — caller must ensure b != 0)
 		[[nodiscard]] Vector  operator/(Type b) const
 		{
 			Vector ret(size());
@@ -278,12 +278,23 @@ namespace MML
 			return ret;
 		}
 		
-		/// @brief In-place scalar division
+		/// @brief In-place scalar division (unchecked — caller must ensure b != 0)
 		Vector& operator/=(Type b)
 		{
 			for (int i = 0; i < size(); i++)
 				_elems[i] /= b;
 			return *this;
+		}
+
+		/// @brief Safe scalar division with zero-guard
+		/// @param b Scalar divisor
+		/// @return New vector with elements divided by b
+		/// @throws DivisionByZeroError if |b| < DivisionSafetyThreshold
+		[[nodiscard]] Vector safeDivide(Type b) const
+		{
+			if (std::abs(b) < Precision::DivisionSafetyThreshold)
+				throw DivisionByZeroError("Vector::safeDivide - division by near-zero scalar");
+			return *this / b;
 		}
 		
 		/// @brief Scalar multiplication (scalar * vector)
@@ -340,6 +351,17 @@ namespace MML
 		{
 			for (int i = 0; i < size(); i++)
 				if (Abs((*this)[i]) != 0.0 )
+					return false;
+			return true;
+		}
+
+		/// @brief Check if all elements are near zero within tolerance
+		/// @param eps Maximum absolute value for an element to be considered near-zero
+		/// @return true if |this[i]| <= eps for all i
+		bool isNearZero(Real eps = Defaults::VectorIsEqualTolerance) const noexcept
+		{
+			for (int i = 0; i < size(); i++)
+				if (Abs((*this)[i]) > eps)
 					return false;
 			return true;
 		}

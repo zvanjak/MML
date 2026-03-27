@@ -94,8 +94,8 @@ namespace MML
 		/// @brief Default tolerance for singularity detection
 		/// 
 		/// Points within this distance of a singular coordinate are considered singular.
-		/// Chosen to be above machine epsilon but small enough for most practical uses.
-		static constexpr Real DEFAULT_SINGULARITY_TOL = 1e-12;
+		/// Routes through PrecisionValues so the threshold adapts to float/double/long double.
+		static constexpr Real DEFAULT_SINGULARITY_TOL = Precision::NumericalZeroThreshold;
 
 		/// @brief Default policy when none is specified
 		static constexpr SingularityPolicy DEFAULT_POLICY = SingularityPolicy::Throw;

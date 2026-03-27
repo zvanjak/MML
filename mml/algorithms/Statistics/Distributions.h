@@ -319,7 +319,7 @@ namespace MML
 					Real delta = f / fprime;
 					t -= delta;
 					
-					if (std::abs(delta) < 1e-10)
+					if (std::abs(delta) < Precision::DefaultToleranceStrict)
 						break;
 				}
 				

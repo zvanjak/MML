@@ -71,6 +71,7 @@ void Show_Parametric_Surface_Examples();
 void Show_Particle_Visualizer_2D_Examples();
 void Show_Particle_Visualizer_3D_Examples();
 void Show_Readme_Files();
+void Show_Backend_Switching_Demo();
 
 /**
  * @brief Print usage information
@@ -91,6 +92,7 @@ void Print_Usage(const char* program_name)
     std::cout << "  particle_2d     - 2D particle simulations\n";
     std::cout << "  particle_3d     - 3D particle simulations\n";
     std::cout << "  readme          - One sample of each visualization type\n";
+    std::cout << "  backend         - Runtime backend switching demo\n";
     std::cout << "  all             - Run all visualizations\n";
     std::cout << "\nIf no argument is provided, runs the default demo.\n\n";
 }
@@ -189,6 +191,10 @@ bool Run_Visualization(const char* viz_type)
         Show_Readme_Files();
         return true;
     }
+    else if (strcmp(viz_type, "backend") == 0) {
+        Show_Backend_Switching_Demo();
+        return true;
+    }
     else if (strcmp(viz_type, "all") == 0) {
         Show_Real_Function_Examples();
         Show_Multi_Real_Function_Examples();
@@ -268,6 +274,58 @@ void Demo_Visualization_Examples()
     // ═══════════════════════════════════════════════════════════════════
     
     // Show_Real_Function_Examples();  // Default: start with simplest visualizer
+}
+
+/**
+ * @brief Demonstrate runtime backend switching
+ * 
+ * Shows how to switch between visualization backends (FLTK, Qt, WPF)
+ * at runtime using SetVisualizerBackend() / GetVisualizerBackend().
+ */
+void Show_Backend_Switching_Demo()
+{
+    std::cout << "\n***********************************************************\n";
+    std::cout << "******  Runtime Backend Switching Demo  *******\n";
+    std::cout << "***********************************************************\n\n";
+
+    RealFunction f{[](Real x) { return sin(x) * cos(x / 2); }};
+
+    auto backendName = [](VisualizerBackend b) -> const char* {
+        switch (b) {
+            case VisualizerBackend::WPF:  return "WPF";
+            case VisualizerBackend::Qt:   return "Qt";
+            case VisualizerBackend::FLTK: return "FLTK";
+            case VisualizerBackend::Auto: return "Auto";
+        }
+        return "Unknown";
+    };
+
+    // Save original backend to restore later
+    auto original = GetVisualizerBackend();
+
+    // Step 1: Visualize with current backend
+    std::cout << "Step 1: Using current backend (" << backendName(original) << ")\n";
+    Visualizer::VisualizeRealFunction(f, "Current Backend", -10.0, 10.0, 200, "backend_demo_current.mml");
+
+    // Step 2: Switch to Qt
+    std::cout << "\nStep 2: Switching to Qt backend\n";
+    SetVisualizerBackend(VisualizerBackend::Qt);
+    std::cout << "  Backend is now: " << backendName(GetVisualizerBackend()) << "\n";
+    Visualizer::VisualizeRealFunction(f, "Qt Backend", -10.0, 10.0, 200, "backend_demo_qt.mml");
+
+    // Step 3: Switch to FLTK
+    std::cout << "\nStep 3: Switching to FLTK backend\n";
+    SetVisualizerBackend(VisualizerBackend::FLTK);
+    std::cout << "  Backend is now: " << backendName(GetVisualizerBackend()) << "\n";
+    Visualizer::VisualizeRealFunction(f, "FLTK Backend", -10.0, 10.0, 200, "backend_demo_fltk.mml");
+
+    // Restore original backend
+    SetVisualizerBackend(original);
+    std::cout << "\nRestored original backend: " << backendName(original) << "\n";
+
+    std::cout << "\n***********************************************************\n";
+    std::cout << "Backend switching demo complete!\n";
+    std::cout << "***********************************************************\n";
 }
 
 /**

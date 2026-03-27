@@ -52,8 +52,9 @@ namespace MML
 				{
 					Real t = t1 + n * delta;
 					file << t << " ";
+					auto val = f(t);
 					for (int i = 0; i < N; i++)
-						file << f(t)[i] << " ";
+						file << val[i] << " ";
 					file << std::endl;
 				}
 				file.close();
@@ -91,8 +92,9 @@ namespace MML
 				{
 					Real t = points[i];
 					file << t << " ";
+					auto val = f(t);
 					for (int j = 0; j < N; j++)
-						file << f(t)[j] << " ";
+						file << val[j] << " ";
 					file << std::endl;
 				}
 

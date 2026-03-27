@@ -236,12 +236,12 @@ namespace MML
 		const ScalarFunctionFromStdFunc<3> _f1, _f2, _f3;
 		const ScalarFunctionFromStdFunc<3> _fInverse1, _fInverse2, _fInverse3;
 
-		/// @brief Build ZXZ Euler angle rotation matrix
+		/// @brief Build ZYZ Euler angle rotation matrix
 		/// @param alpha First angle (Z-axis rotation)
-		/// @param beta Second angle (X'-axis rotation)
+		/// @param beta Second angle (Y'-axis rotation)
 		/// @param gamma Third angle (Z''-axis rotation)
 		/// @return 3x3 rotation matrix
-		static MatrixNM<Real, 3, 3> buildEulerZXZMatrix(Real alpha, Real beta, Real gamma)
+		static MatrixNM<Real, 3, 3> buildEulerZYZMatrix(Real alpha, Real beta, Real gamma)
 		{
 			Real ca = std::cos(alpha), sa = std::sin(alpha);
 			Real cb = std::cos(beta), sb = std::sin(beta);
@@ -261,14 +261,14 @@ namespace MML
 		}
 
 	public:
-		/// @brief Constructor using ZXZ Euler angles (physics convention)
+		/// @brief Constructor using ZYZ Euler angles
 		/// @param alpha First rotation around Z-axis (radians)
-		/// @param beta Second rotation around X'-axis (radians)
+		/// @param beta Second rotation around Y'-axis (radians)
 		/// @param gamma Third rotation around Z''-axis (radians)
 		CoordTransfCart3DRotationEuler(Real alpha, Real beta, Real gamma)
 			: _alpha(alpha), _beta(beta), _gamma(gamma),
-				_transf(buildEulerZXZMatrix(alpha, beta, gamma)),
-				_inverse(buildEulerZXZMatrix(-gamma, -beta, -alpha)), // Inverse: reverse order and sign
+				_transf(buildEulerZYZMatrix(alpha, beta, gamma)),
+				_inverse(buildEulerZYZMatrix(-gamma, -beta, -alpha)), // Inverse: reverse order and sign
 				_f1([this](const VectorN<Real, 3>& q) { return func1(q); }),
 				_f2([this](const VectorN<Real, 3>& q) { return func2(q); }),
 				_f3([this](const VectorN<Real, 3>& q) { return func3(q); }),

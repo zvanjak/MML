@@ -32,9 +32,9 @@ namespace MML {
 			if (values.empty()) return ColumnType::STRING;
 
 			// Count type matches
-			int intCount = 0, realCount = 0, boolCount = 0;
-			int dateCount = 0, timeCount = 0, dateTimeCount = 0;
-			int missingCount = 0;
+			size_t intCount = 0, realCount = 0, boolCount = 0;
+			size_t dateCount = 0, timeCount = 0, dateTimeCount = 0;
+			size_t missingCount = 0;
 
 			// Patterns
 			std::regex intPattern(R"(^[-+]?\d+$)");
@@ -88,18 +88,18 @@ namespace MML {
 				}
 			}
 
-			int totalNonMissing = static_cast<int>(values.size()) - missingCount;
+			size_t totalNonMissing = values.size() - missingCount;
 			if (totalNonMissing == 0) return ColumnType::STRING;
 
 			// Determine type based on majority
 			double threshold = 0.9;  // 90% match required
 
-			if (dateTimeCount >= threshold * totalNonMissing) return ColumnType::DATETIME;
-			if (dateCount >= threshold * totalNonMissing) return ColumnType::DATE;
-			if (timeCount >= threshold * totalNonMissing) return ColumnType::TIME;
-			if (boolCount >= threshold * totalNonMissing) return ColumnType::BOOL;
-			if (intCount >= threshold * totalNonMissing) return ColumnType::INT;
-			if ((intCount + realCount) >= threshold * totalNonMissing) return ColumnType::REAL;
+			if (dateTimeCount >= threshold * static_cast<double>(totalNonMissing)) return ColumnType::DATETIME;
+			if (dateCount >= threshold * static_cast<double>(totalNonMissing)) return ColumnType::DATE;
+			if (timeCount >= threshold * static_cast<double>(totalNonMissing)) return ColumnType::TIME;
+			if (boolCount >= threshold * static_cast<double>(totalNonMissing)) return ColumnType::BOOL;
+			if (intCount >= threshold * static_cast<double>(totalNonMissing)) return ColumnType::INT;
+			if ((intCount + realCount) >= threshold * static_cast<double>(totalNonMissing)) return ColumnType::REAL;
 
 			return ColumnType::STRING;
 		}
@@ -107,6 +107,14 @@ namespace MML {
 		/////////////////////////////////////////////////////////////////////////////////////
 		///                              VALUE PARSING                                     ///
 		/////////////////////////////////////////////////////////////////////////////////////
+
+		/// @brief Result of parsing a string value to a typed value
+		enum class ParseResult {
+			Parsed,   ///< Successfully parsed to target type
+			Missing,  ///< Value was empty or a recognized missing-value sentinel
+			Invalid   ///< Value was present but could not be parsed as the target type
+		};
+
 		/// @brief Parse a string value to the target type
 		/// @param value String value to parse
 		/// @param targetType Target column type
@@ -114,8 +122,8 @@ namespace MML {
 		/// @param[out] intOut Integer output (if INT type)
 		/// @param[out] boolOut Boolean output (if BOOL type)
 		/// @param[out] stringOut String output (if STRING/DATE/TIME type)
-		/// @return true if parsing succeeded, false if value should be marked as missing
-		inline bool ParseValue(const std::string& value, ColumnType targetType,
+		/// @return ParseResult indicating success, missing value, or parse failure
+		inline ParseResult ParseValue(const std::string& value, ColumnType targetType,
 		                       Real& realOut, int& intOut, bool& boolOut, std::string& stringOut) {
 			std::string trimmed = value;
 			trimmed.erase(0, trimmed.find_first_not_of(" \t\r\n"));
@@ -123,43 +131,43 @@ namespace MML {
 				trimmed.erase(trimmed.find_last_not_of(" \t\r\n") + 1);
 
 			if (IsMissingValue(trimmed))
-				return false;
+				return ParseResult::Missing;
 
 			try {
 				switch (targetType) {
 					case ColumnType::REAL: {
 						realOut = std::stod(trimmed);
-						return true;
+						return ParseResult::Parsed;
 					}
 					case ColumnType::INT: {
 						intOut = std::stoi(trimmed);
-						return true;
+						return ParseResult::Parsed;
 					}
 					case ColumnType::BOOL: {
 						std::string lower = trimmed;
 						std::transform(lower.begin(), lower.end(), lower.begin(), ::tolower);
 						if (lower == "true" || lower == "yes" || lower == "t" || lower == "y" || lower == "1") {
 							boolOut = true;
-							return true;
+							return ParseResult::Parsed;
 						}
 						if (lower == "false" || lower == "no" || lower == "f" || lower == "n" || lower == "0") {
 							boolOut = false;
-							return true;
+							return ParseResult::Parsed;
 						}
-						return false;
+						return ParseResult::Invalid;
 					}
 					case ColumnType::STRING:
 					case ColumnType::DATE:
 					case ColumnType::TIME:
 					case ColumnType::DATETIME:
 						stringOut = trimmed;
-						return true;
+						return ParseResult::Parsed;
 					default:
-						return false;
+						return ParseResult::Invalid;
 				}
 			}
 			catch (...) {
-				return false;  // Parse error -> missing
+				return ParseResult::Invalid;  // Parse error
 			}
 		}
 

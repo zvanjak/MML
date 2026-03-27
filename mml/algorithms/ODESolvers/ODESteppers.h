@@ -227,7 +227,7 @@ namespace MML {
 				Real errMax = 0.0;
 				for (int i = 0; i < _n; i++) {
 					Real err = h * (e1 * _k1[i] + e3 * _k3[i] + e4 * _k4[i] + e5 * _k5[i] + e6 * _k6[i] + e7 * _k7[i]);
-					Real scale = std::abs(x[i]) + std::abs(h * _k1[i]) + 1e-30; // Avoid division by zero
+					Real scale = std::abs(x[i]) + std::abs(h * _k1[i]) + Precision::DivisionSafetyThreshold; // Avoid division by zero
 					errMax = std::max(errMax, std::abs(err) / scale);
 				}
 				errMax /= eps;
@@ -434,7 +434,7 @@ namespace MML {
 				Real errMax = 0.0;
 				for (int i = 0; i < _n; i++) {
 					Real err = h * (dc1 * _k1[i] + dc3 * _k3[i] + dc4 * _k4[i] + dc5 * _k5[i] + dc6 * _k6[i]);
-					Real scale = std::abs(x[i]) + std::abs(h * dxdt[i]) + 1e-30;
+					Real scale = std::abs(x[i]) + std::abs(h * dxdt[i]) + Precision::DivisionSafetyThreshold;
 					errMax = std::max(errMax, std::abs(err) / scale);
 				}
 				errMax /= eps;
@@ -676,7 +676,7 @@ namespace MML {
 					for (int j = 0; j < NSTAGES; j++)
 						err += (b8[j] - b7[j]) * _k[j][i];
 					err *= h;
-					Real scale = std::abs(x[i]) + std::abs(h * _k[0][i]) + 1e-30;
+					Real scale = std::abs(x[i]) + std::abs(h * _k[0][i]) + Precision::DivisionSafetyThreshold;
 					errMax = std::max(errMax, std::abs(err) / scale);
 				}
 				errMax /= eps;
@@ -912,7 +912,7 @@ namespace MML {
 					// Compute scaled error
 					Real errMax = 0.0;
 					for (int i = 0; i < _n; ++i) {
-						Real scale = eps * (std::abs(ysav[i]) + std::abs(yest[i]) + Real(1e-30));
+						Real scale = eps * (std::abs(ysav[i]) + std::abs(yest[i]) + Precision::DivisionSafetyThreshold);
 						Real errRatio = std::abs(yerr[i]) / scale;
 						errMax = std::max<Real>(errMax, errRatio);
 					}
@@ -1139,7 +1139,7 @@ namespace MML {
 					// Compute scaled error
 					Real errMax = 0.0;
 					for (int i = 0; i < _n; ++i) {
-						Real scale = eps * (std::abs(ysav[i]) + std::abs(yest[i]) + Real(1e-30));
+						Real scale = eps * (std::abs(ysav[i]) + std::abs(yest[i]) + Precision::DivisionSafetyThreshold);
 						Real errRatio = std::abs(yerr[i]) / scale;
 						errMax = std::max<Real>(errMax, errRatio);
 					}

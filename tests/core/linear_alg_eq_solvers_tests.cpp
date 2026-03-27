@@ -1496,7 +1496,7 @@ namespace MML::Tests::Core::LinearAlgSolversTests
 				A[i][j] = testBed._mat(i, j);
 
 		CholeskySolver<Real> solver(A);
-		Matrix<Real> L = solver.el;
+		Matrix<Real> L = solver.L();
 
 		// Compute L * L^T
 		Matrix<Real> LLT(testBed._n, testBed._n);

@@ -629,12 +629,12 @@ namespace MML
 		
 		/// @brief Create const view of a rectangular block
 		/// @warning The returned view is invalidated by Resize() or destruction of this matrix.
-		const MatrixViewNew<Type> block(int startRow, int startCol, int numRows, int numCols) const
+		MatrixViewNew<const Type> block(int startRow, int startCol, int numRows, int numCols) const
 		{
 			if (startRow < 0 || startCol < 0 || numRows <= 0 || numCols <= 0 ||
 			    startRow + numRows > _rows || startCol + numCols > _cols)
 				throw MatrixDimensionError("Matrix::block - invalid parameters", _rows, _cols, startRow, startCol);
-			return MatrixViewNew<Type>(const_cast<Type*>(&_data[idx(startRow, startCol)]), numRows, numCols, _cols);
+			return MatrixViewNew<const Type>(&_data[idx(startRow, startCol)], numRows, numCols, _cols);
 		}
 
 		///////////////////////               Matrix properties            //////////////////////
@@ -642,7 +642,7 @@ namespace MML
 		/// @brief Check if matrix is identity matrix
 		/// @param eps Tolerance for floating-point comparison
 		/// @return true if |M(i,i)-1| < eps and |M(i,j)| < eps for i≠j
-		bool isIdentity(double eps = Defaults::IsMatrixUnitTolerance) const
+		bool isIdentity(Real eps = Defaults::IsMatrixUnitTolerance) const
 		{
 			if (_rows != _cols) return false;
 			
@@ -661,7 +661,7 @@ namespace MML
 		/// @brief Check if matrix is diagonal
 		/// @param eps Tolerance for off-diagonal elements
 		/// @return true if |M(i,j)| < eps for all i≠j
-		bool isDiagonal(double eps = Defaults::IsMatrixDiagonalTolerance) const
+		bool isDiagonal(Real eps = Defaults::IsMatrixDiagonalTolerance) const
 		{
 			for (int i = 0; i < _rows; ++i)
 				for (int j = 0; j < _cols; ++j)
@@ -688,7 +688,7 @@ namespace MML
 		/// @brief Check if matrix is symmetric (M = Mᵀ) within tolerance
 		/// @param eps Maximum allowed difference |M(i,j) - M(j,i)|
 		/// @return true if M(i,j) ≈ M(j,i) for all i,j
-		bool isSymmetric(double eps = Defaults::IsMatrixSymmetricTolerance) const
+		bool isSymmetric(Real eps = Defaults::IsMatrixSymmetricTolerance) const
 		{
 			if (_rows != _cols) return false;
 			
@@ -702,7 +702,7 @@ namespace MML
 		/// @brief Check if matrix is anti-symmetric (skew-symmetric) within tolerance
 		/// @param eps Maximum allowed difference |M(i,j) + M(j,i)|
 		/// @return true if M(i,j) ≈ -M(j,i) for all i,j
-		bool isAntiSymmetric(double eps = Defaults::IsMatrixSymmetricTolerance) const
+		bool isAntiSymmetric(Real eps = Defaults::IsMatrixSymmetricTolerance) const
 		{
 			if (_rows != _cols) return false;
 			
@@ -723,7 +723,7 @@ namespace MML
 		/// @brief Check if matrix is a zero matrix (all elements are zero within tolerance)
 		/// @param eps Maximum allowed absolute value for an element to be considered zero
 		/// @return true if all elements have absolute value <= eps
-		bool isZero(double eps = Defaults::IsMatrixZeroTolerance) const
+		bool isZero(Real eps = Defaults::IsMatrixZeroTolerance) const
 		{
 			for (const auto& elem : _data)
 				if (Abs(elem) > eps)

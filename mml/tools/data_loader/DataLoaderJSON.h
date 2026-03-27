@@ -213,7 +213,8 @@ namespace MML {
 							bool boolVal = false;
 							std::string strVal;
 
-							bool parsed = ParseValue(values[i], col.type, realVal, intVal, boolVal, strVal);
+							auto result = ParseValue(values[i], col.type, realVal, intVal, boolVal, strVal);
+							bool parsed = (result == ParseResult::Parsed);
 							col.missingMask[i] = !parsed;
 
 							switch (col.type) {
