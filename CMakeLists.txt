@@ -34,8 +34,6 @@ target_compile_features(minimalmathlib INTERFACE cxx_std_17)
 include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/mml
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/book
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/book/mpl
 )
 
 # Enable testing at the root level
@@ -55,13 +53,8 @@ list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/extras)
 add_subdirectory(src/demo_app)
 add_subdirectory(src/docs_demos)
 add_subdirectory(src/readme_examples)
-add_subdirectory(src/book)
 add_subdirectory(src/visualization_examples)
-add_subdirectory(tools/utils_app)
 add_subdirectory(src/examples)
-
-# Book chapters (standalone applications)
-add_subdirectory(src/book/chapters)
 
 # Precision testing application
 add_subdirectory(src/testing_precision)
