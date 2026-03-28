@@ -291,7 +291,7 @@ See the full [Visualization Gallery](#-visualization-gallery) below for all visu
 
 ---
 
-## 🧪 Real Examples — Physics Simulations You Can Run
+## 🧪 Real Examples
 
 > **Self-contained, production-ready examples** demonstrating MML's capabilities in real-world physics simulations. Each example includes all physics code in-directory — no external dependencies.
 
