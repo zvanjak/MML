@@ -19,7 +19,7 @@
 
 **🚀 Just `#include "MML.h"` and compute** — vectors, matrices, tensors, ODE solvers, eigenvalues, integration, and more!
 
-[Quick Start](#-quick-start) • [Features](#-key-features) • [Documentation](#-documentation) • [Pro Extensions](#-pro-extensions)
+[Quick Start](#-quick-start) • [Features](#-key-features) • [Documentation](#-documentation) • [Examples](#-real-examples) • [Visualization](#-visualization-suite)
 
 </div>
 
