@@ -36,7 +36,7 @@ inline const char *GetEnv(const char *name) noexcept {
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #endif
 
-  const char *result = std::getenv(name);
+const char *result = std::getenv(name);
 
 #if defined(_MSC_VER)
 #pragma warning(pop)
