@@ -28,12 +28,26 @@
 //   2. Ensure ALL source files in your project see the SAME definition
 //   3. Do NOT mix different Real types in the same executable
 //
-// CURRENT CONFIGURATION:
-typedef double Real; // default real type
+// BUILD-TIME SELECTION:
+//   The preferred way to select the Real type is via CMake:
+//     cmake -B build -DMML_REAL_TYPE=float        # float
+//     cmake -B build -DMML_REAL_TYPE=double       # double (default)
+//     cmake -B build -DMML_REAL_TYPE=long_double   # long double
 //
-// OTHER SUPPORTED OPTIONS (uncomment ONE, comment others):
-// typedef float						 Real;    // Lower precision, faster, smaller memory
-// typedef long double       Real;    // Extended precision (80-bit on x86, 128-bit on some platforms)
+//   This sets the appropriate preprocessor define (MML_USE_FLOAT or
+//   MML_USE_LONG_DOUBLE). You can also define these directly:
+//     -DMML_USE_FLOAT          → typedef float Real
+//     -DMML_USE_LONG_DOUBLE    → typedef long double Real
+//     (neither)                → typedef double Real (default)
+//
+// CURRENT CONFIGURATION:
+#if defined(MML_USE_FLOAT)
+typedef float Real;
+#elif defined(MML_USE_LONG_DOUBLE)
+typedef long double Real;
+#else
+typedef double Real; // default real type
+#endif
 //
 // EXPERIMENTAL / ONGOING DEVELOPMENT (not yet fully supported):
 // typedef __float128				 Real;    // Quad precision (GCC/Clang-on-Linux only, 128-bit IEEE 754)
@@ -88,4 +102,3 @@ typedef double Real; // default real type
 ///////////////////////////////////////////////////////////////////////////////////////////
 
 #endif
-
