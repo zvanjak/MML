@@ -188,7 +188,7 @@ TEST_CASE("Sphere3D::GetBoundingSphere", "[geometry][sphere][bounding]")
         Sphere3D sphere(7.0);
         BoundingSphere3D bsphere = sphere.GetBoundingSphere();
         
-        REQUIRE_THAT(bsphere.Volume() , RealApprox(sphere.Volume()).epsilon(1e-10));
+        REQUIRE_THAT(bsphere.Volume() , RealApprox(sphere.Volume()).epsilon(TOL(1e-10, 1e-5)));
     }
 }
 

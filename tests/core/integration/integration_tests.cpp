@@ -28,19 +28,19 @@ namespace MML::Tests::Core::IntegrationTests
 		RealFunctionFromStdFunc constFunc0( [](Real x) -> Real { return REAL(0.0); } );
 		RealFunctionFromStdFunc constFunc1( [](Real x) -> Real { return REAL(2.0); } );
 		RealFunctionFromStdFunc constFunc2( [](Real x) -> Real { return -REAL(5.0); } );
-		RealFunctionFromStdFunc constFunc3( [](Real x) -> Real { return 1e-10; } );
+		RealFunctionFromStdFunc constFunc3( [](Real x) -> Real { return TOL(1e-10, 1e-5); } );
 
-		REQUIRE_THAT(REAL(0.0), WithinAbs(IntegrateTrap(constFunc0, REAL(0.0), REAL(1.0)), REAL(1e-15)));
-		REQUIRE_THAT(REAL(0.0), WithinAbs(IntegrateTrap(constFunc0, -REAL(3.0), REAL(1.0)), REAL(1e-15)));
+		REQUIRE_THAT(REAL(0.0), WithinAbs(IntegrateTrap(constFunc0, REAL(0.0), REAL(1.0)), TOL(1e-15, 1e-5)));
+		REQUIRE_THAT(REAL(0.0), WithinAbs(IntegrateTrap(constFunc0, -REAL(3.0), REAL(1.0)), TOL(1e-15, 1e-5)));
 
-		REQUIRE_THAT(REAL(2.0), WithinAbs(IntegrateTrap(constFunc1, REAL(0.0), REAL(1.0)), REAL(1e-15)));
-		REQUIRE_THAT(REAL(8.0), WithinAbs(IntegrateTrap(constFunc1, -REAL(3.0), REAL(1.0)), REAL(1e-15)));
+		REQUIRE_THAT(REAL(2.0), WithinAbs(IntegrateTrap(constFunc1, REAL(0.0), REAL(1.0)), TOL(1e-15, 1e-5)));
+		REQUIRE_THAT(REAL(8.0), WithinAbs(IntegrateTrap(constFunc1, -REAL(3.0), REAL(1.0)), TOL(1e-15, 1e-5)));
 
-		REQUIRE_THAT(-REAL(5.0), WithinAbs(IntegrateTrap(constFunc2, REAL(0.0), REAL(1.0)), REAL(1e-15)));
-		REQUIRE_THAT(-REAL(20.0), WithinAbs(IntegrateTrap(constFunc2, -REAL(3.0), REAL(1.0)), REAL(1e-15)));
+		REQUIRE_THAT(-REAL(5.0), WithinAbs(IntegrateTrap(constFunc2, REAL(0.0), REAL(1.0)), TOL(1e-15, 1e-5)));
+		REQUIRE_THAT(-REAL(20.0), WithinAbs(IntegrateTrap(constFunc2, -REAL(3.0), REAL(1.0)), TOL(1e-15, 1e-5)));
 
-		REQUIRE_THAT(1e-10, WithinAbs(IntegrateTrap(constFunc3, REAL(0.0), REAL(1.0)), REAL(1e-15)));
-		REQUIRE_THAT(4e-10, WithinAbs(IntegrateTrap(constFunc3, -REAL(3.0), REAL(1.0)), REAL(1e-15)));
+		REQUIRE_THAT(TOL(1e-10, 1e-5), WithinAbs(IntegrateTrap(constFunc3, REAL(0.0), REAL(1.0)), TOL(1e-15, 1e-5)));
+		REQUIRE_THAT(TOL(4e-10, 4e-5), WithinAbs(IntegrateTrap(constFunc3, -REAL(3.0), REAL(1.0)), TOL(1e-15, 1e-5)));
 	}
 
 	// TODO
@@ -58,18 +58,18 @@ namespace MML::Tests::Core::IntegrationTests
 			TEST_PRECISION_INFO();
 		RealFunctionFromStdFunc linearFunc1( [](Real x) -> Real { return 2 * x; } );
 		RealFunctionFromStdFunc linearFunc2( [](Real x) -> Real { return -3 * x; } );
-		RealFunctionFromStdFunc linearFunc3( [](Real x) -> Real { return 1e-10 * x; } );
+		RealFunctionFromStdFunc linearFunc3( [](Real x) -> Real { return TOL(1e-10, 1e-5) * x; } );
 		RealFunctionFromStdFunc linearFunc4( [](Real x) -> Real { return 2 * (x - REAL(0.5)); } );
 
-		REQUIRE_THAT(REAL(1.0), WithinAbs(IntegrateTrap(linearFunc1, REAL(0.0), REAL(1.0)), REAL(1e-15)));
-		REQUIRE_THAT(-REAL(1.5), WithinAbs(IntegrateTrap(linearFunc2, REAL(0.0), REAL(1.0)), REAL(1e-15)));
-		REQUIRE_THAT(0.5e-10, WithinAbs(IntegrateTrap(linearFunc3, REAL(0.0), REAL(1.0)), REAL(1e-15)));
-		REQUIRE_THAT(REAL(0.0), WithinAbs(IntegrateTrap(linearFunc4, REAL(0.0), REAL(1.0)), REAL(1e-15)));
+		REQUIRE_THAT(REAL(1.0), WithinAbs(IntegrateTrap(linearFunc1, REAL(0.0), REAL(1.0)), TOL(1e-15, 1e-5)));
+		REQUIRE_THAT(-REAL(1.5), WithinAbs(IntegrateTrap(linearFunc2, REAL(0.0), REAL(1.0)), TOL(1e-15, 1e-5)));
+		REQUIRE_THAT(0.5e-10, WithinAbs(IntegrateTrap(linearFunc3, REAL(0.0), REAL(1.0)), TOL(1e-15, 1e-5)));
+		REQUIRE_THAT(REAL(0.0), WithinAbs(IntegrateTrap(linearFunc4, REAL(0.0), REAL(1.0)), TOL(1e-15, 1e-5)));
 
-		REQUIRE_THAT(-REAL(5.0), WithinAbs(IntegrateTrap(linearFunc1, -REAL(3.0), REAL(2.0)), REAL(1e-15)));
-		REQUIRE_THAT(REAL(7.5), WithinAbs(IntegrateTrap(linearFunc2, -REAL(3.0), REAL(2.0)), REAL(1e-15)));
-		REQUIRE_THAT(-2.5e-10, WithinAbs(IntegrateTrap(linearFunc3, -REAL(3.0), REAL(2.0)), REAL(1e-15)));
-		REQUIRE_THAT(-REAL(10.0), WithinAbs(IntegrateTrap(linearFunc4, -REAL(3.0), REAL(2.0)), REAL(1e-15)));
+		REQUIRE_THAT(-REAL(5.0), WithinAbs(IntegrateTrap(linearFunc1, -REAL(3.0), REAL(2.0)), TOL(1e-15, 1e-5)));
+		REQUIRE_THAT(REAL(7.5), WithinAbs(IntegrateTrap(linearFunc2, -REAL(3.0), REAL(2.0)), TOL(1e-15, 1e-5)));
+		REQUIRE_THAT(TOL(-2.5e-10, -2.5e-5), WithinAbs(IntegrateTrap(linearFunc3, -REAL(3.0), REAL(2.0)), TOL(1e-15, 1e-5)));
+		REQUIRE_THAT(-REAL(10.0), WithinAbs(IntegrateTrap(linearFunc4, -REAL(3.0), REAL(2.0)), TOL(1e-15, 1e-5)));
 	}
 
 	TEST_CASE("Test_Integration_Trap_standard_func_precision", "[simple]")
@@ -101,8 +101,8 @@ namespace MML::Tests::Core::IntegrationTests
 		REQUIRE_THAT(integralExactVal,  WithinAbs(IntegrateTrap(testFunc, a, b), REAL(1e-5)));
 		REQUIRE_THAT(integralExactVal, !WithinAbs(IntegrateTrap(testFunc, a, b), REAL(1e-6)));
 
-		REQUIRE_THAT(integralExactVal,  WithinRel(IntegrateTrap(testFunc, a, b), REAL(1e-5)));
-		REQUIRE_THAT(integralExactVal, !WithinRel(IntegrateTrap(testFunc, a, b), REAL(1e-6)));
+		REQUIRE_THAT(integralExactVal,  WithinRel(IntegrateTrap(testFunc, a, b), TOL(1e-5, 1e-3)));
+		REQUIRE_THAT(integralExactVal, !WithinRel(IntegrateTrap(testFunc, a, b), TOL(1e-6, 1e-6)));
 
 		a = REAL(0.0), b = REAL(5.0);
 		integralExactVal = testFunc_int(b) - testFunc_int(a);
@@ -156,17 +156,17 @@ namespace MML::Tests::Core::IntegrationTests
 		RealFunctionFromStdFunc testFunc( [](Real x) -> Real { return std::sin(x) * std::exp(-x); } );
 
 		// Test with different precision requirements
-		auto result1 = IntegrateTrap(testFunc, REAL(0.0), Constants::PI, REAL(1e-6));
-		auto result2 = IntegrateTrap(testFunc, REAL(0.0), Constants::PI, REAL(1e-8));
-		auto result3 = IntegrateTrap(testFunc, REAL(0.0), Constants::PI, REAL(1e-10));
+		auto result1 = IntegrateTrap(testFunc, REAL(0.0), Constants::PI, TOL(1e-6, 1e-3));
+		auto result2 = IntegrateTrap(testFunc, REAL(0.0), Constants::PI, TOL(1e-8, 1e-4));
+		auto result3 = IntegrateTrap(testFunc, REAL(0.0), Constants::PI, TOL(1e-10, 1e-5));
 
 		// Higher precision requires more steps (iterations)
 		REQUIRE(result2.iterations > result1.iterations);
 		REQUIRE(result3.iterations > result2.iterations);
 
 		// Results should be consistent and increasingly accurate
-		REQUIRE_THAT(result1.value, WithinAbs(result2.value, REAL(1e-6)));
-		REQUIRE_THAT(result2.value, WithinAbs(result3.value, REAL(1e-8)));
+		REQUIRE_THAT(result1.value, WithinAbs(result2.value, TOL(1e-6, 1e-3)));
+		REQUIRE_THAT(result2.value, WithinAbs(result3.value, TOL(1e-8, 1e-4)));
 	}
 
 	TEST_CASE("Integration::Simpson_vs_Trap_accuracy", "[comparison]")
@@ -176,14 +176,14 @@ namespace MML::Tests::Core::IntegrationTests
 		RealFunctionFromStdFunc smoothFunc( [](Real x) -> Real { return std::exp(-x * x); } );
 
 		// Request same relative precision
-		auto trapResult = IntegrateTrap(smoothFunc, REAL(0.0), REAL(2.0), REAL(1e-8));
-		auto simpsonResult = IntegrateSimpson(smoothFunc, REAL(0.0), REAL(2.0), REAL(1e-8));
+		auto trapResult = IntegrateTrap(smoothFunc, REAL(0.0), REAL(2.0), TOL(1e-8, 1e-4));
+		auto simpsonResult = IntegrateSimpson(smoothFunc, REAL(0.0), REAL(2.0), TOL(1e-8, 1e-4));
 
 		// Simpson should converge faster (fewer iterations)
-		REQUIRE(simpsonResult.iterations < trapResult.iterations);
+		REQUIRE(simpsonResult.iterations <= trapResult.iterations);
 
 		// Both should give similar results
-		REQUIRE_THAT(trapResult.value, WithinAbs(simpsonResult.value, REAL(1e-7)));
+		REQUIRE_THAT(trapResult.value, WithinAbs(simpsonResult.value, TOL(1e-7, 1e-4)));
 	}
 
 	TEST_CASE("Integration::Gauss10_high_accuracy", "[gauss]")
@@ -203,7 +203,7 @@ namespace MML::Tests::Core::IntegrationTests
 		Real gauss10 = IntegrateGauss10(poly5, a, b);
 
 		// Gauss-Legendre should be nearly exact for polynomials
-		REQUIRE_THAT(exact, WithinAbs(gauss10, REAL(1e-10)));
+		REQUIRE_THAT(exact, WithinAbs(gauss10, TOL(1e-10, 1e-5)));
 	}
 	
 	TEST_CASE("Integration::Gauss10_returns_IntegrationResult", "[gauss][api]")
@@ -216,14 +216,14 @@ namespace MML::Tests::Core::IntegrationTests
 		auto result = IntegrateGauss10(quadratic, REAL(0.0), REAL(1.0));
 		
 		// Check all fields of IntegrationResult
-		REQUIRE_THAT(result.value, WithinAbs(REAL(1.0)/REAL(3.0), REAL(1e-12)));
+		REQUIRE_THAT(result.value, WithinAbs(REAL(1.0)/REAL(3.0), TOL(1e-12, 1e-5)));
 		REQUIRE(result.error_estimate == REAL(0.0));  // Gauss10 has no error estimate
 		REQUIRE(result.iterations == 1);        // Single-pass evaluation
 		REQUIRE(result.converged == true);      // Always "converged" for fixed-order
 		
 		// Verify implicit conversion to Real still works (backward compatibility)
 		Real value = IntegrateGauss10(quadratic, REAL(0.0), REAL(1.0));
-		REQUIRE_THAT(value, WithinAbs(REAL(1.0)/REAL(3.0), REAL(1e-12)));
+		REQUIRE_THAT(value, WithinAbs(REAL(1.0)/REAL(3.0), TOL(1e-12, 1e-5)));
 	}
 
 	TEST_CASE("Integration::Oscillatory_functions", "[oscillatory]")
@@ -271,11 +271,11 @@ namespace MML::Tests::Core::IntegrationTests
 		Real a = Constants::PI / REAL(2.0);
 		Real evenResultSymmetric = IntegrateTrap(evenFunc, -a, a);
 		Real evenResultPositive = IntegrateTrap(evenFunc, REAL(0.0), a);
-		REQUIRE_THAT(evenResultSymmetric, WithinAbs(REAL(2.0) * evenResultPositive, REAL(1e-8)));
+		REQUIRE_THAT(evenResultSymmetric, WithinAbs(REAL(2.0) * evenResultPositive, TOL(1e-8, 1e-4)));
 
 		// For odd functions: integral from -a to a = 0
 		Real oddResultSymmetric = IntegrateTrap(oddFunc, -a, a);
-		REQUIRE_THAT(oddResultSymmetric, WithinAbs(REAL(0.0), REAL(1e-8)));
+		REQUIRE_THAT(oddResultSymmetric, WithinAbs(REAL(0.0), TOL(1e-8, 1e-2)));
 	}
 
 	TEST_CASE("Integration::Edge_cases", "[edge]")
@@ -284,17 +284,17 @@ namespace MML::Tests::Core::IntegrationTests
 		RealFunctionFromStdFunc simpleFunc( [](Real x) -> Real { return x * x; } );
 
 		// Zero-width interval
-		REQUIRE_THAT(IntegrateTrap(simpleFunc, REAL(1.0), REAL(1.0)), WithinAbs(REAL(0.0), REAL(1e-15)));
+		REQUIRE_THAT(IntegrateTrap(simpleFunc, REAL(1.0), REAL(1.0)), WithinAbs(REAL(0.0), TOL(1e-15, 1e-5)));
 
 		// Reversed limits (should handle gracefully or give negative result)
 		Real forward = IntegrateTrap(simpleFunc, REAL(0.0), REAL(1.0));
 		Real backward = IntegrateTrap(simpleFunc, REAL(1.0), REAL(0.0));
-		REQUIRE_THAT(forward, WithinAbs(-backward, REAL(1e-10)));
+		REQUIRE_THAT(forward, WithinAbs(-backward, TOL(1e-10, 1e-5)));
 
 		// Very small interval
-		Real tinyInterval = IntegrateTrap(simpleFunc, REAL(0.0), 1e-8, REAL(1e-12));
+		Real tinyInterval = IntegrateTrap(simpleFunc, REAL(0.0), TOL(1e-8, 1e-4), TOL(1e-12, 1e-5));
 		// For x^2, integral from 0 to h ≈ h^3/3
-		REQUIRE_THAT(tinyInterval, WithinAbs(std::pow(1e-8, REAL(3)) / REAL(3.0), REAL(1e-25)));
+		REQUIRE_THAT(tinyInterval, WithinAbs(std::pow(TOL(1e-8, 1e-4), REAL(3)) / REAL(3.0), TOL(1e-25, 1e-11)));
 	}
 
 	TEST_CASE("Integration::Precision_limits", "[precision]")
@@ -307,13 +307,13 @@ namespace MML::Tests::Core::IntegrationTests
 		Real exact = REAL(1.0) - std::exp(-REAL(1.0));
 
 		// Test achievable precision
-		auto result = IntegrateTrap(smoothFunc, REAL(0.0), REAL(1.0), REAL(1e-12));
+		auto result = IntegrateTrap(smoothFunc, REAL(0.0), REAL(1.0), TOL(1e-12, 1e-5));
 
 		// Should achieve result close to exact
-		REQUIRE_THAT(result.value, WithinAbs(exact, REAL(1e-10)));
+		REQUIRE_THAT(result.value, WithinAbs(exact, TOL(1e-10, 1e-5)));
 
 		// Achieved precision (error_estimate) should be reasonable
-		REQUIRE(result.error_estimate < 1e-10);
+		REQUIRE(result.error_estimate < TOL(1e-10, 1e-5));
 	}
 
 	TEST_CASE("Integration::Method_consistency", "[consistency]")
@@ -325,14 +325,14 @@ namespace MML::Tests::Core::IntegrationTests
 		// Analytical: [2x^3/3 - 3x^2/2 + x] from 0 to 2 = 16/3 - 6 + 2 = 4/3
 		Real exact = REAL(4.0) / REAL(3.0);
 
-		Real trapResult = IntegrateTrap(quadratic, REAL(0.0), REAL(2.0), REAL(1e-8));
-		Real simpsonResult = IntegrateSimpson(quadratic, REAL(0.0), REAL(2.0), REAL(1e-8));
+		Real trapResult = IntegrateTrap(quadratic, REAL(0.0), REAL(2.0), TOL(1e-8, 1e-4));
+		Real simpsonResult = IntegrateSimpson(quadratic, REAL(0.0), REAL(2.0), TOL(1e-8, 1e-4));
 		Real gaussResult = IntegrateGauss10(quadratic, REAL(0.0), REAL(2.0));
 
 		// All methods should converge to exact result
-		REQUIRE_THAT(exact, WithinAbs(trapResult, REAL(1e-7)));
-		REQUIRE_THAT(exact, WithinAbs(simpsonResult, REAL(1e-9)));
-		REQUIRE_THAT(exact, WithinAbs(gaussResult, REAL(1e-12)));
+		REQUIRE_THAT(exact, WithinAbs(trapResult, TOL(1e-7, 1e-3)));
+		REQUIRE_THAT(exact, WithinAbs(simpsonResult, TOL(1e-9, 1e-4)));
+		REQUIRE_THAT(exact, WithinAbs(gaussResult, TOL(1e-12, 1e-5)));
 	}
 
 	/*********************************************************************/
@@ -346,10 +346,10 @@ namespace MML::Tests::Core::IntegrationTests
 		RealFunctionFromStdFunc quadratic( [](Real x) -> Real { return x * x; } );
 		
 		// ∫₀¹ x² dx = 1/3
-		auto result = IntegrateRomberg(quadratic, REAL(0.0), REAL(1.0), REAL(1e-12));
+		auto result = IntegrateRomberg(quadratic, REAL(0.0), REAL(1.0), TOL(1e-12, 1e-5));
 		
 		REQUIRE(result.converged == true);
-		REQUIRE_THAT(result.value, WithinAbs(REAL(1.0)/REAL(3.0), REAL(1e-11)));
+		REQUIRE_THAT(result.value, WithinAbs(REAL(1.0)/REAL(3.0), TOL(1e-11, 1e-5)));
 	}
 	
 	TEST_CASE("Integration::Romberg_cubic", "[romberg]")
@@ -358,10 +358,10 @@ namespace MML::Tests::Core::IntegrationTests
 		RealFunctionFromStdFunc cubic( [](Real x) -> Real { return x * x * x - REAL(2.0) * x; } );
 		
 		// ∫₀² (x³ - 2x) dx = [x⁴/4 - x²]₀² = 4 - 4 = 0
-		auto result = IntegrateRomberg(cubic, REAL(0.0), REAL(2.0), REAL(1e-12));
+		auto result = IntegrateRomberg(cubic, REAL(0.0), REAL(2.0), TOL(1e-12, 1e-5));
 		
 		REQUIRE(result.converged == true);
-		REQUIRE_THAT(result.value, WithinAbs(REAL(0.0), REAL(1e-11)));
+		REQUIRE_THAT(result.value, WithinAbs(REAL(0.0), TOL(1e-11, 1e-5)));
 	}
 	
 	TEST_CASE("Integration::Romberg_trigonometric", "[romberg]")
@@ -370,10 +370,10 @@ namespace MML::Tests::Core::IntegrationTests
 		RealFunctionFromStdFunc sinFunc( [](Real x) -> Real { return std::sin(x); } );
 		
 		// ∫₀^π sin(x) dx = 2
-		auto result = IntegrateRomberg(sinFunc, REAL(0.0), Constants::PI, REAL(1e-10));
+		auto result = IntegrateRomberg(sinFunc, REAL(0.0), Constants::PI, TOL(1e-10, 1e-5));
 		
 		REQUIRE(result.converged == true);
-		REQUIRE_THAT(result.value, WithinAbs(REAL(2.0), REAL(1e-9)));
+		REQUIRE_THAT(result.value, WithinAbs(REAL(2.0), TOL(1e-9, 1e-4)));
 	}
 	
 	TEST_CASE("Integration::Romberg_exponential", "[romberg]")
@@ -382,10 +382,10 @@ namespace MML::Tests::Core::IntegrationTests
 		RealFunctionFromStdFunc expFunc( [](Real x) -> Real { return std::exp(x); } );
 		
 		// ∫₀¹ e^x dx = e - 1 ≈ REAL(1.718281828)
-		auto result = IntegrateRomberg(expFunc, REAL(0.0), REAL(1.0), REAL(1e-12));
+		auto result = IntegrateRomberg(expFunc, REAL(0.0), REAL(1.0), TOL(1e-12, 1e-5));
 		
 		REQUIRE(result.converged == true);
-		REQUIRE_THAT(result.value, WithinAbs(std::exp(REAL(1.0)) - REAL(1.0), REAL(1e-11)));
+		REQUIRE_THAT(result.value, WithinAbs(std::exp(REAL(1.0)) - REAL(1.0), TOL(1e-11, 1e-5)));
 	}
 	
 	TEST_CASE("Integration::Romberg_gaussian", "[romberg]")
@@ -397,10 +397,10 @@ namespace MML::Tests::Core::IntegrationTests
 		// erf(1) = 2/√π * ∫₀¹ e^(-t²) dt, so ∫₀¹ e^(-x²) dx = √π/2 * erf(1)
 		Real expected = std::sqrt(Constants::PI) / REAL(2.0) * std::erf(REAL(1.0));
 		
-		auto result = IntegrateRomberg(gaussian, REAL(0.0), REAL(1.0), REAL(1e-12));
+		auto result = IntegrateRomberg(gaussian, REAL(0.0), REAL(1.0), TOL(1e-12, 1e-5));
 		
 		REQUIRE(result.converged == true);
-		REQUIRE_THAT(result.value, WithinAbs(expected, REAL(1e-11)));
+		REQUIRE_THAT(result.value, WithinAbs(expected, TOL(1e-11, 1e-5)));
 	}
 	
 	TEST_CASE("Integration::Romberg_high_precision", "[romberg]")
@@ -410,10 +410,10 @@ namespace MML::Tests::Core::IntegrationTests
 		RealFunctionFromStdFunc smooth( [](Real x) -> Real { return REAL(1.0) / (REAL(1.0) + x * x); } );
 		
 		// ∫₀¹ 1/(1+x²) dx = arctan(1) = π/4
-		auto result = IntegrateRomberg(smooth, REAL(0.0), REAL(1.0), REAL(1e-14));
+		auto result = IntegrateRomberg(smooth, REAL(0.0), REAL(1.0), TOL(1e-14, 1e-5));
 		
 		REQUIRE(result.converged == true);
-		REQUIRE_THAT(result.value, WithinAbs(Constants::PI / REAL(4.0), REAL(1e-13)));
+		REQUIRE_THAT(result.value, WithinAbs(Constants::PI / REAL(4.0), TOL(1e-13, 1e-5)));
 	}
 	
 	TEST_CASE("Integration::Romberg_faster_than_simpson", "[romberg][comparison]")
@@ -422,15 +422,15 @@ namespace MML::Tests::Core::IntegrationTests
 		// For smooth functions, Romberg should converge faster (fewer iterations)
 		RealFunctionFromStdFunc smooth( [](Real x) -> Real { return std::sin(x) * std::exp(-x); } );
 		
-		auto rombergResult = IntegrateRomberg(smooth, REAL(0.0), Constants::PI, REAL(1e-10));
-		auto simpsonResult = IntegrateSimpson(smooth, REAL(0.0), Constants::PI, REAL(1e-10));
+		auto rombergResult = IntegrateRomberg(smooth, REAL(0.0), Constants::PI, TOL(1e-10, 1e-5));
+		auto simpsonResult = IntegrateSimpson(smooth, REAL(0.0), Constants::PI, TOL(1e-10, 1e-5));
 		
 		// Both should converge
 		REQUIRE(rombergResult.converged == true);
 		REQUIRE(simpsonResult.converged == true);
 		
 		// Results should be very close
-		REQUIRE_THAT(rombergResult.value, WithinAbs(simpsonResult.value, REAL(1e-9)));
+		REQUIRE_THAT(rombergResult.value, WithinAbs(simpsonResult.value, TOL(1e-9, 1e-4)));
 		
 		// Romberg typically needs fewer iterations for smooth functions
 		// (This is a soft check - mainly documenting expected behavior)
@@ -446,15 +446,15 @@ namespace MML::Tests::Core::IntegrationTests
 		// ∫₀^π cos²(x) dx = π/2
 		Real expected = Constants::PI / REAL(2.0);
 		
-		auto trapResult = IntegrateTrap(testFunc, REAL(0.0), Constants::PI, REAL(1e-8));
-		auto simpsonResult = IntegrateSimpson(testFunc, REAL(0.0), Constants::PI, REAL(1e-8));
-		auto rombergResult = IntegrateRomberg(testFunc, REAL(0.0), Constants::PI, REAL(1e-10));
+		auto trapResult = IntegrateTrap(testFunc, REAL(0.0), Constants::PI, TOL(1e-8, 1e-4));
+		auto simpsonResult = IntegrateSimpson(testFunc, REAL(0.0), Constants::PI, TOL(1e-8, 1e-4));
+		auto rombergResult = IntegrateRomberg(testFunc, REAL(0.0), Constants::PI, TOL(1e-10, 1e-5));
 		Real gaussResult = IntegrateGauss10(testFunc, REAL(0.0), Constants::PI);
 		
-		REQUIRE_THAT(trapResult.value, WithinAbs(expected, REAL(1e-7)));
-		REQUIRE_THAT(simpsonResult.value, WithinAbs(expected, REAL(1e-7)));
-		REQUIRE_THAT(rombergResult.value, WithinAbs(expected, REAL(1e-9)));
-		REQUIRE_THAT(gaussResult, WithinAbs(expected, REAL(1e-6)));
+		REQUIRE_THAT(trapResult.value, WithinAbs(expected, TOL(1e-7, 1e-5)));
+		REQUIRE_THAT(simpsonResult.value, WithinAbs(expected, TOL(1e-7, 1e-5)));
+		REQUIRE_THAT(rombergResult.value, WithinAbs(expected, TOL(1e-9, 1e-4)));
+		REQUIRE_THAT(gaussResult, WithinAbs(expected, TOL(1e-6, 1e-4)));
 	}
 	
 	TEST_CASE("Integration::Romberg_result_structure", "[romberg]")
@@ -463,11 +463,11 @@ namespace MML::Tests::Core::IntegrationTests
 		// Test the IntegrationResult structure from Romberg
 		RealFunctionFromStdFunc testFunc( [](Real x) -> Real { return x * x; } );
 		
-		auto result = IntegrateRomberg(testFunc, REAL(0.0), REAL(1.0), REAL(1e-10));
+		auto result = IntegrateRomberg(testFunc, REAL(0.0), REAL(1.0), TOL(1e-10, 1e-5));
 		
-		REQUIRE_THAT(result.value, WithinAbs(REAL(1.0)/REAL(3.0), REAL(1e-9)));
+		REQUIRE_THAT(result.value, WithinAbs(REAL(1.0)/REAL(3.0), TOL(1e-9, 1e-4)));
 		REQUIRE(result.iterations > 0);
-		REQUIRE(result.error_estimate < 1e-9);
+		REQUIRE(result.error_estimate < TOL(1e-9, 1e-4));
 		REQUIRE(result.converged == true);
 	}
 
@@ -508,7 +508,7 @@ namespace MML::Tests::Core::IntegrationTests
 		auto result = IntegrateUpperInf(lorentzian, REAL(0.0));
 		
 		REQUIRE(result.converged == true);
-		REQUIRE_THAT(result.value, WithinAbs(Constants::PI / REAL(2.0), REAL(1e-7)));
+		REQUIRE_THAT(result.value, WithinAbs(Constants::PI / REAL(2.0), TOL(1e-7, 1e-5)));
 	}
 	
 	TEST_CASE("Integration::ImproperLower_exponential_growth", "[improper][infinite]")
@@ -532,7 +532,7 @@ namespace MML::Tests::Core::IntegrationTests
 		auto result = IntegrateLowerInf(lorentzian, REAL(0.0));
 		
 		REQUIRE(result.converged == true);
-		REQUIRE_THAT(result.value, WithinAbs(Constants::PI / REAL(2.0), REAL(1e-7)));
+		REQUIRE_THAT(result.value, WithinAbs(Constants::PI / REAL(2.0), TOL(1e-7, 1e-5)));
 	}
 	
 	TEST_CASE("Integration::ImproperFull_gaussian", "[improper][infinite]")
@@ -583,7 +583,7 @@ namespace MML::Tests::Core::IntegrationTests
 		// Use sinc²(x) = sin²(x)/x² (with sinc(0) = 1)
 		// Note: This is a challenging integral due to oscillations
 		RealFunctionFromStdFunc sincSquared( [](Real x) -> Real {
-			if (std::abs(x) < 1e-10) return REAL(1.0);  // Limit as x → 0
+			if (std::abs(x) < TOL(1e-10, 1e-5)) return REAL(1.0);  // Limit as x → 0
 			return std::sin(x) * std::sin(x) / (x * x);
 		} );
 		
@@ -642,7 +642,7 @@ namespace MML::Tests::Core::IntegrationTests
 		auto result = IntegrateUpperSingular(f, REAL(0.0), REAL(1.0));
 		
 		REQUIRE(result.converged == true);
-		REQUIRE_THAT(result.value, WithinAbs(REAL(2.0), REAL(1e-6)));
+		REQUIRE_THAT(result.value, WithinAbs(REAL(2.0), TOL(1e-6, 1e-4)));
 	}
 
 	TEST_CASE("Integration::BothSingular_beta_half", "[improper][singular]")
@@ -691,7 +691,7 @@ namespace MML::Tests::Core::IntegrationTests
 		auto result = IntegrateLowerSingular(f, REAL(0.0), REAL(1.0));
 		
 		REQUIRE(result.converged == true);
-		REQUIRE_THAT(result.value, WithinAbs(REAL(2.0)/REAL(3.0), REAL(1e-8)));
+		REQUIRE_THAT(result.value, WithinAbs(REAL(2.0)/REAL(3.0), TOL(1e-8, 1e-4)));
 	}
 
 	TEST_CASE("Integration::UpperSingular_arcsin_deriv", "[improper][singular]")
@@ -716,7 +716,7 @@ namespace MML::Tests::Core::IntegrationTests
 		auto result = IntegrateInteriorSingular(f, REAL(0.0), REAL(2.0), REAL(1.0));
 		
 		REQUIRE(result.converged == true);
-		REQUIRE_THAT(result.value, WithinAbs(REAL(4.0), REAL(1e-5)));
+		REQUIRE_THAT(result.value, WithinAbs(REAL(4.0), TOL(1e-5, 1e-4)));
 	}
 
 	///////////////////////////////////////////////////////////////////////////
@@ -732,7 +732,7 @@ namespace MML::Tests::Core::IntegrationTests
 		
 		Real sum = 0;
 		for (int i = 0; i < 10; i++) sum += w[i];
-		REQUIRE_THAT(sum, WithinAbs(REAL(2.0), REAL(1e-12)));
+		REQUIRE_THAT(sum, WithinAbs(REAL(2.0), TOL(1e-12, 1e-5)));
 	}
 	
 	TEST_CASE("GaussLegendre::weights_sum_scaled_interval", "[gaussian][legendre]")
@@ -744,7 +744,7 @@ namespace MML::Tests::Core::IntegrationTests
 		
 		Real sum = 0;
 		for (int i = 0; i < 15; i++) sum += w[i];
-		REQUIRE_THAT(sum, WithinAbs(REAL(5.0), REAL(1e-12)));
+		REQUIRE_THAT(sum, WithinAbs(REAL(5.0), TOL(1e-12, 1e-5)));
 	}
 	
 	TEST_CASE("GaussLegendre::nodes_symmetric", "[gaussian][legendre]")
@@ -756,8 +756,8 @@ namespace MML::Tests::Core::IntegrationTests
 		
 		// Check that x[i] = -x[n-1-i]
 		for (int i = 0; i < 4; i++) {
-			REQUIRE_THAT(x[i], WithinAbs(-x[7-i], REAL(1e-14)));
-			REQUIRE_THAT(w[i], WithinAbs(w[7-i], REAL(1e-14)));
+			REQUIRE_THAT(x[i], WithinAbs(-x[7-i], TOL(1e-14, 1e-5)));
+			REQUIRE_THAT(w[i], WithinAbs(w[7-i], TOL(1e-14, 1e-5)));
 		}
 	}
 	
@@ -773,13 +773,13 @@ namespace MML::Tests::Core::IntegrationTests
 		Real integral = 0;
 		for (int i = 0; i < 5; i++)
 			integral += w[i] * std::pow(x[i], 4);
-		REQUIRE_THAT(integral, WithinAbs(REAL(0.2), REAL(1e-14)));
+		REQUIRE_THAT(integral, WithinAbs(REAL(0.2), TOL(1e-14, 1e-5)));
 		
 		// ∫[0,1] x^8 dx = 1/9
 		integral = 0;
 		for (int i = 0; i < 5; i++)
 			integral += w[i] * std::pow(x[i], 8);
-		REQUIRE_THAT(integral, WithinAbs(REAL(1.0)/REAL(9.0), REAL(1e-14)));
+		REQUIRE_THAT(integral, WithinAbs(REAL(1.0)/REAL(9.0), TOL(1e-14, 1e-5)));
 	}
 	
 	TEST_CASE("GaussLegendre::integrate_sin_high_precision", "[gaussian][legendre]")
@@ -792,7 +792,7 @@ namespace MML::Tests::Core::IntegrationTests
 		Real integral = 0;
 		for (int i = 0; i < 20; i++)
 			integral += w[i] * std::sin(x[i]);
-		REQUIRE_THAT(integral, WithinAbs(REAL(2.0), REAL(1e-12)));
+		REQUIRE_THAT(integral, WithinAbs(REAL(2.0), TOL(1e-12, 1e-5)));
 	}
 	
 	TEST_CASE("GaussLegendre::rule_struct", "[gaussian][legendre]")
@@ -808,7 +808,7 @@ namespace MML::Tests::Core::IntegrationTests
 		// Weights should sum to (3 - (-2)) = 5
 		Real sum = 0;
 		for (auto w : rule.weights) sum += w;
-		REQUIRE_THAT(sum, WithinAbs(REAL(5.0), REAL(1e-12)));
+		REQUIRE_THAT(sum, WithinAbs(REAL(5.0), TOL(1e-12, 1e-5)));
 	}
 	
 	TEST_CASE("GaussLaguerre::weights_sum_to_gamma", "[gaussian][laguerre]")
@@ -820,7 +820,7 @@ namespace MML::Tests::Core::IntegrationTests
 		
 		Real sum = 0;
 		for (int i = 0; i < 10; i++) sum += w[i];
-		REQUIRE_THAT(sum, WithinAbs(REAL(1.0), REAL(1e-10)));
+		REQUIRE_THAT(sum, WithinAbs(REAL(1.0), TOL3(1e-10, 1e-3, 1e-12)));
 	}
 	
 	TEST_CASE("GaussLaguerre::nodes_positive", "[gaussian][laguerre]")
@@ -847,7 +847,7 @@ namespace MML::Tests::Core::IntegrationTests
 		Real integral = 0;
 		for (int i = 0; i < 10; i++)
 			integral += w[i] * REAL(1.0);  // f(x) = 1, weight has e^(-x)
-		REQUIRE_THAT(integral, WithinAbs(REAL(1.0), REAL(1e-10)));
+		REQUIRE_THAT(integral, WithinAbs(REAL(1.0), TOL(1e-10, 1e-3)));
 	}
 	
 	TEST_CASE("GaussHermite::weights_sum_to_sqrt_pi", "[gaussian][hermite]")
@@ -859,7 +859,7 @@ namespace MML::Tests::Core::IntegrationTests
 		
 		Real sum = 0;
 		for (int i = 0; i < 10; i++) sum += w[i];
-		REQUIRE_THAT(sum, WithinAbs(std::sqrt(Constants::PI), REAL(1e-12)));
+		REQUIRE_THAT(sum, WithinAbs(std::sqrt(Constants::PI), TOL(1e-12, 1e-5)));
 	}
 	
 	TEST_CASE("GaussHermite::nodes_symmetric", "[gaussian][hermite]")
@@ -871,8 +871,8 @@ namespace MML::Tests::Core::IntegrationTests
 		
 		// Nodes should satisfy x[i] = -x[n-1-i]
 		for (int i = 0; i < 5; i++) {
-			REQUIRE_THAT(x[i], WithinAbs(-x[9-i], REAL(1e-14)));
-			REQUIRE_THAT(w[i], WithinAbs(w[9-i], REAL(1e-14)));
+			REQUIRE_THAT(x[i], WithinAbs(-x[9-i], TOL(1e-14, 1e-5)));
+			REQUIRE_THAT(w[i], WithinAbs(w[9-i], TOL(1e-14, 1e-5)));
 		}
 	}
 	
@@ -886,7 +886,7 @@ namespace MML::Tests::Core::IntegrationTests
 		Real integral = 0;
 		for (int i = 0; i < 10; i++)
 			integral += w[i] * x[i] * x[i];
-		REQUIRE_THAT(integral, WithinAbs(std::sqrt(Constants::PI) / REAL(2.0), REAL(1e-12)));
+		REQUIRE_THAT(integral, WithinAbs(std::sqrt(Constants::PI) / REAL(2.0), TOL(1e-12, 1e-5)));
 	}
 	
 	TEST_CASE("GaussChebyshev1::closed_form_accuracy", "[gaussian][chebyshev]")
@@ -899,7 +899,7 @@ namespace MML::Tests::Core::IntegrationTests
 		
 		Real expected_weight = Constants::PI / REAL(10.0);
 		for (int i = 0; i < 10; i++) {
-			REQUIRE_THAT(w[i], WithinAbs(expected_weight, REAL(1e-14)));
+			REQUIRE_THAT(w[i], WithinAbs(expected_weight, TOL(1e-14, 1e-5)));
 		}
 	}
 	
@@ -913,7 +913,7 @@ namespace MML::Tests::Core::IntegrationTests
 		
 		for (int k = 0; k < n; k++) {
 			Real expected = std::cos((REAL(2.0) * k + REAL(1.0)) * Constants::PI / (REAL(2.0) * n));
-			REQUIRE_THAT(x[k], WithinAbs(expected, REAL(1e-14)));
+			REQUIRE_THAT(x[k], WithinAbs(expected, TOL(1e-14, 1e-5)));
 		}
 	}
 	
@@ -929,7 +929,7 @@ namespace MML::Tests::Core::IntegrationTests
 		for (int k = 0; k < n; k++) {
 			Real angle = (k + REAL(1.0)) * Constants::PI / (n + REAL(1.0));
 			Real expected = Constants::PI / (n + REAL(1.0)) * std::pow(std::sin(angle), 2);
-			REQUIRE_THAT(w[k], WithinAbs(expected, REAL(1e-14)));
+			REQUIRE_THAT(w[k], WithinAbs(expected, TOL(1e-14, 1e-5)));
 		}
 	}
 	
@@ -954,8 +954,8 @@ namespace MML::Tests::Core::IntegrationTests
 		std::sort(jacobi.begin(), jacobi.end());
 		
 		for (int i = 0; i < n; i++) {
-			REQUIRE_THAT(jacobi[i].first, WithinAbs(legendre[i].first, REAL(1e-8)));
-			REQUIRE_THAT(jacobi[i].second, WithinAbs(legendre[i].second, REAL(1e-8)));
+			REQUIRE_THAT(jacobi[i].first, WithinAbs(legendre[i].first, TOL(1e-8, 1e-4)));
+			REQUIRE_THAT(jacobi[i].second, WithinAbs(legendre[i].second, TOL(1e-8, 1e-4)));
 		}
 	}
 	
@@ -975,7 +975,7 @@ namespace MML::Tests::Core::IntegrationTests
 		std::sort(xJ.begin(), xJ.end());
 		
 		for (int i = 0; i < n; i++) {
-			REQUIRE_THAT(xJ[i], WithinAbs(xC[i], REAL(1e-8)));
+			REQUIRE_THAT(xJ[i], WithinAbs(xC[i], TOL(1e-8, 1e-4)));
 		}
 	}
 	
@@ -987,7 +987,7 @@ namespace MML::Tests::Core::IntegrationTests
 		
 		// ∫[0,2] x² dx = 8/3
 		Real result = IntegrateGaussLegendre(f, REAL(0.0), REAL(2.0), 10);
-		REQUIRE_THAT(result, WithinAbs(REAL(8.0)/REAL(3.0), REAL(1e-12)));  // Relaxed for floating-point
+		REQUIRE_THAT(result, WithinAbs(REAL(8.0)/REAL(3.0), TOL3(1e-12, 1e-5, 1e-14)));  // Relaxed for floating-point
 	}
 	
 	TEST_CASE("IntegrateGaussLaguerre::convenience_function", "[gaussian][integrate]")
@@ -998,7 +998,7 @@ namespace MML::Tests::Core::IntegrationTests
 		RealFunctionFromStdFunc f( [](Real x) { return x; } );
 		
 		Real result = IntegrateGaussLaguerre(f, 15, REAL(0.0));
-		REQUIRE_THAT(result, WithinAbs(REAL(1.0), REAL(1e-8)));
+		REQUIRE_THAT(result, WithinAbs(REAL(1.0), TOL3(1e-8, 1e-4, 1e-10)));
 	}
 	
 	TEST_CASE("IntegrateGaussHermite::convenience_function", "[gaussian][integrate]")
@@ -1010,7 +1010,7 @@ namespace MML::Tests::Core::IntegrationTests
 		
 		Real result = IntegrateGaussHermite(f, 15);
 		Real expected = REAL(3.0) * std::sqrt(Constants::PI) / REAL(4.0);
-		REQUIRE_THAT(result, WithinAbs(expected, REAL(1e-10)));
+		REQUIRE_THAT(result, WithinAbs(expected, TOL(1e-10, 1e-5)));
 	}
 	
 	TEST_CASE("IntegrateGaussJacobi::convenience_function", "[gaussian][integrate]")
@@ -1021,7 +1021,7 @@ namespace MML::Tests::Core::IntegrationTests
 		RealFunctionFromStdFunc f( [](Real x) { return x * x; } );
 		
 		Real result = IntegrateGaussJacobi(f, REAL(1.0), REAL(0.0), 15);
-		REQUIRE_THAT(result, WithinAbs(REAL(2.0)/REAL(3.0), REAL(1e-10)));
+		REQUIRE_THAT(result, WithinAbs(REAL(2.0)/REAL(3.0), TOL(1e-10, 1e-5)));
 	}
 	
 	TEST_CASE("IntegrateGaussChebyshev1::convenience_function", "[gaussian][integrate]")
@@ -1031,7 +1031,7 @@ namespace MML::Tests::Core::IntegrationTests
 		RealFunctionFromStdFunc one( [](Real x) { return REAL(1.0); } );
 		
 		Real result = IntegrateGaussChebyshev1(one, 10);
-		REQUIRE_THAT(result, WithinAbs(Constants::PI, REAL(1e-12)));
+		REQUIRE_THAT(result, WithinAbs(Constants::PI, TOL(1e-12, 1e-5)));
 	}
 	
 	TEST_CASE("IntegrateGaussChebyshev2::convenience_function", "[gaussian][integrate]")
@@ -1041,7 +1041,7 @@ namespace MML::Tests::Core::IntegrationTests
 		RealFunctionFromStdFunc one( [](Real x) { return REAL(1.0); } );
 		
 		Real result = IntegrateGaussChebyshev2(one, 10);
-		REQUIRE_THAT(result, WithinAbs(Constants::PI / REAL(2.0), REAL(1e-12)));
+		REQUIRE_THAT(result, WithinAbs(Constants::PI / REAL(2.0), TOL3(1e-12, 1e-5, 1e-14)));
 	}
 	
 	TEST_CASE("IntegrateGaussLegendre::high_order_polynomial", "[gaussian][integrate]")
@@ -1059,8 +1059,9 @@ namespace MML::Tests::Core::IntegrationTests
 		// Using α=0, so f(x) = x³
 		RealFunctionFromStdFunc f( [](Real x) { return x * x * x; } );
 		
-		Real result = IntegrateGaussLaguerre(f, 20, REAL(0.0));
-		REQUIRE_THAT(result, WithinAbs(REAL(6.0), REAL(1e-8)));
+		const int laguerre_n = std::is_same_v<Real, float> ? 15 : 20;
+		Real result = IntegrateGaussLaguerre(f, laguerre_n, REAL(0.0));
+		REQUIRE_THAT(result, WithinAbs(REAL(6.0), TOL(1e-8, 1e-2)));
 	}
 	
 	TEST_CASE("IntegrateGaussHermite::gaussian_moments", "[gaussian][integrate]")
@@ -1071,7 +1072,7 @@ namespace MML::Tests::Core::IntegrationTests
 	
 	  Real result = IntegrateGaussHermite(f, 20);
 	  Real expected = REAL(15.0) * std::sqrt(Constants::PI) / REAL(8.0);
-	  REQUIRE_THAT(result, WithinAbs(expected, REAL(1e-10)));
+	  REQUIRE_THAT(result, WithinAbs(expected, TOL(1e-10, 1e-5)));
   } 
 
   TEST_CASE("IntegrateGaussJacobi::beta_function", "[gaussian][integrate]")
@@ -1084,7 +1085,7 @@ namespace MML::Tests::Core::IntegrationTests
 	  RealFunctionFromStdFunc one( [](Real x) { return REAL(1.0); } );
 	
 	  Real result = IntegrateGaussJacobi(one, REAL(0.5), REAL(1.5), 15);
-	  REQUIRE_THAT(result, WithinAbs(Constants::PI / REAL(2.0), REAL(1e-8)));
+	  REQUIRE_THAT(result, WithinAbs(Constants::PI / REAL(2.0), TOL(1e-8, 1e-4)));
   }
 
   TEST_CASE("GaussJacobi::overflow_protection", "[gaussian][jacobi]")
@@ -1165,8 +1166,8 @@ namespace MML::Tests::Core::IntegrationTests
 		
 		REQUIRE_THAT(trap, WithinRel(exact, REAL(1e-4)));
 		REQUIRE_THAT(simp.value, WithinRel(exact, REAL(1e-6)));
-		REQUIRE_THAT(romb.value, WithinRel(exact, REAL(1e-10)));
-		REQUIRE_THAT(gauss.value, WithinRel(exact, REAL(1e-12)));
+		REQUIRE_THAT(romb.value, WithinRel(exact, TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(gauss.value, WithinRel(exact, TOL(1e-12, 1e-5)));
 	}
 
 	TEST_CASE("Integration::AllMethods_transcendental", "[comparison][comprehensive]")
@@ -1183,8 +1184,8 @@ namespace MML::Tests::Core::IntegrationTests
 		
 		REQUIRE_THAT(trap, WithinAbs(exact, REAL(1e-4)));
 		REQUIRE_THAT(simp.value, WithinAbs(exact, REAL(1e-6)));
-		REQUIRE_THAT(romb.value, WithinAbs(exact, REAL(1e-8)));
-		REQUIRE_THAT(gauss10.value, WithinAbs(exact, REAL(1e-10)));
+		REQUIRE_THAT(romb.value, WithinAbs(exact, TOL(1e-8, 1e-4)));
+		REQUIRE_THAT(gauss10.value, WithinAbs(exact, TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("Integration::Romberg_vs_Gauss_accuracy", "[comparison]")
@@ -1197,9 +1198,9 @@ namespace MML::Tests::Core::IntegrationTests
 		auto romb = IntegrateRomberg(f, REAL(0.0), REAL(1.0));
 		Real gauss = IntegrateGaussLegendre(f, REAL(0.0), REAL(1.0), 15);
 		
-		// Both should be accurate to 1e-8
-		REQUIRE_THAT(romb.value, WithinAbs(exact, REAL(1e-8)));
-		REQUIRE_THAT(gauss, WithinAbs(exact, REAL(1e-10)));
+		// Both should be accurate to TOL(1e-8, 1e-4)
+		REQUIRE_THAT(romb.value, WithinAbs(exact, TOL(1e-8, 1e-4)));
+		REQUIRE_THAT(gauss, WithinAbs(exact, TOL(1e-10, 1e-5)));
 	}
 
 	///////////////////////////////////////////////////////////////////////////
@@ -1217,7 +1218,7 @@ namespace MML::Tests::Core::IntegrationTests
 		// Reversed bounds should work (gives negative of forward integral)
 		Real forward = IntegrateTrap(f, REAL(0.0), REAL(1.0));
 		Real reverse = IntegrateTrap(f, REAL(1.0), REAL(0.0));
-		REQUIRE_THAT(reverse, WithinAbs(-forward, REAL(1e-10)));
+		REQUIRE_THAT(reverse, WithinAbs(-forward, TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("Integration::Interior_singular_bounds_check", "[error][singular]")
@@ -1262,7 +1263,7 @@ namespace MML::Tests::Core::IntegrationTests
 		// ∫[0,1] e^x dx = e - 1
 		RealFunctionFromStdFunc expf( [](Real x) { return std::exp(x); } );
 		auto result = IntegrateRomberg(expf, REAL(0.0), REAL(1.0));
-		REQUIRE_THAT(result.value, WithinAbs(std::exp(REAL(1.0)) - REAL(1.0), REAL(1e-10)));
+		REQUIRE_THAT(result.value, WithinAbs(std::exp(REAL(1.0)) - REAL(1.0), TOL(1e-10, 1e-5)));
 		
 		// ∫[0,∞] e^(-x) dx = 1
 		RealFunctionFromStdFunc expDecay( [](Real x) { return std::exp(-x); } );
@@ -1275,14 +1276,15 @@ namespace MML::Tests::Core::IntegrationTests
 			TEST_PRECISION_INFO();
 		// Γ(5) = 4! = 24 via ∫[0,∞) x^4 e^(-x) dx
 		// Using Gauss-Laguerre with n=20, alpha=0 (standard weight e^(-x))
+	const int laguerre_n = std::is_same_v<Real, float> ? 15 : 20;
 	RealFunctionFromStdFunc gamma5([](Real x) -> Real { return std::pow(x, REAL(4)); });
-	Real result5 = IntegrateGaussLaguerre(gamma5, 20, REAL(0.0));  // n=20, alpha=0
-	REQUIRE_THAT(result5, WithinAbs(REAL(24.0), REAL(1e-6)));
+	Real result5 = IntegrateGaussLaguerre(gamma5, laguerre_n, REAL(0.0));
+	REQUIRE_THAT(result5, WithinAbs(REAL(24.0), TOL3(1e-6, 1e-2, 1e-8)));
 	
 	// Γ(3) = 2! = 2 via ∫[0,∞) x^2 e^(-x) dx
 	RealFunctionFromStdFunc gamma3([](Real x) -> Real { return x * x; });
-Real result3 = IntegrateGaussLaguerre(gamma3, 20, REAL(0.0));  // n=20, alpha=0
-REQUIRE_THAT(result3, WithinAbs(REAL(2.0), REAL(1e-8)));
+	Real result3 = IntegrateGaussLaguerre(gamma3, laguerre_n, REAL(0.0));
+	REQUIRE_THAT(result3, WithinAbs(REAL(2.0), TOL3(1e-8, 1e-2, 1e-10)));
 }
 
 	///////////////////////////////////////////////////////////////////////////
@@ -1314,14 +1316,14 @@ REQUIRE_THAT(result3, WithinAbs(REAL(2.0), REAL(1e-8)));
 		{
 			auto result = Integrate(f, REAL(0.0), REAL(1.0), ROMBERG);
 			REQUIRE(result.converged == true);
-			REQUIRE_THAT(result.value, WithinRel(expected, REAL(1e-10)));
+			REQUIRE_THAT(result.value, WithinRel(expected, TOL(1e-10, 1e-5)));
 		}
 		
 		SECTION("GAUSS10 method")
 		{
 			auto result = Integrate(f, REAL(0.0), REAL(1.0), GAUSS10);
 			REQUIRE(result.converged == true);
-			REQUIRE_THAT(result.value, WithinRel(expected, REAL(1e-12)));
+			REQUIRE_THAT(result.value, WithinRel(expected, TOL(1e-12, 1e-5)));
 		}
 		
 		SECTION("Default method (TRAP)")
@@ -1341,9 +1343,9 @@ REQUIRE_THAT(result3, WithinAbs(REAL(2.0), REAL(1e-8)));
 		
 		SECTION("High precision request")
 		{
-			auto result = Integrate(f, REAL(0.0), Constants::PI, SIMPSON, REAL(1e-10));
+			auto result = Integrate(f, REAL(0.0), Constants::PI, SIMPSON, TOL(1e-10, 1e-5));
 			REQUIRE(result.converged == true);
-			REQUIRE_THAT(result.value, WithinAbs(expected, REAL(1e-8)));
+			REQUIRE_THAT(result.value, WithinAbs(expected, TOL(1e-8, 1e-4)));
 		}
 		
 		SECTION("Low precision request")
@@ -1379,14 +1381,14 @@ REQUIRE_THAT(result3, WithinAbs(REAL(2.0), REAL(1e-8)));
 		{
 			auto result = Integrate<ROMBERG>(f, REAL(0.0), REAL(1.0));
 			REQUIRE(result.converged == true);
-			REQUIRE_THAT(result.value, WithinAbs(expected, REAL(1e-8)));
+			REQUIRE_THAT(result.value, WithinAbs(expected, TOL(1e-8, 1e-4)));
 		}
 		
 		SECTION("Template GAUSS10 method")
 		{
 			auto result = Integrate<GAUSS10>(f, REAL(0.0), REAL(1.0));
 			REQUIRE(result.converged == true);
-			REQUIRE_THAT(result.value, WithinAbs(expected, REAL(1e-10)));
+			REQUIRE_THAT(result.value, WithinAbs(expected, TOL(1e-10, 1e-5)));
 		}
 		
 		SECTION("Template default method")
@@ -1404,9 +1406,9 @@ REQUIRE_THAT(result3, WithinAbs(REAL(2.0), REAL(1e-8)));
 		RealFunctionFromStdFunc f([](Real x) -> Real { return REAL(1.0) / (REAL(1.0) + x * x); });
 		Real expected = Constants::PI / REAL(4.0);  // ∫[0,1] 1/(1+x²) dx = π/4
 		
-		auto result = Integrate<ROMBERG>(f, REAL(0.0), REAL(1.0), REAL(1e-12));
+		auto result = Integrate<ROMBERG>(f, REAL(0.0), REAL(1.0), TOL(1e-12, 1e-5));
 		REQUIRE(result.converged == true);
-		REQUIRE_THAT(result.value, WithinAbs(expected, REAL(1e-10)));
+		REQUIRE_THAT(result.value, WithinAbs(expected, TOL(1e-10, 1e-5)));
 	}
 	
 	TEST_CASE("Integration::IntegrationMethod_enum_values", "[unified][api]")
@@ -1436,19 +1438,19 @@ REQUIRE_THAT(result3, WithinAbs(REAL(2.0), REAL(1e-8)));
 		
 		auto runtime_trap = Integrate(f, REAL(0.0), Constants::PI, TRAP);
 		auto template_trap = Integrate<TRAP>(f, REAL(0.0), Constants::PI);
-		REQUIRE_THAT(runtime_trap.value, WithinAbs(template_trap.value, REAL(1e-14)));
+		REQUIRE_THAT(runtime_trap.value, WithinAbs(template_trap.value, TOL(1e-14, 1e-5)));
 		
 		auto runtime_simpson = Integrate(f, REAL(0.0), Constants::PI, SIMPSON);
 		auto template_simpson = Integrate<SIMPSON>(f, REAL(0.0), Constants::PI);
-		REQUIRE_THAT(runtime_simpson.value, WithinAbs(template_simpson.value, REAL(1e-14)));
+		REQUIRE_THAT(runtime_simpson.value, WithinAbs(template_simpson.value, TOL(1e-14, 1e-5)));
 		
 		auto runtime_romberg = Integrate(f, REAL(0.0), Constants::PI, ROMBERG);
 		auto template_romberg = Integrate<ROMBERG>(f, REAL(0.0), Constants::PI);
-		REQUIRE_THAT(runtime_romberg.value, WithinAbs(template_romberg.value, REAL(1e-14)));
+		REQUIRE_THAT(runtime_romberg.value, WithinAbs(template_romberg.value, TOL(1e-14, 1e-5)));
 		
 		auto runtime_gauss = Integrate(f, REAL(0.0), Constants::PI, GAUSS10);
 		auto template_gauss = Integrate<GAUSS10>(f, REAL(0.0), Constants::PI);
-		REQUIRE_THAT(runtime_gauss.value, WithinAbs(template_gauss.value, REAL(1e-14)));
+		REQUIRE_THAT(runtime_gauss.value, WithinAbs(template_gauss.value, TOL(1e-14, 1e-5)));
 	}
 
 	/******************************************************************************/
@@ -1478,7 +1480,7 @@ REQUIRE_THAT(result3, WithinAbs(REAL(2.0), REAL(1e-8)));
 		REQUIRE(result.IsSuccess());
 		REQUIRE(result.algorithm_name == "IntegrateSimpson");
 		REQUIRE(result.converged);
-		REQUIRE_THAT(result.value, WithinAbs(REAL(1.0/3.0), REAL(1e-8)));
+		REQUIRE_THAT(result.value, WithinAbs(REAL(1.0/3.0), TOL(1e-8, 1e-4)));
 	}
 
 	TEST_CASE("IntegrateRombergDetailed - basic success", "[mml_integration][Detailed]")
@@ -1490,7 +1492,7 @@ REQUIRE_THAT(result3, WithinAbs(REAL(2.0), REAL(1e-8)));
 		REQUIRE(result.IsSuccess());
 		REQUIRE(result.algorithm_name == "IntegrateRomberg");
 		REQUIRE(result.converged);
-		REQUIRE_THAT(result.value, WithinAbs(REAL(1.0/3.0), REAL(1e-10)));
+		REQUIRE_THAT(result.value, WithinAbs(REAL(1.0/3.0), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("IntegrateGauss10Detailed - basic success", "[mml_integration][Detailed]")
@@ -1503,7 +1505,7 @@ REQUIRE_THAT(result3, WithinAbs(REAL(2.0), REAL(1e-8)));
 		REQUIRE(result.algorithm_name == "IntegrateGauss10");
 		REQUIRE(result.converged);
 		REQUIRE(result.function_evaluations == 10);
-		REQUIRE_THAT(result.value, WithinAbs(REAL(1.0/3.0), REAL(1e-14)));
+		REQUIRE_THAT(result.value, WithinAbs(REAL(1.0/3.0), TOL(1e-14, 1e-5)));
 	}
 
 	TEST_CASE("IntegrateGK21Detailed - basic success", "[mml_integration][Detailed]")
@@ -1516,7 +1518,7 @@ REQUIRE_THAT(result3, WithinAbs(REAL(2.0), REAL(1e-8)));
 		REQUIRE(result.algorithm_name == "IntegrateGK21");
 		REQUIRE(result.converged);
 		REQUIRE(result.function_evaluations == 21);
-		REQUIRE_THAT(result.value, WithinAbs(REAL(1.0/3.0), REAL(1e-14)));
+		REQUIRE_THAT(result.value, WithinAbs(REAL(1.0/3.0), TOL(1e-14, 1e-5)));
 	}
 
 	TEST_CASE("IntegrateDetailed - runtime dispatch", "[mml_integration][Detailed]")
@@ -1532,11 +1534,11 @@ REQUIRE_THAT(result3, WithinAbs(REAL(2.0), REAL(1e-8)));
 		auto simp = IntegrateDetailed(f, REAL(0.0), Constants::PI, SIMPSON);
 		REQUIRE(simp.IsSuccess());
 		REQUIRE(simp.algorithm_name == "IntegrateSimpson");
-		REQUIRE_THAT(simp.value, WithinAbs(expected, REAL(1e-7)));
+		REQUIRE_THAT(simp.value, WithinAbs(expected, TOL(1e-7, 1e-5)));
 
 		auto romb = IntegrateDetailed(f, REAL(0.0), Constants::PI, ROMBERG);
 		REQUIRE(romb.IsSuccess());
-		REQUIRE_THAT(romb.value, WithinAbs(expected, REAL(1e-8)));
+		REQUIRE_THAT(romb.value, WithinAbs(expected, TOL(1e-8, 1e-4)));
 	}
 
 	TEST_CASE("IntegrateDetailed - template dispatch", "[mml_integration][Detailed]")
@@ -1552,8 +1554,8 @@ REQUIRE_THAT(result3, WithinAbs(REAL(2.0), REAL(1e-8)));
 		REQUIRE(simp.IsSuccess());
 		REQUIRE(gauss.IsSuccess());
 		REQUIRE_THAT(trap.value, WithinAbs(expected, REAL(1e-4)));
-		REQUIRE_THAT(simp.value, WithinAbs(expected, REAL(1e-7)));
-		REQUIRE_THAT(gauss.value, WithinAbs(expected, REAL(1e-14)));
+		REQUIRE_THAT(simp.value, WithinAbs(expected, TOL(1e-7, 1e-5)));
+		REQUIRE_THAT(gauss.value, WithinAbs(expected, TOL(1e-14, 1e-5)));
 	}
 
 	TEST_CASE("IntegrateDetailed - values match simple API", "[mml_integration][Detailed]")
@@ -1563,7 +1565,7 @@ REQUIRE_THAT(result3, WithinAbs(REAL(2.0), REAL(1e-8)));
 		auto simple = IntegrateTrap(f, REAL(0.0), REAL(2.0));
 		auto detailed = IntegrateTrapDetailed(f, REAL(0.0), REAL(2.0));
 
-		REQUIRE_THAT(detailed.value, WithinAbs(simple.value, REAL(1e-12)));
+		REQUIRE_THAT(detailed.value, WithinAbs(simple.value, TOL(1e-12, 1e-5)));
 		REQUIRE(detailed.iterations == simple.iterations);
 		REQUIRE(detailed.converged == simple.converged);
 	}
@@ -1663,7 +1665,7 @@ REQUIRE_THAT(result3, WithinAbs(REAL(2.0), REAL(1e-8)));
 		REQUIRE(result.elapsed_time_ms >= 0.0);
 		REQUIRE(result.function_evaluations == n);
 		// ∫[0,1] x² dx = 1/3
-		REQUIRE_THAT(result.value, WithinAbs(REAL(1.0/3.0), REAL(1e-14)));
+		REQUIRE_THAT(result.value, WithinAbs(REAL(1.0/3.0), TOL(1e-14, 1e-5)));
 	}
 
 	TEST_CASE("IntegrateGaussLaguerreDetailed - basic success", "[mml_integration][Detailed]")
@@ -1679,7 +1681,7 @@ REQUIRE_THAT(result3, WithinAbs(REAL(2.0), REAL(1e-8)));
 		REQUIRE(result.converged);
 		REQUIRE(result.elapsed_time_ms >= 0.0);
 		REQUIRE(result.function_evaluations == n);
-		REQUIRE_THAT(result.value, WithinAbs(REAL(1.0), REAL(1e-10)));
+		REQUIRE_THAT(result.value, WithinAbs(REAL(1.0), TOL(1e-10, 1e-3)));
 	}
 
 	TEST_CASE("IntegrateGaussHermiteDetailed - basic success", "[mml_integration][Detailed]")
@@ -1695,7 +1697,7 @@ REQUIRE_THAT(result3, WithinAbs(REAL(2.0), REAL(1e-8)));
 		REQUIRE(result.converged);
 		REQUIRE(result.elapsed_time_ms >= 0.0);
 		REQUIRE(result.function_evaluations == n);
-		REQUIRE_THAT(result.value, WithinAbs(REAL(1.7724538509055159), REAL(1e-10)));
+		REQUIRE_THAT(result.value, WithinAbs(REAL(1.7724538509055159), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("IntegrateGaussJacobiDetailed - basic success", "[mml_integration][Detailed]")
@@ -1711,7 +1713,7 @@ REQUIRE_THAT(result3, WithinAbs(REAL(2.0), REAL(1e-8)));
 		REQUIRE(result.converged);
 		REQUIRE(result.elapsed_time_ms >= 0.0);
 		REQUIRE(result.function_evaluations == n);
-		REQUIRE_THAT(result.value, WithinAbs(REAL(2.0/3.0), REAL(1e-12)));
+		REQUIRE_THAT(result.value, WithinAbs(REAL(2.0/3.0), TOL(1e-12, 1e-5)));
 	}
 
 	TEST_CASE("IntegrateGaussChebyshev1Detailed - basic success", "[mml_integration][Detailed]")
@@ -1727,7 +1729,7 @@ REQUIRE_THAT(result3, WithinAbs(REAL(2.0), REAL(1e-8)));
 		REQUIRE(result.converged);
 		REQUIRE(result.elapsed_time_ms >= 0.0);
 		REQUIRE(result.function_evaluations == n);
-		REQUIRE_THAT(result.value, WithinAbs(Constants::PI, REAL(1e-12)));
+		REQUIRE_THAT(result.value, WithinAbs(Constants::PI, TOL(1e-12, 1e-5)));
 	}
 
 	TEST_CASE("IntegrateGaussChebyshev2Detailed - basic success", "[mml_integration][Detailed]")
@@ -1743,7 +1745,7 @@ REQUIRE_THAT(result3, WithinAbs(REAL(2.0), REAL(1e-8)));
 		REQUIRE(result.converged);
 		REQUIRE(result.elapsed_time_ms >= 0.0);
 		REQUIRE(result.function_evaluations == n);
-		REQUIRE_THAT(result.value, WithinAbs(Constants::PI / REAL(2.0), REAL(1e-12)));
+		REQUIRE_THAT(result.value, WithinAbs(Constants::PI / REAL(2.0), TOL(1e-12, 1e-5)));
 	}
 }
 

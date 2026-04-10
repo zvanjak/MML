@@ -158,13 +158,13 @@ TEST_CASE("Test_ClosedIntervalWithReccuringPointHoles", "[intervals][holes]")
 	// investigation around half PI
 	REQUIRE_FALSE(tanDef->contains(REAL(0.5) * Constants::PI));
 	REQUIRE(tanDef->contains(REAL(0.5) * Constants::PI + REAL(0.0001)));
-	REQUIRE(tanDef->contains(REAL(0.5) * Constants::PI + 1e-8));
-	REQUIRE(tanDef->contains(REAL(0.5) * Constants::PI + 1e-13));
-	REQUIRE_FALSE(tanDef->contains(REAL(0.5) * Constants::PI + 1e-15));
+	REQUIRE(tanDef->contains(REAL(0.5) * Constants::PI + TOL(1e-8, 1e-4)));
+	REQUIRE(tanDef->contains(REAL(0.5) * Constants::PI + TOL(1e-13, 5e-5)));
+	REQUIRE_FALSE(tanDef->contains(REAL(0.5) * Constants::PI + TOL3(1e-15, 5e-6, 1e-18)));
 	REQUIRE(tanDef->contains(REAL(0.5) * Constants::PI - REAL(0.0001)));
-	REQUIRE(tanDef->contains(REAL(0.5) * Constants::PI - 1e-8));
-	REQUIRE(tanDef->contains(REAL(0.5) * Constants::PI - 1e-13));
-	REQUIRE_FALSE(tanDef->contains(REAL(0.5) * Constants::PI - 1e-15));
+	REQUIRE(tanDef->contains(REAL(0.5) * Constants::PI - TOL(1e-8, 1e-4)));
+	REQUIRE(tanDef->contains(REAL(0.5) * Constants::PI - TOL(1e-13, 5e-5)));
+	REQUIRE_FALSE(tanDef->contains(REAL(0.5) * Constants::PI - TOL3(1e-15, 5e-6, 1e-18)));
 
 	// verification of all the holes
 	REQUIRE_FALSE(tanDef->contains(-REAL(0.5) * Constants::PI));
@@ -178,10 +178,10 @@ TEST_CASE("Test_ClosedIntervalWithReccuringPointHoles", "[intervals][holes]")
 	REQUIRE_FALSE(tanDef->contains(-REAL(5.5) * Constants::PI));
 
 	// precision verification on end holes
-	REQUIRE(tanDef->contains(REAL(4.5) * Constants::PI + 1e-13));
-	REQUIRE_FALSE(tanDef->contains(REAL(4.5) * Constants::PI + 1e-15));
-	REQUIRE(tanDef->contains(REAL(4.5) * Constants::PI - 1e-13));
-	REQUIRE_FALSE(tanDef->contains(REAL(4.5) * Constants::PI - 1e-15));
+	REQUIRE(tanDef->contains(REAL(4.5) * Constants::PI + TOL(1e-13, 5e-5)));
+	REQUIRE_FALSE(tanDef->contains(REAL(4.5) * Constants::PI + TOL3(1e-15, 1e-5, 1e-18)));
+	REQUIRE(tanDef->contains(REAL(4.5) * Constants::PI - TOL(1e-13, 5e-5)));
+	REQUIRE_FALSE(tanDef->contains(REAL(4.5) * Constants::PI - TOL3(1e-15, 1e-5, 1e-18)));
 
 }
 
@@ -358,7 +358,7 @@ TEST_CASE("GetEquidistantCovering - Closed Interval", "[intervals][covering][clo
 		// Verify equidistant spacing
 		Real delta = points[1] - points[0];
 		for (size_t i = 1; i < points.size() - 1; i++) {
-			REQUIRE_THAT(points[i+1] - points[i], RealApprox(delta));
+			REQUIRE_THAT(points[i+1] - points[i], RealApprox(delta).epsilon(TOL(1e-9, 1e-5)));
 		}
 	}
 }
@@ -389,7 +389,8 @@ TEST_CASE("GetEquidistantCovering - Infinite Bounds", "[intervals][covering][inf
 		REQUIRE(points.size() == 5);
 		REQUIRE(points[0] < points[4]); // Ascending order
 		REQUIRE_THAT(points[4], RealApprox(REAL(10.0))); // Upper bound
-		REQUIRE_THAT(points[0], RealApprox(-1e10).epsilon(REAL(0.01))); // Practical lower limit
+		Real expectedLower = std::is_same_v<Real, float> ? Real(-1e6) : Real(-1e10);
+		REQUIRE_THAT(points[0], RealApprox(expectedLower).epsilon(REAL(0.01))); // Practical lower limit
 	}
 	
 	SECTION("Infinite Upper Bound") {
@@ -400,7 +401,8 @@ TEST_CASE("GetEquidistantCovering - Infinite Bounds", "[intervals][covering][inf
 		
 		REQUIRE(points.size() == 5);
 		REQUIRE_THAT(points[0], RealApprox(REAL(0.0)));
-		REQUIRE_THAT(points[4], RealApprox(1e10).epsilon(REAL(0.01))); // Practical upper limit
+		Real expectedUpper = std::is_same_v<Real, float> ? Real(1e6) : Real(1e10);
+		REQUIRE_THAT(points[4], RealApprox(expectedUpper).epsilon(REAL(0.01))); // Practical upper limit
 	}
 }
 
@@ -872,11 +874,11 @@ TEST_CASE("Edge Cases - Degenerate Intervals", "[intervals][edge]") {
 TEST_CASE("Edge Cases - Precision", "[intervals][edge][precision]") {
 		TEST_PRECISION_INFO();
 	SECTION("Very Small Interval") {
-		ClosedInterval tiny(REAL(0.0), 1e-10);
+		ClosedInterval tiny(REAL(0.0), TOL(1e-10, 1e-5));
 		
-		REQUIRE_THAT(tiny.getLength(), RealApprox(1e-10));
-		REQUIRE(tiny.contains(5e-11));
-		REQUIRE_FALSE(tiny.contains(2e-10));
+		REQUIRE_THAT(tiny.getLength(), RealApprox(TOL(1e-10, 1e-5)));
+		REQUIRE(tiny.contains(TOL(5e-11, 5e-6)));
+		REQUIRE_FALSE(tiny.contains(TOL(2e-10, 2e-5)));
 	}
 	
 	SECTION("Very Large Interval") {

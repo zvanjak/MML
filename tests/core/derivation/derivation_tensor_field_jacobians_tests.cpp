@@ -182,7 +182,7 @@ TEST_CASE("TensorField2 - NDer1Partial with polynomial tensor", "[tensor_field][
             {
                 Real numerical = Derivation::NDer1Partial(tensor, i, j, 0, pos);
                 Real analytical = tensor.ComponentDerivX(i, j, pos);
-                REQUIRE(std::abs(numerical - analytical) < 1e-4);
+                REQUIRE(std::abs(numerical - analytical) < TOL(1e-4, 5e-3));
             }
         }
     }
@@ -195,7 +195,7 @@ TEST_CASE("TensorField2 - NDer1Partial with polynomial tensor", "[tensor_field][
             {
                 Real numerical = Derivation::NDer1Partial(tensor, i, j, 1, pos);
                 Real analytical = tensor.ComponentDerivY(i, j, pos);
-                REQUIRE(std::abs(numerical - analytical) < 1e-4);
+                REQUIRE(std::abs(numerical - analytical) < TOL(1e-4, 5e-3));
             }
         }
     }
@@ -214,7 +214,7 @@ TEST_CASE("TensorField2 - NDer2Partial with trigonometric tensor", "[tensor_fiel
             {
                 Real numerical = Derivation::NDer2Partial(tensor, i, j, 0, pos);
                 Real analytical = tensor.ComponentDerivX(i, j, pos);
-                REQUIRE(std::abs(numerical - analytical) < 1e-7);
+                REQUIRE(std::abs(numerical - analytical) < TOL(1e-7, 5e-4));
             }
         }
     }
@@ -227,7 +227,7 @@ TEST_CASE("TensorField2 - NDer2Partial with trigonometric tensor", "[tensor_fiel
             {
                 Real numerical = Derivation::NDer2Partial(tensor, i, j, 1, pos);
                 Real analytical = tensor.ComponentDerivY(i, j, pos);
-                REQUIRE(std::abs(numerical - analytical) < 1e-7);
+                REQUIRE(std::abs(numerical - analytical) < TOL(1e-7, 5e-4));
             }
         }
     }
@@ -240,7 +240,7 @@ TEST_CASE("TensorField2 - NDer2Partial with trigonometric tensor", "[tensor_fiel
             {
                 Real numerical = Derivation::NDer2Partial(tensor, i, j, 2, pos);
                 Real analytical = tensor.ComponentDerivZ(i, j, pos);
-                REQUIRE(std::abs(numerical - analytical) < 1e-7);
+                REQUIRE(std::abs(numerical - analytical) < TOL(1e-7, 5e-4));
             }
         }
     }
@@ -257,11 +257,11 @@ TEST_CASE("TensorField2 - NDer4Partial with polynomial tensor", "[tensor_field][
         {
             Real numerical_x = Derivation::NDer4Partial(tensor, i, j, 0, pos);
             Real analytical_x = tensor.ComponentDerivX(i, j, pos);
-            REQUIRE(std::abs(numerical_x - analytical_x) < 1e-9);
+            REQUIRE(std::abs(numerical_x - analytical_x) < TOL(1e-9, 1e-4));
 
             Real numerical_y = Derivation::NDer4Partial(tensor, i, j, 1, pos);
             Real analytical_y = tensor.ComponentDerivY(i, j, pos);
-            REQUIRE(std::abs(numerical_y - analytical_y) < 1e-9);
+            REQUIRE(std::abs(numerical_y - analytical_y) < TOL(1e-9, 1e-4));
         }
     }
 }
@@ -275,21 +275,21 @@ TEST_CASE("TensorField - High accuracy verification", "[tensor_field][accuracy]"
     {
         Real analytical = tensor.ComponentDerivX(1, 1, pos);
         Real numerical = Derivation::NDer1Partial(tensor, 1, 1, 0, pos);
-        REQUIRE(std::abs(numerical - analytical) < 1e-3);
+        REQUIRE(std::abs(numerical - analytical) < TOL(1e-3, 5e-3));
     }
     
     SECTION("NDer2Partial accuracy")
     {
         Real analytical = tensor.ComponentDerivX(1, 1, pos);
         Real numerical = Derivation::NDer2Partial(tensor, 1, 1, 0, pos);
-        REQUIRE(std::abs(numerical - analytical) < 1e-6);
+        REQUIRE(std::abs(numerical - analytical) < TOL(1e-6, 5e-4));
     }
     
     SECTION("NDer4Partial accuracy")
     {
         Real analytical = tensor.ComponentDerivX(1, 1, pos);
         Real numerical = Derivation::NDer4Partial(tensor, 1, 1, 0, pos);
-        REQUIRE(std::abs(numerical - analytical) < 1e-9);
+        REQUIRE(std::abs(numerical - analytical) < TOL(1e-9, 1e-4));
     }
 }
 
@@ -309,7 +309,7 @@ TEST_CASE("Jacobian - 2D rotation matrix", "[jacobian][2d][rotation]")
     {
         for (int j = 0; j < 2; j++)
         {
-            REQUIRE(std::abs(numerical_jac(i, j) - analytical_jac(i, j)) < 1e-9);
+            REQUIRE(std::abs(numerical_jac(i, j) - analytical_jac(i, j)) < TOL(1e-9, 1e-4));
         }
     }
 }
@@ -324,19 +324,19 @@ TEST_CASE("Jacobian - 3D diagonal quadratic", "[jacobian][3d][quadratic]")
 
     SECTION("Diagonal elements are 2x, 2y, 2z")
     {
-        REQUIRE(std::abs(numerical_jac(0, 0) - REAL(2.0) * pos[0]) < 1e-9);
-        REQUIRE(std::abs(numerical_jac(1, 1) - REAL(2.0) * pos[1]) < 1e-9);
-        REQUIRE(std::abs(numerical_jac(2, 2) - REAL(2.0) * pos[2]) < 1e-9);
+        REQUIRE(std::abs(numerical_jac(0, 0) - REAL(2.0) * pos[0]) < TOL(1e-9, 1e-4));
+        REQUIRE(std::abs(numerical_jac(1, 1) - REAL(2.0) * pos[1]) < TOL(1e-9, 1e-4));
+        REQUIRE(std::abs(numerical_jac(2, 2) - REAL(2.0) * pos[2]) < TOL(1e-9, 1e-4));
     }
 
     SECTION("Off-diagonal elements are zero")
     {
-        REQUIRE(std::abs(numerical_jac(0, 1)) < 1e-9);
-        REQUIRE(std::abs(numerical_jac(0, 2)) < 1e-9);
-        REQUIRE(std::abs(numerical_jac(1, 0)) < 1e-9);
-        REQUIRE(std::abs(numerical_jac(1, 2)) < 1e-9);
-        REQUIRE(std::abs(numerical_jac(2, 0)) < 1e-9);
-        REQUIRE(std::abs(numerical_jac(2, 1)) < 1e-9);
+        REQUIRE(std::abs(numerical_jac(0, 1)) < TOL(1e-9, 1e-4));
+        REQUIRE(std::abs(numerical_jac(0, 2)) < TOL(1e-9, 1e-4));
+        REQUIRE(std::abs(numerical_jac(1, 0)) < TOL(1e-9, 1e-4));
+        REQUIRE(std::abs(numerical_jac(1, 2)) < TOL(1e-9, 1e-4));
+        REQUIRE(std::abs(numerical_jac(2, 0)) < TOL(1e-9, 1e-4));
+        REQUIRE(std::abs(numerical_jac(2, 1)) < TOL(1e-9, 1e-4));
     }
 
     SECTION("Full comparison with analytical")
@@ -345,7 +345,7 @@ TEST_CASE("Jacobian - 3D diagonal quadratic", "[jacobian][3d][quadratic]")
         {
             for (int j = 0; j < 3; j++)
             {
-                REQUIRE(std::abs(numerical_jac(i, j) - analytical_jac(i, j)) < 1e-9);
+                REQUIRE(std::abs(numerical_jac(i, j) - analytical_jac(i, j)) < TOL(1e-9, 1e-4));
             }
         }
     }
@@ -371,7 +371,7 @@ TEST_CASE("Jacobian - Multiple evaluation points", "[jacobian][robustness]")
         {
             for (int j = 0; j < 3; j++)
             {
-                REQUIRE(std::abs(numerical_jac(i, j) - analytical_jac(i, j)) < 1e-9);
+                REQUIRE(std::abs(numerical_jac(i, j) - analytical_jac(i, j)) < TOL(1e-9, 1e-4));
             }
         }
     }
@@ -398,9 +398,9 @@ TEST_CASE("Jacobian - Identity function has identity Jacobian", "[jacobian][iden
         for (int j = 0; j < 3; j++)
         {
             if (i == j)
-                REQUIRE(std::abs(jac(i, j) - REAL(1.0)) < 1e-10);
+                REQUIRE(std::abs(jac(i, j) - REAL(1.0)) < TOL(1e-10, 1e-5));
             else
-                REQUIRE(std::abs(jac(i, j)) < 1e-10);
+                REQUIRE(std::abs(jac(i, j)) < TOL(1e-10, 1e-5));
         }
     }
 }
@@ -425,10 +425,10 @@ TEST_CASE("Jacobian - Linear transformation", "[jacobian][linear]")
 
     auto jac = Derivation::calcJacobian(func, pos);
 
-    REQUIRE(std::abs(jac(0, 0) - REAL(2.0)) < 1e-10);
-    REQUIRE(std::abs(jac(0, 1) - REAL(3.0)) < 1e-10);
-    REQUIRE(std::abs(jac(1, 0) - REAL(4.0)) < 1e-10);
-    REQUIRE(std::abs(jac(1, 1) - (-REAL(1.0))) < 1e-10);
+    REQUIRE(std::abs(jac(0, 0) - REAL(2.0)) < TOL(1e-10, 1e-5));
+    REQUIRE(std::abs(jac(0, 1) - REAL(3.0)) < TOL(1e-10, 1e-5));
+    REQUIRE(std::abs(jac(1, 0) - REAL(4.0)) < TOL(1e-10, 1e-5));
+    REQUIRE(std::abs(jac(1, 1) - (-REAL(1.0))) < TOL(1e-10, 1e-5));
 }
 
 /********************************************************************************************************************/
@@ -453,19 +453,19 @@ TEST_CASE("Dynamic Jacobian - NDer4PartialDyn basic test", "[jacobian][dynamic][
     // Test individual partial derivatives
     // ∂f_0/∂x_0 = 2x = 4
     Real df0_dx0 = Derivation::NDer4PartialDyn(func, 0, 0, pos);
-    REQUIRE_THAT(df0_dx0, WithinAbs(REAL(4.0), REAL(1e-8)));
+    REQUIRE_THAT(df0_dx0, WithinAbs(REAL(4.0), TOL(1e-8, 1e-4)));
     
     // ∂f_0/∂x_1 = 1
     Real df0_dx1 = Derivation::NDer4PartialDyn(func, 0, 1, pos);
-    REQUIRE_THAT(df0_dx1, WithinAbs(REAL(1.0), REAL(1e-8)));
+    REQUIRE_THAT(df0_dx1, WithinAbs(REAL(1.0), TOL(1e-8, 1e-4)));
     
     // ∂f_1/∂x_0 = y^2 = 9
     Real df1_dx0 = Derivation::NDer4PartialDyn(func, 1, 0, pos);
-    REQUIRE_THAT(df1_dx0, WithinAbs(REAL(9.0), REAL(1e-8)));
+    REQUIRE_THAT(df1_dx0, WithinAbs(REAL(9.0), TOL(1e-8, 1e-4)));
     
     // ∂f_1/∂x_1 = 2xy = 12
     Real df1_dx1 = Derivation::NDer4PartialDyn(func, 1, 1, pos);
-    REQUIRE_THAT(df1_dx1, WithinAbs(REAL(12.0), REAL(1e-8)));
+    REQUIRE_THAT(df1_dx1, WithinAbs(REAL(12.0), TOL(1e-8, 1e-4)));
 }
 
 TEST_CASE("Dynamic Jacobian - NDer2PartialDyn basic test", "[jacobian][dynamic][partial][nder2]")
@@ -485,11 +485,11 @@ TEST_CASE("Dynamic Jacobian - NDer2PartialDyn basic test", "[jacobian][dynamic][
     
     // ∂f_0/∂x_0 = cos(x) = cos(1)
     Real df0_dx0 = Derivation::NDer2PartialDyn(func, 0, 0, pos);
-    REQUIRE_THAT(df0_dx0, WithinAbs(std::cos(REAL(1.0)), REAL(1e-6)));
+    REQUIRE_THAT(df0_dx0, WithinAbs(std::cos(REAL(1.0)), TOL(1e-6, 5e-4)));
     
     // ∂f_1/∂x_1 = -sin(y) = -sin(2)
     Real df1_dx1 = Derivation::NDer2PartialDyn(func, 1, 1, pos);
-    REQUIRE_THAT(df1_dx1, WithinAbs(-std::sin(REAL(2.0)), REAL(1e-6)));
+    REQUIRE_THAT(df1_dx1, WithinAbs(-std::sin(REAL(2.0)), TOL(1e-6, 5e-4)));
 }
 
 TEST_CASE("Dynamic Jacobian - calcJacobianDyn square system", "[jacobian][dynamic][full]")
@@ -514,19 +514,19 @@ TEST_CASE("Dynamic Jacobian - calcJacobianDyn square system", "[jacobian][dynami
     REQUIRE(jac.cols() == 3);
     
     // Row 0: [y, x, 0] = [3, 2, 0]
-    REQUIRE_THAT(jac(0, 0), WithinAbs(REAL(3.0), REAL(1e-8)));
-    REQUIRE_THAT(jac(0, 1), WithinAbs(REAL(2.0), REAL(1e-8)));
-    REQUIRE_THAT(jac(0, 2), WithinAbs(REAL(0.0), REAL(1e-8)));
+    REQUIRE_THAT(jac(0, 0), WithinAbs(REAL(3.0), TOL(1e-8, 1e-4)));
+    REQUIRE_THAT(jac(0, 1), WithinAbs(REAL(2.0), TOL(1e-8, 1e-4)));
+    REQUIRE_THAT(jac(0, 2), WithinAbs(REAL(0.0), TOL(1e-8, 1e-4)));
     
     // Row 1: [0, z, y] = [0, 4, 3]
-    REQUIRE_THAT(jac(1, 0), WithinAbs(REAL(0.0), REAL(1e-8)));
-    REQUIRE_THAT(jac(1, 1), WithinAbs(REAL(4.0), REAL(1e-8)));
-    REQUIRE_THAT(jac(1, 2), WithinAbs(REAL(3.0), REAL(1e-8)));
+    REQUIRE_THAT(jac(1, 0), WithinAbs(REAL(0.0), TOL(1e-8, 1e-4)));
+    REQUIRE_THAT(jac(1, 1), WithinAbs(REAL(4.0), TOL(1e-8, 1e-4)));
+    REQUIRE_THAT(jac(1, 2), WithinAbs(REAL(3.0), TOL(1e-8, 1e-4)));
     
     // Row 2: [z, 0, x] = [4, 0, 2]
-    REQUIRE_THAT(jac(2, 0), WithinAbs(REAL(4.0), REAL(1e-8)));
-    REQUIRE_THAT(jac(2, 1), WithinAbs(REAL(0.0), REAL(1e-8)));
-    REQUIRE_THAT(jac(2, 2), WithinAbs(REAL(2.0), REAL(1e-8)));
+    REQUIRE_THAT(jac(2, 0), WithinAbs(REAL(4.0), TOL(1e-8, 1e-4)));
+    REQUIRE_THAT(jac(2, 1), WithinAbs(REAL(0.0), TOL(1e-8, 1e-4)));
+    REQUIRE_THAT(jac(2, 2), WithinAbs(REAL(2.0), TOL(1e-8, 1e-4)));
 }
 
 TEST_CASE("Dynamic Jacobian - calcJacobianDyn non-square", "[jacobian][dynamic][nonsquare]")
@@ -552,16 +552,16 @@ TEST_CASE("Dynamic Jacobian - calcJacobianDyn non-square", "[jacobian][dynamic][
     REQUIRE(jac.cols() == 2);
     
     // Row 0: [1, 1]
-    REQUIRE_THAT(jac(0, 0), WithinAbs(REAL(1.0), REAL(1e-8)));
-    REQUIRE_THAT(jac(0, 1), WithinAbs(REAL(1.0), REAL(1e-8)));
+    REQUIRE_THAT(jac(0, 0), WithinAbs(REAL(1.0), TOL(1e-8, 1e-4)));
+    REQUIRE_THAT(jac(0, 1), WithinAbs(REAL(1.0), TOL(1e-8, 1e-4)));
     
     // Row 1: [y, x] = [5, 3]
-    REQUIRE_THAT(jac(1, 0), WithinAbs(REAL(5.0), REAL(1e-8)));
-    REQUIRE_THAT(jac(1, 1), WithinAbs(REAL(3.0), REAL(1e-8)));
+    REQUIRE_THAT(jac(1, 0), WithinAbs(REAL(5.0), TOL(1e-8, 1e-4)));
+    REQUIRE_THAT(jac(1, 1), WithinAbs(REAL(3.0), TOL(1e-8, 1e-4)));
     
     // Row 2: [2x, 0] = [6, 0]
-    REQUIRE_THAT(jac(2, 0), WithinAbs(REAL(6.0), REAL(1e-8)));
-    REQUIRE_THAT(jac(2, 1), WithinAbs(REAL(0.0), REAL(1e-8)));
+    REQUIRE_THAT(jac(2, 0), WithinAbs(REAL(6.0), TOL(1e-8, 1e-4)));
+    REQUIRE_THAT(jac(2, 1), WithinAbs(REAL(0.0), TOL(1e-8, 1e-4)));
 }
 
 TEST_CASE("Dynamic Jacobian - calcJacobianDynInPlace", "[jacobian][dynamic][inplace]")
@@ -585,10 +585,10 @@ TEST_CASE("Dynamic Jacobian - calcJacobianDynInPlace", "[jacobian][dynamic][inpl
     REQUIRE(jac.rows() == 2);
     REQUIRE(jac.cols() == 2);
     
-    REQUIRE_THAT(jac(0, 0), WithinAbs(std::exp(REAL(1.0)), REAL(1e-8)));
-    REQUIRE_THAT(jac(0, 1), WithinAbs(REAL(0.0), REAL(1e-8)));
-    REQUIRE_THAT(jac(1, 0), WithinAbs(REAL(0.0), REAL(1e-8)));
-    REQUIRE_THAT(jac(1, 1), WithinAbs(std::exp(REAL(2.0)), REAL(1e-8)));
+    REQUIRE_THAT(jac(0, 0), WithinAbs(std::exp(REAL(1.0)), TOL(1e-8, 1e-4)));
+    REQUIRE_THAT(jac(0, 1), WithinAbs(REAL(0.0), TOL(1e-8, 1e-4)));
+    REQUIRE_THAT(jac(1, 0), WithinAbs(REAL(0.0), TOL(1e-8, 1e-4)));
+    REQUIRE_THAT(jac(1, 1), WithinAbs(std::exp(REAL(2.0)), TOL(1e-8, 1e-4)));
 }
 
 TEST_CASE("Dynamic Jacobian - calcJacobianDyn2 (2nd order)", "[jacobian][dynamic][nder2]")
@@ -609,10 +609,10 @@ TEST_CASE("Dynamic Jacobian - calcJacobianDyn2 (2nd order)", "[jacobian][dynamic
     Matrix<Real> jac = Derivation::calcJacobianDyn2(func, pos);
     
     // 2nd order is less accurate, use looser tolerance
-    REQUIRE_THAT(jac(0, 0), WithinAbs(REAL(6.0), REAL(1e-5)));
-    REQUIRE_THAT(jac(1, 1), WithinAbs(REAL(8.0), REAL(1e-5)));
-    REQUIRE_THAT(jac(0, 1), WithinAbs(REAL(0.0), REAL(1e-5)));
-    REQUIRE_THAT(jac(1, 0), WithinAbs(REAL(0.0), REAL(1e-5)));
+    REQUIRE_THAT(jac(0, 0), WithinAbs(REAL(6.0), TOL(1e-5, 5e-4)));
+    REQUIRE_THAT(jac(1, 1), WithinAbs(REAL(8.0), TOL(1e-5, 5e-4)));
+    REQUIRE_THAT(jac(0, 1), WithinAbs(REAL(0.0), TOL(1e-5, 5e-4)));
+    REQUIRE_THAT(jac(1, 0), WithinAbs(REAL(0.0), TOL(1e-5, 5e-4)));
 }
 
 TEST_CASE("Dynamic Jacobian - calcJacobianODE", "[jacobian][dynamic][ode]")
@@ -634,10 +634,10 @@ TEST_CASE("Dynamic Jacobian - calcJacobianODE", "[jacobian][dynamic][ode]")
     REQUIRE(jac.rows() == 2);
     REQUIRE(jac.cols() == 2);
     
-    REQUIRE_THAT(jac(0, 0), WithinAbs(REAL(0.0), REAL(1e-8)));
-    REQUIRE_THAT(jac(0, 1), WithinAbs(-REAL(1.0), REAL(1e-8)));
-    REQUIRE_THAT(jac(1, 0), WithinAbs(REAL(1.0), REAL(1e-8)));
-    REQUIRE_THAT(jac(1, 1), WithinAbs(REAL(0.0), REAL(1e-8)));
+    REQUIRE_THAT(jac(0, 0), WithinAbs(REAL(0.0), TOL(1e-8, 1e-4)));
+    REQUIRE_THAT(jac(0, 1), WithinAbs(-REAL(1.0), TOL(1e-8, 1e-4)));
+    REQUIRE_THAT(jac(1, 0), WithinAbs(REAL(1.0), TOL(1e-8, 1e-4)));
+    REQUIRE_THAT(jac(1, 1), WithinAbs(REAL(0.0), TOL(1e-8, 1e-4)));
 }
 
 TEST_CASE("Dynamic Jacobian - calcJacobianODE in-place", "[jacobian][dynamic][ode][inplace]")
@@ -659,10 +659,10 @@ TEST_CASE("Dynamic Jacobian - calcJacobianODE in-place", "[jacobian][dynamic][od
     
     Derivation::calcJacobianODE(derivs, t, x, jac);
     
-    REQUIRE_THAT(jac(0, 0), WithinAbs(a, REAL(1e-8)));
-    REQUIRE_THAT(jac(0, 1), WithinAbs(b, REAL(1e-8)));
-    REQUIRE_THAT(jac(1, 0), WithinAbs(c, REAL(1e-8)));
-    REQUIRE_THAT(jac(1, 1), WithinAbs(d, REAL(1e-8)));
+    REQUIRE_THAT(jac(0, 0), WithinAbs(a, TOL(1e-8, 5e-4)));
+    REQUIRE_THAT(jac(0, 1), WithinAbs(b, TOL(1e-8, 5e-4)));
+    REQUIRE_THAT(jac(1, 0), WithinAbs(c, TOL(1e-8, 5e-4)));
+    REQUIRE_THAT(jac(1, 1), WithinAbs(d, TOL(1e-8, 5e-4)));
 }
 
 TEST_CASE("Dynamic Jacobian - calcJacobianMap", "[jacobian][dynamic][map]")
@@ -683,10 +683,10 @@ TEST_CASE("Dynamic Jacobian - calcJacobianMap", "[jacobian][dynamic][map]")
     
     Derivation::calcJacobianMap(mapFunc, x, jac);
     
-    REQUIRE_THAT(jac(0, 0), WithinAbs(REAL(2.0), REAL(1e-8)));
-    REQUIRE_THAT(jac(0, 1), WithinAbs(REAL(0.0), REAL(1e-8)));
-    REQUIRE_THAT(jac(1, 0), WithinAbs(REAL(0.0), REAL(1e-8)));
-    REQUIRE_THAT(jac(1, 1), WithinAbs(REAL(3.0), REAL(1e-8)));
+    REQUIRE_THAT(jac(0, 0), WithinAbs(REAL(2.0), TOL(1e-8, 1e-4)));
+    REQUIRE_THAT(jac(0, 1), WithinAbs(REAL(0.0), TOL(1e-8, 1e-4)));
+    REQUIRE_THAT(jac(1, 0), WithinAbs(REAL(0.0), TOL(1e-8, 1e-4)));
+    REQUIRE_THAT(jac(1, 1), WithinAbs(REAL(3.0), TOL(1e-8, 1e-4)));
 }
 
 TEST_CASE("Dynamic Jacobian - nonlinear map (logistic-like)", "[jacobian][dynamic][map][nonlinear]")
@@ -711,10 +711,10 @@ TEST_CASE("Dynamic Jacobian - nonlinear map (logistic-like)", "[jacobian][dynami
     
     // Analytical: J(0,0) = r*(1-2x) = 3.5*(1-0.6) = 1.4
     // Analytical: J(1,1) = s*(1-2y) = 2.5*(1-1.2) = -0.5
-    REQUIRE_THAT(jac(0, 0), WithinAbs(r * (REAL(1.0) - REAL(2.0) * x[0]), REAL(1e-7)));
-    REQUIRE_THAT(jac(1, 1), WithinAbs(s * (REAL(1.0) - REAL(2.0) * x[1]), REAL(1e-7)));
-    REQUIRE_THAT(jac(0, 1), WithinAbs(REAL(0.0), REAL(1e-8)));
-    REQUIRE_THAT(jac(1, 0), WithinAbs(REAL(0.0), REAL(1e-8)));
+    REQUIRE_THAT(jac(0, 0), WithinAbs(r * (REAL(1.0) - REAL(2.0) * x[0]), TOL(1e-7, 5e-4)));
+    REQUIRE_THAT(jac(1, 1), WithinAbs(s * (REAL(1.0) - REAL(2.0) * x[1]), TOL(1e-7, 5e-4)));
+    REQUIRE_THAT(jac(0, 1), WithinAbs(REAL(0.0), TOL(1e-8, 1e-4)));
+    REQUIRE_THAT(jac(1, 0), WithinAbs(REAL(0.0), TOL(1e-8, 1e-4)));
 }
 
 } // namespace MML::Tests::Core::DerivationTensorFieldJacobiansTests

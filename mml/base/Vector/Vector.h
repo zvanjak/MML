@@ -147,8 +147,16 @@ namespace MML
 		void push_back(const Type& val) { _elems.push_back(val); }
 		void push_back(Type&& val)			{ _elems.push_back(std::move(val)); }
 		
-		void insert(int pos, const Type& val) { _elems.insert(_elems.begin() + pos, val); }
-		void insert(int pos, Type&& val) { _elems.insert(_elems.begin() + pos, std::move(val)); }
+		void insert(int pos, const Type& val) {
+			if (pos < 0 || pos > static_cast<int>(_elems.size()))
+				throw VectorAccessBoundsError("Vector::insert - position out of range", pos, static_cast<int>(_elems.size()));
+			_elems.insert(_elems.begin() + pos, val);
+		}
+		void insert(int pos, Type&& val) {
+			if (pos < 0 || pos > static_cast<int>(_elems.size()))
+				throw VectorAccessBoundsError("Vector::insert - position out of range", pos, static_cast<int>(_elems.size()));
+			_elems.insert(_elems.begin() + pos, std::move(val));
+		}
 		
 		void erase(int pos)							{ _elems.erase(_elems.begin() + pos); }
 		void erase(int start, int end)	{ _elems.erase(_elems.begin() + start, _elems.begin() + end); }
@@ -497,7 +505,6 @@ namespace MML
 		{
 			std::ofstream file(filename, std::ios::binary);
 			if (!file.is_open()) {
-				std::cerr << "Error: could not create binary file " << filename << std::endl;
 				return false;
 			}
 			
@@ -530,7 +537,6 @@ namespace MML
 		{
 			std::ifstream file(filename, std::ios::binary);
 			if (!file.is_open()) {
-				std::cerr << "Error: could not open binary file " << filename << std::endl;
 				return false;
 			}
 			
@@ -539,13 +545,11 @@ namespace MML
 			
 			file.read(reinterpret_cast<char*>(&magic), sizeof(magic));
 			if (magic != BinaryFormat::MAGIC_VECTOR) {
-				std::cerr << "Error: invalid magic number in " << filename << std::endl;
 				return false;
 			}
 			
 			file.read(reinterpret_cast<char*>(&version), sizeof(version));
 			if (version != BinaryFormat::VERSION_VECTOR) {
-				std::cerr << "Error: unsupported version " << version << " in " << filename << std::endl;
 				return false;
 			}
 			
@@ -553,8 +557,6 @@ namespace MML
 			file.read(reinterpret_cast<char*>(&elemSize), sizeof(elemSize));
 			
 			if (elemSize != sizeof(Type)) {
-				std::cerr << "Error: element size mismatch in " << filename 
-				          << " (file: " << elemSize << ", expected: " << sizeof(Type) << ")" << std::endl;
 				return false;
 			}
 			

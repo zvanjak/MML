@@ -117,7 +117,7 @@ namespace MML {
 		///
 		/// @note Matrix must be symmetric. For non-symmetric matrices,
 		/// consider using (A + A^T)/2.
-		inline Definiteness ClassifyDefiniteness(const MatrixSym<Real>& A, Real tol = 1e-10) {
+		inline Definiteness ClassifyDefiniteness(const MatrixSym<Real>& A, Real tol = PrecisionValues<Real>::EigenSolverConvergenceTolerance) {
 			// Compute eigenvalues using Jacobi method
 			auto result = SymmMatEigenSolverJacobi::Solve(A, tol);
 
@@ -148,7 +148,7 @@ namespace MML {
 		}
 
 		/// Classify definiteness of a general matrix (uses symmetric part)
-		inline Definiteness ClassifyDefiniteness(const Matrix<Real>& A, Real tol = 1e-10) {
+		inline Definiteness ClassifyDefiniteness(const Matrix<Real>& A, Real tol = PrecisionValues<Real>::EigenSolverConvergenceTolerance) {
 			int n = A.rows();
 			if (A.cols() != n)
 				throw MatrixDimensionError("ClassifyDefiniteness - matrix must be square", n, A.cols(), -1, -1);

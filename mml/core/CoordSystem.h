@@ -321,7 +321,7 @@ namespace MML
 		{
 			Real angle = _angle_at_t0 + 2 * Constants::PI * t / _period;
 			// in z-plane!
-			Vector3Cartesian CM_pos({ _radius * cos(angle), _radius * sin(angle), 0 });
+			Vector3Cartesian CM_pos({ static_cast<Real>(_radius * cos(angle)), static_cast<Real>(_radius * sin(angle)), 0 });
 
 			return CM_pos;
 		}
@@ -502,7 +502,7 @@ namespace MML
 		/// @return Origin position in parent frame (TODO: implement rotation)
 		virtual Vector3Cartesian GetOriginPositionAtTime(Real t) const override
 		{
-			return Vector3Cartesian({ 0,0,0 });
+			throw std::logic_error("RotatingSphereLocalCartesian::GetOriginPositionAtTime - not yet implemented");
 		}
 
 		/// @brief Transform local Cartesian (x=east, y=north, z=up) to (lat, long, altitude)

@@ -6,6 +6,7 @@
 ///                                                                                   ///
 ///////////////////////////////////////////////////////////////////////////////////////////
 #include <catch2/catch_all.hpp>
+#include "../TestPrecision.h"
 
 #include "MMLBase.h"
 #include "core/CoordSystem.h"
@@ -300,18 +301,18 @@ TEST_CASE("CircleOrbitingFrame3DCartesian - Circular orbit position", "[CoordSys
 	
 	// At t=π/2: quarter orbit, at (0, radius, 0)
 	Vector3Cartesian pos_quarter = orbit.GetOriginPositionAtTime(Constants::PI / 2);
-	REQUIRE(pos_quarter[0] == Catch::Approx(0.0).margin(1e-10));
+	REQUIRE(pos_quarter[0] == Catch::Approx(0.0).margin(TOL(1e-10, 1e-5)));
 	REQUIRE(pos_quarter[1] == Catch::Approx(10.0));
 	
 	// At t=π: half orbit, at (-radius, 0, 0)
 	Vector3Cartesian pos_half = orbit.GetOriginPositionAtTime(Constants::PI);
 	REQUIRE(pos_half[0] == Catch::Approx(-10.0));
-	REQUIRE(pos_half[1] == Catch::Approx(0.0).margin(1e-10));
+	REQUIRE(pos_half[1] == Catch::Approx(0.0).margin(TOL(1e-10, 1e-5)));
 	
 	// At t=2π: full orbit, back to start
 	Vector3Cartesian pos_full = orbit.GetOriginPositionAtTime(2.0 * Constants::PI);
 	REQUIRE(pos_full[0] == Catch::Approx(10.0));
-	REQUIRE(pos_full[1] == Catch::Approx(0.0).margin(1e-10));
+	REQUIRE(pos_full[1] == Catch::Approx(0.0).margin(TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("CircleOrbitingFrame3DCartesian - With initial angle", "[CoordSystem][CircleOrbitingFrame]")
@@ -325,7 +326,7 @@ TEST_CASE("CircleOrbitingFrame3DCartesian - With initial angle", "[CoordSystem][
 	
 	// At t=0: position at (0, radius, 0) due to 90° initial angle
 	Vector3Cartesian pos0 = orbit.GetOriginPositionAtTime(0.0);
-	REQUIRE(pos0[0] == Catch::Approx(0.0).margin(1e-10));
+	REQUIRE(pos0[0] == Catch::Approx(0.0).margin(TOL(1e-10, 1e-5)));
 	REQUIRE(pos0[1] == Catch::Approx(5.0));
 }
 
@@ -347,7 +348,7 @@ TEST_CASE("CircleOrbitingFrame3DCartesian - Local to parent transformation", "[C
 	// At t=π/2: orbit at (0, 10, 0), so parent pos = (1, 10, 0)
 	// Note: frame orientation stays fixed (not rotating with orbit)
 	Vector3Cartesian result_quarter = orbit.GetLocalPosInParentFrameAtTime(localPos, Constants::PI / 2);
-	REQUIRE(result_quarter[0] == Catch::Approx(1.0).margin(1e-10));
+	REQUIRE(result_quarter[0] == Catch::Approx(1.0).margin(TOL(1e-10, 1e-5)));
 	REQUIRE(result_quarter[1] == Catch::Approx(10.0));
 }
 
@@ -395,27 +396,27 @@ TEST_CASE("RotatingFrame3D - Z-axis rotation transforms correctly", "[CoordSyste
 
 	// At t=0, no rotation
 	auto result0 = frame.GetLocalPosInParentFrameAtTime(pos, 0.0);
-	REQUIRE(result0[0] == Catch::Approx(1.0).margin(1e-12));
-	REQUIRE(result0[1] == Catch::Approx(0.0).margin(1e-12));
-	REQUIRE(result0[2] == Catch::Approx(0.0).margin(1e-12));
+	REQUIRE(result0[0] == Catch::Approx(1.0).margin(TOL(1e-12, 1e-5)));
+	REQUIRE(result0[1] == Catch::Approx(0.0).margin(TOL(1e-12, 1e-5)));
+	REQUIRE(result0[2] == Catch::Approx(0.0).margin(TOL(1e-12, 1e-5)));
 
 	// At t=period/4 (90 degrees), x-axis maps to y-axis
 	auto result90 = frame.GetLocalPosInParentFrameAtTime(pos, period / 4.0);
-	REQUIRE(result90[0] == Catch::Approx(0.0).margin(1e-12));
-	REQUIRE(result90[1] == Catch::Approx(1.0).margin(1e-12));
-	REQUIRE(result90[2] == Catch::Approx(0.0).margin(1e-12));
+	REQUIRE(result90[0] == Catch::Approx(0.0).margin(TOL(1e-12, 1e-5)));
+	REQUIRE(result90[1] == Catch::Approx(1.0).margin(TOL(1e-12, 1e-5)));
+	REQUIRE(result90[2] == Catch::Approx(0.0).margin(TOL(1e-12, 1e-5)));
 
 	// At t=period/2 (180 degrees), x-axis maps to -x
 	auto result180 = frame.GetLocalPosInParentFrameAtTime(pos, period / 2.0);
-	REQUIRE(result180[0] == Catch::Approx(-1.0).margin(1e-12));
-	REQUIRE(result180[1] == Catch::Approx(0.0).margin(1e-12));
-	REQUIRE(result180[2] == Catch::Approx(0.0).margin(1e-12));
+	REQUIRE(result180[0] == Catch::Approx(-1.0).margin(TOL(1e-12, 1e-5)));
+	REQUIRE(result180[1] == Catch::Approx(0.0).margin(TOL(1e-12, 1e-5)));
+	REQUIRE(result180[2] == Catch::Approx(0.0).margin(TOL(1e-12, 1e-5)));
 
 	// Full period returns to original
 	auto result360 = frame.GetLocalPosInParentFrameAtTime(pos, period);
-	REQUIRE(result360[0] == Catch::Approx(1.0).margin(1e-12));
-	REQUIRE(result360[1] == Catch::Approx(0.0).margin(1e-12));
-	REQUIRE(result360[2] == Catch::Approx(0.0).margin(1e-12));
+	REQUIRE(result360[0] == Catch::Approx(1.0).margin(TOL(1e-12, 1e-5)));
+	REQUIRE(result360[1] == Catch::Approx(0.0).margin(TOL(1e-12, 1e-5)));
+	REQUIRE(result360[2] == Catch::Approx(0.0).margin(TOL(1e-12, 1e-5)));
 }
 
 TEST_CASE("RotatingFrame3D - Z component preserved for z-axis rotation", "[CoordSystem][RotatingFrame]")
@@ -429,11 +430,11 @@ TEST_CASE("RotatingFrame3D - Z component preserved for z-axis rotation", "[Coord
 	auto result = frame.GetLocalPosInParentFrameAtTime(pos, period / 4.0);
 
 	// z should be unchanged for rotation around z-axis
-	REQUIRE(result[2] == Catch::Approx(5.0).margin(1e-12));
+	REQUIRE(result[2] == Catch::Approx(5.0).margin(TOL(1e-12, 1e-5)));
 	// magnitude in xy-plane should be preserved
 	Real rOrig = std::sqrt(3.0*3.0 + 4.0*4.0);
 	Real rNew = std::sqrt(result[0]*result[0] + result[1]*result[1]);
-	REQUIRE(rNew == Catch::Approx(rOrig).margin(1e-12));
+	REQUIRE(rNew == Catch::Approx(rOrig).margin(TOL(1e-12, 1e-5)));
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -483,8 +484,8 @@ TEST_CASE("HardSphereRotatingFrame - Equator point transformation", "[CoordSyste
 	// At equator, lat=0, long=0: transforms to spherical (r=1, θ=90°, φ=0°)
 	// Which in Cartesian is (1, 0, 0)
 	REQUIRE(result[0] == Catch::Approx(1.0));
-	REQUIRE(result[1] == Catch::Approx(0.0).margin(1e-10));
-	REQUIRE(result[2] == Catch::Approx(0.0).margin(1e-10));
+	REQUIRE(result[1] == Catch::Approx(0.0).margin(TOL(1e-10, 1e-5)));
+	REQUIRE(result[2] == Catch::Approx(0.0).margin(TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("HardSphereRotatingFrame - North pole transformation", "[CoordSystem][HardSphereRotating]")
@@ -499,8 +500,8 @@ TEST_CASE("HardSphereRotatingFrame - North pole transformation", "[CoordSystem][
 	Vector3Cartesian result = sphere.GetLocalPosInParentFrameAtTime(northPole, 0.0);
 	
 	// North pole: spherical (r=1, θ=0°, φ=any) -> Cartesian (0, 0, 1)
-	REQUIRE(result[0] == Catch::Approx(0.0).margin(1e-10));
-	REQUIRE(result[1] == Catch::Approx(0.0).margin(1e-10));
+	REQUIRE(result[0] == Catch::Approx(0.0).margin(TOL(1e-10, 1e-5)));
+	REQUIRE(result[1] == Catch::Approx(0.0).margin(TOL(1e-10, 1e-5)));
 	REQUIRE(result[2] == Catch::Approx(1.0));
 }
 
@@ -517,7 +518,7 @@ TEST_CASE("HardSphereRotatingFrame - With altitude", "[CoordSystem][HardSphereRo
 	
 	// Should be at (radius + altitude, 0, 0) = (15, 0, 0)
 	REQUIRE(result[0] == Catch::Approx(15.0));
-	REQUIRE(result[1] == Catch::Approx(0.0).margin(1e-10));
+	REQUIRE(result[1] == Catch::Approx(0.0).margin(TOL(1e-10, 1e-5)));
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -543,9 +544,8 @@ TEST_CASE("RotatingSphereLocalCartesian - Origin position", "[CoordSystem][Local
 	
 	RotatingSphereLocalCartesian local(earth, 0.0, 0.0);
 	
-	// Origin position (currently returns zero - TODO in implementation)
-	Vector3Cartesian origin = local.GetOriginPositionAtTime(0.0);
-	REQUIRE(origin[0] == Catch::Approx(0.0));  // Current implementation
+	// GetOriginPositionAtTime is not yet implemented, should throw
+	REQUIRE_THROWS_AS(local.GetOriginPositionAtTime(0.0), std::logic_error);
 }
 
 TEST_CASE("RotatingSphereLocalCartesian - Local to geographic", "[CoordSystem][LocalCartesian]")

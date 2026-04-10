@@ -14,7 +14,7 @@
 
 #include "MMLBase.h"
 #include "MMLExceptions.h"
-#include "base/MatrixPrintFormat.h"
+#include "base/Matrix/MatrixPrintFormat.h"
 
 #include "base/Vector/Vector.h"
 

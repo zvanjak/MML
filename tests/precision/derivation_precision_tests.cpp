@@ -1,4 +1,5 @@
 #include <catch2/catch_all.hpp>
+#include "../TestPrecision.h"
 
 #ifdef MML_USE_SINGLE_HEADER
 #include "MML.h"
@@ -35,23 +36,23 @@ TEST_CASE("Test_1st_derivation_precision_sin_func_default_step_size", "[simple]"
     Vector<Real> x_val{0.0, 0.5, 1.0, 2.0, 3.0, 5.0 };
 
 #if defined(__clang__)
-    Vector<Real> nder1_prec{1e-16,  1e-8,  1e-7,  1e-7,  1e-8,  1e-7 };
-    Vector<Real> nder2_prec{1e-10, 1e-11, 1e-10, 1e-10, 1e-10, 1e-10 };
-    Vector<Real> nder4_prec{1e-13, 1e-13, 1e-12, 1e-13, 1e-13, 1e-12 };
-    Vector<Real> nder6_prec{1e-15, 1e-13, 1e-14, 1e-13, 1e-13, 1e-13 };
-    Vector<Real> nder8_prec{1e-14, 1e-14, 1e-14, 1e-14, 1e-14, 1e-14 };
+    Vector<Real> nder1_prec{1e-16,  TOL(1e-8, 1e-4),  1e-7,  1e-7,  TOL(1e-8, 1e-4),  1e-7 };
+    Vector<Real> nder2_prec{TOL(1e-10, 1e-5), TOL(1e-11, 1e-5), TOL(1e-10, 1e-5), TOL(1e-10, 1e-5), TOL(1e-10, 1e-5), TOL(1e-10, 1e-5) };
+    Vector<Real> nder4_prec{TOL(1e-13, 1e-5), TOL(1e-13, 1e-5), TOL(1e-12, 1e-5), TOL(1e-13, 1e-5), TOL(1e-13, 1e-5), TOL(1e-12, 1e-5) };
+    Vector<Real> nder6_prec{TOL(1e-15, 1e-5), TOL(1e-13, 1e-5), TOL(1e-14, 1e-5), TOL(1e-13, 1e-5), TOL(1e-13, 1e-5), TOL(1e-13, 1e-5) };
+    Vector<Real> nder8_prec{TOL(1e-14, 1e-5), TOL(1e-14, 1e-5), TOL(1e-14, 1e-5), TOL(1e-14, 1e-5), TOL(1e-14, 1e-5), TOL(1e-14, 1e-5) };
 #elif defined(__GNUC__) || defined(__GNUG__)
-    Vector<Real> nder1_prec{1e-16,  1e-8,  1e-7,  1e-7,  1e-8,  1e-7 };
-    Vector<Real> nder2_prec{1e-10, 1e-11, 1e-10, 1e-10, 1e-10, 1e-10 };
-    Vector<Real> nder4_prec{1e-13, 1e-13, 1e-12, 1e-13, 1e-13, 1e-12 };
-    Vector<Real> nder6_prec{1e-15, 1e-13, 1e-14, 1e-13, 1e-13, 1e-13 };
-    Vector<Real> nder8_prec{1e-14, 1e-14, 1e-14, 1e-14, 1e-14, 1e-14 };
+    Vector<Real> nder1_prec{1e-16,  TOL(1e-8, 1e-4),  1e-7,  1e-7,  TOL(1e-8, 1e-4),  1e-7 };
+    Vector<Real> nder2_prec{TOL(1e-10, 1e-5), TOL(1e-11, 1e-5), TOL(1e-10, 1e-5), TOL(1e-10, 1e-5), TOL(1e-10, 1e-5), TOL(1e-10, 1e-5) };
+    Vector<Real> nder4_prec{TOL(1e-13, 1e-5), TOL(1e-13, 1e-5), TOL(1e-12, 1e-5), TOL(1e-13, 1e-5), TOL(1e-13, 1e-5), TOL(1e-12, 1e-5) };
+    Vector<Real> nder6_prec{TOL(1e-15, 1e-5), TOL(1e-13, 1e-5), TOL(1e-14, 1e-5), TOL(1e-13, 1e-5), TOL(1e-13, 1e-5), TOL(1e-13, 1e-5) };
+    Vector<Real> nder8_prec{TOL(1e-14, 1e-5), TOL(1e-14, 1e-5), TOL(1e-14, 1e-5), TOL(1e-14, 1e-5), TOL(1e-14, 1e-5), TOL(1e-14, 1e-5) };
 #elif defined(_MSC_VER)
-    Vector<Real> nder1_prec{1e-16,  1e-8,  1e-7,  1e-7,  1e-8,  1e-7 };
-    Vector<Real> nder2_prec{1e-10, 1e-11, 1e-10, 1e-10, 1e-10, 1e-10 };
-    Vector<Real> nder4_prec{1e-13, 1e-13, 1e-12, 1e-13, 1e-13, 1e-12 };
-    Vector<Real> nder6_prec{1e-15, 1e-13, 1e-14, 1e-13, 1e-13, 1e-13 };
-    Vector<Real> nder8_prec{1e-14, 1e-14, 1e-14, 1e-14, 1e-14, 1e-14 };
+    Vector<Real> nder1_prec{1e-16,  TOL(1e-8, 1e-4),  1e-7,  1e-7,  TOL(1e-8, 1e-4),  1e-7 };
+    Vector<Real> nder2_prec{TOL(1e-10, 1e-5), TOL(1e-11, 1e-5), TOL(1e-10, 1e-5), TOL(1e-10, 1e-5), TOL(1e-10, 1e-5), TOL(1e-10, 1e-5) };
+    Vector<Real> nder4_prec{TOL(1e-13, 1e-5), TOL(1e-13, 1e-5), TOL(1e-12, 1e-5), TOL(1e-13, 1e-5), TOL(1e-13, 1e-5), TOL(1e-12, 1e-5) };
+    Vector<Real> nder6_prec{TOL(1e-15, 1e-5), TOL(1e-13, 1e-5), TOL(1e-14, 1e-5), TOL(1e-13, 1e-5), TOL(1e-13, 1e-5), TOL(1e-13, 1e-5) };
+    Vector<Real> nder8_prec{TOL(1e-14, 1e-5), TOL(1e-14, 1e-5), TOL(1e-14, 1e-5), TOL(1e-14, 1e-5), TOL(1e-14, 1e-5), TOL(1e-14, 1e-5) };
 #endif
 
     for( int i=0; i<x_val.size(); i++ )

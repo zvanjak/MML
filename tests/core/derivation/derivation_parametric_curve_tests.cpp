@@ -82,19 +82,19 @@ public:
     Real getMaxT() const override { return REAL(2.0) * Constants::PI; }
     
     VectorN<Real, 3> operator()(Real t) const override {
-        return VectorN<Real, 3>{ cos(t), sin(t), REAL(0.0) };
+        return VectorN<Real, 3>{ REAL(cos(t)), REAL(sin(t)), REAL(0.0) };
     }
     
     VectorN<Real, 3> analytical_first(Real t) const {
-        return VectorN<Real, 3>{ -sin(t), cos(t), REAL(0.0) };
+        return VectorN<Real, 3>{ REAL(-sin(t)), REAL(cos(t)), REAL(0.0) };
     }
     
     VectorN<Real, 3> analytical_second(Real t) const {
-        return VectorN<Real, 3>{ -cos(t), -sin(t), REAL(0.0) };
+        return VectorN<Real, 3>{ REAL(-cos(t)), REAL(-sin(t)), REAL(0.0) };
     }
     
     VectorN<Real, 3> analytical_third(Real t) const {
-        return VectorN<Real, 3>{ sin(t), -cos(t), REAL(0.0) };
+        return VectorN<Real, 3>{ REAL(sin(t)), REAL(-cos(t)), REAL(0.0) };
     }
 };
 
@@ -109,19 +109,19 @@ public:
     Real getMaxT() const override { return REAL(4.0) * Constants::PI; }
     
     VectorN<Real, 3> operator()(Real t) const override {
-        return VectorN<Real, 3>{ cos(t), sin(t), t };
+        return VectorN<Real, 3>{ REAL(cos(t)), REAL(sin(t)), t };
     }
     
     VectorN<Real, 3> analytical_first(Real t) const {
-        return VectorN<Real, 3>{ -sin(t), cos(t), REAL(1.0) };
+        return VectorN<Real, 3>{ REAL(-sin(t)), REAL(cos(t)), REAL(1.0) };
     }
     
     VectorN<Real, 3> analytical_second(Real t) const {
-        return VectorN<Real, 3>{ -cos(t), -sin(t), REAL(0.0) };
+        return VectorN<Real, 3>{ REAL(-cos(t)), REAL(-sin(t)), REAL(0.0) };
     }
     
     VectorN<Real, 3> analytical_third(Real t) const {
-        return VectorN<Real, 3>{ sin(t), -cos(t), REAL(0.0) };
+        return VectorN<Real, 3>{ REAL(sin(t)), REAL(-cos(t)), REAL(0.0) };
     }
 };
 
@@ -137,7 +137,7 @@ TEST_CASE("Parametric curve - NDer1 (first order forward difference)", "[paramet
     TestHelixCurve helix;
     
     Real t = REAL(1.0);
-    Real tol = 1e-4;  // NDer1 is less accurate
+    Real tol = TOL(1e-4, 5e-3);  // NDer1 is less accurate
     
     // Line curve
     VectorN<Real, 3> num_deriv = NDer1(line, t);
@@ -172,7 +172,7 @@ TEST_CASE("Parametric curve - NDer2 (second order central difference)", "[parame
     TestHelixCurve helix;
     
     Real t = REAL(1.0);
-    Real tol = 1e-7;
+    Real tol = TOL(1e-7, 1e-4);
     
     // Line curve - exact for linear functions
     VectorN<Real, 3> num_deriv = NDer2(line, t);
@@ -206,7 +206,7 @@ TEST_CASE("Parametric curve - NDer4 (fourth order)", "[parametric_curve][derivat
     TestHelixCurve helix;
     
     Real t = REAL(1.0);
-    Real tol = 1e-9;
+    Real tol = TOL(1e-9, 1e-4);
     
     // Parabolic curve
     VectorN<Real, 3> num_deriv = NDer4(para, t);
@@ -234,7 +234,7 @@ TEST_CASE("Parametric curve - NDer6 (sixth order)", "[parametric_curve][derivati
     TestHelixCurve helix;
     
     Real t = REAL(1.0);
-    Real tol = 1e-10;
+    Real tol = TOL(1e-10, 1e-5);
     
     // Parabolic curve
     VectorN<Real, 3> num_deriv = NDer6(para, t);
@@ -262,7 +262,7 @@ TEST_CASE("Parametric curve - NDer8 (eighth order)", "[parametric_curve][derivat
     TestHelixCurve helix;
     
     Real t = REAL(1.0);
-    Real tol = 1e-10;
+    Real tol = TOL(1e-10, 1e-5);
     
     // Parabolic curve
     VectorN<Real, 3> num_deriv = NDer8(para, t);
@@ -295,8 +295,8 @@ TEST_CASE("Parametric curve - NSecDer2 (second order second derivative)", "[para
     TestHelixCurve helix;
     
     Real t = REAL(1.0);
-    Real tol_zero = 1e-5;
-    Real tol = 1e-5;
+    Real tol_zero = TOL3(1e-5, 1e-2, 1e-6);
+    Real tol = TOL3(1e-5, 5e-3, 1e-6);
     
     // Line curve - second derivative is zero
     VectorN<Real, 3> num_deriv = NSecDer2(line, t);
@@ -330,7 +330,7 @@ TEST_CASE("Parametric curve - NSecDer4 (fourth order second derivative)", "[para
     TestHelixCurve helix;
     
     Real t = REAL(1.0);
-    Real tol = 1e-7;
+    Real tol = TOL(1e-7, 5e-4);
     
     // Parabolic curve
     VectorN<Real, 3> num_deriv = NSecDer4(para, t);
@@ -362,7 +362,7 @@ TEST_CASE("Parametric curve - NThirdDer2 (second order third derivative)", "[par
     TestHelixCurve helix;
     
     Real t = REAL(1.0);
-    Real tol = 1e-4;
+    Real tol = TOL(1e-4, 5e-3);
     
     // Parabolic curve
     VectorN<Real, 3> num_deriv = NThirdDer2(para, t);
@@ -390,7 +390,7 @@ TEST_CASE("Parametric curve - NThirdDer4 (fourth order third derivative)", "[par
     TestHelixCurve helix;
     
     Real t = REAL(1.0);
-    Real tol = 1e-5;
+    Real tol = TOL(1e-5, 2e-3);
     
     // Parabolic curve
     VectorN<Real, 3> num_deriv = NThirdDer4(para, t);
@@ -431,9 +431,11 @@ TEST_CASE("Parametric curve - First derivative accuracy progression", "[parametr
     // Verify progressive improvement (up to roundoff)
     REQUIRE(error1 > error2);
     REQUIRE(error2 > error4);
-    REQUIRE(error4 > error6);
+    // For float, NDer4 and NDer6 both hit roundoff floor
+    if constexpr (!std::is_same_v<Real, float>)
+        REQUIRE(error4 > error6);
     // NDer8 may not beat NDer6 due to roundoff
-    REQUIRE(error8 < 1e-9);
+    REQUIRE(error8 < TOL(1e-9, 1e-4));
 }
 
 TEST_CASE("Parametric curve - Second derivative accuracy progression", "[parametric_curve][derivative][accuracy]")
@@ -448,7 +450,7 @@ TEST_CASE("Parametric curve - Second derivative accuracy progression", "[paramet
     
     // Verify NSecDer4 is more accurate than NSecDer2
     REQUIRE(error2 > error4);
-    REQUIRE(error4 < 1e-7);
+    REQUIRE(error4 < TOL(1e-7, 1e-4));
 }
 
 TEST_CASE("Parametric curve - Third derivative accuracy progression", "[parametric_curve][derivative][accuracy]")
@@ -462,8 +464,11 @@ TEST_CASE("Parametric curve - Third derivative accuracy progression", "[parametr
     Real error4 = (NThirdDer4(helix, t) - analytical).NormL2();
     
     // Verify NThirdDer4 is more accurate than NThirdDer2
-    REQUIRE(error2 > error4);
-    REQUIRE(error4 < 1e-5);
+    // (For long double, smaller step sizes in higher-order formulas can cause more cancellation noise)
+    if constexpr (!LongDoubleHasExtraPrecision) {
+        REQUIRE(error2 > error4);
+    }
+    REQUIRE(error4 < TOL3(1e-5, 1e-3, 1e-6));
 }
 
 /********************************************************************************************************************/
@@ -473,7 +478,7 @@ TEST_CASE("Parametric curve - Third derivative accuracy progression", "[parametr
 TEST_CASE("Parametric curve - Multiple test points for robustness", "[parametric_curve][derivative][robustness]")
 {
     TestHelixCurve helix;
-    Real tol = 1e-9;
+    Real tol = TOL(1e-9, 1e-4);
     
     std::vector<Real> test_points = {REAL(0.0), Constants::PI/6, Constants::PI/4, Constants::PI/3, Constants::PI/2, Constants::PI};
     
@@ -489,7 +494,7 @@ TEST_CASE("Parametric curve - Multiple test points for robustness", "[parametric
         num_deriv = NSecDer4(helix, t);
         analytical = helix.analytical_second(t);
         for(int i = 0; i < 3; i++)
-            REQUIRE(std::abs(num_deriv[i] - analytical[i]) < 1e-7);
+            REQUIRE(std::abs(num_deriv[i] - analytical[i]) < TOL(1e-7, 5e-4));
     }
 }
 
@@ -499,7 +504,7 @@ TEST_CASE("Parametric curve - Multiple test points for robustness", "[parametric
 
 TEST_CASE("Parametric curve - Test bed curves first derivatives", "[parametric_curve][derivative][testbed]")
 {
-    Real tol = 1e-8;
+    Real tol = TOL(1e-8, 1e-4);
     
     // Test with Helix from test bed
     auto helix = ParametricCurvesTestBed::getTestCurve("Helix");
@@ -524,7 +529,7 @@ TEST_CASE("Parametric curve - Test bed curves first derivatives", "[parametric_c
 
 TEST_CASE("Parametric curve - Test bed curves second derivatives", "[parametric_curve][derivative][testbed]")
 {
-    Real tol = 1e-6;
+    Real tol = TOL(1e-6, 5e-4);
     
     // Test with Helix from test bed
     auto helix = ParametricCurvesTestBed::getTestCurve("Helix");

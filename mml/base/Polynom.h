@@ -35,6 +35,27 @@ namespace MML
 	/// @brief Polynomial class with arithmetic, evaluation, differentiation, and root finding.
 	/// @tparam CoefT Coefficient type (Real, Complex, etc.)
 	/// @tparam FieldT Field type for evaluation (defaults to CoefT)
+	///
+	/// @par Coefficient Storage Convention (ascending powers)
+	/// Coefficients are stored in **ascending order of power** (index = exponent):
+	///
+	///   `_vecCoef[i]` = coefficient of x^i
+	///
+	/// So the polynomial  P(x) = a₀ + a₁x + a₂x² + ... + aₙxⁿ  is stored as
+	/// `{a₀, a₁, a₂, ..., aₙ}`.
+	///
+	/// @par Examples
+	/// @code
+	///   Polynom<double> p = {3.0, -2.0, 1.0};  // 3 - 2x + x²
+	///   // p[0] == 3.0   (constant term, x⁰)
+	///   // p[1] == -2.0  (coefficient of x¹)
+	///   // p[2] == 1.0   (coefficient of x²)
+	/// @endcode
+	///
+	/// @warning This is the **opposite** of NumPy's `numpy.poly1d` / `numpy.polynomial.polynomial`
+	/// legacy convention which uses **descending** order. MML follows the standard mathematical
+	/// convention where index equals power, matching MATLAB's `polyval` with `fliplr`, Mathematica,
+	/// and the `numpy.polynomial.Polynomial` (new API) convention.
 	template <typename CoefT, typename FieldT = CoefT>
 	class Polynom
 	{
@@ -48,10 +69,10 @@ namespace MML
 		/// @param n Degree of polynomial
 		Polynom(int n) { _vecCoef.resize(n + 1); }
 		/// @brief Constructs polynomial from coefficient vector.
-		/// @param vecCoef Coefficients (vecCoef[0] = constant term)
+		/// @param vecCoef Coefficients in ascending power order: vecCoef[i] = coeff of x^i
 		Polynom(const std::vector<CoefT>& vecCoef) : _vecCoef(vecCoef) {}
 		/// @brief Constructs polynomial from initializer list.
-		/// @param list Coefficients in ascending order
+		/// @param list Coefficients in ascending power order: {a₀, a₁, a₂, ...} → a₀ + a₁x + a₂x² + ...
 		Polynom(std::initializer_list<CoefT> list) : _vecCoef(list) {}
 		/// @brief Copy constructor.
 		Polynom(const Polynom& Copy) = default;
@@ -151,8 +172,8 @@ namespace MML
 		void SetDegree(int newDeg) { _vecCoef.resize(newDeg + 1); }
 		/// @brief Checks if polynomial is null (no coefficients).
 		bool isNull() const noexcept { return _vecCoef.size() == 0; }
-		/// @brief Removes trailing zero coefficients.
-		void Reduce() { while (!_vecCoef.empty() && _vecCoef.back() == CoefT(0)) _vecCoef.pop_back(); }
+		/// @brief Removes trailing near-zero coefficients using machine epsilon.
+		void Reduce() { Reduce(std::numeric_limits<CoefT>::epsilon() * 100); }
 		/// @brief Removes trailing coefficients smaller than eps in absolute value.
 		/// @param eps Tolerance threshold for near-zero coefficients
 		void Reduce(CoefT eps) { while (!_vecCoef.empty() && std::abs(_vecCoef.back()) < eps) _vecCoef.pop_back(); }

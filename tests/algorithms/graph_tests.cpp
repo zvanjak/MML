@@ -147,9 +147,9 @@ TEST_CASE("Graph - edge weights are stored correctly", "[Graph][edge]")
 	g.addEdge(0, 1, 1.5);
 	g.addEdge(1, 2, 2.7);
 
-	REQUIRE_THAT(g.edgeWeight(0, 1), Catch::Matchers::WithinRel(1.5, 1e-10));
-	REQUIRE_THAT(g.edgeWeight(1, 0), Catch::Matchers::WithinRel(1.5, 1e-10));
-	REQUIRE_THAT(g.edgeWeight(1, 2), Catch::Matchers::WithinRel(2.7, 1e-10));
+	REQUIRE_THAT(g.edgeWeight(0, 1), Catch::Matchers::WithinRel(REAL(1.5), TOL(1e-10, 1e-5)));
+	REQUIRE_THAT(g.edgeWeight(1, 0), Catch::Matchers::WithinRel(REAL(1.5), TOL(1e-10, 1e-5)));
+	REQUIRE_THAT(g.edgeWeight(1, 2), Catch::Matchers::WithinRel(REAL(2.7), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("Graph - addEdge throws for duplicate edge", "[Graph][edge]")
@@ -174,7 +174,7 @@ TEST_CASE("Graph - self-loops allowed when enabled", "[Graph][edge]")
 	g.addEdge(0, 0, 5.0);
 
 	REQUIRE(g.hasEdge(0, 0));
-	REQUIRE_THAT(g.edgeWeight(0, 0), Catch::Matchers::WithinRel(5.0, 1e-10));
+	REQUIRE_THAT(g.edgeWeight(0, 0), Catch::Matchers::WithinRel(REAL(5.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("Graph - removeEdge removes edges", "[Graph][edge]")
@@ -284,15 +284,15 @@ TEST_CASE("Graph - toAdjacencyMatrix for undirected graph", "[Graph][matrix]")
 	REQUIRE(A.cols() == 3);
 
 	// Check symmetric structure
-	REQUIRE_THAT(A(0, 1), Catch::Matchers::WithinRel(1.0, 1e-10));
-	REQUIRE_THAT(A(1, 0), Catch::Matchers::WithinRel(1.0, 1e-10));
-	REQUIRE_THAT(A(1, 2), Catch::Matchers::WithinRel(2.0, 1e-10));
-	REQUIRE_THAT(A(2, 1), Catch::Matchers::WithinRel(2.0, 1e-10));
+	REQUIRE_THAT(A(0, 1), Catch::Matchers::WithinRel(REAL(1.0), TOL(1e-10, 1e-5)));
+	REQUIRE_THAT(A(1, 0), Catch::Matchers::WithinRel(REAL(1.0), TOL(1e-10, 1e-5)));
+	REQUIRE_THAT(A(1, 2), Catch::Matchers::WithinRel(REAL(2.0), TOL(1e-10, 1e-5)));
+	REQUIRE_THAT(A(2, 1), Catch::Matchers::WithinRel(REAL(2.0), TOL(1e-10, 1e-5)));
 
 	// Check zeros
-	REQUIRE_THAT(A(0, 0), Catch::Matchers::WithinAbs(0.0, 1e-10));
-	REQUIRE_THAT(A(0, 2), Catch::Matchers::WithinAbs(0.0, 1e-10));
-	REQUIRE_THAT(A(2, 0), Catch::Matchers::WithinAbs(0.0, 1e-10));
+	REQUIRE_THAT(A(0, 0), Catch::Matchers::WithinAbs(0.0, TOL(1e-10, 1e-5)));
+	REQUIRE_THAT(A(0, 2), Catch::Matchers::WithinAbs(0.0, TOL(1e-10, 1e-5)));
+	REQUIRE_THAT(A(2, 0), Catch::Matchers::WithinAbs(0.0, TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("Graph - toLaplacianMatrix", "[Graph][matrix]")
@@ -309,17 +309,17 @@ TEST_CASE("Graph - toLaplacianMatrix", "[Graph][matrix]")
 	// [-1   2  -1 ]
 	// [ 0  -1   1 ]
 
-	REQUIRE_THAT(L(0, 0), Catch::Matchers::WithinRel(1.0, 1e-10));
-	REQUIRE_THAT(L(0, 1), Catch::Matchers::WithinRel(-1.0, 1e-10));
-	REQUIRE_THAT(L(0, 2), Catch::Matchers::WithinAbs(0.0, 1e-10));
+	REQUIRE_THAT(L(0, 0), Catch::Matchers::WithinRel(REAL(1.0), TOL(1e-10, 1e-5)));
+	REQUIRE_THAT(L(0, 1), Catch::Matchers::WithinRel(REAL(-1.0), TOL(1e-10, 1e-5)));
+	REQUIRE_THAT(L(0, 2), Catch::Matchers::WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
 
-	REQUIRE_THAT(L(1, 0), Catch::Matchers::WithinRel(-1.0, 1e-10));
-	REQUIRE_THAT(L(1, 1), Catch::Matchers::WithinRel(2.0, 1e-10));
-	REQUIRE_THAT(L(1, 2), Catch::Matchers::WithinRel(-1.0, 1e-10));
+	REQUIRE_THAT(L(1, 0), Catch::Matchers::WithinRel(REAL(-1.0), TOL(1e-10, 1e-5)));
+	REQUIRE_THAT(L(1, 1), Catch::Matchers::WithinRel(REAL(2.0), TOL(1e-10, 1e-5)));
+	REQUIRE_THAT(L(1, 2), Catch::Matchers::WithinRel(REAL(-1.0), TOL(1e-10, 1e-5)));
 
-	REQUIRE_THAT(L(2, 0), Catch::Matchers::WithinAbs(0.0, 1e-10));
-	REQUIRE_THAT(L(2, 1), Catch::Matchers::WithinRel(-1.0, 1e-10));
-	REQUIRE_THAT(L(2, 2), Catch::Matchers::WithinRel(1.0, 1e-10));
+	REQUIRE_THAT(L(2, 0), Catch::Matchers::WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+	REQUIRE_THAT(L(2, 1), Catch::Matchers::WithinRel(REAL(-1.0), TOL(1e-10, 1e-5)));
+	REQUIRE_THAT(L(2, 2), Catch::Matchers::WithinRel(REAL(1.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("Graph - Laplacian row sums are zero", "[Graph][matrix]")
@@ -339,7 +339,7 @@ TEST_CASE("Graph - Laplacian row sums are zero", "[Graph][matrix]")
 		Real rowSum = 0;
 		for (int j = 0; j < 5; ++j)
 			rowSum += L(i, j);
-		REQUIRE_THAT(rowSum, Catch::Matchers::WithinAbs(0.0, 1e-10));
+		REQUIRE_THAT(rowSum, Catch::Matchers::WithinAbs(0.0, TOL(1e-10, 1e-5)));
 	}
 }
 
@@ -1330,7 +1330,7 @@ TEST_CASE("DegreeCentrality - complete graph has uniform centrality", "[Graph][S
 	// All vertices have degree 4 out of max 4, so centrality = 1.0
 	for (size_t i = 0; i < 5; ++i)
 	{
-		REQUIRE_THAT(centrality[i], Catch::Matchers::WithinAbs(1.0, 1e-10));
+		REQUIRE_THAT(centrality[i], Catch::Matchers::WithinAbs(1.0, TOL(1e-10, 1e-5)));
 	}
 }
 
@@ -1343,12 +1343,12 @@ TEST_CASE("DegreeCentrality - star graph", "[Graph][Spectral]")
 	REQUIRE(centrality.size() == 5);
 
 	// Center (vertex 0) has degree 4, max is 4
-	REQUIRE_THAT(centrality[0], Catch::Matchers::WithinAbs(1.0, 1e-10));
+	REQUIRE_THAT(centrality[0], Catch::Matchers::WithinAbs(1.0, TOL(1e-10, 1e-5)));
 
 	// Leaves have degree 1, max is 4
 	for (size_t i = 1; i < 5; ++i)
 	{
-		REQUIRE_THAT(centrality[i], Catch::Matchers::WithinAbs(0.25, 1e-10));
+		REQUIRE_THAT(centrality[i], Catch::Matchers::WithinAbs(0.25, TOL(1e-10, 1e-5)));
 	}
 }
 
@@ -1364,8 +1364,8 @@ TEST_CASE("ClosenessCentrality - path graph", "[Graph][Spectral]")
 	REQUIRE(centrality[2] > centrality[0]);
 	REQUIRE(centrality[2] > centrality[4]);
 	// Symmetry
-	REQUIRE_THAT(centrality[0], Catch::Matchers::WithinAbs(centrality[4], 1e-10));
-	REQUIRE_THAT(centrality[1], Catch::Matchers::WithinAbs(centrality[3], 1e-10));
+	REQUIRE_THAT(centrality[0], Catch::Matchers::WithinAbs(centrality[4], TOL(1e-10, 1e-5)));
+	REQUIRE_THAT(centrality[1], Catch::Matchers::WithinAbs(centrality[3], TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("ClosenessCentrality - star graph center is most central", "[Graph][Spectral]")
@@ -1394,8 +1394,8 @@ TEST_CASE("BetweennessCentrality - path graph", "[Graph][Spectral]")
 	REQUIRE(centrality[2] > centrality[3]);
 
 	// End vertices have 0 betweenness (not on any shortest path between others)
-	REQUIRE_THAT(centrality[0], Catch::Matchers::WithinAbs(0.0, 1e-10));
-	REQUIRE_THAT(centrality[4], Catch::Matchers::WithinAbs(0.0, 1e-10));
+	REQUIRE_THAT(centrality[0], Catch::Matchers::WithinAbs(0.0, TOL(1e-10, 1e-5)));
+	REQUIRE_THAT(centrality[4], Catch::Matchers::WithinAbs(0.0, TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("BetweennessCentrality - complete graph has zero betweenness", "[Graph][Spectral]")
@@ -1408,7 +1408,7 @@ TEST_CASE("BetweennessCentrality - complete graph has zero betweenness", "[Graph
 	// (all pairs are directly connected)
 	for (size_t i = 0; i < 5; ++i)
 	{
-		REQUIRE_THAT(centrality[i], Catch::Matchers::WithinAbs(0.0, 1e-10));
+		REQUIRE_THAT(centrality[i], Catch::Matchers::WithinAbs(0.0, TOL(1e-10, 1e-5)));
 	}
 }
 
@@ -1437,7 +1437,7 @@ TEST_CASE("PageRank - sums to 1", "[Graph][Spectral]")
 	for (Real r : ranks)
 		sum += r;
 
-	REQUIRE_THAT(sum, Catch::Matchers::WithinAbs(1.0, 1e-10));
+	REQUIRE_THAT(sum, Catch::Matchers::WithinAbs(1.0, TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("PageRank - regular graph has uniform ranks", "[Graph][Spectral]")
@@ -1463,7 +1463,7 @@ TEST_CASE("GraphDensity - complete graph has density 1", "[Graph][Spectral]")
 
 	Real density = GraphDensity(g);
 
-	REQUIRE_THAT(density, Catch::Matchers::WithinAbs(1.0, 1e-10));
+	REQUIRE_THAT(density, Catch::Matchers::WithinAbs(1.0, TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("GraphDensity - path graph", "[Graph][Spectral]")
@@ -1473,7 +1473,7 @@ TEST_CASE("GraphDensity - path graph", "[Graph][Spectral]")
 	Real density = GraphDensity(g);
 
 	// Path has 4 edges, max is 10 (5*4/2)
-	REQUIRE_THAT(density, Catch::Matchers::WithinAbs(0.4, 1e-10));
+	REQUIRE_THAT(density, Catch::Matchers::WithinAbs(0.4, TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("GraphDensity - empty graph", "[Graph][Spectral]")
@@ -1482,7 +1482,7 @@ TEST_CASE("GraphDensity - empty graph", "[Graph][Spectral]")
 
 	Real density = GraphDensity(g);
 
-	REQUIRE_THAT(density, Catch::Matchers::WithinAbs(0.0, 1e-10));
+	REQUIRE_THAT(density, Catch::Matchers::WithinAbs(0.0, TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("AverageClusteringCoefficient - complete graph is 1", "[Graph][Spectral]")
@@ -1491,7 +1491,7 @@ TEST_CASE("AverageClusteringCoefficient - complete graph is 1", "[Graph][Spectra
 
 	Real cc = AverageClusteringCoefficient(g);
 
-	REQUIRE_THAT(cc, Catch::Matchers::WithinAbs(1.0, 1e-10));
+	REQUIRE_THAT(cc, Catch::Matchers::WithinAbs(1.0, TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("AverageClusteringCoefficient - star graph is 0", "[Graph][Spectral]")
@@ -1502,7 +1502,7 @@ TEST_CASE("AverageClusteringCoefficient - star graph is 0", "[Graph][Spectral]")
 
 	// Leaves have degree 1 (no triangles possible)
 	// Center has neighbors that are not connected to each other
-	REQUIRE_THAT(cc, Catch::Matchers::WithinAbs(0.0, 1e-10));
+	REQUIRE_THAT(cc, Catch::Matchers::WithinAbs(0.0, TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("GraphDiameter - path graph", "[Graph][Spectral]")
@@ -1511,7 +1511,7 @@ TEST_CASE("GraphDiameter - path graph", "[Graph][Spectral]")
 
 	Real diameter = GraphDiameter(g);
 
-	REQUIRE_THAT(diameter, Catch::Matchers::WithinAbs(4.0, 1e-10));
+	REQUIRE_THAT(diameter, Catch::Matchers::WithinAbs(4.0, TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("GraphDiameter - complete graph is 1", "[Graph][Spectral]")
@@ -1520,7 +1520,7 @@ TEST_CASE("GraphDiameter - complete graph is 1", "[Graph][Spectral]")
 
 	Real diameter = GraphDiameter(g);
 
-	REQUIRE_THAT(diameter, Catch::Matchers::WithinAbs(1.0, 1e-10));
+	REQUIRE_THAT(diameter, Catch::Matchers::WithinAbs(1.0, TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("GraphDiameter - cycle graph", "[Graph][Spectral]")
@@ -1530,7 +1530,7 @@ TEST_CASE("GraphDiameter - cycle graph", "[Graph][Spectral]")
 	Real diameter = GraphDiameter(g);
 
 	// Diameter is n/2 for even cycle
-	REQUIRE_THAT(diameter, Catch::Matchers::WithinAbs(3.0, 1e-10));
+	REQUIRE_THAT(diameter, Catch::Matchers::WithinAbs(3.0, TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("AveragePathLength - complete graph is 1", "[Graph][Spectral]")
@@ -1539,7 +1539,7 @@ TEST_CASE("AveragePathLength - complete graph is 1", "[Graph][Spectral]")
 
 	Real apl = AveragePathLength(g);
 
-	REQUIRE_THAT(apl, Catch::Matchers::WithinAbs(1.0, 1e-10));
+	REQUIRE_THAT(apl, Catch::Matchers::WithinAbs(1.0, TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("AveragePathLength - path graph", "[Graph][Spectral]")
@@ -1551,7 +1551,7 @@ TEST_CASE("AveragePathLength - path graph", "[Graph][Spectral]")
 	// Sum of all shortest paths / number of pairs
 	// Pairs: (0,1)=1, (0,2)=2, (0,3)=3, (0,4)=4, (1,2)=1, (1,3)=2, (1,4)=3, (2,3)=1, (2,4)=2, (3,4)=1
 	// Total = 20, pairs = 10
-	REQUIRE_THAT(apl, Catch::Matchers::WithinAbs(2.0, 1e-10));
+	REQUIRE_THAT(apl, Catch::Matchers::WithinAbs(2.0, TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("AlgebraicConnectivity - connected graph is positive", "[Graph][Spectral]")
@@ -1571,7 +1571,7 @@ TEST_CASE("AlgebraicConnectivity - disconnected graph is zero", "[Graph][Spectra
 
 	Real lambda2 = AlgebraicConnectivityBound(g);
 
-	REQUIRE_THAT(lambda2, Catch::Matchers::WithinAbs(0.0, 1e-10));
+	REQUIRE_THAT(lambda2, Catch::Matchers::WithinAbs(0.0, TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("IsConnectedSpectral - matches IsConnected", "[Graph][Spectral]")

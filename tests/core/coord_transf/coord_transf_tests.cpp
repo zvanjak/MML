@@ -31,7 +31,7 @@ namespace MML::Tests::Core::CoordTransfTests
 		Vector3Spherical posSpher;
 
 		posSpher = CoordTransfCartToSpher.transf(Vector3Cartesian{ REAL(1.0), REAL(0.0), REAL(0.0) });
-		REQUIRE(posSpher == Vector3Spherical{ REAL(1.0), Constants::PI / 2, REAL(0.0) });
+		REQUIRE(posSpher.IsEqualTo(Vector3Spherical{ REAL(1.0), Constants::PI / 2, REAL(0.0) }));
 
 		posSpher = CoordTransfCartToSpher.transf(Vector3Cartesian{ -REAL(1.0), REAL(0.0), REAL(0.0) });
 		REQUIRE(posSpher == Vector3Spherical{ REAL(1.0), Constants::PI / 2, Constants::PI });
@@ -57,7 +57,7 @@ namespace MML::Tests::Core::CoordTransfTests
 		REQUIRE(posCyl == Vector3Cylindrical{ REAL(1.0), REAL(0.0), REAL(0.0) });
 
 		posCyl = CoordTransfCartToCyl.transf(Vector3Cartesian{ -REAL(1.0), REAL(0.0), REAL(0.0) });
-		REQUIRE(posCyl == Vector3Cylindrical{ REAL(1.0), Constants::PI, REAL(0.0) });
+		REQUIRE(posCyl.IsEqualTo(Vector3Cylindrical{ REAL(1.0), Constants::PI, REAL(0.0) }));
 
 		posCyl = CoordTransfCartToCyl.transf(Vector3Cartesian{ REAL(0.0), REAL(1.0), REAL(0.0) });
 		REQUIRE(posCyl == Vector3Cylindrical{ REAL(1.0), Constants::PI / 2, REAL(0.0) });
@@ -81,10 +81,10 @@ namespace MML::Tests::Core::CoordTransfTests
 		REQUIRE(posCart == Vector3Cartesian{ REAL(0.0), REAL(0.0), REAL(1.0) });
 
 		posCart = CoordTransfSpherToCart.transf(Vector3Spherical{ REAL(1.0), Constants::PI / 2, REAL(0.0) });
-		REQUIRE(posCart.IsEqualTo(Vector3Cartesian{ REAL(1.0), REAL(0.0), REAL(0.0) }, 1e-16));
+		REQUIRE(posCart.IsEqualTo(Vector3Cartesian{ REAL(1.0), REAL(0.0), REAL(0.0) }, TOL(1e-16, 1e-6)));
 
 		posCart = CoordTransfSpherToCart.transf(Vector3Spherical{ REAL(1.0), Constants::PI / 2, Constants::PI / 2 });
-		REQUIRE(posCart.IsEqualTo(Vector3Cartesian{ REAL(0.0), REAL(1.0), REAL(0.0) }, 1e-16));
+		REQUIRE(posCart.IsEqualTo(Vector3Cartesian{ REAL(0.0), REAL(1.0), REAL(0.0) }, TOL(1e-16, 1e-6)));
 	}
 
 	TEST_CASE("Test_GetUnitVector")

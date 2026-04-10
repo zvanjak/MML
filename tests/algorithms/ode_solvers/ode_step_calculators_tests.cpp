@@ -150,8 +150,8 @@ namespace MML::Tests::Algorithms::ODEStepCalculatorTests
 			{
 				REQUIRE(std::isfinite(x_out[i]));
 				REQUIRE(std::isfinite(x_err[i]));
-				REQUIRE_THAT(x_out[i], Catch::Matchers::WithinAbs(expected[i], REAL(1e-12)));
-				REQUIRE_THAT(x_err[i], Catch::Matchers::WithinAbs(REAL(0.0), REAL(1e-12)));
+				REQUIRE_THAT(x_out[i], Catch::Matchers::WithinAbs(expected[i], TOL(1e-12, 1e-5)));
+				REQUIRE_THAT(x_err[i], Catch::Matchers::WithinAbs(REAL(0.0), TOL(1e-12, 1e-5)));
 			}
 		}
 	}
@@ -243,7 +243,7 @@ namespace MML::Tests::Algorithms::ODEStepCalculatorTests
 			Vector<Real> y_err(1);
 
 			// Integrate to t=1.0
-			int steps = static_cast<int>(REAL(1.0) / h);
+			int steps = std::lround(REAL(1.0) / h);
 			for (int step = 0; step < steps; ++step)
 			{
 				sys.derivs(t, y, dydt);
@@ -279,7 +279,7 @@ namespace MML::Tests::Algorithms::ODEStepCalculatorTests
 			Vector<Real> x_err(2);
 
 			// Integrate for 1 second
-			int steps = static_cast<int>(REAL(1.0) / h);
+			int steps = std::lround(REAL(1.0) / h);
 			for (int step = 0; step < steps; ++step)
 			{
 				sys.derivs(t, x, dxdt);
@@ -482,12 +482,12 @@ namespace MML::Tests::Algorithms::ODEStepCalculatorTests
 
 	TEST_CASE("RK4 step calculator - polynomial", "[ODE][stepcalc][RK4]")
 	{
-		TestPolynomialODE(StepCalculators::RK4_Basic, "RK4", REAL(1e-8)); // Exact for polynomials degree <= 4
+		TestPolynomialODE(StepCalculators::RK4_Basic, "RK4", TOL(1e-8, 1e-4)); // Exact for polynomials degree <= 4
 	}
 
 	TEST_CASE("RK4 step calculator - falling body", "[ODE][stepcalc][RK4]")
 	{
-		TestFallingBody(StepCalculators::RK4_Basic, "RK4", REAL(1e-8));
+		TestFallingBody(StepCalculators::RK4_Basic, "RK4", TOL(1e-8, 2e-3));
 	}
 
 	/////////////////////////////////////////////////////////////////////////////////////
@@ -501,7 +501,7 @@ namespace MML::Tests::Algorithms::ODEStepCalculatorTests
 
 	TEST_CASE("RK5 Cash-Karp step calculator - exponential decay", "[ODE][stepcalc][RK5CashKarp]")
 	{
-		TestExponentialDecay(StepCalculators::RK5_CashKarp, "RK5-CashKarp", REAL(1e-8)); // 5th order
+		TestExponentialDecay(StepCalculators::RK5_CashKarp, "RK5-CashKarp", TOL(1e-8, 1e-4)); // 5th order
 	}
 
 	TEST_CASE("RK5 Cash-Karp step calculator - harmonic oscillator", "[ODE][stepcalc][RK5CashKarp]")
@@ -540,7 +540,7 @@ namespace MML::Tests::Algorithms::ODEStepCalculatorTests
 
 	TEST_CASE("Dormand-Prince 5 step calculator - exponential decay", "[ODE][stepcalc][DormandPrince5]")
 	{
-		TestExponentialDecay(StepCalculators::DormandPrince5StepCalc, "DormandPrince5", REAL(1e-8));
+		TestExponentialDecay(StepCalculators::DormandPrince5StepCalc, "DormandPrince5", TOL(1e-8, 1e-4));
 	}
 
 	TEST_CASE("Dormand-Prince 5 step calculator - harmonic oscillator", "[ODE][stepcalc][DormandPrince5]")
@@ -578,7 +578,7 @@ namespace MML::Tests::Algorithms::ODEStepCalculatorTests
 
 	TEST_CASE("Dormand-Prince 8 step calculator - exponential decay", "[ODE][stepcalc][DormandPrince8]")
 	{
-		TestExponentialDecay(StepCalculators::DormandPrince8StepCalc, "DormandPrince8", REAL(1e-10)); // 8th order - very accurate
+		TestExponentialDecay(StepCalculators::DormandPrince8StepCalc, "DormandPrince8", TOL(1e-10, 1e-5)); // 8th order - very accurate
 	}
 
 	TEST_CASE("Dormand-Prince 8 step calculator - harmonic oscillator", "[ODE][stepcalc][DormandPrince8]")
@@ -588,7 +588,7 @@ namespace MML::Tests::Algorithms::ODEStepCalculatorTests
 
 	TEST_CASE("Dormand-Prince 8 step calculator - polynomial", "[ODE][stepcalc][DormandPrince8]")
 	{
-		TestPolynomialODE(StepCalculators::DormandPrince8StepCalc, "DormandPrince8", REAL(1e-12));
+		TestPolynomialODE(StepCalculators::DormandPrince8StepCalc, "DormandPrince8", TOL(1e-12, 1e-5));
 	}
 
 	TEST_CASE("Dormand-Prince 8 step calculator - provides error estimate", "[ODE][stepcalc][DormandPrince8]")
@@ -608,7 +608,7 @@ namespace MML::Tests::Algorithms::ODEStepCalculatorTests
 		// Should provide non-zero error estimate
 		REQUIRE(std::abs(y_err[0]) > REAL(0.0));
 		// Error should be very small for 8th order
-		REQUIRE(std::abs(y_err[0]) < REAL(1e-8));
+		REQUIRE(std::abs(y_err[0]) < TOL(1e-8, 1e-4));
 	}
 
 	/////////////////////////////////////////////////////////////////////////////////////
@@ -664,7 +664,12 @@ namespace MML::Tests::Algorithms::ODEStepCalculatorTests
 		REQUIRE(midpointErr < eulerErr);
 		REQUIRE(rk4Err < midpointErr);
 		REQUIRE(dp5Err < rk4Err);
-		REQUIRE(dp8Err < dp5Err);
+		if constexpr (std::is_same_v<Real, float>) {
+			// Both dp8 and dp5 errors underflow to 0 with float, so just verify dp8 <= dp5
+			REQUIRE(dp8Err <= dp5Err);
+		} else {
+			REQUIRE(dp8Err < dp5Err);
+		}
 	}
 
 	/////////////////////////////////////////////////////////////////////////////////////

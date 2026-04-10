@@ -36,6 +36,7 @@ namespace MML
 			try
 			{
 				out << type << std::endl;
+				out << "VERSION: " << FormatType::CURRENT_VERSION << std::endl;
 				out << "Title: " << title << std::endl;
 				out << "NUM_LINES: " << numLines << std::endl;
 				return {true, SerializeError::OK, "Success"};
@@ -71,7 +72,7 @@ namespace MML
 			try
 			{
 				// Write header
-				auto headerResult = WriteFieldLinesHeader(file, "FIELD_LINES_2D", title, static_cast<int>(lines.size()));
+				auto headerResult = WriteFieldLinesHeader(file, FormatType::FIELD_LINES_2D, title, static_cast<int>(lines.size()));
 				if (!headerResult.success)
 					return headerResult;
 
@@ -119,7 +120,7 @@ namespace MML
 			try
 			{
 				// Write header
-				auto headerResult = WriteFieldLinesHeader(file, "FIELD_LINES_2D", title, static_cast<int>(lines.size()));
+				auto headerResult = WriteFieldLinesHeader(file, FormatType::FIELD_LINES_2D, title, static_cast<int>(lines.size()));
 				if (!headerResult.success)
 					return headerResult;
 
@@ -171,7 +172,7 @@ namespace MML
 			try
 			{
 				// Write header
-				auto headerResult = WriteFieldLinesHeader(file, "FIELD_LINES_3D", title, static_cast<int>(lines.size()));
+				auto headerResult = WriteFieldLinesHeader(file, FormatType::FIELD_LINES_3D, title, static_cast<int>(lines.size()));
 				if (!headerResult.success)
 					return headerResult;
 
@@ -215,7 +216,7 @@ namespace MML
 			try
 			{
 				// Write header
-				auto headerResult = WriteFieldLinesHeader(file, "FIELD_LINES_3D", title, static_cast<int>(lines.size()));
+				auto headerResult = WriteFieldLinesHeader(file, FormatType::FIELD_LINES_3D, title, static_cast<int>(lines.size()));
 				if (!headerResult.success)
 					return headerResult;
 

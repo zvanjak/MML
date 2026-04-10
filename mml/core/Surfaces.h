@@ -404,7 +404,7 @@ namespace MML
 			Real getMinW() const { return 0; }
 			Real getMaxW() const { return _H; }
 
-			VectorN<Real, 3> operator()(Real u, Real w) const { return VectorN<Real, 3>{_R* cos(u), _R* sin(u), w}; }
+			VectorN<Real, 3> operator()(Real u, Real w) const { return VectorN<Real, 3>{static_cast<Real>(_R* cos(u)), static_cast<Real>(_R* sin(u)), w}; }
 		};
 		
 		/// @brief Torus r(u,w) = ((R+r·cos(w))·cos(u), (R+r·cos(w))·sin(u), r·sin(w))
@@ -421,7 +421,7 @@ namespace MML
 			Real getMinW() const { return 0; }
 			Real getMaxW() const { return 2 * Constants::PI; }
 
-			VectorN<Real, 3> operator()(Real u, Real w) const { return MML::VectorN<Real, 3>{(_R + _r * cos(w)) * cos(u), (_R + _r * cos(w)) * sin(u), _r * sin(w)}; }
+			VectorN<Real, 3> operator()(Real u, Real w) const { return MML::VectorN<Real, 3>{static_cast<Real>((_R + _r * cos(w)) * cos(u)), static_cast<Real>((_R + _r * cos(w)) * sin(u)), static_cast<Real>(_r * sin(w))}; }
 		};
 
 		/// @brief Spherical surface r(u,w) = R·(sin(u)·cos(w), sin(u)·sin(w), cos(u)), radius R
@@ -438,7 +438,7 @@ namespace MML
 			Real getMinW() const { return 0; }
 			Real getMaxW() const { return 2 * Constants::PI; }
 
-			VectorN<Real, 3> operator()(Real u, Real w) const { return MML::VectorN<Real, 3>{_R * sin(u)* cos(w), _R * sin(u)* sin(w), _R * cos(u)}; }
+			VectorN<Real, 3> operator()(Real u, Real w) const { return MML::VectorN<Real, 3>{static_cast<Real>(_R * sin(u)* cos(w)), static_cast<Real>(_R * sin(u)* sin(w)), static_cast<Real>(_R * cos(u))}; }
 		};
 
 		/// @brief Monkey saddle z = u·(u²-3w²), classic example with 3 critical directions
@@ -470,9 +470,9 @@ namespace MML
 
 			VectorN<Real, 3> operator()(Real u, Real w) const { 
 				return VectorN<Real, 3>{
-					_scale * (1 + w * cos(u / 2)) * cos(u), 
-					_scale * (1 + w * cos(u / 2)) * sin(u), 
-					_scale * w * sin(u / 2)
+					static_cast<Real>(_scale * (1 + w * cos(u / 2)) * cos(u)), 
+					static_cast<Real>(_scale * (1 + w * cos(u / 2)) * sin(u)), 
+					static_cast<Real>(_scale * w * sin(u / 2))
 				}; 
 			}
 		};
@@ -491,7 +491,7 @@ namespace MML
 		Real getMinW() const { return 0; }
 		Real getMaxW() const { return 2 * Constants::PI; }
 
-		VectorN<Real, 3> operator()(Real u, Real w) const { return MML::VectorN<Real, 3>{_a * sin(u) * cos(w), _b * sin(u) * sin(w), _c * cos(u)}; }
+		VectorN<Real, 3> operator()(Real u, Real w) const { return MML::VectorN<Real, 3>{static_cast<Real>(_a * sin(u) * cos(w)), static_cast<Real>(_b * sin(u) * sin(w)), static_cast<Real>(_c * cos(u))}; }
 		};
 
 		/// @brief One-sheet hyperboloid r(u,w) = (a·cosh(u)·cos(w), b·cosh(u)·sin(w), c·sinh(u))
@@ -508,7 +508,7 @@ namespace MML
 			Real getMinW() const { return 0; }
 			Real getMaxW() const { return 2 * Constants::PI; }
 
-			VectorN<Real, 3> operator()(Real u, Real w) const { return MML::VectorN<Real, 3>{_a * cosh(u) * cos(w), _b * cosh(u) * sin(w), _c * sinh(u)}; }
+			VectorN<Real, 3> operator()(Real u, Real w) const { return MML::VectorN<Real, 3>{static_cast<Real>(_a * cosh(u) * cos(w)), static_cast<Real>(_b * cosh(u) * sin(w)), static_cast<Real>(_c * sinh(u))}; }
 		};
 
 		/// @brief Paraboloid of revolution z = u, r(u,w) = (a·√(u/h)·cos(w), a·√(u/h)·sin(w), u)
@@ -525,7 +525,7 @@ namespace MML
 			Real getMinW() const { return 0; }
 			Real getMaxW() const { return 2 * Constants::PI; }
 
-			VectorN<Real, 3> operator()(Real u, Real w) const { return MML::VectorN<Real, 3>{_a * sqrt(u/_h) * cos(w), _a * sqrt(u/_h) * sin(w), u}; }
+			VectorN<Real, 3> operator()(Real u, Real w) const { return MML::VectorN<Real, 3>{static_cast<Real>(_a * sqrt(u/_h) * cos(w)), static_cast<Real>(_a * sqrt(u/_h) * sin(w)), u}; }
 		};
 
 		/// @brief Helicoid - minimal ruled surface like a spiral staircase
@@ -543,7 +543,7 @@ namespace MML
 			Real getMaxW() const { return 4 * Constants::PI; }
 
 			VectorN<Real, 3> operator()(Real u, Real w) const { 
-				return VectorN<Real, 3>{u * cos(w), u * sin(w), _pitch * w}; 
+				return VectorN<Real, 3>{static_cast<Real>(u * cos(w)), static_cast<Real>(u * sin(w)), _pitch * w}; 
 			}
 		};
 
@@ -628,9 +628,9 @@ namespace MML
 
 			VectorN<Real, 3> operator()(Real u, Real v) const { 
 				return VectorN<Real, 3>{
-					_a * cos(u) * sin(v),
-					_a * sin(u) * sin(v),
-					_a * (cos(v) + log(tan(v / 2))) + _b * u
+					static_cast<Real>(_a * cos(u) * sin(v)),
+					static_cast<Real>(_a * sin(u) * sin(v)),
+					static_cast<Real>(_a * (cos(v) + log(tan(v / 2))) + _b * u)
 				}; 
 			}
 		};

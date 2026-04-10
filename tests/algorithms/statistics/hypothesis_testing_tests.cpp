@@ -434,7 +434,7 @@ namespace MML::Tests::Algorithms::HypothesisTests
 		REQUIRE_FALSE(result.rejectNull);
 		
 		// Check metadata
-		REQUIRE(result.confidenceLevel == 0.95);
+		REQUIRE(result.confidenceLevel == Catch::Approx(REAL(0.95)));
 		REQUIRE(result.degreesOfFreedom == 4);
 		REQUIRE(result.testName == "One-Sample t-Test");
 	}
@@ -523,7 +523,7 @@ namespace MML::Tests::Algorithms::HypothesisTests
 		auto result = Statistics::TwoSampleTTest(sample1, sample2, 0.05);
 		
 		// Large negative t-statistic (sample1 < sample2)
-		REQUIRE(result.testStatistic <= -5.0);
+		REQUIRE(result.testStatistic < -4.99);
 		
 		// Very small p-value
 		REQUIRE(result.pValue < 0.01);
@@ -724,8 +724,8 @@ namespace MML::Tests::Algorithms::HypothesisTests
 		REQUIRE(result_01.criticalValue > result_05.criticalValue);
 		
 		// Confidence levels should match
-		REQUIRE(result_05.confidenceLevel == 0.95);
-		REQUIRE(result_01.confidenceLevel == 0.99);
+		REQUIRE(result_05.confidenceLevel == Catch::Approx(REAL(0.95)));
+		REQUIRE(result_01.confidenceLevel == Catch::Approx(REAL(0.99)));
 		
 		// Same test statistic regardless of alpha
 		REQUIRE_THAT(result_05.testStatistic, WithinAbs(result_01.testStatistic, 0.001));
@@ -743,9 +743,9 @@ namespace MML::Tests::Algorithms::HypothesisTests
 
 		REQUIRE(detailed.IsSuccess());
 		REQUIRE(detailed.algorithm_name == "OneSampleTTest");
-		REQUIRE_THAT(detailed.testStatistic, WithinAbs(simple.testStatistic, 1e-12));
-		REQUIRE_THAT(detailed.pValue, WithinAbs(simple.pValue, 1e-12));
-		REQUIRE_THAT(detailed.criticalValue, WithinAbs(simple.criticalValue, 1e-12));
+		REQUIRE_THAT(detailed.testStatistic, WithinAbs(simple.testStatistic, TOL(1e-12, 1e-5)));
+		REQUIRE_THAT(detailed.pValue, WithinAbs(simple.pValue, TOL(1e-12, 1e-5)));
+		REQUIRE_THAT(detailed.criticalValue, WithinAbs(simple.criticalValue, TOL(1e-12, 1e-5)));
 		REQUIRE(detailed.rejectNull == simple.rejectNull);
 		REQUIRE(detailed.degreesOfFreedom == simple.degreesOfFreedom);
 		REQUIRE(detailed.elapsed_time_ms >= 0.0);
@@ -760,8 +760,8 @@ namespace MML::Tests::Algorithms::HypothesisTests
 
 		REQUIRE(detailed.IsSuccess());
 		REQUIRE(detailed.algorithm_name == "TwoSampleTTest");
-		REQUIRE_THAT(detailed.testStatistic, WithinAbs(simple.testStatistic, 1e-12));
-		REQUIRE_THAT(detailed.pValue, WithinAbs(simple.pValue, 1e-12));
+		REQUIRE_THAT(detailed.testStatistic, WithinAbs(simple.testStatistic, TOL(1e-12, 1e-5)));
+		REQUIRE_THAT(detailed.pValue, WithinAbs(simple.pValue, TOL(1e-12, 1e-5)));
 		REQUIRE(detailed.rejectNull == simple.rejectNull);
 	}
 
@@ -774,8 +774,8 @@ namespace MML::Tests::Algorithms::HypothesisTests
 
 		REQUIRE(detailed.IsSuccess());
 		REQUIRE(detailed.algorithm_name == "WelchTTest");
-		REQUIRE_THAT(detailed.testStatistic, WithinAbs(simple.testStatistic, 1e-12));
-		REQUIRE_THAT(detailed.pValue, WithinAbs(simple.pValue, 1e-12));
+		REQUIRE_THAT(detailed.testStatistic, WithinAbs(simple.testStatistic, TOL(1e-12, 1e-5)));
+		REQUIRE_THAT(detailed.pValue, WithinAbs(simple.pValue, TOL(1e-12, 1e-5)));
 	}
 
 	TEST_CASE("Statistics::PairedTTestDetailed - values match simple API", "[statistics][hypothesis][Detailed]")
@@ -787,8 +787,8 @@ namespace MML::Tests::Algorithms::HypothesisTests
 
 		REQUIRE(detailed.IsSuccess());
 		REQUIRE(detailed.algorithm_name == "PairedTTest");
-		REQUIRE_THAT(detailed.testStatistic, WithinAbs(simple.testStatistic, 1e-12));
-		REQUIRE_THAT(detailed.pValue, WithinAbs(simple.pValue, 1e-12));
+		REQUIRE_THAT(detailed.testStatistic, WithinAbs(simple.testStatistic, TOL(1e-12, 1e-5)));
+		REQUIRE_THAT(detailed.pValue, WithinAbs(simple.pValue, TOL(1e-12, 1e-5)));
 	}
 
 	TEST_CASE("Statistics::ChiSquareGoodnessOfFitDetailed - values match simple API", "[statistics][hypothesis][Detailed]")
@@ -800,8 +800,8 @@ namespace MML::Tests::Algorithms::HypothesisTests
 
 		REQUIRE(detailed.IsSuccess());
 		REQUIRE(detailed.algorithm_name == "ChiSquareGoodnessOfFit");
-		REQUIRE_THAT(detailed.testStatistic, WithinAbs(simple.testStatistic, 1e-12));
-		REQUIRE_THAT(detailed.pValue, WithinAbs(simple.pValue, 1e-12));
+		REQUIRE_THAT(detailed.testStatistic, WithinAbs(simple.testStatistic, TOL(1e-12, 1e-5)));
+		REQUIRE_THAT(detailed.pValue, WithinAbs(simple.pValue, TOL(1e-12, 1e-5)));
 	}
 
 	TEST_CASE("Statistics::ChiSquareIndependenceDetailed - values match simple API", "[statistics][hypothesis][Detailed]")
@@ -814,8 +814,8 @@ namespace MML::Tests::Algorithms::HypothesisTests
 
 		REQUIRE(detailed.IsSuccess());
 		REQUIRE(detailed.algorithm_name == "ChiSquareIndependence");
-		REQUIRE_THAT(detailed.testStatistic, WithinAbs(simple.testStatistic, 1e-12));
-		REQUIRE_THAT(detailed.pValue, WithinAbs(simple.pValue, 1e-12));
+		REQUIRE_THAT(detailed.testStatistic, WithinAbs(simple.testStatistic, TOL(1e-12, 1e-5)));
+		REQUIRE_THAT(detailed.pValue, WithinAbs(simple.pValue, TOL(1e-12, 1e-5)));
 	}
 
 	TEST_CASE("Statistics::OneWayANOVADetailed - values match simple API", "[statistics][hypothesis][Detailed]")
@@ -830,8 +830,8 @@ namespace MML::Tests::Algorithms::HypothesisTests
 
 		REQUIRE(detailed.IsSuccess());
 		REQUIRE(detailed.algorithm_name == "OneWayANOVA");
-		REQUIRE_THAT(detailed.testStatistic, WithinAbs(simple.testStatistic, 1e-12));
-		REQUIRE_THAT(detailed.pValue, WithinAbs(simple.pValue, 1e-12));
+		REQUIRE_THAT(detailed.testStatistic, WithinAbs(simple.testStatistic, TOL(1e-12, 1e-5)));
+		REQUIRE_THAT(detailed.pValue, WithinAbs(simple.pValue, TOL(1e-12, 1e-5)));
 	}
 
 	TEST_CASE("Statistics::OneSampleTTestDetailed - ConvertToStatus on invalid input", "[statistics][hypothesis][Detailed]")

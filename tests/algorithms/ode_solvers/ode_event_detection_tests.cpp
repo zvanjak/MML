@@ -211,7 +211,7 @@ namespace MML::Tests::Algorithms::ODEEventDetectionTests
 		Vector<Real> x0(std::vector<Real>{ 10.0, 0.0 });  // y=10, v=0
 		
 		DormandPrince5EventIntegrator integrator(ball);
-		auto result = integrator.integrateWithEvents(ball, x0, 0.0, 5.0, 0.01, 1e-10, 1e-12);
+		auto result = integrator.integrateWithEvents(ball, x0, 0.0, 5.0, 0.01, TOL(1e-10, 1e-5), TOL(1e-12, 1e-5));
 		
 		// Should have at least 2 bounces in 5 seconds (first bounce at ~1.43s)
 		REQUIRE(result.events.size() >= 2);
@@ -221,15 +221,15 @@ namespace MML::Tests::Algorithms::ODEEventDetectionTests
 			const auto& firstEvent = result.events[0];
 			
 			// For free fall from h=10: t = sqrt(2h/g) ≈ 1.428 s
-			Real expectedTime = std::sqrt(2.0 * 10.0 / 9.81);
-			REQUIRE_THAT(firstEvent.time, WithinRel((double)expectedTime, 1e-4));
+			Real expectedTime = std::sqrt(REAL(2.0) * REAL(10.0) / REAL(9.81));
+			REQUIRE_THAT(firstEvent.time, WithinRel(expectedTime, REAL(1e-4)));
 			
 			// Position should be at ground (≈ 0)
-			REQUIRE_THAT(firstEvent.state[0], WithinAbs(0.0, 1e-10));
+			REQUIRE_THAT(firstEvent.state[0], WithinAbs(0.0, TOL(1e-10, 1e-3)));
 			
 			// Velocity should be ≈ sqrt(2gh) = 14.0 m/s downward
-			Real expectedVelocity = -std::sqrt(2.0 * 9.81 * 10.0);
-			REQUIRE_THAT(firstEvent.state[1], WithinRel((double)expectedVelocity, 1e-4));
+			Real expectedVelocity = -std::sqrt(REAL(2.0) * REAL(9.81) * REAL(10.0));
+			REQUIRE_THAT(firstEvent.state[1], WithinRel(expectedVelocity, REAL(1e-4)));
 			
 			// Direction should be decreasing
 			REQUIRE(firstEvent.direction == EventDirection::Decreasing);
@@ -248,7 +248,7 @@ namespace MML::Tests::Algorithms::ODEEventDetectionTests
 				
 				// Period ratio should be approximately restitution coefficient
 				Real ratio = period2 / period1;
-				REQUIRE_THAT(ratio, WithinRel(0.9, 0.05));
+				REQUIRE_THAT(ratio, WithinRel(REAL(0.9), REAL(0.05)));
 			}
 		}
 	}
@@ -262,7 +262,7 @@ namespace MML::Tests::Algorithms::ODEEventDetectionTests
 		Vector<Real> x0(std::vector<Real>{ 1.0, 0.0 });  // Start at max displacement
 		
 		DormandPrince5EventIntegrator integrator(osc);
-		auto result = integrator.integrateWithEvents(osc, x0, 0.0, 2.0, 0.01, 1e-10, 1e-12);
+		auto result = integrator.integrateWithEvents(osc, x0, 0.0, 2.0, 0.01, TOL(1e-10, 1e-5), TOL(1e-12, 1e-5));
 		
 		// In 2 periods, should have 4 zero crossings
 		REQUIRE(result.events.size() == 4);
@@ -272,10 +272,10 @@ namespace MML::Tests::Algorithms::ODEEventDetectionTests
 			// Then at 3T/4 = 0.75, 5T/4 = 1.25, 7T/4 = 1.75
 			Real T = 1.0;  // Period
 			
-			REQUIRE_THAT(result.events[0].time, WithinRel(T / 4.0, 1e-4));
-			REQUIRE_THAT(result.events[1].time, WithinRel(3.0 * T / 4.0, 1e-4));
-			REQUIRE_THAT(result.events[2].time, WithinRel(5.0 * T / 4.0, 1e-4));
-			REQUIRE_THAT(result.events[3].time, WithinRel(7.0 * T / 4.0, 1e-4));
+			REQUIRE_THAT(result.events[0].time, WithinRel(T / REAL(4.0), REAL(1e-4)));
+			REQUIRE_THAT(result.events[1].time, WithinRel(REAL(3.0) * T / REAL(4.0), REAL(1e-4)));
+			REQUIRE_THAT(result.events[2].time, WithinRel(REAL(5.0) * T / REAL(4.0), REAL(1e-4)));
+			REQUIRE_THAT(result.events[3].time, WithinRel(REAL(7.0) * T / REAL(4.0), REAL(1e-4)));
 		}
 		
 		SECTION("Alternating crossing directions") {
@@ -288,7 +288,7 @@ namespace MML::Tests::Algorithms::ODEEventDetectionTests
 		
 		SECTION("Position near zero at events") {
 			for (const auto& evt : result.events) {
-				REQUIRE_THAT(evt.state[0], WithinAbs(0.0, 1e-10));
+				REQUIRE_THAT(evt.state[0], WithinAbs(0.0, TOL(1e-10, 1e-5)));
 			}
 		}
 	}
@@ -304,7 +304,7 @@ namespace MML::Tests::Algorithms::ODEEventDetectionTests
 		Vector<Real> x0(std::vector<Real>{ 1.0 });
 		
 		DormandPrince5EventIntegrator integrator(decay);
-		auto result = integrator.integrateWithEvents(decay, x0, 0.0, 10.0, 0.1, 1e-10, 1e-12);
+		auto result = integrator.integrateWithEvents(decay, x0, 0.0, 10.0, 0.1, TOL(1e-10, 1e-5), TOL(1e-12, 1e-5));
 		
 		// Should terminate before tEnd
 		REQUIRE(result.terminatedByEvent == true);
@@ -312,12 +312,12 @@ namespace MML::Tests::Algorithms::ODEEventDetectionTests
 		
 		SECTION("Termination time is accurate") {
 			Real expectedTime = -std::log(threshold);  // ln(10) ≈ 2.303
-			REQUIRE_THAT(result.events[0].time, WithinRel((double)expectedTime, 1e-4));
-			REQUIRE_THAT(result.finalTime, WithinRel((double)expectedTime, 1e-4));
+			REQUIRE_THAT(result.events[0].time, WithinRel(expectedTime, REAL(1e-4)));
+			REQUIRE_THAT(result.finalTime, WithinRel(expectedTime, REAL(1e-4)));
 		}
 		
 		SECTION("State at termination") {
-			REQUIRE_THAT(result.finalState[0], WithinRel((double)threshold, 1e-4));
+			REQUIRE_THAT(result.finalState[0], WithinRel(threshold, REAL(1e-4)));
 		}
 	}
 
@@ -339,7 +339,7 @@ namespace MML::Tests::Algorithms::ODEEventDetectionTests
 		});
 		
 		DormandPrince5EventIntegrator integrator(proj);
-		auto result = integrator.integrateWithEvents(proj, x0, 0.0, 10.0, 0.01, 1e-10, 1e-12);
+		auto result = integrator.integrateWithEvents(proj, x0, 0.0, 10.0, 0.01, TOL(1e-10, 1e-5), TOL(1e-12, 1e-5));
 		
 		// Should detect apex crossing and ground impact
 		REQUIRE(result.events.size() >= 2);
@@ -358,11 +358,11 @@ namespace MML::Tests::Algorithms::ODEEventDetectionTests
 		SECTION("Ground impact is final event") {
 			const auto& lastEvent = result.events.back();
 			REQUIRE(lastEvent.eventIndex == 0);  // Ground event
-			REQUIRE_THAT(lastEvent.state[1], WithinAbs(0.0, 1e-10));
+			REQUIRE_THAT(lastEvent.state[1], WithinAbs(0.0, TOL(1e-10, 1e-5)));
 			
 			// Flight time: t = 2 * v0 * sin(angle) / g
 			Real expectedFlightTime = 2.0 * v0 * std::sin(angle) / g;
-			REQUIRE_THAT(lastEvent.time, WithinRel((double)expectedFlightTime, 1e-3));
+			REQUIRE_THAT(lastEvent.time, WithinRel(expectedFlightTime, REAL(1e-3)));
 		}
 	}
 
@@ -384,7 +384,7 @@ namespace MML::Tests::Algorithms::ODEEventDetectionTests
 		Vector<Real> x0(std::vector<Real>{ 1.0, 0.0 });
 		
 		DormandPrince5EventIntegrator integrator(osc);
-		auto result = integrator.integrateWithEvents(osc, x0, 0.0, 2.0, 0.01, 1e-10, 1e-12);
+		auto result = integrator.integrateWithEvents(osc, x0, 0.0, 2.0, 0.01, TOL(1e-10, 1e-5), TOL(1e-12, 1e-5));
 		
 		// Should only have 2 events (one per period, increasing only)
 		REQUIRE(result.events.size() == 2);
@@ -396,8 +396,8 @@ namespace MML::Tests::Algorithms::ODEEventDetectionTests
 		
 		// Times should be at 3T/4 and 7T/4 (when x goes from - to +)
 		Real T = 1.0;
-		REQUIRE_THAT(result.events[0].time, WithinRel(3.0 * T / 4.0, 1e-4));
-		REQUIRE_THAT(result.events[1].time, WithinRel(7.0 * T / 4.0, 1e-4));
+		REQUIRE_THAT(result.events[0].time, WithinRel(REAL(3.0) * T / REAL(4.0), REAL(1e-4)));
+		REQUIRE_THAT(result.events[1].time, WithinRel(REAL(7.0) * T / REAL(4.0), REAL(1e-4)));
 	}
 
 	TEST_CASE("Event Detection - No Events", "[ODEEventDetection]") {
@@ -408,12 +408,12 @@ namespace MML::Tests::Algorithms::ODEEventDetectionTests
 		Vector<Real> x0(std::vector<Real>{ 1.0 });
 		
 		DormandPrince5EventIntegrator integrator(decay);
-		auto result = integrator.integrateWithEvents(decay, x0, 0.0, 2.0, 0.1, 1e-10, 1e-12);
+		auto result = integrator.integrateWithEvents(decay, x0, 0.0, 2.0, 0.1, TOL(1e-10, 1e-5), TOL(1e-12, 1e-5));
 		
 		// x(2) = e^(-2) ≈ 0.135, still above threshold 0.001
 		REQUIRE(result.events.empty());
 		REQUIRE(result.terminatedByEvent == false);
-		REQUIRE_THAT(result.finalTime, WithinAbs(2.0, 1e-10));
+		REQUIRE_THAT(result.finalTime, WithinAbs(2.0, TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("Event Detection - Different Steppers", "[ODEEventDetection]") {
@@ -425,19 +425,19 @@ namespace MML::Tests::Algorithms::ODEEventDetectionTests
 		
 		SECTION("DormandPrince5") {
 			DormandPrince5EventIntegrator integrator(ball);
-			auto result = integrator.integrateWithEvents(ball, x0, 0.0, 3.0, 0.01, 1e-10, 1e-12);
+			auto result = integrator.integrateWithEvents(ball, x0, 0.0, 3.0, 0.01, TOL(1e-10, 1e-5), TOL(1e-12, 1e-5));
 			REQUIRE(result.events.size() >= 2);
 		}
 		
 		SECTION("DormandPrince8") {
 			DormandPrince8EventIntegrator integrator(ball);
-			auto result = integrator.integrateWithEvents(ball, x0, 0.0, 3.0, 0.01, 1e-10, 1e-12);
+			auto result = integrator.integrateWithEvents(ball, x0, 0.0, 3.0, 0.01, TOL(1e-10, 1e-5), TOL(1e-12, 1e-5));
 			REQUIRE(result.events.size() >= 2);
 		}
 		
 		SECTION("CashKarp") {
 			CashKarpEventIntegrator integrator(ball);
-			auto result = integrator.integrateWithEvents(ball, x0, 0.0, 3.0, 0.01, 1e-10, 1e-12);
+			auto result = integrator.integrateWithEvents(ball, x0, 0.0, 3.0, 0.01, TOL(1e-10, 1e-5), TOL(1e-12, 1e-5));
 			REQUIRE(result.events.size() >= 2);
 		}
 	}

@@ -60,7 +60,8 @@ namespace MML
 			try
 			{
 				std::ostringstream buffer;
-				buffer << "PARTICLE_SIMULATION_DATA_2D\n";
+				buffer << FormatType::PARTICLE_SIMULATION_DATA_2D << "\n";
+				buffer << "VERSION: " << FormatType::CURRENT_VERSION << "\n";
 				buffer << "Width: " << width << "\n";
 				buffer << "Height: " << height << "\n";
 				buffer << "NumBalls: " << numBalls << "\n";
@@ -130,7 +131,8 @@ namespace MML
 
 			try
 			{
-				file << "PARTICLE_SIMULATION_DATA_3D" << std::endl;
+				file << FormatType::PARTICLE_SIMULATION_DATA_3D << std::endl;
+				file << "VERSION: " << FormatType::CURRENT_VERSION << std::endl;
 				file << "Width: "    << width << std::endl;
 				file << "Height: "   << height << std::endl;
 				file << "Depth: "    << depth << std::endl;

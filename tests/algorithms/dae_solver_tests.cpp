@@ -2,7 +2,9 @@
 // DAE Solver Tests - Unit tests for Differential-Algebraic Equation solvers
 ///////////////////////////////////////////////////////////////////////////////////////////
 #include <catch2/catch_test_macros.hpp>
+#include "../TestPrecision.h"
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <type_traits>
 
 #include "MMLBase.h"
 #include "interfaces/IODESystemDAE.h"
@@ -156,7 +158,7 @@ TEST_CASE("DAE::Interface_diffEqs_evaluation", "[dae][interface]")
 	linearDAE.diffEqs(0.0, x, y, dxdt);
 	
 	// dx/dt = -x + y = -0.3 + 0.7 = 0.4
-	REQUIRE_THAT(dxdt[0], WithinAbs(0.4, 1e-10));
+	REQUIRE_THAT(dxdt[0], WithinAbs(0.4, TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("DAE::Interface_algConstraints_evaluation", "[dae][interface]")
@@ -170,7 +172,7 @@ TEST_CASE("DAE::Interface_algConstraints_evaluation", "[dae][interface]")
 	linearDAE.algConstraints(0.0, x, y, g);
 	
 	// Constraint residual should be 0 for consistent values
-	REQUIRE_THAT(g[0], WithinAbs(0.0, 1e-10));
+	REQUIRE_THAT(g[0], WithinAbs(0.0, TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("DAE::Interface_algConstraints_violation", "[dae][interface]")
@@ -184,7 +186,7 @@ TEST_CASE("DAE::Interface_algConstraints_violation", "[dae][interface]")
 	linearDAE.algConstraints(0.0, x, y, g);
 	
 	// Constraint residual should be -0.2
-	REQUIRE_THAT(g[0], WithinAbs(-0.2, 1e-10));
+	REQUIRE_THAT(g[0], WithinAbs(-0.2, TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("DAE::Interface_jacobians", "[dae][interface]")
@@ -202,10 +204,10 @@ TEST_CASE("DAE::Interface_jacobians", "[dae][interface]")
 	linearDAE.jacobian_gx(0.0, x, y, dg_dx);
 	linearDAE.jacobian_gy(0.0, x, y, dg_dy);
 	
-	REQUIRE_THAT(df_dx(0, 0), WithinAbs(-1.0, 1e-10));  // d(dx/dt)/dx = -1
-	REQUIRE_THAT(df_dy(0, 0), WithinAbs(1.0, 1e-10));   // d(dx/dt)/dy = 1
-	REQUIRE_THAT(dg_dx(0, 0), WithinAbs(1.0, 1e-10));   // dg/dx = 1
-	REQUIRE_THAT(dg_dy(0, 0), WithinAbs(1.0, 1e-10));   // dg/dy = 1
+	REQUIRE_THAT(df_dx(0, 0), WithinAbs(-1.0, TOL(1e-10, 1e-5)));  // d(dx/dt)/dx = -1
+	REQUIRE_THAT(df_dy(0, 0), WithinAbs(1.0, TOL(1e-10, 1e-5)));   // d(dx/dt)/dy = 1
+	REQUIRE_THAT(dg_dx(0, 0), WithinAbs(1.0, TOL(1e-10, 1e-5)));   // dg/dx = 1
+	REQUIRE_THAT(dg_dy(0, 0), WithinAbs(1.0, TOL(1e-10, 1e-5)));   // dg/dy = 1
 }
 
 TEST_CASE("DAE::Interface_pendulum_constraint", "[dae][interface]")
@@ -224,7 +226,7 @@ TEST_CASE("DAE::Interface_pendulum_constraint", "[dae][interface]")
 	pendulum.algConstraints(0.0, diff, alg, g);
 	
 	// Constraint: x² + y² - L² should be 0 for consistent initial conditions
-	REQUIRE_THAT(g[0], WithinAbs(0.0, 1e-10));
+	REQUIRE_THAT(g[0], WithinAbs(0.0, TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("DAE::Interface_allJacobians", "[dae][interface]")
@@ -240,10 +242,10 @@ TEST_CASE("DAE::Interface_allJacobians", "[dae][interface]")
 	// Use the combined method
 	linearDAE.allJacobians(0.0, x, y, df_dx, df_dy, dg_dx, dg_dy);
 	
-	REQUIRE_THAT(df_dx(0, 0), WithinAbs(-1.0, 1e-10));
-	REQUIRE_THAT(df_dy(0, 0), WithinAbs(1.0, 1e-10));
-	REQUIRE_THAT(dg_dx(0, 0), WithinAbs(1.0, 1e-10));
-	REQUIRE_THAT(dg_dy(0, 0), WithinAbs(1.0, 1e-10));
+	REQUIRE_THAT(df_dx(0, 0), WithinAbs(-1.0, TOL(1e-10, 1e-5)));
+	REQUIRE_THAT(df_dy(0, 0), WithinAbs(1.0, TOL(1e-10, 1e-5)));
+	REQUIRE_THAT(dg_dx(0, 0), WithinAbs(1.0, TOL(1e-10, 1e-5)));
+	REQUIRE_THAT(dg_dy(0, 0), WithinAbs(1.0, TOL(1e-10, 1e-5)));
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -272,10 +274,10 @@ TEST_CASE("DAE::DAESolution_fillValues", "[dae][solution]")
 	
 	sol.fillValues(0, 0.0, x, y);
 	
-	REQUIRE_THAT(sol.getTValue(0), WithinAbs(0.0, 1e-10));
-	REQUIRE_THAT(sol.getXValue(0, 0), WithinAbs(1.0, 1e-10));
-	REQUIRE_THAT(sol.getXValue(0, 1), WithinAbs(2.0, 1e-10));
-	REQUIRE_THAT(sol.getYValue(0, 0), WithinAbs(3.0, 1e-10));
+	REQUIRE_THAT(sol.getTValue(0), WithinAbs(0.0, TOL(1e-10, 1e-5)));
+	REQUIRE_THAT(sol.getXValue(0, 0), WithinAbs(1.0, TOL(1e-10, 1e-5)));
+	REQUIRE_THAT(sol.getXValue(0, 1), WithinAbs(2.0, TOL(1e-10, 1e-5)));
+	REQUIRE_THAT(sol.getYValue(0, 0), WithinAbs(3.0, TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("DAE::DAESolution_multiplePoints", "[dae][solution]")
@@ -292,15 +294,15 @@ TEST_CASE("DAE::DAESolution_multiplePoints", "[dae][solution]")
 	}
 	
 	// Check a few points
-	REQUIRE_THAT(sol.getTValue(5), WithinAbs(0.5, 1e-10));
-	REQUIRE_THAT(sol.getXValue(5, 0), WithinAbs(0.5, 1e-10));
-	REQUIRE_THAT(sol.getYValue(5, 0), WithinAbs(0.5, 1e-10));
+	REQUIRE_THAT(sol.getTValue(5), WithinAbs(0.5, TOL(1e-10, 1e-5)));
+	REQUIRE_THAT(sol.getXValue(5, 0), WithinAbs(0.5, TOL(1e-10, 1e-5)));
+	REQUIRE_THAT(sol.getYValue(5, 0), WithinAbs(0.5, TOL(1e-10, 1e-5)));
 	
 	// Check final values
 	Vector<Real> xEnd = sol.getXValuesAtEnd();
 	Vector<Real> yEnd = sol.getYValuesAtEnd();
-	REQUIRE_THAT(xEnd[0], WithinAbs(1.0, 1e-10));
-	REQUIRE_THAT(yEnd[0], WithinAbs(0.0, 1e-10));
+	REQUIRE_THAT(xEnd[0], WithinAbs(1.0, TOL(1e-10, 1e-5)));
+	REQUIRE_THAT(yEnd[0], WithinAbs(0.0, TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("DAE::DAESolution_interpolation", "[dae][solution]")
@@ -323,7 +325,7 @@ TEST_CASE("DAE::DAESolution_interpolation", "[dae][solution]")
 	
 	// Test at known points
 	REQUIRE_THAT(xInterp(0.5), WithinAbs(0.25, 0.02));  // x(0.5) = 0.25
-	REQUIRE_THAT(yInterp(0.5), WithinAbs(1.0, 1e-10)); // y(0.5) = 1.0
+	REQUIRE_THAT(yInterp(0.5), WithinAbs(1.0, TOL(1e-10, 1e-5))); // y(0.5) = 1.0
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -374,9 +376,9 @@ TEST_CASE("DAE::DAESystem_evaluation", "[dae][system]")
 	sys.algConstraints(0.0, x, y, g);
 	
 	// dx/dt = -0.3 + 0.7 = 0.4
-	REQUIRE_THAT(dxdt[0], WithinAbs(0.4, 1e-10));
+	REQUIRE_THAT(dxdt[0], WithinAbs(0.4, TOL(1e-10, 1e-5)));
 	// g = 0.3 + 0.7 - 1 = 0
-	REQUIRE_THAT(g[0], WithinAbs(0.0, 1e-10));
+	REQUIRE_THAT(g[0], WithinAbs(0.0, TOL(1e-10, 1e-5)));
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -393,12 +395,12 @@ TEST_CASE("DAE::ConsistentIC_verify", "[dae][solver]")
 	x[0] = 0.3;
 	y[0] = 0.7;  // Consistent: x + y = 1
 	
-	bool isConsistent = VerifyConsistentIC(linearDAE, 0.0, x, y, 1e-10);
+	bool isConsistent = VerifyConsistentIC(linearDAE, 0.0, x, y, TOL(1e-10, 1e-5));
 	REQUIRE(isConsistent);
 	
 	// Inconsistent case
 	y[0] = 0.5;  // Now x + y = 0.8 ≠ 1
-	isConsistent = VerifyConsistentIC(linearDAE, 0.0, x, y, 1e-10);
+	isConsistent = VerifyConsistentIC(linearDAE, 0.0, x, y, TOL(1e-10, 1e-5));
 	REQUIRE_FALSE(isConsistent);
 }
 
@@ -411,13 +413,13 @@ TEST_CASE("DAE::ConsistentIC_compute", "[dae][solver]")
 	y[0] = 0.5;  // Initial guess (inconsistent)
 	
 	// Compute consistent y such that x + y = 1
-	bool success = ComputeConsistentIC(linearDAE, 0.0, x, y, 20, 1e-10);
+	bool success = ComputeConsistentIC(linearDAE, 0.0, x, y, 20, TOL(1e-10, 1e-5));
 	
 	REQUIRE(success);
-	REQUIRE_THAT(y[0], WithinAbs(0.7, 1e-10));  // y = 1 - x = 0.7
+	REQUIRE_THAT(y[0], WithinAbs(0.7, TOL(1e-10, 1e-5)));  // y = 1 - x = 0.7
 	
 	// Verify consistency
-	REQUIRE(VerifyConsistentIC(linearDAE, 0.0, x, y, 1e-10));
+	REQUIRE(VerifyConsistentIC(linearDAE, 0.0, x, y, TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("DAE::BackwardEuler_linearDAE", "[dae][solver]")
@@ -432,7 +434,7 @@ TEST_CASE("DAE::BackwardEuler_linearDAE", "[dae][solver]")
 	
 	DAESolverConfig config;
 	config.step_size = 0.01;
-	config.newton_tol = 1e-10;
+	config.newton_tol = TOL(1e-10, 1e-5);
 	
 	DAESolverResult result = SolveDAEBackwardEuler(linearDAE, t0, x0, y0, t_end, config);
 	
@@ -453,7 +455,7 @@ TEST_CASE("DAE::BackwardEuler_linearDAE", "[dae][solver]")
 	REQUIRE_THAT(yEnd[0], WithinAbs(y_analytical, 0.01));
 	
 	// Constraint should be satisfied throughout
-	REQUIRE(result.max_constraint_violation < 1e-8);
+	REQUIRE(result.max_constraint_violation < TOL(1e-8, 1e-4));
 }
 
 TEST_CASE("DAE::BackwardEuler_constraintSatisfaction", "[dae][solver]")
@@ -485,7 +487,7 @@ TEST_CASE("DAE::BackwardEuler_constraintSatisfaction", "[dae][solver]")
 		y[0] = result.solution.getYValue(step, 0);
 		
 		linearDAE.algConstraints(t, x, y, g);
-		REQUIRE_THAT(g[0], WithinAbs(0.0, 1e-8));
+		REQUIRE_THAT(g[0], WithinAbs(0.0, TOL(1e-8, 1e-4)));
 	}
 }
 
@@ -500,7 +502,7 @@ TEST_CASE("DAE::BDF2_linearDAE", "[dae][solver]")
 	
 	DAESolverConfig config;
 	config.step_size = 0.01;
-	config.newton_tol = 1e-10;
+	config.newton_tol = TOL(1e-10, 1e-5);
 	
 	DAESolverResult result = SolveDAEBDF2(linearDAE, t0, x0, y0, t_end, config);
 	
@@ -554,7 +556,7 @@ TEST_CASE("DAE::BDF4_solves_linearDAE", "[dae][solver][bdf4]")
 	
 	DAESolverConfig config;
 	config.step_size = 0.01;
-	config.newton_tol = 1e-10;
+	config.newton_tol = TOL(1e-10, 1e-5);
 	
 	DAESolverResult result = SolveDAEBDF4(linearDAE, t0, x0, y0, t_end, config);
 	
@@ -624,8 +626,14 @@ TEST_CASE("DAE::BDF4_convergence_order", "[dae][solver][bdf4]")
 	// For 4th order method, halving step size should reduce error by ~16x
 	// Due to substepped bootstrap, we see ~4x initially but better as h decreases
 	// Require at least 3.5x improvement (between 2nd and 4th order)
-	Real ratio = error1 / error2;
-	REQUIRE(ratio > 3.5);
+	if constexpr (std::is_same_v<Real, double>) {
+		Real ratio = error1 / error2;
+		REQUIRE(ratio > 3.5);
+	} else {
+		// Float precision floor makes order measurement unreliable at these step sizes
+		REQUIRE(result1.status == AlgorithmStatus::Success);
+		REQUIRE(result2.status == AlgorithmStatus::Success);
+	}
 }
 
 TEST_CASE("DAE::RODAS_solves_linearDAE", "[dae][solver][rodas]")
@@ -834,8 +842,14 @@ TEST_CASE("DAE::RadauIIA_convergence_order", "[dae][solver][radauiia]")
 	
 	// Order 5 means ratio ~32 = 2^5, but we allow slack due to constants
 	// Require at least order 3 behavior (ratio > 8)
-	Real ratio = error1 / error2;
-	REQUIRE(ratio > 8.0);
+	if constexpr (std::is_same_v<Real, double>) {
+		Real ratio = error1 / error2;
+		REQUIRE(ratio > 8.0);
+	} else {
+		// Float precision floor makes order measurement unreliable at these step sizes
+		REQUIRE(result1.status == AlgorithmStatus::Success);
+		REQUIRE(result2.status == AlgorithmStatus::Success);
+	}
 }
 
 TEST_CASE("DAE::Config_presets", "[dae][solver]")
@@ -1266,7 +1280,7 @@ TEST_CASE("DAE::RCCircuit_analyticalComparison", "[dae][solver][realistic]")
 
 	DAESolverConfig config;
 	config.step_size = tau / 100.0;  // 100 steps per time constant
-	config.newton_tol = 1e-12;
+	config.newton_tol = TOL(1e-12, 1e-5);
 
 	auto result = SolveDAEBDF2(circuit, 0.0, Vc0, I0, t_end, config);
 
@@ -1287,8 +1301,8 @@ TEST_CASE("DAE::RCCircuit_analyticalComparison", "[dae][solver][realistic]")
 		Real I_analytical = circuit.analyticalI(t_actual);
 
 		// BDF2 should be accurate to ~0.1% with these step sizes
-		REQUIRE_THAT(Vc_numerical, WithinRel((double)Vc_analytical, 0.001));
-		REQUIRE_THAT(I_numerical, WithinRel((double)I_analytical, 0.001));
+		REQUIRE_THAT(Vc_numerical, WithinRel(Vc_analytical, REAL(0.001)));
+		REQUIRE_THAT(I_numerical, WithinRel(I_analytical, REAL(0.001)));
 	}
 
 	// Check final values (at 5τ, Vc ≈ 4.966V, I ≈ 0.034mA)
@@ -1310,8 +1324,8 @@ TEST_CASE("DAE::RCCircuit_constraintSatisfaction", "[dae][solver][realistic]")
 	// Use reasonable tolerances for this problem scale
 	DAESolverConfig config;
 	config.step_size = 1e-5;      // 100 steps per time constant
-	config.newton_tol = 1e-10;    // Reasonable for this problem
-	config.constraint_tol = 1e-10;
+	config.newton_tol = TOL(1e-10, 1e-5);    // Reasonable for this problem
+	config.constraint_tol = TOL(1e-10, 1e-5);
 
 	auto result = SolveDAEBackwardEuler(circuit, 0.0, Vc0, I0, 5e-3, config);
 
@@ -1327,7 +1341,7 @@ TEST_CASE("DAE::RCCircuit_constraintSatisfaction", "[dae][solver][realistic]")
 		I[0] = result.solution.getYValue(step, 0);
 
 		circuit.algConstraints(t, Vc, I, g);
-		REQUIRE_THAT(g[0], WithinAbs(0.0, 1e-10));
+		REQUIRE_THAT(g[0], WithinAbs(0.0, TOL(1e-10, 1e-5)));
 	}
 }
 
@@ -1346,7 +1360,7 @@ TEST_CASE("DAE::StiffLinear_stability", "[dae][solver][realistic]")
 
 	DAESolverConfig config;
 	config.step_size = 0.01;  // Step much larger than 1/λ = 0.001
-	config.newton_tol = 1e-10;
+	config.newton_tol = TOL(1e-10, 1e-5);
 
 	// Backward Euler should be stable despite large step
 	auto resultBE = SolveDAEBackwardEuler(stiffDAE, 0.0, x0, y0, t_end, config);
@@ -1392,7 +1406,7 @@ TEST_CASE("DAE::StiffLinear_constraintTracking", "[dae][solver][realistic]")
 		y[0] = result.solution.getYValue(step, 0);
 
 		stiffDAE.algConstraints(t, x, y, g);
-		REQUIRE_THAT(g[0], WithinAbs(0.0, 1e-9));
+		REQUIRE_THAT(g[0], WithinAbs(0.0, TOL(1e-9, 1e-4)));
 	}
 }
 
@@ -1408,7 +1422,7 @@ TEST_CASE("DAE::VanDerPol_forcedOscillator", "[dae][solver][realistic]")
 
 	DAESolverConfig config;
 	config.step_size = 0.01;
-	config.newton_tol = 1e-10;
+	config.newton_tol = TOL(1e-10, 1e-5);
 
 	auto result = SolveDAEBDF2(vdp, 0.0, x0, z0, 10.0, config);
 
@@ -1426,10 +1440,10 @@ TEST_CASE("DAE::VanDerPol_forcedOscillator", "[dae][solver][realistic]")
 		z[0] = result.solution.getYValue(step, 0);
 
 		vdp.algConstraints(t, x, z, g);
-		REQUIRE_THAT(g[0], WithinAbs(0.0, 1e-8));
+		REQUIRE_THAT(g[0], WithinAbs(0.0, TOL(1e-8, 1e-4)));
 
 		// Also verify z tracks sin(t)
-		REQUIRE_THAT(z[0], WithinAbs(std::sin(t), 1e-8));
+		REQUIRE_THAT(z[0], WithinAbs(std::sin(t), TOL(1e-8, 1e-4)));
 	}
 
 	// Solution should oscillate (not blow up or decay to zero)
@@ -1457,7 +1471,7 @@ TEST_CASE("DAE::ConvergenceOrder_backwardEuler", "[dae][solver][realistic]")
 	{
 		DAESolverConfig config;
 		config.step_size = h;
-		config.newton_tol = 1e-12;
+		config.newton_tol = TOL(1e-12, 1e-5);
 
 		auto result = SolveDAEBackwardEuler(linearDAE, 0.0, x0, y0, t_end, config);
 		Real x_final = result.solution.getXValuesAtEnd()[0];
@@ -1493,7 +1507,7 @@ TEST_CASE("DAE::ConvergenceOrder_BDF2", "[dae][solver][realistic]")
 	std::vector<Real> errors;
 
 	DAESolverConfig config;
-	config.newton_tol = 1e-12;
+	config.newton_tol = TOL(1e-12, 1e-5);
 
 	for (Real h : stepSizes)
 	{
@@ -1527,18 +1541,18 @@ TEST_CASE("DAE::ComputeConsistentIC_nonlinear", "[dae][solver][realistic]")
 
 	// Compute consistent z0
 	Real t0 = 0.0;
-	bool success = ComputeConsistentIC(vdp, t0, x0, z0, 20, 1e-12);
+	bool success = ComputeConsistentIC(vdp, t0, x0, z0, 20, TOL(1e-12, 1e-5));
 
 	REQUIRE(success);
-	REQUIRE_THAT(z0[0], WithinAbs(std::sin(t0), 1e-10));
+	REQUIRE_THAT(z0[0], WithinAbs(std::sin(t0), TOL(1e-10, 1e-5)));
 
 	// Try at t = π/6
 	Real t1 = Constants::PI / 6.0;
 	z0[0] = 0.0;  // Wrong guess
-	success = ComputeConsistentIC(vdp, t1, x0, z0, 20, 1e-12);
+	success = ComputeConsistentIC(vdp, t1, x0, z0, 20, TOL(1e-12, 1e-5));
 
 	REQUIRE(success);
-	REQUIRE_THAT(z0[0], WithinAbs(std::sin(t1), 1e-10));
+	REQUIRE_THAT(z0[0], WithinAbs(std::sin(t1), TOL(1e-10, 1e-5)));
 }
 
 } // namespace MML::Tests::Algorithms::DAESolverTests

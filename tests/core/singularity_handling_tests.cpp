@@ -12,6 +12,7 @@
  */
 
 #include <catch2/catch_all.hpp>
+#include "../TestPrecision.h"
 #include <cmath>
 #include <limits>
 #include <string>
@@ -75,7 +76,7 @@ TEST_CASE("SingularityPolicyToString - Unknown policy", "[Singularity][Policy]")
 TEST_CASE("Singularity - Default constants are reasonable", "[Singularity][Constants]") {
     REQUIRE(DEFAULT_SINGULARITY_TOL > 0.0);
     REQUIRE(DEFAULT_SINGULARITY_TOL < 1e-6);  // Should be very small
-    REQUIRE(DEFAULT_SINGULARITY_TOL == Catch::Approx(1e-12));
+    REQUIRE(DEFAULT_SINGULARITY_TOL == Catch::Approx(TOL3(1e-12, 1e-6, 1e-15)));
     REQUIRE(DEFAULT_POLICY == SingularityPolicy::Throw);  // Safe default
 }
 
@@ -85,27 +86,27 @@ TEST_CASE("Singularity - Default constants are reasonable", "[Singularity][Const
 
 TEST_CASE("IsNearZero - Zero value", "[Singularity][Detection]") {
     REQUIRE(IsNearZero(0.0) == true);
-    REQUIRE(IsNearZero(0.0, 1e-10) == true);
+    REQUIRE(IsNearZero(0.0, TOL(1e-10, 1e-5)) == true);
     REQUIRE(IsNearZero(0.0, 1e-20) == true);
 }
 
 TEST_CASE("IsNearZero - Very small positive values", "[Singularity][Detection]") {
-    REQUIRE(IsNearZero(1e-15) == true);   // Below default tolerance
-    REQUIRE(IsNearZero(1e-13) == true);   // Below default tolerance
-    REQUIRE(IsNearZero(1e-11) == false);  // Above default tolerance
+    REQUIRE(IsNearZero(TOL3(1e-15, 1e-7, 1e-18)) == true);   // Below default tolerance
+    REQUIRE(IsNearZero(TOL3(1e-13, 1e-7, 1e-16)) == true);   // Below default tolerance
+    REQUIRE(IsNearZero(TOL(1e-11, 1e-5)) == false);  // Above default tolerance
     REQUIRE(IsNearZero(1e-6) == false);   // Well above tolerance
 }
 
 TEST_CASE("IsNearZero - Very small negative values", "[Singularity][Detection]") {
-    REQUIRE(IsNearZero(-1e-15) == true);   // Below default tolerance
-    REQUIRE(IsNearZero(-1e-13) == true);   // Below default tolerance
-    REQUIRE(IsNearZero(-1e-11) == false);  // Above default tolerance
+    REQUIRE(IsNearZero(-TOL3(1e-15, 1e-7, 1e-18)) == true);   // Below default tolerance
+    REQUIRE(IsNearZero(-TOL3(1e-13, 1e-7, 1e-16)) == true);   // Below default tolerance
+    REQUIRE(IsNearZero(-TOL(1e-11, 1e-5)) == false);  // Above default tolerance
     REQUIRE(IsNearZero(-1e-6) == false);   // Well above tolerance
 }
 
 TEST_CASE("IsNearZero - Custom tolerance", "[Singularity][Detection]") {
     double value = 0.001;
-    REQUIRE(IsNearZero(value, 1e-12) == false);  // Stricter tolerance
+    REQUIRE(IsNearZero(value, TOL(1e-12, 1e-5)) == false);  // Stricter tolerance
     REQUIRE(IsNearZero(value, 0.01) == true);    // Looser tolerance
     // Note: Uses strict < comparison, so exactly at tolerance returns false
     REQUIRE(IsNearZero(value, 0.001) == false);  // Exactly at tolerance
@@ -125,13 +126,13 @@ TEST_CASE("IsNearZero - Normal values are not near zero", "[Singularity][Detecti
 
 TEST_CASE("IsAtSphericalOrigin - Zero radius", "[Singularity][Detection]") {
     REQUIRE(IsAtSphericalOrigin(0.0) == true);
-    REQUIRE(IsAtSphericalOrigin(0.0, 1e-10) == true);
+    REQUIRE(IsAtSphericalOrigin(0.0, TOL(1e-10, 1e-5)) == true);
 }
 
 TEST_CASE("IsAtSphericalOrigin - Near-zero radius", "[Singularity][Detection]") {
-    REQUIRE(IsAtSphericalOrigin(1e-15) == true);
-    REQUIRE(IsAtSphericalOrigin(1e-13) == true);
-    REQUIRE(IsAtSphericalOrigin(1e-11) == false);
+    REQUIRE(IsAtSphericalOrigin(TOL3(1e-15, 1e-7, 1e-18)) == true);
+    REQUIRE(IsAtSphericalOrigin(TOL3(1e-13, 1e-7, 1e-16)) == true);
+    REQUIRE(IsAtSphericalOrigin(TOL(1e-11, 1e-5)) == false);
 }
 
 TEST_CASE("IsAtSphericalOrigin - Positive radius", "[Singularity][Detection]") {
@@ -143,7 +144,7 @@ TEST_CASE("IsAtSphericalOrigin - Positive radius", "[Singularity][Detection]") {
 TEST_CASE("IsAtSphericalOrigin - Negative radius (unusual but checked)", "[Singularity][Detection]") {
     // Radii should typically be positive
     // Implementation uses r < tol (no abs), so negative values are always < tol
-    REQUIRE(IsAtSphericalOrigin(-1e-15) == true);
+    REQUIRE(IsAtSphericalOrigin(-TOL(1e-15, 1e-5)) == true);
     REQUIRE(IsAtSphericalOrigin(-1.0) == true);  // Any negative is < tol
 }
 
@@ -153,15 +154,15 @@ TEST_CASE("IsAtSphericalOrigin - Negative radius (unusual but checked)", "[Singu
 
 TEST_CASE("IsAtSphericalPole - At theta = 0 (north pole)", "[Singularity][Detection]") {
     REQUIRE(IsAtSphericalPole(0.0) == true);
-    REQUIRE(IsAtSphericalPole(1e-15) == true);
-    REQUIRE(IsAtSphericalPole(-1e-15) == true);  // Near zero from negative side
+    REQUIRE(IsAtSphericalPole(TOL3(1e-15, 1e-7, 1e-18)) == true);
+    REQUIRE(IsAtSphericalPole(-TOL3(1e-15, 1e-7, 1e-18)) == true);  // Near zero from negative side
 }
 
 TEST_CASE("IsAtSphericalPole - At theta = pi (south pole)", "[Singularity][Detection]") {
     const double pi = 3.14159265358979323846;
     REQUIRE(IsAtSphericalPole(pi) == true);
-    REQUIRE(IsAtSphericalPole(pi - 1e-15) == true);
-    REQUIRE(IsAtSphericalPole(pi + 1e-15) == true);  // Slightly past pi
+    REQUIRE(IsAtSphericalPole(pi - TOL3(1e-15, 1e-7, 1e-18)) == true);
+    REQUIRE(IsAtSphericalPole(pi + TOL3(1e-15, 1e-7, 1e-18)) == true);  // Slightly past pi
 }
 
 TEST_CASE("IsAtSphericalPole - Away from poles", "[Singularity][Detection]") {
@@ -188,8 +189,8 @@ TEST_CASE("IsAtSphericalPole - Custom tolerance", "[Singularity][Detection]") {
 
 TEST_CASE("IsAtCylindricalAxis - Zero radius", "[Singularity][Detection]") {
     REQUIRE(IsAtCylindricalAxis(0.0) == true);
-    REQUIRE(IsAtCylindricalAxis(1e-15) == true);
-    REQUIRE(IsAtCylindricalAxis(-1e-15) == true);
+    REQUIRE(IsAtCylindricalAxis(TOL3(1e-15, 1e-7, 1e-18)) == true);
+    REQUIRE(IsAtCylindricalAxis(-TOL3(1e-15, 1e-7, 1e-18)) == true);
 }
 
 TEST_CASE("IsAtCylindricalAxis - Away from axis", "[Singularity][Detection]") {
@@ -211,7 +212,7 @@ TEST_CASE("IsAtSphericalSingularity - Origin only", "[Singularity][Detection]") 
     const double pi = 3.14159265358979323846;
     // r=0, theta not at pole
     REQUIRE(IsAtSphericalSingularity(0.0, pi / 2) == true);
-    REQUIRE(IsAtSphericalSingularity(1e-15, pi / 4) == true);
+    REQUIRE(IsAtSphericalSingularity(TOL3(1e-15, 1e-7, 1e-18), pi / 4) == true);
 }
 
 TEST_CASE("IsAtSphericalSingularity - Pole only", "[Singularity][Detection]") {
@@ -219,7 +220,7 @@ TEST_CASE("IsAtSphericalSingularity - Pole only", "[Singularity][Detection]") {
     // r nonzero, theta at pole
     REQUIRE(IsAtSphericalSingularity(1.0, 0.0) == true);
     REQUIRE(IsAtSphericalSingularity(1.0, pi) == true);
-    REQUIRE(IsAtSphericalSingularity(1.0, 1e-15) == true);
+    REQUIRE(IsAtSphericalSingularity(1.0, TOL3(1e-15, 1e-7, 1e-18)) == true);
 }
 
 TEST_CASE("IsAtSphericalSingularity - Both origin and pole", "[Singularity][Detection]") {
@@ -243,7 +244,7 @@ TEST_CASE("DescribeSphericalSingularity - Origin", "[Singularity][Detection]") {
     std::string desc = DescribeSphericalSingularity(0.0, pi / 2);
     REQUIRE(desc == "origin (r=0)");
     
-    desc = DescribeSphericalSingularity(1e-15, pi / 4);
+    desc = DescribeSphericalSingularity(TOL3(1e-15, 1e-7, 1e-18), pi / 4);
     REQUIRE(desc == "origin (r=0)");
 }
 
@@ -285,7 +286,7 @@ TEST_CASE("SafeDivide - Policy::Throw on singular", "[Singularity][SafeArithmeti
         DomainError
     );
     REQUIRE_THROWS_AS(
-        SafeDivide(1.0, 1e-15, SingularityPolicy::Throw),
+        SafeDivide(1.0, TOL3(1e-15, 1e-7, 1e-18), SingularityPolicy::Throw),
         DomainError
     );
 }
@@ -304,7 +305,7 @@ TEST_CASE("SafeDivide - Policy::ReturnNaN", "[Singularity][SafeArithmetic]") {
     Real result = SafeDivide(1.0, 0.0, SingularityPolicy::ReturnNaN);
     REQUIRE(std::isnan(result));
     
-    result = SafeDivide(-5.0, 1e-15, SingularityPolicy::ReturnNaN);
+    result = SafeDivide(-5.0, TOL3(1e-15, 1e-7, 1e-18), SingularityPolicy::ReturnNaN);
     REQUIRE(std::isnan(result));
 }
 
@@ -328,23 +329,23 @@ TEST_CASE("SafeDivide - Policy::ReturnInf zero numerator", "[Singularity][SafeAr
 
 TEST_CASE("SafeDivide - Policy::Clamp positive denominator", "[Singularity][SafeArithmetic]") {
     // Clamp denominator to tolerance
-    Real result = SafeDivide(1.0, 0.0, SingularityPolicy::Clamp, nullptr, 1e-12);
+    Real result = SafeDivide(1.0, 0.0, SingularityPolicy::Clamp, nullptr, TOL3(1e-12, 1e-5, 1e-15));
     REQUIRE(std::isfinite(result));
-    REQUIRE(result == Catch::Approx(1.0 / 1e-12));
+    REQUIRE(result == Catch::Approx(1.0 / TOL3(1e-12, 1e-5, 1e-15)));
 }
 
 TEST_CASE("SafeDivide - Policy::Clamp negative denominator", "[Singularity][SafeArithmetic]") {
     // Clamp to -tolerance when denominator is negative
-    Real result = SafeDivide(1.0, -1e-15, SingularityPolicy::Clamp, nullptr, 1e-12);
+    Real result = SafeDivide(1.0, -TOL3(1e-15, 1e-5, 1e-18), SingularityPolicy::Clamp, nullptr, TOL3(1e-12, 1e-5, 1e-15));
     REQUIRE(std::isfinite(result));
-    REQUIRE(result == Catch::Approx(1.0 / -1e-12));
+    REQUIRE(result == Catch::Approx(1.0 / -TOL3(1e-12, 1e-5, 1e-15)));
 }
 
 TEST_CASE("SafeDivide - Policy::ReturnZero", "[Singularity][SafeArithmetic]") {
     Real result = SafeDivide(1.0, 0.0, SingularityPolicy::ReturnZero);
     REQUIRE(result == Catch::Approx(0.0));
     
-    result = SafeDivide(1000.0, 1e-15, SingularityPolicy::ReturnZero);
+    result = SafeDivide(1000.0, TOL3(1e-15, 1e-7, 1e-18), SingularityPolicy::ReturnZero);
     REQUIRE(result == Catch::Approx(0.0));
 }
 
@@ -394,7 +395,8 @@ TEST_CASE("SafeInverseR2 - At singularity with policies", "[Singularity][SafeAri
 
 TEST_CASE("SafeInverseR2 - Near-zero r triggers singularity", "[Singularity][SafeArithmetic]") {
     // r² will be even smaller, so near-zero r triggers singularity
-    REQUIRE_THROWS_AS(SafeInverseR2(1e-7, SingularityPolicy::Throw), DomainError);
+    // For long double, DEFAULT_SINGULARITY_TOL = 1e-15, so r must be small enough that r² < 1e-15
+    REQUIRE_THROWS_AS(SafeInverseR2(TOL3(1e-7, 1e-7, 1e-8), SingularityPolicy::Throw), DomainError);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -479,7 +481,7 @@ TEST_CASE("SafeCotThetaOverR2 - Normal operation", "[Singularity][SafeArithmetic
     REQUIRE(SafeCotThetaOverR2(2.0, pi / 4) == Catch::Approx(0.25));
     
     // At equator (theta = pi/2), cot = 0, so result ≈ 0 (with floating-point tolerance)
-    REQUIRE(SafeCotThetaOverR2(1.0, pi / 2) == Catch::Approx(0.0).margin(1e-14));
+    REQUIRE(SafeCotThetaOverR2(1.0, pi / 2) == Catch::Approx(0.0).margin(TOL(1e-14, 1e-5)));
 }
 
 TEST_CASE("SafeCotThetaOverR2 - Singularity at origin", "[Singularity][SafeArithmetic]") {
@@ -516,15 +518,15 @@ TEST_CASE("SafeCotThetaOverR2 - ReturnZero policy", "[Singularity][SafeArithmeti
 ///////////////////////////////////////////////////////////////////////////////
 
 TEST_CASE("Singularity - Negative tolerance is handled", "[Singularity][EdgeCases]") {
-    // Negative tolerance: abs(1e-15) < -1e-12 is false
+    // Negative tolerance: abs(TOL(1e-15, 1e-5)) < -TOL(1e-12, 1e-5) is false
     // The implementation does NOT use abs on tolerance
-    REQUIRE(IsNearZero(1e-15, -1e-12) == false);  // 1e-15 < -1e-12 is false
+    REQUIRE(IsNearZero(TOL(1e-15, 1e-5), -TOL(1e-12, 1e-5)) == false);  // TOL(1e-15, 1e-5) < -TOL(1e-12, 1e-5) is false
 }
 
 TEST_CASE("Singularity - Very large values", "[Singularity][EdgeCases]") {
-    double large = 1e100;
+    Real large = TOL(REAL(1e100), REAL(1e30));
     REQUIRE(IsNearZero(large) == false);
-    REQUIRE(SafeDivide(large, 2.0) == Catch::Approx(large / 2.0));
+    REQUIRE(SafeDivide(large, REAL(2.0)) == Catch::Approx(double(large / REAL(2.0))));
 }
 
 TEST_CASE("Singularity - Denormalized numbers", "[Singularity][EdgeCases]") {

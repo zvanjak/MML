@@ -20,12 +20,7 @@
 #include <iostream>
 #include <string>
 
-// Cross-platform executable extension
-#ifdef _WIN32
-static constexpr const char *EXECUTABLE_EXT = ".exe";
-#else
-static constexpr const char *EXECUTABLE_EXT = "";
-#endif
+// Cross-platform executable extension - defined inside MML namespace (see below)
 
 // Helper to get environment variable without compiler warnings
 // Note: C++20 still doesn't provide a standard alternative to std::getenv()
@@ -58,6 +53,12 @@ inline const char *GetEnv(const char *name) noexcept {
 
 namespace MML
 {
+
+#ifdef _WIN32
+  static constexpr const char *EXECUTABLE_EXT = ".exe";
+#else
+  static constexpr const char *EXECUTABLE_EXT = "";
+#endif
 
   ///////////////////////////////////////////////////////////////////////////////
   //                    LINUX VISUALIZER BACKEND SELECTION
@@ -180,7 +181,8 @@ namespace MML
     if (const char* envBackend = GetEnv("MML_VISUALIZER_BACKEND")) {
       std::string backend(envBackend);
       // Convert to uppercase for case-insensitive comparison
-      std::transform(backend.begin(), backend.end(), backend.begin(), ::toupper);
+      std::transform(backend.begin(), backend.end(), backend.begin(),
+                     [](unsigned char c) { return static_cast<char>(std::toupper(c)); });
       
       if (backend == "WPF")  return VisualizerBackend::WPF;
       if (backend == "QT" || backend == "QT5" || backend == "QT6") 

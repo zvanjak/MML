@@ -27,16 +27,16 @@ TEST_CASE("MinimumEnclosingCircle - Empty and single point", "[ComputationalGeom
     {
         std::vector<Point2Cartesian> empty;
         Circle2D mec = MML::CompGeometry::Circles::MinimumEnclosingCircle(empty);
-        REQUIRE_THAT(mec.Radius(), WithinAbs(REAL(0.0), REAL(1e-10)));
+        REQUIRE_THAT(mec.Radius(), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
     }
 
     SECTION("Single point")
     {
         std::vector<Point2Cartesian> single = { Point2Cartesian(3, 4) };
         Circle2D mec = MML::CompGeometry::Circles::MinimumEnclosingCircle(single);
-        REQUIRE_THAT(mec.Radius(), WithinAbs(REAL(0.0), REAL(1e-10)));
-        REQUIRE_THAT(mec.Center().X(), WithinAbs(REAL(3.0), REAL(1e-10)));
-        REQUIRE_THAT(mec.Center().Y(), WithinAbs(REAL(4.0), REAL(1e-10)));
+        REQUIRE_THAT(mec.Radius(), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+        REQUIRE_THAT(mec.Center().X(), WithinAbs(REAL(3.0), TOL(1e-10, 1e-5)));
+        REQUIRE_THAT(mec.Center().Y(), WithinAbs(REAL(4.0), TOL(1e-10, 1e-5)));
     }
 }
 
@@ -50,9 +50,9 @@ TEST_CASE("MinimumEnclosingCircle - Two points", "[ComputationalGeometry][MEC]")
     Circle2D mec = MML::CompGeometry::Circles::MinimumEnclosingCircle(points);
     
     // Circle2D should have diameter = distance between points
-    REQUIRE_THAT(mec.Radius(), WithinAbs(REAL(2.0), REAL(1e-10)));
-    REQUIRE_THAT(mec.Center().X(), WithinAbs(REAL(2.0), REAL(1e-10)));
-    REQUIRE_THAT(mec.Center().Y(), WithinAbs(REAL(0.0), REAL(1e-10)));
+    REQUIRE_THAT(mec.Radius(), WithinAbs(REAL(2.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(mec.Center().X(), WithinAbs(REAL(2.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(mec.Center().Y(), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("MinimumEnclosingCircle - Three points (non-collinear)", "[ComputationalGeometry][MEC]")
@@ -67,11 +67,11 @@ TEST_CASE("MinimumEnclosingCircle - Three points (non-collinear)", "[Computation
     Circle2D mec = MML::CompGeometry::Circles::MinimumEnclosingCircle(points);
     
     // Hypotenuse length = 5, so radius = 2.5
-    REQUIRE_THAT(mec.Radius(), WithinAbs(REAL(2.5), REAL(1e-10)));
+    REQUIRE_THAT(mec.Radius(), WithinAbs(REAL(2.5), TOL(1e-10, 1e-5)));
     
     // Center should be midpoint of hypotenuse
-    REQUIRE_THAT(mec.Center().X(), WithinAbs(REAL(2.0), REAL(1e-10)));
-    REQUIRE_THAT(mec.Center().Y(), WithinAbs(REAL(1.5), REAL(1e-10)));
+    REQUIRE_THAT(mec.Center().X(), WithinAbs(REAL(2.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(mec.Center().Y(), WithinAbs(REAL(1.5), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("MinimumEnclosingCircle - Square with interior points", "[ComputationalGeometry][MEC]")
@@ -90,9 +90,9 @@ TEST_CASE("MinimumEnclosingCircle - Square with interior points", "[Computationa
     
     // Circle2D should pass through diagonal corners
     // Diagonal = 2√2, radius = √2
-    REQUIRE_THAT(mec.Radius(), WithinAbs(std::sqrt(REAL(2.0)), REAL(1e-8)));
-    REQUIRE_THAT(mec.Center().X(), WithinAbs(REAL(1.0), REAL(1e-8)));
-    REQUIRE_THAT(mec.Center().Y(), WithinAbs(REAL(1.0), REAL(1e-8)));
+    REQUIRE_THAT(mec.Radius(), WithinAbs(std::sqrt(REAL(2.0)), TOL(1e-8, 1e-4)));
+    REQUIRE_THAT(mec.Center().X(), WithinAbs(REAL(1.0), TOL(1e-8, 1e-4)));
+    REQUIRE_THAT(mec.Center().Y(), WithinAbs(REAL(1.0), TOL(1e-8, 1e-4)));
 }
 
 TEST_CASE("MinimumEnclosingCircle - Points on Circle2D boundary", "[ComputationalGeometry][MEC]")
@@ -107,9 +107,9 @@ TEST_CASE("MinimumEnclosingCircle - Points on Circle2D boundary", "[Computationa
 
     Circle2D mec = MML::CompGeometry::Circles::MinimumEnclosingCircle(points);
     
-    REQUIRE_THAT(mec.Radius(), WithinAbs(REAL(1.0), REAL(1e-8)));
-    REQUIRE_THAT(mec.Center().X(), WithinAbs(REAL(0.0), REAL(1e-8)));
-    REQUIRE_THAT(mec.Center().Y(), WithinAbs(REAL(0.0), REAL(1e-8)));
+    REQUIRE_THAT(mec.Radius(), WithinAbs(REAL(1.0), TOL(1e-8, 1e-4)));
+    REQUIRE_THAT(mec.Center().X(), WithinAbs(REAL(0.0), TOL(1e-8, 1e-4)));
+    REQUIRE_THAT(mec.Center().Y(), WithinAbs(REAL(0.0), TOL(1e-8, 1e-4)));
 }
 
 TEST_CASE("MinimumEnclosingCircle - Collinear points", "[ComputationalGeometry][MEC]")
@@ -125,8 +125,8 @@ TEST_CASE("MinimumEnclosingCircle - Collinear points", "[ComputationalGeometry][
     Circle2D mec = MML::CompGeometry::Circles::MinimumEnclosingCircle(points);
     
     // Should enclose all points
-    REQUIRE_THAT(mec.Radius(), WithinAbs(REAL(2.0), REAL(1e-8)));
-    REQUIRE_THAT(mec.Center().X(), WithinAbs(REAL(2.0), REAL(1e-8)));
+    REQUIRE_THAT(mec.Radius(), WithinAbs(REAL(2.0), TOL(1e-8, 1e-4)));
+    REQUIRE_THAT(mec.Center().X(), WithinAbs(REAL(2.0), TOL(1e-8, 1e-4)));
     
     // Verify all points are inside
     for (const auto& p : points)
@@ -170,7 +170,7 @@ TEST_CASE("MinimumEnclosingCircle - All points inside result", "[ComputationalGe
     for (const auto& p : points)
     {
         Real dist = p.Dist(mec.Center());
-        REQUIRE(dist <= mec.Radius() + REAL(1e-8));
+        REQUIRE(dist <= mec.Radius() + TOL(1e-8, 1e-4));
     }
 }
 
@@ -187,7 +187,7 @@ TEST_CASE("ClosestPair - Two points", "[ComputationalGeometry][ClosestPair]")
 
     auto result = MML::CompGeometry::Circles::ClosestPair(points);
     
-    REQUIRE_THAT(result.distance, WithinAbs(REAL(5.0), REAL(1e-10)));
+    REQUIRE_THAT(result.distance, WithinAbs(REAL(5.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("ClosestPair - Three points", "[ComputationalGeometry][ClosestPair]")
@@ -200,7 +200,7 @@ TEST_CASE("ClosestPair - Three points", "[ComputationalGeometry][ClosestPair]")
 
     auto result = MML::CompGeometry::Circles::ClosestPair(points);
     
-    REQUIRE_THAT(result.distance, WithinAbs(REAL(1.0), REAL(1e-10)));
+    REQUIRE_THAT(result.distance, WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("ClosestPair - Collinear points", "[ComputationalGeometry][ClosestPair]")
@@ -214,7 +214,7 @@ TEST_CASE("ClosestPair - Collinear points", "[ComputationalGeometry][ClosestPair
 
     auto result = MML::CompGeometry::Circles::ClosestPair(points);
     
-    REQUIRE_THAT(result.distance, WithinAbs(REAL(1.0), REAL(1e-10)));
+    REQUIRE_THAT(result.distance, WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("ClosestPair - Grid of points", "[ComputationalGeometry][ClosestPair]")
@@ -232,7 +232,7 @@ TEST_CASE("ClosestPair - Grid of points", "[ComputationalGeometry][ClosestPair]"
     auto result = MML::CompGeometry::Circles::ClosestPair(points);
     
     // Closest pair should have distance 1 (adjacent points)
-    REQUIRE_THAT(result.distance, WithinAbs(REAL(1.0), REAL(1e-10)));
+    REQUIRE_THAT(result.distance, WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("ClosestPair - Random cloud", "[ComputationalGeometry][ClosestPair]")
@@ -250,7 +250,7 @@ TEST_CASE("ClosestPair - Random cloud", "[ComputationalGeometry][ClosestPair]")
     
     // (3,1) and (3.1,1.1) are closest: distance = sqrt(0.01+0.01) = sqrt(0.02)
     Real expected = std::sqrt(REAL(0.02));
-    REQUIRE_THAT(result.distance, WithinAbs(expected, REAL(1e-8)));
+    REQUIRE_THAT(result.distance, WithinAbs(expected, TOL(1e-8, 1e-4)));
 }
 
 } // namespace MML::Tests::Algorithms::CompGeometry::CirclesTests

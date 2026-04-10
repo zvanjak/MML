@@ -62,7 +62,8 @@ namespace MML
 	static void GaussLegendre(std::vector<Real>& x, std::vector<Real>& w,
 	                          Real x1 = -1.0, Real x2 = 1.0)
 	{
-		const Real EPS = 1.0e-14;
+		const Real EPS = std::numeric_limits<Real>::epsilon();
+		const int MAXIT = 100;
 		const Real PI = Constants::PI;
 		
 		int n = static_cast<int>(x.size());
@@ -79,6 +80,7 @@ namespace MML
 			Real z = std::cos(PI * (i + 0.75) / (n + 0.5));
 			
 			// Newton-Raphson iteration
+			int its = MAXIT;
 			Real z1, pp;
 			do {
 				Real p1 = 1.0;
@@ -97,6 +99,7 @@ namespace MML
 				
 				z1 = z;
 				z = z1 - p1 / pp;  // Newton update
+				if (--its <= 0) break;
 			} while (std::abs(z - z1) > EPS);
 			
 			// Store symmetric nodes and weights
@@ -141,8 +144,11 @@ namespace MML
 	 */
 	static void GaussLaguerre(std::vector<Real>& x, std::vector<Real>& w, Real alpha = 0.0)
 	{
-		const int MAXIT = 10;
-		const Real EPS = 1.0e-14;
+		const int MAXIT = 40;
+		// Use relaxed convergence: machine epsilon is too tight for higher-order
+		// polynomial evaluation which loses precision through the recurrence relation
+		const Real EPS = std::max(std::numeric_limits<Real>::epsilon() * 100, 
+		                          static_cast<Real>(1e-15));
 		
 		int n = static_cast<int>(x.size());
 		if (w.size() != x.size())
@@ -183,7 +189,7 @@ namespace MML
 				
 				Real z1 = z;
 				z = z1 - p1 / pp;
-				if (std::abs(z - z1) <= EPS) break;
+					if (std::abs(z - z1) <= EPS * (1.0 + std::abs(z))) break;
 			}
 			if (its >= MAXIT)
 				throw IntegrationTooManySteps("GaussLaguerre: too many iterations", MAXIT);
@@ -228,7 +234,7 @@ namespace MML
 	 */
 	static void GaussHermite(std::vector<Real>& x, std::vector<Real>& w)
 	{
-		const Real EPS = 3.0e-14;  // Slightly relaxed for robustness
+		const Real EPS = std::numeric_limits<Real>::epsilon();
 		const Real PIM4 = 0.7511255444649425;  // π^(-1/4)
 		const int MAXIT = 15;  // Increased for edge cases
 		
@@ -277,7 +283,7 @@ namespace MML
 				
 				Real z1 = z;
 				z = z1 - p1 / pp;
-				if (std::abs(z - z1) <= EPS) break;
+				if (std::abs(z - z1) <= EPS * (1.0 + std::abs(z))) break;
 			}
 			if (its >= MAXIT)
 				throw IntegrationTooManySteps("GaussHermite: too many iterations", MAXIT);
@@ -328,8 +334,8 @@ namespace MML
 	static void GaussJacobi(std::vector<Real>& x, std::vector<Real>& w, 
 	                        Real alpha, Real beta)
 	{
-		const int MAXIT = 15;  // Increased for edge cases like α=β=0
-		const Real EPS = 3.0e-14;  // Slightly relaxed for robustness
+		const int MAXIT = 15;
+		const Real EPS = std::numeric_limits<Real>::epsilon();
 		
 		int n = static_cast<int>(x.size());
 		if (w.size() != x.size())

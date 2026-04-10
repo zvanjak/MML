@@ -45,7 +45,7 @@ namespace MML::Tests::Base::BaseMathFormulaFixesTests
 		VectorN<Complex, 3> v{Complex(3.0, 4.0), Complex(0.0, 0.0), Complex(0.0, 0.0)};
 		
 		Real norm = v.NormL2();
-		REQUIRE_THAT(norm, WithinAbs(REAL(5.0), REAL(1e-10)));
+		REQUIRE_THAT(norm, WithinAbs(REAL(5.0), TOL(1e-10, 1e-5)));
 	}
 	
 	TEST_CASE("VectorN_NormL2_Complex_multiple_components", "[VectorN][Complex][P0]")
@@ -57,7 +57,7 @@ namespace MML::Tests::Base::BaseMathFormulaFixesTests
 		
 		Real norm = v.NormL2();
 		Real expected = std::sqrt(6.0);
-		REQUIRE_THAT(norm, WithinAbs(expected, REAL(1e-10)));
+		REQUIRE_THAT(norm, WithinAbs(expected, TOL(1e-10, 1e-5)));
 	}
 	
 	TEST_CASE("VectorN_NormL2_Complex_pure_imaginary", "[VectorN][Complex][P0]")
@@ -68,7 +68,7 @@ namespace MML::Tests::Base::BaseMathFormulaFixesTests
 		VectorN<Complex, 2> v{Complex(0.0, 3.0), Complex(0.0, 4.0)};
 		
 		Real norm = v.NormL2();
-		REQUIRE_THAT(norm, WithinAbs(REAL(5.0), REAL(1e-10)));
+		REQUIRE_THAT(norm, WithinAbs(REAL(5.0), TOL(1e-10, 1e-5)));
 	}
 	
 	TEST_CASE("VectorN_NormL2_Real_unchanged", "[VectorN][P0]")
@@ -78,7 +78,7 @@ namespace MML::Tests::Base::BaseMathFormulaFixesTests
 		VectorN<Real, 2> v{REAL(3.0), REAL(4.0)};
 		
 		Real norm = v.NormL2();
-		REQUIRE_THAT(norm, WithinAbs(REAL(5.0), REAL(1e-10)));
+		REQUIRE_THAT(norm, WithinAbs(REAL(5.0), TOL(1e-10, 1e-5)));
 	}
 
 	/*********************************************************************/
@@ -97,7 +97,7 @@ namespace MML::Tests::Base::BaseMathFormulaFixesTests
 		M(1, 1) = Complex(0.0, 0.0);
 		
 		Real norm = M.NormL2();
-		REQUIRE_THAT(norm, WithinAbs(REAL(5.0), REAL(1e-10)));
+		REQUIRE_THAT(norm, WithinAbs(REAL(5.0), TOL(1e-10, 1e-5)));
 	}
 	
 	TEST_CASE("Matrix_NormL2_Complex_full_matrix", "[Matrix][Complex][P0]")
@@ -113,7 +113,7 @@ namespace MML::Tests::Base::BaseMathFormulaFixesTests
 		
 		Real norm = M.NormL2();
 		Real expected = std::sqrt(8.0);
-		REQUIRE_THAT(norm, WithinAbs(expected, REAL(1e-10)));
+		REQUIRE_THAT(norm, WithinAbs(expected, TOL(1e-10, 1e-5)));
 	}
 	
 	TEST_CASE("Matrix_NormL2_Real_unchanged", "[Matrix][P0]")
@@ -127,7 +127,7 @@ namespace MML::Tests::Base::BaseMathFormulaFixesTests
 		M(1, 1) = REAL(0.0);
 		
 		Real norm = M.NormL2();
-		REQUIRE_THAT(norm, WithinAbs(REAL(5.0), REAL(1e-10)));
+		REQUIRE_THAT(norm, WithinAbs(REAL(5.0), TOL(1e-10, 1e-5)));
 	}
 
 	/*********************************************************************/
@@ -160,7 +160,7 @@ namespace MML::Tests::Base::BaseMathFormulaFixesTests
 		DiracExp delta(10);
 		Real expected = REAL(10.0) / std::sqrt(2 * Constants::PI);
 		
-		REQUIRE_THAT(delta(REAL(0.0)), WithinAbs(expected, REAL(1e-10)));
+		REQUIRE_THAT(delta(REAL(0.0)), WithinAbs(expected, TOL(1e-10, 1e-5)));
 	}
 
 	/*********************************************************************/
@@ -177,7 +177,7 @@ namespace MML::Tests::Base::BaseMathFormulaFixesTests
 		Real val = delta(REAL(0.0));
 		REQUIRE_FALSE(std::isnan(val));
 		REQUIRE_FALSE(std::isinf(val));
-		REQUIRE_THAT(val, WithinAbs(expected, REAL(1e-10)));
+		REQUIRE_THAT(val, WithinAbs(expected, TOL(1e-10, 1e-5)));
 	}
 	
 	TEST_CASE("DiracSin_handles_very_small_x", "[DiracDeltaFunction][DiracSin][P0]")
@@ -187,8 +187,8 @@ namespace MML::Tests::Base::BaseMathFormulaFixesTests
 		Real expected = REAL(10.0) / Constants::PI;
 		
 		// Very small x values should approach N/π
-		REQUIRE_THAT(delta(REAL(1e-16)), WithinAbs(expected, REAL(1e-8)));
-		REQUIRE_THAT(delta(-REAL(1e-16)), WithinAbs(expected, REAL(1e-8)));
+		REQUIRE_THAT(delta(REAL(1e-16)), WithinAbs(expected, TOL(1e-8, 1e-4)));
+		REQUIRE_THAT(delta(-REAL(1e-16)), WithinAbs(expected, TOL(1e-8, 1e-4)));
 	}
 	
 	TEST_CASE("DiracSin_continuous_near_origin", "[DiracDeltaFunction][DiracSin][P0]")
@@ -218,7 +218,7 @@ namespace MML::Tests::Base::BaseMathFormulaFixesTests
 		for (int i = 0; i < 100; ++i) {
 			Random::UniformVecDirection3(vx, vy, vz, abs);
 			Real mag = std::sqrt(vx*vx + vy*vy + vz*vz);
-			REQUIRE_THAT(mag, WithinAbs(abs, REAL(1e-10)));
+			REQUIRE_THAT(mag, WithinAbs(abs, TOL(1e-10, 1e-5)));
 		}
 	}
 	
@@ -281,7 +281,7 @@ namespace MML::Tests::Base::BaseMathFormulaFixesTests
 		Vector3Cartesian b(REAL(2.0), REAL(0.0), REAL(0.0));  // Parallel
 		
 		Real angle = a.AngleToVector(b);
-		REQUIRE_THAT(angle, WithinAbs(REAL(0.0), REAL(1e-10)));
+		REQUIRE_THAT(angle, WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
 	}
 	
 	TEST_CASE("AngleToVector_antiparallel_vectors", "[Vector3Cartesian][P0]")
@@ -291,7 +291,7 @@ namespace MML::Tests::Base::BaseMathFormulaFixesTests
 		Vector3Cartesian b(-REAL(1.0), REAL(0.0), REAL(0.0));  // Antiparallel
 		
 		Real angle = a.AngleToVector(b);
-		REQUIRE_THAT(angle, WithinAbs(Constants::PI, REAL(1e-10)));
+		REQUIRE_THAT(angle, WithinAbs(Constants::PI, TOL(1e-10, 1e-5)));
 	}
 	
 	TEST_CASE("AngleToVector_perpendicular_vectors", "[Vector3Cartesian][P0]")
@@ -301,7 +301,7 @@ namespace MML::Tests::Base::BaseMathFormulaFixesTests
 		Vector3Cartesian b(REAL(0.0), REAL(1.0), REAL(0.0));  // Perpendicular
 		
 		Real angle = a.AngleToVector(b);
-		REQUIRE_THAT(angle, WithinAbs(Constants::PI / 2, REAL(1e-10)));
+		REQUIRE_THAT(angle, WithinAbs(Constants::PI / 2, TOL(1e-10, 1e-5)));
 	}
 	
 	TEST_CASE("AngleToVector_near_boundary_no_NaN", "[Vector3Cartesian][P0]")
@@ -313,7 +313,7 @@ namespace MML::Tests::Base::BaseMathFormulaFixesTests
 		
 		// Create a vector that's numerically almost identical
 		// Floating-point arithmetic might produce dot product > 1
-		Vector3Cartesian b(REAL(1.0) + REAL(1e-15), REAL(0.0), REAL(0.0));
+		Vector3Cartesian b(REAL(1.0) + TOL(1e-15, 1e-5), REAL(0.0), REAL(0.0));
 		b = b.GetAsUnitVector();  // Normalize should make it unit
 		
 		Real angle = a.AngleToVector(b);
@@ -395,9 +395,9 @@ namespace MML::Tests::Base::BaseMathFormulaFixesTests
 		Complex row1 = below[1] * sol[0] + diag[1] * sol[1] + above[1] * sol[2];
 		Complex row2 = below[2] * sol[1] + diag[2] * sol[2];
 		
-		REQUIRE_THAT(std::abs(row0 - rhs[0]), WithinAbs(REAL(0.0), REAL(1e-10)));
-		REQUIRE_THAT(std::abs(row1 - rhs[1]), WithinAbs(REAL(0.0), REAL(1e-10)));
-		REQUIRE_THAT(std::abs(row2 - rhs[2]), WithinAbs(REAL(0.0), REAL(1e-10)));
+		REQUIRE_THAT(std::abs(row0 - rhs[0]), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(std::abs(row1 - rhs[1]), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(std::abs(row2 - rhs[2]), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
 	}
 	
 	TEST_CASE("TridiagonalMatrix_Solve_throws_on_singular", "[MatrixTriDiag][P0]")
@@ -432,7 +432,7 @@ namespace MML::Tests::Base::BaseMathFormulaFixesTests
 		// Frobenius: sqrt(|a00|² + 2*|a01|² + |a11|²) = sqrt(2 + 2*4 + 10) = sqrt(20)
 		Real expected = std::sqrt(REAL(2.0) + REAL(2.0) * REAL(4.0) + REAL(10.0));
 		
-		REQUIRE_THAT(norm, WithinAbs(expected, REAL(1e-10)));
+		REQUIRE_THAT(norm, WithinAbs(expected, TOL(1e-10, 1e-5)));
 	}
 	
 	TEST_CASE("MatrixSym_NormInf_Complex_returns_Real", "[MatrixSym][Complex][P0]")
@@ -448,7 +448,7 @@ namespace MML::Tests::Base::BaseMathFormulaFixesTests
 		
 		// Row 0: |a00| + |a01| = 1 + 5 = 6
 		// Row 1: |a10| + |a11| = 5 + 2 = 7 (max)
-		REQUIRE_THAT(norm, WithinAbs(REAL(7.0), REAL(1e-10)));
+		REQUIRE_THAT(norm, WithinAbs(REAL(7.0), TOL(1e-10, 1e-5)));
 	}
 	
 	TEST_CASE("MatrixSym_Norm1_Complex_returns_Real", "[MatrixSym][Complex][P0]")
@@ -464,7 +464,7 @@ namespace MML::Tests::Base::BaseMathFormulaFixesTests
 		Real normInf = M.NormInf();
 		
 		// For symmetric matrices, Norm1 == NormInf
-		REQUIRE_THAT(norm1, WithinAbs(normInf, REAL(1e-10)));
+		REQUIRE_THAT(norm1, WithinAbs(normInf, TOL(1e-10, 1e-5)));
 	}
 }
 

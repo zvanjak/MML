@@ -267,7 +267,7 @@ TEST_CASE("Random::UniformVecDirection2 - Magnitude tests", "[Random][UniformVec
             
             REQUIRE(result == Approx(1.0));
             Real magnitude = std::sqrt(vx * vx + vy * vy);
-            REQUIRE(magnitude == Approx(1.0).epsilon(1e-10));
+            REQUIRE(magnitude == Approx(1.0).epsilon(TOL(1e-10, 1e-5)));
         }
     }
 
@@ -281,7 +281,7 @@ TEST_CASE("Random::UniformVecDirection2 - Magnitude tests", "[Random][UniformVec
             
             REQUIRE(result == Approx(5.0));
             Real magnitude = std::sqrt(vx * vx + vy * vy);
-            REQUIRE(magnitude == Approx(5.0).epsilon(1e-10));
+            REQUIRE(magnitude == Approx(5.0).epsilon(TOL(1e-10, 1e-5)));
         }
     }
 
@@ -291,18 +291,18 @@ TEST_CASE("Random::UniformVecDirection2 - Magnitude tests", "[Random][UniformVec
         Real result = Random::UniformVecDirection2(vx, vy, 0.0);
         
         REQUIRE(result == Approx(0.0));
-        REQUIRE(vx == Approx(0.0).margin(1e-15));
-        REQUIRE(vy == Approx(0.0).margin(1e-15));
+        REQUIRE(vx == Approx(0.0).margin(TOL(1e-15, 1e-5)));
+        REQUIRE(vy == Approx(0.0).margin(TOL(1e-15, 1e-5)));
     }
 
-    SECTION("Small magnitude (abs = 1e-10)")
+    SECTION("Small magnitude (abs = TOL(1e-10, 1e-5))")
     {
         Real vx, vy;
-        Real result = Random::UniformVecDirection2(vx, vy, 1e-10);
+        Real result = Random::UniformVecDirection2(vx, vy, TOL(1e-10, 1e-5));
         
-        REQUIRE(result == Approx(1e-10));
+        REQUIRE(result == Approx(TOL(1e-10, 1e-5)));
         Real magnitude = std::sqrt(vx * vx + vy * vy);
-        REQUIRE(magnitude == Approx(1e-10).epsilon(1e-5));
+        REQUIRE(magnitude == Approx(TOL(1e-10, 1e-5)).epsilon(1e-5));
     }
 
     SECTION("Large magnitude (abs = 1e6)")
@@ -312,7 +312,7 @@ TEST_CASE("Random::UniformVecDirection2 - Magnitude tests", "[Random][UniformVec
         
         REQUIRE(result == Approx(1e6));
         Real magnitude = std::sqrt(vx * vx + vy * vy);
-        REQUIRE(magnitude == Approx(1e6).epsilon(1e-10));
+        REQUIRE(magnitude == Approx(1e6).epsilon(TOL(1e-10, 1e-5)));
     }
 }
 
@@ -392,7 +392,7 @@ TEST_CASE("Random::UniformVecDirection3 - Magnitude tests", "[Random][UniformVec
             
             REQUIRE(result == Approx(1.0));
             Real magnitude = std::sqrt(vx * vx + vy * vy + vz * vz);
-            REQUIRE(magnitude == Approx(1.0).epsilon(1e-10));
+            REQUIRE(magnitude == Approx(1.0).epsilon(TOL(1e-10, 1e-5)));
         }
     }
 
@@ -406,7 +406,7 @@ TEST_CASE("Random::UniformVecDirection3 - Magnitude tests", "[Random][UniformVec
             
             REQUIRE(result == Approx(7.5));
             Real magnitude = std::sqrt(vx * vx + vy * vy + vz * vz);
-            REQUIRE(magnitude == Approx(7.5).epsilon(1e-10));
+            REQUIRE(magnitude == Approx(7.5).epsilon(TOL(1e-10, 1e-5)));
         }
     }
 
@@ -416,19 +416,19 @@ TEST_CASE("Random::UniformVecDirection3 - Magnitude tests", "[Random][UniformVec
         Real result = Random::UniformVecDirection3(vx, vy, vz, 0.0);
         
         REQUIRE(result == Approx(0.0));
-        REQUIRE(vx == Approx(0.0).margin(1e-15));
-        REQUIRE(vy == Approx(0.0).margin(1e-15));
-        REQUIRE(vz == Approx(0.0).margin(1e-15));
+        REQUIRE(vx == Approx(0.0).margin(TOL(1e-15, 1e-5)));
+        REQUIRE(vy == Approx(0.0).margin(TOL(1e-15, 1e-5)));
+        REQUIRE(vz == Approx(0.0).margin(TOL(1e-15, 1e-5)));
     }
 
-    SECTION("Small magnitude (abs = 1e-10)")
+    SECTION("Small magnitude (abs = TOL(1e-10, 1e-5))")
     {
         Real vx, vy, vz;
-        Real result = Random::UniformVecDirection3(vx, vy, vz, 1e-10);
+        Real result = Random::UniformVecDirection3(vx, vy, vz, TOL(1e-10, 1e-5));
         
-        REQUIRE(result == Approx(1e-10));
+        REQUIRE(result == Approx(TOL(1e-10, 1e-5)));
         Real magnitude = std::sqrt(vx * vx + vy * vy + vz * vz);
-        REQUIRE(magnitude == Approx(1e-10).epsilon(1e-5));
+        REQUIRE(magnitude == Approx(TOL(1e-10, 1e-5)).epsilon(1e-5));
     }
 
     SECTION("Large magnitude (abs = 1e6)")
@@ -438,7 +438,7 @@ TEST_CASE("Random::UniformVecDirection3 - Magnitude tests", "[Random][UniformVec
         
         REQUIRE(result == Approx(1e6));
         Real magnitude = std::sqrt(vx * vx + vy * vy + vz * vz);
-        REQUIRE(magnitude == Approx(1e6).epsilon(1e-10));
+        REQUIRE(magnitude == Approx(1e6).epsilon(TOL(1e-10, 1e-5)));
     }
 }
 

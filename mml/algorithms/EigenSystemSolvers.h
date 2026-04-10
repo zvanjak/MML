@@ -37,9 +37,10 @@ namespace MML {
 	/// config.sort_eigenvalues = true; // Sort by magnitude
 	/// auto result = SymmMatEigenSolverJacobi::Solve(A, config);
 	struct EigenSolverConfig {
-		/// Convergence tolerance for off-diagonal elements (default: 1e-10)
+		/// Convergence tolerance for off-diagonal elements
 		/// Algorithm converges when off-diagonal norm < tolerance
-		Real tolerance = 1e-10;
+		/// Default: 1e-10 for double, 1e-6 for float
+		Real tolerance = PrecisionValues<Real>::EigenSolverConvergenceTolerance;
 
 		/// Maximum number of iterations/sweeps (default: 100 for Jacobi, 1000 for QR)
 		/// Set to 0 to use algorithm-specific default
@@ -143,7 +144,7 @@ namespace MML {
 		/// - eigenvectors.Column(i) corresponds to eigenvalues[i]
 		/// - Eigenvectors are orthonormal: V^T * V = I
 		/// - A * V = V * diag(λ)
-		static Result Solve(const MatrixSym<Real>& A, Real tol = 1e-10, int maxIter = 100) {
+		static Result Solve(const MatrixSym<Real>& A, Real tol = PrecisionValues<Real>::EigenSolverConvergenceTolerance, int maxIter = 100) {
 			int n = A.rows();
 			Result result(n);
 
@@ -198,8 +199,7 @@ namespace MML {
 		}
 
 		/// Solve for a regular Matrix (extracts symmetric part)
-		/// Note: Only use if you're certain the matrix is symmetric!
-		static Result Solve(const Matrix<Real>& A, Real tol = 1e-10, int maxIter = 100) {
+		static Result Solve(const Matrix<Real>& A, Real tol = PrecisionValues<Real>::EigenSolverConvergenceTolerance, int maxIter = 100) {
 			// Convert to symmetric matrix (average A and A^T)
 			int n = A.rows();
 			MatrixSym<Real> symA(n);
@@ -383,7 +383,7 @@ namespace MML {
 		};
 
 		// Main interface: Solve symmetric eigenvalue problem
-		static Result Solve(const MatrixSym<Real>& A, Real tol = 1e-10, int maxIter = 1000) {
+		static Result Solve(const MatrixSym<Real>& A, Real tol = PrecisionValues<Real>::EigenSolverConvergenceTolerance, int maxIter = 1000) {
 			int n = A.rows();
 			Result result(n);
 
@@ -442,7 +442,7 @@ namespace MML {
 		}
 
 		// Overload for regular Matrix (will symmetrize)
-		static Result Solve(const Matrix<Real>& A, Real tol = 1e-10, int maxIter = 1000) {
+		static Result Solve(const Matrix<Real>& A, Real tol = PrecisionValues<Real>::EigenSolverConvergenceTolerance, int maxIter = 1000) {
 			int n = A.rows();
 			MatrixSym<Real> symA(n);
 			for (int i = 0; i < n; i++)
@@ -865,7 +865,7 @@ namespace MML {
 		/// - For complex pair λ±μi with eigenvector (vr ± i*vi):
 		/// - eigenvalues[k] = {λ, μ}, eigenvalues[k+1] = {λ, -μ}
 		/// - eigenvectors.Column(k) = vr, Column(k+1) = vi
-		static Result Solve(const Matrix<Real>& A, Real tol = 1e-10, int maxIter = 1000) {
+		static Result Solve(const Matrix<Real>& A, Real tol = PrecisionValues<Real>::EigenSolverConvergenceTolerance, int maxIter = 1000) {
 			int n = A.rows();
 			Result result(n);
 

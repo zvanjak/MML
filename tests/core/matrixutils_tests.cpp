@@ -164,12 +164,12 @@ namespace MML::Tests::Core::MatrixUtilsTests
 			TEST_PRECISION_INFO();
 		Matrix<Real> mat(2, 2);
 		mat(0, 0) = REAL(1.0); mat(0, 1) = REAL(1.0);
-		mat(1, 0) = REAL(1.0); mat(1, 1) = REAL(1.0) + 1e-10;		// Very close to row 0
+		mat(1, 0) = REAL(1.0); mat(1, 1) = REAL(1.0) + TOL(1e-10, 1e-5);		// Very close to row 0
 		
-		REQUIRE(Utils::RankGaussian(mat, 1e-10) == 2); 
+		REQUIRE(Utils::RankGaussian(mat, TOL(1e-10, 1e-5)) == 2); 
 
 		// with bigger EPS, we consider them dependent
-		REQUIRE(Utils::RankGaussian(mat, 1e-9) == 1);
+		REQUIRE(Utils::RankGaussian(mat, TOL(1e-9, 1e-4)) == 1);
 	}
 
 	TEST_CASE("Rank of rectangular matrix with more columns than rows", "[MatrixRank][Edge]") {
@@ -488,25 +488,25 @@ namespace MML::Tests::Core::MatrixUtilsTests
 		SECTION("Identity trace equals dimension")
 		{
 			auto I = Matrix<Real>::Identity(4);
-			REQUIRE_THAT(Utils::Trace(I), WithinAbs(REAL(4.0), REAL(1e-14)));
+			REQUIRE_THAT(Utils::Trace(I), WithinAbs(REAL(4.0), TOL(1e-14, 1e-5)));
 		}
 		
 		SECTION("Diagonal matrix trace is sum of diagonal")
 		{
 			Matrix<Real> D(3, 3, { 1,0,0, 0,2,0, 0,0,3 });
-			REQUIRE_THAT(Utils::Trace(D), WithinAbs(REAL(6.0), REAL(1e-14)));
+			REQUIRE_THAT(Utils::Trace(D), WithinAbs(REAL(6.0), TOL(1e-14, 1e-5)));
 		}
 		
 		SECTION("General matrix trace")
 		{
 			Matrix<Real> A(3, 3, { 1,2,3, 4,5,6, 7,8,9 });
-			REQUIRE_THAT(Utils::Trace(A), WithinAbs(REAL(15.0), REAL(1e-14)));  // 1+5+9
+			REQUIRE_THAT(Utils::Trace(A), WithinAbs(REAL(15.0), TOL(1e-14, 1e-5)));  // 1+5+9
 		}
 		
 		SECTION("Zero matrix trace is zero")
 		{
 			Matrix<Real> Z(3, 3, REAL(0.0));
-			REQUIRE_THAT(Utils::Trace(Z), WithinAbs(REAL(0.0), REAL(1e-14)));
+			REQUIRE_THAT(Utils::Trace(Z), WithinAbs(REAL(0.0), TOL(1e-14, 1e-5)));
 		}
 	}
 	
@@ -517,20 +517,20 @@ namespace MML::Tests::Core::MatrixUtilsTests
 		SECTION("Identity Frobenius norm")
 		{
 			auto I = Matrix<Real>::Identity(3);
-			REQUIRE_THAT(Utils::FrobeniusNorm(I), WithinAbs(std::sqrt(REAL(3.0)), REAL(1e-14)));
+			REQUIRE_THAT(Utils::FrobeniusNorm(I), WithinAbs(std::sqrt(REAL(3.0)), TOL(1e-14, 1e-5)));
 		}
 		
 		SECTION("Simple matrix")
 		{
 			Matrix<Real> A(2, 2, { 1,2, 3,4 });
 			// ||A||_F = sqrt(1+4+9+16) = sqrt(30)
-			REQUIRE_THAT(Utils::FrobeniusNorm(A), WithinAbs(std::sqrt(REAL(30.0)), REAL(1e-14)));
+			REQUIRE_THAT(Utils::FrobeniusNorm(A), WithinAbs(std::sqrt(REAL(30.0)), TOL(1e-14, 1e-5)));
 		}
 		
 		SECTION("Zero matrix")
 		{
 			Matrix<Real> Z(3, 3, REAL(0.0));
-			REQUIRE_THAT(Utils::FrobeniusNorm(Z), WithinAbs(REAL(0.0), REAL(1e-14)));
+			REQUIRE_THAT(Utils::FrobeniusNorm(Z), WithinAbs(REAL(0.0), TOL(1e-14, 1e-5)));
 		}
 	}
 	
@@ -541,21 +541,21 @@ namespace MML::Tests::Core::MatrixUtilsTests
 		SECTION("Identity infinity norm")
 		{
 			auto I = Matrix<Real>::Identity(3);
-			REQUIRE_THAT(Utils::InfinityNorm(I), WithinAbs(REAL(1.0), REAL(1e-14)));
+			REQUIRE_THAT(Utils::InfinityNorm(I), WithinAbs(REAL(1.0), TOL(1e-14, 1e-5)));
 		}
 		
 		SECTION("Simple matrix")
 		{
 			Matrix<Real> A(2, 3, { 1,2,3, 4,5,6 });
 			// Row sums: 6, 15 -> max = 15
-			REQUIRE_THAT(Utils::InfinityNorm(A), WithinAbs(REAL(15.0), REAL(1e-14)));
+			REQUIRE_THAT(Utils::InfinityNorm(A), WithinAbs(REAL(15.0), TOL(1e-14, 1e-5)));
 		}
 		
 		SECTION("Matrix with negative entries")
 		{
 			Matrix<Real> A(2, 2, { -1,2, 3,-4 });
 			// Row sums: |−1|+|2|=3, |3|+|−4|=7 -> max = 7
-			REQUIRE_THAT(Utils::InfinityNorm(A), WithinAbs(REAL(7.0), REAL(1e-14)));
+			REQUIRE_THAT(Utils::InfinityNorm(A), WithinAbs(REAL(7.0), TOL(1e-14, 1e-5)));
 		}
 	}
 	
@@ -566,14 +566,14 @@ namespace MML::Tests::Core::MatrixUtilsTests
 		SECTION("Identity one norm")
 		{
 			auto I = Matrix<Real>::Identity(3);
-			REQUIRE_THAT(Utils::OneNorm(I), WithinAbs(REAL(1.0), REAL(1e-14)));
+			REQUIRE_THAT(Utils::OneNorm(I), WithinAbs(REAL(1.0), TOL(1e-14, 1e-5)));
 		}
 		
 		SECTION("Simple matrix")
 		{
 			Matrix<Real> A(3, 2, { 1,2, 3,4, 5,6 });
 			// Column sums: 1+3+5=9, 2+4+6=12 -> max = 12
-			REQUIRE_THAT(Utils::OneNorm(A), WithinAbs(REAL(12.0), REAL(1e-14)));
+			REQUIRE_THAT(Utils::OneNorm(A), WithinAbs(REAL(12.0), TOL(1e-14, 1e-5)));
 		}
 	}
 	
@@ -584,14 +584,14 @@ namespace MML::Tests::Core::MatrixUtilsTests
 		SECTION("Same matrices")
 		{
 			Matrix<Real> A(2, 2, { 1,2, 3,4 });
-			REQUIRE_THAT(Utils::MaxAbsDiff(A, A), WithinAbs(REAL(0.0), REAL(1e-14)));
+			REQUIRE_THAT(Utils::MaxAbsDiff(A, A), WithinAbs(REAL(0.0), TOL(1e-14, 1e-5)));
 		}
 		
 		SECTION("Different matrices")
 		{
 			Matrix<Real> A(2, 2, { 1,2, 3,4 });
 			Matrix<Real> B(2, 2, { 1,2, 3,10 });
-			REQUIRE_THAT(Utils::MaxAbsDiff(A, B), WithinAbs(REAL(6.0), REAL(1e-14)));
+			REQUIRE_THAT(Utils::MaxAbsDiff(A, B), WithinAbs(REAL(6.0), TOL(1e-14, 1e-5)));
 		}
 	}
 	
@@ -608,7 +608,7 @@ namespace MML::Tests::Core::MatrixUtilsTests
 			Matrix<Real> A(3, 3, { 1,2,3, 4,5,6, 7,8,9 });
 			auto I = Matrix<Real>::Identity(3);
 			auto result = Utils::SimilarityTransform(I, A);
-			REQUIRE_THAT(Utils::MaxAbsDiff(result, A), WithinAbs(REAL(0.0), REAL(1e-12)));
+			REQUIRE_THAT(Utils::MaxAbsDiff(result, A), WithinAbs(REAL(0.0), TOL(1e-12, 1e-5)));
 		}
 		
 		SECTION("Permutation matrix")
@@ -618,7 +618,7 @@ namespace MML::Tests::Core::MatrixUtilsTests
 			auto result = Utils::SimilarityTransform(P, A);
 			// P^T * A * P swaps both rows and columns
 			Matrix<Real> expected(2, 2, { 4,3, 2,1 });
-			REQUIRE_THAT(Utils::MaxAbsDiff(result, expected), WithinAbs(REAL(0.0), REAL(1e-12)));
+			REQUIRE_THAT(Utils::MaxAbsDiff(result, expected), WithinAbs(REAL(0.0), TOL(1e-12, 1e-5)));
 		}
 	}
 	
@@ -697,17 +697,17 @@ namespace MML::Tests::Core::MatrixUtilsTests
 			Utils::FaddeevAlg(A, charPoly, det, inv);
 			
 			// Characteristic polynomial: λ² - tr(A)λ + det(A) = λ² - 5λ - 2
-			REQUIRE_THAT(charPoly[2], WithinAbs(REAL(1.0), REAL(1e-10)));
-			REQUIRE_THAT(charPoly[1], WithinAbs(-REAL(5.0), REAL(1e-10)));  // -trace
-			REQUIRE_THAT(charPoly[0], WithinAbs(-REAL(2.0), REAL(1e-10)));  // det
+			REQUIRE_THAT(charPoly[2], WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
+			REQUIRE_THAT(charPoly[1], WithinAbs(-REAL(5.0), TOL(1e-10, 1e-5)));  // -trace
+			REQUIRE_THAT(charPoly[0], WithinAbs(-REAL(2.0), TOL(1e-10, 1e-5)));  // det
 			
 			// Determinant: 1*4 - 2*3 = -2
-			REQUIRE_THAT(det, WithinAbs(-REAL(2.0), REAL(1e-10)));
+			REQUIRE_THAT(det, WithinAbs(-REAL(2.0), TOL(1e-10, 1e-5)));
 			
 			// Verify inverse: A * inv = I
 			auto product = A * inv;
 			auto I = Matrix<Real>::Identity(2);
-			REQUIRE_THAT(Utils::MaxAbsDiff(product, I), WithinAbs(REAL(0.0), REAL(1e-10)));
+			REQUIRE_THAT(Utils::MaxAbsDiff(product, I), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
 		}
 		
 		SECTION("3x3 identity matrix")
@@ -720,16 +720,16 @@ namespace MML::Tests::Core::MatrixUtilsTests
 			Utils::FaddeevAlg(A, charPoly, det, inv);
 			
 			// Characteristic polynomial: (λ-1)³ = λ³ - 3λ² + 3λ - 1
-			REQUIRE_THAT(charPoly[3], WithinAbs(REAL(1.0), REAL(1e-10)));
-			REQUIRE_THAT(charPoly[2], WithinAbs(-REAL(3.0), REAL(1e-10)));
-			REQUIRE_THAT(charPoly[1], WithinAbs(REAL(3.0), REAL(1e-10)));
-			REQUIRE_THAT(charPoly[0], WithinAbs(-REAL(1.0), REAL(1e-10)));
+			REQUIRE_THAT(charPoly[3], WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
+			REQUIRE_THAT(charPoly[2], WithinAbs(-REAL(3.0), TOL(1e-10, 1e-5)));
+			REQUIRE_THAT(charPoly[1], WithinAbs(REAL(3.0), TOL(1e-10, 1e-5)));
+			REQUIRE_THAT(charPoly[0], WithinAbs(-REAL(1.0), TOL(1e-10, 1e-5)));
 			
 			// det(I) = 1
-			REQUIRE_THAT(det, WithinAbs(REAL(1.0), REAL(1e-10)));
+			REQUIRE_THAT(det, WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
 			
 			// inv(I) = I
-			REQUIRE_THAT(Utils::MaxAbsDiff(inv, A), WithinAbs(REAL(0.0), REAL(1e-10)));
+			REQUIRE_THAT(Utils::MaxAbsDiff(inv, A), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
 		}
 	}
 	
@@ -747,11 +747,11 @@ namespace MML::Tests::Core::MatrixUtilsTests
 			auto result = Utils::ComputeSVD(I);
 			
 			REQUIRE(result.rank == 3);
-			REQUIRE_THAT(result.conditionNumber, WithinAbs(REAL(1.0), REAL(1e-10)));
+			REQUIRE_THAT(result.conditionNumber, WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
 			
 			// All singular values should be 1
 			for (int i = 0; i < 3; i++)
-				REQUIRE_THAT(result.singularValues[i], WithinAbs(REAL(1.0), REAL(1e-10)));
+				REQUIRE_THAT(result.singularValues[i], WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
 		}
 		
 		SECTION("Rank-deficient matrix")
@@ -773,9 +773,9 @@ namespace MML::Tests::Core::MatrixUtilsTests
 			auto sv = Utils::SingularValues(D);
 			
 			// Singular values should be 3, 2, 1 in descending order
-			REQUIRE_THAT(sv[0], WithinAbs(REAL(3.0), REAL(1e-10)));
-			REQUIRE_THAT(sv[1], WithinAbs(REAL(2.0), REAL(1e-10)));
-			REQUIRE_THAT(sv[2], WithinAbs(REAL(1.0), REAL(1e-10)));
+			REQUIRE_THAT(sv[0], WithinAbs(REAL(3.0), TOL(1e-10, 1e-5)));
+			REQUIRE_THAT(sv[1], WithinAbs(REAL(2.0), TOL(1e-10, 1e-5)));
+			REQUIRE_THAT(sv[2], WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
 		}
 	}
 	
@@ -832,19 +832,19 @@ namespace MML::Tests::Core::MatrixUtilsTests
 		SECTION("Identity has condition number 1")
 		{
 			auto I = Matrix<Real>::Identity(3);
-			REQUIRE_THAT(Utils::ConditionNumber(I), WithinAbs(REAL(1.0), REAL(1e-10)));
+			REQUIRE_THAT(Utils::ConditionNumber(I), WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
 		}
 		
 		SECTION("Well-conditioned matrix")
 		{
 			Matrix<Real> A(2, 2, { 2,0, 0,1 });
-			REQUIRE_THAT(Utils::ConditionNumber(A), WithinAbs(REAL(2.0), REAL(1e-10)));
+			REQUIRE_THAT(Utils::ConditionNumber(A), WithinAbs(REAL(2.0), TOL(1e-10, 1e-5)));
 		}
 		
 		SECTION("Ill-conditioned matrix has large condition number")
 		{
-			Matrix<Real> A(2, 2, { 1,0, 0,1e-10 });
-			REQUIRE(Utils::ConditionNumber(A) > 1e9);
+			Matrix<Real> A(2, 2, { 1,0, 0,TOL(1e-10, 1e-5) });
+			REQUIRE(Utils::ConditionNumber(A) > TOL(1e9, 1e4));
 		}
 	}
 	
@@ -867,7 +867,7 @@ namespace MML::Tests::Core::MatrixUtilsTests
 			
 			// Verify A * ns ≈ 0
 			auto product = A * ns;
-			REQUIRE_THAT(Utils::FrobeniusNorm(product), WithinAbs(REAL(0.0), REAL(1e-10)));
+			REQUIRE_THAT(Utils::FrobeniusNorm(product), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
 		}
 	}
 	
@@ -915,7 +915,7 @@ namespace MML::Tests::Core::MatrixUtilsTests
 		{
 			auto I = Matrix<Real>::Identity(3);
 			auto pinv = Utils::PseudoInverse(I);
-			REQUIRE_THAT(Utils::MaxAbsDiff(pinv, I), WithinAbs(REAL(0.0), REAL(1e-10)));
+			REQUIRE_THAT(Utils::MaxAbsDiff(pinv, I), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
 		}
 		
 		SECTION("Pseudoinverse of full-rank square equals inverse")
@@ -926,7 +926,7 @@ namespace MML::Tests::Core::MatrixUtilsTests
 			// A * pinv should be identity
 			auto product = A * pinv;
 			auto I = Matrix<Real>::Identity(2);
-			REQUIRE_THAT(Utils::MaxAbsDiff(product, I), WithinAbs(REAL(0.0), REAL(1e-10)));
+			REQUIRE_THAT(Utils::MaxAbsDiff(product, I), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
 		}
 		
 		SECTION("Moore-Penrose property: A * A+ * A = A")
@@ -935,7 +935,7 @@ namespace MML::Tests::Core::MatrixUtilsTests
 			auto pinv = Utils::PseudoInverse(A);
 			
 			auto AAA = A * pinv * A;
-			REQUIRE_THAT(Utils::MaxAbsDiff(AAA, A), WithinAbs(REAL(0.0), REAL(1e-10)));
+			REQUIRE_THAT(Utils::MaxAbsDiff(AAA, A), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
 		}
 		
 		SECTION("Moore-Penrose property: A+ * A * A+ = A+")
@@ -944,7 +944,7 @@ namespace MML::Tests::Core::MatrixUtilsTests
 			auto pinv = Utils::PseudoInverse(A);
 			
 			auto pApAp = pinv * A * pinv;
-			REQUIRE_THAT(Utils::MaxAbsDiff(pApAp, pinv), WithinAbs(REAL(0.0), REAL(1e-10)));
+			REQUIRE_THAT(Utils::MaxAbsDiff(pApAp, pinv), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
 		}
 	}
 }

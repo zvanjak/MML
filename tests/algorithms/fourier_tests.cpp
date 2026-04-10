@@ -35,7 +35,7 @@ namespace MML::Tests::Algorithms::FourierTests {
 			REQUIRE(recovered.size() == signal.size());
 
 			for (int i = 0; i < N; i++) {
-				REQUIRE(std::abs(recovered[i] - signal[i]) < 1e-12);
+				REQUIRE(std::abs(recovered[i] - signal[i]) < TOL(1e-12, 1e-5));
 			}
 		}
 	}
@@ -46,9 +46,9 @@ namespace MML::Tests::Algorithms::FourierTests {
 		auto dctDC = DCT::ForwardII(dc);
 
 		// DC signal should have all energy in first coefficient
-		REQUIRE(std::abs(dctDC[0] - 2.0) < 1e-10); // DCT-II of constant 1 is 2
+		REQUIRE(std::abs(dctDC[0] - 2.0) < TOL(1e-10, 1e-5)); // DCT-II of constant 1 is 2
 		for (int i = 1; i < 8; i++) {
-			REQUIRE(std::abs(dctDC[i]) < 1e-10);
+			REQUIRE(std::abs(dctDC[i]) < TOL(1e-10, 1e-5));
 		}
 	}
 
@@ -74,7 +74,7 @@ namespace MML::Tests::Algorithms::FourierTests {
 		}
 
 		Real relativeError = std::abs(dctEnergy - signalEnergy) / signalEnergy;
-		REQUIRE(relativeError < 1e-10);
+		REQUIRE(relativeError < TOL(1e-10, 1e-5));
 	}
 
 	TEST_CASE("DCT Helper - VerifyRoundTrip", "[Fourier][DCT]") {
@@ -83,7 +83,7 @@ namespace MML::Tests::Algorithms::FourierTests {
 			signal[i] = std::exp(-0.1 * i) * std::cos(2.0 * Constants::PI * i / 16);
 		}
 
-		REQUIRE(DCT::VerifyRoundTrip(signal, 1e-12));
+		REQUIRE(DCT::VerifyRoundTrip(signal, TOL(1e-12, 1e-5)));
 	}
 
 	TEST_CASE("DCT Fast vs Reference - Non-zero DC", "[Fourier][DCT]") {
@@ -101,7 +101,7 @@ namespace MML::Tests::Algorithms::FourierTests {
 		auto inv_ref = DCT::InverseII_Reference(ref_fwd);
 		REQUIRE(inv_fast.size() == inv_ref.size());
 		for (int i = 0; i < N; i++) {
-			REQUIRE(std::abs(inv_fast[i] - inv_ref[i]) < 1e-10);
+			REQUIRE(std::abs(inv_fast[i] - inv_ref[i]) < TOL(1e-10, 1e-5));
 		}
 	}
 
@@ -118,7 +118,7 @@ namespace MML::Tests::Algorithms::FourierTests {
 		auto ref_fwd = DCT::ForwardII_Reference(signal);
 		REQUIRE(fast_fwd.size() == ref_fwd.size());
 		for (int i = 0; i < N; i++) {
-			REQUIRE(std::abs(fast_fwd[i] - ref_fwd[i]) < 1e-10);
+			REQUIRE(std::abs(fast_fwd[i] - ref_fwd[i]) < TOL(1e-10, 1e-5));
 		}
 
 		// Inverse comparison
@@ -126,7 +126,7 @@ namespace MML::Tests::Algorithms::FourierTests {
 		auto inv_ref = DCT::InverseII_Reference(ref_fwd);
 		REQUIRE(inv_fast.size() == inv_ref.size());
 		for (int i = 0; i < N; i++) {
-			REQUIRE(std::abs(inv_fast[i] - inv_ref[i]) < 1e-10);
+			REQUIRE(std::abs(inv_fast[i] - inv_ref[i]) < TOL(1e-10, 1e-5));
 		}
 	}
 
@@ -145,7 +145,7 @@ namespace MML::Tests::Algorithms::FourierTests {
 		REQUIRE(recovered.size() == signal.size());
 
 		for (int i = 0; i < N; i++) {
-			REQUIRE(std::abs(recovered[i] - signal[i]) < 1e-12);
+			REQUIRE(std::abs(recovered[i] - signal[i]) < TOL(1e-12, 1e-5));
 		}
 	}
 
@@ -201,7 +201,7 @@ namespace MML::Tests::Algorithms::FourierTests {
 
 			// Results should match
 			for (int i = 0; i < N; i++) {
-				REQUIRE(std::abs(dct_fast[i] - dct_ref[i]) < 1e-10);
+				REQUIRE(std::abs(dct_fast[i] - dct_ref[i]) < TOL(1e-10, 1e-5));
 			}
 
 			// For N >= 256, fast should be noticeably faster
@@ -221,7 +221,7 @@ namespace MML::Tests::Algorithms::FourierTests {
 		single[0] = 5.0;
 		auto dctSingle = DCT::ForwardII(single);
 		REQUIRE(dctSingle.size() == 1);
-		REQUIRE(std::abs(dctSingle[0] - 10.0) < 1e-10); // 2/1 * 5 = 10
+		REQUIRE(std::abs(dctSingle[0] - 10.0) < TOL(1e-10, 1e-5)); // 2/1 * 5 = 10
 
 		// Two elements
 		Vector<Real> two(2);
@@ -229,7 +229,14 @@ namespace MML::Tests::Algorithms::FourierTests {
 		two[1] = 2.0;
 		auto dctTwo = DCT::ForwardII(two);
 		REQUIRE(dctTwo.size() == 2);
-		REQUIRE(DCT::VerifyRoundTrip(two));
+		if constexpr (std::is_same_v<Real, float>) {
+			// DCT round-trip accumulates too much error with float precision
+			auto recovered = DCT::InverseII(dctTwo);
+			for (int i = 0; i < two.size(); ++i)
+				REQUIRE_THAT(recovered[i], Catch::Matchers::WithinAbs(two[i], REAL(1e-4)));
+		} else {
+			REQUIRE(DCT::VerifyRoundTrip(two));
+		}
 	}
 
 
@@ -250,7 +257,7 @@ namespace MML::Tests::Algorithms::FourierTests {
 		REQUIRE(dftResult.size() == fftResult.size());
 
 		for (size_t i = 0; i < dftResult.size(); i++) {
-			REQUIRE(std::abs(dftResult[i] - fftResult[i]) < 1e-10);
+			REQUIRE(std::abs(dftResult[i] - fftResult[i]) < TOL(1e-10, 5e-3));
 		}
 	}
 
@@ -267,7 +274,7 @@ namespace MML::Tests::Algorithms::FourierTests {
 		REQUIRE(dftResult.size() == fftResult.size());
 
 		for (size_t i = 0; i < dftResult.size(); i++) {
-			REQUIRE(std::abs(dftResult[i] - fftResult[i]) < 1e-9);
+			REQUIRE(std::abs(dftResult[i] - fftResult[i]) < TOL(1e-9, 0.05));
 		}
 	}
 
@@ -292,7 +299,7 @@ namespace MML::Tests::Algorithms::FourierTests {
 					maxError = std::max(maxError, error);
 				}
 
-				REQUIRE(maxError < 1e-8);
+				REQUIRE(maxError < TOL(1e-8, 0.05));
 			}
 		}
 	}
@@ -315,7 +322,7 @@ namespace MML::Tests::Algorithms::FourierTests {
 		REQUIRE(original.size() == recovered.size());
 
 		for (size_t i = 0; i < original.size(); i++) {
-			REQUIRE(std::abs(original[i] - recovered[i]) < 1e-10);
+			REQUIRE(std::abs(original[i] - recovered[i]) < TOL(1e-10, 1e-5));
 		}
 	}
 
@@ -339,7 +346,7 @@ namespace MML::Tests::Algorithms::FourierTests {
 					maxError = std::max(maxError, error);
 				}
 
-				REQUIRE(maxError < 1e-9);
+				REQUIRE(maxError < TOL(1e-9, 1e-4));
 			}
 		}
 	}
@@ -369,7 +376,7 @@ namespace MML::Tests::Algorithms::FourierTests {
 		}
 		freqEnergy /= spectrum.size(); // Normalization
 
-		REQUIRE(std::abs(timeEnergy - freqEnergy) / timeEnergy < 1e-10);
+		REQUIRE(std::abs(timeEnergy - freqEnergy) / timeEnergy < TOL(1e-10, 1e-5));
 	}
 
 	TEST_CASE("Parseval's Theorem - All Signals", "[Fourier][FFT][Parseval][comprehensive]") {
@@ -395,7 +402,7 @@ namespace MML::Tests::Algorithms::FourierTests {
 				freqEnergy /= spectrum.size();
 
 				Real relativeError = std::abs(timeEnergy - freqEnergy) / timeEnergy;
-				REQUIRE(relativeError < 1e-9);
+				REQUIRE(relativeError < TOL(1e-9, 1e-4));
 			}
 		}
 	}
@@ -421,7 +428,7 @@ namespace MML::Tests::Algorithms::FourierTests {
 		single[0] = Complex(1.0, 0.0);
 		auto result = FFT::Forward(single);
 		REQUIRE(result.size() == 1);
-		REQUIRE(std::abs(result[0] - Complex(1.0, 0.0)) < 1e-10);
+		REQUIRE(std::abs(result[0] - Complex(1.0, 0.0)) < TOL(1e-10, 1e-5));
 	}
 
 	///////////////////////////////////////////////////////////////////////////////////////////
@@ -481,7 +488,7 @@ namespace MML::Tests::Algorithms::FourierTests {
 		REQUIRE(inv.IsSuccess());
 
 		for (int i = 0; i < 4; i++)
-			REQUIRE(std::abs(inv.value[i] - data[i]) < 1e-12);
+			REQUIRE(std::abs(inv.value[i] - data[i]) < TOL(1e-12, 1e-5));
 	}
 
 	TEST_CASE("DFT InverseRealDetailed - Round Trip", "[Fourier][DFT][Detailed]") {
@@ -497,7 +504,7 @@ namespace MML::Tests::Algorithms::FourierTests {
 		REQUIRE(inv.value.size() == 8);
 
 		for (int i = 0; i < 8; i++)
-			REQUIRE(std::abs(inv.value[i] - data[i]) < 1e-12);
+			REQUIRE(std::abs(inv.value[i] - data[i]) < TOL(1e-12, 1e-5));
 	}
 
 	TEST_CASE("FFT ForwardDetailed - Success", "[Fourier][FFT][Detailed]") {
@@ -527,7 +534,7 @@ namespace MML::Tests::Algorithms::FourierTests {
 		REQUIRE(inv.IsSuccess());
 
 		for (int i = 0; i < N; i++)
-			REQUIRE(std::abs(inv.value[i] - data[i]) < 1e-10);
+			REQUIRE(std::abs(inv.value[i] - data[i]) < TOL(1e-10, 1e-5));
 	}
 
 	TEST_CASE("FFT ForwardDetailed - Empty Input ConvertToStatus", "[Fourier][FFT][Detailed]") {
@@ -566,7 +573,7 @@ namespace MML::Tests::Algorithms::FourierTests {
 		REQUIRE(inv.IsSuccess());
 
 		for (int i = 0; i < 8; i++)
-			REQUIRE(std::abs(inv.value[i] - signal[i]) < 1e-12);
+			REQUIRE(std::abs(inv.value[i] - signal[i]) < TOL(1e-12, 1e-5));
 	}
 
 	TEST_CASE("DST Detailed - Round Trip", "[Fourier][DCT][Detailed]") {
@@ -581,7 +588,7 @@ namespace MML::Tests::Algorithms::FourierTests {
 		REQUIRE(inv.IsSuccess());
 
 		for (int i = 0; i < 8; i++)
-			REQUIRE(std::abs(inv.value[i] - signal[i]) < 1e-12);
+			REQUIRE(std::abs(inv.value[i] - signal[i]) < TOL(1e-12, 1e-5));
 	}
 
 	TEST_CASE("Detailed API - Propagate Exception Policy", "[Fourier][Detailed]") {

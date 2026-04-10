@@ -16,7 +16,7 @@ using namespace MML::Testing;
 namespace MML::Tests::Core::SVDTests
 {
 	// Helper function to verify orthogonality
-	bool IsOrthogonal(const Matrix<Real>& mat, Real tolerance = 1e-10)
+	bool IsOrthogonal(const Matrix<Real>& mat, Real tolerance = TOL(1e-10, 1e-5))
 	{
 		int n = mat.cols();
 		Matrix<Real> prod = mat.transpose() * mat;
@@ -36,7 +36,7 @@ namespace MML::Tests::Core::SVDTests
 	// Helper to verify A = U * W * V^T
 	bool VerifyDecomposition(const Matrix<Real>& A, const Matrix<Real>& U, 
 	                         const Vector<Real>& W, const Matrix<Real>& V, 
-	                         Real tolerance = 1e-10)
+	                         Real tolerance = TOL(1e-10, 1e-5))
 	{
 		int m = A.rows();
 		int n = A.cols();
@@ -84,12 +84,12 @@ namespace MML::Tests::Core::SVDTests
 		auto V = svd.getV();
 
 		// Singular values should all be REAL(1.0)
-		REQUIRE(std::abs(W[0] - REAL(1.0)) < 1e-10);
-		REQUIRE(std::abs(W[1] - REAL(1.0)) < 1e-10);
-		REQUIRE(std::abs(W[2] - REAL(1.0)) < 1e-10);
+		REQUIRE(std::abs(W[0] - REAL(1.0)) < TOL(1e-10, 1e-5));
+		REQUIRE(std::abs(W[1] - REAL(1.0)) < TOL(1e-10, 1e-5));
+		REQUIRE(std::abs(W[2] - REAL(1.0)) < TOL(1e-10, 1e-5));
 
 		// Verify reconstruction
-		REQUIRE(VerifyDecomposition(A, U, W, V, 1e-10));
+		REQUIRE(VerifyDecomposition(A, U, W, V, TOL(1e-10, 1e-5)));
 		
 		// U and V should be orthogonal
 		REQUIRE(IsOrthogonal(U));
@@ -112,12 +112,12 @@ namespace MML::Tests::Core::SVDTests
 		auto V = svd.getV();
 
 		// Singular values should be 3, 2, 1 (in descending order)
-		REQUIRE(std::abs(W[0] - REAL(3.0)) < 1e-10);
-		REQUIRE(std::abs(W[1] - REAL(2.0)) < 1e-10);
-		REQUIRE(std::abs(W[2] - REAL(1.0)) < 1e-10);
+		REQUIRE(std::abs(W[0] - REAL(3.0)) < TOL(1e-10, 1e-5));
+		REQUIRE(std::abs(W[1] - REAL(2.0)) < TOL(1e-10, 1e-5));
+		REQUIRE(std::abs(W[2] - REAL(1.0)) < TOL(1e-10, 1e-5));
 
 		// Verify reconstruction
-		REQUIRE(VerifyDecomposition(A, U, W, V, 1e-10));
+		REQUIRE(VerifyDecomposition(A, U, W, V, TOL(1e-10, 1e-5)));
 		
 		// U and V should be orthogonal
 		REQUIRE(IsOrthogonal(U));
@@ -144,11 +144,11 @@ namespace MML::Tests::Core::SVDTests
 		REQUIRE(W[0] >= W[1]);
 
 		// Verify reconstruction
-		REQUIRE(VerifyDecomposition(A, U, W, V, 1e-9));
+		REQUIRE(VerifyDecomposition(A, U, W, V, TOL(1e-9, 1e-4)));
 		
 		// U and V should be orthogonal
-		REQUIRE(IsOrthogonal(U, 1e-9));
-		REQUIRE(IsOrthogonal(V, 1e-9));
+		REQUIRE(IsOrthogonal(U, TOL(1e-9, 1e-4)));
+		REQUIRE(IsOrthogonal(V, TOL(1e-9, 1e-4)));
 	}
 
 	TEST_CASE("SVD_Rectangular_4x3", "[SVD][Basic]")
@@ -182,10 +182,10 @@ namespace MML::Tests::Core::SVDTests
 		REQUIRE(W[1] >= W[2]);
 
 		// Verify reconstruction
-		REQUIRE(VerifyDecomposition(A, U, W, V, 1e-8));
+		REQUIRE(VerifyDecomposition(A, U, W, V, TOL(1e-8, 1e-4)));
 		
 		// V should be orthogonal (U^T*U = I for overdetermined)
-		REQUIRE(IsOrthogonal(V, 1e-9));
+		REQUIRE(IsOrthogonal(V, TOL(1e-9, 1e-4)));
 	}
 
 	TEST_CASE("SVD_Rectangular_3x4", "[SVD][Basic]")
@@ -219,10 +219,10 @@ namespace MML::Tests::Core::SVDTests
 		REQUIRE(W[2] >= W[3]);
 
 		// Verify reconstruction
-		REQUIRE(VerifyDecomposition(A, U, W, V, 1e-8));
+		REQUIRE(VerifyDecomposition(A, U, W, V, TOL(1e-8, 1e-4)));
 		
 		// U and V should be orthogonal
-		REQUIRE(IsOrthogonal(V, 1e-9));
+		REQUIRE(IsOrthogonal(V, TOL(1e-9, 1e-4)));
 	}
 
 	TEST_CASE("SVD_Symmetric_3x3", "[SVD][Symmetric]")
@@ -242,11 +242,11 @@ namespace MML::Tests::Core::SVDTests
 		auto V = svd.getV();
 
 		// Verify reconstruction
-		REQUIRE(VerifyDecomposition(A, U, W, V, 1e-9));
+		REQUIRE(VerifyDecomposition(A, U, W, V, TOL(1e-9, 1e-4)));
 		
 		// Both U and V should be orthogonal
-		REQUIRE(IsOrthogonal(U, 1e-9));
-		REQUIRE(IsOrthogonal(V, 1e-9));
+		REQUIRE(IsOrthogonal(U, TOL(1e-9, 1e-4)));
+		REQUIRE(IsOrthogonal(V, TOL(1e-9, 1e-4)));
 
 		// For symmetric matrices, U and V should be similar (up to signs)
 		// This is a weaker test - just verify they're both orthogonal
@@ -266,7 +266,7 @@ namespace MML::Tests::Core::SVDTests
 		
 		// Condition number should be REAL(1.0) (all singular values equal)
 		Real cond = svd.inv_condition();
-		REQUIRE(std::abs(cond - REAL(1.0)) < 1e-10);
+		REQUIRE(std::abs(cond - REAL(1.0)) < TOL(1e-10, 1e-5));
 
 		// Ill-conditioned matrix
 		Matrix<Real> B(3, 3, {
@@ -279,7 +279,7 @@ namespace MML::Tests::Core::SVDTests
 		Real cond2 = svd2.inv_condition();
 		
 		// Condition should be REAL(0.1)/10 = REAL(0.01)
-		REQUIRE(std::abs(cond2 - REAL(0.01)) < 1e-10);
+		REQUIRE(std::abs(cond2 - REAL(0.01)) < TOL(1e-10, 1e-5));
 	}
 
 	///////////////// PHASE 3: SOLVE TESTS /////////////////
@@ -312,7 +312,7 @@ namespace MML::Tests::Core::SVDTests
 
 		// Verify A*x ≈ b
 		for (int i = 0; i < 3; i++)
-			REQUIRE(std::abs(result[i] - b[i]) < 1e-8);
+			REQUIRE(std::abs(result[i] - b[i]) < TOL(1e-8, 1e-4));
 	}
 
 	TEST_CASE("SVD_Solve_Overdetermined", "[SVD][Solve]")
@@ -367,9 +367,9 @@ namespace MML::Tests::Core::SVDTests
 		Vector<Real> x = svd.Solve(b);
 
 		// For identity matrix, solution should equal b
-		REQUIRE(std::abs(x[0] - REAL(5.0)) < 1e-10);
-		REQUIRE(std::abs(x[1] - REAL(7.0)) < 1e-10);
-		REQUIRE(std::abs(x[2] - REAL(9.0)) < 1e-10);
+		REQUIRE(std::abs(x[0] - REAL(5.0)) < TOL(1e-10, 1e-5));
+		REQUIRE(std::abs(x[1] - REAL(7.0)) < TOL(1e-10, 1e-5));
+		REQUIRE(std::abs(x[2] - REAL(9.0)) < TOL(1e-10, 1e-5));
 	}
 
 	TEST_CASE("SVD_Solve_Matrix_RHS", "[SVD][Solve]")
@@ -393,12 +393,12 @@ namespace MML::Tests::Core::SVDTests
 		svd.Solve(B, X);
 
 		// Expected solutions: X = [[2,3], [3,4], [4,5]]
-		REQUIRE(std::abs(X[0][0] - REAL(2.0)) < 1e-10);
-		REQUIRE(std::abs(X[0][1] - REAL(3.0)) < 1e-10);
-		REQUIRE(std::abs(X[1][0] - REAL(3.0)) < 1e-10);
-		REQUIRE(std::abs(X[1][1] - REAL(4.0)) < 1e-10);
-		REQUIRE(std::abs(X[2][0] - REAL(4.0)) < 1e-10);
-		REQUIRE(std::abs(X[2][1] - REAL(5.0)) < 1e-10);
+		REQUIRE(std::abs(X[0][0] - REAL(2.0)) < TOL(1e-10, 1e-5));
+		REQUIRE(std::abs(X[0][1] - REAL(3.0)) < TOL(1e-10, 1e-5));
+		REQUIRE(std::abs(X[1][0] - REAL(3.0)) < TOL(1e-10, 1e-5));
+		REQUIRE(std::abs(X[1][1] - REAL(4.0)) < TOL(1e-10, 1e-5));
+		REQUIRE(std::abs(X[2][0] - REAL(4.0)) < TOL(1e-10, 1e-5));
+		REQUIRE(std::abs(X[2][1] - REAL(5.0)) < TOL(1e-10, 1e-5));
 	}
 
 	///////////////// PHASE 4: PROPERTY TESTS /////////////////
@@ -463,7 +463,7 @@ namespace MML::Tests::Core::SVDTests
 			Real norm = REAL(0.0);
 			for (int j = 0; j < 3; j++)
 				norm += range[j][i] * range[j][i];
-			REQUIRE(std::abs(norm - REAL(1.0)) < 1e-9);
+			REQUIRE(std::abs(norm - REAL(1.0)) < TOL(1e-9, 1e-4));
 		}
 	}
 
@@ -507,7 +507,7 @@ namespace MML::Tests::Core::SVDTests
 
 			// Should be zero vector
 			for (int i = 0; i < 3; i++)
-				REQUIRE(std::abs(result[i]) < 1e-8);
+				REQUIRE(std::abs(result[i]) < TOL(1e-8, 1e-4));
 		}
 	}
 

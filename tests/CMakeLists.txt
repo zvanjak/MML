@@ -11,6 +11,7 @@ project(MML_Tests VERSION 1.0)
 ###############################################################################
 file(GLOB BASE_TESTS 
     "base/base_math_formula_fixes_tests.cpp"
+    "base/bugfix_epic_z5pg_tests.cpp"
     "base/baseutils_tests.cpp"
     "base/chebyshev_approximation_tests.cpp"
     "base/dirac_delta_function_tests.cpp"
@@ -109,6 +110,8 @@ file(GLOB CORE_TESTS
     "core/singularity_handling_tests.cpp"
     # Geometry/coordinate edge cases
     "core/geometry_coord_edge_case_tests.cpp"
+    # Complex analysis
+    "core/complex_analysis_tests.cpp"
 )
 
 ###############################################################################
@@ -209,6 +212,11 @@ target_link_libraries(MML_Tests PRIVATE
     Catch2::Catch2WithMain
 )
 
+# Link libatomic on Linux for 128-bit atomics (needed by long double builds)
+if(UNIX AND NOT APPLE)
+    target_link_libraries(MML_Tests PRIVATE atomic)
+endif()
+
 target_include_directories(MML_Tests PRIVATE 
     ${CMAKE_SOURCE_DIR}/mml
     ${CMAKE_SOURCE_DIR}/test_data
@@ -228,6 +236,78 @@ catch_discover_tests(MML_Tests
     PROPERTIES LABELS "core"
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
+
+# =============================================================================
+# Multi-Precision Test Targets (float / long double)
+# =============================================================================
+# Build separate test executables for each Real type, each with its own
+# compile definition overriding the default (double).
+# Enable with: cmake -B build -DMML_BUILD_ALL_PRECISION_TESTS=ON
+#
+# Usage:
+#   ctest -L float          # Run only float tests
+#   ctest -L long_double    # Run only long double tests
+#   ctest -L core           # Run only default (double) tests
+# =============================================================================
+if(MML_BUILD_ALL_PRECISION_TESTS)
+    # --- Float tests ---
+    add_executable(MML_Tests_Float
+        ${BASE_TESTS}
+        ${CORE_TESTS}
+        ${ALGORITHMS_TESTS}
+        ${SYSTEMS_TESTS}
+        ${TOOLS_TESTS}
+        ${INFRASTRUCTURE_TESTS}
+    )
+    target_link_libraries(MML_Tests_Float PRIVATE Catch2::Catch2WithMain)
+    if(UNIX AND NOT APPLE)
+        target_link_libraries(MML_Tests_Float PRIVATE atomic)
+    endif()
+    target_include_directories(MML_Tests_Float PRIVATE
+        ${CMAKE_SOURCE_DIR}/mml
+        ${CMAKE_SOURCE_DIR}/test_data
+        ${CMAKE_SOURCE_DIR}/test_beds
+        ${CMAKE_SOURCE_DIR}/tests
+    )
+    target_compile_definitions(MML_Tests_Float PRIVATE MML_USE_FLOAT)
+    if(MSVC)
+        target_compile_options(MML_Tests_Float PRIVATE /FS)
+    endif()
+    catch_discover_tests(MML_Tests_Float
+        PROPERTIES LABELS "float"
+        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    )
+
+    # --- Long Double tests ---
+    add_executable(MML_Tests_LongDbl
+        ${BASE_TESTS}
+        ${CORE_TESTS}
+        ${ALGORITHMS_TESTS}
+        ${SYSTEMS_TESTS}
+        ${TOOLS_TESTS}
+        ${INFRASTRUCTURE_TESTS}
+    )
+    target_link_libraries(MML_Tests_LongDbl PRIVATE Catch2::Catch2WithMain)
+    if(UNIX AND NOT APPLE)
+        target_link_libraries(MML_Tests_LongDbl PRIVATE atomic)
+    endif()
+    target_include_directories(MML_Tests_LongDbl PRIVATE
+        ${CMAKE_SOURCE_DIR}/mml
+        ${CMAKE_SOURCE_DIR}/test_data
+        ${CMAKE_SOURCE_DIR}/test_beds
+        ${CMAKE_SOURCE_DIR}/tests
+    )
+    target_compile_definitions(MML_Tests_LongDbl PRIVATE MML_USE_LONG_DOUBLE)
+    if(MSVC)
+        target_compile_options(MML_Tests_LongDbl PRIVATE /FS)
+    endif()
+    catch_discover_tests(MML_Tests_LongDbl
+        PROPERTIES LABELS "long_double"
+        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    )
+
+    message(STATUS "Multi-precision tests enabled: MML_Tests_Float, MML_Tests_LongDbl")
+endif()
 
 # ============================================================================
 # Single Header Test - DISABLED pending generator fixes

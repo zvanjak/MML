@@ -3,6 +3,7 @@
 ///////////////////////////////////////////////////////////////////////////////////////////
 
 #include <catch2/catch_test_macros.hpp>
+#include "../TestPrecision.h"
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include <mml/base/Vector/Vector.h>
@@ -38,7 +39,7 @@ namespace {
     }
     
     // Helper to compare vectors with relative tolerance
-    bool VectorsEqual(const Vector<Real>& a, const Vector<Real>& b, Real relTol = 1e-14) {
+    bool VectorsEqual(const Vector<Real>& a, const Vector<Real>& b, Real relTol = TOL(1e-14, 1e-5)) {
         if (a.size() != b.size())
             return false;
         for (int i = 0; i < a.size(); ++i) {
@@ -54,15 +55,18 @@ namespace {
         return true;
     }
     
-    // Helper to check exact binary equality (no floating-point tolerance)
+    // Helper to check exact value equality (not bit-level, to handle long double padding bytes)
     bool VectorsExactlyEqual(const Vector<Real>& a, const Vector<Real>& b) {
         if (a.size() != b.size())
             return false;
         for (int i = 0; i < a.size(); ++i) {
-            // Bit-exact comparison using memcmp
             Real va = a[i], vb = b[i];
-            if (std::memcmp(&va, &vb, sizeof(Real)) != 0)
-                return false;
+            // Both NaN → considered equal for round-trip purposes
+            if (std::isnan(va) && std::isnan(vb)) continue;
+            // Value comparison (avoids comparing padding bytes of long double)
+            if (va != vb) return false;
+            // Distinguish +0 from -0
+            if (va == Real(0) && std::signbit(va) != std::signbit(vb)) return false;
         }
         return true;
     }
@@ -123,7 +127,7 @@ TEST_CASE("Vector I/O - Text format single element", "[Vector][IO][Text]")
     
     REQUIRE(loaded.size() == 1);
     // Text format uses default stream precision (~6 digits)
-    REQUIRE_THAT(loaded[0], WithinRel((double)original[0], 1e-5));
+    REQUIRE_THAT(loaded[0], WithinRel(original[0], REAL(1e-5)));
 }
 
 TEST_CASE("Vector I/O - Text format special values", "[Vector][IO][Text]")
@@ -131,6 +135,8 @@ TEST_CASE("Vector I/O - Text format special values", "[Vector][IO][Text]")
     std::string path = TempFilePath("vector_special.txt");
     TempFileGuard guard(path);
     
+    // Values like 1e-300 and 1e+300 overflow/underflow for float
+    if constexpr (!std::is_same_v<Real, float>) {
     Vector<Real> original(6);
     original[0] = 0.0;
     original[1] = -0.0;  // Negative zero
@@ -146,6 +152,7 @@ TEST_CASE("Vector I/O - Text format special values", "[Vector][IO][Text]")
     
     // Text format loses precision - use relative tolerance
     REQUIRE(VectorsEqual(original, loaded, 1e-5));
+    }
 }
 
 TEST_CASE("Vector I/O - Text format empty vector", "[Vector][IO][Text]")
@@ -396,7 +403,10 @@ TEST_CASE("Vector I/O - Binary preserves full precision", "[Vector][IO][Precisio
     
     // Verify the tricky 0.1 + 0.2 != 0.3 case is preserved exactly
     REQUIRE(loaded[2] == original[2]);
-    REQUIRE(loaded[2] != 0.3);  // This should still be true!
+#ifndef MML_USE_FLOAT
+    // With double, 0.1 + 0.2 != 0.3 due to representation; with float it may be equal
+    REQUIRE(loaded[2] != REAL(0.3));
+#endif
 }
 
 TEST_CASE("Vector I/O - Text vs Binary precision comparison", "[Vector][IO][Precision]")

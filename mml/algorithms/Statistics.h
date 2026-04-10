@@ -124,22 +124,25 @@ namespace MML {
 		/// @return The median value
 		/// @throws StatisticsError if data is empty
 		///
-		/// Complexity: O(n log n) due to sorting
+		/// Complexity: O(n) average using nth_element
 		static Real Median(const Vector<Real>& data) {
 			int n = data.size();
 			if (n <= 0)
 				throw StatisticsError("Vector size must be greater than 0 in Median");
 
-			// Create a sorted copy
-			std::vector<Real> sorted(n);
+			std::vector<Real> v(n);
 			for (int i = 0; i < n; i++)
-				sorted[i] = data[i];
-			std::sort(sorted.begin(), sorted.end());
+				v[i] = data[i];
 
-			if (n % 2 == 0)
-				return (sorted[n / 2 - 1] + sorted[n / 2]) / 2.0;
-			else
-				return sorted[n / 2];
+			if (n % 2 == 1) {
+				std::nth_element(v.begin(), v.begin() + n / 2, v.end());
+				return v[n / 2];
+			} else {
+				std::nth_element(v.begin(), v.begin() + n / 2, v.end());
+				Real upper = v[n / 2];
+				Real lower = *std::max_element(v.begin(), v.begin() + n / 2);
+				return (lower + upper) / 2.0;
+			}
 		}
 
 		/// @brief Compute a percentile of a dataset
@@ -200,9 +203,26 @@ namespace MML {
 			if (n <= 0)
 				throw StatisticsError("Vector size must be greater than 0 in Quartiles");
 
-			q1 = Percentile(data, 25.0);
-			median = Percentile(data, 50.0);
-			q3 = Percentile(data, 75.0);
+			// Sort once instead of calling Percentile three times (each of which sorts)
+			std::vector<Real> sorted(n);
+			for (int i = 0; i < n; i++)
+				sorted[i] = data[i];
+			std::sort(sorted.begin(), sorted.end());
+
+			auto percentile_sorted = [&](Real p) -> Real {
+				if (p == 0.0) return sorted[0];
+				if (p == 100.0) return sorted[n - 1];
+				Real rank = (p / 100.0) * (n - 1);
+				int lower = static_cast<int>(std::floor(rank));
+				int upper = static_cast<int>(std::ceil(rank));
+				if (lower == upper) return sorted[lower];
+				Real fraction = rank - lower;
+				return sorted[lower] + fraction * (sorted[upper] - sorted[lower]);
+			};
+
+			q1 = percentile_sorted(25.0);
+			median = percentile_sorted(50.0);
+			q3 = percentile_sorted(75.0);
 		}
 
 		/// @brief Compute the range of a dataset

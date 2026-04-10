@@ -109,7 +109,7 @@ namespace MML::Tests::Algorithms::VolumeIntegrationTests
 		Real result = Integrate3D(func, REAL(0.0), REAL(2.0), y1_const, y2_const, z1_const, z2_const);
 		// We're integrating from 0 to 2 in x, 0 to 1 in y, 0 to 1 in z = 2*1*1 = 2
 		
-		REQUIRE(std::abs(result - REAL(2.0)) < 1e-10);
+		REQUIRE(std::abs(result - REAL(2.0)) < TOL(1e-10, 1e-5));
 	}
 
 	TEST_CASE("VolumeIntegration_Linear_RectangularBox", "[volume][integration][rectangular]")
@@ -121,7 +121,7 @@ namespace MML::Tests::Algorithms::VolumeIntegrationTests
 		
 		Real result = Integrate3D(func, REAL(0.0), REAL(2.0), y1_const, y2_const, z1_const, z2_const);
 		
-		REQUIRE(std::abs(result - REAL(2.0)) < 1e-10);
+		REQUIRE(std::abs(result - REAL(2.0)) < TOL(1e-10, 1e-5));
 	}
 
 	TEST_CASE("VolumeIntegration_Product_UnitCube", "[volume][integration][product]")
@@ -134,7 +134,7 @@ namespace MML::Tests::Algorithms::VolumeIntegrationTests
 		Real result = Integrate3D(func, REAL(0.0), REAL(1.0), y1_const, y2_const, z1_const, z2_const);
 		Real expected = REAL(0.125);  // 1/8
 		
-		REQUIRE(std::abs(result - expected) < 1e-10);
+		REQUIRE(std::abs(result - expected) < TOL(1e-10, 1e-5));
 	}
 
 	TEST_CASE("VolumeIntegration_SumOfSquares_UnitCube", "[volume][integration][quadratic]")
@@ -147,7 +147,7 @@ namespace MML::Tests::Algorithms::VolumeIntegrationTests
 		Real result = Integrate3D(func, REAL(0.0), REAL(1.0), y1_const, y2_const, z1_const, z2_const);
 		Real expected = REAL(1.0);
 		
-		REQUIRE(std::abs(result - expected) < 1e-9);
+		REQUIRE(std::abs(result - expected) < TOL(1e-9, 1e-4));
 	}
 
 	///////////////////////////         VARIABLE LIMITS TESTS         ///////////////////////////
@@ -163,7 +163,7 @@ namespace MML::Tests::Algorithms::VolumeIntegrationTests
 		Real result = Integrate3D(func, REAL(0.0), REAL(1.0), y1_const, y_1_minus_x, z1_const, z_1_minus_x_minus_y);
 		Real expected = REAL(1.0) / REAL(6.0);
 		
-		REQUIRE(std::abs(result - expected) < 1e-10);
+		REQUIRE(std::abs(result - expected) < TOL(1e-10, 1e-5));
 	}
 
 	TEST_CASE("VolumeIntegration_VariableLimits_Pyramid", "[volume][integration][variable]")
@@ -178,7 +178,7 @@ namespace MML::Tests::Algorithms::VolumeIntegrationTests
 		Real result = Integrate3D(func, REAL(0.0), REAL(1.0), y1_const, y_1_minus_x, z1_const, z_1_minus_x_minus_y);
 		Real expected = REAL(1.0) / REAL(6.0);
 		
-		REQUIRE(std::abs(result - expected) < 1e-10);
+		REQUIRE(std::abs(result - expected) < TOL(1e-10, 1e-5));
 	}
 
 	///////////////////////////         MASS CALCULATIONS         ///////////////////////////
@@ -199,7 +199,7 @@ namespace MML::Tests::Algorithms::VolumeIntegrationTests
 		Real mass = Integrate3D(density, REAL(0.0), REAL(2.0), y1_const, y2, z1_const, z2);
 		Real expected = rho * REAL(2.0);  // rho * volume (2*1*1=2)
 		
-		REQUIRE(std::abs(mass - expected) < 1e-9);
+		REQUIRE(std::abs(mass - expected) < TOL(1e-9, 1e-4));
 	}
 
 	TEST_CASE("VolumeIntegration_Mass_VariableDensity_Slab", "[volume][mass][physics]")
@@ -214,7 +214,7 @@ namespace MML::Tests::Algorithms::VolumeIntegrationTests
 		Real mass = Integrate3D(density, REAL(0.0), REAL(1.0), y1_const, y2_const, z1_const, z_slab_h);
 		Real expected = rho0 * h * h / REAL(2.0);  // REAL(2.0) * 9/2 = REAL(9.0)
 		
-		REQUIRE(std::abs(mass - expected) < 1e-9);
+		REQUIRE(std::abs(mass - expected) < TOL(1e-9, 1e-4));
 	}
 
 	///////////////////////////         COORDINATE TRANSFORMATIONS (implicit)         ///////////////////////////
@@ -254,7 +254,7 @@ namespace MML::Tests::Algorithms::VolumeIntegrationTests
 		// Same lower and upper limits
 		Real result = Integrate3D(func, REAL(0.0), REAL(1.0), y_same, y_same, z1_const, z2_const);
 		
-		REQUIRE(std::abs(result) < 1e-12);
+		REQUIRE(std::abs(result) < TOL(1e-12, 1e-5));
 	}
 
 	TEST_CASE("VolumeIntegration_Precision_VerySmallRegion", "[volume][integration][precision]")
@@ -268,6 +268,6 @@ namespace MML::Tests::Algorithms::VolumeIntegrationTests
 		Real result = Integrate3D(func, REAL(0.0), eps, y1_const, y_eps, z1_const, z_eps);
 		Real expected = eps * eps * eps;
 		
-		REQUIRE(std::abs(result - expected) / expected < 1e-8);  // Relative error
+		REQUIRE(std::abs(result - expected) / expected < TOL(1e-8, 1e-4));  // Relative error
 	}
 }

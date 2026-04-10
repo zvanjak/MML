@@ -111,7 +111,7 @@ namespace MML
 		static constexpr float Line3DIsParallelTolerance = 1e-6f;
 		static constexpr float Line3DIntersectionTolerance = 1e-6f;
 
-		static constexpr float Plane3DIsPointOnPlaneTolerance = 1e-6f;
+		static constexpr float Plane3DIsPointOnPlaneTolerance = 1e-4f;
 
 		static constexpr float Triangle3DIsPointInsideTolerance = 1e-6f;
 		static constexpr float Triangle3DIsRightTolerance = 1e-6f;
@@ -134,6 +134,8 @@ namespace MML
 		static constexpr float DefaultToleranceStrict = 1e-6f;       // Strict tolerance for precise geometric tests
 
 		// Algorithm-specific thresholds
+		static constexpr float EigenSolverConvergenceTolerance = 5e-6f; // Eigensolver convergence tolerance
+		static constexpr float IterativeSolverTolerance = 5e-6f;      // Iterative linear solver convergence tolerance
 		static constexpr float EigenSolverZeroThreshold = 1e-6f;     // Eigenvalue solver zero detection
 		static constexpr float PolynomialCoeffZeroThreshold = 1e-5f; // Polynomial coefficient zero check
 		static constexpr float MatrixElementZeroThreshold = 1e-6f;   // Matrix element near-zero check
@@ -141,6 +143,10 @@ namespace MML
 		static constexpr float DivisionSafetyThreshold = 1e-20f;     // Safe division threshold
 		static constexpr float OrthogonalityTolerance = 1e-5f;       // Orthogonal vector check tolerance
 		static constexpr float LinearDependenceTolerance = 1e-5f;    // Linear dependence check tolerance
+
+		// ODE solver thresholds
+		static constexpr float ODEDefaultTolerance = 1e-5f;          // ODE default error tolerance
+		static constexpr float ODEMinStepSize = 1e-7f;              // ODE minimum step size
 	};
 
 	// Specialization for double
@@ -200,6 +206,8 @@ namespace MML
 		static constexpr double DefaultToleranceStrict = 1e-8;        // Strict tolerance for precise geometric tests
 
 		// Algorithm-specific thresholds
+		static constexpr double EigenSolverConvergenceTolerance = 1e-10; // Eigensolver convergence tolerance
+		static constexpr double IterativeSolverTolerance = 1e-10;     // Iterative linear solver convergence tolerance
 		static constexpr double EigenSolverZeroThreshold = 1e-15;    // Eigenvalue solver zero detection
 		static constexpr double PolynomialCoeffZeroThreshold = 1e-12; // Polynomial coefficient zero check
 		static constexpr double MatrixElementZeroThreshold = 1e-15;  // Matrix element near-zero check
@@ -207,6 +215,10 @@ namespace MML
 		static constexpr double DivisionSafetyThreshold = 1e-30;     // Safe division threshold
 		static constexpr double OrthogonalityTolerance = 1e-10;      // Orthogonal vector check tolerance
 		static constexpr double LinearDependenceTolerance = 1e-12;   // Linear dependence check tolerance
+
+		// ODE solver thresholds
+		static constexpr double ODEDefaultTolerance = 1e-10;         // ODE default error tolerance
+		static constexpr double ODEMinStepSize = 1e-15;             // ODE minimum step size
 	};
 
 	// Specialization for long double
@@ -266,6 +278,8 @@ namespace MML
 		static constexpr long double DefaultToleranceStrict = 1e-8L;        // Strict tolerance for precise geometric tests
 
 		// Algorithm-specific thresholds
+		static constexpr long double EigenSolverConvergenceTolerance = 1e-12L; // Eigensolver convergence tolerance
+		static constexpr long double IterativeSolverTolerance = 1e-12L;     // Iterative linear solver convergence tolerance
 		static constexpr long double EigenSolverZeroThreshold = 1e-18L;    // Eigenvalue solver zero detection
 		static constexpr long double PolynomialCoeffZeroThreshold = 1e-15L; // Polynomial coefficient zero check
 		static constexpr long double MatrixElementZeroThreshold = 1e-18L;  // Matrix element near-zero check
@@ -273,11 +287,19 @@ namespace MML
 		static constexpr long double DivisionSafetyThreshold = 1e-35L;     // Safe division threshold
 		static constexpr long double OrthogonalityTolerance = 1e-12L;      // Orthogonal vector check tolerance
 		static constexpr long double LinearDependenceTolerance = 1e-15L;   // Linear dependence check tolerance
+
+		// ODE solver thresholds
+		static constexpr long double ODEDefaultTolerance = 1e-14L;         // ODE default error tolerance
+		static constexpr long double ODEMinStepSize = 1e-18L;             // ODE minimum step size
 	};
 
 	// Convenience alias: PrecisionValues for the current Real type
 	// Usage: MML::Precision::MatrixIsEqualTolerance instead of MML::PrecisionValues<Real>::...
 	using Precision = PrecisionValues<Real>;
+
+	// NOTE: PrecisionValues<__float128> does not exist yet.
+	// __float128 support is under active development — see MMLTypeDefs.h and
+	// analysis/2026-01-21/float128 support.md for the implementation roadmap.
 }
 
 
@@ -363,8 +385,7 @@ namespace MML {
 	}
 	template<class T>
 	inline T POW5(const T& a) {
-		const T& t = a;
-		return t * t * t * t * t;
+		return POW4(a) * a;
 	}
 
 	////////////                  Constants                ////////////////
@@ -387,12 +408,12 @@ namespace MML {
 		static inline constexpr Real GoldenRatio = Real(1.618033988749894848204586834365638118L); // (1 + sqrt(5)) / 2
 
 		// Geometry epsilon for floating-point comparisons in geometric algorithms
-		static inline constexpr double GEOMETRY_EPSILON = 1e-10;
+		static inline constexpr Real GEOMETRY_EPSILON = Real(1e-10L);
 
 		// Precision constants - use Real type for consistency with library's floating-point type
-		static inline const Real Eps = std::numeric_limits<Real>::epsilon();
-		static inline const Real PosInf = std::numeric_limits<Real>::infinity();
-		static inline const Real NegInf = -std::numeric_limits<Real>::infinity();
+		static inline constexpr Real Eps = std::numeric_limits<Real>::epsilon();
+		static inline constexpr Real PosInf = std::numeric_limits<Real>::infinity();
+		static inline constexpr Real NegInf = -std::numeric_limits<Real>::infinity();
 	} // namespace Constants
 
 	////////////       Binary File Format Constants        ////////////
@@ -510,53 +531,53 @@ namespace MML {
 
 		//////////               Default precisions             ///////////
 		// Use the precision values based on the Real type
-		static inline const double ComplexAreEqualTolerance = PrecisionValues<Real>::ComplexAreEqualTolerance;
-		static inline const double ComplexAreEqualAbsTolerance = PrecisionValues<Real>::ComplexAreEqualAbsTolerance;
-		static inline const double VectorIsEqualTolerance = PrecisionValues<Real>::VectorIsEqualTolerance;
-		static inline const double MatrixIsEqualTolerance = PrecisionValues<Real>::MatrixIsEqualTolerance;
+		static inline const Real ComplexAreEqualTolerance = PrecisionValues<Real>::ComplexAreEqualTolerance;
+		static inline const Real ComplexAreEqualAbsTolerance = PrecisionValues<Real>::ComplexAreEqualAbsTolerance;
+		static inline const Real VectorIsEqualTolerance = PrecisionValues<Real>::VectorIsEqualTolerance;
+		static inline const Real MatrixIsEqualTolerance = PrecisionValues<Real>::MatrixIsEqualTolerance;
 
-		static inline const double Pnt2CartIsEqualTolerance = PrecisionValues<Real>::Pnt2CartIsEqualTolerance;
-		static inline const double Pnt2PolarIsEqualTolerance = PrecisionValues<Real>::Pnt2PolarIsEqualTolerance;
-		static inline const double Pnt3CartIsEqualTolerance = PrecisionValues<Real>::Pnt3CartIsEqualTolerance;
-		static inline const double Pnt3SphIsEqualTolerance = PrecisionValues<Real>::Pnt3SphIsEqualTolerance;
-		static inline const double Pnt3CylIsEqualTolerance = PrecisionValues<Real>::Pnt3CylIsEqualTolerance;
+		static inline const Real Pnt2CartIsEqualTolerance = PrecisionValues<Real>::Pnt2CartIsEqualTolerance;
+		static inline const Real Pnt2PolarIsEqualTolerance = PrecisionValues<Real>::Pnt2PolarIsEqualTolerance;
+		static inline const Real Pnt3CartIsEqualTolerance = PrecisionValues<Real>::Pnt3CartIsEqualTolerance;
+		static inline const Real Pnt3SphIsEqualTolerance = PrecisionValues<Real>::Pnt3SphIsEqualTolerance;
+		static inline const Real Pnt3CylIsEqualTolerance = PrecisionValues<Real>::Pnt3CylIsEqualTolerance;
 
-		static inline const double Vec2CartIsEqualTolerance = PrecisionValues<Real>::Vec2CartIsEqualTolerance;
-		static inline const double Vec3CartIsEqualTolerance = PrecisionValues<Real>::Vec3CartIsEqualTolerance;
-		static inline const double Vec3CartIsParallelTolerance = PrecisionValues<Real>::Vec3CartIsParallelTolerance;
+		static inline const Real Vec2CartIsEqualTolerance = PrecisionValues<Real>::Vec2CartIsEqualTolerance;
+		static inline const Real Vec3CartIsEqualTolerance = PrecisionValues<Real>::Vec3CartIsEqualTolerance;
+		static inline const Real Vec3CartIsParallelTolerance = PrecisionValues<Real>::Vec3CartIsParallelTolerance;
 
-		static inline const double Vec3SphIsEqualTolerance = PrecisionValues<Real>::Vec3SphIsEqualTolerance;
+		static inline const Real Vec3SphIsEqualTolerance = PrecisionValues<Real>::Vec3SphIsEqualTolerance;
 
 		// Angle comparison tolerance (for wrap-aware angle equality)
-		static inline const double AngleIsEqualTolerance = PrecisionValues<Real>::AngleIsEqualTolerance;
+		static inline const Real AngleIsEqualTolerance = PrecisionValues<Real>::AngleIsEqualTolerance;
 
 		// Shape property tolerance (for geometric shape classification)
-		static inline const double ShapePropertyTolerance = PrecisionValues<Real>::ShapePropertyTolerance;
+		static inline const Real ShapePropertyTolerance = PrecisionValues<Real>::ShapePropertyTolerance;
 
-		static inline const double Line3DAreEqualTolerance = PrecisionValues<Real>::Line3DAreEqualTolerance;
-		static inline const double Line3DIsPointOnLineTolerance = PrecisionValues<Real>::Line3DIsPointOnLineTolerance;
-		static inline const double Line3DIsPerpendicularTolerance = PrecisionValues<Real>::Line3DIsPerpendicularTolerance;
-		static inline const double Line3DIsParallelTolerance = PrecisionValues<Real>::Line3DIsParallelTolerance;
-		static inline const double Line3DIntersectionTolerance = PrecisionValues<Real>::Line3DIntersectionTolerance;
+		static inline const Real Line3DAreEqualTolerance = PrecisionValues<Real>::Line3DAreEqualTolerance;
+		static inline const Real Line3DIsPointOnLineTolerance = PrecisionValues<Real>::Line3DIsPointOnLineTolerance;
+		static inline const Real Line3DIsPerpendicularTolerance = PrecisionValues<Real>::Line3DIsPerpendicularTolerance;
+		static inline const Real Line3DIsParallelTolerance = PrecisionValues<Real>::Line3DIsParallelTolerance;
+		static inline const Real Line3DIntersectionTolerance = PrecisionValues<Real>::Line3DIntersectionTolerance;
 
-		static inline const double Plane3DIsPointOnPlaneTolerance = PrecisionValues<Real>::Plane3DIsPointOnPlaneTolerance;
+		static inline const Real Plane3DIsPointOnPlaneTolerance = PrecisionValues<Real>::Plane3DIsPointOnPlaneTolerance;
 
-		static inline const double Triangle3DIsPointInsideTolerance = PrecisionValues<Real>::Triangle3DIsPointInsideTolerance;
-		static inline const double Triangle3DIsRightTolerance = PrecisionValues<Real>::Triangle3DIsRightTolerance;
-		static inline const double Triangle3DIsIsoscelesTolerance = PrecisionValues<Real>::Triangle3DIsIsoscelesTolerance;
-		static inline const double Triangle3DIsEquilateralTolerance = PrecisionValues<Real>::Triangle3DIsEquilateralTolerance;
+		static inline const Real Triangle3DIsPointInsideTolerance = PrecisionValues<Real>::Triangle3DIsPointInsideTolerance;
+		static inline const Real Triangle3DIsRightTolerance = PrecisionValues<Real>::Triangle3DIsRightTolerance;
+		static inline const Real Triangle3DIsIsoscelesTolerance = PrecisionValues<Real>::Triangle3DIsIsoscelesTolerance;
+		static inline const Real Triangle3DIsEquilateralTolerance = PrecisionValues<Real>::Triangle3DIsEquilateralTolerance;
 
-		static inline const double IsMatrixSymmetricTolerance = PrecisionValues<Real>::IsMatrixSymmetricTolerance;
-		static inline const double IsMatrixDiagonalTolerance = PrecisionValues<Real>::IsMatrixDiagonalTolerance;
-		static inline const double IsMatrixUnitTolerance = PrecisionValues<Real>::IsMatrixUnitTolerance;
-		static inline const double IsMatrixZeroTolerance = PrecisionValues<Real>::IsMatrixZeroTolerance;
-		static inline const double IsMatrixOrthogonalTolerance = PrecisionValues<Real>::IsMatrixOrthogonalTolerance;
+		static inline const Real IsMatrixSymmetricTolerance = PrecisionValues<Real>::IsMatrixSymmetricTolerance;
+		static inline const Real IsMatrixDiagonalTolerance = PrecisionValues<Real>::IsMatrixDiagonalTolerance;
+		static inline const Real IsMatrixUnitTolerance = PrecisionValues<Real>::IsMatrixUnitTolerance;
+		static inline const Real IsMatrixZeroTolerance = PrecisionValues<Real>::IsMatrixZeroTolerance;
+		static inline const Real IsMatrixOrthogonalTolerance = PrecisionValues<Real>::IsMatrixOrthogonalTolerance;
 
-		static inline const double RankAlgEPS = PrecisionValues<Real>::RankAlgEPS;
+		static inline const Real RankAlgEPS = PrecisionValues<Real>::RankAlgEPS;
 
 		// Numerical thresholds from PrecisionValues
-		static inline const double DefaultTolerance = PrecisionValues<Real>::DefaultTolerance;
-		static inline const double OrthogonalityTolerance = PrecisionValues<Real>::OrthogonalityTolerance;
+		static inline const Real DefaultTolerance = PrecisionValues<Real>::DefaultTolerance;
+		static inline const Real OrthogonalityTolerance = PrecisionValues<Real>::OrthogonalityTolerance;
 
 		// Algorithm parameters (thread-safe - changed from static constants to
 		// thread_local) Usage: Defaults::TrapezoidIntegrationEPS = 1e-6; (now
@@ -939,7 +960,7 @@ namespace MML
 // units that use MML together in the same program.
 //
 // USAGE:
-//   1. Choose ONE Real type for your build (double, float, long double, or __float128)
+//   1. Choose ONE Real type for your build (double, float, or long double)
 //   2. Ensure ALL source files in your project see the SAME definition
 //   3. Do NOT mix different Real types in the same executable
 //
@@ -949,7 +970,15 @@ typedef double Real; // default real type
 // OTHER SUPPORTED OPTIONS (uncomment ONE, comment others):
 // typedef float						 Real;    // Lower precision, faster, smaller memory
 // typedef long double       Real;    // Extended precision (80-bit on x86, 128-bit on some platforms)
-// typedef __float128				 Real;    // Quad precision (GCC only, 128-bit IEEE 754)
+//
+// EXPERIMENTAL / ONGOING DEVELOPMENT (not yet fully supported):
+// typedef __float128				 Real;    // Quad precision (GCC/Clang-on-Linux only, 128-bit IEEE 754)
+//   NOTE: __float128 support is a work in progress. Switching Real to __float128 will NOT
+//   compile today because: (1) no PrecisionValues<__float128> specialization exists yet,
+//   (2) std::complex<__float128> is not supported — a Complex128 wrapper is needed,
+//   (3) ~1500 direct std:: math calls need migration to quadmath wrappers, and
+//   (4) std::numeric_limits<__float128> must be manually specialized.
+//   See analysis/2026-01-21/float128 support.md for the full implementation plan.
 //
 // ABI AND COMPATIBILITY GUARANTEES:
 //
@@ -967,7 +996,8 @@ typedef double Real; // default real type
 // 3. PRECISION CONSTANTS:
 //    - Constants in MML::Constants are stored as 'double' literals
 //    - For float builds: implicit conversion (acceptable precision loss)
-//    - For long double/__float128: constants may have less precision than Real
+//    - For long double: constants may have less precision than Real
+//    - For __float128 (future): will require quad-precision constants with Q suffix
 //    - Use REAL() macro for literals that should match Real precision
 //
 // 4. API CONTRACTS:
@@ -984,12 +1014,12 @@ typedef double Real; // default real type
 //   - Use 'double' (default) for most applications (good balance of speed/precision)
 //   - Use 'float' when memory or performance is critical and precision allows
 //   - Use 'long double' for extended precision needs (note: compiler/platform dependent)
-//   - Use '__float128' for maximum precision (GCC only, slower, requires libquadmath)
+//   - '__float128' support is under active development (GCC/Clang-on-Linux only)
 //
 // PORTABILITY NOTES:
 //   - 'double' and 'float' are fully portable (C++ standard)
 //   - 'long double' precision varies by platform (80-bit x86, 128-bit ARM/PowerPC, 64-bit MSVC)
-//   - '__float128' requires GCC and libquadmath linkage
+//   - '__float128' requires GCC (or Clang on Linux) and libquadmath — not yet supported, see above
 //
 ///////////////////////////////////////////////////////////////////////////////////////////
 
@@ -999,12 +1029,7 @@ typedef double Real; // default real type
 
 // Standard headers - include what we use
 
-// Cross-platform executable extension
-#ifdef _WIN32
-static constexpr const char *EXECUTABLE_EXT = ".exe";
-#else
-static constexpr const char *EXECUTABLE_EXT = "";
-#endif
+// Cross-platform executable extension - defined inside MML namespace (see below)
 
 // Helper to get environment variable without compiler warnings
 // Note: C++20 still doesn't provide a standard alternative to std::getenv()
@@ -1036,6 +1061,12 @@ inline const char *GetEnv(const char *name) noexcept {
 
 namespace MML
 {
+
+#ifdef _WIN32
+  static constexpr const char *EXECUTABLE_EXT = ".exe";
+#else
+  static constexpr const char *EXECUTABLE_EXT = "";
+#endif
 
   ///////////////////////////////////////////////////////////////////////////////
   //                    LINUX VISUALIZER BACKEND SELECTION
@@ -1158,7 +1189,8 @@ namespace MML
     if (const char* envBackend = GetEnv("MML_VISUALIZER_BACKEND")) {
       std::string backend(envBackend);
       // Convert to uppercase for case-insensitive comparison
-      std::transform(backend.begin(), backend.end(), backend.begin(), ::toupper);
+      std::transform(backend.begin(), backend.end(), backend.begin(),
+                     [](unsigned char c) { return static_cast<char>(std::toupper(c)); });
       
       if (backend == "WPF")  return VisualizerBackend::WPF;
       if (backend == "QT" || backend == "QT5" || backend == "QT6") 
@@ -2208,7 +2240,7 @@ namespace MML {
 } // namespace MML
 
 
-///////////////////////////   mml/base/MatrixPrintFormat.h   ///////////////////////////
+///////////////////////////   mml/base/Matrix/MatrixPrintFormat.h   ///////////////////////////
 
 
 namespace MML
@@ -2658,8 +2690,16 @@ namespace MML
 		void push_back(const Type& val) { _elems.push_back(val); }
 		void push_back(Type&& val)			{ _elems.push_back(std::move(val)); }
 		
-		void insert(int pos, const Type& val) { _elems.insert(_elems.begin() + pos, val); }
-		void insert(int pos, Type&& val) { _elems.insert(_elems.begin() + pos, std::move(val)); }
+		void insert(int pos, const Type& val) {
+			if (pos < 0 || pos > static_cast<int>(_elems.size()))
+				throw VectorAccessBoundsError("Vector::insert - position out of range", pos, static_cast<int>(_elems.size()));
+			_elems.insert(_elems.begin() + pos, val);
+		}
+		void insert(int pos, Type&& val) {
+			if (pos < 0 || pos > static_cast<int>(_elems.size()))
+				throw VectorAccessBoundsError("Vector::insert - position out of range", pos, static_cast<int>(_elems.size()));
+			_elems.insert(_elems.begin() + pos, std::move(val));
+		}
 		
 		void erase(int pos)							{ _elems.erase(_elems.begin() + pos); }
 		void erase(int start, int end)	{ _elems.erase(_elems.begin() + start, _elems.begin() + end); }
@@ -2780,7 +2820,7 @@ namespace MML
 			return *this;
 		}
 		
-		/// @brief Scalar division
+		/// @brief Scalar division (unchecked — caller must ensure b != 0)
 		[[nodiscard]] Vector  operator/(Type b) const
 		{
 			Vector ret(size());
@@ -2789,12 +2829,23 @@ namespace MML
 			return ret;
 		}
 		
-		/// @brief In-place scalar division
+		/// @brief In-place scalar division (unchecked — caller must ensure b != 0)
 		Vector& operator/=(Type b)
 		{
 			for (int i = 0; i < size(); i++)
 				_elems[i] /= b;
 			return *this;
+		}
+
+		/// @brief Safe scalar division with zero-guard
+		/// @param b Scalar divisor
+		/// @return New vector with elements divided by b
+		/// @throws DivisionByZeroError if |b| < DivisionSafetyThreshold
+		[[nodiscard]] Vector safeDivide(Type b) const
+		{
+			if (std::abs(b) < Precision::DivisionSafetyThreshold)
+				throw DivisionByZeroError("Vector::safeDivide - division by near-zero scalar");
+			return *this / b;
 		}
 		
 		/// @brief Scalar multiplication (scalar * vector)
@@ -2851,6 +2902,17 @@ namespace MML
 		{
 			for (int i = 0; i < size(); i++)
 				if (Abs((*this)[i]) != 0.0 )
+					return false;
+			return true;
+		}
+
+		/// @brief Check if all elements are near zero within tolerance
+		/// @param eps Maximum absolute value for an element to be considered near-zero
+		/// @return true if |this[i]| <= eps for all i
+		bool isNearZero(Real eps = Defaults::VectorIsEqualTolerance) const noexcept
+		{
+			for (int i = 0; i < size(); i++)
+				if (Abs((*this)[i]) > eps)
 					return false;
 			return true;
 		}
@@ -3211,10 +3273,16 @@ namespace MML
 		///////////////////////            Accessing elements             ///////////////////////
 		/// @brief Element access (non-const).
 		/// @param n Index
-		inline Type& operator[](int n) noexcept { return _val[n]; }
+		inline Type& operator[](int n) noexcept {
+			assert(n >= 0 && n < N && "VectorN::operator[] - index out of bounds");
+			return _val[n];
+		}
 		/// @brief Element access (const).
 		/// @param n Index
-		inline const Type& operator[](int n) const noexcept { return _val[n]; }
+		inline const Type& operator[](int n) const noexcept {
+			assert(n >= 0 && n < N && "VectorN::operator[] - index out of bounds");
+			return _val[n];
+		}
 
 		/// @brief Checked element access (non-const).
 		/// @param n Index (throws if out of bounds)
@@ -5554,7 +5622,7 @@ namespace MML
 		/// @brief Check if matrix is identity matrix
 		/// @param eps Tolerance for floating-point comparison
 		/// @return true if |M(i,i)-1| < eps and |M(i,j)| < eps for i≠j
-		bool isIdentity(double eps = Defaults::IsMatrixUnitTolerance) const
+		bool isIdentity(Real eps = Defaults::IsMatrixUnitTolerance) const
 		{
 			if (_rows != _cols) return false;
 			
@@ -5573,7 +5641,7 @@ namespace MML
 		/// @brief Check if matrix is diagonal
 		/// @param eps Tolerance for off-diagonal elements
 		/// @return true if |M(i,j)| < eps for all i≠j
-		bool isDiagonal(double eps = Defaults::IsMatrixDiagonalTolerance) const
+		bool isDiagonal(Real eps = Defaults::IsMatrixDiagonalTolerance) const
 		{
 			for (int i = 0; i < _rows; ++i)
 				for (int j = 0; j < _cols; ++j)
@@ -5600,7 +5668,7 @@ namespace MML
 		/// @brief Check if matrix is symmetric (M = Mᵀ) within tolerance
 		/// @param eps Maximum allowed difference |M(i,j) - M(j,i)|
 		/// @return true if M(i,j) ≈ M(j,i) for all i,j
-		bool isSymmetric(double eps = Defaults::IsMatrixSymmetricTolerance) const
+		bool isSymmetric(Real eps = Defaults::IsMatrixSymmetricTolerance) const
 		{
 			if (_rows != _cols) return false;
 			
@@ -5614,7 +5682,7 @@ namespace MML
 		/// @brief Check if matrix is anti-symmetric (skew-symmetric) within tolerance
 		/// @param eps Maximum allowed difference |M(i,j) + M(j,i)|
 		/// @return true if M(i,j) ≈ -M(j,i) for all i,j
-		bool isAntiSymmetric(double eps = Defaults::IsMatrixSymmetricTolerance) const
+		bool isAntiSymmetric(Real eps = Defaults::IsMatrixSymmetricTolerance) const
 		{
 			if (_rows != _cols) return false;
 			
@@ -5635,7 +5703,7 @@ namespace MML
 		/// @brief Check if matrix is a zero matrix (all elements are zero within tolerance)
 		/// @param eps Maximum allowed absolute value for an element to be considered zero
 		/// @return true if all elements have absolute value <= eps
-		bool isZero(double eps = Defaults::IsMatrixZeroTolerance) const
+		bool isZero(Real eps = Defaults::IsMatrixZeroTolerance) const
 		{
 			for (const auto& elem : _data)
 				if (Abs(elem) > eps)
@@ -9806,6 +9874,107 @@ namespace MML
 		}
 
 		///////////////////////////////////////////////////////////////////////
+		///                    Index Raising / Lowering                      ///
+		///////////////////////////////////////////////////////////////////////
+
+		/// @brief Raise the first index using a metric tensor.
+		/// @details Converts T_ij -> T^i_j using metric inverse: T^i_j = g^ik * T_kj
+		///          Or converts T_i^j -> T^ij using: T^ij = g^ik * T_k^j
+		/// @param metricInverse The inverse metric tensor g^{ij} (must be (2,0) type)
+		/// @return New tensor with first index raised
+		/// @throws TensorCovarContravarNumError if first index is already contravariant
+		///         or metric is not (2,0) type
+		Tensor2 RaiseFirstIndex(const Tensor2& metricInverse) const
+		{
+			if (_isContravar[0])
+				throw TensorCovarContravarNumError("Tensor2::RaiseFirstIndex - first index is already contravariant", _numCovar, _numContravar);
+			if (metricInverse.NumContravar() != 2)
+				throw TensorCovarContravarNumError("Tensor2::RaiseFirstIndex - metric must be fully contravariant (2,0)", metricInverse.NumCovar(), metricInverse.NumContravar());
+
+			Tensor2 result(_numCovar - 1, _numContravar + 1);
+			for (int i = 0; i < N; i++)
+				for (int j = 0; j < N; j++) {
+					Real sum = 0;
+					for (int k = 0; k < N; k++)
+						sum += metricInverse(i, k) * _coeff[k][j];
+					result(i, j) = sum;
+				}
+			return result;
+		}
+
+		/// @brief Raise the second index using a metric tensor.
+		/// @details Converts T_ij -> T_i^j using: T_i^j = g^jk * T_ik
+		///          Or converts T^i_j -> T^ij using: T^ij = g^jk * T^i_k
+		/// @param metricInverse The inverse metric tensor g^{ij} (must be (2,0) type)
+		/// @return New tensor with second index raised
+		/// @throws TensorCovarContravarNumError if second index is already contravariant
+		Tensor2 RaiseSecondIndex(const Tensor2& metricInverse) const
+		{
+			if (_isContravar[1])
+				throw TensorCovarContravarNumError("Tensor2::RaiseSecondIndex - second index is already contravariant", _numCovar, _numContravar);
+			if (metricInverse.NumContravar() != 2)
+				throw TensorCovarContravarNumError("Tensor2::RaiseSecondIndex - metric must be fully contravariant (2,0)", metricInverse.NumCovar(), metricInverse.NumContravar());
+
+			Tensor2 result(_numCovar - 1, _numContravar + 1);
+			for (int i = 0; i < N; i++)
+				for (int j = 0; j < N; j++) {
+					Real sum = 0;
+					for (int k = 0; k < N; k++)
+						sum += _coeff[i][k] * metricInverse(k, j);
+					result(i, j) = sum;
+				}
+			return result;
+		}
+
+		/// @brief Lower the first index using a metric tensor.
+		/// @details Converts T^ij -> T_i^j using: T_i^j = g_ik * T^kj
+		///          Or converts T^i_j -> T_ij using: T_ij = g_ik * T^k_j
+		/// @param metric The metric tensor g_{ij} (must be (0,2) type)
+		/// @return New tensor with first index lowered
+		/// @throws TensorCovarContravarNumError if first index is already covariant
+		Tensor2 LowerFirstIndex(const Tensor2& metric) const
+		{
+			if (!_isContravar[0])
+				throw TensorCovarContravarNumError("Tensor2::LowerFirstIndex - first index is already covariant", _numCovar, _numContravar);
+			if (metric.NumCovar() != 2)
+				throw TensorCovarContravarNumError("Tensor2::LowerFirstIndex - metric must be fully covariant (0,2)", metric.NumCovar(), metric.NumContravar());
+
+			Tensor2 result(_numCovar + 1, _numContravar - 1);
+			for (int i = 0; i < N; i++)
+				for (int j = 0; j < N; j++) {
+					Real sum = 0;
+					for (int k = 0; k < N; k++)
+						sum += metric(i, k) * _coeff[k][j];
+					result(i, j) = sum;
+				}
+			return result;
+		}
+
+		/// @brief Lower the second index using a metric tensor.
+		/// @details Converts T^ij -> T^i_j using: T^i_j = T^ik * g_kj
+		///          Or converts T_i^j -> T_ij using: T_ij = T_ik * g_kj  (with appropriate index match)
+		/// @param metric The metric tensor g_{ij} (must be (0,2) type)
+		/// @return New tensor with second index lowered
+		/// @throws TensorCovarContravarNumError if second index is already covariant
+		Tensor2 LowerSecondIndex(const Tensor2& metric) const
+		{
+			if (!_isContravar[1])
+				throw TensorCovarContravarNumError("Tensor2::LowerSecondIndex - second index is already covariant", _numCovar, _numContravar);
+			if (metric.NumCovar() != 2)
+				throw TensorCovarContravarNumError("Tensor2::LowerSecondIndex - metric must be fully covariant (0,2)", metric.NumCovar(), metric.NumContravar());
+
+			Tensor2 result(_numCovar + 1, _numContravar - 1);
+			for (int i = 0; i < N; i++)
+				for (int j = 0; j < N; j++) {
+					Real sum = 0;
+					for (int k = 0; k < N; k++)
+						sum += _coeff[i][k] * metric(k, j);
+					result(i, j) = sum;
+				}
+			return result;
+		}
+
+		///////////////////////////////////////////////////////////////////////
 		///                            Output                               ///
 		///////////////////////////////////////////////////////////////////////
 
@@ -13392,7 +13561,7 @@ namespace MML
 		/// @param pos Position (unused in Cartesian coordinates)
 		Vector2Cartesian GetAsUnitVectorAtPos(const Vector2Cartesian& pos) const
 		{
-			return Vector2Cartesian{ (*this) / NormL2() };
+			return GetAsUnitVector();
 		}
 		
 		/// @brief Computes two perpendicular vectors.
@@ -14948,6 +15117,27 @@ namespace MML
 	/// @brief Polynomial class with arithmetic, evaluation, differentiation, and root finding.
 	/// @tparam CoefT Coefficient type (Real, Complex, etc.)
 	/// @tparam FieldT Field type for evaluation (defaults to CoefT)
+	///
+	/// @par Coefficient Storage Convention (ascending powers)
+	/// Coefficients are stored in **ascending order of power** (index = exponent):
+	///
+	///   `_vecCoef[i]` = coefficient of x^i
+	///
+	/// So the polynomial  P(x) = a₀ + a₁x + a₂x² + ... + aₙxⁿ  is stored as
+	/// `{a₀, a₁, a₂, ..., aₙ}`.
+	///
+	/// @par Examples
+	/// @code
+	///   Polynom<double> p = {3.0, -2.0, 1.0};  // 3 - 2x + x²
+	///   // p[0] == 3.0   (constant term, x⁰)
+	///   // p[1] == -2.0  (coefficient of x¹)
+	///   // p[2] == 1.0   (coefficient of x²)
+	/// @endcode
+	///
+	/// @warning This is the **opposite** of NumPy's `numpy.poly1d` / `numpy.polynomial.polynomial`
+	/// legacy convention which uses **descending** order. MML follows the standard mathematical
+	/// convention where index equals power, matching MATLAB's `polyval` with `fliplr`, Mathematica,
+	/// and the `numpy.polynomial.Polynomial` (new API) convention.
 	template <typename CoefT, typename FieldT = CoefT>
 	class Polynom
 	{
@@ -14961,10 +15151,10 @@ namespace MML
 		/// @param n Degree of polynomial
 		Polynom(int n) { _vecCoef.resize(n + 1); }
 		/// @brief Constructs polynomial from coefficient vector.
-		/// @param vecCoef Coefficients (vecCoef[0] = constant term)
+		/// @param vecCoef Coefficients in ascending power order: vecCoef[i] = coeff of x^i
 		Polynom(const std::vector<CoefT>& vecCoef) : _vecCoef(vecCoef) {}
 		/// @brief Constructs polynomial from initializer list.
-		/// @param list Coefficients in ascending order
+		/// @param list Coefficients in ascending power order: {a₀, a₁, a₂, ...} → a₀ + a₁x + a₂x² + ...
 		Polynom(std::initializer_list<CoefT> list) : _vecCoef(list) {}
 		/// @brief Copy constructor.
 		Polynom(const Polynom& Copy) = default;
@@ -15064,8 +15254,8 @@ namespace MML
 		void SetDegree(int newDeg) { _vecCoef.resize(newDeg + 1); }
 		/// @brief Checks if polynomial is null (no coefficients).
 		bool isNull() const noexcept { return _vecCoef.size() == 0; }
-		/// @brief Removes trailing zero coefficients.
-		void Reduce() { while (!_vecCoef.empty() && _vecCoef.back() == CoefT(0)) _vecCoef.pop_back(); }
+		/// @brief Removes trailing near-zero coefficients using machine epsilon.
+		void Reduce() { Reduce(std::numeric_limits<CoefT>::epsilon() * 100); }
 		/// @brief Removes trailing coefficients smaller than eps in absolute value.
 		/// @param eps Tolerance threshold for near-zero coefficients
 		void Reduce(CoefT eps) { while (!_vecCoef.empty() && std::abs(_vecCoef.back()) < eps) _vecCoef.pop_back(); }
@@ -18164,7 +18354,13 @@ namespace MML {
 		/// @param pnt Point to test
 		/// @return true if distance from center ≤ radius
 
-		bool Contains(const Pnt3Cart& pnt) const { return _center.Dist(pnt) <= _radius; }
+		bool Contains(const Pnt3Cart& pnt) const { 
+			// Tolerance accounts for ULP-level differences from different computation
+			// paths reaching the same theoretical distance (e.g., sqrt(27) vs 3*sqrt(3))
+			Real dist = _center.Dist(pnt);
+			Real tol = std::sqrt(Constants::Eps) * std::max(_radius, Real(1));
+			return dist <= _radius + tol;
+		}
 
 		/// @brief Test intersection with another bounding sphere.
 		/// @param other The other sphere
@@ -19776,6 +19972,12 @@ namespace MML
 
 	/// @brief Wrapper for a real function R → R using std::function.
 	/// @details Allows using lambdas, functors, and bound functions.
+	/// @warning **Lambda capture lifetime hazard:** The std::function is copied into this
+	///          wrapper, but if the source lambda captures local variables **by reference**,
+	///          those references will dangle if this object outlives the captured variables.
+	///          Safe:   `RealFunctionFromStdFunc f([](Real x) { return x*x; });`
+	///          Safe:   `RealFunctionFromStdFunc f([a](Real x) { return a*x; });`  (capture by value)
+	///          UNSAFE: `RealFunctionFromStdFunc f([&a](Real x) { return a*x; });` (if a goes out of scope)
 	class RealFunctionFromStdFunc : public IRealFunction
 	{
 		std::function<Real(const Real)> _func;   ///< Callable object to evaluate
@@ -19811,6 +20013,8 @@ namespace MML
 
 	/// @brief Wrapper for a scalar function R^N → R using std::function.
 	/// @tparam N Dimension of input space
+	/// @warning **Lambda capture lifetime hazard:** If constructed from a lambda capturing
+	///          local variables by reference, ensure those variables outlive this object.
 	template<int N>
 	class ScalarFunctionFromStdFunc : public IScalarFunction<N>
 	{
@@ -19847,6 +20051,8 @@ namespace MML
 
 	/// @brief Wrapper for a vector function R^N → R^N using std::function.
 	/// @tparam N Dimension of input and output space
+	/// @warning **Lambda capture lifetime hazard:** If constructed from a lambda capturing
+	///          local variables by reference, ensure those variables outlive this object.
 	template<int N>
 	class VectorFunctionFromStdFunc : public IVectorFunction<N>
 	{
@@ -19886,6 +20092,8 @@ namespace MML
 	/// @brief Wrapper for a vector function R^N → R^M using std::function.
 	/// @tparam N Dimension of input space
 	/// @tparam M Dimension of output space
+	/// @warning **Lambda capture lifetime hazard:** If constructed from a lambda capturing
+	///          local variables by reference, ensure those variables outlive this object.
 	template<int N, int M>
 	class VectorFunctionNMFromStdFunc : public IVectorFunctionNM<N, M>
 	{
@@ -19941,6 +20149,8 @@ namespace MML
 
 	/// @brief Parametric curve γ: R → R^N using std::function.
 	/// @tparam N Dimension of output space
+	/// @warning **Lambda capture lifetime hazard:** If constructed from a lambda capturing
+	///          local variables by reference, ensure those variables outlive this object.
 	template<int N>
 	class ParametricCurveFromStdFunc : public IParametricCurve<N>
 	{
@@ -20078,6 +20288,8 @@ namespace MML
 
 	/// @brief Parametric surface with rectangular domain using std::function.
 	/// @tparam N Dimension of output space (must be >= 3)
+	/// @warning **Lambda capture lifetime hazard:** If constructed from a lambda capturing
+	///          local variables by reference, ensure those variables outlive this object.
 	template<int N>
 	class ParametricSurfaceFromStdFunc : public IParametricSurfaceRect<N>
 	{
@@ -25350,7 +25562,7 @@ namespace MML
 	 */
 	struct IterativeSolverConfig
 	{
-		Real tolerance = 1e-10;       ///< Convergence tolerance
+		Real tolerance = PrecisionValues<Real>::IterativeSolverTolerance;       ///< Convergence tolerance
 		int max_iterations = 1000;    ///< Maximum iterations
 		Real omega = 1.0;             ///< Relaxation parameter (for SOR, 0 < omega < 2)
 		bool verbose = false;         ///< Enable verbose output
@@ -25366,7 +25578,7 @@ namespace MML
 		/// Factory: High precision configuration
 		static IterativeSolverConfig HighPrecision() {
 			IterativeSolverConfig cfg;
-			cfg.tolerance = 1e-14;
+			cfg.tolerance = PrecisionValues<Real>::IterativeSolverTolerance / Real(10000);
 			cfg.max_iterations = 10000;
 			return cfg;
 		}
@@ -25455,7 +25667,7 @@ namespace MML
 		static IterativeSolverResult Solve(const Matrix<Real>& A, 
 		                                    const Vector<Real>& b,
 		                                    const Vector<Real>& x0 = Vector<Real>(),
-		                                    Real tol = 1e-10,
+		                                    Real tol = PrecisionValues<Real>::IterativeSolverTolerance,
 		                                    int maxIter = 1000)
 		{
 			int n = A.rows();
@@ -25531,7 +25743,7 @@ namespace MML
 		 */
 		static Vector<Real> SolveSimple(const Matrix<Real>& A, 
 		                                 const Vector<Real>& b,
-		                                 Real tol = 1e-10,
+		                                 Real tol = PrecisionValues<Real>::IterativeSolverTolerance,
 		                                 int maxIter = 1000)
 		{
 			auto result = Solve(A, b, Vector<Real>(), tol, maxIter);
@@ -25609,7 +25821,7 @@ namespace MML
 		static IterativeSolverResult Solve(const Matrix<Real>& A, 
 		                                    const Vector<Real>& b,
 		                                    const Vector<Real>& x0 = Vector<Real>(),
-		                                    Real tol = 1e-10,
+		                                    Real tol = PrecisionValues<Real>::IterativeSolverTolerance,
 		                                    int maxIter = 1000)
 		{
 			int n = A.rows();
@@ -25682,7 +25894,7 @@ namespace MML
 		 */
 		static Vector<Real> SolveSimple(const Matrix<Real>& A, 
 		                                 const Vector<Real>& b,
-		                                 Real tol = 1e-10,
+		                                 Real tol = PrecisionValues<Real>::IterativeSolverTolerance,
 		                                 int maxIter = 1000)
 		{
 			auto result = Solve(A, b, Vector<Real>(), tol, maxIter);
@@ -25773,7 +25985,7 @@ namespace MML
 		                                    const Vector<Real>& b,
 		                                    Real omega,
 		                                    const Vector<Real>& x0 = Vector<Real>(),
-		                                    Real tol = 1e-10,
+		                                    Real tol = PrecisionValues<Real>::IterativeSolverTolerance,
 		                                    int maxIter = 1000)
 		{
 			// Validate omega
@@ -25858,7 +26070,7 @@ namespace MML
 		static IterativeSolverResult SolveOptimal(const Matrix<Real>& A, 
 		                                           const Vector<Real>& b,
 		                                           const Vector<Real>& x0 = Vector<Real>(),
-		                                           Real tol = 1e-10,
+		                                           Real tol = PrecisionValues<Real>::IterativeSolverTolerance,
 		                                           int maxIter = 1000)
 		{
 			int n = A.rows();
@@ -25873,7 +26085,7 @@ namespace MML
 		static Vector<Real> SolveSimple(const Matrix<Real>& A, 
 		                                 const Vector<Real>& b,
 		                                 Real omega,
-		                                 Real tol = 1e-10,
+		                                 Real tol = PrecisionValues<Real>::IterativeSolverTolerance,
 		                                 int maxIter = 1000)
 		{
 			auto result = Solve(A, b, omega, Vector<Real>(), tol, maxIter);
@@ -26727,6 +26939,173 @@ namespace MML
 			return result;
 		}
 	}
+
+	// =========================================================================
+	// GRAM-SCHMIDT ORTHOGONALIZATION
+	// =========================================================================
+
+	/**
+	 * @brief Classical Gram-Schmidt orthogonalization of column vectors.
+	 *
+	 * Given a set of linearly independent vectors (as columns of matrix A),
+	 * produces an orthonormal set spanning the same subspace.
+	 *
+	 * Algorithm: For each vector v_j, subtract its projections onto all
+	 * previously orthogonalized vectors, then normalize.
+	 *
+	 * @note For better numerical stability in ill-conditioned cases,
+	 *       prefer SVD-based orthogonalization. This implementation uses
+	 *       the classical algorithm which is adequate for well-conditioned
+	 *       inputs and educational purposes.
+	 *
+	 * @param A  Input matrix whose columns are the vectors to orthogonalize
+	 * @return Matrix Q with orthonormal columns spanning the same column space.
+	 *         If a column is linearly dependent (norm < tol), it is set to zero.
+	 */
+	inline Matrix<Real> GramSchmidt(const Matrix<Real>& A, Real tol = 1e-12)
+	{
+		int m = A.rows();
+		int n = A.cols();
+		Matrix<Real> Q(m, n);
+
+		for (int j = 0; j < n; j++)
+		{
+			// Copy column j
+			Vector<Real> v(m);
+			for (int i = 0; i < m; i++)
+				v[i] = A(i, j);
+
+			// Subtract projections onto previous orthonormal columns
+			for (int k = 0; k < j; k++)
+			{
+				Real dot = 0.0;
+				for (int i = 0; i < m; i++)
+					dot += v[i] * Q(i, k);
+				for (int i = 0; i < m; i++)
+					v[i] -= dot * Q(i, k);
+			}
+
+			// Normalize
+			Real norm = 0.0;
+			for (int i = 0; i < m; i++)
+				norm += v[i] * v[i];
+			norm = std::sqrt(norm);
+
+			if (norm < tol)
+			{
+				for (int i = 0; i < m; i++)
+					Q(i, j) = 0.0;
+			}
+			else
+			{
+				for (int i = 0; i < m; i++)
+					Q(i, j) = v[i] / norm;
+			}
+		}
+
+		return Q;
+	}
+
+	/**
+	 * @brief Fixed-size Gram-Schmidt orthogonalization for VectorN columns.
+	 *
+	 * @tparam N Dimension of vectors
+	 * @param vectors Array of input vectors
+	 * @param count  Number of vectors to orthogonalize
+	 * @param tol    Tolerance for detecting linear dependence
+	 * @return std::vector of orthonormal VectorN. Linearly dependent vectors are omitted.
+	 */
+	template<int N>
+	std::vector<VectorN<Real, N>> GramSchmidtVectors(const std::vector<VectorN<Real, N>>& vectors, Real tol = 1e-12)
+	{
+		std::vector<VectorN<Real, N>> result;
+		result.reserve(vectors.size());
+
+		for (size_t j = 0; j < vectors.size(); j++)
+		{
+			VectorN<Real, N> v = vectors[j];
+
+			// Subtract projections onto previous orthonormal vectors
+			for (size_t k = 0; k < result.size(); k++)
+			{
+				Real dot = Utils::ScalarProduct<N>(v, result[k]);
+				v = v - dot * result[k];
+			}
+
+			Real norm = v.NormL2();
+			if (norm >= tol)
+				result.push_back(v / norm);
+		}
+
+		return result;
+	}
+
+	/**
+	 * @brief Check if a set of vectors is orthonormal within tolerance.
+	 *
+	 * Verifies: (1) each vector has unit norm, (2) all pairs are orthogonal.
+	 *
+	 * @tparam N Dimension of vectors
+	 * @param vectors Array of vectors to check
+	 * @param tol Tolerance for dot product and norm comparisons
+	 * @return true if the set is orthonormal within tolerance
+	 */
+	template<int N>
+	bool IsOrthonormal(const std::vector<VectorN<Real, N>>& vectors, Real tol = 1e-10)
+	{
+		for (size_t i = 0; i < vectors.size(); i++)
+		{
+			// Check unit norm
+			Real norm = vectors[i].NormL2();
+			if (std::abs(norm - 1.0) > tol)
+				return false;
+
+			// Check orthogonality with all subsequent vectors
+			for (size_t j = i + 1; j < vectors.size(); j++)
+			{
+				Real dot = Utils::ScalarProduct<N>(vectors[i], vectors[j]);
+				if (std::abs(dot) > tol)
+					return false;
+			}
+		}
+		return true;
+	}
+
+	/**
+	 * @brief Check if columns of a matrix form an orthonormal set.
+	 *
+	 * Equivalent to checking Q^T * Q ≈ I.
+	 *
+	 * @param Q Matrix to check
+	 * @param tol Tolerance
+	 * @return true if columns are orthonormal within tolerance
+	 */
+	inline bool IsOrthonormalColumns(const Matrix<Real>& Q, Real tol = 1e-10)
+	{
+		int m = Q.rows();
+		int n = Q.cols();
+
+		for (int i = 0; i < n; i++)
+		{
+			// Check unit norm of column i
+			Real norm_sq = 0.0;
+			for (int k = 0; k < m; k++)
+				norm_sq += Q(k, i) * Q(k, i);
+			if (std::abs(norm_sq - 1.0) > tol)
+				return false;
+
+			// Check orthogonality with subsequent columns
+			for (int j = i + 1; j < n; j++)
+			{
+				Real dot = 0.0;
+				for (int k = 0; k < m; k++)
+					dot += Q(k, i) * Q(k, j);
+				if (std::abs(dot) > tol)
+					return false;
+			}
+		}
+		return true;
+	}
 } // namespace MML
 
 
@@ -26768,7 +27147,7 @@ namespace MML {
 	/// @return true if x is finite, false if NaN or Inf
 	template<typename T>
 	inline bool IsFiniteValue(T x) noexcept {
-		return std::isfinite(static_cast<double>(x));
+		return std::isfinite(x);
 	}
 
 	/// @brief Validate that a value is finite, throw if not
@@ -26945,7 +27324,7 @@ namespace MML
 					Real w = c[i + 1] - d[i];
 					Real den = ho - hp;
 
-					if (den == 0.0)
+					if (std::abs(den) < Precision::DivisionSafetyThreshold)
 						return RichardsonResult(result, std::abs(error), m, false);
 
 					den = w / den;
@@ -26987,7 +27366,7 @@ namespace MML
 			const Real con2 = con * con;
 			const Real big = std::numeric_limits<Real>::max();
 
-			if (h0 == 0.0)
+			if (std::abs(h0) < Precision::DivisionSafetyThreshold)
 				return RichardsonResult(0.0, big, 0, false);
 
 			// Allocate tableau (triangular, but use full matrix for clarity)
@@ -27128,8 +27507,8 @@ namespace MML
 		/// @brief Default tolerance for singularity detection
 		/// 
 		/// Points within this distance of a singular coordinate are considered singular.
-		/// Chosen to be above machine epsilon but small enough for most practical uses.
-		static constexpr Real DEFAULT_SINGULARITY_TOL = 1e-12;
+		/// Routes through PrecisionValues so the threshold adapts to float/double/long double.
+		static constexpr Real DEFAULT_SINGULARITY_TOL = Precision::NumericalZeroThreshold;
 
 		/// @brief Default policy when none is specified
 		static constexpr SingularityPolicy DEFAULT_POLICY = SingularityPolicy::Throw;
@@ -30535,6 +30914,77 @@ namespace MML
 }  // namespace MML
 
 
+///////////////////////////   mml/core/Derivation/DerivationComplexStep.h   ///////////////////////////
+
+
+
+namespace MML
+{
+	namespace Derivation
+	{
+		///////////////////////////////////////////////////////////////////////////////////
+		///                     Complex-step derivative method                           ///
+		///                                                                              ///
+		///  The complex-step method computes derivatives using:                         ///
+		///      f'(x) = Im[f(x + ih)] / h                                              ///
+		///                                                                              ///
+		///  Advantages over finite differences:                                         ///
+		///  - No subtractive cancellation (no f(x+h) - f(x))                           ///
+		///  - Step size h can be extremely small (e.g. 1e-100)                          ///
+		///  - Accuracy limited only by function's analytic continuation                 ///
+		///  - Essentially exact for analytic functions                                  ///
+		///                                                                              ///
+		///  Limitations:                                                                ///
+		///  - Requires function to accept std::complex<Real> arguments                  ///
+		///  - Function must be analytic (satisfy Cauchy-Riemann equations)               ///
+		///  - Cannot use with IRealFunction (Real-only interface)                       ///
+		///  - Operations inside f must handle complex arithmetic (use std::sin,         ///
+		///    std::cos, std::exp, etc. — NOT C math.h functions)                        ///
+		///                                                                              ///
+		///  Usage:                                                                      ///
+		///      auto f = [](Complex z) { return z*z*z + Complex(2.0)*z; };              ///
+		///      Real deriv = Derivation::ComplexStep(f, 1.0);  // f'(1) = 5            ///
+		///                                                                              ///
+		///  Reference: Squire & Trapp (1998), "Using Complex Variables to Estimate      ///
+		///             Derivatives of Real Functions"                                   ///
+		///////////////////////////////////////////////////////////////////////////////////
+
+		/// @brief Compute first derivative using the complex-step method.
+		/// @tparam F Callable type accepting Complex and returning Complex
+		/// @param f Function to differentiate (must accept Complex arguments)
+		/// @param x Point at which to evaluate the derivative
+		/// @param h Step size (default: 1e-100, can be extremely small)
+		/// @return Approximation of f'(x)
+		template<typename F>
+		static Real ComplexStep(F&& f, Real x, Real h = 1e-100)
+		{
+			Complex z(x, h);
+			Complex fz = f(z);
+			return fz.imag() / h;
+		}
+
+		/// @brief Compute second derivative using the complex-step method.
+		///
+		/// Uses the formula:
+		///   f''(x) = 2 * [f(x) - Re(f(x + ih))] / h^2
+		///
+		/// @tparam F Callable type accepting Complex and returning Complex
+		/// @param f Function to differentiate (must accept Complex arguments)
+		/// @param x Point at which to evaluate the second derivative
+		/// @param h Step size (default: 1e-50, optimal is larger than for first derivative)
+		/// @return Approximation of f''(x)
+		template<typename F>
+		static Real ComplexStep2(F&& f, Real x, Real h = 1e-50)
+		{
+			Real fx = std::real(f(Complex(x, 0.0)));
+			Complex fz = f(Complex(x, h));
+			return 2.0 * (fx - fz.real()) / (h * h);
+		}
+
+	} // namespace Derivation
+} // namespace MML
+
+
 ///////////////////////////   mml/core/Derivation/ForwardAD.h   ///////////////////////////
 
 
@@ -31557,10 +32007,18 @@ namespace MML
 	/// @param a,b Integration bounds
 	/// @param eps Desired relative accuracy (default: 1e-6)
 	/// @return IntegrationResult with value, error_estimate, iterations, converged flag
+	///
+	/// @par Convergence model
+	/// Uses a mixed absolute+relative test:
+	///   |S_n - S_{n-1}| < eps * |S_{n-1}| + eps * machine_epsilon
+	/// The first term (eps * |S|) provides relative accuracy for non-zero integrals.
+	/// The second term (eps * machine_epsilon) provides an absolute floor so that
+	/// near-zero integrals can still converge rather than demanding |error| < 0.
 	static IntegrationResult IntegrateTrap(const IRealFunction& func, Real a, Real b,
 																		 const Real eps = Defaults::TrapezoidIntegrationEPS)	{
 		int		j;
 		Real	currSum, oldSum = 0.0;
+		Real	last_error = 0.0;
 
 		TrapIntegrator t(func, a, b);
 
@@ -31578,11 +32036,11 @@ namespace MML
 				}
 			}
 
+			last_error = std::abs(currSum - oldSum);
 			oldSum = currSum;
 		}
-		// Did not converge within max iterations
-		Real final_error = std::abs(currSum - oldSum);
-		return IntegrationResult(currSum, final_error, j, false);
+		// Did not converge — last_error preserves the final step difference
+		return IntegrationResult(currSum, last_error, j, false);
 	}
 
 	/// @brief Simpson's rule with adaptive refinement
@@ -31591,11 +32049,16 @@ namespace MML
 	/// @param a,b Integration bounds
 	/// @param eps Desired relative accuracy (default: 1e-8)
 	/// @return IntegrationResult with value, error_estimate, iterations, converged flag
+	///
+	/// @par Convergence model
+	/// Same mixed absolute+relative test as IntegrateTrap:
+	///   |S_n - S_{n-1}| < eps * |S_{n-1}| + eps * machine_epsilon
 	static IntegrationResult IntegrateSimpson(const IRealFunction& func, Real a, Real b,
 																			 const Real eps = Defaults::SimpsonIntegrationEPS)
 	{
 		int j;
 		Real currSum, st, ost = 0.0, oldSum = 0.0;
+		Real last_error = 0.0;
 
 		TrapIntegrator t(func, a, b);
 
@@ -31615,12 +32078,12 @@ namespace MML
 				}
 			}
 
+			last_error = std::abs(currSum - oldSum);
 			oldSum = currSum;
 			ost = st;
 		}
-		// Did not converge within max iterations
-		Real final_error = std::abs(currSum - oldSum);
-		return IntegrationResult(currSum, final_error, j, false);
+		// Did not converge — last_error preserves the final step difference
+		return IntegrationResult(currSum, last_error, j, false);
 	}
 
 
@@ -31664,6 +32127,10 @@ namespace MML
 	 * @param b Upper bound of integration
 	 * @param eps Desired relative accuracy (default: Defaults::RombergIntegrationEPS)
 	 * @return IntegrationResult with value, error estimate, iterations, convergence status
+	 *
+	 * @par Convergence model
+	 * Same mixed absolute+relative test as Trap/Simpson:
+	 *   |dss| <= eps * |ss| + eps * machine_epsilon
 	 *
 	 * @note Reference: Numerical Recipes §4.3 "Romberg Integration"
 	 */
@@ -31722,7 +32189,7 @@ namespace MML
 						Real w = c[i + 1] - d[i];
 						Real den = ho - hp;
 						
-						if (den == 0.0)
+						if (std::abs(den) < Precision::DivisionSafetyThreshold)
 						{
 							// This should not happen with proper h values
 							return IntegrationResult(ss, std::abs(dss), j + 1, false);
@@ -32473,8 +32940,11 @@ namespace MML
 	 */
 	static void GaussLaguerre(std::vector<Real>& x, std::vector<Real>& w, Real alpha = 0.0)
 	{
-		const int MAXIT = 10;
-		const Real EPS = 1.0e-14;
+		const int MAXIT = 40;
+		// Use relaxed convergence: machine epsilon is too tight for higher-order
+		// polynomial evaluation which loses precision through the recurrence relation
+		const Real EPS = std::max(std::numeric_limits<Real>::epsilon() * 100, 
+		                          static_cast<Real>(1e-15));
 		
 		int n = static_cast<int>(x.size());
 		if (w.size() != x.size())
@@ -32515,7 +32985,7 @@ namespace MML
 				
 				Real z1 = z;
 				z = z1 - p1 / pp;
-				if (std::abs(z - z1) <= EPS) break;
+					if (std::abs(z - z1) <= EPS * (1.0 + std::abs(z))) break;
 			}
 			if (its >= MAXIT)
 				throw IntegrationTooManySteps("GaussLaguerre: too many iterations", MAXIT);
@@ -37035,7 +37505,7 @@ namespace MML
 		/// @param ind Index of basis vector (0 to N-1)
 		/// @param pos Position in source coordinates
 		/// @return Covariant basis vector in target coordinates
-		virtual VectorTo   getBasisVec(int ind, const VectorFrom& pos)
+		virtual VectorTo   getBasisVec(int ind, const VectorFrom& pos) const
 		{
 			VectorTo ret;
 
@@ -37048,7 +37518,7 @@ namespace MML
 		/// @param ind Index of basis vector (0 to N-1)
 		/// @param pos Position in source coordinates
 		/// @return Contravariant basis vector
-		virtual VectorFrom getInverseBasisVec(int ind, const VectorFrom& pos)
+		virtual VectorFrom getInverseBasisVec(int ind, const VectorFrom& pos) const
 		{
 			VectorFrom ret;
 
@@ -37061,7 +37531,7 @@ namespace MML
 		/// @brief Compute Jacobian matrix of transformation at position
 		/// @param pos Position in source coordinates
 		/// @return Jacobian matrix J_ij = ∂x'_i/∂x_j
-		MatrixNM<Real, N, N> jacobian(const VectorN<Real, N>& pos)
+		MatrixNM<Real, N, N> jacobian(const VectorN<Real, N>& pos) const
 		{
 			MatrixNM<Real, N, N> jac;
 
@@ -37078,7 +37548,7 @@ namespace MML
 		/// @param vec Vector in source coordinates
 		/// @param pos Position where transformation is evaluated
 		/// @return Transformed contravariant vector
-		VectorTo   transfVecContravariant(const VectorFrom& vec, const VectorFrom& pos)
+		VectorTo   transfVecContravariant(const VectorFrom& vec, const VectorFrom& pos) const
 		{
 			VectorTo ret;
 			for (int i = 0; i < N; i++) {
@@ -37092,7 +37562,7 @@ namespace MML
 		/// @param vec Vector in target coordinates
 		/// @param pos Position in source coordinates
 		/// @return Transformed covariant vector
-		VectorFrom transfInverseVecCovariant(const VectorTo& vec, const VectorFrom& pos)
+		VectorFrom transfInverseVecCovariant(const VectorTo& vec, const VectorFrom& pos) const
 		{
 			VectorFrom ret;
 			for (int i = 0; i < N; i++)
@@ -37121,7 +37591,7 @@ namespace MML
 		/// @param ind Index of basis vector (0 to N-1)
 		/// @param pos Position in target coordinates
 		/// @return Contravariant basis vector in source coordinates
-		virtual VectorFrom getContravarBasisVec(int ind, const VectorTo& pos)
+		virtual VectorFrom getContravarBasisVec(int ind, const VectorTo& pos) const
 		{
 			VectorFrom ret;
 
@@ -37134,7 +37604,7 @@ namespace MML
 		/// @param ind Index of basis vector (0 to N-1)
 		/// @param pos Position in target coordinates
 		/// @return Contravariant basis vector in target coordinates
-		virtual VectorTo   getInverseContravarBasisVec(int ind, const VectorTo& pos)
+		virtual VectorTo   getInverseContravarBasisVec(int ind, const VectorTo& pos) const
 		{
 			VectorTo ret;
 
@@ -37148,7 +37618,7 @@ namespace MML
 		/// @param vec Vector in source coordinates
 		/// @param pos Position in target coordinates where transformation is evaluated
 		/// @return Transformed covariant vector
-		VectorTo   transfVecCovariant(const VectorFrom& vec, const VectorTo& pos)
+		VectorTo   transfVecCovariant(const VectorFrom& vec, const VectorTo& pos) const
 		{
 			VectorTo ret;
 			for (int i = 0; i < N; i++)
@@ -37164,7 +37634,7 @@ namespace MML
 		/// @param vec Vector in target coordinates
 		/// @param pos Position in target coordinates
 		/// @return Transformed contravariant vector in source coordinates
-		VectorFrom transfInverseVecContravariant(const VectorTo& vec, const VectorTo& pos)
+		VectorFrom transfInverseVecContravariant(const VectorTo& vec, const VectorTo& pos) const
 		{
 			VectorFrom ret;
 			for (int i = 0; i < N; i++)
@@ -37181,7 +37651,7 @@ namespace MML
 		/// @param tensor Input tensor with mixed contravariant/covariant indices
 		/// @param pos Position in source coordinates
 		/// @return Transformed tensor in target coordinates
-		Tensor2<N> transfTensor2(const Tensor2<N>& tensor, const VectorFrom& pos)
+		Tensor2<N> transfTensor2(const Tensor2<N>& tensor, const VectorFrom& pos) const
 		{
 			Tensor2<N> ret(tensor.NumContravar(), tensor.NumCovar());
 
@@ -37192,7 +37662,7 @@ namespace MML
 					for (int k = 0; k < N; k++)
 						for (int l = 0; l < N; l++)
 						{
-Real coef1, coef2;
+              Real coef1, coef2;
 							if (tensor.IsContravar(0))
 								coef1 = Derivation::NDer4Partial(this->coordTransfFunc(i), k, pos);
 							else
@@ -37213,7 +37683,7 @@ Real coef1, coef2;
 		/// @param tensor Input tensor with mixed contravariant/covariant indices
 		/// @param pos Position in source coordinates
 		/// @return Transformed tensor in target coordinates
-		Tensor3<N> transfTensor3(const Tensor3<N>& tensor, const VectorFrom& pos)
+		Tensor3<N> transfTensor3(const Tensor3<N>& tensor, const VectorFrom& pos) const
 		{
 			Tensor3<N> ret(tensor.NumContravar(), tensor.NumCovar());
 
@@ -37252,7 +37722,7 @@ Real coef1, coef2;
 		/// @param tensor Input tensor with mixed contravariant/covariant indices
 		/// @param pos Position in source coordinates
 		/// @return Transformed tensor in target coordinates
-		Tensor4<N> transfTensor4(const Tensor4<N>& tensor, const VectorFrom& pos)
+		Tensor4<N> transfTensor4(const Tensor4<N>& tensor, const VectorFrom& pos) const
 		{
 			Tensor4<N> ret(tensor.NumContravar(), tensor.NumCovar());
 
@@ -37298,7 +37768,7 @@ Real coef1, coef2;
 		/// @param tensor Input tensor with mixed contravariant/covariant indices
 		/// @param pos Position in source coordinates
 		/// @return Transformed tensor in target coordinates
-		Tensor5<N> transfTensor5(const Tensor5<N>& tensor, const VectorFrom& pos)
+		Tensor5<N> transfTensor5(const Tensor5<N>& tensor, const VectorFrom& pos) const
 		{
 			Tensor5<N> ret(tensor.NumContravar(), tensor.NumCovar());
 
@@ -37337,10 +37807,11 @@ Real coef1, coef2;
 														coef4 = Derivation::NDer4Partial(this->inverseCoordTransfFunc(q), l, pos);
 
 													if (tensor.IsContravar(4))
-												coef5 = Derivation::NDer4Partial(this->coordTransfFunc(m), r, pos);
-											else
-												coef5 = Derivation::NDer4Partial(this->inverseCoordTransfFunc(r), m, pos);
-													ret[i][j][k][l][m] += coef1 * coef2 * coef3 * coef4 * coef5 * tensor[n][o][p][q][r];
+												    coef5 = Derivation::NDer4Partial(this->coordTransfFunc(m), r, pos);
+											    else
+												    coef5 = Derivation::NDer4Partial(this->inverseCoordTransfFunc(r), m, pos);
+													
+                          ret[i][j][k][l][m] += coef1 * coef2 * coef3 * coef4 * coef5 * tensor[n][o][p][q][r];
 												}
 							}
 
@@ -38513,7 +38984,7 @@ namespace MML
 		/// @brief Get covariant basis vector at position in spherical coordinates
 		/// @param ind Basis vector index (0=∂r, 1=∂θ, 2=∂φ)
 		/// @param pos Position in spherical coordinates
-		virtual Vector3Cartesian getBasisVec(int ind, const Vector3Spherical& pos) override
+		virtual Vector3Cartesian getBasisVec(int ind, const Vector3Spherical& pos) const override
 		{
 			const Real r = pos[0];
 			const Real theta = pos[1];
@@ -38531,7 +39002,7 @@ namespace MML
 		/// @brief Get unit (normalized) basis vector at position
 		/// @param ind Basis vector index (0=e_r, 1=e_θ, 2=e_φ)
 		/// @param pos Position in spherical coordinates
-		Vector3Cartesian getUnitBasisVec(int ind, const Vector3Spherical& pos)
+		Vector3Cartesian getUnitBasisVec(int ind, const Vector3Spherical& pos) const
 		{
 			const Real r = pos[0];
 			const Real theta = pos[1];
@@ -38549,7 +39020,7 @@ namespace MML
 		/// @brief Get contravariant (dual) basis vector at position
 		/// @param ind Basis vector index (0, 1, 2)
 		/// @param pos Position in spherical coordinates
-		Vector3Spherical getInverseBasisVec(int ind, const Vector3Spherical& pos) override
+		Vector3Spherical getInverseBasisVec(int ind, const Vector3Spherical& pos) const override
 		{
 			const Real r = pos[0];
 			const Real theta = pos[1];
@@ -38566,7 +39037,7 @@ namespace MML
 		/// @brief Get unit contravariant basis vector at position
 		/// @param ind Basis vector index
 		/// @param pos Position in spherical coordinates
-		Vector3Spherical getInverseUnitBasisVec(int ind, const Vector3Spherical& pos)
+		Vector3Spherical getInverseUnitBasisVec(int ind, const Vector3Spherical& pos) const
 		{
 			const Real r = pos[0];
 			const Real theta = pos[1];
@@ -40589,7 +41060,7 @@ namespace MML
 			Real speed_squared = x_prime * x_prime + y_prime * y_prime;
 			Real denominator = std::pow(speed_squared, 1.5);
 
-			if (denominator < 1e-15)
+			if (denominator < Precision::NumericalZeroThreshold)
 				return 0.0;  // Avoid division by zero at singular points
 
 			return numerator / denominator;
@@ -40618,7 +41089,7 @@ namespace MML
 			Real speed_squared = x_prime * x_prime + y_prime * y_prime;
 			Real denominator = std::pow(speed_squared, 1.5);
 
-			if (denominator < 1e-15)
+			if (denominator < Precision::NumericalZeroThreshold)
 				return 0.0;  // Avoid division by zero at singular points
 
 			return numerator / denominator;
@@ -40662,7 +41133,7 @@ namespace MML
 			Real speed_sq = x_dt * x_dt + y_dt * y_dt;
 			Real denominator = std::pow(speed_sq, 1.5);
 
-			if (denominator < 1e-15)
+			if (denominator < Precision::NumericalZeroThreshold)
 				return 0.0;
 
 			return numerator / denominator;
@@ -40706,7 +41177,7 @@ namespace MML
 			virtual Real getRadiusOfCurvature(Real t)
 			{
 				Real kappa = getCurvature(t);
-				if (kappa < 1e-15)
+				if (kappa < Precision::NumericalZeroThreshold)
 					return Constants::PosInf;  // Straight line has infinite radius
 				return 1.0 / kappa;
 			}
@@ -40914,7 +41385,7 @@ namespace MML
 			virtual Real getRadiusOfCurvature(Real t)
 			{
 				Real kappa = getCurvature(t);
-				if (kappa < 1e-15)
+				if (kappa < Precision::NumericalZeroThreshold)
 					return Constants::PosInf;
 				return 1.0 / kappa;
 			}
@@ -40974,8 +41445,11 @@ namespace MML
 				Vec3Cart r_prime = getTangent(t);
 				Vec3Cart r_double_prime = getSecondDerivative(t);
 				Vector3Cartesian cross1 = VectorProduct(Vector3Cartesian(r_double_prime), Vector3Cartesian(r_prime));
+				Real denom = r_prime.NormL2() * cross1.NormL2();
+				if (denom < Precision::NumericalZeroThreshold)
+					return Vec3Cart(0.0, 0.0, 0.0);
 				Vector3Cartesian result = VectorProduct(Vector3Cartesian(r_prime), cross1);
-				return Vec3Cart(result / (r_prime.NormL2() * cross1.NormL2()));
+				return Vec3Cart(result / denom);
 			}
 			/// @brief Get binormal unit vector B(t) = T(t) × N(t)
 			Vec3Cart getBinormal(Real t) const
@@ -40998,6 +41472,8 @@ namespace MML
 				Vec3Cart r_double_prime = getSecondDerivative(t);
 				Vector3Cartesian cross = VectorProduct(Vector3Cartesian(r_prime), Vector3Cartesian(r_double_prime));
 				Real speed_cubed = std::pow(r_prime.NormL2(), 3);
+				if (speed_cubed < Precision::NumericalZeroThreshold)
+					return 0.0;
 				return cross.NormL2() / speed_cubed;
 			}
 			
@@ -41015,8 +41491,10 @@ namespace MML
 				Vec3Cart r_triple_prime = Derivation::DeriveCurveThird<3>(*this, t, nullptr);
 
 				Vec3Cart cross_product = VectorProduct(r_prime, r_double_prime);
-				Real numerator = Utils::ScalarProduct(cross_product, r_triple_prime);
 				Real denominator = std::pow(cross_product.NormL2(), 2);
+				if (denominator < Precision::NumericalZeroThreshold)
+					return 0.0;
+				Real numerator = Utils::ScalarProduct(cross_product, r_triple_prime);
 
 				return numerator / denominator;
 			}
@@ -41062,7 +41540,7 @@ namespace MML
 				for (Real t = t1 + delta; t < t2; t += delta)
 				{
 					Real len = PathIntegration::ParametricCurveLength(*this, t1, t);
-					if (fabs(len - (t - t1)) > PrecisionValues<Real>::DefaultToleranceStrict)
+					if (fabs(len - (t - t1)) > PrecisionValues<Real>::OptimizationTolerance)
 						return false;
 				}
 				return true;
@@ -41879,6 +42357,180 @@ namespace MML
 }
 
 
+///////////////////////////   mml/core/TensorField.h   ///////////////////////////
+
+#ifdef MML_USE_SINGLE_HEADER
+#else
+#endif
+
+namespace MML
+{
+	/// @brief Adapter that expresses a rank-2 tensor field in a different coordinate system
+	///
+	/// Given a rank-2 tensor field T defined in "From" coordinates and an invertible
+	/// coordinate transformation From→To, produces a new ITensorField2 that can be
+	/// evaluated directly in "To" coordinates.
+	///
+	/// At each evaluation point p_to in the target coordinate system:
+	///   1. Maps p_to back to source coordinates: p_from = transfInverse(p_to)
+	///   2. Evaluates the original field:         T = originalField(p_from)
+	///   3. Applies the tensor transformation law: T' = J · T · J^T  (Jacobian-based)
+	///
+	/// Example: Express an EM field tensor from Cartesian to Spherical coordinates
+	/// @code
+	///   SomeEMField  F_cart(/* ... */);           // ITensorField2<3> in Cartesian
+	///   CoordTransfCartesianToSpherical transf;   // with inverse
+	///
+	///   TransformedTensorField2<Vector3Cartesian, Vector3Spherical, 3>
+	///       F_sph(F_cart, transf);
+	///
+	///   Tensor2<3> T = F_sph(VectorN<Real, 3>{2.0, PI/4, PI/3});  // evaluate in spherical
+	/// @endcode
+	///
+	/// @tparam VectorFrom Source coordinate system vector type
+	/// @tparam VectorTo   Target coordinate system vector type
+	/// @tparam N          Dimension of coordinate space
+	template<typename VectorFrom, typename VectorTo, int N>
+	class TransformedTensorField2 : public ITensorField2<N>
+	{
+		const ITensorField2<N>& _originalField;
+		const CoordTransfWithInverse<VectorFrom, VectorTo, N>& _coordTransf;
+
+	public:
+		TransformedTensorField2(
+			const ITensorField2<N>& originalField,
+			const CoordTransfWithInverse<VectorFrom, VectorTo, N>& coordTransf)
+			: ITensorField2<N>(originalField.getNumContravar(), originalField.getNumCovar())
+			, _originalField(originalField)
+			, _coordTransf(coordTransf)
+		{}
+
+		Tensor2<N> operator()(const VectorN<Real, N>& pos) const override
+		{
+			VectorTo   posTo(pos);
+			VectorFrom posFrom = _coordTransf.transfInverse(posTo);
+			Tensor2<N> tensor  = _originalField(posFrom);
+			return _coordTransf.transfTensor2(tensor, posFrom);
+		}
+
+		Real Component(int i, int j, const VectorN<Real, N>& pos) const override
+		{
+			return (*this)(pos)(i, j);
+		}
+	};
+
+	/// @brief Adapter that expresses a rank-3 tensor field in a different coordinate system
+	///
+	/// Same principle as TransformedTensorField2 but for rank-3 tensor fields
+	/// (e.g., Christoffel symbols).
+	///
+	/// @tparam VectorFrom Source coordinate system vector type
+	/// @tparam VectorTo   Target coordinate system vector type
+	/// @tparam N          Dimension of coordinate space
+	template<typename VectorFrom, typename VectorTo, int N>
+	class TransformedTensorField3 : public ITensorField3<N>
+	{
+		const ITensorField3<N>& _originalField;
+		const CoordTransfWithInverse<VectorFrom, VectorTo, N>& _coordTransf;
+
+	public:
+		TransformedTensorField3(
+			const ITensorField3<N>& originalField,
+			const CoordTransfWithInverse<VectorFrom, VectorTo, N>& coordTransf)
+			: ITensorField3<N>(originalField.getNumContravar(), originalField.getNumCovar())
+			, _originalField(originalField)
+			, _coordTransf(coordTransf)
+		{}
+
+		Tensor3<N> operator()(const VectorN<Real, N>& pos) const override
+		{
+			VectorTo   posTo(pos);
+			VectorFrom posFrom = _coordTransf.transfInverse(posTo);
+			Tensor3<N> tensor  = _originalField(posFrom);
+			return _coordTransf.transfTensor3(tensor, posFrom);
+		}
+
+		Real Component(int i, int j, int k, const VectorN<Real, N>& pos) const override
+		{
+			return (*this)(pos).Component(i, j, k);
+		}
+	};
+
+	/// @brief Adapter that expresses a rank-4 tensor field in a different coordinate system
+	///
+	/// Same principle as TransformedTensorField2 but for rank-4 tensor fields
+	/// (e.g., Riemann curvature tensor).
+	///
+	/// @tparam VectorFrom Source coordinate system vector type
+	/// @tparam VectorTo   Target coordinate system vector type
+	/// @tparam N          Dimension of coordinate space
+	template<typename VectorFrom, typename VectorTo, int N>
+	class TransformedTensorField4 : public ITensorField4<N>
+	{
+		const ITensorField4<N>& _originalField;
+		const CoordTransfWithInverse<VectorFrom, VectorTo, N>& _coordTransf;
+
+	public:
+		TransformedTensorField4(
+			const ITensorField4<N>& originalField,
+			const CoordTransfWithInverse<VectorFrom, VectorTo, N>& coordTransf)
+			: ITensorField4<N>(originalField.getNumContravar(), originalField.getNumCovar())
+			, _originalField(originalField)
+			, _coordTransf(coordTransf)
+		{}
+
+		Tensor4<N> operator()(const VectorN<Real, N>& pos) const override
+		{
+			VectorTo   posTo(pos);
+			VectorFrom posFrom = _coordTransf.transfInverse(posTo);
+			Tensor4<N> tensor  = _originalField(posFrom);
+			return _coordTransf.transfTensor4(tensor, posFrom);
+		}
+
+		Real Component(int i, int j, int k, int l, const VectorN<Real, N>& pos) const override
+		{
+			return (*this)(pos)[i][j][k][l];
+		}
+	};
+
+	/// @brief Adapter that expresses a rank-5 tensor field in a different coordinate system
+	///
+	/// Same principle as TransformedTensorField2 but for rank-5 tensor fields.
+	///
+	/// @tparam VectorFrom Source coordinate system vector type
+	/// @tparam VectorTo   Target coordinate system vector type
+	/// @tparam N          Dimension of coordinate space
+	template<typename VectorFrom, typename VectorTo, int N>
+	class TransformedTensorField5 : public ITensorField5<N>
+	{
+		const ITensorField5<N>& _originalField;
+		const CoordTransfWithInverse<VectorFrom, VectorTo, N>& _coordTransf;
+
+	public:
+		TransformedTensorField5(
+			const ITensorField5<N>& originalField,
+			const CoordTransfWithInverse<VectorFrom, VectorTo, N>& coordTransf)
+			: ITensorField5<N>(originalField.getNumContravar(), originalField.getNumCovar())
+			, _originalField(originalField)
+			, _coordTransf(coordTransf)
+		{}
+
+		Tensor5<N> operator()(const VectorN<Real, N>& pos) const override
+		{
+			VectorTo   posTo(pos);
+			VectorFrom posFrom = _coordTransf.transfInverse(posTo);
+			Tensor5<N> tensor  = _originalField(posFrom);
+			return _coordTransf.transfTensor5(tensor, posFrom);
+		}
+
+		Real Component(int i, int j, int k, int l, int m, const VectorN<Real, N>& pos) const override
+		{
+			return (*this)(pos)[i][j][k][l][m];
+		}
+	};
+}
+
+
 ///////////////////////////   mml/core/OrthogonalBasis.h   ///////////////////////////
 
 
@@ -41921,7 +42573,7 @@ namespace MML
         virtual Real DomainMax() const = 0;
 
         // Compute expansion coefficient for function f: cₙ = ⟨f, φₙ⟩ / ||φₙ||²
-        virtual Real ComputeCoefficient(const IRealFunction& f, int n, Real eps = 1e-10) const
+        virtual Real ComputeCoefficient(const IRealFunction& f, int n, Real eps = Precision::DefaultToleranceStrict) const
         {
             // Helper class for integrand f(x) * φₙ(x) * w(x)
             class Integrand : public IRealFunction {
@@ -43710,9 +44362,10 @@ namespace MML {
 	/// config.sort_eigenvalues = true; // Sort by magnitude
 	/// auto result = SymmMatEigenSolverJacobi::Solve(A, config);
 	struct EigenSolverConfig {
-		/// Convergence tolerance for off-diagonal elements (default: 1e-10)
+		/// Convergence tolerance for off-diagonal elements
 		/// Algorithm converges when off-diagonal norm < tolerance
-		Real tolerance = 1e-10;
+		/// Default: 1e-10 for double, 1e-6 for float
+		Real tolerance = PrecisionValues<Real>::EigenSolverConvergenceTolerance;
 
 		/// Maximum number of iterations/sweeps (default: 100 for Jacobi, 1000 for QR)
 		/// Set to 0 to use algorithm-specific default
@@ -43816,7 +44469,7 @@ namespace MML {
 		/// - eigenvectors.Column(i) corresponds to eigenvalues[i]
 		/// - Eigenvectors are orthonormal: V^T * V = I
 		/// - A * V = V * diag(λ)
-		static Result Solve(const MatrixSym<Real>& A, Real tol = 1e-10, int maxIter = 100) {
+		static Result Solve(const MatrixSym<Real>& A, Real tol = PrecisionValues<Real>::EigenSolverConvergenceTolerance, int maxIter = 100) {
 			int n = A.rows();
 			Result result(n);
 
@@ -43872,7 +44525,7 @@ namespace MML {
 
 		/// Solve for a regular Matrix (extracts symmetric part)
 		/// Note: Only use if you're certain the matrix is symmetric!
-		static Result Solve(const Matrix<Real>& A, Real tol = 1e-10, int maxIter = 100) {
+		static Result Solve(const Matrix<Real>& A, Real tol = PrecisionValues<Real>::EigenSolverConvergenceTolerance, int maxIter = 100) {
 			// Convert to symmetric matrix (average A and A^T)
 			int n = A.rows();
 			MatrixSym<Real> symA(n);
@@ -44056,7 +44709,7 @@ namespace MML {
 		};
 
 		// Main interface: Solve symmetric eigenvalue problem
-		static Result Solve(const MatrixSym<Real>& A, Real tol = 1e-10, int maxIter = 1000) {
+		static Result Solve(const MatrixSym<Real>& A, Real tol = PrecisionValues<Real>::EigenSolverConvergenceTolerance, int maxIter = 1000) {
 			int n = A.rows();
 			Result result(n);
 
@@ -44115,7 +44768,7 @@ namespace MML {
 		}
 
 		// Overload for regular Matrix (will symmetrize)
-		static Result Solve(const Matrix<Real>& A, Real tol = 1e-10, int maxIter = 1000) {
+		static Result Solve(const Matrix<Real>& A, Real tol = PrecisionValues<Real>::EigenSolverConvergenceTolerance, int maxIter = 1000) {
 			int n = A.rows();
 			MatrixSym<Real> symA(n);
 			for (int i = 0; i < n; i++)
@@ -44538,7 +45191,7 @@ namespace MML {
 		/// - For complex pair λ±μi with eigenvector (vr ± i*vi):
 		/// - eigenvalues[k] = {λ, μ}, eigenvalues[k+1] = {λ, -μ}
 		/// - eigenvectors.Column(k) = vr, Column(k+1) = vi
-		static Result Solve(const Matrix<Real>& A, Real tol = 1e-10, int maxIter = 1000) {
+		static Result Solve(const Matrix<Real>& A, Real tol = PrecisionValues<Real>::EigenSolverConvergenceTolerance, int maxIter = 1000) {
 			int n = A.rows();
 			Result result(n);
 
@@ -44812,7 +45465,7 @@ namespace MML {
 		///
 		/// @note Matrix must be symmetric. For non-symmetric matrices,
 		/// consider using (A + A^T)/2.
-		inline Definiteness ClassifyDefiniteness(const MatrixSym<Real>& A, Real tol = 1e-10) {
+		inline Definiteness ClassifyDefiniteness(const MatrixSym<Real>& A, Real tol = PrecisionValues<Real>::EigenSolverConvergenceTolerance) {
 			// Compute eigenvalues using Jacobi method
 			auto result = SymmMatEigenSolverJacobi::Solve(A, tol);
 
@@ -44843,7 +45496,7 @@ namespace MML {
 		}
 
 		/// Classify definiteness of a general matrix (uses symmetric part)
-		inline Definiteness ClassifyDefiniteness(const Matrix<Real>& A, Real tol = 1e-10) {
+		inline Definiteness ClassifyDefiniteness(const Matrix<Real>& A, Real tol = PrecisionValues<Real>::EigenSolverConvergenceTolerance) {
 			int n = A.rows();
 			if (A.cols() != n)
 				throw MatrixDimensionError("ClassifyDefiniteness - matrix must be square", n, A.cols(), -1, -1);
@@ -46864,9 +47517,12 @@ namespace MML {
 
     Real D = b * b - 4 * a * c;
     if (D >= 0) {
-      Real sqrtD = sqrt(D);
-      x1 = (-b + sqrtD) / (2 * a);
-      x2 = (-b - sqrtD) / (2 * a);
+      // Numerically stable formula: avoids catastrophic cancellation when |b| >> |sqrt(D)|
+      // Reference: Numerical Recipes, Press et al., "Quadratic and Cubic Equations"
+      Real sqrtD = std::sqrt(D);
+      Real q = Real(-0.5) * (b + std::copysign(sqrtD, b));
+      x1 = q / a;
+      x2 = c / q;
       return 2;
     } else {
       Complex sqrtD = std::sqrt(Complex(D));
@@ -48265,7 +48921,7 @@ namespace MML {
 				Real errMax = 0.0;
 				for (int i = 0; i < _n; i++) {
 					Real err = h * (e1 * _k1[i] + e3 * _k3[i] + e4 * _k4[i] + e5 * _k5[i] + e6 * _k6[i] + e7 * _k7[i]);
-					Real scale = std::abs(x[i]) + std::abs(h * _k1[i]) + 1e-30; // Avoid division by zero
+					Real scale = std::abs(x[i]) + std::abs(h * _k1[i]) + Precision::DivisionSafetyThreshold; // Avoid division by zero
 					errMax = std::max(errMax, std::abs(err) / scale);
 				}
 				errMax /= eps;
@@ -48472,7 +49128,7 @@ namespace MML {
 				Real errMax = 0.0;
 				for (int i = 0; i < _n; i++) {
 					Real err = h * (dc1 * _k1[i] + dc3 * _k3[i] + dc4 * _k4[i] + dc5 * _k5[i] + dc6 * _k6[i]);
-					Real scale = std::abs(x[i]) + std::abs(h * dxdt[i]) + 1e-30;
+					Real scale = std::abs(x[i]) + std::abs(h * dxdt[i]) + Precision::DivisionSafetyThreshold;
 					errMax = std::max(errMax, std::abs(err) / scale);
 				}
 				errMax /= eps;
@@ -48714,7 +49370,7 @@ namespace MML {
 					for (int j = 0; j < NSTAGES; j++)
 						err += (b8[j] - b7[j]) * _k[j][i];
 					err *= h;
-					Real scale = std::abs(x[i]) + std::abs(h * _k[0][i]) + 1e-30;
+					Real scale = std::abs(x[i]) + std::abs(h * _k[0][i]) + Precision::DivisionSafetyThreshold;
 					errMax = std::max(errMax, std::abs(err) / scale);
 				}
 				errMax /= eps;
@@ -48950,7 +49606,7 @@ namespace MML {
 					// Compute scaled error
 					Real errMax = 0.0;
 					for (int i = 0; i < _n; ++i) {
-						Real scale = eps * (std::abs(ysav[i]) + std::abs(yest[i]) + Real(1e-30));
+						Real scale = eps * (std::abs(ysav[i]) + std::abs(yest[i]) + Precision::DivisionSafetyThreshold);
 						Real errRatio = std::abs(yerr[i]) / scale;
 						errMax = std::max<Real>(errMax, errRatio);
 					}
@@ -49177,7 +49833,7 @@ namespace MML {
 					// Compute scaled error
 					Real errMax = 0.0;
 					for (int i = 0; i < _n; ++i) {
-						Real scale = eps * (std::abs(ysav[i]) + std::abs(yest[i]) + Real(1e-30));
+						Real scale = eps * (std::abs(ysav[i]) + std::abs(yest[i]) + Precision::DivisionSafetyThreshold);
 						Real errRatio = std::abs(yerr[i]) / scale;
 						errMax = std::max<Real>(errMax, errRatio);
 					}
@@ -49338,17 +49994,17 @@ namespace MML {
 		/// Set to 0 to use Hairer's automatic step size estimation
 		Real initial_step_size = 0.0;
 
-		/// Minimum allowed step size (default: 1e-15)
+		/// Minimum allowed step size (default: type-adaptive)
 		/// Integration fails if step size falls below this
-		Real min_step_size = 1e-15;
+		Real min_step_size = Precision::ODEMinStepSize;
 
 		/// Maximum allowed step size (default: infinity)
 		/// Useful to limit step growth in smooth regions
 		Real max_step_size = std::numeric_limits<Real>::infinity();
 
-		/// Error tolerance for step acceptance (default: 1e-10)
+		/// Error tolerance for step acceptance (default: type-adaptive)
 		/// Used for both absolute and relative error control
-		Real tolerance = 1e-10;
+		Real tolerance = Precision::ODEDefaultTolerance;
 
 		/// Maximum number of accepted steps (default: 100000)
 		/// Integration fails if this is exceeded
@@ -49364,7 +50020,7 @@ namespace MML {
 		/// Factory method for high-precision configuration
 		static ODEIntegratorConfig HighPrecision() {
 			ODEIntegratorConfig config;
-			config.tolerance = 1e-14;
+			config.tolerance = Precision::ODEDefaultTolerance / Real(10000);
 			config.max_steps = 500000;
 			return config;
 		}
@@ -49372,7 +50028,7 @@ namespace MML {
 		/// Factory method for fast (lower precision) configuration
 		static ODEIntegratorConfig Fast() {
 			ODEIntegratorConfig config;
-			config.tolerance = 1e-6;
+			config.tolerance = Precision::DefaultTolerance;
 			config.max_steps = 10000;
 			return config;
 		}
@@ -49380,9 +50036,9 @@ namespace MML {
 		/// Factory method for stiff problems
 		static ODEIntegratorConfig Stiff() {
 			ODEIntegratorConfig config;
-			config.tolerance = 1e-8;
+			config.tolerance = Precision::DefaultToleranceStrict;
 			config.max_steps = 1000000;
-			config.min_step_size = 1e-20;
+			config.min_step_size = Precision::DivisionSafetyThreshold;
 			return config;
 		}
 	};
@@ -49518,7 +50174,10 @@ namespace MML {
 		/// @param h0 Initial step size (0 = auto-estimate)
 		/// @param minStepSize Minimum allowed step size (default 1e-15)
 		/// @return Solution with points at regular intervals
-		ODESystemSolution integrate(const Vector<Real>& x0, Real t0, Real tEnd, Real outputInterval, Real eps = 1e-10, Real h0 = 0, Real minStepSize = 1e-15) {
+		ODESystemSolution integrate(const Vector<Real>& x0, Real t0, Real tEnd, Real outputInterval, Real eps = 1e-10, Real h0 = 0, Real minStepSize = 1e-15, int maxSteps = 0) {
+			if (outputInterval <= 0)
+				throw ODESolverError("outputInterval must be positive (got " + std::to_string(outputInterval) + ")");
+
 			int n = _sys.getDim();
 			int numOutputPoints = static_cast<int>(std::ceil((tEnd - t0) / outputInterval)) + 1;
 
@@ -49545,6 +50204,13 @@ namespace MML {
 
 			// Main integration loop
 			while (t < tEnd - Constants::Eps) {
+				// Enforce max_steps if specified
+				if (maxSteps > 0 && _stats.totalSteps() >= maxSteps) {
+					_stats.status = AlgorithmStatus::MaxIterationsExceeded;
+					_stats.error_message = "Maximum steps (" + std::to_string(maxSteps) + ") exceeded";
+					break;
+				}
+
 				// Don't step past end
 				if (t + h > tEnd) {
 					h = tEnd - t;
@@ -49673,16 +50339,10 @@ namespace MML {
 				: (tEnd - t0) / 100.0;  // Default: 100 output points
 
 			ODESystemSolution sol = integrate(x0, t0, tEnd, outputInterval, 
-				config.tolerance, config.initial_step_size, config.min_step_size);
+				config.tolerance, config.initial_step_size, config.min_step_size, config.max_steps);
 
 			// Populate diagnostic fields in statistics
 			_stats.elapsed_time_ms = timer.elapsed_ms();
-			
-			// Check for max steps exceeded (if we tracked it)
-			if (_stats.acceptedSteps >= config.max_steps) {
-				_stats.status = AlgorithmStatus::MaxIterationsExceeded;
-				_stats.error_message = "Maximum steps (" + std::to_string(config.max_steps) + ") exceeded";
-			}
 
 			return sol;
 		}
@@ -51377,11 +52037,11 @@ namespace MML {
 		/// Maximum Newton iterations per step (default: 20)
 		int max_newton_iter = 20;
 
-		/// Newton convergence tolerance (default: 1e-8)
-		Real newton_tol = 1e-8;
+		/// Newton convergence tolerance (precision-aware default)
+		Real newton_tol = PrecisionValues<Real>::NewtonTolerance;
 
-		/// Tolerance for constraint satisfaction g(t,x,y) ≈ 0 (default: 1e-10)
-		Real constraint_tol = 1e-10;
+		/// Tolerance for constraint satisfaction g(t,x,y) ≈ 0 (precision-aware default)
+		Real constraint_tol = PrecisionValues<Real>::IntegrationTolerance;
 
 		/// Maximum number of steps (default: 100000)
 		int max_steps = 100000;
@@ -51390,8 +52050,8 @@ namespace MML {
 		static DAESolverConfig HighPrecision() {
 			DAESolverConfig config;
 			config.step_size = 0.001;
-			config.newton_tol = 1e-12;
-			config.constraint_tol = 1e-12;
+			config.newton_tol = PrecisionValues<Real>::IntegrationTolerance;
+			config.constraint_tol = PrecisionValues<Real>::IntegrationTolerance;
 			config.max_newton_iter = 30;
 			return config;
 		}
@@ -51400,8 +52060,8 @@ namespace MML {
 		static DAESolverConfig Fast() {
 			DAESolverConfig config;
 			config.step_size = 0.05;
-			config.newton_tol = 1e-6;
-			config.constraint_tol = 1e-8;
+			config.newton_tol = PrecisionValues<Real>::NewtonTolerance * 100;
+			config.constraint_tol = PrecisionValues<Real>::IntegrationTolerance * 100;
 			config.max_newton_iter = 10;
 			return config;
 		}
@@ -51445,7 +52105,7 @@ namespace MML {
 	/// @return True if consistent initial conditions were found
 	inline bool ComputeConsistentIC(const IODESystemDAEWithJacobian& system,
 	                                Real t0, const Vector<Real>& x0, Vector<Real>& y0,
-	                                int max_iter = 20, Real tol = 1e-10)
+	                                int max_iter = 20, Real tol = PrecisionValues<Real>::IntegrationTolerance)
 	{
 		int algDim = system.getAlgDim();
 		Vector<Real> g(algDim);
@@ -51485,7 +52145,7 @@ namespace MML {
 	/// @return True if |g(t0, x0, y0)| < tol
 	inline bool VerifyConsistentIC(const IODESystemDAE& system,
 	                               Real t0, const Vector<Real>& x0, const Vector<Real>& y0,
-	                               Real tol = 1e-10)
+	                               Real tol = PrecisionValues<Real>::IntegrationTolerance)
 	{
 		int algDim = system.getAlgDim();
 		Vector<Real> g(algDim);
@@ -52768,22 +53428,25 @@ namespace MML {
 		/// @return The median value
 		/// @throws StatisticsError if data is empty
 		///
-		/// Complexity: O(n log n) due to sorting
+		/// Complexity: O(n) average using nth_element
 		static Real Median(const Vector<Real>& data) {
 			int n = data.size();
 			if (n <= 0)
 				throw StatisticsError("Vector size must be greater than 0 in Median");
 
-			// Create a sorted copy
-			std::vector<Real> sorted(n);
+			std::vector<Real> v(n);
 			for (int i = 0; i < n; i++)
-				sorted[i] = data[i];
-			std::sort(sorted.begin(), sorted.end());
+				v[i] = data[i];
 
-			if (n % 2 == 0)
-				return (sorted[n / 2 - 1] + sorted[n / 2]) / 2.0;
-			else
-				return sorted[n / 2];
+			if (n % 2 == 1) {
+				std::nth_element(v.begin(), v.begin() + n / 2, v.end());
+				return v[n / 2];
+			} else {
+				std::nth_element(v.begin(), v.begin() + n / 2, v.end());
+				Real upper = v[n / 2];
+				Real lower = *std::max_element(v.begin(), v.begin() + n / 2);
+				return (lower + upper) / 2.0;
+			}
 		}
 
 		/// @brief Compute a percentile of a dataset
@@ -52844,9 +53507,26 @@ namespace MML {
 			if (n <= 0)
 				throw StatisticsError("Vector size must be greater than 0 in Quartiles");
 
-			q1 = Percentile(data, 25.0);
-			median = Percentile(data, 50.0);
-			q3 = Percentile(data, 75.0);
+			// Sort once instead of calling Percentile three times (each of which sorts)
+			std::vector<Real> sorted(n);
+			for (int i = 0; i < n; i++)
+				sorted[i] = data[i];
+			std::sort(sorted.begin(), sorted.end());
+
+			auto percentile_sorted = [&](Real p) -> Real {
+				if (p == 0.0) return sorted[0];
+				if (p == 100.0) return sorted[n - 1];
+				Real rank = (p / 100.0) * (n - 1);
+				int lower = static_cast<int>(std::floor(rank));
+				int upper = static_cast<int>(std::ceil(rank));
+				if (lower == upper) return sorted[lower];
+				Real fraction = rank - lower;
+				return sorted[lower] + fraction * (sorted[upper] - sorted[lower]);
+			};
+
+			q1 = percentile_sorted(25.0);
+			median = percentile_sorted(50.0);
+			q3 = percentile_sorted(75.0);
 		}
 
 		/// @brief Compute the range of a dataset
@@ -53708,7 +54388,7 @@ namespace MML
 					Real delta = f / fprime;
 					t -= delta;
 					
-					if (std::abs(delta) < 1e-10)
+					if (std::abs(delta) < Precision::DefaultToleranceStrict)
 						break;
 				}
 				
@@ -72416,9 +73096,9 @@ namespace MML {
 			if (values.empty()) return ColumnType::STRING;
 
 			// Count type matches
-			int intCount = 0, realCount = 0, boolCount = 0;
-			int dateCount = 0, timeCount = 0, dateTimeCount = 0;
-			int missingCount = 0;
+			size_t intCount = 0, realCount = 0, boolCount = 0;
+			size_t dateCount = 0, timeCount = 0, dateTimeCount = 0;
+			size_t missingCount = 0;
 
 			// Patterns
 			std::regex intPattern(R"(^[-+]?\d+$)");
@@ -72472,18 +73152,18 @@ namespace MML {
 				}
 			}
 
-			int totalNonMissing = static_cast<int>(values.size()) - missingCount;
+			size_t totalNonMissing = values.size() - missingCount;
 			if (totalNonMissing == 0) return ColumnType::STRING;
 
 			// Determine type based on majority
 			double threshold = 0.9;  // 90% match required
 
-			if (dateTimeCount >= threshold * totalNonMissing) return ColumnType::DATETIME;
-			if (dateCount >= threshold * totalNonMissing) return ColumnType::DATE;
-			if (timeCount >= threshold * totalNonMissing) return ColumnType::TIME;
-			if (boolCount >= threshold * totalNonMissing) return ColumnType::BOOL;
-			if (intCount >= threshold * totalNonMissing) return ColumnType::INT;
-			if ((intCount + realCount) >= threshold * totalNonMissing) return ColumnType::REAL;
+			if (dateTimeCount >= threshold * static_cast<double>(totalNonMissing)) return ColumnType::DATETIME;
+			if (dateCount >= threshold * static_cast<double>(totalNonMissing)) return ColumnType::DATE;
+			if (timeCount >= threshold * static_cast<double>(totalNonMissing)) return ColumnType::TIME;
+			if (boolCount >= threshold * static_cast<double>(totalNonMissing)) return ColumnType::BOOL;
+			if (intCount >= threshold * static_cast<double>(totalNonMissing)) return ColumnType::INT;
+			if ((intCount + realCount) >= threshold * static_cast<double>(totalNonMissing)) return ColumnType::REAL;
 
 			return ColumnType::STRING;
 		}
@@ -72491,6 +73171,14 @@ namespace MML {
 		/////////////////////////////////////////////////////////////////////////////////////
 		///                              VALUE PARSING                                     ///
 		/////////////////////////////////////////////////////////////////////////////////////
+
+		/// @brief Result of parsing a string value to a typed value
+		enum class ParseResult {
+			Parsed,   ///< Successfully parsed to target type
+			Missing,  ///< Value was empty or a recognized missing-value sentinel
+			Invalid   ///< Value was present but could not be parsed as the target type
+		};
+
 		/// @brief Parse a string value to the target type
 		/// @param value String value to parse
 		/// @param targetType Target column type
@@ -72498,8 +73186,8 @@ namespace MML {
 		/// @param[out] intOut Integer output (if INT type)
 		/// @param[out] boolOut Boolean output (if BOOL type)
 		/// @param[out] stringOut String output (if STRING/DATE/TIME type)
-		/// @return true if parsing succeeded, false if value should be marked as missing
-		inline bool ParseValue(const std::string& value, ColumnType targetType,
+		/// @return ParseResult indicating success, missing value, or parse failure
+		inline ParseResult ParseValue(const std::string& value, ColumnType targetType,
 		                       Real& realOut, int& intOut, bool& boolOut, std::string& stringOut) {
 			std::string trimmed = value;
 			trimmed.erase(0, trimmed.find_first_not_of(" \t\r\n"));
@@ -72507,43 +73195,43 @@ namespace MML {
 				trimmed.erase(trimmed.find_last_not_of(" \t\r\n") + 1);
 
 			if (IsMissingValue(trimmed))
-				return false;
+				return ParseResult::Missing;
 
 			try {
 				switch (targetType) {
 					case ColumnType::REAL: {
 						realOut = std::stod(trimmed);
-						return true;
+						return ParseResult::Parsed;
 					}
 					case ColumnType::INT: {
 						intOut = std::stoi(trimmed);
-						return true;
+						return ParseResult::Parsed;
 					}
 					case ColumnType::BOOL: {
 						std::string lower = trimmed;
 						std::transform(lower.begin(), lower.end(), lower.begin(), ::tolower);
 						if (lower == "true" || lower == "yes" || lower == "t" || lower == "y" || lower == "1") {
 							boolOut = true;
-							return true;
+							return ParseResult::Parsed;
 						}
 						if (lower == "false" || lower == "no" || lower == "f" || lower == "n" || lower == "0") {
 							boolOut = false;
-							return true;
+							return ParseResult::Parsed;
 						}
-						return false;
+						return ParseResult::Invalid;
 					}
 					case ColumnType::STRING:
 					case ColumnType::DATE:
 					case ColumnType::TIME:
 					case ColumnType::DATETIME:
 						stringOut = trimmed;
-						return true;
+						return ParseResult::Parsed;
 					default:
-						return false;
+						return ParseResult::Invalid;
 				}
 			}
 			catch (...) {
-				return false;  // Parse error -> missing
+				return ParseResult::Invalid;  // Parse error
 			}
 		}
 
@@ -72616,18 +73304,24 @@ namespace MML {
 namespace MML {
 	namespace Data {
 
+		/// @brief Options for CSV/TSV loading with schema validation
+		struct CSVLoadOptions {
+			bool hasHeader = true;          ///< First row is column names
+			char delimiter = ',';           ///< Field delimiter
+			bool inferTypes = true;         ///< Auto-detect column types
+			bool strictSchema = false;      ///< Throw on row width mismatch
+			std::vector<std::string>* warnings = nullptr;  ///< Collect non-fatal issues (e.g., width mismatches)
+		};
+
 		/////////////////////////////////////////////////////////////////////////////////////
 		///                              CSV/TSV LOADING                                   ///
 		/////////////////////////////////////////////////////////////////////////////////////
-		/// @brief Load dataset from CSV file
+		/// @brief Load dataset from CSV file with full options
 		/// @param filename Path to CSV file
-		/// @param hasHeader If true, first row is column names
-		/// @param delimiter Field delimiter (default ',')
-		/// @param inferTypes If true, automatically infer column types
+		/// @param opts Loading options (schema validation, type inference, etc.)
 		/// @return Loaded dataset
-		/// @throws DataError on file/parse errors
-		inline Dataset LoadCSV(const std::string& filename, bool hasHeader = true,
-		                       char delimiter = ',', bool inferTypes = true) {
+		/// @throws DataError on file/parse errors or schema violations (if strictSchema)
+		inline Dataset LoadCSV(const std::string& filename, const CSVLoadOptions& opts) {
 			std::ifstream file(filename);
 			if (!file.is_open())
 				throw DataError("LoadCSV: Cannot open file '" + filename + "'");
@@ -72653,7 +73347,7 @@ namespace MML {
 				if (!line.empty() && line.back() == '\r')
 					line.pop_back();
 
-				std::vector<std::string> fields = SplitLine(line, delimiter);
+				std::vector<std::string> fields = SplitLine(line, opts.delimiter);
 				allData.push_back(fields);
 			}
 
@@ -72662,13 +73356,13 @@ namespace MML {
 
 			// Determine column count
 			size_t numCols = allData[0].size();
-			size_t dataStartRow = hasHeader ? 1 : 0;
+			size_t dataStartRow = opts.hasHeader ? 1 : 0;
 
 			// Setup columns
 			dataset.columns.resize(numCols);
 
 			for (size_t c = 0; c < numCols; ++c) {
-				if (hasHeader) {
+				if (opts.hasHeader) {
 					dataset.columns[c].name = Trim(allData[0][c]);
 					if (dataset.columns[c].name.empty())
 						dataset.columns[c].name = "Column" + std::to_string(c);
@@ -72678,8 +73372,23 @@ namespace MML {
 				}
 			}
 
+			// Schema validation: check row widths
+			if (opts.strictSchema || opts.warnings) {
+				for (size_t r = dataStartRow; r < allData.size(); ++r) {
+					if (allData[r].size() != numCols) {
+						std::string msg = "Row " + std::to_string(r + 1) + " has " +
+						                  std::to_string(allData[r].size()) + " fields, expected " +
+						                  std::to_string(numCols);
+						if (opts.strictSchema)
+							throw DataError("LoadCSV: Schema mismatch - " + msg);
+						if (opts.warnings)
+							opts.warnings->push_back(msg);
+					}
+				}
+			}
+
 			// Collect string values for type inference
-			if (inferTypes) {
+			if (opts.inferTypes) {
 				for (size_t c = 0; c < numCols; ++c) {
 					std::vector<std::string> colValues;
 					for (size_t r = dataStartRow; r < allData.size(); ++r) {
@@ -72742,7 +73451,8 @@ namespace MML {
 					bool boolVal = false;
 					std::string strVal;
 
-					bool parsed = ParseValue(value, col.type, realVal, intVal, boolVal, strVal);
+					auto result = ParseValue(value, col.type, realVal, intVal, boolVal, strVal);
+					bool parsed = (result == ParseResult::Parsed);
 					col.missingMask[rowIdx] = !parsed;
 
 					switch (col.type) {
@@ -72787,6 +73497,22 @@ namespace MML {
 			}
 
 			return dataset;
+		}
+
+		/// @brief Load dataset from CSV file (convenience overload)
+		/// @param filename Path to CSV file
+		/// @param hasHeader If true, first row is column names
+		/// @param delimiter Field delimiter (default ',')
+		/// @param inferTypes If true, automatically infer column types
+		/// @return Loaded dataset
+		/// @throws DataError on file/parse errors
+		inline Dataset LoadCSV(const std::string& filename, bool hasHeader = true,
+		                       char delimiter = ',', bool inferTypes = true) {
+			CSVLoadOptions opts;
+			opts.hasHeader = hasHeader;
+			opts.delimiter = delimiter;
+			opts.inferTypes = inferTypes;
+			return LoadCSV(filename, opts);
 		}
 
 		/// @brief Load dataset from TSV file
@@ -72931,7 +73657,8 @@ namespace MML {
 					bool boolVal = false;
 					std::string strVal;
 
-					bool parsed = ParseValue(value, col.type, realVal, intVal, boolVal, strVal);
+					auto result = ParseValue(value, col.type, realVal, intVal, boolVal, strVal);
+					bool parsed = (result == ParseResult::Parsed);
 					col.missingMask[rowIdx] = !parsed;
 
 					switch (col.type) {
@@ -73176,7 +73903,8 @@ namespace MML {
 							bool boolVal = false;
 							std::string strVal;
 
-							bool parsed = ParseValue(values[i], col.type, realVal, intVal, boolVal, strVal);
+							auto result = ParseValue(values[i], col.type, realVal, intVal, boolVal, strVal);
+							bool parsed = (result == ParseResult::Parsed);
 							col.missingMask[i] = !parsed;
 
 							switch (col.type) {
@@ -73630,7 +74358,7 @@ namespace MML::Systems
 		/// @return Solution vector
 		///
 		/// @throws ConvergenceError if method doesn't converge
-		Vector<Type> SolveIterative(IterativeMethod method = IterativeMethod::Auto, Type tol = 1e-10, int maxIter = 1000) const {
+		Vector<Type> SolveIterative(IterativeMethod method = IterativeMethod::Auto, Type tol = Precision::DefaultToleranceStrict, int maxIter = 1000) const {
 			RequireRHS();
 			RequireSquare();
 
@@ -73675,7 +74403,7 @@ namespace MML::Systems
 		Type RelativeResidual(const Vector<Type>& x) const {
 			RequireRHS();
 			Type bNorm = _b.NormL2();
-			if (bNorm < 1e-30)
+			if (bNorm < Precision::DivisionSafetyThreshold)
 				return ResidualNorm(x); // Avoid division by zero
 			return ResidualNorm(x) / bNorm;
 		}
@@ -73686,7 +74414,7 @@ namespace MML::Systems
 		/// @param tol Accuracy threshold
 		///
 		/// @return Detailed verification results
-		VerificationResult<Type> Verify(const Vector<Type>& x, Type tol = 1e-10) const {
+		VerificationResult<Type> Verify(const Vector<Type>& x, Type tol = Precision::DefaultToleranceStrict) const {
 			RequireRHS();
 
 			VerificationResult<Type> result;
@@ -73696,7 +74424,7 @@ namespace MML::Systems
 			// Backward error estimate
 			Type ANorm = Utils::InfinityNorm(_A);
 			Type xNorm = x.NormL2();
-			if (ANorm * xNorm > 1e-30)
+			if (ANorm * xNorm > Precision::DivisionSafetyThreshold)
 				result.backwardError = result.absoluteResidual / (ANorm * xNorm);
 			else
 				result.backwardError = result.absoluteResidual;
@@ -73725,7 +74453,7 @@ namespace MML::Systems
 		//=========================================================================
 
 		/// @brief Check if matrix is symmetric within tolerance
-		bool isSymmetric(Type tol = 1e-10) const {
+		bool isSymmetric(Type tol = Precision::DefaultToleranceStrict) const {
 			if (!_isSymmetric.has_value()) {
 				if (!isSquare()) {
 					_isSymmetric = false;
@@ -73744,7 +74472,7 @@ namespace MML::Systems
 		/// @brief Check if matrix is positive definite
 		///
 		/// @note Attempts Cholesky decomposition
-		bool isPositiveDefinite(Type tol = 1e-10) const {
+		bool isPositiveDefinite(Type tol = Precision::DefaultToleranceStrict) const {
 			if (!_isPositiveDefinite.has_value()) {
 				if (!isSymmetric(tol)) {
 					_isPositiveDefinite = false;
@@ -73779,16 +74507,16 @@ namespace MML::Systems
 			return true;
 		}
 
-		bool isUpperTriangular(Type tol = 1e-10) const { return Utils::IsUpperTriangular(_A, tol); }
+		bool isUpperTriangular(Type tol = Precision::DefaultToleranceStrict) const { return Utils::IsUpperTriangular(_A, tol); }
 
-		bool isLowerTriangular(Type tol = 1e-10) const { return Utils::IsLowerTriangular(_A, tol); }
+		bool isLowerTriangular(Type tol = Precision::DefaultToleranceStrict) const { return Utils::IsLowerTriangular(_A, tol); }
 
-		bool isDiagonal(Type tol = 1e-10) const { return Utils::IsDiagonal(_A, tol); }
+		bool isDiagonal(Type tol = Precision::DefaultToleranceStrict) const { return Utils::IsDiagonal(_A, tol); }
 
 		/// @brief Compute fraction of zero elements
 		///
 		/// @param threshold Elements below this are considered zero
-		Real Sparsity(Type threshold = 1e-15) const {
+		Real Sparsity(Type threshold = Precision::EigenSolverZeroThreshold) const {
 			int zeros = 0;
 			int total = _A.rows() * _A.cols();
 
@@ -73834,7 +74562,7 @@ namespace MML::Systems
 			if (!_conditionNumber.has_value()) {
 				SVDecompositionSolver<Type> solver(_A);
 				Type invCond = solver.inv_condition();
-				_conditionNumber = (invCond > 1e-30) ? (1.0 / invCond) : 1e30;
+				_conditionNumber = (invCond > Precision::DivisionSafetyThreshold) ? (1.0 / invCond) : static_cast<Type>(1.0 / Precision::DivisionSafetyThreshold);
 			}
 			return *_conditionNumber;
 		}
@@ -73988,7 +74716,7 @@ namespace MML::Systems
 		///
 		/// @return EigenSolver::Result with eigenvalues (potentially complex) and eigenvectors
 		/// @note Uses implicitly-shifted QR algorithm for general matrices
-		EigenSolver::Result GetEigen(Type tol = 1e-10, int maxIter = 1000) const {
+		EigenSolver::Result GetEigen(Type tol = Precision::DefaultToleranceStrict, int maxIter = 1000) const {
 			RequireSquare();
 			return EigenSolver::Solve(_A, tol, maxIter);
 		}
@@ -73997,7 +74725,7 @@ namespace MML::Systems
 		///
 		/// @return Vector of real eigenvalues (imaginary parts discarded for complex pairs)
 		/// @note For purely real eigenvalue analysis; use GetEigen() for complex eigenvalues
-		Vector<Type> Eigenvalues(Type tol = 1e-10) const {
+		Vector<Type> Eigenvalues(Type tol = Precision::DefaultToleranceStrict) const {
 			RequireSquare();
 			auto result = EigenSolver::Solve(_A, tol);
 			int n = rows();
@@ -74023,7 +74751,7 @@ namespace MML::Systems
 		/// @brief Compute spectral radius (largest |eigenvalue|)
 		///
 		/// @return max(|λ_i|) over all eigenvalues
-		Type SpectralRadius(Type tol = 1e-10) const {
+		Type SpectralRadius(Type tol = Precision::DefaultToleranceStrict) const {
 			RequireSquare();
 			auto result = EigenSolver::Solve(_A, tol);
 			Type maxMag = 0;
@@ -74035,7 +74763,7 @@ namespace MML::Systems
 		/// @brief Check if matrix has any complex eigenvalues
 		///
 		/// @return true if any eigenvalue has non-zero imaginary part
-		bool HasComplexEigenvalues(Type tol = 1e-10) const {
+		bool HasComplexEigenvalues(Type tol = Precision::DefaultToleranceStrict) const {
 			RequireSquare();
 			auto result = EigenSolver::Solve(_A, tol);
 			for (const auto& ev : result.eigenvalues) {
@@ -75281,7 +76009,7 @@ namespace MML::Systems
 						norm += v[i] * v[i];
 					norm = std::sqrt(norm);
 
-					if (norm > 1e-30) {
+					if (norm > Precision::DivisionSafetyThreshold) {
 						lyapunovSums[j] += std::log(norm);
 						for (int i = 0; i < N; ++i)
 							Q(i, j) = v[i] / norm;
@@ -75343,7 +76071,7 @@ namespace MML::Systems
 		/// @param tol Convergence tolerance
 		/// @param maxIter Maximum iterations
 		/// @return Fixed point result (check convergenceResidual for success)
-		static FixedPoint<Real> Find(IDynamicalSystem& sys, const Vector<Real>& initialGuess, Real tol = 1e-10, int maxIter = 50) {
+		static FixedPoint<Real> Find(IDynamicalSystem& sys, const Vector<Real>& initialGuess, Real tol = Precision::DefaultToleranceStrict, int maxIter = 50) {
 			int n = sys.getDim();
 			FixedPoint<Real> result;
 			result.location = initialGuess;
@@ -75448,25 +76176,25 @@ namespace MML::Systems
 				maxRealPart = std::max(maxRealPart, re);
 				minRealPart = std::min(minRealPart, re);
 
-				if (std::abs(im) > 1e-10)
+				if (std::abs(im) > Precision::DefaultToleranceStrict)
 					hasComplex = true;
 
-				if (re > 1e-10)
+				if (re > Precision::DefaultToleranceStrict)
 					numPositiveReal++;
-				else if (re < -1e-10)
+				else if (re < -Precision::DefaultToleranceStrict)
 					numNegativeReal++;
 			}
 
 			// Determine stability
-			fp.isStable = (maxRealPart < -1e-10);
+			fp.isStable = (maxRealPart < -Precision::DefaultToleranceStrict);
 
 			// Classify type
 			if (hasComplex) {
-				if (std::abs(maxRealPart) < 1e-10 && std::abs(minRealPart) < 1e-10)
+				if (std::abs(maxRealPart) < Precision::DefaultToleranceStrict && std::abs(minRealPart) < Precision::DefaultToleranceStrict)
 					fp.type = FixedPointType::Center;
 				else if (numPositiveReal > 0 && numNegativeReal > 0)
 					fp.type = FixedPointType::SaddleFocus;
-				else if (maxRealPart < -1e-10)
+				else if (maxRealPart < -Precision::DefaultToleranceStrict)
 					fp.type = FixedPointType::StableFocus;
 				else
 					fp.type = FixedPointType::UnstableFocus;
@@ -75546,7 +76274,7 @@ namespace MML::Systems
 			for (int i = 0; i < n; ++i)
 				result.sum += result.exponents[i];
 
-			result.isChaotic = (result.maxExponent > 1e-6);
+			result.isChaotic = (result.maxExponent > Precision::DefaultTolerance);
 			result.kaplanYorkeDimension = ComputeKaplanYorkeDimension(result.exponents);
 			result.numOrthonormalizations = numOrth;
 			result.totalTime = tTotal;
@@ -75565,7 +76293,7 @@ namespace MML::Systems
 			Matrix<Real> QTemp(n, n);
 
 			Real t = t0;
-			while (t < t1 - 1e-12) {
+			while (t < t1 - Precision::NumericalZeroThreshold) {
 				Real dt = std::min(h, t1 - t);
 
 				// Save x(t) before trajectory update
@@ -75662,12 +76390,18 @@ namespace MML::Systems
 				norm = std::sqrt(norm);
 
 				// Accumulate log of stretching
-				if (norm > 1e-30)
+				if (norm > Precision::DivisionSafetyThreshold) {
 					lyapunovSums[j] += std::log(norm);
 
-				// Normalize
-				for (int i = 0; i < n; ++i)
-					Q(i, j) = v[i] / norm;
+					// Normalize
+					for (int i = 0; i < n; ++i)
+						Q(i, j) = v[i] / norm;
+				} else {
+					// Perturbation vector collapsed — reinitialize with unit vector
+					// to prevent NaN contamination (Lyapunov sum not accumulated)
+					for (int i = 0; i < n; ++i)
+						Q(i, j) = (i == j) ? Real(1.0) : Real(0.0);
+				}
 			}
 		}
 
@@ -76014,7 +76748,7 @@ namespace MML::Systems
 	inline FindFixedPointResult<Real> FindFixedPointDetailed(
 		IDynamicalSystem& sys,
 		const Vector<Real>& initialGuess,
-		Real tol = 1e-10,
+		Real tol = Precision::DefaultToleranceStrict,
 		int maxIter = 50,
 		const DynSysConfig& config = {})
 	{

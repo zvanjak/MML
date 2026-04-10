@@ -48,11 +48,11 @@ namespace MML {
 		/// Maximum Newton iterations per step (default: 20)
 		int max_newton_iter = 20;
 
-		/// Newton convergence tolerance (default: 1e-8)
-		Real newton_tol = 1e-8;
+		/// Newton convergence tolerance (precision-aware default)
+		Real newton_tol = PrecisionValues<Real>::NewtonTolerance;
 
-		/// Tolerance for constraint satisfaction g(t,x,y) ≈ 0 (default: 1e-10)
-		Real constraint_tol = 1e-10;
+		/// Tolerance for constraint satisfaction g(t,x,y) ≈ 0 (precision-aware default)
+		Real constraint_tol = PrecisionValues<Real>::IntegrationTolerance;
 
 		/// Maximum number of steps (default: 100000)
 		int max_steps = 100000;
@@ -61,8 +61,8 @@ namespace MML {
 		static DAESolverConfig HighPrecision() {
 			DAESolverConfig config;
 			config.step_size = 0.001;
-			config.newton_tol = 1e-12;
-			config.constraint_tol = 1e-12;
+			config.newton_tol = PrecisionValues<Real>::IntegrationTolerance;
+			config.constraint_tol = PrecisionValues<Real>::IntegrationTolerance;
 			config.max_newton_iter = 30;
 			return config;
 		}
@@ -71,8 +71,8 @@ namespace MML {
 		static DAESolverConfig Fast() {
 			DAESolverConfig config;
 			config.step_size = 0.05;
-			config.newton_tol = 1e-6;
-			config.constraint_tol = 1e-8;
+			config.newton_tol = PrecisionValues<Real>::NewtonTolerance * 100;
+			config.constraint_tol = PrecisionValues<Real>::IntegrationTolerance * 100;
 			config.max_newton_iter = 10;
 			return config;
 		}
@@ -116,7 +116,7 @@ namespace MML {
 	/// @return True if consistent initial conditions were found
 	inline bool ComputeConsistentIC(const IODESystemDAEWithJacobian& system,
 	                                Real t0, const Vector<Real>& x0, Vector<Real>& y0,
-	                                int max_iter = 20, Real tol = 1e-10)
+	                                int max_iter = 20, Real tol = PrecisionValues<Real>::IntegrationTolerance)
 	{
 		int algDim = system.getAlgDim();
 		Vector<Real> g(algDim);
@@ -156,7 +156,7 @@ namespace MML {
 	/// @return True if |g(t0, x0, y0)| < tol
 	inline bool VerifyConsistentIC(const IODESystemDAE& system,
 	                               Real t0, const Vector<Real>& x0, const Vector<Real>& y0,
-	                               Real tol = 1e-10)
+	                               Real tol = PrecisionValues<Real>::IntegrationTolerance)
 	{
 		int algDim = system.getAlgDim();
 		Vector<Real> g(algDim);

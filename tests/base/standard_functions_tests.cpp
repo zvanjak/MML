@@ -59,7 +59,7 @@ TEST_CASE("Functions::Factorial - Known values", "[StandardFunctions][Factorial]
     {
         REQUIRE(Factorial(12) == Approx(479001600.0));
         REQUIRE(Factorial(15) == Approx(1307674368000.0));
-        REQUIRE(Factorial(20) == Approx(2432902008176640000.0).epsilon(1e-10));
+        REQUIRE(Factorial(20) == Approx(2432902008176640000.0).epsilon(TOL(1e-10, 1e-5)));
     }
 }
 
@@ -142,10 +142,13 @@ TEST_CASE("Functions::FactorialStirling - Approximation quality", "[StandardFunc
         REQUIRE(rel_error_20 < 0.005);  // < 0.5% error
 
         // For n=50, error should be < 0.2%
-        Real exact_50 = std::tgamma(51.0);  // Use gamma function for large factorials
-        Real stirling_50 = FactorialStirling(50);
-        Real rel_error_50 = std::abs(stirling_50 - exact_50) / exact_50;
-        REQUIRE(rel_error_50 < 0.002);  // < 0.2% error
+        if constexpr (!std::is_same_v<Real, float>) {
+            // 50! exceeds float range (~3.04e64 > float max ~3.4e38)
+            Real exact_50 = std::tgamma(51.0);  // Use gamma function for large factorials
+            Real stirling_50 = FactorialStirling(50);
+            Real rel_error_50 = std::abs(stirling_50 - exact_50) / exact_50;
+            REQUIRE(rel_error_50 < 0.002);  // < 0.2% error
+        }
     }
 
     SECTION("FactorialStirling is always less than exact factorial")

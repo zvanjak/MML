@@ -45,7 +45,7 @@ namespace MML
 			try
 			{
 				out.precision(precision);
-				WriteRealFuncHeader(out, "REAL_FUNCTION", title, x1, x2, numPoints);
+				WriteRealFuncHeader(out, FormatType::REAL_FUNCTION, title, x1, x2, numPoints);
 
 				Real step = (x2 - x1) / (numPoints - 1);
 				for (int i = 0; i < numPoints; i++)
@@ -89,7 +89,7 @@ namespace MML
 			try
 			{
 				out.precision(precision);
-				WriteRealFuncHeader(out, "REAL_FUNCTION", title, points[0], points[points.size() - 1], static_cast<int>(points.size()));
+				WriteRealFuncHeader(out, FormatType::REAL_FUNCTION, title, points[0], points[points.size() - 1], static_cast<int>(points.size()));
 
 				for (int i = 0; i < points.size(); i++)
 				{
@@ -132,7 +132,7 @@ namespace MML
 			try
 			{
 				out.precision(precision);
-				WriteRealFuncHeader(out, "REAL_FUNCTION_EQUALLY_SPACED", title, x1, x2, numPoints);
+				WriteRealFuncHeader(out, FormatType::REAL_FUNCTION_EQUALLY_SPACED, title, x1, x2, numPoints);
 
 				Real step = (x2 - x1) / (numPoints - 1);
 				for (int i = 0; i < numPoints; i++)

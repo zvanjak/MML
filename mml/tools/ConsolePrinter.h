@@ -458,8 +458,8 @@ namespace MML {
 	class TablePrinter {
 	private:
 		std::string m_tagColumnName;
-		ColumnFormat m_tagFormat;
-		std::vector<ColumnFormat> m_columnFormats;
+		mutable ColumnFormat m_tagFormat;
+		mutable std::vector<ColumnFormat> m_columnFormats;
 		std::vector<RowTag> m_rowTags;
 		std::vector<std::vector<CellValue>> m_data;
 		TableStyle m_style;
@@ -794,9 +794,8 @@ namespace MML {
 
 		// Helper: calculate auto-widths
 		void calculateAutoWidths() const {
-			// Mutable to allow calculation during const operations
-			auto& tagFmt = const_cast<ColumnFormat&>(m_tagFormat);
-			auto& colFmts = const_cast<std::vector<ColumnFormat>&>(m_columnFormats);
+			auto& tagFmt = m_tagFormat;
+			auto& colFmts = m_columnFormats;
 
 			// Tag column
 			if (tagFmt.rawWidth() == ColumnFormat::AUTO_WIDTH) {

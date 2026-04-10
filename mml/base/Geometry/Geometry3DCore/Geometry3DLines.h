@@ -243,8 +243,6 @@ namespace MML
 		/// @return false if lines are parallel (nearest points undefined)
 		bool Dist(const Line3D& line, Real& out_dist, Pnt3Cart& out_line1_pnt, Pnt3Cart& out_line2_pnt) const
 		{
-			// https://math.stackexchange.com/questions/2213165/distance-between-two-lines-in-3d-space
-			// https://en.wikipedia.org/wiki/Skew_lines#Nearest_points
 			Pnt3Cart  p1 = StartPoint();
 			Vec3Cart d1 = Direction();
 			Pnt3Cart  p2 = line.StartPoint();

@@ -35,7 +35,7 @@ TEST_CASE("ConvexHull - Empty and degenerate cases", "[ComputationalGeometry][Co
         std::vector<Point2Cartesian> single = { Point2Cartesian(5, 3) };
         Polygon2D hull = MML::CompGeometry::ConvexHull2D::Compute(single);
         REQUIRE(hull.NumVertices() == 1);
-        REQUIRE_THAT(hull[0].X(), WithinAbs(REAL(5.0), REAL(1e-10)));
+        REQUIRE_THAT(hull[0].X(), WithinAbs(REAL(5.0), TOL(1e-10, 1e-5)));
     }
 
     SECTION("Two points")
@@ -77,7 +77,7 @@ TEST_CASE("ConvexHull - Square", "[ComputationalGeometry][ConvexHull]")
     
     REQUIRE(hull.NumVertices() == 4);
     REQUIRE(hull.IsConvex());
-    REQUIRE_THAT(hull.Area(), WithinAbs(REAL(1.0), REAL(1e-10)));
+    REQUIRE_THAT(hull.Area(), WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("ConvexHull - Triangle", "[ComputationalGeometry][ConvexHull]")
@@ -92,7 +92,7 @@ TEST_CASE("ConvexHull - Triangle", "[ComputationalGeometry][ConvexHull]")
     
     REQUIRE(hull.NumVertices() == 3);
     REQUIRE(hull.IsConvex());
-    REQUIRE_THAT(hull.Area(), WithinAbs(REAL(2.0), REAL(1e-10)));
+    REQUIRE_THAT(hull.Area(), WithinAbs(REAL(2.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("ConvexHull - Random point cloud", "[ComputationalGeometry][ConvexHull]")

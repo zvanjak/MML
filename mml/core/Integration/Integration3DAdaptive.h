@@ -103,8 +103,8 @@ struct AdaptiveResult3D
 /// @brief Configuration for adaptive 3D integration
 struct AdaptiveConfig3D
 {
-    Real tol_abs = 1e-10;        ///< Absolute error tolerance
-    Real tol_rel = 1e-8;         ///< Relative error tolerance
+    Real tol_abs = PrecisionValues<Real>::IntegrationTolerance;  ///< Absolute error tolerance
+    Real tol_rel = PrecisionValues<Real>::IntegrationTolerance;  ///< Relative error tolerance
     int max_depth = 15;          ///< Maximum octree subdivision depth (smaller than 2D!)
     int max_evaluations = 10000000; ///< Maximum function evaluations budget
     GKRule rule = GKRule::GK15;  ///< Gauss-Kronrod rule to use
@@ -347,7 +347,7 @@ static AdaptiveResult3D IntegrateAdaptive3D(
     Real x1, Real x2,
     Real y1, Real y2,
     Real z1, Real z2,
-    Real tolerance = 1e-8,
+    Real tolerance = PrecisionValues<Real>::IntegrationTolerance,
     int max_depth = 15,
     int max_evals = 10000000)
 {
@@ -425,7 +425,7 @@ static IntegrationDetailedResult IntegrateAdaptive3DDetailed(
     Real y1, Real y2,
     Real z1, Real z2,
     const IntegrationConfig& config = {},
-    Real tolerance = 1e-6,
+    Real tolerance = PrecisionValues<Real>::IntegrationTolerance,
     int max_depth = 15,
     int max_evals = 10000000)
 {

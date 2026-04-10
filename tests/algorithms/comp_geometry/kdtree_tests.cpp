@@ -9,6 +9,7 @@
 ///////////////////////////////////////////////////////////////////////////////////////////
 
 #include <catch2/catch_test_macros.hpp>
+#include "../../TestPrecision.h"
 #include <catch2/catch_approx.hpp>
 
 #include "MMLBase.h"
@@ -129,7 +130,7 @@ TEST_CASE("KDTree<2>_SinglePoint", "[algorithms][kdtree]") {
 	auto result = tree.findNearest({3.0, 3.0});
 	REQUIRE(result.found);
 	REQUIRE(result.index == 0);
-	REQUIRE(result.distance == Approx(std::sqrt(8.0)).margin(1e-10));
+	REQUIRE(result.distance == Approx(std::sqrt(8.0)).margin(TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("KDTree<2>_FourCorners", "[algorithms][kdtree]") {
@@ -173,7 +174,7 @@ TEST_CASE("KDTree<2>_FourCorners", "[algorithms][kdtree]") {
 		REQUIRE(result.found);
 		// All corners are equidistant, so any is acceptable
 		Real expectedDist = std::sqrt(50.0);
-		REQUIRE(result.distance == Approx(expectedDist).margin(1e-10));
+		REQUIRE(result.distance == Approx(expectedDist).margin(TOL(1e-10, 1e-5)));
 	}
 }
 
@@ -197,7 +198,7 @@ TEST_CASE("KDTree<2>_NearestNeighborCorrectness", "[algorithms][kdtree]") {
 		
 		REQUIRE(kdResult.found);
 		REQUIRE(kdResult.index == bfIndex);
-		REQUIRE(kdResult.distance == Approx(bfDist).margin(1e-10));
+		REQUIRE(kdResult.distance == Approx(bfDist).margin(TOL(1e-10, 1e-5)));
 	}
 }
 
@@ -221,7 +222,7 @@ TEST_CASE("KDTree<2>_KNearestNeighbors", "[algorithms][kdtree]") {
 		REQUIRE(result.indices.size() == 1);
 		// Both index 1 and 2 are equidistant
 		REQUIRE((result.indices[0] == 1 || result.indices[0] == 2));
-		REQUIRE(result.distances[0] == Approx(0.5).margin(1e-10));
+		REQUIRE(result.distances[0] == Approx(0.5).margin(TOL(1e-10, 1e-5)));
 	}
 	
 	SECTION("k=2") {
@@ -382,7 +383,7 @@ TEST_CASE("KDTree<3>_NearestNeighborCorrectness", "[algorithms][kdtree]") {
 		
 		REQUIRE(kdResult.found);
 		REQUIRE(kdResult.index == bfIndex);
-		REQUIRE(kdResult.distance == Approx(bfDist).margin(1e-10));
+		REQUIRE(kdResult.distance == Approx(bfDist).margin(TOL(1e-10, 1e-5)));
 	}
 }
 
@@ -450,7 +451,7 @@ TEST_CASE("KDTree2D_VerifyAgainstBruteForce", "[algorithms][kdtree]") {
 		auto bfResult = FindNearestBruteForce2D(points, query);
 		
 		REQUIRE(kdResult.index == bfResult.index);
-		REQUIRE(kdResult.distance == Approx(bfResult.distance).margin(1e-10));
+		REQUIRE(kdResult.distance == Approx(bfResult.distance).margin(TOL(1e-10, 1e-5)));
 	}
 }
 
@@ -514,7 +515,7 @@ TEST_CASE("KDTree3D_VerifyAgainstBruteForce", "[algorithms][kdtree]") {
 		auto bfResult = FindNearestBruteForce3D(points, query);
 		
 		REQUIRE(kdResult.index == bfResult.index);
-		REQUIRE(kdResult.distance == Approx(bfResult.distance).margin(1e-10));
+		REQUIRE(kdResult.distance == Approx(bfResult.distance).margin(TOL(1e-10, 1e-5)));
 	}
 }
 
@@ -585,7 +586,7 @@ TEST_CASE("KDTree_EdgeCases", "[algorithms][kdtree]") {
 		
 		auto result = tree.findNearest({5.0, 5.0});
 		REQUIRE(result.found);
-		REQUIRE(result.distance == Approx(0.0).margin(1e-10));
+		REQUIRE(result.distance == Approx(0.0).margin(TOL(1e-10, 1e-5)));
 	}
 	
 	SECTION("Points on a line") {

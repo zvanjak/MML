@@ -79,7 +79,7 @@ namespace MML::Tests::Base::MatrixNMTests
 
 		// Difference is 1e-4, use 1e-3 (yes) and 1e-7 (no)
 		// 1e-3 scales to 1e-1 (float), 1e-7 scales to 1e-5 (float)
-		REQUIRE(true == a.IsEqualTo(b, ScaleTolerance(REAL(1e-3))));
+		REQUIRE(true == a.IsEqualTo(b, TOL3(1e-3, 1e-1, 1e-3)));
 		REQUIRE(false == a.IsEqualTo(b, ScaleTolerance(REAL(1e-7))));
 	}
 
@@ -524,7 +524,7 @@ namespace MML::Tests::Base::MatrixNMTests
 		// m * original = I
 		auto product = m * original;
 		auto identity = MatrixNM<Real, 2, 2>::Identity();
-		REQUIRE(product.IsEqualTo(identity, 1e-10));
+		REQUIRE(product.IsEqualTo(identity, TOL(1e-10, 1e-5)));
 	}
 
 	///////////////////////          Type Aliases                      //////////////////////
@@ -615,11 +615,11 @@ namespace MML::Tests::Base::MatrixNMTests
 		
 		// A * I = A
 		auto AI = A * I;
-		REQUIRE(A.IsEqualTo(AI, 1e-10));
+		REQUIRE(A.IsEqualTo(AI, TOL(1e-10, 1e-5)));
 		
 		// I * A = A
 		auto IA = I * A;
-		REQUIRE(A.IsEqualTo(IA, 1e-10));
+		REQUIRE(A.IsEqualTo(IA, TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("MatrixNM::1x1_matrix", "[MatrixNM][edge_cases]")

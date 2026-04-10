@@ -359,12 +359,18 @@ namespace MML::Systems
 				norm = std::sqrt(norm);
 
 				// Accumulate log of stretching
-				if (norm > Precision::DivisionSafetyThreshold)
+				if (norm > Precision::DivisionSafetyThreshold) {
 					lyapunovSums[j] += std::log(norm);
 
-				// Normalize
-				for (int i = 0; i < n; ++i)
-					Q(i, j) = v[i] / norm;
+					// Normalize
+					for (int i = 0; i < n; ++i)
+						Q(i, j) = v[i] / norm;
+				} else {
+					// Perturbation vector collapsed — reinitialize with unit vector
+					// to prevent NaN contamination (Lyapunov sum not accumulated)
+					for (int i = 0; i < n; ++i)
+						Q(i, j) = (i == j) ? Real(1.0) : Real(0.0);
+				}
 			}
 		}
 

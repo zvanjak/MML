@@ -196,7 +196,7 @@ namespace MML::Tests::Algorithms::Integration2DTests
 		auto result = Integrate2D(func, SIMPSON, REAL(0.0), REAL(1.0), y_zero, y_one);
 		
 		REQUIRE(result.converged == true);
-		REQUIRE_THAT(result.value, WithinAbs(REAL(1.0), REAL(1e-8)));
+		REQUIRE_THAT(result.value, WithinAbs(REAL(1.0), TOL(1e-8, 1e-4)));
 	}
 
 	TEST_CASE("Integrate2D_Constant_UnitSquare_Gauss10", "[integration][2d][gauss]")
@@ -206,7 +206,7 @@ namespace MML::Tests::Algorithms::Integration2DTests
 		
 		auto result = Integrate2D(func, GAUSS10, REAL(0.0), REAL(1.0), y_zero, y_one);
 		
-		REQUIRE_THAT(result.value, WithinAbs(REAL(1.0), REAL(1e-10)));
+		REQUIRE_THAT(result.value, WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("Integrate2D_Constant_Rectangle", "[integration][2d]")
@@ -230,7 +230,7 @@ namespace MML::Tests::Algorithms::Integration2DTests
 		auto result = Integrate2D(func, SIMPSON, REAL(0.0), REAL(1.0), y_zero, y_one);
 		
 		REQUIRE(result.converged == true);
-		REQUIRE_THAT(result.value, WithinAbs(REAL(0.5), REAL(1e-8)));
+		REQUIRE_THAT(result.value, WithinAbs(REAL(0.5), TOL(1e-8, 1e-4)));
 	}
 
 	TEST_CASE("Integrate2D_LinearY_UnitSquare", "[integration][2d][polynomial]")
@@ -242,7 +242,7 @@ namespace MML::Tests::Algorithms::Integration2DTests
 		auto result = Integrate2D(func, SIMPSON, REAL(0.0), REAL(1.0), y_zero, y_one);
 		
 		REQUIRE(result.converged == true);
-		REQUIRE_THAT(result.value, WithinAbs(REAL(0.5), REAL(1e-8)));
+		REQUIRE_THAT(result.value, WithinAbs(REAL(0.5), TOL(1e-8, 1e-4)));
 	}
 
 	TEST_CASE("Integrate2D_LinearSum_UnitSquare", "[integration][2d][polynomial]")
@@ -254,7 +254,7 @@ namespace MML::Tests::Algorithms::Integration2DTests
 		auto result = Integrate2D(func, SIMPSON, REAL(0.0), REAL(1.0), y_zero, y_one);
 		
 		REQUIRE(result.converged == true);
-		REQUIRE_THAT(result.value, WithinAbs(REAL(1.0), REAL(1e-8)));
+		REQUIRE_THAT(result.value, WithinAbs(REAL(1.0), TOL(1e-8, 1e-4)));
 	}
 
 	TEST_CASE("Integrate2D_Product_UnitSquare", "[integration][2d][polynomial]")
@@ -266,7 +266,7 @@ namespace MML::Tests::Algorithms::Integration2DTests
 		auto result = Integrate2D(func, SIMPSON, REAL(0.0), REAL(1.0), y_zero, y_one);
 		
 		REQUIRE(result.converged == true);
-		REQUIRE_THAT(result.value, WithinAbs(REAL(0.25), REAL(1e-8)));
+		REQUIRE_THAT(result.value, WithinAbs(REAL(0.25), TOL(1e-8, 1e-4)));
 	}
 
 	TEST_CASE("Integrate2D_SumOfSquares_UnitSquare", "[integration][2d][polynomial]")
@@ -278,7 +278,7 @@ namespace MML::Tests::Algorithms::Integration2DTests
 		auto result = Integrate2D(func, SIMPSON, REAL(0.0), REAL(1.0), y_zero, y_one);
 		
 		REQUIRE(result.converged == true);
-		REQUIRE_THAT(result.value, WithinAbs(REAL(2.0)/REAL(3.0), REAL(1e-8)));
+		REQUIRE_THAT(result.value, WithinAbs(REAL(2.0)/REAL(3.0), TOL(1e-8, 1e-4)));
 	}
 
 	TEST_CASE("Integrate2D_ProductOfSquares_UnitSquare", "[integration][2d][polynomial]")
@@ -290,7 +290,7 @@ namespace MML::Tests::Algorithms::Integration2DTests
 		auto result = Integrate2D(func, SIMPSON, REAL(0.0), REAL(1.0), y_zero, y_one);
 		
 		REQUIRE(result.converged == true);
-		REQUIRE_THAT(result.value, WithinAbs(REAL(1.0)/REAL(9.0), REAL(1e-8)));
+		REQUIRE_THAT(result.value, WithinAbs(REAL(1.0)/REAL(9.0), TOL(1e-8, 1e-4)));
 	}
 
 	/////////////////////////////////////////////////////////////////////////////
@@ -532,8 +532,8 @@ namespace MML::Tests::Algorithms::Integration2DTests
 		REQUIRE(simp.converged == true);
 		
 		// Gauss10 should be most accurate for polynomial
-		REQUIRE_THAT(gauss.value, WithinAbs(expected, REAL(1e-12)));
-		REQUIRE_THAT(simp.value, WithinAbs(expected, REAL(1e-8)));
+		REQUIRE_THAT(gauss.value, WithinAbs(expected, TOL(1e-12, 1e-5)));
+		REQUIRE_THAT(simp.value, WithinAbs(expected, TOL(1e-8, 1e-4)));
 		REQUIRE_THAT(trap.value, WithinAbs(expected, REAL(1e-4)));
 	}
 
@@ -551,7 +551,7 @@ namespace MML::Tests::Algorithms::Integration2DTests
 		// All should be reasonably close
 		REQUIRE_THAT(trap.value, WithinAbs(expected, REAL(1e-3)));
 		REQUIRE_THAT(simp.value, WithinAbs(expected, REAL(1e-6)));
-		REQUIRE_THAT(gauss.value, WithinAbs(expected, REAL(1e-8)));
+		REQUIRE_THAT(gauss.value, WithinAbs(expected, TOL(1e-8, 1e-4)));
 	}
 
 	/////////////////////////////////////////////////////////////////////////////
@@ -566,7 +566,7 @@ namespace MML::Tests::Algorithms::Integration2DTests
 		
 		auto result = Integrate2D(func, SIMPSON, REAL(1.0), REAL(1.0), y_zero, y_one);
 		
-		REQUIRE_THAT(result.value, WithinAbs(REAL(0.0), REAL(1e-12)));
+		REQUIRE_THAT(result.value, WithinAbs(REAL(0.0), TOL(1e-12, 1e-5)));
 	}
 
 	TEST_CASE("Integrate2D_ReversedBounds", "[integration][2d][edge]")
@@ -578,7 +578,7 @@ namespace MML::Tests::Algorithms::Integration2DTests
 		auto forward = Integrate2D(func, SIMPSON, REAL(0.0), REAL(1.0), y_zero, y_one);
 		auto reverse = Integrate2D(func, SIMPSON, REAL(1.0), REAL(0.0), y_zero, y_one);
 		
-		REQUIRE_THAT(reverse.value, WithinAbs(-forward.value, REAL(1e-10)));
+		REQUIRE_THAT(reverse.value, WithinAbs(-forward.value, TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("Integrate2D_NarrowStrip", "[integration][2d][edge]")
@@ -591,7 +591,7 @@ namespace MML::Tests::Algorithms::Integration2DTests
 		
 		auto result = Integrate2D(func, SIMPSON, REAL(0.0), REAL(1.0), y_zero, y_small);
 		
-		REQUIRE_THAT(result.value, WithinAbs(REAL(0.001), REAL(1e-8)));
+		REQUIRE_THAT(result.value, WithinAbs(REAL(0.001), TOL(1e-8, 1e-4)));
 	}
 
 	/////////////////////////////////////////////////////////////////////////////
@@ -607,7 +607,7 @@ namespace MML::Tests::Algorithms::Integration2DTests
 		auto result = Integrate2D(func, SIMPSON, REAL(0.0), REAL(1.0), y_zero, y_one);
 		
 		REQUIRE(result.converged == true);
-		REQUIRE_THAT(result.value, WithinAbs(REAL(1.0)/REAL(12.0), REAL(1e-8)));
+		REQUIRE_THAT(result.value, WithinAbs(REAL(1.0)/REAL(12.0), TOL(1e-8, 1e-4)));
 	}
 
 	TEST_CASE("Integrate2D_KnownIntegral_CosProduct", "[integration][2d][verification]")

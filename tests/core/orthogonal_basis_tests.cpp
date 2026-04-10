@@ -6,6 +6,7 @@
 ///                                                                                   ///
 ///////////////////////////////////////////////////////////////////////////////////////////
 #include <catch2/catch_all.hpp>
+#include "../TestPrecision.h"
 
 #include "MMLBase.h"
 #include "core/OrthogonalBasis.h"
@@ -315,7 +316,7 @@ TEST_CASE("ProbabilistHermiteBasis - He_2(x) = x^2 - 1", "[OrthogonalBasis][Prob
 	ProbabilistHermiteBasis basis;
 	
 	REQUIRE(basis.Evaluate(2, 0.0) == Catch::Approx(-1.0));
-	REQUIRE(basis.Evaluate(2, 1.0) == Catch::Approx(0.0).margin(1e-14));
+	REQUIRE(basis.Evaluate(2, 1.0) == Catch::Approx(0.0).margin(TOL(1e-14, 1e-5)));
 	REQUIRE(basis.Evaluate(2, 2.0) == Catch::Approx(3.0));
 }
 
@@ -453,7 +454,7 @@ TEST_CASE("AssociatedLaguerreBasis - L_n^0 = L_n", "[OrthogonalBasis][Associated
 	LaguerreBasis laguerre;
 	
 	for (int n = 0; n <= 5; n++) {
-		REQUIRE(assoc.Evaluate(n, 1.0) == Catch::Approx(laguerre.Evaluate(n, 1.0)).epsilon(1e-10));
+		REQUIRE(assoc.Evaluate(n, 1.0) == Catch::Approx(laguerre.Evaluate(n, 1.0)).epsilon(TOL(1e-10, 1e-5)));
 	}
 }
 

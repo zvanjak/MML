@@ -8,6 +8,7 @@
 ///  License:     MIT License (see LICENSE.md)                    ///
 ///////////////////////////////////////////////////////////////////////////////////////////
 #include <catch2/catch_test_macros.hpp>
+#include "../TestPrecision.h"
 #include <catch2/catch_approx.hpp>
 
 #include <core/RichardsonExtrapolation.h>
@@ -33,7 +34,7 @@ TEST_CASE("Richardson::NevilleExtrapolate - basic polynomial extrapolation", "[r
 		std::vector<Real> x = { 1.0, 2.0, 3.0 };
 		
 		auto result = Richardson::NevilleExtrapolate(y, x);
-		REQUIRE(result.value == Approx(5.0).epsilon(1e-12));
+		REQUIRE(result.value == Approx(5.0).epsilon(TOL(1e-12, 1e-5)));
 	}
 
 	SECTION("Quadratic extrapolation to zero")
@@ -43,7 +44,7 @@ TEST_CASE("Richardson::NevilleExtrapolate - basic polynomial extrapolation", "[r
 		std::vector<Real> x = { 1.0, 2.0, 3.0, 4.0 };
 		
 		auto result = Richardson::NevilleExtrapolate(y, x);
-		REQUIRE(result.value == Approx(3.0).epsilon(1e-10));
+		REQUIRE(result.value == Approx(3.0).epsilon(TOL(1e-10, 1e-5)));
 	}
 
 	SECTION("Romberg-style: h² extrapolation")
@@ -66,7 +67,7 @@ TEST_CASE("Richardson::NevilleExtrapolate - basic polynomial extrapolation", "[r
 		}
 		
 		auto result = Richardson::NevilleExtrapolate(y_vals, x_vals);
-		REQUIRE(result.value == Approx(true_val).epsilon(1e-10));
+		REQUIRE(result.value == Approx(true_val).epsilon(TOL(1e-10, 1e-5)));
 		REQUIRE(result.converged);
 	}
 }
@@ -90,9 +91,9 @@ TEST_CASE("Richardson::Extrapolate - derivative estimation", "[richardson]")
 		
 		auto result = Richardson::Extrapolate(central_diff, 0.5, 1.4, 10, 2.0);
 		
-		REQUIRE(result.value == Approx(true_deriv).epsilon(1e-10));
+		REQUIRE(result.value == Approx(true_deriv).epsilon(TOL(1e-10, 1e-5)));
 		REQUIRE(result.converged);
-		REQUIRE(result.error_estimate < 1e-10);
+		REQUIRE(result.error_estimate < TOL(1e-10, 1e-5));
 	}
 
 	SECTION("Derivative of exp(x) at x=0")
@@ -107,7 +108,7 @@ TEST_CASE("Richardson::Extrapolate - derivative estimation", "[richardson]")
 		
 		auto result = Richardson::Extrapolate(central_diff, 0.1, 1.4, 10, 2.0);
 		
-		REQUIRE(result.value == Approx(true_deriv).epsilon(1e-12));
+		REQUIRE(result.value == Approx(true_deriv).epsilon(TOL(1e-12, 1e-5)));
 		REQUIRE(result.converged);
 	}
 
@@ -124,7 +125,7 @@ TEST_CASE("Richardson::Extrapolate - derivative estimation", "[richardson]")
 		
 		auto result = Richardson::Extrapolate(central_diff, 0.5, 1.4, 10, 2.0);
 		
-		REQUIRE(result.value == Approx(true_deriv).epsilon(1e-10));
+		REQUIRE(result.value == Approx(true_deriv).epsilon(TOL(1e-10, 1e-5)));
 	}
 
 	SECTION("Second derivative of sin(x) at x=π/4")
@@ -140,7 +141,7 @@ TEST_CASE("Richardson::Extrapolate - derivative estimation", "[richardson]")
 		
 		auto result = Richardson::Extrapolate(central_diff2, 0.3, 1.4, 10, 2.0);
 		
-		REQUIRE(result.value == Approx(true_deriv2).epsilon(1e-8));
+		REQUIRE(result.value == Approx(true_deriv2).epsilon(TOL(1e-8, 1e-4)));
 	}
 }
 
@@ -157,13 +158,13 @@ TEST_CASE("Richardson::Extrapolate - different shrink factors", "[richardson]")
 	SECTION("con = 2.0")
 	{
 		auto result = Richardson::Extrapolate(central_diff, 0.5, 2.0, 10, 2.0);
-		REQUIRE(result.value == Approx(true_deriv).epsilon(1e-10));
+		REQUIRE(result.value == Approx(true_deriv).epsilon(TOL(1e-10, 1e-5)));
 	}
 	
 	SECTION("con = 1.5")
 	{
 		auto result = Richardson::Extrapolate(central_diff, 0.5, 1.5, 10, 2.0);
-		REQUIRE(result.value == Approx(true_deriv).epsilon(1e-10));
+		REQUIRE(result.value == Approx(true_deriv).epsilon(TOL(1e-10, 1e-5)));
 	}
 }
 
@@ -211,7 +212,7 @@ TEST_CASE("Richardson::SimpleErrorEstimate", "[richardson]")
 	Real err = Richardson::SimpleErrorEstimate(T_h, T_h2, 2.0, 2);
 	Real expected = std::abs(T_h2 - T_h) / 3.0;
 	
-	REQUIRE(err == Approx(expected).epsilon(1e-12));
+	REQUIRE(err == Approx(expected).epsilon(TOL(1e-12, 1e-5)));
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -253,7 +254,7 @@ TEST_CASE("Richardson - edge cases", "[richardson]")
 		};
 		
 		auto result = Richardson::Extrapolate(central_diff, 0.1);
-		REQUIRE(result.value == Approx(0.0).margin(1e-15));
+		REQUIRE(result.value == Approx(0.0).margin(TOL(1e-15, 1e-5)));
 	}
 }
 

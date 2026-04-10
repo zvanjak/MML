@@ -172,11 +172,11 @@ namespace MML {
 			Real lower = _lower;
 			Real upper = _upper;
 
-			// For infinite bounds, use practical limits
+			// For infinite bounds, use practical limits (precision-dependent)
 			if (_lowerType == EndpointType::NEG_INF)
-				lower = -1e10;
+				lower = std::is_same_v<Real, float> ? Real(-1e6) : Real(-1e10);
 			if (_upperType == EndpointType::POS_INF)
-				upper = 1e10;
+				upper = std::is_same_v<Real, float> ? Real(1e6) : Real(1e10);
 
 			if (numPoints == 1) {
 				points.push_back((lower + upper) / 2.0);

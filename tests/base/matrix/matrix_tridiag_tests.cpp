@@ -166,7 +166,7 @@ namespace MML::Tests::Base::TridiagMatrixTests
 
 		TridiagonalMatrix<Real> at = a.GetTranspose();
 
-		REQUIRE(a.IsEqualTo(at, 1e-10));
+		REQUIRE(a.IsEqualTo(at, TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("MatrixTridiag_GetInverse_throws", "[tridiag][inverse]")

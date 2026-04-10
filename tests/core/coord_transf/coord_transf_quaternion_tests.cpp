@@ -12,7 +12,7 @@ using namespace MML::Testing;
 namespace MML::Tests::Core::CoordTransfQuaternionTests {
 
 // Helper function for approximate equality of vectors
-static bool VectorApproxEqual(const Vec3Cart& v1, const Vec3Cart& v2, Real tolerance = 1e-10)
+static bool VectorApproxEqual(const Vec3Cart& v1, const Vec3Cart& v2, Real tolerance = TOL(1e-10, 1e-5))
 {
 	return std::abs(v1[0] - v2[0]) < tolerance &&
 				 std::abs(v1[1] - v2[1]) < tolerance &&
@@ -32,9 +32,9 @@ TEST_CASE("Quaternion - Matrix Conversion", "[quaternion][matrix]")
 			for (int j = 0; j < 3; j++)
 			{
 				if (i == j)
-					REQUIRE(std::abs(mat[i][j] - REAL(1.0)) < 1e-10);
+					REQUIRE(std::abs(mat[i][j] - REAL(1.0)) < TOL(1e-10, 1e-5));
 				else
-					REQUIRE(std::abs(mat[i][j]) < 1e-10);
+					REQUIRE(std::abs(mat[i][j]) < TOL(1e-10, 1e-5));
 			}
 	}
 
@@ -66,8 +66,8 @@ TEST_CASE("Quaternion - Matrix Conversion", "[quaternion][matrix]")
 
 		// Quaternions q and -q represent the same rotation
 		// Check if they're equal or negatives
-		bool same = q_original.isApprox(q_reconstructed, 1e-10) ||
-								q_original.isApprox(-q_reconstructed, 1e-10);
+		bool same = q_original.isApprox(q_reconstructed, TOL(1e-10, 1e-5)) ||
+								q_original.isApprox(-q_reconstructed, TOL(1e-10, 1e-5));
 		REQUIRE(same);
 
 		// Verify they rotate vectors the same way
@@ -118,7 +118,7 @@ TEST_CASE("Quaternion - Matrix Conversion", "[quaternion][matrix]")
 						 - mat[0][1] * (mat[1][0] * mat[2][2] - mat[1][2] * mat[2][0])
 						 + mat[0][2] * (mat[1][0] * mat[2][1] - mat[1][1] * mat[2][0]);
 
-		REQUIRE(std::abs(det - REAL(1.0)) < 1e-10);
+		REQUIRE(std::abs(det - REAL(1.0)) < TOL(1e-10, 1e-5));
 	}
 
 	SECTION("Matrix is orthogonal (M^T * M = I)")
@@ -141,9 +141,9 @@ TEST_CASE("Quaternion - Matrix Conversion", "[quaternion][matrix]")
 			for (int j = 0; j < 3; j++)
 			{
 				if (i == j)
-					REQUIRE(std::abs(product[i][j] - REAL(1.0)) < 1e-10);
+					REQUIRE(std::abs(product[i][j] - REAL(1.0)) < TOL(1e-10, 1e-5));
 				else
-					REQUIRE(std::abs(product[i][j]) < 1e-10);
+					REQUIRE(std::abs(product[i][j]) < TOL(1e-10, 1e-5));
 			}
 	}
 }
@@ -256,7 +256,7 @@ TEST_CASE("CoordTransfCart3DRotationQuaternion - Transformations", "[coordtransf
 		Vec3Cart v(4, 5, 6);
 		Vec3Cart rotated = rot.transf(v);
 
-		REQUIRE(std::abs(rotated.NormL2() - v.NormL2()) < 1e-10);
+		REQUIRE(std::abs(rotated.NormL2() - v.NormL2()) < TOL(1e-10, 1e-5));
 	}
 }
 
@@ -349,7 +349,7 @@ TEST_CASE("CoordTransfCart3DRotationQuaternion - Interpolation", "[coordtransf][
 		Vec3Cart v(1, 2, 3);
 		Vec3Cart rotated = result.transf(v);
 
-		REQUIRE(std::abs(rotated.NormL2() - v.NormL2()) < 1e-10);
+		REQUIRE(std::abs(rotated.NormL2() - v.NormL2()) < TOL(1e-10, 1e-5));
 	}
 }
 
@@ -365,7 +365,7 @@ TEST_CASE("CoordTransfCart3DRotationQuaternion - Accessors", "[coordtransf][quat
 	SECTION("GetQuaternion returns correct quaternion")
 	{
 		Quaternion q = rot.GetQuaternion();
-		REQUIRE(q.isUnit(1e-10));
+		REQUIRE(q.isUnit(TOL(1e-10, 1e-5)));
 
 		// Verify it rotates correctly
 		Vec3Cart v(1, 0, 0);
@@ -381,7 +381,7 @@ TEST_CASE("CoordTransfCart3DRotationQuaternion - Accessors", "[coordtransf][quat
 	SECTION("GetRotationAngle returns correct angle")
 	{
 		Real retrieved_angle = rot.GetRotationAngle();
-		REQUIRE(std::abs(retrieved_angle - angle) < 1e-10);
+		REQUIRE(std::abs(retrieved_angle - angle) < TOL(1e-10, 1e-5));
 	}
 
 	SECTION("GetTransformationMatrix returns rotation matrix")

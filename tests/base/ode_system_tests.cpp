@@ -77,7 +77,7 @@ TEST_CASE("ODESystem - Exponential Growth Derivatives", "[ode_system]")
     MML::Vector<Real> dydt(1);
     sys.derivs(REAL(0.0), y, dydt);
     
-    REQUIRE_THAT(dydt[0], WithinAbs(REAL(2.0), REAL(1e-10)));
+    REQUIRE_THAT(dydt[0], WithinAbs(REAL(2.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("ODESystem - Harmonic Oscillator Derivatives", "[ode_system]")
@@ -93,8 +93,8 @@ TEST_CASE("ODESystem - Harmonic Oscillator Derivatives", "[ode_system]")
     MML::Vector<Real> dydt(2);
     sys.derivs(REAL(0.0), y, dydt);
     
-    REQUIRE_THAT(dydt[0], WithinAbs(REAL(0.0), REAL(1e-10)));  // dx/dt = v = 0
-    REQUIRE_THAT(dydt[1], WithinAbs(-REAL(1.0), REAL(1e-10))); // dv/dt = -x = -1
+    REQUIRE_THAT(dydt[0], WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));  // dx/dt = v = 0
+    REQUIRE_THAT(dydt[1], WithinAbs(-REAL(1.0), TOL(1e-10, 1e-5))); // dv/dt = -x = -1
 }
 
 TEST_CASE("ODESystem - Lorenz System Derivatives", "[ode_system]")
@@ -112,11 +112,11 @@ TEST_CASE("ODESystem - Lorenz System Derivatives", "[ode_system]")
     sys.derivs(REAL(0.0), y, dydt);
     
     // sigma * (y - x) = 10 * (1 - 1) = 0
-    REQUIRE_THAT(dydt[0], WithinAbs(REAL(0.0), REAL(1e-10)));
+    REQUIRE_THAT(dydt[0], WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
     // x * (rho - z) - y = 1 * (28 - 1) - 1 = 26
-    REQUIRE_THAT(dydt[1], WithinAbs(REAL(26.0), REAL(1e-10)));
+    REQUIRE_THAT(dydt[1], WithinAbs(REAL(26.0), TOL(1e-10, 1e-5)));
     // x * y - beta * z = 1 * 1 - (8/3) * 1 ≈ -REAL(1.6667)
-    REQUIRE_THAT(dydt[2], WithinAbs(-REAL(5.0)/REAL(3.0), REAL(1e-10)));
+    REQUIRE_THAT(dydt[2], WithinAbs(-REAL(5.0)/REAL(3.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("ODESystem - Operator() Call", "[ode_system]")
@@ -129,7 +129,7 @@ TEST_CASE("ODESystem - Operator() Call", "[ode_system]")
     MML::Vector<Real> dydt(1);
     sys(REAL(0.0), y, dydt);
     
-    REQUIRE_THAT(dydt[0], WithinAbs(REAL(3.0), REAL(1e-10)));
+    REQUIRE_THAT(dydt[0], WithinAbs(REAL(3.0), TOL(1e-10, 1e-5)));
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -160,8 +160,8 @@ TEST_CASE("ODESystemWithJacobian - Harmonic Oscillator Derivatives", "[ode_syste
     MML::Vector<Real> dydt(2);
     sys.derivs(REAL(0.0), y, dydt);
     
-    REQUIRE_THAT(dydt[0], WithinAbs(REAL(0.5), REAL(1e-10)));
-    REQUIRE_THAT(dydt[1], WithinAbs(-REAL(1.0), REAL(1e-10)));
+    REQUIRE_THAT(dydt[0], WithinAbs(REAL(0.5), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(dydt[1], WithinAbs(-REAL(1.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("ODESystemWithJacobian - Jacobian Computation", "[ode_system_jacobian]")
@@ -178,14 +178,14 @@ TEST_CASE("ODESystemWithJacobian - Jacobian Computation", "[ode_system_jacobian]
     sys.jacobian(REAL(0.0), y, dydt, J);
     
     // Check Jacobian elements
-    REQUIRE_THAT(J[0][0], WithinAbs(REAL(0.0), REAL(1e-10)));
-    REQUIRE_THAT(J[0][1], WithinAbs(REAL(1.0), REAL(1e-10)));
-    REQUIRE_THAT(J[1][0], WithinAbs(-REAL(1.0), REAL(1e-10)));
-    REQUIRE_THAT(J[1][1], WithinAbs(REAL(0.0), REAL(1e-10)));
+    REQUIRE_THAT(J[0][0], WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(J[0][1], WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(J[1][0], WithinAbs(-REAL(1.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(J[1][1], WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
     
     // Check that derivatives were also computed
-    REQUIRE_THAT(dydt[0], WithinAbs(REAL(0.5), REAL(1e-10)));
-    REQUIRE_THAT(dydt[1], WithinAbs(-REAL(1.0), REAL(1e-10)));
+    REQUIRE_THAT(dydt[0], WithinAbs(REAL(0.5), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(dydt[1], WithinAbs(-REAL(1.0), TOL(1e-10, 1e-5)));
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -196,8 +196,8 @@ TEST_CASE("ODESystemSolution - Constructor with Max Steps", "[ode_system_solutio
     ODESystemSolution sol(REAL(0.0), REAL(10.0), 2, 500);
     
     REQUIRE(sol.getSysDim() == 2);
-    REQUIRE_THAT(sol.getT1(), WithinAbs(REAL(0.0), REAL(1e-10)));
-    REQUIRE_THAT(sol.getT2(), WithinAbs(REAL(10.0), REAL(1e-10)));
+    REQUIRE_THAT(sol.getT1(), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(sol.getT2(), WithinAbs(REAL(10.0), TOL(1e-10, 1e-5)));
     REQUIRE(sol.getNumStepsOK() == 0);
     REQUIRE(sol.getNumStepsBad() == 0);
     REQUIRE(sol.getTotalSavedSteps() == 501);  // maxSteps + 1
@@ -234,9 +234,9 @@ TEST_CASE("ODESystemSolution - Set and Get T Values", "[ode_system_solution]")
     
     MML::Vector<Real> tvals = sol.getTValues();
     
-    REQUIRE_THAT(tvals[0], WithinAbs(REAL(0.0), REAL(1e-10)));
-    REQUIRE_THAT(tvals[1], WithinAbs(REAL(0.5), REAL(1e-10)));
-    REQUIRE_THAT(tvals[2], WithinAbs(REAL(1.0), REAL(1e-10)));
+    REQUIRE_THAT(tvals[0], WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(tvals[1], WithinAbs(REAL(0.5), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(tvals[2], WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("ODESystemSolution - Set and Get X Values", "[ode_system_solution]")
@@ -250,10 +250,10 @@ TEST_CASE("ODESystemSolution - Set and Get X Values", "[ode_system_solution]")
     
     MML::Matrix<Real> xvals = sol.getXValues();
     
-    REQUIRE_THAT(xvals[0][0], WithinAbs(REAL(1.0), REAL(1e-10)));
-    REQUIRE_THAT(xvals[1][0], WithinAbs(REAL(2.0), REAL(1e-10)));
-    REQUIRE_THAT(xvals[0][1], WithinAbs(REAL(1.5), REAL(1e-10)));
-    REQUIRE_THAT(xvals[1][1], WithinAbs(REAL(2.5), REAL(1e-10)));
+    REQUIRE_THAT(xvals[0][0], WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(xvals[1][0], WithinAbs(REAL(2.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(xvals[0][1], WithinAbs(REAL(1.5), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(xvals[1][1], WithinAbs(REAL(2.5), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("ODESystemSolution - Get X Values by Component", "[ode_system_solution]")
@@ -271,13 +271,13 @@ TEST_CASE("ODESystemSolution - Get X Values by Component", "[ode_system_solution
     MML::Vector<Real> comp0 = sol.getXValues(0);
     MML::Vector<Real> comp1 = sol.getXValues(1);
     
-    REQUIRE_THAT(comp0[0], WithinAbs(REAL(1.0), REAL(1e-10)));
-    REQUIRE_THAT(comp0[1], WithinAbs(REAL(2.0), REAL(1e-10)));
-    REQUIRE_THAT(comp0[2], WithinAbs(REAL(3.0), REAL(1e-10)));
+    REQUIRE_THAT(comp0[0], WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(comp0[1], WithinAbs(REAL(2.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(comp0[2], WithinAbs(REAL(3.0), TOL(1e-10, 1e-5)));
     
-    REQUIRE_THAT(comp1[0], WithinAbs(REAL(4.0), REAL(1e-10)));
-    REQUIRE_THAT(comp1[1], WithinAbs(REAL(5.0), REAL(1e-10)));
-    REQUIRE_THAT(comp1[2], WithinAbs(REAL(6.0), REAL(1e-10)));
+    REQUIRE_THAT(comp1[0], WithinAbs(REAL(4.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(comp1[1], WithinAbs(REAL(5.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(comp1[2], WithinAbs(REAL(6.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("ODESystemSolution - Get X Values by Component - Out of Range", "[ode_system_solution]")
@@ -309,16 +309,16 @@ TEST_CASE("ODESystemSolution - Fill Values", "[ode_system_solution]")
     MML::Vector<Real> tvals = sol.getTValues();
     MML::Matrix<Real> xvals = sol.getXValues();
     
-    REQUIRE_THAT(tvals[0], WithinAbs(REAL(0.0), REAL(1e-10)));
-    REQUIRE_THAT(tvals[1], WithinAbs(REAL(0.5), REAL(1e-10)));
+    REQUIRE_THAT(tvals[0], WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(tvals[1], WithinAbs(REAL(0.5), TOL(1e-10, 1e-5)));
     
-    REQUIRE_THAT(xvals[0][0], WithinAbs(REAL(1.0), REAL(1e-10)));
-    REQUIRE_THAT(xvals[1][0], WithinAbs(REAL(2.0), REAL(1e-10)));
-    REQUIRE_THAT(xvals[2][0], WithinAbs(REAL(3.0), REAL(1e-10)));
+    REQUIRE_THAT(xvals[0][0], WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(xvals[1][0], WithinAbs(REAL(2.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(xvals[2][0], WithinAbs(REAL(3.0), TOL(1e-10, 1e-5)));
     
-    REQUIRE_THAT(xvals[0][1], WithinAbs(REAL(4.0), REAL(1e-10)));
-    REQUIRE_THAT(xvals[1][1], WithinAbs(REAL(5.0), REAL(1e-10)));
-    REQUIRE_THAT(xvals[2][1], WithinAbs(REAL(6.0), REAL(1e-10)));
+    REQUIRE_THAT(xvals[0][1], WithinAbs(REAL(4.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(xvals[1][1], WithinAbs(REAL(5.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(xvals[2][1], WithinAbs(REAL(6.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("ODESystemSolution - Fill Values - Size Mismatch", "[ode_system_solution]")
@@ -342,8 +342,8 @@ TEST_CASE("ODESystemSolution - Get X Values at End", "[ode_system_solution]")
     
     MML::Vector<Real> endVals = sol.getXValuesAtEnd();
     
-    REQUIRE_THAT(endVals[0], WithinAbs(REAL(5.0), REAL(1e-10)));
-    REQUIRE_THAT(endVals[1], WithinAbs(REAL(6.0), REAL(1e-10)));
+    REQUIRE_THAT(endVals[0], WithinAbs(REAL(5.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(endVals[1], WithinAbs(REAL(6.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("ODESystemSolution - Set Final Size", "[ode_system_solution]")
@@ -388,8 +388,8 @@ TEST_CASE("ODESystemSolution - Linear Interpolation", "[ode_system_solution]")
     
     LinearInterpRealFunc interp = sol.getSolAsLinInterp(0);
     
-    REQUIRE_THAT(interp(REAL(0.5)), WithinAbs(REAL(1.0), REAL(1e-9)));
-    REQUIRE_THAT(interp(REAL(1.5)), WithinAbs(REAL(3.0), REAL(1e-9)));
+    REQUIRE_THAT(interp(REAL(0.5)), WithinAbs(REAL(1.0), TOL(1e-9, 1e-4)));
+    REQUIRE_THAT(interp(REAL(1.5)), WithinAbs(REAL(3.0), TOL(1e-9, 1e-4)));
 }
 
 TEST_CASE("ODESystemSolution - 2D Parametric Curve", "[ode_system_solution]")
@@ -520,14 +520,14 @@ TEST_CASE("ODESystem - Copy and Move Semantics", "[ode_system]")
     MML::Vector<Real> y(1), dydt(1);
     y[0] = REAL(5.0);
     sys2.derivs(REAL(0.0), y, dydt);
-    REQUIRE_THAT(dydt[0], WithinAbs(REAL(5.0), REAL(1e-10)));
+    REQUIRE_THAT(dydt[0], WithinAbs(REAL(5.0), TOL(1e-10, 1e-5)));
     
     // Copy assignment
     ODESystem sys3;
     sys3 = sys1;
     REQUIRE(sys3.getDim() == 1);
     sys3.derivs(REAL(0.0), y, dydt);
-    REQUIRE_THAT(dydt[0], WithinAbs(REAL(5.0), REAL(1e-10)));
+    REQUIRE_THAT(dydt[0], WithinAbs(REAL(5.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("ODESystem - Different Time Values", "[ode_system]")
@@ -543,10 +543,10 @@ TEST_CASE("ODESystem - Different Time Values", "[ode_system]")
     y[0] = REAL(0.0);
     
     sys.derivs(REAL(1.0), y, dydt);
-    REQUIRE_THAT(dydt[0], WithinAbs(REAL(1.0), REAL(1e-10)));
+    REQUIRE_THAT(dydt[0], WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
     
     sys.derivs(REAL(5.0), y, dydt);
-    REQUIRE_THAT(dydt[0], WithinAbs(REAL(5.0), REAL(1e-10)));
+    REQUIRE_THAT(dydt[0], WithinAbs(REAL(5.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("ODESystemWithJacobian - Copy Semantics", "[ode_system_jacobian]")
@@ -563,8 +563,8 @@ TEST_CASE("ODESystemWithJacobian - Copy Semantics", "[ode_system_jacobian]")
     y[1] = REAL(0.0);
     
     sys2.jacobian(REAL(0.0), y, dydt, J);
-    REQUIRE_THAT(J[0][1], WithinAbs(REAL(1.0), REAL(1e-10)));
-    REQUIRE_THAT(J[1][0], WithinAbs(-REAL(1.0), REAL(1e-10)));
+    REQUIRE_THAT(J[0][1], WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(J[1][0], WithinAbs(-REAL(1.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("ODESystemWithJacobian - Operator() Call", "[ode_system_jacobian]")
@@ -577,8 +577,8 @@ TEST_CASE("ODESystemWithJacobian - Operator() Call", "[ode_system_jacobian]")
     
     sys(REAL(0.0), y, dydt);
     
-    REQUIRE_THAT(dydt[0], WithinAbs(REAL(3.0), REAL(1e-10)));  // dx/dt = v = 3
-    REQUIRE_THAT(dydt[1], WithinAbs(-REAL(2.0), REAL(1e-10))); // dv/dt = -x = -2
+    REQUIRE_THAT(dydt[0], WithinAbs(REAL(3.0), TOL(1e-10, 1e-5)));  // dx/dt = v = 3
+    REQUIRE_THAT(dydt[1], WithinAbs(-REAL(2.0), TOL(1e-10, 1e-5))); // dv/dt = -x = -2
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -617,9 +617,9 @@ TEST_CASE("ODESystemSolution - GetTValue and GetXValue", "[ode_system_solution]"
     sol.setXVal(5, 0, REAL(1.5));
     sol.setXVal(5, 1, REAL(2.5));
     
-    REQUIRE_THAT(sol.getTValue(5), WithinAbs(REAL(0.5), REAL(1e-10)));
-    REQUIRE_THAT(sol.getXValue(5, 0), WithinAbs(REAL(1.5), REAL(1e-10)));
-    REQUIRE_THAT(sol.getXValue(5, 1), WithinAbs(REAL(2.5), REAL(1e-10)));
+    REQUIRE_THAT(sol.getTValue(5), WithinAbs(REAL(0.5), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(sol.getXValue(5, 0), WithinAbs(REAL(1.5), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(sol.getXValue(5, 1), WithinAbs(REAL(2.5), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("ODESystemSolution - GetTValue Out of Range", "[ode_system_solution]")
@@ -691,8 +691,8 @@ TEST_CASE("ODESystemSolution - Polynomial Interpolation", "[ode_system_solution]
     
     PolynomInterpRealFunc interp = sol.getSolAsPolyInterp(0, 2);  // Quadratic
     
-    REQUIRE_THAT(interp(REAL(0.5)), WithinAbs(REAL(0.25), REAL(1e-8)));
-    REQUIRE_THAT(interp(REAL(1.5)), WithinAbs(REAL(2.25), REAL(1e-8)));
+    REQUIRE_THAT(interp(REAL(0.5)), WithinAbs(REAL(0.25), TOL(1e-8, 1e-4)));
+    REQUIRE_THAT(interp(REAL(1.5)), WithinAbs(REAL(2.25), TOL(1e-8, 1e-4)));
 }
 
 TEST_CASE("ODESystemSolution - Spline Interpolation", "[ode_system_solution]")
@@ -730,13 +730,13 @@ TEST_CASE("ODESystemSolution - Multiple Extensions", "[ode_system_solution]")
     }
     
     // Verify data integrity after extensions
-    REQUIRE_THAT(sol.getTValue(0), WithinAbs(REAL(0.0), REAL(1e-10)));
-    REQUIRE_THAT(sol.getTValue(25), WithinAbs(REAL(25.0), REAL(1e-10)));
-    REQUIRE_THAT(sol.getTValue(49), WithinAbs(REAL(49.0), REAL(1e-10)));
+    REQUIRE_THAT(sol.getTValue(0), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(sol.getTValue(25), WithinAbs(REAL(25.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(sol.getTValue(49), WithinAbs(REAL(49.0), TOL(1e-10, 1e-5)));
     
-    REQUIRE_THAT(sol.getXValue(0, 0), WithinAbs(REAL(0.0), REAL(1e-10)));
-    REQUIRE_THAT(sol.getXValue(25, 0), WithinAbs(REAL(50.0), REAL(1e-10)));
-    REQUIRE_THAT(sol.getXValue(49, 0), WithinAbs(REAL(98.0), REAL(1e-10)));
+    REQUIRE_THAT(sol.getXValue(0, 0), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(sol.getXValue(25, 0), WithinAbs(REAL(50.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(sol.getXValue(49, 0), WithinAbs(REAL(98.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("ODESystemSolution - High Dimension System", "[ode_system_solution]")
@@ -756,7 +756,7 @@ TEST_CASE("ODESystemSolution - High Dimension System", "[ode_system_solution]")
     // Verify all components
     for (int i = 0; i < dim; i++)
     {
-        REQUIRE_THAT(sol.getXValue(0, i), WithinAbs(static_cast<Real>(i + 1), REAL(1e-10)));
+        REQUIRE_THAT(sol.getXValue(0, i), WithinAbs(static_cast<Real>(i + 1), TOL(1e-10, 1e-5)));
     }
     
     // Get end values
@@ -797,8 +797,8 @@ TEST_CASE("ODESystem - Zero State Vector", "[ode_system]")
     
     sys.derivs(REAL(0.0), y, dydt);
     
-    REQUIRE_THAT(dydt[0], WithinAbs(REAL(0.0), REAL(1e-10)));
-    REQUIRE_THAT(dydt[1], WithinAbs(REAL(0.0), REAL(1e-10)));
+    REQUIRE_THAT(dydt[0], WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(dydt[1], WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("ODESystem - Large State Values", "[ode_system]")
@@ -823,8 +823,8 @@ TEST_CASE("ODESystem - Negative State Values", "[ode_system]")
     
     sys.derivs(REAL(0.0), y, dydt);
     
-    REQUIRE_THAT(dydt[0], WithinAbs(-REAL(2.0), REAL(1e-10)));  // dx/dt = v = -2
-    REQUIRE_THAT(dydt[1], WithinAbs(REAL(3.0), REAL(1e-10)));   // dv/dt = -x = 3
+    REQUIRE_THAT(dydt[0], WithinAbs(-REAL(2.0), TOL(1e-10, 1e-5)));  // dx/dt = v = -2
+    REQUIRE_THAT(dydt[1], WithinAbs(REAL(3.0), TOL(1e-10, 1e-5)));   // dv/dt = -x = 3
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -842,7 +842,7 @@ TEST_CASE("ODESystemFromStdFunc - Lambda with capture", "[ode_system_stdfunc]")
     Vector<Real> y(1), dydt(1);
     y[0] = REAL(3.0);
     sys.derivs(REAL(0.0), y, dydt);
-    REQUIRE_THAT(dydt[0], WithinAbs(REAL(6.0), REAL(1e-10)));
+    REQUIRE_THAT(dydt[0], WithinAbs(REAL(6.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("ODESystemFromStdFunc - Operator() call", "[ode_system_stdfunc]")
@@ -855,8 +855,8 @@ TEST_CASE("ODESystemFromStdFunc - Operator() call", "[ode_system_stdfunc]")
     Vector<Real> y(2), dydt(2);
     y[0] = REAL(1.0); y[1] = REAL(0.0);
     sys(REAL(0.0), y, dydt);
-    REQUIRE_THAT(dydt[0], WithinAbs(REAL(0.0), REAL(1e-10)));
-    REQUIRE_THAT(dydt[1], WithinAbs(-REAL(1.0), REAL(1e-10)));
+    REQUIRE_THAT(dydt[0], WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(dydt[1], WithinAbs(-REAL(1.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("ODESystemWithJacobianFromStdFunc - Jacobian", "[ode_system_stdfunc]")
@@ -878,8 +878,8 @@ TEST_CASE("ODESystemWithJacobianFromStdFunc - Jacobian", "[ode_system_stdfunc]")
     Matrix<Real> J(2, 2);
     y[0] = REAL(1.0); y[1] = REAL(0.0);
     sys.jacobian(REAL(0.0), y, dydt, J);
-    REQUIRE_THAT(J[0][1], WithinAbs(REAL(1.0), REAL(1e-10)));
-    REQUIRE_THAT(J[1][0], WithinAbs(-REAL(1.0), REAL(1e-10)));
+    REQUIRE_THAT(J[0][1], WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(J[1][0], WithinAbs(-REAL(1.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("ODESystemWithJacobian - Null jacobian throws NotImplementedError", "[ode_system_jacobian]")

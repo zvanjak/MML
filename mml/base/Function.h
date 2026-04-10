@@ -45,6 +45,12 @@ namespace MML
 
 	/// @brief Wrapper for a real function R → R using std::function.
 	/// @details Allows using lambdas, functors, and bound functions.
+	/// @warning **Lambda capture lifetime hazard:** The std::function is copied into this
+	///          wrapper, but if the source lambda captures local variables **by reference**,
+	///          those references will dangle if this object outlives the captured variables.
+	///          Safe:   `RealFunctionFromStdFunc f([](Real x) { return x*x; });`
+	///          Safe:   `RealFunctionFromStdFunc f([a](Real x) { return a*x; });`  (capture by value)
+	///          UNSAFE: `RealFunctionFromStdFunc f([&a](Real x) { return a*x; });` (if a goes out of scope)
 	class RealFunctionFromStdFunc : public IRealFunction
 	{
 		std::function<Real(const Real)> _func;   ///< Callable object to evaluate
@@ -80,6 +86,8 @@ namespace MML
 
 	/// @brief Wrapper for a scalar function R^N → R using std::function.
 	/// @tparam N Dimension of input space
+	/// @warning **Lambda capture lifetime hazard:** If constructed from a lambda capturing
+	///          local variables by reference, ensure those variables outlive this object.
 	template<int N>
 	class ScalarFunctionFromStdFunc : public IScalarFunction<N>
 	{
@@ -116,6 +124,8 @@ namespace MML
 
 	/// @brief Wrapper for a vector function R^N → R^N using std::function.
 	/// @tparam N Dimension of input and output space
+	/// @warning **Lambda capture lifetime hazard:** If constructed from a lambda capturing
+	///          local variables by reference, ensure those variables outlive this object.
 	template<int N>
 	class VectorFunctionFromStdFunc : public IVectorFunction<N>
 	{
@@ -155,6 +165,8 @@ namespace MML
 	/// @brief Wrapper for a vector function R^N → R^M using std::function.
 	/// @tparam N Dimension of input space
 	/// @tparam M Dimension of output space
+	/// @warning **Lambda capture lifetime hazard:** If constructed from a lambda capturing
+	///          local variables by reference, ensure those variables outlive this object.
 	template<int N, int M>
 	class VectorFunctionNMFromStdFunc : public IVectorFunctionNM<N, M>
 	{
@@ -210,6 +222,8 @@ namespace MML
 
 	/// @brief Parametric curve γ: R → R^N using std::function.
 	/// @tparam N Dimension of output space
+	/// @warning **Lambda capture lifetime hazard:** If constructed from a lambda capturing
+	///          local variables by reference, ensure those variables outlive this object.
 	template<int N>
 	class ParametricCurveFromStdFunc : public IParametricCurve<N>
 	{
@@ -347,6 +361,8 @@ namespace MML
 
 	/// @brief Parametric surface with rectangular domain using std::function.
 	/// @tparam N Dimension of output space (must be >= 3)
+	/// @warning **Lambda capture lifetime hazard:** If constructed from a lambda capturing
+	///          local variables by reference, ensure those variables outlive this object.
 	template<int N>
 	class ParametricSurfaceFromStdFunc : public IParametricSurfaceRect<N>
 	{

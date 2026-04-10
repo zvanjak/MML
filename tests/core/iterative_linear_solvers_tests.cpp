@@ -31,11 +31,11 @@ namespace MML::Tests::Core::IterativeLinearSolversTests
 		auto result = JacobiSolver::Solve(sys._mat, sys._rhs);
 		
 		REQUIRE(result.converged);
-		REQUIRE(result.solution.IsEqualTo(sys._sol, 1e-8));
+		REQUIRE(result.solution.IsEqualTo(sys._sol, TOL(1e-8, 1e-4)));
 		
 		// Verify Ax = b
 		Vector<Real> res = sys._mat * result.solution;
-		REQUIRE(res.IsEqualTo(sys._rhs, 1e-8));
+		REQUIRE(res.IsEqualTo(sys._rhs, TOL(1e-8, 1e-4)));
 	}
 	
 	TEST_CASE("Jacobi_DiagDominant_5x5_Tridiag", "[JacobiSolver][Iterative]")
@@ -47,7 +47,7 @@ namespace MML::Tests::Core::IterativeLinearSolversTests
 		auto result = JacobiSolver::Solve(sys._mat, sys._rhs);
 		
 		REQUIRE(result.converged);
-		REQUIRE(result.solution.IsEqualTo(sys._sol, 1e-8));
+		REQUIRE(result.solution.IsEqualTo(sys._sol, TOL(1e-8, 1e-4)));
 	}
 	
 	TEST_CASE("Jacobi_DiagDominant_6x6_Poisson2D", "[JacobiSolver][Iterative]")
@@ -59,7 +59,7 @@ namespace MML::Tests::Core::IterativeLinearSolversTests
 		auto result = JacobiSolver::Solve(sys._mat, sys._rhs);
 		
 		REQUIRE(result.converged);
-		REQUIRE(result.solution.IsEqualTo(sys._sol, 1e-8));
+		REQUIRE(result.solution.IsEqualTo(sys._sol, TOL(1e-8, 1e-4)));
 	}
 	
 	TEST_CASE("Jacobi_SolveSimple", "[JacobiSolver][Iterative]")
@@ -69,7 +69,7 @@ namespace MML::Tests::Core::IterativeLinearSolversTests
 		
 		Vector<Real> sol = JacobiSolver::SolveSimple(sys._mat, sys._rhs);
 		
-		REQUIRE(sol.IsEqualTo(sys._sol, 1e-8));
+		REQUIRE(sol.IsEqualTo(sys._sol, TOL(1e-8, 1e-4)));
 	}
 	
 	TEST_CASE("Jacobi_InitialGuess", "[JacobiSolver][Iterative]")
@@ -118,7 +118,7 @@ namespace MML::Tests::Core::IterativeLinearSolversTests
 		auto result = GaussSeidelSolver::Solve(sys._mat, sys._rhs);
 		
 		REQUIRE(result.converged);
-		REQUIRE(result.solution.IsEqualTo(sys._sol, 1e-8));
+		REQUIRE(result.solution.IsEqualTo(sys._sol, TOL(1e-8, 1e-4)));
 	}
 	
 	TEST_CASE("GaussSeidel_DiagDominant_5x5_Tridiag", "[GaussSeidelSolver][Iterative]")
@@ -129,7 +129,7 @@ namespace MML::Tests::Core::IterativeLinearSolversTests
 		auto result = GaussSeidelSolver::Solve(sys._mat, sys._rhs);
 		
 		REQUIRE(result.converged);
-		REQUIRE(result.solution.IsEqualTo(sys._sol, 1e-8));
+		REQUIRE(result.solution.IsEqualTo(sys._sol, TOL(1e-8, 1e-4)));
 	}
 	
 	TEST_CASE("GaussSeidel_DiagDominant_6x6_Poisson2D", "[GaussSeidelSolver][Iterative]")
@@ -140,7 +140,7 @@ namespace MML::Tests::Core::IterativeLinearSolversTests
 		auto result = GaussSeidelSolver::Solve(sys._mat, sys._rhs);
 		
 		REQUIRE(result.converged);
-		REQUIRE(result.solution.IsEqualTo(sys._sol, 1e-8));
+		REQUIRE(result.solution.IsEqualTo(sys._sol, TOL(1e-8, 1e-4)));
 	}
 	
 	TEST_CASE("GaussSeidel_FasterThanJacobi", "[GaussSeidelSolver][Iterative]")
@@ -164,7 +164,7 @@ namespace MML::Tests::Core::IterativeLinearSolversTests
 		
 		Vector<Real> sol = GaussSeidelSolver::SolveSimple(sys._mat, sys._rhs);
 		
-		REQUIRE(sol.IsEqualTo(sys._sol, 1e-8));
+		REQUIRE(sol.IsEqualTo(sys._sol, TOL(1e-8, 1e-4)));
 	}
 	
 	TEST_CASE("GaussSeidel_ZeroDiagonal_Throws", "[GaussSeidelSolver][Iterative]")
@@ -195,7 +195,7 @@ namespace MML::Tests::Core::IterativeLinearSolversTests
 		
 		REQUIRE(sor_result.converged);
 		REQUIRE(sor_result.iterations == gs_result.iterations);
-		REQUIRE(sor_result.solution.IsEqualTo(gs_result.solution, 1e-12));
+		REQUIRE(sor_result.solution.IsEqualTo(gs_result.solution, TOL(1e-12, 1e-5)));
 	}
 	
 	TEST_CASE("SOR_DiagDominant_5x5_Tridiag", "[SORSolver][Iterative]")
@@ -207,7 +207,7 @@ namespace MML::Tests::Core::IterativeLinearSolversTests
 		auto result = SORSolver::Solve(sys._mat, sys._rhs, REAL(1.5));
 		
 		REQUIRE(result.converged);
-		REQUIRE(result.solution.IsEqualTo(sys._sol, 1e-8));
+		REQUIRE(result.solution.IsEqualTo(sys._sol, TOL(1e-8, 1e-4)));
 	}
 	
 	TEST_CASE("SOR_DiagDominant_6x6_Poisson2D", "[SORSolver][Iterative]")
@@ -218,7 +218,7 @@ namespace MML::Tests::Core::IterativeLinearSolversTests
 		auto result = SORSolver::Solve(sys._mat, sys._rhs, REAL(1.3));
 		
 		REQUIRE(result.converged);
-		REQUIRE(result.solution.IsEqualTo(sys._sol, 1e-8));
+		REQUIRE(result.solution.IsEqualTo(sys._sol, TOL(1e-8, 1e-4)));
 	}
 	
 	TEST_CASE("SOR_OptimalOmega_Tridiag", "[SORSolver][Iterative]")
@@ -231,7 +231,7 @@ namespace MML::Tests::Core::IterativeLinearSolversTests
 		auto sor_optimal = SORSolver::SolveOptimal(sys._mat, sys._rhs);
 		
 		REQUIRE(sor_optimal.converged);
-		REQUIRE(sor_optimal.solution.IsEqualTo(sys._sol, 1e-8));
+		REQUIRE(sor_optimal.solution.IsEqualTo(sys._sol, TOL(1e-8, 1e-4)));
 		// Note: SOR with "optimal" omega (derived for Poisson) may not always beat
 		// Gauss-Seidel for all diagonally dominant matrices. The formula is specifically
 		// optimal for 1D Poisson with specific boundary conditions.
@@ -247,7 +247,7 @@ namespace MML::Tests::Core::IterativeLinearSolversTests
 		auto result = SORSolver::Solve(sys._mat, sys._rhs, REAL(0.8));
 		
 		REQUIRE(result.converged);
-		REQUIRE(result.solution.IsEqualTo(sys._sol, 1e-8));
+		REQUIRE(result.solution.IsEqualTo(sys._sol, TOL(1e-8, 1e-4)));
 	}
 	
 	TEST_CASE("SOR_InvalidOmega_Throws", "[SORSolver][Iterative]")
@@ -268,7 +268,7 @@ namespace MML::Tests::Core::IterativeLinearSolversTests
 		
 		Vector<Real> sol = SORSolver::SolveSimple(sys._mat, sys._rhs, REAL(1.2));
 		
-		REQUIRE(sol.IsEqualTo(sys._sol, 1e-8));
+		REQUIRE(sol.IsEqualTo(sys._sol, TOL(1e-8, 1e-4)));
 	}
 	
 	TEST_CASE("SOR_EstimateOptimalOmega", "[SORSolver][Iterative]")
@@ -310,9 +310,9 @@ namespace MML::Tests::Core::IterativeLinearSolversTests
 		REQUIRE(jacobi.iterations >= gauss_seidel.iterations);
 		
 		// All should give same solution
-		REQUIRE(jacobi.solution.IsEqualTo(sys._sol, 1e-8));
-		REQUIRE(gauss_seidel.solution.IsEqualTo(sys._sol, 1e-8));
-		REQUIRE(sor.solution.IsEqualTo(sys._sol, 1e-8));
+		REQUIRE(jacobi.solution.IsEqualTo(sys._sol, TOL(1e-8, 1e-4)));
+		REQUIRE(gauss_seidel.solution.IsEqualTo(sys._sol, TOL(1e-8, 1e-4)));
+		REQUIRE(sor.solution.IsEqualTo(sys._sol, TOL(1e-8, 1e-4)));
 	}
 	
 	TEST_CASE("IterativeSolvers_MaxIterReached", "[Iterative]")
@@ -322,7 +322,7 @@ namespace MML::Tests::Core::IterativeLinearSolversTests
 		auto sys = TestBeds::diag_dominant_5x5_tridiag();
 		
 		// Use very few iterations
-		auto result = JacobiSolver::Solve(sys._mat, sys._rhs, Vector<Real>(), 1e-15, 5);
+		auto result = JacobiSolver::Solve(sys._mat, sys._rhs, Vector<Real>(), TOL(1e-15, 1e-5), 5);
 		
 		// Should not converge with only 5 iterations
 		REQUIRE_FALSE(result.converged);
@@ -330,7 +330,7 @@ namespace MML::Tests::Core::IterativeLinearSolversTests
 		
 		// SolveSimple should throw
 		REQUIRE_THROWS_AS(
-			JacobiSolver::SolveSimple(sys._mat, sys._rhs, 1e-15, 5),
+			JacobiSolver::SolveSimple(sys._mat, sys._rhs, TOL(1e-15, 1e-5), 5),
 			std::runtime_error
 		);
 	}
@@ -349,7 +349,7 @@ namespace MML::Tests::Core::IterativeLinearSolversTests
 		auto result = GaussSeidelSolver::Solve(fullMat, sys._rhs);
 		
 		REQUIRE(result.converged);
-		REQUIRE(result.solution.IsEqualTo(sys._sol, 1e-8));
+		REQUIRE(result.solution.IsEqualTo(sys._sol, TOL(1e-8, 1e-4)));
 	}
 	
 	TEST_CASE("SOR_SPD_5x5_MassMatrix", "[SORSolver][Iterative][SPD]")
@@ -361,7 +361,7 @@ namespace MML::Tests::Core::IterativeLinearSolversTests
 		auto result = SORSolver::Solve(fullMat, sys._rhs, REAL(1.2));
 		
 		REQUIRE(result.converged);
-		REQUIRE(result.solution.IsEqualTo(sys._sol, 1e-8));
+		REQUIRE(result.solution.IsEqualTo(sys._sol, TOL(1e-8, 1e-4)));
 	}
 
 	/*********************************************************************/
@@ -380,7 +380,7 @@ namespace MML::Tests::Core::IterativeLinearSolversTests
 		REQUIRE(result.iterations > 0);
 		REQUIRE(result.iterations <= 1000);  // Within max iterations
 		REQUIRE(result.residual >= REAL(0.0));
-		REQUIRE(result.residual < REAL(1e-10));  // Within tolerance
+		REQUIRE(result.residual < TOL(1e-10, 1e-5));  // Within tolerance
 		REQUIRE(result.solution.size() == sys._sol.size());
 	}
 
@@ -397,7 +397,7 @@ namespace MML::Tests::Core::IterativeLinearSolversTests
 		Real computed_residual = residual_vec.NormL2() / sys._rhs.NormL2();
 		
 		// Result residual should match (approximately, due to final iteration)
-		REQUIRE(std::abs(result.residual - computed_residual) < REAL(1e-12));
+		REQUIRE(std::abs(result.residual - computed_residual) < TOL(1e-12, 1e-5));
 	}
 
 	/*********************************************************************/
@@ -434,7 +434,7 @@ namespace MML::Tests::Core::IterativeLinearSolversTests
 		
 		// Verify Ax = b
 		Vector<Real> Ax = A * result.solution;
-		REQUIRE(Ax.IsEqualTo(b, REAL(1e-8)));
+		REQUIRE(Ax.IsEqualTo(b, TOL(1e-8, 1e-4)));
 	}
 
 	TEST_CASE("GaussSeidel_LargeSystem_50x50", "[GaussSeidelSolver][Iterative][Large]")
@@ -459,7 +459,7 @@ namespace MML::Tests::Core::IterativeLinearSolversTests
 		
 		// Verify solution
 		Vector<Real> Ax = A * result.solution;
-		REQUIRE(Ax.IsEqualTo(b, REAL(1e-8)));
+		REQUIRE(Ax.IsEqualTo(b, TOL(1e-8, 1e-4)));
 	}
 
 	TEST_CASE("SOR_LargeSystem_50x50", "[SORSolver][Iterative][Large]")
@@ -486,7 +486,7 @@ namespace MML::Tests::Core::IterativeLinearSolversTests
 		
 		// Verify solution
 		Vector<Real> Ax = A * sor_result.solution;
-		REQUIRE(Ax.IsEqualTo(b, REAL(1e-8)));
+		REQUIRE(Ax.IsEqualTo(b, TOL(1e-8, 1e-4)));
 	}
 
 	/*********************************************************************/
@@ -558,7 +558,7 @@ namespace MML::Tests::Core::IterativeLinearSolversTests
 		REQUIRE(result.converged);
 		for (int i = 0; i < result.solution.size(); i++)
 		{
-			REQUIRE(std::abs(result.solution[i]) < REAL(1e-12));
+			REQUIRE(std::abs(result.solution[i]) < TOL(1e-12, 1e-5));
 		}
 	}
 
@@ -581,8 +581,8 @@ namespace MML::Tests::Core::IterativeLinearSolversTests
 		REQUIRE(result_close.iterations <= result_zero.iterations);
 		
 		// Both should give correct solution (verified against expected)
-		REQUIRE(result_close.solution.IsEqualTo(sys._sol, REAL(1e-8)));
-		REQUIRE(result_zero.solution.IsEqualTo(sys._sol, REAL(1e-8)));
+		REQUIRE(result_close.solution.IsEqualTo(sys._sol, TOL(1e-8, 1e-4)));
+		REQUIRE(result_zero.solution.IsEqualTo(sys._sol, TOL(1e-8, 1e-4)));
 	}
 
 	TEST_CASE("Iterative_ToleranceSensitivity", "[Iterative]")
@@ -591,8 +591,8 @@ namespace MML::Tests::Core::IterativeLinearSolversTests
 		auto sys = TestBeds::diag_dominant_4x4();
 		
 		// Tighter tolerance should need more iterations
-		auto loose = JacobiSolver::Solve(sys._mat, sys._rhs, Vector<Real>(), REAL(1e-6), 1000);
-		auto tight = JacobiSolver::Solve(sys._mat, sys._rhs, Vector<Real>(), REAL(1e-12), 1000);
+		auto loose = JacobiSolver::Solve(sys._mat, sys._rhs, Vector<Real>(), TOL(1e-6, 1e-3), 1000);
+		auto tight = JacobiSolver::Solve(sys._mat, sys._rhs, Vector<Real>(), TOL(1e-12, 1e-6), 1000);
 		
 		REQUIRE(loose.converged);
 		REQUIRE(tight.converged);

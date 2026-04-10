@@ -39,6 +39,26 @@ typedef std::complex<Real> Complex; // default complex type
 
 namespace MML {
 
+	// Pull std math overloads into the MML namespace so unqualified calls
+	// (sin, cos, sqrt, …) resolve to the correct overload for Real type.
+	// Without this, on GCC/Linux, unqualified sin(long double) silently
+	// calls the C sin(double), losing precision.
+	using std::abs;
+	using std::acos;
+	using std::asin;
+	using std::atan;
+	using std::atan2;
+	using std::cos;
+	using std::exp;
+	using std::fabs;
+	using std::log;
+	using std::log10;
+	using std::pow;
+	using std::sin;
+	using std::sqrt;
+	using std::tan;
+	using std::hypot;
+
 	// Generic absolute value functions
 	template<class Type>
 	static Real Abs(const Type& a) {
@@ -99,8 +119,7 @@ namespace MML {
 	}
 	template<class T>
 	inline T POW5(const T& a) {
-		const T& t = a;
-		return t * t * t * t * t;
+		return POW4(a) * a;
 	}
 
 	////////////                  Constants                ////////////////
@@ -126,9 +145,9 @@ namespace MML {
 		static inline constexpr Real GEOMETRY_EPSILON = Real(1e-10L);
 
 		// Precision constants - use Real type for consistency with library's floating-point type
-		static inline const Real Eps = std::numeric_limits<Real>::epsilon();
-		static inline const Real PosInf = std::numeric_limits<Real>::infinity();
-		static inline const Real NegInf = -std::numeric_limits<Real>::infinity();
+		static inline constexpr Real Eps = std::numeric_limits<Real>::epsilon();
+		static inline constexpr Real PosInf = std::numeric_limits<Real>::infinity();
+		static inline constexpr Real NegInf = -std::numeric_limits<Real>::infinity();
 	} // namespace Constants
 
 	////////////       Binary File Format Constants        ////////////

@@ -489,17 +489,17 @@ namespace MML::Tests::Base::PolynomTests
     REQUIRE(poly.degree() == 2);
     
     // Verify coefficients: 2, 3, -1
-    REQUIRE_THAT(poly[0], WithinAbs(REAL(REAL(2.0)), 1e-10));
-    REQUIRE_THAT(poly[1], WithinAbs(REAL(REAL(3.0)), 1e-10));
-    REQUIRE_THAT(poly[2], WithinAbs(-REAL(REAL(1.0)), REAL(1e-10)));
+    REQUIRE_THAT(poly[0], WithinAbs(REAL(REAL(2.0)), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(poly[1], WithinAbs(REAL(REAL(3.0)), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(poly[2], WithinAbs(-REAL(REAL(1.0)), TOL(1e-10, 1e-5)));
     
     // Verify polynomial passes through all points
-    REQUIRE_THAT(poly(REAL(REAL(0.0))), WithinAbs(REAL(REAL(2.0)), 1e-10));
-    REQUIRE_THAT(poly(REAL(REAL(1.0))), WithinAbs(REAL(REAL(4.0)), 1e-10));
-    REQUIRE_THAT(poly(REAL(REAL(2.0))), WithinAbs(REAL(REAL(4.0)), 1e-10));
+    REQUIRE_THAT(poly(REAL(REAL(0.0))), WithinAbs(REAL(REAL(2.0)), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(poly(REAL(REAL(1.0))), WithinAbs(REAL(REAL(4.0)), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(poly(REAL(REAL(2.0))), WithinAbs(REAL(REAL(4.0)), TOL(1e-10, 1e-5)));
     
     // Test intermediate point
-    REQUIRE_THAT(poly(REAL(REAL(0.5))), WithinAbs(REAL(REAL(3.25)), 1e-10));  // 2 + REAL(REAL(1.5)) - REAL(REAL(0.25)) = REAL(REAL(3.25))
+    REQUIRE_THAT(poly(REAL(REAL(0.5))), WithinAbs(REAL(REAL(3.25)), TOL(1e-10, 1e-5)));  // 2 + REAL(REAL(1.5)) - REAL(REAL(0.25)) = REAL(REAL(3.25))
   }
 
   TEST_CASE("Polynom::FromValues - Cubic (degree 3)", "[interpolation]")
@@ -515,10 +515,10 @@ namespace MML::Tests::Base::PolynomTests
     
     // The key requirement is that it passes through all points
     // (The specific coefficients depend on the interpolation algorithm)
-    REQUIRE_THAT(poly(REAL(REAL(0.0))), WithinAbs(REAL(REAL(1.0)), 1e-10));
-    REQUIRE_THAT(poly(REAL(REAL(1.0))), WithinAbs(REAL(REAL(1.0)), 1e-10));
-    REQUIRE_THAT(poly(-REAL(REAL(1.0))), WithinAbs(REAL(REAL(1.0)), 1e-10));
-    REQUIRE_THAT(poly(REAL(REAL(2.0))), WithinAbs(REAL(REAL(9.0)), 1e-10));
+    REQUIRE_THAT(poly(REAL(REAL(0.0))), WithinAbs(REAL(REAL(1.0)), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(poly(REAL(REAL(1.0))), WithinAbs(REAL(REAL(1.0)), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(poly(-REAL(REAL(1.0))), WithinAbs(REAL(REAL(1.0)), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(poly(REAL(REAL(2.0))), WithinAbs(REAL(REAL(9.0)), TOL(1e-10, 1e-5)));
     
     // Test another point to verify interpolation
     // The polynomial passing through these points should give consistent intermediate values
@@ -545,16 +545,16 @@ namespace MML::Tests::Base::PolynomTests
     REQUIRE(poly.degree() == 5);
     
     // Verify coefficients (all should be REAL(REAL(1.0)))
-    REQUIRE_THAT(poly[0], WithinAbs(REAL(REAL(1.0)), 1e-8));
-    REQUIRE_THAT(poly[1], WithinAbs(REAL(REAL(1.0)), 1e-8));
-    REQUIRE_THAT(poly[2], WithinAbs(REAL(REAL(1.0)), 1e-8));
-    REQUIRE_THAT(poly[3], WithinAbs(REAL(REAL(1.0)), 1e-8));
-    REQUIRE_THAT(poly[4], WithinAbs(REAL(REAL(1.0)), 1e-8));
-    REQUIRE_THAT(poly[5], WithinAbs(REAL(REAL(1.0)), 1e-8));
+    REQUIRE_THAT(poly[0], WithinAbs(REAL(REAL(1.0)), TOL(1e-8, 1e-4)));
+    REQUIRE_THAT(poly[1], WithinAbs(REAL(REAL(1.0)), TOL(1e-8, 1e-4)));
+    REQUIRE_THAT(poly[2], WithinAbs(REAL(REAL(1.0)), TOL(1e-8, 1e-4)));
+    REQUIRE_THAT(poly[3], WithinAbs(REAL(REAL(1.0)), TOL(1e-8, 1e-4)));
+    REQUIRE_THAT(poly[4], WithinAbs(REAL(REAL(1.0)), TOL(1e-8, 1e-4)));
+    REQUIRE_THAT(poly[5], WithinAbs(REAL(REAL(1.0)), TOL(1e-8, 1e-4)));
     
     // Verify polynomial passes through all sample points
     for (size_t i = 0; i < x_vals.size(); i++) {
-      REQUIRE_THAT(poly(x_vals[i]), WithinAbs(y_vals[i], REAL(1e-8)));
+      REQUIRE_THAT(poly(x_vals[i]), WithinAbs(y_vals[i], TOL(1e-8, 1e-4)));
     }
     
     // Test intermediate point
@@ -600,7 +600,7 @@ namespace MML::Tests::Base::PolynomTests
     
     // Verify polynomial passes through all sample points
     for (size_t i = 0; i < x_vals.size(); i++) {
-      REQUIRE_THAT(poly(x_vals[i]), WithinAbs(y_vals[i], REAL(1e-6)));
+      REQUIRE_THAT(poly(x_vals[i]), WithinAbs(y_vals[i], TOL(1e-6, 1e-3)));
     }
     
     // Test intermediate points using the original polynomial for comparison
@@ -623,9 +623,9 @@ namespace MML::Tests::Base::PolynomTests
       PolynomReal poly = PolynomReal::FromValues(x_vals, y_vals);
       
       REQUIRE(poly.degree() == 0);
-      REQUIRE_THAT(poly[0], WithinAbs(REAL(REAL(5.0)), 1e-10));
-      REQUIRE_THAT(poly(REAL(REAL(1.0))), WithinAbs(REAL(REAL(5.0)), 1e-10));
-      REQUIRE_THAT(poly(REAL(REAL(10.0))), WithinAbs(REAL(REAL(5.0)), 1e-10));  // Constant everywhere
+      REQUIRE_THAT(poly[0], WithinAbs(REAL(REAL(5.0)), TOL(1e-10, 1e-5)));
+      REQUIRE_THAT(poly(REAL(REAL(1.0))), WithinAbs(REAL(REAL(5.0)), TOL(1e-10, 1e-5)));
+      REQUIRE_THAT(poly(REAL(REAL(10.0))), WithinAbs(REAL(REAL(5.0)), TOL(1e-10, 1e-5)));  // Constant everywhere
     }
     
     SECTION("Linear polynomial")
@@ -636,9 +636,9 @@ namespace MML::Tests::Base::PolynomTests
       PolynomReal poly = PolynomReal::FromValues(x_vals, y_vals);
       
       REQUIRE(poly.degree() == 1);
-      REQUIRE_THAT(poly[0], WithinAbs(REAL(REAL(2.0)), 1e-10));
-      REQUIRE_THAT(poly[1], WithinAbs(REAL(REAL(3.0)), 1e-10));
-      REQUIRE_THAT(poly(REAL(REAL(0.5))), WithinAbs(REAL(REAL(3.5)), 1e-10));
+      REQUIRE_THAT(poly[0], WithinAbs(REAL(REAL(2.0)), TOL(1e-10, 1e-5)));
+      REQUIRE_THAT(poly[1], WithinAbs(REAL(REAL(3.0)), TOL(1e-10, 1e-5)));
+      REQUIRE_THAT(poly(REAL(REAL(0.5))), WithinAbs(REAL(REAL(3.5)), TOL(1e-10, 1e-5)));
     }
     
     SECTION("Invalid inputs - mismatched sizes")
@@ -929,7 +929,7 @@ namespace MML::Tests::Base::PolynomTests
     PolynomRealFunc b({REAL(1.0000001), REAL(2.0000001), REAL(3.0000001)});
     
     REQUIRE(a.IsEqualTo(b, REAL(1e-5)));       // Within tolerance
-    REQUIRE_FALSE(a.IsEqualTo(b, REAL(1e-9))); // Outside tolerance
+    REQUIRE_FALSE(a.IsEqualTo(b, TOL(1e-9, 1e-8))); // Outside tolerance
   }
 
   TEST_CASE("Polynom::IsEqualTo_different_degrees", "[Polynom][equality]")
@@ -939,7 +939,7 @@ namespace MML::Tests::Base::PolynomTests
     PolynomRealFunc a({REAL(1.0), REAL(2.0), REAL(3.0)});
     PolynomRealFunc b({REAL(1.0), REAL(2.0), REAL(3.0), REAL(0.0), REAL(0.0)});
     
-    REQUIRE(a.IsEqualTo(b, REAL(1e-10)));
+    REQUIRE(a.IsEqualTo(b, TOL(1e-10, 1e-5)));
   }
 
   /*********************************************************************/
@@ -1002,15 +1002,15 @@ namespace MML::Tests::Base::PolynomTests
     Complex z1(1.0, 0.0);
     Complex result1 = poly(z1);
     // = 1 + (1+i)*1 + i = 1 + 1 + i + i = 2 + 2i
-    REQUIRE_THAT(result1.real(), WithinAbs(2.0, 1e-10));
-    REQUIRE_THAT(result1.imag(), WithinAbs(2.0, 1e-10));
+    REQUIRE_THAT(result1.real(), WithinAbs(2.0, TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(result1.imag(), WithinAbs(2.0, TOL(1e-10, 1e-5)));
     
     // Evaluate at z = i
     Complex zi(0.0, 1.0);
     Complex result_i = poly(zi);
     // = i^2 + (1+i)*i + i = -1 + i + i^2 + i = -1 + i - 1 + i = -2 + 2i
-    REQUIRE_THAT(result_i.real(), WithinAbs(-2.0, 1e-10));
-    REQUIRE_THAT(result_i.imag(), WithinAbs(2.0, 1e-10));
+    REQUIRE_THAT(result_i.real(), WithinAbs(-2.0, TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(result_i.imag(), WithinAbs(2.0, TOL(1e-10, 1e-5)));
   }
 
   TEST_CASE("Polynom::complex_arithmetic", "[Polynom][complex]")
@@ -1026,10 +1026,10 @@ namespace MML::Tests::Base::PolynomTests
     
     // (i*z + 1) + (z + i) = (1+i)*z + (1+i)
     REQUIRE(sum.degree() == 1);
-    REQUIRE_THAT(sum[0].real(), WithinAbs(1.0, 1e-10));
-    REQUIRE_THAT(sum[0].imag(), WithinAbs(1.0, 1e-10));
-    REQUIRE_THAT(sum[1].real(), WithinAbs(1.0, 1e-10));
-    REQUIRE_THAT(sum[1].imag(), WithinAbs(1.0, 1e-10));
+    REQUIRE_THAT(sum[0].real(), WithinAbs(1.0, TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(sum[0].imag(), WithinAbs(1.0, TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(sum[1].real(), WithinAbs(1.0, TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(sum[1].imag(), WithinAbs(1.0, TOL(1e-10, 1e-5)));
   }
 
   /*********************************************************************/

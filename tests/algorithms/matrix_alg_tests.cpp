@@ -195,9 +195,9 @@ namespace MML::Tests::Algorithms::MatrixAlgTests
 		
 		// Singular values should be sorted in descending order
 		REQUIRE(sv.size() == 3);
-		REQUIRE(std::abs(sv[0] - REAL(5.0)) < 1e-10);
-		REQUIRE(std::abs(sv[1] - REAL(3.0)) < 1e-10);
-		REQUIRE(std::abs(sv[2] - REAL(1.0)) < 1e-10);
+		REQUIRE(std::abs(sv[0] - REAL(5.0)) < TOL(1e-10, 1e-5));
+		REQUIRE(std::abs(sv[1] - REAL(3.0)) < TOL(1e-10, 1e-5));
+		REQUIRE(std::abs(sv[2] - REAL(1.0)) < TOL(1e-10, 1e-5));
 	}
 	
 	TEST_CASE("Rank_FullRank", "[MatrixAlg][SVD]")
@@ -257,7 +257,7 @@ namespace MML::Tests::Algorithms::MatrixAlgTests
 		}};
 		
 		Real cond = ConditionNumber(A);
-		REQUIRE(std::abs(cond - REAL(5.0)) < 1e-10);
+		REQUIRE(std::abs(cond - REAL(5.0)) < TOL(1e-10, 1e-5));
 	}
 	
 	TEST_CASE("ConditionNumber_Identity", "[MatrixAlg][SVD]")
@@ -266,7 +266,7 @@ namespace MML::Tests::Algorithms::MatrixAlgTests
 		auto I = Matrix<Real>::Identity(5);
 		
 		Real cond = ConditionNumber(I);
-		REQUIRE(std::abs(cond - REAL(1.0)) < 1e-10);
+		REQUIRE(std::abs(cond - REAL(1.0)) < TOL(1e-10, 1e-5));
 	}
 	
 	TEST_CASE("NullSpace_FullRank", "[MatrixAlg][SVD]")
@@ -304,7 +304,7 @@ namespace MML::Tests::Algorithms::MatrixAlgTests
 				x[i] = ns(i, col);
 			
 			Vector<Real> Ax = A * x;
-			REQUIRE(Ax.NormL2() < 1e-10);
+			REQUIRE(Ax.NormL2() < TOL(1e-10, 1e-5));
 		}
 	}
 	
@@ -400,7 +400,7 @@ namespace MML::Tests::Algorithms::MatrixAlgTests
 			for (int j = 0; j < 3; j++)
 			{
 				Real expected = (i == j) ? REAL(1.0) : REAL(0.0);
-				REQUIRE(std::abs(I(i, j) - expected) < 1e-10);
+				REQUIRE(std::abs(I(i, j) - expected) < TOL(1e-10, 1e-5));
 			}
 	}
 	
@@ -429,8 +429,8 @@ namespace MML::Tests::Algorithms::MatrixAlgTests
 		}
 		
 		// Expected: x = [2, 3] (average of (1,3) and (2,4))
-		REQUIRE(std::abs(x[0] - REAL(2.0)) < 1e-10);
-		REQUIRE(std::abs(x[1] - REAL(3.0)) < 1e-10);
+		REQUIRE(std::abs(x[0] - REAL(2.0)) < TOL(1e-10, 1e-5));
+		REQUIRE(std::abs(x[1] - REAL(3.0)) < TOL(1e-10, 1e-5));
 	}
 	
 	TEST_CASE("ComputeSVD_Basic", "[MatrixAlg][SVD]")
@@ -445,7 +445,7 @@ namespace MML::Tests::Algorithms::MatrixAlgTests
 		auto svd = ComputeSVD(A);
 		
 		REQUIRE(svd.rank == 3);
-		REQUIRE(std::abs(svd.conditionNumber - REAL(3.0)) < 1e-10);
+		REQUIRE(std::abs(svd.conditionNumber - REAL(3.0)) < TOL(1e-10, 1e-5));
 		REQUIRE(svd.singularValues.size() == 3);
 	}
 

@@ -70,6 +70,7 @@ namespace MML
 		/// @brief Transform coordinates from source to target system
 		/// @param x Position in source coordinate system
 		/// @return Position in target coordinate system
+		/// @note Must be consistent with transf() — both use coordTransfFunc(i)
 		VectorN<Real, N> operator()(const VectorN<Real, N>& x) const
     {
       VectorN<Real, N> ret;
@@ -82,7 +83,7 @@ namespace MML
 		/// @param ind Index of basis vector (0 to N-1)
 		/// @param pos Position in source coordinates
 		/// @return Covariant basis vector in target coordinates
-		virtual VectorTo   getBasisVec(int ind, const VectorFrom& pos)
+		virtual VectorTo   getBasisVec(int ind, const VectorFrom& pos) const
 		{
 			VectorTo ret;
 
@@ -95,7 +96,7 @@ namespace MML
 		/// @param ind Index of basis vector (0 to N-1)
 		/// @param pos Position in source coordinates
 		/// @return Contravariant basis vector
-		virtual VectorFrom getInverseBasisVec(int ind, const VectorFrom& pos)
+		virtual VectorFrom getInverseBasisVec(int ind, const VectorFrom& pos) const
 		{
 			VectorFrom ret;
 
@@ -108,7 +109,7 @@ namespace MML
 		/// @brief Compute Jacobian matrix of transformation at position
 		/// @param pos Position in source coordinates
 		/// @return Jacobian matrix J_ij = ∂x'_i/∂x_j
-		MatrixNM<Real, N, N> jacobian(const VectorN<Real, N>& pos)
+		MatrixNM<Real, N, N> jacobian(const VectorN<Real, N>& pos) const
 		{
 			MatrixNM<Real, N, N> jac;
 
@@ -125,7 +126,7 @@ namespace MML
 		/// @param vec Vector in source coordinates
 		/// @param pos Position where transformation is evaluated
 		/// @return Transformed contravariant vector
-		VectorTo   transfVecContravariant(const VectorFrom& vec, const VectorFrom& pos)
+		VectorTo   transfVecContravariant(const VectorFrom& vec, const VectorFrom& pos) const
 		{
 			VectorTo ret;
 			for (int i = 0; i < N; i++) {
@@ -139,7 +140,7 @@ namespace MML
 		/// @param vec Vector in target coordinates
 		/// @param pos Position in source coordinates
 		/// @return Transformed covariant vector
-		VectorFrom transfInverseVecCovariant(const VectorTo& vec, const VectorFrom& pos)
+		VectorFrom transfInverseVecCovariant(const VectorTo& vec, const VectorFrom& pos) const
 		{
 			VectorFrom ret;
 			for (int i = 0; i < N; i++)
@@ -168,7 +169,7 @@ namespace MML
 		/// @param ind Index of basis vector (0 to N-1)
 		/// @param pos Position in target coordinates
 		/// @return Contravariant basis vector in source coordinates
-		virtual VectorFrom getContravarBasisVec(int ind, const VectorTo& pos)
+		virtual VectorFrom getContravarBasisVec(int ind, const VectorTo& pos) const
 		{
 			VectorFrom ret;
 
@@ -181,7 +182,7 @@ namespace MML
 		/// @param ind Index of basis vector (0 to N-1)
 		/// @param pos Position in target coordinates
 		/// @return Contravariant basis vector in target coordinates
-		virtual VectorTo   getInverseContravarBasisVec(int ind, const VectorTo& pos)
+		virtual VectorTo   getInverseContravarBasisVec(int ind, const VectorTo& pos) const
 		{
 			VectorTo ret;
 
@@ -195,7 +196,7 @@ namespace MML
 		/// @param vec Vector in source coordinates
 		/// @param pos Position in target coordinates where transformation is evaluated
 		/// @return Transformed covariant vector
-		VectorTo   transfVecCovariant(const VectorFrom& vec, const VectorTo& pos)
+		VectorTo   transfVecCovariant(const VectorFrom& vec, const VectorTo& pos) const
 		{
 			VectorTo ret;
 			for (int i = 0; i < N; i++)
@@ -211,7 +212,7 @@ namespace MML
 		/// @param vec Vector in target coordinates
 		/// @param pos Position in target coordinates
 		/// @return Transformed contravariant vector in source coordinates
-		VectorFrom transfInverseVecContravariant(const VectorTo& vec, const VectorTo& pos)
+		VectorFrom transfInverseVecContravariant(const VectorTo& vec, const VectorTo& pos) const
 		{
 			VectorFrom ret;
 			for (int i = 0; i < N; i++)
@@ -228,7 +229,7 @@ namespace MML
 		/// @param tensor Input tensor with mixed contravariant/covariant indices
 		/// @param pos Position in source coordinates
 		/// @return Transformed tensor in target coordinates
-		Tensor2<N> transfTensor2(const Tensor2<N>& tensor, const VectorFrom& pos)
+		Tensor2<N> transfTensor2(const Tensor2<N>& tensor, const VectorFrom& pos) const
 		{
 			Tensor2<N> ret(tensor.NumContravar(), tensor.NumCovar());
 
@@ -239,7 +240,7 @@ namespace MML
 					for (int k = 0; k < N; k++)
 						for (int l = 0; l < N; l++)
 						{
-Real coef1, coef2;
+              Real coef1, coef2;
 							if (tensor.IsContravar(0))
 								coef1 = Derivation::NDer4Partial(this->coordTransfFunc(i), k, pos);
 							else
@@ -260,7 +261,7 @@ Real coef1, coef2;
 		/// @param tensor Input tensor with mixed contravariant/covariant indices
 		/// @param pos Position in source coordinates
 		/// @return Transformed tensor in target coordinates
-		Tensor3<N> transfTensor3(const Tensor3<N>& tensor, const VectorFrom& pos)
+		Tensor3<N> transfTensor3(const Tensor3<N>& tensor, const VectorFrom& pos) const
 		{
 			Tensor3<N> ret(tensor.NumContravar(), tensor.NumCovar());
 
@@ -299,7 +300,7 @@ Real coef1, coef2;
 		/// @param tensor Input tensor with mixed contravariant/covariant indices
 		/// @param pos Position in source coordinates
 		/// @return Transformed tensor in target coordinates
-		Tensor4<N> transfTensor4(const Tensor4<N>& tensor, const VectorFrom& pos)
+		Tensor4<N> transfTensor4(const Tensor4<N>& tensor, const VectorFrom& pos) const
 		{
 			Tensor4<N> ret(tensor.NumContravar(), tensor.NumCovar());
 
@@ -345,7 +346,7 @@ Real coef1, coef2;
 		/// @param tensor Input tensor with mixed contravariant/covariant indices
 		/// @param pos Position in source coordinates
 		/// @return Transformed tensor in target coordinates
-		Tensor5<N> transfTensor5(const Tensor5<N>& tensor, const VectorFrom& pos)
+		Tensor5<N> transfTensor5(const Tensor5<N>& tensor, const VectorFrom& pos) const
 		{
 			Tensor5<N> ret(tensor.NumContravar(), tensor.NumCovar());
 
@@ -384,10 +385,11 @@ Real coef1, coef2;
 														coef4 = Derivation::NDer4Partial(this->inverseCoordTransfFunc(q), l, pos);
 
 													if (tensor.IsContravar(4))
-												coef5 = Derivation::NDer4Partial(this->coordTransfFunc(m), r, pos);
-											else
-												coef5 = Derivation::NDer4Partial(this->inverseCoordTransfFunc(r), m, pos);
-													ret[i][j][k][l][m] += coef1 * coef2 * coef3 * coef4 * coef5 * tensor[n][o][p][q][r];
+												    coef5 = Derivation::NDer4Partial(this->coordTransfFunc(m), r, pos);
+											    else
+												    coef5 = Derivation::NDer4Partial(this->inverseCoordTransfFunc(r), m, pos);
+													
+                          ret[i][j][k][l][m] += coef1 * coef2 * coef3 * coef4 * coef5 * tensor[n][o][p][q][r];
 												}
 							}
 

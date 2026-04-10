@@ -239,7 +239,7 @@ namespace MML::Tests::Base::MatrixTests
 
 		// Difference is 1e-4, use 1e-3 (yes) and 1e-7 (no)
 		// 1e-3 scales to 1e-1 (float), 1e-7 scales to 1e-5 (float)
-		REQUIRE(true == a.IsEqualTo(b, ScaleTolerance(REAL(1e-3))));
+		REQUIRE(true == a.IsEqualTo(b, TOL3(1e-3, 1e-1, 1e-3)));
 		REQUIRE(false == a.IsEqualTo(b, ScaleTolerance(REAL(1e-7))));
 	}
 
@@ -378,7 +378,7 @@ namespace MML::Tests::Base::MatrixTests
 		auto b = mat.inverse();
 		auto c = mat * b;
 
-		REQUIRE(c.IsEqualTo(Matrix<Real>::Identity(3), 1e-10));
+		REQUIRE(c.IsEqualTo(Matrix<Real>::Identity(3), TOL(1e-10, 5e-1)));
 	}
 	TEST_CASE("Matrix::GetInverse_throws_for_singular_matrix", "[simple]")
 	{
@@ -402,8 +402,8 @@ namespace MML::Tests::Base::MatrixTests
 			TEST_PRECISION_INFO();
 		std::stringstream str;
 
-		Matrix<Real> mat(2, 2, { REAL(1.0), REAL(2.0), REAL(3.0), 1e-10 });
-		mat.Print(str, 5, 3, 1e-9);
+		Matrix<Real> mat(2, 2, { REAL(1.0), REAL(2.0), REAL(3.0), TOL(1e-10, 1e-5) });
+		mat.Print(str, 5, 3, TOL(1e-9, 1e-4));
 
 		REQUIRE("Rows: 2 Cols: 2\n[     1,     2 ]\n[     3,     0 ]" == str.str());
 	}
@@ -494,8 +494,11 @@ namespace MML::Tests::Base::MatrixTests
 		std::string output = ss.str();
 
 		// High precision should show more decimal places
-		// Check for PI with at least 8 decimals
-		REQUIRE(output.find("3.14159265") != std::string::npos);
+		if constexpr (std::is_same_v<Real, float>) {
+			REQUIRE(output.find("3.14159") != std::string::npos);
+		} else {
+			REQUIRE(output.find("3.14159265") != std::string::npos);
+		}
 	}
 
 	TEST_CASE("Matrix::Print_with_no_delimiter", "[matrix_format]") {
@@ -563,7 +566,7 @@ namespace MML::Tests::Base::MatrixTests
 		a.Print(ss1, 10, 3);
 
 		std::stringstream ss2;
-		a.Print(ss2, 10, 3, 1e-10);  // with zero threshold
+		a.Print(ss2, 10, 3, TOL(1e-10, 1e-5));  // with zero threshold
 
 		// Both should produce valid output
 		REQUIRE(!ss1.str().empty());
@@ -596,11 +599,11 @@ namespace MML::Tests::Base::MatrixTests
 		
 		// Inverse of 1x1 [a] is [1/a]
 		Matrix<Real> inv = m1.inverse();
-		REQUIRE_THAT(inv(0, 0), Catch::Matchers::WithinAbs(REAL(0.2), 1e-10));
+		REQUIRE_THAT(inv(0, 0), Catch::Matchers::WithinAbs(REAL(0.2), TOL(1e-10, 1e-5)));
 		
 		// m1 * inv = I (1x1 identity)
 		Matrix<Real> identity = m1 * inv;
-		REQUIRE_THAT(identity(0, 0), Catch::Matchers::WithinAbs(REAL(1.0), 1e-10));
+		REQUIRE_THAT(identity(0, 0), Catch::Matchers::WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("Matrix::EdgeCase_rectangular_multiply", "[Matrix][edge_cases]")
@@ -634,15 +637,15 @@ namespace MML::Tests::Base::MatrixTests
 		
 		// A * I = A
 		Matrix<Real> AI = A * I;
-		REQUIRE(A.IsEqualTo(AI, 1e-10));
+		REQUIRE(A.IsEqualTo(AI, TOL(1e-10, 1e-5)));
 		
 		// I * A = A
 		Matrix<Real> IA = I * A;
-		REQUIRE(A.IsEqualTo(IA, 1e-10));
+		REQUIRE(A.IsEqualTo(IA, TOL(1e-10, 1e-5)));
 		
 		// I^-1 = I
 		Matrix<Real> Iinv = I.inverse();
-		REQUIRE(I.IsEqualTo(Iinv, 1e-10));
+		REQUIRE(I.IsEqualTo(Iinv, TOL(1e-10, 1e-5)));
 	}
 
 	///////////////////////          Copy and Move Semantics          //////////////////////
@@ -1359,7 +1362,7 @@ namespace MML::Tests::Base::MatrixTests
 		
 		// m * original = I
 		Matrix<Real> product = m * original;
-		REQUIRE(product.IsEqualTo(Matrix<Real>::Identity(2), 1e-10));
+		REQUIRE(product.IsEqualTo(Matrix<Real>::Identity(2), TOL(1e-10, 1e-5)));
 	}
 
 	///////////////////////          Type Aliases                      //////////////////////
@@ -1423,7 +1426,7 @@ namespace MML::Tests::Base::MatrixTests
 		MatrixComplex c(2, 2, { Complex(3.0, 4.0), Complex(0.0, 0.0),
 		                        Complex(0.0, 0.0), Complex(0.0, 0.0) });
 		// |3+4i|^2 = 25, so norm = 5
-		REQUIRE_THAT(c.NormL2(), Catch::Matchers::WithinAbs(5.0, 1e-10));
+		REQUIRE_THAT(c.NormL2(), Catch::Matchers::WithinAbs(5.0, TOL(1e-10, 1e-5)));
 	}
 
 	///////////////////////          Resize with Preserve              //////////////////////

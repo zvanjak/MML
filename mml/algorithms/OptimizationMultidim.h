@@ -233,7 +233,7 @@ namespace MML::Optimization {
          * @param ftol Fractional convergence tolerance (default 1e-8)
          * @param maxIter Maximum iterations (default 5000)
          */
-		NelderMead(Real ftol = 1.0e-8, int maxIter = 5000)
+		NelderMead(Real ftol = PrecisionValues<Real>::OptimizationGradientTolerance, int maxIter = 5000)
 			: _ftol(ftol)
 			, _maxIter(maxIter)
 			, _nfunc(0)
@@ -556,7 +556,7 @@ namespace MML::Optimization {
      */
 	template<int N>
 	MultidimMinimizationResult NelderMeadMinimize(const IScalarFunction<N>& func, const VectorN<Real, N>& start, Real delta = 1.0,
-												  Real ftol = 1.0e-8) {
+												  Real ftol = PrecisionValues<Real>::OptimizationGradientTolerance) {
 		NelderMead optimizer(ftol);
 		return optimizer.Minimize(func, start, delta);
 	}
@@ -572,7 +572,7 @@ namespace MML::Optimization {
      */
 	template<int N>
 	MultidimMinimizationResult NelderMeadMinimize(const IScalarFunction<N>& func, const VectorN<Real, N>& start, const Vector<Real>& deltas,
-												  Real ftol = 1.0e-8) {
+												  Real ftol = PrecisionValues<Real>::OptimizationGradientTolerance) {
 		NelderMead optimizer(ftol);
 		return optimizer.Minimize(func, start, deltas);
 	}
@@ -607,7 +607,7 @@ namespace MML::Optimization {
      */
 	template<int N>
 	MultidimMinimizationResult NelderMeadMaximize(const IScalarFunction<N>& func, const VectorN<Real, N>& start, Real delta = 1.0,
-												  Real ftol = 1.0e-8) {
+												  Real ftol = PrecisionValues<Real>::OptimizationGradientTolerance) {
 		NegatedScalarFunction<N> negFunc(func);
 		NelderMead optimizer(ftol);
 		auto result = optimizer.Minimize(negFunc, start, delta);
@@ -790,7 +790,7 @@ namespace MML::Optimization {
          * @return Function value at minimum
          */
 		template<int N>
-		static Real Minimize(const IScalarFunction<N>& func, VectorN<Real, N>& p, VectorN<Real, N>& xi, Real tol = 3.0e-8) {
+		static Real Minimize(const IScalarFunction<N>& func, VectorN<Real, N>& p, VectorN<Real, N>& xi, Real tol = PrecisionValues<Real>::OptimizationTolerance) {
 			LineFunction<N> f1dim(func, p, xi);
 
 			// Bracket the minimum
@@ -846,7 +846,7 @@ namespace MML::Optimization {
 		Real _fret;	  // Current function value
 
 	public:
-		Powell(Real ftol = 3.0e-8, int maxIter = 200)
+		Powell(Real ftol = PrecisionValues<Real>::OptimizationTolerance, int maxIter = 200)
 			: _ftol(ftol)
 			, _maxIter(maxIter)
 			, _iter(0)
@@ -1016,7 +1016,7 @@ namespace MML::Optimization {
 		Method _method; // CG variant
 
 	public:
-		ConjugateGradient(Real ftol = 3.0e-8, Real gtol = 1.0e-8, int maxIter = 200, Method method = Method::PolakRibiere)
+		ConjugateGradient(Real ftol = PrecisionValues<Real>::OptimizationTolerance, Real gtol = PrecisionValues<Real>::OptimizationGradientTolerance, int maxIter = 200, Method method = Method::PolakRibiere)
 			: _ftol(ftol)
 			, _gtol(gtol)
 			, _maxIter(maxIter)
@@ -1173,7 +1173,7 @@ namespace MML::Optimization {
 		Real _fret;	  // Current function value
 
 	public:
-		BFGS(Real ftol = 3.0e-8, Real gtol = 1.0e-8, int maxIter = 200)
+		BFGS(Real ftol = PrecisionValues<Real>::OptimizationTolerance, Real gtol = PrecisionValues<Real>::OptimizationGradientTolerance, int maxIter = 200)
 			: _ftol(ftol)
 			, _gtol(gtol)
 			, _maxIter(maxIter)
@@ -1517,7 +1517,7 @@ namespace MML::Optimization {
 				// Advance bracket
 				alpha_prev = alpha_cur;
 				phi_prev = phi_cur;
-				alpha_cur = std::min(2.0 * alpha_cur, alpha_max);
+				alpha_cur = std::min(Real(2.0) * alpha_cur, alpha_max);
 			}
 
 			// Fallback: accept best step found (last alpha_cur)
@@ -1630,7 +1630,7 @@ namespace MML::Optimization {
          * @param maxIter Maximum number of iterations
          * @param memorySize Number of correction pairs to store (typical: 3-20)
          */
-		LBFGS(Real ftol = 3.0e-8, Real gtol = 1.0e-8, int maxIter = 1000, int memorySize = 10)
+		LBFGS(Real ftol = PrecisionValues<Real>::OptimizationTolerance, Real gtol = PrecisionValues<Real>::OptimizationGradientTolerance, int maxIter = 1000, int memorySize = 10)
 			: _ftol(ftol)
 			, _gtol(gtol)
 			, _maxIter(maxIter)
@@ -1934,7 +1934,7 @@ namespace MML::Optimization {
      * @brief Minimize using Powell's method (no derivatives needed)
      */
 	template<int N>
-	MultidimMinimizationResult PowellMinimize(const IScalarFunction<N>& func, const VectorN<Real, N>& start, Real ftol = 3.0e-8) {
+	MultidimMinimizationResult PowellMinimize(const IScalarFunction<N>& func, const VectorN<Real, N>& start, Real ftol = PrecisionValues<Real>::OptimizationTolerance) {
 		Powell optimizer(ftol);
 		return optimizer.Minimize(func, start);
 	}
@@ -1944,9 +1944,9 @@ namespace MML::Optimization {
      */
 	template<int N>
 	MultidimMinimizationResult ConjugateGradientMinimize(const IDifferentiableScalarFunction<N>& func, const VectorN<Real, N>& start,
-														 Real ftol = 3.0e-8,
+														 Real ftol = PrecisionValues<Real>::OptimizationTolerance,
 														 ConjugateGradient::Method method = ConjugateGradient::Method::PolakRibiere) {
-		ConjugateGradient optimizer(ftol, 1.0e-8, 200, method);
+		ConjugateGradient optimizer(ftol, PrecisionValues<Real>::OptimizationGradientTolerance, 200, method);
 		return optimizer.Minimize(func, start);
 	}
 
@@ -1955,7 +1955,7 @@ namespace MML::Optimization {
      */
 	template<int N>
 	MultidimMinimizationResult BFGSMinimize(const IDifferentiableScalarFunction<N>& func, const VectorN<Real, N>& start,
-											Real ftol = 3.0e-8) {
+											Real ftol = PrecisionValues<Real>::OptimizationTolerance) {
 		BFGS optimizer(ftol);
 		return optimizer.Minimize(func, start);
 	}
@@ -1976,8 +1976,8 @@ namespace MML::Optimization {
      */
 	template<int N>
 	MultidimMinimizationResult LBFGSMinimize(const IDifferentiableScalarFunction<N>& func, const VectorN<Real, N>& start,
-											 Real ftol = 3.0e-8, int memorySize = 10) {
-		LBFGS optimizer(ftol, 1.0e-8, 1000, memorySize);
+											 Real ftol = PrecisionValues<Real>::OptimizationTolerance, int memorySize = 10) {
+		LBFGS optimizer(ftol, PrecisionValues<Real>::OptimizationGradientTolerance, 1000, memorySize);
 		return optimizer.Minimize(func, start);
 	}
 
@@ -2012,7 +2012,7 @@ namespace MML::Optimization {
 														 const MultidimOptimizationConfig& config,
 														 ConjugateGradient::Method method = ConjugateGradient::Method::PolakRibiere) {
 		AlgorithmTimer timer;
-		ConjugateGradient optimizer(config.tolerance, 1.0e-8, config.max_iterations, method);
+		ConjugateGradient optimizer(config.tolerance, PrecisionValues<Real>::OptimizationGradientTolerance, config.max_iterations, method);
 		MultidimMinimizationResult result = optimizer.Minimize(func, start);
 		
 		result.algorithm_name = "ConjugateGradient";
@@ -2031,7 +2031,7 @@ namespace MML::Optimization {
 	MultidimMinimizationResult BFGSMinimize(const IDifferentiableScalarFunction<N>& func, const VectorN<Real, N>& start,
 											const MultidimOptimizationConfig& config) {
 		AlgorithmTimer timer;
-		BFGS optimizer(config.tolerance, 1.0e-8, config.max_iterations);
+		BFGS optimizer(config.tolerance, PrecisionValues<Real>::OptimizationGradientTolerance, config.max_iterations);
 		MultidimMinimizationResult result = optimizer.Minimize(func, start);
 		
 		result.algorithm_name = "BFGS";
@@ -2053,7 +2053,7 @@ namespace MML::Optimization {
 	MultidimMinimizationResult LBFGSMinimize(const IDifferentiableScalarFunction<N>& func, const VectorN<Real, N>& start,
 											 const MultidimOptimizationConfig& config) {
 		AlgorithmTimer timer;
-		LBFGS optimizer(config.tolerance, 1.0e-8, config.max_iterations, config.lbfgs_memory_size);
+		LBFGS optimizer(config.tolerance, PrecisionValues<Real>::OptimizationGradientTolerance, config.max_iterations, config.lbfgs_memory_size);
 		MultidimMinimizationResult result = optimizer.Minimize(func, start);
 		
 		result.algorithm_name = "L-BFGS";

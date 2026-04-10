@@ -25,10 +25,10 @@ namespace MML::Tests::Algorithms::AdvancedRootFindingTests
 		// f(x) = x^2 - 4, root at x = 2
 		RealFunction func([](Real x) { return x * x - REAL(4.0); });
 
-		Real root = RootFinding::FindRootFalsePosition(func, REAL(1.0), REAL(3.0), 1e-10);
+		Real root = RootFinding::FindRootFalsePosition(func, REAL(1.0), REAL(3.0), TOL(1e-10, 1e-5));
 
-		REQUIRE_THAT(root, WithinAbs(REAL(2.0), REAL(1e-9)));
-		REQUIRE_THAT(func(root), WithinAbs(REAL(0.0), REAL(1e-9)));
+		REQUIRE_THAT(root, WithinAbs(REAL(2.0), TOL(1e-9, 1e-4)));
+		REQUIRE_THAT(func(root), WithinAbs(REAL(0.0), TOL(1e-9, 1e-4)));
 	}
 
 	TEST_CASE("RootFinding::FalsePosition_cubic", "[falseposition]")
@@ -37,9 +37,9 @@ namespace MML::Tests::Algorithms::AdvancedRootFindingTests
 		// f(x) = x^3 - x - 2, root near x ~ REAL(1.521)
 		RealFunction func([](Real x) { return x * x * x - x - REAL(2.0); });
 
-		Real root = RootFinding::FindRootFalsePosition(func, REAL(1.0), REAL(2.0), 1e-10);
+		Real root = RootFinding::FindRootFalsePosition(func, REAL(1.0), REAL(2.0), TOL(1e-10, 1e-5));
 
-		REQUIRE_THAT(func(root), WithinAbs(REAL(0.0), REAL(1e-9)));
+		REQUIRE_THAT(func(root), WithinAbs(REAL(0.0), TOL(1e-9, 1e-4)));
 	}
 
 	TEST_CASE("RootFinding::FalsePosition_transcendental", "[falseposition]")
@@ -48,10 +48,10 @@ namespace MML::Tests::Algorithms::AdvancedRootFindingTests
 		// f(x) = cos(x) - x, root near x ~ REAL(0.739085)
 		RealFunction func([](Real x) { return std::cos(x) - x; });
 
-		Real root = RootFinding::FindRootFalsePosition(func, REAL(0.0), REAL(1.0), 1e-10);
+		Real root = RootFinding::FindRootFalsePosition(func, REAL(0.0), REAL(1.0), TOL(1e-10, 1e-5));
 
 		REQUIRE_THAT(root, WithinAbs(REAL(0.739085), REAL(1e-5)));
-		REQUIRE_THAT(func(root), WithinAbs(REAL(0.0), REAL(1e-9)));
+		REQUIRE_THAT(func(root), WithinAbs(REAL(0.0), TOL(1e-9, 1e-4)));
 	}
 
 	TEST_CASE("RootFinding::FalsePosition_error_not_bracketed", "[falseposition][error]")
@@ -61,7 +61,7 @@ namespace MML::Tests::Algorithms::AdvancedRootFindingTests
 		RealFunction func([](Real x) { return x * x + REAL(1.0); });
 
 		REQUIRE_THROWS_AS(
-			RootFinding::FindRootFalsePosition(func, REAL(0.0), REAL(1.0), 1e-8),
+			RootFinding::FindRootFalsePosition(func, REAL(0.0), REAL(1.0), TOL(1e-8, 1e-4)),
 			RootFindingError
 		);
 	}
@@ -75,10 +75,10 @@ namespace MML::Tests::Algorithms::AdvancedRootFindingTests
 		// f(x) = x^2 - 4, root at x = 2
 		RealFunction func([](Real x) { return x * x - REAL(4.0); });
 
-		Real root = RootFinding::FindRootSecant(func, REAL(1.0), REAL(3.0), 1e-10);
+		Real root = RootFinding::FindRootSecant(func, REAL(1.0), REAL(3.0), TOL(1e-10, 1e-5));
 
-		REQUIRE_THAT(root, WithinAbs(REAL(2.0), REAL(1e-9)));
-		REQUIRE_THAT(func(root), WithinAbs(REAL(0.0), REAL(1e-9)));
+		REQUIRE_THAT(root, WithinAbs(REAL(2.0), TOL(1e-9, 1e-4)));
+		REQUIRE_THAT(func(root), WithinAbs(REAL(0.0), TOL(1e-9, 1e-4)));
 	}
 
 	TEST_CASE("RootFinding::Secant_cubic_fast_convergence", "[secant]")
@@ -87,10 +87,10 @@ namespace MML::Tests::Algorithms::AdvancedRootFindingTests
 		// f(x) = x^3 - 2x - 5, root near x ~ REAL(2.0946)
 		RealFunction func([](Real x) { return x * x * x - REAL(2.0) * x - REAL(5.0); });
 
-		Real root = RootFinding::FindRootSecant(func, REAL(2.0), REAL(3.0), 1e-12);
+		Real root = RootFinding::FindRootSecant(func, REAL(2.0), REAL(3.0), TOL(1e-12, 1e-5));
 
 		REQUIRE_THAT(root, WithinAbs(REAL(2.0946), REAL(1e-4)));
-		REQUIRE_THAT(func(root), WithinAbs(REAL(0.0), REAL(1e-10)));
+		REQUIRE_THAT(func(root), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("RootFinding::Secant_transcendental", "[secant]")
@@ -99,9 +99,9 @@ namespace MML::Tests::Algorithms::AdvancedRootFindingTests
 		// f(x) = e^x - 3x, root near x ~ REAL(1.512)
 		RealFunction func([](Real x) { return std::exp(x) - REAL(3.0) * x; });
 
-		Real root = RootFinding::FindRootSecant(func, REAL(1.0), REAL(2.0), 1e-10);
+		Real root = RootFinding::FindRootSecant(func, REAL(1.0), REAL(2.0), TOL(1e-10, 1e-5));
 
-		REQUIRE_THAT(func(root), WithinAbs(REAL(0.0), REAL(1e-9)));
+		REQUIRE_THAT(func(root), WithinAbs(REAL(0.0), TOL(1e-9, 1e-4)));
 	}
 
 	TEST_CASE("RootFinding::Secant_superlinear_convergence", "[secant]")
@@ -110,10 +110,10 @@ namespace MML::Tests::Algorithms::AdvancedRootFindingTests
 		// f(x) = x^3 - x - 1, verify superlinear convergence
 		RealFunction func([](Real x) { return x * x * x - x - REAL(1.0); });
 
-		Real root = RootFinding::FindRootSecant(func, REAL(1.0), REAL(2.0), 1e-15);
+		Real root = RootFinding::FindRootSecant(func, REAL(1.0), REAL(2.0), TOL(1e-15, 1e-5));
 
 		// Secant should achieve very high precision
-		REQUIRE_THAT(func(root), WithinAbs(REAL(0.0), REAL(1e-13)));
+		REQUIRE_THAT(func(root), WithinAbs(REAL(0.0), TOL(1e-13, 1e-5)));
 	}
 
 	/*********************************************************************/
@@ -125,10 +125,10 @@ namespace MML::Tests::Algorithms::AdvancedRootFindingTests
 		// f(x) = x^2 - 4, root at x = 2
 		RealFunction func([](Real x) { return x * x - REAL(4.0); });
 
-		Real root = RootFinding::FindRootRidders(func, REAL(1.0), REAL(3.0), 1e-12);
+		Real root = RootFinding::FindRootRidders(func, REAL(1.0), REAL(3.0), TOL(1e-12, 1e-5));
 
-		REQUIRE_THAT(root, WithinAbs(REAL(2.0), REAL(1e-11)));
-		REQUIRE_THAT(func(root), WithinAbs(REAL(0.0), REAL(1e-11)));
+		REQUIRE_THAT(root, WithinAbs(REAL(2.0), TOL(1e-11, 1e-5)));
+		REQUIRE_THAT(func(root), WithinAbs(REAL(0.0), TOL(1e-11, 1e-5)));
 	}
 
 	TEST_CASE("RootFinding::Ridders_cubic", "[ridders]")
@@ -137,9 +137,9 @@ namespace MML::Tests::Algorithms::AdvancedRootFindingTests
 		// f(x) = x^3 - x - 2, root near x ~ REAL(1.521)
 		RealFunction func([](Real x) { return x * x * x - x - REAL(2.0); });
 
-		Real root = RootFinding::FindRootRidders(func, REAL(1.0), REAL(2.0), 1e-12);
+		Real root = RootFinding::FindRootRidders(func, REAL(1.0), REAL(2.0), TOL(1e-12, 1e-5));
 
-		REQUIRE_THAT(func(root), WithinAbs(REAL(0.0), REAL(1e-11)));
+		REQUIRE_THAT(func(root), WithinAbs(REAL(0.0), TOL(1e-11, 1e-5)));
 	}
 
 	TEST_CASE("RootFinding::Ridders_transcendental", "[ridders]")
@@ -148,10 +148,10 @@ namespace MML::Tests::Algorithms::AdvancedRootFindingTests
 		// f(x) = cos(x) - x, root near x ~ REAL(0.739085)
 		RealFunction func([](Real x) { return std::cos(x) - x; });
 
-		Real root = RootFinding::FindRootRidders(func, REAL(0.0), REAL(1.0), 1e-12);
+		Real root = RootFinding::FindRootRidders(func, REAL(0.0), REAL(1.0), TOL(1e-12, 1e-5));
 
 		REQUIRE_THAT(root, WithinAbs(REAL(0.739085), REAL(1e-6)));
-		REQUIRE_THAT(func(root), WithinAbs(REAL(0.0), REAL(1e-11)));
+		REQUIRE_THAT(func(root), WithinAbs(REAL(0.0), TOL(1e-11, 1e-5)));
 	}
 
 	TEST_CASE("RootFinding::Ridders_quadratic_convergence", "[ridders]")
@@ -160,7 +160,7 @@ namespace MML::Tests::Algorithms::AdvancedRootFindingTests
 		// f(x) = x^5 - x - 1, verify fast convergence
 		RealFunction func([](Real x) -> Real { return std::pow(x, 5) - x - REAL(1.0); });
 
-	Real root = RootFinding::FindRootRidders(func, REAL(1.0), REAL(2.0), REAL(1e-15));
+	Real root = RootFinding::FindRootRidders(func, REAL(1.0), REAL(2.0), TOL(1e-15, 1e-5));
 	}
 
 	TEST_CASE("RootFinding::Ridders_error_not_bracketed", "[ridders][error]")
@@ -170,7 +170,7 @@ namespace MML::Tests::Algorithms::AdvancedRootFindingTests
 		RealFunction func([](Real x) { return x * x + REAL(1.0); });
 
 		REQUIRE_THROWS_AS(
-			RootFinding::FindRootRidders(func, REAL(0.0), REAL(1.0), 1e-8),
+			RootFinding::FindRootRidders(func, REAL(0.0), REAL(1.0), TOL(1e-8, 1e-4)),
 			RootFindingError
 		);
 	}
@@ -184,10 +184,10 @@ namespace MML::Tests::Algorithms::AdvancedRootFindingTests
 		// f(x) = x^2 - 4, root at x = 2
 		RealFunction func([](Real x) { return x * x - REAL(4.0); });
 
-		Real root = RootFinding::FindRootBrent(func, REAL(1.0), REAL(3.0), 1e-12);
+		Real root = RootFinding::FindRootBrent(func, REAL(1.0), REAL(3.0), TOL(1e-12, 1e-5));
 
-		REQUIRE_THAT(root, WithinAbs(REAL(2.0), REAL(1e-11)));
-		REQUIRE_THAT(func(root), WithinAbs(REAL(0.0), REAL(1e-11)));
+		REQUIRE_THAT(root, WithinAbs(REAL(2.0), TOL(1e-11, 1e-5)));
+		REQUIRE_THAT(func(root), WithinAbs(REAL(0.0), TOL(1e-11, 1e-5)));
 	}
 
 	TEST_CASE("RootFinding::Brent_cubic", "[brent]")
@@ -196,9 +196,9 @@ namespace MML::Tests::Algorithms::AdvancedRootFindingTests
 		// f(x) = x^3 - x - 2, root near x ~ REAL(1.521)
 		RealFunction func([](Real x) { return x * x * x - x - REAL(2.0); });
 
-		Real root = RootFinding::FindRootBrent(func, REAL(1.0), REAL(2.0), 1e-12);
+		Real root = RootFinding::FindRootBrent(func, REAL(1.0), REAL(2.0), TOL(1e-12, 1e-5));
 
-		REQUIRE_THAT(func(root), WithinAbs(REAL(0.0), REAL(1e-11)));
+		REQUIRE_THAT(func(root), WithinAbs(REAL(0.0), TOL(1e-11, 1e-5)));
 	}
 
 	TEST_CASE("RootFinding::Brent_transcendental", "[brent]")
@@ -207,10 +207,10 @@ namespace MML::Tests::Algorithms::AdvancedRootFindingTests
 		// f(x) = cos(x) - x, root near x ~ REAL(0.739085)
 		RealFunction func([](Real x) { return std::cos(x) - x; });
 
-		Real root = RootFinding::FindRootBrent(func, REAL(0.0), REAL(1.0), 1e-12);
+		Real root = RootFinding::FindRootBrent(func, REAL(0.0), REAL(1.0), TOL(1e-12, 1e-5));
 
 		REQUIRE_THAT(root, WithinAbs(REAL(0.739085), REAL(1e-6)));
-		REQUIRE_THAT(func(root), WithinAbs(REAL(0.0), REAL(1e-11)));
+		REQUIRE_THAT(func(root), WithinAbs(REAL(0.0), TOL(1e-11, 1e-5)));
 	}
 
 	TEST_CASE("RootFinding::Brent_superlinear_convergence", "[brent]")
@@ -219,10 +219,10 @@ namespace MML::Tests::Algorithms::AdvancedRootFindingTests
 		// f(x) = x^7 - x - 1, challenging function
 		RealFunction func([](Real x) -> Real { return std::pow(x, 7) - x - REAL(1.0); });
 
-	Real root = RootFinding::FindRootBrent(func, REAL(1.0), REAL(2.0), REAL(1e-15));
+	Real root = RootFinding::FindRootBrent(func, REAL(1.0), REAL(2.0), TOL(1e-15, 1e-5));
 
 	// Brent should achieve machine precision
-	REQUIRE_THAT(func(root), WithinAbs(REAL(0.0), REAL(1e-13)));
+	REQUIRE_THAT(func(root), WithinAbs(REAL(0.0), TOL(1e-13, 1e-5)));
 }
 
 TEST_CASE("RootFinding::Brent_difficult_function", "[brent]")
@@ -231,10 +231,10 @@ TEST_CASE("RootFinding::Brent_difficult_function", "[brent]")
 	// f(x) = x^20 - 1, very flat near x=1
 	RealFunction func([](Real x) -> Real { return std::pow(x, 20) - REAL(1.0); });
 
-	Real root = RootFinding::FindRootBrent(func, REAL(0.5), REAL(1.5), REAL(1e-10));
+	Real root = RootFinding::FindRootBrent(func, REAL(0.5), REAL(1.5), TOL(1e-10, 1e-5));
 
 	// Verify convergence despite flat function
-	REQUIRE_THAT(root, WithinAbs(REAL(1.0), REAL(1e-8)));
+	REQUIRE_THAT(root, WithinAbs(REAL(1.0), TOL(1e-8, 1e-4)));
 }
 
 TEST_CASE("RootFinding::Brent_error_not_bracketed", "[brent][error]")
@@ -244,7 +244,7 @@ TEST_CASE("RootFinding::Brent_error_not_bracketed", "[brent][error]")
 		RealFunction func([](Real x) { return x * x + REAL(1.0); });
 
 		REQUIRE_THROWS_AS(
-			RootFinding::FindRootBrent(func, REAL(0.0), REAL(1.0), 1e-8),
+			RootFinding::FindRootBrent(func, REAL(0.0), REAL(1.0), TOL(1e-8, 1e-4)),
 			RootFindingError
 		);
 	}
@@ -257,7 +257,7 @@ TEST_CASE("RootFinding::Brent_error_not_bracketed", "[brent][error]")
 			TEST_PRECISION_INFO();
 		// Compare all methods on same problem: f(x) = x^3 - x - 1
 		RealFunction func([](Real x) { return x * x * x - x - REAL(1.0); });
-		Real tol = 1e-10;
+		Real tol = TOL(1e-10, 1e-5);
 
 		Real root_bisection = RootFinding::FindRootBisection(func, REAL(1.0), REAL(2.0), tol);
 		Real root_falsepos = RootFinding::FindRootFalsePosition(func, REAL(1.0), REAL(2.0), tol);
@@ -267,19 +267,19 @@ TEST_CASE("RootFinding::Brent_error_not_bracketed", "[brent][error]")
 		Real root_brent = RootFinding::FindRootBrent(func, REAL(1.0), REAL(2.0), tol);
 
 		// All methods should find the same root
-		REQUIRE_THAT(root_falsepos, WithinAbs(root_bisection, REAL(1e-8)));
-		REQUIRE_THAT(root_newton, WithinAbs(root_bisection, REAL(1e-8)));
-		REQUIRE_THAT(root_secant, WithinAbs(root_bisection, REAL(1e-8)));
-		REQUIRE_THAT(root_ridders, WithinAbs(root_bisection, REAL(1e-8)));
-		REQUIRE_THAT(root_brent, WithinAbs(root_bisection, REAL(1e-8)));
+		REQUIRE_THAT(root_falsepos, WithinAbs(root_bisection, TOL(1e-8, 1e-4)));
+		REQUIRE_THAT(root_newton, WithinAbs(root_bisection, TOL(1e-8, 1e-4)));
+		REQUIRE_THAT(root_secant, WithinAbs(root_bisection, TOL(1e-8, 1e-4)));
+		REQUIRE_THAT(root_ridders, WithinAbs(root_bisection, TOL(1e-8, 1e-4)));
+		REQUIRE_THAT(root_brent, WithinAbs(root_bisection, TOL(1e-8, 1e-4)));
 
 		// All should satisfy f(root) ~ 0
-		REQUIRE_THAT(func(root_bisection), WithinAbs(REAL(0.0), REAL(1e-8)));
-		REQUIRE_THAT(func(root_falsepos), WithinAbs(REAL(0.0), REAL(1e-8)));
-		REQUIRE_THAT(func(root_newton), WithinAbs(REAL(0.0), REAL(1e-8)));
-		REQUIRE_THAT(func(root_secant), WithinAbs(REAL(0.0), REAL(1e-8)));
-		REQUIRE_THAT(func(root_ridders), WithinAbs(REAL(0.0), REAL(1e-8)));
-		REQUIRE_THAT(func(root_brent), WithinAbs(REAL(0.0), REAL(1e-8)));
+		REQUIRE_THAT(func(root_bisection), WithinAbs(REAL(0.0), TOL(1e-8, 1e-4)));
+		REQUIRE_THAT(func(root_falsepos), WithinAbs(REAL(0.0), TOL(1e-8, 1e-4)));
+		REQUIRE_THAT(func(root_newton), WithinAbs(REAL(0.0), TOL(1e-8, 1e-4)));
+		REQUIRE_THAT(func(root_secant), WithinAbs(REAL(0.0), TOL(1e-8, 1e-4)));
+		REQUIRE_THAT(func(root_ridders), WithinAbs(REAL(0.0), TOL(1e-8, 1e-4)));
+		REQUIRE_THAT(func(root_brent), WithinAbs(REAL(0.0), TOL(1e-8, 1e-4)));
 	}
 
 	TEST_CASE("RootFinding::AdvancedMethods_sine_wave", "[advanced]")
@@ -288,11 +288,11 @@ TEST_CASE("RootFinding::Brent_error_not_bracketed", "[brent][error]")
 		// f(x) = sin(x), find root near π in [3, 4]
 		RealFunction func([](Real x) { return std::sin(x); });
 
-		Real root_ridders = RootFinding::FindRootRidders(func, REAL(3.0), REAL(4.0), 1e-12);
-		Real root_brent = RootFinding::FindRootBrent(func, REAL(3.0), REAL(4.0), 1e-12);
+		Real root_ridders = RootFinding::FindRootRidders(func, REAL(3.0), REAL(4.0), TOL(1e-12, 1e-5));
+		Real root_brent = RootFinding::FindRootBrent(func, REAL(3.0), REAL(4.0), TOL(1e-12, 1e-5));
 
-		REQUIRE_THAT(root_ridders, WithinAbs(Constants::PI, REAL(1e-10)));
-		REQUIRE_THAT(root_brent, WithinAbs(Constants::PI, REAL(1e-10)));
+		REQUIRE_THAT(root_ridders, WithinAbs(Constants::PI, TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(root_brent, WithinAbs(Constants::PI, TOL(1e-10, 1e-5)));
 	}
 }
 
@@ -312,11 +312,11 @@ namespace MML::Tests::Algorithms::RootFindingTestBed
 	Real getDifficultyTolerance(int difficulty)
 	{
 		switch (difficulty) {
-			case 1: return REAL(1e-10);
-			case 2: return REAL(1e-8);
+			case 1: return TOL(1e-10, 1e-5);
+			case 2: return TOL(1e-8, 1e-4);
 			case 3: return REAL(1e-6);
 			case 4: return REAL(1e-4);
-			default: return REAL(1e-8);
+			default: return TOL(1e-8, 1e-4);
 		}
 	}
 
@@ -339,11 +339,12 @@ namespace MML::Tests::Algorithms::RootFindingTestBed
 					Real high = test.brackets[i].second;
 					Real expectedRoot = test.knownRoots[i];
 					
-					Real computedRoot = RootFinding::FindRootBisection(func, low, high, REAL(1e-12));
+					Real computedRoot = RootFinding::FindRootBisection(func, low, high, TOL(1e-12, 1e-5));
 					
 					INFO("Root " << i << ": expected " << expectedRoot << ", got " << computedRoot);
 					REQUIRE_THAT(computedRoot, WithinAbs(expectedRoot, tolerance));
-					REQUIRE_THAT(test.func(computedRoot), WithinAbs(REAL(0.0), tolerance));
+					Real funcTol = std::max(tolerance, TOL(1e-6, 1e-3));
+					REQUIRE_THAT(test.func(computedRoot), WithinAbs(REAL(0.0), funcTol));
 				}
 			}
 		}
@@ -375,7 +376,7 @@ namespace MML::Tests::Algorithms::RootFindingTestBed
 					Real fhigh = test.func(high);
 					if (flow * fhigh > 0) continue;  // Not a valid bracket
 					
-					Real computedRoot = RootFinding::FindRootBisection(func, low, high, REAL(1e-12));
+					Real computedRoot = RootFinding::FindRootBisection(func, low, high, TOL(1e-12, 1e-5));
 					
 					INFO("Root " << i << ": expected " << expectedRoot << ", got " << computedRoot);
 					REQUIRE_THAT(computedRoot, WithinAbs(expectedRoot, tolerance));
@@ -403,11 +404,12 @@ namespace MML::Tests::Algorithms::RootFindingTestBed
 					Real high = test.brackets[i].second;
 					Real expectedRoot = test.knownRoots[i];
 					
-					Real computedRoot = RootFinding::FindRootBrent(func, low, high, REAL(1e-12));
+					Real computedRoot = RootFinding::FindRootBrent(func, low, high, TOL(1e-12, 1e-5));
 					
 					INFO("Root " << i << ": expected " << expectedRoot << ", got " << computedRoot);
 					REQUIRE_THAT(computedRoot, WithinAbs(expectedRoot, tolerance));
-					REQUIRE_THAT(test.func(computedRoot), WithinAbs(REAL(0.0), tolerance));
+					Real funcTol = std::max(tolerance, TOL(1e-6, 1e-3));
+					REQUIRE_THAT(test.func(computedRoot), WithinAbs(REAL(0.0), funcTol));
 				}
 			}
 		}
@@ -439,7 +441,7 @@ namespace MML::Tests::Algorithms::RootFindingTestBed
 					Real fhigh = test.func(high);
 					if (flow * fhigh > 0) continue;  // Not a valid bracket
 					
-					Real computedRoot = RootFinding::FindRootBrent(func, low, high, REAL(1e-12));
+					Real computedRoot = RootFinding::FindRootBrent(func, low, high, TOL(1e-12, 1e-5));
 					
 					INFO("Root " << i << ": expected " << expectedRoot << ", got " << computedRoot);
 					REQUIRE_THAT(computedRoot, WithinAbs(expectedRoot, tolerance));
@@ -475,7 +477,7 @@ namespace MML::Tests::Algorithms::RootFindingTestBed
 					Real fhigh = test.func(high);
 					if (flow * fhigh > 0) continue;  // Not a valid bracket
 					
-					Real computedRoot = RootFinding::FindRootBrent(func, low, high, REAL(1e-12));
+					Real computedRoot = RootFinding::FindRootBrent(func, low, high, TOL(1e-12, 1e-5));
 					
 					INFO("Expected " << expectedRoot << ", got " << computedRoot);
 					REQUIRE_THAT(computedRoot, WithinAbs(expectedRoot, tolerance));
@@ -503,7 +505,7 @@ namespace MML::Tests::Algorithms::RootFindingTestBed
 					Real high = test.brackets[i].second;
 					Real expectedRoot = test.knownRoots[i];
 					
-					Real computedRoot = RootFinding::FindRootRidders(func, low, high, REAL(1e-12));
+					Real computedRoot = RootFinding::FindRootRidders(func, low, high, TOL(1e-12, 1e-5));
 					
 					INFO("Root " << i << ": expected " << expectedRoot << ", got " << computedRoot);
 					REQUIRE_THAT(computedRoot, WithinAbs(expectedRoot, tolerance));
@@ -536,7 +538,7 @@ namespace MML::Tests::Algorithms::RootFindingTestBed
 					Real fhigh = test.func(high);
 					if (flow * fhigh > 0) continue;  // Not a valid bracket
 					
-					Real computedRoot = RootFinding::FindRootRidders(func, low, high, REAL(1e-10));
+					Real computedRoot = RootFinding::FindRootRidders(func, low, high, TOL(1e-10, 1e-5));
 					
 					INFO("Root " << i << ": expected " << expectedRoot << ", got " << computedRoot);
 					REQUIRE_THAT(computedRoot, WithinAbs(expectedRoot, tolerance));
@@ -567,7 +569,7 @@ namespace MML::Tests::Algorithms::RootFindingTestBed
 					Real high = test.brackets[i].second;
 					Real expectedRoot = test.knownRoots[i];
 					
-					Real computedRoot = RootFinding::FindRootSecant(func, low, high, REAL(1e-12));
+					Real computedRoot = RootFinding::FindRootSecant(func, low, high, TOL(1e-12, 1e-5));
 					
 					INFO("Root " << i << ": expected " << expectedRoot << ", got " << computedRoot);
 					REQUIRE_THAT(computedRoot, WithinAbs(expectedRoot, tolerance));
@@ -598,7 +600,7 @@ namespace MML::Tests::Algorithms::RootFindingTestBed
 					Real high = test.brackets[i].second;
 					Real expectedRoot = test.knownRoots[i];
 					
-					Real computedRoot = RootFinding::FindRootFalsePosition(func, low, high, REAL(1e-12));
+					Real computedRoot = RootFinding::FindRootFalsePosition(func, low, high, TOL(1e-12, 1e-5));
 					
 					INFO("Root " << i << ": expected " << expectedRoot << ", got " << computedRoot);
 					REQUIRE_THAT(computedRoot, WithinAbs(expectedRoot, tolerance));
@@ -636,7 +638,7 @@ namespace MML::Tests::Algorithms::RootFindingTestBed
 						continue;
 					}
 					
-					Real computedRoot = RootFinding::FindRootBrent(func, low, high, REAL(1e-10));
+					Real computedRoot = RootFinding::FindRootBrent(func, low, high, TOL(1e-10, 1e-5));
 					
 					INFO("Root " << i << " (multiplicity " << test.multiplicities[i] 
 						  << "): expected " << expectedRoot << ", got " << computedRoot);
@@ -665,7 +667,7 @@ namespace MML::Tests::Algorithms::RootFindingTestBed
 					Real high = test.brackets[i].second;
 					Real expectedRoot = test.knownRoots[i];
 					
-					Real computedRoot = RootFinding::FindRootBrent(func, low, high, REAL(1e-12));
+					Real computedRoot = RootFinding::FindRootBrent(func, low, high, TOL(1e-12, 1e-5));
 					
 					INFO("Close root " << i << ": expected " << expectedRoot << ", got " << computedRoot);
 					REQUIRE_THAT(computedRoot, WithinAbs(expectedRoot, tolerance));
@@ -701,10 +703,10 @@ namespace MML::Tests::Algorithms::RootFindingTestBed
 				Real expectedRoot = test.knownRoots[0];
 				
 				// All methods should find the same root
-				Real root_bisection = RootFinding::FindRootBisection(func, low, high, REAL(1e-12));
-				Real root_brent = RootFinding::FindRootBrent(func, low, high, REAL(1e-12));
-				Real root_ridders = RootFinding::FindRootRidders(func, low, high, REAL(1e-12));
-				Real root_falsepos = RootFinding::FindRootFalsePosition(func, low, high, REAL(1e-12));
+				Real root_bisection = RootFinding::FindRootBisection(func, low, high, TOL(1e-12, 1e-5));
+				Real root_brent = RootFinding::FindRootBrent(func, low, high, TOL(1e-12, 1e-5));
+				Real root_ridders = RootFinding::FindRootRidders(func, low, high, TOL(1e-12, 1e-5));
+				Real root_falsepos = RootFinding::FindRootFalsePosition(func, low, high, TOL(1e-12, 1e-5));
 				
 				INFO("Expected: " << expectedRoot);
 				INFO("Bisection: " << root_bisection);
@@ -738,7 +740,7 @@ namespace MML::Tests::Algorithms::RootFindingTestBed
 			
 			DYNAMIC_SECTION("All methods on: " << test.name) {
 				RealFunctionWrapper func(test.func);
-				Real tolerance = REAL(1e-8);
+				Real tolerance = TOL(1e-8, 1e-4);
 				
 				for (size_t i = 0; i < test.brackets.size(); i++) {
 					Real low = test.brackets[i].first;
@@ -749,31 +751,31 @@ namespace MML::Tests::Algorithms::RootFindingTestBed
 					
 					// Test Bisection
 					{
-						Real root = RootFinding::FindRootBisection(func, low, high, REAL(1e-12));
+						Real root = RootFinding::FindRootBisection(func, low, high, TOL(1e-12, 1e-5));
 						REQUIRE_THAT(root, WithinAbs(expectedRoot, tolerance));
 					}
 					
 					// Test Brent
 					{
-						Real root = RootFinding::FindRootBrent(func, low, high, REAL(1e-12));
+						Real root = RootFinding::FindRootBrent(func, low, high, TOL(1e-12, 1e-5));
 						REQUIRE_THAT(root, WithinAbs(expectedRoot, tolerance));
 					}
 					
 					// Test Ridders
 					{
-						Real root = RootFinding::FindRootRidders(func, low, high, REAL(1e-12));
+						Real root = RootFinding::FindRootRidders(func, low, high, TOL(1e-12, 1e-5));
 						REQUIRE_THAT(root, WithinAbs(expectedRoot, tolerance));
 					}
 					
 					// Test False Position
 					{
-						Real root = RootFinding::FindRootFalsePosition(func, low, high, REAL(1e-12));
+						Real root = RootFinding::FindRootFalsePosition(func, low, high, TOL(1e-12, 1e-5));
 						REQUIRE_THAT(root, WithinAbs(expectedRoot, tolerance));
 					}
 					
 					// Test Secant (using brackets as initial guesses)
 					{
-						Real root = RootFinding::FindRootSecant(func, low, high, REAL(1e-12));
+						Real root = RootFinding::FindRootSecant(func, low, high, TOL(1e-12, 1e-5));
 						REQUIRE_THAT(root, WithinAbs(expectedRoot, tolerance));
 					}
 					

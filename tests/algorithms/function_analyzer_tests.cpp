@@ -68,11 +68,11 @@ namespace MML::Tests::Algorithms::FunctionAnalyzerTests
 		RealFunctionAnalyzer analyzer(quadratic);
 
 		// Test that x=2 is a local extremum (minimum)
-		REQUIRE(analyzer.isLocalOptimum(REAL(2.0), 1e-6));
+		REQUIRE(analyzer.isLocalOptimum(REAL(2.0), TOL(1e-6, 1e-4)));
 
 		// Test that x=0 and x=4 are not local extrema
-		REQUIRE_FALSE(analyzer.isLocalOptimum(REAL(0.0), 1e-6));
-		REQUIRE_FALSE(analyzer.isLocalOptimum(REAL(4.0), 1e-6));
+		REQUIRE_FALSE(analyzer.isLocalOptimum(REAL(0.0), TOL(1e-6, 1e-4)));
+		REQUIRE_FALSE(analyzer.isLocalOptimum(REAL(4.0), TOL(1e-6, 1e-4)));
 	}
 
 	TEST_CASE("FunctionAnalyzer::Local_extrema_cubic", "[extrema]")
@@ -87,13 +87,13 @@ namespace MML::Tests::Algorithms::FunctionAnalyzerTests
 		RealFunctionAnalyzer analyzer(cubic);
 
 		// Test local maximum at x=-1
-		REQUIRE(analyzer.isLocalOptimum(-REAL(1.0), 1e-6));
+		REQUIRE(analyzer.isLocalOptimum(-REAL(1.0), TOL(1e-6, 1e-4)));
 
 		// Test local minimum at x=3
-		REQUIRE(analyzer.isLocalOptimum(REAL(3.0), 1e-6));
+		REQUIRE(analyzer.isLocalOptimum(REAL(3.0), TOL(1e-6, 1e-4)));
 
 		// Test that x=0 is not a local extremum
-		REQUIRE_FALSE(analyzer.isLocalOptimum(REAL(0.0), 1e-6));
+		REQUIRE_FALSE(analyzer.isLocalOptimum(REAL(0.0), TOL(1e-6, 1e-4)));
 	}
 
 	TEST_CASE("FunctionAnalyzer::Local_extrema_sine_wave", "[extrema]")
@@ -105,13 +105,13 @@ namespace MML::Tests::Algorithms::FunctionAnalyzerTests
 		RealFunctionAnalyzer analyzer(sine);
 
 		// Test local maximum at π/2
-		REQUIRE(analyzer.isLocalOptimum(Constants::PI / REAL(2.0), 1e-6));
+		REQUIRE(analyzer.isLocalOptimum(Constants::PI / REAL(2.0), TOL(1e-6, 1e-4)));
 
 		// Test local minimum at 3π/2
-		REQUIRE(analyzer.isLocalOptimum(REAL(3.0) * Constants::PI / REAL(2.0), 1e-6));
+		REQUIRE(analyzer.isLocalOptimum(REAL(3.0) * Constants::PI / REAL(2.0), TOL(1e-6, 1e-4)));
 
 		// Test that x=π is not a local extremum (it's an inflection point)
-		REQUIRE_FALSE(analyzer.isLocalOptimum(Constants::PI, 1e-6));
+		REQUIRE_FALSE(analyzer.isLocalOptimum(Constants::PI, TOL(1e-6, 1e-4)));
 	}
 
 	/*********************************************************************/
@@ -318,7 +318,7 @@ namespace MML::Tests::Algorithms::FunctionAnalyzerTests
 		// f(x) = (x^2 - 1) / (x - 1) for x != 1, undefined at x=1
 		// Should detect REMOVABLE discontinuity at x=1 (limit exists = 2)
 		RealFunction removable([](Real x) {
-			if (std::abs(x - REAL(1.0)) < 1e-10)
+			if (std::abs(x - REAL(1.0)) < TOL(1e-10, 1e-5))
 				return std::numeric_limits<Real>::quiet_NaN();  // Undefined at x=1
 			return (x * x - REAL(1.0)) / (x - REAL(1.0));  // = x + 1 for x != 1
 		});
@@ -353,7 +353,7 @@ namespace MML::Tests::Algorithms::FunctionAnalyzerTests
 		});
 		RealFunctionAnalyzer analyzer(infinite);
 
-		auto discontinuities = analyzer.FindDiscontinuities(REAL(0.0), REAL(4.0), 200, 1e-5);
+		auto discontinuities = analyzer.FindDiscontinuities(REAL(0.0), REAL(4.0), 200, TOL(1e-5, 1e-3));
 		
 		REQUIRE(discontinuities.size() >= 1);
 		
@@ -542,7 +542,7 @@ namespace MML::Tests::Algorithms::FunctionAnalyzerTests
 
 		// All points are "extrema" in a sense, but isLocalOptimum should handle this
 		// (second derivative is zero everywhere)
-		REQUIRE_FALSE(analyzer.isLocalOptimum(REAL(0.0), 1e-6));
+		REQUIRE_FALSE(analyzer.isLocalOptimum(REAL(0.0), TOL(1e-6, 1e-4)));
 	}
 
 	TEST_CASE("FunctionAnalyzer::Edge_case_absolute_value", "[edge]")
@@ -581,7 +581,7 @@ namespace MML::Tests::Algorithms::FunctionAnalyzerTests
 		});
 		RealFunctionAnalyzer analyzer(cubic);
 
-		auto optimums = analyzer.GetLocalOptimums(-REAL(5.0), REAL(5.0), 1e-6);
+		auto optimums = analyzer.GetLocalOptimums(-REAL(5.0), REAL(5.0), TOL(1e-6, 1e-4));
 
 		// Should find exactly 2 optimums
 		REQUIRE(optimums.size() == 2);
@@ -607,7 +607,7 @@ namespace MML::Tests::Algorithms::FunctionAnalyzerTests
 		});
 		RealFunctionAnalyzer analyzer(cubic);
 
-		auto classified = analyzer.GetLocalOptimumsClassified(-REAL(5.0), REAL(5.0), 1e-6);
+		auto classified = analyzer.GetLocalOptimumsClassified(-REAL(5.0), REAL(5.0), TOL(1e-6, 1e-4));
 
 		// Should find exactly 2 classified optimums
 		REQUIRE(classified.size() == 2);
@@ -636,7 +636,7 @@ namespace MML::Tests::Algorithms::FunctionAnalyzerTests
 		RealFunctionAnalyzer analyzer(sine);
 
 		// Search in [0, 2π]
-		auto optimums = analyzer.GetLocalOptimums(REAL(0.0), REAL(2.0) * Constants::PI, 1e-6);
+		auto optimums = analyzer.GetLocalOptimums(REAL(0.0), REAL(2.0) * Constants::PI, TOL(1e-6, 1e-4));
 
 		// Should find 2 extrema: max at π/2, min at 3π/2
 		REQUIRE(optimums.size() == 2);
@@ -656,7 +656,7 @@ namespace MML::Tests::Algorithms::FunctionAnalyzerTests
 		RealFunction sine([](Real x) { return std::sin(x); });
 		RealFunctionAnalyzer analyzer(sine);
 
-		auto classified = analyzer.GetLocalOptimumsClassified(REAL(0.0), REAL(2.0) * Constants::PI, 1e-6);
+		auto classified = analyzer.GetLocalOptimumsClassified(REAL(0.0), REAL(2.0) * Constants::PI, TOL(1e-6, 1e-4));
 
 		REQUIRE(classified.size() == 2);
 
@@ -686,7 +686,7 @@ namespace MML::Tests::Algorithms::FunctionAnalyzerTests
 		});
 		RealFunctionAnalyzer analyzer(quartic);
 
-		auto optimums = analyzer.GetLocalOptimums(-REAL(1.0), REAL(3.0), 1e-6);
+		auto optimums = analyzer.GetLocalOptimums(-REAL(1.0), REAL(3.0), TOL(1e-6, 1e-4));
 
 		// Should find 3 optimums at x=0, 1, 2
 		REQUIRE(optimums.size() == 3);
@@ -709,7 +709,7 @@ namespace MML::Tests::Algorithms::FunctionAnalyzerTests
 		});
 		RealFunctionAnalyzer analyzer(cubic);
 
-		auto inflections = analyzer.GetInflectionPoints(-REAL(5.0), REAL(5.0), 1e-6);
+		auto inflections = analyzer.GetInflectionPoints(-REAL(5.0), REAL(5.0), TOL(1e-6, 1e-4));
 
 		// Should find exactly 1 inflection point
 		REQUIRE(inflections.size() == 1);
@@ -727,7 +727,7 @@ namespace MML::Tests::Algorithms::FunctionAnalyzerTests
 		});
 		RealFunctionAnalyzer analyzer(quartic);
 
-		auto inflections = analyzer.GetInflectionPoints(-REAL(3.0), REAL(3.0), 1e-6);
+		auto inflections = analyzer.GetInflectionPoints(-REAL(3.0), REAL(3.0), TOL(1e-6, 1e-4));
 
 		// Should find 2 inflection points
 		REQUIRE(inflections.size() == 2);
@@ -747,7 +747,7 @@ namespace MML::Tests::Algorithms::FunctionAnalyzerTests
 		RealFunction sine([](Real x) { return std::sin(x); });
 		RealFunctionAnalyzer analyzer(sine);
 
-		auto inflections = analyzer.GetInflectionPoints(REAL(0.0), REAL(2.0) * Constants::PI, 1e-6);
+		auto inflections = analyzer.GetInflectionPoints(REAL(0.0), REAL(2.0) * Constants::PI, TOL(1e-6, 1e-4));
 
 		// Should find 3 inflection points: 0, π, 2π
 		REQUIRE(inflections.size() == 3);
@@ -766,7 +766,7 @@ namespace MML::Tests::Algorithms::FunctionAnalyzerTests
 		RealFunction quadratic([](Real x) { return x * x; });
 		RealFunctionAnalyzer analyzer(quadratic);
 
-		auto inflections = analyzer.GetInflectionPoints(-REAL(5.0), REAL(5.0), 1e-6);
+		auto inflections = analyzer.GetInflectionPoints(-REAL(5.0), REAL(5.0), TOL(1e-6, 1e-4));
 
 		// Should find no inflection points
 		REQUIRE(inflections.size() == 0);
@@ -869,7 +869,7 @@ namespace MML::Tests::Algorithms::FunctionAnalyzerTests
 		REQUIRE(result1.isValid == true);
 		REQUIRE(result1.isOverflow == false);
 		REQUIRE(result1.isNaN == false);
-		REQUIRE_THAT(result1.value, WithinAbs(REAL(4.0), REAL(1e-10)));
+		REQUIRE_THAT(result1.value, WithinAbs(REAL(4.0), TOL(1e-10, 1e-5)));
 
 		// Very small x gives very large but finite result - test the threshold
 		// Use threshold of 1e100 to test overflow detection

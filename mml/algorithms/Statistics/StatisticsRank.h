@@ -103,10 +103,16 @@ namespace MML
 			/// @brief Check if correlation is significant at given alpha level
 			/// Uses normal approximation (valid for n > 10)
 			///
-			/// Critical z-values: α=0.05 → z=1.96, α=0.01 → z=2.576
+			/// Uses Abramowitz & Stegun rational approximation for inverse normal CDF
+			/// to compute critical z-value for any alpha in (0, 1).
 			bool IsSignificant(Real alpha = 0.05) const
 			{
-				Real criticalZ = (alpha <= 0.01) ? 2.576 : 1.96;
+				// Inverse normal CDF via Abramowitz & Stegun 26.2.23 (rational approx)
+				Real p = alpha / 2;  // two-tailed
+				Real t = std::sqrt(-2 * std::log(p));
+				const Real c0 = Real(2.515517), c1 = Real(0.802853), c2 = Real(0.010328);
+				const Real d1 = Real(1.432788), d2 = Real(0.189269), d3 = Real(0.001308);
+				Real criticalZ = t - (c0 + c1 * t + c2 * t * t) / (1 + d1 * t + d2 * t * t + d3 * t * t * t);
 				return std::abs(zScore) > criticalZ;
 			}
 		};

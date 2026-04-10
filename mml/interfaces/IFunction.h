@@ -110,6 +110,9 @@ namespace MML
 		 */
 		void GetValues(Real x1, Real x2, int numPnt, Vector<Real>& outX, Vector<Real>& outY) const
 		{
+			if (numPnt < 2)
+				throw std::invalid_argument("GetValues: numPnt must be >= 2");
+
 			outX.Resize(numPnt);
 			outY.Resize(numPnt);
 

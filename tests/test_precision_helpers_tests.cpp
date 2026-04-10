@@ -35,10 +35,10 @@ TEST_CASE("TestPrecision - Precision Detection", "[test-infrastructure]") {
         // Use runtime detection instead of preprocessor defines
         if (GetRealPrecision() == RealPrecision::Float) {
             REQUIRE(digits >= 6);  // float has ~7 digits
-        } else if (GetRealPrecision() == RealPrecision::LongDouble) {
-            REQUIRE(digits >= 18); // long double has 18-33 digits
+        } else if (GetRealPrecision() == RealPrecision::LongDouble && LongDoubleHasExtraPrecision) {
+            REQUIRE(digits >= 18); // long double has 18-33 digits (GCC/Linux 80-bit)
         } else {
-            REQUIRE(digits >= 15); // double has ~15 digits
+            REQUIRE(digits >= 15); // double (or MSVC long double) has ~15 digits
         }
     }
 }
@@ -55,12 +55,12 @@ TEST_CASE("TestPrecision - Tolerance Scaling", "[test-infrastructure]") {
             // Float should scale UP (looser tolerance)
             REQUIRE(scaled > baseline);
             REQUIRE_THAT(scaled, RealApprox(REAL(1e-7))); // 100x larger
-        } else if (GetRealPrecision() == RealPrecision::LongDouble) {
-            // Long double should scale DOWN (tighter tolerance)
+        } else if (GetRealPrecision() == RealPrecision::LongDouble && LongDoubleHasExtraPrecision) {
+            // Long double should scale DOWN (tighter tolerance) - only when genuinely 80-bit
             REQUIRE(scaled < baseline);
             REQUIRE_THAT(scaled, RealApprox(REAL(1e-11))); // 100x smaller
         } else {
-            // Double should stay the same
+            // Double (or MSVC long double with no extra precision) should stay the same
             REQUIRE(scaled == baseline);
         }
     }

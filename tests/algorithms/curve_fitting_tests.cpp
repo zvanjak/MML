@@ -22,9 +22,9 @@ TEST_CASE("LinearLeastSquares - Exact fit through two points", "[CurveFitting][L
     Real a, b;
     Real residual = LinearLeastSquares(x_data, y_data, a, b);
     
-    REQUIRE_THAT(a, WithinAbs(REAL(2.0), REAL(1e-10)));
-    REQUIRE_THAT(b, WithinAbs(REAL(1.0), REAL(1e-10)));
-    REQUIRE_THAT(residual, WithinAbs(REAL(0.0), REAL(1e-10)));
+    REQUIRE_THAT(a, WithinAbs(REAL(2.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(b, WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(residual, WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("LinearLeastSquares - Horizontal line (zero slope)", "[CurveFitting][LinearLeastSquares]")
@@ -35,9 +35,9 @@ TEST_CASE("LinearLeastSquares - Horizontal line (zero slope)", "[CurveFitting][L
     Real a, b;
     Real residual = LinearLeastSquares(x_data, y_data, a, b);
     
-    REQUIRE_THAT(a, WithinAbs(REAL(0.0), REAL(1e-10)));
-    REQUIRE_THAT(b, WithinAbs(REAL(5.0), REAL(1e-10)));
-    REQUIRE_THAT(residual, WithinAbs(REAL(0.0), REAL(1e-10)));
+    REQUIRE_THAT(a, WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(b, WithinAbs(REAL(5.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(residual, WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("LinearLeastSquares - Exact linear data y = 2x + 3", "[CurveFitting][LinearLeastSquares]")
@@ -48,9 +48,9 @@ TEST_CASE("LinearLeastSquares - Exact linear data y = 2x + 3", "[CurveFitting][L
     Real a, b;
     Real residual = LinearLeastSquares(x_data, y_data, a, b);
     
-    REQUIRE_THAT(a, WithinAbs(REAL(2.0), REAL(1e-10)));
-    REQUIRE_THAT(b, WithinAbs(REAL(3.0), REAL(1e-10)));
-    REQUIRE_THAT(residual, WithinAbs(REAL(0.0), REAL(1e-10)));
+    REQUIRE_THAT(a, WithinAbs(REAL(2.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(b, WithinAbs(REAL(3.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(residual, WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("LinearLeastSquares - Noisy data approximation", "[CurveFitting][LinearLeastSquares]")
@@ -100,9 +100,9 @@ TEST_CASE("LinearLeastSquares - Negative slope", "[CurveFitting][LinearLeastSqua
     Real a, b;
     Real residual = LinearLeastSquares(x_data, y_data, a, b);
     
-    REQUIRE_THAT(a, WithinAbs(REAL(-3.0), REAL(1e-10)));
-    REQUIRE_THAT(b, WithinAbs(REAL(10.0), REAL(1e-10)));
-    REQUIRE_THAT(residual, WithinAbs(REAL(0.0), REAL(1e-10)));
+    REQUIRE_THAT(a, WithinAbs(REAL(-3.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(b, WithinAbs(REAL(10.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(residual, WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("LinearLeastSquares - Large dataset", "[CurveFitting][LinearLeastSquares]")
@@ -119,9 +119,9 @@ TEST_CASE("LinearLeastSquares - Large dataset", "[CurveFitting][LinearLeastSquar
     Real a, b;
     Real residual = LinearLeastSquares(x_data, y_data, a, b);
     
-    REQUIRE_THAT(a, WithinAbs(REAL(1.5), REAL(1e-10)));
-    REQUIRE_THAT(b, WithinAbs(REAL(-2.5), REAL(1e-10)));
-    REQUIRE_THAT(residual, WithinAbs(REAL(0.0), REAL(1e-8)));
+    REQUIRE_THAT(a, WithinAbs(REAL(1.5), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(b, WithinAbs(REAL(-2.5), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(residual, WithinAbs(REAL(0.0), TOL(1e-8, 1e-4)));
 }
 
 TEST_CASE("LinearLeastSquares - Single point (degenerate case)", "[CurveFitting][LinearLeastSquares]")
@@ -133,9 +133,9 @@ TEST_CASE("LinearLeastSquares - Single point (degenerate case)", "[CurveFitting]
     Real residual = LinearLeastSquares(x_data, y_data, a, b);
     
     // Should return horizontal line through the point
-    REQUIRE_THAT(a, WithinAbs(REAL(0.0), REAL(1e-10)));
-    REQUIRE_THAT(b, WithinAbs(REAL(7.2), REAL(1e-10)));
-    REQUIRE_THAT(residual, WithinAbs(REAL(0.0), REAL(1e-10)));
+    REQUIRE_THAT(a, WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(b, WithinAbs(REAL(7.2), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(residual, WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("LinearLeastSquares - Error handling: empty data", "[CurveFitting][LinearLeastSquares]")
@@ -174,10 +174,10 @@ TEST_CASE("LinearLeastSquares - Vertical points (nearly singular)", "[CurveFitti
     Real residual = LinearLeastSquares(x_data, y_data, a, b);
     
     // Should return horizontal line at average y
-    REQUIRE_THAT(a, WithinAbs(REAL(0.0), REAL(1e-10)));
-    REQUIRE_THAT(b, WithinAbs(REAL(3.0), REAL(1e-10)));  // (1 + 5) / 2
+    REQUIRE_THAT(a, WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(b, WithinAbs(REAL(3.0), TOL(1e-10, 1e-5)));  // (1 + 5) / 2
     // residual = sqrt((1-3)^2 + (5-3)^2) = sqrt(4 + 4) = sqrt(8) = 2.828...
-    REQUIRE_THAT(residual, WithinAbs(std::sqrt(8.0), REAL(1e-10)));
+    REQUIRE_THAT(residual, WithinAbs(std::sqrt(8.0), TOL(1e-10, 1e-5)));
 }
 
 
@@ -189,11 +189,11 @@ TEST_CASE("LinearLeastSquaresDetailed - Perfect fit R^2 = 1", "[CurveFitting][Li
     
     auto result = LinearLeastSquaresDetailed(x_data, y_data);
     
-    REQUIRE_THAT(result.a, WithinAbs(REAL(2.0), REAL(1e-10)));
-    REQUIRE_THAT(result.b, WithinAbs(REAL(0.0), REAL(1e-10)));
-    REQUIRE_THAT(result.residual_norm, WithinAbs(REAL(0.0), REAL(1e-10)));
-    REQUIRE_THAT(result.r_squared, WithinAbs(REAL(1.0), REAL(1e-10)));
-    REQUIRE_THAT(result.mean_squared_error, WithinAbs(REAL(0.0), REAL(1e-10)));
+    REQUIRE_THAT(result.a, WithinAbs(REAL(2.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(result.b, WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(result.residual_norm, WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(result.r_squared, WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(result.mean_squared_error, WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("LinearLeastSquaresDetailed - Noisy data R^2 < 1", "[CurveFitting][LinearLeastSquaresDetailed]")
@@ -217,9 +217,9 @@ TEST_CASE("LinearLeastSquaresDetailed - Constant y values R^2 handling", "[Curve
     
     auto result = LinearLeastSquaresDetailed(x_data, y_data);
     
-    REQUIRE_THAT(result.a, WithinAbs(REAL(0.0), REAL(1e-10)));
-    REQUIRE_THAT(result.b, WithinAbs(REAL(5.0), REAL(1e-10)));
-    REQUIRE_THAT(result.r_squared, WithinAbs(REAL(1.0), REAL(1e-10)));  // Perfect fit to horizontal line
+    REQUIRE_THAT(result.a, WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(result.b, WithinAbs(REAL(5.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(result.r_squared, WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));  // Perfect fit to horizontal line
 }
 
 TEST_CASE("LinearLeastSquaresDetailed - Poor fit example", "[CurveFitting][LinearLeastSquaresDetailed]")
@@ -288,9 +288,9 @@ TEST_CASE("GeneralLinearLeastSquares - Constant function fit", "[CurveFitting][G
     auto result = GeneralLinearLeastSquares(x_data, y_data, basis);
     
     REQUIRE(result.coefficients.size() == 1);
-    REQUIRE_THAT(result.coefficients[0], WithinAbs(REAL(5.0), REAL(1e-10)));
-    REQUIRE_THAT(result.residual_norm, WithinAbs(REAL(0.0), REAL(1e-10)));
-    REQUIRE_THAT(result.r_squared, WithinAbs(REAL(1.0), REAL(1e-10)));
+    REQUIRE_THAT(result.coefficients[0], WithinAbs(REAL(5.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(result.residual_norm, WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(result.r_squared, WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("GeneralLinearLeastSquares - Linear fit with IRealFunction", "[CurveFitting][GeneralLLS]")
@@ -306,10 +306,10 @@ TEST_CASE("GeneralLinearLeastSquares - Linear fit with IRealFunction", "[CurveFi
     auto result = GeneralLinearLeastSquares(x_data, y_data, basis);
     
     REQUIRE(result.coefficients.size() == 2);
-    REQUIRE_THAT(result.coefficients[0], WithinAbs(REAL(3.0), REAL(1e-10)));  // constant term
-    REQUIRE_THAT(result.coefficients[1], WithinAbs(REAL(2.0), REAL(1e-10)));  // linear term
-    REQUIRE_THAT(result.residual_norm, WithinAbs(REAL(0.0), REAL(1e-10)));
-    REQUIRE_THAT(result.r_squared, WithinAbs(REAL(1.0), REAL(1e-10)));
+    REQUIRE_THAT(result.coefficients[0], WithinAbs(REAL(3.0), TOL(1e-10, 1e-5)));  // constant term
+    REQUIRE_THAT(result.coefficients[1], WithinAbs(REAL(2.0), TOL(1e-10, 1e-5)));  // linear term
+    REQUIRE_THAT(result.residual_norm, WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(result.r_squared, WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("GeneralLinearLeastSquares - Quadratic fit", "[CurveFitting][GeneralLLS]")
@@ -326,10 +326,10 @@ TEST_CASE("GeneralLinearLeastSquares - Quadratic fit", "[CurveFitting][GeneralLL
     auto result = GeneralLinearLeastSquares(x_data, y_data, basis);
     
     REQUIRE(result.coefficients.size() == 3);
-    REQUIRE_THAT(result.coefficients[0], WithinAbs(REAL(1.0), REAL(1e-9)));   // constant
-    REQUIRE_THAT(result.coefficients[1], WithinAbs(REAL(-2.0), REAL(1e-9)));  // linear
-    REQUIRE_THAT(result.coefficients[2], WithinAbs(REAL(1.0), REAL(1e-9)));   // quadratic
-    REQUIRE_THAT(result.residual_norm, WithinAbs(REAL(0.0), REAL(1e-9)));
+    REQUIRE_THAT(result.coefficients[0], WithinAbs(REAL(1.0), TOL(1e-9, 1e-4)));   // constant
+    REQUIRE_THAT(result.coefficients[1], WithinAbs(REAL(-2.0), TOL(1e-9, 1e-4)));  // linear
+    REQUIRE_THAT(result.coefficients[2], WithinAbs(REAL(1.0), TOL(1e-9, 1e-4)));   // quadratic
+    REQUIRE_THAT(result.residual_norm, WithinAbs(REAL(0.0), TOL(1e-9, 1e-4)));
 }
 
 TEST_CASE("GeneralLinearLeastSquares - Cubic fit with overdetermined system", "[CurveFitting][GeneralLLS]")
@@ -347,11 +347,11 @@ TEST_CASE("GeneralLinearLeastSquares - Cubic fit with overdetermined system", "[
     auto result = GeneralLinearLeastSquares(x_data, y_data, basis);
     
     REQUIRE(result.coefficients.size() == 4);
-    REQUIRE_THAT(result.coefficients[0], WithinAbs(REAL(0.0), REAL(1e-9)));   // constant = 0
-    REQUIRE_THAT(result.coefficients[1], WithinAbs(REAL(-1.0), REAL(1e-9)));  // x term = -1
-    REQUIRE_THAT(result.coefficients[2], WithinAbs(REAL(0.0), REAL(1e-9)));   // x^2 term = 0
-    REQUIRE_THAT(result.coefficients[3], WithinAbs(REAL(1.0), REAL(1e-9)));   // x^3 term = 1
-    REQUIRE_THAT(result.residual_norm, WithinAbs(REAL(0.0), REAL(1e-9)));
+    REQUIRE_THAT(result.coefficients[0], WithinAbs(REAL(0.0), TOL(1e-9, 1e-4)));   // constant = 0
+    REQUIRE_THAT(result.coefficients[1], WithinAbs(REAL(-1.0), TOL(1e-9, 1e-4)));  // x term = -1
+    REQUIRE_THAT(result.coefficients[2], WithinAbs(REAL(0.0), TOL(1e-9, 1e-4)));   // x^2 term = 0
+    REQUIRE_THAT(result.coefficients[3], WithinAbs(REAL(1.0), TOL(1e-9, 1e-4)));   // x^3 term = 1
+    REQUIRE_THAT(result.residual_norm, WithinAbs(REAL(0.0), TOL(1e-9, 1e-4)));
 }
 
 TEST_CASE("GeneralLinearLeastSquares - Trigonometric fit", "[CurveFitting][GeneralLLS]")
@@ -374,10 +374,10 @@ TEST_CASE("GeneralLinearLeastSquares - Trigonometric fit", "[CurveFitting][Gener
     auto result = GeneralLinearLeastSquares(x_data, y_data, basis);
     
     REQUIRE(result.coefficients.size() == 3);
-    REQUIRE_THAT(result.coefficients[0], WithinAbs(REAL(2.0), REAL(1e-9)));   // constant
-    REQUIRE_THAT(result.coefficients[1], WithinAbs(REAL(3.0), REAL(1e-9)));   // sin term
-    REQUIRE_THAT(result.coefficients[2], WithinAbs(REAL(-1.0), REAL(1e-9)));  // cos term
-    REQUIRE_THAT(result.r_squared, WithinAbs(REAL(1.0), REAL(1e-10)));
+    REQUIRE_THAT(result.coefficients[0], WithinAbs(REAL(2.0), TOL(1e-9, 1e-4)));   // constant
+    REQUIRE_THAT(result.coefficients[1], WithinAbs(REAL(3.0), TOL(1e-9, 1e-4)));   // sin term
+    REQUIRE_THAT(result.coefficients[2], WithinAbs(REAL(-1.0), TOL(1e-9, 1e-4)));  // cos term
+    REQUIRE_THAT(result.r_squared, WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("GeneralLinearLeastSquares - Lambda basis functions", "[CurveFitting][GeneralLLS]")
@@ -397,9 +397,9 @@ TEST_CASE("GeneralLinearLeastSquares - Lambda basis functions", "[CurveFitting][
     auto result = GeneralLinearLeastSquares(x_data, y_data, basis);
     
     REQUIRE(result.coefficients.size() == 2);
-    REQUIRE_THAT(result.coefficients[0], WithinAbs(REAL(3.0), REAL(1e-8)));  // exp term
-    REQUIRE_THAT(result.coefficients[1], WithinAbs(REAL(2.0), REAL(1e-8)));  // linear term
-    REQUIRE_THAT(result.r_squared, WithinAbs(REAL(1.0), REAL(1e-10)));
+    REQUIRE_THAT(result.coefficients[0], WithinAbs(REAL(3.0), TOL(1e-8, 1e-4)));  // exp term
+    REQUIRE_THAT(result.coefficients[1], WithinAbs(REAL(2.0), TOL(1e-8, 1e-4)));  // linear term
+    REQUIRE_THAT(result.r_squared, WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("GeneralLinearLeastSquares - Noisy data", "[CurveFitting][GeneralLLS]")
@@ -457,18 +457,18 @@ TEST_CASE("GeneralLinearLeastSquares - Evaluate fitted function", "[CurveFitting
     auto result = GeneralLinearLeastSquares(x_data, y_data, basis);
     
     // Verify coefficients
-    REQUIRE_THAT(result.coefficients[0], WithinAbs(REAL(2.0), REAL(1e-9)));
-    REQUIRE_THAT(result.coefficients[1], WithinAbs(REAL(3.0), REAL(1e-9)));
-    REQUIRE_THAT(result.coefficients[2], WithinAbs(REAL(-1.0), REAL(1e-9)));
+    REQUIRE_THAT(result.coefficients[0], WithinAbs(REAL(2.0), TOL(1e-9, 1e-4)));
+    REQUIRE_THAT(result.coefficients[1], WithinAbs(REAL(3.0), TOL(1e-9, 1e-4)));
+    REQUIRE_THAT(result.coefficients[2], WithinAbs(REAL(-1.0), TOL(1e-9, 1e-4)));
     
     // Test evaluate function at data points
     for (int i = 0; i < 5; i++) {
         Real y_pred = result.evaluate(x_data[i], basis);
-        REQUIRE_THAT(y_pred, WithinAbs(y_data[i], REAL(1e-9)));
+        REQUIRE_THAT(y_pred, WithinAbs(y_data[i], TOL(1e-9, 1e-4)));
     }
     
     // Test at a new point x = 2.5: y = 2 + 3*2.5 - 2.5^2 = 2 + 7.5 - 6.25 = 3.25
-    REQUIRE_THAT(result.evaluate(2.5, basis), WithinAbs(REAL(3.25), REAL(1e-9)));
+    REQUIRE_THAT(result.evaluate(2.5, basis), WithinAbs(REAL(3.25), TOL(1e-9, 1e-4)));
 }
 
 
@@ -484,7 +484,7 @@ TEST_CASE("PolynomialFit - Degree 0 (constant)", "[CurveFitting][PolynomialFit]"
     auto result = PolynomialFit(x_data, y_data, 0);
     
     REQUIRE(result.coefficients.size() == 1);
-    REQUIRE_THAT(result.coefficients[0], WithinAbs(REAL(10.0), REAL(1e-10)));
+    REQUIRE_THAT(result.coefficients[0], WithinAbs(REAL(10.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("PolynomialFit - Degree 1 (linear)", "[CurveFitting][PolynomialFit]")
@@ -496,8 +496,8 @@ TEST_CASE("PolynomialFit - Degree 1 (linear)", "[CurveFitting][PolynomialFit]")
     auto result = PolynomialFit(x_data, y_data, 1);
     
     REQUIRE(result.coefficients.size() == 2);
-    REQUIRE_THAT(result.coefficients[0], WithinAbs(REAL(2.0), REAL(1e-10)));  // c_0
-    REQUIRE_THAT(result.coefficients[1], WithinAbs(REAL(3.0), REAL(1e-10)));  // c_1
+    REQUIRE_THAT(result.coefficients[0], WithinAbs(REAL(2.0), TOL(1e-10, 1e-5)));  // c_0
+    REQUIRE_THAT(result.coefficients[1], WithinAbs(REAL(3.0), TOL(1e-10, 1e-5)));  // c_1
 }
 
 TEST_CASE("PolynomialFit - Degree 2 (quadratic)", "[CurveFitting][PolynomialFit]")
@@ -509,9 +509,9 @@ TEST_CASE("PolynomialFit - Degree 2 (quadratic)", "[CurveFitting][PolynomialFit]
     auto result = PolynomialFit(x_data, y_data, 2);
     
     REQUIRE(result.coefficients.size() == 3);
-    REQUIRE_THAT(result.coefficients[0], WithinAbs(REAL(1.0), REAL(1e-9)));   // constant
-    REQUIRE_THAT(result.coefficients[1], WithinAbs(REAL(-2.0), REAL(1e-9)));  // x
-    REQUIRE_THAT(result.coefficients[2], WithinAbs(REAL(3.0), REAL(1e-9)));   // x^2
+    REQUIRE_THAT(result.coefficients[0], WithinAbs(REAL(1.0), TOL(1e-9, 1e-4)));   // constant
+    REQUIRE_THAT(result.coefficients[1], WithinAbs(REAL(-2.0), TOL(1e-9, 1e-4)));  // x
+    REQUIRE_THAT(result.coefficients[2], WithinAbs(REAL(3.0), TOL(1e-9, 1e-4)));   // x^2
 }
 
 TEST_CASE("PolynomialFit - High degree fitting", "[CurveFitting][PolynomialFit]")
@@ -528,11 +528,11 @@ TEST_CASE("PolynomialFit - High degree fitting", "[CurveFitting][PolynomialFit]"
     auto result = PolynomialFit(x_data, y_data, 4);
     
     REQUIRE(result.coefficients.size() == 5);
-    REQUIRE_THAT(result.coefficients[0], WithinAbs(REAL(1.0), REAL(1e-8)));   // constant
-    REQUIRE_THAT(result.coefficients[1], WithinAbs(REAL(-1.0), REAL(1e-8)));  // x
-    REQUIRE_THAT(result.coefficients[2], WithinAbs(REAL(1.0), REAL(1e-8)));   // x^2
-    REQUIRE_THAT(result.coefficients[3], WithinAbs(REAL(-2.0), REAL(1e-8)));  // x^3
-    REQUIRE_THAT(result.coefficients[4], WithinAbs(REAL(1.0), REAL(1e-8)));   // x^4
+    REQUIRE_THAT(result.coefficients[0], WithinAbs(REAL(1.0), TOL(1e-8, 1e-4)));   // constant
+    REQUIRE_THAT(result.coefficients[1], WithinAbs(REAL(-1.0), TOL(1e-8, 1e-4)));  // x
+    REQUIRE_THAT(result.coefficients[2], WithinAbs(REAL(1.0), TOL(1e-8, 1e-4)));   // x^2
+    REQUIRE_THAT(result.coefficients[3], WithinAbs(REAL(-2.0), TOL(1e-8, 1e-4)));  // x^3
+    REQUIRE_THAT(result.coefficients[4], WithinAbs(REAL(1.0), TOL(1e-8, 1e-4)));   // x^4
 }
 
 TEST_CASE("PolynomialFit - Interpolation (degree = n-1)", "[CurveFitting][PolynomialFit]")
@@ -544,8 +544,8 @@ TEST_CASE("PolynomialFit - Interpolation (degree = n-1)", "[CurveFitting][Polyno
     auto result = PolynomialFit(x_data, y_data, 3);
     
     // Should pass through all points exactly
-    REQUIRE_THAT(result.residual_norm, WithinAbs(REAL(0.0), REAL(1e-10)));
-    REQUIRE_THAT(result.r_squared, WithinAbs(REAL(1.0), REAL(1e-10)));
+    REQUIRE_THAT(result.residual_norm, WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(result.r_squared, WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
 }
 
 
@@ -557,28 +557,28 @@ TEST_CASE("EvaluatePolynomial - Constant polynomial", "[CurveFitting][EvaluatePo
 {
     Vector<Real> coeffs({5.0});  // p(x) = 5
     
-    REQUIRE_THAT(EvaluatePolynomial(REAL(0.0), coeffs), WithinAbs(REAL(5.0), REAL(1e-10)));
-    REQUIRE_THAT(EvaluatePolynomial(REAL(10.0), coeffs), WithinAbs(REAL(5.0), REAL(1e-10)));
-    REQUIRE_THAT(EvaluatePolynomial(REAL(-100.0), coeffs), WithinAbs(REAL(5.0), REAL(1e-10)));
+    REQUIRE_THAT(EvaluatePolynomial(REAL(0.0), coeffs), WithinAbs(REAL(5.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(EvaluatePolynomial(REAL(10.0), coeffs), WithinAbs(REAL(5.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(EvaluatePolynomial(REAL(-100.0), coeffs), WithinAbs(REAL(5.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("EvaluatePolynomial - Linear polynomial", "[CurveFitting][EvaluatePolynomial]")
 {
     Vector<Real> coeffs({2.0, 3.0});  // p(x) = 2 + 3x
     
-    REQUIRE_THAT(EvaluatePolynomial(REAL(0.0), coeffs), WithinAbs(REAL(2.0), REAL(1e-10)));
-    REQUIRE_THAT(EvaluatePolynomial(REAL(1.0), coeffs), WithinAbs(REAL(5.0), REAL(1e-10)));
-    REQUIRE_THAT(EvaluatePolynomial(REAL(2.0), coeffs), WithinAbs(REAL(8.0), REAL(1e-10)));
+    REQUIRE_THAT(EvaluatePolynomial(REAL(0.0), coeffs), WithinAbs(REAL(2.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(EvaluatePolynomial(REAL(1.0), coeffs), WithinAbs(REAL(5.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(EvaluatePolynomial(REAL(2.0), coeffs), WithinAbs(REAL(8.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("EvaluatePolynomial - Quadratic polynomial", "[CurveFitting][EvaluatePolynomial]")
 {
     Vector<Real> coeffs({1.0, -2.0, 1.0});  // p(x) = 1 - 2x + x^2 = (x-1)^2
     
-    REQUIRE_THAT(EvaluatePolynomial(REAL(0.0), coeffs), WithinAbs(REAL(1.0), REAL(1e-10)));
-    REQUIRE_THAT(EvaluatePolynomial(REAL(1.0), coeffs), WithinAbs(REAL(0.0), REAL(1e-10)));  // Root
-    REQUIRE_THAT(EvaluatePolynomial(REAL(2.0), coeffs), WithinAbs(REAL(1.0), REAL(1e-10)));
-    REQUIRE_THAT(EvaluatePolynomial(REAL(3.0), coeffs), WithinAbs(REAL(4.0), REAL(1e-10)));
+    REQUIRE_THAT(EvaluatePolynomial(REAL(0.0), coeffs), WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(EvaluatePolynomial(REAL(1.0), coeffs), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));  // Root
+    REQUIRE_THAT(EvaluatePolynomial(REAL(2.0), coeffs), WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(EvaluatePolynomial(REAL(3.0), coeffs), WithinAbs(REAL(4.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("EvaluatePolynomial - Higher order (Horner's method stability)", "[CurveFitting][EvaluatePolynomial]")
@@ -589,14 +589,14 @@ TEST_CASE("EvaluatePolynomial - Higher order (Horner's method stability)", "[Cur
     Real x = 2.0;
     Real expected = 1 + 2*2 + 3*4 + 4*8 + 5*16;  // = 1 + 4 + 12 + 32 + 80 = 129
     
-    REQUIRE_THAT(EvaluatePolynomial(x, coeffs), WithinAbs(expected, REAL(1e-10)));
+    REQUIRE_THAT(EvaluatePolynomial(x, coeffs), WithinAbs(expected, TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("EvaluatePolynomial - Empty coefficients", "[CurveFitting][EvaluatePolynomial]")
 {
     Vector<Real> coeffs;
     
-    REQUIRE_THAT(EvaluatePolynomial(REAL(5.0), coeffs), WithinAbs(REAL(0.0), REAL(1e-10)));
+    REQUIRE_THAT(EvaluatePolynomial(REAL(5.0), coeffs), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
 }
 
 
@@ -676,9 +676,9 @@ TEST_CASE("LinearFitDetailed - basic linear fit returns success", "[CurveFitting
     REQUIRE(result.algorithm_name == "LinearLeastSquares");
     REQUIRE(result.elapsed_time_ms >= 0.0);
 
-    REQUIRE_THAT(result.coefficients[0], Catch::Matchers::WithinAbs(3.0, 1e-10));  // a = slope
-    REQUIRE_THAT(result.coefficients[1], Catch::Matchers::WithinAbs(2.0, 1e-10));  // b = intercept
-    REQUIRE_THAT(result.r_squared, Catch::Matchers::WithinAbs(1.0, 1e-10));
+    REQUIRE_THAT(result.coefficients[0], Catch::Matchers::WithinAbs(3.0, TOL(1e-10, 1e-5)));  // a = slope
+    REQUIRE_THAT(result.coefficients[1], Catch::Matchers::WithinAbs(2.0, TOL(1e-10, 1e-5)));  // b = intercept
+    REQUIRE_THAT(result.r_squared, Catch::Matchers::WithinAbs(1.0, TOL(1e-10, 1e-5)));
     REQUIRE(result.mean_squared_error < 1e-20);
 }
 
@@ -743,10 +743,10 @@ TEST_CASE("GeneralLinearFitDetailed - quadratic fit returns enriched result", "[
     REQUIRE(result.algorithm_name == "GeneralLinearLeastSquares");
     REQUIRE(result.elapsed_time_ms >= 0.0);
 
-    REQUIRE_THAT(result.coefficients[0], Catch::Matchers::WithinAbs(1.0, 1e-8));
-    REQUIRE_THAT(result.coefficients[1], Catch::Matchers::WithinAbs(2.0, 1e-8));
-    REQUIRE_THAT(result.coefficients[2], Catch::Matchers::WithinAbs(3.0, 1e-8));
-    REQUIRE_THAT(result.r_squared, Catch::Matchers::WithinAbs(1.0, 1e-10));
+    REQUIRE_THAT(result.coefficients[0], Catch::Matchers::WithinAbs(1.0, TOL(1e-8, 1e-4)));
+    REQUIRE_THAT(result.coefficients[1], Catch::Matchers::WithinAbs(2.0, TOL(1e-8, 1e-4)));
+    REQUIRE_THAT(result.coefficients[2], Catch::Matchers::WithinAbs(3.0, TOL(1e-8, 1e-4)));
+    REQUIRE_THAT(result.r_squared, Catch::Matchers::WithinAbs(1.0, TOL(1e-10, 1e-5)));
     REQUIRE(result.effective_rank == 3);
     REQUIRE(result.condition_number > 0.0);
     REQUIRE(result.adjusted_r_squared > 0.99);
@@ -787,11 +787,11 @@ TEST_CASE("PolynomialFitDetailed - cubic polynomial fit", "[CurveFitting][Detail
     REQUIRE(result.algorithm_name == "PolynomialFit");
     REQUIRE(result.elapsed_time_ms >= 0.0);
 
-    REQUIRE_THAT(result.coefficients[0], Catch::Matchers::WithinAbs(1.0, 1e-8));
-    REQUIRE_THAT(result.coefficients[1], Catch::Matchers::WithinAbs(-1.0, 1e-8));
-    REQUIRE_THAT(result.coefficients[2], Catch::Matchers::WithinAbs(0.5, 1e-8));
-    REQUIRE_THAT(result.coefficients[3], Catch::Matchers::WithinAbs(0.1, 1e-8));
-    REQUIRE_THAT(result.r_squared, Catch::Matchers::WithinAbs(1.0, 1e-10));
+    REQUIRE_THAT(result.coefficients[0], Catch::Matchers::WithinAbs(1.0, TOL(1e-8, 1e-4)));
+    REQUIRE_THAT(result.coefficients[1], Catch::Matchers::WithinAbs(-1.0, TOL(1e-8, 1e-4)));
+    REQUIRE_THAT(result.coefficients[2], Catch::Matchers::WithinAbs(0.5, TOL(1e-8, 1e-4)));
+    REQUIRE_THAT(result.coefficients[3], Catch::Matchers::WithinAbs(0.1, TOL(1e-8, 1e-4)));
+    REQUIRE_THAT(result.r_squared, Catch::Matchers::WithinAbs(1.0, TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("PolynomialFitDetailed - negative degree suppressed", "[CurveFitting][Detailed]")

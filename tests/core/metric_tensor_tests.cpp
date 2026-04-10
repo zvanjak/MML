@@ -41,7 +41,7 @@ namespace MML::Tests::Core::MetricTensorTests
 				for (int j = 0; j < 3; j++)
 				{
 					Real expected = (i == j) ? REAL(1.0) : REAL(0.0);
-					REQUIRE_THAT(g(i, j), WithinAbs(expected, REAL(1e-12)));
+					REQUIRE_THAT(g(i, j), WithinAbs(expected, TOL(1e-12, 1e-5)));
 				}
 			}
 		}
@@ -55,7 +55,7 @@ namespace MML::Tests::Core::MetricTensorTests
 				for (int j = 0; j < 3; j++)
 				{
 					Real expected = (i == j) ? REAL(1.0) : REAL(0.0);
-					REQUIRE_THAT(g_inv(i, j), WithinAbs(expected, REAL(1e-10)));
+					REQUIRE_THAT(g_inv(i, j), WithinAbs(expected, TOL(1e-10, 1e-5)));
 				}
 			}
 		}
@@ -70,7 +70,7 @@ namespace MML::Tests::Core::MetricTensorTests
 					{
 						Real gamma = metric.GetChristoffelSymbolSecondKind(i, j, k, pos);
 						INFO("Gamma^" << i << "_" << j << k);
-						REQUIRE_THAT(gamma, WithinAbs(REAL(0.0), REAL(1e-8)));
+						REQUIRE_THAT(gamma, WithinAbs(REAL(0.0), TOL(1e-8, 1e-4)));
 					}
 				}
 			}
@@ -97,26 +97,26 @@ namespace MML::Tests::Core::MetricTensorTests
 			auto g = metric.GetCovariantMetric(pos);
 			
 			// g_rr = 1
-			REQUIRE_THAT(g(0, 0), WithinAbs(REAL(1.0), REAL(1e-12)));
+			REQUIRE_THAT(g(0, 0), WithinAbs(REAL(1.0), TOL(1e-12, 1e-5)));
 			
 			// g_theta,theta = r^2 = 4
-			REQUIRE_THAT(g(1, 1), WithinAbs(r * r, REAL(1e-12)));
+			REQUIRE_THAT(g(1, 1), WithinAbs(r * r, TOL(1e-12, 1e-5)));
 			
 			// g_phi,phi = r^2 * sin^2(theta)
 			Real expected_gphi = r * r * std::sin(theta) * std::sin(theta);
-			REQUIRE_THAT(g(2, 2), WithinAbs(expected_gphi, REAL(1e-12)));
+			REQUIRE_THAT(g(2, 2), WithinAbs(expected_gphi, TOL(1e-12, 1e-5)));
 		}
 		
 		SECTION("Off-diagonal components are zero")
 		{
 			auto g = metric.GetCovariantMetric(pos);
 			
-			REQUIRE_THAT(g(0, 1), WithinAbs(REAL(0.0), REAL(1e-12)));
-			REQUIRE_THAT(g(0, 2), WithinAbs(REAL(0.0), REAL(1e-12)));
-			REQUIRE_THAT(g(1, 0), WithinAbs(REAL(0.0), REAL(1e-12)));
-			REQUIRE_THAT(g(1, 2), WithinAbs(REAL(0.0), REAL(1e-12)));
-			REQUIRE_THAT(g(2, 0), WithinAbs(REAL(0.0), REAL(1e-12)));
-			REQUIRE_THAT(g(2, 1), WithinAbs(REAL(0.0), REAL(1e-12)));
+			REQUIRE_THAT(g(0, 1), WithinAbs(REAL(0.0), TOL(1e-12, 1e-5)));
+			REQUIRE_THAT(g(0, 2), WithinAbs(REAL(0.0), TOL(1e-12, 1e-5)));
+			REQUIRE_THAT(g(1, 0), WithinAbs(REAL(0.0), TOL(1e-12, 1e-5)));
+			REQUIRE_THAT(g(1, 2), WithinAbs(REAL(0.0), TOL(1e-12, 1e-5)));
+			REQUIRE_THAT(g(2, 0), WithinAbs(REAL(0.0), TOL(1e-12, 1e-5)));
+			REQUIRE_THAT(g(2, 1), WithinAbs(REAL(0.0), TOL(1e-12, 1e-5)));
 		}
 		
 		SECTION("Contravariant metric is inverse of covariant")
@@ -125,14 +125,14 @@ namespace MML::Tests::Core::MetricTensorTests
 			auto g_inv = metric.GetContravariantMetric(pos);
 			
 			// g^rr = 1
-			REQUIRE_THAT(g_inv(0, 0), WithinAbs(REAL(1.0), REAL(1e-10)));
+			REQUIRE_THAT(g_inv(0, 0), WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
 			
 			// g^theta,theta = 1/r^2
-			REQUIRE_THAT(g_inv(1, 1), WithinAbs(REAL(1.0) / (r * r), REAL(1e-10)));
+			REQUIRE_THAT(g_inv(1, 1), WithinAbs(REAL(1.0) / (r * r), TOL(1e-10, 1e-5)));
 			
 			// g^phi,phi = 1/(r^2 * sin^2(theta))
 			Real sin_theta = std::sin(theta);
-			REQUIRE_THAT(g_inv(2, 2), WithinAbs(REAL(1.0) / (r * r * sin_theta * sin_theta), REAL(1e-10)));
+			REQUIRE_THAT(g_inv(2, 2), WithinAbs(REAL(1.0) / (r * r * sin_theta * sin_theta), TOL(1e-10, 1e-5)));
 		}
 	}
 	
@@ -158,40 +158,40 @@ namespace MML::Tests::Core::MetricTensorTests
 		SECTION("Γ^r_θθ = -r")
 		{
 			Real gamma = metric.GetChristoffelSymbolSecondKind(0, 1, 1, pos);
-			REQUIRE_THAT(gamma, WithinAbs(-r, REAL(1e-6)));
+			REQUIRE_THAT(gamma, WithinAbs(-r, TOL(1e-6, 1e-3)));
 		}
 		
 		SECTION("Γ^r_φφ = -r sin²θ")
 		{
 			Real gamma = metric.GetChristoffelSymbolSecondKind(0, 2, 2, pos);
 			Real expected = -r * std::sin(theta) * std::sin(theta);
-			REQUIRE_THAT(gamma, WithinAbs(expected, REAL(1e-6)));
+			REQUIRE_THAT(gamma, WithinAbs(expected, TOL(1e-6, 1e-3)));
 		}
 		
 		SECTION("Γ^θ_rθ = 1/r")
 		{
 			Real gamma = metric.GetChristoffelSymbolSecondKind(1, 0, 1, pos);
-			REQUIRE_THAT(gamma, WithinAbs(REAL(1.0) / r, REAL(1e-6)));
+			REQUIRE_THAT(gamma, WithinAbs(REAL(1.0) / r, TOL(1e-6, 1e-3)));
 		}
 		
 		SECTION("Γ^θ_φφ = -sinθ cosθ")
 		{
 			Real gamma = metric.GetChristoffelSymbolSecondKind(1, 2, 2, pos);
 			Real expected = -std::sin(theta) * std::cos(theta);
-			REQUIRE_THAT(gamma, WithinAbs(expected, REAL(1e-6)));
+			REQUIRE_THAT(gamma, WithinAbs(expected, TOL(1e-6, 1e-3)));
 		}
 		
 		SECTION("Γ^φ_rφ = 1/r")
 		{
 			Real gamma = metric.GetChristoffelSymbolSecondKind(2, 0, 2, pos);
-			REQUIRE_THAT(gamma, WithinAbs(REAL(1.0) / r, REAL(1e-6)));
+			REQUIRE_THAT(gamma, WithinAbs(REAL(1.0) / r, TOL(1e-6, 1e-3)));
 		}
 		
 		SECTION("Γ^φ_θφ = cot θ")
 		{
 			Real gamma = metric.GetChristoffelSymbolSecondKind(2, 1, 2, pos);
 			Real cot_theta = std::cos(theta) / std::sin(theta);
-			REQUIRE_THAT(gamma, WithinAbs(cot_theta, REAL(1e-6)));
+			REQUIRE_THAT(gamma, WithinAbs(cot_theta, TOL(1e-6, 1e-3)));
 		}
 	}
 	
@@ -215,22 +215,22 @@ namespace MML::Tests::Core::MetricTensorTests
 			auto g = metric.GetCovariantMetric(pos);
 			
 			// g_ρρ = 1
-			REQUIRE_THAT(g(0, 0), WithinAbs(REAL(1.0), REAL(1e-12)));
+			REQUIRE_THAT(g(0, 0), WithinAbs(REAL(1.0), TOL(1e-12, 1e-5)));
 			
 			// g_φφ = ρ^2 = 9
-			REQUIRE_THAT(g(1, 1), WithinAbs(rho * rho, REAL(1e-12)));
+			REQUIRE_THAT(g(1, 1), WithinAbs(rho * rho, TOL(1e-12, 1e-5)));
 			
 			// g_zz = 1
-			REQUIRE_THAT(g(2, 2), WithinAbs(REAL(1.0), REAL(1e-12)));
+			REQUIRE_THAT(g(2, 2), WithinAbs(REAL(1.0), TOL(1e-12, 1e-5)));
 		}
 		
 		SECTION("Off-diagonal components are zero")
 		{
 			auto g = metric.GetCovariantMetric(pos);
 			
-			REQUIRE_THAT(g(0, 1), WithinAbs(REAL(0.0), REAL(1e-12)));
-			REQUIRE_THAT(g(0, 2), WithinAbs(REAL(0.0), REAL(1e-12)));
-			REQUIRE_THAT(g(1, 2), WithinAbs(REAL(0.0), REAL(1e-12)));
+			REQUIRE_THAT(g(0, 1), WithinAbs(REAL(0.0), TOL(1e-12, 1e-5)));
+			REQUIRE_THAT(g(0, 2), WithinAbs(REAL(0.0), TOL(1e-12, 1e-5)));
+			REQUIRE_THAT(g(1, 2), WithinAbs(REAL(0.0), TOL(1e-12, 1e-5)));
 		}
 	}
 	
@@ -252,13 +252,13 @@ namespace MML::Tests::Core::MetricTensorTests
 		SECTION("Γ^ρ_φφ = -ρ")
 		{
 			Real gamma = metric.GetChristoffelSymbolSecondKind(0, 1, 1, pos);
-			REQUIRE_THAT(gamma, WithinAbs(-rho, REAL(1e-6)));
+			REQUIRE_THAT(gamma, WithinAbs(-rho, TOL(1e-6, 1e-3)));
 		}
 		
 		SECTION("Γ^φ_ρφ = 1/ρ")
 		{
 			Real gamma = metric.GetChristoffelSymbolSecondKind(1, 0, 1, pos);
-			REQUIRE_THAT(gamma, WithinAbs(REAL(1.0) / rho, REAL(1e-6)));
+			REQUIRE_THAT(gamma, WithinAbs(REAL(1.0) / rho, TOL(1e-6, 1e-3)));
 		}
 		
 		SECTION("z-related Christoffel symbols vanish")
@@ -272,11 +272,11 @@ namespace MML::Tests::Core::MetricTensorTests
 					{
 						Real gamma = metric.GetChristoffelSymbolSecondKind(i, j, 2, pos);
 						INFO("Gamma^" << i << "_" << j << "2");
-						REQUIRE_THAT(gamma, WithinAbs(REAL(0.0), REAL(1e-8)));
+						REQUIRE_THAT(gamma, WithinAbs(REAL(0.0), TOL(1e-8, 1e-4)));
 						
 						gamma = metric.GetChristoffelSymbolSecondKind(2, i, j, pos);
 						INFO("Gamma^2_" << i << j);
-						REQUIRE_THAT(gamma, WithinAbs(REAL(0.0), REAL(1e-8)));
+						REQUIRE_THAT(gamma, WithinAbs(REAL(0.0), TOL(1e-8, 1e-4)));
 					}
 				}
 			}
@@ -299,12 +299,12 @@ namespace MML::Tests::Core::MetricTensorTests
 			auto g = metric.GetCovariantMetric(pos);
 			
 			// eta_00 = -1 (time component)
-			REQUIRE_THAT(g(0, 0), WithinAbs(-REAL(1.0), REAL(1e-12)));
+			REQUIRE_THAT(g(0, 0), WithinAbs(-REAL(1.0), TOL(1e-12, 1e-5)));
 			
 			// eta_11 = eta_22 = eta_33 = +1 (space components)
-			REQUIRE_THAT(g(1, 1), WithinAbs(REAL(1.0), REAL(1e-12)));
-			REQUIRE_THAT(g(2, 2), WithinAbs(REAL(1.0), REAL(1e-12)));
-			REQUIRE_THAT(g(3, 3), WithinAbs(REAL(1.0), REAL(1e-12)));
+			REQUIRE_THAT(g(1, 1), WithinAbs(REAL(1.0), TOL(1e-12, 1e-5)));
+			REQUIRE_THAT(g(2, 2), WithinAbs(REAL(1.0), TOL(1e-12, 1e-5)));
+			REQUIRE_THAT(g(3, 3), WithinAbs(REAL(1.0), TOL(1e-12, 1e-5)));
 		}
 		
 		SECTION("Off-diagonal components are zero")
@@ -318,7 +318,7 @@ namespace MML::Tests::Core::MetricTensorTests
 					if (i != j)
 					{
 						INFO("g(" << i << "," << j << ")");
-						REQUIRE_THAT(g(i, j), WithinAbs(REAL(0.0), REAL(1e-12)));
+						REQUIRE_THAT(g(i, j), WithinAbs(REAL(0.0), TOL(1e-12, 1e-5)));
 					}
 				}
 			}
@@ -331,7 +331,7 @@ namespace MML::Tests::Core::MetricTensorTests
 			{
 				Real gamma = metric.GetChristoffelSymbolSecondKind(i, i, i, pos);
 				INFO("Gamma^" << i << "_" << i << i);
-				REQUIRE_THAT(gamma, WithinAbs(REAL(0.0), REAL(1e-8)));
+				REQUIRE_THAT(gamma, WithinAbs(REAL(0.0), TOL(1e-8, 1e-4)));
 			}
 		}
 	}
@@ -363,7 +363,7 @@ namespace MML::Tests::Core::MetricTensorTests
 				for (int j = 0; j < 3; j++)
 				{
 					INFO("g(" << i << "," << j << ")");
-					REQUIRE_THAT(g_transf(i, j), WithinAbs(g_direct(i, j), REAL(1e-8)));
+					REQUIRE_THAT(g_transf(i, j), WithinAbs(g_direct(i, j), TOL(1e-8, 1e-4)));
 				}
 			}
 		}
@@ -392,7 +392,7 @@ namespace MML::Tests::Core::MetricTensorTests
 				for (int j = 0; j < 3; j++)
 				{
 					INFO("g(" << i << "," << j << ")");
-					REQUIRE_THAT(g_transf(i, j), WithinAbs(g_direct(i, j), REAL(1e-8)));
+					REQUIRE_THAT(g_transf(i, j), WithinAbs(g_direct(i, j), TOL(1e-8, 1e-4)));
 				}
 			}
 		}
@@ -428,14 +428,14 @@ namespace MML::Tests::Core::MetricTensorTests
 			// ∂V^2/∂x^2 = 2z = 8
 			
 			auto nabla_0 = metric.CovariantDerivativeContravar(field, 0, pos);
-			REQUIRE_THAT(nabla_0[0], WithinAbs(REAL(2.0) * pos[0], REAL(1e-6)));
-			REQUIRE_THAT(nabla_0[1], WithinAbs(REAL(0.0), REAL(1e-6)));
-			REQUIRE_THAT(nabla_0[2], WithinAbs(REAL(0.0), REAL(1e-6)));
+			REQUIRE_THAT(nabla_0[0], WithinAbs(REAL(2.0) * pos[0], TOL(1e-6, 1e-4)));
+			REQUIRE_THAT(nabla_0[1], WithinAbs(REAL(0.0), TOL(1e-6, 1e-4)));
+			REQUIRE_THAT(nabla_0[2], WithinAbs(REAL(0.0), TOL(1e-6, 1e-4)));
 			
 			auto nabla_1 = metric.CovariantDerivativeContravar(field, 1, pos);
-			REQUIRE_THAT(nabla_1[0], WithinAbs(REAL(0.0), REAL(1e-6)));
-			REQUIRE_THAT(nabla_1[1], WithinAbs(REAL(2.0) * pos[1], REAL(1e-6)));
-			REQUIRE_THAT(nabla_1[2], WithinAbs(REAL(0.0), REAL(1e-6)));
+			REQUIRE_THAT(nabla_1[0], WithinAbs(REAL(0.0), TOL(1e-6, 1e-4)));
+			REQUIRE_THAT(nabla_1[1], WithinAbs(REAL(2.0) * pos[1], TOL(1e-6, 1e-4)));
+			REQUIRE_THAT(nabla_1[2], WithinAbs(REAL(0.0), TOL(1e-6, 1e-4)));
 		}
 	}
 	
@@ -506,9 +506,9 @@ namespace MML::Tests::Core::MetricTensorTests
 		auto cyl_metric = metricCyl(posCyl);
 		
 		// Verify Cartesian metric is identity
-		REQUIRE_THAT(cart_metric(0, 0), WithinAbs(REAL(1.0), REAL(1e-12)));
-		REQUIRE_THAT(cart_metric(1, 1), WithinAbs(REAL(1.0), REAL(1e-12)));
-		REQUIRE_THAT(cart_metric(2, 2), WithinAbs(REAL(1.0), REAL(1e-12)));
+		REQUIRE_THAT(cart_metric(0, 0), WithinAbs(REAL(1.0), TOL(1e-12, 1e-5)));
+		REQUIRE_THAT(cart_metric(1, 1), WithinAbs(REAL(1.0), TOL(1e-12, 1e-5)));
+		REQUIRE_THAT(cart_metric(2, 2), WithinAbs(REAL(1.0), TOL(1e-12, 1e-5)));
 	}
 
 	TEST_CASE("MetricTensorSphericalContravar - Singularity at r=0 throws", "[MetricTensor][Spherical][Singularity]")
@@ -517,7 +517,7 @@ namespace MML::Tests::Core::MetricTensorTests
 		VectorN<Real, 3> at_origin{REAL(0.0), REAL(1.0), REAL(0.5)};
 
 		// g^00 = 1 should be fine
-		REQUIRE_THAT(metric.Component(0, 0, at_origin), WithinAbs(REAL(1.0), REAL(1e-12)));
+		REQUIRE_THAT(metric.Component(0, 0, at_origin), WithinAbs(REAL(1.0), TOL(1e-12, 1e-5)));
 
 		// g^11 = 1/r^2 should throw at r=0
 		REQUIRE_THROWS(metric.Component(1, 1, at_origin));
@@ -532,7 +532,7 @@ namespace MML::Tests::Core::MetricTensorTests
 		VectorN<Real, 3> at_pole{REAL(2.0), REAL(0.0), REAL(0.5)};  // theta=0 (north pole)
 
 		// g^11 = 1/r^2 should be fine at r=2
-		REQUIRE_THAT(metric.Component(1, 1, at_pole), WithinAbs(REAL(0.25), REAL(1e-12)));
+		REQUIRE_THAT(metric.Component(1, 1, at_pole), WithinAbs(REAL(0.25), TOL(1e-12, 1e-5)));
 
 		// g^22 = 1/(r^2*sin^2(0)) should throw at theta=0
 		REQUIRE_THROWS(metric.Component(2, 2, at_pole));

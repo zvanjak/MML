@@ -146,7 +146,7 @@ namespace MML {
 		/// @param numSteps    Number of integration steps (more = more accurate)
 		/// @param tolerance   Root-finding tolerance for boundary condition
 		/// @param maxIter     Maximum shooting iterations
-		BVPShootingSolver(const IODESystem& system, int numSteps = 1000, Real tolerance = 1e-10, int maxIter = 100)
+		BVPShootingSolver(const IODESystem& system, int numSteps = 1000, Real tolerance = Precision::BVPTolerance, int maxIter = 100)
 			: _system(system)
 			, _numSteps(numSteps)
 			, _tolerance(tolerance)
@@ -269,10 +269,10 @@ namespace MML {
 	///
 	/// Standardized config object following API Standardization Phase 6 pattern.
 	struct BVPSolverConfig {
-		Real tolerance = 1e-10;          ///< Convergence tolerance
+		Real tolerance = Precision::BVPTolerance;          ///< Convergence tolerance
 		int max_iterations = 50;         ///< Maximum Newton iterations
 		int num_integration_steps = 1000; ///< Number of ODE integration steps
-		Real jacobian_delta = 1e-8;      ///< Step size for numerical Jacobian
+		Real jacobian_delta = Precision::JacobianDelta;      ///< Step size for numerical Jacobian
 		bool verbose = false;            ///< Enable verbose output
 
 		/// Default constructor
@@ -286,10 +286,10 @@ namespace MML {
 		/// Factory: High precision configuration
 		static BVPSolverConfig HighPrecision() {
 			BVPSolverConfig cfg;
-			cfg.tolerance = 1e-14;
+			cfg.tolerance = Precision::BVPTolerance * Real(1e-4);
 			cfg.max_iterations = 100;
 			cfg.num_integration_steps = 5000;
-			cfg.jacobian_delta = 1e-10;
+			cfg.jacobian_delta = Precision::JacobianDelta * Real(1e-2);
 			return cfg;
 		}
 
@@ -396,8 +396,8 @@ namespace MML {
 		/// @param tolerance     Convergence tolerance for ||F(s)||
 		/// @param maxIter       Maximum Newton iterations
 		/// @param jacobianDelta Step size for numerical derivatives
-		BVPShootingSolverND(const IODESystem& system, int numSteps = 1000, Real tolerance = 1e-10, int maxIter = 50,
-							Real jacobianDelta = 1e-8)
+		BVPShootingSolverND(const IODESystem& system, int numSteps = 1000, Real tolerance = Precision::BVPTolerance, int maxIter = 50,
+							Real jacobianDelta = Precision::JacobianDelta)
 			: _system(system)
 			, _numSteps(numSteps)
 			, _tolerance(tolerance)
@@ -574,7 +574,7 @@ namespace MML {
 				}
 
 				// Check for singularity
-				if (std::abs(Aug(k, k)) < 1e-14) {
+				if (std::abs(Aug(k, k)) < Precision::NumericalZeroThreshold) {
 					result.success = false;
 					result.errorMessage = "Jacobian matrix is singular at row " + std::to_string(k) + 
 						" (pivot = " + std::to_string(Aug(k, k)) + ")";

@@ -103,9 +103,9 @@ namespace MML::Tests::Base::VectorTests
 		Vector<Real> b({ REAL(1.0), REAL(2.00001) });
 
 		// Use precision-aware tolerance
-		// 1e-4 scales to 1e-2 (float), 1e-8 scales to 1e-6 (float)
-		REQUIRE(true == a.IsEqualTo(b, ScaleTolerance(REAL(1e-4))));
-		REQUIRE(false == a.IsEqualTo(b, ScaleTolerance(REAL(1e-8))));
+		// 1e-4 scales to 1e-2 (float), TOL(1e-8, 1e-4) scales to 1e-6 (float)
+		REQUIRE(true == a.IsEqualTo(b, TOL3(1e-4, 1e-2, 1e-4)));
+		REQUIRE(false == a.IsEqualTo(b, ScaleTolerance(TOL(1e-8, 1e-8))));
 	}
 
 	TEST_CASE("Utils::AreEqual", "[simple]") {
@@ -115,9 +115,9 @@ namespace MML::Tests::Base::VectorTests
 		Vector<Real> b({ REAL(1.0), REAL(2.00001) });
 
 		// Use precision-aware tolerance
-		// 1e-4 scales to 1e-2 (float), 1e-8 scales to 1e-6 (float)
-		REQUIRE(true == Utils::AreEqual(a, b, ScaleTolerance(REAL(1e-4))));
-		REQUIRE(false == Utils::AreEqual(a, b, ScaleTolerance(REAL(1e-8))));
+		// 1e-4 scales to 1e-2 (float), TOL(1e-8, 1e-4) scales to 1e-6 (float)
+		REQUIRE(true == Utils::AreEqual(a, b, TOL3(1e-4, 1e-2, 1e-4)));
+		REQUIRE(false == Utils::AreEqual(a, b, ScaleTolerance(TOL(1e-8, 1e-8))));
 	}
 
 	TEST_CASE("Vector::access_operators", "[simple]") {
@@ -823,7 +823,7 @@ namespace MML::Tests::Base::VectorTests
 	TEST_CASE("Vector::Print_zeroThreshold", "[Vector][output]")
 	{
 		TEST_PRECISION_INFO();
-		Vector<Real> v({REAL(1.0), REAL(1e-10), REAL(3.0)});
+		Vector<Real> v({REAL(1.0), TOL(1e-10, 1e-5), REAL(3.0)});
 		
 		std::ostringstream oss;
 		v.Print(oss, 5, 2, REAL(1e-5));  // Values below 1e-5 printed as 0

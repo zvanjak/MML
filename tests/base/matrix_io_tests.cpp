@@ -3,6 +3,7 @@
 ///////////////////////////////////////////////////////////////////////////////////////////
 
 #include <catch2/catch_test_macros.hpp>
+#include "../TestPrecision.h"
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include <mml/base/Matrix/Matrix.h>
@@ -42,7 +43,7 @@ namespace {
     }
     
     // Helper to compare matrices with relative tolerance
-    bool MatricesEqual(const Matrix<Real>& a, const Matrix<Real>& b, Real relTol = 1e-14) {
+    bool MatricesEqual(const Matrix<Real>& a, const Matrix<Real>& b, Real relTol = TOL(1e-14, 1e-5)) {
         if (a.rows() != b.rows() || a.cols() != b.cols())
             return false;
         for (int i = 0; i < a.rows(); ++i) {
@@ -66,10 +67,13 @@ namespace {
             return false;
         for (int i = 0; i < a.rows(); ++i) {
             for (int j = 0; j < a.cols(); ++j) {
-                // Bit-exact comparison using memcmp
                 Real va = a(i, j), vb = b(i, j);
-                if (std::memcmp(&va, &vb, sizeof(Real)) != 0)
-                    return false;
+                // Both NaN → considered equal for round-trip purposes
+                if (std::isnan(va) && std::isnan(vb)) continue;
+                // Value comparison (avoids comparing padding bytes of long double)
+                if (va != vb) return false;
+                // Distinguish +0 from -0
+                if (va == Real(0) && std::signbit(va) != std::signbit(vb)) return false;
             }
         }
         return true;
@@ -151,7 +155,7 @@ TEST_CASE("Matrix I/O - Text format single element", "[Matrix][IO][Text]")
     REQUIRE(loaded.rows() == 1);
     REQUIRE(loaded.cols() == 1);
     // Text format uses default stream precision (~6 digits)
-    REQUIRE_THAT(loaded(0, 0), WithinRel((double)original(0, 0), 1e-5));
+    REQUIRE_THAT(loaded(0, 0), WithinRel(original(0, 0), REAL(1e-5)));
 }
 
 TEST_CASE("Matrix I/O - Text format row vector", "[Matrix][IO][Text]")
@@ -199,6 +203,8 @@ TEST_CASE("Matrix I/O - Text format special values", "[Matrix][IO][Text]")
     std::string path = TempFilePath("matrix_special.txt");
     TempFileGuard guard(path);
     
+    // Values like 1e-300 and 1e+300 overflow/underflow for float
+    if constexpr (!std::is_same_v<Real, float>) {
     Matrix<Real> original(2, 3);
     original(0, 0) = 0.0;
     original(0, 1) = -0.0;  // Negative zero
@@ -214,6 +220,7 @@ TEST_CASE("Matrix I/O - Text format special values", "[Matrix][IO][Text]")
     
     // Text format loses precision - use relative tolerance for large/small values
     REQUIRE(MatricesEqual(original, loaded, 1e-5));
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////

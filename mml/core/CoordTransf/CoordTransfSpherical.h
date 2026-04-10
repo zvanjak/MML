@@ -110,16 +110,16 @@ namespace MML
 		/// @brief Get covariant basis vector at position in spherical coordinates
 		/// @param ind Basis vector index (0=∂r, 1=∂θ, 2=∂φ)
 		/// @param pos Position in spherical coordinates
-		virtual Vector3Cartesian getBasisVec(int ind, const Vector3Spherical& pos) override
+		virtual Vector3Cartesian getBasisVec(int ind, const Vector3Spherical& pos) const override
 		{
 			const Real r = pos[0];
 			const Real theta = pos[1];
 			const Real phi = pos[2];
 			switch (ind)
 			{
-			case 0: return Vector3Cartesian{ sin(theta) * cos(phi),     sin(theta) * sin(phi),      cos(theta) };
-			case 1: return Vector3Cartesian{ r * cos(theta) * cos(phi), r * cos(theta) * sin(phi), -r * sin(theta) };
-			case 2: return Vector3Cartesian{ -r * sin(theta) * sin(phi), r * sin(theta) * cos(phi),						  REAL(0.0) };
+			case 0: return Vector3Cartesian{ static_cast<Real>(sin(theta) * cos(phi)),     static_cast<Real>(sin(theta) * sin(phi)),      static_cast<Real>(cos(theta)) };
+			case 1: return Vector3Cartesian{ static_cast<Real>(r * cos(theta) * cos(phi)), static_cast<Real>(r * cos(theta) * sin(phi)), static_cast<Real>(-r * sin(theta)) };
+			case 2: return Vector3Cartesian{ static_cast<Real>(-r * sin(theta) * sin(phi)), static_cast<Real>(r * sin(theta) * cos(phi)),									  REAL(0.0) };
 			default:
 			return Vector3Cartesian{ REAL(0.0), REAL(0.0), REAL(0.0) };
 			}
@@ -128,16 +128,16 @@ namespace MML
 		/// @brief Get unit (normalized) basis vector at position
 		/// @param ind Basis vector index (0=e_r, 1=e_θ, 2=e_φ)
 		/// @param pos Position in spherical coordinates
-		Vector3Cartesian getUnitBasisVec(int ind, const Vector3Spherical& pos)
+		Vector3Cartesian getUnitBasisVec(int ind, const Vector3Spherical& pos) const
 		{
 			const Real r = pos[0];
 			const Real theta = pos[1];
 			const Real phi = pos[2];
 			switch (ind)
 			{
-			case 0: return Vector3Cartesian{ sin(theta) * cos(phi), sin(theta) * sin(phi), cos(theta) };
-			case 1: return Vector3Cartesian{ cos(theta) * cos(phi), cos(theta) * sin(phi), -sin(theta) };
-			case 2: return Vector3Cartesian{ -sin(phi), cos(phi), REAL(0.0) };
+			case 0: return Vector3Cartesian{ static_cast<Real>(sin(theta) * cos(phi)), static_cast<Real>(sin(theta) * sin(phi)), static_cast<Real>(cos(theta)) };
+			case 1: return Vector3Cartesian{ static_cast<Real>(cos(theta) * cos(phi)), static_cast<Real>(cos(theta) * sin(phi)), static_cast<Real>(-sin(theta)) };
+			case 2: return Vector3Cartesian{ static_cast<Real>(-sin(phi)), static_cast<Real>(cos(phi)), REAL(0.0) };
 			default:
 			return Vector3Cartesian{ REAL(0.0), REAL(0.0), REAL(0.0) };
 			}
@@ -146,16 +146,16 @@ namespace MML
 		/// @brief Get contravariant (dual) basis vector at position
 		/// @param ind Basis vector index (0, 1, 2)
 		/// @param pos Position in spherical coordinates
-		Vector3Spherical getInverseBasisVec(int ind, const Vector3Spherical& pos) override
+		Vector3Spherical getInverseBasisVec(int ind, const Vector3Spherical& pos) const override
 		{
 			const Real r = pos[0];
 			const Real theta = pos[1];
 			const Real phi = pos[2];
 			switch(ind)
 			{
-			case 0: return Vector3Spherical{ sin(theta) * cos(phi), r * cos(theta) * cos(phi), -r * sin(theta) * sin(phi) };
-			case 1: return Vector3Spherical{ sin(theta) * sin(phi), r * cos(theta) * sin(phi),  r * sin(theta) * cos(phi) };
-			case 2: return Vector3Spherical{ cos(theta)           ,-r * sin(theta)           ,                        REAL(0.0) };
+			case 0: return Vector3Spherical{ static_cast<Real>(sin(theta) * cos(phi)), static_cast<Real>(r * cos(theta) * cos(phi)), static_cast<Real>(-r * sin(theta) * sin(phi)) };
+			case 1: return Vector3Spherical{ static_cast<Real>(sin(theta) * sin(phi)), static_cast<Real>(r * cos(theta) * sin(phi)),  static_cast<Real>(r * sin(theta) * cos(phi)) };
+			case 2: return Vector3Spherical{ static_cast<Real>(cos(theta)),static_cast<Real>(-r * sin(theta)),                        REAL(0.0) };
 			default: 
 			return Vector3Spherical{ REAL(0.0), REAL(0.0), REAL(0.0) };
 			}
@@ -163,16 +163,16 @@ namespace MML
 		/// @brief Get unit contravariant basis vector at position
 		/// @param ind Basis vector index
 		/// @param pos Position in spherical coordinates
-		Vector3Spherical getInverseUnitBasisVec(int ind, const Vector3Spherical& pos)
+		Vector3Spherical getInverseUnitBasisVec(int ind, const Vector3Spherical& pos) const
 		{
 			const Real r = pos[0];
 			const Real theta = pos[1];
 			const Real phi = pos[2];
 			switch(ind)
 			{
-			case 0: return Vector3Spherical{ sin(theta) * cos(phi),  cos(theta) * cos(phi), -sin(phi) };
-			case 1: return Vector3Spherical{ sin(theta) * sin(phi),  cos(theta) * sin(phi),  cos(phi) };
-			case 2: return Vector3Spherical{ cos(theta)           , -sin(theta)           ,  REAL(0.0) };
+			case 0: return Vector3Spherical{ static_cast<Real>(sin(theta) * cos(phi)),  static_cast<Real>(cos(theta) * cos(phi)), static_cast<Real>(-sin(phi)) };
+			case 1: return Vector3Spherical{ static_cast<Real>(sin(theta) * sin(phi)),  static_cast<Real>(cos(theta) * sin(phi)),  static_cast<Real>(cos(phi)) };
+			case 2: return Vector3Spherical{ static_cast<Real>(cos(theta))           , static_cast<Real>(-sin(theta))           ,  REAL(0.0) };
 			default: 
 			return Vector3Spherical{ REAL(0.0), REAL(0.0), REAL(0.0) };
 			}

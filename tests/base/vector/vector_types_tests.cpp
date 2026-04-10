@@ -156,7 +156,7 @@ TEST_CASE("Vector2Cartesian - Comparison operations", "[VectorTypes][Vector2Cart
 
     SECTION("IsEqualTo with tolerance")
     {
-        REQUIRE(a.IsEqualTo(b, REAL(1e-10)));
+        REQUIRE(a.IsEqualTo(b, TOL(1e-10, 1e-5)));
         REQUIRE(a.IsEqualTo(c, REAL(0.2)));  // Within tolerance
         REQUIRE_FALSE(a.IsEqualTo(c, REAL(0.05)));  // Outside tolerance
     }
@@ -176,9 +176,9 @@ TEST_CASE("Vector2Cartesian - Geometric operations", "[VectorTypes][Vector2Carte
     {
         Vector2Cartesian v(REAL(3.0), REAL(4.0));
         Vector2Cartesian unit = v.Normalized();
-        REQUIRE_THAT(unit.X(), RealWithinRel(REAL(0.6), REAL(1e-10)));
-        REQUIRE_THAT(unit.Y(), RealWithinRel(REAL(0.8), REAL(1e-10)));
-        REQUIRE_THAT(unit.NormL2(), RealWithinRel(REAL(1.0), REAL(1e-10)));
+        REQUIRE_THAT(unit.X(), RealWithinRel(REAL(0.6), TOL(1e-10, 1e-5)));
+        REQUIRE_THAT(unit.Y(), RealWithinRel(REAL(0.8), TOL(1e-10, 1e-5)));
+        REQUIRE_THAT(unit.NormL2(), RealWithinRel(REAL(1.0), TOL(1e-10, 1e-5)));
     }
 
     SECTION("Normalized of zero vector returns zero")
@@ -194,7 +194,7 @@ TEST_CASE("Vector2Cartesian - Geometric operations", "[VectorTypes][Vector2Carte
         Vector2Cartesian v(REAL(0.0), REAL(5.0));
         Vector2Cartesian unit = v.GetAsUnitVector();
         REQUIRE(unit.X() == REAL(0.0));
-        REQUIRE_THAT(unit.Y(), RealWithinRel(REAL(1.0), REAL(1e-10)));
+        REQUIRE_THAT(unit.Y(), RealWithinRel(REAL(1.0), TOL(1e-10, 1e-5)));
     }
 
     SECTION("getPerpendicularVectors")
@@ -208,8 +208,8 @@ TEST_CASE("Vector2Cartesian - Geometric operations", "[VectorTypes][Vector2Carte
         REQUIRE_THAT((v * v2), RealApprox(REAL(0.0)).margin(Tolerance::Loose));
         
         // v1 and v2 should be opposite
-        REQUIRE_THAT(v1.X(), RealWithinRel(-v2.X(), REAL(1e-10)));
-        REQUIRE_THAT(v1.Y(), RealWithinRel(-v2.Y(), REAL(1e-10)));
+        REQUIRE_THAT(v1.X(), RealWithinRel(-v2.X(), TOL(1e-10, 1e-5)));
+        REQUIRE_THAT(v1.Y(), RealWithinRel(-v2.Y(), TOL(1e-10, 1e-5)));
     }
 }
 
@@ -253,7 +253,7 @@ TEST_CASE("Vector2Polar - Constructors", "[VectorTypes][Vector2Polar]")
     {
         Vector2Polar v(REAL(5.0), Constants::PI / 4);
         REQUIRE(v.R() == REAL(5.0));
-        REQUIRE_THAT(v.Phi(), RealWithinRel(Constants::PI / 4, REAL(1e-10)));
+        REQUIRE_THAT(v.Phi(), RealWithinRel(Constants::PI / 4, TOL(1e-10, 1e-5)));
     }
 }
 
@@ -266,7 +266,7 @@ TEST_CASE("Vector2Polar - Arithmetic operations", "[VectorTypes][Vector2Polar]")
         Vector2Polar v(REAL(5.0), REAL(0.0));
         Vector2Polar neg = -v;
         REQUIRE(neg.R() == REAL(5.0));
-        REQUIRE_THAT(neg.Phi(), RealWithinRel(Constants::PI, REAL(1e-10)));
+        REQUIRE_THAT(neg.Phi(), RealWithinRel(Constants::PI, TOL(1e-10, 1e-5)));
     }
 
     SECTION("Scalar multiplication scales radius only")
@@ -274,7 +274,7 @@ TEST_CASE("Vector2Polar - Arithmetic operations", "[VectorTypes][Vector2Polar]")
         Vector2Polar v(REAL(5.0), Constants::PI / 4);
         Vector2Polar scaled = v * REAL(2.0);
         REQUIRE(scaled.R() == REAL(10.0));
-        REQUIRE_THAT(scaled.Phi(), RealWithinRel(Constants::PI / 4, REAL(1e-10)));
+        REQUIRE_THAT(scaled.Phi(), RealWithinRel(Constants::PI / 4, TOL(1e-10, 1e-5)));
     }
 
     SECTION("Scalar multiplication (scalar * vector)")
@@ -282,7 +282,7 @@ TEST_CASE("Vector2Polar - Arithmetic operations", "[VectorTypes][Vector2Polar]")
         Vector2Polar v(REAL(5.0), Constants::PI / 4);
         Vector2Polar scaled = REAL(3.0) * v;
         REQUIRE(scaled.R() == REAL(15.0));
-        REQUIRE_THAT(scaled.Phi(), RealWithinRel(Constants::PI / 4, REAL(1e-10)));
+        REQUIRE_THAT(scaled.Phi(), RealWithinRel(Constants::PI / 4, TOL(1e-10, 1e-5)));
     }
 
     SECTION("Scalar division divides radius only")
@@ -290,7 +290,7 @@ TEST_CASE("Vector2Polar - Arithmetic operations", "[VectorTypes][Vector2Polar]")
         Vector2Polar v(REAL(10.0), Constants::PI / 3);
         Vector2Polar divided = v / REAL(2.0);
         REQUIRE(divided.R() == REAL(5.0));
-        REQUIRE_THAT(divided.Phi(), RealWithinRel(Constants::PI / 3, REAL(1e-10)));
+        REQUIRE_THAT(divided.Phi(), RealWithinRel(Constants::PI / 3, TOL(1e-10, 1e-5)));
     }
 
     SECTION("Vector addition - same direction")
@@ -298,7 +298,7 @@ TEST_CASE("Vector2Polar - Arithmetic operations", "[VectorTypes][Vector2Polar]")
         Vector2Polar v1(REAL(3.0), REAL(0.0));
         Vector2Polar v2(REAL(4.0), REAL(0.0));
         Vector2Polar sum = v1 + v2;
-        REQUIRE_THAT(sum.R(), RealWithinRel(REAL(7.0), REAL(1e-10)));
+        REQUIRE_THAT(sum.R(), RealWithinRel(REAL(7.0), TOL(1e-10, 1e-5)));
     }
 
     SECTION("Vector addition - opposite directions")
@@ -306,7 +306,7 @@ TEST_CASE("Vector2Polar - Arithmetic operations", "[VectorTypes][Vector2Polar]")
         Vector2Polar v1(REAL(5.0), REAL(0.0));
         Vector2Polar v2(REAL(3.0), Constants::PI);
         Vector2Polar sum = v1 + v2;
-        REQUIRE_THAT(sum.R(), RealWithinRel(REAL(2.0), REAL(1e-10)));
+        REQUIRE_THAT(sum.R(), RealWithinRel(REAL(2.0), TOL(1e-10, 1e-5)));
     }
 
     SECTION("Vector addition - perpendicular")
@@ -314,7 +314,7 @@ TEST_CASE("Vector2Polar - Arithmetic operations", "[VectorTypes][Vector2Polar]")
         Vector2Polar v1(REAL(3.0), REAL(0.0));
         Vector2Polar v2(REAL(4.0), Constants::PI / 2);
         Vector2Polar sum = v1 + v2;
-        REQUIRE_THAT(sum.R(), RealWithinRel(REAL(5.0), REAL(1e-10)));  // 3-4-5 triangle
+        REQUIRE_THAT(sum.R(), RealWithinRel(REAL(5.0), TOL(1e-10, 1e-5)));  // 3-4-5 triangle
     }
 }
 
@@ -479,9 +479,9 @@ TEST_CASE("Vector3Cartesian - Cross product", "[VectorTypes][Vector3Cartesian]")
         Vector3Cartesian axb = VectorProduct(a, b);
         Vector3Cartesian bxa = VectorProduct(b, a);
 
-        REQUIRE_THAT(axb.X(), RealWithinRel(-bxa.X(), REAL(1e-10)));
-        REQUIRE_THAT(axb.Y(), RealWithinRel(-bxa.Y(), REAL(1e-10)));
-        REQUIRE_THAT(axb.Z(), RealWithinRel(-bxa.Z(), REAL(1e-10)));
+        REQUIRE_THAT(axb.X(), RealWithinRel(-bxa.X(), TOL(1e-10, 1e-5)));
+        REQUIRE_THAT(axb.Y(), RealWithinRel(-bxa.Y(), TOL(1e-10, 1e-5)));
+        REQUIRE_THAT(axb.Z(), RealWithinRel(-bxa.Z(), TOL(1e-10, 1e-5)));
     }
 
     SECTION("Cross product of parallel vectors is zero")
@@ -520,7 +520,7 @@ TEST_CASE("Vector3Cartesian - Geometric operations", "[VectorTypes][Vector3Carte
         Vector3Cartesian unit = v.Normalized();
         REQUIRE(unit.X() == REAL(0.0));
         REQUIRE(unit.Y() == REAL(0.0));
-        REQUIRE_THAT(unit.Z(), RealWithinRel(REAL(1.0), REAL(1e-10)));
+        REQUIRE_THAT(unit.Z(), RealWithinRel(REAL(1.0), TOL(1e-10, 1e-5)));
     }
 
     SECTION("Normalized of zero vector")
@@ -536,9 +536,9 @@ TEST_CASE("Vector3Cartesian - Geometric operations", "[VectorTypes][Vector3Carte
     {
         Vector3Cartesian v(REAL(3.0), REAL(4.0), REAL(0.0));
         Vector3Cartesian unit = v.GetAsUnitVector();
-        REQUIRE_THAT(unit.NormL2(), RealWithinRel(REAL(1.0), REAL(1e-10)));
-        REQUIRE_THAT(unit.X(), RealWithinRel(REAL(0.6), REAL(1e-10)));
-        REQUIRE_THAT(unit.Y(), RealWithinRel(REAL(0.8), REAL(1e-10)));
+        REQUIRE_THAT(unit.NormL2(), RealWithinRel(REAL(1.0), TOL(1e-10, 1e-5)));
+        REQUIRE_THAT(unit.X(), RealWithinRel(REAL(0.6), TOL(1e-10, 1e-5)));
+        REQUIRE_THAT(unit.Y(), RealWithinRel(REAL(0.8), TOL(1e-10, 1e-5)));
     }
 
     SECTION("GetAsUnitVector of zero vector returns zero")
@@ -577,9 +577,9 @@ TEST_CASE("Vector3Cartesian - Geometric operations", "[VectorTypes][Vector3Carte
         Vector3Cartesian c(REAL(1.0), REAL(0.0), REAL(0.0));
         Vector3Cartesian d(REAL(-1.0), REAL(0.0), REAL(0.0));
 
-        REQUIRE_THAT(a.AngleToVector(b), RealWithinRel(Constants::PI / 2, REAL(1e-10)));  // 90°
+        REQUIRE_THAT(a.AngleToVector(b), RealWithinRel(Constants::PI / 2, TOL(1e-10, 1e-5)));  // 90°
         REQUIRE_THAT(a.AngleToVector(c), RealApprox(REAL(0.0)).margin(Tolerance::Loose));  // 0°
-        REQUIRE_THAT(a.AngleToVector(d), RealWithinRel(Constants::PI, REAL(1e-10)));  // 180°
+        REQUIRE_THAT(a.AngleToVector(d), RealWithinRel(Constants::PI, TOL(1e-10, 1e-5)));  // 180°
     }
 
     SECTION("AngleToVector - zero vector throws")
@@ -608,8 +608,8 @@ TEST_CASE("Vector3Cartesian - Geometric operations", "[VectorTypes][Vector3Carte
         REQUIRE_THAT(v1.ScalarProduct(v2), RealApprox(REAL(0.0)).margin(Tolerance::Loose));
 
         // Both should be unit vectors
-        REQUIRE_THAT(v1.NormL2(), RealWithinRel(REAL(1.0), REAL(1e-10)));
-        REQUIRE_THAT(v2.NormL2(), RealWithinRel(REAL(1.0), REAL(1e-10)));
+        REQUIRE_THAT(v1.NormL2(), RealWithinRel(REAL(1.0), TOL(1e-10, 1e-5)));
+        REQUIRE_THAT(v2.NormL2(), RealWithinRel(REAL(1.0), TOL(1e-10, 1e-5)));
     }
 
     SECTION("GetPerpendicularVectors of zero vector fails")
@@ -673,8 +673,8 @@ TEST_CASE("Vector3Spherical - Constructors", "[VectorTypes][Vector3Spherical]")
     {
         Vector3Spherical v(REAL(5.0), Constants::PI / 4, Constants::PI / 3);
         REQUIRE(v.R() == REAL(5.0));
-        REQUIRE_THAT(v.Theta(), RealWithinRel(Constants::PI / 4, REAL(1e-10)));
-        REQUIRE_THAT(v.Phi(), RealWithinRel(Constants::PI / 3, REAL(1e-10)));
+        REQUIRE_THAT(v.Theta(), RealWithinRel(Constants::PI / 4, TOL(1e-10, 1e-5)));
+        REQUIRE_THAT(v.Phi(), RealWithinRel(Constants::PI / 3, TOL(1e-10, 1e-5)));
     }
 }
 
@@ -687,8 +687,8 @@ TEST_CASE("Vector3Spherical - Arithmetic operations", "[VectorTypes][Vector3Sphe
         Vector3Spherical v(REAL(5.0), Constants::PI / 4, Constants::PI / 3);
         Vector3Spherical scaled = v * REAL(2.0);
         REQUIRE(scaled.R() == REAL(10.0));
-        REQUIRE_THAT(scaled.Theta(), RealWithinRel(Constants::PI / 4, REAL(1e-10)));
-        REQUIRE_THAT(scaled.Phi(), RealWithinRel(Constants::PI / 3, REAL(1e-10)));
+        REQUIRE_THAT(scaled.Theta(), RealWithinRel(Constants::PI / 4, TOL(1e-10, 1e-5)));
+        REQUIRE_THAT(scaled.Phi(), RealWithinRel(Constants::PI / 3, TOL(1e-10, 1e-5)));
     }
 
     SECTION("Scalar division")
@@ -696,8 +696,8 @@ TEST_CASE("Vector3Spherical - Arithmetic operations", "[VectorTypes][Vector3Sphe
         Vector3Spherical v(REAL(10.0), Constants::PI / 4, Constants::PI / 3);
         Vector3Spherical divided = v / REAL(2.0);
         REQUIRE(divided.R() == REAL(5.0));
-        REQUIRE_THAT(divided.Theta(), RealWithinRel(Constants::PI / 4, REAL(1e-10)));
-        REQUIRE_THAT(divided.Phi(), RealWithinRel(Constants::PI / 3, REAL(1e-10)));
+        REQUIRE_THAT(divided.Theta(), RealWithinRel(Constants::PI / 4, TOL(1e-10, 1e-5)));
+        REQUIRE_THAT(divided.Phi(), RealWithinRel(Constants::PI / 3, TOL(1e-10, 1e-5)));
     }
 
     SECTION("Division by zero throws")
@@ -711,7 +711,7 @@ TEST_CASE("Vector3Spherical - Arithmetic operations", "[VectorTypes][Vector3Sphe
         Vector3Spherical v1(REAL(3.0), Constants::PI / 2, REAL(0.0));  // Along +x axis
         Vector3Spherical v2(REAL(4.0), Constants::PI / 2, REAL(0.0));
         Vector3Spherical sum = v1 + v2;
-        REQUIRE_THAT(sum.R(), RealWithinRel(REAL(7.0), REAL(1e-10)));
+        REQUIRE_THAT(sum.R(), RealWithinRel(REAL(7.0), TOL(1e-10, 1e-5)));
     }
 }
 
@@ -755,7 +755,7 @@ TEST_CASE("Vector3Cylindrical - Constructors", "[VectorTypes][Vector3Cylindrical
     {
         Vector3Cylindrical v(REAL(5.0), Constants::PI / 4, REAL(3.0));
         REQUIRE(v.R() == REAL(5.0));
-        REQUIRE_THAT(v.Phi(), RealWithinRel(Constants::PI / 4, REAL(1e-10)));
+        REQUIRE_THAT(v.Phi(), RealWithinRel(Constants::PI / 4, TOL(1e-10, 1e-5)));
         REQUIRE(v.Z() == REAL(3.0));
     }
 }
@@ -769,7 +769,7 @@ TEST_CASE("Vector3Cylindrical - Arithmetic operations", "[VectorTypes][Vector3Cy
         Vector3Cylindrical v(REAL(5.0), REAL(0.0), REAL(3.0));
         Vector3Cylindrical neg = -v;
         REQUIRE(neg.R() == REAL(5.0));
-        REQUIRE_THAT(neg.Phi(), RealWithinRel(Constants::PI, REAL(1e-10)));
+        REQUIRE_THAT(neg.Phi(), RealWithinRel(Constants::PI, TOL(1e-10, 1e-5)));
         REQUIRE(neg.Z() == REAL(3.0));
     }
 
@@ -778,7 +778,7 @@ TEST_CASE("Vector3Cylindrical - Arithmetic operations", "[VectorTypes][Vector3Cy
         Vector3Cylindrical v(REAL(5.0), Constants::PI / 4, REAL(3.0));
         Vector3Cylindrical scaled = v * REAL(2.0);
         REQUIRE(scaled.R() == REAL(10.0));
-        REQUIRE_THAT(scaled.Phi(), RealWithinRel(Constants::PI / 4, REAL(1e-10)));
+        REQUIRE_THAT(scaled.Phi(), RealWithinRel(Constants::PI / 4, TOL(1e-10, 1e-5)));
         REQUIRE(scaled.Z() == REAL(6.0));
     }
 
@@ -799,9 +799,9 @@ TEST_CASE("Vector3Cylindrical - GetAsUnitVectorAtPos", "[VectorTypes][Vector3Cyl
         Vector3Cylindrical v(REAL(5.0), REAL(0.0), REAL(0.0));
         Vector3Cylindrical pos(REAL(3.0), REAL(0.0), REAL(1.0));
         auto unit = v.GetAsUnitVectorAtPos(pos);
-        REQUIRE_THAT(unit.R(), RealWithinAbs(REAL(1.0), REAL(1e-12)));
-        REQUIRE_THAT(unit.Phi(), RealWithinAbs(REAL(0.0), REAL(1e-12)));
-        REQUIRE_THAT(unit.Z(), RealWithinAbs(REAL(0.0), REAL(1e-12)));
+        REQUIRE_THAT(unit.R(), RealWithinAbs(REAL(1.0), TOL(1e-12, 1e-5)));
+        REQUIRE_THAT(unit.Phi(), RealWithinAbs(REAL(0.0), TOL(1e-12, 1e-5)));
+        REQUIRE_THAT(unit.Z(), RealWithinAbs(REAL(0.0), TOL(1e-12, 1e-5)));
     }
 
     SECTION("Z-only vector returns unit Z regardless of position")
@@ -809,9 +809,9 @@ TEST_CASE("Vector3Cylindrical - GetAsUnitVectorAtPos", "[VectorTypes][Vector3Cyl
         Vector3Cylindrical v(REAL(0.0), REAL(0.0), REAL(7.0));
         Vector3Cylindrical pos(REAL(2.0), Constants::PI / 3, REAL(5.0));
         auto unit = v.GetAsUnitVectorAtPos(pos);
-        REQUIRE_THAT(unit.R(), RealWithinAbs(REAL(0.0), REAL(1e-12)));
-        REQUIRE_THAT(unit.Phi(), RealWithinAbs(REAL(0.0), REAL(1e-12)));
-        REQUIRE_THAT(unit.Z(), RealWithinAbs(REAL(1.0), REAL(1e-12)));
+        REQUIRE_THAT(unit.R(), RealWithinAbs(REAL(0.0), TOL(1e-12, 1e-5)));
+        REQUIRE_THAT(unit.Phi(), RealWithinAbs(REAL(0.0), TOL(1e-12, 1e-5)));
+        REQUIRE_THAT(unit.Z(), RealWithinAbs(REAL(1.0), TOL(1e-12, 1e-5)));
     }
 
     SECTION("Result is unit length")
@@ -820,7 +820,7 @@ TEST_CASE("Vector3Cylindrical - GetAsUnitVectorAtPos", "[VectorTypes][Vector3Cyl
         Vector3Cylindrical pos(REAL(1.0), Constants::PI / 4, REAL(0.0));
         auto unit = v.GetAsUnitVectorAtPos(pos);
         Real normSq = unit.R() * unit.R() + unit.Phi() * unit.Phi() + unit.Z() * unit.Z();
-        REQUIRE_THAT(normSq, RealWithinAbs(REAL(1.0), REAL(1e-12)));
+        REQUIRE_THAT(normSq, RealWithinAbs(REAL(1.0), TOL(1e-12, 1e-5)));
     }
 
     SECTION("Zero vector returns zero")
@@ -848,9 +848,9 @@ TEST_CASE("Vector3Cylindrical - GetAsUnitVectorAtPos", "[VectorTypes][Vector3Cyl
 
         // At pos phi=0: ê_R=(1,0,0), ê_Phi=(0,1,0), ê_Z=(0,0,1)
         // So components equal Cartesian components
-        REQUIRE_THAT(unit.R(), RealWithinAbs(x / norm, REAL(1e-12)));
-        REQUIRE_THAT(unit.Phi(), RealWithinAbs(y / norm, REAL(1e-12)));
-        REQUIRE_THAT(unit.Z(), RealWithinAbs(z / norm, REAL(1e-12)));
+        REQUIRE_THAT(unit.R(), RealWithinAbs(x / norm, TOL(1e-12, 1e-5)));
+        REQUIRE_THAT(unit.Phi(), RealWithinAbs(y / norm, TOL(1e-12, 1e-5)));
+        REQUIRE_THAT(unit.Z(), RealWithinAbs(z / norm, TOL(1e-12, 1e-5)));
     }
 }
 
@@ -958,13 +958,13 @@ TEST_CASE("Vector4Minkowski - Norm", "[VectorTypes][Vector4Minkowski]")
     SECTION("Norm of timelike vector")
     {
         Vector4Minkowski v{REAL(5.0), REAL(3.0), REAL(0.0), REAL(0.0)};  // interval = 25 - 9 = 16
-        REQUIRE_THAT(v.Norm(), RealWithinRel(REAL(4.0), REAL(1e-10)));  // sqrt(16)
+        REQUIRE_THAT(v.Norm(), RealWithinRel(REAL(4.0), TOL(1e-10, 1e-5)));  // sqrt(16)
     }
 
     SECTION("Norm of spacelike vector is negative")
     {
         Vector4Minkowski v{REAL(3.0), REAL(5.0), REAL(0.0), REAL(0.0)};  // interval = 9 - 25 = -16
-        REQUIRE_THAT(v.Norm(), RealWithinRel(REAL(-4.0), REAL(1e-10)));  // -sqrt(16)
+        REQUIRE_THAT(v.Norm(), RealWithinRel(REAL(-4.0), TOL(1e-10, 1e-5)));  // -sqrt(16)
     }
 
     SECTION("Norm of lightlike vector is zero")

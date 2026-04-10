@@ -43,18 +43,18 @@ namespace MML::Tests::Algorithms::DistributionsTests
 		Statistics::CauchyDistribution dist(REAL(0.0), REAL(1.0));
 		
 		// PDF at mode (x = 0) should be 1/Ï€ â‰ˆ REAL(0.318309886)
-		REQUIRE_THAT(dist.pdf(REAL(0.0)), WithinAbs(REAL(1.0) / Constants::PI, 1e-10));
+		REQUIRE_THAT(dist.pdf(REAL(0.0)), WithinAbs(REAL(1.0) / Constants::PI, TOL(1e-10, 1e-5)));
 		
 		// PDF is symmetric around mode
-		REQUIRE_THAT(dist.pdf(REAL(1.0)), WithinAbs(dist.pdf(-REAL(1.0)), REAL(1e-10)));
-		REQUIRE_THAT(dist.pdf(REAL(2.0)), WithinAbs(dist.pdf(-REAL(2.0)), REAL(1e-10)));
+		REQUIRE_THAT(dist.pdf(REAL(1.0)), WithinAbs(dist.pdf(-REAL(1.0)), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(dist.pdf(REAL(2.0)), WithinAbs(dist.pdf(-REAL(2.0)), TOL(1e-10, 1e-5)));
 		
 		// PDF decreases as we move away from mode
 		REQUIRE(dist.pdf(REAL(0.0)) > dist.pdf(REAL(1.0)));
 		REQUIRE(dist.pdf(REAL(1.0)) > dist.pdf(REAL(2.0)));
 		
 		// PDF at x = Â±1 should be 1/(2Ï€) â‰ˆ REAL(0.159154943)
-		REQUIRE_THAT(dist.pdf(REAL(1.0)), WithinAbs(REAL(1.0) / (REAL(2.0) * Constants::PI), 1e-10));
+		REQUIRE_THAT(dist.pdf(REAL(1.0)), WithinAbs(REAL(1.0) / (REAL(2.0) * Constants::PI), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("CauchyDistribution::CDF_Properties", "[statistics][distributions]")
@@ -63,7 +63,7 @@ namespace MML::Tests::Algorithms::DistributionsTests
 		Statistics::CauchyDistribution dist(REAL(0.0), REAL(1.0));
 		
 		// CDF at mode should be REAL(0.5)
-		REQUIRE_THAT(dist.cdf(REAL(0.0)), WithinAbs(REAL(0.5), REAL(1e-10)));
+		REQUIRE_THAT(dist.cdf(REAL(0.0)), WithinAbs(REAL(0.5), TOL(1e-10, 1e-5)));
 		
 		// CDF is monotonically increasing
 		REQUIRE(dist.cdf(-REAL(2.0)) < dist.cdf(-REAL(1.0)));
@@ -76,7 +76,7 @@ namespace MML::Tests::Algorithms::DistributionsTests
 		REQUIRE(dist.cdf(REAL(100.0)) > REAL(0.99));
 		
 		// CDF is symmetric: CDF(x) + CDF(-x) = 1
-		REQUIRE_THAT(dist.cdf(REAL(1.5)) + dist.cdf(-REAL(1.5)), WithinAbs(REAL(1.0), REAL(1e-10)));
+		REQUIRE_THAT(dist.cdf(REAL(1.5)) + dist.cdf(-REAL(1.5)), WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("CauchyDistribution::InverseCDF", "[statistics][distributions]")
@@ -85,17 +85,17 @@ namespace MML::Tests::Algorithms::DistributionsTests
 		Statistics::CauchyDistribution dist(REAL(0.0), REAL(1.0));
 		
 		// Inverse CDF at REAL(0.5) should be the mode
-		REQUIRE_THAT(dist.inverseCdf(REAL(0.5)), WithinAbs(REAL(0.0), REAL(1e-10)));
+		REQUIRE_THAT(dist.inverseCdf(REAL(0.5)), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
 		
 		// Round-trip: inverseCdf(cdf(x)) â‰ˆ x
 		Real x1 = REAL(2.5);
-		REQUIRE_THAT(dist.inverseCdf(dist.cdf(x1)), WithinAbs(x1, REAL(1e-9)));
+		REQUIRE_THAT(dist.inverseCdf(dist.cdf(x1)), WithinAbs(x1, TOL(1e-9, 1e-4)));
 		
 		// Quartiles
 		Real q1 = dist.inverseCdf(REAL(0.25));
 		Real q3 = dist.inverseCdf(REAL(0.75));
-		REQUIRE_THAT(q1, WithinAbs(-REAL(1.0), REAL(1e-10)));  // First quartile
-		REQUIRE_THAT(q3, WithinAbs(REAL(1.0), REAL(1e-10)));   // Third quartile
+		REQUIRE_THAT(q1, WithinAbs(-REAL(1.0), TOL(1e-10, 1e-5)));  // First quartile
+		REQUIRE_THAT(q3, WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));   // Third quartile
 		
 		// Invalid probabilities should throw
 		REQUIRE_THROWS_AS(dist.inverseCdf(REAL(0.0)), StatisticsError);
@@ -113,12 +113,12 @@ namespace MML::Tests::Algorithms::DistributionsTests
 		// Standard exponential (rate=1)
 		Statistics::ExponentialDistribution standard(REAL(1.0));
 		REQUIRE(standard.lambda == REAL(1.0));
-		REQUIRE_THAT(standard.mean(), WithinAbs(REAL(1.0), REAL(1e-10)));
+		REQUIRE_THAT(standard.mean(), WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
 		
 		// Rate = REAL(0.5) (mean = 2)
 		Statistics::ExponentialDistribution slow(REAL(0.5));
-		REQUIRE_THAT(slow.mean(), WithinAbs(REAL(2.0), REAL(1e-10)));
-		REQUIRE_THAT(slow.variance(), WithinAbs(REAL(4.0), REAL(1e-10)));
+		REQUIRE_THAT(slow.mean(), WithinAbs(REAL(2.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(slow.variance(), WithinAbs(REAL(4.0), TOL(1e-10, 1e-5)));
 		
 		// Invalid rate should throw
 		REQUIRE_THROWS_AS(Statistics::ExponentialDistribution(REAL(0.0)), StatisticsError);
@@ -131,14 +131,14 @@ namespace MML::Tests::Algorithms::DistributionsTests
 		Statistics::ExponentialDistribution dist(REAL(1.0));
 		
 		// PDF at x=0 should be Î»
-		REQUIRE_THAT(dist.pdf(REAL(0.0)), WithinAbs(REAL(1.0), REAL(1e-10)));
+		REQUIRE_THAT(dist.pdf(REAL(0.0)), WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
 		
 		// PDF decreases exponentially
 		REQUIRE(dist.pdf(REAL(0.0)) > dist.pdf(REAL(1.0)));
 		REQUIRE(dist.pdf(REAL(1.0)) > dist.pdf(REAL(2.0)));
 		
 		// PDF at x=1 for Î»=1 should be e^(-1)
-		REQUIRE_THAT(dist.pdf(REAL(1.0)), WithinAbs(std::exp(-REAL(1.0)), 1e-10));
+		REQUIRE_THAT(dist.pdf(REAL(1.0)), WithinAbs(std::exp(-REAL(1.0)), TOL(1e-10, 1e-5)));
 		
 		// Negative x should throw
 		REQUIRE_THROWS_AS(dist.pdf(-REAL(1.0)), StatisticsError);
@@ -150,7 +150,7 @@ namespace MML::Tests::Algorithms::DistributionsTests
 		Statistics::ExponentialDistribution dist(REAL(1.0));
 		
 		// CDF at x=0 should be 0
-		REQUIRE_THAT(dist.cdf(REAL(0.0)), WithinAbs(REAL(0.0), REAL(1e-10)));
+		REQUIRE_THAT(dist.cdf(REAL(0.0)), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
 		
 		// CDF is monotonically increasing
 		REQUIRE(dist.cdf(REAL(0.0)) < dist.cdf(REAL(1.0)));
@@ -158,7 +158,7 @@ namespace MML::Tests::Algorithms::DistributionsTests
 		REQUIRE(dist.cdf(REAL(2.0)) < dist.cdf(REAL(3.0)));
 		
 		// CDF at x=mean should be approximately REAL(0.632)
-		REQUIRE_THAT(dist.cdf(REAL(1.0)), WithinAbs(REAL(1.0) - std::exp(-REAL(1.0)), 1e-10));
+		REQUIRE_THAT(dist.cdf(REAL(1.0)), WithinAbs(REAL(1.0) - std::exp(-REAL(1.0)), TOL(1e-10, 1e-5)));
 		
 		// CDF approaches 1
 		REQUIRE(dist.cdf(REAL(10.0)) > REAL(0.99));
@@ -173,15 +173,15 @@ namespace MML::Tests::Algorithms::DistributionsTests
 		Statistics::ExponentialDistribution dist(REAL(2.0));  // rate=2, mean=REAL(0.5)
 		
 		// Inverse CDF at p=0 should be 0
-		REQUIRE_THAT(dist.inverseCdf(REAL(0.0)), WithinAbs(REAL(0.0), REAL(1e-10)));
+		REQUIRE_THAT(dist.inverseCdf(REAL(0.0)), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
 		
 		// Round-trip: inverseCdf(cdf(x)) â‰ˆ x
 		Real x1 = REAL(1.5);
-		REQUIRE_THAT(dist.inverseCdf(dist.cdf(x1)), WithinAbs(x1, REAL(1e-9)));
+		REQUIRE_THAT(dist.inverseCdf(dist.cdf(x1)), WithinAbs(x1, TOL(1e-9, 1e-4)));
 		
 		// Median (p=REAL(0.5)) should be ln(2)/Î»
 		Real median = dist.inverseCdf(REAL(0.5));
-		REQUIRE_THAT(median, WithinAbs(std::log(REAL(2.0)) / REAL(2.0), 1e-10));
+		REQUIRE_THAT(median, WithinAbs(std::log(REAL(2.0)) / REAL(2.0), TOL(1e-10, 1e-5)));
 		
 		// Invalid probabilities should throw
 		REQUIRE_THROWS_AS(dist.inverseCdf(REAL(1.0)), StatisticsError);
@@ -200,7 +200,7 @@ namespace MML::Tests::Algorithms::DistributionsTests
 		Real conditional = (REAL(1.0) - dist.cdf(s + t)) / (REAL(1.0) - dist.cdf(s));
 		Real marginal = REAL(1.0) - dist.cdf(t);
 		
-		REQUIRE_THAT(conditional, WithinAbs(marginal, REAL(1e-10)));
+		REQUIRE_THAT(conditional, WithinAbs(marginal, TOL(1e-10, 1e-5)));
 	}
 
 	/*********************************************************************/
@@ -213,15 +213,15 @@ namespace MML::Tests::Algorithms::DistributionsTests
 		Statistics::LogisticDistribution standard(REAL(0.0), REAL(1.0));
 		REQUIRE(standard.mu == REAL(0.0));
 		REQUIRE(standard.sigma == REAL(1.0));
-		REQUIRE_THAT(standard.mean(), WithinAbs(REAL(0.0), REAL(1e-10)));
+		REQUIRE_THAT(standard.mean(), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
 		
 		// Custom parameters
 		Statistics::LogisticDistribution custom(REAL(10.0), REAL(2.0));
-		REQUIRE_THAT(custom.mean(), WithinAbs(REAL(10.0), REAL(1e-10)));
+		REQUIRE_THAT(custom.mean(), WithinAbs(REAL(10.0), TOL(1e-10, 1e-5)));
 		
 		// Variance = (Ï€Â·Ïƒ)Â²/3
 		Real expectedVar = (Constants::PI * custom.sigma) * (Constants::PI * custom.sigma) / REAL(3.0);
-		REQUIRE_THAT(custom.variance(), WithinAbs(expectedVar, REAL(1e-10)));
+		REQUIRE_THAT(custom.variance(), WithinAbs(expectedVar, TOL(1e-10, 1e-5)));
 		
 		// Invalid scale should throw
 		REQUIRE_THROWS_AS(Statistics::LogisticDistribution(REAL(0.0), REAL(0.0)), StatisticsError);
@@ -234,11 +234,11 @@ namespace MML::Tests::Algorithms::DistributionsTests
 		Statistics::LogisticDistribution dist(REAL(0.0), REAL(1.0));
 		
 		// PDF is symmetric around mean
-		REQUIRE_THAT(dist.pdf(REAL(1.0)), WithinAbs(dist.pdf(-REAL(1.0)), REAL(1e-10)));
-		REQUIRE_THAT(dist.pdf(REAL(2.0)), WithinAbs(dist.pdf(-REAL(2.0)), REAL(1e-10)));
+		REQUIRE_THAT(dist.pdf(REAL(1.0)), WithinAbs(dist.pdf(-REAL(1.0)), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(dist.pdf(REAL(2.0)), WithinAbs(dist.pdf(-REAL(2.0)), TOL(1e-10, 1e-5)));
 		
 		// PDF at mode (x = Î¼) should be 1/(4Ïƒ) = REAL(0.25)
-		REQUIRE_THAT(dist.pdf(REAL(0.0)), WithinAbs(REAL(0.25), REAL(1e-10)));
+		REQUIRE_THAT(dist.pdf(REAL(0.0)), WithinAbs(REAL(0.25), TOL(1e-10, 1e-5)));
 		
 		// PDF decreases as we move away from mode
 		REQUIRE(dist.pdf(REAL(0.0)) > dist.pdf(REAL(1.0)));
@@ -255,7 +255,7 @@ namespace MML::Tests::Algorithms::DistributionsTests
 		Statistics::LogisticDistribution dist(REAL(0.0), REAL(1.0));
 		
 		// CDF at mean should be REAL(0.5)
-		REQUIRE_THAT(dist.cdf(REAL(0.0)), WithinAbs(REAL(0.5), REAL(1e-10)));
+		REQUIRE_THAT(dist.cdf(REAL(0.0)), WithinAbs(REAL(0.5), TOL(1e-10, 1e-5)));
 		
 		// CDF is monotonically increasing
 		REQUIRE(dist.cdf(-REAL(2.0)) < dist.cdf(-REAL(1.0)));
@@ -264,7 +264,7 @@ namespace MML::Tests::Algorithms::DistributionsTests
 		REQUIRE(dist.cdf(REAL(1.0)) < dist.cdf(REAL(2.0)));
 		
 		// CDF is symmetric: CDF(Î¼ - x) = 1 - CDF(Î¼ + x)
-		REQUIRE_THAT(dist.cdf(-REAL(1.5)), WithinAbs(REAL(1.0) - dist.cdf(REAL(1.5)), 1e-10));
+		REQUIRE_THAT(dist.cdf(-REAL(1.5)), WithinAbs(REAL(1.0) - dist.cdf(REAL(1.5)), TOL(1e-10, 1e-5)));
 		
 		// CDF approaches 0 and 1 at extremes
 		REQUIRE(dist.cdf(-REAL(10.0)) < REAL(0.01));
@@ -277,16 +277,16 @@ namespace MML::Tests::Algorithms::DistributionsTests
 		Statistics::LogisticDistribution dist(REAL(5.0), REAL(2.0));
 		
 		// Inverse CDF at REAL(0.5) should be the mean
-		REQUIRE_THAT(dist.inverseCdf(REAL(0.5)), WithinAbs(REAL(5.0), REAL(1e-10)));
+		REQUIRE_THAT(dist.inverseCdf(REAL(0.5)), WithinAbs(REAL(5.0), TOL(1e-10, 1e-5)));
 		
 		// Round-trip: inverseCdf(cdf(x)) â‰ˆ x
 		Real x1 = REAL(7.3);
-		REQUIRE_THAT(dist.inverseCdf(dist.cdf(x1)), WithinAbs(x1, REAL(1e-9)));
+		REQUIRE_THAT(dist.inverseCdf(dist.cdf(x1)), WithinAbs(x1, TOL(1e-9, 1e-4)));
 		
 		// Symmetry: inverseCdf(p) + inverseCdf(1-p) = 2Î¼
 		Real p = REAL(0.3);
 		REQUIRE_THAT(dist.inverseCdf(p) + dist.inverseCdf(REAL(1.0) - p), 
-		             WithinAbs(REAL(2.0) * dist.mu, 1e-9));
+		             WithinAbs(REAL(2.0) * dist.mu, TOL(1e-9, 1e-4)));
 		
 		// Invalid probabilities should throw
 		REQUIRE_THROWS_AS(dist.inverseCdf(REAL(0.0)), StatisticsError);
@@ -307,8 +307,8 @@ namespace MML::Tests::Algorithms::DistributionsTests
 		REQUIRE(std::isfinite(dist.cdf(REAL(50.0))));
 		
 		// Very small and very large x
-		REQUIRE_THAT(dist.cdf(-REAL(50.0)), WithinAbs(REAL(0.0), REAL(1e-10)));
-		REQUIRE_THAT(dist.cdf(REAL(50.0)), WithinAbs(REAL(1.0), REAL(1e-10)));
+		REQUIRE_THAT(dist.cdf(-REAL(50.0)), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(dist.cdf(REAL(50.0)), WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
 	}
 
 	/*********************************************************************/
@@ -322,8 +322,8 @@ namespace MML::Tests::Algorithms::DistributionsTests
 		Statistics::LogisticDistribution logistic(REAL(0.0), REAL(1.0));
 		
 		// All should have CDF(0) = REAL(0.5)
-		REQUIRE_THAT(cauchy.cdf(REAL(0.0)), WithinAbs(REAL(0.5), REAL(1e-10)));
-		REQUIRE_THAT(logistic.cdf(REAL(0.0)), WithinAbs(REAL(0.5), REAL(1e-10)));
+		REQUIRE_THAT(cauchy.cdf(REAL(0.0)), WithinAbs(REAL(0.5), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(logistic.cdf(REAL(0.0)), WithinAbs(REAL(0.5), TOL(1e-10, 1e-5)));
 		
 		// Cauchy has heavier tails than logistic
 		// At x=3, Cauchy CDF should be closer to REAL(0.5) than logistic
@@ -340,12 +340,12 @@ namespace MML::Tests::Algorithms::DistributionsTests
 		Statistics::ExponentialDistribution exp2(REAL(2.0));
 		
 		// Rate REAL(2.0) should have half the mean of rate REAL(1.0)
-		REQUIRE_THAT(exp2.mean(), WithinAbs(exp1.mean() / REAL(2.0), REAL(1e-10)));
+		REQUIRE_THAT(exp2.mean(), WithinAbs(exp1.mean() / REAL(2.0), TOL(1e-10, 1e-5)));
 		
 		// Median should also scale
 		Real median1 = exp1.inverseCdf(REAL(0.5));
 		Real median2 = exp2.inverseCdf(REAL(0.5));
-		REQUIRE_THAT(median2, WithinAbs(median1 / REAL(2.0), REAL(1e-10)));
+		REQUIRE_THAT(median2, WithinAbs(median1 / REAL(2.0), TOL(1e-10, 1e-5)));
 	}
 
 
@@ -357,9 +357,9 @@ namespace MML::Tests::Algorithms::DistributionsTests
 		TEST_PRECISION_INFO();
 		Statistics::NormalDistribution norm;  // Standard normal
 		
-		REQUIRE_THAT(norm.mean(), WithinAbs(REAL(0.0), REAL(1e-10)));
-		REQUIRE_THAT(norm.stddev(), WithinAbs(REAL(1.0), REAL(1e-10)));
-		REQUIRE_THAT(norm.variance(), WithinAbs(REAL(1.0), REAL(1e-10)));
+		REQUIRE_THAT(norm.mean(), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(norm.stddev(), WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(norm.variance(), WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("Statistics::NormalDistribution_CustomParameters", "[statistics][distribution]")
@@ -367,9 +367,9 @@ namespace MML::Tests::Algorithms::DistributionsTests
 		TEST_PRECISION_INFO();
 		Statistics::NormalDistribution norm(100.0, 15.0);  // IQ distribution
 		
-		REQUIRE_THAT(norm.mean(), WithinAbs(REAL(100.0), REAL(1e-10)));
-		REQUIRE_THAT(norm.stddev(), WithinAbs(REAL(15.0), REAL(1e-10)));
-		REQUIRE_THAT(norm.variance(), WithinAbs(REAL(225.0), REAL(1e-10)));
+		REQUIRE_THAT(norm.mean(), WithinAbs(REAL(100.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(norm.stddev(), WithinAbs(REAL(15.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(norm.variance(), WithinAbs(REAL(225.0), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("Statistics::NormalDistribution_InvalidStddev_ThrowsException", "[statistics][distribution][error]")
@@ -386,7 +386,7 @@ namespace MML::Tests::Algorithms::DistributionsTests
 		
 		// PDF at mean should be 1/sqrt(2*pi) â‰ˆ 0.3989
 		Real expected = 1.0 / std::sqrt(2.0 * Constants::PI);
-		REQUIRE_THAT(norm.pdf(0.0), WithinAbs(expected, REAL(1e-10)));
+		REQUIRE_THAT(norm.pdf(0.0), WithinAbs(expected, TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("Statistics::NormalDistribution_PDF_Symmetric", "[statistics][distribution]")
@@ -395,8 +395,8 @@ namespace MML::Tests::Algorithms::DistributionsTests
 		Statistics::NormalDistribution norm(5.0, 2.0);
 		
 		// PDF should be symmetric around mean
-		REQUIRE_THAT(norm.pdf(3.0), WithinAbs(norm.pdf(7.0), REAL(1e-10)));  // Â±2 from mean
-		REQUIRE_THAT(norm.pdf(1.0), WithinAbs(norm.pdf(9.0), REAL(1e-10)));  // Â±4 from mean
+		REQUIRE_THAT(norm.pdf(3.0), WithinAbs(norm.pdf(7.0), TOL(1e-10, 1e-5)));  // Â±2 from mean
+		REQUIRE_THAT(norm.pdf(1.0), WithinAbs(norm.pdf(9.0), TOL(1e-10, 1e-5)));  // Â±4 from mean
 	}
 
 	TEST_CASE("Statistics::NormalDistribution_PDF_DecreaseFromMean", "[statistics][distribution]")
@@ -416,7 +416,7 @@ namespace MML::Tests::Algorithms::DistributionsTests
 		Statistics::NormalDistribution norm(0.0, 1.0);
 		
 		// CDF at mean should be 0.5
-		REQUIRE_THAT(norm.cdf(0.0), WithinAbs(REAL(0.5), REAL(1e-10)));
+		REQUIRE_THAT(norm.cdf(0.0), WithinAbs(REAL(0.5), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("Statistics::NormalDistribution_CDF_KnownValues", "[statistics][distribution]")
@@ -500,10 +500,10 @@ namespace MML::Tests::Algorithms::DistributionsTests
 		Statistics::NormalDistribution norm(100.0, 15.0);
 		
 		// z = (x - mu) / sigma
-		REQUIRE_THAT(norm.zScore(100.0), WithinAbs(REAL(0.0), REAL(1e-10)));
-		REQUIRE_THAT(norm.zScore(115.0), WithinAbs(REAL(1.0), REAL(1e-10)));
-		REQUIRE_THAT(norm.zScore(85.0), WithinAbs(REAL(-1.0), REAL(1e-10)));
-		REQUIRE_THAT(norm.zScore(130.0), WithinAbs(REAL(2.0), REAL(1e-10)));
+		REQUIRE_THAT(norm.zScore(100.0), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(norm.zScore(115.0), WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(norm.zScore(85.0), WithinAbs(REAL(-1.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(norm.zScore(130.0), WithinAbs(REAL(2.0), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("Statistics::NormalDistribution_FromZScore", "[statistics][distribution]")
@@ -511,9 +511,9 @@ namespace MML::Tests::Algorithms::DistributionsTests
 		TEST_PRECISION_INFO();
 		Statistics::NormalDistribution norm(100.0, 15.0);
 		
-		REQUIRE_THAT(norm.fromZScore(0.0), WithinAbs(REAL(100.0), REAL(1e-10)));
-		REQUIRE_THAT(norm.fromZScore(1.0), WithinAbs(REAL(115.0), REAL(1e-10)));
-		REQUIRE_THAT(norm.fromZScore(-2.0), WithinAbs(REAL(70.0), REAL(1e-10)));
+		REQUIRE_THAT(norm.fromZScore(0.0), WithinAbs(REAL(100.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(norm.fromZScore(1.0), WithinAbs(REAL(115.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(norm.fromZScore(-2.0), WithinAbs(REAL(70.0), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("Statistics::NormalDistribution_ZScoreRoundTrip", "[statistics][distribution]")
@@ -524,7 +524,7 @@ namespace MML::Tests::Algorithms::DistributionsTests
 		Real x = 67.5;
 		Real z = norm.zScore(x);
 		Real xBack = norm.fromZScore(z);
-		REQUIRE_THAT(xBack, WithinAbs(x, REAL(1e-10)));
+		REQUIRE_THAT(xBack, WithinAbs(x, TOL(1e-10, 1e-5)));
 	}
 
 	/*********************************************************************/
@@ -535,14 +535,14 @@ namespace MML::Tests::Algorithms::DistributionsTests
 		TEST_PRECISION_INFO();
 		
 		Real expected = 1.0 / std::sqrt(2.0 * Constants::PI);
-		REQUIRE_THAT(Statistics::StandardNormal::pdf(0.0), WithinAbs(expected, REAL(1e-10)));
+		REQUIRE_THAT(Statistics::StandardNormal::pdf(0.0), WithinAbs(expected, TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("Statistics::StandardNormal_CDF", "[statistics][distribution]")
 	{
 		TEST_PRECISION_INFO();
 		
-		REQUIRE_THAT(Statistics::StandardNormal::cdf(0.0), WithinAbs(REAL(0.5), REAL(1e-10)));
+		REQUIRE_THAT(Statistics::StandardNormal::cdf(0.0), WithinAbs(REAL(0.5), TOL(1e-10, 1e-5)));
 		REQUIRE_THAT(Statistics::StandardNormal::cdf(1.96), WithinAbs(REAL(0.975), REAL(1e-3)));
 	}
 
@@ -559,7 +559,7 @@ namespace MML::Tests::Algorithms::DistributionsTests
 		TEST_PRECISION_INFO();
 		
 		// sf(z) = 1 - cdf(z) = P(Z > z)
-		REQUIRE_THAT(Statistics::StandardNormal::sf(0.0), WithinAbs(REAL(0.5), REAL(1e-10)));
+		REQUIRE_THAT(Statistics::StandardNormal::sf(0.0), WithinAbs(REAL(0.5), TOL(1e-10, 1e-5)));
 		REQUIRE_THAT(Statistics::StandardNormal::sf(1.96), WithinAbs(REAL(0.025), REAL(1e-3)));
 	}
 
@@ -568,13 +568,13 @@ namespace MML::Tests::Algorithms::DistributionsTests
 		TEST_PRECISION_INFO();
 		
 		// Two-tailed p-value: P(|Z| > |z|) = 2 * P(Z > |z|)
-		REQUIRE_THAT(Statistics::StandardNormal::twoTailedPValue(0.0), WithinAbs(REAL(1.0), REAL(1e-10)));
+		REQUIRE_THAT(Statistics::StandardNormal::twoTailedPValue(0.0), WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
 		REQUIRE_THAT(Statistics::StandardNormal::twoTailedPValue(1.96), WithinAbs(REAL(0.05), REAL(1e-3)));
 		REQUIRE_THAT(Statistics::StandardNormal::twoTailedPValue(2.576), WithinAbs(REAL(0.01), REAL(1e-3)));
 		
 		// Symmetric: p-value for -z equals p-value for z
 		REQUIRE_THAT(Statistics::StandardNormal::twoTailedPValue(-1.96), 
-		             WithinAbs(Statistics::StandardNormal::twoTailedPValue(1.96), REAL(1e-10)));
+		             WithinAbs(Statistics::StandardNormal::twoTailedPValue(1.96), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("Statistics::StandardNormal_ConsistentWithNormalDistribution", "[statistics][distribution]")
@@ -583,8 +583,8 @@ namespace MML::Tests::Algorithms::DistributionsTests
 		Statistics::NormalDistribution standard(0.0, 1.0);
 		
 		// StandardNormal should match NormalDistribution(0, 1)
-		REQUIRE_THAT(Statistics::StandardNormal::pdf(1.5), WithinAbs(standard.pdf(1.5), REAL(1e-10)));
-		REQUIRE_THAT(Statistics::StandardNormal::cdf(1.5), WithinAbs(standard.cdf(1.5), REAL(1e-10)));
+		REQUIRE_THAT(Statistics::StandardNormal::pdf(1.5), WithinAbs(standard.pdf(1.5), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(Statistics::StandardNormal::cdf(1.5), WithinAbs(standard.cdf(1.5), TOL(1e-10, 1e-5)));
 	}
 
 	/*********************************************************************/
@@ -612,8 +612,8 @@ namespace MML::Tests::Algorithms::DistributionsTests
 		Statistics::TDistribution t(5);
 		
 		// PDF should be symmetric around 0
-		REQUIRE_THAT(t.pdf(1.0), WithinAbs(t.pdf(-1.0), REAL(1e-10)));
-		REQUIRE_THAT(t.pdf(2.5), WithinAbs(t.pdf(-2.5), REAL(1e-10)));
+		REQUIRE_THAT(t.pdf(1.0), WithinAbs(t.pdf(-1.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(t.pdf(2.5), WithinAbs(t.pdf(-2.5), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("Statistics::TDistribution_PDF_DecreaseFromCenter", "[statistics][distribution]")
@@ -656,7 +656,7 @@ namespace MML::Tests::Algorithms::DistributionsTests
 		Statistics::TDistribution t(10);
 		
 		// CDF at 0 should be 0.5 (symmetric distribution)
-		REQUIRE_THAT(t.cdf(0.0), WithinAbs(REAL(0.5), REAL(1e-10)));
+		REQUIRE_THAT(t.cdf(0.0), WithinAbs(REAL(0.5), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("Statistics::TDistribution_CDF_MonotonicallyIncreasing", "[statistics][distribution]")
@@ -692,7 +692,7 @@ namespace MML::Tests::Algorithms::DistributionsTests
 		
 		// df=1 is Cauchy distribution centered at 0
 		// CDF(0) = 0.5, CDF(1) = 0.5 + arctan(1)/Ï€ â‰ˆ 0.75
-		REQUIRE_THAT(t.cdf(0.0), WithinAbs(REAL(0.5), REAL(1e-10)));
+		REQUIRE_THAT(t.cdf(0.0), WithinAbs(REAL(0.5), TOL(1e-10, 1e-5)));
 		REQUIRE_THAT(t.cdf(1.0), WithinAbs(REAL(0.75), REAL(1e-3)));
 	}
 
@@ -702,7 +702,7 @@ namespace MML::Tests::Algorithms::DistributionsTests
 		Statistics::TDistribution t(15);
 		
 		// inverseCDF(0.5) should be 0
-		REQUIRE_THAT(t.inverseCdf(0.5), WithinAbs(REAL(0.0), REAL(1e-10)));
+		REQUIRE_THAT(t.inverseCdf(0.5), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("Statistics::TDistribution_InverseCDF_KnownValues", "[statistics][distribution]")
@@ -748,11 +748,11 @@ namespace MML::Tests::Algorithms::DistributionsTests
 		Statistics::TDistribution t(12);
 		
 		// sf(x) = 1 - cdf(x) = P(T > x)
-		REQUIRE_THAT(t.sf(0.0), WithinAbs(REAL(0.5), REAL(1e-10)));
+		REQUIRE_THAT(t.sf(0.0), WithinAbs(REAL(0.5), TOL(1e-10, 1e-5)));
 		
 		Real cdfVal = t.cdf(1.5);
 		Real sfVal = t.sf(1.5);
-		REQUIRE_THAT(cdfVal + sfVal, WithinAbs(REAL(1.0), REAL(1e-10)));
+		REQUIRE_THAT(cdfVal + sfVal, WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("Statistics::TDistribution_TwoTailedPValue", "[statistics][distribution]")
@@ -765,7 +765,7 @@ namespace MML::Tests::Algorithms::DistributionsTests
 		REQUIRE_THAT(t.twoTailedPValue(2.228), WithinAbs(REAL(0.05), REAL(1e-2)));
 		
 		// Symmetric
-		REQUIRE_THAT(t.twoTailedPValue(-2.228), WithinAbs(t.twoTailedPValue(2.228), REAL(1e-10)));
+		REQUIRE_THAT(t.twoTailedPValue(-2.228), WithinAbs(t.twoTailedPValue(2.228), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("Statistics::TDistribution_CriticalValue", "[statistics][distribution]")
@@ -797,7 +797,7 @@ namespace MML::Tests::Algorithms::DistributionsTests
 		Statistics::TDistribution t(5);
 		
 		// Mean = 0 for df >= 2
-		REQUIRE_THAT(t.mean(), WithinAbs(REAL(0.0), REAL(1e-10)));
+		REQUIRE_THAT(t.mean(), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("Statistics::TDistribution_Mean_DoesNotExist_DF1", "[statistics][distribution][error]")
@@ -815,7 +815,7 @@ namespace MML::Tests::Algorithms::DistributionsTests
 		Statistics::TDistribution t(10);
 		
 		// Var = Î½/(Î½-2) = 10/8 = 1.25 for df=10
-		REQUIRE_THAT(t.variance(), WithinAbs(REAL(1.25), REAL(1e-10)));
+		REQUIRE_THAT(t.variance(), WithinAbs(REAL(1.25), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("Statistics::TDistribution_Variance_HighDF_ApproachesOne", "[statistics][distribution]")
@@ -868,15 +868,15 @@ namespace MML::Tests::Algorithms::DistributionsTests
 		Statistics::GammaDistribution gamma(2.0, 1.0);
 		
 		// Mean = shape * scale = 2
-		REQUIRE_THAT(gamma.mean(), WithinAbs(REAL(2.0), REAL(1e-10)));
+		REQUIRE_THAT(gamma.mean(), WithinAbs(REAL(2.0), TOL(1e-10, 1e-5)));
 		// Variance = shape * scale^2 = 2
-		REQUIRE_THAT(gamma.variance(), WithinAbs(REAL(2.0), REAL(1e-10)));
+		REQUIRE_THAT(gamma.variance(), WithinAbs(REAL(2.0), TOL(1e-10, 1e-5)));
 		
 		// PDF at x=1: f(1) = 1 * e^(-1) = 0.3679
 		REQUIRE_THAT(gamma.pdf(1.0), WithinAbs(REAL(0.3678794), REAL(1e-5)));
 		
 		// CDF properties
-		REQUIRE_THAT(gamma.cdf(0.0), WithinAbs(REAL(0.0), REAL(1e-10)));
+		REQUIRE_THAT(gamma.cdf(0.0), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
 		REQUIRE(gamma.cdf(10.0) > 0.99);
 	}
 
@@ -888,11 +888,11 @@ namespace MML::Tests::Algorithms::DistributionsTests
 		Statistics::BetaDistribution beta(2.0, 5.0);
 		
 		// Mean = α/(α+β) = 2/7
-		REQUIRE_THAT(beta.mean(), WithinAbs(REAL(2.0/7.0), REAL(1e-10)));
+		REQUIRE_THAT(beta.mean(), WithinAbs(REAL(2.0/7.0), TOL(1e-10, 1e-5)));
 		
 		// CDF boundaries
-		REQUIRE_THAT(beta.cdf(0.0), WithinAbs(REAL(0.0), REAL(1e-10)));
-		REQUIRE_THAT(beta.cdf(1.0), WithinAbs(REAL(1.0), REAL(1e-10)));
+		REQUIRE_THAT(beta.cdf(0.0), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(beta.cdf(1.0), WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
 		
 		// PDF integrates to 1 (spot check)
 		REQUIRE(beta.pdf(0.3) > 0.0);
@@ -904,17 +904,17 @@ namespace MML::Tests::Algorithms::DistributionsTests
 		
 		// Weibull(1, 1) = Exponential(1)
 		Statistics::WeibullDistribution weibull1(1.0, 1.0);
-		REQUIRE_THAT(weibull1.mean(), WithinAbs(REAL(1.0), REAL(1e-10)));
+		REQUIRE_THAT(weibull1.mean(), WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
 		
 		// Weibull(2, 1) - Rayleigh distribution
 		Statistics::WeibullDistribution weibull2(2.0, 1.0);
 		
 		// CDF has closed form: 1 - exp(-(x/λ)^k)
-		REQUIRE_THAT(weibull2.cdf(1.0), WithinAbs(REAL(1.0 - std::exp(-1.0)), REAL(1e-10)));
+		REQUIRE_THAT(weibull2.cdf(1.0), WithinAbs(REAL(1.0 - std::exp(-1.0)), TOL(1e-10, 1e-5)));
 		
 		// Inverse CDF round-trip
 		Real q = weibull2.inverseCdf(0.5);
-		REQUIRE_THAT(weibull2.cdf(q), WithinAbs(REAL(0.5), REAL(1e-8)));
+		REQUIRE_THAT(weibull2.cdf(q), WithinAbs(REAL(0.5), TOL(1e-8, 1e-4)));
 	}
 
 	TEST_CASE("ParetoDistribution_BasicProperties", "[statistics][distributions]")
@@ -925,13 +925,13 @@ namespace MML::Tests::Algorithms::DistributionsTests
 		Statistics::ParetoDistribution pareto(3.0, 1.0);
 		
 		// Mean = α*xm/(α-1) = 3*1/2 = 1.5
-		REQUIRE_THAT(pareto.mean(), WithinAbs(REAL(1.5), REAL(1e-10)));
+		REQUIRE_THAT(pareto.mean(), WithinAbs(REAL(1.5), TOL(1e-10, 1e-5)));
 		
 		// CDF at x=1 is 0
-		REQUIRE_THAT(pareto.cdf(1.0), WithinAbs(REAL(0.0), REAL(1e-10)));
+		REQUIRE_THAT(pareto.cdf(1.0), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
 		
 		// CDF at x=2: 1 - (1/2)^3 = 0.875
-		REQUIRE_THAT(pareto.cdf(2.0), WithinAbs(REAL(0.875), REAL(1e-10)));
+		REQUIRE_THAT(pareto.cdf(2.0), WithinAbs(REAL(0.875), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("LogNormalDistribution_BasicProperties", "[statistics][distributions]")
@@ -942,13 +942,13 @@ namespace MML::Tests::Algorithms::DistributionsTests
 		Statistics::LogNormalDistribution lognorm(0.0, 1.0);
 		
 		// Median = exp(μ) = 1
-		REQUIRE_THAT(lognorm.median(), WithinAbs(REAL(1.0), REAL(1e-10)));
+		REQUIRE_THAT(lognorm.median(), WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
 		
 		// Mean = exp(μ + σ²/2) = exp(0.5)
-		REQUIRE_THAT(lognorm.mean(), WithinAbs(std::exp(0.5), REAL(1e-10)));
+		REQUIRE_THAT(lognorm.mean(), WithinAbs(std::exp(0.5), TOL(1e-10, 1e-5)));
 		
 		// CDF at median is 0.5
-		REQUIRE_THAT(lognorm.cdf(1.0), WithinAbs(REAL(0.5), REAL(1e-10)));
+		REQUIRE_THAT(lognorm.cdf(1.0), WithinAbs(REAL(0.5), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("UniformDistribution_BasicProperties", "[statistics][distributions]")
@@ -959,16 +959,16 @@ namespace MML::Tests::Algorithms::DistributionsTests
 		Statistics::UniformDistribution uniform(0.0, 10.0);
 		
 		// Mean = (a+b)/2 = 5
-		REQUIRE_THAT(uniform.mean(), WithinAbs(REAL(5.0), REAL(1e-10)));
+		REQUIRE_THAT(uniform.mean(), WithinAbs(REAL(5.0), TOL(1e-10, 1e-5)));
 		
 		// Variance = (b-a)^2/12 = 100/12
-		REQUIRE_THAT(uniform.variance(), WithinAbs(REAL(100.0/12.0), REAL(1e-10)));
+		REQUIRE_THAT(uniform.variance(), WithinAbs(REAL(100.0/12.0), TOL(1e-10, 1e-5)));
 		
 		// PDF = 1/(b-a) = 0.1
-		REQUIRE_THAT(uniform.pdf(5.0), WithinAbs(REAL(0.1), REAL(1e-10)));
+		REQUIRE_THAT(uniform.pdf(5.0), WithinAbs(REAL(0.1), TOL(1e-10, 1e-5)));
 		
 		// CDF at midpoint is 0.5
-		REQUIRE_THAT(uniform.cdf(5.0), WithinAbs(REAL(0.5), REAL(1e-10)));
+		REQUIRE_THAT(uniform.cdf(5.0), WithinAbs(REAL(0.5), TOL(1e-10, 1e-5)));
 	}
 
 }

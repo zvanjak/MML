@@ -83,7 +83,13 @@ namespace MML {
 		/// @param pnt Point to test
 		/// @return true if distance from center ≤ radius
 
-		bool Contains(const Pnt3Cart& pnt) const { return _center.Dist(pnt) <= _radius; }
+		bool Contains(const Pnt3Cart& pnt) const { 
+			// Tolerance accounts for ULP-level differences from different computation
+			// paths reaching the same theoretical distance (e.g., sqrt(27) vs 3*sqrt(3))
+			Real dist = _center.Dist(pnt);
+			Real tol = std::sqrt(Constants::Eps) * std::max(_radius, Real(1));
+			return dist <= _radius + tol;
+		}
 
 		/// @brief Test intersection with another bounding sphere.
 		/// @param other The other sphere

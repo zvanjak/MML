@@ -191,7 +191,8 @@ TEST_CASE("Cube3D::GetBoundingSphere", "[geometry][cube][bounding]")
         Real dist_sq = 3.0*3.0 + 3.0*3.0 + 3.0*3.0;  // = 27
         Real dist = std::sqrt(dist_sq);  // = 3√3 ≈ 5.196
         
-        REQUIRE(dist <= bsphere.Radius());
+        // Different computation paths for sqrt(27) may differ by ULPs
+        REQUIRE_THAT(dist, RealApprox(bsphere.Radius()));
         REQUIRE(bsphere.Contains(corner));
     }
 }

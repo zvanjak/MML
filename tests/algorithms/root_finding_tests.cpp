@@ -31,8 +31,8 @@ namespace MML::Tests::Algorithms::RootFindingTests
 		// Roots can be in any order, sort them
 		std::vector<Real> roots = {x1.real(), x2.real()};
 		std::sort(roots.begin(), roots.end());
-		REQUIRE_THAT(roots[0], WithinAbs(REAL(2.0), REAL(1e-10)));
-		REQUIRE_THAT(roots[1], WithinAbs(REAL(3.0), REAL(1e-10)));
+		REQUIRE_THAT(roots[0], WithinAbs(REAL(2.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(roots[1], WithinAbs(REAL(3.0), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("RootFinding::Quadratic_one_real_root", "[polynomial]")
@@ -44,8 +44,8 @@ namespace MML::Tests::Algorithms::RootFindingTests
 		int num_roots = MML::SolveQuadratic(REAL(1.0), -REAL(4.0), REAL(4.0), x1, x2);
 
 		REQUIRE(num_roots == 2);  // Double root counted as 2
-		REQUIRE_THAT(x1.real(), WithinAbs(REAL(2.0), REAL(1e-10)));
-		REQUIRE_THAT(x2.real(), WithinAbs(REAL(2.0), REAL(1e-10)));
+		REQUIRE_THAT(x1.real(), WithinAbs(REAL(2.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(x2.real(), WithinAbs(REAL(2.0), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("RootFinding::Quadratic_no_real_roots", "[polynomial]")
@@ -65,10 +65,10 @@ namespace MML::Tests::Algorithms::RootFindingTests
 		Complex x1, x2;
 		MML::SolveQuadratic(Complex(REAL(1.0)), Complex(REAL(0.0)), Complex(REAL(1.0)), x1, x2);
 
-		REQUIRE_THAT(x1.real(), WithinAbs(REAL(0.0), REAL(1e-10)));
-		REQUIRE_THAT(std::abs(x1.imag()), WithinAbs(REAL(1.0), REAL(1e-10)));
-		REQUIRE_THAT(x2.real(), WithinAbs(REAL(0.0), REAL(1e-10)));
-		REQUIRE_THAT(std::abs(x2.imag()), WithinAbs(REAL(1.0), REAL(1e-10)));
+		REQUIRE_THAT(x1.real(), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(std::abs(x1.imag()), WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(x2.real(), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(std::abs(x2.imag()), WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("RootFinding::Cubic_three_real_roots", "[polynomial]")
@@ -84,9 +84,9 @@ namespace MML::Tests::Algorithms::RootFindingTests
 		std::vector<Real> roots = {x1.real(), x2.real(), x3.real()};
 		std::sort(roots.begin(), roots.end());
 		
-		REQUIRE_THAT(roots[0], WithinAbs(REAL(1.0), REAL(1e-8)));
-		REQUIRE_THAT(roots[1], WithinAbs(REAL(2.0), REAL(1e-8)));
-		REQUIRE_THAT(roots[2], WithinAbs(REAL(3.0), REAL(1e-8)));
+		REQUIRE_THAT(roots[0], WithinAbs(REAL(1.0), TOL(1e-8, 1e-4)));
+		REQUIRE_THAT(roots[1], WithinAbs(REAL(2.0), TOL(1e-8, 1e-4)));
+		REQUIRE_THAT(roots[2], WithinAbs(REAL(3.0), TOL(1e-8, 1e-4)));
 	}
 
 	TEST_CASE("RootFinding::Cubic_one_real_root", "[polynomial]")
@@ -97,7 +97,7 @@ namespace MML::Tests::Algorithms::RootFindingTests
 		int num_roots = MML::SolveCubic(REAL(1.0), REAL(0.0), REAL(0.0), -REAL(1.0), x1, x2, x3);
 
 		REQUIRE(num_roots == 1);
-		REQUIRE_THAT(x1.real(), WithinAbs(REAL(1.0), REAL(1e-10)));
+		REQUIRE_THAT(x1.real(), WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("RootFinding::Cubic_triple_root", "[polynomial]")
@@ -109,11 +109,11 @@ namespace MML::Tests::Algorithms::RootFindingTests
 		int num_roots = MML::SolveCubic(REAL(1.0), REAL(0.0), REAL(0.0), REAL(0.0), x1, x2, x3);
 
 		REQUIRE(num_roots >= 1);  // At least one root at x=0
-		REQUIRE_THAT(x1.real(), WithinAbs(REAL(0.0), REAL(1e-10)));
+		REQUIRE_THAT(x1.real(), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
 		if (num_roots >= 2)
-			REQUIRE_THAT(x2.real(), WithinAbs(REAL(0.0), REAL(1e-10)));
+			REQUIRE_THAT(x2.real(), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
 		if (num_roots == 3)
-			REQUIRE_THAT(x3.real(), WithinAbs(REAL(0.0), REAL(1e-10)));
+			REQUIRE_THAT(x3.real(), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("RootFinding::Quartic_four_real_roots", "[polynomial][quartic]")
@@ -124,19 +124,19 @@ namespace MML::Tests::Algorithms::RootFindingTests
 		MML::SolveQuartic(REAL(1.0), REAL(0.0), -REAL(5.0), REAL(0.0), REAL(4.0), x1, x2, x3, x4);
 
 		// Check all roots are real
-		REQUIRE_THAT(x1.imag(), WithinAbs(REAL(0.0), REAL(1e-8)));
-		REQUIRE_THAT(x2.imag(), WithinAbs(REAL(0.0), REAL(1e-8)));
-		REQUIRE_THAT(x3.imag(), WithinAbs(REAL(0.0), REAL(1e-8)));
-		REQUIRE_THAT(x4.imag(), WithinAbs(REAL(0.0), REAL(1e-8)));
+		REQUIRE_THAT(x1.imag(), WithinAbs(REAL(0.0), TOL(1e-8, 1e-4)));
+		REQUIRE_THAT(x2.imag(), WithinAbs(REAL(0.0), TOL(1e-8, 1e-4)));
+		REQUIRE_THAT(x3.imag(), WithinAbs(REAL(0.0), TOL(1e-8, 1e-4)));
+		REQUIRE_THAT(x4.imag(), WithinAbs(REAL(0.0), TOL(1e-8, 1e-4)));
 
 		// Collect and sort real parts
 		std::vector<Real> roots = {x1.real(), x2.real(), x3.real(), x4.real()};
 		std::sort(roots.begin(), roots.end());
 
-		REQUIRE_THAT(roots[0], WithinAbs(-REAL(2.0), REAL(1e-8)));
-		REQUIRE_THAT(roots[1], WithinAbs(-REAL(1.0), REAL(1e-8)));
-		REQUIRE_THAT(roots[2], WithinAbs(REAL(1.0), REAL(1e-8)));
-		REQUIRE_THAT(roots[3], WithinAbs(REAL(2.0), REAL(1e-8)));
+		REQUIRE_THAT(roots[0], WithinAbs(-REAL(2.0), TOL(1e-8, 1e-4)));
+		REQUIRE_THAT(roots[1], WithinAbs(-REAL(1.0), TOL(1e-8, 1e-4)));
+		REQUIRE_THAT(roots[2], WithinAbs(REAL(1.0), TOL(1e-8, 1e-4)));
+		REQUIRE_THAT(roots[3], WithinAbs(REAL(2.0), TOL(1e-8, 1e-4)));
 	}
 
 	TEST_CASE("RootFinding::Quartic_biquadratic", "[polynomial][quartic]")
@@ -152,13 +152,13 @@ namespace MML::Tests::Algorithms::RootFindingTests
 		int complex_count = 0;
 
 		for (const auto& root : roots) {
-			if (std::abs(root.imag()) < 1e-8) {
+			if (std::abs(root.imag()) < TOL(1e-8, 1e-4)) {
 				real_count++;
-				REQUIRE((std::abs(root.real() - REAL(1.0)) < 1e-8 || std::abs(root.real() + REAL(1.0)) < 1e-8));
+				REQUIRE((std::abs(root.real() - REAL(1.0)) < TOL(1e-8, 1e-4) || std::abs(root.real() + REAL(1.0)) < TOL(1e-8, 1e-4)));
 			} else {
 				complex_count++;
-				REQUIRE_THAT(root.real(), WithinAbs(REAL(0.0), REAL(1e-8)));
-				REQUIRE_THAT(std::abs(root.imag()), WithinAbs(REAL(1.0), REAL(1e-8)));
+				REQUIRE_THAT(root.real(), WithinAbs(REAL(0.0), TOL(1e-8, 1e-4)));
+				REQUIRE_THAT(std::abs(root.imag()), WithinAbs(REAL(1.0), TOL(1e-8, 1e-4)));
 			}
 		}
 
@@ -174,22 +174,22 @@ namespace MML::Tests::Algorithms::RootFindingTests
 		MML::SolveQuartic(REAL(0.0), REAL(1.0), -REAL(6.0), REAL(11.0), -REAL(6.0), x1, x2, x3, x4);
 
 		// Should have 3 real roots (x1, x2, x3) and one zero (x4)
-		REQUIRE_THAT(x4.real(), WithinAbs(REAL(0.0), REAL(1e-8)));
-		REQUIRE_THAT(x4.imag(), WithinAbs(REAL(0.0), REAL(1e-8)));
+		REQUIRE_THAT(x4.real(), WithinAbs(REAL(0.0), TOL(1e-8, 1e-4)));
+		REQUIRE_THAT(x4.imag(), WithinAbs(REAL(0.0), TOL(1e-8, 1e-4)));
 
 		// Check the three non-zero roots
 		std::vector<Real> non_zero_roots;
 		for (auto root : {x1, x2, x3}) {
-			if (std::abs(root.imag()) < 1e-8 && std::abs(root.real()) > 1e-8) {
+			if (std::abs(root.imag()) < TOL(1e-8, 1e-4) && std::abs(root.real()) > TOL(1e-8, 1e-4)) {
 				non_zero_roots.push_back(root.real());
 			}
 		}
 
 		std::sort(non_zero_roots.begin(), non_zero_roots.end());
 		REQUIRE(non_zero_roots.size() == 3);
-		REQUIRE_THAT(non_zero_roots[0], WithinAbs(REAL(1.0), REAL(1e-8)));
-		REQUIRE_THAT(non_zero_roots[1], WithinAbs(REAL(2.0), REAL(1e-8)));
-		REQUIRE_THAT(non_zero_roots[2], WithinAbs(REAL(3.0), REAL(1e-8)));
+		REQUIRE_THAT(non_zero_roots[0], WithinAbs(REAL(1.0), TOL(1e-8, 1e-4)));
+		REQUIRE_THAT(non_zero_roots[1], WithinAbs(REAL(2.0), TOL(1e-8, 1e-4)));
+		REQUIRE_THAT(non_zero_roots[2], WithinAbs(REAL(3.0), TOL(1e-8, 1e-4)));
 	}
 
 	TEST_CASE("RootFinding::Quartic_general_case", "[polynomial][quartic]")
@@ -200,10 +200,10 @@ namespace MML::Tests::Algorithms::RootFindingTests
 		MML::SolveQuartic(REAL(1.0), REAL(1.0), -REAL(7.0), -REAL(1.0), REAL(6.0), x1, x2, x3, x4);
 
 		// All roots should be real
-		REQUIRE_THAT(x1.imag(), WithinAbs(REAL(0.0), REAL(1e-8)));
-		REQUIRE_THAT(x2.imag(), WithinAbs(REAL(0.0), REAL(1e-8)));
-		REQUIRE_THAT(x3.imag(), WithinAbs(REAL(0.0), REAL(1e-8)));
-		REQUIRE_THAT(x4.imag(), WithinAbs(REAL(0.0), REAL(1e-8)));
+		REQUIRE_THAT(x1.imag(), WithinAbs(REAL(0.0), TOL(1e-8, 1e-4)));
+		REQUIRE_THAT(x2.imag(), WithinAbs(REAL(0.0), TOL(1e-8, 1e-4)));
+		REQUIRE_THAT(x3.imag(), WithinAbs(REAL(0.0), TOL(1e-8, 1e-4)));
+		REQUIRE_THAT(x4.imag(), WithinAbs(REAL(0.0), TOL(1e-8, 1e-4)));
 
 		std::vector<Real> roots = {x1.real(), x2.real(), x3.real(), x4.real()};
 		std::sort(roots.begin(), roots.end());
@@ -237,7 +237,7 @@ namespace MML::Tests::Algorithms::RootFindingTests
 
 		std::vector<Real> roots;
 		for (auto root : {x1, x2, x3, x4}) {
-			if (std::abs(root.imag()) < 1e-8) {
+			if (std::abs(root.imag()) < TOL(1e-8, 1e-4)) {
 				roots.push_back(root.real());
 			}
 		}
@@ -287,7 +287,7 @@ namespace MML::Tests::Algorithms::RootFindingTests
 
 		std::vector<Real> roots;
 		for (auto root : {x1, x2, x3, x4}) {
-			if (std::abs(root.imag()) < 1e-6) {
+			if (std::abs(root.imag()) < TOL(1e-6, 1e-3)) {
 				roots.push_back(root.real());
 			}
 		}
@@ -295,7 +295,7 @@ namespace MML::Tests::Algorithms::RootFindingTests
 
 		REQUIRE(roots.size() == 4);
 		for (int i = 0; i < 4; i++) {
-			REQUIRE_THAT(roots[i], WithinAbs(roots_expected[i], REAL(1e-5)));
+			REQUIRE_THAT(roots[i], WithinAbs(roots_expected[i], TOL(1e-5, 1e-2)));
 		}
 	}
 
@@ -393,7 +393,7 @@ namespace MML::Tests::Algorithms::RootFindingTests
 		// f(x) = x^2 - 4, root at x = 2
 		RealFunction func([](Real x) { return x * x - REAL(4.0); });
 
-		Real root = RootFinding::FindRootBisection(func, REAL(1.0), REAL(3.0), 1e-8);
+		Real root = RootFinding::FindRootBisection(func, REAL(1.0), REAL(3.0), TOL(1e-8, 1e-4));
 
 		REQUIRE_THAT(root, WithinAbs(REAL(2.0), REAL(1e-7)));
 		REQUIRE_THAT(func(root), WithinAbs(REAL(0.0), REAL(1e-6)));
@@ -405,9 +405,9 @@ namespace MML::Tests::Algorithms::RootFindingTests
 		// f(x) = x^3 - x - 2, root near x ≈ REAL(1.521)
 		RealFunction func([](Real x) { return x * x * x - x - REAL(2.0); });
 
-		Real root = RootFinding::FindRootBisection(func, REAL(1.0), REAL(2.0), 1e-10);
+		Real root = RootFinding::FindRootBisection(func, REAL(1.0), REAL(2.0), TOL(1e-10, 1e-5));
 
-		REQUIRE_THAT(func(root), WithinAbs(REAL(0.0), REAL(1e-8)));
+		REQUIRE_THAT(func(root), WithinAbs(REAL(0.0), TOL(1e-8, 1e-4)));
 	}
 
 	TEST_CASE("RootFinding::Bisection_transcendental", "[bisection]")
@@ -416,10 +416,10 @@ namespace MML::Tests::Algorithms::RootFindingTests
 		// f(x) = cos(x) - x, root near x ≈ REAL(0.739085)
 		RealFunction func([](Real x) { return std::cos(x) - x; });
 
-		Real root = RootFinding::FindRootBisection(func, REAL(0.0), REAL(1.0), 1e-10);
+		Real root = RootFinding::FindRootBisection(func, REAL(0.0), REAL(1.0), TOL(1e-10, 1e-5));
 
 		REQUIRE_THAT(root, WithinAbs(REAL(0.739085), REAL(1e-5)));
-		REQUIRE_THAT(func(root), WithinAbs(REAL(0.0), REAL(1e-8)));
+		REQUIRE_THAT(func(root), WithinAbs(REAL(0.0), TOL(1e-8, 1e-4)));
 	}
 
 	TEST_CASE("RootFinding::Bisection_error_not_bracketed", "[bisection][error]")
@@ -429,7 +429,7 @@ namespace MML::Tests::Algorithms::RootFindingTests
 		RealFunction func([](Real x) { return x * x + REAL(1.0); });
 
 		REQUIRE_THROWS_AS(
-			RootFinding::FindRootBisection(func, REAL(0.0), REAL(1.0), 1e-8),
+			RootFinding::FindRootBisection(func, REAL(0.0), REAL(1.0), TOL(1e-8, 1e-4)),
 			RootFindingError
 		);
 	}
@@ -443,10 +443,10 @@ namespace MML::Tests::Algorithms::RootFindingTests
 		// f(x) = x^2 - 4, root at x = 2
 		RealFunction func([](Real x) { return x * x - REAL(4.0); });
 
-		Real root = RootFinding::FindRootNewton(func, REAL(1.0), REAL(3.0), 1e-10);
+		Real root = RootFinding::FindRootNewton(func, REAL(1.0), REAL(3.0), TOL(1e-10, 1e-5));
 
-		REQUIRE_THAT(root, WithinAbs(REAL(2.0), REAL(1e-9)));
-		REQUIRE_THAT(func(root), WithinAbs(REAL(0.0), REAL(1e-8)));
+		REQUIRE_THAT(root, WithinAbs(REAL(2.0), TOL(1e-9, 1e-4)));
+		REQUIRE_THAT(func(root), WithinAbs(REAL(0.0), TOL(1e-8, 1e-4)));
 	}
 
 	TEST_CASE("RootFinding::Newton_cubic_fast_convergence", "[newton]")
@@ -455,10 +455,10 @@ namespace MML::Tests::Algorithms::RootFindingTests
 		// f(x) = x^3 - 2x - 5, root near x ≈ REAL(2.0946)
 		RealFunction func([](Real x) { return x * x * x - REAL(2.0) * x - REAL(5.0); });
 
-		Real root = RootFinding::FindRootNewton(func, REAL(2.0), REAL(3.0), 1e-12);
+		Real root = RootFinding::FindRootNewton(func, REAL(2.0), REAL(3.0), TOL(1e-12, 1e-5));
 
 		REQUIRE_THAT(root, WithinAbs(REAL(2.0946), REAL(1e-4)));
-		REQUIRE_THAT(func(root), WithinAbs(REAL(0.0), REAL(1e-10)));
+		REQUIRE_THAT(func(root), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("RootFinding::Newton_transcendental", "[newton]")
@@ -467,9 +467,9 @@ namespace MML::Tests::Algorithms::RootFindingTests
 		// f(x) = e^x - 3x, root near x ≈ REAL(1.512)
 		RealFunction func([](Real x) { return std::exp(x) - REAL(3.0) * x; });
 
-		Real root = RootFinding::FindRootNewton(func, REAL(1.0), REAL(2.0), 1e-10);
+		Real root = RootFinding::FindRootNewton(func, REAL(1.0), REAL(2.0), TOL(1e-10, 1e-5));
 
-		REQUIRE_THAT(func(root), WithinAbs(REAL(0.0), REAL(1e-8)));
+		REQUIRE_THAT(func(root), WithinAbs(REAL(0.0), TOL(1e-8, 1e-4)));
 	}
 
 	TEST_CASE("RootFinding::Newton_error_out_of_bounds", "[newton][error]")
@@ -482,9 +482,9 @@ namespace MML::Tests::Algorithms::RootFindingTests
 		// This might throw if Newton step jumps outside brackets
 		// (depends on implementation details, but testing error handling)
 		try {
-			Real root = RootFinding::FindRootNewton(func, REAL(1.99), REAL(2.01), 1e-15);
+			Real root = RootFinding::FindRootNewton(func, REAL(1.99), REAL(2.01), TOL(1e-15, 1e-5));
 			// If it succeeds, that's also fine - just verify it's correct
-			REQUIRE_THAT(root, WithinAbs(REAL(2.0), REAL(1e-10)));
+			REQUIRE_THAT(root, WithinAbs(REAL(2.0), TOL(1e-10, 1e-5)));
 		}
 		catch (const RootFindingError&) {
 			// Expected if Newton jumps out of narrow brackets
@@ -502,13 +502,13 @@ namespace MML::Tests::Algorithms::RootFindingTests
 		// f(x) = x^3 - x - 1, root near x ≈ REAL(1.3247)
 		RealFunction func([](Real x) { return x * x * x - x - REAL(1.0); });
 
-		Real root_bisection = RootFinding::FindRootBisection(func, REAL(1.0), REAL(2.0), 1e-10);
-		Real root_newton = RootFinding::FindRootNewton(func, REAL(1.0), REAL(2.0), 1e-10);
+		Real root_bisection = RootFinding::FindRootBisection(func, REAL(1.0), REAL(2.0), TOL(1e-10, 1e-5));
+		Real root_newton = RootFinding::FindRootNewton(func, REAL(1.0), REAL(2.0), TOL(1e-10, 1e-5));
 
 		// Both should find the same root
-		REQUIRE_THAT(root_bisection, WithinAbs(root_newton, REAL(1e-9)));
-		REQUIRE_THAT(func(root_bisection), WithinAbs(REAL(0.0), REAL(1e-8)));
-		REQUIRE_THAT(func(root_newton), WithinAbs(REAL(0.0), REAL(1e-8)));
+		REQUIRE_THAT(root_bisection, WithinAbs(root_newton, TOL(1e-9, 1e-4)));
+		REQUIRE_THAT(func(root_bisection), WithinAbs(REAL(0.0), TOL(1e-8, 1e-4)));
+		REQUIRE_THAT(func(root_newton), WithinAbs(REAL(0.0), TOL(1e-8, 1e-4)));
 	}
 
 	TEST_CASE("RootFinding::Precision_high_accuracy", "[precision]")
@@ -517,9 +517,9 @@ namespace MML::Tests::Algorithms::RootFindingTests
 		// Test high-precision root finding: x^2 = 2, root = sqrt(2)
 		RealFunction func([](Real x) { return x * x - REAL(2.0); });
 
-		Real root = RootFinding::FindRootBisection(func, REAL(1.0), REAL(2.0), 1e-15);
+		Real root = RootFinding::FindRootBisection(func, REAL(1.0), REAL(2.0), TOL(1e-15, 1e-5));
 
-		REQUIRE_THAT(root, WithinAbs(std::sqrt(REAL(2.0)), 1e-14));
+		REQUIRE_THAT(root, WithinAbs(std::sqrt(REAL(2.0)), TOL(1e-14, 1e-5)));
 	}
 
 	TEST_CASE("RootFinding::Multiple_roots_workflow", "[workflow]")
@@ -543,7 +543,7 @@ namespace MML::Tests::Algorithms::RootFindingTests
 			// Verify bracket is valid before bisection
 			if (func(xb1[i]) * func(xb2[i]) < REAL(0.0)) {
 				try {
-					Real root = RootFinding::FindRootBisection(func, xb1[i], xb2[i], 1e-8);
+					Real root = RootFinding::FindRootBisection(func, xb1[i], xb2[i], TOL(1e-8, 1e-4));
 					// Avoid close duplicates (tolerance 1e-4 to allow distinct roots)
 					bool is_duplicate = false;
 					for (const auto& existing_root : roots) {
@@ -600,9 +600,9 @@ namespace MML::Tests::Algorithms::RootFindingTests
 		// f(x) = x^5 - very flat near x=0 but has root there
 		RealFunction func([](Real x) { return x * x * x * x * x; });
 
-		Real root = RootFinding::FindRootBisection(func, -REAL(0.1), REAL(0.1), 1e-10);
+		Real root = RootFinding::FindRootBisection(func, -REAL(0.1), REAL(0.1), TOL(1e-10, 1e-5));
 
-		REQUIRE_THAT(root, WithinAbs(REAL(0.0), REAL(1e-9)));
+		REQUIRE_THAT(root, WithinAbs(REAL(0.0), TOL(1e-9, 1e-4)));
 	}
 
 	TEST_CASE("RootFinding::Quartic_complex_roots_only", "[polynomial][quartic]")
@@ -617,11 +617,11 @@ namespace MML::Tests::Algorithms::RootFindingTests
 		
 		for (const auto& root : roots) {
 			// Should have |z|^4 = 1, so |z| = 1
-			REQUIRE_THAT(std::abs(root), WithinAbs(REAL(1.0), REAL(1e-8)));
+			REQUIRE_THAT(std::abs(root), WithinAbs(REAL(1.0), TOL(1e-8, 1e-4)));
 			// Should satisfy z^4 = -1
 			Complex z4 = root * root * root * root;
-			REQUIRE_THAT(z4.real(), WithinAbs(-REAL(1.0), REAL(1e-8)));
-			REQUIRE_THAT(z4.imag(), WithinAbs(REAL(0.0), REAL(1e-8)));
+			REQUIRE_THAT(z4.real(), WithinAbs(-REAL(1.0), TOL(1e-8, 1e-4)));
+			REQUIRE_THAT(z4.imag(), WithinAbs(REAL(0.0), TOL(1e-8, 1e-4)));
 		}
 	}
 
@@ -632,8 +632,8 @@ namespace MML::Tests::Algorithms::RootFindingTests
 		Complex x1, x2;
 		int n = MML::SolveQuadratic(REAL(0.0), REAL(3.0), -REAL(6.0), x1, x2);
 		REQUIRE(n == 1);
-		REQUIRE_THAT(x1.real(), WithinAbs(REAL(2.0), REAL(1e-10)));
-		REQUIRE_THAT(x1.imag(), WithinAbs(REAL(0.0), REAL(1e-10)));
+		REQUIRE_THAT(x1.real(), WithinAbs(REAL(2.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(x1.imag(), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("RootFinding::Quadratic_degenerate_a_and_b_zero", "[polynomial][quadratic]")
@@ -655,13 +655,13 @@ namespace MML::Tests::Algorithms::RootFindingTests
 
 		std::vector<Real> roots;
 		for (auto root : {x1, x2}) {
-			if (std::abs(root.imag()) < 1e-8)
+			if (std::abs(root.imag()) < TOL(1e-8, 1e-4))
 				roots.push_back(root.real());
 		}
 		std::sort(roots.begin(), roots.end());
 		REQUIRE(roots.size() == 2);
-		REQUIRE_THAT(roots[0], WithinAbs(REAL(2.0), REAL(1e-8)));
-		REQUIRE_THAT(roots[1], WithinAbs(REAL(3.0), REAL(1e-8)));
+		REQUIRE_THAT(roots[0], WithinAbs(REAL(2.0), TOL(1e-8, 1e-4)));
+		REQUIRE_THAT(roots[1], WithinAbs(REAL(3.0), TOL(1e-8, 1e-4)));
 	}
 
 	TEST_CASE("RootFinding::BairstowRoots_non_convergence_throws", "[polynomial][roots]")
@@ -669,7 +669,7 @@ namespace MML::Tests::Algorithms::RootFindingTests
 		TEST_PRECISION_INFO();
 		// Use maxIter=1 to force non-convergence
 		MML::PolynomReal poly({1.0, 0.0, -5.0, 0.0, 4.0}); // x^4 - 5x^2 + 4
-		REQUIRE_THROWS_AS(MML::RootFinding::BairstowRoots(poly, {}, 1e-10, 1),
+		REQUIRE_THROWS_AS(MML::RootFinding::BairstowRoots(poly, {}, TOL(1e-10, 1e-5), 1),
 		                  std::runtime_error);
 	}
 }

@@ -17,6 +17,7 @@
  */
 
 #include <catch2/catch_all.hpp>
+#include "../TestPrecision.h"
 #include <cmath>
 
 #include "core/Fields.h"
@@ -151,8 +152,8 @@ TEST_CASE("InverseRadialPotentialForceFieldCart - Along x-axis", "[Fields][Force
     // F = -r/|r|³ = -1/r² in direction of -r_hat
     // At (2,0,0): F = -(2,0,0)/8 = (-0.25, 0, 0)
     REQUIRE(F[0] == Catch::Approx(-0.25));
-    REQUIRE(F[1] == Catch::Approx(0.0).margin(1e-14));
-    REQUIRE(F[2] == Catch::Approx(0.0).margin(1e-14));
+    REQUIRE(F[1] == Catch::Approx(0.0).margin(TOL(1e-14, 1e-5)));
+    REQUIRE(F[2] == Catch::Approx(0.0).margin(TOL(1e-14, 1e-5)));
 }
 
 TEST_CASE("InverseRadialPotentialForceFieldCart - Unit distance", "[Fields][Force][Cartesian]") {
@@ -161,8 +162,8 @@ TEST_CASE("InverseRadialPotentialForceFieldCart - Unit distance", "[Fields][Forc
     
     // F = -r/|r|³ = -r/1 = -r
     REQUIRE(F[0] == Catch::Approx(-1.0));
-    REQUIRE(F[1] == Catch::Approx(0.0).margin(1e-14));
-    REQUIRE(F[2] == Catch::Approx(0.0).margin(1e-14));
+    REQUIRE(F[1] == Catch::Approx(0.0).margin(TOL(1e-14, 1e-5)));
+    REQUIRE(F[2] == Catch::Approx(0.0).margin(TOL(1e-14, 1e-5)));
 }
 
 TEST_CASE("InverseRadialPotentialForceFieldCart - 3D point", "[Fields][Force][Cartesian]") {
@@ -184,8 +185,8 @@ TEST_CASE("InverseRadialPotentialForceFieldCart - With constant", "[Fields][Forc
     
     // F = -C * r / |r|³ = -5 * (1,0,0) / 1 = (-5, 0, 0)
     REQUIRE(F[0] == Catch::Approx(-5.0));
-    REQUIRE(F[1] == Catch::Approx(0.0).margin(1e-14));
-    REQUIRE(F[2] == Catch::Approx(0.0).margin(1e-14));
+    REQUIRE(F[1] == Catch::Approx(0.0).margin(TOL(1e-14, 1e-5)));
+    REQUIRE(F[2] == Catch::Approx(0.0).margin(TOL(1e-14, 1e-5)));
 }
 
 TEST_CASE("InverseRadialPotentialForceFieldCart - Points radially inward", "[Fields][Force][Cartesian]") {
@@ -326,8 +327,8 @@ TEST_CASE("InverseRadialForceFieldCart - Default constructor", "[Fields][Class][
     // F = -1 * (-r/|r|³) = r/|r|³ = (1,0,0)/1 = (1,0,0)
     VectorN<Real, 3> F = field(x);
     REQUIRE(F[0] == Catch::Approx(1.0));
-    REQUIRE(F[1] == Catch::Approx(0.0).margin(1e-14));
-    REQUIRE(F[2] == Catch::Approx(0.0).margin(1e-14));
+    REQUIRE(F[1] == Catch::Approx(0.0).margin(TOL(1e-14, 1e-5)));
+    REQUIRE(F[2] == Catch::Approx(0.0).margin(TOL(1e-14, 1e-5)));
 }
 
 TEST_CASE("InverseRadialForceFieldCart - Custom constant", "[Fields][Class][Cartesian]") {
@@ -337,8 +338,8 @@ TEST_CASE("InverseRadialForceFieldCart - Custom constant", "[Fields][Class][Cart
     // F = 2 * (-r/|r|³) = -2*(1,0,0) = (-2,0,0)
     VectorN<Real, 3> F = field(x);
     REQUIRE(F[0] == Catch::Approx(-2.0));
-    REQUIRE(F[1] == Catch::Approx(0.0).margin(1e-14));
-    REQUIRE(F[2] == Catch::Approx(0.0).margin(1e-14));
+    REQUIRE(F[1] == Catch::Approx(0.0).margin(TOL(1e-14, 1e-5)));
+    REQUIRE(F[2] == Catch::Approx(0.0).margin(TOL(1e-14, 1e-5)));
 }
 
 TEST_CASE("InverseRadialForceFieldCart - Inverse square law", "[Fields][Class][Cartesian]") {
@@ -415,7 +416,7 @@ TEST_CASE("Fields - Force is negative gradient of potential", "[Fields][Physics]
     VectorN<Real, 3> x{Real(2.0), Real(0.0), Real(0.0)};
     
     // Numerical gradient of potential (Φ = 1/|r|)
-    Real h = 1e-6;
+    Real h = TOL(1e-6, 1e-3);
     VectorN<Real, 3> xph{Real(2.0) + h, Real(0.0), Real(0.0)};
     VectorN<Real, 3> xmh{Real(2.0) - h, Real(0.0), Real(0.0)};
     Real phi_ph = InverseRadialPotentialFieldCart(xph);
@@ -426,7 +427,7 @@ TEST_CASE("Fields - Force is negative gradient of potential", "[Fields][Physics]
     VectorN<Real, 3> F = InverseRadialPotentialForceFieldCart(x);
     
     // The force field implementation gives F = ∇Φ (attractive toward origin)
-    REQUIRE(F[0] == Catch::Approx(dPhi_dx).epsilon(1e-4));
+    REQUIRE(F[0] == Catch::Approx(dPhi_dx).epsilon(TOL(1e-4, 1e-2)));
 }
 
 TEST_CASE("Fields - Spherical and Cartesian match at same point", "[Fields][Physics]") {

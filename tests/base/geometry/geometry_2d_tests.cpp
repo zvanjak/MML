@@ -103,9 +103,9 @@ namespace MML::Tests::Base::Geometry2DTests
 	{
 		TEST_PRECISION_INFO();
 		Triangle2D tri(Point2Cartesian(0, 0), Point2Cartesian(3, 0), Point2Cartesian(0, 4));
-		REQUIRE_THAT(tri.Pnt1().X(), WithinAbs(REAL(0.0), 1e-10));
-		REQUIRE_THAT(tri.Pnt2().X(), WithinAbs(REAL(3.0), 1e-10));
-		REQUIRE_THAT(tri.Pnt3().Y(), WithinAbs(REAL(4.0), 1e-10));
+		REQUIRE_THAT(tri.Pnt1().X(), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(tri.Pnt2().X(), WithinAbs(REAL(3.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(tri.Pnt3().Y(), WithinAbs(REAL(4.0), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("Triangle2D::Area", "[Triangle2D]")
@@ -227,11 +227,11 @@ namespace MML::Tests::Base::Geometry2DTests
 
 		// Point above line
 		Point2Cartesian p(5, 5);
-		REQUIRE_THAT(line.DistanceToPoint(p), WithinAbs(REAL(3.0), 1e-10));
+		REQUIRE_THAT(line.DistanceToPoint(p), WithinAbs(REAL(3.0), TOL(1e-10, 1e-5)));
 
 		// Point on line
 		Point2Cartesian pOn(10, 2);
-		REQUIRE_THAT(line.DistanceToPoint(pOn), WithinAbs(REAL(0.0), 1e-10));
+		REQUIRE_THAT(line.DistanceToPoint(pOn), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("Line2D - Closest point", "[Line2D][ClosestPoint]")
@@ -245,8 +245,8 @@ namespace MML::Tests::Base::Geometry2DTests
 		Point2Cartesian p(2, 0);
 		Point2Cartesian closest = line.ClosestPoint(p);
 		
-		REQUIRE_THAT(closest.X(), WithinAbs(REAL(1.0), 1e-10));
-		REQUIRE_THAT(closest.Y(), WithinAbs(REAL(1.0), 1e-10));
+		REQUIRE_THAT(closest.X(), WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(closest.Y(), WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("Line2D - Perpendicular line", "[Line2D][Perpendicular]")
@@ -259,8 +259,8 @@ namespace MML::Tests::Base::Geometry2DTests
 		Line2D perp = horizontal.Perpendicular(through);
 		
 		// Perpendicular should be vertical (direction 0,1 or 0,-1)
-		REQUIRE_THAT(std::abs(perp.Direction().X()), WithinAbs(REAL(0.0), 1e-10));
-		REQUIRE_THAT(std::abs(perp.Direction().Y()), WithinAbs(REAL(1.0), 1e-10));
+		REQUIRE_THAT(std::abs(perp.Direction().X()), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(std::abs(perp.Direction().Y()), WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
 		REQUIRE(perp.Contains(through));
 	}
 
@@ -273,8 +273,8 @@ namespace MML::Tests::Base::Geometry2DTests
 
 		Point2Cartesian intersection;
 		REQUIRE(line1.Intersects(line2, &intersection));
-		REQUIRE_THAT(intersection.X(), WithinAbs(REAL(0.0), 1e-10));
-		REQUIRE_THAT(intersection.Y(), WithinAbs(REAL(0.0), 1e-10));
+		REQUIRE_THAT(intersection.X(), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(intersection.Y(), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
 
 		// Parallel lines
 		Line2D line3(Point2Cartesian(0, 1), Vector2Cartesian(1, 0));
@@ -290,8 +290,8 @@ namespace MML::Tests::Base::Geometry2DTests
 		SegmentLine2D seg(Point2Cartesian(2, 3), Point2Cartesian(8, 7));
 		Point2Cartesian mid = seg.Midpoint();
 		
-		REQUIRE_THAT(mid.X(), WithinAbs(REAL(5.0), 1e-10));
-		REQUIRE_THAT(mid.Y(), WithinAbs(REAL(5.0), 1e-10));
+		REQUIRE_THAT(mid.X(), WithinAbs(REAL(5.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(mid.Y(), WithinAbs(REAL(5.0), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("SegmentLine2D - Distance to point", "[SegmentLine2D][Distance]")
@@ -301,15 +301,15 @@ namespace MML::Tests::Base::Geometry2DTests
 
 		// Point above segment midpoint
 		Point2Cartesian p1(2, 3);
-		REQUIRE_THAT(seg.DistanceToPoint(p1), WithinAbs(REAL(3.0), 1e-10));
+		REQUIRE_THAT(seg.DistanceToPoint(p1), WithinAbs(REAL(3.0), TOL(1e-10, 1e-5)));
 
 		// Point beyond segment end
 		Point2Cartesian p2(6, 0);
-		REQUIRE_THAT(seg.DistanceToPoint(p2), WithinAbs(REAL(2.0), 1e-10));
+		REQUIRE_THAT(seg.DistanceToPoint(p2), WithinAbs(REAL(2.0), TOL(1e-10, 1e-5)));
 
 		// Point before segment start
 		Point2Cartesian p3(-2, 0);
-		REQUIRE_THAT(seg.DistanceToPoint(p3), WithinAbs(REAL(2.0), 1e-10));
+		REQUIRE_THAT(seg.DistanceToPoint(p3), WithinAbs(REAL(2.0), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("SegmentLine2D - Closest point", "[SegmentLine2D][ClosestPoint]")
@@ -320,14 +320,14 @@ namespace MML::Tests::Base::Geometry2DTests
 		// Point above segment
 		Point2Cartesian p1(5, 5);
 		Point2Cartesian closest1 = seg.ClosestPoint(p1);
-		REQUIRE_THAT(closest1.X(), WithinAbs(REAL(5.0), 1e-10));
-		REQUIRE_THAT(closest1.Y(), WithinAbs(REAL(0.0), 1e-10));
+		REQUIRE_THAT(closest1.X(), WithinAbs(REAL(5.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(closest1.Y(), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
 
 		// Point beyond end
 		Point2Cartesian p2(15, 3);
 		Point2Cartesian closest2 = seg.ClosestPoint(p2);
-		REQUIRE_THAT(closest2.X(), WithinAbs(REAL(10.0), 1e-10));
-		REQUIRE_THAT(closest2.Y(), WithinAbs(REAL(0.0), 1e-10));
+		REQUIRE_THAT(closest2.X(), WithinAbs(REAL(10.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(closest2.Y(), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("SegmentLine2D - Segment intersection", "[SegmentLine2D][Intersection]")
@@ -339,8 +339,8 @@ namespace MML::Tests::Base::Geometry2DTests
 
 		Point2Cartesian intersection;
 		REQUIRE(seg1.Intersects(seg2, &intersection));
-		REQUIRE_THAT(intersection.X(), WithinAbs(REAL(2.0), 1e-10));
-		REQUIRE_THAT(intersection.Y(), WithinAbs(REAL(2.0), 1e-10));
+		REQUIRE_THAT(intersection.X(), WithinAbs(REAL(2.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(intersection.Y(), WithinAbs(REAL(2.0), TOL(1e-10, 1e-5)));
 
 		// Non-intersecting segments
 		SegmentLine2D seg3(Point2Cartesian(0, 0), Point2Cartesian(1, 0));
@@ -361,7 +361,7 @@ namespace MML::Tests::Base::Geometry2DTests
 		TEST_PRECISION_INFO();
 		// 3-4-5 right triangle
 		Triangle2D tri(Point2Cartesian(0, 0), Point2Cartesian(3, 0), Point2Cartesian(0, 4));
-		REQUIRE_THAT(tri.Perimeter(), WithinAbs(REAL(12.0), 1e-10));
+		REQUIRE_THAT(tri.Perimeter(), WithinAbs(REAL(12.0), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("Triangle2D - Centroid", "[Triangle2D][Centroid]")
@@ -370,8 +370,8 @@ namespace MML::Tests::Base::Geometry2DTests
 		Triangle2D tri(Point2Cartesian(0, 0), Point2Cartesian(6, 0), Point2Cartesian(0, 6));
 		Point2Cartesian centroid = tri.Centroid();
 		
-		REQUIRE_THAT(centroid.X(), WithinAbs(REAL(2.0), 1e-10));
-		REQUIRE_THAT(centroid.Y(), WithinAbs(REAL(2.0), 1e-10));
+		REQUIRE_THAT(centroid.X(), WithinAbs(REAL(2.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(centroid.Y(), WithinAbs(REAL(2.0), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("Triangle2D - Circumcenter and CircumRadius", "[Triangle2D][Circumcenter]")
@@ -381,11 +381,11 @@ namespace MML::Tests::Base::Geometry2DTests
 		Triangle2D tri(Point2Cartesian(0, 0), Point2Cartesian(4, 0), Point2Cartesian(0, 3));
 		
 		Point2Cartesian circumcenter = tri.Circumcenter();
-		REQUIRE_THAT(circumcenter.X(), WithinAbs(REAL(2.0), 1e-10));
-		REQUIRE_THAT(circumcenter.Y(), WithinAbs(REAL(1.5), 1e-10));
+		REQUIRE_THAT(circumcenter.X(), WithinAbs(REAL(2.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(circumcenter.Y(), WithinAbs(REAL(1.5), TOL(1e-10, 1e-5)));
 
 		Real radius = tri.CircumRadius();
-		REQUIRE_THAT(radius, WithinAbs(REAL(2.5), 1e-10)); // 5/2 (hypotenuse/2)
+		REQUIRE_THAT(radius, WithinAbs(REAL(2.5), TOL(1e-10, 1e-5))); // 5/2 (hypotenuse/2)
 	}
 
 	TEST_CASE("Triangle2D - Incenter and InRadius", "[Triangle2D][Incenter]")
@@ -397,11 +397,11 @@ namespace MML::Tests::Base::Geometry2DTests
 		Point2Cartesian incenter = tri.Incenter();
 		Real inradius = tri.InRadius();
 		
-		REQUIRE_THAT(inradius, WithinAbs(REAL(1.0), 1e-10)); // Area / s = 6 / 6 = 1
+		REQUIRE_THAT(inradius, WithinAbs(REAL(1.0), TOL(1e-10, 1e-5))); // Area / s = 6 / 6 = 1
 		
 		// Incenter should be at distance inradius from all sides
-		REQUIRE_THAT(incenter.X(), WithinAbs(REAL(1.0), 1e-10));
-		REQUIRE_THAT(incenter.Y(), WithinAbs(REAL(1.0), 1e-10));
+		REQUIRE_THAT(incenter.X(), WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(incenter.Y(), WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("Triangle2D - Angles", "[Triangle2D][Angles]")
@@ -422,10 +422,10 @@ namespace MML::Tests::Base::Geometry2DTests
 		Real angleC = tri.AngleC(); // Angle at pnt2 (3,0)
 		
 		// AngleB is at the origin where perpendicular sides meet - should be 90 degrees
-		REQUIRE_THAT(angleB, WithinAbs(Constants::PI / REAL(2.0), 1e-8)); // 90 degrees
+		REQUIRE_THAT(angleB, WithinAbs(Constants::PI / REAL(2.0), TOL(1e-8, 1e-4))); // 90 degrees
 		
 		// Sum of angles should be π
-		REQUIRE_THAT(angleA + angleB + angleC, WithinAbs(Constants::PI, REAL(1e-10)));
+		REQUIRE_THAT(angleA + angleB + angleC, WithinAbs(Constants::PI, TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("Triangle2D - Point containment", "[Triangle2D][Contains]")
@@ -491,13 +491,13 @@ namespace MML::Tests::Base::Geometry2DTests
 		Real a2 = tri.A();
 		Real a3 = tri.A();
 		
-		REQUIRE_THAT(a1, WithinAbs(a2, REAL(1e-15)));
-		REQUIRE_THAT(a2, WithinAbs(a3, REAL(1e-15)));
-		REQUIRE_THAT(a1, WithinAbs(REAL(3.0), 1e-10)); // A() is distance from pnt1 to pnt2
+		REQUIRE_THAT(a1, WithinAbs(a2, TOL(1e-15, 1e-5)));
+		REQUIRE_THAT(a2, WithinAbs(a3, TOL(1e-15, 1e-5)));
+		REQUIRE_THAT(a1, WithinAbs(REAL(3.0), TOL(1e-10, 1e-5))); // A() is distance from pnt1 to pnt2
 		
 		// Verify other sides
-		REQUIRE_THAT(tri.B(), WithinAbs(REAL(5.0), 1e-10)); // B() is pnt2 to pnt3 (hypotenuse)
-		REQUIRE_THAT(tri.C(), WithinAbs(REAL(4.0), 1e-10)); // C() is pnt3 to pnt1
+		REQUIRE_THAT(tri.B(), WithinAbs(REAL(5.0), TOL(1e-10, 1e-5))); // B() is pnt2 to pnt3 (hypotenuse)
+		REQUIRE_THAT(tri.C(), WithinAbs(REAL(4.0), TOL(1e-10, 1e-5))); // C() is pnt3 to pnt1
 	}
 
 	TEST_CASE("Triangle2D - Signed area and vertex accessors", "[Triangle2D][SignedArea]")
@@ -507,22 +507,22 @@ namespace MML::Tests::Base::Geometry2DTests
 		Triangle2D ccw(Point2Cartesian(0, 0), Point2Cartesian(4, 0), Point2Cartesian(2, 3));
 		Real signedAreaCCW = ccw.SignedArea();
 		REQUIRE(signedAreaCCW > 0);
-		REQUIRE_THAT(std::abs(signedAreaCCW), WithinAbs(REAL(6.0), 1e-10)); // Area = 0.5 * base * height = 0.5 * 4 * 3 = 6
+		REQUIRE_THAT(std::abs(signedAreaCCW), WithinAbs(REAL(6.0), TOL(1e-10, 1e-5))); // Area = 0.5 * base * height = 0.5 * 4 * 3 = 6
 
 		// CW triangle - negative signed area
 		Triangle2D cw(Point2Cartesian(0, 0), Point2Cartesian(2, 3), Point2Cartesian(4, 0));
 		Real signedAreaCW = cw.SignedArea();
 		REQUIRE(signedAreaCW < 0);
-		REQUIRE_THAT(std::abs(signedAreaCW), WithinAbs(REAL(6.0), 1e-10));
+		REQUIRE_THAT(std::abs(signedAreaCW), WithinAbs(REAL(6.0), TOL(1e-10, 1e-5)));
 
 		// Vertex accessors
-		REQUIRE_THAT(ccw.Pnt1().X(), WithinAbs(REAL(0.0), 1e-10));
-		REQUIRE_THAT(ccw.Pnt2().X(), WithinAbs(REAL(4.0), 1e-10));
-		REQUIRE_THAT(ccw.Pnt3().Y(), WithinAbs(REAL(3.0), 1e-10));
+		REQUIRE_THAT(ccw.Pnt1().X(), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(ccw.Pnt2().X(), WithinAbs(REAL(4.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(ccw.Pnt3().Y(), WithinAbs(REAL(3.0), TOL(1e-10, 1e-5)));
 		
 		// Mutable accessor invalidates cache
 		ccw.Pnt1() = Point2Cartesian(1, 0);
-		REQUIRE_THAT(ccw.A(), WithinAbs(REAL(3.0), 1e-10)); // Distance (1,0) to (4,0) = 3
+		REQUIRE_THAT(ccw.A(), WithinAbs(REAL(3.0), TOL(1e-10, 1e-5))); // Distance (1,0) to (4,0) = 3
 	}
 
 	/*********************************************************************/
@@ -536,13 +536,13 @@ namespace MML::Tests::Base::Geometry2DTests
 			Point2Cartesian(0, 0), Point2Cartesian(2, 0),
 			Point2Cartesian(2, 2), Point2Cartesian(0, 2)
 		});
-		REQUIRE_THAT(square.Perimeter(), WithinAbs(REAL(8.0), 1e-10));
+		REQUIRE_THAT(square.Perimeter(), WithinAbs(REAL(8.0), TOL(1e-10, 1e-5)));
 		
 		// Regular triangle
 		Polygon2D triangle({
 			Point2Cartesian(0, 0), Point2Cartesian(3, 0), Point2Cartesian(0, 4)
 		});
-		REQUIRE_THAT(triangle.Perimeter(), WithinAbs(REAL(12.0), 1e-10)); // 3 + 4 + 5 = 12
+		REQUIRE_THAT(triangle.Perimeter(), WithinAbs(REAL(12.0), TOL(1e-10, 1e-5))); // 3 + 4 + 5 = 12
 	}
 
 	TEST_CASE("Polygon2D - Centroid calculation", "[Polygon2D][Centroid]")
@@ -554,20 +554,20 @@ namespace MML::Tests::Base::Geometry2DTests
 			Point2Cartesian(2, 2), Point2Cartesian(0, 2)
 		});
 		Point2Cartesian centroid = square.Centroid();
-		REQUIRE_THAT(centroid.X(), WithinAbs(REAL(1.0), 1e-10));
-		REQUIRE_THAT(centroid.Y(), WithinAbs(REAL(1.0), 1e-10));
+		REQUIRE_THAT(centroid.X(), WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(centroid.Y(), WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
 		
 		// Single point
 		Polygon2D singlePoint({Point2Cartesian(5, 7)});
 		Point2Cartesian c1 = singlePoint.Centroid();
-		REQUIRE_THAT(c1.X(), WithinAbs(REAL(5.0), 1e-10));
-		REQUIRE_THAT(c1.Y(), WithinAbs(REAL(7.0), 1e-10));
+		REQUIRE_THAT(c1.X(), WithinAbs(REAL(5.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(c1.Y(), WithinAbs(REAL(7.0), TOL(1e-10, 1e-5)));
 		
 		// Two points (line segment)
 		Polygon2D twoPoints({Point2Cartesian(0, 0), Point2Cartesian(4, 6)});
 		Point2Cartesian c2 = twoPoints.Centroid();
-		REQUIRE_THAT(c2.X(), WithinAbs(REAL(2.0), 1e-10));
-		REQUIRE_THAT(c2.Y(), WithinAbs(REAL(3.0), 1e-10));
+		REQUIRE_THAT(c2.X(), WithinAbs(REAL(2.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(c2.Y(), WithinAbs(REAL(3.0), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("Polygon2D - Bounding box", "[Polygon2D][BoundingBox]")
@@ -578,16 +578,16 @@ namespace MML::Tests::Base::Geometry2DTests
 			Point2Cartesian(3, 7), Point2Cartesian(0, 4)
 		});
 		auto bbox = poly.GetBoundingBox();
-		REQUIRE_THAT(bbox.minX, WithinAbs(REAL(0.0), 1e-10));
-		REQUIRE_THAT(bbox.maxX, WithinAbs(REAL(5.0), 1e-10));
-		REQUIRE_THAT(bbox.minY, WithinAbs(REAL(2.0), 1e-10));
-		REQUIRE_THAT(bbox.maxY, WithinAbs(REAL(7.0), 1e-10));
-		REQUIRE_THAT(bbox.Width(), WithinAbs(REAL(5.0), 1e-10));
-		REQUIRE_THAT(bbox.Height(), WithinAbs(REAL(5.0), 1e-10));
+		REQUIRE_THAT(bbox.minX, WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(bbox.maxX, WithinAbs(REAL(5.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(bbox.minY, WithinAbs(REAL(2.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(bbox.maxY, WithinAbs(REAL(7.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(bbox.Width(), WithinAbs(REAL(5.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(bbox.Height(), WithinAbs(REAL(5.0), TOL(1e-10, 1e-5)));
 		
 		Point2Cartesian center = bbox.Center();
-		REQUIRE_THAT(center.X(), WithinAbs(REAL(2.5), 1e-10));
-		REQUIRE_THAT(center.Y(), WithinAbs(REAL(4.5), 1e-10));
+		REQUIRE_THAT(center.X(), WithinAbs(REAL(2.5), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(center.Y(), WithinAbs(REAL(4.5), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("Polygon2D - Winding number", "[Polygon2D][WindingNumber]")
@@ -620,23 +620,23 @@ namespace MML::Tests::Base::Geometry2DTests
 		REQUIRE(poly.NumVertices() == 4);
 		
 		// Vertex access with bounds checking
-		REQUIRE_THAT(poly.Vertex(0).X(), WithinAbs(REAL(0.0), 1e-10));
-		REQUIRE_THAT(poly.Vertex(2).X(), WithinAbs(REAL(3.0), 1e-10));
+		REQUIRE_THAT(poly.Vertex(0).X(), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(poly.Vertex(2).X(), WithinAbs(REAL(3.0), TOL(1e-10, 1e-5)));
 		REQUIRE_THROWS(poly.Vertex(5)); // Out of range
 		REQUIRE_THROWS(poly.Vertex(-1));
 		
 		// Edge access
 		SegmentLine2D edge0 = poly.Edge(0); // (0,0) to (3,0)
-		REQUIRE_THAT(edge0.Length(), WithinAbs(REAL(3.0), 1e-10));
+		REQUIRE_THAT(edge0.Length(), WithinAbs(REAL(3.0), TOL(1e-10, 1e-5)));
 		
 		SegmentLine2D edge1 = poly.Edge(1); // (3,0) to (3,4)
-		REQUIRE_THAT(edge1.Length(), WithinAbs(REAL(4.0), 1e-10));
+		REQUIRE_THAT(edge1.Length(), WithinAbs(REAL(4.0), TOL(1e-10, 1e-5)));
 		
 		REQUIRE_THROWS(poly.Edge(10)); // Out of range
 		
 		// Index operator
-		REQUIRE_THAT(poly[0].X(), WithinAbs(REAL(0.0), 1e-10));
-		REQUIRE_THAT(poly[3].Y(), WithinAbs(REAL(4.0), 1e-10));
+		REQUIRE_THAT(poly[0].X(), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(poly[3].Y(), WithinAbs(REAL(4.0), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("Polygon2D - Vertex manipulation", "[Polygon2D][Manipulation]")
@@ -681,7 +681,7 @@ namespace MML::Tests::Base::Geometry2DTests
 		for (const auto& tri : triangles) {
 			totalArea += tri.Area();
 		}
-		REQUIRE_THAT(totalArea, WithinAbs(REAL(4.0), 1e-10)); // 2x2 square
+		REQUIRE_THAT(totalArea, WithinAbs(REAL(4.0), TOL(1e-10, 1e-5))); // 2x2 square
 		
 		// Pentagon
 		Polygon2D pentagon({
@@ -754,7 +754,7 @@ namespace MML::Tests::Base::Geometry2DTests
 			Point2Cartesian(2, 2), Point2Cartesian(0, 2)
 		});
 		REQUIRE(ccw.SignedArea() > 0);
-		REQUIRE_THAT(ccw.Area(), WithinAbs(REAL(4.0), 1e-10));
+		REQUIRE_THAT(ccw.Area(), WithinAbs(REAL(4.0), TOL(1e-10, 1e-5)));
 		
 		// CW square - negative signed area
 		Polygon2D cw({
@@ -762,7 +762,7 @@ namespace MML::Tests::Base::Geometry2DTests
 			Point2Cartesian(2, 2), Point2Cartesian(2, 0)
 		});
 		REQUIRE(cw.SignedArea() < 0);
-		REQUIRE_THAT(cw.Area(), WithinAbs(REAL(4.0), 1e-10)); // Unsigned area is positive
+		REQUIRE_THAT(cw.Area(), WithinAbs(REAL(4.0), TOL(1e-10, 1e-5))); // Unsigned area is positive
 	}
 
 	/*********************************************************************/
@@ -772,19 +772,19 @@ namespace MML::Tests::Base::Geometry2DTests
 	{
 		TEST_PRECISION_INFO();
 		Circle2D c; // Unit circle at origin
-		REQUIRE_THAT(c.Center().X(), WithinAbs(REAL(0.0), 1e-10));
-		REQUIRE_THAT(c.Center().Y(), WithinAbs(REAL(0.0), 1e-10));
-		REQUIRE_THAT(c.Radius(), WithinAbs(REAL(1.0), 1e-10));
+		REQUIRE_THAT(c.Center().X(), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(c.Center().Y(), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(c.Radius(), WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("Circle2D - Point and radius constructor", "[Circle2D][Constructor]")
 	{
 		TEST_PRECISION_INFO();
 		Circle2D c(Point2Cartesian(3, 4), 5);
-		REQUIRE_THAT(c.Center().X(), WithinAbs(REAL(3.0), 1e-10));
-		REQUIRE_THAT(c.Center().Y(), WithinAbs(REAL(4.0), 1e-10));
-		REQUIRE_THAT(c.Radius(), WithinAbs(REAL(5.0), 1e-10));
-		REQUIRE_THAT(c.Diameter(), WithinAbs(REAL(10.0), 1e-10));
+		REQUIRE_THAT(c.Center().X(), WithinAbs(REAL(3.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(c.Center().Y(), WithinAbs(REAL(4.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(c.Radius(), WithinAbs(REAL(5.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(c.Diameter(), WithinAbs(REAL(10.0), TOL(1e-10, 1e-5)));
 		
 		// Negative radius throws
 		REQUIRE_THROWS(Circle2D(Point2Cartesian(0, 0), -1));
@@ -794,9 +794,9 @@ namespace MML::Tests::Base::Geometry2DTests
 	{
 		TEST_PRECISION_INFO();
 		Circle2D c(2, 3, 4);
-		REQUIRE_THAT(c.Center().X(), WithinAbs(REAL(2.0), 1e-10));
-		REQUIRE_THAT(c.Center().Y(), WithinAbs(REAL(3.0), 1e-10));
-		REQUIRE_THAT(c.Radius(), WithinAbs(REAL(4.0), 1e-10));
+		REQUIRE_THAT(c.Center().X(), WithinAbs(REAL(2.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(c.Center().Y(), WithinAbs(REAL(3.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(c.Radius(), WithinAbs(REAL(4.0), TOL(1e-10, 1e-5)));
 		
 		REQUIRE_THROWS(Circle2D(0, 0, -1)); // Negative radius
 	}
@@ -806,30 +806,30 @@ namespace MML::Tests::Base::Geometry2DTests
 		TEST_PRECISION_INFO();
 		// FromDiameter
 		Circle2D fromDiam = Circle2D::FromDiameter(Point2Cartesian(0, 0), Point2Cartesian(4, 0));
-		REQUIRE_THAT(fromDiam.Center().X(), WithinAbs(REAL(2.0), 1e-10));
-		REQUIRE_THAT(fromDiam.Center().Y(), WithinAbs(REAL(0.0), 1e-10));
-		REQUIRE_THAT(fromDiam.Radius(), WithinAbs(REAL(2.0), 1e-10));
+		REQUIRE_THAT(fromDiam.Center().X(), WithinAbs(REAL(2.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(fromDiam.Center().Y(), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(fromDiam.Radius(), WithinAbs(REAL(2.0), TOL(1e-10, 1e-5)));
 		
 		// FromThreePoints - circumcircle of right triangle at origin
 		Circle2D fromThree = Circle2D::FromThreePoints(
 			Point2Cartesian(0, 0), Point2Cartesian(4, 0), Point2Cartesian(0, 3)
 		);
-		REQUIRE_THAT(fromThree.Radius(), WithinAbs(REAL(2.5), 1e-10)); // hypotenuse/2 = 5/2
+		REQUIRE_THAT(fromThree.Radius(), WithinAbs(REAL(2.5), TOL(1e-10, 1e-5))); // hypotenuse/2 = 5/2
 		
 		// UnitCircle
 		Circle2D unit = Circle2D::UnitCircle();
-		REQUIRE_THAT(unit.Center().X(), WithinAbs(REAL(0.0), 1e-10));
-		REQUIRE_THAT(unit.Center().Y(), WithinAbs(REAL(0.0), 1e-10));
-		REQUIRE_THAT(unit.Radius(), WithinAbs(REAL(1.0), 1e-10));
+		REQUIRE_THAT(unit.Center().X(), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(unit.Center().Y(), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(unit.Radius(), WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("Circle2D - Area and circumference", "[Circle2D][Measurements]")
 	{
 		TEST_PRECISION_INFO();
 		Circle2D c(0, 0, 3);
-		REQUIRE_THAT(c.Area(), WithinAbs(REAL(9.0) * Constants::PI, 1e-10));
-		REQUIRE_THAT(c.Circumference(), WithinAbs(REAL(6.0) * Constants::PI, 1e-10));
-		REQUIRE_THAT(c.Perimeter(), WithinAbs(REAL(6.0) * Constants::PI, 1e-10));
+		REQUIRE_THAT(c.Area(), WithinAbs(REAL(9.0) * Constants::PI, TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(c.Circumference(), WithinAbs(REAL(6.0) * Constants::PI, TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(c.Perimeter(), WithinAbs(REAL(6.0) * Constants::PI, TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("Circle2D - Point on circle at angle", "[Circle2D][PointAt]")
@@ -839,18 +839,18 @@ namespace MML::Tests::Base::Geometry2DTests
 		
 		// At 0 radians (right)
 		Point2Cartesian p0 = c.PointAt(0);
-		REQUIRE_THAT(p0.X(), WithinAbs(REAL(2.0), 1e-10));
-		REQUIRE_THAT(p0.Y(), WithinAbs(REAL(0.0), 1e-10));
+		REQUIRE_THAT(p0.X(), WithinAbs(REAL(2.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(p0.Y(), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
 		
 		// At π/2 radians (top)
 		Point2Cartesian p90 = c.PointAt(Constants::PI / 2);
-		REQUIRE_THAT(p90.X(), WithinAbs(REAL(0.0), 1e-10));
-		REQUIRE_THAT(p90.Y(), WithinAbs(REAL(2.0), 1e-10));
+		REQUIRE_THAT(p90.X(), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(p90.Y(), WithinAbs(REAL(2.0), TOL(1e-10, 1e-5)));
 		
 		// At π radians (left)
 		Point2Cartesian p180 = c.PointAt(Constants::PI);
-		REQUIRE_THAT(p180.X(), WithinAbs(REAL(-2.0), 1e-10));
-		REQUIRE_THAT(p180.Y(), WithinAbs(REAL(0.0), 1e-10));
+		REQUIRE_THAT(p180.X(), WithinAbs(REAL(-2.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(p180.Y(), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("Circle2D - Arc, sector, and chord", "[Circle2D][Geometry]")
@@ -860,15 +860,15 @@ namespace MML::Tests::Base::Geometry2DTests
 		
 		// Arc length for 90 degrees
 		Real arcLen = c.ArcLength(Constants::PI / 2);
-		REQUIRE_THAT(arcLen, WithinAbs(REAL(2.0) * Constants::PI, 1e-10)); // r * theta = 4 * π/2 = 2π
+		REQUIRE_THAT(arcLen, WithinAbs(REAL(2.0) * Constants::PI, TOL(1e-10, 1e-5))); // r * theta = 4 * π/2 = 2π
 		
 		// Sector area for 90 degrees
 		Real sectorArea = c.SectorArea(Constants::PI / 2);
-		REQUIRE_THAT(sectorArea, WithinAbs(REAL(4.0) * Constants::PI, 1e-10)); // 0.5 * r² * theta = 0.5 * 16 * π/2 = 4π
+		REQUIRE_THAT(sectorArea, WithinAbs(REAL(4.0) * Constants::PI, TOL(1e-10, 1e-5))); // 0.5 * r² * theta = 0.5 * 16 * π/2 = 4π
 		
 		// Chord length for 90 degrees
 		Real chordLen = c.ChordLength(Constants::PI / 2);
-		REQUIRE_THAT(chordLen, WithinAbs(REAL(4.0) * std::sqrt(REAL(2.0)), 1e-10)); // 2r*sin(theta/2) = 8*sin(π/4) = 8*√2/2 = 4√2
+		REQUIRE_THAT(chordLen, WithinAbs(REAL(4.0) * std::sqrt(REAL(2.0)), TOL(1e-10, 1e-5))); // 2r*sin(theta/2) = 8*sin(π/4) = 8*√2/2 = 4√2
 	}
 
 	TEST_CASE("Circle2D - Distance calculations", "[Circle2D][Distance]")
@@ -877,19 +877,19 @@ namespace MML::Tests::Base::Geometry2DTests
 		Circle2D c(0, 0, 5);
 		
 		// Distance from center
-		REQUIRE_THAT(c.DistanceFromCenter(Point2Cartesian(3, 4)), WithinAbs(REAL(5.0), 1e-10));
-		REQUIRE_THAT(c.DistanceFromCenter(Point2Cartesian(0, 0)), WithinAbs(REAL(0.0), 1e-10));
+		REQUIRE_THAT(c.DistanceFromCenter(Point2Cartesian(3, 4)), WithinAbs(REAL(5.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(c.DistanceFromCenter(Point2Cartesian(0, 0)), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
 		
 		// Signed distance (negative inside, positive outside)
 		REQUIRE(c.SignedDistance(Point2Cartesian(0, 0)) < 0); // Inside
-		REQUIRE_THAT(c.SignedDistance(Point2Cartesian(0, 0)), WithinAbs(REAL(-5.0), 1e-10));
+		REQUIRE_THAT(c.SignedDistance(Point2Cartesian(0, 0)), WithinAbs(REAL(-5.0), TOL(1e-10, 1e-5)));
 		REQUIRE(c.SignedDistance(Point2Cartesian(10, 0)) > 0); // Outside
-		REQUIRE_THAT(c.SignedDistance(Point2Cartesian(10, 0)), WithinAbs(REAL(5.0), 1e-10));
+		REQUIRE_THAT(c.SignedDistance(Point2Cartesian(10, 0)), WithinAbs(REAL(5.0), TOL(1e-10, 1e-5)));
 		
 		// Distance to boundary
-		REQUIRE_THAT(c.DistanceToPoint(Point2Cartesian(0, 0)), WithinAbs(REAL(5.0), 1e-10));
-		REQUIRE_THAT(c.DistanceToPoint(Point2Cartesian(10, 0)), WithinAbs(REAL(5.0), 1e-10));
-		REQUIRE_THAT(c.DistanceToPoint(Point2Cartesian(5, 0)), WithinAbs(REAL(0.0), 1e-10)); // On boundary
+		REQUIRE_THAT(c.DistanceToPoint(Point2Cartesian(0, 0)), WithinAbs(REAL(5.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(c.DistanceToPoint(Point2Cartesian(10, 0)), WithinAbs(REAL(5.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(c.DistanceToPoint(Point2Cartesian(5, 0)), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5))); // On boundary
 	}
 
 	TEST_CASE("Circle2D - Point containment", "[Circle2D][Contains]")
@@ -918,17 +918,17 @@ namespace MML::Tests::Base::Geometry2DTests
 		
 		// Point outside
 		Point2Cartesian closest = c.ClosestPoint(Point2Cartesian(8, 0));
-		REQUIRE_THAT(closest.X(), WithinAbs(REAL(4.0), 1e-10));
-		REQUIRE_THAT(closest.Y(), WithinAbs(REAL(0.0), 1e-10));
+		REQUIRE_THAT(closest.X(), WithinAbs(REAL(4.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(closest.Y(), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
 		
 		// Point inside
 		closest = c.ClosestPoint(Point2Cartesian(1, 0));
-		REQUIRE_THAT(closest.X(), WithinAbs(REAL(4.0), 1e-10));
-		REQUIRE_THAT(closest.Y(), WithinAbs(REAL(0.0), 1e-10));
+		REQUIRE_THAT(closest.X(), WithinAbs(REAL(4.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(closest.Y(), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
 		
 		// Point at center - returns arbitrary point (at angle 0)
 		closest = c.ClosestPoint(Point2Cartesian(0, 0));
-		REQUIRE_THAT(closest.Dist(c.Center()), WithinAbs(REAL(4.0), 1e-10));
+		REQUIRE_THAT(closest.Dist(c.Center()), WithinAbs(REAL(4.0), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("Circle2D - Tangent vector", "[Circle2D][Tangent]")
@@ -938,13 +938,13 @@ namespace MML::Tests::Base::Geometry2DTests
 		
 		// Tangent at 0 radians (should be perpendicular to radius, pointing "up")
 		Vector2Cartesian t0 = c.TangentAt(0);
-		REQUIRE_THAT(t0.X(), WithinAbs(REAL(0.0), 1e-10));
-		REQUIRE_THAT(t0.Y(), WithinAbs(REAL(1.0), 1e-10));
+		REQUIRE_THAT(t0.X(), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(t0.Y(), WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
 		
 		// Tangent at π/2 radians
 		Vector2Cartesian t90 = c.TangentAt(Constants::PI / 2);
-		REQUIRE_THAT(t90.X(), WithinAbs(REAL(-1.0), 1e-10));
-		REQUIRE_THAT(t90.Y(), WithinAbs(REAL(0.0), 1e-10));
+		REQUIRE_THAT(t90.X(), WithinAbs(REAL(-1.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(t90.Y(), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("Circle2D - Circle-circle intersection", "[Circle2D][Intersection]")
@@ -993,10 +993,10 @@ namespace MML::Tests::Base::Geometry2DTests
 		Circle2D c(3, 4, 2);
 		auto bbox = c.GetBoundingBox();
 		
-		REQUIRE_THAT(bbox.minX, WithinAbs(REAL(1.0), 1e-10));
-		REQUIRE_THAT(bbox.maxX, WithinAbs(REAL(5.0), 1e-10));
-		REQUIRE_THAT(bbox.minY, WithinAbs(REAL(2.0), 1e-10));
-		REQUIRE_THAT(bbox.maxY, WithinAbs(REAL(6.0), 1e-10));
+		REQUIRE_THAT(bbox.minX, WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(bbox.maxX, WithinAbs(REAL(5.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(bbox.minY, WithinAbs(REAL(2.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(bbox.maxY, WithinAbs(REAL(6.0), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("Circle2D - Translation and scaling", "[Circle2D][Transform]")
@@ -1006,13 +1006,13 @@ namespace MML::Tests::Base::Geometry2DTests
 		
 		// Translate
 		Circle2D translated = c.Translated(Vector2Cartesian(5, 7));
-		REQUIRE_THAT(translated.Center().X(), WithinAbs(REAL(5.0), 1e-10));
-		REQUIRE_THAT(translated.Center().Y(), WithinAbs(REAL(7.0), 1e-10));
-		REQUIRE_THAT(translated.Radius(), WithinAbs(REAL(3.0), 1e-10));
+		REQUIRE_THAT(translated.Center().X(), WithinAbs(REAL(5.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(translated.Center().Y(), WithinAbs(REAL(7.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(translated.Radius(), WithinAbs(REAL(3.0), TOL(1e-10, 1e-5)));
 		
 		// Scale
 		Circle2D scaled = c.Scaled(2);
-		REQUIRE_THAT(scaled.Radius(), WithinAbs(REAL(6.0), 1e-10));
+		REQUIRE_THAT(scaled.Radius(), WithinAbs(REAL(6.0), TOL(1e-10, 1e-5)));
 		
 		// Scale with non-positive factor throws
 		REQUIRE_THROWS(c.Scaled(0));
@@ -1025,11 +1025,11 @@ namespace MML::Tests::Base::Geometry2DTests
 		Circle2D c(0, 0, 1);
 		
 		c.Center() = Point2Cartesian(2, 3);
-		REQUIRE_THAT(c.Center().X(), WithinAbs(REAL(2.0), 1e-10));
-		REQUIRE_THAT(c.Center().Y(), WithinAbs(REAL(3.0), 1e-10));
+		REQUIRE_THAT(c.Center().X(), WithinAbs(REAL(2.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(c.Center().Y(), WithinAbs(REAL(3.0), TOL(1e-10, 1e-5)));
 		
 		c.Radius() = 5;
-		REQUIRE_THAT(c.Radius(), WithinAbs(REAL(5.0), 1e-10));
+		REQUIRE_THAT(c.Radius(), WithinAbs(REAL(5.0), TOL(1e-10, 1e-5)));
 	}
 
 	/*********************************************************************/
@@ -1039,10 +1039,10 @@ namespace MML::Tests::Base::Geometry2DTests
 	{
 		TEST_PRECISION_INFO();
 		Box2D box; // Unit box from (0,0) to (1,1)
-		REQUIRE_THAT(box.MinX(), WithinAbs(REAL(0.0), 1e-10));
-		REQUIRE_THAT(box.MinY(), WithinAbs(REAL(0.0), 1e-10));
-		REQUIRE_THAT(box.MaxX(), WithinAbs(REAL(1.0), 1e-10));
-		REQUIRE_THAT(box.MaxY(), WithinAbs(REAL(1.0), 1e-10));
+		REQUIRE_THAT(box.MinX(), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(box.MinY(), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(box.MaxX(), WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(box.MaxY(), WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("Box2D - Point constructor with normalization", "[Box2D][Constructor]")
@@ -1050,23 +1050,23 @@ namespace MML::Tests::Base::Geometry2DTests
 		TEST_PRECISION_INFO();
 		// Normal order
 		Box2D box1(Point2Cartesian(0, 0), Point2Cartesian(4, 3));
-		REQUIRE_THAT(box1.MinX(), WithinAbs(REAL(0.0), 1e-10));
-		REQUIRE_THAT(box1.MaxX(), WithinAbs(REAL(4.0), 1e-10));
+		REQUIRE_THAT(box1.MinX(), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(box1.MaxX(), WithinAbs(REAL(4.0), TOL(1e-10, 1e-5)));
 		
 		// Reversed order - should normalize
 		Box2D box2(Point2Cartesian(4, 3), Point2Cartesian(0, 0));
-		REQUIRE_THAT(box2.MinX(), WithinAbs(REAL(0.0), 1e-10));
-		REQUIRE_THAT(box2.MaxX(), WithinAbs(REAL(4.0), 1e-10));
+		REQUIRE_THAT(box2.MinX(), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(box2.MaxX(), WithinAbs(REAL(4.0), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("Box2D - Coordinate constructor", "[Box2D][Constructor]")
 	{
 		TEST_PRECISION_INFO();
 		Box2D box(1, 2, 5, 6);
-		REQUIRE_THAT(box.MinX(), WithinAbs(REAL(1.0), 1e-10));
-		REQUIRE_THAT(box.MinY(), WithinAbs(REAL(2.0), 1e-10));
-		REQUIRE_THAT(box.MaxX(), WithinAbs(REAL(5.0), 1e-10));
-		REQUIRE_THAT(box.MaxY(), WithinAbs(REAL(6.0), 1e-10));
+		REQUIRE_THAT(box.MinX(), WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(box.MinY(), WithinAbs(REAL(2.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(box.MaxX(), WithinAbs(REAL(5.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(box.MaxY(), WithinAbs(REAL(6.0), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("Box2D - Factory methods", "[Box2D][Factory]")
@@ -1074,17 +1074,17 @@ namespace MML::Tests::Base::Geometry2DTests
 		TEST_PRECISION_INFO();
 		// FromCenterAndSize
 		Box2D box1 = Box2D::FromCenterAndSize(Point2Cartesian(5, 5), 4, 2);
-		REQUIRE_THAT(box1.MinX(), WithinAbs(REAL(3.0), 1e-10));
-		REQUIRE_THAT(box1.MaxX(), WithinAbs(REAL(7.0), 1e-10));
-		REQUIRE_THAT(box1.MinY(), WithinAbs(REAL(4.0), 1e-10));
-		REQUIRE_THAT(box1.MaxY(), WithinAbs(REAL(6.0), 1e-10));
+		REQUIRE_THAT(box1.MinX(), WithinAbs(REAL(3.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(box1.MaxX(), WithinAbs(REAL(7.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(box1.MinY(), WithinAbs(REAL(4.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(box1.MaxY(), WithinAbs(REAL(6.0), TOL(1e-10, 1e-5)));
 		
 		// FromCenterAndHalfExtents
 		Box2D box2 = Box2D::FromCenterAndHalfExtents(Point2Cartesian(0, 0), 2, 3);
-		REQUIRE_THAT(box2.MinX(), WithinAbs(REAL(-2.0), 1e-10));
-		REQUIRE_THAT(box2.MaxX(), WithinAbs(REAL(2.0), 1e-10));
-		REQUIRE_THAT(box2.MinY(), WithinAbs(REAL(-3.0), 1e-10));
-		REQUIRE_THAT(box2.MaxY(), WithinAbs(REAL(3.0), 1e-10));
+		REQUIRE_THAT(box2.MinX(), WithinAbs(REAL(-2.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(box2.MaxX(), WithinAbs(REAL(2.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(box2.MinY(), WithinAbs(REAL(-3.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(box2.MaxY(), WithinAbs(REAL(3.0), TOL(1e-10, 1e-5)));
 		
 		// FromPoints
 		std::vector<Point2Cartesian> points = {
@@ -1092,18 +1092,18 @@ namespace MML::Tests::Base::Geometry2DTests
 			Point2Cartesian(3, 7), Point2Cartesian(0, 4)
 		};
 		Box2D box3 = Box2D::FromPoints(points);
-		REQUIRE_THAT(box3.MinX(), WithinAbs(REAL(0.0), 1e-10));
-		REQUIRE_THAT(box3.MaxX(), WithinAbs(REAL(5.0), 1e-10));
-		REQUIRE_THAT(box3.MinY(), WithinAbs(REAL(2.0), 1e-10));
-		REQUIRE_THAT(box3.MaxY(), WithinAbs(REAL(7.0), 1e-10));
+		REQUIRE_THAT(box3.MinX(), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(box3.MaxX(), WithinAbs(REAL(5.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(box3.MinY(), WithinAbs(REAL(2.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(box3.MaxY(), WithinAbs(REAL(7.0), TOL(1e-10, 1e-5)));
 		
 		// FromPoints with empty vector throws
 		REQUIRE_THROWS(Box2D::FromPoints({}));
 		
 		// UnitBox
 		Box2D unit = Box2D::UnitBox();
-		REQUIRE_THAT(unit.MinX(), WithinAbs(REAL(0.0), 1e-10));
-		REQUIRE_THAT(unit.MaxX(), WithinAbs(REAL(1.0), 1e-10));
+		REQUIRE_THAT(unit.MinX(), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(unit.MaxX(), WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("Box2D - Dimensions and measurements", "[Box2D][Measurements]")
@@ -1111,20 +1111,20 @@ namespace MML::Tests::Base::Geometry2DTests
 		TEST_PRECISION_INFO();
 		Box2D box(0, 0, 4, 3);
 		
-		REQUIRE_THAT(box.Width(), WithinAbs(REAL(4.0), 1e-10));
-		REQUIRE_THAT(box.Height(), WithinAbs(REAL(3.0), 1e-10));
-		REQUIRE_THAT(box.Diagonal(), WithinAbs(REAL(5.0), 1e-10)); // 3-4-5 triangle
-		REQUIRE_THAT(box.AspectRatio(), WithinAbs(REAL(4.0) / REAL(3.0), 1e-10));
-		REQUIRE_THAT(box.Area(), WithinAbs(REAL(12.0), 1e-10));
-		REQUIRE_THAT(box.Perimeter(), WithinAbs(REAL(14.0), 1e-10));
+		REQUIRE_THAT(box.Width(), WithinAbs(REAL(4.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(box.Height(), WithinAbs(REAL(3.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(box.Diagonal(), WithinAbs(REAL(5.0), TOL(1e-10, 1e-5))); // 3-4-5 triangle
+		REQUIRE_THAT(box.AspectRatio(), WithinAbs(REAL(4.0) / REAL(3.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(box.Area(), WithinAbs(REAL(12.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(box.Perimeter(), WithinAbs(REAL(14.0), TOL(1e-10, 1e-5)));
 		
 		Vector2Cartesian size = box.Size();
-		REQUIRE_THAT(size.X(), WithinAbs(REAL(4.0), 1e-10));
-		REQUIRE_THAT(size.Y(), WithinAbs(REAL(3.0), 1e-10));
+		REQUIRE_THAT(size.X(), WithinAbs(REAL(4.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(size.Y(), WithinAbs(REAL(3.0), TOL(1e-10, 1e-5)));
 		
 		Vector2Cartesian halfExt = box.HalfExtents();
-		REQUIRE_THAT(halfExt.X(), WithinAbs(REAL(2.0), 1e-10));
-		REQUIRE_THAT(halfExt.Y(), WithinAbs(REAL(1.5), 1e-10));
+		REQUIRE_THAT(halfExt.X(), WithinAbs(REAL(2.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(halfExt.Y(), WithinAbs(REAL(1.5), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("Box2D - Center and corners", "[Box2D][Corners]")
@@ -1133,20 +1133,20 @@ namespace MML::Tests::Base::Geometry2DTests
 		Box2D box(0, 0, 4, 6);
 		
 		Point2Cartesian center = box.Center();
-		REQUIRE_THAT(center.X(), WithinAbs(REAL(2.0), 1e-10));
-		REQUIRE_THAT(center.Y(), WithinAbs(REAL(3.0), 1e-10));
+		REQUIRE_THAT(center.X(), WithinAbs(REAL(2.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(center.Y(), WithinAbs(REAL(3.0), TOL(1e-10, 1e-5)));
 		
-		REQUIRE_THAT(box.BottomLeft().X(), WithinAbs(REAL(0.0), 1e-10));
-		REQUIRE_THAT(box.BottomLeft().Y(), WithinAbs(REAL(0.0), 1e-10));
+		REQUIRE_THAT(box.BottomLeft().X(), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(box.BottomLeft().Y(), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
 		
-		REQUIRE_THAT(box.BottomRight().X(), WithinAbs(REAL(4.0), 1e-10));
-		REQUIRE_THAT(box.BottomRight().Y(), WithinAbs(REAL(0.0), 1e-10));
+		REQUIRE_THAT(box.BottomRight().X(), WithinAbs(REAL(4.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(box.BottomRight().Y(), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
 		
-		REQUIRE_THAT(box.TopLeft().X(), WithinAbs(REAL(0.0), 1e-10));
-		REQUIRE_THAT(box.TopLeft().Y(), WithinAbs(REAL(6.0), 1e-10));
+		REQUIRE_THAT(box.TopLeft().X(), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(box.TopLeft().Y(), WithinAbs(REAL(6.0), TOL(1e-10, 1e-5)));
 		
-		REQUIRE_THAT(box.TopRight().X(), WithinAbs(REAL(4.0), 1e-10));
-		REQUIRE_THAT(box.TopRight().Y(), WithinAbs(REAL(6.0), 1e-10));
+		REQUIRE_THAT(box.TopRight().X(), WithinAbs(REAL(4.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(box.TopRight().Y(), WithinAbs(REAL(6.0), TOL(1e-10, 1e-5)));
 		
 		auto corners = box.Corners();
 		REQUIRE(corners.size() == 4);
@@ -1159,7 +1159,7 @@ namespace MML::Tests::Base::Geometry2DTests
 		Polygon2D poly = box.ToPolygon();
 		
 		REQUIRE(poly.NumVertices() == 4);
-		REQUIRE_THAT(poly.Area(), WithinAbs(REAL(6.0), 1e-10));
+		REQUIRE_THAT(poly.Area(), WithinAbs(REAL(6.0), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("Box2D - Point containment", "[Box2D][Contains]")
@@ -1199,13 +1199,13 @@ namespace MML::Tests::Base::Geometry2DTests
 		Box2D box(0, 0, 4, 3);
 		
 		// Point inside - distance is 0
-		REQUIRE_THAT(box.DistanceToPoint(Point2Cartesian(2, 1)), WithinAbs(REAL(0.0), 1e-10));
+		REQUIRE_THAT(box.DistanceToPoint(Point2Cartesian(2, 1)), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
 		
 		// Point directly outside edge
-		REQUIRE_THAT(box.DistanceToPoint(Point2Cartesian(6, 1)), WithinAbs(REAL(2.0), 1e-10));
+		REQUIRE_THAT(box.DistanceToPoint(Point2Cartesian(6, 1)), WithinAbs(REAL(2.0), TOL(1e-10, 1e-5)));
 		
 		// Point outside corner
-		REQUIRE_THAT(box.DistanceToPoint(Point2Cartesian(7, 7)), WithinAbs(REAL(5.0), 1e-10)); // 3-4-5 triangle
+		REQUIRE_THAT(box.DistanceToPoint(Point2Cartesian(7, 7)), WithinAbs(REAL(5.0), TOL(1e-10, 1e-5))); // 3-4-5 triangle
 	}
 
 	TEST_CASE("Box2D - Closest point", "[Box2D][ClosestPoint]")
@@ -1215,13 +1215,13 @@ namespace MML::Tests::Base::Geometry2DTests
 		
 		// Point inside - returns the point itself (clamped)
 		Point2Cartesian inside = box.ClosestPoint(Point2Cartesian(2, 1));
-		REQUIRE_THAT(inside.X(), WithinAbs(REAL(2.0), 1e-10));
-		REQUIRE_THAT(inside.Y(), WithinAbs(REAL(1.0), 1e-10));
+		REQUIRE_THAT(inside.X(), WithinAbs(REAL(2.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(inside.Y(), WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
 		
 		// Point outside - projects to boundary
 		Point2Cartesian outside = box.ClosestPoint(Point2Cartesian(6, 5));
-		REQUIRE_THAT(outside.X(), WithinAbs(REAL(4.0), 1e-10));
-		REQUIRE_THAT(outside.Y(), WithinAbs(REAL(3.0), 1e-10));
+		REQUIRE_THAT(outside.X(), WithinAbs(REAL(4.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(outside.Y(), WithinAbs(REAL(3.0), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("Box2D - Box-box intersection test", "[Box2D][Intersection]")
@@ -1250,15 +1250,15 @@ namespace MML::Tests::Base::Geometry2DTests
 		Box2D box2(2, 1, 6, 5);
 		
 		Box2D isect = box1.Intersection(box2);
-		REQUIRE_THAT(isect.MinX(), WithinAbs(REAL(2.0), 1e-10));
-		REQUIRE_THAT(isect.MinY(), WithinAbs(REAL(1.0), 1e-10));
-		REQUIRE_THAT(isect.MaxX(), WithinAbs(REAL(4.0), 1e-10));
-		REQUIRE_THAT(isect.MaxY(), WithinAbs(REAL(3.0), 1e-10));
+		REQUIRE_THAT(isect.MinX(), WithinAbs(REAL(2.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(isect.MinY(), WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(isect.MaxX(), WithinAbs(REAL(4.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(isect.MaxY(), WithinAbs(REAL(3.0), TOL(1e-10, 1e-5)));
 		
 		// Non-overlapping returns empty box
 		Box2D box3(10, 10, 12, 12);
 		Box2D empty = box1.Intersection(box3);
-		REQUIRE_THAT(empty.Area(), WithinAbs(REAL(0.0), 1e-10));
+		REQUIRE_THAT(empty.Area(), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("Box2D - Union calculation", "[Box2D][Union]")
@@ -1268,10 +1268,10 @@ namespace MML::Tests::Base::Geometry2DTests
 		Box2D box2(2, 1, 6, 5);
 		
 		Box2D u = box1.Union(box2);
-		REQUIRE_THAT(u.MinX(), WithinAbs(REAL(0.0), 1e-10));
-		REQUIRE_THAT(u.MinY(), WithinAbs(REAL(0.0), 1e-10));
-		REQUIRE_THAT(u.MaxX(), WithinAbs(REAL(6.0), 1e-10));
-		REQUIRE_THAT(u.MaxY(), WithinAbs(REAL(5.0), 1e-10));
+		REQUIRE_THAT(u.MinX(), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(u.MinY(), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(u.MaxX(), WithinAbs(REAL(6.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(u.MaxY(), WithinAbs(REAL(5.0), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("Box2D - ExpandToInclude", "[Box2D][Expand]")
@@ -1280,12 +1280,12 @@ namespace MML::Tests::Base::Geometry2DTests
 		Box2D box(0, 0, 2, 2);
 		
 		box.ExpandToInclude(Point2Cartesian(5, 3));
-		REQUIRE_THAT(box.MaxX(), WithinAbs(REAL(5.0), 1e-10));
-		REQUIRE_THAT(box.MaxY(), WithinAbs(REAL(3.0), 1e-10));
+		REQUIRE_THAT(box.MaxX(), WithinAbs(REAL(5.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(box.MaxY(), WithinAbs(REAL(3.0), TOL(1e-10, 1e-5)));
 		
 		box.ExpandToInclude(Point2Cartesian(-1, -1));
-		REQUIRE_THAT(box.MinX(), WithinAbs(REAL(-1.0), 1e-10));
-		REQUIRE_THAT(box.MinY(), WithinAbs(REAL(-1.0), 1e-10));
+		REQUIRE_THAT(box.MinX(), WithinAbs(REAL(-1.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(box.MinY(), WithinAbs(REAL(-1.0), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("Box2D - Expanded margin", "[Box2D][Expand]")
@@ -1294,10 +1294,10 @@ namespace MML::Tests::Base::Geometry2DTests
 		Box2D box(1, 2, 3, 4);
 		Box2D expanded = box.Expanded(1);
 		
-		REQUIRE_THAT(expanded.MinX(), WithinAbs(REAL(0.0), 1e-10));
-		REQUIRE_THAT(expanded.MinY(), WithinAbs(REAL(1.0), 1e-10));
-		REQUIRE_THAT(expanded.MaxX(), WithinAbs(REAL(4.0), 1e-10));
-		REQUIRE_THAT(expanded.MaxY(), WithinAbs(REAL(5.0), 1e-10));
+		REQUIRE_THAT(expanded.MinX(), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(expanded.MinY(), WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(expanded.MaxX(), WithinAbs(REAL(4.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(expanded.MaxY(), WithinAbs(REAL(5.0), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("Box2D - IsDegenerate", "[Box2D][Degenerate]")
@@ -1319,10 +1319,10 @@ namespace MML::Tests::Base::Geometry2DTests
 		Box2D box(0, 0, 4, 3);
 		Box2D translated = box.Translated(Vector2Cartesian(5, 7));
 		
-		REQUIRE_THAT(translated.MinX(), WithinAbs(REAL(5.0), 1e-10));
-		REQUIRE_THAT(translated.MinY(), WithinAbs(REAL(7.0), 1e-10));
-		REQUIRE_THAT(translated.MaxX(), WithinAbs(REAL(9.0), 1e-10));
-		REQUIRE_THAT(translated.MaxY(), WithinAbs(REAL(10.0), 1e-10));
+		REQUIRE_THAT(translated.MinX(), WithinAbs(REAL(5.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(translated.MinY(), WithinAbs(REAL(7.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(translated.MaxX(), WithinAbs(REAL(9.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(translated.MaxY(), WithinAbs(REAL(10.0), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("Box2D - Scaling", "[Box2D][Transform]")
@@ -1333,11 +1333,11 @@ namespace MML::Tests::Base::Geometry2DTests
 		
 		// Scales from center, so center stays the same
 		Point2Cartesian center = scaled.Center();
-		REQUIRE_THAT(center.X(), WithinAbs(REAL(2.0), 1e-10));
-		REQUIRE_THAT(center.Y(), WithinAbs(REAL(1.0), 1e-10));
+		REQUIRE_THAT(center.X(), WithinAbs(REAL(2.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(center.Y(), WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
 		
-		REQUIRE_THAT(scaled.Width(), WithinAbs(REAL(8.0), 1e-10));
-		REQUIRE_THAT(scaled.Height(), WithinAbs(REAL(4.0), 1e-10));
+		REQUIRE_THAT(scaled.Width(), WithinAbs(REAL(8.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(scaled.Height(), WithinAbs(REAL(4.0), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("Box2D - Circle intersection", "[Box2D][Intersection]")
@@ -1370,10 +1370,10 @@ namespace MML::Tests::Base::Geometry2DTests
 		box.Min() = Point2Cartesian(2, 3);
 		box.Max() = Point2Cartesian(5, 6);
 		
-		REQUIRE_THAT(box.MinX(), WithinAbs(REAL(2.0), 1e-10));
-		REQUIRE_THAT(box.MinY(), WithinAbs(REAL(3.0), 1e-10));
-		REQUIRE_THAT(box.MaxX(), WithinAbs(REAL(5.0), 1e-10));
-		REQUIRE_THAT(box.MaxY(), WithinAbs(REAL(6.0), 1e-10));
+		REQUIRE_THAT(box.MinX(), WithinAbs(REAL(2.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(box.MinY(), WithinAbs(REAL(3.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(box.MaxX(), WithinAbs(REAL(5.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(box.MaxY(), WithinAbs(REAL(6.0), TOL(1e-10, 1e-5)));
 	}
 
 	/*********************************************************************/

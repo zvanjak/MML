@@ -16,6 +16,7 @@
 #include "mml/base/Geometry/Geometry.h"
 
 // Standard headers - include what we use
+#include <cassert>
 #include <initializer_list>
 #include <iomanip>
 #include <iostream>
@@ -95,8 +96,8 @@ namespace MML
 		{
 			VectorN ret;
 			Real norm = NormL2();
-			if (norm == 0.0)
-				throw VectorDimensionError("VectorN::Normalized - cannot normalize zero vector", N, 0);
+			if (norm < std::numeric_limits<Real>::epsilon() * 100)
+				throw VectorDimensionError("VectorN::Normalized - cannot normalize near-zero vector", N, 0);
 			for (int i = 0; i < N; ++i)
 				ret._val[i] = _val[i] / norm;
 			return ret;
@@ -113,10 +114,16 @@ namespace MML
 		///////////////////////            Accessing elements             ///////////////////////
 		/// @brief Element access (non-const).
 		/// @param n Index
-		inline Type& operator[](int n) noexcept { return _val[n]; }
+		inline Type& operator[](int n) noexcept {
+			assert(n >= 0 && n < N && "VectorN::operator[] - index out of bounds");
+			return _val[n];
+		}
 		/// @brief Element access (const).
 		/// @param n Index
-		inline const Type& operator[](int n) const noexcept { return _val[n]; }
+		inline const Type& operator[](int n) const noexcept {
+			assert(n >= 0 && n < N && "VectorN::operator[] - index out of bounds");
+			return _val[n];
+		}
 
 		/// @brief Checked element access (non-const).
 		/// @param n Index (throws if out of bounds)
@@ -187,7 +194,7 @@ namespace MML
 		bool isZero() const noexcept
 		{
 			for (int i = 0; i < N; i++)
-				if (_val[i] != 0.0)
+				if (std::abs(_val[i]) > std::numeric_limits<Real>::epsilon() * 100)
 					return false;
 
 			return true;

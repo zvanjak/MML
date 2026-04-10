@@ -39,8 +39,8 @@ TEST_CASE("JacobiEigen_2x2_Simple", "[EigenSolvers][Jacobi][Small]")
 	REQUIRE(result.eigenvalues.size() == 2);
 	
 	// Check eigenvalues (sorted ascending)
-	REQUIRE(std::abs(result.eigenvalues[0] - REAL(1.0)) < 1e-10);
-	REQUIRE(std::abs(result.eigenvalues[1] - REAL(3.0)) < 1e-10);
+	REQUIRE(std::abs(result.eigenvalues[0] - REAL(1.0)) < TOL(1e-10, 1e-5));
+	REQUIRE(std::abs(result.eigenvalues[1] - REAL(3.0)) < TOL(1e-10, 1e-5));
 	
 	// Verify A*v = λ*v for each eigenpair
 	for (int i = 0; i < 2; i++)
@@ -53,7 +53,7 @@ TEST_CASE("JacobiEigen_2x2_Simple", "[EigenSolvers][Jacobi][Small]")
 		Vector<Real> lambda_v = result.eigenvalues[i] * v;
 		
 		for (int j = 0; j < 2; j++)
-			REQUIRE(std::abs(Av[j] - lambda_v[j]) < 1e-10);
+			REQUIRE(std::abs(Av[j] - lambda_v[j]) < TOL(1e-10, 1e-5));
 	}
 	
 	// Verify eigenvectors are orthonormal
@@ -64,9 +64,9 @@ TEST_CASE("JacobiEigen_2x2_Simple", "[EigenSolvers][Jacobi][Small]")
 	Real norm0 = std::sqrt(v0[0] * v0[0] + v0[1] * v0[1]);
 	Real norm1 = std::sqrt(v1[0] * v1[0] + v1[1] * v1[1]);
 	
-	REQUIRE(std::abs(dot01) < 1e-10);        // Orthogonal
-	REQUIRE(std::abs(norm0 - REAL(1.0)) < 1e-10);  // Unit norm
-	REQUIRE(std::abs(norm1 - REAL(1.0)) < 1e-10);  // Unit norm
+	REQUIRE(std::abs(dot01) < TOL(1e-10, 1e-5));        // Orthogonal
+	REQUIRE(std::abs(norm0 - REAL(1.0)) < TOL(1e-10, 1e-5));  // Unit norm
+	REQUIRE(std::abs(norm1 - REAL(1.0)) < TOL(1e-10, 1e-5));  // Unit norm
 }
 
 TEST_CASE("JacobiEigen_3x3_Identity", "[EigenSolvers][Jacobi][Small]")
@@ -82,7 +82,7 @@ TEST_CASE("JacobiEigen_3x3_Identity", "[EigenSolvers][Jacobi][Small]")
 	
 	// All eigenvalues should be 1
 	for (int i = 0; i < 3; i++)
-		REQUIRE(std::abs(result.eigenvalues[i] - REAL(1.0)) < 1e-10);
+		REQUIRE(std::abs(result.eigenvalues[i] - REAL(1.0)) < TOL(1e-10, 1e-5));
 }
 
 TEST_CASE("JacobiEigen_3x3_Diagonal", "[EigenSolvers][Jacobi][Small]")
@@ -96,9 +96,9 @@ TEST_CASE("JacobiEigen_3x3_Diagonal", "[EigenSolvers][Jacobi][Small]")
 	REQUIRE(result.converged);
 	
 	// Eigenvalues should be 1, 3, 5 (sorted)
-	REQUIRE(std::abs(result.eigenvalues[0] - REAL(1.0)) < 1e-10);
-	REQUIRE(std::abs(result.eigenvalues[1] - REAL(3.0)) < 1e-10);
-	REQUIRE(std::abs(result.eigenvalues[2] - REAL(5.0)) < 1e-10);
+	REQUIRE(std::abs(result.eigenvalues[0] - REAL(1.0)) < TOL(1e-10, 1e-5));
+	REQUIRE(std::abs(result.eigenvalues[1] - REAL(3.0)) < TOL(1e-10, 1e-5));
+	REQUIRE(std::abs(result.eigenvalues[2] - REAL(5.0)) < TOL(1e-10, 1e-5));
 }
 
 TEST_CASE("JacobiEigen_SymmetricMatrix_3x3", "[EigenSolvers][Jacobi][TestData]")
@@ -116,7 +116,7 @@ TEST_CASE("JacobiEigen_SymmetricMatrix_3x3", "[EigenSolvers][Jacobi][TestData]")
 	std::sort(expected.begin(), expected.end());
 	
 	for (int i = 0; i < 3; i++)
-		REQUIRE(std::abs(result.eigenvalues[i] - expected[i]) < 1e-6);
+		REQUIRE(std::abs(result.eigenvalues[i] - expected[i]) < TOL(1e-6, 5e-5));
 	
 	// Verify A*V = V*Λ
 	const auto& symm_mat = symm_mat_3x3();
@@ -132,7 +132,7 @@ TEST_CASE("JacobiEigen_SymmetricMatrix_3x3", "[EigenSolvers][Jacobi][TestData]")
 		Vector<Real> lambda_v = result.eigenvalues[i] * v;
 		
 		for (int j = 0; j < 3; j++)
-			REQUIRE(std::abs(Av[j] - lambda_v[j]) < 1e-8);
+			REQUIRE(std::abs(Av[j] - lambda_v[j]) < TOL(1e-8, 1e-4));
 	}
 }
 
@@ -151,21 +151,21 @@ TEST_CASE("JacobiEigen_SymmetricMatrix_5x5", "[EigenSolvers][Jacobi][TestData]")
 	std::sort(expected.begin(), expected.end());
 	
 	for (int i = 0; i < 5; i++)
-		REQUIRE(std::abs(result.eigenvalues[i] - expected[i]) < 1e-6);
+		REQUIRE(std::abs(result.eigenvalues[i] - expected[i]) < TOL(1e-6, 5e-5));
 	
 	// Verify eigenvectors are orthonormal
 	for (int i = 0; i < 5; i++)
 	{
 		Vector<Real> vi = result.eigenvectors.VectorFromColumn(i);
 		Real norm = vi.NormL2();
-		REQUIRE(std::abs(norm - REAL(1.0)) < 1e-10);
+		REQUIRE(std::abs(norm - REAL(1.0)) < TOL(1e-10, 1e-5));
 		
 		// Check orthogonality with all other vectors
 		for (int j = i + 1; j < 5; j++)
 		{
 			Vector<Real> vj = result.eigenvectors.VectorFromColumn(j);
 			Real dot = Utils::ScalarProduct(vi, vj);
-			REQUIRE(std::abs(dot) < 1e-8);
+			REQUIRE(std::abs(dot) < TOL(1e-8, 1e-4));
 		}
 	}
 }
@@ -185,7 +185,7 @@ TEST_CASE("JacobiEigen_SymmetricMatrix_10x10", "[EigenSolvers][Jacobi][TestData]
 	std::sort(expected.begin(), expected.end());
 	
 	for (int i = 0; i < 10; i++)
-		REQUIRE(std::abs(result.eigenvalues[i] - expected[i]) < 1e-6);
+		REQUIRE(std::abs(result.eigenvalues[i] - expected[i]) < TOL(1e-6, 5e-5));
 }
 
 TEST_CASE("JacobiEigen_SymmetricMatrix_3x3_Verified", "[EigenSolvers][Jacobi][Verified]")
@@ -203,13 +203,13 @@ TEST_CASE("JacobiEigen_SymmetricMatrix_3x3_Verified", "[EigenSolvers][Jacobi][Ve
 	std::sort(expected.begin(), expected.end());
 	
 	for (int i = 0; i < 3; i++)
-		REQUIRE(std::abs(result.eigenvalues[i] - expected[i]) < 1e-6);
+		REQUIRE(std::abs(result.eigenvalues[i] - expected[i]) < TOL(1e-6, 5e-5));
 	
 	// Verify trace = sum of eigenvalues
 	const auto& mat = symm_mat_3x3();
 	Real trace = mat(0,0) + mat(1,1) + mat(2,2);
 	Real eigensum = result.eigenvalues[0] + result.eigenvalues[1] + result.eigenvalues[2];
-	REQUIRE(std::abs(trace - eigensum) < 1e-10);
+	REQUIRE(std::abs(trace - eigensum) < TOL(1e-10, 1e-5));
 }
 
 TEST_CASE("JacobiEigen_SymmetricMatrix_5x5_Verified", "[EigenSolvers][Jacobi][Verified]")
@@ -227,7 +227,7 @@ TEST_CASE("JacobiEigen_SymmetricMatrix_5x5_Verified", "[EigenSolvers][Jacobi][Ve
 	std::sort(expected.begin(), expected.end());
 	
 	for (int i = 0; i < 5; i++)
-		REQUIRE(std::abs(result.eigenvalues[i] - expected[i]) < 1e-6);
+		REQUIRE(std::abs(result.eigenvalues[i] - expected[i]) < TOL(1e-6, 5e-5));
 	
 	// Verify trace = sum of eigenvalues
 	const auto& mat = symm_mat_5x5();
@@ -239,7 +239,7 @@ TEST_CASE("JacobiEigen_SymmetricMatrix_5x5_Verified", "[EigenSolvers][Jacobi][Ve
 	for (int i = 0; i < 5; i++)
 		eigensum += result.eigenvalues[i];
 	
-	REQUIRE(std::abs(trace - eigensum) < 1e-10);
+	REQUIRE(std::abs(trace - eigensum) < TOL(1e-10, 1e-5));
 }
 
 TEST_CASE("JacobiEigen_SymmetricMatrix_10x10_Verified", "[EigenSolvers][Jacobi][Verified]")
@@ -257,7 +257,7 @@ TEST_CASE("JacobiEigen_SymmetricMatrix_10x10_Verified", "[EigenSolvers][Jacobi][
 	std::sort(expected.begin(), expected.end());
 	
 	for (int i = 0; i < 10; i++)
-		REQUIRE(std::abs(result.eigenvalues[i] - expected[i]) < 1e-6);
+		REQUIRE(std::abs(result.eigenvalues[i] - expected[i]) < TOL(1e-6, 5e-5));
 	
 	// Verify trace = sum of eigenvalues
 	const auto& mat = symm_mat_10x10();
@@ -269,7 +269,7 @@ TEST_CASE("JacobiEigen_SymmetricMatrix_10x10_Verified", "[EigenSolvers][Jacobi][
 	for (int i = 0; i < 10; i++)
 		eigensum += result.eigenvalues[i];
 	
-	REQUIRE(std::abs(trace - eigensum) < 1e-10);
+	REQUIRE(std::abs(trace - eigensum) < TOL(1e-10, 1e-5));
 }
 
 TEST_CASE("JacobiEigen_GraphLaplacian_6x6", "[EigenSolvers][Jacobi][Singular]")
@@ -310,7 +310,7 @@ TEST_CASE("JacobiEigen_EigenvectorOrthonormality", "[EigenSolvers][Jacobi][Prope
 		for (int j = 0; j < n; j++)
 		{
 			Real expected = (i == j) ? REAL(1.0) : REAL(0.0);
-			REQUIRE(std::abs(VtV[i][j] - expected) < 1e-8);
+			REQUIRE(std::abs(VtV[i][j] - expected) < TOL(1e-8, 1e-4));
 		}
 	}
 }
@@ -346,7 +346,7 @@ TEST_CASE("JacobiEigen_ReconstructMatrix", "[EigenSolvers][Jacobi][Properties]")
 	// Compare
 	for (int i = 0; i < n; i++)
 		for (int j = 0; j < n; j++)
-			REQUIRE(std::abs(A_reconstructed[i][j] - A_original[i][j]) < 1e-8);
+			REQUIRE(std::abs(A_reconstructed[i][j] - A_original[i][j]) < TOL(1e-8, 1e-4));
 }
 
 TEST_CASE("JacobiEigen_ConvergenceSpeed", "[EigenSolvers][Jacobi][Performance]")
@@ -355,7 +355,7 @@ TEST_CASE("JacobiEigen_ConvergenceSpeed", "[EigenSolvers][Jacobi][Performance]")
 	// Test that Jacobi converges reasonably fast
 	
 	MatrixSym<Real> mat_copy = symm_mat_10x10();
-	auto result = SymmMatEigenSolverJacobi::Solve(mat_copy, 1e-10, 100);
+	auto result = SymmMatEigenSolverJacobi::Solve(mat_copy, TOL(1e-10, 1e-5), 100);
 	
 	REQUIRE(result.converged);
 	
@@ -365,7 +365,7 @@ TEST_CASE("JacobiEigen_ConvergenceSpeed", "[EigenSolvers][Jacobi][Performance]")
 	
 	// Residual should be small
 	INFO("Residual: " << result.residual);
-	REQUIRE(result.residual < 1e-10);
+	REQUIRE(result.residual < TOL(1e-10, 1e-5));
 }
 
 TEST_CASE("JacobiEigen_NonConvergence", "[EigenSolvers][Jacobi][EdgeCases]")
@@ -374,7 +374,7 @@ TEST_CASE("JacobiEigen_NonConvergence", "[EigenSolvers][Jacobi][EdgeCases]")
 	// Test behavior with very small maxIter
 	
 	MatrixSym<Real> mat_copy = symm_mat_10x10();
-	auto result = SymmMatEigenSolverJacobi::Solve(mat_copy, 1e-15, 1);  // Only 1 iteration
+	auto result = SymmMatEigenSolverJacobi::Solve(mat_copy, TOL(1e-15, 1e-5), 1);  // Only 1 iteration
 	
 	// Should not converge
 	REQUIRE_FALSE(result.converged);
@@ -401,7 +401,7 @@ TEST_CASE("JacobiEigen_TraceAndDeterminant", "[EigenSolvers][Jacobi][Properties]
 	for (int i = 0; i < 5; i++)
 		eigensum += result.eigenvalues[i];
 	
-	REQUIRE(std::abs(trace - eigensum) < 1e-10);
+	REQUIRE(std::abs(trace - eigensum) < TOL(1e-10, 1e-5));
 	
 	// Product of eigenvalues = determinant
 	Real eigenprod = REAL(1.0);
@@ -430,8 +430,8 @@ TEST_CASE("QREigen_2x2_Simple", "[EigenSolvers][QR][Small]")
 	REQUIRE(result.eigenvalues.size() == 2);
 	
 	// Check eigenvalues (sorted ascending)
-	REQUIRE(std::abs(result.eigenvalues[0] - REAL(1.0)) < 1e-10);
-	REQUIRE(std::abs(result.eigenvalues[1] - REAL(3.0)) < 1e-10);
+	REQUIRE(std::abs(result.eigenvalues[0] - REAL(1.0)) < TOL(1e-10, 1e-5));
+	REQUIRE(std::abs(result.eigenvalues[1] - REAL(3.0)) < TOL(1e-10, 1e-5));
 	
 	// Verify A*v = λ*v for each eigenpair
 	for (int i = 0; i < 2; i++)
@@ -444,7 +444,7 @@ TEST_CASE("QREigen_2x2_Simple", "[EigenSolvers][QR][Small]")
 		Vector<Real> lambda_v = result.eigenvalues[i] * v;
 		
 		for (int j = 0; j < 2; j++)
-			REQUIRE(std::abs(Av[j] - lambda_v[j]) < 1e-10);
+			REQUIRE(std::abs(Av[j] - lambda_v[j]) < TOL(1e-10, 1e-5));
 	}
 }
 
@@ -461,7 +461,7 @@ TEST_CASE("QREigen_3x3_Identity", "[EigenSolvers][QR][Small]")
 	
 	// All eigenvalues should be REAL(1.0)
 	for (int i = 0; i < 3; i++)
-		REQUIRE(std::abs(result.eigenvalues[i] - REAL(1.0)) < 1e-10);
+		REQUIRE(std::abs(result.eigenvalues[i] - REAL(1.0)) < TOL(1e-10, 1e-5));
 }
 
 TEST_CASE("QREigen_3x3_Diagonal", "[EigenSolvers][QR][Small]")
@@ -476,9 +476,9 @@ TEST_CASE("QREigen_3x3_Diagonal", "[EigenSolvers][QR][Small]")
 	REQUIRE(result.converged);
 	
 	// Check eigenvalues (sorted ascending)
-	REQUIRE(std::abs(result.eigenvalues[0] - REAL(1.0)) < 1e-10);
-	REQUIRE(std::abs(result.eigenvalues[1] - REAL(3.0)) < 1e-10);
-	REQUIRE(std::abs(result.eigenvalues[2] - REAL(5.0)) < 1e-10);
+	REQUIRE(std::abs(result.eigenvalues[0] - REAL(1.0)) < TOL(1e-10, 1e-5));
+	REQUIRE(std::abs(result.eigenvalues[1] - REAL(3.0)) < TOL(1e-10, 1e-5));
+	REQUIRE(std::abs(result.eigenvalues[2] - REAL(5.0)) < TOL(1e-10, 1e-5));
 }
 
 TEST_CASE("QREigen_SymmetricMatrix_3x3_Verified", "[EigenSolvers][QR][Verified]")
@@ -507,7 +507,7 @@ TEST_CASE("QREigen_SymmetricMatrix_3x3_Verified", "[EigenSolvers][QR][Verified]"
 	std::sort(std::begin(expected_eigenvals), std::end(expected_eigenvals));
 	
 	for (int i = 0; i < 3; i++)
-		REQUIRE(std::abs(result.eigenvalues[i] - expected_eigenvals[i]) < 1e-6);
+		REQUIRE(std::abs(result.eigenvalues[i] - expected_eigenvals[i]) < TOL(1e-6, 5e-5));
 	
 	// Verify A*v = λ*v for each eigenpair
 	Matrix<Real> A_mat(3, 3);
@@ -522,7 +522,7 @@ TEST_CASE("QREigen_SymmetricMatrix_3x3_Verified", "[EigenSolvers][QR][Verified]"
 		Vector<Real> lambda_v = result.eigenvalues[i] * v;
 		
 		for (int j = 0; j < 3; j++)
-			REQUIRE(std::abs(Av[j] - lambda_v[j]) < 1e-6);
+			REQUIRE(std::abs(Av[j] - lambda_v[j]) < TOL(1e-6, 5e-5));
 	}
 }
 
@@ -550,7 +550,7 @@ TEST_CASE("QREigen_SymmetricMatrix_5x5_Verified", "[EigenSolvers][QR][Verified]"
 	std::sort(std::begin(expected_eigenvals), std::end(expected_eigenvals));
 	
 	for (int i = 0; i < 5; i++)
-		REQUIRE(std::abs(result.eigenvalues[i] - expected_eigenvals[i]) < 1e-6);
+		REQUIRE(std::abs(result.eigenvalues[i] - expected_eigenvals[i]) < TOL(1e-6, 5e-5));
 	
 	// Verify eigenvector orthonormality
 	for (int i = 0; i < 5; i++)
@@ -559,14 +559,14 @@ TEST_CASE("QREigen_SymmetricMatrix_5x5_Verified", "[EigenSolvers][QR][Verified]"
 		
 		// Check normalization
 		Real norm_sq = Utils::ScalarProduct(vi, vi);
-		REQUIRE(std::abs(norm_sq - REAL(1.0)) < 1e-10);
+		REQUIRE(std::abs(norm_sq - REAL(1.0)) < TOL(1e-10, 1e-5));
 		
 		// Check orthogonality with other eigenvectors
 		for (int j = i + 1; j < 5; j++)
 		{
 			Vector<Real> vj = result.eigenvectors.VectorFromColumn(j);
 			Real dot = Utils::ScalarProduct(vi, vj);
-			REQUIRE(std::abs(dot) < 1e-10);
+			REQUIRE(std::abs(dot) < TOL(1e-10, 1e-5));
 		}
 	}
 }
@@ -638,7 +638,7 @@ TEST_CASE("QREigen_CompareWithJacobi_3x3", "[EigenSolvers][QR][Jacobi][Compariso
 	
 	// Eigenvalues should match between methods
 	for (int i = 0; i < 3; i++)
-		REQUIRE(std::abs(qr_result.eigenvalues[i] - jacobi_result.eigenvalues[i]) < 1e-8);
+		REQUIRE(std::abs(qr_result.eigenvalues[i] - jacobi_result.eigenvalues[i]) < TOL(1e-8, 1e-4));
 }
 
 TEST_CASE("QREigen_CompareWithJacobi_5x5", "[EigenSolvers][QR][Jacobi][Comparison]")
@@ -659,7 +659,7 @@ TEST_CASE("QREigen_CompareWithJacobi_5x5", "[EigenSolvers][QR][Jacobi][Compariso
 	
 	// Eigenvalues should match between methods
 	for (int i = 0; i < 5; i++)
-		REQUIRE(std::abs(qr_result.eigenvalues[i] - jacobi_result.eigenvalues[i]) < 1e-8);
+		REQUIRE(std::abs(qr_result.eigenvalues[i] - jacobi_result.eigenvalues[i]) < TOL(1e-8, 1e-4));
 }
 
 TEST_CASE("QREigen_Convergence", "[EigenSolvers][QR][Convergence]")
@@ -672,10 +672,10 @@ TEST_CASE("QREigen_Convergence", "[EigenSolvers][QR][Convergence]")
 		for (int j = i; j < 3; j++)
 			A(i, j) = symm_mat(i, j);
 	
-	auto result = SymmMatEigenSolverQR::Solve(A, 1e-12, 1000);
+	auto result = SymmMatEigenSolverQR::Solve(A, TOL(1e-12, 1e-5), 1000);
 	
 	REQUIRE(result.converged);
-	REQUIRE(result.residual < 1e-12);
+	REQUIRE(result.residual < TOL(1e-12, 1e-5));
 	INFO("Converged in " << result.iterations << " iterations");
 	INFO("Final residual: " << result.residual);
 }
@@ -727,7 +727,7 @@ TEST_CASE("QREigen_Trace_Property", "[EigenSolvers][QR][Properties]")
 	for (int i = 0; i < 5; i++)
 		eigensum += result.eigenvalues[i];
 	
-	REQUIRE(std::abs(trace - eigensum) < 1e-10);
+	REQUIRE(std::abs(trace - eigensum) < TOL(1e-10, 1e-5));
 }
 
 /***************************************************************************************************
@@ -863,7 +863,7 @@ TEST_CASE("QREigen_AllSymmetricTestBed", "[EigenSolvers][QR][TestBed][Comprehens
 			
 			// Adjust tolerance based on difficulty and condition number
 			// Use reasonable baseline accounting for limited precision in stored eigenvalues
-			Real baseTol = 1e-5;  // Accounts for ~6-digit precision in test bed eigenvalues
+			Real baseTol = TOL(1e-5, 5e-4);  // Accounts for ~6-digit precision in test bed eigenvalues
 			Real tol = baseTol * std::pow(10.0, test.difficulty - 1);
 			if (test.conditionNumber > 1e6) tol *= 100;   // Well-conditioned but still sensitive
 			if (test.conditionNumber > 1e10) tol *= 1e3;  // Ill-conditioned
@@ -953,7 +953,7 @@ TEST_CASE("EigenSolvers_EasyTestBed", "[EigenSolvers][TestBed][Quick]")
 			if (test.realEigenvalues.size() > 0)
 			{
 				// Use 1e-5 tolerance to account for limited precision in stored eigenvalues
-				CHECK(TestBeds::verifyRealEigenvalues(result.eigenvalues, test.realEigenvalues, 1e-5));
+				CHECK(TestBeds::verifyRealEigenvalues(result.eigenvalues, test.realEigenvalues, TOL(1e-5, 5e-4)));
 			}
 		}
 	}
@@ -989,8 +989,8 @@ TEST_CASE("EigenSolvers_ChallengingTestBed", "[EigenSolvers][TestBed][Challengin
 			if (resultQR.converged && test.realEigenvalues.size() > 0 && !skipEigenvalueComparison)
 			{
 				// More relaxed tolerance for challenging cases
-				Real tol = 1e-6;
-				if (test.difficulty >= 4) tol = 1e-4;
+				Real tol = TOL(1e-6, 5e-5);
+				if (test.difficulty >= 4) tol = TOL(1e-4, 1e-2);
 				
 				bool match = TestBeds::verifyRealEigenvalues(resultQR.eigenvalues, test.realEigenvalues, tol);
 				if (!match)
@@ -1015,7 +1015,7 @@ TEST_CASE("EigenSolvers_ChallengingTestBed", "[EigenSolvers][TestBed][Challengin
 						maxResidual = std::max(maxResidual, residual);
 					}
 					INFO("QR max residual ||Av-λv||/||v||: " << maxResidual);
-					CHECK(maxResidual < 1e-6);  // Self-consistency should still be good
+					CHECK(maxResidual < TOL(1e-6, 5e-5));  // Self-consistency should still be good
 				}
 			}
 			
@@ -1024,8 +1024,8 @@ TEST_CASE("EigenSolvers_ChallengingTestBed", "[EigenSolvers][TestBed][Challengin
 			
 			if (resultJac.converged && test.realEigenvalues.size() > 0 && !skipEigenvalueComparison)
 			{
-				Real tol = 1e-6;
-				if (test.difficulty >= 4) tol = 1e-4;
+				Real tol = TOL(1e-6, 5e-5);
+				if (test.difficulty >= 4) tol = TOL(1e-4, 1e-2);
 				
 				bool match = TestBeds::verifyRealEigenvalues(resultJac.eigenvalues, test.realEigenvalues, tol);
 				if (!match)
@@ -1046,7 +1046,7 @@ TEST_CASE("EigenSolvers_ChallengingTestBed", "[EigenSolvers][TestBed][Challengin
 					maxResidual = std::max(maxResidual, residual);
 				}
 				INFO("Jacobi max residual ||Av-λv||/||v||: " << maxResidual);
-				CHECK(maxResidual < 1e-6);  // Self-consistency should still be good
+				CHECK(maxResidual < TOL(1e-6, 5e-5));  // Self-consistency should still be good
 			}
 		}
 	}
@@ -1080,12 +1080,12 @@ TEST_CASE("EigenSolvers_RepeatedEigenvalueTestBed", "[EigenSolvers][TestBed][Rep
 			REQUIRE(resultQR.converged);
 			
 			// Both should find correct eigenvalues
-			CHECK(TestBeds::verifyRealEigenvalues(resultJac.eigenvalues, test.realEigenvalues, 1e-8));
-			CHECK(TestBeds::verifyRealEigenvalues(resultQR.eigenvalues, test.realEigenvalues, 1e-8));
+			CHECK(TestBeds::verifyRealEigenvalues(resultJac.eigenvalues, test.realEigenvalues, TOL(1e-8, 1e-4)));
+			CHECK(TestBeds::verifyRealEigenvalues(resultQR.eigenvalues, test.realEigenvalues, TOL(1e-8, 1e-4)));
 			
 			// Eigenvectors should still be orthonormal for symmetric matrices
-			CHECK(TestBeds::verifyOrthonormality(resultJac.eigenvectors, 1e-8));
-			CHECK(TestBeds::verifyOrthonormality(resultQR.eigenvectors, 1e-8));
+			CHECK(TestBeds::verifyOrthonormality(resultJac.eigenvectors, TOL(1e-8, 1e-4)));
+			CHECK(TestBeds::verifyOrthonormality(resultQR.eigenvectors, TOL(1e-8, 1e-4)));
 		}
 	}
 }

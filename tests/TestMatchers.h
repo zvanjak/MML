@@ -97,7 +97,7 @@ class RealWithinRelMatcher : public Catch::Matchers::MatcherBase<Real> {
 public:
     RealWithinRelMatcher(Real expected, Real tolerance, bool auto_scale = true)
         : m_expected(expected)
-        , m_tolerance(auto_scale ? ScaleRelTolerance(tolerance) : tolerance)
+        , m_tolerance(tolerance)
         , m_use_scaled_tolerance(auto_scale) {}
     
     bool match(Real const& actual) const override {
@@ -150,7 +150,7 @@ class RealWithinAbsMatcher : public Catch::Matchers::MatcherBase<Real> {
 public:
     RealWithinAbsMatcher(Real expected, Real tolerance, bool auto_scale = true)
         : m_expected(expected)
-        , m_tolerance(auto_scale ? ScaleTolerance(tolerance) : tolerance)
+        , m_tolerance(tolerance)
         , m_use_scaled_tolerance(auto_scale) {}
     
     bool match(Real const& actual) const override {
@@ -192,7 +192,7 @@ class RealIsZeroMatcher : public Catch::Matchers::MatcherBase<Real> {
     
 public:
     explicit RealIsZeroMatcher(Real tolerance = Tolerance::Standard)
-        : m_tolerance(ScaleTolerance(tolerance)) {}
+        : m_tolerance(tolerance) {}
     
     bool match(Real const& actual) const override {
         return ApproxZero(actual, m_tolerance);

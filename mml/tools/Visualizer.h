@@ -67,6 +67,14 @@ namespace MML {
 			return VisualizerResult{false, true, -1, message, dataPath};
 		}
 
+		/// Data file was saved but no visualizer was launched (e.g., visualizer not yet available)
+		static VisualizerResult DataSaved(const std::string& dataPath) {
+			return VisualizerResult{true, false, 0, "Data saved (no visualizer launched)", dataPath};
+		}
+
+		/// Check if result is data-only (no visualizer was launched)
+		bool isDataOnly() const { return success && !errorMessage.empty() && errorMessage.find("no visualizer") != std::string::npos; }
+
 		// Allow implicit conversion to bool for backward compatibility
 		operator bool() const { return success; }
 	};
@@ -362,7 +370,7 @@ namespace MML {
 				}
 				
 				// Parent: wait for 'open -W' to return (it waits for the app to quit)
-				int status;
+				int status = 0;
 				waitpid(pid, &status, 0);
 				if (WIFEXITED(status) && WEXITSTATUS(status) == 127) {
 					return VisualizerResult::Failure("Failed to launch app bundle via open", 
@@ -423,8 +431,12 @@ namespace MML {
 			if (timeout_ms < 0) {
 				// Infinite wait mode (matches Windows INFINITE behavior)
 				// Wait for the visualizer to close before returning
-				int status;
+				int status = 0;
 				pid_t result = waitpid(pid, &status, 0);  // Blocking wait
+				if (result < 0) {
+					return VisualizerResult::Failure("waitpid failed",
+																					  args.empty() ? "" : args[0], -1);
+				}
 				if (result == pid && WIFEXITED(status)) {
 					int exitCode = WEXITSTATUS(status);
 					if (exitCode == 127) {
@@ -1109,8 +1121,7 @@ namespace MML {
 				return VisualizerResult::Failure("Failed to save field lines: " + saveResult.message, name);
 			}
 			// TODO: Launch MML_FieldLines2D_Visualizer when available
-			// For now, just return success with the file path
-			return VisualizerResult::Success(name);
+			return VisualizerResult::DataSaved(name);
 		}
 
 		/// @brief Visualize 3D field lines
@@ -1132,8 +1143,7 @@ namespace MML {
 				return VisualizerResult::Failure("Failed to save field lines: " + saveResult.message, name);
 			}
 			// TODO: Launch MML_FieldLines3D_Visualizer when available
-			// For now, just return success with the file path
-			return VisualizerResult::Success(name);
+			return VisualizerResult::DataSaved(name);
 		}
 	};
 } // namespace MML

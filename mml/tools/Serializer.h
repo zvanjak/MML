@@ -20,7 +20,7 @@
 /// - tools/serializer/SerializerFunctions.h  - Real function serialization (SaveRealFunc, etc.)
 /// - tools/serializer/SerializerCurves.h     - Parametric curve serialization
 /// - tools/serializer/SerializerSurfaces.h   - Surface and scalar function serialization
-/// - tools/serializer/SerializerVectors.h    - Vector field serialization
+/// - tools/serializer/SerializerVectorFields.h - Vector field serialization
 /// - tools/serializer/SerializerODE.h        - ODE solution serialization
 /// - tools/serializer/SerializerSimulation.h - Particle simulation serialization
 /// - tools/serializer/SerializerFieldLines.h - Field line serialization
@@ -34,7 +34,7 @@
 #include "mml/tools/serializer/SerializerFunctions.h"
 #include "mml/tools/serializer/SerializerCurves.h"
 #include "mml/tools/serializer/SerializerSurfaces.h"
-#include "mml/tools/serializer/SerializerVectors.h"
+#include "mml/tools/serializer/SerializerVectorFields.h"
 #include "mml/tools/serializer/SerializerODE.h"
 #include "mml/tools/serializer/SerializerSimulation.h"
 #include "mml/tools/serializer/SerializerFieldLines.h"

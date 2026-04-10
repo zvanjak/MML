@@ -63,9 +63,9 @@ TEST_CASE("CoordTransf round-trip - Cart->Spher->Cart generic point", "[coordtra
 	auto spher = CoordTransfCartToSpher.transf(original);
 	auto back  = CoordTransfSpherToCart.transf(spher);
 
-	REQUIRE_THAT(back[0], WithinAbs(original[0], REAL(1e-12)));
-	REQUIRE_THAT(back[1], WithinAbs(original[1], REAL(1e-12)));
-	REQUIRE_THAT(back[2], WithinAbs(original[2], REAL(1e-12)));
+	REQUIRE_THAT(back[0], WithinAbs(original[0], TOL(1e-12, 1e-5)));
+	REQUIRE_THAT(back[1], WithinAbs(original[1], TOL(1e-12, 1e-5)));
+	REQUIRE_THAT(back[2], WithinAbs(original[2], TOL(1e-12, 1e-5)));
 }
 
 TEST_CASE("CoordTransf round-trip - Cart->Cyl->Cart generic point", "[coordtransf][edge][roundtrip]")
@@ -75,9 +75,9 @@ TEST_CASE("CoordTransf round-trip - Cart->Cyl->Cart generic point", "[coordtrans
 	auto cyl  = CoordTransfCartToCyl.transf(original);
 	auto back = CoordTransfCylToCart.transf(cyl);
 
-	REQUIRE_THAT(back[0], WithinAbs(original[0], REAL(1e-12)));
-	REQUIRE_THAT(back[1], WithinAbs(original[1], REAL(1e-12)));
-	REQUIRE_THAT(back[2], WithinAbs(original[2], REAL(1e-12)));
+	REQUIRE_THAT(back[0], WithinAbs(original[0], TOL(1e-12, 1e-5)));
+	REQUIRE_THAT(back[1], WithinAbs(original[1], TOL(1e-12, 1e-5)));
+	REQUIRE_THAT(back[2], WithinAbs(original[2], TOL(1e-12, 1e-5)));
 }
 
 TEST_CASE("CoordTransf round-trip - Cart->Spher->Cart on axis-aligned points", "[coordtransf][edge][roundtrip]")
@@ -98,9 +98,9 @@ TEST_CASE("CoordTransf round-trip - Cart->Spher->Cart on axis-aligned points", "
 		auto spher = CoordTransfCartToSpher.transf(p);
 		auto back  = CoordTransfSpherToCart.transf(spher);
 
-		REQUIRE_THAT(back[0], WithinAbs(p[0], REAL(1e-12)));
-		REQUIRE_THAT(back[1], WithinAbs(p[1], REAL(1e-12)));
-		REQUIRE_THAT(back[2], WithinAbs(p[2], REAL(1e-12)));
+		REQUIRE_THAT(back[0], WithinAbs(p[0], TOL(1e-12, 1e-5)));
+		REQUIRE_THAT(back[1], WithinAbs(p[1], TOL(1e-12, 1e-5)));
+		REQUIRE_THAT(back[2], WithinAbs(p[2], TOL(1e-12, 1e-5)));
 	}
 }
 
@@ -121,9 +121,9 @@ TEST_CASE("CoordTransf round-trip - Cart->Cyl->Cart on axis-aligned points", "[c
 		auto cyl  = CoordTransfCartToCyl.transf(p);
 		auto back = CoordTransfCylToCart.transf(cyl);
 
-		REQUIRE_THAT(back[0], WithinAbs(p[0], REAL(1e-12)));
-		REQUIRE_THAT(back[1], WithinAbs(p[1], REAL(1e-12)));
-		REQUIRE_THAT(back[2], WithinAbs(p[2], REAL(1e-12)));
+		REQUIRE_THAT(back[0], WithinAbs(p[0], TOL(1e-12, 1e-5)));
+		REQUIRE_THAT(back[1], WithinAbs(p[1], TOL(1e-12, 1e-5)));
+		REQUIRE_THAT(back[2], WithinAbs(p[2], TOL(1e-12, 1e-5)));
 	}
 }
 
@@ -142,9 +142,9 @@ TEST_CASE("CoordTransf round-trip - Cart->Spher->Cart with negative coords", "[c
 		auto spher = CoordTransfCartToSpher.transf(p);
 		auto back  = CoordTransfSpherToCart.transf(spher);
 
-		REQUIRE_THAT(back[0], WithinAbs(p[0], REAL(1e-12)));
-		REQUIRE_THAT(back[1], WithinAbs(p[1], REAL(1e-12)));
-		REQUIRE_THAT(back[2], WithinAbs(p[2], REAL(1e-12)));
+		REQUIRE_THAT(back[0], WithinAbs(p[0], TOL(1e-12, 1e-5)));
+		REQUIRE_THAT(back[1], WithinAbs(p[1], TOL(1e-12, 1e-5)));
+		REQUIRE_THAT(back[2], WithinAbs(p[2], TOL(1e-12, 1e-5)));
 	}
 }
 
@@ -155,7 +155,7 @@ TEST_CASE("CoordTransf - Cart->Spher at origin produces r=0", "[coordtransf][edg
 	auto spher = CoordTransfCartToSpher.transf(origin);
 
 	// r should be exactly 0
-	REQUIRE_THAT(spher[0], WithinAbs(REAL(0.0), REAL(1e-15)));
+	REQUIRE_THAT(spher[0], WithinAbs(REAL(0.0), TOL(1e-15, 1e-5)));
 
 	// At r=0, theta and phi are mathematically undefined.
 	// The round-trip Spher->Cart won't work because 0*sin(NaN) = NaN.
@@ -173,14 +173,14 @@ TEST_CASE("CoordTransf - Cart->Cyl at z-axis produces r=0", "[coordtransf][edge]
 	auto cyl = CoordTransfCartToCyl.transf(on_z);
 
 	// r should be 0, z preserved
-	REQUIRE_THAT(cyl[0], WithinAbs(REAL(0.0), REAL(1e-15)));
-	REQUIRE_THAT(cyl[2], WithinAbs(REAL(5.0), REAL(1e-12)));
+	REQUIRE_THAT(cyl[0], WithinAbs(REAL(0.0), TOL(1e-15, 1e-5)));
+	REQUIRE_THAT(cyl[2], WithinAbs(REAL(5.0), TOL(1e-12, 1e-5)));
 
 	// Round-trip
 	auto back = CoordTransfCylToCart.transf(cyl);
-	REQUIRE_THAT(back[0], WithinAbs(REAL(0.0), REAL(1e-15)));
-	REQUIRE_THAT(back[1], WithinAbs(REAL(0.0), REAL(1e-15)));
-	REQUIRE_THAT(back[2], WithinAbs(REAL(5.0), REAL(1e-12)));
+	REQUIRE_THAT(back[0], WithinAbs(REAL(0.0), TOL(1e-15, 1e-5)));
+	REQUIRE_THAT(back[1], WithinAbs(REAL(0.0), TOL(1e-15, 1e-5)));
+	REQUIRE_THAT(back[2], WithinAbs(REAL(5.0), TOL(1e-12, 1e-5)));
 }
 
 TEST_CASE("CoordTransf - phi wraparound consistency", "[coordtransf][edge][branch]")
@@ -220,11 +220,11 @@ TEST_CASE("Sphere surface - evaluation at south pole (u=pi)", "[surfaces][edge][
 	VectorN<Real, 3> south = sphere(Constants::PI, REAL(0.0));
 
 	// South pole should be at (0, 0, -R)
-	REQUIRE_THAT(south[0], WithinAbs(REAL(0.0), REAL(1e-9)));
-	REQUIRE_THAT(south[1], WithinAbs(REAL(0.0), REAL(1e-9)));
-	REQUIRE_THAT(south[2], WithinAbs(-R, REAL(1e-9)));
+	REQUIRE_THAT(south[0], WithinAbs(REAL(0.0), TOL(1e-9, 1e-4)));
+	REQUIRE_THAT(south[1], WithinAbs(REAL(0.0), TOL(1e-9, 1e-4)));
+	REQUIRE_THAT(south[2], WithinAbs(-R, TOL(1e-9, 1e-4)));
 
-	REQUIRE_THAT(south.NormL2(), WithinAbs(R, REAL(1e-9)));
+	REQUIRE_THAT(south.NormL2(), WithinAbs(R, TOL(1e-9, 1e-4)));
 }
 
 TEST_CASE("Sphere surface - evaluation at full azimuth (w=2pi)", "[surfaces][edge][boundary]")
@@ -239,9 +239,9 @@ TEST_CASE("Sphere surface - evaluation at full azimuth (w=2pi)", "[surfaces][edg
 	VectorN<Real, 3> p_0   = sphere(u, REAL(0.0));
 	VectorN<Real, 3> p_2pi = sphere(u, REAL(2.0) * Constants::PI);
 
-	REQUIRE_THAT(p_2pi[0], WithinAbs(p_0[0], REAL(1e-9)));
-	REQUIRE_THAT(p_2pi[1], WithinAbs(p_0[1], REAL(1e-9)));
-	REQUIRE_THAT(p_2pi[2], WithinAbs(p_0[2], REAL(1e-9)));
+	REQUIRE_THAT(p_2pi[0], WithinAbs(p_0[0], TOL(1e-9, 1e-4)));
+	REQUIRE_THAT(p_2pi[1], WithinAbs(p_0[1], TOL(1e-9, 1e-4)));
+	REQUIRE_THAT(p_2pi[2], WithinAbs(p_0[2], TOL(1e-9, 1e-4)));
 }
 
 TEST_CASE("Sphere surface - all four parameter corners", "[surfaces][edge][corners]")
@@ -252,22 +252,22 @@ TEST_CASE("Sphere surface - all four parameter corners", "[surfaces][edge][corne
 
 	// (u_min=0, w_min=0) — north pole
 	auto p00 = sphere(REAL(0.0), REAL(0.0));
-	REQUIRE_THAT(p00.NormL2(), WithinAbs(R, REAL(1e-9)));
+	REQUIRE_THAT(p00.NormL2(), WithinAbs(R, TOL(1e-9, 1e-4)));
 
 	// (u_min=0, w_max=2π) — north pole again
 	auto p02pi = sphere(REAL(0.0), REAL(2.0) * Constants::PI);
-	REQUIRE_THAT(p02pi.NormL2(), WithinAbs(R, REAL(1e-9)));
-	REQUIRE_THAT(p02pi[2], WithinAbs(R, REAL(1e-9)));
+	REQUIRE_THAT(p02pi.NormL2(), WithinAbs(R, TOL(1e-9, 1e-4)));
+	REQUIRE_THAT(p02pi[2], WithinAbs(R, TOL(1e-9, 1e-4)));
 
 	// (u_max=π, w_min=0) — south pole
 	auto ppi0 = sphere(Constants::PI, REAL(0.0));
-	REQUIRE_THAT(ppi0.NormL2(), WithinAbs(R, REAL(1e-9)));
-	REQUIRE_THAT(ppi0[2], WithinAbs(-R, REAL(1e-9)));
+	REQUIRE_THAT(ppi0.NormL2(), WithinAbs(R, TOL(1e-9, 1e-4)));
+	REQUIRE_THAT(ppi0[2], WithinAbs(-R, TOL(1e-9, 1e-4)));
 
 	// (u_max=π, w_max=2π) — south pole again
 	auto ppi2pi = sphere(Constants::PI, REAL(2.0) * Constants::PI);
-	REQUIRE_THAT(ppi2pi.NormL2(), WithinAbs(R, REAL(1e-9)));
-	REQUIRE_THAT(ppi2pi[2], WithinAbs(-R, REAL(1e-9)));
+	REQUIRE_THAT(ppi2pi.NormL2(), WithinAbs(R, TOL(1e-9, 1e-4)));
+	REQUIRE_THAT(ppi2pi[2], WithinAbs(-R, TOL(1e-9, 1e-4)));
 }
 
 TEST_CASE("Sphere surface - Gaussian curvature at south pole", "[surfaces][edge][curvature]")
@@ -279,7 +279,7 @@ TEST_CASE("Sphere surface - Gaussian curvature at south pole", "[surfaces][edge]
 
 	// Curvature near south pole (u slightly less than π to avoid exact parametric degeneracy)
 	Real K = sphere.GaussianCurvature(Constants::PI - REAL(0.01), REAL(0.0));
-	REQUIRE_THAT(K, WithinAbs(expected_K, REAL(1e-4)));
+	REQUIRE_THAT(K, WithinAbs(expected_K, TOL(1e-4, 0.05)));
 }
 
 TEST_CASE("Ellipsoid surface - south pole and parameter corners", "[surfaces][edge][corners]")
@@ -290,13 +290,13 @@ TEST_CASE("Ellipsoid surface - south pole and parameter corners", "[surfaces][ed
 
 	// North pole (u=0) -> (0, 0, c)
 	auto north = ellipsoid(REAL(0.0), REAL(0.0));
-	REQUIRE_THAT(north[2], WithinAbs(c, REAL(1e-9)));
+	REQUIRE_THAT(north[2], WithinAbs(c, TOL(1e-9, 1e-4)));
 
 	// South pole (u=π) -> (0, 0, -c)
 	auto south = ellipsoid(Constants::PI, REAL(0.0));
-	REQUIRE_THAT(south[0], WithinAbs(REAL(0.0), REAL(1e-9)));
-	REQUIRE_THAT(south[1], WithinAbs(REAL(0.0), REAL(1e-9)));
-	REQUIRE_THAT(south[2], WithinAbs(-c, REAL(1e-9)));
+	REQUIRE_THAT(south[0], WithinAbs(REAL(0.0), TOL(1e-9, 1e-4)));
+	REQUIRE_THAT(south[1], WithinAbs(REAL(0.0), TOL(1e-9, 1e-4)));
+	REQUIRE_THAT(south[2], WithinAbs(-c, TOL(1e-9, 1e-4)));
 }
 
 TEST_CASE("CylinderSurface - parameter boundary corners", "[surfaces][edge][corners]")
@@ -308,14 +308,14 @@ TEST_CASE("CylinderSurface - parameter boundary corners", "[surfaces][edge][corn
 
 	// u=0, w=0 corner
 	auto p00 = cylinder(REAL(0.0), REAL(0.0));
-	REQUIRE_THAT(p00[0], WithinAbs(R, REAL(1e-9)));      // x = R*cos(0)
-	REQUIRE_THAT(p00[1], WithinAbs(REAL(0.0), REAL(1e-9)));
-	REQUIRE_THAT(p00[2], WithinAbs(REAL(0.0), REAL(1e-9)));
+	REQUIRE_THAT(p00[0], WithinAbs(R, TOL(1e-9, 1e-4)));      // x = R*cos(0)
+	REQUIRE_THAT(p00[1], WithinAbs(REAL(0.0), TOL(1e-9, 1e-4)));
+	REQUIRE_THAT(p00[2], WithinAbs(REAL(0.0), TOL(1e-9, 1e-4)));
 
 	// u=2π (same as u=0 circumferentially), w=H
 	auto p2piH = cylinder(REAL(2.0) * Constants::PI, H);
-	REQUIRE_THAT(p2piH[0], WithinAbs(R, REAL(1e-9)));
-	REQUIRE_THAT(p2piH[2], WithinAbs(H, REAL(1e-9)));
+	REQUIRE_THAT(p2piH[0], WithinAbs(R, TOL(1e-9, 1e-4)));
+	REQUIRE_THAT(p2piH[2], WithinAbs(H, TOL(1e-9, 1e-4)));
 }
 
 TEST_CASE("Torus - outer and inner ring curvature", "[surfaces][edge][curvature]")
@@ -370,7 +370,7 @@ TEST_CASE("Helix curve - tangent at t=0", "[curves][edge][endpoint]")
 	REQUIRE(std::isfinite(tangent[2]));
 
 	// Unit tangent should have norm 1
-	REQUIRE_THAT(tangent_unit.NormL2(), WithinAbs(REAL(1.0), REAL(1e-10)));
+	REQUIRE_THAT(tangent_unit.NormL2(), WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("Helix curve - curvature and torsion at t=0", "[curves][edge][endpoint]")
@@ -497,12 +497,12 @@ TEST_CASE("MetricTensorSpherical - at near-pole theta~0", "[MetricTensor][edge][
 	auto g = metric.GetCovariantMetric(pos);
 
 	// g_rr = 1
-	REQUIRE_THAT(g(0, 0), WithinAbs(REAL(1.0), REAL(1e-10)));
+	REQUIRE_THAT(g(0, 0), WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
 	// g_θθ = r²
-	REQUIRE_THAT(g(1, 1), WithinAbs(r * r, REAL(1e-10)));
+	REQUIRE_THAT(g(1, 1), WithinAbs(r * r, TOL(1e-10, 1e-5)));
 	// g_φφ = r²sin²θ → small but finite
 	Real expected_gphiphi = r * r * std::sin(theta_near_pole) * std::sin(theta_near_pole);
-	REQUIRE_THAT(g(2, 2), WithinAbs(expected_gphiphi, REAL(1e-10)));
+	REQUIRE_THAT(g(2, 2), WithinAbs(expected_gphiphi, TOL(1e-10, 1e-5)));
 	REQUIRE(g(2, 2) > REAL(0.0));  // Still positive, just small
 }
 
@@ -518,13 +518,13 @@ TEST_CASE("MetricTensorSpherical - at small radius", "[MetricTensor][edge][singu
 	auto g = metric.GetCovariantMetric(pos);
 
 	// g_rr = 1 always
-	REQUIRE_THAT(g(0, 0), WithinAbs(REAL(1.0), REAL(1e-10)));
+	REQUIRE_THAT(g(0, 0), WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
 	// g_θθ = r² → very small
-	REQUIRE_THAT(g(1, 1), WithinAbs(r_small * r_small, REAL(1e-10)));
+	REQUIRE_THAT(g(1, 1), WithinAbs(r_small * r_small, TOL(1e-10, 1e-5)));
 	// Off-diagonal should be 0
-	REQUIRE_THAT(g(0, 1), WithinAbs(REAL(0.0), REAL(1e-12)));
-	REQUIRE_THAT(g(0, 2), WithinAbs(REAL(0.0), REAL(1e-12)));
-	REQUIRE_THAT(g(1, 2), WithinAbs(REAL(0.0), REAL(1e-12)));
+	REQUIRE_THAT(g(0, 1), WithinAbs(REAL(0.0), TOL(1e-12, 1e-5)));
+	REQUIRE_THAT(g(0, 2), WithinAbs(REAL(0.0), TOL(1e-12, 1e-5)));
+	REQUIRE_THAT(g(1, 2), WithinAbs(REAL(0.0), TOL(1e-12, 1e-5)));
 }
 
 TEST_CASE("MetricTensorCylindrical - at near-axis r~0", "[MetricTensor][edge][singularity]")
@@ -539,11 +539,11 @@ TEST_CASE("MetricTensorCylindrical - at near-axis r~0", "[MetricTensor][edge][si
 	auto g = metric.GetCovariantMetric(pos);
 
 	// g_rr = 1
-	REQUIRE_THAT(g(0, 0), WithinAbs(REAL(1.0), REAL(1e-10)));
+	REQUIRE_THAT(g(0, 0), WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
 	// g_φφ = r²
-	REQUIRE_THAT(g(1, 1), WithinAbs(r_small * r_small, REAL(1e-10)));
+	REQUIRE_THAT(g(1, 1), WithinAbs(r_small * r_small, TOL(1e-10, 1e-5)));
 	// g_zz = 1
-	REQUIRE_THAT(g(2, 2), WithinAbs(REAL(1.0), REAL(1e-10)));
+	REQUIRE_THAT(g(2, 2), WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
 }
 
 
@@ -563,10 +563,10 @@ TEST_CASE("Quaternion - gimbal lock: pitch = +pi/2", "[quaternion][edge][gimbal]
 	Vec3Cart euler = q.ToEulerZYX();
 
 	// Pitch should be π/2 (may go through asin branch if sinp < 1.0 due to FP)
-	REQUIRE_THAT(euler[1], WithinAbs(Constants::PI / REAL(2.0), REAL(1e-6)));
+	REQUIRE_THAT(euler[1], WithinAbs(Constants::PI / REAL(2.0), TOL(1e-6, 1e-3)));
 
 	// The quaternion should still be unit
-	REQUIRE(q.isUnit(1e-10));
+	REQUIRE(q.isUnit(TOL(1e-10, 1e-5)));
 
 	// Verify the extraction doesn't produce NaN or infinity
 	REQUIRE(!std::isnan(euler[0]));
@@ -583,8 +583,8 @@ TEST_CASE("Quaternion - gimbal lock: pitch = -pi/2", "[quaternion][edge][gimbal]
 	Vec3Cart euler = q.ToEulerZYX();
 
 	// Pitch should be -π/2
-	REQUIRE_THAT(euler[1], WithinAbs(-Constants::PI / REAL(2.0), REAL(1e-6)));
-	REQUIRE(q.isUnit(1e-10));
+	REQUIRE_THAT(euler[1], WithinAbs(-Constants::PI / REAL(2.0), TOL(1e-6, 1e-3)));
+	REQUIRE(q.isUnit(TOL(1e-10, 1e-5)));
 
 	// Verify the extraction doesn't produce NaN or infinity
 	REQUIRE(!std::isnan(euler[0]));
@@ -602,8 +602,8 @@ TEST_CASE("Quaternion - Slerp with identical quaternions", "[quaternion][edge][s
 	for (Real t : { REAL(0.0), REAL(0.25), REAL(0.5), REAL(0.75), REAL(1.0) })
 	{
 		Quaternion result = Quaternion::Slerp(q, q, t);
-		REQUIRE(result.isApprox(q, 1e-10));
-		REQUIRE(result.isUnit(1e-10));
+		REQUIRE(result.isApprox(q, TOL(1e-10, 1e-5)));
+		REQUIRE(result.isUnit(TOL(1e-10, 1e-5)));
 	}
 }
 

@@ -1,4 +1,5 @@
 #include <catch2/catch_all.hpp>
+#include "../TestPrecision.h"
 
 #ifdef MML_USE_SINGLE_HEADER
 #include "MML.h"

@@ -378,15 +378,15 @@ namespace MML::Tests::Base::Geometry3DTests
 
 		// Line parallel to plane (angle = 0)
 		Line3D parallelLine(Pnt3Cart(0, 0, 5), Vec3Cart(1, 0, 0));
-		REQUIRE_THAT(xyPlane.AngleToLine(parallelLine) , RealApprox(REAL(0.0)).margin(1e-10));
+		REQUIRE_THAT(xyPlane.AngleToLine(parallelLine) , RealApprox(REAL(0.0)).margin(TOL(1e-10, 1e-5)));
 
 		// Line perpendicular to plane (angle = pi/2)
 		Line3D perpLine(Pnt3Cart(0, 0, 0), Vec3Cart(0, 0, 1));
-		REQUIRE_THAT(xyPlane.AngleToLine(perpLine) , RealApprox(Constants::PI / REAL(2.0)).margin(1e-10));
+		REQUIRE_THAT(xyPlane.AngleToLine(perpLine) , RealApprox(Constants::PI / REAL(2.0)).margin(TOL(1e-10, 1e-5)));
 
 		// Line at 45 degrees
 		Line3D line45(Pnt3Cart(0, 0, 0), Vec3Cart(1, 0, 1));
-		REQUIRE_THAT(xyPlane.AngleToLine(line45) , RealApprox(Constants::PI / REAL(4.0)).margin(1e-10));
+		REQUIRE_THAT(xyPlane.AngleToLine(line45) , RealApprox(Constants::PI / REAL(4.0)).margin(TOL(1e-10, 1e-5)));
 	}
 	TEST_CASE("Plane3D::IntersectionWithLine", "[Plane3D]")
 	{
@@ -440,11 +440,11 @@ namespace MML::Tests::Base::Geometry3DTests
 		Plane3D xzPlane = Plane3D::GetXZPlane();
 
 		// Perpendicular planes - angle = pi/2
-		REQUIRE_THAT(xyPlane.AngleToPlane(xzPlane) , RealApprox(Constants::PI / REAL(2.0)).margin(1e-10));
+		REQUIRE_THAT(xyPlane.AngleToPlane(xzPlane) , RealApprox(Constants::PI / REAL(2.0)).margin(TOL(1e-10, 1e-5)));
 
 		// Parallel planes - angle = 0
 		Plane3D xyPlane2(Pnt3Cart(0, 0, 5), Vec3Cart(0, 0, 1));
-		REQUIRE_THAT(xyPlane.AngleToPlane(xyPlane2) , RealApprox(REAL(0.0)).margin(1e-10));
+		REQUIRE_THAT(xyPlane.AngleToPlane(xyPlane2) , RealApprox(REAL(0.0)).margin(TOL(1e-10, 1e-5)));
 	}
 	TEST_CASE("Plane3D::DistToPlane", "[Plane3D]")
 	{
@@ -470,7 +470,7 @@ namespace MML::Tests::Base::Geometry3DTests
 		REQUIRE(xyPlane.IntersectionWithPlane(xzPlane, intersectionLine));
 	// Direction should be along X-axis (or opposite direction)
 	Vec3Cart cross = VectorProduct(intersectionLine.Direction(), Vec3Cart(1, 0, 0));
-	REQUIRE(cross.NormL2() < 1e-10);  // Cross product zero means parallel or anti-parallel
+	REQUIRE(cross.NormL2() < TOL(1e-10, 1e-5));  // Cross product zero means parallel or anti-parallel
 		Plane3D xyPlane2(Pnt3Cart(0, 0, 5), Vec3Cart(0, 0, 1));
 		REQUIRE_FALSE(xyPlane.IntersectionWithPlane(xyPlane2, intersectionLine));
 	}
@@ -566,7 +566,7 @@ namespace MML::Tests::Base::Geometry3DTests
 		// Perfect right triangle: 3-4-5
 		Triangle3D tri1(Pnt3Cart(0, 0, 0), Pnt3Cart(3, 0, 0), Pnt3Cart(0, 4, 0));
 		REQUIRE(tri1.IsRight());
-		REQUIRE(tri1.IsRight(1e-10));
+		REQUIRE(tri1.IsRight(TOL(1e-10, 1e-5)));
 
 		// Clearly not a right triangle (equilateral)
 		Triangle3D tri2(Pnt3Cart(0, 0, 0), Pnt3Cart(1, 0, 0), Pnt3Cart(REAL(0.5), sqrt(REAL(3.0)) / REAL(2.0), 0));
@@ -574,7 +574,7 @@ namespace MML::Tests::Base::Geometry3DTests
 
 		// 3D right triangle
 		Triangle3D tri3(Pnt3Cart(0, 0, 0), Pnt3Cart(1, 0, 0), Pnt3Cart(0, 1, 1));
-		REQUIRE(tri3.IsRight(1e-8));
+		REQUIRE(tri3.IsRight(TOL(1e-8, 1e-4)));
 	}
 
 	TEST_CASE("Triangle3D::IsIsosceles with tolerance", "[Triangle3D][improvements]")
@@ -584,10 +584,10 @@ namespace MML::Tests::Base::Geometry3DTests
 		Triangle3D tri1(Pnt3Cart(0, 0, 0), Pnt3Cart(2, 0, 0), Pnt3Cart(1, 2, 0));
 		REQUIRE(tri1.IsIsosceles());
 
-		// Nearly isosceles
-		Triangle3D tri2(Pnt3Cart(0, 0, 0), Pnt3Cart(2, 0, 0), Pnt3Cart(REAL(1.0000001), 2, 0));
+		// Nearly isosceles (perturbation must be >1 ULP in sqrt(5) for float)
+		Triangle3D tri2(Pnt3Cart(0, 0, 0), Pnt3Cart(2, 0, 0), Pnt3Cart(REAL(1.00001), 2, 0));
 		REQUIRE(tri2.IsIsosceles(1e-4));
-		REQUIRE_FALSE(tri2.IsIsosceles(1e-12));
+		REQUIRE_FALSE(tri2.IsIsosceles(TOL(1e-12, 1e-8)));
 
 		// Equilateral (also isosceles)
 		Triangle3D tri3(Pnt3Cart(0, 0, 0), Pnt3Cart(1, 0, 0), Pnt3Cart(REAL(0.5), sqrt(REAL(3.0)) / REAL(2.0), 0));
@@ -605,10 +605,10 @@ namespace MML::Tests::Base::Geometry3DTests
 		Triangle3D tri1(Pnt3Cart(0, 0, 0), Pnt3Cart(1, 0, 0), Pnt3Cart(REAL(0.5), sqrt(REAL(3.0)) / REAL(2.0), 0));
 		REQUIRE(tri1.IsEquilateral());
 
-		// Nearly equilateral
-		Triangle3D tri2(Pnt3Cart(0, 0, 0), Pnt3Cart(1, 0, 0), Pnt3Cart(REAL(0.5), sqrt(REAL(3.0)) / REAL(2.0) + REAL(0.0000001), 0));
+		// Nearly equilateral (perturbation must survive float arithmetic)
+		Triangle3D tri2(Pnt3Cart(0, 0, 0), Pnt3Cart(1, 0, 0), Pnt3Cart(REAL(0.5), sqrt(REAL(3.0)) / REAL(2.0) + REAL(0.00001), 0));
 		REQUIRE(tri2.IsEquilateral(1e-4));
-		REQUIRE_FALSE(tri2.IsEquilateral(1e-12));
+		REQUIRE_FALSE(tri2.IsEquilateral(TOL(1e-12, 1e-8)));
 
 		// Isosceles but not equilateral
 		Triangle3D tri3(Pnt3Cart(0, 0, 0), Pnt3Cart(2, 0, 0), Pnt3Cart(1, 2, 0));
@@ -617,7 +617,7 @@ namespace MML::Tests::Base::Geometry3DTests
 		// 3D equilateral triangle
 		Real s = REAL(1.0) / sqrt(REAL(3.0));
 		Triangle3D tri4(Pnt3Cart(s, s, s), Pnt3Cart(-s, -s, s), Pnt3Cart(-s, s, -s));
-		REQUIRE(tri4.IsEquilateral(1e-8));
+		REQUIRE(tri4.IsEquilateral(TOL(1e-8, 1e-4)));
 	}
 
 	TEST_CASE("Triangle3D::Centroid", "[Triangle3D][improvements]")
@@ -641,8 +641,8 @@ namespace MML::Tests::Base::Geometry3DTests
 		Real s = sqrt(REAL(3.0));
 		Triangle3D tri3(Pnt3Cart(1, 0, 0), Pnt3Cart(-REAL(0.5), s / REAL(2.0), 0), Pnt3Cart(-REAL(0.5), -s / REAL(2.0), 0));
 		Pnt3Cart centroid3 = tri3.Centroid();
-		REQUIRE_THAT(centroid3.X() , RealApprox(REAL(0.0)).margin(1e-10));
-		REQUIRE_THAT(centroid3.Y() , RealApprox(REAL(0.0)).margin(1e-10));
+		REQUIRE_THAT(centroid3.X() , RealApprox(REAL(0.0)).margin(TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(centroid3.Y() , RealApprox(REAL(0.0)).margin(TOL(1e-10, 1e-5)));
 		REQUIRE_THAT(centroid3.Z() , RealApprox(REAL(0.0)));
 	}
 
@@ -672,7 +672,7 @@ namespace MML::Tests::Base::Geometry3DTests
 
 		// Diagonal segment
 		SegmentLine3D seg2(Pnt3Cart(0, 0, 0), Pnt3Cart(1, 1, 1));
-		REQUIRE_THAT(seg2.Dist(Pnt3Cart(REAL(0.5), REAL(0.5), REAL(0.5))), RealApprox(REAL(0.0)).margin(1e-10));  // Point on segment
+		REQUIRE_THAT(seg2.Dist(Pnt3Cart(REAL(0.5), REAL(0.5), REAL(0.5))), RealApprox(REAL(0.0)).margin(TOL(1e-10, 1e-5)));  // Point on segment
 
 		// Degenerate segment (zero length)
 		SegmentLine3D seg3(Pnt3Cart(5, 5, 5), Pnt3Cart(5, 5, 5));
@@ -789,8 +789,8 @@ namespace MML::Tests::Base::Geometry3DTests
 		Plane3D plane(REAL(0.0), Constants::PI / REAL(2.0), Constants::PI / REAL(2.0), REAL(5.0));
 
 		REQUIRE_THAT(plane.A(), RealApprox(REAL(1.0)));
-		REQUIRE_THAT(plane.B(), RealApprox(REAL(0.0)).margin(1e-10));
-		REQUIRE_THAT(plane.C(), RealApprox(REAL(0.0)).margin(1e-10));
+		REQUIRE_THAT(plane.B(), RealApprox(REAL(0.0)).margin(TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(plane.C(), RealApprox(REAL(0.0)).margin(TOL(1e-10, 1e-5)));
 		REQUIRE_THAT(plane.D(), RealApprox(-REAL(5.0)));
 	}
 
@@ -859,8 +859,8 @@ namespace MML::Tests::Base::Geometry3DTests
 		Plane3D plane2 = tri2.getDefinedPlane();
 		// Check that normal is parallel to Y-axis (either direction)
 		Vec3Cart normal2 = plane2.Normal();
-		REQUIRE_THAT(normal2.X(), RealApprox(REAL(0.0)).margin(1e-10));
-		REQUIRE_THAT(normal2.Z(), RealApprox(REAL(0.0)).margin(1e-10));
+		REQUIRE_THAT(normal2.X(), RealApprox(REAL(0.0)).margin(TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(normal2.Z(), RealApprox(REAL(0.0)).margin(TOL(1e-10, 1e-5)));
 		REQUIRE(std::abs(normal2.Y()) > REAL(0.99));  // Y component should be ~1 or ~-1
 
 		// Arbitrary 3D triangle
@@ -1059,7 +1059,7 @@ namespace MML::Tests::Base::Geometry3DTests
 		Triangle3D degen(Pnt3Cart(0, 0, 0), Pnt3Cart(1, 0, 0), Pnt3Cart(2, 0, 0));
 
 		// Area should be 0 (or very close)
-		REQUIRE_THAT(degen.Area(), RealApprox(REAL(0.0)).margin(1e-10));
+		REQUIRE_THAT(degen.Area(), RealApprox(REAL(0.0)).margin(TOL(1e-10, 1e-5)));
 
 		// IsPointInside returns false for degenerate triangles
 		REQUIRE_FALSE(degen.IsPointInside(Pnt3Cart(0.5, 0, 0)));

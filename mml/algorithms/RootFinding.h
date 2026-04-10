@@ -23,5 +23,6 @@
 #include "mml/algorithms/RootFinding/RootFindingBracketing.h"
 #include "mml/algorithms/RootFinding/RootFindingMethods.h"
 #include "mml/algorithms/RootFinding/RootFindingPolynoms.h"
+#include "mml/algorithms/RootFinding/RootFindingComplex.h"
 
 #endif // MML_ROOTFINDING_H

@@ -68,7 +68,7 @@ namespace MML {
 		/// Factory method for high-precision configuration
 		static ODEIntegratorConfig HighPrecision() {
 			ODEIntegratorConfig config;
-			config.tolerance = Precision::ODEDefaultTolerance / Real(10000);
+			config.tolerance = Precision::ODEDefaultTolerance / Real(100);
 			config.max_steps = 500000;
 			return config;
 		}
@@ -181,13 +181,13 @@ namespace MML {
 			// Estimate scale of problem
 			Real d0 = 0, d1 = 0;
 			for (int i = 0; i < n; i++) {
-				Real scale = std::abs(x0[i]) + 1e-10;
+				Real scale = std::abs(x0[i]) + Precision::InitialStepScale;
 				d0 = std::max(d0, std::abs(x0[i]) / scale);
 				d1 = std::max(d1, std::abs(f0[i]) / scale);
 			}
 
 			// Initial guess
-			Real h0 = (d0 < 1e-5 || d1 < 1e-5) ? 1e-6 : 0.01 * d0 / d1;
+			Real h0 = (d0 < Real(1e-5) || d1 < Real(1e-5)) ? Real(1e-6) : Real(0.01) * d0 / d1;
 			h0 = std::min(h0, std::abs(tEnd - t0));
 
 			// Take one explicit Euler step
@@ -198,16 +198,16 @@ namespace MML {
 			// Estimate second derivative
 			Real d2 = 0;
 			for (int i = 0; i < n; i++) {
-				Real scale = std::abs(x0[i]) + 1e-10;
+				Real scale = std::abs(x0[i]) + Precision::InitialStepScale;
 				d2 = std::max(d2, std::abs(f1[i] - f0[i]) / scale / h0);
 			}
 
 			// Optimal step for 5th order method
 			Real h1;
-			if (std::max(d1, d2) <= 1e-15) {
-				h1 = std::max(1e-6, h0 * 1e-3);
+			if (std::max(d1, d2) <= Real(1e-15)) {
+				h1 = std::max(Real(1e-6), h0 * Real(1e-3));
 			} else {
-				h1 = std::pow(0.01 / std::max(d1, d2), 1.0 / 5.0);
+				h1 = std::pow(Real(0.01) / std::max(d1, d2), Real(1.0) / Real(5.0));
 			}
 
 			return std::min({100 * h0, h1, std::abs(tEnd - t0)});
@@ -222,7 +222,10 @@ namespace MML {
 		/// @param h0 Initial step size (0 = auto-estimate)
 		/// @param minStepSize Minimum allowed step size (default 1e-15)
 		/// @return Solution with points at regular intervals
-		ODESystemSolution integrate(const Vector<Real>& x0, Real t0, Real tEnd, Real outputInterval, Real eps = 1e-10, Real h0 = 0, Real minStepSize = 1e-15) {
+		ODESystemSolution integrate(const Vector<Real>& x0, Real t0, Real tEnd, Real outputInterval, Real eps = Precision::ODEDefaultTolerance, Real h0 = 0, Real minStepSize = Precision::ODEMinStepSize, int maxSteps = 0) {
+			if (outputInterval <= 0)
+				throw ODESolverError("outputInterval must be positive (got " + std::to_string(outputInterval) + ")");
+
 			int n = _sys.getDim();
 			int numOutputPoints = static_cast<int>(std::ceil((tEnd - t0) / outputInterval)) + 1;
 
@@ -249,6 +252,13 @@ namespace MML {
 
 			// Main integration loop
 			while (t < tEnd - Constants::Eps) {
+				// Enforce max_steps if specified
+				if (maxSteps > 0 && _stats.totalSteps() >= maxSteps) {
+					_stats.status = AlgorithmStatus::MaxIterationsExceeded;
+					_stats.error_message = "Maximum steps (" + std::to_string(maxSteps) + ") exceeded";
+					break;
+				}
+
 				// Don't step past end
 				if (t + h > tEnd) {
 					h = tEnd - t;
@@ -297,7 +307,7 @@ namespace MML {
 		/// @param times Vector of output times (must be sorted ascending)
 		/// @param eps Error tolerance
 		/// @return Solution at specified times
-		ODESystemSolution integrateAt(const Vector<Real>& x0, const Vector<Real>& times, Real eps = 1e-10, Real h0 = 0, Real minStepSize = 1e-15) {
+		ODESystemSolution integrateAt(const Vector<Real>& x0, const Vector<Real>& times, Real eps = Precision::ODEDefaultTolerance, Real h0 = 0, Real minStepSize = Precision::ODEMinStepSize) {
 			if (times.size() < 2) {
 				throw ODESolverError("Need at least 2 output times");
 			}
@@ -377,16 +387,10 @@ namespace MML {
 				: (tEnd - t0) / 100.0;  // Default: 100 output points
 
 			ODESystemSolution sol = integrate(x0, t0, tEnd, outputInterval, 
-				config.tolerance, config.initial_step_size, config.min_step_size);
+				config.tolerance, config.initial_step_size, config.min_step_size, config.max_steps);
 
 			// Populate diagnostic fields in statistics
 			_stats.elapsed_time_ms = timer.elapsed_ms();
-			
-			// Check for max steps exceeded (if we tracked it)
-			if (_stats.acceptedSteps >= config.max_steps) {
-				_stats.status = AlgorithmStatus::MaxIterationsExceeded;
-				_stats.error_message = "Maximum steps (" + std::to_string(config.max_steps) + ") exceeded";
-			}
 
 			return sol;
 		}

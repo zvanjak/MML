@@ -27,11 +27,11 @@ namespace MML::Tests::Core::CoordTransfVectorTests
 		Vector3Cartesian posCart{ REAL(1.0), REAL(1.0), REAL(0.0) };
 
 		Vector3Spherical v_transf_to_spher = CoordTransfCartToSpher.transfVecContravariant(v_cart, posCart);
-		REQUIRE(true == v_transf_to_spher.IsEqualTo(Vector3Spherical(sqrt(2), REAL(0.0), REAL(0.0)), 1e-8));
+		REQUIRE(true == v_transf_to_spher.IsEqualTo(Vector3Spherical(sqrt(2), REAL(0.0), REAL(0.0)), TOL(1e-8, 1e-4)));
 
 		Vector3Spherical x1_spher{ CoordTransfCartToSpher.transf(posCart) };
 		Vector3Cartesian v_back_transf_to_cart = CoordTransfSpherToCart.transfVecContravariant(v_transf_to_spher, x1_spher);
-		REQUIRE(true == v_back_transf_to_cart.IsEqualTo(v_cart, 1e-7));
+		REQUIRE(true == v_back_transf_to_cart.IsEqualTo(v_cart, TOL(1e-7, 1e-3)));
 
 		double r = 2;
 		double phi = Constants::PI / 3;
@@ -46,7 +46,7 @@ namespace MML::Tests::Core::CoordTransfVectorTests
 		Vector3Spherical v_spher1{REAL(6.9487922897236354), REAL(0.25555062599984346)	, -REAL(0.4)};
 
 		 v_transf_to_spher = CoordTransfCartToSpher.transfVecContravariant(v_cart1, posCart1);
-		 REQUIRE(true == v_transf_to_spher.IsEqualTo(v_spher1, 1e-8));
+		 REQUIRE(true == v_transf_to_spher.IsEqualTo(v_spher1, TOL(1e-8, 1e-4)));
 
 		 // TODO - pokazati kako se do real dolazi projekcijom na bazne vektore
 
@@ -63,10 +63,10 @@ namespace MML::Tests::Core::CoordTransfVectorTests
 
 		Vector3Spherical grad_transf_to_spher = CoordTransfCartToSpher.transfVecCovariant(grad_cart, p_spher);
 		// TODO REAL(0.9) - nekad je -1/3 bilo sqrt(2)???
-		REQUIRE(true == grad_transf_to_spher.IsEqualTo(Vector3Spherical(-REAL(1.0) / 3, REAL(0.0), REAL(0.0)), 1e-6));
+		REQUIRE(true == grad_transf_to_spher.IsEqualTo(Vector3Spherical(-REAL(1.0) / 3, REAL(0.0), REAL(0.0)), TOL(1e-6, 1e-3)));
 
 		Vector3Cartesian back_transf_to_cart = CoordTransfSpherToCart.transfVecCovariant(grad_transf_to_spher, p_cart);
-		REQUIRE(true == back_transf_to_cart.IsEqualTo(grad_cart, 1e-7));
+		REQUIRE(true == back_transf_to_cart.IsEqualTo(grad_cart, TOL(1e-7, 1e-3)));
 	}
 
 } // namespace MML::Tests::Core::CoordTransfVectorTests

@@ -161,9 +161,9 @@ namespace MML::Tests::Core::FieldOperationsTests
 		auto grad = ScalarFieldOperations::GradientCart<3>(f, pos);
 		
 		// ∇f = (2x, 2y, 2z) = (2, 4, 6)
-		REQUIRE_THAT(grad[0], WithinRel(REAL(2.0), REAL(1e-8)));
-		REQUIRE_THAT(grad[1], WithinRel(REAL(4.0), REAL(1e-8)));
-		REQUIRE_THAT(grad[2], WithinRel(REAL(6.0), REAL(1e-8)));
+		REQUIRE_THAT(grad[0], WithinRel(REAL(2.0), TOL(1e-8, 1e-4)));
+		REQUIRE_THAT(grad[1], WithinRel(REAL(4.0), TOL(1e-8, 1e-4)));
+		REQUIRE_THAT(grad[2], WithinRel(REAL(6.0), TOL(1e-8, 1e-4)));
 	}
 	
 	TEST_CASE("Gradient_Cartesian_Product_3D", "[field_operations][gradient][cartesian]")
@@ -176,9 +176,9 @@ namespace MML::Tests::Core::FieldOperationsTests
 		auto grad = ScalarFieldOperations::GradientCart<3>(f, pos);
 		
 		// ∇f = (yz, xz, xy) = (12, 8, 6)
-		REQUIRE_THAT(grad[0], WithinRel(REAL(12.0), REAL(1e-8)));
-		REQUIRE_THAT(grad[1], WithinRel(REAL(8.0), REAL(1e-8)));
-		REQUIRE_THAT(grad[2], WithinRel(REAL(6.0), REAL(1e-8)));
+		REQUIRE_THAT(grad[0], WithinRel(REAL(12.0), TOL(1e-8, 1e-4)));
+		REQUIRE_THAT(grad[1], WithinRel(REAL(8.0), TOL(1e-8, 1e-4)));
+		REQUIRE_THAT(grad[2], WithinRel(REAL(6.0), TOL(1e-8, 1e-4)));
 	}
 	
 	TEST_CASE("Gradient_Cartesian_2D", "[field_operations][gradient][cartesian]")
@@ -191,8 +191,8 @@ namespace MML::Tests::Core::FieldOperationsTests
 		auto grad = ScalarFieldOperations::GradientCart<2>(f, pos);
 		
 		// ∇f = (2x, -2y) = (6, -8)
-		REQUIRE_THAT(grad[0], WithinRel(REAL(6.0), REAL(1e-8)));
-		REQUIRE_THAT(grad[1], WithinRel(REAL(-8.0), REAL(1e-8)));
+		REQUIRE_THAT(grad[0], WithinRel(REAL(6.0), TOL(1e-8, 1e-4)));
+		REQUIRE_THAT(grad[1], WithinRel(REAL(-8.0), TOL(1e-8, 1e-4)));
 	}
 	
 	TEST_CASE("Gradient_Cartesian_WithDerOrder", "[field_operations][gradient][cartesian][accuracy]")
@@ -214,7 +214,7 @@ namespace MML::Tests::Core::FieldOperationsTests
 		
 		// Both should be reasonably accurate
 		REQUIRE_THAT(grad4[0], WithinRel(expected_x, REAL(1e-6)));
-		REQUIRE_THAT(grad8[0], WithinRel(expected_x, REAL(1e-9)));
+		REQUIRE_THAT(grad8[0], WithinRel(expected_x, TOL(1e-9, 1e-4)));
 	}
 
 	/*********************************************************************/
@@ -231,7 +231,7 @@ namespace MML::Tests::Core::FieldOperationsTests
 		Real lapl = ScalarFieldOperations::LaplacianCart<3>(f, pos);
 		
 		// ∇²f = 2 + 2 + 2 = 6 (constant everywhere)
-		REQUIRE_THAT(lapl, WithinRel(REAL(6.0), REAL(1e-6)));
+		REQUIRE_THAT(lapl, WithinRel(REAL(6.0), TOL(1e-6, 5e-4)));
 	}
 	
 	TEST_CASE("Laplacian_Cartesian_Harmonic_2D", "[field_operations][laplacian][cartesian][harmonic]")
@@ -244,8 +244,8 @@ namespace MML::Tests::Core::FieldOperationsTests
 		Real lapl = ScalarFieldOperations::LaplacianCart<2>(f, pos);
 		
 		// ∇²f = 2 - 2 = 0 (harmonic function!)
-		// Note: numerical differentiation has ~1e-8 accuracy
-		REQUIRE_THAT(lapl, WithinAbs(REAL(0.0), REAL(1e-7)));
+		// Note: numerical differentiation has ~TOL(1e-8, 1e-4) accuracy
+		REQUIRE_THAT(lapl, WithinAbs(REAL(0.0), TOL(1e-7, 5e-3)));
 	}
 	
 	TEST_CASE("Laplacian_Cartesian_Product_3D", "[field_operations][laplacian][cartesian]")
@@ -259,8 +259,8 @@ namespace MML::Tests::Core::FieldOperationsTests
 		
 		// f = xyz → ∂²f/∂x² = 0, ∂²f/∂y² = 0, ∂²f/∂z² = 0
 		// ∇²f = 0
-		// Note: numerical differentiation has ~1e-8 accuracy
-		REQUIRE_THAT(lapl, WithinAbs(REAL(0.0), REAL(1e-8)));
+		// Note: numerical differentiation has ~TOL(1e-8, 1e-4) accuracy
+		REQUIRE_THAT(lapl, WithinAbs(REAL(0.0), TOL(1e-8, 5e-4)));
 	}
 	
 	TEST_CASE("Laplacian_Cartesian_TrigExp_3D", "[field_operations][laplacian][cartesian]")
@@ -280,7 +280,7 @@ namespace MML::Tests::Core::FieldOperationsTests
 		//     = -sin(x)*cos(y)*exp(z)
 		Real expected = -sin(pos[0]) * cos(pos[1]) * exp(pos[2]);
 		
-		REQUIRE_THAT(lapl, WithinRel(expected, REAL(1e-6)));
+		REQUIRE_THAT(lapl, WithinRel(expected, TOL(1e-6, 5e-4)));
 	}
 
 	/*********************************************************************/
@@ -297,7 +297,7 @@ namespace MML::Tests::Core::FieldOperationsTests
 		Real div = VectorFieldOperations::DivCart<3>(F, pos);
 		
 		// F = (x, y, z) → ∇·F = 1 + 1 + 1 = 3
-		REQUIRE_THAT(div, WithinRel(REAL(3.0), REAL(1e-8)));
+		REQUIRE_THAT(div, WithinRel(REAL(3.0), TOL(1e-8, 1e-4)));
 	}
 	
 	TEST_CASE("Divergence_Cartesian_Rotational_IsZero", "[field_operations][divergence][cartesian][incompressible]")
@@ -310,7 +310,7 @@ namespace MML::Tests::Core::FieldOperationsTests
 		Real div = VectorFieldOperations::DivCart<3>(F, pos);
 		
 		// F = (y, -x, 0) → ∇·F = 0 + 0 + 0 = 0 (incompressible)
-		REQUIRE_THAT(div, WithinAbs(REAL(0.0), REAL(1e-10)));
+		REQUIRE_THAT(div, WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
 	}
 	
 	TEST_CASE("Divergence_Cartesian_GradientField", "[field_operations][divergence][cartesian]")
@@ -323,7 +323,7 @@ namespace MML::Tests::Core::FieldOperationsTests
 		Real div = VectorFieldOperations::DivCart<3>(F, pos);
 		
 		// F = (yz, xz, xy) → ∇·F = 0 + 0 + 0 = 0
-		REQUIRE_THAT(div, WithinAbs(REAL(0.0), REAL(1e-10)));
+		REQUIRE_THAT(div, WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
 	}
 	
 	TEST_CASE("Divergence_Cartesian_SquaredComponents", "[field_operations][divergence][cartesian]")
@@ -355,9 +355,9 @@ namespace MML::Tests::Core::FieldOperationsTests
 		// F = (y, -x, 0)
 		// ∇×F = (∂0/∂y - ∂(-x)/∂z, ∂y/∂z - ∂0/∂x, ∂(-x)/∂x - ∂y/∂y)
 		//     = (0 - 0, 0 - 0, -1 - 1) = (0, 0, -2)
-		REQUIRE_THAT(curl[0], WithinAbs(REAL(0.0), REAL(1e-10)));
-		REQUIRE_THAT(curl[1], WithinAbs(REAL(0.0), REAL(1e-10)));
-		REQUIRE_THAT(curl[2], WithinRel(REAL(-2.0), REAL(1e-8)));
+		REQUIRE_THAT(curl[0], WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(curl[1], WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(curl[2], WithinRel(REAL(-2.0), TOL(1e-8, 1e-4)));
 	}
 	
 	TEST_CASE("Curl_Cartesian_Irrotational_Radial", "[field_operations][curl][cartesian][irrotational]")
@@ -370,9 +370,9 @@ namespace MML::Tests::Core::FieldOperationsTests
 		auto curl = VectorFieldOperations::CurlCart(F, pos);
 		
 		// F = (x, y, z) → ∇×F = (0, 0, 0) (conservative field)
-		REQUIRE_THAT(curl[0], WithinAbs(REAL(0.0), REAL(1e-10)));
-		REQUIRE_THAT(curl[1], WithinAbs(REAL(0.0), REAL(1e-10)));
-		REQUIRE_THAT(curl[2], WithinAbs(REAL(0.0), REAL(1e-10)));
+		REQUIRE_THAT(curl[0], WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(curl[1], WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(curl[2], WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
 	}
 	
 	TEST_CASE("Curl_Cartesian_GradientOfScalar_IsZero", "[field_operations][curl][cartesian][identity]")
@@ -386,9 +386,9 @@ namespace MML::Tests::Core::FieldOperationsTests
 		auto curl = VectorFieldOperations::CurlCart(F, pos);
 		
 		// ∇×(∇f) = 0 (fundamental vector identity)
-		REQUIRE_THAT(curl[0], WithinAbs(REAL(0.0), REAL(1e-8)));
-		REQUIRE_THAT(curl[1], WithinAbs(REAL(0.0), REAL(1e-8)));
-		REQUIRE_THAT(curl[2], WithinAbs(REAL(0.0), REAL(1e-8)));
+		REQUIRE_THAT(curl[0], WithinAbs(REAL(0.0), TOL(1e-8, 1e-4)));
+		REQUIRE_THAT(curl[1], WithinAbs(REAL(0.0), TOL(1e-8, 1e-4)));
+		REQUIRE_THAT(curl[2], WithinAbs(REAL(0.0), TOL(1e-8, 1e-4)));
 	}
 	
 	TEST_CASE("Curl_Cartesian_SquaredComponents_IsZero", "[field_operations][curl][cartesian]")
@@ -402,9 +402,9 @@ namespace MML::Tests::Core::FieldOperationsTests
 		
 		// F = (x², y², z²) - each component depends only on its own coordinate
 		// ∇×F = (0, 0, 0)
-		REQUIRE_THAT(curl[0], WithinAbs(REAL(0.0), REAL(1e-10)));
-		REQUIRE_THAT(curl[1], WithinAbs(REAL(0.0), REAL(1e-10)));
-		REQUIRE_THAT(curl[2], WithinAbs(REAL(0.0), REAL(1e-10)));
+		REQUIRE_THAT(curl[0], WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(curl[1], WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(curl[2], WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
 	}
 
 	/*********************************************************************/
@@ -498,8 +498,8 @@ namespace MML::Tests::Core::FieldOperationsTests
 		
 		// f = r² → ∇f = (∂f/∂r, (1/r)∂f/∂θ, (1/r·sinθ)∂f/∂φ) = (2r, 0, 0)
 		REQUIRE_THAT(grad[0], WithinRel(REAL(4.0), REAL(1e-6)));  // 2r = 4
-		REQUIRE_THAT(grad[1], WithinAbs(REAL(0.0), REAL(1e-8)));
-		REQUIRE_THAT(grad[2], WithinAbs(REAL(0.0), REAL(1e-8)));
+		REQUIRE_THAT(grad[1], WithinAbs(REAL(0.0), TOL(1e-8, 1e-4)));
+		REQUIRE_THAT(grad[2], WithinAbs(REAL(0.0), TOL(1e-8, 1e-4)));
 	}
 	
 	TEST_CASE("Laplacian_Spherical_RadialField", "[field_operations][laplacian][spherical]")
@@ -542,8 +542,8 @@ namespace MML::Tests::Core::FieldOperationsTests
 		
 		// f = r² → ∇f = (2r, 0, 0)
 		REQUIRE_THAT(grad[0], WithinRel(REAL(6.0), REAL(1e-6)));  // 2r = 6
-		REQUIRE_THAT(grad[1], WithinAbs(REAL(0.0), REAL(1e-8)));
-		REQUIRE_THAT(grad[2], WithinAbs(REAL(0.0), REAL(1e-8)));
+		REQUIRE_THAT(grad[1], WithinAbs(REAL(0.0), TOL(1e-8, 1e-4)));
+		REQUIRE_THAT(grad[2], WithinAbs(REAL(0.0), TOL(1e-8, 1e-4)));
 	}
 	
 	TEST_CASE("Laplacian_Cylindrical_RadialField", "[field_operations][laplacian][cylindrical]")
@@ -597,7 +597,7 @@ namespace MML::Tests::Core::FieldOperationsTests
 		VectorN<Real, 3> operator()(const VectorN<Real, 3>& pos) const override
 		{
 			// F = (Fᵣ, Fθ, Fφ) = (0, sinθ, 0)
-			return VectorN<Real, 3>{REAL(0.0), sin(pos[1]), REAL(0.0)};
+			return VectorN<Real, 3>{REAL(0.0), REAL(sin(pos[1])), REAL(0.0)};
 		}
 	};
 
@@ -712,7 +712,7 @@ namespace MML::Tests::Core::FieldOperationsTests
 			Real r = pos[0];
 			Real theta = pos[1];
 			// F = (0, 0, r·sinθ)
-			return VectorN<Real, 3>{REAL(0.0), REAL(0.0), r * sin(theta)};
+			return VectorN<Real, 3>{REAL(0.0), REAL(0.0), REAL(r * sin(theta))};
 		}
 	};
 
@@ -765,9 +765,9 @@ namespace MML::Tests::Core::FieldOperationsTests
 		auto curl = VectorFieldOperations::CurlCyl(F, pos);
 		
 		// Radial field → ∇×F = 0
-		REQUIRE_THAT(curl[0], WithinAbs(REAL(0.0), REAL(1e-8)));
-		REQUIRE_THAT(curl[1], WithinAbs(REAL(0.0), REAL(1e-8)));
-		REQUIRE_THAT(curl[2], WithinAbs(REAL(0.0), REAL(1e-8)));
+		REQUIRE_THAT(curl[0], WithinAbs(REAL(0.0), TOL(1e-8, 1e-4)));
+		REQUIRE_THAT(curl[1], WithinAbs(REAL(0.0), TOL(1e-8, 1e-4)));
+		REQUIRE_THAT(curl[2], WithinAbs(REAL(0.0), TOL(1e-8, 1e-4)));
 	}
 
 	// Azimuthal field F = (0, r, 0) in cylindrical coordinates
@@ -793,8 +793,8 @@ namespace MML::Tests::Core::FieldOperationsTests
 		auto curl = VectorFieldOperations::CurlCyl(F, pos);
 		
 		// F = (0, r, 0) → (∇×F)z = 2 (uniform rotation)
-		REQUIRE_THAT(curl[0], WithinAbs(REAL(0.0), REAL(1e-8)));
-		REQUIRE_THAT(curl[1], WithinAbs(REAL(0.0), REAL(1e-8)));
+		REQUIRE_THAT(curl[0], WithinAbs(REAL(0.0), TOL(1e-8, 1e-4)));
+		REQUIRE_THAT(curl[1], WithinAbs(REAL(0.0), TOL(1e-8, 1e-4)));
 		REQUIRE_THAT(curl[2], WithinRel(REAL(2.0), REAL(1e-5)));
 	}
 
@@ -825,7 +825,7 @@ namespace MML::Tests::Core::FieldOperationsTests
 		
 		// F = (0, z, 0) → ∇×F = (-1, 0, z/r)
 		REQUIRE_THAT(curl[0], WithinRel(REAL(-1.0), REAL(1e-6)));
-		REQUIRE_THAT(curl[1], WithinAbs(REAL(0.0), REAL(1e-8)));
+		REQUIRE_THAT(curl[1], WithinAbs(REAL(0.0), TOL(1e-8, 1e-4)));
 		REQUIRE_THAT(curl[2], WithinRel(z / r, REAL(1e-5)));
 	}
 
@@ -847,9 +847,9 @@ namespace MML::Tests::Core::FieldOperationsTests
 		auto grad_cart = ScalarFieldOperations::GradientCart<3>(f, pos);
 		
 		// Both should give same result for Cartesian coordinates
-		REQUIRE_THAT(grad_general[0], WithinRel(grad_cart[0], REAL(1e-8)));
-		REQUIRE_THAT(grad_general[1], WithinRel(grad_cart[1], REAL(1e-8)));
-		REQUIRE_THAT(grad_general[2], WithinRel(grad_cart[2], REAL(1e-8)));
+		REQUIRE_THAT(grad_general[0], WithinRel(grad_cart[0], TOL(1e-8, 1e-4)));
+		REQUIRE_THAT(grad_general[1], WithinRel(grad_cart[1], TOL(1e-8, 1e-4)));
+		REQUIRE_THAT(grad_general[2], WithinRel(grad_cart[2], TOL(1e-8, 1e-4)));
 	}
 
 	TEST_CASE("Divergence_General_Cartesian_Matches_CartesianDivergence", "[field_operations][divergence][general][metric]")
@@ -883,9 +883,9 @@ namespace MML::Tests::Core::FieldOperationsTests
 		auto grad = ScalarFieldOperations::GradientCart<3>(f, origin);
 		
 		// ∇f = (2x, 2y, 2z) at origin = (0, 0, 0)
-		REQUIRE_THAT(grad[0], WithinAbs(REAL(0.0), REAL(1e-10)));
-		REQUIRE_THAT(grad[1], WithinAbs(REAL(0.0), REAL(1e-10)));
-		REQUIRE_THAT(grad[2], WithinAbs(REAL(0.0), REAL(1e-10)));
+		REQUIRE_THAT(grad[0], WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(grad[1], WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(grad[2], WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("Laplacian_Cartesian_AtOrigin", "[field_operations][laplacian][cartesian][edge]")
@@ -911,7 +911,7 @@ namespace MML::Tests::Core::FieldOperationsTests
 		Real div = VectorFieldOperations::DivCart<3>(F, origin);
 		
 		// ∇·F = 3 everywhere (constant)
-		REQUIRE_THAT(div, WithinRel(REAL(3.0), REAL(1e-8)));
+		REQUIRE_THAT(div, WithinRel(REAL(3.0), TOL(1e-8, 1e-4)));
 	}
 
 	TEST_CASE("Curl_Cartesian_AtOrigin", "[field_operations][curl][cartesian][edge]")
@@ -924,9 +924,9 @@ namespace MML::Tests::Core::FieldOperationsTests
 		auto curl = VectorFieldOperations::CurlCart(F, origin);
 		
 		// F = (y, -x, 0) → ∇×F = (0, 0, -2) everywhere
-		REQUIRE_THAT(curl[0], WithinAbs(REAL(0.0), REAL(1e-10)));
-		REQUIRE_THAT(curl[1], WithinAbs(REAL(0.0), REAL(1e-10)));
-		REQUIRE_THAT(curl[2], WithinRel(REAL(-2.0), REAL(1e-8)));
+		REQUIRE_THAT(curl[0], WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(curl[1], WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(curl[2], WithinRel(REAL(-2.0), TOL(1e-8, 1e-4)));
 	}
 
 	/*********************************************************************/
@@ -955,10 +955,10 @@ namespace MML::Tests::Core::FieldOperationsTests
 		auto grad = ScalarFieldOperations::GradientCart<4>(f, pos);
 		
 		// ∇f = (2x, 2y, 2z, 2w) = (2, 4, 6, 8)
-		REQUIRE_THAT(grad[0], WithinRel(REAL(2.0), REAL(1e-8)));
-		REQUIRE_THAT(grad[1], WithinRel(REAL(4.0), REAL(1e-8)));
-		REQUIRE_THAT(grad[2], WithinRel(REAL(6.0), REAL(1e-8)));
-		REQUIRE_THAT(grad[3], WithinRel(REAL(8.0), REAL(1e-8)));
+		REQUIRE_THAT(grad[0], WithinRel(REAL(2.0), TOL(1e-8, 1e-4)));
+		REQUIRE_THAT(grad[1], WithinRel(REAL(4.0), TOL(1e-8, 1e-4)));
+		REQUIRE_THAT(grad[2], WithinRel(REAL(6.0), TOL(1e-8, 1e-4)));
+		REQUIRE_THAT(grad[3], WithinRel(REAL(8.0), TOL(1e-8, 1e-4)));
 	}
 
 	TEST_CASE("Laplacian_Cartesian_4D", "[field_operations][laplacian][cartesian][4d]")
@@ -971,7 +971,7 @@ namespace MML::Tests::Core::FieldOperationsTests
 		Real lapl = ScalarFieldOperations::LaplacianCart<4>(f, pos);
 		
 		// ∇²f = 2 + 2 + 2 + 2 = 8
-		REQUIRE_THAT(lapl, WithinRel(REAL(8.0), REAL(1e-6)));
+		REQUIRE_THAT(lapl, WithinRel(REAL(8.0), TOL(1e-6, 5e-4)));
 	}
 
 	// 4D radial vector field: F(x,y,z,w) = (x, y, z, w)
@@ -995,7 +995,7 @@ namespace MML::Tests::Core::FieldOperationsTests
 		Real div = VectorFieldOperations::DivCart<4>(F, pos);
 		
 		// ∇·F = 4
-		REQUIRE_THAT(div, WithinRel(REAL(4.0), REAL(1e-8)));
+		REQUIRE_THAT(div, WithinRel(REAL(4.0), TOL(1e-8, 1e-4)));
 	}
 
 	/*********************************************************************/
@@ -1027,9 +1027,9 @@ namespace MML::Tests::Core::FieldOperationsTests
 		REQUIRE(result.status == AlgorithmStatus::Success);
 		REQUIRE(result.algorithm_name == "GradientCart");
 		REQUIRE(result.elapsed_time_ms >= 0.0);
-		REQUIRE_THAT(result.value[0], WithinRel(raw[0], REAL(1e-12)));
-		REQUIRE_THAT(result.value[1], WithinRel(raw[1], REAL(1e-12)));
-		REQUIRE_THAT(result.value[2], WithinRel(raw[2], REAL(1e-12)));
+		REQUIRE_THAT(result.value[0], WithinRel(raw[0], TOL(1e-12, 1e-5)));
+		REQUIRE_THAT(result.value[1], WithinRel(raw[1], TOL(1e-12, 1e-5)));
+		REQUIRE_THAT(result.value[2], WithinRel(raw[2], TOL(1e-12, 1e-5)));
 	}
 
 	TEST_CASE("GradientCartDetailed_WithErrorEstimate", "[field_operations][gradient][cartesian][detailed]")
@@ -1046,14 +1046,14 @@ namespace MML::Tests::Core::FieldOperationsTests
 
 		REQUIRE(result.IsSuccess());
 		// ∇f = (2x, 2y, 2z) = (2, 4, 6)
-		REQUIRE_THAT(result.value[0], WithinRel(REAL(2.0), REAL(1e-8)));
-		REQUIRE_THAT(result.value[1], WithinRel(REAL(4.0), REAL(1e-8)));
-		REQUIRE_THAT(result.value[2], WithinRel(REAL(6.0), REAL(1e-8)));
+		REQUIRE_THAT(result.value[0], WithinRel(REAL(2.0), TOL(1e-8, 1e-4)));
+		REQUIRE_THAT(result.value[1], WithinRel(REAL(4.0), TOL(1e-8, 1e-4)));
+		REQUIRE_THAT(result.value[2], WithinRel(REAL(6.0), TOL(1e-8, 1e-4)));
 		// Error should be small and non-negative
 		REQUIRE(result.error[0] >= 0.0);
 		REQUIRE(result.error[1] >= 0.0);
 		REQUIRE(result.error[2] >= 0.0);
-		REQUIRE(result.error[0] < REAL(1e-5));
+		REQUIRE(result.error[0] < TOL(1e-5, 1e-3));
 	}
 
 	TEST_CASE("GradientSpherDetailed_MatchesRawMethod", "[field_operations][gradient][spherical][detailed]")
@@ -1068,9 +1068,9 @@ namespace MML::Tests::Core::FieldOperationsTests
 
 		REQUIRE(result.IsSuccess());
 		REQUIRE(result.algorithm_name == "GradientSpher");
-		REQUIRE_THAT(result.value[0], WithinRel(raw[0], REAL(1e-10)));
-		REQUIRE_THAT(result.value[1], WithinAbs(raw[1], REAL(1e-8)));
-		REQUIRE_THAT(result.value[2], WithinAbs(raw[2], REAL(1e-8)));
+		REQUIRE_THAT(result.value[0], WithinRel(raw[0], TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(result.value[1], WithinAbs(raw[1], TOL(1e-8, 1e-4)));
+		REQUIRE_THAT(result.value[2], WithinAbs(raw[2], TOL(1e-8, 1e-4)));
 	}
 
 	TEST_CASE("GradientCylDetailed_MatchesRawMethod", "[field_operations][gradient][cylindrical][detailed]")
@@ -1085,9 +1085,9 @@ namespace MML::Tests::Core::FieldOperationsTests
 
 		REQUIRE(result.IsSuccess());
 		REQUIRE(result.algorithm_name == "GradientCyl");
-		REQUIRE_THAT(result.value[0], WithinRel(raw[0], REAL(1e-10)));
-		REQUIRE_THAT(result.value[1], WithinAbs(raw[1], REAL(1e-8)));
-		REQUIRE_THAT(result.value[2], WithinAbs(raw[2], REAL(1e-8)));
+		REQUIRE_THAT(result.value[0], WithinRel(raw[0], TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(result.value[1], WithinAbs(raw[1], TOL(1e-8, 1e-4)));
+		REQUIRE_THAT(result.value[2], WithinAbs(raw[2], TOL(1e-8, 1e-4)));
 	}
 
 	TEST_CASE("LaplacianCartDetailed_MatchesRawMethod", "[field_operations][laplacian][cartesian][detailed]")
@@ -1102,7 +1102,7 @@ namespace MML::Tests::Core::FieldOperationsTests
 
 		REQUIRE(result.IsSuccess());
 		REQUIRE(result.algorithm_name == "LaplacianCart");
-		REQUIRE_THAT(result.value, WithinRel(raw, REAL(1e-10)));
+		REQUIRE_THAT(result.value, WithinRel(raw, TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("LaplacianCartDetailed_WithErrorEstimate", "[field_operations][laplacian][cartesian][detailed]")
@@ -1119,10 +1119,10 @@ namespace MML::Tests::Core::FieldOperationsTests
 
 		REQUIRE(result.IsSuccess());
 		// ∇²f = 6
-		REQUIRE_THAT(result.value, WithinRel(REAL(6.0), REAL(1e-6)));
+		REQUIRE_THAT(result.value, WithinRel(REAL(6.0), TOL(1e-6, 5e-4)));
 		// Error should be small (scalar for Laplacian)
 		REQUIRE(result.error >= 0.0);
-		REQUIRE(result.error < REAL(1e-3));
+		REQUIRE(result.error < TOL(1e-3, 5e-3));
 	}
 
 	TEST_CASE("LaplacianSpherDetailed_MatchesRawMethod", "[field_operations][laplacian][spherical][detailed]")
@@ -1137,7 +1137,7 @@ namespace MML::Tests::Core::FieldOperationsTests
 
 		REQUIRE(result.IsSuccess());
 		REQUIRE(result.algorithm_name == "LaplacianSpher");
-		REQUIRE_THAT(result.value, WithinRel(raw, REAL(1e-10)));
+		REQUIRE_THAT(result.value, WithinRel(raw, TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("LaplacianCylDetailed_MatchesRawMethod", "[field_operations][laplacian][cylindrical][detailed]")
@@ -1152,7 +1152,7 @@ namespace MML::Tests::Core::FieldOperationsTests
 
 		REQUIRE(result.IsSuccess());
 		REQUIRE(result.algorithm_name == "LaplacianCyl");
-		REQUIRE_THAT(result.value, WithinRel(raw, REAL(1e-10)));
+		REQUIRE_THAT(result.value, WithinRel(raw, TOL(1e-10, 1e-5)));
 	}
 
 	/*********************************************************************/
@@ -1172,7 +1172,7 @@ namespace MML::Tests::Core::FieldOperationsTests
 		REQUIRE(result.IsSuccess());
 		REQUIRE(result.algorithm_name == "DivCart");
 		REQUIRE(result.elapsed_time_ms >= 0.0);
-		REQUIRE_THAT(result.value, WithinRel(raw, REAL(1e-10)));
+		REQUIRE_THAT(result.value, WithinRel(raw, TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("DivCartDetailed_WithErrorEstimate", "[field_operations][divergence][cartesian][detailed]")
@@ -1206,7 +1206,7 @@ namespace MML::Tests::Core::FieldOperationsTests
 
 		REQUIRE(result.IsSuccess());
 		REQUIRE(result.algorithm_name == "DivSpher");
-		REQUIRE_THAT(result.value, WithinRel(raw, REAL(1e-10)));
+		REQUIRE_THAT(result.value, WithinRel(raw, TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("DivCylDetailed_MatchesRawMethod", "[field_operations][divergence][cylindrical][detailed]")
@@ -1221,7 +1221,7 @@ namespace MML::Tests::Core::FieldOperationsTests
 
 		REQUIRE(result.IsSuccess());
 		REQUIRE(result.algorithm_name == "DivCyl");
-		REQUIRE_THAT(result.value, WithinRel(raw, REAL(1e-10)));
+		REQUIRE_THAT(result.value, WithinRel(raw, TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("CurlCartDetailed_MatchesRawMethod", "[field_operations][curl][cartesian][detailed]")
@@ -1236,9 +1236,9 @@ namespace MML::Tests::Core::FieldOperationsTests
 
 		REQUIRE(result.IsSuccess());
 		REQUIRE(result.algorithm_name == "CurlCart");
-		REQUIRE_THAT(result.value[0], WithinAbs(raw[0], REAL(1e-10)));
-		REQUIRE_THAT(result.value[1], WithinAbs(raw[1], REAL(1e-10)));
-		REQUIRE_THAT(result.value[2], WithinRel(raw[2], REAL(1e-10)));
+		REQUIRE_THAT(result.value[0], WithinAbs(raw[0], TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(result.value[1], WithinAbs(raw[1], TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(result.value[2], WithinRel(raw[2], TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("CurlCartDetailed_WithErrorEstimate", "[field_operations][curl][cartesian][detailed]")
@@ -1255,9 +1255,9 @@ namespace MML::Tests::Core::FieldOperationsTests
 
 		REQUIRE(result.IsSuccess());
 		// F = (y, -x, 0) → ∇×F = (0, 0, -2)
-		REQUIRE_THAT(result.value[0], WithinAbs(REAL(0.0), REAL(1e-10)));
-		REQUIRE_THAT(result.value[1], WithinAbs(REAL(0.0), REAL(1e-10)));
-		REQUIRE_THAT(result.value[2], WithinRel(REAL(-2.0), REAL(1e-8)));
+		REQUIRE_THAT(result.value[0], WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(result.value[1], WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(result.value[2], WithinRel(REAL(-2.0), TOL(1e-8, 1e-4)));
 		// Per-component error should be small
 		REQUIRE(result.error[0] >= 0.0);
 		REQUIRE(result.error[1] >= 0.0);
@@ -1276,9 +1276,9 @@ namespace MML::Tests::Core::FieldOperationsTests
 
 		REQUIRE(result.IsSuccess());
 		REQUIRE(result.algorithm_name == "CurlSpher");
-		REQUIRE_THAT(result.value[0], WithinRel(raw[0], REAL(1e-10)));
-		REQUIRE_THAT(result.value[1], WithinRel(raw[1], REAL(1e-10)));
-		REQUIRE_THAT(result.value[2], WithinAbs(raw[2], REAL(1e-8)));
+		REQUIRE_THAT(result.value[0], WithinRel(raw[0], TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(result.value[1], WithinRel(raw[1], TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(result.value[2], WithinAbs(raw[2], TOL(1e-8, 1e-4)));
 	}
 
 	TEST_CASE("CurlCylDetailed_MatchesRawMethod", "[field_operations][curl][cylindrical][detailed]")
@@ -1293,9 +1293,9 @@ namespace MML::Tests::Core::FieldOperationsTests
 
 		REQUIRE(result.IsSuccess());
 		REQUIRE(result.algorithm_name == "CurlCyl");
-		REQUIRE_THAT(result.value[0], WithinAbs(raw[0], REAL(1e-10)));
-		REQUIRE_THAT(result.value[1], WithinAbs(raw[1], REAL(1e-10)));
-		REQUIRE_THAT(result.value[2], WithinRel(raw[2], REAL(1e-10)));
+		REQUIRE_THAT(result.value[0], WithinAbs(raw[0], TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(result.value[1], WithinAbs(raw[1], TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(result.value[2], WithinRel(raw[2], TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("Detailed_ExceptionPolicy_NoThrow", "[field_operations][detailed][exception_policy]")

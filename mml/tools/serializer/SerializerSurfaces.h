@@ -59,7 +59,8 @@ namespace MML
 			try
 			{
 				// Write header
-				file << "PARAMETRIC_SURFACE_CARTESIAN" << std::endl;
+				file << FormatType::PARAMETRIC_SURFACE_CARTESIAN << std::endl;
+				file << "VERSION: " << FormatType::CURRENT_VERSION << std::endl;
 				file << title << std::endl;
 				file << "u1: " << u1 << std::endl;
 				file << "u2: " << u2 << std::endl;
@@ -115,7 +116,8 @@ namespace MML
 			try
 			{
 				// Write header
-				file << "PARAMETRIC_SURFACE_CARTESIAN" << std::endl;
+				file << FormatType::PARAMETRIC_SURFACE_CARTESIAN << std::endl;
+				file << "VERSION: " << FormatType::CURRENT_VERSION << std::endl;
 				file << title << std::endl;
 				file << "u1: " << u1 << std::endl;
 				file << "u2: " << u2 << std::endl;
@@ -188,7 +190,8 @@ namespace MML
 
 			try
 			{
-				file << "SCALAR_FUNCTION_CARTESIAN_2D" << std::endl;
+				file << FormatType::SCALAR_FUNCTION_CARTESIAN_2D << std::endl;
+				file << "VERSION: " << FormatType::CURRENT_VERSION << std::endl;
 				file << title << std::endl;
 				file << "x1: " << x1 << std::endl;
 				file << "x2: " << x2 << std::endl;
@@ -240,7 +243,8 @@ namespace MML
 
 			try
 			{
-				file << "SCALAR_FUNCTION_CARTESIAN_3D" << std::endl;
+				file << FormatType::SCALAR_FUNCTION_CARTESIAN_3D << std::endl;
+				file << "VERSION: " << FormatType::CURRENT_VERSION << std::endl;
 				file << title << std::endl;
 				file << "x1: " << x1 << std::endl;
 				file << "x2: " << x2 << std::endl;
@@ -320,7 +324,8 @@ namespace MML
 				Real y1 = domain.yMin() * scaleXY;
 				Real y2 = domain.yMax() * scaleXY;
 				
-				file << "SCALAR_FUNCTION_CARTESIAN_2D" << std::endl;
+				file << FormatType::SCALAR_FUNCTION_CARTESIAN_2D << std::endl;
+				file << "VERSION: " << FormatType::CURRENT_VERSION << std::endl;
 				file << title << std::endl;
 				file << "x1: " << x1 << std::endl;
 				file << "x2: " << x2 << std::endl;

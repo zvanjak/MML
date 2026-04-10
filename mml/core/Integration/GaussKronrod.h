@@ -356,7 +356,7 @@ namespace MML {
 		/// @param rule Which Gauss-Kronrod rule to use (default GK15)
 		/// @return GKResult with integral and accumulated error estimate
 		template<typename Func>
-		static GKResult IntegrateGKAdaptive(Func f, Real a, Real b, Real tol_abs = 1e-10, Real tol_rel = 1e-10, int max_depth = 50,
+		static GKResult IntegrateGKAdaptive(Func f, Real a, Real b, Real tol_abs = PrecisionValues<Real>::IntegrationTolerance, Real tol_rel = PrecisionValues<Real>::IntegrationTolerance, int max_depth = 50,
 																				GKRule rule = GKRule::GK15) {
 			// Apply basic rule first
 			GKResult local = (rule == GKRule::GK15)		? IntegrateGK15(f, a, b)
@@ -502,7 +502,7 @@ namespace MML {
 		static IntegrationDetailedResult IntegrateGKAdaptiveDetailed(
 			Func f, Real a, Real b,
 			const IntegrationConfig& config = {},
-			Real tol_abs = 1e-10, Real tol_rel = 1e-10,
+			Real tol_abs = PrecisionValues<Real>::IntegrationTolerance, Real tol_rel = PrecisionValues<Real>::IntegrationTolerance,
 			int max_depth = 50, GKRule rule = GKRule::GK15)
 		{
 			return IntegrationDetail::ExecuteIntegrationDetailed<IntegrationDetailedResult>(

@@ -80,10 +80,10 @@ TEST_CASE("CoordTransfLorentzXAxis - Zero Velocity is Identity Transform", "[lor
     Vector4Minkowski event{REAL(1.0), REAL(2.0), REAL(3.0), REAL(4.0)};  // (t, x, y, z)
     Vector4Minkowski transformed = lorentz.transf(event);
     
-    REQUIRE_THAT(transformed[0], WithinAbs(REAL(1.0), REAL(1e-10)));
-    REQUIRE_THAT(transformed[1], WithinAbs(REAL(2.0), REAL(1e-10)));
-    REQUIRE_THAT(transformed[2], WithinAbs(REAL(3.0), REAL(1e-10)));
-    REQUIRE_THAT(transformed[3], WithinAbs(REAL(4.0), REAL(1e-10)));
+    REQUIRE_THAT(transformed[0], WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(transformed[1], WithinAbs(REAL(2.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(transformed[2], WithinAbs(REAL(3.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(transformed[3], WithinAbs(REAL(4.0), TOL(1e-10, 1e-5)));
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -98,10 +98,10 @@ TEST_CASE("CoordTransfLorentzXAxis - Transform Origin Event", "[lorentz]")
     Vector4Minkowski transformed = lorentz.transf(origin);
     
     // Origin maps to origin
-    REQUIRE_THAT(transformed[0], WithinAbs(REAL(0.0), REAL(1e-10)));
-    REQUIRE_THAT(transformed[1], WithinAbs(REAL(0.0), REAL(1e-10)));
-    REQUIRE_THAT(transformed[2], WithinAbs(REAL(0.0), REAL(1e-10)));
-    REQUIRE_THAT(transformed[3], WithinAbs(REAL(0.0), REAL(1e-10)));
+    REQUIRE_THAT(transformed[0], WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(transformed[1], WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(transformed[2], WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(transformed[3], WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("CoordTransfLorentzXAxis - Transform Time-Only Event", "[lorentz]")
@@ -115,10 +115,10 @@ TEST_CASE("CoordTransfLorentzXAxis - Transform Time-Only Event", "[lorentz]")
     Vector4Minkowski transformed = lorentz.transf(event);
     
     // t' = gamma * t (when x=0)
-    REQUIRE_THAT(transformed[0], WithinAbs(gamma * REAL(1.0), REAL(1e-10)));
-    REQUIRE_THAT(transformed[1], WithinAbs(-v * gamma * REAL(1.0), REAL(1e-10)));
-    REQUIRE_THAT(transformed[2], WithinAbs(REAL(0.0), REAL(1e-10)));
-    REQUIRE_THAT(transformed[3], WithinAbs(REAL(0.0), REAL(1e-10)));
+    REQUIRE_THAT(transformed[0], WithinAbs(gamma * REAL(1.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(transformed[1], WithinAbs(-v * gamma * REAL(1.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(transformed[2], WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(transformed[3], WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("CoordTransfLorentzXAxis - Transform Space-Only Event (X-axis)", "[lorentz]")
@@ -132,10 +132,10 @@ TEST_CASE("CoordTransfLorentzXAxis - Transform Space-Only Event (X-axis)", "[lor
     Vector4Minkowski transformed = lorentz.transf(event);
     
     // t' = gamma * (-v * x), x' = gamma * x (when t=0)
-    REQUIRE_THAT(transformed[0], WithinAbs(-v * gamma * REAL(1.0), REAL(1e-10)));
-    REQUIRE_THAT(transformed[1], WithinAbs(gamma * REAL(1.0), REAL(1e-10)));
-    REQUIRE_THAT(transformed[2], WithinAbs(REAL(0.0), REAL(1e-10)));
-    REQUIRE_THAT(transformed[3], WithinAbs(REAL(0.0), REAL(1e-10)));
+    REQUIRE_THAT(transformed[0], WithinAbs(-v * gamma * REAL(1.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(transformed[1], WithinAbs(gamma * REAL(1.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(transformed[2], WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(transformed[3], WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("CoordTransfLorentzXAxis - Y and Z Coordinates Unchanged", "[lorentz]")
@@ -147,8 +147,8 @@ TEST_CASE("CoordTransfLorentzXAxis - Y and Z Coordinates Unchanged", "[lorentz]"
     Vector4Minkowski transformed = lorentz.transf(event);
     
     // Y and Z coordinates should be unchanged
-    REQUIRE_THAT(transformed[2], WithinAbs(REAL(3.0), REAL(1e-10)));
-    REQUIRE_THAT(transformed[3], WithinAbs(REAL(4.0), REAL(1e-10)));
+    REQUIRE_THAT(transformed[2], WithinAbs(REAL(3.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(transformed[3], WithinAbs(REAL(4.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("CoordTransfLorentzXAxis - General Event Transformation", "[lorentz]")
@@ -169,10 +169,10 @@ TEST_CASE("CoordTransfLorentzXAxis - General Event Transformation", "[lorentz]")
     Real expected_t = gamma * (t - v * x);
     Real expected_x = gamma * (x - v * t);
     
-    REQUIRE_THAT(transformed[0], WithinAbs(expected_t, REAL(1e-9)));
-    REQUIRE_THAT(transformed[1], WithinAbs(expected_x, REAL(1e-9)));
-    REQUIRE_THAT(transformed[2], WithinAbs(y, REAL(1e-10)));
-    REQUIRE_THAT(transformed[3], WithinAbs(z, REAL(1e-10)));
+    REQUIRE_THAT(transformed[0], WithinAbs(expected_t, TOL(1e-9, 1e-4)));
+    REQUIRE_THAT(transformed[1], WithinAbs(expected_x, TOL(1e-9, 1e-4)));
+    REQUIRE_THAT(transformed[2], WithinAbs(y, TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(transformed[3], WithinAbs(z, TOL(1e-10, 1e-5)));
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -186,10 +186,10 @@ TEST_CASE("CoordTransfLorentzXAxis - Inverse Transform of Origin", "[lorentz]")
     Vector4Minkowski origin{REAL(0.0), REAL(0.0), REAL(0.0), REAL(0.0)};
     Vector4Minkowski transformed = lorentz.transfInverse(origin);
     
-    REQUIRE_THAT(transformed[0], WithinAbs(REAL(0.0), REAL(1e-10)));
-    REQUIRE_THAT(transformed[1], WithinAbs(REAL(0.0), REAL(1e-10)));
-    REQUIRE_THAT(transformed[2], WithinAbs(REAL(0.0), REAL(1e-10)));
-    REQUIRE_THAT(transformed[3], WithinAbs(REAL(0.0), REAL(1e-10)));
+    REQUIRE_THAT(transformed[0], WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(transformed[1], WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(transformed[2], WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(transformed[3], WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("CoordTransfLorentzXAxis - Round Trip Transformation", "[lorentz]")
@@ -201,10 +201,10 @@ TEST_CASE("CoordTransfLorentzXAxis - Round Trip Transformation", "[lorentz]")
     Vector4Minkowski transformed = lorentz.transf(original);
     Vector4Minkowski back = lorentz.transfInverse(transformed);
     
-    REQUIRE_THAT(back[0], WithinAbs(original[0], REAL(1e-9)));
-    REQUIRE_THAT(back[1], WithinAbs(original[1], REAL(1e-9)));
-    REQUIRE_THAT(back[2], WithinAbs(original[2], REAL(1e-9)));
-    REQUIRE_THAT(back[3], WithinAbs(original[3], REAL(1e-9)));
+    REQUIRE_THAT(back[0], WithinAbs(original[0], TOL(1e-9, 1e-4)));
+    REQUIRE_THAT(back[1], WithinAbs(original[1], TOL(1e-9, 1e-4)));
+    REQUIRE_THAT(back[2], WithinAbs(original[2], TOL(1e-9, 1e-4)));
+    REQUIRE_THAT(back[3], WithinAbs(original[3], TOL(1e-9, 1e-4)));
 }
 
 TEST_CASE("CoordTransfLorentzXAxis - Inverse Equals Negative Velocity Transform", "[lorentz]")
@@ -221,10 +221,10 @@ TEST_CASE("CoordTransfLorentzXAxis - Inverse Equals Negative Velocity Transform"
     Real expected_t = gamma * (event[0] + v * event[1]);
     Real expected_x = gamma * (event[1] + v * event[0]);
     
-    REQUIRE_THAT(inv_transformed[0], WithinAbs(expected_t, REAL(1e-9)));
-    REQUIRE_THAT(inv_transformed[1], WithinAbs(expected_x, REAL(1e-9)));
-    REQUIRE_THAT(inv_transformed[2], WithinAbs(event[2], REAL(1e-10)));
-    REQUIRE_THAT(inv_transformed[3], WithinAbs(event[3], REAL(1e-10)));
+    REQUIRE_THAT(inv_transformed[0], WithinAbs(expected_t, TOL(1e-9, 1e-4)));
+    REQUIRE_THAT(inv_transformed[1], WithinAbs(expected_x, TOL(1e-9, 1e-4)));
+    REQUIRE_THAT(inv_transformed[2], WithinAbs(event[2], TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(inv_transformed[3], WithinAbs(event[3], TOL(1e-10, 1e-5)));
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -243,7 +243,7 @@ TEST_CASE("CoordTransfLorentzXAxis - Spacetime Interval Invariance", "[lorentz]"
     Real s2_transformed = transformed[0]*transformed[0] - transformed[1]*transformed[1] 
                         - transformed[2]*transformed[2] - transformed[3]*transformed[3];
     
-    REQUIRE_THAT(s2_transformed, WithinAbs(s2_original, REAL(1e-9)));
+    REQUIRE_THAT(s2_transformed, WithinAbs(s2_original, TOL(1e-9, 1e-4)));
 }
 
 TEST_CASE("CoordTransfLorentzXAxis - Light Cone Invariance", "[lorentz]")
@@ -261,8 +261,8 @@ TEST_CASE("CoordTransfLorentzXAxis - Light Cone Invariance", "[lorentz]")
     Real interval_transformed = transformed[0]*transformed[0] - transformed[1]*transformed[1] 
                               - transformed[2]*transformed[2] - transformed[3]*transformed[3];
     
-    REQUIRE_THAT(interval_original, WithinAbs(REAL(0.0), REAL(1e-10)));
-    REQUIRE_THAT(interval_transformed, WithinAbs(REAL(0.0), REAL(1e-10)));
+    REQUIRE_THAT(interval_original, WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(interval_transformed, WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -277,7 +277,7 @@ TEST_CASE("CoordTransfLorentzXAxis - Proper Time Calculation", "[lorentz]")
     Real proper_time = ProperTime(coordinate_time, v);
     
     // tau = t / gamma
-    REQUIRE_THAT(proper_time, WithinAbs(coordinate_time / gamma, REAL(1e-10)));
+    REQUIRE_THAT(proper_time, WithinAbs(coordinate_time / gamma, TOL(1e-10, 1e-5)));
     REQUIRE(proper_time < coordinate_time);  // Proper time is always less
 }
 
@@ -298,7 +298,7 @@ TEST_CASE("CoordTransfLorentzXAxis - Time Dilation for Moving Object", "[lorentz
     Real dt_prime = trans2[0] - trans1[0];
     
     // Time dilation: dt' = gamma * dt
-    REQUIRE_THAT(dt_prime, WithinAbs(gamma * dt, REAL(1e-10)));
+    REQUIRE_THAT(dt_prime, WithinAbs(gamma * dt, TOL(1e-10, 1e-5)));
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -316,7 +316,7 @@ TEST_CASE("CoordTransfLorentzXAxis - Velocity Composition Formula", "[lorentz]")
     
     // Einstein velocity addition: v = (v1 + v2) / (1 + v1*v2)
     Real expected = (v1 + v2) / (REAL(1.0) + v1 * v2);
-    REQUIRE_THAT(v_composed, WithinAbs(expected, REAL(1e-10)));
+    REQUIRE_THAT(v_composed, WithinAbs(expected, TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("CoordTransfLorentzXAxis - Successive Transformations", "[lorentz]")
@@ -338,8 +338,8 @@ TEST_CASE("CoordTransfLorentzXAxis - Successive Transformations", "[lorentz]")
     CoordTransfLorentzXAxis lorentz_composed(v_composed);
     Vector4Minkowski trans_direct = lorentz_composed.transf(event);
     
-    REQUIRE_THAT(trans2[0], WithinAbs(trans_direct[0], REAL(1e-9)));
-    REQUIRE_THAT(trans2[1], WithinAbs(trans_direct[1], REAL(1e-9)));
+    REQUIRE_THAT(trans2[0], WithinAbs(trans_direct[0], TOL(1e-9, 1e-4)));
+    REQUIRE_THAT(trans2[1], WithinAbs(trans_direct[1], TOL(1e-9, 1e-4)));
 }
 
 TEST_CASE("CoordTransfLorentzXAxis - Light Speed Invariance Under Composition", "[lorentz]")
@@ -378,7 +378,7 @@ TEST_CASE("CoordTransfLorentzXAxis - Length Contraction", "[lorentz]")
     // The contracted length is L' = L / gamma
     Real L_moving = std::abs(trans_front[1] - trans_back[1]);
     
-    REQUIRE_THAT(L_moving, WithinAbs(gamma * L, REAL(1e-9)));
+    REQUIRE_THAT(L_moving, WithinAbs(gamma * L, TOL(1e-9, 1e-4)));
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -402,8 +402,8 @@ TEST_CASE("CoordTransfLorentzXAxis - Low Velocity Limit (Galilean)", "[lorentz]"
     Real expected_t = gamma * (event[0] - v * event[1]);
     Real expected_x = gamma * (event[1] - v * event[0]);
     
-    REQUIRE_THAT(transformed[0], WithinAbs(expected_t, REAL(1e-9)));
-    REQUIRE_THAT(transformed[1], WithinAbs(expected_x, REAL(1e-9)));
+    REQUIRE_THAT(transformed[0], WithinAbs(expected_t, TOL(1e-9, 1e-4)));
+    REQUIRE_THAT(transformed[1], WithinAbs(expected_x, TOL(1e-9, 1e-4)));
 }
 
 TEST_CASE("CoordTransfLorentzXAxis - High Velocity Gamma Factor", "[lorentz]")
@@ -435,10 +435,10 @@ TEST_CASE("CoordTransfLorentzXAxis - Coordinate Transform Functions Consistency"
     Real y_prime = lorentz.coordTransfFunc(2)(event);
     Real z_prime = lorentz.coordTransfFunc(3)(event);
     
-    REQUIRE_THAT(t_prime, WithinAbs(transformed[0], REAL(1e-10)));
-    REQUIRE_THAT(x_prime, WithinAbs(transformed[1], REAL(1e-10)));
-    REQUIRE_THAT(y_prime, WithinAbs(transformed[2], REAL(1e-10)));
-    REQUIRE_THAT(z_prime, WithinAbs(transformed[3], REAL(1e-10)));
+    REQUIRE_THAT(t_prime, WithinAbs(transformed[0], TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(x_prime, WithinAbs(transformed[1], TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(y_prime, WithinAbs(transformed[2], TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(z_prime, WithinAbs(transformed[3], TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("CoordTransfLorentzXAxis - Inverse Coordinate Functions Consistency", "[lorentz]")
@@ -457,10 +457,10 @@ TEST_CASE("CoordTransfLorentzXAxis - Inverse Coordinate Functions Consistency", 
     Real y = lorentz.inverseCoordTransfFunc(2)(event);
     Real z = lorentz.inverseCoordTransfFunc(3)(event);
     
-    REQUIRE_THAT(t, WithinAbs(inv_transformed[0], REAL(1e-10)));
-    REQUIRE_THAT(x, WithinAbs(inv_transformed[1], REAL(1e-10)));
-    REQUIRE_THAT(y, WithinAbs(inv_transformed[2], REAL(1e-10)));
-    REQUIRE_THAT(z, WithinAbs(inv_transformed[3], REAL(1e-10)));
+    REQUIRE_THAT(t, WithinAbs(inv_transformed[0], TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(x, WithinAbs(inv_transformed[1], TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(y, WithinAbs(inv_transformed[2], TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(z, WithinAbs(inv_transformed[3], TOL(1e-10, 1e-5)));
 }
 
 } // namespace MML::Tests::Core::CoordTransfLorentzTests

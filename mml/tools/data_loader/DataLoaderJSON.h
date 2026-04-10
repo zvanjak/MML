@@ -67,9 +67,29 @@ namespace MML {
 							case 'n': result += '\n'; break;
 							case 't': result += '\t'; break;
 							case 'r': result += '\r'; break;
+							case 'b': result += '\b'; break;
+							case 'f': result += '\f'; break;
 							case '"': result += '"'; break;
 							case '\\': result += '\\'; break;
 							case '/': result += '/'; break;
+							case 'u': {
+								if (pos + 4 > json.size())
+									throw DataError("JSON: Incomplete unicode escape");
+								std::string hex = json.substr(pos, 4);
+								pos += 4;
+								unsigned long cp = std::stoul(hex, nullptr, 16);
+								if (cp <= 0x7F) {
+									result += static_cast<char>(cp);
+								} else if (cp <= 0x7FF) {
+									result += static_cast<char>(0xC0 | (cp >> 6));
+									result += static_cast<char>(0x80 | (cp & 0x3F));
+								} else {
+									result += static_cast<char>(0xE0 | (cp >> 12));
+									result += static_cast<char>(0x80 | ((cp >> 6) & 0x3F));
+									result += static_cast<char>(0x80 | (cp & 0x3F));
+								}
+								break;
+							}
 							default: result += esc; break;
 						}
 					}

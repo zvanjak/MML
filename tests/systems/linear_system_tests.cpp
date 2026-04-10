@@ -9,6 +9,7 @@
 ///////////////////////////////////////////////////////////////////////////////////////////
 
 #include <catch2/catch_test_macros.hpp>
+#include "../TestPrecision.h"
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include "MMLBase.h"
@@ -109,8 +110,8 @@ TEST_CASE("LinearSystem - Auto Solve", "[LinearSystem][Solve]")
 		LinearSystem<Real> sys(A, b);
 		Vector<Real> x = sys.Solve();
 		
-		REQUIRE_THAT(x[0], WithinAbs(2.0, 1e-10));
-		REQUIRE_THAT(x[1], WithinAbs(1.0, 1e-10));
+		REQUIRE_THAT(x[0], WithinAbs(2.0, TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(x[1], WithinAbs(1.0, TOL(1e-10, 1e-5)));
 	}
 	
 	SECTION("3x3 system")
@@ -121,9 +122,9 @@ TEST_CASE("LinearSystem - Auto Solve", "[LinearSystem][Solve]")
 		LinearSystem<Real> sys(A, b);
 		Vector<Real> x = sys.Solve();
 		
-		REQUIRE_THAT(x[0], WithinAbs(1.0, 1e-9));
-		REQUIRE_THAT(x[1], WithinAbs(2.0, 1e-9));
-		REQUIRE_THAT(x[2], WithinAbs(3.0, 1e-9));
+		REQUIRE_THAT(x[0], WithinAbs(1.0, TOL(1e-9, 1e-4)));
+		REQUIRE_THAT(x[1], WithinAbs(2.0, TOL(1e-9, 1e-4)));
+		REQUIRE_THAT(x[2], WithinAbs(3.0, TOL(1e-9, 1e-4)));
 	}
 }
 
@@ -136,31 +137,31 @@ TEST_CASE("LinearSystem - Specific Solvers", "[LinearSystem][Solvers]")
 	SECTION("Gauss-Jordan")
 	{
 		Vector<Real> x = sys.SolveByGaussJordan();
-		REQUIRE_THAT(sys.RelativeResidual(x), WithinAbs(0.0, 1e-12));
+		REQUIRE_THAT(sys.RelativeResidual(x), WithinAbs(0.0, TOL(1e-12, 1e-5)));
 	}
 	
 	SECTION("LU Decomposition")
 	{
 		Vector<Real> x = sys.SolveByLU();
-		REQUIRE_THAT(sys.RelativeResidual(x), WithinAbs(0.0, 1e-12));
+		REQUIRE_THAT(sys.RelativeResidual(x), WithinAbs(0.0, TOL(1e-12, 1e-5)));
 	}
 	
 	SECTION("Cholesky (SPD)")
 	{
 		Vector<Real> x = sys.SolveByCholesky();
-		REQUIRE_THAT(sys.RelativeResidual(x), WithinAbs(0.0, 1e-12));
+		REQUIRE_THAT(sys.RelativeResidual(x), WithinAbs(0.0, TOL(1e-12, 1e-5)));
 	}
 	
 	SECTION("QR Decomposition")
 	{
 		Vector<Real> x = sys.SolveByQR();
-		REQUIRE_THAT(sys.RelativeResidual(x), WithinAbs(0.0, 1e-10));
+		REQUIRE_THAT(sys.RelativeResidual(x), WithinAbs(0.0, TOL(1e-10, 1e-5)));
 	}
 	
 	SECTION("SVD Decomposition")
 	{
 		Vector<Real> x = sys.SolveBySVD();
-		REQUIRE_THAT(sys.RelativeResidual(x), WithinAbs(0.0, 1e-10));
+		REQUIRE_THAT(sys.RelativeResidual(x), WithinAbs(0.0, TOL(1e-10, 1e-5)));
 	}
 	
 	SECTION("All solvers give same result")
@@ -173,10 +174,10 @@ TEST_CASE("LinearSystem - Specific Solvers", "[LinearSystem][Solvers]")
 		
 		for (int i = 0; i < 3; ++i)
 		{
-			REQUIRE_THAT(xLU[i], WithinAbs(xGJ[i], 1e-10));
-			REQUIRE_THAT(xCh[i], WithinAbs(xGJ[i], 1e-10));
-			REQUIRE_THAT(xQR[i], WithinAbs(xGJ[i], 1e-8));
-			REQUIRE_THAT(xSVD[i], WithinAbs(xGJ[i], 1e-8));
+			REQUIRE_THAT(xLU[i], WithinAbs(xGJ[i], TOL(1e-10, 1e-5)));
+			REQUIRE_THAT(xCh[i], WithinAbs(xGJ[i], TOL(1e-10, 1e-5)));
+			REQUIRE_THAT(xQR[i], WithinAbs(xGJ[i], TOL(1e-8, 1e-4)));
+			REQUIRE_THAT(xSVD[i], WithinAbs(xGJ[i], TOL(1e-8, 1e-4)));
 		}
 	}
 }
@@ -196,26 +197,26 @@ TEST_CASE("LinearSystem - Iterative Solvers", "[LinearSystem][Iterative]")
 	
 	SECTION("Jacobi iteration")
 	{
-		Vector<Real> x = sys.SolveIterative(IterativeMethod::Jacobi, 1e-10, 1000);
-		REQUIRE_THAT(sys.RelativeResidual(x), WithinAbs(0.0, 1e-9));
+		Vector<Real> x = sys.SolveIterative(IterativeMethod::Jacobi, TOL(1e-10, 1e-5), 1000);
+		REQUIRE_THAT(sys.RelativeResidual(x), WithinAbs(0.0, TOL(1e-9, 1e-4)));
 	}
 	
 	SECTION("Gauss-Seidel iteration")
 	{
-		Vector<Real> x = sys.SolveIterative(IterativeMethod::GaussSeidel, 1e-10, 1000);
-		REQUIRE_THAT(sys.RelativeResidual(x), WithinAbs(0.0, 1e-9));
+		Vector<Real> x = sys.SolveIterative(IterativeMethod::GaussSeidel, TOL(1e-10, 1e-5), 1000);
+		REQUIRE_THAT(sys.RelativeResidual(x), WithinAbs(0.0, TOL(1e-9, 1e-4)));
 	}
 	
 	SECTION("SOR iteration")
 	{
-		Vector<Real> x = sys.SolveIterative(IterativeMethod::SOR, 1e-10, 1000);
-		REQUIRE_THAT(sys.RelativeResidual(x), WithinAbs(0.0, 1e-9));
+		Vector<Real> x = sys.SolveIterative(IterativeMethod::SOR, TOL(1e-10, 1e-5), 1000);
+		REQUIRE_THAT(sys.RelativeResidual(x), WithinAbs(0.0, TOL(1e-9, 1e-4)));
 	}
 	
 	SECTION("Auto-select iterative")
 	{
-		Vector<Real> x = sys.SolveIterative(IterativeMethod::Auto, 1e-10, 1000);
-		REQUIRE_THAT(sys.RelativeResidual(x), WithinAbs(0.0, 1e-9));
+		Vector<Real> x = sys.SolveIterative(IterativeMethod::Auto, TOL(1e-10, 1e-5), 1000);
+		REQUIRE_THAT(sys.RelativeResidual(x), WithinAbs(0.0, TOL(1e-9, 1e-4)));
 	}
 }
 
@@ -253,8 +254,8 @@ TEST_CASE("LinearSystem - Overdetermined Systems", "[LinearSystem][LeastSquares]
 		LinearSystem<Real> sys(A, b);
 		Vector<Real> x = sys.SolveLeastSquares();
 		
-		REQUIRE_THAT(x[0], WithinAbs(2.0, 1e-10));
-		REQUIRE_THAT(x[1], WithinAbs(3.0, 1e-10));
+		REQUIRE_THAT(x[0], WithinAbs(2.0, TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(x[1], WithinAbs(3.0, TOL(1e-10, 1e-5)));
 	}
 }
 
@@ -273,8 +274,8 @@ TEST_CASE("LinearSystem - Verification", "[LinearSystem][Verify]")
 		Vector<Real> x = sys.Solve();
 		auto verify = sys.Verify(x);
 		
-		REQUIRE_THAT(verify.absoluteResidual, WithinAbs(0.0, 1e-12));
-		REQUIRE_THAT(verify.relativeResidual, WithinAbs(0.0, 1e-12));
+		REQUIRE_THAT(verify.absoluteResidual, WithinAbs(0.0, TOL(1e-12, 1e-5)));
+		REQUIRE_THAT(verify.relativeResidual, WithinAbs(0.0, TOL(1e-12, 1e-5)));
 		REQUIRE(verify.isAccurate == true);
 	}
 	
@@ -295,7 +296,7 @@ TEST_CASE("LinearSystem - Verification", "[LinearSystem][Verify]")
 		Vector<Real> x = sys.Solve();
 		Real residual = sys.ResidualNorm(x);
 		
-		REQUIRE_THAT(residual, WithinAbs(0.0, 1e-12));
+		REQUIRE_THAT(residual, WithinAbs(0.0, TOL(1e-12, 1e-5)));
 	}
 	
 	SECTION("Relative residual")
@@ -303,7 +304,7 @@ TEST_CASE("LinearSystem - Verification", "[LinearSystem][Verify]")
 		Vector<Real> x = sys.Solve();
 		Real relResidual = sys.RelativeResidual(x);
 		
-		REQUIRE_THAT(relResidual, WithinAbs(0.0, 1e-12));
+		REQUIRE_THAT(relResidual, WithinAbs(0.0, TOL(1e-12, 1e-5)));
 	}
 }
 
@@ -418,7 +419,7 @@ TEST_CASE("LinearSystem - Numerical Properties", "[LinearSystem][Numerical]")
 		LinearSystem<Real> sys(A);
 		
 		Real det = sys.Determinant();
-		REQUIRE_THAT(det, WithinAbs(24.0, 1e-10));  // 1*4*6 = 24
+		REQUIRE_THAT(det, WithinAbs(24.0, TOL(1e-10, 1e-5)));  // 1*4*6 = 24
 	}
 	
 	SECTION("Rank of full rank matrix")
@@ -445,7 +446,7 @@ TEST_CASE("LinearSystem - Numerical Properties", "[LinearSystem][Numerical]")
 		LinearSystem<Real> sys(I);
 		
 		Real cond = sys.ConditionNumber();
-		REQUIRE_THAT(cond, WithinAbs(1.0, 1e-10));
+		REQUIRE_THAT(cond, WithinAbs(1.0, TOL(1e-10, 1e-5)));
 	}
 	
 	SECTION("Ill-conditioned Hilbert matrix")
@@ -500,7 +501,7 @@ TEST_CASE("LinearSystem - Matrix Operations", "[LinearSystem][Operations]")
 			for (int j = 0; j < 3; ++j)
 			{
 				Real expected = (i == j) ? 1.0 : 0.0;
-				REQUIRE_THAT(I(i, j), WithinAbs(expected, 1e-10));
+				REQUIRE_THAT(I(i, j), WithinAbs(expected, TOL(1e-10, 1e-5)));
 			}
 		}
 	}
@@ -516,7 +517,7 @@ TEST_CASE("LinearSystem - Matrix Operations", "[LinearSystem][Operations]")
 		Matrix<Real> result = A * Apinv * A;
 		for (int i = 0; i < A.rows(); ++i)
 			for (int j = 0; j < A.cols(); ++j)
-				REQUIRE_THAT(result(i, j), WithinAbs(A(i, j), 1e-10));
+				REQUIRE_THAT(result(i, j), WithinAbs(A(i, j), TOL(1e-10, 1e-5)));
 	}
 	
 	SECTION("Null space")
@@ -533,7 +534,7 @@ TEST_CASE("LinearSystem - Matrix Operations", "[LinearSystem][Operations]")
 			Matrix<Real> AN = A * N;
 			for (int i = 0; i < AN.rows(); ++i)
 				for (int j = 0; j < AN.cols(); ++j)
-					REQUIRE_THAT(AN(i, j), WithinAbs(0.0, 1e-10));
+					REQUIRE_THAT(AN(i, j), WithinAbs(0.0, TOL(1e-10, 1e-5)));
 		}
 	}
 }
@@ -613,9 +614,9 @@ TEST_CASE("LinearSystem - Triangular Solve", "[LinearSystem][Triangular]")
 		LinearSystem<Real> sys(A, b);
 		Vector<Real> x = sys.Solve();  // Should auto-select triangular
 		
-		REQUIRE_THAT(x[0], WithinAbs(1.0, 1e-10));
-		REQUIRE_THAT(x[1], WithinAbs(1.0, 1e-10));
-		REQUIRE_THAT(x[2], WithinAbs(1.0, 1e-10));
+		REQUIRE_THAT(x[0], WithinAbs(1.0, TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(x[1], WithinAbs(1.0, TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(x[2], WithinAbs(1.0, TOL(1e-10, 1e-5)));
 	}
 	
 	SECTION("Lower triangular - forward substitution")
@@ -626,9 +627,9 @@ TEST_CASE("LinearSystem - Triangular Solve", "[LinearSystem][Triangular]")
 		LinearSystem<Real> sys(A, b);
 		Vector<Real> x = sys.Solve();
 		
-		REQUIRE_THAT(x[0], WithinAbs(1.0, 1e-10));
-		REQUIRE_THAT(x[1], WithinAbs(1.0, 1e-10));
-		REQUIRE_THAT(x[2], WithinAbs(1.0, 1e-10));
+		REQUIRE_THAT(x[0], WithinAbs(1.0, TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(x[1], WithinAbs(1.0, TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(x[2], WithinAbs(1.0, TOL(1e-10, 1e-5)));
 	}
 }
 
@@ -645,8 +646,8 @@ TEST_CASE("LinearSystem - Convenience Functions", "[LinearSystem][Convenience]")
 		
 		Vector<Real> x = SolveLinearSystem(A, b);
 		
-		REQUIRE_THAT(x[0], WithinAbs(2.0, 1e-10));
-		REQUIRE_THAT(x[1], WithinAbs(1.0, 1e-10));
+		REQUIRE_THAT(x[0], WithinAbs(2.0, TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(x[1], WithinAbs(1.0, TOL(1e-10, 1e-5)));
 	}
 	
 	SECTION("SolveLeastSquares convenience")
@@ -656,8 +657,8 @@ TEST_CASE("LinearSystem - Convenience Functions", "[LinearSystem][Convenience]")
 		
 		Vector<Real> x = SolveLeastSquares(A, b);
 		
-		REQUIRE_THAT(x[0], WithinAbs(2.0, 1e-10));
-		REQUIRE_THAT(x[1], WithinAbs(3.0, 1e-10));
+		REQUIRE_THAT(x[0], WithinAbs(2.0, TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(x[1], WithinAbs(3.0, TOL(1e-10, 1e-5)));
 	}
 	
 	SECTION("AnalyzeMatrix")
@@ -804,7 +805,7 @@ TEST_CASE("LinearSystem - Multiple RHS", "[LinearSystem][MultipleRHS]")
 		
 		// col2 should be 2 * col1
 		for (int i = 0; i < 3; ++i)
-			REQUIRE_THAT(col2[i], WithinAbs(2.0 * col1[i], 1e-10));
+			REQUIRE_THAT(col2[i], WithinAbs(2.0 * col1[i], TOL(1e-10, 1e-5)));
 	}
 }
 

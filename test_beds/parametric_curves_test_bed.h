@@ -108,41 +108,41 @@ namespace MML::TestBeds
             // --- Basic curves (using simple lambdas) ---
             {"Helix", "{cos(t), sin(t), t}",
                 Real(0.0), Real(2.0) * Constants::PI,
-                [](Real t) { return VectorN<Real,3>{ cos(t), sin(t), t}; },
-                [](Real t) { return VectorN<Real,3>{-sin(t), cos(t), 1.0}; },
-                [](Real t) { return VectorN<Real,3>{-cos(t),-sin(t), 0}; },
+                [](Real t) { return VectorN<Real,3>{ static_cast<Real>(cos(t)), static_cast<Real>(sin(t)), t}; },
+                [](Real t) { return VectorN<Real,3>{static_cast<Real>(-sin(t)), static_cast<Real>(cos(t)), REAL(1.0)}; },
+                [](Real t) { return VectorN<Real,3>{static_cast<Real>(-cos(t)),static_cast<Real>(-sin(t)), 0}; },
                 [](Real t) { return (Real)0.5; },
                 [](Real t) { return (Real)0.5; }
             },
             {"Helix2", "{2*cos(t), 2*sin(t), 0.5*t}",
                 Real(0.0), Real(2.0) * Constants::PI,
-                [](Real t) -> VectorN<Real,3> { return VectorN<Real,3>{ Real(2)*cos(t), Real(2)*sin(t), Real(0.5)*t}; },
-                [](Real t) -> VectorN<Real,3> { return VectorN<Real,3>{Real(-2)*sin(t), Real(2)*cos(t), Real(0.5)}; },
-                [](Real t) -> VectorN<Real,3> { return VectorN<Real,3>{Real(-2)*cos(t),Real(-2)*sin(t), Real(0)}; },
+                [](Real t) -> VectorN<Real,3> { return VectorN<Real,3>{ static_cast<Real>(Real(2)*cos(t)), static_cast<Real>(Real(2)*sin(t)), Real(0.5)*t}; },
+                [](Real t) -> VectorN<Real,3> { return VectorN<Real,3>{static_cast<Real>(Real(-2)*sin(t)), static_cast<Real>(Real(2)*cos(t)), Real(0.5)}; },
+                [](Real t) -> VectorN<Real,3> { return VectorN<Real,3>{static_cast<Real>(Real(-2)*cos(t)),static_cast<Real>(Real(-2)*sin(t)), Real(0)}; },
                 [](Real t) -> Real { return Real(2.0)/(Real(4.0) + Real(0.25)); },
                 [](Real t) -> Real { return Real(0.5)/(Real(4.0) + Real(0.25)); }
             },
             {"Schaums1", "{ 3*t - t*t*t, 3*t*t, 3*t + t*t*t}",
                 Real(0.0), Real(2.0) * Constants::PI,
                 [](Real t) { return VectorN<Real,3>{ 3 * t - t * t * t, 3 * t * t, 3 * t + t * t * t}; },
-                [](Real t) { return VectorN<Real,3>{-sin(t), cos(t), 1.0}; },
-                [](Real t) { return VectorN<Real,3>{-cos(t), -sin(t), 0}; },
+                [](Real t) { return VectorN<Real,3>{static_cast<Real>(-sin(t)), static_cast<Real>(cos(t)), REAL(1.0)}; },
+                [](Real t) { return VectorN<Real,3>{static_cast<Real>(-cos(t)), static_cast<Real>(-sin(t)), 0}; },
                 [](Real t) { return (Real)1.0 / (3 * POW2(1 + t * t)); },
                 [](Real t) { return (Real)1.0 / (3 * POW2(1 + t * t)); }
             },
             {"Schaums2", "{ t - sin(t), 1 - cos(t), t}",
                 Real(0.0), Real(2.0) * Constants::PI,
-                [](Real t) { return VectorN<Real,3>{ t - sin(t), 1 - cos(t), t}; },
+                [](Real t) { return VectorN<Real,3>{ static_cast<Real>(t - sin(t)), static_cast<Real>(1 - cos(t)), t}; },
                 [](Real t) { return VectorN<Real,3>{0, 0, 0}; },
                 [](Real t) { return VectorN<Real,3>{0, 0, 0}; },
-                [](Real t) { return sqrt(1 + 4 * (Real)pow(sin(t / 2), 4)) / (Real)pow((1 + 4 * pow(sin(t / 2), 2)), 1.5); },
-                [](Real t) { return -1 / (1 + 4 * (Real)pow(sin(t / 2), 4)); }
+                [](Real t) -> Real { return static_cast<Real>(sqrt(1 + 4 * (Real)pow(sin(t / 2), 4)) / (Real)pow((1 + 4 * pow(sin(t / 2), 2)), 1.5)); },
+                [](Real t) -> Real { return static_cast<Real>(-1 / (1 + 4 * (Real)pow(sin(t / 2), 4))); }
             },
             {"Circle3DXYCurve", "{cos(t), sin(t), 0}",
                 Real(0.0), Real(2.0) * Constants::PI,
-                [](Real t) { return VectorN<Real,3>{ cos(t), sin(t), 0.0}; },
-                [](Real t) { return VectorN<Real,3>{-sin(t), cos(t), 0.0}; },
-                [](Real t) { return VectorN<Real,3>{-cos(t), -sin(t), 0.0}; },
+                [](Real t) { return VectorN<Real,3>{ static_cast<Real>(cos(t)), static_cast<Real>(sin(t)), REAL(0.0)}; },
+                [](Real t) { return VectorN<Real,3>{static_cast<Real>(-sin(t)), static_cast<Real>(cos(t)), REAL(0.0)}; },
+                [](Real t) { return VectorN<Real,3>{static_cast<Real>(-cos(t)), static_cast<Real>(-sin(t)), REAL(0.0)}; },
                 [](Real t) { return Real{1.0}; },  // curvature = 1 for unit circle
                 [](Real t) { return Real{0.0}; }   // torsion = 0 for planar curve
             },
@@ -206,9 +206,9 @@ namespace MML::TestBeds
         static const TestCartesianCurve3D listCurvesArcLenParam[] = {
             {"Helix", "1/sqrt(2) * {cos(t), sin(t), t}",
                 Real(0.0), Real(2.0) * Constants::PI,
-                [](Real t) { return VectorN<Real,3>{ cos(t) / sqrt((Real)2.0), sin(t) / sqrt((Real)2.0), t / sqrt((Real)2.0)}; },
-                [](Real t) { return VectorN<Real,3>{-sin(t) / sqrt((Real)2.0), cos(t) / sqrt((Real)2.0), 1 / sqrt((Real)2.0)}; },
-                [](Real t) { return VectorN<Real,3>{-cos(t) / sqrt((Real)2.0), -sin(t) / sqrt((Real)2.0), 0}; },
+                [](Real t) { return VectorN<Real,3>{ static_cast<Real>(cos(t) / sqrt((Real)2.0)), static_cast<Real>(sin(t) / sqrt((Real)2.0)), static_cast<Real>(t / sqrt((Real)2.0))}; },
+                [](Real t) { return VectorN<Real,3>{static_cast<Real>(-sin(t) / sqrt((Real)2.0)), static_cast<Real>(cos(t) / sqrt((Real)2.0)), static_cast<Real>(1 / sqrt((Real)2.0))}; },
+                [](Real t) { return VectorN<Real,3>{static_cast<Real>(-cos(t) / sqrt((Real)2.0)), static_cast<Real>(-sin(t) / sqrt((Real)2.0)), 0}; },
                 [](Real t) { return Real{0.5}; },
                 [](Real t) { return Real{1.0}; }
             }

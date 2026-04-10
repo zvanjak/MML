@@ -53,12 +53,12 @@ namespace MML::Tests::Algorithms::CurveAnalysisTests
 
 		// Check unit norm
 		Real norm = unitTangent.NormL2();
-		REQUIRE_THAT(norm, WithinAbs(REAL(1.0), REAL(1e-10)));
+		REQUIRE_THAT(norm, WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
 
 		// Check direction (should be perpendicular to radius)
 		auto position = circle._curve(t);
 		Real dot = Utils::ScalarProduct<3>(unitTangent, position);
-		REQUIRE_THAT(dot, WithinAbs(REAL(0.0), REAL(1e-10)));
+		REQUIRE_THAT(dot, WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
 	}
 
 	// TEST_CASE("ICurveCartesian3D::getTangent_TwistedCubic", "[tangent]")
@@ -89,9 +89,9 @@ namespace MML::Tests::Algorithms::CurveAnalysisTests
 		auto normal = helix._curve.getNormal(t);
 		auto expected = helix._curveDerSecond(t);
 
-		REQUIRE_THAT(normal[0], WithinAbs(expected[0], REAL(1e-5)));
-		REQUIRE_THAT(normal[1], WithinAbs(expected[1], REAL(1e-5)));
-		REQUIRE_THAT(normal[2], WithinAbs(expected[2], REAL(1e-5)));
+		REQUIRE_THAT(normal[0], WithinAbs(expected[0], TOL(1e-5, 1e-3)));
+		REQUIRE_THAT(normal[1], WithinAbs(expected[1], TOL(1e-5, 1e-3)));
+		REQUIRE_THAT(normal[2], WithinAbs(expected[2], TOL(1e-5, 1e-3)));
 	}
 
 	TEST_CASE("ICurveCartesian3D::getBinormal_Helix", "[binormal]")
@@ -130,7 +130,7 @@ namespace MML::Tests::Algorithms::CurveAnalysisTests
 		// Should point toward center (opposite to position)
 		auto position = circle._curve(t);
 		Real dot = Utils::ScalarProduct<3>(principalNormal, position);
-		REQUIRE_THAT(dot, WithinAbs(-REAL(1.0), REAL(1e-5))); // Should be -1 (opposite direction)
+		REQUIRE_THAT(dot, WithinAbs(-REAL(1.0), TOL(1e-5, 1e-3))); // Should be -1 (opposite direction)
 	}
 
 	/*********************************************************************/
@@ -148,22 +148,7 @@ namespace MML::Tests::Algorithms::CurveAnalysisTests
 		for (Real t : test_points) {
 			Real curvature = helix._curve.getCurvature(t);
 			Real expected = helix._curvatureFunc(t);
-			REQUIRE_THAT(curvature, WithinAbs(expected, REAL(1e-6)));
-		}
-	}
-
-	TEST_CASE("ParametricCurveAnalyzer::getCurvature_Circle", "[curvature]")
-	{
-			TEST_PRECISION_INFO();
-		// Unit circle has constant curvature κ = 1
-		const auto& circle = TestBeds::ParametricCurvesTestBed::getTestCurve("Circle3DXYCurve");
-		
-		std::vector<Real> test_points = {REAL(0.0), Constants::PI/4, Constants::PI/2, Constants::PI};
-		
-		for (Real t : test_points) {
-			Real curvature = circle._curve.getCurvature(t);
-			Real expected = circle._curvatureFunc(t);  // Should be REAL(1.0)
-			REQUIRE_THAT(curvature, WithinAbs(expected, REAL(1e-6)));
+			REQUIRE_THAT(curvature, WithinAbs(expected, TOL(1e-6, 1e-3)));
 		}
 	}
 

@@ -1,4 +1,5 @@
 #include <catch2/catch_all.hpp>
+#include "../../TestPrecision.h"
 
 #ifdef MML_USE_SINGLE_HEADER
 #include "MML.h"
@@ -19,7 +20,7 @@ namespace MML::Tests::Base::GeometrySphericalTests
 	{
 		Pnt3Cart origin(0.0, 0.0, 0.0);
 		Real radius = SphericalGeometryCalculator::RadiusFromCartesian(origin);
-		REQUIRE_THAT(radius, WithinAbs(0.0, REAL(1e-10)));
+		REQUIRE_THAT(radius, WithinAbs(0.0, TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("RadiusFromCartesian::OnAxes", "[GeometrySpherical]")
@@ -28,25 +29,25 @@ namespace MML::Tests::Base::GeometrySphericalTests
 		Pnt3Cart yAxis(0.0, 4.0, 0.0);
 		Pnt3Cart zAxis(0.0, 0.0, 5.0);
 
-		REQUIRE_THAT(SphericalGeometryCalculator::RadiusFromCartesian(xAxis), WithinAbs(3.0, REAL(1e-10)));
-		REQUIRE_THAT(SphericalGeometryCalculator::RadiusFromCartesian(yAxis), WithinAbs(4.0, REAL(1e-10)));
-		REQUIRE_THAT(SphericalGeometryCalculator::RadiusFromCartesian(zAxis), WithinAbs(5.0, REAL(1e-10)));
+		REQUIRE_THAT(SphericalGeometryCalculator::RadiusFromCartesian(xAxis), WithinAbs(3.0, TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(SphericalGeometryCalculator::RadiusFromCartesian(yAxis), WithinAbs(4.0, TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(SphericalGeometryCalculator::RadiusFromCartesian(zAxis), WithinAbs(5.0, TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("RadiusFromCartesian::ArbitraryPoints", "[GeometrySpherical]")
 	{
 		// 3-4-5 right triangle
 		Pnt3Cart pnt1(3.0, 4.0, 0.0);
-		REQUIRE_THAT(SphericalGeometryCalculator::RadiusFromCartesian(pnt1), WithinAbs(5.0, REAL(1e-10)));
+		REQUIRE_THAT(SphericalGeometryCalculator::RadiusFromCartesian(pnt1), WithinAbs(5.0, TOL(1e-10, 1e-5)));
 
 		// 3D Pythagorean triple
 		Pnt3Cart pnt2(1.0, 2.0, 2.0);
-		REQUIRE_THAT(SphericalGeometryCalculator::RadiusFromCartesian(pnt2), WithinAbs(3.0, REAL(1e-10)));
+		REQUIRE_THAT(SphericalGeometryCalculator::RadiusFromCartesian(pnt2), WithinAbs(3.0, TOL(1e-10, 1e-5)));
 
 		// Unit sphere point
 		Real x = 1.0 / std::sqrt(3.0);
 		Pnt3Cart unitPoint(x, x, x);
-		REQUIRE_THAT(SphericalGeometryCalculator::RadiusFromCartesian(unitPoint), WithinAbs(1.0, REAL(1e-10)));
+		REQUIRE_THAT(SphericalGeometryCalculator::RadiusFromCartesian(unitPoint), WithinAbs(1.0, TOL(1e-10, 1e-5)));
 	}
 
 	/*********************************************************************/
@@ -63,9 +64,9 @@ namespace MML::Tests::Base::GeometrySphericalTests
 		// x = R*sin(theta)*cos(phi) = 5*0*1 = 0
 		// y = R*sin(theta)*sin(phi) = 5*0*0 = 0
 		// z = R*cos(theta) = 5*1 = 5
-		REQUIRE_THAT(cart.X(), WithinAbs(0.0, REAL(1e-10)));
-		REQUIRE_THAT(cart.Y(), WithinAbs(0.0, REAL(1e-10)));
-		REQUIRE_THAT(cart.Z(), WithinAbs(5.0, REAL(1e-10)));
+		REQUIRE_THAT(cart.X(), WithinAbs(0.0, TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(cart.Y(), WithinAbs(0.0, TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(cart.Z(), WithinAbs(5.0, TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("CartesianFromSpherical::SouthPole", "[GeometrySpherical]")
@@ -75,9 +76,9 @@ namespace MML::Tests::Base::GeometrySphericalTests
 		Pnt3Cart cart = SphericalGeometryCalculator::CartesianFromSpherical(southPole);
 		
 		// x = 5*sin(PI)*cos(0) ≈ 0, y = 5*sin(PI)*sin(0) ≈ 0, z = 5*cos(PI) = -5
-		REQUIRE_THAT(cart.X(), WithinAbs(0.0, REAL(1e-10)));
-		REQUIRE_THAT(cart.Y(), WithinAbs(0.0, REAL(1e-10)));
-		REQUIRE_THAT(cart.Z(), WithinAbs(-5.0, REAL(1e-10)));
+		REQUIRE_THAT(cart.X(), WithinAbs(0.0, TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(cart.Y(), WithinAbs(0.0, TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(cart.Z(), WithinAbs(-5.0, TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("CartesianFromSpherical::Equator", "[GeometrySpherical]")
@@ -87,17 +88,17 @@ namespace MML::Tests::Base::GeometrySphericalTests
 		Pnt3Sph equatorX(3.0, Constants::PI / 2, 0.0);
 		Pnt3Cart cartX = SphericalGeometryCalculator::CartesianFromSpherical(equatorX);
 		// x = 3*sin(PI/2)*cos(0) = 3*1*1 = 3, y = 3*sin(PI/2)*sin(0) = 0, z = 3*cos(PI/2) = 0
-		REQUIRE_THAT(cartX.X(), WithinAbs(3.0, REAL(1e-10)));
-		REQUIRE_THAT(cartX.Y(), WithinAbs(0.0, REAL(1e-10)));
-		REQUIRE_THAT(cartX.Z(), WithinAbs(0.0, REAL(1e-10)));
+		REQUIRE_THAT(cartX.X(), WithinAbs(3.0, TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(cartX.Y(), WithinAbs(0.0, TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(cartX.Z(), WithinAbs(0.0, TOL(1e-10, 1e-5)));
 
 		// Point on y-axis: phi = PI/2
 		Pnt3Sph equatorY(4.0, Constants::PI / 2, Constants::PI / 2);
 		Pnt3Cart cartY = SphericalGeometryCalculator::CartesianFromSpherical(equatorY);
 		// x = 4*sin(PI/2)*cos(PI/2) = 0, y = 4*sin(PI/2)*sin(PI/2) = 4, z = 4*cos(PI/2) = 0
-		REQUIRE_THAT(cartY.X(), WithinAbs(0.0, REAL(1e-10)));
-		REQUIRE_THAT(cartY.Y(), WithinAbs(4.0, REAL(1e-10)));
-		REQUIRE_THAT(cartY.Z(), WithinAbs(0.0, REAL(1e-10)));
+		REQUIRE_THAT(cartY.X(), WithinAbs(0.0, TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(cartY.Y(), WithinAbs(4.0, TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(cartY.Z(), WithinAbs(0.0, TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("CartesianFromSpherical::RoundTripConversion", "[GeometrySpherical]")
@@ -107,7 +108,7 @@ namespace MML::Tests::Base::GeometrySphericalTests
 		Pnt3Cart cart = SphericalGeometryCalculator::CartesianFromSpherical(sph);
 		Real calculatedRadius = SphericalGeometryCalculator::RadiusFromCartesian(cart);
 		
-		REQUIRE_THAT(calculatedRadius, WithinAbs(7.0, REAL(1e-10)));
+		REQUIRE_THAT(calculatedRadius, WithinAbs(7.0, TOL(1e-10, 1e-5)));
 	}
 
 	/*********************************************************************/
@@ -118,31 +119,31 @@ namespace MML::Tests::Base::GeometrySphericalTests
 		// Latitude 0° (equator) -> theta = PI/2 (polar angle from z-axis)
 		Pnt3Sph pnt = SphericalGeometryCalculator::SphericalFromLatLong(0.0, 0.0);
 		
-		REQUIRE_THAT(pnt.R(), WithinAbs(1.0, REAL(1e-10)));
-		REQUIRE_THAT(pnt.Theta(), WithinAbs(Constants::PI / 2, REAL(1e-10)));  // equator
-		REQUIRE_THAT(pnt.Phi(), WithinAbs(0.0, REAL(1e-10)));    // longitude
+		REQUIRE_THAT(pnt.R(), WithinAbs(1.0, TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(pnt.Theta(), WithinAbs(Constants::PI / 2, TOL(1e-10, 1e-5)));  // equator
+		REQUIRE_THAT(pnt.Phi(), WithinAbs(0.0, TOL(1e-10, 1e-5)));    // longitude
 	}
 
 	TEST_CASE("SphericalFromLatLong::PositiveLatitudes", "[GeometrySpherical]")
 	{
 		// 45° North latitude -> theta = PI/2 - PI/4 = PI/4
 		Pnt3Sph pnt45N = SphericalGeometryCalculator::SphericalFromLatLong(45.0, 0.0);
-		REQUIRE_THAT(pnt45N.Theta(), WithinAbs(Constants::PI / 4, REAL(1e-10)));
+		REQUIRE_THAT(pnt45N.Theta(), WithinAbs(Constants::PI / 4, TOL(1e-10, 1e-5)));
 
 		// 90° North latitude (North Pole) -> theta = 0
 		Pnt3Sph pntNorth = SphericalGeometryCalculator::SphericalFromLatLong(90.0, 0.0);
-		REQUIRE_THAT(pntNorth.Theta(), WithinAbs(0.0, REAL(1e-10)));
+		REQUIRE_THAT(pntNorth.Theta(), WithinAbs(0.0, TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("SphericalFromLatLong::NegativeLatitudes", "[GeometrySpherical]")
 	{
 		// -45° latitude (45° South) -> theta = PI/2 + PI/4 = 3*PI/4
 		Pnt3Sph pnt45S = SphericalGeometryCalculator::SphericalFromLatLong(-45.0, 0.0);
-		REQUIRE_THAT(pnt45S.Theta(), WithinAbs(3 * Constants::PI / 4, REAL(1e-10)));
+		REQUIRE_THAT(pnt45S.Theta(), WithinAbs(3 * Constants::PI / 4, TOL(1e-10, 1e-5)));
 
 		// -90° latitude (South Pole) -> theta = PI
 		Pnt3Sph pntSouth = SphericalGeometryCalculator::SphericalFromLatLong(-90.0, 0.0);
-		REQUIRE_THAT(pntSouth.Theta(), WithinAbs(Constants::PI, REAL(1e-10)));
+		REQUIRE_THAT(pntSouth.Theta(), WithinAbs(Constants::PI, TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("SphericalFromLatLong::Longitudes", "[GeometrySpherical]")
@@ -150,16 +151,16 @@ namespace MML::Tests::Base::GeometrySphericalTests
 		// Longitude is stored in Phi()
 		// Various longitudes at equator
 		Pnt3Sph pnt0 = SphericalGeometryCalculator::SphericalFromLatLong(0.0, 0.0);
-		REQUIRE_THAT(pnt0.Phi(), WithinAbs(0.0, REAL(1e-10)));
+		REQUIRE_THAT(pnt0.Phi(), WithinAbs(0.0, TOL(1e-10, 1e-5)));
 
 		Pnt3Sph pnt90E = SphericalGeometryCalculator::SphericalFromLatLong(0.0, 90.0);
-		REQUIRE_THAT(pnt90E.Phi(), WithinAbs(Constants::PI / 2, REAL(1e-10)));
+		REQUIRE_THAT(pnt90E.Phi(), WithinAbs(Constants::PI / 2, TOL(1e-10, 1e-5)));
 
 		Pnt3Sph pnt180 = SphericalGeometryCalculator::SphericalFromLatLong(0.0, 180.0);
-		REQUIRE_THAT(pnt180.Phi(), WithinAbs(Constants::PI, REAL(1e-10)));
+		REQUIRE_THAT(pnt180.Phi(), WithinAbs(Constants::PI, TOL(1e-10, 1e-5)));
 
 		Pnt3Sph pnt270 = SphericalGeometryCalculator::SphericalFromLatLong(0.0, 270.0);
-		REQUIRE_THAT(pnt270.Phi(), WithinAbs(3 * Constants::PI / 2, REAL(1e-10)));
+		REQUIRE_THAT(pnt270.Phi(), WithinAbs(3 * Constants::PI / 2, TOL(1e-10, 1e-5)));
 	}
 
 	/*********************************************************************/
@@ -168,28 +169,28 @@ namespace MML::Tests::Base::GeometrySphericalTests
 	TEST_CASE("DistanceBetweenLatLong::SamePoint", "[GeometrySpherical]")
 	{
 		Real distance = SphericalGeometryCalculator::DistanceBetweenLatLong(45.0, 30.0, 45.0, 30.0);
-		REQUIRE_THAT(distance, WithinAbs(0.0, REAL(1e-10)));
+		REQUIRE_THAT(distance, WithinAbs(0.0, TOL(1e-10, 1e-3)));
 	}
 
 	TEST_CASE("DistanceBetweenLatLong::EquatorPoints", "[GeometrySpherical]")
 	{
 		// Distance along equator: 0° to 90° longitude
 		Real distance = SphericalGeometryCalculator::DistanceBetweenLatLong(0.0, 0.0, 0.0, 90.0);
-		REQUIRE_THAT(distance, WithinAbs(Constants::PI / 2, REAL(1e-9)));
+		REQUIRE_THAT(distance, WithinAbs(Constants::PI / 2, TOL(1e-9, 1e-4)));
 	}
 
 	TEST_CASE("DistanceBetweenLatLong::PoleToPole", "[GeometrySpherical]")
 	{
 		// North pole to South pole
 		Real distance = SphericalGeometryCalculator::DistanceBetweenLatLong(90.0, 0.0, -90.0, 0.0);
-		REQUIRE_THAT(distance, WithinAbs(Constants::PI, REAL(1e-9)));
+		REQUIRE_THAT(distance, WithinAbs(Constants::PI, TOL(1e-9, 1e-4)));
 	}
 
 	TEST_CASE("DistanceBetweenLatLong::QuarterSphere", "[GeometrySpherical]")
 	{
 		// From equator to North pole
 		Real distance = SphericalGeometryCalculator::DistanceBetweenLatLong(0.0, 0.0, 90.0, 0.0);
-		REQUIRE_THAT(distance, WithinAbs(Constants::PI / 2, REAL(1e-9)));
+		REQUIRE_THAT(distance, WithinAbs(Constants::PI / 2, TOL(1e-9, 1e-4)));
 	}
 
 	TEST_CASE("DistanceBetweenLatLong::RealWorldExample", "[GeometrySpherical]")
@@ -209,7 +210,7 @@ namespace MML::Tests::Base::GeometrySphericalTests
 		Real dist1 = SphericalGeometryCalculator::DistanceBetweenLatLong(30.0, 45.0, 60.0, 90.0);
 		Real dist2 = SphericalGeometryCalculator::DistanceBetweenLatLong(60.0, 90.0, 30.0, 45.0);
 		
-		REQUIRE_THAT(dist1, WithinAbs(dist2, REAL(1e-10)));
+		REQUIRE_THAT(dist1, WithinAbs(dist2, TOL(1e-10, 1e-5)));
 	}
 
 	/*********************************************************************/
@@ -223,7 +224,7 @@ namespace MML::Tests::Base::GeometrySphericalTests
 		
 		Real radiusFromCart = SphericalGeometryCalculator::RadiusFromCartesian(cart);
 		
-		REQUIRE_THAT(radiusFromCart, WithinAbs(10.0, REAL(1e-10)));
+		REQUIRE_THAT(radiusFromCart, WithinAbs(10.0, TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("Integration::LatLongToCartesianConsistency", "[GeometrySpherical][Integration]")
@@ -236,7 +237,7 @@ namespace MML::Tests::Base::GeometrySphericalTests
 		Pnt3Cart cart = SphericalGeometryCalculator::CartesianFromSpherical(sph);
 		Real radius = SphericalGeometryCalculator::RadiusFromCartesian(cart);
 		
-		REQUIRE_THAT(radius, WithinAbs(1.0, REAL(1e-10)));
+		REQUIRE_THAT(radius, WithinAbs(1.0, TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("Integration::DistanceTriangleInequality", "[GeometrySpherical][Integration]")
@@ -246,7 +247,7 @@ namespace MML::Tests::Base::GeometrySphericalTests
 		Real distBC = SphericalGeometryCalculator::DistanceBetweenLatLong(30.0, 30.0, 60.0, 60.0);
 		Real distAC = SphericalGeometryCalculator::DistanceBetweenLatLong(0.0, 0.0, 60.0, 60.0);
 		
-		REQUIRE(distAC <= distAB + distBC + 1e-9);
+		REQUIRE(distAC <= distAB + distBC + TOL(1e-9, 1e-4));
 	}
 
 	/*********************************************************************/
@@ -259,10 +260,10 @@ namespace MML::Tests::Base::GeometrySphericalTests
 		Real distMeters = SphericalGeometryCalculator::DistanceBetweenLatLong(1.0, 0.0, 0.0, 0.0, 90.0);
 		
 		// For radius 1.0, distance in meters should equal distance in radians
-		REQUIRE_THAT(distMeters, WithinAbs(distRadians, REAL(1e-10)));
+		REQUIRE_THAT(distMeters, WithinAbs(distRadians, TOL(1e-10, 1e-5)));
 		
 		// Quarter of great circle on equator (90 degrees) = PI/2 radians
-		REQUIRE_THAT(distRadians, WithinAbs(Constants::PI / 2, REAL(1e-10)));
+		REQUIRE_THAT(distRadians, WithinAbs(Constants::PI / 2, TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("DistanceBetweenLatLong::WithRadius_ScalingTest", "[GeometrySpherical]")
@@ -280,11 +281,11 @@ namespace MML::Tests::Base::GeometrySphericalTests
 		Real dist2 = SphericalGeometryCalculator::DistanceBetweenLatLong(radius2, lat1, lon1, lat2, lon2);
 		
 		// Distance should scale linearly with radius
-		REQUIRE_THAT(dist2 / dist1, WithinAbs(5.0, REAL(1e-10)));
+		REQUIRE_THAT(dist2 / dist1, WithinAbs(5.0, TOL(1e-10, 1e-5)));
 		
 		// Both should equal radius * angle
-		REQUIRE_THAT(dist1, WithinAbs(radius1 * distRadians, REAL(1e-10)));
-		REQUIRE_THAT(dist2, WithinAbs(radius2 * distRadians, REAL(1e-10)));
+		REQUIRE_THAT(dist1, WithinAbs(radius1 * distRadians, TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(dist2, WithinAbs(radius2 * distRadians, TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("DistanceBetweenLatLong::RealWorldCities_MajorRoutes", "[GeometrySpherical][RealWorld]")
@@ -431,8 +432,8 @@ namespace MML::Tests::Base::GeometrySphericalTests
 			Real distRadians = SphericalGeometryCalculator::DistanceBetweenLatLong(40.0, 50.0, 40.0, 50.0);
 			Real distMeters = SphericalGeometryCalculator::DistanceBetweenLatLong(EARTH_RADIUS_KM, 40.0, 50.0, 40.0, 50.0);
 			
-			REQUIRE_THAT(distRadians, WithinAbs(0.0, REAL(1e-10)));
-			REQUIRE_THAT(distMeters, WithinAbs(0.0, REAL(1e-10)));
+			REQUIRE_THAT(distRadians, WithinAbs(0.0, TOL(1e-10, 1e-5)));
+			REQUIRE_THAT(distMeters, WithinAbs(0.0, TOL(1e-10, 1e-5)));
 		}
 		
 		SECTION("Antipodal points - maximum distance")
@@ -442,7 +443,7 @@ namespace MML::Tests::Base::GeometrySphericalTests
 			Real distMeters = SphericalGeometryCalculator::DistanceBetweenLatLong(EARTH_RADIUS_KM, 90.0, 0.0, -90.0, 0.0);
 			
 			// Should be PI radians (half circumference)
-			REQUIRE_THAT(distRadians, WithinAbs(Constants::PI, REAL(1e-9)));
+			REQUIRE_THAT(distRadians, WithinAbs(Constants::PI, TOL(1e-9, 1e-4)));
 			REQUIRE_THAT(distMeters, WithinAbs(EARTH_RADIUS_KM * Constants::PI, REAL(1e-6)));
 		}
 		
@@ -452,7 +453,7 @@ namespace MML::Tests::Base::GeometrySphericalTests
 			Real distRadians = SphericalGeometryCalculator::DistanceBetweenLatLong(0.0, 0.0, 0.0, 180.0);
 			Real distMeters = SphericalGeometryCalculator::DistanceBetweenLatLong(EARTH_RADIUS_KM, 0.0, 0.0, 0.0, 180.0);
 			
-			REQUIRE_THAT(distRadians, WithinAbs(Constants::PI, REAL(1e-9)));
+			REQUIRE_THAT(distRadians, WithinAbs(Constants::PI, TOL(1e-9, 1e-4)));
 			REQUIRE_THAT(distMeters, WithinAbs(EARTH_RADIUS_KM * Constants::PI, REAL(1e-6)));
 		}
 		

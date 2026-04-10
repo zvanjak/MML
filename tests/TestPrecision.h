@@ -51,6 +51,12 @@ constexpr int GetRealDigits() {
 // Tolerance Scaling Utilities
 // ============================================================================
 
+/// @brief True when long double has genuinely more precision than double.
+/// On GCC/Linux: long double is 80-bit (64 mantissa bits) vs double's 53 → true
+/// On MSVC/Windows: long double == double (both 53 mantissa bits) → false
+constexpr bool LongDoubleHasExtraPrecision =
+    std::numeric_limits<long double>::digits > std::numeric_limits<double>::digits;
+
 /// @brief Scale tolerance based on Real type precision
 /// @param baseline_tol Tolerance value calibrated for double precision
 /// @return Adjusted tolerance appropriate for current Real type
@@ -59,12 +65,12 @@ constexpr Real ScaleTolerance(Real baseline_tol) {
         // Float has ~7 digits vs double's ~15 digits
         // Scale up tolerance by ~100x for numerical stability
         return baseline_tol * Real(100.0);
-    } else if constexpr (std::is_same_v<Real, long double>) {
+    } else if constexpr (std::is_same_v<Real, long double> && LongDoubleHasExtraPrecision) {
         // Long double has ~18-33 digits vs double's ~15 digits
         // Can use tighter tolerance (scale down by ~100x)
         return baseline_tol * Real(0.01);
     } else {
-        // Double - use baseline tolerance as-is
+        // Double (or long double with no extra precision on MSVC) - use baseline as-is
         return baseline_tol;
     }
 }
@@ -90,6 +96,29 @@ inline Real ScaleAbsTolerance(Real value, Real baseline_tol) {
 /// @return Scaled relative tolerance  
 constexpr Real ScaleRelTolerance(Real baseline_rel_tol) {
     return ScaleTolerance(baseline_rel_tol);
+}
+
+// ============================================================================
+// Explicit Per-Precision Tolerances (NO automatic scaling)
+// ============================================================================
+
+/// @brief Select an explicit tolerance value based on current Real precision type.
+/// Each tolerance is manually chosen per precision - no automatic scaling formula.
+/// @param double_tol  Tolerance for double precision (baseline, well-tested)
+/// @param float_tol   Tolerance for float precision (explicitly chosen per test)
+/// @param ldouble_tol Tolerance for long double precision
+/// @note When long double has no extra precision (MSVC), falls back to double_tol
+constexpr Real Tol(Real double_tol, Real float_tol, Real ldouble_tol) {
+    if constexpr (std::is_same_v<Real, float>) return float_tol;
+    else if constexpr (std::is_same_v<Real, long double> && LongDoubleHasExtraPrecision)
+        return ldouble_tol;
+    else return double_tol;
+}
+
+/// @brief 2-arg version: long double defaults to same as double (refine later)
+constexpr Real Tol(Real double_tol, Real float_tol) {
+    if constexpr (std::is_same_v<Real, float>) return float_tol;
+    else return double_tol;
 }
 
 // ============================================================================
@@ -211,10 +240,39 @@ inline std::string GetPrecisionInfo() {
 // Convenience Macros for Common Test Patterns
 // ============================================================================
 
+/// @brief Per-precision tolerance: explicit double and float values, no auto-scaling
+/// Usage: TOL(1e-10, 1e-4) returns 1e-10 for double, 1e-4 for float
+#define TOL(DOUBLE_VAL, FLOAT_VAL) MML::Testing::Tol(REAL(DOUBLE_VAL), REAL(FLOAT_VAL))
+
+/// @brief Per-precision tolerance with all three precision levels specified
+#define TOL3(DOUBLE_VAL, FLOAT_VAL, LDOUBLE_VAL) \
+    MML::Testing::Tol(REAL(DOUBLE_VAL), REAL(FLOAT_VAL), REAL(LDOUBLE_VAL))
 
 /// @brief Print precision info once per test suite (useful for debugging)
 #define TEST_PRECISION_INFO() \
     INFO("Running with " << MML::Testing::GetRealPrecisionName() \
          << " precision (" << MML::Testing::GetRealDigits() << " digits)")
+
+// ============================================================================
+// Long Double Support for Catch2 WithinRel Matcher
+// ============================================================================
+// Catch2 only provides WithinRel overloads for double and float.
+// When Real = long double, calls like WithinRel(REAL(1.0), REAL(1e-5)) are
+// ambiguous. We add explicit long double overloads that cast to double.
+// On MSVC, long double == double so this is lossless. On GCC/Linux (80-bit
+// extended), the cast loses some precision, but since we're comparing with
+// tolerances (typically >= 1e-15), this is acceptable.
+
+#ifdef MML_USE_LONG_DOUBLE
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+namespace Catch { namespace Matchers {
+    inline WithinRelMatcher WithinRel(long double target, long double eps) {
+        return WithinRel(static_cast<double>(target), static_cast<double>(eps));
+    }
+    inline WithinRelMatcher WithinRel(long double target) {
+        return WithinRel(static_cast<double>(target));
+    }
+}} // namespace Catch::Matchers
+#endif
 
 #endif // MML_TEST_PRECISION_H

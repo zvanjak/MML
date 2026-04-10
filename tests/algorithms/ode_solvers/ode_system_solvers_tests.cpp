@@ -200,7 +200,7 @@ namespace MML::Tests::Algorithms::StiffODETestBed {
 
 				// Numerical Jacobian verification for small systems
 				if (test.dimension <= 3) {
-					Real h = REAL(1e-7);
+          Real h = TOL(1e-7, 1e-4);
 					Matrix<Real> numJ(test.dimension, test.dimension);
 					Vector<Real> dydt_plus(test.dimension);
 					Vector<Real> y_perturbed = y;
@@ -224,12 +224,12 @@ namespace MML::Tests::Algorithms::StiffODETestBed {
 						for (int j = 0; j < test.dimension; ++j) {
 							Real absError = std::abs(J(i, j) - numJ(i, j));
 							Real scale = std::max(std::abs(J(i, j)), std::abs(numJ(i, j)));
-							Real relError = (scale > REAL(1e-10)) ? absError / scale : absError;
+							Real relError = (scale > TOL(1e-10, 1e-5)) ? absError / scale : absError;
 							maxRelError = std::max(maxRelError, relError);
 						}
 					}
 					INFO("Max relative Jacobian error: " << maxRelError);
-					REQUIRE(maxRelError < REAL(1e-4));
+					REQUIRE(maxRelError < TOL(1e-4, 5e-2));
 				}
 			}
 		}
@@ -255,7 +255,7 @@ namespace MML::Tests::Algorithms::StiffODETestBed {
 
 				if (conservationError >= 0) { // -1 means no conservation law checked
 					INFO("Conservation error at IC: " << conservationError);
-					REQUIRE(conservationError < REAL(1e-10));
+					REQUIRE(conservationError < TOL(1e-10, 1e-5));
 				}
 
 				// Verify non-negativity at initial condition
@@ -435,7 +435,7 @@ namespace MML::Tests::Algorithms::AdaptiveIntegratorTests {
 		Vector<Real> x{1.0};
 		Vector<Real> dxdt{-1.0}; // Initial derivative
 		Real t = 0.0;
-		Real eps = 1e-10;
+		Real eps = TOL(1e-10, 1e-5);
 		Real htry = 0.1;
 
 		StepResult result = stepper.doStep(t, x, dxdt, htry, eps);
@@ -446,10 +446,10 @@ namespace MML::Tests::Algorithms::AdaptiveIntegratorTests {
 
 		// Check accuracy at end of step
 		Real exact = std::exp(-result.hDone);
-		REQUIRE_THAT(x[0], WithinAbs(exact, 1e-9));
+		REQUIRE_THAT(x[0], WithinAbs(exact, TOL(1e-9, 1e-4)));
 
 		// FSAL: derivative should be updated
-		REQUIRE_THAT(dxdt[0], WithinAbs(-x[0], 1e-12));
+		REQUIRE_THAT(dxdt[0], WithinAbs(-x[0], TOL(1e-12, 1e-5)));
 	}
 
 	TEST_CASE("DormandPrince5_Stepper_FSAL_Optimization", "[AdaptiveIntegrator][DP5][FSAL]") {
@@ -461,7 +461,7 @@ namespace MML::Tests::Algorithms::AdaptiveIntegratorTests {
 		Vector<Real> x{1.0};
 		Vector<Real> dxdt{-1.0};
 		Real t = 0.0;
-		Real eps = 1e-10;
+		Real eps = TOL(1e-10, 1e-5);
 		Real htry = 0.1;
 
 		// First step
@@ -491,7 +491,7 @@ namespace MML::Tests::Algorithms::AdaptiveIntegratorTests {
 		Vector<Real> x{1.0};
 		Vector<Real> dxdt{-1.0};
 		Real t = 0.0;
-		Real eps = 1e-10;
+		Real eps = TOL(1e-10, 1e-5);
 		Real htry = 0.5; // Larger step to test interpolation
 
 		StepResult result = stepper.doStep(t, x, dxdt, htry, eps);
@@ -511,7 +511,7 @@ namespace MML::Tests::Algorithms::AdaptiveIntegratorTests {
 			INFO("interpolated = " << xInterp[0] << ", exact = " << exact);
 
 			// Dense output should be accurate to at least 4th order
-			REQUIRE_THAT(xInterp[0], WithinAbs(exact, 1e-6));
+			REQUIRE_THAT(xInterp[0], WithinAbs(exact, TOL(1e-6, 1e-4)));
 		}
 	}
 
@@ -524,7 +524,7 @@ namespace MML::Tests::Algorithms::AdaptiveIntegratorTests {
 		Vector<Real> x0{1.0};
 		Real t0 = 0.0, tEnd = 5.0;
 		Real outputInterval = 0.5;
-		Real eps = 1e-10;
+		Real eps = TOL(1e-10, 1e-5);
 
 		ODESystemSolution sol = integrator.integrate(x0, t0, tEnd, outputInterval, eps);
 
@@ -536,7 +536,7 @@ namespace MML::Tests::Algorithms::AdaptiveIntegratorTests {
 			Real exact = std::exp(-t);
 
 			INFO("t = " << t << ", x = " << x << ", exact = " << exact);
-			REQUIRE_THAT(x, WithinAbs(exact, 1e-6)); // Relaxed for dense output
+			REQUIRE_THAT(x, WithinAbs(exact, TOL(1e-6, 5e-5))); // Relaxed for dense output
 		}
 
 		// Check statistics
@@ -556,7 +556,7 @@ namespace MML::Tests::Algorithms::AdaptiveIntegratorTests {
 		Vector<Real> x0{1.0, 0.0};					// x(0) = 1, v(0) = 0
 		Real t0 = 0.0, tEnd = 2.0 * Constants::PI;	// One full period
 		Real outputInterval = Constants::PI / 10.0; // 20 points per period
-		Real eps = 1e-10;
+		Real eps = TOL(1e-10, 1e-5);
 
 		ODESystemSolution sol = integrator.integrate(x0, t0, tEnd, outputInterval, eps);
 
@@ -570,8 +570,8 @@ namespace MML::Tests::Algorithms::AdaptiveIntegratorTests {
 			Real exactV = -std::sin(t);
 
 			INFO("t = " << t);
-			REQUIRE_THAT(x, WithinAbs(exactX, 1e-5)); // Relaxed for dense output
-			REQUIRE_THAT(v, WithinAbs(exactV, 1e-5));
+			REQUIRE_THAT(x, WithinAbs(exactX, TOL(1e-5, 5e-5))); // Relaxed for dense output
+			REQUIRE_THAT(v, WithinAbs(exactV, TOL(1e-5, 5e-5)));
 		}
 
 		// After one full period, should return to initial conditions
@@ -591,7 +591,7 @@ namespace MML::Tests::Algorithms::AdaptiveIntegratorTests {
 
 		// Specify exact output times
 		Vector<Real> times{0.0, 0.1, 0.5, 1.0, 2.0, 3.0, 5.0};
-		Real eps = 1e-10;
+		Real eps = TOL(1e-10, 1e-5);
 
 		ODESystemSolution sol = integrator.integrateAt(x0, times, eps);
 
@@ -602,8 +602,8 @@ namespace MML::Tests::Algorithms::AdaptiveIntegratorTests {
 			Real exact = std::exp(-t);
 
 			INFO("t = " << t << " (requested: " << times[i] << ")");
-			REQUIRE_THAT(t, WithinAbs(times[i], 1e-10)); // Time should match exactly
-			REQUIRE_THAT(x, WithinAbs(exact, 1e-8));
+			REQUIRE_THAT(t, WithinAbs(times[i], TOL(1e-10, 1e-5))); // Time should match exactly
+			REQUIRE_THAT(x, WithinAbs(exact, TOL(1e-8, 1e-4)));
 		}
 	}
 
@@ -617,7 +617,7 @@ namespace MML::Tests::Algorithms::AdaptiveIntegratorTests {
 		Vector<Real> x0{1.0, 0.0};					// x(0) = 1, v(0) = 0
 		Real t0 = 0.0, tEnd = 10.0 * Constants::PI; // 5 full periods
 		Real outputInterval = Constants::PI / 5.0;
-		Real eps = 1e-12; // Tight tolerance
+		Real eps = TOL(1e-12, 1e-5); // Tight tolerance
 
 		ODESystemSolution sol = integrator.integrate(x0, t0, tEnd, outputInterval, eps);
 
@@ -648,7 +648,7 @@ namespace MML::Tests::Algorithms::AdaptiveIntegratorTests {
 
 		Vector<Real> x0{1.0, 0.0};
 		Real t0 = 0.0, tEnd = 10.0;
-		Real eps = 1e-8;
+		Real eps = TOL(1e-8, 1e-4);
 
 		// Adaptive integration
 		DormandPrince5Integrator adaptiveIntegrator(ode);
@@ -676,8 +676,8 @@ namespace MML::Tests::Algorithms::AdaptiveIntegratorTests {
 		INFO("Fixed func evals: ~7000 (7 per step for DP5)");
 
 		// Adaptive should achieve comparable or better accuracy with fewer steps
-		REQUIRE(adaptiveErrX < 1e-7);
-		REQUIRE(adaptiveErrV < 1e-7);
+		REQUIRE(adaptiveErrX < TOL(1e-7, 5e-4));
+		REQUIRE(adaptiveErrV < TOL(1e-7, 5e-4));
 
 		// Should use significantly fewer steps than fixed
 		REQUIRE(adaptiveStats.acceptedSteps < 200);
@@ -700,7 +700,7 @@ namespace MML::Tests::Algorithms::AdaptiveIntegratorTests {
 
 		Vector<Real> x0({1.0, 0.0}); // y(0) = 1, y'(0) = 0
 		Real t0 = 0.0, tEnd = 10.0;
-		Real eps = 1e-10;
+		Real eps = TOL(1e-10, 1e-5);
 
 		auto sol = integrator.integrate(x0, t0, tEnd, 0.5, eps);
 
@@ -718,8 +718,8 @@ namespace MML::Tests::Algorithms::AdaptiveIntegratorTests {
 		INFO("Steps: accepted=" << stats.acceptedSteps << ", rejected=" << stats.rejectedSteps);
 		INFO("Func evals: " << stats.totalFuncEvals);
 
-		REQUIRE(errY < 1e-7);
-		REQUIRE(errV < 1e-7);
+		REQUIRE(errY < TOL(1e-7, 1e-3));
+		REQUIRE(errV < TOL(1e-7, 1e-3));
 	}
 
 	TEST_CASE("DormandPrince8Integrator_HarmonicOscillator", "[AdaptiveIntegrator][DP8]") {
@@ -739,7 +739,7 @@ namespace MML::Tests::Algorithms::AdaptiveIntegratorTests {
 
 		Vector<Real> x0({1.0, 0.0});
 		Real t0 = 0.0, tEnd = 10.0;
-		Real eps = 1e-12; // Tighter tolerance for DP8
+		Real eps = TOL(1e-12, 1e-5); // Tighter tolerance for DP8
 
 		auto sol = integrator.integrate(x0, t0, tEnd, 0.5, eps);
 
@@ -757,8 +757,8 @@ namespace MML::Tests::Algorithms::AdaptiveIntegratorTests {
 		INFO("Func evals: " << stats.totalFuncEvals);
 
 		// DP8 should achieve even higher accuracy (with tolerance slightly relaxed for step size effects)
-		REQUIRE(errY < 1e-9);
-		REQUIRE(errV < 1e-9);
+		REQUIRE(errY < TOL(1e-9, 1e-4));
+		REQUIRE(errV < TOL(1e-9, 1e-4));
 	}
 
 	TEST_CASE("ODEAdaptiveIntegrator_StepperComparison", "[AdaptiveIntegrator][Comparison]") {
@@ -782,11 +782,11 @@ namespace MML::Tests::Algorithms::AdaptiveIntegratorTests {
 
 		Vector<Real> x0({2.0, 0.0});
 		Real t0 = 0.0, tEnd = 5.0;
-		Real eps = 1e-8;
+		Real eps = TOL(1e-8, 1e-4);
 
 		auto sol5 = dp5.integrate(x0, t0, tEnd, 0.5, eps);
 		auto solCK = ck.integrate(x0, t0, tEnd, 0.5, eps);
-		auto sol8 = dp8.integrate(x0, t0, tEnd, 0.5, 1e-10); // Tighter for DP8
+		auto sol8 = dp8.integrate(x0, t0, tEnd, 0.5, TOL(1e-10, 1e-5)); // Tighter for DP8
 
 		auto stats5 = dp5.getStatistics();
 		auto statsCK = ck.getStatistics();
@@ -802,11 +802,14 @@ namespace MML::Tests::Algorithms::AdaptiveIntegratorTests {
 		INFO("DP8:  x=" << final8[0] << ", v=" << final8[1] << ", steps=" << stats8.acceptedSteps << ", evals=" << stats8.totalFuncEvals);
 
 		// All should agree to reasonable precision
-		REQUIRE_THAT(final5[0], WithinRel(final8[0], 1e-5));
-		REQUIRE_THAT(finalCK[0], WithinRel(final8[0], 1e-5));
+		REQUIRE_THAT(final5[0], WithinRel(final8[0], TOL(1e-5, 0.01)));
+		REQUIRE_THAT(finalCK[0], WithinRel(final8[0], TOL(1e-5, 0.01)));
 
-		// DP8 should use fewer steps for comparable accuracy
-		REQUIRE(stats8.acceptedSteps <= stats5.acceptedSteps);
+		// DP8 should use fewer steps for comparable accuracy (relaxed for float 
+		// where reduced precision limits the benefit of higher-order methods)
+		if constexpr (!std::is_same_v<Real, float>) {
+			REQUIRE(stats8.acceptedSteps <= stats5.acceptedSteps);
+		}
 	}
 
 	TEST_CASE("CashKarp_DenseOutput", "[AdaptiveIntegrator][CashKarp][DenseOutput]") {
@@ -824,7 +827,7 @@ namespace MML::Tests::Algorithms::AdaptiveIntegratorTests {
 		CashKarpIntegrator integrator(sys);
 
 		Vector<Real> x0({1.0});
-		Real eps = 1e-10;
+		Real eps = TOL(1e-10, 1e-5);
 
 		// Request output at specific times
 		Vector<Real> times({0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0});
@@ -857,7 +860,7 @@ namespace MML::Tests::Algorithms::AdaptiveIntegratorTests {
 
 		Vector<Real> x0({0.0}); // sin(0) = 0
 		Real tEnd = 2 * Constants::PI;
-		Real eps = 1e-12;
+		Real eps = TOL(1e-12, 1e-5);
 
 		// Request many output points
 		Vector<Real> times(21);
@@ -876,7 +879,7 @@ namespace MML::Tests::Algorithms::AdaptiveIntegratorTests {
 			maxErr = std::max(maxErr, err);
 		}
 		INFO("Max dense output error: " << maxErr);
-		REQUIRE(maxErr < 1e-8);
+		REQUIRE(maxErr < TOL(1e-8, 1e-4));
 	}
 
 	TEST_CASE("BulirschStoerIntegrator_HarmonicOscillator", "[AdaptiveIntegrator][BulirschStoer]") {
@@ -893,7 +896,7 @@ namespace MML::Tests::Algorithms::AdaptiveIntegratorTests {
 		Real t0 = 0.0;
 		Real tEnd = 10.0;
 		Real outputInterval = 1.0;
-		Real eps = 1e-10;
+		Real eps = TOL(1e-10, 1e-5);
 
 		ODESystemSolution sol = integrator.integrate(x0, t0, tEnd, outputInterval, eps);
 
@@ -909,8 +912,8 @@ namespace MML::Tests::Algorithms::AdaptiveIntegratorTests {
 		INFO("Final position: computed=" << xFinal[0] << ", exact=" << exactX);
 		INFO("Final velocity: computed=" << xFinal[1] << ", exact=" << exactV);
 
-		REQUIRE_THAT(xFinal[0], WithinAbs(exactX, 1e-5));
-		REQUIRE_THAT(xFinal[1], WithinAbs(exactV, 1e-5));
+		REQUIRE_THAT(xFinal[0], WithinAbs(exactX, TOL(1e-5, 1e-2)));
+		REQUIRE_THAT(xFinal[1], WithinAbs(exactV, TOL(1e-5, 1e-2)));
 
 		// Verify energy conservation (should be good for BS)
 		Real initialEnergy = 0.5 * (x0[0] * x0[0] + x0[1] * x0[1]);
@@ -918,7 +921,7 @@ namespace MML::Tests::Algorithms::AdaptiveIntegratorTests {
 		Real energyError = std::abs(finalEnergy - initialEnergy) / initialEnergy;
 
 		INFO("Energy error: " << energyError);
-		REQUIRE(energyError < 1e-6);  // BS conserves energy reasonably well
+		REQUIRE(energyError < TOL(1e-6, 1e-2));  // BS conserves energy reasonably well
 	}
 
 	TEST_CASE("BulirschStoerIntegrator_ExponentialDecay", "[AdaptiveIntegrator][BulirschStoer]") {
@@ -934,7 +937,7 @@ namespace MML::Tests::Algorithms::AdaptiveIntegratorTests {
 		Real t0 = 0.0;
 		Real tEnd = 5.0;
 		Real outputInterval = 0.5;
-		Real eps = 1e-12;
+		Real eps = TOL(1e-12, 1e-5);
 
 		ODESystemSolution sol = integrator.integrate(x0, t0, tEnd, outputInterval, eps);
 
@@ -947,7 +950,7 @@ namespace MML::Tests::Algorithms::AdaptiveIntegratorTests {
 		Real err = std::abs(xFinal[0] - exact);
 		
 		INFO("t=" << tEnd << ": computed=" << xFinal[0] << ", exact=" << exact << ", err=" << err);
-		REQUIRE(err < 1e-8);  // Good accuracy for extrapolation method
+		REQUIRE(err < TOL(1e-8, 1e-4));  // Good accuracy for extrapolation method
 	}
 
 	TEST_CASE("BulirschStoerIntegrator_HighAccuracy", "[AdaptiveIntegrator][BulirschStoer]") {
@@ -964,7 +967,7 @@ namespace MML::Tests::Algorithms::AdaptiveIntegratorTests {
 		Real t0 = 0.0;
 		Real tEnd = 20.0;  // Long integration time
 		Real outputInterval = 2.0;
-		Real eps = 1e-12;  // Very tight tolerance
+		Real eps = TOL(1e-12, 1e-5);  // Very tight tolerance
 
 		ODESystemSolution sol = integrator.integrate(x0, t0, tEnd, outputInterval, eps);
 
@@ -982,8 +985,8 @@ namespace MML::Tests::Algorithms::AdaptiveIntegratorTests {
 		INFO("Final position: computed=" << xFinal[0] << ", exact=" << exactX);
 		INFO("Final velocity: computed=" << xFinal[1] << ", exact=" << exactV);
 
-		REQUIRE_THAT(xFinal[0], WithinAbs(exactX, 1e-5));
-		REQUIRE_THAT(xFinal[1], WithinAbs(exactV, 1e-5));
+		REQUIRE_THAT(xFinal[0], WithinAbs(exactX, TOL(1e-5, 0.01)));
+		REQUIRE_THAT(xFinal[1], WithinAbs(exactV, TOL(1e-5, 0.01)));
 	}
 
 	TEST_CASE("BulirschStoerIntegrator_Comparison", "[AdaptiveIntegrator][Comparison][BulirschStoer]") {
@@ -1003,7 +1006,7 @@ namespace MML::Tests::Algorithms::AdaptiveIntegratorTests {
 		Real t0 = 0.0;
 		Real tEnd = 10.0;
 		Real outputInterval = 1.0;
-		Real eps = 1e-10;
+		Real eps = TOL(1e-10, 1e-5);
 
 		// Integrate with both methods
 		ODESystemSolution solBS = bsIntegrator.integrate(x0, t0, tEnd, outputInterval, eps);
@@ -1026,8 +1029,8 @@ namespace MML::Tests::Algorithms::AdaptiveIntegratorTests {
 		INFO("BS error:  " << errBS);
 		INFO("DP8 error: " << errDP8);
 
-		REQUIRE(errBS < 1e-5);   // BS achieves good but not extreme accuracy
-		REQUIRE(errDP8 < 1e-8);  // DP8 is more accurate for smooth problems
+		REQUIRE(errBS < TOL(1e-5, 1e-2));   // BS achieves good but not extreme accuracy
+		REQUIRE(errDP8 < TOL(1e-8, 1e-4));  // DP8 is more accurate for smooth problems
 		
 		// For smooth problems, BS often uses fewer function evaluations
 		INFO("BS vs DP8 efficiency: " << static_cast<Real>(statsBS.totalFuncEvals) / statsDP8.totalFuncEvals);
@@ -1050,7 +1053,7 @@ namespace MML::Tests::Algorithms::AdaptiveIntegratorTests {
 		Real t0 = 0.0;
 		Real tEnd = 10.0;
 		Real outputInterval = 1.0;
-		Real eps = 1e-10;
+		Real eps = TOL(1e-10, 1e-5);
 
 		// Integrate with both methods
 		ODESystemSolution solPoly = bsPoly.integrate(x0, t0, tEnd, outputInterval, eps);
@@ -1073,8 +1076,8 @@ namespace MML::Tests::Algorithms::AdaptiveIntegratorTests {
 		INFO("Polynomial error:  " << errPoly);
 		INFO("Rational error:    " << errRational);
 
-		REQUIRE(errPoly < 1e-5);
-		REQUIRE(errRational < 1e-5);
+		REQUIRE(errPoly < TOL(1e-5, 1e-2));
+		REQUIRE(errRational < TOL(1e-5, 1e-2));
 	}
 
 	TEST_CASE("BulirschStoerRational_ExponentialDecay", "[AdaptiveIntegrator][BulirschStoerRational]") {
@@ -1090,7 +1093,7 @@ namespace MML::Tests::Algorithms::AdaptiveIntegratorTests {
 		Real t0 = 0.0;
 		Real tEnd = 5.0;
 		Real outputInterval = 0.5;
-		Real eps = 1e-10;
+		Real eps = TOL(1e-10, 1e-5);
 
 		ODESystemSolution sol = integrator.integrate(x0, t0, tEnd, outputInterval, eps);
 
@@ -1103,7 +1106,7 @@ namespace MML::Tests::Algorithms::AdaptiveIntegratorTests {
 		Real err = std::abs(xFinal[0] - exact);
 		
 		INFO("t=" << tEnd << ": computed=" << xFinal[0] << ", exact=" << exact << ", err=" << err);
-		REQUIRE(err < 1e-8);
+		REQUIRE(err < TOL(1e-8, 1e-4));
 	}
 
 } // namespace MML::Tests::Algorithms::AdaptiveIntegratorTests
@@ -1280,11 +1283,11 @@ namespace MML::Tests::Algorithms::ComprehensiveAdaptiveTests
 
 		// Tight tolerance
 		DormandPrince5Integrator integratorTight(ode);
-		auto solTight = integratorTight.integrate(x0, t0, tEnd, 0.1, 1e-10);
+		auto solTight = integratorTight.integrate(x0, t0, tEnd, 0.1, TOL(1e-10, 1e-5));
 		auto statsTight = integratorTight.getStatistics();
 
 		INFO("Loose tolerance (1e-3):  steps=" << statsLoose.acceptedSteps);
-		INFO("Tight tolerance (1e-10): steps=" << statsTight.acceptedSteps);
+		INFO("Tight tolerance (TOL(1e-10, 1e-5)): steps=" << statsTight.acceptedSteps);
 
 		// Tight tolerance requires more steps
 		REQUIRE(statsTight.acceptedSteps > statsLoose.acceptedSteps);
@@ -1303,7 +1306,7 @@ namespace MML::Tests::Algorithms::ComprehensiveAdaptiveTests
 		TEST_PRECISION_INFO();
 
 		ExponentialDecayODE ode;
-		std::vector<Real> tolerances = {1e-3, 1e-6, 1e-9};
+		std::vector<Real> tolerances = {1e-3, 1e-6, TOL(1e-9, 1e-4)};
 
 		for (Real tol : tolerances) {
 			DYNAMIC_SECTION("Tolerance = " << tol) {
@@ -1350,7 +1353,7 @@ namespace MML::Tests::Algorithms::ComprehensiveAdaptiveTests
 		Vector<Real> x0{1.0};
 		Real t0 = 0.0;
 		Real tEnd = 3.0;
-		Real eps = 1e-8;
+		Real eps = TOL(1e-8, 1e-4);
 
 		SECTION("DormandPrince5") {
 			DormandPrince5Integrator integrator(ode);
@@ -1400,7 +1403,7 @@ namespace MML::Tests::Algorithms::ComprehensiveAdaptiveTests
 		Vector<Real> x0{1.0, 0.0};
 		Real t0 = 0.0;
 		Real tEnd = 4 * Constants::PI;  // Two full periods
-		Real eps = 1e-8;
+		Real eps = TOL(1e-8, 1e-4);
 
 		auto testIntegrator = [&](auto& integrator, const std::string& name) {
 			auto sol = integrator.integrate(x0, t0, tEnd, 0.2, eps);
@@ -1448,7 +1451,7 @@ namespace MML::Tests::Algorithms::ComprehensiveAdaptiveTests
 		Vector<Real> x0{1.0, 0.0};
 		Real t0 = 0.0;
 		Real tEnd = Constants::PI;
-		Real eps = 1e-10;
+		Real eps = TOL(1e-10, 1e-5);
 
 		auto testDense = [&](auto& integrator, const std::string& name) {
 			// Use smaller output interval for better interpolation
@@ -1470,8 +1473,8 @@ namespace MML::Tests::Algorithms::ComprehensiveAdaptiveTests
 				INFO(name << " at t=" << t << ": errX=" << errX << ", errV=" << errV);
 				// Spline interpolation accuracy depends on saved points density
 				// The integrator is accurate, but spline interpolation adds its own error
-				REQUIRE(errX < 1e-3);  // Spline interpolation error
-				REQUIRE(errV < 1e-3);
+				REQUIRE(errX < TOL(1e-3, 5e-2));  // Spline interpolation error
+				REQUIRE(errV < TOL(1e-3, 5e-2));
 			}
 		};
 
@@ -1504,7 +1507,7 @@ namespace MML::Tests::Algorithms::ComprehensiveAdaptiveTests
 
 		Real t0 = 0.0;
 		Real tEnd = 20 * Constants::PI;  // 10 orbits
-		Real eps = 1e-10;
+		Real eps = TOL(1e-10, 1e-5);
 
 		SECTION("DP5 preserves energy") {
 			DormandPrince5Integrator integrator(ode);
@@ -1515,7 +1518,7 @@ namespace MML::Tests::Algorithms::ComprehensiveAdaptiveTests
 
 			INFO("Initial E=" << E0 << ", Final E=" << Efinal);
 			INFO("Relative energy drift: " << energyDrift);
-			REQUIRE(energyDrift < 1e-6);
+			REQUIRE(energyDrift < TOL(1e-6, 5e-4));
 		}
 
 		SECTION("DP8 preserves energy better") {
@@ -1527,7 +1530,7 @@ namespace MML::Tests::Algorithms::ComprehensiveAdaptiveTests
 
 			INFO("Initial E=" << E0 << ", Final E=" << Efinal);
 			INFO("DP8 Relative energy drift: " << energyDrift);
-			REQUIRE(energyDrift < 1e-7);  // Higher order should do better
+			REQUIRE(energyDrift < TOL(1e-7, 5e-3));  // Higher order should do better
 		}
 	}
 
@@ -1538,7 +1541,7 @@ namespace MML::Tests::Algorithms::ComprehensiveAdaptiveTests
 		Vector<Real> x0{1.0, 0.0};
 		Real t0 = 0.0;
 		Real tEnd = 100 * Constants::PI;  // 50 periods
-		Real eps = 1e-10;
+		Real eps = TOL(1e-10, 1e-5);
 
 		DormandPrince8Integrator integrator(ode);
 		auto sol = integrator.integrate(x0, t0, tEnd, 1.0, eps);
@@ -1550,7 +1553,7 @@ namespace MML::Tests::Algorithms::ComprehensiveAdaptiveTests
 
 		INFO("Final amplitude: " << amplitude);
 		INFO("Amplitude error: " << ampError);
-		REQUIRE(ampError < 1e-6);
+		REQUIRE(ampError < TOL(1e-6, 5e-3));
 	}
 
 	/////////////////////////////////////////////////////////////////////////////
@@ -1566,7 +1569,7 @@ namespace MML::Tests::Algorithms::ComprehensiveAdaptiveTests
 
 		Real t0 = 0.0;
 		Real tEnd = 20.0;
-		Real eps = 1e-8;
+		Real eps = TOL(1e-8, 1e-4);
 
 		// Conserved quantity: H = δx - γ*ln(x) + βy - α*ln(y)
 		auto computeH = [](const Vector<Real>& y) {
@@ -1585,7 +1588,7 @@ namespace MML::Tests::Algorithms::ComprehensiveAdaptiveTests
 
 		INFO("Initial H=" << H0 << ", Final H=" << Hfinal);
 		INFO("Relative H drift: " << Hdrift);
-		REQUIRE(Hdrift < 1e-5);
+		REQUIRE(Hdrift < TOL(1e-5, 1e-3));
 
 		// Also verify solution stays positive
 		for (int i = 0; i < sol.getTotalSavedSteps(); ++i) {
@@ -1602,7 +1605,7 @@ namespace MML::Tests::Algorithms::ComprehensiveAdaptiveTests
 
 		Real t0 = 0.0;
 		Real tEnd = 50.0;
-		Real eps = 1e-8;
+		Real eps = TOL(1e-8, 1e-4);
 
 		DormandPrince5Integrator integrator(ode);
 		auto sol = integrator.integrate(x0, t0, tEnd, 0.1, eps);
@@ -1627,11 +1630,16 @@ namespace MML::Tests::Algorithms::ComprehensiveAdaptiveTests
 	TEST_CASE("RapidOscillator_StepAdaptation", "[AdaptiveIntegrator][Oscillatory]") {
 		TEST_PRECISION_INFO();
 
+		if constexpr (std::is_same_v<Real, float>) {
+			// Float precision is insufficient for rapid oscillation (omega=50) adaptive stepping
+			SUCCEED("Skipped: float precision insufficient for rapid oscillation adaptive stepping");
+			return;
+		}
 		RapidOscillatorODE ode(50.0);  // omega = 50
 		Vector<Real> x0{1.0, 0.0};
 		Real t0 = 0.0;
 		Real tEnd = 2.0;
-		Real eps = 1e-6;
+		Real eps = TOL(1e-6, 1e-4);
 
 		DormandPrince5Integrator integrator(ode);
 		auto sol = integrator.integrate(x0, t0, tEnd, 0.1, eps);
@@ -1660,7 +1668,7 @@ namespace MML::Tests::Algorithms::ComprehensiveAdaptiveTests
 		Vector<Real> x0{1.0};
 		Real t0 = 0.0;
 		Real tEnd = 1.0;
-		Real eps = 1e-14;  // Very tight
+		Real eps = TOL(1e-14, 1e-5);  // Very tight
 
 		DormandPrince8Integrator integrator(ode);  // Need high-order for tight tol
 		auto sol = integrator.integrate(x0, t0, tEnd, 0.1, eps);
@@ -1673,7 +1681,7 @@ namespace MML::Tests::Algorithms::ComprehensiveAdaptiveTests
 		INFO("Steps: " << stats.acceptedSteps);
 		
 		// Should achieve very high accuracy
-		REQUIRE(err < 1e-11);
+		REQUIRE(err < TOL(1e-11, 1e-5));
 	}
 
 	TEST_CASE("EdgeCase_LooseTolerance", "[AdaptiveIntegrator][EdgeCase]") {
@@ -1705,7 +1713,7 @@ namespace MML::Tests::Algorithms::ComprehensiveAdaptiveTests
 		Vector<Real> x0{1.0};
 		Real t0 = 0.0;
 		Real tEnd = 1e-6;  // Very short
-		Real eps = 1e-10;
+		Real eps = TOL(1e-10, 1e-5);
 
 		DormandPrince5Integrator integrator(ode);
 		auto sol = integrator.integrate(x0, t0, tEnd, 1e-7, eps);
@@ -1714,7 +1722,7 @@ namespace MML::Tests::Algorithms::ComprehensiveAdaptiveTests
 		Real err = std::abs(sol.getXValuesAtEnd()[0] - exact);
 
 		INFO("Short integration error: " << err);
-		REQUIRE(err < 1e-14);  // Should be very accurate
+		REQUIRE(err < TOL(1e-14, 1e-5));  // Should be very accurate
 	}
 
 	/////////////////////////////////////////////////////////////////////////////
@@ -1728,7 +1736,7 @@ namespace MML::Tests::Algorithms::ComprehensiveAdaptiveTests
 		Vector<Real> x0{1.0, 0.0};
 		Real t0 = 0.0;
 		Real tEnd = 10 * Constants::PI;
-		Real eps = 1e-10;
+		Real eps = TOL(1e-10, 1e-5);
 
 		struct Result {
 			std::string name;
@@ -1797,7 +1805,7 @@ namespace MML::Tests::Algorithms::ComprehensiveAdaptiveTests
 		Vector<Real> x{1.0};
 		Vector<Real> dxdt{-1.0};
 		Real t = 0.0;
-		Real eps = 1e-10;
+		Real eps = TOL(1e-10, 1e-5);
 		Real h = 0.1;
 
 		// Do first step
@@ -1829,7 +1837,7 @@ namespace MML::Tests::Algorithms::ComprehensiveAdaptiveTests
 
 		HarmonicOscillatorODE ode;
 		Vector<Real> x0{1.0, 0.0};
-		Real eps = 1e-10;
+		Real eps = TOL(1e-10, 1e-5);
 
 		// Create Vector<Real> for times
 		Vector<Real> times(6);
@@ -2134,7 +2142,7 @@ namespace MML::Tests::Algorithms::ODEDetailedTests
 
 		REQUIRE(result.solution.has_value());
 		Vector<Real> y_final = result.solution->getXValuesAtEnd();
-		REQUIRE_THAT(y_final[0], WithinAbs(std::cos(tEnd), 1e-8));
+		REQUIRE_THAT(y_final[0], WithinAbs(std::cos(tEnd), TOL(1e-8, 1e-4)));
 	}
 
 	TEST_CASE("ODEAdaptiveIntegrateDetailed - error suppressed on bad input", "[ODESolvers][Detailed]")

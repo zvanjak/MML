@@ -46,7 +46,7 @@ namespace MML
 
 			try
 			{
-				WriteRealFuncHeader(file, "REAL_FUNCTION", title, sol.getT1(), sol.getT2(), sol.getTotalSavedSteps());
+				WriteRealFuncHeader(file, FormatType::REAL_FUNCTION, title, sol.getT1(), sol.getT2(), sol.getTotalSavedSteps());
 				
 				for (int i = 0; i < sol.getTotalSavedSteps(); i++)
 				{
@@ -127,7 +127,7 @@ namespace MML
 
 			try
 			{
-				WriteParamCurveHeader(file, "PARAMETRIC_CURVE_CARTESIAN_2D", title, sol.getT1(), sol.getT2(), sol.getTotalSavedSteps());
+				WriteParamCurveHeader(file, FormatType::PARAMETRIC_CURVE_CARTESIAN_2D, title, sol.getT1(), sol.getT2(), sol.getTotalSavedSteps());
 				
 				for (int i = 0; i < sol.getTotalSavedSteps(); i++)
 				{
@@ -171,7 +171,7 @@ namespace MML
 
 			try
 			{
-				WriteParamCurveHeader(file, "PARAMETRIC_CURVE_CARTESIAN_3D", title, sol.getT1(), sol.getT2(), sol.getTotalSavedSteps());
+				WriteParamCurveHeader(file, FormatType::PARAMETRIC_CURVE_CARTESIAN_3D, title, sol.getT1(), sol.getT2(), sol.getTotalSavedSteps());
 
 				for (int i = 0; i < sol.getTotalSavedSteps(); i++)
 				{

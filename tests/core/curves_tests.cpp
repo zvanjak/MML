@@ -37,9 +37,9 @@ namespace MML::Tests::Core::CurvesTests
 			Vec3Cart computed_tangent = helix_curve.getTangent(t);
 			Vec3Cart expected_tangent = helix_deriv(t);
 
-			REQUIRE_THAT(computed_tangent[0], WithinAbs(expected_tangent[0], REAL(1e-7)));
-			REQUIRE_THAT(computed_tangent[1], WithinAbs(expected_tangent[1], REAL(1e-7)));
-			REQUIRE_THAT(computed_tangent[2], WithinAbs(expected_tangent[2], REAL(1e-7)));
+			REQUIRE_THAT(computed_tangent[0], WithinAbs(expected_tangent[0], TOL(1e-7, 2e-3)));
+			REQUIRE_THAT(computed_tangent[1], WithinAbs(expected_tangent[1], TOL(1e-7, 2e-3)));
+			REQUIRE_THAT(computed_tangent[2], WithinAbs(expected_tangent[2], TOL(1e-7, 2e-3)));
 		}
 	}
 
@@ -55,14 +55,14 @@ namespace MML::Tests::Core::CurvesTests
 			Vec3Cart tangent_unit = helix_curve.getTangentUnit(t);
 
 			// Unit vector should have norm = 1
-			REQUIRE_THAT(tangent_unit.NormL2(), WithinAbs(REAL(1.0), REAL(1e-10)));
+			REQUIRE_THAT(tangent_unit.NormL2(), WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
 
 			// Should be parallel to tangent vector
 			Vec3Cart tangent = helix_curve.getTangent(t);
 			Real scale = tangent.NormL2();
-			REQUIRE_THAT(tangent_unit[0], WithinAbs(tangent[0] / scale, REAL(1e-10)));
-			REQUIRE_THAT(tangent_unit[1], WithinAbs(tangent[1] / scale, REAL(1e-10)));
-			REQUIRE_THAT(tangent_unit[2], WithinAbs(tangent[2] / scale, REAL(1e-10)));
+			REQUIRE_THAT(tangent_unit[0], WithinAbs(tangent[0] / scale, TOL(1e-10, 1e-5)));
+			REQUIRE_THAT(tangent_unit[1], WithinAbs(tangent[1] / scale, TOL(1e-10, 1e-5)));
+			REQUIRE_THAT(tangent_unit[2], WithinAbs(tangent[2] / scale, TOL(1e-10, 1e-5)));
 		}
 	}
 
@@ -79,9 +79,9 @@ namespace MML::Tests::Core::CurvesTests
 			Vec3Cart computed_normal = helix_curve.getNormal(t);
 			Vec3Cart expected_normal = helix_second_deriv(t);
 
-			REQUIRE_THAT(computed_normal[0], WithinAbs(expected_normal[0], REAL(1e-7)));
-			REQUIRE_THAT(computed_normal[1], WithinAbs(expected_normal[1], REAL(1e-7)));
-			REQUIRE_THAT(computed_normal[2], WithinAbs(expected_normal[2], REAL(1e-7)));
+			REQUIRE_THAT(computed_normal[0], WithinAbs(expected_normal[0], TOL(1e-7, 1e-4)));
+			REQUIRE_THAT(computed_normal[1], WithinAbs(expected_normal[1], TOL(1e-7, 1e-4)));
+			REQUIRE_THAT(computed_normal[2], WithinAbs(expected_normal[2], TOL(1e-7, 1e-4)));
 		}
 	}
 
@@ -97,7 +97,7 @@ namespace MML::Tests::Core::CurvesTests
 			Vec3Cart normal = helix_curve.getNormal(t);
 
 			// getNormal returns unit vector (Frenet principal normal)
-			REQUIRE_THAT(normal.NormL2(), WithinAbs(REAL(1.0), REAL(1e-10)));
+			REQUIRE_THAT(normal.NormL2(), WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
 		}
 	}
 
@@ -124,9 +124,9 @@ namespace MML::Tests::Core::CurvesTests
 			Real expected_z = REAL(0.0);
 			Real norm = std::sqrt(expected_x * expected_x + expected_y * expected_y + expected_z * expected_z);
 
-			REQUIRE_THAT(principal_normal[0], WithinAbs(expected_x / norm, REAL(1e-7)));
-			REQUIRE_THAT(principal_normal[1], WithinAbs(expected_y / norm, REAL(1e-7)));
-			REQUIRE_THAT(principal_normal[2], WithinAbs(expected_z / norm, REAL(1e-7)));
+			REQUIRE_THAT(principal_normal[0], WithinAbs(expected_x / norm, TOL(1e-7, 1e-4)));
+			REQUIRE_THAT(principal_normal[1], WithinAbs(expected_y / norm, TOL(1e-7, 1e-4)));
+			REQUIRE_THAT(principal_normal[2], WithinAbs(expected_z / norm, TOL(1e-7, 1e-4)));
 		}
 	}
 
@@ -147,21 +147,21 @@ namespace MML::Tests::Core::CurvesTests
 			Vec3Cart normal_unit = helix_curve.getNormal(t);
 
 			// Binormal should be unit vector
-			REQUIRE_THAT(binormal.NormL2(), WithinAbs(REAL(1.0), REAL(1e-10)));
+			REQUIRE_THAT(binormal.NormL2(), WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
 
 			// Binormal should be orthogonal to tangent
 			Real dot_T_B = Utils::ScalarProduct(tangent_unit, binormal);
-			REQUIRE_THAT(dot_T_B, WithinAbs(REAL(0.0), REAL(1e-10)));
+			REQUIRE_THAT(dot_T_B, WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
 
 			// Binormal should be orthogonal to normal
 			Real dot_N_B = Utils::ScalarProduct(normal_unit, binormal);
-			REQUIRE_THAT(dot_N_B, WithinAbs(REAL(0.0), REAL(1e-10)));
+			REQUIRE_THAT(dot_N_B, WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
 
 			// Verify T x N = B
 			Vec3Cart cross_product = VectorProduct(tangent_unit, normal_unit);
-			REQUIRE_THAT(binormal[0], WithinAbs(cross_product[0], REAL(1e-10)));
-			REQUIRE_THAT(binormal[1], WithinAbs(cross_product[1], REAL(1e-10)));
-			REQUIRE_THAT(binormal[2], WithinAbs(cross_product[2], REAL(1e-10)));
+			REQUIRE_THAT(binormal[0], WithinAbs(cross_product[0], TOL(1e-10, 1e-5)));
+			REQUIRE_THAT(binormal[1], WithinAbs(cross_product[1], TOL(1e-10, 1e-5)));
+			REQUIRE_THAT(binormal[2], WithinAbs(cross_product[2], TOL(1e-10, 1e-5)));
 		}
 	}
 
@@ -180,24 +180,24 @@ namespace MML::Tests::Core::CurvesTests
 
 			// Curvature vector should be orthogonal to tangent
 			Real dot_product = Utils::ScalarProduct(curvature_vec, tangent);
-			REQUIRE_THAT(dot_product, WithinAbs(REAL(0.0), REAL(1e-6)));
+			REQUIRE_THAT(dot_product, WithinAbs(REAL(0.0), TOL(1e-6, 1e-3)));
 
 			// Curvature vector should point in direction of principal normal
 			Vec3Cart normal_unit = helix_curve.getNormal(t);  // Now returns Frenet principal normal
 			Vec3Cart curvature_direction = curvature_vec / curvature_vec.NormL2();
 
-			REQUIRE_THAT(curvature_direction[0], WithinAbs(normal_unit[0], REAL(1e-7)));
-			REQUIRE_THAT(curvature_direction[1], WithinAbs(normal_unit[1], REAL(1e-7)));
-			REQUIRE_THAT(curvature_direction[2], WithinAbs(normal_unit[2], REAL(1e-7)));
+			REQUIRE_THAT(curvature_direction[0], WithinAbs(normal_unit[0], TOL(1e-7, 1e-4)));
+			REQUIRE_THAT(curvature_direction[1], WithinAbs(normal_unit[1], TOL(1e-7, 1e-4)));
+			REQUIRE_THAT(curvature_direction[2], WithinAbs(normal_unit[2], TOL(1e-7, 1e-4)));
 
 			// Verify relationship: getCurvatureVector = κ * N
 			// Should equal curvature * normal
 			Real curvature = helix_curve.getCurvature(t);
 			Vec3Cart expected_curvature_vec = curvature * normal_unit;
 
-			REQUIRE_THAT(curvature_vec[0], WithinAbs(expected_curvature_vec[0], REAL(1e-7)));
-			REQUIRE_THAT(curvature_vec[1], WithinAbs(expected_curvature_vec[1], REAL(1e-7)));
-			REQUIRE_THAT(curvature_vec[2], WithinAbs(expected_curvature_vec[2], REAL(1e-7)));
+			REQUIRE_THAT(curvature_vec[0], WithinAbs(expected_curvature_vec[0], TOL(1e-7, 1e-4)));
+			REQUIRE_THAT(curvature_vec[1], WithinAbs(expected_curvature_vec[1], TOL(1e-7, 1e-4)));
+			REQUIRE_THAT(curvature_vec[2], WithinAbs(expected_curvature_vec[2], TOL(1e-7, 1e-4)));
 		}
 	}
 
@@ -207,11 +207,11 @@ namespace MML::Tests::Core::CurvesTests
 		const CurveCartesian3D& curve_func    = TestBeds::ParametricCurvesTestBed::getTestCurve("Helix")._curve;
 		const RealFunction&			curvature_func = TestBeds::ParametricCurvesTestBed::getTestCurve("Helix")._curvatureFunc;
 
-		REQUIRE_THAT(curve_func.getCurvature(REAL(0.5)), WithinAbs(curvature_func(REAL(0.5)), REAL(1e-7)));
-		REQUIRE_THAT(curve_func.getCurvature(REAL(1.0)), WithinAbs(curvature_func(REAL(1.0)), REAL(1e-7)));
-		REQUIRE_THAT(curve_func.getCurvature(REAL(5.5)), WithinAbs(curvature_func(REAL(5.5)), REAL(1e-7)));
-		REQUIRE_THAT(curve_func.getCurvature(REAL(20.0)), WithinAbs(curvature_func(REAL(20.0)), REAL(1e-7)));
-		REQUIRE_THAT(curve_func.getCurvature(-REAL(3.273)), WithinAbs(curvature_func(-REAL(3.273)), REAL(1e-7)));
+		REQUIRE_THAT(curve_func.getCurvature(REAL(0.5)), WithinAbs(curvature_func(REAL(0.5)), TOL(1e-7, 1e-3)));
+		REQUIRE_THAT(curve_func.getCurvature(REAL(1.0)), WithinAbs(curvature_func(REAL(1.0)), TOL(1e-7, 1e-3)));
+		REQUIRE_THAT(curve_func.getCurvature(REAL(5.5)), WithinAbs(curvature_func(REAL(5.5)), TOL(1e-7, 1e-3)));
+		REQUIRE_THAT(curve_func.getCurvature(REAL(20.0)), WithinAbs(curvature_func(REAL(20.0)), TOL(1e-7, 0.04)));
+		REQUIRE_THAT(curve_func.getCurvature(-REAL(3.273)), WithinAbs(curvature_func(-REAL(3.273)), TOL(1e-7, 1e-3)));
 	}
 
 	TEST_CASE("Test_Helix2_Curvature", "[simple]")
@@ -220,11 +220,11 @@ namespace MML::Tests::Core::CurvesTests
 		const CurveCartesian3D& curve_func     = TestBeds::ParametricCurvesTestBed::getTestCurve("Helix2")._curve;
 		const RealFunction&			curvature_func = TestBeds::ParametricCurvesTestBed::getTestCurve("Helix2")._curvatureFunc;
 
-		REQUIRE_THAT(curve_func.getCurvature(REAL(0.5)), WithinAbs(curvature_func(REAL(0.5)), REAL(1e-7)));
-		REQUIRE_THAT(curve_func.getCurvature(REAL(1.0)), WithinAbs(curvature_func(REAL(1.0)), REAL(1e-7)));
-		REQUIRE_THAT(curve_func.getCurvature(REAL(5.5)), WithinAbs(curvature_func(REAL(5.5)), REAL(1e-7)));
-		REQUIRE_THAT(curve_func.getCurvature(REAL(20.0)), WithinAbs(curvature_func(REAL(20.0)), REAL(1e-7)));
-		REQUIRE_THAT(curve_func.getCurvature(-REAL(3.273)), WithinAbs(curvature_func(-REAL(3.273)), REAL(1e-7)));
+		REQUIRE_THAT(curve_func.getCurvature(REAL(0.5)), WithinAbs(curvature_func(REAL(0.5)), TOL(1e-7, 1e-3)));
+		REQUIRE_THAT(curve_func.getCurvature(REAL(1.0)), WithinAbs(curvature_func(REAL(1.0)), TOL(1e-7, 1e-3)));
+		REQUIRE_THAT(curve_func.getCurvature(REAL(5.5)), WithinAbs(curvature_func(REAL(5.5)), TOL(1e-7, 1e-3)));
+		REQUIRE_THAT(curve_func.getCurvature(REAL(20.0)), WithinAbs(curvature_func(REAL(20.0)), TOL(1e-7, 0.08)));
+		REQUIRE_THAT(curve_func.getCurvature(-REAL(3.273)), WithinAbs(curvature_func(-REAL(3.273)), TOL(1e-7, 1e-3)));
 	}
 
 	TEST_CASE("Test_Schaum1_Curvature", "[simple]")
@@ -233,11 +233,11 @@ namespace MML::Tests::Core::CurvesTests
 		const CurveCartesian3D& schaum_curve1  = TestBeds::ParametricCurvesTestBed::getTestCurve("Schaums1")._curve;
 		const RealFunction&			curvature_func = TestBeds::ParametricCurvesTestBed::getTestCurve("Schaums1")._curvatureFunc;
 
-		REQUIRE_THAT(schaum_curve1.getCurvature(REAL(0.5)), WithinAbs(curvature_func(REAL(0.5)), REAL(1e-7)));
-		REQUIRE_THAT(schaum_curve1.getCurvature(REAL(1.0)), WithinAbs(curvature_func(REAL(1.0)), REAL(1e-7)));
-		REQUIRE_THAT(schaum_curve1.getCurvature(REAL(5.5)), WithinAbs(curvature_func(REAL(5.5)), REAL(1e-7)));
-		REQUIRE_THAT(schaum_curve1.getCurvature(REAL(20.0)), WithinAbs(curvature_func(REAL(20.0)), REAL(1e-7)));
-		REQUIRE_THAT(schaum_curve1.getCurvature(-REAL(3.273)), WithinAbs(curvature_func(-REAL(3.273)), REAL(1e-7)));
+		REQUIRE_THAT(schaum_curve1.getCurvature(REAL(0.5)), WithinAbs(curvature_func(REAL(0.5)), TOL(1e-7, 1e-3)));
+		REQUIRE_THAT(schaum_curve1.getCurvature(REAL(1.0)), WithinAbs(curvature_func(REAL(1.0)), TOL(1e-7, 1e-3)));
+		REQUIRE_THAT(schaum_curve1.getCurvature(REAL(5.5)), WithinAbs(curvature_func(REAL(5.5)), TOL(1e-7, 1e-3)));
+		REQUIRE_THAT(schaum_curve1.getCurvature(REAL(20.0)), WithinAbs(curvature_func(REAL(20.0)), TOL(1e-7, 1e-3)));
+		REQUIRE_THAT(schaum_curve1.getCurvature(-REAL(3.273)), WithinAbs(curvature_func(-REAL(3.273)), TOL(1e-7, 1e-3)));
 	}
 
 	TEST_CASE("Test_Schaum2_Curvature", "[simple]")
@@ -246,11 +246,11 @@ namespace MML::Tests::Core::CurvesTests
 		const CurveCartesian3D& schaum_curve2  = TestBeds::ParametricCurvesTestBed::getTestCurve("Schaums2")._curve;
 		const RealFunction&			curvature_func = TestBeds::ParametricCurvesTestBed::getTestCurve("Schaums2")._curvatureFunc;
 
-		REQUIRE_THAT(schaum_curve2.getCurvature(REAL(0.5)), WithinAbs(curvature_func(REAL(0.5)), REAL(1e-7)));
-		REQUIRE_THAT(schaum_curve2.getCurvature(REAL(1.0)), WithinAbs(curvature_func(REAL(1.0)), REAL(1e-7)));
-		REQUIRE_THAT(schaum_curve2.getCurvature(REAL(5.5)), WithinAbs(curvature_func(REAL(5.5)), REAL(1e-7)));
-		REQUIRE_THAT(schaum_curve2.getCurvature(REAL(20.0)), WithinAbs(curvature_func(REAL(20.0)), REAL(1e-7)));
-		REQUIRE_THAT(schaum_curve2.getCurvature(-REAL(3.273)), WithinAbs(curvature_func(-REAL(3.273)), REAL(1e-7)));
+		REQUIRE_THAT(schaum_curve2.getCurvature(REAL(0.5)), WithinAbs(curvature_func(REAL(0.5)), TOL(1e-7, 1e-3)));
+		REQUIRE_THAT(schaum_curve2.getCurvature(REAL(1.0)), WithinAbs(curvature_func(REAL(1.0)), TOL(1e-7, 1e-3)));
+		REQUIRE_THAT(schaum_curve2.getCurvature(REAL(5.5)), WithinAbs(curvature_func(REAL(5.5)), TOL(1e-7, 1e-3)));
+		REQUIRE_THAT(schaum_curve2.getCurvature(REAL(20.0)), WithinAbs(curvature_func(REAL(20.0)), TOL(1e-7, 1e-3)));
+		REQUIRE_THAT(schaum_curve2.getCurvature(-REAL(3.273)), WithinAbs(curvature_func(-REAL(3.273)), TOL(1e-7, 1e-3)));
 	}
 
 	TEST_CASE("Test_Helix_getTorsion3", "[simple]")
@@ -259,11 +259,11 @@ namespace MML::Tests::Core::CurvesTests
 		const CurveCartesian3D& helix_curve  = TestBeds::ParametricCurvesTestBed::getTestCurve("Helix")._curve;
 		const RealFunction&			torsion_func = TestBeds::ParametricCurvesTestBed::getTestCurve("Helix")._torsionFunc;
 
-		REQUIRE_THAT(helix_curve.getTorsion(REAL(0.5)), WithinAbs(torsion_func(REAL(0.5)), REAL(1e-7)));
-		REQUIRE_THAT(helix_curve.getTorsion(REAL(1.0)), WithinAbs(torsion_func(REAL(1.0)), REAL(1e-7)));
-		REQUIRE_THAT(helix_curve.getTorsion(REAL(5.5)), WithinAbs(torsion_func(REAL(5.5)), REAL(1e-7)));
-		REQUIRE_THAT(helix_curve.getTorsion(REAL(20.0)), WithinAbs(torsion_func(REAL(20.0)), REAL(1e-5)));
-		REQUIRE_THAT(helix_curve.getTorsion(-REAL(3.273)), WithinAbs(torsion_func(-REAL(3.273)), REAL(1e-7)));
+		REQUIRE_THAT(helix_curve.getTorsion(REAL(0.5)), WithinAbs(torsion_func(REAL(0.5)), TOL3(1e-7, 1e-3, 1e-8)));
+		REQUIRE_THAT(helix_curve.getTorsion(REAL(1.0)), WithinAbs(torsion_func(REAL(1.0)), TOL3(1e-7, 1e-3, 1e-8)));
+		REQUIRE_THAT(helix_curve.getTorsion(REAL(5.5)), WithinAbs(torsion_func(REAL(5.5)), TOL3(1e-7, 1e-3, 1e-8)));
+		REQUIRE_THAT(helix_curve.getTorsion(REAL(20.0)), WithinAbs(torsion_func(REAL(20.0)), TOL3(1e-5, 0.02, 1e-6)));
+		REQUIRE_THAT(helix_curve.getTorsion(-REAL(3.273)), WithinAbs(torsion_func(-REAL(3.273)), TOL3(1e-7, 1e-3, 1e-8)));
 	}
 
 	TEST_CASE("Test_Helix2_getTorsion3", "[simple]")
@@ -272,9 +272,9 @@ namespace MML::Tests::Core::CurvesTests
 		const CurveCartesian3D& helix_curve2 = TestBeds::ParametricCurvesTestBed::getTestCurve("Helix2")._curve;
 		const RealFunction&			torsion_func = TestBeds::ParametricCurvesTestBed::getTestCurve("Helix2")._torsionFunc;
 
-		REQUIRE_THAT(helix_curve2.getTorsion(REAL(2.5)), WithinAbs(torsion_func(REAL(2.5)), REAL(1e-7)));
-		REQUIRE_THAT(helix_curve2.getTorsion(REAL(0.5)), WithinAbs(torsion_func(REAL(0.5)), REAL(1e-7)));
-		REQUIRE_THAT(helix_curve2.getTorsion(REAL(1.0)), WithinAbs(torsion_func(REAL(1.0)), REAL(1e-7)));
+		REQUIRE_THAT(helix_curve2.getTorsion(REAL(2.5)), WithinAbs(torsion_func(REAL(2.5)), TOL3(1e-7, 1e-3, 1e-8)));
+		REQUIRE_THAT(helix_curve2.getTorsion(REAL(0.5)), WithinAbs(torsion_func(REAL(0.5)), TOL3(1e-7, 1e-3, 1e-8)));
+		REQUIRE_THAT(helix_curve2.getTorsion(REAL(1.0)), WithinAbs(torsion_func(REAL(1.0)), TOL3(1e-7, 1e-3, 1e-8)));
 	}
 
 	TEST_CASE("Test_Schaums1_getTorsion3", "[simple]")
@@ -283,9 +283,9 @@ namespace MML::Tests::Core::CurvesTests
 		const CurveCartesian3D& schaum_curve1 = TestBeds::ParametricCurvesTestBed::getTestCurve("Schaums1")._curve;
 		const RealFunction&			torsion_func  = TestBeds::ParametricCurvesTestBed::getTestCurve("Schaums1")._torsionFunc;
 
-		REQUIRE_THAT(schaum_curve1.getTorsion(REAL(0.5)), WithinAbs(torsion_func(REAL(0.5)), REAL(1e-7)));
-		REQUIRE_THAT(schaum_curve1.getTorsion(REAL(1.0)), WithinAbs(torsion_func(REAL(1.0)), REAL(1e-7)));
-		REQUIRE_THAT(schaum_curve1.getTorsion(REAL(3.5)), WithinAbs(torsion_func(REAL(3.5)), REAL(1e-7)));
+		REQUIRE_THAT(schaum_curve1.getTorsion(REAL(0.5)), WithinAbs(torsion_func(REAL(0.5)), TOL(1e-7, 1e-3)));
+		REQUIRE_THAT(schaum_curve1.getTorsion(REAL(1.0)), WithinAbs(torsion_func(REAL(1.0)), TOL(1e-7, 1e-3)));
+		REQUIRE_THAT(schaum_curve1.getTorsion(REAL(3.5)), WithinAbs(torsion_func(REAL(3.5)), TOL(1e-7, 1e-3)));
 	}
 
 	TEST_CASE("Test_Schaums2_getTorsion3", "[simple]")
@@ -294,9 +294,9 @@ namespace MML::Tests::Core::CurvesTests
 		const CurveCartesian3D& schaum_curve2 = TestBeds::ParametricCurvesTestBed::getTestCurve("Schaums2")._curve;
 		const RealFunction&			torsion_func  = TestBeds::ParametricCurvesTestBed::getTestCurve("Schaums2")._torsionFunc;
 
-		REQUIRE_THAT(schaum_curve2.getTorsion(REAL(1.5)), WithinAbs(torsion_func(REAL(1.5)), REAL(1e-6)));
-		REQUIRE_THAT(schaum_curve2.getTorsion(REAL(3.5)), WithinAbs(torsion_func(REAL(3.5)), REAL(1e-6)));
-		REQUIRE_THAT(schaum_curve2.getTorsion(REAL(10.5)), WithinAbs(torsion_func(REAL(10.5)), REAL(1e-7)));
+		REQUIRE_THAT(schaum_curve2.getTorsion(REAL(1.5)), WithinAbs(torsion_func(REAL(1.5)), TOL(1e-6, 1e-3)));
+		REQUIRE_THAT(schaum_curve2.getTorsion(REAL(3.5)), WithinAbs(torsion_func(REAL(3.5)), TOL(1e-6, 1e-3)));
+		REQUIRE_THAT(schaum_curve2.getTorsion(REAL(10.5)), WithinAbs(torsion_func(REAL(10.5)), TOL(1e-7, 2e-3)));
 	}
 
 	//=========================================================================
@@ -319,8 +319,8 @@ namespace MML::Tests::Core::CurvesTests
 		TEST_PRECISION_INFO();
 		RadialLine line(Constants::PI / 4);
 		// A straight radial line must have κ = 0
-		REQUIRE_THAT(getCurvaturePolar2D(line, REAL(1.0)), WithinAbs(REAL(0.0), REAL(1e-6)));
-		REQUIRE_THAT(getCurvaturePolar2D(line, REAL(5.0)), WithinAbs(REAL(0.0), REAL(1e-6)));
+		REQUIRE_THAT(getCurvaturePolar2D(line, REAL(1.0)), WithinAbs(REAL(0.0), TOL(1e-6, 1e-4)));
+		REQUIRE_THAT(getCurvaturePolar2D(line, REAL(5.0)), WithinAbs(REAL(0.0), TOL(1e-6, 1e-4)));
 	}
 
 	TEST_CASE("getCurvaturePolar2D - Circle has curvature 1/R", "[curves][polar]")
@@ -329,7 +329,7 @@ namespace MML::Tests::Core::CurvesTests
 		Real R = REAL(3.0);
 		Circle2DCurvePolar circle(R);
 		// κ = 1/R for a circle of radius R
-		REQUIRE_THAT(getCurvaturePolar2D(circle, REAL(0.5)), WithinAbs(REAL(1.0) / R, REAL(1e-6)));
-		REQUIRE_THAT(getCurvaturePolar2D(circle, REAL(2.0)), WithinAbs(REAL(1.0) / R, REAL(1e-6)));
+		REQUIRE_THAT(getCurvaturePolar2D(circle, REAL(0.5)), WithinAbs(REAL(1.0) / R, TOL(1e-6, 1e-4)));
+		REQUIRE_THAT(getCurvaturePolar2D(circle, REAL(2.0)), WithinAbs(REAL(1.0) / R, TOL(1e-6, 1e-4)));
 	}
 }

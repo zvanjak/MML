@@ -15,8 +15,9 @@ namespace MML
 		int iterations;			 ///< Number of iterations/refinements performed
 		bool converged;			 ///< True if convergence criteria met
 
-		/// Implicit conversion to Real for convenience
-		/// @note Discards error_estimate, iterations, and converged fields
+		/// Conversion to Real for convenience
+		/// @warning Discards error_estimate, iterations, and converged fields.
+		///          Consider using .value directly for clarity.
 		operator Real() const { return value; }
 
 		/// Constructor for easy initialization

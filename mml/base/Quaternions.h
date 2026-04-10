@@ -37,9 +37,16 @@ namespace MML
 	//
 	//   Angle units:   All angles in RADIANS (axis-angle, Euler angles, SLERP)
 	//
-	//   Euler angles:  Two conventions supported:
-	//                    FromEulerZYX(yaw, pitch, roll)  → R = Rz·Ry·Rx
+	//   Euler angles:  Tait-Bryan (three different axes):
 	//                    FromEulerXYZ(roll, pitch, yaw)  → R = Rx·Ry·Rz
+	//                    FromEulerXZY(x, z, y)           → R = Rx·Rz·Ry
+	//                    FromEulerYXZ(y, x, z)           → R = Ry·Rx·Rz
+	//                    FromEulerYZX(y, z, x)           → R = Ry·Rz·Rx
+	//                    FromEulerZXY(z, x, y)           → R = Rz·Rx·Ry
+	//                    FromEulerZYX(yaw, pitch, roll)  → R = Rz·Ry·Rx
+	//                  Proper Euler (first and last axis same):
+	//                    FromEulerZXZ(alpha, beta, gamma) → R = Rz·Rx·Rz
+	//                    FromEulerZYZ(alpha, beta, gamma) → R = Rz·Ry·Rz
 	//                  Note: parameter ORDER matches the name, not the
 	//                  multiplication order.
 	//
@@ -143,6 +150,110 @@ namespace MML
 				cr * sp * cy - sr * cp * sy,
 				cr * cp * sy + sr * sp * cy
 			);
+		}
+
+		/// @brief Create rotation quaternion from Euler angles (XZY convention)
+		/// @param xAngle Rotation around X-axis (radians)
+		/// @param zAngle Rotation around Z-axis (radians)
+		/// @param yAngle Rotation around Y-axis (radians)
+		/// @details Applied as R = Rx(xAngle) * Rz(zAngle) * Ry(yAngle)
+		static Quaternion FromEulerXZY(Real xAngle, Real zAngle, Real yAngle)
+		{
+			Real c1 = std::cos(xAngle * 0.5), s1 = std::sin(xAngle * 0.5);
+			Real c2 = std::cos(zAngle * 0.5), s2 = std::sin(zAngle * 0.5);
+			Real c3 = std::cos(yAngle * 0.5), s3 = std::sin(yAngle * 0.5);
+
+			return Quaternion(
+				c1*c2*c3 + s1*s2*s3,
+				s1*c2*c3 - c1*s2*s3,
+				c1*c2*s3 - s1*s2*c3,
+				s1*c2*s3 + c1*s2*c3
+			);
+		}
+
+		/// @brief Create rotation quaternion from Euler angles (YXZ convention)
+		/// @param yAngle Rotation around Y-axis (radians)
+		/// @param xAngle Rotation around X-axis (radians)
+		/// @param zAngle Rotation around Z-axis (radians)
+		/// @details Applied as R = Ry(yAngle) * Rx(xAngle) * Rz(zAngle)
+		static Quaternion FromEulerYXZ(Real yAngle, Real xAngle, Real zAngle)
+		{
+			Real c1 = std::cos(yAngle * 0.5), s1 = std::sin(yAngle * 0.5);
+			Real c2 = std::cos(xAngle * 0.5), s2 = std::sin(xAngle * 0.5);
+			Real c3 = std::cos(zAngle * 0.5), s3 = std::sin(zAngle * 0.5);
+
+			return Quaternion(
+				c1*c2*c3 + s1*s2*s3,
+				c1*s2*c3 + s1*c2*s3,
+				s1*c2*c3 - c1*s2*s3,
+				c1*c2*s3 - s1*s2*c3
+			);
+		}
+
+		/// @brief Create rotation quaternion from Euler angles (YZX convention)
+		/// @param yAngle Rotation around Y-axis (radians)
+		/// @param zAngle Rotation around Z-axis (radians)
+		/// @param xAngle Rotation around X-axis (radians)
+		/// @details Applied as R = Ry(yAngle) * Rz(zAngle) * Rx(xAngle)
+		static Quaternion FromEulerYZX(Real yAngle, Real zAngle, Real xAngle)
+		{
+			Real c1 = std::cos(yAngle * 0.5), s1 = std::sin(yAngle * 0.5);
+			Real c2 = std::cos(zAngle * 0.5), s2 = std::sin(zAngle * 0.5);
+			Real c3 = std::cos(xAngle * 0.5), s3 = std::sin(xAngle * 0.5);
+
+			return Quaternion(
+				c1*c2*c3 - s1*s2*s3,
+				c1*c2*s3 + s1*s2*c3,
+				s1*c2*c3 + c1*s2*s3,
+				c1*s2*c3 - s1*c2*s3
+			);
+		}
+
+		/// @brief Create rotation quaternion from Euler angles (ZXY convention)
+		/// @param zAngle Rotation around Z-axis (radians)
+		/// @param xAngle Rotation around X-axis (radians)
+		/// @param yAngle Rotation around Y-axis (radians)
+		/// @details Applied as R = Rz(zAngle) * Rx(xAngle) * Ry(yAngle)
+		static Quaternion FromEulerZXY(Real zAngle, Real xAngle, Real yAngle)
+		{
+			Real c1 = std::cos(zAngle * 0.5), s1 = std::sin(zAngle * 0.5);
+			Real c2 = std::cos(xAngle * 0.5), s2 = std::sin(xAngle * 0.5);
+			Real c3 = std::cos(yAngle * 0.5), s3 = std::sin(yAngle * 0.5);
+
+			return Quaternion(
+				c1*c2*c3 - s1*s2*s3,
+				c1*s2*c3 - s1*c2*s3,
+				c1*c2*s3 + s1*s2*c3,
+				c1*s2*s3 + s1*c2*c3
+			);
+		}
+
+		/// @brief Create rotation quaternion from Euler angles (ZXZ proper Euler convention)
+		/// @param alpha First rotation around Z-axis (radians)
+		/// @param beta Rotation around X-axis (radians)
+		/// @param gamma Second rotation around Z-axis (radians)
+		/// @details Applied as R = Rz(alpha) * Rx(beta) * Rz(gamma). Classical physics convention.
+		static Quaternion FromEulerZXZ(Real alpha, Real beta, Real gamma)
+		{
+			Real cb = std::cos(beta * 0.5),  sb = std::sin(beta * 0.5);
+			Real cag = std::cos((alpha + gamma) * 0.5), sag = std::sin((alpha + gamma) * 0.5);
+			Real cdg = std::cos((alpha - gamma) * 0.5), sdg = std::sin((alpha - gamma) * 0.5);
+
+			return Quaternion(cb * cag, sb * cdg, sb * sdg, cb * sag);
+		}
+
+		/// @brief Create rotation quaternion from Euler angles (ZYZ proper Euler convention)
+		/// @param alpha First rotation around Z-axis (radians)
+		/// @param beta Rotation around Y-axis (radians)
+		/// @param gamma Second rotation around Z-axis (radians)
+		/// @details Applied as R = Rz(alpha) * Ry(beta) * Rz(gamma).
+		static Quaternion FromEulerZYZ(Real alpha, Real beta, Real gamma)
+		{
+			Real cb = std::cos(beta * 0.5),  sb = std::sin(beta * 0.5);
+			Real cag = std::cos((alpha + gamma) * 0.5), sag = std::sin((alpha + gamma) * 0.5);
+			Real cdg = std::cos((alpha - gamma) * 0.5), sdg = std::sin((alpha - gamma) * 0.5);
+
+			return Quaternion(cb * cag, -sb * sdg, sb * cdg, cb * sag);
 		}
 
 		/// @brief Get scalar component w (const)
@@ -431,6 +542,90 @@ namespace MML
 			Real yaw = std::atan2(siny_cosp, cosy_cosp);
 			
 			return Vec3Cart(yaw, pitch, roll);
+		}
+
+		/// @brief Convert to Euler angles (XYZ convention)
+		/// @return Vector [roll, pitch, yaw] in radians
+		/// @details Extracts angles for R = Rx(roll) * Ry(pitch) * Rz(yaw)
+		Vec3Cart ToEulerXYZ() const
+		{
+			Real w = _data[0], x = _data[1], y = _data[2], z = _data[3];
+
+			// Pitch (y-axis rotation)
+			Real sinp = 2.0 * (x * z + w * y);
+			Real pitch;
+			if (std::abs(sinp) >= 1.0)
+				pitch = std::copysign(Constants::PI / 2.0, sinp); // Gimbal lock
+			else
+				pitch = std::asin(sinp);
+
+			// Roll (x-axis rotation)
+			Real sinr = -2.0 * (y * z - w * x);
+			Real cosr = 1.0 - 2.0 * (x * x + y * y);
+			Real roll = std::atan2(sinr, cosr);
+
+			// Yaw (z-axis rotation)
+			Real siny = -2.0 * (x * y - w * z);
+			Real cosy = 1.0 - 2.0 * (y * y + z * z);
+			Real yaw = std::atan2(siny, cosy);
+
+			return Vec3Cart(roll, pitch, yaw);
+		}
+
+		/// @brief Convert to Euler angles (ZXZ proper Euler convention)
+		/// @return Vector [alpha, beta, gamma] in radians
+		/// @details Extracts angles for R = Rz(alpha) * Rx(beta) * Rz(gamma).
+		///          beta in [0, pi]. Gimbal lock when beta ≈ 0 or beta ≈ pi.
+		Vec3Cart ToEulerZXZ() const
+		{
+			Real w = _data[0], x = _data[1], y = _data[2], z = _data[3];
+
+			// beta from R22 = cos(beta) = 1 - 2(x² + y²)
+			Real cosBeta = 1.0 - 2.0 * (x*x + y*y);
+			cosBeta = std::clamp(cosBeta, static_cast<Real>(-1.0), static_cast<Real>(1.0));
+			Real beta = std::acos(cosBeta);
+
+			Real alpha, gamma;
+			if (std::abs(std::sin(beta)) < 1e-10) {
+				// Gimbal lock: beta ≈ 0 or π, assign all rotation to alpha
+				alpha = std::atan2(2.0 * (x*y + w*z), 1.0 - 2.0 * (y*y + z*z));
+				gamma = 0.0;
+			} else {
+				// alpha = atan2(R02, -R12) = atan2(2(xz+wy), 2(wx-yz))
+				alpha = std::atan2(2.0 * (x*z + w*y), 2.0 * (w*x - y*z));
+				// gamma = atan2(R20, R21) = atan2(2(xz-wy), 2(yz+wx))
+				gamma = std::atan2(2.0 * (x*z - w*y), 2.0 * (y*z + w*x));
+			}
+
+			return Vec3Cart(alpha, beta, gamma);
+		}
+
+		/// @brief Convert to Euler angles (ZYZ proper Euler convention)
+		/// @return Vector [alpha, beta, gamma] in radians
+		/// @details Extracts angles for R = Rz(alpha) * Ry(beta) * Rz(gamma).
+		///          beta in [0, pi]. Gimbal lock when beta ≈ 0 or beta ≈ pi.
+		Vec3Cart ToEulerZYZ() const
+		{
+			Real w = _data[0], x = _data[1], y = _data[2], z = _data[3];
+
+			// beta from R22 = cos(beta) = 1 - 2(x² + y²)
+			Real cosBeta = 1.0 - 2.0 * (x*x + y*y);
+			cosBeta = std::clamp(cosBeta, static_cast<Real>(-1.0), static_cast<Real>(1.0));
+			Real beta = std::acos(cosBeta);
+
+			Real alpha, gamma;
+			if (std::abs(std::sin(beta)) < 1e-10) {
+				// Gimbal lock: beta ≈ 0 or π, assign all rotation to alpha
+				alpha = std::atan2(2.0 * (x*y + w*z), 1.0 - 2.0 * (y*y + z*z));
+				gamma = 0.0;
+			} else {
+				// alpha = atan2(R12, R02) = atan2(2(yz-wx), 2(xz+wy))
+				alpha = std::atan2(2.0 * (y*z - w*x), 2.0 * (x*z + w*y));
+				// gamma = atan2(R21, -R20) = atan2(2(yz+wx), 2(wy-xz))
+				gamma = std::atan2(2.0 * (y*z + w*x), 2.0 * (w*y - x*z));
+			}
+
+			return Vec3Cart(alpha, beta, gamma);
 		}
 
 		/// @brief Convert to 3×3 rotation matrix

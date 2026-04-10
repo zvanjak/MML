@@ -35,7 +35,7 @@ namespace MML::Tests::Algorithms::PathIntegrationTests
 		Real length = PathIntegration::ParametricCurveLength(circle, REAL(0.0), REAL(2.0) * Constants::PI);
 		Real expected = REAL(2.0) * Constants::PI;
 
-		REQUIRE_THAT(length, WithinRel(expected, REAL(1e-4)));
+		REQUIRE_THAT(length, WithinRel(expected, TOL(1e-4, 5e-4)));
 	}
 
 	TEST_CASE("ArcLength::circle_radius_R", "[path_integration][arc_length]")
@@ -51,7 +51,7 @@ namespace MML::Tests::Algorithms::PathIntegrationTests
 		Real length = PathIntegration::ParametricCurveLength(circle, REAL(0.0), REAL(2.0) * Constants::PI);
 		Real expected = REAL(2.0) * Constants::PI * R;
 
-		REQUIRE_THAT(length, WithinRel(expected, REAL(1e-4)));
+		REQUIRE_THAT(length, WithinRel(expected, TOL(1e-4, 5e-4)));
 	}
 
 	TEST_CASE("ArcLength::semicircle", "[path_integration][arc_length]")
@@ -65,7 +65,7 @@ namespace MML::Tests::Algorithms::PathIntegrationTests
 		Real length = PathIntegration::ParametricCurveLength(semicircle, REAL(0.0), Constants::PI);
 		Real expected = Constants::PI;
 
-		REQUIRE_THAT(length, WithinRel(expected, REAL(1e-4)));
+		REQUIRE_THAT(length, WithinRel(expected, TOL(1e-4, 5e-4)));
 	}
 
 	TEST_CASE("ArcLength::helix_standard", "[path_integration][arc_length]")
@@ -81,7 +81,7 @@ namespace MML::Tests::Algorithms::PathIntegrationTests
 		Real length = PathIntegration::ParametricCurveLength(helix, REAL(0.0), REAL(2.0) * Constants::PI);
 		Real expected = REAL(2.0) * Constants::PI * std::sqrt(REAL(2.0));
 
-		REQUIRE_THAT(length, WithinRel(expected, REAL(1e-4)));
+		REQUIRE_THAT(length, WithinRel(expected, TOL(1e-4, 5e-4)));
 	}
 
 	TEST_CASE("ArcLength::helix_general", "[path_integration][arc_length]")
@@ -98,7 +98,7 @@ namespace MML::Tests::Algorithms::PathIntegrationTests
 		Real length = PathIntegration::ParametricCurveLength(helix, REAL(0.0), REAL(2.0) * Constants::PI);
 		Real expected = REAL(2.0) * Constants::PI * std::sqrt(a * a + b * b);
 
-		REQUIRE_THAT(length, WithinRel(expected, REAL(1e-4)));
+		REQUIRE_THAT(length, WithinRel(expected, TOL(1e-4, 5e-4)));
 	}
 
 	TEST_CASE("ArcLength::straight_line", "[path_integration][arc_length]")
@@ -144,7 +144,7 @@ namespace MML::Tests::Algorithms::PathIntegrationTests
 		Real length = PathIntegration::ParametricCurveLength(circle2D, REAL(0.0), REAL(2.0) * Constants::PI);
 		Real expected = REAL(2.0) * Constants::PI;
 
-		REQUIRE_THAT(length, WithinRel(expected, REAL(1e-4)));
+		REQUIRE_THAT(length, WithinRel(expected, TOL(1e-4, 5e-4)));
 	}
 
 	/*****************************************************************************
@@ -165,7 +165,7 @@ namespace MML::Tests::Algorithms::PathIntegrationTests
 		Real mass = PathIntegration::ParametricCurveMass(circle, unit_density, REAL(0.0), REAL(2.0) * Constants::PI);
 		Real expected = REAL(2.0) * Constants::PI;  // Same as arc length
 
-		REQUIRE_THAT(mass, WithinRel(expected, REAL(1e-4)));
+		REQUIRE_THAT(mass, WithinRel(expected, TOL(1e-4, 5e-4)));
 	}
 
 	TEST_CASE("CurveMass::constant_density", "[path_integration][curve_mass]")
@@ -181,7 +181,7 @@ namespace MML::Tests::Algorithms::PathIntegrationTests
 		Real mass = PathIntegration::ParametricCurveMass(circle, const_density, REAL(0.0), REAL(2.0) * Constants::PI);
 		Real expected = REAL(5.0) * REAL(2.0) * Constants::PI;
 
-		REQUIRE_THAT(mass, WithinRel(expected, REAL(1e-4)));
+		REQUIRE_THAT(mass, WithinRel(expected, TOL(1e-4, 5e-4)));
 	}
 
 	TEST_CASE("CurveMass::helix_exponential_density", "[path_integration][curve_mass]")
@@ -235,7 +235,7 @@ namespace MML::Tests::Algorithms::PathIntegrationTests
 		Real mass = PathIntegration::ParametricCurveMass(semicircle, sin_density, REAL(0.0), Constants::PI);
 		Real expected = REAL(2.0);
 
-		REQUIRE_THAT(mass, WithinRel(expected, REAL(1e-4)));
+		REQUIRE_THAT(mass, WithinRel(expected, TOL(1e-4, 5e-4)));
 	}
 
 	/*****************************************************************************
@@ -451,7 +451,7 @@ namespace MML::Tests::Algorithms::PathIntegrationTests
 		Real work = PathIntegration::LineIntegral(radial_field, line, REAL(0.0), REAL(1.0), 1e-5);
 		Real expected = REAL(1.5);
 
-		REQUIRE_THAT(work, WithinRel(expected, REAL(1e-4)));
+		REQUIRE_THAT(work, WithinRel(expected, TOL(1e-4, 5e-4)));
 	}
 
 	TEST_CASE("VectorLineIntegral::inverse_square_field", "[path_integration][vector_integral][physics]")
@@ -495,7 +495,7 @@ namespace MML::Tests::Algorithms::PathIntegrationTests
 
 		Real length = PathIntegration::ParametricCurveLength(circle, REAL(0.0), REAL(0.0));
 
-		REQUIRE_THAT(length, WithinAbs(REAL(0.0), REAL(1e-10)));
+		REQUIRE_THAT(length, WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("PathIntegration::reversed_orientation", "[path_integration][orientation]")

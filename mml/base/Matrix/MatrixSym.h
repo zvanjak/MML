@@ -71,7 +71,7 @@
 #define MML_MATRIX_SYM_H
 
 #include "MMLBase.h"
-#include "base/MatrixPrintFormat.h"
+#include "base/Matrix/MatrixPrintFormat.h"
 
 #include "Matrix.h"
 

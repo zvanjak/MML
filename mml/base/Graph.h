@@ -275,7 +275,6 @@ namespace MML
 				return false;
 
 			edges.erase(it);
-			--_numEdges;
 
 			if (_type == Type::Undirected && from != to)
 			{
@@ -285,6 +284,8 @@ namespace MML
 				if (rit != reverseEdges.end())
 					reverseEdges.erase(rit);
 			}
+
+			--_numEdges;
 
 			return true;
 		}

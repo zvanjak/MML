@@ -37,6 +37,14 @@
 /// @brief Derivatives of tensor fields (covariant derivatives)
 #include "core/Derivation/DerivationTensorField.h"
 
+/// @file DerivationComplexStep.h
+/// @brief Complex-step derivative method (template-based, for any callable)
+#include "core/Derivation/DerivationComplexStep.h"
+
+/// @file DerivationComplex.h
+/// @brief Numerical derivatives of complex-valued functions f:C→C
+#include "core/Derivation/DerivationComplex.h"
+
 /// @file Jacobians.h
 /// @brief Jacobian matrix computations for multivariable functions
 #include "core/Derivation/Jacobians.h"

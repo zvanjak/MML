@@ -14,8 +14,8 @@
 
 #include "mml/MMLBase.h"
 #include "mml/base/Matrix/Matrix.h"
+#include "mml/tools/serializer/SerializerBase.h"
 
-#include <iostream>
 #include <fstream>
 #include <sstream>
 #include <vector>
@@ -34,26 +34,24 @@ namespace Serializer
 	 * @tparam Type Matrix element type
 	 * @param filename Path to input file
 	 * @param outMat Matrix to populate
-	 * @return true if successful
+	 * @return SerializeResult with success/failure info
 	 * 
 	 * File format:
 	 * - First line: rows cols
 	 * - Following lines: space-separated matrix elements (row by row)
 	 */
 	template<class Type>
-	bool LoadMatrixFromFile(const std::string& filename, Matrix<Type>& outMat)
+	SerializeResult LoadMatrixFromFile(const std::string& filename, Matrix<Type>& outMat)
 	{
 		std::ifstream file(filename);
 		if (!file.is_open()) {
-			std::cerr << "Error: could not open file " << filename << " for reading." << std::endl;
-			return false;
+			return {false, SerializeError::FILE_NOT_OPENED, "Could not open file " + filename + " for reading"};
 		}
 		
 		int rows, cols;
 		file >> rows >> cols;
 		if (file.fail() || rows <= 0 || cols <= 0 || rows > 100000 || cols > 100000) {
-			std::cerr << "Error: invalid dimensions (" << rows << "x" << cols << ") in " << filename << std::endl;
-			return false;
+			return {false, SerializeError::INVALID_FORMAT, "Invalid dimensions (" + std::to_string(rows) + "x" + std::to_string(cols) + ") in " + filename};
 		}
 		outMat.Resize(rows, cols);
 		
@@ -61,8 +59,12 @@ namespace Serializer
 			for (int j = 0; j < cols; ++j)
 				file >> outMat(i, j);
 		
+		if (file.fail()) {
+			return {false, SerializeError::READ_FAILED, "Stream error while reading matrix data from " + filename};
+		}
+		
 		file.close();
-		return true;
+		return {true, SerializeError::OK, "Success"};
 	}
 
 	/**
@@ -70,15 +72,14 @@ namespace Serializer
 	 * @tparam Type Matrix element type
 	 * @param mat Matrix to save
 	 * @param filename Path to output file
-	 * @return true if successful
+	 * @return SerializeResult with success/failure info
 	 */
 	template<class Type>
-	bool SaveMatrixToFile(const Matrix<Type>& mat, const std::string& filename)
+	SerializeResult SaveMatrixToFile(const Matrix<Type>& mat, const std::string& filename)
 	{
 		std::ofstream file(filename);
 		if (!file.is_open()) {
-			std::cerr << "Error: could not create file " << filename << " for writing." << std::endl;
-			return false;
+			return {false, SerializeError::FILE_NOT_OPENED, "Could not create file " + filename + " for writing"};
 		}
 		
 		file << mat.rows() << " " << mat.cols() << std::endl;
@@ -88,8 +89,12 @@ namespace Serializer
 			file << std::endl;
 		}
 		
+		if (file.fail()) {
+			return {false, SerializeError::WRITE_FAILED, "Stream error while writing matrix to " + filename};
+		}
+		
 		file.close();
-		return true;
+		return {true, SerializeError::OK, "Success"};
 	}
 
 	///////////////////////////////////////////////////////////////////////////////////////////
@@ -101,13 +106,14 @@ namespace Serializer
 	 * @tparam Type Matrix element type
 	 * @param filename Path to CSV file
 	 * @param outMat Matrix to populate
-	 * @return true if successful
+	 * @return SerializeResult with success/failure info
 	 */
 	template<class Type>
-	bool LoadMatrixFromCSV(const std::string& filename, Matrix<Type>& outMat)
+	SerializeResult LoadMatrixFromCSV(const std::string& filename, Matrix<Type>& outMat)
 	{
 		std::ifstream file(filename);
-		if (!file.is_open()) return false;
+		if (!file.is_open())
+			return {false, SerializeError::FILE_NOT_OPENED, "Could not open CSV file " + filename};
 		
 		std::vector<std::vector<Type>> data;
 		std::string line;
@@ -127,10 +133,11 @@ namespace Serializer
 		}
 		
 		file.close();
-		if (data.empty()) return false;
+		if (data.empty())
+			return {false, SerializeError::READ_FAILED, "No data found in CSV file " + filename};
 		
 		outMat = Matrix<Type>(data);
-		return true;
+		return {true, SerializeError::OK, "Success"};
 	}
 
 	/**
@@ -138,13 +145,14 @@ namespace Serializer
 	 * @tparam Type Matrix element type
 	 * @param mat Matrix to save
 	 * @param filename Path to CSV file
-	 * @return true if successful
+	 * @return SerializeResult with success/failure info
 	 */
 	template<class Type>
-	bool SaveMatrixToCSV(const Matrix<Type>& mat, const std::string& filename)
+	SerializeResult SaveMatrixToCSV(const Matrix<Type>& mat, const std::string& filename)
 	{
 		std::ofstream file(filename);
-		if (!file.is_open()) return false;
+		if (!file.is_open())
+			return {false, SerializeError::FILE_NOT_OPENED, "Could not create CSV file " + filename};
 		
 		for (int i = 0; i < mat.rows(); ++i) {
 			for (int j = 0; j < mat.cols(); ++j) {
@@ -155,7 +163,7 @@ namespace Serializer
 		}
 		
 		file.close();
-		return true;
+		return {true, SerializeError::OK, "Success"};
 	}
 
 	///////////////////////////////////////////////////////////////////////////////////////////
@@ -167,7 +175,7 @@ namespace Serializer
 	 * @tparam Type Matrix element type
 	 * @param mat Matrix to save
 	 * @param filename Path to output file
-	 * @return true if successful
+	 * @return SerializeResult with success/failure info
 	 * 
 	 * Binary format:
 	 * - 4 bytes: magic number 0x4D4D4C4D ("MMLM" for MML Matrix)
@@ -179,12 +187,11 @@ namespace Serializer
 	 * - rows*cols*sizeof(Type) bytes: data in row-major order
 	 */
 	template<class Type>
-	bool SaveMatrixToBinary(const Matrix<Type>& mat, const std::string& filename)
+	SerializeResult SaveMatrixToBinary(const Matrix<Type>& mat, const std::string& filename)
 	{
 		std::ofstream file(filename, std::ios::binary);
 		if (!file.is_open()) {
-			std::cerr << "Error: could not create binary file " << filename << std::endl;
-			return false;
+			return {false, SerializeError::FILE_NOT_OPENED, "Could not create binary file " + filename};
 		}
 		
 		// Write header
@@ -206,8 +213,12 @@ namespace Serializer
 		file.write(reinterpret_cast<const char*>(mat.data()), 
 		           static_cast<std::streamsize>(rows) * cols * sizeof(Type));
 		
+		if (file.fail()) {
+			return {false, SerializeError::WRITE_FAILED, "Write error while saving binary matrix to " + filename};
+		}
+		
 		file.close();
-		return true;
+		return {true, SerializeError::OK, "Success"};
 	}
 
 	/**
@@ -215,15 +226,14 @@ namespace Serializer
 	 * @tparam Type Matrix element type
 	 * @param filename Path to input file
 	 * @param outMat Matrix to populate
-	 * @return true if successful
+	 * @return SerializeResult with success/failure info
 	 */
 	template<class Type>
-	bool LoadMatrixFromBinary(const std::string& filename, Matrix<Type>& outMat)
+	SerializeResult LoadMatrixFromBinary(const std::string& filename, Matrix<Type>& outMat)
 	{
 		std::ifstream file(filename, std::ios::binary);
 		if (!file.is_open()) {
-			std::cerr << "Error: could not open binary file " << filename << std::endl;
-			return false;
+			return {false, SerializeError::FILE_NOT_OPENED, "Could not open binary file " + filename};
 		}
 		
 		// Read and verify header
@@ -231,14 +241,12 @@ namespace Serializer
 		
 		file.read(reinterpret_cast<char*>(&magic), sizeof(magic));
 		if (magic != BinaryFormat::MAGIC_MATRIX) {
-			std::cerr << "Error: invalid magic number in " << filename << std::endl;
-			return false;
+			return {false, SerializeError::INVALID_FORMAT, "Invalid magic number in " + filename};
 		}
 		
 		file.read(reinterpret_cast<char*>(&version), sizeof(version));
 		if (version != BinaryFormat::VERSION_MATRIX) {
-			std::cerr << "Error: unsupported version " << version << " in " << filename << std::endl;
-			return false;
+			return {false, SerializeError::INVALID_FORMAT, "Unsupported version " + std::to_string(version) + " in " + filename};
 		}
 		
 		file.read(reinterpret_cast<char*>(&rows), sizeof(rows));
@@ -247,13 +255,10 @@ namespace Serializer
 		file.read(reinterpret_cast<char*>(&reserved), sizeof(reserved));
 		
 		if (elemSize != sizeof(Type)) {
-			std::cerr << "Error: element size mismatch in " << filename 
-			          << " (file: " << elemSize << ", expected: " << sizeof(Type) << ")" << std::endl;
-			return false;
+			return {false, SerializeError::INVALID_FORMAT, "Element size mismatch in " + filename + " (file: " + std::to_string(elemSize) + ", expected: " + std::to_string(sizeof(Type)) + ")"};
 		}
 		if (rows == 0 || cols == 0 || rows > 100000 || cols > 100000) {
-			std::cerr << "Error: invalid dimensions (" << rows << "x" << cols << ") in " << filename << std::endl;
-			return false;
+			return {false, SerializeError::INVALID_FORMAT, "Invalid dimensions (" + std::to_string(rows) + "x" + std::to_string(cols) + ") in " + filename};
 		}
 		
 		// Read data
@@ -261,8 +266,12 @@ namespace Serializer
 		file.read(reinterpret_cast<char*>(outMat.data()), 
 		          static_cast<std::streamsize>(rows) * cols * sizeof(Type));
 		
+		if (file.fail()) {
+			return {false, SerializeError::READ_FAILED, "Read error while loading binary matrix from " + filename};
+		}
+		
 		file.close();
-		return true;
+		return {true, SerializeError::OK, "Success"};
 	}
 
 	/**

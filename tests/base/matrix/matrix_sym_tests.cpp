@@ -832,8 +832,8 @@ namespace MML::Tests::Base::MatrixSymTests
 
     TEST_CASE("MatrixSym_numerical_precision", "[MatrixSym][edge-cases]")
     {
-        MatrixSym<Real> a(2, { 1e-15, 2e-15, 3e-15 });
-        MatrixSym<Real> b(2, { 1e-15, 2e-15, 3e-15 });
+        MatrixSym<Real> a(2, { TOL(1e-15, 1e-5), 2e-15, 3e-15 });
+        MatrixSym<Real> b(2, { TOL(1e-15, 1e-5), 2e-15, 3e-15 });
 
         REQUIRE(a.IsEqualTo(b, 1e-16));
     }

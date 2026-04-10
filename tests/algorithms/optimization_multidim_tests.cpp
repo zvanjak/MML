@@ -136,9 +136,9 @@ TEST_CASE("NelderMead - Simple 2D quadratic", "[NelderMead][2D]") {
 	auto result = optimizer.Minimize(func, start, REAL(REAL(1.0)));
 
 	REQUIRE(result.converged);
-	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(0.0)), 1e-6));
-	REQUIRE_THAT(result.xmin[1], RealWithinAbs(REAL(REAL(0.0)), 1e-6));
-	REQUIRE_THAT(result.fmin, RealWithinAbs(REAL(REAL(0.0)), 1e-10));
+	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(0.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[1], RealWithinAbs(REAL(REAL(0.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.fmin, RealWithinAbs(REAL(REAL(0.0)), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("NelderMead - Elliptic paraboloid", "[NelderMead][2D]") {
@@ -148,9 +148,9 @@ TEST_CASE("NelderMead - Elliptic paraboloid", "[NelderMead][2D]") {
 	auto result = NelderMeadMinimize(func, start, REAL(REAL(1.0)));
 
 	REQUIRE(result.converged);
-	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(1.0)), 1e-6));
-	REQUIRE_THAT(result.xmin[1], RealWithinAbs(-REAL(REAL(1.0)), 1e-6));
-	REQUIRE_THAT(result.fmin, RealWithinAbs(REAL(REAL(0.0)), 1e-10));
+	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(1.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[1], RealWithinAbs(-REAL(REAL(1.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.fmin, RealWithinAbs(REAL(REAL(0.0)), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("NelderMead - Rosenbrock banana function", "[NelderMead][2D][Rosenbrock]") {
@@ -158,26 +158,26 @@ TEST_CASE("NelderMead - Rosenbrock banana function", "[NelderMead][2D][Rosenbroc
 	VectorN<Real, 2> start{-REAL(REAL(1.0)), REAL(REAL(1.0))};
 
 	// Rosenbrock is notoriously difficult - use tighter tolerance
-	NelderMead optimizer(1e-10, 10000);
+	NelderMead optimizer(TOL(1e-10, 1e-5), 10000);
 	auto result = optimizer.Minimize(func, start, REAL(REAL(0.5)));
 
 	REQUIRE(result.converged);
 	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(1.0)), 1e-4));
 	REQUIRE_THAT(result.xmin[1], RealWithinAbs(REAL(REAL(1.0)), 1e-4));
-	REQUIRE_THAT(result.fmin, RealWithinAbs(REAL(REAL(0.0)), 1e-6));
+	REQUIRE_THAT(result.fmin, RealWithinAbs(REAL(REAL(0.0)), TOL(1e-6, 1e-3)));
 }
 
 TEST_CASE("NelderMead - Beale's function", "[NelderMead][2D]") {
 	BealeFunction func;
 	VectorN<Real, 2> start{REAL(REAL(0.0)), REAL(REAL(0.0))};
 
-	NelderMead optimizer(1e-10, 5000);
+	NelderMead optimizer(TOL(1e-10, 1e-5), 5000);
 	auto result = optimizer.Minimize(func, start, REAL(REAL(1.0)));
 
 	REQUIRE(result.converged);
 	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(3.0)), 1e-4));
 	REQUIRE_THAT(result.xmin[1], RealWithinAbs(REAL(REAL(0.5)), 1e-4));
-	REQUIRE_THAT(result.fmin, RealWithinAbs(REAL(REAL(0.0)), 1e-6));
+	REQUIRE_THAT(result.fmin, RealWithinAbs(REAL(REAL(0.0)), TOL(1e-6, 1e-3)));
 }
 
 TEST_CASE("NelderMead - Booth's function", "[NelderMead][2D]") {
@@ -187,9 +187,9 @@ TEST_CASE("NelderMead - Booth's function", "[NelderMead][2D]") {
 	auto result = NelderMeadMinimize(func, start);
 
 	REQUIRE(result.converged);
-	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(1.0)), 1e-6));
-	REQUIRE_THAT(result.xmin[1], RealWithinAbs(REAL(REAL(3.0)), 1e-6));
-	REQUIRE_THAT(result.fmin, RealWithinAbs(REAL(REAL(0.0)), 1e-10));
+	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(1.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[1], RealWithinAbs(REAL(REAL(3.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.fmin, RealWithinAbs(REAL(REAL(0.0)), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("NelderMead - Himmelblau's function (find one minimum)", "[NelderMead][2D]") {
@@ -202,7 +202,7 @@ TEST_CASE("NelderMead - Himmelblau's function (find one minimum)", "[NelderMead]
 	// Should find the (3, 2) minimum from this starting point
 	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(3.0)), 1e-4));
 	REQUIRE_THAT(result.xmin[1], RealWithinAbs(REAL(REAL(2.0)), 1e-4));
-	REQUIRE_THAT(result.fmin, RealWithinAbs(REAL(REAL(0.0)), 1e-6));
+	REQUIRE_THAT(result.fmin, RealWithinAbs(REAL(REAL(0.0)), TOL(1e-6, 1e-3)));
 }
 
 TEST_CASE("NelderMead - 3D quadratic at origin", "[NelderMead][3D]") {
@@ -212,10 +212,10 @@ TEST_CASE("NelderMead - 3D quadratic at origin", "[NelderMead][3D]") {
 	auto result = NelderMeadMinimize(func, start);
 
 	REQUIRE(result.converged);
-	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(0.0)), 1e-6));
-	REQUIRE_THAT(result.xmin[1], RealWithinAbs(REAL(REAL(0.0)), 1e-6));
-	REQUIRE_THAT(result.xmin[2], RealWithinAbs(REAL(REAL(0.0)), 1e-6));
-	REQUIRE_THAT(result.fmin, RealWithinAbs(REAL(REAL(0.0)), 1e-10));
+	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(0.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[1], RealWithinAbs(REAL(REAL(0.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[2], RealWithinAbs(REAL(REAL(0.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.fmin, RealWithinAbs(REAL(REAL(0.0)), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("NelderMead - 3D offset quadratic", "[NelderMead][3D]") {
@@ -225,24 +225,24 @@ TEST_CASE("NelderMead - 3D offset quadratic", "[NelderMead][3D]") {
 	auto result = NelderMeadMinimize(func, start);
 
 	REQUIRE(result.converged);
-	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(1.0)), 1e-6));
-	REQUIRE_THAT(result.xmin[1], RealWithinAbs(REAL(REAL(2.0)), 1e-6));
-	REQUIRE_THAT(result.xmin[2], RealWithinAbs(REAL(REAL(3.0)), 1e-6));
-	REQUIRE_THAT(result.fmin, RealWithinAbs(REAL(REAL(0.0)), 1e-10));
+	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(1.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[1], RealWithinAbs(REAL(REAL(2.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[2], RealWithinAbs(REAL(REAL(3.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.fmin, RealWithinAbs(REAL(REAL(0.0)), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("NelderMead - 4D weighted sum of squares", "[NelderMead][4D]") {
 	WeightedSumSquares4D func;
 	VectorN<Real, 4> start{REAL(REAL(1.0)), REAL(REAL(1.0)), REAL(REAL(1.0)), REAL(REAL(1.0))};
 
-	NelderMead optimizer(1e-10);
+	NelderMead optimizer(TOL(1e-10, 1e-5));
 	auto result = optimizer.Minimize(func, start);
 
 	REQUIRE(result.converged);
 	for (int i = 0; i < 4; ++i) {
 		REQUIRE_THAT(result.xmin[i], RealWithinAbs(REAL(REAL(0.0)), 1e-5));
 	}
-	REQUIRE_THAT(result.fmin, RealWithinAbs(REAL(REAL(0.0)), 1e-8));
+	REQUIRE_THAT(result.fmin, RealWithinAbs(REAL(REAL(0.0)), TOL(1e-8, 1e-4)));
 }
 
 TEST_CASE("NelderMead - Custom per-dimension deltas", "[NelderMead][2D]") {
@@ -253,8 +253,8 @@ TEST_CASE("NelderMead - Custom per-dimension deltas", "[NelderMead][2D]") {
 	auto result = NelderMeadMinimize(func, start, deltas);
 
 	REQUIRE(result.converged);
-	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(1.0)), 1e-6));
-	REQUIRE_THAT(result.xmin[1], RealWithinAbs(-REAL(REAL(1.0)), 1e-6));
+	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(1.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[1], RealWithinAbs(-REAL(REAL(1.0)), TOL(1e-6, 1e-3)));
 }
 
 TEST_CASE("NelderMead - From explicit simplex", "[NelderMead][2D]") {
@@ -273,8 +273,8 @@ TEST_CASE("NelderMead - From explicit simplex", "[NelderMead][2D]") {
 	auto result = optimizer.Minimize<2>(func, simplex);
 
 	REQUIRE(result.converged);
-	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(0.0)), 1e-6));
-	REQUIRE_THAT(result.xmin[1], RealWithinAbs(REAL(REAL(0.0)), 1e-6));
+	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(0.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[1], RealWithinAbs(REAL(REAL(0.0)), TOL(1e-6, 1e-3)));
 }
 
 TEST_CASE("NelderMead - Maximization", "[NelderMead][2D][Maximize]") {
@@ -284,9 +284,9 @@ TEST_CASE("NelderMead - Maximization", "[NelderMead][2D][Maximize]") {
 	auto result = NelderMeadMaximize(func, start);
 
 	REQUIRE(result.converged);
-	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(2.0)), 1e-6));
-	REQUIRE_THAT(result.xmin[1], RealWithinAbs(REAL(REAL(3.0)), 1e-6));
-	REQUIRE_THAT(result.fmin, RealWithinAbs(REAL(REAL(0.0)), 1e-10));
+	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(2.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[1], RealWithinAbs(REAL(REAL(3.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.fmin, RealWithinAbs(REAL(REAL(0.0)), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("NelderMead - Starting at minimum", "[NelderMead][2D][EdgeCase]") {
@@ -296,9 +296,9 @@ TEST_CASE("NelderMead - Starting at minimum", "[NelderMead][2D][EdgeCase]") {
 	auto result = NelderMeadMinimize(func, start, REAL(REAL(0.1)));
 
 	REQUIRE(result.converged);
-	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(0.0)), 1e-6));
-	REQUIRE_THAT(result.xmin[1], RealWithinAbs(REAL(REAL(0.0)), 1e-6));
-	REQUIRE_THAT(result.fmin, RealWithinAbs(REAL(REAL(0.0)), 1e-10));
+	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(0.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[1], RealWithinAbs(REAL(REAL(0.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.fmin, RealWithinAbs(REAL(REAL(0.0)), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("NelderMead - Very small initial simplex", "[NelderMead][2D][EdgeCase]") {
@@ -342,10 +342,10 @@ TEST_CASE("NelderMead - Accessor methods", "[NelderMead][API]") {
 	REQUIRE_THAT(optimizer.getFtol(), RealApprox(1e-6));
 	REQUIRE(optimizer.getMaxIter() == 3000);
 
-	optimizer.setFtol(1e-10);
+	optimizer.setFtol(TOL(1e-10, 1e-5));
 	optimizer.setMaxIter(5000);
 
-	REQUIRE_THAT(optimizer.getFtol(), RealApprox(1e-10));
+	REQUIRE_THAT(optimizer.getFtol(), RealApprox(TOL(1e-10, 1e-5)));
 	REQUIRE(optimizer.getMaxIter() == 5000);
 }
 
@@ -408,7 +408,7 @@ TEST_CASE("NelderMead - Get final simplex", "[NelderMead][API]") {
 
 	// All values should be near minimum
 	for (int i = 0; i < 3; ++i) {
-		REQUIRE_THAT(finalValues[i], RealWithinAbs(REAL(REAL(0.0)), 1e-6));
+		REQUIRE_THAT(finalValues[i], RealWithinAbs(REAL(REAL(0.0)), TOL(1e-6, 1e-3)));
 	}
 }
 
@@ -419,20 +419,20 @@ TEST_CASE("NelderMead - Tight convergence tolerance", "[NelderMead][2D]") {
 	// Nelder-Mead is a derivative-free method, so very tight tolerances
 	// may not achieve extreme precision, but should still converge well
 	// Use larger delta to ensure simplex can explore the search space
-	NelderMead optimizer(1e-12, 10000);
+	NelderMead optimizer(TOL(1e-12, 1e-5), 10000);
 	auto result = optimizer.Minimize(func, start, REAL(REAL(0.5)));
 
 	REQUIRE(result.converged);
 	// Reasonable precision for a derivative-free method
-	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(0.0)), 1e-6));
-	REQUIRE_THAT(result.xmin[1], RealWithinAbs(REAL(REAL(0.0)), 1e-6));
+	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(0.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[1], RealWithinAbs(REAL(REAL(0.0)), TOL(1e-6, 1e-3)));
 }
 
 TEST_CASE("NelderMead - Rosenbrock from difficult start", "[NelderMead][2D][Rosenbrock]") {
 	Rosenbrock2D func;
 	VectorN<Real, 2> start{-REAL(REAL(5.0)), -REAL(REAL(5.0))}; // Far from minimum
 
-	NelderMead optimizer(1e-10, 20000);
+	NelderMead optimizer(TOL(1e-10, 1e-5), 20000);
 	auto result = optimizer.Minimize(func, start, REAL(REAL(1.0)));
 
 	REQUIRE(result.converged);
@@ -543,9 +543,9 @@ TEST_CASE("Powell - Simple 2D quadratic", "[Powell][2D]") {
 	auto result = optimizer.Minimize(func, start);
 
 	REQUIRE(result.converged);
-	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(0.0)), 1e-6));
-	REQUIRE_THAT(result.xmin[1], RealWithinAbs(REAL(REAL(0.0)), 1e-6));
-	REQUIRE_THAT(result.fmin, RealWithinAbs(REAL(REAL(0.0)), 1e-10));
+	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(0.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[1], RealWithinAbs(REAL(REAL(0.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.fmin, RealWithinAbs(REAL(REAL(0.0)), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("Powell - Elliptic paraboloid", "[Powell][2D]") {
@@ -555,8 +555,8 @@ TEST_CASE("Powell - Elliptic paraboloid", "[Powell][2D]") {
 	auto result = PowellMinimize(func, start);
 
 	REQUIRE(result.converged);
-	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(1.0)), 1e-6));
-	REQUIRE_THAT(result.xmin[1], RealWithinAbs(-REAL(REAL(1.0)), 1e-6));
+	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(1.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[1], RealWithinAbs(-REAL(REAL(1.0)), TOL(1e-6, 1e-3)));
 }
 
 TEST_CASE("Powell - Booth function", "[Powell][2D]") {
@@ -577,16 +577,16 @@ TEST_CASE("Powell - 3D quadratic", "[Powell][3D]") {
 	auto result = PowellMinimize(func, start);
 
 	REQUIRE(result.converged);
-	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(0.0)), 1e-6));
-	REQUIRE_THAT(result.xmin[1], RealWithinAbs(REAL(REAL(0.0)), 1e-6));
-	REQUIRE_THAT(result.xmin[2], RealWithinAbs(REAL(REAL(0.0)), 1e-6));
+	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(0.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[1], RealWithinAbs(REAL(REAL(0.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[2], RealWithinAbs(REAL(REAL(0.0)), TOL(1e-6, 1e-3)));
 }
 
 TEST_CASE("Powell - Rosenbrock function", "[Powell][2D][Rosenbrock]") {
 	Rosenbrock2D func;
 	VectorN<Real, 2> start{-REAL(REAL(1.0)), REAL(REAL(1.0))};
 
-	Powell optimizer(1e-10, 500);
+	Powell optimizer(TOL(1e-10, 1e-5), 500);
 	auto result = optimizer.Minimize(func, start);
 
 	REQUIRE(result.converged);
@@ -609,8 +609,8 @@ TEST_CASE("Powell - Custom direction matrix", "[Powell][2D]") {
 	auto result = optimizer.Minimize(func, start, ximat);
 
 	REQUIRE(result.converged);
-	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(0.0)), 1e-6));
-	REQUIRE_THAT(result.xmin[1], RealWithinAbs(REAL(REAL(0.0)), 1e-6));
+	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(0.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[1], RealWithinAbs(REAL(REAL(0.0)), TOL(1e-6, 1e-3)));
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -625,8 +625,8 @@ TEST_CASE("ConjugateGradient - Simple 2D quadratic", "[CG][2D]") {
 	auto result = optimizer.Minimize(func, start);
 
 	REQUIRE(result.converged);
-	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(0.0)), 1e-6));
-	REQUIRE_THAT(result.xmin[1], RealWithinAbs(REAL(REAL(0.0)), 1e-6));
+	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(0.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[1], RealWithinAbs(REAL(REAL(0.0)), TOL(1e-6, 1e-3)));
 }
 
 TEST_CASE("ConjugateGradient - Elliptic paraboloid", "[CG][2D]") {
@@ -636,8 +636,8 @@ TEST_CASE("ConjugateGradient - Elliptic paraboloid", "[CG][2D]") {
 	auto result = ConjugateGradientMinimize(func, start);
 
 	REQUIRE(result.converged);
-	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(1.0)), 1e-6));
-	REQUIRE_THAT(result.xmin[1], RealWithinAbs(-REAL(REAL(1.0)), 1e-6));
+	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(1.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[1], RealWithinAbs(-REAL(REAL(1.0)), TOL(1e-6, 1e-3)));
 }
 
 TEST_CASE("ConjugateGradient - Booth function", "[CG][2D]") {
@@ -658,9 +658,9 @@ TEST_CASE("ConjugateGradient - 3D quadratic", "[CG][3D]") {
 	auto result = ConjugateGradientMinimize(func, start);
 
 	REQUIRE(result.converged);
-	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(0.0)), 1e-6));
-	REQUIRE_THAT(result.xmin[1], RealWithinAbs(REAL(REAL(0.0)), 1e-6));
-	REQUIRE_THAT(result.xmin[2], RealWithinAbs(REAL(REAL(0.0)), 1e-6));
+	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(0.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[1], RealWithinAbs(REAL(REAL(0.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[2], RealWithinAbs(REAL(REAL(0.0)), TOL(1e-6, 1e-3)));
 }
 
 TEST_CASE("ConjugateGradient - 3D offset quadratic", "[CG][3D]") {
@@ -670,16 +670,16 @@ TEST_CASE("ConjugateGradient - 3D offset quadratic", "[CG][3D]") {
 	auto result = ConjugateGradientMinimize(func, start);
 
 	REQUIRE(result.converged);
-	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(1.0)), 1e-6));
-	REQUIRE_THAT(result.xmin[1], RealWithinAbs(REAL(REAL(2.0)), 1e-6));
-	REQUIRE_THAT(result.xmin[2], RealWithinAbs(REAL(REAL(3.0)), 1e-6));
+	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(1.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[1], RealWithinAbs(REAL(REAL(2.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[2], RealWithinAbs(REAL(REAL(3.0)), TOL(1e-6, 1e-3)));
 }
 
 TEST_CASE("ConjugateGradient - Rosenbrock function", "[CG][2D][Rosenbrock]") {
 	DiffRosenbrock2D func;
 	VectorN<Real, 2> start{-REAL(REAL(1.0)), REAL(REAL(1.0))};
 
-	ConjugateGradient optimizer(1e-10, 1e-10, 500);
+	ConjugateGradient optimizer(TOL(1e-10, 1e-5), TOL(1e-10, 1e-5), 500);
 	auto result = optimizer.Minimize(func, start);
 
 	REQUIRE(result.converged);
@@ -691,22 +691,22 @@ TEST_CASE("ConjugateGradient - Fletcher-Reeves method", "[CG][2D]") {
 	DiffQuadratic2D func;
 	VectorN<Real, 2> start{REAL(REAL(5.0)), REAL(REAL(5.0))};
 
-	auto result = ConjugateGradientMinimize(func, start, 1e-8, ConjugateGradient::Method::FletcherReeves);
+	auto result = ConjugateGradientMinimize(func, start, TOL(1e-8, 1e-4), ConjugateGradient::Method::FletcherReeves);
 
 	REQUIRE(result.converged);
-	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(0.0)), 1e-6));
-	REQUIRE_THAT(result.xmin[1], RealWithinAbs(REAL(REAL(0.0)), 1e-6));
+	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(0.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[1], RealWithinAbs(REAL(REAL(0.0)), TOL(1e-6, 1e-3)));
 }
 
 TEST_CASE("ConjugateGradient - Polak-Ribiere method", "[CG][2D]") {
 	DiffQuadratic2D func;
 	VectorN<Real, 2> start{REAL(REAL(5.0)), REAL(REAL(5.0))};
 
-	auto result = ConjugateGradientMinimize(func, start, 1e-8, ConjugateGradient::Method::PolakRibiere);
+	auto result = ConjugateGradientMinimize(func, start, TOL(1e-8, 1e-4), ConjugateGradient::Method::PolakRibiere);
 
 	REQUIRE(result.converged);
-	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(0.0)), 1e-6));
-	REQUIRE_THAT(result.xmin[1], RealWithinAbs(REAL(REAL(0.0)), 1e-6));
+	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(0.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[1], RealWithinAbs(REAL(REAL(0.0)), TOL(1e-6, 1e-3)));
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -721,8 +721,8 @@ TEST_CASE("BFGS - Simple 2D quadratic", "[BFGS][2D]") {
 	auto result = optimizer.Minimize(func, start);
 
 	REQUIRE(result.converged);
-	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(0.0)), 1e-6));
-	REQUIRE_THAT(result.xmin[1], RealWithinAbs(REAL(REAL(0.0)), 1e-6));
+	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(0.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[1], RealWithinAbs(REAL(REAL(0.0)), TOL(1e-6, 1e-3)));
 }
 
 TEST_CASE("BFGS - Elliptic paraboloid", "[BFGS][2D]") {
@@ -732,8 +732,8 @@ TEST_CASE("BFGS - Elliptic paraboloid", "[BFGS][2D]") {
 	auto result = BFGSMinimize(func, start);
 
 	REQUIRE(result.converged);
-	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(1.0)), 1e-6));
-	REQUIRE_THAT(result.xmin[1], RealWithinAbs(-REAL(REAL(1.0)), 1e-6));
+	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(1.0)), TOL(1e-6, 5e-3)));
+	REQUIRE_THAT(result.xmin[1], RealWithinAbs(-REAL(REAL(1.0)), TOL(1e-6, 5e-3)));
 }
 
 TEST_CASE("BFGS - Booth function", "[BFGS][2D]") {
@@ -754,9 +754,9 @@ TEST_CASE("BFGS - 3D quadratic", "[BFGS][3D]") {
 	auto result = BFGSMinimize(func, start);
 
 	REQUIRE(result.converged);
-	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(0.0)), 1e-6));
-	REQUIRE_THAT(result.xmin[1], RealWithinAbs(REAL(REAL(0.0)), 1e-6));
-	REQUIRE_THAT(result.xmin[2], RealWithinAbs(REAL(REAL(0.0)), 1e-6));
+	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(0.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[1], RealWithinAbs(REAL(REAL(0.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[2], RealWithinAbs(REAL(REAL(0.0)), TOL(1e-6, 1e-3)));
 }
 
 TEST_CASE("BFGS - 3D offset quadratic", "[BFGS][3D]") {
@@ -766,16 +766,16 @@ TEST_CASE("BFGS - 3D offset quadratic", "[BFGS][3D]") {
 	auto result = BFGSMinimize(func, start);
 
 	REQUIRE(result.converged);
-	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(1.0)), 1e-6));
-	REQUIRE_THAT(result.xmin[1], RealWithinAbs(REAL(REAL(2.0)), 1e-6));
-	REQUIRE_THAT(result.xmin[2], RealWithinAbs(REAL(REAL(3.0)), 1e-6));
+	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(1.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[1], RealWithinAbs(REAL(REAL(2.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[2], RealWithinAbs(REAL(REAL(3.0)), TOL(1e-6, 1e-3)));
 }
 
 TEST_CASE("BFGS - Rosenbrock function", "[BFGS][2D][Rosenbrock]") {
 	DiffRosenbrock2D func;
 	VectorN<Real, 2> start{-REAL(REAL(1.0)), REAL(REAL(1.0))};
 
-	BFGS optimizer(1e-10, 1e-10, 500);
+	BFGS optimizer(TOL(1e-10, 1e-5), TOL(1e-10, 1e-5), 500);
 	auto result = optimizer.Minimize(func, start);
 
 	REQUIRE(result.converged);
@@ -795,8 +795,8 @@ TEST_CASE("L-BFGS - Simple 2D quadratic", "[LBFGS][2D]") {
 	auto result = optimizer.Minimize(func, start);
 
 	REQUIRE(result.converged);
-	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(0.0)), 1e-6));
-	REQUIRE_THAT(result.xmin[1], RealWithinAbs(REAL(REAL(0.0)), 1e-6));
+	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(0.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[1], RealWithinAbs(REAL(REAL(0.0)), TOL(1e-6, 1e-3)));
 }
 
 TEST_CASE("L-BFGS - Elliptic paraboloid", "[LBFGS][2D]") {
@@ -806,8 +806,8 @@ TEST_CASE("L-BFGS - Elliptic paraboloid", "[LBFGS][2D]") {
 	auto result = LBFGSMinimize(func, start);
 
 	REQUIRE(result.converged);
-	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(1.0)), 1e-6));
-	REQUIRE_THAT(result.xmin[1], RealWithinAbs(-REAL(REAL(1.0)), 1e-6));
+	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(1.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[1], RealWithinAbs(-REAL(REAL(1.0)), TOL(1e-6, 1e-3)));
 }
 
 TEST_CASE("L-BFGS - Booth function", "[LBFGS][2D]") {
@@ -828,9 +828,9 @@ TEST_CASE("L-BFGS - 3D quadratic", "[LBFGS][3D]") {
 	auto result = LBFGSMinimize(func, start);
 
 	REQUIRE(result.converged);
-	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(0.0)), 1e-6));
-	REQUIRE_THAT(result.xmin[1], RealWithinAbs(REAL(REAL(0.0)), 1e-6));
-	REQUIRE_THAT(result.xmin[2], RealWithinAbs(REAL(REAL(0.0)), 1e-6));
+	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(0.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[1], RealWithinAbs(REAL(REAL(0.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[2], RealWithinAbs(REAL(REAL(0.0)), TOL(1e-6, 1e-3)));
 }
 
 TEST_CASE("L-BFGS - 3D offset quadratic", "[LBFGS][3D]") {
@@ -840,16 +840,16 @@ TEST_CASE("L-BFGS - 3D offset quadratic", "[LBFGS][3D]") {
 	auto result = LBFGSMinimize(func, start);
 
 	REQUIRE(result.converged);
-	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(1.0)), 1e-6));
-	REQUIRE_THAT(result.xmin[1], RealWithinAbs(REAL(REAL(2.0)), 1e-6));
-	REQUIRE_THAT(result.xmin[2], RealWithinAbs(REAL(REAL(3.0)), 1e-6));
+	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(1.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[1], RealWithinAbs(REAL(REAL(2.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[2], RealWithinAbs(REAL(REAL(3.0)), TOL(1e-6, 1e-3)));
 }
 
 TEST_CASE("L-BFGS - Rosenbrock function", "[LBFGS][2D][Rosenbrock]") {
 	DiffRosenbrock2D func;
 	VectorN<Real, 2> start{-REAL(REAL(1.0)), REAL(REAL(1.0))};
 
-	LBFGS optimizer(1e-10, 1e-10, 500, 10);
+	LBFGS optimizer(TOL(1e-10, 1e-5), TOL(1e-10, 1e-5), 500, 10);
 	auto result = optimizer.Minimize(func, start);
 
 	REQUIRE(result.converged);
@@ -863,7 +863,7 @@ TEST_CASE("L-BFGS - Different memory sizes", "[LBFGS][MemorySize]") {
 
 	// Test with different memory sizes
 	for (int m : {3, 5, 10, 20}) {
-		LBFGS optimizer(1e-8, 1e-8, 500, m);
+		LBFGS optimizer(TOL(1e-8, 1e-4), TOL(1e-8, 1e-4), 500, m);
 		auto result = optimizer.Minimize(func, start);
 
 		INFO("Memory size: " << m);
@@ -882,8 +882,8 @@ TEST_CASE("L-BFGS - Config-based API", "[LBFGS][API]") {
 
 	REQUIRE(result.converged);
 	REQUIRE(result.algorithm_name == "L-BFGS");
-	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(0.0)), 1e-6));
-	REQUIRE_THAT(result.xmin[1], RealWithinAbs(REAL(REAL(0.0)), 1e-6));
+	REQUIRE_THAT(result.xmin[0], RealWithinAbs(REAL(REAL(0.0)), TOL(1e-6, 1e-3)));
+	REQUIRE_THAT(result.xmin[1], RealWithinAbs(REAL(REAL(0.0)), TOL(1e-6, 1e-3)));
 }
 
 TEST_CASE("L-BFGS vs BFGS comparison", "[LBFGS][BFGS][Comparison]") {
@@ -991,10 +991,10 @@ TEST_CASE("Powell - Accessor methods", "[Powell][API]") {
 	REQUIRE_THAT(optimizer.getFtol(), RealApprox(1e-6));
 	REQUIRE(optimizer.getMaxIter() == 300);
 
-	optimizer.setFtol(1e-10);
+	optimizer.setFtol(TOL(1e-10, 1e-5));
 	optimizer.setMaxIter(500);
 
-	REQUIRE_THAT(optimizer.getFtol(), RealApprox(1e-10));
+	REQUIRE_THAT(optimizer.getFtol(), RealApprox(TOL(1e-10, 1e-5)));
 	REQUIRE(optimizer.getMaxIter() == 500);
 }
 
@@ -1017,12 +1017,12 @@ TEST_CASE("BFGS - Accessor methods", "[BFGS][API]") {
 	REQUIRE_THAT(optimizer.getGtol(), RealApprox(1e-7));
 	REQUIRE(optimizer.getMaxIter() == 300);
 
-	optimizer.setFtol(1e-10);
-	optimizer.setGtol(1e-11);
+	optimizer.setFtol(TOL(1e-10, 1e-5));
+	optimizer.setGtol(TOL(1e-11, 1e-5));
 	optimizer.setMaxIter(500);
 
-	REQUIRE_THAT(optimizer.getFtol(), RealApprox(1e-10));
-	REQUIRE_THAT(optimizer.getGtol(), RealApprox(1e-11));
+	REQUIRE_THAT(optimizer.getFtol(), RealApprox(TOL(1e-10, 1e-5)));
+	REQUIRE_THAT(optimizer.getGtol(), RealApprox(TOL(1e-11, 1e-5)));
 	REQUIRE(optimizer.getMaxIter() == 500);
 }
 
@@ -1087,7 +1087,7 @@ TEST_CASE("NelderMead_ClassicBenchmarks2DTestBed", "[NelderMead][TestBed][Classi
 
 			OptScalarFunctionWrapper<2> f(test.func);
 
-			NelderMead optimizer(1e-8, 2000); // Tighter tolerance, more iterations for hard problems
+			NelderMead optimizer(TOL(1e-8, 1e-4), 2000); // Tighter tolerance, more iterations for hard problems
 			auto result = optimizer.Minimize(f, test.suggestedStart, 1.0);
 
 			// Adjust tolerance based on difficulty
@@ -1169,7 +1169,7 @@ TEST_CASE("Powell_ClassicBenchmarks2DTestBed", "[Powell][TestBed][Classic]") {
 
 			OptScalarFunctionWrapper<2> f(test.func);
 
-			Powell optimizer(1e-8, 500);
+			Powell optimizer(TOL(1e-8, 1e-4), 500);
 			auto result = optimizer.Minimize(f, test.suggestedStart);
 
 			Real posTol = 1e-3;
@@ -1222,7 +1222,7 @@ TEST_CASE("NelderMead_Multimodal2DTestBed", "[NelderMead][TestBed][Multimodal]")
 
 			OptScalarFunctionWrapper<2> f(test.func);
 
-			NelderMead optimizer(1e-8, 2000);
+			NelderMead optimizer(TOL(1e-8, 1e-4), 2000);
 			auto result = optimizer.Minimize(f, test.suggestedStart, 1.0);
 
 			if (result.converged) {
@@ -1250,7 +1250,7 @@ TEST_CASE("NelderMead_Multimodal2DTestBed", "[NelderMead][TestBed][Multimodal]")
 						xm = x;
 						xm[d] -= delta;
 
-						if (test.func(xp) < result.fmin - 1e-8 || test.func(xm) < result.fmin - 1e-8) {
+						if (test.func(xp) < result.fmin - TOL(1e-8, 1e-4) || test.func(xm) < result.fmin - TOL(1e-8, 1e-4)) {
 							isLocalMin = false;
 							break;
 						}
@@ -1280,7 +1280,7 @@ TEST_CASE("Optimization2D_AlgorithmComparison", "[Optimization][TestBed][Perform
 			OptScalarFunctionWrapper<2> f(test.func);
 
 			NelderMead nmOptimizer;
-			Powell powellOptimizer;
+			Powell powellOptimizer(TOL(3e-8, 1e-5));
 
 			auto nmResult = nmOptimizer.Minimize(f, test.suggestedStart, 1.0);
 			auto powellResult = powellOptimizer.Minimize(f, test.suggestedStart);
@@ -1321,7 +1321,7 @@ TEST_CASE("NelderMead_All2DTestBed", "[NelderMead][TestBed][All][Comprehensive]"
 
 			OptScalarFunctionWrapper<2> f(test.func);
 
-			NelderMead optimizer(1e-8, 3000);
+			NelderMead optimizer(TOL(1e-8, 1e-4), 3000);
 			auto result = optimizer.Minimize(f, test.suggestedStart, 1.0);
 
 			// Relaxed tolerance for comprehensive test

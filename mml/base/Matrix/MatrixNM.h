@@ -66,7 +66,7 @@
 #define MML_MATRIXNM_H
 
 #include "MMLBase.h"
-#include "base/MatrixPrintFormat.h"
+#include "base/Matrix/MatrixPrintFormat.h"
 #include "base/Vector/VectorN.h"
 
 #include <initializer_list>

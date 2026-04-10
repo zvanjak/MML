@@ -40,7 +40,7 @@ TEST_CASE("ClipPolygon - Entirely inside clip region", "[ComputationalGeometry][
     
     // Subject is entirely inside, should be unchanged
     REQUIRE(result.NumVertices() == 4);
-    REQUIRE_THAT(result.Area(), WithinAbs(subject.Area(), REAL(1e-10)));
+    REQUIRE_THAT(result.Area(), WithinAbs(subject.Area(), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("ClipPolygon - Entirely outside clip region", "[ComputationalGeometry][Clipping]")
@@ -86,7 +86,7 @@ TEST_CASE("ClipPolygon - Partial overlap", "[ComputationalGeometry][Clipping]")
     
     // Should clip to right half: area = 1 * 2 = 2
     REQUIRE(result.NumVertices() >= 3);
-    REQUIRE_THAT(result.Area(), WithinAbs(REAL(2.0), REAL(1e-10)));
+    REQUIRE_THAT(result.Area(), WithinAbs(REAL(2.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("ClipPolygon - Diamond clipped by square", "[ComputationalGeometry][Clipping]")
@@ -164,7 +164,7 @@ TEST_CASE("ClipToRect - Square inside rectangle", "[ComputationalGeometry][Clipp
     Polygon2D result = MML::CompGeometry::PolygonOps::ClipToRect(square, 0, 0, 4, 4);
     
     REQUIRE(result.NumVertices() == 4);
-    REQUIRE_THAT(result.Area(), WithinAbs(REAL(1.0), REAL(1e-10)));
+    REQUIRE_THAT(result.Area(), WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("ClipToRect - Triangle half-clipped", "[ComputationalGeometry][Clipping]")
@@ -213,7 +213,7 @@ TEST_CASE("ClipToRect - Spanning rectangle", "[ComputationalGeometry][Clipping]"
     
     // Should be exactly the clip rectangle
     REQUIRE(result.NumVertices() == 4);
-    REQUIRE_THAT(result.Area(), WithinAbs(REAL(16.0), REAL(1e-10)));
+    REQUIRE_THAT(result.Area(), WithinAbs(REAL(16.0), TOL(1e-10, 1e-5)));
 }
 
 // ============================================================================

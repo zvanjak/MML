@@ -64,10 +64,10 @@ namespace MML::Tests::Core::FunctionHelpersTests
 
         // Taylor approximation should be exact for quadratic
         // f(0) = 1, f(1) = 0, f(-1) = 6, f(0.5) = -0.25
-        REQUIRE_THAT(taylor(0.0), RealWithinAbs(f(0.0), 1e-6));
-        REQUIRE_THAT(taylor(1.0), RealWithinAbs(f(1.0), 1e-6));    // f(1) = 0, use Abs
-        REQUIRE_THAT(taylor(-1.0), RealWithinRel(f(-1.0), 1e-6));
-        REQUIRE_THAT(taylor(0.5), RealWithinAbs(f(0.5), 1e-6));
+        REQUIRE_THAT(taylor(0.0), RealWithinAbs(f(0.0), TOL(1e-6, 5e-3)));
+        REQUIRE_THAT(taylor(1.0), RealWithinAbs(f(1.0), TOL(1e-6, 5e-3)));    // f(1) = 0, use Abs
+        REQUIRE_THAT(taylor(-1.0), RealWithinRel(f(-1.0), TOL(1e-6, 5e-3)));
+        REQUIRE_THAT(taylor(0.5), RealWithinAbs(f(0.5), TOL(1e-6, 5e-3)));
     }
 
     TEST_CASE("FunctionHelpers::TaylorSeries2 - exp function", "[taylor]")
@@ -78,7 +78,7 @@ namespace MML::Tests::Core::FunctionHelpersTests
         auto taylor = TaylorSeries2(f, a);
 
         // e^x ≈ 1 + x + x²/2 near x=0
-        REQUIRE_THAT(taylor(0.0), RealWithinRel(f(0.0), 1e-8));
+        REQUIRE_THAT(taylor(0.0), RealWithinRel(f(0.0), TOL(1e-8, 1e-4)));
         REQUIRE_THAT(taylor(0.1), RealWithinRel(f(0.1), 1e-3));  // Good near expansion point
         REQUIRE_THAT(taylor(0.5), RealWithinRel(f(0.5), 0.05));  // Acceptable further out
     }
@@ -96,7 +96,7 @@ namespace MML::Tests::Core::FunctionHelpersTests
 
         auto taylor = TaylorSeries3(f, a);
 
-        REQUIRE_THAT(taylor(0.0), RealWithinRel(f(0.0), 1e-8));
+        REQUIRE_THAT(taylor(0.0), RealWithinRel(f(0.0), TOL(1e-8, 1e-4)));
         REQUIRE_THAT(taylor(1.0), RealWithinRel(f(1.0), 1e-4));
         REQUIRE_THAT(taylor(-0.5), RealWithinRel(f(-0.5), 1e-4));
     }
@@ -109,7 +109,7 @@ namespace MML::Tests::Core::FunctionHelpersTests
         auto taylor = TaylorSeries3(f, a);
 
         // sin(x) ≈ x - x³/6 near x=0
-        REQUIRE_THAT(taylor(0.0), RealWithinAbs(0.0, 1e-10));
+        REQUIRE_THAT(taylor(0.0), RealWithinAbs(0.0, TOL(1e-10, 1e-5)));
         REQUIRE_THAT(taylor(0.1), RealWithinRel(f(0.1), 1e-5));
         REQUIRE_THAT(taylor(0.5), RealWithinRel(f(0.5), 1e-2));
     }
@@ -130,10 +130,10 @@ namespace MML::Tests::Core::FunctionHelpersTests
         RealFuncDerived8 d8(f);
 
         REQUIRE_THAT(d1(0.0), RealWithinRel(3.0, 1e-4));
-        REQUIRE_THAT(d2(0.0), RealWithinRel(3.0, 1e-8));
-        REQUIRE_THAT(d4(0.0), RealWithinRel(3.0, 1e-10));
-        REQUIRE_THAT(d6(0.0), RealWithinRel(3.0, 1e-10));
-        REQUIRE_THAT(d8(0.0), RealWithinRel(3.0, 1e-10));
+        REQUIRE_THAT(d2(0.0), RealWithinRel(3.0, TOL(1e-8, 1e-4)));
+        REQUIRE_THAT(d4(0.0), RealWithinRel(3.0, TOL(1e-10, 1e-5)));
+        REQUIRE_THAT(d6(0.0), RealWithinRel(3.0, TOL(1e-10, 1e-5)));
+        REQUIRE_THAT(d8(0.0), RealWithinRel(3.0, TOL(1e-10, 1e-5)));
     }
 
     TEST_CASE("FunctionHelpers::RealFuncDerived - sin function", "[derivative]")
@@ -147,9 +147,9 @@ namespace MML::Tests::Core::FunctionHelpersTests
         RealFuncDerived6 d6(f);
 
         Real x = 1.0;
-        REQUIRE_THAT(d2(x), RealWithinRel(expected(x), 1e-8));
-        REQUIRE_THAT(d4(x), RealWithinRel(expected(x), 1e-10));
-        REQUIRE_THAT(d6(x), RealWithinRel(expected(x), 1e-10));
+        REQUIRE_THAT(d2(x), RealWithinRel(expected(x), TOL(1e-8, 1e-4)));
+        REQUIRE_THAT(d4(x), RealWithinRel(expected(x), TOL(1e-10, 1e-5)));
+        REQUIRE_THAT(d6(x), RealWithinRel(expected(x), TOL(1e-10, 1e-5)));
     }
 
     TEST_CASE("FunctionHelpers::RealFuncDerived - custom step size", "[derivative]")
@@ -160,8 +160,8 @@ namespace MML::Tests::Core::FunctionHelpersTests
         RealFuncDerived2 d2_custom(f, 1e-4);
 
         Real x = 2.0;  // f'(2) = 4
-        REQUIRE_THAT(d2_auto(x), RealWithinRel(4.0, 1e-8));
-        REQUIRE_THAT(d2_custom(x), RealWithinRel(4.0, 1e-6));
+        REQUIRE_THAT(d2_auto(x), RealWithinRel(4.0, TOL(1e-8, 1e-4)));
+        REQUIRE_THAT(d2_custom(x), RealWithinRel(4.0, TOL(1e-6, 5e-4)));
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -177,9 +177,9 @@ namespace MML::Tests::Core::FunctionHelpersTests
         RealFuncSecondDerived4 d4(f);
         RealFuncSecondDerived6 d6(f);
 
-        REQUIRE_THAT(d2(0.0), RealWithinRel(6.0, 1e-4));
-        REQUIRE_THAT(d4(0.0), RealWithinRel(6.0, 1e-6));
-        REQUIRE_THAT(d6(0.0), RealWithinRel(6.0, 1e-6));
+        REQUIRE_THAT(d2(0.0), RealWithinRel(6.0, TOL(1e-4, 1e-2)));
+        REQUIRE_THAT(d4(0.0), RealWithinRel(6.0, TOL(1e-6, 1e-3)));
+        REQUIRE_THAT(d6(0.0), RealWithinRel(6.0, TOL(1e-6, 1e-3)));
     }
 
     TEST_CASE("FunctionHelpers::RealFuncSecondDerived - sin function", "[second-derivative]")
@@ -190,7 +190,7 @@ namespace MML::Tests::Core::FunctionHelpersTests
         RealFuncSecondDerived4 d4(f);
 
         Real x = 1.0;
-        REQUIRE_THAT(d4(x), RealWithinRel(-std::sin(x), 1e-6));
+        REQUIRE_THAT(d4(x), RealWithinRel(-std::sin(x), TOL(1e-6, 5e-3)));
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -204,9 +204,9 @@ namespace MML::Tests::Core::FunctionHelpersTests
 
         RealFuncSum sum(f1, f2);   // 5x - 1
 
-        REQUIRE_THAT(sum(0.0), RealWithinAbs(-1.0, 1e-10));
-        REQUIRE_THAT(sum(1.0), RealWithinAbs(4.0, 1e-10));
-        REQUIRE_THAT(sum(2.0), RealWithinAbs(9.0, 1e-10));
+        REQUIRE_THAT(sum(0.0), RealWithinAbs(-1.0, TOL(1e-10, 1e-5)));
+        REQUIRE_THAT(sum(1.0), RealWithinAbs(4.0, TOL(1e-10, 1e-5)));
+        REQUIRE_THAT(sum(2.0), RealWithinAbs(9.0, TOL(1e-10, 1e-5)));
     }
 
     TEST_CASE("FunctionHelpers::RealFuncDiff", "[arithmetic]")
@@ -216,9 +216,9 @@ namespace MML::Tests::Core::FunctionHelpersTests
 
         RealFuncDiff diff(f1, f2); // 3x + 2
 
-        REQUIRE_THAT(diff(0.0), RealWithinAbs(2.0, 1e-10));
-        REQUIRE_THAT(diff(1.0), RealWithinAbs(5.0, 1e-10));
-        REQUIRE_THAT(diff(2.0), RealWithinAbs(8.0, 1e-10));
+        REQUIRE_THAT(diff(0.0), RealWithinAbs(2.0, TOL(1e-10, 1e-5)));
+        REQUIRE_THAT(diff(1.0), RealWithinAbs(5.0, TOL(1e-10, 1e-5)));
+        REQUIRE_THAT(diff(2.0), RealWithinAbs(8.0, TOL(1e-10, 1e-5)));
     }
 
     TEST_CASE("FunctionHelpers::RealFuncProduct", "[arithmetic]")
@@ -228,9 +228,9 @@ namespace MML::Tests::Core::FunctionHelpersTests
 
         RealFuncProduct prod(f1, f2); // 6x²
 
-        REQUIRE_THAT(prod(0.0), RealWithinAbs(0.0, 1e-10));
-        REQUIRE_THAT(prod(1.0), RealWithinAbs(6.0, 1e-10));
-        REQUIRE_THAT(prod(2.0), RealWithinAbs(24.0, 1e-10));
+        REQUIRE_THAT(prod(0.0), RealWithinAbs(0.0, TOL(1e-10, 1e-5)));
+        REQUIRE_THAT(prod(1.0), RealWithinAbs(6.0, TOL(1e-10, 1e-5)));
+        REQUIRE_THAT(prod(2.0), RealWithinAbs(24.0, TOL(1e-10, 1e-5)));
     }
 
     TEST_CASE("FunctionHelpers::RealFuncQuotient", "[arithmetic]")
@@ -240,9 +240,9 @@ namespace MML::Tests::Core::FunctionHelpersTests
 
         RealFuncQuotient quot(f1, f2);    // x
 
-        REQUIRE_THAT(quot(1.0), RealWithinAbs(1.0, 1e-10));
-        REQUIRE_THAT(quot(2.0), RealWithinAbs(2.0, 1e-10));
-        REQUIRE_THAT(quot(5.0), RealWithinAbs(5.0, 1e-10));
+        REQUIRE_THAT(quot(1.0), RealWithinAbs(1.0, TOL(1e-10, 1e-5)));
+        REQUIRE_THAT(quot(2.0), RealWithinAbs(2.0, TOL(1e-10, 1e-5)));
+        REQUIRE_THAT(quot(5.0), RealWithinAbs(5.0, TOL(1e-10, 1e-5)));
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -256,9 +256,9 @@ namespace MML::Tests::Core::FunctionHelpersTests
 
         RealFuncCompose fog(f, g); // f(g(x)) = 2(3x) + 1 = 6x + 1
 
-        REQUIRE_THAT(fog(0.0), RealWithinAbs(1.0, 1e-10));
-        REQUIRE_THAT(fog(1.0), RealWithinAbs(7.0, 1e-10));
-        REQUIRE_THAT(fog(2.0), RealWithinAbs(13.0, 1e-10));
+        REQUIRE_THAT(fog(0.0), RealWithinAbs(1.0, TOL(1e-10, 1e-5)));
+        REQUIRE_THAT(fog(1.0), RealWithinAbs(7.0, TOL(1e-10, 1e-5)));
+        REQUIRE_THAT(fog(2.0), RealWithinAbs(13.0, TOL(1e-10, 1e-5)));
     }
 
     TEST_CASE("FunctionHelpers::RealFuncCompose - sin(x^2)", "[composition]")
@@ -268,9 +268,9 @@ namespace MML::Tests::Core::FunctionHelpersTests
 
         RealFuncCompose fog(f, g);  // sin(x^2)
 
-        REQUIRE_THAT(fog(0.0), RealWithinAbs(0.0, 1e-10));
-        REQUIRE_THAT(fog(1.0), RealWithinAbs(std::sin(1.0), 1e-10));
-        REQUIRE_THAT(fog(2.0), RealWithinAbs(std::sin(4.0), 1e-10));
+        REQUIRE_THAT(fog(0.0), RealWithinAbs(0.0, TOL(1e-10, 1e-5)));
+        REQUIRE_THAT(fog(1.0), RealWithinAbs(std::sin(1.0), TOL(1e-10, 1e-5)));
+        REQUIRE_THAT(fog(2.0), RealWithinAbs(std::sin(4.0), TOL(1e-10, 1e-5)));
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -283,9 +283,9 @@ namespace MML::Tests::Core::FunctionHelpersTests
 
         RealFuncScale scaled(f, 3.0);  // 3x
 
-        REQUIRE_THAT(scaled(0.0), RealWithinAbs(0.0, 1e-10));
-        REQUIRE_THAT(scaled(2.0), RealWithinAbs(6.0, 1e-10));
-        REQUIRE_THAT(scaled(-1.0), RealWithinAbs(-3.0, 1e-10));
+        REQUIRE_THAT(scaled(0.0), RealWithinAbs(0.0, TOL(1e-10, 1e-5)));
+        REQUIRE_THAT(scaled(2.0), RealWithinAbs(6.0, TOL(1e-10, 1e-5)));
+        REQUIRE_THAT(scaled(-1.0), RealWithinAbs(-3.0, TOL(1e-10, 1e-5)));
     }
 
     TEST_CASE("FunctionHelpers::RealFuncShift", "[transform]")
@@ -294,9 +294,9 @@ namespace MML::Tests::Core::FunctionHelpersTests
 
         RealFuncShift shifted(f, 5.0);  // 2x + 5
 
-        REQUIRE_THAT(shifted(0.0), RealWithinAbs(5.0, 1e-10));
-        REQUIRE_THAT(shifted(1.0), RealWithinAbs(7.0, 1e-10));
-        REQUIRE_THAT(shifted(-2.0), RealWithinAbs(1.0, 1e-10));
+        REQUIRE_THAT(shifted(0.0), RealWithinAbs(5.0, TOL(1e-10, 1e-5)));
+        REQUIRE_THAT(shifted(1.0), RealWithinAbs(7.0, TOL(1e-10, 1e-5)));
+        REQUIRE_THAT(shifted(-2.0), RealWithinAbs(1.0, TOL(1e-10, 1e-5)));
     }
 
     TEST_CASE("FunctionHelpers::RealFuncNegate", "[transform]")
@@ -305,9 +305,9 @@ namespace MML::Tests::Core::FunctionHelpersTests
 
         RealFuncNegate neg(f);   // -(3x + 2)
 
-        REQUIRE_THAT(neg(0.0), RealWithinAbs(-2.0, 1e-10));
-        REQUIRE_THAT(neg(1.0), RealWithinAbs(-5.0, 1e-10));
-        REQUIRE_THAT(neg(-1.0), RealWithinAbs(1.0, 1e-10));
+        REQUIRE_THAT(neg(0.0), RealWithinAbs(-2.0, TOL(1e-10, 1e-5)));
+        REQUIRE_THAT(neg(1.0), RealWithinAbs(-5.0, TOL(1e-10, 1e-5)));
+        REQUIRE_THAT(neg(-1.0), RealWithinAbs(1.0, TOL(1e-10, 1e-5)));
     }
 
     TEST_CASE("FunctionHelpers::RealFuncAbs", "[transform]")
@@ -316,9 +316,9 @@ namespace MML::Tests::Core::FunctionHelpersTests
 
         RealFuncAbs absf(f);      // |x - 2|
 
-        REQUIRE_THAT(absf(0.0), RealWithinAbs(2.0, 1e-10));
-        REQUIRE_THAT(absf(2.0), RealWithinAbs(0.0, 1e-10));
-        REQUIRE_THAT(absf(4.0), RealWithinAbs(2.0, 1e-10));
+        REQUIRE_THAT(absf(0.0), RealWithinAbs(2.0, TOL(1e-10, 1e-5)));
+        REQUIRE_THAT(absf(2.0), RealWithinAbs(0.0, TOL(1e-10, 1e-5)));
+        REQUIRE_THAT(absf(4.0), RealWithinAbs(2.0, TOL(1e-10, 1e-5)));
     }
 
     TEST_CASE("FunctionHelpers::RealFuncPow", "[transform]")
@@ -328,10 +328,10 @@ namespace MML::Tests::Core::FunctionHelpersTests
         RealFuncPow pow2(f, 2.0);  // x²
         RealFuncPow pow3(f, 3.0);  // x³
 
-        REQUIRE_THAT(pow2(2.0), RealWithinAbs(4.0, 1e-10));
-        REQUIRE_THAT(pow2(3.0), RealWithinAbs(9.0, 1e-10));
-        REQUIRE_THAT(pow3(2.0), RealWithinAbs(8.0, 1e-10));
-        REQUIRE_THAT(pow3(3.0), RealWithinAbs(27.0, 1e-10));
+        REQUIRE_THAT(pow2(2.0), RealWithinAbs(4.0, TOL(1e-10, 1e-5)));
+        REQUIRE_THAT(pow2(3.0), RealWithinAbs(9.0, TOL(1e-10, 1e-5)));
+        REQUIRE_THAT(pow3(2.0), RealWithinAbs(8.0, TOL(1e-10, 1e-5)));
+        REQUIRE_THAT(pow3(3.0), RealWithinAbs(27.0, TOL(1e-10, 1e-5)));
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -345,9 +345,9 @@ namespace MML::Tests::Core::FunctionHelpersTests
 
         RealFuncAbsDiff absdiff(f1, f2);  // |2x - x| = |x|
 
-        REQUIRE_THAT(absdiff(0.0), RealWithinAbs(0.0, 1e-10));
-        REQUIRE_THAT(absdiff(3.0), RealWithinAbs(3.0, 1e-10));
-        REQUIRE_THAT(absdiff(-3.0), RealWithinAbs(3.0, 1e-10));
+        REQUIRE_THAT(absdiff(0.0), RealWithinAbs(0.0, TOL(1e-10, 1e-5)));
+        REQUIRE_THAT(absdiff(3.0), RealWithinAbs(3.0, TOL(1e-10, 1e-5)));
+        REQUIRE_THAT(absdiff(-3.0), RealWithinAbs(3.0, TOL(1e-10, 1e-5)));
     }
 
     TEST_CASE("FunctionHelpers::RealFuncDiffSqr", "[comparison]")
@@ -357,9 +357,9 @@ namespace MML::Tests::Core::FunctionHelpersTests
 
         RealFuncDiffSqr diffsqr(f1, f2);  // (3x - x)² = 4x²
 
-        REQUIRE_THAT(diffsqr(0.0), RealWithinAbs(0.0, 1e-10));
-        REQUIRE_THAT(diffsqr(2.0), RealWithinAbs(16.0, 1e-10));
-        REQUIRE_THAT(diffsqr(-2.0), RealWithinAbs(16.0, 1e-10));
+        REQUIRE_THAT(diffsqr(0.0), RealWithinAbs(0.0, TOL(1e-10, 1e-5)));
+        REQUIRE_THAT(diffsqr(2.0), RealWithinAbs(16.0, TOL(1e-10, 1e-5)));
+        REQUIRE_THAT(diffsqr(-2.0), RealWithinAbs(16.0, TOL(1e-10, 1e-5)));
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -376,9 +376,9 @@ namespace MML::Tests::Core::FunctionHelpersTests
         RealFuncCompose gof(g, f);   // g(f(x)) = 2x + 1
         RealFuncCompose hogof(h, gof); // h(g(f(x))) = 3(2x + 1) = 6x + 3
 
-        REQUIRE_THAT(hogof(0.0), RealWithinAbs(3.0, 1e-10));
-        REQUIRE_THAT(hogof(1.0), RealWithinAbs(9.0, 1e-10));
-        REQUIRE_THAT(hogof(2.0), RealWithinAbs(15.0, 1e-10));
+        REQUIRE_THAT(hogof(0.0), RealWithinAbs(3.0, TOL(1e-10, 1e-5)));
+        REQUIRE_THAT(hogof(1.0), RealWithinAbs(9.0, TOL(1e-10, 1e-5)));
+        REQUIRE_THAT(hogof(2.0), RealWithinAbs(15.0, TOL(1e-10, 1e-5)));
     }
 
     TEST_CASE("FunctionHelpers - derivative of composition", "[derivative][composition]")
@@ -393,10 +393,10 @@ namespace MML::Tests::Core::FunctionHelpersTests
         auto expected = [](Real x) { return 2.0 * x * std::cos(x * x); };
 
         Real x = 1.0;
-        REQUIRE_THAT(df(x), RealWithinRel(expected(x), 1e-6));
+        REQUIRE_THAT(df(x), RealWithinRel(expected(x), TOL(1e-6, 5e-3)));
 
         x = 0.5;
-        REQUIRE_THAT(df(x), RealWithinRel(expected(x), 1e-6));
+        REQUIRE_THAT(df(x), RealWithinRel(expected(x), TOL(1e-6, 5e-3)));
     }
 
     TEST_CASE("FunctionHelpers - arithmetic then derivative", "[arithmetic][derivative]")
@@ -411,7 +411,7 @@ namespace MML::Tests::Core::FunctionHelpersTests
         auto expected = [](Real x) { return std::cos(x) - std::sin(x); };
 
         Real x = 1.0;
-        REQUIRE_THAT(dsum(x), RealWithinRel(expected(x), 1e-8));
+        REQUIRE_THAT(dsum(x), RealWithinRel(expected(x), TOL(1e-8, 1e-4)));
     }
 
     TEST_CASE("FunctionHelpers - product rule verification", "[arithmetic][derivative]")
@@ -426,7 +426,7 @@ namespace MML::Tests::Core::FunctionHelpersTests
         auto expected = [](Real x) { return std::sin(x) + x * std::cos(x); };
 
         Real x = 1.0;
-        REQUIRE_THAT(dprod(x), RealWithinRel(expected(x), 1e-6));
+        REQUIRE_THAT(dprod(x), RealWithinRel(expected(x), TOL(1e-6, 5e-3)));
     }
 
     TEST_CASE("FunctionHelpers - function algebra classes", "[FunctionHelpers]")
@@ -438,9 +438,9 @@ namespace MML::Tests::Core::FunctionHelpersTests
         RealFuncAbsDiff absdiff(f1, f2);
         RealFuncDiffSqr diffsqr(f1, f2);
 
-        REQUIRE_THAT(diff(2.0), RealWithinAbs(2.0, 1e-10));
-        REQUIRE_THAT(absdiff(2.0), RealWithinAbs(2.0, 1e-10));
-        REQUIRE_THAT(diffsqr(2.0), RealWithinAbs(4.0, 1e-10));
+        REQUIRE_THAT(diff(2.0), RealWithinAbs(2.0, TOL(1e-10, 1e-5)));
+        REQUIRE_THAT(absdiff(2.0), RealWithinAbs(2.0, TOL(1e-10, 1e-5)));
+        REQUIRE_THAT(diffsqr(2.0), RealWithinAbs(4.0, TOL(1e-10, 1e-5)));
     }
 
 } // namespace

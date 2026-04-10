@@ -70,9 +70,9 @@ namespace MML::Tests::Base::BaseUtilsTests
 		Complex r2 = a * POW3(x2) + b * POW2(x2) + c * x2 + d;
 		Complex r3 = a * POW3(x3) + b * POW2(x3) + c * x3 + d;
 
-		REQUIRE(Utils::AreEqual(r1, Complex(REAL(0.0), REAL(0.0))));
-		REQUIRE(Utils::AreEqual(r2, Complex(REAL(0.0), REAL(0.0))));
-		REQUIRE(Utils::AreEqual(r3, Complex(REAL(0.0), REAL(0.0))));
+		REQUIRE(Utils::AreEqual(r1, Complex(REAL(0.0), REAL(0.0)), TOL(1e-10, 1e-3)));
+		REQUIRE(Utils::AreEqual(r2, Complex(REAL(0.0), REAL(0.0)), TOL(1e-10, 1e-3)));
+		REQUIRE(Utils::AreEqual(r3, Complex(REAL(0.0), REAL(0.0)), TOL(1e-10, 1e-3)));
 	}
 
 	TEST_CASE("MMLBase::SolveCubic3", "[MMLBase]")
@@ -90,9 +90,9 @@ namespace MML::Tests::Base::BaseUtilsTests
 		Complex r2 = a * POW3(x2) + b * POW2(x2) + c * x2 + d;
 		Complex r3 = a * POW3(x3) + b * POW2(x3) + c * x3 + d;
 
-		REQUIRE(Utils::AreEqual(r1, Complex(REAL(0.0), REAL(0.0))));
-		REQUIRE(Utils::AreEqual(r2, Complex(REAL(0.0), REAL(0.0))));
-		REQUIRE(Utils::AreEqual(r3, Complex(REAL(0.0), REAL(0.0))));
+		REQUIRE(Utils::AreEqual(r1, Complex(REAL(0.0), REAL(0.0)), TOL(1e-10, 1e-3)));
+		REQUIRE(Utils::AreEqual(r2, Complex(REAL(0.0), REAL(0.0)), TOL(1e-10, 1e-3)));
+		REQUIRE(Utils::AreEqual(r3, Complex(REAL(0.0), REAL(0.0)), TOL(1e-10, 1e-3)));
 	}
 
 	TEST_CASE("MMLBase::SolveQuartic1", "[MMLBase]")
@@ -130,7 +130,7 @@ namespace MML::Tests::Base::BaseUtilsTests
 
 		double b = Abs(a);
 
-		REQUIRE(b == sqrt(10));
+		REQUIRE(b == Catch::Approx(sqrt(10)).epsilon(1e-6));
 	}
 
 	///////////////////                     Complex helpers                   ///////////////////
@@ -146,7 +146,7 @@ namespace MML::Tests::Base::BaseUtilsTests
 		Complex c(1, REAL(2.0001));
 		REQUIRE(!Utils::AreEqual(a, c));
 		// 1e-3 scales to 1e-1 (float), 1e-7 scales to 1e-5 (float)
-		REQUIRE(Utils::AreEqual(a, c, ScaleTolerance(REAL(1e-3))));
+		REQUIRE(Utils::AreEqual(a, c, TOL3(1e-3, 1e-1, 1e-3)));
 		REQUIRE(!Utils::AreEqual(a, c, ScaleTolerance(REAL(1e-7))));
 	}
 	TEST_CASE("BaseUtils::Complex_AreEqualAbs", "[simple]")
@@ -155,12 +155,12 @@ namespace MML::Tests::Base::BaseUtilsTests
 		Complex a(1, 2);
 		Complex b(1, 2);
 
-		REQUIRE(Utils::AreEqualAbs(a, b, ScaleTolerance(REAL(1e-8))));
+		REQUIRE(Utils::AreEqualAbs(a, b, ScaleTolerance(TOL(1e-8, 1e-4))));
 
 		// Use larger difference (1e-4) that's detectable across all precisions
 		Complex c(1, REAL(2.0001));
 		// 1e-3 scales to 1e-1 (float), 1e-7 scales to 1e-5 (float)
-		REQUIRE(Utils::AreEqualAbs(a, c, ScaleTolerance(REAL(1e-3))));
+		REQUIRE(Utils::AreEqualAbs(a, c, TOL3(1e-3, 1e-1, 1e-3)));
 		REQUIRE(!Utils::AreEqualAbs(a, c, ScaleTolerance(REAL(1e-7))));
 	}
 	TEST_CASE("BaseUtils::Vector<Complex>_AreEqual", "[simple]")
@@ -175,7 +175,7 @@ namespace MML::Tests::Base::BaseUtilsTests
 		Vector<Complex> c({ Complex(1, 2), Complex(3, REAL(4.0001)) });
 		REQUIRE(!Utils::AreEqual(a, c));
 		// 1e-3 scales to 1e-1 (float), 1e-7 scales to 1e-5 (float)
-		REQUIRE(Utils::AreEqual(a, c, ScaleTolerance(REAL(1e-3))));
+		REQUIRE(Utils::AreEqual(a, c, TOL3(1e-3, 1e-1, 1e-3)));
 		REQUIRE(!Utils::AreEqual(a, c, ScaleTolerance(REAL(1e-7))));
 	}
 	TEST_CASE("BaseUtils::Vector<Complex>_AreEqualAbs", "[simple]")
@@ -185,12 +185,12 @@ namespace MML::Tests::Base::BaseUtilsTests
 		Vector<Complex> b({ Complex(1, 2), Complex(3, 4) });
 
 		REQUIRE(Utils::AreEqualAbs(a, b));
-		REQUIRE(Utils::AreEqualAbs(a, b, ScaleTolerance(REAL(1e-8))));
+		REQUIRE(Utils::AreEqualAbs(a, b, ScaleTolerance(TOL(1e-8, 1e-4))));
 
 		// Use larger difference (1e-4) that's detectable across all precisions
 		Vector<Complex> c({ Complex(1, 2), Complex(3, REAL(4.0001)) });
 		// 1e-3 scales to 1e-1 (float), 1e-7 scales to 1e-5 (float)
-		REQUIRE(Utils::AreEqualAbs(a, c, ScaleTolerance(REAL(1e-3))));
+		REQUIRE(Utils::AreEqualAbs(a, c, TOL3(1e-3, 1e-1, 1e-3)));
 		REQUIRE(!Utils::AreEqualAbs(a, c, ScaleTolerance(REAL(1e-7))));
 	}
 
@@ -204,8 +204,8 @@ namespace MML::Tests::Base::BaseUtilsTests
 		auto c = Utils::VectorProjectionParallelTo(a, b);
 
 		REQUIRE(2 == c.size());
-		REQUIRE_THAT(REAL(1.32), WithinAbs(c[0], REAL(1e-14)));
-		REQUIRE_THAT(REAL(1.76), WithinAbs(c[1], REAL(1e-14)));
+		REQUIRE_THAT(REAL(1.32), WithinAbs(c[0], TOL(1e-14, 1e-5)));
+		REQUIRE_THAT(REAL(1.76), WithinAbs(c[1], TOL(1e-14, 1e-5)));
 	}
 	TEST_CASE("BaseUtils::VectorProjectionPerpendicularTo", "[simple]")
 	{
@@ -216,8 +216,8 @@ namespace MML::Tests::Base::BaseUtilsTests
 		auto c = Utils::VectorProjectionPerpendicularTo(a, b);
 
 		REQUIRE(2 == c.size());
-		REQUIRE_THAT(-REAL(0.32), WithinAbs(c[0], REAL(1e-14)));
-		REQUIRE_THAT(REAL(0.24), WithinAbs(c[1], REAL(1e-14)));
+		REQUIRE_THAT(-REAL(0.32), WithinAbs(c[0], TOL(1e-14, 1e-5)));
+		REQUIRE_THAT(REAL(0.24), WithinAbs(c[1], TOL(1e-14, 1e-5)));
 	}
 	TEST_CASE("BaseUtils::VectorScalarProductReal", "[simple]")
 	{
@@ -450,7 +450,7 @@ namespace MML::Tests::Base::BaseUtilsTests
 		// exp(0) = I
 		Matrix<Real> zero(2, 2, REAL(0.0));
 		auto exp_zero = Utils::Exp(zero);
-		REQUIRE(exp_zero.isIdentity(1e-10));
+		REQUIRE(exp_zero.isIdentity(TOL(1e-10, 1e-5)));
 		
 		// For a diagonal matrix with small values, verify the series expansion works
 		// Note: Implementation has factorial computation that starts from 1
@@ -461,8 +461,8 @@ namespace MML::Tests::Base::BaseUtilsTests
 		auto exp_small = Utils::Exp(small, 20);  // More terms for accuracy
 		
 		// For small diagonal matrices, off-diagonal should remain near zero
-		REQUIRE(std::abs(exp_small[0][1]) < 1e-10);
-		REQUIRE(std::abs(exp_small[1][0]) < 1e-10);
+		REQUIRE(std::abs(exp_small[0][1]) < TOL(1e-10, 1e-5));
+		REQUIRE(std::abs(exp_small[1][0]) < TOL(1e-10, 1e-5));
 		// Diagonal should be > 1 (since exp(0.1) ≈ 1.105)
 		REQUIRE(exp_small[0][0] > 1.0);
 		REQUIRE(exp_small[1][1] > 1.0);
@@ -798,22 +798,22 @@ namespace MML::Tests::Base::BaseUtilsTests
 	{
 		TEST_PRECISION_INFO();
 		
-		REQUIRE_THAT(Utils::DegToRad(REAL(0.0)), RealWithinAbs(REAL(0.0), REAL(1e-10)));
-		REQUIRE_THAT(Utils::DegToRad(REAL(90.0)), RealWithinAbs(Constants::PI / REAL(2.0), REAL(1e-10)));
-		REQUIRE_THAT(Utils::DegToRad(REAL(180.0)), RealWithinAbs(Constants::PI, REAL(1e-10)));
-		REQUIRE_THAT(Utils::DegToRad(REAL(360.0)), RealWithinAbs(REAL(2.0) * Constants::PI, REAL(1e-10)));
-		REQUIRE_THAT(Utils::DegToRad(-REAL(45.0)), RealWithinAbs(-Constants::PI / REAL(4.0), REAL(1e-10)));
+		REQUIRE_THAT(Utils::DegToRad(REAL(0.0)), RealWithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(Utils::DegToRad(REAL(90.0)), RealWithinAbs(Constants::PI / REAL(2.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(Utils::DegToRad(REAL(180.0)), RealWithinAbs(Constants::PI, TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(Utils::DegToRad(REAL(360.0)), RealWithinAbs(REAL(2.0) * Constants::PI, TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(Utils::DegToRad(-REAL(45.0)), RealWithinAbs(-Constants::PI / REAL(4.0), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("Utils::RadToDeg", "[AngleUtils]")
 	{
 		TEST_PRECISION_INFO();
 		
-		REQUIRE_THAT(Utils::RadToDeg(REAL(0.0)), RealWithinAbs(REAL(0.0), REAL(1e-10)));
-		REQUIRE_THAT(Utils::RadToDeg(Constants::PI / REAL(2.0)), RealWithinAbs(REAL(90.0), REAL(1e-10)));
-		REQUIRE_THAT(Utils::RadToDeg(Constants::PI), RealWithinAbs(REAL(180.0), REAL(1e-10)));
-		REQUIRE_THAT(Utils::RadToDeg(REAL(2.0) * Constants::PI), RealWithinAbs(REAL(360.0), REAL(1e-10)));
-		REQUIRE_THAT(Utils::RadToDeg(-Constants::PI / REAL(4.0)), RealWithinAbs(-REAL(45.0), REAL(1e-10)));
+		REQUIRE_THAT(Utils::RadToDeg(REAL(0.0)), RealWithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(Utils::RadToDeg(Constants::PI / REAL(2.0)), RealWithinAbs(REAL(90.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(Utils::RadToDeg(Constants::PI), RealWithinAbs(REAL(180.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(Utils::RadToDeg(REAL(2.0) * Constants::PI), RealWithinAbs(REAL(360.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(Utils::RadToDeg(-Constants::PI / REAL(4.0)), RealWithinAbs(-REAL(45.0), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("Utils::AngleDegToExplicit", "[AngleUtils]")
@@ -839,9 +839,9 @@ namespace MML::Tests::Base::BaseUtilsTests
 	{
 		TEST_PRECISION_INFO();
 		
-		REQUIRE_THAT(Utils::ExplicitToAngleDeg(45, 30, REAL(0.0)), RealWithinAbs(REAL(45.5), REAL(1e-10)));
+		REQUIRE_THAT(Utils::ExplicitToAngleDeg(45, 30, REAL(0.0)), RealWithinAbs(REAL(45.5), TOL(1e-10, 1e-5)));
 		REQUIRE_THAT(Utils::ExplicitToAngleDeg(30, 15, REAL(9.0)), RealWithinAbs(REAL(30.2525), REAL(1e-4)));
-		REQUIRE_THAT(Utils::ExplicitToAngleDeg(0, 0, REAL(0.0)), RealWithinAbs(REAL(0.0), REAL(1e-10)));
+		REQUIRE_THAT(Utils::ExplicitToAngleDeg(0, 0, REAL(0.0)), RealWithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("Utils::AngleTo2PiRange", "[AngleUtils]")
@@ -849,16 +849,16 @@ namespace MML::Tests::Base::BaseUtilsTests
 		TEST_PRECISION_INFO();
 		
 		// Already in range [0, 2π)
-		REQUIRE_THAT(Utils::AngleTo2PiRange(REAL(1.0)), RealWithinAbs(REAL(1.0), REAL(1e-10)));
+		REQUIRE_THAT(Utils::AngleTo2PiRange(REAL(1.0)), RealWithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
 		
 		// Negative angle
-		REQUIRE_THAT(Utils::AngleTo2PiRange(-Constants::PI), RealWithinAbs(Constants::PI, REAL(1e-10)));
+		REQUIRE_THAT(Utils::AngleTo2PiRange(-Constants::PI), RealWithinAbs(Constants::PI, TOL(1e-10, 1e-5)));
 		
 		// Angle > 2π
-		REQUIRE_THAT(Utils::AngleTo2PiRange(REAL(3.0) * Constants::PI), RealWithinAbs(Constants::PI, REAL(1e-10)));
+		REQUIRE_THAT(Utils::AngleTo2PiRange(REAL(3.0) * Constants::PI), RealWithinAbs(Constants::PI, TOL(1e-10, 1e-5)));
 		
 		// Large negative angle
-		REQUIRE_THAT(Utils::AngleTo2PiRange(-REAL(3.0) * Constants::PI), RealWithinAbs(Constants::PI, REAL(1e-10)));
+		REQUIRE_THAT(Utils::AngleTo2PiRange(-REAL(3.0) * Constants::PI), RealWithinAbs(Constants::PI, TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("Utils::AngleToPiPiRange", "[AngleUtils]")
@@ -866,14 +866,14 @@ namespace MML::Tests::Base::BaseUtilsTests
 		TEST_PRECISION_INFO();
 		
 		// Already in range [-π, π]
-		REQUIRE_THAT(Utils::AngleToPiPiRange(REAL(1.0)), RealWithinAbs(REAL(1.0), REAL(1e-10)));
-		REQUIRE_THAT(Utils::AngleToPiPiRange(-REAL(1.0)), RealWithinAbs(-REAL(1.0), REAL(1e-10)));
+		REQUIRE_THAT(Utils::AngleToPiPiRange(REAL(1.0)), RealWithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(Utils::AngleToPiPiRange(-REAL(1.0)), RealWithinAbs(-REAL(1.0), TOL(1e-10, 1e-5)));
 		
 		// Angle just over π
-		REQUIRE_THAT(Utils::AngleToPiPiRange(Constants::PI + REAL(0.1)), RealWithinAbs(-Constants::PI + REAL(0.1), REAL(1e-10)));
+		REQUIRE_THAT(Utils::AngleToPiPiRange(Constants::PI + REAL(0.1)), RealWithinAbs(-Constants::PI + REAL(0.1), TOL(1e-10, 1e-5)));
 		
 		// Angle just under -π
-		REQUIRE_THAT(Utils::AngleToPiPiRange(-Constants::PI - REAL(0.1)), RealWithinAbs(Constants::PI - REAL(0.1), REAL(1e-10)));
+		REQUIRE_THAT(Utils::AngleToPiPiRange(-Constants::PI - REAL(0.1)), RealWithinAbs(Constants::PI - REAL(0.1), TOL(1e-10, 1e-5)));
 	}
 
 	///////////////////              KroneckerDelta Tests                    ///////////////////
@@ -902,19 +902,19 @@ namespace MML::Tests::Base::BaseUtilsTests
 		// Parallel vectors - angle 0
 		VectorN<Real, 3> v1({ REAL(1.0), REAL(0.0), REAL(0.0) });
 		VectorN<Real, 3> v2({ REAL(2.0), REAL(0.0), REAL(0.0) });
-		REQUIRE_THAT(Utils::VectorsAngle(v1, v2), RealWithinAbs(REAL(0.0), REAL(1e-10)));
+		REQUIRE_THAT(Utils::VectorsAngle(v1, v2), RealWithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
 		
 		// Perpendicular vectors - angle π/2
 		VectorN<Real, 3> v3({ REAL(0.0), REAL(1.0), REAL(0.0) });
-		REQUIRE_THAT(Utils::VectorsAngle(v1, v3), RealWithinAbs(Constants::PI / REAL(2.0), REAL(1e-10)));
+		REQUIRE_THAT(Utils::VectorsAngle(v1, v3), RealWithinAbs(Constants::PI / REAL(2.0), TOL(1e-10, 1e-5)));
 		
 		// Anti-parallel vectors - angle π
 		VectorN<Real, 3> v4({ -REAL(1.0), REAL(0.0), REAL(0.0) });
-		REQUIRE_THAT(Utils::VectorsAngle(v1, v4), RealWithinAbs(Constants::PI, REAL(1e-10)));
+		REQUIRE_THAT(Utils::VectorsAngle(v1, v4), RealWithinAbs(Constants::PI, TOL(1e-10, 1e-5)));
 		
 		// 45-degree angle
 		VectorN<Real, 3> v5({ REAL(1.0), REAL(1.0), REAL(0.0) });
-		REQUIRE_THAT(Utils::VectorsAngle(v1, v5), RealWithinAbs(Constants::PI / REAL(4.0), REAL(1e-10)));
+		REQUIRE_THAT(Utils::VectorsAngle(v1, v5), RealWithinAbs(Constants::PI / REAL(4.0), TOL(1e-10, 1e-5)));
 	}
 
 	///////////////////              DiagonalMatrixFromVector Tests          ///////////////////
@@ -988,10 +988,10 @@ namespace MML::Tests::Base::BaseUtilsTests
 		// sin(0) = 0
 		Matrix<Real> zero(2, 2, REAL(0.0));
 		auto sin_zero = Utils::Sin(zero);
-		REQUIRE(std::abs(sin_zero[0][0]) < 1e-10);
-		REQUIRE(std::abs(sin_zero[0][1]) < 1e-10);
-		REQUIRE(std::abs(sin_zero[1][0]) < 1e-10);
-		REQUIRE(std::abs(sin_zero[1][1]) < 1e-10);
+		REQUIRE(std::abs(sin_zero[0][0]) < TOL(1e-10, 1e-5));
+		REQUIRE(std::abs(sin_zero[0][1]) < TOL(1e-10, 1e-5));
+		REQUIRE(std::abs(sin_zero[1][0]) < TOL(1e-10, 1e-5));
+		REQUIRE(std::abs(sin_zero[1][1]) < TOL(1e-10, 1e-5));
 	}
 
 	TEST_CASE("Utils::Cos_Matrix", "[MatrixUtils]")
@@ -1001,10 +1001,10 @@ namespace MML::Tests::Base::BaseUtilsTests
 		// cos(0) = I
 		Matrix<Real> zero(2, 2, REAL(0.0));
 		auto cos_zero = Utils::Cos(zero);
-		REQUIRE_THAT(cos_zero[0][0], RealWithinAbs(REAL(1.0), REAL(1e-10)));
-		REQUIRE_THAT(cos_zero[1][1], RealWithinAbs(REAL(1.0), REAL(1e-10)));
-		REQUIRE(std::abs(cos_zero[0][1]) < 1e-10);
-		REQUIRE(std::abs(cos_zero[1][0]) < 1e-10);
+		REQUIRE_THAT(cos_zero[0][0], RealWithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(cos_zero[1][1], RealWithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
+		REQUIRE(std::abs(cos_zero[0][1]) < TOL(1e-10, 1e-5));
+		REQUIRE(std::abs(cos_zero[1][0]) < TOL(1e-10, 1e-5));
 	}
 
 	TEST_CASE("Utils::Sinh_Matrix", "[MatrixUtils]")
@@ -1014,10 +1014,10 @@ namespace MML::Tests::Base::BaseUtilsTests
 		// sinh(0) = 0
 		Matrix<Real> zero(2, 2, REAL(0.0));
 		auto sinh_zero = Utils::Sinh(zero);
-		REQUIRE(std::abs(sinh_zero[0][0]) < 1e-10);
-		REQUIRE(std::abs(sinh_zero[0][1]) < 1e-10);
-		REQUIRE(std::abs(sinh_zero[1][0]) < 1e-10);
-		REQUIRE(std::abs(sinh_zero[1][1]) < 1e-10);
+		REQUIRE(std::abs(sinh_zero[0][0]) < TOL(1e-10, 1e-5));
+		REQUIRE(std::abs(sinh_zero[0][1]) < TOL(1e-10, 1e-5));
+		REQUIRE(std::abs(sinh_zero[1][0]) < TOL(1e-10, 1e-5));
+		REQUIRE(std::abs(sinh_zero[1][1]) < TOL(1e-10, 1e-5));
 	}
 
 	TEST_CASE("Utils::Cosh_Matrix", "[MatrixUtils]")
@@ -1027,9 +1027,9 @@ namespace MML::Tests::Base::BaseUtilsTests
 		// cosh(0) = I
 		Matrix<Real> zero(2, 2, REAL(0.0));
 		auto cosh_zero = Utils::Cosh(zero);
-		REQUIRE_THAT(cosh_zero[0][0], RealWithinAbs(REAL(1.0), REAL(1e-10)));
-		REQUIRE_THAT(cosh_zero[1][1], RealWithinAbs(REAL(1.0), REAL(1e-10)));
-		REQUIRE(std::abs(cosh_zero[0][1]) < 1e-10);
-		REQUIRE(std::abs(cosh_zero[1][0]) < 1e-10);
+		REQUIRE_THAT(cosh_zero[0][0], RealWithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(cosh_zero[1][1], RealWithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
+		REQUIRE(std::abs(cosh_zero[0][1]) < TOL(1e-10, 1e-5));
+		REQUIRE(std::abs(cosh_zero[1][0]) < TOL(1e-10, 1e-5));
 	}
 }

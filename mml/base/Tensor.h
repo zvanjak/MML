@@ -176,7 +176,8 @@ namespace MML
 		///                        Element Access                           ///
 		///////////////////////////////////////////////////////////////////////
 
-		/// @brief Access tensor element (const) with assertion bounds checking.
+		/// @brief Unchecked element access (const) — fast, assertion-only bounds checking.
+		/// @warning Assertions are disabled in Release builds. For runtime safety, use at().
 		/// @param i First index (0 to N-1)
 		/// @param j Second index (0 to N-1)
 		/// @return The tensor component T(i,j)
@@ -186,7 +187,8 @@ namespace MML
 			return _coeff[i][j]; 
 		}
 
-		/// @brief Access tensor element (mutable) with assertion bounds checking.
+		/// @brief Unchecked element access (mutable) — fast, assertion-only bounds checking.
+		/// @warning Assertions are disabled in Release builds. For runtime safety, use at().
 		/// @param i First index (0 to N-1)
 		/// @param j Second index (0 to N-1)
 		/// @return Reference to the tensor component T(i,j)
@@ -196,7 +198,8 @@ namespace MML
 			return _coeff[i][j]; 
 		}
 		
-		/// @brief Checked element access (const) with exception on out-of-bounds.
+		/// @brief Checked element access (const) — safe, throws on out-of-bounds.
+		/// @details Use this instead of operator() when runtime bounds safety is needed.
 		/// @param i First index (0 to N-1)
 		/// @param j Second index (0 to N-1)
 		/// @return The tensor component T(i,j)
@@ -207,7 +210,8 @@ namespace MML
 			return _coeff[i][j];
 		}
 
-		/// @brief Checked element access (mutable) with exception on out-of-bounds.
+		/// @brief Checked element access (mutable) — safe, throws on out-of-bounds.
+		/// @details Use this instead of operator() when runtime bounds safety is needed.
 		/// @param i First index (0 to N-1)
 		/// @param j Second index (0 to N-1)
 		/// @return Reference to the tensor component T(i,j)
@@ -316,6 +320,107 @@ namespace MML
 					sum += _coeff[i][j] * v1[i] * v2[j];
 
 			return sum;
+		}
+
+		///////////////////////////////////////////////////////////////////////
+		///                    Index Raising / Lowering                      ///
+		///////////////////////////////////////////////////////////////////////
+
+		/// @brief Raise the first index using a metric tensor.
+		/// @details Converts T_ij -> T^i_j using metric inverse: T^i_j = g^ik * T_kj
+		///          Or converts T_i^j -> T^ij using: T^ij = g^ik * T_k^j
+		/// @param metricInverse The inverse metric tensor g^{ij} (must be (2,0) type)
+		/// @return New tensor with first index raised
+		/// @throws TensorCovarContravarNumError if first index is already contravariant
+		///         or metric is not (2,0) type
+		Tensor2 RaiseFirstIndex(const Tensor2& metricInverse) const
+		{
+			if (_isContravar[0])
+				throw TensorCovarContravarNumError("Tensor2::RaiseFirstIndex - first index is already contravariant", _numCovar, _numContravar);
+			if (metricInverse.NumContravar() != 2)
+				throw TensorCovarContravarNumError("Tensor2::RaiseFirstIndex - metric must be fully contravariant (2,0)", metricInverse.NumCovar(), metricInverse.NumContravar());
+
+			Tensor2 result(_numCovar - 1, _numContravar + 1);
+			for (int i = 0; i < N; i++)
+				for (int j = 0; j < N; j++) {
+					Real sum = 0;
+					for (int k = 0; k < N; k++)
+						sum += metricInverse(i, k) * _coeff[k][j];
+					result(i, j) = sum;
+				}
+			return result;
+		}
+
+		/// @brief Raise the second index using a metric tensor.
+		/// @details Converts T_ij -> T_i^j using: T_i^j = g^jk * T_ik
+		///          Or converts T^i_j -> T^ij using: T^ij = g^jk * T^i_k
+		/// @param metricInverse The inverse metric tensor g^{ij} (must be (2,0) type)
+		/// @return New tensor with second index raised
+		/// @throws TensorCovarContravarNumError if second index is already contravariant
+		Tensor2 RaiseSecondIndex(const Tensor2& metricInverse) const
+		{
+			if (_isContravar[1])
+				throw TensorCovarContravarNumError("Tensor2::RaiseSecondIndex - second index is already contravariant", _numCovar, _numContravar);
+			if (metricInverse.NumContravar() != 2)
+				throw TensorCovarContravarNumError("Tensor2::RaiseSecondIndex - metric must be fully contravariant (2,0)", metricInverse.NumCovar(), metricInverse.NumContravar());
+
+			Tensor2 result(_numCovar - 1, _numContravar + 1);
+			for (int i = 0; i < N; i++)
+				for (int j = 0; j < N; j++) {
+					Real sum = 0;
+					for (int k = 0; k < N; k++)
+						sum += _coeff[i][k] * metricInverse(k, j);
+					result(i, j) = sum;
+				}
+			return result;
+		}
+
+		/// @brief Lower the first index using a metric tensor.
+		/// @details Converts T^ij -> T_i^j using: T_i^j = g_ik * T^kj
+		///          Or converts T^i_j -> T_ij using: T_ij = g_ik * T^k_j
+		/// @param metric The metric tensor g_{ij} (must be (0,2) type)
+		/// @return New tensor with first index lowered
+		/// @throws TensorCovarContravarNumError if first index is already covariant
+		Tensor2 LowerFirstIndex(const Tensor2& metric) const
+		{
+			if (!_isContravar[0])
+				throw TensorCovarContravarNumError("Tensor2::LowerFirstIndex - first index is already covariant", _numCovar, _numContravar);
+			if (metric.NumCovar() != 2)
+				throw TensorCovarContravarNumError("Tensor2::LowerFirstIndex - metric must be fully covariant (0,2)", metric.NumCovar(), metric.NumContravar());
+
+			Tensor2 result(_numCovar + 1, _numContravar - 1);
+			for (int i = 0; i < N; i++)
+				for (int j = 0; j < N; j++) {
+					Real sum = 0;
+					for (int k = 0; k < N; k++)
+						sum += metric(i, k) * _coeff[k][j];
+					result(i, j) = sum;
+				}
+			return result;
+		}
+
+		/// @brief Lower the second index using a metric tensor.
+		/// @details Converts T^ij -> T^i_j using: T^i_j = T^ik * g_kj
+		///          Or converts T_i^j -> T_ij using: T_ij = T_ik * g_kj  (with appropriate index match)
+		/// @param metric The metric tensor g_{ij} (must be (0,2) type)
+		/// @return New tensor with second index lowered
+		/// @throws TensorCovarContravarNumError if second index is already covariant
+		Tensor2 LowerSecondIndex(const Tensor2& metric) const
+		{
+			if (!_isContravar[1])
+				throw TensorCovarContravarNumError("Tensor2::LowerSecondIndex - second index is already covariant", _numCovar, _numContravar);
+			if (metric.NumCovar() != 2)
+				throw TensorCovarContravarNumError("Tensor2::LowerSecondIndex - metric must be fully covariant (0,2)", metric.NumCovar(), metric.NumContravar());
+
+			Tensor2 result(_numCovar + 1, _numContravar - 1);
+			for (int i = 0; i < N; i++)
+				for (int j = 0; j < N; j++) {
+					Real sum = 0;
+					for (int k = 0; k < N; k++)
+						sum += _coeff[i][k] * metric(k, j);
+					result(i, j) = sum;
+				}
+			return result;
 		}
 
 		///////////////////////////////////////////////////////////////////////
@@ -448,7 +553,8 @@ namespace MML
 		///                        Element Access                           ///
 		///////////////////////////////////////////////////////////////////////
 
-		/// @brief Access tensor element (const) with assertion bounds checking.
+		/// @brief Unchecked element access (const) — fast, assertion-only bounds checking.
+		/// @warning Assertions are disabled in Release builds. For runtime safety, use at().
 		Real  operator()(int i, int j, int k) const override { 
 			assert(i >= 0 && i < N && "Tensor3: index i out of bounds");
 			assert(j >= 0 && j < N && "Tensor3: index j out of bounds");
@@ -456,7 +562,8 @@ namespace MML
 			return _coeff[i][j][k]; 
 		}
 
-		/// @brief Access tensor element (mutable) with assertion bounds checking.
+		/// @brief Unchecked element access (mutable) — fast, assertion-only bounds checking.
+		/// @warning Assertions are disabled in Release builds. For runtime safety, use at().
 		Real& operator()(int i, int j, int k) override { 
 			assert(i >= 0 && i < N && "Tensor3: index i out of bounds");
 			assert(j >= 0 && j < N && "Tensor3: index j out of bounds");
@@ -464,7 +571,8 @@ namespace MML
 			return _coeff[i][j][k]; 
 		}
 		
-		/// @brief Checked element access (const) with exception on out-of-bounds.
+		/// @brief Checked element access (const) — safe, throws on out-of-bounds.
+		/// @details Use this instead of operator() when runtime bounds safety is needed.
 		/// @throws TensorIndexError if any index is out of bounds
 		Real at(int i, int j, int k) const {
 			if (i < 0 || i >= N || j < 0 || j >= N || k < 0 || k >= N)
@@ -472,7 +580,8 @@ namespace MML
 			return _coeff[i][j][k];
 		}
 
-		/// @brief Checked element access (mutable) with exception on out-of-bounds.
+		/// @brief Checked element access (mutable) — safe, throws on out-of-bounds.
+		/// @details Use this instead of operator() when runtime bounds safety is needed.
 		/// @throws TensorIndexError if any index is out of bounds
 		Real& at(int i, int j, int k) {
 			if (i < 0 || i >= N || j < 0 || j >= N || k < 0 || k >= N)
@@ -617,7 +726,8 @@ namespace MML
 		///                        Element Access                           ///
 		///////////////////////////////////////////////////////////////////////
 
-		/// @brief Access tensor element (const) with assertion bounds checking.
+		/// @brief Unchecked element access (const) — fast, assertion-only bounds checking.
+		/// @warning Assertions are disabled in Release builds. For runtime safety, use at().
 		Real  operator()(int i, int j, int k, int l) const override { 
 			assert(i >= 0 && i < N && "Tensor4: index i out of bounds");
 			assert(j >= 0 && j < N && "Tensor4: index j out of bounds");
@@ -626,7 +736,8 @@ namespace MML
 			return _coeff[i][j][k][l]; 
 		}
 
-		/// @brief Access tensor element (mutable) with assertion bounds checking.
+		/// @brief Unchecked element access (mutable) — fast, assertion-only bounds checking.
+		/// @warning Assertions are disabled in Release builds. For runtime safety, use at().
 		Real& operator()(int i, int j, int k, int l) override { 
 			assert(i >= 0 && i < N && "Tensor4: index i out of bounds");
 			assert(j >= 0 && j < N && "Tensor4: index j out of bounds");
@@ -635,7 +746,8 @@ namespace MML
 			return _coeff[i][j][k][l]; 
 		}
 		
-		/// @brief Checked element access (const) with exception on out-of-bounds.
+		/// @brief Checked element access (const) — safe, throws on out-of-bounds.
+		/// @details Use this instead of operator() when runtime bounds safety is needed.
 		/// @throws TensorIndexError if any index is out of bounds
 		Real at(int i, int j, int k, int l) const {
 			if (i < 0 || i >= N || j < 0 || j >= N || k < 0 || k >= N || l < 0 || l >= N)
@@ -643,7 +755,8 @@ namespace MML
 			return _coeff[i][j][k][l];
 		}
 
-		/// @brief Checked element access (mutable) with exception on out-of-bounds.
+		/// @brief Checked element access (mutable) — safe, throws on out-of-bounds.
+		/// @details Use this instead of operator() when runtime bounds safety is needed.
 		/// @throws TensorIndexError if any index is out of bounds
 		Real& at(int i, int j, int k, int l) {
 			if (i < 0 || i >= N || j < 0 || j >= N || k < 0 || k >= N || l < 0 || l >= N)
@@ -797,7 +910,7 @@ namespace MML
 		int   NumCovar()     const override { return _numCovar; }
 
 		/// @brief Checks if index i is contravariant (upper index).
-		bool IsContravar(int i) const { return _isContravar[i]; }
+		bool IsContravar(int i) const override { return _isContravar[i]; }
 
 		/// @brief Checks if index i is covariant (lower index).
 		bool IsCovar(int i) const { return !_isContravar[i]; }
@@ -809,7 +922,8 @@ namespace MML
 		///                        Element Access                           ///
 		///////////////////////////////////////////////////////////////////////
 
-		/// @brief Access tensor element (const) with assertion bounds checking.
+		/// @brief Unchecked element access (const) — fast, assertion-only bounds checking.
+		/// @warning Assertions are disabled in Release builds. For runtime safety, use at().
 		Real  operator()(int i, int j, int k, int l, int m) const override { 
 			assert(i >= 0 && i < N && "Tensor5: index i out of bounds");
 			assert(j >= 0 && j < N && "Tensor5: index j out of bounds");
@@ -819,7 +933,8 @@ namespace MML
 			return _coeff[i][j][k][l][m]; 
 		}
 
-		/// @brief Access tensor element (mutable) with assertion bounds checking.
+		/// @brief Unchecked element access (mutable) — fast, assertion-only bounds checking.
+		/// @warning Assertions are disabled in Release builds. For runtime safety, use at().
 		Real& operator()(int i, int j, int k, int l, int m) override { 
 			assert(i >= 0 && i < N && "Tensor5: index i out of bounds");
 			assert(j >= 0 && j < N && "Tensor5: index j out of bounds");
@@ -829,7 +944,8 @@ namespace MML
 			return _coeff[i][j][k][l][m]; 
 		}
 		
-		/// @brief Checked element access (const) with exception on out-of-bounds.
+		/// @brief Checked element access (const) — safe, throws on out-of-bounds.
+		/// @details Use this instead of operator() when runtime bounds safety is needed.
 		/// @throws TensorIndexError if any index is out of bounds
 		Real at(int i, int j, int k, int l, int m) const {
 			if (i < 0 || i >= N || j < 0 || j >= N || k < 0 || k >= N || l < 0 || l >= N || m < 0 || m >= N)
@@ -837,7 +953,8 @@ namespace MML
 			return _coeff[i][j][k][l][m];
 		}
 
-		/// @brief Checked element access (mutable) with exception on out-of-bounds.
+		/// @brief Checked element access (mutable) — safe, throws on out-of-bounds.
+		/// @details Use this instead of operator() when runtime bounds safety is needed.
 		/// @throws TensorIndexError if any index is out of bounds
 		Real& at(int i, int j, int k, int l, int m) {
 			if (i < 0 || i >= N || j < 0 || j >= N || k < 0 || k >= N || l < 0 || l >= N || m < 0 || m >= N)

@@ -793,6 +793,173 @@ namespace MML
 			return result;
 		}
 	}
+
+	// =========================================================================
+	// GRAM-SCHMIDT ORTHOGONALIZATION
+	// =========================================================================
+
+	/**
+	 * @brief Classical Gram-Schmidt orthogonalization of column vectors.
+	 *
+	 * Given a set of linearly independent vectors (as columns of matrix A),
+	 * produces an orthonormal set spanning the same subspace.
+	 *
+	 * Algorithm: For each vector v_j, subtract its projections onto all
+	 * previously orthogonalized vectors, then normalize.
+	 *
+	 * @note For better numerical stability in ill-conditioned cases,
+	 *       prefer SVD-based orthogonalization. This implementation uses
+	 *       the classical algorithm which is adequate for well-conditioned
+	 *       inputs and educational purposes.
+	 *
+	 * @param A  Input matrix whose columns are the vectors to orthogonalize
+	 * @return Matrix Q with orthonormal columns spanning the same column space.
+	 *         If a column is linearly dependent (norm < tol), it is set to zero.
+	 */
+	inline Matrix<Real> GramSchmidt(const Matrix<Real>& A, Real tol = 1e-12)
+	{
+		int m = A.rows();
+		int n = A.cols();
+		Matrix<Real> Q(m, n);
+
+		for (int j = 0; j < n; j++)
+		{
+			// Copy column j
+			Vector<Real> v(m);
+			for (int i = 0; i < m; i++)
+				v[i] = A(i, j);
+
+			// Subtract projections onto previous orthonormal columns
+			for (int k = 0; k < j; k++)
+			{
+				Real dot = 0.0;
+				for (int i = 0; i < m; i++)
+					dot += v[i] * Q(i, k);
+				for (int i = 0; i < m; i++)
+					v[i] -= dot * Q(i, k);
+			}
+
+			// Normalize
+			Real norm = 0.0;
+			for (int i = 0; i < m; i++)
+				norm += v[i] * v[i];
+			norm = std::sqrt(norm);
+
+			if (norm < tol)
+			{
+				for (int i = 0; i < m; i++)
+					Q(i, j) = 0.0;
+			}
+			else
+			{
+				for (int i = 0; i < m; i++)
+					Q(i, j) = v[i] / norm;
+			}
+		}
+
+		return Q;
+	}
+
+	/**
+	 * @brief Fixed-size Gram-Schmidt orthogonalization for VectorN columns.
+	 *
+	 * @tparam N Dimension of vectors
+	 * @param vectors Array of input vectors
+	 * @param count  Number of vectors to orthogonalize
+	 * @param tol    Tolerance for detecting linear dependence
+	 * @return std::vector of orthonormal VectorN. Linearly dependent vectors are omitted.
+	 */
+	template<int N>
+	std::vector<VectorN<Real, N>> GramSchmidtVectors(const std::vector<VectorN<Real, N>>& vectors, Real tol = 1e-12)
+	{
+		std::vector<VectorN<Real, N>> result;
+		result.reserve(vectors.size());
+
+		for (size_t j = 0; j < vectors.size(); j++)
+		{
+			VectorN<Real, N> v = vectors[j];
+
+			// Subtract projections onto previous orthonormal vectors
+			for (size_t k = 0; k < result.size(); k++)
+			{
+				Real dot = Utils::ScalarProduct<N>(v, result[k]);
+				v = v - dot * result[k];
+			}
+
+			Real norm = v.NormL2();
+			if (norm >= tol)
+				result.push_back(v / norm);
+		}
+
+		return result;
+	}
+
+	/**
+	 * @brief Check if a set of vectors is orthonormal within tolerance.
+	 *
+	 * Verifies: (1) each vector has unit norm, (2) all pairs are orthogonal.
+	 *
+	 * @tparam N Dimension of vectors
+	 * @param vectors Array of vectors to check
+	 * @param tol Tolerance for dot product and norm comparisons
+	 * @return true if the set is orthonormal within tolerance
+	 */
+	template<int N>
+	bool IsOrthonormal(const std::vector<VectorN<Real, N>>& vectors, Real tol = 1e-10)
+	{
+		for (size_t i = 0; i < vectors.size(); i++)
+		{
+			// Check unit norm
+			Real norm = vectors[i].NormL2();
+			if (std::abs(norm - 1.0) > tol)
+				return false;
+
+			// Check orthogonality with all subsequent vectors
+			for (size_t j = i + 1; j < vectors.size(); j++)
+			{
+				Real dot = Utils::ScalarProduct<N>(vectors[i], vectors[j]);
+				if (std::abs(dot) > tol)
+					return false;
+			}
+		}
+		return true;
+	}
+
+	/**
+	 * @brief Check if columns of a matrix form an orthonormal set.
+	 *
+	 * Equivalent to checking Q^T * Q ≈ I.
+	 *
+	 * @param Q Matrix to check
+	 * @param tol Tolerance
+	 * @return true if columns are orthonormal within tolerance
+	 */
+	inline bool IsOrthonormalColumns(const Matrix<Real>& Q, Real tol = 1e-10)
+	{
+		int m = Q.rows();
+		int n = Q.cols();
+
+		for (int i = 0; i < n; i++)
+		{
+			// Check unit norm of column i
+			Real norm_sq = 0.0;
+			for (int k = 0; k < m; k++)
+				norm_sq += Q(k, i) * Q(k, i);
+			if (std::abs(norm_sq - 1.0) > tol)
+				return false;
+
+			// Check orthogonality with subsequent columns
+			for (int j = i + 1; j < n; j++)
+			{
+				Real dot = 0.0;
+				for (int k = 0; k < m; k++)
+					dot += Q(k, i) * Q(k, j);
+				if (std::abs(dot) > tol)
+					return false;
+			}
+		}
+		return true;
+	}
 } // namespace MML
 
 #endif

@@ -39,6 +39,14 @@
 
 namespace MML {
 
+	/// @brief Policy for handling queries outside the interpolation data range [MinX, MaxX].
+	/// @ingroup Interpolation
+	enum class ExtrapolationPolicy {
+		Allow,  ///< Silently extrapolate beyond data range (default, backward-compatible)
+		Throw,  ///< Throw RealFuncInterpRuntimeError if x is outside [MinX, MaxX]
+		Clamp   ///< Clamp x to [MinX, MaxX] before interpolating
+	};
+
 	/// @brief Abstract base class for interpolating real functions from tabulated data.
 	/// RealFunctionInterpolated provides the foundation for all 1D interpolation methods.
 	/// It stores the data points (x, y) and provides efficient binary search to locate
@@ -53,6 +61,7 @@ namespace MML {
 	private:
 		int _numPoints, _usedPoints;
 		Vector<Real> _x, _y; // we are storing copies of given values!
+		ExtrapolationPolicy _extrapolationPolicy = ExtrapolationPolicy::Allow;
 
 	public:
 		/// @brief Construct an interpolated function from data points.
@@ -121,6 +130,20 @@ namespace MML {
 
 		/// @}
 
+		/// @name Extrapolation Policy
+		/// @{
+
+		/// @brief Check if x is within the interpolation data range [MinX, MaxX].
+		bool isInRange(Real x) const { return x >= MinX() && x <= MaxX(); }
+
+		/// @brief Set the extrapolation policy for out-of-range queries.
+		void setExtrapolationPolicy(ExtrapolationPolicy policy) { _extrapolationPolicy = policy; }
+
+		/// @brief Get the current extrapolation policy.
+		ExtrapolationPolicy getExtrapolationPolicy() const { return _extrapolationPolicy; }
+
+		/// @}
+
 		/// @brief Evaluate the interpolated function at point x.
 		/// @param x The point at which to evaluate
 		/// @return The interpolated value f(x)
@@ -128,6 +151,15 @@ namespace MML {
 		/// then calls the derived class's `calcInterpValue()` method.
 
 		Real operator()(Real x) const {
+			if (_extrapolationPolicy != ExtrapolationPolicy::Allow && !isInRange(x)) {
+				if (_extrapolationPolicy == ExtrapolationPolicy::Throw) {
+					throw RealFuncInterpRuntimeError(
+						"Interpolation: query point x=" + std::to_string(x) +
+						" outside data range [" + std::to_string(MinX()) + ", " + std::to_string(MaxX()) + "]");
+				}
+				// Clamp policy
+				x = std::clamp(x, MinX(), MaxX());
+			}
 			int startInd = locate(x);
 			return calcInterpValue(startInd, x);
 		}
@@ -632,6 +664,8 @@ namespace MML {
 				for (i = 0; i < mm - m; i++) {
 					w = c[i + 1] - d[i];
 					h = X(startInd + i + m) - x;
+					if (std::abs(h) < TINY)
+						throw RealFuncInterpRuntimeError("Error in RationalInterpRealFunc: x coincides with a node");
 					t = (X(startInd + i) - x) * d[i] / h;
 					dd = t - c[i + 1];
 					if (dd == 0.0)
@@ -682,6 +716,7 @@ namespace MML {
 		Vector<Real> _x; ///< Abscissas
 		Vector<Real> _y; ///< Ordinates
 		Vector<Real> _w; ///< Barycentric weights
+		ExtrapolationPolicy _extrapolationPolicy; ///< Policy for out-of-range queries
 
 		/// /** @brief Compute the barycentric weights using Floater-Hormann formula. */
 
@@ -720,7 +755,8 @@ namespace MML {
 			, _d(d)
 			, _x(xv)
 			, _y(yv)
-			, _w(_n) {
+			, _w(_n)
+			, _extrapolationPolicy(ExtrapolationPolicy::Allow) {
 			if (_n <= _d)
 				throw RealFuncInterpInitError("BarycentricRationalInterp: d too large for number of points");
 			if (_d < 0)
@@ -747,6 +783,15 @@ namespace MML {
 
 		int getBlendingParameter() const { return _d; }
 
+		/// @brief Check if x is within the interpolation data range [MinX, MaxX].
+		bool isInRange(Real x) const { return x >= MinX() && x <= MaxX(); }
+
+		/// @brief Set the extrapolation policy for out-of-range queries.
+		void setExtrapolationPolicy(ExtrapolationPolicy policy) { _extrapolationPolicy = policy; }
+
+		/// @brief Get the current extrapolation policy.
+		ExtrapolationPolicy getExtrapolationPolicy() const { return _extrapolationPolicy; }
+
 		/// @}
 
 		/// @brief Evaluate the interpolated function at x.
@@ -754,6 +799,14 @@ namespace MML {
 		/// @return Interpolated value using barycentric formula
 
 		Real operator()(Real x) const override {
+			if (_extrapolationPolicy != ExtrapolationPolicy::Allow && !isInRange(x)) {
+				if (_extrapolationPolicy == ExtrapolationPolicy::Throw) {
+					throw RealFuncInterpRuntimeError(
+						"BarycentricRationalInterp: query point x=" + std::to_string(x) +
+						" outside data range [" + std::to_string(MinX()) + ", " + std::to_string(MaxX()) + "]");
+				}
+				x = std::clamp(x, MinX(), MaxX());
+			}
 			Real num = 0.0, den = 0.0;
 			for (int i = 0; i < _n; i++) {
 				Real h = x - _x[i];

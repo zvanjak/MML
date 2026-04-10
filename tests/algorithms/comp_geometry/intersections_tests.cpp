@@ -29,8 +29,8 @@ TEST_CASE("SegmentIntersection - Crossing segments", "[ComputationalGeometry][Se
     auto result = MML::CompGeometry::Intersections::IntersectSegments(p1, q1, p2, q2);
     
     REQUIRE(result.type == SegmentIntersectionType::Point);
-    REQUIRE_THAT(result.point.X(), WithinAbs(REAL(1.0), REAL(1e-10)));
-    REQUIRE_THAT(result.point.Y(), WithinAbs(REAL(1.0), REAL(1e-10)));
+    REQUIRE_THAT(result.point.X(), WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(result.point.Y(), WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("SegmentIntersection - Parallel non-intersecting", "[ComputationalGeometry][SegmentIntersection]")
@@ -51,8 +51,8 @@ TEST_CASE("SegmentIntersection - T intersection (endpoint touch)", "[Computation
     auto result = MML::CompGeometry::Intersections::IntersectSegments(p1, q1, p2, q2);
     
     REQUIRE(result.type == SegmentIntersectionType::Point);
-    REQUIRE_THAT(result.point.X(), WithinAbs(REAL(1.0), REAL(1e-10)));
-    REQUIRE_THAT(result.point.Y(), WithinAbs(REAL(0.0), REAL(1e-10)));
+    REQUIRE_THAT(result.point.X(), WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(result.point.Y(), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("SegmentIntersection - Collinear overlapping", "[ComputationalGeometry][SegmentIntersection]")
@@ -67,8 +67,8 @@ TEST_CASE("SegmentIntersection - Collinear overlapping", "[ComputationalGeometry
     // Overlap should be from (1,0) to (3,0)
     Real minX = std::min(result.overlapStart.X(), result.overlapEnd.X());
     Real maxX = std::max(result.overlapStart.X(), result.overlapEnd.X());
-    REQUIRE_THAT(minX, WithinAbs(REAL(1.0), REAL(1e-10)));
-    REQUIRE_THAT(maxX, WithinAbs(REAL(3.0), REAL(1e-10)));
+    REQUIRE_THAT(minX, WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(maxX, WithinAbs(REAL(3.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("SegmentIntersection - Collinear non-overlapping", "[ComputationalGeometry][SegmentIntersection]")
@@ -89,8 +89,8 @@ TEST_CASE("SegmentIntersection - Endpoint to endpoint", "[ComputationalGeometry]
     auto result = MML::CompGeometry::Intersections::IntersectSegments(p1, q1, p2, q2);
     
     REQUIRE(result.type == SegmentIntersectionType::Point);
-    REQUIRE_THAT(result.point.X(), WithinAbs(REAL(1.0), REAL(1e-10)));
-    REQUIRE_THAT(result.point.Y(), WithinAbs(REAL(1.0), REAL(1e-10)));
+    REQUIRE_THAT(result.point.X(), WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(result.point.Y(), WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("SegmentIntersection - No intersection (skew)", "[ComputationalGeometry][SegmentIntersection]")
@@ -111,8 +111,8 @@ TEST_CASE("SegmentIntersection - Using SegmentLine2D", "[ComputationalGeometry][
     auto result = MML::CompGeometry::Intersections::IntersectSegments(seg1, seg2);
     
     REQUIRE(result.IsPointIntersection());
-    REQUIRE_THAT(result.point.X(), WithinAbs(REAL(1.0), REAL(1e-10)));
-    REQUIRE_THAT(result.point.Y(), WithinAbs(REAL(1.0), REAL(1e-10)));
+    REQUIRE_THAT(result.point.X(), WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(result.point.Y(), WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
 }
 
 // ============================================================================
@@ -132,8 +132,8 @@ TEST_CASE("LineIntersection2D - Crossing lines", "[ComputationalGeometry][LineIn
     auto result = MML::CompGeometry::Intersections::IntersectLines2D(p1, d1, p2, d2);
     
     REQUIRE(result.IsPoint());
-    REQUIRE_THAT(result.point.X(), WithinAbs(REAL(2.0), REAL(1e-10)));
-    REQUIRE_THAT(result.point.Y(), WithinAbs(REAL(1.0), REAL(1e-10)));
+    REQUIRE_THAT(result.point.X(), WithinAbs(REAL(2.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(result.point.Y(), WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("LineIntersection2D - Parallel lines", "[ComputationalGeometry][LineIntersection]")
@@ -175,8 +175,8 @@ TEST_CASE("LineIntersection2D - Diagonal crossing", "[ComputationalGeometry][Lin
     auto result = MML::CompGeometry::Intersections::IntersectLines2D(p1, d1, p2, d2);
     
     REQUIRE(result.IsPoint());
-    REQUIRE_THAT(result.point.X(), WithinAbs(REAL(2.0), REAL(1e-10)));
-    REQUIRE_THAT(result.point.Y(), WithinAbs(REAL(2.0), REAL(1e-10)));
+    REQUIRE_THAT(result.point.X(), WithinAbs(REAL(2.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(result.point.Y(), WithinAbs(REAL(2.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("LineIntersection2D - Using Line2D objects", "[ComputationalGeometry][LineIntersection]")
@@ -187,8 +187,8 @@ TEST_CASE("LineIntersection2D - Using Line2D objects", "[ComputationalGeometry][
     auto result = MML::CompGeometry::Intersections::IntersectLines2D(line1, line2);
     
     REQUIRE(result.IsPoint());
-    REQUIRE_THAT(result.point.X(), WithinAbs(REAL(0.0), REAL(1e-10)));
-    REQUIRE_THAT(result.point.Y(), WithinAbs(REAL(0.0), REAL(1e-10)));
+    REQUIRE_THAT(result.point.X(), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(result.point.Y(), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
 }
 
 // ============================================================================
@@ -208,9 +208,9 @@ TEST_CASE("LineIntersection3D - Intersecting lines", "[ComputationalGeometry][Li
     auto result = MML::CompGeometry::Intersections::IntersectLines3D(p1, d1, p2, d2);
     
     REQUIRE(result.IsIntersecting());
-    REQUIRE_THAT(result.point1.X(), WithinAbs(REAL(0.0), REAL(1e-10)));
-    REQUIRE_THAT(result.point1.Y(), WithinAbs(REAL(0.0), REAL(1e-10)));
-    REQUIRE_THAT(result.point1.Z(), WithinAbs(REAL(0.0), REAL(1e-10)));
+    REQUIRE_THAT(result.point1.X(), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(result.point1.Y(), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(result.point1.Z(), WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("LineIntersection3D - Parallel lines", "[ComputationalGeometry][LineIntersection3D]")
@@ -239,7 +239,7 @@ TEST_CASE("LineIntersection3D - Skew lines", "[ComputationalGeometry][LineInters
     auto result = MML::CompGeometry::Intersections::IntersectLines3D(p1, d1, p2, d2);
     
     REQUIRE(result.IsSkew());
-    REQUIRE_THAT(result.distance, WithinAbs(REAL(1.0), REAL(1e-10)));
+    REQUIRE_THAT(result.distance, WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("LineIntersection3D - Coincident lines", "[ComputationalGeometry][LineIntersection3D]")
@@ -287,7 +287,7 @@ TEST_CASE("RayTriangleIntersection - Direct hit through center", "[Computational
     REQUIRE_THAT(hit.point.Z(), WithinAbs(0.0, 1e-6));
     
     // Barycentric coords should sum to ~1
-    REQUIRE_THAT(hit.u + hit.v + hit.BarycentricW(), WithinAbs(1.0, 1e-10));
+    REQUIRE_THAT(hit.u + hit.v + hit.BarycentricW(), WithinAbs(1.0, TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("RayTriangleIntersection - Miss (parallel ray)", "[ComputationalGeometry][RayTriangle]")

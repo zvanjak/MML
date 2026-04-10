@@ -49,7 +49,7 @@ namespace MML {
 	/// @return true if x is finite, false if NaN or Inf
 	template<typename T>
 	inline bool IsFiniteValue(T x) noexcept {
-		return std::isfinite(static_cast<double>(x));
+		return std::isfinite(x);
 	}
 
 	/// @brief Validate that a value is finite, throw if not

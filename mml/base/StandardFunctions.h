@@ -263,9 +263,6 @@ namespace MML
 		// For now, use MML's own implementations from mml/algorithms/ for those.
 #endif
 
-    // Note: Basic math functions (Sin, Cos, Exp, Log, etc.) now templated above.
-    // They work with Real, Complex, float, long double, etc. - no separate Complex overloads needed.
-
 		// Factorial functions
 		static inline Real Factorial(int n) {
 			if (n < 0) throw std::domain_error("Factorial: negative argument");

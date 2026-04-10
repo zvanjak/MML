@@ -71,14 +71,14 @@ namespace MML {
 		/// Maximum Newton iterations per step (default: 10)
 		int max_newton_iter = 10;
 
-		/// Newton convergence tolerance (default: 1e-8)
-		Real newton_tol = 1e-8;
+		/// Newton convergence tolerance (default: type-adaptive)
+		Real newton_tol = Precision::NewtonTolerance;
 
-		/// Error tolerance for adaptive methods (default: 1e-6)
-		Real tolerance = 1e-6;
+		/// Error tolerance for adaptive methods (default: type-adaptive)
+		Real tolerance = Precision::ODEDefaultTolerance;
 
-		/// Minimum step size for adaptive methods (default: 1e-12)
-		Real min_step_size = 1e-12;
+		/// Minimum step size for adaptive methods (default: type-adaptive)
+		Real min_step_size = Precision::StiffMinStepSize;
 
 		/// Maximum step size for adaptive methods (default: 0.1)
 		Real max_step_size = 0.1;
@@ -89,8 +89,8 @@ namespace MML {
 		/// Factory method for high-precision configuration
 		static StiffSolverConfig HighPrecision() {
 			StiffSolverConfig config;
-			config.newton_tol = 1e-12;
-			config.tolerance = 1e-10;
+			config.newton_tol = Precision::NewtonTolerance * Real(1e-4);
+			config.tolerance = Precision::ODEDefaultTolerance * Real(1e-4);
 			config.max_newton_iter = 20;
 			return config;
 		}
@@ -98,8 +98,8 @@ namespace MML {
 		/// Factory method for fast (lower precision) configuration
 		static StiffSolverConfig Fast() {
 			StiffSolverConfig config;
-			config.newton_tol = 1e-6;
-			config.tolerance = 1e-4;
+			config.newton_tol = Precision::NewtonTolerance * Real(100);
+			config.tolerance = Precision::ODEDefaultTolerance * Real(100);
 			config.max_newton_iter = 5;
 			return config;
 		}
@@ -142,9 +142,9 @@ namespace MML {
 	/// @param newton_tol Newton convergence tolerance (default: 1e-8)
 	/// @return ODESystemSolution containing solution trajectory
 	inline ODESystemSolution SolveBackwardEuler(IODESystemWithJacobian& system, Real t0, const Vector<Real>& y0, Real t_end, Real h,
-												int max_newton_iter = 10, Real newton_tol = 1e-8) {
+												int max_newton_iter = 10, Real newton_tol = Precision::NewtonTolerance) {
 		int dim = y0.size();
-		int num_steps = static_cast<int>((t_end - t0) / h) + 1;
+		int num_steps = std::lround((t_end - t0) / h) + 1;
 
 		ODESystemSolution sol(t0, t_end, dim, num_steps);
 
@@ -219,7 +219,7 @@ namespace MML {
 		AlgorithmTimer timer;  // Starts automatically
 
 		int dim = y0.size();
-		int num_steps = static_cast<int>((t_end - t0) / config.step_size) + 1;
+		int num_steps = std::lround((t_end - t0) / config.step_size) + 1;
 		StiffSolverResult result(t0, t_end, dim, num_steps);
 		result.algorithm_name = "BackwardEuler";
 
@@ -254,9 +254,9 @@ namespace MML {
 	/// @param newton_tol Newton convergence tolerance (default: 1e-8)
 	/// @return ODESystemSolution containing solution trajectory
 	inline ODESystemSolution SolveBDF2(IODESystemWithJacobian& system, Real t0, const Vector<Real>& y0, Real t_end, Real h,
-									   int max_newton_iter = 10, Real newton_tol = 1e-8) {
+									   int max_newton_iter = 10, Real newton_tol = Precision::NewtonTolerance) {
 		int dim = y0.size();
-		int num_steps = static_cast<int>((t_end - t0) / h) + 1;
+		int num_steps = std::lround((t_end - t0) / h) + 1;
 
 		ODESystemSolution sol(t0, t_end, dim, num_steps);
 
@@ -371,7 +371,7 @@ namespace MML {
 		AlgorithmTimer timer;  // Starts automatically
 
 		int dim = y0.size();
-		int num_steps = static_cast<int>((t_end - t0) / config.step_size) + 1;
+		int num_steps = std::lround((t_end - t0) / config.step_size) + 1;
 		StiffSolverResult result(t0, t_end, dim, num_steps);
 		result.algorithm_name = "BDF2";
 
@@ -417,8 +417,8 @@ namespace MML {
 		const Real gamma_ros = 1.7071067811865475; // 1.0 + 0.5 * sqrt(2)
 
 	public:
-		Rosenbrock23Solver(IODESystemWithJacobian& system, Real abs_tol = 1e-6, Real rel_tol = 1e-6, int /*max_newton_iter*/ = 10,
-						   Real /*newton_tol*/ = 1e-8)
+		Rosenbrock23Solver(IODESystemWithJacobian& system, Real abs_tol = Precision::ODEDefaultTolerance, Real rel_tol = Precision::ODEDefaultTolerance, int /*max_newton_iter*/ = 10,
+						   Real /*newton_tol*/ = Precision::NewtonTolerance)
 			: _system(system)
 			, _abs_tol(abs_tol)
 			, _rel_tol(rel_tol) {}
@@ -498,7 +498,7 @@ namespace MML {
 
 			// Safety factors for step size control
 			const Real safety = 0.9;
-			const Real h_min = 1e-12;		   // Minimum step size
+			const Real h_min = Precision::StiffMinStepSize;		   // Minimum step size
 			const Real h_max = h_init * 100.0; // Maximum step size
 			const Real fac_max = 5.0;		   // Maximum step increase factor
 			const Real fac_min = 0.2;		   // Minimum step decrease factor
@@ -538,7 +538,7 @@ namespace MML {
 				}
 
 				// Avoid division by zero
-				err_norm = std::max<Real>(err_norm, Real(1e-10));
+				err_norm = std::max<Real>(err_norm, Precision::ErrorNormFloor);
 
 				// Accept or reject step
 				if (err_norm <= 1.0) {

@@ -173,7 +173,7 @@ namespace MML
 		/// @param p The point to test
 		/// @param epsilon Tolerance for the test
 		/// @return True if point is within epsilon of the line
-		bool Contains(const Point2Cartesian& p, Real epsilon = Constants::GEOMETRY_EPSILON) const
+		bool Contains(const Point2Cartesian& p, Real epsilon = PrecisionValues<Real>::GeometryEpsilon) const
 		{
 			return DistanceToPoint(p) < epsilon;
 		}
@@ -190,10 +190,10 @@ namespace MML
 			Real dx = other._point.X() - _point.X();
 			Real dy = other._point.Y() - _point.Y();
 
-			if (std::abs(cross) < Constants::GEOMETRY_EPSILON) {
+			if (std::abs(cross) < PrecisionValues<Real>::GeometryEpsilon) {
 				// Lines are parallel - check if coincident
 				Real crossP = dx * _direction.Y() - dy * _direction.X();
-				if (std::abs(crossP) < Constants::GEOMETRY_EPSILON)
+				if (std::abs(crossP) < PrecisionValues<Real>::GeometryEpsilon)
 					result.type = LineIntersectionType2D::Coincident;
 				else
 					result.type = LineIntersectionType2D::Parallel;

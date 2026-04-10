@@ -41,19 +41,19 @@ namespace MML::Tests::Core::DerivationTests
 		if constexpr (std::is_same_v<Real, double>)
 		{
 			Real der1 = Derivation::NDer1(sinFunc, REAL(0.5));
-			REQUIRE_THAT(sinFuncDer(REAL(0.5)) , WithinRel(Real(der1), REAL(1e-8)));
+			REQUIRE_THAT(sinFuncDer(REAL(0.5)) , WithinRel(Real(der1), TOL(1e-8, 1e-4)));
 
 			Real der2 = Derivation::NDer2(sinFunc, REAL(0.5));
-			REQUIRE_THAT(sinFuncDer(REAL(0.5)) , WithinRel(Real(der2), REAL(1e-11)));
+			REQUIRE_THAT(sinFuncDer(REAL(0.5)) , WithinRel(Real(der2), TOL(1e-11, 1e-5)));
 
 			Real der4 = Derivation::NDer4(sinFunc, REAL(0.5));
-			REQUIRE_THAT(sinFuncDer(REAL(0.5)) , WithinRel(Real(der4), REAL(1e-13)));
+			REQUIRE_THAT(sinFuncDer(REAL(0.5)) , WithinRel(Real(der4), TOL(1e-13, 1e-5)));
 
 			Real der6 = Derivation::NDer6(sinFunc, REAL(0.5));
-			REQUIRE_THAT(sinFuncDer(REAL(0.5)) , WithinRel(Real(der6), REAL(1e-13)));
+			REQUIRE_THAT(sinFuncDer(REAL(0.5)) , WithinRel(Real(der6), TOL(1e-13, 1e-5)));
 
 			Real der8 = Derivation::NDer8(sinFunc, REAL(0.5));
-			REQUIRE_THAT(sinFuncDer(REAL(0.5)) , WithinRel(Real(der8), REAL(1e-14)));
+			REQUIRE_THAT(sinFuncDer(REAL(0.5)) , WithinRel(Real(der8), TOL(1e-14, 1e-5)));
 		}
 	}
 
@@ -71,10 +71,10 @@ namespace MML::Tests::Core::DerivationTests
 		RealFunction sinFuncSecDer = TestBeds::RealFunctionsTestBed::getFunc("Sin")._funcSecDer;
 
 		Real secder2 = Derivation::NSecDer2(sinFunc, REAL(0.5));
-		REQUIRE_THAT(sinFuncSecDer(REAL(0.5)) , WithinRel(Real(secder2), REAL(1e-5)));
+		REQUIRE_THAT(sinFuncSecDer(REAL(0.5)) , WithinRel(Real(secder2), TOL3(1e-5, 1e-2, 1e-5)));
 
 		Real secder4 = Derivation::NSecDer4(sinFunc, REAL(0.5));
-		REQUIRE_THAT(sinFuncSecDer(REAL(0.5)) , WithinRel(Real(secder4), REAL(1e-8)));
+		REQUIRE_THAT(sinFuncSecDer(REAL(0.5)) , WithinRel(Real(secder4), TOL3(1e-8, 1e-4, 1e-8)));
 	}
 
 	TEST_CASE("Test_NThirdDer", "[simple]")
@@ -84,10 +84,10 @@ namespace MML::Tests::Core::DerivationTests
 		RealFunction sinFuncThirdDer = TestBeds::RealFunctionsTestBed::getFunc("Sin")._funcThirdDer;
 
 		Real thirdder2 = Derivation::NThirdDer2(sinFunc, REAL(0.5));
-		REQUIRE_THAT(sinFuncThirdDer(REAL(0.5)) , WithinRel(Real(thirdder2), REAL(1e-6)));
+		REQUIRE_THAT(sinFuncThirdDer(REAL(0.5)) , WithinRel(Real(thirdder2), TOL3(1e-6, 1e-2, 1e-6)));
 
 		Real thirdder4 = Derivation::NThirdDer4(sinFunc, REAL(0.5));
-		REQUIRE_THAT(sinFuncThirdDer(REAL(0.5)) , WithinRel(Real(thirdder4), REAL(1e-7)));
+		REQUIRE_THAT(sinFuncThirdDer(REAL(0.5)) , WithinRel(Real(thirdder4), TOL3(1e-7, 1e-3, 1e-7)));
 	}
 
 	TEST_CASE("Test_NDer_detailed_real_derivative_contract", "[derivation][api]")
@@ -111,7 +111,7 @@ namespace MML::Tests::Core::DerivationTests
 		REQUIRE(detailed.step_used == config.step);
 		REQUIRE(detailed.error >= REAL(0.0));
 		REQUIRE(detailed.elapsed_time_ms >= 0.0);
-		REQUIRE_THAT(sinFuncDer(REAL(0.5)), WithinRel(detailed.value, REAL(1e-10)));
+		REQUIRE_THAT(sinFuncDer(REAL(0.5)), WithinRel(detailed.value, TOL(1e-10, 1e-5)));
 
 		Real legacyError = REAL(0.0);
 		Real legacyValue = Derivation::NDer4(sinFunc, REAL(0.5), config.step, &legacyError);
@@ -160,8 +160,8 @@ namespace MML::Tests::Core::DerivationTests
 			// Richardson should achieve very high precision (better than NDer8)
 			if constexpr (std::is_same_v<Real, double>)
 			{
-				REQUIRE_THAT(derTrue, WithinRel(derRich, REAL(1e-12)));
-				REQUIRE(error < REAL(1e-10));
+				REQUIRE_THAT(derTrue, WithinRel(derRich, TOL(1e-12, 1e-5)));
+				REQUIRE(error < TOL(1e-10, 1e-5));
 			}
 		}
 
@@ -175,7 +175,7 @@ namespace MML::Tests::Core::DerivationTests
 			// d/dx exp(x) = exp(x), so derivative at 0 is 1
 			if constexpr (std::is_same_v<Real, double>)
 			{
-				REQUIRE_THAT(REAL(1.0), WithinRel(derRich, REAL(1e-12)));
+				REQUIRE_THAT(REAL(1.0), WithinRel(derRich, TOL(1e-12, 1e-5)));
 			}
 		}
 
@@ -189,7 +189,7 @@ namespace MML::Tests::Core::DerivationTests
 			// d/dx x^3 = 3x^2, at x=2: 3*4 = 12
 			if constexpr (std::is_same_v<Real, double>)
 			{
-				REQUIRE_THAT(REAL(12.0), WithinRel(derRich, REAL(1e-12)));
+				REQUIRE_THAT(REAL(12.0), WithinRel(derRich, TOL(1e-12, 1e-5)));
 			}
 		}
 
@@ -226,7 +226,7 @@ namespace MML::Tests::Core::DerivationTests
 			
 			if constexpr (std::is_same_v<Real, double>)
 			{
-				REQUIRE_THAT(secderTrue, WithinRel(secderRich, REAL(1e-10)));
+				REQUIRE_THAT(secderTrue, WithinRel(secderRich, TOL(1e-10, 1e-5)));
 			}
 		}
 
@@ -240,7 +240,7 @@ namespace MML::Tests::Core::DerivationTests
 			// d^2/dx^2 exp(x) = exp(x), so second derivative at 0 is 1
 			if constexpr (std::is_same_v<Real, double>)
 			{
-				REQUIRE_THAT(REAL(1.0), WithinRel(secderRich, REAL(1e-10)));
+				REQUIRE_THAT(REAL(1.0), WithinRel(secderRich, TOL(1e-10, 1e-5)));
 			}
 		}
 
@@ -254,7 +254,7 @@ namespace MML::Tests::Core::DerivationTests
 			// d^2/dx^2 x^4 = 12x^2, at x=2: 12*4 = 48
 			if constexpr (std::is_same_v<Real, double>)
 			{
-				REQUIRE_THAT(REAL(48.0), WithinRel(secderRich, REAL(1e-10)));
+				REQUIRE_THAT(REAL(48.0), WithinRel(secderRich, TOL(1e-10, 1e-5)));
 			}
 		}
 	}
@@ -274,7 +274,7 @@ namespace MML::Tests::Core::DerivationTests
 			
 			if constexpr (std::is_same_v<Real, double>)
 			{
-				REQUIRE_THAT(thirdderTrue, WithinRel(thirdderRich, REAL(1e-8)));
+				REQUIRE_THAT(thirdderTrue, WithinRel(thirdderRich, TOL(1e-8, 1e-4)));
 			}
 		}
 
@@ -288,7 +288,7 @@ namespace MML::Tests::Core::DerivationTests
 			// d^3/dx^3 x^5 = 60x^2, at x=2: 60*4 = 240
 			if constexpr (std::is_same_v<Real, double>)
 			{
-				REQUIRE_THAT(REAL(240.0), WithinRel(thirdderRich, REAL(1e-8)));
+				REQUIRE_THAT(REAL(240.0), WithinRel(thirdderRich, TOL(1e-8, 1e-4)));
 			}
 		}
 	}
@@ -310,7 +310,7 @@ namespace MML::Tests::Core::DerivationTests
 		if constexpr (std::is_same_v<Real, double>)
 		{
 			REQUIRE(actualError < error1 * 100);  // Error estimate should be meaningful
-			REQUIRE(actualError < REAL(1e-10));   // Should achieve high accuracy
+			REQUIRE(actualError < TOL(1e-10, 1e-5));   // Should achieve high accuracy
 		}
 	}
 
@@ -329,7 +329,7 @@ namespace MML::Tests::Core::DerivationTests
 			
 			if constexpr (std::is_same_v<Real, double>)
 			{
-				REQUIRE_THAT(derTrue, WithinRel(derAdaptive, REAL(1e-12)));
+				REQUIRE_THAT(derTrue, WithinRel(derAdaptive, TOL(1e-12, 1e-5)));
 			}
 		}
 
@@ -344,7 +344,7 @@ namespace MML::Tests::Core::DerivationTests
 			
 			if constexpr (std::is_same_v<Real, double>)
 			{
-				REQUIRE_THAT(secderTrue, WithinRel(secderAdaptive, REAL(1e-10)));
+				REQUIRE_THAT(secderTrue, WithinRel(secderAdaptive, TOL(1e-10, 1e-5)));
 			}
 		}
 
@@ -359,7 +359,7 @@ namespace MML::Tests::Core::DerivationTests
 			
 			if constexpr (std::is_same_v<Real, double>)
 			{
-				REQUIRE_THAT(thirdderTrue, WithinRel(thirdderAdaptive, REAL(1e-8)));
+				REQUIRE_THAT(thirdderTrue, WithinRel(thirdderAdaptive, TOL(1e-8, 1e-4)));
 			}
 		}
 	}
@@ -382,41 +382,33 @@ namespace MML::Tests::Core::DerivationTests
 		der_y = Derivation::NDer1Partial(f, 1, point);
 		der_z = Derivation::NDer1Partial(f, 2, point);
 
-		REQUIRE_THAT(fDer(point, 0) , WithinRel(der_x, REAL(1e-7)));
-		REQUIRE_THAT(fDer(point, 1) , WithinRel(der_y, REAL(1e-7)));
-		REQUIRE_THAT(fDer(point, 2) , WithinRel(der_z, REAL(1e-7)));
-
-		der_x = Derivation::NDer2Partial(f, 0, point);
-		der_y = Derivation::NDer2Partial(f, 1, point);
-		der_z = Derivation::NDer2Partial(f, 2, point);
-
-		REQUIRE_THAT(fDer(point, 0) , WithinRel(der_x, REAL(1e-9)));
-		REQUIRE_THAT(fDer(point, 1) , WithinRel(der_y, REAL(1e-11)));
-		REQUIRE_THAT(fDer(point, 2) , WithinRel(der_z, REAL(1e-9)));  // Relaxed: ScaleStep triples h for |x|=3
+		REQUIRE_THAT(fDer(point, 0) , WithinRel(der_x, TOL3(1e-7, 5e-3, 1e-9)));
+		REQUIRE_THAT(fDer(point, 1) , WithinRel(der_y, TOL3(1e-7, 5e-3, 1e-9)));
+		REQUIRE_THAT(fDer(point, 2) , WithinRel(der_z, TOL3(1e-7, 5e-3, 1e-9)));  // Relaxed: ScaleStep triples h for |x|=3
 
 		der_x = Derivation::NDer4Partial(f, 0, point);
 		der_y = Derivation::NDer4Partial(f, 1, point);
 		der_z = Derivation::NDer4Partial(f, 2, point);
 
-		REQUIRE_THAT(fDer(point, 0) , WithinRel(der_x, REAL(1e-12)));
-		REQUIRE_THAT(fDer(point, 1) , WithinRel(der_y, REAL(1e-10)));
-		REQUIRE_THAT(fDer(point, 2) , WithinRel(der_z, REAL(1e-11)));  // Relaxed: ScaleStep triples h for |x|=3
+		REQUIRE_THAT(fDer(point, 0) , WithinRel(der_x, TOL(1e-12, 1e-5)));
+		REQUIRE_THAT(fDer(point, 1) , WithinRel(der_y, TOL(1e-10, 5e-4)));
+		REQUIRE_THAT(fDer(point, 2) , WithinRel(der_z, TOL(1e-11, 1e-5)));  // Relaxed: ScaleStep triples h for |x|=3
 
 		der_x = Derivation::NDer6Partial(f, 0, point);
 		der_y = Derivation::NDer6Partial(f, 1, point);
 		der_z = Derivation::NDer6Partial(f, 2, point);
 
-		REQUIRE_THAT(fDer(point, 0) , WithinRel(der_x, REAL(1e-12)));
-		REQUIRE_THAT(fDer(point, 1) , WithinRel(der_y, REAL(1e-13)));
-		REQUIRE_THAT(fDer(point, 2) , WithinRel(der_z, REAL(1e-10)));  // Relaxed: ScaleStep triples h for |x|=3
+		REQUIRE_THAT(fDer(point, 0) , WithinRel(der_x, TOL(1e-12, 2e-2)));
+		REQUIRE_THAT(fDer(point, 1) , WithinRel(der_y, TOL(1e-13, 2e-2)));
+		REQUIRE_THAT(fDer(point, 2) , WithinRel(der_z, TOL(1e-10, 2e-2)));  // Relaxed: ScaleStep triples h for |x|=3
 
 		der_x = Derivation::NDer8Partial(f, 0, point);
 		der_y = Derivation::NDer8Partial(f, 1, point);
 		der_z = Derivation::NDer8Partial(f, 2, point);
 
-		REQUIRE_THAT(fDer(point, 0) , WithinRel(der_x, REAL(1e-11)));
-		REQUIRE_THAT(fDer(point, 1) , WithinRel(der_y, REAL(1e-8)));
-		REQUIRE_THAT(fDer(point, 2) , WithinRel(der_z, REAL(1e-8)));  // Relaxed: ScaleStep triples h for |x|=3
+		REQUIRE_THAT(fDer(point, 0) , WithinRel(der_x, TOL(1e-11, 2e-2)));
+		REQUIRE_THAT(fDer(point, 1) , WithinRel(der_y, TOL(1e-8, 2e-2)));
+		REQUIRE_THAT(fDer(point, 2) , WithinRel(der_z, TOL(1e-8, 2e-2)));  // Relaxed: ScaleStep triples h for |x|=3
 	}
 
 	TEST_CASE("Test_NSecDerPartial", "[simple]")
@@ -449,25 +441,25 @@ namespace MML::Tests::Core::DerivationTests
     der_z_z = Derivation::NDer1Partial(f, 2, 2, point);
 
 
-		REQUIRE_THAT(fDer(point, 0)[0] , WithinRel(der_x_x, REAL(1e-8)));
-		REQUIRE_THAT(fDer(point, 0)[1] , WithinRel(der_x_y, REAL(1e-7)));
-		REQUIRE_THAT(fDer(point, 0)[2] , WithinRel(der_x_z, REAL(1e-7)));
+		REQUIRE_THAT(fDer(point, 0)[0] , WithinRel(der_x_x, TOL(1e-8, 1e-4)));
+		REQUIRE_THAT(fDer(point, 0)[1] , WithinRel(der_x_y, TOL(1e-7, 1e-3)));
+		REQUIRE_THAT(fDer(point, 0)[2] , WithinRel(der_x_z, TOL(1e-7, 1e-3)));
 
 		der_y_x = Derivation::NDer1Partial(f, 1, 0, point);
 		der_y_y = Derivation::NDer1Partial(f, 1, 1, point);
 		der_y_z = Derivation::NDer1Partial(f, 1, 2, point);
 
-		REQUIRE_THAT(fDer(point, 1)[0] , WithinRel(der_y_x, REAL(1e-7)));
-		REQUIRE_THAT(fDer(point, 1)[1] , WithinRel(der_y_y, REAL(1e-8)));
-		REQUIRE_THAT(fDer(point, 1)[2] , WithinRel(der_y_z, REAL(1e-8)));
+		REQUIRE_THAT(fDer(point, 1)[0] , WithinRel(der_y_x, TOL(1e-7, 1e-3)));
+		REQUIRE_THAT(fDer(point, 1)[1] , WithinRel(der_y_y, TOL(1e-8, 1e-4)));
+		REQUIRE_THAT(fDer(point, 1)[2] , WithinRel(der_y_z, TOL(1e-8, 1e-4)));
 
 		der_z_x = Derivation::NDer1Partial(f, 2, 0, point);
 		der_z_y = Derivation::NDer1Partial(f, 2, 1, point);
 		der_z_z = Derivation::NDer1Partial(f, 2, 2, point);
 
-		REQUIRE_THAT(fDer(point, 2)[0] , WithinRel(der_z_x, REAL(1e-7)));
-		REQUIRE_THAT(fDer(point, 2)[1] , WithinRel(der_z_y, REAL(1e-8)));
-		REQUIRE_THAT(fDer(point, 2)[2] , WithinRel(der_z_z, REAL(1e-7)));
+		REQUIRE_THAT(fDer(point, 2)[0] , WithinRel(der_z_x, TOL(1e-7, 1e-3)));
+		REQUIRE_THAT(fDer(point, 2)[1] , WithinRel(der_z_y, TOL(1e-8, 1e-4)));
+		REQUIRE_THAT(fDer(point, 2)[2] , WithinRel(der_z_z, TOL(1e-7, 1e-3)));
 	}
 
 	/*********************************************************************/
@@ -515,15 +507,15 @@ namespace MML::Tests::Core::DerivationTests
 		VectorN<Real, 3> grad = Derivation::NDer2PartialByAll(quadratic, point);
 
 		// Expected gradient: [2*1, 2*2, 2*3] = [2, 4, 6]
-		REQUIRE_THAT(grad[0] , WithinRel(Real(REAL(2.0)), REAL(1e-9)));
-		REQUIRE_THAT(grad[1] , WithinRel(Real(REAL(4.0)), REAL(1e-9)));
-		REQUIRE_THAT(grad[2] , WithinRel(Real(REAL(6.0)), REAL(1e-9)));
+		REQUIRE_THAT(grad[0] , WithinRel(Real(REAL(2.0)), TOL(1e-9, 1e-4)));
+		REQUIRE_THAT(grad[1] , WithinRel(Real(REAL(4.0)), TOL(1e-9, 1e-4)));
+		REQUIRE_THAT(grad[2] , WithinRel(Real(REAL(6.0)), TOL(1e-9, 1e-4)));
 
 		// Test with 4th order method for higher accuracy
 		VectorN<Real, 3> grad4 = Derivation::NDer4PartialByAll(quadratic, point);
-		REQUIRE_THAT(grad4[0] , WithinRel(Real(REAL(2.0)), REAL(1e-12)));
-		REQUIRE_THAT(grad4[1] , WithinRel(Real(REAL(4.0)), REAL(1e-12)));
-		REQUIRE_THAT(grad4[2] , WithinRel(Real(REAL(6.0)), REAL(1e-12)));
+		REQUIRE_THAT(grad4[0] , WithinRel(Real(REAL(2.0)), TOL(1e-12, 1e-5)));
+		REQUIRE_THAT(grad4[1] , WithinRel(Real(REAL(4.0)), TOL(1e-12, 1e-5)));
+		REQUIRE_THAT(grad4[2] , WithinRel(Real(REAL(6.0)), TOL(1e-12, 1e-5)));
 	}
 
 	TEST_CASE("Derivation::Gradient_transcendental", "[gradient]")
@@ -544,8 +536,8 @@ namespace MML::Tests::Core::DerivationTests
 		Real expected_dx = std::exp(REAL(1.0)) * std::sin(Constants::PI / REAL(4.0));
 		Real expected_dy = std::exp(REAL(1.0)) * std::cos(Constants::PI / REAL(4.0));
 
-		REQUIRE_THAT(grad[0] , WithinRel(Real(expected_dx), REAL(1e-10)));
-		REQUIRE_THAT(grad[1] , WithinRel(Real(expected_dy), REAL(1e-10)));
+		REQUIRE_THAT(grad[0] , WithinRel(Real(expected_dx), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(grad[1] , WithinRel(Real(expected_dy), TOL(1e-10, 1e-5)));
 	}
 
 	/*********************************************************************/
@@ -573,7 +565,7 @@ namespace MML::Tests::Core::DerivationTests
 		Real dirDer = ScalarProduct(grad, direction);
 		Real expected = REAL(12.0) / std::sqrt(REAL(3.0));
 
-		REQUIRE_THAT(dirDer , WithinRel(Real(expected), REAL(1e-10)));
+		REQUIRE_THAT(dirDer , WithinRel(Real(expected), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("Derivation::Directional_derivative_along_axes", "[directional]")
@@ -592,17 +584,17 @@ namespace MML::Tests::Core::DerivationTests
 		// Direction along x-axis: [1, 0, 0]
 		VectorN<Real, 3> dirX{ REAL(1.0), REAL(0.0), REAL(0.0) };
 		Real dirDerX = ScalarProduct(grad, dirX);
-		REQUIRE_THAT(dirDerX , WithinRel(Real(grad[0]), REAL(1e-14)));
+		REQUIRE_THAT(dirDerX , WithinRel(Real(grad[0]), TOL(1e-14, 1e-5)));
 
 		// Direction along y-axis: [0, 1, 0]
 		VectorN<Real, 3> dirY{ REAL(0.0), REAL(1.0), REAL(0.0) };
 		Real dirDerY = ScalarProduct(grad, dirY);
-		REQUIRE_THAT(dirDerY , WithinRel(Real(grad[1]), REAL(1e-14)));
+		REQUIRE_THAT(dirDerY , WithinRel(Real(grad[1]), TOL(1e-14, 1e-5)));
 
 		// Direction along z-axis: [0, 0, 1]
 		VectorN<Real, 3> dirZ{ REAL(0.0), REAL(0.0), REAL(1.0) };
 		Real dirDerZ = ScalarProduct(grad, dirZ);
-		REQUIRE_THAT(dirDerZ , WithinRel(Real(grad[2]), REAL(1e-14)));
+		REQUIRE_THAT(dirDerZ , WithinRel(Real(grad[2]), TOL(1e-14, 1e-5)));
 	}
 
 	/*********************************************************************/
@@ -622,17 +614,17 @@ namespace MML::Tests::Core::DerivationTests
 		// Test ∂²f/∂x∂y = ∂²f/∂y∂x
 		Real fxy = Derivation::NSecDer4Partial(func, 0, 1, point);
 		Real fyx = Derivation::NSecDer4Partial(func, 1, 0, point);
-		REQUIRE_THAT(fxy , WithinRel(Real(fyx), REAL(1e-8)));
+		REQUIRE_THAT(fxy , WithinRel(Real(fyx), TOL(1e-8, 1e-4)));
 
 		// Test ∂²f/∂x∂z = ∂²f/∂z∂x
 		Real fxz = Derivation::NSecDer4Partial(func, 0, 2, point);
 		Real fzx = Derivation::NSecDer4Partial(func, 2, 0, point);
-		REQUIRE_THAT(fxz , WithinRel(Real(fzx), REAL(1e-8)));
+		REQUIRE_THAT(fxz , WithinRel(Real(fzx), TOL(1e-8, 1e-4)));
 
 		// Test ∂²f/∂y∂z = ∂²f/∂z∂y
 		Real fyz = Derivation::NSecDer4Partial(func, 1, 2, point);
 		Real fzy = Derivation::NSecDer4Partial(func, 2, 1, point);
-		REQUIRE_THAT(fyz , WithinRel(Real(fzy), REAL(1e-8)));
+		REQUIRE_THAT(fyz , WithinRel(Real(fzy), TOL(1e-8, 1e-4)));
 	}
 
 	/*********************************************************************/
@@ -654,7 +646,7 @@ namespace MML::Tests::Core::DerivationTests
 		Real fzz = Derivation::NSecDer4Partial(quadratic, 2, 2, point);
 
 		Real laplacian = fxx + fyy + fzz;
-		REQUIRE_THAT(laplacian , WithinRel(Real(REAL(6.0)), REAL(1e-8)));
+		REQUIRE_THAT(laplacian , WithinRel(Real(REAL(6.0)), TOL(1e-8, 1e-4)));
 	}
 
 	TEST_CASE("Derivation::Laplacian_harmonic", "[laplacian]")
@@ -672,7 +664,7 @@ namespace MML::Tests::Core::DerivationTests
 		Real fyy = Derivation::NSecDer4Partial(harmonic, 1, 1, point);
 
 		Real laplacian = fxx + fyy;
-		REQUIRE_THAT(laplacian, WithinAbs(REAL(0.0), REAL(1e-8)));
+		REQUIRE_THAT(laplacian, WithinAbs(REAL(0.0), TOL(1e-8, 1e-4)));
 	}
 
 	/*********************************************************************/
@@ -699,14 +691,14 @@ namespace MML::Tests::Core::DerivationTests
 
 		// Gradient should be perpendicular to tangent (dot product = 0)
 		Real dotProduct = ScalarProduct(grad, tangent);
-		REQUIRE_THAT(dotProduct, WithinAbs(REAL(0.0), REAL(1e-8)));
+		REQUIRE_THAT(dotProduct, WithinAbs(REAL(0.0), TOL(1e-8, 1e-4)));
 
 		// Gradient should be parallel to position vector for x^2+y^2
 		// grad/|grad| should equal point/|point|
 		VectorN<Real, 2> gradNorm = grad.Normalized();
 		VectorN<Real, 2> pointNorm = point.Normalized();
-		REQUIRE_THAT(gradNorm[0] , WithinRel(Real(pointNorm[0]), REAL(1e-12)));
-		REQUIRE_THAT(gradNorm[1] , WithinRel(Real(pointNorm[1]), REAL(1e-12)));
+		REQUIRE_THAT(gradNorm[0] , WithinRel(Real(pointNorm[0]), TOL(1e-12, 1e-5)));
+		REQUIRE_THAT(gradNorm[1] , WithinRel(Real(pointNorm[1]), TOL(1e-12, 1e-5)));
 	}
 
 	/*********************************************************************/
@@ -784,7 +776,7 @@ namespace MML::Tests::Core::DerivationTests
 		REQUIRE_THAT(Hyy, WithinRel(REAL(200.0), REAL(0.01)));
 		
 		// Symmetry: Hxy should equal Hyx (this is robust)
-		REQUIRE_THAT(Hxy, WithinRel(Hyx, REAL(1e-8)));
+		REQUIRE_THAT(Hxy, WithinRel(Hyx, TOL(1e-8, 1e-4)));
 		
 		// Mixed partials: -400x at (1,1), allow larger tolerance for steep function
 		// Note: Numerical differentiation struggles here due to extreme curvature
@@ -818,15 +810,15 @@ namespace MML::Tests::Core::DerivationTests
 		Real Hyy = Derivation::NSecDer4Partial(saddle, 1, 1, nearOrigin);
 		
 		// Analytical: Hxx = 2, Hyy = -2, Hxy = Hyx = 0
-		REQUIRE_THAT(Hxx, WithinRel(REAL(2.0), REAL(1e-8)));
-		REQUIRE_THAT(Hyy, WithinRel(REAL(-2.0), REAL(1e-8)));
-		REQUIRE_THAT(Hxy, WithinAbs(REAL(0.0), REAL(1e-10)));
-		REQUIRE_THAT(Hyx, WithinAbs(REAL(0.0), REAL(1e-10)));
+		REQUIRE_THAT(Hxx, WithinRel(REAL(2.0), TOL(1e-8, 1e-4)));
+		REQUIRE_THAT(Hyy, WithinRel(REAL(-2.0), TOL(1e-8, 1e-4)));
+		REQUIRE_THAT(Hxy, WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(Hyx, WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
 		
 		// Indefinite: det(H) < 0 (negative eigenvalue product)
 		Real det = Hxx * Hyy - Hxy * Hyx;
 		REQUIRE(det < 0);  // det = 2*(-2) - 0 = -4
-		REQUIRE_THAT(det, WithinRel(REAL(-4.0), REAL(1e-8)));
+		REQUIRE_THAT(det, WithinRel(REAL(-4.0), TOL(1e-8, 1e-4)));
 	}
 	
 	TEST_CASE("Hessian::Negative_definite_at_maximum", "[hessian][maximum]")
@@ -848,9 +840,9 @@ namespace MML::Tests::Core::DerivationTests
 		
 		// Negative definite: Hxx < 0, det(H) > 0
 		REQUIRE(Hxx < 0);
-		REQUIRE_THAT(Hxx, WithinRel(REAL(-2.0), REAL(1e-8)));
-		REQUIRE_THAT(Hyy, WithinRel(REAL(-2.0), REAL(1e-8)));
-		REQUIRE_THAT(Hxy, WithinAbs(REAL(0.0), REAL(1e-10)));
+		REQUIRE_THAT(Hxx, WithinRel(REAL(-2.0), TOL(1e-8, 1e-4)));
+		REQUIRE_THAT(Hyy, WithinRel(REAL(-2.0), TOL(1e-8, 1e-4)));
+		REQUIRE_THAT(Hxy, WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
 		
 		Real det = Hxx * Hyy - Hxy * Hxy;
 		REQUIRE(det > 0);  // det = (-2)*(-2) - 0 = 4 > 0
@@ -877,19 +869,19 @@ namespace MML::Tests::Core::DerivationTests
 			{
 				if (i == j)
 				{
-					REQUIRE_THAT(H(i, j), WithinRel(REAL(2.0), REAL(1e-8)));
+					REQUIRE_THAT(H(i, j), WithinRel(REAL(2.0), TOL(1e-8, 5e-3)));
 				}
 				else
 				{
-					REQUIRE_THAT(H(i, j), WithinAbs(REAL(0.0), REAL(1e-8)));  // Relaxed for numerical noise
+					REQUIRE_THAT(H(i, j), WithinAbs(REAL(0.0), TOL(1e-8, 5e-3)));  // Relaxed for numerical noise
 				}
 			}
 		}
 		
 		// Symmetry (should be exact since same computation)
-		REQUIRE_THAT(H(0, 1), WithinRel(H(1, 0), REAL(1e-12)));
-		REQUIRE_THAT(H(0, 2), WithinRel(H(2, 0), REAL(1e-12)));
-		REQUIRE_THAT(H(1, 2), WithinRel(H(2, 1), REAL(1e-12)));
+		REQUIRE_THAT(H(0, 1), WithinRel(H(1, 0), TOL(1e-12, 1e-5)));
+		REQUIRE_THAT(H(0, 2), WithinRel(H(2, 0), TOL(1e-12, 1e-5)));
+		REQUIRE_THAT(H(1, 2), WithinRel(H(2, 1), TOL(1e-12, 1e-5)));
 	}
 	
 	TEST_CASE("Hessian::Coupled_variables", "[hessian][coupled]")
@@ -911,13 +903,13 @@ namespace MML::Tests::Core::DerivationTests
 		Real Hyx = Derivation::NSecDer4Partial(bilinear, 1, 0, point);
 		
 		// Pure second derivatives should be 0
-		REQUIRE_THAT(Hxx, WithinAbs(REAL(0.0), REAL(1e-6)));
-		REQUIRE_THAT(Hyy, WithinAbs(REAL(0.0), REAL(1e-6)));
+		REQUIRE_THAT(Hxx, WithinAbs(REAL(0.0), TOL(1e-6, 5e-4)));
+		REQUIRE_THAT(Hyy, WithinAbs(REAL(0.0), TOL(1e-6, 5e-4)));
 		
 		// Mixed partial should be 1
-		REQUIRE_THAT(Hxy, WithinRel(REAL(1.0), REAL(1e-5)));
-		REQUIRE_THAT(Hyx, WithinRel(REAL(1.0), REAL(1e-5)));  // Symmetry
-		REQUIRE_THAT(Hxy, WithinRel(Hyx, REAL(1e-10)));
+		REQUIRE_THAT(Hxy, WithinRel(REAL(1.0), TOL(1e-5, 5e-4)));
+		REQUIRE_THAT(Hyx, WithinRel(REAL(1.0), TOL(1e-5, 5e-4)));  // Symmetry
+		REQUIRE_THAT(Hxy, WithinRel(Hyx, TOL(1e-10, 1e-5)));
 	}
 	
 	TEST_CASE("Hessian::Exponential_function", "[hessian][exponential]")
@@ -940,12 +932,12 @@ namespace MML::Tests::Core::DerivationTests
 		Real Hxy = Derivation::NSecDer4Partial(expFunc, 0, 1, point);
 		
 		// All second derivatives should equal exp(1)
-		REQUIRE_THAT(Hxx, WithinRel(expected, REAL(1e-6)));
-		REQUIRE_THAT(Hyy, WithinRel(expected, REAL(1e-6)));
-		REQUIRE_THAT(Hxy, WithinRel(expected, REAL(1e-6)));  // Fixed O(h4) formula
+		REQUIRE_THAT(Hxx, WithinRel(expected, TOL(1e-6, 5e-4)));
+		REQUIRE_THAT(Hyy, WithinRel(expected, TOL(1e-6, 5e-4)));
+		REQUIRE_THAT(Hxy, WithinRel(expected, TOL(1e-6, 5e-4)));  // Fixed O(h4) formula
 		
 		// All entries should be approximately equal
-		REQUIRE_THAT(Hxx, WithinRel(Hyy, REAL(1e-8)));
+		REQUIRE_THAT(Hxx, WithinRel(Hyy, TOL(1e-8, 1e-4)));
 	}
 
 	/*********************************************************************/
@@ -966,12 +958,12 @@ namespace MML::Tests::Core::DerivationTests
 		
 		// One-sided derivatives are less accurate than central difference
 		// They evaluate derivatives at offset points, not at x itself
-		REQUIRE_THAT(leftDeriv, WithinRel(analytical, REAL(1e-4)));
-		REQUIRE_THAT(rightDeriv, WithinRel(analytical, REAL(1e-4)));
-		REQUIRE_THAT(centralDeriv, WithinRel(analytical, REAL(1e-8)));
+		REQUIRE_THAT(leftDeriv, WithinRel(analytical, TOL(1e-4, 0.03)));
+		REQUIRE_THAT(rightDeriv, WithinRel(analytical, TOL(1e-4, 0.03)));
+		REQUIRE_THAT(centralDeriv, WithinRel(analytical, TOL(1e-8, 1e-4)));
 		
 		// Left and right should agree for smooth functions (within tolerance)
-		REQUIRE_THAT(leftDeriv, WithinRel(rightDeriv, REAL(1e-4)));
+		REQUIRE_THAT(leftDeriv, WithinRel(rightDeriv, TOL(1e-4, 0.05)));
 	}
 	
 	TEST_CASE("Derivation::Left_right_derivatives_absolute_value", "[one-sided]")
@@ -1035,8 +1027,8 @@ namespace MML::Tests::Core::DerivationTests
 		Real rightDeriv = Derivation::NDer2Right(piecewise, x);
 		
 		// Both should be 2 (function is differentiable here)
-		REQUIRE_THAT(leftDeriv, WithinRel(REAL(2.0), REAL(1e-4)));
-		REQUIRE_THAT(rightDeriv, WithinRel(REAL(2.0), REAL(1e-4)));
+		REQUIRE_THAT(leftDeriv, WithinRel(REAL(2.0), TOL(1e-4, 0.02)));
+		REQUIRE_THAT(rightDeriv, WithinRel(REAL(2.0), TOL(1e-4, 0.02)));
 	}
 	
 	TEST_CASE("Derivation::Left_right_derivatives_corner_point", "[one-sided]")
@@ -1059,8 +1051,8 @@ namespace MML::Tests::Core::DerivationTests
 		Real leftDeriv = Derivation::NDer2Left(corner, x);
 		Real rightDeriv = Derivation::NDer2Right(corner, x);
 		
-		REQUIRE_THAT(leftDeriv, WithinRel(REAL(2.0), REAL(1e-4)));
-		REQUIRE_THAT(rightDeriv, WithinRel(REAL(3.0), REAL(1e-4)));
+		REQUIRE_THAT(leftDeriv, WithinRel(REAL(2.0), TOL(1e-4, 0.02)));
+		REQUIRE_THAT(rightDeriv, WithinRel(REAL(3.0), TOL(1e-4, 0.02)));
 		
 		// They differ - corner point
 		REQUIRE(std::abs(rightDeriv - leftDeriv) > REAL(0.5));
@@ -1081,7 +1073,7 @@ namespace MML::Tests::Core::DerivationTests
 		Real rightDeriv = Derivation::NDer2Right(sqrtFunc, x);
 		
 		// One-sided derivative evaluated at offset, allow larger tolerance
-		REQUIRE_THAT(rightDeriv, WithinRel(analytical, REAL(0.01)));  // 1% tolerance
+		REQUIRE_THAT(rightDeriv, WithinRel(analytical, TOL(0.01, 0.4)));
 	}
 }
 

@@ -114,7 +114,7 @@ namespace   // Anonymous namespace for test helpers
                 Real analytical = J_analytical(func_comp, deriv_var);
                 
                 INFO("Component " << func_comp << ", derivative w.r.t. x[" << deriv_var << "]");
-                REQUIRE_THAT(numerical, WithinAbs(analytical, REAL(1e-6)));  // Central difference better
+                REQUIRE_THAT(numerical, WithinAbs(analytical, TOL(1e-6, 1e-3)));  // Central difference better
             }
         }
     }
@@ -134,7 +134,7 @@ namespace   // Anonymous namespace for test helpers
                 Real analytical = J_analytical(func_comp, deriv_var);
                 
                 INFO("Component " << func_comp << ", derivative w.r.t. x[" << deriv_var << "]");
-                REQUIRE_THAT(numerical, WithinAbs(analytical, REAL(1e-8)));  // 4th order very accurate
+                REQUIRE_THAT(numerical, WithinAbs(analytical, TOL(1e-8, 1e-4)));  // 4th order very accurate
             }
         }
     }
@@ -154,7 +154,7 @@ namespace   // Anonymous namespace for test helpers
                 Real analytical = J_analytical(func_comp, deriv_var);
                 
                 INFO("Component " << func_comp << ", derivative w.r.t. x[" << deriv_var << "]");
-                REQUIRE_THAT(numerical, WithinAbs(analytical, REAL(1e-9)));  // 6th order excellent
+                REQUIRE_THAT(numerical, WithinAbs(analytical, TOL(1e-9, 1e-4)));  // 6th order excellent
             }
         }
     }
@@ -174,7 +174,7 @@ namespace   // Anonymous namespace for test helpers
                 Real analytical = J_analytical(func_comp, deriv_var);
                 
                 INFO("Component " << func_comp << ", derivative w.r.t. x[" << deriv_var << "]");
-                REQUIRE_THAT(numerical, WithinAbs(analytical, REAL(1e-10)));  // 8th order best
+                REQUIRE_THAT(numerical, WithinAbs(analytical, TOL(1e-10, 1e-5)));  // 8th order best
             }
         }
     }
@@ -197,9 +197,9 @@ namespace   // Anonymous namespace for test helpers
             VectorN<Real, 3> gradient_numerical = NDer1PartialByAll(func, func_comp, point);
             
             INFO("Testing gradient of component " << func_comp);
-            REQUIRE_THAT(gradient_numerical[0], WithinAbs(J_analytical(func_comp, 0), REAL(1e-5)));
-            REQUIRE_THAT(gradient_numerical[1], WithinAbs(J_analytical(func_comp, 1), REAL(1e-5)));
-            REQUIRE_THAT(gradient_numerical[2], WithinAbs(J_analytical(func_comp, 2), REAL(1e-5)));
+            REQUIRE_THAT(gradient_numerical[0], WithinAbs(J_analytical(func_comp, 0), TOL(1e-5, 5e-3)));
+            REQUIRE_THAT(gradient_numerical[1], WithinAbs(J_analytical(func_comp, 1), TOL(1e-5, 5e-3)));
+            REQUIRE_THAT(gradient_numerical[2], WithinAbs(J_analytical(func_comp, 2), TOL(1e-5, 5e-3)));
         }
     }
     
@@ -216,9 +216,9 @@ namespace   // Anonymous namespace for test helpers
             VectorN<Real, 3> gradient_numerical = NDer2PartialByAll(func, func_comp, point);
             
             INFO("Testing gradient of component " << func_comp);
-            REQUIRE_THAT(gradient_numerical[0], WithinAbs(J_analytical(func_comp, REAL(0)), 1e-6));
-            REQUIRE_THAT(gradient_numerical[1], WithinAbs(J_analytical(func_comp, REAL(1)), 1e-6));
-            REQUIRE_THAT(gradient_numerical[2], WithinAbs(J_analytical(func_comp, REAL(2)), 1e-6));
+            REQUIRE_THAT(gradient_numerical[0], WithinAbs(J_analytical(func_comp, REAL(0)), TOL(1e-6, 1e-3)));
+            REQUIRE_THAT(gradient_numerical[1], WithinAbs(J_analytical(func_comp, REAL(1)), TOL(1e-6, 1e-3)));
+            REQUIRE_THAT(gradient_numerical[2], WithinAbs(J_analytical(func_comp, REAL(2)), TOL(1e-6, 1e-3)));
         }
     }
     
@@ -234,9 +234,9 @@ namespace   // Anonymous namespace for test helpers
             VectorN<Real, 3> gradient_numerical = NDer4PartialByAll(func, func_comp, point);
             
             INFO("Testing gradient of component " << func_comp);
-            REQUIRE_THAT(gradient_numerical[0], WithinAbs(J_analytical(func_comp, REAL(0)), 1e-8));
-            REQUIRE_THAT(gradient_numerical[1], WithinAbs(J_analytical(func_comp, REAL(1)), 1e-8));
-            REQUIRE_THAT(gradient_numerical[2], WithinAbs(J_analytical(func_comp, REAL(2)), 1e-8));
+            REQUIRE_THAT(gradient_numerical[0], WithinAbs(J_analytical(func_comp, REAL(0)), TOL(1e-8, 1e-4)));
+            REQUIRE_THAT(gradient_numerical[1], WithinAbs(J_analytical(func_comp, REAL(1)), TOL(1e-8, 1e-4)));
+            REQUIRE_THAT(gradient_numerical[2], WithinAbs(J_analytical(func_comp, REAL(2)), TOL(1e-8, 1e-4)));
         }
     }
 
@@ -259,7 +259,7 @@ namespace   // Anonymous namespace for test helpers
             for (int j = 0; j < 3; j++)
             {
                 INFO("Jacobian element J(" << i << "," << j << ")");
-                REQUIRE_THAT(J_numerical(i, j), WithinAbs(J_analytical(i, j), REAL(1e-5)));
+                REQUIRE_THAT(J_numerical(i, j), WithinAbs(J_analytical(i, j), TOL(1e-5, 5e-4)));
             }
         }
     }
@@ -278,7 +278,7 @@ namespace   // Anonymous namespace for test helpers
             for (int j = 0; j < 3; j++)
             {
                 INFO("Jacobian element J(" << i << "," << j << ")");
-                REQUIRE_THAT(J_numerical(i, j), WithinAbs(J_analytical(i, j), 1e-6));
+                REQUIRE_THAT(J_numerical(i, j), WithinAbs(J_analytical(i, j), TOL(1e-6, 5e-4)));
             }
         }
     }
@@ -296,7 +296,7 @@ namespace   // Anonymous namespace for test helpers
             for (int j = 0; j < 3; j++)
             {
                 INFO("Jacobian element J(" << i << "," << j << ")");
-                REQUIRE_THAT(J_numerical(i, j), WithinAbs(J_analytical(i, j), 1e-8));
+                REQUIRE_THAT(J_numerical(i, j), WithinAbs(J_analytical(i, j), TOL(1e-8, 1e-4)));
             }
         }
     }
@@ -314,7 +314,7 @@ namespace   // Anonymous namespace for test helpers
             for (int j = 0; j < 3; j++)
             {
                 INFO("Jacobian element J(" << i << "," << j << ")");
-                REQUIRE_THAT(J_numerical(i, j), WithinAbs(J_analytical(i, j), 1e-9));
+                REQUIRE_THAT(J_numerical(i, j), WithinAbs(J_analytical(i, j), TOL(1e-9, 1e-4)));
             }
         }
     }
@@ -332,7 +332,7 @@ namespace   // Anonymous namespace for test helpers
             for (int j = 0; j < 3; j++)
             {
                 INFO("Jacobian element J(" << i << "," << j << ")");
-                REQUIRE_THAT(J_numerical(i, j), WithinAbs(J_analytical(i, j), 1e-10));
+                REQUIRE_THAT(J_numerical(i, j), WithinAbs(J_analytical(i, j), TOL(1e-10, 1e-5)));
             }
         }
     }
@@ -374,12 +374,12 @@ namespace   // Anonymous namespace for test helpers
 
         // Allow a tiny tolerance for roundoff: higher-order methods should
         // generally be no worse than lower-order, but floating-point noise can
-        // make the inequalities non-strict at the 1e-14 scale.
+        // make the inequalities non-strict at the TOL(1e-14, 1e-5) scale.
         REQUIRE(error4 <= error2 + REAL(5e-14));  // 4th order no worse than 2nd (tolerance for roundoff)
         REQUIRE(error6 <= error4 + REAL(5e-14));  // 6th order no worse than 4th (tolerance for roundoff)
         // Note: NDer8 may not always be better than NDer6 due to roundoff errors
         // with very small step sizes, so we just verify both are very accurate
-        REQUIRE(error8 < 1e-10);   // 8th order still very accurate
+        REQUIRE(error8 < TOL(1e-10, 1e-3));   // 8th order still very accurate
     }
 
     ///////////////////////////////////////////////////////////////////////////
@@ -410,7 +410,7 @@ namespace   // Anonymous namespace for test helpers
             {
                 for (int j = 0; j < 3; j++)
                 {
-                    REQUIRE_THAT(J_numerical(i, j), WithinAbs(J_analytical(i, j), 1e-7));
+                    REQUIRE_THAT(J_numerical(i, j), WithinAbs(J_analytical(i, j), TOL(1e-7, 1e-3)));
                 }
             }
         }

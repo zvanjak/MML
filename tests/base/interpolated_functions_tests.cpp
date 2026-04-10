@@ -2,6 +2,7 @@
 #define __MML_INTERPOLATED_FUNCTIONS_TESTS_H
 
 #include <catch2/catch_all.hpp>
+#include "../TestPrecision.h"
 
 #include <vector>
 #include <cmath>
@@ -46,7 +47,7 @@ namespace MML::Tests::Core::InterpolatedFunctionsTests
 	//////////////////////////////////////////////////////////////////////////////
 
 	TEST_CASE("LinearInterp_sin_function_accuracy", "[interpolation][linear]") {
-		RealFunction f{ [](Real x) { return sin(x); } };
+		RealFunction f{ [](Real x) -> Real { return sin(x); } };
 
 		Vector<Real> vec_x, vec_y;
 		CreateInterpolatedValues(f, 0.0, 2.0 * Constants::PI, 100, vec_x, vec_y);
@@ -69,7 +70,7 @@ namespace MML::Tests::Core::InterpolatedFunctionsTests
 		LinearInterpRealFunc interp(x, y);
 
 		for (int i = 0; i < x.size(); i++) {
-			REQUIRE_THAT(interp(x[i]), WithinAbs(y[i], 1e-14));
+			REQUIRE_THAT(interp(x[i]), WithinAbs(y[i], TOL(1e-14, 1e-5)));
 		}
 	}
 
@@ -100,13 +101,13 @@ namespace MML::Tests::Core::InterpolatedFunctionsTests
 		PolynomInterpRealFunc interp(x, y, 3);  // 3-point polynomial
 
 		// Test at intermediate points
-		REQUIRE_THAT(interp(0.5), WithinAbs(f(0.5), 1e-12));
-		REQUIRE_THAT(interp(1.5), WithinAbs(f(1.5), 1e-12));
+		REQUIRE_THAT(interp(0.5), WithinAbs(f(0.5), TOL(1e-12, 1e-5)));
+		REQUIRE_THAT(interp(1.5), WithinAbs(f(1.5), TOL(1e-12, 1e-5)));
 	}
 
 	TEST_CASE("PolynomInterp_error_estimate", "[interpolation][polynomial]") {
 		// Error estimate from Neville's algorithm (can be negative as it's a signed difference)
-		RealFunction f{ [](Real x) { return cos(x); } };
+		RealFunction f{ [](Real x) -> Real { return cos(x); } };
 
 		Vector<Real> vec_x, vec_y;
 		CreateInterpolatedValues(f, 0.0, Constants::PI, 20, vec_x, vec_y);
@@ -132,12 +133,12 @@ namespace MML::Tests::Core::InterpolatedFunctionsTests
 		SplineInterpRealFunc spline(x, y);
 
 		for (int i = 0; i < x.size(); i++) {
-			REQUIRE_THAT(spline(x[i]), WithinAbs(y[i], 1e-12));
+			REQUIRE_THAT(spline(x[i]), WithinAbs(y[i], TOL(1e-12, 1e-5)));
 		}
 	}
 
 	TEST_CASE("SplineInterp_sin_high_accuracy", "[interpolation][spline]") {
-		RealFunction f{ [](Real x) { return sin(x); } };
+		RealFunction f{ [](Real x) -> Real { return sin(x); } };
 
 		Vector<Real> vec_x, vec_y;
 		CreateInterpolatedValues(f, 0.0, 2.0 * Constants::PI, 20, vec_x, vec_y);
@@ -154,8 +155,8 @@ namespace MML::Tests::Core::InterpolatedFunctionsTests
 
 	TEST_CASE("SplineInterp_derivative_cos", "[interpolation][spline][derivative]") {
 		// For sin(x), derivative should be cos(x)
-		RealFunction f{ [](Real x) { return sin(x); } };
-		RealFunction df{ [](Real x) { return cos(x); } };
+		RealFunction f{ [](Real x) -> Real { return sin(x); } };
+		RealFunction df{ [](Real x) -> Real { return cos(x); } };
 
 		Vector<Real> vec_x, vec_y;
 		CreateInterpolatedValues(f, 0.0, Constants::PI, 50, vec_x, vec_y);
@@ -173,8 +174,8 @@ namespace MML::Tests::Core::InterpolatedFunctionsTests
 
 	TEST_CASE("SplineInterp_second_derivative_negative_sin", "[interpolation][spline][derivative]") {
 		// For sin(x), second derivative should be -sin(x)
-		RealFunction f{ [](Real x) { return sin(x); } };
-		RealFunction ddf{ [](Real x) { return -sin(x); } };
+		RealFunction f{ [](Real x) -> Real { return sin(x); } };
+		RealFunction ddf{ [](Real x) -> Real { return -sin(x); } };
 
 		Vector<Real> vec_x, vec_y;
 		CreateInterpolatedValues(f, 0.0, Constants::PI, 50, vec_x, vec_y);
@@ -207,7 +208,7 @@ namespace MML::Tests::Core::InterpolatedFunctionsTests
 
 	TEST_CASE("SplineInterp_integration_sin", "[interpolation][spline][integration]") {
 		// Integrate sin(x) from 0 to pi, exact result is 2
-		RealFunction f{ [](Real x) { return sin(x); } };
+		RealFunction f{ [](Real x) -> Real { return sin(x); } };
 
 		Vector<Real> vec_x, vec_y;
 		CreateInterpolatedValues(f, 0.0, Constants::PI, 20, vec_x, vec_y);
@@ -222,7 +223,7 @@ namespace MML::Tests::Core::InterpolatedFunctionsTests
 
 	TEST_CASE("SplineInterp_clamped_boundary", "[interpolation][spline]") {
 		// Test clamped spline with known boundary derivatives
-		RealFunction f{ [](Real x) { return sin(x); } };
+		RealFunction f{ [](Real x) -> Real { return sin(x); } };
 		Real yp1 = cos(0.0);   // derivative at x=0: cos(0) = 1
 		Real ypn = cos(Constants::PI);  // derivative at x=π: cos(π) = -1
 
@@ -244,8 +245,8 @@ namespace MML::Tests::Core::InterpolatedFunctionsTests
 		SplineInterpRealFunc spline(x, y);  // natural spline by default
 
 		// Check second derivatives at endpoints
-		REQUIRE_THAT(spline.GetSecondDerivative(0), WithinAbs(0.0, 1e-10));
-		REQUIRE_THAT(spline.GetSecondDerivative(4), WithinAbs(0.0, 1e-10));
+		REQUIRE_THAT(spline.GetSecondDerivative(0), WithinAbs(0.0, TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(spline.GetSecondDerivative(4), WithinAbs(0.0, TOL(1e-10, 1e-5)));
 	}
 
 	//////////////////////////////////////////////////////////////////////////////
@@ -254,7 +255,7 @@ namespace MML::Tests::Core::InterpolatedFunctionsTests
 
 	TEST_CASE("Spline_more_accurate_than_linear", "[interpolation][comparison]") {
 		// Spline should be more accurate than linear for smooth functions
-		RealFunction f{ [](Real x) { return exp(-x) * cos(2 * x); } };
+		RealFunction f{ [](Real x) -> Real { return static_cast<Real>(exp(-x) * cos(2 * x)); } };
 
 		Vector<Real> vec_x, vec_y;
 		CreateInterpolatedValues(f, 0.0, 3.0, 15, vec_x, vec_y);
@@ -353,7 +354,7 @@ namespace MML::Tests::Core::InterpolatedFunctionsTests
 		SplineInterpRealFunc spline(x, y);
 
 		// Should interpolate linearly between two points
-		REQUIRE_THAT(spline(0.5), WithinAbs(0.5, 1e-10));
+		REQUIRE_THAT(spline(0.5), WithinAbs(0.5, TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("Interp_handles_negative_x_values", "[interpolation][edge]") {
@@ -396,7 +397,7 @@ namespace MML::Tests::Core::InterpolatedFunctionsTests
 
 		// Should be exact at data points
 		for (int i = 0; i < x.size(); i++) {
-			REQUIRE_THAT(interp(x[i]), WithinAbs(y[i], 1e-10));
+			REQUIRE_THAT(interp(x[i]), WithinAbs(y[i], TOL(1e-10, 1e-5)));
 		}
 	}
 
@@ -421,7 +422,7 @@ namespace MML::Tests::Core::InterpolatedFunctionsTests
 
 	TEST_CASE("BarycentricInterp_smooth_function", "[interpolation][barycentric]") {
 		// Barycentric rational interpolation - should be very stable
-		RealFunction f{ [](Real x) { return sin(x); } };
+		RealFunction f{ [](Real x) -> Real { return sin(x); } };
 
 		Vector<Real> vec_x, vec_y;
 		CreateInterpolatedValues(f, 0.0, Constants::PI, 10, vec_x, vec_y);
@@ -444,13 +445,13 @@ namespace MML::Tests::Core::InterpolatedFunctionsTests
 
 		// Should be exact at data points
 		for (int i = 0; i < x.size(); i++) {
-			REQUIRE_THAT(interp(x[i]), WithinAbs(y[i], 1e-10));
+			REQUIRE_THAT(interp(x[i]), WithinAbs(y[i], TOL(1e-10, 1e-5)));
 		}
 	}
 
 	TEST_CASE("BarycentricInterp_no_poles", "[interpolation][barycentric]") {
 		// Unlike rational interpolation, barycentric should be pole-free
-		RealFunction f{ [](Real x) { return exp(-x * x); } };
+		RealFunction f{ [](Real x) -> Real { return static_cast<Real>(exp(-x * x)); } };
 
 		Vector<Real> vec_x, vec_y;
 		CreateInterpolatedValues(f, -2.0, 2.0, 12, vec_x, vec_y);
@@ -485,9 +486,9 @@ namespace MML::Tests::Core::InterpolatedFunctionsTests
 
 		BilinearInterp2D interp(x1, x2, y);
 
-		REQUIRE_THAT(interp(0.5, 0.5), WithinAbs(5.0, 1e-10));
-		REQUIRE_THAT(interp(2.5, 2.5), WithinAbs(5.0, 1e-10));
-		REQUIRE_THAT(interp(3.7, 1.2), WithinAbs(5.0, 1e-10));
+		REQUIRE_THAT(interp(0.5, 0.5), WithinAbs(5.0, TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(interp(2.5, 2.5), WithinAbs(5.0, TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(interp(3.7, 1.2), WithinAbs(5.0, TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("BilinearInterp_linear_function", "[interpolation][2d]") {
@@ -505,9 +506,9 @@ namespace MML::Tests::Core::InterpolatedFunctionsTests
 		BilinearInterp2D interp(x1, x2, y);
 
 		// Test at intermediate points
-		REQUIRE_THAT(interp(0.5, 0.5), WithinAbs(1.0, 1e-10));
-		REQUIRE_THAT(interp(1.5, 2.5), WithinAbs(4.0, 1e-10));
-		REQUIRE_THAT(interp(2.7, 3.3), WithinAbs(6.0, 1e-10));
+		REQUIRE_THAT(interp(0.5, 0.5), WithinAbs(1.0, TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(interp(1.5, 2.5), WithinAbs(4.0, TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(interp(2.7, 3.3), WithinAbs(6.0, TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("BilinearInterp_exact_at_grid_points", "[interpolation][2d]") {
@@ -526,7 +527,7 @@ namespace MML::Tests::Core::InterpolatedFunctionsTests
 		// Should be exact at grid points
 		for (int i = 0; i < nx; i++) {
 			for (int j = 0; j < ny; j++) {
-				REQUIRE_THAT(interp(x1[i], x2[j]), WithinAbs(y[i][j], 1e-12));
+				REQUIRE_THAT(interp(x1[i], x2[j]), WithinAbs(y[i][j], TOL(1e-12, 1e-5)));
 			}
 		}
 	}
@@ -574,9 +575,9 @@ namespace MML::Tests::Core::InterpolatedFunctionsTests
 		Real val, dz_dx1, dz_dx2;
 		interp.interpWithDerivatives(1.5, 2.5, val, dz_dx1, dz_dx2);
 
-		REQUIRE_THAT(val, WithinAbs(2.0 * 1.5 + 3.0 * 2.5, 1e-10));
-		REQUIRE_THAT(dz_dx1, WithinAbs(2.0, 1e-10));
-		REQUIRE_THAT(dz_dx2, WithinAbs(3.0, 1e-10));
+		REQUIRE_THAT(val, WithinAbs(2.0 * 1.5 + 3.0 * 2.5, TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(dz_dx1, WithinAbs(2.0, TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(dz_dx2, WithinAbs(3.0, TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("BilinearInterp_grid_info", "[interpolation][2d]") {
@@ -614,9 +615,9 @@ namespace MML::Tests::Core::InterpolatedFunctionsTests
 
 		BicubicSplineInterp2D interp(x1, x2, z);
 
-		REQUIRE_THAT(interp(0.5, 0.5), WithinAbs(7.5, 1e-10));
-		REQUIRE_THAT(interp(2.5, 2.5), WithinAbs(7.5, 1e-10));
-		REQUIRE_THAT(interp(3.7, 1.2), WithinAbs(7.5, 1e-10));
+		REQUIRE_THAT(interp(0.5, 0.5), WithinAbs(7.5, TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(interp(2.5, 2.5), WithinAbs(7.5, TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(interp(3.7, 1.2), WithinAbs(7.5, TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("BicubicSplineInterp_linear_function", "[interpolation][2d][bicubic]") {
@@ -633,9 +634,9 @@ namespace MML::Tests::Core::InterpolatedFunctionsTests
 
 		BicubicSplineInterp2D interp(x1, x2, z);
 
-		REQUIRE_THAT(interp(0.5, 0.5), WithinAbs(1.0, 1e-8));
-		REQUIRE_THAT(interp(1.5, 2.5), WithinAbs(4.0, 1e-8));
-		REQUIRE_THAT(interp(2.7, 3.3), WithinAbs(6.0, 1e-8));
+		REQUIRE_THAT(interp(0.5, 0.5), WithinAbs(1.0, TOL(1e-8, 1e-4)));
+		REQUIRE_THAT(interp(1.5, 2.5), WithinAbs(4.0, TOL(1e-8, 1e-4)));
+		REQUIRE_THAT(interp(2.7, 3.3), WithinAbs(6.0, TOL(1e-8, 1e-4)));
 	}
 
 	TEST_CASE("BicubicSplineInterp_exact_at_grid_points", "[interpolation][2d][bicubic]") {
@@ -654,7 +655,7 @@ namespace MML::Tests::Core::InterpolatedFunctionsTests
 		// Should be exact at grid points
 		for (int i = 0; i < nx; i++) {
 			for (int j = 0; j < ny; j++) {
-				REQUIRE_THAT(interp(x1[i], x2[j]), WithinAbs(z[i][j], 1e-10));
+				REQUIRE_THAT(interp(x1[i], x2[j]), WithinAbs(z[i][j], TOL(1e-10, 1e-5)));
 			}
 		}
 	}
@@ -812,13 +813,13 @@ namespace MML::Tests::Core::InterpolatedFunctionsTests
 
 		// Should be exact at data points
 		for (int i = 0; i < 5; i++) {
-			REQUIRE_THAT(poly(x[i]), WithinAbs(y[i], 1e-10));
+			REQUIRE_THAT(poly(x[i]), WithinAbs(y[i], TOL(1e-10, 1e-5)));
 		}
 
 		// Check midpoint
 		Real mid = 2.5;
 		Real expected = std::pow(mid, 4) - 2 * mid * mid + 1;
-		REQUIRE_THAT(poly(mid), WithinAbs(expected, 1e-8));
+		REQUIRE_THAT(poly(mid), WithinAbs(expected, TOL(1e-8, 1e-4)));
 	}
 
 	/////////////////////////////////////////////////////////////////////////////
@@ -892,9 +893,9 @@ namespace MML::Tests::Core::InterpolatedFunctionsTests
 
 		for (int i = 0; i < 5; i++) {
 			Real result = interp(x[i]);
-			REQUIRE_THAT(result, WithinAbs(y[i], 1e-10));
+			REQUIRE_THAT(result, WithinAbs(y[i], TOL(1e-10, 1e-5)));
 			// Error estimate should be zero at exact points
-			REQUIRE_THAT(interp.getLastErrorEst(), WithinAbs(0.0, 1e-10));
+			REQUIRE_THAT(interp.getLastErrorEst(), WithinAbs(0.0, TOL(1e-10, 1e-5)));
 		}
 	}
 
@@ -912,8 +913,8 @@ namespace MML::Tests::Core::InterpolatedFunctionsTests
 
 		// Test individual accessors
 		for (int i = 0; i < 5; i++) {
-			REQUIRE_THAT(interp.X(i), WithinAbs(x[i], 1e-15));
-			REQUIRE_THAT(interp.Y(i), WithinAbs(y[i], 1e-15));
+			REQUIRE_THAT(interp.X(i), WithinAbs(x[i], TOL(1e-15, 1e-5)));
+			REQUIRE_THAT(interp.Y(i), WithinAbs(y[i], TOL(1e-15, 1e-5)));
 		}
 
 		// Test count and range
@@ -953,8 +954,8 @@ namespace MML::Tests::Core::InterpolatedFunctionsTests
 
 		// Start and end should be the same corner
 		auto p0 = curve(0.0);
-		REQUIRE_THAT(p0[0], WithinAbs(0.0, 1e-10));
-		REQUIRE_THAT(p0[1], WithinAbs(0.0, 1e-10));
+		REQUIRE_THAT(p0[0], WithinAbs(0.0, TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(p0[1], WithinAbs(0.0, TOL(1e-10, 1e-5)));
 
 		// Test parameter range
 		REQUIRE(curve.getMinT() == 0.0);
@@ -975,14 +976,14 @@ namespace MML::Tests::Core::InterpolatedFunctionsTests
 
 		// Check endpoints
 		auto p0 = curve(0.0);
-		REQUIRE_THAT(p0[0], WithinAbs(0.0, 1e-8));
-		REQUIRE_THAT(p0[1], WithinAbs(0.0, 1e-8));
-		REQUIRE_THAT(p0[2], WithinAbs(0.0, 1e-8));
+		REQUIRE_THAT(p0[0], WithinAbs(0.0, TOL(1e-8, 1e-4)));
+		REQUIRE_THAT(p0[1], WithinAbs(0.0, TOL(1e-8, 1e-4)));
+		REQUIRE_THAT(p0[2], WithinAbs(0.0, TOL(1e-8, 1e-4)));
 
 		auto p1 = curve(1.0);
-		REQUIRE_THAT(p1[0], WithinAbs(4.0, 1e-8));
-		REQUIRE_THAT(p1[1], WithinAbs(8.0, 1e-8));
-		REQUIRE_THAT(p1[2], WithinAbs(12.0, 1e-8));
+		REQUIRE_THAT(p1[0], WithinAbs(4.0, TOL(1e-8, 1e-4)));
+		REQUIRE_THAT(p1[1], WithinAbs(8.0, TOL(1e-8, 1e-4)));
+		REQUIRE_THAT(p1[2], WithinAbs(12.0, TOL(1e-8, 1e-4)));
 
 		// Check midpoint - should be linear
 		auto pmid = curve(0.5);
@@ -999,6 +1000,149 @@ namespace MML::Tests::Core::InterpolatedFunctionsTests
 
 		REQUIRE_THROWS_AS(PolynomInterpRealFunc(x, y, 3), RealFuncInterpInitError);
 		REQUIRE_THROWS_AS(LinearInterpRealFunc(x, y), RealFuncInterpInitError);
+	}
+
+	///////////////////////////////////////////////////////////////////////////////////////////
+	///                      Extrapolation Policy Tests                                     ///
+	///////////////////////////////////////////////////////////////////////////////////////////
+
+	TEST_CASE("ExtrapolationPolicy_Throw_linear", "[Interpolation][ExtrapolationPolicy]")
+	{
+		Vector<Real> x(4), y(4);
+		x[0] = 1.0; x[1] = 2.0; x[2] = 3.0; x[3] = 4.0;
+		y[0] = 1.0; y[1] = 4.0; y[2] = 9.0; y[3] = 16.0;
+
+		LinearInterpRealFunc interp(x, y);
+		interp.setExtrapolationPolicy(ExtrapolationPolicy::Throw);
+
+		// In-range should work fine
+		REQUIRE_NOTHROW(interp(2.5));
+
+		// Out-of-range should throw
+		REQUIRE_THROWS_AS(interp(0.0), RealFuncInterpRuntimeError);
+		REQUIRE_THROWS_AS(interp(5.0), RealFuncInterpRuntimeError);
+
+		// Boundary points should work
+		REQUIRE_NOTHROW(interp(1.0));
+		REQUIRE_NOTHROW(interp(4.0));
+	}
+
+	TEST_CASE("ExtrapolationPolicy_Clamp_linear", "[Interpolation][ExtrapolationPolicy]")
+	{
+		Vector<Real> x(4), y(4);
+		x[0] = 1.0; x[1] = 2.0; x[2] = 3.0; x[3] = 4.0;
+		y[0] = 1.0; y[1] = 4.0; y[2] = 9.0; y[3] = 16.0;
+
+		LinearInterpRealFunc interp(x, y);
+		interp.setExtrapolationPolicy(ExtrapolationPolicy::Clamp);
+
+		// Out-of-range should return boundary values
+		Real left_val = interp(0.0);   // clamped to x=1.0 → y=1.0
+		Real right_val = interp(5.0);  // clamped to x=4.0 → y=16.0
+
+		REQUIRE_THAT(left_val,  WithinAbs(1.0, TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(right_val, WithinAbs(16.0, TOL(1e-10, 1e-5)));
+	}
+
+	TEST_CASE("ExtrapolationPolicy_Allow_is_default", "[Interpolation][ExtrapolationPolicy]")
+	{
+		Vector<Real> x(4), y(4);
+		x[0] = 1.0; x[1] = 2.0; x[2] = 3.0; x[3] = 4.0;
+		y[0] = 1.0; y[1] = 4.0; y[2] = 9.0; y[3] = 16.0;
+
+		LinearInterpRealFunc interp(x, y);
+
+		// Default policy should be Allow
+		REQUIRE(interp.getExtrapolationPolicy() == ExtrapolationPolicy::Allow);
+
+		// Out-of-range should not throw with default policy
+		REQUIRE_NOTHROW(interp(0.0));
+		REQUIRE_NOTHROW(interp(5.0));
+	}
+
+	TEST_CASE("ExtrapolationPolicy_Throw_spline", "[Interpolation][ExtrapolationPolicy]")
+	{
+		Vector<Real> x(5), y(5);
+		x[0] = 0.0; x[1] = 1.0; x[2] = 2.0; x[3] = 3.0; x[4] = 4.0;
+		y[0] = 0.0; y[1] = 1.0; y[2] = 4.0; y[3] = 9.0; y[4] = 16.0;
+
+		SplineInterpRealFunc interp(x, y);
+		interp.setExtrapolationPolicy(ExtrapolationPolicy::Throw);
+
+		REQUIRE_NOTHROW(interp(2.0));
+		REQUIRE_THROWS_AS(interp(-1.0), RealFuncInterpRuntimeError);
+		REQUIRE_THROWS_AS(interp(5.0), RealFuncInterpRuntimeError);
+	}
+
+	TEST_CASE("ExtrapolationPolicy_Clamp_polynomial", "[Interpolation][ExtrapolationPolicy]")
+	{
+		Vector<Real> x(4), y(4);
+		x[0] = 1.0; x[1] = 2.0; x[2] = 3.0; x[3] = 4.0;
+		y[0] = 2.0; y[1] = 5.0; y[2] = 10.0; y[3] = 17.0;
+
+		PolynomInterpRealFunc interp(x, y, 3);
+		interp.setExtrapolationPolicy(ExtrapolationPolicy::Clamp);
+
+		// Clamped values should equal boundary interpolation
+		Real at_min = interp(1.0);
+		Real at_max = interp(4.0);
+		Real below  = interp(-5.0);
+		Real above  = interp(100.0);
+
+		REQUIRE_THAT(below, WithinAbs(at_min, TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(above, WithinAbs(at_max, TOL(1e-10, 1e-5)));
+	}
+
+	TEST_CASE("ExtrapolationPolicy_isInRange", "[Interpolation][ExtrapolationPolicy]")
+	{
+		Vector<Real> x(3), y(3);
+		x[0] = 0.0; x[1] = 5.0; x[2] = 10.0;
+		y[0] = 0.0; y[1] = 25.0; y[2] = 100.0;
+
+		LinearInterpRealFunc interp(x, y);
+
+		REQUIRE(interp.isInRange(0.0));
+		REQUIRE(interp.isInRange(5.0));
+		REQUIRE(interp.isInRange(10.0));
+		REQUIRE(interp.isInRange(3.5));
+		REQUIRE_FALSE(interp.isInRange(-0.1));
+		REQUIRE_FALSE(interp.isInRange(10.1));
+	}
+
+	TEST_CASE("ExtrapolationPolicy_Barycentric_throw", "[Interpolation][ExtrapolationPolicy]")
+	{
+		Vector<Real> x(5), y(5);
+		x[0] = 0.0; x[1] = 1.0; x[2] = 2.0; x[3] = 3.0; x[4] = 4.0;
+		y[0] = 0.0; y[1] = 1.0; y[2] = 4.0; y[3] = 9.0; y[4] = 16.0;
+
+		BarycentricRationalInterp interp(x, y, 3);
+		interp.setExtrapolationPolicy(ExtrapolationPolicy::Throw);
+
+		REQUIRE_NOTHROW(interp(2.0));
+		REQUIRE_THROWS_AS(interp(-1.0), RealFuncInterpRuntimeError);
+		REQUIRE_THROWS_AS(interp(5.0), RealFuncInterpRuntimeError);
+
+		// Boundary values should work
+		REQUIRE_NOTHROW(interp(0.0));
+		REQUIRE_NOTHROW(interp(4.0));
+	}
+
+	TEST_CASE("ExtrapolationPolicy_Barycentric_clamp", "[Interpolation][ExtrapolationPolicy]")
+	{
+		Vector<Real> x(5), y(5);
+		x[0] = 0.0; x[1] = 1.0; x[2] = 2.0; x[3] = 3.0; x[4] = 4.0;
+		y[0] = 0.0; y[1] = 1.0; y[2] = 4.0; y[3] = 9.0; y[4] = 16.0;
+
+		BarycentricRationalInterp interp(x, y, 3);
+		interp.setExtrapolationPolicy(ExtrapolationPolicy::Clamp);
+
+		Real at_min = interp(0.0);
+		Real at_max = interp(4.0);
+		Real below  = interp(-5.0);
+		Real above  = interp(10.0);
+
+		REQUIRE_THAT(below, WithinAbs(at_min, TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(above, WithinAbs(at_max, TOL(1e-10, 1e-5)));
 	}
 
 } // end namespace

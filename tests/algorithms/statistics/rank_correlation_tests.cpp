@@ -30,11 +30,11 @@ namespace MML::Tests::Algorithms::RankCorrelationTests
 		Vector<Real> ranks = Statistics::ComputeRanks(data);
 		
 		REQUIRE(ranks.size() == 5);
-		REQUIRE_THAT(ranks[0], WithinAbs(REAL(1.0), REAL(1e-10)));
-		REQUIRE_THAT(ranks[1], WithinAbs(REAL(2.0), REAL(1e-10)));
-		REQUIRE_THAT(ranks[2], WithinAbs(REAL(3.0), REAL(1e-10)));
-		REQUIRE_THAT(ranks[3], WithinAbs(REAL(4.0), REAL(1e-10)));
-		REQUIRE_THAT(ranks[4], WithinAbs(REAL(5.0), REAL(1e-10)));
+		REQUIRE_THAT(ranks[0], WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(ranks[1], WithinAbs(REAL(2.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(ranks[2], WithinAbs(REAL(3.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(ranks[3], WithinAbs(REAL(4.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(ranks[4], WithinAbs(REAL(5.0), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("Statistics::ComputeRanks_UnsortedData", "[statistics][rank]")
@@ -46,11 +46,11 @@ namespace MML::Tests::Algorithms::RankCorrelationTests
 		
 		Vector<Real> ranks = Statistics::ComputeRanks(data);
 		
-		REQUIRE_THAT(ranks[0], WithinAbs(REAL(4.0), REAL(1e-10)));  // 3.0 is 4th smallest
-		REQUIRE_THAT(ranks[1], WithinAbs(REAL(1.0), REAL(1e-10)));  // 1.0 is smallest
-		REQUIRE_THAT(ranks[2], WithinAbs(REAL(5.0), REAL(1e-10)));  // 4.0 is largest
-		REQUIRE_THAT(ranks[3], WithinAbs(REAL(2.0), REAL(1e-10)));  // 1.5 is 2nd smallest
-		REQUIRE_THAT(ranks[4], WithinAbs(REAL(3.0), REAL(1e-10)));  // 2.0 is 3rd smallest
+		REQUIRE_THAT(ranks[0], WithinAbs(REAL(4.0), TOL(1e-10, 1e-5)));  // 3.0 is 4th smallest
+		REQUIRE_THAT(ranks[1], WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));  // 1.0 is smallest
+		REQUIRE_THAT(ranks[2], WithinAbs(REAL(5.0), TOL(1e-10, 1e-5)));  // 4.0 is largest
+		REQUIRE_THAT(ranks[3], WithinAbs(REAL(2.0), TOL(1e-10, 1e-5)));  // 1.5 is 2nd smallest
+		REQUIRE_THAT(ranks[4], WithinAbs(REAL(3.0), TOL(1e-10, 1e-5)));  // 2.0 is 3rd smallest
 	}
 
 	TEST_CASE("Statistics::ComputeRanks_WithTies", "[statistics][rank]")
@@ -63,10 +63,10 @@ namespace MML::Tests::Algorithms::RankCorrelationTests
 		
 		Vector<Real> ranks = Statistics::ComputeRanks(data);
 		
-		REQUIRE_THAT(ranks[0], WithinAbs(REAL(1.0), REAL(1e-10)));
-		REQUIRE_THAT(ranks[1], WithinAbs(REAL(2.5), REAL(1e-10)));  // Average of 2 and 3
-		REQUIRE_THAT(ranks[2], WithinAbs(REAL(2.5), REAL(1e-10)));  // Average of 2 and 3
-		REQUIRE_THAT(ranks[3], WithinAbs(REAL(4.0), REAL(1e-10)));
+		REQUIRE_THAT(ranks[0], WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(ranks[1], WithinAbs(REAL(2.5), TOL(1e-10, 1e-5)));  // Average of 2 and 3
+		REQUIRE_THAT(ranks[2], WithinAbs(REAL(2.5), TOL(1e-10, 1e-5)));  // Average of 2 and 3
+		REQUIRE_THAT(ranks[3], WithinAbs(REAL(4.0), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("Statistics::ComputeRanks_AllTied", "[statistics][rank]")
@@ -79,7 +79,7 @@ namespace MML::Tests::Algorithms::RankCorrelationTests
 		
 		// Average rank = (1+2+3+4)/4 = 2.5
 		for (int i = 0; i < 4; i++) {
-			REQUIRE_THAT(ranks[i], WithinAbs(REAL(2.5), REAL(1e-10)));
+			REQUIRE_THAT(ranks[i], WithinAbs(REAL(2.5), TOL(1e-10, 1e-5)));
 		}
 	}
 
@@ -106,7 +106,7 @@ namespace MML::Tests::Algorithms::RankCorrelationTests
 		Real rho = Statistics::SpearmanCorrelation(x, y);
 		
 		// Perfect monotonic -> rho = 1
-		REQUIRE_THAT(rho, WithinAbs(REAL(1.0), REAL(1e-10)));
+		REQUIRE_THAT(rho, WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("Statistics::SpearmanCorrelation_PerfectNegativeMonotonic", "[statistics][rank]")
@@ -118,7 +118,7 @@ namespace MML::Tests::Algorithms::RankCorrelationTests
 		
 		Real rho = Statistics::SpearmanCorrelation(x, y);
 		
-		REQUIRE_THAT(rho, WithinAbs(REAL(-1.0), REAL(1e-10)));
+		REQUIRE_THAT(rho, WithinAbs(REAL(-1.0), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("Statistics::SpearmanCorrelation_NoMonotonicRelationship", "[statistics][rank]")
@@ -155,7 +155,7 @@ namespace MML::Tests::Algorithms::RankCorrelationTests
 		
 		Real rho = Statistics::SpearmanCorrelation(x, x);
 		
-		REQUIRE_THAT(rho, WithinAbs(REAL(1.0), REAL(1e-10)));
+		REQUIRE_THAT(rho, WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("Statistics::SpearmanCorrelation_RangeIsMinusOneToOne", "[statistics][rank]")
@@ -198,7 +198,7 @@ namespace MML::Tests::Algorithms::RankCorrelationTests
 		
 		auto result = Statistics::SpearmanCorrelationWithTest(x, y);
 		
-		REQUIRE_THAT(result.rho, WithinAbs(REAL(1.0), REAL(1e-10)));
+		REQUIRE_THAT(result.rho, WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
 		REQUIRE(result.n == 10);
 		REQUIRE(result.zScore > REAL(2.0));  // Significant
 		REQUIRE(result.IsSignificant(0.05));
@@ -225,7 +225,7 @@ namespace MML::Tests::Algorithms::RankCorrelationTests
 		
 		Real tau = Statistics::KendallCorrelation(x, y);
 		
-		REQUIRE_THAT(tau, WithinAbs(REAL(1.0), REAL(1e-10)));
+		REQUIRE_THAT(tau, WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("Statistics::KendallCorrelation_PerfectDiscordance", "[statistics][rank]")
@@ -237,7 +237,7 @@ namespace MML::Tests::Algorithms::RankCorrelationTests
 		
 		Real tau = Statistics::KendallCorrelation(x, y);
 		
-		REQUIRE_THAT(tau, WithinAbs(REAL(-1.0), REAL(1e-10)));
+		REQUIRE_THAT(tau, WithinAbs(REAL(-1.0), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("Statistics::KendallCorrelation_NoRelationship", "[statistics][rank]")
@@ -291,7 +291,7 @@ namespace MML::Tests::Algorithms::RankCorrelationTests
 		Real tau = Statistics::KendallCorrelation(x, y);
 		
 		// No valid pairs -> tau = 0
-		REQUIRE_THAT(tau, WithinAbs(REAL(0.0), REAL(1e-10)));
+		REQUIRE_THAT(tau, WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("Statistics::KendallCorrelation_SelfCorrelation", "[statistics][rank]")
@@ -301,7 +301,7 @@ namespace MML::Tests::Algorithms::RankCorrelationTests
 		
 		Real tau = Statistics::KendallCorrelation(x, x);
 		
-		REQUIRE_THAT(tau, WithinAbs(REAL(1.0), REAL(1e-10)));
+		REQUIRE_THAT(tau, WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("Statistics::KendallCorrelation_RangeIsMinusOneToOne", "[statistics][rank]")
@@ -344,7 +344,7 @@ namespace MML::Tests::Algorithms::RankCorrelationTests
 		
 		auto result = Statistics::KendallCorrelationWithTest(x, y);
 		
-		REQUIRE_THAT(result.rho, WithinAbs(REAL(1.0), REAL(1e-10)));  // tau stored in rho
+		REQUIRE_THAT(result.rho, WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));  // tau stored in rho
 		REQUIRE(result.n == 10);
 		REQUIRE(result.zScore > REAL(2.0));
 		REQUIRE(result.IsSignificant(0.05));
@@ -395,8 +395,8 @@ namespace MML::Tests::Algorithms::RankCorrelationTests
 		
 		// All three should be 1 for monotonic relationship
 		// (Pearson may be less than 1 due to non-linearity)
-		REQUIRE_THAT(spearman, WithinAbs(REAL(1.0), REAL(1e-10)));
-		REQUIRE_THAT(kendall, WithinAbs(REAL(1.0), REAL(1e-10)));
+		REQUIRE_THAT(spearman, WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(kendall, WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
 		
 		// Pearson less than 1 for non-linear but monotonic
 		REQUIRE(pearson > REAL(0.9));
@@ -418,7 +418,7 @@ namespace MML::Tests::Algorithms::RankCorrelationTests
 
 		REQUIRE(detailed.IsSuccess());
 		REQUIRE(detailed.algorithm_name == "SpearmanCorrelation");
-		REQUIRE_THAT(detailed.rho, WithinAbs(simple, REAL(1e-12)));
+		REQUIRE_THAT(detailed.rho, WithinAbs(simple, TOL(1e-12, 1e-5)));
 		REQUIRE(detailed.n == 5);
 		REQUIRE(detailed.elapsed_time_ms >= 0.0);
 	}
@@ -434,8 +434,8 @@ namespace MML::Tests::Algorithms::RankCorrelationTests
 
 		REQUIRE(detailed.IsSuccess());
 		REQUIRE(detailed.algorithm_name == "SpearmanCorrelationWithTest");
-		REQUIRE_THAT(detailed.rho, WithinAbs(simple.rho, REAL(1e-12)));
-		REQUIRE_THAT(detailed.zScore, WithinAbs(simple.zScore, REAL(1e-12)));
+		REQUIRE_THAT(detailed.rho, WithinAbs(simple.rho, TOL(1e-12, 1e-5)));
+		REQUIRE_THAT(detailed.zScore, WithinAbs(simple.zScore, TOL(1e-12, 1e-5)));
 		REQUIRE(detailed.n == simple.n);
 	}
 
@@ -450,7 +450,7 @@ namespace MML::Tests::Algorithms::RankCorrelationTests
 
 		REQUIRE(detailed.IsSuccess());
 		REQUIRE(detailed.algorithm_name == "KendallCorrelation");
-		REQUIRE_THAT(detailed.rho, WithinAbs(simple, REAL(1e-12)));
+		REQUIRE_THAT(detailed.rho, WithinAbs(simple, TOL(1e-12, 1e-5)));
 		REQUIRE(detailed.n == 5);
 	}
 
@@ -465,8 +465,8 @@ namespace MML::Tests::Algorithms::RankCorrelationTests
 
 		REQUIRE(detailed.IsSuccess());
 		REQUIRE(detailed.algorithm_name == "KendallCorrelationWithTest");
-		REQUIRE_THAT(detailed.rho, WithinAbs(simple.rho, REAL(1e-12)));
-		REQUIRE_THAT(detailed.zScore, WithinAbs(simple.zScore, REAL(1e-12)));
+		REQUIRE_THAT(detailed.rho, WithinAbs(simple.rho, TOL(1e-12, 1e-5)));
+		REQUIRE_THAT(detailed.zScore, WithinAbs(simple.zScore, TOL(1e-12, 1e-5)));
 		REQUIRE(detailed.n == simple.n);
 	}
 

@@ -235,11 +235,11 @@ namespace MML::Tests::Statistics::ConfidenceIntervalsTests
 
 		REQUIRE(detailed.IsSuccess());
 		REQUIRE(detailed.algorithm_name == "ConfidenceIntervalMean");
-		REQUIRE_THAT(detailed.estimate, WithinAbs(simple.estimate, 1e-12));
-		REQUIRE_THAT(detailed.lowerBound, WithinAbs(simple.lowerBound, 1e-12));
-		REQUIRE_THAT(detailed.upperBound, WithinAbs(simple.upperBound, 1e-12));
-		REQUIRE_THAT(detailed.marginOfError, WithinAbs(simple.marginOfError, 1e-12));
-		REQUIRE_THAT(detailed.confidenceLevel, WithinAbs(simple.confidenceLevel, 1e-12));
+		REQUIRE_THAT(detailed.estimate, WithinAbs(simple.estimate, TOL(1e-12, 1e-5)));
+		REQUIRE_THAT(detailed.lowerBound, WithinAbs(simple.lowerBound, TOL(1e-12, 1e-5)));
+		REQUIRE_THAT(detailed.upperBound, WithinAbs(simple.upperBound, TOL(1e-12, 1e-5)));
+		REQUIRE_THAT(detailed.marginOfError, WithinAbs(simple.marginOfError, TOL(1e-12, 1e-5)));
+		REQUIRE_THAT(detailed.confidenceLevel, WithinAbs(simple.confidenceLevel, TOL(1e-12, 1e-5)));
 		REQUIRE(detailed.elapsed_time_ms >= 0.0);
 	}
 
@@ -254,9 +254,9 @@ namespace MML::Tests::Statistics::ConfidenceIntervalsTests
 
 		REQUIRE(detailed.IsSuccess());
 		REQUIRE(detailed.algorithm_name == "ConfidenceIntervalMeanDifference");
-		REQUIRE_THAT(detailed.estimate, WithinAbs(simple.estimate, 1e-12));
-		REQUIRE_THAT(detailed.lowerBound, WithinAbs(simple.lowerBound, 1e-12));
-		REQUIRE_THAT(detailed.upperBound, WithinAbs(simple.upperBound, 1e-12));
+		REQUIRE_THAT(detailed.estimate, WithinAbs(simple.estimate, TOL(1e-12, 1e-5)));
+		REQUIRE_THAT(detailed.lowerBound, WithinAbs(simple.lowerBound, TOL(1e-12, 1e-5)));
+		REQUIRE_THAT(detailed.upperBound, WithinAbs(simple.upperBound, TOL(1e-12, 1e-5)));
 	}
 
 	TEST_CASE("Statistics - ConfidenceIntervalProportionDetailed values match simple API", "[statistics][confidence][Detailed]")
@@ -268,9 +268,9 @@ namespace MML::Tests::Statistics::ConfidenceIntervalsTests
 
 		REQUIRE(detailed.IsSuccess());
 		REQUIRE(detailed.algorithm_name == "ConfidenceIntervalProportion");
-		REQUIRE_THAT(detailed.estimate, WithinAbs(simple.estimate, 1e-12));
-		REQUIRE_THAT(detailed.lowerBound, WithinAbs(simple.lowerBound, 1e-12));
-		REQUIRE_THAT(detailed.upperBound, WithinAbs(simple.upperBound, 1e-12));
+		REQUIRE_THAT(detailed.estimate, WithinAbs(simple.estimate, TOL(1e-12, 1e-5)));
+		REQUIRE_THAT(detailed.lowerBound, WithinAbs(simple.lowerBound, TOL(1e-12, 1e-5)));
+		REQUIRE_THAT(detailed.upperBound, WithinAbs(simple.upperBound, TOL(1e-12, 1e-5)));
 	}
 
 	TEST_CASE("Statistics - ConfidenceIntervalProportionDifferenceDetailed values match simple API", "[statistics][confidence][Detailed]")
@@ -282,9 +282,9 @@ namespace MML::Tests::Statistics::ConfidenceIntervalsTests
 
 		REQUIRE(detailed.IsSuccess());
 		REQUIRE(detailed.algorithm_name == "ConfidenceIntervalProportionDifference");
-		REQUIRE_THAT(detailed.estimate, WithinAbs(simple.estimate, 1e-12));
-		REQUIRE_THAT(detailed.lowerBound, WithinAbs(simple.lowerBound, 1e-12));
-		REQUIRE_THAT(detailed.upperBound, WithinAbs(simple.upperBound, 1e-12));
+		REQUIRE_THAT(detailed.estimate, WithinAbs(simple.estimate, TOL(1e-12, 1e-5)));
+		REQUIRE_THAT(detailed.lowerBound, WithinAbs(simple.lowerBound, TOL(1e-12, 1e-5)));
+		REQUIRE_THAT(detailed.upperBound, WithinAbs(simple.upperBound, TOL(1e-12, 1e-5)));
 	}
 
 	TEST_CASE("Statistics - ConfidenceIntervalPairedDifferenceDetailed values match simple API", "[statistics][confidence][Detailed]")
@@ -298,9 +298,9 @@ namespace MML::Tests::Statistics::ConfidenceIntervalsTests
 
 		REQUIRE(detailed.IsSuccess());
 		REQUIRE(detailed.algorithm_name == "ConfidenceIntervalPairedDifference");
-		REQUIRE_THAT(detailed.estimate, WithinAbs(simple.estimate, 1e-12));
-		REQUIRE_THAT(detailed.lowerBound, WithinAbs(simple.lowerBound, 1e-12));
-		REQUIRE_THAT(detailed.upperBound, WithinAbs(simple.upperBound, 1e-12));
+		REQUIRE_THAT(detailed.estimate, WithinAbs(simple.estimate, TOL(1e-12, 1e-5)));
+		REQUIRE_THAT(detailed.lowerBound, WithinAbs(simple.lowerBound, TOL(1e-12, 1e-5)));
+		REQUIRE_THAT(detailed.upperBound, WithinAbs(simple.upperBound, TOL(1e-12, 1e-5)));
 	}
 
 	TEST_CASE("Statistics - ConfidenceIntervalMeanDetailed ConvertToStatus on invalid input", "[statistics][confidence][Detailed]")

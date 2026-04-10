@@ -265,8 +265,6 @@ namespace MML
 	{
 	private:
 		int _n;
-		// Note: _refOrig removed - was unused and created dangling reference risk
-		// The LU decomposition is stored in _lu (copy of input matrix)
 
 		Matrix<Type> _lu;
 		std::vector<int> _indx;

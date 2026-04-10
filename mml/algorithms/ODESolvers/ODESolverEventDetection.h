@@ -87,7 +87,7 @@ namespace MML {
 		 * @return EventResult with solution and event information
 		 */
 		EventResult integrateWithEvents(const IODESystemWithEvents& sys, const Vector<Real>& x0, Real t0, Real tEnd, Real outputInterval,
-																		Real eps = 1e-10, Real eventTol = 1e-12, Real h0 = 0) {
+																		Real eps = Precision::ODEDefaultTolerance, Real eventTol = Precision::EventTolerance, Real h0 = 0) {
 			int n = sys.getDim();
 			int numEvents = sys.getNumEvents();
 			int numOutputPoints = static_cast<int>(std::ceil((tEnd - t0) / outputInterval)) + 1;

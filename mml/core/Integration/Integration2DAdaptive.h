@@ -103,8 +103,8 @@ struct AdaptiveResult2D
 /// @brief Configuration for adaptive 2D integration
 struct AdaptiveConfig2D
 {
-    Real tol_abs = 1e-10;        ///< Absolute error tolerance
-    Real tol_rel = 1e-8;         ///< Relative error tolerance
+    Real tol_abs = PrecisionValues<Real>::IntegrationTolerance;  ///< Absolute error tolerance
+    Real tol_rel = PrecisionValues<Real>::IntegrationTolerance;  ///< Relative error tolerance
     int max_depth = 20;          ///< Maximum quadtree subdivision depth
     int max_evaluations = 1000000; ///< Maximum function evaluations budget
     GKRule rule = GKRule::GK15;  ///< Gauss-Kronrod rule to use
@@ -326,7 +326,7 @@ static AdaptiveResult2D IntegrateAdaptive2D(
     Func f,
     Real x1, Real x2,
     Real y1, Real y2,
-    Real tolerance = 1e-8,
+    Real tolerance = PrecisionValues<Real>::IntegrationTolerance,
     int max_depth = 20,
     int max_evals = 1000000)
 {
@@ -391,7 +391,7 @@ static IntegrationDetailedResult IntegrateAdaptive2DDetailed(
     Real x1, Real x2,
     Real y1, Real y2,
     const IntegrationConfig& config = {},
-    Real tolerance = 1e-8,
+    Real tolerance = PrecisionValues<Real>::IntegrationTolerance,
     int max_depth = 20,
     int max_evals = 1000000)
 {

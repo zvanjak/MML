@@ -193,7 +193,7 @@ namespace MML
 			Real getMaxT() const { return 2 * Constants::PI; }
 
 			VectorN<Real, 2> operator()(Real t) const { 
-				return MML::VectorN<Real, 2>{_center.X()+_radius* cos(t), _center.Y()+_radius* sin(t)}; 
+				return MML::VectorN<Real, 2>{static_cast<Real>(_center.X()+_radius* cos(t)), static_cast<Real>(_center.Y()+_radius* sin(t))}; 
 			}
 		};
 
@@ -215,7 +215,7 @@ namespace MML
 			Real getMinT() const { return Constants::NegInf; }
 			Real getMaxT() const { return Constants::PosInf; }
 
-			VectorN<Real, 2> operator()(Real t) const { return MML::VectorN<Real, 2>{exp(_lambda * t)* cos(t), exp(_lambda * t)* sin(t)}; }
+			VectorN<Real, 2> operator()(Real t) const { return MML::VectorN<Real, 2>{static_cast<Real>(exp(_lambda * t)* cos(t)), static_cast<Real>(exp(_lambda * t)* sin(t))}; }
 		};
 
 		/// @brief Lemniscate of Gerono curve (figure-eight curve)
@@ -226,7 +226,7 @@ namespace MML
 			Real getMinT() const { return Constants::NegInf; }
 			Real getMaxT() const { return Constants::PosInf; }
 
-			VectorN<Real, 2> operator()(Real t) const { return MML::VectorN<Real, 2>{cos(t) / (1 + sin(t) * sin(t)), sin(t)* cos(t) / (1 + sin(t) * sin(t))}; }
+			VectorN<Real, 2> operator()(Real t) const { return MML::VectorN<Real, 2>{static_cast<Real>(cos(t) / (1 + sin(t) * sin(t))), static_cast<Real>(sin(t)* cos(t) / (1 + sin(t) * sin(t)))}; }
 		};
 
 		/// @brief Deltoid (tricuspid hypocycloid) curve
@@ -241,7 +241,7 @@ namespace MML
 			Real getMinT() const { return Constants::NegInf; }
 			Real getMaxT() const { return Constants::PosInf; }
 
-			VectorN<Real, 2> operator()(Real t) const { return MML::VectorN<Real, 2>{2 * _n * cos(t) * (1 + cos(t)), 2 * _n * sin(t) * (1 - cos(t))}; }
+			VectorN<Real, 2> operator()(Real t) const { return MML::VectorN<Real, 2>{static_cast<Real>(2 * _n * cos(t) * (1 + cos(t))), static_cast<Real>(2 * _n * sin(t) * (1 - cos(t)))}; }
 		};
 
 		/// @brief Astroid (four-cusped hypocycloid) curve
@@ -258,7 +258,7 @@ namespace MML
 			Real getMinT() const { return Constants::NegInf; }
 			Real getMaxT() const { return Constants::PosInf; }
 
-			VectorN<Real, 2> operator()(Real t) const { return MML::VectorN<Real, 2>{_c* cos(t)* cos(t)* cos(t), _c* sin(t)* sin(t)* sin(t)}; }
+			VectorN<Real, 2> operator()(Real t) const { return MML::VectorN<Real, 2>{static_cast<Real>(_c* cos(t)* cos(t)* cos(t)), static_cast<Real>(_c* sin(t)* sin(t)* sin(t))}; }
 		};
 
 		/// @brief Epitrochoid curve (generalized epicycloid)
@@ -274,7 +274,7 @@ namespace MML
 			Real getMinT() const { return Constants::NegInf; }
 			Real getMaxT() const { return Constants::PosInf; }
 
-			VectorN<Real, 2> operator()(Real t) const { return MML::VectorN<Real, 2>{cos(t) - _c * cos(_n * t), sin(t) - _c * sin(_n * t) }; }
+			VectorN<Real, 2> operator()(Real t) const { return MML::VectorN<Real, 2>{static_cast<Real>(cos(t) - _c * cos(_n * t)), static_cast<Real>(sin(t) - _c * sin(_n * t)) }; }
 		};
 
 		/// @brief Archimedean spiral curve
@@ -289,7 +289,7 @@ namespace MML
 			Real getMinT() const { return Constants::NegInf; }
 			Real getMaxT() const { return Constants::PosInf; }
 
-			VectorN<Real, 2> operator()(Real t) const { return MML::VectorN<Real, 2>{_a* t* cos(t), _a* t* sin(t)}; }
+			VectorN<Real, 2> operator()(Real t) const { return MML::VectorN<Real, 2>{static_cast<Real>(_a* t* cos(t)), static_cast<Real>(_a* t* sin(t))}; }
 		};
 
 		/// @brief Butterfly curve (Temple H. Fay)
@@ -404,7 +404,7 @@ namespace MML
 			VectorN<Real, 2> operator()(Real t) const {
 				Real x = _center.X() + _radius * cos(t);
 				Real y = _center.Y() + _radius * sin(t);
-				return MML::VectorN<Real, 2>{sqrt(x*x + y*y), atan2(y, x)};
+				return MML::VectorN<Real, 2>{static_cast<Real>(sqrt(x*x + y*y)), static_cast<Real>(atan2(y, x))};
 			}
 		};
 
@@ -440,8 +440,11 @@ namespace MML
 				Vec3Cart r_prime = getTangent(t);
 				Vec3Cart r_double_prime = getSecondDerivative(t);
 				Vector3Cartesian cross1 = VectorProduct(Vector3Cartesian(r_double_prime), Vector3Cartesian(r_prime));
+				Real denom = r_prime.NormL2() * cross1.NormL2();
+				if (denom < Precision::NumericalZeroThreshold)
+					return Vec3Cart(0.0, 0.0, 0.0);
 				Vector3Cartesian result = VectorProduct(Vector3Cartesian(r_prime), cross1);
-				return Vec3Cart(result / (r_prime.NormL2() * cross1.NormL2()));
+				return Vec3Cart(result / denom);
 			}
 			/// @brief Get binormal unit vector B(t) = T(t) × N(t)
 			Vec3Cart getBinormal(Real t) const
@@ -464,6 +467,8 @@ namespace MML
 				Vec3Cart r_double_prime = getSecondDerivative(t);
 				Vector3Cartesian cross = VectorProduct(Vector3Cartesian(r_prime), Vector3Cartesian(r_double_prime));
 				Real speed_cubed = std::pow(r_prime.NormL2(), 3);
+				if (speed_cubed < Precision::NumericalZeroThreshold)
+					return 0.0;
 				return cross.NormL2() / speed_cubed;
 			}
 			
@@ -481,8 +486,10 @@ namespace MML
 				Vec3Cart r_triple_prime = Derivation::DeriveCurveThird<3>(*this, t, nullptr);
 
 				Vec3Cart cross_product = VectorProduct(r_prime, r_double_prime);
-				Real numerator = Utils::ScalarProduct(cross_product, r_triple_prime);
 				Real denominator = std::pow(cross_product.NormL2(), 2);
+				if (denominator < Precision::NumericalZeroThreshold)
+					return 0.0;
+				Real numerator = Utils::ScalarProduct(cross_product, r_triple_prime);
 
 				return numerator / denominator;
 			}
@@ -528,7 +535,7 @@ namespace MML
 				for (Real t = t1 + delta; t < t2; t += delta)
 				{
 					Real len = PathIntegration::ParametricCurveLength(*this, t1, t);
-					if (fabs(len - (t - t1)) > PrecisionValues<Real>::DefaultToleranceStrict)
+					if (fabs(len - (t - t1)) > PrecisionValues<Real>::OptimizationTolerance)
 						return false;
 				}
 				return true;
@@ -599,7 +606,7 @@ namespace MML
 			Real getMaxT() const { return 2 * Constants::PI; }
 
 			VectorN<Real, 3> operator()(Real t) const { 
-				return MML::VectorN<Real, 3>{_center.X() + _radius * cos(t), _center.Y() + _radius * sin(t), _center.Z()}; 
+				return MML::VectorN<Real, 3>{static_cast<Real>(_center.X() + _radius * cos(t)), static_cast<Real>(_center.Y() + _radius * sin(t)), _center.Z()}; 
 			}
 		};
 
@@ -617,7 +624,7 @@ namespace MML
 			Real getMaxT() const { return 2 * Constants::PI; }
 
 			VectorN<Real, 3> operator()(Real t) const { 
-				return MML::VectorN<Real, 3>{_center.X() + _radius * cos(t), _center.Y(), _center.Z() + _radius * sin(t)}; 
+				return MML::VectorN<Real, 3>{static_cast<Real>(_center.X() + _radius * cos(t)), _center.Y(), static_cast<Real>(_center.Z() + _radius * sin(t))}; 
 			}
 		};
 
@@ -635,7 +642,7 @@ namespace MML
 			Real getMaxT() const { return 2 * Constants::PI; }
 
 			VectorN<Real, 3> operator()(Real t) const { 
-				return MML::VectorN<Real, 3>{_center.X(), _center.Y() + _radius * cos(t), _center.Z() + _radius * sin(t)}; 
+				return MML::VectorN<Real, 3>{_center.X(), static_cast<Real>(_center.Y() + _radius * cos(t)), static_cast<Real>(_center.Z() + _radius * sin(t))}; 
 			}
 		};
 
@@ -683,7 +690,7 @@ namespace MML
 			Real getMaxT() const { return Constants::PosInf; }
 
 			VectorN<Real, 3> operator()(Real t) const { 
-				return MML::VectorN<Real, 3>{_radius * cos(t), _radius * sin(t), _b * t}; 
+				return MML::VectorN<Real, 3>{static_cast<Real>(_radius * cos(t)), static_cast<Real>(_radius * sin(t)), _b * t}; 
 			}
 
 			/// @brief Get constant curvature κ = r/(r²+b²)
@@ -719,7 +726,7 @@ namespace MML
 			Real getMinT() const { return Constants::NegInf; }
 			Real getMaxT() const { return Constants::PosInf; }
 
-			VectorN<Real, 3> operator()(Real t) const { return MML::VectorN<Real, 3>{(_scale* (4 + sin(_n * t))* cos(t)), _scale* (4 + sin(_n * t))* sin(t), _scale* cos(_n* t)}; }
+			VectorN<Real, 3> operator()(Real t) const { return MML::VectorN<Real, 3>{static_cast<Real>((_scale* (4 + sin(_n * t))* cos(t))), static_cast<Real>(_scale* (4 + sin(_n * t))* sin(t)), static_cast<Real>(_scale* cos(_n* t))}; }
 		};
 	}
 }

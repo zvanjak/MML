@@ -34,7 +34,7 @@ namespace MML::Tests::Algorithms::EigensolverBuildingBlocksTests
 {
 
 // Tolerance for numerical comparisons
-constexpr Real TOL = 1e-10;
+constexpr Real TOL = TOL(1e-10, 1e-4);
 
 // ============================================================================
 // BUILDING BLOCK 1: HESSENBERG REDUCTION TESTS
@@ -392,13 +392,13 @@ TEST_CASE("QRStep - Multiple steps converge for diagonal dominance", "[eigensolv
                            REAL(1.0), REAL(5.0), REAL(0.3),
                            REAL(0.0), REAL(0.2), REAL(1.0)}};
     
-    int iters = EigenSolverHelpers::MultipleQRSteps(H, 30, 1e-10);
+    int iters = EigenSolverHelpers::MultipleQRSteps(H, 30, TOL(1e-10, 1e-5));
     
     INFO("Converged in " << iters << " iterations");
     INFO("H(2,1) = " << H(2, 1));
     
     REQUIRE(iters < 30);  // Should converge
-    REQUIRE(std::abs(H(2, 1)) < 1e-10);  // Bottom subdiagonal should be zero
+    REQUIRE(std::abs(H(2, 1)) < TOL(1e-10, 1e-5));  // Bottom subdiagonal should be zero
 }
 
 TEST_CASE("QRStep - Convergence reveals eigenvalue", "[eigensolver][building-block][qrstep]")
@@ -408,14 +408,14 @@ TEST_CASE("QRStep - Convergence reveals eigenvalue", "[eigensolver][building-blo
     Matrix<Real> H{2, 2, {REAL(4.0), REAL(1.0),
                           REAL(2.0), REAL(3.0)}};
     
-    int iters = EigenSolverHelpers::MultipleQRSteps(H, 30, 1e-10);
+    int iters = EigenSolverHelpers::MultipleQRSteps(H, 30, TOL(1e-10, 1e-5));
     
     INFO("Converged in " << iters << " iterations");
     INFO("H(1,0) after convergence = " << H(1, 0));
     
     // After convergence, H should be (nearly) upper triangular
     // with eigenvalues on diagonal
-    REQUIRE(std::abs(H(1, 0)) < 1e-10);
+    REQUIRE(std::abs(H(1, 0)) < TOL(1e-10, 1e-5));
     
     // Diagonal elements should be eigenvalues (5 and 2, in some order)
     Real e1 = H(0, 0);
@@ -499,7 +499,7 @@ TEST_CASE("DoubleShift - Converges on complex eigenvalue matrix", "[eigensolver]
                           REAL(0.0),  REAL(0.0),  REAL(0.5), REAL(3.0)}};
     
     Matrix<Real> Hcopy = H;
-    int iters = EigenSolverHelpers::MultipleDoubleShiftSteps(Hcopy, 0, 3, 50, 1e-10);
+    int iters = EigenSolverHelpers::MultipleDoubleShiftSteps(Hcopy, 0, 3, 50, TOL(1e-10, 1e-5));
     
     INFO("Double-shift converged in " << iters << " iterations");
     
@@ -525,8 +525,8 @@ TEST_CASE("DoubleShift - 2x2 complex block extraction", "[eigensolver][building-
     
     INFO("Bottom 2x2 eigenvalues: " << eig.real1 << " ± " << eig.imag1 << "i");
     REQUIRE(eig.isComplex);
-    REQUIRE(std::abs(eig.real1 - REAL(2.0)) < 1e-10);
-    REQUIRE(std::abs(std::abs(eig.imag1) - REAL(3.0)) < 1e-10);
+    REQUIRE(std::abs(eig.real1 - REAL(2.0)) < TOL(1e-10, 1e-5));
+    REQUIRE(std::abs(std::abs(eig.imag1) - REAL(3.0)) < TOL(1e-10, 1e-5));
 }
 
 // =============================================================================
@@ -541,7 +541,7 @@ TEST_CASE("Deflation - Detect deflation in converged matrix", "[eigensolver][bui
                           REAL(0.0), REAL(0.0), REAL(3.0), REAL(1.0),   // Zero at (2,1) - deflation!
                           REAL(0.0), REAL(0.0), REAL(1.0), REAL(2.0)}};
     
-    auto result = EigenSolverHelpers::CheckDeflation(H, 0, 3, 1e-10);
+    auto result = EigenSolverHelpers::CheckDeflation(H, 0, 3, TOL(1e-10, 1e-5));
     
     INFO("canDeflate: " << result.canDeflate);
     INFO("deflationIndex: " << result.deflationIndex);
@@ -557,7 +557,7 @@ TEST_CASE("Deflation - No deflation in unreduced matrix", "[eigensolver][buildin
                           REAL(0.0), REAL(2.0), REAL(3.0), REAL(1.0),
                           REAL(0.0), REAL(0.0), REAL(2.0), REAL(2.0)}};
     
-    auto result = EigenSolverHelpers::CheckDeflation(H, 0, 3, 1e-10);
+    auto result = EigenSolverHelpers::CheckDeflation(H, 0, 3, TOL(1e-10, 1e-5));
     
     REQUIRE_FALSE(result.canDeflate);
 }
@@ -570,7 +570,7 @@ TEST_CASE("Deflation - Detect 1x1 block at bottom", "[eigensolver][building-bloc
                           REAL(0.0), REAL(2.0), REAL(3.0), REAL(1.0),
                           REAL(0.0), REAL(0.0), REAL(0.0), REAL(7.0)}};  // Zero at (3,2) - eigenvalue 7
     
-    auto result = EigenSolverHelpers::CheckDeflation(H, 0, 3, 1e-10);
+    auto result = EigenSolverHelpers::CheckDeflation(H, 0, 3, TOL(1e-10, 1e-5));
     
     REQUIRE(result.canDeflate);
     REQUIRE(result.deflationIndex == 3);
@@ -585,7 +585,7 @@ TEST_CASE("Deflation - Detect 2x2 block", "[eigensolver][building-block][deflati
                           REAL(0.0), REAL(0.0), REAL(3.0), REAL(1.0),   // Zero at (2,1)
                           REAL(0.0), REAL(0.0), REAL(2.0), REAL(2.0)}}; // Non-zero at (3,2) - 2x2 block below
     
-    auto result = EigenSolverHelpers::CheckDeflation(H, 0, 3, 1e-10);
+    auto result = EigenSolverHelpers::CheckDeflation(H, 0, 3, TOL(1e-10, 1e-5));
     
     REQUIRE(result.canDeflate);
     REQUIRE(result.deflationIndex == 2);
@@ -600,7 +600,7 @@ TEST_CASE("Extraction - Extract eigenvalues from triangular matrix", "[eigensolv
                           REAL(0.0), REAL(0.0), REAL(3.0), REAL(4.0),
                           REAL(0.0), REAL(0.0), REAL(0.0), REAL(4.0)}};
     
-    auto result = EigenSolverHelpers::ExtractEigenvalues(H, 1e-10);
+    auto result = EigenSolverHelpers::ExtractEigenvalues(H, TOL(1e-10, 1e-5));
     
     REQUIRE(result.eigenvalues.size() == 4);
     REQUIRE(result.realCount == 4);
@@ -611,7 +611,7 @@ TEST_CASE("Extraction - Extract eigenvalues from triangular matrix", "[eigensolv
     for (size_t i = 0; i < 4; i++)
     {
         INFO("Eigenvalue " << i << ": " << result.eigenvalues[i].real);
-        REQUIRE(std::abs(result.eigenvalues[i].real - expected[i]) < 1e-10);
+        REQUIRE(std::abs(result.eigenvalues[i].real - expected[i]) < TOL(1e-10, 1e-5));
         REQUIRE_FALSE(result.eigenvalues[i].isComplex);
     }
 }
@@ -625,27 +625,27 @@ TEST_CASE("Extraction - Extract complex pair from 2x2 block", "[eigensolver][bui
                           REAL(0.0), REAL(3.0), REAL(2.0), REAL(4.0),
                           REAL(0.0), REAL(0.0), REAL(0.0), REAL(5.0)}};
     
-    auto result = EigenSolverHelpers::ExtractEigenvalues(H, 1e-10);
+    auto result = EigenSolverHelpers::ExtractEigenvalues(H, TOL(1e-10, 1e-5));
     
     REQUIRE(result.eigenvalues.size() == 4);
     REQUIRE(result.realCount == 2);      // eigenvalues 1 and 5
     REQUIRE(result.complexPairs == 1);   // one complex pair 2±3i
     
     // First eigenvalue: 1 (real)
-    REQUIRE(std::abs(result.eigenvalues[0].real - REAL(1.0)) < 1e-10);
+    REQUIRE(std::abs(result.eigenvalues[0].real - REAL(1.0)) < TOL(1e-10, 1e-5));
     REQUIRE_FALSE(result.eigenvalues[0].isComplex);
     
     // Second and third: 2 ± 3i (complex pair)
-    REQUIRE(std::abs(result.eigenvalues[1].real - REAL(2.0)) < 1e-10);
-    REQUIRE(std::abs(std::abs(result.eigenvalues[1].imag) - REAL(3.0)) < 1e-10);
+    REQUIRE(std::abs(result.eigenvalues[1].real - REAL(2.0)) < TOL(1e-10, 1e-5));
+    REQUIRE(std::abs(std::abs(result.eigenvalues[1].imag) - REAL(3.0)) < TOL(1e-10, 1e-5));
     REQUIRE(result.eigenvalues[1].isComplex);
     
-    REQUIRE(std::abs(result.eigenvalues[2].real - REAL(2.0)) < 1e-10);
-    REQUIRE(std::abs(std::abs(result.eigenvalues[2].imag) - REAL(3.0)) < 1e-10);
+    REQUIRE(std::abs(result.eigenvalues[2].real - REAL(2.0)) < TOL(1e-10, 1e-5));
+    REQUIRE(std::abs(std::abs(result.eigenvalues[2].imag) - REAL(3.0)) < TOL(1e-10, 1e-5));
     REQUIRE(result.eigenvalues[2].isComplex);
     
     // Fourth: 5 (real)
-    REQUIRE(std::abs(result.eigenvalues[3].real - REAL(5.0)) < 1e-10);
+    REQUIRE(std::abs(result.eigenvalues[3].real - REAL(5.0)) < TOL(1e-10, 1e-5));
     REQUIRE_FALSE(result.eigenvalues[3].isComplex);
 }
 
@@ -659,7 +659,7 @@ TEST_CASE("Extraction - Mixed real and complex blocks", "[eigensolver][building-
                           REAL(0.0), REAL(0.0), REAL(0.0), REAL(4.0), REAL(0.0),  // 1x1 real
                           REAL(0.0), REAL(0.0), REAL(0.0), REAL(0.0), REAL(5.0)}};// 1x1 real
     
-    auto result = EigenSolverHelpers::ExtractEigenvalues(H, 1e-10);
+    auto result = EigenSolverHelpers::ExtractEigenvalues(H, TOL(1e-10, 1e-5));
     
     REQUIRE(result.eigenvalues.size() == 5);
     REQUIRE(result.realCount == 3);      // 1, 4, 5
@@ -669,11 +669,11 @@ TEST_CASE("Extraction - Mixed real and complex blocks", "[eigensolver][building-
 TEST_CASE("ApplyDeflation - Zeros subdiagonal element", "[eigensolver][building-block][deflation]")
 {
     Matrix<Real> H{4, 4, {REAL(5.0), REAL(1.0), REAL(2.0), REAL(1.0),
-                          1e-12, REAL(4.0), REAL(1.0), REAL(2.0),  // Very small but non-zero
+                          TOL(1e-12, 1e-5), REAL(4.0), REAL(1.0), REAL(2.0),  // Very small but non-zero
                           REAL(0.0), REAL(2.0), REAL(3.0), REAL(1.0),
                           REAL(0.0), REAL(0.0), REAL(2.0), REAL(2.0)}};
     
-    auto check = EigenSolverHelpers::CheckDeflation(H, 0, 3, 1e-10);
+    auto check = EigenSolverHelpers::CheckDeflation(H, 0, 3, TOL(1e-10, 1e-5));
     REQUIRE(check.canDeflate);
     
     EigenSolverHelpers::ApplyDeflation(H, check.deflationIndex);
@@ -702,7 +702,7 @@ TEST_CASE("Eigenvectors - Real eigenvalue back-substitution", "[eigensolver][bui
     // Check eigenvector property: T*v = 3*v
     Real residual = EigenSolverHelpers::EigenvectorResidual(T, v, REAL(3.0));
     INFO("Residual for eigenvalue 3: " << residual);
-    REQUIRE(residual < 1e-10);
+    REQUIRE(residual < TOL(1e-10, 1e-5));
 }
 
 TEST_CASE("Eigenvectors - Multiple real eigenvalues", "[eigensolver][building-block][eigenvector]")
@@ -713,7 +713,7 @@ TEST_CASE("Eigenvectors - Multiple real eigenvalues", "[eigensolver][building-bl
                           REAL(0.0), REAL(0.0), REAL(3.0)}};
     Matrix<Real> Q = Matrix<Real>::Identity(3);  // Identity (T is already Schur form)
     
-    auto result = EigenSolverHelpers::ComputeEigenvectorsFromSchur(T, Q, 1e-10);
+    auto result = EigenSolverHelpers::ComputeEigenvectorsFromSchur(T, Q, TOL(1e-10, 1e-5));
     
     REQUIRE(result.vectors.rows() == 3);
     REQUIRE(result.vectors.cols() == 3);
@@ -771,16 +771,16 @@ TEST_CASE("Eigenvectors - With Q transformation", "[eigensolver][building-block]
         // Check convergence
         bool converged = true;
         for (int i = 1; i < 3; i++)
-            if (std::abs(T(i, i-1)) > 1e-10)
+            if (std::abs(T(i, i-1)) > TOL(1e-10, 1e-5))
                 converged = false;
         if (converged) break;
     }
     
     // Now compute eigenvectors
-    auto evecs = EigenSolverHelpers::ComputeEigenvectorsFromSchur(T, Q, 1e-10);
+    auto evecs = EigenSolverHelpers::ComputeEigenvectorsFromSchur(T, Q, TOL(1e-10, 1e-5));
     
     // Verify A*v = λ*v for each eigenvector
-    auto eigenvalues = EigenSolverHelpers::ExtractEigenvalues(T, 1e-10);
+    auto eigenvalues = EigenSolverHelpers::ExtractEigenvalues(T, TOL(1e-10, 1e-5));
     
     for (int col = 0; col < 3; col++)
     {
@@ -821,7 +821,7 @@ TEST_CASE("Eigenvectors - Complex eigenvalue pair", "[eigensolver][building-bloc
                           REAL(0.0), REAL(1.0), REAL(0.0)}};
     Matrix<Real> Q = Matrix<Real>::Identity(3);
     
-    auto result = EigenSolverHelpers::ComputeEigenvectorsFromSchur(T, Q, 1e-10);
+    auto result = EigenSolverHelpers::ComputeEigenvectorsFromSchur(T, Q, TOL(1e-10, 1e-5));
     
     // First column should be real eigenvector for λ=2
     REQUIRE_FALSE(result.isComplexPair[0]);
@@ -847,7 +847,7 @@ TEST_CASE("Eigenvectors - Normalized output", "[eigensolver][building-block][eig
                           REAL(0.0), REAL(0.0), REAL(6.0)}};
     Matrix<Real> Q = Matrix<Real>::Identity(3);
     
-    auto result = EigenSolverHelpers::ComputeEigenvectorsFromSchur(T, Q, 1e-10);
+    auto result = EigenSolverHelpers::ComputeEigenvectorsFromSchur(T, Q, TOL(1e-10, 1e-5));
     
     // Verify each column is normalized
     for (int col = 0; col < 3; col++)
@@ -858,7 +858,7 @@ TEST_CASE("Eigenvectors - Normalized output", "[eigensolver][building-block][eig
         norm = std::sqrt(norm);
         
         INFO("Column " << col << " norm: " << norm);
-        REQUIRE(std::abs(norm - REAL(1.0)) < 1e-10);
+        REQUIRE(std::abs(norm - REAL(1.0)) < TOL(1e-10, 1e-5));
     }
 }
 
@@ -872,7 +872,7 @@ TEST_CASE("EigenSolver - 2x2 real eigenvalues", "[eigensolver][integration]")
     Matrix<Real> A{2, 2, {REAL(4.0), REAL(1.0),
                           REAL(2.0), REAL(3.0)}};
     
-    auto result = EigenSolver::Solve(A, 1e-10, 100);
+    auto result = EigenSolver::Solve(A, TOL(1e-10, 1e-5), 100);
     
     REQUIRE(result.converged);
     REQUIRE(result.eigenvalues.size() == 2);
@@ -897,7 +897,7 @@ TEST_CASE("EigenSolver - 3x3 symmetric matrix", "[eigensolver][integration]")
                           REAL(1.0), REAL(4.0), REAL(1.0),
                           REAL(1.0), REAL(1.0), REAL(4.0)}};
     
-    auto result = EigenSolver::Solve(A, 1e-10, 200);
+    auto result = EigenSolver::Solve(A, TOL(1e-10, 1e-5), 200);
     
     INFO("Converged: " << result.converged);
     INFO("Iterations: " << result.iterations);
@@ -925,7 +925,7 @@ TEST_CASE("EigenSolver - 3x3 with complex eigenvalues", "[eigensolver][integrati
                           REAL(1.0),  REAL(0.0), REAL(0.0),
                           REAL(0.0),  REAL(0.0), REAL(2.0)}};
     
-    auto result = EigenSolver::Solve(A, 1e-10, 200);
+    auto result = EigenSolver::Solve(A, TOL(1e-10, 1e-5), 200);
     
     INFO("Converged: " << result.converged);
     INFO("Iterations: " << result.iterations);
@@ -972,7 +972,7 @@ TEST_CASE("EigenSolver - Diagonal matrix", "[eigensolver][integration]")
                           REAL(0.0), REAL(0.0), REAL(3.0), REAL(0.0),
                           REAL(0.0), REAL(0.0), REAL(0.0), REAL(4.0)}};
     
-    auto result = EigenSolver::Solve(A, 1e-10, 100);
+    auto result = EigenSolver::Solve(A, TOL(1e-10, 1e-5), 100);
     
     REQUIRE(result.converged);
     REQUIRE(result.eigenvalues.size() == 4);
@@ -982,10 +982,10 @@ TEST_CASE("EigenSolver - Diagonal matrix", "[eigensolver][integration]")
         computed.push_back(e.real);
     std::sort(computed.begin(), computed.end());
     
-    REQUIRE(std::abs(computed[0] - REAL(1.0)) < 1e-10);
-    REQUIRE(std::abs(computed[1] - REAL(2.0)) < 1e-10);
-    REQUIRE(std::abs(computed[2] - REAL(3.0)) < 1e-10);
-    REQUIRE(std::abs(computed[3] - REAL(4.0)) < 1e-10);
+    REQUIRE(std::abs(computed[0] - REAL(1.0)) < TOL(1e-10, 1e-5));
+    REQUIRE(std::abs(computed[1] - REAL(2.0)) < TOL(1e-10, 1e-5));
+    REQUIRE(std::abs(computed[2] - REAL(3.0)) < TOL(1e-10, 1e-5));
+    REQUIRE(std::abs(computed[3] - REAL(4.0)) < TOL(1e-10, 1e-5));
 }
 
 TEST_CASE("EigenSolver - 4x4 general matrix", "[eigensolver][integration]")
@@ -996,7 +996,7 @@ TEST_CASE("EigenSolver - 4x4 general matrix", "[eigensolver][integration]")
                           REAL(1.0), REAL(2.0), REAL(5.0), REAL(1.0),
                           REAL(1.0), REAL(1.0), REAL(1.0), REAL(6.0)}};
     
-    auto result = EigenSolver::Solve(A, 1e-10, 300);
+    auto result = EigenSolver::Solve(A, TOL(1e-10, 1e-5), 300);
     
     INFO("Converged: " << result.converged);
     INFO("Iterations: " << result.iterations);
@@ -1022,7 +1022,7 @@ TEST_CASE("EigenSolver - Eigenvector verification", "[eigensolver][integration]"
                           REAL(1.0), REAL(2.0), REAL(1.0),
                           REAL(0.0), REAL(1.0), REAL(2.0)}};
     
-    auto result = EigenSolver::Solve(A, 1e-10, 200);
+    auto result = EigenSolver::Solve(A, TOL(1e-10, 1e-5), 200);
     
     REQUIRE(result.converged);
     

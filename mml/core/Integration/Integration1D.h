@@ -96,6 +96,7 @@ namespace MML
 																		 const Real eps = Defaults::TrapezoidIntegrationEPS)	{
 		int		j;
 		Real	currSum, oldSum = 0.0;
+		Real	last_error = 0.0;
 
 		TrapIntegrator t(func, a, b);
 
@@ -113,11 +114,11 @@ namespace MML
 				}
 			}
 
+			last_error = std::abs(currSum - oldSum);
 			oldSum = currSum;
 		}
-		// Did not converge within max iterations
-		Real final_error = std::abs(currSum - oldSum);
-		return IntegrationResult(currSum, final_error, j, false);
+		// Did not converge — last_error preserves the final step difference
+		return IntegrationResult(currSum, last_error, j, false);
 	}
 
 	/// @brief Simpson's rule with adaptive refinement
@@ -135,6 +136,7 @@ namespace MML
 	{
 		int j;
 		Real currSum, st, ost = 0.0, oldSum = 0.0;
+		Real last_error = 0.0;
 
 		TrapIntegrator t(func, a, b);
 
@@ -154,12 +156,12 @@ namespace MML
 				}
 			}
 
+			last_error = std::abs(currSum - oldSum);
 			oldSum = currSum;
 			ost = st;
 		}
-		// Did not converge within max iterations
-		Real final_error = std::abs(currSum - oldSum);
-		return IntegrationResult(currSum, final_error, j, false);
+		// Did not converge — last_error preserves the final step difference
+		return IntegrationResult(currSum, last_error, j, false);
 	}
 
 

@@ -71,9 +71,7 @@ namespace MML
         { 
             if (std::abs(x) >= 1.0)
             {
-                // At boundaries, weight is undefined but we can use a large value
-                // For practical computation, return a finite value
-                return 1e10;  // Singular at x = ±1
+                return std::numeric_limits<Real>::infinity();  // Singular at x = ±1
             }
             return 1.0 / std::sqrt(1.0 - x * x); 
         }

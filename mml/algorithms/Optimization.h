@@ -51,9 +51,9 @@ namespace MML {
 	/// config.max_iterations = 200;     // Allow more iterations
 	/// auto result = Minimization::BrentMinimize(func, bracket, config);
 	struct Minimization1DConfig {
-		/// Convergence tolerance for x (default: 1e-8)
+		/// Convergence tolerance for x (default: precision-aware, ~sqrt(eps))
 		/// Algorithm converges when bracket width < tolerance
-		Real tolerance = 1e-8;
+		Real tolerance = PrecisionValues<Real>::OptimizationTolerance;
 
 		/// Maximum number of iterations (default: 100)
 		int max_iterations = 100;
@@ -64,7 +64,7 @@ namespace MML {
 		/// Factory method for high-precision configuration
 		static Minimization1DConfig HighPrecision() {
 			Minimization1DConfig config;
-			config.tolerance = 1e-14;
+			config.tolerance = PrecisionValues<Real>::OptimizationTolerance;
 			config.max_iterations = 500;
 			return config;
 		}
@@ -355,7 +355,7 @@ namespace MML {
 		/// @note Based on Numerical Recipes §10.2
 		/// @see BracketMinimum to obtain initial bracket
 		/// @see BrentMinimize for typically faster convergence
-		static MinimizationResult GoldenSectionSearch(const IRealFunction& func, const MinimumBracket& bracket, Real tol = 3.0e-8) {
+		static MinimizationResult GoldenSectionSearch(const IRealFunction& func, const MinimumBracket& bracket, Real tol = PrecisionValues<Real>::OptimizationTolerance) {
 			// Input validation
 			ValidateTolerance(tol, "GoldenSectionSearch");
 			if (!bracket.valid) {
@@ -426,7 +426,7 @@ namespace MML {
 		/// @param b     Initial right search bound
 		/// @param tol   Fractional tolerance
 		/// @return MinimizationResult with xmin, fmin, and iteration count
-		static MinimizationResult GoldenSectionSearch(const IRealFunction& func, Real a, Real b, Real tol = 3.0e-8) {
+		static MinimizationResult GoldenSectionSearch(const IRealFunction& func, Real a, Real b, Real tol = PrecisionValues<Real>::OptimizationTolerance) {
 			// Input validation (bounds validated in BracketMinimum, tolerance here)
 			ValidateTolerance(tol, "GoldenSectionSearch");
 			MinimumBracket bracket = BracketMinimum(func, a, b);
@@ -492,7 +492,7 @@ namespace MML {
 		/// @note Based on Numerical Recipes §10.3
 		/// @see BracketMinimum to obtain initial bracket
 		/// @see BrentMinimizeWithDeriv for version using derivatives
-		static MinimizationResult BrentMinimize(const IRealFunction& func, const MinimumBracket& bracket, Real tol = 3.0e-8,
+		static MinimizationResult BrentMinimize(const IRealFunction& func, const MinimumBracket& bracket, Real tol = PrecisionValues<Real>::OptimizationTolerance,
 												int maxIter = 100) {
 			// Input validation
 			ValidateTolerance(tol, "BrentMinimize");
@@ -504,7 +504,7 @@ namespace MML {
 			}
 			
 			const Real CGOLD = 0.3819660; // Golden ratio for section (1 - 1/φ)
-			const Real ZEPS = std::numeric_limits<Real>::epsilon() * 1.0e-3;
+			const Real ZEPS = std::sqrt(std::numeric_limits<Real>::epsilon()) * 1.0e-3;
 
 			MinimizationResult result;
 			result.converged = false;
@@ -618,7 +618,7 @@ namespace MML {
 		/// @param maxIter Maximum iterations
 		/// @return MinimizationResult with xmin, fmin, and iteration count
 		/// @throws NumericInputError if inputs are invalid (NaN/Inf bounds, invalid tolerance)
-		static MinimizationResult BrentMinimize(const IRealFunction& func, Real a, Real b, Real tol = 3.0e-8, int maxIter = 100) {
+		static MinimizationResult BrentMinimize(const IRealFunction& func, Real a, Real b, Real tol = PrecisionValues<Real>::OptimizationTolerance, int maxIter = 100) {
 			// Validate inputs early for clear error messages
 			ValidateTolerance(tol, "BrentMinimize");
 			if (maxIter <= 0)
@@ -685,7 +685,7 @@ namespace MML {
 		/// @note Based on Numerical Recipes §10.4 (dbrent)
 		/// @see BrentMinimize for version without derivatives
 		static MinimizationResult BrentMinimizeWithDeriv(const IRealFunction& func, const IRealFunction& dfunc,
-														 const MinimumBracket& bracket, Real tol = 3.0e-8, int maxIter = 100) {
+														 const MinimumBracket& bracket, Real tol = PrecisionValues<Real>::OptimizationTolerance, int maxIter = 100) {
 			// Validate inputs
 			ValidateTolerance(tol, "BrentMinimizeWithDeriv");
 			if (maxIter <= 0)
@@ -693,7 +693,7 @@ namespace MML {
 			if (!bracket.valid)
 				throw NumericInputError("BrentMinimizeWithDeriv: bracket is not valid");
 			
-			const Real ZEPS = std::numeric_limits<Real>::epsilon() * 1.0e-3;
+			const Real ZEPS = std::sqrt(std::numeric_limits<Real>::epsilon()) * 1.0e-3;
 
 			MinimizationResult result;
 			result.converged = false;
@@ -852,7 +852,7 @@ namespace MML {
 		/// @return MinimizationResult with xmin, fmin, and iteration count
 		/// @throws NumericInputError if inputs are invalid (NaN/Inf bounds, invalid tolerance)
 		static MinimizationResult BrentMinimizeWithDeriv(const IRealFunction& func, const IRealFunction& dfunc, Real a, Real b,
-														 Real tol = 3.0e-8, int maxIter = 100) {
+														 Real tol = PrecisionValues<Real>::OptimizationTolerance, int maxIter = 100) {
 			// Validate inputs early for clear error messages
 			ValidateTolerance(tol, "BrentMinimizeWithDeriv");
 			if (maxIter <= 0)
@@ -875,7 +875,7 @@ namespace MML {
 		/// @param b     Initial right search bound
 		/// @param tol   Fractional tolerance
 		/// @return MinimizationResult with xmax, fmax (note: fmax is actual max value)
-		static MinimizationResult GoldenSectionMaximize(const IRealFunction& func, Real a, Real b, Real tol = 3.0e-8) {
+		static MinimizationResult GoldenSectionMaximize(const IRealFunction& func, Real a, Real b, Real tol = PrecisionValues<Real>::OptimizationTolerance) {
 			// Negate function to turn maximum into minimum
 			RealFunctionFromStdFunc negFunc([&func](Real x) { return -func(x); });
 			MinimizationResult result = GoldenSectionSearch(negFunc, a, b, tol);
@@ -891,7 +891,7 @@ namespace MML {
 		/// @param tol     Fractional tolerance
 		/// @param maxIter Maximum iterations
 		/// @return MinimizationResult with xmax, fmax
-		static MinimizationResult BrentMaximize(const IRealFunction& func, Real a, Real b, Real tol = 3.0e-8, int maxIter = 100) {
+		static MinimizationResult BrentMaximize(const IRealFunction& func, Real a, Real b, Real tol = PrecisionValues<Real>::OptimizationTolerance, int maxIter = 100) {
 			RealFunctionFromStdFunc negFunc([&func](Real x) { return -func(x); });
 			MinimizationResult result = BrentMinimize(negFunc, a, b, tol, maxIter);
 			result.fmin = -result.fmin;

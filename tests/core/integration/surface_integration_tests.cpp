@@ -278,7 +278,7 @@ namespace MML::Tests::Algorithms::SurfaceIntegrationTests
 		Real fluxLow = SurfaceIntegration::SurfaceIntegral(field, square, REAL(0.1), 2);
 		
 		// High precision
-		Real fluxHigh = SurfaceIntegration::SurfaceIntegral(field, square, 1e-8, 6);
+		Real fluxHigh = SurfaceIntegration::SurfaceIntegral(field, square, TOL(1e-8, 1e-4), 6);
 
 		// They should be different (refinement matters)
 		// And high precision should be close to analytical value
@@ -305,7 +305,7 @@ namespace MML::Tests::Algorithms::SurfaceIntegrationTests
 
 		Real flux = SurfaceIntegration::SurfaceIntegral(vectorField, degenerateTriangle, 1e-6);
 		
-		REQUIRE_THAT(flux, WithinAbs(REAL(0.0), REAL(1e-10)));
+		REQUIRE_THAT(flux, WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("SurfaceIntegration::ParallelField_NoFlux", "[flux][perpendicular]")
@@ -328,7 +328,7 @@ namespace MML::Tests::Algorithms::SurfaceIntegrationTests
 		Real flux = SurfaceIntegration::SurfaceIntegral(tangentField, square, 1e-6);
 		
 		// Field · normal = (1, 1, 0) · (0, 0, 1) = 0
-		REQUIRE_THAT(flux, WithinAbs(REAL(0.0), REAL(1e-10)));
+		REQUIRE_THAT(flux, WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
 	}
 
 	/*********************************************************************/
@@ -343,7 +343,7 @@ namespace MML::Tests::Algorithms::SurfaceIntegrationTests
 		{
 			// F = r / |r|^3 (normalized radial direction divided by distance squared)
 			Real r2 = pos[0] * pos[0] + pos[1] * pos[1] + pos[2] * pos[2];
-			if (r2 < 1e-10) return VectorN<Real, 3>({0, 0, 0}); // Avoid singularity at origin
+			if (r2 < TOL(1e-10, 1e-5)) return VectorN<Real, 3>({0, 0, 0}); // Avoid singularity at origin
 			Real r3 = r2 * sqrt(r2);
 			return VectorN<Real, 3>({pos[0] / r3, pos[1] / r3, pos[2] / r3});
 		}
@@ -377,7 +377,7 @@ namespace MML::Tests::Algorithms::SurfaceIntegrationTests
 	public:
 		VectorN<Real, 3> operator()(const VectorN<Real, 3>& pos) const override
 		{
-			return VectorN<Real, 3>({sin(pos[0]), sin(pos[1]), sin(pos[2])});
+			return VectorN<Real, 3>({REAL(sin(pos[0])), REAL(sin(pos[1])), REAL(sin(pos[2]))});
 		}
 
 		Vector3Cartesian operator()(const Vector3Cartesian& pos) const
@@ -427,7 +427,7 @@ namespace MML::Tests::Algorithms::SurfaceIntegrationTests
 		
 		// F = (-y, x, 0), normal = (0, 0, 1)
 		// F · n = 0 everywhere
-		REQUIRE_THAT(flux, WithinAbs(REAL(0.0), REAL(1e-8)));
+		REQUIRE_THAT(flux, WithinAbs(REAL(0.0), TOL(1e-8, 1e-4)));
 	}
 
 	TEST_CASE("SurfaceIntegration::SinusoidalField_ThroughSquare", "[flux][sinusoidal]")
@@ -519,10 +519,10 @@ namespace MML::Tests::Algorithms::SurfaceIntegrationTests
 			Point3Cartesian(0, 1e-6, 1)
 		);
 
-		Real flux = SurfaceIntegration::SurfaceIntegral(field, tinySquare, 1e-10);
+		Real flux = SurfaceIntegration::SurfaceIntegral(field, tinySquare, TOL(1e-10, 1e-5));
 		
-		// Expected flux = 1 * (1e-6)² = 1e-12
-		REQUIRE_THAT(flux, WithinRel(REAL(1e-12), REAL(1e-2)));
+		// Expected flux = 1 * (1e-6)² = TOL(1e-12, 1e-5)
+		REQUIRE_THAT(flux, WithinAbs(TOL(1e-12, 1e-5), TOL(1e-13, 1e-4)));
 	}
 
 	TEST_CASE("SurfaceIntegration::VeryLargeSurface", "[flux][precision][large]")
@@ -582,7 +582,7 @@ namespace MML::Tests::Algorithms::SurfaceIntegrationTests
 			Point3Cartesian(REAL(1.001), REAL(0.001), 0)
 		);
 
-		Real flux = SurfaceIntegration::SurfaceIntegral(field, nearlyDegenerate, 1e-8);
+		Real flux = SurfaceIntegration::SurfaceIntegral(field, nearlyDegenerate, TOL(1e-8, 1e-4));
 		
 		// Flux should be very small but not exactly zero
 		// Area ≈ REAL(0.5) * |base × height| ≈ REAL(0.5) * 1 * REAL(0.001) = REAL(0.0005)

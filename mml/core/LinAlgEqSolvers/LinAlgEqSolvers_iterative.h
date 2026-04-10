@@ -30,7 +30,7 @@ namespace MML
 	 */
 	struct IterativeSolverConfig
 	{
-		Real tolerance = 1e-10;       ///< Convergence tolerance
+		Real tolerance = PrecisionValues<Real>::IterativeSolverTolerance;       ///< Convergence tolerance
 		int max_iterations = 1000;    ///< Maximum iterations
 		Real omega = 1.0;             ///< Relaxation parameter (for SOR, 0 < omega < 2)
 		bool verbose = false;         ///< Enable verbose output
@@ -46,7 +46,7 @@ namespace MML
 		/// Factory: High precision configuration
 		static IterativeSolverConfig HighPrecision() {
 			IterativeSolverConfig cfg;
-			cfg.tolerance = 1e-14;
+			cfg.tolerance = PrecisionValues<Real>::IterativeSolverTolerance / Real(10000);
 			cfg.max_iterations = 10000;
 			return cfg;
 		}
@@ -135,7 +135,7 @@ namespace MML
 		static IterativeSolverResult Solve(const Matrix<Real>& A, 
 		                                    const Vector<Real>& b,
 		                                    const Vector<Real>& x0 = Vector<Real>(),
-		                                    Real tol = 1e-10,
+		                                    Real tol = PrecisionValues<Real>::IterativeSolverTolerance,
 		                                    int maxIter = 1000)
 		{
 			int n = A.rows();
@@ -211,7 +211,7 @@ namespace MML
 		 */
 		static Vector<Real> SolveSimple(const Matrix<Real>& A, 
 		                                 const Vector<Real>& b,
-		                                 Real tol = 1e-10,
+		                                 Real tol = PrecisionValues<Real>::IterativeSolverTolerance,
 		                                 int maxIter = 1000)
 		{
 			auto result = Solve(A, b, Vector<Real>(), tol, maxIter);
@@ -289,7 +289,7 @@ namespace MML
 		static IterativeSolverResult Solve(const Matrix<Real>& A, 
 		                                    const Vector<Real>& b,
 		                                    const Vector<Real>& x0 = Vector<Real>(),
-		                                    Real tol = 1e-10,
+		                                    Real tol = PrecisionValues<Real>::IterativeSolverTolerance,
 		                                    int maxIter = 1000)
 		{
 			int n = A.rows();
@@ -362,7 +362,7 @@ namespace MML
 		 */
 		static Vector<Real> SolveSimple(const Matrix<Real>& A, 
 		                                 const Vector<Real>& b,
-		                                 Real tol = 1e-10,
+		                                 Real tol = PrecisionValues<Real>::IterativeSolverTolerance,
 		                                 int maxIter = 1000)
 		{
 			auto result = Solve(A, b, Vector<Real>(), tol, maxIter);
@@ -453,7 +453,7 @@ namespace MML
 		                                    const Vector<Real>& b,
 		                                    Real omega,
 		                                    const Vector<Real>& x0 = Vector<Real>(),
-		                                    Real tol = 1e-10,
+		                                    Real tol = PrecisionValues<Real>::IterativeSolverTolerance,
 		                                    int maxIter = 1000)
 		{
 			// Validate omega
@@ -538,7 +538,7 @@ namespace MML
 		static IterativeSolverResult SolveOptimal(const Matrix<Real>& A, 
 		                                           const Vector<Real>& b,
 		                                           const Vector<Real>& x0 = Vector<Real>(),
-		                                           Real tol = 1e-10,
+		                                           Real tol = PrecisionValues<Real>::IterativeSolverTolerance,
 		                                           int maxIter = 1000)
 		{
 			int n = A.rows();
@@ -553,7 +553,7 @@ namespace MML
 		static Vector<Real> SolveSimple(const Matrix<Real>& A, 
 		                                 const Vector<Real>& b,
 		                                 Real omega,
-		                                 Real tol = 1e-10,
+		                                 Real tol = PrecisionValues<Real>::IterativeSolverTolerance,
 		                                 int maxIter = 1000)
 		{
 			auto result = Solve(A, b, omega, Vector<Real>(), tol, maxIter);
