@@ -2,9 +2,9 @@ name: Ubuntu
 
 on:
   push:
-    branches: [ master, develop ]
+    branches: [ master ]
   pull_request:
-    branches: [ master, develop ]
+    branches: [ main ]
   workflow_dispatch:
 
 concurrency:
@@ -17,17 +17,18 @@ env:
 
 jobs:
   build:
-    name: ${{ matrix.name }}
+    name: ${{ matrix.compiler_name }} / ${{ matrix.real_type }}
     runs-on: ubuntu-latest
-    timeout-minutes: 180
+    timeout-minutes: 150
     strategy:
       fail-fast: false
       matrix:
+        compiler_name: [GCC, Clang]
+        real_type: [float, double, long_double]
         include:
-          - name: GCC
+          - compiler_name: GCC
             compiler: gcc
-            
-          - name: Clang
+          - compiler_name: Clang
             compiler: clang
 
     steps:
@@ -40,13 +41,13 @@ jobs:
         sudo apt-get install -y ccache
         echo "CMAKE_CXX_COMPILER_LAUNCHER=ccache" >> $GITHUB_ENV
 
-    - name: Restore ccache
-      uses: actions/cache/restore@v4
+    - name: Cache ccache
+      uses: actions/cache@v4
       with:
         path: ${{ env.CCACHE_DIR }}
-        key: ccache-ubuntu-${{ matrix.name }}-${{ github.sha }}
+        key: ccache-ubuntu-${{ matrix.compiler_name }}-${{ matrix.real_type }}-${{ github.sha }}
         restore-keys: |
-          ccache-ubuntu-${{ matrix.name }}-
+          ccache-ubuntu-${{ matrix.compiler_name }}-${{ matrix.real_type }}-
 
     - name: Setup GCC
       if: matrix.compiler == 'gcc'
@@ -63,10 +64,11 @@ jobs:
     - name: Configure CMake
       run: |
         cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
+          -DMML_REAL_TYPE=${{ matrix.real_type }} \
           -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
 
     - name: Build Tests
-      timeout-minutes: 150
+      timeout-minutes: 110
       # GCC uses significantly more memory than Clang - limit parallelism to avoid OOM
       run: |
         if [ "${{ matrix.compiler }}" = "gcc" ]; then
@@ -75,17 +77,10 @@ jobs:
           cmake --build build --config ${{ env.BUILD_TYPE }} --target MML_Tests --parallel
         fi
 
-    - name: Save ccache
-      if: always()
-      uses: actions/cache/save@v4
-      with:
-        path: ${{ env.CCACHE_DIR }}
-        key: ccache-ubuntu-${{ matrix.name }}-${{ github.sha }}
-
-    - name: Run Tests
+    - name: Test
       timeout-minutes: 30
       working-directory: build
-      run: ctest -j1 --timeout 600 --output-on-failure
+      run: ctest -C ${{ env.BUILD_TYPE }} -L core --output-on-failure --parallel --timeout 120
 
     - name: ccache stats
       run: ccache --show-stats
@@ -94,6 +89,6 @@ jobs:
       if: failure()
       uses: actions/upload-artifact@v4
       with:
-        name: test-results-ubuntu-${{ matrix.name }}
+        name: test-results-ubuntu-${{ matrix.compiler_name }}-${{ matrix.real_type }}
         path: build/Testing/Temporary/
         retention-days: 7

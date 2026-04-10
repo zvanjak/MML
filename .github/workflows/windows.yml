@@ -2,9 +2,9 @@ name: Windows
 
 on:
   push:
-    branches: [ master, develop ]
+    branches: [ master ]
   pull_request:
-    branches: [ master, develop ]
+    branches: [ main ]
   workflow_dispatch:
 
 concurrency:
@@ -16,17 +16,18 @@ env:
 
 jobs:
   build:
-    name: ${{ matrix.name }}
+    name: ${{ matrix.compiler_name }} / ${{ matrix.real_type }}
     runs-on: windows-latest
     timeout-minutes: 150
     strategy:
       fail-fast: false
       matrix:
+        compiler_name: [MSVC 2022, Clang]
+        real_type: [float, double, long_double]
         include:
-          - name: MSVC 2022
+          - compiler_name: MSVC 2022
             compiler: msvc
-            
-          - name: Clang
+          - compiler_name: Clang
             compiler: clang
 
     steps:
@@ -44,21 +45,21 @@ jobs:
         echo "CXX=clang++" >> $env:GITHUB_ENV
 
     - name: Configure CMake
-      run: cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
+      run: cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DMML_REAL_TYPE=${{ matrix.real_type }}
 
     - name: Build Tests
       timeout-minutes: 110
       run: cmake --build build --config ${{ env.BUILD_TYPE }} --target MML_Tests --parallel
 
-    - name: Run Tests
+    - name: Test
       timeout-minutes: 30
       working-directory: build
-      run: ctest -j1 --timeout 600 --output-on-failure -C Release
+      run: ctest -C ${{ env.BUILD_TYPE }} -L core --output-on-failure --parallel --timeout 120
 
     - name: Upload test results on failure
       if: failure()
       uses: actions/upload-artifact@v4
       with:
-        name: test-results-windows-${{ matrix.name }}
+        name: test-results-windows-${{ matrix.compiler_name }}-${{ matrix.real_type }}
         path: build/Testing/Temporary/
         retention-days: 7
