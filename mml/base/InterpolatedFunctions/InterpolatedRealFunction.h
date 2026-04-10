@@ -19,6 +19,7 @@
 /// - SplineInterpRealFunc - Cubic spline with optional derivatives
 /// - RationalInterpRealFunc - Rational function interpolation (Bulirsch-Stoer)
 /// - BarycentricRationalInterp - Floater-Hormann barycentric interpolation (no poles)
+/// - MonotoneCubicInterpRealFunc - Fritsch-Carlson monotone cubic Hermite (no overshoots)
 /// @see Interpolation2DFunction.h for 2D interpolation
 /// @see InterpolationParametricCurve.h for parametric curve interpolation
 /// @ingroup Interpolation
@@ -829,6 +830,176 @@ namespace MML {
 			if (i < 0 || i >= _n)
 				throw IndexError("Index out of range in getWeight");
 			return _w[i];
+		}
+	};
+
+
+	/////////////////////////////////////////////////////////////////////////////////////
+	///                MONOTONE CUBIC INTERPOLATION                                   ///
+	/////////////////////////////////////////////////////////////////////////////////////
+
+	/// @brief Monotone cubic interpolation using the Fritsch-Carlson algorithm.
+	/// MonotoneCubicInterpRealFunc constructs a piecewise cubic Hermite interpolant
+	/// that preserves the monotonicity of the input data. Unlike standard cubic
+	/// splines, this method guarantees no spurious oscillations or overshoots
+	/// between data points when the data is monotone.
+	/// **Algorithm:** Fritsch-Carlson (1980) computes initial tangent estimates
+	/// from centered differences, then adjusts them to satisfy monotonicity
+	/// constraints using the α-β condition (α² + β² ≤ 9).
+	/// **Advantages:**
+	/// - Preserves monotonicity of input data
+	/// - No oscillations or overshoots between data points
+	/// - C¹ continuous (continuous first derivative)
+	/// - Exact at data points
+	/// **Limitations:**
+	/// - C¹ only (second derivative may be discontinuous at knots)
+	/// - Slightly less accurate than unconstrained cubic spline for smooth data
+	/// @section monotone_formula Hermite Basis
+	/// For @f$ x_i \le x \le x_{i+1} @f$ with @f$ t = (x - x_i)/h_i @f$:
+	/// @f[
+	/// f(x) = (2t^3 - 3t^2 + 1)y_i + (t^3 - 2t^2 + t)h_i d_i
+	/// + (-2t^3 + 3t^2)y_{i+1} + (t^3 - t^2)h_i d_{i+1}
+	/// @f]
+	/// @see SplineInterpRealFunc for C² cubic spline (may overshoot)
+	/// @see LinearInterpRealFunc for simpler shape-preserving interpolation
+	/// @ingroup Interpolation
+
+	class MonotoneCubicInterpRealFunc : public RealFunctionInterpolated {
+	private:
+		Vector<Real> _d; ///< Tangent derivatives at each data point
+
+	public:
+		/// @brief Construct a monotone cubic interpolation function.
+		/// @param xv Vector of x-values (abscissas), must be sorted
+		/// @param yv Vector of y-values (ordinates)
+		/// @throws RealFuncInterpInitError if fewer than 2 points provided
+
+		MonotoneCubicInterpRealFunc(const Vector<Real>& xv, const Vector<Real>& yv)
+			: RealFunctionInterpolated(xv, yv, 2)
+			, _d(xv.size())
+		{
+			initDerivatives();
+		}
+
+		/// @brief Initialize tangent derivatives using the Fritsch-Carlson algorithm.
+		/// Computes interval slopes δ_k, initial tangent estimates from centered
+		/// differences, then enforces the monotonicity constraint α² + β² ≤ 9.
+
+		void initDerivatives()
+		{
+			int n = getNumPoints();
+
+			if (n == 2)
+			{
+				// Only one interval — use linear slope for both endpoints
+				Real delta = (Y(1) - Y(0)) / (X(1) - X(0));
+				_d[0] = delta;
+				_d[1] = delta;
+				return;
+			}
+
+			// Step 1: Compute interval slopes δ_k
+			Vector<Real> delta(n - 1);
+			for (int k = 0; k < n - 1; k++)
+				delta[k] = (Y(k + 1) - Y(k)) / (X(k + 1) - X(k));
+
+			// Step 2: Initial tangent estimates from three-point formula
+			_d[0] = delta[0];
+			for (int k = 1; k < n - 1; k++)
+			{
+				if (delta[k - 1] * delta[k] <= 0.0)
+					_d[k] = 0.0;  // Different signs or zero — flat tangent
+				else
+					_d[k] = (delta[k - 1] + delta[k]) / 2.0;
+			}
+			_d[n - 1] = delta[n - 2];
+
+			// Step 3: Fritsch-Carlson monotonicity correction
+			for (int k = 0; k < n - 1; k++)
+			{
+				if (delta[k] == 0.0)
+				{
+					// Flat segment — both endpoint tangents must be zero
+					_d[k] = 0.0;
+					_d[k + 1] = 0.0;
+				}
+				else
+				{
+					Real alpha = _d[k] / delta[k];
+					Real beta = _d[k + 1] / delta[k];
+					Real r2 = alpha * alpha + beta * beta;
+					if (r2 > 9.0)
+					{
+						// Rescale to satisfy α² + β² ≤ 9
+						Real tau = 3.0 / std::sqrt(r2);
+						_d[k] = tau * alpha * delta[k];
+						_d[k + 1] = tau * beta * delta[k];
+					}
+				}
+			}
+		}
+
+		/// @brief Calculate monotone cubic Hermite interpolated value.
+		/// @param startInd Starting index of the interval
+		/// @param x Point at which to interpolate
+		/// @return Interpolated value using cubic Hermite basis functions
+
+		Real calcInterpValue(int startInd, Real x) const override
+		{
+			int lo = startInd, hi = startInd + 1;
+			Real h = X(hi) - X(lo);
+
+			if (h == 0.0)
+				throw RealFuncInterpRuntimeError("Monotone cubic interpolation: zero interval width (identical x-values)");
+
+			Real t = (x - X(lo)) / h;
+			Real t2 = t * t;
+			Real t3 = t2 * t;
+
+			// Hermite basis functions
+			Real h00 = 2.0 * t3 - 3.0 * t2 + 1.0;
+			Real h10 = t3 - 2.0 * t2 + t;
+			Real h01 = -2.0 * t3 + 3.0 * t2;
+			Real h11 = t3 - t2;
+
+			return h00 * Y(lo) + h10 * h * _d[lo] + h01 * Y(hi) + h11 * h * _d[hi];
+		}
+
+		/// @brief Evaluate the first derivative at point x.
+		/// @param x Point at which to evaluate the derivative
+		/// @return The first derivative dy/dx
+
+		Real Derivative(Real x) const
+		{
+			int startInd = locate(x);
+			int lo = startInd, hi = startInd + 1;
+			Real h = X(hi) - X(lo);
+
+			if (h == 0.0)
+				throw RealFuncInterpRuntimeError("Monotone cubic derivative: zero interval width (identical x-values)");
+
+			Real t = (x - X(lo)) / h;
+			Real t2 = t * t;
+
+			// Derivatives of Hermite basis functions (w.r.t. t), divided by h for dx
+			Real dh00 = (6.0 * t2 - 6.0 * t) / h;
+			Real dh10 = (3.0 * t2 - 4.0 * t + 1.0) / h;
+			Real dh01 = (-6.0 * t2 + 6.0 * t) / h;
+			Real dh11 = (3.0 * t2 - 2.0 * t) / h;
+
+			return dh00 * Y(lo) + dh10 * h * _d[lo] + dh01 * Y(hi) + dh11 * h * _d[hi];
+		}
+
+		/// @brief Get the stored tangent derivative at node i.
+		/// @param i Index of the data point
+		/// @return The tangent derivative d[i]
+		/// @throws IndexError if i is out of bounds
+
+		Real GetDerivative(int i) const
+		{
+			if (i < 0 || i >= getNumPoints())
+				throw IndexError("Index out of range in GetDerivative");
+			return _d[i];
 		}
 	};
 

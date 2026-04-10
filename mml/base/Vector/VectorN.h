@@ -32,8 +32,14 @@ namespace MML
 	template<class Type, int N>
 	class VectorN
 	{
-	protected:
+	private:
 		Type  _val[N] = { 0 };
+
+	protected:
+		/// @brief Protected element accessor (non-const) for derived classes.
+		Type& val(int i) noexcept { return _val[i]; }
+		/// @brief Protected element accessor (const) for derived classes.
+		const Type& val(int i) const noexcept { return _val[i]; }
 
 	public:
 		typedef Type value_type;      // make T available externally

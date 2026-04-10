@@ -37,8 +37,8 @@ namespace MML
 		/// @param y Y component
 		Vector2Cartesian(Real x, Real y)
 		{
-			_val[0] = x;
-			_val[1] = y;
+			val(0) = x;
+			val(1) = y;
 		}
 		/// @brief Constructs from VectorN<Real,2>.
 		/// @param b Vector to copy
@@ -48,28 +48,28 @@ namespace MML
 		/// @param b End point
 		Vector2Cartesian(const Point2Cartesian& a, const Point2Cartesian& b)
 		{
-			_val[0] = b.X() - a.X();
-			_val[1] = b.Y() - a.Y();
+			val(0) = b.X() - a.X();
+			val(1) = b.Y() - a.Y();
 		}
 		/// @brief Constructs from initializer list.
 		/// @param list Initializer list of values
 		Vector2Cartesian(std::initializer_list<Real> list) : VectorN<Real, 2>(list) {}
 
 		/// @brief Returns X component (const).
-		Real  X() const { return _val[0]; }
+		Real  X() const { return val(0); }
 		/// @brief Returns X component (non-const).
-		Real& X()				{ return _val[0]; }
+		Real& X()				{ return val(0); }
 		/// @brief Returns Y component (const).
-		Real  Y() const { return _val[1]; }
+		Real  Y() const { return val(1); }
 		/// @brief Returns Y component (non-const).
-		Real& Y()				{ return _val[1]; }
+		Real& Y()				{ return val(1); }
 		
 		/// @brief Unary minus (negation).
 		Vector2Cartesian operator-() const
 		{
 			Vector2Cartesian ret;
 			for (int i = 0; i < 2; i++)
-				ret._val[i] = -_val[i];
+				ret[i] = -val(i);
 			return ret;
 		}
 		
@@ -79,7 +79,7 @@ namespace MML
 		{
 			Vector2Cartesian ret;
 			for (int i = 0; i < 2; i++)
-				ret._val[i] = _val[i] + b[i];
+				ret[i] = val(i) + b[i];
 			return ret;
 		}
 		/// @brief Vector subtraction.
@@ -88,7 +88,7 @@ namespace MML
 		{
 			Vector2Cartesian ret;
 			for (int i = 0; i < 2; i++)
-				ret._val[i] = _val[i] - b[i];
+				ret[i] = val(i) - b[i];
 			return ret;
 		}
 
@@ -98,7 +98,7 @@ namespace MML
 		{
 			Vector2Cartesian ret;
 			for (int i = 0; i < 2; i++)
-				ret._val[i] = _val[i] * b;
+				ret[i] = val(i) * b;
 			return ret;
 		}
 		/// @brief Scalar division (vector / scalar).
@@ -107,7 +107,7 @@ namespace MML
 		{
 			Vector2Cartesian ret;
 			for (int i = 0; i < 2; i++)
-				ret._val[i] = _val[i] / b;
+				ret[i] = val(i) / b;
 			return ret;
 		}
 		/// @brief Scalar multiplication (scalar * vector).
@@ -117,7 +117,7 @@ namespace MML
 		{
 			Vector2Cartesian ret;
 			for (int i = 0; i < 2; i++)
-				ret._val[i] = a * b[i];
+				ret[i] = a * b[i];
 			return ret;
 		}
 
@@ -149,12 +149,12 @@ namespace MML
 			if (norm > 0.0)
 			{
 				for (int i = 0; i < 2; i++)
-					ret._val[i] = _val[i] / norm;
+					ret[i] = val(i) / norm;
 			}
 			else
 			{
-				ret._val[0] = 0.0;
-				ret._val[1] = 0.0;
+				ret[0] = 0.0;
+				ret[1] = 0.0;
 			}
 			return ret;
 		}
@@ -209,13 +209,13 @@ namespace MML
 	{
 	public:
 		/// @brief Returns R component (const).
-		Real  R() const		{ return _val[0]; }
+		Real  R() const		{ return val(0); }
 		/// @brief Returns R component (non-const).
-		Real& R()					{ return _val[0]; }
+		Real& R()					{ return val(0); }
 		/// @brief Returns Phi component (const).
-		Real  Phi() const { return _val[1]; }
+		Real  Phi() const { return val(1); }
 		/// @brief Returns Phi component (non-const).
-		Real& Phi()				{ return _val[1]; }
+		Real& Phi()				{ return val(1); }
 
 		/// @brief Default constructor (zero vector).
 		Vector2Polar() {}
@@ -224,8 +224,8 @@ namespace MML
 		/// @param phi Angle
 		Vector2Polar(Real r, Real phi)
 		{
-			_val[0] = r;
-			_val[1] = phi;
+			val(0) = r;
+			val(1) = phi;
 		}
 		/// @brief Constructs from VectorN<Real,2>.
 		/// @param b Vector to copy
@@ -303,17 +303,17 @@ namespace MML
 	{
 	public:
 		/// @brief Returns X component (const).
-		Real  X() const { return _val[0]; }
+		Real  X() const { return val(0); }
 		/// @brief Returns X component (non-const).
-		Real& X()				{ return _val[0]; }
+		Real& X()				{ return val(0); }
 		/// @brief Returns Y component (const).
-		Real  Y() const { return _val[1]; }
+		Real  Y() const { return val(1); }
 		/// @brief Returns Y component (non-const).
-		Real& Y()				{ return _val[1]; }
+		Real& Y()				{ return val(1); }
 		/// @brief Returns Z component (const).
-		Real  Z() const { return _val[2]; }
+		Real  Z() const { return val(2); }
 		/// @brief Returns Z component (non-const).
-		Real& Z()				{ return _val[2]; }
+		Real& Z()				{ return val(2); }
 
 		/// @brief Default constructor (zero vector).
 		Vector3Cartesian() : VectorN<Real, 3>{ 0.0, 0.0, 0.0 } {}
@@ -333,23 +333,23 @@ namespace MML
 		/// @param b End point
 		Vector3Cartesian(const Point3Cartesian& a, const Point3Cartesian& b)
 		{
-			_val[0] = b.X() - a.X();
-			_val[1] = b.Y() - a.Y();
-			_val[2] = b.Z() - a.Z();
+			val(0) = b.X() - a.X();
+			val(1) = b.Y() - a.Y();
+			val(2) = b.Z() - a.Z();
 		}
 		/// @brief Constructs from Point3Cartesian (converts point to position vector).
 		/// @param a Point to convert
 		Vector3Cartesian(const Point3Cartesian& a)
 		{
-			_val[0] = a.X();
-			_val[1] = a.Y();
-			_val[2] = a.Z();
+			val(0) = a.X();
+			val(1) = a.Y();
+			val(2) = a.Z();
 		}
 
 		/// @brief Converts vector to Point3Cartesian.
 		Point3Cartesian getAsPoint() const
 		{
-			return Point3Cartesian(_val[0], _val[1], _val[2]);
+			return Point3Cartesian(val(0), val(1), val(2));
 		}
 		
 		/// @brief Returns normalized vector (unit length).
@@ -360,13 +360,13 @@ namespace MML
 			if (norm > 0.0)
 			{
 				for (int i = 0; i < 3; i++)
-					ret._val[i] = _val[i] / norm;
+					ret[i] = val(i) / norm;
 			}
 			else
 			{
-				ret._val[0] = 0.0;
-				ret._val[1] = 0.0;
-				ret._val[2] = 0.0;
+				ret[0] = 0.0;
+				ret[1] = 0.0;
+				ret[2] = 0.0;
 			}
 			return ret;
 		}
@@ -397,7 +397,7 @@ namespace MML
 		{
 			Vector3Cartesian ret;
 			for (int i = 0; i < 3; i++)
-				ret._val[i] = -_val[i];
+				ret[i] = -val(i);
 			return ret;
 		}
 
@@ -407,7 +407,7 @@ namespace MML
 		{
 			Vector3Cartesian ret;
 			for (int i = 0; i < 3; i++)
-				ret._val[i] = _val[i] + b[i];
+				ret[i] = val(i) + b[i];
 			return ret;
 		}
 		/// @brief Vector subtraction.
@@ -416,7 +416,7 @@ namespace MML
 		{
 			Vector3Cartesian ret;
 			for (int i = 0; i < 3; i++)
-				ret._val[i] = _val[i] - b[i];
+				ret[i] = val(i) - b[i];
 			return ret;
 		}
 
@@ -426,7 +426,7 @@ namespace MML
 		{
 			Vector3Cartesian ret;
 			for (int i = 0; i < 3; i++)
-				ret._val[i] = _val[i] * b;
+				ret[i] = val(i) * b;
 			return ret;
 		}
 		/// @brief Scalar division (vector / scalar).
@@ -435,7 +435,7 @@ namespace MML
 		{
 			Vector3Cartesian ret;
 			for (int i = 0; i < 3; i++)
-				ret._val[i] = _val[i] / b;
+				ret[i] = val(i) / b;
 			return ret;
 		}
 		/// @brief Scalar multiplication (scalar * vector).
@@ -445,7 +445,7 @@ namespace MML
 		{
 			Vector3Cartesian ret;
 			for (int i = 0; i < 3; i++)
-				ret._val[i] = a * b[i];
+				ret[i] = a * b[i];
 			return ret;
 		}
 
@@ -570,17 +570,17 @@ namespace MML
 	{
 	public:
 		/// @brief Returns R component (const).
-		Real  R()     const { return _val[0]; }
+		Real  R()     const { return val(0); }
 		/// @brief Returns R component (non-const).
-		Real& R()						{ return _val[0]; }
+		Real& R()						{ return val(0); }
 		/// @brief Returns Theta component (const).
-		Real  Theta() const { return _val[1]; }
+		Real  Theta() const { return val(1); }
 		/// @brief Returns Theta component (non-const).
-		Real& Theta()				{ return _val[1]; }
+		Real& Theta()				{ return val(1); }
 		/// @brief Returns Phi component (const).
-		Real  Phi()   const { return _val[2]; }
+		Real  Phi()   const { return val(2); }
 		/// @brief Returns Phi component (non-const).
-		Real& Phi()					{ return _val[2]; }
+		Real& Phi()					{ return val(2); }
 
 		/// @brief Default constructor (zero vector).
 		Vector3Spherical() : VectorN<Real, 3>{ 0.0, 0.0, 0.0 } {}
@@ -782,17 +782,17 @@ namespace MML
 	{
 	public:
 		/// @brief Returns R component (const).
-		Real  R()   const { return _val[0]; }
+		Real  R()   const { return val(0); }
 		/// @brief Returns R component (non-const).
-		Real& R()					{ return _val[0]; }
+		Real& R()					{ return val(0); }
 		/// @brief Returns Phi component (const).
-		Real  Phi() const { return _val[1]; }
+		Real  Phi() const { return val(1); }
 		/// @brief Returns Phi component (non-const).
-		Real& Phi()				{ return _val[1]; }
+		Real& Phi()				{ return val(1); }
 		/// @brief Returns Z component (const).
-		Real  Z()   const { return _val[2]; }
+		Real  Z()   const { return val(2); }
 		/// @brief Returns Z component (non-const).
-		Real& Z()					{ return _val[2]; }
+		Real& Z()					{ return val(2); }
 
 		/// @brief Default constructor (zero vector).
 		Vector3Cylindrical() : VectorN<Real, 3>{ 0.0, 0.0, 0.0 } {}
@@ -903,21 +903,21 @@ namespace MML
 	{
 	public:
 		/// @brief Returns T component (const).
-		Real  T() const { return _val[0]; }
+		Real  T() const { return val(0); }
 		/// @brief Returns T component (non-const).
-		Real& T()				{ return _val[0]; }
+		Real& T()				{ return val(0); }
 		/// @brief Returns X component (const).
-		Real  X() const { return _val[1]; }
+		Real  X() const { return val(1); }
 		/// @brief Returns X component (non-const).
-		Real& X()				{ return _val[1]; }
+		Real& X()				{ return val(1); }
 		/// @brief Returns Y component (const).
-		Real  Y() const { return _val[2]; }
+		Real  Y() const { return val(2); }
 		/// @brief Returns Y component (non-const).
-		Real& Y()				{ return _val[2]; }
+		Real& Y()				{ return val(2); }
 		/// @brief Returns Z component (const).
-		Real  Z() const { return _val[3]; }
+		Real  Z() const { return val(3); }
 		/// @brief Returns Z component (non-const).
-		Real& Z()				{ return _val[3]; }
+		Real& Z()				{ return val(3); }
 
 		/// @brief Default constructor (zero 4-vector).
 		Vector4Minkowski() : VectorN<Real, 4>{ 0.0, 0.0, 0.0, 0.0 } {}
