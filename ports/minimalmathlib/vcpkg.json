@@ -1,0 +1,19 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
+  "name": "minimalmathlib",
+  "version": "1.0.0",
+  "description": "Complete C++ numerical computing toolkit - header-only library for vectors, matrices, ODE solvers, integration, and more",
+  "homepage": "https://github.com/zvanjak/MinimalMathLibrary",
+  "license": "MIT",
+  "supports": "!uwp",
+  "dependencies": [
+    {
+      "name": "vcpkg-cmake",
+      "host": true
+    },
+    {
+      "name": "vcpkg-cmake-config",
+      "host": true
+    }
+  ]
+}
