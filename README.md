@@ -6,9 +6,9 @@
 
 *100,000+ lines of numerical computing • one `#include` • cross-platform visualization included*
 
-[![Ubuntu](https://github.com/zvanjak/MinimalMathLibrary/workflows/Ubuntu/badge.svg)](https://github.com/zvanjak/MinimalMathLibrary/actions?query=workflow%3AUbuntu)
-[![Windows](https://github.com/zvanjak/MinimalMathLibrary/workflows/Windows/badge.svg)](https://github.com/zvanjak/MinimalMathLibrary/actions?query=workflow%3AWindows)
-[![macOS](https://github.com/zvanjak/MinimalMathLibrary/workflows/macOS/badge.svg)](https://github.com/zvanjak/MinimalMathLibrary/actions?query=workflow%3AmacOS)
+[![Ubuntu](https://github.com/zvanjak/MML/workflows/Ubuntu/badge.svg)](https://github.com/zvanjak/MML/actions?query=workflow%3AUbuntu)
+[![Windows](https://github.com/zvanjak/MML/workflows/Windows/badge.svg)](https://github.com/zvanjak/MML/actions?query=workflow%3AWindows)
+[![macOS](https://github.com/zvanjak/MML/workflows/macOS/badge.svg)](https://github.com/zvanjak/MML/actions?query=workflow%3AmacOS)
 [![C++20](https://img.shields.io/badge/C%2B%2B-20-blue.svg)](https://isocpp.org/std/the-standard)
 [![Single Header](https://img.shields.io/badge/single--header-100K%20LOC-orange.svg)](mml/single_header/MML.h)
 [![Tests](https://img.shields.io/badge/assertions-174147%20passing-brightgreen.svg)](tests/)
@@ -154,7 +154,7 @@ std::cout << "Error:   " << std::abs(volIntegral - surfIntegral) << "\n"; // ~9.
 
 **Option 1 — Single header**
 ```bash
-curl -O https://raw.githubusercontent.com/zvanjak/MinimalMathLibrary/master/mml/single_header/MML.h
+curl -O https://raw.githubusercontent.com/zvanjak/MML/master/mml/single_header/MML.h
 # then:  #include <MML.h>
 ```
 
@@ -163,7 +163,7 @@ curl -O https://raw.githubusercontent.com/zvanjak/MinimalMathLibrary/master/mml/
 include(FetchContent)
 FetchContent_Declare(
     minimalmathlib
-    GIT_REPOSITORY https://github.com/zvanjak/MinimalMathLibrary.git
+    GIT_REPOSITORY https://github.com/zvanjak/MML.git
     GIT_TAG        master  # or a tagged release, e.g. v2.0.0 when available
 )
 FetchContent_MakeAvailable(minimalmathlib)
@@ -173,8 +173,8 @@ target_link_libraries(my_app PRIVATE minimalmathlib::minimalmathlib)
 
 **Option 3 — Full repository build**
 ```bash
-git clone https://github.com/zvanjak/MinimalMathLibrary.git
-cd MinimalMathLibrary && cmake -B build && cmake --build build
+git clone https://github.com/zvanjak/MML.git
+cd MML && cmake -B build && cmake --build build
 ```
 
 Full repository clones include prebuilt visualizers under `tools/visualizers` for Windows,
@@ -187,8 +187,8 @@ and add roughly 1 GB to the checkout.
 
 **Option 4 — vcpkg overlay port**
 ```powershell
-git clone https://github.com/zvanjak/MinimalMathLibrary.git
-vcpkg install minimalmathlib --overlay-ports=MinimalMathLibrary\ports
+git clone https://github.com/zvanjak/MML.git
+vcpkg install minimalmathlib --overlay-ports=MML\ports
 ```
 
 Then use the exported CMake target:

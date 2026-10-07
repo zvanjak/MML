@@ -20,9 +20,9 @@ option(MML_BUILD_TESTS "Build MML unit test targets" ${_MML_DEVELOPMENT_TARGET_D
 option(MML_BUILD_ALL_PRECISION_TESTS "Build test targets for float, double, and long double" OFF)
 option(MML_BUILD_EXAMPLES "Build MML demo, README, and example applications" ${_MML_DEVELOPMENT_TARGET_DEFAULT})
 option(MML_BUILD_DOCS_DEMOS "Build documentation demo applications" ${_MML_DEVELOPMENT_TARGET_DEFAULT})
-option(MML_BUILD_BOOK "Build book and MPL demo applications" ${_MML_DEVELOPMENT_TARGET_DEFAULT})
+option(MML_BUILD_BOOK "Build book and MPL demo applications" OFF)
 option(MML_BUILD_VISUALIZATION_EXAMPLES "Build visualization example applications" ${_MML_DEVELOPMENT_TARGET_DEFAULT})
-option(MML_BUILD_TOOLS "Build utility applications" ${_MML_DEVELOPMENT_TARGET_DEFAULT})
+option(MML_BUILD_TOOLS "Build utility applications" OFF)
 option(BUILD_TESTING "Build tests and enable CTest integration" ${_MML_DEVELOPMENT_TARGET_DEFAULT})
 
 # =============================================================================
@@ -64,8 +64,6 @@ target_compile_features(minimalmathlib INTERFACE cxx_std_20)
 include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/mml/single_header
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/book
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/book/mpl
 )
 
 set(_MML_TESTS_ENABLED OFF)
@@ -111,8 +109,11 @@ if(MML_BUILD_DOCS_DEMOS)
     add_subdirectory(src/docs_demos)
 endif()
 
-if(MML_BUILD_BOOK)
+if(MML_BUILD_BOOK AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/book/CMakeLists.txt")
     add_subdirectory(src/book)
+endif()
+
+if(MML_BUILD_BOOK AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/book/mpl_demo_app/CMakeLists.txt")
     add_subdirectory(src/book/mpl_demo_app)
 endif()
 
@@ -120,12 +121,12 @@ if(MML_BUILD_VISUALIZATION_EXAMPLES)
     add_subdirectory(src/visualization_examples)
 endif()
 
-if(MML_BUILD_TOOLS)
+if(MML_BUILD_TOOLS AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tools/utils_app/CMakeLists.txt")
     add_subdirectory(tools/utils_app)
 endif()
 
 # Book chapters (standalone applications)
-if(MML_BUILD_BOOK)
+if(MML_BUILD_BOOK AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/book/chapters/CMakeLists.txt")
     add_subdirectory(src/book/chapters)
 endif()
 

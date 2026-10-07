@@ -54,12 +54,16 @@ add_executable(Example06_LorentzTransform
 )
 target_include_directories(Example06_LorentzTransform PRIVATE ${CMAKE_SOURCE_DIR})
 
-# Example 07: Electromagnetism in special relativity
-add_executable(Example07_EMFields
-    07_EM_fields/main.cpp
-)
-target_include_directories(Example07_EMFields PRIVATE ${CMAKE_SOURCE_DIR})
-target_include_directories(Example07_EMFields PRIVATE ${CMAKE_SOURCE_DIR}/src/book/mpl)
+# Example 07: Electromagnetism in special relativity.
+# This example depends on MPL Electromagnetism helpers, which are not part of the
+# public MML core release.
+if(EXISTS "${CMAKE_SOURCE_DIR}/src/book/mpl/Electromagnetism/Electromagnetism.h")
+    add_executable(Example07_EMFields
+        07_EM_fields/main.cpp
+    )
+    target_include_directories(Example07_EMFields PRIVATE ${CMAKE_SOURCE_DIR})
+    target_include_directories(Example07_EMFields PRIVATE ${CMAKE_SOURCE_DIR}/src/book/mpl)
+endif()
 
 # Example 08: General relativity curvature and geodesics
 add_executable(Example08_GRExamples
