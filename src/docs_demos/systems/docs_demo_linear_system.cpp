@@ -1,9 +1,9 @@
 #ifdef MML_USE_SINGLE_HEADER
-#include "MML.h"
+#include <MML.h>
 #else
-#include "MMLBase.h"
+#include <mml/MMLBase.h>
 
-#include "systems/LinearSystem.h"
+#include <mml/systems/LinearSystem.h>
 #endif
 
 #include "../test_beds/linear_alg_eq_systems_test_bed.h"
@@ -71,8 +71,8 @@ void Docs_Demo_LinearSystem_AutoSolverSelection()
 	LinearSystem<Real> sys1(A_spd, b1);
 	
 	std::cout << "Matrix type: SPD (will use Cholesky)\n";
-	std::cout << "isSymmetric: " << (sys1.isSymmetric() ? "yes" : "no") << "\n";
-	std::cout << "isPositiveDefinite: " << (sys1.isPositiveDefinite() ? "yes" : "no") << "\n";
+	std::cout << "IsSymmetric: " << (sys1.IsSymmetric() ? "yes" : "no") << "\n";
+	std::cout << "IsPositiveDefinite: " << (sys1.IsPositiveDefinite() ? "yes" : "no") << "\n";
 	
 	Vector<Real> x1 = sys1.Solve();
 	std::cout << "Solution: "; x1.Print(std::cout, 10, 6); std::cout << "\n";
@@ -87,7 +87,7 @@ void Docs_Demo_LinearSystem_AutoSolverSelection()
 	LinearSystem<Real> sys2(A_tri, b2);
 	
 	std::cout << "Matrix type: Upper triangular (direct substitution)\n";
-	std::cout << "isUpperTriangular: " << (sys2.isUpperTriangular() ? "yes" : "no") << "\n";
+	std::cout << "IsUpperTriangular: " << (sys2.IsUpperTriangular() ? "yes" : "no") << "\n";
 	
 	Vector<Real> x2 = sys2.Solve();
 	std::cout << "Solution: "; x2.Print(std::cout, 10, 6); std::cout << "\n";
@@ -211,19 +211,19 @@ void Docs_Demo_LinearSystem_MatrixAnalysis()
 	std::cout << "\nMatrix A:\n"; A.Print(std::cout, 8, 3);
 	
 	std::cout << "\n--- Dimension Properties ---\n";
-	std::cout << "Rows: " << sys.rows() << "\n";
-	std::cout << "Cols: " << sys.cols() << "\n";
-	std::cout << "isSquare: " << (sys.isSquare() ? "yes" : "no") << "\n";
-	std::cout << "isOverdetermined: " << (sys.isOverdetermined() ? "yes" : "no") << "\n";
-	std::cout << "isUnderdetermined: " << (sys.isUnderdetermined() ? "yes" : "no") << "\n";
+	std::cout << "Rows: " << sys.Rows() << "\n";
+	std::cout << "Cols: " << sys.Cols() << "\n";
+	std::cout << "IsSquare: " << (sys.IsSquare() ? "yes" : "no") << "\n";
+	std::cout << "IsTall: " << (sys.IsTall() ? "yes" : "no") << "\n";
+	std::cout << "IsWide: " << (sys.IsWide() ? "yes" : "no") << "\n";
 	
 	std::cout << "\n--- Structure Detection ---\n";
-	std::cout << "isSymmetric: " << (sys.isSymmetric() ? "yes" : "no") << "\n";
-	std::cout << "isPositiveDefinite: " << (sys.isPositiveDefinite() ? "yes" : "no") << "\n";
-	std::cout << "isDiagonallyDominant: " << (sys.isDiagonallyDominant() ? "yes" : "no") << "\n";
-	std::cout << "isUpperTriangular: " << (sys.isUpperTriangular() ? "yes" : "no") << "\n";
-	std::cout << "isLowerTriangular: " << (sys.isLowerTriangular() ? "yes" : "no") << "\n";
-	std::cout << "isDiagonal: " << (sys.isDiagonal() ? "yes" : "no") << "\n";
+	std::cout << "IsSymmetric: " << (sys.IsSymmetric() ? "yes" : "no") << "\n";
+	std::cout << "IsPositiveDefinite: " << (sys.IsPositiveDefinite() ? "yes" : "no") << "\n";
+	std::cout << "IsDiagonallyDominant: " << (sys.IsDiagonallyDominant() ? "yes" : "no") << "\n";
+	std::cout << "IsUpperTriangular: " << (sys.IsUpperTriangular() ? "yes" : "no") << "\n";
+	std::cout << "IsLowerTriangular: " << (sys.IsLowerTriangular() ? "yes" : "no") << "\n";
+	std::cout << "IsDiagonal: " << (sys.IsDiagonal() ? "yes" : "no") << "\n";
 	std::cout << "Sparsity: " << std::fixed << std::setprecision(2) 
 	          << (sys.Sparsity() * 100) << "%\n";
 	
@@ -232,7 +232,9 @@ void Docs_Demo_LinearSystem_MatrixAnalysis()
 	std::cout << "Rank: " << sys.Rank() << "\n";
 	std::cout << "Nullity: " << sys.Nullity() << "\n";
 	std::cout << "Condition number: " << std::scientific << sys.ConditionNumber() << "\n";
-	std::cout << "Expected digits lost: " << sys.ExpectedDigitsLost() << "\n";
+	const auto expectedDigitsLost = sys.ExpectedDigitsLost();
+	std::cout << "Expected digits lost: "
+	          << (expectedDigitsLost ? std::to_string(*expectedDigitsLost) : "n/a") << "\n";
 	std::cout << std::fixed;
 }
 
@@ -269,7 +271,9 @@ void Docs_Demo_LinearSystem_StabilityAssessment()
 		case MatrixStability::Singular: std::cout << "Singular"; break;
 	}
 	std::cout << "\n";
-	std::cout << "Expected digits lost: " << sys_good.ExpectedDigitsLost() << "\n";
+	const auto goodDigitsLost = sys_good.ExpectedDigitsLost();
+	std::cout << "Expected digits lost: "
+	          << (goodDigitsLost ? std::to_string(*goodDigitsLost) : "n/a") << "\n";
 	
 	// Create an ill-conditioned Hilbert matrix
 	std::cout << "\n--- Ill-Conditioned Matrix (Hilbert 5x5) ---\n";
@@ -291,7 +295,9 @@ void Docs_Demo_LinearSystem_StabilityAssessment()
 		case MatrixStability::Singular: std::cout << "Singular"; break;
 	}
 	std::cout << "\n";
-	std::cout << "Expected digits lost: " << sys_hilbert.ExpectedDigitsLost() << "\n";
+	const auto hilbertDigitsLost = sys_hilbert.ExpectedDigitsLost();
+	std::cout << "Expected digits lost: "
+	          << (hilbertDigitsLost ? std::to_string(*hilbertDigitsLost) : "n/a") << "\n";
 	std::cout << std::fixed;
 }
 
@@ -315,7 +321,7 @@ void Docs_Demo_LinearSystem_ComprehensiveAnalysis()
 	LinearSystem<Real> sys(A);
 	auto analysis = sys.Analyze();
 	
-	std::cout << "\n" << analysis.analysisReport << "\n";
+	std::cout << "\n" << analysis.report << "\n";
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -339,35 +345,25 @@ void Docs_Demo_LinearSystem_Decompositions()
 	
 	// QR decomposition
 	std::cout << "\n--- QR Decomposition: A = Q*R ---\n";
-	auto qr = sys.GetQR();
-	if (qr.valid) {
-		std::cout << "Q (orthogonal):\n"; qr.Q.Print(std::cout, 10, 6);
-		std::cout << "R (upper triangular):\n"; qr.R.Print(std::cout, 10, 6);
-		
-		// Verify: Q*R should equal A
-		Matrix<Real> QR = qr.Q * qr.R;
-		std::cout << "Verification Q*R:\n"; QR.Print(std::cout, 10, 6);
-	}
+	const auto& qr = sys.QRDecompose();
+	std::cout << "Q (orthogonal):\n"; qr.Q.Print(std::cout, 10, 6);
+	std::cout << "R (upper triangular):\n"; qr.R.Print(std::cout, 10, 6);
+	Matrix<Real> QR = qr.Q * qr.R;
+	std::cout << "Verification Q*R:\n"; QR.Print(std::cout, 10, 6);
 	
 	// SVD decomposition
 	std::cout << "\n--- SVD Decomposition: A = U*diag(w)*V^T ---\n";
-	auto svd = sys.GetSVD();
-	if (svd.valid) {
-		std::cout << "Singular values: "; svd.singularValues.Print(std::cout, 10, 6); 
-		std::cout << "\n";
-		std::cout << "Rank: " << svd.rank << "\n";
-	}
+	const auto& svd = sys.SVDDecompose();
+	std::cout << "Singular values: "; svd.singularValues.Print(std::cout, 10, 6);
+	std::cout << "\n";
+	std::cout << "Rank: " << svd.rank << "\n";
 	
 	// Cholesky (for SPD)
 	std::cout << "\n--- Cholesky Decomposition: A = L*L^T (SPD only) ---\n";
-	auto chol = sys.GetCholesky();
-	if (chol.valid) {
-		std::cout << "L (lower triangular):\n"; chol.L.Print(std::cout, 10, 6);
-		
-		// Verify: L*L^T should equal A
-		Matrix<Real> LLT = chol.L * chol.L.transpose();
-		std::cout << "Verification L*L^T:\n"; LLT.Print(std::cout, 10, 6);
-	}
+	const auto& chol = sys.CholeskyDecompose();
+	std::cout << "L (lower triangular):\n"; chol.L.Print(std::cout, 10, 6);
+	Matrix<Real> LLT = chol.L * chol.L.transpose();
+	std::cout << "Verification L*L^T:\n"; LLT.Print(std::cout, 10, 6);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -391,7 +387,7 @@ void Docs_Demo_LinearSystem_Eigenanalysis()
 	
 	std::cout << "Matrix A:\n"; A_sym.Print(std::cout, 8, 3);
 	
-	Vector<Real> eigs = sys_sym.EigenvaluesSymmetric();
+	Vector<Real> eigs = sys_sym.SymmetricEigenvalues();
 	std::cout << "Eigenvalues (symmetric solver): "; eigs.Print(std::cout, 10, 6);
 	std::cout << "\n";
 	
@@ -407,12 +403,12 @@ void Docs_Demo_LinearSystem_Eigenanalysis()
 	
 	std::cout << "Matrix A:\n"; A_gen.Print(std::cout, 8, 3);
 	
-	auto eigen = sys_gen.GetEigen();
+	const auto& eigen = sys_gen.Eigensystem();
 	std::cout << "Eigenvalues:\n";
 	for (size_t i = 0; i < eigen.eigenvalues.size(); i++) {
-		std::cout << "  λ" << i << " = " << eigen.eigenvalues[i].real;
-		if (std::abs(eigen.eigenvalues[i].imag) > 1e-10)
-			std::cout << " + " << eigen.eigenvalues[i].imag << "i";
+		std::cout << "  λ" << i << " = " << eigen.eigenvalues[i].real();
+		if (std::abs(eigen.eigenvalues[i].imag()) > 1e-10)
+			std::cout << " + " << eigen.eigenvalues[i].imag() << "i";
 		std::cout << "\n";
 	}
 	
@@ -533,7 +529,7 @@ void Docs_Demo_LinearSystem_LeastSquares()
 	std::cout << "Design matrix A:\n"; A.Print(std::cout, 8, 3);
 	std::cout << "Observations b = "; b.Print(std::cout, 8, 3); std::cout << "\n";
 	
-	std::cout << "System is overdetermined: " << (sys.isOverdetermined() ? "yes" : "no") << "\n";
+	std::cout << "System is overdetermined: " << (sys.IsTall() ? "yes" : "no") << "\n";
 	
 	Vector<Real> x = sys.SolveLeastSquares();
 	
@@ -581,7 +577,7 @@ void Docs_Demo_LinearSystem_IterativeMethods()
 	
 	std::cout << "\nDiagonally dominant matrix (guarantees convergence):\n";
 	A.Print(std::cout, 8, 3);
-	std::cout << "isDiagonallyDominant: " << (sys.isDiagonallyDominant() ? "yes" : "no") << "\n";
+	std::cout << "IsDiagonallyDominant: " << (sys.IsDiagonallyDominant() ? "yes" : "no") << "\n";
 	
 	std::cout << "\n--- Comparing Iterative Methods ---\n";
 	

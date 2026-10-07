@@ -22,7 +22,7 @@
 #if !defined MML_IINTERVAL_H
 #define MML_IINTERVAL_H
 
-#include "MMLBase.h"
+#include <mml/MMLBase.h>
 #include <vector>
 
 namespace MML

@@ -29,11 +29,11 @@
 #if !defined MML_IODE_SYSTEM_STEP_CALC_H
 #define MML_IODE_SYSTEM_STEP_CALC_H
 
-#include "MMLBase.h"
+#include <mml/MMLBase.h>
 
-#include "interfaces/IODESystem.h"
+#include <mml/interfaces/IODESystem.h>
 
-#include "base/Vector/Vector.h"
+#include <mml/base/Vector/Vector.h>
 
 namespace MML
 {
@@ -54,6 +54,8 @@ namespace MML
 	class IODESystemStepCalculator
 	{
 	public:
+		virtual ~IODESystemStepCalculator() = default;
+
 		/**
 		 * @brief Compute a single integration step.
 		 * 

@@ -98,7 +98,7 @@ v.Clear()               // Remove all elements
 
 // Note: Vector<T> has no Normalize() method.
 // For unit vector: Vector<double> unit = v / v.NormL2();
-// For dot/cross products, use Vector3Cartesian (see VectorTypes.h)
+// For dot/cross products, use Vector3Cartesian (see VectorTypes3D.h)
 ```
 
 #### Usage Example
@@ -1191,11 +1191,11 @@ namespace Utils {
 
 ---
 
-### VectorTypes
+### Dimensional Vector Types
 
-**File**: `mml/base/VectorTypes.h`
+**Files**: `mml/base/Vector/VectorTypes2D.h`, `mml/base/Vector/VectorTypes3D.h`, and `mml/base/Vector/VectorTypes4D.h`
 
-**Purpose**: Specialized 2D and 3D vector/point classes with geometric operations.
+**Purpose**: Specialized 2D, 3D, and 4D vector classes with geometric and spacetime operations.
 
 ```cpp
 // 2D Cartesian vector class (extends VectorN<Real, 2>)

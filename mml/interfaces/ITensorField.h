@@ -41,13 +41,13 @@
 #if !defined  MML_ITENSOR_FIELD_H
 #define MML_ITENSOR_FIELD_H
 
-#include "MMLBase.h"
+#include <mml/MMLBase.h>
 
 #include "IFunction.h"
 
-#include "base/Vector/Vector.h"
-#include "base/Vector/VectorN.h"
-#include "base/Tensor.h"
+#include <mml/base/Vector/Vector.h>
+#include <mml/base/Vector/VectorN.h>
+#include <mml/base/Tensor.h>
 
 namespace MML
 {
@@ -100,9 +100,12 @@ namespace MML
 	/**
 	 * @brief Interface for rank-3 tensor fields in N-dimensional space.
 	 * 
-	 * Maps each position to a rank-3 tensor. Primary application is the
-	 * Christoffel symbol field Γ^i_jk(x) representing connection coefficients
-	 * on a manifold with metric.
+	 * Maps each position to a rank-3 tensor field.
+	 *
+	 * @note Christoffel symbols Γ^i_jk(x) are connection coefficients, not tensors.
+	 * A Christoffel-like field should override TransformsAsTensor() to return false
+	 * so tensor-field coordinate adapters reject it instead of applying the tensor
+	 * transformation law silently.
 	 * 
 	 * @tparam N Dimension of the base space
 	 */
@@ -118,6 +121,8 @@ namespace MML
 
 		int getNumContravar() const { return _numContravar; }
 		int getNumCovar() const { return _numCovar; }
+
+		virtual bool TransformsAsTensor() const { return true; }
 
 		/**
 		 * @brief Evaluate a single tensor component at a position.

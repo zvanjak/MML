@@ -19,12 +19,12 @@
 #ifndef RIGID_BODY_CORE_H
 #define RIGID_BODY_CORE_H
 
-#include "MMLBase.h"
-#include "base/Vector/VectorTypes.h"
-#include "base/Quaternions.h"
-#include "base/Matrix/MatrixNM.h"
-#include "base/Vector/VectorN.h"
-#include "base/Geometry/Geometry3DBodies.h"
+#include <mml/MMLBase.h>
+#include <mml/base/Vector/VectorTypes3D.h>
+#include <mml/base/Quaternions.h>
+#include <mml/base/Matrix/MatrixNM.h>
+#include <mml/base/Vector/VectorN.h>
+#include <mml/base/Geometry/Geometry3DBodies.h>
 
 #include <memory>
 #include <vector>

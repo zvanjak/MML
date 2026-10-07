@@ -19,14 +19,14 @@ ConsolePrinter is a modern C++ library for creating beautifully formatted tables
 ✅ **Stream Abstraction** - Print to any `std::ostream`  
 ✅ **RAII Stream Safety** - Automatic stream state restoration  
 ✅ **Auto-Width Calculation** - Automatic column width sizing  
-✅ **Backward Compatible** - Legacy API still supported  
+✅ **Modern Printing API** - Table, vector, and export helpers use explicit formatting objects
 
 ## Highlights
 - Professional, multi-format table output for scientific results.
 - Fluent builder API with type-safe enums and RAII stream safety.
 - Auto width computation, border styles, and export to Markdown/LaTeX/HTML.
 - Interoperates with Tools: Serializer and Visualizers for reporting.
-- Backward-compatible legacy API maintained alongside modern interfaces.
+- Compact convenience APIs are available alongside explicit formatting interfaces.
 
 ---
 
@@ -35,7 +35,7 @@ ConsolePrinter is a modern C++ library for creating beautifully formatted tables
 ### Basic Table (Modern API)
 
 ```cpp
-#include "mml/tools/ConsolePrinter.h"
+#include <mml/tools/ConsolePrinter.h>
 using namespace MML;
 
 TablePrinter<double, double> table("x", {"sin(x)", "cos(x)"});
@@ -288,7 +288,7 @@ Specifies formatting for a single column using builder pattern.
 // Simple constructor with column name
 explicit ColumnFormat(std::string name);
 
-// Legacy constructor (backward compatibility)
+// Compact constructor
 ColumnFormat(std::string name, int width, int precision, char format);
 ```
 
@@ -366,7 +366,7 @@ void reserve(size_t rows);
 ```cpp
 // Print to stream
 void print(std::ostream& os = std::cout) const;
-void Print();  // Legacy method (capital P)
+void Print();  // Compact console-print method
 
 // Export to file
 void printToFile(const std::string& filename) const;
@@ -617,8 +617,8 @@ table.print();
 ### Example 8: Performance Results Table
 
 ```cpp
-#include "mml/tools/Timer.h"
-#include "mml/tools/ConsolePrinter.h"
+#include <mml/tools/Timer.h>
+#include <mml/tools/ConsolePrinter.h>
 
 Timer timer;
 std::vector<std::string> algorithms = {"Euler", "RK4", "RKCK"};
@@ -901,7 +901,7 @@ ColumnFormat("data").autoWidth()
 
 ### Issue: Stream formatting changed after printing
 
-**Cause:** Legacy code or custom stream manipulation.
+**Cause:** Custom stream manipulation or older call sites.
 
 **Solution:** The StreamStateGuard automatically handles this in modern API. For manual control:
 ```cpp
@@ -965,23 +965,23 @@ TablePrinter<double, double> table(
 
 ---
 
-## Legacy API (Deprecated)
+## Older API Names
 
-The legacy API is still supported for backward compatibility but deprecated. Consider migrating to the modern API.
+These names are older spelling/style variants. Prefer the explicit formatting APIs in MML 2.0 work.
 
-### ColDesc (Deprecated)
-
-```cpp
-using ColDesc [[deprecated("Use ColumnFormat instead")]] = ColumnFormat;
-```
-
-### VerticalVectorPrinter (Deprecated)
+### ColDesc
 
 ```cpp
-class [[deprecated("Use VectorTablePrinter instead")]] VerticalVectorPrinter;
+using ColDesc = ColumnFormat;
 ```
 
-**Old usage:**
+### VerticalVectorPrinter
+
+```cpp
+class VerticalVectorPrinter;
+```
+
+**Older usage:**
 ```cpp
 std::vector<ColDesc> names{
     ColDesc("t", 10, 2, 'F'),
@@ -1058,7 +1058,7 @@ vvp.Print();
 - ✅ Left/Right/Center alignment
 - ✅ RAII stream state management
 - ✅ Specialized vector table printer
-- ✅ Backward compatible legacy API
+- ✅ Compact convenience API
 
 **Key takeaway:** Professional-quality formatted output for console, files, and documents with minimal code.
 
@@ -1081,7 +1081,7 @@ vvp.Print();
 - Border styles (Simple, Rounded, Double, Bold, Markdown)
 - RAII stream state management
 - Auto-width calculation
-- Backward-compatible legacy API
+- Compact convenience API
 
 **v1.0 (Original)**
 - Basic table printing

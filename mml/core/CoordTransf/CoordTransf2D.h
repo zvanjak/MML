@@ -12,9 +12,10 @@
 #if !defined MML_COORD_TRANSF_2D_H
 #define MML_COORD_TRANSF_2D_H
 
-#include "MMLBase.h"
+#include <mml/MMLBase.h>
 
-#include "core/CoordTransf.h"
+#include <mml/base/Vector/VectorTypes2D.h>
+#include <mml/core/CoordTransf/CoordTransfBase.h>
 
 
 namespace MML

@@ -80,7 +80,7 @@ public:
 **Example 1: Basic Setup**
 
 ```cpp
-#include "algorithms/FunctionsAnalyzer.h"
+#include <mml/algorithms/Analyzers/FunctionsAnalyzer.h>
 
 // Polynomial: f(x) = x³ - 6x² + 9x + 1
 auto polynomial = [](Real x) { return x*x*x - 6*x*x + 9*x + 1; };
@@ -798,8 +798,8 @@ public:
 ### With Root Finding
 
 ```cpp
-#include "algorithms/RootFinding.h"
-#include "algorithms/FunctionsAnalyzer.h"
+#include <mml/algorithms/RootFinding.h>
+#include <mml/algorithms/Analyzers/FunctionsAnalyzer.h>
 
 // Function analyzer uses RootFinding internally
 RealFunctionAnalyzer analyzer(func);
@@ -809,7 +809,7 @@ std::vector<Real> roots = analyzer.GetRoots(a, b);  // Uses RootFinding::FindRoo
 ### With Derivation
 
 ```cpp
-#include "core/Derivation.h"
+#include <mml/core/Derivation.h>
 
 // All derivative-based methods use Derivation module
 Real firstDeriv = Derivation::NDer4(func, x);
@@ -821,7 +821,7 @@ Real secondDeriv = Derivation::NSecDer4(func, x);
 ### With Integration
 
 ```cpp
-#include "core/Integration.h"
+#include <mml/core/Integration.h>
 
 // Function comparer uses integration for L² norms
 RealFunctionComparer comparer(f1, f2);
@@ -831,7 +831,7 @@ Real sqrDiff = comparer.getIntegratedSqrDiff(a, b, IntegrationMethod::SIMPSON);
 ### With Statistics
 
 ```cpp
-#include "algorithms/Statistics.h"
+#include <mml/algorithms/Statistics.h>
 
 // Period calculation uses statistics
 Real period = analyzer.calcRootsPeriod(t1, t2, numPoints);  // Uses Statistics::Avg()

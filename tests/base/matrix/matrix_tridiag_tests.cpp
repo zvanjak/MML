@@ -3,12 +3,12 @@
 #include "../../TestMatchers.h"
 
 #ifdef MML_USE_SINGLE_HEADER
-#include "MML.h"
+#include <MML.h>
 #else
-#include "base/Vector/Vector.h"
-#include "base/Matrix/MatrixTriDiag.h"
+#include <mml/base/Vector/Vector.h>
+#include <mml/base/Matrix/MatrixTriDiag.h>
 
-#include "core/LinAlgEqSolvers.h"
+#include <mml/core/LinAlgEqSolvers.h>
 #endif
 
 using namespace MML;
@@ -166,18 +166,36 @@ namespace MML::Tests::Base::TridiagMatrixTests
 
 		TridiagonalMatrix<Real> at = a.GetTranspose();
 
-		REQUIRE(a.IsEqualTo(at, 1e-10));
+		REQUIRE(a.IsEqualTo(at, TOL(1e-10, 1e-5)));
 	}
 
-	TEST_CASE("MatrixTridiag_GetInverse_throws", "[tridiag][inverse]")
+	TEST_CASE("MatrixTridiag_GetInverse_returns_dense_inverse", "[tridiag][inverse]")
 	{
 			TEST_PRECISION_INFO();
 		TridiagonalMatrix<Real> a(3, { REAL(2.0), REAL(1.0),
 																	 REAL(1.0), REAL(2.0), REAL(1.0),
 																			REAL(1.0), REAL(2.0) });
 
-		// Inverse of tridiagonal matrix is not tridiagonal, so should throw
-		REQUIRE_THROWS(a.GetInverse());
+		const Matrix<Real> inverse = a.GetInverse();
+		const TridiagonalMatrix<Real>& constA = a;
+
+		for (int row = 0; row < 3; ++row) {
+			for (int column = 0; column < 3; ++column) {
+				Real product = REAL(0.0);
+				for (int k = 0; k < 3; ++k)
+					product += constA(row, k) * inverse(k, column);
+				REQUIRE_THAT(product, RealApprox(row == column ? REAL(1.0) : REAL(0.0)).margin(TOL(1e-10, 1e-6)));
+			}
+		}
+	}
+
+	TEST_CASE("MatrixTridiag_GetInverse_rejects_singular_matrix", "[tridiag][inverse]")
+	{
+		TridiagonalMatrix<Real> singular(3, { REAL(0.0), REAL(1.0),
+																	 REAL(1.0), REAL(2.0), REAL(1.0),
+																			 REAL(1.0), REAL(2.0) });
+
+		REQUIRE_THROWS_AS(singular.GetInverse(), SingularMatrixError);
 	}
 
 	///////////////////////          Arithmetic Operators              //////////////////////

@@ -1,10 +1,10 @@
 #ifdef MML_USE_SINGLE_HEADER
-#include "MML.h"
+#include <MML.h>
 #else
-#include "MMLBase.h"
+#include <mml/MMLBase.h>
 
-#include "base/Vector/Vector.h"
-#include "algorithms/Statistics.h"
+#include <mml/base/Vector/Vector.h>
+#include <mml/algorithms/Statistics.h>
 #endif
 
 using namespace MML;
@@ -34,8 +34,10 @@ void Docs_Demo_Statistics_Basic()
 	
 	std::cout << "\n--- Central Tendency & Dispersion ---\n";
 	std::cout << "Mean:               " << avg << std::endl;
-	std::cout << "Variance:           " << var << std::endl;
-	std::cout << "Standard Deviation: " << stdDev << std::endl;
+	std::cout << "Sample Variance:    " << var << std::endl;
+	std::cout << "Sample Std Dev:     " << stdDev << std::endl;
+	std::cout << "Population Variance:" << Statistics::PopulationVariance(data) << std::endl;
+	std::cout << "Population Std Dev: " << Statistics::PopulationStdDev(data) << std::endl;
 	
 	// Median and range
 	Real median = Statistics::Median(data);
@@ -164,11 +166,12 @@ void Docs_Demo_Statistics_Means()
 	Vector<Real> values({85, 90, 78, 92});
 	Vector<Real> weights({2, 3, 1, 4});  // credits/importance
 	
-	std::cout << "\n--- Weighted Mean (GPA example) ---\n";
+	std::cout << "\n--- Weighted Statistics (GPA example) ---\n";
 	std::cout << "Grades: 85, 90, 78, 92\n";
 	std::cout << "Credits: 2, 3, 1, 4\n";
 	std::cout << "Simple average:   " << Statistics::Mean(values) << std::endl;
 	std::cout << "Weighted average: " << Statistics::WeightedMean(values, weights) << std::endl;
+	std::cout << "Weighted std dev: " << Statistics::WeightedStdDev(values, weights) << std::endl;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -195,10 +198,15 @@ void Docs_Demo_Statistics_Correlation()
 	Real cov = Statistics::Covariance(studyHours, testScore);
 	Real r = Statistics::PearsonCorrelation(studyHours, testScore);
 	Real r2 = Statistics::RSquared(studyHours, testScore);
+	Vector<Real> frequencyWeights({1, 1, 2, 2, 3, 3, 1, 1});
+	Real weightedCov = Statistics::WeightedCovariance(studyHours, testScore, frequencyWeights);
+	Real weightedR = Statistics::WeightedPearsonCorrelation(studyHours, testScore, frequencyWeights);
 	
 	std::cout << "\nCovariance:    " << cov << std::endl;
 	std::cout << "Correlation r: " << r << " (strong positive)" << std::endl;
 	std::cout << "R-squared:     " << r2 << " (" << r2*100 << "% variance explained)" << std::endl;
+	std::cout << "Weighted covariance: " << weightedCov << std::endl;
+	std::cout << "Weighted correlation: " << weightedR << std::endl;
 	
 	// Significance test
 	auto result = Statistics::PearsonCorrelationWithTest(studyHours, testScore);
@@ -230,6 +238,7 @@ void Docs_Demo_Statistics_CovMatrix()
 	}
 	
 	Matrix<Real> covMat = Statistics::CovarianceMatrix(data);
+	Matrix<Real> corrMat = Statistics::CorrelationMatrix(data);
 	
 	std::cout << "\n--- Covariance Matrix ---\n";
 	std::cout << "           Height   Weight    Age\n";
@@ -238,6 +247,11 @@ void Docs_Demo_Statistics_CovMatrix()
 	std::cout << "Age       " << covMat(2,0) << "     " << covMat(2,1) << "       " << covMat(2,2) << std::endl;
 	
 	std::cout << "\nDiagonal = variances, off-diagonal = covariances\n";
+	std::cout << "\n--- Correlation Matrix ---\n";
+	std::cout << "           Height   Weight    Age\n";
+	std::cout << "Height    " << corrMat(0,0) << "     " << corrMat(0,1) << "      " << corrMat(0,2) << std::endl;
+	std::cout << "Weight    " << corrMat(1,0) << "     " << corrMat(1,1) << "      " << corrMat(1,2) << std::endl;
+	std::cout << "Age       " << corrMat(2,0) << "     " << corrMat(2,1) << "       " << corrMat(2,2) << std::endl;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////

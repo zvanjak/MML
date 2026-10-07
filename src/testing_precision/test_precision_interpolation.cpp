@@ -18,10 +18,10 @@
 
 #include "PrecisionTestFramework.h"
 
-#include "MMLBase.h"
+#include <mml/MMLBase.h>
 
-#include "base/Vector/Vector.h"
-#include "base/InterpolatedFunction.h"
+#include <mml/base/Vector/Vector.h>
+#include <mml/base/InterpolatedFunction.h>
 
 using namespace MML;
 using namespace MML::PrecisionTesting;

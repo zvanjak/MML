@@ -18,12 +18,12 @@
 
 #include "PrecisionTestFramework.h"
 
-#include "MMLBase.h"
+#include <mml/MMLBase.h>
 
-#include "base/Vector/Vector.h"
-#include "interfaces/IFunction.h"
+#include <mml/base/Vector/Vector.h>
+#include <mml/interfaces/IFunction.h>
 
-#include "algorithms/RootFinding.h"
+#include <mml/algorithms/RootFinding.h>
 
 using namespace MML;
 using namespace MML::PrecisionTesting;
@@ -401,8 +401,8 @@ void Test_Roots_Kepler()
         
         // Newton may fail with wide brackets - use tighter bracket around M
         try {
-            Real x1n = std::max(0.0, M - 1.0);
-            Real x2n = M + 1.0;
+            Real x1n = std::max(Real{0}, M - Real{1});
+            Real x2n = M + Real{1};
             Real root_newton = RootFinding::FindRootNewton(kepler, x1n, x2n, tol);
             Real residual = kepler(root_newton);
             suite.addResult("Newton", eStr.str(), 0.0, residual);

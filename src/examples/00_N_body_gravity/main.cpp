@@ -25,10 +25,10 @@
  * 
  *****************************************************************************/
 
-#include "MMLBase.h"
-#include "mml/tools/Serializer.h"
-#include "mml/tools/Visualizer.h"
-#include "mml/tools/ConsolePrinter.h"
+#include <mml/MMLBase.h>
+#include <mml/tools/Serializer.h>
+#include <mml/tools/Visualizer.h>
+#include <mml/tools/ConsolePrinter.h>
 
 // Self-contained N-body simulation (no MPL dependency)
 #include "NBodyGravity.h"

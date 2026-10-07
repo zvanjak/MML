@@ -51,6 +51,11 @@ namespace MML {
 	                                      Real t0, const Vector<Real>& x0, const Vector<Real>& y0,
 	                                      Real t_end, const DAESolverConfig& config = DAESolverConfig())
 	{
+		if (t_end <= t0)
+			throw ArgumentError("SolveDAERODAS: t_end must be greater than t0 (reverse-time integration is not supported)");
+		if (config.step_size <= 0)
+			throw ArgumentError("SolveDAERODAS: config.step_size must be positive");
+
 		AlgorithmTimer timer;
 
 		int diffDim = system.getDiffDim();
@@ -89,6 +94,11 @@ namespace MML {
 
 		// Save initial condition
 		result.solution.fillValues(0, t, x, y);
+		if (!ValidateDAEInitialState(system, t, x, y, config, result)) {
+			result.solution.setFinalSize(0);
+			result.elapsed_time_ms = timer.elapsed_ms();
+			return result;
+		}
 		int step = 1;
 
 		// Main time-stepping loop
@@ -122,23 +132,7 @@ namespace MML {
 			
 			Real hHalf = h * 0.5;
 			
-			// Build augmented system:
-			// [I - h/2*df/dx,    -h/2*df/dy] [Δx]   [h*f_n   ]
-			// [dg/dx,            dg/dy     ] [Δy] = [-g_n    ]
-			for (int i = 0; i < diffDim; ++i)
-			{
-				for (int j = 0; j < diffDim; ++j)
-					J_aug(i, j) = (i == j ? 1.0 : 0.0) - hHalf * df_dx(i, j);
-				for (int j = 0; j < algDim; ++j)
-					J_aug(i, diffDim + j) = -hHalf * df_dy(i, j);
-			}
-			for (int i = 0; i < algDim; ++i)
-			{
-				for (int j = 0; j < diffDim; ++j)
-					J_aug(diffDim + i, j) = dg_dx(i, j);
-				for (int j = 0; j < algDim; ++j)
-					J_aug(diffDim + i, diffDim + j) = dg_dy(i, j);
-			}
+			AssembleDAEAugmentedJacobian(df_dx, df_dy, dg_dx, dg_dy, hHalf, J_aug);
 
 			// Build RHS
 			for (int i = 0; i < diffDim; ++i)
@@ -149,7 +143,15 @@ namespace MML {
 			// Solve J_aug * delta = rhs using Gauss-Jordan
 			delta = rhs;
 			Matrix<Real> J_copy = J_aug;
-			GaussJordanSolver<Real>::SolveInPlace(J_copy, delta);
+			try {
+				GaussJordanSolver<Real>::SolveInPlace(J_copy, delta);
+			}
+			catch (const std::exception& error) {
+				result.status = AlgorithmStatus::SingularMatrix;
+				result.failure_reason = DAEFailureReason::SingularJacobian;
+				result.error_message = std::string("RODAS predictor linear solve failed: ") + error.what();
+				break;
+			}
 
 			// First approximation (predictor)
 			for (int i = 0; i < diffDim; ++i)
@@ -174,30 +176,49 @@ namespace MML {
 			// Solve again with same Jacobian (Rosenbrock approach)
 			delta = rhs;
 			J_copy = J_aug;
-			GaussJordanSolver<Real>::SolveInPlace(J_copy, delta);
+			try {
+				GaussJordanSolver<Real>::SolveInPlace(J_copy, delta);
+			}
+			catch (const std::exception& error) {
+				result.status = AlgorithmStatus::SingularMatrix;
+				result.failure_reason = DAEFailureReason::SingularJacobian;
+				result.error_message = std::string("RODAS corrector linear solve failed: ") + error.what();
+				break;
+			}
 
 			// Update solution
 			for (int i = 0; i < diffDim; ++i)
 				x[i] += delta[i];
 			for (int i = 0; i < algDim; ++i)
 				y[i] += delta[diffDim + i];
+			if (!IsFiniteDAEVector(x) || !IsFiniteDAEVector(y)) {
+				result.status = AlgorithmStatus::NumericalInstability;
+				result.failure_reason = DAEFailureReason::NonFiniteState;
+				result.error_message = "RODAS produced a non-finite state";
+				break;
+			}
 
 			t += h;
 
 			// Track constraint violation
 			system.algConstraints(t, x, y, g_pred);
-			Real g_norm = g_pred.NormL2();
-			if (g_norm > result.max_constraint_violation)
-				result.max_constraint_violation = g_norm;
+			if (!ValidateAcceptedDAEState(x, y, g_pred, config, result, "RODAS step"))
+				break;
 
 			result.solution.fillValues(step, t, x, y);
 			result.solution.incrementSuccessfulSteps();
+			result.accepted_steps++;
 			++step;
 		}
 
 		// Finalize
 		result.solution.setFinalSize(step - 1);
 		result.total_steps = step - 1;
+		if (t_end - t > DAETimeTolerance(t_end, config.step_size) && result.status == AlgorithmStatus::Success) {
+			result.status = AlgorithmStatus::MaxIterationsExceeded;
+			result.failure_reason = DAEFailureReason::MaxStepsExceeded;
+			result.error_message = "Maximum RODAS step count reached before t_end";
+		}
 		result.elapsed_time_ms = timer.elapsed_ms();
 
 		return result;

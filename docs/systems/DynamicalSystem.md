@@ -5,7 +5,7 @@
 ## Overview
 
 ```cpp
-#include "systems/DynamicalSystem.h"
+#include <mml/systems/DynamicalSystem.h>
 using namespace MML;
 
 // Create a Lorenz system
@@ -581,7 +581,7 @@ auto sol3 = solver.Solve_BackwardEuler(ic, 0.0, 50.0, 0.01);
 ## Performance Tips
 
 1. **Analytical Jacobian** - Override `jacobian()` for 10x speedup in Lyapunov/fixed point computations
-2. **Adaptive Stepsize** - Use Dormand-Prince for trajectory integration, fixed step for Lyapunov
+2. **Adaptive Stepsize** - Trajectory, Lyapunov, bifurcation, and Poincaré analysis use adaptive Dormand-Prince integration; `h` supplies the initial step and bifurcation sampling cadence
 3. **Transient Removal** - Always discard initial transient before analysis
 4. **Long Time** - Lyapunov exponents need ~1000 orbital periods for convergence
 5. **QR Frequency** - Balance numerical stability (small interval) vs speed (large interval)

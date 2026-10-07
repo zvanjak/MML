@@ -1,13 +1,22 @@
 # Interpolated Functions
 
-**Source:** `mml/base/InterpolatedFunction.h`
+**Sources:** `mml/base/InterpolatedFunction.h`,
+`mml/base/InterpolatedFunctions/InterpolationTypes.h`,
+`mml/base/InterpolatedFunctions/InterpolatedRealFunctionLinear.h`,
+`mml/base/InterpolatedFunctions/InterpolatedRealFunctionPolynomial.h`,
+`mml/base/InterpolatedFunctions/InterpolatedRealFunctionRational.h`,
+`mml/base/InterpolatedFunctions/InterpolatedRealFunctionBarycentric.h`,
+`mml/base/InterpolatedFunctions/InterpolatedFunctionSpline.h` (spline and monotone cubic), and
+`mml/base/InterpolatedFunctions/InterpolatedRealFunctionAdvanced.h` (Hermite and Akima).
 
 Interpolation creates continuous functions from discrete data points. MML provides several interpolation methods, each suited to different data characteristics and accuracy requirements.
 
 ## Overview
 
 Available interpolation types:
-- **Real functions** (IRealFunction): Linear, Polynomial, Rational, Barycentric, Cubic Spline
+- **Real functions** (`IRealFunction`): linear, local polynomial, barycentric
+    polynomial, rational, barycentric rational, cubic spline, Hermite, Akima, and
+    monotone cubic
 - **2D scalar functions**: Bilinear, Bicubic Spline
 - **Parametric curves** (IParametricCurve<N>): Linear, Cubic Spline
 
@@ -17,9 +26,13 @@ Available interpolation types:
 |--------|-------|-----------|------------|----------|
 | Linear | `LinearInterpRealFunc` | 1D | C⁰ | Sparse data, noise tolerance |
 | Polynomial | `PolynomInterpRealFunc` | 1D | C^(n-1) | Smooth data, low order |
+| Barycentric Polynomial | `BarycentricPolynomialInterp` | 1D | C∞ | Stable global polynomial evaluation |
 | Rational | `RationalInterpRealFunc` | 1D | Varies | Near-pole behavior |
 | Barycentric | `BarycentricRationalInterp` | 1D | C^∞ | Pole-free rational interp |
 | Cubic Spline | `SplineInterpRealFunc` | 1D | C² | General purpose, smooth curves |
+| Cubic Hermite | `HermiteInterpRealFunc` | 1D | C¹ | Known node derivatives |
+| Akima | `AkimaInterpRealFunc` | 1D | C¹ | Noisy data with reduced overshoot |
+| Monotone Cubic | `MonotoneCubicInterpRealFunc` | 1D | C¹ | Shape-preserving monotone data |
 | Bilinear | `BilinearInterp2D` | 2D | C⁰ | Fast 2D, rectangular grids |
 | Bicubic Spline | `BicubicSplineInterp2D` | 2D | C² | Smooth 2D surfaces |
 | Linear Curve | `LinInterpParametricCurve<N>` | Parametric | C⁰ | Simple paths |
@@ -28,6 +41,31 @@ Available interpolation types:
 ---
 
 ## Real Function Interpolation
+
+### Common Detailed Evaluation
+
+All `RealFunctionInterpolated` methods expose `EvaluateDetailed`, and
+`BarycentricRationalInterp` provides the same contract directly:
+
+```cpp
+InterpolationConfig config;
+config.extrapolation_policy = ExtrapolationPolicy::Clamp;
+config.exception_policy = EvaluationExceptionPolicy::ConvertToStatus;
+
+InterpolationResult result = interpolant.EvaluateDetailed(x, config);
+if (result) {
+    std::cout << result.value << " from interval " << result.interval_index;
+}
+```
+
+`InterpolationResult` reports the value, method name, interval index, original
+and evaluated query points, error estimate where available, timing, evaluation
+count, `AlgorithmStatus`, and interpolation-specific status. Out-of-range calls
+are consistently reported as `Extrapolated`, `Clamped`, or `OutOfRange`.
+
+`InterpolationConfig` also centralizes tolerance, duplicate handling, monotonic
+data validation intent, finite checking, error estimation, and exception policy.
+Legacy `operator()` behavior remains unchanged for source compatibility.
 
 ### LinearInterpRealFunc
 
@@ -200,6 +238,32 @@ for (int i = 0; i < x.size(); ++i) {
 
 **Reference:** Berrut & Trefethen, "Barycentric Lagrange Interpolation" (SIAM Review, 2004)
 
+### BarycentricPolynomialInterp
+
+Global polynomial interpolation in barycentric form avoids constructing power-
+basis coefficients and evaluates in O(n) after O(n²) weight construction.
+Input nodes may be nonuniform and unordered; they are sorted internally and must
+be distinct.
+
+```cpp
+BarycentricPolynomialInterp f(x, y);
+Real value = f(0.25);
+```
+
+When node placement is under your control, mapped Chebyshev roots strongly
+reduce endpoint oscillation for difficult functions such as the Runge function:
+
+```cpp
+auto f = MakeChebyshevNodeInterpolator(
+    std::function<Real(Real)>([](Real x) { return 1 / (1 + 25*x*x); }),
+    -1.0, 1.0, 15);
+
+Vector<Real> nodes = ChebyshevInterpolationNodes(-1.0, 1.0, 15);
+```
+
+The helper samples the function and returns a ready-to-use
+`BarycentricPolynomialInterp`.
+
 ### SplineInterpRealFunc
 
 Cubic spline interpolation - piecewise cubic polynomials with continuous first and second derivatives. **The default choice for most interpolation tasks.**
@@ -260,6 +324,61 @@ Real slope = f_natural.Derivative(2.5);
 Real curvature = f_natural.SecondDerivative(2.5);
 Real area = f_natural.Integrate(1.0, 4.0);
 ```
+
+### MonotoneCubicInterpRealFunc
+
+Fritsch-Carlson piecewise cubic Hermite interpolation preserves monotonicity and
+avoids the overshoot that an unconstrained cubic spline can introduce.
+
+```cpp
+MonotoneCubicInterpRealFunc(const Vector<Real>& x, const Vector<Real>& y);
+
+MonotoneCubicInterpRealFunc f(x, y);
+Real value = f(2.5);
+Real slope = f.Derivative(2.5);
+Real area = f.Integrate(0.0, 4.0);
+```
+
+Use it for monotone measurements, cumulative curves, calibration tables, and
+other shape-sensitive data. It is C¹ rather than C², but remains within the
+range of each monotone data segment.
+
+### HermiteInterpRealFunc
+
+Piecewise cubic Hermite interpolation uses derivatives supplied at every node.
+It exactly reproduces cubic polynomials when values and derivatives are exact.
+
+```cpp
+HermiteInterpRealFunc(const Vector<Real>& x, const Vector<Real>& y,
+                      const Vector<Real>& derivatives);
+
+HermiteInterpRealFunc f(x, y, dydx);
+Real value = f(1.5);
+Real slope = f.Derivative(1.5);
+Real area = f.Integrate(0.0, 2.0);
+```
+
+Use this when derivative data comes from an analytic model, automatic or
+numerical differentiation, or measured slopes. The derivative vector must have
+the same size as the node vectors.
+
+### AkimaInterpRealFunc
+
+Akima interpolation estimates each node derivative from weighted neighboring
+secant slopes. It is local, C¹ continuous, exact at nodes, and less prone to
+large oscillations around noisy or abruptly changing data than an unconstrained
+cubic spline.
+
+```cpp
+AkimaInterpRealFunc(const Vector<Real>& x, const Vector<Real>& y);
+
+AkimaInterpRealFunc f(x, y);
+Real value = f(1.5);
+```
+
+At least five strictly monotonic nodes are required. Use monotone cubic instead
+when strict shape preservation is required; use an ordinary cubic spline when
+the data is smooth and C² continuity matters most.
 
 ---
 
@@ -334,6 +453,7 @@ BicubicSplineInterp2D(const Vector<Real>& x, const Vector<Real>& y,
 - Continuity: C² (smooth surface with continuous first and second derivatives)
 - Uses natural spline boundary conditions
 - Precomputes spline coefficients for each row
+- Row splines are value-owned; copying and moving the interpolator is safe
 - Complexity: O(log nx + log ny) lookup + O(ny) evaluation
 - Exact at grid points
 
@@ -434,6 +554,7 @@ SplineInterpParametricCurve(Real minT, Real maxT, const Matrix<Real>& points,
 
 **Properties:**
 - Each coordinate interpolated independently with cubic splines
+- Coordinate splines are value-owned; copying and moving the curve is safe
 - Continuity: C² in each coordinate
 - Parameterization: Arc-length based, mapped to [minT, maxT]
 - Endpoint derivatives: Estimated from neighboring points (≥4 points required)
@@ -495,7 +616,9 @@ All real function interpolators derive from this base class.
 
 **Data Storage:**
 - Stores **copies** of input x and y arrays
-- Sorts arrays if needed for monotonicity
+- Accepts monotonic ascending or descending nodes; duplicate nodes are rejected
+- `BarycentricPolynomialInterp` accepts unordered distinct nodes and sorts its
+    owned copies during construction
 
 ### Spline Algorithm
 
@@ -535,7 +658,12 @@ The barycentric formula provides stable rational interpolation:
 ```
 Do you have 1D data (y = f(x))?
 ├─ Yes → 
-│  ├─ Is data noisy or sparse? → LinearInterpRealFunc
+│  ├─ Is data noisy? → AkimaInterpRealFunc
+│  ├─ Is data sparse or nonsmooth? → LinearInterpRealFunc
+│  ├─ Are node derivatives known? → HermiteInterpRealFunc
+│  ├─ Must monotonicity be preserved? → MonotoneCubicInterpRealFunc
+│  ├─ Need a stable global polynomial? → BarycentricPolynomialInterp
+│  ├─ Can you choose nodes? → MakeChebyshevNodeInterpolator
 │  ├─ Function has poles/asymptotes? → RationalInterpRealFunc
 │  ├─ Need pole-free rational? → BarycentricRationalInterp
 │  ├─ Need smoothness? → SplineInterpRealFunc (DEFAULT)
@@ -553,14 +681,17 @@ Do you have 1D data (y = f(x))?
 
 ### Comparison Table - 1D Methods
 
-| Criterion | Linear | Polynomial | Rational | Barycentric | Spline |
-|-----------|--------|-----------|----------|-------------|--------|
-| **Smoothness** | C⁰ | C^(m-1) | Varies | C^∞ | C² |
-| **Accuracy** | O(h²) | O(h^m) | Variable | Good | O(h⁴) |
-| **Stability** | Excellent | Poor (m>4) | Good | Excellent | Excellent |
-| **Speed (eval)** | Fastest | Medium | Medium | O(n) | Fast |
-| **Handles poles** | No | No | Yes | No (pole-free) | No |
-| **Error estimate** | No | Yes | Yes | No | No |
+| Method | Smoothness | Local/global | Primary strength |
+|--------|------------|--------------|------------------|
+| Linear | C0 | Local | Robust and inexpensive |
+| Neville polynomial | Polynomial | Local stencil | Built-in error estimate |
+| Barycentric polynomial | Polynomial | Global | Stable polynomial evaluation |
+| Rational | Varies | Local stencil | Pole-like behavior |
+| Barycentric rational | Smooth | Global | Pole-free rational interpolation |
+| Cubic spline | C2 | Local | General smooth interpolation |
+| Hermite | C1 | Local | Exact user-supplied node derivatives |
+| Akima | C1 | Local | Reduced overshoot on noisy data |
+| Monotone cubic | C1 | Local | Shape preservation |
 
 ### Comparison Table - 2D Methods
 

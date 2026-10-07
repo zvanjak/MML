@@ -7,9 +7,10 @@
 ///  @details   Part of the MML Computational Geometry module
 /////////////////////////////////////////////////////////////////////////////////////////
 
-#include "mml/MMLBase.h"
-#include "mml/base/Geometry/Geometry2D.h"
-#include "mml/algorithms/CompGeometry/CompGeometryBase.h"
+#include <mml/MMLBase.h>
+#include <mml/base/Geometry/Geometry2D.h>
+#include <mml/algorithms/CompGeometry/CompGeometryBase.h>
+#include <mml/algorithms/CompGeometry/RobustPredicates.h>
 
 #include <algorithm>
 #include <array>
@@ -369,11 +370,6 @@ private:
 	// Helper functions
 	// ========================================================================
 
-	// Cross product helper for orientation tests
-	static Real Cross(const Point2Cartesian& o, const Point2Cartesian& a, const Point2Cartesian& b) {
-		return (a.X() - o.X()) * (b.Y() - o.Y()) - (a.Y() - o.Y()) * (b.X() - o.X());
-	}
-
 	// Check if vertex at index i is an "ear" in the polygon
 	static bool IsEar(const std::vector<Point2Cartesian>& vertices, int i, int n) {
 		int prev = (i - 1 + n) % n;
@@ -384,7 +380,7 @@ private:
 		const Point2Cartesian& c = vertices[next];
 
 		// Check if the triangle is convex (CCW orientation means convex for CCW polygon)
-		if (Cross(a, b, c) <= EPSILON)
+		if (RobustPredicates::Orientation2D(a, b, c) <= 0)
 			return false; // Reflex vertex, not an ear
 
 		// Check that no other vertex is inside this triangle
@@ -402,12 +398,12 @@ private:
 	// Point-in-triangle test using barycentric coordinates
 	static bool IsPointInTriangle(const Point2Cartesian& p, const Point2Cartesian& a, 
 								  const Point2Cartesian& b, const Point2Cartesian& c) {
-		Real d1 = Cross(a, b, p);
-		Real d2 = Cross(b, c, p);
-		Real d3 = Cross(c, a, p);
+		int d1 = RobustPredicates::Orientation2D(a, b, p);
+		int d2 = RobustPredicates::Orientation2D(b, c, p);
+		int d3 = RobustPredicates::Orientation2D(c, a, p);
 
-		bool hasNeg = (d1 < -EPSILON) || (d2 < -EPSILON) || (d3 < -EPSILON);
-		bool hasPos = (d1 > EPSILON) || (d2 > EPSILON) || (d3 > EPSILON);
+		bool hasNeg = (d1 < 0) || (d2 < 0) || (d3 < 0);
+		bool hasPos = (d1 > 0) || (d2 > 0) || (d3 > 0);
 
 		return !(hasNeg && hasPos);
 	}
@@ -422,22 +418,9 @@ private:
 		// | bx-px  by-py  (bx-px)²+(by-py)² | > 0
 		// | cx-px  cy-py  (cx-px)²+(cy-py)² |
 		
-		Real ax = a.X() - p.X();
-		Real ay = a.Y() - p.Y();
-		Real bx = b.X() - p.X();
-		Real by = b.Y() - p.Y();
-		Real cx = c.X() - p.X();
-		Real cy = c.Y() - p.Y();
-		
-		Real ap = ax * ax + ay * ay;
-		Real bp = bx * bx + by * by;
-		Real cp = cx * cx + cy * cy;
-
-		Real det = ax * (by * cp - bp * cy) -
-				   ay * (bx * cp - bp * cx) +
-				   ap * (bx * cy - by * cx);
-
-		return det > EPSILON;
+		const int orientation = RobustPredicates::Orientation2D(a, b, c);
+		const int inCircle = RobustPredicates::InCircle2D(a, b, c, p);
+		return orientation > 0 ? inCircle > 0 : inCircle < 0;
 	}
 
 	// Unique edge representation for Bowyer-Watson

@@ -1,3 +1,19 @@
+///////////////////////////////////////////////////////////////////////////////////////////
+///                         MinimalMathLibrary (MML)                                  ///
+///                                                                                   ///
+///  File:        vector_functions_test_bed.h                                         ///
+///  Purpose:     Reusable vector fields F: R^n -> R^n with analytic Jacobians and   ///
+///               vector-calculus reference properties.                              ///
+///                                                                                   ///
+///  Used by:     Vector derivation tests, core derivation tests, and precision       ///
+///               derivation tests.                                                  ///
+///                                                                                   ///
+///  Contents:    Identity, vortex, inverse-square radial, conservative gradient,     ///
+///               and mixed vector fields with divergence/curl metadata.              ///
+///                                                                                   ///
+///  Coverage:    Physics-style field configurations can graduate here or into a     ///
+///               dedicated field/physics bed if reused across modules.              ///
+///////////////////////////////////////////////////////////////////////////////////////////
 #if !defined __MML_VECTOR_FUNCTIONS_TEST_BED_H
 #define __MML_VECTOR_FUNCTIONS_TEST_BED_H
 
@@ -5,9 +21,9 @@
 #include <cmath>
 
 #ifdef MML_USE_SINGLE_HEADER
-#include "MML.h"
+#include <MML.h>
 #else
-#include "base/Function.h"
+#include <mml/base/Function.h>
 #endif
 
 namespace MML::TestBeds

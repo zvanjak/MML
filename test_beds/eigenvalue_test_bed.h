@@ -1,3 +1,21 @@
+///////////////////////////////////////////////////////////////////////////////////////////
+///                         MinimalMathLibrary (MML)                                  ///
+///                                                                                   ///
+///  File:        eigenvalue_test_bed.h                                               ///
+///  Purpose:     Reusable spectral test systems for eigenvalue and eigensystem       ///
+///               algorithms.                                                        ///
+///                                                                                   ///
+///  Used by:     tests/algorithms/eigensystem_solvers_tests.cpp, together with       ///
+///               the linear algebra system test bed.                                ///
+///                                                                                   ///
+///  Contents:    Named eigen systems, exact/reference eigenvalues, eigenvectors,     ///
+///               symmetric and general matrix cases, characteristic cases, and       ///
+///               collection helpers.                                                ///
+///                                                                                   ///
+///  Coverage:    Some eigensystem tests still include raw linear-system fixtures     ///
+///               directly. Those remaining cases should eventually be wrapped here   ///
+///               or in LinearAlgEqTestBed.                                          ///
+///////////////////////////////////////////////////////////////////////////////////////////
 #if !defined __MML_EIGENVALUE_TEST_BED_H
 #define __MML_EIGENVALUE_TEST_BED_H
 
@@ -11,12 +29,12 @@
 #include "../test_data/eigenvalue_defs.h"
 
 #ifdef MML_USE_SINGLE_HEADER
-#include "MML.h"
+#include <MML.h>
 #else
-#include "MMLBase.h"
-#include "base/Vector/Vector.h"
-#include "base/Matrix/Matrix.h"
-#include "base/Matrix/MatrixSym.h"
+#include <mml/MMLBase.h>
+#include <mml/base/Vector/Vector.h>
+#include <mml/base/Matrix/Matrix.h>
+#include <mml/base/Matrix/MatrixSym.h>
 #endif
 
 namespace MML::TestBeds

@@ -1,206 +1,295 @@
 # Systems Package
 
-**Dynamical Systems Analysis**
+**Dynamical Systems Analysis and the Unified Linear-Algebra Facade**
 
-The Systems package provides comprehensive tools for analyzing dynamical systems, including fixed point analysis, Lyapunov exponent computation, bifurcation diagrams, phase space tools, and a unified linear algebra interface.
+The `mml/systems/` layer provides two high-level facades built on MML's core primitives:
+
+1. **`LinearSystem<Type>`** — one class that answers "solve and characterize my matrix": smart solver selection, decompositions, condition analysis, verification.
+2. **The dynamical-systems framework** — fixed-point analysis, Lyapunov spectra, bifurcation diagrams, Poincaré sections, plus a library of canonical chaotic systems and discrete maps.
+
+Everything in this package lives in the **`MML::Systems`** namespace.
 
 ## Features
 
 ### Dynamical Systems Analysis
-- **Fixed Point Detection** - Find equilibria using Newton-Raphson
-- **Stability Classification** - Nodes, foci, saddles, centers
-- **Lyapunov Exponents** - Full spectrum computation
-- **Bifurcation Diagrams** - Parameter sweep analysis
-- **Poincaré Sections** - Return maps and phase space slicing
+- **Fixed Point Detection** — Newton–Raphson search (`FindFixedPoint`, `FindFixedPointsInBox`)
+- **Stability Classification** — nodes, foci, saddles, centers (`FixedPointType`)
+- **Lyapunov Exponents** — full spectrum via the Benettin QR method (`ComputeLyapunov`)
+- **Bifurcation Diagrams** — parameter sweeps (`ComputeBifurcation`)
+- **Poincaré Sections** — return maps and phase-space slicing (`ComputePoincareSection`)
+- **One-call reports** — `Analyze()` produces a `DynamicalSystemReport` with a text summary
 
-### Phase Space Tools
-- **Trajectory Integration** - Adaptive ODE solvers
-- **Phase Portraits** - Vector field visualization data
-- **Limit Cycles** - Periodic orbit detection
-- **Chaos Detection** - Lyapunov-based chaos indicators
+### Canonical Systems Included
+- **Continuous** (`ContinuousSystems.h`): `LorenzSystem`, `RosslerSystem`, `VanDerPolSystem`, `DuffingSystem`, `ChuaCircuit`, `HenonHeilesSystem`, `DoublePendulumSystem` — all with analytic Jacobians where available
+- **Discrete maps** (`DiscreteMaps.h`): `LogisticMap`, `HenonMap`, `StandardMap`, `TentMap`, plus `DiscreteMapLyapunov::Compute`
 
 ### Linear Systems Interface
-- **Unified Facade** - One class for all linear algebra
-- **Smart Solver Selection** - Automatic algorithm choice
-- **Matrix Decompositions** - LU, QR, SVD, Cholesky
-- **Condition Analysis** - Stability assessment and diagnostics
+- **Unified Facade** — one class for all linear algebra on a given system
+- **Smart Solver Selection** — `Solve()` picks triangular/Cholesky/QR/SVD/LU automatically
+- **Matrix Decompositions** — `LUDecompose()`, `QRDecompose()`, `SVDDecompose()`, `CholeskyDecompose()`
+- **Condition Analysis** — `ConditionNumber()`, `AssessStability()`, `ExpectedDigitsLost()`
+- **Verification** — `Verify(x)` returns residuals and error estimates
 
 ## Quick Start
+
+### Linear System Facade
+
+The right-hand side is bound at construction; `Solve()` takes no arguments and auto-selects the best solver.
+
+```cpp
+#include <mml/systems/LinearSystem.h>
+
+using namespace MML;
+using namespace MML::Systems;
+
+Matrix<Real> A(3, 3, { 4, 1, 2,
+                       1, 5, 1,
+                       2, 1, 6 });
+Vector<Real> b({ 1, 2, 3 });
+
+LinearSystem<Real> sys(A, b);
+
+// Solve Ax = b (solver chosen automatically: SPD matrix -> Cholesky)
+Vector<Real> x = sys.Solve();
+
+// Verify the solution
+auto check = sys.Verify(x);
+std::cout << "Absolute residual: " << check.absoluteResidual << "\n";
+std::cout << "Relative residual: " << check.relativeResidual << "\n";
+std::cout << "Accurate: " << (check.isAccurate ? "yes" : "no") << "\n";
+
+// Matrix properties (results cached per tolerance)
+std::cout << "Symmetric:          " << sys.IsSymmetric() << "\n";
+std::cout << "Positive definite:  " << sys.IsPositiveDefinite() << "\n";
+std::cout << "Condition number:   " << sys.ConditionNumber() << "\n";
+std::cout << "Determinant:        " << sys.Determinant() << "\n";
+
+// Full analysis report
+SystemAnalysis<Real> analysis = sys.Analyze();
+std::cout << analysis.report;
+
+// Decompositions (computed on demand, cached)
+const auto& lu = sys.LUDecompose();    // lu.L, lu.U, lu.permutation, lu.determinant
+const auto& qr = sys.QRDecompose();    // qr.Q, qr.R
+const auto& svd = sys.SVDDecompose();  // svd.U, svd.V, svd.singularValues, svd.rank
+
+// Eigenvalues (square matrices)
+Vector<Complex> eigs = sys.Eigenvalues();
+
+// Explicit solver choice when you know the structure
+Vector<Real> xLU  = sys.SolveByLU();
+Vector<Real> xChol = sys.SolveByCholesky();
+Vector<Real> xLsq = sys.SolveLeastSquares();   // overdetermined systems (QR)
+
+// Iterative solution for large sparse-ish systems
+Vector<Real> xIter = sys.SolveIterative(IterativeMethod::Auto, 1e-10, 1000);
+```
+
+Multiple right-hand sides — factorize once, solve for every column:
+
+```cpp
+Matrix<Real> B(3, 2, { 1, 4,
+                       2, 5,
+                       3, 6 });
+LinearSystem<Real> multi(A, B);
+Matrix<Real> X = multi.SolveMultiple();   // A * X = B
+```
+
+There is also a one-line convenience free function:
+
+```cpp
+Vector<Real> x = Systems::SolveLinearSystem(A, b);
+```
+
+### Defining a Dynamical System
+
+Derive from `DynamicalSystemBase<N, P>` (N = state dimension, P = number of parameters) and override `derivs`. Overriding `jacobian` is optional — a numerical Jacobian is used otherwise.
+
+```cpp
+#include <mml/systems/DynamicalSystem.h>   // umbrella header
+
+using namespace MML;
+using namespace MML::Systems;
+
+// Most classic systems are already provided:
+LorenzSystem lorenz;                    // sigma=10, rho=28, beta=8/3
+VanDerPolSystem vdp(1.0);               // mu = 1.0
+
+// Or define your own:
+class MySystem : public DynamicalSystemBase<2, 1> {
+public:
+    MySystem(Real mu = 1.0) {
+        _params[0] = mu;
+        _stateNames = { "x", "y" };
+        _paramNames = { "mu" };
+    }
+
+    void derivs(Real /*t*/, const Vector<Real>& y, Vector<Real>& dydt) const override {
+        Real mu = _params[0];
+        dydt[0] = y[1];
+        dydt[1] = mu * (1 - y[0] * y[0]) * y[1] - y[0];
+    }
+};
+```
 
 ### Fixed Point Analysis
 
 ```cpp
-#include "systems/DynamicalSystem.h"
+DynamicalSystemAnalyzer<Real> analyzer(vdp);
 
-using namespace MML::Systems;
+// Single fixed point from an initial guess
+FixedPoint<Real> fp = analyzer.FindFixedPoint(Vector<Real>({ 0.1, 0.1 }));
+std::cout << "Location: " << fp.location << "\n";
+std::cout << "Type:     " << ToString(fp.type) << "\n";
+std::cout << "Stable:   " << fp.isStable << "\n";
 
-// Define a 2D system: dx/dt = f(x, y)
-class VanDerPol : public IDynamicalSystem {
-public:
-    VanDerPol(double mu) : mu_(mu) {}
-    
-    int getDim() const override { return 2; }
-    
-    void derivs(Real t, const Vector<Real>& x, Vector<Real>& dxdt) const override {
-        dxdt[0] = x[1];
-        dxdt[1] = mu_ * (1 - x[0]*x[0]) * x[1] - x[0];
-    }
-    
-private:
-    double mu_;
-};
-
-// Create system
-VanDerPol system(1.0);  // μ = 1.0
-
-// Find fixed points
-DynamicalSystemAnalyzer analyzer;
-auto fixedPoints = analyzer.findFixedPoints(system, searchRegion);
-
-for (const auto& fp : fixedPoints) {
-    std::cout << "Fixed point at: " << fp.location << "\n";
-    std::cout << "Type: " << ToString(fp.type) << "\n";
-    std::cout << "Eigenvalues: ";
-    for (const auto& ev : fp.eigenvalues)
-        std::cout << ev << " ";
-    std::cout << "\n";
-}
+// Search a whole box on a grid of starting guesses
+auto points = analyzer.FindFixedPointsInBox(Vector<Real>({ -2, -2 }),
+                                            Vector<Real>({  2,  2 }), 5);
+for (const auto& p : points)
+    std::cout << p.location << "  " << ToString(p.type) << "\n";
 ```
 
 ### Lyapunov Exponents
 
 ```cpp
-#include "systems/DynamicalSystem.h"
+LorenzSystem lorenz;
+DynamicalSystemAnalyzer<Real> analyzer(lorenz);
 
-using namespace MML::Systems;
+Vector<Real> x0({ 1.0, 1.0, 1.0 });
+LyapunovResult<Real> lyap = analyzer.ComputeLyapunov(x0, 1000.0);
 
-// Lorenz system (classic chaos)
-class Lorenz : public IDynamicalSystem {
-public:
-    Lorenz(double sigma = 10.0, double rho = 28.0, double beta = 8.0/3.0)
-        : sigma_(sigma), rho_(rho), beta_(beta) {}
-    
-    int getDim() const override { return 3; }
-    
-    void derivs(Real t, const Vector<Real>& x, Vector<Real>& dxdt) const override {
-        dxdt[0] = sigma_ * (x[1] - x[0]);
-        dxdt[1] = x[0] * (rho_ - x[2]) - x[1];
-        dxdt[2] = x[0] * x[1] - beta_ * x[2];
-    }
-    
-private:
-    double sigma_, rho_, beta_;
-};
+std::cout << "Exponents:      " << lyap.exponents << "\n";
+std::cout << "Max (lambda_1): " << lyap.maxExponent << "\n";
+std::cout << "Sum:            " << lyap.sum << "\n";           // < 0 for dissipative
+std::cout << "K-Y dimension:  " << lyap.kaplanYorkeDimension << "\n";
+std::cout << "Chaotic:        " << (lyap.isChaotic ? "yes" : "no") << "\n";
 
-Lorenz lorenz;
-Vector<Real> x0 = {1.0, 1.0, 1.0};  // Initial condition
-double totalTime = 1000.0;
-
-DynamicalSystemAnalyzer analyzer;
-auto result = analyzer.computeLyapunovSpectrum(lorenz, x0, totalTime);
-
-std::cout << "Lyapunov exponents: " << result.exponents << "\n";
-std::cout << "Max exponent (λ₁): " << result.maxExponent << "\n";
-std::cout << "Sum (should be negative for dissipative): " << result.sum << "\n";
-std::cout << "Kaplan-Yorke dimension: " << result.kaplanYorkeDimension << "\n";
-std::cout << "Is chaotic: " << (result.isChaotic ? "Yes" : "No") << "\n";
+// Quick queries
+bool chaotic = analyzer.IsChaotic(x0);
+Real tPredict = analyzer.GetLyapunovTime(x0);   // 1 / lambda_max
 ```
 
 ### Bifurcation Diagram
 
 ```cpp
-#include "systems/DynamicalSystem.h"
+LorenzSystem lorenz;
+DynamicalSystemAnalyzer<Real> analyzer(lorenz);
 
-using namespace MML::Systems;
+// Sweep parameter 1 (rho) over [20, 30] in 100 steps
+BifurcationDiagram<Real> diagram =
+    analyzer.ComputeBifurcation(1, 20.0, 30.0, 100, Vector<Real>({ 0.1, 0.1, 0.1 }));
 
-// Logistic map: x_{n+1} = r * x_n * (1 - x_n)
-class LogisticMap : public IDiscreteSystem {
-public:
-    LogisticMap(double r) : r_(r) {}
-    
-    void step(const Vector<Real>& x, Vector<Real>& next) const override {
-        next[0] = r_ * x[0] * (1 - x[0]);
-    }
-    
-    void setParameter(int i, Real val) override { r_ = val; }
-    
-private:
-    double r_;
-};
+// diagram.parameterValues[i] and diagram.attractorValues[i] (local maxima of a
+// state component after transients) can be plotted directly.
+```
 
-DynamicalSystemAnalyzer analyzer;
+For discrete maps use the map classes and `DiscreteMapLyapunov`:
 
-// Sweep r from 2.5 to 4.0
-auto diagram = analyzer.bifurcationDiagram(
-    LogisticMap(3.0),   // System template
-    0,                  // Parameter index
-    2.5, 4.0,           // Parameter range
-    1000,               // Number of parameter values
-    {0.5},              // Initial condition
-    500,                // Transient steps to discard
-    100                 // Points to record per parameter
-);
-
-// diagram.parameterValues[] and diagram.attractorValues[][] 
-// can be plotted to visualize period-doubling cascade to chaos
+```cpp
+LogisticMap logistic(4.0);
+auto orbit = logistic.orbit(Vector<Real>({ 0.3 }), 1000);
+auto lyapMap = DiscreteMapLyapunov::Compute(logistic, Vector<Real>({ 0.3 }));
+// LogisticMap at r=4 has analytical Lyapunov exponent ln(2)
 ```
 
 ### Poincaré Section
 
 ```cpp
-#include "systems/DynamicalSystem.h"
+LorenzSystem lorenz;
+DynamicalSystemAnalyzer<Real> analyzer(lorenz);
 
-using namespace MML::Systems;
+Vector<Real> x0({ 1.0, 1.0, 20.0 });
 
-Lorenz lorenz;
-Vector<Real> x0 = {1.0, 1.0, 20.0};
+// Section: state variable 2 (z) crossing z = 27 in the positive direction
+PoincareSection<Real> section(2, 27.0, +1);
 
-// Define section: z = 27 (crossing from below)
-PoincareSection<Real> section(2, 27.0, +1);  // variable 2 (z), value 27, positive direction
+std::vector<Vector<Real>> crossings =
+    analyzer.ComputePoincareSection(x0, section, 1000);
 
-DynamicalSystemAnalyzer analyzer;
-auto crossings = analyzer.poincareMap(lorenz, x0, section, 10000.0, 1000);
-
-// crossings contains (x, y) values at each z=27 crossing
-// Plot to see the characteristic Lorenz attractor cross-section
+// Each element is the full state at a crossing - plot (x, y) to see the
+// characteristic Lorenz attractor cross-section.
 ```
 
-### Linear System Interface
+### One-Call Full Analysis
 
 ```cpp
-#include "systems/LinearSystem.h"
+LorenzSystem lorenz;
+DynamicalSystemAnalyzer<Real> analyzer(lorenz);
 
-using namespace MML::Systems;
-
-// Create system from matrix
-Matrix<Real> A = {{4, 1, 2}, {1, 5, 1}, {2, 1, 6}};
-LinearSystem<Real> system(A);
-
-// Solve Ax = b
-Vector<Real> b = {1, 2, 3};
-auto solution = system.solve(b);
-
-std::cout << "Solution: " << solution.x << "\n";
-std::cout << "Residual: " << solution.verification.absoluteResidual << "\n";
-
-// Get matrix properties
-auto props = system.analyze();
-std::cout << "Condition number: " << props.conditionNumber << "\n";
-std::cout << "Is symmetric: " << props.isSymmetric << "\n";
-std::cout << "Is positive definite: " << props.isPositiveDefinite << "\n";
-std::cout << "Stability: " << ToString(props.stability) << "\n";
-
-// Decompositions (cached)
-auto lu = system.getLU();
-auto qr = system.getQR();
-auto svd = system.getSVD();
-
-// Eigenvalue analysis
-auto eigen = system.getEigenvalues();
-std::cout << "Eigenvalues: " << eigen << "\n";
+DynamicalSystemReport<Real> report = analyzer.Analyze(Vector<Real>({ 1, 1, 1 }));
+std::cout << report.summary;   // fixed points, Lyapunov spectrum, chaos verdict
 ```
 
 ## API Reference
+
+### LinearSystem<Type>
+
+Construction:
+
+| Constructor | Description |
+|-------------|-------------|
+| `LinearSystem(A, b)` | System with a single RHS vector |
+| `LinearSystem(A, B)` | System with multiple RHS columns |
+| `LinearSystem(A)` | Analysis only, no RHS |
+
+| Method | Description |
+|--------|-------------|
+| `Solve()` | Solve Ax = b, auto-selecting the solver |
+| `SolveByLU() / SolveByCholesky() / SolveByQR() / SolveBySVD() / SolveByGaussJordan()` | Explicit solver choice |
+| `SolveLeastSquares()` | Least-squares solution (QR) for overdetermined systems |
+| `SolveIterative(method, tol, maxIter)` | Jacobi / Gauss–Seidel / SOR / auto |
+| `SolveMultiple()` | Solve A·X = B for all columns (single factorization) |
+| `Verify(x, tol)` | `VerificationResult`: residuals, backward/forward error |
+| `Analyze()` | Full `SystemAnalysis` report |
+| `IsSymmetric(tol) / IsPositiveDefinite(tol) / IsDiagonallyDominant()` | Structure queries (cached per tolerance) |
+| `IsUpperTriangular(tol) / IsLowerTriangular(tol) / IsDiagonal(tol)` | Shape queries |
+| `Determinant() / Rank() / Nullity()` | Basic invariants |
+| `ConditionNumber() / ConditionNumber1() / ConditionNumberInfinity()` | Condition estimates |
+| `AssessStability() / ExpectedDigitsLost()` | Numerical health |
+| `LUDecompose() / QRDecompose() / SVDDecompose() / CholeskyDecompose()` | Cached decompositions |
+| `NullSpace() / ColumnSpace() / RowSpace() / LeftNullSpace()` | Fundamental subspaces (SVD-based) |
+| `Inverse() / PseudoInverse()` | Matrix inverses |
+| `Eigensystem() / Eigenvalues() / SymmetricEigenvalues()` | Eigen analysis |
+| `SpectralRadius() / HasComplexEigenvalues()` | Spectral queries |
+
+### DynamicalSystemAnalyzer<Type>
+
+Constructed from a reference to any `IDynamicalSystem` implementation:
+
+| Method | Description |
+|--------|-------------|
+| `FindFixedPoint(guess, tol)` | Newton search from one guess |
+| `FindFixedPoints(guesses)` | Newton search from many guesses (deduplicated) |
+| `FindFixedPointsInBox(min, max, gridPerDim)` | Grid search over a box |
+| `ComputeLyapunov(x0, totalTime)` | Full Lyapunov spectrum (Benettin QR) |
+| `ComputeMaxLyapunov(x0, totalTime)` | Largest exponent only |
+| `ComputeBifurcation(paramIdx, pMin, pMax, nSteps, x0)` | Parameter sweep |
+| `ComputePoincareSection(x0, section, nCrossings)` | Section crossings |
+| `IntegrateTrajectory(x0, totalTime)` | Raw trajectory points |
+| `IsChaotic(x0) / IsDissipative(x0)` | Boolean chaos/dissipation tests |
+| `GetLyapunovTime(x0) / GetFractalDimension(x0)` | Derived scalar measures |
+| `ScanChaosVsParameter(paramIdx, pMin, pMax, nSteps, x0)` | (param, λ₁) pairs |
+| `Analyze(x0)` | Everything above in one `DynamicalSystemReport` |
+| `GenerateSummary(report)` | Human-readable text summary |
+
+Lower-level static engines (used by the facade, callable directly):
+`FixedPointFinder::Find/FindMultiple`, `LyapunovAnalyzer::Compute`,
+`BifurcationAnalyzer::Sweep`, `PhaseSpaceAnalyzer::ComputePoincareSection/IntegrateTrajectory`.
+
+### IDynamicalSystem / DynamicalSystemBase<N, P>
+
+| Method | Description |
+|--------|-------------|
+| `getDim()` | State-space dimension |
+| `derivs(t, y, dydt)` | Compute dy/dt = f(t, y) — **must override** |
+| `jacobian(t, y, J)` | Jacobian matrix (numerical default) |
+| `hasAnalyticalJacobian()` | True if `jacobian` is exact |
+| `getNumParam() / getParam(i) / setParam(i, v)` | Parameter access |
+| `getStateName(i) / getParamName(i)` | Naming for reports |
+| `isAutonomous() / isHamiltonian() / isDissipative()` | System character flags |
+| `getDefaultInitialCondition()` | Sensible starting state |
+| `getNumInvariants() / computeInvariant(i, x)` | Conserved quantities (e.g. energy) |
 
 ### Fixed Point Types
 
@@ -213,91 +302,71 @@ std::cout << "Eigenvalues: " << eigen << "\n";
 | `UnstableFocus` | Re(λ) > 0 (complex) | Spiral outward |
 | `Center` | Re(λ) = 0 (imaginary) | Periodic orbits |
 
-### Result Structures
+### Result Structures (DynamicalSystemTypes.h)
 
 ```cpp
-// Fixed point result
-struct FixedPoint<Type> {
-    Vector<Type> location;              // Position in state space
-    std::vector<std::complex<Type>> eigenvalues;  // Jacobian eigenvalues
-    Matrix<Type> jacobian;              // Jacobian at fixed point
-    FixedPointType type;                // Stability classification
-    bool isStable;                      // Overall stability
-    Type convergenceResidual;           // ||f(x*)|| at convergence
-    int iterations;                     // Newton iterations used
+template<typename Type = Real>
+struct FixedPoint {
+    Vector<Type> location;                         // Position in state space
+    std::vector<std::complex<Type>> eigenvalues;   // Jacobian eigenvalues
+    Matrix<Type> jacobian;                         // Jacobian at fixed point
+    FixedPointType type;                           // Stability classification
+    bool isStable;                                 // Overall stability
+    Type convergenceResidual;                      // ||f(x*)|| at convergence
+    int iterations;                                // Newton iterations used
 };
 
-// Lyapunov result
-struct LyapunovResult<Type> {
-    Vector<Type> exponents;             // λ₁ ≥ λ₂ ≥ ... ≥ λₙ
-    Type maxExponent;                   // λ₁
-    Type sum;                           // Σλᵢ
-    Type kaplanYorkeDimension;          // Fractal dimension estimate
-    bool isChaotic;                     // True if λ₁ > 0
-    int numOrthonormalizations;         // QR steps performed
-    Type totalTime;                     // Integration time
+template<typename Type = Real>
+struct LyapunovResult {
+    Vector<Type> exponents;         // λ₁ ≥ λ₂ ≥ ... ≥ λₙ
+    Type maxExponent;               // λ₁
+    Type sum;                       // Σλᵢ
+    Type kaplanYorkeDimension;      // Fractal dimension estimate
+    bool isChaotic;                 // True if λ₁ > 0
+    int numOrthonormalizations;     // QR steps performed
+    Type totalTime;                 // Integration time
 };
 
-// Bifurcation diagram
-struct BifurcationDiagram<Type> {
+template<typename Type = Real>
+struct BifurcationDiagram {
     std::string parameterName;
     std::vector<Type> parameterValues;
     std::vector<std::vector<Type>> attractorValues;
     int numTransientSteps;
     int numRecordedPoints;
 };
+
+template<typename Type = Real>
+struct PoincareSection {
+    int variable;    // Which state variable defines the section
+    Type value;      // Section at x[variable] = value
+    int direction;   // +1 positive crossing, -1 negative, 0 both
+
+    PoincareSection(int var = 0, Type val = 0, int dir = 0);
+};
 ```
-
-### IDynamicalSystem Interface
-
-| Method | Description |
-|--------|-------------|
-| `getDim()` | Get state space dimension |
-| `derivs(t, x, dxdt)` | Compute dx/dt = f(x, t) |
-| `jacobian(t, x, J)` | Compute Jacobian matrix |
-| `getStateName(i)` | Get name of state variable i |
-| `getParamName(i)` | Get name of parameter i |
-| `isAutonomous()` | True if no explicit time dependence |
-| `isHamiltonian()` | True if energy-conserving |
-
-### LinearSystem Interface
-
-| Method | Description |
-|--------|-------------|
-| `solve(b)` | Solve Ax = b |
-| `analyze()` | Get matrix properties |
-| `getLU()` | LU decomposition A = PLU |
-| `getQR()` | QR decomposition A = QR |
-| `getSVD()` | SVD A = UΣVᵀ |
-| `getCholesky()` | Cholesky A = LLᵀ (SPD only) |
-| `getEigenvalues()` | Compute eigenvalues |
-| `getConditionNumber()` | Condition number κ(A) |
-| `inverse()` | Compute A⁻¹ |
 
 ## File Structure
 
 ```
-systems/
-├── README.md              # This file
-├── CMakeLists.txt         # Build configuration
-│
-├── include/
-│   ├── DynamicalSystem.h  # Main dynamical systems analysis
-│   │   - IDynamicalSystem interface
-│   │   - Fixed point analysis
-│   │   - Lyapunov exponents
-│   │   - Bifurcation diagrams
-│   │   - Poincaré sections
-│   │
-│   └── LinearSystem.h     # Unified linear algebra facade
-│       - Smart solver selection
-│       - Matrix decompositions
-│       - Condition analysis
-│       - Solution verification
-│
-└── tests/
-    └── systems_tests.cpp
+mml/systems/
+├── README.md                   # This file
+├── LinearSystem.h              # Unified linear-algebra facade
+├── DynamicalSystem.h           # Umbrella header (includes all below)
+├── DynamicalSystem/
+│   ├── DynamicalSystemTypes.h  # FixedPoint, LyapunovResult, BifurcationDiagram, PoincareSection
+│   ├── DynamicalSystemBase.h   # DynamicalSystemBase<N, P> base class
+│   ├── DynamicalAnalysisCommon.h # Shared integration and detailed-API support
+│   ├── FixedPointAnalysis.h    # FixedPointFinder
+│   ├── LyapunovAnalysis.h      # LyapunovAnalyzer
+│   ├── BifurcationAnalysis.h   # BifurcationAnalyzer
+│   └── PhaseSpaceAnalysis.h    # PhaseSpaceAnalyzer
+├── DynamicalSystemAnalyzer.h   # DynamicalSystemAnalyzer facade + DynamicalSystemReport
+├── ContinuousSystems.h         # Lorenz, Rössler, Van der Pol, Duffing, Chua, Hénon-Heiles, double pendulum
+└── DiscreteMaps.h              # Logistic, Hénon, Standard, Tent maps + DiscreteMapLyapunov
 ```
+
+Tests live in `tests/systems/`.
 
 ## Mathematical Background
 
@@ -307,7 +376,7 @@ The Lyapunov exponent measures the rate of separation of infinitesimally close t
 
 $$\lambda = \lim_{t \to \infty} \frac{1}{t} \ln \frac{\|\delta x(t)\|}{\|\delta x(0)\|}$$
 
-Computed via QR decomposition of the variational equation solution.
+Computed via repeated QR re-orthonormalization of the variational equation solution (Benettin's method).
 
 ### Fixed Point Stability
 
@@ -329,26 +398,28 @@ $$\kappa(A) = \|A\| \cdot \|A^{-1}\| = \frac{\sigma_{\max}}{\sigma_{\min}}$$
 
 Measures sensitivity of linear system solution to perturbations.
 
-## Example Systems
+## Included Example Systems
 
 ### Classic Chaotic Systems
 
-| System | Dimension | Behavior |
-|--------|-----------|----------|
-| Lorenz | 3D | Strange attractor, chaos |
-| Rössler | 3D | Simpler chaotic attractor |
-| Chua | 3D | Double-scroll attractor |
-| Hénon | 2D (map) | Fractal structure |
-| Logistic | 1D (map) | Period-doubling to chaos |
+| Class | Dimension | Behavior |
+|-------|-----------|----------|
+| `LorenzSystem` | 3D | Strange attractor, chaos |
+| `RosslerSystem` | 3D | Simpler chaotic attractor |
+| `ChuaCircuit` | 3D | Double-scroll attractor |
+| `HenonMap` | 2D (map) | Fractal structure |
+| `LogisticMap` | 1D (map) | Period-doubling to chaos |
+| `TentMap` | 1D (map) | Piecewise-linear chaos |
+| `StandardMap` | 2D (map) | Area-preserving, KAM tori |
 
-### Classic Oscillators
+### Classic Oscillators and Conservative Systems
 
-| System | Dimension | Behavior |
-|--------|-----------|----------|
-| Van der Pol | 2D | Limit cycle |
-| Duffing | 2D | Nonlinear oscillator |
-| Pendulum | 2D | Periodic/chaotic |
-| Lotka-Volterra | 2D | Predator-prey cycles |
+| Class | Dimension | Behavior |
+|-------|-----------|----------|
+| `VanDerPolSystem` | 2D | Limit cycle |
+| `DuffingSystem` | 3D (forced) | Nonlinear oscillator |
+| `HenonHeilesSystem` | 4D | Hamiltonian, mixed phase space |
+| `DoublePendulumSystem` | 4D | Conservative chaos |
 
 ## References
 
@@ -359,7 +430,6 @@ Measures sensitivity of linear system solution to perturbations.
 
 ## See Also
 
-- [mml_packages/README.md](../README.md) - Package overview
-- [Optimization Package](../optimization/README.md) - Parameter optimization
-- [Symbolic Package](../symbolic/README.md) - Jacobian computation via AD
-- [MML algorithms/ODESolverAdaptive.h](../../../mml/algorithms/) - ODE solvers
+- [mml/algorithms/](../algorithms/) — ODE solvers used for high-accuracy trajectory work
+- [mml/core/LinAlgEqSolvers/](../core/LinAlgEqSolvers/) — the solver engines behind `LinearSystem`
+- [tests/systems/](../../tests/systems/) — usage examples in test form

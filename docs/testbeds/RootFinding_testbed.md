@@ -9,6 +9,19 @@ The Root Finding Test Bed provides comprehensive test infrastructure for validat
 - Functions with **known analytical roots** and bracketing intervals
 - Metadata: category, difficulty, multiplicity, singularity information
 - **High-precision root constants** for verification
+- Structured scalar, isolation, polynomial, complex, and nonlinear-system tests
+
+### Running the focused suite
+
+```powershell
+& .\build\tests\Debug\MML_Tests.exe '[RootFinding]'
+```
+
+The focused suite covers scalar diagnostics, the benchmark catalog, exact and
+tangent isolation, all-real-roots refinement, polynomial root diagnostics and
+original-polynomial polishing, complex roots, and dynamic/fixed-size nonlinear
+Newton solvers. Run it as one Catch2 process; do not select individual CTest
+entries as a batch.
 
 ---
 
@@ -270,7 +283,7 @@ public:
 
 ```cpp
 #include "test_beds/root_finding_test_bed.h"
-#include "algorithms/RootFinding.h"
+#include <mml/algorithms/RootFinding.h>
 
 using namespace MML;
 using namespace MML::TestBeds;

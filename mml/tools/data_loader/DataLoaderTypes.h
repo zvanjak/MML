@@ -12,9 +12,9 @@
 #if !defined MML_DATA_LOADER_TYPES_H
 #define MML_DATA_LOADER_TYPES_H
 
-#include "MMLBase.h"
-#include "MMLExceptions.h"
-#include "base/Vector/Vector.h"
+#include <mml/MMLBase.h>
+#include <mml/MMLExceptions.h>
+#include <mml/base/Vector/Vector.h>
 
 #include <algorithm>
 #include <cmath>
@@ -252,10 +252,11 @@ namespace MML {
 				if (col.type == ColumnType::REAL)
 					return col.realData;
 
-				// Convert int to real
+				// Convert int to real; missing values become NaN instead of silent zeros
 				Vector<Real> result(col.intData.size());
 				for (size_t i = 0; i < col.intData.size(); ++i)
-					result[i] = static_cast<Real>(col.intData[i]);
+					result[i] = col.IsMissing(i) ? std::numeric_limits<Real>::quiet_NaN()
+					                             : static_cast<Real>(col.intData[i]);
 				return result;
 			}
 
@@ -546,10 +547,6 @@ namespace MML {
 			static LoadResult Failure(const std::string& message) {
 				return {false, message, Dataset{}};
 			}
-
-			/// @brief Implicit conversion to bool for convenient checking
-			/// @return true if loading succeeded
-			operator bool() const { return success; }
 		};
 
 	}  // namespace Data

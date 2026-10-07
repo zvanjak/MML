@@ -11,15 +11,17 @@
 #ifndef MML_MATRIX_OPS_H
 #define MML_MATRIX_OPS_H
 
+#include <algorithm>
 #include <vector>
 #include <complex>
 
-#include "mml/MMLBase.h"
-#include "mml/MMLExceptions.h"
-#include "mml/base/Vector/Vector.h"
-#include "mml/base/Vector/VectorN.h"
-#include "mml/base/Matrix/Matrix.h"
-#include "mml/base/Matrix/MatrixNM.h"
+#include <mml/MMLBase.h>
+#include <mml/MMLExceptions.h>
+#include <mml/base/Vector/Vector.h>
+#include <mml/base/Vector/VectorN.h>
+#include <mml/base/Matrix/Matrix.h>
+#include <mml/base/Matrix/MatrixNM.h>
+#include <mml/base/BaseUtils/VectorOps.h>
 
 namespace MML
 {
@@ -188,6 +190,38 @@ namespace MML
 			outAntiSym = (orig - transp) * 0.5;
 		}
 
+		/// @brief Computes the maximum absolute entry-wise difference over the shared extent.
+		template<class Type>
+		Real MaxAbsDiff(const Matrix<Type>& left, const Matrix<Type>& right)
+		{
+			Real maximum = REAL(0.0);
+			const int rows = std::min(left.rows(), right.rows());
+			const int cols = std::min(left.cols(), right.cols());
+			for (int row = 0; row < rows; ++row)
+				for (int col = 0; col < cols; ++col)
+					maximum = std::max(maximum,
+						static_cast<Real>(std::abs(left(row, col) - right(row, col))));
+			return maximum;
+		}
+
+		/// @brief Computes Q^T A Q for a real orthogonal similarity transform.
+		template<class Type>
+		Matrix<Type> SimilarityTransform(const Matrix<Type>& transformation, const Matrix<Type>& matrix)
+		{
+			const int size = matrix.rows();
+			Matrix<Type> temporary(size, size);
+			Matrix<Type> result(size, size);
+			for (int row = 0; row < size; ++row)
+				for (int col = 0; col < size; ++col)
+					for (int index = 0; index < size; ++index)
+						temporary(row, col) += matrix(row, index) * transformation(index, col);
+			for (int row = 0; row < size; ++row)
+				for (int col = 0; col < size; ++col)
+					for (int index = 0; index < size; ++index)
+						result(row, col) += transformation(index, row) * temporary(index, col);
+			return result;
+		}
+
 		// ============================================================================
 		// Matrix Functions (Power Series)
 		// ============================================================================
@@ -319,25 +353,6 @@ namespace MML
 		}
 
 		// ============================================================================
-		// Real Matrix Properties
-		// ============================================================================
-
-		/// @brief Tests if a real matrix is orthogonal (Q·Qᵀ = I).
-		/// @param mat Square real matrix
-		/// @param eps Tolerance for unit matrix comparison
-		/// @return True if matrix is orthogonal within tolerance
-		/// @throws MatrixDimensionError if matrix is not square
-		static bool IsOrthogonal(const Matrix<Real>& mat, double eps = Defaults::IsMatrixOrthogonalTolerance)
-		{
-			if (mat.rows() != mat.cols())
-				throw MatrixDimensionError("IsOrthogonal - matrix must be square", mat.rows(), mat.cols(), -1, -1);
-
-			Matrix<Real> matProd = mat * mat.transpose();
-
-			return matProd.isIdentity(eps);
-		}
-
-		// ============================================================================
 		// Complex Matrix Operations
 		// ============================================================================
 
@@ -413,40 +428,63 @@ namespace MML
 			return true;
 		}
 
-		/// @brief Tests if complex matrix is Hermitian (A = A†).
-		/// @details A Hermitian matrix equals its conjugate transpose: A[i][j] = conj(A[j][i])
-		/// @param mat Square complex matrix
-		/// @return True if matrix is Hermitian
-		/// @throws MatrixDimensionError if matrix is not square
-		static bool IsHermitian(const Matrix<Complex>& mat)
-		{
-			if (mat.rows() != mat.cols())
-				throw MatrixDimensionError("IsHermitian - matrix must be square", mat.rows(), mat.cols(), -1, -1);
-
-			for (int i = 0; i < mat.rows(); i++)
-				for (int j = i + 1; j < mat.cols(); j++)
-					if (mat[i][j] != std::conj(mat[j][i]))
-						return false;
-			return true;
-		}
-
-		/// @brief Tests if complex matrix is unitary (U·U† = I).
-		/// @details A unitary matrix has its conjugate transpose as its inverse.
-		/// @param mat Square complex matrix
-		/// @return True if matrix is unitary
-		/// @throws MatrixDimensionError if matrix is not square
-		static bool IsUnitary(const Matrix<Complex>& mat)
-		{
-			// IsUnitary - complex square matrix U is unitary if its conjugate transpose U* is also its inverse
-			if (mat.rows() != mat.cols())
-				throw MatrixDimensionError("IsUnitary - matrix must be square", mat.rows(), mat.cols(), -1, -1);
-
-			Matrix<Complex> matProd = mat * GetConjugateTranspose(mat);
-
-			return matProd.isIdentity();
-		}
-
 	} // namespace Utils
+
+	inline Matrix<Real> GramSchmidt(const Matrix<Real>& matrix, Real tolerance = REAL(1e-12))
+	{
+		const int rows = matrix.rows();
+		const int cols = matrix.cols();
+		Matrix<Real> result(rows, cols);
+		for (int col = 0; col < cols; ++col) {
+			Vector<Real> vector(rows);
+			for (int row = 0; row < rows; ++row)
+				vector[row] = matrix(row, col);
+			for (int previous = 0; previous < col; ++previous) {
+				Real projection = REAL(0.0);
+				for (int row = 0; row < rows; ++row)
+					projection += vector[row] * result(row, previous);
+				for (int row = 0; row < rows; ++row)
+					vector[row] -= projection * result(row, previous);
+			}
+			const Real norm = vector.NormL2();
+			if (norm >= tolerance)
+				for (int row = 0; row < rows; ++row)
+					result(row, col) = vector[row] / norm;
+		}
+		return result;
+	}
+
+	template<int N>
+	std::vector<VectorN<Real, N>> GramSchmidtVectors(
+			const std::vector<VectorN<Real, N>>& vectors, Real tolerance = REAL(1e-12))
+	{
+		std::vector<VectorN<Real, N>> result;
+		result.reserve(vectors.size());
+		for (const auto& input : vectors) {
+			VectorN<Real, N> vector = input;
+			for (const auto& basis : result)
+				vector = vector - Utils::ScalarProduct<N>(vector, basis) * basis;
+			const Real norm = vector.NormL2();
+			if (norm >= tolerance)
+				result.push_back(vector / norm);
+		}
+		return result;
+	}
+
+	template<int N>
+	bool IsOrthonormal(
+			const std::vector<VectorN<Real, N>>& vectors,
+			Real tolerance = Precision::OrthogonalityTolerance)
+	{
+		for (size_t left = 0; left < vectors.size(); ++left) {
+			if (std::abs(vectors[left].NormL2() - REAL(1.0)) > tolerance)
+				return false;
+			for (size_t right = left + 1; right < vectors.size(); ++right)
+				if (std::abs(Utils::ScalarProduct<N>(vectors[left], vectors[right])) > tolerance)
+					return false;
+		}
+		return true;
+	}
 } // namespace MML
 
 #endif // MML_MATRIX_OPS_H

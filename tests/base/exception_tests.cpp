@@ -92,7 +92,7 @@ TEST_CASE("MMLException - catch all MML exceptions", "[exceptions]")
 	}
 }
 
-TEST_CASE("MMLException - backward compatibility with std:: exception types", "[exceptions]")
+TEST_CASE("MMLException - interoperates with std exception types", "[exceptions]")
 {
 	SECTION("ArgumentError still caught as std::invalid_argument") {
 		REQUIRE_THROWS_AS(throw ArgumentError("test"), std::invalid_argument);

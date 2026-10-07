@@ -13,8 +13,8 @@
 #include <fstream>
 #include <string>
 
-#include "MMLBase.h"
-#include "tools/DataLoader.h"
+#include <mml/MMLBase.h>
+#include <mml/tools/DataLoader.h>
 
 using namespace MML;
 using namespace MML::Data;
@@ -314,6 +314,54 @@ namespace MML::Tests::Tools::DataLoaderTests {
 
 			REQUIRE(ds["x"].type == ColumnType::REAL);
 		}
+
+		SECTION("JSON numeric spelling preserves real inference") {
+			Dataset ds = LoadFromString(R"([{"decimal":1.0,"exponent":1e2}])", DataFormat::JSON);
+
+			REQUIRE(ds["decimal"].type == ColumnType::REAL);
+			REQUIRE(ds["exponent"].type == ColumnType::REAL);
+			REQUIRE(ds["decimal"].realData[0] == Catch::Approx(1.0));
+			REQUIRE(ds["exponent"].realData[0] == Catch::Approx(100.0));
+		}
+
+		SECTION("JSON columns retain first-seen key order") {
+			Dataset ds = LoadFromString(R"([{"zeta":1,"alpha":2},{"middle":3}])", DataFormat::JSON);
+
+			REQUIRE(ds[0].name == "zeta");
+			REQUIRE(ds[1].name == "alpha");
+			REQUIRE(ds[2].name == "middle");
+		}
+
+		SECTION("JSON Unicode escapes decode to UTF-8") {
+			Dataset ds = LoadFromString(R"([{"text":"caf\u00E9 \uD83D\uDE00"}])", DataFormat::JSON);
+
+			REQUIRE(ds["text"].stringData[0] == "caf\xC3\xA9 \xF0\x9F\x98\x80");
+		}
+
+		SECTION("JSON objects with sparse fields remain row aligned") {
+			Dataset ds = LoadFromString(
+				R"([{"first":1},{"second":2},{"first":3,"second":4}])", DataFormat::JSON);
+
+			REQUIRE(ds.NumRows() == 3);
+			REQUIRE(ds["first"].intData[0] == 1);
+			REQUIRE(ds["first"].IsMissing(1));
+			REQUIRE(ds["first"].intData[2] == 3);
+			REQUIRE(ds["second"].IsMissing(0));
+			REQUIRE(ds["second"].intData[1] == 2);
+			REQUIRE(ds["second"].intData[2] == 4);
+		}
+
+		SECTION("Malformed JSON uses strict shared parser diagnostics") {
+			REQUIRE_THROWS_WITH(
+				LoadFromString(R"([{"name":"bad\xescape"}])", DataFormat::JSON),
+				Catch::Matchers::ContainsSubstring("Invalid escape sequence") &&
+				Catch::Matchers::ContainsSubstring("at byte"));
+
+			REQUIRE_THROWS_WITH(
+				LoadFromString(R"([{"value":1}] trailing)", DataFormat::JSON),
+				Catch::Matchers::ContainsSubstring("Unexpected trailing input") &&
+				Catch::Matchers::ContainsSubstring("at byte"));
+		}
 	}
 
 	/////////////////////////////////////////////////////////////////////////////////////
@@ -552,7 +600,7 @@ namespace MML::Tests::Tools::DataLoaderTests {
 			REQUIRE(result.errorMessage.empty());
 			REQUIRE(result.data.NumRows() == 2);
 			REQUIRE(result.data.NumColumns() == 2);
-			REQUIRE(result);  // Test operator bool()
+			REQUIRE(result.success);
 
 			// Cleanup
 			std::remove("test_loadresult.csv");
@@ -571,7 +619,7 @@ namespace MML::Tests::Tools::DataLoaderTests {
 			REQUIRE(result.success);
 			REQUIRE(result.errorMessage.empty());
 			REQUIRE(result.data.NumRows() == 2);
-			REQUIRE(result);
+			REQUIRE(result.success);
 
 			// Cleanup
 			std::remove("test_loadresult.tsv");
@@ -588,7 +636,7 @@ namespace MML::Tests::Tools::DataLoaderTests {
 			REQUIRE(result.success);
 			REQUIRE(result.errorMessage.empty());
 			REQUIRE(result.data.NumRows() == 2);
-			REQUIRE(result);
+			REQUIRE(result.success);
 
 			// Cleanup
 			std::remove("test_loadresult.json");
@@ -604,7 +652,7 @@ namespace MML::Tests::Tools::DataLoaderTests {
 			REQUIRE_FALSE(result.success);
 			REQUIRE_FALSE(result.errorMessage.empty());
 			REQUIRE(result.errorMessage.find("Cannot open file") != std::string::npos);
-			REQUIRE_FALSE(result);  // Test operator bool()
+			REQUIRE_FALSE(result.success);
 			REQUIRE(result.data.NumRows() == 0);  // Empty dataset on error
 		}
 
@@ -613,7 +661,7 @@ namespace MML::Tests::Tools::DataLoaderTests {
 
 			REQUIRE_FALSE(result.success);
 			REQUIRE_FALSE(result.errorMessage.empty());
-			REQUIRE_FALSE(result);
+			REQUIRE_FALSE(result.success);
 		}
 
 		SECTION("LoadJSONSafe file not found") {
@@ -621,7 +669,7 @@ namespace MML::Tests::Tools::DataLoaderTests {
 
 			REQUIRE_FALSE(result.success);
 			REQUIRE_FALSE(result.errorMessage.empty());
-			REQUIRE_FALSE(result);
+			REQUIRE_FALSE(result.success);
 		}
 
 		SECTION("LoadCSVSafe empty file") {
@@ -674,8 +722,9 @@ namespace MML::Tests::Tools::DataLoaderTests {
 			tmpFile << "x,y\n1,2\n3,4\n";
 			tmpFile.close();
 
-			// Pattern 1: if (result) { use result.data }
-			if (auto result = LoadCSVSafe("test_pattern.csv")) {
+			// Pattern 1: explicit success check before using result.data
+			auto result = LoadCSVSafe("test_pattern.csv");
+			if (result.success) {
 				REQUIRE(result.data.NumRows() == 2);
 				REQUIRE(result.data["x"].intData[0] == 1);
 			}
@@ -696,7 +745,7 @@ namespace MML::Tests::Tools::DataLoaderTests {
 		SECTION("Error handling pattern") {
 			auto result = LoadCSVSafe("missing_file.csv");
 
-			if (!result) {
+			if (!result.success) {
 				// Expected error path
 				REQUIRE(!result.errorMessage.empty());
 				SUCCEED("Error handling pattern works");
@@ -724,8 +773,23 @@ namespace MML::Tests::Tools::DataLoaderCSVDateTests {
 			REQUIRE(ds.NumRows() == 2);
 			REQUIRE(ds["date"].type == ColumnType::DATE);
 			REQUIRE(ds["date"].Size() == 2);
+			REQUIRE(ds["date"].stringData.empty());
 			REQUIRE(ds["date"].dateData[0] == "2025-01-15");
 			REQUIRE(ds["date"].dateData[1] == "2025-06-30");
+		}
+
+		SECTION("TIME column via LoadFromCSVString") {
+			std::string csv = "event,time\nStart,10:30:00\nEnd,11:45:00";
+
+			Dataset ds = LoadFromCSVString(csv, ',', true);
+
+			REQUIRE(ds.NumColumns() == 2);
+			REQUIRE(ds.NumRows() == 2);
+			REQUIRE(ds["time"].type == ColumnType::TIME);
+			REQUIRE(ds["time"].Size() == 2);
+			REQUIRE(ds["time"].stringData.empty());
+			REQUIRE(ds["time"].timeData[0] == "10:30:00");
+			REQUIRE(ds["time"].timeData[1] == "11:45:00");
 		}
 
 		SECTION("DATETIME column via LoadFromCSVString") {

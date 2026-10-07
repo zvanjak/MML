@@ -12,9 +12,10 @@
 #if !defined MML_COORD_TRANSF_CYLINDRICAL_H
 #define MML_COORD_TRANSF_CYLINDRICAL_H
 
-#include "MMLBase.h"
+#include <mml/MMLBase.h>
 
-#include "core/CoordTransf.h"
+#include <mml/base/Vector/VectorTypes3D.h>
+#include <mml/core/CoordTransf/CoordTransfBase.h>
 
 
 namespace MML
@@ -79,12 +80,51 @@ namespace MML
 																												ScalarFunction<3>{z}
 		};
 	public:
-		Vector3Cartesian     transf(const Vector3Cylindrical& q)      const { return Vector3Cartesian{ x(q), y(q), z(q) }; }
+		Vector3Cartesian     transf(const Vector3Cylindrical& q)      const override { return Vector3Cartesian{ x(q), y(q), z(q) }; }
 		/// @brief Transform from Cartesian to cylindrical coordinates (inverse)
-		Vector3Cylindrical   transfInverse(const Vector3Cartesian& q) const { return Vector3Cylindrical{ r(q), phi(q), z(q) }; }
+		Vector3Cylindrical   transfInverse(const Vector3Cartesian& q) const override { return Vector3Cylindrical{ r(q), phi(q), z(q) }; }
 
-		const IScalarFunction<3>& coordTransfFunc(int i)        const { return _func[i]; }
-		const IScalarFunction<3>& inverseCoordTransfFunc(int i) const { return _funcInverse[i]; }
+		const IScalarFunction<3>& coordTransfFunc(int i)        const override { return _func[i]; }
+		const IScalarFunction<3>& inverseCoordTransfFunc(int i) const override { return _funcInverse[i]; }
+
+		MatrixNM<Real, 3, 3> jacobian(const VectorN<Real, 3>& pos) const override
+		{
+			const Real radius = pos[0];
+			const Real sinPhi = sin(pos[1]);
+			const Real cosPhi = cos(pos[1]);
+			MatrixNM<Real, 3, 3> jac;
+
+			jac(0, 0) = cosPhi;
+			jac(0, 1) = -radius * sinPhi;
+			jac(0, 2) = REAL(0.0);
+			jac(1, 0) = sinPhi;
+			jac(1, 1) = radius * cosPhi;
+			jac(1, 2) = REAL(0.0);
+			jac(2, 0) = REAL(0.0);
+			jac(2, 1) = REAL(0.0);
+			jac(2, 2) = REAL(1.0);
+
+			return jac;
+		}
+
+		MatrixNM<Real, 3, 3> inverseJacobian(const VectorN<Real, 3>& pos) const override
+		{
+			const Real radiusSquared = pos[0] * pos[0] + pos[1] * pos[1];
+			const Real radius = sqrt(radiusSquared);
+			MatrixNM<Real, 3, 3> jac;
+
+			jac(0, 0) = pos[0] / radius;
+			jac(0, 1) = pos[1] / radius;
+			jac(0, 2) = REAL(0.0);
+			jac(1, 0) = -pos[1] / radiusSquared;
+			jac(1, 1) = pos[0] / radiusSquared;
+			jac(1, 2) = REAL(0.0);
+			jac(2, 0) = REAL(0.0);
+			jac(2, 1) = REAL(0.0);
+			jac(2, 2) = REAL(1.0);
+
+			return jac;
+		}
 	};
 
 	/// @brief Cartesian to cylindrical coordinate transformation
@@ -119,12 +159,51 @@ namespace MML
 																												ScalarFunction<3>{z}
 		};
 	public:
-		Vector3Cylindrical transf(const Vector3Cartesian& q)          const { return Vector3Cylindrical{ r(q), phi(q), z(q) }; }
+		Vector3Cylindrical transf(const Vector3Cartesian& q)          const override { return Vector3Cylindrical{ r(q), phi(q), z(q) }; }
 		/// @brief Transform from cylindrical to Cartesian coordinates (inverse)
-		Vector3Cartesian   transfInverse(const Vector3Cylindrical& q) const { return Vector3Cartesian{ x(q), y(q), z(q) }; }
+		Vector3Cartesian   transfInverse(const Vector3Cylindrical& q) const override { return Vector3Cartesian{ x(q), y(q), z(q) }; }
 
-		const IScalarFunction<3>& coordTransfFunc(int i)        const { return _func[i]; }
-		const IScalarFunction<3>& inverseCoordTransfFunc(int i) const { return _funcInverse[i]; }
+		const IScalarFunction<3>& coordTransfFunc(int i)        const override { return _func[i]; }
+		const IScalarFunction<3>& inverseCoordTransfFunc(int i) const override { return _funcInverse[i]; }
+
+		MatrixNM<Real, 3, 3> jacobian(const VectorN<Real, 3>& pos) const override
+		{
+			const Real radiusSquared = pos[0] * pos[0] + pos[1] * pos[1];
+			const Real radius = sqrt(radiusSquared);
+			MatrixNM<Real, 3, 3> jac;
+
+			jac(0, 0) = pos[0] / radius;
+			jac(0, 1) = pos[1] / radius;
+			jac(0, 2) = REAL(0.0);
+			jac(1, 0) = -pos[1] / radiusSquared;
+			jac(1, 1) = pos[0] / radiusSquared;
+			jac(1, 2) = REAL(0.0);
+			jac(2, 0) = REAL(0.0);
+			jac(2, 1) = REAL(0.0);
+			jac(2, 2) = REAL(1.0);
+
+			return jac;
+		}
+
+		MatrixNM<Real, 3, 3> inverseJacobian(const VectorN<Real, 3>& pos) const override
+		{
+			const Real radius = pos[0];
+			const Real sinPhi = sin(pos[1]);
+			const Real cosPhi = cos(pos[1]);
+			MatrixNM<Real, 3, 3> jac;
+
+			jac(0, 0) = cosPhi;
+			jac(0, 1) = -radius * sinPhi;
+			jac(0, 2) = REAL(0.0);
+			jac(1, 0) = sinPhi;
+			jac(1, 1) = radius * cosPhi;
+			jac(1, 2) = REAL(0.0);
+			jac(2, 0) = REAL(0.0);
+			jac(2, 1) = REAL(0.0);
+			jac(2, 2) = REAL(1.0);
+
+			return jac;
+		}
 	};
 
 	/// @brief Global instance for Cartesian to cylindrical transformation

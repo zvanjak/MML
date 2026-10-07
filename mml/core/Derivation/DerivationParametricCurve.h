@@ -12,12 +12,13 @@
 #if !defined MML_DERIVATION_PARAMETRIC_CURVE_H
 #define MML_DERIVATION_PARAMETRIC_CURVE_H
 
-#include "MMLBase.h"
+#include <mml/MMLBase.h>
 
 #include "DerivationBase.h"
+#include "FirstDerivativeStencil.h"
 
-#include "base/Vector/VectorN.h"
-#include "base/Matrix/MatrixNM.h"
+#include <mml/base/Vector/VectorN.h>
+#include <mml/base/Matrix/MatrixNM.h>
 
 namespace MML
 {
@@ -29,20 +30,10 @@ namespace MML
 		template <int N>
 		static VectorN<Real, N> NDer1(const IParametricCurve<N>& f, Real t, Real h, Real* error = nullptr)
 		{
-			VectorN<Real, N> yh = f(t + h);
-			VectorN<Real, N> y0 = f(t);
-			VectorN<Real, N> diff = yh - y0;
-
-			if (error)
-			{
-				VectorN<Real, N> ym = f(t - h);
-				VectorN<Real, N> ypph_vec = yh - 2 * y0 + ym;
-
-				Real ypph = ypph_vec.NormL2() / h;
-
-				*error = ypph / 2 + (yh.NormL2() + y0.NormL2()) * Constants::Eps / h;
-			}
-			return diff / h;
+			auto result = Detail::EvaluateFirstDerivativeStencil<Detail::FirstDerivativeOrder::One>(
+				[&](int offset) { return f(t + offset * h); }, [](const auto& value) { return value.NormL2(); }, h, error != nullptr);
+			if (error) *error = result.error;
+			return result.value;
 		}
 
 		template <int N>
@@ -57,18 +48,17 @@ namespace MML
 		template <int N>
 		static VectorN<Real, N> NDer2(const IParametricCurve<N>& f, Real t, Real h, Real* error = nullptr)
 		{
-			VectorN<Real, N> yh = f(t + h);
-			VectorN<Real, N> ymh = f(t - h);
-			VectorN<Real, N> diff = yh - ymh;
-
-			if (error)
-			{
-				VectorN<Real, N> yth = f(t + 2 * h);
-				VectorN<Real, N> ymth = f(t - 2 * h);
-
-				*error = Constants::Eps * ((yh + ymh) / (2 * h)).NormL2() + std::abs(((yth - ymth) / 2 - diff).NormL2()) / (6 * h);
-			}
-			return diff / (2 * h);
+			using Stencil = Detail::FirstDerivativeStencil<Detail::FirstDerivativeOrder::Two>;
+			auto result = Detail::EvaluateFirstDerivativeStencilWithOffsets<Detail::FirstDerivativeOrder::Two>(
+				[&](int offset) { return f(t + offset * h); }, [](const auto& value) { return value.NormL2(); }, h, error != nullptr,
+				Stencil::value_offsets, Stencil::error_offsets,
+				[](const auto& at, const auto& norm, Real step) {
+					auto diff = at(1) - at(-1);
+					return Constants::Eps * norm((at(1) + at(-1)) / (REAL(2.0) * step))
+					     + norm((at(2) - at(-2)) / REAL(2.0) - diff) / (REAL(6.0) * step);
+				});
+			if (error) *error = result.error;
+			return result.value;
 		}
 
 		template <int N>
@@ -83,23 +73,18 @@ namespace MML
 		template <int N>
 		static VectorN<Real, N> NDer4(const IParametricCurve<N>& f, Real t, Real h, Real* error = nullptr)
 		{
-			VectorN<Real, N> yh = f(t + h);
-			VectorN<Real, N> ymh = f(t - h);
-			VectorN<Real, N> y2h = f(t + 2 * h);
-			VectorN<Real, N> ym2h = f(t - 2 * h);
-
-			VectorN<Real, N> y2 = ym2h - y2h;
-			VectorN<Real, N> y1 = yh - ymh;
-
-			if (error)
-			{
-				VectorN<Real, N> y3h = f(t + 3 * h);
-				VectorN<Real, N> ym3h = f(t - 3 * h);
-
-				*error = std::abs((y3h - ym3h).NormL2() / 2 + 2 * (ym2h - y2h).NormL2() + 5 * (yh - ymh).NormL2() / 2) / (30 * h);
-				*error += Constants::Eps * (y2h.NormL2() + ym2h.NormL2() + 8 * (ymh.NormL2() + yh.NormL2())) / (12 * h);
-			}
-			return (y2 + 8 * y1) / (12 * h);
+			using Stencil = Detail::FirstDerivativeStencil<Detail::FirstDerivativeOrder::Four>;
+			auto result = Detail::EvaluateFirstDerivativeStencilWithOffsets<Detail::FirstDerivativeOrder::Four>(
+				[&](int offset) { return f(t + offset * h); }, [](const auto& value) { return value.NormL2(); }, h, error != nullptr,
+				Stencil::value_offsets, Stencil::error_offsets,
+				[](const auto& at, const auto& norm, Real step) {
+					Real truncation = norm(at(3) - at(-3)) / REAL(2.0) + REAL(2.0) * norm(at(-2) - at(2))
+					                + REAL(5.0) * norm(at(1) - at(-1)) / REAL(2.0);
+					return std::abs(truncation) / (REAL(30.0) * step)
+					     + Constants::Eps * (norm(at(2)) + norm(at(-2)) + REAL(8.0) * (norm(at(-1)) + norm(at(1)))) / (REAL(12.0) * step);
+				});
+			if (error) *error = result.error;
+			return result.value;
 		}
 
 		template <int N>
@@ -114,19 +99,10 @@ namespace MML
 		template <int N>
 		static VectorN<Real, N> NDer6(const IParametricCurve<N>& f, Real t, Real h, Real* error = nullptr)
 		{
-			VectorN<Real, N> yh = f(t + h);
-			VectorN<Real, N> ymh = f(t - h);
-			VectorN<Real, N> y1 = yh - ymh;
-			VectorN<Real, N> y2 = f(t - 2 * h) - f(t + 2 * h);
-			VectorN<Real, N> y3 = f(t + 3 * h) - f(t - 3 * h);
-
-			if (error)
-			{
-				VectorN<Real, N> y7 = (f(t + 4 * h) - f(t - 4 * h) - 6 * y3 - 14 * y1 - 14 * y2) / 2;
-
-				*error = y7.NormL2() / (140 * h) + 5 * (yh.NormL2() + ymh.NormL2()) * Constants::Eps / h;
-			}
-			return (y3 + 9 * y2 + 45 * y1) / (60 * h);
+			auto result = Detail::EvaluateFirstDerivativeStencil<Detail::FirstDerivativeOrder::Six>(
+				[&](int offset) { return f(t + offset * h); }, [](const auto& value) { return value.NormL2(); }, h, error != nullptr);
+			if (error) *error = result.error;
+			return result.value;
 		}
 
 		template <int N>
@@ -140,23 +116,10 @@ namespace MML
 		template <int N>
 		static VectorN<Real, N> NDer8(const IParametricCurve<N>& f, Real t, Real h, Real* error = nullptr)
 		{
-			VectorN<Real, N> yh = f(t + h);
-			VectorN<Real, N> ymh = f(t - h);
-			VectorN<Real, N> y1 = yh - ymh;
-			VectorN<Real, N> y2 = f(t - 2 * h) - f(t + 2 * h);
-			VectorN<Real, N> y3 = f(t + 3 * h) - f(t - 3 * h);
-			VectorN<Real, N> y4 = f(t - 4 * h) - f(t + 4 * h);
-
-			VectorN<Real, N> tmp1 = 3 * y4 / 8 + 4 * y3;
-			VectorN<Real, N> tmp2 = 21 * y2 + 84 * y1;
-
-			if (error)
-			{
-				VectorN<Real, N> f9 = (f(t + 5 * h) - f(t - 5 * h)) / 2 + 4 * y4 + 27 * y3 / 2 + 24 * y2 + 21 * y1;
-
-				*error = f9.NormL2() / (630 * h) + 7 * (yh.NormL2() + ymh.NormL2()) * Constants::Eps / h;
-			}
-			return (tmp1 + tmp2) / (105 * h);
+			auto result = Detail::EvaluateFirstDerivativeStencil<Detail::FirstDerivativeOrder::Eight>(
+				[&](int offset) { return f(t + offset * h); }, [](const auto& value) { return value.NormL2(); }, h, error != nullptr);
+			if (error) *error = result.error;
+			return result.value;
 		}
 
 		template <int N>

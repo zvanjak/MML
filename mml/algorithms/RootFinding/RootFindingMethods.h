@@ -20,14 +20,14 @@
 #if !defined MML_ROOTFINDING_METHODS_H
 #define MML_ROOTFINDING_METHODS_H
 
-#include "mml/MMLBase.h"
-#include "mml/core/NumericValidation.h"
+#include <mml/MMLBase.h>
+#include <mml/MMLNumericValidation.h>
 
-#include "mml/interfaces/IFunction.h"
+#include <mml/interfaces/IFunction.h>
 
-#include "mml/core/Derivation.h"
+#include <mml/core/Derivation.h>
 
-#include "mml/algorithms/RootFinding/RootFindingBase.h"
+#include <mml/algorithms/RootFinding/RootFindingBase.h>
 
 namespace MML {
 	namespace RootFinding {
@@ -129,6 +129,14 @@ namespace MML {
 			return result.root;
 		}
 
+		template<RealFunctionCallable Function>
+			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+		static Real FindRootNewton(Function&& func, Real x1, Real x2, Real xacc)
+		{
+			MML::Detail::RealFunctionCallableAdapter<Function> adapter(func);
+			return FindRootNewton(adapter, x1, x2, xacc);
+		}
+
 		/// Find root using Newton-Raphson method with configurable parameters.
 		///
 		/// This overload provides full control over convergence parameters and
@@ -142,10 +150,24 @@ namespace MML {
 		static RootFindingResult FindRootNewton(const IRealFunction& func, Real x1, Real x2,
 												const RootFindingConfig& config) {
 			RootFindingResult result;
+			RootFindingResultFinalizer finalizer(result, "Newton");
+			if (!IsValidConfig(config) || !AreValidEndpoints(x1, x2)) {
+				result.status = AlgorithmStatus::InvalidInput;
+				result.error_message = "Invalid configuration or endpoints in FindRootNewton";
+				return result;
+			}
 
 			Real f1 = func(x1);
 			Real f2 = func(x2);
+			result.function_evaluations = 2;
+			if (!IsFunctionValueValid(f1) || !IsFunctionValueValid(f2)) {
+				result.status = AlgorithmStatus::NumericalInstability;
+				result.error_message = "Non-finite endpoint value in FindRootNewton";
+				return result;
+			}
+			if (AcceptEndpointRoot(result, config, x1, f1, x2, f2)) return result;
 			if (f1 * f2 > 0.0) {
+				result.status = AlgorithmStatus::InvalidInput;
 				result.error_message = "Root must be bracketed for Newton-Raphson method";
 				return result;
 			}
@@ -156,10 +178,12 @@ namespace MML {
 
 			for (int j = 0; j < maxIter; j++) {
 				Real f = func(rtn);
+				++result.function_evaluations;
 				Real df = Derivation::NDer4(func, rtn);
 
 				// Check for non-finite derivative (NaN/Inf) or near-zero derivative
 				if (!IsFunctionValueValid(df)) {
+					result.status = AlgorithmStatus::NumericalInstability;
 					result.root = rtn;
 					result.function_value = f;
 					result.iterations_used = j + 1;
@@ -168,6 +192,7 @@ namespace MML {
 				}
 				Real dfThreshold = std::sqrt(Real(Constants::Eps));
 				if (std::abs(df) < dfThreshold) {
+					result.status = AlgorithmStatus::Stalled;
 					result.root = rtn;
 					result.function_value = f;
 					result.iterations_used = j + 1;
@@ -179,6 +204,7 @@ namespace MML {
 
 				// Check for non-finite step using shared validation helper
 				if (!IsFinite(dx)) {
+					result.status = AlgorithmStatus::NumericalInstability;
 					result.root = rtn;
 					result.function_value = f;
 					result.iterations_used = j + 1;
@@ -188,36 +214,53 @@ namespace MML {
 
 				rtn -= dx;
 
-				if (config.verbose) {
-					std::cout << "Newton iter " << j << ": x=" << rtn 
+				if (config.verbose && config.verboseStream) {
+					*config.verboseStream << "Newton iter " << j << ": x=" << rtn 
 							  << ", f(x)=" << f << ", dx=" << dx << std::endl;
 				}
 
 				if ((x1 - rtn) * (rtn - x2) < 0.0) {
+					result.status = AlgorithmStatus::Stalled;
 					result.root = rtn;
 					result.function_value = func(rtn);
+					++result.function_evaluations;
 					result.iterations_used = j + 1;
 					result.achieved_tolerance = std::abs(dx);
 					result.error_message = "Jumped out of brackets in FindRootNewton";
 					return result;
 				}
 
-				if (std::abs(dx) < config.tolerance) {
+				Real updatedValue = func(rtn);
+				++result.function_evaluations;
+				if (MeetsConvergence(config, rtn, std::abs(dx), updatedValue)) {
 					result.root = rtn;
-					result.function_value = func(rtn);
+					result.function_value = updatedValue;
 					result.iterations_used = j + 1;
 					result.converged = true;
 					result.achieved_tolerance = std::abs(dx);
+					result.x_error = std::abs(dx);
 					return result;
 				}
 			}
 			
 			result.root = rtn;
 			result.function_value = func(rtn);
+			++result.function_evaluations;
 			result.iterations_used = maxIter;
 			result.achieved_tolerance = std::abs(dx);
+			result.x_error = std::abs(dx);
+			result.status = AlgorithmStatus::MaxIterationsExceeded;
 			result.error_message = "Maximum number of iterations exceeded in FindRootNewton";
 			return result;
+		}
+
+		template<RealFunctionCallable Function>
+			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+		static RootFindingResult FindRootNewton(Function&& func, Real x1, Real x2,
+										const RootFindingConfig& config)
+		{
+			MML::Detail::RealFunctionCallableAdapter<Function> adapter(func);
+			return FindRootNewton(adapter, x1, x2, config);
 		}
 
 		/*********************************************************************/
@@ -226,9 +269,9 @@ namespace MML {
 		/// Find root using the secant method.
 		///
 		/// The secant method is a derivative-free variant of Newton's method that approximates
-		/// the derivative using a finite difference. It requires two initial guesses but does
-		/// not require them to bracket the root. The method exhibits superlinear convergence
-		/// with order φ ≈ 1.618 (the golden ratio).
+		/// the derivative using a finite difference. This implementation requires the two
+		/// initial points to bracket the root (f(x1) and f(x2) must have opposite signs).
+		/// The method exhibits superlinear convergence with order φ ≈ 1.618 (the golden ratio).
 		///
 		/// ALGORITHM:
 		/// - Start with two initial guesses x0, x1
@@ -261,8 +304,9 @@ namespace MML {
 		/// - Can fail if f(x_n) = f(x_{n-1})
 		///
 		/// ROBUSTNESS:
-		/// - This implementation uses bracket checking to prevent divergence
-		/// - Falls back to bisection-like behavior if secant jumps outside bracket
+		/// - Requires a sign change on [x1, x2] and starts from the endpoint with smaller |f|
+		/// - Iterates are NOT clamped to the initial bracket (no bracket maintenance);
+		///   use Ridders or Brent when guaranteed bracketing is needed
 		///
 		/// USE CASES:
 		/// - When derivatives are expensive or unavailable
@@ -293,19 +337,37 @@ namespace MML {
 			return result.root;
 		}
 
+		template<RealFunctionCallable Function>
+			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+		static Real FindRootSecant(Function&& func, Real x1, Real x2, Real xacc)
+		{
+			MML::Detail::RealFunctionCallableAdapter<Function> adapter(func);
+			return FindRootSecant(adapter, x1, x2, xacc);
+		}
+
 		/// Find root using secant method with configurable parameters.
 		static RootFindingResult FindRootSecant(const IRealFunction& func, Real x1, Real x2,
 												const RootFindingConfig& config) {
 			RootFindingResult result;
+			RootFindingResultFinalizer finalizer(result, "Secant");
+			if (!IsValidConfig(config) || !AreValidEndpoints(x1, x2)) {
+				result.status = AlgorithmStatus::InvalidInput;
+				result.error_message = "Invalid configuration or endpoints in FindRootSecant";
+				return result;
+			}
 			Real f1 = func(x1);
 			Real f2 = func(x2);
+			result.function_evaluations = 2;
 
 			if (!IsFunctionValueValid(f1) || !IsFunctionValueValid(f2)) {
+				result.status = AlgorithmStatus::NumericalInstability;
 				result.error_message = "Non-finite function values in FindRootSecant";
 				return result;
 			}
+			if (AcceptEndpointRoot(result, config, x1, f1, x2, f2)) return result;
 
 			if (f1 * f2 > 0.0) {
+				result.status = AlgorithmStatus::InvalidInput;
 				result.error_message = "Root must be bracketed for Secant method";
 				return result;
 			}
@@ -322,6 +384,7 @@ namespace MML {
 				dx = (x2 - x1) * f2 / (f2 - f1);
 
 				if (!IsFinite(dx)) {
+					result.status = AlgorithmStatus::NumericalInstability;
 					result.root = x2;
 					result.function_value = f2;
 					result.iterations_used = j + 1;
@@ -333,8 +396,10 @@ namespace MML {
 				f1 = f2;
 				x2 -= dx;
 				f2 = func(x2);
+				++result.function_evaluations;
 
 				if (!IsFunctionValueValid(f2)) {
+					result.status = AlgorithmStatus::NumericalInstability;
 					result.root = x2;
 					result.function_value = f2;
 					result.iterations_used = j + 1;
@@ -342,17 +407,18 @@ namespace MML {
 					return result;
 				}
 
-				if (config.verbose) {
-					std::cout << "Secant iter " << j << ": x=" << x2 
+				if (config.verbose && config.verboseStream) {
+					*config.verboseStream << "Secant iter " << j << ": x=" << x2 
 							  << ", f(x)=" << f2 << ", dx=" << dx << std::endl;
 				}
 
-				if (std::abs(dx) < config.tolerance) {
+				if (MeetsConvergence(config, x2, std::abs(dx), f2)) {
 					result.root = x2;
 					result.function_value = f2;
 					result.iterations_used = j + 1;
 					result.converged = true;
 					result.achieved_tolerance = std::abs(dx);
+					result.x_error = std::abs(dx);
 					return result;
 				}
 			}
@@ -361,8 +427,19 @@ namespace MML {
 			result.function_value = f2;
 			result.iterations_used = maxIter;
 			result.achieved_tolerance = std::abs(dx);
+			result.x_error = std::abs(dx);
+			result.status = AlgorithmStatus::MaxIterationsExceeded;
 			result.error_message = "Maximum number of iterations exceeded in FindRootSecant";
 			return result;
+		}
+
+		template<RealFunctionCallable Function>
+			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+		static RootFindingResult FindRootSecant(Function&& func, Real x1, Real x2,
+										const RootFindingConfig& config)
+		{
+			MML::Detail::RealFunctionCallableAdapter<Function> adapter(func);
+			return FindRootSecant(adapter, x1, x2, config);
 		}
 
 		/*********************************************************************/
@@ -446,18 +523,36 @@ namespace MML {
 			return result.root;
 		}
 
+		template<RealFunctionCallable Function>
+			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+		static Real FindRootRidders(Function&& func, Real x1, Real x2, Real xacc)
+		{
+			MML::Detail::RealFunctionCallableAdapter<Function> adapter(func);
+			return FindRootRidders(adapter, x1, x2, xacc);
+		}
+
 		/// Find root using Ridders' method with configurable parameters.
 		static RootFindingResult FindRootRidders(const IRealFunction& func, Real x1, Real x2,
 												 const RootFindingConfig& config) {
 			RootFindingResult result;
+			RootFindingResultFinalizer finalizer(result, "Ridders");
+			if (!IsValidConfig(config) || !AreValidEndpoints(x1, x2)) {
+				result.status = AlgorithmStatus::InvalidInput;
+				result.error_message = "Invalid configuration or endpoints in FindRootRidders";
+				return result;
+			}
 			Real f1 = func(x1);
 			Real f2 = func(x2);
+			result.function_evaluations = 2;
 
 			if (!IsFunctionValueValid(f1) || !IsFunctionValueValid(f2)) {
+				result.status = AlgorithmStatus::NumericalInstability;
 				result.error_message = "Non-finite function values in FindRootRidders";
 				return result;
 			}
+			if (AcceptEndpointRoot(result, config, x1, f1, x2, f2)) return result;
 			if (f1 * f2 >= 0.0) {
+				result.status = AlgorithmStatus::InvalidInput;
 				result.error_message = "Root must be bracketed for Ridders method";
 				return result;
 			}
@@ -468,8 +563,10 @@ namespace MML {
 			for (int j = 0; j < maxIter; j++) {
 				Real xm = 0.5 * (x1 + x2);
 				Real fm = func(xm);
+				++result.function_evaluations;
 
 				if (!IsFunctionValueValid(fm)) {
+					result.status = AlgorithmStatus::NumericalInstability;
 					result.root = ans;
 					result.function_value = fm;
 					result.iterations_used = j + 1;
@@ -479,29 +576,36 @@ namespace MML {
 
 				Real s = std::sqrt(fm * fm - f1 * f2);
 				if (s == 0.0) {
-					result.root = ans;
-					result.function_value = func(ans);
+					result.root = xm;
+					result.function_value = fm;
 					result.iterations_used = j + 1;
-					result.converged = true;
+					result.converged = std::abs(fm) <= EffectiveFTolerance(config);
+					result.status = result.converged ? AlgorithmStatus::Success : AlgorithmStatus::Stalled;
 					result.achieved_tolerance = std::abs(x2 - x1);
+					result.x_error = std::abs(x2 - x1);
+					if (!result.converged) result.error_message = "Ridders interpolation stalled";
 					return result;
 				}
 
 				Real xnew = xm + (xm - x1) * ((f1 >= f2 ? 1.0 : -1.0) * fm / s);
 
-				if (std::abs(xnew - ans) <= config.tolerance) {
+				if (ans > -1.0e98 && std::abs(xnew - ans) <= EffectiveXTolerance(config, xnew)) {
 					result.root = ans;
 					result.function_value = func(ans);
+					++result.function_evaluations;
 					result.iterations_used = j + 1;
 					result.converged = true;
 					result.achieved_tolerance = std::abs(xnew - ans);
+					result.x_error = std::abs(xnew - ans);
 					return result;
 				}
 
 				ans = xnew;
 				Real fnew = func(ans);
+				++result.function_evaluations;
 
 				if (!IsFunctionValueValid(fnew)) {
+					result.status = AlgorithmStatus::NumericalInstability;
 					result.root = ans;
 					result.function_value = fnew;
 					result.iterations_used = j + 1;
@@ -509,17 +613,18 @@ namespace MML {
 					return result;
 				}
 
-				if (config.verbose) {
-					std::cout << "Ridders iter " << j << ": x=" << ans 
+				if (config.verbose && config.verboseStream) {
+					*config.verboseStream << "Ridders iter " << j << ": x=" << ans 
 							  << ", f(x)=" << fnew << std::endl;
 				}
 
-				if (std::abs(fnew) < config.tolerance) {
+				if (MeetsConvergence(config, ans, std::abs(x2 - x1), fnew)) {
 					result.root = ans;
 					result.function_value = fnew;
 					result.iterations_used = j + 1;
 					result.converged = true;
 					result.achieved_tolerance = std::abs(fnew);
+					result.x_error = std::abs(x2 - x1);
 					return result;
 				}
 
@@ -537,22 +642,35 @@ namespace MML {
 					f1 = fnew;
 				}
 
-				if (std::abs(x2 - x1) <= config.tolerance) {
+				if (std::abs(x2 - x1) <= EffectiveXTolerance(config, ans)) {
 					result.root = ans;
 					result.function_value = fnew;
 					result.iterations_used = j + 1;
 					result.converged = true;
 					result.achieved_tolerance = std::abs(x2 - x1);
+					result.x_error = std::abs(x2 - x1);
 					return result;
 				}
 			}
 			
 			result.root = ans;
 			result.function_value = func(ans);
+			++result.function_evaluations;
 			result.iterations_used = maxIter;
 			result.achieved_tolerance = std::abs(x2 - x1);
+			result.x_error = std::abs(x2 - x1);
+			result.status = AlgorithmStatus::MaxIterationsExceeded;
 			result.error_message = "Maximum number of iterations exceeded in FindRootRidders";
 			return result;
+		}
+
+		template<RealFunctionCallable Function>
+			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+		static RootFindingResult FindRootRidders(Function&& func, Real x1, Real x2,
+											 const RootFindingConfig& config)
+		{
+			MML::Detail::RealFunctionCallableAdapter<Function> adapter(func);
+			return FindRootRidders(adapter, x1, x2, config);
 		}
 
 		/*********************************************************************/
@@ -643,6 +761,14 @@ namespace MML {
 			return result.root;
 		}
 
+		template<RealFunctionCallable Function>
+			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+		static Real FindRootBrent(Function&& func, Real x1, Real x2, Real xacc)
+		{
+			MML::Detail::RealFunctionCallableAdapter<Function> adapter(func);
+			return FindRootBrent(adapter, x1, x2, xacc);
+		}
+
 		/// Find root using Brent's method with configurable parameters.
 		///
 		/// This is the recommended method for general-purpose root finding.
@@ -656,14 +782,24 @@ namespace MML {
 		static RootFindingResult FindRootBrent(const IRealFunction& func, Real x1, Real x2,
 											   const RootFindingConfig& config) {
 			RootFindingResult result;
+			RootFindingResultFinalizer finalizer(result, "Brent");
+			if (!IsValidConfig(config) || !AreValidEndpoints(x1, x2)) {
+				result.status = AlgorithmStatus::InvalidInput;
+				result.error_message = "Invalid configuration or endpoints in FindRootBrent";
+				return result;
+			}
 			Real a = x1, b = x2, c = x2, d = 0.0, e = 0.0;
 			Real fa = func(a), fb = func(b), fc, p, q, r, s, tol1, xm;
+			result.function_evaluations = 2;
 
 			if (!IsFunctionValueValid(fa) || !IsFunctionValueValid(fb)) {
+				result.status = AlgorithmStatus::NumericalInstability;
 				result.error_message = "Non-finite function values in FindRootBrent";
 				return result;
 			}
+			if (AcceptEndpointRoot(result, config, a, fa, b, fb)) return result;
 			if (fa * fb >= 0.0) {
+				result.status = AlgorithmStatus::InvalidInput;
 				result.error_message = "Root must be bracketed for Brent method";
 				return result;
 			}
@@ -686,20 +822,21 @@ namespace MML {
 					fc = fa;
 				}
 
-				tol1 = 2.0 * Constants::Eps * std::abs(b) + 0.5 * config.tolerance;
+				tol1 = 2.0 * Constants::Eps * std::abs(b) + 0.5 * EffectiveXTolerance(config, b);
 				xm = 0.5 * (c - b);
 
-				if (config.verbose) {
-					std::cout << "Brent iter " << iter << ": x=" << b 
+				if (config.verbose && config.verboseStream) {
+					*config.verboseStream << "Brent iter " << iter << ": x=" << b 
 							  << ", f(x)=" << fb << ", xm=" << xm << std::endl;
 				}
 
-				if (std::abs(xm) <= tol1 || fb == 0.0) {
+				if (MeetsConvergence(config, b, std::abs(xm), fb) || fb == 0.0) {
 					result.root = b;
 					result.function_value = fb;
 					result.iterations_used = iter + 1;
 					result.converged = true;
 					result.achieved_tolerance = std::abs(xm);
+					result.x_error = std::abs(xm);
 					return result;
 				}
 
@@ -740,8 +877,10 @@ namespace MML {
 					b += std::copysign(tol1, xm);
 
 				fb = func(b);
+				++result.function_evaluations;
 
 				if (!IsFunctionValueValid(fb)) {
+					result.status = AlgorithmStatus::NumericalInstability;
 					result.root = b;
 					result.function_value = fb;
 					result.iterations_used = iter + 1;
@@ -754,8 +893,19 @@ namespace MML {
 			result.function_value = fb;
 			result.iterations_used = maxIter;
 			result.achieved_tolerance = std::abs(xm);
+			result.x_error = std::abs(xm);
+			result.status = AlgorithmStatus::MaxIterationsExceeded;
 			result.error_message = "Maximum number of iterations exceeded in FindRootBrent";
 			return result;
+		}
+
+		template<RealFunctionCallable Function>
+			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+		static RootFindingResult FindRootBrent(Function&& func, Real x1, Real x2,
+									   const RootFindingConfig& config)
+		{
+			MML::Detail::RealFunctionCallableAdapter<Function> adapter(func);
+			return FindRootBrent(adapter, x1, x2, config);
 		}
 
 	} // namespace RootFinding

@@ -12,19 +12,45 @@
 #if !defined  MML_FUNCTION_H
 #define MML_FUNCTION_H
 
-#include "MMLBase.h"
-#include "MMLExceptions.h"
+#include <mml/MMLBase.h>
+#include <mml/MMLExceptions.h>
 
-#include "interfaces/IFunction.h"
+#include <mml/interfaces/IFunction.h>
 
-#include "base/Vector/VectorN.h"
-#include "base/Vector/Vector.h"
-#include "base/Matrix/Matrix.h"
+#include <mml/base/Vector/VectorN.h>
+#include <mml/base/Vector/Vector.h>
+#include <mml/base/Matrix/Matrix.h>
 
 #include <functional>
+#include <type_traits>
 
 namespace MML
 {
+	namespace Detail
+	{
+		/// @brief Non-owning adapter that exposes any RealFunctionCallable as IRealFunction.
+		/// @details This helper is used internally by algorithms that accept lambdas or
+		///          functors while their implementation works with the IRealFunction
+		///          interface. The adapter stores a pointer to the original callable, so
+		///          the callable must outlive the adapter instance.
+		template<RealFunctionCallable Function>
+		class RealFunctionCallableAdapter : public IRealFunction
+		{
+			std::remove_reference_t<Function>* _function;
+
+		public:
+			explicit RealFunctionCallableAdapter(Function& function)
+				: _function(&function)
+			{
+			}
+
+			Real operator()(Real x) const override
+			{
+				return std::invoke(*_function, x);
+			}
+		};
+	}
+
 	///////////////////////////     REAL FUNCTION      ////////////////////////////////////
 
 	/// @brief Wrapper for a real function R → R using function pointer.
@@ -45,6 +71,12 @@ namespace MML
 
 	/// @brief Wrapper for a real function R → R using std::function.
 	/// @details Allows using lambdas, functors, and bound functions.
+	/// @warning **Lambda capture lifetime hazard:** The std::function is copied into this
+	///          wrapper, but if the source lambda captures local variables **by reference**,
+	///          those references will dangle if this object outlives the captured variables.
+	///          Safe:   `RealFunctionFromStdFunc f([](Real x) { return x*x; });`
+	///          Safe:   `RealFunctionFromStdFunc f([a](Real x) { return a*x; });`  (capture by value)
+	///          UNSAFE: `RealFunctionFromStdFunc f([&a](Real x) { return a*x; });` (if a goes out of scope)
 	class RealFunctionFromStdFunc : public IRealFunction
 	{
 		std::function<Real(const Real)> _func;   ///< Callable object to evaluate
@@ -80,6 +112,8 @@ namespace MML
 
 	/// @brief Wrapper for a scalar function R^N → R using std::function.
 	/// @tparam N Dimension of input space
+	/// @warning **Lambda capture lifetime hazard:** If constructed from a lambda capturing
+	///          local variables by reference, ensure those variables outlive this object.
 	template<int N>
 	class ScalarFunctionFromStdFunc : public IScalarFunction<N>
 	{
@@ -116,6 +150,8 @@ namespace MML
 
 	/// @brief Wrapper for a vector function R^N → R^N using std::function.
 	/// @tparam N Dimension of input and output space
+	/// @warning **Lambda capture lifetime hazard:** If constructed from a lambda capturing
+	///          local variables by reference, ensure those variables outlive this object.
 	template<int N>
 	class VectorFunctionFromStdFunc : public IVectorFunction<N>
 	{
@@ -155,6 +191,8 @@ namespace MML
 	/// @brief Wrapper for a vector function R^N → R^M using std::function.
 	/// @tparam N Dimension of input space
 	/// @tparam M Dimension of output space
+	/// @warning **Lambda capture lifetime hazard:** If constructed from a lambda capturing
+	///          local variables by reference, ensure those variables outlive this object.
 	template<int N, int M>
 	class VectorFunctionNMFromStdFunc : public IVectorFunctionNM<N, M>
 	{
@@ -210,6 +248,8 @@ namespace MML
 
 	/// @brief Parametric curve γ: R → R^N using std::function.
 	/// @tparam N Dimension of output space
+	/// @warning **Lambda capture lifetime hazard:** If constructed from a lambda capturing
+	///          local variables by reference, ensure those variables outlive this object.
 	template<int N>
 	class ParametricCurveFromStdFunc : public IParametricCurve<N>
 	{
@@ -329,10 +369,6 @@ namespace MML
 		/// @param u First parameter
 		/// @param w Second parameter
 		/// @return Point on surface σ(u, w)
-		/// @brief Evaluates surface at (u, w).
-		/// @param u First parameter
-		/// @param w Second parameter
-		/// @return Point on surface σ(u, w)
 		VectorN<Real, N> operator()(Real u, Real w) const override { return _func(u, w); }
 
 		/// @brief Gets minimum u parameter.
@@ -347,6 +383,8 @@ namespace MML
 
 	/// @brief Parametric surface with rectangular domain using std::function.
 	/// @tparam N Dimension of output space (must be >= 3)
+	/// @warning **Lambda capture lifetime hazard:** If constructed from a lambda capturing
+	///          local variables by reference, ensure those variables outlive this object.
 	template<int N>
 	class ParametricSurfaceFromStdFunc : public IParametricSurfaceRect<N>
 	{

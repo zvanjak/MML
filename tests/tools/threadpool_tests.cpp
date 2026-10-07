@@ -13,9 +13,11 @@
 #include <vector>
 #include <thread>
 #include <chrono>
+#include <stdexcept>
+#include <stop_token>
 
-#include "MMLBase.h"
-#include "tools/ThreadPool.h"
+#include <mml/MMLBase.h>
+#include <mml/tools/ThreadPool.h>
 
 using namespace MML;
 
@@ -106,6 +108,33 @@ namespace MML::Tests::Tools::ThreadPoolTests {
 			
 			// Sum of 0..49 = 49*50/2 = 1225
 			REQUIRE(std::abs(sum.load() - 1225.0) < 0.1);
+		}
+
+		SECTION("Batch tasks execute correctly") {
+			ThreadPool pool(4);
+			std::atomic<int> counter{0};
+			std::vector<std::function<void()>> batch;
+			constexpr int NUM_TASKS = 100;
+
+			for (int i = 0; i < NUM_TASKS; ++i) {
+				batch.emplace_back([&counter]() {
+					counter.fetch_add(1);
+				});
+			}
+
+			pool.enqueue_batch(std::move(batch));
+			pool.wait_for_tasks();
+
+			REQUIRE(counter.load() == NUM_TASKS);
+		}
+
+		SECTION("Empty batch is accepted") {
+			ThreadPool pool(2);
+			std::vector<std::function<void()>> batch;
+
+			REQUIRE_NOTHROW(pool.enqueue_batch(std::move(batch)));
+			REQUIRE_NOTHROW(pool.wait_for_tasks());
+			REQUIRE_FALSE(pool.has_tasks());
 		}
 	}
 
@@ -234,6 +263,119 @@ namespace MML::Tests::Tools::ThreadPoolTests {
 			
 			REQUIRE(counter.load() == NUM_TASKS);
 		}
+	}
+
+	/////////////////////////////////////////////////////////////////////////////////////
+	///                         EXCEPTION CALLBACKS                                    ///
+	/////////////////////////////////////////////////////////////////////////////////////
+
+	TEST_CASE("ThreadPool - Error callback can re-enter pool without deadlock", "[threadpool][exceptions]") {
+		TEST_PRECISION_INFO();
+
+		ThreadPool pool(2);
+		std::atomic<bool> callbackObservedException{false};
+		std::atomic<bool> recoveryTaskRan{false};
+
+		pool.set_error_callback([&pool, &callbackObservedException, &recoveryTaskRan](std::exception_ptr) {
+			callbackObservedException.store(pool.exception_count() > 0);
+			pool.enqueue([&recoveryTaskRan]() {
+				recoveryTaskRan.store(true);
+			});
+		});
+
+		pool.enqueue([]() {
+			throw std::runtime_error("expected ThreadPool test failure");
+		});
+
+		pool.wait_for_tasks();
+
+		REQUIRE(callbackObservedException.load());
+		REQUIRE(recoveryTaskRan.load());
+		REQUIRE(pool.exception_count() == 1);
+	}
+
+	/////////////////////////////////////////////////////////////////////////////////////
+	///                         CANCELLATION                                            ///
+	/////////////////////////////////////////////////////////////////////////////////////
+
+	TEST_CASE("ThreadPool - Cancellable queued task is skipped when stop requested", "[threadpool][cancellation]") {
+		TEST_PRECISION_INFO();
+
+		ThreadPool pool(1);
+		std::stop_source stopSource;
+		std::atomic<bool> blockerCanFinish{false};
+		std::atomic<bool> cancelledTaskRan{false};
+
+		pool.enqueue([&blockerCanFinish]() {
+			while (!blockerCanFinish.load()) {
+				std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			}
+		});
+
+		pool.enqueue(stopSource.get_token(), [&cancelledTaskRan](std::stop_token) {
+			cancelledTaskRan.store(true);
+		});
+
+		stopSource.request_stop();
+		blockerCanFinish.store(true);
+		pool.wait_for_tasks();
+
+		REQUIRE_FALSE(cancelledTaskRan.load());
+	}
+
+	TEST_CASE("ThreadPool - Cancellable batch skips tasks when stop requested", "[threadpool][cancellation]") {
+		TEST_PRECISION_INFO();
+
+		ThreadPool pool(1);
+		std::stop_source stopSource;
+		std::atomic<bool> blockerCanFinish{false};
+		std::atomic<int> cancelledTasksRan{0};
+		std::vector<std::function<void(std::stop_token)>> batch;
+
+		pool.enqueue([&blockerCanFinish]() {
+			while (!blockerCanFinish.load()) {
+				std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			}
+		});
+
+		for (int i = 0; i < 3; ++i) {
+			batch.emplace_back([&cancelledTasksRan](std::stop_token) {
+				cancelledTasksRan.fetch_add(1);
+			});
+		}
+
+		pool.enqueue_batch(stopSource.get_token(), std::move(batch));
+		stopSource.request_stop();
+		blockerCanFinish.store(true);
+		pool.wait_for_tasks();
+
+		REQUIRE(cancelledTasksRan.load() == 0);
+	}
+
+	TEST_CASE("ThreadPool - Running cancellable task observes stop token", "[threadpool][cancellation]") {
+		TEST_PRECISION_INFO();
+
+		ThreadPool pool(1);
+		std::stop_source stopSource;
+		std::atomic<bool> taskStarted{false};
+		std::atomic<bool> taskObservedStop{false};
+
+		pool.enqueue(stopSource.get_token(), [&taskStarted, &taskObservedStop](std::stop_token token) {
+			taskStarted.store(true);
+			while (!token.stop_requested()) {
+				std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			}
+			taskObservedStop.store(true);
+		});
+
+		while (!taskStarted.load()) {
+			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+		}
+
+		stopSource.request_stop();
+		pool.wait_for_tasks();
+
+		REQUIRE(taskObservedStop.load());
 	}
 
 } // namespace MML::Tests::Tools::ThreadPoolTests

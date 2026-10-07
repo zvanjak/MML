@@ -23,12 +23,12 @@
  * 
  *****************************************************************************/
 
-#include "MMLBase.h"
-#include "mml/base/Vector/Vector.h"
-#include "mml/base/Matrix/Matrix.h"
-#include "mml/base/InterpolatedFunction.h"
-#include "mml/core/Curves.h"
-#include "mml/tools/Visualizer.h"
+#include <mml/MMLBase.h>
+#include <mml/base/Vector/Vector.h>
+#include <mml/base/Matrix/Matrix.h>
+#include <mml/base/InterpolatedFunction.h>
+#include <mml/core/Curves.h>
+#include <mml/tools/Visualizer.h>
 
 #include <iostream>
 #include <iomanip>

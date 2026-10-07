@@ -11,8 +11,8 @@
 #if !defined MML_DATA_LOADER_CSV_H
 #define MML_DATA_LOADER_CSV_H
 
-#include "tools/data_loader/DataLoaderTypes.h"
-#include "tools/data_loader/DataLoaderParsing.h"
+#include <mml/tools/data_loader/DataLoaderTypes.h>
+#include <mml/tools/data_loader/DataLoaderParsing.h>
 
 #include <cmath>
 #include <fstream>
@@ -145,9 +145,13 @@ namespace MML {
 						col.boolData.resize(dataset.rowCount);
 						break;
 					case ColumnType::STRING:
-					case ColumnType::DATE:
-					case ColumnType::TIME:
 						col.stringData.resize(dataset.rowCount);
+						break;
+					case ColumnType::DATE:
+						col.dateData.resize(dataset.rowCount);
+						break;
+					case ColumnType::TIME:
+						col.timeData.resize(dataset.rowCount);
 						break;
 					case ColumnType::DATETIME:
 						col.dateData.resize(dataset.rowCount);
@@ -189,11 +193,9 @@ namespace MML {
 							col.stringData[rowIdx] = parsed ? strVal : "";
 							break;
 						case ColumnType::DATE:
-							col.dateData.resize(dataset.rowCount);
 							col.dateData[rowIdx] = parsed ? strVal : "";
 							break;
 						case ColumnType::TIME:
-							col.timeData.resize(dataset.rowCount);
 							col.timeData[rowIdx] = parsed ? strVal : "";
 							break;
 						case ColumnType::DATETIME:
@@ -251,7 +253,7 @@ namespace MML {
 		/// @return LoadResult with success status, error message, and loaded dataset
 		/// @details This function returns errors instead of throwing exceptions.
 		/// Use this for better error composition and when exceptions are not desired.
-		/// For backward compatibility, use LoadCSV() which throws on error.
+		/// Use LoadCSV() when exception-based error handling is preferred.
 		inline LoadResult LoadCSVSafe(const std::string& filename, bool hasHeader = true,
 		                              char delimiter = ',', bool inferTypes = true) {
 			try {
@@ -351,8 +353,10 @@ namespace MML {
 						col.stringData.resize(dataset.rowCount);
 						break;
 					case ColumnType::DATE:
+						col.dateData.resize(dataset.rowCount);
+						break;
 					case ColumnType::TIME:
-						col.stringData.resize(dataset.rowCount);
+						col.timeData.resize(dataset.rowCount);
 						break;
 					case ColumnType::DATETIME:
 						col.dateData.resize(dataset.rowCount);
@@ -395,11 +399,9 @@ namespace MML {
 							col.stringData[rowIdx] = parsed ? strVal : "";
 							break;
 						case ColumnType::DATE:
-							col.dateData.resize(dataset.rowCount);
 							col.dateData[rowIdx] = parsed ? strVal : "";
 							break;
 						case ColumnType::TIME:
-							col.timeData.resize(dataset.rowCount);
 							col.timeData[rowIdx] = parsed ? strVal : "";
 							break;
 						case ColumnType::DATETIME:

@@ -3,45 +3,44 @@
 ///                                                                                   ///
 ///  File:        BaseUtils.h                                                         ///
 ///  Description: Aggregate header for utility functions                              ///
-///               Includes all split utility headers for backward compatibility       ///
+///               Includes all focused utility headers                                ///
 ///                                                                                   ///
 ///  Copyright:   (c) 2024-2026 Zvonimir Vanjak                                       ///
 ///  License:     MIT License (see LICENSE.md)                                         ///
 ///                                                                                   ///
 ///////////////////////////////////////////////////////////////////////////////////////////
+
+/// @file BaseUtils.h
+/// @brief Aggregate header for common utility functions.
+/// This header includes symbolic utilities, angle and coordinate helpers,
+/// comparisons, vector operations, matrix operations, and mixed Real/Complex helpers.
+///
+/// Main utility groups included here:
+/// - LeviCivita and KroneckerDelta - symbolic tensor helpers
+/// - DegToRad, RadToDeg, angle normalization, and explicit degree/minute/second conversion
+/// - Cartesian, polar, spherical, and cylindrical coordinate conversions
+/// - AreEqual and AreEqualAbs overloads for Complex, Vector<Real>, and Vector<Complex>
+/// - ScalarProduct, VectorsAngle, projections, and OuterProduct
+/// - Matrix construction, comparison, transformation, orthogonalization, and matrix functions
+/// - Mixed Real/Complex vector and matrix arithmetic helpers
+///
+/// For more focused includes, use the individual headers under BaseUtils/.
+
 #ifndef MML_BASEUTILS_H
 #define MML_BASEUTILS_H
 
-// Standard headers
 #include <vector>
 
-#include "MMLBase.h"
-
-// Include MML base types needed by utilities
-#include "base/Vector/Vector.h"
-#include "base/Vector/VectorN.h"
-#include "base/Matrix/Matrix.h"
-#include "base/Matrix/MatrixNM.h"
-
-// ============================================================================
-// Split Utility Headers
-// ============================================================================
-// The functionality previously in this monolithic file has been split into
-// focused utility modules for better organization and faster compile times.
-// ============================================================================
-
-#include "mml/base/BaseUtils/SymbolUtils.h"       // LeviCivita, KroneckerDelta
-#include "mml/base/BaseUtils/AngleCoordUtils.h"   // Angle conversions, coordinate transforms
-#include "mml/base/BaseUtils/ComparisonUtils.h"   // AreEqual for Complex, Vector
-#include "mml/base/BaseUtils/VectorOps.h"         // ScalarProduct, VectorsAngle, projections
-#include "mml/base/BaseUtils/MatrixOps.h"         // Matrix functions, properties, creation
-#include "mml/base/BaseUtils/MixedTypeOps.h"      // Complex+Real mixed operations
-
-// ============================================================================
-// Backward Compatibility
-// ============================================================================
-// All functions are now available in MML::Utils namespace through the includes.
-// Existing code using MML::Utils::FunctionName() will continue to work.
-// ============================================================================
+#include <mml/MMLBase.h>
+#include <mml/base/Vector/Vector.h>
+#include <mml/base/Vector/VectorN.h>
+#include <mml/base/Matrix/Matrix.h>
+#include <mml/base/Matrix/MatrixNM.h>
+#include <mml/base/BaseUtils/SymbolUtils.h>
+#include <mml/base/BaseUtils/AngleCoordUtils.h>
+#include <mml/base/BaseUtils/ComparisonUtils.h>
+#include <mml/base/BaseUtils/VectorOps.h>
+#include <mml/base/BaseUtils/MatrixOps.h>
+#include <mml/base/BaseUtils/MixedTypeOps.h>
 
 #endif // MML_BASEUTILS_H

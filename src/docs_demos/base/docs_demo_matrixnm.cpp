@@ -1,11 +1,11 @@
 #ifdef MML_USE_SINGLE_HEADER
-#include "MML.h"
+#include <MML.h>
 #else
-#include "MMLBase.h"
+#include <mml/MMLBase.h>
 
-#include "base/Matrix/MatrixNM.h"
+#include <mml/base/Matrix/MatrixNM.h>
 
-#include "base/BaseUtils.h"
+#include <mml/base/BaseUtils.h>
 #endif
 
 using namespace MML;

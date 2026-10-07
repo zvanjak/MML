@@ -2,7 +2,7 @@
 ///  File:        docs_demo_geometry.cpp
 ///  Description: Demo for Geometry.h and related headers - Geometric primitives
 ///////////////////////////////////////////////////////////////////////////////////////////
-#include "base/Geometry/Geometry.h"
+#include <mml/base/Geometry/Geometry.h>
 #include <iostream>
 #include <iomanip>
 

@@ -1,3 +1,20 @@
+///////////////////////////////////////////////////////////////////////////////////////////
+///                         MinimalMathLibrary (MML)                                  ///
+///                                                                                   ///
+///  File:        scalar_functions_test_bed.h                                         ///
+///  Purpose:     Reusable scalar fields f: R^n -> R with analytic gradients for      ///
+///               derivative and optimization tests.                                  ///
+///                                                                                   ///
+///  Used by:     Scalar derivation tests, core derivation tests, precision           ///
+///               derivation tests, and optimization tests where applicable.          ///
+///                                                                                   ///
+///  Contents:    Separable functions, mixed analytic functions, quadratic forms,     ///
+///               classic optimization surfaces, physical potentials, and derivative  ///
+///               helpers.                                                           ///
+///                                                                                   ///
+///  Coverage:    Metadata is local to these function definitions today; repeated     ///
+///               optimization-specific cases can move into optimization_test_bed.h.  ///
+///////////////////////////////////////////////////////////////////////////////////////////
 #if !defined __MML_SCALAR_FUNCTIONS_TEST_BED_H
 #define __MML_SCALAR_FUNCTIONS_TEST_BED_H
 
@@ -5,9 +22,9 @@
 #include <cmath>
 
 #ifdef MML_USE_SINGLE_HEADER
-#include "MML.h"
+#include <MML.h>
 #else
-#include "base/Function.h"
+#include <mml/base/Function.h>
 #endif
 
 namespace MML::TestBeds

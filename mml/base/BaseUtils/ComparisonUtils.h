@@ -14,8 +14,8 @@
 #include <cmath>
 #include <complex>
 
-#include "mml/MMLBase.h"
-#include "mml/base/Vector/Vector.h"
+#include <mml/MMLBase.h>
+#include <mml/base/Vector/Vector.h>
 
 namespace MML
 {
@@ -30,7 +30,7 @@ namespace MML
 		/// @param b Second complex number
 		/// @param eps Tolerance for real and imaginary parts separately
 		/// @return True if both real and imaginary differences are within tolerance
-		static bool AreEqual(const Complex& a, const Complex& b, double eps = Defaults::ComplexAreEqualTolerance)
+		static bool AreEqual(const Complex& a, const Complex& b, Real eps = Defaults::ComplexAreEqualTolerance)
 		{
 			if (std::abs(a.real() - b.real()) > eps || std::abs(a.imag() - b.imag()) > eps)
 				return false;
@@ -42,7 +42,7 @@ namespace MML
 		/// @param b Second complex number
 		/// @param eps Tolerance for |a - b|
 		/// @return True if |a - b| <= eps
-		static bool AreEqualAbs(const Complex& a, const Complex& b, double eps = Defaults::ComplexAreEqualAbsTolerance)
+		static bool AreEqualAbs(const Complex& a, const Complex& b, Real eps = Defaults::ComplexAreEqualAbsTolerance)
 		{
 			if (Abs(a - b) > eps)
 				return false;

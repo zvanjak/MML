@@ -3,11 +3,11 @@
 #include "../../TestMatchers.h"
 
 #ifdef MML_USE_SINGLE_HEADER
-#include "MML.h"
+#include <MML.h>
 #else
-#include "MMLBase.h"
-#include "core/Integration/MonteCarloIntegration.h"
-#include "base/Function.h"
+#include <mml/MMLBase.h>
+#include <mml/core/Integration/MonteCarloIntegration.h>
+#include <mml/base/Function.h>
 #endif
 
 using namespace MML;
@@ -352,6 +352,30 @@ namespace MML::Tests::Algorithms::MonteCarloIntegrationTests
         // but this is a statistical property, not guaranteed for every run
     }
 
+    TEST_CASE("MonteCarlo_RejectsInvalidConfiguration", "[montecarlo][validation]")
+    {
+        ConstantOne<1> func;
+        MonteCarloIntegrator<1> mc(42);
+
+        VectorN<Real, 1> lower{REAL(0.0)}, upper{REAL(1.0)};
+
+        REQUIRE_THROWS_AS(mc.integrate(func, lower, upper, MonteCarloConfig().samples(0)), ArgumentError);
+        REQUIRE_THROWS_AS(mc.integrate(func, lower, upper, MonteCarloConfig().samples(1).antithetic(true)), ArgumentError);
+    }
+
+    TEST_CASE("MonteCarlo_RejectsInvalidBounds", "[montecarlo][validation]")
+    {
+        ConstantOne<2> func;
+        MonteCarloIntegrator<2> mc(42);
+
+        VectorN<Real, 2> lower{REAL(0.0), REAL(0.0)}, upper{REAL(1.0), REAL(1.0)};
+        VectorN<Real, 2> reversed{REAL(-1.0), REAL(1.0)};
+        VectorN<Real, 2> nonFinite{REAL(1.0), std::numeric_limits<Real>::infinity()};
+
+        REQUIRE_THROWS_AS(mc.integrate(func, upper, reversed, MonteCarloConfig().samples(10)), ArgumentError);
+        REQUIRE_THROWS_AS(mc.integrate(func, lower, nonFinite, MonteCarloConfig().samples(10)), ArgumentError);
+    }
+
     ///////////////////////////    STRATIFIED SAMPLING    ///////////////////////////
 
     TEST_CASE("Stratified_2D_ProductXY", "[montecarlo][stratified]")
@@ -380,6 +404,29 @@ namespace MML::Tests::Algorithms::MonteCarloIntegrationTests
         
         REQUIRE_THAT(result.value, WithinAbs(REAL(1.0), REAL(0.02)));
     }
+
+            TEST_CASE("Stratified_RejectsInvalidConfiguration", "[montecarlo][stratified][validation]")
+            {
+                ConstantOne<2> func;
+                StratifiedMonteCarloIntegrator<2> mc(42);
+
+                VectorN<Real, 2> lower{REAL(0.0), REAL(0.0)}, upper{REAL(1.0), REAL(1.0)};
+
+                REQUIRE_THROWS_AS(mc.integrate(func, lower, upper, 0, 10), ArgumentError);
+                REQUIRE_THROWS_AS(mc.integrate(func, lower, upper, 10, 0), ArgumentError);
+                REQUIRE_THROWS_AS(mc.integrate(func, upper, lower, 10, 10), ArgumentError);
+            }
+
+            TEST_CASE("HitOrMiss_RejectsInvalidConfiguration", "[montecarlo][hitorrmiss][validation]")
+            {
+                HitOrMissIntegrator<2> integrator(42);
+                auto indicator = [](const VectorN<Real, 2>&) { return true; };
+
+                VectorN<Real, 2> lower{REAL(0.0), REAL(0.0)}, upper{REAL(1.0), REAL(1.0)};
+
+                REQUIRE_THROWS_AS(integrator.estimateVolume(indicator, lower, upper, 0), ArgumentError);
+                REQUIRE_THROWS_AS(integrator.estimateVolume(indicator, upper, lower, 10), ArgumentError);
+            }
 
     ///////////////////////////    CONVENIENCE FUNCTION TESTS    ///////////////////////////
 

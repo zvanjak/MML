@@ -1,6 +1,8 @@
 // Top-level demos
 void Docs_Demo_ApiCheatsheet();
 void Docs_Demo_QuickStartGuide();
+void Docs_Demo_Fundamentals();
+void Docs_Demo_Cookbook();
 
 // Base
 void Docs_Demo_BaseUtils();
@@ -27,13 +29,14 @@ void Docs_Demo_VectorN();
 void Docs_Demo_VectorTypes();
 
 // Core
+void Docs_Demo_Algebra();
 void Docs_Demo_AlgorithmTypes();
 void Docs_Demo_Coord_Transf();
-void Docs_Demo_CoordSystem();
 void Docs_Demo_Derivation();
 void Docs_Demo_Diff_geometry();
 void Docs_Demo_Field_operations();
 void Docs_Demo_Fields();
+void Docs_Demo_FunctionSpaces();
 void Docs_Demo_Geometry_2D_3D();
 void Docs_Demo_Integration();
 void Docs_Demo_Integration_multidim();
@@ -62,7 +65,6 @@ void Docs_Demo_Statistics();
 void Docs_Demo_GeneticAlgorithm();
 void Docs_Demo_LinearProgramming();
 void Docs_Demo_NSGA2();
-void Docs_Demo_SimulatedAnnealing();
 
 // Tools
 void Docs_Demo_ConsolePrinter();
@@ -89,6 +91,8 @@ int main() {
 	// Top-level guides
 	// Docs_Demo_ApiCheatsheet();
 	// Docs_Demo_QuickStartGuide();
+	Docs_Demo_Fundamentals();
+	Docs_Demo_Cookbook();
 
 	// Base
 	// Docs_Demo_BaseUtils();
@@ -109,13 +113,14 @@ int main() {
 	// Docs_Demo_VectorTypes();
 
 	// Core
+	Docs_Demo_Algebra();
 	// Docs_Demo_AlgorithmTypes();
-	// Docs_Demo_CoordSystem();
 	// Docs_Demo_Coord_Transf();
 	// Docs_Demo_Derivation();
 	// Docs_Demo_Diff_geometry();
 	// Docs_Demo_Fields();
 	// Docs_Demo_Field_operations();
+	// Docs_Demo_FunctionSpaces();
 	// Docs_Demo_FunctionHelpers();
 	// Docs_Demo_Functions();
 	// Docs_Demo_Geometry();
@@ -127,7 +132,7 @@ int main() {
 	// Docs_Demo_Interfaces();
 	// Docs_Demo_Interpolated_functions();
 	// Docs_Demo_LinAlgSolvers();
-	// Docs_Demo_MatrixUtils();
+	// Docs_Demo_MatrixAnalysis();
 	// Docs_Demo_Metric_Tensor();
 	// Docs_Demo_NumericValidation();
 	// Docs_Demo_OrthogonalBases();
@@ -153,7 +158,7 @@ int main() {
 	// Docs_Demo_Statistics();
 
 	// Tools
-	Docs_Demo_ConsolePrinter();
+	// Docs_Demo_ConsolePrinter();
 	// Docs_Demo_DataLoader();
 	// Docs_Demo_Serializer();
 	// Docs_Demo_ThreadPool();
@@ -168,7 +173,6 @@ int main() {
 	// Docs_Demo_GeneticAlgorithm();
 	// Docs_Demo_LinearProgramming();
 	// Docs_Demo_NSGA2();
-	// Docs_Demo_SimulatedAnnealing();
 
 	// PDE
 	// Docs_Demo_PDE_1D_Heat();

@@ -12,16 +12,15 @@
 #if !defined  MML_POLYNOM_H
 #define MML_POLYNOM_H
 
-#include "MMLBase.h"
-#include "MMLExceptions.h"
+#include <mml/MMLBase.h>
+#include <mml/MMLExceptions.h>
 
-#include "interfaces/IFunction.h"
+#include <mml/interfaces/IFunction.h>
 
-#include "base/Vector/Vector.h"
-#include "base/Vector/VectorN.h"
-#include "base/Matrix/MatrixNM.h"
+#include <mml/base/Vector/Vector.h>
+#include <mml/base/Vector/VectorN.h>
+#include <mml/base/Matrix/MatrixNM.h>
 
-// Standard headers - include what we use
 #include <algorithm>
 #include <iomanip>
 #include <iostream>
@@ -35,6 +34,27 @@ namespace MML
 	/// @brief Polynomial class with arithmetic, evaluation, differentiation, and root finding.
 	/// @tparam CoefT Coefficient type (Real, Complex, etc.)
 	/// @tparam FieldT Field type for evaluation (defaults to CoefT)
+	///
+	/// @par Coefficient Storage Convention (ascending powers)
+	/// Coefficients are stored in **ascending order of power** (index = exponent):
+	///
+	///   `_vecCoef[i]` = coefficient of x^i
+	///
+	/// So the polynomial  P(x) = a₀ + a₁x + a₂x² + ... + aₙxⁿ  is stored as
+	/// `{a₀, a₁, a₂, ..., aₙ}`.
+	///
+	/// @par Examples
+	/// @code
+	///   Polynom<double> p = {3.0, -2.0, 1.0};  // 3 - 2x + x²
+	///   // p[0] == 3.0   (constant term, x⁰)
+	///   // p[1] == -2.0  (coefficient of x¹)
+	///   // p[2] == 1.0   (coefficient of x²)
+	/// @endcode
+	///
+	/// @warning This is the **opposite** of NumPy's `numpy.poly1d` convention,
+	/// which uses **descending** order. MML follows the standard mathematical
+	/// convention where index equals power, matching MATLAB's `polyval` with `fliplr`, Mathematica,
+	/// and the `numpy.polynomial.Polynomial` (new API) convention.
 	template <typename CoefT, typename FieldT = CoefT>
 	class Polynom
 	{
@@ -48,10 +68,10 @@ namespace MML
 		/// @param n Degree of polynomial
 		Polynom(int n) { _vecCoef.resize(n + 1); }
 		/// @brief Constructs polynomial from coefficient vector.
-		/// @param vecCoef Coefficients (vecCoef[0] = constant term)
+		/// @param vecCoef Coefficients in ascending power order: vecCoef[i] = coeff of x^i
 		Polynom(const std::vector<CoefT>& vecCoef) : _vecCoef(vecCoef) {}
 		/// @brief Constructs polynomial from initializer list.
-		/// @param list Coefficients in ascending order
+		/// @param list Coefficients in ascending power order: {a₀, a₁, a₂, ...} → a₀ + a₁x + a₂x² + ...
 		Polynom(std::initializer_list<CoefT> list) : _vecCoef(list) {}
 		/// @brief Copy constructor.
 		Polynom(const Polynom& Copy) = default;
@@ -103,38 +123,43 @@ namespace MML
           if (x[i] == x[j])
             throw ArgumentError("FromValues: duplicate x-value at indices " + std::to_string(i) + " and " + std::to_string(j));
 
-      std::vector<FieldT> cof(n, FieldT(0));
-      std::vector<FieldT> s(n);
+	using CalcT = std::conditional_t<std::is_floating_point_v<FieldT>, long double, FieldT>;
+
+	std::vector<CalcT> cof(n, CalcT(0));
+	std::vector<CalcT> s(n);
       
       // Initialize
       for (int i = 0; i < n; i++)
-        s[i] = FieldT(0);
+		s[i] = CalcT(0);
       
-      s[n-1] = -x[0];
+	      s[n-1] = -static_cast<CalcT>(x[0]);
       
       // Build the polynomial basis
       for (int i = 1; i < n; i++) {
         for (int j = n-1-i; j < n-1; j++)
-          s[j] -= x[i] * s[j+1];
-        s[n-1] -= x[i];
+					s[j] -= static_cast<CalcT>(x[i]) * s[j+1];
+				s[n-1] -= static_cast<CalcT>(x[i]);
       }
       
       // Compute coefficients using the basis
       for (int j = 0; j < n; j++) {
-        FieldT phi = FieldT(n);
+				CalcT phi = CalcT(n);
         for (int k = n-1; k > 0; k--)
-          phi = FieldT(k) * s[k] + x[j] * phi;
+					phi = CalcT(k) * s[k] + static_cast<CalcT>(x[j]) * phi;
       
-        FieldT ff = y[j] / phi;
-        FieldT b = FieldT(1);
+				CalcT ff = static_cast<CalcT>(y[j]) / phi;
+				CalcT b = CalcT(1);
         
         for (int k = n-1; k >= 0; k--) {
           cof[k] += b * ff;
-          b = s[k] + x[j] * b;
+					b = s[k] + static_cast<CalcT>(x[j]) * b;
         }
       }
       
-      return Polynom(cof);
+			std::vector<CoefT> result(n);
+			for (int i = 0; i < n; i++)
+				result[i] = static_cast<CoefT>(cof[i]);
+			return Polynom(result);
     }    
 
 		/// @brief Returns the linear polynomial a*x + b.
@@ -151,8 +176,8 @@ namespace MML
 		void SetDegree(int newDeg) { _vecCoef.resize(newDeg + 1); }
 		/// @brief Checks if polynomial is null (no coefficients).
 		bool isNull() const noexcept { return _vecCoef.size() == 0; }
-		/// @brief Removes trailing zero coefficients.
-		void Reduce() { while (!_vecCoef.empty() && _vecCoef.back() == CoefT(0)) _vecCoef.pop_back(); }
+		/// @brief Removes trailing near-zero coefficients using machine epsilon.
+		void Reduce() { Reduce(std::numeric_limits<CoefT>::epsilon() * 100); }
 		/// @brief Removes trailing coefficients smaller than eps in absolute value.
 		/// @param eps Tolerance threshold for near-zero coefficients
 		void Reduce(CoefT eps) { while (!_vecCoef.empty() && std::abs(_vecCoef.back()) < eps) _vecCoef.pop_back(); }
@@ -517,7 +542,7 @@ namespace MML
 				if constexpr (std::is_floating_point_v<CoefT>) {
 					is_zero = (std::abs(_vecCoef[i]) < PrecisionValues<Real>::PolynomialCoeffZeroThreshold);
 				}
-				else if constexpr (std::is_same_v<CoefT, std::complex<double>> || std::is_same_v<CoefT, std::complex<float>>) {
+				else if constexpr (MMLComplex<CoefT>) {
 					is_zero = (std::abs(_vecCoef[i]) < PrecisionValues<Real>::PolynomialCoeffZeroThreshold);
 				}
 				else {
@@ -527,7 +552,7 @@ namespace MML
 
 				// Print sign and separator
 				if (!first) {
-					if constexpr (std::is_arithmetic_v<CoefT>) {
+					if constexpr (MMLArithmetic<CoefT>) {
 						stream << (_vecCoef[i] >= CoefT(0) ? " + " : " - ");
 					}
 					else {
@@ -535,14 +560,14 @@ namespace MML
 					}
 				}
 				else {
-					if constexpr (std::is_arithmetic_v<CoefT>) {
+					if constexpr (MMLArithmetic<CoefT>) {
 						if (_vecCoef[i] < CoefT(0)) stream << "-";
 					}
 					first = false;
 				}
 
 				// Print coefficient (absolute value for arithmetic types, as-is for others)
-				if constexpr (std::is_arithmetic_v<CoefT>) {
+				if constexpr (MMLArithmetic<CoefT>) {
 					CoefT abs_coef = _vecCoef[i] < CoefT(0) ? -_vecCoef[i] : _vecCoef[i];
 					bool print_coef = (i == 0) || (abs_coef != CoefT(1));
 					if (print_coef) stream << abs_coef;

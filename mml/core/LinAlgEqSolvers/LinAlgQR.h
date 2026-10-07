@@ -12,30 +12,40 @@
 #if !defined  MML_LINEAR_ALG_QR_H
 #define MML_LINEAR_ALG_QR_H
 
-#include "MMLBase.h"
+#include <mml/MMLBase.h>
 
-#include "base/Vector/Vector.h"
-#include "base/Matrix/Matrix.h"
-#include "base/BaseUtils.h"
+#include <mml/base/Vector/Vector.h>
+#include <mml/base/Matrix/Matrix.h>
+#include <mml/base/BaseUtils.h>
 
 namespace MML
 {
 	/// @brief QR decomposition solver using Householder reflections
 	/// @tparam Type Numeric type (Real, Complex, etc.)
-	/// @note Decomposes A=QR where Q is orthogonal and R is upper triangular
+	/// @note Decomposes A=QR where Q is orthogonal (real) or unitary (complex) and R is upper triangular
 	/// @note Works for square (m=n) and overdetermined (m>n) systems
 	/// @note Complexity: O(2mn²-2n³/3) decomposition, O(mn) per solve
-	template<class Type>
+	template<class Type> requires MMLScalar<Type>
 	class QRSolver
 	{
 	private:
+		using RealType = decltype(std::abs(std::declval<Type>()));
+
 		int _m;              // number of rows
 		int _n;              // number of columns
 		Matrix<Type> _QR;    // Combined QR storage: R in upper triangle, Householder vectors in lower
-		Vector<Type> _c;     // Diagonal of R (stored separately)
-		Vector<Type> _d;     // Householder scaling factors
+		Vector<RealType> _beta; // Householder coefficients
+		Vector<Type> _d;     // Diagonal of R (stored separately)
 		bool _sing;          // Singularity flag
 		int _num_reflections; // Number of Householder reflections performed (for determinant sign)
+
+		static Type Conjugate(const Type& value)
+		{
+			if constexpr (MMLComplex<Type>)
+				return std::conj(value);
+			else
+				return value;
+		}
 
 	public:
 		/// @brief Get number of rows of the decomposed matrix
@@ -49,62 +59,54 @@ namespace MML
 		/// @param a Input matrix (m×n with m≥n)
 		/// @throws MatrixDimensionError if m<n
 		/// @note Stores R in upper triangle of QR, Householder vectors in lower triangle
-		QRSolver(const Matrix<Type>& a) : _m(a.rows()), _n(a.cols()), _QR(a), _c(_n), _d(_n), _sing(false), _num_reflections(0)
+		QRSolver(const Matrix<Type>& a) : _m(a.rows()), _n(a.cols()), _QR(a), _beta(_n), _d(_n), _sing(false), _num_reflections(0)
 		{
 			if (_m < _n)
 				throw MatrixDimensionError("QRSolver: Matrix must have m >= n (rows >= columns)", _m, _n, _m, _n);
-
-			int i, j, k;
-			Type scale, sigma, sum, tau;
-			Vector<Type> vec(_m);
 
 			// Perform Householder reduction
 			// For square matrices: process n-1 columns (last has no elements below diagonal)
 			// For overdetermined: process all n columns (last column still has elements below diagonal)
 			int ncols = (_m == _n) ? _n - 1 : _n;
-			for (k = 0; k < ncols; k++)
+			for (int k = 0; k < ncols; k++)
 			{
-				// Compute the norm of the k-th column below the diagonal
-				scale = 0.0;
-				for (i = k; i < _m; i++)
-					scale = std::max(scale, Abs(_QR[i][k]));
+				RealType scale = 0.0;
+				for (int i = k; i < _m; i++)
+					scale = std::max(scale, std::abs(_QR[i][k]));
 
-				if (scale < std::numeric_limits<Real>::epsilon())
+				if (scale <= std::numeric_limits<RealType>::epsilon())
 				{
-					// Singular case: column below diagonal is effectively zero
 					_sing = true;
-					_c[k] = _d[k] = 0.0;
+					_beta[k] = 0.0;
+					_d[k] = Type{0};
 				}
 				else
 				{
-					// Form the Householder vector
-					for (i = k; i < _m; i++)
+					RealType normSquared = 0.0;
+					for (int i = k; i < _m; i++)
+					{
 						_QR[i][k] /= scale;
-
-					sum = 0.0;
-					for (i = k; i < _m; i++)
-						sum += _QR[i][k] * _QR[i][k];
-
-					// Choose sign of sigma to avoid cancellation errors
-					sigma = (_QR[k][k] >= 0.0 ? std::sqrt(sum) : -std::sqrt(sum));
-					_QR[k][k] += sigma;
-					_c[k] = sigma * _QR[k][k];
-					_d[k] = -scale * sigma;
-
-					// Count this reflection for determinant
+						normSquared += std::norm(_QR[i][k]);
+					}
+					const RealType norm = std::sqrt(normSquared);
+					const RealType leadingMagnitude = std::abs(_QR[k][k]);
+					const Type phase = leadingMagnitude > RealType{0}
+						? _QR[k][k] / Type{leadingMagnitude}
+						: Type{1};
+					const Type alpha = -phase * Type{norm};
+					_QR[k][k] -= alpha;
+					_beta[k] = RealType{1} / (norm * (norm + leadingMagnitude));
+					_d[k] = Type{scale} * alpha;
 					_num_reflections++;
 
-					// Apply the transformation to remaining columns
-					for (j = k + 1; j < _n; j++)
+					for (int j = k + 1; j < _n; j++)
 					{
-						sum = 0.0;
-						for (i = k; i < _m; i++)
-							sum += _QR[i][k] * _QR[i][j];
-
-						tau = sum / _c[k];
-
-						for (i = k; i < _m; i++)
-							_QR[i][j] -= tau * _QR[i][k];
+						Type projection = Type{0};
+						for (int i = k; i < _m; i++)
+							projection += Conjugate(_QR[i][k]) * _QR[i][j];
+						projection *= _beta[k];
+						for (int i = k; i < _m; i++)
+							_QR[i][j] -= _QR[i][k] * projection;
 					}
 				}
 			}
@@ -114,13 +116,12 @@ namespace MML
 			{
 				_d[_n - 1] = _QR[_n - 1][_n - 1];
 				// Use norm-scaled threshold instead of exact zero
-				Real norm_a = 0.0;
+				RealType norm_a = 0.0;
 				for (int ii = 0; ii < _m; ii++)
 					for (int jj = 0; jj < _n; jj++)
-						if (Abs(a(ii, jj)) > norm_a)
-							norm_a = Abs(a(ii, jj));
-				Real threshold = std::numeric_limits<Real>::epsilon() * norm_a * _n;
-				if (Abs(_d[_n - 1]) < threshold)
+						norm_a = std::max(norm_a, std::abs(a(ii, jj)));
+				RealType threshold = std::numeric_limits<RealType>::epsilon() * norm_a * _n;
+				if (std::abs(_d[_n - 1]) < threshold)
 					_sing = true;
 			}
 		}
@@ -136,8 +137,8 @@ namespace MML
 			if (_sing)
 				throw SingularMatrixError("QRSolver::Solve - Singular matrix");
 
-			// Apply Q^T to b
-			QtMultiply(b, x);
+			// Apply Q^T (real) or Q* (complex) to b
+			QAdjointMultiply(b, x);
 
 			// Back-substitution on R
 			RSolve(x, x);
@@ -159,9 +160,9 @@ namespace MML
 			if (_sing)
 				throw SingularMatrixError("QRSolver::LeastSquaresSolve - Singular matrix");
 
-			// Apply Q^T to b
+			// Apply Q^T (real) or Q* (complex) to b
 			Vector<Type> qtb(_m);
-			QtMultiply(b, qtb);
+			QAdjointMultiply(b, qtb);
 
 			// Back-substitution on R (using only first n elements of qtb)
 			x.Resize(_n);
@@ -201,12 +202,12 @@ namespace MML
 			}
 		}
 
-		// Multiplies Q^T * b and stores result in qtb
+		// Multiplies Q^T * b (real) or Q* * b (complex) and stores result in qtb
 		// Uses the Householder vectors stored in QR
-		void QtMultiply(const Vector<Type>& b, Vector<Type>& qtb)
+		void QAdjointMultiply(const Vector<Type>& b, Vector<Type>& qtb)
 		{
 			if (b.size() != static_cast<size_t>(_m))
-				throw VectorDimensionError("QRSolver::QtMultiply - Vector size mismatch", _m, b.size());
+				throw VectorDimensionError("QRSolver::QAdjointMultiply - Vector size mismatch", _m, b.size());
 
 			qtb.Resize(_m);
 			for (int i = 0; i < _m; i++)
@@ -216,18 +217,22 @@ namespace MML
 			int ncols = (_m == _n) ? _n - 1 : _n;
 			for (int k = 0; k < ncols; k++)
 			{
-				if (_c[k] != 0.0)
+				if (_beta[k] != 0.0)
 				{
-					Type sum = 0.0;
+					Type projection = Type{0};
 					for (int i = k; i < _m; i++)
-						sum += _QR[i][k] * qtb[i];
-
-					Type tau = sum / _c[k];
-
+						projection += Conjugate(_QR[i][k]) * qtb[i];
+					projection *= _beta[k];
 					for (int i = k; i < _m; i++)
-						qtb[i] -= tau * _QR[i][k];
+						qtb[i] -= _QR[i][k] * projection;
 				}
 			}
+		}
+
+		// Backward-compatible real API; for complex matrices this applies the adjoint, not a plain transpose.
+		void QtMultiply(const Vector<Type>& b, Vector<Type>& qtb)
+		{
+			QAdjointMultiply(b, qtb);
 		}
 
 		// Multiplies Q * b and stores result in qb
@@ -245,16 +250,14 @@ namespace MML
 			int ncols = (_m == _n) ? _n - 1 : _n;
 			for (int k = ncols - 1; k >= 0; k--)
 			{
-				if (_c[k] != 0.0)
+				if (_beta[k] != 0.0)
 				{
-					Type sum = 0.0;
+					Type projection = Type{0};
 					for (int i = k; i < _m; i++)
-						sum += _QR[i][k] * qb[i];
-
-					Type tau = sum / _c[k];
-
+						projection += Conjugate(_QR[i][k]) * qb[i];
+					projection *= _beta[k];
 					for (int i = k; i < _m; i++)
-						qb[i] -= tau * _QR[i][k];
+						qb[i] -= _QR[i][k] * projection;
 				}
 			}
 		}
@@ -289,18 +292,16 @@ namespace MML
 			// Apply Householder transformations in reverse order
 			for (int k = _n - 1; k >= 0; k--)
 			{
-				if (_c[k] != 0.0)
+				if (_beta[k] != 0.0)
 				{
 					for (int j = 0; j < _n; j++)
 					{
-						Type sum = 0.0;
+						Type projection = Type{0};
 						for (int i = k; i < _m; i++)
-							sum += _QR[i][k] * Q[i][j];
-
-						Type tau = sum / _c[k];
-
+							projection += Conjugate(_QR[i][k]) * Q[i][j];
+						projection *= _beta[k];
 						for (int i = k; i < _m; i++)
-							Q[i][j] -= tau * _QR[i][k];
+							Q[i][j] -= _QR[i][k] * projection;
 					}
 				}
 			}

@@ -1,6 +1,7 @@
 # Metric Tensor
 
 **Location**: `mml/core/MetricTensor.h`  
+**Geodesics**: `mml/algorithms/Geodesic.h`
 **Dependencies**: Derivation, CoordTransf, Tensor, Function
 
 ---
@@ -14,8 +15,13 @@ The metric tensor framework provides tools for working with distances, angles, a
 - **Predefined Metrics**: Cartesian, spherical, cylindrical, Minkowski spacetime
 - **Custom Metrics**: Build from coordinate transformations automatically
 - **Christoffel Symbols**: First and second kind for covariant differentiation
+- **Riemann Curvature Tensor**: $R^\rho{}_{\sigma\mu\nu}$ from Christoffel symbols and their derivatives
+- **Ricci Tensor and Scalar**: $R_{\mu\nu}$ and $R$ from Riemann contraction
+- **Einstein Tensor**: $G_{\mu\nu}$ for general-relativity field equations
+- **Geodesic Equation Integration**: First-order ODE adapter and fixed-step integration helpers
+- **Parallel Transport**: First-order ODE adapter for transporting contravariant vectors along curves
 - **Covariant Derivatives**: For vectors (contravariant and covariant components)
-- **Geometric Calculations**: Arc length, geodesics, curvature (via Christoffel symbols)
+- **Geometric Calculations**: Arc length, geodesics, curvature tensors
 - **General Relativity**: Minkowski metric for special relativity
 
 ### Physical Applications
@@ -49,6 +55,17 @@ The metric tensor framework provides tools for working with distances, angles, a
 | Get Contravariant Metric | `GetContravariantMetric(pos)` | g^ij components |
 | Christoffel Symbols (1st) | `GetChristoffelSymbolFirstKind(i,j,k,pos)` | Γᵢⱼₖ |
 | Christoffel Symbols (2nd) | `GetChristoffelSymbolSecondKind(i,j,k,pos)` | Γⁱⱼₖ |
+| Riemann Component | `GetRiemannCurvatureTensor(rho,sigma,mu,nu,pos)` | R^rho_sigma_mu_nu |
+| Riemann Tensor | `GetRiemannCurvatureTensor(pos)` | Tensor4<N> with 1 up, 3 down |
+| Ricci Component | `GetRicciTensor(mu,nu,pos)` | R_munu |
+| Ricci Tensor | `GetRicciTensor(pos)` | Tensor2<N> covariant |
+| Ricci Scalar | `GetRicciScalar(pos)` | R |
+| Einstein Component | `GetEinsteinTensor(mu,nu,pos)` | G_munu |
+| Einstein Tensor | `GetEinsteinTensor(pos)` | Tensor2<N> covariant |
+| Geodesic ODE System | `GeodesicEquationSystem<N>(metric)` | first-order geodesic RHS |
+| Fixed-Step Geodesic | `IntegrateGeodesicFixedStep(...)` | ODESystemSolution |
+| Parallel Transport ODE | `ParallelTransportEquationSystem<N>(metric, curve)` | vector transport RHS |
+| Fixed-Step Transport | `IntegrateParallelTransportFixedStep(...)` | ODESystemSolution |
 | Covariant Derivative | `CovariantDerivativeContravar(func,j,pos)` | ∇ⱼVⁱ |
 
 ---
@@ -109,6 +126,93 @@ The **covariant derivative** ∇ is the generalization of the ordinary derivativ
 
 **Purpose**: Ensures derivatives transform as tensors (unlike ordinary derivatives in curvilinear coordinates).
 
+### Riemann Curvature Tensor
+
+The **Riemann curvature tensor** measures intrinsic curvature. MML computes the mixed-index convention:
+
+```
+R^rho_sigma_mu_nu = partial_mu Gamma^rho_sigma_nu
+                   - partial_nu Gamma^rho_sigma_mu
+                   + Gamma^rho_lambda_mu Gamma^lambda_sigma_nu
+                   - Gamma^rho_lambda_nu Gamma^lambda_sigma_mu
+```
+
+This convention gives zero curvature for flat coordinate systems such as Cartesian, cylindrical, and spherical 3D coordinates. For a unit 2-sphere with coordinates `(theta, phi)` and metric `diag(1, sin^2(theta))`, it gives:
+
+```
+R^theta_phi_theta_phi = sin^2(theta)
+R^theta_phi_phi_theta = -sin^2(theta)
+```
+
+Use `GetRiemannCurvatureTensor(rho, sigma, mu, nu, pos)` for one component, or `GetRiemannCurvatureTensor(pos)` for the full `Tensor4<N>` with variance `(3 covariant, 1 contravariant)`.
+
+### Ricci Tensor and Scalar Curvature
+
+The **Ricci tensor** contracts the first and third indices of the Riemann tensor:
+
+```
+R_sigma_nu = R^rho_sigma_rho_nu
+```
+
+The **Ricci scalar** fully contracts the Ricci tensor with the inverse metric:
+
+```
+R = g^sigma_nu R_sigma_nu
+```
+
+Use `GetRicciTensor(mu, nu, pos)` for one covariant component, `GetRicciTensor(pos)` for the full covariant `Tensor2<N>`, and `GetRicciScalar(pos)` for scalar curvature. For a unit 2-sphere, `R_munu = g_munu` and `R = 2`.
+
+### Einstein Tensor
+
+The **Einstein tensor** combines Ricci curvature with the metric trace term:
+
+```
+G_mu_nu = R_mu_nu - 1/2 g_mu_nu R
+```
+
+It is returned as a covariant `Tensor2<N>`. Flat metrics give `G_munu = 0`; the unit 2-sphere also gives zero because `R_munu = g_munu` and `R = 2` in two dimensions.
+
+### Curvature Validation Coverage
+
+The curvature tests cover three reference geometries:
+
+- Flat Cartesian, spherical, and cylindrical coordinate systems: all Riemann, Ricci, scalar, and Einstein curvature quantities vanish.
+- Unit 2-sphere: positive constant curvature with `R^theta_phi_theta_phi = sin^2(theta)`, `R_munu = g_munu`, and `R = 2`.
+- Schwarzschild vacuum metric outside the horizon: nonzero Riemann curvature with Ricci tensor, scalar curvature, and Einstein tensor numerically zero.
+
+### Geodesic Equation
+
+`Geodesic.h` exposes the geodesic equation as a standard MML `IODESystem` with state layout:
+
+```
+(q^0, ..., q^(N-1), v^0, ..., v^(N-1))
+```
+
+where `v^i = dq^i/dlambda`. The right-hand side is:
+
+```
+dq^i/dlambda = v^i
+dv^i/dlambda = -Gamma^i_jk(q) v^j v^k
+```
+
+Use `GeodesicEquationSystem<N>` when you want to pass the system to an existing MML ODE solver, or `IntegrateGeodesicFixedStep` for a convenience wrapper around `ODESystemFixedStepSolver`. Helper functions `MakeGeodesicState`, `GeodesicPositionFromState`, and `GeodesicVelocityFromState` convert between fixed-size geometric vectors and the dynamic ODE state vector.
+
+### Parallel Transport
+
+`ParallelTransportEquationSystem<N>` transports a contravariant vector along an `IParametricCurve<N>` using the connection from a metric tensor. The state layout is:
+
+```
+(V^0, ..., V^(N-1))
+```
+
+The right-hand side is:
+
+```
+dV^i/dlambda = -Gamma^i_jk(q(lambda)) qdot^j(lambda) V^k
+```
+
+The curve tangent `qdot(lambda)` is computed numerically with `Derivation::NDer4`. Use `IntegrateParallelTransportFixedStep` for a convenience wrapper around `ODESystemFixedStepSolver`, and `ParallelTransportVectorFromState` to unpack the final vector.
+
 ---
 
 ## Core Classes
@@ -139,6 +243,20 @@ public:
                                        const VectorN<Real, N>& pos) const;
     Real GetChristoffelSymbolSecondKind(int i, int j, int k, 
                                         const VectorN<Real, N>& pos) const;
+
+    // Riemann curvature tensor R^rho_sigma_mu_nu
+    Real GetRiemannCurvatureTensor(int rho, int sigma, int mu, int nu,
+                                   const VectorN<Real, N>& pos) const;
+    Tensor4<N> GetRiemannCurvatureTensor(const VectorN<Real, N>& pos) const;
+
+    // Ricci tensor and scalar curvature
+    Real GetRicciTensor(int sigma, int nu, const VectorN<Real, N>& pos) const;
+    Tensor2<N> GetRicciTensor(const VectorN<Real, N>& pos) const;
+    Real GetRicciScalar(const VectorN<Real, N>& pos) const;
+
+    // Einstein tensor
+    Real GetEinsteinTensor(int mu, int nu, const VectorN<Real, N>& pos) const;
+    Tensor2<N> GetEinsteinTensor(const VectorN<Real, N>& pos) const;
     
     // Covariant derivatives
     VectorN<Real, N> CovariantDerivativeContravar(const IVectorFunction<N>& func, 
@@ -155,6 +273,55 @@ public:
                                        int i, int j, 
                                        const VectorN<Real, N>& pos) const;
 };
+```
+
+### Geodesic helpers
+
+```cpp
+#include <mml/algorithms/Geodesic.h>
+
+template<int N>
+class GeodesicEquationSystem : public IODESystem;
+
+template<int N>
+Vector<Real> MakeGeodesicState(const VectorN<Real, N>& position,
+                               const VectorN<Real, N>& velocity);
+
+template<int N>
+VectorN<Real, N> GeodesicPositionFromState(const Vector<Real>& state);
+
+template<int N>
+VectorN<Real, N> GeodesicVelocityFromState(const Vector<Real>& state);
+
+template<int N>
+ODESystemSolution IntegrateGeodesicFixedStep(
+    const MetricTensorField<N>& metric,
+    const VectorN<Real, N>& initialPosition,
+    const VectorN<Real, N>& initialVelocity,
+    Real lambdaStart,
+    Real lambdaEnd,
+    int numSteps,
+    const IODESystemStepCalculator& stepCalculator = StepCalculators::RK4_Basic);
+
+template<int N>
+class ParallelTransportEquationSystem : public IODESystem;
+
+template<int N>
+Vector<Real> MakeParallelTransportState(const VectorN<Real, N>& vector);
+
+template<int N>
+VectorN<Real, N> ParallelTransportVectorFromState(const Vector<Real>& state);
+
+template<int N>
+ODESystemSolution IntegrateParallelTransportFixedStep(
+    const MetricTensorField<N>& metric,
+    const IParametricCurve<N>& curve,
+    const VectorN<Real, N>& initialVector,
+    Real lambdaStart,
+    Real lambdaEnd,
+    int numSteps,
+    const IODESystemStepCalculator& stepCalculator = StepCalculators::RK4_Basic,
+    Real curveDerivativeStep = PrecisionValues<Real>::DerivativeStepSize);
 ```
 
 **Purpose**: Abstract base providing all metric tensor operations. Derived classes only need to implement `Component(i,j,pos)`.
@@ -196,7 +363,7 @@ ds² = (dx)² + (dy)² + (dz)²
 **Example 1: Cartesian Metric**
 
 ```cpp
-#include "core/MetricTensor.h"
+#include <mml/core/MetricTensor.h>
 
 // 3D Euclidean space
 MetricTensorCartesian3D metricCart;
@@ -370,7 +537,7 @@ ds² = -c²dt² + dx² + dy² + dz²
 **Example 4: Minkowski Metric**
 
 ```cpp
-#include "core/MetricTensor.h"
+#include <mml/core/MetricTensor.h>
 
 // Minkowski spacetime metric
 MetricTensorMinkowski metricMinkowski;
@@ -405,8 +572,9 @@ template<typename VectorFrom, typename VectorTo, int N>
 class MetricTensorFromCoordTransf : public MetricTensorField<N>
 {
 public:
-    MetricTensorFromCoordTransf(ICoordTransfWithInverse<VectorFrom,VectorTo,N>& transf);
+    explicit MetricTensorFromCoordTransf(const CoordTransf<VectorFrom,VectorTo,N>& transf);
     Real Component(int i, int j, const VectorN<Real, N>& pos) const override;
+    MatrixNM<Real, N, N> GetCovariantMetric(const VectorN<Real, N>& pos) const override;
 };
 ```
 
@@ -433,11 +601,16 @@ gᵢⱼ = J^T J
 
 where J is the Jacobian matrix Jₖᵢ = ∂fᵏ/∂qⁱ.
 
+The full metric evaluates the transformation Jacobian once. Transformations with an
+analytical `jacobian()` override use it automatically; other `CoordTransf` implementations
+use the base class's numerical differentiation fallback. An inverse transformation is not
+required.
+
 **Example 5: Metric from Spherical Transformation**
 
 ```cpp
-#include "core/CoordTransf/CoordTransfSpherical.h"
-#include "core/MetricTensor.h"
+#include <mml/core/CoordTransf/CoordTransfSpherical.h>
+#include <mml/core/MetricTensor.h>
 
 // Use spherical→Cartesian transformation
 CoordTransfSphericalToCartesian transf;
@@ -614,8 +787,8 @@ public:
 ### With Field Operations
 
 ```cpp
-#include "core/FieldOperations.h"
-#include "core/MetricTensor.h"
+#include <mml/core/Fields/FieldOperations.h>
+#include <mml/core/MetricTensor.h>
 
 // Gradient in general coordinates uses metric tensor
 MetricTensorSpherical metric;
@@ -634,9 +807,9 @@ VectorN<Real, 3> grad = FieldOps::Gradient(temp, pos, metric);
 **Example 10: Full Workflow - Transformation to Metric**
 
 ```cpp
-#include "core/CoordTransf/CoordTransfCylindrical.h"
-#include "core/MetricTensor.h"
-#include "core/FieldOperations.h"
+#include <mml/core/CoordTransf/CoordTransfCylindrical.h>
+#include <mml/core/MetricTensor.h>
+#include <mml/core/Fields/FieldOperations.h>
 
 // 1. Define coordinate transformation
 CoordTransfCylindricalToCartesian cylToCart;

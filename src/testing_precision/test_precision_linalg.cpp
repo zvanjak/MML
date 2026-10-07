@@ -19,15 +19,16 @@
 
 #include "PrecisionTestFramework.h"
 
-#include "MMLBase.h"
+#include <mml/MMLBase.h>
 
-#include "base/Vector/Vector.h"
-#include "base/Matrix/Matrix.h"
-#include "base/Matrix/MatrixSym.h"
+#include <mml/base/Vector/Vector.h>
+#include <mml/base/Matrix/Matrix.h>
+#include <mml/base/Matrix/MatrixSym.h>
 
-#include "core/LinAlgEqSolvers.h"
-#include "algorithms/MatrixAlg.h"
-#include "algorithms/EigenSystemSolvers.h"
+#include <mml/core/LinAlgEqSolvers.h>
+#include <mml/base/BaseUtils/MatrixOps.h>
+#include <mml/algorithms/MatrixAlg.h>
+#include <mml/algorithms/EigenSystemSolvers.h>
 
 #include <cmath>
 #include <iostream>
@@ -911,10 +912,10 @@ void Test_HessenbergReduction(PrecisionTestSuite& suite)
             auto result = MatrixAlg::ReduceToHessenberg(A);
             
             // Check H is upper Hessenberg
-            bool is_hess = Utils::IsUpperHessenberg(result.H, 1e-10);
+            bool is_hess = MatrixAlg::IsUpperHessenberg(result.H);
             
             // Check Q is orthogonal
-            bool is_ortho = Utils::IsOrthogonal(result.Q, 1e-10);
+            bool is_ortho = MatrixAlg::IsOrthogonal(result.Q, {REAL(1e-10), REAL(1e-10)});
             
             // Verify H = Q^T * A * Q
             Matrix<Real> QTAQ = Utils::SimilarityTransform(result.Q, A);

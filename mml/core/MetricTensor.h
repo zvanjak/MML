@@ -12,15 +12,18 @@
 #if !defined  MML_METRIC_TENSOR_H
 #define MML_METRIC_TENSOR_H
 
-#include "interfaces/IFunction.h"
-#include "interfaces/ICoordTransf.h"
+#include <mml/MMLSingularityHandling.h>
 
-#include "base/Vector/VectorN.h"
-#include "base/Matrix/MatrixNM.h"
+#include <mml/interfaces/IFunction.h>
 
-#include "core/Derivation.h"
-#include "core/Derivation/DerivationTensorField.h"
-#include "core/SingularityHandling.h"
+#include <mml/base/Vector/VectorN.h>
+#include <mml/base/Matrix/MatrixNM.h>
+
+#include <mml/core/Derivation.h>
+#include <mml/core/Derivation/DerivationTensorField.h>
+#include <mml/core/CoordTransf/CoordTransfBase.h>
+
+#include <cmath>
 
 namespace MML
 {
@@ -34,8 +37,9 @@ namespace MML
 	//                      gⁱʲ = inverse of gᵢⱼ  (contravariant metric)
 	//                      Used to raise/lower indices.
 	//
-	//   Metric signature:  Positive-definite (Riemannian) assumed.
-	//                      For Lorentzian metrics, see CoordTransfLorentz.h.
+	//   Metric signature:  Positive-definite (Riemannian) by default.
+	//                      Lorentzian metrics inherit LorentzianMetric<N> and use
+	//                      signature (-,+,+,...) for interval classification.
 	//
 	//   Christoffel symbols:
 	//     First kind:   Γᵢⱼₖ = ½(∂gᵢₖ/∂qʲ + ∂gⱼₖ/∂qⁱ - ∂gᵢⱼ/∂qᵏ)
@@ -58,12 +62,22 @@ namespace MML
 	class MetricTensorField : public ITensorField2<N>
 	{
 	public:
+		enum class SignatureType
+		{
+			Riemannian,
+			Lorentzian
+		};
+
 		/// @brief Default constructor (0 contravariant indices, 2 covariant)
 		MetricTensorField() : ITensorField2<N>(0, 2) { }
 		/// @brief Constructor with custom index configuration
 		/// @param numContra Number of contravariant indices
 		/// @param numCo Number of covariant indices
 		MetricTensorField(int numContra, int numCo) : ITensorField2<N>(numContra, numCo) { }
+
+		virtual SignatureType Signature() const { return SignatureType::Riemannian; }
+		bool IsRiemannian() const { return Signature() == SignatureType::Riemannian; }
+		bool IsLorentzian() const { return Signature() == SignatureType::Lorentzian; }
 
 		// implementing operator() required by IFunction interface
 		virtual Tensor2<N>   operator()(const VectorN<Real, N>& pos) const override
@@ -82,7 +96,7 @@ namespace MML
 		/// @return N×N matrix of covariant metric components
 		/// @note Measures squared arc length: ds² = gᵢⱼ dxⁱ dxʲ
 		// Get the covariant metric tensor components at a point (gᵢⱼ)
-		MatrixNM<Real, N, N> GetCovariantMetric(const VectorN<Real, N>& pos) const
+		virtual MatrixNM<Real, N, N> GetCovariantMetric(const VectorN<Real, N>& pos) const
 		{
 			MatrixNM<Real, N, N> g_covar;
 			for (int i = 0; i < N; i++)
@@ -222,6 +236,106 @@ namespace MML
 			return gamma_ijk;
 		}
 
+		/// @brief Get Riemann curvature tensor component R^rho_sigma_mu_nu.
+		/// @param rho Contravariant index
+		/// @param sigma,mu,nu Covariant indices
+		/// @param pos Position in coordinate space
+		/// @return R^rho_sigma_mu_nu = partial_mu Gamma^rho_sigma_nu - partial_nu Gamma^rho_sigma_mu + Gamma^rho_lambda_mu Gamma^lambda_sigma_nu - Gamma^rho_lambda_nu Gamma^lambda_sigma_mu
+		Real GetRiemannCurvatureTensor(int rho, int sigma, int mu, int nu, const VectorN<Real, N>& pos) const
+		{
+			Real value = DeriveChristoffelSymbolSecondKind(rho, sigma, nu, mu, pos)
+				- DeriveChristoffelSymbolSecondKind(rho, sigma, mu, nu, pos);
+
+			for (int lambda = 0; lambda < N; lambda++)
+			{
+				value += GetChristoffelSymbolSecondKind(rho, lambda, mu, pos) * GetChristoffelSymbolSecondKind(lambda, sigma, nu, pos);
+				value -= GetChristoffelSymbolSecondKind(rho, lambda, nu, pos) * GetChristoffelSymbolSecondKind(lambda, sigma, mu, pos);
+			}
+
+			return value;
+		}
+
+		/// @brief Get Riemann curvature tensor R^rho_sigma_mu_nu at a point.
+		/// @param pos Position in coordinate space
+		/// @return Rank-4 tensor with index variance (1 contravariant, 3 covariant)
+		Tensor4<N> GetRiemannCurvatureTensor(const VectorN<Real, N>& pos) const
+		{
+			Tensor4<N> riemann(3, 1);
+
+			for (int rho = 0; rho < N; rho++)
+				for (int sigma = 0; sigma < N; sigma++)
+					for (int mu = 0; mu < N; mu++)
+						for (int nu = 0; nu < N; nu++)
+							riemann(rho, sigma, mu, nu) = GetRiemannCurvatureTensor(rho, sigma, mu, nu, pos);
+
+			return riemann;
+		}
+
+		/// @brief Get Ricci tensor component R_sigma_nu = R^rho_sigma_rho_nu.
+		/// @param sigma,nu Covariant indices
+		/// @param pos Position in coordinate space
+		/// @return Ricci tensor component R_sigma_nu
+		Real GetRicciTensor(int sigma, int nu, const VectorN<Real, N>& pos) const
+		{
+			Real value = REAL(0.0);
+			for (int rho = 0; rho < N; rho++)
+				value += GetRiemannCurvatureTensor(rho, sigma, rho, nu, pos);
+			return value;
+		}
+
+		/// @brief Get Ricci tensor R_sigma_nu at a point.
+		/// @param pos Position in coordinate space
+		/// @return Rank-2 covariant Ricci tensor
+		Tensor2<N> GetRicciTensor(const VectorN<Real, N>& pos) const
+		{
+			Tensor2<N> ricci(2, 0);
+
+			for (int sigma = 0; sigma < N; sigma++)
+				for (int nu = 0; nu < N; nu++)
+					ricci(sigma, nu) = GetRicciTensor(sigma, nu, pos);
+
+			return ricci;
+		}
+
+		/// @brief Get scalar curvature R = g^sigma_nu R_sigma_nu.
+		/// @param pos Position in coordinate space
+		/// @return Ricci scalar curvature
+		Real GetRicciScalar(const VectorN<Real, N>& pos) const
+		{
+			MatrixNM<Real, N, N> gContravar = GetContravariantMetric(pos);
+			Tensor2<N> ricci = GetRicciTensor(pos);
+			Real value = REAL(0.0);
+
+			for (int sigma = 0; sigma < N; sigma++)
+				for (int nu = 0; nu < N; nu++)
+					value += gContravar(sigma, nu) * ricci(sigma, nu);
+
+			return value;
+		}
+
+		/// @brief Get Einstein tensor component G_mu_nu = R_mu_nu - 1/2 g_mu_nu R.
+		/// @param mu,nu Covariant indices
+		/// @param pos Position in coordinate space
+		/// @return Einstein tensor component G_mu_nu
+		Real GetEinsteinTensor(int mu, int nu, const VectorN<Real, N>& pos) const
+		{
+			return GetRicciTensor(mu, nu, pos) - REAL(0.5) * this->Component(mu, nu, pos) * GetRicciScalar(pos);
+		}
+
+		/// @brief Get Einstein tensor G_mu_nu at a point.
+		/// @param pos Position in coordinate space
+		/// @return Rank-2 covariant Einstein tensor
+		Tensor2<N> GetEinsteinTensor(const VectorN<Real, N>& pos) const
+		{
+			Tensor2<N> einstein(2, 0);
+
+			for (int mu = 0; mu < N; mu++)
+				for (int nu = 0; nu < N; nu++)
+					einstein(mu, nu) = GetEinsteinTensor(mu, nu, pos);
+
+			return einstein;
+		}
+
 		/// @brief Covariant derivative of contravariant vector: ∇ⱼ vⁱ = ∂ⱼ vⁱ + Γⁱₖⱼ vₖ
 		/// @param func Vector field
 		/// @param j Derivative direction
@@ -283,6 +397,87 @@ namespace MML
 
 			return comp_val;
 		}
+
+	private:
+		Real DeriveChristoffelSymbolSecondKind(int i, int j, int k, int derivIndex, const VectorN<Real, N>& pos) const
+		{
+			VectorN<Real, N> x = pos;
+			Real original = pos[derivIndex];
+			Real h = Derivation::ScaleStep(Derivation::NDer4_h, original);
+
+			x[derivIndex] = original + h;
+			Real yh = GetChristoffelSymbolSecondKind(i, j, k, x);
+
+			x[derivIndex] = original - h;
+			Real ymh = GetChristoffelSymbolSecondKind(i, j, k, x);
+
+			x[derivIndex] = original + 2 * h;
+			Real y2h = GetChristoffelSymbolSecondKind(i, j, k, x);
+
+			x[derivIndex] = original - 2 * h;
+			Real ym2h = GetChristoffelSymbolSecondKind(i, j, k, x);
+
+			return (ym2h - y2h + 8 * (yh - ymh)) / (12 * h);
+		}
+	};
+
+	/// @brief Base class for Lorentzian metric fields using signature (-,+,+,...).
+	/// @details Provides causal classification from ds² = g_ij dx^i dx^j.
+	template<int N>
+	class LorentzianMetric : public MetricTensorField<N>
+	{
+	public:
+		enum class IntervalType
+		{
+			Timelike,
+			Spacelike,
+			Null
+		};
+
+		LorentzianMetric() : MetricTensorField<N>(0, 2) { }
+		LorentzianMetric(int numContra, int numCo) : MetricTensorField<N>(numContra, numCo) { }
+
+		virtual typename MetricTensorField<N>::SignatureType Signature() const override
+		{
+			return MetricTensorField<N>::SignatureType::Lorentzian;
+		}
+
+		Real IntervalSquared(const VectorN<Real, N>& displacement, const VectorN<Real, N>& pos) const
+		{
+			MatrixNM<Real, N, N> g = this->GetCovariantMetric(pos);
+			Real ds2 = REAL(0.0);
+			for (int i = 0; i < N; i++)
+				for (int j = 0; j < N; j++)
+					ds2 += g(i, j) * displacement[i] * displacement[j];
+			return ds2;
+		}
+
+		IntervalType ClassifyInterval(const VectorN<Real, N>& displacement, const VectorN<Real, N>& pos,
+			Real tolerance = REAL(1e-12)) const
+		{
+			Real ds2 = IntervalSquared(displacement, pos);
+			if (std::abs(ds2) <= tolerance)
+				return IntervalType::Null;
+			return ds2 < REAL(0.0) ? IntervalType::Timelike : IntervalType::Spacelike;
+		}
+
+		bool IsTimelike(const VectorN<Real, N>& displacement, const VectorN<Real, N>& pos,
+			Real tolerance = REAL(1e-12)) const
+		{
+			return ClassifyInterval(displacement, pos, tolerance) == IntervalType::Timelike;
+		}
+
+		bool IsSpacelike(const VectorN<Real, N>& displacement, const VectorN<Real, N>& pos,
+			Real tolerance = REAL(1e-12)) const
+		{
+			return ClassifyInterval(displacement, pos, tolerance) == IntervalType::Spacelike;
+		}
+
+		bool IsNull(const VectorN<Real, N>& displacement, const VectorN<Real, N>& pos,
+			Real tolerance = REAL(1e-12)) const
+		{
+			return ClassifyInterval(displacement, pos, tolerance) == IntervalType::Null;
+		}
 	};
 
 	/// @brief Flat metric tensor for Cartesian 3D (gᵢⱼ = δᵢⱼ, all Christoffel symbols vanish)
@@ -321,7 +516,8 @@ namespace MML
 				return 0.0;
 		}
 	};
-	/// @brief Contravariant spherical metric: gⁱʲ=diag(1, 1/r², 1/(r²sin²θ))
+	
+  /// @brief Contravariant spherical metric: gⁱʲ=diag(1, 1/r², 1/(r²sin²θ))
 	class MetricTensorSphericalContravar : public MetricTensorField<3>
 	{
 	public:
@@ -347,7 +543,8 @@ namespace MML
 				return 0.0;
 		}
 	};
-	/// @brief Metric for cylindrical coords (ρ,φ,z): ds²=dρ²+ρ²dφ²+dz², g=diag(1,ρ²,1)
+	
+  /// @brief Metric for cylindrical coords (ρ,φ,z): ds²=dρ²+ρ²dφ²+dz², g=diag(1,ρ²,1)
 	class MetricTensorCylindrical : public MetricTensorField<3>
 	{
 	public:
@@ -370,45 +567,51 @@ namespace MML
 	template<typename VectorFrom, typename VectorTo, int N>
 	class MetricTensorFromCoordTransf : public MetricTensorField<N>
 	{
-		const ICoordTransfWithInverse<VectorFrom, VectorTo, N>& _coordTransf;
+		const CoordTransf<VectorFrom, VectorTo, N>& _coordTransf;
 
 	public:
-		MetricTensorFromCoordTransf(ICoordTransfWithInverse<VectorFrom, VectorTo, N>& inTransf) : _coordTransf(inTransf)
+		explicit MetricTensorFromCoordTransf(const CoordTransf<VectorFrom, VectorTo, N>& inTransf) : _coordTransf(inTransf)
 		{ }
 
-		virtual Real Component(int i, int j, const VectorN<Real, N>& pos) const
+		Real Component(int i, int j, const VectorN<Real, N>& pos) const override
 		{
+			const auto jac = _coordTransf.jacobian(pos);
 			Real g_ij = 0.0;
 			for (int k = 0; k < N; k++)
-			{
-				auto der_k_by_i = Derivation::DerivePartial<N>(_coordTransf.coordTransfFunc(k), i, pos, nullptr);
-				auto der_k_by_j = Derivation::DerivePartial<N>(_coordTransf.coordTransfFunc(k), j, pos, nullptr);
-
-				g_ij += der_k_by_i * der_k_by_j;
-			}
+				g_ij += jac(k, i) * jac(k, j);
 			return g_ij;
+		}
+
+		MatrixNM<Real, N, N> GetCovariantMetric(const VectorN<Real, N>& pos) const override
+		{
+			const auto jac = _coordTransf.jacobian(pos);
+			MatrixNM<Real, N, N> metric;
+
+			for (int i = 0; i < N; ++i)
+				for (int j = 0; j < N; ++j)
+				{
+					metric(i, j) = REAL(0.0);
+					for (int k = 0; k < N; ++k)
+						metric(i, j) += jac(k, i) * jac(k, j);
+				}
+
+			return metric;
 		}
 	};
 
 	/// @brief Minkowski metric for special relativity: η=diag(-1,1,1,1), signature (−,+,+,+)
 	/// @note Flat spacetime with coords (ct,x,y,z), ds²=-c²dt²+dx²+dy²+dz²
-	class MetricTensorMinkowski : public MetricTensorField<4>
+	class MetricTensorMinkowski : public LorentzianMetric<4>
 	{
 	public:
-		MetricTensorMinkowski() : MetricTensorField<4>(0, 2) {}
+		MetricTensorMinkowski() : LorentzianMetric<4>(0, 2) {}
 
 		virtual Real Component(int i, int j, const VectorN<Real, 4>& pos) const override
 		{
-			if (i == 0 && j == 0)
-				return -1.0;
-			else if (i == 1 && j == 1)
-				return 1.0;
-			else if (i == 2 && j == 2)
-				return 1.0;
-			else if (i == 3 && j == 3)
-				return 1.0;
-			else
-				return 0.0;
+			if (i != j)
+				return REAL(0.0);
+
+			return i == 0 ? -REAL(1.0) : REAL(1.0);
 		}
 	};
 }

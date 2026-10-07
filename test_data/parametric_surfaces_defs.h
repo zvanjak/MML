@@ -4,11 +4,11 @@
 #include <cmath>
 
 #ifdef MML_USE_SINGLE_HEADER
-#include "MML.h"
+#include <MML.h>
 #else
-#include "base/Vector/VectorN.h"
-#include "base/Matrix/Matrix.h"
-#include "base/Function.h"
+#include <mml/base/Vector/VectorN.h>
+#include <mml/base/Matrix/Matrix.h>
+#include <mml/base/Function.h>
 #endif
 
 namespace MML::TestBeds

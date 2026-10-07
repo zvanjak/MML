@@ -43,11 +43,11 @@
 #if !defined  MML_IFUNCTION_H
 #define MML_IFUNCTION_H
 
-#include "MMLBase.h"
+#include <mml/MMLBase.h>
 
-#include "base/Vector/Vector.h"
-#include "base/Vector/VectorN.h"
-#include "interfaces/IParametrized.h"
+#include <mml/base/Vector/Vector.h>
+#include <mml/base/Vector/VectorN.h>
+#include <mml/interfaces/IParametrized.h>
 
 #include <vector>
 
@@ -110,6 +110,9 @@ namespace MML
 		 */
 		void GetValues(Real x1, Real x2, int numPnt, Vector<Real>& outX, Vector<Real>& outY) const
 		{
+			if (numPnt < 2)
+				throw ArgumentError("GetValues: numPnt must be >= 2");
+
 			outX.Resize(numPnt);
 			outY.Resize(numPnt);
 
@@ -354,7 +357,7 @@ namespace MML
 		 * @param numPoints Number of sample points
 		 * @return Vector of points on the curve
 		 */
-		std::vector<VectorN<Real, N>> GetTrace(double t1, double t2, int numPoints) const
+		std::vector<VectorN<Real, N>> GetTrace(Real t1, Real t2, int numPoints) const
 		{
 			std::vector<VectorN<Real, N>> ret;
 			if (numPoints <= 0)

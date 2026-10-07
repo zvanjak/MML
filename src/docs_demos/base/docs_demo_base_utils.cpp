@@ -4,15 +4,16 @@
 ///////////////////////////////////////////////////////////////////////////////////////////
 
 #ifdef MML_USE_SINGLE_HEADER
-#include "MML.h"
+#include <MML.h>
 #else
-#include "MMLBase.h"
+#include <mml/MMLBase.h>
 
-#include "base/Vector/Vector.h"
-#include "base/Vector/VectorN.h"
-#include "base/Matrix/Matrix.h"
-#include "base/Matrix/MatrixNM.h"
-#include "base/BaseUtils.h"
+#include <mml/base/Vector/Vector.h>
+#include <mml/base/Vector/VectorN.h>
+#include <mml/base/Matrix/Matrix.h>
+#include <mml/base/Matrix/MatrixNM.h>
+#include <mml/base/BaseUtils.h>
+#include <mml/algorithms/MatrixAlg.h>
 #endif
 
 #include <iostream>
@@ -208,7 +209,7 @@ void Demo_MatrixFunctions()
     std::cout << expA << std::endl;
     
     // Verify it's a rotation
-    std::cout << "Is result orthogonal? " << (Utils::IsOrthogonal(expA) ? "Yes" : "No") << std::endl;
+    std::cout << "Is result orthogonal? " << (MatrixAlg::IsOrthogonal(expA) ? "Yes" : "No") << std::endl;
 }
 
 void Demo_MatrixProperties()
@@ -223,7 +224,7 @@ void Demo_MatrixProperties()
     
     std::cout << "Rotation matrix R (30°):" << std::endl;
     std::cout << R << std::endl;
-    std::cout << "IsOrthogonal(R) = " << (Utils::IsOrthogonal(R) ? "true" : "false") << std::endl;
+    std::cout << "IsOrthogonal(R) = " << (MatrixAlg::IsOrthogonal(R) ? "true" : "false") << std::endl;
     
     // Hermitian matrix check
     Matrix<Complex> H(2, 2);
@@ -234,7 +235,7 @@ void Demo_MatrixProperties()
     
     std::cout << "\nHermitian matrix H:" << std::endl;
     std::cout << H << std::endl;
-    std::cout << "IsHermitian(H) = " << (Utils::IsHermitian(H) ? "true" : "false") << std::endl;
+    std::cout << "IsHermitian(H) = " << (MatrixAlg::IsHermitian(H) ? "true" : "false") << std::endl;
     
     // Complex matrix operations
     Matrix<Real> realPart = Utils::GetRealPart(H);

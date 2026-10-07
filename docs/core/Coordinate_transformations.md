@@ -57,6 +57,8 @@ The coordinate transformation system provides a comprehensive framework for conv
 | From System | To System | Class | Use Case |
 |-------------|-----------|-------|----------|
 | Minkowski | Minkowski | `CoordTransfLorentzXAxis` | Boost along X-axis |
+| Minkowski | Minkowski | `CoordTransfLorentzBoost` | Boost along arbitrary direction |
+| Minkowski | Minkowski | `LorentzSpatialRotationMatrix` | Embed 3D rotations in spacetime |
 
 ---
 
@@ -206,7 +208,7 @@ r = √(x² + y²)
 **Example 1: Basic Polar Transformation**
 
 ```cpp
-#include "core/CoordTransf/CoordTransf2D.h"
+#include <mml/core/CoordTransf/CoordTransf2D.h>
 
 CoordTransfPolarToCartesian2D polarToCart;
 
@@ -310,7 +312,7 @@ Unit basis vectors at position (r, θ, φ):
 **Example 3: Spherical Coordinates**
 
 ```cpp
-#include "core/CoordTransf/CoordTransfSpherical.h"
+#include <mml/core/CoordTransf/CoordTransfSpherical.h>
 
 // Transform point from spherical to Cartesian
 Vector3Spherical sph{5.0, Constants::PI/4, Constants::PI/3};  // r=5, θ=45°, φ=60°
@@ -369,7 +371,7 @@ z = z
 **Example 4: Cylindrical Coordinates**
 
 ```cpp
-#include "core/CoordTransf/CoordTransfCylindrical.h"
+#include <mml/core/CoordTransf/CoordTransfCylindrical.h>
 
 // Transform from cylindrical to Cartesian
 Vector3Cylindrical cyl{3.0, Constants::PI/6, 5.0};  // ρ=3, φ=30°, z=5
@@ -428,7 +430,7 @@ R_z(θ) = [ cos(θ)  -sin(θ)  0 ]
 **Example 5: Principal Axis Rotations**
 
 ```cpp
-#include "core/CoordTransf/CoordTransf3D.h"
+#include <mml/core/CoordTransf/CoordTransf3D.h>
 
 // Rotate 90° about Z-axis
 CoordTransfCart3DRotationZAxis rotZ(Constants::PI/2);
@@ -535,8 +537,8 @@ where v is treated as pure imaginary quaternion (0, v).
 **Example 7: Quaternion Rotation**
 
 ```cpp
-#include "base/Quaternions.h"
-#include "core/CoordTransf/CoordTransf3D.h"
+#include <mml/base/Quaternions.h>
+#include <mml/core/CoordTransf/CoordTransf3D.h>
 
 // Create rotation: 90° about Z-axis
 Vec3Cart axis{0.0, 0.0, 1.0};
@@ -573,6 +575,14 @@ public:
     // velocity in units of c (speed of light): v ∈ [0, 1)
     CoordTransfLorentzXAxis(Real velocity);
 };
+
+class CoordTransfLorentzBoost :
+    public CoordTransfWithInverse<Vector4Minkowski, Vector4Minkowski, 4>
+{
+public:
+    // beta = v/c as a 3-vector, with |beta| < 1
+    CoordTransfLorentzBoost(const VectorN<Real, 3>& beta);
+};
 ```
 
 **Minkowski Coordinates**: (ct, x, y, z)
@@ -600,6 +610,15 @@ y'  = y
 z'  = z
 ```
 
+For an arbitrary boost direction `beta`, the forward transform is:
+
+```
+ct' = γ(ct - beta·r)
+r'  = r + ((γ - 1)/|beta|²)(beta·r) beta - γ ct beta
+```
+
+Use `LorentzBoostMatrix(beta)` when a raw `4x4` transformation matrix is useful, `LorentzSpatialRotationMatrix(rotation3x3)` to embed a spatial rotation, and `ComposeLorentzTransformations(left, right)` to apply `right` first and then `left`.
+
 **Physical Interpretation**:
 - Time dilation: Δt' = γΔt
 - Length contraction: L' = L/γ
@@ -608,7 +627,7 @@ z'  = z
 **Example 8: Lorentz Transformation**
 
 ```cpp
-#include "core/CoordTransf/CoordTransfLorentz.h"
+#include <mml/core/CoordTransf/CoordTransfLorentz.h>
 
 // Observer moving at 0.6c along x-axis
 Real velocity = 0.6;  // in units of c
@@ -630,6 +649,28 @@ Real s2 = event[0]*event[0] - event[1]*event[1] - event[2]*event[2] - event[3]*e
 Real s2prime = eventPrime[0]*eventPrime[0] - eventPrime[1]*eventPrime[1] 
              - eventPrime[2]*eventPrime[2] - eventPrime[3]*eventPrime[3];
 // s2 ≈ s2prime (invariant interval)
+```
+
+**Example 9: Arbitrary-Direction Boost and Composition**
+
+```cpp
+#include <mml/core/CoordTransf/CoordTransfLorentz.h>
+
+VectorN<Real, 3> beta{0.2, -0.3, 0.1};
+CoordTransfLorentzBoost boost(beta);
+
+Vector4Minkowski event{5.0, 2.0, -1.0, 3.0};
+Vector4Minkowski boosted = boost.transf(event);
+Vector4Minkowski back = boost.transfInverse(boosted);
+
+MatrixNM<Real, 3, 3> rotationZ90;
+rotationZ90[0][1] = -1.0;
+rotationZ90[1][0] =  1.0;
+rotationZ90[2][2] =  1.0;
+
+auto rotation = LorentzSpatialRotationMatrix(rotationZ90);
+auto composed = ComposeLorentzTransformations(rotation, boost.Matrix());
+Vector4Minkowski boostedThenRotated = ApplyLorentzTransformation(composed, event);
 ```
 
 ---
@@ -783,8 +824,8 @@ Real norm_e_phi = e_phi.NormL2();    // Should be r sin(θ)
 ### With Field Operations
 
 ```cpp
-#include "core/FieldOperations.h"
-#include "core/CoordTransf/CoordTransfSpherical.h"
+#include <mml/core/Fields/FieldOperations.h>
+#include <mml/core/CoordTransf/CoordTransfSpherical.h>
 
 // Compute gradient in different coordinate systems
 RealFunction func = /* some scalar field */;
@@ -803,7 +844,7 @@ Vector3Spherical gradSpher =
 ### With Metric Tensor
 
 ```cpp
-#include "core/MetricTensor.h"
+#include <mml/core/MetricTensor.h>
 
 // Metric tensor automatically computed from coordinate transformation
 MetricTensorFromCoordTransf<Vector3Spherical, Vector3Cartesian, 3> 
@@ -819,7 +860,7 @@ MatrixNM<Real, 3, 3> g = metricSpher.getMetricTensorCovariant(pos);
 ### With Curves
 
 ```cpp
-#include "core/Curves.h"
+#include <mml/core/Curves.h>
 
 // Define curve in one coordinate system
 auto helix = [](Real t) -> Vector3Cartesian {

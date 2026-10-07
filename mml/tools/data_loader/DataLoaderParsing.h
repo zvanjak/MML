@@ -11,7 +11,8 @@
 #if !defined MML_DATA_LOADER_PARSING_H
 #define MML_DATA_LOADER_PARSING_H
 
-#include "tools/data_loader/DataLoaderTypes.h"
+#include <mml/tools/data_loader/DataLoaderTypes.h>
+#include <mml/tools/CsvUtils.h>
 
 #include <algorithm>
 #include <cctype>
@@ -175,39 +176,9 @@ namespace MML {
 		///                              STRING UTILITIES                                  ///
 		/////////////////////////////////////////////////////////////////////////////////////
 		/// @brief Split a string by delimiter, respecting quoted fields
+		/// (delegates to the shared RFC 4180 module in tools/CsvUtils.h)
 		inline std::vector<std::string> SplitLine(const std::string& line, char delimiter) {
-			std::vector<std::string> result;
-			std::string field;
-			bool inQuotes = false;
-			bool prevWasQuote = false;
-
-			for (size_t i = 0; i < line.size(); ++i) {
-				char c = line[i];
-
-				if (c == '"') {
-					if (inQuotes && i + 1 < line.size() && line[i + 1] == '"') {
-						// Escaped quote
-						field += '"';
-						++i;
-					}
-					else {
-						inQuotes = !inQuotes;
-					}
-					prevWasQuote = true;
-				}
-				else if (c == delimiter && !inQuotes) {
-					result.push_back(field);
-					field.clear();
-					prevWasQuote = false;
-				}
-				else {
-					field += c;
-					prevWasQuote = false;
-				}
-			}
-			result.push_back(field);
-
-			return result;
+			return CsvUtils::SplitLine(line, delimiter);
 		}
 
 		/// @brief Trim whitespace from string

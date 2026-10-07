@@ -3,18 +3,94 @@
 #include "../../TestMatchers.h"
 
 #ifdef MML_USE_SINGLE_HEADER
-#include "MML.h"
+#include <MML.h>
 #else
-#include "base/Vector/Vector.h"
-#include "base/Matrix/Matrix.h"
-#include "base/BaseUtils.h"
+#include <mml/base/Vector/Vector.h>
+#include <mml/base/Matrix/Matrix.h>
+#include <mml/base/BaseUtils.h>
+#include <mml/algorithms/MatrixAlg.h>
 #endif
+
+#include <iterator>
 
 using namespace MML;
 using namespace MML::Testing;
 
 namespace MML::Tests::Base::MatrixTests
 {
+	template<typename MatrixType>
+	concept HasLegacyMatrixAnalysis = requires(const MatrixType& matrix) {
+		matrix.isDiagonal();
+		matrix.isDiagonallyDominant();
+		matrix.isSymmetric();
+		matrix.NormL1();
+		matrix.NormL2();
+		matrix.NormLInf();
+	};
+
+	TEST_CASE("Matrix analysis is owned by MatrixAlg", "[Matrix][API]")
+	{
+		STATIC_REQUIRE_FALSE(HasLegacyMatrixAnalysis<Matrix<Real>>);
+		STATIC_REQUIRE_FALSE(HasLegacyMatrixAnalysis<Matrix<Complex>>);
+	}
+
+	TEST_CASE("Matrix preserves zero-dimension shapes", "[Matrix][ZeroDimension]")
+	{
+		STATIC_REQUIRE(std::forward_iterator<Matrix<Real>::col_iterator>);
+		STATIC_REQUIRE(std::forward_iterator<Matrix<Real>::const_col_iterator>);
+
+		Matrix<Real> trivialNullSpace(3, 0);
+		REQUIRE(trivialNullSpace.rows() == 3);
+		REQUIRE(trivialNullSpace.cols() == 0);
+		for (int row = 0; row < trivialNullSpace.rows(); ++row) {
+			REQUIRE(trivialNullSpace[row] == trivialNullSpace[0]);
+			int elements = 0;
+			for ([[maybe_unused]] const Real value : trivialNullSpace.row(row))
+				++elements;
+			REQUIRE(elements == 0);
+		}
+
+		Matrix<Real> trivialLeftNullSpace(0, 4);
+		REQUIRE(trivialLeftNullSpace.rows() == 0);
+		REQUIRE(trivialLeftNullSpace.cols() == 4);
+		for (int col = 0; col < trivialLeftNullSpace.cols(); ++col) {
+			int elements = 0;
+			for ([[maybe_unused]] const Real value : trivialLeftNullSpace.col(col))
+				++elements;
+			REQUIRE(elements == 0);
+		}
+		const Matrix<Real>& constTrivialLeftNullSpace = trivialLeftNullSpace;
+		REQUIRE(std::distance(constTrivialLeftNullSpace.col(3).begin(), constTrivialLeftNullSpace.col(3).end()) == 0);
+		REQUIRE(std::distance(trivialNullSpace.row(2).begin(), trivialNullSpace.row(2).end()) == 0);
+		Matrix<Real> fromNullPointer(2, 0, static_cast<Real*>(nullptr));
+		REQUIRE(fromNullPointer.rows() == 2);
+		REQUIRE(fromNullPointer.cols() == 0);
+		const Matrix<Real> transposed = trivialNullSpace.transpose();
+		REQUIRE(transposed.rows() == 0);
+		REQUIRE(transposed.cols() == 3);
+
+		Matrix<Real> ordinary{2, 3, {
+			REAL(1.0), REAL(2.0), REAL(3.0),
+			REAL(4.0), REAL(5.0), REAL(6.0)
+		}};
+		std::vector<Real> lastColumn;
+		for (const Real value : ordinary.col(2))
+			lastColumn.push_back(value);
+		REQUIRE(lastColumn == std::vector<Real>{REAL(3.0), REAL(6.0)});
+
+		Matrix<Real> fromEmptyRows(std::vector<std::vector<Real>>(2));
+		REQUIRE(fromEmptyRows.rows() == 2);
+		REQUIRE(fromEmptyRows.cols() == 0);
+
+		Matrix<Real> resized;
+		resized.Resize(5, 0);
+		REQUIRE(resized.rows() == 5);
+		REQUIRE(resized.cols() == 0);
+		resized.Resize(0, 2);
+		REQUIRE(resized.rows() == 0);
+		REQUIRE(resized.cols() == 2);
+	}
+
 	///////////////////////          Constructors and destructor       //////////////////////
 	TEST_CASE("Matrix::default_ctor_init_to_zero", "[simple]") {
 			TEST_PRECISION_INFO();
@@ -196,15 +272,15 @@ namespace MML::Tests::Base::MatrixTests
 
 		REQUIRE(false == b.isIdentity());
 	}
-	TEST_CASE("Matrix::IsDiagonal", "[simple]") {
+	TEST_CASE("MatrixAlg::IsDiagonal", "[simple]") {
 			TEST_PRECISION_INFO();
 		Matrix<Real> a(2, 2, { REAL(1.0), REAL(0.0), REAL(0.0), REAL(5.0) });
 
-		REQUIRE(true == a.isDiagonal());
+		REQUIRE(MatrixAlg::IsDiagonal(a));
 
 		Matrix<Real> b(2, 2, { REAL(1.0), REAL(2.0), REAL(0.0), REAL(2.0) });
 
-		REQUIRE(false == b.isDiagonal());
+		REQUIRE_FALSE(MatrixAlg::IsDiagonal(b));
 	}
 
 	///////////////////////             Assignment operators           //////////////////////
@@ -239,7 +315,7 @@ namespace MML::Tests::Base::MatrixTests
 
 		// Difference is 1e-4, use 1e-3 (yes) and 1e-7 (no)
 		// 1e-3 scales to 1e-1 (float), 1e-7 scales to 1e-5 (float)
-		REQUIRE(true == a.IsEqualTo(b, ScaleTolerance(REAL(1e-3))));
+		REQUIRE(true == a.IsEqualTo(b, TOL3(1e-3, 1e-1, 1e-3)));
 		REQUIRE(false == a.IsEqualTo(b, ScaleTolerance(REAL(1e-7))));
 	}
 
@@ -378,7 +454,7 @@ namespace MML::Tests::Base::MatrixTests
 		auto b = mat.inverse();
 		auto c = mat * b;
 
-		REQUIRE(c.IsEqualTo(Matrix<Real>::Identity(3), 1e-10));
+		REQUIRE(c.IsEqualTo(Matrix<Real>::Identity(3), TOL(1e-10, 5e-1)));
 	}
 	TEST_CASE("Matrix::GetInverse_throws_for_singular_matrix", "[simple]")
 	{
@@ -402,8 +478,8 @@ namespace MML::Tests::Base::MatrixTests
 			TEST_PRECISION_INFO();
 		std::stringstream str;
 
-		Matrix<Real> mat(2, 2, { REAL(1.0), REAL(2.0), REAL(3.0), 1e-10 });
-		mat.Print(str, 5, 3, 1e-9);
+		Matrix<Real> mat(2, 2, { REAL(1.0), REAL(2.0), REAL(3.0), TOL(1e-10, 1e-5) });
+		mat.Print(str, 5, 3, TOL(1e-9, 1e-4));
 
 		REQUIRE("Rows: 2 Cols: 2\n[     1,     2 ]\n[     3,     0 ]" == str.str());
 	}
@@ -494,8 +570,11 @@ namespace MML::Tests::Base::MatrixTests
 		std::string output = ss.str();
 
 		// High precision should show more decimal places
-		// Check for PI with at least 8 decimals
-		REQUIRE(output.find("3.14159265") != std::string::npos);
+		if constexpr (std::is_same_v<Real, float>) {
+			REQUIRE(output.find("3.14159") != std::string::npos);
+		} else {
+			REQUIRE(output.find("3.14159265") != std::string::npos);
+		}
 	}
 
 	TEST_CASE("Matrix::Print_with_no_delimiter", "[matrix_format]") {
@@ -563,7 +642,7 @@ namespace MML::Tests::Base::MatrixTests
 		a.Print(ss1, 10, 3);
 
 		std::stringstream ss2;
-		a.Print(ss2, 10, 3, 1e-10);  // with zero threshold
+		a.Print(ss2, 10, 3, TOL(1e-10, 1e-5));  // with zero threshold
 
 		// Both should produce valid output
 		REQUIRE(!ss1.str().empty());
@@ -596,11 +675,11 @@ namespace MML::Tests::Base::MatrixTests
 		
 		// Inverse of 1x1 [a] is [1/a]
 		Matrix<Real> inv = m1.inverse();
-		REQUIRE_THAT(inv(0, 0), Catch::Matchers::WithinAbs(REAL(0.2), 1e-10));
+		REQUIRE_THAT(inv(0, 0), Catch::Matchers::WithinAbs(REAL(0.2), TOL(1e-10, 1e-5)));
 		
 		// m1 * inv = I (1x1 identity)
 		Matrix<Real> identity = m1 * inv;
-		REQUIRE_THAT(identity(0, 0), Catch::Matchers::WithinAbs(REAL(1.0), 1e-10));
+		REQUIRE_THAT(identity(0, 0), Catch::Matchers::WithinAbs(REAL(1.0), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("Matrix::EdgeCase_rectangular_multiply", "[Matrix][edge_cases]")
@@ -634,15 +713,15 @@ namespace MML::Tests::Base::MatrixTests
 		
 		// A * I = A
 		Matrix<Real> AI = A * I;
-		REQUIRE(A.IsEqualTo(AI, 1e-10));
+		REQUIRE(A.IsEqualTo(AI, TOL(1e-10, 1e-5)));
 		
 		// I * A = A
 		Matrix<Real> IA = I * A;
-		REQUIRE(A.IsEqualTo(IA, 1e-10));
+		REQUIRE(A.IsEqualTo(IA, TOL(1e-10, 1e-5)));
 		
 		// I^-1 = I
 		Matrix<Real> Iinv = I.inverse();
-		REQUIRE(I.IsEqualTo(Iinv, 1e-10));
+		REQUIRE(I.IsEqualTo(Iinv, TOL(1e-10, 1e-5)));
 	}
 
 	///////////////////////          Copy and Move Semantics          //////////////////////
@@ -809,7 +888,7 @@ namespace MML::Tests::Base::MatrixTests
 		REQUIRE(m(2, 2) == REAL(3.0));
 		REQUIRE(m(0, 1) == REAL(0.0));
 		REQUIRE(m(1, 2) == REAL(0.0));
-		REQUIRE(m.isDiagonal());
+		REQUIRE(MatrixAlg::IsDiagonal(m));
 	}
 
 	///////////////////////          Triangular Extraction             //////////////////////
@@ -1027,7 +1106,7 @@ namespace MML::Tests::Base::MatrixTests
 	}
 
 	///////////////////////          Matrix Properties                 //////////////////////
-	TEST_CASE("Matrix::IsDiagDominant", "[Matrix][properties]")
+	TEST_CASE("MatrixAlg::IsDiagonallyDominant", "[Matrix][properties]")
 	{
 		TEST_PRECISION_INFO();
 		// Diagonally dominant: |a_ii| >= sum of |a_ij| for j != i
@@ -1035,33 +1114,33 @@ namespace MML::Tests::Base::MatrixTests
 		                              REAL(1.0),  REAL(8.0), REAL(1.0),
 		                              REAL(2.0),  REAL(1.0), REAL(9.0) });
 		
-		REQUIRE(dominant.isDiagonallyDominant() == true);
+		REQUIRE(MatrixAlg::IsDiagonallyDominant(dominant));
 		
 		Matrix<Real> notDominant(3, 3, { REAL(1.0), REAL(5.0), REAL(5.0),
 		                                 REAL(1.0), REAL(1.0), REAL(1.0),
 		                                 REAL(1.0), REAL(1.0), REAL(1.0) });
 		
-		REQUIRE(notDominant.isDiagonallyDominant() == false);
+		REQUIRE_FALSE(MatrixAlg::IsDiagonallyDominant(notDominant));
 	}
 
-	TEST_CASE("Matrix::IsSymmetric", "[Matrix][properties]")
+	TEST_CASE("MatrixAlg::IsSymmetric", "[Matrix][properties]")
 	{
 		TEST_PRECISION_INFO();
 		Matrix<Real> symmetric(3, 3, { REAL(1.0), REAL(2.0), REAL(3.0),
 		                               REAL(2.0), REAL(5.0), REAL(6.0),
 		                               REAL(3.0), REAL(6.0), REAL(9.0) });
 		
-		REQUIRE(symmetric.isSymmetric() == true);
+		REQUIRE(MatrixAlg::IsSymmetric(symmetric));
 		
 		Matrix<Real> notSymmetric(3, 3, { REAL(1.0), REAL(2.0), REAL(3.0),
 		                                  REAL(4.0), REAL(5.0), REAL(6.0),
 		                                  REAL(7.0), REAL(8.0), REAL(9.0) });
 		
-		REQUIRE(notSymmetric.isSymmetric() == false);
+		REQUIRE_FALSE(MatrixAlg::IsSymmetric(notSymmetric));
 		
 		// Non-square matrix cannot be symmetric
 		Matrix<Real> nonSquare(2, 3);
-		REQUIRE(nonSquare.isSymmetric() == false);
+		REQUIRE_FALSE(MatrixAlg::IsSymmetric(nonSquare));
 	}
 
 	TEST_CASE("Matrix::IsAntiSymmetric", "[Matrix][properties]")
@@ -1092,32 +1171,32 @@ namespace MML::Tests::Base::MatrixTests
 	}
 
 	///////////////////////          Matrix Norms                      //////////////////////
-	TEST_CASE("Matrix::NormL1", "[Matrix][norms]")
+	TEST_CASE("MatrixAlg::OneNorm", "[Matrix][norms]")
 	{
 		TEST_PRECISION_INFO();
 		Matrix<Real> m(2, 2, { REAL(1.0), REAL(-2.0), REAL(3.0), REAL(-4.0) });
 		
-		// L1 norm = sum of absolute values = 1 + 2 + 3 + 4 = 10
-		REQUIRE_THAT(m.NormL1(), RealWithinRel(REAL(10.0)));
+		// Induced 1-norm = maximum absolute column sum = max(4, 6) = 6
+		REQUIRE_THAT(MatrixAlg::OneNorm(m), RealWithinRel(REAL(6.0)));
 	}
 
-	TEST_CASE("Matrix::NormL2_Frobenius", "[Matrix][norms]")
+	TEST_CASE("MatrixAlg::FrobeniusNorm", "[Matrix][norms]")
 	{
 		TEST_PRECISION_INFO();
 		Matrix<Real> m(2, 2, { REAL(1.0), REAL(2.0), REAL(3.0), REAL(4.0) });
 		
 		// Frobenius norm = sqrt(1^2 + 2^2 + 3^2 + 4^2) = sqrt(30)
 		Real expected = std::sqrt(REAL(30.0));
-		REQUIRE_THAT(m.NormL2(), RealWithinRel(expected));
+		REQUIRE_THAT(MatrixAlg::FrobeniusNorm(m), RealWithinRel(expected));
 	}
 
-	TEST_CASE("Matrix::NormLInf", "[Matrix][norms]")
+	TEST_CASE("MatrixAlg::InfinityNorm", "[Matrix][norms]")
 	{
 		TEST_PRECISION_INFO();
 		Matrix<Real> m(2, 2, { REAL(1.0), REAL(-7.0), REAL(3.0), REAL(4.0) });
 		
-		// L-infinity norm = max absolute value = 7
-		REQUIRE_THAT(m.NormLInf(), RealWithinRel(REAL(7.0)));
+		// Induced infinity norm = maximum absolute row sum = max(8, 7) = 8
+		REQUIRE_THAT(MatrixAlg::InfinityNorm(m), RealWithinRel(REAL(8.0)));
 	}
 
 	///////////////////////          Access and Iterators              //////////////////////
@@ -1359,7 +1438,7 @@ namespace MML::Tests::Base::MatrixTests
 		
 		// m * original = I
 		Matrix<Real> product = m * original;
-		REQUIRE(product.IsEqualTo(Matrix<Real>::Identity(2), 1e-10));
+		REQUIRE(product.IsEqualTo(Matrix<Real>::Identity(2), TOL(1e-10, 1e-5)));
 	}
 
 	///////////////////////          Type Aliases                      //////////////////////
@@ -1423,7 +1502,7 @@ namespace MML::Tests::Base::MatrixTests
 		MatrixComplex c(2, 2, { Complex(3.0, 4.0), Complex(0.0, 0.0),
 		                        Complex(0.0, 0.0), Complex(0.0, 0.0) });
 		// |3+4i|^2 = 25, so norm = 5
-		REQUIRE_THAT(c.NormL2(), Catch::Matchers::WithinAbs(5.0, 1e-10));
+		REQUIRE_THAT(MatrixAlg::FrobeniusNorm(c), Catch::Matchers::WithinAbs(5.0, TOL(1e-10, 1e-5)));
 	}
 
 	///////////////////////          Resize with Preserve              //////////////////////

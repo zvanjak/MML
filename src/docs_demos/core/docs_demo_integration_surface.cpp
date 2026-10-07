@@ -1,13 +1,13 @@
 #ifdef MML_USE_SINGLE_HEADER
-#include "MML.h"
+#include <MML.h>
 #else
-#include "MMLBase.h"
+#include <mml/MMLBase.h>
 
-#include "base/Function.h"
-#include "mml/base/Geometry/Geometry3DBodies.h"
+#include <mml/base/Function.h>
+#include <mml/base/Geometry/Geometry3DBodies.h>
 
-#include "core/Integration/SurfaceIntegration.h"
-#include "core/Fields.h"
+#include <mml/core/Integration/SurfaceIntegration.h>
+#include <mml/core/Fields/Fields.h>
 #endif
 
 

@@ -264,7 +264,7 @@ public:
 
 ```cpp
 #include "test_beds/parametric_curves_test_bed.h"
-#include "core/Curves.h"
+#include <mml/core/Curves.h>
 
 using namespace MML;
 using namespace MML::TestBeds;
@@ -333,7 +333,7 @@ Real dot_NB = ScalarProduct(N, B);  // Should be ~0
 
 ```cpp
 #include "test_beds/parametric_surfaces_test_bed.h"
-#include "core/Surfaces.h"
+#include <mml/core/Surfaces.h>
 
 using namespace MML;
 using namespace MML::TestBeds;

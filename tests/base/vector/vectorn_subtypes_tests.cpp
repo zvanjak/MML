@@ -3,10 +3,11 @@
 #include "../../TestMatchers.h"
 
 #ifdef MML_USE_SINGLE_HEADER
-#include "MML.h"
+#include <MML.h>
 #else
-#include "mml/base/Geometry/Geometry.h"
-#include "base/Vector/VectorTypes.h"
+#include <mml/base/Geometry/Geometry.h>
+#include <mml/base/Vector/VectorTypes2D.h>
+#include <mml/base/Vector/VectorTypes3D.h>
 #endif
 
 using namespace MML;

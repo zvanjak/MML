@@ -2,13 +2,14 @@
 ///                         MinimalMathLibrary (MML)                                  ///
 ///                                                                                   ///
 ///  File:        numeric_validation_tests.cpp                                        ///
-///  Description: Tests for NumericValidation.h - Input validation helpers            ///
+///  Description: Tests for MMLNumericValidation.h - Input validation helpers         ///
 ///                                                                                   ///
 ///////////////////////////////////////////////////////////////////////////////////////////
 #include <catch2/catch_all.hpp>
+#include "../TestPrecision.h"
 
-#include "MMLBase.h"
-#include "core/NumericValidation.h"
+#include <mml/MMLBase.h>
+#include <mml/MMLNumericValidation.h>
 
 #include <limits>
 #include <cmath>
@@ -28,7 +29,7 @@ TEST_CASE("IsFinite - Normal values", "[NumericValidation][IsFinite]")
 	REQUIRE(IsFinite(-1.0));
 	REQUIRE(IsFinite(1e10));
 	REQUIRE(IsFinite(-1e10));
-	REQUIRE(IsFinite(1e-10));
+	REQUIRE(IsFinite(TOL(1e-10, 1e-5)));
 	REQUIRE(IsFinite(std::numeric_limits<Real>::min()));
 	REQUIRE(IsFinite(std::numeric_limits<Real>::max()));
 }
@@ -197,7 +198,7 @@ TEST_CASE("ValidateBounds - Default context", "[NumericValidation][ValidateBound
 TEST_CASE("ValidateTolerance - Valid tolerances pass", "[NumericValidation][ValidateTolerance]")
 {
 	REQUIRE_NOTHROW(ValidateTolerance(1e-6, "test"));
-	REQUIRE_NOTHROW(ValidateTolerance(1e-12, "high precision"));
+	REQUIRE_NOTHROW(ValidateTolerance(TOL(1e-12, 1e-5), "high precision"));
 	REQUIRE_NOTHROW(ValidateTolerance(0.1, "low precision"));
 	REQUIRE_NOTHROW(ValidateTolerance(std::numeric_limits<Real>::min(), "smallest"));
 }

@@ -34,8 +34,8 @@
 #if !defined MML_IPARAMETRIZED_H
 #define MML_IPARAMETRIZED_H
 
-#include "MMLBase.h"
-#include "base/Vector/Vector.h"
+#include <mml/MMLBase.h>
+#include <mml/base/Vector/Vector.h>
 
 #include <algorithm>
 

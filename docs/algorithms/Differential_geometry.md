@@ -8,9 +8,34 @@ Comprehensive toolkit for **differential geometry of curves and surfaces** - fro
 - **Parametric Curves**: Tangent, normal, binormal, curvature, torsion
 - **Frenet-Serret Frame**: Moving trihedron along curves
 - **Osculating Geometry**: Osculating plane, normal plane, rectifying plane
-- **Surface Geometry** (future): First/second fundamental forms, Gaussian curvature
+- **Surface Geometry**: First/second fundamental forms, Gaussian curvature, intrinsic induced metrics
+- **Exterior Calculus**: Typed differential forms, exterior derivative, form integration, Green/Stokes residuals
+- **Charts and Frames**: Single-chart embeddings, induced metric, pullback/push-forward, Darboux frames
 
-**Architecture**: Methods integrated into curve/surface classes via `ICurveCartesian3D` and `IParametricCurve<N>` interfaces.
+**Architecture**: classical Cartesian curve/surface methods remain in `mml/core/Curves.h` and `mml/core/Surfaces.h`. The newer coordinate-aware layer lives in `mml/core/DifferentialGeometry/` and builds on `MetricTensorField`, typed forms, geodesic solvers, and numerical integration.
+
+## Current Core Modules
+
+| Header | Role |
+|--------|------|
+| `mml/base/DifferentialGeometry/DifferentialForm.h` | Pointwise differential forms and wedge products. |
+| `mml/base/DifferentialGeometry/Hodge.h` | Hodge star, orientation, and metric-derived cross product. |
+| `mml/base/DifferentialGeometry/Metric.h` | Typed metric value object plus `flat`/`sharp` musical maps. |
+| `mml/base/DifferentialGeometry/TypedFields.h` | Typed scalar/vector/form field interfaces. |
+| `mml/core/DifferentialGeometry/FieldOperations.h` | Exterior derivative, metric gradient, typed divergence/curl wrappers. |
+| `mml/core/DifferentialGeometry/InducedMetric.h` | Surface first fundamental form as a `MetricTensorField<2>`. |
+| `mml/core/DifferentialGeometry/FormIntegration.h` | One-form and two-form integration plus Green/Stokes residuals. |
+| `mml/core/DifferentialGeometry/Chart.h` | Single-chart embeddings, Jacobians, induced metrics, push-forward, pullback. |
+| `mml/core/DifferentialGeometry/Atlas.h` | Minimal same-frame chart collections and the two-chart stereographic unit sphere atlas. |
+| `mml/core/DifferentialGeometry/Frames.h` | Generalized Frenet frame and surface-curve Darboux frame helpers. |
+
+## Organization Notes
+
+- `mml/base/Geometry/` is now for concrete Euclidean geometry primitives.
+- `mml/base/DifferentialGeometry/` owns pointwise forms, metrics, frame tags, and typed field interfaces.
+- `mml/base/Algebra/LieGroups/` owns `SO2`, `SO3`, `SE2`, and `SE3`.
+- `mml/core/DifferentialGeometry/` owns runtime algorithms such as charts, induced metrics, form integration, and frame helpers.
+- The old differential-form and Lie-group wrapper paths under `mml/base/Geometry/` have been removed; include the new physical homes directly.
 
 ## Quick Reference
 
@@ -378,7 +403,7 @@ namespace TestBeds {
 Classic space curve with constant curvature and torsion:
 
 ```cpp
-#include "core/Curves.h"
+#include <mml/core/Curves.h>
 #include "test_beds/parametric_curves_test_bed.h"
 
 void Example1() {
@@ -693,7 +718,7 @@ Vec3Cart ICurveCartesian3D::getNormal(Real t) const {
 **Arc length computation**:
 
 ```cpp
-#include "core/Integration/PathIntegration.h"
+#include <mml/core/Integration/PathIntegration.h>
 
 Real length = PathIntegration::ParametricCurveLength(curve, t1, t2);
 ```
@@ -904,11 +929,11 @@ aκ₁ + bτ₁ = constant
 
 **Example**: Circular helix has Bertrand mate
 
-### Surfaces (Future)
+### Surfaces And Intrinsic Geometry
 
 **First Fundamental Form**: I = E du² + 2F du dv + G dv²
 - Measures distances on surface
-- Intrinsic geometry
+- Intrinsic geometry; exposed as `InducedMetric2D : MetricTensorField<2>`
 
 **Second Fundamental Form**: II = L du² + 2M du dv + N dv²
 - Measures curvature
@@ -922,6 +947,126 @@ aκ₁ + bτ₁ = constant
 
 **Mean Curvature**: H = (EN + GL - 2FM)/(2(EG - F²))
 - Average of principal curvatures
+
+**Intrinsic Gaussian Curvature**:
+
+```cpp
+Sphere sphere(1.0);
+Real K = DifferentialGeometry::GaussianCurvatureIntrinsic(
+    sphere, Constants::PI / 3.0, Constants::PI / 4.0);
+```
+
+The implementation computes intrinsic curvature through the induced metric and
+`MetricTensorField<2>` curvature pipeline. Theorema Egregium tests compare it to
+the existing extrinsic `surface.GaussianCurvature(u, w)` path.
+
+**Surface Geodesics**:
+
+```cpp
+auto sol = DifferentialGeometry::IntegrateSurfaceGeodesicFixedStep(
+    surface,
+    VectorN<Real, 2>{u0, w0},
+    VectorN<Real, 2>{du0, dw0},
+    0.0,
+    1.0,
+    100);
+```
+
+This reuses `GeodesicEquationSystem<2>` with the surface's induced metric.
+
+### Differential Forms And Stokes-Family Checks
+
+Typed one-forms and two-forms can now be integrated directly:
+
+```cpp
+class RotationOneForm2D : public IFormField<2, 1, Cartesian2> {
+public:
+    Form1<2, Cartesian2> operator()(const Point<Real, 2, Cartesian2>& p) const override {
+        Form1<2, Cartesian2> omega;
+        omega.Component(0) = -0.5 * p[1];
+        omega.Component(1) =  0.5 * p[0];
+        return omega;
+    }
+};
+
+RotationOneForm2D omega;
+Real residual = DifferentialGeometry::GreenTheoremResidual(
+    omega, 0.0, 1.0, 0.0, 1.0);
+```
+
+Core helpers:
+
+- `IntegrateOneForm(omega, curve, t0, t1)` computes `int_C omega`.
+- `IntegrateTwoForm(omega, surface, u0, u1, w0, w1)` computes `int_S omega`.
+- `GreenTheoremResidual(omega, x0, x1, y0, y1)` checks `int_boundary omega - int_region d omega`.
+- `StokesResidual(omega, surface)` checks `int_boundary omega - int_surface d omega` for rectangular surface patches.
+
+Orientation convention for rectangular domains is counter-clockwise in parameter
+space: bottom edge, right edge, top edge reversed, left edge reversed. For a
+surface chart `r(u,w)`, the corresponding surface orientation follows
+`partial_u r x partial_w r`.
+
+### Charts And Frames
+
+`FunctionChart<DomainN, AmbientN, DomainFrame, AmbientFrame>` adapts any
+embedding `R^DomainN -> R^AmbientN` into a single coordinate patch:
+
+```cpp
+Sphere sphere(1.0);
+DifferentialGeometry::FunctionChart<2, 3, Parameter2, Cartesian3> chart(sphere);
+Point<Real, 2, Parameter2> q{Constants::PI / 3.0, Constants::PI / 4.0};
+
+auto p = chart.map_point(q);
+auto J = chart.jacobian(q);
+auto g = chart.induced_metric(q);
+```
+
+Chart helpers support tangent push-forward and covector/form pullback. Atlas and
+transition-map machinery starts deliberately small: `Atlas` stores homogeneous
+charts with the same domain frame, explicit transition functions, and optional
+validity predicates.
+
+```cpp
+auto atlas = DifferentialGeometry::MakeUnitSphereStereographicAtlas();
+Point<Real, 2, Parameter2> north{1.5, 0.5};
+auto south = atlas.transition(0, 1, north);
+auto pNorth = atlas.chart(0).map_point(north);
+auto pSouth = atlas.chart(1).map_point(south);
+```
+
+The built-in unit-sphere atlas uses north and south stereographic charts. It is
+intended as a compact manifold testbed, not as full automatic atlas gluing.
+Transition maps are registered explicitly and throw when the point is outside
+the overlap, such as trying to transition a pole coordinate.
+
+Frame helpers:
+
+- `ComputeFrenetFrame<N>(curve, t)` gives tangent, principal normal, speed, and curvature for arbitrary-dimensional curves.
+- `ComputeDarbouxFrame(surface, parameterCurve, t)` gives tangent, surface normal, tangent-normal, curvature vector, normal curvature, and geodesic curvature for curves on a surface.
+
+For a great-circle equator on the unit sphere, `geodesicCurvature` is zero and
+`abs(normalCurvature)` is one.
+
+### Numerical And Singularity Guidance
+
+- Avoid chart singularities in finite-difference tests, such as sphere poles or cylindrical axes.
+- Prefer invariant checks (`K_intrinsic == K_extrinsic`, Green/Stokes residuals near zero) over isolated component checks.
+- Use enough subdivisions for form integration; default midpoint surface integration is intended for smooth patches.
+- Coordinate chart orientation matters. Reversing boundary order or swapping `(u,w)` changes signs.
+
+### Focused Validation Tags
+
+Use these focused tags while working on this subsystem:
+
+```powershell
+& .\build\tests\Release\MML_Tests.exe '[DifferentialGeometry],[DifferentialForms],[MetricTensor],[Geodesic],[TypedFields],[CoordinateMap]'
+```
+
+Most recent full quality gate for this roadmap:
+
+```powershell
+& .\build\tests\Release\MML_Tests.exe
+```
 
 ---
 

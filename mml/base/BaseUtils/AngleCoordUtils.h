@@ -12,7 +12,7 @@
 #define MML_ANGLE_COORD_UTILS_H
 
 #include <cmath>
-#include "mml/MMLBase.h"
+#include <mml/MMLBase.h>
 
 namespace MML
 {

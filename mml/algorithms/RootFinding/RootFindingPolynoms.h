@@ -12,17 +12,23 @@
 #if !defined MML_ROOTFINDING_POLYNOMS_H
 #define MML_ROOTFINDING_POLYNOMS_H
 
-#include "mml/MMLBase.h"
+#include <mml/MMLBase.h>
+#include <mml/base/AlgorithmTypes.h>
 
-#include "mml/interfaces/IFunction.h"
+#include <mml/interfaces/IFunction.h>
 
-#include "mml/base/Vector/Vector.h"
-#include "mml/base/Matrix/Matrix.h"
-#include "mml/base/Polynom.h"
+#include <mml/base/Vector/Vector.h>
+#include <mml/base/Matrix/Matrix.h>
+#include <mml/base/Polynom.h>
 
-#include "mml/core/Derivation.h"
+#include <mml/core/Derivation.h>
 
-#include "mml/algorithms/EigenSystemSolvers.h"
+#include <mml/algorithms/EigenSystemSolvers.h>
+
+#include <algorithm>
+#include <limits>
+#include <string>
+#include <vector>
 
 namespace MML {
   /***************************************************************************************************
@@ -202,6 +208,77 @@ namespace MML {
   }
 
 	namespace RootFinding {
+		enum class PolynomialRootMethod {
+			Laguerre,
+			CompanionMatrix,
+			Bairstow
+		};
+
+		inline const char* ToString(PolynomialRootMethod method) {
+			switch (method) {
+				case PolynomialRootMethod::Laguerre: return "Laguerre";
+				case PolynomialRootMethod::CompanionMatrix: return "CompanionMatrix";
+				case PolynomialRootMethod::Bairstow: return "Bairstow";
+			}
+			return "Unknown";
+		}
+
+		struct PolynomialRootConfig {
+			PolynomialRootMethod method = PolynomialRootMethod::Laguerre;
+			Real tolerance = Precision::PolynomialRootTolerance;
+			int max_iterations = 100;
+			bool polish = true;
+			int polishing_iterations = 8;
+			Real multiplicity_tolerance = 0.0;
+		};
+
+		struct PolynomialRootResult {
+			Complex root = Complex(0.0, 0.0);
+			Real residual = std::numeric_limits<Real>::infinity();
+			Real relative_residual = std::numeric_limits<Real>::infinity();
+			int estimated_multiplicity = 1;
+			int polishing_iterations = 0;
+			bool polished = false;
+			bool converged = false;
+			AlgorithmStatus status = AlgorithmStatus::Success;
+			std::string message;
+		};
+
+		struct PolynomialRootSetResult : public EvaluationResultBase {
+			std::vector<PolynomialRootResult> roots;
+			PolynomialRootMethod method = PolynomialRootMethod::Laguerre;
+			int polynomial_degree = 0;
+			bool deflation_used = false;
+			bool polishing_applied = false;
+			bool converged = false;
+			Real max_residual = 0.0;
+			Real max_relative_residual = 0.0;
+		};
+
+		namespace Detail {
+			inline void EvaluatePolynomialAndDerivative(const PolynomReal& polynomial,
+				Complex x, Complex& value, Complex& derivative) {
+				const int degree = polynomial.degree();
+				value = Complex(polynomial[degree], 0.0);
+				derivative = Complex(0.0, 0.0);
+				for (int coefficient = degree - 1; coefficient >= 0; --coefficient) {
+					derivative = derivative * x + value;
+					value = value * x + Complex(polynomial[coefficient], 0.0);
+				}
+			}
+
+			inline Real PolynomialScale(const PolynomReal& polynomial, Complex x) {
+				Real scale = 0.0;
+				Real power = 1.0;
+				const Real magnitude = std::abs(x);
+				for (int coefficient = 0; coefficient <= polynomial.degree(); ++coefficient) {
+					scale += std::abs(polynomial[coefficient]) * power;
+					power *= magnitude;
+				}
+				return std::max(scale, std::numeric_limits<Real>::min());
+			}
+		} // namespace Detail
+
 		/***************************************************************************************************
     * POLYNOMIAL ROOT FINDING METHODS (General Degree)
     ***************************************************************************************************/
@@ -216,7 +293,7 @@ namespace MML {
 		/// @param tol       Convergence tolerance (default: 1e-10)
 		/// @param maxIter   Maximum iterations per root (default: 100)
 		/// @return Vector of all complex roots
-		static Vector<Complex> LaguerreRoots(const PolynomReal& poly, Real tol = 1e-10, int maxIter = 100) {
+		static Vector<Complex> LaguerreRoots(const PolynomReal& poly, Real tol = Precision::PolynomialRootTolerance, int maxIter = 100) {
 			Vector<Complex> roots;
 			int degree = poly.degree();
 
@@ -342,7 +419,7 @@ namespace MML {
 				companion[degree - 1][i] = -poly[i] / leadingCoef;
 
 			// Solve eigenvalue problem
-			auto eigenResult = EigenSolver::Solve(companion, 1e-10, 1000);
+			auto eigenResult = EigenSolver::Solve(companion, Precision::EigenSolverConvergenceTolerance, 1000);
 
 			if (!eigenResult.converged)
 				throw RootFindingError("Eigenvalue solver failed to converge");
@@ -364,7 +441,7 @@ namespace MML {
 		/// @param maxIter       Maximum iterations per quadratic (default: 100)
 		/// @return Vector of complex roots
 		static Vector<Complex> BairstowRoots(const PolynomReal& poly, const Vector<Complex>& initialRoots = Vector<Complex>(),
-											 Real tol = 1e-10, int maxIter = 100) {
+														 Real tol = Precision::PolynomialRootTolerance, int maxIter = 100) {
 			Vector<Complex> roots;
 			int n = poly.degree();
 
@@ -454,7 +531,7 @@ namespace MML {
 				}
 
 				if (!converged)
-					throw std::runtime_error("BairstowRoots: failed to converge for quadratic factor");
+					throw RootFindingError("BairstowRoots: failed to converge for quadratic factor");
 
 				// Extract roots from quadratic x² + ux + v = 0
 				// x = (-u ± sqrt(u² - 4v)) / 2
@@ -487,6 +564,178 @@ namespace MML {
 
 			return roots;
 		} // BairstowRoots
+
+		inline bool IsValidConfig(const PolynomialRootConfig& config) {
+			return std::isfinite(config.tolerance) && config.tolerance > 0.0
+				&& config.max_iterations > 0
+				&& config.polishing_iterations >= 0
+				&& std::isfinite(config.multiplicity_tolerance)
+				&& config.multiplicity_tolerance >= 0.0;
+		}
+
+		inline PolynomialRootSetResult PolishPolynomialRoots(const PolynomReal& polynomial,
+			const Vector<Complex>& initialRoots, const PolynomialRootConfig& config = {}) {
+			AlgorithmTimer timer;
+			PolynomialRootSetResult result;
+			result.algorithm_name = "PolynomialRootPolishing";
+			result.method = config.method;
+			result.polynomial_degree = polynomial.degree();
+			result.polishing_applied = config.polish && config.polishing_iterations > 0;
+			if (!IsValidConfig(config) || polynomial.degree() < 0
+				|| initialRoots.size() != polynomial.degree()) {
+				result.status = AlgorithmStatus::InvalidInput;
+				result.error_message = "PolishPolynomialRoots: invalid configuration, polynomial, or root count";
+				result.elapsed_time_ms = timer.elapsed_ms();
+				return result;
+			}
+			if (polynomial.degree() == 0) {
+				if (std::abs(polynomial[0]) <= PrecisionValues<Real>::PolynomialCoeffZeroThreshold) {
+					result.status = AlgorithmStatus::InvalidInput;
+					result.error_message = "PolishPolynomialRoots: zero polynomial has infinitely many roots";
+					result.elapsed_time_ms = timer.elapsed_ms();
+					return result;
+				}
+				result.converged = true;
+				result.elapsed_time_ms = timer.elapsed_ms();
+				return result;
+			}
+			if (std::abs(polynomial[polynomial.degree()])
+				<= PrecisionValues<Real>::PolynomialCoeffZeroThreshold) {
+				result.status = AlgorithmStatus::InvalidInput;
+				result.error_message = "PolishPolynomialRoots: leading coefficient is zero";
+				result.elapsed_time_ms = timer.elapsed_ms();
+				return result;
+			}
+
+			const Real baseMultiplicityTolerance = config.multiplicity_tolerance > 0.0
+				? config.multiplicity_tolerance : std::sqrt(config.tolerance);
+			std::vector<int> multiplicities(initialRoots.size(), 1);
+			for (int rootIndex = 0; rootIndex < initialRoots.size(); ++rootIndex) {
+				for (int otherIndex = rootIndex + 1; otherIndex < initialRoots.size(); ++otherIndex) {
+					const Real scale = std::max({Real(1.0), std::abs(initialRoots[rootIndex]),
+						std::abs(initialRoots[otherIndex])});
+					if (std::abs(initialRoots[rootIndex] - initialRoots[otherIndex])
+						<= baseMultiplicityTolerance * scale) {
+						++multiplicities[rootIndex];
+						++multiplicities[otherIndex];
+					}
+				}
+			}
+
+			result.roots.reserve(initialRoots.size());
+			for (int rootIndex = 0; rootIndex < initialRoots.size(); ++rootIndex) {
+				PolynomialRootResult rootResult;
+				rootResult.root = initialRoots[rootIndex];
+				rootResult.estimated_multiplicity = multiplicities[rootIndex];
+				Complex value;
+				Complex derivative;
+				Detail::EvaluatePolynomialAndDerivative(polynomial, rootResult.root, value, derivative);
+				++result.function_evaluations;
+
+				if (result.polishing_applied) {
+					for (int iteration = 0; iteration < config.polishing_iterations; ++iteration) {
+						const Real relativeResidual = std::abs(value)
+							/ Detail::PolynomialScale(polynomial, rootResult.root);
+						if (relativeResidual <= config.tolerance) break;
+						const Real derivativeThreshold = std::numeric_limits<Real>::epsilon()
+							* Detail::PolynomialScale(polynomial, rootResult.root);
+						if (!std::isfinite(std::abs(derivative))
+							|| std::abs(derivative) <= derivativeThreshold) {
+							rootResult.status = AlgorithmStatus::Stalled;
+							rootResult.message = "Original-polynomial derivative is too small for polishing";
+							break;
+						}
+						const Complex step = Real(rootResult.estimated_multiplicity) * value / derivative;
+						if (!std::isfinite(std::abs(step))) {
+							rootResult.status = AlgorithmStatus::NumericalInstability;
+							rootResult.message = "Non-finite polynomial polishing step";
+							break;
+						}
+						rootResult.root -= step;
+						rootResult.polished = true;
+						rootResult.polishing_iterations = iteration + 1;
+						Detail::EvaluatePolynomialAndDerivative(polynomial, rootResult.root, value, derivative);
+						++result.function_evaluations;
+					}
+				}
+
+				rootResult.residual = std::abs(value);
+				rootResult.relative_residual = rootResult.residual
+					/ Detail::PolynomialScale(polynomial, rootResult.root);
+				rootResult.converged = std::isfinite(rootResult.relative_residual)
+					&& rootResult.relative_residual <= config.tolerance;
+				if (rootResult.converged) {
+					rootResult.status = AlgorithmStatus::Success;
+					rootResult.message.clear();
+				} else if (rootResult.status == AlgorithmStatus::Success) {
+					rootResult.status = AlgorithmStatus::ToleranceUnachievable;
+					rootResult.message = "Root residual exceeds requested tolerance";
+				}
+				result.max_residual = std::max(result.max_residual, rootResult.residual);
+				result.max_relative_residual = std::max(result.max_relative_residual,
+					rootResult.relative_residual);
+				result.roots.push_back(rootResult);
+			}
+
+			result.converged = std::all_of(result.roots.begin(), result.roots.end(),
+				[](const PolynomialRootResult& root) { return root.converged; });
+			result.status = result.converged
+				? AlgorithmStatus::Success : AlgorithmStatus::ToleranceUnachievable;
+			if (!result.converged)
+				result.error_message = "One or more polynomial roots failed residual verification";
+			result.elapsed_time_ms = timer.elapsed_ms();
+			return result;
+		}
+
+		inline PolynomialRootSetResult FindPolynomialRootsDetailed(const PolynomReal& polynomial,
+			const PolynomialRootConfig& config = {}) {
+			AlgorithmTimer timer;
+			PolynomialRootSetResult failure;
+			failure.algorithm_name = "FindPolynomialRootsDetailed";
+			failure.method = config.method;
+			failure.polynomial_degree = polynomial.degree();
+			if (!IsValidConfig(config)) {
+				failure.status = AlgorithmStatus::InvalidInput;
+				failure.error_message = "FindPolynomialRootsDetailed: invalid configuration";
+				failure.elapsed_time_ms = timer.elapsed_ms();
+				return failure;
+			}
+			if (polynomial.degree() == 0
+				&& std::abs(polynomial[0]) <= PrecisionValues<Real>::PolynomialCoeffZeroThreshold) {
+				failure.status = AlgorithmStatus::InvalidInput;
+				failure.error_message = "FindPolynomialRootsDetailed: zero polynomial has infinitely many roots";
+				failure.elapsed_time_ms = timer.elapsed_ms();
+				return failure;
+			}
+
+			Vector<Complex> roots;
+			try {
+				switch (config.method) {
+					case PolynomialRootMethod::Laguerre:
+						roots = LaguerreRoots(polynomial, config.tolerance, config.max_iterations);
+						break;
+					case PolynomialRootMethod::CompanionMatrix:
+						roots = EigenvalueRoots(polynomial);
+						break;
+					case PolynomialRootMethod::Bairstow:
+						roots = BairstowRoots(polynomial, {}, config.tolerance, config.max_iterations);
+						break;
+				}
+			} catch (const std::exception& error) {
+				failure.status = AlgorithmStatus::AlgorithmSpecificFailure;
+				failure.error_message = error.what();
+				failure.elapsed_time_ms = timer.elapsed_ms();
+				return failure;
+			}
+
+			PolynomialRootSetResult result = PolishPolynomialRoots(polynomial, roots, config);
+			result.algorithm_name = std::string("PolynomialRoots") + ToString(config.method);
+			result.method = config.method;
+			result.deflation_used = config.method == PolynomialRootMethod::Laguerre
+				|| config.method == PolynomialRootMethod::Bairstow;
+			result.elapsed_time_ms = timer.elapsed_ms();
+			return result;
+		}
 	} // namespace RootFinding
 } // namespace MML
 

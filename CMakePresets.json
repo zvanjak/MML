@@ -9,7 +9,7 @@
       "binaryDir": "${sourceDir}/build",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
-        "CMAKE_CXX_STANDARD": "17",
+        "CMAKE_CXX_STANDARD": "20",
         "CMAKE_C_COMPILER": "/usr/bin/gcc",
         "CMAKE_CXX_COMPILER": "/usr/bin/g++"
       },
@@ -27,7 +27,7 @@
       "binaryDir": "${sourceDir}/build",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
-        "CMAKE_CXX_STANDARD": "17",
+        "CMAKE_CXX_STANDARD": "20",
         "CMAKE_C_COMPILER": "/usr/bin/gcc",
         "CMAKE_CXX_COMPILER": "/usr/bin/g++"
       },
@@ -45,7 +45,7 @@
       "binaryDir": "${sourceDir}/build",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
-        "CMAKE_CXX_STANDARD": "17",
+        "CMAKE_CXX_STANDARD": "20",
         "CMAKE_C_COMPILER": "/usr/bin/clang",
         "CMAKE_CXX_COMPILER": "/usr/bin/clang++"
       },
@@ -63,7 +63,7 @@
       "binaryDir": "${sourceDir}/build",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
-        "CMAKE_CXX_STANDARD": "17",
+        "CMAKE_CXX_STANDARD": "20",
         "CMAKE_C_COMPILER": "/usr/bin/clang",
         "CMAKE_CXX_COMPILER": "/usr/bin/clang++"
       },
@@ -81,7 +81,7 @@
       "binaryDir": "${sourceDir}/build",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
-        "CMAKE_CXX_STANDARD": "17"
+        "CMAKE_CXX_STANDARD": "20"
       },
       "condition": {
         "type": "equals",
@@ -97,7 +97,7 @@
       "binaryDir": "${sourceDir}/build",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
-        "CMAKE_CXX_STANDARD": "17"
+        "CMAKE_CXX_STANDARD": "20"
       },
       "condition": {
         "type": "equals",
@@ -113,7 +113,7 @@
       "architecture": "x64",
       "binaryDir": "${sourceDir}/build",
       "cacheVariables": {
-        "CMAKE_CXX_STANDARD": "17"
+        "CMAKE_CXX_STANDARD": "20"
       },
       "condition": {
         "type": "equals",
@@ -129,7 +129,7 @@
       "architecture": "x64",
       "binaryDir": "${sourceDir}/build",
       "cacheVariables": {
-        "CMAKE_CXX_STANDARD": "17"
+        "CMAKE_CXX_STANDARD": "20"
       },
       "condition": {
         "type": "equals",
@@ -145,7 +145,7 @@
       "binaryDir": "${sourceDir}/build",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
-        "CMAKE_CXX_STANDARD": "17",
+        "CMAKE_CXX_STANDARD": "20",
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
       },
       "condition": {
@@ -162,7 +162,7 @@
       "binaryDir": "${sourceDir}/build",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
-        "CMAKE_CXX_STANDARD": "17",
+        "CMAKE_CXX_STANDARD": "20",
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
       },
       "condition": {
@@ -179,7 +179,7 @@
       "binaryDir": "${sourceDir}/build",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
-        "CMAKE_CXX_STANDARD": "17"
+        "CMAKE_CXX_STANDARD": "20"
       },
       "condition": {
         "type": "equals",
@@ -195,12 +195,130 @@
       "binaryDir": "${sourceDir}/build",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
-        "CMAKE_CXX_STANDARD": "17"
+        "CMAKE_CXX_STANDARD": "20"
       },
       "condition": {
         "type": "equals",
         "lhs": "${hostSystemName}",
         "rhs": "Darwin"
+      }
+    },
+
+    {
+      "name": "windows-float",
+      "displayName": "Windows x64 Float",
+      "description": "Windows build with Real = float",
+      "inherits": "windows-default",
+      "binaryDir": "${sourceDir}/build-float",
+      "cacheVariables": {
+        "MML_REAL_TYPE": "float"
+      }
+    },
+    {
+      "name": "windows-long-double",
+      "displayName": "Windows x64 Long Double",
+      "description": "Windows build with Real = long double",
+      "inherits": "windows-default",
+      "binaryDir": "${sourceDir}/build-ldbl",
+      "cacheVariables": {
+        "MML_REAL_TYPE": "long_double"
+      }
+    },
+    {
+      "name": "windows-all-precision",
+      "displayName": "Windows x64 All Precision Tests",
+      "description": "Single build dir with float + double + long double test targets",
+      "inherits": "windows-default",
+      "cacheVariables": {
+        "MML_BUILD_ALL_PRECISION_TESTS": "ON"
+      }
+    },
+    {
+      "name": "linux-gcc-float",
+      "displayName": "Linux GCC Float",
+      "description": "Linux GCC build with Real = float",
+      "inherits": "linux-gcc-debug",
+      "binaryDir": "${sourceDir}/build-float",
+      "cacheVariables": {
+        "MML_REAL_TYPE": "float"
+      }
+    },
+    {
+      "name": "linux-gcc-long-double",
+      "displayName": "Linux GCC Long Double",
+      "description": "Linux GCC build with Real = long double",
+      "inherits": "linux-gcc-debug",
+      "binaryDir": "${sourceDir}/build-ldbl",
+      "cacheVariables": {
+        "MML_REAL_TYPE": "long_double"
+      }
+    },
+    {
+      "name": "linux-gcc-all-precision",
+      "displayName": "Linux GCC All Precision Tests",
+      "description": "Single build dir with float + double + long double test targets",
+      "inherits": "linux-gcc-debug",
+      "cacheVariables": {
+        "MML_BUILD_ALL_PRECISION_TESTS": "ON"
+      }
+    },
+    {
+      "name": "linux-clang-float",
+      "displayName": "Linux Clang Float",
+      "description": "Linux Clang build with Real = float",
+      "inherits": "linux-clang-debug",
+      "binaryDir": "${sourceDir}/build_clang_float",
+      "cacheVariables": {
+        "MML_REAL_TYPE": "float"
+      }
+    },
+    {
+      "name": "linux-clang-double",
+      "displayName": "Linux Clang Double",
+      "description": "Linux Clang build with Real = double",
+      "inherits": "linux-clang-debug",
+      "binaryDir": "${sourceDir}/build_clang_double",
+      "cacheVariables": {
+        "MML_REAL_TYPE": "double"
+      }
+    },
+    {
+      "name": "linux-clang-long-double",
+      "displayName": "Linux Clang Long Double",
+      "description": "Linux Clang build with Real = long double",
+      "inherits": "linux-clang-debug",
+      "binaryDir": "${sourceDir}/build_clang_long_double",
+      "cacheVariables": {
+        "MML_REAL_TYPE": "long_double"
+      }
+    },
+    {
+      "name": "macos-float",
+      "displayName": "macOS Float",
+      "description": "macOS build with Real = float",
+      "inherits": "macos-debug",
+      "binaryDir": "${sourceDir}/build-float",
+      "cacheVariables": {
+        "MML_REAL_TYPE": "float"
+      }
+    },
+    {
+      "name": "macos-long-double",
+      "displayName": "macOS Long Double",
+      "description": "macOS build with Real = long double",
+      "inherits": "macos-debug",
+      "binaryDir": "${sourceDir}/build-ldbl",
+      "cacheVariables": {
+        "MML_REAL_TYPE": "long_double"
+      }
+    },
+    {
+      "name": "macos-all-precision",
+      "displayName": "macOS All Precision Tests",
+      "description": "Single build dir with float + double + long double test targets",
+      "inherits": "macos-debug",
+      "cacheVariables": {
+        "MML_BUILD_ALL_PRECISION_TESTS": "ON"
       }
     }
   ],
@@ -264,6 +382,78 @@
       "displayName": "Release Build",
       "configurePreset": "windows-release",
       "configuration": "Release"
+    },
+    {
+      "name": "windows-float-build",
+      "displayName": "Windows Float Build",
+      "configurePreset": "windows-float",
+      "configuration": "Debug"
+    },
+    {
+      "name": "windows-long-double-build",
+      "displayName": "Windows Long Double Build",
+      "configurePreset": "windows-long-double",
+      "configuration": "Debug"
+    },
+    {
+      "name": "windows-all-precision-build",
+      "displayName": "Windows All Precision Build",
+      "configurePreset": "windows-all-precision",
+      "configuration": "Debug"
+    },
+    {
+      "name": "linux-gcc-float-build",
+      "displayName": "Linux GCC Float Build",
+      "configurePreset": "linux-gcc-float",
+      "configuration": "Debug"
+    },
+    {
+      "name": "linux-gcc-long-double-build",
+      "displayName": "Linux GCC Long Double Build",
+      "configurePreset": "linux-gcc-long-double",
+      "configuration": "Debug"
+    },
+    {
+      "name": "linux-gcc-all-precision-build",
+      "displayName": "Linux GCC All Precision Build",
+      "configurePreset": "linux-gcc-all-precision",
+      "configuration": "Debug"
+    },
+    {
+      "name": "linux-clang-float-build",
+      "displayName": "Linux Clang Float Build",
+      "configurePreset": "linux-clang-float",
+      "configuration": "Debug"
+    },
+    {
+      "name": "linux-clang-double-build",
+      "displayName": "Linux Clang Double Build",
+      "configurePreset": "linux-clang-double",
+      "configuration": "Debug"
+    },
+    {
+      "name": "linux-clang-long-double-build",
+      "displayName": "Linux Clang Long Double Build",
+      "configurePreset": "linux-clang-long-double",
+      "configuration": "Debug"
+    },
+    {
+      "name": "macos-float-build",
+      "displayName": "macOS Float Build",
+      "configurePreset": "macos-float",
+      "configuration": "Debug"
+    },
+    {
+      "name": "macos-long-double-build",
+      "displayName": "macOS Long Double Build",
+      "configurePreset": "macos-long-double",
+      "configuration": "Debug"
+    },
+    {
+      "name": "macos-all-precision-build",
+      "displayName": "macOS All Precision Build",
+      "configurePreset": "macos-all-precision",
+      "configuration": "Debug"
     }
   ]
 }

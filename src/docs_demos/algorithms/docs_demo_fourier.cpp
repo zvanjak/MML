@@ -1,15 +1,15 @@
 #ifdef MML_USE_SINGLE_HEADER
-#include "MML.h"
+#include <MML.h>
 #else
-#include "MMLBase.h"
+#include <mml/MMLBase.h>
 
-#include "base/Vector/Vector.h"
-#include "algorithms/Fourier.h"
-#include "algorithms/FourierRealFFT.h"
+#include <mml/base/Vector/Vector.h>
+#include <mml/algorithms/Fourier/Fourier.h>
+#include <mml/algorithms/Fourier/FourierRealFFT.h>
 // Spectrum.h and Convolution.h were never migrated from mml_packages - functionality not yet available in core
 // #include "Spectrum.h"
 // #include "Convolution.h"
-#include "algorithms/FourierWindowing.h"
+#include <mml/algorithms/Fourier/FourierWindowing.h>
 #endif
 
 using namespace MML;

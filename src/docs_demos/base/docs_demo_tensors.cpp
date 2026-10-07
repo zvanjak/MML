@@ -1,10 +1,11 @@
 #ifdef MML_USE_SINGLE_HEADER
-#include "MML.h"
+#include <MML.h>
 #else
-#include "MMLBase.h"
+#include <mml/MMLBase.h>
 
-#include "base/Tensor.h"
-#include "base/Vector/VectorN.h"
+#include <mml/base/Tensor/Tensor2.h>
+#include <mml/base/Tensor/Tensor3.h>
+#include <mml/base/Vector/VectorN.h>
 #endif
 
 using namespace MML;

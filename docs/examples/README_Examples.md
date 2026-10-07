@@ -1,6 +1,6 @@
 # MML Examples — Physics Simulations That BLOW YOUR MIND! 🚀
 
-**Five spectacular physics demonstrations** showcasing MML's capabilities.
+Physics demonstrations showcasing MML's capabilities.
 
 ## 🎯 Example Gallery
 
@@ -10,7 +10,9 @@
 | 01 | [**Projectile Launch**](Example_01_projectile_launch.md) | Ballistics | 1 | Air drag ruins everything |
 | 02 | [**Double Pendulum**](Example_02_double_pendulum.md) | Chaos theory | 2 | Butterfly effect: 0.001°→47° |
 | 03 | [**Collision Simulator**](Example_03_collision_simulator_2d.md) | Kinetic theory | 30,000+ | Shock wave propagation |
-| 04 | [**Lorentz Transforms**](Example_04_Lorentz_transformations.md) | Special relativity | 2 twins | Time dilation is REAL |
+| 06 | [**Lorentz Transforms**](Example_06_Lorentz_transformations.md) | Special relativity | 2 twins | Proper time along accelerated worldlines |
+| 09 | **Typed Forms Gradient** | Differential forms | scalar field | df is a one-form, grad=sharp(df) |
+| 10 | **Typed Forms Flux** | Differential forms | surface patch | Hodge-derived flux and typed normals |
 
 ## 🌌 Featured: Star Cluster Collision (Example 00)
 
@@ -46,6 +48,8 @@ Energy propagation (avg speed evolution):
 | 02 | `src/examples/02_double_pendulum/` |
 | 03 | `src/examples/03_collision_simulator_2d/` |
 | 04 | `src/examples/04_Lorentz_transformations/` |
+| 09 | `src/examples/09_typed_forms_gradient/` |
+| 10 | `src/examples/10_typed_forms_flux/` |
 
 ## 🏃 Building All Examples
 
@@ -59,6 +63,8 @@ cmake --build build --target Example01_ProjectileLaunch
 cmake --build build --target Example02_DoublePendulum
 cmake --build build --target Example03_CollisionSim2D
 cmake --build build --target Example05_LorentzTransform
+cmake --build build --target Example09_TypedFormsGradient
+cmake --build build --target Example10_TypedFormsFlux
 ```
 
 ## ✨ Common Features
@@ -68,6 +74,7 @@ All examples demonstrate MML's core capabilities:
 - **Visualization** — Real-time particle and curve plotting
 - **Serialization** — Export results for further analysis
 - **Self-contained physics** — No external dependencies
+- **Typed geometry** — Tangent vectors, covectors, forms, metrics, Hodge star
 
 ## 📚 Start Here
 

@@ -1,13 +1,13 @@
 ///////////////////////////////////////////////////////////////////////////////////////////
 ///  File:        docs_demo_numeric_validation.cpp                                    ///
-///  Description: Brief demonstration of NumericValidation.h - input validation       ///
+///  Description: Brief demonstration of MMLNumericValidation.h                       ///
 ///////////////////////////////////////////////////////////////////////////////////////////
 
 #ifdef MML_USE_SINGLE_HEADER
-#include "MML.h"
+#include <MML.h>
 #else
-#include "MMLBase.h"
-#include "core/NumericValidation.h"
+#include <mml/MMLBase.h>
+#include <mml/MMLNumericValidation.h>
 #endif
 
 #include <iostream>

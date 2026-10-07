@@ -12,9 +12,9 @@
 #if !defined MML_COMP_GEOMETRY_BASE_H
 #define MML_COMP_GEOMETRY_BASE_H
 
-#include "mml/MMLBase.h"
-#include "mml/base/Geometry/Geometry2D.h"
-#include "mml/base/Geometry/Geometry3D.h"
+#include <mml/MMLBase.h>
+#include <mml/base/Geometry/Geometry2D.h>
+#include <mml/base/Geometry/Geometry3D.h>
 
 #include <tuple>
 
@@ -49,7 +49,7 @@ namespace MML {
 		/// @brief Get barycentric coordinates as a tuple (u, v, w) where w = 1-u-v
 		/// @details Point = w*v0 + u*v1 + v*v2
 		std::tuple<Real, Real, Real> GetBarycentricCoords() const {
-			return std::make_tuple(u, v, 1.0 - u - v);
+			return std::make_tuple(u, v, REAL(1.0) - u - v);
 		}
 	};
 

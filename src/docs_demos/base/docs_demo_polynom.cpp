@@ -1,10 +1,10 @@
 #ifdef MML_USE_SINGLE_HEADER
-#include "MML.h"
+#include <MML.h>
 #else
-#include "MMLBase.h"
+#include <mml/MMLBase.h>
 
-#include "base/Polynom.h"
-#include "mml/algorithms/RootFinding/RootFindingPolynoms.h"
+#include <mml/base/Polynom.h>
+#include <mml/algorithms/RootFinding/RootFindingPolynoms.h>
 #endif
 
 using namespace MML;

@@ -4,10 +4,10 @@
 ///////////////////////////////////////////////////////////////////////////////////////////
 
 #ifdef MML_USE_SINGLE_HEADER
-#include "MML.h"
+#include <MML.h>
 #else
-#include "MMLBase.h"
-#include "algorithms/ComputationalGeometry.h"
+#include <mml/MMLBase.h>
+#include <mml/algorithms/ComputationalGeometry.h>
 #endif
 
 #include <iostream>

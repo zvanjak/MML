@@ -25,7 +25,7 @@
 #include "RigidBodyCore.h"
 #include "RigidBodyDynamics.h"
 #include "RigidBodyCollision.h"
-#include "mml/algorithms/ODESolvers.h"
+#include <mml/algorithms/ODESolvers.h>
 
 #include <vector>
 #include <functional>

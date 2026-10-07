@@ -12,11 +12,11 @@
 #if !defined MML_LEGENDRE_BASIS_H
 #define MML_LEGENDRE_BASIS_H
 
-#include "MMLBase.h"
+#include <mml/MMLBase.h>
 
-#include "base/StandardFunctions.h"
-#include "interfaces/IFunction.h"
-#include "core/OrthogonalBasis.h"
+#include <mml/base/StandardFunctions.h>
+#include <mml/interfaces/IFunction.h>
+#include <mml/core/OrthogonalBasis.h>
 
 #include <cmath>
 #include <stdexcept>
@@ -54,7 +54,7 @@ namespace MML
         Real Evaluate(int n, Real x) const override
         {
             if (n < 0)
-                throw std::invalid_argument("LegendreBasis::Evaluate: n must be non-negative");
+                throw ArgumentError("LegendreBasis::Evaluate: n must be non-negative");
             
             return Functions::Legendre(static_cast<unsigned int>(n), x);
         }
@@ -69,7 +69,7 @@ namespace MML
         Real Normalization(int n) const override
         {
             if (n < 0)
-                throw std::invalid_argument("LegendreBasis::Normalization: n must be non-negative");
+                throw ArgumentError("LegendreBasis::Normalization: n must be non-negative");
             
             return 2.0 / (2.0 * n + 1.0);
         }
@@ -86,7 +86,7 @@ namespace MML
         void RecurrenceCoefficients(int n, Real& a, Real& b, Real& c) const
         {
             if (n < 0)
-                throw std::invalid_argument("LegendreBasis::RecurrenceCoefficients: n must be non-negative");
+                throw ArgumentError("LegendreBasis::RecurrenceCoefficients: n must be non-negative");
             
             Real n_real = static_cast<Real>(n);
             a = (2.0 * n_real + 1.0) / (n_real + 1.0);
@@ -112,7 +112,7 @@ namespace MML
         explicit AssociatedLegendreBasis(int m) : _m(m)
         {
             if (m < 0)
-                throw std::invalid_argument("AssociatedLegendreBasis: m must be non-negative");
+                throw ArgumentError("AssociatedLegendreBasis: m must be non-negative");
         }
 
         int Order() const { return _m; }
@@ -121,7 +121,7 @@ namespace MML
         Real Evaluate(int l, Real x) const
         {
             if (l < _m)
-                throw std::invalid_argument("AssociatedLegendreBasis::Evaluate: l must be >= m");
+                throw ArgumentError("AssociatedLegendreBasis::Evaluate: l must be >= m");
             
             return Functions::SphLegendre(static_cast<unsigned int>(l), static_cast<unsigned int>(_m), x);
         }

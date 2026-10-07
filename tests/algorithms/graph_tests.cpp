@@ -5,9 +5,7 @@
 
 #include "../TestPrecision.h"
 
-#include "base/Graph.h"
-#include "algorithms/GraphAlgorithms.h"
-#include "algorithms/GraphSpectral.h"
+#include <mml/algorithms/GraphAlg.h>
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
@@ -147,9 +145,9 @@ TEST_CASE("Graph - edge weights are stored correctly", "[Graph][edge]")
 	g.addEdge(0, 1, 1.5);
 	g.addEdge(1, 2, 2.7);
 
-	REQUIRE_THAT(g.edgeWeight(0, 1), Catch::Matchers::WithinRel(1.5, 1e-10));
-	REQUIRE_THAT(g.edgeWeight(1, 0), Catch::Matchers::WithinRel(1.5, 1e-10));
-	REQUIRE_THAT(g.edgeWeight(1, 2), Catch::Matchers::WithinRel(2.7, 1e-10));
+	REQUIRE_THAT(g.edgeWeight(0, 1), Catch::Matchers::WithinRel(REAL(1.5), TOL(1e-10, 1e-5)));
+	REQUIRE_THAT(g.edgeWeight(1, 0), Catch::Matchers::WithinRel(REAL(1.5), TOL(1e-10, 1e-5)));
+	REQUIRE_THAT(g.edgeWeight(1, 2), Catch::Matchers::WithinRel(REAL(2.7), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("Graph - addEdge throws for duplicate edge", "[Graph][edge]")
@@ -174,7 +172,7 @@ TEST_CASE("Graph - self-loops allowed when enabled", "[Graph][edge]")
 	g.addEdge(0, 0, 5.0);
 
 	REQUIRE(g.hasEdge(0, 0));
-	REQUIRE_THAT(g.edgeWeight(0, 0), Catch::Matchers::WithinRel(5.0, 1e-10));
+	REQUIRE_THAT(g.edgeWeight(0, 0), Catch::Matchers::WithinRel(REAL(5.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("Graph - removeEdge removes edges", "[Graph][edge]")
@@ -284,15 +282,15 @@ TEST_CASE("Graph - toAdjacencyMatrix for undirected graph", "[Graph][matrix]")
 	REQUIRE(A.cols() == 3);
 
 	// Check symmetric structure
-	REQUIRE_THAT(A(0, 1), Catch::Matchers::WithinRel(1.0, 1e-10));
-	REQUIRE_THAT(A(1, 0), Catch::Matchers::WithinRel(1.0, 1e-10));
-	REQUIRE_THAT(A(1, 2), Catch::Matchers::WithinRel(2.0, 1e-10));
-	REQUIRE_THAT(A(2, 1), Catch::Matchers::WithinRel(2.0, 1e-10));
+	REQUIRE_THAT(A(0, 1), Catch::Matchers::WithinRel(REAL(1.0), TOL(1e-10, 1e-5)));
+	REQUIRE_THAT(A(1, 0), Catch::Matchers::WithinRel(REAL(1.0), TOL(1e-10, 1e-5)));
+	REQUIRE_THAT(A(1, 2), Catch::Matchers::WithinRel(REAL(2.0), TOL(1e-10, 1e-5)));
+	REQUIRE_THAT(A(2, 1), Catch::Matchers::WithinRel(REAL(2.0), TOL(1e-10, 1e-5)));
 
 	// Check zeros
-	REQUIRE_THAT(A(0, 0), Catch::Matchers::WithinAbs(0.0, 1e-10));
-	REQUIRE_THAT(A(0, 2), Catch::Matchers::WithinAbs(0.0, 1e-10));
-	REQUIRE_THAT(A(2, 0), Catch::Matchers::WithinAbs(0.0, 1e-10));
+	REQUIRE_THAT(A(0, 0), Catch::Matchers::WithinAbs(0.0, TOL(1e-10, 1e-5)));
+	REQUIRE_THAT(A(0, 2), Catch::Matchers::WithinAbs(0.0, TOL(1e-10, 1e-5)));
+	REQUIRE_THAT(A(2, 0), Catch::Matchers::WithinAbs(0.0, TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("Graph - toLaplacianMatrix", "[Graph][matrix]")
@@ -309,17 +307,17 @@ TEST_CASE("Graph - toLaplacianMatrix", "[Graph][matrix]")
 	// [-1   2  -1 ]
 	// [ 0  -1   1 ]
 
-	REQUIRE_THAT(L(0, 0), Catch::Matchers::WithinRel(1.0, 1e-10));
-	REQUIRE_THAT(L(0, 1), Catch::Matchers::WithinRel(-1.0, 1e-10));
-	REQUIRE_THAT(L(0, 2), Catch::Matchers::WithinAbs(0.0, 1e-10));
+	REQUIRE_THAT(L(0, 0), Catch::Matchers::WithinRel(REAL(1.0), TOL(1e-10, 1e-5)));
+	REQUIRE_THAT(L(0, 1), Catch::Matchers::WithinRel(REAL(-1.0), TOL(1e-10, 1e-5)));
+	REQUIRE_THAT(L(0, 2), Catch::Matchers::WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
 
-	REQUIRE_THAT(L(1, 0), Catch::Matchers::WithinRel(-1.0, 1e-10));
-	REQUIRE_THAT(L(1, 1), Catch::Matchers::WithinRel(2.0, 1e-10));
-	REQUIRE_THAT(L(1, 2), Catch::Matchers::WithinRel(-1.0, 1e-10));
+	REQUIRE_THAT(L(1, 0), Catch::Matchers::WithinRel(REAL(-1.0), TOL(1e-10, 1e-5)));
+	REQUIRE_THAT(L(1, 1), Catch::Matchers::WithinRel(REAL(2.0), TOL(1e-10, 1e-5)));
+	REQUIRE_THAT(L(1, 2), Catch::Matchers::WithinRel(REAL(-1.0), TOL(1e-10, 1e-5)));
 
-	REQUIRE_THAT(L(2, 0), Catch::Matchers::WithinAbs(0.0, 1e-10));
-	REQUIRE_THAT(L(2, 1), Catch::Matchers::WithinRel(-1.0, 1e-10));
-	REQUIRE_THAT(L(2, 2), Catch::Matchers::WithinRel(1.0, 1e-10));
+	REQUIRE_THAT(L(2, 0), Catch::Matchers::WithinAbs(REAL(0.0), TOL(1e-10, 1e-5)));
+	REQUIRE_THAT(L(2, 1), Catch::Matchers::WithinRel(REAL(-1.0), TOL(1e-10, 1e-5)));
+	REQUIRE_THAT(L(2, 2), Catch::Matchers::WithinRel(REAL(1.0), TOL(1e-10, 1e-5)));
 }
 
 TEST_CASE("Graph - Laplacian row sums are zero", "[Graph][matrix]")
@@ -339,7 +337,7 @@ TEST_CASE("Graph - Laplacian row sums are zero", "[Graph][matrix]")
 		Real rowSum = 0;
 		for (int j = 0; j < 5; ++j)
 			rowSum += L(i, j);
-		REQUIRE_THAT(rowSum, Catch::Matchers::WithinAbs(0.0, 1e-10));
+		REQUIRE_THAT(rowSum, Catch::Matchers::WithinAbs(0.0, TOL(1e-10, 1e-5)));
 	}
 }
 
@@ -482,7 +480,7 @@ TEST_CASE("Graph - toString produces non-empty string", "[Graph][utility]")
 ///                         BFS, DFS, Dijkstra, Connected Components                    ///
 ///////////////////////////////////////////////////////////////////////////////////////////
 
-// GraphAlgorithms.h included at top of file
+// GraphAlg.h included at top of file
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 ///                         BFS TESTS                                                   ///
@@ -495,6 +493,9 @@ TEST_CASE("BFS - on simple path graph", "[Graph][BFS]")
 
 	auto result = BFS(g, 0);
 
+	REQUIRE(result.status == AlgorithmStatus::Success);
+	REQUIRE(result.graphStatus == GraphAlgorithmStatus::Success);
+	REQUIRE(result.succeeded());
 	REQUIRE(result.nodesVisited == 5);
 	REQUIRE(result.visitOrder.size() == 5);
 	REQUIRE(result.visitOrder[0] == 0);  // Start vertex first
@@ -565,6 +566,9 @@ TEST_CASE("BFS - with invalid start returns empty result", "[Graph][BFS]")
 
 	auto result = BFS(g, 10);  // Invalid vertex
 
+	REQUIRE(result.status == AlgorithmStatus::InvalidInput);
+	REQUIRE(result.graphStatus == GraphAlgorithmStatus::InvalidVertex);
+	REQUIRE_FALSE(result.succeeded());
 	REQUIRE(result.nodesVisited == 0);
 	REQUIRE(result.visitOrder.empty());
 }
@@ -687,7 +691,7 @@ TEST_CASE("Dijkstra - on unweighted path graph", "[Graph][Dijkstra]")
 {
 	auto g = createPathGraph<int, Real>(5);
 
-	auto result = Dijkstra(g, 0);
+	   auto result = Dijkstra(g, size_t{0});
 
 	REQUIRE(result.distance[0] == 0);
 	REQUIRE(result.distance[1] == 1);
@@ -748,6 +752,9 @@ TEST_CASE("DijkstraPath - finds path and weight", "[Graph][Dijkstra]")
 
 	auto result = DijkstraPath(g, 0, 3);
 
+	REQUIRE(result.status == AlgorithmStatus::Success);
+	REQUIRE(result.graphStatus == GraphAlgorithmStatus::Success);
+	REQUIRE(result.succeeded());
 	REQUIRE(result.found);
 	REQUIRE(result.totalWeight == 6.0);  // 2+3+1
 	REQUIRE(result.path.size() == 4);
@@ -778,6 +785,8 @@ TEST_CASE("DijkstraPath - no path exists", "[Graph][Dijkstra]")
 	auto result = DijkstraPath(g, 0, 3);
 
 	REQUIRE_FALSE(result.found);
+	REQUIRE(result.status == AlgorithmStatus::AlgorithmSpecificFailure);
+	REQUIRE(result.graphStatus == GraphAlgorithmStatus::UnreachableTarget);
 	REQUIRE_FALSE(result.diagnostics.empty());
 }
 
@@ -787,9 +796,27 @@ TEST_CASE("DijkstraPath - invalid vertices", "[Graph][Dijkstra]")
 
 	auto result1 = DijkstraPath(g, 10, 0);
 	REQUIRE_FALSE(result1.found);
+	REQUIRE(result1.status == AlgorithmStatus::InvalidInput);
+	REQUIRE(result1.graphStatus == GraphAlgorithmStatus::InvalidVertex);
 
 	auto result2 = DijkstraPath(g, 0, 10);
 	REQUIRE_FALSE(result2.found);
+	REQUIRE(result2.status == AlgorithmStatus::InvalidInput);
+	REQUIRE(result2.graphStatus == GraphAlgorithmStatus::InvalidVertex);
+}
+
+TEST_CASE("Dijkstra - rejects negative edge weights with explicit status", "[Graph][Dijkstra]")
+{
+	Graph<int, Real> g(3, Graph<int, Real>::Type::Directed);
+	g.addEdge(0, 1, 2.0);
+	g.addEdge(1, 2, -1.0);
+
+	auto result = Dijkstra(g, 0);
+
+	REQUIRE(result.status == AlgorithmStatus::InvalidInput);
+	REQUIRE(result.graphStatus == GraphAlgorithmStatus::UnsupportedNegativeWeights);
+	REQUIRE_FALSE(result.succeeded());
+	REQUIRE_FALSE(result.diagnostics.empty());
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -802,6 +829,9 @@ TEST_CASE("ConnectedComponents - single component", "[Graph][Components]")
 
 	auto result = ConnectedComponents(g);
 
+	REQUIRE(result.status == AlgorithmStatus::Success);
+	REQUIRE(result.graphStatus == GraphAlgorithmStatus::Success);
+	REQUIRE(result.succeeded());
 	REQUIRE(result.numComponents == 1);
 	REQUIRE(result.components.size() == 1);
 	REQUIRE(result.components[0].size() == 5);
@@ -956,6 +986,8 @@ TEST_CASE("ShortestPathUnweighted - no path exists", "[Graph][PathUtils]")
 	auto result = ShortestPathUnweighted(g, 0, 2);
 
 	REQUIRE_FALSE(result.found);
+	REQUIRE(result.status == AlgorithmStatus::AlgorithmSpecificFailure);
+	REQUIRE(result.graphStatus == GraphAlgorithmStatus::UnreachableTarget);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -986,6 +1018,9 @@ TEST_CASE("BellmanFord - with negative weights (no cycle)", "[Graph][BellmanFord
 
 	auto result = BellmanFord(g, 0);
 
+	REQUIRE(result.status == AlgorithmStatus::Success);
+	REQUIRE(result.graphStatus == GraphAlgorithmStatus::Success);
+	REQUIRE(result.succeeded());
 	REQUIRE(result.distance[0] == 0);
 	REQUIRE(result.distance[1] == 2);
 	REQUIRE(result.distance[2] == 1);  // 2 + (-1) = 1
@@ -1001,6 +1036,9 @@ TEST_CASE("BellmanFord - detects negative cycle", "[Graph][BellmanFord]")
 
 	auto result = BellmanFord(g, 0);
 
+	REQUIRE(result.status == AlgorithmStatus::AlgorithmSpecificFailure);
+	REQUIRE(result.graphStatus == GraphAlgorithmStatus::NegativeCycle);
+	REQUIRE_FALSE(result.succeeded());
 	REQUIRE(result.parent.empty());  // Empty indicates negative cycle
 	REQUIRE(result.distance.empty());
 }
@@ -1037,6 +1075,418 @@ TEST_CASE("HasNegativeCycle - with cycle", "[Graph][BellmanFord]")
 	g.addEdge(2, 0, -5.0);
 
 	REQUIRE(HasNegativeCycle(g, 0));
+}
+
+TEST_CASE("DijkstraShortestPathTree - reconstructs paths", "[Graph][ShortestPathTree]")
+{
+	Graph<int, Real> g(4, Graph<int, Real>::Type::Directed);
+	g.addEdge(0, 1, 2.0);
+	g.addEdge(0, 2, 10.0);
+	g.addEdge(1, 2, 3.0);
+	g.addEdge(2, 3, 1.0);
+
+	auto result = DijkstraShortestPathTree(g, 0);
+
+	REQUIRE(result.status == AlgorithmStatus::Success);
+	REQUIRE(result.graphStatus == GraphAlgorithmStatus::Success);
+	REQUIRE(result.succeeded());
+	REQUIRE(result.source == 0);
+	REQUIRE(result.distance[3] == 6.0);
+	REQUIRE(result.isReachable(3));
+	REQUIRE(result.pathTo(3) == std::vector<size_t>{0, 1, 2, 3});
+}
+
+TEST_CASE("FloydWarshall - computes weighted all-pairs paths", "[Graph][FloydWarshall]")
+{
+	Graph<int, Real> g(4, Graph<int, Real>::Type::Directed);
+	g.addEdge(0, 1, 3.0);
+	g.addEdge(0, 2, 10.0);
+	g.addEdge(1, 2, 2.0);
+	g.addEdge(1, 3, 7.0);
+	g.addEdge(2, 3, 1.0);
+
+	auto result = FloydWarshall(g);
+
+	REQUIRE(result.status == AlgorithmStatus::Success);
+	REQUIRE(result.graphStatus == GraphAlgorithmStatus::Success);
+	REQUIRE(result.succeeded());
+	REQUIRE_THAT(result.distance[0][3], Catch::Matchers::WithinAbs(REAL(6.0), TOL(1e-10, 1e-5)));
+	REQUIRE(result.path(0, 3) == std::vector<size_t>{0, 1, 2, 3});
+	REQUIRE_FALSE(result.hasPath(3, 0));
+}
+
+TEST_CASE("FloydWarshall - supports negative edges without negative cycle", "[Graph][FloydWarshall]")
+{
+	Graph<int, Real> g(4, Graph<int, Real>::Type::Directed);
+	g.addEdge(0, 1, 4.0);
+	g.addEdge(0, 2, 5.0);
+	g.addEdge(1, 2, -2.0);
+	g.addEdge(2, 3, 3.0);
+
+	auto result = FloydWarshall(g);
+
+	REQUIRE(result.status == AlgorithmStatus::Success);
+	REQUIRE(result.graphStatus == GraphAlgorithmStatus::Success);
+	REQUIRE_THAT(result.distance[0][3], Catch::Matchers::WithinAbs(REAL(5.0), TOL(1e-10, 1e-5)));
+	REQUIRE(result.path(0, 3) == std::vector<size_t>{0, 1, 2, 3});
+}
+
+TEST_CASE("FloydWarshall - reports negative cycle", "[Graph][FloydWarshall]")
+{
+	Graph<int, Real> g(3, Graph<int, Real>::Type::Directed);
+	g.addEdge(0, 1, 1.0);
+	g.addEdge(1, 2, -3.0);
+	g.addEdge(2, 0, 1.0);
+
+	auto result = FloydWarshall(g);
+
+	REQUIRE(result.status == AlgorithmStatus::AlgorithmSpecificFailure);
+	REQUIRE(result.graphStatus == GraphAlgorithmStatus::NegativeCycle);
+	REQUIRE_FALSE(result.succeeded());
+	REQUIRE_FALSE(result.diagnostics.empty());
+}
+
+TEST_CASE("Johnson - matches FloydWarshall with negative edges", "[Graph][Johnson]")
+{
+	Graph<int, Real> g(4, Graph<int, Real>::Type::Directed);
+	g.addEdge(0, 1, 4.0);
+	g.addEdge(0, 2, 5.0);
+	g.addEdge(1, 2, -2.0);
+	g.addEdge(2, 3, 3.0);
+	g.addEdge(3, 1, 1.0);
+
+	auto floyd = FloydWarshall(g);
+	auto johnson = Johnson(g);
+
+	REQUIRE(floyd.succeeded());
+	REQUIRE(johnson.status == AlgorithmStatus::Success);
+	REQUIRE(johnson.graphStatus == GraphAlgorithmStatus::Success);
+	REQUIRE(johnson.succeeded());
+	REQUIRE_THAT(johnson.distance[0][3], Catch::Matchers::WithinAbs(floyd.distance[0][3], TOL(1e-10, 1e-5)));
+	REQUIRE(johnson.path(0, 3) == std::vector<size_t>{0, 1, 2, 3});
+}
+
+TEST_CASE("Johnson - reports negative cycle", "[Graph][Johnson]")
+{
+	Graph<int, Real> g(3, Graph<int, Real>::Type::Directed);
+	g.addEdge(0, 1, 1.0);
+	g.addEdge(1, 2, -3.0);
+	g.addEdge(2, 0, 1.0);
+
+	auto result = Johnson(g);
+
+	REQUIRE(result.status == AlgorithmStatus::AlgorithmSpecificFailure);
+	REQUIRE(result.graphStatus == GraphAlgorithmStatus::NegativeCycle);
+	REQUIRE_FALSE(result.succeeded());
+	REQUIRE_FALSE(result.diagnostics.empty());
+}
+
+TEST_CASE("AStarPath - finds weighted shortest path with zero heuristic", "[Graph][AStar]")
+{
+	Graph<int, Real> g(4, Graph<int, Real>::Type::Directed);
+	g.addEdge(0, 1, 2.0);
+	g.addEdge(0, 2, 10.0);
+	g.addEdge(1, 2, 3.0);
+	g.addEdge(2, 3, 1.0);
+
+	auto zeroHeuristic = [](size_t, size_t) { return 0.0; };
+	auto result = AStarPath(g, 0, 3, zeroHeuristic);
+
+	REQUIRE(result.status == AlgorithmStatus::Success);
+	REQUIRE(result.graphStatus == GraphAlgorithmStatus::Success);
+	REQUIRE(result.found);
+	REQUIRE(result.totalWeight == 6.0);
+	REQUIRE(result.path == std::vector<size_t>{0, 1, 2, 3});
+}
+
+TEST_CASE("AStarPath - reports invalid, unreachable, and negative-weight inputs", "[Graph][AStar]")
+{
+	Graph<int, Real> g(4, Graph<int, Real>::Type::Directed);
+	g.addEdge(0, 1, 1.0);
+	g.addEdge(2, 3, 1.0);
+	auto zeroHeuristic = [](size_t, size_t) { return 0.0; };
+
+	auto invalid = AStarPath(g, 0, 10, zeroHeuristic);
+	REQUIRE(invalid.status == AlgorithmStatus::InvalidInput);
+	REQUIRE(invalid.graphStatus == GraphAlgorithmStatus::InvalidVertex);
+
+	auto unreachable = AStarPath(g, 0, 3, zeroHeuristic);
+	REQUIRE_FALSE(unreachable.found);
+	REQUIRE(unreachable.status == AlgorithmStatus::AlgorithmSpecificFailure);
+	REQUIRE(unreachable.graphStatus == GraphAlgorithmStatus::UnreachableTarget);
+
+	Graph<int, Real> negative(2, Graph<int, Real>::Type::Directed);
+	negative.addEdge(0, 1, -1.0);
+	auto unsupported = AStarPath(negative, 0, 1, zeroHeuristic);
+	REQUIRE(unsupported.status == AlgorithmStatus::InvalidInput);
+	REQUIRE(unsupported.graphStatus == GraphAlgorithmStatus::UnsupportedNegativeWeights);
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////
+///                         STRUCTURAL GRAPH TESTS                                      ///
+///////////////////////////////////////////////////////////////////////////////////////////
+
+TEST_CASE("StronglyConnectedComponents - finds components and condensation edges", "[Graph][Structural]")
+{
+	Graph<int, Real> g(5, Graph<int, Real>::Type::Directed);
+	g.addEdge(0, 1);
+	g.addEdge(1, 0);
+	g.addEdge(1, 2);
+	g.addEdge(2, 3);
+	g.addEdge(3, 2);
+	g.addEdge(3, 4);
+
+	auto result = StronglyConnectedComponents(g);
+
+	REQUIRE(result.status == AlgorithmStatus::Success);
+	REQUIRE(result.graphStatus == GraphAlgorithmStatus::Success);
+	REQUIRE(result.succeeded());
+	REQUIRE(result.numComponents == 3);
+	REQUIRE(result.componentId[0] == result.componentId[1]);
+	REQUIRE(result.componentId[2] == result.componentId[3]);
+	REQUIRE(result.componentId[1] != result.componentId[2]);
+	REQUIRE(result.componentId[3] != result.componentId[4]);
+	REQUIRE(result.condensationEdges.size() == 2);
+	REQUIRE(std::find(result.condensationEdges.begin(), result.condensationEdges.end(),
+		std::make_pair(result.componentId[1], result.componentId[2])) != result.condensationEdges.end());
+	REQUIRE(std::find(result.condensationEdges.begin(), result.condensationEdges.end(),
+		std::make_pair(result.componentId[3], result.componentId[4])) != result.condensationEdges.end());
+}
+
+TEST_CASE("StronglyConnectedComponents - rejects undirected graph", "[Graph][Structural]")
+{
+	Graph<> g(2);
+	g.addEdge(0, 1);
+
+	auto result = StronglyConnectedComponents(g);
+
+	REQUIRE(result.status == AlgorithmStatus::InvalidInput);
+	REQUIRE(result.graphStatus == GraphAlgorithmStatus::GraphTypeMismatch);
+	REQUIRE_FALSE(result.succeeded());
+}
+
+TEST_CASE("UndirectedConnectivity - finds articulation points and bridges", "[Graph][Structural]")
+{
+	Graph<int, Real> g(5);
+	g.addEdge(0, 1);
+	g.addEdge(1, 2);
+	g.addEdge(2, 0);
+	g.addEdge(1, 3);
+	g.addEdge(3, 4);
+
+	auto result = UndirectedConnectivity(g);
+
+	REQUIRE(result.status == AlgorithmStatus::Success);
+	REQUIRE(result.graphStatus == GraphAlgorithmStatus::Success);
+	REQUIRE(result.succeeded());
+	REQUIRE(result.articulationPoints == std::vector<size_t>{1, 3});
+	REQUIRE(result.bridges == std::vector<std::pair<size_t, size_t>>{ {1, 3}, {3, 4} });
+	REQUIRE(result.biconnectedComponents.size() == 3);
+}
+
+TEST_CASE("FindCycle - extracts directed and undirected cycles", "[Graph][Structural]")
+{
+	Graph<> directed(3, Graph<>::Type::Directed);
+	directed.addEdge(0, 1);
+	directed.addEdge(1, 2);
+	directed.addEdge(2, 0);
+
+	auto directedCycle = FindCycle(directed);
+	REQUIRE(directedCycle.hasCycle);
+	REQUIRE(directedCycle.graphStatus == GraphAlgorithmStatus::CycleDetected);
+	REQUIRE(directedCycle.cycle.front() == directedCycle.cycle.back());
+	REQUIRE(directedCycle.cycle.size() >= 4);
+
+	Graph<> undirected(4);
+	undirected.addEdge(0, 1);
+	undirected.addEdge(1, 2);
+	undirected.addEdge(2, 0);
+	undirected.addEdge(2, 3);
+
+	auto undirectedCycle = FindCycle(undirected);
+	REQUIRE(undirectedCycle.hasCycle);
+	REQUIRE(undirectedCycle.cycle.front() == undirectedCycle.cycle.back());
+}
+
+TEST_CASE("BipartiteColoring - colors bipartite graph and rejects odd cycle", "[Graph][Structural]")
+{
+	Graph<> bipartite(4);
+	bipartite.addEdge(0, 2);
+	bipartite.addEdge(0, 3);
+	bipartite.addEdge(1, 2);
+	bipartite.addEdge(1, 3);
+
+	auto colored = BipartiteColoring(bipartite);
+	REQUIRE(colored.status == AlgorithmStatus::Success);
+	REQUIRE(colored.graphStatus == GraphAlgorithmStatus::Success);
+	REQUIRE(colored.isBipartite);
+	for (const auto& [u, v, weight] : bipartite.edges())
+	{
+		(void)weight;
+		REQUIRE(colored.color[u] != colored.color[v]);
+	}
+
+	Graph<> oddCycle(3);
+	oddCycle.addEdge(0, 1);
+	oddCycle.addEdge(1, 2);
+	oddCycle.addEdge(2, 0);
+
+	auto rejected = BipartiteColoring(oddCycle);
+	REQUIRE_FALSE(rejected.isBipartite);
+	REQUIRE(rejected.status == AlgorithmStatus::AlgorithmSpecificFailure);
+	REQUIRE(rejected.graphStatus == GraphAlgorithmStatus::CycleDetected);
+}
+
+TEST_CASE("TransitiveClosure and TransitiveReductionDAG - compute DAG reachability", "[Graph][Structural]")
+{
+	Graph<> g(4, Graph<>::Type::Directed);
+	g.addEdge(0, 1);
+	g.addEdge(1, 2);
+	g.addEdge(0, 2);
+	g.addEdge(2, 3);
+	g.addEdge(0, 3);
+
+	auto closure = TransitiveClosure(g);
+	REQUIRE(closure.status == AlgorithmStatus::Success);
+	REQUIRE(closure.graphStatus == GraphAlgorithmStatus::Success);
+	REQUIRE(closure.reachable[0][3]);
+	REQUIRE(closure.reachable[1][3]);
+	REQUIRE_FALSE(closure.reachable[3][0]);
+
+	auto reduction = TransitiveReductionDAG(g);
+	REQUIRE(reduction.status == AlgorithmStatus::Success);
+	REQUIRE(reduction.graphStatus == GraphAlgorithmStatus::Success);
+	REQUIRE(reduction.edges == std::vector<std::pair<size_t, size_t>>{ {0, 1}, {1, 2}, {2, 3} });
+}
+
+TEST_CASE("LongestPathDAG - computes weighted source paths and rejects cycles", "[Graph][Structural]")
+{
+	Graph<int, Real> dag(5, Graph<int, Real>::Type::Directed);
+	dag.addEdge(0, 1, 2.0);
+	dag.addEdge(0, 2, 1.0);
+	dag.addEdge(1, 3, 4.0);
+	dag.addEdge(2, 3, 10.0);
+	dag.addEdge(3, 4, 1.0);
+
+	auto result = LongestPathDAG(dag, 0);
+	REQUIRE(result.status == AlgorithmStatus::Success);
+	REQUIRE(result.graphStatus == GraphAlgorithmStatus::Success);
+	REQUIRE(result.distance[4] == 12.0);
+	REQUIRE(result.pathTo(4) == std::vector<size_t>{0, 2, 3, 4});
+
+	Graph<int, Real> cyclic(2, Graph<int, Real>::Type::Directed);
+	cyclic.addEdge(0, 1, 1.0);
+	cyclic.addEdge(1, 0, 1.0);
+
+	auto rejected = LongestPathDAG(cyclic, 0);
+	REQUIRE(rejected.status == AlgorithmStatus::AlgorithmSpecificFailure);
+	REQUIRE(rejected.graphStatus == GraphAlgorithmStatus::CycleDetected);
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////
+///                         FLOW AND MATCHING TESTS                                     ///
+///////////////////////////////////////////////////////////////////////////////////////////
+
+TEST_CASE("EdmondsKarp and Dinic - compute canonical max flow and min cut", "[Graph][Flow]")
+{
+	Graph<int, Real> g(6, Graph<int, Real>::Type::Directed);
+	g.addEdge(0, 1, 16.0);
+	g.addEdge(0, 2, 13.0);
+	g.addEdge(1, 2, 10.0);
+	g.addEdge(2, 1, 4.0);
+	g.addEdge(1, 3, 12.0);
+	g.addEdge(3, 2, 9.0);
+	g.addEdge(2, 4, 14.0);
+	g.addEdge(4, 3, 7.0);
+	g.addEdge(3, 5, 20.0);
+	g.addEdge(4, 5, 4.0);
+
+	auto edmondsKarp = EdmondsKarp(g, 0, 5);
+	auto dinic = Dinic(g, 0, 5);
+
+	REQUIRE(edmondsKarp.status == AlgorithmStatus::Success);
+	REQUIRE(edmondsKarp.graphStatus == GraphAlgorithmStatus::Success);
+	REQUIRE(dinic.status == AlgorithmStatus::Success);
+	REQUIRE(dinic.graphStatus == GraphAlgorithmStatus::Success);
+	REQUIRE_THAT(edmondsKarp.maxFlow, Catch::Matchers::WithinAbs(REAL(23.0), TOL(1e-10, 1e-5)));
+	REQUIRE_THAT(dinic.maxFlow, Catch::Matchers::WithinAbs(REAL(23.0), TOL(1e-10, 1e-5)));
+	REQUIRE(edmondsKarp.sourceSide == std::vector<size_t>{0, 1, 2, 4});
+	REQUIRE(edmondsKarp.sinkSide == std::vector<size_t>{3, 5});
+	REQUIRE(edmondsKarp.cutEdges.size() == 3);
+	REQUIRE(dinic.sourceSide == edmondsKarp.sourceSide);
+	REQUIRE(dinic.sinkSide == edmondsKarp.sinkSide);
+}
+
+TEST_CASE("Max flow algorithms - handle disconnected and invalid capacity cases", "[Graph][Flow]")
+{
+	Graph<int, Real> disconnected(4, Graph<int, Real>::Type::Directed);
+	disconnected.addEdge(0, 1, 5.0);
+	disconnected.addEdge(2, 3, 7.0);
+
+	auto zeroFlow = Dinic(disconnected, 0, 3);
+	REQUIRE(zeroFlow.status == AlgorithmStatus::Success);
+	REQUIRE(zeroFlow.graphStatus == GraphAlgorithmStatus::Success);
+	REQUIRE(zeroFlow.maxFlow == 0.0);
+	REQUIRE(zeroFlow.sourceSide == std::vector<size_t>{0, 1});
+
+	Graph<int, Real> negative(2, Graph<int, Real>::Type::Directed);
+	negative.addEdge(0, 1, -1.0);
+	auto rejected = EdmondsKarp(negative, 0, 1);
+	REQUIRE(rejected.status == AlgorithmStatus::InvalidInput);
+	REQUIRE(rejected.graphStatus == GraphAlgorithmStatus::UnsupportedNegativeWeights);
+
+	Graph<int, Real> undirected(2);
+	undirected.addEdge(0, 1, 1.0);
+	auto wrongType = Dinic(undirected, 0, 1);
+	REQUIRE(wrongType.status == AlgorithmStatus::InvalidInput);
+	REQUIRE(wrongType.graphStatus == GraphAlgorithmStatus::GraphTypeMismatch);
+}
+
+TEST_CASE("HopcroftKarp - computes maximum bipartite matching", "[Graph][Matching]")
+{
+	Graph<int, Real> g(6);
+	g.addEdge(0, 3);
+	g.addEdge(0, 4);
+	g.addEdge(1, 4);
+	g.addEdge(2, 5);
+
+	auto result = HopcroftKarp(g, std::vector<size_t>{0, 1, 2});
+
+	REQUIRE(result.status == AlgorithmStatus::Success);
+	REQUIRE(result.graphStatus == GraphAlgorithmStatus::Success);
+	REQUIRE(result.succeeded());
+	REQUIRE(result.cardinality == 3);
+	REQUIRE(result.matching.size() == 3);
+	for (const auto& [left, right] : result.matching)
+	{
+		REQUIRE(left < 3);
+		REQUIRE(right >= 3);
+		REQUIRE(result.mate[left] == right);
+		REQUIRE(result.mate[right] == left);
+	}
+}
+
+TEST_CASE("HopcroftKarp - derives coloring and rejects non-bipartite graph", "[Graph][Matching]")
+{
+	Graph<> bipartite(4);
+	bipartite.addEdge(0, 2);
+	bipartite.addEdge(0, 3);
+	bipartite.addEdge(1, 2);
+
+	auto derived = HopcroftKarp(bipartite);
+	REQUIRE(derived.status == AlgorithmStatus::Success);
+	REQUIRE(derived.graphStatus == GraphAlgorithmStatus::Success);
+	REQUIRE(derived.cardinality == 2);
+
+	Graph<> oddCycle(3);
+	oddCycle.addEdge(0, 1);
+	oddCycle.addEdge(1, 2);
+	oddCycle.addEdge(2, 0);
+
+	auto rejected = HopcroftKarp(oddCycle);
+	REQUIRE(rejected.status == AlgorithmStatus::AlgorithmSpecificFailure);
+	REQUIRE(rejected.graphStatus == GraphAlgorithmStatus::CycleDetected);
+	REQUIRE_FALSE(rejected.succeeded());
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -1309,279 +1759,7 @@ TEST_CASE("Prim and Kruskal produce same total weight", "[Graph][MST]")
 	REQUIRE(kruskalResult.totalWeight == primResult.totalWeight);
 }
 
-///////////////////////////////////////////////////////////////////////////////////////////
-///                         SPECTRAL GRAPH ANALYSIS TESTS                               ///
-///////////////////////////////////////////////////////////////////////////////////////////
-
-// GraphSpectral.h included at top of file
-
-///////////////////////////////////////////////////////////////////////////////////////////
-///                         CENTRALITY TESTS                                            ///
-///////////////////////////////////////////////////////////////////////////////////////////
-
-TEST_CASE("DegreeCentrality - complete graph has uniform centrality", "[Graph][Spectral]")
-{
-	auto g = createCompleteGraph<int, Real>(5);
-
-	auto centrality = DegreeCentrality(g);
-
-	REQUIRE(centrality.size() == 5);
-
-	// All vertices have degree 4 out of max 4, so centrality = 1.0
-	for (size_t i = 0; i < 5; ++i)
-	{
-		REQUIRE_THAT(centrality[i], Catch::Matchers::WithinAbs(1.0, 1e-10));
-	}
-}
-
-TEST_CASE("DegreeCentrality - star graph", "[Graph][Spectral]")
-{
-	auto g = createStarGraph<int, Real>(5);  // Center + 4 leaves
-
-	auto centrality = DegreeCentrality(g);
-
-	REQUIRE(centrality.size() == 5);
-
-	// Center (vertex 0) has degree 4, max is 4
-	REQUIRE_THAT(centrality[0], Catch::Matchers::WithinAbs(1.0, 1e-10));
-
-	// Leaves have degree 1, max is 4
-	for (size_t i = 1; i < 5; ++i)
-	{
-		REQUIRE_THAT(centrality[i], Catch::Matchers::WithinAbs(0.25, 1e-10));
-	}
-}
-
-TEST_CASE("ClosenessCentrality - path graph", "[Graph][Spectral]")
-{
-	auto g = createPathGraph<int, Real>(5);
-
-	auto centrality = ClosenessCentrality(g);
-
-	REQUIRE(centrality.size() == 5);
-
-	// Middle vertex (2) should have highest closeness
-	REQUIRE(centrality[2] > centrality[0]);
-	REQUIRE(centrality[2] > centrality[4]);
-	// Symmetry
-	REQUIRE_THAT(centrality[0], Catch::Matchers::WithinAbs(centrality[4], 1e-10));
-	REQUIRE_THAT(centrality[1], Catch::Matchers::WithinAbs(centrality[3], 1e-10));
-}
-
-TEST_CASE("ClosenessCentrality - star graph center is most central", "[Graph][Spectral]")
-{
-	auto g = createStarGraph<int, Real>(5);
-
-	auto centrality = ClosenessCentrality(g);
-
-	// Center is closest to all others (distance 1 to each)
-	for (size_t i = 1; i < 5; ++i)
-	{
-		REQUIRE(centrality[0] > centrality[i]);
-	}
-}
-
-TEST_CASE("BetweennessCentrality - path graph", "[Graph][Spectral]")
-{
-	auto g = createPathGraph<int, Real>(5);
-
-	auto centrality = BetweennessCentrality(g, true);
-
-	REQUIRE(centrality.size() == 5);
-
-	// Middle vertex lies on all shortest paths
-	REQUIRE(centrality[2] > centrality[1]);
-	REQUIRE(centrality[2] > centrality[3]);
-
-	// End vertices have 0 betweenness (not on any shortest path between others)
-	REQUIRE_THAT(centrality[0], Catch::Matchers::WithinAbs(0.0, 1e-10));
-	REQUIRE_THAT(centrality[4], Catch::Matchers::WithinAbs(0.0, 1e-10));
-}
-
-TEST_CASE("BetweennessCentrality - complete graph has zero betweenness", "[Graph][Spectral]")
-{
-	auto g = createCompleteGraph<int, Real>(5);
-
-	auto centrality = BetweennessCentrality(g);
-
-	// In complete graph, no vertex is on any shortest path between others
-	// (all pairs are directly connected)
-	for (size_t i = 0; i < 5; ++i)
-	{
-		REQUIRE_THAT(centrality[i], Catch::Matchers::WithinAbs(0.0, 1e-10));
-	}
-}
-
-TEST_CASE("EigenvectorCentrality - regular graph has uniform centrality", "[Graph][Spectral]")
-{
-	auto g = createCycleGraph<int, Real>(5);
-
-	auto centrality = EigenvectorCentrality(g);
-
-	REQUIRE(centrality.size() == 5);
-
-	// All vertices should have same eigenvector centrality in regular graph
-	for (size_t i = 1; i < 5; ++i)
-	{
-		REQUIRE_THAT(centrality[i], Catch::Matchers::WithinAbs(centrality[0], 1e-5));
-	}
-}
-
-TEST_CASE("PageRank - sums to 1", "[Graph][Spectral]")
-{
-	auto g = createCompleteGraph<int, Real>(5);
-
-	auto ranks = PageRank(g);
-
-	Real sum = 0;
-	for (Real r : ranks)
-		sum += r;
-
-	REQUIRE_THAT(sum, Catch::Matchers::WithinAbs(1.0, 1e-10));
-}
-
-TEST_CASE("PageRank - regular graph has uniform ranks", "[Graph][Spectral]")
-{
-	auto g = createCycleGraph<int, Real>(5);
-
-	auto ranks = PageRank(g);
-
-	// All should be equal (0.2)
-	for (size_t i = 0; i < 5; ++i)
-	{
-		REQUIRE_THAT(ranks[i], Catch::Matchers::WithinAbs(0.2, 1e-5));
-	}
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////
-///                         GRAPH STRUCTURE TESTS                                       ///
-///////////////////////////////////////////////////////////////////////////////////////////
-
-TEST_CASE("GraphDensity - complete graph has density 1", "[Graph][Spectral]")
-{
-	auto g = createCompleteGraph<int, Real>(5);
-
-	Real density = GraphDensity(g);
-
-	REQUIRE_THAT(density, Catch::Matchers::WithinAbs(1.0, 1e-10));
-}
-
-TEST_CASE("GraphDensity - path graph", "[Graph][Spectral]")
-{
-	auto g = createPathGraph<int, Real>(5);
-
-	Real density = GraphDensity(g);
-
-	// Path has 4 edges, max is 10 (5*4/2)
-	REQUIRE_THAT(density, Catch::Matchers::WithinAbs(0.4, 1e-10));
-}
-
-TEST_CASE("GraphDensity - empty graph", "[Graph][Spectral]")
-{
-	Graph<> g(5);  // No edges
-
-	Real density = GraphDensity(g);
-
-	REQUIRE_THAT(density, Catch::Matchers::WithinAbs(0.0, 1e-10));
-}
-
-TEST_CASE("AverageClusteringCoefficient - complete graph is 1", "[Graph][Spectral]")
-{
-	auto g = createCompleteGraph<int, Real>(5);
-
-	Real cc = AverageClusteringCoefficient(g);
-
-	REQUIRE_THAT(cc, Catch::Matchers::WithinAbs(1.0, 1e-10));
-}
-
-TEST_CASE("AverageClusteringCoefficient - star graph is 0", "[Graph][Spectral]")
-{
-	auto g = createStarGraph<int, Real>(5);
-
-	Real cc = AverageClusteringCoefficient(g);
-
-	// Leaves have degree 1 (no triangles possible)
-	// Center has neighbors that are not connected to each other
-	REQUIRE_THAT(cc, Catch::Matchers::WithinAbs(0.0, 1e-10));
-}
-
-TEST_CASE("GraphDiameter - path graph", "[Graph][Spectral]")
-{
-	auto g = createPathGraph<int, Real>(5);
-
-	Real diameter = GraphDiameter(g);
-
-	REQUIRE_THAT(diameter, Catch::Matchers::WithinAbs(4.0, 1e-10));
-}
-
-TEST_CASE("GraphDiameter - complete graph is 1", "[Graph][Spectral]")
-{
-	auto g = createCompleteGraph<int, Real>(5);
-
-	Real diameter = GraphDiameter(g);
-
-	REQUIRE_THAT(diameter, Catch::Matchers::WithinAbs(1.0, 1e-10));
-}
-
-TEST_CASE("GraphDiameter - cycle graph", "[Graph][Spectral]")
-{
-	auto g = createCycleGraph<int, Real>(6);
-
-	Real diameter = GraphDiameter(g);
-
-	// Diameter is n/2 for even cycle
-	REQUIRE_THAT(diameter, Catch::Matchers::WithinAbs(3.0, 1e-10));
-}
-
-TEST_CASE("AveragePathLength - complete graph is 1", "[Graph][Spectral]")
-{
-	auto g = createCompleteGraph<int, Real>(5);
-
-	Real apl = AveragePathLength(g);
-
-	REQUIRE_THAT(apl, Catch::Matchers::WithinAbs(1.0, 1e-10));
-}
-
-TEST_CASE("AveragePathLength - path graph", "[Graph][Spectral]")
-{
-	auto g = createPathGraph<int, Real>(5);
-
-	Real apl = AveragePathLength(g);
-
-	// Sum of all shortest paths / number of pairs
-	// Pairs: (0,1)=1, (0,2)=2, (0,3)=3, (0,4)=4, (1,2)=1, (1,3)=2, (1,4)=3, (2,3)=1, (2,4)=2, (3,4)=1
-	// Total = 20, pairs = 10
-	REQUIRE_THAT(apl, Catch::Matchers::WithinAbs(2.0, 1e-10));
-}
-
-TEST_CASE("AlgebraicConnectivity - connected graph is positive", "[Graph][Spectral]")
-{
-	auto g = createCompleteGraph<int, Real>(5);
-
-	Real lambda2 = AlgebraicConnectivityBound(g);
-
-	REQUIRE(lambda2 > 0);
-}
-
-TEST_CASE("AlgebraicConnectivity - disconnected graph is zero", "[Graph][Spectral]")
-{
-	Graph<> g(4);
-	g.addEdge(0, 1);
-	// 2, 3 isolated
-
-	Real lambda2 = AlgebraicConnectivityBound(g);
-
-	REQUIRE_THAT(lambda2, Catch::Matchers::WithinAbs(0.0, 1e-10));
-}
-
-TEST_CASE("IsConnectedSpectral - matches IsConnected", "[Graph][Spectral]")
-{
-	auto g1 = createCompleteGraph<int, Real>(5);
-	auto g2 = Graph<>(4);
-	g2.addEdge(0, 1);
-
-	REQUIRE(IsConnectedSpectral(g1) == IsConnected(g1));
-	REQUIRE(IsConnectedSpectral(g2) == IsConnected(g2));
-}
+// Spectral graph analysis + centrality tests moved to MML-Packages
+// tests/mml_ext/graph_spectral_tests.cpp with the 2.0 cull (MinimalMathLibrary-ya0v.4)
 
 } // namespace MML::Tests::Algorithms::GraphTests

@@ -16,10 +16,10 @@
 ///////////////////////////////////////////////////////////////////////////////////////////
 
 #ifdef MML_USE_SINGLE_HEADER
-#include "MML.h"
+#include <MML.h>
 #else
-#include "base/Function.h"
-#include "core/Derivation.h"
+#include <mml/base/Function.h>
+#include <mml/core/Derivation.h>
 #endif
 
 #include "PrecisionTestFramework.h"
@@ -198,6 +198,18 @@ void Test_FirstDerivative_MultiFunction_Comparison()
 //                     SECOND DERIVATIVE PRECISION TESTS
 ///////////////////////////////////////////////////////////////////////////////////////////
 
+template<typename Evaluator>
+void AddDerivativeResult(PrecisionTestSuite& suite, const std::string& algorithm,
+                         const std::string& functionName, double exact, Evaluator&& evaluate)
+{
+    try {
+        suite.addResult(algorithm, functionName, exact, evaluate());
+    }
+    catch (const NumericalMethodError& error) {
+        std::cerr << algorithm << " failed for " << functionName << ": " << error.what() << '\n';
+    }
+}
+
 /**
  * @brief Test second derivative accuracy (NSecDer2, NSecDer4)
  */
@@ -224,8 +236,10 @@ void Test_SecondDerivative_AllFunctions()
         
         double exact = f_sec_der(x);
         
-        suite.addResult("NSecDer2", testFunc._funcName, exact, Derivation::NSecDer2(f, x));
-        suite.addResult("NSecDer4", testFunc._funcName, exact, Derivation::NSecDer4(f, x));
+        AddDerivativeResult(suite, "NSecDer2", testFunc._funcName, exact,
+                    [&]() { return Derivation::NSecDer2(f, x); });
+        AddDerivativeResult(suite, "NSecDer4", testFunc._funcName, exact,
+                    [&]() { return Derivation::NSecDer4(f, x); });
     }
     
     suite.printHeader();
@@ -320,7 +334,8 @@ void Test_EdgeCases()
     for (double x : near_zero) {
         std::ostringstream xStr;
         xStr << "x^3@" << x;
-        suite.addResult("NDer8", xStr.str(), f_cubic_der(x), Derivation::NDer8(f_cubic, x));
+        AddDerivativeResult(suite, "NDer8", xStr.str(), f_cubic_der(x),
+                    [&]() { return Derivation::NDer8(f_cubic, x); });
     }
     
     // 2. Steep gradient: f(x) = exp(x), large x
@@ -329,7 +344,8 @@ void Test_EdgeCases()
     for (double x : steep_points) {
         std::ostringstream xStr;
         xStr << "exp@" << x;
-        suite.addResult("NDer8", xStr.str(), exp(x), Derivation::NDer8(f_exp, x));
+        AddDerivativeResult(suite, "NDer8", xStr.str(), exp(x),
+                    [&]() { return Derivation::NDer8(f_exp, x); });
     }
     
     // 3. Oscillatory: f(x) = sin(10x), high frequency
@@ -339,7 +355,8 @@ void Test_EdgeCases()
     for (double x : osc_points) {
         std::ostringstream xStr;
         xStr << "sin10x@" << x;
-        suite.addResult("NDer8", xStr.str(), f_osc_der(x), Derivation::NDer8(f_osc, x));
+        AddDerivativeResult(suite, "NDer8", xStr.str(), f_osc_der(x),
+                    [&]() { return Derivation::NDer8(f_osc, x); });
     }
     
     suite.printHeader();
@@ -372,8 +389,10 @@ void Test_NumericallyChallengingFunctions()
         
         double exact = f_der(x);
         
-        suite.addResult("NDer4", testFunc._funcName, exact, Derivation::NDer4(f, x));
-        suite.addResult("NDer8", testFunc._funcName, exact, Derivation::NDer8(f, x));
+        AddDerivativeResult(suite, "NDer4", testFunc._funcName, exact,
+                    [&]() { return Derivation::NDer4(f, x); });
+        AddDerivativeResult(suite, "NDer8", testFunc._funcName, exact,
+                    [&]() { return Derivation::NDer8(f, x); });
     }
     
     suite.printHeader();
@@ -420,11 +439,16 @@ void Test_ComprehensiveSummary()
         
         double exact = f_der(x);
         
-        suite.addResult("NDer1", testFunc._funcName, exact, Derivation::NDer1(f, x));
-        suite.addResult("NDer2", testFunc._funcName, exact, Derivation::NDer2(f, x));
-        suite.addResult("NDer4", testFunc._funcName, exact, Derivation::NDer4(f, x));
-        suite.addResult("NDer6", testFunc._funcName, exact, Derivation::NDer6(f, x));
-        suite.addResult("NDer8", testFunc._funcName, exact, Derivation::NDer8(f, x));
+        AddDerivativeResult(suite, "NDer1", testFunc._funcName, exact,
+                    [&]() { return Derivation::NDer1(f, x); });
+        AddDerivativeResult(suite, "NDer2", testFunc._funcName, exact,
+                    [&]() { return Derivation::NDer2(f, x); });
+        AddDerivativeResult(suite, "NDer4", testFunc._funcName, exact,
+                    [&]() { return Derivation::NDer4(f, x); });
+        AddDerivativeResult(suite, "NDer6", testFunc._funcName, exact,
+                    [&]() { return Derivation::NDer6(f, x); });
+        AddDerivativeResult(suite, "NDer8", testFunc._funcName, exact,
+                    [&]() { return Derivation::NDer8(f, x); });
     }
     
     suite.printHeader();

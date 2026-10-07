@@ -1,13 +1,13 @@
 ///////////////////////////////////////////////////////////////////////////////////////////
 ///  File:        docs_demo_singularity.cpp                                           ///
-///  Description: Brief demonstration of SingularityHandling.h                        ///
+///  Description: Brief demonstration of MMLSingularityHandling.h                     ///
 ///////////////////////////////////////////////////////////////////////////////////////////
 
 #ifdef MML_USE_SINGLE_HEADER
-#include "MML.h"
+#include <MML.h>
 #else
-#include "MMLBase.h"
-#include "core/SingularityHandling.h"
+#include <mml/MMLBase.h>
+#include <mml/MMLSingularityHandling.h>
 #endif
 
 #include <iostream>

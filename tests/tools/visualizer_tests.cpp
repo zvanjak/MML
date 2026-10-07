@@ -16,7 +16,7 @@
 #include <catch2/catch_all.hpp>
 #include <string>
 
-#include "tools/Visualizer.h"
+#include <mml/tools/Visualizer.h>
 
 using namespace MML;
 
@@ -104,72 +104,15 @@ TEST_CASE("VisualizerResult::Failure - Empty message", "[Visualizer][Result]") {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-//                      BOOL CONVERSION OPERATOR                             //
+//                      EXPLICIT SUCCESS CHECKS                              //
 ///////////////////////////////////////////////////////////////////////////////
 
-TEST_CASE("VisualizerResult - Success converts to true", "[Visualizer][Result]") {
-    auto result = VisualizerResult::Success();
-    
-    REQUIRE(static_cast<bool>(result) == true);
-    
-    // Test in if statement
-    if (result) {
-        SUCCEED("Success correctly converts to true");
-    } else {
-        FAIL("Success should convert to true");
-    }
-}
-
-TEST_CASE("VisualizerResult - Failure converts to false", "[Visualizer][Result]") {
-    auto result = VisualizerResult::Failure("error");
-    
-    REQUIRE(static_cast<bool>(result) == false);
-    
-    // Test in if statement
-    if (result) {
-        FAIL("Failure should convert to false");
-    } else {
-        SUCCEED("Failure correctly converts to false");
-    }
-}
-
-TEST_CASE("VisualizerResult - Bool in NOT expressions", "[Visualizer][Result]") {
+TEST_CASE("VisualizerResult - Explicit success checks", "[Visualizer][Result]") {
     auto success = VisualizerResult::Success();
     auto failure = VisualizerResult::Failure("fail");
-    
-    REQUIRE(!failure == true);
-    REQUIRE(!success == false);
-}
 
-TEST_CASE("VisualizerResult - Bool in AND expressions", "[Visualizer][Result]") {
-    auto s1 = VisualizerResult::Success();
-    auto s2 = VisualizerResult::Success();
-    auto f = VisualizerResult::Failure("fail");
-    
-    REQUIRE((s1 && s2) == true);
-    REQUIRE((s1 && f) == false);
-    REQUIRE((f && s1) == false);
-}
-
-TEST_CASE("VisualizerResult - Bool in OR expressions", "[Visualizer][Result]") {
-    auto s = VisualizerResult::Success();
-    auto f1 = VisualizerResult::Failure("fail1");
-    auto f2 = VisualizerResult::Failure("fail2");
-    
-    REQUIRE((f1 || s) == true);
-    REQUIRE((s || f1) == true);
-    REQUIRE((f1 || f2) == false);
-}
-
-TEST_CASE("VisualizerResult - Ternary operator", "[Visualizer][Result]") {
-    auto success = VisualizerResult::Success();
-    auto failure = VisualizerResult::Failure("fail");
-    
-    std::string msg1 = success ? "ok" : "error";
-    std::string msg2 = failure ? "ok" : "error";
-    
-    REQUIRE(msg1 == "ok");
-    REQUIRE(msg2 == "error");
+    REQUIRE(success.success);
+    REQUIRE_FALSE(failure.success);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -306,7 +249,7 @@ TEST_CASE("VisualizerResult - Exit code zero with failure", "[Visualizer][Result
     
     REQUIRE(result.success == false);
     REQUIRE(result.exitCode == 0);
-    REQUIRE(static_cast<bool>(result) == false);  // success field determines bool
+    REQUIRE_FALSE(result.success);
 }
 
 TEST_CASE("VisualizerResult - Non-zero exit with success", "[Visualizer][Result]") {
@@ -315,7 +258,7 @@ TEST_CASE("VisualizerResult - Non-zero exit with success", "[Visualizer][Result]
     
     REQUIRE(result.success == true);
     REQUIRE(result.exitCode == 1);
-    REQUIRE(static_cast<bool>(result) == true);  // success field determines bool
+    REQUIRE(result.success);
 }
 
 } // namespace MML::Tests::Tools::VisualizerTests

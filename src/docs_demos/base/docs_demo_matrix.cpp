@@ -1,14 +1,14 @@
 #ifdef MML_USE_SINGLE_HEADER
-#include "MML.h"
+#include <MML.h>
 #else
-#include "MMLBase.h"
+#include <mml/MMLBase.h>
 
-#include "base/Matrix/Matrix.h"
-#include "base/Matrix/MatrixSym.h"
-#include "base/Matrix/MatrixTriDiag.h"
+#include <mml/base/Matrix/Matrix.h>
+#include <mml/base/Matrix/MatrixSym.h>
+#include <mml/base/Matrix/MatrixTriDiag.h>
 
-#include "base/BaseUtils.h"
-#include "core/MatrixUtils.h"
+#include <mml/base/BaseUtils.h>
+#include <mml/algorithms/MatrixAlg.h>
 #endif
 
 using namespace MML;
@@ -570,10 +570,10 @@ void Docs_Demo_Matrix_Properties()
   // Property checks
   std::cout << "I.isIdentity():      " << (I.isIdentity() ? "true" : "false") << std::endl;
   std::cout << "A.isIdentity():      " << (A.isIdentity() ? "true" : "false") << std::endl;
-  std::cout << "D.isDiagonal():  " << (D.isDiagonal() ? "true" : "false") << std::endl;
-  std::cout << "A.isDiagonal():  " << (A.isDiagonal() ? "true" : "false") << std::endl;
-  std::cout << "S.isSymmetric(): " << (S.isSymmetric() ? "true" : "false") << std::endl;
-  std::cout << "A.isSymmetric(): " << (A.isSymmetric() ? "true" : "false") << std::endl;
+  std::cout << "IsDiagonal(D):  " << (MatrixAlg::IsDiagonal(D) ? "true" : "false") << std::endl;
+  std::cout << "IsDiagonal(A):  " << (MatrixAlg::IsDiagonal(A) ? "true" : "false") << std::endl;
+  std::cout << "IsSymmetric(S): " << (MatrixAlg::IsSymmetric(S) ? "true" : "false") << std::endl;
+  std::cout << "IsSymmetric(A): " << (MatrixAlg::IsSymmetric(A) ? "true" : "false") << std::endl;
 
   // Trace
   std::cout << "\nD.trace(): " << D.trace() << " (1+2+3 = 6)" << std::endl;
@@ -594,21 +594,21 @@ void Docs_Demo_Matrix_Norms()
   std::cout << "Matrix A:\n" << A << std::endl;
 
   // Norms
-  std::cout << "NormL1() (sum of abs):   " << A.NormL1() << " (3+4+5+12 = 24)" << std::endl;
-  std::cout << "NormL2() (Frobenius):    " << A.NormL2() << " (sqrt(9+16+25+144) = " << std::sqrt(194.0) << ")" << std::endl;
-  std::cout << "NormLInf() (max abs):    " << A.NormLInf() << " (max = 12)" << std::endl;
+  std::cout << "OneNorm():               " << MatrixAlg::OneNorm(A) << " (max column sum = 16)" << std::endl;
+  std::cout << "FrobeniusNorm():         " << MatrixAlg::FrobeniusNorm(A) << " (sqrt(9+16+25+144) = " << std::sqrt(194.0) << ")" << std::endl;
+  std::cout << "InfinityNorm():          " << MatrixAlg::InfinityNorm(A) << " (max row sum = 17)" << std::endl;
 
-  // Determinant using Utils::Det
+  // Determinant using MatrixAlg
   Matrix<Real> B{3, 3, {1, 0, 0,
                         0, 2, 0,
                         0, 0, 3}};
   std::cout << "\nDiagonal matrix B:\n" << B << std::endl;
-  std::cout << "Utils::Det(B): " << Utils::Det(B) << " (1*2*3 = 6)" << std::endl;
+  std::cout << "MatrixAlg::Determinant(B): " << MatrixAlg::Determinant(B) << " (1*2*3 = 6)" << std::endl;
 
   Matrix<Real> singular{2, 2, {1, 2,
                                2, 4}};  // Singular: row 2 = 2 * row 1
   std::cout << "\nSingular matrix:\n" << singular << std::endl;
-  std::cout << "Utils::Det(singular): " << Utils::Det(singular) << " (= 0)" << std::endl;
+  std::cout << "MatrixAlg::Determinant(singular): " << MatrixAlg::Determinant(singular) << " (= 0)" << std::endl;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////

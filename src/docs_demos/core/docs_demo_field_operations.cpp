@@ -1,12 +1,12 @@
 #ifdef MML_USE_SINGLE_HEADER
-#include "MML.h"
+#include <MML.h>
 #else
-#include "MMLBase.h"
+#include <mml/MMLBase.h>
 
-#include "base/Function.h"
-#include "core/Fields.h"
-#include "core/FieldOperations.h"
-#include "core/MetricTensor.h"
+#include <mml/base/Function.h>
+#include <mml/core/Fields/Fields.h>
+#include <mml/core/Fields/FieldOperations.h>
+#include <mml/core/MetricTensor.h>
 #endif
 
 using namespace MML;

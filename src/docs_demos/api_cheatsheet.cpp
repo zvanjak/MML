@@ -6,30 +6,30 @@
 ///////////////////////////////////////////////////////////////////////////////////////////
 
 #ifdef MML_USE_SINGLE_HEADER
-#include "MML.h"
+#include <MML.h>
 #else
-#include "MMLBase.h"
-#include "base/Vector/Vector.h"
-#include "base/Vector/VectorTypes.h"
-#include "base/Matrix/Matrix.h"
-#include "base/Matrix/MatrixSym.h"
-#include "base/Function.h"
-#include "base/Polynom.h"
-#include "base/ODESystem.h"
-#include "base/ODESystemSolution.h"
-#include "core/LinAlgEqSolvers.h"
-#include "core/Derivation.h"
-#include "core/Integration.h"
-#include "algorithms/RootFinding.h"
-#include "algorithms/EigenSystemSolvers.h"
-#include "mml/algorithms/RootFinding/RootFindingPolynoms.h"
-#include "base/InterpolatedFunction.h"
-#include "mml/algorithms/ODESolvers/ODESolverFixedStep.h"
-#include "mml/algorithms/ODESolvers/ODEStepCalculators.h"
-#include "mml/algorithms/ODESolvers/ODESolverAdaptive.h"
-#include "algorithms/FunctionsAnalyzer.h"
-#include "core/Integration/GaussianQuadrature.h"
-#include "tools/ConsolePrinter.h"
+#include <mml/MMLBase.h>
+#include <mml/base/Vector/Vector.h>
+#include <mml/base/Vector/VectorTypes3D.h>
+#include <mml/base/Matrix/Matrix.h>
+#include <mml/base/Matrix/MatrixSym.h>
+#include <mml/base/Function.h>
+#include <mml/base/Polynom.h>
+#include <mml/base/ODESystem.h>
+#include <mml/base/ODESystemSolution.h>
+#include <mml/core/LinAlgEqSolvers.h>
+#include <mml/core/Derivation.h>
+#include <mml/core/Integration.h>
+#include <mml/algorithms/RootFinding.h>
+#include <mml/algorithms/EigenSystemSolvers.h>
+#include <mml/algorithms/RootFinding/RootFindingPolynoms.h>
+#include <mml/base/InterpolatedFunction.h>
+#include <mml/algorithms/ODESolvers/ODESolverFixedStep.h>
+#include <mml/algorithms/ODESolvers/ODEStepCalculators.h>
+#include <mml/algorithms/ODESolvers/ODESolverAdaptive.h>
+#include <mml/algorithms/Analyzers/FunctionsAnalyzer.h>
+#include <mml/core/Integration/GaussianQuadrature.h>
+#include <mml/tools/ConsolePrinter.h>
 #endif
 
 using namespace MML;

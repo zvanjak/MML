@@ -1,12 +1,13 @@
 # LinearSystem - Unified Linear Algebra Facade
 
-`LinearSystem<T>` is MML's crown jewel facade for linear algebra, providing unified access to ALL linear system solving capabilities through a single, intuitive interface.
+`LinearSystem<Real>` combines coefficient-matrix analysis with right-hand-side-aware solving and diagnostics. Use `MatrixAlg` for stateless matrix queries and `MatrixAnalyzer<Scalar>` for cached matrix-only analysis.
 
 ## Overview
 
 ```cpp
-#include "systems/LinearSystem.h"
+#include <mml/systems/LinearSystem.h>
 using namespace MML;
+using namespace MML::Systems;
 
 // Create and solve - it's that simple!
 Matrix<Real> A(3, 3, {4, 1, 0, 1, 4, 1, 0, 1, 4});
@@ -18,7 +19,7 @@ Vector<Real> x = sys.Solve();  // Auto-selects best solver!
 
 ## Design Philosophy
 
-1. **One Interface, All Analysis** - No hunting through multiple solver classes
+1. **RHS-aware facade** - Solving, consistency, recommendations, and verification in one interface
 2. **Smart Defaults** - Automatically selects optimal solver based on matrix properties
 3. **Expert Control** - Force specific methods when needed for comparison/teaching
 4. **Rich Diagnostics** - Condition numbers, residuals, stability assessment
@@ -49,11 +50,14 @@ auto x = sys.Solve();  // Returns solution vector
 ```
 
 **Selection Logic:**
-1. **Symmetric Positive Definite** → Cholesky (fastest, most stable)
-2. **Symmetric** → LU with pivoting
-3. **Triangular** → Back/Forward substitution (O(n²))
-4. **Diagonally Dominant** → Gauss-Jordan
-5. **General** → LU decomposition
+1. **Rank-deficient, wide, singular, or ill-conditioned** → SVD
+2. **Square triangular** → Back/Forward substitution (O(n²))
+3. **Tall full-column-rank** → QR least squares
+4. **Symmetric positive definite** → Cholesky
+5. **General square** → LU with pivoting
+
+`Analyze(threshold)` applies the same SVD threshold to matrix rank, per-RHS
+consistency, stability, and the typed solver recommendation.
 
 ### Specific Solvers
 
@@ -116,8 +120,8 @@ int m = sys.Rows();
 int n = sys.Cols();
 
 bool square = sys.IsSquare();
-bool overdetermined = sys.IsOverdetermined();  // m > n
-bool underdetermined = sys.IsUnderdetermined(); // m < n
+bool overdetermined = sys.IsTall(); // m > n
+bool underdetermined = sys.IsWide(); // m < n
 ```
 
 ### Structure Detection
@@ -140,8 +144,8 @@ int nullity = sys.Nullity();  // = n - rank
 Real cond = sys.ConditionNumber();
 
 // Stability assessment
-auto stability = sys.AssessStability();  // WellConditioned, Moderate, IllConditioned, Singular
-int digitsLost = sys.ExpectedDigitsLost();  // log₁₀(cond)
+auto stability = sys.AssessStability();  // WellConditioned, ModeratelyConditioned, IllConditioned, Singular
+std::optional<int> digitsLost = sys.ExpectedDigitsLost(); // nullopt when singular
 ```
 
 ## Cached Decompositions
@@ -149,10 +153,10 @@ int digitsLost = sys.ExpectedDigitsLost();  // log₁₀(cond)
 Decompositions are computed lazily and cached:
 
 ```cpp
-auto lu = sys.GetLU();        // LU decomposition
-auto qr = sys.GetQR();        // QR decomposition
-auto svd = sys.GetSVD();      // SVD decomposition
-auto chol = sys.GetCholesky(); // Cholesky (throws if not SPD)
+const auto& lu = sys.LUDecompose();
+const auto& qr = sys.QRDecompose();
+const auto& svd = sys.SVDDecompose();
+const auto& chol = sys.CholeskyDecompose(); // throws if not SPD
 ```
 
 Each decomposition struct provides:
@@ -164,15 +168,15 @@ Each decomposition struct provides:
 
 ```cpp
 // Full eigensystem (handles complex eigenvalues)
-auto eigen = sys.GetEigen();
+const auto& eigen = sys.Eigensystem();
 for (const auto& ev : eigen.eigenvalues)
-    std::cout << ev.real << " + " << ev.imag << "i\n";
+    std::cout << ev.real() << " + " << ev.imag() << "i\n";
 
-// Real eigenvalues only
-Vector<Real> eigs = sys.Eigenvalues();
+// General real matrices can have complex eigenvalues
+Vector<Complex> eigs = sys.Eigenvalues();
 
 // Symmetric matrices (faster, guaranteed real)
-Vector<Real> eigs = sys.EigenvaluesSymmetric();
+Vector<Real> eigs = sys.SymmetricEigenvalues();
 
 // Spectral radius (largest |eigenvalue|)
 Real rho = sys.SpectralRadius();
@@ -201,19 +205,19 @@ Get everything at once:
 auto analysis = sys.Analyze();
 
 std::cout << "=== System Analysis ===" << "\n";
-std::cout << "Dimensions: " << analysis.rows << " x " << analysis.cols << "\n";
-std::cout << "Rank: " << analysis.rank << "\n";
-std::cout << "Condition number: " << analysis.conditionNumber << "\n";
-std::cout << "Stability: " << analysis.stabilityDescription << "\n";
-std::cout << "Recommended solver: " << analysis.recommendedSolver << "\n";
+std::cout << "Dimensions: " << analysis.matrix.rows << " x " << analysis.matrix.cols << "\n";
+std::cout << "Rank: " << analysis.matrix.rank << "\n";
+std::cout << "Condition number: " << analysis.matrix.conditionNumber << "\n";
+std::cout << analysis.report;
 
-// Solution exists?
-if (analysis.hasUniqueSolution)
-    std::cout << "System has unique solution\n";
-else if (analysis.hasInfiniteSolutions)
-    std::cout << "System has infinitely many solutions\n";
-else
-    std::cout << "System has no solution\n";
+for (SolutionStatus status : analysis.solutionStatuses) {
+    if (status == SolutionStatus::Unique)
+        std::cout << "Unique solution\n";
+    else if (status == SolutionStatus::Infinite)
+        std::cout << "Infinitely many solutions\n";
+    else if (status == SolutionStatus::Inconsistent)
+        std::cout << "No solution\n";
+}
 ```
 
 ## Convenience Functions
@@ -228,7 +232,7 @@ auto x = SolveLinearSystem(A, b);
 auto x = SolveLeastSquares(A, b);
 
 // Quick analysis
-auto analysis = AnalyzeMatrix(A);
+auto analysis = MatrixAnalyzer<Real>(A).Analyze();
 ```
 
 ## Multiple Right-Hand Sides

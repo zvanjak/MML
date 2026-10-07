@@ -518,8 +518,8 @@ or both current and previous estimates are zero.
 ### Example 1: Comparing All Methods
 
 ```cpp
-#include "core/Functions.h"
-#include "core/Integration.h"
+#include <mml/core/Functions.h>
+#include <mml/core/Integration.h>
 
 RealFunction f([](Real x) {
     return sin(x) * (1.0 + 0.5 * x * x);

@@ -2,8 +2,8 @@
 /// MML Documentation Demo: Timer - Performance Measurement
 ///////////////////////////////////////////////////////////////////////////////////////////
 
-#include "MMLBase.h"
-#include "tools/Timer.h"
+#include <mml/MMLBase.h>
+#include <mml/tools/Timer.h>
 
 #include <iostream>
 #include <cmath>

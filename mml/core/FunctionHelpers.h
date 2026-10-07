@@ -12,16 +12,16 @@
 #if !defined  MML_FUNCTION_HELPERS_H
 #define MML_FUNCTION_HELPERS_H
 
-#include "MMLBase.h"
+#include <mml/MMLBase.h>
 
-#include "interfaces/IFunction.h"
+#include <mml/interfaces/IFunction.h>
 
-#include "base/Vector/VectorN.h"
-#include "base/Vector/Vector.h"
-#include "base/Matrix/Matrix.h"
-#include "base/Polynom.h"
+#include <mml/base/Vector/VectorN.h>
+#include <mml/base/Vector/Vector.h>
+#include <mml/base/Matrix/Matrix.h>
+#include <mml/base/Polynom.h>
 
-#include "core/Derivation.h"
+#include <mml/core/Derivation.h>
 
 namespace MML
 {

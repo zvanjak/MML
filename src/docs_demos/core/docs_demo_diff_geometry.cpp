@@ -1,11 +1,11 @@
 #ifdef MML_USE_SINGLE_HEADER
-#include "MML.h"
+#include <MML.h>
 #else
-#include "MMLBase.h"
+#include <mml/MMLBase.h>
 
-#include "core/Curves.h"
-#include "core/Surfaces.h"
-#include "core/Integration/PathIntegration.h"
+#include <mml/core/Curves.h>
+#include <mml/core/Surfaces.h>
+#include <mml/core/Integration/PathIntegration.h>
 #endif
 
 #include "../test_beds/parametric_curves_test_bed.h"

@@ -12,8 +12,8 @@
 #include <thread>
 #include <chrono>
 
-#include "MMLBase.h"
-#include "tools/Timer.h"
+#include <mml/MMLBase.h>
+#include <mml/tools/Timer.h>
 
 using namespace MML;
 

@@ -9,12 +9,10 @@
 ///  License:     MIT License (see LICENSE.md)                                         ///
 ///                                                                                   ///
 ///////////////////////////////////////////////////////////////////////////////////////////
-#define __STDCPP_WANT_MATH_SPEC_FUNCS__ 1
-
 #if !defined  MML_FUNCTIONS_H
 #define MML_FUNCTIONS_H
 
-#include "MMLBase.h"
+#include <mml/MMLBase.h>
 
 // Feature detection for C++17 special math functions
 // macOS libc++ doesn't support these yet, so we need fallbacks
@@ -38,13 +36,13 @@ namespace MML
 		template<typename T>
 		static inline T Cos(T x) { return std::cos(x); }
 		template<typename T>
-		static inline T Sec(T x) { T c = std::cos(x); if (std::abs(c) < std::numeric_limits<T>::epsilon()) throw std::domain_error("Sec: cos(x) is zero"); return T{1} / c; }
+		static inline T Sec(T x) { T c = std::cos(x); if (std::abs(c) < std::numeric_limits<T>::epsilon()) throw DomainError("Sec: cos(x) is zero"); return T{1} / c; }
 		template<typename T>
-		static inline T Csc(T x) { T s = std::sin(x); if (std::abs(s) < std::numeric_limits<T>::epsilon()) throw std::domain_error("Csc: sin(x) is zero"); return T{1} / s; }
+		static inline T Csc(T x) { T s = std::sin(x); if (std::abs(s) < std::numeric_limits<T>::epsilon()) throw DomainError("Csc: sin(x) is zero"); return T{1} / s; }
 		template<typename T>
 		static inline T Tan(T x) { return std::tan(x); }
 		template<typename T>
-		static inline T Ctg(T x) { T t = std::tan(x); if (std::abs(t) < std::numeric_limits<T>::epsilon()) throw std::domain_error("Ctg: tan(x) is zero"); return T{1} / t; }
+		static inline T Ctg(T x) { T t = std::tan(x); if (std::abs(t) < std::numeric_limits<T>::epsilon()) throw DomainError("Ctg: tan(x) is zero"); return T{1} / t; }
 
 		template<typename T>
 		static inline T Exp(T x) { return std::exp(x); }
@@ -64,11 +62,11 @@ namespace MML
 		template<typename T>
 		static inline T Sech(T x) { return T{1} / std::cosh(x); }
 		template<typename T>
-		static inline T Csch(T x) { T s = std::sinh(x); if (std::abs(s) < std::numeric_limits<T>::epsilon()) throw std::domain_error("Csch: sinh(x) is zero"); return T{1} / s; }
+		static inline T Csch(T x) { T s = std::sinh(x); if (std::abs(s) < std::numeric_limits<T>::epsilon()) throw DomainError("Csch: sinh(x) is zero"); return T{1} / s; }
 		template<typename T>
 		static inline T Tanh(T x) { return std::tanh(x); }
 		template<typename T>
-		static inline T Ctgh(T x) { T t = std::tanh(x); if (std::abs(t) < std::numeric_limits<T>::epsilon()) throw std::domain_error("Ctgh: tanh(x) is zero"); return T{1} / t; }
+		static inline T Ctgh(T x) { T t = std::tanh(x); if (std::abs(t) < std::numeric_limits<T>::epsilon()) throw DomainError("Ctgh: tanh(x) is zero"); return T{1} / t; }
 
 		template<typename T>
 		static inline T Asin(T x) { return std::asin(x); }
@@ -234,7 +232,7 @@ namespace MML
 		// Complete elliptic integral of the first kind K(k) using AGM
 		static inline Real Comp_ellint_1(Real k) {
 			Real a = 1.0, b = std::sqrt(1.0 - k * k);
-			while (std::abs(a - b) > 1e-15) {
+			while (std::abs(a - b) > PrecisionValues<Real>::AGMConvergenceTolerance) {
 				Real temp = (a + b) / 2.0;
 				b = std::sqrt(a * b);
 				a = temp;
@@ -247,7 +245,7 @@ namespace MML
 			Real a = 1.0, b = std::sqrt(1.0 - k * k);
 			Real c = k, sum = k * k / 2.0;
 			Real power_of_2 = 1.0;
-			while (std::abs(c) > 1e-15) {
+			while (std::abs(c) > PrecisionValues<Real>::AGMConvergenceTolerance) {
 				Real a_new = (a + b) / 2.0;
 				Real b_new = std::sqrt(a * b);
 				c = (a - b) / 2.0;
@@ -263,19 +261,16 @@ namespace MML
 		// For now, use MML's own implementations from mml/algorithms/ for those.
 #endif
 
-    // Note: Basic math functions (Sin, Cos, Exp, Log, etc.) now templated above.
-    // They work with Real, Complex, float, long double, etc. - no separate Complex overloads needed.
-
 		// Factorial functions
 		static inline Real Factorial(int n) {
-			if (n < 0) throw std::domain_error("Factorial: negative argument");
+			if (n < 0) throw DomainError("Factorial: negative argument");
 			Real fact = 1.0;
 			for (int i = 2; i <= n; i++)
 				fact *= i;
 			return fact;
 		}
 		static inline long long FactorialInt(int n) {
-			if (n < 0) throw std::domain_error("FactorialInt: negative argument");
+			if (n < 0) throw DomainError("FactorialInt: negative argument");
 			long long fact = 1;
 			for (int i = 2; i <= n; i++)
 				fact *= i;
@@ -283,7 +278,7 @@ namespace MML
 		}
 		static inline Real FactorialStirling(int n)
 		{
-			if (n < 0) throw std::domain_error("FactorialStirling: negative argument");
+			if (n < 0) throw DomainError("FactorialStirling: negative argument");
 			if (n == 0 || n == 1) return 1.0;
 			return sqrt(2 * Constants::PI * n) * std::pow(n / Constants::E, n);
 		}

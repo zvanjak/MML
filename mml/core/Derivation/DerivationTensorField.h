@@ -12,43 +12,42 @@
 #if !defined MML_DERIVATION_TENSOR_FIELD_H
 #define MML_DERIVATION_TENSOR_FIELD_H
 
-#include "MMLBase.h"
+#include <mml/MMLBase.h>
 
-#include "interfaces/IFunction.h"
-#include "interfaces/ITensorField.h"
+#include <mml/interfaces/IFunction.h>
+#include <mml/interfaces/ITensorField.h>
 
-#include "base/Vector/VectorN.h"
-#include "base/Matrix/MatrixNM.h"
+#include <mml/base/Vector/VectorN.h>
+#include <mml/base/Matrix/MatrixNM.h>
 
 #include "DerivationBase.h"
+#include "FirstDerivativeStencil.h"
 
 namespace MML
 {
 	namespace Derivation
 	{
+		namespace Detail
+		{
+			template<FirstDerivativeOrder Order, int N, typename Component>
+			Real EvaluateTensorComponentPartial(Component&& component, int deriv_index,
+			                                    const VectorN<Real, N>& point, Real h, Real* error)
+			{
+				auto result = EvaluateScalarPartialFirstDerivativeStencil<Order>(
+					[&](int offset) { auto x = point; x[deriv_index] += offset * h; return component(x); }, h, error != nullptr);
+				if (error) *error = result.error;
+				return result.value;
+			}
+		}
+
 		/********************************************************************************************************************/
 		/********                               Numerical derivatives of FIRST order                                 ********/
 		/********************************************************************************************************************/
 		template <int N>
 		static Real NDer1Partial(const ITensorField2<N>& f, int i, int j, int deriv_index, const VectorN<Real, N>& point, Real h, Real* error = nullptr)
 		{
-			auto x = point;
-
-			Real x_orig = x[deriv_index];
-			Real y0 = f.Component(i, j, x);
-
-			x[deriv_index] = x_orig + h;
-			Real yh = f.Component(i, j, x);
-
-			Real diff = yh - y0;
-			if (error)
-			{
-				x[deriv_index] = x_orig - h;
-				Real ym = f.Component(i, j, x);
-				Real ypph = std::abs(yh - 2 * y0 + ym) / h;
-				*error = ypph / 2 + (std::abs(yh) + std::abs(y0)) * Constants::Eps / h;
-			}
-			return diff / h;
+			return Detail::EvaluateTensorComponentPartial<Detail::FirstDerivativeOrder::One>(
+				[&](const auto& x) { return f.Component(i, j, x); }, deriv_index, point, h, error);
 		}
 
 		template <int N>
@@ -66,23 +65,8 @@ namespace MML
 		template <int N>
 		static Real NDer1Partial(const ITensorField3<N>& f, int i, int j, int k, int deriv_index, const VectorN<Real, N>& point, Real h, Real* error = nullptr)
 		{
-			auto x = point;
-
-			Real x_orig = x[deriv_index];
-			Real y0 = f.Component(i, j, k, x);
-
-			x[deriv_index] = x_orig + h;
-			Real yh = f.Component(i, j, k, x);
-
-			Real diff = yh - y0;
-			if (error)
-			{
-				x[deriv_index] = x_orig - h;
-				Real ym = f.Component(i, j, k, x);
-				Real ypph = std::abs(yh - 2 * y0 + ym) / h;
-				*error = ypph / 2 + (std::abs(yh) + std::abs(y0)) * Constants::Eps / h;
-			}
-			return diff / h;
+			return Detail::EvaluateTensorComponentPartial<Detail::FirstDerivativeOrder::One>(
+				[&](const auto& x) { return f.Component(i, j, k, x); }, deriv_index, point, h, error);
 		}
 
 		template <int N>
@@ -94,23 +78,8 @@ namespace MML
 		template <int N>
 		static Real NDer1Partial(const ITensorField4<N>& f, int i, int j, int k, int l, int deriv_index, const VectorN<Real, N>& point, Real h, Real* error = nullptr)
 		{
-			auto x = point;
-
-			Real x_orig = x[deriv_index];
-			Real y0 = f.Component(i, j, k, l, x);
-
-			x[deriv_index] = x_orig + h;
-			Real yh = f.Component(i, j, k, l, x);
-
-			Real diff = yh - y0;
-			if (error)
-			{
-				x[deriv_index] = x_orig - h;
-				Real ym = f.Component(i, j, k, l, x);
-				Real ypph = std::abs(yh - 2 * y0 + ym) / h;
-				*error = ypph / 2 + (std::abs(yh) + std::abs(y0)) * Constants::Eps / h;
-			}
-			return diff / h;
+			return Detail::EvaluateTensorComponentPartial<Detail::FirstDerivativeOrder::One>(
+				[&](const auto& x) { return f.Component(i, j, k, l, x); }, deriv_index, point, h, error);
 		}
 
 		/********************************************************************************************************************/
@@ -119,29 +88,8 @@ namespace MML
 		template <int N>
 		static Real NDer2Partial(const ITensorField2<N>& f, int i, int j, int deriv_index, const VectorN<Real, N>& point, Real h, Real* error = nullptr)
 		{
-			Real     orig_x = point[deriv_index];
-
-			VectorN<Real, N> x{ point };
-			x[deriv_index] = orig_x + h;
-			Real yh = f.Component(i, j, x);
-
-			x[deriv_index] = orig_x - h;
-			Real ymh = f.Component(i, j, x);
-
-			Real diff = yh - ymh;
-
-			if (error)
-			{
-				x[deriv_index] = orig_x + 2 * h;
-				Real y2h = f.Component(i, j, x);
-
-				x[deriv_index] = orig_x - 2 * h;
-				Real ym2h = f.Component(i, j, x);
-
-				*error = Constants::Eps * (std::abs(yh) + std::abs(ymh)) / (2 * h) + std::abs((y2h - ym2h) / 2 - diff) / (6 * h);
-			}
-
-			return diff / (2 * h);
+			return Detail::EvaluateTensorComponentPartial<Detail::FirstDerivativeOrder::Two>(
+				[&](const auto& x) { return f.Component(i, j, x); }, deriv_index, point, h, error);
 		}
 
 		template <int N>
@@ -159,29 +107,8 @@ namespace MML
 		template <int N>
 		static Real NDer2Partial(const ITensorField3<N>& f, int i, int j, int k, int deriv_index, const VectorN<Real, N>& point, Real h, Real* error = nullptr)
 		{
-			Real     orig_x = point[deriv_index];
-
-			VectorN<Real, N> x{ point };
-			x[deriv_index] = orig_x + h;
-			Real yh = f.Component(i, j, k, x);
-
-			x[deriv_index] = orig_x - h;
-			Real ymh = f.Component(i, j, k, x);
-
-			Real diff = yh - ymh;
-
-			if (error)
-			{
-				x[deriv_index] = orig_x + 2 * h;
-				Real y2h = f.Component(i, j, k, x);
-
-				x[deriv_index] = orig_x - 2 * h;
-				Real ym2h = f.Component(i, j, k, x);
-
-				*error = Constants::Eps * (std::abs(yh) + std::abs(ymh)) / (2 * h) + std::abs((y2h - ym2h) / 2 - diff) / (6 * h);
-			}
-
-			return diff / (2 * h);
+			return Detail::EvaluateTensorComponentPartial<Detail::FirstDerivativeOrder::Two>(
+				[&](const auto& x) { return f.Component(i, j, k, x); }, deriv_index, point, h, error);
 		}
 
 		template <int N>
@@ -193,29 +120,8 @@ namespace MML
 		template <int N>
 		static Real NDer2Partial(const ITensorField4<N>& f, int i, int j, int k, int l, int deriv_index, const VectorN<Real, N>& point, Real h, Real* error = nullptr)
 		{
-			Real     orig_x = point[deriv_index];
-
-			VectorN<Real, N> x{ point };
-			x[deriv_index] = orig_x + h;
-			Real yh = f.Component(i, j, k, l, x);
-
-			x[deriv_index] = orig_x - h;
-			Real ymh = f.Component(i, j, k, l, x);
-
-			Real diff = yh - ymh;
-
-			if (error)
-			{
-				x[deriv_index] = orig_x + 2 * h;
-				Real y2h = f.Component(i, j, k, l, x);
-
-				x[deriv_index] = orig_x - 2 * h;
-				Real ym2h = f.Component(i, j, k, l, x);
-
-				*error = Constants::Eps * (std::abs(yh) + std::abs(ymh)) / (2 * h) + std::abs((y2h - ym2h) / 2 - diff) / (6 * h);
-			}
-
-			return diff / (2 * h);
+			return Detail::EvaluateTensorComponentPartial<Detail::FirstDerivativeOrder::Two>(
+				[&](const auto& x) { return f.Component(i, j, k, l, x); }, deriv_index, point, h, error);
 		}
 		
 		/********************************************************************************************************************/
@@ -224,36 +130,8 @@ namespace MML
 		template <int N>
 		static Real NDer4Partial(const ITensorField2<N>& f, int i, int j, int deriv_index, const VectorN<Real, N>& point, Real h, Real* error = nullptr)
 		{
-			Real     orig_x = point[deriv_index];
-
-			VectorN<Real, N> x{ point };
-			x[deriv_index] = orig_x + h;
-			Real yh = f.Component(i, j, x);
-
-			x[deriv_index] = orig_x - h;
-			Real ymh = f.Component(i, j, x);
-
-			x[deriv_index] = orig_x + 2 * h;
-			Real y2h = f.Component(i, j, x);
-
-			x[deriv_index] = orig_x - 2 * h;
-			Real ym2h = f.Component(i, j, x);
-
-			Real y2 = ym2h - y2h;
-			Real y1 = yh - ymh;
-
-			if (error)
-			{
-				x[deriv_index] = orig_x + 3 * h;
-				Real y3h = f.Component(i, j, x);
-
-				x[deriv_index] = orig_x - 3 * h;
-				Real ym3h = f.Component(i, j, x);
-
-				*error = std::abs((y3h - ym3h) / 2 + 2 * (ym2h - y2h) + 5 * (yh - ymh) / 2) / (30 * h);
-				*error += Constants::Eps * (std::abs(y2h) + std::abs(ym2h) + 8 * (std::abs(ymh) + std::abs(yh))) / (12 * h);
-			}
-			return (y2 + 8 * y1) / (12 * h);
+			return Detail::EvaluateTensorComponentPartial<Detail::FirstDerivativeOrder::Four>(
+				[&](const auto& x) { return f.Component(i, j, x); }, deriv_index, point, h, error);
 		}
 
 		template <int N>
@@ -271,36 +149,8 @@ namespace MML
 		template <int N>
 		static Real NDer4Partial(const ITensorField3<N>& f, int i, int j, int k, int deriv_index, const VectorN<Real, N>& point, Real h, Real* error = nullptr)
 		{
-			Real     orig_x = point[deriv_index];
-
-			VectorN<Real, N> x{ point };
-			x[deriv_index] = orig_x + h;
-			Real yh = f.Component(i, j, k, x);
-
-			x[deriv_index] = orig_x - h;
-			Real ymh = f.Component(i, j, k, x);
-
-			x[deriv_index] = orig_x + 2 * h;
-			Real y2h = f.Component(i, j, k, x);
-
-			x[deriv_index] = orig_x - 2 * h;
-			Real ym2h = f.Component(i, j, k, x);
-
-			Real y2 = ym2h - y2h;
-			Real y1 = yh - ymh;
-
-			if (error)
-			{
-				x[deriv_index] = orig_x + 3 * h;
-				Real y3h = f.Component(i, j, k, x);
-
-				x[deriv_index] = orig_x - 3 * h;
-				Real ym3h = f.Component(i, j, k, x);
-
-				*error = std::abs((y3h - ym3h) / 2 + 2 * (ym2h - y2h) + 5 * (yh - ymh) / 2) / (30 * h);
-				*error += Constants::Eps * (std::abs(y2h) + std::abs(ym2h) + 8 * (std::abs(ymh) + std::abs(yh))) / (12 * h);
-			}
-			return (y2 + 8 * y1) / (12 * h);
+			return Detail::EvaluateTensorComponentPartial<Detail::FirstDerivativeOrder::Four>(
+				[&](const auto& x) { return f.Component(i, j, k, x); }, deriv_index, point, h, error);
 		}
 
 
@@ -313,36 +163,8 @@ namespace MML
 		template <int N>
 		static Real NDer4Partial(const ITensorField4<N>& f, int i, int j, int k, int l, int deriv_index, const VectorN<Real, N>& point, Real h, Real* error = nullptr)
 		{
-			Real     orig_x = point[deriv_index];
-
-			VectorN<Real, N> x{ point };
-			x[deriv_index] = orig_x + h;
-			Real yh = f.Component(i, j, k, l, x);
-
-			x[deriv_index] = orig_x - h;
-			Real ymh = f.Component(i, j, k, l, x);
-
-			x[deriv_index] = orig_x + 2 * h;
-			Real y2h = f.Component(i, j, k, l, x);
-
-			x[deriv_index] = orig_x - 2 * h;
-			Real ym2h = f.Component(i, j, k, l, x);
-
-			Real y2 = ym2h - y2h;
-			Real y1 = yh - ymh;
-
-			if (error)
-			{
-				x[deriv_index] = orig_x + 3 * h;
-				Real y3h = f.Component(i, j, k, l, x);
-
-				x[deriv_index] = orig_x - 3 * h;
-				Real ym3h = f.Component(i, j, k, l, x);
-
-				*error = std::abs((y3h - ym3h) / 2 + 2 * (ym2h - y2h) + 5 * (yh - ymh) / 2) / (30 * h);
-				*error += Constants::Eps * (std::abs(y2h) + std::abs(ym2h) + 8 * (std::abs(ymh) + std::abs(yh))) / (12 * h);
-			}
-			return (y2 + 8 * y1) / (12 * h);
+			return Detail::EvaluateTensorComponentPartial<Detail::FirstDerivativeOrder::Four>(
+				[&](const auto& x) { return f.Component(i, j, k, l, x); }, deriv_index, point, h, error);
 		}
 	}
 }

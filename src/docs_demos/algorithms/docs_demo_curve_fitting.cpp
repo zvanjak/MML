@@ -13,11 +13,11 @@
 ///////////////////////////////////////////////////////////////////////////////////////////
 
 #ifdef MML_USE_SINGLE_HEADER
-#include "MML.h"
+#include <MML.h>
 #else
-#include "MMLBase.h"
-#include "base/Vector/Vector.h"
-#include "algorithms/CurveFitting.h"
+#include <mml/MMLBase.h>
+#include <mml/base/Vector/Vector.h>
+#include <mml/algorithms/CurveFitting.h>
 #endif
 
 #include <iostream>
@@ -247,6 +247,25 @@ void Demo_ExponentialFit()
     std::cout << "  Error: " << std::abs(y_exact - y_fit) << std::endl;
 }
 
+void Demo_WeightedAndRegularizedFit()
+{
+    std::cout << "\n=== WEIGHTED AND REGULARIZED FITTING ===\n" << std::endl;
+
+    Vector<Real> x({-1.0, -0.5, 0.0, 0.5, 1.0});
+    Vector<Real> y({-0.9, -0.55, 0.02, 0.48, 2.5});
+    Vector<Real> weights({1.0, 1.0, 1.0, 1.0, 0.05});
+    auto basis = MakeLegendreFitBasis(3);
+
+    auto weighted = WeightedGeneralLinearLeastSquares(x, y, weights, basis);
+    auto ridge = RidgeGeneralLinearLeastSquares(x, y, basis, Real{1e-4});
+
+    std::cout << "Weighted residual norm: " << weighted.residual_norm << std::endl;
+    std::cout << "Weighted R-squared: " << weighted.r_squared << std::endl;
+    std::cout << "Ridge coefficient norm: " << ridge.coefficient_norm << std::endl;
+    std::cout << "Ridge regularization parameter: "
+              << ridge.regularization_parameter << std::endl;
+}
+
 ///////////////////////////////////////////////////////////////////////////////////////////
 ///                          EDGE CASES AND ROBUSTNESS                                  ///
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -303,6 +322,7 @@ void Docs_Demo_CurveFitting()
     Demo_EvaluatePolynomial();
     Demo_GeneralLinearLeastSquares();
     Demo_ExponentialFit();
+    Demo_WeightedAndRegularizedFit();
     Demo_EdgeCases();
     
     std::cout << "\n###################################################################" << std::endl;

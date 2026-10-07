@@ -17,9 +17,9 @@
 #ifndef MML_INTEGRATION_2D_H
 #define MML_INTEGRATION_2D_H
 
-#include "MMLBase.h"
+#include <mml/MMLBase.h>
 
-#include "interfaces/IFunction.h"
+#include <mml/interfaces/IFunction.h>
 
 
 namespace MML

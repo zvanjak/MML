@@ -50,7 +50,7 @@ PrecisionTestResult
 ### Usage Pattern
 
 ```cpp
-#include "core/PrecisionTestFramework.h"
+#include <mml/core/PrecisionTestFramework.h>
 
 void Test_Precision_MyAlgorithm(MML::Tests::TestRegister& tests) {
     auto& suite = MML::Tests::GetPrecisionSuite();

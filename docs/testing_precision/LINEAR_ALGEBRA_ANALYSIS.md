@@ -328,9 +328,9 @@ for (int i = 0; i < rank; i++) {
 ## Code Examples
 
 ```cpp
-#include "core/LinAlgEqSolvers.h"
-#include "algorithms/MatrixAlg.h"
-#include "algorithms/EigenSystemSolvers.h"
+#include <mml/core/LinAlgEqSolvers.h>
+#include <mml/algorithms/MatrixAlg.h>
+#include <mml/algorithms/EigenSystemSolvers.h>
 
 // Create system Ax = b
 Matrix<Real> A(3, 3);

@@ -1,14 +1,30 @@
+///////////////////////////////////////////////////////////////////////////////////////////
+///                         MinimalMathLibrary (MML)                                  ///
+///                                                                                   ///
+///  File:        parametric_surfaces_test_bed.h                                      ///
+///  Purpose:     Reusable parametric and explicit surface definitions with           ///
+///               derivative and geometry reference data.                             ///
+///                                                                                   ///
+///  Used by:     Surface, derivation-surface, and surface-integration tests as       ///
+///               shared cases are promoted from standalone tests.                    ///
+///                                                                                   ///
+///  Contents:    Parametric surfaces, explicit surfaces, derivative functions,       ///
+///               normals/geometry helpers, and grouped accessors.                    ///
+///                                                                                   ///
+///  Coverage:    The shared surface bed exists but is not broadly consumed yet;      ///
+///               repeated standalone surface cases should graduate here.             ///
+///////////////////////////////////////////////////////////////////////////////////////////
 #if !defined MML_PARAMETRIC_SURFACE_TEST_BED_H
 #define MML_PARAMETRIC_SURFACE_TEST_BED_H
 
 #include <cmath>
 
 #ifdef MML_USE_SINGLE_HEADER
-#include "MML.h"
+#include <MML.h>
 #else
-#include "base/Vector/VectorN.h"
-#include "base/Matrix/Matrix.h"
-#include "base/Function.h"
+#include <mml/base/Vector/VectorN.h>
+#include <mml/base/Matrix/Matrix.h>
+#include <mml/base/Function.h>
 #endif
 
 #include "../test_data/parametric_surfaces_defs.h"

@@ -2,7 +2,7 @@
 ///                         MinimalMathLibrary (MML)                                  ///
 ///                                                                                   ///
 ///  File:        DataLoaderJSON.h                                                    ///
-///  Description: JSON file loading with minimal JSON parser                          ///
+///  Description: JSON dataset loading through the shared persistence parser         ///
 ///                                                                                   ///
 ///  Copyright:   (c) 2024-2026 Zvonimir Vanjak                                       ///
 ///  License:     MIT License (see LICENSE.md)                                         ///
@@ -11,16 +11,17 @@
 #if !defined MML_DATA_LOADER_JSON_H
 #define MML_DATA_LOADER_JSON_H
 
-#include "tools/data_loader/DataLoaderTypes.h"
-#include "tools/data_loader/DataLoaderParsing.h"
+#include <mml/tools/data_loader/DataLoaderTypes.h>
+#include <mml/tools/data_loader/DataLoaderParsing.h>
+#include <mml/tools/persistence/JSON.h>
 
-#include <cctype>
-#include <cmath>
 #include <fstream>
+#include <iomanip>
 #include <limits>
 #include <map>
 #include <sstream>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace MML {
@@ -29,195 +30,83 @@ namespace MML {
 		/////////////////////////////////////////////////////////////////////////////////////
 		///                              JSON LOADING                                      ///
 		/////////////////////////////////////////////////////////////////////////////////////
-		/// @brief Simple JSON value types for parsing
-		enum class JsonType { Null, Bool, Number, String, Array, Object };
-
-		/// @brief Minimal JSON parser state
-		struct JsonParser {
-			const std::string& json;
-			size_t pos;
-
-			JsonParser(const std::string& s) : json(s), pos(0) {}
-
-			void SkipWhitespace() {
-				while (pos < json.size() && std::isspace(json[pos])) ++pos;
-			}
-
-			char Peek() {
-				SkipWhitespace();
-				return pos < json.size() ? json[pos] : '\0';
-			}
-
-			char Get() {
-				SkipWhitespace();
-				return pos < json.size() ? json[pos++] : '\0';
-			}
-
-			std::string ParseString() {
-				if (Get() != '"')
-					throw DataError("JSON: Expected '\"'");
-
-				std::string result;
-				while (pos < json.size()) {
-					char c = json[pos++];
-					if (c == '"') return result;
-					if (c == '\\' && pos < json.size()) {
-						char esc = json[pos++];
-						switch (esc) {
-							case 'n': result += '\n'; break;
-							case 't': result += '\t'; break;
-							case 'r': result += '\r'; break;
-							case '"': result += '"'; break;
-							case '\\': result += '\\'; break;
-							case '/': result += '/'; break;
-							default: result += esc; break;
-						}
+		namespace Detail {
+			inline std::string JsonScalarToString(const Persistence::JsonValue& value) {
+				switch (value.type) {
+					case Persistence::JsonValueType::Null:
+						return "";
+					case Persistence::JsonValueType::Bool:
+						return value.bool_value ? "true" : "false";
+					case Persistence::JsonValueType::Number: {
+						if (!value.number_text.empty())
+							return value.number_text;
+						std::ostringstream text;
+						text << std::setprecision(std::numeric_limits<double>::max_digits10) << value.number_value;
+						return text.str();
 					}
-					else {
-						result += c;
-					}
+					case Persistence::JsonValueType::String:
+						return value.string_value;
+					default:
+						throw DataError("JSON: Unsupported value type (nested objects/arrays not supported)");
 				}
-				throw DataError("JSON: Unterminated string");
 			}
 
-			std::string ParseNumber() {
-				SkipWhitespace();
-				size_t start = pos;
-				if (json[pos] == '-') ++pos;
-				while (pos < json.size() && (std::isdigit(json[pos]) || json[pos] == '.' ||
-				       json[pos] == 'e' || json[pos] == 'E' || json[pos] == '+' || json[pos] == '-')) {
-					++pos;
-				}
-				return json.substr(start, pos - start);
-			}
-
-			bool ParseBool() {
-				SkipWhitespace();
-				if (json.substr(pos, 4) == "true") {
-					pos += 4;
-					return true;
-				}
-				if (json.substr(pos, 5) == "false") {
-					pos += 5;
-					return false;
-				}
-				throw DataError("JSON: Expected boolean");
-			}
-
-			void ParseNull() {
-				SkipWhitespace();
-				if (json.substr(pos, 4) == "null") {
-					pos += 4;
-					return;
-				}
-				throw DataError("JSON: Expected null");
-			}
-
-			JsonType PeekType() {
-				char c = Peek();
-				if (c == '"') return JsonType::String;
-				if (c == '[') return JsonType::Array;
-				if (c == '{') return JsonType::Object;
-				if (c == 't' || c == 'f') return JsonType::Bool;
-				if (c == 'n') return JsonType::Null;
-				if (c == '-' || std::isdigit(c)) return JsonType::Number;
-				throw DataError("JSON: Unexpected character");
-			}
-
-			/// @brief Parse array of objects into Dataset
-			Dataset ParseArrayOfObjects() {
-				Dataset dataset;
-
-				if (Get() != '[')
-					throw DataError("JSON: Expected '[' at root");
+			inline Dataset DatasetFromJson(const Persistence::JsonValue& root) {
+				if (root.type != Persistence::JsonValueType::Array)
+					throw DataError("JSON: Expected array at root");
 
 				std::map<std::string, std::vector<std::string>> columnData;
 				std::vector<std::string> columnOrder;
+				for (std::size_t rowIndex = 0; rowIndex < root.array_value.size(); ++rowIndex) {
+					const Persistence::JsonValue& row = root.array_value[rowIndex];
+					if (row.type != Persistence::JsonValueType::Object)
+						throw DataError("JSON: Expected object for each array element");
 
-				// Parse each object
-				while (Peek() != ']') {
-					if (Peek() == ',') Get();  // Skip comma
+					for (auto& column : columnData)
+						column.second.push_back("");
 
-					if (Get() != '{')
-						throw DataError("JSON: Expected '{' for object");
-
-					// Parse object key-value pairs
-					while (Peek() != '}') {
-						if (Peek() == ',') Get();
-
-						std::string key = ParseString();
-						if (Get() != ':')
-							throw DataError("JSON: Expected ':' after key");
-
-						// Track column order
-						if (columnData.find(key) == columnData.end()) {
-							columnOrder.push_back(key);
+					auto addValue = [&](const std::string& name, const Persistence::JsonValue& value) {
+						auto [column, inserted] = columnData.try_emplace(name, rowIndex, "");
+						if (inserted) {
+							columnOrder.push_back(name);
+							column->second.push_back(JsonScalarToString(value));
 						}
+						else
+							column->second.back() = JsonScalarToString(value);
+					};
 
-						// Parse value as string
-						std::string value;
-						switch (PeekType()) {
-							case JsonType::String:
-								value = ParseString();
-								break;
-							case JsonType::Number:
-								value = ParseNumber();
-								break;
-							case JsonType::Bool:
-								value = ParseBool() ? "true" : "false";
-								break;
-							case JsonType::Null:
-								ParseNull();
-								value = "";
-								break;
-							default:
-								throw DataError("JSON: Unsupported value type (nested objects/arrays not supported)");
-						}
-
-						columnData[key].push_back(value);
+					if (!row.object_key_order.empty()) {
+						for (const std::string& name : row.object_key_order)
+							addValue(name, row.object_value.at(name));
 					}
-
-					if (Get() != '}')
-						throw DataError("JSON: Expected '}'");
-
-					// Fill missing columns with empty for this row
-					size_t maxRows = 0;
-					for (const auto& col : columnOrder) {
-						maxRows = std::max(maxRows, columnData[col].size());
-					}
-					for (const auto& col : columnOrder) {
-						while (columnData[col].size() < maxRows)
-							columnData[col].push_back("");
+					else {
+						for (const auto& [name, value] : row.object_value)
+							addValue(name, value);
 					}
 				}
 
-				if (Get() != ']')
-					throw DataError("JSON: Expected ']'");
+				Dataset dataset;
+				dataset.rowCount = root.array_value.size();
+				dataset.columns.reserve(columnData.size());
+				for (const std::string& colName : columnOrder) {
+					const std::vector<std::string>& values = columnData.at(colName);
+					DataColumn col;
+					col.name = colName;
+					col.type = InferColumnType(values);
+					col.missingMask.resize(dataset.rowCount, false);
 
-				// Build dataset
-				if (!columnOrder.empty()) {
-					dataset.rowCount = columnData[columnOrder[0]].size();
-					dataset.columns.reserve(columnOrder.size());
+					// Parse values
+					for (size_t i = 0; i < values.size(); ++i) {
+						Real realVal = 0.0;
+						int intVal = 0;
+						bool boolVal = false;
+						std::string strVal;
 
-					for (const auto& colName : columnOrder) {
-						DataColumn col;
-						col.name = colName;
-						col.type = InferColumnType(columnData[colName]);
-						col.missingMask.resize(dataset.rowCount, false);
+						auto result = ParseValue(values[i], col.type, realVal, intVal, boolVal, strVal);
+						bool parsed = (result == ParseResult::Parsed);
+						col.missingMask[i] = !parsed;
 
-						// Parse values
-						const auto& values = columnData[colName];
-						for (size_t i = 0; i < values.size(); ++i) {
-							Real realVal = 0.0;
-							int intVal = 0;
-							bool boolVal = false;
-							std::string strVal;
-
-							auto result = ParseValue(values[i], col.type, realVal, intVal, boolVal, strVal);
-							bool parsed = (result == ParseResult::Parsed);
-							col.missingMask[i] = !parsed;
-
-							switch (col.type) {
+						switch (col.type) {
 								case ColumnType::REAL:
 									if (i == 0) col.realData = Vector<Real>(values.size());
 									col.realData[i] = parsed ? realVal : std::numeric_limits<Real>::quiet_NaN();
@@ -263,16 +152,21 @@ namespace MML {
 									if (i == 0) col.stringData.resize(values.size());
 									col.stringData[i] = parsed ? strVal : "";
 									break;
-							}
 						}
-
-						dataset.columns.push_back(std::move(col));
 					}
-				}
 
+					dataset.columns.push_back(std::move(col));
+				}
 				return dataset;
 			}
-		};
+
+			inline Dataset ParseDatasetJson(const std::string& content) {
+				Persistence::JsonParseResult parsed = Persistence::ParseJson(content);
+				if (!parsed.result.success)
+					throw DataError("JSON: " + parsed.result.message);
+				return DatasetFromJson(parsed.value);
+			}
+		} // namespace Detail
 
 		/// @brief Load dataset from JSON file (array of objects format)
 		/// @param filename Path to JSON file
@@ -290,8 +184,7 @@ namespace MML {
 			// Remove BOM if present
 			content = RemoveBOM(content);
 
-			JsonParser parser(content);
-			Dataset dataset = parser.ParseArrayOfObjects();
+			Dataset dataset = Detail::ParseDatasetJson(content);
 			dataset.name = filename;
 
 			return dataset;
@@ -302,7 +195,7 @@ namespace MML {
 		/// @return LoadResult with success status, error message, and loaded dataset
 		/// @details This function returns errors instead of throwing exceptions.
 		/// Use this for better error composition and when exceptions are not desired.
-		/// For backward compatibility, use LoadJSON() which throws on error.
+		/// Use LoadJSON() when exception-based error handling is preferred.
 		inline LoadResult LoadJSONSafe(const std::string& filename) {
 			try {
 				Dataset dataset = LoadJSON(filename);
@@ -324,8 +217,7 @@ namespace MML {
 		/// @return Loaded dataset
 		inline Dataset LoadFromJSONString(const std::string& content) {
 			std::string cleanContent = RemoveBOM(content);
-			JsonParser parser(cleanContent);
-			return parser.ParseArrayOfObjects();
+			return Detail::ParseDatasetJson(cleanContent);
 		}
 
 	}  // namespace Data

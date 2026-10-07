@@ -8,24 +8,24 @@
  */
 
 #ifdef MML_USE_SINGLE_HEADER
-#include "MML.h"
+#include <MML.h>
 #else
-#include "MMLBase.h"
+#include <mml/MMLBase.h>
 
-#include "base/Function.h"
-#include "base/Vector/VectorN.h"
-#include "core/Fields.h"
-#include "core/Curves.h"
-#include "core/FunctionHelpers.h"
+#include <mml/base/Function.h>
+#include <mml/base/Vector/VectorN.h>
+#include <mml/core/Fields/Fields.h>
+#include <mml/core/Curves.h>
+#include <mml/core/FunctionHelpers.h>
 
-#include "base/ODESystem.h"
-#include "base/ODESystemSolution.h"
-#include "mml/algorithms/ODESolvers/ODESolverAdaptive.h"
-#include "mml/algorithms/ODESolvers/ODESolverFixedStep.h"
-#include "mml/algorithms/ODESolvers/ODEStepCalculators.h"
+#include <mml/base/ODESystem.h>
+#include <mml/base/ODESystemSolution.h>
+#include <mml/algorithms/ODESolvers/ODESolverAdaptive.h>
+#include <mml/algorithms/ODESolvers/ODESolverFixedStep.h>
+#include <mml/algorithms/ODESolvers/ODEStepCalculators.h>
 
-#include "tools/Visualizer.h"
-#include "tools/Serializer.h"
+#include <mml/tools/Visualizer.h>
+#include <mml/tools/Serializer.h>
 #endif
 
 using namespace MML;
@@ -64,8 +64,8 @@ void Docs_Demo_Visualizers_Example1_FunctionAnalysis()
     // Taylor approximations of exp(-x^2) around x=0:
     // O(2): 1 - x^2
     // O(4): 1 - x^2 + x^4/2
-    auto taylor2 = [](Real x) { return 1.0 - x*x; };
-    auto taylor4 = [](Real x) { return 1.0 - x*x + x*x*x*x/2.0; };
+    auto taylor2 = [](Real x) { return Real{1} - x*x; };
+    auto taylor4 = [](Real x) { return Real{1} - x*x + x*x*x*x/Real{2}; };
     
     RealFunction t2(taylor2);
     RealFunction t4(taylor4);
@@ -245,7 +245,7 @@ void Docs_Demo_Visualizers_ScalarFunction()
     // f(x,y) = sin(x) * cos(y)
     // Scaled by 25 for proper visualization display
     auto surfFunc = [](const VectorN<Real, 2>& v) {
-        return 25.0 * std::sin(v[0]) * std::cos(v[1]);
+        return Real{25} * std::sin(v[0]) * std::cos(v[1]);
     };
     ScalarFunction<2> surface(surfFunc);
 
@@ -273,7 +273,7 @@ void Docs_Demo_Visualizers_ParamCurve2D()
 
     // Lissajous curve: x = sin(3t), y = sin(4t)
     auto lissajous = [](Real t) {
-        return VectorN<Real, 2>{std::sin(3.0*t), std::sin(4.0*t)};
+        return VectorN<Real, 2>{std::sin(Real{3}*t), std::sin(Real{4}*t)};
     };
     ParametricCurve<2> curve(lissajous);
 

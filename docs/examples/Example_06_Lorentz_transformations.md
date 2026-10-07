@@ -1,4 +1,4 @@
-# Example 04: Lorentz Transformations - Special Relativity
+# Example 06: Lorentz Transformations - Special Relativity
 
 **Einstein's mind-bending physics, computed!** 🚀⏰
 
@@ -8,17 +8,19 @@
 
 ## 📖 Overview
 
-This example demonstrates **Special Relativity** using MML's coordinate transformation framework:
+This self-contained example demonstrates **Special Relativity** while using MML for vectors, numerical differentiation, metric tensors, integration, interpolation, serialization, and visualization:
 
 - **Time dilation** - Moving clocks tick slower
 - **Length contraction** - Moving objects are shorter  
 - **Twin Paradox** - The traveling twin ages less!
 - **Spacetime diagrams** - Visualize worldlines
+- **Accelerated journey** - Model acceleration, coasting, turnaround, and return
+- **Proper-time verification** - Integrate the Minkowski metric numerically
 
 > *"The distinction between past, present, and future is only a stubbornly persistent illusion."*  
 > — Albert Einstein
 
-**Source:** `src/examples/04_Lorentz_transformations/`
+**Source:** `src/examples/06_Lorentz_transformations/`
 
 ## 🎯 Scenarios
 
@@ -101,7 +103,27 @@ Visualize the twins' paths through spacetime (Minkowski diagram):
 
 - **Twin A:** Vertical line (stays at x=0, time passes)
 - **Twin B:** V-shaped path (travels out and back)
-- **Light cone:** 45° lines (nothing can exceed)
+- **Aging curves:** Proper time accumulated by each twin
+
+### Scenario 5: Realistic Twin Paradox
+
+The final simulation sends Twin B to a star 10 light-years away and back in seven phases:
+
+1. Accelerate at approximately 1g from rest to 0.8c
+2. Coast at 0.8c
+3. Decelerate to rest near Star B
+4. Complete a semicircular orbit around Star B
+5. Accelerate to 0.8c toward Earth
+6. Coast home
+7. Decelerate to rest at Earth
+
+The analytical model predicts approximately 30.11 years for Twin A and 20.06 years for Twin B, a difference of 10.05 years. It generates a 3D spacetime trajectory and an aging comparison plot.
+
+As an independent check, the example represents Twin B's path as a 4D worldline, differentiates it numerically, and integrates proper time phase by phase:
+
+$$\tau = \int \sqrt{-g_{\mu\nu}\frac{dx^\mu}{dt}\frac{dx^\nu}{dt}}\,dt$$
+
+The numerical path integral is then compared with the analytical proper time for every phase and for the complete journey.
 
 ## ⚛️ Physics
 
@@ -143,30 +165,30 @@ $$ds^2 = c^2 dt^2 - dx^2 - dy^2 - dz^2$$
 
 | Feature | Usage |
 |---------|-------|
-| `CoordTransfLorentzXAxis` | Lorentz boost along x-axis |
 | `Vector4Minkowski` | 4-vector in Minkowski spacetime |
+| `MetricTensorMinkowski` | Evaluate the spacetime interval along the worldline |
+| `Derivation::DeriveCurve` | Numerically obtain the worldline tangent |
+| `IntegrateTrap` | Independently integrate elapsed proper time |
 | `LinearInterpRealFunc` | Smooth worldline interpolation |
-| `Visualizer` | Multi-function plotting |
+| `Visualizer` | 2D aging plots and 3D spacetime trajectories |
+
+The elementary x-axis Lorentz boost is deliberately implemented locally in `main.cpp`. It demonstrates how an MML user can combine a small domain-specific formula with MML's general numerical machinery without making special relativity part of the core library.
 
 ## 📁 Key Files
 
 ```
-src/examples/04_Lorentz_transformations/
-├── main.cpp              # Demo scenarios
-└── CMakeLists.txt
-
-mml/core/CoordTransf/
-└── CoordTransfLorentz.h  # Lorentz transformation implementation
+src/examples/06_Lorentz_transformations/
+└── main.cpp              # Five demonstrations and local x-axis boost
 ```
 
 ## 🏃 Running
 
 ```bash
 # Build
-cmake --build build --target Example05_LorentzTransform
+cmake --build build --config Release --target Example06_LorentzTransform
 
 # Run
-./build/src/examples/Release/Example05_LorentzTransform
+./build/src/examples/Release/Example06_LorentzTransform
 ```
 
 ## 📊 Sample Output
@@ -187,7 +209,7 @@ cmake --build build --target Example05_LorentzTransform
   SCENARIO 3: The Twin Paradox
 ======================================================================
 
-Using MML's CoordTransfLorentzXAxis:
+Using the example's local LorentzBoostXAxis implementation:
   Event in Earth frame: t=10 years, x=0
   Same event in ship frame: t'=16.67 years, x'=-13.33
 
@@ -218,7 +240,7 @@ These effects are **REAL**, not just theoretical:
 1. **Relativity of simultaneity:** Events simultaneous in one frame are NOT simultaneous in another
 2. **Invariant speed of light:** c is the same for all observers — leads to all other effects
 3. **Proper time:** The time measured by a clock traveling with an object (shortest path through spacetime)
-4. **Coordinate transformations:** MML provides the mathematical tools to transform between frames
+4. **Composable tools:** A localized physics formula can build on MML's general vectors, tensors, differentiation, and integration
 
 ## 🔗 Related Topics
 

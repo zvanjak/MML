@@ -8,9 +8,9 @@
 #include <iomanip>
 #include <cmath>
 
-#include "MMLBase.h"
-#include "base/Quaternions.h"
-#include "base/Vector/VectorTypes.h"
+#include <mml/MMLBase.h>
+#include <mml/base/Quaternions.h>
+#include <mml/base/Vector/VectorTypes3D.h>
 
 using namespace MML;
 

@@ -1,18 +1,17 @@
 #ifdef MML_USE_SINGLE_HEADER
-#include "MML.h"
+#include <MML.h>
 #else
-#include "MMLBase.h"
+#include <mml/MMLBase.h>
 
-#include "base/BaseUtils.h"
-#include "base/Quaternions.h"
-#include "base/Tensor.h"
+#include <mml/base/BaseUtils.h>
+#include <mml/base/Quaternions.h>
+#include <mml/base/Tensor/Tensor2.h>
 
-#include "core/CoordTransf.h"
-#include "core/CoordTransf/CoordTransfSpherical.h"
-#include "core/CoordTransf/CoordTransfCylindrical.h"
-#include "core/CoordTransf/CoordTransf3D.h"
-#include "core/CoordTransf/CoordTransfLorentz.h"
-#include "core/Fields.h"
+#include <mml/core/CoordTransf/CoordTransfBase.h>
+#include <mml/core/CoordTransf/CoordTransfSpherical.h>
+#include <mml/core/CoordTransf/CoordTransfCylindrical.h>
+#include <mml/core/CoordTransf/CoordTransf3D.h>
+#include <mml/core/Fields/Fields.h>
 
 #endif
 
@@ -470,62 +469,6 @@ void Docs_Demo_CoordTransf_Quaternion()
               << extractedAngle * 180 / Constants::PI << "°)" << std::endl;
 }
 
-void Docs_Demo_CoordTransf_Lorentz()
-{
-    std::cout << "\n***********************************************************************" << std::endl;
-    std::cout << "****                   LORENTZ TRANSFORMATION                       ****" << std::endl;
-    std::cout << "***********************************************************************" << std::endl;
-
-    // Minkowski coordinates: (ct, x, y, z)
-    // Velocity in units of c
-    Real v = 0.6;  // 60% speed of light
-    Real gamma = 1.0 / std::sqrt(1.0 - v * v);
-
-    std::cout << "\nLorentz boost along x-axis:" << std::endl;
-    std::cout << "Velocity v = " << v << "c" << std::endl;
-    std::cout << "Lorentz factor γ = " << gamma << " (expected: " << 1.0/std::sqrt(1-0.36) << ")" << std::endl;
-
-    CoordTransfLorentzXAxis lorentz(v);
-
-    // Event in rest frame: (ct=0, x=1, y=0, z=0) - particle at x=1 at t=0
-    Vector4Minkowski event{0.0, 1.0, 0.0, 0.0};
-    std::cout << "\nEvent in rest frame S: (ct=" << event[0] << ", x=" << event[1] 
-              << ", y=" << event[2] << ", z=" << event[3] << ")" << std::endl;
-
-    // Transform to moving frame S'
-    Vector4Minkowski eventPrime = lorentz.transf(event);
-    std::cout << "Event in frame S' (moving at 0.6c):" << std::endl;
-    std::cout << "(ct'=" << eventPrime[0] << ", x'=" << eventPrime[1] 
-              << ", y'=" << eventPrime[2] << ", z'=" << eventPrime[3] << ")" << std::endl;
-
-    // Length contraction demo
-    std::cout << "\n=== Length Contraction ===" << std::endl;
-    std::cout << "Object at rest in S: length = 1 meter" << std::endl;
-    std::cout << "Length in S': L' = L/γ = " << 1.0 / gamma << " meters" << std::endl;
-    std::cout << "x' coordinate: " << eventPrime[1] << " (should equal L/γ = " << 1.0/gamma << ")" << std::endl;
-
-    // Time dilation demo
-    std::cout << "\n=== Time Dilation ===" << std::endl;
-    // Clock at x=0 in S, ticking from t=0 to t=1 (in units where c=1, so ct=1)
-    Vector4Minkowski tick1{0.0, 0.0, 0.0, 0.0};  // Event 1: clock at origin, t=0
-    Vector4Minkowski tick2{1.0, 0.0, 0.0, 0.0};  // Event 2: clock at origin, t=1
-
-    Vector4Minkowski tick1Prime = lorentz.transf(tick1);
-    Vector4Minkowski tick2Prime = lorentz.transf(tick2);
-
-    Real dt = tick2[0] - tick1[0];  // Time in S
-    Real dtPrime = tick2Prime[0] - tick1Prime[0];  // Time in S'
-
-    std::cout << "Clock in S: ticks from t=0 to t=1 (Δt = " << dt << ")" << std::endl;
-    std::cout << "Same clock in S': Δt' = " << dtPrime << " (expected: γ = " << gamma << ")" << std::endl;
-
-    // Inverse transformation verification
-    std::cout << "\n=== Inverse Transformation (verification) ===" << std::endl;
-    Vector4Minkowski eventBack = lorentz.transfInverse(eventPrime);
-    std::cout << "Original event: (ct=" << event[0] << ", x=" << event[1] << ")" << std::endl;
-    std::cout << "Back-transformed: (ct=" << eventBack[0] << ", x=" << eventBack[1] << ")" << std::endl;
-}
-
 void Docs_Demo_CoordTransf_Jacobian()
 {
     std::cout << "\n***********************************************************************" << std::endl;
@@ -574,6 +517,5 @@ void Docs_Demo_Coord_Transf()
   Docs_Demo_CoordTransf_Tensor_transf();
   Docs_Demo_CoordTransf_3D_Rotations();
   Docs_Demo_CoordTransf_Quaternion();
-  Docs_Demo_CoordTransf_Lorentz();
   Docs_Demo_CoordTransf_Jacobian();
 }

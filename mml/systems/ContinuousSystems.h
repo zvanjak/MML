@@ -12,10 +12,10 @@
 #if !defined MML_CONTINUOUS_SYSTEMS_H
 #define MML_CONTINUOUS_SYSTEMS_H
 
-#include "MMLBase.h"
-#include "base/Vector/Vector.h"
-#include "base/Matrix/Matrix.h"
-#include "systems/DynamicalSystemBase.h"
+#include <mml/MMLBase.h>
+#include <mml/base/Vector/Vector.h>
+#include <mml/base/Matrix/Matrix.h>
+#include <mml/systems/DynamicalSystem/DynamicalSystemBase.h>
 
 #include <cmath>
 
@@ -35,11 +35,11 @@ namespace MML::Systems
 	class LorenzSystem : public DynamicalSystemBase<3, 3> {
 	public:
 		/// @brief Construct with default chaotic parameters
-		LorenzSystem(Real sigma = 10.0, Real rho = 28.0, Real beta = 8.0 / 3.0) {
+		LorenzSystem(Real sigma = REAL(10.0), Real rho = REAL(28.0), Real beta = REAL(8.0) / REAL(3.0)) {
 			_params = {sigma, rho, beta};
 			_stateNames = {"x", "y", "z"};
 			_paramNames = {"sigma", "rho", "beta"};
-			_paramRanges = {{0.0, 50.0}, {0.0, 100.0}, {0.0, 10.0}};
+			_paramRanges = {{REAL(0.0), REAL(50.0)}, {REAL(0.0), REAL(100.0)}, {REAL(0.0), REAL(10.0)}};
 		}
 
 		void derivs(Real /*t*/, const Vector<Real>& y, Vector<Real>& dydt) const override {
@@ -89,11 +89,11 @@ namespace MML::Systems
 	class RosslerSystem : public DynamicalSystemBase<3, 3> {
 	public:
 		/// @brief Construct with default parameters
-		RosslerSystem(Real a = 0.2, Real b = 0.2, Real c = 5.7) {
+		RosslerSystem(Real a = REAL(0.2), Real b = REAL(0.2), Real c = REAL(5.7)) {
 			_params = {a, b, c};
 			_stateNames = {"x", "y", "z"};
 			_paramNames = {"a", "b", "c"};
-			_paramRanges = {{0.0, 1.0}, {0.0, 1.0}, {0.0, 20.0}};
+			_paramRanges = {{REAL(0.0), REAL(1.0)}, {REAL(0.0), REAL(1.0)}, {REAL(0.0), REAL(20.0)}};
 		}
 
 		void derivs(Real /*t*/, const Vector<Real>& y, Vector<Real>& dydt) const override {
@@ -136,11 +136,11 @@ namespace MML::Systems
 	class VanDerPolSystem : public DynamicalSystemBase<2, 1> {
 	public:
 		/// @brief Construct with nonlinearity parameter
-		VanDerPolSystem(Real mu = 1.0) {
+		VanDerPolSystem(Real mu = REAL(1.0)) {
 			_params = {mu};
 			_stateNames = {"x", "v"};
 			_paramNames = {"mu"};
-			_paramRanges = {{0.0, 10.0}};
+			_paramRanges = {{REAL(0.0), REAL(10.0)}};
 		}
 
 		void derivs(Real /*t*/, const Vector<Real>& y, Vector<Real>& dydt) const override {
@@ -170,11 +170,11 @@ namespace MML::Systems
 	class DuffingSystem : public DynamicalSystemBase<3, 5> {
 	public:
 		/// @brief Construct with parameters
-		DuffingSystem(Real delta = 0.3, Real alpha = -1.0, Real beta = 1.0, Real gamma = 0.5, Real omega = 1.2) {
+		DuffingSystem(Real delta = REAL(0.3), Real alpha = REAL(-1.0), Real beta = REAL(1.0), Real gamma = REAL(0.5), Real omega = REAL(1.2)) {
 			_params = {delta, alpha, beta, gamma, omega};
 			_stateNames = {"x", "v", "theta"};
 			_paramNames = {"delta", "alpha", "beta", "gamma", "omega"};
-			_paramRanges = {{0.0, 1.0}, {-2.0, 2.0}, {0.0, 2.0}, {0.0, 1.0}, {0.0, 3.0}};
+			_paramRanges = {{REAL(0.0), REAL(1.0)}, {REAL(-2.0), REAL(2.0)}, {REAL(0.0), REAL(2.0)}, {REAL(0.0), REAL(1.0)}, {REAL(0.0), REAL(3.0)}};
 		}
 
 		void derivs(Real /*t*/, const Vector<Real>& y, Vector<Real>& dydt) const override {
@@ -224,11 +224,11 @@ namespace MML::Systems
 	/// f(x) = bx + 0.5(a-b)(|x+1| - |x-1|)  (piecewise-linear)
 	class ChuaCircuit : public DynamicalSystemBase<3, 4> {
 	public:
-		ChuaCircuit(Real alpha = 15.6, Real beta = 28.0, Real a = -1.143, Real b = -0.714) {
+		ChuaCircuit(Real alpha = REAL(15.6), Real beta = REAL(28.0), Real a = REAL(-1.143), Real b = REAL(-0.714)) {
 			_params = {alpha, beta, a, b};
 			_stateNames = {"x", "y", "z"};
 			_paramNames = {"alpha", "beta", "a", "b"};
-			_paramRanges = {{0.0, 30.0}, {0.0, 50.0}, {-2.0, 0.0}, {-1.0, 0.0}};
+			_paramRanges = {{REAL(0.0), REAL(30.0)}, {REAL(0.0), REAL(50.0)}, {REAL(-2.0), REAL(0.0)}, {REAL(-1.0), REAL(0.0)}};
 		}
 
 		void derivs(Real /*t*/, const Vector<Real>& y, Vector<Real>& dydt) const override {
@@ -286,11 +286,11 @@ namespace MML::Systems
 	class HenonHeilesSystem : public DynamicalSystemBase<4, 1> {
 	public:
 		/// @brief Construct with energy level
-		HenonHeilesSystem(Real energy = 0.1) {
+		HenonHeilesSystem(Real energy = REAL(0.1)) {
 			_params = {energy};
 			_stateNames = {"x", "y", "px", "py"};
 			_paramNames = {"E"};
-			_paramRanges = {{0.0, 0.166}};
+			_paramRanges = {{REAL(0.0), REAL(0.166)}};
 		}
 
 		void derivs(Real /*t*/, const Vector<Real>& y, Vector<Real>& dydt) const override {
@@ -349,7 +349,7 @@ namespace MML::Systems
 			_params = {m1, m2, L1, L2, gravity};
 			_stateNames = {"theta1", "theta2", "omega1", "omega2"};
 			_paramNames = {"m1", "m2", "L1", "L2", "g"};
-			_paramRanges = {{0.1, 10.0}, {0.1, 10.0}, {0.1, 5.0}, {0.1, 5.0}, {0.0, 20.0}};
+			_paramRanges = {{REAL(0.1), REAL(10.0)}, {REAL(0.1), REAL(10.0)}, {REAL(0.1), REAL(5.0)}, {REAL(0.1), REAL(5.0)}, {REAL(0.0), REAL(20.0)}};
 		}
 
 		void derivs(Real /*t*/, const Vector<Real>& y, Vector<Real>& dydt) const override {

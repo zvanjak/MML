@@ -312,7 +312,7 @@ bool verifyNonNegative(const Vector<Real>& y);
 
 ```cpp
 #include "test_beds/diff_eq_systems_test_bed.h"
-#include "algorithms/ODEAdaptiveIntegrator.h"
+#include <mml/algorithms/ODESolverAdaptive.h>
 
 using namespace MML;
 using namespace MML::TestBeds;
@@ -345,7 +345,7 @@ void testAdaptiveSolver() {
 
 ```cpp
 #include "test_beds/diff_eq_systems_test_bed.h"
-#include "algorithms/ODESystemSolver.h"
+#include <mml/algorithms/ODESystemSolver.h>
 
 void testFixedStepSolver() {
     // Get linear systems (simplest tests)
@@ -375,7 +375,7 @@ void testFixedStepSolver() {
 
 ```cpp
 #include "test_beds/stiff_ode_test_bed.h"
-#include "algorithms/ODEStiffSolvers.h"
+#include <mml/algorithms/ODESolverStiff.h>
 
 void testStiffSolver() {
     // Get Robertson problem (extreme stiffness)
@@ -599,5 +599,5 @@ Use **chaotic systems** to test step-size adaptivity:
 - [Integration_testbed.md](Integration_testbed.md) - Numerical integration test cases
 - [LinAlgSystems_testbed.md](LinAlgSystems_testbed.md) - Linear algebra test matrices
 - [ODESystemSolver.h](../../mml/algorithms/ODESystemSolver.h) - Solver implementations
-- [ODEAdaptiveIntegrator.h](../../mml/algorithms/ODEAdaptiveIntegrator.h) - Adaptive integrators
-- [ODEStiffSolvers.h](../../mml/algorithms/ODEStiffSolvers.h) - Stiff system solvers
+- [ODESolverAdaptive.h](../../mml/algorithms/ODESolverAdaptive.h) - Adaptive integrators
+- [ODESolverStiff.h](../../mml/algorithms/ODESolverStiff.h) - Stiff system solvers

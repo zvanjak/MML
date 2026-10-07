@@ -12,13 +12,11 @@
 #if !defined MML_STATISTICS_H
 #define MML_STATISTICS_H
 
-#include "MMLBase.h"
-#include "MMLExceptions.h"
+#include <mml/MMLBase.h>
+#include <mml/MMLExceptions.h>
 
-#include "base/Vector/Vector.h"
-#include "base/Matrix/Matrix.h"
-
-#include <random>
+#include <mml/base/Vector/Vector.h>
+#include <mml/base/Matrix/Matrix.h>
 
 namespace MML {
 	namespace Statistics {
@@ -37,13 +35,13 @@ namespace MML {
 			return outAvg;
 		}
 
-		/// Compute mean and variance (two-pass stable algorithm). Complexity: O(n)
+		/// Compute mean and sample variance using denominator n-1. Complexity: O(n)
 		static void AvgVar(const Vector<Real>& data, Real& outAvg, Real& outVar) {
 			Real s, ep;
 			int j, n = data.size();
 
-			if (n <= 0)
-				throw StatisticsError("Vector size must be greater than 0 in AvgVar");
+			if (n <= 1)
+				throw StatisticsError("Vector size must be greater than 1 in AvgVar");
 
 			outAvg = Avg(data);
 
@@ -58,8 +56,8 @@ namespace MML {
 		static void AvgStdDev(const Vector<Real>& data, Real& outAvg, Real& outStdDev) {
 			Real var;
 			int n = data.size();
-			if (n <= 0)
-				throw StatisticsError("Vector size must be greater than 0 in AvgStdDev");
+			if (n <= 1)
+				throw StatisticsError("Vector size must be greater than 1 in AvgStdDev");
 			AvgVar(data, outAvg, var);
 			outStdDev = sqrt(var);
 		}
@@ -67,17 +65,42 @@ namespace MML {
 		// Helper functions for t-tests (aliases for clarity)
 		static Real Mean(const Vector<Real>& data) { return Avg(data); }
 
-		static Real Variance(const Vector<Real>& data) {
+		/// Compute sample variance using Bessel's correction (denominator n-1).
+		static Real SampleVariance(const Vector<Real>& data) {
 			Real avg, var;
 			AvgVar(data, avg, var);
 			return var;
 		}
 
-		static Real StdDev(const Vector<Real>& data) {
-			Real avg, stddev;
-			AvgStdDev(data, avg, stddev);
-			return stddev;
+		/// Compute population variance using denominator n.
+		static Real PopulationVariance(const Vector<Real>& data) {
+			int n = data.size();
+			if (n <= 0)
+				throw StatisticsError("Vector size must be greater than 0 in PopulationVariance");
+
+			Real avg = Avg(data);
+			Real squaredDeviations = 0.0;
+			Real correction = 0.0;
+			for (int i = 0; i < n; i++) {
+				Real deviation = data[i] - avg;
+				correction += deviation;
+				squaredDeviations += deviation * deviation;
+			}
+
+			return (squaredDeviations - correction * correction / n) / n;
 		}
+
+		/// Compute sample standard deviation using denominator n-1.
+		static Real SampleStdDev(const Vector<Real>& data) { return std::sqrt(SampleVariance(data)); }
+
+		/// Compute population standard deviation using denominator n.
+		static Real PopulationStdDev(const Vector<Real>& data) { return std::sqrt(PopulationVariance(data)); }
+
+		/// Backward-compatible alias for SampleVariance.
+		static Real Variance(const Vector<Real>& data) { return SampleVariance(data); }
+
+		/// Backward-compatible alias for SampleStdDev.
+		static Real StdDev(const Vector<Real>& data) { return SampleStdDev(data); }
 
 		/// Compute mean, variance, skewness, kurtosis. Complexity: O(n)
 		static void Moments(const Vector<Real>& data, Real& ave, Real& adev, Real& sdev, Real& var, Real& skew, Real& curt) {
@@ -124,22 +147,25 @@ namespace MML {
 		/// @return The median value
 		/// @throws StatisticsError if data is empty
 		///
-		/// Complexity: O(n log n) due to sorting
+		/// Complexity: O(n) average using nth_element
 		static Real Median(const Vector<Real>& data) {
 			int n = data.size();
 			if (n <= 0)
 				throw StatisticsError("Vector size must be greater than 0 in Median");
 
-			// Create a sorted copy
-			std::vector<Real> sorted(n);
+			std::vector<Real> v(n);
 			for (int i = 0; i < n; i++)
-				sorted[i] = data[i];
-			std::sort(sorted.begin(), sorted.end());
+				v[i] = data[i];
 
-			if (n % 2 == 0)
-				return (sorted[n / 2 - 1] + sorted[n / 2]) / 2.0;
-			else
-				return sorted[n / 2];
+			if (n % 2 == 1) {
+				std::nth_element(v.begin(), v.begin() + n / 2, v.end());
+				return v[n / 2];
+			} else {
+				std::nth_element(v.begin(), v.begin() + n / 2, v.end());
+				Real upper = v[n / 2];
+				Real lower = *std::max_element(v.begin(), v.begin() + n / 2);
+				return (lower + upper) / 2.0;
+			}
 		}
 
 		/// @brief Compute a percentile of a dataset
@@ -181,7 +207,7 @@ namespace MML {
 				return sorted[lower];
 
 			Real fraction = rank - lower;
-			return sorted[lower] + fraction * (sorted[upper] - sorted[lower]);
+			return std::lerp(sorted[lower], sorted[upper], fraction);
 		}
 
 		/// @brief Compute quartiles (Q1, Q2/Median, Q3) of a dataset
@@ -200,9 +226,26 @@ namespace MML {
 			if (n <= 0)
 				throw StatisticsError("Vector size must be greater than 0 in Quartiles");
 
-			q1 = Percentile(data, 25.0);
-			median = Percentile(data, 50.0);
-			q3 = Percentile(data, 75.0);
+			// Sort once instead of calling Percentile three times (each of which sorts)
+			std::vector<Real> sorted(n);
+			for (int i = 0; i < n; i++)
+				sorted[i] = data[i];
+			std::sort(sorted.begin(), sorted.end());
+
+			auto percentile_sorted = [&](Real p) -> Real {
+				if (p == 0.0) return sorted[0];
+				if (p == 100.0) return sorted[n - 1];
+				Real rank = (p / 100.0) * (n - 1);
+				int lower = static_cast<int>(std::floor(rank));
+				int upper = static_cast<int>(std::ceil(rank));
+				if (lower == upper) return sorted[lower];
+				Real fraction = rank - lower;
+				return std::lerp(sorted[lower], sorted[upper], fraction);
+			};
+
+			q1 = percentile_sorted(25.0);
+			median = percentile_sorted(50.0);
+			q3 = percentile_sorted(75.0);
 		}
 
 		/// @brief Compute the range of a dataset
@@ -468,23 +511,44 @@ namespace MML {
 				throw StatisticsError("Data and weights must have the same size in WeightedMean");
 
 			Real weightedSum = 0.0;
+			Real weightedCorrection = 0.0;
 			Real totalWeight = 0.0;
+			Real weightCorrection = 0.0;
+			auto compensatedAdd = [](Real value, Real& sum, Real& correction) {
+				Real updated = sum + value;
+				if (std::abs(sum) >= std::abs(value))
+					correction += (sum - updated) + value;
+				else
+					correction += (value - updated) + sum;
+				sum = updated;
+			};
+
 			for (int i = 0; i < n; i++) {
-				if (weights[i] < 0.0)
-					throw StatisticsError("Weights must be non-negative in WeightedMean");
-				weightedSum += weights[i] * data[i];
-				totalWeight += weights[i];
+				if (!std::isfinite(data[i]))
+					throw StatisticsError("Data must be finite in WeightedMean");
+				if (!std::isfinite(weights[i]) || weights[i] < 0.0)
+					throw StatisticsError("Weights must be finite and non-negative in WeightedMean");
+
+				Real weightedValue = weights[i] * data[i];
+				if (!std::isfinite(weightedValue))
+					throw StatisticsError("Weighted value overflow in WeightedMean");
+				compensatedAdd(weightedValue, weightedSum, weightedCorrection);
+				compensatedAdd(weights[i], totalWeight, weightCorrection);
 			}
 
+			totalWeight += weightCorrection;
+			weightedSum += weightedCorrection;
 			if (totalWeight <= 0.0)
 				throw StatisticsError("Total weight must be positive in WeightedMean");
+			if (!std::isfinite(totalWeight) || !std::isfinite(weightedSum))
+				throw StatisticsError("Weighted accumulation overflow in WeightedMean");
 
 			return weightedSum / totalWeight;
 		}
 
 		/// @brief Compute the weighted variance
 		///
-		/// Uses reliability weights (frequency weights) formula:
+		/// Uses frequency weights, equivalent to repeating each value w_i times:
 		/// WeightedVar = sum(w_i * (x_i - weighted_mean)^2) / (sum(w_i) - 1)
 		///
 		/// @param data Input vector of values
@@ -496,27 +560,48 @@ namespace MML {
 		/// Complexity: O(n)
 		static Real WeightedVariance(const Vector<Real>& data, const Vector<Real>& weights) {
 			int n = data.size();
-			if (n < 2)
-				throw StatisticsError("Vector size must be at least 2 in WeightedVariance");
+			if (n <= 0)
+				throw StatisticsError("Vector size must be greater than 0 in WeightedVariance");
 			if (weights.size() != n)
 				throw StatisticsError("Data and weights must have the same size in WeightedVariance");
 
 			Real wMean = WeightedMean(data, weights);
 
 			Real weightedSqSum = 0.0;
+			Real squaredCorrection = 0.0;
 			Real totalWeight = 0.0;
+			Real weightCorrection = 0.0;
+			auto compensatedAdd = [](Real value, Real& sum, Real& correction) {
+				Real updated = sum + value;
+				if (std::abs(sum) >= std::abs(value))
+					correction += (sum - updated) + value;
+				else
+					correction += (value - updated) + sum;
+				sum = updated;
+			};
+
 			for (int i = 0; i < n; i++) {
-				if (weights[i] < 0.0)
-					throw StatisticsError("Weights must be non-negative in WeightedVariance");
 				Real diff = data[i] - wMean;
-				weightedSqSum += weights[i] * diff * diff;
-				totalWeight += weights[i];
+				Real weightedSquare = weights[i] * diff * diff;
+				if (!std::isfinite(weightedSquare))
+					throw StatisticsError("Weighted squared deviation overflow in WeightedVariance");
+				compensatedAdd(weightedSquare, weightedSqSum, squaredCorrection);
+				compensatedAdd(weights[i], totalWeight, weightCorrection);
 			}
 
+			totalWeight += weightCorrection;
+			weightedSqSum += squaredCorrection;
 			if (totalWeight <= 1.0)
 				throw StatisticsError("Total weight must be greater than 1 in WeightedVariance");
+			if (!std::isfinite(totalWeight) || !std::isfinite(weightedSqSum))
+				throw StatisticsError("Weighted accumulation overflow in WeightedVariance");
 
 			return weightedSqSum / (totalWeight - 1.0);
+		}
+
+		/// @brief Compute frequency-weighted sample standard deviation.
+		static Real WeightedStdDev(const Vector<Real>& data, const Vector<Real>& weights) {
+			return std::sqrt(WeightedVariance(data, weights));
 		}
 
 		/*********************************************************************/
@@ -552,6 +637,51 @@ namespace MML {
 			}
 
 			return cov / (n - 1);
+		}
+
+		/// @brief Compute frequency-weighted sample covariance.
+		///
+		/// Equivalent to repeating each (x_i, y_i) pair w_i times and computing
+		/// sample covariance with denominator sum(weights) - 1.
+		static Real WeightedCovariance(const Vector<Real>& x, const Vector<Real>& y,
+		                               const Vector<Real>& weights) {
+			int n = x.size();
+			if (n <= 0)
+				throw StatisticsError("Vector size must be greater than 0 in WeightedCovariance");
+			if (y.size() != n || weights.size() != n)
+				throw StatisticsError("Vectors and weights must have the same size in WeightedCovariance");
+
+			Real meanX = WeightedMean(x, weights);
+			Real meanY = WeightedMean(y, weights);
+			Real crossSum = 0.0;
+			Real crossCorrection = 0.0;
+			Real totalWeight = 0.0;
+			Real weightCorrection = 0.0;
+			auto compensatedAdd = [](Real value, Real& sum, Real& correction) {
+				Real updated = sum + value;
+				if (std::abs(sum) >= std::abs(value))
+					correction += (sum - updated) + value;
+				else
+					correction += (value - updated) + sum;
+				sum = updated;
+			};
+
+			for (int i = 0; i < n; i++) {
+				Real weightedProduct = weights[i] * (x[i] - meanX) * (y[i] - meanY);
+				if (!std::isfinite(weightedProduct))
+					throw StatisticsError("Weighted cross-product overflow in WeightedCovariance");
+				compensatedAdd(weightedProduct, crossSum, crossCorrection);
+				compensatedAdd(weights[i], totalWeight, weightCorrection);
+			}
+
+			totalWeight += weightCorrection;
+			crossSum += crossCorrection;
+			if (totalWeight <= 1.0)
+				throw StatisticsError("Total weight must be greater than 1 in WeightedCovariance");
+			if (!std::isfinite(totalWeight) || !std::isfinite(crossSum))
+				throw StatisticsError("Weighted accumulation overflow in WeightedCovariance");
+
+			return crossSum / (totalWeight - 1.0);
 		}
 
 		/// @brief Compute the Pearson correlation coefficient
@@ -599,6 +729,24 @@ namespace MML {
 				throw StatisticsError("Second variable has zero variance in PearsonCorrelation");
 
 			return sumXY / std::sqrt(sumX2 * sumY2);
+		}
+
+		/// @brief Compute frequency-weighted Pearson correlation.
+		static Real WeightedPearsonCorrelation(const Vector<Real>& x, const Vector<Real>& y,
+		                                       const Vector<Real>& weights) {
+			Real covariance = WeightedCovariance(x, y, weights);
+			Real varianceX = WeightedVariance(x, weights);
+			Real varianceY = WeightedVariance(y, weights);
+			if (varianceX <= 0.0)
+				throw StatisticsError("First variable has zero variance in WeightedPearsonCorrelation");
+			if (varianceY <= 0.0)
+				throw StatisticsError("Second variable has zero variance in WeightedPearsonCorrelation");
+
+			Real correlation = covariance / std::sqrt(varianceX) / std::sqrt(varianceY);
+			if (!std::isfinite(correlation))
+				throw StatisticsError("Non-finite result in WeightedPearsonCorrelation");
+
+			return std::clamp(correlation, REAL(-1.0), REAL(1.0));
 		}
 
 		/// @brief Result structure for correlation with significance test
@@ -683,9 +831,21 @@ namespace MML {
 			Vector<Real> means(p);
 			for (int j = 0; j < p; j++) {
 				Real sum = 0.0;
-				for (int i = 0; i < n; i++)
-					sum += data(i, j);
-				means[j] = sum / n;
+				Real correction = 0.0;
+				for (int i = 0; i < n; i++) {
+					Real value = data(i, j);
+					if (!std::isfinite(value))
+						throw StatisticsError("Data must be finite in CovarianceMatrix");
+					Real updated = sum + value;
+					if (std::abs(sum) >= std::abs(value))
+						correction += (sum - updated) + value;
+					else
+						correction += (value - updated) + sum;
+					sum = updated;
+				}
+				means[j] = (sum + correction) / n;
+				if (!std::isfinite(means[j]))
+					throw StatisticsError("Mean overflow in CovarianceMatrix");
 			}
 
 			// Compute covariance matrix
@@ -693,10 +853,21 @@ namespace MML {
 			for (int j1 = 0; j1 < p; j1++) {
 				for (int j2 = j1; j2 < p; j2++) {
 					Real cov = 0.0;
+					Real correction = 0.0;
 					for (int i = 0; i < n; i++) {
-						cov += (data(i, j1) - means[j1]) * (data(i, j2) - means[j2]);
+						Real product = (data(i, j1) - means[j1]) * (data(i, j2) - means[j2]);
+						if (!std::isfinite(product))
+							throw StatisticsError("Covariance product overflow in CovarianceMatrix");
+						Real updated = cov + product;
+						if (std::abs(cov) >= std::abs(product))
+							correction += (cov - updated) + product;
+						else
+							correction += (product - updated) + cov;
+						cov = updated;
 					}
-					cov /= (n - 1);
+					cov = (cov + correction) / (n - 1);
+					if (!std::isfinite(cov))
+						throw StatisticsError("Covariance overflow in CovarianceMatrix");
 					covMatrix(j1, j2) = cov;
 					covMatrix(j2, j1) = cov; // Symmetric
 				}
@@ -733,11 +904,18 @@ namespace MML {
 				stdDevs[j] = std::sqrt(covMatrix(j, j));
 			}
 
-			// Normalize to correlation matrix
+			// Normalize upper triangle, then mirror to preserve exact symmetry.
 			Matrix<Real> corrMatrix(p, p);
+			for (int j = 0; j < p; j++)
+				corrMatrix(j, j) = 1.0;
 			for (int j1 = 0; j1 < p; j1++) {
-				for (int j2 = 0; j2 < p; j2++) {
-					corrMatrix(j1, j2) = covMatrix(j1, j2) / (stdDevs[j1] * stdDevs[j2]);
+				for (int j2 = j1 + 1; j2 < p; j2++) {
+					Real correlation = covMatrix(j1, j2) / stdDevs[j1] / stdDevs[j2];
+					if (!std::isfinite(correlation))
+						throw StatisticsError("Non-finite result in CorrelationMatrix");
+					correlation = std::clamp(correlation, REAL(-1.0), REAL(1.0));
+					corrMatrix(j1, j2) = correlation;
+					corrMatrix(j2, j1) = correlation;
 				}
 			}
 

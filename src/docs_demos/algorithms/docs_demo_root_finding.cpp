@@ -1,12 +1,12 @@
 #ifdef MML_USE_SINGLE_HEADER
-#include "MML.h"
+#include <MML.h>
 #else
-#include "MMLBase.h"
+#include <mml/MMLBase.h>
 
-#include "base/Function.h"
-#include "base/Vector/Vector.h"
+#include <mml/base/Function.h>
+#include <mml/base/Vector/Vector.h>
 
-#include "algorithms/RootFinding.h"
+#include <mml/algorithms/RootFinding.h>
 #endif
 
 #include <iostream>
@@ -64,6 +64,24 @@ void Docs_Demo_FindRootBrackets()
                   << ", " << xb2[i] << "]\n";
     }
     std::cout << "\n";
+}
+
+void Docs_Demo_FindAllRealRoots()
+{
+    std::cout << "--- FindAllRealRootsInInterval Demo ---\n";
+
+    RootFinding::FindAllRealRootsConfig config;
+    config.isolation.num_intervals = 200;
+    config.refinement.f_tolerance = 1e-10;
+    auto result = RootFinding::FindAllRealRootsInInterval(
+        [](Real x) { return (x - 1.0) * (x - 2.0) * (x - 2.0) * (x - 3.0); },
+        0.0, 4.0, config);
+
+    std::cout << "Candidates/roots: " << result.candidates_found
+              << " / " << result.roots_accepted << "\n";
+    for (Real root : result.roots)
+        std::cout << "  root = " << root << "\n";
+    std::cout << "Status: " << ToString(result.status) << "\n\n";
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -183,6 +201,67 @@ void Docs_Demo_FindRootBrent()
     std::cout << std::fixed << "\n";
 }
 
+void Docs_Demo_RootFindingDiagnostics()
+{
+    std::cout << "--- Detailed Root-Finding Diagnostics ---\n";
+
+    RootFinding::RootFindingConfig config;
+    config.x_tolerance = 1e-12;
+    config.f_tolerance = 1e-12;
+    config.relative_tolerance = 1e-12;
+
+    auto result = RootFinding::FindRootBrent(
+        [](Real x) { return x * x - 2.0; }, 1.0, 2.0, config);
+
+    std::cout << "Method: " << result.algorithm_name << "\n";
+    std::cout << "Status: " << ToString(result.status) << "\n";
+    std::cout << "Root/residual: " << result.root << " / " << result.function_value << "\n";
+    std::cout << "Iterations/evaluations: " << result.iterations_used
+              << " / " << result.function_evaluations << "\n";
+    std::cout << "Elapsed: " << result.elapsed_time_ms << " ms\n\n";
+}
+
+void Docs_Demo_PolynomialRootDiagnostics()
+{
+    std::cout << "--- Polynomial Root Diagnostics ---\n";
+
+    PolynomReal polynomial({4.0, 0.0, -5.0, 0.0, 1.0});
+    RootFinding::PolynomialRootConfig config;
+    config.method = RootFinding::PolynomialRootMethod::Laguerre;
+    config.tolerance = 1e-12;
+    auto result = RootFinding::FindPolynomialRootsDetailed(polynomial, config);
+
+    std::cout << "Method: " << RootFinding::ToString(result.method) << "\n";
+    std::cout << "Maximum relative residual: " << result.max_relative_residual << "\n";
+    for (const auto& root : result.roots) {
+        std::cout << "  root = " << root.root
+                  << ", residual = " << root.residual
+                  << ", multiplicity ~= " << root.estimated_multiplicity << "\n";
+    }
+    std::cout << "\n";
+}
+
+void Docs_Demo_NonlinearSystemNewton()
+{
+    std::cout << "--- Nonlinear System Newton Demo ---\n";
+
+    auto function = [](const Vector<Real>& x) {
+        return Vector<Real>({x[0] * x[0] + x[1] * x[1] - Real{1}, x[0] - x[1]});
+    };
+    auto jacobian = [](const Vector<Real>& x) {
+        return Matrix<Real>(2, 2, {Real{2} * x[0], Real{2} * x[1], Real{1}, Real{-1}});
+    };
+    RootFinding::NonlinearSystemConfig config;
+    config.store_trace = true;
+    auto result = RootFinding::SolveNonlinearSystemNewton(
+        function, jacobian, Vector<Real>({0.8, 0.4}), config);
+
+    std::cout << "Solution: " << result.solution[0] << ", " << result.solution[1] << "\n";
+    std::cout << "Residual norm: " << result.residual_norm << "\n";
+    std::cout << "Iterations/Jacobians: " << result.iterations_used
+              << " / " << result.jacobian_evaluations << "\n\n";
+}
+
 ///////////////////////////////////////////////////////////////////////////////////////////
 // Demo: Method Comparison
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -253,12 +332,16 @@ void Docs_Demo_Root_finding()
 
     Docs_Demo_BracketRoot();
     Docs_Demo_FindRootBrackets();
+    Docs_Demo_FindAllRealRoots();
     Docs_Demo_FindRootBisection();
     Docs_Demo_FindRootFalsePosition();
     Docs_Demo_FindRootSecant();
     Docs_Demo_FindRootNewton();
     Docs_Demo_FindRootRidders();
     Docs_Demo_FindRootBrent();
+    Docs_Demo_RootFindingDiagnostics();
+    Docs_Demo_PolynomialRootDiagnostics();
+    Docs_Demo_NonlinearSystemNewton();
     Docs_Demo_RootFinding_Comparison();
 
     std::cout << "========================================\n";

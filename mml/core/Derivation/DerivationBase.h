@@ -12,9 +12,9 @@
 #if !defined MML_DERIVATION_BASE_H
 #define MML_DERIVATION_BASE_H
 
-#include "MMLBase.h"
+#include <mml/MMLBase.h>
 
-#include "interfaces/IFunction.h"
+#include <mml/interfaces/IFunction.h>
 
 namespace MML
 {

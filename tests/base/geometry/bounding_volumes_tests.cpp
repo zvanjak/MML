@@ -3,9 +3,9 @@
 #include "../../TestMatchers.h"
 
 #ifdef MML_USE_SINGLE_HEADER
-#include "MML.h"
+#include <MML.h>
 #else
-#include "mml/base/Geometry/Geometry3DBodies.h"
+#include <mml/base/Geometry/Geometry3DBodies.h>
 #endif
 
 using namespace MML;

@@ -12,12 +12,18 @@
 #if !defined MML_DERIVATION_REAL_FUNCTION_H
 #define MML_DERIVATION_REAL_FUNCTION_H
 
-#include "MMLBase.h"
+#include <mml/MMLBase.h>
 
-#include "core/AlgorithmTypes.h"
-#include "core/NumericValidation.h"
+#include <mml/base/AlgorithmTypes.h>
+#include <mml/MMLNumericValidation.h>
+#include <mml/base/Function.h>
 
 #include "DerivationBase.h"
+#include "FirstDerivativeStencil.h"
+
+#include <functional>
+#include <type_traits>
+#include <utility>
 
 namespace MML
 {
@@ -25,6 +31,14 @@ namespace MML
 	{
 		namespace Detail
 		{
+			template<RealFunctionCallable Function, class AdapterCall>
+			decltype(auto) WithRealFunctionAdapter(Function&& function, AdapterCall&& call)
+				requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+			{
+				MML::Detail::RealFunctionCallableAdapter<Function> adapter(function);
+				return std::invoke(std::forward<AdapterCall>(call), adapter);
+			}
+
 			inline Real ResolveDerivativeStep(const DerivativeConfig& config, Real default_step, Real x)
 			{
 				return config.step != REAL(0.0) ? config.step : ScaleStep(default_step, x);
@@ -96,24 +110,35 @@ namespace MML
 		static DerivativeResult<Real> NDer1Detailed(const IRealFunction& f, Real x, Real h,
 		                                           const DerivativeConfig& config = {})
 		{
-			return Detail::ExecuteDerivativeDetailed("NDer1", h, config, 2, 3,
+			using Stencil = Detail::FirstDerivativeStencil<Detail::FirstDerivativeOrder::One>;
+			return Detail::ExecuteDerivativeDetailed("NDer1", h, config, Stencil::value_offsets.size(), Stencil::error_offsets.size(),
 				[&](Real* error) {
-					Real yh = f(x + h);
-					Real y0 = f(x);
-					Real diff = yh - y0;
-					if (error)
-					{
-						Real ym = f(x - h);
-						Real ypph = std::abs(yh - 2 * y0 + ym) / h;
-						*error = ypph / 2 + (std::abs(yh) + std::abs(y0)) * Constants::Eps / h;
-					}
-					return diff / h;
+					auto result = Detail::EvaluateFirstDerivativeStencil<Detail::FirstDerivativeOrder::One>(
+						[&](int offset) { return f(x + offset * h); }, [](Real value) { return std::abs(value); }, h, error != nullptr);
+					if (error) *error = result.error;
+					return result.value;
 				});
 		}
 		static DerivativeResult<Real> NDer1Detailed(const IRealFunction& f, Real x,
 		                                           const DerivativeConfig& config = {})
 		{
 			return NDer1Detailed(f, x, Detail::ResolveDerivativeStep(config, NDer1_h, x), config);
+		}
+		template<RealFunctionCallable Function>
+			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+		static DerivativeResult<Real> NDer1Detailed(Function&& f, Real x, Real h,
+		                                           const DerivativeConfig& config = {})
+		{
+			return Detail::WithRealFunctionAdapter(std::forward<Function>(f),
+				[&](const IRealFunction& adapter) { return NDer1Detailed(adapter, x, h, config); });
+		}
+		template<RealFunctionCallable Function>
+			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+		static DerivativeResult<Real> NDer1Detailed(Function&& f, Real x,
+		                                           const DerivativeConfig& config = {})
+		{
+			return Detail::WithRealFunctionAdapter(std::forward<Function>(f),
+				[&](const IRealFunction& adapter) { return NDer1Detailed(adapter, x, config); });
 		}
 		static Real NDer1(const IRealFunction& f, Real x, Real h, Real* error = nullptr)
 		{
@@ -132,6 +157,27 @@ namespace MML
 		{
 			return NDer1(f, x, ScaleStep(NDer1_h, x), nullptr);
 		}
+		template<RealFunctionCallable Function>
+			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+		static Real NDer1(Function&& f, Real x, Real h, Real* error = nullptr)
+		{
+			return Detail::WithRealFunctionAdapter(std::forward<Function>(f),
+				[&](const IRealFunction& adapter) { return NDer1(adapter, x, h, error); });
+		}
+		template<RealFunctionCallable Function>
+			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+		static Real NDer1(Function&& f, Real x, Real* error)
+		{
+			return Detail::WithRealFunctionAdapter(std::forward<Function>(f),
+				[&](const IRealFunction& adapter) { return NDer1(adapter, x, error); });
+		}
+		template<RealFunctionCallable Function>
+			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+		static Real NDer1(Function&& f, Real x)
+		{
+			return Detail::WithRealFunctionAdapter(std::forward<Function>(f),
+				[&](const IRealFunction& adapter) { return NDer1(adapter, x); });
+		}
 		
 		static Real NDer1Left(const IRealFunction& f, Real x, Real* error = nullptr) 
 		{ Real h = ScaleStep(NDer1_h, x); return NDer1(f, x - h, h, error); }
@@ -148,27 +194,35 @@ namespace MML
 		static DerivativeResult<Real> NDer2Detailed(const IRealFunction& f, Real x, Real h,
 		                                           const DerivativeConfig& config = {})
 		{
-			return Detail::ExecuteDerivativeDetailed("NDer2", h, config, 2, 4,
+			using Stencil = Detail::FirstDerivativeStencil<Detail::FirstDerivativeOrder::Two>;
+			return Detail::ExecuteDerivativeDetailed("NDer2", h, config, Stencil::value_offsets.size(), Stencil::error_offsets.size(),
 				[&](Real* error) {
-					Real yh = f(x + h);
-					Real ymh = f(x - h);
-					Real diff = yh - ymh;
-
-					if (error)
-					{
-						Real y2h = f(x + 2 * h);
-						Real ym2h = f(x - 2 * h);
-						*error = Constants::Eps * (std::abs(yh) + std::abs(ymh)) / (2 * h) +
-						         std::abs((y2h - ym2h) / 2 - diff) / (6 * h);
-					}
-
-					return diff / (2 * h);
+					auto result = Detail::EvaluateFirstDerivativeStencil<Detail::FirstDerivativeOrder::Two>(
+						[&](int offset) { return f(x + offset * h); }, [](Real value) { return std::abs(value); }, h, error != nullptr);
+					if (error) *error = result.error;
+					return result.value;
 				});
 		}
 		static DerivativeResult<Real> NDer2Detailed(const IRealFunction& f, Real x,
 		                                           const DerivativeConfig& config = {})
 		{
 			return NDer2Detailed(f, x, Detail::ResolveDerivativeStep(config, NDer2_h, x), config);
+		}
+		template<RealFunctionCallable Function>
+			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+		static DerivativeResult<Real> NDer2Detailed(Function&& f, Real x, Real h,
+		                                           const DerivativeConfig& config = {})
+		{
+			return Detail::WithRealFunctionAdapter(std::forward<Function>(f),
+				[&](const IRealFunction& adapter) { return NDer2Detailed(adapter, x, h, config); });
+		}
+		template<RealFunctionCallable Function>
+			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+		static DerivativeResult<Real> NDer2Detailed(Function&& f, Real x,
+		                                           const DerivativeConfig& config = {})
+		{
+			return Detail::WithRealFunctionAdapter(std::forward<Function>(f),
+				[&](const IRealFunction& adapter) { return NDer2Detailed(adapter, x, config); });
 		}
 		static Real NDer2(const IRealFunction& f, Real x, Real h, Real* error = nullptr)
 		{
@@ -187,9 +241,32 @@ namespace MML
 		{
 			return NDer2(f, x, ScaleStep(NDer2_h, x), nullptr);
 		}
+		template<RealFunctionCallable Function>
+			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+		static Real NDer2(Function&& f, Real x, Real h, Real* error = nullptr)
+		{
+			return Detail::WithRealFunctionAdapter(std::forward<Function>(f),
+				[&](const IRealFunction& adapter) { return NDer2(adapter, x, h, error); });
+		}
+		template<RealFunctionCallable Function>
+			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+		static Real NDer2(Function&& f, Real x, Real* error)
+		{
+			return Detail::WithRealFunctionAdapter(std::forward<Function>(f),
+				[&](const IRealFunction& adapter) { return NDer2(adapter, x, error); });
+		}
+		template<RealFunctionCallable Function>
+			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+		static Real NDer2(Function&& f, Real x)
+		{
+			return Detail::WithRealFunctionAdapter(std::forward<Function>(f),
+				[&](const IRealFunction& adapter) { return NDer2(adapter, x); });
+		}
 		
-		static Real NDer2Left(const IRealFunction& f, Real x, Real* error = nullptr) { Real h = ScaleStep(NDer2_h, x); return NDer2(f, x - 2 * h, h, error); }
-		static Real NDer2Right(const IRealFunction& f, Real x, Real* error = nullptr) { Real h = ScaleStep(NDer2_h, x); return NDer2(f, x + 2 * h, h, error); }
+		// Offset 3h keeps the full stencil (value ±h, error ±2h) strictly on one side of x,
+		// matching the NDer4/6/8 family pattern (shift = error-stencil reach + 1).
+		static Real NDer2Left(const IRealFunction& f, Real x, Real* error = nullptr) { Real h = ScaleStep(NDer2_h, x); return NDer2(f, x - 3 * h, h, error); }
+		static Real NDer2Right(const IRealFunction& f, Real x, Real* error = nullptr) { Real h = ScaleStep(NDer2_h, x); return NDer2(f, x + 3 * h, h, error); }
 		static Real NDer2Left(const IRealFunction& f, Real x, Real h, Real* error = nullptr) { return NDer2(f, x - 3 * h, h, error); }
 		static Real NDer2Right(const IRealFunction& f, Real x, Real h, Real* error = nullptr) { return NDer2(f, x + 3 * h, h, error); }
 
@@ -199,33 +276,35 @@ namespace MML
 		static DerivativeResult<Real> NDer4Detailed(const IRealFunction& f, Real x, Real h,
 		                                           const DerivativeConfig& config = {})
 		{
-			return Detail::ExecuteDerivativeDetailed("NDer4", h, config, 4, 6,
+			using Stencil = Detail::FirstDerivativeStencil<Detail::FirstDerivativeOrder::Four>;
+			return Detail::ExecuteDerivativeDetailed("NDer4", h, config, Stencil::value_offsets.size(), Stencil::error_offsets.size(),
 				[&](Real* error) {
-					Real yh = f(x + h);
-					Real ymh = f(x - h);
-					Real y2h = f(x + 2 * h);
-					Real ym2h = f(x - 2 * h);
-
-					Real y2 = ym2h - y2h;
-					Real y1 = yh - ymh;
-
-					if (error)
-					{
-						Real y3h = f(x + 3 * h);
-						Real ym3h = f(x - 3 * h);
-
-						*error = std::abs((y3h - ym3h) / 2 + 2 * (ym2h - y2h) + 5 * (yh - ymh) / 2) / (30 * h);
-						*error += Constants::Eps * (std::abs(y2h) + std::abs(ym2h) +
-						                            8 * (std::abs(ymh) + std::abs(yh))) / (12 * h);
-					}
-
-					return (y2 + 8 * y1) / (12 * h);
+					auto result = Detail::EvaluateFirstDerivativeStencil<Detail::FirstDerivativeOrder::Four>(
+						[&](int offset) { return f(x + offset * h); }, [](Real value) { return std::abs(value); }, h, error != nullptr);
+					if (error) *error = result.error;
+					return result.value;
 				});
 		}
 		static DerivativeResult<Real> NDer4Detailed(const IRealFunction& f, Real x,
 		                                           const DerivativeConfig& config = {})
 		{
 			return NDer4Detailed(f, x, Detail::ResolveDerivativeStep(config, NDer4_h, x), config);
+		}
+		template<RealFunctionCallable Function>
+			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+		static DerivativeResult<Real> NDer4Detailed(Function&& f, Real x, Real h,
+		                                           const DerivativeConfig& config = {})
+		{
+			return Detail::WithRealFunctionAdapter(std::forward<Function>(f),
+				[&](const IRealFunction& adapter) { return NDer4Detailed(adapter, x, h, config); });
+		}
+		template<RealFunctionCallable Function>
+			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+		static DerivativeResult<Real> NDer4Detailed(Function&& f, Real x,
+		                                           const DerivativeConfig& config = {})
+		{
+			return Detail::WithRealFunctionAdapter(std::forward<Function>(f),
+				[&](const IRealFunction& adapter) { return NDer4Detailed(adapter, x, config); });
 		}
 		static Real NDer4(const IRealFunction& f, Real x, Real h, Real* error = nullptr)
 		{
@@ -244,6 +323,27 @@ namespace MML
 		{
 			return NDer4(f, x, ScaleStep(NDer4_h, x), nullptr);
 		}
+		template<RealFunctionCallable Function>
+			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+		static Real NDer4(Function&& f, Real x, Real h, Real* error = nullptr)
+		{
+			return Detail::WithRealFunctionAdapter(std::forward<Function>(f),
+				[&](const IRealFunction& adapter) { return NDer4(adapter, x, h, error); });
+		}
+		template<RealFunctionCallable Function>
+			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+		static Real NDer4(Function&& f, Real x, Real* error)
+		{
+			return Detail::WithRealFunctionAdapter(std::forward<Function>(f),
+				[&](const IRealFunction& adapter) { return NDer4(adapter, x, error); });
+		}
+		template<RealFunctionCallable Function>
+			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+		static Real NDer4(Function&& f, Real x)
+		{
+			return Detail::WithRealFunctionAdapter(std::forward<Function>(f),
+				[&](const IRealFunction& adapter) { return NDer4(adapter, x); });
+		}
 
 		static Real NDer4Left(const IRealFunction& f, Real x, Real* error = nullptr) { Real h = ScaleStep(NDer4_h, x); return NDer4(f, x - 4 * h, h, error); }
 		static Real NDer4Right(const IRealFunction& f, Real x, Real* error = nullptr) { Real h = ScaleStep(NDer4_h, x); return NDer4(f, x + 4 * h, h, error); }
@@ -256,27 +356,35 @@ namespace MML
 		static DerivativeResult<Real> NDer6Detailed(const IRealFunction& f, Real x, Real h,
 		                                           const DerivativeConfig& config = {})
 		{
-			return Detail::ExecuteDerivativeDetailed("NDer6", h, config, 6, 8,
+			using Stencil = Detail::FirstDerivativeStencil<Detail::FirstDerivativeOrder::Six>;
+			return Detail::ExecuteDerivativeDetailed("NDer6", h, config, Stencil::value_offsets.size(), Stencil::error_offsets.size(),
 				[&](Real* error) {
-					Real yh = f(x + h);
-					Real ymh = f(x - h);
-					Real y1 = yh - ymh;
-					Real y2 = f(x - 2 * h) - f(x + 2 * h);
-					Real y3 = f(x + 3 * h) - f(x - 3 * h);
-
-					if (error)
-					{
-						Real y7 = (f(x + 4 * h) - f(x - 4 * h) - 6 * y3 - 14 * y1 - 14 * y2) / 2;
-						*error = std::abs(y7) / (140 * h) + 5 * (std::abs(yh) + std::abs(ymh)) * Constants::Eps / h;
-					}
-
-					return (y3 + 9 * y2 + 45 * y1) / (60 * h);
+					auto result = Detail::EvaluateFirstDerivativeStencil<Detail::FirstDerivativeOrder::Six>(
+						[&](int offset) { return f(x + offset * h); }, [](Real value) { return std::abs(value); }, h, error != nullptr);
+					if (error) *error = result.error;
+					return result.value;
 				});
 		}
 		static DerivativeResult<Real> NDer6Detailed(const IRealFunction& f, Real x,
 		                                           const DerivativeConfig& config = {})
 		{
 			return NDer6Detailed(f, x, Detail::ResolveDerivativeStep(config, NDer6_h, x), config);
+		}
+		template<RealFunctionCallable Function>
+			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+		static DerivativeResult<Real> NDer6Detailed(Function&& f, Real x, Real h,
+		                                           const DerivativeConfig& config = {})
+		{
+			return Detail::WithRealFunctionAdapter(std::forward<Function>(f),
+				[&](const IRealFunction& adapter) { return NDer6Detailed(adapter, x, h, config); });
+		}
+		template<RealFunctionCallable Function>
+			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+		static DerivativeResult<Real> NDer6Detailed(Function&& f, Real x,
+		                                           const DerivativeConfig& config = {})
+		{
+			return Detail::WithRealFunctionAdapter(std::forward<Function>(f),
+				[&](const IRealFunction& adapter) { return NDer6Detailed(adapter, x, config); });
 		}
 		static Real NDer6(const IRealFunction& f, Real x, Real h, Real* error = nullptr)
 		{
@@ -295,6 +403,27 @@ namespace MML
 		{
 			return NDer6(f, x, ScaleStep(NDer6_h, x), nullptr);
 		}
+		template<RealFunctionCallable Function>
+			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+		static Real NDer6(Function&& f, Real x, Real h, Real* error = nullptr)
+		{
+			return Detail::WithRealFunctionAdapter(std::forward<Function>(f),
+				[&](const IRealFunction& adapter) { return NDer6(adapter, x, h, error); });
+		}
+		template<RealFunctionCallable Function>
+			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+		static Real NDer6(Function&& f, Real x, Real* error)
+		{
+			return Detail::WithRealFunctionAdapter(std::forward<Function>(f),
+				[&](const IRealFunction& adapter) { return NDer6(adapter, x, error); });
+		}
+		template<RealFunctionCallable Function>
+			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+		static Real NDer6(Function&& f, Real x)
+		{
+			return Detail::WithRealFunctionAdapter(std::forward<Function>(f),
+				[&](const IRealFunction& adapter) { return NDer6(adapter, x); });
+		}
 
 		static Real NDer6Left(const IRealFunction& f, Real x, Real* error = nullptr) { Real h = ScaleStep(NDer6_h, x); return NDer6(f, x - 5 * h, h, error); }
 		static Real NDer6Right(const IRealFunction& f, Real x, Real* error = nullptr) { Real h = ScaleStep(NDer6_h, x); return NDer6(f, x + 5 * h, h, error); }
@@ -307,31 +436,35 @@ namespace MML
 		static DerivativeResult<Real> NDer8Detailed(const IRealFunction& f, Real x, Real h,
 		                                           const DerivativeConfig& config = {})
 		{
-			return Detail::ExecuteDerivativeDetailed("NDer8", h, config, 8, 10,
+			using Stencil = Detail::FirstDerivativeStencil<Detail::FirstDerivativeOrder::Eight>;
+			return Detail::ExecuteDerivativeDetailed("NDer8", h, config, Stencil::value_offsets.size(), Stencil::error_offsets.size(),
 				[&](Real* error) {
-					Real yh = f(x + h);
-					Real ymh = f(x - h);
-					Real y1 = yh - ymh;
-					Real y2 = f(x - 2 * h) - f(x + 2 * h);
-					Real y3 = f(x + 3 * h) - f(x - 3 * h);
-					Real y4 = f(x - 4 * h) - f(x + 4 * h);
-
-					Real tmp1 = 3 * y4 / 8 + 4 * y3;
-					Real tmp2 = 21 * y2 + 84 * y1;
-
-					if (error)
-					{
-						Real f9 = (f(x + 5 * h) - f(x - 5 * h)) / 2 + 4 * y4 + 27 * y3 / 2 + 24 * y2 + 21 * y1;
-						*error = std::abs(f9) / (630 * h) + 7 * (std::abs(yh) + std::abs(ymh)) * Constants::Eps / h;
-					}
-
-					return (tmp1 + tmp2) / (105 * h);
+					auto result = Detail::EvaluateFirstDerivativeStencil<Detail::FirstDerivativeOrder::Eight>(
+						[&](int offset) { return f(x + offset * h); }, [](Real value) { return std::abs(value); }, h, error != nullptr);
+					if (error) *error = result.error;
+					return result.value;
 				});
 		}
 		static DerivativeResult<Real> NDer8Detailed(const IRealFunction& f, Real x,
 		                                           const DerivativeConfig& config = {})
 		{
 			return NDer8Detailed(f, x, Detail::ResolveDerivativeStep(config, NDer8_h, x), config);
+		}
+		template<RealFunctionCallable Function>
+			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+		static DerivativeResult<Real> NDer8Detailed(Function&& f, Real x, Real h,
+		                                           const DerivativeConfig& config = {})
+		{
+			return Detail::WithRealFunctionAdapter(std::forward<Function>(f),
+				[&](const IRealFunction& adapter) { return NDer8Detailed(adapter, x, h, config); });
+		}
+		template<RealFunctionCallable Function>
+			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+		static DerivativeResult<Real> NDer8Detailed(Function&& f, Real x,
+		                                           const DerivativeConfig& config = {})
+		{
+			return Detail::WithRealFunctionAdapter(std::forward<Function>(f),
+				[&](const IRealFunction& adapter) { return NDer8Detailed(adapter, x, config); });
 		}
 		static Real NDer8(const IRealFunction& f, Real x, Real h, Real* error = nullptr)
 		{
@@ -349,6 +482,27 @@ namespace MML
 		static Real NDer8(const IRealFunction& f, Real x)
 		{
 			return NDer8(f, x, ScaleStep(NDer8_h, x), nullptr);
+		}
+		template<RealFunctionCallable Function>
+			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+		static Real NDer8(Function&& f, Real x, Real h, Real* error = nullptr)
+		{
+			return Detail::WithRealFunctionAdapter(std::forward<Function>(f),
+				[&](const IRealFunction& adapter) { return NDer8(adapter, x, h, error); });
+		}
+		template<RealFunctionCallable Function>
+			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+		static Real NDer8(Function&& f, Real x, Real* error)
+		{
+			return Detail::WithRealFunctionAdapter(std::forward<Function>(f),
+				[&](const IRealFunction& adapter) { return NDer8(adapter, x, error); });
+		}
+		template<RealFunctionCallable Function>
+			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+		static Real NDer8(Function&& f, Real x)
+		{
+			return Detail::WithRealFunctionAdapter(std::forward<Function>(f),
+				[&](const IRealFunction& adapter) { return NDer8(adapter, x); });
 		}
 
 		static Real NDer8Left(const IRealFunction& f, Real x, Real* error = nullptr) { Real h = ScaleStep(NDer8_h, x); return NDer8(f, x - 6 * h, h, error); }
@@ -394,6 +548,22 @@ namespace MML
 		{
 			return NSecDer2Detailed(f, x, Detail::ResolveDerivativeStep(config, NDer2_h, x), config);
 		}
+		template<RealFunctionCallable Function>
+			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+		static DerivativeResult<Real> NSecDer2Detailed(Function&& f, Real x, Real h,
+		                                              const DerivativeConfig& config = {})
+		{
+			return Detail::WithRealFunctionAdapter(std::forward<Function>(f),
+				[&](const IRealFunction& adapter) { return NSecDer2Detailed(adapter, x, h, config); });
+		}
+		template<RealFunctionCallable Function>
+			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+		static DerivativeResult<Real> NSecDer2Detailed(Function&& f, Real x,
+		                                              const DerivativeConfig& config = {})
+		{
+			return Detail::WithRealFunctionAdapter(std::forward<Function>(f),
+				[&](const IRealFunction& adapter) { return NSecDer2Detailed(adapter, x, config); });
+		}
 		static Real NSecDer2(const IRealFunction& f, Real x, Real h, Real* error = nullptr)
 		{
 			DerivativeConfig config;
@@ -406,6 +576,20 @@ namespace MML
 		static Real NSecDer2(const IRealFunction& f, Real x, Real* error = nullptr)
 		{
 			return NSecDer2(f, x, ScaleStep(NDer2_h, x), error);
+		}
+		template<RealFunctionCallable Function>
+			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+		static Real NSecDer2(Function&& f, Real x, Real h, Real* error = nullptr)
+		{
+			return Detail::WithRealFunctionAdapter(std::forward<Function>(f),
+				[&](const IRealFunction& adapter) { return NSecDer2(adapter, x, h, error); });
+		}
+		template<RealFunctionCallable Function>
+			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+		static Real NSecDer2(Function&& f, Real x, Real* error = nullptr)
+		{
+			return Detail::WithRealFunctionAdapter(std::forward<Function>(f),
+				[&](const IRealFunction& adapter) { return NSecDer2(adapter, x, error); });
 		}
 
 		// f''(x) ≈ [-f(x-2h) + 16f(x-h) - 30f(x) + 16f(x+h) - f(x+2h)] / (12h²)
@@ -442,6 +626,22 @@ namespace MML
 		{
 			return NSecDer4Detailed(f, x, Detail::ResolveDerivativeStep(config, NDer4_h, x), config);
 		}
+		template<RealFunctionCallable Function>
+			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+		static DerivativeResult<Real> NSecDer4Detailed(Function&& f, Real x, Real h,
+		                                              const DerivativeConfig& config = {})
+		{
+			return Detail::WithRealFunctionAdapter(std::forward<Function>(f),
+				[&](const IRealFunction& adapter) { return NSecDer4Detailed(adapter, x, h, config); });
+		}
+		template<RealFunctionCallable Function>
+			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+		static DerivativeResult<Real> NSecDer4Detailed(Function&& f, Real x,
+		                                              const DerivativeConfig& config = {})
+		{
+			return Detail::WithRealFunctionAdapter(std::forward<Function>(f),
+				[&](const IRealFunction& adapter) { return NSecDer4Detailed(adapter, x, config); });
+		}
 		static Real NSecDer4(const IRealFunction& f, Real x, Real h, Real* error = nullptr)
 		{
 			DerivativeConfig config;
@@ -454,6 +654,20 @@ namespace MML
 		static Real NSecDer4(const IRealFunction& f, Real x, Real* error = nullptr)
 		{
 			return NSecDer4(f, x, ScaleStep(NDer4_h, x), error);
+		}
+		template<RealFunctionCallable Function>
+			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+		static Real NSecDer4(Function&& f, Real x, Real h, Real* error = nullptr)
+		{
+			return Detail::WithRealFunctionAdapter(std::forward<Function>(f),
+				[&](const IRealFunction& adapter) { return NSecDer4(adapter, x, h, error); });
+		}
+		template<RealFunctionCallable Function>
+			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+		static Real NSecDer4(Function&& f, Real x, Real* error = nullptr)
+		{
+			return Detail::WithRealFunctionAdapter(std::forward<Function>(f),
+				[&](const IRealFunction& adapter) { return NSecDer4(adapter, x, error); });
 		}
 
 		/********************************************************************************************************************/
@@ -495,6 +709,22 @@ namespace MML
 		{
 			return NThirdDer2Detailed(f, x, Detail::ResolveDerivativeStep(config, NDer4_h, x), config);
 		}
+		template<RealFunctionCallable Function>
+			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+		static DerivativeResult<Real> NThirdDer2Detailed(Function&& f, Real x, Real h,
+		                                                const DerivativeConfig& config = {})
+		{
+			return Detail::WithRealFunctionAdapter(std::forward<Function>(f),
+				[&](const IRealFunction& adapter) { return NThirdDer2Detailed(adapter, x, h, config); });
+		}
+		template<RealFunctionCallable Function>
+			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+		static DerivativeResult<Real> NThirdDer2Detailed(Function&& f, Real x,
+		                                                const DerivativeConfig& config = {})
+		{
+			return Detail::WithRealFunctionAdapter(std::forward<Function>(f),
+				[&](const IRealFunction& adapter) { return NThirdDer2Detailed(adapter, x, config); });
+		}
 		static Real NThirdDer2(const IRealFunction& f, Real x, Real h, Real* error = nullptr)
 		{
 			DerivativeConfig config;
@@ -507,6 +737,20 @@ namespace MML
 		static Real NThirdDer2(const IRealFunction& f, Real x, Real* error = nullptr)
 		{
 			return NThirdDer2(f, x, ScaleStep(NDer4_h, x), error);
+		}
+		template<RealFunctionCallable Function>
+			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+		static Real NThirdDer2(Function&& f, Real x, Real h, Real* error = nullptr)
+		{
+			return Detail::WithRealFunctionAdapter(std::forward<Function>(f),
+				[&](const IRealFunction& adapter) { return NThirdDer2(adapter, x, h, error); });
+		}
+		template<RealFunctionCallable Function>
+			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+		static Real NThirdDer2(Function&& f, Real x, Real* error = nullptr)
+		{
+			return Detail::WithRealFunctionAdapter(std::forward<Function>(f),
+				[&](const IRealFunction& adapter) { return NThirdDer2(adapter, x, error); });
 		}
 
 		// f'''(x) ≈ [f(x-3h) - 8f(x-2h) + 13f(x-h) - 13f(x+h) + 8f(x+2h) - f(x+3h)] / (8h³)
@@ -544,6 +788,22 @@ namespace MML
 		{
 			return NThirdDer4Detailed(f, x, Detail::ResolveDerivativeStep(config, NDer4_h, x), config);
 		}
+		template<RealFunctionCallable Function>
+			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+		static DerivativeResult<Real> NThirdDer4Detailed(Function&& f, Real x, Real h,
+		                                                const DerivativeConfig& config = {})
+		{
+			return Detail::WithRealFunctionAdapter(std::forward<Function>(f),
+				[&](const IRealFunction& adapter) { return NThirdDer4Detailed(adapter, x, h, config); });
+		}
+		template<RealFunctionCallable Function>
+			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+		static DerivativeResult<Real> NThirdDer4Detailed(Function&& f, Real x,
+		                                                const DerivativeConfig& config = {})
+		{
+			return Detail::WithRealFunctionAdapter(std::forward<Function>(f),
+				[&](const IRealFunction& adapter) { return NThirdDer4Detailed(adapter, x, config); });
+		}
 		static Real NThirdDer4(const IRealFunction& f, Real x, Real h, Real* error = nullptr)
 		{
 			DerivativeConfig config;
@@ -556,6 +816,20 @@ namespace MML
 		static Real NThirdDer4(const IRealFunction& f, Real x, Real* error = nullptr)
 		{
 			return NThirdDer4(f, x, ScaleStep(NDer4_h, x), error);
+		}
+		template<RealFunctionCallable Function>
+			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+		static Real NThirdDer4(Function&& f, Real x, Real h, Real* error = nullptr)
+		{
+			return Detail::WithRealFunctionAdapter(std::forward<Function>(f),
+				[&](const IRealFunction& adapter) { return NThirdDer4(adapter, x, h, error); });
+		}
+		template<RealFunctionCallable Function>
+			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+		static Real NThirdDer4(Function&& f, Real x, Real* error = nullptr)
+		{
+			return Detail::WithRealFunctionAdapter(std::forward<Function>(f),
+				[&](const IRealFunction& adapter) { return NThirdDer4(adapter, x, error); });
 		}
 
 		/********************************************************************************************************************/
@@ -640,6 +914,21 @@ namespace MML
 		{
 			return NDerRichardson(f, x, 0.1, error, 10, 1.4);
 		}
+		template<RealFunctionCallable Function>
+			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+		static Real NDerRichardson(Function&& f, Real x, Real h = 0.1,
+		                           Real* error = nullptr, int max_iter = 10, Real con = 1.4)
+		{
+			return Detail::WithRealFunctionAdapter(std::forward<Function>(f),
+				[&](const IRealFunction& adapter) { return NDerRichardson(adapter, x, h, error, max_iter, con); });
+		}
+		template<RealFunctionCallable Function>
+			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+		static Real NDerRichardson(Function&& f, Real x, Real* error)
+		{
+			return Detail::WithRealFunctionAdapter(std::forward<Function>(f),
+				[&](const IRealFunction& adapter) { return NDerRichardson(adapter, x, error); });
+		}
 
 		/// @brief Second derivative using Richardson extrapolation.
 		/// @details Uses central difference formula for second derivative with Richardson 
@@ -705,6 +994,21 @@ namespace MML
 		static Real NSecDerRichardson(const IRealFunction& f, Real x, Real* error)
 		{
 			return NSecDerRichardson(f, x, 0.1, error, 10, 1.4);
+		}
+		template<RealFunctionCallable Function>
+			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+		static Real NSecDerRichardson(Function&& f, Real x, Real h = 0.1,
+		                              Real* error = nullptr, int max_iter = 10, Real con = 1.4)
+		{
+			return Detail::WithRealFunctionAdapter(std::forward<Function>(f),
+				[&](const IRealFunction& adapter) { return NSecDerRichardson(adapter, x, h, error, max_iter, con); });
+		}
+		template<RealFunctionCallable Function>
+			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+		static Real NSecDerRichardson(Function&& f, Real x, Real* error)
+		{
+			return Detail::WithRealFunctionAdapter(std::forward<Function>(f),
+				[&](const IRealFunction& adapter) { return NSecDerRichardson(adapter, x, error); });
 		}
 
 		/// @brief Third derivative using Richardson extrapolation.
@@ -774,6 +1078,21 @@ namespace MML
 		{
 			return NThirdDerRichardson(f, x, 0.2, error, 10, 1.4);
 		}
+		template<RealFunctionCallable Function>
+			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+		static Real NThirdDerRichardson(Function&& f, Real x, Real h = 0.2,
+		                                Real* error = nullptr, int max_iter = 10, Real con = 1.4)
+		{
+			return Detail::WithRealFunctionAdapter(std::forward<Function>(f),
+				[&](const IRealFunction& adapter) { return NThirdDerRichardson(adapter, x, h, error, max_iter, con); });
+		}
+		template<RealFunctionCallable Function>
+			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+		static Real NThirdDerRichardson(Function&& f, Real x, Real* error)
+		{
+			return Detail::WithRealFunctionAdapter(std::forward<Function>(f),
+				[&](const IRealFunction& adapter) { return NThirdDerRichardson(adapter, x, error); });
+		}
 
 		/********************************************************************************************************************/
 		/********                          ADAPTIVE STEP SIZE DERIVATIVES (Aliases)                                  ********/
@@ -793,6 +1112,13 @@ namespace MML
 		{
 			return NDerRichardson(f, x, 0.1, error, 10, 1.4);
 		}
+		template<RealFunctionCallable Function>
+			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+		static Real NDerAdaptive(Function&& f, Real x, Real* error = nullptr)
+		{
+			return Detail::WithRealFunctionAdapter(std::forward<Function>(f),
+				[&](const IRealFunction& adapter) { return NDerAdaptive(adapter, x, error); });
+		}
 
 		/// @brief Adaptive second derivative (alias for NSecDerRichardson).
 		/// @param f Function to differentiate
@@ -803,6 +1129,13 @@ namespace MML
 		{
 			return NSecDerRichardson(f, x, 0.1, error, 10, 1.4);
 		}
+		template<RealFunctionCallable Function>
+			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+		static Real NSecDerAdaptive(Function&& f, Real x, Real* error = nullptr)
+		{
+			return Detail::WithRealFunctionAdapter(std::forward<Function>(f),
+				[&](const IRealFunction& adapter) { return NSecDerAdaptive(adapter, x, error); });
+		}
 
 		/// @brief Adaptive third derivative (alias for NThirdDerRichardson).
 		/// @param f Function to differentiate
@@ -812,6 +1145,13 @@ namespace MML
 		static Real NThirdDerAdaptive(const IRealFunction& f, Real x, Real* error = nullptr)
 		{
 			return NThirdDerRichardson(f, x, 0.2, error, 10, 1.4);
+		}
+		template<RealFunctionCallable Function>
+			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+		static Real NThirdDerAdaptive(Function&& f, Real x, Real* error = nullptr)
+		{
+			return Detail::WithRealFunctionAdapter(std::forward<Function>(f),
+				[&](const IRealFunction& adapter) { return NThirdDerAdaptive(adapter, x, error); });
 		}
 
 		/********************************************************************************************************************/

@@ -12,10 +12,11 @@
 #if !defined  MML_VECTORN_H
 #define MML_VECTORN_H
 
-#include "MMLBase.h"
-#include "mml/base/Geometry/Geometry.h"
+#include <mml/MMLBase.h>
+#include <mml/base/Geometry/Geometry.h>
 
 // Standard headers - include what we use
+#include <cassert>
 #include <initializer_list>
 #include <iomanip>
 #include <iostream>
@@ -31,8 +32,14 @@ namespace MML
 	template<class Type, int N>
 	class VectorN
 	{
-	protected:
+	private:
 		Type  _val[N] = { 0 };
+
+	protected:
+		/// @brief Protected element accessor (non-const) for derived classes.
+		Type& val(int i) noexcept { return _val[i]; }
+		/// @brief Protected element accessor (const) for derived classes.
+		const Type& val(int i) const noexcept { return _val[i]; }
 
 	public:
 		typedef Type value_type;      // make T available externally
@@ -95,8 +102,8 @@ namespace MML
 		{
 			VectorN ret;
 			Real norm = NormL2();
-			if (norm == 0.0)
-				throw VectorDimensionError("VectorN::Normalized - cannot normalize zero vector", N, 0);
+			if (norm < std::numeric_limits<Real>::epsilon() * 100)
+				throw VectorDimensionError("VectorN::Normalized - cannot normalize near-zero vector", N, 0);
 			for (int i = 0; i < N; ++i)
 				ret._val[i] = _val[i] / norm;
 			return ret;
@@ -113,10 +120,16 @@ namespace MML
 		///////////////////////            Accessing elements             ///////////////////////
 		/// @brief Element access (non-const).
 		/// @param n Index
-		inline Type& operator[](int n) noexcept { return _val[n]; }
+		inline Type& operator[](int n) noexcept {
+			assert(n >= 0 && n < N && "VectorN::operator[] - index out of bounds");
+			return _val[n];
+		}
 		/// @brief Element access (const).
 		/// @param n Index
-		inline const Type& operator[](int n) const noexcept { return _val[n]; }
+		inline const Type& operator[](int n) const noexcept {
+			assert(n >= 0 && n < N && "VectorN::operator[] - index out of bounds");
+			return _val[n];
+		}
 
 		/// @brief Checked element access (non-const).
 		/// @param n Index (throws if out of bounds)
@@ -183,11 +196,21 @@ namespace MML
 			return !(*this == b);
 		}
 
-		/// @brief Checks if vector is zero (all elements = 0).
+		/// @brief Checks if vector is exactly zero (all elements == 0).
 		bool isZero() const noexcept
 		{
 			for (int i = 0; i < N; i++)
-				if (_val[i] != 0.0)
+				if (_val[i] != Real(0))
+					return false;
+
+			return true;
+		}
+
+		/// @brief Checks if all elements are near zero within tolerance.
+		bool isNearZero(Real eps = Defaults::VectorIsEqualTolerance) const noexcept
+		{
+			for (int i = 0; i < N; i++)
+				if (std::abs(_val[i]) > eps)
 					return false;
 
 			return true;
@@ -299,9 +322,7 @@ namespace MML
 		{
 			Real norm{ 0.0 };
 			for (int i = 0; i < N; i++) {
-				if constexpr (std::is_same_v<Type, Complex> || 
-				              std::is_same_v<Type, std::complex<float>> ||
-				              std::is_same_v<Type, std::complex<long double>>) {
+				if constexpr (MMLComplex<Type>) {
 					norm += std::norm((*this)[i]);  // |z|² for complex
 				} else {
 					norm += (*this)[i] * (*this)[i];  // x² for real

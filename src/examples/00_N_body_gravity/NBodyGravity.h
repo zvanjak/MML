@@ -33,22 +33,22 @@
 #ifndef NBODY_GRAVITY_H
 #define NBODY_GRAVITY_H
 
-#include "MMLBase.h"
+#include <mml/MMLBase.h>
 
-#include "base/BaseUtils.h"
-#include "base/Random.h"
-#include "base/Function.h"
-#include "base/Vector/VectorTypes.h"
-#include "mml/base/Geometry/Geometry3D.h"
+#include <mml/base/BaseUtils.h>
+#include <mml/base/Random.h>
+#include <mml/base/Function.h>
+#include <mml/base/Vector/VectorTypes3D.h>
+#include <mml/base/Geometry/Geometry3D.h>
 
-#include "interfaces/IODESystem.h"
+#include <mml/interfaces/IODESystem.h>
 
-#include "mml/algorithms/ODESolvers/ODESolverAdaptive.h"
-#include "mml/algorithms/ODESolvers/ODESolverFixedStep.h"
-#include "mml/algorithms/ODESolvers/ODEStepCalculators.h"
+#include <mml/algorithms/ODESolvers/ODESolverAdaptive.h>
+#include <mml/algorithms/ODESolvers/ODESolverFixedStep.h>
+#include <mml/algorithms/ODESolvers/ODEStepCalculators.h>
 
-#include "tools/Serializer.h"
-#include "tools/Visualizer.h"
+#include <mml/tools/Serializer.h>
+#include <mml/tools/Visualizer.h>
 
 namespace NBody
 {

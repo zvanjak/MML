@@ -48,10 +48,10 @@
  */
 
 #ifdef MML_USE_SINGLE_HEADER
-#include "MML.h"
+#include <MML.h>
 #else
-#include "MMLBase.h"
-#include "tools/Visualizer.h"
+#include <mml/MMLBase.h>
+#include <mml/tools/Visualizer.h>
 #endif
 
 #include <cstring>
@@ -72,6 +72,10 @@ void Show_Particle_Visualizer_2D_Examples();
 void Show_Particle_Visualizer_3D_Examples();
 void Show_Readme_Files();
 void Show_Backend_Switching_Demo();
+void Show_Typed_Forms_3D_Visualization();
+void Show_Typed_Forms_Vortex_Tube_Visualization();
+void Show_Typed_Forms_EM_Dipole_Visualization();
+void Show_Spherical_Coord_Visualization();
 
 /**
  * @brief Print usage information
@@ -91,6 +95,10 @@ void Print_Usage(const char* program_name)
     std::cout << "  field_3d        - 3D vector fields\n";
     std::cout << "  particle_2d     - 2D particle simulations\n";
     std::cout << "  particle_3d     - 3D particle simulations\n";
+    std::cout << "  forms_3d        - Typed forms as vectors, planes, and flux surfaces\n";
+    std::cout << "  forms_field_3d  - Typed forms sampled on a vortex tube field\n";
+    std::cout << "  forms_em_3d     - Typed forms sampled on an EM dipole-style field\n";
+    std::cout << "  spherical_coord - Spherical coordinate system local basis at a point on a sphere\n";
     std::cout << "  readme          - One sample of each visualization type\n";
     std::cout << "  backend         - Runtime backend switching demo\n";
     std::cout << "  all             - Run all visualizations\n";
@@ -187,6 +195,22 @@ bool Run_Visualization(const char* viz_type)
         Show_Particle_Visualizer_3D_Examples();
         return true;
     }
+    else if (strcmp(viz_type, "forms_3d") == 0) {
+        Show_Typed_Forms_3D_Visualization();
+        return true;
+    }
+    else if (strcmp(viz_type, "forms_field_3d") == 0) {
+        Show_Typed_Forms_Vortex_Tube_Visualization();
+        return true;
+    }
+    else if (strcmp(viz_type, "forms_em_3d") == 0) {
+        Show_Typed_Forms_EM_Dipole_Visualization();
+        return true;
+    }
+    else if (strcmp(viz_type, "spherical_coord") == 0) {
+        Show_Spherical_Coord_Visualization();
+        return true;
+    }
     else if (strcmp(viz_type, "readme") == 0) {
         Show_Readme_Files();
         return true;
@@ -196,17 +220,20 @@ bool Run_Visualization(const char* viz_type)
         return true;
     }
     else if (strcmp(viz_type, "all") == 0) {
-        Show_Real_Function_Examples();
-        Show_Multi_Real_Function_Examples();
-        Show_Scalar_Function_Examples();
-        Show_Scalar_Function_3D_Examples();
-        Show_Parametric_Curve_2D_Examples();
-        Show_Parametric_Curve_3D_Examples();
-        Show_Parametric_Surface_Examples();
-        Show_Vector_Field_2D_Examples();
-        Show_Vector_Field_3D_Examples();
-        Show_Particle_Visualizer_2D_Examples();
-        Show_Particle_Visualizer_3D_Examples();
+        // Show_Real_Function_Examples();
+        // Show_Multi_Real_Function_Examples();
+        // Show_Scalar_Function_Examples();
+        // Show_Scalar_Function_3D_Examples();
+        // Show_Parametric_Curve_2D_Examples();
+        // Show_Parametric_Curve_3D_Examples();
+        // Show_Parametric_Surface_Examples();
+        // Show_Vector_Field_2D_Examples();
+        // Show_Vector_Field_3D_Examples();
+        // Show_Particle_Visualizer_2D_Examples();
+        // Show_Particle_Visualizer_3D_Examples();
+        Show_Typed_Forms_3D_Visualization();
+        Show_Typed_Forms_Vortex_Tube_Visualization();
+        Show_Typed_Forms_EM_Dipole_Visualization();
         return true;
     }
     else if (strcmp(viz_type, "--help") == 0 || strcmp(viz_type, "-h") == 0) {

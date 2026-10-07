@@ -15,12 +15,12 @@
 #include <cmath>
 #include <functional>
 
-#include "MMLBase.h"
-#include "base/Function.h"
-#include "core/OrthogonalBasis/LegendreBasis.h"
-#include "core/OrthogonalBasis/HermiteBasis.h"
-#include "core/OrthogonalBasis/LaguerreBasis.h"
-#include "core/OrthogonalBasis/ChebyshevBasis.h"
+#include <mml/MMLBase.h>
+#include <mml/base/Function.h>
+#include <mml/core/OrthogonalBasis/LegendreBasis.h>
+#include <mml/core/OrthogonalBasis/HermiteBasis.h>
+#include <mml/core/OrthogonalBasis/LaguerreBasis.h>
+#include <mml/core/OrthogonalBasis/ChebyshevBasis.h>
 
 using namespace MML;
 

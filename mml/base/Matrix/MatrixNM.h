@@ -65,9 +65,9 @@
 #if !defined MML_MATRIXNM_H
 #define MML_MATRIXNM_H
 
-#include "MMLBase.h"
-#include "base/MatrixPrintFormat.h"
-#include "base/Vector/VectorN.h"
+#include <mml/MMLBase.h>
+#include <mml/base/Matrix/MatrixPrintFormat.h>
+#include <mml/base/Vector/VectorN.h>
 
 #include <initializer_list>
 #include <iomanip>
@@ -92,13 +92,13 @@ namespace MML {
 	/// @tparam N Number of rows (compile-time constant)
 	/// @tparam M Number of columns (compile-time constant)
 
-	template<class Type, int N, int M>
+	template<class Type, int N, int M> requires Field<Type>
 	class MatrixNM {
 		static_assert(N > 0 && M > 0, "MatrixNM dimensions must be positive");
 	private:
 		Type _vals[N][M] = {{0}}; ///< Row-major storage array (stack allocated)
 
-		template<class U, int P, int Q> friend class MatrixNM;
+		template<class U, int P, int Q> requires Field<U> friend class MatrixNM;
 
 	public:
 		typedef Type value_type; ///< Element type alias for STL compatibility
@@ -187,7 +187,9 @@ namespace MML {
 		/// @endcode
 
 		MatrixNM(const Type& m) {
-			for (int i = 0; i < N; i++)
+			// Diagonal length is min(N, M) - writing N entries is out-of-bounds when N > M
+			constexpr int minDim = (N < M) ? N : M;
+			for (int i = 0; i < minDim; i++)
 				_vals[i][i] = Type{m};
 		}
 		/// /** @} */
@@ -215,7 +217,9 @@ namespace MML {
 		static MatrixNM Identity() {
 			MatrixNM unitMat;
 
-			for (int i = 0; i < N; i++)
+			// Diagonal length is min(N, M) - writing N entries is out-of-bounds when N > M
+			constexpr int minDim = (N < M) ? N : M;
+			for (int i = 0; i < minDim; i++)
 				unitMat._vals[i][i] = 1.0;
 
 			return unitMat;
@@ -418,7 +422,7 @@ namespace MML {
 
 
 		/// @brief Unary negation (returns -A).
-		[[nodiscard]] MatrixNM operator-() {
+		[[nodiscard]] MatrixNM operator-() const {
 			MatrixNM temp;
 			for (size_t i = 0; i < rows(); i++)
 				for (size_t j = 0; j < cols(); j++)

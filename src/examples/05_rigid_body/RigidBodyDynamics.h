@@ -21,8 +21,8 @@
 #define RIGID_BODY_DYNAMICS_H
 
 #include "RigidBodyCore.h"
-#include "interfaces/IODESystem.h"
-#include "base/Vector/Vector.h"
+#include <mml/interfaces/IODESystem.h>
+#include <mml/base/Vector/Vector.h>
 
 #include <array>
 

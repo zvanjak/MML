@@ -34,10 +34,20 @@ The MML solvers handle **index-1 systems** where ∂g/∂y is nonsingular.
 
 ## Solver Methods
 
+| Solver | Order | Stability | Step control | Typical use |
+|---|---:|---|---|---|
+| `SolveDAEBackwardEuler` | 1 | L-stable | Fixed | Robust baseline and very stiff systems |
+| `SolveDAEBackwardEulerAdaptive` | 1 | L-stable | Adaptive step doubling | Variable dynamics and tolerance control |
+| `SolveDAEBDF2` | 2 | A-stable | Fixed | General moderately stiff index-1 DAEs |
+| `SolveDAEBDF4` | 4 | A(α)-stable | Fixed | Higher accuracy when the solution is smooth |
+| `SolveDAERODAS` | 1-2 | L-stable | Fixed | Linearly implicit solves without Newton iteration |
+| `SolveDAERadauIIA` | 5 | L-stable | Fixed | High-accuracy stiff integration |
+| `SolveDAEBackwardEulerWithEvents` | 1 | L-stable | Fixed with event restarts | Hybrid systems and state discontinuities |
+
 ### Backward Euler (1st Order)
 
 ```cpp
-#include "mml/algorithms/DAESolvers.h"
+#include <mml/algorithms/DAESolvers.h>
 
 // Define your DAE system
 class MyDAE : public IODESystemDAEWithJacobian {
@@ -87,15 +97,53 @@ Properties:
 
 The BDF2 method uses Backward Euler for the first step to bootstrap.
 
+### BDF4, RODAS, and Radau IIA
+
+```cpp
+auto bdf4 = SolveDAEBDF4(system, t0, x0, y0, tEnd, config);
+auto rodas = SolveDAERODAS(system, t0, x0, y0, tEnd, config);
+auto radau = SolveDAERadauIIA(system, t0, x0, y0, tEnd, config);
+```
+
+BDF4 builds its history with BDF2 substeps. RODAS uses a frozen augmented
+Jacobian and linear predictor/corrector solves, so its Newton iteration count is
+zero. The three-stage Radau IIA method solves a coupled stage system and is the
+most expensive method per step, but provides fifth-order accuracy and strong
+damping for stiff systems.
+
+### Adaptive Backward Euler
+
+```cpp
+DAESolverConfig config;
+config.step_size = 0.1;       // Initial step
+config.abs_tolerance = 1e-8;
+config.rel_tolerance = 1e-6;
+config.min_step_size = 1e-8;
+config.max_step_size = 0.5;
+
+DAESolverResult result =
+    SolveDAEBackwardEulerAdaptive(system, 0.0, x0, y0, 10.0, config);
+```
+
+The adaptive method compares one full Backward Euler step with two half steps,
+rejects steps whose normalized error exceeds one, and adjusts the next step with
+a bounded safety-factor controller. The accepted solution uses the two-half-step
+result.
+
 ## Configuration
 
 ```cpp
 struct DAESolverConfig {
-    Real step_size = 0.01;          // Fixed step size
+    Real step_size = 0.01;          // Fixed step or adaptive initial step
     int max_newton_iter = 20;       // Newton iterations per step
     Real newton_tol = 1e-8;         // Newton convergence tolerance
     Real constraint_tol = 1e-10;    // Constraint satisfaction tolerance
     int max_steps = 100000;         // Maximum integration steps
+    Real abs_tolerance = 1e-10;     // Adaptive absolute tolerance
+    Real rel_tolerance = 1e-8;      // Adaptive relative tolerance
+    Real min_step_size = 1e-8;      // Adaptive lower step bound
+    Real max_step_size = 1.0;       // Adaptive upper step bound
+    Real step_safety = 0.9;         // Adaptive controller safety factor
 };
 
 // Preset configurations
@@ -109,7 +157,7 @@ DAESolverConfig fast = DAESolverConfig::Fast();
 struct DAESolverResult {
     DAESolution solution;           // Solution trajectory
     
-    std::string algorithm_name;     // "DAEBackwardEuler" or "DAEBDF2"
+    std::string algorithm_name;     // Solver identifier
     AlgorithmStatus status;         // Success, NumericalInstability, etc.
     std::string error_message;
     double elapsed_time_ms;
@@ -117,9 +165,21 @@ struct DAESolverResult {
     int total_steps;
     int newton_iterations;
     int jacobian_evaluations;
+    int accepted_steps;
+    int rejected_steps;
+    int last_step_newton_iterations;
+    int max_step_newton_iterations;
+    Real final_residual_norm;
+    Real max_residual_norm;
+    Real final_constraint_norm;
     Real max_constraint_violation;
+    DAEFailureReason failure_reason;
 };
 ```
+
+`failure_reason` distinguishes inconsistent initial conditions, Newton failure,
+singular augmented Jacobians, likely higher-index systems, maximum-step exits,
+constraint violations, and non-finite states.
 
 ## Consistent Initial Conditions
 
@@ -142,6 +202,84 @@ y0[0] = 0.5;  // Initial guess
 bool success = ComputeConsistentIC(system, t0, x0, y0, /*max_iter=*/20, /*tol=*/1e-10);
 // y0 now satisfies g(t0, x0, y0) = 0
 ```
+
+For diagnostics and damped Newton recovery, use the detailed API:
+
+```cpp
+ConsistentICResult ic = ComputeConsistentICDetailed(system, t0, x0, y0);
+if (!ic.converged) {
+    std::cerr << ic.message << " (residual " << ic.final_residual_norm << ")\n";
+}
+```
+
+The detailed result reports iterations, line-search reductions, initial/final
+residual norms, and a structured failure reason. A singular `dg/dy` is reported
+as a likely higher-index or incorrectly formulated system.
+
+## Numerical Jacobians
+
+Analytical Jacobians are recommended when available. A system implementing only
+`IODESystemDAE` can use all implicit solvers through the fourth-order finite-
+difference adapter:
+
+```cpp
+MyDAEWithoutJacobians baseSystem;
+DAESystemNumericalJacobian system(baseSystem);
+auto result = SolveDAEBDF2(system, t0, x0, y0, tEnd, config);
+```
+
+The adapter computes `df/dx`, `df/dy`, `dg/dx`, and `dg/dy`, and supports the
+combined `allJacobians` path. Automatic-differentiation and sparse Jacobian
+policies are future scalability work; they are not required for current dense
+index-1 solvers.
+
+## Events And Reinitialization
+
+Event-capable systems derive from `IODESystemDAEWithEvents`. Event functions can
+depend on both differential and algebraic state and use the same
+`EventDirection` and `EventAction` conventions as ODE events.
+
+```cpp
+class SwitchedDAE : public IODESystemDAEWithEvents {
+    // Implement the DAE equations and four Jacobian blocks as usual.
+public:
+    int getNumEvents() const override { return 1; }
+
+    Real eventFunction(int, Real t, const Vector<Real>& x,
+                       const Vector<Real>& y) const override {
+        return x[0] - 1.0;
+    }
+
+    EventDirection getEventDirection(int) const override {
+        return EventDirection::Increasing;
+    }
+
+    EventAction getEventAction(int) const override {
+        return EventAction::Restart;
+    }
+
+    void handleEvent(int, Real, Vector<Real>& x, Vector<Real>& y) const override {
+        x[1] = -x[1];       // Apply the discrete state change.
+        y[0] = 0.0;         // Initial guess; consistency is recomputed next.
+    }
+};
+
+DAEEventConfig events;
+events.event_tolerance = 1e-10;
+auto result = SolveDAEBackwardEulerWithEvents(
+    system, t0, x0, y0, tEnd, config, events);
+```
+
+Actions are:
+
+- `Continue`: record the root and continue from the projected event state.
+- `Stop`: record the root and terminate at the event time.
+- `Restart`: invoke `handleEvent`, recompute consistent algebraic variables with
+  damped Newton, validate constraints, and restart integration at the root.
+
+`DAEEventResult` contains the integration diagnostics, chronological event
+records with both `x` and `y`, terminal-event status, and final state. Event
+states are projected onto the constraint manifold before use.
 
 ## DAE System Interface
 
@@ -308,6 +446,24 @@ For the solver to work correctly, the algebraic Jacobian ∂g/∂y must be nonsi
 3. Proper constraint satisfaction
 
 If ∂g/∂y is singular, the system is higher-index and requires index reduction techniques (not currently supported).
+
+## Validation Guidance
+
+For a new DAE model, validate more than the final differential state:
+
+1. Verify or compute consistent initial conditions before integration.
+2. Check `status`, `failure_reason`, and `error_message` before consuming output.
+3. Monitor `max_constraint_violation` and `final_constraint_norm`.
+4. Repeat with half the fixed step, or tighter adaptive tolerances, and compare.
+5. For stiff models, compare at least two L-stable methods such as Backward Euler
+    and Radau IIA.
+6. Validate event direction, root time, post-event state, and constraints after
+    every restart.
+
+Core tests cover linear and nonlinear index-1 systems, stiff systems, electrical
+circuits, constraint drift, all solver families, numerical Jacobians, adaptive
+step rejection, singular/higher-index diagnostics, non-finite states, and DAE
+event continuation/termination/reinitialization.
 
 ## See Also
 

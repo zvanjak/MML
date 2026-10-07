@@ -1,12 +1,30 @@
+///////////////////////////////////////////////////////////////////////////////////////////
+///                         MinimalMathLibrary (MML)                                  ///
+///                                                                                   ///
+///  File:        diff_eq_systems_test_bed.h                                          ///
+///  Purpose:     Reusable ODE system problems for validating time-integration        ///
+///               algorithms against known or high-confidence reference behavior.     ///
+///                                                                                   ///
+///  Used by:     ODE and DAE solver tests as shared cases are promoted from local    ///
+///               test code.                                                         ///
+///                                                                                   ///
+///  Contents:    First-order systems, initial conditions, integration intervals,     ///
+///               exact/reference solutions, solver-oriented tolerances, and          ///
+///               grouped accessors for system families.                              ///
+///                                                                                   ///
+///  Coverage:    General ODE coverage exists here. Event detection, BVP, and step    ///
+///               calculator cases should be promoted when they become repeated       ///
+///               known-answer problems.                                             ///
+///////////////////////////////////////////////////////////////////////////////////////////
 #if !defined MML_ODE_SYSTEM_TEST_BED_H
 #define MML_ODE_SYSTEM_TEST_BED_H
 
 #ifdef MML_USE_SINGLE_HEADER
-#include "MML.h"
+#include <MML.h>
 #else
-#include "base/Vector/Vector.h"
-#include "base/Matrix/Matrix.h"
-#include "base/ODESystem.h"
+#include <mml/base/Vector/Vector.h>
+#include <mml/base/Matrix/Matrix.h>
+#include <mml/base/ODESystem.h>
 #endif
 
 #include "../test_data/diff_eq_systems_defs.h"

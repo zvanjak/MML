@@ -211,8 +211,8 @@ VectorN<Real, 3> CurlCyl(const IVectorFunction<3>& F, const VectorN<Real, 3>& po
 ### Example 1: Gravitational Field Analysis
 
 ```cpp
-#include "core/Fields.h"
-#include "core/FieldOperations.h"
+#include <mml/core/Fields/Fields.h>
+#include <mml/core/Fields/FieldOperations.h>
 
 using namespace MML;
 using namespace MML::Fields;

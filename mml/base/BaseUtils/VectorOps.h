@@ -14,11 +14,11 @@
 #include <cmath>
 #include <complex>
 
-#include "mml/MMLBase.h"
-#include "mml/MMLExceptions.h"
-#include "mml/base/Vector/Vector.h"
-#include "mml/base/Vector/VectorN.h"
-#include "mml/base/Matrix/Matrix.h"
+#include <mml/MMLBase.h>
+#include <mml/MMLExceptions.h>
+#include <mml/base/Vector/Vector.h>
+#include <mml/base/Vector/VectorN.h>
+#include <mml/base/Matrix/Matrix.h>
 
 namespace MML
 {

@@ -1,9 +1,9 @@
 #ifdef MML_USE_SINGLE_HEADER
-#include "MML.h"
+#include <MML.h>
 #else
-#include "MMLBase.h"
+#include <mml/MMLBase.h>
 
-#include "base/Function.h"
+#include <mml/base/Function.h>
 #endif
 
 using namespace MML;

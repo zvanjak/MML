@@ -12,10 +12,10 @@
 #if !defined  MML_LINEAR_ALG_SVD_H
 #define MML_LINEAR_ALG_SVD_H
 
-#include "MMLBase.h"
+#include <mml/MMLBase.h>
 
-#include "base/Vector/Vector.h"
-#include "base/Matrix/Matrix.h"
+#include <mml/base/Vector/Vector.h>
+#include <mml/base/Matrix/Matrix.h>
 
 namespace MML
 {
@@ -25,7 +25,7 @@ namespace MML
 	/// @note Works for any m×n matrix (square, overdetermined, underdetermined)
 	/// @note Complexity: O(mn²+n³) for m>n
 	/// @note Provides pseudoinverse solution for rank-deficient and least-squares problems
-	template<class Type>
+	template<class Type> requires MMLReal<Type>
 	class SVDecompositionSolver
 	{
 	private:
@@ -46,6 +46,9 @@ namespace MML
 
 		// Reorder singular values in descending order
 		void reorder();
+
+		// Effective threshold: user-supplied if non-negative, otherwise the default computed in ctor
+		Type EffectiveThreshold(Type thresh) const { return thresh >= 0. ? thresh : tsh; }
 
 	public:
 		/// @brief Get singular values vector σᵢ (descending order)
@@ -99,14 +102,14 @@ namespace MML
 			if (x.size() != n)
 				x.Resize(n);
 			
-			Type tsh = (thresh >= 0. ? thresh : 0.5 * std::sqrt(m + n + 1.0) * w[0] * eps);
+			Type tshEff = EffectiveThreshold(thresh);
 			
 			Vector<Type> tmp(n);
 			// Calculate U^T · b
 			for (int j = 0; j < n; j++)
 			{
 				Type s = 0.0;
-				if (w[j] > tsh)  // Only include non-zero singular values
+				if (w[j] > tshEff)  // Only include non-zero singular values
 				{
 					for (int i = 0; i < m; i++)
 						s += u[i][j] * b[i];
@@ -159,32 +162,32 @@ namespace MML
 		// Return the rank of A, after zeroing any singular values smaller than thresh. If thresh is
 		// negative, a default value based on estimated roundoff is used.        
 		int Rank(Type thresh = -1.) {
-			Type tsh = (thresh >= 0. ? thresh : 0.5 * std::sqrt(m + n + 1.0) * w[0] * eps);
+			Type tshEff = EffectiveThreshold(thresh);
 			int rank = 0;
 			for (int j = 0; j < n; j++)
-				if (w[j] > tsh) rank++;
+				if (w[j] > tshEff) rank++;
 			return rank;
 		}
 
 		// Return the nullity of A, after zeroing any singular values smaller than thresh. Default value as above.
 		int Nullity(Type thresh = -1.) {
-			Type tsh = (thresh >= 0. ? thresh : 0.5 * std::sqrt(m + n + 1.0) * w[0] * eps);
+			Type tshEff = EffectiveThreshold(thresh);
 			int nullity = 0;
 			for (int j = 0; j < n; j++)
-				if (w[j] <= tsh) nullity++;
+				if (w[j] <= tshEff) nullity++;
 			return nullity;
 		}
 
 		// Gives an orthonormal basis for the range of A as the columns of a returned matrix. thresh as above.
 		Matrix<Type> Range(Type thresh = -1.) {
-			Type tsh = (thresh >= 0. ? thresh : 0.5 * std::sqrt(m + n + 1.0) * w[0] * eps);
-			int rank = Rank(tsh);
+			Type tshEff = EffectiveThreshold(thresh);
+			int rank = Rank(tshEff);
 			
 			Matrix<Type> range(m, rank);
 			int col = 0;
 			for (int j = 0; j < n; j++)
 			{
-				if (w[j] > tsh)
+				if (w[j] > tshEff)
 				{
 					for (int i = 0; i < m; i++)
 						range[i][col] = u[i][j];
@@ -196,14 +199,14 @@ namespace MML
 
 		// Gives an orthonormal basis for the nullspace of A as the columns of a returned matrix. thresh as above
 		Matrix<Type> Nullspace(Type thresh = -1.) {
-			Type tsh = (thresh >= 0. ? thresh : 0.5 * std::sqrt(m + n + 1.0) * w[0] * eps);
-			int nullity = Nullity(tsh);
+			Type tshEff = EffectiveThreshold(thresh);
+			int nullity = Nullity(tshEff);
 			
 			Matrix<Type> nullspace(n, nullity);
 			int col = 0;
 			for (int j = 0; j < n; j++)
 			{
-				if (w[j] <= tsh)
+				if (w[j] <= tshEff)
 				{
 					for (int i = 0; i < n; i++)
 						nullspace[i][col] = v[i][j];
@@ -216,7 +219,7 @@ namespace MML
 
 	///////////////////// SVDecompositionSolver Implementation /////////////////////
 
-	template<class Type>
+	template<class Type> requires MMLReal<Type>
 	inline void SVDecompositionSolver<Type>::decompose()
 	{
 		bool flag;
@@ -442,7 +445,7 @@ namespace MML
 		}
 	}
 
-	template<class Type>
+	template<class Type> requires MMLReal<Type>
 	inline void SVDecompositionSolver<Type>::reorder()
 	{
 		int i, j, k, s, inc = 1;

@@ -1,3 +1,19 @@
+///////////////////////////////////////////////////////////////////////////////////////////
+///                         MinimalMathLibrary (MML)                                  ///
+///                                                                                   ///
+///  File:        fourier_test_bed.h                                                  ///
+///  Purpose:     Reusable signal-processing cases for Fourier transforms, spectra,   ///
+///               convolution, and correlation algorithms.                            ///
+///                                                                                   ///
+///  Used by:     tests/algorithms/fourier/fourier_tests.cpp.                        ///
+///                                                                                   ///
+///  Contents:    Analytic and sampled signals, transform-oriented reference data,    ///
+///               convolution tests, correlation tests, and grouped signal accessors. ///
+///                                                                                   ///
+///  Coverage:    Signal data is embedded here today. If the signal catalog grows,    ///
+///               split raw samples into test_data/fourier_defs.h and keep this file  ///
+///               as the algorithm-facing interface.                                  ///
+///////////////////////////////////////////////////////////////////////////////////////////
 #if !defined __MML_FOURIER_TEST_BED_H
 #define __MML_FOURIER_TEST_BED_H
 
@@ -8,9 +24,9 @@
 #include <complex>
 
 #ifdef MML_USE_SINGLE_HEADER
-#include "MML.h"
+#include <MML.h>
 #else
-#include "MMLBase.h"
+#include <mml/MMLBase.h>
 #endif
 
 namespace MML::TestBeds {

@@ -761,8 +761,8 @@ std::cout << "H = " << (k1 + k2) / 2 << "\n";
 ### Example 1: Helix Analysis
 
 ```cpp
-#include "core/Curves.h"
-#include "core/Integration/PathIntegration.h"
+#include <mml/core/Curves.h>
+#include <mml/core/Integration/PathIntegration.h>
 
 void Example_Helix_Analysis()
 {
@@ -803,7 +803,7 @@ void Example_Helix_Analysis()
 ### Example 2: Torus Curvature Map
 
 ```cpp
-#include "core/Surfaces.h"
+#include <mml/core/Surfaces.h>
 
 void Example_Torus_Curvature()
 {
@@ -840,8 +840,8 @@ void Example_Torus_Curvature()
 ### Example 3: Surface Normals for Lighting
 
 ```cpp
-#include "core/Surfaces.h"
-#include "tools/Visualizer.h"
+#include <mml/core/Surfaces.h>
+#include <mml/tools/Visualizer.h>
 
 void Example_Surface_Normals()
 {
@@ -874,7 +874,7 @@ void Example_Surface_Normals()
 ### Example 4: Principal Directions on Ellipsoid
 
 ```cpp
-#include "core/Surfaces.h"
+#include <mml/core/Surfaces.h>
 
 void Example_Ellipsoid_PrincipalDirections()
 {
@@ -909,7 +909,7 @@ void Example_Ellipsoid_PrincipalDirections()
 ### Example 5: Custom Curve from Lambda
 
 ```cpp
-#include "core/Curves.h"
+#include <mml/core/Curves.h>
 
 void Example_Custom_Curve()
 {
@@ -941,7 +941,7 @@ void Example_Custom_Curve()
 ### Example 6: Plane Through 3 Points
 
 ```cpp
-#include "core/Surfaces.h"
+#include <mml/core/Surfaces.h>
 
 void Example_Plane_From_Points()
 {

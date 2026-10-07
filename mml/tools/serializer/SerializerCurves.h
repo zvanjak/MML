@@ -12,9 +12,9 @@
 #if !defined MML_SERIALIZER_CURVES_H
 #define MML_SERIALIZER_CURVES_H
 
-#include "mml/tools/serializer/SerializerBase.h"
-#include "mml/interfaces/IFunction.h"
-#include "mml/base/Vector/VectorN.h"
+#include <mml/tools/serializer/SerializerBase.h>
+#include <mml/interfaces/IFunction.h>
+#include <mml/base/Vector/VectorN.h>
 
 namespace MML
 {
@@ -229,7 +229,7 @@ namespace MML
 			}
 
 			try {
-				WriteParamCurveHeader(file, "PARAMETRIC_CURVE_CARTESIAN_2D", title, t1, t2, static_cast<int>(vec_x.size()));
+				WriteParamCurveHeader(file, SerializeFormatType::PARAMETRIC_CURVE_CARTESIAN_2D, title, t1, t2, static_cast<int>(vec_x.size()));
 
 				for (int i = 0; i < vec_x.size(); i++)
 				{
@@ -254,7 +254,7 @@ namespace MML
 		inline SerializeResult SaveParamCurveCartesian2DResult(const IRealToVectorFunction<2>& f, std::string title, 
 		                                                       Real t1, Real t2, int numPoints, std::string fileName)
 		{
-			return SaveParamCurve<2>(f, "PARAMETRIC_CURVE_CARTESIAN_2D", title, t1, t2, numPoints, fileName);
+			return SaveParamCurve<2>(f, SerializeFormatType::PARAMETRIC_CURVE_CARTESIAN_2D, title, t1, t2, numPoints, fileName);
 		}
 		
 		/// @brief Serialize a 3D Cartesian parametric curve to file
@@ -262,7 +262,7 @@ namespace MML
 		inline SerializeResult SaveParamCurveCartesian3DResult(const IRealToVectorFunction<3>& f, std::string title, 
 		                                                       Real t1, Real t2, int numPoints, std::string fileName)
 		{
-			return SaveParamCurve<3>(f, "PARAMETRIC_CURVE_CARTESIAN_3D", title, t1, t2, numPoints, fileName);
+			return SaveParamCurve<3>(f, SerializeFormatType::PARAMETRIC_CURVE_CARTESIAN_3D, title, t1, t2, numPoints, fileName);
 		}
 
 	} // namespace Serializer

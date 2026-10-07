@@ -12,9 +12,9 @@
 #if !defined MML_SERIALIZER_SURFACES_H
 #define MML_SERIALIZER_SURFACES_H
 
-#include "mml/tools/serializer/SerializerBase.h"
-#include "mml/interfaces/IFunction.h"
-#include "mml/base/Vector/VectorN.h"
+#include <mml/tools/serializer/SerializerBase.h>
+#include <mml/interfaces/IFunction.h>
+#include <mml/base/Vector/VectorN.h>
 
 namespace MML
 {
@@ -58,15 +58,9 @@ namespace MML
 
 			try
 			{
-				// Write header
-				file << "PARAMETRIC_SURFACE_CARTESIAN" << std::endl;
-				file << title << std::endl;
-				file << "u1: " << u1 << std::endl;
-				file << "u2: " << u2 << std::endl;
-				file << "NumPointsU: " << numPointsU << std::endl;
-				file << "w1: " << w1 << std::endl;
-				file << "w2: " << w2 << std::endl;
-				file << "NumPointsW: " << numPointsW << std::endl;
+				auto headerResult = WriteParametricSurfaceHeader(file, title, u1, u2, numPointsU, w1, w2, numPointsW);
+				if (!headerResult.success)
+					return headerResult;
 
 				// Write grid data
 				Real stepU = (u2 - u1) / (numPointsU - 1);
@@ -114,15 +108,9 @@ namespace MML
 
 			try
 			{
-				// Write header
-				file << "PARAMETRIC_SURFACE_CARTESIAN" << std::endl;
-				file << title << std::endl;
-				file << "u1: " << u1 << std::endl;
-				file << "u2: " << u2 << std::endl;
-				file << "NumPointsU: " << numPointsU << std::endl;
-				file << "w1: " << w1 << std::endl;
-				file << "w2: " << w2 << std::endl;
-				file << "NumPointsW: " << numPointsW << std::endl;
+				auto headerResult = WriteParametricSurfaceHeader(file, title, u1, u2, numPointsU, w1, w2, numPointsW);
+				if (!headerResult.success)
+					return headerResult;
 
 				// Write grid data
 				Real stepU = (u2 - u1) / (numPointsU - 1);
@@ -188,14 +176,9 @@ namespace MML
 
 			try
 			{
-				file << "SCALAR_FUNCTION_CARTESIAN_2D" << std::endl;
-				file << title << std::endl;
-				file << "x1: " << x1 << std::endl;
-				file << "x2: " << x2 << std::endl;
-				file << "NumPointsX: " << numPointsX << std::endl;
-				file << "y1: " << y1 << std::endl;
-				file << "y2: " << y2 << std::endl;
-				file << "NumPointsY: " << numPointsY << std::endl;
+				auto headerResult = WriteScalarFunc2DHeader(file, title, x1, x2, numPointsX, y1, y2, numPointsY);
+				if (!headerResult.success)
+					return headerResult;
 
 				Real stepX = (x2 - x1) / (numPointsX - 1);
 				Real stepY = (y2 - y1) / (numPointsY - 1);
@@ -240,17 +223,9 @@ namespace MML
 
 			try
 			{
-				file << "SCALAR_FUNCTION_CARTESIAN_3D" << std::endl;
-				file << title << std::endl;
-				file << "x1: " << x1 << std::endl;
-				file << "x2: " << x2 << std::endl;
-				file << "NumPointsX: " << numPointsX << std::endl;
-				file << "y1: " << y1 << std::endl;
-				file << "y2: " << y2 << std::endl;
-				file << "NumPointsY: " << numPointsY << std::endl;
-				file << "z1: " << z1 << std::endl;
-				file << "z2: " << z2 << std::endl;
-				file << "NumPointsZ: " << numPointsZ << std::endl;
+				auto headerResult = WriteScalarFunc3DHeader(file, title, x1, x2, numPointsX, y1, y2, numPointsY, z1, z2, numPointsZ);
+				if (!headerResult.success)
+					return headerResult;
 
 				Real stepX = (x2 - x1) / (numPointsX - 1);
 				Real stepY = (y2 - y1) / (numPointsY - 1);
@@ -320,14 +295,9 @@ namespace MML
 				Real y1 = domain.yMin() * scaleXY;
 				Real y2 = domain.yMax() * scaleXY;
 				
-				file << "SCALAR_FUNCTION_CARTESIAN_2D" << std::endl;
-				file << title << std::endl;
-				file << "x1: " << x1 << std::endl;
-				file << "x2: " << x2 << std::endl;
-				file << "NumPointsX: " << numPointsX << std::endl;
-				file << "y1: " << y1 << std::endl;
-				file << "y2: " << y2 << std::endl;
-				file << "NumPointsY: " << numPointsY << std::endl;
+				auto headerResult = WriteScalarFunc2DHeader(file, title, x1, x2, numPointsX, y1, y2, numPointsY);
+				if (!headerResult.success)
+					return headerResult;
 
 				// Output grid values directly (no interpolation needed)
 				for (int i = 0; i < numPointsX; i++)

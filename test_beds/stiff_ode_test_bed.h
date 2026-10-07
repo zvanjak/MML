@@ -1,3 +1,19 @@
+///////////////////////////////////////////////////////////////////////////////////////////
+///                         MinimalMathLibrary (MML)                                  ///
+///                                                                                   ///
+///  File:        stiff_ode_test_bed.h                                                ///
+///  Purpose:     Reusable stiff differential-equation problems with reference        ///
+///               solutions, stiffness indicators, and solver tolerances.             ///
+///                                                                                   ///
+///  Used by:     Stiff ODE, DAE, and implicit solver tests as shared cases are       ///
+///               promoted.                                                          ///
+///                                                                                   ///
+///  Contents:    Scalar and system stiff problems, reference solutions, intervals,   ///
+///               recommended tolerances, stiffness metadata, and grouped accessors.  ///
+///                                                                                   ///
+///  Coverage:    Keep stiff-specific cases here rather than mixing them into the     ///
+///               general ODE system bed.                                            ///
+///////////////////////////////////////////////////////////////////////////////////////////
 #if !defined __MML_STIFF_ODE_TEST_BED_H
 #define __MML_STIFF_ODE_TEST_BED_H
 
@@ -10,12 +26,12 @@
 #include "../test_data/stiff_ode_defs.h"
 
 #ifdef MML_USE_SINGLE_HEADER
-#include "MML.h"
+#include <MML.h>
 #else
-#include "MMLBase.h"
-#include "base/Vector/Vector.h"
-#include "base/Matrix/Matrix.h"
-#include "base/ODESystem.h"
+#include <mml/MMLBase.h>
+#include <mml/base/Vector/Vector.h>
+#include <mml/base/Matrix/Matrix.h>
+#include <mml/base/ODESystem.h>
 #endif
 
 namespace MML::TestBeds

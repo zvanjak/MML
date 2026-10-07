@@ -206,7 +206,7 @@ Chebyshev collocation for PDEs provides spectral (exponential) convergence for s
 ### Basic Evaluation
 
 ```cpp
-#include "base/ChebyshevPolynom.h"
+#include <mml/base/ChebyshevPolynom.h>
 using namespace MML;
 
 // First kind

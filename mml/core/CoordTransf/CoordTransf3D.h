@@ -12,11 +12,12 @@
 #if !defined MML_COORD_TRANSF_3D_H
 #define MML_COORD_TRANSF_3D_H
 
-#include "MMLBase.h"
+#include <mml/MMLBase.h>
 
-#include "base/Quaternions.h"
-#include "core/CoordTransf.h"
-#include "core/LinAlgEqSolvers.h"
+#include <mml/base/Vector/VectorTypes3D.h>
+#include <mml/base/Quaternions.h>
+#include <mml/core/CoordTransf/CoordTransfBase.h>
+#include <mml/core/LinAlgEqSolvers.h>
 
 namespace MML
 {

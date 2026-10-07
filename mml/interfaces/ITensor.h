@@ -36,8 +36,8 @@
 #if !defined MML_ITENSOR_H
 #define MML_ITENSOR_H
 
-#include "MMLBase.h"
-#include "base/Vector/VectorN.h"
+#include <mml/MMLBase.h>
+#include <mml/base/Vector/VectorN.h>
 
 namespace MML
 {
@@ -125,9 +125,12 @@ namespace MML
 	 * @brief Interface for rank-3 tensors in N-dimensional space.
 	 * 
 	 * Represents tensors with 3 indices, commonly used for:
-	 * - Christoffel symbols Γ^i_jk (connection coefficients)
 	 * - Torsion tensors T^i_jk
 	 * - Structure constants of Lie algebras
+	 *
+	 * @note Christoffel symbols also have three indices, but connection coefficients
+	 * do not transform as tensors and must not be passed through tensor coordinate
+	 * transformation APIs.
 	 * 
 	 * @tparam N Dimension of the underlying space
 	 */

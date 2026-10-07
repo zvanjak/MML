@@ -12,8 +12,9 @@
 #if !defined MML_COMP_GEOMETRY_CONVEX_HULL_H
 #define MML_COMP_GEOMETRY_CONVEX_HULL_H
 
-#include "mml/MMLBase.h"
-#include "mml/base/Geometry/Geometry2D.h"
+#include <mml/MMLBase.h>
+#include <mml/base/Geometry/Geometry2D.h>
+#include <mml/algorithms/CompGeometry/RobustPredicates.h>
 
 #include <algorithm>
 #include <vector>
@@ -28,11 +29,6 @@ namespace CompGeometry {
 	private:
 		// Use centralized geometry epsilon from Constants
 		static constexpr Real EPSILON = Constants::GEOMETRY_EPSILON;
-
-		/// Cross product of vectors OA and OB (2D cross product = z-component of 3D cross)
-		static Real Cross(const Point2Cartesian& O, const Point2Cartesian& A, const Point2Cartesian& B) {
-			return (A.X() - O.X()) * (B.Y() - O.Y()) - (A.Y() - O.Y()) * (B.X() - O.X());
-		}
 
 	public:
 		// ========================================================================
@@ -78,7 +74,7 @@ namespace CompGeometry {
 
 			// Build lower hull
 			for (int i = 0; i < n; ++i) {
-				while (k >= 2 && Cross(hull[k - 2], hull[k - 1], points[i]) <= EPSILON)
+				while (k >= 2 && RobustPredicates::Orientation2D(hull[k - 2], hull[k - 1], points[i]) <= 0)
 					--k;
 				hull[k++] = points[i];
 			}
@@ -86,7 +82,7 @@ namespace CompGeometry {
 			// Build upper hull
 			int lowerSize = k + 1;
 			for (int i = n - 2; i >= 0; --i) {
-				while (k >= lowerSize && Cross(hull[k - 2], hull[k - 1], points[i]) <= EPSILON)
+				while (k >= lowerSize && RobustPredicates::Orientation2D(hull[k - 2], hull[k - 1], points[i]) <= 0)
 					--k;
 				hull[k++] = points[i];
 			}

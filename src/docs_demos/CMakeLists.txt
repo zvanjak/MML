@@ -25,7 +25,7 @@ add_executable(MML_DocsApp
 )
 
 target_include_directories(MML_DocsApp PRIVATE 
-    ${CMAKE_SOURCE_DIR}/mml
+    ${CMAKE_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/test_data
     ${CMAKE_SOURCE_DIR}/test_beds
 )
@@ -40,7 +40,7 @@ source_group("Systems" FILES ${SYSTEMS_SOURCES})
 
 # Documentation guide verification executables
 add_executable(API_Cheatsheet_Verification api_cheatsheet.cpp)
-target_include_directories(API_Cheatsheet_Verification PRIVATE ${CMAKE_SOURCE_DIR}/mml)
+target_include_directories(API_Cheatsheet_Verification PRIVATE ${CMAKE_SOURCE_DIR})
 
 add_executable(Quick_Start_Guide_Verification quick_start_guide.cpp)
-target_include_directories(Quick_Start_Guide_Verification PRIVATE ${CMAKE_SOURCE_DIR}/mml)
+target_include_directories(Quick_Start_Guide_Verification PRIVATE ${CMAKE_SOURCE_DIR})

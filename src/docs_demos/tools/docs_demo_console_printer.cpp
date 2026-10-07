@@ -2,9 +2,9 @@
 /// MML Documentation Demo: ConsolePrinter - Formatted Console Output
 ///////////////////////////////////////////////////////////////////////////////////////////
 
-#include "MMLBase.h"
-#include "base/Vector/Vector.h"
-#include "tools/ConsolePrinter.h"
+#include <mml/MMLBase.h>
+#include <mml/base/Vector/Vector.h>
+#include <mml/tools/ConsolePrinter.h>
 
 #include <iostream>
 #include <iomanip>

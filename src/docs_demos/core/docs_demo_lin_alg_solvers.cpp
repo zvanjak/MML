@@ -1,9 +1,9 @@
 #ifdef MML_USE_SINGLE_HEADER
-#include "MML.h"
+#include <MML.h>
 #else
-#include "MMLBase.h"
+#include <mml/MMLBase.h>
 
-#include "core/LinAlgEqSolvers.h"
+#include <mml/core/LinAlgEqSolvers.h>
 
 #endif
 

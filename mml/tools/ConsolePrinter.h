@@ -12,6 +12,9 @@
 #if !defined MML_CONSOLE_PRINTER_H
 #define MML_CONSOLE_PRINTER_H
 
+#include <mml/tools/CsvUtils.h>
+#include <mml/base/AlgorithmTypes.h>
+
 #include <iostream>
 #include <iomanip>
 #include <sstream>
@@ -24,7 +27,7 @@
 #include <stdexcept>
 #include <memory>
 
-#include "../base/Vector/Vector.h"
+#include <mml/base/Vector/Vector.h>
 
 namespace MML {
 
@@ -71,86 +74,37 @@ namespace MML {
 			else return false; // Invalid lead byte
 			return str.size() == expectedLen;
 		}
+
+		/// @brief Return the number of display cells in a UTF-8 string.
+		inline size_t displayWidth(const std::string& str) {
+			size_t width = 0;
+			for (size_t i = 0; i < str.size();) {
+				unsigned char lead = static_cast<unsigned char>(str[i]);
+				size_t codePointBytes = 1;
+
+				if ((lead & 0x80) == 0x00) codePointBytes = 1;
+				else if ((lead & 0xE0) == 0xC0) codePointBytes = 2;
+				else if ((lead & 0xF0) == 0xE0) codePointBytes = 3;
+				else if ((lead & 0xF8) == 0xF0) codePointBytes = 4;
+				else codePointBytes = 1;
+
+				i += std::min(codePointBytes, str.size() - i);
+				++width;
+			}
+			return width;
+		}
 	} // namespace Utf8
 
 	///////////////////////////       CSV HELPERS       ///////////////////////////
 
 	/// @brief Namespace for RFC 4180 compliant CSV utilities
 	namespace Csv {
-		/// @brief Check if a string needs quoting per RFC 4180
-		///
-		/// A field needs quoting if it contains:
-		/// - Comma (,) - field delimiter
-		/// - Double quote (") - must be escaped
-		/// - Newline (\n or \r) - record delimiter
-		///
-		/// @param str The string to check
-		/// @return true if the string needs to be quoted
-		inline bool needsQuoting(const std::string& str) {
-			return str.find_first_of(",\"\n\r") != std::string::npos;
-		}
+		// Thin aliases over the shared RFC 4180 module (tools/CsvUtils.h)
+		inline bool needsQuoting(const std::string& str) { return CsvUtils::NeedsQuoting(str); }
 
-		/// @brief Escape a string for RFC 4180 compliant CSV output
-		///
-		/// Per RFC 4180:
-		/// - Fields containing comma, quote, or newline must be quoted
-		/// - Double quotes inside fields are escaped by doubling them
-		/// - Example: 'He said "Hi"' becomes '"He said ""Hi"""'
-		///
-		/// @param str The string to escape
-		/// @return The escaped string (quoted if necessary)
-		inline std::string escape(const std::string& str) {
-			if (!needsQuoting(str)) {
-				return str;
-			}
+		inline std::string escape(const std::string& str) { return CsvUtils::Escape(str); }
 
-			std::string result;
-			result.reserve(str.size() + 2);  // At least for the surrounding quotes
-			result += '"';
-
-			for (char c : str) {
-				if (c == '"') {
-					result += "\"\"";	// Escape quote by doubling
-				} else {
-					result += c;
-				}
-			}
-
-			result += '"';
-			return result;
-		}
-
-		/// @brief Parse an RFC 4180 escaped CSV field back to original value
-		///
-		/// This reverses the escape() operation:
-		/// - Removes surrounding quotes if present
-		/// - Converts doubled quotes back to single quotes
-		///
-		/// @param str The escaped string to unescape
-		/// @return The original unescaped string
-		inline std::string unescape(const std::string& str) {
-			if (str.empty()) return str;
-
-			// Check if quoted
-			if (str.front() != '"' || str.back() != '"' || str.size() < 2) {
-				return str;  // Not quoted, return as-is
-			}
-
-			std::string result;
-			result.reserve(str.size() - 2);
-
-			// Skip opening and closing quotes
-			for (size_t i = 1; i < str.size() - 1; ++i) {
-				if (str[i] == '"' && i + 1 < str.size() - 1 && str[i + 1] == '"') {
-					result += '"';
-					++i;	// Skip the second quote
-				} else {
-					result += str[i];
-				}
-			}
-
-			return result;
-		}
+		inline std::string unescape(const std::string& str) { return CsvUtils::Unescape(str); }
 	} // namespace Csv
 
 	namespace Html {
@@ -194,6 +148,22 @@ namespace MML {
 			return result;
 		}
 	} // namespace Latex
+
+	namespace Markdown {
+		/// @brief Escape characters that break Markdown table cells
+		inline std::string escape(const std::string& str) {
+			std::string result;
+			result.reserve(str.size());
+			for (char c : str) {
+				switch (c) {
+					case '\\': result += "\\\\"; break;
+					case '|':  result += "\\|";  break;
+					default:   result += c;       break;
+				}
+			}
+			return result;
+		}
+	} // namespace Markdown
 
 	///////////////////////////       MODERN API       ///////////////////////////
 
@@ -358,11 +328,12 @@ namespace MML {
 		// Helper to format with alignment and width
 		std::string formatAligned(const std::string& content) const {
 			int w = width();
-			if (content.length() >= static_cast<size_t>(w)) {
+			size_t contentWidth = Utf8::displayWidth(content);
+			if (contentWidth >= static_cast<size_t>(w)) {
 				return content;
 			}
 
-			int padding = w - static_cast<int>(content.length());
+			int padding = w - static_cast<int>(contentWidth);
 
 			switch (m_alignment) {
 			case Alignment::Left:
@@ -458,8 +429,8 @@ namespace MML {
 	class TablePrinter {
 	private:
 		std::string m_tagColumnName;
-		ColumnFormat m_tagFormat;
-		std::vector<ColumnFormat> m_columnFormats;
+		mutable ColumnFormat m_tagFormat;
+		mutable std::vector<ColumnFormat> m_columnFormats;
 		std::vector<RowTag> m_rowTags;
 		std::vector<std::vector<CellValue>> m_data;
 		TableStyle m_style;
@@ -691,24 +662,28 @@ namespace MML {
 		// Markdown export
 		void exportMarkdown(std::ostream& os) const {
 			// Header
-			os << "| " << m_tagFormat.name();
+			os << "| " << Markdown::escape(m_tagFormat.name());
 			for (const auto& fmt : m_columnFormats) {
-				os << " | " << fmt.name();
+				os << " | " << Markdown::escape(fmt.name());
 			}
 			os << " |\n";
 
 			// Separator
-			os << "|" << std::string(m_tagFormat.name().length() + 2, '-');
+			os << "|" << std::string(Utf8::displayWidth(Markdown::escape(m_tagFormat.name())) + 2, '-');
 			for (const auto& fmt : m_columnFormats) {
-				os << "|" << std::string(fmt.name().length() + 2, '-');
+				os << "|" << std::string(Utf8::displayWidth(Markdown::escape(fmt.name())) + 2, '-');
 			}
 			os << "|\n";
 
 			// Data
 			for (size_t row = 0; row < m_data.size(); ++row) {
-				os << "| " << m_rowTags[row];
+				std::ostringstream tagStr;
+				tagStr << m_rowTags[row];
+				os << "| " << Markdown::escape(tagStr.str());
 				for (const auto& value : m_data[row]) {
-					os << " | " << value;
+					std::ostringstream valStr;
+					valStr << value;
+					os << " | " << Markdown::escape(valStr.str());
 				}
 				os << " |\n";
 			}
@@ -794,16 +769,15 @@ namespace MML {
 
 		// Helper: calculate auto-widths
 		void calculateAutoWidths() const {
-			// Mutable to allow calculation during const operations
-			auto& tagFmt = const_cast<ColumnFormat&>(m_tagFormat);
-			auto& colFmts = const_cast<std::vector<ColumnFormat>&>(m_columnFormats);
+			auto& tagFmt = m_tagFormat;
+			auto& colFmts = m_columnFormats;
 
 			// Tag column
 			if (tagFmt.rawWidth() == ColumnFormat::AUTO_WIDTH) {
-				int maxWidth = static_cast<int>(tagFmt.name().length());
+				int maxWidth = static_cast<int>(Utf8::displayWidth(tagFmt.name()));
 				for (const auto& tag : m_rowTags) {
 					std::string formatted = tagFmt.formatValue(tag);
-					maxWidth = std::max(maxWidth, static_cast<int>(formatted.length()));
+					maxWidth = std::max(maxWidth, static_cast<int>(Utf8::displayWidth(formatted)));
 				}
 				tagFmt.setCalculatedWidth(maxWidth);
 			}
@@ -811,16 +785,87 @@ namespace MML {
 			// Value columns
 			for (size_t col = 0; col < colFmts.size(); ++col) {
 				if (colFmts[col].rawWidth() == ColumnFormat::AUTO_WIDTH) {
-					int maxWidth = static_cast<int>(colFmts[col].name().length());
+					int maxWidth = static_cast<int>(Utf8::displayWidth(colFmts[col].name()));
 					for (const auto& row : m_data) {
 						std::string formatted = colFmts[col].formatValue(row[col]);
-						maxWidth = std::max(maxWidth, static_cast<int>(formatted.length()));
+						maxWidth = std::max(maxWidth, static_cast<int>(Utf8::displayWidth(formatted)));
 					}
 					colFmts[col].setCalculatedWidth(maxWidth);
 				}
 			}
 		}
 	};
+
+	///////////////////////////       Algorithm Result Display       ///////////////////////////
+
+	namespace AlgorithmResultDisplay {
+		inline std::string boolString(bool value) {
+			return value ? "true" : "false";
+		}
+
+		template<typename T>
+		std::string valueString(const T& value) {
+			std::ostringstream oss;
+			oss << value;
+			return oss.str();
+		}
+
+		inline TablePrinter<std::string, std::string> makeBaseTable(const std::string& title) {
+			TablePrinter<std::string, std::string> table("Metric", { title });
+			table.style(TableStyle().border(BorderStyle::Simple));
+			table.tagFormat(ColumnFormat("Metric").autoWidth().align(Alignment::Left));
+			table.columnFormat(0, ColumnFormat(title).autoWidth().align(Alignment::Left));
+			return table;
+		}
+	} // namespace AlgorithmResultDisplay
+
+	inline TablePrinter<std::string, std::string> MakeAlgorithmResultTable(const EvaluationResultBase& result) {
+		auto table = AlgorithmResultDisplay::makeBaseTable("Value");
+		table.addRow("Algorithm", { result.algorithm_name });
+		table.addRow("Status", { ToString(result.status) });
+		table.addRow("Success", { AlgorithmResultDisplay::boolString(result.IsSuccess()) });
+		table.addRow("Function evaluations", { AlgorithmResultDisplay::valueString(result.function_evaluations) });
+		table.addRow("Elapsed time ms", { AlgorithmResultDisplay::valueString(result.elapsed_time_ms) });
+		if (!result.error_message.empty()) {
+			table.addRow("Error", { result.error_message });
+		}
+		return table;
+	}
+
+	inline TablePrinter<std::string, std::string> MakeAlgorithmResultTable(const IterativeResultBase& result) {
+		auto table = AlgorithmResultDisplay::makeBaseTable("Value");
+		table.addRow("Algorithm", { result.algorithm_name });
+		table.addRow("Status", { ToString(result.status) });
+		table.addRow("Converged", { AlgorithmResultDisplay::boolString(result.converged) });
+		table.addRow("Iterations", { AlgorithmResultDisplay::valueString(result.iterations_used) });
+		table.addRow("Achieved tolerance", { AlgorithmResultDisplay::valueString(result.achieved_tolerance) });
+		table.addRow("Function evaluations", { AlgorithmResultDisplay::valueString(result.function_evaluations) });
+		table.addRow("Elapsed time ms", { AlgorithmResultDisplay::valueString(result.elapsed_time_ms) });
+		if (!result.error_message.empty()) {
+			table.addRow("Error", { result.error_message });
+		}
+		return table;
+	}
+
+	inline void PrintAlgorithmResult(const EvaluationResultBase& result, std::ostream& os = std::cout,
+	                                ExportFormat format = ExportFormat::Console) {
+		MakeAlgorithmResultTable(result).exportTo(os, format);
+	}
+
+	inline void PrintAlgorithmResult(const IterativeResultBase& result, std::ostream& os = std::cout,
+	                                ExportFormat format = ExportFormat::Console) {
+		MakeAlgorithmResultTable(result).exportTo(os, format);
+	}
+
+	inline std::ostream& operator<<(std::ostream& os, const EvaluationResultBase& result) {
+		PrintAlgorithmResult(result, os);
+		return os;
+	}
+
+	inline std::ostream& operator<<(std::ostream& os, const IterativeResultBase& result) {
+		PrintAlgorithmResult(result, os);
+		return os;
+	}
 
 	///////////////////////////       Vector Table Printer       ///////////////////////////
 

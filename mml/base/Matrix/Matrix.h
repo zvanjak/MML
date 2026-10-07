@@ -21,14 +21,14 @@
 #include <complex>
 #include <type_traits>
 
-#include "MMLBase.h"
-#include "base/MatrixPrintFormat.h"
-#include "base/Vector/Vector.h"
+#include <mml/MMLBase.h>
+#include <mml/base/Matrix/MatrixPrintFormat.h>
+#include <mml/base/Vector/Vector.h>
 
 namespace MML
 {
 	// Forward declarations
-	template<class Type> class Matrix;
+	template<class Type> requires Field<Type> class Matrix;
 	template<class Type> class MatrixViewNew;
 
 	///////////////////////////////////////////////////////////////////////////////////////////
@@ -87,8 +87,8 @@ namespace MML
 	/// @threadsafety Thread-safe for const operations. Non-const operations (including Resize)
 	///               require external synchronization. See docs/THREADING.md for details.
 	///
-	/// @tparam Type Element type (typically Real, Complex, or arithmetic types)
-	template<class Type>
+	/// @tparam Type Element type (typically Real, Complex, or arithmetic types); must satisfy Field
+	template<class Type> requires Field<Type>
 	class Matrix
 	{
 	private:
@@ -115,17 +115,15 @@ namespace MML
 			// Integer overflow protection
 			size_t numElements = static_cast<size_t>(rows) * static_cast<size_t>(cols);
 			if (cols > 0 && numElements / static_cast<size_t>(cols) != static_cast<size_t>(rows))
-				throw std::overflow_error("Matrix - size calculation overflow");
-			
+				throw MatrixAllocationError("Matrix - size calculation overflow", rows, cols);
+
 			if (numElements > MAX_ELEMENTS)
-				throw std::bad_alloc();
+				throw MatrixAllocationError("Matrix - allocation exceeds MAX_ELEMENTS", rows, cols);
 		}
 
 		bool IsMatrixTypeComplex() const
 		{
-			return std::is_same_v<Type, std::complex<double>> ||
-			       std::is_same_v<Type, std::complex<float>> ||
-			       std::is_same_v<Type, std::complex<long double>>;
+			return MMLComplex<Type>;
 		}
 
 	public:
@@ -146,11 +144,6 @@ namespace MML
 			if (rows < 0 || cols < 0) {
 				throw MatrixDimensionError("Matrix: negative dimensions not allowed");
 			}
-			if (rows == 0 || cols == 0) {
-				_rows = 0;
-				_cols = 0;
-				return;
-			}
 			ValidateDimensions(rows, cols);
 			
 			if constexpr (is_MML_simple_numeric<Type>) {
@@ -170,11 +163,6 @@ namespace MML
 			if (rows < 0 || cols < 0) {
 				throw MatrixDimensionError("Matrix: negative dimensions not allowed");
 			}
-			if (rows == 0 || cols == 0) {
-				_rows = 0;
-				_cols = 0;
-				return;
-			}
 			ValidateDimensions(rows, cols);
 			_data.resize(static_cast<size_t>(rows) * cols, val);
 		}
@@ -184,7 +172,7 @@ namespace MML
 		/// @throws MatrixDimensionError if rows have inconsistent sizes
 		explicit Matrix(const std::vector<std::vector<Type>>& values)
 		{
-			if (values.empty() || values[0].empty()) {
+			if (values.empty()) {
 				_rows = 0;
 				_cols = 0;
 				return;
@@ -227,16 +215,15 @@ namespace MML
 			if (rows < 0 || cols < 0) {
 				throw MatrixDimensionError("Matrix: negative dimensions not allowed");
 			}
-			if (rows == 0 || cols == 0) {
-				_rows = 0;
-				_cols = 0;
+			ValidateDimensions(rows, cols);
+			const size_t totalSize = static_cast<size_t>(rows) * cols;
+			_data.resize(totalSize);
+			
+			if (totalSize == 0) {
 				return;
 			}
-			ValidateDimensions(rows, cols);
-			_data.resize(static_cast<size_t>(rows) * cols);
-			
 			if (isRowWise) {
-				std::copy(val, val + static_cast<size_t>(rows) * cols, _data.begin());
+				std::copy(val, val + totalSize, _data.begin());
 			} else {
 				// Column-wise: need to transpose during copy
 				for (int j = 0; j < cols; ++j)
@@ -256,11 +243,6 @@ namespace MML
 		{
 			if (rows < 0 || cols < 0) {
 				throw MatrixDimensionError("Matrix: negative dimensions not allowed");
-			}
-			if (rows == 0 || cols == 0) {
-				_rows = 0;
-				_cols = 0;
-				return;
 			}
 			ValidateDimensions(rows, cols);
 			
@@ -285,7 +267,7 @@ namespace MML
 		/// @brief Move constructor
 		/// @details Source matrix is left in valid empty state
 		Matrix(Matrix&& m) noexcept 
-			: _data(std::move(m._data)), _rows(m._rows), _cols(m._cols)
+			: _rows(m._rows), _cols(m._cols), _data(std::move(m._data))
 		{
 			m._rows = 0;
 			m._cols = 0;
@@ -349,8 +331,8 @@ namespace MML
 			if (rows == _rows && cols == _cols)
 				return;
 			
-			if (rows <= 0 || cols <= 0)
-				throw MatrixDimensionError("Matrix::Resize - dimensions must be positive", rows, cols, -1, -1);
+			if (rows < 0 || cols < 0)
+				throw MatrixDimensionError("Matrix::Resize - dimensions cannot be negative", rows, cols, -1, -1);
 			
 			ValidateDimensions(rows, cols);
 			
@@ -658,47 +640,6 @@ namespace MML
 			return true;
 		}
 
-		/// @brief Check if matrix is diagonal
-		/// @param eps Tolerance for off-diagonal elements
-		/// @return true if |M(i,j)| < eps for all i≠j
-		bool isDiagonal(Real eps = Defaults::IsMatrixDiagonalTolerance) const
-		{
-			for (int i = 0; i < _rows; ++i)
-				for (int j = 0; j < _cols; ++j)
-					if (i != j && Abs((*this)(i, j)) > eps)
-						return false;
-			return true;
-		}
-
-		/// @brief Check if matrix is diagonally dominant
-		/// @return true if |M(i,i)| ≥ Σ_{j≠i} |M(i,j)| for all rows
-		bool isDiagonallyDominant() const
-		{
-			for (int i = 0; i < _rows; ++i) {
-				Real sum{0};  // Use Real for magnitude accumulation
-				for (int j = 0; j < _cols; ++j)
-					if (i != j)
-						sum += Abs((*this)(i, j));
-				if (Abs((*this)(i, i)) < sum)
-					return false;
-			}
-			return true;
-		}
-
-		/// @brief Check if matrix is symmetric (M = Mᵀ) within tolerance
-		/// @param eps Maximum allowed difference |M(i,j) - M(j,i)|
-		/// @return true if M(i,j) ≈ M(j,i) for all i,j
-		bool isSymmetric(Real eps = Defaults::IsMatrixSymmetricTolerance) const
-		{
-			if (_rows != _cols) return false;
-			
-			for (int i = 0; i < _rows; ++i)
-				for (int j = i + 1; j < _cols; ++j)
-					if (Abs((*this)(i, j) - (*this)(j, i)) > eps)
-						return false;
-			return true;
-		}
-
 		/// @brief Check if matrix is anti-symmetric (skew-symmetric) within tolerance
 		/// @param eps Maximum allowed difference |M(i,j) + M(j,i)|
 		/// @return true if M(i,j) ≈ -M(j,i) for all i,j
@@ -731,43 +672,6 @@ namespace MML
 			return true;
 		}
 
-		///////////////////////             Matrix norm calculations       //////////////////////
-		
-		/// @brief L1 norm (sum of absolute values of all elements)
-		Real NormL1() const
-		{
-			Real norm{0};
-			for (const auto& elem : _data)
-				norm += Abs(elem);
-			return norm;
-		}
-		
-		/// @brief Frobenius norm: ||M||_F = √(Σ |M(i,j)|²)
-		/// @details For complex matrices, uses std::norm(z) = |z|² = real² + imag²
-		Real NormL2() const
-		{
-			Real norm{0};
-			for (const auto& elem : _data) {
-				if constexpr (std::is_same_v<Type, Complex> || 
-				              std::is_same_v<Type, std::complex<float>> ||
-				              std::is_same_v<Type, std::complex<long double>>) {
-					norm += std::norm(elem);  // |z|² for complex
-				} else {
-					norm += elem * elem;  // x² for real
-				}
-			}
-			return std::sqrt(norm);
-		}
-		
-		/// @brief L∞ norm (maximum absolute value of any element)
-		Real NormLInf() const
-		{
-			Real norm{0};
-			for (const auto& elem : _data)
-				norm = std::max(norm, static_cast<Real>(Abs(elem)));
-			return norm;
-		}
-
 		///////////////////////               Access operators             //////////////////////
 		
 		/// @brief Primary element access - M(i,j)
@@ -775,11 +679,11 @@ namespace MML
 		/// @brief Primary element access (mutable)
 		inline Type& operator()(int i, int j)       noexcept { return _data[idx(i, j)]; }
 		
-		/// @brief Legacy row access - M[i][j] syntax
-		/// @details Returns pointer to row start for compatibility with mat[i][j] code
-		inline Type* operator[](int i)             noexcept { return &_data[idx(i, 0)]; }
-		/// @brief Legacy row access (const)
-		inline const Type* operator[](int i) const noexcept { return &_data[idx(i, 0)]; }
+		/// @brief Row access - M[i][j] syntax
+		/// @details Returns pointer to row start for idiomatic numerical matrix indexing.
+		inline Type* operator[](int i)             noexcept { return _cols == 0 ? _data.data() : &_data[idx(i, 0)]; }
+		/// @brief Row access (const)
+		inline const Type* operator[](int i) const noexcept { return _cols == 0 ? _data.data() : &_data[idx(i, 0)]; }
 		
 		/// @brief Bounds-checked element access
 		/// @throws MatrixAccessBoundsError if indices out of bounds
@@ -811,21 +715,23 @@ namespace MML
 
 		/// @brief Row iterator proxy for range-based for loops
 		class row_range {
-			Type* _ptr;
-			int _cols;
+			typename std::vector<Type>::iterator _begin;
+			typename std::vector<Type>::iterator _end;
 		public:
-			row_range(Type* ptr, int cols) : _ptr(ptr), _cols(cols) {}
-			Type* begin() { return _ptr; }
-			Type* end()   { return _ptr + _cols; }
+			row_range(typename std::vector<Type>::iterator begin, typename std::vector<Type>::iterator end)
+				: _begin(begin), _end(end) {}
+			auto begin() { return _begin; }
+			auto end()   { return _end; }
 		};
 		
 		class const_row_range {
-			const Type* _ptr;
-			int _cols;
+			typename std::vector<Type>::const_iterator _begin;
+			typename std::vector<Type>::const_iterator _end;
 		public:
-			const_row_range(const Type* ptr, int cols) : _ptr(ptr), _cols(cols) {}
-			const Type* begin() const { return _ptr; }
-			const Type* end() const   { return _ptr + _cols; }
+			const_row_range(typename std::vector<Type>::const_iterator begin, typename std::vector<Type>::const_iterator end)
+				: _begin(begin), _end(end) {}
+			auto begin() const { return _begin; }
+			auto end() const   { return _end; }
 		};
 		
 		/// @brief Get iterable row range for range-based for
@@ -835,7 +741,8 @@ namespace MML
 		{
 			if (i < 0 || i >= _rows)
 				throw MatrixAccessBoundsError("Matrix::row", i, 0, _rows, _cols);
-			return row_range(&_data[idx(i, 0)], _cols);
+			auto first = _data.begin() + static_cast<std::ptrdiff_t>(idx(i, 0));
+			return row_range(first, first + _cols);
 		}
 		
 		/// @brief Get iterable row range (const)
@@ -843,35 +750,60 @@ namespace MML
 		{
 			if (i < 0 || i >= _rows)
 				throw MatrixAccessBoundsError("Matrix::row", i, 0, _rows, _cols);
-			return const_row_range(&_data[idx(i, 0)], _cols);
+			auto first = _data.cbegin() + static_cast<std::ptrdiff_t>(idx(i, 0));
+			return const_row_range(first, first + _cols);
 		}
 
 		/// @brief Column iterator (strided, forward-only)
-		class col_iterator {
-			Type* _ptr;
+		template<bool IsConst>
+		class basic_col_iterator {
+			using data_pointer = std::conditional_t<IsConst, const Type*, Type*>;
+			data_pointer _data = nullptr;
+			int _column;
 			int _stride;
+			int _row;
 		public:
 			using iterator_category = std::forward_iterator_tag;
+			using iterator_concept = std::forward_iterator_tag;
 			using value_type = Type;
 			using difference_type = std::ptrdiff_t;
-			using pointer = Type*;
-			using reference = Type&;
+			using pointer = data_pointer;
+			using reference = std::conditional_t<IsConst, const Type&, Type&>;
 
-			col_iterator(Type* ptr, int stride) : _ptr(ptr), _stride(stride) {}
-			col_iterator& operator++() { _ptr += _stride; return *this; }
-			col_iterator operator++(int) { auto tmp = *this; _ptr += _stride; return tmp; }
-			bool operator==(const col_iterator& other) const { return _ptr == other._ptr; }
-			bool operator!=(const col_iterator& other) const { return _ptr != other._ptr; }
-			Type& operator*() { return *_ptr; }
+			basic_col_iterator() = default;
+			basic_col_iterator(data_pointer data, int column, int stride, int row)
+				: _data(data), _column(column), _stride(stride), _row(row) {}
+			basic_col_iterator& operator++() { ++_row; return *this; }
+			basic_col_iterator operator++(int) { auto tmp = *this; ++_row; return tmp; }
+			bool operator==(const basic_col_iterator& other) const {
+				return _data == other._data && _column == other._column && _stride == other._stride && _row == other._row;
+			}
+			bool operator!=(const basic_col_iterator& other) const { return !(*this == other); }
+			reference operator*() const { return _data[static_cast<size_t>(_row) * _stride + _column]; }
+			pointer operator->() const { return &(**this); }
 		};
+
+		using col_iterator = basic_col_iterator<false>;
+		using const_col_iterator = basic_col_iterator<true>;
 		
 		class col_range {
-			Type* _ptr;
-			int _rows, _stride;
+			Type* _data;
+			int _column, _rows, _stride;
 		public:
-			col_range(Type* ptr, int rows, int stride) : _ptr(ptr), _rows(rows), _stride(stride) {}
-			col_iterator begin() { return col_iterator(_ptr, _stride); }
-			col_iterator end()   { return col_iterator(_ptr + _rows * _stride, _stride); }
+			col_range(Type* data, int column, int rows, int stride)
+				: _data(data), _column(column), _rows(rows), _stride(stride) {}
+			col_iterator begin() { return col_iterator(_data, _column, _stride, 0); }
+			col_iterator end()   { return col_iterator(_data, _column, _stride, _rows); }
+		};
+
+		class const_col_range {
+			const Type* _data;
+			int _column, _rows, _stride;
+		public:
+			const_col_range(const Type* data, int column, int rows, int stride)
+				: _data(data), _column(column), _rows(rows), _stride(stride) {}
+			const_col_iterator begin() const { return const_col_iterator(_data, _column, _stride, 0); }
+			const_col_iterator end() const   { return const_col_iterator(_data, _column, _stride, _rows); }
 		};
 		
 		/// @brief Get iterable column range
@@ -881,7 +813,14 @@ namespace MML
 		{
 			if (j < 0 || j >= _cols)
 				throw MatrixAccessBoundsError("Matrix::col", 0, j, _rows, _cols);
-			return col_range(&_data[j], _rows, _cols);
+			return col_range(_data.data(), j, _rows, _cols);
+		}
+
+		const_col_range col(int j) const
+		{
+			if (j < 0 || j >= _cols)
+				throw MatrixAccessBoundsError("Matrix::col", 0, j, _rows, _cols);
+			return const_col_range(_data.data(), j, _rows, _cols);
 		}
 
 		///////////////////////              Equality operations           //////////////////////

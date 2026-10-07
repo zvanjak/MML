@@ -19,8 +19,8 @@
 #ifndef DOUBLE_PENDULUM_SELF_CONTAINED_H
 #define DOUBLE_PENDULUM_SELF_CONTAINED_H
 
-#include "MMLBase.h"
-#include "interfaces/IODESystem.h"
+#include <mml/MMLBase.h>
+#include <mml/interfaces/IODESystem.h>
 
 namespace Pendulum
 {

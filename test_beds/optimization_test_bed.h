@@ -1,3 +1,20 @@
+///////////////////////////////////////////////////////////////////////////////////////////
+///                         MinimalMathLibrary (MML)                                  ///
+///                                                                                   ///
+///  File:        optimization_test_bed.h                                             ///
+///  Purpose:     Reusable objective functions and known optima for one-dimensional   ///
+///               and multidimensional optimization algorithms.                       ///
+///                                                                                   ///
+///  Used by:     tests/algorithms/optimization/optimization_tests.cpp and            ///
+///               optimization_multidim_tests.cpp.                                   ///
+///                                                                                   ///
+///  Contents:    Scalar objectives, multidimensional objectives, bounds, gradients,  ///
+///               expected minima, difficulty notes, and grouped accessors.           ///
+///                                                                                   ///
+///  Coverage:    Specialized constrained, projected-gradient, simulated-annealing,   ///
+///               and linear-programming tests still contain local cases that may be  ///
+///               promoted into this shared bed.                                     ///
+///////////////////////////////////////////////////////////////////////////////////////////
 #if !defined __MML_OPTIMIZATION_TEST_BED_H
 #define __MML_OPTIMIZATION_TEST_BED_H
 
@@ -10,11 +27,11 @@
 #include "../test_data/optimization_defs.h"
 
 #ifdef MML_USE_SINGLE_HEADER
-#include "MML.h"
+#include <MML.h>
 #else
-#include "MMLBase.h"
-#include "base/Vector/Vector.h"
-#include "interfaces/IFunction.h"
+#include <mml/MMLBase.h>
+#include <mml/base/Vector/Vector.h>
+#include <mml/interfaces/IFunction.h>
 #endif
 
 namespace MML::TestBeds

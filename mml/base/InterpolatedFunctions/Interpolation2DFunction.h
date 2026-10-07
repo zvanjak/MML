@@ -15,7 +15,7 @@
 /// @section interp2d_classes Classes
 /// - BilinearInterp2D - Bilinear interpolation on regular grids
 /// - BicubicSplineInterp2D - Bicubic spline interpolation on regular grids
-/// @see InterpolatedRealFunction.h for 1D interpolation
+/// @see InterpolatedFunctionSpline.h for spline interpolation
 /// @see InterpolationParametricCurve.h for parametric curve interpolation
 /// @ingroup Interpolation
 
@@ -24,13 +24,13 @@
 
 #include <vector>
 
-#include "MMLBase.h"
-#include "MMLExceptions.h"
+#include <mml/MMLBase.h>
+#include <mml/MMLExceptions.h>
 
-#include "base/Vector/Vector.h"
-#include "base/Matrix/Matrix.h"
+#include <mml/base/Vector/Vector.h>
+#include <mml/base/Matrix/Matrix.h>
 
-#include "base/InterpolatedFunctions/InterpolatedRealFunction.h"
+#include <mml/base/InterpolatedFunctions/InterpolatedFunctionSpline.h>
 
 namespace MML {
 
@@ -168,8 +168,7 @@ namespace MML {
 	/// **Algorithm:** Constructs 1D cubic splines along each row (fixed x1),
 	/// then interpolates along x2 first and along x1 second.
 	/// **Continuity:** C¹ (continuous first derivatives)
-	/// @note Uses dynamically allocated SplineInterpRealFunc objects internally.
-	/// Copy and assignment are disabled to prevent double-free.
+	/// Row splines are value-owned, so copy and move operations are safe.
 	/// @see BilinearInterp2D for faster but rougher alternative
 	/// @see SplineInterpRealFunc for 1D cubic spline interpolation
 	/// @ingroup Interpolation
@@ -179,7 +178,7 @@ namespace MML {
 		int _m, _n;										///< Grid dimensions
 		Vector<Real> _x1, _x2;							///< Grid coordinates
 		Matrix<Real> _z;								///< Local copy of data
-		std::vector<SplineInterpRealFunc*> _rowSplines; ///< Splines along x2 for each row
+		std::vector<SplineInterpRealFunc> _rowSplines; ///< Splines along x2 for each row
 
 	public:
 		/// @brief Construct a bicubic spline interpolation object.
@@ -193,28 +192,18 @@ namespace MML {
 			, _n(x2v.size())
 			, _x1(x1v)
 			, _x2(x2v)
-			, _z(zm)
-			, _rowSplines(_m) {
+			, _z(zm) {
 			if (zm.rows() != _m || zm.cols() != _n)
 				throw RealFuncInterpInitError("BicubicSplineInterp2D: matrix dimensions don't match grid");
 
-			// Create a spline along x2 for each row (fixed x1[i])
+			_rowSplines.reserve(_m);
 			for (int i = 0; i < _m; i++) {
 				Vector<Real> row(_n);
 				for (int j = 0; j < _n; j++)
 					row[j] = _z(i, j);
-				_rowSplines[i] = new SplineInterpRealFunc(_x2, row);
+				_rowSplines.emplace_back(_x2, row);
 			}
 		}
-
-		~BicubicSplineInterp2D() {
-			for (int i = 0; i < _m; i++)
-				delete _rowSplines[i];
-		}
-
-		// Disable copy to avoid double-free
-		BicubicSplineInterp2D(const BicubicSplineInterp2D&) = delete;
-		BicubicSplineInterp2D& operator=(const BicubicSplineInterp2D&) = delete;
 
 		/// @brief Evaluate the bicubic spline interpolation at (x1, x2).
 		/// @param x1 First coordinate
@@ -225,7 +214,7 @@ namespace MML {
 			// First interpolate along x2 for each x1[i] to get values at fixed x2
 			Vector<Real> yv(_m);
 			for (int i = 0; i < _m; i++)
-				yv[i] = (*_rowSplines[i])(x2);
+				yv[i] = _rowSplines[i](x2);
 
 			// Then interpolate along x1
 			SplineInterpRealFunc colSpline(_x1, yv);
@@ -243,8 +232,8 @@ namespace MML {
 			// Get values and x2-derivatives along rows
 			Vector<Real> yv(_m), dyv_dx2(_m);
 			for (int i = 0; i < _m; i++) {
-				yv[i] = (*_rowSplines[i])(x2);
-				dyv_dx2[i] = _rowSplines[i]->Derivative(x2);
+				yv[i] = _rowSplines[i](x2);
+				dyv_dx2[i] = _rowSplines[i].Derivative(x2);
 			}
 
 			// Interpolate values along x1

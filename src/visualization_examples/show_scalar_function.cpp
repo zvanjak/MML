@@ -8,12 +8,12 @@
  */
 
 #ifdef MML_USE_SINGLE_HEADER
-#include "MML.h"
+#include <MML.h>
 #else
-#include "MMLBase.h"
-#include "base/Vector/VectorN.h"
-#include "core/Fields.h"
-#include "tools/Visualizer.h"
+#include <mml/MMLBase.h>
+#include <mml/base/Vector/VectorN.h>
+#include <mml/core/Fields/Fields.h>
+#include <mml/tools/Visualizer.h>
 #endif
 
 using namespace MML;
@@ -24,7 +24,7 @@ void Show_Scalar_Function_Examples()
 
     // Example 1: Simple paraboloid
     std::cout << "1. Paraboloid: f(x,y) = x^2 + y^2\n";
-    ScalarFunction<2> paraboloid{[](const VectorN<Real, 2>& v) {
+    ScalarFunction<2> paraboloid{[](const VectorN<Real, 2>& v) -> Real {
         return v[0]*v[0] + v[1]*v[1];
     }};
     Visualizer::VisualizeScalarFunc2DCartesian(paraboloid, "Paraboloid z = x^2 + y^2",
@@ -33,7 +33,7 @@ void Show_Scalar_Function_Examples()
 
     // Example 2: Saddle surface (hyperbolic paraboloid)
     std::cout << "2. Saddle: f(x,y) = x^2 - y^2\n";
-    ScalarFunction<2> saddle{[](const VectorN<Real, 2>& v) {
+    ScalarFunction<2> saddle{[](const VectorN<Real, 2>& v) -> Real {
         return v[0]*v[0] - v[1]*v[1];
     }};
     Visualizer::VisualizeScalarFunc2DCartesian(saddle, "Saddle z = x^2 - y^2",
@@ -42,7 +42,7 @@ void Show_Scalar_Function_Examples()
 
     // Example 3: Monkey saddle
     std::cout << "3. Monkey Saddle: f(x,y) = x^3 - 3xy^2\n";
-    ScalarFunction<2> monkeySaddle{[](const VectorN<Real, 2>& v) {
+    ScalarFunction<2> monkeySaddle{[](const VectorN<Real, 2>& v) -> Real {
         return v[0]*v[0]*v[0] - 3*v[0]*v[1]*v[1];
     }};
     Visualizer::VisualizeScalarFunc2DCartesian(monkeySaddle, "Monkey Saddle z = x^3 - 3xy^2",
@@ -51,7 +51,7 @@ void Show_Scalar_Function_Examples()
 
     // Example 4: Ripple surface
     std::cout << "4. Ripple: f(x,y) = sin(sqrt(x^2 + y^2))\n";
-    ScalarFunction<2> ripple{[](const VectorN<Real, 2>& v) {
+    ScalarFunction<2> ripple{[](const VectorN<Real, 2>& v) -> Real {
         Real r = std::sqrt(v[0]*v[0] + v[1]*v[1]);
         if (r < 1e-10) return Real(1.0);  // sinc(0) = 1
         return 50.0 * std::sin(r) / r;
@@ -62,7 +62,7 @@ void Show_Scalar_Function_Examples()
 
     // Example 5: Gaussian bump
     std::cout << "5. Gaussian: f(x,y) = exp(-(x^2 + y^2)/10)\n";
-    ScalarFunction<2> gaussian{[](const VectorN<Real, 2>& v) {
+    ScalarFunction<2> gaussian{[](const VectorN<Real, 2>& v) -> Real {
         return 50.0 * std::exp(-(v[0]*v[0] + v[1]*v[1]) / 10.0);
     }};
     Visualizer::VisualizeScalarFunc2DCartesian(gaussian, "Gaussian Bump",
@@ -71,7 +71,7 @@ void Show_Scalar_Function_Examples()
 
     // Example 6: Two-bump surface
     std::cout << "6. Two Bumps: sum of two Gaussians\n";
-    ScalarFunction<2> twoBumps{[](const VectorN<Real, 2>& v) {
+    ScalarFunction<2> twoBumps{[](const VectorN<Real, 2>& v) -> Real {
         Real bump1 = std::exp(-((v[0]-2)*(v[0]-2) + v[1]*v[1]) / 2.0);
         Real bump2 = std::exp(-((v[0]+2)*(v[0]+2) + v[1]*v[1]) / 2.0) * 0.8;
         return 50.0 * (bump1 + bump2);
@@ -82,7 +82,7 @@ void Show_Scalar_Function_Examples()
 
     // Example 7: Egg crate surface
     std::cout << "7. Egg Crate: f(x,y) = sin(x)*sin(y)\n";
-    ScalarFunction<2> eggCrate{[](const VectorN<Real, 2>& v) {
+    ScalarFunction<2> eggCrate{[](const VectorN<Real, 2>& v) -> Real {
         return 20.0 * std::sin(v[0]) * std::sin(v[1]);
     }};
     Visualizer::VisualizeScalarFunc2DCartesian(eggCrate, "Egg Crate sin(x)*sin(y)",

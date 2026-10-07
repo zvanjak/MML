@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# Script to run MML_RealFunctionVisualizer_Qt with all test data files
+# Script to run MML_RealFunctionVisualizer with all test data files
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-VISUALIZER="$SCRIPT_DIR/MML_RealFunctionVisualizer_Qt"
+VISUALIZER="$SCRIPT_DIR/MML_RealFunctionVisualizer"
 DATA_DIR="$SCRIPT_DIR/../../../data/RealFunction/Basic"
 
 if [ ! -f "$VISUALIZER" ]; then
@@ -16,7 +16,7 @@ if [ ! -d "$DATA_DIR" ]; then
     exit 1
 fi
 
-echo "Running MML_RealFunctionVisualizer_Qt with test data files..."
+echo "Running MML_RealFunctionVisualizer with test data files..."
 echo "Press Ctrl+C to stop"
 echo ""
 

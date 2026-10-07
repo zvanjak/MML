@@ -12,10 +12,11 @@
 #if !defined MML_ODE_STEPPERS_H
 #define MML_ODE_STEPPERS_H
 
-#include "mml/MMLBase.h"
-#include "mml/core/AlgorithmTypes.h"
-#include "mml/interfaces/IODESystem.h"
+#include <mml/MMLBase.h>
+#include <mml/base/AlgorithmTypes.h>
+#include <mml/interfaces/IODESystem.h>
 #include "ODERKCoefficients.h"
+#include "ODEStepperInfrastructure.h"
 
 namespace MML {
 
@@ -95,76 +96,34 @@ namespace MML {
 	/// Features:
 	/// - 5th order accurate solution with 4th order error estimate
 	/// - FSAL: First Same As Last optimization (6 evals per step instead of 7)
-	/// - 4th order dense output using Hermite interpolation
+	/// - 4th order dense output using Shampine's stage-based quartic extension
 	/// - PI step size control for smooth adaptation
 	class DormandPrince5_Stepper : public IAdaptiveStepper {
 	private:
 		const IODESystem& _sys;
 		int _n; // System dimension
+		using DP = RKCoeff::DormandPrince5;
+		using StageEvaluator = ExplicitRKStageEvaluator<DP>;
 
-		// Stage vectors (stored for dense output)
-		Vector<Real> _k1, _k2, _k3, _k4, _k5, _k6, _k7;
-		Vector<Real> _xtemp; // Temporary for stage computation
-
-		// Dense output data
-		Real _tOld;			// Start time of last step
-		Real _hDone;		// Size of last accepted step
-		Vector<Real> _xOld; // State at start of last step
-		bool _stepReady;	// Is dense output data valid?
+		std::vector<Vector<Real>> _stages;
+		Vector<Real> _workspace;
+		Vector<Real> _xNew;
+		Vector<Real> _error;
+		StepSizeController _controller;
+		DormandPrince5Interpolator _interpolator;
 
 		// FSAL state
-		bool _haveFSAL; // Do we have a valid k7 to reuse?
-
-		// Butcher tableau coefficients from centralized header
-		using DP = RKCoeff::DormandPrince5;
-		// Time nodes (c vector)
-		static constexpr Real a2 = DP::c2;
-		static constexpr Real a3 = DP::c3;
-		static constexpr Real a4 = DP::c4;
-		static constexpr Real a5 = DP::c5;
-		static constexpr Real a6 = DP::c6;
-		static constexpr Real a7 = DP::c7;
-		// Stage coefficients (a matrix)
-		static constexpr Real b21 = DP::a21;
-		static constexpr Real b31 = DP::a31, b32 = DP::a32;
-		static constexpr Real b41 = DP::a41, b42 = DP::a42, b43 = DP::a43;
-		static constexpr Real b51 = DP::a51, b52 = DP::a52, b53 = DP::a53, b54 = DP::a54;
-		static constexpr Real b61 = DP::a61, b62 = DP::a62, b63 = DP::a63, b64 = DP::a64, b65 = DP::a65;
-		static constexpr Real b71 = DP::b1, b73 = DP::b3, b74 = DP::b4, b75 = DP::b5, b76 = DP::b6;
-		// Error coefficients
-		static constexpr Real e1 = DP::e1;
-		static constexpr Real e3 = DP::e3;
-		static constexpr Real e4 = DP::e4;
-		static constexpr Real e5 = DP::e5;
-		static constexpr Real e6 = DP::e6;
-		static constexpr Real e7 = DP::e7;
-
-		// Step size control
-		static constexpr Real SAFETY = 0.9;
-		static constexpr Real MIN_FACTOR = 0.2;
-		static constexpr Real MAX_FACTOR = 10.0;
-		static constexpr Real BETA = 0.04;	// For PI controller
-		static constexpr Real ALPHA = 0.17; // For PI controller
-
-		Real _errOld = 1.0; // Error from previous step (for PI controller)
+		bool _haveFSAL;
 
 	public:
 		explicit DormandPrince5_Stepper(const IODESystem& sys)
 			: _sys(sys)
 			, _n(sys.getDim())
-			, _tOld(0)
-			, _hDone(0)
-			, _stepReady(false)
 			, _haveFSAL(false) {
-			_k1.Resize(_n);
-			_k2.Resize(_n);
-			_k3.Resize(_n);
-			_k4.Resize(_n);
-			_k5.Resize(_n);
-			_k6.Resize(_n);
-			_k7.Resize(_n);
-			_xtemp.Resize(_n);
-			_xOld.Resize(_n);
+			_stages.resize(DP::stages, Vector<Real>(_n));
+			_workspace.Resize(_n);
+			_xNew.Resize(_n);
+			_error.Resize(_n);
 		}
 
 		StepResult doStep(Real t, Vector<Real>& x, Vector<Real>& dxdt, Real htry, Real eps) override {
@@ -173,62 +132,22 @@ namespace MML {
 			result.funcEvals = 0;
 
 			Real h = htry;
-			Vector<Real> xNew(_n);
-
 			// Main step loop (retry with smaller h if rejected)
 			while (true) {
-				// Use FSAL if available
-				if (_haveFSAL) {
-					_k1 = _k7; // Reuse last stage
-				} else {
-					_k1 = dxdt;
+				// FSAL reuses the previous accepted step's final stage as this step's k1.
+				const Vector<Real>& initialDerivative = _haveFSAL ? _stages.back() : dxdt;
+				if (!_haveFSAL)
 					result.funcEvals++;
-				}
-
-				// Stage 2
-				for (int i = 0; i < _n; i++) {
-					_xtemp[i] = x[i] + h * b21 * _k1[i];
-				}
-				_sys.derivs(t + a2 * h, _xtemp, _k2);
-
-				// Stage 3
-				for (int i = 0; i < _n; i++) {
-					_xtemp[i] = x[i] + h * (b31 * _k1[i] + b32 * _k2[i]);
-				}
-				_sys.derivs(t + a3 * h, _xtemp, _k3);
-
-				// Stage 4
-				for (int i = 0; i < _n; i++) {
-					_xtemp[i] = x[i] + h * (b41 * _k1[i] + b42 * _k2[i] + b43 * _k3[i]);
-				}
-				_sys.derivs(t + a4 * h, _xtemp, _k4);
-
-				// Stage 5
-				for (int i = 0; i < _n; i++) {
-					_xtemp[i] = x[i] + h * (b51 * _k1[i] + b52 * _k2[i] + b53 * _k3[i] + b54 * _k4[i]);
-				}
-				_sys.derivs(t + a5 * h, _xtemp, _k5);
-
-				// Stage 6
-				for (int i = 0; i < _n; i++) {
-					_xtemp[i] = x[i] + h * (b61 * _k1[i] + b62 * _k2[i] + b63 * _k3[i] + b64 * _k4[i] + b65 * _k5[i]);
-				}
-				_sys.derivs(t + a6 * h, _xtemp, _k6);
-
-				// Stage 7 (5th order solution, also FSAL)
-				for (int i = 0; i < _n; i++) {
-					xNew[i] = x[i] + h * (b71 * _k1[i] + b73 * _k3[i] + b74 * _k4[i] + b75 * _k5[i] + b76 * _k6[i]);
-				}
-				_sys.derivs(t + h, xNew, _k7);
-
-				result.funcEvals += 6;
+				StageEvaluator::evaluate(_sys, t, x, h, initialDerivative, _stages, _workspace);
+				StageEvaluator::combineSolution(x, h, _stages, _xNew);
+				StageEvaluator::combineError(h, _stages, _error);
+				result.funcEvals += DP::stages - 1;
 
 				// Error estimation
 				Real errMax = 0.0;
 				for (int i = 0; i < _n; i++) {
-					Real err = h * (e1 * _k1[i] + e3 * _k3[i] + e4 * _k4[i] + e5 * _k5[i] + e6 * _k6[i] + e7 * _k7[i]);
-					Real scale = std::abs(x[i]) + std::abs(h * _k1[i]) + Precision::DivisionSafetyThreshold; // Avoid division by zero
-					errMax = std::max(errMax, std::abs(err) / scale);
+					Real scale = std::abs(x[i]) + std::abs(h * _stages[0][i]) + Precision::DivisionSafetyThreshold;
+					errMax = std::max(errMax, std::abs(_error[i]) / scale);
 				}
 				errMax /= eps;
 				result.errMax = errMax;
@@ -238,30 +157,15 @@ namespace MML {
 					result.accepted = true;
 					result.hDone = h;
 
-					// Store for dense output
-					_tOld = t;
-					_hDone = h;
-					_xOld = x;
-					_stepReady = true;
-
-					// Update state
-					x = xNew;
-					dxdt = _k7;
+					_interpolator.setStep(t, h, x, _xNew, _stages);
+					x = _xNew;
+					dxdt = _stages.back();
 					_haveFSAL = true;
-
-					// PI controller for next step
-					Real factor = SAFETY * std::pow(errMax, -ALPHA) * std::pow(_errOld, BETA);
-					factor = std::max(MIN_FACTOR, std::min(MAX_FACTOR, factor));
-					result.hNext = h * factor;
-
-					_errOld = std::max<Real>(errMax, Real(1e-4)); // Prevent extreme growth
+					result.hNext = _controller.acceptedStep(h, errMax);
 					break;
 				}
 
-				// Step rejected - reduce h and try again
-				Real factor = SAFETY * std::pow(errMax, -ALPHA);
-				factor = std::max<Real>(MIN_FACTOR, factor);
-				h *= factor;
+				h = _controller.rejectedStep(h, errMax);
 				_haveFSAL = false;
 
 				if (std::abs(h) < Constants::Eps) {
@@ -273,35 +177,12 @@ namespace MML {
 		}
 
 		Vector<Real> interpolate(Real t) const override {
-			if (!_stepReady) {
-				throw ODESolverError("No valid step data for interpolation");
-			}
-
-			// 4th order Hermite interpolation
-			Real theta = (t - _tOld) / _hDone;
-			Real theta2 = theta * theta;
-			Real theta3 = theta2 * theta;
-
-			// Hermite basis polynomials
-			Real h00 = 2 * theta3 - 3 * theta2 + 1;		  // 1 - 3t² + 2t³
-			Real h10 = theta3 - 2 * theta2 + theta;		  // t - 2t² + t³
-			Real h01 = -2 * theta3 + 3 * theta2;		  // 3t² - 2t³
-			Real h11 = theta3 - theta2;					  // t³ - t²
-
-			Vector<Real> result(_n);
-			for (int i = 0; i < _n; i++) {
-				Real xEnd = _xOld[i] + _hDone * (b71 * _k1[i] + b73 * _k3[i] + b74 * _k4[i] + b75 * _k5[i] + b76 * _k6[i]);
-				Real f0 = _hDone * _k1[i];
-				Real f1 = _hDone * _k7[i];
-				result[i] = h00 * _xOld[i] + h10 * f0 + h01 * xEnd + h11 * f1;
-			}
-
-			return result;
+			return _interpolator.interpolate(t);
 		}
 
 		bool isFSAL() const override { return true; }
 
-		const Vector<Real>& getFinalDeriv() const override { return _k7; }
+		const Vector<Real>& getFinalDeriv() const override { return _stages.back(); }
 
 		int stageCount() const override { return 7; }
 
@@ -309,8 +190,8 @@ namespace MML {
 
 		void resetFSAL() override {
 			_haveFSAL = false;
-			_stepReady = false;
-			_errOld = 1.0;
+			_controller.reset();
+			_interpolator.reset();
 		}
 	};
 
@@ -331,66 +212,25 @@ namespace MML {
 	private:
 		const IODESystem& _sys;
 		int _n;
-
-		// Stage vectors
-		Vector<Real> _k1, _k2, _k3, _k4, _k5, _k6;
-		Vector<Real> _xtemp;
-		Vector<Real> _xNew;
-
-		// Dense output data
-		Real _tOld;
-		Real _hDone;
-		Vector<Real> _xOld;
-		Vector<Real> _dxNew; // Post-step derivative for Hermite interpolation
-		bool _stepReady;
-
-		// Butcher tableau from centralized header
 		using CK = RKCoeff::CashKarp5;
-		// Time nodes (c vector)
-		static constexpr Real a2 = CK::c2;
-		static constexpr Real a3 = CK::c3;
-		static constexpr Real a4 = CK::c4;
-		static constexpr Real a5 = CK::c5;
-		static constexpr Real a6 = CK::c6;
-		// Stage coefficients (a matrix)
-		static constexpr Real b21 = CK::a21;
-		static constexpr Real b31 = CK::a31, b32 = CK::a32;
-		static constexpr Real b41 = CK::a41, b42 = CK::a42, b43 = CK::a43;
-		static constexpr Real b51 = CK::a51, b52 = CK::a52, b53 = CK::a53, b54 = CK::a54;
-		static constexpr Real b61 = CK::a61, b62 = CK::a62, b63 = CK::a63, b64 = CK::a64, b65 = CK::a65;
-		// 5th order coefficients (b weights)
-		static constexpr Real c1 = CK::b1;
-		static constexpr Real c3 = CK::b3;
-		static constexpr Real c4 = CK::b4;
-		static constexpr Real c6 = CK::b6;
-		// Error coefficients
-		static constexpr Real dc1 = CK::e1;
-		static constexpr Real dc3 = CK::e3;
-		static constexpr Real dc4 = CK::e4;
-		static constexpr Real dc5 = CK::e5;
-		static constexpr Real dc6 = CK::e6;
+		using StageEvaluator = ExplicitRKStageEvaluator<CK>;
 
-		static constexpr Real SAFETY = 0.9;
-		static constexpr Real PGROW = -0.2;
-		static constexpr Real PSHRINK = -0.25;
-		static constexpr Real ERRCON = 1.89e-4; // (5/SAFETY)^(1/PGROW)
+		std::vector<Vector<Real>> _stages;
+		Vector<Real> _workspace;
+		Vector<Real> _xNew;
+		Vector<Real> _error;
+		Vector<Real> _dxNew;
+		StepSizeController _controller;
+		HermiteInterpolator _interpolator;
 
 	public:
 		explicit CashKarp_Stepper(const IODESystem& sys)
 			: _sys(sys)
-			, _n(sys.getDim())
-			, _tOld(0)
-			, _hDone(0)
-			, _stepReady(false) {
-			_k1.Resize(_n);
-			_k2.Resize(_n);
-			_k3.Resize(_n);
-			_k4.Resize(_n);
-			_k5.Resize(_n);
-			_k6.Resize(_n);
-			_xtemp.Resize(_n);
+			, _n(sys.getDim()) {
+			_stages.resize(CK::stages, Vector<Real>(_n));
+			_workspace.Resize(_n);
 			_xNew.Resize(_n);
-			_xOld.Resize(_n);
+			_error.Resize(_n);
 			_dxNew.Resize(_n);
 		}
 
@@ -401,41 +241,16 @@ namespace MML {
 			Real h = htry;
 
 			while (true) {
-				// Compute all stages
-				_k1 = dxdt;
-
-				for (int i = 0; i < _n; i++)
-					_xtemp[i] = x[i] + h * b21 * _k1[i];
-				_sys.derivs(t + a2 * h, _xtemp, _k2);
-
-				for (int i = 0; i < _n; i++)
-					_xtemp[i] = x[i] + h * (b31 * _k1[i] + b32 * _k2[i]);
-				_sys.derivs(t + a3 * h, _xtemp, _k3);
-
-				for (int i = 0; i < _n; i++)
-					_xtemp[i] = x[i] + h * (b41 * _k1[i] + b42 * _k2[i] + b43 * _k3[i]);
-				_sys.derivs(t + a4 * h, _xtemp, _k4);
-
-				for (int i = 0; i < _n; i++)
-					_xtemp[i] = x[i] + h * (b51 * _k1[i] + b52 * _k2[i] + b53 * _k3[i] + b54 * _k4[i]);
-				_sys.derivs(t + a5 * h, _xtemp, _k5);
-
-				for (int i = 0; i < _n; i++)
-					_xtemp[i] = x[i] + h * (b61 * _k1[i] + b62 * _k2[i] + b63 * _k3[i] + b64 * _k4[i] + b65 * _k5[i]);
-				_sys.derivs(t + a6 * h, _xtemp, _k6);
-
-				result.funcEvals = 6;
-
-				// 5th order solution
-				for (int i = 0; i < _n; i++)
-					_xNew[i] = x[i] + h * (c1 * _k1[i] + c3 * _k3[i] + c4 * _k4[i] + c6 * _k6[i]);
+				StageEvaluator::evaluate(_sys, t, x, h, dxdt, _stages, _workspace);
+				StageEvaluator::combineSolution(x, h, _stages, _xNew);
+				StageEvaluator::combineError(h, _stages, _error);
+				result.funcEvals += CK::stages;
 
 				// Error estimate
 				Real errMax = 0.0;
 				for (int i = 0; i < _n; i++) {
-					Real err = h * (dc1 * _k1[i] + dc3 * _k3[i] + dc4 * _k4[i] + dc5 * _k5[i] + dc6 * _k6[i]);
 					Real scale = std::abs(x[i]) + std::abs(h * dxdt[i]) + Precision::DivisionSafetyThreshold;
-					errMax = std::max(errMax, std::abs(err) / scale);
+					errMax = std::max(errMax, std::abs(_error[i]) / scale);
 				}
 				errMax /= eps;
 				result.errMax = errMax;
@@ -444,30 +259,18 @@ namespace MML {
 					result.accepted = true;
 					result.hDone = h;
 
-					// Store for dense output
-					_tOld = t;
-					_hDone = h;
-					_xOld = x;
-					_stepReady = true;
-
-					// Update state
-					x = _xNew;
-					_sys.derivs(t + h, x, dxdt);
-					_dxNew = dxdt; // Store for interpolation
+					// Cash-Karp is not FSAL; evaluate the endpoint derivative for Hermite output.
+					_sys.derivs(t + h, _xNew, _dxNew);
 					result.funcEvals++;
-
-					// Next step size
-					if (errMax > ERRCON)
-						result.hNext = SAFETY * h * std::pow(errMax, PGROW);
-					else
-						result.hNext = Real(5.0) * h;
+					_interpolator.setStep(t, h, x, _xNew, _stages[0], _dxNew);
+					x = _xNew;
+					dxdt = _dxNew;
+					result.hNext = _controller.acceptedStep(h, errMax);
 
 					break;
 				}
 
-				// Reduce step size
-				Real htemp = SAFETY * h * std::pow(errMax, PSHRINK);
-				h = (h >= 0) ? std::max<Real>(htemp, Real(0.1) * h) : std::min<Real>(htemp, Real(0.1) * h);
+				h = _controller.rejectedStep(h, errMax);
 
 				if (std::abs(h) < Constants::Eps)
 					throw ODESolverError("Step size underflow in CashKarp_Stepper");
@@ -477,27 +280,7 @@ namespace MML {
 		}
 
 		Vector<Real> interpolate(Real t) const override {
-			if (!_stepReady)
-				throw ODESolverError("No valid step data for interpolation");
-
-			// Simple Hermite interpolation
-			Real theta = (t - _tOld) / _hDone;
-			Real theta2 = theta * theta;
-			Real theta3 = theta2 * theta;
-
-			Real h00 = 2 * theta3 - 3 * theta2 + 1;
-			Real h10 = theta3 - 2 * theta2 + theta;
-			Real h01 = -2 * theta3 + 3 * theta2;
-			Real h11 = theta3 - theta2;
-
-			Vector<Real> result(_n);
-			for (int i = 0; i < _n; i++) {
-				Real f0 = _hDone * _k1[i];
-				Real f1 = _hDone * _dxNew[i];
-				result[i] = h00 * _xOld[i] + h10 * f0 + h01 * _xNew[i] + h11 * f1;
-			}
-
-			return result;
+			return _interpolator.interpolate(t);
 		}
 
 		bool isFSAL() const override { return false; }
@@ -511,78 +294,54 @@ namespace MML {
 		int order() const override { return 5; }
 
 		void resetFSAL() override {
-			_stepReady = false;
+			_controller.reset();
+			_interpolator.reset();
 		}
 	};
 
 	//===================================================================================
 	//                         DormandPrince8_Stepper
 	//===================================================================================
-	/// @brief Dormand-Prince 8(7) high-order adaptive stepper
+	/// @brief DOP853 8(5,3) high-order adaptive stepper
 	///
 	/// High-order method for problems requiring very high accuracy.
 	/// Features:
-	/// - 8th order accurate solution with 7th order error estimate
-	/// - 13 stages (FSAL optimization applies)
+	/// - 8th order solution with blended 5th and 3rd order error estimates
+	/// - 12 propagation evaluations and one endpoint derivative per attempt
+	/// - 7th order dense output using three interpolation-only stages
 	/// - Excellent for smooth problems, astronomical trajectories
 	/// - Higher cost per step but much larger accurate step sizes
 	class DormandPrince8_Stepper : public IAdaptiveStepper {
 	private:
 		const IODESystem& _sys;
 		int _n;
-
-		static constexpr int NSTAGES = 13;
-		std::vector<Vector<Real>> _k; // Stage vectors
-		Vector<Real> _xNew;
-
-		// Dense output data
-		Real _tOld;
-		Real _hDone;
-		Vector<Real> _xOld;
-		bool _stepReady;
-		bool _haveFSAL;
-		Real _errOld;
-
-		// Dormand-Prince 8(7) coefficients from centralized header
 		using DP8 = RKCoeff::DormandPrince8;
-		// Time nodes
-		static constexpr auto& c = DP8::c;
-		// Stage coefficients (a matrix, row-by-row)
-		static constexpr auto& a2 = DP8::a2;
-		static constexpr auto& a3 = DP8::a3;
-		static constexpr auto& a4 = DP8::a4;
-		static constexpr auto& a5 = DP8::a5;
-		static constexpr auto& a6 = DP8::a6;
-		static constexpr auto& a7 = DP8::a7;
-		static constexpr auto& a8 = DP8::a8;
-		static constexpr auto& a9 = DP8::a9;
-		static constexpr auto& a10 = DP8::a10;
-		static constexpr auto& a11 = DP8::a11;
-		static constexpr auto& a12 = DP8::a12;
-		static constexpr auto& a13 = DP8::a13;
-		// Solution weights
-		static constexpr auto& b8 = DP8::b8;
-		static constexpr auto& b7 = DP8::b7;
+		using StageEvaluator = ExplicitRKStageEvaluator<DP8>;
 
-		static constexpr Real SAFETY = 0.9;
-		static constexpr Real MIN_FACTOR = 0.2;
-		static constexpr Real MAX_FACTOR = 6.0;
-		static constexpr Real ALPHA = 1.0 / 8.0;
+		std::vector<Vector<Real>> _k;
+		Vector<Real> _workspace;
+		Vector<Real> _xNew;
+		StepSizeController _controller;
+		DormandPrince8Interpolator _interpolator;
+
+		static StepSizeControllerConfig controllerConfig() {
+			// Retain DP8's conservative eighth-order exponent and historical growth cap.
+			StepSizeControllerConfig config;
+			config.alpha = Real(1.0 / 8.0);
+			config.maxFactor = Real(6.0);
+			return config;
+		}
 
 	public:
 		explicit DormandPrince8_Stepper(const IODESystem& sys)
 			: _sys(sys)
 			, _n(sys.getDim())
-			, _tOld(0)
-			, _hDone(0)
-			, _stepReady(false)
-			, _haveFSAL(false)
-			, _errOld(1.0) {
-			_k.resize(NSTAGES);
-			for (int i = 0; i < NSTAGES; ++i)
+			, _controller(controllerConfig()) {
+			_k.resize(DP8::extended_stages);
+			for (int i = 0; i < DP8::extended_stages; ++i)
 				_k[i].Resize(_n);
+			_workspace.Resize(_n);
 			_xNew.Resize(_n);
-			_xOld.Resize(_n);
 		}
 
 		StepResult doStep(Real t, Vector<Real>& x, Vector<Real>& dxdt, Real htry, Real eps) override {
@@ -593,124 +352,43 @@ namespace MML {
 			Real h = htry;
 
 			while (true) {
-				// Use FSAL if available
-				if (_haveFSAL) {
-					_k[0] = _k[12];
-				} else {
-					_k[0] = dxdt;
-				}
+				StageEvaluator::evaluate(_sys, t, x, h, dxdt, _k, _workspace);
+				StageEvaluator::combineSolution(x, h, _k, _xNew);
+				_sys.derivs(t + h, _xNew, _k[12]);
+				result.funcEvals += DP8::stages;
 
-				// Stage 2
-				for (int i = 0; i < _n; i++)
-					_xNew[i] = x[i] + h * a2[0] * _k[0][i];
-				_sys.derivs(t + c[1] * h, _xNew, _k[1]);
-
-				// Stage 3
-				for (int i = 0; i < _n; i++)
-					_xNew[i] = x[i] + h * (a3[0] * _k[0][i] + a3[1] * _k[1][i]);
-				_sys.derivs(t + c[2] * h, _xNew, _k[2]);
-
-				// Stage 4
-				for (int i = 0; i < _n; i++)
-					_xNew[i] = x[i] + h * (a4[0] * _k[0][i] + a4[2] * _k[2][i]);
-				_sys.derivs(t + c[3] * h, _xNew, _k[3]);
-
-				// Stage 5
-				for (int i = 0; i < _n; i++)
-					_xNew[i] = x[i] + h * (a5[0] * _k[0][i] + a5[2] * _k[2][i] + a5[3] * _k[3][i]);
-				_sys.derivs(t + c[4] * h, _xNew, _k[4]);
-
-				// Stage 6
-				for (int i = 0; i < _n; i++)
-					_xNew[i] = x[i] + h * (a6[0] * _k[0][i] + a6[3] * _k[3][i] + a6[4] * _k[4][i]);
-				_sys.derivs(t + c[5] * h, _xNew, _k[5]);
-
-				// Stage 7
-				for (int i = 0; i < _n; i++)
-					_xNew[i] = x[i] + h * (a7[0] * _k[0][i] + a7[3] * _k[3][i] + a7[4] * _k[4][i] + a7[5] * _k[5][i]);
-				_sys.derivs(t + c[6] * h, _xNew, _k[6]);
-
-				// Stage 8
-				for (int i = 0; i < _n; i++)
-					_xNew[i] = x[i] + h * (a8[0] * _k[0][i] + a8[3] * _k[3][i] + a8[4] * _k[4][i] + a8[5] * _k[5][i] + a8[6] * _k[6][i]);
-				_sys.derivs(t + c[7] * h, _xNew, _k[7]);
-
-				// Stage 9
-				for (int i = 0; i < _n; i++)
-					_xNew[i] = x[i] + h * (a9[0] * _k[0][i] + a9[3] * _k[3][i] + a9[4] * _k[4][i] + a9[5] * _k[5][i] + a9[6] * _k[6][i] + a9[7] * _k[7][i]);
-				_sys.derivs(t + c[8] * h, _xNew, _k[8]);
-
-				// Stage 10
-				for (int i = 0; i < _n; i++)
-					_xNew[i] = x[i] + h * (a10[0] * _k[0][i] + a10[3] * _k[3][i] + a10[4] * _k[4][i] + a10[5] * _k[5][i] + a10[6] * _k[6][i] + a10[7] * _k[7][i] + a10[8] * _k[8][i]);
-				_sys.derivs(t + c[9] * h, _xNew, _k[9]);
-
-				// Stage 11
-				for (int i = 0; i < _n; i++)
-					_xNew[i] = x[i] + h * (a11[0] * _k[0][i] + a11[3] * _k[3][i] + a11[4] * _k[4][i] + a11[5] * _k[5][i] + a11[6] * _k[6][i] + a11[7] * _k[7][i] + a11[8] * _k[8][i] + a11[9] * _k[9][i]);
-				_sys.derivs(t + c[10] * h, _xNew, _k[10]);
-
-				// Stage 12
-				for (int i = 0; i < _n; i++)
-					_xNew[i] = x[i] + h * (a12[0] * _k[0][i] + a12[3] * _k[3][i] + a12[4] * _k[4][i] + a12[5] * _k[5][i] + a12[6] * _k[6][i] + a12[7] * _k[7][i] + a12[8] * _k[8][i] + a12[9] * _k[9][i] + a12[10] * _k[10][i]);
-				_sys.derivs(t + c[11] * h, _xNew, _k[11]);
-
-				// Stage 13 (final, also FSAL)
-				for (int i = 0; i < _n; i++)
-					_xNew[i] = x[i] + h * (a13[0] * _k[0][i] + a13[3] * _k[3][i] + a13[4] * _k[4][i] + a13[5] * _k[5][i] + a13[6] * _k[6][i] + a13[7] * _k[7][i] + a13[8] * _k[8][i] + a13[9] * _k[9][i] + a13[10] * _k[10][i]);
-				_sys.derivs(t + c[12] * h, _xNew, _k[12]);
-
-				result.funcEvals = 13;
-
-				// 8th order solution
+				Real error5NormSquared = 0;
+				Real error3NormSquared = 0;
 				for (int i = 0; i < _n; i++) {
-					_xNew[i] = x[i];
-					for (int j = 0; j < NSTAGES; j++)
-						_xNew[i] += h * b8[j] * _k[j][i];
-				}
-
-				// Error estimate (8th - 7th order)
-				Real errMax = 0.0;
-				for (int i = 0; i < _n; i++) {
-					Real err = 0.0;
-					for (int j = 0; j < NSTAGES; j++)
-						err += (b8[j] - b7[j]) * _k[j][i];
-					err *= h;
 					Real scale = std::abs(x[i]) + std::abs(h * _k[0][i]) + Precision::DivisionSafetyThreshold;
-					errMax = std::max(errMax, std::abs(err) / scale);
+					Real error5 = 0;
+					Real error3 = 0;
+					for (int stage = 0; stage <= DP8::stages; ++stage) {
+						error5 += DP8::error5Weight(stage) * _k[stage][i];
+						error3 += DP8::error3Weight(stage) * _k[stage][i];
+					}
+					const Real normalizedError5 = error5 / scale;
+					const Real normalizedError3 = error3 / scale;
+					error5NormSquared += normalizedError5 * normalizedError5;
+					error3NormSquared += normalizedError3 * normalizedError3;
 				}
-				errMax /= eps;
+				const Real denominator = error5NormSquared + Real(0.01) * error3NormSquared;
+				const Real errMax = denominator == 0 ? 0 :
+					std::abs(h) * error5NormSquared / std::sqrt(denominator * _n) / eps;
 				result.errMax = errMax;
 
 				if (errMax <= 1.0) {
 					result.accepted = true;
 					result.hDone = h;
 
-					// Store for dense output
-					_tOld = t;
-					_hDone = h;
-					_xOld = x;
-					_stepReady = true;
-
-					// Update state
+					result.funcEvals += _interpolator.setStep(_sys, t, h, x, _xNew, _k, _workspace);
 					x = _xNew;
 					dxdt = _k[12];
-					_haveFSAL = true;
-
-					// Step size control for next step
-					Real factor = SAFETY * std::pow(errMax, -ALPHA);
-					factor = std::max<Real>(MIN_FACTOR, std::min<Real>(MAX_FACTOR, factor));
-					result.hNext = h * factor;
-
-					_errOld = std::max<Real>(errMax, Real(1e-4));
+					result.hNext = _controller.acceptedStep(h, errMax);
 					break;
 				}
 
-				// Reduce step size
-				Real factor = SAFETY * std::pow(errMax, -ALPHA);
-				factor = std::max<Real>(MIN_FACTOR, factor);
-				h *= factor;
-				_haveFSAL = false;
+				h = _controller.rejectedStep(h, errMax);
 
 				if (std::abs(h) < Constants::Eps)
 					throw ODESolverError("Step size underflow in DormandPrince8_Stepper");
@@ -720,42 +398,20 @@ namespace MML {
 		}
 
 		Vector<Real> interpolate(Real t) const override {
-			if (!_stepReady)
-				throw ODESolverError("No valid step data for interpolation");
-
-			Real theta = (t - _tOld) / _hDone;
-			Real theta2 = theta * theta;
-			Real theta3 = theta2 * theta;
-
-			// Hermite interpolation
-			Real h00 = 2 * theta3 - 3 * theta2 + 1;
-			Real h10 = theta3 - 2 * theta2 + theta;
-			Real h01 = -2 * theta3 + 3 * theta2;
-			Real h11 = theta3 - theta2;
-
-			Vector<Real> result(_n);
-
-			for (int i = 0; i < _n; i++) {
-				Real hf0 = _hDone * _k[0][i];
-				Real hf1 = _hDone * _k[12][i];
-				result[i] = h00 * _xOld[i] + h10 * hf0 + h01 * _xNew[i] + h11 * hf1;
-			}
-
-			return result;
+			return _interpolator.interpolate(t);
 		}
 
-		bool isFSAL() const override { return true; }
+		bool isFSAL() const override { return false; }
 
 		const Vector<Real>& getFinalDeriv() const override { return _k[12]; }
 
-		int stageCount() const override { return NSTAGES; }
+		int stageCount() const override { return DP8::stages; }
 
 		int order() const override { return 8; }
 
 		void resetFSAL() override {
-			_haveFSAL = false;
-			_stepReady = false;
-			_errOld = 1.0;
+			_controller.reset();
+			_interpolator.reset();
 		}
 	};
 
@@ -790,8 +446,8 @@ namespace MML {
 		mutable Vector<Real> _err;	///< Error estimate
 		mutable Vector<Real> _dydxOld;	 ///< Derivative at start of last accepted step
 		mutable Vector<Real> _dydxFinal; ///< Derivative at end of last accepted step
-		mutable Real _tOld;			///< Time at start of step
-		mutable Real _hDone;		///< Actual step size taken
+		StepSizeController _controller;
+		HermiteInterpolator _interpolator;
 
 		// Extrapolation tableau - stores results at each level
 		mutable std::vector<Vector<Real>> _d; // Differences for Neville
@@ -868,8 +524,6 @@ namespace MML {
 		explicit BulirschStoer_Stepper(const IODESystem& sys)
 			: _sys(sys)
 			, _n(sys.getDim())
-			, _tOld(0)
-			, _hDone(0)
 			, _xOld(_n)
 			, _xNew(_n)
 			, _err(_n)
@@ -888,7 +542,6 @@ namespace MML {
 			result.accepted = false;
 			result.funcEvals = 1; // We already have dxdt
 
-			_tOld = t;
 			_xOld = x;
 			_dydxOld = dxdt; // Store initial derivative for Hermite interpolation
 			Real h = htry;
@@ -924,18 +577,15 @@ namespace MML {
 						result.accepted = true;
 						_xNew = yest;
 						_err = yerr;
-						_hDone = h;
 
-						x = yest;
-						_sys.derivs(t + h, x, dxdt);
+						_sys.derivs(t + h, yest, dxdt);
 						_dydxFinal = dxdt;
 						result.funcEvals++;
 						result.hDone = h;
-
-						// Step size control - be conservative
-						Real factor = Real(0.9) * std::pow(errMax, Real(-1.0) / (2 * k + 1));
-						factor = std::max<Real>(Real(0.1), std::min<Real>(factor, Real(4.0)));
-						result.hNext = h * factor;
+						_interpolator.setStep(t, h, x, yest, _dydxOld, _dydxFinal);
+						x = yest;
+						// Extrapolation order grows with the converged tableau column.
+						result.hNext = _controller.acceptedStep(h, errMax, Real(1.0) / (2 * k + 1));
 
 						return result;
 					}
@@ -945,32 +595,14 @@ namespace MML {
 			// Failed to converge - reduce step size
 			result.accepted = false;
 			result.hDone = h;
-			result.hNext = h * Real(0.5);
 			result.errMax = Real(999.0);
+			result.hNext = _controller.rejectedStep(h, result.errMax, Real(1.0) / (2 * KMAXX + 1));
 
 			return result;
 		}
 
 		Vector<Real> interpolate(Real t) const override {
-			// Hermite cubic interpolation using function values and derivatives at both endpoints
-			Real theta = (t - _tOld) / _hDone;
-			Real theta2 = theta * theta;
-			Real theta3 = theta2 * theta;
-
-			// Hermite basis polynomials
-			Real h00 = 2 * theta3 - 3 * theta2 + 1;		// 1 - 3t² + 2t³
-			Real h10 = theta3 - 2 * theta2 + theta;		// t - 2t² + t³
-			Real h01 = -2 * theta3 + 3 * theta2;			// 3t² - 2t³
-			Real h11 = theta3 - theta2;						// t³ - t²
-
-			Vector<Real> result(_n);
-			for (int i = 0; i < _n; i++) {
-				Real f0 = _hDone * _dydxOld[i];
-				Real f1 = _hDone * _dydxFinal[i];
-				result[i] = h00 * _xOld[i] + h10 * f0 + h01 * _xNew[i] + h11 * f1;
-			}
-
-			return result;
+			return _interpolator.interpolate(t);
 		}
 
 		bool isFSAL() const override { return false; }
@@ -983,7 +615,10 @@ namespace MML {
 
 		int order() const override { return 2 * KMAXX; }
 
-		void resetFSAL() override {}
+		void resetFSAL() override {
+			_controller.reset();
+			_interpolator.reset();
+		}
 	};
 
 	//===================================================================================
@@ -1016,8 +651,8 @@ namespace MML {
 		mutable Vector<Real> _err;	///< Error estimate
 		mutable Vector<Real> _dydxOld;	 ///< Derivative at start of last accepted step
 		mutable Vector<Real> _dydxFinal; ///< Derivative at end of last accepted step
-		mutable Real _tOld;			///< Time at start of step
-		mutable Real _hDone;		///< Actual step size taken
+		StepSizeController _controller;
+		HermiteInterpolator _interpolator;
 
 		// Extrapolation tableau for rational extrapolation
 		mutable std::vector<Vector<Real>> _d; // Differences for rational extrapolation
@@ -1095,8 +730,6 @@ namespace MML {
 		explicit BulirschStoerRational_Stepper(const IODESystem& sys)
 			: _sys(sys)
 			, _n(sys.getDim())
-			, _tOld(0)
-			, _hDone(0)
 			, _xOld(_n)
 			, _xNew(_n)
 			, _err(_n)
@@ -1115,7 +748,6 @@ namespace MML {
 			result.accepted = false;
 			result.funcEvals = 1; // We already have dxdt
 
-			_tOld = t;
 			_xOld = x;
 			_dydxOld = dxdt; // Store initial derivative for Hermite interpolation
 			Real h = htry;
@@ -1151,18 +783,15 @@ namespace MML {
 						result.accepted = true;
 						_xNew = yest;
 						_err = yerr;
-						_hDone = h;
 
-						x = yest;
-						_sys.derivs(t + h, x, dxdt);
+						_sys.derivs(t + h, yest, dxdt);
 						_dydxFinal = dxdt;
 						result.funcEvals++;
 						result.hDone = h;
-
-						// Step size control - be conservative
-						Real factor = Real(0.9) * std::pow(errMax, Real(-1.0) / (2 * k + 1));
-						factor = std::max<Real>(Real(0.1), std::min<Real>(factor, Real(4.0)));
-						result.hNext = h * factor;
+						_interpolator.setStep(t, h, x, yest, _dydxOld, _dydxFinal);
+						x = yest;
+						// Extrapolation order grows with the converged tableau column.
+						result.hNext = _controller.acceptedStep(h, errMax, Real(1.0) / (2 * k + 1));
 
 						return result;
 					}
@@ -1172,32 +801,14 @@ namespace MML {
 			// Failed to converge - reduce step size
 			result.accepted = false;
 			result.hDone = h;
-			result.hNext = h * Real(0.5);
 			result.errMax = Real(999.0);
+			result.hNext = _controller.rejectedStep(h, result.errMax, Real(1.0) / (2 * KMAXX + 1));
 
 			return result;
 		}
 
 		Vector<Real> interpolate(Real t) const override {
-			// Hermite cubic interpolation using function values and derivatives at both endpoints
-			Real theta = (t - _tOld) / _hDone;
-			Real theta2 = theta * theta;
-			Real theta3 = theta2 * theta;
-
-			// Hermite basis polynomials
-			Real h00 = 2 * theta3 - 3 * theta2 + 1;		// 1 - 3t² + 2t³
-			Real h10 = theta3 - 2 * theta2 + theta;		// t - 2t² + t³
-			Real h01 = -2 * theta3 + 3 * theta2;			// 3t² - 2t³
-			Real h11 = theta3 - theta2;						// t³ - t²
-
-			Vector<Real> result(_n);
-			for (int i = 0; i < _n; i++) {
-				Real f0 = _hDone * _dydxOld[i];
-				Real f1 = _hDone * _dydxFinal[i];
-				result[i] = h00 * _xOld[i] + h10 * f0 + h01 * _xNew[i] + h11 * f1;
-			}
-
-			return result;
+			return _interpolator.interpolate(t);
 		}
 
 		bool isFSAL() const override { return false; }
@@ -1210,7 +821,10 @@ namespace MML {
 
 		int order() const override { return 2 * KMAXX; }
 
-		void resetFSAL() override {}
+		void resetFSAL() override {
+			_controller.reset();
+			_interpolator.reset();
+		}
 	};
 
 } // namespace MML

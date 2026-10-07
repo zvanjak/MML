@@ -62,7 +62,7 @@ P₁(x) = x
 - Gauss-Legendre quadrature
 
 ```cpp
-#include "core/LegendreBasis.h"
+#include <mml/core/LegendreBasis.h>
 
 LegendreBasis legendre;
 
@@ -109,7 +109,7 @@ Hₙ₊₁(x) = 2xHₙ(x) - 2nHₙ₋₁(x)
 - Signal processing (Gabor transform)
 
 ```cpp
-#include "core/HermiteBasis.h"
+#include <mml/core/HermiteBasis.h>
 
 HermiteBasis hermite;
 
@@ -155,7 +155,7 @@ Tₙ₊₁(x) = 2xTₙ(x) - Tₙ₋₁(x)
 - Clenshaw-Curtis quadrature
 
 ```cpp
-#include "core/ChebyshevBasis.h"
+#include <mml/core/ChebyshevBasis.h>
 
 ChebyshevBasis chebyshev;
 
@@ -202,7 +202,7 @@ L₁(x) = 1 - x
 - Time-dependent perturbation theory
 
 ```cpp
-#include "core/LaguerreBasis.h"
+#include <mml/core/LaguerreBasis.h>
 
 LaguerreBasis laguerre;
 
@@ -224,7 +224,7 @@ Real L_assoc = L_n_l.Evaluate(3, 1.5);  // L₃^(5)(1.5)
 Each orthogonal polynomial basis has a corresponding Gaussian quadrature method for optimal numerical integration!
 
 ```cpp
-#include "core/Integration/GaussianQuadrature.h"
+#include <mml/core/Integration/GaussianQuadrature.h>
 
 // Function wrapper for lambda
 class MyFunc : public IRealFunction {

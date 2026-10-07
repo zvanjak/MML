@@ -9,25 +9,34 @@
 ///  License:     MIT License (see LICENSE.md)                                         ///
 ///                                                                                   ///
 ///////////////////////////////////////////////////////////////////////////////////////////
+
+/// @file Integration.h
+/// @brief Aggregate header for numerical integration.
+/// This header includes one-, two-, and three-dimensional integration,
+/// improper integrals, Gaussian quadrature, Gauss-Kronrod quadrature, and
+/// adaptive multidimensional integration.
+///
+/// Main types and functions included here:
+/// - IntegrationResult, IntegrationDetailedResult, IntegrationConfig, and IntegrationMethod
+/// - IntegrateTrap, IntegrateSimpson, IntegrateRomberg, IntegrateGauss10, IntegrateGK21, and Integrate
+/// - Integrate2D and Integrate3D - nested quadrature over rectangular and bounded domains
+/// - IntegrateOpen, IntegrateUpperInf, IntegrateLowerInf, IntegrateInf, and singular-integral helpers
+/// - GaussQuadratureRule, GaussLegendre, GaussLaguerre, GaussHermite, GaussJacobi, and Chebyshev rules
+/// - GaussKronrod::GKResult, GaussKronrod::GKRule, and adaptive Gauss-Kronrod helpers
+/// - AdaptiveConfig2D, AdaptiveResult2D, AdaptiveConfig3D, AdaptiveResult3D, IntegrateAdaptive2D, and IntegrateAdaptive3D
+///
+/// For more focused includes, use the individual headers under Integration/.
+
 #if !defined MML_INTEGRATION_H
 #define MML_INTEGRATION_H
 
-/// @file Integration1D.h - 1D numerical integration (Simpson, Romberg, adaptive methods)
 #include "Integration/Integration1D.h"
-/// @file Integration2D.h - 2D numerical integration over rectangular and arbitrary regions
 #include "Integration/Integration2D.h"
-/// @file Integration3D.h - 3D numerical integration over volumetric domains
 #include "Integration/Integration3D.h"
-/// @file IntegrationImproper.h - Improper integrals with infinite limits or singularities
 #include "Integration/IntegrationImproper.h"
-/// @file GaussianQuadrature.h - Gaussian quadrature with Legendre, Chebyshev, Hermite, Laguerre polynomials
 #include "Integration/GaussianQuadrature.h"
-/// @file GaussKronrod.h - Gauss-Kronrod quadrature with adaptive error estimation
 #include "Integration/GaussKronrod.h"
-/// @file Integration2DAdaptive.h - Adaptive 2D integration with quadtree subdivision
 #include "Integration/Integration2DAdaptive.h"
-/// @file Integration3DAdaptive.h - Adaptive 3D integration with octree subdivision
 #include "Integration/Integration3DAdaptive.h"
-
 
 #endif

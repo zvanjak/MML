@@ -1,13 +1,15 @@
 ///////////////////////////////////////////////////////////////////////////////////////////
 ///  File:        docs_demo_vector_types.cpp                                          ///
-///  Description: Brief demonstration of VectorTypes.h - Vec2, Vec3, Vec4 types       ///
+///  Description: Brief demonstration of dimensional Vec2, Vec3, and Vec4 types       ///
 ///////////////////////////////////////////////////////////////////////////////////////////
 
 #ifdef MML_USE_SINGLE_HEADER
-#include "MML.h"
+#include <MML.h>
 #else
-#include "MMLBase.h"
-#include "base/Vector/VectorTypes.h"
+#include <mml/MMLBase.h>
+#include <mml/base/Vector/VectorTypes2D.h>
+#include <mml/base/Vector/VectorTypes3D.h>
+#include <mml/base/Vector/VectorTypes4D.h>
 #endif
 
 #include <iostream>

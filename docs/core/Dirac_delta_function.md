@@ -48,7 +48,7 @@ public:
 
 **Example**:
 ```cpp
-#include "base/DiracDeltaFunction.h"
+#include <mml/base/DiracDeltaFunction.h>
 
 DiracStep delta(100);  // N = 100
 Real val = delta(0.0);   // Returns 100
@@ -138,8 +138,8 @@ DiracSin delta(100);
 Use delta approximations with numerical integration to "sample" a function:
 
 ```cpp
-#include "base/DiracDeltaFunction.h"
-#include "core/Integration/Integration1D.h"
+#include <mml/base/DiracDeltaFunction.h>
+#include <mml/core/Integration/Integration1D.h>
 
 // Sample f(x) at x = a using delta approximation
 class SamplingIntegrand : public IRealFunction {

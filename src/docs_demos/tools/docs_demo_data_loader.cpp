@@ -2,8 +2,8 @@
 /// MML Documentation Demo: DataLoader - Multi-format Dataset Loading
 ///////////////////////////////////////////////////////////////////////////////////////////
 
-#include "MMLBase.h"
-#include "tools/DataLoader.h"
+#include <mml/MMLBase.h>
+#include <mml/tools/DataLoader.h>
 
 #include <iostream>
 #include <sstream>

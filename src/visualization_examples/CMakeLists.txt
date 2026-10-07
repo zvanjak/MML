@@ -11,19 +11,19 @@ add_executable(MML_VisualizationApp
     ${VISUALIZATION_SOURCES}
 )
 
-target_include_directories(MML_VisualizationApp PRIVATE ${CMAKE_SOURCE_DIR}/mml)
+target_include_directories(MML_VisualizationApp PRIVATE ${CMAKE_SOURCE_DIR})
 
 # Standalone utility: Generate 3D scalar function data for visualization testing
 add_executable(Generate_Scalar3D_Data
     ${CMAKE_CURRENT_SOURCE_DIR}/generate_scalar3d_data.cpp
 )
-target_include_directories(Generate_Scalar3D_Data PRIVATE ${CMAKE_SOURCE_DIR}/mml)
+target_include_directories(Generate_Scalar3D_Data PRIVATE ${CMAKE_SOURCE_DIR})
 
 # Standalone utility: Generate parametric surface data for visualization testing
 add_executable(Generate_ParametricSurface_Data
     ${CMAKE_CURRENT_SOURCE_DIR}/generate_parametric_surface_data.cpp
 )
-target_include_directories(Generate_ParametricSurface_Data PRIVATE ${CMAKE_SOURCE_DIR}/mml)
+target_include_directories(Generate_ParametricSurface_Data PRIVATE ${CMAKE_SOURCE_DIR})
 
 # Copy visualization data files to build directory for runtime access
 # Use GLOB_RECURSE to get files, and copy preserving directory structure

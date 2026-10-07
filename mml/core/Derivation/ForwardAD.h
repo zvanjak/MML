@@ -11,14 +11,17 @@
 ///                                                     ///
 ///////////////////////////////////////////////////////////////////////////////////////////
 
-#ifndef MML_SYMBOLIC_FORWARD_AD_H
-#define MML_SYMBOLIC_FORWARD_AD_H
+#ifndef MML_AD_FORWARD_AD_H
+#define MML_AD_FORWARD_AD_H
+
+#include <mml/MMLBase.h>
 
 #include <cmath>
 #include <iostream>
 #include <limits>
+#include <type_traits>
 
-namespace MML::Symbolic
+namespace MML::AD
 {
     //////////////////////////////////////////////////////////////////////////////////////////
     /// @brief Dual number for forward-mode automatic differentiation
@@ -38,7 +41,7 @@ namespace MML::Symbolic
     /// Forward AD is efficient for functions f: R → R^m (one pass per input variable).
     /// For f: R^n → R with large n, consider reverse-mode AD instead.
     //////////////////////////////////////////////////////////////////////////////////////////
-    template<typename T = double>
+    template<typename T = Real>
     struct Dual
     {
         T value;  ///< Function value f(x)
@@ -350,7 +353,7 @@ namespace MML::Symbolic
     /// @param f Function to differentiate
     /// @param x Point at which to compute derivative
     /// @return Pair of (f(x), f'(x))
-    template<typename F, typename T = double>
+    template<typename F, typename T = Real>
     std::pair<T, T> derivative(F&& f, T x) {
         Dual<T> xd(x, T(1));  // dx/dx = 1
         Dual<T> result = f(xd);
@@ -359,7 +362,7 @@ namespace MML::Symbolic
 
     /// Compute gradient of f: R^n -> R at point x using forward-mode AD
     /// Requires n evaluations of f
-    template<typename F, typename T = double>
+    template<typename F, typename T = Real>
     std::vector<T> gradient(F&& f, const std::vector<T>& x) {
         std::vector<T> grad(x.size());
         std::vector<Dual<T>> xd(x.size());
@@ -384,9 +387,10 @@ namespace MML::Symbolic
     // Type alias for convenience
     //////////////////////////////////////////////////////////////////////////////////////////
 
+    using DualR = Dual<Real>;
     using DualD = Dual<double>;
     using DualF = Dual<float>;
 
-} // namespace MML::Symbolic
+} // namespace MML::AD
 
 #endif // MML_SYMBOLIC_FORWARD_AD_H

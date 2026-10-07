@@ -1,16 +1,25 @@
 # MML Serializer File Formats
 
-This document describes the file formats produced by `Serializer` class methods. All formats are plain text with consistent header structures.
+This document describes the `.mml` presentation-export file formats produced by visualizer-oriented `Serializer` methods. All formats are plain text with consistent header structures.
+
+These files are stable inputs for visualizers and examples, but they are not the
+round-trip object-persistence formats. For `.mmlj` JSON and `.mmlb` binary
+object persistence, see [SerializationPersistence.md](SerializationPersistence.md).
+
+All type strings carry the `MML_` prefix and every header includes a `VERSION:` line immediately after the type identifier. The current version is **1**.
+
+Type string constants and the version number are defined in `FormatType` namespace (see `SerializerBase.h`). Titles and legend entries are single-line display metadata; carriage returns and line feeds are written as spaces so accidental multiline input cannot corrupt the header structure.
 
 ---
 
 ## Real Function (1D)
 
-**Type:** `REAL_FUNCTION`  
+**Type:** `MML_REAL_FUNCTION`  
 **Functions:** `SaveRealFunc`, `SaveODESolutionComponentAsFunc`
 
 ```
-REAL_FUNCTION
+MML_REAL_FUNCTION
+VERSION: 1
 sin(x)
 x1: 0
 x2: 6.28319
@@ -25,11 +34,12 @@ NumPoints: 100
 
 ## Real Function (Equally Spaced)
 
-**Type:** `REAL_FUNCTION_EQUALLY_SPACED`  
+**Type:** `MML_REAL_FUNCTION_EQUALLY_SPACED`  
 **Functions:** `SaveRealFuncEquallySpaced`
 
 ```
-REAL_FUNCTION_EQUALLY_SPACED
+MML_REAL_FUNCTION_EQUALLY_SPACED
+VERSION: 1
 cos(x)
 x1: 0
 x2: 6.28319
@@ -44,11 +54,12 @@ NumPoints: 100
 
 ## Multi-Function (Multiple 1D Functions)
 
-**Type:** `REAL_FUNCTION_MULTI`  
+**Type:** `MML_MULTI_REAL_FUNCTION`  
 **Functions:** `SaveRealMultiFunc`, `SaveODESolutionAsMultiFunc`
 
 ```
-REAL_FUNCTION_MULTI
+MML_MULTI_REAL_FUNCTION
+VERSION: 1
 Comparison
 NumFuncs: 3
 Legend: sin(x), cos(x), tan(x)
@@ -64,11 +75,12 @@ NumPoints: 50
 
 ## Parametric Curve 2D
 
-**Type:** `PARAMETRIC_CURVE_CARTESIAN_2D`  
+**Type:** `MML_PARAMETRIC_CURVE_CARTESIAN_2D`  
 **Functions:** `SaveParamCurve<2>`, `SaveAsParamCurve2D`, `SaveODESolAsParametricCurve2D`
 
 ```
-PARAMETRIC_CURVE_CARTESIAN_2D
+MML_PARAMETRIC_CURVE_CARTESIAN_2D
+VERSION: 1
 Circle
 t1: 0
 t2: 6.28319
@@ -85,11 +97,12 @@ Data columns: `t x(t) y(t)`
 
 ## Parametric Curve 3D
 
-**Type:** `PARAMETRIC_CURVE_CARTESIAN_3D`  
+**Type:** `MML_PARAMETRIC_CURVE_CARTESIAN_3D`  
 **Functions:** `SaveParamCurve<3>`, `SaveODESolAsParametricCurve3D`
 
 ```
-PARAMETRIC_CURVE_CARTESIAN_3D
+MML_PARAMETRIC_CURVE_CARTESIAN_3D
+VERSION: 1
 Helix
 t1: 0
 t2: 12.5664
@@ -105,11 +118,12 @@ Data columns: `t x(t) y(t) z(t)`
 
 ## Scalar Function 2D (Surface)
 
-**Type:** `SCALAR_FUNCTION_CARTESIAN_2D`  
+**Type:** `MML_SCALAR_FUNCTION_CARTESIAN_2D`  
 **Functions:** `SaveScalarFunc2DCartesian`
 
 ```
-SCALAR_FUNCTION_CARTESIAN_2D
+MML_SCALAR_FUNCTION_CARTESIAN_2D
+VERSION: 1
 z = x*y
 x1: -5
 x2: 5
@@ -128,11 +142,12 @@ Data columns: `x y f(x,y)`
 
 ## Scalar Function 3D (Volumetric)
 
-**Type:** `SCALAR_FUNCTION_CARTESIAN_3D`  
+**Type:** `MML_SCALAR_FUNCTION_CARTESIAN_3D`  
 **Functions:** `SaveScalarFunc3DCartesian`
 
 ```
-SCALAR_FUNCTION_CARTESIAN_3D
+MML_SCALAR_FUNCTION_CARTESIAN_3D
+VERSION: 1
 w = x*y*z
 x1: -2
 x2: 2
@@ -154,11 +169,12 @@ Data columns: `x y z f(x,y,z)`
 
 ## Vector Field 2D
 
-**Type:** `VECTOR_FIELD_2D_CARTESIAN`  
+**Type:** `MML_VECTOR_FIELD_2D_CARTESIAN`  
 **Functions:** `SaveVectorFunc2D`, `SaveVectorFunc2DCartesian`
 
 ```
-VECTOR_FIELD_2D_CARTESIAN
+MML_VECTOR_FIELD_2D_CARTESIAN
+VERSION: 1
 Rotation field
 -5 -5 5 -5
 -5 -4 4 -5
@@ -172,11 +188,12 @@ Data columns: `x y Fx(x,y) Fy(x,y)`
 
 ## Vector Field 3D
 
-**Type:** `VECTOR_FIELD_3D_CARTESIAN`  
+**Type:** `MML_VECTOR_FIELD_3D_CARTESIAN`  
 **Functions:** `SaveVectorFunc3D`, `SaveVectorFunc3DCartesian`
 
 ```
-VECTOR_FIELD_3D_CARTESIAN
+MML_VECTOR_FIELD_3D_CARTESIAN
+VERSION: 1
 Gravity field
 -2 -2 -2 0.096225 0.096225 0.096225
 -2 -2 -1 0.111111 0.111111 0.0555556
@@ -189,11 +206,12 @@ Data columns: `x y z Fx Fy Fz`
 
 ## Particle Simulation 2D
 
-**Type:** `PARTICLE_SIMULATION_DATA_2D`  
+**Type:** `MML_PARTICLE_SIMULATION_DATA_2D`  
 **Functions:** `SaveParticleSimulation2D`
 
 ```
-PARTICLE_SIMULATION_DATA_2D
+MML_PARTICLE_SIMULATION_DATA_2D
+VERSION: 1
 Width: 800
 Height: 600
 NumBalls: 3
@@ -218,11 +236,12 @@ Each step contains one row per ball: `ballIndex x y`
 
 ## Particle Simulation 3D
 
-**Type:** `PARTICLE_SIMULATION_DATA_3D`  
+**Type:** `MML_PARTICLE_SIMULATION_DATA_3D`  
 **Functions:** `SaveParticleSimulation3D`
 
 ```
-PARTICLE_SIMULATION_DATA_3D
+MML_PARTICLE_SIMULATION_DATA_3D
+VERSION: 1
 Width: 400
 Height: 400
 Depth: 400
@@ -243,3 +262,76 @@ Step 1 0.016
 ```
 
 Each step contains one row per ball: `ballIndex x y z`
+
+---
+
+## Vector Field (Spherical)
+
+**Type:** `MML_VECTOR_FIELD_SPHERICAL`  
+**Functions:** `SaveVectorFuncSpherical`
+
+```
+MML_VECTOR_FIELD_SPHERICAL
+VERSION: 1
+<title>
+<r> <theta> <phi> <Fr> <Ftheta> <Fphi>
+...
+```
+
+Data columns: `r θ φ F_r F_θ F_φ`
+
+---
+
+## Field Lines 2D
+
+**Type:** `MML_FIELD_LINES_2D`  
+**Functions:** `VisualizeFieldLines2D` (via Visualizer)
+
+```
+MML_FIELD_LINES_2D
+VERSION: 1
+<title>
+<line data>
+...
+```
+
+---
+
+## Field Lines 3D
+
+**Type:** `MML_FIELD_LINES_3D`  
+**Functions:** `VisualizeFieldLines3D` (via Visualizer)
+
+```
+MML_FIELD_LINES_3D
+VERSION: 1
+<title>
+<line data>
+...
+```
+
+---
+
+## Complete Type String Reference
+
+All format type identifiers are defined as `constexpr const char*` constants in the `FormatType` namespace (`SerializerBase.h`):
+
+| Constant | String Value | Version |
+|----------|-------------|---------|
+| `FormatType::REAL_FUNCTION` | `MML_REAL_FUNCTION` | 1 |
+| `FormatType::REAL_FUNCTION_EQUALLY_SPACED` | `MML_REAL_FUNCTION_EQUALLY_SPACED` | 1 |
+| `FormatType::MULTI_REAL_FUNCTION` | `MML_MULTI_REAL_FUNCTION` | 1 |
+| `FormatType::PARAMETRIC_CURVE_CARTESIAN_2D` | `MML_PARAMETRIC_CURVE_CARTESIAN_2D` | 1 |
+| `FormatType::PARAMETRIC_CURVE_CARTESIAN_3D` | `MML_PARAMETRIC_CURVE_CARTESIAN_3D` | 1 |
+| `FormatType::PARAMETRIC_SURFACE_CARTESIAN` | `MML_PARAMETRIC_SURFACE_CARTESIAN` | 1 |
+| `FormatType::SCALAR_FUNCTION_CARTESIAN_2D` | `MML_SCALAR_FUNCTION_CARTESIAN_2D` | 1 |
+| `FormatType::SCALAR_FUNCTION_CARTESIAN_3D` | `MML_SCALAR_FUNCTION_CARTESIAN_3D` | 1 |
+| `FormatType::VECTOR_FIELD_2D_CARTESIAN` | `MML_VECTOR_FIELD_2D_CARTESIAN` | 1 |
+| `FormatType::VECTOR_FIELD_3D_CARTESIAN` | `MML_VECTOR_FIELD_3D_CARTESIAN` | 1 |
+| `FormatType::VECTOR_FIELD_SPHERICAL` | `MML_VECTOR_FIELD_SPHERICAL` | 1 |
+| `FormatType::FIELD_LINES_2D` | `MML_FIELD_LINES_2D` | 1 |
+| `FormatType::FIELD_LINES_3D` | `MML_FIELD_LINES_3D` | 1 |
+| `FormatType::PARTICLE_SIMULATION_DATA_2D` | `MML_PARTICLE_SIMULATION_DATA_2D` | 1 |
+| `FormatType::PARTICLE_SIMULATION_DATA_3D` | `MML_PARTICLE_SIMULATION_DATA_3D` | 1 |
+
+The version number is available as `FormatType::CURRENT_VERSION` (currently `1`).

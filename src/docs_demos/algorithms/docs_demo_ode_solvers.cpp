@@ -1,18 +1,18 @@
 #ifdef MML_USE_SINGLE_HEADER
-#include "MML.h"
+#include <MML.h>
 #else
-#include "MMLBase.h"
+#include <mml/MMLBase.h>
 
-#include "tools/Visualizer.h"
-#include "tools/Serializer.h"
+#include <mml/tools/Visualizer.h>
+#include <mml/tools/Serializer.h>
 
-#include "interfaces/IODESystem.h"
-#include "base/ODESystem.h"
-#include "base/ODESystemSolution.h"
+#include <mml/interfaces/IODESystem.h>
+#include <mml/base/ODESystem.h>
+#include <mml/base/ODESystemSolution.h>
 
-#include "mml/algorithms/ODESolvers/ODESolverAdaptive.h"
-#include "mml/algorithms/ODESolvers/ODESolverFixedStep.h"
-#include "mml/algorithms/ODESolvers/ODEStepCalculators.h"
+#include <mml/algorithms/ODESolvers/ODESolverAdaptive.h>
+#include <mml/algorithms/ODESolvers/ODESolverFixedStep.h>
+#include <mml/algorithms/ODESolvers/ODEStepCalculators.h>
 #endif
 
 #include "../test_beds/diff_eq_systems_test_bed.h"
@@ -116,8 +116,8 @@ void Docs_Demo_Step_Calculators()
 	std::cout << "\nAvailable step calculators:\n";
 	std::cout << "  EulerStep_Calculator           - 1st order (simple, low accuracy)\n";
 	std::cout << "  EulerCromer_StepCalculator     - 1st order (better for oscillatory)\n";
-	std::cout << "  VelocityVerlet_StepCalculator  - 2nd order (symplectic, Hamiltonian)\n";
-	std::cout << "  Leapfrog_StepCalculator        - 2nd order (symplectic, energy-conserving)\n";
+	std::cout << "  VelocityVerlet_StepCalculator  - 2nd order (separable Hamiltonian systems)\n";
+	std::cout << "  Leapfrog_StepCalculator        - compatibility name for Velocity Verlet\n";
 	std::cout << "  RungeKutta4_StepCalculator     - 4th order (general purpose)\n";
 	std::cout << "  RK5_CashKarp_StepCalculator    - 5th order (with error estimate)\n";
 	
@@ -138,10 +138,10 @@ void Docs_Demo_Step_Calculators()
 	ODESystemFixedStepSolver rk4Solver(sho, rk4);
 	auto solRK4 = rk4Solver.integrate(y0, 0.0, t_end, steps);
 	
-	// Leapfrog method (symplectic)
-	Leapfrog_StepCalculator leapfrog;
-	ODESystemFixedStepSolver leapfrogSolver(sho, leapfrog);
-	auto solLeapfrog = leapfrogSolver.integrate(y0, 0.0, t_end, steps);
+	// Velocity Verlet (synchronized kick-drift-kick Leapfrog)
+	VelocityVerlet_StepCalculator verlet;
+	ODESystemFixedStepSolver verletSolver(sho, verlet);
+	auto solVerlet = verletSolver.integrate(y0, 0.0, t_end, steps);
 	
 	// Exact solution at t = 2*pi: x = 1, v = 0 (returns to start)
 	std::cout << "After one period (t=2π), expected: x=1.0, v=0.0\n";
@@ -149,8 +149,8 @@ void Docs_Demo_Step_Calculators()
 	          << ", v=" << solEuler.getXValue(steps, 1) << std::endl;
 	std::cout << "  RK4:      x=" << solRK4.getXValue(steps, 0)
 	          << ", v=" << solRK4.getXValue(steps, 1) << std::endl;
-	std::cout << "  Leapfrog: x=" << solLeapfrog.getXValue(steps, 0)
-	          << ", v=" << solLeapfrog.getXValue(steps, 1) << std::endl;
+	std::cout << "  Verlet:   x=" << solVerlet.getXValue(steps, 0)
+	          << ", v=" << solVerlet.getXValue(steps, 1) << std::endl;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -197,8 +197,8 @@ void Docs_Demo_Adaptive_Integrators()
 	std::cout << "  DP5: "; solDP5.getXValuesAtEnd().Print(std::cout, 8, 4); std::cout << std::endl;
 }
 
-// Demo: Legacy solver interface (backward compatibility)
-void Docs_Demo_Legacy_Solver_Interface()
+// Demo: Compact solver interface
+void Docs_Demo_Compact_Solver_Interface()
 {
 	std::cout << "\n==========================================================================\n";
 	std::cout << "Demo: Modern CashKarpIntegrator Interface\n";
@@ -522,7 +522,7 @@ void Docs_Demo_ODE_solvers()
 	// Step Calculators and Solvers
 	Docs_Demo_Step_Calculators();
 	Docs_Demo_Adaptive_Integrators();
-	Docs_Demo_Legacy_Solver_Interface();
+	Docs_Demo_Compact_Solver_Interface();
 	
 	// ODESystemSolution post-processing
 	Docs_Demo_ODESystemSolution_Basics();

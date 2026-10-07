@@ -1,11 +1,11 @@
 #ifdef MML_USE_SINGLE_HEADER
-#include "MML.h"
+#include <MML.h>
 #else
-#include "MMLBase.h"
+#include <mml/MMLBase.h>
 
-#include "base/DiracDeltaFunction.h"
-#include "base/Function.h"
-#include "core/Integration.h"
+#include <mml/base/DiracDeltaFunction.h>
+#include <mml/base/Function.h>
+#include <mml/core/Integration.h>
 #endif
 
 #include <iostream>

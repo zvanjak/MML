@@ -3,9 +3,9 @@
 #include "../../TestMatchers.h"
 
 #ifdef MML_USE_SINGLE_HEADER
-#include "MML.h"
+#include <MML.h>
 #else
-#include "mml/base/Geometry/Geometry3DBodies.h"
+#include <mml/base/Geometry/Geometry3DBodies.h>
 #endif
 
 using namespace MML;
@@ -261,7 +261,7 @@ TEST_CASE("PyramidEquilateral3D::InheritedMethods", "[geometry][pyramidequilater
         PyramidEquilateral3D pyramid(9.0);
         
         REQUIRE_THAT(pyramid.GetBaseSize() , RealApprox(9.0));
-        REQUIRE_THAT(pyramid.GetHeight() , RealApprox(9.0 / std::sqrt(3.0)).epsilon(1e-10));
+        REQUIRE_THAT(pyramid.GetHeight() , RealApprox(9.0 / std::sqrt(3.0)).epsilon(TOL(1e-10, 1e-5)));
         
         Vec3Cart baseCenter = pyramid.GetBaseCenter();
         REQUIRE_THAT(baseCenter.X() , RealApprox(0.0));

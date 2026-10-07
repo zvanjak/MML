@@ -3,7 +3,7 @@
 ///                                                                                   ///
 ///  File:        Random.h                                                            ///
 ///  Description: Random number generation utilities                                  ///
-///               Uniform and Gaussian distributions using Mersenne Twister           ///
+///               Uniform distributions using Mersenne Twister                        ///
 ///                                                                                   ///
 ///  Copyright:   (c) 2024-2026 Zvonimir Vanjak                                       ///
 ///  License:     MIT License (see LICENSE.md)                                         ///
@@ -12,7 +12,7 @@
 #if !defined MML_RANDOM_H
 #define MML_RANDOM_H
 
-#include "MMLBase.h"
+#include <mml/MMLBase.h>
 
 #include <random>
 
@@ -28,6 +28,9 @@ namespace MML
 	public:
 		// Seeds the thread-local RNG for reproducible results (affects calling thread only)
 		static void SetSeed(unsigned int seed) { gen.seed(seed); }
+
+		// Thread-local Mersenne Twister engine, e.g. for distribution sampling and custom draws.
+		static std::mt19937& Engine() { return gen; }
 
 		static Real UniformReal(Real min, Real max)
 		{

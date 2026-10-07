@@ -3,6 +3,9 @@ results/*.txt
 
 # Ignore build outputs
 build/
+build-float/
+build-ldbl/
+build_clang_*/
 
 # FastF1 cache (large, regenerable from API)
 testing/fastf1_cache/
@@ -374,6 +377,11 @@ MigrationBackup/
 .ionide/
 
 build
+build_float
+build_ldouble
+build_clang_float
+build_gcc_float_release
+build_gcc_long_double_release
 .DS_Store
 build_clang
 # Large simulation output files (exceed GitHub 100MB limit)

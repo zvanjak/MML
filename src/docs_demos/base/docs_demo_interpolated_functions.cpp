@@ -1,9 +1,9 @@
 #ifdef MML_USE_SINGLE_HEADER
-#include "MML.h"
+#include <MML.h>
 #else
-#include "MMLBase.h"
+#include <mml/MMLBase.h>
 
-#include "base/InterpolatedFunction.h"
+#include <mml/base/InterpolatedFunction.h>
 #endif
 
 using namespace MML;
@@ -72,6 +72,37 @@ void Docs_Demo_Barycentric_Interpolation()
     std::cout << "  Exact at data: f(x[2]) = " << f(x[2]) << ", y[2] = " << y[2] << std::endl << std::endl;
 }
 
+void Docs_Demo_Practical_1D_Interpolation()
+{
+    std::cout << "=== Practical 1D Interpolation ===" << std::endl << std::endl;
+
+    Vector<Real> x({ -1.0, -0.5, 0.0, 0.5, 1.0 });
+    Vector<Real> y(x.size());
+    Vector<Real> derivatives(x.size());
+    for (int i = 0; i < x.size(); ++i) {
+        y[i] = x[i] * x[i] * x[i] - x[i];
+        derivatives[i] = 3.0 * x[i] * x[i] - 1.0;
+    }
+
+    HermiteInterpRealFunc hermite(x, y, derivatives);
+    AkimaInterpRealFunc akima(x, y);
+    BarycentricPolynomialInterp polynomial(x, y);
+    auto runge = MakeChebyshevNodeInterpolator(
+        std::function<Real(Real)>([](Real value) { return 1.0 / (1.0 + 25.0 * value * value); }),
+        -1.0, 1.0, 15);
+
+    InterpolationConfig config;
+    config.extrapolation_policy = ExtrapolationPolicy::Clamp;
+    InterpolationResult detailed = akima.EvaluateDetailed(1.25, config);
+
+    std::cout << "Hermite value/derivative at 0.25: " << hermite(0.25)
+              << " / " << hermite.Derivative(0.25) << std::endl;
+    std::cout << "Barycentric polynomial at 0.25: " << polynomial(0.25) << std::endl;
+    std::cout << "Chebyshev-node Runge interpolant at 0.25: " << runge(0.25) << std::endl;
+    std::cout << "Clamped Akima query: " << detailed.value
+              << " (method: " << detailed.algorithm_name << ")" << std::endl << std::endl;
+}
+
 void Docs_Demo_Bilinear_2D()
 {
     std::cout << "=== Bilinear 2D Interpolation ===" << std::endl << std::endl;
@@ -128,6 +159,7 @@ void Docs_Demo_Interpolated_functions()
     Docs_Demo_Polynomial_Interpolation();
     Docs_Demo_Spline_Interpolation();
     Docs_Demo_Barycentric_Interpolation();
+    Docs_Demo_Practical_1D_Interpolation();
     Docs_Demo_Bilinear_2D();
     Docs_Demo_Parametric_Curve();
 }

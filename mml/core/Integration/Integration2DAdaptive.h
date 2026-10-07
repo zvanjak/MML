@@ -31,9 +31,9 @@
 #include <algorithm>
 #include <cmath>
 
-#include "MMLBase.h"
-#include "core/Integration/GaussKronrod.h"
-#include "core/Integration/IntegrationBase.h"
+#include <mml/MMLBase.h>
+#include <mml/core/Integration/GaussKronrod.h>
+#include <mml/core/Integration/IntegrationBase.h>
 
 namespace MML
 {
@@ -103,8 +103,8 @@ struct AdaptiveResult2D
 /// @brief Configuration for adaptive 2D integration
 struct AdaptiveConfig2D
 {
-    Real tol_abs = 1e-10;        ///< Absolute error tolerance
-    Real tol_rel = 1e-8;         ///< Relative error tolerance
+    Real tol_abs = PrecisionValues<Real>::IntegrationTolerance;  ///< Absolute error tolerance
+    Real tol_rel = PrecisionValues<Real>::IntegrationTolerance;  ///< Relative error tolerance
     int max_depth = 20;          ///< Maximum quadtree subdivision depth
     int max_evaluations = 1000000; ///< Maximum function evaluations budget
     GKRule rule = GKRule::GK15;  ///< Gauss-Kronrod rule to use
@@ -238,7 +238,6 @@ static GKResult IntegrateCell2D_TensorGK15(Func f, Real x1, Real x2, Real y1, Re
 /// @param depth Current recursion depth
 /// @param max_depth Maximum allowed depth
 /// @param evals_remaining Budget for function evaluations
-/// @param rule Which GK rule to use
 template<typename Func>
 static AdaptiveResult2D IntegrateAdaptive2D_Recursive(
     Func f, 
@@ -246,8 +245,7 @@ static AdaptiveResult2D IntegrateAdaptive2D_Recursive(
     Real total_area,
     Real tol_abs, Real tol_rel,
     int depth, int max_depth,
-    int& evals_remaining,
-    GKRule rule)
+    int& evals_remaining)
 {
     // Integrate this cell using tensor product GK15 with proper error estimation
     auto cell_result = Detail::IntegrateCell2D_TensorGK15(f, x1, x2, y1, y2);
@@ -276,10 +274,10 @@ static AdaptiveResult2D IntegrateAdaptive2D_Recursive(
     result.cells_subdivided = 1;  // This cell was subdivided
 
     // Process all 4 children
-    result += IntegrateAdaptive2D_Recursive(f, x1, mx, y1, my, total_area, tol_abs, tol_rel, depth+1, max_depth, evals_remaining, rule);
-    result += IntegrateAdaptive2D_Recursive(f, mx, x2, y1, my, total_area, tol_abs, tol_rel, depth+1, max_depth, evals_remaining, rule);
-    result += IntegrateAdaptive2D_Recursive(f, x1, mx, my, y2, total_area, tol_abs, tol_rel, depth+1, max_depth, evals_remaining, rule);
-    result += IntegrateAdaptive2D_Recursive(f, mx, x2, my, y2, total_area, tol_abs, tol_rel, depth+1, max_depth, evals_remaining, rule);
+    result += IntegrateAdaptive2D_Recursive(f, x1, mx, y1, my, total_area, tol_abs, tol_rel, depth+1, max_depth, evals_remaining);
+    result += IntegrateAdaptive2D_Recursive(f, mx, x2, y1, my, total_area, tol_abs, tol_rel, depth+1, max_depth, evals_remaining);
+    result += IntegrateAdaptive2D_Recursive(f, x1, mx, my, y2, total_area, tol_abs, tol_rel, depth+1, max_depth, evals_remaining);
+    result += IntegrateAdaptive2D_Recursive(f, mx, x2, my, y2, total_area, tol_abs, tol_rel, depth+1, max_depth, evals_remaining);
 
     return result;
 }
@@ -326,7 +324,7 @@ static AdaptiveResult2D IntegrateAdaptive2D(
     Func f,
     Real x1, Real x2,
     Real y1, Real y2,
-    Real tolerance = 1e-8,
+    Real tolerance = PrecisionValues<Real>::IntegrationTolerance,
     int max_depth = 20,
     int max_evals = 1000000)
 {
@@ -342,8 +340,7 @@ static AdaptiveResult2D IntegrateAdaptive2D(
         total_area,
         tolerance, tolerance,  // Use same tolerance for both abs and rel
         0, max_depth,
-        evals_remaining,
-        GKRule::GK15
+        evals_remaining
     );
 }
 
@@ -363,6 +360,10 @@ static AdaptiveResult2D IntegrateAdaptive2D(
     Real y1, Real y2,
     const AdaptiveConfig2D& config)
 {
+    // Only the tensor-product GK15 cell rule is implemented (see IntegrateCell2D_TensorGK15)
+    if (config.rule != GKRule::GK15)
+        throw NotImplementedError("IntegrateAdaptive2D: only GKRule::GK15 is implemented for 2D integration");
+
     if (x2 <= x1 || y2 <= y1) {
         return AdaptiveResult2D(0.0, 0.0, 0, 0, 0, true);
     }
@@ -375,8 +376,7 @@ static AdaptiveResult2D IntegrateAdaptive2D(
         total_area,
         config.tol_abs, config.tol_rel,
         0, config.max_depth,
-        evals_remaining,
-        config.rule
+        evals_remaining
     );
 }
 
@@ -391,7 +391,7 @@ static IntegrationDetailedResult IntegrateAdaptive2DDetailed(
     Real x1, Real x2,
     Real y1, Real y2,
     const IntegrationConfig& config = {},
-    Real tolerance = 1e-8,
+    Real tolerance = PrecisionValues<Real>::IntegrationTolerance,
     int max_depth = 20,
     int max_evals = 1000000)
 {

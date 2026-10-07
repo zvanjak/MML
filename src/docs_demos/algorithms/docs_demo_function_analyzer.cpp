@@ -1,10 +1,10 @@
 #ifdef MML_USE_SINGLE_HEADER
-#include "MML.h"
+#include <MML.h>
 #else
-#include "MMLBase.h"
+#include <mml/MMLBase.h>
 
-#include "base/Function.h"
-#include "algorithms/FunctionsAnalyzer.h"
+#include <mml/base/Function.h>
+#include <mml/algorithms/Analyzers/FunctionsAnalyzer.h>
 #endif
 
 using namespace MML;

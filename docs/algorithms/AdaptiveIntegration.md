@@ -21,7 +21,7 @@ fewer evaluations in smooth regions.
 ### 2D Integration
 
 ```cpp
-#include "MML.h"
+#include <MML.h>
 using namespace MML::Integration;
 
 // Simple API
@@ -134,7 +134,7 @@ This ensures:
 ### Example 1: Basic Polynomial
 
 ```cpp
-#include "MML.h"
+#include <MML.h>
 using namespace MML::Integration;
 
 int main() {

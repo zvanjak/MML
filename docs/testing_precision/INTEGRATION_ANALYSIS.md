@@ -225,7 +225,7 @@ MML provides dedicated functions for improper integrals:
 ### Basic 1D Integration
 
 ```cpp
-#include "core/Integration.h"
+#include <mml/core/Integration.h>
 using namespace MML;
 
 RealFunction f([](Real x) { return std::sin(x); });

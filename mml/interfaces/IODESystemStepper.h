@@ -31,12 +31,12 @@
 #if !defined MML_IODE_SYSTEM_STEPPER_H
 #define MML_IODE_SYSTEM_STEPPER_H
 
-#include "MMLBase.h"
+#include <mml/MMLBase.h>
 
-#include "interfaces/IODESystem.h"
+#include <mml/interfaces/IODESystem.h>
 
-#include "base/Vector/Vector.h"
-#include "base/Matrix/Matrix.h"
+#include <mml/base/Vector/Vector.h>
+#include <mml/base/Matrix/Matrix.h>
 
 namespace MML
 {
@@ -56,6 +56,8 @@ namespace MML
 	 */
 	class IODESystemStepper	{
 	public:
+		virtual ~IODESystemStepper() = default;
+
 		/**
 		 * @brief Perform an adaptive integration step.
 		 * 

@@ -1,13 +1,13 @@
 #ifdef MML_USE_SINGLE_HEADER
-#include "MML.h"
+#include <MML.h>
 #else
-#include "MMLBase.h"
+#include <mml/MMLBase.h>
 
-#include "base/Function.h"
+#include <mml/base/Function.h>
 
-#include "core/Curves.h"
+#include <mml/core/Curves.h>
 
-#include "core/Integration/PathIntegration.h"
+#include <mml/core/Integration/PathIntegration.h>
 #endif
 
 using namespace MML;

@@ -12,13 +12,13 @@
 #if !defined MML_DAE_SYSTEM_H
 #define MML_DAE_SYSTEM_H
 
-#include "MMLBase.h"
-#include "MMLExceptions.h"
+#include <mml/MMLBase.h>
+#include <mml/MMLExceptions.h>
 
-#include "interfaces/IODESystemDAE.h"
-#include "base/Vector/Vector.h"
-#include "base/Matrix/Matrix.h"
-#include "base/InterpolatedFunction.h"
+#include <mml/interfaces/IODESystemDAE.h>
+#include <mml/base/Vector/Vector.h>
+#include <mml/base/Matrix/Matrix.h>
+#include <mml/base/InterpolatedFunction.h>
 
 namespace MML
 {
@@ -418,7 +418,7 @@ namespace MML
 			: _diffDim(diffDim), _algDim(algDim), _diffFunc(diffFunc), _algFunc(algFunc)
 		{
 			if (diffFunc == nullptr || algFunc == nullptr)
-				throw std::invalid_argument("DAESystem: function pointers cannot be null");
+				throw ArgumentError("DAESystem: function pointers cannot be null");
 		}
 
 		/// @brief Virtual destructor for proper cleanup in derived classes
@@ -431,19 +431,23 @@ namespace MML
 		int getAlgDim() const override { return _algDim; }
 
 		/// @brief Compute differential equations dx/dt = f(t, x, y)
+		/// @throws NotImplementedError if no differential function was provided
 		void diffEqs(Real t, const Vector<Real>& x, const Vector<Real>& y,
 		             Vector<Real>& dxdt) const override
 		{
-			if (_diffFunc != nullptr)
-				_diffFunc(t, x, y, dxdt);
+			if (_diffFunc == nullptr)
+				throw NotImplementedError("DAESystem::diffEqs - no differential function provided");
+			_diffFunc(t, x, y, dxdt);
 		}
 
 		/// @brief Compute algebraic constraint residuals g(t, x, y)
+		/// @throws NotImplementedError if no algebraic function was provided
 		void algConstraints(Real t, const Vector<Real>& x, const Vector<Real>& y,
 		                    Vector<Real>& g) const override
 		{
-			if (_algFunc != nullptr)
-				_algFunc(t, x, y, g);
+			if (_algFunc == nullptr)
+				throw NotImplementedError("DAESystem::algConstraints - no algebraic function provided");
+			_algFunc(t, x, y, g);
 		}
 	};
 

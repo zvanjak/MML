@@ -25,11 +25,11 @@
 #if !defined MML_ICoordSystemTransf_H
 #define MML_ICoordSystemTransf_H
 
-#include "MMLBase.h"
+#include <mml/MMLBase.h>
 
 #include "IFunction.h"
 
-#include "base/Vector/VectorN.h"
+#include <mml/base/Vector/VectorN.h>
 
 namespace MML
 {

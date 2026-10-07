@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleDevelopmentRegion</key>
+    <string>en</string>
+    
+    <key>CFBundleExecutable</key>
+    <string>MML_Launcher</string>
+    
+    <key>CFBundleIdentifier</key>
+    <string>com.mml.launcher</string>
+    
+    <key>CFBundleInfoDictionaryVersion</key>
+    <string>6.0</string>
+    
+    <key>CFBundleName</key>
+    <string>MML Launcher</string>
+    
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    
+    <key>CFBundleShortVersionString</key>
+    <string>1.0</string>
+    
+    <key>CFBundleVersion</key>
+    <string>1.0</string>
+    
+    <key>LSMinimumSystemVersion</key>
+    <string>10.15</string>
+    
+    <key>NSHighResolutionCapable</key>
+    <true/>
+    
+    <key>NSPrincipalClass</key>
+    <string>NSApplication</string>
+    
+    <!-- Document Types - Register .mml file handling -->
+    <key>CFBundleDocumentTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleTypeName</key>
+            <string>MML Data File</string>
+            
+            <key>CFBundleTypeRole</key>
+            <string>Viewer</string>
+            
+            <key>LSHandlerRank</key>
+            <string>Owner</string>
+            
+            <key>LSItemContentTypes</key>
+            <array>
+                <string>com.mml.datafile</string>
+            </array>
+            
+            <key>CFBundleTypeExtensions</key>
+            <array>
+                <string>mml</string>
+            </array>
+            
+            <key>CFBundleTypeIconFile</key>
+            <string>MMLDocument</string>
+        </dict>
+    </array>
+    
+    <!-- Exported Type Declarations - Define the .mml UTI -->
+    <key>UTExportedTypeDeclarations</key>
+    <array>
+        <dict>
+            <key>UTTypeIdentifier</key>
+            <string>com.mml.datafile</string>
+            
+            <key>UTTypeDescription</key>
+            <string>MML Data File</string>
+            
+            <key>UTTypeConformsTo</key>
+            <array>
+                <string>public.plain-text</string>
+                <string>public.data</string>
+            </array>
+            
+            <key>UTTypeTagSpecification</key>
+            <dict>
+                <key>public.filename-extension</key>
+                <array>
+                    <string>mml</string>
+                </array>
+                <key>public.mime-type</key>
+                <string>text/x-mml</string>
+            </dict>
+        </dict>
+    </array>
+</dict>
+</plist>

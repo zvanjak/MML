@@ -65,7 +65,7 @@ void Print();  // Formatted console output
 #### Basic Timing
 
 ```cpp
-#include "tools/Timer.h"
+#include <mml/tools/Timer.h>
 
 Timer timer;
 timer.Start();
@@ -139,7 +139,7 @@ double cum3 = timer.GetMarkTimeFromStart(2);  // After step 1+2+3
 #### Algorithm Comparison
 
 ```cpp
-#include "algorithms/RootFinding.h"
+#include <mml/algorithms/RootFinding.h>
 
 Timer timer;
 
@@ -267,6 +267,11 @@ ThreadPool(size_t numThreads);  // Create pool with N threads
 
 ```cpp
 void enqueue(std::function<void()> task);  // Add task to queue
+void enqueue_batch(std::vector<std::function<void()>> tasks);  // Add multiple tasks
+void enqueue(std::stop_token token,
+             std::function<void(std::stop_token)> task);  // Add cancellable task
+void enqueue_batch(std::stop_token token,
+                   std::vector<std::function<void(std::stop_token)>> tasks);  // Add cancellable batch
 void wait_for_tasks();                      // Block until queue empty
 bool has_tasks();                           // Check if tasks pending
 ```
@@ -282,7 +287,7 @@ bool has_tasks();                           // Check if tasks pending
 #### Basic Parallel Execution
 
 ```cpp
-#include "tools/ThreadPool.h"
+#include <mml/tools/ThreadPool.h>
 
 ThreadPool pool(4);  // 4 worker threads
 
@@ -401,6 +406,41 @@ pool.enqueue([]() { taskD(); });
 pool.enqueue([]() { taskE(); });
 
 // Destructor waits for phase 2
+```
+
+#### Batch Enqueue
+
+```cpp
+ThreadPool pool(4);
+std::vector<std::function<void()>> tasks;
+
+for (int i = 0; i < 100; ++i) {
+    tasks.emplace_back([i]() {
+        processTask(i);
+    });
+}
+
+pool.enqueue_batch(std::move(tasks));  // Acquires the queue lock once
+pool.wait_for_tasks();
+```
+
+#### Cooperative Cancellation
+
+```cpp
+#include <stop_token>
+
+ThreadPool pool(4);
+std::stop_source stopSource;
+
+pool.enqueue(stopSource.get_token(), [](std::stop_token token) {
+    while (!token.stop_requested()) {
+        processNextChunk();
+    }
+});
+
+// Queued cancellable tasks are skipped if stop is requested before they start.
+stopSource.request_stop();
+pool.wait_for_tasks();
 ```
 
 #### Progress Monitoring

@@ -69,8 +69,8 @@
 #include <string>
 #include <vector>
 
-#include "MMLBase.h"
-#include "MMLExceptions.h"
+#include <mml/MMLBase.h>
+#include <mml/MMLExceptions.h>
 
 namespace MML {
 	/// @brief Three-dimensional matrix (tensor) with contiguous memory layout.

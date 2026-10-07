@@ -12,11 +12,11 @@
 #if !defined MML_LAGUERRE_BASIS_H
 #define MML_LAGUERRE_BASIS_H
 
-#include "MMLBase.h"
+#include <mml/MMLBase.h>
 
-#include "base/StandardFunctions.h"
-#include "interfaces/IFunction.h"
-#include "core/OrthogonalBasis.h"
+#include <mml/base/StandardFunctions.h>
+#include <mml/interfaces/IFunction.h>
+#include <mml/core/OrthogonalBasis.h>
 
 #include <cmath>
 #include <limits>
@@ -60,7 +60,7 @@ namespace MML
         Real Evaluate(int n, Real x) const override
         {
             if (n < 0)
-                throw std::invalid_argument("LaguerreBasis::Evaluate: n must be non-negative");
+                throw ArgumentError("LaguerreBasis::Evaluate: n must be non-negative");
             
             return Functions::Laguerre(static_cast<unsigned int>(n), x);
         }
@@ -75,7 +75,7 @@ namespace MML
         Real Normalization(int n) const override
         {
             if (n < 0)
-                throw std::invalid_argument("LaguerreBasis::Normalization: n must be non-negative");
+                throw ArgumentError("LaguerreBasis::Normalization: n must be non-negative");
             
             return 1.0;
         }
@@ -98,7 +98,7 @@ namespace MML
         void RecurrenceCoefficients(int n, Real& a, Real& b, Real& c) const
         {
             if (n < 0)
-                throw std::invalid_argument("LaguerreBasis::RecurrenceCoefficients: n must be non-negative");
+                throw ArgumentError("LaguerreBasis::RecurrenceCoefficients: n must be non-negative");
             
             Real n_real = static_cast<Real>(n);
             Real n_plus_1 = n_real + 1.0;
@@ -134,7 +134,7 @@ namespace MML
         explicit AssociatedLaguerreBasis(Real alpha) : _alpha(alpha)
         {
             if (alpha <= -1.0)
-                throw std::invalid_argument("AssociatedLaguerreBasis: alpha must be > -1");
+                throw ArgumentError("AssociatedLaguerreBasis: alpha must be > -1");
         }
 
         Real Alpha() const { return _alpha; }
@@ -143,7 +143,7 @@ namespace MML
         Real Evaluate(int n, Real x) const
         {
             if (n < 0)
-                throw std::invalid_argument("AssociatedLaguerreBasis::Evaluate: n must be non-negative");
+                throw ArgumentError("AssociatedLaguerreBasis::Evaluate: n must be non-negative");
             
             // Use recurrence relation:
             // (n+1)Lₙ₊₁^(α) = (2n + α + 1 - x)Lₙ^(α) - (n + α)Lₙ₋₁^(α)
@@ -179,7 +179,7 @@ namespace MML
         Real Normalization(int n) const
         {
             if (n < 0)
-                throw std::invalid_argument("AssociatedLaguerreBasis::Normalization: n must be non-negative");
+                throw ArgumentError("AssociatedLaguerreBasis::Normalization: n must be non-negative");
             
             // Γ(n+α+1)/n! = (n+α)(n+α-1)...(α+1)Γ(α+1)
             // For simplicity, use: (n+α)!/n! * Γ(α+1)/α!
@@ -205,7 +205,7 @@ namespace MML
         void RecurrenceCoefficients(int n, Real& a, Real& b, Real& c) const
         {
             if (n < 0)
-                throw std::invalid_argument("AssociatedLaguerreBasis::RecurrenceCoefficients: n must be non-negative");
+                throw ArgumentError("AssociatedLaguerreBasis::RecurrenceCoefficients: n must be non-negative");
             
             Real n_real = static_cast<Real>(n);
             Real n_plus_1 = n_real + 1.0;

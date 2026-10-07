@@ -9,14 +9,14 @@
 ///////////////////////////////////////////////////////////////////////////////////////////
 
 #ifdef MML_USE_SINGLE_HEADER
-#include "MML.h"
+#include <MML.h>
 #else
-#include "MMLBase.h"
+#include <mml/MMLBase.h>
 
-#include "base/Vector/Vector.h"
-#include "base/Vector/VectorN.h"
-#include "base/Vector/VectorTypes.h"
-#include "base/BaseUtils.h"
+#include <mml/base/Vector/Vector.h>
+#include <mml/base/Vector/VectorN.h>
+#include <mml/base/Vector/VectorTypes3D.h>
+#include <mml/base/BaseUtils.h>
 #endif
 
 #include <iostream>
@@ -200,14 +200,14 @@ void Demo_Vector_Operations()
     std::cout << "\n=== Vector Operations ===\n\n";
 
     // Dot product (scalar product)
-    Vector<double> a({1, 2, 3});
-    Vector<double> b({4, 5, 6});
+    Vector<Real> a({1, 2, 3});
+    Vector<Real> b({4, 5, 6});
     
     std::cout << "a = " << a << std::endl;
     std::cout << "b = " << b << std::endl;
     
     // Use free function Utils::ScalarProduct
-    double dot = Utils::ScalarProduct(a, b);  // 1*4 + 2*5 + 3*6 = 32
+    Real dot = Utils::ScalarProduct(a, b);  // 1*4 + 2*5 + 3*6 = 32
     std::cout << "\nDot product: Utils::ScalarProduct(a, b) = " << dot << std::endl;
     std::cout << "  (computed as 1*4 + 2*5 + 3*6 = 4 + 10 + 18 = 32)" << std::endl;
 
@@ -254,8 +254,8 @@ void Demo_Vector_Operations()
 
     // Angle between vectors
     std::cout << "\nAngle between vectors:" << std::endl;
-    Vector<double> v1({1, 0, 0});
-    Vector<double> v2({1, 1, 0});
+    Vector<Real> v1({1, 0, 0});
+    Vector<Real> v2({1, 1, 0});
     
     Real angle = Utils::VectorsAngle(v1, v2);
     std::cout << "  v1 = " << v1 << std::endl;

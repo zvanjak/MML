@@ -301,7 +301,7 @@ double x_final = newtonPolish(f, df, x_approx, 1e-14);
 ## Code Examples
 
 ```cpp
-#include "algorithms/RootFinding.h"
+#include <mml/algorithms/RootFinding.h>
 
 // Define function
 auto f = [](double x) { return cos(x) - x; };

@@ -201,7 +201,7 @@ For f(x) = sin(ωx) with large ω:
 ### Code Example
 
 ```cpp
-#include "core/Derivation.h"
+#include <mml/core/Derivation.h>
 using namespace MML::Derivation;
 
 // Test function

@@ -15,11 +15,11 @@ All code examples in this document are available as runnable code in `src/docs_d
 | `Docs_Demo_Matrix_Row_Col_Access()` | VectorFromRow, VectorFromColumn, Init methods |
 | `Docs_Demo_Matrix_Submatrix()` | GetSubmatrix, GetLower, GetUpper |
 | `Docs_Demo_Matrix_Properties()` | IsUnit, IsDiagonal, IsSymmetric, Trace |
-| `Docs_Demo_Matrix_Norms()` | NormL1, NormL2, NormLInf, Utils::Det |
+| `Docs_Demo_Matrix_Norms()` | OneNorm, FrobeniusNorm, InfinityNorm, MatrixAlg::Determinant |
 | `Docs_Demo_Matrix_Equality()` | ==, !=, IsEqualTo with tolerance |
 | `Docs_Demo_Matrix_Vector_mul()` | Matrix-vector multiplication |
 | `Docs_Demo_Matrix_Matrix_mul()` | Matrix-matrix multiplication |
-| `Docs_Demo_Matrix_invert()` | GetInverse() |
+| `Docs_Demo_Matrix_invert()` | MatrixAlg::Inverse() |
 | `Docs_Demo_Matrix_transpose()` | Transpose(), transpose() |
 
 ## Quick Reference
@@ -61,8 +61,8 @@ auto diag = Matrix<double>::GetDiagonalMatrix(Vector<double>({1,2,3})); // Diago
 Matrix<double> A{3, 3, {1,2,3,4,5,6,7,8,9}};
 
 // Dimensions
-int rows = A.RowNum();    // 3
-int cols = A.ColNum();    // 3
+int rows = A.rows();    // 3
+int cols = A.cols();    // 3
 
 // Element access: (row, col) - 0-based indexing
 double val = A(1, 2);     // Get element at row 1, col 2
@@ -103,7 +103,7 @@ Vector<double> result = A * v;
 ## Matrix Operations
 
 ```cpp
-#include "core/MatrixUtils.h"  // For Utils::Det
+#include <mml/algorithms/MatrixAlg.h>
 
 Matrix<double> A{3,3,{1,2,3,4,5,6,7,8,9}};
 
@@ -112,18 +112,18 @@ Matrix<double> At = A.transpose();  // Returns copy
 A.Transpose();                          // In-place (square only)
 
 // Determinant (free function)
-double det = Utils::Det(A);
+double det = MatrixAlg::Determinant(A);
 
 // Inverse (if exists)
-Matrix<double> Ainv = A.GetInverse();
+Matrix<double> Ainv = MatrixAlg::Inverse(A);
 
 // Trace
-double tr = A.Trace();
+double tr = MatrixAlg::Trace(A);
 
 // Norms
-double normL2 = A.NormL2();      // Frobenius norm
-double normLinf = A.NormLInf();  // Max norm
-double normL1 = A.NormL1();      // Sum of absolute values
+double frobenius = MatrixAlg::FrobeniusNorm(A);
+double normLinf = MatrixAlg::InfinityNorm(A);  // Maximum row sum
+double normL1 = MatrixAlg::OneNorm(A);         // Maximum column sum
 ```
 
 ## Submatrices & Reshaping
@@ -163,13 +163,13 @@ std::cout << A << std::endl;
 
 ### Example 1: Solving Linear System
 ```cpp
-#include "MML.h"
+#include <MML.h>
 using namespace MML;
 
 Matrix<double> A{3,3,{2,-1,0, -1,2,-1, 0,-1,2}};
 Vector<double> b{1, 0, 1};
 
-LUDecompositionSolver<double> solver(A);
+LUSolver<double> solver(A);
 Vector<double> x = solver.Solve(b);
 
 std::cout << "Solution: " << x << std::endl;
@@ -178,18 +178,18 @@ std::cout << "Verification: " << (A * x) << std::endl;
 
 ### Example 2: Matrix Properties
 ```cpp
-#include "core/MatrixUtils.h"
+#include <mml/algorithms/MatrixAlg.h>
 
 Matrix<double> A{3,3,{1,0,0, 0,2,0, 0,0,3}};
 
-std::cout << "Determinant: " << Utils::Det(A) << std::endl; // 6
-std::cout << "Trace: " << A.Trace() << std::endl;           // 6
-std::cout << "L2 norm: " << A.NormL2() << std::endl;        // sqrt(14)
+std::cout << "Determinant: " << MatrixAlg::Determinant(A) << std::endl; // 6
+std::cout << "Trace: " << MatrixAlg::Trace(A) << std::endl; // 6
+std::cout << "Frobenius norm: " << MatrixAlg::FrobeniusNorm(A) << std::endl; // sqrt(14)
 ```
 
 ### Example 3: Matrix Decomposition
 ```cpp
-#include "core/LinearAlgEqSolvers.h"
+#include <mml/core/LinAlgEqSolvers.h>
 
 Matrix<double> A{3,3,{4,12,-16, 12,37,-43, -16,-43,98}};
 

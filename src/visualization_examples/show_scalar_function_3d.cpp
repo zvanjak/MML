@@ -8,12 +8,12 @@
  */
 
 #ifdef MML_USE_SINGLE_HEADER
-#include "MML.h"
+#include <MML.h>
 #else
-#include "MMLBase.h"
-#include "base/Vector/VectorN.h"
-#include "core/Fields.h"
-#include "tools/Visualizer.h"
+#include <mml/MMLBase.h>
+#include <mml/base/Vector/VectorN.h>
+#include <mml/core/Fields/Fields.h>
+#include <mml/tools/Visualizer.h>
 #endif
 
 using namespace MML;
@@ -25,7 +25,7 @@ void Show_Scalar_Function_3D_Examples()
     // Example 1: Gaussian Blob
     std::cout << "1. Gaussian Blob: f(x,y,z) = exp(-(x^2 + y^2 + z^2) / sigma^2)\n";
     std::cout << "   A smooth peak centered at the origin\n";
-    ScalarFunction<3> gaussianBlob{[](const VectorN<Real, 3>& v) {
+    ScalarFunction<3> gaussianBlob{[](const VectorN<Real, 3>& v) -> Real {
         Real sigma = 0.5;
         Real r2 = v[0]*v[0] + v[1]*v[1] + v[2]*v[2];
         return std::exp(-r2 / (sigma * sigma));
@@ -39,7 +39,7 @@ void Show_Scalar_Function_3D_Examples()
     // Example 2: Sinusoidal Wave
     std::cout << "2. Triply Periodic Wave: f = sin(pi*x) * sin(pi*y) * sin(pi*z)\n";
     std::cout << "   Creates a 3D checkerboard-like pattern\n";
-    ScalarFunction<3> sinusoidalWave{[](const VectorN<Real, 3>& v) {
+    ScalarFunction<3> sinusoidalWave{[](const VectorN<Real, 3>& v) -> Real {
         return std::sin(Constants::PI * v[0]) * 
                std::sin(Constants::PI * v[1]) * 
                std::sin(Constants::PI * v[2]);
@@ -53,7 +53,7 @@ void Show_Scalar_Function_3D_Examples()
     // Example 3: Gyroid - a triply periodic minimal surface (famous in materials science!)
     std::cout << "3. Gyroid: sin(x)cos(y) + sin(y)cos(z) + sin(z)cos(x)\n";
     std::cout << "   Famous minimal surface, used in 3D printing and material science\n";
-    ScalarFunction<3> gyroid{[](const VectorN<Real, 3>& v) {
+    ScalarFunction<3> gyroid{[](const VectorN<Real, 3>& v) -> Real {
         Real scale = Constants::PI / 2.0;  // One full period
         Real x = v[0] * scale;
         Real y = v[1] * scale;
@@ -71,7 +71,7 @@ void Show_Scalar_Function_3D_Examples()
     // Example 4: Sphere Distance Function (SDF)
     std::cout << "4. Signed Distance to Sphere: sqrt(x^2+y^2+z^2) - r\n";
     std::cout << "   Negative inside, zero on surface, positive outside\n";
-    ScalarFunction<3> sphereDistance{[](const VectorN<Real, 3>& v) {
+    ScalarFunction<3> sphereDistance{[](const VectorN<Real, 3>& v) -> Real {
         Real r = std::sqrt(v[0]*v[0] + v[1]*v[1] + v[2]*v[2]);
         return r - 1.0;  // Distance to unit sphere
     }};
@@ -84,7 +84,7 @@ void Show_Scalar_Function_3D_Examples()
     // Example 5: Torus Distance Function
     std::cout << "5. Signed Distance to Torus\n";
     std::cout << "   Donut-shaped distance field\n";
-    ScalarFunction<3> torusDistance{[](const VectorN<Real, 3>& v) {
+    ScalarFunction<3> torusDistance{[](const VectorN<Real, 3>& v) -> Real {
         Real R = 0.7;  // Major radius
         Real r = 0.3;  // Minor radius
         Real q = std::sqrt(v[0]*v[0] + v[1]*v[1]) - R;

@@ -6,9 +6,9 @@
 #include <limits>
 
 #ifdef MML_USE_SINGLE_HEADER
-#include "MML.h"
+#include <MML.h>
 #else
-#include "MMLBase.h"
+#include <mml/MMLBase.h>
 #endif
 
 namespace MML::TestBeds

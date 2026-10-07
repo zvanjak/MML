@@ -1,11 +1,12 @@
 #ifdef MML_USE_SINGLE_HEADER
-#include "MML.h"
+#include <MML.h>
 #else
-#include "MMLBase.h"
+#include <mml/MMLBase.h>
 
-#include "base/Function.h"
-#include "algorithms/Optimization.h"
-#include "algorithms/OptimizationMultidim.h"
+#include <mml/base/Function.h>
+#include <mml/algorithms/Optimization/Optimization.h>
+#include <mml/algorithms/Optimization/OptimizationMultidim.h>
+#include <mml/algorithms/Optimization/LinearProgramming.h>
 #endif
 
 using namespace MML;
@@ -240,6 +241,34 @@ void Docs_Demo_Optimization_Multidim()
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
+///                    LINEAR PROGRAMMING                                               ///
+///////////////////////////////////////////////////////////////////////////////////////////
+
+void Docs_Demo_Optimization_LinearProgramming()
+{
+	std::cout << "\n==========================================================================\n";
+	std::cout << "Demo: Dense Linear Programming\n";
+	std::cout << "==========================================================================\n";
+
+	std::cout << "\nMaximize 3x + 2y subject to x + y <= 4, 2x + y <= 5, x,y >= 0.\n";
+
+	Optimization::LinearProgram lp(2, "ProductionPlan");
+	lp.SetVariableNames({ "x", "y" });
+	lp.SetObjective({ REAL(3.0), REAL(2.0) }, Optimization::LPObjective::Maximize);
+	lp.AddConstraint({ REAL(1.0), REAL(1.0) }, Optimization::LPConstraintType::LessEqual, REAL(4.0), "capacity1");
+	lp.AddConstraint({ REAL(2.0), REAL(1.0) }, Optimization::LPConstraintType::LessEqual, REAL(5.0), "capacity2");
+
+	Optimization::LPResult result = Optimization::SolveLP(lp);
+	std::cout << "\nStatus: " << result.statusMessage() << std::endl;
+	if (result.IsOptimal()) {
+		std::cout << "  x = " << result.x[0] << std::endl;
+		std::cout << "  y = " << result.x[1] << std::endl;
+		std::cout << "  objective = " << result.objectiveValue << std::endl;
+		std::cout << "  iterations = " << result.iterations << std::endl;
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////
 ///                         MAIN DEMO FUNCTION                                          ///
 ///////////////////////////////////////////////////////////////////////////////////////////
 
@@ -256,6 +285,7 @@ void Docs_Demo_Optimization()
 	Docs_Demo_Optimization_Bounded();
 	Docs_Demo_Optimization_Comparison();
 	Docs_Demo_Optimization_Multidim();
+	Docs_Demo_Optimization_LinearProgramming();
 	
 	std::cout << "\n=== All Optimization Demos Complete ===\n";
 }

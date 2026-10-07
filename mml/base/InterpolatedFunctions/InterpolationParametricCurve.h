@@ -15,7 +15,7 @@
 /// @section interp_param_classes Classes
 /// - LinInterpParametricCurve<N> - Linear interpolation of N-dimensional curves
 /// - SplineInterpParametricCurve<N> - Spline interpolation of N-dimensional curves
-/// @see InterpolatedRealFunction.h for 1D interpolation
+/// @see InterpolatedFunctionSpline.h for spline interpolation
 /// @see Interpolation2DFunction.h for 2D grid interpolation
 /// @ingroup Interpolation
 
@@ -25,15 +25,15 @@
 #include <cmath>
 #include <vector>
 
-#include "MMLBase.h"
-#include "MMLExceptions.h"
+#include <mml/MMLBase.h>
+#include <mml/MMLExceptions.h>
 
-#include "interfaces/IFunction.h"
+#include <mml/interfaces/IFunction.h>
 
-#include "base/Vector/Vector.h"
-#include "base/Matrix/Matrix.h"
+#include <mml/base/Vector/Vector.h>
+#include <mml/base/Matrix/Matrix.h>
 
-#include "base/InterpolatedFunctions/InterpolatedRealFunction.h"
+#include <mml/base/InterpolatedFunctions/InterpolatedFunctionSpline.h>
 
 namespace MML {
 
@@ -160,7 +160,7 @@ namespace MML {
 		Vector<Real> s;			   ///< Arc-length parameters
 		Vector<Real> ans;		   ///< Temporary result storage
 
-		std::vector<SplineInterpRealFunc*> srp; ///< Spline for each coordinate
+		std::vector<SplineInterpRealFunc> srp; ///< Spline for each coordinate
 
 	public:
 		/// @brief Construct a spline-interpolated parametric curve.
@@ -179,7 +179,6 @@ namespace MML {
 			, _curvePoints(_dim, _bemba)
 			, s(_bemba)
 			, ans(_dim)
-			, srp(_dim)
 			, _minT(minT)
 			, _maxT(maxT) {
 			// check N == dim
@@ -213,13 +212,14 @@ namespace MML {
 			for (i = 0; i < _bemba; i++)
 				s[i] = (s[i] - soff) / ss;
 
+			srp.reserve(_dim);
 			for (j = 0; j < _dim; j++) {
 				db = _bemba < 4 ? 1.e99 : fprime(&s[0], &_curvePoints[j][0], 1);
 				de = _bemba < 4 ? 1.e99 : fprime(&s[_bemba - 1], &_curvePoints[j][_bemba - 1], -1);
 
 				Vector<Real> vec = _curvePoints.VectorFromRow(j);
 
-				srp[j] = new SplineInterpRealFunc(s, vec, db, de);
+				srp.emplace_back(s, vec, db, de);
 			}
 		}
 
@@ -229,11 +229,6 @@ namespace MML {
 
 		SplineInterpParametricCurve(const Matrix<Real>& ptsin, bool close = 0)
 			: SplineInterpParametricCurve(0.0, 1.0, ptsin, close) {}
-
-		~SplineInterpParametricCurve() {
-			for (int j = 0; j < _dim; j++)
-				delete srp[j];
-		}
 
 		/// /** @brief Get the minimum parameter value. */
 
@@ -262,7 +257,7 @@ namespace MML {
 			// we have to map t from [minT, maxT] to [0, 1]
 			t = (t - _minT) / (_maxT - _minT);
 			for (int j = 0; j < _dim; j++)
-				ans[j] = (*srp[j])(t);
+				ans[j] = srp[j](t);
 
 			return ans;
 		}

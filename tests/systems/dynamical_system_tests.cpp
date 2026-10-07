@@ -9,9 +9,10 @@
 ///////////////////////////////////////////////////////////////////////////////////////////
 
 #include <catch2/catch_test_macros.hpp>
+#include "../TestPrecision.h"
 #include <catch2/catch_approx.hpp>
 
-#include "systems/DynamicalSystem.h"
+#include <mml/systems/DynamicalSystem.h>
 
 using namespace MML;
 using namespace MML::Systems;
@@ -154,8 +155,8 @@ TEST_CASE("VanDerPolSystem - Fixed point at origin", "[DynamicalSystem][VanDerPo
     Vector<Real> dydt(2);
     vdp.derivs(0.0, origin, dydt);
     
-    REQUIRE(std::abs(dydt[0]) < 1e-14);
-    REQUIRE(std::abs(dydt[1]) < 1e-14);
+    REQUIRE(std::abs(dydt[0]) < TOL(1e-14, 1e-5));
+    REQUIRE(std::abs(dydt[1]) < TOL(1e-14, 1e-5));
 }
 
 TEST_CASE("VanDerPolSystem - Jacobian at origin", "[DynamicalSystem][VanDerPol]")
@@ -198,10 +199,10 @@ TEST_CASE("FixedPointFinder - Lorenz origin", "[DynamicalSystem][FixedPoint]")
     auto fp = FixedPointFinder::Find(lorenz, guess);
     
     // Should find origin
-    REQUIRE(fp.convergenceResidual < 1e-8);
-    REQUIRE(fp.location[0] == Approx(0.0).margin(1e-8));
-    REQUIRE(fp.location[1] == Approx(0.0).margin(1e-8));
-    REQUIRE(fp.location[2] == Approx(0.0).margin(1e-8));
+    REQUIRE(fp.convergenceResidual < TOL(1e-8, 1e-4));
+    REQUIRE(fp.location[0] == Approx(0.0).margin(TOL(1e-8, 1e-4)));
+    REQUIRE(fp.location[1] == Approx(0.0).margin(TOL(1e-8, 1e-4)));
+    REQUIRE(fp.location[2] == Approx(0.0).margin(TOL(1e-8, 1e-4)));
 }
 
 TEST_CASE("FixedPointFinder - Van der Pol origin", "[DynamicalSystem][FixedPoint]")
@@ -211,9 +212,9 @@ TEST_CASE("FixedPointFinder - Van der Pol origin", "[DynamicalSystem][FixedPoint
     Vector<Real> guess({0.1, 0.1});
     auto fp = FixedPointFinder::Find(vdp, guess);
     
-    REQUIRE(fp.convergenceResidual < 1e-8);
-    REQUIRE(fp.location[0] == Approx(0.0).margin(1e-8));
-    REQUIRE(fp.location[1] == Approx(0.0).margin(1e-8));
+    REQUIRE(fp.convergenceResidual < TOL(1e-8, 1e-4));
+    REQUIRE(fp.location[0] == Approx(0.0).margin(TOL(1e-8, 1e-4)));
+    REQUIRE(fp.location[1] == Approx(0.0).margin(TOL(1e-8, 1e-4)));
     
     // Origin is unstable for μ > 0
     REQUIRE(fp.isStable == false);
@@ -306,7 +307,7 @@ TEST_CASE("LyapunovAnalyzer - Lorenz chaotic regime", "[DynamicalSystem][Lyapuno
     Vector<Real> x0 = lorenz.getDefaultInitialCondition();
     
     // Short integration for test speed (longer = more accurate)
-    auto result = LyapunovAnalyzer::Compute(lorenz, x0, 100.0, 1.0, 0.01);
+    auto result = LyapunovAnalyzer::Compute(lorenz, x0, TOL(100.0, 150.0), 1.0, 0.01);
     
     // Lorenz should have one positive exponent (≈0.9)
     REQUIRE(result.isChaotic == true);
@@ -344,6 +345,29 @@ TEST_CASE("PhaseSpaceAnalyzer - Trajectory integration", "[DynamicalSystem][Phas
     }
 }
 
+TEST_CASE("PhaseSpaceAnalyzer - adaptive trajectory remains accurate with coarse initial steps", "[DynamicalSystem][PhaseSpace][i5u3.3.3]")
+{
+    class ExponentialSystem : public DynamicalSystemBase<1, 0>
+    {
+    public:
+        void derivs(Real, const Vector<Real>& state, Vector<Real>& derivative) const override
+        {
+            derivative[0] = state[0];
+        }
+    };
+
+    ExponentialSystem system;
+    const DynamicalSystemAnalyzer<> analyzer(system);
+    const auto trajectory = analyzer.IntegrateTrajectory(
+        Vector<Real>({1.0}), 2.0, 0.25, 0.5);
+
+    REQUIRE(trajectory.size() == 9);
+    for (int index = 0; index < static_cast<int>(trajectory.size()); ++index) {
+        const Real time = REAL(0.25) * index;
+        REQUIRE(trajectory[index][0] == Approx(std::exp(time)).epsilon(TOL(1e-8, 5e-6)));
+    }
+}
+
 TEST_CASE("PhaseSpaceAnalyzer - Poincare section", "[DynamicalSystem][PhaseSpace]")
 {
     LorenzSystem lorenz;
@@ -361,6 +385,30 @@ TEST_CASE("PhaseSpaceAnalyzer - Poincare section", "[DynamicalSystem][PhaseSpace
     for (const auto& pt : intersections)
     {
         REQUIRE(pt[2] == Approx(27.0).margin(0.1));
+    }
+}
+
+TEST_CASE("PhaseSpaceAnalyzer - Poincare crossings use adaptive dense output", "[DynamicalSystem][PhaseSpace][i5u3.3.3]")
+{
+    class HarmonicOscillator : public DynamicalSystemBase<2, 0>
+    {
+    public:
+        void derivs(Real, const Vector<Real>& state, Vector<Real>& derivative) const override
+        {
+            derivative[0] = state[1];
+            derivative[1] = -state[0];
+        }
+    };
+
+    HarmonicOscillator system;
+    const PoincareSection<Real> section(0, 0.0, 1);
+    const auto intersections = PhaseSpaceAnalyzer::ComputePoincareSection(
+        system, Vector<Real>({1.0, 0.0}), section, 3, 0.5);
+
+    REQUIRE(intersections.size() == 3);
+    for (const auto& intersection : intersections) {
+        REQUIRE(intersection[0] == Approx(0.0).margin(TOL(1e-10, 5e-6)));
+        REQUIRE(intersection[1] == Approx(1.0).epsilon(TOL(1e-8, 2e-4)));
     }
 }
 
@@ -539,8 +587,8 @@ TEST_CASE("DoublePendulumSystem - Acceleration at non-trivial state", "[Dynamica
     dp.derivs(0.0, y, dydt);
 
     // dtheta/dt = omega (trivial check)
-    REQUIRE(dydt[0] == Approx(1.0).epsilon(1e-12));
-    REQUIRE(dydt[1] == Approx(2.0).epsilon(1e-12));
+    REQUIRE(dydt[0] == Approx(1.0).epsilon(TOL(1e-12, 1e-5)));
+    REQUIRE(dydt[1] == Approx(2.0).epsilon(TOL(1e-12, 1e-5)));
 
     // alpha1 ≈ -7.39 from Euler-Lagrange derivation (Cramer's rule solution)
     REQUIRE(dydt[2] == Approx(-7.39).epsilon(0.01));
@@ -558,7 +606,7 @@ TEST_CASE("DoublePendulumSystem - Energy conservation (dE/dt = 0)", "[DynamicalS
     dp.derivs(0.0, y, dydt);
 
     // Compute dE/dt = grad(E) . dydt via central finite differences
-    Real eps = 1e-7;
+    Real eps = TOL(1e-7, 1e-3);
     Real dEdt = 0.0;
     for (int i = 0; i < 4; ++i) {
         Vector<Real> yp = y, ym = y;
@@ -569,7 +617,7 @@ TEST_CASE("DoublePendulumSystem - Energy conservation (dE/dt = 0)", "[DynamicalS
     }
 
     // dE/dt must be zero for correct Euler-Lagrange equations
-    REQUIRE(std::abs(dEdt) < 1e-4);
+    REQUIRE(std::abs(dEdt) < TOL(1e-4, 0.1));
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -618,8 +666,8 @@ TEST_CASE("HenonMap - Basic iteration", "[DynamicalSystem][DiscreteMap][HenonMap
 {
     HenonMap hmap(1.4, 0.3);
     
-    REQUIRE(hmap.getA() == 1.4);
-    REQUIRE(hmap.getB() == 0.3);
+REQUIRE(hmap.getA() == Approx(REAL(1.4)));
+	REQUIRE(hmap.getB() == Approx(REAL(0.3)));
     
     Vector<Real> x({0.0, 0.0});
     auto x1 = hmap.iterate(x);
@@ -733,9 +781,9 @@ TEST_CASE("FindFixedPointDetailed - converged fixed point", "[DynamicalSystem][D
     REQUIRE(result.algorithm_name == "FixedPointFinder");
     REQUIRE(result.elapsed_time_ms >= 0.0);
     REQUIRE(result.function_evaluations > 0);
-    REQUIRE(result.fixed_point.convergenceResidual < 1e-8);
-    REQUIRE(result.fixed_point.location[0] == Approx(0.0).margin(1e-8));
-    REQUIRE(result.fixed_point.location[1] == Approx(0.0).margin(1e-8));
+    REQUIRE(result.fixed_point.convergenceResidual < TOL(1e-8, 1e-4));
+    REQUIRE(result.fixed_point.location[0] == Approx(0.0).margin(TOL(1e-8, 1e-4)));
+    REQUIRE(result.fixed_point.location[1] == Approx(0.0).margin(TOL(1e-8, 1e-4)));
     REQUIRE(result.fixed_point.isStable == false);
 }
 
@@ -744,7 +792,7 @@ TEST_CASE("FindFixedPointDetailed - non-convergence sets status", "[DynamicalSys
     LorenzSystem lorenz;  // Default params: chaotic, far-off guess won't converge well with 3 iters
     Vector<Real> guess({100.0, 100.0, 100.0});
 
-    auto result = FindFixedPointDetailed(lorenz, guess, 1e-10, 3);
+    auto result = FindFixedPointDetailed(lorenz, guess, TOL(1e-10, 1e-5), 3);
 
     // With only 3 iterations and a far-off guess, Newton likely won't converge
     if (!result.IsSuccess()) {
@@ -763,10 +811,10 @@ TEST_CASE("FindFixedPointDetailed - error suppressed with ConvertToStatus", "[Dy
     DynSysConfig config;
     config.exception_policy = EvaluationExceptionPolicy::ConvertToStatus;
 
-    auto result = FindFixedPointDetailed(vdp, guess, 1e-10, 50, config);
+    auto result = FindFixedPointDetailed(vdp, guess, TOL(1e-10, 1e-5), 50, config);
 
     REQUIRE(result.IsSuccess());
-    REQUIRE(result.fixed_point.convergenceResidual < 1e-8);
+    REQUIRE(result.fixed_point.convergenceResidual < TOL(1e-8, 1e-4));
 }
 
 TEST_CASE("ComputeLyapunovDetailed - Lorenz chaotic regime", "[DynamicalSystem][Detailed]")
@@ -774,8 +822,8 @@ TEST_CASE("ComputeLyapunovDetailed - Lorenz chaotic regime", "[DynamicalSystem][
     LorenzSystem lorenz;
     Vector<Real> x0({1.0, 1.0, 1.0});
 
-    // Short integration for test speed
-    auto result = ComputeLyapunovDetailed(lorenz, x0, 10.0, 1.0, 0.01);
+    // Short integration for test speed; float needs a longer window past the transient.
+    auto result = ComputeLyapunovDetailed(lorenz, x0, TOL(10.0, 30.0), TOL(1.0, 0.25), 0.01);
 
     REQUIRE(result.IsSuccess());
     REQUIRE(result.algorithm_name == "LyapunovAnalyzer");
@@ -794,7 +842,7 @@ TEST_CASE("ComputeLyapunovDetailed - error suppressed", "[DynamicalSystem][Detai
     DynSysConfig config;
     config.exception_policy = EvaluationExceptionPolicy::ConvertToStatus;
 
-    auto result = ComputeLyapunovDetailed(lorenz, x0, 10.0, 1.0, 0.01, config);
+    auto result = ComputeLyapunovDetailed(lorenz, x0, TOL(10.0, 30.0), TOL(1.0, 0.25), 0.01, config);
 
     REQUIRE(result.IsSuccess());
     REQUIRE(result.lyapunov.exponents.size() == 3);

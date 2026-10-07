@@ -8,11 +8,11 @@
 ///  @warning   Boolean operations are APPROXIMATE for non-convex polygons!
 /////////////////////////////////////////////////////////////////////////////////////////
 
-#include "mml/MMLBase.h"
-#include "mml/base/Geometry/Geometry2D.h"
-#include "mml/algorithms/CompGeometry/CompGeometryBase.h"
-#include "mml/algorithms/CompGeometry/ConvexHull.h"
-#include "mml/algorithms/CompGeometry/Intersections.h"
+#include <mml/MMLBase.h>
+#include <mml/base/Geometry/Geometry2D.h>
+#include <mml/algorithms/CompGeometry/CompGeometryBase.h>
+#include <mml/algorithms/CompGeometry/ConvexHull.h>
+#include <mml/algorithms/CompGeometry/Intersections.h>
 
 #include <algorithm>
 #include <vector>

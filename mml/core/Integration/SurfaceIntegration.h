@@ -32,17 +32,17 @@
 #ifndef MML_SURFACE_INTEGRATION_H
 #define MML_SURFACE_INTEGRATION_H
 
-#include "MMLBase.h"
+#include <mml/MMLBase.h>
 
-#include "interfaces/IFunction.h"
+#include <mml/interfaces/IFunction.h>
 
-#include "base/Vector/Vector.h"
-#include "base/Vector/VectorN.h"
-#include "mml/base/Geometry/Geometry3D.h"
+#include <mml/base/Vector/Vector.h>
+#include <mml/base/Vector/VectorN.h>
+#include <mml/base/Geometry/Geometry3D.h>
 
-#include "core/Derivation.h"
-#include "core/Integration.h"
-#include "core/FieldOperations.h"
+#include <mml/core/Derivation.h>
+#include <mml/core/Integration.h>
+#include <mml/core/Fields/FieldOperations.h>
 
 namespace MML
 {
@@ -286,7 +286,10 @@ namespace MML
 			// Compute outward normal using right-hand rule: edge1 × edge2
 			Vec3Cart edge1(triangle.Pnt1(), triangle.Pnt2());
 			Vec3Cart edge2(triangle.Pnt1(), triangle.Pnt3());
-			Vec3Cart normal = VectorProduct(edge1, edge2).GetAsUnitVector();
+			// Degenerate (zero-area) triangle contributes no flux
+			Vec3Cart normal = VectorProduct(edge1, edge2).GetAsUnitVectorOrZero();
+			if (normal.isZero())
+				return REAL(0.0);
 
 			// Triangle area
 			Real area = triangle.Area();

@@ -8,37 +8,79 @@
 
 1. [Overview](#overview)
 2. [Quick Reference](#quick-reference)
-3. [Matrix I/O](#matrix-io)
-4. [Vector I/O](#vector-io)
-5. [DataLoader (CSV, TSV, JSON)](#dataloader)
-6. [Serializer (Visualization Output)](#serializer)
-7. [RigidBody Simulation Serializer](#rigidbody-simulation-serializer)
-8. [File Format Specifications](#file-format-specifications)
-9. [Best Practices](#best-practices)
-10. [Examples](#examples)
+3. [Object Persistence](#object-persistence)
+4. [Matrix I/O](#matrix-io)
+5. [Vector I/O](#vector-io)
+6. [DataLoader (CSV, TSV, JSON)](#dataloader)
+7. [Serializer (Visualization Output)](#serializer)
+8. [RigidBody Simulation Serializer](#rigidbody-simulation-serializer)
+9. [File Format Specifications](#file-format-specifications)
+10. [Best Practices](#best-practices)
+11. [Examples](#examples)
 
 ---
 
 ## Overview
 
-MML provides three main serialization subsystems:
+MML provides four data I/O subsystems:
 
 | Subsystem | Purpose | Direction | Header |
 |-----------|---------|-----------|--------|
 | **Matrix/Vector I/O** | Save/load basic linear algebra objects | Bidirectional | `<MML/base/Matrix/Matrix.h>`, `<MML/base/Vector/Vector.h>` |
+| **Persistence** | Durable object save/load in JSON and binary formats | Bidirectional | `<mml/tools/Persistence.h>` |
 | **DataLoader** | Load tabular data from files | Read-only | `<MML/core/DataLoader.h>` |
-| **Serializer** | Export mathematical objects for visualization | Write-only | `<MML/core/Serializer.h>` |
+| **Serializer** | Export sampled mathematical data for visualizers | Write-only presentation export | `<MML/core/Serializer.h>` |
+
+The `.mml` files produced by the visualizer serializers are **presentation
+exports**. They are stable inputs for MML visualizer tools and useful for
+inspection, examples, and golden-file tests, but they are not general object
+persistence files and should not be treated as round-trip reconstruction
+contracts. MML object-persistence work uses explicit `.mmlj` JSON and `.mmlb`
+binary formats.
 
 ### Supported File Formats
 
 | Format | Extension | Binary? | Description |
 |--------|-----------|---------|-------------|
-| MML Text | `.mml` | No | Human-readable visualization format |
-| MML Matrix Binary | `.mmlm` | Yes | Efficient matrix storage |
-| MML Vector Binary | `.mmlv` | Yes | Efficient vector storage |
+| MML Text | `.mml` | No | Human-readable visualizer presentation export; export-only unless a specific future schema says otherwise |
+| MML JSON Object | `.mmlj` | No | Structured MML object-persistence format |
+| MML Binary Object | `.mmlb` | Yes | Canonical vector and matrix persistence |
 | CSV | `.csv` | No | Comma-separated values |
 | TSV | `.tsv`, `.tab` | No | Tab-separated values |
 | JSON | `.json` | No | Array of flat objects |
+
+---
+
+## Object Persistence
+
+The object-persistence APIs use explicit MML object extensions:
+
+- `.mmlj` for JSON object files.
+- `.mmlb` for binary object files.
+
+Implemented support currently covers dynamic `Vector` and `Matrix` in JSON and
+binary, plus `VectorN` and `MatrixNM` in JSON. Generic path APIs infer the
+format from the extension:
+
+```cpp
+#include <mml/tools/Persistence.h>
+
+using namespace MML;
+
+Vector<Real> v{1.0, 2.0, 3.0};
+Persistence::Save(v, "vector.mmlj");
+Persistence::Save(v, "vector.mmlb");
+
+Matrix<Real> A(2, 2);
+A(0, 0) = 1.0; A(0, 1) = 2.0;
+A(1, 0) = 3.0; A(1, 1) = 4.0;
+Persistence::Save(A, "matrix.mmlj");
+Persistence::Save(A, "matrix.mmlb");
+```
+
+See [SerializationPersistence.md](../../docs/tools/SerializationPersistence.md)
+for schemas, binary layout, validation behavior, troubleshooting, and complete
+examples.
 
 ---
 
@@ -58,9 +100,9 @@ Matrix<Real>::LoadFromFile("matrix.txt", A);
 A.SaveToCSV("matrix.csv");
 Matrix<Real>::LoadFromCSV("matrix.csv", A);
 
-// Binary format (fastest, smallest)
-A.SaveToBinaryFile("matrix.mmlm");
-Matrix<Real>::LoadFromBinaryFile("matrix.mmlm", A);
+// Binary object persistence
+Persistence::Save(A, "matrix.mmlb");
+Persistence::Load("matrix.mmlb", A);
 ```
 
 ### Vector Operations
@@ -73,9 +115,9 @@ Vector<Real> v(1000);
 v.SaveToFile("vector.txt");
 Vector<Real>::LoadFromFile("vector.txt", v);
 
-// Binary format
-v.SaveToBinaryFile("vector.mmlv");
-Vector<Real>::LoadFromBinaryFile("vector.mmlv", v);
+// Binary object persistence
+Persistence::Save(v, "vector.mmlb");
+Persistence::Load("vector.mmlb", v);
 ```
 
 ### DataLoader Operations
@@ -156,20 +198,15 @@ A.SaveToCSV("matrix.csv", 6);        // 6 decimal places
 9.012346,0.123457,1.234568,2.345679
 ```
 
-#### `SaveToBinaryFile(filename)` - Binary Format
-Most efficient storage. Uses magic number `MMLM` for format identification.
+#### Binary Persistence
+Use the canonical persistence API for compact matrix storage:
 
 ```cpp
-A.SaveToBinaryFile("matrix.mmlm");
+Persistence::Save(A, "matrix.mmlb");
 ```
 
-**Binary structure:**
-```
-[4 bytes] Magic: "MMLM"
-[4 bytes] Rows (uint32)
-[4 bytes] Cols (uint32)
-[R×C × 8 bytes] Data (row-major, double)
-```
+The file starts with the 48-byte `MML_MATX` envelope, followed by little-endian
+dimensions and row-major scalar data.
 
 ### Load Methods
 
@@ -186,10 +223,10 @@ Matrix<Real> A;
 Matrix<Real>::LoadFromCSV("matrix.csv", A);
 ```
 
-#### `LoadFromBinaryFile(filename, matrix)` - Binary Format
+#### Binary Load
 ```cpp
 Matrix<Real> A;
-Matrix<Real>::LoadFromBinaryFile("matrix.mmlm", A);
+Persistence::Load("matrix.mmlb", A);
 ```
 
 ### Performance Comparison
@@ -232,18 +269,11 @@ v.SaveToFile("vector.txt");
 5.500000000000000
 ```
 
-#### `SaveToBinaryFile(filename)` - Binary Format
-Uses magic number `MMLV`.
+#### Binary Persistence
+Real and complex vectors use the canonical `MML_VECT` envelope:
 
 ```cpp
-v.SaveToBinaryFile("vector.mmlv");
-```
-
-**Binary structure:**
-```
-[4 bytes] Magic: "MMLV"
-[4 bytes] Size (uint32)
-[N × 8 bytes] Data (double)
+Persistence::Save(v, "vector.mmlb");
 ```
 
 ### Load Methods
@@ -251,7 +281,7 @@ v.SaveToBinaryFile("vector.mmlv");
 ```cpp
 Vector<Real> v;
 Vector<Real>::LoadFromFile("vector.txt", v);
-Vector<Real>::LoadFromBinaryFile("vector.mmlv", v);
+Persistence::Load("vector.mmlb", v);
 ```
 
 ---
@@ -391,7 +421,15 @@ std::cout << "Loaded " << data.NumRows() << " rows, "
 
 ## Serializer
 
-The Serializer namespace provides **write-only** output for visualization tools.
+The Serializer namespace provides **write-only presentation exports** for
+visualization tools. These APIs sample or flatten mathematical objects into
+`.mml` files that visualizers can consume. They deliberately do not promise to
+reconstruct arbitrary runtime objects such as executable functions, field
+objects, or solver instances.
+
+Use these exporters when the goal is plotting, inspection, teaching examples, or
+visualizer interoperability. Use the newer `.mmlj` / `.mmlb` object-persistence
+framework when the goal is round-trip `Save` / `Load` of durable runtime data.
 
 ### Header
 ```cpp
@@ -530,12 +568,12 @@ auto result = serializer.SaveAllBodies(
     10  // Save every 10th frame
 );
 
-if (!result) {
+if (!result.success) {
     std::cerr << "Error: " << result.message << "\n";
 }
 ```
 
-#### Mode 2: Separate Files (Legacy)
+#### Mode 2: Separate Files
 One file per body with `RIGID_BODY_TRAJECTORY_3D` format.
 
 ```cpp
@@ -573,6 +611,11 @@ All `.mml` visualization files start with:
 #
 <data section>
 ```
+
+These headers identify legacy-compatible visualizer data formats. They are kept
+stable for existing visualizer workflows, but they are not schema headers for
+general object persistence. Adding a reader for a `.mml` presentation export
+requires a separate, explicit reconstruction contract for that specific format.
 
 ### REAL_FUNCTION_SAMPLED
 ```
@@ -618,49 +661,16 @@ FRAME 1 t=0.010000
 ...
 ```
 
-### Binary Format Constants
+### Binary Object Format
 
-All magic numbers and version constants are centralized in `MML::BinaryFormat` namespace (`MMLBase.h`):
-
-```cpp
-namespace MML::BinaryFormat {
-    // Magic numbers (4-byte ASCII identifiers)
-    constexpr uint32_t MAGIC_MATRIX = 0x4D4D4C4D;  // "MMLM"
-    constexpr uint32_t MAGIC_VECTOR = 0x4D4D4C56;  // "MMLV"
-    constexpr uint32_t MAGIC_SPARSE = 0x4D4D4C53;  // "MMLS" (reserved)
-    constexpr uint32_t MAGIC_TENSOR = 0x4D4D4C54;  // "MMLT" (reserved)
-    
-    // Current format versions
-    constexpr uint32_t VERSION_MATRIX = 1;
-    constexpr uint32_t VERSION_VECTOR = 1;
-    
-    // File extensions
-    constexpr const char* EXT_MATRIX = "mmlm";
-    constexpr const char* EXT_VECTOR = "mmlv";
-}
-```
-
-### Binary Matrix Format (`.mmlm`)
-```
-Offset  Size    Content
-0       4       Magic: BinaryFormat::MAGIC_MATRIX (0x4D4D4C4D = "MMLM")
-4       4       Version: BinaryFormat::VERSION_MATRIX (currently 1)
-8       4       Rows (uint32, little-endian)
-12      4       Columns (uint32, little-endian)
-16      4       Element size in bytes (sizeof(Type))
-20      4       Reserved (0)
-24      R×C×8   Data (double, row-major, little-endian)
-```
-
-### Binary Vector Format (`.mmlv`)
-```
-Offset  Size    Content
-0       4       Magic: BinaryFormat::MAGIC_VECTOR (0x4D4D4C56 = "MMLV")
-4       4       Version: BinaryFormat::VERSION_VECTOR (currently 1)
-8       4       Size (uint32, little-endian)
-12      4       Element size in bytes (sizeof(Type))
-16      N×8     Data (double, little-endian)
-```
+All `.mmlb` object files use the envelope defined in `BinaryBase.h`. Dynamic
+vectors use `MML_VECT`; dynamic matrices use `MML_MATX`. Shape fields and
+floating-point payloads are encoded explicitly in little-endian order. Both
+containers support `float`, `double`, `long double`, `std::complex<float>`, and
+`std::complex<double>`. Complex values use interleaved real/imaginary components.
+The fixed 24-byte `long double` record stores the mathematical binary value
+instead of ABI bytes; loading rejects source precision that the target platform
+cannot represent exactly.
 
 ---
 
@@ -670,7 +680,7 @@ Offset  Size    Content
 
 | Scenario | Recommended Format |
 |----------|--------------------|
-| Large matrices (>1000×1000) | Binary `.mmlm` |
+| Large matrices (>1000×1000) | Binary `.mmlb` |
 | Debugging / inspection | Text or CSV |
 | Interoperability (Excel, Python) | CSV |
 | Visualization | `.mml` via Serializer |
@@ -691,7 +701,7 @@ if (!Matrix<Real>::LoadFromFile("matrix.txt", B)) {
 
 // RigidBodySerializer returns SerializeResult
 auto result = serializer.SaveAllBodies(...);
-if (!result) {
+if (!result.success) {
     std::cerr << "Error: " << result.message << "\n";
 }
 ```
@@ -703,8 +713,8 @@ if (!result) {
 A.SaveToCSV("matrix.csv", 6);   // 6 decimals (smaller file)
 A.SaveToCSV("matrix.csv", 15);  // Full precision (default)
 
-// Binary always uses full double precision
-A.SaveToBinaryFile("matrix.mmlm");  // Always 15+ significant digits
+// Binary preserves float/double bits and canonical long-double values
+Persistence::Save(A, "matrix.mmlb");
 ```
 
 ### 4. Downsample Large Simulations
@@ -760,7 +770,7 @@ int main() {
     Matrix<Real> result = SomeComputation(A);
     
     // Save efficiently
-    result.SaveToBinaryFile("result.mmlm");
+    Persistence::Save(result, "result.mmlb");
     
     return 0;
 }
@@ -838,6 +848,7 @@ int main() {
 
 ## See Also
 
+- [docs/tools/SerializationPersistence.md](../../docs/tools/SerializationPersistence.md) - `.mmlj` / `.mmlb` object persistence guide
 - [docs/MML_FILE_FORMATS.md](../docs/MML_FILE_FORMATS.md) - Complete format specifications
 - [docs/core/Serializer.md](../docs/core/Serializer.md) - Serializer API documentation
 - [docs/core/DataLoader.md](../docs/core/DataLoader.md) - DataLoader API documentation

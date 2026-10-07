@@ -12,7 +12,7 @@
 #if !defined  MML_Vector_H
 #define MML_Vector_H
 
-#include "MMLBase.h"
+#include <mml/MMLBase.h>
 
 // Standard headers - include what we use
 #include <fstream>
@@ -62,7 +62,7 @@ namespace MML
 				throw VectorInitializationError("Vector::Vector - negative size", n);
 
 			// Initialize to zero for numeric types, default construct for others
-			if constexpr (std::is_arithmetic_v<Type>) {
+			if constexpr (MMLArithmetic<Type>) {
 				_elems.resize(n, Type{ 0 });
 			} else {
 				_elems.resize(n);
@@ -105,10 +105,8 @@ namespace MML
 		/// @param indUnit Index of the unit element (0-based)
 		/// @return Unit vector e_i where e_i[indUnit] = 1
 		/// @throws VectorDimensionError if indUnit is out of range
-		static Vector UnitVector(int dimVec, int indUnit)
+		static Vector UnitVector(int dimVec, int indUnit) requires MMLArithmetic<Type>
 		{
-			static_assert(std::is_arithmetic_v<Type>, "UnitVector requires arithmetic type");
-			
 			if (indUnit < 0 || indUnit >= dimVec)
 				throw VectorDimensionError("Vector::UnitVector - wrong unit index", dimVec, indUnit);
 
@@ -147,11 +145,27 @@ namespace MML
 		void push_back(const Type& val) { _elems.push_back(val); }
 		void push_back(Type&& val)			{ _elems.push_back(std::move(val)); }
 		
-		void insert(int pos, const Type& val) { _elems.insert(_elems.begin() + pos, val); }
-		void insert(int pos, Type&& val) { _elems.insert(_elems.begin() + pos, std::move(val)); }
+		void insert(int pos, const Type& val) {
+			if (pos < 0 || pos > static_cast<int>(_elems.size()))
+				throw VectorAccessBoundsError("Vector::insert - position out of range", pos, static_cast<int>(_elems.size()));
+			_elems.insert(_elems.begin() + pos, val);
+		}
+		void insert(int pos, Type&& val) {
+			if (pos < 0 || pos > static_cast<int>(_elems.size()))
+				throw VectorAccessBoundsError("Vector::insert - position out of range", pos, static_cast<int>(_elems.size()));
+			_elems.insert(_elems.begin() + pos, std::move(val));
+		}
 		
-		void erase(int pos)							{ _elems.erase(_elems.begin() + pos); }
-		void erase(int start, int end)	{ _elems.erase(_elems.begin() + start, _elems.begin() + end); }
+		void erase(int pos) {
+			if (pos < 0 || pos >= static_cast<int>(_elems.size()))
+				throw VectorAccessBoundsError("Vector::erase - position out of range", pos, static_cast<int>(_elems.size()));
+			_elems.erase(_elems.begin() + pos);
+		}
+		void erase(int start, int end) {
+			if (start < 0 || end > static_cast<int>(_elems.size()) || start > end)
+				throw VectorAccessBoundsError("Vector::erase - range out of bounds", start, static_cast<int>(_elems.size()));
+			_elems.erase(_elems.begin() + start, _elems.begin() + end);
+		}
 		void erase(const Type& val)			{ _elems.erase(std::remove(_elems.begin(), _elems.end(), val), _elems.end()); }
 
 		/// @brief Remove all elements
@@ -308,12 +322,11 @@ namespace MML
 
 		///////////////////////             Testing equality             ////////////////////////
 		
-		/// @brief Exact equality comparison
-		/// @throws VectorDimensionError if sizes don't match
+		/// @brief Exact equality comparison; vectors of different sizes are not equal
 		bool operator==(const Vector& b) const
 		{
 			if (size() != b.size())
-				throw VectorDimensionError("Vector::operator==() - vectors must be equal size", size(), b.size());
+				return false;
 
 			for (int i = 0; i < size(); i++)
 				if ((*this)[i] != b[i])
@@ -383,9 +396,7 @@ namespace MML
 		{
 			Real norm{ 0.0 };
 			for (int i = 0; i < size(); i++) {
-				if constexpr (std::is_same_v<Type, Complex> || 
-				              std::is_same_v<Type, std::complex<float>> ||
-				              std::is_same_v<Type, std::complex<long double>>) {
+				if constexpr (MMLComplex<Type>) {
 					norm += std::norm((*this)[i]);  // |z|² for complex
 				} else {
 					norm += (*this)[i] * (*this)[i];  // x² for real
@@ -477,96 +488,6 @@ namespace MML
 			a.Print(stream, Defaults::VectorPrintWidth, Defaults::VectorPrintPrecision);
 
 			return stream;
-		}
-		
-		///////////////////////         Binary File I/O                //////////////////////
-		
-		/// @brief Save vector to binary file
-		/// 
-		/// Binary format:
-		/// - 4 bytes: magic number 0x4D4D4C56 ("MMLV" for MML Vector)
-		/// - 4 bytes: version (currently 1)
-		/// - 4 bytes: size (int32)
-		/// - 4 bytes: element size in bytes (sizeof(Type))
-		/// - size*sizeof(Type) bytes: data
-		/// 
-		/// @param vec Vector to save
-		/// @param filename Path to output file
-		/// @return true if successful
-		static bool SaveToBinary(const Vector& vec, const std::string& filename)
-		{
-			std::ofstream file(filename, std::ios::binary);
-			if (!file.is_open()) {
-				std::cerr << "Error: could not create binary file " << filename << std::endl;
-				return false;
-			}
-			
-			// Write header
-			const uint32_t magic = BinaryFormat::MAGIC_VECTOR;
-			const uint32_t version = BinaryFormat::VERSION_VECTOR;
-			const uint32_t size = static_cast<uint32_t>(vec._elems.size());
-			const uint32_t elemSize = static_cast<uint32_t>(sizeof(Type));
-			
-			file.write(reinterpret_cast<const char*>(&magic), sizeof(magic));
-			file.write(reinterpret_cast<const char*>(&version), sizeof(version));
-			file.write(reinterpret_cast<const char*>(&size), sizeof(size));
-			file.write(reinterpret_cast<const char*>(&elemSize), sizeof(elemSize));
-			
-			// Write data
-			if (size > 0) {
-				file.write(reinterpret_cast<const char*>(vec._elems.data()), 
-				           size * sizeof(Type));
-			}
-			
-			file.close();
-			return true;
-		}
-		
-		/// @brief Load vector from binary file
-		/// @param filename Path to input file
-		/// @param outVec Vector to populate
-		/// @return true if successful
-		static bool LoadFromBinary(const std::string& filename, Vector& outVec)
-		{
-			std::ifstream file(filename, std::ios::binary);
-			if (!file.is_open()) {
-				std::cerr << "Error: could not open binary file " << filename << std::endl;
-				return false;
-			}
-			
-			// Read and verify header
-			uint32_t magic, version, size, elemSize;
-			
-			file.read(reinterpret_cast<char*>(&magic), sizeof(magic));
-			if (magic != BinaryFormat::MAGIC_VECTOR) {
-				std::cerr << "Error: invalid magic number in " << filename << std::endl;
-				return false;
-			}
-			
-			file.read(reinterpret_cast<char*>(&version), sizeof(version));
-			if (version != BinaryFormat::VERSION_VECTOR) {
-				std::cerr << "Error: unsupported version " << version << " in " << filename << std::endl;
-				return false;
-			}
-			
-			file.read(reinterpret_cast<char*>(&size), sizeof(size));
-			file.read(reinterpret_cast<char*>(&elemSize), sizeof(elemSize));
-			
-			if (elemSize != sizeof(Type)) {
-				std::cerr << "Error: element size mismatch in " << filename 
-				          << " (file: " << elemSize << ", expected: " << sizeof(Type) << ")" << std::endl;
-				return false;
-			}
-			
-			// Read data
-			outVec._elems.resize(size);
-			if (size > 0) {
-				file.read(reinterpret_cast<char*>(outVec._elems.data()), 
-				          size * sizeof(Type));
-			}
-			
-			file.close();
-			return true;
 		}
 		
 		/// @brief Save vector to text file (one value per line)

@@ -4,10 +4,10 @@
 ///////////////////////////////////////////////////////////////////////////////////////////
 
 #ifdef MML_USE_SINGLE_HEADER
-#include "MML.h"
+#include <MML.h>
 #else
-#include "MMLBase.h"
-#include "base/Matrix/Matrix3D.h"
+#include <mml/MMLBase.h>
+#include <mml/base/Matrix/Matrix3D.h>
 #endif
 
 #include <iostream>

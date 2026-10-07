@@ -2,9 +2,8 @@
 ///                         MinimalMathLibrary (MML)                                  ///
 ///                                                                                   ///
 ///  File:        LinearSystem.h                                                      ///
-///  Description: Unified linear algebra facade                                       ///
-///               One class to access ALL MML linear algebra capabilities             ///
-///               Smart solver selection, lazy decomposition caching, rich diagnostics///
+///  Description: RHS-aware linear-system solving facade                              ///
+///               Smart solver selection, analyzer delegation, and rich diagnostics   ///
 ///                                                                                   ///
 ///  Copyright:   (c) 2024-2026 Zvonimir Vanjak                                       ///
 ///  License:     MIT License (see LICENSE.md)                                         ///
@@ -13,13 +12,12 @@
 #if !defined MML_LINEAR_SYSTEM_H
 #define MML_LINEAR_SYSTEM_H
 
-#include "MMLBase.h"
-#include "base/Vector/Vector.h"
-#include "base/Matrix/Matrix.h"
-#include "core/LinAlgEqSolvers.h"
-#include "core/MatrixUtils.h"
-#include "algorithms/MatrixAlg.h"
-#include "algorithms/EigenSystemSolvers.h"
+#include <mml/MMLBase.h>
+#include <mml/base/Vector/Vector.h>
+#include <mml/base/Matrix/Matrix.h>
+#include <mml/core/LinAlgEqSolvers.h>
+#include <mml/algorithms/MatrixAlg.h>
+#include <mml/algorithms/Analyzers/MatrixAnalyzer.h>
 
 #include <optional>
 #include <string>
@@ -41,97 +39,33 @@ namespace MML::Systems
 		SOR					 ///< Successive Over-Relaxation
 	};
 
-	/// @brief Matrix stability assessment
-	enum class MatrixStability {
-		WellConditioned,			 ///< cond < 10^4
-		ModeratelyConditioned, ///< 10^4 <= cond < 10^8
-		IllConditioned,				 ///< 10^8 <= cond < 10^12
-		Singular							 ///< cond >= 10^12 or rank-deficient
-	};
-
 	//=============================================================================
 	// RESULT STRUCTURES
 	//=============================================================================
 
-	/// @brief LU decomposition result: A = P*L*U
-	template<typename Type>
-	struct LUDecomposition {
-		Matrix<Type> L;								///< Lower triangular factor
-		Matrix<Type> U;								///< Upper triangular factor
-		std::vector<int> permutation; ///< Row permutation
-		Type determinant;							///< Determinant of A
-		bool valid = false;						///< Whether decomposition succeeded
-	};
-
-	/// @brief QR decomposition result: A = Q*R
-	template<typename Type>
-	struct QRDecomposition {
-		Matrix<Type> Q; ///< Orthogonal matrix
-		Matrix<Type> R; ///< Upper triangular matrix
-		bool valid = false;
-	};
-
-	/// @brief SVD decomposition result: A = U*diag(w)*V^T
-	template<typename Type>
-	struct SVDDecomposition {
-		Matrix<Type> U;							 ///< Left singular vectors (m x m)
-		Matrix<Type> V;							 ///< Right singular vectors (n x n)
-		Vector<Type> singularValues; ///< Singular values (descending)
-		int rank = 0;								 ///< Numerical rank
-		bool valid = false;
-	};
-
-	/// @brief Cholesky decomposition result: A = L*L^T (SPD only)
-	template<typename Type>
-	struct CholeskyDecomposition {
-		Matrix<Type> L; ///< Lower triangular Cholesky factor
-		bool valid = false;
-	};
+	enum class SolutionStatus { NotAnalyzed, Inconsistent, Unique, Infinite };
+	enum class MultipleRHSAggregate { AllSame, Mixed };
+	enum class LinearSolverRecommendation { Triangular, Cholesky, QR, SVD, LU };
+	using MatrixStability = MatrixAlg::MatrixStability;
 
 	/// @brief Solution verification result
-	template<typename Type>
+	template<MMLReal Type>
 	struct VerificationResult {
-		Type absoluteResidual;			///< ||Ax - b||
-		Type relativeResidual;			///< ||Ax - b|| / ||b||
-		Type backwardError;					///< Estimated backward error
-		Type estimatedForwardError; ///< Based on condition number
-		bool isAccurate;						///< Passes threshold test
+		MatrixAlg::MatrixMagnitude<Type> absoluteResidual{};
+		MatrixAlg::MatrixMagnitude<Type> relativeResidual{};
+		MatrixAlg::MatrixMagnitude<Type> backwardError{};
+		MatrixAlg::MatrixMagnitude<Type> estimatedForwardError{};
+		bool isAccurate = false;
 	};
 
 	/// @brief Comprehensive system analysis report
-	template<typename Type>
+	template<MMLReal Type>
 	struct SystemAnalysis {
-		// Dimensions
-		int rows, cols;
-		bool isSquare;
-		bool isOverdetermined;	///< m > n
-		bool isUnderdetermined; ///< m < n
-
-		// Structure
-		bool isSymmetric;
-		bool isPositiveDefinite;
-		bool isDiagonallyDominant;
-		bool isUpperTriangular;
-		bool isLowerTriangular;
-		bool isDiagonal;
-		Real sparsity; ///< Fraction of zeros
-
-		// Numerical
-		Type determinant;
-		int rank;
-		int nullity;
-		Type conditionNumber;
-		MatrixStability stability;
-		int expectedDigitsLost;
-
-		// Solution info
-		bool hasUniqueSolution;
-		bool hasInfiniteSolutions;
-		bool hasNoSolution;
-
-		// Recommendation
-		std::string recommendedSolver;
-		std::string analysisReport;
+		MatrixAlg::MatrixAnalysis<Type> matrix;
+		std::vector<SolutionStatus> solutionStatuses;
+		std::optional<MultipleRHSAggregate> multipleRHSAggregate;
+		std::optional<LinearSolverRecommendation> recommendedSolver;
+		std::string report;
 	};
 
 	//=============================================================================
@@ -140,7 +74,7 @@ namespace MML::Systems
 
 	/// @class LinearSystem
 	///
-	/// @brief Unified facade for all MML linear algebra capabilities
+	/// @brief RHS-aware facade for linear-system solving, analysis, and diagnostics
 	/// LinearSystem provides a single, comprehensive interface to:
 	///
 	/// - Solve linear systems with automatic solver selection
@@ -179,9 +113,10 @@ namespace MML::Systems
 	/// LinearSystem sys(A);  // No RHS, just analyze
 	/// auto analysis = sys.Analyze();
 	///
-	/// std::cout << analysis.analysisReport;
+	/// std::cout << analysis.report;
 	/// @endcode
-	template<typename Type = Real>
+	template<MMLReal Type = Real>
+		requires std::same_as<std::remove_cvref_t<Type>, Real>
 	class LinearSystem {
 	public:
 		//=========================================================================
@@ -196,6 +131,7 @@ namespace MML::Systems
 		/// @throws MatrixDimensionError if dimensions don't match
 		LinearSystem(const Matrix<Type>& A, const Vector<Type>& b)
 				: _A(A)
+				, _matrixAnalyzer(A)
 				, _b(b)
 				, _hasRHS(true)
 				, _multipleRHS(false) {
@@ -211,6 +147,7 @@ namespace MML::Systems
 		/// @throws MatrixDimensionError if dimensions don't match
 		LinearSystem(const Matrix<Type>& A, const Matrix<Type>& B)
 				: _A(A)
+				, _matrixAnalyzer(A)
 				, _B(B)
 				, _hasRHS(true)
 				, _multipleRHS(true) {
@@ -223,6 +160,7 @@ namespace MML::Systems
 		/// @param A Coefficient matrix (m x n)
 		explicit LinearSystem(const Matrix<Type>& A)
 				: _A(A)
+				, _matrixAnalyzer(A)
 				, _hasRHS(false)
 				, _multipleRHS(false) {}
 
@@ -248,18 +186,14 @@ namespace MML::Systems
 		Vector<Type> Solve() const {
 			RequireRHS();
 
-			std::string solver = SelectBestSolver();
-
-			if (solver == "Triangular")
-				return SolveTriangular();
-			else if (solver == "Cholesky")
-				return SolveByCholesky();
-			else if (solver == "QR")
-				return SolveByQR();
-			else if (solver == "SVD")
-				return SolveBySVD();
-			else
-				return SolveByLU();
+			switch (SelectBestSolver()) {
+			case LinearSolverRecommendation::Triangular: return SolveTriangular();
+			case LinearSolverRecommendation::Cholesky:   return SolveByCholesky();
+			case LinearSolverRecommendation::QR:         return SolveByQR();
+			case LinearSolverRecommendation::SVD:        return SolveBySVD();
+			case LinearSolverRecommendation::LU:         return SolveByLU();
+			}
+			throw InvalidStateError("LinearSystem::Solve - invalid solver recommendation");
 		}
 
 		/// @brief Solve for multiple right-hand sides
@@ -267,16 +201,15 @@ namespace MML::Systems
 		/// @return Solution matrix X where each column is a solution
 		Matrix<Type> SolveMultiple() const {
 			if (!_multipleRHS)
-				throw std::runtime_error("LinearSystem::SolveMultiple - no multiple RHS provided");
+				throw InvalidStateError("LinearSystem::SolveMultiple - no multiple RHS provided");
 
-			// Use LU for efficiency (factor once, solve many)
-			EnsureLU();
+			// Use cached LU factorization (factor once, solve many)
+			LUSolver<Type>& solver = EnsureLUSolver();
 
 			int n = _A.cols();
 			int p = _B.cols();
 			Matrix<Type> X(n, p);
 
-			LUSolver<Type> solver(_A);
 			for (int j = 0; j < p; ++j) {
 				Vector<Type> col = _B.VectorFromColumn(j);
 				Vector<Type> x = solver.Solve(col);
@@ -326,7 +259,7 @@ namespace MML::Systems
 		Vector<Type> SolveByQR() const {
 			RequireRHS();
 			QRSolver<Type> solver(_A);
-			if (isOverdetermined())
+			if (IsTall())
 				return solver.LeastSquaresSolve(_b);
 			else
 				return solver.Solve(_b);
@@ -423,7 +356,7 @@ namespace MML::Systems
 			result.relativeResidual = RelativeResidual(x);
 
 			// Backward error estimate
-			Type ANorm = Utils::InfinityNorm(_A);
+			Magnitude ANorm = _matrixAnalyzer.InfinityNorm();
 			Type xNorm = x.NormL2();
 			if (ANorm * xNorm > Precision::DivisionSafetyThreshold)
 				result.backwardError = result.absoluteResidual / (ANorm * xNorm);
@@ -442,92 +375,39 @@ namespace MML::Systems
 		//=========================================================================
 		// MATRIX PROPERTIES - DIMENSIONS
 		//=========================================================================
+		using Magnitude = MatrixAlg::MatrixMagnitude<Type>;
+		using ComparisonTolerance = MatrixAlg::MatrixComparisonTolerance<Magnitude>;
+		using Threshold = std::optional<Magnitude>;
 
-		int rows() const { return _A.rows(); }
-		int cols() const { return _A.cols(); }
-		bool isSquare() const { return _A.rows() == _A.cols(); }
-		bool isOverdetermined() const { return _A.rows() > _A.cols(); }
-		bool isUnderdetermined() const { return _A.rows() < _A.cols(); }
+		int Rows() const noexcept { return _matrixAnalyzer.Rows(); }
+		int Cols() const noexcept { return _matrixAnalyzer.Cols(); }
+		bool IsSquare() const noexcept { return _matrixAnalyzer.IsSquare(); }
+		bool IsTall() const noexcept { return _matrixAnalyzer.IsTall(); }
+		bool IsWide() const noexcept { return _matrixAnalyzer.IsWide(); }
 
-		//=========================================================================
-		// MATRIX PROPERTIES - STRUCTURE
-		//=========================================================================
-
-		/// @brief Check if matrix is symmetric within tolerance
-		bool isSymmetric(Type tol = Precision::DefaultToleranceStrict) const {
-			if (!_isSymmetric.has_value()) {
-				if (!isSquare()) {
-					_isSymmetric = false;
-				} else {
-					_isSymmetric = true;
-					int n = rows();
-					for (int i = 0; i < n && *_isSymmetric; ++i)
-						for (int j = i + 1; j < n && *_isSymmetric; ++j)
-							if (std::abs(_A(i, j) - _A(j, i)) > tol)
-								_isSymmetric = false;
-				}
-			}
-			return *_isSymmetric;
+		bool IsSymmetric(ComparisonTolerance tolerance = MatrixAlg::Detail::DefaultSymmetryTolerance<Type>()) const {
+			return _matrixAnalyzer.IsSymmetric(tolerance);
 		}
-
-		/// @brief Check if matrix is positive definite
-		///
-		/// @note Attempts Cholesky decomposition
-		bool isPositiveDefinite(Type tol = Precision::DefaultToleranceStrict) const {
-			if (!_isPositiveDefinite.has_value()) {
-				if (!isSymmetric(tol)) {
-					_isPositiveDefinite = false;
-				} else {
-					try {
-						CholeskySolver<Type> solver(_A);
-						_isPositiveDefinite = true;
-					} catch (const SingularMatrixError&) {
-						_isPositiveDefinite = false;
-					}
-				}
-			}
-			return *_isPositiveDefinite;
+		bool IsPositiveDefinite(Magnitude tolerance = PrecisionValues<Magnitude>::EigenSolverConvergenceTolerance) const {
+			return _matrixAnalyzer.IsPositiveDefinite(tolerance);
 		}
-
-		/// @brief Check if matrix is strictly diagonally dominant
-		bool isDiagonallyDominant() const {
-			if (!isSquare())
-				return false;
-
-			int n = rows();
-			for (int i = 0; i < n; ++i) {
-				Type diagAbs = std::abs(_A(i, i));
-				Type offDiagSum = 0;
-				for (int j = 0; j < n; ++j)
-					if (j != i)
-						offDiagSum += std::abs(_A(i, j));
-
-				if (diagAbs <= offDiagSum) // Strict dominance
-					return false;
-			}
-			return true;
+		bool IsDiagonallyDominant(ComparisonTolerance tolerance = MatrixAlg::Detail::DefaultDiagonalTolerance<Type>()) const {
+			return _matrixAnalyzer.IsDiagonallyDominant(tolerance);
 		}
-
-		bool isUpperTriangular(Type tol = Precision::DefaultToleranceStrict) const { return Utils::IsUpperTriangular(_A, tol); }
-
-		bool isLowerTriangular(Type tol = Precision::DefaultToleranceStrict) const { return Utils::IsLowerTriangular(_A, tol); }
-
-		bool isDiagonal(Type tol = Precision::DefaultToleranceStrict) const { return Utils::IsDiagonal(_A, tol); }
+		bool IsUpperTriangular(ComparisonTolerance tolerance = MatrixAlg::Detail::DefaultDiagonalTolerance<Type>()) const {
+			return _matrixAnalyzer.IsUpperTriangular(tolerance);
+		}
+		bool IsLowerTriangular(ComparisonTolerance tolerance = MatrixAlg::Detail::DefaultDiagonalTolerance<Type>()) const {
+			return _matrixAnalyzer.IsLowerTriangular(tolerance);
+		}
+		bool IsDiagonal(ComparisonTolerance tolerance = MatrixAlg::Detail::DefaultDiagonalTolerance<Type>()) const {
+			return _matrixAnalyzer.IsDiagonal(tolerance);
+		}
 
 		/// @brief Compute fraction of zero elements
 		///
 		/// @param threshold Elements below this are considered zero
-		Real Sparsity(Type threshold = Precision::EigenSolverZeroThreshold) const {
-			int zeros = 0;
-			int total = _A.rows() * _A.cols();
-
-			for (int i = 0; i < _A.rows(); ++i)
-				for (int j = 0; j < _A.cols(); ++j)
-					if (std::abs(_A(i, j)) <= threshold)
-						++zeros;
-
-			return static_cast<Real>(zeros) / total;
-		}
+		Real Sparsity(Type threshold = Precision::EigenSolverZeroThreshold) const { return _matrixAnalyzer.Sparsity(threshold); }
 
 		//=========================================================================
 		// MATRIX PROPERTIES - NUMERICAL
@@ -535,83 +415,38 @@ namespace MML::Systems
 
 		/// @brief Compute determinant using LU decomposition
 		Type Determinant() const {
-			if (!isSquare())
-				throw MatrixDimensionError("LinearSystem::Determinant - matrix must be square", rows(), cols(), -1, -1);
-
-			LUSolver<Type> solver(_A);
-			return solver.det();
+			return _matrixAnalyzer.Determinant();
 		}
 
 		/// @brief Compute numerical rank using SVD
 		///
 		/// @param tol Threshold below which singular values are considered zero
-		int Rank(Type tol = -1) const {
-			if (!_rank.has_value()) {
-				SVDecompositionSolver<Type> solver(_A);
-				_rank = solver.Rank(tol);
-			}
-			return *_rank;
-		}
+		int Rank(Threshold threshold = std::nullopt) const { return _matrixAnalyzer.Rank(threshold); }
 
 		/// @brief Compute nullity (dimension of null space)
-		int Nullity(Type tol = -1) const { return cols() - Rank(tol); }
+		int Nullity(Threshold threshold = std::nullopt) const { return _matrixAnalyzer.Nullity(threshold); }
 
 		/// @brief Compute condition number using SVD
 		///
 		/// @note cond(A) = σ_max / σ_min
-		Type ConditionNumber() const {
-			if (!_conditionNumber.has_value()) {
-				SVDecompositionSolver<Type> solver(_A);
-				Type invCond = solver.inv_condition();
-				_conditionNumber = (invCond > Precision::DivisionSafetyThreshold) ? (1.0 / invCond) : static_cast<Type>(1.0 / Precision::DivisionSafetyThreshold);
-			}
-			return *_conditionNumber;
-		}
+		Magnitude ConditionNumber(Threshold threshold = std::nullopt) const { return _matrixAnalyzer.ConditionNumber(threshold); }
 
 		/// @brief Condition number using 1-norm
-		Type ConditionNumber1() const {
-			Type norm1 = Utils::OneNorm(_A);
-			Matrix<Type> Ainv;
-			try {
-				LUSolver<Type> solver(_A);
-				solver.inverse(Ainv);
-				return norm1 * Utils::OneNorm(Ainv);
-			} catch (...) {
-				return 1e30; // Singular
-			}
-		}
+		Magnitude ConditionNumber1(Threshold threshold = std::nullopt) const { return _matrixAnalyzer.ConditionNumber1(threshold); }
 
 		/// @brief Condition number using infinity norm
-		Type ConditionNumberInf() const {
-			Type normInf = Utils::InfinityNorm(_A);
-			Matrix<Type> Ainv;
-			try {
-				LUSolver<Type> solver(_A);
-				solver.inverse(Ainv);
-				return normInf * Utils::InfinityNorm(Ainv);
-			} catch (...) {
-				return 1e30; // Singular
-			}
+		Magnitude ConditionNumberInfinity(Threshold threshold = std::nullopt) const {
+			return _matrixAnalyzer.ConditionNumberInfinity(threshold);
 		}
 
 		/// @brief Assess numerical stability
-		MatrixStability AssessStability() const {
-			Type cond = ConditionNumber();
-
-			if (cond >= 1e12)
-				return MatrixStability::Singular;
-			else if (cond >= 1e8)
-				return MatrixStability::IllConditioned;
-			else if (cond >= 1e4)
-				return MatrixStability::ModeratelyConditioned;
-			else
-				return MatrixStability::WellConditioned;
+		MatrixAlg::MatrixStability AssessStability(Threshold threshold = std::nullopt) const {
+			return _matrixAnalyzer.AssessStability(threshold);
 		}
 
 		/// @brief Estimate digits of precision lost due to conditioning
-		int ExpectedDigitsLost() const {
-			Type cond = ConditionNumber();
-			return static_cast<int>(std::log10(std::max(cond, Type(1))));
+		std::optional<int> ExpectedDigitsLost(Threshold threshold = std::nullopt) const {
+			return _matrixAnalyzer.ExpectedDigitsLost(threshold);
 		}
 
 		//=========================================================================
@@ -619,30 +454,20 @@ namespace MML::Systems
 		//=========================================================================
 
 		/// @brief Get LU decomposition (cached)
-		LUDecomposition<Type> GetLU() const {
-			EnsureLU();
-			return *_lu;
-		}
+		const MatrixAlg::LUDecomposition<Type>& LUDecompose() const { return _matrixAnalyzer.LUDecompose(); }
 
 		/// @brief Get QR decomposition (cached)
-		QRDecomposition<Type> GetQR() const {
-			EnsureQR();
-			return *_qr;
-		}
+		const MatrixAlg::QRDecomposition<Type>& QRDecompose() const { return _matrixAnalyzer.QRDecompose(); }
 
 		/// @brief Get SVD decomposition (cached)
-		SVDDecomposition<Type> GetSVD() const {
-			EnsureSVD();
-			return *_svd;
+		const MatrixAlg::SVDDecomposition<Type>& SVDDecompose(Threshold threshold = std::nullopt) const {
+			return _matrixAnalyzer.SVDDecompose(threshold);
 		}
 
 		/// @brief Get Cholesky decomposition (cached)
 		///
 		/// @throws SingularMatrixError if not positive definite
-		CholeskyDecomposition<Type> GetCholesky() const {
-			EnsureCholesky();
-			return *_cholesky;
-		}
+		const MatrixAlg::CholeskyDecomposition<Type>& CholeskyDecompose() const { return _matrixAnalyzer.CholeskyDecompose(); }
 
 		//=========================================================================
 		// FUNDAMENTAL SUBSPACES
@@ -651,17 +476,16 @@ namespace MML::Systems
 		/// @brief Compute null space basis using SVD
 		///
 		/// @return Matrix whose columns form orthonormal basis for null(A)
-		Matrix<Type> NullSpace(Type tol = -1) const {
-			SVDecompositionSolver<Type> solver(_A);
-			return solver.Nullspace(tol);
-		}
+		Matrix<Type> NullSpace(Threshold threshold = std::nullopt) const { return _matrixAnalyzer.NullSpace(threshold); }
 
 		/// @brief Compute column space (range) basis using SVD
 		///
 		/// @return Matrix whose columns form orthonormal basis for col(A)
-		Matrix<Type> ColumnSpace(Type tol = -1) const {
-			SVDecompositionSolver<Type> solver(_A);
-			return solver.Range(tol);
+		Matrix<Type> ColumnSpace(Threshold threshold = std::nullopt) const { return _matrixAnalyzer.ColumnSpace(threshold); }
+		Matrix<Type> RowSpace(Threshold threshold = std::nullopt) const { return _matrixAnalyzer.RowSpace(threshold); }
+		Matrix<Type> LeftNullSpace(Threshold threshold = std::nullopt) const { return _matrixAnalyzer.LeftNullSpace(threshold); }
+		const MatrixAlg::FundamentalSubspaces<Type>& FundamentalSubspacesOf(Threshold threshold = std::nullopt) const {
+			return _matrixAnalyzer.FundamentalSubspacesOf(threshold);
 		}
 
 		//=========================================================================
@@ -671,107 +495,50 @@ namespace MML::Systems
 		/// @brief Compute matrix inverse using LU
 		///
 		/// @throws SingularMatrixError if matrix is singular
-		Matrix<Type> Inverse() const {
-			RequireSquare();
-			LUSolver<Type> solver(_A);
-			Matrix<Type> inv;
-			solver.inverse(inv);
-			return inv;
-		}
+		Matrix<Type> Inverse() const { return _matrixAnalyzer.Inverse(); }
 
 		/// @brief Compute Moore-Penrose pseudoinverse using SVD
-		Matrix<Type> PseudoInverse(Type tol = -1) const {
-			SVDecompositionSolver<Type> solver(_A);
-			int m = rows();
-			int n = cols();
-
-			// A+ = V * diag(1/w) * U^T (for non-zero singular values)
-			Matrix<Type> U = solver.getU();
-			Matrix<Type> V = solver.getV();
-			Vector<Type> w = solver.getW();
-
-			Type thresh = (tol >= 0) ? tol : 0.5 * std::sqrt(m + n + 1.0) * w[0] * std::numeric_limits<Type>::epsilon();
-
-			// Result is n x m
-			Matrix<Type> pinv(n, m);
-
-			for (int i = 0; i < n; ++i) {
-				for (int j = 0; j < m; ++j) {
-					Type sum = 0;
-					for (int k = 0; k < n; ++k) {
-						if (w[k] > thresh)
-							sum += V(i, k) * U(j, k) / w[k];
-					}
-					pinv(i, j) = sum;
-				}
-			}
-
-			return pinv;
-		}
+		Matrix<Type> PseudoInverse(Threshold threshold = std::nullopt) const { return _matrixAnalyzer.PseudoInverse(threshold); }
 
 		//=========================================================================
 		// EIGENANALYSIS
 		//=========================================================================
 
-		/// @brief Full eigenvalue/eigenvector decomposition
+		/// @brief Canonical full eigenvalue/eigenvector decomposition
 		///
-		/// @return EigenSolver::Result with eigenvalues (potentially complex) and eigenvectors
-		/// @note Uses implicitly-shifted QR algorithm for general matrices
-		EigenSolver::Result GetEigen(Type tol = Precision::DefaultToleranceStrict, int maxIter = 1000) const {
-			RequireSquare();
-			return EigenSolver::Solve(_A, tol, maxIter);
+		/// @return EigensystemResult with explicit complex eigenvalues and eigenvectors
+		const MatrixAlg::EigensystemResult<Type>& Eigensystem(
+				Type tol = Precision::DefaultToleranceStrict, int maxIter = 1000) const {
+			return _matrixAnalyzer.Eigensystem(tol, maxIter);
 		}
 
-		/// @brief Get eigenvalues only (real parts)
+		/// @brief Get eigenvalues with explicit complex components
 		///
-		/// @return Vector of real eigenvalues (imaginary parts discarded for complex pairs)
-		/// @note For purely real eigenvalue analysis; use GetEigen() for complex eigenvalues
-		Vector<Type> Eigenvalues(Type tol = Precision::DefaultToleranceStrict) const {
-			RequireSquare();
-			auto result = EigenSolver::Solve(_A, tol);
-			int n = rows();
-			Vector<Type> eigs(n);
-			for (int i = 0; i < n; ++i)
-				eigs[i] = result.eigenvalues[i].real;
-			return eigs;
+		/// @return Vector of complex eigenvalues
+		Vector<MatrixAlg::MatrixComplexScalar<Type>> Eigenvalues(Type tol = Precision::DefaultToleranceStrict) const {
+			return _matrixAnalyzer.Eigenvalues(tol);
 		}
 
 		/// @brief Get eigenvalues for symmetric matrices (all real, faster)
 		///
 		/// @return Vector of sorted eigenvalues
 		/// @note Uses Jacobi rotation method, guaranteed real eigenvalues
-		Vector<Type> EigenvaluesSymmetric() const {
-			RequireSquare();
-			if (!isSymmetric())
-				throw MatrixDimensionError("LinearSystem::EigenvaluesSymmetric - matrix is not symmetric", rows(), cols(), rows(), cols());
-
-			auto result = SymmMatEigenSolverJacobi::Solve(_A);
-			return result.eigenvalues;
+		Vector<Type> SymmetricEigenvalues() const {
+			return _matrixAnalyzer.SymmetricEigenvalues();
 		}
 
 		/// @brief Compute spectral radius (largest |eigenvalue|)
 		///
 		/// @return max(|λ_i|) over all eigenvalues
 		Type SpectralRadius(Type tol = Precision::DefaultToleranceStrict) const {
-			RequireSquare();
-			auto result = EigenSolver::Solve(_A, tol);
-			Type maxMag = 0;
-			for (const auto& ev : result.eigenvalues)
-				maxMag = std::max(maxMag, ev.magnitude());
-			return maxMag;
+			return _matrixAnalyzer.SpectralRadius(tol);
 		}
 
 		/// @brief Check if matrix has any complex eigenvalues
 		///
 		/// @return true if any eigenvalue has non-zero imaginary part
 		bool HasComplexEigenvalues(Type tol = Precision::DefaultToleranceStrict) const {
-			RequireSquare();
-			auto result = EigenSolver::Solve(_A, tol);
-			for (const auto& ev : result.eigenvalues) {
-				if (ev.isComplex(tol))
-					return true;
-			}
-			return false;
+			return _matrixAnalyzer.HasComplexEigenvalues(tol);
 		}
 
 		//=========================================================================
@@ -781,67 +548,26 @@ namespace MML::Systems
 		/// @brief Perform comprehensive system analysis
 		///
 		/// @return Detailed analysis report
-		SystemAnalysis<Type> Analyze() const {
+		SystemAnalysis<Type> Analyze(Threshold threshold = std::nullopt) const {
 			SystemAnalysis<Type> result;
-
-			// Dimensions
-			result.rows = rows();
-			result.cols = cols();
-			result.isSquare = isSquare();
-			result.isOverdetermined = isOverdetermined();
-			result.isUnderdetermined = isUnderdetermined();
-
-			// Structure
-			result.isSymmetric = isSymmetric();
-			result.isPositiveDefinite = isPositiveDefinite();
-			result.isDiagonallyDominant = isDiagonallyDominant();
-			result.isUpperTriangular = isUpperTriangular();
-			result.isLowerTriangular = isLowerTriangular();
-			result.isDiagonal = isDiagonal();
-			result.sparsity = Sparsity();
-
-			// Numerical
-			if (result.isSquare) {
-				try {
-					result.determinant = Determinant();
-				} catch (...) {
-					result.determinant = 0;
+			const auto& coefficientSVD = _matrixAnalyzer.SVDDecompose(threshold);
+			result.matrix = _matrixAnalyzer.Analyze(threshold);
+			if (_hasRHS) {
+				if (_multipleRHS) {
+					for (int col = 0; col < _B.cols(); ++col)
+						result.solutionStatuses.push_back(ClassifySolution(_B.VectorFromColumn(col), coefficientSVD.rank, coefficientSVD.threshold));
+					if (!result.solutionStatuses.empty()) {
+						const bool allSame = std::all_of(result.solutionStatuses.begin() + 1, result.solutionStatuses.end(),
+							[&](SolutionStatus status) { return status == result.solutionStatuses.front(); });
+						result.multipleRHSAggregate = allSame ? MultipleRHSAggregate::AllSame : MultipleRHSAggregate::Mixed;
+					}
 				}
-			} else {
-				result.determinant = 0;
-			}
-
-			result.rank = Rank();
-			result.nullity = Nullity();
-			result.conditionNumber = ConditionNumber();
-			result.stability = AssessStability();
-			result.expectedDigitsLost = ExpectedDigitsLost();
-
-			// Solution classification
-			if (result.isSquare) {
-				if (result.rank == result.cols) {
-					result.hasUniqueSolution = true;
-					result.hasInfiniteSolutions = false;
-					result.hasNoSolution = false;
-				} else {
-					result.hasUniqueSolution = false;
-					result.hasInfiniteSolutions = (result.nullity > 0);
-					result.hasNoSolution = false; // Would need RHS to determine
+				else {
+					result.solutionStatuses.push_back(ClassifySolution(_b, coefficientSVD.rank, coefficientSVD.threshold));
 				}
-			} else if (result.isOverdetermined) {
-				result.hasUniqueSolution = (result.rank == result.cols);
-				result.hasInfiniteSolutions = false;
-				result.hasNoSolution = !result.hasUniqueSolution;
-			} else // Underdetermined
-			{
-				result.hasUniqueSolution = false;
-				result.hasInfiniteSolutions = true;
-				result.hasNoSolution = false;
+				result.recommendedSolver = SelectBestSolver(threshold);
 			}
-
-			// Recommendation
-			result.recommendedSolver = SelectBestSolver();
-			result.analysisReport = GenerateReport(result);
+			result.report = GenerateReport(result);
 
 			return result;
 		}
@@ -862,22 +588,14 @@ namespace MML::Systems
 	private:
 		// Storage
 		Matrix<Type> _A;
+		MatrixAnalyzer<Type> _matrixAnalyzer;
 		Vector<Type> _b;
 		Matrix<Type> _B; // For multiple RHS
 		bool _hasRHS;
 		bool _multipleRHS;
 
-		// Cached decompositions (mutable for lazy evaluation)
-		mutable std::optional<LUDecomposition<Type>> _lu;
-		mutable std::optional<QRDecomposition<Type>> _qr;
-		mutable std::optional<SVDDecomposition<Type>> _svd;
-		mutable std::optional<CholeskyDecomposition<Type>> _cholesky;
-
-		// Cached properties
-		mutable std::optional<bool> _isSymmetric;
-		mutable std::optional<bool> _isPositiveDefinite;
-		mutable std::optional<Type> _conditionNumber;
-		mutable std::optional<int> _rank;
+		// Cached solver used only for repeated RHS solves.
+		mutable std::optional<LUSolver<Type>> _luSolver;
 
 		//=========================================================================
 		// INTERNAL HELPERS
@@ -885,103 +603,56 @@ namespace MML::Systems
 
 		void RequireRHS() const {
 			if (!_hasRHS)
-				throw std::runtime_error("LinearSystem: operation requires right-hand side");
+				throw InvalidStateError("LinearSystem: operation requires right-hand side");
 		}
 
 		void RequireSquare() const {
-			if (!isSquare())
-				throw MatrixDimensionError("LinearSystem: operation requires square matrix", rows(), cols(), -1, -1);
+			if (!IsSquare())
+				throw MatrixDimensionError("LinearSystem: operation requires square matrix", Rows(), Cols(), -1, -1);
 		}
 
-		void EnsureLU() const {
-			if (!_lu.has_value()) {
-				_lu = LUDecomposition<Type>();
-				try {
-					LUSolver<Type> solver(_A);
-
-					// Extract L and U from the solver's combined storage
-					int n = rows();
-					_lu->L.Resize(n, n);
-					_lu->U.Resize(n, n);
-
-					// The LU matrix has L in lower triangle and U in upper
-					// For now, store raw LU and determinant
-					_lu->determinant = solver.det();
-					_lu->valid = true;
-				} catch (...) {
-					_lu->valid = false;
-				}
-			}
+		/// @brief Get (or lazily create) the cached LU solver - factor once, solve many
+		LUSolver<Type>& EnsureLUSolver() const {
+			if (!_luSolver.has_value())
+				_luSolver.emplace(_A);
+			return *_luSolver;
 		}
 
-		void EnsureQR() const {
-			if (!_qr.has_value()) {
-				_qr = QRDecomposition<Type>();
-				try {
-					QRSolver<Type> solver(_A);
-					_qr->Q = solver.GetQ();
-					_qr->R = solver.GetR();
-					_qr->valid = true;
-				} catch (...) {
-					_qr->valid = false;
-				}
-			}
-		}
+		LinearSolverRecommendation SelectBestSolver(Threshold threshold = std::nullopt) const {
+			const auto stability = AssessStability(threshold);
+			if (Rank(threshold) < Cols() || stability == MatrixAlg::MatrixStability::IllConditioned ||
+				stability == MatrixAlg::MatrixStability::Singular)
+				return LinearSolverRecommendation::SVD;
 
-		void EnsureSVD() const {
-			if (!_svd.has_value()) {
-				_svd = SVDDecomposition<Type>();
-				try {
-					SVDecompositionSolver<Type> solver(_A);
-					_svd->U = solver.getU();
-					_svd->V = solver.getV();
-					_svd->singularValues = solver.getW();
-					_svd->rank = solver.Rank();
-					_svd->valid = true;
-				} catch (...) {
-					_svd->valid = false;
-				}
-			}
-		}
+			if (IsSquare() && (IsUpperTriangular() || IsLowerTriangular()))
+				return LinearSolverRecommendation::Triangular;
 
-		void EnsureCholesky() const {
-			if (!_cholesky.has_value()) {
-				_cholesky = CholeskyDecomposition<Type>();
-				try {
-					CholeskySolver<Type> solver(_A);
-					_cholesky->L = solver.L();
-					_cholesky->valid = true;
-				} catch (...) {
-					_cholesky->valid = false;
-				}
-			}
-		}
-
-		std::string SelectBestSolver() const {
-			// Quick structural checks first
-			if (isUpperTriangular() || isLowerTriangular())
-				return "Triangular";
-
-			// For overdetermined systems, use QR (least squares)
-			if (isOverdetermined())
-				return "QR";
-
-			// Check condition number for ill-conditioned systems
-			Type cond = ConditionNumber();
-			if (cond > 1e10)
-				return "SVD"; // Most robust for ill-conditioned
+			if (IsTall())
+				return LinearSolverRecommendation::QR;
 
 			// For SPD matrices, Cholesky is best
-			if (isSymmetric() && isPositiveDefinite())
-				return "Cholesky";
+			if (IsSymmetric() && IsPositiveDefinite())
+				return LinearSolverRecommendation::Cholesky;
 
 			// Default: LU with partial pivoting
-			return "LU";
+			return LinearSolverRecommendation::LU;
+		}
+
+		SolutionStatus ClassifySolution(const Vector<Type>& rhs, int coefficientRank, Magnitude threshold) const {
+			Matrix<Type> augmented(Rows(), Cols() + 1);
+			for (int row = 0; row < Rows(); ++row) {
+				for (int col = 0; col < Cols(); ++col)
+					augmented(row, col) = _A(row, col);
+				augmented(row, Cols()) = rhs[row];
+			}
+			if (MatrixAlg::Rank(augmented, threshold) > coefficientRank)
+				return SolutionStatus::Inconsistent;
+			return coefficientRank == Cols() ? SolutionStatus::Unique : SolutionStatus::Infinite;
 		}
 
 		IterativeMethod SelectIterativeMethod() const {
 			// For diagonally dominant matrices, Gauss-Seidel converges faster
-			if (isDiagonallyDominant())
+			if (IsDiagonallyDominant())
 				return IterativeMethod::GaussSeidel;
 
 			// SOR can be faster but needs tuning
@@ -990,10 +661,10 @@ namespace MML::Systems
 		}
 
 		Vector<Type> SolveTriangular() const {
-			int n = rows();
+			int n = Rows();
 			Vector<Type> x(n);
 
-			if (isUpperTriangular()) {
+			if (IsUpperTriangular()) {
 				// Back substitution
 				for (int i = n - 1; i >= 0; --i) {
 					Type sum = _b[i];
@@ -1017,78 +688,32 @@ namespace MML::Systems
 
 		std::string GenerateReport(const SystemAnalysis<Type>& analysis) const {
 			std::string report;
-
-			report += "Matrix: " + std::to_string(analysis.rows) + "x" + std::to_string(analysis.cols);
-			if (analysis.isSquare)
-				report += ", square";
-			else if (analysis.isOverdetermined)
-				report += ", overdetermined (m > n)";
-			else
-				report += ", underdetermined (m < n)";
-			report += "\n";
-
-			// Structure
-			report += "Structure: ";
-			if (analysis.isDiagonal)
-				report += "diagonal";
-			else if (analysis.isUpperTriangular)
-				report += "upper triangular";
-			else if (analysis.isLowerTriangular)
-				report += "lower triangular";
-			else if (analysis.isSymmetric && analysis.isPositiveDefinite)
-				report += "symmetric positive definite (SPD)";
-			else if (analysis.isSymmetric)
-				report += "symmetric";
-			else
-				report += "general";
-			report += "\n";
-
-			// Sparsity
-			if (analysis.sparsity > 0.5)
-				report += "Sparsity: " + std::to_string(static_cast<int>(analysis.sparsity * 100)) + "% zeros (sparse)\n";
-
-			// Rank
-			report += "Rank: " + std::to_string(analysis.rank);
-			if (analysis.isSquare)
-				report += (analysis.rank == analysis.cols ? " (full rank)" : " (rank deficient)");
-			report += "\n";
-
-			// Condition number and stability
-			report += "Condition number: " + std::to_string(analysis.conditionNumber);
-			switch (analysis.stability) {
-			case MatrixStability::WellConditioned:
-				report += " (well-conditioned)\n";
-				break;
-			case MatrixStability::ModeratelyConditioned:
-				report += " (moderately conditioned)\n";
-				break;
-			case MatrixStability::IllConditioned:
-				report += " (ILL-CONDITIONED - expect precision loss)\n";
-				break;
-			case MatrixStability::Singular:
-				report += " (NEAR-SINGULAR)\n";
-				break;
+			report += analysis.matrix.report;
+			for (size_t index = 0; index < analysis.solutionStatuses.size(); ++index) {
+				report += "RHS " + std::to_string(index) + ": ";
+				switch (analysis.solutionStatuses[index]) {
+				case SolutionStatus::NotAnalyzed: report += "not analyzed"; break;
+				case SolutionStatus::Inconsistent: report += "inconsistent"; break;
+				case SolutionStatus::Unique: report += "unique"; break;
+				case SolutionStatus::Infinite: report += "infinite"; break;
+				}
+				report += '\n';
 			}
-
-			if (analysis.expectedDigitsLost > 0)
-				report += "Expected precision loss: ~" + std::to_string(analysis.expectedDigitsLost) + " digits\n";
-
-			// Solution classification
-			report += "Solution: ";
-			if (analysis.hasUniqueSolution)
-				report += "unique";
-			else if (analysis.hasInfiniteSolutions)
-				report += "infinite (underdetermined)";
-			else if (analysis.hasNoSolution)
-				report += "none (inconsistent)";
-			else
-				report += "depends on RHS";
-			report += "\n";
-
-			// Recommendation
-			report += "Recommended solver: " + analysis.recommendedSolver + "\n";
+			if (analysis.recommendedSolver.has_value())
+				report += "Recommended solver: " + SolverName(*analysis.recommendedSolver) + "\n";
 
 			return report;
+		}
+
+		static std::string SolverName(LinearSolverRecommendation solver) {
+			switch (solver) {
+			case LinearSolverRecommendation::Triangular: return "Triangular";
+			case LinearSolverRecommendation::Cholesky: return "Cholesky";
+			case LinearSolverRecommendation::QR: return "QR";
+			case LinearSolverRecommendation::SVD: return "SVD";
+			case LinearSolverRecommendation::LU: return "LU";
+			}
+			return "Unknown";
 		}
 	};
 
@@ -1106,12 +731,6 @@ namespace MML::Systems
 	template<typename Type = Real>
 	inline Vector<Type> SolveLeastSquares(const Matrix<Type>& A, const Vector<Type>& b) {
 		return LinearSystem<Type>(A, b).SolveLeastSquares();
-	}
-
-	/// @brief Get comprehensive matrix analysis
-	template<typename Type = Real>
-	inline SystemAnalysis<Type> AnalyzeMatrix(const Matrix<Type>& A) {
-		return LinearSystem<Type>(A).Analyze();
 	}
 
 } // namespace MML::Systems

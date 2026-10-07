@@ -12,7 +12,7 @@
 #if !defined MML_IODE_SYSTEM_WITH_EVENTS_H
 #define MML_IODE_SYSTEM_WITH_EVENTS_H
 
-#include "mml/interfaces/IODESystem.h"
+#include <mml/interfaces/IODESystem.h>
 
 namespace MML {
 

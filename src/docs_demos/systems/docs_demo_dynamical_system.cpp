@@ -1,13 +1,13 @@
 #ifdef MML_USE_SINGLE_HEADER
-#include "MML.h"
+#include <MML.h>
 #else
-#include "MMLBase.h"
+#include <mml/MMLBase.h>
 
-#include "systems/DynamicalSystem.h"
+#include <mml/systems/DynamicalSystem.h>
 
-#include "algorithms/ODESolvers/ODESolverAdaptive.h"
-#include "algorithms/ODESolvers/ODESolverFixedStep.h"
-#include "algorithms/ODESolvers/ODEStepCalculators.h"
+#include <mml/algorithms/ODESolvers/ODESolverAdaptive.h>
+#include <mml/algorithms/ODESolvers/ODESolverFixedStep.h>
+#include <mml/algorithms/ODESolvers/ODEStepCalculators.h>
 #endif
 
 #include <set>

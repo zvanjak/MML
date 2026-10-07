@@ -1,8 +1,8 @@
 #ifndef MML_INTEGRATION_BASE_H
 #define MML_INTEGRATION_BASE_H
 
-#include "MMLBase.h"
-#include "core/AlgorithmTypes.h"
+#include <mml/MMLBase.h>
+#include <mml/base/AlgorithmTypes.h>
 
 namespace MML
 {
@@ -15,8 +15,9 @@ namespace MML
 		int iterations;			 ///< Number of iterations/refinements performed
 		bool converged;			 ///< True if convergence criteria met
 
-		/// Implicit conversion to Real for convenience
-		/// @note Discards error_estimate, iterations, and converged fields
+		/// Intentional convenience conversion for simple integration use cases.
+		/// @warning Discards error_estimate, iterations, and converged fields.
+		///          Consider using .value directly for clarity.
 		operator Real() const { return value; }
 
 		/// Constructor for easy initialization

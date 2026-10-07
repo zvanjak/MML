@@ -3,13 +3,13 @@
 #include "../../TestMatchers.h"
 
 #ifdef MML_USE_SINGLE_HEADER
-#include "MML.h"
+#include <MML.h>
 #else
-#include "core/CoordTransf.h"
-#include "core/CoordTransf/CoordTransfSpherical.h"
-#include "core/CoordTransf/CoordTransfCylindrical.h"
-#include "core/FieldOperations.h"
-#include "core/Fields.h"
+#include <mml/core/CoordTransf/CoordTransfBase.h>
+#include <mml/core/CoordTransf/CoordTransfSpherical.h>
+#include <mml/core/CoordTransf/CoordTransfCylindrical.h>
+#include <mml/core/Fields/FieldOperations.h>
+#include <mml/core/Fields/Fields.h>
 #endif
 
 
@@ -20,6 +20,33 @@ using namespace MML::Testing;
 // make sure it is clear what convention is used
 namespace MML::Tests::Core::CoordTransfTests
 {
+	class TrackingCylindricalTransform : public CoordTransfCylindricalToCartesian
+	{
+	public:
+		mutable int forwardJacobianCalls = 0;
+		mutable int inverseJacobianCalls = 0;
+
+		MatrixNM<Real, 3, 3> jacobian(const VectorN<Real, 3>&) const override
+		{
+			++forwardJacobianCalls;
+			MatrixNM<Real, 3, 3> jac;
+			for (int i = 0; i < 3; ++i)
+				for (int j = 0; j < 3; ++j)
+					jac(i, j) = i == j ? REAL(2.0) : REAL(0.0);
+			return jac;
+		}
+
+		MatrixNM<Real, 3, 3> inverseJacobian(const VectorN<Real, 3>&) const override
+		{
+			++inverseJacobianCalls;
+			MatrixNM<Real, 3, 3> jac;
+			for (int i = 0; i < 3; ++i)
+				for (int j = 0; j < 3; ++j)
+					jac(i, j) = i == j ? REAL(3.0) : REAL(0.0);
+			return jac;
+		}
+	};
+
 	/*********************************************************************/
 	/*****              CoordTransfSpherToCart tests                 *****/
 	/*********************************************************************/
@@ -31,21 +58,21 @@ namespace MML::Tests::Core::CoordTransfTests
 		Vector3Spherical posSpher;
 
 		posSpher = CoordTransfCartToSpher.transf(Vector3Cartesian{ REAL(1.0), REAL(0.0), REAL(0.0) });
-		REQUIRE(posSpher == Vector3Spherical{ REAL(1.0), Constants::PI / 2, REAL(0.0) });
+		REQUIRE(posSpher.IsEqualTo(Vector3Spherical{ REAL(1.0), Constants::PI / 2, REAL(0.0) }));
 
 		posSpher = CoordTransfCartToSpher.transf(Vector3Cartesian{ -REAL(1.0), REAL(0.0), REAL(0.0) });
-		REQUIRE(posSpher == Vector3Spherical{ REAL(1.0), Constants::PI / 2, Constants::PI });
+		REQUIRE(posSpher.IsEqualTo(Vector3Spherical{ REAL(1.0), Constants::PI / 2, Constants::PI }));
 
 		posSpher = CoordTransfCartToSpher.transf(Vector3Cartesian{ REAL(0.0), REAL(1.0), REAL(0.0) });
-		REQUIRE(posSpher == Vector3Spherical{ REAL(1.0), Constants::PI / 2, Constants::PI / 2 });
+		REQUIRE(posSpher.IsEqualTo(Vector3Spherical{ REAL(1.0), Constants::PI / 2, Constants::PI / 2 }));
 
-		REQUIRE(CoordTransfCartToSpher.transf(Vec3Cart{ REAL(0.0), -REAL(1.0), REAL(0.0) }) == Vec3Sph{ REAL(1.0), Constants::PI / 2, -Constants::PI / 2 });
+		REQUIRE(CoordTransfCartToSpher.transf(Vec3Cart{ REAL(0.0), -REAL(1.0), REAL(0.0) }).IsEqualTo(Vec3Sph{ REAL(1.0), Constants::PI / 2, -Constants::PI / 2 }));
 
 		posSpher = CoordTransfCartToSpher.transf(Vector3Cartesian{ REAL(0.0), REAL(0.0), REAL(1.0) });
-		REQUIRE(posSpher == Vector3Spherical{ REAL(1.0), REAL(0.0), REAL(0.0) });
+		REQUIRE(posSpher.IsEqualTo(Vector3Spherical{ REAL(1.0), REAL(0.0), REAL(0.0) }));
 
 		posSpher = CoordTransfCartToSpher.transf(Vector3Cartesian{ REAL(0.0), REAL(0.0), -REAL(1.0) });
-		REQUIRE(posSpher == Vector3Spherical{ REAL(1.0), Constants::PI, REAL(0.0) });
+		REQUIRE(posSpher.IsEqualTo(Vector3Spherical{ REAL(1.0), Constants::PI, REAL(0.0) }));
 	}
 
 	TEST_CASE("Test_CoordTransf_Cartesian_to_Cylindrical", "[simple]")
@@ -57,7 +84,7 @@ namespace MML::Tests::Core::CoordTransfTests
 		REQUIRE(posCyl == Vector3Cylindrical{ REAL(1.0), REAL(0.0), REAL(0.0) });
 
 		posCyl = CoordTransfCartToCyl.transf(Vector3Cartesian{ -REAL(1.0), REAL(0.0), REAL(0.0) });
-		REQUIRE(posCyl == Vector3Cylindrical{ REAL(1.0), Constants::PI, REAL(0.0) });
+		REQUIRE(posCyl.IsEqualTo(Vector3Cylindrical{ REAL(1.0), Constants::PI, REAL(0.0) }));
 
 		posCyl = CoordTransfCartToCyl.transf(Vector3Cartesian{ REAL(0.0), REAL(1.0), REAL(0.0) });
 		REQUIRE(posCyl == Vector3Cylindrical{ REAL(1.0), Constants::PI / 2, REAL(0.0) });
@@ -81,10 +108,75 @@ namespace MML::Tests::Core::CoordTransfTests
 		REQUIRE(posCart == Vector3Cartesian{ REAL(0.0), REAL(0.0), REAL(1.0) });
 
 		posCart = CoordTransfSpherToCart.transf(Vector3Spherical{ REAL(1.0), Constants::PI / 2, REAL(0.0) });
-		REQUIRE(posCart.IsEqualTo(Vector3Cartesian{ REAL(1.0), REAL(0.0), REAL(0.0) }, 1e-16));
+		REQUIRE(posCart.IsEqualTo(Vector3Cartesian{ REAL(1.0), REAL(0.0), REAL(0.0) }, TOL(1e-16, 1e-6)));
 
 		posCart = CoordTransfSpherToCart.transf(Vector3Spherical{ REAL(1.0), Constants::PI / 2, Constants::PI / 2 });
-		REQUIRE(posCart.IsEqualTo(Vector3Cartesian{ REAL(0.0), REAL(1.0), REAL(0.0) }, 1e-16));
+		REQUIRE(posCart.IsEqualTo(Vector3Cartesian{ REAL(0.0), REAL(1.0), REAL(0.0) }, TOL(1e-16, 1e-6)));
+	}
+
+	TEST_CASE("Standard coordinate transforms provide analytical Jacobians", "[coordtransf][jacobian]")
+	{
+		TEST_PRECISION_INFO();
+		const Vector3Spherical sphericalPos{ REAL(2.0), Constants::PI / 2, REAL(0.0) };
+		const CoordTransf<Vector3Spherical, Vector3Cartesian, 3>& sphericalBase = CoordTransfSpherToCart;
+		const auto sphericalJac = sphericalBase.jacobian(sphericalPos);
+
+		REQUIRE(sphericalJac(0, 0) == Catch::Approx(REAL(1.0)).margin(TOL(1e-15, 1e-5)));
+		REQUIRE(sphericalJac(1, 2) == Catch::Approx(REAL(2.0)).margin(TOL(1e-15, 1e-5)));
+		REQUIRE(sphericalJac(2, 1) == Catch::Approx(-REAL(2.0)).margin(TOL(1e-15, 1e-5)));
+
+		const Vector3Cylindrical cylindricalPos{ REAL(2.0), Constants::PI / 2, REAL(3.0) };
+		const CoordTransf<Vector3Cylindrical, Vector3Cartesian, 3>& cylindricalBase = CoordTransfCylToCart;
+		const auto cylindricalJac = cylindricalBase.jacobian(cylindricalPos);
+
+		REQUIRE(cylindricalJac(0, 1) == Catch::Approx(-REAL(2.0)).margin(TOL(1e-15, 1e-5)));
+		REQUIRE(cylindricalJac(1, 0) == Catch::Approx(REAL(1.0)).margin(TOL(1e-15, 1e-5)));
+		REQUIRE(cylindricalJac(2, 2) == REAL(1.0));
+	}
+
+	TEST_CASE("Analytical coordinate Jacobians compose with their inverses", "[coordtransf][jacobian]")
+	{
+		TEST_PRECISION_INFO();
+		const Vector3Spherical sphericalPos{ REAL(2.5), REAL(1.1), REAL(0.7) };
+		const auto cartesianPos = CoordTransfSpherToCart.transf(sphericalPos);
+		const auto forwardJac = CoordTransfSpherToCart.jacobian(sphericalPos);
+		const auto inverseJac = CoordTransfSpherToCart.inverseJacobian(cartesianPos);
+
+		for (int i = 0; i < 3; ++i)
+			for (int j = 0; j < 3; ++j)
+			{
+				Real product = REAL(0.0);
+				for (int k = 0; k < 3; ++k)
+					product += inverseJac(i, k) * forwardJac(k, j);
+				REQUIRE(product == Catch::Approx(i == j ? REAL(1.0) : REAL(0.0)).margin(TOL(1e-14, 1e-4)));
+			}
+	}
+
+	TEST_CASE("Coordinate helpers dispatch through virtual Jacobian hooks once", "[coordtransf][jacobian]")
+	{
+		TEST_PRECISION_INFO();
+		TrackingCylindricalTransform transform;
+		const CoordTransf<Vector3Cylindrical, Vector3Cartesian, 3>& forwardBase = transform;
+		const CoordTransfWithInverse<Vector3Cylindrical, Vector3Cartesian, 3>& inverseBase = transform;
+		const Vector3Cylindrical sourceVec{ REAL(1.0), REAL(2.0), REAL(3.0) };
+		const Vector3Cylindrical sourcePos{ REAL(2.0), REAL(0.4), REAL(1.0) };
+		const Vector3Cartesian targetPos = transform.transf(sourcePos);
+
+		const auto contravariant = forwardBase.transfVecContravariant(sourceVec, sourcePos);
+		REQUIRE(contravariant == Vector3Cartesian{ REAL(2.0), REAL(4.0), REAL(6.0) });
+		REQUIRE(transform.forwardJacobianCalls == 1);
+
+		const auto covariant = inverseBase.transfVecCovariant(sourceVec, targetPos);
+		REQUIRE(covariant == Vector3Cartesian{ REAL(3.0), REAL(6.0), REAL(9.0) });
+		REQUIRE(transform.inverseJacobianCalls == 1);
+
+		transform.forwardJacobianCalls = 0;
+		transform.inverseJacobianCalls = 0;
+		Tensor2<3> tensor(1, 1);
+		tensor(0, 0) = REAL(1.0);
+		inverseBase.transfTensor2(tensor, sourcePos);
+		REQUIRE(transform.forwardJacobianCalls == 1);
+		REQUIRE(transform.inverseJacobianCalls == 1);
 	}
 
 	TEST_CASE("Test_GetUnitVector")

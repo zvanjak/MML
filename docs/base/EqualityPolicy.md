@@ -57,7 +57,7 @@ All tolerances are type-specialized via `PrecisionValues<T>` template:
 Access via `Defaults::` namespace:
 
 ```cpp
-#include "MMLBase.h"
+#include <mml/MMLBase.h>
 
 // Equality tolerances
 Defaults::MatrixIsEqualTolerance       // Matrix element comparison

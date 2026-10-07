@@ -200,7 +200,7 @@ Real result = Sin(Constants::PI / 2);
 
 ### In Function Objects
 ```cpp
-#include "base/Function.h"
+#include <mml/base/Function.h>
 
 // Create function object for sin(x)
 auto f = RealFunction([](Real x) { 

@@ -10,13 +10,28 @@
 ///  License:     MIT License (see LICENSE.md)                                        ///
 ///                                                                                   ///
 ///////////////////////////////////////////////////////////////////////////////////////////
+
+/// @file Geometry2D.h
+/// @brief Aggregate header for two-dimensional geometry classes.
+/// This header includes line, segment, triangle, polygon, circle, and box types
+/// for planar geometry.
+///
+/// Main types included here:
+/// - LineIntersectionType2D and LineIntersection2D - line intersection classification and result data
+/// - SegmentIntersectionType and SegmentIntersection - segment intersection classification and result data
+/// - Line2D and SegmentLine2D - infinite and finite planar line geometry
+/// - Triangle2D - triangle measurements, containment, and geometric centers
+/// - Polygon2D - polygon geometry and computational-geometry operations
+/// - Circle2D and Box2D - circle and axis-aligned box primitives
+///
+/// For more focused includes, use the individual headers under Geometry2D/.
+
 #if !defined MML_GEOMETRY_2D_H
 #define MML_GEOMETRY_2D_H
 
-// Include all 2D geometry components
-#include "mml/base/Geometry/Geometry2DCore/Geometry2DLines.h"
-#include "mml/base/Geometry/Geometry2DCore/Geometry2DTriangle.h"
-#include "mml/base/Geometry/Geometry2DCore/Geometry2DPolygon.h"
-#include "mml/base/Geometry/Geometry2DCore/Geometry2DCircleBox.h"
+#include <mml/base/Geometry/Geometry2D/Geometry2DLines.h>
+#include <mml/base/Geometry/Geometry2D/Geometry2DTriangle.h>
+#include <mml/base/Geometry/Geometry2D/Geometry2DPolygon.h>
+#include <mml/base/Geometry/Geometry2D/Geometry2DCircleBox.h>
 
 #endif // MML_GEOMETRY_2D_H

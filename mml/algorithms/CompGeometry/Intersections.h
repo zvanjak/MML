@@ -13,10 +13,10 @@
 #if !defined MML_COMP_GEOMETRY_INTERSECTIONS_H
 #define MML_COMP_GEOMETRY_INTERSECTIONS_H
 
-#include "mml/algorithms/CompGeometry/CompGeometryBase.h"
-#include "mml/MMLBase.h"
-#include "mml/base/Geometry/Geometry2D.h"
-#include "mml/base/Geometry/Geometry3D.h"
+#include <mml/algorithms/CompGeometry/CompGeometryBase.h>
+#include <mml/MMLBase.h>
+#include <mml/base/Geometry/Geometry2D.h>
+#include <mml/base/Geometry/Geometry3D.h>
 
 #include <cmath>
 

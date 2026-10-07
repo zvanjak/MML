@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# Script to run MML_VectorField3D_Visualizer_Qt with all test data files
+# Script to run MML_VectorField3D_Visualizer with all test data files
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-VISUALIZER="$SCRIPT_DIR/MML_VectorField3D_Visualizer_Qt"
+VISUALIZER="$SCRIPT_DIR/MML_VectorField3D_Visualizer"
 DATA_DIR="$SCRIPT_DIR/../../../data/VectorField3D"
 
 if [ ! -f "$VISUALIZER" ]; then
@@ -16,7 +16,7 @@ if [ ! -d "$DATA_DIR" ]; then
     exit 1
 fi
 
-echo "Running MML_VectorField3D_Visualizer_Qt with test data files..."
+echo "Running MML_VectorField3D_Visualizer with test data files..."
 echo "Press Ctrl+C to stop"
 echo ""
 

@@ -12,12 +12,13 @@
 #if !defined MML_DERIVATION_PARAMETRIC_SURFACE_H
 #define MML_DERIVATION_PARAMETRIC_SURFACE_H
 
-#include "MMLBase.h"
+#include <mml/MMLBase.h>
 
 #include "DerivationBase.h"
+#include "FirstDerivativeStencil.h"
 
-#include "base/Vector/VectorN.h"
-#include "base/Matrix/MatrixNM.h"
+#include <mml/base/Vector/VectorN.h>
+#include <mml/base/Matrix/MatrixNM.h>
 
 namespace MML
 {
@@ -31,20 +32,10 @@ namespace MML
 		template <int N>
 		static VectorN<Real, N> NDer1_u(const IParametricSurfaceRect<N>& f, Real u, Real w, Real h, Real* error = nullptr)
 		{
-			VectorN<Real, N> yh = f(u + h, w);
-			VectorN<Real, N> y0 = f(u, w);
-			VectorN<Real, N> diff = yh - y0;
-
-			if (error)
-			{
-				VectorN<Real, N> ym = f(u - h, w);
-				VectorN<Real, N> ypph_vec = yh - 2 * y0 + ym;
-
-				Real ypph = ypph_vec.NormL2() / h;
-
-				*error = ypph / 2 + (yh.NormL2() + y0.NormL2()) * Constants::Eps / h;
-			}
-			return diff / h;
+			auto result = Detail::EvaluateFirstDerivativeStencil<Detail::FirstDerivativeOrder::One>(
+				[&](int offset) { return f(u + offset * h, w); }, [](const auto& value) { return value.NormL2(); }, h, error != nullptr);
+			if (error) *error = result.error;
+			return result.value;
 		}
 		template <int N>
 		static VectorN<Real, N> NDer1_u(const IParametricSurfaceRect<N>& f, Real u, Real w, Real* error = nullptr)
@@ -54,20 +45,10 @@ namespace MML
 		template <int N>
 		static VectorN<Real, N> NDer1_w(const IParametricSurfaceRect<N>& f, Real u, Real w, Real h, Real* error = nullptr)
 		{
-			VectorN<Real, N> yh = f(u, w + h);
-			VectorN<Real, N> y0 = f(u, w);
-			VectorN<Real, N> diff = yh - y0;
-
-			if (error)
-			{
-				VectorN<Real, N> ym = f(u, w - h);
-				VectorN<Real, N> ypph_vec = yh - 2 * y0 + ym;
-
-				Real ypph = ypph_vec.NormL2() / h;
-
-				*error = ypph / 2 + (yh.NormL2() + y0.NormL2()) * Constants::Eps / h;
-			}
-			return diff / h;
+			auto result = Detail::EvaluateFirstDerivativeStencil<Detail::FirstDerivativeOrder::One>(
+				[&](int offset) { return f(u, w + offset * h); }, [](const auto& value) { return value.NormL2(); }, h, error != nullptr);
+			if (error) *error = result.error;
+			return result.value;
 		}
 		template <int N>
 		static VectorN<Real, N> NDer1_w(const IParametricSurfaceRect<N>& f, Real u, Real w, Real* error = nullptr)
@@ -81,18 +62,17 @@ namespace MML
 		template <int N>
 		static VectorN<Real, N> NDer2_u(const IParametricSurfaceRect<N>& f, Real u, Real w, Real h, Real* error = nullptr)
 		{
-			VectorN<Real, N> yh = f(u + h, w);
-			VectorN<Real, N> ymh = f(u - h, w);
-			VectorN<Real, N> diff = yh - ymh;
-
-			if (error)
-			{
-				VectorN<Real, N> yth = f(u + 2 * h, w);
-				VectorN<Real, N> ymth = f(u - 2 * h, w);
-
-				*error = Constants::Eps * ((yh + ymh) / (2 * h)).NormL2() + std::abs(((yth - ymth) / 2 - diff).NormL2()) / (6 * h);
-			}
-			return diff / (2 * h);
+			using Stencil = Detail::FirstDerivativeStencil<Detail::FirstDerivativeOrder::Two>;
+			auto result = Detail::EvaluateFirstDerivativeStencilWithOffsets<Detail::FirstDerivativeOrder::Two>(
+				[&](int offset) { return f(u + offset * h, w); }, [](const auto& value) { return value.NormL2(); }, h, error != nullptr,
+				Stencil::value_offsets, Stencil::error_offsets,
+				[](const auto& at, const auto& norm, Real step) {
+					auto diff = at(1) - at(-1);
+					return Constants::Eps * norm((at(1) + at(-1)) / (REAL(2.0) * step))
+					     + norm((at(2) - at(-2)) / REAL(2.0) - diff) / (REAL(6.0) * step);
+				});
+			if (error) *error = result.error;
+			return result.value;
 		}
 		template <int N>
 		static VectorN<Real, N> NDer2_u(const IParametricSurfaceRect<N>& f, Real u, Real w, Real* error = nullptr)
@@ -102,16 +82,17 @@ namespace MML
 		template <int N>
 		static VectorN<Real, N> NDer2_w(const IParametricSurfaceRect<N>& f, Real u, Real w, Real h, Real* error = nullptr)
 		{
-			VectorN<Real, N> yh = f(u, w + h);
-			VectorN<Real, N> ymh = f(u, w - h);
-			VectorN<Real, N> diff = yh - ymh;
-			if (error)
-			{
-				VectorN<Real, N> yth = f(u, w + 2 * h);
-				VectorN<Real, N> ymth = f(u, w - 2 * h);
-				*error = Constants::Eps * ((yh + ymh) / (2 * h)).NormL2() + std::abs(((yth - ymth) / 2 - diff).NormL2()) / (6 * h);
-			}
-			return diff / (2 * h);
+			using Stencil = Detail::FirstDerivativeStencil<Detail::FirstDerivativeOrder::Two>;
+			auto result = Detail::EvaluateFirstDerivativeStencilWithOffsets<Detail::FirstDerivativeOrder::Two>(
+				[&](int offset) { return f(u, w + offset * h); }, [](const auto& value) { return value.NormL2(); }, h, error != nullptr,
+				Stencil::value_offsets, Stencil::error_offsets,
+				[](const auto& at, const auto& norm, Real step) {
+					auto diff = at(1) - at(-1);
+					return Constants::Eps * norm((at(1) + at(-1)) / (REAL(2.0) * step))
+					     + norm((at(2) - at(-2)) / REAL(2.0) - diff) / (REAL(6.0) * step);
+				});
+			if (error) *error = result.error;
+			return result.value;
 		}
 		template <int N>
 		static VectorN<Real, N> NDer2_w(const IParametricSurfaceRect<N>& f, Real u, Real w, Real* error = nullptr)

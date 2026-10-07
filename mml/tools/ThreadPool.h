@@ -21,6 +21,7 @@
 #include <atomic>
 #include <exception>
 #include <stdexcept>
+#include <stop_token>
 
 namespace MML
 {
@@ -119,7 +120,7 @@ namespace MML
 		explicit ThreadPool(size_t numThreads) : num_threads(numThreads)
 		{
 			if (numThreads == 0)
-				throw std::invalid_argument("ThreadPool requires at least 1 thread");
+				throw ArgumentError("ThreadPool requires at least 1 thread");
 				
 			for (size_t i = 0; i < numThreads; ++i)
 				workers.emplace_back([this]
@@ -201,15 +202,72 @@ namespace MML
 
 		/// @brief Submit a task for asynchronous execution
 		/// @param f Callable to execute (typically a lambda or std::function<void()>)
+		/// @throws std::runtime_error if the pool is shutting down (task would be silently dropped)
 		/// @note Thread-safe. Task will be executed by an available worker thread.
 		/// @note Exceptions thrown by the task are captured and can be retrieved via get_exception()
 		void enqueue(std::function<void()> f) 
 		{
 			{
 				std::lock_guard<std::mutex> lock(queue_mutex);
+				if (stop.load())
+					throw InvalidStateError("ThreadPool::enqueue - pool is shutting down, task rejected");
 				tasks.push(std::move(f));
 			}
 			condition.notify_one();
+		}
+
+		/// @brief Submit multiple tasks while acquiring the queue lock once
+		/// @param batch Callable tasks to execute asynchronously
+		/// @throws std::runtime_error if the pool is shutting down (tasks would be silently dropped)
+		/// @note Empty batches are accepted and do not notify worker threads.
+		void enqueue_batch(std::vector<std::function<void()>> batch)
+		{
+			if (batch.empty())
+				return;
+
+			{
+				std::lock_guard<std::mutex> lock(queue_mutex);
+				if (stop.load())
+					throw InvalidStateError("ThreadPool::enqueue_batch - pool is shutting down, tasks rejected");
+				for (auto& task : batch) {
+					tasks.push(std::move(task));
+				}
+			}
+			condition.notify_all();
+		}
+
+		/// @brief Submit a cancellable task for asynchronous execution
+		/// @param token C++20 cooperative stop token checked before and during task execution
+		/// @param f Callable taking std::stop_token to execute if cancellation has not been requested
+		/// @throws std::runtime_error if the pool is shutting down (task would be silently dropped)
+		/// @note If stop is requested before a worker starts the task, the task is skipped.
+		/// @note Running tasks should poll token.stop_requested() for cooperative cancellation.
+		void enqueue(std::stop_token token, std::function<void(std::stop_token)> f)
+		{
+			enqueue([token, task = std::move(f)]() mutable {
+				if (token.stop_requested())
+					return;
+				task(token);
+			});
+		}
+
+		/// @brief Submit multiple cancellable tasks while acquiring the queue lock once
+		/// @param token C++20 cooperative stop token shared by all tasks in the batch
+		/// @param batch Callable tasks taking std::stop_token
+		/// @throws std::runtime_error if the pool is shutting down (tasks would be silently dropped)
+		/// @note Tasks whose token is stopped before worker execution are skipped.
+		void enqueue_batch(std::stop_token token, std::vector<std::function<void(std::stop_token)>> batch)
+		{
+			std::vector<std::function<void()>> wrapped;
+			wrapped.reserve(batch.size());
+			for (auto& task : batch) {
+				wrapped.emplace_back([token, task = std::move(task)]() mutable {
+					if (token.stop_requested())
+						return;
+					task(token);
+				});
+			}
+			enqueue_batch(std::move(wrapped));
 		}
 		
 		/// @brief Block until all queued tasks have completed execution

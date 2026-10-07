@@ -12,8 +12,8 @@
 #if !defined MML_SERIALIZER_SIMULATION_H
 #define MML_SERIALIZER_SIMULATION_H
 
-#include "mml/tools/serializer/SerializerBase.h"
-#include "mml/base/Geometry/Geometry.h"
+#include <mml/tools/serializer/SerializerBase.h>
+#include <mml/base/Geometry/Geometry.h>
 
 namespace MML
 {
@@ -60,19 +60,11 @@ namespace MML
 			try
 			{
 				std::ostringstream buffer;
-				buffer << "PARTICLE_SIMULATION_DATA_2D\n";
-				buffer << "Width: " << width << "\n";
-				buffer << "Height: " << height << "\n";
-				buffer << "NumBalls: " << numBalls << "\n";
-
-				for (int i=0; i<numBalls; i++)
-				{
-					buffer << "Ball_" << i + 1 << " " << ballColors[i] << " " << ballRadius[i] << std::endl;
-				}
-
 				int numSteps = ballPositions[0].size() ;
 				int actualFrames = (numSteps + saveEveryNSteps - 1) / saveEveryNSteps;
-				buffer << "NumSteps: " << actualFrames << std::endl;
+				auto headerResult = WriteParticleSimulation2DHeader(buffer, numBalls, width, height, ballColors, ballRadius, actualFrames);
+				if (!headerResult.success)
+					return headerResult;
 
 				int realStep = 0;
 				for (int i = 0; i < numSteps; i+=saveEveryNSteps, realStep++)
@@ -130,20 +122,11 @@ namespace MML
 
 			try
 			{
-				file << "PARTICLE_SIMULATION_DATA_3D" << std::endl;
-				file << "Width: "    << width << std::endl;
-				file << "Height: "   << height << std::endl;
-				file << "Depth: "    << depth << std::endl;
-				file << "NumBalls: " << numBalls << std::endl;
-
-				for (int i = 0; i < numBalls; i++)
-				{
-					file << "Ball_" << i+1 << " " << ballColors[i] << " " << ballRadius[i] << std::endl;
-				}
-
 				int numSteps = ballPositions[0].size();
 				int actualFrames = (numSteps + saveEveryNSteps - 1) / saveEveryNSteps;
-				file << "NumSteps: " << actualFrames << std::endl;
+				auto headerResult = WriteParticleSimulation3DHeader(file, numBalls, width, height, depth, ballColors, ballRadius, actualFrames);
+				if (!headerResult.success)
+					return headerResult;
 
 				int realStep = 0;
 				for (int i = 0; i < numSteps; i += saveEveryNSteps, realStep++)

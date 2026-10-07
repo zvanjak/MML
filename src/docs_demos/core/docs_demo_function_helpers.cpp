@@ -4,11 +4,11 @@
 ///////////////////////////////////////////////////////////////////////////////////////////
 
 #ifdef MML_USE_SINGLE_HEADER
-#include "MML.h"
+#include <MML.h>
 #else
-#include "MMLBase.h"
-#include "base/Function.h"
-#include "core/FunctionHelpers.h"
+#include <mml/MMLBase.h>
+#include <mml/base/Function.h>
+#include <mml/core/FunctionHelpers.h>
 #endif
 
 #include <iostream>

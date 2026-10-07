@@ -7,12 +7,12 @@
  */
 
 #ifdef MML_USE_SINGLE_HEADER
-#include "MML.h"
+#include <MML.h>
 #else
-#include "MMLBase.h"
-#include "base/Vector/VectorN.h"
-#include "core/Curves.h"
-#include "tools/Visualizer.h"
+#include <mml/MMLBase.h>
+#include <mml/base/Vector/VectorN.h>
+#include <mml/core/Curves.h>
+#include <mml/tools/Visualizer.h>
 #endif
 
 using namespace MML;
@@ -33,7 +33,7 @@ void Show_Parametric_Curve_2D_Examples()
     // Example 2: Ellipse
     std::cout << "2. Ellipse: (3*cos(t), 2*sin(t))\n";
     ParametricCurve<2> ellipse{[](Real t) {
-        return VectorN<Real, 2>{3.0*std::cos(t), 2.0*std::sin(t)};
+        return VectorN<Real, 2>{Real{3}*std::cos(t), Real{2}*std::sin(t)};
     }};
     Visualizer::VisualizeParamCurve2D(ellipse, "Ellipse (a=3, b=2)",
                                       0.0, 2*Constants::PI, 100,

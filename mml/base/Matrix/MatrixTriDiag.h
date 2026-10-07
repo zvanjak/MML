@@ -12,11 +12,12 @@
 #if !defined MML_MATRIX_TRIDIAG_H
 #define MML_MATRIX_TRIDIAG_H
 
-#include "MMLBase.h"
-#include "MMLExceptions.h"
-#include "base/MatrixPrintFormat.h"
+#include <mml/MMLBase.h>
+#include <mml/MMLExceptions.h>
+#include <mml/base/Matrix/MatrixPrintFormat.h>
+#include <mml/base/Matrix/Matrix.h>
 
-#include "base/Vector/Vector.h"
+#include <mml/base/Vector/Vector.h>
 
 #include <limits>
 
@@ -199,17 +200,26 @@ namespace MML
 			return TridiagonalMatrix(_dim, newBelowDiag, _diag, newAboveDiag);
 		}
 
-		TridiagonalMatrix GetInverse() const
+		/// @brief Computes the generally dense inverse of this tridiagonal matrix.
+		/// @return Full matrix whose columns solve A*x_j = e_j.
+		/// @throws SingularMatrixError If the Thomas factorization encounters a zero pivot.
+		Matrix<Type> GetInverse() const
 		{
-			// For tridiagonal matrices, computing the exact inverse is complex
-			// and often results in a full matrix (not tridiagonal)
-			// This would require returning a full Matrix<Type> instead
-			throw NotImplementedError("TridiagonalMatrix::GetInverse() - "
-				"inverse of tridiagonal matrix is generally not tridiagonal. "
-				"Use Matrix<Type> conversion or solve linear systems directly with Solve()");
+			Matrix<Type> inverse(_dim, _dim);
+			Vector<Type> basis(_dim);
+
+			for (int column = 0; column < _dim; ++column) {
+				basis[column] = Type{1};
+				const Vector<Type> solution = Solve(basis);
+				for (int row = 0; row < _dim; ++row)
+					inverse(row, column) = solution[row];
+				basis[column] = Type{0};
+			}
+
+			return inverse;
 		}
 
-		void Solve(const Vector<Type>& rhs, Vector<Type>& sol)
+		void Solve(const Vector<Type>& rhs, Vector<Type>& sol) const
 		{
 			int j, n = _belowDiag.size();
 			Type bet;  // Must be Type to work with complex matrices
@@ -242,7 +252,7 @@ namespace MML
 			for (j = (n - 2); j >= 0; j--)
 				sol[j] -= gam[j + 1] * sol[j + 1];
 		}
-		Vector<Type> Solve(const Vector<Type>& rhs)
+		Vector<Type> Solve(const Vector<Type>& rhs) const
 		{
 			Vector<Type> sol(rhs.size());
 			Solve(rhs, sol);

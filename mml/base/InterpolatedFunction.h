@@ -17,23 +17,29 @@
 /// - 2D grid interpolation (bilinear, bicubic spline)
 /// - Parametric curve interpolation (linear, spline)
 ///
-/// For more focused includes, use the individual headers:
-/// - InterpolatedFunctions/InterpolatedRealFunction.h - 1D interpolation
-/// - InterpolatedFunctions/Interpolation2DFunction.h - 2D grid interpolation
-/// - InterpolatedFunctions/InterpolationParametricCurve.h - Parametric curves
+/// Main types included here:
+/// - InterpolatedRealFunctionLinear - shared base and linear interpolation
+/// - InterpolatedRealFunctionPolynomial, InterpolatedRealFunctionRational, and InterpolatedRealFunctionBarycentric
+/// - InterpolatedFunctionSpline and monotone cubic spline support
+/// - InterpolatedRealFunctionAdvanced - Hermite and Akima interpolation
+/// - Interpolation2DFunction - two-dimensional grid interpolation
+/// - InterpolationParametricCurve - parametric curve interpolation
 ///
-/// @see InterpolatedRealFunction.h for detailed 1D interpolation documentation
+/// @see InterpolatedRealFunctionLinear.h for the shared 1D interpolation base
 /// @ingroup Interpolation
 
 #if !defined MML_INTERPOLATEDFUNCTION_H
 #define MML_INTERPOLATEDFUNCTION_H
 
-// Include all interpolation headers
-#include "base/InterpolatedFunctions/InterpolatedRealFunction.h"
-#include "base/InterpolatedFunctions/Interpolation2DFunction.h"
-#include "base/InterpolatedFunctions/InterpolationParametricCurve.h"
+#include <mml/base/InterpolatedFunctions/InterpolatedRealFunctionLinear.h>
+#include <mml/base/InterpolatedFunctions/InterpolatedRealFunctionPolynomial.h>
+#include <mml/base/InterpolatedFunctions/InterpolatedRealFunctionRational.h>
+#include <mml/base/InterpolatedFunctions/InterpolatedRealFunctionBarycentric.h>
+#include <mml/base/InterpolatedFunctions/InterpolatedFunctionSpline.h>
+#include <mml/base/InterpolatedFunctions/InterpolatedRealFunctionAdvanced.h>
+#include <mml/base/InterpolatedFunctions/Interpolation2DFunction.h>
+#include <mml/base/InterpolatedFunctions/InterpolationParametricCurve.h>
 
-// Include Function.h for backward compatibility (RealFunction typedef, etc.)
-#include "base/Function.h"
+#include <mml/base/Function.h>
 
 #endif // MML_INTERPOLATEDFUNCTION_H

@@ -24,8 +24,7 @@ Simple, predictable, fixed timestep h = (t₂-t₁)/numSteps
 | **EulerStep** | 1 | Teaching, quick tests | Simple, fast | Very inaccurate, unstable |
 | **Midpoint** | 2 | Low accuracy OK | Better than Euler | Still poor |
 | **RungeKutta4 (RK4)** | 4 | Standard workhorse | Good balance | Fixed step only |
-| **VelocityVerlet** | 2 | Hamiltonian systems | Energy-conserving | Position/velocity split required |
-| **Leapfrog** | 2 | N-body, celestial mechanics | Symplectic, stable | Position/velocity split required |
+| **Velocity Verlet / Leapfrog** | 2 | Separable Hamiltonian systems | Symplectic, bounded energy error | Even-dimensional `[q, v]` state and position-only acceleration required |
 
 **Use when**: Simple problems, predictable behavior, benchmarking, teaching
 
@@ -45,7 +44,7 @@ Automatic timestep adjustment for accuracy vs efficiency
 
 | Class | Purpose | Use Case |
 |-------|---------|----------|
-| **ODESystemLeapfrogSolver** | Hamiltonian dynamics | N-body simulations, celestial mechanics |
+| **VelocityVerlet_StepCalculator** with **ODESystemFixedStepSolver** | Separable Hamiltonian dynamics | N-body simulations, molecular dynamics |
 
 ---
 
@@ -69,10 +68,10 @@ Automatic timestep adjustment for accuracy vs efficiency
 **General**: dy/dt = f(t, y)
 - Use any method
 
-**Hamiltonian**: H(p,q) conserved, symplectic structure
-- **Use**: Leapfrog, Velocity Verlet (preserve energy, symplectic form)
+**Separable Hamiltonian**: H(p,q) = T(p) + V(q), with q' = v and v' = a(t,q)
+- **Use**: Velocity Verlet or its `Leapfrog_StepCalculator` compatibility name
 - **Example**: Planetary orbits, molecular dynamics
-- **Structure**: y = [q, p], dq/dt = ∂H/∂p, dp/dt = -∂H/∂q
+- **Structure**: y = [q, v], with an even dimension and acceleration independent of velocity
 
 **Second-Order**: d²y/dt² = f(t, y, dy/dt)
 - **Convert to first-order**: y₁ = y, y₂ = dy/dt → dy₁/dt = y₂, dy₂/dt = f(t,y₁,y₂)
@@ -132,15 +131,18 @@ y_{n+1} = y_n + (h/6)(k₁ + 2k₂ + 2k₃ + k₄)
 - **FSAL property** (First Same As Last): k₁ of next step = k₇ of current step
 - Most popular general-purpose ODE solver
 
-**Dormand-Prince RK8(7)**:
+**DOP853 RK8(5,3)**:
 - 8th-order solution
-- 7th-order embedded error
-- 13 function evaluations
+- Blended 5th- and 3rd-order embedded error estimates
+- 12 propagation evaluations after the initial derivative is known
+- Not an FSAL method
 - For high-precision requirements
 
 ### Step Size Control
 
 **Goal**: Maintain error per step ~ ε (tolerance)
+
+Adaptive steppers use a shared configurable PI controller. Accepted steps combine the current normalized error with the previous accepted error; rejected steps use the current error only. Safety and growth/shrink bounds prevent abrupt changes, while order-varying methods such as Bulirsch-Stoer supply the exponent for the accepted extrapolation level.
 
 **Algorithm**:
 ```
@@ -149,20 +151,28 @@ y_{n+1} = y_n + (h/6)(k₁ + 2k₂ + 2k₃ + k₄)
 3. If r ≥ 1: Accept step
 4. If r < 1: Reject step, reduce h
 5. Compute next h:
-   h_new = SAFETY × h × r^(1/ORDER)
+    h_new = SAFETY × h × err^(-α) × previous_err^β
    
-where ORDER = p+1 (order of error estimate)
+where α is selected for the method order and β supplies PI damping
 ```
 
 **Safety factor**: Typically 0.9 to prevent oscillation
 
 **Growth/shrink limits**: Prevent h from changing too rapidly
 
+### Dense Output
+
+`DormandPrince5_Stepper` uses Shampine's stage-based quartic continuous extension. This provides fourth-order dense output with $O(h^5)$ local interpolation error. Its four coefficient vectors are constructed from the seven Dormand-Prince stage derivatives when a step is accepted, so interpolation requires no additional derivative evaluations. Repeated queries only evaluate the cached polynomial.
+
+`DormandPrince8_Stepper` implements DOP853's seventh-order continuous extension. It evaluates the endpoint derivative and three interpolation-only stages after an accepted step, then caches seven coefficient vectors. Repeated queries require no derivative evaluations.
+
+Other adaptive steppers use the shared cubic Hermite fallback based on endpoint states and derivatives. All interpolation paths preserve accepted-step endpoints exactly, support positive and negative steps, clamp out-of-range queries to the nearest endpoint, and are invalidated by a stepper reset.
+
 ### Symplectic Integrators
 
-**For Hamiltonian systems**: Preserve phase space volume, energy (approximately)
+**For separable Hamiltonian systems with constant step size**: Preserve phase-space structure and keep energy error bounded.
 
-**Leapfrog** (also called Störmer-Verlet):
+**Velocity Verlet / synchronized kick-drift-kick Leapfrog**:
 ```
 Split: y = [q, p]  (position, momentum)
 
@@ -177,7 +187,7 @@ v_{n+1} = v_{n+1/2} + (h/2)·a(q_{n+1})  # Half kick
 - Energy error bounded (doesn't grow)
 - 2nd-order accuracy
 
-**Velocity Verlet** (equivalent formulation):
+Equivalently:
 ```
 q_{n+1} = q_n + h·v_n + (h²/2)·a(q_n)
 v_{n+1} = v_n + (h/2)·(a(q_n) + a(q_{n+1}))
@@ -339,30 +349,7 @@ y_{n+1} = y_n + (h/6)(k₁ + 2k₂ + 2k₃ + k₄)
 
 **Order**: 2  
 **Evaluations**: 2 per step  
-**For**: Hamiltonian systems (position/velocity split)
-
-```cpp
-class VelocityVerlet_StepCalculator : public IODESystemStepCalculator {
-    void calcStep(...) const override {
-        int half_n = n / 2;
-        
-        // State: [positions(0..half_n-1), velocities(half_n..n-1)]
-        // Derivs: [velocities(0..half_n-1), accelerations(half_n..n-1)]
-        
-        // 1. Update positions
-        for (int i = 0; i < half_n; ++i)
-            x_out[i] = x_start[i] + x_start[half_n+i]*h + 0.5*dxdt[half_n+i]*h*h;
-        
-        // 2. Compute new accelerations
-        Vector<Real> dxdt_new(n);
-        sys.derivs(t + h, x_out, dxdt_new);
-        
-        // 3. Update velocities (average of old and new accelerations)
-        for (int i = 0; i < half_n; ++i)
-            x_out[half_n+i] = x_start[half_n+i] + 0.5*(dxdt[half_n+i] + dxdt_new[half_n+i])*h;
-    }
-};
-```
+**For**: Systems `q' = v`, `v' = a(t,q)` with an even-dimensional `[q, v]` state
 
 **Formula**:
 ```
@@ -372,29 +359,27 @@ v_{n+1} = v_n + (h/2)·(a_n + a_{n+1})
 
 **Properties**:
 - Symplectic
-- Energy-conserving (bounded error)
+- Bounded energy error for autonomous separable Hamiltonian systems
 - Time-reversible
+- Throws `ODESolverError` for an odd system dimension
 
 **When to use**: Molecular dynamics, planetary motion, Hamiltonian mechanics
 
+**Unsupported**: Velocity-dependent acceleration `a(t,q,v)`. The generic `IODESystem`
+interface cannot detect this dependency, so callers must honor the method contract.
+
 #### Leapfrog_StepCalculator
 
-**Order**: 2  
-**Evaluations**: 2 per step  
-**For**: Hamiltonian systems
+Compatibility name for `VelocityVerlet_StepCalculator`. It invokes the same implementation
+and returns synchronized full-step positions and velocities; it is not a distinct
+staggered-state Leapfrog method.
 
 ```cpp
-class Leapfrog_StepCalculator : public IODESystemStepCalculator {
-    void calcStep(...) const override {
-        // 1. Half-kick: v_{n+1/2} = v_n + (h/2)*a_n
-        // 2. Full-drift: q_{n+1} = q_n + h*v_{n+1/2}
-        // 3. Compute a_{n+1}
-        // 4. Half-kick: v_{n+1} = v_{n+1/2} + (h/2)*a_{n+1}
-    }
-};
+VelocityVerlet_StepCalculator verlet; // Canonical name
+Leapfrog_StepCalculator leapfrog;     // Compatibility name, same algorithm
 ```
 
-**When to use**: Same as Velocity Verlet (equivalent for constant timestep)
+**When to use**: Same contract and behavior as Velocity Verlet
 
 ---
 
@@ -618,23 +603,17 @@ Real h1 = 0.01;       // Initial step
 auto sol = solver.integrate(y0, t1, t2, minSave, eps, h1);
 ```
 
-#### ODESystemLeapfrogSolver
+#### Velocity Verlet with ODESystemFixedStepSolver
 
-**Specialized** for Hamiltonian systems
+Compose the canonical calculator with the general fixed-step solver:
 
 ```cpp
-class ODESystemLeapfrogSolver {
-    IODESystem& _sys;
-    
-public:
-    ODESystemSolution integrate(
-        const Vector<Real>& initCond,  // [positions, velocities]
-        Real t1, Real t2,
-        int numSteps);
-};
+VelocityVerlet_StepCalculator verlet;
+ODESystemFixedStepSolver solver(system, verlet);
+ODESystemSolution solution = solver.integrate(initialState, t1, t2, numSteps);
 ```
 
-**Fixed-step**, symplectic Leapfrog integration
+`Leapfrog_StepCalculator` remains available as a compatibility name for the same calculator.
 
 ---
 
@@ -670,8 +649,8 @@ Real y_j_at_i = sol._yval[i][j];  // Component j at time i
 ### Example 1: Simple Harmonic Oscillator (Fixed RK4)
 
 ```cpp
-#include "algorithms/ODESystemSolver.h"
-#include "algorithms/ODESystemStepCalculators.h"
+#include <mml/algorithms/ODESystemSolver.h>
+#include <mml/algorithms/ODEStepCalculators.h>
 
 // d²x/dt² = -ω²x  →  dy/dt = [v, -ω²y]
 class SHO : public IODESystem {
@@ -787,7 +766,7 @@ void Example3() {
 }
 ```
 
-### Example 4: Planetary Motion (Leapfrog)
+### Example 4: Planetary Motion (Velocity Verlet)
 
 Two-body problem - energy conservation critical!
 
@@ -820,7 +799,7 @@ void Example4() {
     Real v0 = std::sqrt(1.0 / r0);
     Vector<Real> y0 = {r0, 0.0, 0.0, v0};
     
-    // Use Leapfrog for energy conservation
+    // Use Velocity Verlet for bounded long-time energy error
     VelocityVerlet_StepCalculator verlet;
     ODESystemFixedStepSolver solver(sys, verlet);
     
@@ -961,8 +940,8 @@ Visualizer::VisualizeODESysSolAsParamCurve3(
 **Decision Tree**:
 
 ```
-Is your problem Hamiltonian (energy-conserving)?
-├─ YES → Use Leapfrog or VelocityVerlet
+Is your problem separable Hamiltonian with a position-only force?
+├─ YES → Use Velocity Verlet (Leapfrog compatibility name is equivalent)
 └─ NO → Continue
 
 Do you know the problem is non-stiff?
@@ -1053,7 +1032,7 @@ ODESystemSolver<RK5_CashKarp_Stepper> solver(planetary_system);
 // DO:
 VelocityVerlet_StepCalculator verlet;
 ODESystemFixedStepSolver solver(planetary_system, verlet);
-// Energy conserved (bounded error)
+// Symplectic method with bounded long-time energy error
 ```
 
 ❌ **Pitfall 3**: Too tight tolerance
@@ -1130,7 +1109,7 @@ if (sol.numSavedSteps() == 0)
 
 **Fixed-step (RK4)**:
 - Simple, predictable problems
-- Hamiltonian systems (with Verlet/Leapfrog)
+- Separable Hamiltonian systems (with Velocity Verlet)
 - Real-time applications (predictable timing)
 - Benchmarking
 - Teaching
@@ -1226,8 +1205,8 @@ class StiffSystem : public IODESystem {
 
 ### Method Quick Reference
 
-**For Hamiltonian Systems**:
-- Leapfrog or Velocity Verlet (symplectic, energy-conserving)
+**For Separable Hamiltonian Systems**:
+- Velocity Verlet, also exposed under the Leapfrog compatibility name
 
 **For General Non-Stiff**:
 - **First choice**: Dormand-Prince 5 (adaptive)
@@ -1269,13 +1248,13 @@ Working code examples are available in `src/docs_demos/docs_demo_ode_solvers.cpp
 - `Docs_Demo_ODESystem_Creation()` - Different ways to define ODE systems
 
 ### Step Calculators
-- `Docs_Demo_Step_Calculators()` - Euler, Midpoint, RK4, Leapfrog comparisons
+- `Docs_Demo_Step_Calculators()` - Euler, RK4, and Velocity Verlet comparison
 
 ### Adaptive Integration
 - `Docs_Demo_Adaptive_Integrators()` - Cash-Karp, Dormand-Prince 5/8
 
-### Legacy Interface
-- `Docs_Demo_Legacy_Solver_Interface()` - Backward-compatible ODESystemSolver
+### Compact Solver Interface
+- `Docs_Demo_Compact_Solver_Interface()` - Compact Cash-Karp solver API
 
 ### Solution Post-Processing
 - `Docs_Demo_ODESystemSolution_Basics()` - Accessing solution data

@@ -15,16 +15,16 @@
 #define __STDCPP_WANT_MATH_SPEC_FUNCS__ 1
 
 // MML headers first (catches missing includes in them)
-#include "MMLTypeDefs.h"
-#include "MMLExceptions.h"
-#include "MMLPrecision.h"
+#include <mml/MMLTypeDefs.h>
+#include <mml/MMLExceptions.h>
+#include <mml/MMLPrecision.h>
+#include <mml/MMLConcepts.h>
 
 // Standard headers - only what MMLBase.h actually uses
 #include <cmath>
 #include <complex>
 #include <cstdint>
 #include <limits>
-#include <type_traits>
 
 // Macro for type-safe numeric literals that match Real type
 // This ensures literals like 0.0, 1.0 match the current Real precision
@@ -38,6 +38,26 @@
 typedef std::complex<Real> Complex; // default complex type
 
 namespace MML {
+
+	// Pull std math overloads into the MML namespace so unqualified calls
+	// (sin, cos, sqrt, …) resolve to the correct overload for Real type.
+	// Without this, on GCC/Linux, unqualified sin(long double) silently
+	// calls the C sin(double), losing precision.
+	using std::abs;
+	using std::acos;
+	using std::asin;
+	using std::atan;
+	using std::atan2;
+	using std::cos;
+	using std::exp;
+	using std::fabs;
+	using std::log;
+	using std::log10;
+	using std::pow;
+	using std::sin;
+	using std::sqrt;
+	using std::tan;
+	using std::hypot;
 
 	// Generic absolute value functions
 	template<class Type>
@@ -99,8 +119,7 @@ namespace MML {
 	}
 	template<class T>
 	inline T POW5(const T& a) {
-		const T& t = a;
-		return t * t * t * t * t;
+		return POW4(a) * a;
 	}
 
 	////////////                  Constants                ////////////////
@@ -126,38 +145,10 @@ namespace MML {
 		static inline constexpr Real GEOMETRY_EPSILON = Real(1e-10L);
 
 		// Precision constants - use Real type for consistency with library's floating-point type
-		static inline const Real Eps = std::numeric_limits<Real>::epsilon();
-		static inline const Real PosInf = std::numeric_limits<Real>::infinity();
-		static inline const Real NegInf = -std::numeric_limits<Real>::infinity();
+		static inline constexpr Real Eps = std::numeric_limits<Real>::epsilon();
+		static inline constexpr Real PosInf = std::numeric_limits<Real>::infinity();
+		static inline constexpr Real NegInf = -std::numeric_limits<Real>::infinity();
 	} // namespace Constants
-
-	////////////       Binary File Format Constants        ////////////
-	/// @brief Magic numbers and version constants for MML binary file formats.
-	/// @details These constants identify MML binary files and their format versions.
-	///          Magic numbers are 4-byte ASCII identifiers stored as uint32_t.
-	///          All binary files use little-endian byte order.
-	namespace BinaryFormat {
-		// Magic numbers (4-byte ASCII identifiers)
-		static inline constexpr uint32_t MAGIC_MATRIX = 0x4D4D4C4D;					// "MMLM" - MML Matrix
-		static inline constexpr uint32_t MAGIC_VECTOR = 0x4D4D4C56;					// "MMLV" - MML Vector (real)
-		static inline constexpr uint32_t MAGIC_VECTOR_COMPLEX = 0x4D4D4C43; // "MMLC" - MML Vector Complex
-		static inline constexpr uint32_t MAGIC_SPARSE = 0x4D4D4C53;					// "MMLS" - MML Sparse Matrix (reserved)
-		static inline constexpr uint32_t MAGIC_TENSOR = 0x4D4D4C54;					// "MMLT" - MML Tensor (reserved)
-
-		// Current format versions
-		static inline constexpr uint32_t VERSION_MATRIX = 1;
-		static inline constexpr uint32_t VERSION_VECTOR = 1;
-		static inline constexpr uint32_t VERSION_VECTOR_COMPLEX = 1;
-		static inline constexpr uint32_t VERSION_SPARSE = 1; // reserved
-		static inline constexpr uint32_t VERSION_TENSOR = 1; // reserved
-
-		// File extensions (without dot)
-		static inline constexpr const char* EXT_MATRIX = "mmlm";
-		static inline constexpr const char* EXT_VECTOR = "mmlv";
-		static inline constexpr const char* EXT_VECTOR_COMPLEX = "mmlc"; // complex vector
-		static inline constexpr const char* EXT_SPARSE = "mmls";				 // reserved
-		static inline constexpr const char* EXT_TENSOR = "mmlt";				 // reserved
-	} // namespace BinaryFormat
 
 	////////////         Angle Comparison Functions         ////////////
 	/// @brief Normalize angle to [-π, π) range for comparison.
@@ -181,18 +172,6 @@ namespace MML {
 		Real diff = normalizeAngle(a - b);
 		return std::abs(diff) < eps;
 	}
-
-	// is_simple_numeric helper
-	template<typename T>
-	struct is_simple_numeric : std::is_arithmetic<T> {};
-
-	template<typename T>
-	struct is_simple_numeric<std::complex<T>> : std::is_arithmetic<T> {};
-
-	// Helper variable template (C++14 and later)
-	template<typename T>
-	inline constexpr bool is_MML_simple_numeric = is_simple_numeric<T>::value;
-
 
 	struct AlgorithmContext {
 		// Integration parameters (using PrecisionValues for consistency)
@@ -234,15 +213,28 @@ namespace MML {
 		}
 	};
 
-	// Backward compatible Defaults namespace (now thread-safe via thread_local
-	// contexts)
+	// Backward compatible Defaults namespace (thread-safe via thread_local contexts)
 	namespace Defaults {
-		// Output defaults (thread-safe - changed from static globals to thread_local)
-		// Usage: Defaults::VectorPrintWidth = 20; (now thread-safe!)
-		static inline int& VectorPrintWidth = PrintContext::Get().vectorWidth;
-		static inline int& VectorPrintPrecision = PrintContext::Get().vectorPrecision;
-		static inline int& VectorNPrintWidth = PrintContext::Get().vectorNWidth;
-		static inline int& VectorNPrintPrecision = PrintContext::Get().vectorNPrecision;
+		namespace Detail {
+			// Proxy resolving to the CALLING thread's context on every access.
+			// (A plain `static inline T&` alias binds ONE thread's thread_local instance
+			// at static initialization, silently breaking per-thread semantics.)
+			template<typename T, typename Context, T Context::* Member>
+			struct ThreadLocalAlias {
+				operator T() const { return Context::Get().*Member; }
+				ThreadLocalAlias& operator=(T value) {
+					Context::Get().*Member = value;
+					return *this;
+				}
+			};
+		}
+
+		// Output defaults (per-thread; reads/writes affect the calling thread only)
+		// Usage: Defaults::VectorPrintWidth = 20;
+		static inline Detail::ThreadLocalAlias<int, PrintContext, &PrintContext::vectorWidth> VectorPrintWidth;
+		static inline Detail::ThreadLocalAlias<int, PrintContext, &PrintContext::vectorPrecision> VectorPrintPrecision;
+		static inline Detail::ThreadLocalAlias<int, PrintContext, &PrintContext::vectorNWidth> VectorNPrintWidth;
+		static inline Detail::ThreadLocalAlias<int, PrintContext, &PrintContext::vectorNPrecision> VectorNPrintPrecision;
 
 		//////////               Default precisions             ///////////
 		// Use the precision values based on the Real type
@@ -294,25 +286,24 @@ namespace MML {
 		static inline const Real DefaultTolerance = PrecisionValues<Real>::DefaultTolerance;
 		static inline const Real OrthogonalityTolerance = PrecisionValues<Real>::OrthogonalityTolerance;
 
-		// Algorithm parameters (thread-safe - changed from static constants to
-		// thread_local) Usage: Defaults::TrapezoidIntegrationEPS = 1e-6; (now
-		// thread-safe and mutable!)
-		static inline Real& TrapezoidIntegrationEPS = AlgorithmContext::Get().trapezoidIntegrationEPS;
-		static inline Real& SimpsonIntegrationEPS = AlgorithmContext::Get().simpsonIntegrationEPS;
-		static inline Real& RombergIntegrationEPS = AlgorithmContext::Get().rombergIntegrationEPS;
-		static inline Real& WorkIntegralPrecision = AlgorithmContext::Get().workIntegralPrecision;
-		static inline Real& LineIntegralPrecision = AlgorithmContext::Get().lineIntegralPrecision;
+		// Algorithm parameters (per-thread; reads/writes affect the calling thread only)
+		// Usage: Defaults::TrapezoidIntegrationEPS = 1e-6;
+		static inline Detail::ThreadLocalAlias<Real, AlgorithmContext, &AlgorithmContext::trapezoidIntegrationEPS> TrapezoidIntegrationEPS;
+		static inline Detail::ThreadLocalAlias<Real, AlgorithmContext, &AlgorithmContext::simpsonIntegrationEPS> SimpsonIntegrationEPS;
+		static inline Detail::ThreadLocalAlias<Real, AlgorithmContext, &AlgorithmContext::rombergIntegrationEPS> RombergIntegrationEPS;
+		static inline Detail::ThreadLocalAlias<Real, AlgorithmContext, &AlgorithmContext::workIntegralPrecision> WorkIntegralPrecision;
+		static inline Detail::ThreadLocalAlias<Real, AlgorithmContext, &AlgorithmContext::lineIntegralPrecision> LineIntegralPrecision;
 
-		static inline int& BisectionMaxSteps = AlgorithmContext::Get().bisectionMaxSteps;
-		static inline int& NewtonRaphsonMaxSteps = AlgorithmContext::Get().newtonRaphsonMaxSteps;
-		static inline int& BrentMaxSteps = AlgorithmContext::Get().brentMaxSteps;
+		static inline Detail::ThreadLocalAlias<int, AlgorithmContext, &AlgorithmContext::bisectionMaxSteps> BisectionMaxSteps;
+		static inline Detail::ThreadLocalAlias<int, AlgorithmContext, &AlgorithmContext::newtonRaphsonMaxSteps> NewtonRaphsonMaxSteps;
+		static inline Detail::ThreadLocalAlias<int, AlgorithmContext, &AlgorithmContext::brentMaxSteps> BrentMaxSteps;
 
-		static inline int& TrapezoidIntegrationMaxSteps = AlgorithmContext::Get().trapezoidIntegrationMaxSteps;
-		static inline int& SimpsonIntegrationMaxSteps = AlgorithmContext::Get().simpsonIntegrationMaxSteps;
-		static inline int& RombergIntegrationMaxSteps = AlgorithmContext::Get().rombergIntegrationMaxSteps;
-		static inline int& RombergIntegrationUsedPnts = AlgorithmContext::Get().rombergIntegrationUsedPnts;
+		static inline Detail::ThreadLocalAlias<int, AlgorithmContext, &AlgorithmContext::trapezoidIntegrationMaxSteps> TrapezoidIntegrationMaxSteps;
+		static inline Detail::ThreadLocalAlias<int, AlgorithmContext, &AlgorithmContext::simpsonIntegrationMaxSteps> SimpsonIntegrationMaxSteps;
+		static inline Detail::ThreadLocalAlias<int, AlgorithmContext, &AlgorithmContext::rombergIntegrationMaxSteps> RombergIntegrationMaxSteps;
+		static inline Detail::ThreadLocalAlias<int, AlgorithmContext, &AlgorithmContext::rombergIntegrationUsedPnts> RombergIntegrationUsedPnts;
 
-		static inline int& ODESolverMaxSteps = AlgorithmContext::Get().odeSolverMaxSteps;
+		static inline Detail::ThreadLocalAlias<int, AlgorithmContext, &AlgorithmContext::odeSolverMaxSteps> ODESolverMaxSteps;
 	} // namespace Defaults
 } // namespace MML
 #endif

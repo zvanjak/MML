@@ -9,12 +9,12 @@
 ///////////////////////////////////////////////////////////////////////////////////////////
 
 #ifdef MML_USE_SINGLE_HEADER
-#include "MML.h"
+#include <MML.h>
 #else
-#include "MMLBase.h"
+#include <mml/MMLBase.h>
 
-#include "base/Vector/VectorN.h"
-#include "base/BaseUtils.h"
+#include <mml/base/Vector/VectorN.h>
+#include <mml/base/BaseUtils.h>
 #endif
 
 #include <iostream>

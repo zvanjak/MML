@@ -9,35 +9,31 @@
 ///  License:     MIT License (see LICENSE.md)                                         ///
 ///                                                                                   ///
 ///////////////////////////////////////////////////////////////////////////////////////////
+
+/// @file LinAlgEqSolvers.h
+/// @brief Aggregate header for linear algebra equation solvers.
+/// This header includes direct solvers, QR solvers, real and complex SVD solvers,
+/// and iterative solvers such as Jacobi, Gauss-Seidel, SOR, and conjugate gradient.
 ///
-/// This is an umbrella header that includes all linear algebra equation solvers.
-/// For finer-grained includes, use the individual headers:
+/// Main types included here:
+/// - GaussJordanSolver - direct dense solve and matrix inverse helper
+/// - LUSolver and LUSolverInPlace - LU factorization based direct solvers
+/// - BandDiagonalSolver - direct solver for banded systems
+/// - CholeskySolver - symmetric positive-definite direct solver
+/// - QRSolver - Householder QR solver
+/// - SVDecompositionSolver and ComplexSVDecompositionSolver - SVD-based least-squares and pseudoinverse solvers
+/// - JacobiSolver, GaussSeidelSolver, and SORSolver - stationary iterative solvers
 ///
-///   - LinAlgDirect.h           : GaussJordanSolver, LUSolver, LUSolverInPlace,
-///                                BandDiagonalSolver, CholeskySolver
-///   - LinAlgQR.h               : QRSolver (Householder reflections)
-///   - LinAlgSVD.h              : SVDecompositionSolver (pseudoinverse, least squares)
-///   - LinAlgEqSolvers_iterative.h : Jacobi, Gauss-Seidel, SOR, Conjugate Gradient
-///
-/// Thread Safety:
-///   All linear solvers are REENTRANT - safe to call from multiple threads with
-///   different matrices. Solvers are stateless pure functions.
-///   See docs/THREADING.md for details.
-///
-///////////////////////////////////////////////////////////////////////////////////////////
+/// Linear solvers are reentrant when separate matrices or solver instances are used.
+/// For more focused includes, use the individual headers under LinAlgEqSolvers/.
+
 #if !defined  MML_LINEAR_ALG_EQ_SOLVERS_H
 #define MML_LINEAR_ALG_EQ_SOLVERS_H
 
-// Direct solvers: Gauss-Jordan, LU decomposition, Band diagonal, Cholesky
-#include "core/LinAlgEqSolvers/LinAlgDirect.h"
-
-// QR decomposition solver using Householder reflections
-#include "core/LinAlgEqSolvers/LinAlgQR.h"
-
-// Singular Value Decomposition solver
-#include "core/LinAlgEqSolvers/LinAlgSVD.h"
-
-// Iterative solvers: Jacobi, Gauss-Seidel, SOR, Conjugate Gradient
-#include "core/LinAlgEqSolvers/LinAlgEqSolvers_iterative.h"
+#include <mml/core/LinAlgEqSolvers/LinAlgDirect.h>
+#include <mml/core/LinAlgEqSolvers/LinAlgQR.h>
+#include <mml/core/LinAlgEqSolvers/LinAlgSVD.h>
+#include <mml/core/LinAlgEqSolvers/LinAlgComplexSVD.h>
+#include <mml/core/LinAlgEqSolvers/LinAlgEqSolvers_iterative.h>
 
 #endif // MML_LINEAR_ALG_EQ_SOLVERS_H

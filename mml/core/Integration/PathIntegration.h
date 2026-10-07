@@ -29,17 +29,17 @@
 #ifndef MML_PATH_INTEGRATION_H
 #define MML_PATH_INTEGRATION_H
 
-#include "MMLBase.h"
+#include <mml/MMLBase.h>
 
-#include "interfaces/IFunction.h"
+#include <mml/interfaces/IFunction.h>
 
-#include "base/Vector/Vector.h"
-#include "base/BaseUtils.h"
+#include <mml/base/Vector/Vector.h>
+#include <mml/base/BaseUtils.h>
 
-#include "core/Derivation.h"
-#include "core/Integration.h"
+#include <mml/core/Derivation.h>
+#include <mml/core/Integration.h>
 
-#include "core/FieldOperations.h"
+#include <mml/core/Fields/FieldOperations.h>
 
 namespace MML
 {
@@ -54,7 +54,7 @@ namespace MML
 	/// - Line integrals of scalar fields (∫_C f ds)
 	/// - Line integrals of vector fields (∫_C F·dr) - work integrals
 	///
-	/// @note All methods use trapezoidal integration internally
+	/// @note Trapezoidal integration is the default; callers may select another IntegrationMethod
 	/// @see IParametricCurve, IScalarFunction, IVectorFunction
 	///////////////////////////////////////////////////////////////////////////
 	class PathIntegration
@@ -143,12 +143,14 @@ namespace MML
 
 		/// @brief Compute the arc length of a parametric curve
 		/// 
-		/// Computes L = ∫_a^b |r'(t)| dt using trapezoidal integration.
+		/// Computes L = ∫_a^b |r'(t)| dt using the selected integration method.
 		///
 		/// @tparam N Dimension of the curve (2 or 3 typically)
 		/// @param curve The parametric curve r(t)
 		/// @param a Starting parameter value
 		/// @param b Ending parameter value
+		/// @param method Integration method to use (default: TRAP)
+		/// @param eps Desired relative precision (ignored by fixed-order methods)
 		/// @return IntegrationResult with arc length as value (implicitly converts to Real)
 		///
 		/// @par Example:
@@ -161,10 +163,11 @@ namespace MML
 		/// // length ≈ 2π√(1 + 1/(4π²)) for one turn
 		/// @endcode
 		template<int N>
-		static IntegrationResult ParametricCurveLength(const IParametricCurve<N>& curve, const Real a, const Real b)
+		static IntegrationResult ParametricCurveLength(const IParametricCurve<N>& curve, const Real a, const Real b,
+			IntegrationMethod method = TRAP, const Real eps = Defaults::TrapezoidIntegrationEPS)
 		{
 			HelperCurveLen<N> helper(curve);
-			return IntegrateTrap(helper, a, b);
+			return Integrate(helper, a, b, method, eps);
 		}
 		
 		///////////////////////////////////////////////////////////////////////
@@ -180,6 +183,8 @@ namespace MML
 		/// @param density Linear density function ρ(t) [mass per unit length]
 		/// @param a Starting parameter value
 		/// @param b Ending parameter value
+		/// @param method Integration method to use (default: TRAP)
+		/// @param eps Desired relative precision (ignored by fixed-order methods)
 		/// @return IntegrationResult with total mass as value (implicitly converts to Real)
 		///
 		/// @par Physical interpretation:
@@ -197,10 +202,11 @@ namespace MML
 		/// @endcode
 		template<int N>
 		static IntegrationResult ParametricCurveMass(const IParametricCurve<N>& curve, const IRealFunction &density, 
-															const Real a, const Real b)
+													const Real a, const Real b, IntegrationMethod method = TRAP,
+													const Real eps = Defaults::TrapezoidIntegrationEPS)
 		{
-      HelperCurveMass<N> helper(curve, density);
-      return IntegrateTrap(helper, a, b);
+			HelperCurveMass<N> helper(curve, density);
+			return Integrate(helper, a, b, method, eps);
 		}
 
 		///////////////////////////////////////////////////////////////////////
@@ -235,7 +241,18 @@ namespace MML
 														 const Real t1, const Real t2, const Real eps = Defaults::WorkIntegralPrecision)
 		{
 			HelperLineIntegralScalarFunc<3> helper(scalarField, curve);
-			return IntegrateTrap(helper, t1, t2, eps);
+			return Integrate(helper, t1, t2, TRAP, eps);
+		}
+
+		/// @brief Line integral of a scalar field using an explicitly selected integration method
+		/// @param method Integration method to use
+		/// @param eps Desired relative precision (ignored by fixed-order methods)
+		static IntegrationResult LineIntegral(const IScalarFunction<3>& scalarField, const IParametricCurve<3>& curve,
+												 const Real t1, const Real t2, IntegrationMethod method,
+												 const Real eps = Defaults::WorkIntegralPrecision)
+		{
+			HelperLineIntegralScalarFunc<3> helper(scalarField, curve);
+			return Integrate(helper, t1, t2, method, eps);
 		}
 
 		///////////////////////////////////////////////////////////////////////
@@ -280,7 +297,18 @@ namespace MML
 														 const Real t1, const Real t2, const Real eps = Defaults::LineIntegralPrecision)
 		{
 			HelperLineIntegralVectorFunc<3> helper(vectorField, curve);
-			return IntegrateTrap(helper, t1, t2, eps);
+			return Integrate(helper, t1, t2, TRAP, eps);
+		}
+
+		/// @brief Line integral of a vector field using an explicitly selected integration method
+		/// @param method Integration method to use
+		/// @param eps Desired relative precision (ignored by fixed-order methods)
+		static IntegrationResult LineIntegral(const IVectorFunction<3>& vectorField, const IParametricCurve<3>& curve,
+												 const Real t1, const Real t2, IntegrationMethod method,
+												 const Real eps = Defaults::LineIntegralPrecision)
+		{
+			HelperLineIntegralVectorFunc<3> helper(vectorField, curve);
+			return Integrate(helper, t1, t2, method, eps);
 		}
 	};
 

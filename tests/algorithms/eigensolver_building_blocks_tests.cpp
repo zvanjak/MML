@@ -13,17 +13,22 @@
  */
 
 #ifdef MML_USE_SINGLE_HEADER
-#include "MML.h"
+#include <MML.h>
 #else
-#include "base/Vector/Vector.h"
-#include "base/Matrix/Matrix.h"
-#include "base/BaseUtils.h"
-#include "core/MatrixUtils.h"
-#include "algorithms/EigenSolverHelpers.h"
-#include "algorithms/EigenSystemSolvers.h"  // For EigenSolver
+#include <mml/base/Vector/Vector.h>
+#include <mml/base/Matrix/Matrix.h>
+#include <mml/base/BaseUtils.h>
+#include <mml/base/BaseUtils/MatrixOps.h>
+#include <mml/algorithms/MatrixAlg.h>
+#include <mml/algorithms/Eigen/HessenbergReduction.h>
+#include <mml/algorithms/Eigen/detail/RealSchurAnalysis.h>
+#include <mml/algorithms/Eigen/detail/HessenbergQRIteration.h>
+#include <mml/algorithms/Eigen/detail/SchurEigenvectors.h>
+#include <mml/algorithms/Eigen/EigenSolver.h>
 #endif
 
 #include <catch2/catch_all.hpp>
+#include <sstream>
 #include "../TestPrecision.h"
 #include "../TestMatchers.h"
 
@@ -34,7 +39,7 @@ namespace MML::Tests::Algorithms::EigensolverBuildingBlocksTests
 {
 
 // Tolerance for numerical comparisons
-constexpr Real TOL = 1e-10;
+constexpr Real TOL = TOL(1e-10, 1e-4);
 
 // ============================================================================
 // BUILDING BLOCK 1: HESSENBERG REDUCTION TESTS
@@ -46,7 +51,7 @@ TEST_CASE("Hessenberg - 2x2 matrix unchanged", "[eigensolver][building-block][he
     Matrix<Real> A{2, 2, {REAL(1.0), REAL(2.0),
                           REAL(3.0), REAL(4.0)}};
     
-    auto result = EigenSolverHelpers::ReduceToHessenberg(A);
+    auto result = MML::ReduceToHessenberg(A);
     
     // H should equal A for 2x2
     REQUIRE(Utils::MaxAbsDiff(result.H, A) < TOL);
@@ -62,10 +67,10 @@ TEST_CASE("Hessenberg - 3x3 produces upper Hessenberg", "[eigensolver][building-
                           REAL(4.0), REAL(5.0), REAL(6.0),
                           REAL(7.0), REAL(8.0), REAL(9.0)}};
     
-    auto result = EigenSolverHelpers::ReduceToHessenberg(A);
+    auto result = MML::ReduceToHessenberg(A);
     
     // Check H is upper Hessenberg
-    REQUIRE(Utils::IsUpperHessenberg(result.H, TOL));
+    REQUIRE(MatrixAlg::IsUpperHessenberg(result.H, {TOL, TOL}));
     INFO("H(2,0) = " << result.H(2, 0));
     REQUIRE(std::abs(result.H(2, 0)) < TOL);
 }
@@ -76,10 +81,10 @@ TEST_CASE("Hessenberg - 3x3 Q is orthogonal", "[eigensolver][building-block][hes
                           REAL(4.0), REAL(5.0), REAL(6.0),
                           REAL(7.0), REAL(8.0), REAL(9.0)}};
     
-    auto result = EigenSolverHelpers::ReduceToHessenberg(A);
+    auto result = MML::ReduceToHessenberg(A);
     
     // Check Q is orthogonal: Q^T * Q = I
-    REQUIRE(Utils::IsOrthogonal(result.Q, TOL));
+    REQUIRE(MatrixAlg::IsOrthogonal(result.Q, {TOL, TOL}));
 }
 
 TEST_CASE("Hessenberg - 3x3 similarity preserved (Q^T*A*Q = H)", "[eigensolver][building-block][hessenberg]")
@@ -88,7 +93,7 @@ TEST_CASE("Hessenberg - 3x3 similarity preserved (Q^T*A*Q = H)", "[eigensolver][
                           REAL(4.0), REAL(5.0), REAL(6.0),
                           REAL(7.0), REAL(8.0), REAL(9.0)}};
     
-    auto result = EigenSolverHelpers::ReduceToHessenberg(A);
+    auto result = MML::ReduceToHessenberg(A);
     
     // Verify Q^T * A * Q = H
     Matrix<Real> reconstructed = Utils::SimilarityTransform(result.Q, A);
@@ -104,10 +109,10 @@ TEST_CASE("Hessenberg - 3x3 trace preserved", "[eigensolver][building-block][hes
                           REAL(4.0), REAL(5.0), REAL(6.0),
                           REAL(7.0), REAL(8.0), REAL(9.0)}};
     
-    auto result = EigenSolverHelpers::ReduceToHessenberg(A);
+    auto result = MML::ReduceToHessenberg(A);
     
-    Real traceA = Utils::Trace(A);
-    Real traceH = Utils::Trace(result.H);
+    Real traceA = MatrixAlg::Trace(A);
+    Real traceH = MatrixAlg::Trace(result.H);
     
     INFO("trace(A) = " << traceA << ", trace(H) = " << traceH);
     REQUIRE(std::abs(traceA - traceH) < TOL);
@@ -120,12 +125,12 @@ TEST_CASE("Hessenberg - 4x4 all criteria", "[eigensolver][building-block][hessen
                          -REAL(2.0), REAL(0.0),  REAL(3.0), -REAL(2.0),
                           REAL(2.0), REAL(1.0), -REAL(2.0), -REAL(1.0)}};
     
-    auto result = EigenSolverHelpers::ReduceToHessenberg(A);
+    auto result = MML::ReduceToHessenberg(A);
     
     // Check all criteria
     SECTION("H is upper Hessenberg")
     {
-        REQUIRE(Utils::IsUpperHessenberg(result.H, TOL));
+        REQUIRE(MatrixAlg::IsUpperHessenberg(result.H, {TOL, TOL}));
         REQUIRE(std::abs(result.H(2, 0)) < TOL);
         REQUIRE(std::abs(result.H(3, 0)) < TOL);
         REQUIRE(std::abs(result.H(3, 1)) < TOL);
@@ -133,7 +138,7 @@ TEST_CASE("Hessenberg - 4x4 all criteria", "[eigensolver][building-block][hessen
     
     SECTION("Q is orthogonal")
     {
-        REQUIRE(Utils::IsOrthogonal(result.Q, TOL));
+        REQUIRE(MatrixAlg::IsOrthogonal(result.Q, {TOL, TOL}));
     }
     
     SECTION("Similarity: Q^T*A*Q = H")
@@ -144,7 +149,7 @@ TEST_CASE("Hessenberg - 4x4 all criteria", "[eigensolver][building-block][hessen
     
     SECTION("Trace preserved")
     {
-        REQUIRE(std::abs(Utils::Trace(A) - Utils::Trace(result.H)) < TOL);
+        REQUIRE(std::abs(MatrixAlg::Trace(A) - MatrixAlg::Trace(result.H)) < TOL);
     }
 }
 
@@ -156,16 +161,16 @@ TEST_CASE("Hessenberg - 5x5 all criteria", "[eigensolver][building-block][hessen
                           REAL(16.0), REAL(17.0), REAL(18.0), REAL(19.0), REAL(20.0),
                           REAL(21.0), REAL(22.0), REAL(23.0), REAL(24.0), REAL(25.0)}};
     
-    auto result = EigenSolverHelpers::ReduceToHessenberg(A);
+    auto result = MML::ReduceToHessenberg(A);
     
     SECTION("H is upper Hessenberg")
     {
-        REQUIRE(Utils::IsUpperHessenberg(result.H, TOL));
+        REQUIRE(MatrixAlg::IsUpperHessenberg(result.H, {TOL, TOL}));
     }
     
     SECTION("Q is orthogonal")
     {
-        REQUIRE(Utils::IsOrthogonal(result.Q, TOL));
+        REQUIRE(MatrixAlg::IsOrthogonal(result.Q, {TOL, TOL}));
     }
     
     SECTION("Similarity: Q^T*A*Q = H")
@@ -176,7 +181,7 @@ TEST_CASE("Hessenberg - 5x5 all criteria", "[eigensolver][building-block][hessen
     
     SECTION("Trace preserved")
     {
-        REQUIRE(std::abs(Utils::Trace(A) - Utils::Trace(result.H)) < TOL);
+        REQUIRE(std::abs(MatrixAlg::Trace(A) - MatrixAlg::Trace(result.H)) < TOL);
     }
 }
 
@@ -188,10 +193,10 @@ TEST_CASE("Hessenberg - already Hessenberg matrix", "[eigensolver][building-bloc
                           REAL(0.0), REAL(9.0), REAL(10.0), REAL(11.0),
                           REAL(0.0), REAL(0.0), REAL(12.0), REAL(13.0)}};
     
-    auto result = EigenSolverHelpers::ReduceToHessenberg(H);
+    auto result = MML::ReduceToHessenberg(H);
     
-    REQUIRE(Utils::IsUpperHessenberg(result.H, TOL));
-    REQUIRE(Utils::IsOrthogonal(result.Q, TOL));
+    REQUIRE(MatrixAlg::IsUpperHessenberg(result.H, {TOL, TOL}));
+    REQUIRE(MatrixAlg::IsOrthogonal(result.Q, {TOL, TOL}));
     
     // Similarity should hold
     Matrix<Real> reconstructed = Utils::SimilarityTransform(result.Q, H);
@@ -206,14 +211,14 @@ TEST_CASE("Hessenberg - random-like structured matrix", "[eigensolver][building-
                           REAL(2.4),  REAL(6.5), -REAL(5.5),  REAL(1.1),
                           REAL(3.1), -REAL(2.2),  REAL(4.4),  REAL(8.8)}};
     
-    auto result = EigenSolverHelpers::ReduceToHessenberg(A);
+    auto result = MML::ReduceToHessenberg(A);
     
     INFO("H(2,0) = " << result.H(2, 0));
     INFO("H(3,0) = " << result.H(3, 0));
     INFO("H(3,1) = " << result.H(3, 1));
     
-    REQUIRE(Utils::IsUpperHessenberg(result.H, TOL));
-    REQUIRE(Utils::IsOrthogonal(result.Q, TOL));
+    REQUIRE(MatrixAlg::IsUpperHessenberg(result.H, {TOL, TOL}));
+    REQUIRE(MatrixAlg::IsOrthogonal(result.Q, {TOL, TOL}));
     
     Matrix<Real> reconstructed = Utils::SimilarityTransform(result.Q, A);
     Real diff = Utils::MaxAbsDiff(reconstructed, result.H);
@@ -228,7 +233,7 @@ TEST_CASE("Hessenberg - random-like structured matrix", "[eigensolver][building-
 TEST_CASE("Eigenvalue2x2 - two real eigenvalues", "[eigensolver][building-block][2x2]")
 {
     // [[4, 1], [2, 3]] has eigenvalues 5 and 2
-    auto result = EigenSolverHelpers::Eigenvalues2x2(REAL(4.0), REAL(1.0), REAL(2.0), REAL(3.0));
+    auto result = MML::detail::Eigenvalues2x2(REAL(4.0), REAL(1.0), REAL(2.0), REAL(3.0));
     
     REQUIRE_FALSE(result.isComplex);
     
@@ -249,7 +254,7 @@ TEST_CASE("Eigenvalue2x2 - complex conjugate pair", "[eigensolver][building-bloc
     Real c = std::cos(theta);
     Real s = std::sin(theta);
     
-    auto result = EigenSolverHelpers::Eigenvalues2x2(c, -s, s, c);
+    auto result = MML::detail::Eigenvalues2x2(c, -s, s, c);
     
     REQUIRE(result.isComplex);
     
@@ -267,7 +272,7 @@ TEST_CASE("Eigenvalue2x2 - complex conjugate pair", "[eigensolver][building-bloc
 TEST_CASE("Eigenvalue2x2 - diagonal matrix", "[eigensolver][building-block][2x2]")
 {
     // Diagonal [[3, 0], [0, 7]]
-    auto result = EigenSolverHelpers::Eigenvalues2x2(REAL(3.0), REAL(0.0), REAL(0.0), REAL(7.0));
+    auto result = MML::detail::Eigenvalues2x2(REAL(3.0), REAL(0.0), REAL(0.0), REAL(7.0));
     
     REQUIRE_FALSE(result.isComplex);
     
@@ -281,7 +286,7 @@ TEST_CASE("Eigenvalue2x2 - diagonal matrix", "[eigensolver][building-block][2x2]
 TEST_CASE("Eigenvalue2x2 - repeated eigenvalue", "[eigensolver][building-block][2x2]")
 {
     // [[5, 1], [0, 5]] - repeated eigenvalue 5
-    auto result = EigenSolverHelpers::Eigenvalues2x2(REAL(5.0), REAL(1.0), REAL(0.0), REAL(5.0));
+    auto result = MML::detail::Eigenvalues2x2(REAL(5.0), REAL(1.0), REAL(0.0), REAL(5.0));
     
     REQUIRE_FALSE(result.isComplex);
     REQUIRE(std::abs(result.real1 - REAL(5.0)) < TOL);
@@ -291,7 +296,7 @@ TEST_CASE("Eigenvalue2x2 - repeated eigenvalue", "[eigensolver][building-block][
 TEST_CASE("Eigenvalue2x2 - negative discriminant (complex)", "[eigensolver][building-block][2x2]")
 {
     // [[0, -1], [1, 0]] - pure imaginary eigenvalues ±i
-    auto result = EigenSolverHelpers::Eigenvalues2x2(REAL(0.0), -REAL(1.0), REAL(1.0), REAL(0.0));
+    auto result = MML::detail::Eigenvalues2x2(REAL(0.0), -REAL(1.0), REAL(1.0), REAL(0.0));
     
     REQUIRE(result.isComplex);
     REQUIRE(std::abs(result.real1) < TOL);  // Real part should be 0
@@ -307,7 +312,7 @@ TEST_CASE("QRStep - Wilkinson shift for real eigenvalues", "[eigensolver][buildi
 {
     // 2x2 block [[4, 1], [2, 3]] has eigenvalues 5 and 2
     // Shift should be closer to 3 (the d element), so shift = 2
-    Real shift = EigenSolverHelpers::WilkinsonShift(REAL(4.0), REAL(1.0), REAL(2.0), REAL(3.0));
+    Real shift = MML::detail::WilkinsonShift(REAL(4.0), REAL(1.0), REAL(2.0), REAL(3.0));
     
     // Eigenvalues are 5 and 2; d=3, so closer eigenvalue is 2
     INFO("Wilkinson shift = " << shift);
@@ -321,7 +326,7 @@ TEST_CASE("QRStep - Wilkinson shift for complex eigenvalues", "[eigensolver][bui
     Real c = std::cos(theta);
     Real s = std::sin(theta);
     
-    Real shift = EigenSolverHelpers::WilkinsonShift(c, -s, s, c);
+    Real shift = MML::detail::WilkinsonShift(c, -s, s, c);
     
     // For complex eigenvalues, shift should be d = cos(θ)
     INFO("Wilkinson shift = " << shift << ", expected = " << c);
@@ -336,9 +341,9 @@ TEST_CASE("QRStep - Single step preserves Hessenberg form", "[eigensolver][build
                           REAL(0.0), REAL(3.0), REAL(6.0), REAL(1.0),
                           REAL(0.0), REAL(0.0), REAL(2.0), REAL(7.0)}};
     
-    auto result = EigenSolverHelpers::SingleQRStep(H);
+    auto result = MML::detail::SingleQRStep(H);
     
-    REQUIRE(Utils::IsUpperHessenberg(result.H, TOL));
+    REQUIRE(MatrixAlg::IsUpperHessenberg(result.H, {TOL, TOL}));
 }
 
 TEST_CASE("QRStep - Single step Q is orthogonal", "[eigensolver][building-block][qrstep]")
@@ -348,9 +353,9 @@ TEST_CASE("QRStep - Single step Q is orthogonal", "[eigensolver][building-block]
                           REAL(0.0), REAL(3.0), REAL(6.0), REAL(1.0),
                           REAL(0.0), REAL(0.0), REAL(2.0), REAL(7.0)}};
     
-    auto result = EigenSolverHelpers::SingleQRStep(H, true);
+    auto result = MML::detail::SingleQRStep(H, true);
     
-    REQUIRE(Utils::IsOrthogonal(result.Q, TOL));
+    REQUIRE(MatrixAlg::IsOrthogonal(result.Q, {TOL, TOL}));
 }
 
 TEST_CASE("QRStep - Single step preserves similarity", "[eigensolver][building-block][qrstep]")
@@ -360,7 +365,7 @@ TEST_CASE("QRStep - Single step preserves similarity", "[eigensolver][building-b
                           REAL(0.0), REAL(3.0), REAL(6.0), REAL(1.0),
                           REAL(0.0), REAL(0.0), REAL(2.0), REAL(7.0)}};
     
-    auto result = EigenSolverHelpers::SingleQRStep(H, true);
+    auto result = MML::detail::SingleQRStep(H, true);
     
     // Verify Q^T * H * Q = H_new
     Matrix<Real> reconstructed = Utils::SimilarityTransform(result.Q, H);
@@ -377,9 +382,9 @@ TEST_CASE("QRStep - Single step preserves trace", "[eigensolver][building-block]
                           REAL(0.0), REAL(3.0), REAL(6.0), REAL(1.0),
                           REAL(0.0), REAL(0.0), REAL(2.0), REAL(7.0)}};
     
-    Real traceBefore = Utils::Trace(H);
-    auto result = EigenSolverHelpers::SingleQRStep(H);
-    Real traceAfter = Utils::Trace(result.H);
+    Real traceBefore = MatrixAlg::Trace(H);
+    auto result = MML::detail::SingleQRStep(H);
+    Real traceAfter = MatrixAlg::Trace(result.H);
     
     INFO("Trace before: " << traceBefore << ", after: " << traceAfter);
     REQUIRE(std::abs(traceBefore - traceAfter) < TOL);
@@ -392,13 +397,13 @@ TEST_CASE("QRStep - Multiple steps converge for diagonal dominance", "[eigensolv
                            REAL(1.0), REAL(5.0), REAL(0.3),
                            REAL(0.0), REAL(0.2), REAL(1.0)}};
     
-    int iters = EigenSolverHelpers::MultipleQRSteps(H, 30, 1e-10);
+    int iters = MML::detail::MultipleQRSteps(H, 30, TOL(1e-10, 1e-5));
     
     INFO("Converged in " << iters << " iterations");
     INFO("H(2,1) = " << H(2, 1));
     
     REQUIRE(iters < 30);  // Should converge
-    REQUIRE(std::abs(H(2, 1)) < 1e-10);  // Bottom subdiagonal should be zero
+    REQUIRE(std::abs(H(2, 1)) < TOL(1e-10, 1e-5));  // Bottom subdiagonal should be zero
 }
 
 TEST_CASE("QRStep - Convergence reveals eigenvalue", "[eigensolver][building-block][qrstep]")
@@ -408,14 +413,14 @@ TEST_CASE("QRStep - Convergence reveals eigenvalue", "[eigensolver][building-blo
     Matrix<Real> H{2, 2, {REAL(4.0), REAL(1.0),
                           REAL(2.0), REAL(3.0)}};
     
-    int iters = EigenSolverHelpers::MultipleQRSteps(H, 30, 1e-10);
+    int iters = MML::detail::MultipleQRSteps(H, 30, TOL(1e-10, 1e-5));
     
     INFO("Converged in " << iters << " iterations");
     INFO("H(1,0) after convergence = " << H(1, 0));
     
     // After convergence, H should be (nearly) upper triangular
     // with eigenvalues on diagonal
-    REQUIRE(std::abs(H(1, 0)) < 1e-10);
+    REQUIRE(std::abs(H(1, 0)) < TOL(1e-10, 1e-5));
     
     // Diagonal elements should be eigenvalues (5 and 2, in some order)
     Real e1 = H(0, 0);
@@ -440,9 +445,9 @@ TEST_CASE("DoubleShift - Preserves Hessenberg form", "[eigensolver][building-blo
                           REAL(0.0), REAL(2.0), REAL(5.0), REAL(1.0),
                           REAL(0.0), REAL(0.0), REAL(1.0), REAL(6.0)}};
     
-    auto result = EigenSolverHelpers::FrancisDoubleShift(H, 0, 3, true);
+    auto result = MML::detail::FrancisDoubleShift(H, 0, 3, true);
     
-    REQUIRE(Utils::IsUpperHessenberg(result.H, TOL));
+    REQUIRE(MatrixAlg::IsUpperHessenberg(result.H, {TOL, TOL}));
 }
 
 TEST_CASE("DoubleShift - Q is orthogonal", "[eigensolver][building-block][doubleshift]")
@@ -452,9 +457,9 @@ TEST_CASE("DoubleShift - Q is orthogonal", "[eigensolver][building-block][double
                           REAL(0.0), REAL(2.0), REAL(5.0), REAL(1.0),
                           REAL(0.0), REAL(0.0), REAL(1.0), REAL(6.0)}};
     
-    auto result = EigenSolverHelpers::FrancisDoubleShift(H, 0, 3, true);
+    auto result = MML::detail::FrancisDoubleShift(H, 0, 3, true);
     
-    REQUIRE(Utils::IsOrthogonal(result.Q, TOL));
+    REQUIRE(MatrixAlg::IsOrthogonal(result.Q, {TOL, TOL}));
 }
 
 TEST_CASE("DoubleShift - Preserves similarity", "[eigensolver][building-block][doubleshift]")
@@ -464,7 +469,7 @@ TEST_CASE("DoubleShift - Preserves similarity", "[eigensolver][building-block][d
                           REAL(0.0), REAL(2.0), REAL(5.0), REAL(1.0),
                           REAL(0.0), REAL(0.0), REAL(1.0), REAL(6.0)}};
     
-    auto result = EigenSolverHelpers::FrancisDoubleShift(H, 0, 3, true);
+    auto result = MML::detail::FrancisDoubleShift(H, 0, 3, true);
     
     // Verify Q^T * H * Q = H_new
     Matrix<Real> reconstructed = Utils::SimilarityTransform(result.Q, H);
@@ -481,9 +486,9 @@ TEST_CASE("DoubleShift - Preserves trace", "[eigensolver][building-block][double
                           REAL(0.0), REAL(2.0), REAL(5.0), REAL(1.0),
                           REAL(0.0), REAL(0.0), REAL(1.0), REAL(6.0)}};
     
-    Real traceBefore = Utils::Trace(H);
-    auto result = EigenSolverHelpers::FrancisDoubleShift(H, 0, 3, false);
-    Real traceAfter = Utils::Trace(result.H);
+    Real traceBefore = MatrixAlg::Trace(H);
+    auto result = MML::detail::FrancisDoubleShift(H, 0, 3, false);
+    Real traceAfter = MatrixAlg::Trace(result.H);
     
     INFO("Trace before: " << traceBefore << ", after: " << traceAfter);
     REQUIRE(std::abs(traceBefore - traceAfter) < TOL);
@@ -499,7 +504,7 @@ TEST_CASE("DoubleShift - Converges on complex eigenvalue matrix", "[eigensolver]
                           REAL(0.0),  REAL(0.0),  REAL(0.5), REAL(3.0)}};
     
     Matrix<Real> Hcopy = H;
-    int iters = EigenSolverHelpers::MultipleDoubleShiftSteps(Hcopy, 0, 3, 50, 1e-10);
+    int iters = MML::detail::MultipleDoubleShiftSteps(Hcopy, 0, 3, 50, TOL(1e-10, 1e-5));
     
     INFO("Double-shift converged in " << iters << " iterations");
     
@@ -507,7 +512,7 @@ TEST_CASE("DoubleShift - Converges on complex eigenvalue matrix", "[eigensolver]
     REQUIRE(iters <= 50);
     
     // Matrix should still be upper Hessenberg
-    REQUIRE(Utils::IsUpperHessenberg(Hcopy, Real(1e-6)));
+    REQUIRE(MatrixAlg::IsUpperHessenberg(Hcopy, {REAL(1e-6), REAL(1e-6)}));
 }
 
 TEST_CASE("DoubleShift - 2x2 complex block extraction", "[eigensolver][building-block][doubleshift]")
@@ -521,12 +526,12 @@ TEST_CASE("DoubleShift - 2x2 complex block extraction", "[eigensolver][building-
                           REAL(0.0), REAL(0.0), REAL(3.0),  REAL(2.0)}};
     
     // Bottom 2x2 eigenvalues should be 2 ± 3i
-    auto eig = EigenSolverHelpers::Eigenvalues2x2(H(2,2), H(2,3), H(3,2), H(3,3));
+    auto eig = MML::detail::Eigenvalues2x2(H(2,2), H(2,3), H(3,2), H(3,3));
     
     INFO("Bottom 2x2 eigenvalues: " << eig.real1 << " ± " << eig.imag1 << "i");
     REQUIRE(eig.isComplex);
-    REQUIRE(std::abs(eig.real1 - REAL(2.0)) < 1e-10);
-    REQUIRE(std::abs(std::abs(eig.imag1) - REAL(3.0)) < 1e-10);
+    REQUIRE(std::abs(eig.real1 - REAL(2.0)) < TOL(1e-10, 1e-5));
+    REQUIRE(std::abs(std::abs(eig.imag1) - REAL(3.0)) < TOL(1e-10, 1e-5));
 }
 
 // =============================================================================
@@ -541,7 +546,7 @@ TEST_CASE("Deflation - Detect deflation in converged matrix", "[eigensolver][bui
                           REAL(0.0), REAL(0.0), REAL(3.0), REAL(1.0),   // Zero at (2,1) - deflation!
                           REAL(0.0), REAL(0.0), REAL(1.0), REAL(2.0)}};
     
-    auto result = EigenSolverHelpers::CheckDeflation(H, 0, 3, 1e-10);
+    auto result = MML::detail::CheckDeflation(H, 0, 3, TOL(1e-10, 1e-5));
     
     INFO("canDeflate: " << result.canDeflate);
     INFO("deflationIndex: " << result.deflationIndex);
@@ -557,7 +562,7 @@ TEST_CASE("Deflation - No deflation in unreduced matrix", "[eigensolver][buildin
                           REAL(0.0), REAL(2.0), REAL(3.0), REAL(1.0),
                           REAL(0.0), REAL(0.0), REAL(2.0), REAL(2.0)}};
     
-    auto result = EigenSolverHelpers::CheckDeflation(H, 0, 3, 1e-10);
+    auto result = MML::detail::CheckDeflation(H, 0, 3, TOL(1e-10, 1e-5));
     
     REQUIRE_FALSE(result.canDeflate);
 }
@@ -570,7 +575,7 @@ TEST_CASE("Deflation - Detect 1x1 block at bottom", "[eigensolver][building-bloc
                           REAL(0.0), REAL(2.0), REAL(3.0), REAL(1.0),
                           REAL(0.0), REAL(0.0), REAL(0.0), REAL(7.0)}};  // Zero at (3,2) - eigenvalue 7
     
-    auto result = EigenSolverHelpers::CheckDeflation(H, 0, 3, 1e-10);
+    auto result = MML::detail::CheckDeflation(H, 0, 3, TOL(1e-10, 1e-5));
     
     REQUIRE(result.canDeflate);
     REQUIRE(result.deflationIndex == 3);
@@ -585,7 +590,7 @@ TEST_CASE("Deflation - Detect 2x2 block", "[eigensolver][building-block][deflati
                           REAL(0.0), REAL(0.0), REAL(3.0), REAL(1.0),   // Zero at (2,1)
                           REAL(0.0), REAL(0.0), REAL(2.0), REAL(2.0)}}; // Non-zero at (3,2) - 2x2 block below
     
-    auto result = EigenSolverHelpers::CheckDeflation(H, 0, 3, 1e-10);
+    auto result = MML::detail::CheckDeflation(H, 0, 3, TOL(1e-10, 1e-5));
     
     REQUIRE(result.canDeflate);
     REQUIRE(result.deflationIndex == 2);
@@ -600,7 +605,7 @@ TEST_CASE("Extraction - Extract eigenvalues from triangular matrix", "[eigensolv
                           REAL(0.0), REAL(0.0), REAL(3.0), REAL(4.0),
                           REAL(0.0), REAL(0.0), REAL(0.0), REAL(4.0)}};
     
-    auto result = EigenSolverHelpers::ExtractEigenvalues(H, 1e-10);
+    auto result = MML::detail::ExtractEigenvalues(H, TOL(1e-10, 1e-5));
     
     REQUIRE(result.eigenvalues.size() == 4);
     REQUIRE(result.realCount == 4);
@@ -611,7 +616,7 @@ TEST_CASE("Extraction - Extract eigenvalues from triangular matrix", "[eigensolv
     for (size_t i = 0; i < 4; i++)
     {
         INFO("Eigenvalue " << i << ": " << result.eigenvalues[i].real);
-        REQUIRE(std::abs(result.eigenvalues[i].real - expected[i]) < 1e-10);
+        REQUIRE(std::abs(result.eigenvalues[i].real - expected[i]) < TOL(1e-10, 1e-5));
         REQUIRE_FALSE(result.eigenvalues[i].isComplex);
     }
 }
@@ -625,27 +630,27 @@ TEST_CASE("Extraction - Extract complex pair from 2x2 block", "[eigensolver][bui
                           REAL(0.0), REAL(3.0), REAL(2.0), REAL(4.0),
                           REAL(0.0), REAL(0.0), REAL(0.0), REAL(5.0)}};
     
-    auto result = EigenSolverHelpers::ExtractEigenvalues(H, 1e-10);
+    auto result = MML::detail::ExtractEigenvalues(H, TOL(1e-10, 1e-5));
     
     REQUIRE(result.eigenvalues.size() == 4);
     REQUIRE(result.realCount == 2);      // eigenvalues 1 and 5
     REQUIRE(result.complexPairs == 1);   // one complex pair 2±3i
     
     // First eigenvalue: 1 (real)
-    REQUIRE(std::abs(result.eigenvalues[0].real - REAL(1.0)) < 1e-10);
+    REQUIRE(std::abs(result.eigenvalues[0].real - REAL(1.0)) < TOL(1e-10, 1e-5));
     REQUIRE_FALSE(result.eigenvalues[0].isComplex);
     
     // Second and third: 2 ± 3i (complex pair)
-    REQUIRE(std::abs(result.eigenvalues[1].real - REAL(2.0)) < 1e-10);
-    REQUIRE(std::abs(std::abs(result.eigenvalues[1].imag) - REAL(3.0)) < 1e-10);
+    REQUIRE(std::abs(result.eigenvalues[1].real - REAL(2.0)) < TOL(1e-10, 1e-5));
+    REQUIRE(std::abs(std::abs(result.eigenvalues[1].imag) - REAL(3.0)) < TOL(1e-10, 1e-5));
     REQUIRE(result.eigenvalues[1].isComplex);
     
-    REQUIRE(std::abs(result.eigenvalues[2].real - REAL(2.0)) < 1e-10);
-    REQUIRE(std::abs(std::abs(result.eigenvalues[2].imag) - REAL(3.0)) < 1e-10);
+    REQUIRE(std::abs(result.eigenvalues[2].real - REAL(2.0)) < TOL(1e-10, 1e-5));
+    REQUIRE(std::abs(std::abs(result.eigenvalues[2].imag) - REAL(3.0)) < TOL(1e-10, 1e-5));
     REQUIRE(result.eigenvalues[2].isComplex);
     
     // Fourth: 5 (real)
-    REQUIRE(std::abs(result.eigenvalues[3].real - REAL(5.0)) < 1e-10);
+    REQUIRE(std::abs(result.eigenvalues[3].real - REAL(5.0)) < TOL(1e-10, 1e-5));
     REQUIRE_FALSE(result.eigenvalues[3].isComplex);
 }
 
@@ -659,7 +664,7 @@ TEST_CASE("Extraction - Mixed real and complex blocks", "[eigensolver][building-
                           REAL(0.0), REAL(0.0), REAL(0.0), REAL(4.0), REAL(0.0),  // 1x1 real
                           REAL(0.0), REAL(0.0), REAL(0.0), REAL(0.0), REAL(5.0)}};// 1x1 real
     
-    auto result = EigenSolverHelpers::ExtractEigenvalues(H, 1e-10);
+    auto result = MML::detail::ExtractEigenvalues(H, TOL(1e-10, 1e-5));
     
     REQUIRE(result.eigenvalues.size() == 5);
     REQUIRE(result.realCount == 3);      // 1, 4, 5
@@ -669,14 +674,14 @@ TEST_CASE("Extraction - Mixed real and complex blocks", "[eigensolver][building-
 TEST_CASE("ApplyDeflation - Zeros subdiagonal element", "[eigensolver][building-block][deflation]")
 {
     Matrix<Real> H{4, 4, {REAL(5.0), REAL(1.0), REAL(2.0), REAL(1.0),
-                          1e-12, REAL(4.0), REAL(1.0), REAL(2.0),  // Very small but non-zero
+                          TOL(1e-12, 1e-5), REAL(4.0), REAL(1.0), REAL(2.0),  // Very small but non-zero
                           REAL(0.0), REAL(2.0), REAL(3.0), REAL(1.0),
                           REAL(0.0), REAL(0.0), REAL(2.0), REAL(2.0)}};
     
-    auto check = EigenSolverHelpers::CheckDeflation(H, 0, 3, 1e-10);
+    auto check = MML::detail::CheckDeflation(H, 0, 3, TOL(1e-10, 1e-5));
     REQUIRE(check.canDeflate);
     
-    EigenSolverHelpers::ApplyDeflation(H, check.deflationIndex);
+    MML::detail::ApplyDeflation(H, check.deflationIndex);
     
     REQUIRE(H(1, 0) == REAL(0.0));  // Should be exactly zero now
 }
@@ -693,16 +698,16 @@ TEST_CASE("Eigenvectors - Real eigenvalue back-substitution", "[eigensolver][bui
                           REAL(0.0), REAL(0.0), REAL(3.0)}};
     
     // Eigenvector for eigenvalue 3 (at T[2,2])
-    Vector<Real> v = EigenSolverHelpers::ComputeRealEigenvector(T, 2);
+    Vector<Real> v = MML::detail::ComputeRealEigenvector(T, 2);
     
     // Verify: v should be [0, 0, 1] (normalized) or scalar multiple
     // Since x[2]=1 and back-sub gives x[1] = -4/(2-3) = 4, x[0] = -(2*4+3*1)/(1-3) = REAL(5.5)
     // After normalization: [REAL(5.5), 4, 1] / ||...||
     
     // Check eigenvector property: T*v = 3*v
-    Real residual = EigenSolverHelpers::EigenvectorResidual(T, v, REAL(3.0));
+    Real residual = MML::detail::EigenvectorResidual(T, v, REAL(3.0));
     INFO("Residual for eigenvalue 3: " << residual);
-    REQUIRE(residual < 1e-10);
+    REQUIRE(residual < TOL(1e-10, 1e-5));
 }
 
 TEST_CASE("Eigenvectors - Multiple real eigenvalues", "[eigensolver][building-block][eigenvector]")
@@ -713,7 +718,7 @@ TEST_CASE("Eigenvectors - Multiple real eigenvalues", "[eigensolver][building-bl
                           REAL(0.0), REAL(0.0), REAL(3.0)}};
     Matrix<Real> Q = Matrix<Real>::Identity(3);  // Identity (T is already Schur form)
     
-    auto result = EigenSolverHelpers::ComputeEigenvectorsFromSchur(T, Q, 1e-10);
+    auto result = MML::detail::ComputeEigenvectorsFromSchur(T, Q, TOL(1e-10, 1e-5));
     
     REQUIRE(result.vectors.rows() == 3);
     REQUIRE(result.vectors.cols() == 3);
@@ -726,7 +731,7 @@ TEST_CASE("Eigenvectors - Multiple real eigenvalues", "[eigensolver][building-bl
             v[row] = result.vectors(row, col);
         
         Real lambda = T(col, col);  // Eigenvalues are 1, 2, 3 on diagonal
-        Real residual = EigenSolverHelpers::EigenvectorResidual(T, v, lambda);
+        Real residual = MML::detail::EigenvectorResidual(T, v, lambda);
         
         INFO("Eigenvalue " << lambda << " residual: " << residual);
         REQUIRE(residual < 1e-6);
@@ -745,7 +750,7 @@ TEST_CASE("Eigenvectors - With Q transformation", "[eigensolver][building-block]
     // This symmetric matrix has eigenvalues 6, 3, 3
     
     // First reduce to Hessenberg (which for symmetric = tridiagonal)
-    auto hess = EigenSolverHelpers::ReduceToHessenberg(A);
+    auto hess = MML::ReduceToHessenberg(A);
     
     // Apply QR iterations to get Schur form
     Matrix<Real> T = hess.H;
@@ -754,7 +759,7 @@ TEST_CASE("Eigenvectors - With Q transformation", "[eigensolver][building-block]
     // Multiple QR iterations
     for (int iter = 0; iter < 50; iter++)
     {
-        auto step = EigenSolverHelpers::SingleQRStep(T, true);
+        auto step = MML::detail::SingleQRStep(T, true);
         
         // Update total Q
         Matrix<Real> newQ(3, 3);
@@ -771,16 +776,16 @@ TEST_CASE("Eigenvectors - With Q transformation", "[eigensolver][building-block]
         // Check convergence
         bool converged = true;
         for (int i = 1; i < 3; i++)
-            if (std::abs(T(i, i-1)) > 1e-10)
+            if (std::abs(T(i, i-1)) > TOL(1e-10, 1e-5))
                 converged = false;
         if (converged) break;
     }
     
     // Now compute eigenvectors
-    auto evecs = EigenSolverHelpers::ComputeEigenvectorsFromSchur(T, Q, 1e-10);
+    auto evecs = MML::detail::ComputeEigenvectorsFromSchur(T, Q, TOL(1e-10, 1e-5));
     
     // Verify A*v = λ*v for each eigenvector
-    auto eigenvalues = EigenSolverHelpers::ExtractEigenvalues(T, 1e-10);
+    auto eigenvalues = MML::detail::ExtractEigenvalues(T, TOL(1e-10, 1e-5));
     
     for (int col = 0; col < 3; col++)
     {
@@ -821,7 +826,7 @@ TEST_CASE("Eigenvectors - Complex eigenvalue pair", "[eigensolver][building-bloc
                           REAL(0.0), REAL(1.0), REAL(0.0)}};
     Matrix<Real> Q = Matrix<Real>::Identity(3);
     
-    auto result = EigenSolverHelpers::ComputeEigenvectorsFromSchur(T, Q, 1e-10);
+    auto result = MML::detail::ComputeEigenvectorsFromSchur(T, Q, TOL(1e-10, 1e-5));
     
     // First column should be real eigenvector for λ=2
     REQUIRE_FALSE(result.isComplexPair[0]);
@@ -835,7 +840,7 @@ TEST_CASE("Eigenvectors - Complex eigenvalue pair", "[eigensolver][building-bloc
     for (int i = 0; i < 3; i++)
         v[i] = result.vectors(i, 0);
     
-    Real residual = EigenSolverHelpers::EigenvectorResidual(T, v, REAL(2.0));
+    Real residual = MML::detail::EigenvectorResidual(T, v, REAL(2.0));
     INFO("Residual for eigenvalue 2: " << residual);
     REQUIRE(residual < 1e-6);
 }
@@ -847,7 +852,7 @@ TEST_CASE("Eigenvectors - Normalized output", "[eigensolver][building-block][eig
                           REAL(0.0), REAL(0.0), REAL(6.0)}};
     Matrix<Real> Q = Matrix<Real>::Identity(3);
     
-    auto result = EigenSolverHelpers::ComputeEigenvectorsFromSchur(T, Q, 1e-10);
+    auto result = MML::detail::ComputeEigenvectorsFromSchur(T, Q, TOL(1e-10, 1e-5));
     
     // Verify each column is normalized
     for (int col = 0; col < 3; col++)
@@ -858,7 +863,7 @@ TEST_CASE("Eigenvectors - Normalized output", "[eigensolver][building-block][eig
         norm = std::sqrt(norm);
         
         INFO("Column " << col << " norm: " << norm);
-        REQUIRE(std::abs(norm - REAL(1.0)) < 1e-10);
+        REQUIRE(std::abs(norm - REAL(1.0)) < TOL(1e-10, 1e-5));
     }
 }
 
@@ -866,13 +871,23 @@ TEST_CASE("Eigenvectors - Normalized output", "[eigensolver][building-block][eig
 // INTEGRATION TESTS: FULL GENERAL EIGENSOLVER
 // =============================================================================
 
+TEST_CASE("EigenSolver - complex eigenvalue stream formatting", "[eigensolver][formatting]")
+{
+    std::ostringstream output;
+    output << EigenSolver::ComplexEigenvalue(REAL(4.5), REAL(1.25)) << '\n'
+           << EigenSolver::ComplexEigenvalue(REAL(4.5), -REAL(1.25)) << '\n'
+           << EigenSolver::ComplexEigenvalue(-REAL(3.0), REAL(0.0));
+
+    REQUIRE(output.str() == "4.5 + 1.25i\n4.5 - 1.25i\n-3 + 0i");
+}
+
 TEST_CASE("EigenSolver - 2x2 real eigenvalues", "[eigensolver][integration]")
 {
     // [[4, 1], [2, 3]] has eigenvalues 5 and 2
     Matrix<Real> A{2, 2, {REAL(4.0), REAL(1.0),
                           REAL(2.0), REAL(3.0)}};
     
-    auto result = EigenSolver::Solve(A, 1e-10, 100);
+    auto result = EigenSolver::Solve(A, TOL(1e-10, 1e-5), 100);
     
     REQUIRE(result.converged);
     REQUIRE(result.eigenvalues.size() == 2);
@@ -897,7 +912,7 @@ TEST_CASE("EigenSolver - 3x3 symmetric matrix", "[eigensolver][integration]")
                           REAL(1.0), REAL(4.0), REAL(1.0),
                           REAL(1.0), REAL(1.0), REAL(4.0)}};
     
-    auto result = EigenSolver::Solve(A, 1e-10, 200);
+    auto result = EigenSolver::Solve(A, TOL(1e-10, 1e-5), 200);
     
     INFO("Converged: " << result.converged);
     INFO("Iterations: " << result.iterations);
@@ -925,7 +940,7 @@ TEST_CASE("EigenSolver - 3x3 with complex eigenvalues", "[eigensolver][integrati
                           REAL(1.0),  REAL(0.0), REAL(0.0),
                           REAL(0.0),  REAL(0.0), REAL(2.0)}};
     
-    auto result = EigenSolver::Solve(A, 1e-10, 200);
+    auto result = EigenSolver::Solve(A, TOL(1e-10, 1e-5), 200);
     
     INFO("Converged: " << result.converged);
     INFO("Iterations: " << result.iterations);
@@ -972,7 +987,7 @@ TEST_CASE("EigenSolver - Diagonal matrix", "[eigensolver][integration]")
                           REAL(0.0), REAL(0.0), REAL(3.0), REAL(0.0),
                           REAL(0.0), REAL(0.0), REAL(0.0), REAL(4.0)}};
     
-    auto result = EigenSolver::Solve(A, 1e-10, 100);
+    auto result = EigenSolver::Solve(A, TOL(1e-10, 1e-5), 100);
     
     REQUIRE(result.converged);
     REQUIRE(result.eigenvalues.size() == 4);
@@ -982,10 +997,10 @@ TEST_CASE("EigenSolver - Diagonal matrix", "[eigensolver][integration]")
         computed.push_back(e.real);
     std::sort(computed.begin(), computed.end());
     
-    REQUIRE(std::abs(computed[0] - REAL(1.0)) < 1e-10);
-    REQUIRE(std::abs(computed[1] - REAL(2.0)) < 1e-10);
-    REQUIRE(std::abs(computed[2] - REAL(3.0)) < 1e-10);
-    REQUIRE(std::abs(computed[3] - REAL(4.0)) < 1e-10);
+    REQUIRE(std::abs(computed[0] - REAL(1.0)) < TOL(1e-10, 1e-5));
+    REQUIRE(std::abs(computed[1] - REAL(2.0)) < TOL(1e-10, 1e-5));
+    REQUIRE(std::abs(computed[2] - REAL(3.0)) < TOL(1e-10, 1e-5));
+    REQUIRE(std::abs(computed[3] - REAL(4.0)) < TOL(1e-10, 1e-5));
 }
 
 TEST_CASE("EigenSolver - 4x4 general matrix", "[eigensolver][integration]")
@@ -996,7 +1011,7 @@ TEST_CASE("EigenSolver - 4x4 general matrix", "[eigensolver][integration]")
                           REAL(1.0), REAL(2.0), REAL(5.0), REAL(1.0),
                           REAL(1.0), REAL(1.0), REAL(1.0), REAL(6.0)}};
     
-    auto result = EigenSolver::Solve(A, 1e-10, 300);
+    auto result = EigenSolver::Solve(A, TOL(1e-10, 1e-5), 300);
     
     INFO("Converged: " << result.converged);
     INFO("Iterations: " << result.iterations);
@@ -1022,7 +1037,7 @@ TEST_CASE("EigenSolver - Eigenvector verification", "[eigensolver][integration]"
                           REAL(1.0), REAL(2.0), REAL(1.0),
                           REAL(0.0), REAL(1.0), REAL(2.0)}};
     
-    auto result = EigenSolver::Solve(A, 1e-10, 200);
+    auto result = EigenSolver::Solve(A, TOL(1e-10, 1e-5), 200);
     
     REQUIRE(result.converged);
     

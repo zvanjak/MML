@@ -411,8 +411,8 @@ All derivation methods work with **function interfaces** (see [Functions.md](Fun
 ### 1. IRealFunction (f: ℝ → ℝ)
 
 ```cpp
-#include "core/Functions.h"
-#include "core/Derivation.h"
+#include <mml/core/Functions.h>
+#include <mml/core/Derivation.h>
 
 RealFunction f([](Real x) { return sin(x) * exp(-x); });
 
@@ -474,6 +474,23 @@ J = [ y  x  0 ]   [ 2  1  0 ]
     [ z  0  x ]   [ 3  0  1 ]
 */
 ```
+
+For full fixed-size or dynamic vector-function Jacobians, prefer
+`calcJacobian` or `calcJacobianDyn`. They perturb one input coordinate at a time
+and fill the complete output column from each vector evaluation, requiring four
+vector-function calls per input dimension:
+
+```cpp
+int evaluations = 0;
+Matrix<Real> J = Derivation::calcJacobianDyn(function, point, 0.0, &evaluations);
+// evaluations == 4 * point.size()
+```
+
+With `h == 0`, each column uses
+$h_j=\epsilon^{1/5}\max(1,|x_j|)$. A nonzero `h` remains an explicit absolute
+step for every coordinate. Square and non-square outputs are supported, output
+dimensions are validated, non-finite values are rejected, and the optional
+evaluation pointer accumulates attempted vector-function calls.
 
 ### 4. IParametricCurve<N> (r: ℝ → ℝⁿ)
 
@@ -604,8 +621,8 @@ Real kappa = cross.NormL2() / pow(r_t.NormL2(), 3);
 ### Example 1: Simple Function Derivative
 
 ```cpp
-#include "core/Functions.h"
-#include "core/Derivation.h"
+#include <mml/core/Functions.h>
+#include <mml/core/Derivation.h>
 
 RealFunction f([](Real x) {
     return sin(x) * (1.0 + 0.5 * x * x);
@@ -805,7 +822,9 @@ std::cout << "Manual h derivative: " << der_manual
 | Order 6 | 6-7 | 8-10 | 6n-7n |
 | Order 8 | 8-9 | 11-13 | 8n-9n |
 
-**Jacobian (n×n):** ~n × (gradient cost)
+**Full vector-function Jacobian:** `calcJacobian` and `calcJacobianDyn` use
+exactly $4n$ vector-function evaluations for an $m\times n$ fourth-order
+Jacobian. Computing individual partial derivatives separately can cost more.
 
 ### Accuracy Comparison (Example)
 
@@ -840,7 +859,7 @@ Assuming function evaluation cost = 1 unit:
 |-----------|---------|---------|---------|---------|
 | f'(x) | 2 | 5 | 7 | 9 |
 | ∇f (3D) | 6 | 15 | 21 | 27 |
-| Jacobian (3×3) | 18 | 45 | 63 | 81 |
+| Full Jacobian (3×3, optimized order 4) | — | 12 | — | — |
 
 ---
 

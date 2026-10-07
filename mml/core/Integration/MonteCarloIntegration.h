@@ -13,17 +13,42 @@
 #if !defined MML_MONTE_CARLO_INTEGRATION_H
 #define MML_MONTE_CARLO_INTEGRATION_H
 
-#include "MMLBase.h"
-#include "core/AlgorithmTypes.h"
-#include "interfaces/IFunction.h"
-#include "base/Vector/VectorN.h"
+#include <mml/MMLBase.h>
+#include <mml/base/AlgorithmTypes.h>
+#include <mml/base/Random.h>
+#include <mml/base/QuasiRandom.h>
+#include <mml/interfaces/IFunction.h>
+#include <mml/base/Vector/VectorN.h>
 
-#include <random>
 #include <numeric>
 #include <cmath>
 
 namespace MML 
 {
+	namespace Detail
+	{
+		template<int N>
+		inline Real ValidateMonteCarloBounds(const VectorN<Real, N>& lower, const VectorN<Real, N>& upper, const char* algorithmName)
+		{
+			Real volume = 1.0;
+			for (int d = 0; d < N; ++d) {
+				if (!std::isfinite(lower[d]) || !std::isfinite(upper[d])) {
+					throw ArgumentError(std::string(algorithmName) + ": bounds must be finite");
+				}
+				if (upper[d] < lower[d]) {
+					throw ArgumentError(std::string(algorithmName) + ": upper bounds must be greater than or equal to lower bounds");
+				}
+				volume *= (upper[d] - lower[d]);
+			}
+			return volume;
+		}
+
+		inline Real ClampMonteCarloVariance(Real variance)
+		{
+			return std::max(Real(0.0), variance);
+		}
+	}
+
 	//////////////////////////////////////////////////////////////////////////
 	/// @brief Result of a Monte Carlo integration
 	/// @note For production code, check error_estimate, variance, and converged!
@@ -75,23 +100,16 @@ namespace MML
 	//////////////////////////////////////////////////////////////////////////
 	template<int N>
 	class MonteCarloIntegrator {
-	private:
-		std::mt19937_64 _rng;
-		std::uniform_real_distribution<Real> _uniform{0.0, 1.0};
-
 	public:
 		/// Initialize with optional seed (0 = random)
 		explicit MonteCarloIntegrator(unsigned int seed = 0) {
-			if (seed == 0) {
-				std::random_device rd;
-				_rng.seed(rd());
-			} else {
-				_rng.seed(seed);
+			if (seed != 0) {
+				Random::SetSeed(seed);
 			}
 		}
 
 		/// Set the random seed
-		void seed(unsigned int s) { _rng.seed(s); }
+		void seed(unsigned int s) { Random::SetSeed(s); }
 
 		/// @brief Integrate f over hyperrectangle [lower, upper]
 		/// @param func The N-dimensional scalar function to integrate
@@ -103,11 +121,18 @@ namespace MML
 															 const MonteCarloConfig& config = MonteCarloConfig()) {
 			AlgorithmTimer timer;
 
-			// Compute volume of integration domain
-			Real volume = 1.0;
-			for (int i = 0; i < N; ++i) {
-				volume *= (upper[i] - lower[i]);
+			if (config.num_samples == 0) {
+				throw ArgumentError("MonteCarloIntegrator: num_samples must be positive");
 			}
+			if (config.use_antithetic && config.num_samples < 2) {
+				throw ArgumentError("MonteCarloIntegrator: antithetic sampling requires at least two samples");
+			}
+			if (!std::isfinite(config.target_error) || config.target_error <= 0.0) {
+				throw ArgumentError("MonteCarloIntegrator: target_error must be finite and positive");
+			}
+
+			// Compute volume of integration domain
+			Real volume = Detail::ValidateMonteCarloBounds(lower, upper, "MonteCarloIntegrator");
 
 			if (volume == 0.0) {
 				MonteCarloResult r;
@@ -120,7 +145,7 @@ namespace MML
 
 			// Reseed if specified
 			if (config.seed != 0) {
-				_rng.seed(config.seed);
+				Random::SetSeed(config.seed);
 			}
 
 			// Accumulate sum and sum of squares for variance estimation
@@ -136,7 +161,7 @@ namespace MML
 				for (size_t i = 0; i < n; i += 2) {
 					// Generate random point
 					for (int d = 0; d < N; ++d) {
-						Real u = _uniform(_rng);
+						Real u = Random::UniformReal(0.0, 1.0);
 						point[d] = lower[d] + u * (upper[d] - lower[d]);
 					}
 					Real f1 = func(point);
@@ -158,7 +183,7 @@ namespace MML
 				for (size_t i = 0; i < n; ++i) {
 					// Generate uniform random point in [lower, upper]
 					for (int d = 0; d < N; ++d) {
-						Real u = _uniform(_rng);
+						Real u = Random::UniformReal(0.0, 1.0);
 						point[d] = lower[d] + u * (upper[d] - lower[d]);
 					}
 
@@ -171,7 +196,7 @@ namespace MML
 			// Compute statistics
 			Real mean = sum / n;
 			Real mean_sq = sum_sq / n;
-			Real variance = mean_sq - mean * mean;
+			Real variance = Detail::ClampMonteCarloVariance(mean_sq - mean * mean);
 
 			// Standard error of the mean
 			Real std_error = std::sqrt(variance / n);
@@ -205,6 +230,67 @@ namespace MML
 				upper[i] = 1.0;
 			}
 			return integrate(func, lower, upper, config);
+		}
+
+		/// @brief Quasi-Monte Carlo integration using a low-discrepancy sequence.
+		/// @details Uses a Sobol sequence for N <= 6, otherwise a Halton sequence. Deterministic
+		///          (no RNG). For smooth integrands this converges close to O(1/n) rather than the
+		///          O(1/sqrt(n)) of plain Monte Carlo. The reported error_estimate is a heuristic
+		///          sample-based value, not a rigorous QMC bound.
+		MonteCarloResult integrateQuasiRandom(const IScalarFunction<N>& func, const VectorN<Real, N>& lower,
+		                                       const VectorN<Real, N>& upper, size_t numSamples, bool useSobol = true) {
+			AlgorithmTimer timer;
+			if (numSamples == 0)
+				throw ArgumentError("MonteCarloIntegrator: numSamples must be positive");
+
+			Real volume = Detail::ValidateMonteCarloBounds(lower, upper, "QuasiMonteCarloIntegrator");
+			if (volume == 0.0) {
+				MonteCarloResult r;
+				r.converged = true;
+				r.status = AlgorithmStatus::Success;
+				r.algorithm_name = "QuasiMonteCarloIntegrator";
+				r.elapsed_time_ms = timer.elapsed_ms();
+				return r;
+			}
+
+			Real sum = 0.0, sum_sq = 0.0;
+			VectorN<Real, N> u, point;
+
+			auto accumulate = [&](auto& seq) {
+				for (size_t i = 0; i < numSamples; ++i) {
+					seq.Next(&u[0]);
+					for (int d = 0; d < N; ++d)
+						point[d] = lower[d] + u[d] * (upper[d] - lower[d]);
+					Real f = func(point);
+					sum += f;
+					sum_sq += f * f;
+				}
+			};
+
+			if (useSobol && N <= SobolSequence::MaxDim) {
+				SobolSequence seq(N);
+				accumulate(seq);
+			} else {
+				HaltonSequence seq(N);
+				accumulate(seq);
+			}
+
+			Real mean = sum / numSamples;
+			Real mean_sq = sum_sq / numSamples;
+			Real variance = Detail::ClampMonteCarloVariance(mean_sq - mean * mean);
+			Real std_error = std::sqrt(variance / numSamples);
+
+			MonteCarloResult result;
+			result.value = volume * mean;
+			result.error_estimate = volume * std_error;   // heuristic, not a rigorous QMC bound
+			result.variance = variance;
+			result.samples_used = numSamples;
+			result.function_evaluations = static_cast<int>(numSamples);
+			result.converged = true;
+			result.status = AlgorithmStatus::Success;
+			result.algorithm_name = "QuasiMonteCarloIntegrator";
+			result.elapsed_time_ms = timer.elapsed_ms();
+			return result;
 		}
 	};
 
@@ -241,21 +327,14 @@ namespace MML
 	//////////////////////////////////////////////////////////////////////////
 	template<int N>
 	class StratifiedMonteCarloIntegrator {
-	private:
-		std::mt19937_64 _rng;
-		std::uniform_real_distribution<Real> _uniform{0.0, 1.0};
-
 	public:
 		explicit StratifiedMonteCarloIntegrator(unsigned int seed = 0) {
-			if (seed == 0) {
-				std::random_device rd;
-				_rng.seed(rd());
-			} else {
-				_rng.seed(seed);
+			if (seed != 0) {
+				Random::SetSeed(seed);
 			}
 		}
 
-		void seed(unsigned int s) { _rng.seed(s); }
+		void seed(unsigned int s) { Random::SetSeed(s); }
 
 		/// @brief Integrate using stratified sampling
 		/// @param func Function to integrate
@@ -267,16 +346,22 @@ namespace MML
 															 int strata_per_dim = 10, int samples_per_stratum = 10, unsigned int seed = 0) {
 			AlgorithmTimer timer;
 
+			if (strata_per_dim <= 0) {
+				throw ArgumentError("StratifiedMonteCarloIntegrator: strata_per_dim must be positive");
+			}
+			if (samples_per_stratum <= 0) {
+				throw ArgumentError("StratifiedMonteCarloIntegrator: samples_per_stratum must be positive");
+			}
+
 			if (seed != 0) {
-				_rng.seed(seed);
+				Random::SetSeed(seed);
 			}
 
 			// Compute total volume
-			Real volume = 1.0;
+			Real volume = Detail::ValidateMonteCarloBounds(lower, upper, "StratifiedMonteCarloIntegrator");
 			VectorN<Real, N> delta;
 			for (int d = 0; d < N; ++d) {
 				delta[d] = (upper[d] - lower[d]) / strata_per_dim;
-				volume *= (upper[d] - lower[d]);
 			}
 
 			if (volume == 0.0) {
@@ -321,7 +406,7 @@ namespace MML
 
 				for (int i = 0; i < samples_per_stratum; ++i) {
 					for (int d = 0; d < N; ++d) {
-						Real u = _uniform(_rng);
+						Real u = Random::UniformReal(0.0, 1.0);
 						point[d] = stratum_lower[d] + u * delta[d];
 					}
 					stratum_sum += func(point);
@@ -344,7 +429,7 @@ namespace MML
 			// Compute result
 			Real mean = sum / total_strata;
 			Real mean_sq = sum_sq / total_strata;
-			Real variance = (mean_sq - mean * mean) / total_strata;
+			Real variance = Detail::ClampMonteCarloVariance(mean_sq - mean * mean) / total_strata;
 			Real std_error = std::sqrt(variance);
 
 			Real integral = volume * mean;
@@ -375,21 +460,14 @@ namespace MML
 	//////////////////////////////////////////////////////////////////////////
 	template<int N>
 	class HitOrMissIntegrator {
-	private:
-		std::mt19937_64 _rng;
-		std::uniform_real_distribution<Real> _uniform{0.0, 1.0};
-
 	public:
 		explicit HitOrMissIntegrator(unsigned int seed = 0) {
-			if (seed == 0) {
-				std::random_device rd;
-				_rng.seed(rd());
-			} else {
-				_rng.seed(seed);
+			if (seed != 0) {
+				Random::SetSeed(seed);
 			}
 		}
 
-		void seed(unsigned int s) { _rng.seed(s); }
+		void seed(unsigned int s) { Random::SetSeed(s); }
 
 		/// @brief Estimate volume of region where indicator(x) returns true
 		/// @param indicator Function returning true if point is inside region
@@ -401,21 +479,22 @@ namespace MML
 																		const VectorN<Real, N>& upper, size_t num_samples = 100000, unsigned int seed = 0) {
 			AlgorithmTimer timer;
 
-			if (seed != 0) {
-				_rng.seed(seed);
+			if (num_samples == 0) {
+				throw ArgumentError("HitOrMissIntegrator: num_samples must be positive");
 			}
 
-			Real bounding_volume = 1.0;
-			for (int d = 0; d < N; ++d) {
-				bounding_volume *= (upper[d] - lower[d]);
+			if (seed != 0) {
+				Random::SetSeed(seed);
 			}
+
+			Real bounding_volume = Detail::ValidateMonteCarloBounds(lower, upper, "HitOrMissIntegrator");
 
 			size_t hits = 0;
 			VectorN<Real, N> point;
 
 			for (size_t i = 0; i < num_samples; ++i) {
 				for (int d = 0; d < N; ++d) {
-					Real u = _uniform(_rng);
+					Real u = Random::UniformReal(0.0, 1.0);
 					point[d] = lower[d] + u * (upper[d] - lower[d]);
 				}
 				if (indicator(point)) {
@@ -427,7 +506,7 @@ namespace MML
 			Real volume = bounding_volume * p;
 
 			// Binomial standard error
-			Real variance = p * (1.0 - p);
+			Real variance = Detail::ClampMonteCarloVariance(p * (1.0 - p));
 			Real std_error = std::sqrt(variance / num_samples);
 			Real error = bounding_volume * std_error;
 

@@ -3,9 +3,9 @@
 #include "../../TestMatchers.h"
 
 #ifdef MML_USE_SINGLE_HEADER
-#include "MML.h"
+#include <MML.h>
 #else
-#include "mml/base/Geometry/Geometry3DBodies.h"
+#include <mml/base/Geometry/Geometry3DBodies.h>
 #endif
 
 using namespace MML;
@@ -188,7 +188,7 @@ TEST_CASE("Sphere3D::GetBoundingSphere", "[geometry][sphere][bounding]")
         Sphere3D sphere(7.0);
         BoundingSphere3D bsphere = sphere.GetBoundingSphere();
         
-        REQUIRE_THAT(bsphere.Volume() , RealApprox(sphere.Volume()).epsilon(1e-10));
+        REQUIRE_THAT(bsphere.Volume() , RealApprox(sphere.Volume()).epsilon(TOL(1e-10, 1e-5)));
     }
 }
 

@@ -5,10 +5,10 @@
 ///////////////////////////////////////////////////////////////////////////////////////////
 
 #ifdef MML_USE_SINGLE_HEADER
-#include "MML.h"
+#include <MML.h>
 #else
-#include "MMLBase.h"
-#include "algorithms/ChebyshevApproximation.h"
+#include <mml/MMLBase.h>
+#include <mml/base/ChebyshevApproximation.h>
 #endif
 
 #include <iostream>
@@ -79,6 +79,32 @@ namespace MML::Demos::Algorithms
         }
         
         std::cout << "\nExact value: " << std::setprecision(12) << exact << "\n";
+    }
+
+    void Chebyshev_AdaptiveDiagnostics()
+    {
+        DemoHeader("Chebyshev_AdaptiveDiagnostics", "Adaptive degree selection and diagnostics");
+
+        ChebyshevApproximationConfig config;
+        config.tolerance = 1e-10;
+        config.initial_terms = 8;
+        config.max_terms = 128;
+        config.validation_samples = 257;
+
+        auto result = ApproximateChebyshevAdaptive(
+            std::function<Real(Real)>([](Real x) { return std::exp(x); }),
+            -1.0, 1.0, config);
+
+        std::cout << "Status: " << ToString(result.status) << "\n";
+        std::cout << "Terms used: " << result.terms_used << "\n";
+        std::cout << "Coefficient tail: " << result.coefficient_tail_error << "\n";
+        std::cout << "Sampled max/RMS error: " << result.max_error_estimate
+                  << " / " << result.rms_error_estimate << "\n";
+
+        Vector<Real> points;
+        Vector<Real> values;
+        result.approximation.SampleUniform(9, points, values);
+        std::cout << "Uniform diagnostic samples: " << values.size() << "\n";
     }
     
     void Chebyshev_Truncation()
@@ -228,6 +254,7 @@ void Docs_Demo_ChebyshevApproximation()
     std::cout << "This demo covers:\n";
     std::cout << "  - Creating Chebyshev approximations from functions\n";
     std::cout << "  - Spectral convergence for smooth functions\n";
+    std::cout << "  - Adaptive degree selection and diagnostics\n";
     std::cout << "  - Truncation for economization\n";
     std::cout << "  - Derivative computation\n";
     std::cout << "  - Integration\n";
@@ -236,6 +263,7 @@ void Docs_Demo_ChebyshevApproximation()
     
     Chebyshev_BasicApproximation();
     Chebyshev_Convergence();
+    Chebyshev_AdaptiveDiagnostics();
     Chebyshev_Truncation();
     Chebyshev_Derivative();
     Chebyshev_Integral();

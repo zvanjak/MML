@@ -2,8 +2,7 @@
 ///                         MinimalMathLibrary (MML)                                  ///
 ///                                                                                   ///
 ///  File:        Serializer.h                                                        ///
-///  Description: Data serialization utilities for MML objects (umbrella include)     ///
-///               Includes all serialization modules for functions, curves, etc.      ///
+///  Description: Presentation-data exporters for MML visualizers                     ///
 ///                                                                                   ///
 ///  Copyright:   (c) 2024-2026 Zvonimir Vanjak                                       ///
 ///  License:     MIT License (see LICENSE.md)                                         ///
@@ -11,32 +10,32 @@
 ///////////////////////////////////////////////////////////////////////////////////////////
 ///
 /// @file Serializer.h
-/// @brief Umbrella include for all serialization utilities
+/// @brief Umbrella include for visualizer presentation-data exporters
 /// 
-/// This file provides backward compatibility by including all serialization modules.
+/// Durable object save/load APIs are provided separately by tools/Persistence.h.
+/// This aggregate header includes only visualizer export modules.
 /// For more granular includes, you can use the individual headers:
 ///
-/// - tools/serializer/SerializerBase.h       - Base types (SerializeError, SerializeResult) and header writers
+/// - tools/serializer/SerializerBase.h       - Export format constants and header writers
 /// - tools/serializer/SerializerFunctions.h  - Real function serialization (SaveRealFunc, etc.)
 /// - tools/serializer/SerializerCurves.h     - Parametric curve serialization
 /// - tools/serializer/SerializerSurfaces.h   - Surface and scalar function serialization
-/// - tools/serializer/SerializerVectors.h    - Vector field serialization
+/// - tools/serializer/SerializerVectorFields.h - Vector field serialization
 /// - tools/serializer/SerializerODE.h        - ODE solution serialization
 /// - tools/serializer/SerializerSimulation.h - Particle simulation serialization
-/// - tools/serializer/SerializerFieldLines.h - Field line serialization
 ///
 ///////////////////////////////////////////////////////////////////////////////////////////
 #if !defined MML_SERIALIZER_H
 #define MML_SERIALIZER_H
 
-// Include all serialization modules
-#include "mml/tools/serializer/SerializerBase.h"
-#include "mml/tools/serializer/SerializerFunctions.h"
-#include "mml/tools/serializer/SerializerCurves.h"
-#include "mml/tools/serializer/SerializerSurfaces.h"
-#include "mml/tools/serializer/SerializerVectors.h"
-#include "mml/tools/serializer/SerializerODE.h"
-#include "mml/tools/serializer/SerializerSimulation.h"
-#include "mml/tools/serializer/SerializerFieldLines.h"
+// Include all presentation-data export modules
+#include <mml/tools/serializer/SerializerBase.h>
+#include <mml/tools/serializer/SerializerFunctions.h>
+#include <mml/tools/serializer/SerializerCurves.h>
+#include <mml/tools/serializer/SerializerSurfaces.h>
+#include <mml/tools/serializer/SerializerVectorFields.h>
+#include <mml/tools/serializer/SerializerODE.h>
+#include <mml/tools/serializer/SerializerSimulation.h>
+
 
 #endif // MML_SERIALIZER_H

@@ -21,6 +21,7 @@
 #define MML_DAE_RADAU_IIA_H
 
 #include "DAESolverBase.h"
+#include <array>
 #include <cmath>
 
 namespace MML {
@@ -58,6 +59,11 @@ namespace MML {
 	                                         Real t0, const Vector<Real>& x0, const Vector<Real>& y0,
 	                                         Real t_end, const DAESolverConfig& config = DAESolverConfig())
 	{
+		if (t_end <= t0)
+			throw ArgumentError("SolveDAERadauIIA: t_end must be greater than t0 (reverse-time integration is not supported)");
+		if (config.step_size <= 0)
+			throw ArgumentError("SolveDAERadauIIA: config.step_size must be positive");
+
 		AlgorithmTimer timer;
 
 		int diffDim = system.getDiffDim();
@@ -68,7 +74,11 @@ namespace MML {
 		DAESolverResult result(t0, t_end, diffDim, algDim, num_steps);
 		result.algorithm_name = "DAERadauIIA";
 		result.solution.fillValues(0, t0, x0, y0);
-		result.solution.incrementSuccessfulSteps();
+		if (!ValidateDAEInitialState(system, t0, x0, y0, config, result)) {
+			result.solution.setFinalSize(0);
+			result.elapsed_time_ms = timer.elapsed_ms();
+			return result;
+		}
 
 		// Radau IIA coefficients (3-stage, order 5)
 		const Real sqrt6 = std::sqrt(Real(6));
@@ -107,172 +117,98 @@ namespace MML {
 		Vector<Real> K1(diffDim), K2(diffDim), K3(diffDim);  // f evaluations
 		Vector<Real> G1(algDim), G2(algDim), G3(algDim);     // g evaluations
 
-		// Newton iteration vectors
-		int newtDim = 3 * totalDim;  // 3 stages × (diffDim + algDim)
-		Vector<Real> Z(newtDim), delta(newtDim), residual(newtDim);
-		Matrix<Real> Jac_newton(newtDim, newtDim);
-
-		// Jacobian matrices from the DAE system
-		Matrix<Real> dfDx(diffDim, diffDim), dfDy(diffDim, algDim);
-		Matrix<Real> dgDx(algDim, diffDim), dgDy(algDim, algDim);
+		std::array<Matrix<Real>, 3> dfDx = {
+			Matrix<Real>(diffDim, diffDim), Matrix<Real>(diffDim, diffDim), Matrix<Real>(diffDim, diffDim)};
+		std::array<Matrix<Real>, 3> dfDy = {
+			Matrix<Real>(diffDim, algDim), Matrix<Real>(diffDim, algDim), Matrix<Real>(diffDim, algDim)};
+		std::array<Matrix<Real>, 3> dgDx = {
+			Matrix<Real>(algDim, diffDim), Matrix<Real>(algDim, diffDim), Matrix<Real>(algDim, diffDim)};
+		std::array<Matrix<Real>, 3> dgDy = {
+			Matrix<Real>(algDim, algDim), Matrix<Real>(algDim, algDim), Matrix<Real>(algDim, algDim)};
 
 		int step = 1;
 		while (t + h/2 <= t_end && step < config.max_steps) {
 
 			// Clamp step size to reach t_end exactly
 			Real h_actual = std::min(h, t_end - t);
-			if (h_actual < 1e-15) break;
+			if (h_actual < DAETimeTolerance(t_end, h)) break;
 
-			// Initialize stage values to current solution (predictor)
-			X1 = x; X2 = x; X3 = x;
-			Y1 = y; Y2 = y; Y3 = y;
+			Vector<Real> stageX(3 * diffDim), stageY(3 * algDim);
+			for (int stage = 0; stage < 3; ++stage) {
+				for (int i = 0; i < diffDim; ++i) stageX[stage * diffDim + i] = x[i];
+				for (int i = 0; i < algDim; ++i) stageY[stage * algDim + i] = y[i];
+			}
 
-			// Get Jacobians at current point (frozen for all Newton iterations in this step)
-			system.allJacobians(t, x, y, dfDx, dfDy, dgDx, dgDy);
-
-			// Newton iteration to solve the coupled stage equations
-			bool converged = false;
-			for (int newt = 0; newt < config.max_newton_iter && !converged; ++newt) {
-				result.newton_iterations++;
-
-				// Evaluate f and g at each stage point
-				system.diffEqs(t + c1*h_actual, X1, Y1, K1);
-				system.diffEqs(t + c2*h_actual, X2, Y2, K2);
-				system.diffEqs(t + c3*h_actual, X3, Y3, K3);
-				system.algConstraints(t + c1*h_actual, X1, Y1, G1);
-				system.algConstraints(t + c2*h_actual, X2, Y2, G2);
-				system.algConstraints(t + c3*h_actual, X3, Y3, G3);
-
-				// Build residual for the stage equations
-				// Stage equations for differential: X_i = x + h_actual * sum_j(a_ij * K_j)
-				// Residual: R_xi = X_i - x - h_actual*(a_i1*K1 + a_i2*K2 + a_i3*K3)
-				// Stage equations for algebraic: 0 = g(t + c_i*h_actual, X_i, Y_i)
-				// Residual: R_yi = G_i
-
-				Real residNorm = 0;
-				
-				// Stage 1 residuals
+			auto unpackStages = [&](const Vector<Real>& valuesX, const Vector<Real>& valuesY) {
 				for (int i = 0; i < diffDim; ++i) {
-					Real r = X1[i] - x[i] - h_actual*(a11*K1[i] + a12*K2[i] + a13*K3[i]);
-					residual[i] = r;
-					residNorm += r*r;
+					X1[i] = valuesX[i]; X2[i] = valuesX[diffDim + i]; X3[i] = valuesX[2 * diffDim + i];
 				}
 				for (int i = 0; i < algDim; ++i) {
-					Real r = G1[i];
-					residual[diffDim + i] = r;
-					residNorm += r*r;
+					Y1[i] = valuesY[i]; Y2[i] = valuesY[algDim + i]; Y3[i] = valuesY[2 * algDim + i];
 				}
-
-				// Stage 2 residuals
-				int off2 = totalDim;
+			};
+			auto evaluateResidual = [&](const Vector<Real>& valuesX, const Vector<Real>& valuesY, Vector<Real>& residual) {
+				unpackStages(valuesX, valuesY);
+				system.diffEqs(t + c1 * h_actual, X1, Y1, K1);
+				system.diffEqs(t + c2 * h_actual, X2, Y2, K2);
+				system.diffEqs(t + c3 * h_actual, X3, Y3, K3);
+				system.algConstraints(t + c1 * h_actual, X1, Y1, G1);
+				system.algConstraints(t + c2 * h_actual, X2, Y2, G2);
+				system.algConstraints(t + c3 * h_actual, X3, Y3, G3);
 				for (int i = 0; i < diffDim; ++i) {
-					Real r = X2[i] - x[i] - h_actual*(a21*K1[i] + a22*K2[i] + a23*K3[i]);
-					residual[off2 + i] = r;
-					residNorm += r*r;
+					residual[i] = X1[i] - x[i] - h_actual * (a11 * K1[i] + a12 * K2[i] + a13 * K3[i]);
+					residual[diffDim + i] = X2[i] - x[i] - h_actual * (a21 * K1[i] + a22 * K2[i] + a23 * K3[i]);
+					residual[2 * diffDim + i] = X3[i] - x[i] - h_actual * (a31 * K1[i] + a32 * K2[i] + a33 * K3[i]);
 				}
+				const int algebraicOffset = 3 * diffDim;
 				for (int i = 0; i < algDim; ++i) {
-					Real r = G2[i];
-					residual[off2 + diffDim + i] = r;
-					residNorm += r*r;
+					residual[algebraicOffset + i] = G1[i];
+					residual[algebraicOffset + algDim + i] = G2[i];
+					residual[algebraicOffset + 2 * algDim + i] = G3[i];
 				}
+			};
+			auto evaluateJacobian = [&](const Vector<Real>& valuesX, const Vector<Real>& valuesY, Matrix<Real>& jacobian) {
+				unpackStages(valuesX, valuesY);
+				const std::array<Real, 3> stageTimes = {t + c1 * h_actual, t + c2 * h_actual, t + c3 * h_actual};
+				const std::array<Vector<Real>*, 3> stageXs = {&X1, &X2, &X3};
+				const std::array<Vector<Real>*, 3> stageYs = {&Y1, &Y2, &Y3};
+				for (int stage = 0; stage < 3; ++stage)
+					system.allJacobians(stageTimes[stage], *stageXs[stage], *stageYs[stage],
+						dfDx[stage], dfDy[stage], dgDx[stage], dgDy[stage]);
 
-				// Stage 3 residuals
-				int off3 = 2 * totalDim;
-				for (int i = 0; i < diffDim; ++i) {
-					Real r = X3[i] - x[i] - h_actual*(a31*K1[i] + a32*K2[i] + a33*K3[i]);
-					residual[off3 + i] = r;
-					residNorm += r*r;
-				}
-				for (int i = 0; i < algDim; ++i) {
-					Real r = G3[i];
-					residual[off3 + diffDim + i] = r;
-					residNorm += r*r;
-				}
-
-				residNorm = std::sqrt(residNorm);
-				if (residNorm < config.newton_tol) {
-					converged = true;
-					break;
-				}
-
-				// Build Newton Jacobian
-				// The unknowns are [X1, Y1, X2, Y2, X3, Y3] (3*totalDim vector)
-				// Jacobian structure (block form):
-				// 
-				// For stage i, diff eq: dR_xi/dXj = delta_ij*I - h_actual*a_ij*df/dx
-				//                       dR_xi/dYj = -h_actual*a_ij*df/dy
-				// For stage i, alg eq:  dR_yi/dXj = dg/dx (only for j=i)
-				//                       dR_yi/dYj = dg/dy (only for j=i)
-
-				// Zero out the Jacobian matrix
-				for (int i = 0; i < newtDim; ++i)
-					for (int j = 0; j < newtDim; ++j)
-						Jac_newton(i, j) = 0;
-
-				// Fill the 3x3 block structure
-				// Block (i,j) corresponds to derivatives of stage i residual w.r.t. stage j variables
+				for (int row = 0; row < 3 * totalDim; ++row)
+					for (int col = 0; col < 3 * totalDim; ++col) jacobian(row, col) = REAL(0.0);
+				const Real coefficients[3][3] = {{a11, a12, a13}, {a21, a22, a23}, {a31, a32, a33}};
+				const int algebraicOffset = 3 * diffDim;
 				for (int si = 0; si < 3; ++si) {
-					int row_off = si * totalDim;
-					
 					for (int sj = 0; sj < 3; ++sj) {
-						int col_off = sj * totalDim;
-						
-						// Get a_ij coefficient
-						Real aij = 0;
-						if (si == 0) aij = (sj == 0) ? a11 : (sj == 1) ? a12 : a13;
-						else if (si == 1) aij = (sj == 0) ? a21 : (sj == 1) ? a22 : a23;
-						else aij = (sj == 0) ? a31 : (sj == 1) ? a32 : a33;
-
-						// Differential equations block: dR_xi/d(Xj, Yj)
 						for (int i = 0; i < diffDim; ++i) {
-							for (int j = 0; j < diffDim; ++j) {
-								Real val = (si == sj && i == j) ? 1.0 : 0.0;
-								val -= h_actual * aij * dfDx(i, j);
-								Jac_newton(row_off + i, col_off + j) = val;
-							}
-							for (int j = 0; j < algDim; ++j) {
-								Jac_newton(row_off + i, col_off + diffDim + j) = -h_actual * aij * dfDy(i, j);
-							}
-						}
-
-						// Algebraic equations block: dR_yi/d(Xj, Yj)
-						// Only non-zero when si == sj (same stage)
-						if (si == sj) {
-							for (int i = 0; i < algDim; ++i) {
-								for (int j = 0; j < diffDim; ++j) {
-									Jac_newton(row_off + diffDim + i, col_off + j) = dgDx(i, j);
-								}
-								for (int j = 0; j < algDim; ++j) {
-									Jac_newton(row_off + diffDim + i, col_off + diffDim + j) = dgDy(i, j);
-								}
-							}
+							for (int j = 0; j < diffDim; ++j)
+								jacobian(si * diffDim + i, sj * diffDim + j) =
+									(si == sj && i == j ? REAL(1.0) : REAL(0.0))
+									- h_actual * coefficients[si][sj] * dfDx[sj](i, j);
+							for (int j = 0; j < algDim; ++j)
+								jacobian(si * diffDim + i, algebraicOffset + sj * algDim + j) =
+									-h_actual * coefficients[si][sj] * dfDy[sj](i, j);
 						}
 					}
+					for (int i = 0; i < algDim; ++i) {
+						for (int j = 0; j < diffDim; ++j)
+							jacobian(algebraicOffset + si * algDim + i, si * diffDim + j) = dgDx[si](i, j);
+						for (int j = 0; j < algDim; ++j)
+							jacobian(algebraicOffset + si * algDim + i, algebraicOffset + si * algDim + j) = dgDy[si](i, j);
+					}
 				}
+			};
 
-				// Solve Newton system: Jac_newton * delta = -residual
-				delta = residual;
-				delta *= -1;
-				GaussJordanSolver<Real>::SolveInPlace(Jac_newton, delta);
-
-				// Update stage values
-				for (int i = 0; i < diffDim; ++i) {
-					X1[i] += delta[i];
-					X2[i] += delta[totalDim + i];
-					X3[i] += delta[2*totalDim + i];
-				}
-				for (int i = 0; i < algDim; ++i) {
-					Y1[i] += delta[diffDim + i];
-					Y2[i] += delta[totalDim + diffDim + i];
-					Y3[i] += delta[2*totalDim + diffDim + i];
-				}
-			}
-
-			if (!converged) {
-				result.status = AlgorithmStatus::NumericalInstability;
-				result.error_message = "Newton iteration failed to converge in Radau IIA step";
+			DAENewtonResult newton = SolveDAENewton(stageX, stageY, 3 * diffDim, 3 * algDim,
+				config, evaluateResidual, evaluateJacobian);
+			AccumulateDAENewtonDiagnostics(result, newton);
+			if (!newton.converged) {
+				SetDAENewtonFailure(result, newton, "Radau IIA stage Newton failure");
 				break;
 			}
+			unpackStages(stageX, stageY);
 
 			// Update solution using stage 3 (for Radau IIA, c3 = 1, so X3, Y3 is the solution at t+h_actual)
 			x = X3;
@@ -282,18 +218,23 @@ namespace MML {
 			// Track constraint violation
 			Vector<Real> g_check(algDim);
 			system.algConstraints(t, x, y, g_check);
-			Real g_norm = g_check.NormL2();
-			if (g_norm > result.max_constraint_violation)
-				result.max_constraint_violation = g_norm;
+			if (!ValidateAcceptedDAEState(x, y, g_check, config, result, "Radau IIA step"))
+				break;
 
 			result.solution.fillValues(step, t, x, y);
 			result.solution.incrementSuccessfulSteps();
+			result.accepted_steps++;
 			++step;
 		}
 
 		// Finalize
 		result.solution.setFinalSize(step - 1);
 		result.total_steps = step - 1;
+		if (t_end - t > DAETimeTolerance(t_end, config.step_size) && result.status == AlgorithmStatus::Success) {
+			result.status = AlgorithmStatus::MaxIterationsExceeded;
+			result.failure_reason = DAEFailureReason::MaxStepsExceeded;
+			result.error_message = "Maximum Radau IIA step count reached before t_end";
+		}
 		result.elapsed_time_ms = timer.elapsed_ms();
 
 		return result;

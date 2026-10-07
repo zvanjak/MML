@@ -13,20 +13,21 @@
 #if !defined MML_DERIVATION_JACOBIANS_H
 #define MML_DERIVATION_JACOBIANS_H
 
-#include "MMLBase.h"
+#include <mml/MMLBase.h>
 
 #include "DerivationBase.h"
 
-#include "base/Vector/Vector.h"
-#include "base/Matrix/Matrix.h"
-#include "base/Vector/VectorN.h"
-#include "base/Matrix/MatrixNM.h"
+#include <mml/base/Vector/Vector.h>
+#include <mml/base/Matrix/Matrix.h>
+#include <mml/base/Vector/VectorN.h>
+#include <mml/base/Matrix/MatrixNM.h>
 
-#include "core/Derivation/DerivationVectorFunction.h"
+#include <mml/core/Derivation/DerivationVectorFunction.h>
 
 #include <functional>
 #include <cmath>
 #include <limits>
+#include <stdexcept>
 
 namespace MML
 {
@@ -41,19 +42,38 @@ namespace MML
 		/// @param func The vector function to differentiate
 		/// @param pos Point at which to evaluate the Jacobian
 		/// @return N×N Jacobian matrix where J(i,j) = ∂f_i/∂x_j
-		/// Complexity: O(N²) partial derivatives, each using 4th-order stencil (4 f-evals).
-		///            Total: 4×N² scalar function evaluations.
+		/// Complexity: 4×N full-vector evaluations using one stencil per input column.
 		template<int N>
-		static MatrixNM<Real, N, N> calcJacobian(const IVectorFunction<N>& func, const VectorN<Real, N>& pos)
+		static MatrixNM<Real, N, N> calcJacobian(const IVectorFunction<N>& func,
+			const VectorN<Real, N>& pos, Real h = 0.0, int* functionEvaluations = nullptr)
 		{
 			MatrixNM<Real, N, N> jac;
-
-			for (int i = 0; i < N; ++i)
-				for (int j = 0; j < N; ++j)
-				{
-					jac(i, j) = NDer4Partial(func, i, j, pos);
-				}
-
+			if (!std::isfinite(h) || h < 0.0)
+				throw ArgumentError("calcJacobian: invalid step");
+			VectorN<Real, N> perturbed = pos;
+			for (int column = 0; column < N; ++column) {
+				const Real original = pos[column];
+				const Real step = h > 0.0 ? h
+					: std::pow(std::numeric_limits<Real>::epsilon(), Real(0.2))
+						* std::max(Real(1.0), std::abs(original));
+				auto evaluate = [&](Real value) {
+					perturbed[column] = value;
+					if (functionEvaluations != nullptr) ++(*functionEvaluations);
+					VectorN<Real, N> result = func(perturbed);
+					for (int row = 0; row < N; ++row)
+						if (!std::isfinite(result[row]))
+							throw NumericalMethodError("calcJacobian: non-finite function value");
+					return result;
+				};
+				VectorN<Real, N> plus2 = evaluate(original + Real(2.0) * step);
+				VectorN<Real, N> plus1 = evaluate(original + step);
+				VectorN<Real, N> minus1 = evaluate(original - step);
+				VectorN<Real, N> minus2 = evaluate(original - Real(2.0) * step);
+				perturbed[column] = original;
+				for (int row = 0; row < N; ++row)
+					jac(row, column) = (-plus2[row] + Real(8.0) * plus1[row]
+						- Real(8.0) * minus1[row] + minus2[row]) / (Real(12.0) * step);
+			}
 			return jac;
 		}
 
@@ -64,16 +84,36 @@ namespace MML
 		/// @param pos Point at which to evaluate the Jacobian
 		/// @return M×N Jacobian matrix where J(i,j) = ∂f_i/∂x_j
 		template<int N, int M>
-		static MatrixNM<Real, M, N> calcJacobian(const IVectorFunctionNM<N, M>& func, const VectorN<Real, N>& pos)
+		static MatrixNM<Real, M, N> calcJacobian(const IVectorFunctionNM<N, M>& func,
+			const VectorN<Real, N>& pos, Real h = 0.0, int* functionEvaluations = nullptr)
 		{
 			MatrixNM<Real, M, N> jac;
-
-			for (int i = 0; i < M; ++i)
-				for (int j = 0; j < N; ++j)
-				{
-					jac(i, j) = Derivation::NDer4Partial(func, i, j, pos);
-				}
-
+			if (!std::isfinite(h) || h < 0.0)
+				throw ArgumentError("calcJacobian: invalid step");
+			VectorN<Real, N> perturbed = pos;
+			for (int column = 0; column < N; ++column) {
+				const Real original = pos[column];
+				const Real step = h > 0.0 ? h
+					: std::pow(std::numeric_limits<Real>::epsilon(), Real(0.2))
+						* std::max(Real(1.0), std::abs(original));
+				auto evaluate = [&](Real value) {
+					perturbed[column] = value;
+					if (functionEvaluations != nullptr) ++(*functionEvaluations);
+					VectorN<Real, M> result = func(perturbed);
+					for (int row = 0; row < M; ++row)
+						if (!std::isfinite(result[row]))
+							throw NumericalMethodError("calcJacobian: non-finite function value");
+					return result;
+				};
+				VectorN<Real, M> plus2 = evaluate(original + Real(2.0) * step);
+				VectorN<Real, M> plus1 = evaluate(original + step);
+				VectorN<Real, M> minus1 = evaluate(original - step);
+				VectorN<Real, M> minus2 = evaluate(original - Real(2.0) * step);
+				perturbed[column] = original;
+				for (int row = 0; row < M; ++row)
+					jac(row, column) = (-plus2[row] + Real(8.0) * plus1[row]
+						- Real(8.0) * minus1[row] + minus2[row]) / (Real(12.0) * step);
+			}
 			return jac;
 		}
 
@@ -151,6 +191,11 @@ namespace MML
 			return (f_plus - f_minus) / (2 * h);
 		}
 
+		static void calcJacobianDynColumns(
+			const std::function<Vector<Real>(const Vector<Real>&)>& func,
+			const Vector<Real>& pos, Matrix<Real>& jac, int outputDim,
+			Real h, int* functionEvaluations);
+
 		/// @brief Calculate Jacobian matrix for a dynamic-size vector function (square case)
 		/// @param func Function f: R^n -> R^n taking and returning Vector<Real>
 		/// @param pos Point at which to evaluate the Jacobian
@@ -164,17 +209,12 @@ namespace MML
 		static Matrix<Real> calcJacobianDyn(
 			const std::function<Vector<Real>(const Vector<Real>&)>& func,
 			const Vector<Real>& pos,
-			Real h = 0.0)
+			Real h = 0.0,
+			int* functionEvaluations = nullptr)
 		{
-			int n = static_cast<int>(pos.size());
-			Matrix<Real> jac(n, n);
-
-			for (int i = 0; i < n; ++i)
-				for (int j = 0; j < n; ++j)
-				{
-					jac(i, j) = NDer4PartialDyn(func, i, j, pos, h);
-				}
-
+			Matrix<Real> jac;
+			calcJacobianDynColumns(func, pos, jac, static_cast<int>(pos.size()), h,
+				functionEvaluations);
 			return jac;
 		}
 
@@ -188,18 +228,11 @@ namespace MML
 			const std::function<Vector<Real>(const Vector<Real>&)>& func,
 			const Vector<Real>& pos,
 			int outputDim,
-			Real h = 0.0)
+			Real h = 0.0,
+			int* functionEvaluations = nullptr)
 		{
-			int n = static_cast<int>(pos.size());
-			int m = outputDim;
-			Matrix<Real> jac(m, n);
-
-			for (int i = 0; i < m; ++i)
-				for (int j = 0; j < n; ++j)
-				{
-					jac(i, j) = NDer4PartialDyn(func, i, j, pos, h);
-				}
-
+			Matrix<Real> jac;
+			calcJacobianDynColumns(func, pos, jac, outputDim, h, functionEvaluations);
 			return jac;
 		}
 
@@ -216,16 +249,61 @@ namespace MML
 			const std::function<Vector<Real>(const Vector<Real>&)>& func,
 			const Vector<Real>& pos,
 			Matrix<Real>& jac,
-			Real h = 0.0)
+			Real h = 0.0,
+			int* functionEvaluations = nullptr)
 		{
-			int n = static_cast<int>(pos.size());
-			jac.Resize(n, n);
+			calcJacobianDynColumns(func, pos, jac, static_cast<int>(pos.size()), h,
+				functionEvaluations);
+		}
 
-			for (int i = 0; i < n; ++i)
-				for (int j = 0; j < n; ++j)
-				{
-					jac(i, j) = NDer4PartialDyn(func, i, j, pos, h);
-				}
+		/// @brief Internal dynamic m-by-n Jacobian kernel using four vector evaluations per input column.
+		/// @param func Function f: R^n -> R^m
+		/// @param pos Point at which to evaluate
+		/// @param[out] jac Output Jacobian, resized to m-by-n
+		/// @param outputDim Expected output dimension m
+		/// @param h Explicit absolute step; zero selects eps^(1/5)*max(1,|x_j|) per column
+		/// @param functionEvaluations Optional accumulated count of attempted vector evaluations
+		static void calcJacobianDynColumns(
+			const std::function<Vector<Real>(const Vector<Real>&)>& func,
+			const Vector<Real>& pos,
+			Matrix<Real>& jac,
+			int outputDim,
+			Real h,
+			int* functionEvaluations)
+		{
+			const int inputDim = static_cast<int>(pos.size());
+			if (!func || inputDim <= 0 || outputDim <= 0 || !std::isfinite(h) || h < 0.0)
+				throw ArgumentError("calcJacobianDynInPlace: invalid function, dimensions, or step");
+			jac.Resize(outputDim, inputDim);
+			Vector<Real> perturbed = pos;
+			for (int column = 0; column < inputDim; ++column) {
+				const Real original = pos[column];
+				const Real step = h > 0.0 ? h
+					: std::pow(std::numeric_limits<Real>::epsilon(), Real(0.2))
+						* std::max(Real(1.0), std::abs(original));
+
+				auto evaluate = [&](Real value) {
+					perturbed[column] = value;
+					if (functionEvaluations != nullptr) ++(*functionEvaluations);
+					Vector<Real> result = func(perturbed);
+					if (result.size() != outputDim)
+						throw VectorDimensionError("calcJacobianDynInPlace: output dimension mismatch",
+							outputDim, result.size());
+					for (int row = 0; row < outputDim; ++row)
+						if (!std::isfinite(result[row]))
+							throw NumericalMethodError("calcJacobianDynInPlace: non-finite function value");
+					return result;
+				};
+
+				Vector<Real> plus2 = evaluate(original + Real(2.0) * step);
+				Vector<Real> plus1 = evaluate(original + step);
+				Vector<Real> minus1 = evaluate(original - step);
+				Vector<Real> minus2 = evaluate(original - Real(2.0) * step);
+				perturbed[column] = original;
+				for (int row = 0; row < outputDim; ++row)
+					jac(row, column) = (-plus2[row] + Real(8.0) * plus1[row]
+						- Real(8.0) * minus1[row] + minus2[row]) / (Real(12.0) * step);
+			}
 		}
 
 		/// @brief Calculate Jacobian using 2nd-order differences (faster, less accurate)

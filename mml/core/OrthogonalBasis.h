@@ -12,11 +12,11 @@
 #if !defined MML_ORTHOGONAL_BASIS_H
 #define MML_ORTHOGONAL_BASIS_H
 
-#include "MMLBase.h"
+#include <mml/MMLBase.h>
 
-#include "interfaces/IFunction.h"
+#include <mml/interfaces/IFunction.h>
 
-#include "core/Integration/Integration1D.h"
+#include <mml/core/Integration/Integration1D.h>
 
 #include <cmath>
 #include <stdexcept>

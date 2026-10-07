@@ -33,7 +33,7 @@ See individual documentation files for runnable demos:
 ## Quick Example
 
 ```cpp
-#include "core/MatrixUtils.h"
+#include <mml/algorithms/MatrixAlg.h>
 using namespace MML;
 
 // Dynamic-size matrix
@@ -45,7 +45,7 @@ Matrix<Real> A{3, 3, {2, -1,  0,
 MatrixNM<Real, 3, 3> I = MatrixNM<Real, 3, 3>::Identity();
 
 // Matrix operations
-double det = Utils::Det(A);         // Determinant via Utils
+double det = MatrixAlg::Determinant(A);
 Matrix<Real> At = A.transpose(); // Returns transposed copy
 Matrix<Real> Ainv = A.GetInverse(); // Returns inverse copy
 ```
@@ -58,6 +58,7 @@ MML provides efficient storage for special matrix structures:
 - **MatrixBandDiag** - Band-diagonal matrices (configurable bandwidth)
 
 ## Related Documentation
+- [MatrixAnalysisContracts.md](../algorithms/MatrixAnalysisContracts.md) - Canonical matrix-analysis architecture, numerical contracts, caching, and migration
 - [Linear_equations_solvers.md](../core/Linear_equations_solvers.md) - Solving linear systems
 - [Eigen_solvers.md](../algorithms/Eigen_solvers.md) - Computing eigenvalues and eigenvectors
 - [Vectors.md](Vectors.md) - Vector types overview

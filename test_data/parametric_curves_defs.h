@@ -2,11 +2,11 @@
 #define MML_PARAMETRIC_CURVES_DEFS_H
 
 #ifdef MML_USE_SINGLE_HEADER
-#include "MML.h"
+#include <MML.h>
 #else
-#include "base/Vector/VectorN.h"
-#include "base/Function.h"
-#include "core/Curves.h"
+#include <mml/base/Vector/VectorN.h>
+#include <mml/base/Function.h>
+#include <mml/core/Curves.h>
 #endif
 
 namespace MML::TestBeds

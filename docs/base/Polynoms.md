@@ -209,7 +209,7 @@ Polynom<Real>::poldiv(u, v, q, r);
 
 ### Finding Roots with Laguerre's Method
 ```cpp
-#include "algorithms/RootFindingPolynoms.h"
+#include <mml/algorithms/RootFindingPolynoms.h>
 
 Polynom<Real> p({-6, 11, -6, 1});  // p(x) = x³ - 6x² + 11x - 6 = (x-1)(x-2)(x-3)
 
@@ -276,7 +276,7 @@ typedef Polynom<Real, MatrixNM<Real, 4, 4>>   Matrix4Polynom;
 
 ### Example 1: Quadratic Formula Verification
 ```cpp
-#include "algorithms/RootFindingPolynoms.h"
+#include <mml/algorithms/RootFindingPolynoms.h>
 
 // p(x) = x² - 5x + 6 = (x-2)(x-3)
 Polynom<Real> p({6, -5, 1});
@@ -303,7 +303,7 @@ std::cout << "p(0.5) = " << p(0.5) << std::endl;
 
 ### Example 3: Calculus
 ```cpp
-#include "algorithms/RootFindingPolynoms.h"
+#include <mml/algorithms/RootFindingPolynoms.h>
 
 // p(x) = x³ - 3x² + 2x
 Polynom<Real> p({0, 2, -3, 1});

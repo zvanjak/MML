@@ -12,7 +12,7 @@
 #if !defined MML_TIMER_H
 #define MML_TIMER_H
 
-#include "MMLBase.h"
+#include <mml/MMLBase.h>
 
 #include <chrono>
 #include <iomanip>
@@ -47,7 +47,9 @@ namespace MML
 		std::vector<std::string> _markedNames;
 
 	public:
-		Timer() {}
+		// Start at construction so MarkTime() before Start() measures from construction
+		// instead of from the default-constructed (epoch) time_point
+		Timer() : _startTime(std::chrono::steady_clock::now()) {}
 		~Timer() {}
 		
 		Timer(const Timer&) = delete;
@@ -93,9 +95,9 @@ namespace MML
 		double GetIntervalTime(size_t index = 0) const
 		{
 			if (_markedTimes.empty())
-				throw std::runtime_error("No marked times available. Use MarkTime() before accessing intervals.");
+				throw InvalidStateError("No marked times available. Use MarkTime() before accessing intervals.");
 			if (index >= _markedTimes.size())
-				throw std::out_of_range("Index out of range for marked times.");
+				throw IndexError("Index out of range for marked times.");
 
 			if (index == 0)
 				return std::chrono::duration<double>(_markedTimes[0] - _startTime).count();
@@ -111,9 +113,9 @@ namespace MML
 		double GetMarkTimeFromStart(size_t index = 0) const
 		{
 			if (_markedTimes.empty())
-				throw std::runtime_error("No marked times available. Use MarkTime() before accessing intervals.");
+				throw InvalidStateError("No marked times available. Use MarkTime() before accessing intervals.");
 			if (index >= _markedTimes.size())
-				throw std::out_of_range("Index out of range for marked times.");
+				throw IndexError("Index out of range for marked times.");
 			
 			return std::chrono::duration<double>(_markedTimes[index] - _startTime).count();
 		}
@@ -124,7 +126,7 @@ namespace MML
 		double GetTotalTime() const
 		{
 			if (_markedTimes.empty())
-				throw std::runtime_error("No marked times available. Use MarkTime() before accessing total time.");
+				throw InvalidStateError("No marked times available. Use MarkTime() before accessing total time.");
 			return std::chrono::duration<double>(_markedTimes.back() - _startTime).count();
 		}
 

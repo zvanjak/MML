@@ -1,0 +1,39 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v8.0",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v8.0": {
+      "WPF3DHelperLib/1.0.0": {
+        "dependencies": {
+          "MML.NET": "2.0.0"
+        },
+        "runtime": {
+          "WPF3DHelperLib.dll": {}
+        }
+      },
+      "MML.NET/2.0.0": {
+        "runtime": {
+          "MML.NET.dll": {
+            "assemblyVersion": "2.0.0.0",
+            "fileVersion": "2.0.0.0"
+          }
+        }
+      }
+    }
+  },
+  "libraries": {
+    "WPF3DHelperLib/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "MML.NET/2.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    }
+  }
+}

@@ -6,11 +6,11 @@
  * that can be used to test and develop the ParametricSurface visualizer.
  */
 
-#include "MMLBase.h"
-#include "base/Vector/Vector.h"
-#include "base/Vector/VectorN.h"
-#include "interfaces/IFunction.h"
-#include "tools/Serializer.h"
+#include <mml/MMLBase.h>
+#include <mml/base/Vector/Vector.h>
+#include <mml/base/Vector/VectorN.h>
+#include <mml/interfaces/IFunction.h>
+#include <mml/tools/Serializer.h>
 
 #include <iostream>
 #include <cmath>
@@ -90,10 +90,10 @@ public:
     
     VectorN<Real, 3> operator()(Real u, Real w) const override
     {
-        Real halfU = u / 2.0;
+        Real halfU = u / Real{2};
         return VectorN<Real, 3>{
-            (1.0 + _width * w * std::cos(halfU)) * std::cos(u),
-            (1.0 + _width * w * std::cos(halfU)) * std::sin(u),
+            (Real{1} + _width * w * std::cos(halfU)) * std::cos(u),
+            (Real{1} + _width * w * std::cos(halfU)) * std::sin(u),
             _width * w * std::sin(halfU)
         };
     }

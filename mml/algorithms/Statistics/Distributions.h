@@ -11,12 +11,63 @@
 #if !defined MML_DISTRIBUTIONS_H
 #define MML_DISTRIBUTIONS_H
 
-#include "algorithms/Statistics.h"
+#include <mml/algorithms/Statistics.h>
+#include <mml/base/SpecialFunctions.h>
+#include <mml/base/Random.h>
 
 namespace MML
 {
 	namespace Statistics
 	{
+		/// @brief Inverse of the standard normal CDF (probit): z such that Phi(z)=p.
+		/// @details z = sqrt(2)*erf^{-1}(2p-1), full double precision via SpecialFunctions::ErfInv.
+		inline Real InverseStandardNormalCdf(Real p)
+		{
+			if (p <= 0.0 || p >= 1.0)
+				throw StatisticsError("Probability must be in (0, 1) in InverseStandardNormalCdf");
+			return std::sqrt(2.0) * SpecialFunctions::ErfInv(2.0 * p - 1.0);
+		}
+
+		/// @brief Draw U ~ Uniform(0,1) from a uniform random bit generator.
+		template<class URBG>
+		inline Real SampleUniform01(URBG& gen)
+		{
+			return std::uniform_real_distribution<Real>(0.0, 1.0)(gen);
+		}
+
+		/// @brief Draw Z ~ N(0,1) via the Box-Muller transform.
+		template<class URBG>
+		inline Real SampleStandardNormal(URBG& gen)
+		{
+			Real u1;
+			do { u1 = SampleUniform01(gen); } while (u1 == REAL(0.0));
+			Real u2 = SampleUniform01(gen);
+			return std::sqrt(-2.0 * std::log(u1)) * std::cos(2.0 * Constants::PI * u2);
+		}
+
+		/// @brief Draw X ~ Gamma(shape, scale) via the Marsaglia-Tsang method.
+		template<class URBG>
+		inline Real SampleGamma(URBG& gen, Real shape, Real scale)
+		{
+			if (shape < 1.0)
+			{
+				Real u;
+				do { u = SampleUniform01(gen); } while (u == REAL(0.0));
+				return SampleGamma(gen, shape + 1.0, scale) * std::pow(u, 1.0 / shape);
+			}
+			Real d = shape - 1.0 / 3.0;
+			Real c = 1.0 / std::sqrt(9.0 * d);
+			while (true)
+			{
+				Real x, v;
+				do { x = SampleStandardNormal(gen); v = 1.0 + c * x; } while (v <= 0.0);
+				v = v * v * v;
+				Real u = SampleUniform01(gen);
+				if (u < 1.0 - REAL(0.0331) * x * x * x * x) return d * v * scale;
+				if (std::log(u) < 0.5 * x * x + d * (1.0 - v + std::log(v))) return d * v * scale;
+			}
+		}
+
 		/// @brief Normal (Gaussian) distribution
 		/// The normal distribution is the most important continuous distribution,
 		/// central to the Central Limit Theorem and statistical inference.
@@ -38,6 +89,11 @@ namespace MML
 				if (sigma <= 0.0)
 					throw StatisticsError("Standard deviation must be positive in NormalDistribution");
 			}
+
+			/// @brief Draw a random variate using the given URBG (e.g. std::mt19937).
+			template<class URBG> Real sample(URBG& gen) const { return mu + sigma * SampleStandardNormal(gen); }
+			/// @brief Draw a random variate using MML's thread-local engine.
+			Real sample() const { return sample(Random::Engine()); }
 
 			/// @brief Probability density function (PDF)
 			///
@@ -74,7 +130,7 @@ namespace MML
 
 				// Use rational approximation for inverse normal CDF
 				// Based on Abramowitz and Stegun approximation 26.2.23
-				Real z = inverseStandardNormalCdf(p);
+				Real z = InverseStandardNormalCdf(p);
 				return mu + sigma * z;
 			}
 
@@ -104,70 +160,6 @@ namespace MML
 
 			/// @brief Standard deviation of the distribution
 			Real stddev() const { return sigma; }
-
-		private:
-			/// @brief Inverse of the standard normal CDF (probit function)
-			/// Uses rational approximation from Abramowitz and Stegun (26.2.23)
-			/// with refinement for tails. Accurate to ~1e-9.
-			static Real inverseStandardNormalCdf(Real p)
-			{
-				if (p <= 0.0 || p >= 1.0)
-					throw StatisticsError("Probability must be in (0, 1) in inverseStandardNormalCdf");
-
-				// Coefficients for rational approximation
-				const Real a[] = {
-					-3.969683028665376e+01,
-					 2.209460984245205e+02,
-					-2.759285104469687e+02,
-					 1.383577518672690e+02,
-					-3.066479806614716e+01,
-					 2.506628277459239e+00
-				};
-				const Real b[] = {
-					-5.447609879822406e+01,
-					 1.615858368580409e+02,
-					-1.556989798598866e+02,
-					 6.680131188771972e+01,
-					-1.328068155288572e+01
-				};
-				const Real c[] = {
-					-7.784894002430293e-03,
-					-3.223964580411365e-01,
-					-2.400758277161838e+00,
-					-2.549732539343734e+00,
-					 4.374664141464968e+00,
-					 2.938163982698783e+00
-				};
-				const Real d[] = {
-					 7.784695709041462e-03,
-					 3.224671290700398e-01,
-					 2.445134137142996e+00,
-					 3.754408661907416e+00
-				};
-
-				const Real pLow = 0.02425;
-				const Real pHigh = 1.0 - pLow;
-
-				Real q, r;
-
-				if (p < pLow) {
-					// Lower tail
-					q = std::sqrt(-2.0 * std::log(p));
-					return (((((c[0]*q + c[1])*q + c[2])*q + c[3])*q + c[4])*q + c[5]) /
-					        ((((d[0]*q + d[1])*q + d[2])*q + d[3])*q + 1.0);
-				} else if (p <= pHigh) {
-					// Central region
-					q = p - 0.5;
-					r = q * q;
-					return (((((a[0]*r + a[1])*r + a[2])*r + a[3])*r + a[4])*r + a[5]) * q /
-					       (((((b[0]*r + b[1])*r + b[2])*r + b[3])*r + b[4])*r + 1.0);
-				} else {
-					// Upper tail
-					q = std::sqrt(-2.0 * std::log(1.0 - p));
-					return -(((((c[0]*q + c[1])*q + c[2])*q + c[3])*q + c[4])*q + c[5]) /
-					         ((((d[0]*q + d[1])*q + d[2])*q + d[3])*q + 1.0);
-				}
-			}
 		};
 
 		/// @brief Standard normal distribution (mean=0, stddev=1)
@@ -232,6 +224,16 @@ namespace MML
 					throw StatisticsError("Degrees of freedom must be at least 1 in TDistribution");
 			}
 
+			/// @brief Draw a random variate (Z / sqrt(chi2_df / df)) using the given URBG.
+			template<class URBG> Real sample(URBG& gen) const
+			{
+				Real z = SampleStandardNormal(gen);
+				Real v = SampleGamma(gen, df / 2.0, 2.0);
+				return z / std::sqrt(v / df);
+			}
+			/// @brief Draw a random variate using MML's thread-local engine.
+			Real sample() const { return sample(Random::Engine()); }
+
 			/// @brief Probability density function (PDF)
 			///
 			/// @param x Value at which to evaluate the PDF
@@ -274,7 +276,7 @@ namespace MML
 				Real absX = std::abs(x);
 				Real x2 = absX * absX;
 				Real xBeta = nu / (nu + x2);
-				Real betaReg = incompleteBetaRegularized(xBeta, nu / 2.0, 0.5);
+				Real betaReg = SpecialFunctions::RegularizedBetaI(xBeta, nu / 2.0, 0.5);
 				
 				Real result = 1.0 - 0.5 * betaReg;
 				
@@ -377,72 +379,6 @@ namespace MML
 				Real nu = static_cast<Real>(df);
 				return nu / (nu - 2.0);
 			}
-
-		private:
-			/// @brief Regularized incomplete beta function I_x(a, b)
-			/// Uses continued fraction expansion (Lentz's method).
-			/// Based on Numerical Recipes formula 6.4.5
-			static Real incompleteBetaRegularized(Real x, Real a, Real b)
-			{
-				if (x < 0.0 || x > 1.0)
-					return 0.0;
-				if (x == 0.0)
-					return 0.0;
-				if (x == 1.0)
-					return 1.0;
-
-				// Use symmetry relation if x > (a+1)/(a+b+2)
-				bool useSymmetry = (x > (a + 1.0) / (a + b + 2.0));
-				if (useSymmetry) {
-					return 1.0 - incompleteBetaRegularized(1.0 - x, b, a);
-				}
-
-				// Compute log of beta function B(a, b) = Γ(a)Γ(b)/Γ(a+b)
-				Real logBeta = std::lgamma(a) + std::lgamma(b) - std::lgamma(a + b);
-				
-				// Front factor: exp(a*ln(x) + b*ln(1-x) - ln(B(a,b))) / a
-				Real front = std::exp(a * std::log(x) + b * std::log(1.0 - x) - logBeta) / a;
-
-				// Modified Lentz's method for continued fraction
-				// Formula from Numerical Recipes (Press et al.)
-				const Real fpmin = 1.0e-30;
-				const Real eps = 1.0e-15;
-				const int maxIter = 200;
-				
-				Real qab = a + b;
-				Real qap = a + 1.0;
-				Real qam = a - 1.0;
-				Real c = 1.0;
-				Real d = 1.0 - qab * x / qap;
-				if (std::abs(d) < fpmin) d = fpmin;
-				d = 1.0 / d;
-				Real h = d;
-				
-				for (int m = 1; m <= maxIter; m++) {
-					int m2 = 2 * m;
-					Real aa = m * (b - m) * x / ((qam + m2) * (a + m2));
-					d = 1.0 + aa * d;
-					if (std::abs(d) < fpmin) d = fpmin;
-					c = 1.0 + aa / c;
-					if (std::abs(c) < fpmin) c = fpmin;
-					d = 1.0 / d;
-					h *= d * c;
-					
-					aa = -(a + m) * (qab + m) * x / ((a + m2) * (qap + m2));
-					d = 1.0 + aa * d;
-					if (std::abs(d) < fpmin) d = fpmin;
-					c = 1.0 + aa / c;
-					if (std::abs(c) < fpmin) c = fpmin;
-					d = 1.0 / d;
-					Real del = d * c;
-					h *= del;
-					
-					if (std::abs(del - 1.0) < eps)
-						break;
-				}
-
-				return front * h;
-			}
 		};
 
 		/// @brief Chi-square (χ²) distribution
@@ -469,6 +405,11 @@ namespace MML
 					throw StatisticsError("Chi-square distribution requires positive degrees of freedom");
 			}
 
+			/// @brief Draw a random variate (chi2 = Gamma(df/2, 2)) using the given URBG.
+			template<class URBG> Real sample(URBG& gen) const { return SampleGamma(gen, _df / 2.0, 2.0); }
+			/// @brief Draw a random variate using MML's thread-local engine.
+			Real sample() const { return sample(Random::Engine()); }
+
 			int df() const { return _df; }
 			Real mean() const { return static_cast<Real>(_df); }
 			Real variance() const { return 2.0 * _df; }
@@ -492,7 +433,7 @@ namespace MML
 				if (x <= 0.0) return 0.0;
 				
 				// CDF = P(k/2, x/2) where P is regularized lower incomplete gamma
-				return incompleteGammaP(_df / 2.0, x / 2.0);
+				return SpecialFunctions::RegularizedGammaP(_df / 2.0, x / 2.0);
 			}
 
 			/// @brief Right-tail probability P(X ≥ x)
@@ -533,74 +474,6 @@ namespace MML
 
 				return (low + high) / 2.0;
 			}
-
-		private:
-			/// @brief Regularized lower incomplete gamma function P(a,x)
-			/// P(a,x) = γ(a,x) / Γ(a)
-			Real incompleteGammaP(Real a, Real x) const
-			{
-				if (x < 0.0 || a <= 0.0)
-					return 0.0;
-
-				if (x == 0.0)
-					return 0.0;
-
-				// Use series expansion for x < a+1
-				if (x < a + 1.0) {
-					return gammaSeriesExpansion(a, x);
-				}
-				// Use continued fraction for x >= a+1
-				else {
-					return 1.0 - gammaContinuedFraction(a, x);
-				}
-			}
-
-			/// @brief Series expansion for incomplete gamma
-			Real gammaSeriesExpansion(Real a, Real x) const
-			{
-				Real sum = 1.0 / a;
-				Real term = 1.0 / a;
-				Real tolerance = 1e-12;
-
-				for (int n = 1; n <= 1000; n++) {
-					term *= x / (a + n);
-					sum += term;
-
-					if (std::abs(term) < std::abs(sum) * tolerance)
-						break;
-				}
-
-				return sum * std::exp(-x + a * std::log(x) - std::lgamma(a));
-			}
-
-			/// @brief Continued fraction for incomplete gamma
-			Real gammaContinuedFraction(Real a, Real x) const
-			{
-				Real tolerance = 1e-12;
-				Real fpmin = 1e-30;
-
-				Real b = x + 1.0 - a;
-				Real c = 1.0 / fpmin;
-				Real d = 1.0 / b;
-				Real h = d;
-
-				for (int i = 1; i <= 1000; i++) {
-					Real an = -i * (i - a);
-					b += 2.0;
-					d = an * d + b;
-					if (std::abs(d) < fpmin) d = fpmin;
-					c = b + an / c;
-					if (std::abs(c) < fpmin) c = fpmin;
-					d = 1.0 / d;
-					Real delta = d * c;
-					h *= delta;
-
-					if (std::abs(delta - 1.0) < tolerance)
-						break;
-				}
-
-				return h * std::exp(-x + a * std::log(x) - std::lgamma(a));
-			}
 		};
 
     /// @brief F-Distribution (Fisher-Snedecor Distribution)
@@ -628,6 +501,16 @@ namespace MML
         if (df1 <= 0 || df2 <= 0)
           throw StatisticsError("F-distribution requires positive degrees of freedom");
       }
+
+      /// @brief Draw a random variate (ratio of scaled chi-squares) using the given URBG.
+      template<class URBG> Real sample(URBG& gen) const
+      {
+        Real u1 = SampleGamma(gen, _df1 / 2.0, 2.0);
+        Real u2 = SampleGamma(gen, _df2 / 2.0, 2.0);
+        return (u1 / _df1) / (u2 / _df2);
+      }
+      /// @brief Draw a random variate using MML's thread-local engine.
+      Real sample() const { return sample(Random::Engine()); }
 
       int df1() const { return _df1; }
       int df2() const { return _df2; }
@@ -677,7 +560,7 @@ namespace MML
         // F-CDF = I_y(df1/2, df2/2) where y = (df1*x)/(df1*x + df2)
         // I is regularized incomplete beta function
         Real y = (_df1 * x) / (_df1 * x + _df2);
-        return incompleteBeta(_df1 / 2.0, _df2 / 2.0, y);
+        return SpecialFunctions::RegularizedBetaI(y, _df1 / 2.0, _df2 / 2.0);
       }
 
       /// @brief Right-tail probability P(F ≥ f)
@@ -717,71 +600,6 @@ namespace MML
 
         return (low + high) / 2.0;
       }
-
-    private:
-      /// @brief Regularized incomplete beta function I_x(a,b)
-      Real incompleteBeta(Real a, Real b, Real x) const
-      {
-        if (x < 0.0 || x > 1.0)
-          return 0.0;
-        if (x == 0.0) return 0.0;
-        if (x == 1.0) return 1.0;
-
-        // Use symmetry relation if needed
-        if (x > (a + 1.0) / (a + b + 2.0)) {
-          return 1.0 - incompleteBeta(b, a, 1.0 - x);
-        }
-
-        // Continued fraction evaluation
-        Real bt = std::exp(std::lgamma(a + b) - std::lgamma(a) - std::lgamma(b) +
-                          a * std::log(x) + b * std::log(1.0 - x));
-
-        if (x < (a + 1.0) / (a + b + 2.0))
-          return bt * betaContinuedFraction(a, b, x) / a;
-        else
-          return 1.0 - bt * betaContinuedFraction(b, a, 1.0 - x) / b;
-      }
-
-      /// @brief Continued fraction for incomplete beta
-      Real betaContinuedFraction(Real a, Real b, Real x) const
-      {
-        Real tolerance = 1e-12;
-        Real fpmin = 1e-30;
-        Real qab = a + b;
-        Real qap = a + 1.0;
-        Real qam = a - 1.0;
-        Real c = 1.0;
-        Real d = 1.0 - qab * x / qap;
-
-        if (std::abs(d) < fpmin) d = fpmin;
-        d = 1.0 / d;
-        Real h = d;
-
-        for (int m = 1; m <= 1000; m++) {
-          int m2 = 2 * m;
-          Real aa = m * (b - m) * x / ((qam + m2) * (a + m2));
-          d = 1.0 + aa * d;
-          if (std::abs(d) < fpmin) d = fpmin;
-          c = 1.0 + aa / c;
-          if (std::abs(c) < fpmin) c = fpmin;
-          d = 1.0 / d;
-          h *= d * c;
-
-          aa = -(a + m) * (qab + m) * x / ((a + m2) * (qap + m2));
-          d = 1.0 + aa * d;
-          if (std::abs(d) < fpmin) d = fpmin;
-          c = 1.0 + aa / c;
-          if (std::abs(c) < fpmin) c = fpmin;
-          d = 1.0 / d;
-          Real delta = d * c;
-          h *= delta;
-
-          if (std::abs(delta - 1.0) < tolerance)
-            break;
-        }
-
-        return h;
-      }
     };
 
 /// @brief Cauchy distribution (Lorentz distribution)
@@ -800,6 +618,11 @@ namespace MML
 				if (sigma <= 0.0)
 					throw StatisticsError("Scale parameter must be positive in CauchyDistribution");
 			}
+
+			/// @brief Draw a random variate using the given URBG.
+			template<class URBG> Real sample(URBG& gen) const { return mu + sigma * std::tan(Constants::PI * (SampleUniform01(gen) - 0.5)); }
+			/// @brief Draw a random variate using MML's thread-local engine.
+			Real sample() const { return sample(Random::Engine()); }
 
 			/// @brief Probability density function (PDF)
 			///
@@ -845,6 +668,11 @@ namespace MML
 				if (lambda <= 0.0)
 					throw StatisticsError("Rate parameter must be positive in ExponentialDistribution");
 			}
+
+			/// @brief Draw a random variate (inverse-CDF) using the given URBG.
+			template<class URBG> Real sample(URBG& gen) const { return -std::log(1.0 - SampleUniform01(gen)) / lambda; }
+			/// @brief Draw a random variate using MML's thread-local engine.
+			Real sample() const { return sample(Random::Engine()); }
 
 			/// @brief Probability density function (PDF)
 			/// @param x Value at which to evaluate the PDF (must be >= 0)
@@ -901,6 +729,17 @@ namespace MML
 				if (sigma <= 0.0)
 					throw StatisticsError("Scale parameter must be positive in LogisticDistribution");
 			}
+
+			/// @brief Draw a random variate (inverse-CDF) using the given URBG.
+			template<class URBG> Real sample(URBG& gen) const
+			{
+				Real u = SampleUniform01(gen);
+				if (u < REAL(1e-300)) u = REAL(1e-300);
+				if (u > 1.0 - REAL(1e-16)) u = 1.0 - REAL(1e-16);
+				return mu + sigma * std::log(u / (1.0 - u));
+			}
+			/// @brief Draw a random variate using MML's thread-local engine.
+			Real sample() const { return sample(Random::Engine()); }
 
 			/// @brief Probability density function (PDF)
 			///
@@ -976,6 +815,11 @@ namespace MML
 					throw StatisticsError("Upper bound must be greater than lower bound in UniformDistribution");
 			}
 
+			/// @brief Draw a random variate using the given URBG.
+			template<class URBG> Real sample(URBG& gen) const { return a + (b - a) * SampleUniform01(gen); }
+			/// @brief Draw a random variate using MML's thread-local engine.
+			Real sample() const { return sample(Random::Engine()); }
+
 			/// @brief Probability density function (PDF)
 			Real pdf(Real x) const
 			{
@@ -1029,6 +873,11 @@ namespace MML
 					throw StatisticsError("Scale parameter must be positive in GammaDistribution");
 			}
 
+			/// @brief Draw a random variate (Marsaglia-Tsang) using the given URBG.
+			template<class URBG> Real sample(URBG& gen) const { return SampleGamma(gen, shape, scale); }
+			/// @brief Draw a random variate using MML's thread-local engine.
+			Real sample() const { return sample(Random::Engine()); }
+
 			/// @brief Probability density function (PDF)
 			Real pdf(Real x) const
 			{
@@ -1047,7 +896,7 @@ namespace MML
 			Real cdf(Real x) const
 			{
 				if (x <= 0.0) return 0.0;
-				return incompleteGammaP(shape, x / scale);
+				return SpecialFunctions::RegularizedGammaP(shape, x / scale);
 			}
 
 			/// @brief Inverse CDF (quantile function) - uses Newton-Raphson
@@ -1059,7 +908,7 @@ namespace MML
 				// Initial guess using Wilson-Hilferty approximation for large shape
 				Real x;
 				if (shape >= 1.0) {
-					Real z = inverseStandardNormalCdf(p);
+					Real z = InverseStandardNormalCdf(p);
 					Real h = 1.0 / (9.0 * shape);
 					x = shape * scale * std::pow(1.0 - h + z * std::sqrt(h), 3);
 					if (x <= 0.0) x = 0.5 * shape * scale;
@@ -1082,82 +931,6 @@ namespace MML
 
 			Real mean() const { return shape * scale; }
 			Real variance() const { return shape * scale * scale; }
-
-		private:
-			/// @brief Regularized lower incomplete gamma function P(a,x)
-			static Real incompleteGammaP(Real a, Real x)
-			{
-				if (x < 0.0) return 0.0;
-				if (x == 0.0) return 0.0;
-
-				if (x < a + 1.0) {
-					// Series representation
-					Real ap = a;
-					Real sum = 1.0 / a;
-					Real del = sum;
-					for (int n = 1; n <= 200; n++) {
-						ap += 1.0;
-						del *= x / ap;
-						sum += del;
-						if (std::abs(del) < std::abs(sum) * 1e-15) break;
-					}
-					return sum * std::exp(-x + a * std::log(x) - std::lgamma(a));
-				} else {
-					// Continued fraction representation
-					Real b = x + 1.0 - a;
-					Real c = 1.0 / 1e-30;
-					Real d = 1.0 / b;
-					Real h = d;
-					for (int n = 1; n <= 200; n++) {
-						Real an = -n * (n - a);
-						b += 2.0;
-						d = an * d + b;
-						if (std::abs(d) < 1e-30) d = 1e-30;
-						c = b + an / c;
-						if (std::abs(c) < 1e-30) c = 1e-30;
-						d = 1.0 / d;
-						Real del = d * c;
-						h *= del;
-						if (std::abs(del - 1.0) < 1e-15) break;
-					}
-					return 1.0 - h * std::exp(-x + a * std::log(x) - std::lgamma(a));
-				}
-			}
-
-			/// @brief Inverse standard normal CDF (probit)
-			static Real inverseStandardNormalCdf(Real p)
-			{
-				// Rational approximation from Abramowitz and Stegun
-				const Real a[] = { -3.969683028665376e+01, 2.209460984245205e+02,
-				                   -2.759285104469687e+02, 1.383577518672690e+02,
-				                   -3.066479806614716e+01, 2.506628277459239e+00 };
-				const Real b[] = { -5.447609879822406e+01, 1.615858368580409e+02,
-				                   -1.556989798598866e+02, 6.680131188771972e+01,
-				                   -1.328068155288572e+01 };
-				const Real c[] = { -7.784894002430293e-03, -3.223964580411365e-01,
-				                   -2.400758277161838e+00, -2.549732539343734e+00,
-				                    4.374664141464968e+00,  2.938163982698783e+00 };
-				const Real d[] = { 7.784695709041462e-03, 3.224671290700398e-01,
-				                   2.445134137142996e+00, 3.754408661907416e+00 };
-
-				const Real pLow = 0.02425, pHigh = 1.0 - pLow;
-				Real q, r;
-
-				if (p < pLow) {
-					q = std::sqrt(-2.0 * std::log(p));
-					return (((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5]) /
-					        ((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1.0);
-				} else if (p <= pHigh) {
-					q = p - 0.5;
-					r = q * q;
-					return (((((a[0]*r+a[1])*r+a[2])*r+a[3])*r+a[4])*r+a[5])*q /
-					       (((((b[0]*r+b[1])*r+b[2])*r+b[3])*r+b[4])*r+1.0);
-				} else {
-					q = std::sqrt(-2.0 * std::log(1.0 - p));
-					return -(((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5]) /
-					         ((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1.0);
-				}
-			}
 		};
 
 		//=========================================================================
@@ -1184,6 +957,16 @@ namespace MML
 					throw StatisticsError("Beta parameter must be positive in BetaDistribution");
 			}
 
+			/// @brief Draw a random variate (two-gamma method) using the given URBG.
+			template<class URBG> Real sample(URBG& gen) const
+			{
+				Real x = SampleGamma(gen, alpha, 1.0);
+				Real y = SampleGamma(gen, beta, 1.0);
+				return x / (x + y);
+			}
+			/// @brief Draw a random variate using MML's thread-local engine.
+			Real sample() const { return sample(Random::Engine()); }
+
 			/// @brief Probability density function (PDF)
 			Real pdf(Real x) const
 			{
@@ -1205,7 +988,7 @@ namespace MML
 			{
 				if (x <= 0.0) return 0.0;
 				if (x >= 1.0) return 1.0;
-				return incompleteBetaRegularized(x, alpha, beta);
+				return SpecialFunctions::RegularizedBetaI(x, alpha, beta);
 			}
 
 			/// @brief Inverse CDF (quantile function) - uses Newton-Raphson
@@ -1241,47 +1024,6 @@ namespace MML
 				Real ab = alpha + beta;
 				return (alpha * beta) / (ab * ab * (ab + 1.0));
 			}
-
-		private:
-			/// @brief Regularized incomplete beta function I_x(a,b)
-			static Real incompleteBetaRegularized(Real x, Real a, Real b)
-			{
-				if (x <= 0.0) return 0.0;
-				if (x >= 1.0) return 1.0;
-
-				// Use symmetry if needed for convergence
-				if (x > (a + 1.0) / (a + b + 2.0)) {
-					return 1.0 - incompleteBetaRegularized(1.0 - x, b, a);
-				}
-
-				Real bt = std::exp(std::lgamma(a + b) - std::lgamma(a) - std::lgamma(b)
-				                 + a * std::log(x) + b * std::log(1.0 - x));
-
-				// Continued fraction (Lentz's method)
-				Real qab = a + b, qap = a + 1.0, qam = a - 1.0;
-				Real c = 1.0, d = 1.0 - qab * x / qap;
-				if (std::abs(d) < 1e-30) d = 1e-30;
-				d = 1.0 / d;
-				Real h = d;
-
-				for (int m = 1; m <= 200; m++) {
-					int m2 = 2 * m;
-					Real aa = m * (b - m) * x / ((qam + m2) * (a + m2));
-					d = 1.0 + aa * d; if (std::abs(d) < 1e-30) d = 1e-30;
-					c = 1.0 + aa / c; if (std::abs(c) < 1e-30) c = 1e-30;
-					d = 1.0 / d;
-					h *= d * c;
-
-					aa = -(a + m) * (qab + m) * x / ((a + m2) * (qap + m2));
-					d = 1.0 + aa * d; if (std::abs(d) < 1e-30) d = 1e-30;
-					c = 1.0 + aa / c; if (std::abs(c) < 1e-30) c = 1e-30;
-					d = 1.0 / d;
-					Real del = d * c;
-					h *= del;
-					if (std::abs(del - 1.0) < 1e-15) break;
-				}
-				return bt * h / a;
-			}
 		};
 
 		//=========================================================================
@@ -1307,6 +1049,11 @@ namespace MML
 				if (scale <= 0.0)
 					throw StatisticsError("Scale parameter must be positive in WeibullDistribution");
 			}
+
+			/// @brief Draw a random variate (inverse-CDF) using the given URBG.
+			template<class URBG> Real sample(URBG& gen) const { return scale * std::pow(-std::log(1.0 - SampleUniform01(gen)), 1.0 / shape); }
+			/// @brief Draw a random variate using MML's thread-local engine.
+			Real sample() const { return sample(Random::Engine()); }
 
 			/// @brief Probability density function (PDF)
 			Real pdf(Real x) const
@@ -1365,6 +1112,11 @@ namespace MML
 				if (xm <= 0.0)
 					throw StatisticsError("Scale parameter must be positive in ParetoDistribution");
 			}
+
+			/// @brief Draw a random variate (inverse-CDF) using the given URBG.
+			template<class URBG> Real sample(URBG& gen) const { return xm / std::pow(1.0 - SampleUniform01(gen), 1.0 / alpha); }
+			/// @brief Draw a random variate using MML's thread-local engine.
+			Real sample() const { return sample(Random::Engine()); }
 
 			/// @brief Probability density function (PDF)
 			Real pdf(Real x) const
@@ -1427,6 +1179,11 @@ namespace MML
 					throw StatisticsError("Sigma must be positive in LogNormalDistribution");
 			}
 
+			/// @brief Draw a random variate (exp of a normal draw) using the given URBG.
+			template<class URBG> Real sample(URBG& gen) const { return std::exp(mu + sigma * SampleStandardNormal(gen)); }
+			/// @brief Draw a random variate using MML's thread-local engine.
+			Real sample() const { return sample(Random::Engine()); }
+
 			/// @brief Probability density function (PDF)
 			Real pdf(Real x) const
 			{
@@ -1449,7 +1206,7 @@ namespace MML
 				if (p <= 0.0) return 0.0;
 				if (p >= 1.0) return std::numeric_limits<Real>::infinity();
 				// Use inverse normal for ln(x)
-				Real z = inverseStandardNormalCdf(p);
+				Real z = InverseStandardNormalCdf(p);
 				return std::exp(mu + sigma * z);
 			}
 
@@ -1460,40 +1217,6 @@ namespace MML
 				return std::exp(2.0 * mu + sigma * sigma) * (expSigma2 - 1.0);
 			}
 			Real median() const { return std::exp(mu); }
-
-		private:
-			static Real inverseStandardNormalCdf(Real p)
-			{
-				const Real a[] = { -3.969683028665376e+01, 2.209460984245205e+02,
-				                   -2.759285104469687e+02, 1.383577518672690e+02,
-				                   -3.066479806614716e+01, 2.506628277459239e+00 };
-				const Real b[] = { -5.447609879822406e+01, 1.615858368580409e+02,
-				                   -1.556989798598866e+02, 6.680131188771972e+01,
-				                   -1.328068155288572e+01 };
-				const Real c[] = { -7.784894002430293e-03, -3.223964580411365e-01,
-				                   -2.400758277161838e+00, -2.549732539343734e+00,
-				                    4.374664141464968e+00,  2.938163982698783e+00 };
-				const Real d[] = { 7.784695709041462e-03, 3.224671290700398e-01,
-				                   2.445134137142996e+00, 3.754408661907416e+00 };
-
-				const Real pLow = 0.02425, pHigh = 1.0 - pLow;
-				Real q, r;
-
-				if (p < pLow) {
-					q = std::sqrt(-2.0 * std::log(p));
-					return (((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5]) /
-					        ((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1.0);
-				} else if (p <= pHigh) {
-					q = p - 0.5;
-					r = q * q;
-					return (((((a[0]*r+a[1])*r+a[2])*r+a[3])*r+a[4])*r+a[5])*q /
-					       (((((b[0]*r+b[1])*r+b[2])*r+b[3])*r+b[4])*r+1.0);
-				} else {
-					q = std::sqrt(-2.0 * std::log(1.0 - p));
-					return -(((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5]) /
-					         ((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1.0);
-				}
-			}
 		};
 
   }

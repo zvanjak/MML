@@ -19,21 +19,21 @@ add_executable(MML_PrecisionTestingApp
 )
 
 target_include_directories(MML_PrecisionTestingApp PRIVATE 
-    ${CMAKE_SOURCE_DIR}/mml
+    ${CMAKE_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/test_data
     ${CMAKE_SOURCE_DIR}/test_beds
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-# Set C++17 standard
-target_compile_features(MML_PrecisionTestingApp PRIVATE cxx_std_17)
+# Set C++20 standard
+target_compile_features(MML_PrecisionTestingApp PRIVATE cxx_std_20)
 
 # Standalone framework verification test (optional)
 add_executable(MML_FrameworkVerify
     test_framework_verify.cpp
 )
 target_include_directories(MML_FrameworkVerify PRIVATE 
-    ${CMAKE_SOURCE_DIR}/mml
+    ${CMAKE_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
-target_compile_features(MML_FrameworkVerify PRIVATE cxx_std_17)
+target_compile_features(MML_FrameworkVerify PRIVATE cxx_std_20)

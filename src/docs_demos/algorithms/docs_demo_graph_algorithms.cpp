@@ -1,13 +1,13 @@
 ///////////////////////////////////////////////////////////////////////////////////////////
 ///  File:        docs_demo_graph_algorithms.cpp                                      ///
-///  Description: Brief demonstration of GraphAlgorithms.h - graph traversal          ///
+///  Description: Brief demonstration of GraphAlg.h - graph traversal                 ///
 ///////////////////////////////////////////////////////////////////////////////////////////
 
 #ifdef MML_USE_SINGLE_HEADER
-#include "MML.h"
+#include <MML.h>
 #else
-#include "MMLBase.h"
-#include "algorithms/GraphAlgorithms.h"
+#include <mml/MMLBase.h>
+#include <mml/algorithms/GraphAlg.h>
 #endif
 
 #include <iostream>

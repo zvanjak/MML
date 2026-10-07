@@ -9,7 +9,7 @@ This document catalogs MML's default precision constants and tolerances defined 
 MML uses a template struct `PrecisionValues<T>` to provide type-appropriate tolerances:
 
 ```cpp
-#include "MMLPrecision.h"
+#include <mml/MMLPrecision.h>
 
 // Usage
 double tol = MML::PrecisionValues<double>::DefaultTolerance;  // 1e-6

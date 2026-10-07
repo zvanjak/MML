@@ -9,36 +9,38 @@
 ///  License:     MIT License (see LICENSE.md)                                         ///
 ///                                                                                   ///
 ///////////////////////////////////////////////////////////////////////////////////////////
+
+/// @file Derivation.h
+/// @brief Aggregate header for numerical differentiation.
+/// This header includes finite-difference derivatives for real, scalar, vector,
+/// complex, parametric curve, parametric surface, and tensor-field functions,
+/// plus complex-step differentiation and Jacobian helpers.
+///
+/// Main functions included here:
+/// - NDer1, NDer2, NDer4, NDer6, NDer8, and left/right one-sided real derivatives
+/// - NDer1Partial, NDer2Partial, gradients, Hessians, directional derivatives, and Laplacians for scalar functions
+/// - Vector-function partial derivatives, full Jacobian matrices, divergence, curl, and vector Laplacian helpers
+/// - Parametric-curve and parametric-surface first/second derivative helpers
+/// - Tensor-field component derivative helpers
+/// - ComplexStep, NDer1Complex, NDer2Complex, and NDer4Complex
+/// - CalcJacobian and CalcJacobian2 for static and dynamic vector functions
+///
+/// For more focused includes, use the individual headers under Derivation/.
+
 #if !defined MML_DERIVATION_H
 #define MML_DERIVATION_H
 
-#include "MMLBase.h"
-
-/// @file DerivationBase.h
-/// @brief Core numerical differentiation algorithms and utilities
-#include "core/Derivation/DerivationBase.h"
-
-/// @file DerivationRealFunction.h
-/// @brief Derivatives of real-valued functions f: ℝ → ℝ
-#include "core/Derivation/DerivationRealFunction.h"
-/// @file DerivationScalarFunction.h
-/// @brief Derivatives of scalar functions f: ℝⁿ → ℝ (gradients)
-#include "core/Derivation/DerivationScalarFunction.h"
-/// @file DerivationVectorFunction.h
-/// @brief Derivatives of vector functions f: ℝⁿ → ℝᵐ
-#include "core/Derivation/DerivationVectorFunction.h"
-/// @file DerivationParametricCurve.h
-/// @brief Derivatives of parametric curves (tangent vectors)
-#include "core/Derivation/DerivationParametricCurve.h"
-/// @file DerivationParametricSurface.h
-/// @brief Derivatives of parametric surfaces (tangent vectors, normal vectors)
-#include "core/Derivation/DerivationParametricSurface.h"
-/// @file DerivationTensorField.h
-/// @brief Derivatives of tensor fields (covariant derivatives)
-#include "core/Derivation/DerivationTensorField.h"
-
-/// @file Jacobians.h
-/// @brief Jacobian matrix computations for multivariable functions
-#include "core/Derivation/Jacobians.h"
+#include <mml/MMLBase.h>
+#include <mml/core/Derivation/DerivationBase.h>
+#include <mml/core/Derivation/DerivationRealFunction.h>
+#include <mml/core/Derivation/DerivationScalarFunction.h>
+#include <mml/core/Derivation/DerivationVectorFunction.h>
+#include <mml/core/Derivation/DerivationParametricCurve.h>
+#include <mml/core/Derivation/DerivationParametricSurface.h>
+#include <mml/core/Derivation/DerivationTensorField.h>
+#include <mml/core/Derivation/DerivationComplexStep.h>
+#include <mml/core/Derivation/DerivationComplex.h>
+#include <mml/core/Derivation/Jacobians.h>
+#include <mml/core/Derivation/Hessians.h>
 
 #endif // MML_DERIVATION_H

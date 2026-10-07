@@ -8,7 +8,13 @@
 
 ## Overview
 
-The Serializer class provides comprehensive functionality for saving mathematical objects (functions, ODE solutions, parametric curves, vector fields) to files in formats suitable for visualization and analysis. All methods are static and return detailed error information through the `SerializeResult` structure.
+The Serializer class provides comprehensive functionality for saving mathematical objects (functions, ODE solutions, parametric curves, vector fields) to files in formats suitable for visualization and analysis. These `.mml` files are presentation exports for visualizer workflows, not general object persistence files. All methods are static and return detailed error information through the `SerializeResult` structure.
+
+All output files use the **MML serialization format** — a versioned text format where each file begins with an `MML_`-prefixed type identifier followed by a `VERSION:` line. Type string constants and the current version number are defined in the `FormatType` namespace (`SerializerBase.h`).
+
+For round-trip object persistence of vectors and matrices, use `.mmlj` JSON or
+`.mmlb` binary APIs documented in
+[SerializationPersistence.md](SerializationPersistence.md).
 
 ### Key Features
 
@@ -39,16 +45,16 @@ The Serializer class provides comprehensive functionality for saving mathematica
 
 | Format | Dimension | Type | Use Case | Method |
 |--------|-----------|------|----------|--------|
-| REAL_FUNCTION | 1D | Scalar | Single curve plot | `SaveRealFunc()` |
-| REAL_FUNCTION_EQUALLY_SPACED | 1D | Scalar | Optimized storage | `SaveRealFuncEquallySpaced()` |
-| MULTI_REAL_FUNCTION | 1D | Multiple Scalars | Compare functions | `SaveRealMultiFunc()` |
-| PARAMETRIC_CURVE_CARTESIAN_2D | 2D | Curve | Path in 2D | `SaveParamCurveCartesian2D()` |
-| PARAMETRIC_CURVE_CARTESIAN_3D | 3D | Curve | Path in 3D | `SaveParamCurveCartesian3D()` |
-| SCALAR_FUNCTION_CARTESIAN_2D | 2D | Surface | Height field | `SaveScalarFunc2DCartesian()` |
-| VECTOR_FIELD_2D_CARTESIAN | 2D | Vectors | Flow in 2D | `SaveVectorFunc2DCartesian()` |
-| VECTOR_FIELD_3D_CARTESIAN | 3D | Vectors | Flow in 3D | `SaveVectorFunc3DCartesian()` |
-| PARTICLE_SIMULATION_DATA_2D | 2D | Animation | 2D particles | `SaveParticleSimulation2D()` |
-| PARTICLE_SIMULATION_DATA_3D | 3D | Animation | 3D particles | `SaveParticleSimulation3D()` |
+| MML_REAL_FUNCTION | 1D | Scalar | Single curve plot | `SaveRealFunc()` |
+| MML_REAL_FUNCTION_EQUALLY_SPACED | 1D | Scalar | Optimized storage | `SaveRealFuncEquallySpaced()` |
+| MML_MULTI_REAL_FUNCTION | 1D | Multiple Scalars | Compare functions | `SaveRealMultiFunc()` |
+| MML_PARAMETRIC_CURVE_CARTESIAN_2D | 2D | Curve | Path in 2D | `SaveParamCurveCartesian2D()` |
+| MML_PARAMETRIC_CURVE_CARTESIAN_3D | 3D | Curve | Path in 3D | `SaveParamCurveCartesian3D()` |
+| MML_SCALAR_FUNCTION_CARTESIAN_2D | 2D | Surface | Height field | `SaveScalarFunc2DCartesian()` |
+| MML_VECTOR_FIELD_2D_CARTESIAN | 2D | Vectors | Flow in 2D | `SaveVectorFunc2DCartesian()` |
+| MML_VECTOR_FIELD_3D_CARTESIAN | 3D | Vectors | Flow in 3D | `SaveVectorFunc3DCartesian()` |
+| MML_PARTICLE_SIMULATION_DATA_2D | 2D | Animation | 2D particles | `SaveParticleSimulation2D()` |
+| MML_PARTICLE_SIMULATION_DATA_3D | 3D | Animation | 3D particles | `SaveParticleSimulation3D()` |
 
 ---
 
@@ -57,7 +63,7 @@ The Serializer class provides comprehensive functionality for saving mathematica
 ### Save a Simple Function
 
 ```cpp
-#include "tools/Serializer.h"
+#include <mml/tools/Serializer.h>
 using namespace MML;
 
 // Define a function
@@ -190,7 +196,8 @@ static SerializeResult SaveRealFunc(
 
 **File Format:**
 ```
-REAL_FUNCTION
+MML_REAL_FUNCTION
+VERSION: 1
 <title>
 x1: <x1>
 x2: <x2>
@@ -254,7 +261,8 @@ static SerializeResult SaveRealFuncEquallySpaced(
 
 **File Format:**
 ```
-REAL_FUNCTION_EQUALLY_SPACED
+MML_REAL_FUNCTION_EQUALLY_SPACED
+VERSION: 1
 <title>
 x1: <x1>
 x2: <x2>
@@ -292,7 +300,8 @@ static SerializeResult SaveRealMultiFunc(
 
 **File Format:**
 ```
-REAL_MULTI_FUNCTION
+MML_MULTI_REAL_FUNCTION
+VERSION: 1
 <title>
 NumFunctions: <n>
 x1: <x1>
@@ -356,7 +365,8 @@ static SerializeResult SaveAsParamCurve2D(
 
 **File Format:**
 ```
-PARAMETRIC_CURVE_CARTESIAN_2D
+MML_PARAMETRIC_CURVE_CARTESIAN_2D
+VERSION: 1
 <title>
 t1: <t1>
 t2: <t2>
@@ -384,7 +394,7 @@ auto result = Serializer::SaveAsParamCurve2D(x, y, "Circle", "circle.mml", 0.0, 
 Save 2D parametric curve from function.
 
 ```cpp
-static bool SaveParamCurveCartesian2D(
+static SerializeResult SaveParamCurveCartesian2D(
     const IRealToVectorFunction<2>& f,
     std::string title,
     Real t1, Real t2,
@@ -410,7 +420,7 @@ Serializer::SaveParamCurveCartesian2D(
 Save 3D parametric curve.
 
 ```cpp
-static bool SaveParamCurveCartesian3D(
+static SerializeResult SaveParamCurveCartesian3D(
     const IRealToVectorFunction<3>& f,
     std::string title,
     Real t1, Real t2,
@@ -439,7 +449,8 @@ static SerializeResult SaveScalarFunc2DCartesian(
 
 **File Format:**
 ```
-SCALAR_FUNC_2D
+MML_SCALAR_FUNCTION_CARTESIAN_2D
+VERSION: 1
 <title>
 x1: <x1> x2: <x2> numX: <numPointsX>
 y1: <y1> y2: <y2> numY: <numPointsY>
@@ -518,7 +529,8 @@ static SerializeResult SaveVectorFunc2DCartesian(
 
 **File Format:**
 ```
-VECTOR_FIELD_2D_CARTESIAN
+MML_VECTOR_FIELD_2D_CARTESIAN
+VERSION: 1
 <title>
 x1: <x1> x2: <x2> numX: <numPointsX>
 y1: <y1> y2: <y2> numY: <numPointsY>
@@ -703,7 +715,8 @@ static SerializeResult SaveParticleSimulation2D(
 
 **File Format:**
 ```
-PARTICLE_SIMULATION_DATA_2D
+MML_PARTICLE_SIMULATION_DATA_2D
+VERSION: 1
 NumBalls: <numBalls>
 Width: <width>
 Height: <height>
@@ -1003,7 +1016,7 @@ Serializer::SaveVectorFunc2DCartesian(field, title, x1,x2,nx, y1,y2,ny, "results
 ```cpp
 // For regular grids, use equally-spaced format
 Serializer::SaveRealFuncEquallySpaced(f, title, x1, x2, n, "data.mml");
-// Saves ~33% disk space compared to REAL_FUNCTION
+// Saves ~33% disk space compared to MML_REAL_FUNCTION
 ```
 
 ### 7. Threshold Filtering for Vector Fields
@@ -1162,31 +1175,38 @@ if (x1 >= x2 || numPoints < 2) {
 
 ### Format Identifiers
 
-| Identifier | Description |
-|-----------|-------------|
-| `REAL_FUNCTION` | Single function with x and f(x) |
-| `REAL_FUNCTION_EQUALLY_SPACED` | Single function, f(x) only |
-| `MULTI_REAL_FUNCTION` | Multiple functions on same domain |
-| `PARAMETRIC_CURVE_CARTESIAN_2D` | 2D parametric curve |
-| `PARAMETRIC_CURVE_CARTESIAN_3D` | 3D parametric curve |
-| `SCALAR_FUNCTION_CARTESIAN_2D` | 2D scalar field |
-| `SCALAR_FUNCTION_CARTESIAN_3D` | 3D scalar field |
-| `VECTOR_FIELD_2D_CARTESIAN` | 2D vector field (Cartesian) |
-| `VECTOR_FIELD_3D_CARTESIAN` | 3D vector field (Cartesian) |
-| `PARTICLE_SIMULATION_DATA_2D` | 2D particle animation |
-| `PARTICLE_SIMULATION_DATA_3D` | 3D particle animation |
+All format type strings carry the `MML_` prefix and are defined as `constexpr const char*` constants in the `FormatType` namespace (`SerializerBase.h`). Every file header includes a `VERSION:` line (currently `FormatType::CURRENT_VERSION = 1`).
+
+| Constant | String Value | Description |
+|----------|-------------|-------------|
+| `FormatType::REAL_FUNCTION` | `MML_REAL_FUNCTION` | Single function with x and f(x) |
+| `FormatType::REAL_FUNCTION_EQUALLY_SPACED` | `MML_REAL_FUNCTION_EQUALLY_SPACED` | Single function, f(x) only |
+| `FormatType::MULTI_REAL_FUNCTION` | `MML_MULTI_REAL_FUNCTION` | Multiple functions on same domain |
+| `FormatType::PARAMETRIC_CURVE_CARTESIAN_2D` | `MML_PARAMETRIC_CURVE_CARTESIAN_2D` | 2D parametric curve |
+| `FormatType::PARAMETRIC_CURVE_CARTESIAN_3D` | `MML_PARAMETRIC_CURVE_CARTESIAN_3D` | 3D parametric curve |
+| `FormatType::PARAMETRIC_SURFACE_CARTESIAN` | `MML_PARAMETRIC_SURFACE_CARTESIAN` | Parametric surface |
+| `FormatType::SCALAR_FUNCTION_CARTESIAN_2D` | `MML_SCALAR_FUNCTION_CARTESIAN_2D` | 2D scalar field |
+| `FormatType::SCALAR_FUNCTION_CARTESIAN_3D` | `MML_SCALAR_FUNCTION_CARTESIAN_3D` | 3D scalar field |
+| `FormatType::VECTOR_FIELD_2D_CARTESIAN` | `MML_VECTOR_FIELD_2D_CARTESIAN` | 2D vector field (Cartesian) |
+| `FormatType::VECTOR_FIELD_3D_CARTESIAN` | `MML_VECTOR_FIELD_3D_CARTESIAN` | 3D vector field (Cartesian) |
+| `FormatType::VECTOR_FIELD_SPHERICAL` | `MML_VECTOR_FIELD_SPHERICAL` | Vector field (Spherical) |
+| `FormatType::FIELD_LINES_2D` | `MML_FIELD_LINES_2D` | 2D field lines |
+| `FormatType::FIELD_LINES_3D` | `MML_FIELD_LINES_3D` | 3D field lines |
+| `FormatType::PARTICLE_SIMULATION_DATA_2D` | `MML_PARTICLE_SIMULATION_DATA_2D` | 2D particle animation |
+| `FormatType::PARTICLE_SIMULATION_DATA_3D` | `MML_PARTICLE_SIMULATION_DATA_3D` | 3D particle animation |
 
 ### Common Header Format
 
-Most file formats start with:
+All file formats start with:
 ```
-<TYPE_IDENTIFIER>
+MML_<TYPE_IDENTIFIER>
+VERSION: 1
 <title>
 <parameter_info>
 <data_rows>
 ```
 
-All formats are self-describing with metadata in headers.
+All formats are self-describing with metadata in headers. See [SerializerFormats.md](SerializerFormats.md) for detailed format specifications.
 
 ---
 

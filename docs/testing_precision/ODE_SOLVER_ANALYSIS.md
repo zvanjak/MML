@@ -258,9 +258,9 @@ For near-circular Kepler orbits:
 ## Code Examples
 
 ```cpp
-#include "base/ODESystem.h"
-#include "algorithms/ODESystemSolver.h"
-#include "algorithms/ODESystemStepCalculators.h"
+#include <mml/base/ODESystem.h>
+#include <mml/algorithms/ODESystemSolver.h>
+#include <mml/algorithms/ODEStepCalculators.h>
 
 // Define ODE system by inheriting from IODESystem
 class HarmonicOscillator : public IODESystem {

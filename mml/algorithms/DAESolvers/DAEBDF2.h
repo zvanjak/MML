@@ -50,11 +50,15 @@ namespace MML {
 	                                     Real t0, const Vector<Real>& x0, const Vector<Real>& y0,
 	                                     Real t_end, const DAESolverConfig& config = DAESolverConfig())
 	{
+		if (t_end <= t0)
+			throw ArgumentError("SolveDAEBDF2: t_end must be greater than t0 (reverse-time integration is not supported)");
+		if (config.step_size <= 0)
+			throw ArgumentError("SolveDAEBDF2: config.step_size must be positive");
+
 		AlgorithmTimer timer;
 
 		int diffDim = system.getDiffDim();
 		int algDim = system.getAlgDim();
-		int totalDim = diffDim + algDim;
 		int num_steps = static_cast<int>((t_end - t0) / config.step_size) + 1;
 
 		DAESolverResult result(t0, t_end, diffDim, algDim, num_steps);
@@ -74,87 +78,41 @@ namespace MML {
 		Matrix<Real> dg_dx(algDim, diffDim);
 		Matrix<Real> dg_dy(algDim, algDim);
 
-		// Augmented system Jacobian and residual
-		Matrix<Real> J_aug(totalDim, totalDim);
-		Vector<Real> residual(totalDim);
-		Vector<Real> delta(totalDim);
-
 		// Save initial condition
 		result.solution.fillValues(0, t, x, y);
+		if (!ValidateDAEInitialState(system, t, x, y, config, result)) {
+			result.solution.setFinalSize(0);
+			result.elapsed_time_ms = timer.elapsed_ms();
+			return result;
+		}
 		int step = 1;
 
-		// Helper function for Newton solve (returns true if converged)
-		auto newtonSolve = [&](Real t_next, Real h, const Vector<Real>& x_pred,
-		                       Vector<Real>& x_new, Vector<Real>& y_new,
-		                       bool useBDF2, const Vector<Real>& x_prev_bdf) -> bool
+		auto newtonSolve = [&](Real t_next, Real h, Vector<Real>& x_new, Vector<Real>& y_new,
+		                       bool useBDF2, const Vector<Real>& x_prev_bdf)
 		{
-			x_new = x_pred;
-
-			for (int iter = 0; iter < config.max_newton_iter; ++iter)
-			{
-				result.newton_iterations++;
-
-				// Evaluate differential equations and constraints
-				system.diffEqs(t_next, x_new, y_new, dxdt);
-				system.algConstraints(t_next, x_new, y_new, g);
-
-				// Build residual based on method
+			const Real derivativeCoefficient = useBDF2 ? REAL(2.0 / 3.0) * h : h;
+			auto evaluateResidual = [&](const Vector<Real>& trialX, const Vector<Real>& trialY, Vector<Real>& residual) {
+				system.diffEqs(t_next, trialX, trialY, dxdt);
+				system.algConstraints(t_next, trialX, trialY, g);
 				if (useBDF2)
 				{
-					// BDF2: x_new = (4/3)*x - (1/3)*x_prev + (2/3)*h*f
-					Real c0 = 4.0 / 3.0;
-					Real c1 = -1.0 / 3.0;
-					Real c2 = 2.0 / 3.0;
 					for (int i = 0; i < diffDim; ++i)
-						residual[i] = x_new[i] - c0 * x[i] - c1 * x_prev_bdf[i] - c2 * h * dxdt[i];
+						residual[i] = trialX[i] - REAL(4.0 / 3.0) * x[i]
+							+ REAL(1.0 / 3.0) * x_prev_bdf[i] - derivativeCoefficient * dxdt[i];
 				}
 				else
 				{
-					// Backward Euler: x_new = x + h*f
 					for (int i = 0; i < diffDim; ++i)
-						residual[i] = x_new[i] - x[i] - h * dxdt[i];
+						residual[i] = trialX[i] - x[i] - h * dxdt[i];
 				}
 				for (int i = 0; i < algDim; ++i)
 					residual[diffDim + i] = g[i];
-
-				// Check convergence
-				Real res_norm = residual.NormL2();
-				if (res_norm < config.newton_tol)
-					return true;
-
-				// Evaluate Jacobians
-				system.allJacobians(t_next, x_new, y_new, df_dx, df_dy, dg_dx, dg_dy);
-				result.jacobian_evaluations++;
-
-				// Build augmented Jacobian
-				Real h_eff = useBDF2 ? (2.0 / 3.0) * h : h;
-				for (int i = 0; i < diffDim; ++i)
-				{
-					for (int j = 0; j < diffDim; ++j)
-						J_aug(i, j) = (i == j ? 1.0 : 0.0) - h_eff * df_dx(i, j);
-					for (int j = 0; j < algDim; ++j)
-						J_aug(i, diffDim + j) = -h_eff * df_dy(i, j);
-				}
-				for (int i = 0; i < algDim; ++i)
-				{
-					for (int j = 0; j < diffDim; ++j)
-						J_aug(diffDim + i, j) = dg_dx(i, j);
-					for (int j = 0; j < algDim; ++j)
-						J_aug(diffDim + i, diffDim + j) = dg_dy(i, j);
-				}
-
-				// Solve J_aug * delta = -residual
-				delta = residual * (-1.0);
-				Matrix<Real> J_copy = J_aug;
-				GaussJordanSolver<Real>::SolveInPlace(J_copy, delta);
-
-				// Update solution
-				for (int i = 0; i < diffDim; ++i)
-					x_new[i] += delta[i];
-				for (int i = 0; i < algDim; ++i)
-					y_new[i] += delta[diffDim + i];
-			}
-			return false;
+			};
+			auto evaluateJacobian = [&](const Vector<Real>& trialX, const Vector<Real>& trialY, Matrix<Real>& jacobian) {
+				system.allJacobians(t_next, trialX, trialY, df_dx, df_dy, dg_dx, dg_dy);
+				AssembleDAEAugmentedJacobian(df_dx, df_dy, dg_dx, dg_dy, derivativeCoefficient, jacobian);
+			};
+			return SolveDAENewton(x_new, y_new, diffDim, algDim, config, evaluateResidual, evaluateJacobian);
 		};
 
 		// First step: Backward Euler
@@ -168,10 +126,11 @@ namespace MML {
 			Vector<Real> x_new = x + dxdt * h;
 			Vector<Real> y_new = y;
 
-			if (!newtonSolve(t_next, h, x_new, x_new, y_new, false, x_prev))
+			DAENewtonResult newton = newtonSolve(t_next, h, x_new, y_new, false, x_prev);
+			AccumulateDAENewtonDiagnostics(result, newton);
+			if (!newton.converged)
 			{
-				result.status = AlgorithmStatus::NumericalInstability;
-				result.error_message = "Newton iteration failed at first step (Backward Euler)";
+				SetDAENewtonFailure(result, newton, "BDF2 bootstrap Newton failure");
 				result.elapsed_time_ms = timer.elapsed_ms();
 				return result;
 			}
@@ -183,12 +142,12 @@ namespace MML {
 			t = t_next;
 
 			system.algConstraints(t, x, y, g);
-			Real g_norm = g.NormL2();
-			if (g_norm > result.max_constraint_violation)
-				result.max_constraint_violation = g_norm;
+			if (!ValidateAcceptedDAEState(x, y, g, config, result, "BDF2 bootstrap step"))
+				return result;
 
 			result.solution.fillValues(step, t, x, y);
 			result.solution.incrementSuccessfulSteps();
+			result.accepted_steps++;
 			++step;
 		}
 
@@ -211,10 +170,11 @@ namespace MML {
 			Vector<Real> x_new = x + dxdt * h;
 			Vector<Real> y_new = y;
 
-			if (!newtonSolve(t_next, h, x_new, x_new, y_new, !use_be_for_final, x_prev))
+			DAENewtonResult newton = newtonSolve(t_next, h, x_new, y_new, !use_be_for_final, x_prev);
+			AccumulateDAENewtonDiagnostics(result, newton);
+			if (!newton.converged)
 			{
-				result.status = AlgorithmStatus::NumericalInstability;
-				result.error_message = "Newton iteration failed at t=" + std::to_string(t_next);
+				SetDAENewtonFailure(result, newton, "BDF2 Newton failure at t=" + std::to_string(t_next));
 				break;
 			}
 
@@ -225,18 +185,24 @@ namespace MML {
 			t = t_next;
 
 			system.algConstraints(t, x, y, g);
-			Real g_norm = g.NormL2();
-			if (g_norm > result.max_constraint_violation)
-				result.max_constraint_violation = g_norm;
+			if (!ValidateAcceptedDAEState(x, y, g, config, result, "BDF2 step"))
+				break;
 
 			result.solution.fillValues(step, t, x, y);
 			result.solution.incrementSuccessfulSteps();
+			result.accepted_steps++;
 			++step;
 		}
 
 		// Finalize
 		result.solution.setFinalSize(step - 1);
 		result.total_steps = step - 1;
+		result.final_constraint_norm = g.NormL2();
+		if (t_end - t > DAETimeTolerance(t_end, config.step_size) && result.status == AlgorithmStatus::Success) {
+			result.status = AlgorithmStatus::MaxIterationsExceeded;
+			result.failure_reason = DAEFailureReason::MaxStepsExceeded;
+			result.error_message = "Maximum BDF2 step count reached before t_end";
+		}
 		result.elapsed_time_ms = timer.elapsed_ms();
 
 		return result;

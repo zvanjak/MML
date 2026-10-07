@@ -7,12 +7,12 @@
 #include <complex>
 
 #ifdef MML_USE_SINGLE_HEADER
-#include "MML.h"
+#include <MML.h>
 #else
-#include "MMLBase.h"
-#include "base/Matrix/Matrix.h"
-#include "base/Matrix/MatrixSym.h"
-#include "base/Vector/Vector.h"
+#include <mml/MMLBase.h>
+#include <mml/base/Matrix/Matrix.h>
+#include <mml/base/Matrix/MatrixSym.h>
+#include <mml/base/Vector/Vector.h>
 #endif
 
 namespace MML::TestBeds

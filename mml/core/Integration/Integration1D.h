@@ -20,13 +20,16 @@
 #ifndef MML_INTEGRATION_1D_H
 #define MML_INTEGRATION_1D_H
 
+#include <functional>
+#include <type_traits>
+#include <utility>
 #include <vector>
 
-#include "MMLBase.h"
+#include <mml/MMLBase.h>
 #include "IntegrationBase.h"
 #include "GaussKronrod.h"
 
-#include "interfaces/IFunction.h"
+#include <mml/interfaces/IFunction.h>
 
 
 namespace MML
@@ -44,40 +47,225 @@ namespace MML
 		virtual Real next() = 0;
 	};
 
+	namespace IntegrationDetail
+	{
+		template<RealFunctionCallable Function>
+		class TrapIntegratorCallable : IQuadrature
+		{
+		public:
+			Real _a, _b, _currSum;
+			Function& _func;
+
+			TrapIntegratorCallable(Function& func, Real a, Real b)
+				: _func(func), _a(a), _b(b), _currSum(0.0) { }
+
+			Real next() {
+				Real x, sum, del;
+				int subDivNum, j;
+
+				_currStep++;
+				if (_currStep == 1) {
+					return (_currSum = 0.5 * (_b - _a) * (std::invoke(_func, _a) + std::invoke(_func, _b)));
+				}
+				else {
+					for (subDivNum = 1, j = 1; j < _currStep - 1; j++)
+						subDivNum *= 2;
+
+					del = (_b - _a) / subDivNum;
+					x = _a + 0.5 * del;
+
+					for (sum = 0.0, j = 0; j < subDivNum; j++, x += del)
+						sum += std::invoke(_func, x);
+
+					_currSum = 0.5 * (_currSum + (_b - _a) * sum / subDivNum);
+
+					return _currSum;
+				}
+			}
+		};
+
+		template<RealFunctionCallable Function>
+		IntegrationResult IntegrateTrapImpl(Function& func, Real a, Real b,
+			const Real eps = Defaults::TrapezoidIntegrationEPS)
+		{
+			int j;
+			Real currSum, oldSum = 0.0;
+			Real last_error = 0.0;
+
+			TrapIntegratorCallable<Function> t(func, a, b);
+
+			const Real abs_tol = eps * std::numeric_limits<Real>::epsilon();
+
+			for (j = 0; j < Defaults::TrapezoidIntegrationMaxSteps; j++)
+			{
+				currSum = t.next();
+
+				if (j > 5) {
+					Real error = std::abs(currSum - oldSum);
+					if (error < eps * std::abs(oldSum) + abs_tol)
+					{
+						return IntegrationResult(currSum, error, j, true);
+					}
+				}
+
+				last_error = std::abs(currSum - oldSum);
+				oldSum = currSum;
+			}
+			return IntegrationResult(currSum, last_error, j, false);
+		}
+
+		template<RealFunctionCallable Function>
+		IntegrationResult IntegrateSimpsonImpl(Function& func, Real a, Real b,
+			const Real eps = Defaults::SimpsonIntegrationEPS)
+		{
+			int j;
+			Real currSum, st, ost = 0.0, oldSum = 0.0;
+			Real last_error = 0.0;
+
+			TrapIntegratorCallable<Function> t(func, a, b);
+
+			const Real abs_tol = eps * std::numeric_limits<Real>::epsilon();
+
+			for (j = 0; j < Defaults::SimpsonIntegrationMaxSteps; j++)
+			{
+				st = t.next();
+
+				currSum = (4.0 * st - ost) / 3.0;
+
+				if (j > 5) {
+					Real error = std::abs(currSum - oldSum);
+					if (error < eps * std::abs(oldSum) + abs_tol)
+					{
+						return IntegrationResult(currSum, error, j, true);
+					}
+				}
+
+				last_error = std::abs(currSum - oldSum);
+				oldSum = currSum;
+				ost = st;
+			}
+			return IntegrationResult(currSum, last_error, j, false);
+		}
+
+		template<RealFunctionCallable Function>
+		IntegrationResult IntegrateRombergImpl(Function& func, Real a, Real b,
+			const Real eps = Defaults::RombergIntegrationEPS)
+		{
+			const int JMAX = Defaults::RombergIntegrationMaxSteps;
+			const int K = Defaults::RombergIntegrationUsedPnts;
+
+			std::vector<Real> s(JMAX);
+			std::vector<Real> h(JMAX + 1);
+
+			h[0] = 1.0;
+			TrapIntegratorCallable<Function> trap(func, a, b);
+
+			Real ss = 0.0;
+			Real dss = 0.0;
+
+			for (int j = 0; j < JMAX; j++)
+			{
+				s[j] = trap.next();
+
+				if (j >= K - 1)
+				{
+					std::vector<Real> c(K), d(K);
+
+					int ns = 0;
+					Real dif = std::abs(h[j - K + 1]);
+
+					for (int i = 0; i < K; i++)
+					{
+						Real dift = std::abs(h[j - K + 1 + i]);
+						if (dift < dif)
+						{
+							ns = i;
+							dif = dift;
+						}
+						c[i] = s[j - K + 1 + i];
+						d[i] = s[j - K + 1 + i];
+					}
+
+					ss = s[j - K + 1 + ns];
+					ns--;
+
+					for (int m = 1; m < K; m++)
+					{
+						for (int i = 0; i < K - m; i++)
+						{
+							Real ho = h[j - K + 1 + i];
+							Real hp = h[j - K + 1 + i + m];
+							Real w = c[i + 1] - d[i];
+							Real den = ho - hp;
+
+							if (std::abs(den) < Precision::DivisionSafetyThreshold)
+							{
+								return IntegrationResult(ss, std::abs(dss), j + 1, false);
+							}
+
+							den = w / den;
+							d[i] = hp * den;
+							c[i] = ho * den;
+						}
+
+						if (2 * (ns + 1) < (K - m))
+							dss = c[ns + 1];
+						else
+							dss = d[ns--];
+
+						ss += dss;
+					}
+
+					const Real abs_tol = eps * std::numeric_limits<Real>::epsilon();
+					if (std::abs(dss) <= eps * std::abs(ss) + abs_tol)
+					{
+						return IntegrationResult(ss, std::abs(dss), j + 1, true);
+					}
+				}
+
+				h[j + 1] = 0.25 * h[j];
+			}
+
+			return IntegrationResult(ss, std::abs(dss), JMAX, false);
+		}
+
+		template<RealFunctionCallable Function>
+		IntegrationResult IntegrateGauss10Impl(Function& func, const Real a, const Real b)
+		{
+			static const Real x[] = { 0.1488743389816312, 0.4333953941292472,
+															0.6794095682990244, 0.8650633666889845, 0.9739065285171717 };
+			static const Real w[] = { 0.2955242247147529, 0.2692667193099963,
+															0.2190863625159821, 0.1494513491505806, 0.0666713443086881 };
+
+			Real xm = 0.5 * (b + a);
+			Real xr = 0.5 * (b - a);
+
+			Real s = 0;
+			for (int j = 0; j < 5; j++)
+			{
+				Real dx = xr * x[j];
+				s += w[j] * (std::invoke(func, xm + dx) + std::invoke(func, xm - dx));
+			}
+			Real result = s * xr;
+
+			return IntegrationResult(result, 0.0, 1, true);
+		}
+
+		template<RealFunctionCallable Function>
+		IntegrationResult IntegrateGK21Impl(Function& func, Real a, Real b)
+		{
+			auto gkResult = Integration::IntegrateGK21([&func](Real x) { return std::invoke(func, x); }, a, b);
+			return IntegrationResult(gkResult.value, gkResult.error_estimate, gkResult.function_evals, gkResult.converged);
+		}
+	}
+
 	/// @brief Trapezoidal rule integrator with progressive refinement
 	/// @details Each call to next() doubles the number of evaluation points
-	class TrapIntegrator : IQuadrature
+	class TrapIntegrator : public IntegrationDetail::TrapIntegratorCallable<const IRealFunction>
 	{
 	public:
-		Real _a, _b, _currSum;
-		const IRealFunction& _func;
-
-		TrapIntegrator(const IRealFunction& func, Real a, Real b) 
-			:	_func(func), _a(a), _b(b), _currSum(0.0)	{	}
-
-		Real next() {
-			Real x, sum, del;
-			int subDivNum, j;
-
-			_currStep++;
-			if (_currStep == 1) {
-				return (_currSum = 0.5 * (_b - _a) * (_func(_a) + _func(_b)));
-			}
-			else {
-				for (subDivNum = 1, j = 1; j < _currStep - 1; j++)
-					subDivNum *= 2;
-
-				del = (_b - _a) / subDivNum;
-				x = _a + 0.5 * del;
-
-				for (sum = 0.0, j = 0; j < subDivNum; j++, x += del)
-					sum += _func(x);
-
-				_currSum = 0.5 * (_currSum + (_b - _a) * sum / subDivNum);
-
-				return _currSum;
-			}
-		}
+		TrapIntegrator(const IRealFunction& func, Real a, Real b)
+			: IntegrationDetail::TrapIntegratorCallable<const IRealFunction>(func, a, b) { }
 	};
 
 	/// @brief Extended trapezoidal rule with adaptive refinement
@@ -94,30 +282,15 @@ namespace MML
 	/// near-zero integrals can still converge rather than demanding |error| < 0.
 	static IntegrationResult IntegrateTrap(const IRealFunction& func, Real a, Real b,
 																		 const Real eps = Defaults::TrapezoidIntegrationEPS)	{
-		int		j;
-		Real	currSum, oldSum = 0.0;
+		return IntegrationDetail::IntegrateTrapImpl(func, a, b, eps);
+	}
 
-		TrapIntegrator t(func, a, b);
-
-		const Real abs_tol = eps * std::numeric_limits<Real>::epsilon();
-
-		for (j = 0; j < Defaults::TrapezoidIntegrationMaxSteps; j++)
-		{
-			currSum = t.next();
-
-			if (j > 5) {
-				Real error = std::abs(currSum - oldSum);
-				if ( error < eps * std::abs(oldSum) + abs_tol )
-				{
-					return IntegrationResult(currSum, error, j, true);
-				}
-			}
-
-			oldSum = currSum;
-		}
-		// Did not converge within max iterations
-		Real final_error = std::abs(currSum - oldSum);
-		return IntegrationResult(currSum, final_error, j, false);
+	template<RealFunctionCallable Function>
+		requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+	static IntegrationResult IntegrateTrap(Function&& func, Real a, Real b,
+		const Real eps = Defaults::TrapezoidIntegrationEPS)
+	{
+		return IntegrationDetail::IntegrateTrapImpl(func, a, b, eps);
 	}
 
 	/// @brief Simpson's rule with adaptive refinement
@@ -133,33 +306,15 @@ namespace MML
 	static IntegrationResult IntegrateSimpson(const IRealFunction& func, Real a, Real b,
 																			 const Real eps = Defaults::SimpsonIntegrationEPS)
 	{
-		int j;
-		Real currSum, st, ost = 0.0, oldSum = 0.0;
+		return IntegrationDetail::IntegrateSimpsonImpl(func, a, b, eps);
+	}
 
-		TrapIntegrator t(func, a, b);
-
-		const Real abs_tol = eps * std::numeric_limits<Real>::epsilon();
-
-		for (j = 0; j < Defaults::SimpsonIntegrationMaxSteps; j++)
-		{
-			st = t.next();
-
-			currSum = (4.0 * st - ost) / 3.0;
-
-			if (j > 5) {
-				Real error = std::abs(currSum - oldSum);
-				if (error < eps * std::abs(oldSum) + abs_tol)
-				{
-					return IntegrationResult(currSum, error, j, true);
-				}
-			}
-
-			oldSum = currSum;
-			ost = st;
-		}
-		// Did not converge within max iterations
-		Real final_error = std::abs(currSum - oldSum);
-		return IntegrationResult(currSum, final_error, j, false);
+	template<RealFunctionCallable Function>
+		requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+	static IntegrationResult IntegrateSimpson(Function&& func, Real a, Real b,
+		const Real eps = Defaults::SimpsonIntegrationEPS)
+	{
+		return IntegrationDetail::IntegrateSimpsonImpl(func, a, b, eps);
 	}
 
 
@@ -213,92 +368,15 @@ namespace MML
 	static IntegrationResult IntegrateRomberg(const IRealFunction& func, Real a, Real b,
 																						const Real eps = Defaults::RombergIntegrationEPS)
 	{
-		const int JMAX = Defaults::RombergIntegrationMaxSteps;
-		const int K = Defaults::RombergIntegrationUsedPnts;  // Number of points for polynomial extrapolation
-		
-		std::vector<Real> s(JMAX);      // Successive trapezoidal approximations
-		std::vector<Real> h(JMAX + 1);  // Step sizes squared: h[j] = (initial_h / 2^j)^2
-		
-		h[0] = 1.0;
-		TrapIntegrator trap(func, a, b);
-		
-		Real ss = 0.0;  // Extrapolated result
-		Real dss = 0.0; // Error estimate from extrapolation
-		
-		for (int j = 0; j < JMAX; j++)
-		{
-			s[j] = trap.next();
-			
-			if (j >= K - 1)
-			{
-				// Perform polynomial extrapolation using Neville's algorithm
-				// Extrapolate to h=0 using the last K points
-				std::vector<Real> c(K), d(K);
-				
-				int ns = 0;
-				Real dif = std::abs(h[j - K + 1]);
-				
-				// Initialize c and d arrays with the last K values of s
-				for (int i = 0; i < K; i++)
-				{
-					Real dift = std::abs(h[j - K + 1 + i]);
-					if (dift < dif)
-					{
-						ns = i;
-						dif = dift;
-					}
-					c[i] = s[j - K + 1 + i];
-					d[i] = s[j - K + 1 + i];
-				}
-				
-				// Initial best guess
-				ss = s[j - K + 1 + ns];
-				ns--;
-				
-				// Neville's algorithm: build up the extrapolation tableau
-				for (int m = 1; m < K; m++)
-				{
-					for (int i = 0; i < K - m; i++)
-					{
-						Real ho = h[j - K + 1 + i];
-						Real hp = h[j - K + 1 + i + m];
-						Real w = c[i + 1] - d[i];
-						Real den = ho - hp;
-						
-						if (std::abs(den) < Precision::DivisionSafetyThreshold)
-						{
-							// This should not happen with proper h values
-							return IntegrationResult(ss, std::abs(dss), j + 1, false);
-						}
-						
-						den = w / den;
-						d[i] = hp * den;
-						c[i] = ho * den;
-					}
-					
-					// Decide which correction to add (from c or d)
-					if (2 * (ns + 1) < (K - m))
-						dss = c[ns + 1];
-					else
-						dss = d[ns--];
-					
-					ss += dss;
-				}
-				
-				// Check for convergence (with absolute tolerance floor for near-zero integrals)
-				const Real abs_tol = eps * std::numeric_limits<Real>::epsilon();
-				if (std::abs(dss) <= eps * std::abs(ss) + abs_tol)
-				{
-					return IntegrationResult(ss, std::abs(dss), j + 1, true);
-				}
-			}
-			
-			// Prepare for next iteration: h_new = h_old / 4 (because we're extrapolating in h²)
-			h[j + 1] = 0.25 * h[j];
-		}
-		
-		// Did not converge within max iterations
-		return IntegrationResult(ss, std::abs(dss), JMAX, false);
+		return IntegrationDetail::IntegrateRombergImpl(func, a, b, eps);
+	}
+
+	template<RealFunctionCallable Function>
+		requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+	static IntegrationResult IntegrateRomberg(Function&& func, Real a, Real b,
+		const Real eps = Defaults::RombergIntegrationEPS)
+	{
+		return IntegrationDetail::IntegrateRombergImpl(func, a, b, eps);
 	}
 
 
@@ -350,29 +428,14 @@ namespace MML
 	 */
 	static IntegrationResult IntegrateGauss10(const IRealFunction& func, const Real a, const Real b)
 	{
-		// Pre-computed Gauss-Legendre nodes (positive only, symmetric about 0)
-		static const Real x[] = { 0.1488743389816312, 0.4333953941292472,
-		                          0.6794095682990244, 0.8650633666889845, 0.9739065285171717 };
-		// Pre-computed Gauss-Legendre weights (for the corresponding nodes)
-		static const Real w[] = { 0.2955242247147529, 0.2692667193099963,
-		                          0.2190863625159821, 0.1494513491505806, 0.0666713443086881 };
-		
-		// Transform from [-1,1] to [a,b]: x_mapped = xm + xr * x_i
-		Real xm = 0.5 * (b + a);  // Midpoint
-		Real xr = 0.5 * (b - a);  // Half-width (scale factor)
-		
-		Real s = 0;
-		for (int j = 0; j < 5; j++) 
-		{
-			Real dx = xr * x[j];
-			s += w[j] * (func(xm + dx) + func(xm - dx));
-		}
-		Real result = s * xr;
-		
-		// Return IntegrationResult for API consistency
-		// Note: Gauss quadrature has no built-in error estimate (non-adaptive)
-		// iterations=1 indicates single-pass evaluation (10 function calls)
-		return IntegrationResult(result, 0.0, 1, true);
+		return IntegrationDetail::IntegrateGauss10Impl(func, a, b);
+	}
+
+	template<RealFunctionCallable Function>
+		requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+	static IntegrationResult IntegrateGauss10(Function&& func, const Real a, const Real b)
+	{
+		return IntegrationDetail::IntegrateGauss10Impl(func, a, b);
 	}
 
 	/**
@@ -387,9 +450,14 @@ namespace MML
 	 */
 	static IntegrationResult IntegrateGK21(const IRealFunction& func, Real a, Real b)
 	{
-		// Wrap in lambda to avoid passing abstract class by value to template
-		auto gkResult = Integration::IntegrateGK21([&func](Real x) { return func(x); }, a, b);
-		return IntegrationResult(gkResult.value, gkResult.error_estimate, gkResult.function_evals, gkResult.converged);
+		return IntegrationDetail::IntegrateGK21Impl(func, a, b);
+	}
+
+	template<RealFunctionCallable Function>
+		requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+	static IntegrationResult IntegrateGK21(Function&& func, Real a, Real b)
+	{
+		return IntegrationDetail::IntegrateGK21Impl(func, a, b);
 	}
 
 	/**
@@ -432,6 +500,29 @@ namespace MML
 		}
 	}
 
+	template<RealFunctionCallable Function>
+		requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+	static IntegrationResult Integrate(Function&& func, Real a, Real b,
+		IntegrationMethod method = TRAP,
+		Real eps = Defaults::TrapezoidIntegrationEPS)
+	{
+		switch (method)
+		{
+		case TRAP:
+			return IntegrateTrap(std::forward<Function>(func), a, b, eps);
+		case SIMPSON:
+			return IntegrateSimpson(std::forward<Function>(func), a, b, eps);
+		case ROMBERG:
+			return IntegrateRomberg(std::forward<Function>(func), a, b, eps);
+		case GAUSS10:
+			return IntegrateGauss10(std::forward<Function>(func), a, b);
+		case GAUSS10KRONROD21:
+			return IntegrateGK21(std::forward<Function>(func), a, b);
+		default:
+			return IntegrateTrap(std::forward<Function>(func), a, b, eps);
+		}
+	}
+
 	/**
 	 * @brief Template-based integration with compile-time method selection.
 	 *
@@ -466,6 +557,25 @@ namespace MML
 			return IntegrateGK21(func, a, b);
 		else
 			return IntegrateTrap(func, a, b, eps);
+	}
+
+	template<IntegrationMethod Method = TRAP, class Function>
+		requires RealFunctionCallable<Function> && (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+	static IntegrationResult Integrate(Function&& func, Real a, Real b,
+		Real eps = Defaults::TrapezoidIntegrationEPS)
+	{
+		if constexpr (Method == TRAP)
+			return IntegrateTrap(std::forward<Function>(func), a, b, eps);
+		else if constexpr (Method == SIMPSON)
+			return IntegrateSimpson(std::forward<Function>(func), a, b, eps);
+		else if constexpr (Method == ROMBERG)
+			return IntegrateRomberg(std::forward<Function>(func), a, b, eps);
+		else if constexpr (Method == GAUSS10)
+			return IntegrateGauss10(std::forward<Function>(func), a, b);
+		else if constexpr (Method == GAUSS10KRONROD21)
+			return IntegrateGK21(std::forward<Function>(func), a, b);
+		else
+			return IntegrateTrap(std::forward<Function>(func), a, b, eps);
 	}
 
 	/******************************************************************************/

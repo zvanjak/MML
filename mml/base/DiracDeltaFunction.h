@@ -12,9 +12,9 @@
 #if !defined MML_DELTA_FUNCTION_H
 #define MML_DELTA_FUNCTION_H
 
-#include "MMLBase.h"
+#include <mml/MMLBase.h>
 
-#include "interfaces/IFunction.h"
+#include <mml/interfaces/IFunction.h>
 
 namespace MML
 {

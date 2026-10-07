@@ -306,7 +306,7 @@ public:
 
 ```cpp
 #include "test_beds/optimization_test_bed.h"
-#include "algorithms/Optimization.h"
+#include <mml/algorithms/Optimization/Optimization.h>
 
 using namespace MML;
 using namespace MML::TestBeds;
@@ -360,7 +360,7 @@ void testBrentWithDerivative() {
 
 ```cpp
 #include "test_beds/optimization_test_bed.h"
-#include "algorithms/Optimization/OptimizationMultidim.h"
+#include <mml/algorithms/Optimization/OptimizationMultidim.h>
 
 void testNelderMead2D() {
     auto tests = getAll2DOptimizationTests();
@@ -548,5 +548,5 @@ Is gradient available?
 
 - [RootFinding_testbed.md](RootFinding_testbed.md) - Root finding test cases
 - [Functions_testbed.md](Functions_testbed.md) - General test functions
-- [Optimization.h](../../mml/algorithms/Optimization.h) - 1D optimization algorithms
+- [Optimization.h](../../mml/algorithms/Optimization/Optimization.h) - 1D optimization algorithms
 - [OptimizationMultidim.h](../../mml/algorithms/Optimization/OptimizationMultidim.h) - N-D algorithms

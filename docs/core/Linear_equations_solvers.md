@@ -222,7 +222,7 @@ class LUSolverInPlace {
 
 ## QR Decomposition
 
-**Purpose:** Factor **A = Q·R** (orthogonal × upper triangular) for stable solving.
+**Purpose:** Factor **A = Q·R** (orthogonal/unitary × upper triangular) for stable solving.
 
 **Algorithm:** Householder reflections to construct orthonormal **Q** and upper triangular **R**.
 
@@ -247,7 +247,8 @@ public:
     // Least squares for overdetermined systems (m > n)
     void LeastSquaresSolve(const Vector<Type>& b, Vector<Type>& x);
     
-    // Apply Q or Q^T to a vector
+    // Apply Q or its transpose/adjoint to a vector
+    void QAdjointMultiply(const Vector<Type>& b, Vector<Type>& qtb);
     void QtMultiply(const Vector<Type>& b, Vector<Type>& qtb);
     void QMultiply(const Vector<Type>& b, Vector<Type>& qb);
     
@@ -268,7 +269,9 @@ public:
 
 ### Key Features
 
-- **Orthogonal stability:** **Q** is orthogonal (Q^T·Q = I), preserving vector norms
+- **Real and complex scalars:** Real decompositions use $Q^TQ=I$; complex decompositions use the unitary identity $Q^*Q=I$
+- **Adjoint API:** `QAdjointMultiply` applies $Q^T$ for real matrices and $Q^*$ for complex matrices; `QtMultiply` remains as a compatibility alias
+- **Orthogonal/unitary stability:** **Q** preserves vector norms
 - **Backward stable:** Error bounded by **ε·cond(A)** (best for ill-conditioned systems)
 - **Least squares:** Natural solution for overdetermined systems
 - **Rank-revealing:** Diagonal of **R** shows near-zero values for rank deficiency
@@ -489,8 +492,8 @@ public:
 ### Example
 
 ```cpp
-#include "base/Matrix/MatrixBandDiag.h"
-#include "core/LinAlgEqSolvers.h"
+#include <mml/base/Matrix/MatrixBandDiag.h>
+#include <mml/core/LinAlgEqSolvers.h>
 
 // Create tridiagonal matrix (lower bandwidth = 1, upper bandwidth = 1)
 int n = 5;
@@ -567,7 +570,7 @@ public:
 
 **Check if SPD:**
 ```cpp
-#include "base/BaseUtils.h"
+#include <mml/base/BaseUtils.h>
 bool is_spd = Utils::IsPositiveDefinite(A);
 ```
 
@@ -716,7 +719,7 @@ if (rel_residual > 1e-6) {
 **Recommendation:** LU Decomposition (fast, stable)
 
 ```cpp
-#include "core/LinAlgEqSolvers.h"
+#include <mml/core/LinAlgEqSolvers.h>
 
 Matrix<Real> A{5, 5, {
     1.4, 2.1, 2.1, 7.4, 9.6,
@@ -1006,7 +1009,7 @@ Null space dimension: 1
 
 **Related Algorithms:**
 - [Eigen_solvers.md](../algorithms/Eigen_solvers.md) - Eigenvalue/eigenvector computation
-- [Matrix_analysis.md](../algorithms/Matrix_analysis.md) - Condition number, rank, norms
+- [MatrixAnalysisContracts.md](../algorithms/MatrixAnalysisContracts.md) - Matrix analysis architecture, numerical contracts, and migration
 
 **Advanced Topics:**
 - [Iterative_solvers.md](Iterative_solvers.md) - Conjugate gradient, GMRES (for sparse systems)

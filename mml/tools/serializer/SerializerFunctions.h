@@ -12,9 +12,9 @@
 #if !defined MML_SERIALIZER_FUNCTIONS_H
 #define MML_SERIALIZER_FUNCTIONS_H
 
-#include "mml/tools/serializer/SerializerBase.h"
-#include "mml/interfaces/IFunction.h"
-#include "mml/base/InterpolatedFunction.h"
+#include <mml/tools/serializer/SerializerBase.h>
+#include <mml/interfaces/IFunction.h>
+#include <mml/base/InterpolatedFunction.h>
 
 namespace MML
 {
@@ -45,7 +45,7 @@ namespace MML
 			try
 			{
 				out.precision(precision);
-				WriteRealFuncHeader(out, "REAL_FUNCTION", title, x1, x2, numPoints);
+				WriteRealFuncHeader(out, SerializeFormatType::REAL_FUNCTION, title, x1, x2, numPoints);
 
 				Real step = (x2 - x1) / (numPoints - 1);
 				for (int i = 0; i < numPoints; i++)
@@ -89,7 +89,7 @@ namespace MML
 			try
 			{
 				out.precision(precision);
-				WriteRealFuncHeader(out, "REAL_FUNCTION", title, points[0], points[points.size() - 1], static_cast<int>(points.size()));
+				WriteRealFuncHeader(out, SerializeFormatType::REAL_FUNCTION, title, points[0], points[points.size() - 1], static_cast<int>(points.size()));
 
 				for (int i = 0; i < points.size(); i++)
 				{
@@ -132,7 +132,7 @@ namespace MML
 			try
 			{
 				out.precision(precision);
-				WriteRealFuncHeader(out, "REAL_FUNCTION_EQUALLY_SPACED", title, x1, x2, numPoints);
+				WriteRealFuncHeader(out, SerializeFormatType::REAL_FUNCTION_EQUALLY_SPACED, title, x1, x2, numPoints);
 
 				Real step = (x2 - x1) / (numPoints - 1);
 				for (int i = 0; i < numPoints; i++)
@@ -222,96 +222,11 @@ namespace MML
 			return result;
 		}
 
-		/// @brief Serialize multiple linear interpolation functions to file
-		inline SerializeResult SaveRealMultiFunc(const std::vector<LinearInterpRealFunc>& funcs, std::string title,
-												 std::vector<std::string> legend,
-												 Real x1, Real x2, int numPoints, std::string fileName)
-		{
-			if (funcs.empty())
-				return {false, SerializeError::INVALID_PARAMETERS, "funcs vector cannot be empty"};
-			if (numPoints < 2)
-				return {false, SerializeError::INVALID_PARAMETERS, "numPoints must be >= 2"};
-			if (x1 >= x2)
-				return {false, SerializeError::INVALID_PARAMETERS, "x1 must be less than x2"};
-			if (funcs.size() != legend.size())
-				return {false, SerializeError::INVALID_PARAMETERS, "funcs and legend sizes must match"};
-			if (fileName.empty())
-				return {false, SerializeError::INVALID_PARAMETERS, "fileName cannot be empty"};
-
-			std::ofstream file(fileName);
-			if (!file.is_open())
-				return {false, SerializeError::FILE_NOT_OPENED, "Cannot open file: " + fileName};
-
-			try
-			{
-				WriteRealMultiFuncHeader(file, title, funcs.size(), legend, x1, x2, numPoints);
-
-				for (int i = 0; i < numPoints; i++)
-				{
-					Real x = x1 + (x2 - x1) * i / (numPoints - 1);
-					file << x << " ";
-
-					for (int j = 0; j < funcs.size(); j++)
-						file << funcs[j](x) << " ";
-
-					file << std::endl;
-				}
-				file.close();
-				return {true, SerializeError::OK, "Success"};
-			}
-			catch (const std::exception& e)
-			{
-				return {false, SerializeError::WRITE_FAILED, std::string("Write error: ") + e.what()};
-			}
-		}
-
-		/// @brief Serialize multiple polynomial interpolation functions to file
-		inline SerializeResult SaveRealMultiFunc(const std::vector<PolynomInterpRealFunc>& funcs, std::string title,
-												 std::vector<std::string> legend,
-												 Real x1, Real x2, int numPoints, std::string fileName)
-		{
-			if (funcs.empty())
-				return {false, SerializeError::INVALID_PARAMETERS, "funcs vector cannot be empty"};
-			if (numPoints < 2)
-				return {false, SerializeError::INVALID_PARAMETERS, "numPoints must be >= 2"};
-			if (x1 >= x2)
-				return {false, SerializeError::INVALID_PARAMETERS, "x1 must be less than x2"};
-			if (funcs.size() != legend.size())
-				return {false, SerializeError::INVALID_PARAMETERS, "funcs and legend sizes must match"};
-			if (fileName.empty())
-				return {false, SerializeError::INVALID_PARAMETERS, "fileName cannot be empty"};
-
-			std::ofstream file(fileName);
-			if (!file.is_open())
-				return {false, SerializeError::FILE_NOT_OPENED, "Cannot open file: " + fileName};
-
-			try
-			{
-				WriteRealMultiFuncHeader(file, title, funcs.size(), legend, x1, x2, numPoints);
-
-				for (int i = 0; i < numPoints; i++)
-				{
-					Real x = x1 + (x2 - x1) * i / (numPoints - 1);
-					file << x << " ";
-
-					for (int j = 0; j < funcs.size(); j++)
-						file << funcs[j](x) << " ";
-
-					file << std::endl;
-				}
-				file.close();
-				return {true, SerializeError::OK, "Success"};
-			}
-			catch (const std::exception& e)
-			{
-				return {false, SerializeError::WRITE_FAILED, std::string("Write error: ") + e.what()};
-			}
-		}
-
-		/// @brief Serialize multiple spline interpolation functions to file
-		inline SerializeResult SaveRealMultiFunc(const std::vector<SplineInterpRealFunc>& funcs, std::string title,
-												 std::vector<std::string> legend,
-												 Real x1, Real x2, int numPoints, std::string fileName)
+		/// @brief Serialize multiple interpolation functions to file
+		template<class InterpFunc>
+		SerializeResult SaveRealMultiFunc(const std::vector<InterpFunc>& funcs, std::string title,
+									 std::vector<std::string> legend,
+									 Real x1, Real x2, int numPoints, std::string fileName)
 		{
 			if (funcs.empty())
 				return {false, SerializeError::INVALID_PARAMETERS, "funcs vector cannot be empty"};

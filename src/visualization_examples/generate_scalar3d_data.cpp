@@ -6,11 +6,11 @@
  * that can be used to test and develop the ScalarFunction3D visualizer.
  */
 
-#include "MMLBase.h"
-#include "base/Vector/Vector.h"
-#include "base/Vector/VectorN.h"
-#include "interfaces/IFunction.h"
-#include "tools/Serializer.h"
+#include <mml/MMLBase.h>
+#include <mml/base/Vector/Vector.h>
+#include <mml/base/Vector/VectorN.h>
+#include <mml/interfaces/IFunction.h>
+#include <mml/tools/Serializer.h>
 
 #include <iostream>
 #include <cmath>

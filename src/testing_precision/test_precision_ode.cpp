@@ -18,15 +18,15 @@
 
 #include "PrecisionTestFramework.h"
 
-#include "MMLBase.h"
+#include <mml/MMLBase.h>
 
-#include "base/Vector/Vector.h"
-#include "base/ODESystem.h"
-#include "base/ODESystemSolution.h"
+#include <mml/base/Vector/Vector.h>
+#include <mml/base/ODESystem.h>
+#include <mml/base/ODESystemSolution.h>
 
-#include "mml/algorithms/ODESolvers/ODESolverFixedStep.h"
-#include "mml/algorithms/ODESolvers/ODEStepCalculators.h"
-#include "mml/algorithms/ODESolvers/ODESolverAdaptive.h"
+#include <mml/algorithms/ODESolvers/ODESolverFixedStep.h>
+#include <mml/algorithms/ODESolvers/ODEStepCalculators.h>
+#include <mml/algorithms/ODESolvers/ODESolverAdaptive.h>
 
 using namespace MML;
 using namespace MML::PrecisionTesting;

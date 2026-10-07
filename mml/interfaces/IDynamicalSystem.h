@@ -30,10 +30,10 @@
 #if !defined MML_IDYNAMICALSYSTEM_H
 #define MML_IDYNAMICALSYSTEM_H
 
-#include "MMLBase.h"
-#include "base/Vector/Vector.h"
-#include "base/Matrix/Matrix.h"
-#include "interfaces/IODESystem.h"
+#include <mml/MMLBase.h>
+#include <mml/base/Vector/Vector.h>
+#include <mml/base/Matrix/Matrix.h>
+#include <mml/interfaces/IODESystem.h>
 
 #include <string>
 #include <utility>
@@ -69,7 +69,7 @@ namespace MML
 
 		/** @brief Get valid range for parameter */
 		virtual std::pair<Real, Real> getParamRange(int i) const {
-			return {-1e10, 1e10}; // Default: no restriction
+			return {REAL(-1e10), REAL(1e10)}; // Default: no restriction
 		}
 
 		/** @brief Get default initial condition */

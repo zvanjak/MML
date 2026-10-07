@@ -19,10 +19,10 @@
 ///////////////////////////////////////////////////////////////////////////////////////////
 
 #ifdef MML_USE_SINGLE_HEADER
-#include "MML.h"
+#include <MML.h>
 #else
-#include "MMLBase.h"
-#include "mml/tools/Visualizer.h"
+#include <mml/MMLBase.h>
+#include <mml/tools/Visualizer.h>
 #endif
 
 // Self-contained rigid body simulation (no MPL dependency)
@@ -242,7 +242,7 @@ int main()
         (cwd / "rigid_body_sphere.mml").string()
     };
     auto vizResult = Visualizer::VisualizeRigidBodyTrajectory(trajectoryFiles);
-    if (!vizResult) {
+    if (!vizResult.success) {
         std::cerr << "Visualizer failed: " << vizResult.errorMessage << "\n";
         std::cerr << "You can manually run:\n";
         std::cerr << "  tools\\visualizers\\win\\WPF\\MML_RigidBodyMovement_Visualizer\\MML_RigidBodyMovement_Visualizer.exe ";

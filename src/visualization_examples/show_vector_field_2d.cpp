@@ -7,12 +7,12 @@
  */
 
 #ifdef MML_USE_SINGLE_HEADER
-#include "MML.h"
+#include <MML.h>
 #else
-#include "MMLBase.h"
-#include "base/Vector/VectorN.h"
-#include "core/Fields.h"
-#include "tools/Visualizer.h"
+#include <mml/MMLBase.h>
+#include <mml/base/Vector/VectorN.h>
+#include <mml/core/Fields/Fields.h>
+#include <mml/tools/Visualizer.h>
 #endif
 
 using namespace MML;

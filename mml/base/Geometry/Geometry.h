@@ -2,25 +2,31 @@
 ///                         MinimalMathLibrary (MML)                                  ///
 ///                                                                                   ///
 ///  File:        Geometry.h                                                          ///
-///  Description: AGGREGATE HEADER - includes all core geometry components            ///
-///               Points (2D/3D), Coordinate systems, Pure 2D/3D shapes               ///
-///                                                                                   ///
-///  This file provides backward compatibility by including all split headers.        ///
-///  For new code, prefer including specific headers:                                 ///
-///    - GeometryCore/GeometryPoints.h   - Point classes (Cartesian, Polar, etc.)     ///
-///    - GeometryCore/Geometry2DShapes.h - 2D shapes (Triangle, Circle, etc.)         ///
-///    - GeometryCore/Geometry3DShapes.h - 3D shapes (Sphere, Cylinder, etc.)         ///
+///  Description: Aggregate header for core geometry components                      ///
 ///                                                                                   ///
 ///  Copyright:   (c) 2024-2026 Zvonimir Vanjak                                       ///
 ///  License:     MIT License (see LICENSE.md)                                         ///
 ///                                                                                   ///
 ///////////////////////////////////////////////////////////////////////////////////////////
+
+/// @file Geometry.h
+/// @brief Aggregate header for core geometry components.
+/// This header includes geometry point types, coordinate representations, and
+/// foundational two- and three-dimensional shape types.
+///
+/// Main types included here:
+/// - Point2Cartesian, Point2Polar, Point3Cartesian, Point3Spherical, and Point3Cylindrical
+/// - Triangle, Circle, Ellipse, CircularSector, CircularSegment, and Annulus
+/// - RegularPolygon, Rectangle, Parallelogram, Rhombus, and Trapezoid
+/// - SphereGeom, CylinderGeom, ConeGeom, Frustum, Tetrahedron, Spheroid, and TorusGeom
+///
+/// For more focused includes, use the individual headers under GeometryBase/.
+
 #if !defined MML_GEOMETRY_H
 #define MML_GEOMETRY_H
 
-// Core geometry components - split for maintainability
-#include "mml/base/Geometry/GeometryCore/GeometryPoints.h"
-#include "mml/base/Geometry/GeometryCore/Geometry2DShapes.h"
-#include "mml/base/Geometry/GeometryCore/Geometry3DShapes.h"
+#include <mml/base/Geometry/GeometryBase/GeometryPoints.h>
+#include <mml/base/Geometry/GeometryBase/Geometry2DShapes.h>
+#include <mml/base/Geometry/GeometryBase/Geometry3DShapes.h>
 
 #endif // MML_GEOMETRY_H

@@ -72,12 +72,12 @@ TEST_CASE("TestMatchers - RealWithinRel", "[test-infrastructure][matchers]") {
         REQUIRE_THAT(actual, RealWithinRel(expected, REAL(0.01)));
     }
     
-    SECTION("Tolerance auto-scales with precision") {
+    SECTION("Tolerance respects precision") {
         Real expected = REAL(1.0);
-        Real actual = REAL(1.0) + ScaleRelTolerance(REAL(1e-10)) * REAL(0.5);
+        Real actual = REAL(1.0) + REAL(1e-10) * REAL(0.5);
         
-        // Should pass with auto-scaled tolerance
-        REQUIRE_THAT(actual, RealWithinRel(expected, REAL(1e-10)));
+        // Tolerance is used as-is (no auto-scaling)
+        REQUIRE_THAT(actual, RealWithinRel(expected, REAL(1e-9)));
     }
     
     SECTION("No scaling version") {
@@ -101,11 +101,11 @@ TEST_CASE("TestMatchers - RealWithinAbs", "[test-infrastructure][matchers]") {
         REQUIRE_THAT(actual, RealWithinAbs(expected, REAL(0.1)));
     }
     
-    SECTION("Tolerance auto-scales") {
+    SECTION("Tolerance respects precision") {
         Real expected = REAL(1.0);
-        Real actual = REAL(1.0) + ScaleTolerance(REAL(1e-10)) * REAL(0.5);
+        Real actual = REAL(1.0) + REAL(1e-10) * REAL(0.5);
         
-        REQUIRE_THAT(actual, RealWithinAbs(expected, REAL(1e-10)));
+        REQUIRE_THAT(actual, RealWithinAbs(expected, REAL(1e-9)));
     }
 }
 
@@ -182,7 +182,7 @@ TEST_CASE("TestMatchers - Real-world usage examples", "[test-infrastructure][mat
         Real mean = REAL(100.0) + Tolerance::Statistics::Standard * REAL(0.8);
         Real expected = REAL(100.0);
         
-        REQUIRE_THAT(mean, RealWithinRel(expected, Tolerance::Statistics::Standard));
+        REQUIRE_THAT(mean, RealWithinAbs(expected, Tolerance::Statistics::Standard));
     }
 }
 

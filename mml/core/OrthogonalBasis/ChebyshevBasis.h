@@ -12,10 +12,10 @@
 #if !defined MML_CHEBYSHEV_BASIS_H
 #define MML_CHEBYSHEV_BASIS_H
 
-#include "MMLBase.h"
+#include <mml/MMLBase.h>
 
-#include "base/ChebyshevPolynom.h"
-#include "core/OrthogonalBasis.h"
+#include <mml/base/ChebyshevPolynom.h>
+#include <mml/core/OrthogonalBasis.h>
 
 #include <cmath>
 #include <stdexcept>
@@ -61,7 +61,7 @@ namespace MML
         Real Evaluate(int n, Real x) const override
         {
             if (n < 0)
-                throw std::invalid_argument("ChebyshevBasis::Evaluate: n must be non-negative");
+                throw ArgumentError("ChebyshevBasis::Evaluate: n must be non-negative");
             
             return ChebyshevT(n, x);
         }
@@ -71,9 +71,7 @@ namespace MML
         { 
             if (std::abs(x) >= 1.0)
             {
-                // At boundaries, weight is undefined but we can use a large value
-                // For practical computation, return a finite value
-                return 1e10;  // Singular at x = ±1
+                return std::numeric_limits<Real>::infinity();  // Singular at x = ±1
             }
             return 1.0 / std::sqrt(1.0 - x * x); 
         }
@@ -83,7 +81,7 @@ namespace MML
         Real Normalization(int n) const override
         {
             if (n < 0)
-                throw std::invalid_argument("ChebyshevBasis::Normalization: n must be non-negative");
+                throw ArgumentError("ChebyshevBasis::Normalization: n must be non-negative");
             
             if (n == 0)
                 return Constants::PI;
@@ -103,7 +101,7 @@ namespace MML
         void RecurrenceCoefficients(int n, Real& a, Real& b, Real& c) const
         {
             if (n < 0)
-                throw std::invalid_argument("ChebyshevBasis::RecurrenceCoefficients: n must be non-negative");
+                throw ArgumentError("ChebyshevBasis::RecurrenceCoefficients: n must be non-negative");
             
             a = 2.0;
             b = 0.0;
@@ -114,7 +112,7 @@ namespace MML
         std::vector<Real> GetExtrema(int n) const
         {
             if (n < 0)
-                throw std::invalid_argument("ChebyshevBasis::GetExtrema: n must be non-negative");
+                throw ArgumentError("ChebyshevBasis::GetExtrema: n must be non-negative");
             
             std::vector<Real> extrema(n + 1);
             for (int k = 0; k <= n; k++)
@@ -126,7 +124,7 @@ namespace MML
         std::vector<Real> GetZeros(int n) const
         {
             if (n <= 0)
-                throw std::invalid_argument("ChebyshevBasis::GetZeros: n must be positive");
+                throw ArgumentError("ChebyshevBasis::GetZeros: n must be positive");
             
             std::vector<Real> zeros(n);
             for (int k = 1; k <= n; k++)
@@ -165,7 +163,7 @@ namespace MML
         Real Evaluate(int n, Real x) const
         {
             if (n < 0)
-                throw std::invalid_argument("ChebyshevBasisSecondKind::Evaluate: n must be non-negative");
+                throw ArgumentError("ChebyshevBasisSecondKind::Evaluate: n must be non-negative");
             
             return ChebyshevU(n, x);
         }
@@ -182,7 +180,7 @@ namespace MML
         Real Normalization(int n) const
         {
             if (n < 0)
-                throw std::invalid_argument("ChebyshevBasisSecondKind::Normalization: n must be non-negative");
+                throw ArgumentError("ChebyshevBasisSecondKind::Normalization: n must be non-negative");
             
             return Constants::PI / 2.0;
         }
@@ -195,7 +193,7 @@ namespace MML
         void RecurrenceCoefficients(int n, Real& a, Real& b, Real& c) const
         {
             if (n < 0)
-                throw std::invalid_argument("ChebyshevBasisSecondKind::RecurrenceCoefficients: n must be non-negative");
+                throw ArgumentError("ChebyshevBasisSecondKind::RecurrenceCoefficients: n must be non-negative");
             
             a = 2.0;
             b = 0.0;
@@ -206,7 +204,7 @@ namespace MML
         std::vector<Real> GetZeros(int n) const
         {
             if (n <= 0)
-                throw std::invalid_argument("ChebyshevBasisSecondKind::GetZeros: n must be positive");
+                throw ArgumentError("ChebyshevBasisSecondKind::GetZeros: n must be positive");
             
             std::vector<Real> zeros(n);
             for (int k = 1; k <= n; k++)

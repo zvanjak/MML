@@ -11,10 +11,10 @@
 ///  License:     MIT License (see LICENSE.md)                    ///
 ///////////////////////////////////////////////////////////////////////////////////////////
 
-#include "MMLBase.h"
-#include "tools/Serializer.h"
-#include "interfaces/IFunction.h"
-#include "base/InterpolatedFunction.h"
+#include <mml/MMLBase.h>
+#include <mml/tools/Serializer.h>
+#include <mml/interfaces/IFunction.h>
+#include <mml/base/InterpolatedFunction.h>
 
 #include <iostream>
 #include <filesystem>

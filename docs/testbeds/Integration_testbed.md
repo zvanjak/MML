@@ -256,7 +256,7 @@ bool checkResult(Real computed, Real expected, Real tolerance);
 
 ```cpp
 #include "test_beds/integration_test_bed.h"
-#include "core/Integration.h"
+#include <mml/core/Integration.h>
 
 using namespace MML;
 using namespace MML::TestBeds;
@@ -279,7 +279,7 @@ std::cout << "Converged: " << (result.converged ? "yes" : "no") << "\n";
 
 ```cpp
 #include "test_beds/integration_test_bed.h"
-#include "core/Integration.h"
+#include <mml/core/Integration.h>
 
 using namespace MML;
 using namespace MML::TestBeds;
@@ -315,7 +315,7 @@ std::cout << "Gauss10       " << gaussResult.value << "  "
 
 ```cpp
 #include "test_beds/integration_test_bed.h"
-#include "core/Integration.h"
+#include <mml/core/Integration.h>
 
 using namespace MML;
 using namespace MML::TestBeds;
@@ -339,7 +339,7 @@ for (const auto& test : tests) {
 
 ```cpp
 #include "test_beds/integration_test_bed.h"
-#include "core/Integration.h"
+#include <mml/core/Integration.h>
 
 using namespace MML;
 using namespace MML::TestBeds;
@@ -370,8 +370,8 @@ for (const auto& test : oscillatory) {
 
 ```cpp
 #include "test_beds/integration_test_bed.h"
-#include "core/Integration.h"
-#include "core/Integration/GaussianQuadrature.h"
+#include <mml/core/Integration.h>
+#include <mml/core/Integration/GaussianQuadrature.h>
 
 using namespace MML;
 using namespace MML::TestBeds;
@@ -417,7 +417,7 @@ std::cout << "All tests: " << allTests.size() << "\n";  // 15
 
 ```cpp
 #include "test_beds/integration_test_bed.h"
-#include "core/Integration.h"
+#include <mml/core/Integration.h>
 
 using namespace MML;
 using namespace MML::TestBeds;
@@ -471,7 +471,7 @@ struct IntegrationResult {
     int iterations;       ///< Number of iterations/refinements
     bool converged;       ///< True if tolerance was achieved
     
-    operator Real() const;  ///< Implicit conversion (deprecated)
+    operator Real() const;  ///< Convenience conversion for simple integrations
 };
 ```
 

@@ -9,10 +9,10 @@
 // Primitive constants (Real, int) use constexpr as they are SIOF-safe.
 
 #ifdef MML_USE_SINGLE_HEADER
-#include "MML.h"
+#include <MML.h>
 #else
-#include "base/Matrix/Matrix.h"
-#include "base/Matrix/MatrixSym.h"
+#include <mml/base/Matrix/Matrix.h>
+#include <mml/base/Matrix/MatrixSym.h>
 #endif
 
 namespace MML::TestBeds

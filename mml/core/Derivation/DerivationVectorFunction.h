@@ -12,12 +12,13 @@
 #if !defined MML_DERIVATION_VECTOR_FUNCTION_H
 #define MML_DERIVATION_VECTOR_FUNCTION_H
 
-#include "MMLBase.h"
+#include <mml/MMLBase.h>
 
 #include "DerivationBase.h"
+#include "FirstDerivativeStencil.h"
 
-#include "base/Vector/VectorN.h"
-#include "base/Matrix/MatrixNM.h"
+#include <mml/base/Vector/VectorN.h>
+#include <mml/base/Matrix/MatrixNM.h>
 
 namespace MML
 {
@@ -30,23 +31,10 @@ namespace MML
 		static Real NDer1Partial(const IVectorFunction<N>& f, int func_index, int deriv_index, 
 														 const VectorN<Real, N>& point, Real h, Real* error = nullptr)
 		{
-			auto x = point;
-
-			Real x_orig = x[deriv_index];
-			Real y0 = f(x)[func_index];
-
-			x[deriv_index] = x_orig + h;
-			Real yh = f(x)[func_index];
-
-			Real diff = yh - y0;
-			if (error)
-			{
-				x[deriv_index] = x_orig - h;
-				Real ym = f(x)[func_index];
-				Real ypph = std::abs(yh - 2 * y0 + ym) / h;
-				*error = ypph / 2 + (std::abs(yh) + std::abs(y0)) * Constants::Eps / h;
-			}
-			return diff / h;
+			auto result = Detail::EvaluateScalarPartialFirstDerivativeStencil<Detail::FirstDerivativeOrder::One>(
+				[&](int offset) { auto x = point; x[deriv_index] += offset * h; return f(x)[func_index]; }, h, error != nullptr);
+			if (error) *error = result.error;
+			return result.value;
 		}
 
 		template <int N>
@@ -129,30 +117,10 @@ namespace MML
 		static Real NDer2Partial(const IVectorFunction<N>& f, int func_index, int deriv_index, 
 														 const VectorN<Real, N>& point, Real h, Real* error = nullptr)
 		{
-			Real     orig_x = point[deriv_index];
-
-			VectorN<Real, N> x{ point };
-			x[deriv_index] = orig_x + h;
-			Real yh = f(x)[func_index];
-
-			x[deriv_index] = orig_x - h;
-			Real ymh = f(x)[func_index];
-
-			Real diff = yh - ymh;
-
-			if (error)
-			{
-				x[deriv_index] = orig_x + 2 * h;
-				Real y2h = f(x)[func_index];
-
-				x[deriv_index] = orig_x - 2 * h;
-				Real ym2h = f(x)[func_index];
-
-				*error = Constants::Eps * (std::abs(yh) +  std::abs(ymh)) / (2 * h) + 
-								 std::abs((y2h - ym2h) / 2 - diff) / (6 * h);
-			}
-
-			return diff / (2 * h);
+			auto result = Detail::EvaluateScalarPartialFirstDerivativeStencil<Detail::FirstDerivativeOrder::Two>(
+				[&](int offset) { auto x = point; x[deriv_index] += offset * h; return f(x)[func_index]; }, h, error != nullptr);
+			if (error) *error = result.error;
+			return result.value;
 		}
 		template <int N>
 		static Real NDer2Partial(const IVectorFunction<N>& f, int func_index, int deriv_index, const VectorN<Real, N>& point, Real* error = nullptr)
@@ -229,36 +197,10 @@ namespace MML
 		static Real NDer4Partial(const IVectorFunction<N>& f, int func_index, int deriv_index, const VectorN<Real, N>& point, Real h, 
 														 Real* error = nullptr)
 		{
-			Real     orig_x = point[deriv_index];
-
-			VectorN<Real, N> x{ point };
-			x[deriv_index] = orig_x + h;
-			Real yh = f(x)[func_index];
-
-			x[deriv_index] = orig_x - h;
-			Real ymh = f(x)[func_index];
-
-			x[deriv_index] = orig_x + 2 * h;
-			Real y2h = f(x)[func_index];
-
-			x[deriv_index] = orig_x - 2 * h;
-			Real ym2h = f(x)[func_index];
-
-			Real y2 = ym2h - y2h;
-			Real y1 = yh - ymh;
-
-			if (error)
-			{
-				x[deriv_index] = orig_x + 3 * h;
-				Real y3h = f(x)[func_index];
-
-				x[deriv_index] = orig_x - 3 * h;
-				Real ym3h = f(x)[func_index];
-
-				*error = std::abs((y3h - ym3h) / 2 + 2 * (ym2h - y2h) + 5 * (yh - ymh) / 2) / (30 * h);
-				*error += Constants::Eps * (std::abs(y2h) + std::abs(ym2h) + 8 * (std::abs(ymh) + std::abs(yh))) / (12 * h);
-			}
-			return (y2 + 8 * y1) / (12 * h);
+			auto result = Detail::EvaluateScalarPartialFirstDerivativeStencil<Detail::FirstDerivativeOrder::Four>(
+				[&](int offset) { auto x = point; x[deriv_index] += offset * h; return f(x)[func_index]; }, h, error != nullptr);
+			if (error) *error = result.error;
+			return result.value;
 		}
 		template <int N>
 		static Real NDer4Partial(const IVectorFunction<N>& f, int func_index, int deriv_index, const VectorN<Real, N>& point, 
@@ -336,45 +278,10 @@ namespace MML
 		template <int N>
 		static Real NDer6Partial(const IVectorFunction<N>& f, int func_index, int deriv_index, const VectorN<Real, N>& point, Real h, Real* error = nullptr)
 		{
-			Real     orig_x = point[deriv_index];
-
-			VectorN<Real, N> x{ point };
-
-			x[deriv_index] = orig_x + h;
-			Real yh = f(x)[func_index];
-
-			x[deriv_index] = orig_x - h;
-			Real ymh = f(x)[func_index];
-
-			x[deriv_index] = orig_x + 2 * h;
-			Real y2h = f(x)[func_index];
-
-			x[deriv_index] = orig_x - 2 * h;
-			Real ym2h = f(x)[func_index];
-
-			x[deriv_index] = orig_x + 3 * h;
-			Real y3h = f(x)[func_index];
-
-			x[deriv_index] = orig_x - 3 * h;
-			Real ym3h = f(x)[func_index];
-
-			Real y1 = yh - ymh;
-			Real y2 = ym2h - y2h;
-			Real y3 = y3h - ym3h;
-
-			if (error)
-			{
-				x[deriv_index] = orig_x + 4 * h;
-				Real y4h = f(x)[func_index];
-
-				x[deriv_index] = orig_x - 4 * h;
-				Real ym4h = f(x)[func_index];
-
-				Real y7 = (y4h - ym4h - 6 * y3 - 14 * y1 - 14 * y2) / 2;
-
-				*error = std::abs(y7) / (140 * h) + 5 * (std::abs(yh) + std::abs(ymh)) * Constants::Eps / h;
-			}
-			return (y3 + 9 * y2 + 45 * y1) / (60 * h);
+			auto result = Detail::EvaluateScalarPartialFirstDerivativeStencil<Detail::FirstDerivativeOrder::Six>(
+				[&](int offset) { auto x = point; x[deriv_index] += offset * h; return f(x)[func_index]; }, h, error != nullptr);
+			if (error) *error = result.error;
+			return result.value;
 		}
 		template <int N>
 		static Real NDer6Partial(const IVectorFunction<N>& f, int func_index, int deriv_index, const VectorN<Real, N>& point, Real* error = nullptr)
@@ -448,56 +355,10 @@ namespace MML
 		template <int N>
 		static Real NDer8Partial(const IVectorFunction<N>& f, int func_index, int deriv_index, const VectorN<Real, N>& point, Real h, Real* error = nullptr)
 		{
-			Real     orig_x = point[deriv_index];
-
-			VectorN<Real, N> x{ point };
-
-			x[deriv_index] = orig_x + h;
-			Real yh = f(x)[func_index];
-
-			x[deriv_index] = orig_x - h;
-			Real ymh = f(x)[func_index];
-
-			x[deriv_index] = orig_x + 2 * h;
-			Real y2h = f(x)[func_index];
-
-			x[deriv_index] = orig_x - 2 * h;
-			Real ym2h = f(x)[func_index];
-
-			x[deriv_index] = orig_x + 3 * h;
-			Real y3h = f(x)[func_index];
-
-			x[deriv_index] = orig_x - 3 * h;
-			Real ym3h = f(x)[func_index];
-
-			x[deriv_index] = orig_x + 4 * h;
-			Real y4h = f(x)[func_index];
-
-			x[deriv_index] = orig_x - 4 * h;
-			Real ym4h = f(x)[func_index];
-
-			Real y1 = yh - ymh;
-			Real y2 = ym2h - y2h;
-			Real y3 = y3h - ym3h;
-			Real y4 = ym4h - y4h;
-
-			Real tmp1 = 3 * y4 / 8 + 4 * y3;
-			Real tmp2 = 21 * y2 + 84 * y1;
-
-			if (error)
-			{
-				x[deriv_index] = orig_x + 5 * h;
-				Real y5h = f(x)[func_index];
-
-				x[deriv_index] = orig_x - 5 * h;
-				Real ym5h = f(x)[func_index];
-
-				Real f9 = (y5h - ym5h) / 2 + 4 * y4 + 27 * y3 / 2 + 24 * y2 + 21 * y1;
-
-				*error = std::abs(f9) / (630 * h) + 7 * (std::abs(yh) + std::abs(ymh)) * Constants::Eps / h;
-			}
-
-			return (tmp1 + tmp2) / (105 * h);
+			auto result = Detail::EvaluateScalarPartialFirstDerivativeStencil<Detail::FirstDerivativeOrder::Eight>(
+				[&](int offset) { auto x = point; x[deriv_index] += offset * h; return f(x)[func_index]; }, h, error != nullptr);
+			if (error) *error = result.error;
+			return result.value;
 		}
 		template <int N>
 		static Real NDer8Partial(const IVectorFunction<N>& f, int func_index, int deriv_index, const VectorN<Real, N>& point, Real* error = nullptr)

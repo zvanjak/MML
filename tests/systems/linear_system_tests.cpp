@@ -9,10 +9,11 @@
 ///////////////////////////////////////////////////////////////////////////////////////////
 
 #include <catch2/catch_test_macros.hpp>
+#include "../TestPrecision.h"
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
-#include "MMLBase.h"
-#include "systems/LinearSystem.h"
+#include <mml/MMLBase.h>
+#include <mml/systems/LinearSystem.h>
 
 using namespace MML;
 using namespace MML::Systems;
@@ -20,6 +21,12 @@ using Catch::Matchers::WithinAbs;
 using Catch::Matchers::WithinRel;
 
 namespace MML::Tests::Systems::LinearSystemTests {
+
+template<typename System>
+concept SupportsLegacyGetEigen = requires(const System& system) { system.GetEigen(); };
+
+template<typename System>
+concept SupportsLegacyEigenvaluesSymmetric = requires(const System& system) { system.EigenvaluesSymmetric(); };
 
 // Helper to create Hilbert matrix (notoriously ill-conditioned)
 Matrix<Real> CreateHilbertMatrix(int n)
@@ -59,9 +66,9 @@ TEST_CASE("LinearSystem - Constructors", "[LinearSystem][Constructor]")
 		
 		LinearSystem<Real> sys(A, b);
 		
-		REQUIRE(sys.rows() == 3);
-		REQUIRE(sys.cols() == 3);
-		REQUIRE(sys.isSquare() == true);
+		REQUIRE(sys.Rows() == 3);
+		REQUIRE(sys.Cols() == 3);
+		REQUIRE(sys.IsSquare() == true);
 	}
 	
 	SECTION("Matrix + Matrix constructor (multiple RHS)")
@@ -71,8 +78,8 @@ TEST_CASE("LinearSystem - Constructors", "[LinearSystem][Constructor]")
 		
 		LinearSystem<Real> sys(A, B);
 		
-		REQUIRE(sys.rows() == 3);
-		REQUIRE(sys.cols() == 3);
+		REQUIRE(sys.Rows() == 3);
+		REQUIRE(sys.Cols() == 3);
 	}
 	
 	SECTION("Matrix only constructor (analysis)")
@@ -81,9 +88,9 @@ TEST_CASE("LinearSystem - Constructors", "[LinearSystem][Constructor]")
 		
 		LinearSystem<Real> sys(A);
 		
-		REQUIRE(sys.rows() == 4);
-		REQUIRE(sys.cols() == 3);
-		REQUIRE(sys.isOverdetermined() == true);
+		REQUIRE(sys.Rows() == 4);
+		REQUIRE(sys.Cols() == 3);
+		REQUIRE(sys.IsTall() == true);
 	}
 	
 	SECTION("Dimension mismatch throws")
@@ -109,8 +116,8 @@ TEST_CASE("LinearSystem - Auto Solve", "[LinearSystem][Solve]")
 		LinearSystem<Real> sys(A, b);
 		Vector<Real> x = sys.Solve();
 		
-		REQUIRE_THAT(x[0], WithinAbs(2.0, 1e-10));
-		REQUIRE_THAT(x[1], WithinAbs(1.0, 1e-10));
+		REQUIRE_THAT(x[0], WithinAbs(2.0, TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(x[1], WithinAbs(1.0, TOL(1e-10, 1e-5)));
 	}
 	
 	SECTION("3x3 system")
@@ -121,9 +128,9 @@ TEST_CASE("LinearSystem - Auto Solve", "[LinearSystem][Solve]")
 		LinearSystem<Real> sys(A, b);
 		Vector<Real> x = sys.Solve();
 		
-		REQUIRE_THAT(x[0], WithinAbs(1.0, 1e-9));
-		REQUIRE_THAT(x[1], WithinAbs(2.0, 1e-9));
-		REQUIRE_THAT(x[2], WithinAbs(3.0, 1e-9));
+		REQUIRE_THAT(x[0], WithinAbs(1.0, TOL(1e-9, 1e-4)));
+		REQUIRE_THAT(x[1], WithinAbs(2.0, TOL(1e-9, 1e-4)));
+		REQUIRE_THAT(x[2], WithinAbs(3.0, TOL(1e-9, 1e-4)));
 	}
 }
 
@@ -136,31 +143,31 @@ TEST_CASE("LinearSystem - Specific Solvers", "[LinearSystem][Solvers]")
 	SECTION("Gauss-Jordan")
 	{
 		Vector<Real> x = sys.SolveByGaussJordan();
-		REQUIRE_THAT(sys.RelativeResidual(x), WithinAbs(0.0, 1e-12));
+		REQUIRE_THAT(sys.RelativeResidual(x), WithinAbs(0.0, TOL(1e-12, 1e-5)));
 	}
 	
 	SECTION("LU Decomposition")
 	{
 		Vector<Real> x = sys.SolveByLU();
-		REQUIRE_THAT(sys.RelativeResidual(x), WithinAbs(0.0, 1e-12));
+		REQUIRE_THAT(sys.RelativeResidual(x), WithinAbs(0.0, TOL(1e-12, 1e-5)));
 	}
 	
 	SECTION("Cholesky (SPD)")
 	{
 		Vector<Real> x = sys.SolveByCholesky();
-		REQUIRE_THAT(sys.RelativeResidual(x), WithinAbs(0.0, 1e-12));
+		REQUIRE_THAT(sys.RelativeResidual(x), WithinAbs(0.0, TOL(1e-12, 1e-5)));
 	}
 	
 	SECTION("QR Decomposition")
 	{
 		Vector<Real> x = sys.SolveByQR();
-		REQUIRE_THAT(sys.RelativeResidual(x), WithinAbs(0.0, 1e-10));
+		REQUIRE_THAT(sys.RelativeResidual(x), WithinAbs(0.0, TOL(1e-10, 1e-5)));
 	}
 	
 	SECTION("SVD Decomposition")
 	{
 		Vector<Real> x = sys.SolveBySVD();
-		REQUIRE_THAT(sys.RelativeResidual(x), WithinAbs(0.0, 1e-10));
+		REQUIRE_THAT(sys.RelativeResidual(x), WithinAbs(0.0, TOL(1e-10, 1e-5)));
 	}
 	
 	SECTION("All solvers give same result")
@@ -173,10 +180,10 @@ TEST_CASE("LinearSystem - Specific Solvers", "[LinearSystem][Solvers]")
 		
 		for (int i = 0; i < 3; ++i)
 		{
-			REQUIRE_THAT(xLU[i], WithinAbs(xGJ[i], 1e-10));
-			REQUIRE_THAT(xCh[i], WithinAbs(xGJ[i], 1e-10));
-			REQUIRE_THAT(xQR[i], WithinAbs(xGJ[i], 1e-8));
-			REQUIRE_THAT(xSVD[i], WithinAbs(xGJ[i], 1e-8));
+			REQUIRE_THAT(xLU[i], WithinAbs(xGJ[i], TOL(1e-10, 1e-5)));
+			REQUIRE_THAT(xCh[i], WithinAbs(xGJ[i], TOL(1e-10, 1e-5)));
+			REQUIRE_THAT(xQR[i], WithinAbs(xGJ[i], TOL(1e-8, 1e-4)));
+			REQUIRE_THAT(xSVD[i], WithinAbs(xGJ[i], TOL(1e-8, 1e-4)));
 		}
 	}
 }
@@ -196,26 +203,26 @@ TEST_CASE("LinearSystem - Iterative Solvers", "[LinearSystem][Iterative]")
 	
 	SECTION("Jacobi iteration")
 	{
-		Vector<Real> x = sys.SolveIterative(IterativeMethod::Jacobi, 1e-10, 1000);
-		REQUIRE_THAT(sys.RelativeResidual(x), WithinAbs(0.0, 1e-9));
+		Vector<Real> x = sys.SolveIterative(IterativeMethod::Jacobi, TOL(1e-10, 1e-5), 1000);
+		REQUIRE_THAT(sys.RelativeResidual(x), WithinAbs(0.0, TOL(1e-9, 1e-4)));
 	}
 	
 	SECTION("Gauss-Seidel iteration")
 	{
-		Vector<Real> x = sys.SolveIterative(IterativeMethod::GaussSeidel, 1e-10, 1000);
-		REQUIRE_THAT(sys.RelativeResidual(x), WithinAbs(0.0, 1e-9));
+		Vector<Real> x = sys.SolveIterative(IterativeMethod::GaussSeidel, TOL(1e-10, 1e-5), 1000);
+		REQUIRE_THAT(sys.RelativeResidual(x), WithinAbs(0.0, TOL(1e-9, 1e-4)));
 	}
 	
 	SECTION("SOR iteration")
 	{
-		Vector<Real> x = sys.SolveIterative(IterativeMethod::SOR, 1e-10, 1000);
-		REQUIRE_THAT(sys.RelativeResidual(x), WithinAbs(0.0, 1e-9));
+		Vector<Real> x = sys.SolveIterative(IterativeMethod::SOR, TOL(1e-10, 1e-5), 1000);
+		REQUIRE_THAT(sys.RelativeResidual(x), WithinAbs(0.0, TOL(1e-9, 1e-4)));
 	}
 	
 	SECTION("Auto-select iterative")
 	{
-		Vector<Real> x = sys.SolveIterative(IterativeMethod::Auto, 1e-10, 1000);
-		REQUIRE_THAT(sys.RelativeResidual(x), WithinAbs(0.0, 1e-9));
+		Vector<Real> x = sys.SolveIterative(IterativeMethod::Auto, TOL(1e-10, 1e-5), 1000);
+		REQUIRE_THAT(sys.RelativeResidual(x), WithinAbs(0.0, TOL(1e-9, 1e-4)));
 	}
 }
 
@@ -233,7 +240,7 @@ TEST_CASE("LinearSystem - Overdetermined Systems", "[LinearSystem][LeastSquares]
 		Vector<Real> b({1, 2, 4});
 		
 		LinearSystem<Real> sys(A, b);
-		REQUIRE(sys.isOverdetermined() == true);
+		REQUIRE(sys.IsTall() == true);
 		
 		Vector<Real> x = sys.SolveLeastSquares();
 		
@@ -253,8 +260,8 @@ TEST_CASE("LinearSystem - Overdetermined Systems", "[LinearSystem][LeastSquares]
 		LinearSystem<Real> sys(A, b);
 		Vector<Real> x = sys.SolveLeastSquares();
 		
-		REQUIRE_THAT(x[0], WithinAbs(2.0, 1e-10));
-		REQUIRE_THAT(x[1], WithinAbs(3.0, 1e-10));
+		REQUIRE_THAT(x[0], WithinAbs(2.0, TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(x[1], WithinAbs(3.0, TOL(1e-10, 1e-5)));
 	}
 }
 
@@ -273,8 +280,8 @@ TEST_CASE("LinearSystem - Verification", "[LinearSystem][Verify]")
 		Vector<Real> x = sys.Solve();
 		auto verify = sys.Verify(x);
 		
-		REQUIRE_THAT(verify.absoluteResidual, WithinAbs(0.0, 1e-12));
-		REQUIRE_THAT(verify.relativeResidual, WithinAbs(0.0, 1e-12));
+		REQUIRE_THAT(verify.absoluteResidual, WithinAbs(0.0, TOL(1e-12, 1e-5)));
+		REQUIRE_THAT(verify.relativeResidual, WithinAbs(0.0, TOL(1e-12, 1e-5)));
 		REQUIRE(verify.isAccurate == true);
 	}
 	
@@ -295,7 +302,7 @@ TEST_CASE("LinearSystem - Verification", "[LinearSystem][Verify]")
 		Vector<Real> x = sys.Solve();
 		Real residual = sys.ResidualNorm(x);
 		
-		REQUIRE_THAT(residual, WithinAbs(0.0, 1e-12));
+		REQUIRE_THAT(residual, WithinAbs(0.0, TOL(1e-12, 1e-5)));
 	}
 	
 	SECTION("Relative residual")
@@ -303,7 +310,7 @@ TEST_CASE("LinearSystem - Verification", "[LinearSystem][Verify]")
 		Vector<Real> x = sys.Solve();
 		Real relResidual = sys.RelativeResidual(x);
 		
-		REQUIRE_THAT(relResidual, WithinAbs(0.0, 1e-12));
+		REQUIRE_THAT(relResidual, WithinAbs(0.0, TOL(1e-12, 1e-5)));
 	}
 }
 
@@ -318,9 +325,9 @@ TEST_CASE("LinearSystem - Dimension Properties", "[LinearSystem][Properties]")
 		Matrix<Real> A(3, 3, {1, 0, 0, 0, 1, 0, 0, 0, 1});
 		LinearSystem<Real> sys(A);
 		
-		REQUIRE(sys.isSquare() == true);
-		REQUIRE(sys.isOverdetermined() == false);
-		REQUIRE(sys.isUnderdetermined() == false);
+		REQUIRE(sys.IsSquare() == true);
+		REQUIRE(sys.IsTall() == false);
+		REQUIRE(sys.IsWide() == false);
 	}
 	
 	SECTION("Overdetermined (tall)")
@@ -328,9 +335,9 @@ TEST_CASE("LinearSystem - Dimension Properties", "[LinearSystem][Properties]")
 		Matrix<Real> A(5, 3);
 		LinearSystem<Real> sys(A);
 		
-		REQUIRE(sys.isSquare() == false);
-		REQUIRE(sys.isOverdetermined() == true);
-		REQUIRE(sys.isUnderdetermined() == false);
+		REQUIRE(sys.IsSquare() == false);
+		REQUIRE(sys.IsTall() == true);
+		REQUIRE(sys.IsWide() == false);
 	}
 	
 	SECTION("Underdetermined (wide)")
@@ -338,10 +345,32 @@ TEST_CASE("LinearSystem - Dimension Properties", "[LinearSystem][Properties]")
 		Matrix<Real> A(3, 5);
 		LinearSystem<Real> sys(A);
 		
-		REQUIRE(sys.isSquare() == false);
-		REQUIRE(sys.isOverdetermined() == false);
-		REQUIRE(sys.isUnderdetermined() == true);
+		REQUIRE(sys.IsSquare() == false);
+		REQUIRE(sys.IsTall() == false);
+		REQUIRE(sys.IsWide() == true);
 	}
+}
+
+TEST_CASE("LinearSystem - MML 2.0 MatrixAnalyzer forwarding", "[LinearSystem][MatrixAnalyzer][MML2]")
+{
+	const Matrix<Real> matrix{3, 2, {
+		REAL(1.0), REAL(2.0),
+		REAL(2.0), REAL(4.0),
+		REAL(3.0), REAL(6.0)
+	}};
+	LinearSystem<Real> system(matrix);
+	MatrixAnalyzer<Real> analyzer(matrix);
+
+	REQUIRE(system.Rows() == analyzer.Rows());
+	REQUIRE(system.Cols() == analyzer.Cols());
+	REQUIRE(system.IsSquare() == analyzer.IsSquare());
+	REQUIRE(system.IsTall() == analyzer.IsTall());
+	REQUIRE(system.IsWide() == analyzer.IsWide());
+	REQUIRE(system.IsSymmetric() == analyzer.IsSymmetric());
+	REQUIRE(system.IsUpperTriangular() == analyzer.IsUpperTriangular());
+	REQUIRE(system.IsLowerTriangular() == analyzer.IsLowerTriangular());
+	REQUIRE(system.IsDiagonal() == analyzer.IsDiagonal());
+	REQUIRE(system.IsDiagonallyDominant() == analyzer.IsDiagonallyDominant());
 }
 
 TEST_CASE("LinearSystem - Structure Detection", "[LinearSystem][Structure]")
@@ -351,7 +380,7 @@ TEST_CASE("LinearSystem - Structure Detection", "[LinearSystem][Structure]")
 		Matrix<Real> A(3, 3, {2, 1, 0, 1, 3, 1, 0, 1, 2});
 		LinearSystem<Real> sys(A);
 		
-		REQUIRE(sys.isSymmetric() == true);
+		REQUIRE(sys.IsSymmetric() == true);
 	}
 	
 	SECTION("Non-symmetric matrix")
@@ -359,7 +388,7 @@ TEST_CASE("LinearSystem - Structure Detection", "[LinearSystem][Structure]")
 		Matrix<Real> A(3, 3, {2, 1, 0, 0, 3, 1, 0, 0, 2});
 		LinearSystem<Real> sys(A);
 		
-		REQUIRE(sys.isSymmetric() == false);
+		REQUIRE(sys.IsSymmetric() == false);
 	}
 	
 	SECTION("Positive definite")
@@ -367,8 +396,8 @@ TEST_CASE("LinearSystem - Structure Detection", "[LinearSystem][Structure]")
 		Matrix<Real> A = CreateSPDMatrix(4);
 		LinearSystem<Real> sys(A);
 		
-		REQUIRE(sys.isSymmetric() == true);
-		REQUIRE(sys.isPositiveDefinite() == true);
+		REQUIRE(sys.IsSymmetric() == true);
+		REQUIRE(sys.IsPositiveDefinite() == true);
 	}
 	
 	SECTION("Diagonally dominant")
@@ -376,7 +405,7 @@ TEST_CASE("LinearSystem - Structure Detection", "[LinearSystem][Structure]")
 		Matrix<Real> A(3, 3, {10, 1, 2, 1, 10, 2, 1, 2, 10});
 		LinearSystem<Real> sys(A);
 		
-		REQUIRE(sys.isDiagonallyDominant() == true);
+		REQUIRE(sys.IsDiagonallyDominant() == true);
 	}
 	
 	SECTION("Upper triangular")
@@ -384,8 +413,8 @@ TEST_CASE("LinearSystem - Structure Detection", "[LinearSystem][Structure]")
 		Matrix<Real> A(3, 3, {1, 2, 3, 0, 4, 5, 0, 0, 6});
 		LinearSystem<Real> sys(A);
 		
-		REQUIRE(sys.isUpperTriangular() == true);
-		REQUIRE(sys.isLowerTriangular() == false);
+		REQUIRE(sys.IsUpperTriangular() == true);
+		REQUIRE(sys.IsLowerTriangular() == false);
 	}
 	
 	SECTION("Lower triangular")
@@ -393,8 +422,8 @@ TEST_CASE("LinearSystem - Structure Detection", "[LinearSystem][Structure]")
 		Matrix<Real> A(3, 3, {1, 0, 0, 2, 3, 0, 4, 5, 6});
 		LinearSystem<Real> sys(A);
 		
-		REQUIRE(sys.isUpperTriangular() == false);
-		REQUIRE(sys.isLowerTriangular() == true);
+		REQUIRE(sys.IsUpperTriangular() == false);
+		REQUIRE(sys.IsLowerTriangular() == true);
 	}
 	
 	SECTION("Diagonal")
@@ -402,7 +431,7 @@ TEST_CASE("LinearSystem - Structure Detection", "[LinearSystem][Structure]")
 		Matrix<Real> A(3, 3, {1, 0, 0, 0, 2, 0, 0, 0, 3});
 		LinearSystem<Real> sys(A);
 		
-		REQUIRE(sys.isDiagonal() == true);
+		REQUIRE(sys.IsDiagonal() == true);
 	}
 }
 
@@ -418,7 +447,7 @@ TEST_CASE("LinearSystem - Numerical Properties", "[LinearSystem][Numerical]")
 		LinearSystem<Real> sys(A);
 		
 		Real det = sys.Determinant();
-		REQUIRE_THAT(det, WithinAbs(24.0, 1e-10));  // 1*4*6 = 24
+		REQUIRE_THAT(det, WithinAbs(24.0, TOL(1e-10, 1e-5)));  // 1*4*6 = 24
 	}
 	
 	SECTION("Rank of full rank matrix")
@@ -445,7 +474,7 @@ TEST_CASE("LinearSystem - Numerical Properties", "[LinearSystem][Numerical]")
 		LinearSystem<Real> sys(I);
 		
 		Real cond = sys.ConditionNumber();
-		REQUIRE_THAT(cond, WithinAbs(1.0, 1e-10));
+		REQUIRE_THAT(cond, WithinAbs(1.0, TOL(1e-10, 1e-5)));
 	}
 	
 	SECTION("Ill-conditioned Hilbert matrix")
@@ -475,8 +504,8 @@ TEST_CASE("LinearSystem - Numerical Properties", "[LinearSystem][Numerical]")
 		Matrix<Real> A(3, 3, {1, 0, 0, 0, 1, 0, 0, 0, 1});
 		LinearSystem<Real> sys(A);
 		
-		int digitsLost = sys.ExpectedDigitsLost();
-		REQUIRE(digitsLost == 0);
+		auto digitsLost = sys.ExpectedDigitsLost();
+		REQUIRE(digitsLost == std::optional<int>{0});
 	}
 }
 
@@ -500,7 +529,7 @@ TEST_CASE("LinearSystem - Matrix Operations", "[LinearSystem][Operations]")
 			for (int j = 0; j < 3; ++j)
 			{
 				Real expected = (i == j) ? 1.0 : 0.0;
-				REQUIRE_THAT(I(i, j), WithinAbs(expected, 1e-10));
+				REQUIRE_THAT(I(i, j), WithinAbs(expected, TOL(1e-10, 1e-5)));
 			}
 		}
 	}
@@ -516,7 +545,7 @@ TEST_CASE("LinearSystem - Matrix Operations", "[LinearSystem][Operations]")
 		Matrix<Real> result = A * Apinv * A;
 		for (int i = 0; i < A.rows(); ++i)
 			for (int j = 0; j < A.cols(); ++j)
-				REQUIRE_THAT(result(i, j), WithinAbs(A(i, j), 1e-10));
+				REQUIRE_THAT(result(i, j), WithinAbs(A(i, j), TOL(1e-10, 1e-5)));
 	}
 	
 	SECTION("Null space")
@@ -533,7 +562,7 @@ TEST_CASE("LinearSystem - Matrix Operations", "[LinearSystem][Operations]")
 			Matrix<Real> AN = A * N;
 			for (int i = 0; i < AN.rows(); ++i)
 				for (int j = 0; j < AN.cols(); ++j)
-					REQUIRE_THAT(AN(i, j), WithinAbs(0.0, 1e-10));
+					REQUIRE_THAT(AN(i, j), WithinAbs(0.0, TOL(1e-10, 1e-5)));
 		}
 	}
 }
@@ -551,14 +580,14 @@ TEST_CASE("LinearSystem - Comprehensive Analysis", "[LinearSystem][Analysis]")
 		
 		auto analysis = sys.Analyze();
 		
-		REQUIRE(analysis.rows == 4);
-		REQUIRE(analysis.cols == 4);
-		REQUIRE(analysis.isSquare == true);
-		REQUIRE(analysis.isSymmetric == true);
-		REQUIRE(analysis.isPositiveDefinite == true);
-		REQUIRE(analysis.rank == 4);
-		REQUIRE(analysis.hasUniqueSolution == true);
-		REQUIRE(analysis.recommendedSolver == "Cholesky");
+		REQUIRE(analysis.matrix.rows == 4);
+		REQUIRE(analysis.matrix.cols == 4);
+		REQUIRE(analysis.matrix.isSquare);
+		REQUIRE(analysis.matrix.isSymmetric);
+		REQUIRE(analysis.matrix.definiteness == MatrixAlg::Definiteness::PositiveDefinite);
+		REQUIRE(analysis.matrix.rank == 4);
+		REQUIRE(analysis.solutionStatuses.empty());
+		REQUIRE_FALSE(analysis.recommendedSolver.has_value());
 	}
 	
 	SECTION("Triangular system")
@@ -568,8 +597,8 @@ TEST_CASE("LinearSystem - Comprehensive Analysis", "[LinearSystem][Analysis]")
 		
 		auto analysis = sys.Analyze();
 		
-		REQUIRE(analysis.isUpperTriangular == true);
-		REQUIRE(analysis.recommendedSolver == "Triangular");
+		REQUIRE(analysis.matrix.isUpperTriangular);
+		REQUIRE_FALSE(analysis.recommendedSolver.has_value());
 	}
 	
 	SECTION("Overdetermined system")
@@ -583,8 +612,8 @@ TEST_CASE("LinearSystem - Comprehensive Analysis", "[LinearSystem][Analysis]")
 		
 		auto analysis = sys.Analyze();
 		
-		REQUIRE(analysis.isOverdetermined == true);
-		REQUIRE(analysis.recommendedSolver == "QR");
+		REQUIRE(analysis.matrix.isTall);
+		REQUIRE_FALSE(analysis.recommendedSolver.has_value());
 	}
 	
 	SECTION("Analysis report generated")
@@ -594,8 +623,99 @@ TEST_CASE("LinearSystem - Comprehensive Analysis", "[LinearSystem][Analysis]")
 		
 		auto analysis = sys.Analyze();
 		
-		REQUIRE(analysis.analysisReport.size() > 0);
-		REQUIRE(analysis.analysisReport.find("Matrix:") != std::string::npos);
+		REQUIRE_FALSE(analysis.report.empty());
+		REQUIRE(analysis.report.find("Matrix:") != std::string::npos);
+	}
+}
+
+TEST_CASE("LinearSystem - MML 2.0 RHS-aware solution classification", "[LinearSystem][Analysis][MML2]")
+{
+	const Matrix<Real> rankDeficient{2, 2, {
+		REAL(1.0), REAL(1.0),
+		REAL(2.0), REAL(2.0)
+	}};
+
+	SECTION("Unique solution")
+	{
+		LinearSystem<Real> system(Matrix<Real>::Identity(2), Vector<Real>{REAL(1.0), REAL(2.0)});
+		const auto analysis = system.Analyze();
+		REQUIRE(analysis.solutionStatuses == std::vector<SolutionStatus>{SolutionStatus::Unique});
+		REQUIRE(analysis.recommendedSolver == LinearSolverRecommendation::Triangular);
+		REQUIRE_FALSE(analysis.multipleRHSAggregate.has_value());
+	}
+
+	SECTION("Infinite solutions")
+	{
+		LinearSystem<Real> system(rankDeficient, Vector<Real>{REAL(1.0), REAL(2.0)});
+		const auto analysis = system.Analyze();
+		REQUIRE(analysis.solutionStatuses == std::vector<SolutionStatus>{SolutionStatus::Infinite});
+	}
+
+	SECTION("Inconsistent system")
+	{
+		LinearSystem<Real> system(rankDeficient, Vector<Real>{REAL(1.0), REAL(3.0)});
+		const auto analysis = system.Analyze();
+		REQUIRE(analysis.solutionStatuses == std::vector<SolutionStatus>{SolutionStatus::Inconsistent});
+	}
+
+	SECTION("Multiple RHS reports mixed statuses")
+	{
+		const Matrix<Real> rightHandSides{2, 2, {
+			REAL(1.0), REAL(1.0),
+			REAL(2.0), REAL(3.0)
+		}};
+		LinearSystem<Real> system(rankDeficient, rightHandSides);
+		const auto analysis = system.Analyze();
+		REQUIRE(analysis.solutionStatuses == std::vector<SolutionStatus>{SolutionStatus::Infinite, SolutionStatus::Inconsistent});
+		REQUIRE(analysis.multipleRHSAggregate == MultipleRHSAggregate::Mixed);
+	}
+
+	SECTION("Multiple RHS reports common status")
+	{
+		const Matrix<Real> rightHandSides{2, 2, {
+			REAL(1.0), REAL(2.0),
+			REAL(2.0), REAL(4.0)
+		}};
+		LinearSystem<Real> system(rankDeficient, rightHandSides);
+		const auto analysis = system.Analyze();
+		REQUIRE(analysis.solutionStatuses == std::vector<SolutionStatus>{SolutionStatus::Infinite, SolutionStatus::Infinite});
+		REQUIRE(analysis.multipleRHSAggregate == MultipleRHSAggregate::AllSame);
+	}
+
+	SECTION("Wide full-row-rank systems recommend SVD")
+	{
+		const Matrix<Real> wide{2, 3, {
+			REAL(1.0), REAL(0.0), REAL(0.0),
+			REAL(0.0), REAL(1.0), REAL(0.0)
+		}};
+		LinearSystem<Real> system(wide, Vector<Real>{REAL(1.0), REAL(2.0)});
+		const auto analysis = system.Analyze();
+		REQUIRE(analysis.solutionStatuses == std::vector<SolutionStatus>{SolutionStatus::Infinite});
+		REQUIRE(analysis.recommendedSolver == LinearSolverRecommendation::SVD);
+	}
+
+	SECTION("Ill-conditioned systems recommend SVD")
+	{
+		const Matrix<Real> illConditioned{2, 2, {
+			REAL(1.0), REAL(1.0),
+			REAL(1.0), REAL(1.0) + REAL(1e-9)
+		}};
+		LinearSystem<Real> system(illConditioned, Vector<Real>{REAL(2.0), REAL(2.0) + REAL(1e-9)});
+		REQUIRE(system.Analyze().recommendedSolver == LinearSolverRecommendation::SVD);
+	}
+
+	SECTION("RHS classification shares the requested coefficient threshold")
+	{
+		const Real smallPivot = TOL(1e-8, 5e-7);
+		const Matrix<Real> nearlyRankDeficient{2, 2, {
+			REAL(1.0), REAL(0.0),
+			REAL(0.0), smallPivot
+		}};
+		LinearSystem<Real> system(nearlyRankDeficient, Vector<Real>{REAL(1.0), smallPivot});
+		REQUIRE(system.Analyze().solutionStatuses == std::vector<SolutionStatus>{SolutionStatus::Unique});
+		const auto truncated = system.Analyze(REAL(1e-6));
+		REQUIRE(truncated.solutionStatuses == std::vector<SolutionStatus>{SolutionStatus::Infinite});
+		REQUIRE(truncated.recommendedSolver == LinearSolverRecommendation::SVD);
 	}
 }
 
@@ -613,9 +733,9 @@ TEST_CASE("LinearSystem - Triangular Solve", "[LinearSystem][Triangular]")
 		LinearSystem<Real> sys(A, b);
 		Vector<Real> x = sys.Solve();  // Should auto-select triangular
 		
-		REQUIRE_THAT(x[0], WithinAbs(1.0, 1e-10));
-		REQUIRE_THAT(x[1], WithinAbs(1.0, 1e-10));
-		REQUIRE_THAT(x[2], WithinAbs(1.0, 1e-10));
+		REQUIRE_THAT(x[0], WithinAbs(1.0, TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(x[1], WithinAbs(1.0, TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(x[2], WithinAbs(1.0, TOL(1e-10, 1e-5)));
 	}
 	
 	SECTION("Lower triangular - forward substitution")
@@ -626,9 +746,9 @@ TEST_CASE("LinearSystem - Triangular Solve", "[LinearSystem][Triangular]")
 		LinearSystem<Real> sys(A, b);
 		Vector<Real> x = sys.Solve();
 		
-		REQUIRE_THAT(x[0], WithinAbs(1.0, 1e-10));
-		REQUIRE_THAT(x[1], WithinAbs(1.0, 1e-10));
-		REQUIRE_THAT(x[2], WithinAbs(1.0, 1e-10));
+		REQUIRE_THAT(x[0], WithinAbs(1.0, TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(x[1], WithinAbs(1.0, TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(x[2], WithinAbs(1.0, TOL(1e-10, 1e-5)));
 	}
 }
 
@@ -645,8 +765,8 @@ TEST_CASE("LinearSystem - Convenience Functions", "[LinearSystem][Convenience]")
 		
 		Vector<Real> x = SolveLinearSystem(A, b);
 		
-		REQUIRE_THAT(x[0], WithinAbs(2.0, 1e-10));
-		REQUIRE_THAT(x[1], WithinAbs(1.0, 1e-10));
+		REQUIRE_THAT(x[0], WithinAbs(2.0, TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(x[1], WithinAbs(1.0, TOL(1e-10, 1e-5)));
 	}
 	
 	SECTION("SolveLeastSquares convenience")
@@ -656,19 +776,19 @@ TEST_CASE("LinearSystem - Convenience Functions", "[LinearSystem][Convenience]")
 		
 		Vector<Real> x = SolveLeastSquares(A, b);
 		
-		REQUIRE_THAT(x[0], WithinAbs(2.0, 1e-10));
-		REQUIRE_THAT(x[1], WithinAbs(3.0, 1e-10));
+		REQUIRE_THAT(x[0], WithinAbs(2.0, TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(x[1], WithinAbs(3.0, TOL(1e-10, 1e-5)));
 	}
 	
-	SECTION("AnalyzeMatrix")
+	SECTION("MatrixAnalyzer")
 	{
 		Matrix<Real> A(3, 3, {1, 0, 0, 0, 1, 0, 0, 0, 1});
 		
-		auto analysis = AnalyzeMatrix(A);
+		auto analysis = MatrixAnalyzer<Real>(A).Analyze();
 		
-		REQUIRE(analysis.isSquare == true);
+		REQUIRE(analysis.isSquare);
 		REQUIRE(analysis.rank == 3);
-		REQUIRE(analysis.isDiagonal == true);
+		REQUIRE(analysis.isDiagonal);
 	}
 }
 
@@ -712,13 +832,16 @@ TEST_CASE("LinearSystem - Error Handling", "[LinearSystem][Errors]")
 
 TEST_CASE("LinearSystem - Eigenanalysis", "[LinearSystem][Eigen]")
 {
+	STATIC_REQUIRE_FALSE(SupportsLegacyGetEigen<LinearSystem<Real>>);
+	STATIC_REQUIRE_FALSE(SupportsLegacyEigenvaluesSymmetric<LinearSystem<Real>>);
+
 	SECTION("Eigenvalues of symmetric matrix")
 	{
 		// Symmetric matrix with known eigenvalues
 		Matrix<Real> A(3, 3, {4, 1, 1, 1, 4, 1, 1, 1, 4});
 		LinearSystem<Real> sys(A);
 		
-		Vector<Real> eigs = sys.EigenvaluesSymmetric();
+		Vector<Real> eigs = sys.SymmetricEigenvalues();
 		
 		// For this matrix, eigenvalues are 6, 3, 3
 		REQUIRE(eigs.size() == 3);
@@ -735,14 +858,14 @@ TEST_CASE("LinearSystem - Eigenanalysis", "[LinearSystem][Eigen]")
 		Matrix<Real> A(2, 2, {2, 1, 1, 2});
 		LinearSystem<Real> sys(A);
 		
-		auto result = sys.GetEigen();
+		const auto& result = sys.Eigensystem();
 		
 		REQUIRE(result.converged == true);
 		REQUIRE(result.eigenvalues.size() == 2);
 		
 		// Eigenvalues should be 3 and 1
-		Real e1 = result.eigenvalues[0].real;
-		Real e2 = result.eigenvalues[1].real;
+		Real e1 = result.eigenvalues[0].real();
+		Real e2 = result.eigenvalues[1].real();
 		
 		// Sort for comparison
 		if (e1 < e2) std::swap(e1, e2);
@@ -804,7 +927,7 @@ TEST_CASE("LinearSystem - Multiple RHS", "[LinearSystem][MultipleRHS]")
 		
 		// col2 should be 2 * col1
 		for (int i = 0; i < 3; ++i)
-			REQUIRE_THAT(col2[i], WithinAbs(2.0 * col1[i], 1e-10));
+			REQUIRE_THAT(col2[i], WithinAbs(2.0 * col1[i], TOL(1e-10, 1e-5)));
 	}
 }
 

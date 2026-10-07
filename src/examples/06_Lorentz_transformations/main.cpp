@@ -17,22 +17,21 @@
  * 
  * Output: Numerical demonstrations of relativistic effects
  * 
- * Build: cmake --build build --target Example05_LorentzTransform
- * Run:   ./build/src/examples/Debug/Example05_LorentzTransform
+ * Build: cmake --build build --config Release --target Example06_LorentzTransform
+ * Run:   ./build/src/examples/Release/Example06_LorentzTransform
  * 
  *****************************************************************************/
 
 #ifdef MML_USE_SINGLE_HEADER
-#include "MML.h"
+#include <MML.h>
 #else
-#include "MMLBase.h"
-#include "mml/base/Vector/VectorTypes.h"
-#include "mml/core/CoordTransf/CoordTransfLorentz.h"
-#include "mml/core/Derivation.h"
-#include "mml/core/MetricTensor.h"
-#include "mml/core/Integration/Integration1D.h"
-#include "mml/tools/Visualizer.h"
-#include "mml/tools/Serializer.h"
+#include <mml/MMLBase.h>
+#include <mml/base/Vector/VectorTypes4D.h>
+#include <mml/core/Derivation.h>
+#include <mml/core/MetricTensor.h>
+#include <mml/core/Integration/Integration1D.h>
+#include <mml/tools/Visualizer.h>
+#include <mml/tools/Serializer.h>
 #endif
 
 #include <iostream>
@@ -42,6 +41,23 @@
 #include <vector>
 
 using namespace MML;
+
+namespace
+{
+Vector4Minkowski LorentzBoostXAxis(const Vector4Minkowski& event, Real velocity)
+{
+    if (std::abs(velocity) >= REAL(1.0))
+        throw std::range_error("Lorentz boost requires |v| < c");
+
+    const Real lorentzFactor = REAL(1.0) / std::sqrt(REAL(1.0) - velocity * velocity);
+    return Vector4Minkowski{
+        lorentzFactor * (event.T() - velocity * event.X()),
+        lorentzFactor * (event.X() - velocity * event.T()),
+        event.Y(),
+        event.Z()
+    };
+}
+}
 
 // Calculate Lorentz factor γ
 Real gamma(Real v) {
@@ -251,13 +267,12 @@ void Demo_TwinParadox()
     std::cout << "  breaking the equivalence of inertial frames. Twin B experiences\n";
     std::cout << "  non-inertial motion, so they objectively age less.\n\n";
     
-    // Demonstrate with MML's Lorentz transformation
-    std::cout << "Using MML's CoordTransfLorentzXAxis:\n";
-    CoordTransfLorentzXAxis lorentz(v);
+    // Demonstrate a localized Lorentz transformation built from MML vector types
+    std::cout << "Using the example's local LorentzBoostXAxis implementation:\n";
     
     // Event: Twin A celebrates 10th anniversary on Earth (t=10, x=0)
     Vector4Minkowski earthEvent{10.0, 0.0, 0.0, 0.0};
-    Vector4Minkowski shipEvent = lorentz.transf(earthEvent);
+    Vector4Minkowski shipEvent = LorentzBoostXAxis(earthEvent, v);
     
     std::cout << "  Event in Earth frame: t=" << earthEvent.T() << " years, x=" << earthEvent.X() << "\n";
     std::cout << "  Same event in ship frame: t'=" << shipEvent.T() << " years, x'=" << shipEvent.X() << "\n";
@@ -330,7 +345,7 @@ void Demo_Worldlines()
     }
     ofs.close();
     
-    std::cout << "Worldline data saved to: results/twin_paradox_worldlines.txt\n";
+    std::cout << "Worldline data saved to: results/twin_paradox_worldlines.mml\n";
     std::cout << "\n  Columns:\n";
     std::cout << "    t_earth     - Coordinate time (Earth frame)\n";
     std::cout << "    x_A, x_B    - Positions of Twin A and B\n";

@@ -14,6 +14,7 @@ The Core layer provides operations on Base layer types, implementing calculus, c
 - **ODE systems**: See [ODE_system.md](ODE_system.md) for system interfaces, Jacobians, and solution export helpers.
 - **Coordinate transforms**: See [Coordinate_transformations.md](Coordinate_transformations.md) for covariant/contravariant transforms, Jacobians, and predefined mappings.
 - **Metric tensors**: See [Metric_tensor.md](Metric_tensor.md) for Cartesian/Spherical/Cylindrical metrics and building metrics from transforms.
+- **Typed differential forms**: See [Typed_differential_forms.md](Typed_differential_forms.md) for tangent vectors, covectors, forms, Hodge star, typed fields, and coordinate maps.
 - **Function spaces**: See [Function_spaces.md](Function_spaces.md) to choose between real/scalar/vector/tensor/parametric abstractions.
 - **Fields**: See [Fields.md](Fields.md) for common field examples used across docs.
 - **Curves and surfaces**: See [Curves_and_surfaces.md](Curves_and_surfaces.md) and [Interpolated_functions.md](Interpolated_functions.md) for geometry and visualization.
@@ -24,6 +25,7 @@ The Core layer provides operations on Base layer types, implementing calculus, c
 - **High-order derivatives**: Configurable finite differences (orders 1/2/4/6/8) with stability tips in [Derivation.md](Derivation.md).
 - **Vector field toolkit**: Gradient, divergence, curl, Laplacian across coordinate systems in [Vector_field_operations.md](Vector_field_operations.md).
 - **Coordinates + metrics**: Transformations and metric tensors, including covariant/contravariant handling in [Coordinate_transformations.md](Coordinate_transformations.md) and [Metric_tensor.md](Metric_tensor.md).
+- **Typed forms**: Semantic tangent/covector/form APIs, metric musical operations, Hodge star, and coordinate map pull-backs in [Typed_differential_forms.md](Typed_differential_forms.md).
 - **ODE systems**: Interfaces, Jacobians, and helpers to couple with solvers in [ODE_system.md](ODE_system.md).
 - **Function abstractions**: Real/scalar/vector/tensor/parametric spaces overview in [Function_spaces.md](Function_spaces.md).
 - **Geometry primitives**: Parametric curves and surfaces with visualization notes in [Curves_and_surfaces.md](Curves_and_surfaces.md).
@@ -54,7 +56,7 @@ The Core layer provides operations on Base layer types, implementing calculus, c
    - [Field Operations](#field-operations)
 6. [Linear Algebra Solvers](#linear-algebra-solvers)
    - [LinAlgEqSolvers](#linalgeqsolvers)
-   - [MatrixUtils](#matrixutils)
+    - [Matrix Operations](#matrix-operations)
 7. [Differential Geometry](#differential-geometry)
    - [MetricTensor](#metrictensor)
    - [Christoffel Symbols](#christoffel-symbols)
@@ -101,7 +103,7 @@ f'(x) ≈ [f(x) - f(x-h)] / h
 The number suffix (1,2,4,6,8) indicates the **order of accuracy**, not the derivative order.
 
 ```cpp
-#include "core/Derivation.h"
+#include <mml/core/Derivation.h>
 
 RealFunction f([](Real x) { return x*x*x; });
 
@@ -408,7 +410,7 @@ struct IntegrationResult {
 #### Core API
 
 ```cpp
-#include "core/Integration.h"
+#include <mml/core/Integration.h>
 
 RealFunction f([](Real x) { return std::sin(x); });
 
@@ -642,13 +644,11 @@ Real tri_flux = SurfaceIntegration::SurfaceIntegral(F, triangle, 0.001);
 
 ## Coordinate Systems
 
-### CoordSystem
+### Reference Frames
 
-**File**: `mml/core/CoordSystem.h`
+**File**: `src/book/mpl/Mechanics/MovingFrames.h`
 
-**Purpose**: Manage different coordinate systems and reference frames.
-
-#### Reference Frames
+**Purpose**: Manage physical reference frames in the local MPL mechanics copy. MML core keeps the generic coordinate transformation primitives; moving/inertial/rotating frame models are physics concepts and now live in MPL.
 
 ##### ReferenceFrame3D
 
@@ -1175,32 +1175,19 @@ Vector<Real> x = band.Solve(b);
 
 ---
 
-### MatrixUtils
+### Matrix Operations
 
-**File**: `mml/core/MatrixUtils.h`
+**File**: `mml/base/BaseUtils/MatrixOps.h`
 
-**Purpose**: Utility functions for matrix analysis and special matrix construction.
+**Purpose**: Base-level matrix construction, comparison, transformation, and orthogonalization helpers.
 
 ```cpp
-namespace Utils {
-    // Matrix properties
-    Type det = Det(A);                         // Determinant via LU
-    int rank = Rank(A, tol);                   // Numerical rank via Gaussian elimination
-    
-    // Matrix classification
-    bool nilp = IsNilpotent(A);               // A^k = 0 for some k
-    bool unip = IsUnipotent(A);               // (A - I)^k = 0 for some k
-    
-    // Faddeev-Leverrier algorithm
-    PolynomRealFunc charPoly;
-    Real det;
-    Matrix<Real> inv;
-    FaddeevAlg(A, charPoly, det, inv);        // Characteristic polynomial, det, inverse
-}
-
-// Note: Matrix trace is a Matrix method: A.Trace()
-// Note: Matrix inverse via: A.GetInverse() or LUSolver::inverse()
+Real difference = Utils::MaxAbsDiff(A, B);
+Matrix<Real> transformed = Utils::SimilarityTransform(Q, A); // Q^T A Q
+Matrix<Real> orthonormal = GramSchmidt(A);
 ```
+
+Matrix analysis is provided by `MatrixAlg` and cached `MatrixAnalyzer` objects.
 
 ---
 

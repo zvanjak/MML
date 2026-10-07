@@ -5,13 +5,95 @@
 // to avoid Static Initialization Order Fiasco issues across translation units.
 
 #ifdef MML_USE_SINGLE_HEADER
-#include "MML.h"
+#include <MML.h>
 #else
-#include "base/Matrix/Matrix.h"
+#include <mml/base/Matrix/Matrix.h>
 #endif
 
 namespace MML::TestBeds
 {
+    /***********************************************************************************************/
+    /**************               Structured 2 x 2 complex matrices                    **************/
+    /***********************************************************************************************/
+    inline const Matrix<Complex>& mat_cmplx_symmetric_2x2() {
+        static const Matrix<Complex> m{2, 2, {
+            Complex(2.0, 1.0), Complex(1.0, -2.0),
+            Complex(1.0, -2.0), Complex(3.0, 4.0)
+        }};
+        return m;
+    }
+
+    inline const Vector<Complex>& mat_cmplx_symmetric_2x2_rhs0() {
+        static const Vector<Complex> v{Complex(5.0, -5.0), Complex(5.0, 5.0)};
+        return v;
+    }
+    inline const Vector<Complex>& mat_cmplx_symmetric_2x2_rhs0_sol() {
+        static const Vector<Complex> v{Complex(1.0, -1.0), Complex(2.0, 0.0)};
+        return v;
+    }
+
+    inline Real mat_cmplx_symmetric_2x2_det_abs() { return std::sqrt(REAL(250.0)); }
+    inline const Vector<Real>& mat_cmplx_symmetric_2x2_singular_values() {
+        static const Vector<Real> v{5.678683713116302, 2.7843403749343954};
+        return v;
+    }
+    inline Real mat_cmplx_symmetric_2x2_cond_2() { return 2.039507733308834; }
+    inline int mat_cmplx_symmetric_2x2_rank() { return 2; }
+
+    /////////////////////////////////////////////////////////////////////////////////////////////////
+    inline const Matrix<Complex>& mat_cmplx_hermitian_2x2() {
+        static const Matrix<Complex> m{2, 2, {
+            Complex(4.0, 0.0), Complex(1.0, 2.0),
+            Complex(1.0, -2.0), Complex(3.0, 0.0)
+        }};
+        return m;
+    }
+
+    inline const Vector<Complex>& mat_cmplx_hermitian_2x2_rhs0() {
+        static const Vector<Complex> v{Complex(6.0, 0.0), Complex(5.0, -3.0)};
+        return v;
+    }
+    inline const Vector<Complex>& mat_cmplx_hermitian_2x2_rhs0_sol() {
+        static const Vector<Complex> v{Complex(1.0, -1.0), Complex(2.0, 0.0)};
+        return v;
+    }
+
+    inline Real mat_cmplx_hermitian_2x2_det_abs() { return 7.0; }
+    inline const Vector<Real>& mat_cmplx_hermitian_2x2_singular_values() {
+        static const Vector<Real> v{5.79128784747792, 1.2087121525220803};
+        return v;
+    }
+    inline Real mat_cmplx_hermitian_2x2_cond_2() { return 4.7912878474779195; }
+    inline int mat_cmplx_hermitian_2x2_rank() { return 2; }
+
+    /////////////////////////////////////////////////////////////////////////////////////////////////
+    inline const Matrix<Complex>& mat_cmplx_unitary_2x2() {
+        static const Real invSqrt2 = REAL(1.0) / std::sqrt(REAL(2.0));
+        static const Matrix<Complex> m{2, 2, {
+            Complex(invSqrt2, 0.0), Complex(0.0, invSqrt2),
+            Complex(0.0, invSqrt2), Complex(invSqrt2, 0.0)
+        }};
+        return m;
+    }
+
+    inline const Vector<Complex>& mat_cmplx_unitary_2x2_rhs0() {
+        static const Real invSqrt2 = REAL(1.0) / std::sqrt(REAL(2.0));
+        static const Vector<Complex> v{Complex(invSqrt2, invSqrt2), Complex(3.0 * invSqrt2, invSqrt2)};
+        return v;
+    }
+    inline const Vector<Complex>& mat_cmplx_unitary_2x2_rhs0_sol() {
+        static const Vector<Complex> v{Complex(1.0, -1.0), Complex(2.0, 0.0)};
+        return v;
+    }
+
+    inline Real mat_cmplx_unitary_2x2_det_abs() { return 1.0; }
+    inline const Vector<Real>& mat_cmplx_unitary_2x2_singular_values() {
+        static const Vector<Real> v{1.0, 1.0};
+        return v;
+    }
+    inline Real mat_cmplx_unitary_2x2_cond_2() { return 1.0; }
+    inline int mat_cmplx_unitary_2x2_rank() { return 2; }
+
     /***********************************************************************************************/
     /**************                     3 x 3 test matrices                           **************/
     /***********************************************************************************************/

@@ -1,6 +1,6 @@
 # Function Optimization
 
-Comprehensive toolkit for **unconstrained optimization** - from univariate golden section to sophisticated multidimensional quasi-Newton methods.
+Comprehensive toolkit for **function optimization** - from univariate golden section to multidimensional local methods, including box-bound constrained variants.
 
 ## Overview
 
@@ -17,6 +17,7 @@ Comprehensive toolkit for **unconstrained optimization** - from univariate golde
 - **1D Methods**: Bracketing + refinement (Golden Section, Brent)
 - **Derivative-Free Multidim**: Nelder-Mead (simplex), Powell (direction set)
 - **Gradient-Based Multidim**: Conjugate Gradient, BFGS quasi-Newton
+- **Box-Constrained Multidim**: Bound projection utilities, projected gradient, and conservative Nelder-Mead/Powell wrappers
 - **Configuration**: Fluent builder API for termination criteria and observers
 
 ## Quick Reference
@@ -39,6 +40,15 @@ Comprehensive toolkit for **unconstrained optimization** - from univariate golde
 | **ConjugateGradient** | Yes | Superlinear | O(N) | **Large-scale smooth** |
 | **BFGS** | Yes | Superlinear | O(N²) | **General smooth, N < 1000** |
 
+### Box-Constrained Minimization (OptimizationMultidim.h)
+
+| Method | Derivatives | Constraint Type | Best For |
+|--------|-------------|-----------------|----------|
+| **BoundConstraints** | N/A | lower/upper bounds | Projection, feasibility checks, active bound detection |
+| **ProjectedGradient** | Yes | box bounds | Smooth bounded problems with available gradients |
+| **BoxConstrainedNelderMead** | No | box bounds | Black-box bounded local search |
+| **BoxConstrainedPowell** | No | box bounds | Smooth bounded local search without gradients |
+
 ### Convergence Rates
 
 | Method | Rate | Iterations to ε |
@@ -60,7 +70,7 @@ Comprehensive toolkit for **unconstrained optimization** - from univariate golde
 **Algorithm**: Geometric expansion using golden ratio (φ ≈ 1.618) with parabolic acceleration.
 
 ```cpp
-#include "algorithms/Optimization.h"
+#include <mml/algorithms/Optimization/Optimization.h>
 using namespace MML;
 
 // Function to minimize: f(x) = (x - 2)² + 1
@@ -176,7 +186,7 @@ struct MultidimMinimizationResult {
 **Convergence**: Linear but very robust. Works on non-smooth, noisy functions.
 
 ```cpp
-#include "algorithms/Optimization/OptimizationMultidim.h"
+#include <mml/algorithms/Optimization/OptimizationMultidim.h>
 using namespace MML;
 
 // Rosenbrock function: f(x,y) = (1-x)² + 100(y-x²)²
@@ -266,6 +276,68 @@ auto result = optimizer.Minimize(func, start, directions);
 - ✅ Moderate dimensions (N < 20)
 - ✅ Better than NelderMead for smooth functions
 - ❌ Non-smooth functions (use NelderMead)
+
+---
+
+## Box-Constrained Optimization
+
+Box constraints limit each variable independently:
+
+```cpp
+lower[i] <= x[i] <= upper[i]
+```
+
+Use `BoundConstraints` to validate and project points into the feasible box. The bound-constrained local optimizers accept the same `IScalarFunction<N>` or `IDifferentiableScalarFunction<N>` interfaces as the unconstrained methods.
+
+```cpp
+#include <mml/algorithms/Optimization/OptimizationMultidim.h>
+using namespace MML;
+using namespace MML::Optimization;
+
+BoundConstraints bounds(
+    Vector<Real>{-2.0, -1.0},
+    Vector<Real>{ 2.0,  3.0}
+);
+```
+
+### ProjectedGradient
+
+`ProjectedGradient` takes a gradient step, projects the trial point back into the box, and uses Armijo backtracking for descent. It reports the projected-gradient norm, which is the natural first-order stationarity diagnostic for bound-constrained problems.
+
+```cpp
+RosenbrockWithGrad func;
+VectorN<Real, 2> start = {-1.2, 1.0};
+
+ProjectedGradientConfig config;
+config.gradient_tolerance = 1e-8;
+config.max_iterations = 1000;
+
+auto result = ProjectedGradientMinimize(func, start, bounds, config);
+if (result.converged) {
+    std::cout << "x* = (" << result.xmin[0] << ", " << result.xmin[1] << ")\n";
+}
+```
+
+### BoxConstrainedNelderMead And BoxConstrainedPowell
+
+The derivative-free wrappers are conservative local tools. They project objective evaluations into the feasible box and repair the returned minimizer so `result.xmin` is feasible. They are useful when a simple bounded local search is needed, but they are not a replacement for a full constrained nonlinear programming framework with general equality/inequality constraints.
+
+```cpp
+MultidimOptimizationConfig config;
+config.tolerance = 1e-10;
+config.max_iterations = 5000;
+config.initial_delta = 0.5;
+
+auto nelder = BoxConstrainedNelderMeadMinimize(func, start, bounds, config);
+auto powell = BoxConstrainedPowellMinimize(func, start, bounds, config);
+```
+
+**When to Use Box-Constrained Methods**:
+- ✅ Variables have physical, geometric, or calibration bounds
+- ✅ Projection onto the feasible set is enough
+- ✅ You need compact local bounded optimization in core MML
+- ❌ General nonlinear constraints such as `g(x) <= 0` or `h(x) = 0` (use the optimization package layer)
+- ❌ Large-scale production bound-constrained quasi-Newton workflows (future L-BFGS-B style work)
 
 ---
 
@@ -416,81 +488,28 @@ Real fmin = LineMinimizer::Minimize(func, p, xi);
 
 ## Configuration API
 
-### OptimizationConfig - Fluent Builder
+Core optimization uses compact, algorithm-specific configuration structs rather
+than the package-level observer/termination framework.
 
 ```cpp
-#include "algorithms/Optimization/OptimizationConfig.h"
+Minimization1DConfig oneDim;
+oneDim.tolerance = 1e-10;
+oneDim.max_iterations = 200;
 
-// Configure optimization with fluent API
-OptimizationConfig<double> config;
-config.WithMaxIterations(5000)
-      .WithTolerance(1e-8)
-      .WithConsoleOutput(50)      // Print every 50 iterations
-      .WithTrajectory(10);        // Record every 10 iterations
+MultidimOptimizationConfig multidim;
+multidim.tolerance = 1e-8;
+multidim.max_iterations = 5000;
+multidim.lbfgs_memory_size = 10;
 
-// Use with optimizer
-// SimulatedAnnealing<double> sa(config);
-// auto result = sa.Minimize(func, x0);
+LPConfig lp;
+lp.maxIterations = 10000;
+lp.tolerance = 1e-10;
+lp.pivotRule = LPPivotRule::Bland;
 ```
 
-### Termination Criteria
-
-| Criterion | Description | Usage |
-|-----------|-------------|-------|
-| `MaxIterationsCriterion` | Stop after N iterations | Safety net |
-| `FunctionToleranceCriterion` | |f_{k+1} - f_k| < ftol | Value convergence |
-| `GradientNormCriterion` | ‖∇f‖ < gtol | Gradient convergence |
-| `StagnationCriterion` | No improvement for N iters | Plateau detection |
-| `TimeLimitCriterion` | Wall-clock time limit | Time-constrained |
-| `TargetValueCriterion` | f(x) ≤ target | Known optimum |
-
-**Composite Criteria**:
-
-```cpp
-// Stop on ANY: maxIter OR stagnation
-config.WithAnyCriterion()
-      .OrCriterion<MaxIterationsCriterion<double>>(1000)
-      .OrCriterion<StagnationCriterion<double>>(100);
-
-// Stop on ALL: ftol AND gtol (then maxIter as safety)
-config.WithAllCriteria()
-      .AndCriterion<FunctionToleranceCriterion<double>>(1e-8)
-      .AndCriterion<GradientNormCriterion<double>>(1e-6);
-```
-
-**Convenience Presets**:
-
-```cpp
-// Standard: maxIter OR stagnation
-config.WithStandardTermination(/*maxIter=*/1000, /*stagnation=*/100);
-
-// Precise: (ftol AND gtol) OR maxIter
-config.WithPreciseTermination(/*ftol=*/1e-8, /*gtol=*/1e-6, /*maxIter=*/10000);
-
-// Timed: time limit with safety maxIter
-config.WithTimedTermination(/*seconds=*/60.0, /*maxIter=*/100000);
-```
-
-### Observers
-
-**Console Output**:
-```cpp
-config.WithConsoleOutput(/*printEvery=*/50, /*verbose=*/true);
-```
-
-**Trajectory Recording**:
-```cpp
-config.WithTrajectory(/*saveEvery=*/10, /*maxSize=*/1000);
-// Access via TrajectoryObserver::GetTrajectory()
-```
-
-**Custom Callbacks**:
-```cpp
-config.WithCallback([](const OptimizationState<double>& state) {
-    std::cout << "Iter " << state.iteration << ": f = " << state.fval << "\n";
-    return true;  // false to stop early
-});
-```
+Large workflow features such as observers, trajectory recording, mixed variable
+types, custom termination compositions, and heuristic optimizers (simulated
+annealing, genetic algorithms) belong in the MML-Packages optimization layer.
 
 ---
 
@@ -500,13 +519,17 @@ config.WithCallback([](const OptimizationState<double>& state) {
 
 ```
 Is gradient available?
-├─ NO → Is function smooth?
-│       ├─ YES → Powell (moderate N) or NelderMead (any N)
-│       └─ NO  → NelderMead (robust to noise/discontinuities)
+├─ NO → Are there simple lower/upper bounds?
+│       ├─ YES → BoxConstrainedNelderMead or BoxConstrainedPowell
+│       └─ NO  → Is function smooth?
+│               ├─ YES → Powell (moderate N) or NelderMead (any N)
+│               └─ NO  → NelderMead (robust to noise/discontinuities)
 │
-└─ YES → How large is N?
-         ├─ N < 1000 → BFGS (best general choice)
-         └─ N ≥ 1000 → Conjugate Gradient (memory efficient)
+└─ YES → Are there simple lower/upper bounds?
+         ├─ YES → ProjectedGradient
+         └─ NO  → How large is N?
+                  ├─ N < 1000 → BFGS (best general choice)
+                  └─ N ≥ 1000 → Conjugate Gradient (memory efficient)
 ```
 
 ### Method Comparison
@@ -521,6 +544,8 @@ Is gradient available?
 | Memory constrained | CG | NelderMead |
 | Function evals expensive | BFGS | CG |
 | 1D optimization | Brent | Golden Section |
+| Simple lower/upper bounds with gradients | ProjectedGradient | BFGS on transformed variables |
+| Simple lower/upper bounds without gradients | BoxConstrainedNelderMead | BoxConstrainedPowell |
 
 ### Performance Guidelines
 
@@ -600,7 +625,7 @@ try {
 ### Example 1: Simple 1D Minimization
 
 ```cpp
-#include "algorithms/Optimization.h"
+#include <mml/algorithms/Optimization/Optimization.h>
 using namespace MML;
 
 int main() {
@@ -623,7 +648,7 @@ int main() {
 ### Example 2: Multidimensional Without Derivatives
 
 ```cpp
-#include "algorithms/Optimization/OptimizationMultidim.h"
+#include <mml/algorithms/Optimization/OptimizationMultidim.h>
 using namespace MML;
 
 // Himmelblau's function: has 4 local minima
@@ -658,7 +683,7 @@ int main() {
 ### Example 3: BFGS with Gradients
 
 ```cpp
-#include "algorithms/Optimization/OptimizationMultidim.h"
+#include <mml/algorithms/Optimization/OptimizationMultidim.h>
 using namespace MML;
 
 // Quadratic bowl: f(x) = x^T A x + b^T x
@@ -708,6 +733,42 @@ int main() {
               << result.xmin[1] << ", " << result.xmin[2] << ")\n";
     std::cout << "f(x*) = " << result.fmin << "\n";
     
+    return 0;
+}
+```
+
+### Example 4: Bounded Rosenbrock
+
+```cpp
+#include <mml/algorithms/Optimization/OptimizationMultidim.h>
+using namespace MML;
+using namespace MML::Optimization;
+
+class RosenbrockBounded : public IScalarFunction<2> {
+public:
+    Real operator()(const VectorN<Real, 2>& x) const override {
+        Real a = 1.0 - x[0];
+        Real b = x[1] - x[0] * x[0];
+        return a * a + 100.0 * b * b;
+    }
+};
+
+int main() {
+    RosenbrockBounded func;
+    BoundConstraints bounds(Vector<Real>{-2.0, -1.0}, Vector<Real>{2.0, 3.0});
+    VectorN<Real, 2> start = {-1.2, 1.0};
+
+    MultidimOptimizationConfig config;
+    config.tolerance = 1e-10;
+    config.max_iterations = 5000;
+    config.initial_delta = 0.5;
+
+    auto result = BoxConstrainedNelderMeadMinimize(func, start, bounds, config);
+
+    std::cout << "Feasible: " << bounds.IsFeasible(result.xmin) << "\n";
+    std::cout << "x* = (" << result.xmin[0] << ", " << result.xmin[1] << ")\n";
+    std::cout << "f(x*) = " << result.fmin << "\n";
+
     return 0;
 }
 ```

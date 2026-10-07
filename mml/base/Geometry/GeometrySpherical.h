@@ -42,28 +42,26 @@
 #if !defined MML_GEOMETRY_SPHERICAL_H
 #define MML_GEOMETRY_SPHERICAL_H
 
-// Standard headers - include what we use
 #include <algorithm>
 #include <cmath>
 
-#include "mml/MMLBase.h"
+#include <mml/MMLBase.h>
 
-#include "mml/interfaces/IFunction.h"
+#include <mml/interfaces/IFunction.h>
 
-#include "mml/base/BaseUtils.h"
-#include "mml/base/Vector/VectorTypes.h"
-#include "mml/base/Geometry/Geometry.h"
+#include <mml/base/BaseUtils.h>
+#include <mml/base/Geometry/Geometry.h>
 
 
 
 namespace MML
 {
 	/// @brief Static utility class for spherical geometry calculations.
-/// Provides coordinate conversions and geodesic distance calculations
-/// for points on a sphere. Supports both mathematical spherical coordinates
-/// and geographic (latitude/longitude) coordinates.
-/// @note All angle inputs/outputs are in radians unless explicitly noted.
-/// @note Distance functions return angular distance; multiply by radius for arc length.
+  /// Provides coordinate conversions and geodesic distance calculations
+  /// for points on a sphere. Supports both mathematical spherical coordinates
+  /// and geographic (latitude/longitude) coordinates.
+  /// @note All angle inputs/outputs are in radians unless explicitly noted.
+  /// @note Distance functions return angular distance; multiply by radius for arc length.
 
 	class SphericalGeometryCalculator
 	{
@@ -72,8 +70,8 @@ namespace MML
 		/// @{
 		
 		/// @brief Compute radial distance from Cartesian coordinates.
-/// @param pnt Cartesian point
-/// @return Distance from origin: √(x² + y² + z²)
+    /// @param pnt Cartesian point
+    /// @return Distance from origin: √(x² + y² + z²)
 
 		static Real RadiusFromCartesian(const Pnt3Cart& pnt)
 		{
@@ -81,11 +79,11 @@ namespace MML
 		}
 		
 		/// @brief Convert spherical coordinates to Cartesian.
-/// @param pnt Spherical point (r, θ, φ)
-/// @return Cartesian point (x, y, z)
-/// Uses standard physics convention:
-/// - θ (theta) = polar angle from +Z axis [0, π]
-/// - φ (phi) = azimuthal angle in XY plane [0, 2π]
+    /// @param pnt Spherical point (r, θ, φ)
+    /// @return Cartesian point (x, y, z)
+    /// Uses standard physics convention:
+    /// - θ (theta) = polar angle from +Z axis [0, π]
+    /// - φ (phi) = azimuthal angle in XY plane [0, 2π]
 
 		static Pnt3Cart CartesianFromSpherical(const Pnt3Sph& pnt)
 		{
@@ -95,10 +93,10 @@ namespace MML
 		}
 
 		/// @brief Convert geographic coordinates to spherical (unit sphere).
-/// @param latitudeDeg Latitude in degrees [-90 (South) to +90 (North)]
-/// @param longitudeDeg Longitude in degrees [-180 to +180]
-/// @return Spherical point on unit sphere (r=1)
-/// Conversion: θ = 90° - latitude (so North Pole has θ=0)
+    /// @param latitudeDeg Latitude in degrees [-90 (South) to +90 (North)]
+    /// @param longitudeDeg Longitude in degrees [-180 to +180]
+    /// @return Spherical point on unit sphere (r=1)
+    /// Conversion: θ = 90° - latitude (so North Pole has θ=0)
 
 		static Pnt3Sph SphericalFromLatLong(Real latitudeDeg, Real longitudeDeg)
 		{
@@ -114,17 +112,20 @@ namespace MML
 		/// @{
 		
 		/// @brief Compute great circle angular distance between two geographic points.
-/// @param lat1Deg First point latitude (degrees)
-/// @param long1Deg First point longitude (degrees)
-/// @param lat2Deg Second point latitude (degrees)
-/// @param long2Deg Second point longitude (degrees)
-/// @return Angular distance in radians
-/// Uses spherical law of cosines. The result is the central angle
-/// subtended by the two points. Multiply by sphere radius to get arc length.
-/// @note For Earth: multiply by 6371 km for approximate surface distance.
+    /// @param lat1Deg First point latitude (degrees)
+    /// @param long1Deg First point longitude (degrees)
+    /// @param lat2Deg Second point latitude (degrees)
+    /// @param long2Deg Second point longitude (degrees)
+    /// @return Angular distance in radians
+    /// Uses spherical law of cosines. The result is the central angle
+    /// subtended by the two points. Multiply by sphere radius to get arc length.
+    /// @note For Earth: multiply by 6371 km for approximate surface distance.
 
 		static Real DistanceBetweenLatLong(Real lat1Deg, Real long1Deg, Real lat2Deg, Real long2Deg)
 		{
+			if (lat1Deg == lat2Deg && long1Deg == long2Deg)
+				return Real(0.0);
+
 			Pnt3Sph pnt1 = SphericalFromLatLong(lat1Deg, long1Deg);
 			Pnt3Sph pnt2 = SphericalFromLatLong(lat2Deg, long2Deg);
 
@@ -138,13 +139,13 @@ namespace MML
 		}
 		
 		/// @brief Compute great circle distance in physical units.
-/// @param radius Sphere radius (in desired units, e.g., meters or km)
-/// @param lat1Deg First point latitude (degrees)
-/// @param long1Deg First point longitude (degrees)
-/// @param lat2Deg Second point latitude (degrees)
-/// @param long2Deg Second point longitude (degrees)
-/// @return Arc length distance (same units as radius)
-/// @note For Earth calculations, use radius ≈ 6371000 m or 6371 km.
+    /// @param radius Sphere radius (in desired units, e.g., meters or km)
+    /// @param lat1Deg First point latitude (degrees)
+    /// @param long1Deg First point longitude (degrees)
+    /// @param lat2Deg Second point latitude (degrees)
+    /// @param long2Deg Second point longitude (degrees)
+    /// @return Arc length distance (same units as radius)
+    /// @note For Earth calculations, use radius ≈ 6371000 m or 6371 km.
 
 		static Real DistanceBetweenLatLong(Real radius, Real lat1Deg, Real long1Deg, Real lat2Deg, Real long2Deg)
 		{

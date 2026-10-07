@@ -253,16 +253,16 @@ Matrix<Real> cosA = Cos(A, 10);  // cos(A)
 
 ### Orthogonal Matrices
 ```cpp
-using namespace MML::Utils;
+#include <mml/algorithms/MatrixAlg.h>
 
 Matrix<Real> Q(3, 3);
 // ... fill with rotation matrix ...
 
 // Check if Q is orthogonal (Q^T * Q = I)
-bool is_orthogonal = IsOrthogonal(Q);
+bool is_orthogonal = MatrixAlg::IsOrthogonal(Q);
 
 // Custom tolerance
-bool is_orthogonal2 = IsOrthogonal(Q, 1e-10);
+bool is_orthogonal2 = MatrixAlg::IsOrthogonal(Q, {1e-10, 0.0});
 ```
 
 ### Unitary Matrices
@@ -271,10 +271,10 @@ Matrix<Complex> U(2, 2);
 // ... fill with unitary matrix ...
 
 // Check if U is unitary (U† * U = I)
-bool is_unitary = IsUnitary(U);
+bool is_unitary = MatrixAlg::IsUnitary(U);
 
 // Custom tolerance
-bool is_unitary2 = IsUnitary(U, 1e-10);
+bool is_unitary2 = MatrixAlg::IsUnitary(U, {1e-10, 0.0});
 ```
 
 ### Hermitian Matrices
@@ -286,7 +286,7 @@ H(1,0) = Complex(0, -1);  // Conjugate of H(0,1)
 H(1,1) = Complex(2, 0);
 
 // Check if H = H† (conjugate transpose)
-bool is_hermitian = IsHermitian(H);
+bool is_hermitian = MatrixAlg::IsHermitian(H);
 ```
 
 ### Complex Matrix Operations

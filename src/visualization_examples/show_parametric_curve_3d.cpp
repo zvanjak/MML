@@ -7,12 +7,12 @@
  */
 
 #ifdef MML_USE_SINGLE_HEADER
-#include "MML.h"
+#include <MML.h>
 #else
-#include "MMLBase.h"
-#include "base/Vector/VectorN.h"
-#include "core/Curves.h"
-#include "tools/Visualizer.h"
+#include <mml/MMLBase.h>
+#include <mml/base/Vector/VectorN.h>
+#include <mml/core/Curves.h>
+#include <mml/tools/Visualizer.h>
 #endif
 
 using namespace MML;
@@ -24,7 +24,7 @@ void Show_Parametric_Curve_3D_Examples()
     // Example 1: Helix
     std::cout << "1. Helix: (cos(t), sin(t), t/5)\n";
     ParametricCurve<3> helix{[](Real t) {
-        return VectorN<Real, 3>{std::cos(t), std::sin(t), t / 5.0} * 50.0;
+        return VectorN<Real, 3>{std::cos(t), std::sin(t), t / Real{5}} * 50.0;
     }};
     Visualizer::VisualizeParamCurve3D(helix, "Helix",
                                       0.0, 10*Constants::PI, 500,
@@ -39,7 +39,7 @@ void Show_Parametric_Curve_3D_Examples()
 
     // Example 3: Toroidal spiral
     std::cout << "3. Toroidal Spiral\n";
-    Curves::ToroidalSpiralCurve toroid(50.0);
+    Curves::ToroidalSpiralCurve toroid(Real{50});
     Visualizer::VisualizeParamCurve3D(toroid, "Toroidal Spiral",
                                       0.0, 2*Constants::PI, 2000,
                                       "viz_curve3d_toroidal.mml");
@@ -78,7 +78,7 @@ void Show_Parametric_Curve_3D_Examples()
         return VectorN<Real, 3>{
             r * std::cos(t),
             r * std::sin(t),
-            t / 5.0
+            t / Real{5}
         } * 50.0;
     }};
     Visualizer::VisualizeParamCurve3D(conicalHelix, "Conical Helix",

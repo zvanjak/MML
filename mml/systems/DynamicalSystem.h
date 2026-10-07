@@ -13,21 +13,24 @@
 #define MML_DYNAMICAL_SYSTEM_H
 
 // Types and result structures
-#include "systems/DynamicalSystemTypes.h"
+#include <mml/systems/DynamicalSystem/DynamicalSystemTypes.h>
 
 // Base class for dynamical systems
-#include "systems/DynamicalSystemBase.h"
+#include <mml/systems/DynamicalSystem/DynamicalSystemBase.h>
 
 // Analysis tools (fixed points, Lyapunov, bifurcations, phase space)
-#include "systems/DynamicalSystemAnalyzers.h"
+#include <mml/systems/DynamicalSystem/FixedPointAnalysis.h>
+#include <mml/systems/DynamicalSystem/LyapunovAnalysis.h>
+#include <mml/systems/DynamicalSystem/BifurcationAnalysis.h>
+#include <mml/systems/DynamicalSystem/PhaseSpaceAnalysis.h>
 
 // Classic continuous systems (Lorenz, Rössler, Van der Pol, etc.)
-#include "systems/ContinuousSystems.h"
+#include <mml/systems/ContinuousSystems.h>
 
 // Discrete maps (Logistic, Hénon, Standard, Tent)
-#include "systems/DiscreteMaps.h"
+#include <mml/systems/DiscreteMaps.h>
 
 // Unified analyzer facade
-#include "systems/DynamicalSystemAnalyzer.h"
+#include <mml/systems/DynamicalSystemAnalyzer.h>
 
 #endif // MML_DYNAMICAL_SYSTEM_H

@@ -1,6 +1,9 @@
 # Eigen Solvers
 
-**Location**: `mml/algorithms/EigenSystemSolvers.h`, `mml/algorithms/EigenSolverHelpers.h`  
+**Location**: `mml/algorithms/Eigen/`
+
+**Compatibility header**: `mml/algorithms/EigenSystemSolvers.h`
+
 **Dependencies**: Matrix, MatrixSym, Vector
 
 ---
@@ -76,6 +79,26 @@ A·v = λ·v
 - **Pros**: O(n³) **total**, fastest for large matrices
 - **Cons**: More complex implementation
 - **Best for**: n ≥ 100, production code, large-scale problems
+
+### Complex Hermitian Matrices
+
+`HermitianMatEigenSolverJacobi` solves $A v = \lambda v$ for complex matrices satisfying $A=A^*$.
+It returns sorted real eigenvalues and complex unitary eigenvectors:
+
+$$
+A = V \Lambda V^*, \qquad V^*V=I.
+$$
+
+The solver validates that the input is square and Hermitian, removes the phase of each pivot,
+and applies stable Jacobi rotations. It is intended for small and medium dense Hermitian problems.
+
+```cpp
+Matrix<Complex> A = /* Hermitian matrix */;
+auto result = HermitianMatEigenSolverJacobi::Solve(A);
+
+Vector<Real> eigenvalues = result.eigenvalues;
+Matrix<Complex> eigenvectors = result.eigenvectors;
+```
 
 ### General Nonsymmetric Matrices
 
@@ -184,7 +207,7 @@ public:
                        Real tol = 1e-10, 
                        int maxIter = 100);
     
-    static Result Solve(const Matrix<Real>& A,     // Symmetrizes A first
+    static Result Solve(const Matrix<Real>& A,     // Validates symmetry; throws otherwise
                        Real tol = 1e-10, 
                        int maxIter = 100);
 };
@@ -193,7 +216,7 @@ public:
 ### Example 1: Basic Eigenvalue Decomposition
 
 ```cpp
-#include "algorithms/EigenSystemSolvers.h"
+#include <mml/algorithms/EigenSystemSolvers.h>
 
 // 3×3 symmetric matrix
 MatrixSym<Real> A(3, {
@@ -404,7 +427,7 @@ public:
 ### Example 5: QR vs Jacobi Speed
 
 ```cpp
-#include "algorithms/EigenSystemSolvers.h"
+#include <mml/algorithms/EigenSystemSolvers.h>
 #include <chrono>
 
 // Generate random 100×100 symmetric matrix
@@ -632,39 +655,16 @@ Example 5×5 Hessenberg:
 ### API
 
 ```cpp
-class EigenSolver
-{
-public:
-    struct ComplexEigenvalue
-    {
-        Real real, imag;
-        bool isComplex(Real tol = 1e-12) const;
-        Real magnitude() const;
-    };
-    
-    struct Result
-    {
-        std::vector<ComplexEigenvalue> eigenvalues;  // All n eigenvalues
-        Matrix<Real> eigenvectors;                   // Real representation
-        std::vector<bool> isComplexPair;             // Pair indicators
-        bool converged;
-        int iterations;
-        Real maxResidual;
-    };
-    
-    static Result Solve(const Matrix<Real>& A,
-                       Real tol = 1e-10,
-                       int maxIter = 1000);
-};
+auto result = MatrixAlg::Eigensystem(A, tolerance, maxIterations);
+
+Vector<Complex> eigenvalues = result.eigenvalues;
+Matrix<Complex> eigenvectors = result.eigenvectors;
+bool converged = result.converged;
+Real maxResidual = result.maxResidual;
 ```
 
-**Complex Eigenvector Storage**:
-- **Real eigenvalue**: Column k is real eigenvector v
-- **Complex pair** λ ± μi: Columns k, k+1 store **real** and **imaginary** parts
-  ```
-  v_k + i·v_{k+1}  is eigenvector for λ + μi
-  v_k - i·v_{k+1}  is eigenvector for λ - μi
-  ```
+Column `i` of `eigenvectors` corresponds directly to `eigenvalues[i]`. Complex
+components are explicit and are never packed into adjacent real columns.
 
 ### Example 8: Matrix with Complex Eigenvalues
 
@@ -675,16 +675,16 @@ Matrix<Real> A(2, 2, {
     -0.6,  0.8
 });
 
-auto result = EigenSolver::Solve(A);
+auto result = MatrixAlg::Eigensystem(A);
 
 std::cout << "Eigenvalues:" << std::endl;
 for (size_t i = 0; i < result.eigenvalues.size(); i++)
 {
-    auto& lambda = result.eigenvalues[i];
-    std::cout << "  λ" << i << " = " << lambda.real;
-    if (lambda.isComplex())
-        std::cout << " ± " << std::abs(lambda.imag) << "i";
-    std::cout << std::endl;
+    const Complex lambda = result.eigenvalues[i];
+    std::cout << "  λ" << i << " = " << lambda.real();
+    if (std::abs(lambda.imag()) > 1e-12)
+        std::cout << (lambda.imag() >= 0 ? " + " : " - ") << std::abs(lambda.imag()) << "i";
+    std::cout << '\n';
 }
 
 /* Output:
@@ -699,29 +699,11 @@ Eigenvalues:
 ### Example 9: Verify Complex Eigenpair
 
 ```cpp
-// For complex eigenvalue λ = a + bi with eigenvector v = vr + i·vi
-// Check: A·(vr + i·vi) = (a + bi)·(vr + i·vi)
-// Real part: A·vr = a·vr - b·vi
-// Imag part: A·vi = b·vr + a·vi
-
-if (result.isComplexPair[0])
-{
-    auto& lambda = result.eigenvalues[0];
-    Vector<Real> vr = result.eigenvectors.GetColumn(0);
-    Vector<Real> vi = result.eigenvectors.GetColumn(1);
-    
-    Vector<Real> Avr = A * vr;
-    Vector<Real> Avi = A * vi;
-    
-    Vector<Real> expected_real = lambda.real * vr - lambda.imag * vi;
-    Vector<Real> expected_imag = lambda.imag * vr + lambda.real * vi;
-    
-    Real error_real = (Avr - expected_real).NormL2();
-    Real error_imag = (Avi - expected_imag).NormL2();
-    
-    std::cout << "Real part error: " << error_real << std::endl;
-    std::cout << "Imag part error: " << error_imag << std::endl;
-}
+// Each explicit complex eigenpair satisfies A*v = lambda*v.
+// The solver also reports the maximum normalized residual over all pairs.
+if (!result.converged)
+    std::cerr << result.errorMessage << '\n';
+std::cout << "Maximum normalized residual: " << result.maxResidual << '\n';
 
 /* Output:
 Real part error: 2.3e-15
@@ -741,24 +723,18 @@ Matrix<Real> A(5, 5, {
      2.6,  2.9,  0.1,  9.6, -7.7
 });
 
-auto result = EigenSolver::Solve(A);
+auto result = MatrixAlg::Eigensystem(A);
 
 std::cout << "Classification:" << std::endl;
 int numReal = 0, numComplex = 0;
 for (size_t i = 0; i < result.eigenvalues.size(); i++)
 {
-    if (!result.isComplexPair[i])
-    {
-        numReal++;
-        std::cout << "  λ" << i << " = " << result.eigenvalues[i].real << " (real)" << std::endl;
-    }
-    else if (result.eigenvalues[i].imag > 0)  // Print only + part of conjugate pair
-    {
-        numComplex += 2;
-        std::cout << "  λ" << i << ",λ" << i+1 << " = " 
-                  << result.eigenvalues[i].real << " ± " 
-                  << result.eigenvalues[i].imag << "i (complex)" << std::endl;
-    }
+    const Complex lambda = result.eigenvalues[i];
+    if (std::abs(lambda.imag()) <= 1e-12)
+        ++numReal;
+    else
+        ++numComplex;
+    std::cout << "  λ" << i << " = " << lambda << '\n';
 }
 std::cout << "\nTotal: " << numReal << " real, " << numComplex << " complex" << std::endl;
 
@@ -804,16 +780,13 @@ Total: 1 real, 4 complex
 
 ```cpp
 // Decision tree:
-if (matrix.IsSymmetric())
+if (MatrixAlg::IsSymmetric(matrix))
 {
-    if (n < 100 || need_guaranteed_accuracy)
-        use SymmMatEigenSolverJacobi;  // Simple, robust
-    else
-        use SymmMatEigenSolverQR;      // Fast
+    auto result = MatrixAlg::SymmetricEigensystem(matrix);
 }
 else
 {
-    use EigenSolver;  // General nonsymmetric
+    auto result = MatrixAlg::Eigensystem(matrix);
 }
 ```
 
@@ -822,39 +795,16 @@ else
 **1. Matrix Conditioning**
 ```cpp
 // Check condition number before solving
-Real conditionNumber = A.ConditionNumber();
+Real conditionNumber = MatrixAlg::ConditionNumber(A);
 if (conditionNumber > 1e10)
     std::cerr << "Warning: Ill-conditioned matrix!" << std::endl;
 ```
 
-**2. Scaling**
+**2. Verification**
 ```cpp
-// For badly scaled matrices, equilibrate first
-Matrix<Real> D = A.EquilibrationScaling();  // Diagonal scaling
-Matrix<Real> A_scaled = D * A * D.Inverse();
-
-// Solve scaled problem
-auto result = EigenSolver::Solve(A_scaled);
-
-// Transform eigenvalues back (unchanged for similarity transform)
-// Transform eigenvectors: v_orig = D * v_scaled
-```
-
-**3. Verification**
-```cpp
-// ALWAYS verify eigenpairs for critical applications
-for (int i = 0; i < n; i++)
-{
-    Real lambda = result.eigenvalues[i];
-    Vector<Real> v = result.eigenvectors.GetColumn(i);
-    
-    Vector<Real> Av = A * v;
-    Vector<Real> lambda_v = lambda * v;
-    Real residual = (Av - lambda_v).NormL2() / std::max(1.0, std::abs(lambda));
-    
-    if (residual > 1e-8)
-        std::cerr << "Warning: Large residual for eigenpair " << i << std::endl;
-}
+// ALWAYS inspect convergence and residuals for critical applications.
+if (!result.converged || result.maxResidual > 1e-8)
+    std::cerr << "Eigenanalysis warning: " << result.errorMessage << std::endl;
 ```
 
 ### Tolerance Selection
@@ -877,14 +827,13 @@ MatrixSym<Real> A_sym(A);  // WRONG if A not symmetric!
 **✅ Do:**
 ```cpp
 // Check symmetry first
-if (A.IsSymmetric(1e-10))
+if (MatrixAlg::IsSymmetric(A, {1e-10, 0.0}))
 {
-    MatrixSym<Real> A_sym = A.ToSymmetric();
-    auto result = SymmMatEigenSolverQR::Solve(A_sym);
+    auto result = MatrixAlg::SymmetricEigensystem(A);
 }
 else
 {
-    auto result = EigenSolver::Solve(A);
+    auto result = MatrixAlg::Eigensystem(A);
 }
 ```
 
@@ -892,23 +841,14 @@ else
 ```cpp
 // Ignoring complex eigenvalues
 for (int i = 0; i < n; i++)
-    Real lambda = result.eigenvalues[i].real;  // Loses imaginary part!
+    Real lambda = result.eigenvalues[i].real();  // Loses imaginary part!
 ```
 
 **✅ Do:**
 ```cpp
 // Handle complex eigenvalues properly
-for (int i = 0; i < n; i++)
-{
-    if (result.eigenvalues[i].isComplex())
-    {
-        std::cout << lambda.real << " ± " << lambda.imag << "i" << std::endl;
-    }
-    else
-    {
-        std::cout << lambda.real << std::endl;
-    }
-}
+for (const Complex lambda : result.eigenvalues)
+    std::cout << lambda << std::endl;
 ```
 
 ---
@@ -918,30 +858,30 @@ for (int i = 0; i < n; i++)
 ### With Matrix Classes
 
 ```cpp
-#include "base/Matrix/Matrix.h"
-#include "base/Matrix/MatrixSym.h"
-#include "algorithms/EigenSystemSolvers.h"
+#include <mml/base/Matrix/Matrix.h>
+#include <mml/base/Matrix/MatrixSym.h>
+#include <mml/algorithms/MatrixAlg.h>
 
 // Direct usage
 Matrix<Real> A = ...;
-auto result = EigenSolver::Solve(A);
+auto result = MatrixAlg::Eigensystem(A);
 
 // From symmetric specialized class
 MatrixSym<Real> S = ...;
-auto result = SymmMatEigenSolverQR::Solve(S);
+auto result = MatrixAlg::SymmetricEigensystem(S.GetAsMatrix());
 ```
 
 ### With Linear Solvers
 
 ```cpp
-#include "core/LinearEquationSolvers.h"
+#include <mml/algorithms/MatrixAlg.h>
 
 // Eigenvalues reveal system behavior
 // λ > 0: Positive definite
 // λ = 0: Singular (det = 0)
 // λ < 0: Indefinite
 
-auto result = SymmMatEigenSolverQR::Solve(A);
+auto result = MatrixAlg::SymmetricEigensystem(A);
 bool is_positive_definite = (result.eigenvalues[0] > 0);  // Smallest λ > 0?
 ```
 
@@ -975,17 +915,15 @@ for (int i = 0; i < n; i++)
 // Linearized system: dx/dt = A·x
 // Stable if all Re(λ) < 0
 
-auto result = EigenSolver::Solve(A);
+auto result = MatrixAlg::Eigensystem(A);
 
 bool is_stable = true;
 for (const auto& lambda : result.eigenvalues)
 {
-    if (lambda.real >= 0)
+    if (lambda.real() >= 0)
     {
         is_stable = false;
-        std::cout << "Unstable eigenvalue: " << lambda.real;
-        if (lambda.isComplex())
-            std::cout << " ± " << lambda.imag << "i";
+        std::cout << "Unstable eigenvalue: " << lambda;
         std::cout << std::endl;
     }
 }

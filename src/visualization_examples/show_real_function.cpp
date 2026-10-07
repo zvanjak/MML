@@ -7,12 +7,12 @@
  */
 
 #ifdef MML_USE_SINGLE_HEADER
-#include "MML.h"
+#include <MML.h>
 #else
-#include "MMLBase.h"
-#include "base/Function.h"
-#include "core/FunctionHelpers.h"
-#include "tools/Visualizer.h"
+#include <mml/MMLBase.h>
+#include <mml/base/Function.h>
+#include <mml/core/FunctionHelpers.h>
+#include <mml/tools/Visualizer.h>
 #endif
 
 using namespace MML;
@@ -34,7 +34,7 @@ void Show_Real_Function_Examples()
 
     // Example 1: Simple trigonometric function
     std::cout << "1. Visualizing f(x) = sin(x) * cos(2x)\n";
-    RealFunction sinCosFunc{[](Real x) { return std::sin(x) * std::cos(2*x); }};
+    RealFunction sinCosFunc{[](Real x) -> Real { return std::sin(x) * std::cos(2*x); }};
     auto result1 = Visualizer::VisualizeRealFunction(sinCosFunc, "sin(x)*cos(2x)", 
                                       -2*Constants::PI, 2*Constants::PI, 500, 
                                       "viz_real_func_sincos.mml");
@@ -42,7 +42,7 @@ void Show_Real_Function_Examples()
 
     // Example 2: Polynomial with interesting features
     std::cout << "2. Visualizing f(x) = x^3 - 3x^2 - x + 3 (cubic with roots at -1, 1, 3)\n";
-    RealFunction cubicFunc{[](Real x) { return x*x*x - 3*x*x - x + 3; }};
+    RealFunction cubicFunc{[](Real x) -> Real { return x*x*x - 3*x*x - x + 3; }};
     auto result2 = Visualizer::VisualizeRealFunction(cubicFunc, "x^3 - 3x^2 - x + 3", 
                                       -2.0, 4.0, 300, 
                                       "viz_real_func_cubic.mml");
@@ -50,7 +50,7 @@ void Show_Real_Function_Examples()
 
     // Example 3: Function with singularity (avoiding the singular point)
     std::cout << "3. Visualizing f(x) = sin(x)/(x-2) with singularity at x=2\n";
-    RealFunction singularFunc{[](Real x) { 
+    RealFunction singularFunc{[](Real x) -> Real {
         Real denom = x - 2.0;
         if (std::abs(denom) < 1e-10) return Real(0.0);
         return std::sin(x) / denom; 
@@ -62,7 +62,7 @@ void Show_Real_Function_Examples()
 
     // Example 4: Gaussian (bell curve)
     std::cout << "4. Visualizing Gaussian: f(x) = exp(-x^2/2)\n";
-    RealFunction gaussianFunc{[](Real x) { return std::exp(-x*x/2.0); }};
+    RealFunction gaussianFunc{[](Real x) -> Real { return std::exp(-x*x/2.0); }};
     auto result4 = Visualizer::VisualizeRealFunction(gaussianFunc, "Gaussian exp(-x^2/2)", 
                                       -4.0, 4.0, 200, 
                                       "viz_real_func_gaussian.mml");
@@ -70,7 +70,7 @@ void Show_Real_Function_Examples()
 
     // Example 5: Derivative visualization
     std::cout << "5. Visualizing derivative of sin(x)\n";
-    RealFunction sinFunc{[](Real x) { return std::sin(x); }};
+    RealFunction sinFunc{[](Real x) -> Real { return std::sin(x); }};
     RealFuncDerived4 sinDeriv(sinFunc);
     auto result5 = Visualizer::VisualizeRealFunction(sinDeriv, "d/dx sin(x) = cos(x)", 
                                       -2*Constants::PI, 2*Constants::PI, 300, 

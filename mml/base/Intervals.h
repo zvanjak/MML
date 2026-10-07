@@ -34,8 +34,9 @@
 /// ├── NegInfToClosedInterval          (-∞, a]
 /// ├── OpenToInfInterval               (a, +∞)
 /// └── ClosedToInfInterval             [a, +∞)
-/// Interval (composite - stores multiple BaseInterval subintervals)
-/// - Static methods: Intersection(), Difference(), Complement()
+/// CompositeInterval (union of disjoint BaseInterval pieces; alias: Interval)
+/// - Closed set algebra via operators: | (union), & (intersection), - (difference), ~ (complement)
+/// - Static helpers: Union(), Intersection(), Difference(), Complement()
 /// @endcode
 /// @section intervals_notation Mathematical Notation
 /// | Notation | Meaning | Class |
@@ -73,14 +74,15 @@
 #if !defined MML_INTERVALS_H
 #define MML_INTERVALS_H
 
-#include "MMLBase.h"
+#include <mml/MMLBase.h>
 
-#include "interfaces/IInterval.h"
+#include <mml/interfaces/IInterval.h>
 
 // Standard headers - include what we use
 #include <algorithm>
 #include <initializer_list>
 #include <limits>
+#include <memory>
 #include <vector>
 
 namespace MML {
@@ -101,7 +103,7 @@ namespace MML {
 	/// /** @} */
 
 
-	class Interval; // Forward declaration
+	class CompositeInterval; // Forward declaration
 
 	/// /** @name Base Interval Class
 	/// @{ */
@@ -119,7 +121,7 @@ namespace MML {
 	/// protected members for set operations.
 
 	class BaseInterval : public IInterval {
-		friend class Interval; // Allow Interval to access protected members
+		friend class CompositeInterval; // Allow CompositeInterval to access protected members
 
 	protected:
 		Real _lower, _upper;				 ///< Lower and upper bounds
@@ -172,11 +174,11 @@ namespace MML {
 			Real lower = _lower;
 			Real upper = _upper;
 
-			// For infinite bounds, use practical limits
+			// For infinite bounds, use practical limits (precision-dependent)
 			if (_lowerType == EndpointType::NEG_INF)
-				lower = -1e10;
+				lower = std::is_same_v<Real, float> ? Real(-1e6) : Real(-1e10);
 			if (_upperType == EndpointType::POS_INF)
-				upper = 1e10;
+				upper = std::is_same_v<Real, float> ? Real(1e6) : Real(1e10);
 
 			if (numPoints == 1) {
 				points.push_back((lower + upper) / 2.0);
@@ -214,7 +216,7 @@ namespace MML {
 	public:
 		/// @brief Constructs the interval (-∞, +∞).
 		CompleteRInterval()
-			: BaseInterval(-std::numeric_limits<double>::max(), EndpointType::NEG_INF, std::numeric_limits<double>::max(),
+			: BaseInterval(-std::numeric_limits<Real>::max(), EndpointType::NEG_INF, std::numeric_limits<Real>::max(),
 						   EndpointType::POS_INF) {}
 
 		/// @brief Returns true for any real number x.
@@ -239,7 +241,7 @@ namespace MML {
 		/// @param holeDelta Period between consecutive holes.
 
 		CompleteRWithReccuringPointHoles(Real hole0, Real holeDelta)
-			: BaseInterval(-std::numeric_limits<double>::max(), EndpointType::NEG_INF, std::numeric_limits<double>::max(),
+			: BaseInterval(-std::numeric_limits<Real>::max(), EndpointType::NEG_INF, std::numeric_limits<Real>::max(),
 						   EndpointType::POS_INF) {
 			_hole0 = hole0;
 			_holeDelta = holeDelta;
@@ -268,7 +270,6 @@ namespace MML {
 	/// Contains all x such that a < x < b.
 
 	class OpenInterval : public BaseInterval {
-		Real _lowerRealDif = REAL(0.0000001); ///< Small offset for internal calculations
 	public:
 		/// @brief Constructs the open interval (lower, upper).
 		/// @param lower Left endpoint (excluded).
@@ -379,7 +380,7 @@ namespace MML {
 		/// @param upper Right endpoint (excluded).
 
 		NegInfToOpenInterval(Real upper)
-			: BaseInterval(-std::numeric_limits<double>::max(), EndpointType::NEG_INF, upper, EndpointType::OPEN) {}
+			: BaseInterval(-std::numeric_limits<Real>::max(), EndpointType::NEG_INF, upper, EndpointType::OPEN) {}
 
 		/// @brief Returns true if x < upper.
 		bool contains(Real x) const { return x < _upper; }
@@ -394,7 +395,7 @@ namespace MML {
 		/// @param upper Right endpoint (included).
 
 		NegInfToClosedInterval(Real upper)
-			: BaseInterval(-std::numeric_limits<double>::max(), EndpointType::NEG_INF, upper, EndpointType::CLOSED) {}
+			: BaseInterval(-std::numeric_limits<Real>::max(), EndpointType::NEG_INF, upper, EndpointType::CLOSED) {}
 
 		/// @brief Returns true if x ≤ upper.
 		bool contains(Real x) const { return x <= _upper; }
@@ -409,7 +410,7 @@ namespace MML {
 		/// @param lower Left endpoint (excluded).
 
 		OpenToInfInterval(Real lower)
-			: BaseInterval(lower, EndpointType::OPEN, std::numeric_limits<double>::max(), EndpointType::POS_INF) {}
+			: BaseInterval(lower, EndpointType::OPEN, std::numeric_limits<Real>::max(), EndpointType::POS_INF) {}
 
 		/// @brief Returns true if x > lower.
 		bool contains(Real x) const { return x > _lower; }
@@ -424,7 +425,7 @@ namespace MML {
 		/// @param lower Left endpoint (included).
 
 		ClosedToInfInterval(Real lower)
-			: BaseInterval(lower, EndpointType::CLOSED, std::numeric_limits<double>::max(), EndpointType::POS_INF) {}
+			: BaseInterval(lower, EndpointType::CLOSED, std::numeric_limits<Real>::max(), EndpointType::POS_INF) {}
 
 		/// @brief Returns true if x ≥ lower.
 		bool contains(Real x) const { return x >= _lower; }
@@ -462,20 +463,58 @@ namespace MML {
 	/// );
 	/// @endcode
 
-	class Interval : public IInterval {
-		Real _lower, _upper;
-		std::vector<std::shared_ptr<BaseInterval>> _intervals; ///< Component intervals
+	class CompositeInterval : public IInterval {
+		std::vector<std::shared_ptr<BaseInterval>> _intervals; ///< Disjoint component pieces
+
+		/// @brief Endpoint ordering used when sorting pieces by starting edge.
+		static int endpointRank(EndpointType t) {
+			switch (t) {
+			case EndpointType::NEG_INF: return 0;
+			case EndpointType::CLOSED:  return 1;
+			case EndpointType::OPEN:    return 2;
+			case EndpointType::POS_INF: return 3;
+			}
+			return 4;
+		}
+
+		/// @brief Combines upper-endpoint types when two pieces share the same upper bound.
+		static EndpointType mergeUpperType(EndpointType a, EndpointType b) {
+			if (a == EndpointType::POS_INF || b == EndpointType::POS_INF) return EndpointType::POS_INF;
+			if (a == EndpointType::CLOSED  || b == EndpointType::CLOSED)  return EndpointType::CLOSED;
+			return EndpointType::OPEN;
+		}
+
+		/// @brief Appends a plain endpoint-typed piece, choosing the concrete leaf type.
+		/// @details Empty pieces (lo > hi, or a degenerate point with an open end) are skipped.
+		CompositeInterval& addPiece(Real lo, EndpointType loType, Real hi, EndpointType hiType) {
+			if (lo > hi) return *this;
+			if (lo == hi && (loType == EndpointType::OPEN || hiType == EndpointType::OPEN)) return *this;
+
+			if (loType == EndpointType::NEG_INF) {
+				if (hiType == EndpointType::POS_INF) _intervals.emplace_back(std::make_shared<CompleteRInterval>());
+				else if (hiType == EndpointType::CLOSED) _intervals.emplace_back(std::make_shared<NegInfToClosedInterval>(hi));
+				else _intervals.emplace_back(std::make_shared<NegInfToOpenInterval>(hi));
+			}
+			else if (hiType == EndpointType::POS_INF) {
+				if (loType == EndpointType::CLOSED) _intervals.emplace_back(std::make_shared<ClosedToInfInterval>(lo));
+				else _intervals.emplace_back(std::make_shared<OpenToInfInterval>(lo));
+			}
+			else if (loType == EndpointType::CLOSED && hiType == EndpointType::CLOSED) _intervals.emplace_back(std::make_shared<ClosedInterval>(lo, hi));
+			else if (loType == EndpointType::OPEN   && hiType == EndpointType::CLOSED) _intervals.emplace_back(std::make_shared<OpenClosedInterval>(lo, hi));
+			else if (loType == EndpointType::CLOSED && hiType == EndpointType::OPEN)   _intervals.emplace_back(std::make_shared<ClosedOpenInterval>(lo, hi));
+			else _intervals.emplace_back(std::make_shared<OpenInterval>(lo, hi));
+			return *this;
+		}
 	public:
 		/// @brief Constructs an empty composite interval.
-		Interval() {}
+		CompositeInterval() {}
 
-		/// @brief Constructs from a list of interval pointers.
-		/// @param intervals Initializer list of BaseInterval pointers (takes ownership).
-
-		Interval(std::initializer_list<BaseInterval*> intervals) {
-			for (BaseInterval* interval : intervals) {
-				_intervals.emplace_back(std::shared_ptr<BaseInterval>(interval));
-			}
+		/// @brief Wraps a single interval piece as a one-piece composite (implicit).
+		/// @details Reconstructs a plain endpoint-typed piece from the source bounds, enabling
+		///          any BaseInterval to be passed where a CompositeInterval is expected.
+		/// @note Periodic-hole intervals are treated as their continuous hull for set algebra.
+		CompositeInterval(const BaseInterval& piece) {
+			addPiece(piece._lower, piece._lowerType, piece._upper, piece._upperType);
 		}
 
 		/// @brief Adds a subinterval to the composite.
@@ -484,266 +523,161 @@ namespace MML {
 		/// @return Reference to this for chaining.
 
 		template<class _IntervalType>
-		Interval& AddInterval(const _IntervalType& interval) {
+		CompositeInterval& AddInterval(const _IntervalType& interval) {
 			_intervals.emplace_back(std::make_shared<_IntervalType>(interval));
 			return *this;
 		}
 
-		/// @brief Computes the intersection of two intervals.
-		/// Returns A ∩ B, the set of points contained in both intervals.
-		/// Handles endpoint types correctly (intersection of open and closed
-		/// at the same point yields open).
-		/// @param a First interval.
-		/// @param b Second interval.
-		/// @return Composite interval representing A ∩ B (may be empty).
+		/// @brief Canonicalizes the piece list: sorts pieces and merges overlapping or
+		///        adjacent ones (respecting endpoint types), yielding disjoint pieces.
+		/// @details No-op when any piece is non-continuous (periodic holes), to avoid
+		///          collapsing hole information into a hull.
+		void Normalize() {
+			if (_intervals.empty())
+				return;
+			for (const auto& p : _intervals)
+				if (!p->isContinuous())
+					return;
 
-		static Interval Intersection(const BaseInterval& a, const BaseInterval& b) {
-			Interval ret;
+			struct Seg { Real lo, hi; EndpointType loT, hiT; };
+			std::vector<Seg> segs;
+			segs.reserve(_intervals.size());
+			for (const auto& p : _intervals)
+				segs.push_back({ p->_lower, p->_upper, p->_lowerType, p->_upperType });
 
-			// Find intersection bounds
-			Real lower = std::max(a._lower, b._lower);
-			Real upper = std::min(a._upper, b._upper);
+			std::sort(segs.begin(), segs.end(), [](const Seg& x, const Seg& y) {
+				if (x.lo != y.lo) return x.lo < y.lo;
+				return endpointRank(x.loT) < endpointRank(y.loT);
+			});
 
-			// Check if intervals actually intersect
-			if (lower > upper)
-				return ret; // Empty intersection
+			std::vector<Seg> merged;
+			for (const Seg& s : segs) {
+				if (merged.empty()) { merged.push_back(s); continue; }
+				Seg& cur = merged.back();
+				bool overlapsOrAdjacent = (s.lo < cur.hi) ||
+					(s.lo == cur.hi && (cur.hiT == EndpointType::CLOSED || s.loT == EndpointType::CLOSED));
+				if (overlapsOrAdjacent) {
+					if (s.hi > cur.hi) { cur.hi = s.hi; cur.hiT = s.hiT; }
+					else if (s.hi == cur.hi) cur.hiT = mergeUpperType(cur.hiT, s.hiT);
+				} else {
+					merged.push_back(s);
+				}
+			}
 
-			// Determine endpoint types
-			EndpointType lowerType, upperType;
+			_intervals.clear();
+			for (const Seg& s : merged)
+				addPiece(s.lo, s.loT, s.hi, s.hiT);
+		}
 
-			if (lower == a._lower && lower == b._lower)
-				lowerType = (a._lowerType == EndpointType::CLOSED && b._lowerType == EndpointType::CLOSED) ? EndpointType::CLOSED
-																										   : EndpointType::OPEN;
-			else if (lower == a._lower)
-				lowerType = a._lowerType;
-			else
-				lowerType = b._lowerType;
+	private:
+		/// @brief Flips CLOSED<->OPEN; infinite endpoint types are returned unchanged.
+		static EndpointType flip(EndpointType t) {
+			if (t == EndpointType::CLOSED) return EndpointType::OPEN;
+			if (t == EndpointType::OPEN)   return EndpointType::CLOSED;
+			return t;
+		}
 
-			if (upper == a._upper && upper == b._upper)
-				upperType = (a._upperType == EndpointType::CLOSED && b._upperType == EndpointType::CLOSED) ? EndpointType::CLOSED
-																										   : EndpointType::OPEN;
-			else if (upper == a._upper)
-				upperType = a._upperType;
-			else
-				upperType = b._upperType;
+		/// @brief Intersects two plain pieces; returns false when the result is empty.
+		static bool intersectPieces(Real lo1, EndpointType lo1T, Real hi1, EndpointType hi1T,
+		                            Real lo2, EndpointType lo2T, Real hi2, EndpointType hi2T,
+		                            Real& lo, EndpointType& loT, Real& hi, EndpointType& hiT) {
+			lo = std::max(lo1, lo2);
+			hi = std::min(hi1, hi2);
+			if (lo > hi) return false;
 
-			// Create appropriate interval based on endpoint types
-			if (lowerType == EndpointType::CLOSED && upperType == EndpointType::CLOSED)
-				ret.AddInterval(ClosedInterval(lower, upper));
-			else if (lowerType == EndpointType::OPEN && upperType == EndpointType::CLOSED)
-				ret.AddInterval(OpenClosedInterval(lower, upper));
-			else if (lowerType == EndpointType::CLOSED && upperType == EndpointType::OPEN)
-				ret.AddInterval(ClosedOpenInterval(lower, upper));
-			else
-				ret.AddInterval(OpenInterval(lower, upper));
+			if (lo1 == lo2) {
+				if (lo1T == EndpointType::NEG_INF && lo2T == EndpointType::NEG_INF) loT = EndpointType::NEG_INF;
+				else loT = (lo1T == EndpointType::CLOSED && lo2T == EndpointType::CLOSED) ? EndpointType::CLOSED : EndpointType::OPEN;
+			}
+			else loT = (lo == lo1) ? lo1T : lo2T;
 
+			if (hi1 == hi2) {
+				if (hi1T == EndpointType::POS_INF && hi2T == EndpointType::POS_INF) hiT = EndpointType::POS_INF;
+				else hiT = (hi1T == EndpointType::CLOSED && hi2T == EndpointType::CLOSED) ? EndpointType::CLOSED : EndpointType::OPEN;
+			}
+			else hiT = (hi == hi1) ? hi1T : hi2T;
+
+			if (lo == hi && (loT == EndpointType::OPEN || hiT == EndpointType::OPEN)) return false;
+			return true;
+		}
+	public:
+		///////////////////////////////////////////////////////////////////////
+		///                    Closed set algebra (member)                  ///
+		///////////////////////////////////////////////////////////////////////
+
+		/// @brief Union with another interval set: this ∪ other (normalized).
+		CompositeInterval unionWith(const CompositeInterval& other) const {
+			CompositeInterval ret;
+			ret._intervals = _intervals;
+			ret._intervals.insert(ret._intervals.end(), other._intervals.begin(), other._intervals.end());
+			ret.Normalize();
 			return ret;
 		}
 
-		/// @brief Computes the union of two intervals.
-		/// Returns A ∪ B, the set of points contained in either interval.
-		/// If the intervals overlap or are adjacent, returns a single merged interval.
-		/// If disjoint, returns a composite interval with two parts.
-		/// @param a First interval.
-		/// @param b Second interval.
-		/// @return Composite interval representing A ∪ B.
-
-		static Interval Union(const BaseInterval& a, const BaseInterval& b) {
-			Interval ret;
-
-			// Check if intervals overlap or are adjacent
-			// They overlap if a.upper >= b.lower AND b.upper >= a.lower
-			// They are adjacent if one ends exactly where the other begins (considering endpoints)
-			bool overlapsOrAdjacent = false;
-
-			if (a._upper > b._lower && b._upper > a._lower) {
-				// Strict overlap
-				overlapsOrAdjacent = true;
-			} else if (a._upper == b._lower) {
-				// Adjacent: a ends where b begins
-				// They merge if at least one endpoint is closed
-				overlapsOrAdjacent = (a._upperType == EndpointType::CLOSED || b._lowerType == EndpointType::CLOSED);
-			} else if (b._upper == a._lower) {
-				// Adjacent: b ends where a begins
-				overlapsOrAdjacent = (b._upperType == EndpointType::CLOSED || a._lowerType == EndpointType::CLOSED);
-			}
-
-			if (overlapsOrAdjacent) {
-				// Merge into single interval
-				Real lower = std::min(a._lower, b._lower);
-				Real upper = std::max(a._upper, b._upper);
-
-				// Determine endpoint types
-				EndpointType lowerType, upperType;
-
-				if (lower == a._lower && lower == b._lower)
-					lowerType = (a._lowerType == EndpointType::CLOSED || b._lowerType == EndpointType::CLOSED) 
-					            ? EndpointType::CLOSED : EndpointType::OPEN;
-				else if (lower == a._lower)
-					lowerType = a._lowerType;
-				else
-					lowerType = b._lowerType;
-
-				if (upper == a._upper && upper == b._upper)
-					upperType = (a._upperType == EndpointType::CLOSED || b._upperType == EndpointType::CLOSED) 
-					            ? EndpointType::CLOSED : EndpointType::OPEN;
-				else if (upper == a._upper)
-					upperType = a._upperType;
-				else
-					upperType = b._upperType;
-
-				// Create appropriate interval
-				if (lowerType == EndpointType::CLOSED && upperType == EndpointType::CLOSED)
-					ret.AddInterval(ClosedInterval(lower, upper));
-				else if (lowerType == EndpointType::OPEN && upperType == EndpointType::CLOSED)
-					ret.AddInterval(OpenClosedInterval(lower, upper));
-				else if (lowerType == EndpointType::CLOSED && upperType == EndpointType::OPEN)
-					ret.AddInterval(ClosedOpenInterval(lower, upper));
-				else
-					ret.AddInterval(OpenInterval(lower, upper));
-			} else {
-				// Disjoint intervals - add both (in order)
-				const BaseInterval* first = (a._lower < b._lower) ? &a : &b;
-				const BaseInterval* second = (a._lower < b._lower) ? &b : &a;
-
-				// Add first interval
-				if (first->_lowerType == EndpointType::CLOSED && first->_upperType == EndpointType::CLOSED)
-					ret.AddInterval(ClosedInterval(first->_lower, first->_upper));
-				else if (first->_lowerType == EndpointType::OPEN && first->_upperType == EndpointType::CLOSED)
-					ret.AddInterval(OpenClosedInterval(first->_lower, first->_upper));
-				else if (first->_lowerType == EndpointType::CLOSED && first->_upperType == EndpointType::OPEN)
-					ret.AddInterval(ClosedOpenInterval(first->_lower, first->_upper));
-				else
-					ret.AddInterval(OpenInterval(first->_lower, first->_upper));
-
-				// Add second interval
-				if (second->_lowerType == EndpointType::CLOSED && second->_upperType == EndpointType::CLOSED)
-					ret.AddInterval(ClosedInterval(second->_lower, second->_upper));
-				else if (second->_lowerType == EndpointType::OPEN && second->_upperType == EndpointType::CLOSED)
-					ret.AddInterval(OpenClosedInterval(second->_lower, second->_upper));
-				else if (second->_lowerType == EndpointType::CLOSED && second->_upperType == EndpointType::OPEN)
-					ret.AddInterval(ClosedOpenInterval(second->_lower, second->_upper));
-				else
-					ret.AddInterval(OpenInterval(second->_lower, second->_upper));
-			}
-
+		/// @brief Intersection with another interval set: this ∩ other (normalized).
+		CompositeInterval intersectWith(const CompositeInterval& other) const {
+			CompositeInterval ret;
+			for (const auto& p : _intervals)
+				for (const auto& q : other._intervals) {
+					Real lo, hi; EndpointType loT, hiT;
+					if (intersectPieces(p->_lower, p->_lowerType, p->_upper, p->_upperType,
+					                    q->_lower, q->_lowerType, q->_upper, q->_upperType,
+					                    lo, loT, hi, hiT))
+						ret.addPiece(lo, loT, hi, hiT);
+				}
+			ret.Normalize();
 			return ret;
 		}
 
-		/// @brief Computes the set difference of two intervals.
-		/// Returns A \ B, the set of points in A but not in B.
-		/// May result in zero, one, or two disjoint intervals depending on
-		/// how B overlaps with A.
-		/// @param a The interval to subtract from.
-		/// @param b The interval to subtract.
-		/// @return Composite interval representing A \ B.
-		/// @note If B is entirely inside A, the result is two disjoint intervals.
+		/// @brief Complement over the whole real line: ℝ \ this (normalized).
+		CompositeInterval complement() const {
+			CompositeInterval norm = *this;
+			norm.Normalize();
 
-		static Interval Difference(const BaseInterval& a, const BaseInterval& b) {
-			Interval ret;
+			CompositeInterval ret;
+			const Real negInf = -std::numeric_limits<Real>::max();
+			const Real posInf =  std::numeric_limits<Real>::max();
 
-			// If b doesn't intersect a, return a
-			if (b._upper <= a._lower || b._lower >= a._upper) {
-				// Return copy of a based on its endpoint types
-				if (a._lowerType == EndpointType::CLOSED && a._upperType == EndpointType::CLOSED)
-					ret.AddInterval(ClosedInterval(a._lower, a._upper));
-				else if (a._lowerType == EndpointType::OPEN && a._upperType == EndpointType::CLOSED)
-					ret.AddInterval(OpenClosedInterval(a._lower, a._upper));
-				else if (a._lowerType == EndpointType::CLOSED && a._upperType == EndpointType::OPEN)
-					ret.AddInterval(ClosedOpenInterval(a._lower, a._upper));
-				else
-					ret.AddInterval(OpenInterval(a._lower, a._upper));
+			if (norm._intervals.empty()) {
+				ret.addPiece(negInf, EndpointType::NEG_INF, posInf, EndpointType::POS_INF);
 				return ret;
 			}
 
-			// Case: b completely contains a
-			if (b._lower <= a._lower && b._upper >= a._upper)
-				return ret; // Empty set
+			struct Seg { Real lo, hi; EndpointType loT, hiT; };
+			std::vector<Seg> segs;
+			segs.reserve(norm._intervals.size());
+			for (const auto& p : norm._intervals)
+				segs.push_back({ p->_lower, p->_upper, p->_lowerType, p->_upperType });
 
-			// Case: b cuts left part of a
-			if (b._lower <= a._lower && b._upper < a._upper) {
-				EndpointType newLowerType = (b._upperType == EndpointType::CLOSED) ? EndpointType::OPEN : EndpointType::CLOSED;
-				if (newLowerType == EndpointType::CLOSED && a._upperType == EndpointType::CLOSED)
-					ret.AddInterval(ClosedInterval(b._upper, a._upper));
-				else if (newLowerType == EndpointType::OPEN && a._upperType == EndpointType::CLOSED)
-					ret.AddInterval(OpenClosedInterval(b._upper, a._upper));
-				else if (newLowerType == EndpointType::CLOSED && a._upperType == EndpointType::OPEN)
-					ret.AddInterval(ClosedOpenInterval(b._upper, a._upper));
-				else
-					ret.AddInterval(OpenInterval(b._upper, a._upper));
-			}
-			// Case: b cuts right part of a
-			else if (b._lower > a._lower && b._upper >= a._upper) {
-				EndpointType newUpperType = (b._lowerType == EndpointType::CLOSED) ? EndpointType::OPEN : EndpointType::CLOSED;
-				if (a._lowerType == EndpointType::CLOSED && newUpperType == EndpointType::CLOSED)
-					ret.AddInterval(ClosedInterval(a._lower, b._lower));
-				else if (a._lowerType == EndpointType::OPEN && newUpperType == EndpointType::CLOSED)
-					ret.AddInterval(OpenClosedInterval(a._lower, b._lower));
-				else if (a._lowerType == EndpointType::CLOSED && newUpperType == EndpointType::OPEN)
-					ret.AddInterval(ClosedOpenInterval(a._lower, b._lower));
-				else
-					ret.AddInterval(OpenInterval(a._lower, b._lower));
-			}
-			// Case: b is completely inside a (splits a into two intervals)
-			else {
-				// Left part: [a.lower, b.lower)
-				EndpointType leftUpperType = (b._lowerType == EndpointType::CLOSED) ? EndpointType::OPEN : EndpointType::CLOSED;
-				if (a._lowerType == EndpointType::CLOSED && leftUpperType == EndpointType::CLOSED)
-					ret.AddInterval(ClosedInterval(a._lower, b._lower));
-				else if (a._lowerType == EndpointType::OPEN && leftUpperType == EndpointType::CLOSED)
-					ret.AddInterval(OpenClosedInterval(a._lower, b._lower));
-				else if (a._lowerType == EndpointType::CLOSED && leftUpperType == EndpointType::OPEN)
-					ret.AddInterval(ClosedOpenInterval(a._lower, b._lower));
-				else
-					ret.AddInterval(OpenInterval(a._lower, b._lower));
+			if (segs.front().loT != EndpointType::NEG_INF)
+				ret.addPiece(negInf, EndpointType::NEG_INF, segs.front().lo, flip(segs.front().loT));
 
-				// Right part: (b.upper, a.upper]
-				EndpointType rightLowerType = (b._upperType == EndpointType::CLOSED) ? EndpointType::OPEN : EndpointType::CLOSED;
-				if (rightLowerType == EndpointType::CLOSED && a._upperType == EndpointType::CLOSED)
-					ret.AddInterval(ClosedInterval(b._upper, a._upper));
-				else if (rightLowerType == EndpointType::OPEN && a._upperType == EndpointType::CLOSED)
-					ret.AddInterval(OpenClosedInterval(b._upper, a._upper));
-				else if (rightLowerType == EndpointType::CLOSED && a._upperType == EndpointType::OPEN)
-					ret.AddInterval(ClosedOpenInterval(b._upper, a._upper));
-				else
-					ret.AddInterval(OpenInterval(b._upper, a._upper));
-			}
+			for (size_t i = 0; i + 1 < segs.size(); ++i)
+				ret.addPiece(segs[i].hi, flip(segs[i].hiT), segs[i + 1].lo, flip(segs[i + 1].loT));
+
+			if (segs.back().hiT != EndpointType::POS_INF)
+				ret.addPiece(segs.back().hi, flip(segs.back().hiT), posInf, EndpointType::POS_INF);
 
 			return ret;
 		}
 
-		/// @brief Computes the complement of an interval.
-		/// Returns ℝ \ A, the set of all real numbers not in A.
-		/// Results in zero, one, or two semi-infinite intervals.
-		/// @param a The interval to complement.
-		/// @return Composite interval representing ℝ \ A.
-		/// @note Complement of (-∞, +∞) is the empty set.
-
-		static Interval Complement(const BaseInterval& a) {
-			Interval ret;
-
-			// Handle special cases with infinity
-			if (a._lowerType == EndpointType::NEG_INF && a._upperType == EndpointType::POS_INF)
-				return ret; // Complement of R is empty
-
-			// Add interval from -inf to lower bound
-			if (a._lowerType != EndpointType::NEG_INF) {
-				if (a._lowerType == EndpointType::CLOSED)
-					ret.AddInterval(NegInfToOpenInterval(a._lower));
-				else
-					ret.AddInterval(NegInfToClosedInterval(a._lower));
-			}
-
-			// Add interval from upper bound to +inf
-			if (a._upperType != EndpointType::POS_INF) {
-				if (a._upperType == EndpointType::CLOSED)
-					ret.AddInterval(OpenToInfInterval(a._upper));
-				else
-					ret.AddInterval(ClosedToInfInterval(a._upper));
-			}
-
-			return ret;
+		/// @brief Set difference: this \ other = this ∩ (ℝ \ other).
+		CompositeInterval differenceWith(const CompositeInterval& other) const {
+			return intersectWith(other.complement());
 		}
+
+		CompositeInterval operator|(const CompositeInterval& other) const { return unionWith(other); }
+		CompositeInterval operator&(const CompositeInterval& other) const { return intersectWith(other); }
+		CompositeInterval operator-(const CompositeInterval& other) const { return differenceWith(other); }
+		CompositeInterval operator~() const { return complement(); }
+
+		/// @brief Closed-algebra static overloads accepting interval sets.
+		/// @details A single BaseInterval converts implicitly, so these compose freely.
+		///          The BaseInterval,BaseInterval overloads below win for two plain pieces.
+		static CompositeInterval Union(const CompositeInterval& a, const CompositeInterval& b)        { return a.unionWith(b); }
+		static CompositeInterval Intersection(const CompositeInterval& a, const CompositeInterval& b) { return a.intersectWith(b); }
+		static CompositeInterval Difference(const CompositeInterval& a, const CompositeInterval& b)   { return a.differenceWith(b); }
+		static CompositeInterval Complement(const CompositeInterval& a)                               { return a.complement(); }
 
 		/// @brief Gets the minimum lower bound across all subintervals.
 		Real getLowerBound() const {
@@ -851,6 +785,9 @@ namespace MML {
 	};
 	/// /** @} */
 	// End Composite Interval
+
+	/// @brief Back-compatibility alias. `CompositeInterval` is the composite (union-of-pieces) set.
+	using Interval = CompositeInterval;
 } // namespace MML
 
 #endif

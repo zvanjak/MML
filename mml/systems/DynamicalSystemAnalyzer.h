@@ -13,12 +13,15 @@
 #if !defined MML_DYNAMICAL_SYSTEM_ANALYZER_H
 #define MML_DYNAMICAL_SYSTEM_ANALYZER_H
 
-#include "MMLBase.h"
-#include "base/Vector/Vector.h"
-#include "base/Matrix/Matrix.h"
-#include "interfaces/IDynamicalSystem.h"
-#include "systems/DynamicalSystemTypes.h"
-#include "systems/DynamicalSystemAnalyzers.h"
+#include <mml/MMLBase.h>
+#include <mml/base/Vector/Vector.h>
+#include <mml/base/Matrix/Matrix.h>
+#include <mml/interfaces/IDynamicalSystem.h>
+#include <mml/systems/DynamicalSystem/DynamicalSystemTypes.h>
+#include <mml/systems/DynamicalSystem/FixedPointAnalysis.h>
+#include <mml/systems/DynamicalSystem/LyapunovAnalysis.h>
+#include <mml/systems/DynamicalSystem/BifurcationAnalysis.h>
+#include <mml/systems/DynamicalSystem/PhaseSpaceAnalysis.h>
 
 #include <vector>
 #include <string>
@@ -273,7 +276,7 @@ namespace MML::Systems
 		/// @param x0 Initial condition
 		/// @param section Definition of the Poincaré section
 		/// @param numIntersections Number of intersections to collect
-		/// @param stepSize Integration step size
+		/// @param stepSize Initial adaptive integration step size
 		/// @return Vector of intersection points
 		std::vector<Vector<Type>> ComputePoincareSection(const Vector<Type>& x0, const PoincareSection<Type>& section,
 																										 int numIntersections = 1000, Type stepSize = 0.01) const {
@@ -284,7 +287,7 @@ namespace MML::Systems
 		/// @param x0 Initial condition
 		/// @param totalTime Total integration time
 		/// @param outputInterval Time between output points
-		/// @param stepSize Integration step size
+		/// @param stepSize Initial adaptive integration step size
 		/// @return Vector of state points along trajectory
 		std::vector<Vector<Type>> IntegrateTrajectory(const Vector<Type>& x0, Type totalTime,
 																									Type outputInterval = 0.1, Type stepSize = 0.01) const {

@@ -60,6 +60,11 @@ namespace MML {
 	                                              Real t0, const Vector<Real>& x0, const Vector<Real>& y0,
 	                                              Real t_end, const DAESolverConfig& config = DAESolverConfig())
 	{
+		if (t_end <= t0)
+			throw ArgumentError("SolveDAEBackwardEuler: t_end must be greater than t0 (reverse-time integration is not supported)");
+		if (config.step_size <= 0)
+			throw ArgumentError("SolveDAEBackwardEuler: config.step_size must be positive");
+
 		AlgorithmTimer timer;
 
 		int diffDim = system.getDiffDim();
@@ -83,13 +88,30 @@ namespace MML {
 		Matrix<Real> dg_dx(algDim, diffDim);
 		Matrix<Real> dg_dy(algDim, algDim);
 
-		// Augmented system Jacobian and residual
+		// Augmented system Jacobian
 		Matrix<Real> J_aug(totalDim, totalDim);
-		Vector<Real> residual(totalDim);
-		Vector<Real> delta(totalDim);
 
 		// Save initial condition
 		result.solution.fillValues(0, t, x, y);
+		system.algConstraints(t, x, y, g);
+		result.final_constraint_norm = g.NormL2();
+		result.max_constraint_violation = result.final_constraint_norm;
+		if (!IsFiniteDAEVector(x) || !IsFiniteDAEVector(y) || !IsFiniteDAEVector(g)) {
+			result.status = AlgorithmStatus::NumericalInstability;
+			result.failure_reason = DAEFailureReason::NonFiniteState;
+			result.error_message = "Non-finite initial DAE state or constraint residual";
+			result.solution.setFinalSize(0);
+			result.elapsed_time_ms = timer.elapsed_ms();
+			return result;
+		}
+		if (result.final_constraint_norm > config.constraint_tol) {
+			result.status = AlgorithmStatus::InvalidInput;
+			result.failure_reason = DAEFailureReason::InconsistentInitialConditions;
+			result.error_message = "Initial algebraic constraints are inconsistent";
+			result.solution.setFinalSize(0);
+			result.elapsed_time_ms = timer.elapsed_ms();
+			return result;
+		}
 		int step = 1;
 
 		while (t < t_end && step < config.max_steps)
@@ -102,68 +124,29 @@ namespace MML {
 			Vector<Real> x_new = x + dxdt * h;
 			Vector<Real> y_new = y;
 
-			// Newton iteration
-			bool converged = false;
-			for (int iter = 0; iter < config.max_newton_iter; ++iter)
-			{
-				result.newton_iterations++;
+			auto evaluateResidual = [&](const Vector<Real>& trialX, const Vector<Real>& trialY, Vector<Real>& residual) {
+				system.diffEqs(t_next, trialX, trialY, dxdt);
+				system.algConstraints(t_next, trialX, trialY, g);
 
-				// Evaluate differential equations and constraints at new point
-				system.diffEqs(t_next, x_new, y_new, dxdt);
-				system.algConstraints(t_next, x_new, y_new, g);
-
-				// Build residual: F = x_new - x - h*f, G = g
 				for (int i = 0; i < diffDim; ++i)
-					residual[i] = x_new[i] - x[i] - h * dxdt[i];
+					residual[i] = trialX[i] - x[i] - h * dxdt[i];
 				for (int i = 0; i < algDim; ++i)
 					residual[diffDim + i] = g[i];
+			};
+			auto evaluateJacobian = [&](const Vector<Real>& trialX, const Vector<Real>& trialY, Matrix<Real>& jacobian) {
+				system.allJacobians(t_next, trialX, trialY, df_dx, df_dy, dg_dx, dg_dy);
+				AssembleDAEAugmentedJacobian(df_dx, df_dy, dg_dx, dg_dy, h, jacobian);
+			};
 
-				// Check convergence
-				Real res_norm = residual.NormL2();
-				if (res_norm < config.newton_tol)
-				{
-					converged = true;
-					break;
-				}
+			DAENewtonResult newton = SolveDAENewton(x_new, y_new, diffDim, algDim, config, evaluateResidual, evaluateJacobian);
+			AccumulateDAENewtonDiagnostics(result, newton);
 
-				// Evaluate Jacobians
-				system.allJacobians(t_next, x_new, y_new, df_dx, df_dy, dg_dx, dg_dy);
-				result.jacobian_evaluations++;
-
-				// Build augmented Jacobian:
-				// [ I - h*df/dx,   -h*df/dy ]
-				// [     dg/dx,       dg/dy  ]
-				for (int i = 0; i < diffDim; ++i)
-				{
-					for (int j = 0; j < diffDim; ++j)
-						J_aug(i, j) = (i == j ? 1.0 : 0.0) - h * df_dx(i, j);
-					for (int j = 0; j < algDim; ++j)
-						J_aug(i, diffDim + j) = -h * df_dy(i, j);
-				}
-				for (int i = 0; i < algDim; ++i)
-				{
-					for (int j = 0; j < diffDim; ++j)
-						J_aug(diffDim + i, j) = dg_dx(i, j);
-					for (int j = 0; j < algDim; ++j)
-						J_aug(diffDim + i, diffDim + j) = dg_dy(i, j);
-				}
-
-				// Solve J_aug * delta = -residual
-				delta = residual * (-1.0);
-				Matrix<Real> J_copy = J_aug;  // SolveInPlace modifies matrix
-				GaussJordanSolver<Real>::SolveInPlace(J_copy, delta);
-
-				// Update solution
-				for (int i = 0; i < diffDim; ++i)
-					x_new[i] += delta[i];
-				for (int i = 0; i < algDim; ++i)
-					y_new[i] += delta[diffDim + i];
-			}
-
-			if (!converged)
+			if (!newton.converged)
 			{
-				result.status = AlgorithmStatus::NumericalInstability;
-				result.error_message = "Newton iteration failed to converge at t=" + std::to_string(t_next);
+				result.status = newton.failure_reason == DAEFailureReason::SingularJacobian
+					? AlgorithmStatus::SingularMatrix : AlgorithmStatus::NumericalInstability;
+				result.failure_reason = newton.failure_reason;
+				result.error_message = "DAE Newton failure at t=" + std::to_string(t_next) + ": " + newton.message;
 				break;
 			}
 
@@ -174,18 +157,23 @@ namespace MML {
 
 			// Track constraint violation
 			system.algConstraints(t, x, y, g);
-			Real g_norm = g.NormL2();
-			if (g_norm > result.max_constraint_violation)
-				result.max_constraint_violation = g_norm;
+			if (!ValidateAcceptedDAEState(x, y, g, config, result, "Backward Euler step"))
+				break;
 
 			result.solution.fillValues(step, t, x, y);
 			result.solution.incrementSuccessfulSteps();
+			result.accepted_steps++;
 			++step;
 		}
 
 		// Finalize
 		result.solution.setFinalSize(step - 1);
 		result.total_steps = step - 1;
+		if (t < t_end && result.status == AlgorithmStatus::Success) {
+			result.status = AlgorithmStatus::MaxIterationsExceeded;
+			result.failure_reason = DAEFailureReason::MaxStepsExceeded;
+			result.error_message = "Maximum DAE step count reached before t_end";
+		}
 		result.elapsed_time_ms = timer.elapsed_ms();
 
 		return result;

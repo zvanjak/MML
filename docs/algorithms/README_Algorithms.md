@@ -11,11 +11,15 @@ The Algorithms layer implements numerical methods for solving mathematical probl
 - **Root finding**: See [Root_finding.md](Root_finding.md) for bracketing, bisection, Newton, and secant (1D and systems).
 - **ODE solvers**: See [Differential_equations_solvers.md](Differential_equations_solvers.md) for fixed-step vs. adaptive steppers and Jacobian usage.
 - **Eigen solvers**: See [Eigen_solvers.md](Eigen_solvers.md) for symmetric vs. nonsymmetric approaches and verification tips.
+- **Matrix analysis**: See [MatrixAnalysisContracts.md](MatrixAnalysisContracts.md) for the canonical `MatrixAlg`/`MatrixAnalyzer`/`LinearSystem` architecture, numerical contracts, and migration guidance.
 - **Optimization**: See [Function_optimization.md](Function_optimization.md) for line search, gradient, conjugate gradient, quasi-Newton.
 - **Function analysis**: See [Function_analyzer.md](Function_analyzer.md) for critical points and properties.
+- **Approximation and curve fitting**: See [Approximation_and_curve_fitting.md](Approximation_and_curve_fitting.md) for adaptive Chebyshev approximation and weighted or regularized least squares.
 - **Statistics**: See [Statistics.md](Statistics.md) for descriptive stats, distributions, and hypothesis testing.
 - **Fourier**: See [Fourier_transformation.md](Fourier_transformation.md) for spectral analysis workflows.
 - **Path integration**: See [Path_integration.md](Path_integration.md) for line/surface/volume integrals.
+- **Differential geometry**: See [Differential_geometry.md](Differential_geometry.md) for curves, surfaces, induced metrics, forms, charts, and frames.
+- **Tensor geometry and relativity**: See [Tensor_geometry_and_relativity.md](Tensor_geometry_and_relativity.md) for tensor conventions, curvature, geodesic, EM, and numerical-singularity notes.
 
 ## Contents
 
@@ -63,7 +67,7 @@ The Algorithms layer implements numerical methods for solving mathematical probl
 **Algorithm**: Geometrically expand interval until root is bracketed.
 
 ```cpp
-#include "algorithms/RootFinding.h"
+#include <mml/algorithms/RootFinding.h>
 
 RealFunction f([](Real x) { return x*x - 2.0; });  // Find √2
 
@@ -76,7 +80,7 @@ if (found) {
 
 **Properties**:
 - **Complexity**: O(log n) expansions
-- **Robustness**: Geomet ric scaling (factor 1.6)
+- **Robustness**: Geometric scaling (factor 1.6)
 - **Failure Mode**: Returns false if range becomes too large
 
 #### Find Root Brackets
@@ -259,7 +263,7 @@ VectorN<Real, 2> root = RootFinding::NewtonRaphsonSystem(F, initial_guess, 1e-10
 
 ## ODE Solvers
 
-**Files**: `mml/algorithms/ODESystemSolver.h`, `ODESystemStepCalculators.h`, `ODEAdaptiveIntegrator.h`
+**Files**: `mml/algorithms/ODESystemSolver.h`, `ODEStepCalculators.h`, `ODESolverAdaptive.h`
 
 **Problem**: Solve dy/dt = f(t, y), given y(t₀) = y₀
 
@@ -284,8 +288,8 @@ y_{n+1} = y_n + h * f(t_n, y_n)
 ```
 
 ```cpp
-#include "algorithms/ODESystemSolver.h"
-#include "algorithms/ODESystemStepCalculators.h"
+#include <mml/algorithms/ODESystemSolver.h>
+#include <mml/algorithms/ODEStepCalculators.h>
 
 // Define system: dy/dt = -y (exponential decay)
 ODESystem system(1, [](Real t, const Vector<Real>& y, Vector<Real>& dydt) {
@@ -372,7 +376,7 @@ ODESystemFixedStepSolver solver(system, midpoint);
 **Algorithm**: 5th-order method with embedded 4th-order error estimate.
 
 ```cpp
-#include "algorithms/ODEAdaptiveIntegrator.h"
+#include <mml/algorithms/ODESolverAdaptive.h>
 
 // Create adaptive integrator with Cash-Karp stepper
 ODEAdaptiveIntegrator<CashKarp_Stepper> integrator(system);
@@ -423,9 +427,9 @@ ODESystemSolution sol = integrator.integrate(y0, 0.0, 5.0, 0.1, 1e-6);
 - **Dense Output**: 4th-order interpolation within steps
 - **PI Control**: Smooth step-size adaptation
 
-#### Dormand-Prince 8(7) (High-Order)
+#### DOP853 8(5,3) (High-Order)
 
-**Algorithm**: 8th-order method for high-precision requirements.
+**Algorithm**: Hairer's 8th-order DOP853 method for high-precision requirements.
 
 ```cpp
 ODEAdaptiveIntegrator<DormandPrince8_Stepper> integrator(system);
@@ -433,19 +437,22 @@ ODESystemSolution sol = integrator.integrate(y0, 0.0, 5.0, 0.1, 1e-10);
 ```
 
 **Properties**:
-- **Order**: 8th order with 7th order error estimate
+- **Order**: 8th order with blended 5th- and 3rd-order error estimates
+- **Dense Output**: 7th-order continuous extension
+- **FSAL**: No; the endpoint derivative is evaluated explicitly
 - **Use Case**: High-precision long-time integrations
-- **Evaluations**: 13 per step
+- **Evaluations**: 12 per attempted step after the initial derivative, plus 3 after acceptance for dense output
 
 ---
 
 ### Specialized Solvers
 
-#### Leapfrog (Verlet Integration)
+#### Velocity Verlet / Leapfrog Compatibility Name
 
-**Purpose**: Energy-conserving integrator for Hamiltonian systems.
+**Purpose**: Symplectic integrator for separable Hamiltonian systems.
 
-**Algorithm**: Symplectic integrator.
+**Contract**: The system must have an even-dimensional `[q, v]` state satisfying
+`q' = v` and `v' = a(t,q)`. Velocity-dependent acceleration is unsupported.
 
 ```
 v_{n+1/2} = v_n + (h/2) * a_n
@@ -454,9 +461,9 @@ v_{n+1} = v_{n+1/2} + (h/2) * a_{n+1}
 ```
 
 ```cpp
-// Use Leapfrog step calculator for fixed-step symplectic integration
-Leapfrog_StepCalculator leapfrog;
-ODESystemFixedStepSolver solver(system, leapfrog);
+// Velocity Verlet is the canonical name; Leapfrog_StepCalculator is compatible.
+VelocityVerlet_StepCalculator verlet;
+ODESystemFixedStepSolver solver(system, verlet);
 
 // System must be: y = [x, v]ᵀ  (position, velocity)
 Vector<Real> y0({0.0, 1.0});  // x=0, v=1
@@ -465,7 +472,7 @@ ODESystemSolution sol = solver.integrate(y0, 0.0, 10.0, 1000);
 
 **Properties**:
 - **Order**: 2nd order
-- **Conservation**: Preserves energy (symplectic)
+- **Conservation**: Bounded energy error with constant step size
 - **Use Case**: Molecular dynamics, celestial mechanics
 - **Advantage**: Long-time stability
 
@@ -479,12 +486,12 @@ ODESystem sho(2, [](Real t, const Vector<Real>& y, Vector<Real>& dydt) {
     dydt[1] = -omega*omega * y[0];     // v̇ = -ω²x
 });
 
-Leapfrog_StepCalculator leapfrog;
-ODESystemFixedStepSolver solver(sho, leapfrog);
+VelocityVerlet_StepCalculator verlet;
+ODESystemFixedStepSolver solver(sho, verlet);
 Vector<Real> y0({1.0, 0.0});  // x=1, v=0
 ODESystemSolution sol = solver.integrate(y0, 0.0, 100.0, 1000);
 
-// Energy E = ½v² + ½ω²x² remains constant!
+// Energy E = ½v² + ½ω²x² has bounded long-time error.
 ```
 
 ---
@@ -499,19 +506,19 @@ ODESystemSolution sol = solver.integrate(y0, 0.0, 100.0, 1000);
 | **Cash-Karp** | 5(4) | Adaptive, general purpose |
 | **Dormand-Prince 5** | 5(4) | Adaptive with FSAL, dense output |
 | **Dormand-Prince 8** | 8(7) | High precision requirements |
-| **Leapfrog** | 2 | Hamiltonian, energy conservation |
+| **Velocity Verlet / Leapfrog** | 2 | Separable Hamiltonian systems, bounded energy error |
 
 **Recommendations**:
 - **Default**: Dormand-Prince 5 for most problems (FSAL, dense output)
 - **Stiff systems**: Consider implicit methods (future)
-- **Long-time**: Leapfrog for Hamiltonian
+- **Long-time**: Velocity Verlet for separable Hamiltonian systems
 - **High precision**: Dormand-Prince 8 or RK4 with small step
 
 ---
 
 ## Optimization
 
-**Files**: `mml/algorithms/Optimization.h`, `mml/algorithms/Optimization/OptimizationMultidim.h`
+**Files**: `mml/algorithms/Optimization/Optimization.h`, `mml/algorithms/Optimization/OptimizationMultidim.h`
 
 **Problem**: Find **x*** that minimizes f(**x**)
 
@@ -520,7 +527,7 @@ ODESystemSolution sol = solver.integrate(y0, 0.0, 100.0, 1000);
 **Purpose**: Find minimum of a function in one dimension.
 
 ```cpp
-#include "algorithms/Optimization.h"
+#include <mml/algorithms/Optimization/Optimization.h>
 
 // Minimize f(x) = (x-2)² + 1
 RealFunctionFromStdFunc f([](Real x) { return (x-2)*(x-2) + 1; });
@@ -577,7 +584,7 @@ MinimizationResult result = Minimization::BrentMinimize(f, 0.0, 10.0, 1e-6);
 **Algorithm**: Direction set method that doesn't require derivatives.
 
 ```cpp
-#include "algorithms/Optimization/OptimizationMultidim.h"
+#include <mml/algorithms/Optimization/OptimizationMultidim.h>
 
 ScalarFunction<2> f([](const VectorN<Real, 2>& v) {
     Real x = v[0], y = v[1];
@@ -654,95 +661,53 @@ where s_k = x_{k+1} - x_k, y_k = ∇f_{k+1} - ∇f_k
 
 ## Heuristic Optimization
 
-**File**: `mml/algorithms/Optimization/SimulatedAnnealing.h`
+Simulated annealing moved to **MML-Packages** with the Release 2.0 cull, where the full
+heuristic-optimization family lives (`optimization/SimulatedAnnealing.h` with pluggable
+cooling schedules and neighbor generators, plus genetic algorithms, NSGA-II, MOEA/D).
+Namespace unchanged (`MML::Optimization`).
 
-**Purpose**: Global optimization for multimodal and non-convex problems.
+## Linear Programming
 
-### Simulated Annealing
+**File**: `mml/algorithms/Optimization/LinearProgramming.h`
 
-**Algorithm**: Probabilistic method inspired by metallurgy.
-
-```cpp
-#include "algorithms/Optimization/SimulatedAnnealing.h"
-
-// Find global minimum of Rastrigin function (many local minima)
-auto rastrigin = [](const Vector<Real>& v) {
-    Real x = v[0], y = v[1];
-    Real A = 10.0;
-    return 2*A + (x*x - A*std::cos(2*Constants::PI*x)) 
-               + (y*y - A*std::cos(2*Constants::PI*y));
-};
-
-Vector<Real> x0({4.0, 4.0});
-
-// Configure simulated annealing
-SimulatedAnnealing sa(
-    100.0,   // Initial temperature T0
-    0.95,    // Cooling rate alpha
-    10000,   // Max iterations
-    0.5      // Step size
-);
-
-// Run optimization
-HeuristicOptimizationResult result = sa.Minimize(rastrigin, x0);
-std::cout << "Best x: " << result.xbest << std::endl;
-std::cout << "Best f: " << result.fbest << std::endl;
-std::cout << "Iterations: " << result.iterations << std::endl;
-std::cout << "Accepted moves: " << result.acceptedMoves << std::endl;
-// x_best ≈ [0, 0] (global minimum)
-
-// Or use convenience function:
-HeuristicOptimizationResult result = SimulatedAnnealingMinimize(
-    rastrigin, x0, 100.0, 0.95, 10000, 0.5
-);
-```
-
-**Algorithm**:
-1. Generate random neighbor within step size
-2. If better, accept
-3. If worse, accept with probability exp(-ΔE/T)
-4. Decrease temperature according to cooling schedule
-
-**Cooling Schedules**:
-- **Exponential**: T(k) = T₀ × αᵏ (most common)
-- **Linear**: T(k) = T₀ - k × (T₀ - T_final) / max_iter
-- **Logarithmic**: T(k) = T₀ / (1 + log(1 + k))
+**Purpose**: Dense continuous linear programs with `<=`, `=`, and `>=` constraints.
 
 ```cpp
-// Custom cooling schedule
-ExponentialCooling cooling(0.95);
-SimulatedAnnealing sa(100.0, cooling, 10000, 0.5);
+#include <mml/algorithms/Optimization/LinearProgramming.h>
+
+using namespace MML::Optimization;
+
+// max 3x + 2y
+// s.t. x + y <= 4
+//      2x + y <= 5
+//      x, y >= 0
+LinearProgram lp(2);
+lp.SetObjective({3.0, 2.0}, LPObjective::Maximize);
+lp.AddConstraint({1.0, 1.0}, LPConstraintType::LessEqual, 4.0);
+lp.AddConstraint({2.0, 1.0}, LPConstraintType::LessEqual, 5.0);
+
+LPResult result = SolveLP(lp);
+// result.x ~= [1, 3], result.objectiveValue ~= 9
 ```
 
-**Properties**:
-- **Global**: Can escape local minima
-- **Stochastic**: Different runs give different results
-- **No derivatives**: Works for non-smooth functions
-- **Flexible**: Works with bounds constraints
+**Supported core scope**:
+- dense continuous variables with default `x >= 0`;
+- `<=`, `=`, and `>=` constraints;
+- primal simplex with two-phase handling (full tableau);
+- dual simplex helper;
+- basic sensitivity fields.
 
-**Tuning**:
-- **T₀**: Start high enough to accept ~80% of uphill moves
-- **α**: Typical 0.9-0.99 (slower cooling = better results)
-- **Step size**: Problem-dependent, affects neighbor generation
-
-**With Box Constraints**:
-```cpp
-Vector<Real> lowerBounds({-5.12, -5.12});
-Vector<Real> upperBounds({5.12, 5.12});
-
-HeuristicOptimizationResult result = SimulatedAnnealingMinimize(
-    rastrigin, x0, 100.0, 0.95, 10000, 0.5, lowerBounds, upperBounds
-);
-```
+Model finite variable bounds as explicit constraints. The revised simplex solver
+(`RevisedSimplexSolver`), mixed-integer, sparse, and advanced modeling workflows
+belong in the MML-Packages layer (`mml_ext/algorithms/Optimization/LP/`).
 
 ---
 
-### Future Heuristic Methods
+### Further Heuristic Methods
 
-Planned for future versions:
-- **Genetic Algorithms**: Population-based evolutionary optimization
-- **Particle Swarm Optimization**: Swarm intelligence method
-- **Differential Evolution**: Robust global optimizer
+Genetic algorithms, NSGA-II, and MOEA/D are available in the MML-Packages
+optimization package; particle swarm and differential evolution remain candidates
+for that package layer.
 
 ---
 
@@ -757,7 +722,7 @@ Planned for future versions:
 The `RealFunctionAnalyzer` class provides comprehensive analysis of real-valued functions.
 
 ```cpp
-#include "algorithms/FunctionsAnalyzer.h"
+#include <mml/algorithms/Analyzers/FunctionsAnalyzer.h>
 
 RealFunctionFromStdFunc f([](Real x) { return x*x*x - 3*x; });
 RealFunctionAnalyzer analyzer(f);
@@ -838,7 +803,7 @@ analyzer.PrintIntervalAnalysis(-5.0, 5.0, 100);
 ### Descriptive Statistics
 
 ```cpp
-#include "algorithms/Statistics.h"
+#include <mml/algorithms/Statistics.h>
 
 Vector<Real> data({1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0});
 
@@ -848,12 +813,18 @@ Real avg = Statistics::Avg(data);             // 5.5
 Real median = Statistics::Median(data);       // 5.5
 
 // Dispersion
-Real variance = Statistics::Variance(data);   // 9.17
-Real stddev = Statistics::StdDev(data);       // 3.03
+Real sampleVariance = Statistics::SampleVariance(data);         // 9.17, denominator n-1
+Real populationVariance = Statistics::PopulationVariance(data); // 8.25, denominator n
+Real sampleStdDev = Statistics::SampleStdDev(data);             // 3.03
+Real populationStdDev = Statistics::PopulationStdDev(data);     // 2.87
+
+// Backward-compatible sample aliases
+Real variance = Statistics::Variance(data);
+Real stddev = Statistics::StdDev(data);
 
 // Combined computation (more efficient)
 Real outAvg, outVar;
-Statistics::AvgVar(data, outAvg, outVar);     // Computes both in one pass
+Statistics::AvgVar(data, outAvg, outVar);     // Mean and sample variance
 
 Real outAvg2, outStdDev;
 Statistics::AvgStdDev(data, outAvg2, outStdDev);
@@ -910,7 +881,8 @@ Real hmean = Statistics::HarmonicMean(data);         // For rates/ratios
 // Weighted statistics
 Vector<Real> weights({1, 1, 2, 2, 3, 3, 2, 2, 1, 1});
 Real wmean = Statistics::WeightedMean(data, weights);
-Real wvar = Statistics::WeightedVariance(data, weights);
+Real wvar = Statistics::WeightedVariance(data, weights); // frequency weights, denominator sum(w)-1
+Real wstd = Statistics::WeightedStdDev(data, weights);
 ```
 
 ### Correlation and Covariance
@@ -926,6 +898,11 @@ Real cov = Statistics::Covariance(x, y);
 Real r = Statistics::PearsonCorrelation(x, y);      // r ∈ [-1, 1]
 // 1 = perfect positive, -1 = perfect negative, 0 = no linear correlation
 
+// Frequency-weighted covariance and correlation
+Vector<Real> correlationWeights({1, 2, 1, 3, 2});
+Real weightedCov = Statistics::WeightedCovariance(x, y, correlationWeights);
+Real weightedR = Statistics::WeightedPearsonCorrelation(x, y, correlationWeights);
+
 // Correlation with significance testing
 Statistics::CorrelationResult result = Statistics::PearsonCorrelationWithTest(x, y);
 // result.r          - correlation coefficient
@@ -937,37 +914,68 @@ Real r_squared = Statistics::RSquared(x, y);        // R² = r²
 
 // For multivariate data (n observations × p variables)
 Matrix<Real> multiData(100, 5);  // 100 observations, 5 variables
-Matrix<Real> covMatrix = Statistics::CovarianceMatrix(multiData);
-Matrix<Real> corrMatrix = Statistics::CorrelationMatrix(multiData);
+Matrix<Real> covMatrix = Statistics::CovarianceMatrix(multiData);   // sample covariance, n-1
+Matrix<Real> corrMatrix = Statistics::CorrelationMatrix(multiData); // exact symmetry/unit diagonal
 ```
+
+### Histograms, ECDF, and Quantiles
+
+```cpp
+#include <mml/algorithms/Statistics/Histogram.h>
+
+using namespace MML;
+using namespace MML::Statistics::Histogram;
+
+Vector<Real> sample({0.2, 0.4, 0.7, 1.1, 1.8, 2.2});
+
+// Automatic histogram rules: Sturges, Scott, Freedman-Diaconis, SquareRoot, Rice
+HistogramResult histogram = ComputeHistogramAuto(sample, BinningMethod::FreedmanDiaconis);
+FrequencyTableResult table = FrequencyTable(sample);
+
+// Custom edges: [left, right), with the final right edge included
+Vector<Real> edges({0.0, 0.5, 1.0, 2.5});
+HistogramResult custom = ComputeHistogram(sample, edges);
+
+ECDFResult ecdf = EmpiricalCDF(sample);
+Real probabilityAtOne = EvaluateECDF(sample, 1.0);
+Vector<Real> quartiles = Quantiles(sample, Vector<Real>({0.25, 0.5, 0.75}));
+```
+
+Histogram frequencies use the full input count. Custom-edge observations outside
+the edge range are not assigned to bins. Density integrates to one when the edge
+range contains the complete sample. `FrequencyTable` returns sorted unique values
+with integer counts and relative frequencies.
 
 ### Rank Correlation
 
+Moved to **MML-Packages** (`mml_ext/algorithms/Statistics/StatisticsRank.h`) with the
+Release 2.0 cull: `SpearmanCorrelation`, `KendallCorrelation`, `...WithTest` variants.
+Namespace unchanged (`MML::Statistics`).
+
+### Discrete Distributions
+
+**File**: `mml/algorithms/Statistics/DiscreteDistributions.h`
+
 ```cpp
-#include "algorithms/Statistics/RankCorrelation.h"
+#include <mml/algorithms/Statistics/DiscreteDistributions.h>
 
-Vector<Real> x({1, 2, 3, 4, 5});
-Vector<Real> y({5, 6, 7, 8, 7});
+Statistics::BinomialDistribution binomial(20, 0.4);
+Real pmf = binomial.pmf(8);
+Real cdf = binomial.cdf(8);
+int quantile = binomial.inverseCdf(0.95);
 
-// Spearman rank correlation (non-parametric)
-Real rho = Statistics::SpearmanCorrelation(x, y);
-
-// Kendall's tau (ordinal association)
-Real tau = Statistics::KendallTau(x, y);
-
-// With significance testing
-Statistics::CorrelationResult spearman = Statistics::SpearmanCorrelationWithTest(x, y);
-Statistics::CorrelationResult kendall = Statistics::KendallTauWithTest(x, y);
+Statistics::PoissonDistribution poisson(3.0);
+Statistics::HypergeometricDistribution hypergeometric(52, 13, 5);
 ```
 
 ### Distributions
 
-**Files**: `mml/algorithms/Statistics/CoreDistributions.h`, `mml/algorithms/Statistics/Distributions.h`
+**File**: `mml/algorithms/Statistics/Distributions.h`
 
 #### Normal Distribution
 
 ```cpp
-#include "algorithms/Statistics/CoreDistributions.h"
+#include <mml/algorithms/Statistics/Distributions.h>
 
 // Create standard normal (μ=0, σ=1)
 Statistics::NormalDistribution stdNormal;             // Default: μ=0, σ=1
@@ -1004,7 +1012,7 @@ Statistics::ChiSquareDistribution chi2(5);            // 5 degrees of freedom
 
 Real pdf = chi2.pdf(4.0);                             // χ² density at 4.0
 Real cdf = chi2.cdf(11.07);                           // P(χ² ≤ 11.07) ≈ 0.95
-Real critical = chi2.inverseCdf(0.95);                // 95th percentile
+Real critical = chi2.criticalValue(0.05);             // 95th percentile
 ```
 
 #### F-Distribution
@@ -1014,13 +1022,13 @@ Statistics::FDistribution F(5, 10);                   // df1=5, df2=10
 
 Real pdf = F.pdf(2.0);                                // F-density at 2.0
 Real cdf = F.cdf(3.33);                               // P(F ≤ 3.33)
-Real critical = F.inverseCdf(0.95);                   // Critical value for ANOVA
+Real critical = F.criticalValue(0.05);                // Critical value for ANOVA
 ```
 
 #### Other Distributions
 
 ```cpp
-#include "algorithms/Statistics/Distributions.h"
+#include <mml/algorithms/Statistics/Distributions.h>
 
 // Cauchy (heavy-tailed, no mean/variance)
 Statistics::CauchyDistribution cauchy(0.0, 1.0);      // location=0, scale=1
@@ -1032,113 +1040,23 @@ Statistics::ExponentialDistribution expo(2.0);        // rate λ=2 (mean=0.5)
 Statistics::LogisticDistribution logistic(0.0, 1.0);  // location=0, scale=1
 ```
 
-### Hypothesis Testing
+### Hypothesis Testing and Confidence Intervals
 
-**File**: `mml/algorithms/Statistics/HypothesisTesting.h`
+Moved to **MML-Packages** with the Release 2.0 cull (`include/mml_ext/algorithms/Statistics/`):
 
-#### T-Tests
+- `StatisticsHypothesis.h`: t-tests (one/two-sample, Welch, paired), chi-square tests, one-way ANOVA
+- `StatisticsConfidence.h`: confidence intervals (mean, mean/proportion differences, paired)
+- `StatisticsRank.h`: Spearman and Kendall rank correlation with significance tests
 
-```cpp
-#include "algorithms/Statistics/HypothesisTesting.h"
-
-// One-sample t-test: H₀: μ = μ₀
-Real mu0 = 5.0;
-Real alpha = 0.05;  // 95% confidence
-
-Statistics::HypothesisTestResult result = Statistics::OneSampleTTest(data, mu0, alpha);
-// result.testStatistic  - t-statistic
-// result.pValue         - p-value
-// result.criticalValue  - critical value at alpha
-// result.rejectNull     - true if should reject H₀
-// result.confidenceLevel - 1 - alpha (0.95)
-// result.degreesOfFreedom
-// result.testName       - "One-Sample t-Test"
-
-if (result.rejectNull) {
-    // Reject null hypothesis at 95% confidence
-}
-
-// Two-sample t-test: H₀: μ₁ = μ₂
-Vector<Real> sample1({...});
-Vector<Real> sample2({...});
-Statistics::HypothesisTestResult twoSample = 
-    Statistics::TwoSampleTTest(sample1, sample2, alpha);
-
-// Paired t-test (before/after measurements)
-Vector<Real> before({...});
-Vector<Real> after({...});
-Statistics::HypothesisTestResult paired = 
-    Statistics::PairedTTest(before, after, alpha);
-
-// Welch's t-test (unequal variances)
-Statistics::HypothesisTestResult welch = 
-    Statistics::WelchTTest(sample1, sample2, alpha);
-```
-
-#### One-Way ANOVA
-
-```cpp
-// One-way ANOVA: Compare means of multiple groups
-std::vector<Vector<Real>> groups = {group1, group2, group3};
-Statistics::HypothesisTestResult anova = Statistics::OneWayANOVA(groups, alpha);
-
-if (anova.rejectNull) {
-    // At least one group mean differs significantly
-}
-```
+Namespaces are unchanged (`MML::Statistics`); add MML-Packages and switch the include path.
 
 ---
 
-### Confidence Intervals
+### Package-Level Statistics
 
-**File**: `mml/algorithms/Statistics/ConfidenceIntervals.h`
-
-```cpp
-#include "algorithms/Statistics/ConfidenceIntervals.h"
-
-// Confidence interval for mean (known variance - Z-interval)
-Real knownSigma = 2.0;
-Real confidence = 0.95;
-Statistics::ConfidenceInterval zInterval = 
-    Statistics::MeanConfidenceInterval_Z(data, knownSigma, confidence);
-// zInterval.lower, zInterval.upper, zInterval.center
-
-// Confidence interval for mean (unknown variance - t-interval)
-Statistics::ConfidenceInterval tInterval = 
-    Statistics::MeanConfidenceInterval_T(data, confidence);
-
-// Confidence interval for proportion
-int successes = 75, trials = 100;
-Statistics::ConfidenceInterval propInterval = 
-    Statistics::ProportionConfidenceInterval(successes, trials, confidence);
-
-// Confidence interval for variance (chi-square based)
-Statistics::ConfidenceInterval varInterval = 
-    Statistics::VarianceConfidenceInterval(data, confidence);
-```
-
----
-
-### Time Series Analysis
-
-**File**: `mml/algorithms/Statistics/TimeSeries.h`
-
-```cpp
-#include "algorithms/Statistics/TimeSeries.h"
-
-Vector<Real> series({...});  // Time series data
-
-// Autocorrelation at lag k
-Real acf_1 = Statistics::Autocorrelation(series, 1);   // Lag 1
-Real acf_5 = Statistics::Autocorrelation(series, 5);   // Lag 5
-
-// Partial autocorrelation
-Real pacf_1 = Statistics::PartialAutocorrelation(series, 1);
-
-// Full ACF up to maxLag
-int maxLag = 20;
-Vector<Real> acf = Statistics::AutocorrelationFunction(series, maxLag);
-```
+Histograms/ECDFs, discrete distributions, random deviates, typed descriptors,
+and time-series helpers currently live in `MML-Packages-Private`. Their core
+migrations are tracked separately from the inference APIs above.
 
 ---
 
@@ -1160,7 +1078,7 @@ Vector<Real> acf = Statistics::AutocorrelationFunction(series, maxLag);
 |--------------|-------------------|---------|
 | General, smooth | RKCK adaptive | Efficiency + accuracy |
 | Stiff system | Implicit method* | Stability |
-| Hamiltonian | Leapfrog | Energy conservation |
+| Separable Hamiltonian | Velocity Verlet | Symplectic structure and bounded energy error |
 | High precision | RK4 small step | Accuracy |
 | Quick demo | Euler | Simplicity |
 
@@ -1173,7 +1091,7 @@ Vector<Real> acf = Statistics::AutocorrelationFunction(series, maxLag);
 | Smooth, gradient available | BFGS | Quasi-Newton, fast convergence |
 | Quadratic-like | ConjugateGradient | Optimal for quadratic forms |
 | Derivative-free | PowellMinimize | No gradient required |
-| Non-smooth/many local minima | SimulatedAnnealing | Global search |
+| Non-smooth/many local minima | SimulatedAnnealing (MML-Packages) | Global search |
 | 1D optimization | BrentMinimize | Robust, efficient |
 | Initial bracketing | BracketMinimum | Find containing interval |
 
@@ -1237,9 +1155,8 @@ try {
     auto result = optimizer.Minimize(x0);
 } catch (const OptimizationError& e) {
     // Non-descent direction or line search failure
-    // Try different initial guess or use global method
-    SimulatedAnnealing sa(...);
-    auto global_result = sa.Optimize(bounds);
+    // Try different initial guess, or use a global method
+    // (e.g. SimulatedAnnealing from MML-Packages optimization)
 }
 ```
 
@@ -1259,12 +1176,10 @@ try {
 ## Testing
 
 Run algorithm tests:
-```bash
-cd build
-.\tests\Debug\MML_Tests.exe "[algorithms]"
-.\tests\Debug\MML_Tests.exe "[root-finding]"
-.\tests\Debug\MML_Tests.exe "[ode-solvers]"
-.\tests\Debug\MML_Tests.exe "[optimization]"
+```powershell
+& .\build\tests\Debug\MML_Tests.exe '[RootFinding]'
+& .\build\tests\Debug\MML_Tests.exe '[interpolation],[chebyshev],[CurveFitting]'
+& .\build\tests\Debug\MML_Tests.exe '[DAE],[BDF2],[BDF4],[RODAS],[Radau]'
 ```
 
 ---
@@ -1272,8 +1187,9 @@ cd build
 ## Summary
 
 The Algorithms layer provides:
-- **Root Finding**: 5 methods (bisection, Newton-Raphson, secant, Ridder, Brent)
-- **ODE Solvers**: Fixed-step (Euler, Midpoint, RK4, Leapfrog) + Adaptive (Cash-Karp, DormandPrince5/8)
+- **Root Finding**: six scalar methods, structured isolation/all-real-roots,
+  complex and polynomial roots with polishing, and dense nonlinear-system Newton
+- **ODE Solvers**: Fixed-step (Euler, Midpoint, RK4, Velocity Verlet/Leapfrog) + Adaptive (Cash-Karp, DormandPrince5/8)
 - **Optimization 1D**: Bracketing + Golden section + Brent's method
 - **Optimization Multidim**: Conjugate gradient, BFGS, Powell
 - **Heuristic Optimization**: Simulated Annealing with cooling schedules

@@ -2,44 +2,45 @@
 ///                         MinimalMathLibrary (MML)                                  ///
 ///                                                                                   ///
 ///  File:        DAESolvers.h                                                        ///
-///  Description: Umbrella header for DAE (Differential-Algebraic Equation) solvers  ///
-///                                                                                   ///
-///  Includes:                                                                        ///
-///  - DAE interfaces (IODESystemDAE, IODESystemDAEWithJacobian)                     ///
-///  - DAE data structures (DAESolution, DAESystem)                                   ///
-///  - DAE Index-1 solvers:                                                           ///
-///      - SolveDAEBackwardEuler()  - 1st order, A-stable                             ///
-///      - SolveDAEBDF2()           - 2nd order, A-stable                             ///
-///      - SolveDAEBDF4()           - 4th order, A(α)-stable                          ///
-///      - SolveDAERODAS()          - Rosenbrock, L-stable, no Newton                 ///
-///      - SolveDAERadauIIA()       - Order 5, L-stable, gold standard IRK            ///
-///                                                                                   ///
-///  Common types:                                                                    ///
-///  - DAESolverConfig   - Configuration for all solvers                              ///
-///  - DAESolverResult   - Result structure with solution and diagnostics             ///
-///  - ComputeConsistentIC()  - Compute consistent initial conditions                 ///
-///  - VerifyConsistentIC()   - Verify initial conditions satisfy constraints         ///
+///  Description: Aggregate header for DAE solvers and support types                 ///
 ///                                                                                   ///
 ///  Copyright:   (c) 2024-2026 Zvonimir Vanjak                                       ///
 ///  License:     MIT License (see LICENSE.md)                                         ///
 ///////////////////////////////////////////////////////////////////////////////////////////
+
+/// @file DAESolvers.h
+/// @brief Aggregate header for DAE solver functionality.
+/// This header includes all differential-algebraic equation solver components:
+/// - DAE interfaces and system data structures
+/// - Solver configuration, result, and initial-condition helpers
+/// - Numerical Jacobian adapters
+/// - Backward Euler, BDF2, BDF4, RODAS, Radau IIA, adaptive, and event-aware solvers
+///
+/// Main types and functions included here:
+/// - IODESystemDAE and IODESystemDAEWithEvents - DAE system interfaces
+/// - DAESystem - reusable DAE system container
+/// - DAESolverConfig, DAESolverResult, DAEFailureReason, and DAENewtonResult
+/// - ComputeConsistentIC and VerifyConsistentIC - consistent initial-condition helpers
+/// - DAESystemNumericalJacobian - Jacobian adapter for systems without analytical Jacobians
+/// - SolveDAEBackwardEuler, SolveDAEBDF2, SolveDAEBDF4, SolveDAERODAS, and SolveDAERadauIIA
+/// - DAEEventConfig, DAEEventInfo, and DAEEventResult - event detection support
+///
+/// For more focused includes, use the individual headers under DAESolvers/.
+
 #if !defined MML_DAE_SOLVERS_H
 #define MML_DAE_SOLVERS_H
 
-// DAE interfaces
-#include "mml/interfaces/IODESystemDAE.h"
-
-// DAE data structures
-#include "mml/base/DAESystem.h"
-
-// DAE solver base types (DAESolverConfig, DAESolverResult, IC functions)
-#include "mml/algorithms/DAESolvers/DAESolverBase.h"
-
-// Individual DAE solver implementations
-#include "mml/algorithms/DAESolvers/DAEBackwardEuler.h"
-#include "mml/algorithms/DAESolvers/DAEBDF2.h"
-#include "mml/algorithms/DAESolvers/DAEBDF4.h"
-#include "mml/algorithms/DAESolvers/DAERODAS.h"
-#include "mml/algorithms/DAESolvers/DAERadauIIA.h"
+#include <mml/interfaces/IODESystemDAE.h>
+#include <mml/interfaces/IODESystemDAEWithEvents.h>
+#include <mml/base/DAESystem.h>
+#include <mml/algorithms/DAESolvers/DAESolverBase.h>
+#include <mml/algorithms/DAESolvers/DAENumericalJacobian.h>
+#include <mml/algorithms/DAESolvers/DAEBackwardEuler.h>
+#include <mml/algorithms/DAESolvers/DAEBDF2.h>
+#include <mml/algorithms/DAESolvers/DAEBDF4.h>
+#include <mml/algorithms/DAESolvers/DAERODAS.h>
+#include <mml/algorithms/DAESolvers/DAERadauIIA.h>
+#include <mml/algorithms/DAESolvers/DAEAdaptive.h>
+#include <mml/algorithms/DAESolvers/DAEEventDetection.h>
 
 #endif // MML_DAE_SOLVERS_H

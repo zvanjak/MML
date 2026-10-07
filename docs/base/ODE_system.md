@@ -404,8 +404,8 @@ Visualizer::VisualizeParamCurve3D(trajectory, "lorenz_attractor", 0.0, 50.0, 100
 ### Example 1: Simple Pendulum
 
 ```cpp
-#include "base/ODESystem.h"
-#include "algorithms/ODESolver.h"
+#include <mml/base/ODESystem.h>
+#include <mml/algorithms/ODESolver.h>
 
 void Example_Simple_Pendulum()
 {
@@ -747,7 +747,7 @@ Visualizer::VisualizeParamCurve2D(curve, "phase", t1, t2, 500);
 **Step Calculators & Solvers:**
 - `Docs_Demo_Step_Calculators()` - Euler, RK4, Leapfrog comparison on SHO
 - `Docs_Demo_Adaptive_Integrators()` - Cash-Karp, Dormand-Prince integrators
-- `Docs_Demo_Legacy_Solver_Interface()` - Backward-compatible solver API
+- `Docs_Demo_Compact_Solver_Interface()` - Compact solver API
 
 **ODESystemSolution Post-Processing:**
 - `Docs_Demo_ODESystemSolution_Basics()` - Accessing solution data, statistics

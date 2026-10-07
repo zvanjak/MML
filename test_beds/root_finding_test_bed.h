@@ -1,3 +1,19 @@
+///////////////////////////////////////////////////////////////////////////////////////////
+///                         MinimalMathLibrary (MML)                                  ///
+///                                                                                   ///
+///  File:        root_finding_test_bed.h                                             ///
+///  Purpose:     Reusable scalar equations with known roots for validating root      ///
+///               finding algorithms.                                                ///
+///                                                                                   ///
+///  Used by:     tests/algorithms/root_finding/advanced_root_finding_tests.cpp.     ///
+///                                                                                   ///
+///  Contents:    Polynomial, transcendental, multiple-root, singular, flat-slope,   ///
+///               and bracketed cases with derivatives, multiplicities, brackets,    ///
+///               difficulty, and grouped accessors.                                  ///
+///                                                                                   ///
+///  Coverage:    Basic root-finding, polynomial-root, and nonlinear-system tests     ///
+///               still contain local cases that may be promoted here.                ///
+///////////////////////////////////////////////////////////////////////////////////////////
 #if !defined __MML_ROOT_FINDING_TEST_BED_H
 #define __MML_ROOT_FINDING_TEST_BED_H
 
@@ -9,10 +25,10 @@
 #include "../test_data/root_finding_defs.h"
 
 #ifdef MML_USE_SINGLE_HEADER
-#include "MML.h"
+#include <MML.h>
 #else
-#include "MMLBase.h"
-#include "interfaces/IFunction.h"
+#include <mml/MMLBase.h>
+#include <mml/interfaces/IFunction.h>
 #endif
 
 namespace MML::TestBeds
@@ -109,7 +125,7 @@ namespace MML::TestBeds
             Poly_quad_23_deriv,
             { 2.0, 3.0 },
             { 1, 1 },
-            { {1.5, 2.5}, {2.5, 3.5} },
+            { {REAL(1.5), REAL(2.5)}, {REAL(2.5), REAL(3.5)} },
             "polynomial",
             "Simple quadratic with integer roots at 2 and 3.",
             true, false, 0, 1
@@ -124,7 +140,7 @@ namespace MML::TestBeds
             Poly_quartic_1122_deriv,
             { -2.0, -1.0, 1.0, 2.0 },
             { 1, 1, 1, 1 },
-            { {-2.5, -1.5}, {-1.5, -0.5}, {0.5, 1.5}, {1.5, 2.5} },
+            { {REAL(-2.5), REAL(-1.5)}, {REAL(-1.5), REAL(-0.5)}, {REAL(0.5), REAL(1.5)}, {REAL(1.5), REAL(2.5)} },
             "polynomial",
             "Quartic with four symmetric integer roots.",
             true, false, 0, 2
@@ -139,7 +155,7 @@ namespace MML::TestBeds
             Poly_wilkinson5_deriv,
             { 1.0, 2.0, 3.0, 4.0, 5.0 },
             { 1, 1, 1, 1, 1 },
-            { {0.5, 1.5}, {1.5, 2.5}, {2.5, 3.5}, {3.5, 4.5}, {4.5, 5.5} },
+            { {REAL(0.5), REAL(1.5)}, {REAL(1.5), REAL(2.5)}, {REAL(2.5), REAL(3.5)}, {REAL(3.5), REAL(4.5)}, {REAL(4.5), REAL(5.5)} },
             "polynomial",
             "Small Wilkinson polynomial - sensitive to perturbations. Good for testing robustness.",
             true, false, 0, 2
@@ -173,7 +189,7 @@ namespace MML::TestBeds
             Trans_kepler_deriv,
             { ROOT_KEPLER_05_05 },
             { 1 },
-            { {0.0, 1.5} },
+            { {REAL(0.0), REAL(1.5)} },
             "transcendental",
             "Kepler's equation E - e*sin(E) = M from orbital mechanics. Historically important.",
             true, false, 0, 2
@@ -233,7 +249,7 @@ namespace MML::TestBeds
             Trans_tanx_minus_x_deriv,
             { 0.0, ROOT_TAN_1 },
             { 1, 1 },
-            { {-0.1, 0.1}, {4.4, 4.6} },
+            { {REAL(-0.1), REAL(0.1)}, {REAL(4.4), REAL(4.6)} },
             "transcendental",
             "Tangent intersection. Infinitely many roots near kπ. Care needed near singularities at π/2 + kπ.",
             true, true, static_cast<Real>(Constants::PI / 2), 3  // singularity near bracket
@@ -282,7 +298,7 @@ namespace MML::TestBeds
             Multi_mixed_1_3_deriv,
             { 1.0, 3.0 },
             { 2, 1 },
-            { {0.0, 2.0}, {2.0, 4.0} },
+            { {REAL(0.0), REAL(2.0)}, {REAL(2.0), REAL(4.0)} },
             "multiple_roots",
             "Root at 1 with multiplicity 2, simple root at 3. Tests handling of mixed cases.",
             true, false, 0, 3
@@ -301,7 +317,7 @@ namespace MML::TestBeds
             Close_roots_1_1001_deriv,
             { 1.0, 1.001 },
             { 1, 1 },
-            { {0.99, 1.0005}, {1.0005, 1.01} },
+            { {REAL(0.99), REAL(1.0005)}, {REAL(1.0005), REAL(1.01)} },
             "close_roots",
             "Two roots separated by only 0.001. Tests precision and bracketing accuracy.",
             true, false, 0, 3
@@ -316,7 +332,7 @@ namespace MML::TestBeds
             Close_roots_2_20001_deriv,
             { 2.0, 2.0001 },
             { 1, 1 },
-            { {1.99, 2.00005}, {2.00005, 2.01} },
+            { {REAL(1.99), REAL(2.00005)}, {REAL(2.00005), REAL(2.01)} },
             "close_roots",
             "Two roots separated by only 0.0001. Extremely challenging for bracket-based methods.",
             true, false, 0, 4
@@ -335,7 +351,7 @@ namespace MML::TestBeds
             Patho_steep_exp_deriv,
             { ROOT_LN10000 },
             { 1 },
-            { {8.0, 10.0} },
+            { {REAL(8.0), REAL(10.0)} },
             "pathological",
             "Very steep exponential. Large derivative causes issues for some methods.",
             true, false, 0, 2
@@ -350,7 +366,7 @@ namespace MML::TestBeds
             Patho_flat_cubic_deriv,
             { static_cast<Real>(1.0 + std::cbrt(0.001)) },  // ≈ 1.1
             { 1 },
-            { {0.5, 1.5} },
+            { {REAL(0.5), REAL(1.5)} },
             "pathological",
             "Very flat near the root. Slow convergence for derivative-based methods.",
             true, false, 0, 3
@@ -367,10 +383,10 @@ namespace MML::TestBeds
               static_cast<Real>(Constants::PI / 5), 
               static_cast<Real>(3 * Constants::PI / 10) },
             { 1, 1, 1, 1 },
-            { {-0.1, 0.1}, 
-              {0.25, 0.35}, 
-              {0.55, 0.7}, 
-              {0.85, 1.0} },
+                        { {REAL(-0.1), REAL(0.1)},
+                            {REAL(0.25), REAL(0.35)},
+                            {REAL(0.55), REAL(0.7)},
+                            {REAL(0.85), REAL(1.0)} },
             "pathological",
             "Oscillatory function with exponential decay. Many roots, needs careful bracketing.",
             true, false, 0, 3
@@ -385,7 +401,7 @@ namespace MML::TestBeds
             Patho_steep_atan_deriv,
             { 1.0 },
             { 1 },
-            { {0.0, 2.0} },
+            { {REAL(0.0), REAL(2.0)} },
             "pathological",
             "Extremely steep at x=1 (derivative ~1000). Bisection stable, Newton may overshoot.",
             true, false, 0, 3
@@ -404,7 +420,7 @@ namespace MML::TestBeds
             Sing_1_over_x_minus_2_deriv,
             { 0.5 },
             { 1 },
-            { {0.1, 1.0} },
+            { {REAL(0.1), REAL(1.0)} },
             "singularity",
             "Root at 0.5 but singularity at x=0. Bracket must exclude singularity.",
             true, true, 0.0, 2
@@ -419,7 +435,7 @@ namespace MML::TestBeds
             Sing_lnx_plus_x_minus_2_deriv,
             { 1.5571455989976115 },  // Approximate
             { 1 },
-            { {0.5, 2.5} },
+            { {REAL(0.5), REAL(2.5)} },
             "singularity",
             "Log singularity at x=0, root near x≈1.557. Common in optimization.",
             true, true, 0.0, 2
@@ -438,7 +454,7 @@ namespace MML::TestBeds
             Phys_vdw_deriv,
             { 0.10874 },  // Approximate numerical root
             { 1 },
-            { {0.05, 0.5} },
+            { {REAL(0.05), REAL(0.5)} },
             "physics",
             "Simplified Van der Waals equation for molar volume. Real gas thermodynamics.",
             true, false, 0, 2
@@ -453,7 +469,7 @@ namespace MML::TestBeds
             Phys_planck_deriv,
             { ROOT_WIEN },
             { 1 },
-            { {4.0, 6.0} },
+            { {REAL(4.0), REAL(6.0)} },
             "physics",
             "Related to Wien displacement law. Root ≈ 4.965 relates to hc/kT ratio.",
             true, false, 0, 2
@@ -468,7 +484,7 @@ namespace MML::TestBeds
             Phys_lambert_deriv,
             { ROOT_LAMBERT_W1 },
             { 1 },
-            { {0.0, 1.0} },
+            { {REAL(0.0), REAL(1.0)} },
             "physics",
             "Lambert W function at W(1). Appears in delay differential equations, combinatorics.",
             true, false, 0, 2

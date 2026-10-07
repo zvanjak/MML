@@ -1,11 +1,28 @@
+///////////////////////////////////////////////////////////////////////////////////////////
+///                         MinimalMathLibrary (MML)                                  ///
+///                                                                                   ///
+///  File:        linear_alg_eq_systems_test_bed.h                                    ///
+///  Purpose:     Reusable matrix systems with known solutions and matrix properties  ///
+///               for solver, eigensystem, SVD, and matrix algorithm validation.      ///
+///                                                                                   ///
+///  Used by:     Matrix algorithms, matrix utilities, eigensystem tests, and linear  ///
+///               equation solver tests.                                             ///
+///                                                                                   ///
+///  Contents:    Real, symmetric, complex, classic, diagonal-dominant, SPD,          ///
+///               multi-RHS, and overdetermined systems with grouped filters by       ///
+///               size, category, and conditioning.                                  ///
+///                                                                                   ///
+///  Coverage:    Banded, sparse, tridiagonal, and singular families should continue  ///
+///               to be exposed through this registry as coverage expands.            ///
+///////////////////////////////////////////////////////////////////////////////////////////
 #if !defined __MML_LINEAR_ALG_EQ_SOLVERS_TEST_BED_H
 #define __MML_LINEAR_ALG_EQ_SOLVERS_TEST_BED_H
 
 #ifdef MML_USE_SINGLE_HEADER
-#include "MML.h"
+#include <MML.h>
 #else
-#include "base/Matrix/Matrix.h"
-#include "base/Matrix/MatrixSym.h"
+#include <mml/base/Matrix/Matrix.h>
+#include <mml/base/Matrix/MatrixSym.h>
 #endif
 
 #include <vector>
@@ -234,33 +251,33 @@ namespace MML::TestBeds
         // to avoid static initialization order fiasco
         static const std::vector<std::pair<std::string, TestLinearSystem>>& getLinearSystemsArray() {
             static const std::vector<std::pair<std::string, TestLinearSystem>> systems = {
-                { "mat_3x3", { 3, mat_3x3(), mat_3x3_rhs0(), mat_3x3_rhs0_sol(), mat_3x3_eigen_val(), mat_3x3_eigen_vecs() } },
-                { "mat_3x3_1", { 3, mat_3x3_1(), mat_3x3_1_rhs0(), mat_3x3_1_rhs0_sol(), mat_3x3_1_eigen_val(), mat_3x3_1_eigen_vecs() } },
-                { "mat_3x3_2", { 3, mat_3x3_2(), mat_3x3_2_rhs0(), mat_3x3_2_rhs0_sol(), mat_3x3_2_eigen_val(), mat_3x3_2_eigen_vecs() } },
-                { "mat_3x3_3", { 3, mat_3x3_3(), mat_3x3_3_rhs0(), mat_3x3_3_rhs0_sol(), mat_3x3_3_eigen_val(), mat_3x3_3_eigen_vecs() } },
-                { "mat_3x3_4", { 3, mat_3x3_4(), mat_3x3_4_rhs0(), mat_3x3_4_rhs0_sol(), mat_3x3_4_eigen_val(), mat_3x3_4_eigen_vecs() } },
-                { "mat_5x5", { 5, mat_5x5(), mat_5x5_rhs0(), mat_5x5_rhs0_sol(), mat_5x5_eigen_val(), mat_5x5_eigen_vecs() } },
+                { "mat_3x3", { 3, mat_3x3(), mat_3x3_rhs0(), mat_3x3_rhs0_sol(), mat_3x3_eigen_val(), mat_3x3_eigen_vecs(), mat_3x3_det, mat_3x3_singular_values(), mat_3x3_cond_2, mat_3x3_rank } },
+                { "mat_3x3_1", { 3, mat_3x3_1(), mat_3x3_1_rhs0(), mat_3x3_1_rhs0_sol(), mat_3x3_1_eigen_val(), mat_3x3_1_eigen_vecs(), mat_3x3_1_det, mat_3x3_1_singular_values(), mat_3x3_1_cond_2, mat_3x3_1_rank } },
+                { "mat_3x3_2", { 3, mat_3x3_2(), mat_3x3_2_rhs0(), mat_3x3_2_rhs0_sol(), mat_3x3_2_eigen_val(), mat_3x3_2_eigen_vecs(), mat_3x3_2_det, mat_3x3_2_singular_values(), mat_3x3_2_cond_2, mat_3x3_2_rank } },
+                { "mat_3x3_3", { 3, mat_3x3_3(), mat_3x3_3_rhs0(), mat_3x3_3_rhs0_sol(), mat_3x3_3_eigen_val(), mat_3x3_3_eigen_vecs(), mat_3x3_3_det, mat_3x3_3_singular_values(), mat_3x3_3_cond_2, mat_3x3_3_rank } },
+                { "mat_3x3_4", { 3, mat_3x3_4(), mat_3x3_4_rhs0(), mat_3x3_4_rhs0_sol(), mat_3x3_4_eigen_val(), mat_3x3_4_eigen_vecs(), mat_3x3_4_det, mat_3x3_4_singular_values(), mat_3x3_4_cond_2, mat_3x3_4_rank } },
+                { "mat_5x5", { 5, mat_5x5(), mat_5x5_rhs0(), mat_5x5_rhs0_sol(), mat_5x5_eigen_val(), mat_5x5_eigen_vecs(), mat_5x5_det, mat_5x5_singular_values(), mat_5x5_cond_2, mat_5x5_rank } },
                 { "mat_8x8", { 8, mat_8x8(), mat_8x8_rhs0(), mat_8x8_rhs0_sol(), mat_8x8_eigen_val(), mat_8x8_eigen_vecs() } },
                 { "mat_10x10", { 10, mat_10x10(), mat_10x10_rhs0(), mat_10x10_rhs0_sol(), mat_10x10_eigen_val(), mat_10x10_eigen_vecs() } },
                 { "mat_20x20", { 20, mat_20x20(), mat_20x20_rhs0(), mat_20x20_rhs0_sol(), mat_20x20_eigen_val(), mat_20x20_eigen_vecs() } },
-                { "hilbert_3x3", { 3, hilbert_3x3(), hilbert_3x3_rhs0(), hilbert_3x3_rhs0_sol(), hilbert_3x3_eigen_val() } },
-                { "hilbert_4x4", { 4, hilbert_4x4(), hilbert_4x4_rhs0(), hilbert_4x4_rhs0_sol(), hilbert_4x4_eigen_val() } },
-                { "hilbert_5x5", { 5, hilbert_5x5(), hilbert_5x5_rhs0(), hilbert_5x5_rhs0_sol(), hilbert_5x5_eigen_val() } },
-                { "hilbert_8x8", { 8, hilbert_8x8(), hilbert_8x8_rhs0(), hilbert_8x8_rhs0_sol(), hilbert_8x8_eigen_val() } },
-                { "pascal_3x3", { 3, pascal_3x3(), pascal_3x3_rhs0(), pascal_3x3_rhs0_sol(), pascal_3x3_eigen_val() } },
-                { "pascal_4x4", { 4, pascal_4x4(), pascal_4x4_rhs0(), pascal_4x4_rhs0_sol(), pascal_4x4_eigen_val() } },
-                { "pascal_5x5", { 5, pascal_5x5(), pascal_5x5_rhs0(), pascal_5x5_rhs0_sol(), pascal_5x5_eigen_val() } },
-                { "vandermonde_3x3", { 3, vandermonde_3x3(), vandermonde_3x3_rhs0(), vandermonde_3x3_rhs0_sol(), vandermonde_3x3_eigen_val() } },
-                { "vandermonde_4x4", { 4, vandermonde_4x4(), vandermonde_4x4_rhs0(), vandermonde_4x4_rhs0_sol(), vandermonde_4x4_eigen_val() } },
-                { "vandermonde_5x5", { 5, vandermonde_5x5(), vandermonde_5x5_rhs0(), vandermonde_5x5_rhs0_sol(), vandermonde_5x5_eigen_val() } },
-                { "frank_3x3", { 3, frank_3x3(), frank_3x3_rhs0(), frank_3x3_rhs0_sol(), frank_3x3_eigen_val() } },
-                { "frank_4x4", { 4, frank_4x4(), frank_4x4_rhs0(), frank_4x4_rhs0_sol(), frank_4x4_eigen_val() } },
-                { "frank_5x5", { 5, frank_5x5(), frank_5x5_rhs0(), frank_5x5_rhs0_sol(), frank_5x5_eigen_val() } },
-                { "kahan_3x3", { 3, kahan_3x3(), kahan_3x3_rhs0(), kahan_3x3_rhs0_sol(), kahan_3x3_eigen_val() } },
-                { "kahan_5x5", { 5, kahan_5x5(), kahan_5x5_rhs0(), kahan_5x5_rhs0_sol(), kahan_5x5_eigen_val() } },
-                { "diag_dominant_4x4", { 4, diag_dominant_4x4_mat, diag_dominant_4x4_rhs, diag_dominant_4x4_sol, diag_dominant_4x4_eigen } },
-                { "diag_dominant_5x5_tridiag", { 5, diag_dominant_5x5_tridiag_mat, diag_dominant_5x5_tridiag_rhs, diag_dominant_5x5_tridiag_sol, diag_dominant_5x5_tridiag_eigen } },
-                { "diag_dominant_6x6_poisson2d", { 6, diag_dominant_6x6_poisson2d_mat, diag_dominant_6x6_poisson2d_rhs, diag_dominant_6x6_poisson2d_sol, diag_dominant_6x6_poisson2d_eigen } }
+                { "hilbert_3x3", { 3, hilbert_3x3(), hilbert_3x3_rhs0(), hilbert_3x3_rhs0_sol(), hilbert_3x3_eigen_val(), hilbert_3x3_det, hilbert_3x3_singular_values(), hilbert_3x3_cond_2, hilbert_3x3_rank } },
+                { "hilbert_4x4", { 4, hilbert_4x4(), hilbert_4x4_rhs0(), hilbert_4x4_rhs0_sol(), hilbert_4x4_eigen_val(), hilbert_4x4_det, hilbert_4x4_singular_values(), hilbert_4x4_cond_2, hilbert_4x4_rank } },
+                { "hilbert_5x5", { 5, hilbert_5x5(), hilbert_5x5_rhs0(), hilbert_5x5_rhs0_sol(), hilbert_5x5_eigen_val(), hilbert_5x5_det, hilbert_5x5_singular_values(), hilbert_5x5_cond_2, hilbert_5x5_rank } },
+                { "hilbert_8x8", { 8, hilbert_8x8(), hilbert_8x8_rhs0(), hilbert_8x8_rhs0_sol(), hilbert_8x8_eigen_val(), hilbert_8x8_det, hilbert_8x8_singular_values(), hilbert_8x8_cond_2, hilbert_8x8_rank } },
+                { "pascal_3x3", { 3, pascal_3x3(), pascal_3x3_rhs0(), pascal_3x3_rhs0_sol(), pascal_3x3_eigen_val(), pascal_3x3_det, pascal_3x3_singular_values(), pascal_3x3_cond_2, pascal_3x3_rank } },
+                { "pascal_4x4", { 4, pascal_4x4(), pascal_4x4_rhs0(), pascal_4x4_rhs0_sol(), pascal_4x4_eigen_val(), pascal_4x4_det, pascal_4x4_singular_values(), pascal_4x4_cond_2, pascal_4x4_rank } },
+                { "pascal_5x5", { 5, pascal_5x5(), pascal_5x5_rhs0(), pascal_5x5_rhs0_sol(), pascal_5x5_eigen_val(), pascal_5x5_det, pascal_5x5_singular_values(), pascal_5x5_cond_2, pascal_5x5_rank } },
+                { "vandermonde_3x3", { 3, vandermonde_3x3(), vandermonde_3x3_rhs0(), vandermonde_3x3_rhs0_sol(), vandermonde_3x3_eigen_val(), vandermonde_3x3_det, vandermonde_3x3_singular_values(), vandermonde_3x3_cond_2, vandermonde_3x3_rank } },
+                { "vandermonde_4x4", { 4, vandermonde_4x4(), vandermonde_4x4_rhs0(), vandermonde_4x4_rhs0_sol(), vandermonde_4x4_eigen_val(), vandermonde_4x4_det, vandermonde_4x4_singular_values(), vandermonde_4x4_cond_2, vandermonde_4x4_rank } },
+                { "vandermonde_5x5", { 5, vandermonde_5x5(), vandermonde_5x5_rhs0(), vandermonde_5x5_rhs0_sol(), vandermonde_5x5_eigen_val(), vandermonde_5x5_det, vandermonde_5x5_singular_values(), vandermonde_5x5_cond_2, vandermonde_5x5_rank } },
+                { "frank_3x3", { 3, frank_3x3(), frank_3x3_rhs0(), frank_3x3_rhs0_sol(), frank_3x3_eigen_val(), frank_3x3_det, frank_3x3_singular_values(), frank_3x3_cond_2, frank_3x3_rank } },
+                { "frank_4x4", { 4, frank_4x4(), frank_4x4_rhs0(), frank_4x4_rhs0_sol(), frank_4x4_eigen_val(), frank_4x4_det, frank_4x4_singular_values(), frank_4x4_cond_2, frank_4x4_rank } },
+                { "frank_5x5", { 5, frank_5x5(), frank_5x5_rhs0(), frank_5x5_rhs0_sol(), frank_5x5_eigen_val(), frank_5x5_det, frank_5x5_singular_values(), frank_5x5_cond_2, frank_5x5_rank } },
+                { "kahan_3x3", { 3, kahan_3x3(), kahan_3x3_rhs0(), kahan_3x3_rhs0_sol(), kahan_3x3_eigen_val(), kahan_3x3_det, kahan_3x3_singular_values(), kahan_3x3_cond_2, kahan_3x3_rank } },
+                { "kahan_5x5", { 5, kahan_5x5(), kahan_5x5_rhs0(), kahan_5x5_rhs0_sol(), kahan_5x5_eigen_val(), kahan_5x5_det, kahan_5x5_singular_values(), kahan_5x5_cond_2, kahan_5x5_rank } },
+                { "diag_dominant_4x4", { 4, diag_dominant_4x4_mat, diag_dominant_4x4_rhs, diag_dominant_4x4_sol, diag_dominant_4x4_eigen, diag_dominant_4x4_det, diag_dominant_4x4_singular_values, diag_dominant_4x4_cond_2, diag_dominant_4x4_rank } },
+                { "diag_dominant_5x5_tridiag", { 5, diag_dominant_5x5_tridiag_mat, diag_dominant_5x5_tridiag_rhs, diag_dominant_5x5_tridiag_sol, diag_dominant_5x5_tridiag_eigen, diag_dominant_5x5_tridiag_det, diag_dominant_5x5_tridiag_singular_values, diag_dominant_5x5_tridiag_cond_2, diag_dominant_5x5_tridiag_rank } },
+                { "diag_dominant_6x6_poisson2d", { 6, diag_dominant_6x6_poisson2d_mat, diag_dominant_6x6_poisson2d_rhs, diag_dominant_6x6_poisson2d_sol, diag_dominant_6x6_poisson2d_eigen, diag_dominant_6x6_poisson2d_det, diag_dominant_6x6_poisson2d_singular_values, diag_dominant_6x6_poisson2d_cond_2, diag_dominant_6x6_poisson2d_rank } }
             };
             return systems;
         }
@@ -307,6 +324,9 @@ namespace MML::TestBeds
 
         static const std::vector<std::pair<std::string, TestLinearSystemComplex>>& getComplexSystemsArray() {
             static const std::vector<std::pair<std::string, TestLinearSystemComplex>> systems = {
+                { "mat_cmplx_symmetric_2x2", { 2, mat_cmplx_symmetric_2x2(), mat_cmplx_symmetric_2x2_rhs0(), mat_cmplx_symmetric_2x2_rhs0_sol(), mat_cmplx_symmetric_2x2_det_abs(), mat_cmplx_symmetric_2x2_singular_values(), mat_cmplx_symmetric_2x2_cond_2(), mat_cmplx_symmetric_2x2_rank() } },
+                { "mat_cmplx_hermitian_2x2", { 2, mat_cmplx_hermitian_2x2(), mat_cmplx_hermitian_2x2_rhs0(), mat_cmplx_hermitian_2x2_rhs0_sol(), mat_cmplx_hermitian_2x2_det_abs(), mat_cmplx_hermitian_2x2_singular_values(), mat_cmplx_hermitian_2x2_cond_2(), mat_cmplx_hermitian_2x2_rank() } },
+                { "mat_cmplx_unitary_2x2", { 2, mat_cmplx_unitary_2x2(), mat_cmplx_unitary_2x2_rhs0(), mat_cmplx_unitary_2x2_rhs0_sol(), mat_cmplx_unitary_2x2_det_abs(), mat_cmplx_unitary_2x2_singular_values(), mat_cmplx_unitary_2x2_cond_2(), mat_cmplx_unitary_2x2_rank() } },
                 { "mat_cmplx_3x3", { 3, mat_cmplx_3x3(), mat_cmplx_3x3_rhs0(), mat_cmplx_3x3_rhs0_sol(), mat_cmplx_3x3_det_abs(), mat_cmplx_3x3_singular_values(), mat_cmplx_3x3_cond_2(), mat_cmplx_3x3_rank() } },
                 { "mat_cmplx_1_3x3", { 3, mat_cmplx_1_3x3(), mat_cmplx_1_3x3_rhs0(), mat_cmplx_1_3x3_rhs0_sol(), mat_cmplx_1_3x3_det_abs(), mat_cmplx_1_3x3_singular_values(), mat_cmplx_1_3x3_cond_2(), mat_cmplx_1_3x3_rank() } },
                 { "mat_cmplx_1_5x5", { 5, mat_cmplx_1_5x5(), mat_cmplx_1_5x5_rhs0(), mat_cmplx_1_5x5_rhs0_sol(), mat_cmplx_1_5x5_det_abs(), mat_cmplx_1_5x5_singular_values(), mat_cmplx_1_5x5_cond_2(), mat_cmplx_1_5x5_rank() } },

@@ -321,7 +321,7 @@ Real computeResidual(const Matrix<Real>& A, const Vector<Real>& v, Real lambda);
 
 ```cpp
 #include "test_beds/eigenvalue_test_bed.h"
-#include "algorithms/EigenSystemSolvers.h"
+#include <mml/algorithms/EigenSystemSolvers.h>
 
 using namespace MML;
 using namespace MML::TestBeds;

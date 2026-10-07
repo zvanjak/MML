@@ -16,12 +16,12 @@
 ///   - ITensor, ITensorField
 ///////////////////////////////////////////////////////////////////////////////////////////
 
-#include "MMLBase.h"
-#include "mml/interfaces/IFunction.h"
-#include "mml/interfaces/ICoordTransf.h"
-#include "mml/interfaces/IDynamicalSystem.h"
-#include "mml/interfaces/IInterval.h"
-#include "mml/interfaces/IODESystem.h"
+#include <mml/MMLBase.h>
+#include <mml/interfaces/IFunction.h>
+#include <mml/interfaces/ICoordTransf.h>
+#include <mml/interfaces/IDynamicalSystem.h>
+#include <mml/interfaces/IInterval.h>
+#include <mml/interfaces/IODESystem.h>
 // Note: Other interface headers may be included as needed
 
 #include <iostream>

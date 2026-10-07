@@ -11,7 +11,7 @@
 #if !defined MML_STATISTICS_BASE_H
 #define MML_STATISTICS_BASE_H
 
-#include "core/AlgorithmTypes.h"
+#include <mml/base/AlgorithmTypes.h>
 
 namespace MML
 {
@@ -23,7 +23,8 @@ namespace MML
 
 		/// Configuration for statistics detailed APIs
 		struct StatisticsConfig : public EvaluationConfigBase {
-			// Inherits: estimate_error, check_finite, exception_policy
+			// Inherits: check_finite and exception_policy.
+			// estimate_error is reserved for future statistics results with error estimates.
 		};
 
 		/// Detailed result for hypothesis tests
@@ -72,6 +73,28 @@ namespace MML
 
 		namespace StatisticsDetail
 		{
+			inline bool HasFiniteOutputs(const HypothesisTestDetailedResult& result)
+			{
+				return std::isfinite(result.testStatistic)
+					&& std::isfinite(result.pValue)
+					&& std::isfinite(result.criticalValue)
+					&& std::isfinite(result.confidenceLevel);
+			}
+
+			inline bool HasFiniteOutputs(const ConfidenceIntervalDetailedResult& result)
+			{
+				return std::isfinite(result.estimate)
+					&& std::isfinite(result.lowerBound)
+					&& std::isfinite(result.upperBound)
+					&& std::isfinite(result.marginOfError)
+					&& std::isfinite(result.confidenceLevel);
+			}
+
+			inline bool HasFiniteOutputs(const RankCorrelationDetailedResult& result)
+			{
+				return std::isfinite(result.rho) && std::isfinite(result.zScore);
+			}
+
 			/// Execute a statistics Detailed operation with timing and exception handling.
 			///
 			/// @tparam ResultType The detailed result type
@@ -84,10 +107,21 @@ namespace MML
 			                                    const EvaluationConfigBase& config,
 			                                    ComputeFn&& compute)
 			{
+				AlgorithmTimer timer;
+
+				auto make_failure = [&](AlgorithmStatus status, const std::string& message) {
+					ResultType result = MakeEvaluationFailureResult<ResultType>(status, message, algorithm_name);
+					result.elapsed_time_ms = timer.elapsed_ms();
+					return result;
+				};
+
 				auto execute = [&]() {
-					AlgorithmTimer timer;
 					ResultType result = MakeEvaluationSuccessResult<ResultType>(algorithm_name);
 					compute(result);
+					if (config.check_finite && !HasFiniteOutputs(result)) {
+						result.status = AlgorithmStatus::NumericalInstability;
+						result.error_message = std::string(algorithm_name) + " produced non-finite output";
+					}
 					result.elapsed_time_ms = timer.elapsed_ms();
 					return result;
 				};
@@ -99,16 +133,13 @@ namespace MML
 					return execute();
 				}
 				catch (const std::invalid_argument& ex) {
-					return MakeEvaluationFailureResult<ResultType>(
-						AlgorithmStatus::InvalidInput, ex.what(), algorithm_name);
+					return make_failure(AlgorithmStatus::InvalidInput, ex.what());
 				}
 				catch (const std::runtime_error& ex) {
-					return MakeEvaluationFailureResult<ResultType>(
-						AlgorithmStatus::InvalidInput, ex.what(), algorithm_name);
+					return make_failure(AlgorithmStatus::InvalidInput, ex.what());
 				}
 				catch (const std::exception& ex) {
-					return MakeEvaluationFailureResult<ResultType>(
-						AlgorithmStatus::AlgorithmSpecificFailure, ex.what(), algorithm_name);
+					return make_failure(AlgorithmStatus::AlgorithmSpecificFailure, ex.what());
 				}
 			}
 		} // namespace StatisticsDetail

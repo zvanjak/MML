@@ -3,11 +3,11 @@
 #include "../../TestMatchers.h"
 
 #ifdef MML_USE_SINGLE_HEADER
-#include "MML.h"
+#include <MML.h>
 #else
-#include "base/Vector/Vector.h"
-#include "base/Matrix/MatrixBandDiag.h"
-#include "base/Matrix/Matrix.h"
+#include <mml/base/Vector/Vector.h>
+#include <mml/base/Matrix/MatrixBandDiag.h>
+#include <mml/base/Matrix/Matrix.h>
 #endif
 
 using namespace MML;
@@ -537,7 +537,7 @@ namespace MML::Tests::Base::BandDiagMatrixTests
 
 		// Frobenius norm: sqrt(3^2 + 4^2 + 1^2 + 2^2 + 1^2 + 1^2 + 1^2) = sqrt(9+16+1+4+1+1+1) = sqrt(33)
 		Real frob = mat.NormFrobenius();
-		REQUIRE(std::abs(frob - std::sqrt(REAL(33.0))) < 1e-10);
+		REQUIRE(std::abs(frob - std::sqrt(REAL(33.0))) < TOL(1e-10, 1e-5));
 
 		// Infinity norm: max row sum = max(7, 4, 2) = 7
 		Real inf = mat.NormInf();

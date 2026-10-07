@@ -12,10 +12,10 @@
 #if !defined  MML_ODE_SYSTEM_SOLUTON_H
 #define MML_ODE_SYSTEM_SOLUTON_H
 
-#include "MMLBase.h"
-#include "MMLExceptions.h"
+#include <mml/MMLBase.h>
+#include <mml/MMLExceptions.h>
 
-#include "base/InterpolatedFunction.h"
+#include <mml/base/InterpolatedFunction.h>
 
 
 namespace MML

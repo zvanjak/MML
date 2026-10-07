@@ -1,6 +1,7 @@
-# Statistical Analysis and Random Number Generation
+# Statistical Analysis and Probability Distributions
 
-Comprehensive toolkit for descriptive statistics, probability distributions, and high-quality random number generation.
+Core toolkit for descriptive statistics, continuous probability distributions,
+confidence intervals, hypothesis tests, and rank correlation.
 
 ## Overview
 
@@ -11,9 +12,66 @@ Statistical analysis is fundamental across all quantitative disciplines:
 - **Machine Learning**: Data preprocessing, distribution fitting, sampling methods
 - **Simulation**: Stochastic modeling, Monte Carlo integration, agent-based systems
 
-This library provides **two complementary toolsets**:
-1. **Descriptive Statistics**: Mean, variance, moments, skewness, kurtosis
-2. **Probability & Random Generation**: Distributions (pdf/cdf/quantile) + high-quality random deviates
+Current core headers:
+
+- `algorithms/Statistics.h`: descriptive, weighted, covariance, and correlation utilities;
+- `algorithms/Statistics/Histogram.h`: histograms, frequency tables, binning rules, ECDF, and quantiles;
+- `algorithms/Statistics/Distributions.h`: 13 continuous distributions;
+- `algorithms/Statistics/DiscreteDistributions.h`: Bernoulli, binomial, Poisson,
+  geometric, negative binomial, and hypergeometric distributions;
+- `algorithms/Statistics/StatisticsBase.h`: detailed-result configuration and diagnostics.
+
+Inferential statistics moved to MML-Packages `include/mml_ext/algorithms/Statistics/`
+with the Release 2.0 cull (namespaces unchanged, just switch the include path):
+StatisticsHypothesis.h (hypothesis tests and ANOVA), StatisticsConfidence.h
+(confidence intervals), StatisticsRank.h (Spearman/Kendall rank correlation).
+
+Random-deviate classes are currently package-side migration candidates tracked
+separately; they are not part of the core API yet.
+
+### Discrete Distributions
+
+```cpp
+#include <mml/algorithms/Statistics/DiscreteDistributions.h>
+
+Statistics::BinomialDistribution binomial(20, 0.4);
+Real probability = binomial.pmf(8);
+Real cumulative = binomial.cdf(8);
+int quantile = binomial.inverseCdf(0.95);
+
+Statistics::PoissonDistribution poisson(3.0);
+Statistics::HypergeometricDistribution hypergeometric(52, 13, 5);
+```
+
+Discrete distribution inverse CDFs return the smallest supported integer `k`
+such that `cdf(k) >= p`.
+
+### Histograms, ECDF, and Quantiles
+
+```cpp
+#include <mml/algorithms/Statistics/Histogram.h>
+
+using namespace MML;
+using namespace MML::Statistics::Histogram;
+
+Vector<Real> sample({0.2, 0.4, 0.7, 1.1, 1.8, 2.2});
+HistogramResult histogram = ComputeHistogramAuto(sample, BinningMethod::FreedmanDiaconis);
+FrequencyTableResult table = FrequencyTable(sample);
+ECDFResult ecdf = EmpiricalCDF(sample);
+Real median = Quantile(sample, 0.5);
+```
+
+Uniform and custom histograms use half-open bins `[left, right)`, with the final
+bin including its right edge. `frequencies` are normalized by the full input
+sample; for custom edges, observations outside the edge range are intentionally
+excluded from counts while `totalCount` remains the original sample size.
+
+Available automatic rules are Sturges, Scott, Freedman-Diaconis, square-root,
+and Rice. `density[i] * (binEdges[i + 1] - binEdges[i])` sums to one when all
+observations lie in the histogram range. ECDF values are right-continuous at
+sorted unique sample values, and quantiles use the same interpolation as `Percentile`.
+`FrequencyTable` returns sorted unique values with integer counts and relative
+frequencies.
 
 ## Quick Reference
 
@@ -24,8 +82,10 @@ This library provides **two complementary toolsets**:
 | **Mean** | Arithmetic mean | μ = Σxᵢ/n | Central tendency |
 | **Variance** | Sample variance | σ² (unbiased) | Spread measurement |
 | **StdDev** | Standard deviation | σ | Dispersion analysis |
+| **WeightedMean/Variance/StdDev** | Frequency-weighted summaries | Weighted moments | Aggregated observations |
 | **Covariance** | Linear relationship | Cov(X,Y) | Joint variability |
-| **Correlation** | Standardized covariance | ρ ∈ [-1,1] | Association strength |
+| **PearsonCorrelation** | Standardized covariance | ρ ∈ [-1,1] | Association strength |
+| **CovarianceMatrix/CorrelationMatrix** | Multivariate summaries | Symmetric matrices | Dense observations × variables |
 
 ### Probability Distributions
 
@@ -35,29 +95,16 @@ This library provides **two complementary toolsets**:
 | **T-Distribution** | ν (degrees of freedom) | ℝ | Small-sample inference |
 | **Chi-Square** | k (degrees of freedom) | [0, ∞) | Variance tests, goodness-of-fit |
 | **F-Distribution** | d₁, d₂ (df) | [0, ∞) | ANOVA, variance ratios |
+| **Cauchy, Exponential, Logistic** | Location/rate/scale | Distribution-specific | Heavy tails and waiting times |
+| **Uniform, Gamma, Beta** | Bounds/shape/scale | Distribution-specific | Simulation and Bayesian models |
+| **Weibull, Pareto, LogNormal** | Shape/scale/location | Distribution-specific | Reliability and positive data |
 
-### Hypothesis Tests
+### Inferential Statistics
 
-| Test | Purpose | Assumptions | Output |
-|------|---------|-------------|--------|
-| **OneSampleTTest** | μ = μ₀? | Normal or n≥30 | t-statistic, p-value, CI |
-| **TwoSampleTTest** | μ₁ = μ₂? | Independent, normal | Welch's t-test result |
-| **PairedTTest** | μ_diff = 0? | Paired, normal diffs | More powerful for pairs |
-| **ChiSquareGoodnessOfFit** | Fits distribution? | Expected freq ≥ 5 | χ² statistic, p-value |
-| **ChiSquareTestOfIndependence** | Variables independent? | Expected counts ≥ 5 | χ² test on contingency table |
-| **OneWayANOVA** | μ₁=μ₂=...=μₖ? | Normal, equal variance | F-statistic, p-value |
+Hypothesis tests, confidence intervals, and rank correlation moved to
+**MML-Packages** `mml_ext` - see the section near the end of this document.
 
-### Confidence Intervals
-
-| Function | Estimates | Method | Use Case |
-|----------|-----------|--------|----------|
-| **ConfidenceIntervalMean** | Population μ | t-distribution | Single sample mean |
-| **ConfidenceIntervalMeanDifference** | μ₁ - μ₂ | Welch's method | Compare two means |
-| **ConfidenceIntervalProportion** | Population p | Normal approx | Binomial proportion |
-| **ConfidenceIntervalProportionDifference** | p₁ - p₂ | Normal approx | Compare proportions |
-| **ConfidenceIntervalPairedDifference** | μ_diff | t-distribution | Paired observations |
-
-### Random Number Generators
+### Random Deviates (Package / Planned Core Migration)
 
 | Generator | Distribution | Algorithm | Speed | Quality |
 |-----------|--------------|-----------|-------|---------|
@@ -67,10 +114,11 @@ This library provides **two complementary toolsets**:
 | **NormalDeviate** | Normal(μ,σ) | **Leva ratio-of-uniforms** | ⭐⭐⭐⭐⭐ | Exact |
 | **CauchyDeviate** | Cauchy(μ,σ) | Ratio method | ⭐⭐⭐⭐ | Exact |
 | **GammaDeviate** | Gamma(α,β) | Marsaglia-Tsang | ⭐⭐⭐⭐ | High |
-| **PoissonDeviate** | Poisson(λ) | Adaptive (direct/PTRS) | ⭐⭐⭐⭐ | Exact |
+| **PoissonDeviate** | Poisson(λ) | Adaptive (direct/ratio-of-uniforms) | ⭐⭐⭐⭐ | Exact |
 | **BinomialDeviate** | Binomial(n,p) | Adaptive (3 methods) | ⭐⭐⭐⭐ | Exact |
 
-**All generators use Mersenne Twister 64-bit** (std::mt19937_64) with period 2¹⁹⁹³⁷−1.
+These classes describe the package implementation and planned core migration.
+They are not currently declared by the core statistics headers.
 
 ## Mathematical Background
 
@@ -166,7 +214,7 @@ static Real Avg(const Vector<Real>& data)
 
 ---
 
-### AvgVar - Mean and Variance
+### AvgVar - Mean and Sample Variance
 
 **Purpose**: Compute both mean and sample variance in single pass.
 
@@ -198,7 +246,7 @@ Compensates for floating-point rounding errors in mean computation. Ensures vari
 
 ---
 
-### AvgStdDev - Mean and Standard Deviation
+### AvgStdDev - Mean and Sample Standard Deviation
 
 **Purpose**: Compute mean and standard deviation (square root of variance).
 
@@ -224,6 +272,61 @@ outStdDev = sqrt(var);
 - Need interpretable spread measure
 - Comparing variability across datasets
 - Constructing confidence intervals
+
+---
+
+### Explicit Sample and Population APIs
+
+Use the explicit names whenever denominator semantics matter:
+
+```cpp
+Real sampleVariance = Statistics::SampleVariance(data);         // denominator n-1
+Real populationVariance = Statistics::PopulationVariance(data); // denominator n
+Real sampleStdDev = Statistics::SampleStdDev(data);             // denominator n-1
+Real populationStdDev = Statistics::PopulationStdDev(data);     // denominator n
+```
+
+`Variance` and `StdDev` remain backward-compatible aliases for `SampleVariance`
+and `SampleStdDev`. Sample variance requires at least two observations; population
+variance accepts one observation and returns zero for that singleton population.
+
+---
+
+### Weighted Statistics
+
+```cpp
+Real weightedMean = Statistics::WeightedMean(data, weights);
+Real weightedVariance = Statistics::WeightedVariance(data, weights);
+Real weightedStdDev = Statistics::WeightedStdDev(data, weights);
+Real weightedCovariance = Statistics::WeightedCovariance(x, y, weights);
+Real weightedCorrelation = Statistics::WeightedPearsonCorrelation(x, y, weights);
+```
+
+`WeightedVariance` and `WeightedStdDev` use frequency weights. They are equivalent
+to repeating each value `weights[i]` times and computing sample variance with
+denominator `sum(weights) - 1`. Weights must be finite and non-negative, total
+weight must exceed one for variance, and all data values must be finite.
+
+The implementation uses compensated accumulation for the weighted sum, total
+weight, squared deviations, and covariance cross-products to reduce cancellation
+error. Weighted Pearson correlation rejects either variable when its weighted
+variance is zero.
+
+---
+
+### Covariance and Correlation Matrices
+
+For a dense matrix with observations in rows and variables in columns:
+
+```cpp
+Matrix<Real> covariance = Statistics::CovarianceMatrix(data);
+Matrix<Real> correlation = Statistics::CorrelationMatrix(data);
+```
+
+`CovarianceMatrix` computes sample covariance with denominator `n-1` and uses
+compensated accumulation. Both helpers reject non-finite data. The correlation
+matrix is exactly symmetric, has an exact unit diagonal, and clamps off-diagonal
+values to `[-1, 1]`; variables with zero variance are rejected.
 
 ---
 
@@ -505,7 +608,11 @@ Real inverseCdf(Real p) const {
 
 ---
 
-## Random Number Generators
+## Random Deviates (Package API / Planned Core Migration)
+
+The classes in this section document the existing package implementation that is
+scheduled for migration under the random-deviates sub-epic. They are not currently
+declared by the MML core statistics headers.
 
 ### ExponentialDeviate - Exponential Random Numbers
 
@@ -855,7 +962,7 @@ public:
    Else: return k
 ```
 
-**For λ ≥ 5** (PTRS - Poisson-Transformed Rejection Sampling):
+**For λ ≥ 5** (ratio-of-uniforms rejection sampling):
 ```
 Complex ratio-of-uniforms method with quick acceptance tests
 Optimized for large λ - see implementation for details
@@ -931,7 +1038,7 @@ Binary search to find k where CDF[k-1] < U ≤ CDF[k]
 
 **Method 2** (n·p ≥ 30): **Ratio-of-uniforms (BTRS)**
 ```
-Similar to Poisson PTRS method
+Similar to the Poisson ratio-of-uniforms method
 Quick acceptance tests for efficiency
 Handles large n·p efficiently
 ```
@@ -1015,7 +1122,7 @@ Real p_value = 1.0 - t.cdf(2.5);  // One-tailed p-value
 For variance tests and goodness-of-fit:
 ```cpp
 ChiSquareDistribution chi2(5);  // df = 5
-Real chi2_critical = chi2.inverseCdf(0.95);  // 11.07
+Real chi2_critical = chi2.criticalValue(0.05);  // 95th percentile
 Real p = chi2.cdf(10.0);  // Cumulative probability
 ```
 
@@ -1023,169 +1130,24 @@ Real p = chi2.cdf(10.0);  // Cumulative probability
 For ANOVA and variance ratio tests:
 ```cpp
 FDistribution f(3, 20);  // df1=3, df2=20
-Real f_critical = f.inverseCdf(0.95);  // 3.10
+Real f_critical = f.criticalValue(0.05);  // 95th percentile
 Real p = 1.0 - f.cdf(4.5);  // P(F > 4.5)
 ```
 
-## Hypothesis Testing
+## Inferential Statistics (moved to MML-Packages)
 
-### T-Tests
+Hypothesis testing (t-tests, chi-square, ANOVA), confidence intervals, rank
+correlation, and their `Detailed` variants moved to **MML-Packages**
+(`include/mml_ext/algorithms/Statistics/`) with the Release 2.0 cull:
 
-#### One-Sample t-Test
-Test if sample mean differs from hypothesized value:
-```cpp
-Vector<Real> data = {12.5, 13.1, 11.8, 12.9, 12.3};
-TTestResult result = OneSampleTTest(data, 12.0);  // H₀: μ = 12.0
+- `StatisticsHypothesis.h` - OneSampleTTest, TwoSampleTTest, WelchTTest, PairedTTest,
+  ChiSquareGoodnessOfFit, ChiSquareIndependence, OneWayANOVA (+ Detailed variants)
+- `StatisticsConfidence.h` - ConfidenceIntervalMean/MeanDifference/Proportion/
+  ProportionDifference/PairedDifference (+ Detailed variants)
+- `StatisticsRank.h` - Spearman/KendallCorrelation, ...WithTest (+ Detailed variants)
 
-// Result contains:
-// - testStatistic: t-value
-// - pValue: two-tailed p-value
-// - degreesOfFreedom: n-1
-// - sampleMean, sampleStdDev
-// - confidenceInterval95: (lower, upper)
-```
-
-#### Two-Sample t-Test
-Compare means of two independent groups:
-```cpp
-Vector<Real> group1 = {23, 25, 27, 24, 26};
-Vector<Real> group2 = {18, 20, 19, 21, 17};
-TTestResult result = TwoSampleTTest(group1, group2);
-
-// Tests H₀: μ₁ = μ₂
-// Uses Welch's approximation (unequal variances)
-```
-
-#### Paired t-Test
-Compare paired observations (before/after, matched pairs):
-```cpp
-Vector<Real> before = {120, 135, 128, 142, 138};
-Vector<Real> after  = {115, 130, 125, 135, 132};
-TTestResult result = PairedTTest(before, after);
-
-// Tests H₀: μ_diff = 0
-// More powerful than two-sample when observations paired
-```
-
-### Chi-Square Tests
-
-#### Goodness-of-Fit Test
-Test if observed frequencies match expected distribution:
-```cpp
-Vector<Real> observed = {25, 30, 20, 25};
-Vector<Real> expected = {25, 25, 25, 25};  // Uniform expected
-ChiSquareTestResult result = ChiSquareGoodnessOfFit(observed, expected);
-
-// χ² = Σ[(O-E)²/E]
-// Tests H₀: data follows expected distribution
-```
-
-#### Test of Independence
-Test if two categorical variables are independent:
-```cpp
-Matrix<Real> contingencyTable(2, 2);
-contingencyTable(0,0) = 30; contingencyTable(0,1) = 10;  // Success: Treatment A, B
-contingencyTable(1,0) = 15; contingencyTable(1,1) = 25;  // Failure: Treatment A, B
-
-ChiSquareTestResult result = ChiSquareTestOfIndependence(contingencyTable);
-
-// Tests H₀: variables are independent
-// df = (rows-1)(cols-1)
-```
-
-### ANOVA (Analysis of Variance)
-
-#### One-Way ANOVA
-Compare means across multiple groups:
-```cpp
-std::vector<Vector<Real>> groups = {
-    {23, 25, 27, 24, 26},  // Group 1
-    {18, 20, 19, 21, 17},  // Group 2
-    {30, 32, 31, 33, 29}   // Group 3
-};
-ANOVAResult result = OneWayANOVA(groups);
-
-// Result contains:
-// - fStatistic: F-value
-// - pValue: probability under H₀
-// - dfBetween, dfWithin: degrees of freedom
-// - meanSquareBetween, meanSquareWithin: variance components
-// - grandMean: overall mean across all groups
-
-// Tests H₀: μ₁ = μ₂ = μ₃ = ...
-```
-
-**ANOVA Assumptions**:
-- Independence of observations
-- Normal distribution within each group
-- Homogeneity of variance (Levene's test recommended)
-
-## Confidence Intervals
-
-### CI for Population Mean
-Estimate population mean from sample:
-```cpp
-Vector<Real> sample = {10, 12, 14, 16, 18};
-ConfidenceInterval ci = ConfidenceIntervalMean(sample, 0.95);
-
-// Returns:
-// - estimate: sample mean
-// - lowerBound, upperBound: 95% CI
-// - marginOfError: half-width of interval
-// - confidenceLevel: 0.95
-// - parameter: "Mean"
-
-// Interpretation: 95% confident true μ is in [lower, upper]
-```
-
-### CI for Mean Difference (Two Samples)
-Compare two population means:
-```cpp
-Vector<Real> group1 = {23, 25, 27, 24, 26};
-Vector<Real> group2 = {18, 20, 19, 21, 17};
-ConfidenceInterval ci = ConfidenceIntervalMeanDifference(group1, group2, 0.95);
-
-// estimate: x̄₁ - x̄₂
-// If CI doesn't contain 0, means are significantly different
-```
-
-### CI for Proportion
-Estimate population proportion (binomial):
-```cpp
-int successes = 65;
-int trials = 100;
-ConfidenceInterval ci = ConfidenceIntervalProportion(successes, trials, 0.95);
-
-// estimate: p̂ = 65/100 = 0.65
-// Uses normal approximation (valid when np̂ ≥ 5 and n(1-p̂) ≥ 5)
-```
-
-### CI for Proportion Difference
-Compare two population proportions:
-```cpp
-int s1 = 45, n1 = 100;  // Treatment A: 45% success
-int s2 = 30, n2 = 100;  // Treatment B: 30% success
-ConfidenceInterval ci = ConfidenceIntervalProportionDifference(s1, n1, s2, n2, 0.95);
-
-// estimate: p̂₁ - p̂₂ = 0.15
-// If CI doesn't contain 0, proportions differ significantly
-```
-
-### CI for Paired Difference
-Confidence interval for paired observations:
-```cpp
-Vector<Real> before = {120, 135, 128, 142, 138};
-Vector<Real> after  = {115, 130, 125, 135, 132};
-ConfidenceInterval ci = ConfidenceIntervalPairedDifference(before, after, 0.95);
-
-// estimate: mean(before - after)
-// More precise than independent samples when data paired
-```
-
-**CI Interpretation**:
-- 95% CI: If we repeated sampling infinitely, 95% of intervals would contain true parameter
-- Wider CI = more uncertainty (smaller n, larger σ)
-- CI that excludes null value (e.g., 0 for differences) indicates statistical significance
+Namespaces are unchanged (`MML::Statistics`); add MML-Packages and switch the
+include path to `<mml_ext/algorithms/Statistics/...>`.
 
 ---
 
@@ -1196,7 +1158,7 @@ ConfidenceInterval ci = ConfidenceIntervalPairedDifference(before, after, 0.95);
 Analyze experimental measurements:
 
 ```cpp
-#include "algorithms/Statistics.h"
+#include <mml/algorithms/Statistics.h>
 
 void Example1() {
     // Measurement data (lengths in mm)
@@ -1781,7 +1743,7 @@ class KernelDensity {
 - ✅ All four moments (mean, variance, skewness, kurtosis)
 - ✅ Numerically stable two-pass algorithms
 
-**Distributions** (7 types):
+**Continuous Distributions** (13 types):
 - ✅ Normal: Standard inference, z-tests
 - ✅ T-Distribution: Small-sample inference
 - ✅ Chi-Square: Variance tests, goodness-of-fit
@@ -1789,11 +1751,14 @@ class KernelDensity {
 - ✅ Cauchy: Heavy tails, no mean/variance
 - ✅ Exponential: Memoryless, waiting times
 - ✅ Logistic: Sigmoid CDF, ML applications
-- ✅ All with pdf, cdf, inverseCdf (quantile)
+- ✅ Uniform, Gamma, Beta
+- ✅ Weibull, Pareto, Log-normal
+- ✅ All provide pdf/cdf; quantiles use inverseCdf where available, or criticalValue for χ²/F
 
-**Hypothesis Tests** (6 types):
+**Hypothesis Tests** (7 types):
 - ✅ One-sample t-test (μ = μ₀)
-- ✅ Two-sample t-test (μ₁ = μ₂, Welch's method)
+- ✅ Two-sample pooled t-test (μ₁ = μ₂)
+- ✅ Welch t-test (unequal variances)
 - ✅ Paired t-test (μ_diff = 0)
 - ✅ Chi-square goodness-of-fit test
 - ✅ Chi-square test of independence
@@ -1806,13 +1771,13 @@ class KernelDensity {
 - ✅ Difference of two proportions
 - ✅ Paired difference mean
 
-**Random Generators** (7 types):
-- ✅ Mersenne Twister 64-bit engine (period 2¹⁹⁹³⁷−1)
-- ✅ Exponential, Logistic, Cauchy (exact inverse transform)
-- ✅ Normal: Box-Muller + Leva's ratio-of-uniforms
-- ✅ Gamma: Marsaglia-Tsang (shape ≥ 1) + transformation (< 1)
-- ✅ Poisson: Adaptive (Knuth direct + PTRS rejection)
-- ✅ Binomial: Three-method adaptive (bits, CDF, BTRS)
+**Rank Correlation and Diagnostics**:
+- ✅ Spearman correlation with average-rank tie handling
+- ✅ Kendall tau-b with tie correction
+- ✅ Detailed status/message/timing APIs for inference and rank correlation
+
+**Random Deviates**:
+- Package-side implementations exist and are planned for a separate core migration.
 
 ### When to Use This Module
 
@@ -1840,7 +1805,7 @@ class KernelDensity {
 - Clinical trials and experiments
 - Survey analysis (proportions)
 
-**Random Generators**:
+**Package Random Deviates**:
 - Monte Carlo simulations
 - Stochastic differential equations
 - Agent-based modeling
@@ -1853,7 +1818,7 @@ class KernelDensity {
 2. **Visualize**: Check distribution shape (skewness, kurtosis)
 3. **Test**: Apply hypothesis tests (t-tests, ANOVA, chi-square)
 4. **Estimate**: Compute confidence intervals for parameters
-5. **Simulate**: Generate random data for validation/power analysis
+5. **Simulate**: Use package random deviates until the core migration lands
 
 ### References
 

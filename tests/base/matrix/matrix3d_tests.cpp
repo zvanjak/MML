@@ -3,9 +3,9 @@
 #include "../../TestMatchers.h"
 
 #ifdef MML_USE_SINGLE_HEADER
-#include "MML.h"
+#include <MML.h>
 #else
-#include "base/Matrix/Matrix3D.h"
+#include <mml/base/Matrix/Matrix3D.h>
 #endif
 
 using namespace MML;

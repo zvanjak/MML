@@ -3,9 +3,9 @@
 #include "../../TestMatchers.h"
 
 #ifdef MML_USE_SINGLE_HEADER
-#include "MML.h"
+#include <MML.h>
 #else
-#include "mml/base/Geometry/Geometry3DBodies.h"
+#include <mml/base/Geometry/Geometry3DBodies.h>
 #endif
 
 using namespace MML;
@@ -279,6 +279,26 @@ TEST_CASE("CubeWithTriangles3D::TriangleSurfaces", "[geometry][cubewithtriangles
         CubeWithTriangles3D cube(8.0, center);
         REQUIRE(cube.ToString().find("Triangles=12") != std::string::npos);
     }
+}
+
+TEST_CASE("BodyWithTriangleSurfaces derives geometry from a closed triangle mesh", "[geometry][mesh][triangle]")
+{
+    CubeWithTriangles3D cube(2.0, Pnt3Cart(3.0, 4.0, 5.0));
+
+    REQUIRE_THAT(cube.BodyWithTriangleSurfaces::Volume(), RealApprox(8.0));
+    REQUIRE_THAT(cube.BodyWithTriangleSurfaces::SurfaceArea(), RealApprox(24.0));
+
+    const Pnt3Cart center = cube.BodyWithTriangleSurfaces::GetCenter();
+    REQUIRE_THAT(center.X(), RealApprox(3.0));
+    REQUIRE_THAT(center.Y(), RealApprox(4.0));
+    REQUIRE_THAT(center.Z(), RealApprox(5.0));
+
+    const BoundingSphere3D sphere = cube.BodyWithTriangleSurfaces::GetBoundingSphere();
+    REQUIRE_THAT(sphere.Radius(), RealApprox(std::sqrt(3.0)).epsilon(TOL(1e-9, 1e-6)).margin(TOL(1e-9, 1e-6)));
+
+    REQUIRE(cube.BodyWithTriangleSurfaces::IsInside(Pnt3Cart(3.0, 4.0, 5.0)));
+    REQUIRE(cube.BodyWithTriangleSurfaces::IsInside(Pnt3Cart(4.0, 4.0, 5.0)));
+    REQUIRE_FALSE(cube.BodyWithTriangleSurfaces::IsInside(Pnt3Cart(4.1, 4.0, 5.0)));
 }
 
 } // namespace MML::Tests::Base::Geometry3DBodies::CubeWithTriangles3DTests

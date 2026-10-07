@@ -5,10 +5,10 @@
 #include <cmath>
 
 #ifdef MML_USE_SINGLE_HEADER
-#include "MML.h"
+#include <MML.h>
 #else
-#include "MMLBase.h"
-#include "base/Vector/Vector.h"
+#include <mml/MMLBase.h>
+#include <mml/base/Vector/Vector.h>
 #endif
 
 namespace MML::TestBeds
@@ -138,7 +138,7 @@ namespace MML::TestBeds
 
     // Smooth polynomial x³-2x²+x-1 on [-2,2], n=5
     const static inline Vector<Real> smoothpoly_5_x{-2.0, -1.0, 0.0, 1.0, 2.0};
-    const static inline Vector<Real> smoothpoly_5_y{-19.0, -5.0, -1.0, -1.0, 3.0};
+    const static inline Vector<Real> smoothpoly_5_y{-19.0, -5.0, -1.0, -1.0, 1.0};
 
     // Gaussian exp(-x²) on [-3,3], n=15
     const static inline Vector<Real> gaussian_15_x{

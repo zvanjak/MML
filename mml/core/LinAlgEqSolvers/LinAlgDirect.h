@@ -12,13 +12,13 @@
 #if !defined  MML_LINEAR_ALG_DIRECT_H
 #define MML_LINEAR_ALG_DIRECT_H
 
-#include "MMLBase.h"
+#include <mml/MMLBase.h>
 
-#include "base/Vector/Vector.h"
-#include "base/Matrix/Matrix.h"
-#include "base/Matrix/MatrixBandDiag.h"
-#include "base/BaseUtils.h"
-#include "core/AlgorithmTypes.h"
+#include <mml/base/Vector/Vector.h>
+#include <mml/base/Matrix/Matrix.h>
+#include <mml/base/Matrix/MatrixBandDiag.h>
+#include <mml/base/BaseUtils.h>
+#include <mml/base/AlgorithmTypes.h>
 
 namespace MML
 {
@@ -265,8 +265,6 @@ namespace MML
 	{
 	private:
 		int _n;
-		// Note: _refOrig removed - was unused and created dangling reference risk
-		// The LU decomposition is stored in _lu (copy of input matrix)
 
 		Matrix<Type> _lu;
 		std::vector<int> _indx;
@@ -291,10 +289,10 @@ namespace MML
 			Real big, temp;
 			Type temp2;
 			Vector<Type> vv(_n);
+			std::vector<Real> rowScales(_n);
 			
 			_d = 1.0;
 			// finding biggest element in each row, and saving its inverse in vv[]
-			Real norm_a = 0.0;
 			for (i = 0; i < _n; i++) 
 			{
 				big = 0.0;
@@ -311,10 +309,9 @@ namespace MML
 				if (big == 0.0)
 					throw SingularMatrixError("LUSolver::ctor - Singular Matrix (zero row)");
 
-				if (big > norm_a) norm_a = big;
+				rowScales[i] = big;
 				vv[i] = 1.0 / big;
 			}
-			Real singularity_threshold = std::numeric_limits<Real>::epsilon() * norm_a * _n;
 
 			// main loop
 			for (k = 0; k < _n; k++) 
@@ -339,11 +336,13 @@ namespace MML
 						_lu[k][j] = temp2;
 					}
 					_d = -_d;
-					vv[imax] = vv[k];
+					std::swap(vv[imax], vv[k]);
+					std::swap(rowScales[imax], rowScales[k]);
 				}
 
 				_indx[k] = imax;
-				if (Abs(_lu[k][k]) < singularity_threshold) 
+				const Real singularityThreshold = std::numeric_limits<Real>::epsilon() * rowScales[k] * _n;
+				if (Abs(_lu[k][k]) <= singularityThreshold)
 					throw SingularMatrixError("LUSolver::ctor - Singular Matrix", Abs(_lu[k][k]));
 				
 				for (i = k + 1; i < _n; i++) 
@@ -398,7 +397,8 @@ namespace MML
 
 		// solving for a given RHS vector
 		// while using the LU decomposition already performed in the constructor
-		bool Solve(const Vector<Type>& b, Vector<Type>& x)
+		/// @throws VectorDimensionError if b or x size differs from the system size
+		void Solve(const Vector<Type>& b, Vector<Type>& x)
 		{
 			// _lu, _n, and _indx are not modified by this routine
 			// and can be left in place for successive calls with different right-hand sides b. This routine takes
@@ -408,7 +408,7 @@ namespace MML
 			Type sum;
 
 			if (b.size() != _n || x.size() != _n)
-				return false;
+				throw VectorDimensionError("LUSolver::Solve - b and x must match system size", b.size(), _n);
 
 			for (i = 0; i < _n; i++)
 				x[i] = b[i];
@@ -431,16 +431,13 @@ namespace MML
 					sum -= _lu[i][j] * x[j];
 				x[i] = sum / _lu[i][i];
 			}
-			return true;
 		}
 
 		Vector<Type> Solve(const Vector<Type>& b)
 		{
 			Vector<Type> x(b.size());
-			if (Solve(b, x) == true)
-				return x;
-			else
-				throw VectorDimensionError("LUSolverInPlace::Solve - bad sizes", b.size(), _n);
+			Solve(b, x);
+			return x;
 		}
 
 		/// @brief Compute matrix inverse using stored LU decomposition
@@ -463,6 +460,12 @@ namespace MML
 				dd = dd * _lu[i][i];
 			return dd;
 		}
+
+		/// @brief Access the combined LU storage: L (unit diagonal implicit) below, U on and above the diagonal
+		const Matrix<Type>& GetDecomposition() const { return _lu; }
+
+		/// @brief Access the pivot swap record: indx[k] = row swapped with row k during elimination step k
+		const std::vector<int>& GetPivotIndices() const { return _indx; }
 	};
 
 
@@ -583,10 +586,10 @@ namespace MML
 		/// @brief Solve Ax=b using in-place LU decomposition
 		/// @param b Right-hand side vector
 		/// @param x Solution vector (output)
-		/// @return true if successful, false if dimensions incompatible
+		/// @throws VectorDimensionError if dimensions incompatible
 		// solving for a given RHS vector
 		// while using the LU decomposition already performed in the constructor
-		bool Solve(const Vector<Type>& b, Vector<Type>& x)
+		void Solve(const Vector<Type>& b, Vector<Type>& x)
 		{
 			// _lu, _n, and _indx are not modified by this routine
 			// and can be left in place for successive calls with different right-hand sides b. This routine takes
@@ -596,7 +599,7 @@ namespace MML
 			Type sum;
 
 			if (b.size() != _n || x.size() != _n)
-				return false;
+				throw VectorDimensionError("LUSolverInPlace::Solve - b and x must match system size", b.size(), _n);
 
 			for (i = 0; i < _n; i++)
 				x[i] = b[i];
@@ -619,7 +622,6 @@ namespace MML
 					sum -= _lu[i][j] * x[j];
 				x[i] = sum / _lu[i][i];
 			}
-			return true;
 		}
 
 		/// @brief Solve Ax=b and return solution vector using in-place LU
@@ -629,10 +631,8 @@ namespace MML
 		Vector<Type> Solve(const Vector<Type>& b)
 		{
 			Vector<Type> x(b.size());
-			if (Solve(b, x) == true)
-				return x;
-			else
-				throw VectorDimensionError("LUSolverInPlace::Solve - bad sizes", b.size(), _n);
+			Solve(b, x);
+			return x;
 		}
 	};
 
@@ -765,12 +765,12 @@ namespace MML
 		 * @brief Solve the system Ax = b using the stored LU decomposition
 		 * @param b Right-hand side vector
 		 * @param x Solution vector (output)
-		 * @return true if solve succeeded, false if dimension mismatch
+		 * @throws VectorDimensionError if dimension mismatch
 		 */
-		bool Solve(const Vector<Real>& b, Vector<Real>& x) const
+		void Solve(const Vector<Real>& b, Vector<Real>& x) const
 		{
 			if (b.size() != static_cast<size_t>(_n) || x.size() != static_cast<size_t>(_n))
-				return false;
+				throw VectorDimensionError("BandDiagonalSolver::Solve - b and x must match system size", b.size(), _n);
 
 			int mm = _m1 + _m2 + 1;
 			int l = _m1;
@@ -802,8 +802,6 @@ namespace MML
 				x[i] = dum / _au[i][0];
 				if (l < mm) l++;
 			}
-			
-			return true;
 		}
 
 		/**
@@ -815,10 +813,8 @@ namespace MML
 		Vector<Real> Solve(const Vector<Real>& b) const
 		{
 			Vector<Real> x(_n);
-			if (Solve(b, x))
-				return x;
-			else
-				throw VectorDimensionError("BandDiagonalSolver::Solve - dimension mismatch", b.size(), _n);
+			Solve(b, x);
+			return x;
 		}
 
 		/**
@@ -878,67 +874,98 @@ namespace MML
 	};
 
 
-	/// @brief Cholesky decomposition solver for symmetric positive-definite matrices
+	/// @brief Cholesky decomposition solver for self-adjoint positive-definite matrices
 	/// @tparam Type Numeric type (Real, Complex, etc.)
-	/// @note Decomposes A=LLᵀ where L is lower triangular (Cholesky factor)
+	/// @note Decomposes A=LL* where L is lower triangular (Cholesky factor)
 	/// @note Complexity: O(n³/3) decomposition (half of LU), O(n²) per solve
-	/// @warning Only works for symmetric positive-definite matrices
-	template<class Type>
+	/// @warning Only works for symmetric/Hermitian positive-definite matrices
+	template<MMLScalar Type>
 	class CholeskySolver
 	{
 	private:
+		using Magnitude = decltype(std::abs(Type{}));
+
 		int n;
 		Matrix<Type> el;
+
+		static Type Conjugate(const Type& value)
+		{
+			if constexpr (MMLComplex<Type>)
+				return std::conj(value);
+			else
+				return value;
+		}
+
+		static Magnitude RealPart(const Type& value)
+		{
+			if constexpr (MMLComplex<Type>)
+				return value.real();
+			else
+				return value;
+		}
+
+		static Magnitude ImaginaryMagnitude(const Type& value)
+		{
+			if constexpr (MMLComplex<Type>)
+				return std::abs(value.imag());
+			else
+				return Magnitude{};
+		}
 
 	public:
 		/// @brief Access the lower-triangular Cholesky factor L.
 		const Matrix<Type>& L() const { return el; }
-		/// @brief Constructor - performs Cholesky decomposition A=LLᵀ
-		/// @param a Positive-definite symmetric matrix (only upper triangle needed)
+		/// @brief Constructor - performs Cholesky decomposition A=LL*
+		/// @param a Positive-definite symmetric or Hermitian matrix
 		/// @throws MatrixDimensionError if matrix is not square or is empty
 		/// @throws SingularMatrixError if matrix is not positive definite
 		/// @note Cholesky factor L stored in lower triangle of el
-		CholeskySolver(const Matrix<Type>& a) : n(a.rows()), el(a)
+		CholeskySolver(const Matrix<Type>& a,
+			Magnitude tolerance = PrecisionValues<Magnitude>::IsMatrixSymmetricTolerance)
+			: n(a.rows()), el(a)
 		{
-			// Dimension validation
 			if (a.rows() != a.cols())
 				throw MatrixDimensionError("CholeskySolver::ctor - matrix must be square", a.rows(), a.cols(), -1, -1);
 			if (a.rows() == 0)
 				throw MatrixDimensionError("CholeskySolver::ctor - matrix must be non-empty", 0, 0, -1, -1);
-			if (!a.isSymmetric())
-				throw MatrixDimensionError("CholeskySolver::ctor - matrix must be symmetric", a.rows(), a.cols(), -1, -1);
-			
-			// Perform Cholesky decomposition
-			for (int i = 0; i < n; i++)
-			{
-				for (int j = i; j < n; j++)
-				{
-					Type sum = el[i][j];
-					
-					// Subtract contributions from previous columns
-					for (int k = 0; k < i; k++)
-						sum -= el[i][k] * el[j][k];
-					
-					if (i == j)
-					{
-						// Diagonal element
-						if (sum <= 0.0)
+			if (!std::isfinite(tolerance) || tolerance < Magnitude{})
+				throw DomainError("CholeskySolver::ctor - tolerance must be finite and nonnegative");
+
+			Magnitude scale{1};
+			for (int row = 0; row < n; ++row)
+				for (int col = 0; col < n; ++col)
+					scale = std::max(scale, static_cast<Magnitude>(std::abs(a[row][col])));
+			const Magnitude hermitianThreshold = tolerance * (Magnitude{1} + scale);
+			for (int row = 0; row < n; ++row) {
+				if (ImaginaryMagnitude(a[row][row]) > hermitianThreshold)
+					throw MatrixDimensionError("CholeskySolver::ctor - matrix must be Hermitian", n, n, -1, -1);
+				for (int col = row + 1; col < n; ++col)
+					if (std::abs(a[row][col] - Conjugate(a[col][row])) > hermitianThreshold)
+						throw MatrixDimensionError("CholeskySolver::ctor - matrix must be Hermitian", n, n, -1, -1);
+			}
+
+			const Magnitude pivotTolerance = std::numeric_limits<Magnitude>::epsilon() * scale * static_cast<Magnitude>(n * 8);
+			for (int row = 0; row < n; ++row) {
+				for (int col = 0; col <= row; ++col) {
+					Type sum = (a[row][col] + Conjugate(a[col][row])) / Type{2};
+					for (int index = 0; index < col; ++index)
+						sum -= el[row][index] * Conjugate(el[col][index]);
+
+					if (row == col) {
+						const Magnitude pivot = RealPart(sum);
+						if (ImaginaryMagnitude(sum) > pivotTolerance || pivot <= pivotTolerance)
 							throw SingularMatrixError("CholeskySolver: Matrix is not positive definite");
-						
-						el[i][i] = std::sqrt(sum);
+						el[row][col] = Type{std::sqrt(pivot)};
 					}
-					else
-					{
-						// Off-diagonal element
-						el[j][i] = sum / el[i][i];
+					else {
+						el[row][col] = sum / el[col][col];
 					}
 				}
 			}
-			
-			// Zero out upper triangle (keeping only lower triangular L)
+
 			for (int i = 0; i < n; i++)
 				for (int j = i + 1; j < n; j++)
-					el[i][j] = 0.0;
+					el[i][j] = Type{};
 		}
 		
 		/// @brief Solve Ax=b using Cholesky decomposition (forward/backward substitution)
@@ -968,13 +995,13 @@ namespace MML
 				x[i] = sum / el[i][i];
 			}
 			
-			// Backward substitution: solve L^T*x = y for x
+			// Backward substitution: solve L^*x = y for x
 			for (int i = n - 1; i >= 0; i--)
 			{
 				Type sum = x[i];
 				for (int k = i + 1; k < n; k++)
-					sum -= el[k][i] * x[k];
-				x[i] = sum / el[i][i];
+					sum -= Conjugate(el[k][i]) * x[k];
+				x[i] = sum / Conjugate(el[i][i]);
 			}
 		}
 		

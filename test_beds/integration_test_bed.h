@@ -1,3 +1,20 @@
+///////////////////////////////////////////////////////////////////////////////////////////
+///                         MinimalMathLibrary (MML)                                  ///
+///                                                                                   ///
+///  File:        integration_test_bed.h                                              ///
+///  Purpose:     Reusable definite-integral problems with exact or high-confidence   ///
+///               reference values for quadrature algorithms.                         ///
+///                                                                                   ///
+///  Used by:     Integration tests directly, and alongside real_functions_test_bed.h ///
+///               for baseline smooth-function cases.                                ///
+///                                                                                   ///
+///  Contents:    Smooth, oscillatory, improper, singular, and endpoint-singular      ///
+///               integrals with bounds, antiderivatives when available, tolerances,  ///
+///               and difficulty/category metadata.                                  ///
+///                                                                                   ///
+///  Coverage:    Broader 2D, 3D, path, surface, adaptive, and Monte Carlo tests      ///
+///               still contain local cases that should be promoted when reusable.    ///
+///////////////////////////////////////////////////////////////////////////////////////////
 #if !defined __MML_INTEGRATION_TEST_BED_H
 #define __MML_INTEGRATION_TEST_BED_H
 
@@ -10,10 +27,10 @@
 #include "../test_data/integration_defs.h"
 
 #ifdef MML_USE_SINGLE_HEADER
-#include "MML.h"
+#include <MML.h>
 #else
-#include "MMLBase.h"
-#include "interfaces/IFunction.h"
+#include <mml/MMLBase.h>
+#include <mml/interfaces/IFunction.h>
 #endif
 
 namespace MML::TestBeds

@@ -23,16 +23,16 @@
 #define MML_DATA_LOADER_H
 
 // Core types: DataFormat, ColumnType, DataColumn, Dataset, LoadResult
-#include "tools/data_loader/DataLoaderTypes.h"
+#include <mml/tools/data_loader/DataLoaderTypes.h>
 
 // Parsing utilities: type inference, value parsing, string utilities
-#include "tools/data_loader/DataLoaderParsing.h"
+#include <mml/tools/data_loader/DataLoaderParsing.h>
 
 // CSV/TSV loading
-#include "tools/data_loader/DataLoaderCSV.h"
+#include <mml/tools/data_loader/DataLoaderCSV.h>
 
 // JSON loading
-#include "tools/data_loader/DataLoaderJSON.h"
+#include <mml/tools/data_loader/DataLoaderJSON.h>
 
 #include <algorithm>
 

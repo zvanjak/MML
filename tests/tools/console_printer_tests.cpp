@@ -17,8 +17,8 @@
 #include <iomanip>
 #include <string>
 
-#include "tools/ConsolePrinter.h"
-#include "base/Vector/Vector.h"
+#include <mml/tools/ConsolePrinter.h>
+#include <mml/base/Vector/Vector.h>
 
 using namespace MML;
 
@@ -59,6 +59,21 @@ TEST_CASE("Utf8::isSingleDisplayChar - UTF-8", "[ConsolePrinter][Utf8]") {
     REQUIRE(Utf8::isSingleDisplayChar("═") == true);   // 3-byte
     REQUIRE(Utf8::isSingleDisplayChar("╔") == true);   // 3-byte
     REQUIRE(Utf8::isSingleDisplayChar("") == false);   // Empty
+}
+
+TEST_CASE("Utf8::displayWidth - Counts UTF-8 code points as display cells", "[ConsolePrinter][Utf8]") {
+    REQUIRE(Utf8::displayWidth("") == 0);
+    REQUIRE(Utf8::displayWidth("abc") == 3);
+    REQUIRE(Utf8::displayWidth("a─b") == 3);
+    REQUIRE(Utf8::displayWidth("╔═╗") == 3);
+}
+
+TEST_CASE("Markdown::escape - Escapes table-breaking characters", "[ConsolePrinter][Markdown]") {
+    REQUIRE(Markdown::escape("") == "");
+    REQUIRE(Markdown::escape("plain") == "plain");
+    REQUIRE(Markdown::escape("A|B") == "A\\|B");
+    REQUIRE(Markdown::escape("C\\D") == "C\\\\D");
+    REQUIRE(Markdown::escape("A\\|B") == "A\\\\\\|B");
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -244,6 +259,16 @@ TEST_CASE("ColumnFormat - formatAligned content exceeds width", "[ConsolePrinter
     
     std::string result = col.formatAligned("LongContent");
     REQUIRE(result == "LongContent");  // Not truncated
+}
+
+TEST_CASE("ColumnFormat - formatAligned uses UTF-8 display width", "[ConsolePrinter][ColumnFormat]") {
+    ColumnFormat left("Col");
+    left.width(5).align(Alignment::Left);
+    REQUIRE(left.formatAligned("a─b") == "a─b  ");
+
+    ColumnFormat right("Col");
+    right.width(5).align(Alignment::Right);
+    REQUIRE(right.formatAligned("a─b") == "  a─b");
 }
 
 TEST_CASE("ColumnFormat - Builder pattern constructor", "[ConsolePrinter][ColumnFormat]") {
@@ -435,6 +460,18 @@ TEST_CASE("TablePrinter - Export Markdown", "[ConsolePrinter][TablePrinter]") {
     REQUIRE(output.find("|---") != std::string::npos);  // Separator line
 }
 
+TEST_CASE("TablePrinter - Export Markdown escapes headers and cells", "[ConsolePrinter][Markdown][Integration]") {
+    TablePrinter<std::string, std::string> table("Name|Tag", {"Value\\Raw"});
+    table.addRow("A|B", {"C\\D"});
+
+    std::ostringstream oss;
+    table.exportTo(oss, ExportFormat::Markdown);
+
+    std::string output = oss.str();
+    REQUIRE(output.find("| Name\\|Tag | Value\\\\Raw |") != std::string::npos);
+    REQUIRE(output.find("| A\\|B | C\\\\D |") != std::string::npos);
+}
+
 TEST_CASE("TablePrinter - Export LaTeX", "[ConsolePrinter][TablePrinter]") {
     TablePrinter<std::string, int> table("A", {"B"});
     table.addRow("x", {1});
@@ -461,6 +498,42 @@ TEST_CASE("TablePrinter - Export HTML", "[ConsolePrinter][TablePrinter]") {
     REQUIRE(output.find("</table>") != std::string::npos);
     REQUIRE(output.find("<th>") != std::string::npos);
     REQUIRE(output.find("<td>") != std::string::npos);
+}
+
+TEST_CASE("Algorithm result display - IterativeResultBase streams via ConsolePrinter", "[ConsolePrinter][AlgorithmResult]") {
+    IterativeResultBase result;
+    result.algorithm_name = "Brent";
+    result.status = AlgorithmStatus::Success;
+    result.converged = true;
+    result.iterations_used = 7;
+    result.achieved_tolerance = 1e-12;
+    result.function_evaluations = 9;
+    result.elapsed_time_ms = 0.25;
+
+    std::ostringstream oss;
+    oss << result;
+
+    std::string output = oss.str();
+    REQUIRE(output.find("Algorithm") != std::string::npos);
+    REQUIRE(output.find("Brent") != std::string::npos);
+    REQUIRE(output.find("Converged") != std::string::npos);
+    REQUIRE(output.find("Iterations") != std::string::npos);
+}
+
+TEST_CASE("Algorithm result display - EvaluationResultBase exports as Markdown", "[ConsolePrinter][AlgorithmResult]") {
+    EvaluationResultBase result;
+    result.algorithm_name = "Curve|Fit";
+    result.status = AlgorithmStatus::InvalidInput;
+    result.error_message = "bad|input\\value";
+    result.function_evaluations = 3;
+
+    std::ostringstream oss;
+    PrintAlgorithmResult(result, oss, ExportFormat::Markdown);
+
+    std::string output = oss.str();
+    REQUIRE(output.find("Curve\\|Fit") != std::string::npos);
+    REQUIRE(output.find("InvalidInput") != std::string::npos);
+    REQUIRE(output.find("bad\\|input\\\\value") != std::string::npos);
 }
 
 TEST_CASE("TablePrinter - Reserve does not affect row count", "[ConsolePrinter][TablePrinter]") {

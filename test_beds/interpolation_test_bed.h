@@ -1,3 +1,19 @@
+///////////////////////////////////////////////////////////////////////////////////////////
+///                         MinimalMathLibrary (MML)                                  ///
+///                                                                                   ///
+///  File:        interpolation_test_bed.h                                            ///
+///  Purpose:     Reusable sampled-function datasets and deterministic generators     ///
+///               for interpolation algorithm validation.                             ///
+///                                                                                   ///
+///  Used by:     tests/base/interpolated_functions/interpolated_functions_tests.cpp. ///
+///                                                                                   ///
+///  Contents:    Runge, Chebyshev-node, smooth polynomial, Gaussian, oscillatory,    ///
+///               noisy, steep, and discontinuous-derivative cases, plus evaluation   ///
+///               grids and error-measurement helpers.                                ///
+///                                                                                   ///
+///  Coverage:    This file is the model for mixing raw static fixtures from          ///
+///               test_data with deterministic generated cases.                       ///
+///////////////////////////////////////////////////////////////////////////////////////////
 #if !defined __MML_INTERPOLATION_TEST_BED_H
 #define __MML_INTERPOLATION_TEST_BED_H
 
@@ -7,10 +23,10 @@
 #include <functional>
 
 #ifdef MML_USE_SINGLE_HEADER
-#include "MML.h"
+#include <MML.h>
 #else
-#include "MMLBase.h"
-#include "base/Vector/Vector.h"
+#include <mml/MMLBase.h>
+#include <mml/base/Vector/Vector.h>
 #endif
 
 #include "../test_data/interpolation_defs.h"

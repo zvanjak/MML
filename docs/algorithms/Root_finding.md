@@ -10,7 +10,9 @@ Root finding algorithms solve the fundamental problem: **given function f(x), fi
 - **Economics**: Break-even points, Nash equilibria, pricing models
 - **Numerical analysis**: Implicit equations, nonlinear systems preparation
 
-The library provides **4 robust methods** spanning bracketing (guaranteed convergence) to Newton-Raphson (fast but needs care).
+The library provides **six scalar refinement methods** plus bracketing,
+polynomial, and complex-root utilities. Scalar callables can be passed directly
+or through `IRealFunction`.
 
 ## Quick Reference
 
@@ -19,13 +21,99 @@ The library provides **4 robust methods** spanning bracketing (guaranteed conver
 | **BracketRoot** | N/A | No (creates bracket) | No | Fast search | ⭐⭐⭐ | **Find initial bracket** |
 | **FindRootBrackets** | N/A | No (finds all) | No | Systematic | ⭐⭐⭐⭐ | **Locate all roots** |
 | **FindRootBisection** | Linear | Yes | No | Slow | ⭐⭐⭐⭐⭐ | **Guaranteed convergence** |
-| **FindRootFalsePosition** | Superlinear (~1.6) | Yes | No | Medium | ⭐⭐⭐⭐ | **Faster than bisection** |
-| **FindRootSecant** | Superlinear (~1.618) | No | No | Fast | ⭐⭐⭐ | **No derivative Newton** |
-| **FindRootNewton** | Quadratic | Optional | Yes (numerical) | **Fastest** | ⭐⭐ | **High-precision refinement** |
+| **FindRootFalsePosition** | Linear (may stagnate) | Yes | No | Medium | ⭐⭐⭐⭐ | **Shape-aware bracketing** |
+| **FindRootSecant** | Superlinear (~1.618) | Yes in MML | No | Fast | ⭐⭐⭐ | **No derivative Newton** |
+| **FindRootNewton** | Quadratic | Yes in MML | Yes (numerical) | **Fastest** | ⭐⭐ | **High-precision refinement** |
 | **FindRootRidders** | Quadratic | Yes | No | Fast | ⭐⭐⭐⭐ | **Robust fast bracketing** |
 | **FindRootBrent** | Superlinear-Quadratic | Yes | No | Fast | ⭐⭐⭐⭐⭐ | **Best all-around** |
 
 **Key Insight**: Always bracket first (BracketRoot/FindRootBrackets), then refine with your method of choice. Brent is the recommended default.
+
+### Capability Map
+
+| Problem | Preferred API |
+|---------|---------------|
+| One bracketed scalar root | `FindRootBrent` |
+| Guaranteed scalar interval reduction | `FindRootBisection` |
+| Candidate intervals, including tangent roots | `FindRootIntervals` |
+| All detectable real roots on an interval | `FindAllRealRootsInInterval` |
+| Polynomial real/complex roots with diagnostics | `FindPolynomialRootsDetailed` |
+| One complex-function root | `FindRootNewtonComplex` or `FindRootMuller` |
+| Square nonlinear system $F(x)=0$ | `SolveNonlinearSystemNewton` |
+
+## Configuration and Diagnostics
+
+Every scalar refinement method has a legacy overload returning `Real` and a
+detailed overload accepting `RootFindingConfig` and returning
+`RootFindingResult`:
+
+```cpp
+RootFinding::RootFindingConfig config;
+config.x_tolerance = 1e-12;
+config.f_tolerance = 1e-12;
+config.relative_tolerance = 1e-12;
+config.max_iterations = 100;
+
+auto result = RootFinding::FindRootBrent(
+  [](Real x) { return x*x - 2.0; }, 1.0, 2.0, config);
+
+if (result) {
+  std::cout << result.root << " residual=" << result.function_value;
+}
+```
+
+For source compatibility, `tolerance` remains the fallback absolute x and
+function tolerance when the explicit fields are zero. Results consistently
+report `root`, `function_value`, `x_error`, iteration and function-evaluation
+counts, convergence, `AlgorithmStatus`, algorithm name, message, and elapsed
+time. Invalid configuration/endpoints, non-finite values, stalls, and iteration
+exhaustion are returned as structured failures by detailed overloads; legacy
+overloads continue to throw `RootFindingError` on failure.
+
+## Nonlinear Systems
+
+`NonlinearSystemSolvers.h` solves square systems
+
+$$
+F(x)=0,\qquad F:\mathbb{R}^n\rightarrow\mathbb{R}^n
+$$
+
+with dense Newton iteration. This differs from multidimensional optimization:
+the solver directly computes $J(x_k)\Delta x=-F(x_k)$ instead of minimizing the
+scalar objective $\frac12\lVert F(x)\rVert^2$.
+
+Dynamic `Vector`/`Matrix` and fixed-size `VectorN`/`MatrixNM` entry points are
+available. Supply an analytical Jacobian callback or omit it to use a
+column-wise fourth-order finite-difference Jacobian:
+
+```cpp
+RootFinding::NonlinearSystemConfig config;
+config.residual_tolerance = 1e-12;
+config.step_tolerance = 1e-12;
+config.store_trace = true;
+
+auto function = [](const Vector<Real>& x) {
+  return Vector<Real>({x[0]*x[0] + x[1]*x[1] - 1.0, x[0] - x[1]});
+};
+auto jacobian = [](const Vector<Real>& x) {
+  return Matrix<Real>(2, 2, {2*x[0], 2*x[1], 1.0, -1.0});
+};
+
+auto result = RootFinding::SolveNonlinearSystemNewton(
+  function, jacobian, Vector<Real>({0.8, 0.4}), config);
+```
+
+`numerical_jacobian_step == 0` uses the shared derivation layer's
+coordinate-scaled automatic steps. A nonzero value is an explicit absolute
+finite-difference step. Numerical Jacobian function evaluations are included in
+the result's aggregate evaluation count.
+
+Backtracking is enabled by default and only accepts residual-reducing steps.
+`NonlinearSystemResult` reports the solution and residual vector, residual and
+step norms, function/Jacobian evaluations, linear solves, iteration count,
+status/message/timing, and optional iteration traces containing point, norms,
+and damping. Singular Jacobians, dimension mismatches, non-finite values,
+stagnation, and iteration exhaustion are returned as structured failures.
 
 ## Mathematical Background
 
@@ -136,8 +224,87 @@ static int FindRootBrackets(const IRealFunction& func, const Real x1, const Real
 
 **Limitations**:
 - Can miss roots if spacing too coarse
-- Sign changes only (misses tangent roots f(x*) = 0, f'(x*) = 0)
+- Tangent candidates depend on local sampling and `tangent_tolerance`
 - Brackets may contain multiple roots
+
+### FindRootIntervals - Structured Isolation
+
+`FindRootIntervals` is the preferred sampling API. It returns
+`std::vector<RootCandidate>` instead of parallel endpoint vectors:
+
+```cpp
+RootFinding::RootIsolationConfig config;
+config.num_intervals = 500;
+config.zero_tolerance = 1e-12;
+config.merge_tolerance = 1e-10;
+
+auto candidates = RootFinding::FindRootIntervals(
+  [](Real x) { return std::sin(x); }, 0.0, 10.0, config);
+
+for (const auto& candidate : candidates) {
+  std::cout << candidate.interval.lower << " "
+        << candidate.interval.upper << " "
+        << candidate.residual << "\n";
+}
+```
+
+`RootCandidateType::SignChange` records a finite interval and both endpoint
+values. `RootCandidateType::ExactSample` records a zero-width interval at a
+sample satisfying `zero_tolerance`. `RootCandidateType::TangentCandidate`
+represents a local minimum of $|f|$ that refines below `tangent_tolerance`
+without changing sign. Adjacent detections are merged using `merge_tolerance`,
+retaining the lowest-residual representative. Distinct roots in neighboring
+intervals remain separate.
+
+Tangent detection is enabled by default. Suspicious three-point local minima
+are adaptively refined with bounded golden-section minimization of $|f|$.
+Neighborhoods already containing a sign change are excluded, preventing an
+ordinary root from being reported twice. Set `detect_tangent_roots` to `false`
+for sign-change-only scanning, tune `tangent_tolerance` to the expected function
+scale, and use `tangent_refinement_iterations` to control local refinement.
+
+An overload accepting both `f` and `df` additionally requires a sampled
+derivative sign reversal or a small derivative before refinement:
+
+```cpp
+auto candidates = RootFinding::FindRootIntervals(
+  [](Real x) { return (x - 0.3)*(x - 0.3); },
+  [](Real x) { return 2.0*(x - 0.3); },
+  0.0, 1.0, config);
+```
+
+`FindRootBrackets` remains available as a compatibility wrapper. Exact interior
+sample roots are translated back to small neighboring brackets so older
+refinement workflows continue to work. Because a small residual local minimum
+can be near-zero without being a true root, tangent candidates are hypotheses;
+downstream refinement must still verify the final residual.
+
+### FindAllRealRootsInInterval - Isolate and Refine
+
+`FindAllRealRootsInInterval` combines structured isolation with final
+refinement and residual verification:
+
+```cpp
+RootFinding::FindAllRealRootsConfig config;
+config.isolation.num_intervals = 500;
+config.isolation.tangent_tolerance = 1e-10;
+config.refinement.x_tolerance = 1e-12;
+config.refinement.f_tolerance = 1e-12;
+config.merge_tolerance = 1e-10;
+
+auto result = RootFinding::FindAllRealRootsInInterval(
+  [](Real x) { return (x - 1.0)*(x - 2.0)*(x - 2.0); },
+  0.0, 3.0, config);
+```
+
+Sign-change candidates are refined with Brent, exact samples are re-evaluated
+against the final function tolerance, and tangent candidates undergo another
+bounded residual minimization before acceptance. The result contains sorted,
+de-duplicated `roots`, accepted and optionally rejected candidate diagnostics,
+candidate-found/accepted/rejected and unique-root counts, aggregate function evaluations, elapsed time, status,
+and a `complete` flag. A search with no candidates is a successful complete
+result with an empty root vector. If any candidate fails final verification,
+the status is `ToleranceUnachievable` and successful roots remain available.
 
 ---
 
@@ -228,7 +395,8 @@ Accuracy: O(h⁴), automatically chooses h
 **Implementation Safeguards**:
 
 1. **Bracket checking**: Ensures xₙ stays in [x₁, x₂]
-   - Throws if Newton step jumps outside
+  - Detailed overload returns `Stalled` if a Newton step jumps outside
+  - Legacy `Real` overload converts that failure to `RootFindingError`
    - Prevents wild divergence
 
 2. **Derivative validation**:
@@ -293,15 +461,15 @@ static Real FindRootFalsePosition(const IRealFunction& func, Real x1, Real x2, R
 5. Continue until |f(x_new)| < xacc or bracket width < xacc
 
 **Convergence**:
-- **Superlinear**: Order ~1.618 (golden ratio φ)
-- Faster than bisection, slower than Newton
+- **Linear in general**; can stagnate when one endpoint remains fixed
+- Often faster than bisection on balanced functions, but no Illinois scaling is applied
 - Guaranteed convergence (maintains bracket)
 
 **Use When**:
 - ✅ Bisection is too slow
 - ✅ Newton is unreliable (poor initial guess)
 - ✅ Function has discontinuous derivatives
-- ✅ Need guaranteed convergence with better speed
+- ✅ Need a simple shape-aware bracketed method
 
 **Limitations**:
 - ❌ Can be slow with one-sided convergence (one endpoint stays fixed)
@@ -508,7 +676,7 @@ for (auto root : roots) {
 Find root of f(x) = x² - 2 (√2 ≈ 1.414213562373095):
 
 ```cpp
-#include "algorithms/RootFinding.h"
+#include <mml/algorithms/RootFinding.h>
 
 class QuadraticFunc : public IRealFunction {
 public:
@@ -1064,71 +1232,60 @@ Real r3 = FindRootNewton(f_deflated, z1, z2, tol);
 
 **Caution**: Numerical errors accumulate! Deflation works best for well-separated roots.
 
-### Complex Roots (Future Extension)
+### Complex Roots
 
-Current implementation: **Real roots only**
+`RootFindingComplex.h` provides detailed complex-domain solvers:
 
-For complex roots, need:
-1. Complex arithmetic support
-2. Modified Newton for complex domain
-3. Different convergence criteria
+- `FindRootNewtonComplex` uses numerical complex differentiation from an
+  initial complex guess.
+- `FindRootMuller` uses three complex starting points and requires no
+  derivative.
 
-Placeholder for future `FindRootComplex()`.
+Both return `ComplexRootFindingResult` with the root, residual, iteration count,
+status, method name, message, and elapsed time. General polynomial roots are
+also available through the Laguerre, Durand-Kerner, companion-matrix, and
+low-degree polynomial APIs in `RootFindingPolynoms.h`.
 
-### Hybrid Methods
+### Polynomial Root Diagnostics and Polishing
 
-**Newton with Bisection Backup** (idea for FindRootSafe):
+Legacy polynomial functions such as `LaguerreRoots`, `EigenvalueRoots`,
+`BairstowRoots`, and the quadratic/cubic/quartic convenience solvers remain
+available. `FindPolynomialRootsDetailed` adds method selection and structured
+verification:
+
 ```cpp
-Real FindRootHybrid(const IRealFunction& f, Real x1, Real x2, Real tol) {
-  Real root = 0.5 * (x1 + x2);
-  Real dx_old = std::abs(x2 - x1);
-  Real dx = dx_old;
-  
-  for (int iter = 0; iter < maxIter; iter++) {
-    Real fx = f(root);
-    Real dfx = Derivation::NDer4(f, root);
-    
-    // Check if Newton step stays in bounds and converges faster than bisection
-    Real dx_newton = fx / dfx;
-    if (std::abs(dx_newton) < std::abs(dx) && 
-        root - dx_newton > x1 && root - dx_newton < x2) {
-      // Take Newton step
-      dx = dx_newton;
-      root -= dx;
-    } else {
-      // Fall back to bisection
-      dx = 0.5 * (x2 - x1);
-      root = x1 + dx;
-      
-      if (f(x1) * fx < 0) x2 = root;
-      else                x1 = root;
-    }
-    
-    if (std::abs(dx) < tol) return root;
-  }
-  throw RootFindingError("Hybrid method failed to converge");
-}
+PolynomReal polynomial({4.0, 0.0, -5.0, 0.0, 1.0});
+RootFinding::PolynomialRootConfig config;
+config.method = RootFinding::PolynomialRootMethod::Laguerre;
+config.tolerance = 1e-12;
+config.polish = true;
+config.polishing_iterations = 8;
+
+auto result = RootFinding::FindPolynomialRootsDetailed(polynomial, config);
 ```
 
-Combines **robustness of bisection** with **speed of Newton**.
+Each `PolynomialRootResult` reports the complex root, absolute and
+coefficient-scale-normalized residuals, estimated multiplicity, polishing
+iterations/status, convergence status, and message. `PolynomialRootSetResult`
+adds the method, polynomial degree, deflation/polishing flags, maximum
+residuals, aggregate status, timing, and evaluation count.
 
----
+Polishing always evaluates Newton corrections against the original polynomial,
+not a progressively deflated copy. Nearby estimates are clustered to estimate
+multiplicity, and modified Newton steps use that estimate for repeated roots.
+`PolishPolynomialRoots` is also public for callers that already have root
+estimates from another source.
 
 ## Runnable Examples
 
 | Topic | Demo File | Function |
 |-------|-----------|----------|
-| Find Initial Bracket | `src/docs_demos/docs_demo_root_finding.cpp` | `Docs_Demo_BracketRoot()` |
-| Find All Brackets | `src/docs_demos/docs_demo_root_finding.cpp` | `Docs_Demo_FindRootBrackets()` |
-| Bisection Method | `src/docs_demos/docs_demo_root_finding.cpp` | `Docs_Demo_FindRootBisection()` |
-| False Position | `src/docs_demos/docs_demo_root_finding.cpp` | `Docs_Demo_FindRootFalsePosition()` |
-| Secant Method | `src/docs_demos/docs_demo_root_finding.cpp` | `Docs_Demo_FindRootSecant()` |
-| Newton-Raphson | `src/docs_demos/docs_demo_root_finding.cpp` | `Docs_Demo_FindRootNewton()` |
-| Ridders' Method | `src/docs_demos/docs_demo_root_finding.cpp` | `Docs_Demo_FindRootRidders()` |
-| Brent's Method | `src/docs_demos/docs_demo_root_finding.cpp` | `Docs_Demo_FindRootBrent()` |
-| Method Comparison | `src/docs_demos/docs_demo_root_finding.cpp` | `Docs_Demo_RootFinding_Comparison()` |
-
-*Comprehensive demos covering all 8 root finding methods with comparison.*
+| Scalar methods and comparison | `src/docs_demos/algorithms/docs_demo_root_finding.cpp` | `Docs_Demo_RootFinding_Comparison()` |
+| Structured scalar diagnostics | `src/docs_demos/algorithms/docs_demo_root_finding.cpp` | `Docs_Demo_RootFindingDiagnostics()` |
+| Bracketing and all-real-roots search | `src/docs_demos/algorithms/docs_demo_root_finding.cpp` | `Docs_Demo_FindRootBrackets()`, `Docs_Demo_FindAllRealRoots()` |
+| Polynomial diagnostics and polishing | `src/docs_demos/algorithms/docs_demo_root_finding.cpp` | `Docs_Demo_PolynomialRootDiagnostics()` |
+| Nonlinear-system Newton | `src/docs_demos/algorithms/docs_demo_root_finding.cpp` | `Docs_Demo_NonlinearSystemNewton()` |
+| Code examples workflow | `src/code_examples/readme10_root_finding.cpp` | `Readme_RootFinding()` |
 
 ---
 

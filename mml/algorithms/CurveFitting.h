@@ -12,13 +12,17 @@
 #if !defined MML_CURVE_FITTING_H
 #define MML_CURVE_FITTING_H
 
-#include "MMLBase.h"
+#include <mml/MMLBase.h>
 
-#include "interfaces/IFunction.h"
-#include "base/Vector/Vector.h"
-#include "base/Matrix/Matrix.h"
-#include "core/AlgorithmTypes.h"
-#include "core/LinAlgEqSolvers.h"
+#include <mml/interfaces/IFunction.h>
+#include <mml/base/Vector/Vector.h>
+#include <mml/base/Matrix/Matrix.h>
+#include <mml/base/AlgorithmTypes.h>
+#include <mml/core/LinAlgEqSolvers.h>
+#include <mml/core/OrthogonalBasis/ChebyshevBasis.h>
+#include <mml/core/OrthogonalBasis/LegendreBasis.h>
+#include <mml/core/OrthogonalBasis/HermiteBasis.h>
+#include <mml/core/OrthogonalBasis/LaguerreBasis.h>
 
 #include <functional>
 
@@ -57,6 +61,12 @@ namespace MML {
 
 		/// Condition number of the design matrix; -1 if not applicable
 		Scalar condition_number = -1.0;
+
+		/// Sum of observation weights; zero for unweighted fits
+		Scalar weight_sum = 0.0;
+
+		Scalar regularization_parameter = 0.0;
+		Scalar coefficient_norm = 0.0;
 	};
 
 	///////////////////////////////////////////////////////////////////////////////////////////
@@ -262,6 +272,9 @@ namespace MML {
 		int num_basis_functions;   // Number of basis functions (n)
 		int effective_rank;		   // Effective rank of the design matrix (from SVD)
 		Scalar condition_number;	   // Condition number of the design matrix (ratio of largest/smallest singular values)
+		Scalar weight_sum;          // Sum of observation weights; zero for unweighted fits
+		Scalar regularization_parameter;
+		Scalar coefficient_norm;
 
 		GeneralLinearFitResult()
 			: residual_norm(0)
@@ -271,7 +284,10 @@ namespace MML {
 			, num_data_points(0)
 			, num_basis_functions(0)
 			, effective_rank(0)
-			, condition_number(0) {}
+			, condition_number(0)
+			, weight_sum(0)
+			, regularization_parameter(0)
+			, coefficient_norm(0) {}
 
 		// Evaluate the fitted function at a point x using the basis functions
 		Scalar evaluate(Scalar x, const Vector<const IRealFunction*>& basis_functions) const {
@@ -418,6 +434,83 @@ namespace MML {
 		return result;
 	}
 
+	// Weighted least squares minimizes sum_i weights[i] * residual[i]^2.
+	// The SVD solve uses the equivalent row-scaled system sqrt(W) A c = sqrt(W) y.
+	template<typename Scalar>
+	GeneralLinearFitResult<Scalar> WeightedGeneralLinearLeastSquares(
+		const Vector<Scalar>& x_data, const Vector<Scalar>& y_data,
+		const Vector<Scalar>& weights,
+		const Vector<std::function<Scalar(Scalar)>>& basis_functions) {
+		if (x_data.size() != y_data.size() || x_data.size() != weights.size())
+			throw CurveFittingError("WeightedGeneralLinearLeastSquares: data and weight sizes must match");
+		if (x_data.size() == 0 || basis_functions.size() == 0)
+			throw CurveFittingError("WeightedGeneralLinearLeastSquares: data and basis cannot be empty");
+		if (x_data.size() < basis_functions.size())
+			throw CurveFittingError("WeightedGeneralLinearLeastSquares: need at least as many data points as basis functions");
+
+		int m = x_data.size();
+		int n = basis_functions.size();
+		Matrix<Scalar> weightedDesign(m, n);
+		Matrix<Scalar> design(m, n);
+		Vector<Scalar> weightedY(m);
+		Scalar weightSum = 0.0;
+		for (int i = 0; i < m; ++i) {
+			if (!std::isfinite(weights[i]) || weights[i] <= 0.0)
+				throw CurveFittingError("WeightedGeneralLinearLeastSquares: weights must be finite and positive");
+			Scalar scale = std::sqrt(weights[i]);
+			weightSum += weights[i];
+			weightedY[i] = scale * y_data[i];
+			for (int j = 0; j < n; ++j) {
+				design(i, j) = basis_functions[j](x_data[i]);
+				weightedDesign(i, j) = scale * design(i, j);
+			}
+		}
+
+		SVDecompositionSolver<Scalar> svd(weightedDesign);
+		Vector<Scalar> coefficients = svd.Solve(weightedY);
+		GeneralLinearFitResult<Scalar> result;
+		result.coefficients = coefficients;
+		result.num_data_points = m;
+		result.num_basis_functions = n;
+		result.weight_sum = weightSum;
+
+		Scalar weightedMean = 0.0;
+		for (int i = 0; i < m; ++i) weightedMean += weights[i] * y_data[i];
+		weightedMean /= weightSum;
+		Scalar weightedResidualSum = 0.0;
+		Scalar weightedTotalSum = 0.0;
+		for (int i = 0; i < m; ++i) {
+			Scalar predicted = 0.0;
+			for (int j = 0; j < n; ++j) predicted += coefficients[j] * design(i, j);
+			Scalar residual = y_data[i] - predicted;
+			weightedResidualSum += weights[i] * residual * residual;
+			Scalar centered = y_data[i] - weightedMean;
+			weightedTotalSum += weights[i] * centered * centered;
+		}
+		result.residual_norm = std::sqrt(weightedResidualSum);
+		result.mean_squared_error = weightedResidualSum / weightSum;
+		if (weightedTotalSum > std::numeric_limits<Scalar>::epsilon()) {
+			result.r_squared = 1.0 - weightedResidualSum / weightedTotalSum;
+			result.adjusted_r_squared = m > n
+				? 1.0 - (1.0 - result.r_squared) * (m - 1.0) / (m - n)
+				: result.r_squared;
+		} else {
+			result.r_squared = weightedResidualSum < std::numeric_limits<Scalar>::epsilon() ? 1.0 : 0.0;
+			result.adjusted_r_squared = result.r_squared;
+		}
+
+		Vector<Scalar> singularValues = svd.getW();
+		Scalar threshold = 0.5 * std::sqrt(m + n + 1.0) * singularValues[0]
+			* std::numeric_limits<Scalar>::epsilon();
+		for (int i = 0; i < n; ++i)
+			if (singularValues[i] > threshold) result.effective_rank++;
+		result.condition_number = result.effective_rank > 0
+			&& singularValues[result.effective_rank - 1] > 0
+			? singularValues[0] / singularValues[result.effective_rank - 1]
+			: std::numeric_limits<Scalar>::infinity();
+		return result;
+	}
+
 	// Overload using std::function for more flexible basis function specification
 	// This allows lambda functions, function pointers, and functors
 	template<typename Scalar>
@@ -506,6 +599,103 @@ namespace MML {
 		return result;
 	}
 
+	template<typename Scalar>
+	GeneralLinearFitResult<Scalar> TikhonovGeneralLinearLeastSquares(
+		const Vector<Scalar>& x_data, const Vector<Scalar>& y_data,
+		const Vector<std::function<Scalar(Scalar)>>& basis_functions,
+		const Vector<Scalar>& regularization_diagonal)
+	{
+		if (x_data.size() != y_data.size())
+			throw CurveFittingError("TikhonovGeneralLinearLeastSquares: data sizes must match");
+		if (x_data.size() == 0 || basis_functions.size() == 0)
+			throw CurveFittingError("TikhonovGeneralLinearLeastSquares: data and basis cannot be empty");
+		if (x_data.size() < static_cast<int>(basis_functions.size()))
+			throw CurveFittingError("TikhonovGeneralLinearLeastSquares: insufficient data points");
+		if (regularization_diagonal.size() != static_cast<int>(basis_functions.size()))
+			throw CurveFittingError("TikhonovGeneralLinearLeastSquares: regularization size must match basis size");
+
+		const int m = x_data.size();
+		const int n = static_cast<int>(basis_functions.size());
+		Matrix<Scalar> augmented(m + n, n, 0.0);
+		Vector<Scalar> rhs(m + n, 0.0);
+		for (int i = 0; i < m; ++i) {
+			rhs[i] = y_data[i];
+			for (int j = 0; j < n; ++j) augmented[i][j] = basis_functions[j](x_data[i]);
+		}
+		for (int j = 0; j < n; ++j) {
+			if (!std::isfinite(regularization_diagonal[j]) || regularization_diagonal[j] < 0)
+				throw CurveFittingError("TikhonovGeneralLinearLeastSquares: regularization values must be finite and non-negative");
+			augmented[m + j][j] = regularization_diagonal[j];
+		}
+
+		SVDecompositionSolver<Scalar> svd(augmented);
+		GeneralLinearFitResult<Scalar> result;
+		result.coefficients = svd.Solve(rhs);
+		result.num_data_points = m;
+		result.num_basis_functions = n;
+		Scalar ss_res = 0.0;
+		Scalar y_mean = 0.0;
+		for (int i = 0; i < m; ++i) y_mean += y_data[i];
+		y_mean /= m;
+		Scalar ss_tot = 0.0;
+		for (int i = 0; i < m; ++i) {
+			Scalar prediction = 0.0;
+			for (int j = 0; j < n; ++j) prediction += result.coefficients[j] * augmented[i][j];
+			const Scalar residual = y_data[i] - prediction;
+			ss_res += residual * residual;
+			const Scalar centered = y_data[i] - y_mean;
+			ss_tot += centered * centered;
+		}
+		result.residual_norm = std::sqrt(ss_res);
+		result.mean_squared_error = ss_res / m;
+		result.r_squared = ss_tot > std::numeric_limits<Scalar>::epsilon() ? 1.0 - ss_res / ss_tot : (ss_res == 0 ? 1.0 : 0.0);
+		result.adjusted_r_squared = m > n ? 1.0 - (1.0 - result.r_squared) * (m - 1.0) / (m - n) : result.r_squared;
+		result.coefficient_norm = result.coefficients.NormL2();
+		Scalar max_regularization = 0.0;
+		for (int j = 0; j < n; ++j) max_regularization = std::max(max_regularization, regularization_diagonal[j]);
+		result.regularization_parameter = max_regularization * max_regularization;
+		Vector<Scalar> singular_values = svd.getW();
+		const Scalar threshold = 0.5 * std::sqrt(m + 2.0 * n + 1.0) * singular_values[0] * std::numeric_limits<Scalar>::epsilon();
+		for (int j = 0; j < n; ++j) if (singular_values[j] > threshold) ++result.effective_rank;
+		result.condition_number = result.effective_rank > 0
+			? singular_values[0] / singular_values[result.effective_rank - 1]
+			: std::numeric_limits<Scalar>::infinity();
+		return result;
+	}
+
+	template<typename Scalar>
+	GeneralLinearFitResult<Scalar> RidgeGeneralLinearLeastSquares(
+		const Vector<Scalar>& x_data, const Vector<Scalar>& y_data,
+		const Vector<std::function<Scalar(Scalar)>>& basis_functions,
+		Scalar lambda, bool regularize_constant = false)
+	{
+		if (!std::isfinite(lambda) || lambda < 0)
+			throw CurveFittingError("RidgeGeneralLinearLeastSquares: lambda must be finite and non-negative");
+		Vector<Scalar> diagonal(static_cast<int>(basis_functions.size()), std::sqrt(lambda));
+		if (!regularize_constant && diagonal.size() > 0) diagonal[0] = 0.0;
+		return TikhonovGeneralLinearLeastSquares(x_data, y_data, basis_functions, diagonal);
+	}
+
+	template<typename Basis, typename Scalar = Real>
+	Vector<std::function<Scalar(Scalar)>> MakeOrthogonalPolynomialBasis(int max_degree)
+	{
+		if (max_degree < 0)
+			throw CurveFittingError("MakeOrthogonalPolynomialBasis: max_degree must be non-negative");
+		Vector<std::function<Scalar(Scalar)>> functions(max_degree + 1);
+		for (int degree = 0; degree <= max_degree; ++degree)
+			functions[degree] = [degree](Scalar x) { return static_cast<Scalar>(Basis().Evaluate(degree, x)); };
+		return functions;
+	}
+
+	template<typename Scalar = Real>
+	auto MakeChebyshevFitBasis(int max_degree) { return MakeOrthogonalPolynomialBasis<ChebyshevBasis, Scalar>(max_degree); }
+	template<typename Scalar = Real>
+	auto MakeLegendreFitBasis(int max_degree) { return MakeOrthogonalPolynomialBasis<LegendreBasis, Scalar>(max_degree); }
+	template<typename Scalar = Real>
+	auto MakeHermiteFitBasis(int max_degree) { return MakeOrthogonalPolynomialBasis<HermiteBasis, Scalar>(max_degree); }
+	template<typename Scalar = Real>
+	auto MakeLaguerreFitBasis(int max_degree) { return MakeOrthogonalPolynomialBasis<LaguerreBasis, Scalar>(max_degree); }
+
 
 	///////////////////////////    POLYNOMIAL FITTING    ///////////////////////////
 
@@ -541,6 +731,22 @@ namespace MML {
 		}
 
 		return GeneralLinearLeastSquares(x_data, y_data, basis);
+	}
+
+	template<typename Scalar>
+	GeneralLinearFitResult<Scalar> WeightedPolynomialFit(
+		const Vector<Scalar>& x_data, const Vector<Scalar>& y_data,
+		const Vector<Scalar>& weights, int degree) {
+		if (degree < 0)
+			throw CurveFittingError("WeightedPolynomialFit: degree must be non-negative");
+		Vector<std::function<Scalar(Scalar)>> basis(degree + 1);
+		for (int i = 0; i <= degree; ++i) {
+			int power = i;
+			basis[i] = [power](Scalar x) -> Scalar {
+				return power == 0 ? Scalar(1) : static_cast<Scalar>(std::pow(x, power));
+			};
+		}
+		return WeightedGeneralLinearLeastSquares(x_data, y_data, weights, basis);
 	}
 
 	// Evaluate a fitted polynomial at a point
@@ -627,6 +833,28 @@ namespace MML {
 				result.adjusted_r_squared = fit.adjusted_r_squared;
 				result.effective_rank     = fit.effective_rank;
 				result.condition_number   = fit.condition_number;
+			});
+	}
+
+	template<typename Scalar>
+	CurveFittingResult<Scalar> WeightedGeneralLinearFitDetailed(
+		const Vector<Scalar>& x_data, const Vector<Scalar>& y_data,
+		const Vector<Scalar>& weights,
+		const Vector<std::function<Scalar(Scalar)>>& basis_functions,
+		const CurveFittingConfig& config = {}) {
+		return CurveFittingDetail::ExecuteCurveFittingDetailed<CurveFittingResult<Scalar>>(
+			"WeightedGeneralLinearLeastSquares", config,
+			[&](CurveFittingResult<Scalar>& result) {
+				auto fit = WeightedGeneralLinearLeastSquares(x_data, y_data, weights, basis_functions);
+				result.coefficients = fit.coefficients;
+				result.residual_norm = fit.residual_norm;
+				result.r_squared = fit.r_squared;
+				result.mean_squared_error = fit.mean_squared_error;
+				result.adjusted_r_squared = fit.adjusted_r_squared;
+				result.effective_rank = fit.effective_rank;
+				result.condition_number = fit.condition_number;
+				result.weight_sum = fit.weight_sum;
+				result.function_evaluations = x_data.size() * basis_functions.size();
 			});
 	}
 

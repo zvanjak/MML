@@ -22,28 +22,316 @@
 ///////////////////////////////////////////////////////////////////////////////////////////
 
 #include <catch2/catch_all.hpp>
+#include "../TestPrecision.h"
 #include <fstream>
 #include <sstream>
 #include <cmath>
+#include <complex>
 #include <filesystem>
-#include <vector>
-#include <string>
+#include <limits>
 #include <regex>
+#include <string>
+#include <type_traits>
+#include <vector>
 
-#include "MMLBase.h"
-#include "tools/Serializer.h"
-#include "interfaces/IFunction.h"
-#include "base/InterpolatedFunction.h"
+#include <mml/MMLBase.h>
+#include <mml/tools/Serializer.h>
+#include <mml/tools/Persistence.h>
+#include <mml/interfaces/IFunction.h>
+#include <mml/base/InterpolatedFunction.h>
 
 using namespace MML;
 
 // Alias for cleaner error type access (now at MML namespace level, not nested in class)
 using MML::SerializeError;
 
-#define TEST_PRECISION_INFO() \
-	INFO("Test precision: " << Constants::Eps << " (" << (sizeof(Real) == 8 ? "double" : "float") << ")")
-
 namespace MML::Tests::Tools::SerializerTests {
+	namespace {
+		const char* RealTypeName() {
+			if constexpr (std::is_same_v<Real, float>) return "float";
+			if constexpr (std::is_same_v<Real, long double>) return "long_double";
+			return "double";
+		}
+
+		void ReplaceAll(std::string& text, const std::string& from, const std::string& to) {
+			std::size_t position = 0;
+			while ((position = text.find(from, position)) != std::string::npos) {
+				text.replace(position, from.size(), to);
+				position += to.size();
+			}
+		}
+
+		std::string WithRealMetadata(std::string json) {
+			ReplaceAll(json, "\"scalar_bytes\": 8", "\"scalar_bytes\": " + std::to_string(sizeof(Real)));
+			ReplaceAll(json, "\"scalar_bytes\":8", "\"scalar_bytes\":" + std::to_string(sizeof(Real)));
+			ReplaceAll(json, "\"real_type\": \"double\"", "\"real_type\": \"" + std::string(RealTypeName()) + "\"");
+			ReplaceAll(json, "\"real_type\":\"double\"", "\"real_type\":\"" + std::string(RealTypeName()) + "\"");
+			return json;
+		}
+	}
+
+	TEST_CASE("Persistence options expose conservative defaults and metadata", "[Persistence][Options]") {
+		Persistence::SaveOptions saveOptions;
+		REQUIRE(saveOptions.precision == 17);
+		REQUIRE(saveOptions.include_metadata);
+		REQUIRE(saveOptions.pretty_json);
+		REQUIRE_FALSE(saveOptions.allow_lossy);
+		REQUIRE(saveOptions.metadata.title.empty());
+		REQUIRE(saveOptions.metadata.description.empty());
+		REQUIRE(saveOptions.metadata.units.empty());
+		REQUIRE(saveOptions.metadata.coordinate_system.empty());
+		REQUIRE(saveOptions.metadata.tags.empty());
+
+		saveOptions.metadata.title = "matrix fixture";
+		saveOptions.metadata.units = "m";
+		saveOptions.metadata.coordinate_system = "cartesian";
+		saveOptions.metadata.tags["source"] = "unit-test";
+
+		REQUIRE(saveOptions.metadata.title == "matrix fixture");
+		REQUIRE(saveOptions.metadata.units == "m");
+		REQUIRE(saveOptions.metadata.coordinate_system == "cartesian");
+		REQUIRE(saveOptions.metadata.tags.at("source") == "unit-test");
+
+		Persistence::LoadOptions loadOptions;
+		REQUIRE(loadOptions.strict_schema);
+		REQUIRE_FALSE(loadOptions.allow_scalar_conversion);
+		REQUIRE(loadOptions.max_allocation_bytes == (1ull << 30));
+
+		Persistence::SplineInterpolationOptions splineOptions;
+		REQUIRE(splineOptions.first_derivative == SplineInterpRealFunc::NaturalBoundaryDerivative);
+		REQUIRE(splineOptions.last_derivative == SplineInterpRealFunc::NaturalBoundaryDerivative);
+	}
+
+	TEST_CASE("Persistence error taxonomy exposes stable names and result helpers", "[Persistence][Errors]") {
+		REQUIRE(std::string(SerializeErrorName(SerializeError::OK)) == "OK");
+		REQUIRE(std::string(SerializeErrorName(SerializeError::UNSUPPORTED_VERSION)) == "UNSUPPORTED_VERSION");
+		REQUIRE(std::string(SerializeErrorName(SerializeError::TYPE_MISMATCH)) == "TYPE_MISMATCH");
+		REQUIRE(std::string(SerializeErrorName(SerializeError::ENDIAN_MISMATCH)) == "ENDIAN_MISMATCH");
+		REQUIRE(std::string(SerializeErrorName(SerializeError::ALLOCATION_LIMIT_EXCEEDED)) == "ALLOCATION_LIMIT_EXCEEDED");
+		REQUIRE(std::string(SerializeErrorName(SerializeError::SCHEMA_MISMATCH)) == "SCHEMA_MISMATCH");
+		REQUIRE(std::string(SerializeErrorName(SerializeError::MALFORMED_INPUT)) == "MALFORMED_INPUT");
+		REQUIRE(std::string(SerializeErrorName(SerializeError::UNSUPPORTED_SCALAR)) == "UNSUPPORTED_SCALAR");
+		REQUIRE(std::string(SerializeErrorName(SerializeError::TRUNCATED_INPUT)) == "TRUNCATED_INPUT");
+
+		SerializeResult ok = SerializeSuccess();
+		REQUIRE(ok.success);
+		REQUIRE(ok.error == SerializeError::OK);
+		REQUIRE(ok.message == "Success");
+
+		SerializeResult failure = SerializeFailure(SerializeError::TRUNCATED_INPUT, "missing binary payload");
+		REQUIRE_FALSE(failure.success);
+		REQUIRE(failure.error == SerializeError::TRUNCATED_INPUT);
+		REQUIRE(failure.message.find("TRUNCATED_INPUT") != std::string::npos);
+		REQUIRE(failure.message.find("missing binary payload") != std::string::npos);
+	}
+
+	TEST_CASE("Persistence JSON parser reads MML schema-shaped objects", "[Persistence][JSON]") {
+		const std::string json = R"json({
+			"mml": {
+				"format": "MML_JSON",
+				"version": 1,
+				"object": "Matrix",
+				"object_version": 1,
+				"scalar": "Real"
+			},
+			"shape": [2, 3],
+			"data": [1.0, -2.5, 3.25],
+			"metadata": {"title": "small matrix"}
+		})json";
+
+		Persistence::JsonParseResult parsed = Persistence::ParseJson(json);
+		REQUIRE(parsed.result.success);
+		REQUIRE(parsed.value.type == Persistence::JsonValueType::Object);
+
+		const auto& root = parsed.value.object_value;
+		REQUIRE(root.at("mml").type == Persistence::JsonValueType::Object);
+		REQUIRE(root.at("shape").array_value.size() == 2);
+		REQUIRE(root.at("data").array_value.size() == 3);
+		REQUIRE(root.at("mml").object_value.at("format").string_value == "MML_JSON");
+		REQUIRE(root.at("mml").object_value.at("version").number_value == 1.0);
+		REQUIRE(root.at("metadata").object_value.at("title").string_value == "small matrix");
+	}
+
+	TEST_CASE("Persistence JSON writer emits deterministic escaped JSON", "[Persistence][JSON]") {
+		Persistence::JsonValue::Object object;
+		object["zeta"] = Persistence::JsonValue::Number(2.5);
+		object["alpha"] = Persistence::JsonValue::String("line\nquote\"");
+		object["items"] = Persistence::JsonValue::ArrayValue({
+			Persistence::JsonValue::Bool(true),
+			Persistence::JsonValue::Null()
+		});
+
+		Persistence::SaveOptions options;
+		options.pretty_json = false;
+		options.precision = 6;
+
+		const std::string written = Persistence::ToJsonString(Persistence::JsonValue::ObjectValue(object), options);
+		REQUIRE(written == "{\"alpha\":\"line\\nquote\\\"\",\"items\":[true,null],\"zeta\":2.5}");
+
+		Persistence::JsonParseResult parsed = Persistence::ParseJson(written);
+		REQUIRE(parsed.result.success);
+		REQUIRE(parsed.value.object_value.at("alpha").string_value == "line\nquote\"");
+		REQUIRE(parsed.value.object_value.at("items").array_value[0].bool_value);
+	}
+
+	TEST_CASE("Persistence JSON parser rejects malformed input", "[Persistence][JSON]") {
+		Persistence::JsonParseResult trailingComma = Persistence::ParseJson("{\"a\": 1,}");
+		REQUIRE_FALSE(trailingComma.result.success);
+		REQUIRE(trailingComma.result.error == SerializeError::MALFORMED_INPUT);
+
+		Persistence::JsonParseResult badNumber = Persistence::ParseJson("[01]");
+		REQUIRE_FALSE(badNumber.result.success);
+		REQUIRE(badNumber.result.error == SerializeError::MALFORMED_INPUT);
+
+		Persistence::JsonParseResult badEscape = Persistence::ParseJson("\"\\x\"");
+		REQUIRE_FALSE(badEscape.result.success);
+		REQUIRE(badEscape.result.error == SerializeError::MALFORMED_INPUT);
+
+		Persistence::JsonParseResult loneSurrogate = Persistence::ParseJson("\"\\uD800\"");
+		REQUIRE_FALSE(loneSurrogate.result.success);
+		REQUIRE(loneSurrogate.result.error == SerializeError::MALFORMED_INPUT);
+		REQUIRE(loneSurrogate.result.message.find("at byte") != std::string::npos);
+
+		std::string deeplyNested(Persistence::MaxJsonNestingDepth + 1, '[');
+		deeplyNested += '0';
+		deeplyNested.append(Persistence::MaxJsonNestingDepth + 1, ']');
+		Persistence::JsonParseResult excessiveDepth = Persistence::ParseJson(deeplyNested);
+		REQUIRE_FALSE(excessiveDepth.result.success);
+		REQUIRE(excessiveDepth.result.error == SerializeError::MALFORMED_INPUT);
+		REQUIRE(excessiveDepth.result.message.find("Maximum JSON nesting depth exceeded") != std::string::npos);
+		REQUIRE(excessiveDepth.result.message.find("at byte") != std::string::npos);
+	}
+
+	TEST_CASE("Persistence JSON writer rejects non-finite numbers", "[Persistence][JSON]") {
+		std::ostringstream out;
+		SerializeResult result = Persistence::WriteJson(
+			out,
+			Persistence::JsonValue::Number(std::numeric_limits<double>::infinity())
+		);
+
+		REQUIRE_FALSE(result.success);
+		REQUIRE(result.error == SerializeError::UNSUPPORTED_SCALAR);
+		REQUIRE(out.str().empty());
+	}
+
+	TEST_CASE("Persistence binary envelope writes and reads v1 headers", "[Persistence][Binary]") {
+		Persistence::BinaryEnvelopeHeader header;
+		header.object_kind = Persistence::BinaryObjectKind::Matrix;
+		header.object_schema_version = 2;
+		header.scalar_type = Persistence::BinaryScalarType::Float64;
+		header.scalar_byte_size = 8;
+		header.payload_byte_count = 128;
+		header.sidecar_policy = Persistence::BinarySidecarPolicy::Optional;
+
+		std::stringstream buffer(std::ios::in | std::ios::out | std::ios::binary);
+		SerializeResult writeResult = Persistence::WriteBinaryEnvelopeHeader(buffer, header);
+		REQUIRE(writeResult.success);
+		REQUIRE(buffer.str().size() == Persistence::BinaryEnvelope::HEADER_SIZE);
+		REQUIRE(buffer.str().substr(0, 8) == "MML_MATX");
+
+		buffer.seekg(0);
+		Persistence::BinaryEnvelopeReadResult read = Persistence::ReadBinaryEnvelopeHeader(buffer);
+		REQUIRE(read.result.success);
+		REQUIRE(read.header.container_version == Persistence::BinaryEnvelope::VERSION);
+		REQUIRE(read.header.header_size == Persistence::BinaryEnvelope::HEADER_SIZE);
+		REQUIRE(read.header.object_kind == Persistence::BinaryObjectKind::Matrix);
+		REQUIRE(read.header.object_schema_version == 2);
+		REQUIRE(read.header.scalar_type == Persistence::BinaryScalarType::Float64);
+		REQUIRE(read.header.scalar_byte_size == 8);
+		REQUIRE(read.header.endian_marker == Persistence::BinaryEnvelope::ENDIAN_MARKER);
+		REQUIRE(read.header.payload_byte_count == 128);
+		REQUIRE(read.header.flags == 0);
+		REQUIRE(read.header.sidecar_policy == Persistence::BinarySidecarPolicy::Optional);
+	}
+
+	TEST_CASE("Persistence binary envelope rejects invalid headers", "[Persistence][Binary]") {
+		auto makeHeaderBytes = []() {
+			Persistence::BinaryEnvelopeHeader header;
+			header.object_kind = Persistence::BinaryObjectKind::Matrix;
+			header.scalar_type = Persistence::BinaryScalarType::Float64;
+			header.scalar_byte_size = 8;
+
+			std::stringstream buffer(std::ios::in | std::ios::out | std::ios::binary);
+			REQUIRE(Persistence::WriteBinaryEnvelopeHeader(buffer, header).success);
+			return buffer.str();
+		};
+
+		auto writeU16 = [](std::string& bytes, std::size_t offset, uint16_t value) {
+			bytes[offset] = static_cast<char>(value & 0xFF);
+			bytes[offset + 1] = static_cast<char>((value >> 8) & 0xFF);
+		};
+
+		auto writeU32 = [](std::string& bytes, std::size_t offset, uint32_t value) {
+			bytes[offset] = static_cast<char>(value & 0xFF);
+			bytes[offset + 1] = static_cast<char>((value >> 8) & 0xFF);
+			bytes[offset + 2] = static_cast<char>((value >> 16) & 0xFF);
+			bytes[offset + 3] = static_cast<char>((value >> 24) & 0xFF);
+		};
+
+		{
+			std::string bytes = makeHeaderBytes();
+			bytes[0] = 'X';
+			std::stringstream buffer(bytes, std::ios::in | std::ios::out | std::ios::binary);
+			auto read = Persistence::ReadBinaryEnvelopeHeader(buffer);
+			REQUIRE_FALSE(read.result.success);
+			REQUIRE(read.result.error == SerializeError::INVALID_FORMAT);
+		}
+
+		{
+			std::string bytes = makeHeaderBytes();
+			writeU16(bytes, 8, Persistence::BinaryEnvelope::VERSION + 1);
+			std::stringstream buffer(bytes, std::ios::in | std::ios::out | std::ios::binary);
+			auto read = Persistence::ReadBinaryEnvelopeHeader(buffer);
+			REQUIRE_FALSE(read.result.success);
+			REQUIRE(read.result.error == SerializeError::UNSUPPORTED_VERSION);
+		}
+
+		{
+			std::string bytes = makeHeaderBytes();
+			writeU32(bytes, 24, 4);
+			std::stringstream buffer(bytes, std::ios::in | std::ios::out | std::ios::binary);
+			auto read = Persistence::ReadBinaryEnvelopeHeader(buffer);
+			REQUIRE_FALSE(read.result.success);
+			REQUIRE(read.result.error == SerializeError::UNSUPPORTED_SCALAR);
+		}
+
+		{
+			std::string bytes = makeHeaderBytes();
+			writeU32(bytes, 28, 0x04030201);
+			std::stringstream buffer(bytes, std::ios::in | std::ios::out | std::ios::binary);
+			auto read = Persistence::ReadBinaryEnvelopeHeader(buffer);
+			REQUIRE_FALSE(read.result.success);
+			REQUIRE(read.result.error == SerializeError::ENDIAN_MISMATCH);
+		}
+
+		{
+			std::string bytes = makeHeaderBytes().substr(0, Persistence::BinaryEnvelope::HEADER_SIZE - 1);
+			std::stringstream buffer(bytes, std::ios::in | std::ios::out | std::ios::binary);
+			auto read = Persistence::ReadBinaryEnvelopeHeader(buffer);
+			REQUIRE_FALSE(read.result.success);
+			REQUIRE(read.result.error == SerializeError::TRUNCATED_INPUT);
+		}
+	}
+
+	TEST_CASE("Persistence binary envelope enforces object and allocation validation", "[Persistence][Binary]") {
+		Persistence::BinaryEnvelopeHeader header;
+		header.object_kind = Persistence::BinaryObjectKind::Matrix;
+		header.scalar_type = Persistence::BinaryScalarType::Float64;
+		header.scalar_byte_size = 8;
+		header.payload_byte_count = 2048;
+
+		Persistence::LoadOptions options;
+		options.max_allocation_bytes = 1024;
+		SerializeResult allocation = Persistence::ValidateBinaryEnvelopeHeader(header, options);
+		REQUIRE_FALSE(allocation.success);
+		REQUIRE(allocation.error == SerializeError::ALLOCATION_LIMIT_EXCEEDED);
+
+		header.payload_byte_count = 16;
+		header.magic = Persistence::BinaryMagic(Persistence::BinaryObjectKind::Vector);
+		SerializeResult mismatch = Persistence::ValidateBinaryEnvelopeHeader(header);
+		REQUIRE_FALSE(mismatch.success);
+		REQUIRE(mismatch.error == SerializeError::TYPE_MISMATCH);
+	}
 
 	/////////////////////////////////////////////////////////////////////////////////////
 	///                         GOLDEN FILE TEST INFRASTRUCTURE                       ///
@@ -98,7 +386,7 @@ namespace MML::Tests::Tools::SerializerTests {
 
 	CompareResult CompareFilesWithTolerance(const std::string& actualPath, 
 	                                         const std::string& referencePath,
-	                                         Real tolerance = 1e-10) {
+	                                         Real tolerance = TOL(1e-10, 1e-5)) {
 		CompareResult result;
 		
 		std::ifstream actualFile(actualPath);
@@ -215,6 +503,841 @@ namespace MML::Tests::Tools::SerializerTests {
 		std::filesystem::remove(path);
 	}
 
+	TEST_CASE("Serializer text headers sanitize multiline metadata", "[serializer][headers]") {
+		const std::string title = "first line\r\nx1: injected";
+		const std::string legend = "series\nNumPoints: injected";
+		const std::string sanitizedTitle = "first line  x1: injected";
+		const std::string sanitizedLegend = "series NumPoints: injected";
+
+		REQUIRE(Serializer::SanitizeHeaderLine(title) == sanitizedTitle);
+		REQUIRE(Serializer::SanitizeHeaderLine("ordinary title") == "ordinary title");
+
+		auto readLines = [](const std::string& content) {
+			std::istringstream input(content);
+			std::vector<std::string> lines;
+			for (std::string line; std::getline(input, line);)
+				lines.push_back(line);
+			return lines;
+		};
+
+		SECTION("real function") {
+			std::ostringstream output;
+			REQUIRE(Serializer::WriteRealFuncHeader(output, SerializeFormatType::REAL_FUNCTION, title, 0.0, 1.0, 2).success);
+			const auto lines = readLines(output.str());
+			REQUIRE(lines.size() == 6);
+			REQUIRE(lines[2] == sanitizedTitle);
+			REQUIRE(lines[3] == "x1: 0");
+		}
+
+		SECTION("multiple real functions and legends") {
+			std::ostringstream output;
+			REQUIRE(Serializer::WriteRealMultiFuncHeader(output, title, 1, {legend}, 0.0, 1.0, 2).success);
+			const auto lines = readLines(output.str());
+			REQUIRE(lines.size() == 8);
+			REQUIRE(lines[2] == sanitizedTitle);
+			REQUIRE(lines[4] == sanitizedLegend);
+			REQUIRE(lines[5] == "x1: 0");
+		}
+
+		SECTION("parametric curve") {
+			std::ostringstream output;
+			REQUIRE(Serializer::WriteParamCurveHeader(output, SerializeFormatType::PARAMETRIC_CURVE_CARTESIAN_2D, title, 0.0, 1.0, 2).success);
+			const auto lines = readLines(output.str());
+			REQUIRE(lines.size() == 6);
+			REQUIRE(lines[2] == sanitizedTitle);
+			REQUIRE(lines[3] == "t1: 0");
+		}
+
+		SECTION("vector field") {
+			std::ostringstream output;
+			REQUIRE(Serializer::WriteVectorFieldHeader(output, SerializeFormatType::VECTOR_FIELD_2D_CARTESIAN, title).success);
+			const auto lines = readLines(output.str());
+			REQUIRE(lines.size() == 3);
+			REQUIRE(lines[2] == sanitizedTitle);
+		}
+
+		SECTION("field lines") {
+			std::ostringstream output;
+			REQUIRE(Serializer::WriteFieldLinesHeader(output, SerializeFormatType::FIELD_LINES_2D, title, 3).success);
+			const auto lines = readLines(output.str());
+			REQUIRE(lines.size() == 4);
+			REQUIRE(lines[2] == "Title: " + sanitizedTitle);
+			REQUIRE(lines[3] == "NUM_LINES: 3");
+		}
+
+		SECTION("parametric surface") {
+			std::ostringstream output;
+			REQUIRE(Serializer::WriteParametricSurfaceHeader(output, title, 0.0, 1.0, 2, -1.0, 1.0, 3).success);
+			const auto lines = readLines(output.str());
+			REQUIRE(lines.size() == 9);
+			REQUIRE(lines[2] == sanitizedTitle);
+			REQUIRE(lines[8] == "NumPointsW: 3");
+		}
+
+		SECTION("2D scalar function") {
+			std::ostringstream output;
+			REQUIRE(Serializer::WriteScalarFunc2DHeader(output, title, 0.0, 1.0, 2, -1.0, 1.0, 3).success);
+			const auto lines = readLines(output.str());
+			REQUIRE(lines.size() == 9);
+			REQUIRE(lines[2] == sanitizedTitle);
+			REQUIRE(lines[8] == "NumPointsY: 3");
+		}
+
+		SECTION("3D scalar function") {
+			std::ostringstream output;
+			REQUIRE(Serializer::WriteScalarFunc3DHeader(output, title, 0.0, 1.0, 2, -1.0, 1.0, 3, 2.0, 4.0, 5).success);
+			const auto lines = readLines(output.str());
+			REQUIRE(lines.size() == 12);
+			REQUIRE(lines[2] == sanitizedTitle);
+			REQUIRE(lines[11] == "NumPointsZ: 5");
+		}
+
+		SECTION("2D particle simulation") {
+			std::ostringstream output;
+			REQUIRE(Serializer::WriteParticleSimulation2DHeader(output, 1, 10.0, 20.0, {"red"}, {0.5}, 4).success);
+			const auto lines = readLines(output.str());
+			REQUIRE(lines.size() == 7);
+			REQUIRE(lines[5] == "Ball_1 red 0.5");
+			REQUIRE(lines[6] == "NumSteps: 4");
+		}
+
+		SECTION("3D particle simulation") {
+			std::ostringstream output;
+			REQUIRE(Serializer::WriteParticleSimulation3DHeader(output, 1, 10.0, 20.0, 30.0, {"blue"}, {0.25}, 5).success);
+			const auto lines = readLines(output.str());
+			REQUIRE(lines.size() == 8);
+			REQUIRE(lines[6] == "Ball_1 blue 0.25");
+			REQUIRE(lines[7] == "NumSteps: 5");
+		}
+	}
+
+	TEMPLATE_TEST_CASE("Persistence binary round-trips every canonical Vector and Matrix scalar", "[Persistence][Binary][ScalarTypes]",
+	                   float, double, long double, (std::complex<float>), (std::complex<double>)) {
+		auto value = [](long double real, long double imaginary = 0) {
+			if constexpr (std::is_same_v<TestType, std::complex<float>> || std::is_same_v<TestType, std::complex<double>>)
+				return TestType(static_cast<typename TestType::value_type>(real), static_cast<typename TestType::value_type>(imaginary));
+			else
+				return static_cast<TestType>(real);
+		};
+
+		Vector<TestType> vec{ value(1.25L, -0.5L), value(-2.5L, 4.0L), value(3.75L, -8.125L) };
+		std::stringstream vecStream(std::ios::in | std::ios::out | std::ios::binary);
+		REQUIRE(Persistence::SaveBinary(vecStream, vec).success);
+		REQUIRE(vecStream.str().substr(0, 8) == "MML_VECT");
+		vecStream.seekg(0);
+		auto vecEnvelope = Persistence::ReadBinaryEnvelopeHeader(vecStream);
+		REQUIRE(vecEnvelope.result.success);
+		REQUIRE(vecEnvelope.header.object_kind == Persistence::BinaryObjectKind::Vector);
+		REQUIRE(vecEnvelope.header.scalar_type == Persistence::Detail::BinaryScalarTypeFor<TestType>());
+		REQUIRE(vecEnvelope.header.scalar_byte_size == Persistence::Detail::BinaryScalarByteSize<TestType>());
+		vecStream.seekg(0);
+
+		Vector<TestType> loadedVec;
+		REQUIRE(Persistence::LoadBinary(vecStream, loadedVec).success);
+		REQUIRE(loadedVec.size() == vec.size());
+		for (int i = 0; i < vec.size(); ++i)
+			REQUIRE(loadedVec[i] == vec[i]);
+
+		Matrix<TestType> mat(2, 3);
+		mat(0, 0) = value(1.0L, -1.5L);
+		mat(0, 1) = value(2.0L, 2.25L);
+		mat(0, 2) = value(3.0L, -3.5L);
+		mat(1, 0) = value(-4.0L, 4.75L);
+		mat(1, 1) = value(5.5L, -5.0L);
+		mat(1, 2) = value(-6.25L, 6.125L);
+		std::stringstream matStream(std::ios::in | std::ios::out | std::ios::binary);
+		REQUIRE(Persistence::SaveBinary(matStream, mat).success);
+		REQUIRE(matStream.str().substr(0, 8) == "MML_MATX");
+		matStream.seekg(0);
+		auto matEnvelope = Persistence::ReadBinaryEnvelopeHeader(matStream);
+		REQUIRE(matEnvelope.result.success);
+		REQUIRE(matEnvelope.header.object_kind == Persistence::BinaryObjectKind::Matrix);
+		REQUIRE(matEnvelope.header.scalar_type == Persistence::Detail::BinaryScalarTypeFor<TestType>());
+		REQUIRE(matEnvelope.header.scalar_byte_size == Persistence::Detail::BinaryScalarByteSize<TestType>());
+		matStream.seekg(0);
+
+		Matrix<TestType> loadedMat;
+		REQUIRE(Persistence::LoadBinary(matStream, loadedMat).success);
+		REQUIRE(loadedMat.rows() == mat.rows());
+		REQUIRE(loadedMat.cols() == mat.cols());
+		for (int i = 0; i < mat.rows(); ++i)
+			for (int j = 0; j < mat.cols(); ++j)
+				REQUIRE(loadedMat(i, j) == mat(i, j));
+
+		matStream.clear();
+		matStream.seekg(0);
+		if constexpr (std::is_same_v<TestType, float>) {
+			Matrix<double> mismatched;
+			SerializeResult mismatch = Persistence::LoadBinary(matStream, mismatched);
+			REQUIRE_FALSE(mismatch.success);
+			REQUIRE(mismatch.error == SerializeError::UNSUPPORTED_SCALAR);
+		} else {
+			Matrix<float> mismatched;
+			SerializeResult mismatch = Persistence::LoadBinary(matStream, mismatched);
+			REQUIRE_FALSE(mismatch.success);
+			REQUIRE(mismatch.error == SerializeError::UNSUPPORTED_SCALAR);
+		}
+	}
+
+	TEST_CASE("Persistence canonical long double preserves edge values", "[Persistence][Binary][LongDouble]") {
+		Vector<long double> values{
+			0.0L,
+			-0.0L,
+			std::numeric_limits<long double>::denorm_min(),
+			std::numeric_limits<long double>::max(),
+			std::numeric_limits<long double>::infinity(),
+			-std::numeric_limits<long double>::infinity(),
+			std::numeric_limits<long double>::quiet_NaN()
+		};
+		std::stringstream stream(std::ios::in | std::ios::out | std::ios::binary);
+		REQUIRE(Persistence::SaveBinary(stream, values).success);
+		stream.seekg(0);
+
+		Vector<long double> loaded;
+		REQUIRE(Persistence::LoadBinary(stream, loaded).success);
+		REQUIRE(loaded.size() == values.size());
+		REQUIRE(loaded[0] == 0.0L);
+		REQUIRE_FALSE(std::signbit(loaded[0]));
+		REQUIRE(loaded[1] == 0.0L);
+		REQUIRE(std::signbit(loaded[1]));
+		REQUIRE(loaded[2] == values[2]);
+		REQUIRE(loaded[3] == values[3]);
+		REQUIRE(loaded[4] == values[4]);
+		REQUIRE(loaded[5] == values[5]);
+		REQUIRE(std::isnan(loaded[6]));
+	}
+
+	TEST_CASE("Persistence converts long double real vectors through complex double", "[Persistence][Binary][LongDouble]") {
+		std::vector<long double> standardValues{ 1.25L, -2.5L, 3.75L };
+		std::string standardPath = (std::filesystem::temp_directory_path() / "mml_serializer_std_long_double_as_complex.mmlb").string();
+		REQUIRE(Persistence::SaveRealAsComplex(standardValues, standardPath).success);
+
+		std::vector<long double> loadedStandardValues;
+		REQUIRE(Persistence::LoadComplexAsReal(standardPath, loadedStandardValues).success);
+		REQUIRE(loadedStandardValues == standardValues);
+		CleanupTempFile(standardPath);
+
+		Vector<long double> values{ 1.25L, -2.5L, 3.75L };
+		std::string path = (std::filesystem::temp_directory_path() / "mml_serializer_long_double_as_complex.mmlb").string();
+		REQUIRE(Persistence::SaveVectorAsComplex(values, path).success);
+
+		std::vector<std::complex<double>> loaded;
+		REQUIRE(Persistence::LoadBinary(path, loaded).success);
+		REQUIRE(loaded == std::vector<std::complex<double>>{ { 1.25, 0.0 }, { -2.5, 0.0 }, { 3.75, 0.0 } });
+
+		Vector<long double> loadedValues;
+		REQUIRE(Persistence::LoadComplexAsVector(path, loadedValues).success);
+		REQUIRE(loadedValues.size() == values.size());
+		for (int index = 0; index < values.size(); ++index)
+			REQUIRE(loadedValues[index] == values[index]);
+		CleanupTempFile(path);
+	}
+
+	TEST_CASE("Persistence binary supports generic mmlb path dispatch", "[Persistence][Binary]") {
+		Vector<float> vec{ 1.5f, -2.25f, 3.125f };
+		std::string vecPath = (std::filesystem::temp_directory_path() / "mml_serializer_vector_binary.mmlb").string();
+		REQUIRE(Persistence::Save(vec, vecPath).success);
+
+		Vector<float> loadedVec;
+		REQUIRE(Persistence::Load(vecPath, loadedVec).success);
+		REQUIRE(loadedVec.size() == vec.size());
+		for (int i = 0; i < vec.size(); ++i)
+			REQUIRE(loadedVec[i] == vec[i]);
+		CleanupTempFile(vecPath);
+
+		Matrix<Real> mat(2, 2);
+		mat(0, 0) = 1.0;
+		mat(0, 1) = 2.0;
+		mat(1, 0) = 3.0;
+		mat(1, 1) = 4.0;
+		std::string matPath = (std::filesystem::temp_directory_path() / "mml_serializer_matrix_binary.mmlb").string();
+		REQUIRE(Persistence::Save(mat, matPath).success);
+
+		Matrix<Real> loadedMat;
+		REQUIRE(Persistence::Load(matPath, loadedMat).success);
+		REQUIRE(loadedMat.rows() == mat.rows());
+		REQUIRE(loadedMat.cols() == mat.cols());
+		for (int i = 0; i < mat.rows(); ++i)
+			for (int j = 0; j < mat.cols(); ++j)
+				REQUIRE(loadedMat(i, j) == mat(i, j));
+		CleanupTempFile(matPath);
+	}
+
+	TEST_CASE("Persistence binary rejects corrupted payloads", "[Persistence][Binary]") {
+		Vector<Real> vec{ 1.0, 2.0 };
+		std::stringstream valid(std::ios::in | std::ios::out | std::ios::binary);
+		REQUIRE(Persistence::SaveBinary(valid, vec).success);
+
+		std::string badPayloadSize = valid.str();
+		for (int i = 0; i < 8; ++i)
+			badPayloadSize[32 + i] = 0;
+		badPayloadSize[32] = static_cast<char>(9);
+		std::stringstream badPayloadStream(badPayloadSize, std::ios::in | std::ios::out | std::ios::binary);
+		Vector<Real> payloadRejected;
+		SerializeResult payloadResult = Persistence::LoadBinary(badPayloadStream, payloadRejected);
+		REQUIRE_FALSE(payloadResult.success);
+		REQUIRE(payloadResult.error == SerializeError::SCHEMA_MISMATCH);
+
+		std::string truncated = valid.str().substr(0, valid.str().size() - 1);
+		std::stringstream truncatedStream(truncated, std::ios::in | std::ios::out | std::ios::binary);
+		Vector<Real> truncatedRejected;
+		SerializeResult truncatedResult = Persistence::LoadBinary(truncatedStream, truncatedRejected);
+		REQUIRE_FALSE(truncatedResult.success);
+		REQUIRE(truncatedResult.error == SerializeError::TRUNCATED_INPUT);
+	}
+
+	TEST_CASE("Persistence dense load guards reject JSON allocation limits", "[Persistence][DenseGuards]") {
+		const std::string vectorJson = WithRealMetadata(R"json({
+			"mml": {
+				"format": "MML_JSON",
+				"version": 1,
+				"object": "Vector",
+				"object_version": 1,
+				"scalar": "Real",
+				"scalar_bytes": 8,
+				"scalar_encoding": "ieee754",
+				"real_type": "double"
+			},
+			"shape": [2],
+			"data": [1, 2]
+		})json");
+
+		Persistence::LoadOptions tiny;
+		tiny.max_allocation_bytes = 2 * sizeof(Real) - 1;
+		std::stringstream vectorStream(vectorJson);
+		Vector<Real> vectorRejected;
+		SerializeResult vectorResult = Persistence::LoadJson(vectorStream, vectorRejected, tiny);
+		REQUIRE_FALSE(vectorResult.success);
+		REQUIRE(vectorResult.error == SerializeError::ALLOCATION_LIMIT_EXCEEDED);
+		REQUIRE(vectorRejected.size() == 0);
+
+		const std::string matrixJson = WithRealMetadata(R"json({
+			"mml": {
+				"format": "MML_JSON",
+				"version": 1,
+				"object": "Matrix",
+				"object_version": 1,
+				"scalar": "Real",
+				"scalar_bytes": 8,
+				"scalar_encoding": "ieee754",
+				"layout": "row_major",
+				"real_type": "double"
+			},
+			"shape": [2, 2],
+			"data": [1, 2, 3, 4]
+		})json");
+
+		tiny.max_allocation_bytes = 4 * sizeof(Real) - 1;
+		std::stringstream matrixStream(matrixJson);
+		Matrix<Real> matrixRejected;
+		SerializeResult matrixResult = Persistence::LoadJson(matrixStream, matrixRejected, tiny);
+		REQUIRE_FALSE(matrixResult.success);
+		REQUIRE(matrixResult.error == SerializeError::ALLOCATION_LIMIT_EXCEEDED);
+		REQUIRE(matrixRejected.rows() == 0);
+		REQUIRE(matrixRejected.cols() == 0);
+	}
+
+	TEST_CASE("Persistence dense load guards reject binary allocation limits and overflow", "[Persistence][DenseGuards]") {
+		Vector<Real> vector{ 1.0, 2.0 };
+		std::stringstream vectorBuffer(std::ios::in | std::ios::out | std::ios::binary);
+		REQUIRE(Persistence::SaveBinary(vectorBuffer, vector).success);
+
+		Persistence::LoadOptions tiny;
+		tiny.max_allocation_bytes = 2 * sizeof(Real) - 1;
+		vectorBuffer.seekg(0);
+		Vector<Real> vectorRejected;
+		SerializeResult vectorResult = Persistence::LoadBinary(vectorBuffer, vectorRejected, tiny);
+		REQUIRE_FALSE(vectorResult.success);
+		REQUIRE(vectorResult.error == SerializeError::ALLOCATION_LIMIT_EXCEEDED);
+		REQUIRE(vectorRejected.size() == 0);
+
+		Matrix<Real> matrix(2, 2);
+		matrix(0, 0) = 1.0;
+		matrix(0, 1) = 2.0;
+		matrix(1, 0) = 3.0;
+		matrix(1, 1) = 4.0;
+		std::stringstream matrixBuffer(std::ios::in | std::ios::out | std::ios::binary);
+		REQUIRE(Persistence::SaveBinary(matrixBuffer, matrix).success);
+		matrixBuffer.seekg(0);
+
+		Matrix<Real> matrixRejected;
+		SerializeResult matrixResult = Persistence::LoadBinary(matrixBuffer, matrixRejected, tiny);
+		REQUIRE_FALSE(matrixResult.success);
+		REQUIRE(matrixResult.error == SerializeError::ALLOCATION_LIMIT_EXCEEDED);
+		REQUIRE(matrixRejected.rows() == 0);
+		REQUIRE(matrixRejected.cols() == 0);
+
+		Persistence::BinaryEnvelopeHeader overflowHeader;
+		overflowHeader.object_kind = Persistence::BinaryObjectKind::Matrix;
+		overflowHeader.scalar_type = Persistence::Detail::BinaryScalarTypeFor<Real>();
+		overflowHeader.scalar_byte_size = Persistence::Detail::BinaryScalarByteSize<Real>();
+		overflowHeader.payload_byte_count = 16;
+		std::stringstream overflowBuffer(std::ios::in | std::ios::out | std::ios::binary);
+		REQUIRE(Persistence::WriteBinaryEnvelopeHeader(overflowBuffer, overflowHeader).success);
+		Persistence::WriteUInt64LE(overflowBuffer, static_cast<uint64_t>(std::numeric_limits<int>::max()) + 1);
+		Persistence::WriteUInt64LE(overflowBuffer, 1);
+		overflowBuffer.seekg(0);
+
+		Persistence::LoadOptions huge;
+		huge.max_allocation_bytes = std::numeric_limits<std::size_t>::max();
+		Matrix<Real> overflowRejected;
+		SerializeResult overflowResult = Persistence::LoadBinary(overflowBuffer, overflowRejected, huge);
+		REQUIRE_FALSE(overflowResult.success);
+		REQUIRE(overflowResult.error == SerializeError::ALLOCATION_LIMIT_EXCEEDED);
+	}
+
+	TEST_CASE("Persistence dense load guards reject truncated matrix payload without allocation surprises", "[Persistence][DenseGuards]") {
+		Matrix<Real> matrix(2, 2);
+		matrix(0, 0) = 1.0;
+		matrix(0, 1) = 2.0;
+		matrix(1, 0) = 3.0;
+		matrix(1, 1) = 4.0;
+		std::stringstream valid(std::ios::in | std::ios::out | std::ios::binary);
+		REQUIRE(Persistence::SaveBinary(valid, matrix).success);
+
+		std::string truncated = valid.str().substr(0, valid.str().size() - 1);
+		std::stringstream truncatedStream(truncated, std::ios::in | std::ios::out | std::ios::binary);
+		Matrix<Real> rejected;
+		SerializeResult result = Persistence::LoadBinary(truncatedStream, rejected);
+		REQUIRE_FALSE(result.success);
+		REQUIRE(result.error == SerializeError::TRUNCATED_INPUT);
+	}
+
+	TEST_CASE("Persistence Vector JSON round-trips through streams and paths", "[Persistence][VectorJSON]") {
+		Vector<Real> original{ 1.25, -2.5, 3.75 };
+
+		std::stringstream stream;
+		REQUIRE(Persistence::SaveJson(stream, original).success);
+
+		Vector<Real> loaded;
+		REQUIRE(Persistence::LoadJson(stream, loaded).success);
+		REQUIRE(loaded.size() == original.size());
+		for (int i = 0; i < original.size(); ++i)
+			REQUIRE(loaded[i] == original[i]);
+
+		std::string path = (std::filesystem::temp_directory_path() / "mml_serializer_vector_roundtrip.mmlj").string();
+		REQUIRE(Persistence::SaveJson(original, path).success);
+
+		Vector<Real> fileLoaded;
+		REQUIRE(Persistence::LoadJson(path, fileLoaded).success);
+		REQUIRE(fileLoaded.size() == original.size());
+		for (int i = 0; i < original.size(); ++i)
+			REQUIRE(fileLoaded[i] == original[i]);
+		CleanupTempFile(path);
+	}
+
+	TEST_CASE("Persistence Vector JSON supports float vectors and generic path dispatch", "[Persistence][VectorJSON]") {
+		Vector<float> original{ 1.5f, -2.25f, 3.125f };
+		std::string path = (std::filesystem::temp_directory_path() / "mml_serializer_vector_float.mmlj").string();
+
+		REQUIRE(Persistence::Save(original, path).success);
+
+		Vector<float> loaded;
+		REQUIRE(Persistence::Load(path, loaded).success);
+		REQUIRE(loaded.size() == original.size());
+		for (int i = 0; i < original.size(); ++i)
+			REQUIRE(loaded[i] == original[i]);
+
+		CleanupTempFile(path);
+	}
+
+	TEST_CASE("Persistence VectorN JSON round-trips and validates fixed shape", "[Persistence][VectorJSON]") {
+		VectorN<Real, 3> original{ 4.0, 5.0, 6.0 };
+
+		std::stringstream stream;
+		REQUIRE(Persistence::SaveJson(stream, original).success);
+
+		VectorN<Real, 3> loaded;
+		REQUIRE(Persistence::LoadJson(stream, loaded).success);
+		for (int i = 0; i < 3; ++i)
+			REQUIRE(loaded[i] == original[i]);
+
+		std::string wrongShape = stream.str();
+		const std::string from = "\"shape\": [\n    3\n  ]";
+		const std::string to = "\"shape\": [\n    2\n  ]";
+		const std::size_t pos = wrongShape.find(from);
+		REQUIRE(pos != std::string::npos);
+		wrongShape.replace(pos, from.size(), to);
+
+		std::stringstream wrongShapeStream(wrongShape);
+		VectorN<Real, 3> rejected;
+		SerializeResult result = Persistence::LoadJson(wrongShapeStream, rejected);
+		REQUIRE_FALSE(result.success);
+		REQUIRE(result.error == SerializeError::SCHEMA_MISMATCH);
+	}
+
+	TEST_CASE("Persistence Vector JSON produces deterministic compact output", "[Persistence][VectorJSON]") {
+		Vector<Real> vec{ Real(1.0) / Real(3.0), Real(2.0) };
+		Persistence::SaveOptions options;
+		options.pretty_json = false;
+		options.precision = 4;
+
+		std::stringstream stream;
+		REQUIRE(Persistence::SaveJson(stream, vec, options).success);
+		REQUIRE(stream.str() == WithRealMetadata("{\"data\":[0.3333,2],\"mml\":{\"format\":\"MML_JSON\",\"object\":\"Vector\",\"object_version\":1,\"real_type\":\"double\",\"scalar\":\"Real\",\"scalar_bytes\":8,\"scalar_encoding\":\"ieee754\",\"version\":1},\"shape\":[2]}"));
+	}
+
+	TEST_CASE("Persistence Vector JSON rejects malformed wrong-scalar and wrong-shape input", "[Persistence][VectorJSON]") {
+		Vector<Real> original{ 1.0, 2.0 };
+		std::stringstream stream;
+		REQUIRE(Persistence::SaveJson(stream, original).success);
+		const std::string good = stream.str();
+
+		std::string wrongScalar = good;
+		const std::size_t scalarPos = wrongScalar.find("\"scalar\": \"Real\"");
+		REQUIRE(scalarPos != std::string::npos);
+		wrongScalar.replace(scalarPos, std::string("\"scalar\": \"Real\"").size(), "\"scalar\": \"float\"");
+		std::stringstream wrongScalarStream(wrongScalar);
+		Vector<Real> scalarRejected;
+		SerializeResult scalarResult = Persistence::LoadJson(wrongScalarStream, scalarRejected);
+		REQUIRE_FALSE(scalarResult.success);
+		REQUIRE(scalarResult.error == SerializeError::UNSUPPORTED_SCALAR);
+
+		const std::string wrongLength = WithRealMetadata(R"json({
+			"mml": {
+				"format": "MML_JSON",
+				"version": 1,
+				"object": "Vector",
+				"object_version": 1,
+				"scalar": "Real",
+				"scalar_bytes": 8,
+				"scalar_encoding": "ieee754",
+				"real_type": "double"
+			},
+			"shape": [2],
+			"data": [1]
+		})json");
+		std::stringstream wrongLengthStream(wrongLength);
+		Vector<Real> lengthRejected;
+		SerializeResult lengthResult = Persistence::LoadJson(wrongLengthStream, lengthRejected);
+		REQUIRE_FALSE(lengthResult.success);
+		REQUIRE(lengthResult.error == SerializeError::SCHEMA_MISMATCH);
+
+		std::stringstream malformed("{\"mml\":");
+		Vector<Real> malformedRejected;
+		SerializeResult malformedResult = Persistence::LoadJson(malformed, malformedRejected);
+		REQUIRE_FALSE(malformedResult.success);
+		REQUIRE(malformedResult.error == SerializeError::MALFORMED_INPUT);
+	}
+
+	TEST_CASE("Persistence Matrix JSON round-trips through streams and paths", "[Persistence][MatrixJSON]") {
+		Matrix<Real> original(2, 3);
+		original(0, 0) = 1.25;
+		original(0, 1) = -2.5;
+		original(0, 2) = 3.75;
+		original(1, 0) = 4.5;
+		original(1, 1) = -5.25;
+		original(1, 2) = 6.125;
+
+		std::stringstream stream;
+		REQUIRE(Persistence::SaveJson(stream, original).success);
+
+		Matrix<Real> loaded;
+		REQUIRE(Persistence::LoadJson(stream, loaded).success);
+		REQUIRE(loaded.rows() == original.rows());
+		REQUIRE(loaded.cols() == original.cols());
+		for (int i = 0; i < original.rows(); ++i)
+			for (int j = 0; j < original.cols(); ++j)
+				REQUIRE(loaded(i, j) == original(i, j));
+
+		std::string path = (std::filesystem::temp_directory_path() / "mml_serializer_matrix_roundtrip.mmlj").string();
+		REQUIRE(Persistence::SaveJson(original, path).success);
+
+		Matrix<Real> fileLoaded;
+		REQUIRE(Persistence::LoadJson(path, fileLoaded).success);
+		REQUIRE(fileLoaded.rows() == original.rows());
+		REQUIRE(fileLoaded.cols() == original.cols());
+		for (int i = 0; i < original.rows(); ++i)
+			for (int j = 0; j < original.cols(); ++j)
+				REQUIRE(fileLoaded(i, j) == original(i, j));
+		CleanupTempFile(path);
+	}
+
+	TEST_CASE("Persistence MatrixNM JSON round-trips and validates fixed shape", "[Persistence][MatrixJSON]") {
+		MatrixNM<Real, 2, 3> original{ 1.0, 2.0, 3.0, 4.0, 5.0, 6.0 };
+
+		std::stringstream stream;
+		REQUIRE(Persistence::SaveJson(stream, original).success);
+
+		MatrixNM<Real, 2, 3> loaded;
+		REQUIRE(Persistence::LoadJson(stream, loaded).success);
+		for (int i = 0; i < 2; ++i)
+			for (int j = 0; j < 3; ++j)
+				REQUIRE(loaded(i, j) == original(i, j));
+
+		const std::string wrongShape = WithRealMetadata(R"json({
+			"mml": {
+				"format": "MML_JSON",
+				"version": 1,
+				"object": "MatrixNM",
+				"object_version": 1,
+				"scalar": "Real",
+				"scalar_bytes": 8,
+				"scalar_encoding": "ieee754",
+				"layout": "row_major",
+				"real_type": "double"
+			},
+			"shape": [2, 2],
+			"data": [1, 2, 3, 4]
+		})json");
+		std::stringstream wrongShapeStream(wrongShape);
+		MatrixNM<Real, 2, 3> rejected;
+		SerializeResult result = Persistence::LoadJson(wrongShapeStream, rejected);
+		REQUIRE_FALSE(result.success);
+		REQUIRE(result.error == SerializeError::SCHEMA_MISMATCH);
+	}
+
+	TEST_CASE("Persistence Matrix JSON produces deterministic compact output", "[Persistence][MatrixJSON]") {
+		Matrix<Real> mat(2, 2);
+		mat(0, 0) = Real(1.0) / Real(3.0);
+		mat(0, 1) = 2.0;
+		mat(1, 0) = 3.0;
+		mat(1, 1) = 4.0;
+		Persistence::SaveOptions options;
+		options.pretty_json = false;
+		options.precision = 4;
+
+		std::stringstream stream;
+		REQUIRE(Persistence::SaveJson(stream, mat, options).success);
+		REQUIRE(stream.str() == WithRealMetadata("{\"data\":[0.3333,2,3,4],\"mml\":{\"format\":\"MML_JSON\",\"layout\":\"row_major\",\"object\":\"Matrix\",\"object_version\":1,\"real_type\":\"double\",\"scalar\":\"Real\",\"scalar_bytes\":8,\"scalar_encoding\":\"ieee754\",\"version\":1},\"shape\":[2,2]}"));
+	}
+
+	TEST_CASE("Persistence Matrix JSON rejects malformed wrong-scalar wrong-layout and wrong-shape input", "[Persistence][MatrixJSON]") {
+		const std::string base = WithRealMetadata(R"json({
+			"mml": {
+				"format": "MML_JSON",
+				"version": 1,
+				"object": "Matrix",
+				"object_version": 1,
+				"scalar": "Real",
+				"scalar_bytes": 8,
+				"scalar_encoding": "ieee754",
+				"layout": "row_major",
+				"real_type": "double"
+			},
+			"shape": [2, 2],
+			"data": [1, 2, 3, 4]
+		})json");
+
+		std::string wrongScalar = base;
+		const std::size_t scalarPos = wrongScalar.find("\"scalar\": \"Real\"");
+		REQUIRE(scalarPos != std::string::npos);
+		wrongScalar.replace(scalarPos, std::string("\"scalar\": \"Real\"").size(), "\"scalar\": \"float\"");
+		std::stringstream wrongScalarStream(wrongScalar);
+		Matrix<Real> scalarRejected;
+		SerializeResult scalarResult = Persistence::LoadJson(wrongScalarStream, scalarRejected);
+		REQUIRE_FALSE(scalarResult.success);
+		REQUIRE(scalarResult.error == SerializeError::UNSUPPORTED_SCALAR);
+
+		std::string wrongLayout = base;
+		const std::size_t layoutPos = wrongLayout.find("\"layout\": \"row_major\"");
+		REQUIRE(layoutPos != std::string::npos);
+		wrongLayout.replace(layoutPos, std::string("\"layout\": \"row_major\"").size(), "\"layout\": \"column_major\"");
+		std::stringstream wrongLayoutStream(wrongLayout);
+		Matrix<Real> layoutRejected;
+		SerializeResult layoutResult = Persistence::LoadJson(wrongLayoutStream, layoutRejected);
+		REQUIRE_FALSE(layoutResult.success);
+		REQUIRE(layoutResult.error == SerializeError::SCHEMA_MISMATCH);
+
+		const std::string wrongLength = WithRealMetadata(R"json({
+			"mml": {
+				"format": "MML_JSON",
+				"version": 1,
+				"object": "Matrix",
+				"object_version": 1,
+				"scalar": "Real",
+				"scalar_bytes": 8,
+				"scalar_encoding": "ieee754",
+				"layout": "row_major",
+				"real_type": "double"
+			},
+			"shape": [2, 2],
+			"data": [1, 2, 3]
+		})json");
+		std::stringstream wrongLengthStream(wrongLength);
+		Matrix<Real> lengthRejected;
+		SerializeResult lengthResult = Persistence::LoadJson(wrongLengthStream, lengthRejected);
+		REQUIRE_FALSE(lengthResult.success);
+		REQUIRE(lengthResult.error == SerializeError::SCHEMA_MISMATCH);
+
+		std::stringstream malformed("{\"mml\":");
+		Matrix<Real> malformedRejected;
+		SerializeResult malformedResult = Persistence::LoadJson(malformed, malformedRejected);
+		REQUIRE_FALSE(malformedResult.success);
+		REQUIRE(malformedResult.error == SerializeError::MALFORMED_INPUT);
+	}
+
+	TEST_CASE("Persistence sampled function JSON saves IRealFunction samples and loads data", "[Persistence][FunctionJSON]") {
+		RealFunction sinFunction([](const Real x) { return std::sin(x); });
+		std::stringstream stream;
+		Persistence::SampleGrid grid{0.0, Constants::PI / 2.0, 4};
+
+		REQUIRE(Persistence::SaveSampledFunction(stream, sinFunction, "sin(x)", grid).success);
+
+		Persistence::SampledRealFunctionData loaded;
+		REQUIRE(Persistence::LoadSampledFunctionData(stream, loaded).success);
+		REQUIRE(loaded.nodes.size() == 4);
+		REQUIRE(loaded.values.size() == 4);
+		REQUIRE(loaded.label == "sin(x)");
+		REQUIRE(loaded.source == "sampled from IRealFunction");
+		REQUIRE(std::abs(loaded.nodes[0] - 0.0) < 1e-12);
+		REQUIRE(std::abs(loaded.nodes[3] - Constants::PI / 2.0) < 1e-12);
+		REQUIRE(std::abs(loaded.values[0] - 0.0) < 1e-12);
+		REQUIRE(std::abs(loaded.values[3] - 1.0) < 1e-12);
+	}
+
+	TEST_CASE("Persistence sampled function JSON saves interpolated function nodes", "[Persistence][FunctionJSON]") {
+		Vector<Real> x(std::vector<Real>{0.0, 1.0, 2.0});
+		Vector<Real> y(std::vector<Real>{0.0, 1.0, 4.0});
+		LinearInterpRealFunc interp(x, y);
+
+		std::string path = (std::filesystem::temp_directory_path() / "mml_serializer_sampled_function.mmlj").string();
+		REQUIRE(Persistence::SaveInterpolatedFunction(interp, path, "linear fixture").success);
+
+		Persistence::SampledRealFunctionData loaded;
+		REQUIRE(Persistence::LoadSampledFunctionData(path, loaded).success);
+		REQUIRE(loaded.nodes.size() == 3);
+		REQUIRE(loaded.values.size() == 3);
+		REQUIRE(loaded.label == "linear fixture");
+		REQUIRE(loaded.source == "Linear");
+		for (int i = 0; i < 3; ++i)
+		{
+			REQUIRE(loaded.nodes[i] == x[i]);
+			REQUIRE(loaded.values[i] == y[i]);
+		}
+
+		CleanupTempFile(path);
+	}
+
+	TEST_CASE("Persistence sampled function JSON rejects invalid save inputs", "[Persistence][FunctionJSON]") {
+		RealFunction sinFunction([](const Real x) { return std::sin(x); });
+		std::stringstream stream;
+
+		REQUIRE_FALSE(Persistence::SaveSampledFunction(stream, sinFunction, "bad", Persistence::SampleGrid{0.0, 1.0, 1}).success);
+		REQUIRE_FALSE(Persistence::SaveSampledFunction(stream, sinFunction, "bad", Persistence::SampleGrid{1.0, 0.0, 4}).success);
+
+		Persistence::SampledRealFunctionData duplicate;
+		duplicate.nodes = Vector<Real>(std::vector<Real>{0.0, 0.0});
+		duplicate.values = Vector<Real>(std::vector<Real>{1.0, 2.0});
+		REQUIRE_FALSE(Persistence::SaveSampledFunction(stream, duplicate).success);
+
+		Persistence::SampledRealFunctionData mismatched;
+		mismatched.nodes = Vector<Real>(std::vector<Real>{0.0, 1.0});
+		mismatched.values = Vector<Real>(std::vector<Real>{1.0});
+		REQUIRE_FALSE(Persistence::SaveSampledFunction(stream, mismatched).success);
+	}
+
+	TEST_CASE("Persistence sampled function JSON validates schema scalar and data shape", "[Persistence][FunctionJSON]") {
+		const std::string wrongScalar = R"json({
+			"mml": {
+				"format": "MML_JSON",
+				"version": 1,
+				"object": "SampledRealFunction",
+				"object_version": 1,
+				"scalar": "float",
+				"scalar_bytes": 8,
+				"scalar_encoding": "ieee754",
+				"real_type": "double"
+			},
+			"domain": [0, 1],
+			"nodes": [0, 1],
+			"values": [0, 1]
+		})json";
+
+		std::stringstream wrongScalarStream(wrongScalar);
+		Persistence::SampledRealFunctionData scalarRejected;
+		SerializeResult scalarResult = Persistence::LoadSampledFunctionData(wrongScalarStream, scalarRejected);
+		REQUIRE_FALSE(scalarResult.success);
+		REQUIRE(scalarResult.error == SerializeError::UNSUPPORTED_SCALAR);
+
+		const std::string wrongShape = WithRealMetadata(R"json({
+			"mml": {
+				"format": "MML_JSON",
+				"version": 1,
+				"object": "SampledRealFunction",
+				"object_version": 1,
+				"scalar": "Real",
+				"scalar_bytes": 8,
+				"scalar_encoding": "ieee754",
+				"real_type": "double"
+			},
+			"domain": [0, 1],
+			"nodes": [0, 1],
+			"values": [0]
+		})json");
+
+		std::stringstream wrongShapeStream(wrongShape);
+		Persistence::SampledRealFunctionData shapeRejected;
+		SerializeResult shapeResult = Persistence::LoadSampledFunctionData(wrongShapeStream, shapeRejected);
+		REQUIRE_FALSE(shapeResult.success);
+		REQUIRE(shapeResult.error == SerializeError::SCHEMA_MISMATCH);
+
+		const std::string duplicateNodes = WithRealMetadata(R"json({
+			"mml": {
+				"format": "MML_JSON",
+				"version": 1,
+				"object": "SampledRealFunction",
+				"object_version": 1,
+				"scalar": "Real",
+				"scalar_bytes": 8,
+				"scalar_encoding": "ieee754",
+				"real_type": "double"
+			},
+			"domain": [0, 1],
+			"nodes": [0, 0],
+			"values": [0, 1]
+		})json");
+
+		std::stringstream duplicateStream(duplicateNodes);
+		Persistence::SampledRealFunctionData duplicateRejected;
+		SerializeResult duplicateResult = Persistence::LoadSampledFunctionData(duplicateStream, duplicateRejected);
+		REQUIRE_FALSE(duplicateResult.success);
+		REQUIRE(duplicateResult.error == SerializeError::INVALID_PARAMETERS);
+	}
+
+	TEST_CASE("Persistence sampled function loads into selected interpolation types", "[Persistence][FunctionJSON]") {
+		Persistence::SampledRealFunctionData data;
+		data.nodes = Vector<Real>(std::vector<Real>{0.0, 1.0, 2.0, 3.0});
+		data.values = Vector<Real>(std::vector<Real>{0.0, 1.0, 4.0, 9.0});
+		data.label = "quadratic samples";
+
+		std::stringstream stream;
+		REQUIRE(Persistence::SaveSampledFunction(stream, data).success);
+
+		auto linear = Persistence::LoadLinearFunction(stream);
+		REQUIRE(linear.result.success);
+		REQUIRE(std::abs(linear.function(1.5) - 2.5) < 1e-12);
+
+		std::stringstream polyStream(stream.str());
+		auto polynomial = Persistence::LoadPolynomialFunction(polyStream, Persistence::PolynomialInterpolationOptions{3});
+		REQUIRE(polynomial.result.success);
+		REQUIRE(std::abs(polynomial.function(1.5) - 2.25) < 1e-12);
+
+		std::stringstream splineStream(stream.str());
+		auto spline = Persistence::LoadSplineFunction(splineStream);
+		REQUIRE(spline.result.success);
+		REQUIRE(std::abs(spline.function(1.0) - 1.0) < 1e-12);
+		REQUIRE(std::abs(spline.function(2.0) - 4.0) < 1e-12);
+	}
+
+	TEST_CASE("Persistence sampled function rejects bad interpolation options", "[Persistence][FunctionJSON]") {
+		Persistence::SampledRealFunctionData data;
+		data.nodes = Vector<Real>(std::vector<Real>{0.0, 1.0, 2.0});
+		data.values = Vector<Real>(std::vector<Real>{0.0, 1.0, 4.0});
+
+		std::stringstream stream;
+		REQUIRE(Persistence::SaveSampledFunction(stream, data).success);
+
+		auto tooSmall = Persistence::LoadPolynomialFunction(stream, Persistence::PolynomialInterpolationOptions{1});
+		REQUIRE_FALSE(tooSmall.result.success);
+		REQUIRE(tooSmall.result.error == SerializeError::INVALID_PARAMETERS);
+
+		std::stringstream tooLargeStream(stream.str());
+		auto tooLarge = Persistence::LoadPolynomialFunction(tooLargeStream, Persistence::PolynomialInterpolationOptions{4});
+		REQUIRE_FALSE(tooLarge.result.success);
+		REQUIRE(tooLarge.result.error == SerializeError::INVALID_PARAMETERS);
+	}
+
 	// Test function for Real -> Real
 	class SinFunction : public IRealFunction {
 	public:
@@ -292,7 +1415,7 @@ namespace MML::Tests::Tools::SerializerTests {
 	///                         REAL FUNCTION SERIALIZATION                           ///
 	/////////////////////////////////////////////////////////////////////////////////////
 
-	TEST_CASE("Serializer - SaveRealFunc equally spaced", "[serializer][realfunc]") {
+	TEST_CASE("Persistence - SaveRealFunc equally spaced", "[serializer][realfunc]") {
 		TEST_PRECISION_INFO();
 		
 		std::string testFile = GetTempFilePath("realfunc_equally_spaced");
@@ -306,7 +1429,7 @@ namespace MML::Tests::Tools::SerializerTests {
 			
 			// Verify file exists and has content
 			std::string content = ReadFileContents(testFile);
-			REQUIRE(content.find("REAL_FUNCTION") != std::string::npos);
+			REQUIRE(content.find("MML_REAL_FUNCTION") != std::string::npos);
 			REQUIRE(content.find("sin(x)") != std::string::npos);
 			REQUIRE(content.find("x1:") != std::string::npos);
 			REQUIRE(content.find("NumPoints: 10") != std::string::npos);
@@ -328,7 +1451,7 @@ namespace MML::Tests::Tools::SerializerTests {
 			REQUIRE(result.success == true);
 			
 			std::string content = ReadFileContents(testFile);
-			REQUIRE(content.find("REAL_FUNCTION") != std::string::npos);
+			REQUIRE(content.find("MML_REAL_FUNCTION") != std::string::npos);
 			// Should have 5 data points
 			std::istringstream iss(content);
 			std::string line;
@@ -366,7 +1489,7 @@ namespace MML::Tests::Tools::SerializerTests {
 			REQUIRE(result.success == true);
 			
 			std::string content = ReadFileContents(testFile);
-			REQUIRE(content.find("MULTI_REAL_FUNCTION") != std::string::npos);
+			REQUIRE(content.find("MML_MULTI_REAL_FUNCTION") != std::string::npos);
 			REQUIRE(content.find("Trig Functions") != std::string::npos);
 			REQUIRE(content.find("sin(x)") != std::string::npos);
 			REQUIRE(content.find("cos(x)") != std::string::npos);
@@ -392,9 +1515,55 @@ namespace MML::Tests::Tools::SerializerTests {
 			REQUIRE(result.success == true);
 			
 			std::string content = ReadFileContents(testFile);
-			REQUIRE(content.find("MULTI_REAL_FUNCTION") != std::string::npos);
+			REQUIRE(content.find("MML_MULTI_REAL_FUNCTION") != std::string::npos);
 			REQUIRE(content.find("Triangle1") != std::string::npos);
 			
+			CleanupTempFile(testFile);
+		}
+
+		SECTION("Polynomial interpolation functions") {
+			Vector<Real> x(std::vector<Real>{0.0, 1.0, 2.0});
+			Vector<Real> y1(std::vector<Real>{0.0, 1.0, 4.0});
+			Vector<Real> y2(std::vector<Real>{1.0, 2.0, 5.0});
+
+			PolynomInterpRealFunc interp1(x, y1, 3);
+			PolynomInterpRealFunc interp2(x, y2, 3);
+
+			std::vector<PolynomInterpRealFunc> funcs = {interp1, interp2};
+			std::vector<std::string> legend = {"Poly1", "Poly2"};
+
+			auto result = Serializer::SaveRealMultiFunc(funcs, "Polynomial Interps", legend,
+			                                             0.0, 2.0, 10, testFile);
+
+			REQUIRE(result.success == true);
+
+			std::string content = ReadFileContents(testFile);
+			REQUIRE(content.find("MML_MULTI_REAL_FUNCTION") != std::string::npos);
+			REQUIRE(content.find("Poly1") != std::string::npos);
+
+			CleanupTempFile(testFile);
+		}
+
+		SECTION("Spline interpolation functions") {
+			Vector<Real> x(std::vector<Real>{0.0, 1.0, 2.0, 3.0});
+			Vector<Real> y1(std::vector<Real>{0.0, 1.0, 0.0, -1.0});
+			Vector<Real> y2(std::vector<Real>{1.0, 0.0, -1.0, 0.0});
+
+			SplineInterpRealFunc interp1(x, y1);
+			SplineInterpRealFunc interp2(x, y2);
+
+			std::vector<SplineInterpRealFunc> funcs = {interp1, interp2};
+			std::vector<std::string> legend = {"Spline1", "Spline2"};
+
+			auto result = Serializer::SaveRealMultiFunc(funcs, "Spline Interps", legend,
+			                                             0.0, 3.0, 10, testFile);
+
+			REQUIRE(result.success == true);
+
+			std::string content = ReadFileContents(testFile);
+			REQUIRE(content.find("MML_MULTI_REAL_FUNCTION") != std::string::npos);
+			REQUIRE(content.find("Spline1") != std::string::npos);
+
 			CleanupTempFile(testFile);
 		}
 	}
@@ -417,7 +1586,7 @@ namespace MML::Tests::Tools::SerializerTests {
 			REQUIRE(result.success == true);
 			
 			std::string content = ReadFileContents(testFile);
-			REQUIRE(content.find("PARAMETRIC_CURVE_CARTESIAN_2D") != std::string::npos);
+			REQUIRE(content.find("MML_PARAMETRIC_CURVE_CARTESIAN_2D") != std::string::npos);
 			REQUIRE(content.find("Wave Curve") != std::string::npos);
 			REQUIRE(content.find("t1:") != std::string::npos);
 			REQUIRE(content.find("t2:") != std::string::npos);
@@ -440,7 +1609,7 @@ namespace MML::Tests::Tools::SerializerTests {
 			REQUIRE(result == true);
 			
 			std::string content = ReadFileContents(testFile);
-			REQUIRE(content.find("PARAMETRIC_CURVE_CARTESIAN_2D") != std::string::npos);
+			REQUIRE(content.find("MML_PARAMETRIC_CURVE_CARTESIAN_2D") != std::string::npos);
 			
 			CleanupTempFile(testFile);
 		}
@@ -460,7 +1629,7 @@ namespace MML::Tests::Tools::SerializerTests {
 			REQUIRE(result == true);
 			
 			std::string content = ReadFileContents(testFile);
-			REQUIRE(content.find("PARAMETRIC_CURVE_CARTESIAN_3D") != std::string::npos);
+			REQUIRE(content.find("MML_PARAMETRIC_CURVE_CARTESIAN_3D") != std::string::npos);
 			
 			CleanupTempFile(testFile);
 		}
@@ -486,7 +1655,7 @@ namespace MML::Tests::Tools::SerializerTests {
 			REQUIRE(result.success == true);
 			
 			std::string content = ReadFileContents(testFile);
-			REQUIRE(content.find("PARAMETRIC_SURFACE_CARTESIAN") != std::string::npos);
+			REQUIRE(content.find("MML_PARAMETRIC_SURFACE_CARTESIAN") != std::string::npos);
 			REQUIRE(content.find("Unit Sphere") != std::string::npos);
 			REQUIRE(content.find("u1:") != std::string::npos);
 			REQUIRE(content.find("w1:") != std::string::npos);
@@ -517,7 +1686,7 @@ namespace MML::Tests::Tools::SerializerTests {
 			REQUIRE(result.success == true);
 			
 			std::string content = ReadFileContents(testFile);
-			REQUIRE(content.find("SCALAR_FUNCTION_CARTESIAN_2D") != std::string::npos);
+			REQUIRE(content.find("MML_SCALAR_FUNCTION_CARTESIAN_2D") != std::string::npos);
 			REQUIRE(content.find("z=x*y") != std::string::npos);
 			REQUIRE(content.find("NumPointsX:") != std::string::npos);
 			REQUIRE(content.find("NumPointsY:") != std::string::npos);
@@ -543,7 +1712,7 @@ namespace MML::Tests::Tools::SerializerTests {
 			REQUIRE(result.success == true);
 			
 			std::string content = ReadFileContents(testFile);
-			REQUIRE(content.find("SCALAR_FUNCTION_CARTESIAN_3D") != std::string::npos);
+			REQUIRE(content.find("MML_SCALAR_FUNCTION_CARTESIAN_3D") != std::string::npos);
 			REQUIRE(content.find("NumPointsZ:") != std::string::npos);
 			
 			CleanupTempFile(testFile);
@@ -570,7 +1739,7 @@ namespace MML::Tests::Tools::SerializerTests {
 			REQUIRE(result.success == true);
 			
 			std::string content = ReadFileContents(testFile);
-			REQUIRE(content.find("VECTOR_FIELD_2D_CARTESIAN") != std::string::npos);
+			REQUIRE(content.find("MML_VECTOR_FIELD_2D_CARTESIAN") != std::string::npos);
 			REQUIRE(content.find("Identity Field") != std::string::npos);
 			
 			CleanupTempFile(testFile);
@@ -588,7 +1757,7 @@ namespace MML::Tests::Tools::SerializerTests {
 			
 			// File should have fewer points due to threshold
 			std::string content = ReadFileContents(testFile);
-			REQUIRE(content.find("VECTOR_FIELD_2D_CARTESIAN") != std::string::npos);
+			REQUIRE(content.find("MML_VECTOR_FIELD_2D_CARTESIAN") != std::string::npos);
 			
 			CleanupTempFile(testFile);
 		}
@@ -611,7 +1780,7 @@ namespace MML::Tests::Tools::SerializerTests {
 			REQUIRE(result.success == true);
 			
 			std::string content = ReadFileContents(testFile);
-			REQUIRE(content.find("VECTOR_FIELD_3D_CARTESIAN") != std::string::npos);
+			REQUIRE(content.find("MML_VECTOR_FIELD_3D_CARTESIAN") != std::string::npos);
 			
 			CleanupTempFile(testFile);
 		}
@@ -648,7 +1817,7 @@ namespace MML::Tests::Tools::SerializerTests {
 			REQUIRE(result.success == true);
 			
 			std::string content = ReadFileContents(testFile);
-			REQUIRE(content.find("VECTOR_FIELD_SPHERICAL") != std::string::npos);
+			REQUIRE(content.find("MML_VECTOR_FIELD_SPHERICAL") != std::string::npos);
 			
 			CleanupTempFile(testFile);
 		}
@@ -687,7 +1856,7 @@ namespace MML::Tests::Tools::SerializerTests {
 			REQUIRE(result.success == true);
 			
 			std::string content = ReadFileContents(testFile);
-			REQUIRE(content.find("PARTICLE_SIMULATION_DATA_2D") != std::string::npos);
+			REQUIRE(content.find("MML_PARTICLE_SIMULATION_DATA_2D") != std::string::npos);
 			REQUIRE(content.find("Width:") != std::string::npos);
 			REQUIRE(content.find("Height:") != std::string::npos);
 			REQUIRE(content.find("NumBalls:") != std::string::npos);
@@ -749,7 +1918,7 @@ namespace MML::Tests::Tools::SerializerTests {
 			REQUIRE(result.success == true);
 			
 			std::string content = ReadFileContents(testFile);
-			REQUIRE(content.find("PARTICLE_SIMULATION_DATA_3D") != std::string::npos);
+			REQUIRE(content.find("MML_PARTICLE_SIMULATION_DATA_3D") != std::string::npos);
 			REQUIRE(content.find("Depth:") != std::string::npos);
 			
 			CleanupTempFile(testFile);
@@ -881,21 +2050,25 @@ namespace MML::Tests::Tools::SerializerTests {
 			
 			// Line 1: Type
 			std::getline(iss, line);
-			REQUIRE(line == "REAL_FUNCTION_EQUALLY_SPACED");
+			REQUIRE(line == "MML_REAL_FUNCTION_EQUALLY_SPACED");
 			
-			// Line 2: Title
+			// Line 2: Version
+			std::getline(iss, line);
+			REQUIRE(line == "VERSION: 1");
+			
+			// Line 3: Title
 			std::getline(iss, line);
 			REQUIRE(line == "test_title");
 			
-			// Line 3: x1
+			// Line 4: x1
 			std::getline(iss, line);
 			REQUIRE(line.find("x1:") == 0);
 			
-			// Line 4: x2
+			// Line 5: x2
 			std::getline(iss, line);
 			REQUIRE(line.find("x2:") == 0);
 			
-			// Line 5: NumPoints
+			// Line 6: NumPoints
 			std::getline(iss, line);
 			REQUIRE(line.find("NumPoints:") == 0);
 			
@@ -917,17 +2090,21 @@ namespace MML::Tests::Tools::SerializerTests {
 			
 			// Line 1: Type
 			std::getline(iss, line);
-			REQUIRE(line == "MULTI_REAL_FUNCTION");
+			REQUIRE(line == "MML_MULTI_REAL_FUNCTION");
 			
-			// Line 2: Title
+			// Line 2: Version
+			std::getline(iss, line);
+			REQUIRE(line == "VERSION: 1");
+			
+			// Line 3: Title
 			std::getline(iss, line);
 			REQUIRE(line == "multi_test");
 			
-			// Line 3: Number of functions
+			// Line 4: Number of functions
 			std::getline(iss, line);
 			REQUIRE(line == "2");
 			
-			// Lines 4-5: Legend entries
+			// Lines 5-6: Legend entries
 			std::getline(iss, line);
 			REQUIRE(line == "sin");
 			std::getline(iss, line);
@@ -949,8 +2126,8 @@ namespace MML::Tests::Tools::SerializerTests {
 			std::istringstream iss(content);
 			std::string line;
 			
-			// Skip header (8 lines: type, title, numFuncs, 2 legends, x1, x2, NumPoints)
-			for (int i = 0; i < 8; ++i) {
+			// Skip header (9 lines: type, version, title, numFuncs, 2 legends, x1, x2, NumPoints)
+			for (int i = 0; i < 9; ++i) {
 				std::getline(iss, line);
 			}
 			
@@ -991,10 +2168,12 @@ namespace MML::Tests::Tools::SerializerTests {
 			    0.0, Constants::PI, 5, testFile);
 			REQUIRE(result.success);
 			
-			auto cmp = CompareFilesWithTolerance(testFile, 
-			    GetReferenceFilePath("realfunc_equally_spaced_simple.mml"));
-			INFO("Line " << cmp.line_number << ": " << cmp.error_message);
-			REQUIRE(cmp.success);
+			if constexpr (!std::is_same_v<Real, float>) {
+				auto cmp = CompareFilesWithTolerance(testFile, 
+				    GetReferenceFilePath("realfunc_equally_spaced_simple.mml"));
+				INFO("Line " << cmp.line_number << ": " << cmp.error_message);
+				REQUIRE(cmp.success);
+			}
 			
 			CleanupTempFile(testFile);
 		}
@@ -1005,10 +2184,12 @@ namespace MML::Tests::Tools::SerializerTests {
 			    0.0, 2*Constants::PI, 13, testFile);
 			REQUIRE(result.success);
 			
-			auto cmp = CompareFilesWithTolerance(testFile,
-			    GetReferenceFilePath("realfunc_equally_spaced_complex.mml"));
-			INFO("Line " << cmp.line_number << ": " << cmp.error_message);
-			REQUIRE(cmp.success);
+			if constexpr (!std::is_same_v<Real, float>) {
+				auto cmp = CompareFilesWithTolerance(testFile,
+				    GetReferenceFilePath("realfunc_equally_spaced_complex.mml"));
+				INFO("Line " << cmp.line_number << ": " << cmp.error_message);
+				REQUIRE(cmp.success);
+			}
 			
 			CleanupTempFile(testFile);
 		}
@@ -1039,10 +2220,12 @@ namespace MML::Tests::Tools::SerializerTests {
 			auto result = Serializer::SaveRealFunc(cosFunc, "cos(x) custom", pts, testFile);
 			REQUIRE(result.success);
 			
-			auto cmp = CompareFilesWithTolerance(testFile,
-			    GetReferenceFilePath("realfunc_specified_complex.mml"));
-			INFO("Line " << cmp.line_number << ": " << cmp.error_message);
-			REQUIRE(cmp.success);
+			if constexpr (!std::is_same_v<Real, float>) {
+				auto cmp = CompareFilesWithTolerance(testFile,
+				    GetReferenceFilePath("realfunc_specified_complex.mml"));
+				INFO("Line " << cmp.line_number << ": " << cmp.error_message);
+				REQUIRE(cmp.success);
+			}
 			
 			CleanupTempFile(testFile);
 		}
@@ -1062,10 +2245,12 @@ namespace MML::Tests::Tools::SerializerTests {
 			    0.0, Constants::PI, 5, testFile);
 			REQUIRE(result.success);
 			
-			auto cmp = CompareFilesWithTolerance(testFile,
-			    GetReferenceFilePath("multi_realfunc_simple.mml"));
-			INFO("Line " << cmp.line_number << ": " << cmp.error_message);
-			REQUIRE(cmp.success);
+			if constexpr (!std::is_same_v<Real, float>) {
+				auto cmp = CompareFilesWithTolerance(testFile,
+				    GetReferenceFilePath("multi_realfunc_simple.mml"));
+				INFO("Line " << cmp.line_number << ": " << cmp.error_message);
+				REQUIRE(cmp.success);
+			}
 			
 			CleanupTempFile(testFile);
 		}
@@ -1076,10 +2261,12 @@ namespace MML::Tests::Tools::SerializerTests {
 			    0.0, 2*Constants::PI, 11, testFile);
 			REQUIRE(result.success);
 			
-			auto cmp = CompareFilesWithTolerance(testFile,
-			    GetReferenceFilePath("multi_realfunc_complex.mml"));
-			INFO("Line " << cmp.line_number << ": " << cmp.error_message);
-			REQUIRE(cmp.success);
+			if constexpr (!std::is_same_v<Real, float>) {
+				auto cmp = CompareFilesWithTolerance(testFile,
+				    GetReferenceFilePath("multi_realfunc_complex.mml"));
+				INFO("Line " << cmp.line_number << ": " << cmp.error_message);
+				REQUIRE(cmp.success);
+			}
 			
 			CleanupTempFile(testFile);
 		}

@@ -12,13 +12,14 @@
 #if !defined MML_ROOTFINDING_BRACKETING_H
 #define MML_ROOTFINDING_BRACKETING_H
 
-#include "mml/MMLBase.h"
-#include "mml/core/NumericValidation.h"
+#include <mml/MMLBase.h>
+#include <mml/MMLNumericValidation.h>
 
-#include "mml/interfaces/IFunction.h"
-#include "mml/base/Vector/Vector.h"
+#include <mml/interfaces/IFunction.h>
+#include <mml/base/Vector/Vector.h>
 
-#include "mml/algorithms/RootFinding/RootFindingBase.h"
+#include <mml/algorithms/RootFinding/RootFindingBase.h>
+#include <mml/algorithms/RootFinding/RootIsolation.h>
 
 namespace MML {
 	namespace RootFinding {
@@ -93,6 +94,14 @@ namespace MML {
 			return false;
 		}
 
+		template<RealFunctionCallable Function>
+			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+		static bool BracketRoot(Function&& func, Real& x1, Real& x2, int MaxTry = 50)
+		{
+			MML::Detail::RealFunctionCallableAdapter<Function> adapter(func);
+			return BracketRoot(adapter, x1, x2, MaxTry);
+		}
+
 		/// Find multiple root brackets by systematic interval subdivision.
 		///
 		/// This function systematically searches for roots of a continuous function by
@@ -143,30 +152,31 @@ namespace MML {
 		/// Based on Numerical Recipes §9.1
 		static int FindRootBrackets(const IRealFunction& func, const Real x1, const Real x2, const int numPoints, Vector<Real>& xb1,
 									Vector<Real>& xb2) {
-			int numBrackets = 20;
-			xb1.Resize(numBrackets);
-			xb2.Resize(numBrackets);
-			int numRoots = 0;
-			Real dx = (x2 - x1) / numPoints;
-			Real x = x1;
-			Real fp = func(x1);
-
-			for (int i = 0; i < numPoints; i++) {
-				x += dx;
-				Real fc = func(x);
-
-				if (fc * fp <= 0.0) {
-					xb1[numRoots] = x - dx;
-					xb2[numRoots++] = x;
-					if (numRoots == numBrackets) {
-						xb1.Resize(numBrackets * 2, true);
-						xb2.Resize(numBrackets * 2, true);
-						numBrackets *= 2;
-					}
+			RootIsolationConfig config;
+			config.num_intervals = numPoints;
+			auto candidates = FindRootIntervals(func, x1, x2, config);
+			xb1.Resize(static_cast<int>(candidates.size()));
+			xb2.Resize(static_cast<int>(candidates.size()));
+			const Real step = (x2 - x1) / numPoints;
+			for (int i = 0; i < static_cast<int>(candidates.size()); ++i) {
+				if (candidates[i].type == RootCandidateType::ExactSample) {
+					xb1[i] = std::max(x1, candidates[i].estimate - step);
+					xb2[i] = std::min(x2, candidates[i].estimate + step);
+				} else {
+					xb1[i] = candidates[i].interval.lower;
+					xb2[i] = candidates[i].interval.upper;
 				}
-				fp = fc;
 			}
-			return numRoots;
+			return static_cast<int>(candidates.size());
+		}
+
+		template<RealFunctionCallable Function>
+			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+		static int FindRootBrackets(Function&& func, const Real x1, const Real x2, const int numPoints, Vector<Real>& xb1,
+									Vector<Real>& xb2)
+		{
+			MML::Detail::RealFunctionCallableAdapter<Function> adapter(func);
+			return FindRootBrackets(adapter, x1, x2, numPoints, xb1, xb2);
 		}
 
 		/*********************************************************************/
@@ -238,6 +248,14 @@ namespace MML {
 			return result.root;
 		}
 
+		template<RealFunctionCallable Function>
+			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+		static Real FindRootBisection(Function&& func, Real x1, Real x2, Real xacc)
+		{
+			MML::Detail::RealFunctionCallableAdapter<Function> adapter(func);
+			return FindRootBisection(adapter, x1, x2, xacc);
+		}
+
 		/// Find root using the bisection method with configurable parameters.
 		///
 		/// This overload provides full control over convergence parameters and
@@ -260,18 +278,28 @@ namespace MML {
 		static RootFindingResult FindRootBisection(const IRealFunction& func, Real x1, Real x2, 
 												   const RootFindingConfig& config) {
 			RootFindingResult result;
+			RootFindingResultFinalizer finalizer(result, "Bisection");
+			if (!IsValidConfig(config) || !AreValidEndpoints(x1, x2)) {
+				result.status = AlgorithmStatus::InvalidInput;
+				result.error_message = "Invalid configuration or endpoints in FindRootBisection";
+				return result;
+			}
 			Real dx, xmid, rtb;
 
 			Real f = func(x1);
 			Real fmid = func(x2);
+			result.function_evaluations = 2;
 
 			// Check for non-finite initial values using shared validation helper
 			if (!IsFunctionValueValid(f) || !IsFunctionValueValid(fmid)) {
+				result.status = AlgorithmStatus::NumericalInstability;
 				result.error_message = "Non-finite function values in FindRootBisection";
 				return result;
 			}
+			if (AcceptEndpointRoot(result, config, x1, f, x2, fmid)) return result;
 
 			if (f * fmid >= 0.0) {
+				result.status = AlgorithmStatus::InvalidInput;
 				result.error_message = "Root must be bracketed for bisection in FindRootBisection";
 				return result;
 			}
@@ -290,9 +318,11 @@ namespace MML {
 				dx *= 0.5;
 				xmid = rtb + dx;
 				fmid = func(xmid);
+				++result.function_evaluations;
 
 				// Check for non-finite midpoint value using shared validation helper
 				if (!IsFunctionValueValid(fmid)) {
+					result.status = AlgorithmStatus::NumericalInstability;
 					result.root = rtb;
 					result.function_value = fmid;
 					result.iterations_used = j + 1;
@@ -304,17 +334,18 @@ namespace MML {
 				if (fmid <= 0.0)
 					rtb = xmid;
 
-				if (config.verbose) {
-					std::cout << "Bisection iter " << j << ": x=" << rtb 
+				if (config.verbose && config.verboseStream) {
+					*config.verboseStream << "Bisection iter " << j << ": x=" << rtb 
 							  << ", f(x)=" << fmid << ", dx=" << dx << std::endl;
 				}
 
-				if (std::abs(dx) < config.tolerance || fmid == 0.0) {
+				if (MeetsConvergence(config, rtb, std::abs(dx), fmid) || fmid == 0.0) {
 					result.root = rtb;
 					result.function_value = func(rtb);
 					result.iterations_used = j + 1;
 					result.converged = true;
 					result.achieved_tolerance = std::abs(dx);
+					result.x_error = std::abs(dx);
 					return result;
 				}
 			}
@@ -323,8 +354,19 @@ namespace MML {
 			result.function_value = func(rtb);
 			result.iterations_used = maxIter;
 			result.achieved_tolerance = std::abs(dx);
+			result.x_error = std::abs(dx);
+			result.status = AlgorithmStatus::MaxIterationsExceeded;
 			result.error_message = "Too many bisections in FindRootBisection";
 			return result;
+		}
+
+		template<RealFunctionCallable Function>
+			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+		static RootFindingResult FindRootBisection(Function&& func, Real x1, Real x2,
+											   const RootFindingConfig& config)
+		{
+			MML::Detail::RealFunctionCallableAdapter<Function> adapter(func);
+			return FindRootBisection(adapter, x1, x2, config);
 		}
 
 		/*********************************************************************/
@@ -396,18 +438,36 @@ namespace MML {
 			return result.root;
 		}
 
+		template<RealFunctionCallable Function>
+			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+		static Real FindRootFalsePosition(Function&& func, Real x1, Real x2, Real xacc)
+		{
+			MML::Detail::RealFunctionCallableAdapter<Function> adapter(func);
+			return FindRootFalsePosition(adapter, x1, x2, xacc);
+		}
+
 		/// Find root using false position method with configurable parameters.
 		static RootFindingResult FindRootFalsePosition(const IRealFunction& func, Real x1, Real x2,
 													   const RootFindingConfig& config) {
 			RootFindingResult result;
+			RootFindingResultFinalizer finalizer(result, "FalsePosition");
+			if (!IsValidConfig(config) || !AreValidEndpoints(x1, x2)) {
+				result.status = AlgorithmStatus::InvalidInput;
+				result.error_message = "Invalid configuration or endpoints in FindRootFalsePosition";
+				return result;
+			}
 			Real f1 = func(x1);
 			Real f2 = func(x2);
+			result.function_evaluations = 2;
 
 			if (!IsFunctionValueValid(f1) || !IsFunctionValueValid(f2)) {
+				result.status = AlgorithmStatus::NumericalInstability;
 				result.error_message = "Non-finite function values in FindRootFalsePosition";
 				return result;
 			}
+			if (AcceptEndpointRoot(result, config, x1, f1, x2, f2)) return result;
 			if (f1 * f2 >= 0.0) {
+				result.status = AlgorithmStatus::InvalidInput;
 				result.error_message = "Root must be bracketed for false position";
 				return result;
 			}
@@ -424,8 +484,10 @@ namespace MML {
 				Real dx = x2 - x1;
 				rtf = x1 + dx * f1 / (f1 - f2);
 				Real f = func(rtf);
+				++result.function_evaluations;
 
 				if (!IsFunctionValueValid(f)) {
+					result.status = AlgorithmStatus::NumericalInstability;
 					result.root = rtf;
 					result.function_value = f;
 					result.iterations_used = j + 1;
@@ -441,27 +503,40 @@ namespace MML {
 					f2 = f;
 				}
 
-				if (config.verbose) {
-					std::cout << "FalsePosition iter " << j << ": x=" << rtf 
+				if (config.verbose && config.verboseStream) {
+					*config.verboseStream << "FalsePosition iter " << j << ": x=" << rtf 
 							  << ", f(x)=" << f << std::endl;
 				}
 
-				if (std::abs(f) < config.tolerance || std::abs(x2 - x1) < config.tolerance) {
+				if (MeetsConvergence(config, rtf, std::abs(x2 - x1), f)) {
 					result.root = rtf;
 					result.function_value = f;
 					result.iterations_used = j + 1;
 					result.converged = true;
 					result.achieved_tolerance = std::abs(x2 - x1);
+					result.x_error = std::abs(x2 - x1);
 					return result;
 				}
 			}
 			
 			result.root = rtf;
 			result.function_value = func(rtf);
+			++result.function_evaluations;
 			result.iterations_used = maxIter;
 			result.achieved_tolerance = std::abs(x2 - x1);
+			result.x_error = std::abs(x2 - x1);
+			result.status = AlgorithmStatus::MaxIterationsExceeded;
 			result.error_message = "Maximum number of iterations exceeded in FindRootFalsePosition";
 			return result;
+		}
+
+		template<RealFunctionCallable Function>
+			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
+		static RootFindingResult FindRootFalsePosition(Function&& func, Real x1, Real x2,
+												   const RootFindingConfig& config)
+		{
+			MML::Detail::RealFunctionCallableAdapter<Function> adapter(func);
+			return FindRootFalsePosition(adapter, x1, x2, config);
 		}
 
 	} // namespace RootFinding

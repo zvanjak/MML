@@ -10,7 +10,7 @@ Comprehensive toolkit for **line integrals, curve lengths, and work integrals** 
 - **Scalar Line Integrals**: ∫_C f ds (scalar field along curve)
 - **Vector Line Integrals**: ∫_C **F**·d**r** (work, circulation)
 
-**Implementation**: Static methods in `PathIntegration` class using adaptive trapezoidal integration.
+**Implementation**: Static methods in `PathIntegration` backed by the unified 1D integration API. Trapezoidal integration remains the default, with Simpson, Romberg, Gauss-10, and Gauss-Kronrod 21 available explicitly.
 
 ## Quick Reference
 
@@ -157,32 +157,52 @@ namespace MML {
     public:
         // Arc length
         template<int N>
-        static Real ParametricCurveLength(
+        static IntegrationResult ParametricCurveLength(
             const IParametricCurve<N>& curve,
-            Real a, Real b
+            Real a, Real b,
+            IntegrationMethod method = TRAP,
+            Real eps = Defaults::TrapezoidIntegrationEPS
         );
         
         // Mass with variable density
         template<int N>
-        static Real ParametricCurveMass(
+        static IntegrationResult ParametricCurveMass(
             const IParametricCurve<N>& curve,
             const IRealFunction& density,
-            Real a, Real b
+            Real a, Real b,
+            IntegrationMethod method = TRAP,
+            Real eps = Defaults::TrapezoidIntegrationEPS
         );
         
         // Scalar line integral: ∫_C f ds
-        static Real LineIntegral(
+        static IntegrationResult LineIntegral(
             const IScalarFunction<3>& scalarField,
             const IParametricCurve<3>& curve,
             Real t1, Real t2,
             Real eps = Defaults::WorkIntegralPrecision
         );
+
+        static IntegrationResult LineIntegral(
+            const IScalarFunction<3>& scalarField,
+            const IParametricCurve<3>& curve,
+            Real t1, Real t2,
+            IntegrationMethod method,
+            Real eps = Defaults::WorkIntegralPrecision
+        );
         
         // Vector line integral (work): ∫_C F·dr
-        static Real LineIntegral(
+        static IntegrationResult LineIntegral(
             const IVectorFunction<3>& vectorField,
             const IParametricCurve<3>& curve,
             Real t1, Real t2,
+            Real eps = Defaults::LineIntegralPrecision
+        );
+
+        static IntegrationResult LineIntegral(
+            const IVectorFunction<3>& vectorField,
+            const IParametricCurve<3>& curve,
+            Real t1, Real t2,
+            IntegrationMethod method,
             Real eps = Defaults::LineIntegralPrecision
         );
     };
@@ -198,16 +218,20 @@ namespace MML {
 **Signature**:
 ```cpp
 template<int N>
-static Real ParametricCurveLength(
+static IntegrationResult ParametricCurveLength(
     const IParametricCurve<N>& curve,
     Real a,
-    Real b
+    Real b,
+    IntegrationMethod method = TRAP,
+    Real eps = Defaults::TrapezoidIntegrationEPS
 );
 ```
 
 **Parameters**:
 - `curve`: Parametric curve **r**(t)
 - `a`, `b`: Parameter range [a, b]
+- `method`: Numerical integration method
+- `eps`: Relative precision for adaptive methods
 
 **Returns**: Arc length L = ∫[a,b] |**r**'(t)| dt
 
@@ -223,14 +247,14 @@ public:
     }
 };
 
-// Integration via adaptive trapezoidal rule
-return IntegrateTrap(helper, a, b);
+// Integration via the selected 1D method
+return Integrate(helper, a, b, method, eps);
 ```
 
 **Usage**:
 ```cpp
-#include "core/Curves.h"
-#include "core/Integration/PathIntegration.h"
+#include <mml/core/Curves.h>
+#include <mml/core/Integration/PathIntegration.h>
 
 // Circle of radius R
 ParametricCurve<3> circle([](Real t) {
@@ -250,11 +274,13 @@ Real length = PathIntegration::ParametricCurveLength(circle, 0, 2*Constants::PI)
 **Signature**:
 ```cpp
 template<int N>
-static Real ParametricCurveMass(
+static IntegrationResult ParametricCurveMass(
     const IParametricCurve<N>& curve,
     const IRealFunction& density,
     Real a,
-    Real b
+    Real b,
+    IntegrationMethod method = TRAP,
+    Real eps = Defaults::TrapezoidIntegrationEPS
 );
 ```
 
@@ -262,6 +288,8 @@ static Real ParametricCurveMass(
 - `curve`: Parametric curve **r**(t)
 - `density`: Linear density function ρ(t)
 - `a`, `b`: Parameter range
+- `method`: Numerical integration method
+- `eps`: Relative precision for adaptive methods
 
 **Returns**: M = ∫[a,b] ρ(t) |**r**'(t)| dt
 
@@ -298,7 +326,7 @@ Real mass = PathIntegration::ParametricCurveMass(helix, density, 0, 2*Constants:
 
 **Signature**:
 ```cpp
-static Real LineIntegral(
+static IntegrationResult LineIntegral(
     const IScalarFunction<3>& scalarField,
     const IParametricCurve<3>& curve,
     Real t1,
@@ -312,6 +340,7 @@ static Real LineIntegral(
 - `curve`: Parametric curve **r**(t)
 - `t1`, `t2`: Parameter range
 - `eps`: Integration precision (optional)
+- `method`: Optional method-first overload parameter (`TRAP`, `SIMPSON`, `ROMBERG`, `GAUSS10`, or `GAUSS10KRONROD21`)
 
 **Returns**: ∫_C f ds = ∫[t1,t2] f(**r**(t)) |**r**'(t)| dt
 
@@ -353,7 +382,7 @@ Real integral = PathIntegration::LineIntegral(
 
 **Signature**:
 ```cpp
-static Real LineIntegral(
+static IntegrationResult LineIntegral(
     const IVectorFunction<3>& vectorField,
     const IParametricCurve<3>& curve,
     Real t1,
@@ -367,6 +396,7 @@ static Real LineIntegral(
 - `curve`: Parametric curve **r**(t)
 - `t1`, `t2`: Parameter range
 - `eps`: Integration precision
+- `method`: Optional method-first overload parameter (`TRAP`, `SIMPSON`, `ROMBERG`, `GAUSS10`, or `GAUSS10KRONROD21`)
 
 **Returns**: ∫_C **F**·d**r** = ∫[t1,t2] **F**(**r**(t)) · **r**'(t) dt
 
@@ -411,7 +441,7 @@ Real work = PathIntegration::LineIntegral(force, line, 0.0, 1.0);
 Classic curves with known analytical formulas:
 
 ```cpp
-#include "core/Integration/PathIntegration.h"
+#include <mml/core/Integration/PathIntegration.h>
 
 void Example1() {
     // Circle: r(t) = (cos t, sin t, 0)
@@ -711,8 +741,8 @@ void Example8() {
 **PathIntegration designed to work with** `IParametricCurve<N>`:
 
 ```cpp
-#include "core/Curves.h"
-#include "core/Integration/PathIntegration.h"
+#include <mml/core/Curves.h>
+#include <mml/core/Integration/PathIntegration.h>
 
 // Any curve implementing IParametricCurve<N>
 Curves::Circle2DCurve circle(1.0);  // Radius 1
@@ -747,7 +777,7 @@ Real ds = tangent.NormL2();  // Arc length element
 **Compute force from potential** for work integrals:
 
 ```cpp
-#include "core/FieldOperations.h"
+#include <mml/core/Fields/FieldOperations.h>
 
 ScalarFunction<3> potential([](const VectorN<Real,3>& r) {
     return -1.0 / r.NormL2();
@@ -766,17 +796,27 @@ Real work = PathIntegration::LineIntegral(force, curve, t1, t2);
 
 ### With Integration Module
 
-**Uses** `IntegrateTrap` from core integration:
+**Uses** the unified `Integrate` dispatcher from core integration:
 
 ```cpp
 // Internal implementation
-return IntegrateTrap(helper_function, a, b, nullptr, nullptr, eps);
+return Integrate(helper_function, a, b, method, eps);
 ```
 
-**Adaptive trapezoidal rule**:
-- Refines grid until precision met
-- `eps` parameter controls accuracy
-- Default: `Defaults::LineIntegralPrecision` (1e-5)
+**Available methods**:
+- `TRAP`: adaptive trapezoidal rule and the backward-compatible default
+- `SIMPSON`: adaptive Simpson rule
+- `ROMBERG`: Richardson-extrapolated trapezoidal estimates
+- `GAUSS10`: fixed 10-point Gauss-Legendre rule
+- `GAUSS10KRONROD21`: fixed embedded 10/21-point Gauss-Kronrod rule
+
+`eps` controls adaptive methods and is ignored by the two fixed-order methods.
+
+```cpp
+auto defaultResult = PathIntegration::LineIntegral(field, curve, 0, 1);
+auto simpsonResult = PathIntegration::LineIntegral(field, curve, 0, 1, SIMPSON);
+auto rombergResult = PathIntegration::LineIntegral(field, curve, 0, 1, ROMBERG, 1e-8);
+```
 
 ---
 
@@ -1026,7 +1066,7 @@ assert(std::abs(work_integral - potential_diff) < 1e-4);
 3. ✅ **Vector line integral** = component of field along path
 4. ✅ **Conservative fields** → path-independent work
 5. ✅ **Closed loops** in conservative fields → zero circulation
-6. ✅ **Numerical integration** via adaptive trapezoidal rule
+6. ✅ **Selectable numerical integration**, with adaptive trapezoidal as the default
 7. ✅ **Automatic tangent** via numerical differentiation
 
 ### When to Use

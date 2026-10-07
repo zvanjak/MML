@@ -1,6 +1,16 @@
-MIT License
+# MinimalMathLibrary Core License
 
-Copyright (c) 2026 Zvonimir Vanjak
+MinimalMathLibrary (MML) core is licensed under the MIT License below. This MIT grant applies to
+the MML core source tree, public headers, single-header distribution, examples, documentation,
+demos, build files, and package metadata unless a file or directory states otherwise.
+
+Prebuilt MML Visualizers bundled under `tools/visualizers/` are licensed separately under the
+MML Visualizers License in `tools/visualizers/LICENSE.md`. They are included for clone-mode
+convenience and are not part of the MML core MIT grant.
+
+## MIT License
+
+Copyright (c) 2024-2026 Zvonimir Vanjak
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -19,3 +29,4 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+

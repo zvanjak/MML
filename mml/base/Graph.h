@@ -13,11 +13,12 @@
 #if !defined MML_GRAPH_H
 #define MML_GRAPH_H
 
-#include "MMLBase.h"
-#include "MMLExceptions.h"
+#include <mml/MMLBase.h>
+#include <mml/MMLExceptions.h>
 
-#include "base/Vector/Vector.h"
-#include "base/Matrix/Matrix.h"
+#include <mml/base/AlgorithmTypes.h>
+#include <mml/base/Vector/Vector.h>
+#include <mml/base/Matrix/Matrix.h>
 
 #include <vector>
 #include <string>
@@ -25,11 +26,42 @@
 #include <cmath>
 #include <algorithm>
 #include <stdexcept>
+#include <tuple>
+#include <utility>
 
 namespace MML
 {
 	/// @brief Sentinel value for "no parent" / "not found" in graph algorithms
 	static constexpr size_t GRAPH_NOT_FOUND = static_cast<size_t>(-1);
+
+	/// Graph-specific status detail used alongside AlgorithmStatus.
+	enum class GraphAlgorithmStatus
+	{
+		Success = 0,
+		InvalidVertex,
+		UnreachableTarget,
+		NegativeCycle,
+		CycleDetected,
+		DisconnectedGraph,
+		GraphTypeMismatch,
+		UnsupportedNegativeWeights
+	};
+
+	inline std::string ToString(GraphAlgorithmStatus status)
+	{
+		switch (status)
+		{
+		case GraphAlgorithmStatus::Success:                    return "Success";
+		case GraphAlgorithmStatus::InvalidVertex:              return "InvalidVertex";
+		case GraphAlgorithmStatus::UnreachableTarget:          return "UnreachableTarget";
+		case GraphAlgorithmStatus::NegativeCycle:              return "NegativeCycle";
+		case GraphAlgorithmStatus::CycleDetected:              return "CycleDetected";
+		case GraphAlgorithmStatus::DisconnectedGraph:          return "DisconnectedGraph";
+		case GraphAlgorithmStatus::GraphTypeMismatch:          return "GraphTypeMismatch";
+		case GraphAlgorithmStatus::UnsupportedNegativeWeights: return "UnsupportedNegativeWeights";
+		default:                                               return "Unknown";
+		}
+	}
 
 	///////////////////////////////////////////////////////////////////////////
 	///                         RESULT STRUCTS                              ///
@@ -38,55 +70,388 @@ namespace MML
 	/// Result of a path-finding algorithm (Dijkstra, BellmanFord, etc.)
 	struct PathResult
 	{
+		AlgorithmStatus      status;          ///< Structured algorithm status
+		GraphAlgorithmStatus graphStatus;     ///< Graph-specific status detail
 		bool        found;           ///< Whether a path was found
 		std::vector<size_t> path;    ///< Sequence of vertex indices from start to end
 		Real        totalWeight;     ///< Total weight/distance of the path
 		size_t      nodesExplored;   ///< Number of nodes visited during search
+		std::string algorithm_name;  ///< Name of the algorithm that produced this result
+		std::string message;         ///< Human-readable status message
+		double      elapsed_time_ms;  ///< Wall-clock execution time in milliseconds
 		std::string diagnostics;     ///< Additional diagnostic information
 
-		PathResult() : found(false), totalWeight(0), nodesExplored(0) {}
+		PathResult()
+			: status(AlgorithmStatus::Success), graphStatus(GraphAlgorithmStatus::Success),
+			  found(false), totalWeight(0), nodesExplored(0), elapsed_time_ms(0.0)
+		{}
+
+		bool succeeded() const { return status == AlgorithmStatus::Success && graphStatus == GraphAlgorithmStatus::Success; }
 	};
 
 	/// Result of a traversal algorithm (BFS, DFS)
 	struct TraversalResult
 	{
+		AlgorithmStatus      status;          ///< Structured algorithm status
+		GraphAlgorithmStatus graphStatus;     ///< Graph-specific status detail
 		std::vector<size_t> visitOrder;   ///< Order in which vertices were visited
 		std::vector<size_t> parent;       ///< Parent of each vertex in traversal tree (GRAPH_NOT_FOUND if root/unvisited)
 		std::vector<Real>   distance;     ///< Distance from start (BFS: hops, Dijkstra: weighted)
 		size_t              nodesVisited; ///< Total nodes visited
+		std::string         algorithm_name; ///< Name of the algorithm that produced this result
+		std::string         message;        ///< Human-readable status message
+		std::string         diagnostics;    ///< Additional diagnostic information
+		double              elapsed_time_ms; ///< Wall-clock execution time in milliseconds
 
-		TraversalResult() : nodesVisited(0) {}
+		TraversalResult()
+			: status(AlgorithmStatus::Success), graphStatus(GraphAlgorithmStatus::Success),
+			  nodesVisited(0), elapsed_time_ms(0.0)
+		{}
+
+		bool succeeded() const { return status == AlgorithmStatus::Success && graphStatus == GraphAlgorithmStatus::Success; }
+	};
+
+	/// Result of a single-source shortest-path tree algorithm.
+	struct ShortestPathTreeResult
+	{
+		AlgorithmStatus      status;
+		GraphAlgorithmStatus graphStatus;
+		size_t              source;
+		std::vector<size_t> parent;
+		std::vector<Real>   distance;
+		size_t              nodesVisited;
+		std::string         algorithm_name;
+		std::string         message;
+		std::string         diagnostics;
+		double              elapsed_time_ms;
+
+		ShortestPathTreeResult()
+			: status(AlgorithmStatus::Success), graphStatus(GraphAlgorithmStatus::Success),
+			  source(GRAPH_NOT_FOUND), nodesVisited(0), elapsed_time_ms(0.0)
+		{}
+
+		bool succeeded() const { return status == AlgorithmStatus::Success && graphStatus == GraphAlgorithmStatus::Success; }
+
+		bool isReachable(size_t target) const
+		{
+			return target < distance.size() && distance[target] != std::numeric_limits<Real>::infinity();
+		}
+
+		std::vector<size_t> pathTo(size_t target) const
+		{
+			std::vector<size_t> path;
+			if (source == GRAPH_NOT_FOUND || target >= parent.size() || !isReachable(target))
+				return path;
+
+			size_t curr = target;
+			while (curr != GRAPH_NOT_FOUND)
+			{
+				path.push_back(curr);
+				if (curr == source)
+					break;
+				curr = parent[curr];
+			}
+
+			if (path.empty() || path.back() != source)
+				return {};
+
+			std::reverse(path.begin(), path.end());
+			return path;
+		}
+	};
+
+	/// Result of an all-pairs shortest-path algorithm.
+	struct AllPairsShortestPathsResult
+	{
+		AlgorithmStatus      status;
+		GraphAlgorithmStatus graphStatus;
+		std::vector<std::vector<Real>> distance;
+		std::vector<std::vector<size_t>> next;
+		std::string         algorithm_name;
+		std::string         message;
+		std::string         diagnostics;
+		double              elapsed_time_ms;
+
+		AllPairsShortestPathsResult()
+			: status(AlgorithmStatus::Success), graphStatus(GraphAlgorithmStatus::Success), elapsed_time_ms(0.0)
+		{}
+
+		bool succeeded() const { return status == AlgorithmStatus::Success && graphStatus == GraphAlgorithmStatus::Success; }
+
+		bool hasPath(size_t source, size_t target) const
+		{
+			return source < next.size() && target < next[source].size() && next[source][target] != GRAPH_NOT_FOUND;
+		}
+
+		std::vector<size_t> path(size_t source, size_t target) const
+		{
+			std::vector<size_t> result;
+			if (!hasPath(source, target))
+				return result;
+
+			result.push_back(source);
+			while (source != target)
+			{
+				source = next[source][target];
+				if (source == GRAPH_NOT_FOUND)
+					return {};
+				result.push_back(source);
+				if (result.size() > next.size() + 1)
+					return {};
+			}
+
+			return result;
+		}
 	};
 
 	/// Result of connected components analysis
 	struct ComponentsResult
 	{
+		AlgorithmStatus                  status;          ///< Structured algorithm status
+		GraphAlgorithmStatus             graphStatus;     ///< Graph-specific status detail
 		size_t                          numComponents;  ///< Number of connected components
 		std::vector<size_t>             componentId;    ///< componentId[v] = which component vertex v belongs to
 		std::vector<std::vector<size_t>> components;    ///< List of vertices in each component
+		std::string                     algorithm_name; ///< Name of the algorithm that produced this result
+		std::string                     message;        ///< Human-readable status message
+		std::string                     diagnostics;    ///< Additional diagnostic information
+		double                          elapsed_time_ms; ///< Wall-clock execution time in milliseconds
 
-		ComponentsResult() : numComponents(0) {}
+		ComponentsResult()
+			: status(AlgorithmStatus::Success), graphStatus(GraphAlgorithmStatus::Success),
+			  numComponents(0), elapsed_time_ms(0.0)
+		{}
+
+		bool succeeded() const { return status == AlgorithmStatus::Success && graphStatus == GraphAlgorithmStatus::Success; }
 	};
 
 	/// Result of minimum spanning tree algorithm
 	struct MSTResult
 	{
+		AlgorithmStatus      status;        ///< Structured algorithm status
+		GraphAlgorithmStatus graphStatus;   ///< Graph-specific status detail
 		bool                                         isComplete;   ///< True if MST spans all vertices (graph is connected)
 		std::vector<std::tuple<size_t, size_t, Real>> edges;       ///< MST edges: (from, to, weight)
 		Real                                         totalWeight;  ///< Sum of edge weights in MST
+		std::string                                  algorithm_name;
+		std::string                                  message;
 		std::string                                  diagnostics;
+		double                                       elapsed_time_ms;
 
-		MSTResult() : isComplete(false), totalWeight(0) {}
+		MSTResult()
+			: status(AlgorithmStatus::Success), graphStatus(GraphAlgorithmStatus::Success),
+			  isComplete(false), totalWeight(0), elapsed_time_ms(0.0)
+		{}
+
+		bool succeeded() const { return status == AlgorithmStatus::Success && graphStatus == GraphAlgorithmStatus::Success; }
 	};
 
 	/// Result of topological sort
 	struct TopologicalSortResult
 	{
+		AlgorithmStatus      status;      ///< Structured algorithm status
+		GraphAlgorithmStatus graphStatus; ///< Graph-specific status detail
 		bool                 isDAG;       ///< True if graph is a DAG (no cycles)
 		std::vector<size_t>  order;       ///< Topological order of vertices
+		std::string          algorithm_name;
+		std::string          message;
 		std::string          diagnostics; ///< Error message if cycle detected
+		double               elapsed_time_ms;
 
-		TopologicalSortResult() : isDAG(false) {}
+		TopologicalSortResult()
+			: status(AlgorithmStatus::Success), graphStatus(GraphAlgorithmStatus::Success),
+			  isDAG(false), elapsed_time_ms(0.0)
+		{}
+
+		bool succeeded() const { return status == AlgorithmStatus::Success && graphStatus == GraphAlgorithmStatus::Success; }
+	};
+
+	/// Result of strongly connected component analysis.
+	struct StronglyConnectedComponentsResult
+	{
+		AlgorithmStatus                  status;
+		GraphAlgorithmStatus             graphStatus;
+		size_t                          numComponents;
+		std::vector<size_t>              componentId;
+		std::vector<std::vector<size_t>> components;
+		std::vector<std::pair<size_t, size_t>> condensationEdges;
+		std::string                     algorithm_name;
+		std::string                     message;
+		std::string                     diagnostics;
+		double                          elapsed_time_ms;
+
+		StronglyConnectedComponentsResult()
+			: status(AlgorithmStatus::Success), graphStatus(GraphAlgorithmStatus::Success),
+			  numComponents(0), elapsed_time_ms(0.0)
+		{}
+
+		bool succeeded() const { return status == AlgorithmStatus::Success && graphStatus == GraphAlgorithmStatus::Success; }
+	};
+
+	/// Result of undirected articulation/bridge/biconnected analysis.
+	struct UndirectedConnectivityResult
+	{
+		AlgorithmStatus      status;
+		GraphAlgorithmStatus graphStatus;
+		std::vector<size_t> articulationPoints;
+		std::vector<std::pair<size_t, size_t>> bridges;
+		std::vector<std::vector<std::pair<size_t, size_t>>> biconnectedComponents;
+		std::string         algorithm_name;
+		std::string         message;
+		std::string         diagnostics;
+		double              elapsed_time_ms;
+
+		UndirectedConnectivityResult()
+			: status(AlgorithmStatus::Success), graphStatus(GraphAlgorithmStatus::Success), elapsed_time_ms(0.0)
+		{}
+
+		bool succeeded() const { return status == AlgorithmStatus::Success && graphStatus == GraphAlgorithmStatus::Success; }
+	};
+
+	/// Result of cycle detection and optional cycle extraction.
+	struct CycleResult
+	{
+		AlgorithmStatus      status;
+		GraphAlgorithmStatus graphStatus;
+		bool                 hasCycle;
+		std::vector<size_t>  cycle;
+		std::string          algorithm_name;
+		std::string          message;
+		std::string          diagnostics;
+		double               elapsed_time_ms;
+
+		CycleResult()
+			: status(AlgorithmStatus::Success), graphStatus(GraphAlgorithmStatus::Success),
+			  hasCycle(false), elapsed_time_ms(0.0)
+		{}
+
+		bool succeeded() const { return status == AlgorithmStatus::Success && graphStatus == GraphAlgorithmStatus::Success; }
+	};
+
+	/// Result of bipartite check and two-coloring.
+	struct BipartiteResult
+	{
+		AlgorithmStatus      status;
+		GraphAlgorithmStatus graphStatus;
+		bool                 isBipartite;
+		std::vector<int>     color;
+		std::string          algorithm_name;
+		std::string          message;
+		std::string          diagnostics;
+		double               elapsed_time_ms;
+
+		BipartiteResult()
+			: status(AlgorithmStatus::Success), graphStatus(GraphAlgorithmStatus::Success),
+			  isBipartite(true), elapsed_time_ms(0.0)
+		{}
+
+		bool succeeded() const { return status == AlgorithmStatus::Success && graphStatus == GraphAlgorithmStatus::Success; }
+	};
+
+	/// Result of transitive closure/reduction on directed graphs.
+	struct TransitiveResult
+	{
+		AlgorithmStatus      status;
+		GraphAlgorithmStatus graphStatus;
+		std::vector<std::vector<bool>> reachable;
+		std::vector<std::pair<size_t, size_t>> edges;
+		std::string         algorithm_name;
+		std::string         message;
+		std::string         diagnostics;
+		double              elapsed_time_ms;
+
+		TransitiveResult()
+			: status(AlgorithmStatus::Success), graphStatus(GraphAlgorithmStatus::Success), elapsed_time_ms(0.0)
+		{}
+
+		bool succeeded() const { return status == AlgorithmStatus::Success && graphStatus == GraphAlgorithmStatus::Success; }
+	};
+
+	/// Result of longest path in a DAG from a source vertex.
+	struct LongestPathDAGResult
+	{
+		AlgorithmStatus      status;
+		GraphAlgorithmStatus graphStatus;
+		size_t              source;
+		std::vector<Real>   distance;
+		std::vector<size_t> parent;
+		std::string         algorithm_name;
+		std::string         message;
+		std::string         diagnostics;
+		double              elapsed_time_ms;
+
+		LongestPathDAGResult()
+			: status(AlgorithmStatus::Success), graphStatus(GraphAlgorithmStatus::Success),
+			  source(GRAPH_NOT_FOUND), elapsed_time_ms(0.0)
+		{}
+
+		bool succeeded() const { return status == AlgorithmStatus::Success && graphStatus == GraphAlgorithmStatus::Success; }
+
+		std::vector<size_t> pathTo(size_t target) const
+		{
+			std::vector<size_t> path;
+			if (source == GRAPH_NOT_FOUND || target >= parent.size() || distance[target] == -std::numeric_limits<Real>::infinity())
+				return path;
+
+			size_t curr = target;
+			while (curr != GRAPH_NOT_FOUND)
+			{
+				path.push_back(curr);
+				if (curr == source)
+					break;
+				curr = parent[curr];
+			}
+
+			if (path.empty() || path.back() != source)
+				return {};
+
+			std::reverse(path.begin(), path.end());
+			return path;
+		}
+	};
+
+	/// Result of max-flow/min-cut algorithms.
+	struct MaxFlowMinCutResult
+	{
+		AlgorithmStatus      status;
+		GraphAlgorithmStatus graphStatus;
+		Real                 maxFlow;
+		std::vector<std::tuple<size_t, size_t, Real, Real>> flowEdges;
+		std::vector<size_t>  sourceSide;
+		std::vector<size_t>  sinkSide;
+		std::vector<std::tuple<size_t, size_t, Real>> cutEdges;
+		std::string          algorithm_name;
+		std::string          message;
+		std::string          diagnostics;
+		double               elapsed_time_ms;
+
+		MaxFlowMinCutResult()
+			: status(AlgorithmStatus::Success), graphStatus(GraphAlgorithmStatus::Success),
+			  maxFlow(0), elapsed_time_ms(0.0)
+		{}
+
+		bool succeeded() const { return status == AlgorithmStatus::Success && graphStatus == GraphAlgorithmStatus::Success; }
+	};
+
+	/// Result of bipartite matching algorithms.
+	struct BipartiteMatchingResult
+	{
+		AlgorithmStatus      status;
+		GraphAlgorithmStatus graphStatus;
+		size_t              cardinality;
+		std::vector<std::pair<size_t, size_t>> matching;
+		std::vector<size_t> mate;
+		std::string         algorithm_name;
+		std::string         message;
+		std::string         diagnostics;
+		double              elapsed_time_ms;
+
+		BipartiteMatchingResult()
+			: status(AlgorithmStatus::Success), graphStatus(GraphAlgorithmStatus::Success),
+			  cardinality(0), elapsed_time_ms(0.0)
+		{}
+
+		bool succeeded() const { return status == AlgorithmStatus::Success && graphStatus == GraphAlgorithmStatus::Success; }
 	};
 
 	///////////////////////////////////////////////////////////////////////////
@@ -184,7 +549,7 @@ namespace MML
 		const V& vertexData(size_t v) const
 		{
 			if (v >= _vertexData.size())
-				throw std::out_of_range("Graph::vertexData - vertex index out of range");
+				throw IndexError("Graph::vertexData - vertex index out of range");
 			return _vertexData[v];
 		}
 
@@ -192,7 +557,7 @@ namespace MML
 		V& vertexData(size_t v)
 		{
 			if (v >= _vertexData.size())
-				throw std::out_of_range("Graph::vertexData - vertex index out of range");
+				throw IndexError("Graph::vertexData - vertex index out of range");
 			return _vertexData[v];
 		}
 
@@ -208,16 +573,16 @@ namespace MML
 		void addEdge(size_t from, size_t to, const E& weight = E{1})
 		{
 			if (from >= _vertexData.size() || to >= _vertexData.size())
-				throw std::out_of_range("Graph::addEdge - vertex index out of range");
+				throw IndexError("Graph::addEdge - vertex index out of range");
 
 			if (!_allowSelfLoops && from == to)
-				throw std::invalid_argument("Graph::addEdge - self-loops not allowed");
+				throw ArgumentError("Graph::addEdge - self-loops not allowed");
 
 			// Check if edge already exists
 			for (const auto& edge : _adjList[from])
 			{
 				if (edge.to == to)
-					throw std::invalid_argument("Graph::addEdge - edge already exists");
+					throw ArgumentError("Graph::addEdge - edge already exists");
 			}
 
 			_adjList[from].push_back(Edge<E>(to, weight));
@@ -248,18 +613,51 @@ namespace MML
 		E edgeWeight(size_t from, size_t to) const
 		{
 			if (from >= _vertexData.size() || to >= _vertexData.size())
-				throw std::out_of_range("Graph::edgeWeight - vertex index out of range");
+				throw IndexError("Graph::edgeWeight - vertex index out of range");
 
 			for (const auto& edge : _adjList[from])
 			{
 				if (edge.to == to)
 					return edge.weight;
 			}
-			throw std::invalid_argument("Graph::edgeWeight - edge does not exist");
+			throw ArgumentError("Graph::edgeWeight - edge does not exist");
 		}
 
 		/// Number of edges (for undirected graphs, each edge counted once)
 		size_t numEdges() const { return _numEdges; }
+
+		/// Return every stored adjacency-list edge. Undirected edges appear in both directions.
+		std::vector<std::tuple<size_t, size_t, E>> directedEdges() const
+		{
+			std::vector<std::tuple<size_t, size_t, E>> edgeList;
+			edgeList.reserve(isDirected() ? _numEdges : 2 * _numEdges);
+
+			for (size_t from = 0; from < _adjList.size(); ++from)
+			{
+				for (const auto& edge : _adjList[from])
+					edgeList.push_back({ from, edge.to, edge.weight });
+			}
+
+			return edgeList;
+		}
+
+		/// Return graph edges once. For directed graphs this is the full directed edge list.
+		std::vector<std::tuple<size_t, size_t, E>> edges() const
+		{
+			std::vector<std::tuple<size_t, size_t, E>> edgeList;
+			edgeList.reserve(_numEdges);
+
+			for (size_t from = 0; from < _adjList.size(); ++from)
+			{
+				for (const auto& edge : _adjList[from])
+				{
+					if (isDirected() || from <= edge.to)
+						edgeList.push_back({ from, edge.to, edge.weight });
+				}
+			}
+
+			return edgeList;
+		}
 
 		/// Remove edge from 'from' to 'to'
 		bool removeEdge(size_t from, size_t to)
@@ -275,7 +673,6 @@ namespace MML
 				return false;
 
 			edges.erase(it);
-			--_numEdges;
 
 			if (_type == Type::Undirected && from != to)
 			{
@@ -285,6 +682,8 @@ namespace MML
 				if (rit != reverseEdges.end())
 					reverseEdges.erase(rit);
 			}
+
+			--_numEdges;
 
 			return true;
 		}
@@ -297,7 +696,7 @@ namespace MML
 		const std::vector<Edge<E>>& neighbors(size_t v) const
 		{
 			if (v >= _adjList.size())
-				throw std::out_of_range("Graph::neighbors - vertex index out of range");
+				throw IndexError("Graph::neighbors - vertex index out of range");
 			return _adjList[v];
 		}
 
@@ -305,7 +704,7 @@ namespace MML
 		size_t degree(size_t v) const
 		{
 			if (v >= _adjList.size())
-				throw std::out_of_range("Graph::degree - vertex index out of range");
+				throw IndexError("Graph::degree - vertex index out of range");
 			return _adjList[v].size();
 		}
 
@@ -316,7 +715,7 @@ namespace MML
 		size_t inDegree(size_t v) const
 		{
 			if (v >= _adjList.size())
-				throw std::out_of_range("Graph::inDegree - vertex index out of range");
+				throw IndexError("Graph::inDegree - vertex index out of range");
 
 			if (_type == Type::Undirected)
 				return degree(v);

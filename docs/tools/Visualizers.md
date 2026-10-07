@@ -99,7 +99,7 @@ Valid values: `WPF`, `Qt`, `QT5`, `QT6`, `FLTK`, `AUTO` (case-insensitive)
 ### Runtime API
 
 ```cpp
-#include "MMLBase.h"  // or "MML.h" for single-header
+#include <mml/MMLBase.h>  // or "MML.h" for single-header
 
 using namespace MML;
 
@@ -124,7 +124,7 @@ VisualizerBackend current = GetVisualizerBackend();
 ### Example: Force Qt on Windows
 
 ```cpp
-#include "MML.h"
+#include <MML.h>
 using namespace MML;
 
 int main() {
@@ -804,8 +804,8 @@ Visualizer::VisualizeParticleSimulation3D("nbody_galaxy.mml");
 #### Example 1: Function Analysis
 
 ```cpp
-#include "tools/Visualizer.h"
-#include "base/RealFunction.h"
+#include <mml/tools/Visualizer.h>
+#include <mml/base/RealFunction.h>
 
 void analyzeFunctionVisually() {
     // Define function
@@ -845,8 +845,8 @@ void analyzeFunctionVisually() {
 #### Example 2: Vector Field Visualization
 
 ```cpp
-#include "tools/Visualizer.h"
-#include "base/VectorFunction.h"
+#include <mml/tools/Visualizer.h>
+#include <mml/base/VectorFunction.h>
 
 void visualizeElectricField() {
     // Electric field of point charge at origin
@@ -874,10 +874,10 @@ void visualizeElectricField() {
 #### Example 3: ODE Solution Phase Portrait
 
 ```cpp
-#include "tools/Visualizer.h"
-#include "base/ODESystem.h"
-#include "algorithms/ODESystemSolver.h"
-#include "algorithms/ODESystemStepCalculators.h"
+#include <mml/tools/Visualizer.h>
+#include <mml/base/ODESystem.h>
+#include <mml/algorithms/ODESystemSolver.h>
+#include <mml/algorithms/ODEStepCalculators.h>
 
 void visualizePendulum() {
     // Pendulum: θ'' + sin(θ) = 0
@@ -917,8 +917,8 @@ void visualizePendulum() {
 #### Example 4: 3D Curves
 
 ```cpp
-#include "tools/Visualizer.h"
-#include "core/Curves.h"
+#include <mml/tools/Visualizer.h>
+#include <mml/core/Curves.h>
 
 void visualize3DCurves() {
     // Trefoil knot (scaled by 50 for visualization)
@@ -1248,7 +1248,7 @@ Visualizer::VisualizeODESysSolCompAsFunc(sol, 0, "X vs t", "x_t.mml");
 ### With Function Analysis
 
 ```cpp
-#include "algorithms/FunctionsAnalyzer.h"
+#include <mml/algorithms/Analyzers/FunctionsAnalyzer.h>
 
 // Find and visualize extrema
 auto criticalPoints = FunctionsAnalyzer::FindCriticalPoints(f, a, b, dx);

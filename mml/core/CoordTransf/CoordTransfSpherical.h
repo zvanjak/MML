@@ -12,9 +12,10 @@
 #if !defined MML_COORD_TRANSF_SPHERICAL_H
 #define MML_COORD_TRANSF_SPHERICAL_H
 
-#include "MMLBase.h"
+#include <mml/MMLBase.h>
 
-#include "core/CoordTransf.h"
+#include <mml/base/Vector/VectorTypes3D.h>
+#include <mml/core/CoordTransf/CoordTransfBase.h>
 
 #include <algorithm>
 
@@ -107,19 +108,62 @@ namespace MML
 		const IScalarFunction<3>& coordTransfFunc(int i)				const override { return _func[i]; }
 		const IScalarFunction<3>& inverseCoordTransfFunc(int i) const override { return _funcInverse[i]; }
 
+		MatrixNM<Real, 3, 3> jacobian(const VectorN<Real, 3>& pos) const override
+		{
+			const Real radius = pos[0];
+			const Real sinTheta = sin(pos[1]);
+			const Real cosTheta = cos(pos[1]);
+			const Real sinPhi = sin(pos[2]);
+			const Real cosPhi = cos(pos[2]);
+			MatrixNM<Real, 3, 3> jac;
+
+			jac(0, 0) = sinTheta * cosPhi;
+			jac(0, 1) = radius * cosTheta * cosPhi;
+			jac(0, 2) = -radius * sinTheta * sinPhi;
+			jac(1, 0) = sinTheta * sinPhi;
+			jac(1, 1) = radius * cosTheta * sinPhi;
+			jac(1, 2) = radius * sinTheta * cosPhi;
+			jac(2, 0) = cosTheta;
+			jac(2, 1) = -radius * sinTheta;
+			jac(2, 2) = REAL(0.0);
+
+			return jac;
+		}
+
+		MatrixNM<Real, 3, 3> inverseJacobian(const VectorN<Real, 3>& pos) const override
+		{
+			const Real radiusSquared = pos[0] * pos[0] + pos[1] * pos[1] + pos[2] * pos[2];
+			const Real radius = sqrt(radiusSquared);
+			const Real cylindricalRadiusSquared = pos[0] * pos[0] + pos[1] * pos[1];
+			const Real cylindricalRadius = sqrt(cylindricalRadiusSquared);
+			MatrixNM<Real, 3, 3> jac;
+
+			jac(0, 0) = pos[0] / radius;
+			jac(0, 1) = pos[1] / radius;
+			jac(0, 2) = pos[2] / radius;
+			jac(1, 0) = pos[0] * pos[2] / (radiusSquared * cylindricalRadius);
+			jac(1, 1) = pos[1] * pos[2] / (radiusSquared * cylindricalRadius);
+			jac(1, 2) = -cylindricalRadius / radiusSquared;
+			jac(2, 0) = -pos[1] / cylindricalRadiusSquared;
+			jac(2, 1) = pos[0] / cylindricalRadiusSquared;
+			jac(2, 2) = REAL(0.0);
+
+			return jac;
+		}
+
 		/// @brief Get covariant basis vector at position in spherical coordinates
 		/// @param ind Basis vector index (0=∂r, 1=∂θ, 2=∂φ)
 		/// @param pos Position in spherical coordinates
-		virtual Vector3Cartesian getBasisVec(int ind, const Vector3Spherical& pos) override
+		virtual Vector3Cartesian getBasisVec(int ind, const Vector3Spherical& pos) const override
 		{
 			const Real r = pos[0];
 			const Real theta = pos[1];
 			const Real phi = pos[2];
 			switch (ind)
 			{
-			case 0: return Vector3Cartesian{ sin(theta) * cos(phi),     sin(theta) * sin(phi),      cos(theta) };
-			case 1: return Vector3Cartesian{ r * cos(theta) * cos(phi), r * cos(theta) * sin(phi), -r * sin(theta) };
-			case 2: return Vector3Cartesian{ -r * sin(theta) * sin(phi), r * sin(theta) * cos(phi),						  REAL(0.0) };
+			case 0: return Vector3Cartesian{ static_cast<Real>(sin(theta) * cos(phi)),     static_cast<Real>(sin(theta) * sin(phi)),      static_cast<Real>(cos(theta)) };
+			case 1: return Vector3Cartesian{ static_cast<Real>(r * cos(theta) * cos(phi)), static_cast<Real>(r * cos(theta) * sin(phi)), static_cast<Real>(-r * sin(theta)) };
+			case 2: return Vector3Cartesian{ static_cast<Real>(-r * sin(theta) * sin(phi)), static_cast<Real>(r * sin(theta) * cos(phi)),									  REAL(0.0) };
 			default:
 			return Vector3Cartesian{ REAL(0.0), REAL(0.0), REAL(0.0) };
 			}
@@ -128,16 +172,16 @@ namespace MML
 		/// @brief Get unit (normalized) basis vector at position
 		/// @param ind Basis vector index (0=e_r, 1=e_θ, 2=e_φ)
 		/// @param pos Position in spherical coordinates
-		Vector3Cartesian getUnitBasisVec(int ind, const Vector3Spherical& pos)
+		Vector3Cartesian getUnitBasisVec(int ind, const Vector3Spherical& pos) const
 		{
 			const Real r = pos[0];
 			const Real theta = pos[1];
 			const Real phi = pos[2];
 			switch (ind)
 			{
-			case 0: return Vector3Cartesian{ sin(theta) * cos(phi), sin(theta) * sin(phi), cos(theta) };
-			case 1: return Vector3Cartesian{ cos(theta) * cos(phi), cos(theta) * sin(phi), -sin(theta) };
-			case 2: return Vector3Cartesian{ -sin(phi), cos(phi), REAL(0.0) };
+			case 0: return Vector3Cartesian{ static_cast<Real>(sin(theta) * cos(phi)), static_cast<Real>(sin(theta) * sin(phi)), static_cast<Real>(cos(theta)) };
+			case 1: return Vector3Cartesian{ static_cast<Real>(cos(theta) * cos(phi)), static_cast<Real>(cos(theta) * sin(phi)), static_cast<Real>(-sin(theta)) };
+			case 2: return Vector3Cartesian{ static_cast<Real>(-sin(phi)), static_cast<Real>(cos(phi)), REAL(0.0) };
 			default:
 			return Vector3Cartesian{ REAL(0.0), REAL(0.0), REAL(0.0) };
 			}
@@ -146,16 +190,16 @@ namespace MML
 		/// @brief Get contravariant (dual) basis vector at position
 		/// @param ind Basis vector index (0, 1, 2)
 		/// @param pos Position in spherical coordinates
-		Vector3Spherical getInverseBasisVec(int ind, const Vector3Spherical& pos) override
+		Vector3Spherical getInverseBasisVec(int ind, const Vector3Spherical& pos) const override
 		{
 			const Real r = pos[0];
 			const Real theta = pos[1];
 			const Real phi = pos[2];
 			switch(ind)
 			{
-			case 0: return Vector3Spherical{ sin(theta) * cos(phi), r * cos(theta) * cos(phi), -r * sin(theta) * sin(phi) };
-			case 1: return Vector3Spherical{ sin(theta) * sin(phi), r * cos(theta) * sin(phi),  r * sin(theta) * cos(phi) };
-			case 2: return Vector3Spherical{ cos(theta)           ,-r * sin(theta)           ,                        REAL(0.0) };
+			case 0: return Vector3Spherical{ static_cast<Real>(sin(theta) * cos(phi)), static_cast<Real>(r * cos(theta) * cos(phi)), static_cast<Real>(-r * sin(theta) * sin(phi)) };
+			case 1: return Vector3Spherical{ static_cast<Real>(sin(theta) * sin(phi)), static_cast<Real>(r * cos(theta) * sin(phi)),  static_cast<Real>(r * sin(theta) * cos(phi)) };
+			case 2: return Vector3Spherical{ static_cast<Real>(cos(theta)),static_cast<Real>(-r * sin(theta)),                        REAL(0.0) };
 			default: 
 			return Vector3Spherical{ REAL(0.0), REAL(0.0), REAL(0.0) };
 			}
@@ -163,16 +207,16 @@ namespace MML
 		/// @brief Get unit contravariant basis vector at position
 		/// @param ind Basis vector index
 		/// @param pos Position in spherical coordinates
-		Vector3Spherical getInverseUnitBasisVec(int ind, const Vector3Spherical& pos)
+		Vector3Spherical getInverseUnitBasisVec(int ind, const Vector3Spherical& pos) const
 		{
 			const Real r = pos[0];
 			const Real theta = pos[1];
 			const Real phi = pos[2];
 			switch(ind)
 			{
-			case 0: return Vector3Spherical{ sin(theta) * cos(phi),  cos(theta) * cos(phi), -sin(phi) };
-			case 1: return Vector3Spherical{ sin(theta) * sin(phi),  cos(theta) * sin(phi),  cos(phi) };
-			case 2: return Vector3Spherical{ cos(theta)           , -sin(theta)           ,  REAL(0.0) };
+			case 0: return Vector3Spherical{ static_cast<Real>(sin(theta) * cos(phi)),  static_cast<Real>(cos(theta) * cos(phi)), static_cast<Real>(-sin(phi)) };
+			case 1: return Vector3Spherical{ static_cast<Real>(sin(theta) * sin(phi)),  static_cast<Real>(cos(theta) * sin(phi)),  static_cast<Real>(cos(phi)) };
+			case 2: return Vector3Spherical{ static_cast<Real>(cos(theta))           , static_cast<Real>(-sin(theta))           ,  REAL(0.0) };
 			default: 
 			return Vector3Spherical{ REAL(0.0), REAL(0.0), REAL(0.0) };
 			}
@@ -217,12 +261,55 @@ namespace MML
 		};
 	public:
 		/// @brief Transform from Cartesian to spherical coordinates
-		Vector3Spherical     transf(const Vector3Cartesian& q) const { return Vector3Spherical{ r(q), theta(q), phi(q) }; }
+		Vector3Spherical     transf(const Vector3Cartesian& q) const override { return Vector3Spherical{ r(q), theta(q), phi(q) }; }
 		/// @brief Transform from spherical to Cartesian coordinates (inverse)
-		Vector3Cartesian     transfInverse(const Vector3Spherical& q) const { return Vector3Cartesian{ x(q), y(q), z(q) }; }
+		Vector3Cartesian     transfInverse(const Vector3Spherical& q) const override { return Vector3Cartesian{ x(q), y(q), z(q) }; }
 
-		const IScalarFunction<3>& coordTransfFunc(int i) const { return _func[i]; }
-		const IScalarFunction<3>& inverseCoordTransfFunc(int i) const { return _funcInverse[i]; }
+		const IScalarFunction<3>& coordTransfFunc(int i) const override { return _func[i]; }
+		const IScalarFunction<3>& inverseCoordTransfFunc(int i) const override { return _funcInverse[i]; }
+
+		MatrixNM<Real, 3, 3> jacobian(const VectorN<Real, 3>& pos) const override
+		{
+			const Real radiusSquared = pos[0] * pos[0] + pos[1] * pos[1] + pos[2] * pos[2];
+			const Real radius = sqrt(radiusSquared);
+			const Real cylindricalRadiusSquared = pos[0] * pos[0] + pos[1] * pos[1];
+			const Real cylindricalRadius = sqrt(cylindricalRadiusSquared);
+			MatrixNM<Real, 3, 3> jac;
+
+			jac(0, 0) = pos[0] / radius;
+			jac(0, 1) = pos[1] / radius;
+			jac(0, 2) = pos[2] / radius;
+			jac(1, 0) = pos[0] * pos[2] / (radiusSquared * cylindricalRadius);
+			jac(1, 1) = pos[1] * pos[2] / (radiusSquared * cylindricalRadius);
+			jac(1, 2) = -cylindricalRadius / radiusSquared;
+			jac(2, 0) = -pos[1] / cylindricalRadiusSquared;
+			jac(2, 1) = pos[0] / cylindricalRadiusSquared;
+			jac(2, 2) = REAL(0.0);
+
+			return jac;
+		}
+
+		MatrixNM<Real, 3, 3> inverseJacobian(const VectorN<Real, 3>& pos) const override
+		{
+			const Real radius = pos[0];
+			const Real sinTheta = sin(pos[1]);
+			const Real cosTheta = cos(pos[1]);
+			const Real sinPhi = sin(pos[2]);
+			const Real cosPhi = cos(pos[2]);
+			MatrixNM<Real, 3, 3> jac;
+
+			jac(0, 0) = sinTheta * cosPhi;
+			jac(0, 1) = radius * cosTheta * cosPhi;
+			jac(0, 2) = -radius * sinTheta * sinPhi;
+			jac(1, 0) = sinTheta * sinPhi;
+			jac(1, 1) = radius * cosTheta * sinPhi;
+			jac(1, 2) = radius * sinTheta * cosPhi;
+			jac(2, 0) = cosTheta;
+			jac(2, 1) = -radius * sinTheta;
+			jac(2, 2) = REAL(0.0);
+
+			return jac;
+		}
 	};
 
 	/// @brief Global instance for spherical to Cartesian transformation

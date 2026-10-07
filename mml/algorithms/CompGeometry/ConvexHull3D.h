@@ -7,9 +7,10 @@
 ///  @details   Part of the MML Computational Geometry module
 /////////////////////////////////////////////////////////////////////////////////////////
 
-#include "mml/MMLBase.h"
-#include "mml/base/Geometry/Geometry3D.h"
-#include "mml/base/Vector/VectorN.h"
+#include <mml/MMLBase.h>
+#include <mml/algorithms/CompGeometry/RobustPredicates.h>
+#include <mml/base/Geometry/Geometry3D.h>
+#include <mml/base/Vector/VectorN.h>
 
 #include <algorithm>
 #include <array>
@@ -145,6 +146,18 @@ public:
 	/// @return ConvexHull3D structure with vertices and faces
 	static ConvexHull3D Compute(std::vector<Point3Cartesian> points) {
 		ConvexHull3D hull;
+		const auto samePoint = [](const Point3Cartesian& left, const Point3Cartesian& right) {
+			return left.X() == right.X() && left.Y() == right.Y() && left.Z() == right.Z();
+		};
+		const auto collinear = [](const Point3Cartesian& a, const Point3Cartesian& b,
+			const Point3Cartesian& c) {
+			return RobustPredicates::Orientation2D(
+				Point2Cartesian(a.X(), a.Y()), Point2Cartesian(b.X(), b.Y()), Point2Cartesian(c.X(), c.Y())) == 0
+				&& RobustPredicates::Orientation2D(
+					Point2Cartesian(a.X(), a.Z()), Point2Cartesian(b.X(), b.Z()), Point2Cartesian(c.X(), c.Z())) == 0
+				&& RobustPredicates::Orientation2D(
+					Point2Cartesian(a.Y(), a.Z()), Point2Cartesian(b.Y(), b.Z()), Point2Cartesian(c.Y(), c.Z())) == 0;
+		};
 		
 		int n = static_cast<int>(points.size());
 		if (n < 4) {
@@ -174,8 +187,9 @@ public:
 		Real maxDist2 = -1;
 		for (size_t i = 0; i < extremes.size(); i++) {
 			for (size_t j = i + 1; j < extremes.size(); j++) {
+				if (samePoint(points[extremes[i]], points[extremes[j]])) continue;
 				Real d2 = Distance2(points[extremes[i]], points[extremes[j]]);
-				if (d2 > maxDist2) {
+				if (p0 < 0 || d2 > maxDist2) {
 					maxDist2 = d2;
 					p0 = extremes[i];
 					p1 = extremes[j];
@@ -183,7 +197,7 @@ public:
 			}
 		}
 		
-		if (maxDist2 < 1e-20) {
+		if (p0 < 0) {
 			// All points coincident
 			hull.vertices.push_back(points[0]);
 			return hull;
@@ -199,14 +213,15 @@ public:
 		
 		for (int i = 0; i < n; i++) {
 			if (i == p0 || i == p1) continue;
+			if (collinear(points[p0], points[p1], points[i])) continue;
 			Real d2 = PointToLineDistance2(points[i], points[p0], lineDir, lineLen2);
-			if (d2 > maxLineDist2) {
+			if (p2 < 0 || d2 > maxLineDist2) {
 				maxLineDist2 = d2;
 				p2 = i;
 			}
 		}
 		
-		if (p2 < 0 || maxLineDist2 < 1e-20) {
+		if (p2 < 0) {
 			// Points are collinear
 			hull.vertices.push_back(points[p0]);
 			hull.vertices.push_back(points[p1]);
@@ -226,16 +241,18 @@ public:
 		Real maxPlaneDist = 0;
 		for (int i = 0; i < n; i++) {
 			if (i == p0 || i == p1 || i == p2) continue;
+			if (RobustPredicates::Orientation3D(points[p0], points[p1], points[p2], points[i]) == 0)
+				continue;
 			Real d = std::abs(planeNormal.X() * (points[i].X() - points[p0].X()) +
 			                  planeNormal.Y() * (points[i].Y() - points[p0].Y()) +
 			                  planeNormal.Z() * (points[i].Z() - points[p0].Z()));
-			if (d > maxPlaneDist) {
+			if (p3 < 0 || d > maxPlaneDist) {
 				maxPlaneDist = d;
 				p3 = i;
 			}
 		}
 		
-		if (p3 < 0 || maxPlaneDist < 1e-14) {
+		if (p3 < 0) {
 			// Points are coplanar - return 2D hull as degenerate 3D hull
 			hull.vertices.push_back(points[p0]);
 			hull.vertices.push_back(points[p1]);
@@ -253,12 +270,11 @@ public:
 		pointToVertex[p3] = 3; hull.vertices.push_back(points[p3]);
 		
 		// Determine orientation: is p3 above or below plane p0-p1-p2?
-		Real signedDist = planeNormal.X() * (points[p3].X() - points[p0].X()) +
-		                  planeNormal.Y() * (points[p3].Y() - points[p0].Y()) +
-		                  planeNormal.Z() * (points[p3].Z() - points[p0].Z());
+		const int initialOrientation = RobustPredicates::Orientation3D(
+			points[p0], points[p1], points[p2], points[p3]);
 		
 		// Create faces with outward normals (CCW from outside)
-		if (signedDist > 0) {
+		if (initialOrientation < 0) {
 			// p3 is above plane p0-p1-p2
 			hull.faces.push_back({0, 2, 1});  // Bottom face (looking from below)
 			hull.faces.push_back({0, 1, 3});  // Side faces
@@ -271,6 +287,11 @@ public:
 			hull.faces.push_back({1, 3, 2});
 			hull.faces.push_back({2, 3, 0});
 		}
+
+		const Point3Cartesian interiorPoint(
+			(points[p0].X() + points[p1].X() + points[p2].X() + points[p3].X()) / REAL(4.0),
+			(points[p0].Y() + points[p1].Y() + points[p2].Y() + points[p3].Y()) / REAL(4.0),
+			(points[p0].Z() + points[p1].Z() + points[p2].Z() + points[p3].Z()) / REAL(4.0));
 		
 		// Assign remaining points to faces they're outside of
 		struct FaceData {
@@ -317,11 +338,9 @@ public:
 			if (usedPoints.count(i)) continue;
 			
 			for (auto& fd : faceDataList) {
-				const Point3Cartesian& a = hull.vertices[fd.vertices[0]];
-				Real dist = fd.normal.X() * (points[i].X() - a.X()) +
-				            fd.normal.Y() * (points[i].Y() - a.Y()) +
-				            fd.normal.Z() * (points[i].Z() - a.Z());
-				if (dist > 1e-10) {
+				if (RobustPredicates::Orientation3D(
+					hull.vertices[fd.vertices[0]], hull.vertices[fd.vertices[1]],
+					hull.vertices[fd.vertices[2]], points[i]) < 0) {
 					fd.outsidePoints.push_back(i);
 					break;  // Each point assigned to at most one face
 				}
@@ -347,7 +366,7 @@ public:
 			
 			// Find furthest outside point
 			int furthestPt = -1;
-			Real maxDist = 0;
+			Real maxDist = -std::numeric_limits<Real>::infinity();
 			const Point3Cartesian& a = hull.vertices[currentFace.vertices[0]];
 			for (int pt : currentFace.outsidePoints) {
 				Real dist = currentFace.normal.X() * (points[pt].X() - a.X()) +
@@ -369,11 +388,10 @@ public:
 			for (size_t i = 0; i < faceDataList.size(); i++) {
 				if (!faceDataList[i].valid) continue;
 				
-				const Point3Cartesian& fa = hull.vertices[faceDataList[i].vertices[0]];
-				Real dist = faceDataList[i].normal.X() * (points[furthestPt].X() - fa.X()) +
-				            faceDataList[i].normal.Y() * (points[furthestPt].Y() - fa.Y()) +
-				            faceDataList[i].normal.Z() * (points[furthestPt].Z() - fa.Z());
-				if (dist > 1e-10) {
+				const auto& face = faceDataList[i].vertices;
+				if (RobustPredicates::Orientation3D(
+					hull.vertices[face[0]], hull.vertices[face[1]], hull.vertices[face[2]],
+					points[furthestPt]) < 0) {
 					visibleFaces.push_back(static_cast<int>(i));
 				}
 			}
@@ -437,38 +455,15 @@ public:
 				faceDataList[vf].valid = false;
 			}
 			
-			// Compute hull centroid for orientation
-			Point3Cartesian hullCentroid(0, 0, 0);
-			int validCount = 0;
-			for (const auto& fd : faceDataList) {
-				if (fd.valid) {
-					hullCentroid = Point3Cartesian(
-						hullCentroid.X() + fd.centroid.X(),
-						hullCentroid.Y() + fd.centroid.Y(),
-						hullCentroid.Z() + fd.centroid.Z());
-					validCount++;
-				}
-			}
-			if (validCount > 0) {
-				hullCentroid = Point3Cartesian(
-					hullCentroid.X() / validCount,
-					hullCentroid.Y() / validCount,
-					hullCentroid.Z() / validCount);
-			}
-			
 			// Create new faces from horizon edges
 			std::vector<int> newFaceIndices;
 			for (const auto& edge : horizonEdges) {
 				std::array<int, 3> newFace = {edge.first, edge.second, newVertexIdx};
 				FaceData fd = computeFaceData(newFace);
 				
-				// Verify orientation
-				const Point3Cartesian& faceVertex = hull.vertices[newFace[0]];
-				Real towardCentroid = fd.normal.X() * (hullCentroid.X() - faceVertex.X()) +
-				                      fd.normal.Y() * (hullCentroid.Y() - faceVertex.Y()) +
-				                      fd.normal.Z() * (hullCentroid.Z() - faceVertex.Z());
-				
-				if (towardCentroid > 0) {
+				if (RobustPredicates::Orientation3D(
+					hull.vertices[newFace[0]], hull.vertices[newFace[1]], hull.vertices[newFace[2]],
+					interiorPoint) < 0) {
 					newFace = {edge.second, edge.first, newVertexIdx};
 					fd = computeFaceData(newFace);
 				}
@@ -484,11 +479,9 @@ public:
 			for (int pt : orphanedPoints) {
 				for (int nfi : newFaceIndices) {
 					FaceData& fd = faceDataList[nfi];
-					const Point3Cartesian& fa = hull.vertices[fd.vertices[0]];
-					Real dist = fd.normal.X() * (points[pt].X() - fa.X()) +
-					            fd.normal.Y() * (points[pt].Y() - fa.Y()) +
-					            fd.normal.Z() * (points[pt].Z() - fa.Z());
-					if (dist > 1e-10) {
+					if (RobustPredicates::Orientation3D(
+						hull.vertices[fd.vertices[0]], hull.vertices[fd.vertices[1]],
+						hull.vertices[fd.vertices[2]], points[pt]) < 0) {
 						fd.outsidePoints.push_back(pt);
 						break;
 					}

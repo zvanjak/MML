@@ -3,15 +3,26 @@
 #include "../../TestMatchers.h"
 
 #ifdef MML_USE_SINGLE_HEADER
-#include "MML.h"
+#include <MML.h>
 #else
-#include "mml/base/Geometry/Geometry3DBodies.h"
+#include <mml/base/Geometry/Geometry3DBodies.h>
 #endif
 
 using namespace MML;
 using namespace MML::Testing;
 
 namespace MML::Tests::Base::Geometry3DBodies::Cube3DTests {
+
+namespace {
+    Real BoundaryBoxY1(Real) { return -1.0; }
+    Real BoundaryBoxY2(Real) { return 2.0; }
+    Real BoundaryBoxZ1(Real, Real) { return 5.0; }
+    Real BoundaryBoxZ2(Real, Real) { return 9.0; }
+    Real UnitY1(Real) { return 0.0; }
+    Real UnitY2(Real) { return 1.0; }
+    Real UnitZ1(Real, Real) { return 0.0; }
+    Real SlopedZ2(Real x, Real) { return 1.0 + x; }
+}
 
 TEST_CASE("Cube3D::Volume", "[geometry][cube][volume]")
 {
@@ -191,7 +202,8 @@ TEST_CASE("Cube3D::GetBoundingSphere", "[geometry][cube][bounding]")
         Real dist_sq = 3.0*3.0 + 3.0*3.0 + 3.0*3.0;  // = 27
         Real dist = std::sqrt(dist_sq);  // = 3√3 ≈ 5.196
         
-        REQUIRE(dist <= bsphere.Radius());
+        // Different computation paths for sqrt(27) may differ by ULPs
+        REQUIRE_THAT(dist, RealApprox(bsphere.Radius()));
         REQUIRE(bsphere.Contains(corner));
     }
 }
@@ -313,6 +325,66 @@ TEST_CASE("Cube3D::IsInside", "[geometry][cube][inside]")
         REQUIRE(cube.IsInside(Pnt3Cart(1.0, 2.0, 3.0)) == true);
         REQUIRE(cube.IsInside(Pnt3Cart(-4.0, 5.0, -6.0)) == true);
     }
+}
+
+TEST_CASE("BodyWithRectSurfaces derives geometry from a closed quad mesh", "[geometry][mesh][rect]")
+{
+    Cube3D cube(2.0, Pnt3Cart(3.0, 4.0, 5.0));
+
+    REQUIRE_THAT(cube.BodyWithRectSurfaces::Volume(), RealApprox(8.0));
+    REQUIRE_THAT(cube.BodyWithRectSurfaces::SurfaceArea(), RealApprox(24.0));
+
+    const Pnt3Cart center = cube.BodyWithRectSurfaces::GetCenter();
+    REQUIRE_THAT(center.X(), RealApprox(3.0));
+    REQUIRE_THAT(center.Y(), RealApprox(4.0));
+    REQUIRE_THAT(center.Z(), RealApprox(5.0));
+
+    const Box3D box = cube.BodyWithRectSurfaces::GetBoundingBox();
+    REQUIRE_THAT(box.Min().X(), RealApprox(2.0));
+    REQUIRE_THAT(box.Min().Y(), RealApprox(3.0));
+    REQUIRE_THAT(box.Min().Z(), RealApprox(4.0));
+    REQUIRE_THAT(box.Max().X(), RealApprox(4.0));
+    REQUIRE_THAT(box.Max().Y(), RealApprox(5.0));
+    REQUIRE_THAT(box.Max().Z(), RealApprox(6.0));
+
+    REQUIRE(cube.BodyWithRectSurfaces::IsInside(Pnt3Cart(3.0, 4.0, 5.0)));
+    REQUIRE(cube.BodyWithRectSurfaces::IsInside(Pnt3Cart(4.0, 4.0, 5.0)));
+    REQUIRE_FALSE(cube.BodyWithRectSurfaces::IsInside(Pnt3Cart(4.1, 4.0, 5.0)));
+}
+
+TEST_CASE("ISolidBodyWithBoundary numerically derives body geometry", "[geometry][boundary-body]")
+{
+    SolidBodyWithBoundaryConstDensity box(
+        2.0, 4.0, BoundaryBoxY1, BoundaryBoxY2, BoundaryBoxZ1, BoundaryBoxZ2, 1.0);
+
+    REQUIRE_THAT(box.Volume(), RealApprox(24.0));
+    REQUIRE_THAT(box.SurfaceArea(), RealApprox(52.0));
+
+    const Pnt3Cart center = box.GetCenter();
+    REQUIRE_THAT(center.X(), RealApprox(3.0));
+    REQUIRE_THAT(center.Y(), RealApprox(0.5));
+    REQUIRE_THAT(center.Z(), RealApprox(7.0));
+
+    const Box3D bounds = box.GetBoundingBox();
+    REQUIRE_THAT(bounds.Min().X(), RealApprox(2.0));
+    REQUIRE_THAT(bounds.Min().Y(), RealApprox(-1.0));
+    REQUIRE_THAT(bounds.Min().Z(), RealApprox(5.0));
+    REQUIRE_THAT(bounds.Max().X(), RealApprox(4.0));
+    REQUIRE_THAT(bounds.Max().Y(), RealApprox(2.0));
+    REQUIRE_THAT(bounds.Max().Z(), RealApprox(9.0));
+    REQUIRE_THAT(box.GetBoundingSphere().Radius(), RealApprox(std::sqrt(7.25)));
+
+    REQUIRE(box.IsInside(Pnt3Cart(3.0, 0.0, 7.0)));
+    REQUIRE_FALSE(box.IsInside(Pnt3Cart(4.1, 0.0, 7.0)));
+}
+
+TEST_CASE("ISolidBodyWithBoundary includes graph slopes in surface area", "[geometry][boundary-body]")
+{
+    SolidBodyWithBoundaryConstDensity wedge(
+        0.0, 1.0, UnitY1, UnitY2, UnitZ1, SlopedZ2, 1.0);
+
+    REQUIRE_THAT(wedge.Volume(), RealApprox(1.5));
+    REQUIRE_THAT(wedge.SurfaceArea(), RealApprox(7.0 + std::sqrt(2.0)).epsilon(TOL(1e-9, 2e-5)).margin(TOL(1e-9, 2e-5)));
 }
 
 } // namespace MML::Tests::Base::Geometry3DBodies::Cube3DTests

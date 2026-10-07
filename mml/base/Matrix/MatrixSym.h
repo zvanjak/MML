@@ -1,3 +1,15 @@
+///////////////////////////////////////////////////////////////////////////////////////////
+///                         MinimalMathLibrary (MML)                                  ///
+///                                                                                   ///
+///  File:        MatrixSym.h                                                         ///
+///  Description: Symmetric matrix class with optimized storage and operations        ///
+///               Stores only upper/lower triangular portion                          ///
+///                                                                                   ///
+///  Copyright:   (c) 2024-2026 Zvonimir Vanjak                                       ///
+///  License:     MIT License (see LICENSE.md)                                         ///
+///                                                                                   ///
+///////////////////////////////////////////////////////////////////////////////////////////
+
 /// @file MatrixSym.h
 /// @brief Symmetric matrix class with optimized storage using only triangular portion.
 /// @details This file provides a symmetric matrix class that exploits the symmetry
@@ -56,22 +68,11 @@
 /// @author Zvonimir Vanjak
 /// @date 2024-2025
 
-///////////////////////////////////////////////////////////////////////////////////////////
-///                         MinimalMathLibrary (MML)                                  ///
-///                                                                                   ///
-///  File:        MatrixSym.h                                                         ///
-///  Description: Symmetric matrix class with optimized storage and operations        ///
-///               Stores only upper/lower triangular portion                          ///
-///                                                                                   ///
-///  Copyright:   (c) 2024-2026 Zvonimir Vanjak                                       ///
-///  License:     MIT License (see LICENSE.md)                                         ///
-///                                                                                   ///
-///////////////////////////////////////////////////////////////////////////////////////////
 #if !defined MML_MATRIX_SYM_H
 #define MML_MATRIX_SYM_H
 
-#include "MMLBase.h"
-#include "base/MatrixPrintFormat.h"
+#include <mml/MMLBase.h>
+#include <mml/base/Matrix/MatrixPrintFormat.h>
 
 #include "Matrix.h"
 
@@ -102,9 +103,9 @@ namespace MML
 	/// reduces storage to n(n+1)/2 elements for an n×n matrix.
 	/// **Indexing:** For elements (i,j), the class automatically handles the
 	/// symmetry: accessing (i,j) or (j,i) returns the same stored value.
-	/// @tparam Type Element type (typically Real, float, or Complex)
+	/// @tparam Type Element type (typically Real, float, or Complex); must satisfy Field
 
-	template<class Type>
+	template<class Type> requires Field<Type>
 	class MatrixSym 
 	{
 	private:
@@ -495,8 +496,7 @@ namespace MML
 			Real sum{0}; // Norm is always real, even for complex matrices
 			for (int i = 0; i < _dim; ++i) {
 				// Diagonal element: use |a|^2
-				if constexpr (std::is_same_v<Type, Complex> || std::is_same_v<Type, std::complex<float>> ||
-											std::is_same_v<Type, std::complex<long double>>) {
+				if constexpr (MMLComplex<Type>) {
 					sum += std::norm((*this)(i, i));
 					// Off-diagonal elements (counted twice in full matrix)
 					for (int j = 0; j < i; ++j) {

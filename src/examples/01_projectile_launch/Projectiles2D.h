@@ -27,14 +27,14 @@
 #ifndef PROJECTILES_2D_SELF_CONTAINED_H
 #define PROJECTILES_2D_SELF_CONTAINED_H
 
-#include "MMLBase.h"
-#include "interfaces/IODESystem.h"
-#include "interfaces/IODESystemWithEvents.h"
-#include "base/InterpolatedFunction.h"
-#include "mml/algorithms/ODESolvers/ODESolverAdaptive.h"
-#include "mml/algorithms/ODESolvers/ODESolverEventDetection.h"
-#include "mml/algorithms/ODESolvers/ODESolverFixedStep.h"
-#include "mml/algorithms/ODESolvers/ODEStepCalculators.h"
+#include <mml/MMLBase.h>
+#include <mml/interfaces/IODESystem.h>
+#include <mml/interfaces/IODESystemWithEvents.h>
+#include <mml/base/InterpolatedFunction.h>
+#include <mml/algorithms/ODESolvers/ODESolverAdaptive.h>
+#include <mml/algorithms/ODESolvers/ODESolverEventDetection.h>
+#include <mml/algorithms/ODESolvers/ODESolverFixedStep.h>
+#include <mml/algorithms/ODESolvers/ODEStepCalculators.h>
 
 namespace Projectile
 {
@@ -399,8 +399,8 @@ namespace Projectile
         Real getTimeOfFlightVacuum(Real angle, Real initHeight, Real velocity) const
         {
             Real g = 9.81;
-            #include "interfaces/IODESystemWithEvents.h"
-            #include "mml/algorithms/ODESolvers/ODESolverEventDetection.h"
+            #include <mml/interfaces/IODESystemWithEvents.h>
+            #include <mml/algorithms/ODESolvers/ODESolverEventDetection.h>
             Real v0y = velocity * sin(angle);
             return (v0y + sqrt(v0y * v0y + 2 * g * initHeight)) / g;
         }

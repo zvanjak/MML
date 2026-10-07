@@ -1,7 +1,11 @@
 # Scalar and Vector Field Operations
 
-**Sources:**  
-- `mml/core/FieldOperations.h` - Gradient, divergence, curl, Laplacian
+**Headers:**
+- `mml/core/Fields/ScalarFieldOperations.h` - Gradient and Laplacian
+- `mml/core/Fields/VectorFieldOperations.h` - Divergence and curl
+- `mml/core/Fields/FieldOperations.h` - Backward-compatible aggregate including both focused headers
+- `mml/MMLSingularityHandling.h` - Shared singularity policy and safe division
+- `mml/core/DifferentialGeometry/CoordinateSingularities.h` - Coordinate-specific detection and reciprocal helpers
 
 Numerical calculation of fundamental field operations in various coordinate systems. These operations are essential for physics simulations, fluid dynamics, electromagnetism, and differential geometry.
 
@@ -55,12 +59,12 @@ Gradient of a scalar field **f** produces a vector field pointing in the directi
 
 ```cpp
 template<int N>
-static VectorN<Real, N> GradientCart(const IScalarFunction<N>& scalarField, 
+static VectorN<Real, N> GradientCart(const IScalarFunction<N>& scalarField,
                                       const VectorN<Real, N>& pos);
 
 template<int N>
-static VectorN<Real, N> GradientCart(const IScalarFunction<N>& scalarField, 
-                                      const VectorN<Real, N>& pos, 
+static VectorN<Real, N> GradientCart(const IScalarFunction<N>& scalarField,
+                                      const VectorN<Real, N>& pos,
                                       int der_order);
 ```
 
@@ -91,11 +95,11 @@ std::cout << "Gradient: (" << grad[0] << ", " << grad[1] << ", " << grad[2] << "
 ### Spherical Gradient
 
 ```cpp
-static Vec3Sph GradientSpher(const IScalarFunction<3>& scalarField, 
+static Vec3Sph GradientSpher(const IScalarFunction<3>& scalarField,
                               const Vec3Sph& pos);
 
-static Vec3Sph GradientSpher(const IScalarFunction<3>& scalarField, 
-                              const Vec3Sph& pos, 
+static Vec3Sph GradientSpher(const IScalarFunction<3>& scalarField,
+                              const Vec3Sph& pos,
                               int der_order);
 ```
 
@@ -125,11 +129,11 @@ std::cout << "Radial component: " << grad[0] << "\n";  // -0.25
 ### Cylindrical Gradient
 
 ```cpp
-static Vec3Cyl GradientCyl(const IScalarFunction<3>& scalarField, 
+static Vec3Cyl GradientCyl(const IScalarFunction<3>& scalarField,
                             const Vec3Cyl& pos);
 
-static Vec3Cyl GradientCyl(const IScalarFunction<3>& scalarField, 
-                            const Vec3Cyl& pos, 
+static Vec3Cyl GradientCyl(const IScalarFunction<3>& scalarField,
+                            const Vec3Cyl& pos,
                             int der_order);
 ```
 
@@ -159,14 +163,14 @@ Vec3Cyl grad = GradientCyl(scalarField, pos);
 
 ```cpp
 template<int N>
-static VectorN<Real, N> Gradient(IScalarFunction<N>& scalarField, 
-                                  const VectorN<Real, N>& pos, 
+static VectorN<Real, N> Gradient(IScalarFunction<N>& scalarField,
+                                  const VectorN<Real, N>& pos,
                                   const MetricTensorField<N>& metricTensorField);
 ```
 
 **Purpose:** Compute gradient in arbitrary coordinate systems using metric tensor.
 
-**Formula:** ∇f = gⁱʲ ∂ⱼf  
+**Formula:** ∇f = gⁱʲ ∂ⱼf
 - Compute partial derivatives ∂ᵢf (covariant components)
 - Use contravariant metric tensor gⁱʲ to raise indices
 
@@ -195,7 +199,7 @@ Laplacian measures the local "curvature" of a scalar field. Physically represent
 
 ```cpp
 template<int N>
-static Real LaplacianCart(const IScalarFunction<N>& scalarField, 
+static Real LaplacianCart(const IScalarFunction<N>& scalarField,
                            const VectorN<Real, N>& pos);
 ```
 
@@ -222,7 +226,7 @@ std::cout << "Laplacian: " << lapl << "\n";
 ### Spherical Laplacian
 
 ```cpp
-static Real LaplacianSpher(const IScalarFunction<3>& scalarField, 
+static Real LaplacianSpher(const IScalarFunction<3>& scalarField,
                             const Vec3Sph& pos);
 ```
 
@@ -247,7 +251,7 @@ std::cout << "Laplacian: " << lapl << "\n";
 ### Cylindrical Laplacian
 
 ```cpp
-static Real LaplacianCyl(const IScalarFunction<3>& scalarField, 
+static Real LaplacianCyl(const IScalarFunction<3>& scalarField,
                           const Vec3Cyl& pos);
 ```
 
@@ -282,7 +286,7 @@ Divergence measures the "outflow" or "source density" of a vector field.
 
 ```cpp
 template<int N>
-static Real DivCart(const IVectorFunction<N>& vectorField, 
+static Real DivCart(const IVectorFunction<N>& vectorField,
                      const VectorN<Real, N>& pos);
 ```
 
@@ -314,7 +318,7 @@ std::cout << "Divergence: " << div << "\n";
 ### Spherical Divergence
 
 ```cpp
-static Real DivSpher(const IVectorFunction<3>& vectorField, 
+static Real DivSpher(const IVectorFunction<3>& vectorField,
                       const VectorN<Real, 3>& pos);
 ```
 
@@ -338,7 +342,7 @@ Real div = DivSpher(vectorField, pos);
 ### Cylindrical Divergence
 
 ```cpp
-static Real DivCyl(const IVectorFunction<3>& vectorField, 
+static Real DivCyl(const IVectorFunction<3>& vectorField,
                     const VectorN<Real, 3>& pos);
 ```
 
@@ -363,14 +367,14 @@ Real div = DivCyl(vectorField, pos);
 
 ```cpp
 template<int N>
-static Real Divergence(const IVectorFunction<N>& vectorField, 
+static Real Divergence(const IVectorFunction<N>& vectorField,
                         const VectorN<Real, N>& pos,
                         const MetricTensorField<N>& metricTensorField);
 ```
 
 **Purpose:** Compute divergence in arbitrary coordinate systems.
 
-**Formula:** ∇·**F** = ∂ᵢFⁱ + Fᵏ Γⁱᵢₖ  
+**Formula:** ∇·**F** = ∂ᵢFⁱ + Fᵏ Γⁱᵢₖ
 - Uses Christoffel symbols Γⁱᵢₖ from metric tensor
 - Accounts for non-Cartesian coordinate system effects
 
@@ -386,7 +390,7 @@ Curl measures the "circulation" or "rotation" of a vector field. Only defined in
 ### Cartesian Curl
 
 ```cpp
-static Vec3Cart CurlCart(const IVectorFunction<3>& vectorField, 
+static Vec3Cart CurlCart(const IVectorFunction<3>& vectorField,
                           const VectorN<Real, 3>& pos);
 ```
 
@@ -421,7 +425,7 @@ std::cout << "Curl: (" << curl[0] << ", " << curl[1] << ", " << curl[2] << ")\n"
 ### Spherical Curl
 
 ```cpp
-static Vec3Sph CurlSpher(const IVectorFunction<3>& vectorField, 
+static Vec3Sph CurlSpher(const IVectorFunction<3>& vectorField,
                           const VectorN<Real, 3>& pos);
 ```
 
@@ -443,7 +447,7 @@ Vec3Sph curl = CurlSpher(vectorField, pos);
 ### Cylindrical Curl
 
 ```cpp
-static Vec3Cyl CurlCyl(const IVectorFunction<3>& vectorField, 
+static Vec3Cyl CurlCyl(const IVectorFunction<3>& vectorField,
                         const VectorN<Real, 3>& pos);
 ```
 
@@ -471,7 +475,7 @@ Vec3Cyl curl = CurlCyl(vectorField, pos);
 ### Example 1: Electric Potential and Field
 
 ```cpp
-#include "core/FieldOperations.h"
+#include <mml/core/Fields/FieldOperations.h>
 
 void Example_Electric_Field()
 {
@@ -503,7 +507,7 @@ void Example_Electric_Field()
 ### Example 2: Fluid Incompressibility
 
 ```cpp
-#include "core/FieldOperations.h"
+#include <mml/core/Fields/FieldOperations.h>
 
 void Example_Incompressible_Flow()
 {
@@ -520,7 +524,7 @@ void Example_Incompressible_Flow()
     Real div = DivCart(v, pos);
 
     std::cout << "Divergence: " << div << "\n";
-    
+
     if (std::abs(div) < 1e-6)
         std::cout << "Flow is incompressible!\n";
 
@@ -533,7 +537,7 @@ void Example_Incompressible_Flow()
     Vec3Cart pos3D(2.0, 3.0, 0.0);
     Vec3Cart vorticity = CurlCart(v3D, pos3D);
 
-    std::cout << "Vorticity: (" << vorticity[0] << ", " 
+    std::cout << "Vorticity: (" << vorticity[0] << ", "
               << vorticity[1] << ", " << vorticity[2] << ")\n";
 }
 ```
@@ -541,7 +545,7 @@ void Example_Incompressible_Flow()
 ### Example 3: Heat Equation
 
 ```cpp
-#include "core/FieldOperations.h"
+#include <mml/core/Fields/FieldOperations.h>
 
 void Example_Heat_Diffusion()
 {
@@ -553,8 +557,8 @@ void Example_Heat_Diffusion()
     Real t = 1.0;
 
     auto temperature = [T0, alpha, t](const Vec2Cart& pos) -> Real {
-        return T0 * std::exp(-alpha * t) * 
-               std::sin(Constants::PI * pos[0]) * 
+        return T0 * std::exp(-alpha * t) *
+               std::sin(Constants::PI * pos[0]) *
                std::sin(Constants::PI * pos[1]);
     };
     RealFunctionFromStdFunc<2> T(temperature);
@@ -565,11 +569,11 @@ void Example_Heat_Diffusion()
 
     std::cout << "Temperature: " << T(pos) << " K\n";
     std::cout << "Laplacian: " << laplacian << " K/m²\n";
-    
+
     // Rate of change: ∂T/∂t = κ·∇²T
     Real kappa = 1.0;  // Thermal diffusivity
     Real dT_dt = kappa * laplacian;
-    
+
     std::cout << "Rate of temperature change: " << dT_dt << " K/s\n";
 }
 ```
@@ -577,7 +581,7 @@ void Example_Heat_Diffusion()
 ### Example 4: Magnetic Field from Current
 
 ```cpp
-#include "core/FieldOperations.h"
+#include <mml/core/Fields/FieldOperations.h>
 
 void Example_Magnetic_Field()
 {
@@ -593,8 +597,8 @@ void Example_Magnetic_Field()
     Vec3Cyl pos(2.0, 0.0, 0.0);
     Vec3Cyl B = CurlCyl(A, pos);
 
-    std::cout << "Magnetic field: B_ρ=" << B[0] 
-              << ", B_φ=" << B[1] 
+    std::cout << "Magnetic field: B_ρ=" << B[0]
+              << ", B_φ=" << B[1]
               << ", B_z=" << B[2] << "\n";
 
     // For straight wire: B_φ = μ₀I/(2πρ)
@@ -605,7 +609,7 @@ void Example_Magnetic_Field()
 ### Example 5: Conservative Field Check
 
 ```cpp
-#include "core/FieldOperations.h"
+#include <mml/core/Fields/FieldOperations.h>
 
 void Example_Conservative_Field()
 {
@@ -614,7 +618,7 @@ void Example_Conservative_Field()
     // Test if field is conservative: ∇×F = 0?
     auto field = [](const Vec3Cart& pos) -> Vec3Cart {
         // Gradient of f(x,y,z) = x²y + yz²
-        return Vec3Cart(2*pos[0]*pos[1], 
+        return Vec3Cart(2*pos[0]*pos[1],
                          pos[0]*pos[0] + pos[2]*pos[2],
                          2*pos[1]*pos[2]);
     };
@@ -635,7 +639,7 @@ void Example_Conservative_Field()
 ### Example 6: Spherical Harmonic Analysis
 
 ```cpp
-#include "core/FieldOperations.h"
+#include <mml/core/Fields/FieldOperations.h>
 
 void Example_Spherical_Harmonics()
 {
@@ -643,7 +647,7 @@ void Example_Spherical_Harmonics()
 
     // Spherical harmonic: Y₁₀ = √(3/(4π)) cos(θ)
     Real normalization = std::sqrt(3.0 / (4.0 * Constants::PI));
-    
+
     auto harmonic = [normalization](const Vec3Sph& pos) -> Real {
         return normalization * std::cos(pos[1]);
     };
@@ -656,7 +660,7 @@ void Example_Spherical_Harmonics()
     // For spherical harmonics: ∇²Yₗₘ = -l(l+1)/r² Yₗₘ
     // For l=1: ∇²Y₁₀ = -2 Y₁₀
     Real expected = -2.0 * Y10(pos);
-    
+
     std::cout << "Laplacian: " << lapl << "\n";
     std::cout << "Expected: " << expected << "\n";
     std::cout << "Match: " << (std::abs(lapl - expected) < 1e-3 ? "YES" : "NO") << "\n";

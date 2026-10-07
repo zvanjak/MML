@@ -16,8 +16,8 @@
 #include <cmath>
 #include <limits>
 
-#include "MMLBase.h"
-#include "interfaces/IFunction.h"
+#include <mml/MMLBase.h>
+#include <mml/interfaces/IFunction.h>
 
 #include "IntegrationBase.h"
 #include "Integration1D.h"
@@ -552,7 +552,7 @@ namespace MML
 	                                                   const Real eps = Defaults::RombergIntegrationEPS)
 	{
 		if (c <= a || c >= b)
-			throw std::invalid_argument("IntegrateInteriorSingular: singular point c must be in (a, b)");
+			throw ArgumentError("IntegrateInteriorSingular: singular point c must be in (a, b)");
 		
 		auto left = IntegrateUpperSingular(func, a, c, eps);
 		auto right = IntegrateLowerSingular(func, c, b, eps);

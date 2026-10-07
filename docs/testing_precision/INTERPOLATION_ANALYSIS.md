@@ -251,7 +251,7 @@ The `SplineInterpRealFunc` class provides:
 ### Code Examples
 
 ```cpp
-#include "base/InterpolatedFunction.h"
+#include <mml/base/InterpolatedFunction.h>
 using namespace MML;
 
 // Create data points

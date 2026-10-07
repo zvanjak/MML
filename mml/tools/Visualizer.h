@@ -12,16 +12,15 @@
 #if !defined MML_VIZUALIZER_H
 #define MML_VIZUALIZER_H
 
-#include "MMLBase.h"
-#include "MMLVisualizators.h"
+#include <mml/MMLBase.h>
+#include <mml/MMLVisualizators.h>
 
-#include "interfaces/IFunction.h"
+#include <mml/interfaces/IFunction.h>
 
-#include "base/InterpolatedFunction.h"
-#include "base/ODESystemSolution.h"
+#include <mml/base/InterpolatedFunction.h>
+#include <mml/base/ODESystemSolution.h>
 
-#include "algorithms/FieldLineTracer.h"
-#include "tools/Serializer.h"
+#include <mml/tools/Serializer.h>
 
 #include <filesystem>
 #include <algorithm>
@@ -54,6 +53,7 @@ namespace MML {
 		int exitCode;
 		std::string errorMessage;
 		std::string dataFilePath; // Path to the data file that was created
+		bool dataOnly = false;    // True when data was saved but no visualizer was launched
 
 		static VisualizerResult Success(const std::string& dataPath = "") { 
 			return VisualizerResult{true, false, 0, "", dataPath}; 
@@ -67,8 +67,13 @@ namespace MML {
 			return VisualizerResult{false, true, -1, message, dataPath};
 		}
 
-		// Allow implicit conversion to bool for backward compatibility
-		operator bool() const { return success; }
+		/// Data file was saved but no visualizer was launched (e.g., visualizer not yet available)
+		static VisualizerResult DataSaved(const std::string& dataPath) {
+			return VisualizerResult{true, false, 0, "Data saved (no visualizer launched)", dataPath, true};
+		}
+
+		/// Check if result is data-only (no visualizer was launched)
+		bool isDataOnly() const { return dataOnly; }
 	};
 
 	class Visualizer {
@@ -87,6 +92,7 @@ namespace MML {
 		static std::string pathParametricSurfaceViz() { return GetParametricSurfaceVisualizerPath(); }
 		static std::string pathScalarFunc3DViz() { return GetScalarFunction3DVisualizerPath(); }
 		static std::string pathRigidBodyViz() { return GetRigidBodyVisualizerPath(); }
+		static std::string pathWorldViz() { return GetWorldVisualizerPath(); }
 
 		// Helper: resolve a file path for "FromFile" methods.
 		// Tries the path as-is first (absolute or relative), then falls back to the results folder.
@@ -96,7 +102,7 @@ namespace MML {
 			if (std::filesystem::exists(fileNameOrPath))
 				return std::filesystem::weakly_canonical(fileNameOrPath).string();
 
-			// 2. Try in results folder (legacy: bare filename)
+			// 2. Try in results folder for convenient bare filenames.
 			std::string inResults = MakeSafeOutputPath(fileNameOrPath);
 			if (!inResults.empty() && std::filesystem::exists(inResults))
 				return inResults;
@@ -362,7 +368,7 @@ namespace MML {
 				}
 				
 				// Parent: wait for 'open -W' to return (it waits for the app to quit)
-				int status;
+				int status = 0;
 				waitpid(pid, &status, 0);
 				if (WIFEXITED(status) && WEXITSTATUS(status) == 127) {
 					return VisualizerResult::Failure("Failed to launch app bundle via open", 
@@ -423,8 +429,12 @@ namespace MML {
 			if (timeout_ms < 0) {
 				// Infinite wait mode (matches Windows INFINITE behavior)
 				// Wait for the visualizer to close before returning
-				int status;
+				int status = 0;
 				pid_t result = waitpid(pid, &status, 0);  // Blocking wait
+				if (result < 0) {
+					return VisualizerResult::Failure("waitpid failed",
+																					  args.empty() ? "" : args[0], -1);
+				}
 				if (result == pid && WIFEXITED(status)) {
 					int exitCode = WEXITSTATUS(status);
 					if (exitCode == 127) {
@@ -483,7 +493,7 @@ namespace MML {
 		/// @param executable Path to the visualizer executable
 		/// @param args Command line arguments (file paths)
 		/// @param timeout_ms Timeout in milliseconds. Default is VISUALIZER_NO_TIMEOUT (-1) for 
-		///                   backward compatibility (Windows: infinite wait, POSIX: fire-and-forget).
+		///                   platform behavior (Windows: infinite wait, POSIX: fire-and-forget).
 		///                   Use VISUALIZER_DEFAULT_TIMEOUT_MS for 30-second timeout.
 		/// @return VisualizerResult with success/failure/timeout status
 		static VisualizerResult ExecuteVisualizer(const std::string& executable, 
@@ -733,6 +743,16 @@ namespace MML {
 			if (resolved.empty())
 				return VisualizerResult::Failure("Data file not found: " + fileNameOrPath, fileNameOrPath);
 			return ExecuteVisualizer(pathVectorField3DViz(), {resolved});
+		}
+
+		/// @brief Visualize a pre-saved MML world scene file
+		/// @param fileNameOrPath Full path or filename (looked up in results folder as fallback)
+		/// @return VisualizerResult indicating success or failure
+		static VisualizerResult VisualizeWorldSceneFromFile(std::string fileNameOrPath) {
+			std::string resolved = ResolveFilePath(fileNameOrPath);
+			if (resolved.empty())
+				return VisualizerResult::Failure("World scene file not found: " + fileNameOrPath, fileNameOrPath);
+			return ExecuteVisualizer(pathWorldViz(), {resolved});
 		}
 
 		// visualizations of Parametric curves
@@ -1086,55 +1106,6 @@ namespace MML {
 			return ExecuteVisualizer(pathRigidBodyViz(), validPaths);
 		}
 
-		//===================================================================================
-		// Field Lines Visualization
-		//===================================================================================
-
-		/// @brief Visualize 2D field lines
-		/// @details Saves field lines to file and launches the field lines visualizer.
-		/// Currently outputs the file for external visualization (visualizer app coming soon).
-		/// @param lines Vector of 2D field lines to visualize
-		/// @param title Descriptive title for the visualization
-		/// @param fileName Output file name (will be placed in results folder)
-		/// @return VisualizerResult with success/failure and file path
-		static VisualizerResult VisualizeFieldLines2D(const std::vector<FieldLine2D>& lines,
-		                                               std::string title,
-		                                               std::string fileName) {
-			std::string name = MakeSafeOutputPath(fileName);
-			if (name.empty()) {
-				return VisualizerResult::Failure("Invalid filename: path escapes results folder", fileName);
-			}
-			auto saveResult = Serializer::SaveFieldLines2D(lines, title, name);
-			if (!saveResult.success) {
-				return VisualizerResult::Failure("Failed to save field lines: " + saveResult.message, name);
-			}
-			// TODO: Launch MML_FieldLines2D_Visualizer when available
-			// For now, just return success with the file path
-			return VisualizerResult::Success(name);
-		}
-
-		/// @brief Visualize 3D field lines
-		/// @details Saves field lines to file and launches the field lines visualizer.
-		/// Currently outputs the file for external visualization (visualizer app coming soon).
-		/// @param lines Vector of 3D field lines to visualize
-		/// @param title Descriptive title for the visualization
-		/// @param fileName Output file name (will be placed in results folder)
-		/// @return VisualizerResult with success/failure and file path
-		static VisualizerResult VisualizeFieldLines3D(const std::vector<FieldLine3D>& lines,
-		                                               std::string title,
-		                                               std::string fileName) {
-			std::string name = MakeSafeOutputPath(fileName);
-			if (name.empty()) {
-				return VisualizerResult::Failure("Invalid filename: path escapes results folder", fileName);
-			}
-			auto saveResult = Serializer::SaveFieldLines3D(lines, title, name);
-			if (!saveResult.success) {
-				return VisualizerResult::Failure("Failed to save field lines: " + saveResult.message, name);
-			}
-			// TODO: Launch MML_FieldLines3D_Visualizer when available
-			// For now, just return success with the file path
-			return VisualizerResult::Success(name);
-		}
 	};
 } // namespace MML
 #endif

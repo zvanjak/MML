@@ -152,6 +152,73 @@ mixed(1,1) = 2.0;
 mixed(2,2) = 3.0;
 
 Real trace = mixed.Contract();  // 1 + 2 + 3 = 6
+
+// Contract one index from each of two rank-2 tensors.
+// The contracted pair must have opposite variance.
+Tensor2<3> A(1, 1);  // A_i^j
+Tensor2<3> B(1, 1);  // B_i^j
+Tensor2<3> C = Contract(A, 1, B, 0);  // C_i^j = A_i^k B_k^j
+```
+
+### Outer Product
+```cpp
+// Vector outer product produces a rank-2 tensor.
+VectorN<Real, 3> u{1, 2, 3};
+VectorN<Real, 3> v{4, 5, 6};
+Tensor2<3> uv = OuterProduct(u, v);  // uv^ij = u^i v^j
+
+// Explicitly choose vector index variance when needed.
+Tensor2<3> covar_contra = OuterProduct(u, v, COVARIANT, CONTRAVARIANT);
+
+// Rank-2 outer product produces a rank-4 tensor.
+Tensor2<3> A(1, 1);  // A_i^j
+Tensor2<3> B(2, 0);  // B_kl
+Tensor4<3> AB = OuterProduct(A, B);  // AB_i^j_kl = A_i^j B_kl
+```
+
+### Symmetric and Antisymmetric Parts
+```cpp
+// Symmetrization requires both rank-2 slots to have the same variance.
+Tensor2<3> T(2, 0);  // T_ij
+
+Tensor2<3> S = SymmetricPart(T);      // S_ij = (T_ij + T_ji) / 2
+Tensor2<3> A = AntisymmetricPart(T);  // A_ij = (T_ij - T_ji) / 2
+```
+
+### Index Permutation
+```cpp
+Tensor2<3> M(1, 1);  // M_i^j
+
+Tensor2<3> Mt = Transpose(M);  // Mt^i_j = M_j^i
+
+// permutation[resultSlot] names the source slot copied into that result slot.
+Tensor2<3> swapped = PermuteIndices(M, std::array<int, 2>{1, 0});
+
+Tensor3<3> T3(2, 1);
+Tensor3<3> permuted3 = PermuteIndices(T3, std::array<int, 3>{2, 0, 1});
+
+Tensor4<3> T4(3, 1);
+Tensor4<3> permuted4 = PermuteIndices(T4, std::array<int, 4>{2, 3, 0, 1});
+```
+
+### Levi-Civita Tensor
+```cpp
+// Distinct from the Levi-Civita symbol epsilon_ijk.
+// The covariant tensor includes the metric volume weight sqrt(abs(det(g))).
+MatrixNM<Real, 3, 3> g3;
+g3(0, 0) = 4.0;
+g3(1, 1) = 9.0;
+g3(2, 2) = 16.0;
+
+Tensor3<3> E3 = LeviCivitaTensor(g3);  // E_012 = 24
+
+MatrixNM<Real, 4, 4> eta_scaled;
+eta_scaled(0, 0) = -1.0;
+eta_scaled(1, 1) = 4.0;
+eta_scaled(2, 2) = 9.0;
+eta_scaled(3, 3) = 16.0;
+
+Tensor4<4> E4 = LeviCivitaTensor4(eta_scaled);  // E_0123 = 24
 ```
 
 ### Tensor Evaluation

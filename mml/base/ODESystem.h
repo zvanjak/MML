@@ -12,11 +12,11 @@
 #if !defined  MML_ODE_SYSTEM_H
 #define MML_ODE_SYSTEM_H
 
-#include "MMLBase.h"
+#include <mml/MMLBase.h>
 
-#include "interfaces/IODESystem.h"
+#include <mml/interfaces/IODESystem.h>
 
-#include "base/Matrix/Matrix.h"
+#include <mml/base/Matrix/Matrix.h>
 
 #include <functional>
 
@@ -56,7 +56,7 @@ namespace MML
 		void	derivs(const Real t, const Vector<Real> &x, Vector<Real> &dxdt) const
 		{
 			if (_func == nullptr)
-				throw std::runtime_error("ODESystem::derivs() - system function is null (default-constructed ODESystem)");
+				throw NotImplementedError("ODESystem::derivs() - system function is null (default-constructed ODESystem)");
 			_func(t, x, dxdt);
 		}
 

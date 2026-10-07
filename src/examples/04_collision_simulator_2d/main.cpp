@@ -23,11 +23,11 @@
  *****************************************************************************/
 
 #ifdef MML_USE_SINGLE_HEADER
-#include "MML.h"
+#include <MML.h>
 #else
-#include "MMLBase.h"
-#include "mml/tools/Serializer.h"
-#include "mml/tools/Visualizer.h"
+#include <mml/MMLBase.h>
+#include <mml/tools/Serializer.h>
+#include <mml/tools/Visualizer.h>
 #endif
 
 // Self-contained collision physics (no MPL dependency)

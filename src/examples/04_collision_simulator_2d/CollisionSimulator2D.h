@@ -26,13 +26,13 @@
 #ifndef COLLISION_SIMULATOR_2D_SELF_CONTAINED_H
 #define COLLISION_SIMULATOR_2D_SELF_CONTAINED_H
 
-#include "MMLBase.h"
-#include "base/Vector/Vector.h"
-#include "base/Vector/VectorTypes.h"
-#include "base/Matrix/Matrix.h"
-#include "base/Random.h"
-#include "tools/Serializer.h"
-#include "tools/Visualizer.h"
+#include <mml/MMLBase.h>
+#include <mml/base/Vector/Vector.h>
+#include <mml/base/Vector/VectorTypes2D.h>
+#include <mml/base/Matrix/Matrix.h>
+#include <mml/base/Random.h>
+#include <mml/tools/Serializer.h>
+#include <mml/tools/Visualizer.h>
 
 #include <thread>
 #include <atomic>
@@ -44,6 +44,19 @@
 namespace Collision2D
 {
     using namespace MML;
+
+    /// 2D grid of ball-index buckets (plain container - MML::Matrix requires Field elements)
+    class BallIndexGrid2D
+    {
+        int _rows = 0, _cols = 0;
+        std::vector<Vector<int>> _cells;
+    public:
+        BallIndexGrid2D(int rows, int cols) : _rows(rows), _cols(cols), _cells(static_cast<size_t>(rows) * cols) {}
+        int rows() const { return _rows; }
+        int cols() const { return _cols; }
+        Vector<int>& operator()(int r, int c) { return _cells[static_cast<size_t>(r) * _cols + c]; }
+        const Vector<int>& operator()(int r, int c) const { return _cells[static_cast<size_t>(r) * _cols + c]; }
+    };
 
     /**************************************************************************
      * BALL2D - Particle with physical properties
@@ -129,8 +142,8 @@ namespace Collision2D
             }
         }
 
-        // Fill matrix with ball indices for each subdivided cell
-        void SetNumBallsInSubdividedContainer(int nRows, int nCols, Matrix<Vector<int>>& M)
+        // Fill grid with ball indices for each subdivided cell
+        void SetNumBallsInSubdividedContainer(int nRows, int nCols, BallIndexGrid2D& M)
         {
             double cellWidth = _width / nCols;
             double cellHeight = _height / nRows;
@@ -219,7 +232,7 @@ namespace Collision2D
     class CollisionSimulator2D
     {
         BoxContainer2D _box;
-        Matrix<Vector<int>> M;  // Space subdivision grid
+        BallIndexGrid2D M;  // Space subdivision grid
 
     public:
         CollisionSimulator2D() : M(2, 2) {}

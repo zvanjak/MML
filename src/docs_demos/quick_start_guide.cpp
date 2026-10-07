@@ -6,20 +6,20 @@
 ///////////////////////////////////////////////////////////////////////////////////////////
 
 #ifdef MML_USE_SINGLE_HEADER
-#include "MML.h"
+#include <MML.h>
 #else
-#include "MMLBase.h"
-#include "base/Vector/Vector.h"
-#include "base/Vector/VectorTypes.h"
-#include "base/Matrix/Matrix.h"
-#include "base/ODESystem.h"
-#include "base/ODESystemSolution.h"
-#include "core/LinAlgEqSolvers.h"
-#include "core/Derivation.h"
-#include "core/Integration.h"
-#include "algorithms/RootFinding.h"
-#include "mml/algorithms/ODESolvers/ODESolverFixedStep.h"
-#include "mml/algorithms/ODESolvers/ODESolverAdaptive.h"
+#include <mml/MMLBase.h>
+#include <mml/base/Vector/Vector.h>
+#include <mml/base/Vector/VectorTypes3D.h>
+#include <mml/base/Matrix/Matrix.h>
+#include <mml/base/ODESystem.h>
+#include <mml/base/ODESystemSolution.h>
+#include <mml/core/LinAlgEqSolvers.h>
+#include <mml/core/Derivation.h>
+#include <mml/core/Integration.h>
+#include <mml/algorithms/RootFinding.h>
+#include <mml/algorithms/ODESolvers/ODESolverFixedStep.h>
+#include <mml/algorithms/ODESolvers/ODESolverAdaptive.h>
 #endif
 
 using namespace MML;
@@ -134,7 +134,7 @@ void example_step5_root_finding()
     std::cout << "\n=== Step 5: Root Finding ===" << std::endl;
     
     // Find root of: f(x) = x² - 2 = 0  (answer: x = √2)
-    RealFunction f{ [](Real x) { return x*x - 2.0; } };
+    RealFunction f{ [](Real x) { return x*x - Real{2}; } };
     
     // Find root in interval [1, 2]
     Real root = RootFinding::FindRootBrent(f, 1.0, 2.0, 1e-10);

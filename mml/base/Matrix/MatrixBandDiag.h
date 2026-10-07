@@ -64,10 +64,10 @@
 #if !defined MML_MATRIX_BAND_DIAG_H
 #define MML_MATRIX_BAND_DIAG_H
 
-#include "MMLBase.h"
-#include "MMLExceptions.h"
+#include <mml/MMLBase.h>
+#include <mml/MMLExceptions.h>
 
-#include "base/Matrix/Matrix.h"
+#include <mml/base/Matrix/Matrix.h>
 
 // Standard headers - include what we use
 #include <algorithm>

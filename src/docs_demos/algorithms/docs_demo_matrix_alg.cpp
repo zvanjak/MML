@@ -12,13 +12,14 @@
 ///////////////////////////////////////////////////////////////////////////////////////////
 
 #ifdef MML_USE_SINGLE_HEADER
-#include "MML.h"
+#include <MML.h>
 #else
-#include "MMLBase.h"
-#include "base/Matrix/Matrix.h"
-#include "base/Matrix/MatrixSym.h"
-#include "algorithms/MatrixAlg.h"
-#include "core/MatrixUtils.h"
+#include <mml/MMLBase.h>
+#include <mml/base/Matrix/Matrix.h>
+#include <mml/base/Matrix/MatrixSym.h>
+#include <mml/algorithms/MatrixAlg.h>
+#include <mml/algorithms/Analyzers/MatrixAnalyzer.h>
+#include <mml/base/BaseUtils/MatrixOps.h>
 #endif
 
 #include <iostream>
@@ -35,10 +36,11 @@ std::string DefinitenessToString(MatrixAlg::Definiteness def)
 {
     switch (def) {
         case MatrixAlg::Definiteness::PositiveDefinite:      return "Positive Definite";
-        case MatrixAlg::Definiteness::PositiveSemiDefinite:  return "Positive Semi-Definite";
+        case MatrixAlg::Definiteness::PositiveSemidefinite:  return "Positive Semi-Definite";
         case MatrixAlg::Definiteness::NegativeDefinite:      return "Negative Definite";
-        case MatrixAlg::Definiteness::NegativeSemiDefinite:  return "Negative Semi-Definite";
+        case MatrixAlg::Definiteness::NegativeSemidefinite:  return "Negative Semi-Definite";
         case MatrixAlg::Definiteness::Indefinite:            return "Indefinite";
+        case MatrixAlg::Definiteness::ZeroSemidefinite:      return "Zero Semi-Definite";
         default:                                              return "Unknown";
     }
 }
@@ -86,9 +88,9 @@ void Demo_HessenbergReduction()
     maxError = Utils::MaxAbsDiff(QtQ, I);
     std::cout << "Max difference ||Q^T*Q - I||_∞ = " << std::scientific << maxError << std::fixed << std::endl;
     
-    std::cout << "\nIs H upper Hessenberg? " << (Utils::IsUpperHessenberg(result.H) ? "Yes" : "No") << std::endl;
+    std::cout << "\nIs H upper Hessenberg? " << (MatrixAlg::IsUpperHessenberg(result.H) ? "Yes" : "No") << std::endl;
     
-    std::cout << "\nTrace(A) = " << Utils::Trace(A) << ", Trace(H) = " << Utils::Trace(result.H) << std::endl;
+    std::cout << "\nTrace(A) = " << MatrixAlg::Trace(A) << ", Trace(H) = " << MatrixAlg::Trace(result.H) << std::endl;
     std::cout << "(Trace is preserved under similarity transformation)" << std::endl;
 }
 
@@ -174,12 +176,12 @@ void Demo_DefinitenessClassification()
 ///                         DEFINITENESS FOR GENERAL MATRICES                           ///
 ///////////////////////////////////////////////////////////////////////////////////////////
 
-void Demo_GeneralMatrixDefiniteness()
+void Demo_DefinitenessPreconditions()
 {
-    std::cout << "\n=== DEFINITENESS FOR GENERAL MATRICES ===\n" << std::endl;
+    std::cout << "\n=== DEFINITENESS PRECONDITIONS ===\n" << std::endl;
     
-    std::cout << "For non-symmetric matrices, definiteness uses the symmetric part:" << std::endl;
-    std::cout << "  A_sym = (A + A^T) / 2\n" << std::endl;
+    std::cout << "Definiteness requires a symmetric real or Hermitian complex matrix." << std::endl;
+    std::cout << "A nonsymmetric matrix is rejected rather than silently symmetrized.\n" << std::endl;
     
     // Asymmetric but positive definite symmetric part
     Matrix<Real> A(3, 3, {5.0,  2.0, 1.0,
@@ -196,8 +198,15 @@ void Demo_GeneralMatrixDefiniteness()
             Asym(i, j) = 0.5 * (A(i, j) + A(j, i));
     Asym.Print(std::cout, 6, 2);
     
-    std::cout << "\nClassification of A: " << DefinitenessToString(MatrixAlg::ClassifyDefiniteness(A)) << std::endl;
-    std::cout << "IsPositiveDefinite(A): " << (MatrixAlg::IsPositiveDefinite(A) ? "Yes" : "No") << std::endl;
+    try {
+        (void)MatrixAlg::ClassifyDefiniteness(A);
+    }
+    catch (const MatrixDimensionError& error) {
+        std::cout << "\nClassifying A directly is rejected: " << error.what() << std::endl;
+    }
+
+    std::cout << "Classification of explicitly constructed symmetric part: "
+              << DefinitenessToString(MatrixAlg::ClassifyDefiniteness(Asym)) << std::endl;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -237,6 +246,39 @@ void Demo_SymmetryChecks()
     gen.Print(std::cout, 6, 2);
     std::cout << "IsSymmetric: " << (MatrixAlg::IsSymmetric(gen) ? "Yes" : "No") << std::endl;
     std::cout << "IsSkewSymmetric: " << (MatrixAlg::IsSkewSymmetric(gen) ? "Yes" : "No") << std::endl;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////
+///                    CACHED AND COMPLEX MATRIX ANALYSIS                               ///
+///////////////////////////////////////////////////////////////////////////////////////////
+
+void Demo_CachedAndComplexAnalysis()
+{
+    std::cout << "\n=== CACHED AND COMPLEX MATRIX ANALYSIS ===\n" << std::endl;
+
+    Matrix<Real> realMatrix(3, 2, {1.0, 2.0,
+                                   2.0, 4.0,
+                                   3.0, 6.0});
+    MatrixAnalyzer<Real> analyzer(realMatrix);
+    const auto& firstSVD = analyzer.SVDDecompose();
+    const auto& repeatedSVD = analyzer.SVDDecompose();
+    std::cout << "Rank: " << analyzer.Rank() << ", nullity: " << analyzer.Nullity() << std::endl;
+    std::cout << "Repeated SVD request reused cache: "
+              << (&firstSVD == &repeatedSVD ? "Yes" : "No") << std::endl;
+
+    Matrix<Complex> hermitian(2, 2, {
+        Complex{4.0, 0.0}, Complex{1.0, 2.0},
+        Complex{1.0, -2.0}, Complex{3.0, 0.0}
+    });
+    MatrixAnalyzer<Complex> complexAnalyzer(hermitian);
+    const auto eigen = complexAnalyzer.HermitianEigensystem();
+    std::cout << "Hermitian: " << (complexAnalyzer.IsHermitian() ? "Yes" : "No") << std::endl;
+    std::cout << "Real eigenvalues: ";
+    eigen.eigenvalues.Print(std::cout, 10, 6);
+    const auto& cholesky = complexAnalyzer.CholeskyDecompose();
+    const Matrix<Complex> reconstructed = cholesky.L * Utils::GetConjugateTranspose(cholesky.L);
+    std::cout << "\nCholesky reconstructs A = L*L*: "
+              << (reconstructed.IsEqualTo(hermitian, REAL(1e-10)) ? "Yes" : "No") << std::endl;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -301,8 +343,9 @@ void Docs_Demo_MatrixAlg()
     
     Demo_HessenbergReduction();
     Demo_DefinitenessClassification();
-    Demo_GeneralMatrixDefiniteness();
+    Demo_DefinitenessPreconditions();
     Demo_SymmetryChecks();
+    Demo_CachedAndComplexAnalysis();
     Demo_DefinitenessApplications();
     
     std::cout << "\n###################################################################" << std::endl;

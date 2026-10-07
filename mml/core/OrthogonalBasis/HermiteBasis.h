@@ -12,11 +12,11 @@
 #if !defined MML_HERMITE_BASIS_H
 #define MML_HERMITE_BASIS_H
 
-#include "MMLBase.h"
+#include <mml/MMLBase.h>
 
-#include "base/StandardFunctions.h"
-#include "interfaces/IFunction.h"
-#include "core/OrthogonalBasis.h"
+#include <mml/base/StandardFunctions.h>
+#include <mml/interfaces/IFunction.h>
+#include <mml/core/OrthogonalBasis.h>
 
 #include <cmath>
 #include <limits>
@@ -60,7 +60,7 @@ namespace MML
         Real Evaluate(int n, Real x) const override
         {
             if (n < 0)
-                throw std::invalid_argument("HermiteBasis::Evaluate: n must be non-negative");
+                throw ArgumentError("HermiteBasis::Evaluate: n must be non-negative");
             
             return Functions::Hermite(static_cast<unsigned int>(n), x);
         }
@@ -75,7 +75,7 @@ namespace MML
         Real Normalization(int n) const override
         {
             if (n < 0)
-                throw std::invalid_argument("HermiteBasis::Normalization: n must be non-negative");
+                throw ArgumentError("HermiteBasis::Normalization: n must be non-negative");
             
             // 2^n * n! * sqrt(π)
             Real two_to_n = std::pow(2.0, static_cast<Real>(n));
@@ -105,7 +105,7 @@ namespace MML
         void RecurrenceCoefficients(int n, Real& a, Real& b, Real& c) const
         {
             if (n < 0)
-                throw std::invalid_argument("HermiteBasis::RecurrenceCoefficients: n must be non-negative");
+                throw ArgumentError("HermiteBasis::RecurrenceCoefficients: n must be non-negative");
             
             a = 2.0;
             b = 0.0;
@@ -117,7 +117,7 @@ namespace MML
         Real QuantumWavefunction(int n, Real x) const
         {
             if (n < 0)
-                throw std::invalid_argument("HermiteBasis::QuantumWavefunction: n must be non-negative");
+                throw ArgumentError("HermiteBasis::QuantumWavefunction: n must be non-negative");
             
             Real Hn = Evaluate(n, x);
             Real norm_factor = 1.0 / std::sqrt(Normalization(n));
@@ -147,7 +147,7 @@ namespace MML
         Real Evaluate(int n, Real x) const
         {
             if (n < 0)
-                throw std::invalid_argument("ProbabilistHermiteBasis::Evaluate: n must be non-negative");
+                throw ArgumentError("ProbabilistHermiteBasis::Evaluate: n must be non-negative");
             
             // Convert: Heₙ(x) = 2^(-n/2) Hₙ(x/√2)
             Real x_scaled = x / Constants::SQRT2;
@@ -167,7 +167,7 @@ namespace MML
         Real Normalization(int n) const
         {
             if (n < 0)
-                throw std::invalid_argument("ProbabilistHermiteBasis::Normalization: n must be non-negative");
+                throw ArgumentError("ProbabilistHermiteBasis::Normalization: n must be non-negative");
             
             Real n_factorial = 1.0;
             for (int k = 1; k <= n; k++)

@@ -8,7 +8,7 @@
 #include "../../TestPrecision.h"
 #include "../../TestMatchers.h"
 
-#include "algorithms/ComputationalGeometry.h"
+#include <mml/algorithms/ComputationalGeometry.h>
 
 #include <set>
 #include <random>

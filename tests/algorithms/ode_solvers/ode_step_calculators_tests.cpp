@@ -5,10 +5,10 @@
 #include <limits>
 
 #ifdef MML_USE_SINGLE_HEADER
-#include "MML.h"
+#include <MML.h>
 #else
-#include "mml/algorithms/ODESolvers/ODEStepCalculators.h"
-#include "interfaces/IODESystem.h"
+#include <mml/algorithms/ODESolvers/ODEStepCalculators.h>
+#include <mml/interfaces/IODESystem.h>
 #endif
 
 using namespace MML;
@@ -117,6 +117,21 @@ namespace MML::Tests::Algorithms::ODEStepCalculatorTests
 		}
 	};
 
+	// Deliberately outside the Verlet/Leapfrog contract: acceleration depends on velocity.
+	class LinearDragParticle final : public IODESystem
+	{
+		Real _drag;
+	public:
+		explicit LinearDragParticle(Real drag) : _drag(drag) {}
+		int getDim() const override { return 2; }
+
+		void derivs(const Real /*t*/, const Vector<Real>& x, Vector<Real>& dxdt) const override
+		{
+			dxdt[0] = x[1];
+			dxdt[1] = -_drag * x[1];
+		}
+	};
+
 	/////////////////////////////////////////////////////////////////////////////////////
 	///                    HELPER: GENERIC STEP TESTER                                ///
 	/////////////////////////////////////////////////////////////////////////////////////
@@ -150,8 +165,8 @@ namespace MML::Tests::Algorithms::ODEStepCalculatorTests
 			{
 				REQUIRE(std::isfinite(x_out[i]));
 				REQUIRE(std::isfinite(x_err[i]));
-				REQUIRE_THAT(x_out[i], Catch::Matchers::WithinAbs(expected[i], REAL(1e-12)));
-				REQUIRE_THAT(x_err[i], Catch::Matchers::WithinAbs(REAL(0.0), REAL(1e-12)));
+				REQUIRE_THAT(x_out[i], Catch::Matchers::WithinAbs(expected[i], TOL(1e-12, 1e-5)));
+				REQUIRE_THAT(x_err[i], Catch::Matchers::WithinAbs(REAL(0.0), TOL(1e-12, 1e-5)));
 			}
 		}
 	}
@@ -243,7 +258,7 @@ namespace MML::Tests::Algorithms::ODEStepCalculatorTests
 			Vector<Real> y_err(1);
 
 			// Integrate to t=1.0
-			int steps = static_cast<int>(REAL(1.0) / h);
+			int steps = std::lround(REAL(1.0) / h);
 			for (int step = 0; step < steps; ++step)
 			{
 				sys.derivs(t, y, dydt);
@@ -279,7 +294,7 @@ namespace MML::Tests::Algorithms::ODEStepCalculatorTests
 			Vector<Real> x_err(2);
 
 			// Integrate for 1 second
-			int steps = static_cast<int>(REAL(1.0) / h);
+			int steps = std::lround(REAL(1.0) / h);
 			for (int step = 0; step < steps; ++step)
 			{
 				sys.derivs(t, x, dxdt);
@@ -442,6 +457,60 @@ namespace MML::Tests::Algorithms::ODEStepCalculatorTests
 		REQUIRE(maxEnergyDeviation < REAL(0.01));
 	}
 
+	TEST_CASE("Leapfrog and Velocity Verlet are equivalent for position-only acceleration", "[ODE][stepcalc][VelocityVerlet][Leapfrog]")
+	{
+		SimpleHarmonicOscillator sys;
+		const Real t = REAL(0.37);
+		const Real h = REAL(0.125);
+		Vector<Real> x{ REAL(1.25), REAL(-0.75) };
+		Vector<Real> dxdt(2);
+		Vector<Real> verletOut(2), verletErr(2), leapfrogOut(2), leapfrogErr(2);
+		sys.derivs(t, x, dxdt);
+
+		StepCalculators::VelocityVerletStepCalc.calcStep(sys, t, x, dxdt, h, verletOut, verletErr);
+		StepCalculators::LeapfrogStepCalc.calcStep(sys, t, x, dxdt, h, leapfrogOut, leapfrogErr);
+
+		REQUIRE(leapfrogOut == verletOut);
+		REQUIRE(leapfrogErr == verletErr);
+	}
+
+	TEST_CASE("Velocity Verlet rejects odd-dimensional states", "[ODE][stepcalc][VelocityVerlet][Leapfrog]")
+	{
+		ExponentialDecay oddDimensionalSystem;
+		Vector<Real> x{ REAL(1.0) };
+		Vector<Real> dxdt(1), xOut(1), xErr(1);
+		oddDimensionalSystem.derivs(REAL(0.0), x, dxdt);
+
+		REQUIRE_THROWS_AS(StepCalculators::VelocityVerletStepCalc.calcStep(
+			oddDimensionalSystem, REAL(0.0), x, dxdt, REAL(0.1), xOut, xErr), ODESolverError);
+		REQUIRE_THROWS_AS(StepCalculators::LeapfrogStepCalc.calcStep(
+			oddDimensionalSystem, REAL(0.0), x, dxdt, REAL(0.1), xOut, xErr), ODESolverError);
+	}
+
+	TEST_CASE("Velocity-dependent acceleration is outside the Verlet contract", "[ODE][stepcalc][VelocityVerlet][contract]")
+	{
+		const Real drag = REAL(0.5);
+		const Real h = REAL(0.1);
+		LinearDragParticle sys(drag);
+		Vector<Real> x{ REAL(0.0), REAL(2.0) };
+		Vector<Real> dxdt(2), xOut(2), xErr(2);
+		sys.derivs(REAL(0.0), x, dxdt);
+
+		StepCalculators::VelocityVerletStepCalc.calcStep(
+			sys, REAL(0.0), x, dxdt, h, xOut, xErr);
+
+		const Real velocityHalfStep = x[1] + REAL(0.5) * h * dxdt[1];
+		const Real velocityVerletVelocity = x[1] + REAL(0.5) * h
+			* (dxdt[1] - drag * x[1]);
+		const Real kickDriftKickVelocity = velocityHalfStep
+			- REAL(0.5) * h * drag * velocityHalfStep;
+
+		// For a(v), evaluating the final force at v_n or v_{n+1/2} gives different maps.
+		// Neither map is covered by this calculator's symplectic or accuracy guarantees.
+		REQUIRE_THAT(xOut[1], Catch::Matchers::WithinAbs(velocityVerletVelocity, TOL(1e-12, 1e-5)));
+		REQUIRE(std::abs(xOut[1] - kickDriftKickVelocity) > REAL(1e-6));
+	}
+
 	/////////////////////////////////////////////////////////////////////////////////////
 	///                      MIDPOINT STEP CALCULATOR                                 ///
 	/////////////////////////////////////////////////////////////////////////////////////
@@ -482,12 +551,12 @@ namespace MML::Tests::Algorithms::ODEStepCalculatorTests
 
 	TEST_CASE("RK4 step calculator - polynomial", "[ODE][stepcalc][RK4]")
 	{
-		TestPolynomialODE(StepCalculators::RK4_Basic, "RK4", REAL(1e-8)); // Exact for polynomials degree <= 4
+		TestPolynomialODE(StepCalculators::RK4_Basic, "RK4", TOL(1e-8, 1e-4)); // Exact for polynomials degree <= 4
 	}
 
 	TEST_CASE("RK4 step calculator - falling body", "[ODE][stepcalc][RK4]")
 	{
-		TestFallingBody(StepCalculators::RK4_Basic, "RK4", REAL(1e-8));
+		TestFallingBody(StepCalculators::RK4_Basic, "RK4", TOL(1e-8, 2e-3));
 	}
 
 	/////////////////////////////////////////////////////////////////////////////////////
@@ -501,7 +570,7 @@ namespace MML::Tests::Algorithms::ODEStepCalculatorTests
 
 	TEST_CASE("RK5 Cash-Karp step calculator - exponential decay", "[ODE][stepcalc][RK5CashKarp]")
 	{
-		TestExponentialDecay(StepCalculators::RK5_CashKarp, "RK5-CashKarp", REAL(1e-8)); // 5th order
+		TestExponentialDecay(StepCalculators::RK5_CashKarp, "RK5-CashKarp", TOL(1e-8, 1e-4)); // 5th order
 	}
 
 	TEST_CASE("RK5 Cash-Karp step calculator - harmonic oscillator", "[ODE][stepcalc][RK5CashKarp]")
@@ -540,7 +609,7 @@ namespace MML::Tests::Algorithms::ODEStepCalculatorTests
 
 	TEST_CASE("Dormand-Prince 5 step calculator - exponential decay", "[ODE][stepcalc][DormandPrince5]")
 	{
-		TestExponentialDecay(StepCalculators::DormandPrince5StepCalc, "DormandPrince5", REAL(1e-8));
+		TestExponentialDecay(StepCalculators::DormandPrince5StepCalc, "DormandPrince5", TOL(1e-8, 1e-4));
 	}
 
 	TEST_CASE("Dormand-Prince 5 step calculator - harmonic oscillator", "[ODE][stepcalc][DormandPrince5]")
@@ -578,7 +647,7 @@ namespace MML::Tests::Algorithms::ODEStepCalculatorTests
 
 	TEST_CASE("Dormand-Prince 8 step calculator - exponential decay", "[ODE][stepcalc][DormandPrince8]")
 	{
-		TestExponentialDecay(StepCalculators::DormandPrince8StepCalc, "DormandPrince8", REAL(1e-10)); // 8th order - very accurate
+		TestExponentialDecay(StepCalculators::DormandPrince8StepCalc, "DormandPrince8", TOL(1e-10, 1e-5)); // 8th order - very accurate
 	}
 
 	TEST_CASE("Dormand-Prince 8 step calculator - harmonic oscillator", "[ODE][stepcalc][DormandPrince8]")
@@ -588,7 +657,7 @@ namespace MML::Tests::Algorithms::ODEStepCalculatorTests
 
 	TEST_CASE("Dormand-Prince 8 step calculator - polynomial", "[ODE][stepcalc][DormandPrince8]")
 	{
-		TestPolynomialODE(StepCalculators::DormandPrince8StepCalc, "DormandPrince8", REAL(1e-12));
+		TestPolynomialODE(StepCalculators::DormandPrince8StepCalc, "DormandPrince8", TOL(1e-12, 1e-5));
 	}
 
 	TEST_CASE("Dormand-Prince 8 step calculator - provides error estimate", "[ODE][stepcalc][DormandPrince8]")
@@ -608,7 +677,7 @@ namespace MML::Tests::Algorithms::ODEStepCalculatorTests
 		// Should provide non-zero error estimate
 		REQUIRE(std::abs(y_err[0]) > REAL(0.0));
 		// Error should be very small for 8th order
-		REQUIRE(std::abs(y_err[0]) < REAL(1e-8));
+		REQUIRE(std::abs(y_err[0]) < TOL(1e-8, 1e-4));
 	}
 
 	/////////////////////////////////////////////////////////////////////////////////////
@@ -664,7 +733,12 @@ namespace MML::Tests::Algorithms::ODEStepCalculatorTests
 		REQUIRE(midpointErr < eulerErr);
 		REQUIRE(rk4Err < midpointErr);
 		REQUIRE(dp5Err < rk4Err);
-		REQUIRE(dp8Err < dp5Err);
+		if constexpr (std::is_same_v<Real, float>) {
+			// Both dp8 and dp5 errors underflow to 0 with float, so just verify dp8 <= dp5
+			REQUIRE(dp8Err <= dp5Err);
+		} else {
+			REQUIRE(dp8Err < dp5Err);
+		}
 	}
 
 	/////////////////////////////////////////////////////////////////////////////////////

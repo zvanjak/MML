@@ -15,10 +15,10 @@
 ///////////////////////////////////////////////////////////////////////////////////////////
 
 #ifdef MML_USE_SINGLE_HEADER
-#include "MML.h"
+#include <MML.h>
 #else
-#include "base/Function.h"
-#include "core/Integration.h"
+#include <mml/base/Function.h>
+#include <mml/core/Integration.h>
 #endif
 
 #include "PrecisionTestFramework.h"
@@ -238,7 +238,7 @@ void Test_1D_ChallengingFunctions()
     suite.addResult("Romberg", "sin(50x)", exact_osc, r_osc_romb.value);
     
     // 2. Peaked function: 1/(1+100x^2) on [-1, 1] (integral = 2*atan(10)/10)
-    RealFunctionFromStdFunc f_peak([](Real x) { return 1.0 / (1.0 + 100*x*x); });
+    RealFunctionFromStdFunc f_peak([](Real x) { return REAL(1.0) / (REAL(1.0) + 100*x*x); });
     double exact_peak = 2.0 * atan(10.0) / 10.0;
     
     auto r_peak_trap = IntegrateTrap(f_peak, -1.0, 1.0);
@@ -250,7 +250,7 @@ void Test_1D_ChallengingFunctions()
     suite.addResult("Romberg", "peaked", exact_peak, r_peak_romb.value);
     
     // 3. Near-singular: sqrt(x) on [0, 1] (integral = 2/3)
-    RealFunctionFromStdFunc f_sqrt([](Real x) { return (x > 1e-15) ? sqrt(x) : 0.0; });
+    RealFunctionFromStdFunc f_sqrt([](Real x) { return (x > 1e-15) ? sqrt(x) : REAL(0.0); });
     double exact_sqrt = 2.0 / 3.0;
     
     auto r_sqrt_trap = IntegrateTrap(f_sqrt, 0.0, 1.0);
@@ -419,7 +419,7 @@ void Test_3D_VolumeIntegration()
     suite.addResult(r_r2);
     
     // 3. f(x,y,z) = 1 over [0,2]x[0,3]x[0,4] (integral = 24)
-    ScalarFunctionFromStdFunc<3> f_const([](const VectorN<Real, 3>& p) { return 1.0; });
+    ScalarFunctionFromStdFunc<3> f_const([](const VectorN<Real, 3>& p) { return REAL(1.0); });
     double exact_const = 24.0;  // 2 * 3 * 4
     
     auto result_const = Integrate3D(f_const, IntegrationMethod::ROMBERG, 0.0, 2.0, ConstY0, ConstY3, ConstZ0, ConstZ4);

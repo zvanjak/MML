@@ -12,33 +12,28 @@
 
 /// @file Geometry3DBodies.h
 /// @brief Aggregate header for 3D solid body representations.
-/// 
+///
 /// This header includes all 3D body modules:
-/// - **Bounding volumes**: BoundingSphere3D, Box3D (AABB)
-/// - **Body interfaces**: IBody, ISolidBodyWithBoundary, mesh body base classes
-/// - **Simple solids**: Cube3D, CubeWithTriangles3D
-/// - **Parametric shapes**: Torus3D, Cylinder3D
-/// - **Other primitives**: Sphere3D, Pyramid3D, PyramidEquilateral3D
-/// 
-/// @see Geometry3DBodiesCore/ for individual module headers
+/// - Bounding volumes
+/// - Body interfaces and mesh-backed body base classes
+/// - Cube, torus, cylinder, sphere, and pyramid primitives
+///
+/// Main types included here:
+/// - BoundingSphere3D and Box3D - bounding volume primitives and factories
+/// - IBody and ISolidBodyWithBoundary - common body interfaces
+/// - SolidBodyWithBoundary and SolidBodyWithBoundaryConstDensity - function-bounded solids
+/// - BodyWithTriangleSurfaces, BodyWithRectSurfaces, and ComposedSolidSurfaces3D
+/// - Cube3D, CubeWithTriangles3D, Torus3D, Cylinder3D, Sphere3D, Pyramid3D, and PyramidEquilateral3D
+///
+/// For more focused includes, use the individual headers under Geometry3DBodies/.
 
 #if !defined MML_GEOMETRY_3D_BODIES_H
 #define MML_GEOMETRY_3D_BODIES_H
 
-// Bounding volumes: BoundingSphere3D, Box3D (AABB)
-#include "mml/base/Geometry/Geometry3DBodiesCore/Geometry3DBounding.h"
-
-// Body interfaces and base classes: IBody, ISolidBodyWithBoundary,
-// BodyWithTriangleSurfaces, BodyWithRectSurfaces, ComposedSolidSurfaces3D
-#include "mml/base/Geometry/Geometry3DBodiesCore/Geometry3DBodyBase.h"
-
-// Cube classes: Cube3D, CubeWithTriangles3D
-#include "mml/base/Geometry/Geometry3DBodiesCore/Geometry3DCubes.h"
-
-// Torus and Cylinder: Torus3D, Cylinder3D
-#include "mml/base/Geometry/Geometry3DBodiesCore/Geometry3DTorusCylinder.h"
-
-// Sphere and Pyramid: Sphere3D, Pyramid3D, PyramidEquilateral3D
-#include "mml/base/Geometry/Geometry3DBodiesCore/Geometry3DSpherePyramid.h"
+#include <mml/base/Geometry/Geometry3DBodies/Geometry3DBounding.h>
+#include <mml/base/Geometry/Geometry3DBodies/Geometry3DBodyBase.h>
+#include <mml/base/Geometry/Geometry3DBodies/Geometry3DCubes.h>
+#include <mml/base/Geometry/Geometry3DBodies/Geometry3DTorusCylinder.h>
+#include <mml/base/Geometry/Geometry3DBodies/Geometry3DSpherePyramid.h>
 
 #endif
