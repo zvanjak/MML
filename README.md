@@ -13,7 +13,7 @@
 [![Single Header](https://img.shields.io/badge/single--header-100K%20LOC-orange.svg)](mml/single_header/MML.h)
 [![Tests](https://img.shields.io/badge/assertions-174147%20passing-brightgreen.svg)](tests/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE.md)
-[![Website](https://img.shields.io/badge/website-minimal--math.library.org-blueviolet.svg)](https://minimal-math-library.org)
+[![Website](https://img.shields.io/badge/website-minimal--math--library.org-blueviolet.svg)](https://minimal-math-library.org)
 
 **🚀 Just `#include <MML.h>` and compute** — vectors, matrices & tensors; dense & sparse linear algebra; ODE & DAE solvers; derivation and integration; optimization and Fourier algorithms; computational geometry and more.
 
