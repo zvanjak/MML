@@ -17,7 +17,7 @@
 
 **🚀 Just `#include <MML.h>` and compute** — vectors, matrices & tensors; dense & sparse linear algebra; ODE & DAE solvers; derivation and integration; optimization and Fourier algorithms; computational geometry and more.
 
-[Official Website](https://minimal-math.library.org) • [Quick Start](#-quick-start) • [Installation](#installation-options) • [What's Inside](#-whats-inside) • [New in 2.0](#-new-in-20) • [Serialization](#-serialization--persistence) • [Visualization](#-visualization-suite) • [Docs](#-documentation)
+[Official Website](https://minimal-math-library.org) • [Quick Start](#-quick-start) • [Installation](#installation-options) • [What's Inside](#-whats-inside) • [New in 2.0](#-new-in-20) • [Serialization](#-serialization--persistence) • [Visualization](#-visualization-suite) • [Docs](#-documentation)
 
 </div>
 
