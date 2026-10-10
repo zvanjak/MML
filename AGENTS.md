@@ -45,16 +45,6 @@ Present in public MML:
 - `ports/minimalmathlib/` - repository-local vcpkg overlay port
 - `.github/workflows/` - public CI
 
-Not part of the public release:
-
-- `src/book/`
-- book chapter applications
-- private planning/history artifacts
-- Beads task database/workflow
-- private sibling-repo coordination instructions
-
-Do not add public-release logic that requires `src/book/` or private workspace
-paths.
 
 ---
 
