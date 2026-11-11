@@ -114,7 +114,9 @@ void Demo_TwoColorMixing()
     {
         std::cout << "\nSimulation saved to: " << filename << "\n";
         std::cout << "Launching ParticleVisualizer2D...\n";
-        Visualizer::VisualizeParticleSimulation2D("collision_two_color_mixing.mml");
+        const auto visualization = Visualizer::VisualizeParticleSimulation2D("collision_two_color_mixing.mml");
+        if (!visualization.success)
+            std::cerr << "Visualization failed: " << visualization.message << '\n';
     }
     else
     {
@@ -227,7 +229,9 @@ void Demo_ShockWave()
     {
         std::cout << "\nSimulation saved to: " << filename << "\n";
         std::cout << "Launching ParticleVisualizer2D...\n";
-        Visualizer::VisualizeParticleSimulation2D("collision_shock_wave.mml");
+        const auto visualization = Visualizer::VisualizeParticleSimulation2D("collision_shock_wave.mml");
+        if (!visualization.success)
+            std::cerr << "Visualization failed: " << visualization.message << '\n';
     }
     else
     {

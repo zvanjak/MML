@@ -570,12 +570,16 @@ namespace NBody
                 Real t1 = t_vals[0];
                 Real t2 = t_vals[t_vals.size() - 1];
                 
-                Serializer::SaveAsParamCurve<3>(res, "PARAMETRIC_CURVE_CARTESIAN_3D",
+                const auto saved = Serializer::SaveAsParamCurve<3>(res, "PARAMETRIC_CURVE_CARTESIAN_3D",
                     baseFileName + std::to_string(i), t1, t2, t_vals.size(),
                     GetResultFilesPath() + fileName);
+                if (!saved.success)
+                    throw FileIOError(saved.filename + ": " + saved.message);
             }
             
-            Visualizer::VisualizeMultiParamCurve3D(fileNames);
+            const auto visualization = Visualizer::VisualizeMultiParamCurve3D(fileNames);
+            if (!visualization.success)
+                std::cerr << "Visualization failed: " << visualization.message << '\n';
         }
         
         // Visualization: Particle animation
@@ -623,10 +627,14 @@ namespace NBody
             depth  = std::max<Real>(depth, Real(1.0));
             
             std::string fullFileName = baseFileName + ".mml";
-            Serializer::SaveParticleSimulation3D(GetResultFilesPath() + fullFileName,
+            const auto saved = Serializer::SaveParticleSimulation3D(GetResultFilesPath() + fullFileName,
                 NumBodies(), width, height, depth, res2, vecColors, vecRad, dT);
+            if (!saved.success)
+                throw FileIOError(saved.filename + ": " + saved.message);
             
-            Visualizer::VisualizeParticleSimulation3D(fullFileName);
+            const auto visualization = Visualizer::VisualizeParticleSimulation3D(fullFileName);
+            if (!visualization.success)
+                std::cerr << "Visualization failed: " << visualization.message << '\n';
         }
     };
     

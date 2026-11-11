@@ -243,7 +243,7 @@ int main()
     };
     auto vizResult = Visualizer::VisualizeRigidBodyTrajectory(trajectoryFiles);
     if (!vizResult.success) {
-        std::cerr << "Visualizer failed: " << vizResult.errorMessage << "\n";
+        std::cerr << "Visualizer failed: " << vizResult.message << "\n";
         std::cerr << "You can manually run:\n";
         std::cerr << "  tools\\visualizers\\win\\WPF\\MML_RigidBodyMovement_Visualizer\\MML_RigidBodyMovement_Visualizer.exe ";
         for (const auto& f : trajectoryFiles) std::cerr << "\"" << f << "\" ";

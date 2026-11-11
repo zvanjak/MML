@@ -576,10 +576,6 @@ endfunction()
 configure_mml_launcher_fixture(MML_Tests)
 configure_mml_timer_fixture(MML_Tests MML_ScopedTimerProcessFixture)
 
-add_executable(MML_StiffBenchmarks EXCLUDE_FROM_ALL
-    "${CMAKE_SOURCE_DIR}/testing/stiff_solver_benchmark.cpp")
-target_link_libraries(MML_StiffBenchmarks PRIVATE minimalmathlib::minimalmathlib)
-
 # Link libatomic on Linux for 128-bit atomics (needed by long double builds)
 if(UNIX AND NOT APPLE)
     target_link_libraries(MML_Tests PRIVATE atomic)

@@ -157,11 +157,13 @@ void Demo_SingleTrajectory()
     PolynomInterpRealFunc theta1_func(t_vals, theta1_wrapped, 3);
     PolynomInterpRealFunc theta2_func(t_vals, theta2_wrapped, 3);
 
-    Visualizer::VisualizeMultiRealFunction(
+    const auto anglesVisualization = Visualizer::VisualizeMultiRealFunction(
         std::vector<IRealFunction*>{ &theta1_func, &theta2_func },
         "Double Pendulum Angles vs Time (wrapped)",
         { "Theta 1", "Theta 2" },
         0.0, t_end, 1000, "double_pendulum_angles.mml");
+    if (!anglesVisualization.success)
+        std::cerr << "Angle visualization failed: " << anglesVisualization.message << '\n';
 
     // Phase space trajectory (theta1 vs theta2) - already wrapped
 
@@ -173,8 +175,10 @@ void Demo_SingleTrajectory()
     }
     SplineInterpParametricCurve<2> phase_curve(0.0, 1.0, phase_points);
     
-    Visualizer::VisualizeParamCurve2D(phase_curve, "Double Pendulum Phase Space",
+    const auto phaseVisualization = Visualizer::VisualizeParamCurve2D(phase_curve, "Double Pendulum Phase Space",
         0.0, 1.0, t_vals.size(), "double_pendulum_phase_space.mml");
+    if (!phaseVisualization.success)
+        std::cerr << "Phase visualization failed: " << phaseVisualization.message << '\n';
 
     // Output trajectory file for animation
     std::ofstream ofs("results/double_pendulum_trajectory.mml");
@@ -278,13 +282,16 @@ void Demo_ButterflyEffect()
     PolynomInterpRealFunc theta1_A_func(t_vals, theta1_A_wrapped, 3);
     PolynomInterpRealFunc theta1_B_func(t_vals, theta1_B_wrapped, 3);
 
-    Visualizer::VisualizeMultiRealFunction(
+    const auto visualization = Visualizer::VisualizeMultiRealFunction(
         std::vector<IRealFunction*>{ &theta1_A_func, &theta1_B_func },
         "Butterfly Effect: Pendulum A vs B (theta1, wrapped)",
         { "Pendulum A", "Pendulum B (+ 0.001 deg)" },
         0.0, t_end, 1000, "double_pendulum_butterfly.mml");
+    if (!visualization.success)
+        std::cerr << "Visualization failed: " << visualization.message << '\n';
 
-    std::cout << "Visualization saved to: results/double_pendulum_butterfly.txt\n";
+    if (visualization.success)
+        std::cout << "Visualization saved to: " << visualization.filename << '\n';
     std::cout << "\n✓ Butterfly effect demonstration complete!\n";
 }
 

@@ -160,17 +160,19 @@ endforeach()
 
 # If individual example executables exist, include them in the aggregate target
 foreach(example_target
-    Example00_ShockWave
+    Example00_NBodyGravity
     Example01_ProjectileLaunch
     Example02_DoublePendulum
-    Example03_CollisionSimulator2D
-    Example04_NBodyGravity
+    Example03_F1GForces
+    Example04_CollisionSim2D
+    Example05_RigidBody
     Example06_LorentzTransform
     Example07_EMFields
     Example08_GRExamples
     Example09_TypedFormsGradient
     Example10_TypedFormsFlux
     Example11_VectorSpaces
+    Example12_Statistics
 )
     if(TARGET ${example_target})
         list(APPEND _MML_EXAMPLE_AGGREGATE_TARGETS ${example_target})
@@ -208,7 +210,7 @@ if(MML_INSTALL)
     )
 
     # Install license
-    install(FILES LICENSE.md
+    install(FILES LICENSE
         DESTINATION ${CMAKE_INSTALL_DOCDIR}
     )
 

@@ -375,7 +375,7 @@ int main(int argc, char* argv[]) {
     if (result.success) {
         std::cout << "  Track visualization saved!\n\n";
     } else {
-        std::cout << "  Note: Visualization skipped (" << result.errorMessage << ")\n\n";
+        std::cout << "  Note: Visualization skipped (" << result.message << ")\n\n";
     }
     
     std::cout << "=== Step 2 Complete! Parametric curve created. ===\n\n";
@@ -566,7 +566,7 @@ int main(int argc, char* argv[]) {
     if (gforceResult.success) {
         std::cout << "  G-force graph (3 curves) saved!\n";
     } else {
-        std::cout << "  G-force visualization: " << gforceResult.errorMessage << "\n";
+        std::cout << "  G-force visualization: " << gforceResult.message << "\n";
     }
     
     // Create a simple visualization showing speed profile

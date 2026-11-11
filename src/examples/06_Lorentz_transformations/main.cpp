@@ -161,9 +161,11 @@ void Demo_TimeDilation()
     }
     LinearInterpRealFunc gamma_curve(v_smooth, g_smooth);
     
-    Visualizer::VisualizeRealFunction(gamma_curve, 
+    const auto visualization = Visualizer::VisualizeRealFunction(gamma_curve,
         "Lorentz Factor γ = 1/√(1-v²/c²)",
         0.0, 0.99, 200, "lorentz_gamma_factor.mml");
+    if (!visualization.success)
+        std::cerr << "Visualization failed: " << visualization.message << '\n';
 
     std::cout << "\n✓ Time dilation demonstration complete!\n";
 }
@@ -359,10 +361,12 @@ void Demo_Worldlines()
     std::vector<LinearInterpRealFunc> worldlines = {worldline_A, worldline_B};
     std::vector<std::string> worldline_labels = {"Twin A (stays on Earth)", "Twin B (travels to star)"};
     
-    Visualizer::VisualizeMultiRealFunction(worldlines,
+    const auto worldlineVisualization = Visualizer::VisualizeMultiRealFunction(worldlines,
         "Twin Paradox - Spacetime Worldlines (position vs time)",
         worldline_labels,
         0.0, 2 * T_trip, 200, "twin_paradox_spacetime.mml");
+    if (!worldlineVisualization.success)
+        std::cerr << "Worldline visualization failed: " << worldlineVisualization.message << '\n';
     
     // Visualize: Proper time (aging) comparison
     LinearInterpRealFunc age_A(t_data, tau_A_data);
@@ -371,10 +375,12 @@ void Demo_Worldlines()
     std::vector<LinearInterpRealFunc> aging = {age_A, age_B};
     std::vector<std::string> aging_labels = {"Twin A (Earth) - biological age", "Twin B (Ship) - biological age"};
     
-    Visualizer::VisualizeMultiRealFunction(aging,
+    const auto agingVisualization = Visualizer::VisualizeMultiRealFunction(aging,
         "Twin Paradox - Biological Aging Comparison",
         aging_labels,
         0.0, 2 * T_trip, 200, "twin_paradox_aging.mml");
+    if (!agingVisualization.success)
+        std::cerr << "Aging visualization failed: " << agingVisualization.message << '\n';
 
     std::cout << "✓ Worldlines spacetime diagram complete!\n";
 }
@@ -607,10 +613,12 @@ void Demo_Worldlines3D()
     std::cout << "  Semi-circle at the star creates a half-helix in spacetime.\n";
     std::cout << "  Return path angles downward, arriving at Earth from below.\n\n";
 
-    Visualizer::VisualizeMultiParamCurve3D(
+    const auto spacetimeVisualization = Visualizer::VisualizeMultiParamCurve3D(
         { &twinA, &twinB },
         "Realistic Twin Paradox - 3D Spacetime (x, y, t)",
         0.0, T7, 1000, "twin_paradox_realistic_3d.mml");
+    if (!spacetimeVisualization.success)
+        std::cerr << "Spacetime visualization failed: " << spacetimeVisualization.message << '\n';
 
     // ═══════════════════════════════════════════════════════════════════════
     // Proper Time Comparison: τ_A(t) vs τ_B(t) — the aging curves
@@ -654,10 +662,12 @@ void Demo_Worldlines3D()
         "Twin B (Ship)  - biological age"
     };
 
-    Visualizer::VisualizeMultiRealFunction(aging,
+    const auto agingVisualization = Visualizer::VisualizeMultiRealFunction(aging,
         "Realistic Twin Paradox - Biological Aging (proper time vs coord time)",
         aging_labels,
         0.0, T7, 500, "twin_paradox_realistic_aging.mml");
+    if (!agingVisualization.success)
+        std::cerr << "Aging visualization failed: " << agingVisualization.message << '\n';
 
     std::cout << "  The aging comparison shows how Twin B's clock runs slower\n";
     std::cout << "  during coast phases (slope = " << std::setprecision(3) 

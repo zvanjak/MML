@@ -134,11 +134,14 @@ void Demo_VacuumVsAir()
 
     std::vector<std::string> labels{"Vacuum (DP5)", "Air Resistance (DP5)"};
 
-    Visualizer::VisualizeMultiRealFunction(trajectories,
+    const auto visualization = Visualizer::VisualizeMultiRealFunction(trajectories,
         "Projectile: Vacuum vs Air (v=" + std::to_string((int)velocity) + " m/s, 45 deg)",
         labels, 0, 1.05 * exactRange, 500, "projectile_vacuum_vs_air.mml");
+    if (!visualization.success)
+        std::cerr << "Visualization failed: " << visualization.message << '\n';
 
-    std::cout << ">> Scenario 1 complete - visualization saved\n";
+    std::cout << ">> Scenario 1 complete"
+              << (visualization.success ? " - visualization saved\n" : " - visualization failed\n");
 }
 
 
@@ -229,11 +232,14 @@ void Demo_OptimalAngle()
         labels.push_back(std::to_string((int)Utils::RadToDeg(result._angle)) + " deg");
     }
 
-    Visualizer::VisualizeMultiRealFunction(trajectories,
+    const auto visualization = Visualizer::VisualizeMultiRealFunction(trajectories,
         "Optimal Angle with Air Resistance (v=" + std::to_string((int)velocity) + " m/s)",
         labels, 0, 1.1 * maxAirRange, 500, "projectile_angles.mml");
+    if (!visualization.success)
+        std::cerr << "Visualization failed: " << visualization.message << '\n';
 
-    std::cout << ">> Scenario 2 complete - visualization saved\n";
+    std::cout << ">> Scenario 2 complete"
+              << (visualization.success ? " - visualization saved\n" : " - visualization failed\n");
 }
 
 
@@ -315,11 +321,14 @@ void Demo_BaseballTypes()
 
     std::vector<std::string> labels{"Vacuum", "Smooth ball", "Normal ball", "Rough ball"};
 
-    Visualizer::VisualizeMultiRealFunction(trajectories,
+    const auto visualization = Visualizer::VisualizeMultiRealFunction(trajectories,
         "Baseball Trajectories by Surface Type",
         labels, 0, 1.1 * vacResult._range, 500, "projectile_baseball_types.mml");
+    if (!visualization.success)
+        std::cerr << "Visualization failed: " << visualization.message << '\n';
 
-    std::cout << ">> Scenario 3 complete - visualization saved\n";
+    std::cout << ">> Scenario 3 complete"
+              << (visualization.success ? " - visualization saved\n" : " - visualization failed\n");
 }
 
 
@@ -391,11 +400,14 @@ void Demo_AltitudeDrag()
 
     std::vector<std::string> labels{"Vacuum", "Constant air", "Isothermal", "Adiabatic (std)"};
 
-    Visualizer::VisualizeMultiRealFunction(trajectories,
+    const auto visualization = Visualizer::VisualizeMultiRealFunction(trajectories,
         "Artillery: Air Density Models at 300 m/s",
         labels, 0, 1.05 * vacResult._range, 500, "projectile_altitude_drag.mml");
+    if (!visualization.success)
+        std::cerr << "Visualization failed: " << visualization.message << '\n';
 
-    std::cout << ">> Scenario 4 complete - visualization saved\n";
+    std::cout << ">> Scenario 4 complete"
+              << (visualization.success ? " - visualization saved\n" : " - visualization failed\n");
 }
 
 

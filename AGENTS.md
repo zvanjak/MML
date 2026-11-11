@@ -144,6 +144,11 @@ Optional example aggregate:
 cmake --build build --config Release --target examples --parallel
 ```
 
+The aggregate includes all public example applications and documentation demos.
+`Example07_EMFields` is excluded with a configure message because its MPL
+dependencies are not distributed here. Private solver benchmarks are not public
+build targets. Installation uses the core license in `LICENSE`.
+
 ---
 
 ## vcpkg overlay

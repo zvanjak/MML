@@ -6,7 +6,6 @@ add_executable(Example00_NBodyGravity
 )
 target_include_directories(Example00_NBodyGravity PRIVATE 
     ${CMAKE_SOURCE_DIR}
-    ${CMAKE_SOURCE_DIR}/src/book
 )
 
 # Example 01: Projectile launch
@@ -15,7 +14,6 @@ add_executable(Example01_ProjectileLaunch
 )
 target_include_directories(Example01_ProjectileLaunch PRIVATE 
     ${CMAKE_SOURCE_DIR}
-    ${CMAKE_SOURCE_DIR}/src/book
 )
 
 # Example 02: Double pendulum
@@ -24,7 +22,6 @@ add_executable(Example02_DoublePendulum
 )
 target_include_directories(Example02_DoublePendulum PRIVATE 
     ${CMAKE_SOURCE_DIR}
-    ${CMAKE_SOURCE_DIR}/src/book
 )
 
 # Example 03: Formula 1 G-Force analysis
@@ -54,12 +51,8 @@ add_executable(Example06_LorentzTransform
 )
 target_include_directories(Example06_LorentzTransform PRIVATE ${CMAKE_SOURCE_DIR})
 
-# Example 07: Electromagnetism in special relativity
-add_executable(Example07_EMFields
-    07_EM_fields/main.cpp
-)
-target_include_directories(Example07_EMFields PRIVATE ${CMAKE_SOURCE_DIR})
-target_include_directories(Example07_EMFields PRIVATE ${CMAKE_SOURCE_DIR}/src/book/mpl)
+# Example 07 requires MPL headers not distributed with public MML.
+message(STATUS "Skipping Example07_EMFields: MPL dependencies are not part of public MML")
 
 # Example 08: General relativity curvature and geodesics
 add_executable(Example08_GRExamples
