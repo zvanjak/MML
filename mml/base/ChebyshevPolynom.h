@@ -49,7 +49,7 @@ namespace MML
 		
 		for (int k = 2; k <= n; k++)
 		{
-			T_curr = 2.0 * x * T_prev1 - T_prev2;
+			T_curr = MML::Real(2.0) * x * T_prev1 - T_prev2;
 			T_prev2 = T_prev1;
 			T_prev1 = T_curr;
 		}
@@ -80,15 +80,15 @@ namespace MML
 			throw ArgumentError("ChebyshevU: n must be non-negative");
 		
 		if (n == 0) return 1.0;
-		if (n == 1) return 2.0 * x;
+		if (n == 1) return MML::Real(2.0) * x;
 		
 		Real U_prev2 = 1.0;       // U_0
-		Real U_prev1 = 2.0 * x;   // U_1
+		Real U_prev1 = MML::Real(2.0) * x;   // U_1
 		Real U_curr = 0.0;
 		
 		for (int k = 2; k <= n; k++)
 		{
-			U_curr = 2.0 * x * U_prev1 - U_prev2;
+			U_curr = MML::Real(2.0) * x * U_prev1 - U_prev2;
 			U_prev2 = U_prev1;
 			U_prev1 = U_curr;
 		}

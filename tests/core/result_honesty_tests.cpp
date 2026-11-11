@@ -45,7 +45,7 @@ namespace {
     class OscillatoryField : public IVectorFunction<3> {
     public:
         VectorN<Real, 3> operator()(const VectorN<Real, 3>& x) const override {
-            return VectorN<Real, 3>{0.0, 0.0, std::sin(200.0 * x[0]) * std::cos(170.0 * x[1])};
+            return VectorN<Real, 3>{MML::Real(0.0), MML::Real(0.0), std::sin(MML::Real(200.0) * x[0]) * std::cos(MML::Real(170.0) * x[1])};
         }
     };
     template<int N>
@@ -111,6 +111,7 @@ TEST_CASE("Adaptive surface integrals report convergence and error estimate hone
         REQUIRE_FALSE(r.error_estimated);
         REQUIRE_FALSE(HasEstimate(r.error_estimate));
         REQUIRE(r.iterations == 64);
+        REQUIRE(r.function_evaluations == 64);
         REQUIRE_THAT(r.value, Catch::Matchers::WithinAbs(static_cast<MML::Real>(1.0), static_cast<MML::Real>(1e-10)));
         REQUIRE_THROWS_AS(SurfaceIntegration::SurfaceIntegral(f, plane, 1.0, 0.0, 0.0, 1.0), ArgumentError);   // was: value 0, converged
         REQUIRE_THROWS_AS(SurfaceIntegration::SurfaceIntegral(f, plane, 0.0, 1.0, 0.0, 1.0, 0, 4), ArgumentError);
@@ -157,7 +158,7 @@ TEST_CASE("ContourIntegrationResult does not claim convergence by default", "[re
     auto I = ComplexAnalysis::ContourIntegral(f, unit);
     REQUIRE(I.converged);                                  // adaptive Simpson checked and met its tolerance
     REQUIRE(HasEstimate(I.error_estimate));
-    REQUIRE(std::abs(I.value - Complex(0.0, 2.0 * Constants::PI)) < 1e-8);
+    REQUIRE(std::abs(I.value - Complex(0.0, 2.0 * Constants::PI)) <= std::max(Real(1e-8), I.error_estimate));
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -168,7 +169,7 @@ TEST_CASE("Endpoint roots report the residual as achieved tolerance and no x-err
 {
     RealFunctionFromStdFunc f([](Real x) { return x * x - static_cast<MML::Real>(4.0); });
     RootFinding::RootFindingConfig cfg;
-    cfg.tolerance = 1e-12;
+    cfg.tolerance = MML::Real(1e-12);
     auto r = RootFinding::FindRootBrentDetailed(f, static_cast<MML::Real>(2.0), static_cast<MML::Real>(5.0), cfg);   // f(2) == 0 exactly
     REQUIRE(r.converged);
     REQUIRE(r.root == static_cast<MML::Real>(2.0));

@@ -303,7 +303,7 @@ namespace MML {
 		Real stepSize() const
 		{
 			if (_h > 0.0) return _h;
-			return std::pow(std::numeric_limits<Real>::epsilon(), 0.2);
+			return std::pow(std::numeric_limits<Real>::epsilon(), MML::Real(0.2));
 		}
 	};
 

@@ -26,11 +26,68 @@
 #include <mml/algorithms/EigenSystemSolvers.h>
 
 #include <algorithm>
+#include <array>
+#include <initializer_list>
 #include <limits>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace MML {
+  namespace PolynomialRootDetail {
+    template<typename Coefficients>
+    int NormalizeCoefficients(Coefficients& coefficients) {
+      Real largest = 0;
+      for (const auto& value : coefficients) {
+        if (!std::isfinite(std::real(value)) || !std::isfinite(std::imag(value)))
+          throw ArgumentError("Polynomial coefficients must be finite");
+        largest = std::max({largest, std::abs(std::real(value)), std::abs(std::imag(value))});
+      }
+      if (largest == 0) return 0;
+      int exponent;
+      std::frexp(largest, &exponent);
+      --exponent;
+      const auto normalizeComponent = [exponent](Real value) {
+        const Real scaled = std::scalbn(value, -exponent);
+        if (!std::isfinite(scaled) || std::scalbn(scaled, exponent) != value)
+          throw RootFindingError("Polynomial normalization loses a nonzero coefficient component");
+        return scaled;
+      };
+      for (auto& value : coefficients) {
+        using Scalar = typename Coefficients::value_type;
+        if constexpr (is_std_complex<Scalar>::value)
+          value = Scalar{normalizeComponent(value.real()), normalizeComponent(value.imag())};
+        else
+          value = normalizeComponent(value);
+      }
+      return exponent;
+    }
+
+    inline void ValidatePolynomial(const PolynomReal& polynomial) {
+      if (polynomial.degree() < 0)
+        throw ArgumentError("Polynomial must contain coefficients");
+      for (int index = 0; index <= polynomial.degree(); ++index)
+        if (!std::isfinite(polynomial[index]))
+          throw ArgumentError("Polynomial coefficients must be finite");
+      if (polynomial.degree() > 0 && polynomial[polynomial.degree()] == 0)
+        throw ArgumentError("Polynomial leading coefficient is zero");
+    }
+
+    inline std::pair<PolynomReal, int> NormalizePolynomial(const PolynomReal& polynomial) {
+      ValidatePolynomial(polynomial);
+      std::vector<Real> coefficients(polynomial.degree() + 1);
+      for (int index = 0; index <= polynomial.degree(); ++index)
+        coefficients[index] = polynomial[index];
+      const int exponent = NormalizeCoefficients(coefficients);
+      return {PolynomReal(coefficients), exponent};
+    }
+
+    inline void RequireFiniteRoots(std::initializer_list<Complex> roots) {
+      for (const auto& root : roots)
+        if (!std::isfinite(std::abs(root)))
+          throw RootFindingError("Polynomial root arithmetic is not representable");
+    }
+  }
   /***************************************************************************************************
    * LOW-DEGREE POLYNOMIAL SOLVERS (Quadratic, Cubic, Quartic)
    * 
@@ -42,14 +99,18 @@ namespace MML {
   /// Solve quadratic equation: a*x^2 + b*x + c = 0
   /// @return Number of real roots (0 or 2); complex roots returned via x1, x2
   inline int SolveQuadratic(Real a, Real b, Real c, Complex &x1, Complex &x2) {
+    std::array<Real, 3> coefficients{a, b, c};
+    PolynomialRootDetail::NormalizeCoefficients(coefficients);
+    a = coefficients[0]; b = coefficients[1]; c = coefficients[2];
     // Degenerate: a=0 reduces to linear equation b*x + c = 0
-    if (std::abs(a) < Constants::Eps) {
-      if (std::abs(b) < Constants::Eps) {
+    if (a == 0) {
+      if (b == 0) {
         x1 = x2 = Complex(0);
         return 0;
       }
       x1 = Complex(-c / b);
       x2 = Complex(0);
+      PolynomialRootDetail::RequireFiniteRoots({x1, x2});
       return 1;
     }
 
@@ -66,11 +127,13 @@ namespace MML {
       }
       x1 = q / a;
       x2 = c / q;
+      PolynomialRootDetail::RequireFiniteRoots({x1, x2});
       return 2;
     } else {
       Complex sqrtD = std::sqrt(Complex(D));
       x1 = (-b + sqrtD) / (2 * a);
       x2 = (-b - sqrtD) / (2 * a);
+      PolynomialRootDetail::RequireFiniteRoots({x1, x2});
       return 0;
     }
   }
@@ -78,17 +141,28 @@ namespace MML {
   /// Solve quadratic equation with complex coefficients: a*x^2 + b*x + c = 0
   inline void SolveQuadratic(const Complex &a, const Complex &b, const Complex &c,
                              Complex &x1, Complex &x2) {
+    std::array<Complex, 3> coefficients{a, b, c};
+    PolynomialRootDetail::NormalizeCoefficients(coefficients);
+    const Complex A = coefficients[0], B = coefficients[1], C = coefficients[2];
     // Degenerate: a=0 reduces to linear equation b*x + c = 0
-    if (std::abs(a) < Constants::Eps) {
-      x1 = (std::abs(b) < Constants::Eps) ? Complex(0) : -c / b;
+    if (A == Complex{}) {
+      x1 = (B == Complex{}) ? Complex(0) : -C / B;
       x2 = Complex(0);
+      PolynomialRootDetail::RequireFiniteRoots({x1, x2});
       return;
     }
 
-    Complex D = b * b - Real(4.0) * a * c;
+    Complex D = B * B - Real(4.0) * A * C;
     Complex sqrtD = std::sqrt(D);
-    x1 = (-b + sqrtD) / (Real(2.0) * a);
-    x2 = (-b - sqrtD) / (Real(2.0) * a);
+    if (std::abs(B + sqrtD) < std::abs(B - sqrtD)) sqrtD = -sqrtD;
+    const Complex q = Real(-0.5) * (B + sqrtD);
+    if (q == Complex{}) {
+      x1 = x2 = Complex{};
+    } else {
+      x1 = q / A;
+      x2 = C / q;
+    }
+    PolynomialRootDetail::RequireFiniteRoots({x1, x2});
   }
 
   /// Solve cubic equation: a*x^3 + b*x^2 + c*x + d = 0 (Cardano's formula)
@@ -96,8 +170,11 @@ namespace MML {
   ///         Repeated real roots (D == 0 within rounding) count as 3 real roots, with x2 == x3.
   inline int SolveCubic(Real a, Real b, Real c, Real d, Complex &x1, Complex &x2,
                         Complex &x3) {
+    std::array<Real, 4> coefficients{a, b, c, d};
+    PolynomialRootDetail::NormalizeCoefficients(coefficients);
+    a = coefficients[0]; b = coefficients[1]; c = coefficients[2]; d = coefficients[3];
     // Degenerate: a=0 reduces to quadratic b*x^2 + c*x + d = 0
-    if (std::abs(a) < Constants::Eps) {
+    if (a == 0) {
       int n = SolveQuadratic(b, c, d, x1, x2);
       x3 = Complex(0);
       return n;
@@ -112,18 +189,24 @@ namespace MML {
     Real Q = (Real(3.0) * B - POW2(A)) / Real(9.0);
     Real R =
         (Real(9.0) * A * B - Real(27.0) * C - Real(2.0) * POW3(A)) / Real(54.0);
-    Real D = POW3(Q) + POW2(R); // Discriminant
+    // Evaluate the discriminant in root-scaled units: R^2 may overflow
+    // even though cbrt(R), and hence all roots, are representable.
+    const Real rootScale = std::max(std::sqrt(std::abs(Q)), std::cbrt(std::abs(R)));
+    const Real scaledQ = rootScale == 0 ? Real(0) : (Q / rootScale) / rootScale;
+    const Real scaledR = rootScale == 0 ? Real(0) : ((R / rootScale) / rootScale) / rootScale;
+    Real D = POW3(scaledQ) + POW2(scaledR); // Discriminant / rootScale^6
 
     // D is a difference of two rounded quantities; treat |D| below their rounding noise as zero,
     // otherwise a triple root like (x-1)^3 lands in the "one real root" branch by accident.
-    const Real scaleD = std::abs(POW3(Q)) + POW2(R);
+    const Real scaleD = std::abs(POW3(scaledQ)) + POW2(scaledR);
     const Real tolD = Real(64.0) * std::numeric_limits<Real>::epsilon() * scaleD;
 
     if (std::abs(D) <= tolD) // Repeated real roots: x1 = -A/3 + 2S, x2 = x3 = -A/3 - S
     {
-      Real S = std::cbrt(R);
+      Real S = rootScale * std::cbrt(scaledR);
       x1 = -A / Real(3.0) + Real(2.0) * S;
       x2 = x3 = Complex(-A / Real(3.0) - S);
+      PolynomialRootDetail::RequireFiniteRoots({x1, x2, x3});
       return 3;
     }
     else if (D > 0) // One real root and a complex conjugate pair
@@ -131,7 +214,7 @@ namespace MML {
       // Stable Cardano: take the cube root with no cancellation, get the other from S*T = -Q
       // (Numerical Recipes §5.6; S + T would otherwise lose digits when |R| ≈ sqrt(D)).
       Real sqrtD = std::sqrt(D);
-      Real big = std::copysign(std::cbrt(std::abs(R) + sqrtD), R);
+      Real big = rootScale * std::copysign(std::cbrt(std::abs(scaledR) + sqrtD), R);
       Real small = (big != Real(0.0)) ? -Q / big : Real(0.0);
       Real S = (R >= Real(0.0)) ? big : small;
       Real T = (R >= Real(0.0)) ? small : big;
@@ -141,12 +224,13 @@ namespace MML {
            Complex(0, std::sqrt(Real(3.0)) * (S - T) / Real(2.0)); // Complex root
       x3 = -A / Real(3.0) - (S + T) / Real(2.0) -
            Complex(0, std::sqrt(Real(3.0)) * (S - T) / Real(2.0)); // Complex root
+      PolynomialRootDetail::RequireFiniteRoots({x1, x2, x3});
 
       return 1;
     } else // Three distinct real roots (trigonometric form)
     {
       // R / sqrt(-Q^3) is ±1 up to rounding at the boundary; clamp so acos never returns NaN
-      Real ratio = std::clamp(R / std::sqrt(-POW3(Q)), Real(-1.0), Real(1.0));
+      Real ratio = std::clamp(scaledR / std::sqrt(-POW3(scaledQ)), Real(-1.0), Real(1.0));
       Real theta = std::acos(ratio);
       x1 =
           Real(2.0) * std::sqrt(-Q) * std::cos(theta / Real(3.0)) - A / Real(3.0);
@@ -156,6 +240,7 @@ namespace MML {
       x3 = Real(2.0) * std::sqrt(-Q) *
                std::cos((theta + Real(4.0) * Constants::PI) / Real(3.0)) -
            A / Real(3.0);
+      PolynomialRootDetail::RequireFiniteRoots({x1, x2, x3});
 
       return 3;
     }
@@ -165,8 +250,11 @@ namespace MML {
   /// All roots returned via x1, x2, x3, x4
   inline void SolveQuartic(Real a, Real b, Real c, Real d, Real e, Complex &x1,
                            Complex &x2, Complex &x3, Complex &x4) {
+    std::array<Real, 5> coefficients{a, b, c, d, e};
+    PolynomialRootDetail::NormalizeCoefficients(coefficients);
+    a = coefficients[0]; b = coefficients[1]; c = coefficients[2]; d = coefficients[3]; e = coefficients[4];
     // Degenerate: reduce to cubic
-    if (std::abs(a) < Constants::Eps) {
+    if (a == 0) {
       SolveCubic(b, c, d, e, x1, x2, x3);
       x4 = Complex(0);
       return;
@@ -194,6 +282,7 @@ namespace MML {
       x2 = -std::sqrt(t1) - A / Real(4.0);
       x3 = std::sqrt(t2) - A / Real(4.0);
       x4 = -std::sqrt(t2) - A / Real(4.0);
+      PolynomialRootDetail::RequireFiniteRoots({x1, x2, x3, x4});
       return;
     }
 
@@ -230,6 +319,7 @@ namespace MML {
     x2 = y2 - A / Real(4.0);
     x3 = y3 - A / Real(4.0);
     x4 = y4 - A / Real(4.0);
+    PolynomialRootDetail::RequireFiniteRoots({x1, x2, x3, x4});
   }
 
 	namespace RootFinding {
@@ -276,8 +366,8 @@ namespace MML {
 			bool deflation_used = false;
 			bool polishing_applied = false;
 			bool converged = false;
-			Real max_residual = 0.0;
-			Real max_relative_residual = 0.0;
+			Real max_residual = NoEstimate;
+			Real max_relative_residual = NoEstimate;
 		};
 
 		namespace Detail {
@@ -293,14 +383,20 @@ namespace MML {
 			}
 
 			inline Real PolynomialScale(const PolynomReal& polynomial, Complex x) {
-				Real scale = 0.0;
-				Real power = 1.0;
+				Real scale = std::abs(polynomial[polynomial.degree()]);
 				const Real magnitude = std::abs(x);
-				for (int coefficient = 0; coefficient <= polynomial.degree(); ++coefficient) {
-					scale += std::abs(polynomial[coefficient]) * power;
-					power *= magnitude;
-				}
-				return std::max(scale, std::numeric_limits<Real>::min());   // underflow guard
+				for (int coefficient = polynomial.degree() - 1; coefficient >= 0; --coefficient)
+					scale = scale * magnitude + std::abs(polynomial[coefficient]);
+				return scale;
+			}
+
+			inline Real RelativePolynomialResidual(Complex value, Real scale) {
+				const Real residual = std::abs(value);
+				if (!std::isfinite(residual) || !std::isfinite(scale))
+					return std::numeric_limits<Real>::infinity();
+				if (scale == 0)
+					return residual == 0 ? Real(0) : std::numeric_limits<Real>::infinity();
+				return residual / scale;
 			}
 		} // namespace Detail
 
@@ -319,6 +415,9 @@ namespace MML {
 		/// @param maxIter   Maximum iterations per root (default: 100)
 		/// @return Vector of all complex roots
 		static Vector<Complex> LaguerreRoots(const PolynomReal& poly, Real tol = Precision::PolynomialRootTolerance, int maxIter = 100) {
+			if (!std::isfinite(tol) || tol <= 0 || maxIter <= 0)
+				throw ArgumentError("LaguerreRoots: tolerance and iteration budget must be positive");
+			const auto normalized = PolynomialRootDetail::NormalizePolynomial(poly).first;
 			Vector<Complex> roots;
 			int degree = poly.degree();
 
@@ -328,7 +427,7 @@ namespace MML {
 			// Work with coefficient array (not Polynom object due to operator[] template issues)
 			Vector<Complex> workCoeffs(degree + 1);
 			for (int i = 0; i <= degree; i++)
-				workCoeffs[i] = std::complex<Real>(poly[i], 0.0);
+				workCoeffs[i] = std::complex<Real>(normalized[i], 0.0);
 
 			// Find roots one by one with deflation
 			for (int currentDegree = degree; currentDegree >= 1; currentDegree--) {
@@ -391,6 +490,7 @@ namespace MML {
 						x -= p / dp;
 				}
 
+				PolynomialRootDetail::RequireFiniteRoots({x});
 				roots.push_back(x);
 
 				// Deflate polynomial
@@ -412,8 +512,12 @@ namespace MML {
 		///            Most robust but most expensive method for large polynomials.
 		///
 		/// @param poly  Polynomial with real coefficients
+		/// @param maxIter Maximum total companion QR iterations
 		/// @return Vector of all complex roots
-		static Vector<Complex> EigenvalueRoots(const PolynomReal& poly) {
+		static Vector<Complex> EigenvalueRoots(const PolynomReal& poly, int maxIter) {
+			if (maxIter <= 0)
+				throw ArgumentError("EigenvalueRoots: iteration budget must be positive");
+			const auto normalized = PolynomialRootDetail::NormalizePolynomial(poly).first;
 			Vector<Complex> roots;
 			int degree = poly.degree();
 
@@ -421,7 +525,9 @@ namespace MML {
 				return roots;
 
 			if (degree == 1) {
-				roots.push_back(std::complex<Real>(-poly[0] / poly[1], 0.0));
+				const Complex root{-normalized[0] / normalized[1], 0.0};
+				PolynomialRootDetail::RequireFiniteRoots({root});
+				roots.push_back(root);
 				return roots;
 			}
 
@@ -436,24 +542,38 @@ namespace MML {
 				companion[i][i + 1] = 1.0;
 
 			// Last row: -a_0/a_n, -a_1/a_n, ..., -a_{n-1}/a_n
-			Real leadingCoef = poly[degree];
-			if (std::abs(leadingCoef) < PrecisionValues<Real>::PolynomialCoeffZeroThreshold)
-				throw RootFindingError("Polynomial leading coefficient is zero");
+			Real leadingCoef = normalized[degree];
 
-			for (int i = 0; i < degree; i++)
-				companion[degree - 1][i] = -poly[i] / leadingCoef;
+			for (int i = 0; i < degree; i++) {
+				companion[degree - 1][i] = -normalized[i] / leadingCoef;
+				if (!std::isfinite(companion[degree - 1][i]))
+					throw RootFindingError("Companion matrix coefficient ratio is not representable");
+			}
 
 			// Solve eigenvalue problem
-			auto eigenResult = EigenSolver::Solve(companion, Precision::EigenSolverConvergenceTolerance, 1000);
+			// A companion eigenvalue is subsequently verified as a polynomial
+			// root. Its QR request must not be looser than the root contract;
+			// allow for the degree terms in the polynomial residual.
+			const Real rootTolerance = std::min(Precision::EigenSolverConvergenceTolerance,
+				Precision::PolynomialRootTolerance / degree);
+			auto eigenResult = EigenSolver::Solve(companion, rootTolerance, maxIter);
 
-			if (!eigenResult.converged)
-				throw RootFindingError("Eigenvalue solver failed to converge");
+			if (!eigenResult.converged || eigenResult.status != AlgorithmStatus::Success)
+				throw RootFindingError("Companion eigenvalue solver failed: " + eigenResult.error_message);
 
 			// Extract eigenvalues as roots
-			for (const auto& eval : eigenResult.eigenvalues)
-				roots.push_back(std::complex<Real>(eval.real, eval.imag));
+			for (const auto& eval : eigenResult.eigenvalues) {
+				const Complex root{eval.real, eval.imag};
+				PolynomialRootDetail::RequireFiniteRoots({root});
+				roots.push_back(root);
+			}
 
 			return roots;
+		}
+
+		/// Compatibility overload preserving the historical 1000-iteration budget.
+		static inline Vector<Complex> EigenvalueRoots(const PolynomReal& poly) {
+			return EigenvalueRoots(poly, 1000);
 		}
 
 		/// Find/refine polynomial roots using Bairstow's method.
@@ -467,6 +587,9 @@ namespace MML {
 		/// @return Vector of complex roots
 		static Vector<Complex> BairstowRoots(const PolynomReal& poly, const Vector<Complex>& initialRoots = Vector<Complex>(),
 														 Real tol = Precision::PolynomialRootTolerance, int maxIter = 100) {
+			if (!std::isfinite(tol) || tol <= 0 || maxIter <= 0)
+				throw ArgumentError("BairstowRoots: tolerance and iteration budget must be positive");
+			const auto normalized = PolynomialRootDetail::NormalizePolynomial(poly).first;
 			Vector<Complex> roots;
 			int n = poly.degree();
 
@@ -476,7 +599,7 @@ namespace MML {
 			// Work with coefficient array a[0..n] where poly = a[0] + a[1]x + ... + a[n]x^n
 			Vector<Real> a(n + 1);
 			for (int i = 0; i <= n; i++)
-				a[i] = poly[i];
+				a[i] = normalized[i];
 
 			while (n >= 2) {
 				// Initial guess for quadratic factor x² + u*x + v
@@ -537,8 +660,8 @@ namespace MML {
 
 					if (std::abs(det) < PrecisionValues<Real>::DeterminantZeroThreshold) {
 						// Singular Jacobian - perturb and continue
-						u += 0.1;
-						v += 0.1;
+						u += MML::Real(0.1);
+						v += MML::Real(0.1);
 						continue;
 					}
 
@@ -560,16 +683,10 @@ namespace MML {
 
 				// Extract roots from quadratic x² + ux + v = 0
 				// x = (-u ± sqrt(u² - 4v)) / 2
-				Real discriminant = u * u - Real(4.0) * v;
-				if (discriminant >= 0) {
-					Real sqrtDisc = std::sqrt(discriminant);
-					roots.push_back(std::complex<Real>((-u + sqrtDisc) / Real(2.0), 0.0));
-					roots.push_back(std::complex<Real>((-u - sqrtDisc) / Real(2.0), 0.0));
-				} else {
-					Real sqrtDisc = std::sqrt(-discriminant);
-					roots.push_back(std::complex<Real>(-u / Real(2.0), sqrtDisc / Real(2.0)));
-					roots.push_back(std::complex<Real>(-u / Real(2.0), -sqrtDisc / Real(2.0)));
-				}
+				Complex first, second;
+				SolveQuadratic(Real(1), u, v, first, second);
+				roots.push_back(first);
+				roots.push_back(second);
 
 				// Deflate: new polynomial is Q(x) with coefficients b[0], b[1], ..., b[n-2]
 				if (n > 2) {
@@ -583,8 +700,11 @@ namespace MML {
 
 			// Handle remaining linear term: a[0] + a[1]*x = 0
 			if (n == 1) {
-				if (std::abs(a[1]) > PrecisionValues<Real>::PolynomialCoeffZeroThreshold)
-					roots.push_back(std::complex<Real>(-a[0] / a[1], 0.0));
+				if (a[1] == 0)
+					throw RootFindingError("Bairstow deflation lost the linear leading coefficient");
+				const Complex root{-a[0] / a[1], 0.0};
+				PolynomialRootDetail::RequireFiniteRoots({root});
+				roots.push_back(root);
 			}
 
 			return roots;
@@ -613,8 +733,23 @@ namespace MML {
 				result.elapsed_time_ms = timer.elapsed_ms();
 				return result;
 			}
+			std::pair<PolynomReal, int> working;
+			try {
+				working = PolynomialRootDetail::NormalizePolynomial(polynomial);
+			} catch (const ArgumentError& error) {
+				result.status = AlgorithmStatus::InvalidInput;
+				result.error_message = error.what();
+				result.elapsed_time_ms = timer.elapsed_ms();
+				return result;
+			} catch (const RootFindingError& error) {
+				result.status = AlgorithmStatus::NumericalInstability;
+				result.error_message = error.what();
+				result.elapsed_time_ms = timer.elapsed_ms();
+				return result;
+			}
+			const auto& normalized = working.first;
 			if (polynomial.degree() == 0) {
-				if (std::abs(polynomial[0]) <= PrecisionValues<Real>::PolynomialCoeffZeroThreshold) {
+				if (polynomial[0] == 0) {
 					result.status = AlgorithmStatus::InvalidInput;
 					result.error_message = "PolishPolynomialRoots: zero polynomial has infinitely many roots";
 					result.elapsed_time_ms = timer.elapsed_ms();
@@ -628,14 +763,6 @@ namespace MML {
 				result.elapsed_time_ms = timer.elapsed_ms();
 				return result;
 			}
-			if (std::abs(polynomial[polynomial.degree()])
-				<= PrecisionValues<Real>::PolynomialCoeffZeroThreshold) {
-				result.status = AlgorithmStatus::InvalidInput;
-				result.error_message = "PolishPolynomialRoots: leading coefficient is zero";
-				result.elapsed_time_ms = timer.elapsed_ms();
-				return result;
-			}
-
 			const Real baseMultiplicityTolerance = config.multiplicity_tolerance > 0.0
 				? config.multiplicity_tolerance : std::sqrt(config.tolerance);
 			std::vector<int> multiplicities(initialRoots.size(), 1);
@@ -652,22 +779,29 @@ namespace MML {
 			}
 
 			result.roots.reserve(initialRoots.size());
+			result.max_residual = 0.0;
+			result.max_relative_residual = 0.0;
 			for (int rootIndex = 0; rootIndex < initialRoots.size(); ++rootIndex) {
 				PolynomialRootResult rootResult;
 				rootResult.root = initialRoots[rootIndex];
 				rootResult.estimated_multiplicity = multiplicities[rootIndex];
 				Complex value;
 				Complex derivative;
-				Detail::EvaluatePolynomialAndDerivative(polynomial, rootResult.root, value, derivative);
+				Detail::EvaluatePolynomialAndDerivative(normalized, rootResult.root, value, derivative);
 				++result.function_evaluations;
 
 				if (result.polishing_applied) {
 					for (int iteration = 0; iteration < config.polishing_iterations; ++iteration) {
-						const Real relativeResidual = std::abs(value)
-							/ Detail::PolynomialScale(polynomial, rootResult.root);
+						const Real relativeResidual = Detail::RelativePolynomialResidual(
+							value, Detail::PolynomialScale(normalized, rootResult.root));
+						if (!std::isfinite(relativeResidual)) {
+							rootResult.status = AlgorithmStatus::NumericalInstability;
+							rootResult.message = "Non-finite original-polynomial residual verification";
+							break;
+						}
 						if (relativeResidual <= config.tolerance) break;
 						const Real derivativeThreshold = std::numeric_limits<Real>::epsilon()
-							* Detail::PolynomialScale(polynomial, rootResult.root);
+							* Detail::PolynomialScale(normalized, rootResult.root);
 						if (!std::isfinite(std::abs(derivative))
 							|| std::abs(derivative) <= derivativeThreshold) {
 							rootResult.status = AlgorithmStatus::Stalled;
@@ -683,19 +817,24 @@ namespace MML {
 						rootResult.root -= step;
 						rootResult.polished = true;
 						rootResult.polishing_iterations = iteration + 1;
-						Detail::EvaluatePolynomialAndDerivative(polynomial, rootResult.root, value, derivative);
+						Detail::EvaluatePolynomialAndDerivative(normalized, rootResult.root, value, derivative);
 						++result.function_evaluations;
 					}
 				}
 
-				rootResult.residual = std::abs(value);
-				rootResult.relative_residual = rootResult.residual
-					/ Detail::PolynomialScale(polynomial, rootResult.root);
+				const Real normalizedResidual = std::abs(value);
+				rootResult.residual = std::isfinite(normalizedResidual)
+					? std::scalbn(normalizedResidual, working.second) : std::numeric_limits<Real>::infinity();
+				rootResult.relative_residual = Detail::RelativePolynomialResidual(
+					value, Detail::PolynomialScale(normalized, rootResult.root));
 				rootResult.converged = std::isfinite(rootResult.relative_residual)
 					&& rootResult.relative_residual <= config.tolerance;
 				if (rootResult.converged) {
 					rootResult.status = AlgorithmStatus::Success;
 					rootResult.message.clear();
+				} else if (!std::isfinite(rootResult.relative_residual)) {
+					rootResult.status = AlgorithmStatus::NumericalInstability;
+					rootResult.message = "Non-finite original-polynomial residual verification";
 				} else if (rootResult.status == AlgorithmStatus::Success) {
 					rootResult.status = AlgorithmStatus::ToleranceUnachievable;
 					rootResult.message = "Root residual exceeds requested tolerance";
@@ -710,6 +849,9 @@ namespace MML {
 				[](const PolynomialRootResult& root) { return root.converged; });
 			result.status = result.converged
 				? AlgorithmStatus::Success : AlgorithmStatus::ToleranceUnachievable;
+			if (std::any_of(result.roots.begin(), result.roots.end(),
+				[](const PolynomialRootResult& root) { return root.status == AlgorithmStatus::NumericalInstability; }))
+				result.status = AlgorithmStatus::NumericalInstability;
 			if (!result.converged)
 				result.error_message = "One or more polynomial roots failed residual verification";
 			result.elapsed_time_ms = timer.elapsed_ms();
@@ -729,8 +871,7 @@ namespace MML {
 				failure.elapsed_time_ms = timer.elapsed_ms();
 				return failure;
 			}
-			if (polynomial.degree() == 0
-				&& std::abs(polynomial[0]) <= PrecisionValues<Real>::PolynomialCoeffZeroThreshold) {
+			if (polynomial.degree() == 0 && polynomial[0] == 0) {
 				failure.status = AlgorithmStatus::InvalidInput;
 				failure.error_message = "FindPolynomialRootsDetailed: zero polynomial has infinitely many roots";
 				failure.elapsed_time_ms = timer.elapsed_ms();
@@ -739,19 +880,30 @@ namespace MML {
 
 			Vector<Complex> roots;
 			try {
+				PolynomialRootDetail::ValidatePolynomial(polynomial);
 				switch (config.method) {
 					case PolynomialRootMethod::Laguerre:
 						roots = LaguerreRoots(polynomial, config.tolerance, config.max_iterations);
 						break;
 					case PolynomialRootMethod::CompanionMatrix:
-						roots = EigenvalueRoots(polynomial);
+						roots = EigenvalueRoots(polynomial, config.max_iterations);
 						break;
 					case PolynomialRootMethod::Bairstow:
 						roots = BairstowRoots(polynomial, {}, config.tolerance, config.max_iterations);
 						break;
 				}
-			} catch (const std::exception& error) {
+			} catch (const ArgumentError& error) {
+				failure.status = AlgorithmStatus::InvalidInput;
+				failure.error_message = error.what();
+				failure.elapsed_time_ms = timer.elapsed_ms();
+				return failure;
+			} catch (const RootFindingError& error) {
 				failure.status = AlgorithmStatus::AlgorithmSpecificFailure;
+				failure.error_message = error.what();
+				failure.elapsed_time_ms = timer.elapsed_ms();
+				return failure;
+			} catch (const MatrixNumericalError& error) {
+				failure.status = AlgorithmStatus::NumericalInstability;
 				failure.error_message = error.what();
 				failure.elapsed_time_ms = timer.elapsed_ms();
 				return failure;

@@ -1,22 +1,33 @@
 #include <catch2/catch_all.hpp>
+#include "../../TestPrecision.h"
+#include <limits>
+#ifndef MML_SINGLE_HEADER_INCLUDE
 #include <mml/core/Derivation/ADAdapters.h>
 #include <mml/core/Derivation/ADJacobians.h>
 #include <mml/core/DifferentialGeometry/InducedMetric.h>
 #include <mml/core/Fields/FieldOperations.h>
 #include <mml/core/Integration/PathIntegration.h>
+#endif
 
 using namespace MML;
 
 namespace {
+	Real NumericalMetricBudget(Real coordinate) {
+		const Real h = Derivation::ScaleStep(Derivation::NDer4_h, coordinate);
+		// Four 2D connection-derivative contributions, each with nested stencil L1 norm (3/2)^2.
+		// The smooth metric fixtures vary on scale 2, giving a fourth-order (2h)^4 term.
+		return 9 * Precision::Eps / (h * h) + POW4(2 * h);
+	}
+
 	template<typename F>
 	void CheckThird(F f, Real x, Real value, Real first, Real second, Real third) {
 		using D = AD::Dual<Real>;
 		using D2 = AD::Dual<D>;
 		const auto y = f(AD::Dual<D2>(D2(D(x, 1), D(1, 0)), D2(D(1, 0), D(0, 0))));
-		CHECK(y.value.value.value == Catch::Approx(value).margin(1e-12));
-		CHECK(y.deriv.value.value == Catch::Approx(first).margin(1e-12));
-		CHECK(y.deriv.deriv.value == Catch::Approx(second).margin(1e-12));
-		CHECK(y.deriv.deriv.deriv == Catch::Approx(third).margin(1e-12));
+		CHECK(y.value.value.value == Catch::Approx(value).margin(TOL(1e-12, Precision::EqualityTolerance)));
+		CHECK(y.deriv.value.value == Catch::Approx(first).margin(TOL(1e-12, Precision::EqualityTolerance)));
+		CHECK(y.deriv.deriv.value == Catch::Approx(second).margin(TOL(1e-12, Precision::EqualityTolerance)));
+		CHECK(y.deriv.deriv.deriv == Catch::Approx(third).margin(TOL(1e-12, Precision::EqualityTolerance)));
 	}
 
 	auto SphereExpression(Real radius) {
@@ -51,7 +62,7 @@ namespace {
 } // namespace
 
 TEST_CASE("Nested ForwardAD elementary functions support third derivatives", "[ADAdapters][ForwardAD]") {
-	const Real x = 0.3;
+	const Real x = MML::Real(0.3);
 	CheckThird(
 		[](auto t) {
 			using std::sin;
@@ -75,13 +86,13 @@ TEST_CASE("Nested ForwardAD elementary functions support third derivatives", "[A
 			using std::log;
 			return log(t);
 		},
-		2, std::log(2.0), 0.5, -0.25, 0.25);
+		2, std::log(MML::Real(2.0)), MML::Real(0.5), -MML::Real(0.25), MML::Real(0.25));
 	CheckThird(
 		[](auto t) {
 			using std::log10;
 			return log10(t);
 		},
-		2, std::log10(2.0), 0.5 / std::log(10.0), -0.25 / std::log(10.0), 0.25 / std::log(10.0));
+		2, std::log10(MML::Real(2.0)), MML::Real(0.5) / std::log(MML::Real(10.0)), -MML::Real(0.25) / std::log(MML::Real(10.0)), MML::Real(0.25) / std::log(MML::Real(10.0)));
 	CheckThird(
 		[](auto t) {
 			using std::sqrt;
@@ -170,7 +181,7 @@ TEST_CASE("Nested ForwardAD elementary functions support third derivatives", "[A
 			using std::pow;
 			return pow(2, t);
 		},
-		0, 1, std::log(2.0), std::pow(std::log(2.0), 2), std::pow(std::log(2.0), 3));
+		0, 1, std::log(MML::Real(2.0)), std::pow(std::log(MML::Real(2.0)), MML::Real(2)), std::pow(std::log(MML::Real(2.0)), MML::Real(3)));
 	CheckThird(
 		[](auto t) {
 			using std::fma;
@@ -191,7 +202,7 @@ TEST_CASE("Nested variable powers preserve mixed exponent seeds", "[ADAdapters][
 }
 
 TEST_CASE("AD curves drive base geometry and arc length without stencils", "[ADAdapters][Curves]") {
-	for (Real scale : {0.01, 1.0, 100.0}) {
+	for (Real scale : {MML::Real(0.01), MML::Real(1.0), MML::Real(100.0)}) {
 		int realCalls = 0;
 		auto expression = [scale, &realCalls](auto t) {
 			using S = decltype(t);
@@ -203,9 +214,9 @@ TEST_CASE("AD curves drive base geometry and arc length without stencils", "[ADA
 		};
 		auto curve = AD::MakeADCurve(expression, 0, 2 * Constants::PI);
 		const Curves::ICurveCartesian3D& base = curve;
-		for (Real t : {0.0, 0.4, 3.0}) {
-			CHECK(base.getCurvature(t) == Catch::Approx(2 / (5 * scale)).epsilon(1e-12));
-			CHECK(base.getTorsion(t) == Catch::Approx(1 / (5 * scale)).epsilon(1e-12));
+		for (Real t : {MML::Real(0.0), MML::Real(0.4), MML::Real(3.0)}) {
+			CHECK(base.getCurvature(t) == Catch::Approx(2 / (5 * scale)).epsilon(TOL(1e-12, Precision::EqualityTolerance)));
+			CHECK(base.getTorsion(t) == Catch::Approx(1 / (5 * scale)).epsilon(TOL(1e-12, Precision::EqualityTolerance)));
 			CHECK(base.getTangent(t).NormL2() == Catch::Approx(std::sqrt(5.0) * scale));
 			CHECK(base.getNormal(t).NormL2() == Catch::Approx(1));
 			CHECK(base.getBinormal(t).NormL2() == Catch::Approx(1));
@@ -213,8 +224,11 @@ TEST_CASE("AD curves drive base geometry and arc length without stencils", "[ADA
 		CHECK(PathIntegration::ParametricCurveLength(curve, 0, 1) == Catch::Approx(std::sqrt(5.0) * scale));
 		CHECK(realCalls == 0);
 		Curves::CurveCartesian3D numerical(0, 2 * Constants::PI, [](Real t) { return VectorN<Real, 3>{2 * std::cos(t), 2 * std::sin(t), t}; });
-		CHECK(numerical.getCurvature(0.4) == Catch::Approx(0.4).epsilon(1e-5));
-		CHECK(numerical.getTorsion(0.4) == Catch::Approx(0.2).epsilon(1e-4));
+		CHECK(numerical.getCurvature(MML::Real(0.4)) == Catch::Approx(MML::Real(0.4)).epsilon(MML::Real(1e-5)));
+		const Real h = Derivation::ScaleStep(Derivation::NDer4_h, Real(0.4));
+		// The third-derivative stencil has h^-3 roundoff and fourth-order truncation.
+		const Real torsionBudget = std::max(Precision::CoarseTolerance, Precision::Eps / (h * h * h) + POW4(h));
+		CHECK(numerical.getTorsion(MML::Real(0.4)) == Catch::Approx(MML::Real(0.2)).epsilon(torsionBudget));
 	}
 	auto circle = AD::MakeADCurve<2>([](auto t) {
 		using std::sin;
@@ -222,27 +236,27 @@ TEST_CASE("AD curves drive base geometry and arc length without stencils", "[ADA
 		using S = decltype(t);
 		return std::array<S, 2>{cos(t), sin(t)};
 	});
-	CHECK(Curves::getCurvature2D(circle, 0.3) == Catch::Approx(1));
-	CHECK(Curves::getSignedCurvature2D(circle, 0.3) == Catch::Approx(1));
+	CHECK(Curves::getCurvature2D(circle, MML::Real(0.3)) == Catch::Approx(1));
+	CHECK(Curves::getSignedCurvature2D(circle, MML::Real(0.3)) == Catch::Approx(1));
 	CHECK_THROWS_AS(circle.EvaluateDerivative(0, 4), DomainError);
 }
 
 TEST_CASE("AD surfaces support extrinsic and intrinsic curvature through base references", "[ADAdapters][Surfaces][Metric]") {
-	for (Real radius : {0.1, 1.0, 10.0}) {
+	for (Real radius : {MML::Real(0.1), MML::Real(1.0), MML::Real(10.0)}) {
 		auto sphere = AD::MakeADSurface(SphereExpression(radius), 0, Constants::PI, 0, 2 * Constants::PI);
 		Surfaces::ISurfaceCartesian& base = sphere;
-		const VectorN<Real, 2> x{0.8, 0.4};
-		CHECK(base.GaussianCurvature(x[0], x[1]) == Catch::Approx(1 / (radius * radius)).epsilon(1e-12));
-		CHECK(std::abs(base.MeanCurvature(x[0], x[1])) == Catch::Approx(1 / radius).epsilon(1e-12));
+		const VectorN<Real, 2> x{MML::Real(0.8), MML::Real(0.4)};
+		CHECK(base.GaussianCurvature(x[0], x[1]) == Catch::Approx(1 / (radius * radius)).epsilon(TOL(1e-12, Precision::EqualityTolerance)));
+		CHECK(std::abs(base.MeanCurvature(x[0], x[1])) == Catch::Approx(1 / radius).epsilon(TOL(1e-12, Precision::EqualityTolerance)));
 		CHECK(base.Normal(x[0], x[1]).NormL2() == Catch::Approx(1));
 		Real k1, k2;
 		base.PrincipalCurvatures(x[0], x[1], k1, k2);
-		CHECK(k1 * k2 == Catch::Approx(1 / (radius * radius)).epsilon(1e-12));
+		CHECK(k1 * k2 == Catch::Approx(1 / (radius * radius)).epsilon(TOL(1e-12, Precision::EqualityTolerance)));
 		DifferentialGeometry::InducedMetric2D metric(base);
-		CHECK(metric.GetRicciScalar(x) == Catch::Approx(2 / (radius * radius)).epsilon(1e-11));
+		CHECK(metric.GetRicciScalar(x) == Catch::Approx(2 / (radius * radius)).epsilon(TOL(1e-11, Precision::EqualityTolerance)));
 		CHECK(DifferentialGeometry::GaussianCurvatureIntrinsic(base, x[0], x[1]) ==
-					Catch::Approx(base.GaussianCurvature(x[0], x[1])).epsilon(1e-11));
-		CHECK(metric.GetRiemannCurvatureTensor(0, 1, 0, 1, x) == Catch::Approx(std::pow(std::sin(x[0]), 2)).epsilon(1e-12));
+					Catch::Approx(base.GaussianCurvature(x[0], x[1])).epsilon(TOL(1e-11, Precision::EqualityTolerance)));
+		CHECK(metric.GetRiemannCurvatureTensor(0, 1, 0, 1, x) == Catch::Approx(std::pow(std::sin(x[0]), 2)).epsilon(TOL(1e-12, Precision::EqualityTolerance)));
 		Surfaces::Sphere numerical(radius);
 		const Real numericalK = DifferentialGeometry::GaussianCurvatureIntrinsic(numerical, x[0], x[1]);
 		const Real exactK = 1 / (radius * radius);
@@ -254,8 +268,8 @@ TEST_CASE("AD surfaces support extrinsic and intrinsic curvature through base re
 		using S = decltype(u);
 		return std::array<S, 3>{u, v, S(0)};
 	});
-	CHECK(plane.GaussianCurvature(0.3, 0.4) == 0);
-	CHECK(DifferentialGeometry::GaussianCurvatureIntrinsic(plane, 0.3, 0.4) == 0);
+	CHECK(plane.GaussianCurvature(MML::Real(0.3), MML::Real(0.4)) == 0);
+	CHECK(DifferentialGeometry::GaussianCurvatureIntrinsic(plane, MML::Real(0.3), MML::Real(0.4)) == 0);
 	auto degenerate = AD::MakeADSurface([](auto u, auto v) {
 		using S = decltype(u);
 		return std::array<S, 3>{u + v, S(0), S(0)};
@@ -274,13 +288,20 @@ TEST_CASE("AD metrics compute connection and Riemann without numerical different
 		return std::array<std::array<S, 2>, 2>{{{S(4), S(0)}, {S(0), 4 * sin(x[0]) * sin(x[0])}}};
 	});
 	const MetricTensorField<2>& base = metric;
-	const VectorN<Real, 2> x{0.8, 0.4};
+	const VectorN<Real, 2> x{MML::Real(0.8), MML::Real(0.4)};
 	CHECK(base.GetChristoffelSymbolSecondKind(0, 1, 1, x) == Catch::Approx(-std::sin(x[0]) * std::cos(x[0])));
-	CHECK(base.GetRicciScalar(x) == Catch::Approx(0.5).epsilon(1e-12));
+	CHECK(base.GetRicciScalar(x) == Catch::Approx(0.5).epsilon(TOL(1e-12, Precision::EqualityTolerance)));
 	NumericalMetric numerical(2);
-	CHECK(base.GetRicciScalar(x) == Catch::Approx(numerical.GetRicciScalar(x)).epsilon(1e-5));
+	CHECK(base.GetRicciScalar(x) == Catch::Approx(numerical.GetRicciScalar(x)).epsilon(TOL(1e-5, NumericalMetricBudget(x[0]))));
+	Real derivativeError = 0;
+	Derivation::NDer4Partial(base, 1, 1, 0, x, &derivativeError);
+	REQUIRE(std::isfinite(derivativeError));
+	REQUIRE(derivativeError >= 0);
+	const Real exactConnection = base.GetChristoffelSymbolSecondKind(1, 0, 1, x);
+	const Real connectionBudget = derivativeError / (2 * base.component(1, 1, x))
+		+ Precision::EqualityTolerance * std::abs(exactConnection);
 	CHECK(base.GetChristoffelSymbolSecondKindNumerical(1, 0, 1, x) ==
-				Catch::Approx(base.GetChristoffelSymbolSecondKind(1, 0, 1, x)).epsilon(1e-8));
+				Catch::Approx(exactConnection).epsilon(1e-8).margin(TOL(Real(0), connectionBudget)));
 	CHECK(realCalls > 0);
 	CHECK_THROWS_AS(base.GetRiemannCurvatureTensor(0, 0, 2, 0, x), IndexError);
 	CHECK_THROWS_AS(base.GetChristoffelSymbolSecondKind(0, 0, 0, {0, 0}), SingularMatrixError);
@@ -302,7 +323,7 @@ TEST_CASE("AD fields feed existing scalar and vector calculus operations", "[ADA
 		return sin(x[0]) + x[1] * x[1] + x[0] * x[2];
 	});
 	const IScalarFunction<3>& scalar = potential;
-	VectorN<Real, 3> x{0.3, 2, 4};
+	VectorN<Real, 3> x{MML::Real(0.3), 2, 4};
 	auto gradient = ScalarFieldOperations::GradientCart(scalar, x);
 	CHECK(gradient[0] == Catch::Approx(std::cos(x[0]) + x[2]));
 	CHECK(gradient[1] == 4);
@@ -349,6 +370,36 @@ TEST_CASE("AD failures propagate without silently invoking real-only stencils", 
 	CHECK(broken.calls == 0);
 }
 
+TEST_CASE("AD field derivative indices are rejected before evaluating expressions", "[ADAdapters][Fields][regression]") {
+	int scalarCalls = 0;
+	auto scalar = AD::MakeADScalarField<2>([&](const auto& x) {
+		++scalarCalls;
+		return x[0] * x[1];
+	});
+	int vectorCalls = 0;
+	auto vector = AD::MakeADVectorField<2>([&](const auto& x) {
+		++vectorCalls;
+		using S = std::decay_t<decltype(x[0])>;
+		return std::array<S, 2>{x[0] * x[1], x[0] + x[1]};
+	});
+	const IScalarDerivativeProvider<2>& scalarProvider = scalar;
+	const IVectorDerivativeProvider<2>& vectorProvider = vector;
+	const VectorN<Real, 2> point{1, 2};
+	for (int invalid : {std::numeric_limits<int>::min(), -1, 2, std::numeric_limits<int>::max()}) {
+		CHECK_THROWS_AS(scalarProvider.EvaluatePartial(point, invalid), IndexError);
+		CHECK_THROWS_AS(scalarProvider.EvaluateSecondPartial(point, invalid, 0), IndexError);
+		CHECK_THROWS_AS(scalarProvider.EvaluateSecondPartial(point, 0, invalid), IndexError);
+		CHECK_THROWS_AS(vectorProvider.EvaluateComponentPartial(point, invalid, 0), IndexError);
+		CHECK_THROWS_AS(vectorProvider.EvaluateComponentPartial(point, 0, invalid), IndexError);
+	}
+	CHECK(scalarCalls == 0);
+	CHECK(vectorCalls == 0);
+	CHECK(scalarProvider.EvaluatePartial(point, 0) == 2);
+	CHECK(vectorProvider.EvaluateComponentPartial(point, 0, 0) == 2);
+	CHECK(scalarCalls == 1);
+	CHECK(vectorCalls == 1);
+}
+
 TEST_CASE("AD metric inverse derivatives work with variable off-diagonal and Lorentzian metrics", "[ADAdapters][Metric]") {
 	auto metric = AD::MakeADMetric<2>([](const auto& x) {
 		using S = std::decay_t<decltype(x[0])>;
@@ -356,8 +407,8 @@ TEST_CASE("AD metric inverse derivatives work with variable off-diagonal and Lor
 		S factor = exp(2 * (x[0] * x[0] + x[1] * x[1]));
 		return std::array<std::array<S, 2>, 2>{{{factor, factor / 2}, {factor / 2, 2 * factor}}};
 	});
-	VectorN<Real, 2> x{0.3, -0.2};
-	CHECK(metric.GetRicciScalar(x) == Catch::Approx(-48.0 / 7 * std::exp(-2 * (x[0] * x[0] + x[1] * x[1]))).epsilon(1e-12));
+	VectorN<Real, 2> x{MML::Real(0.3), -MML::Real(0.2)};
+	CHECK(metric.GetRicciScalar(x) == Catch::Approx(-48.0 / 7 * std::exp(-2 * (x[0] * x[0] + x[1] * x[1]))).epsilon(TOL(1e-12, Precision::EqualityTolerance)));
 	auto lorentz = AD::MakeADMetric<2>(
 		[](const auto& p) {
 			using S = std::decay_t<decltype(p[0])>;
@@ -378,15 +429,15 @@ TEST_CASE("AD surface mixed derivatives recover negative Gaussian curvature", "[
 		using S = decltype(u);
 		return std::array<S, 3>{u, v, u * u - v * v};
 	});
-	const Real u = 0.3, v = -0.2;
-	const Real expected = -4 / std::pow(1 + 4 * u * u + 4 * v * v, 2);
-	CHECK(saddle.GaussianCurvature(u, v) == Catch::Approx(expected).epsilon(1e-12));
-	CHECK(DifferentialGeometry::GaussianCurvatureIntrinsic(saddle, u, v) == Catch::Approx(expected).epsilon(1e-12));
+	const Real u = MML::Real(0.3), v = -MML::Real(0.2);
+	const Real expected = -4 / std::pow(1 + 4 * u * u + 4 * v * v, MML::Real(2));
+	CHECK(saddle.GaussianCurvature(u, v) == Catch::Approx(expected).epsilon(TOL(1e-12, Precision::EqualityTolerance)));
+	CHECK(DifferentialGeometry::GaussianCurvatureIntrinsic(saddle, u, v) == Catch::Approx(expected).epsilon(TOL(1e-12, Precision::EqualityTolerance)));
 	CHECK_THROWS_AS(AD::MakeADSurface(SphereExpression(1), 1, 0), DomainError);
 }
 
 TEST_CASE("AD field coordinate conventions and detailed diagnostics stay consistent", "[ADAdapters][Fields]") {
-	VectorN<Real, 3> x{2, 0.8, 0.4};
+	VectorN<Real, 3> x{2, MML::Real(0.8), MML::Real(0.4)};
 	auto radial = AD::MakeADScalarField<3>([](const auto& p) { return p[0] * p[0]; });
 	MetricTensorSpherical sphere;
 	auto physical = ScalarFieldOperations::GradientSpher(radial, x);
@@ -417,7 +468,7 @@ TEST_CASE("AD field coordinate conventions and detailed diagnostics stay consist
 	CHECK(curl[1] == Catch::Approx(-2 * std::sin(x[1])));
 	auto detailed = ScalarFieldOperations::GradientCartDetailed(radial, x);
 	CHECK(detailed.value[0] == 4);
-	CHECK(detailed.function_evaluations == 3);
+	CHECK(detailed.function_evaluations == 0);
 	CHECK(std::isnan(detailed.error[0]));
 	CHECK(std::isnan(ScalarFieldOperations::LaplacianCartDetailed(radial, x).error));
 	CHECK(std::isnan(VectorFieldOperations::DivCartDetailed(physicalRadial, x).error));
@@ -447,10 +498,10 @@ TEST_CASE("AD determinant divergence uses metric jets and preserves numerical re
 		using S = std::decay_t<decltype(x[0])>;
 		return std::array<S, 2>{x[0], S(0)};
 	});
-	const VectorN<Real, 2> x{2, 0.4};
+	const VectorN<Real, 2> x{2, MML::Real(0.4)};
 	auto result = VectorFieldOperations::DivergenceViaDetDetailed(field, x, metric);
 	CHECK(result.value == 2);
-	CHECK(result.function_evaluations == 3);
+	CHECK(result.function_evaluations == 1);
 	CHECK(std::isnan(result.error));
 	CHECK(VectorFieldOperations::Divergence(field, x, metric) == 2);
 	FieldOperationConfig config;
@@ -527,20 +578,28 @@ TEST_CASE("Modified induced-metric subclasses keep numerical connection fallback
 	auto surface = AD::MakeADSurface(SphereExpression(1));
 	struct ConformalInduced : DifferentialGeometry::InducedMetric2D {
 		using InducedMetric2D::InducedMetric2D;
+		Real center = 0;
+		mutable int offPointCalls = 0;
 		Real component(int i, int j, const VectorN<Real, 2>& pos) const override {
+			if (pos[0] != center) ++offPointCalls;
 			return std::exp(2 * pos[0]) * InducedMetric2D::component(i, j, pos);
 		}
 
 	} modified(surface);
-	VectorN<Real, 2> x{0.8, 0.4};
+	VectorN<Real, 2> x{MML::Real(0.8), MML::Real(0.4)};
+	modified.center = x[0];
+	// The conformal factor changes Gamma^0_00 from the sphere's zero to one.
+	CHECK(modified.GetChristoffelSymbolSecondKind(0, 0, 0, x) ==
+		Catch::Approx(1).epsilon(TOL(1e-7, NumericalMetricBudget(x[0]))));
+	CHECK(modified.offPointCalls > 0);
 	const Real expected = 2 * std::exp(-2 * x[0]) * (1 - std::cos(x[0]) / std::sin(x[0]));
-	CHECK(modified.GetRicciScalar(x) == Catch::Approx(expected).epsilon(1e-5).margin(1e-7));
+	CHECK(modified.GetRicciScalar(x) == Catch::Approx(expected).epsilon(1e-5).margin(TOL(1e-7, NumericalMetricBudget(x[0]))));
 }
 
 TEST_CASE("Metric connection derivative extension is virtual and propagates errors", "[ADAdapters][Metric]") {
 	struct AnalyticalConnection : MetricTensorField<2> {
 		mutable int connectionCalls = 0;
-		Real component(int i, int j, const VectorN<Real, 2>&) const override { return i == j ? 1 : 0; }
+		Real component(int i, int j, const VectorN<Real, 2>&) const override { return i == j ? Real(1) : Real(0); }
 		Real GetChristoffelSymbolSecondKind(int, int, int, const VectorN<Real, 2>&) const override {
 			++connectionCalls;
 			return 0;
@@ -554,4 +613,54 @@ TEST_CASE("Metric connection derivative extension is virtual and propagates erro
 	const MetricTensorField<2>& base = metric;
 	CHECK_THROWS_AS(base.GetRiemannCurvatureTensor(0, 1, 0, 1, {1, 1}), DomainError);
 	CHECK(metric.connectionCalls == 0);
+}
+
+TEST_CASE("AD curve derivative seeds preserve exactly representable polynomials", "[ADAdapters][Curve]") {
+	int realCalls = 0;
+	auto curve = AD::MakeADCurve<3>([&](auto t) {
+		using S = decltype(t);
+		if constexpr (std::is_same_v<S, Real>) ++realCalls;
+		return std::array<S, 3>{t, t * t, t * t * t};
+	});
+	const Curves::ICurveCartesian3D& base = curve;
+	for (Real t : {Real(-2), Real(-1), Real(0), Real(1), Real(2)}) {
+		const std::array<VectorN<Real, 3>, 3> expected{
+			VectorN<Real, 3>{1, 2 * t, 3 * t * t},
+			VectorN<Real, 3>{0, 2, 6 * t},
+			VectorN<Real, 3>{0, 0, 6}
+		};
+		for (int order = 1; order <= 3; ++order) {
+			const auto derivative = Differential::CurveDerivative<3>(base, t, order);
+			for (int component = 0; component < 3; ++component) {
+				CAPTURE(t, order, component);
+				CHECK(derivative[component] == expected[order - 1][component]);
+			}
+		}
+	}
+	CHECK(realCalls == 0);
+}
+
+TEST_CASE("AD scalar mixed derivatives preserve exact polynomial zeros and coefficients", "[ADAdapters][Field]") {
+	int realCalls = 0;
+	auto field = AD::MakeADScalarField<3>([&](const auto& x) {
+		using S = std::decay_t<decltype(x[0])>;
+		if constexpr (std::is_same_v<S, Real>) ++realCalls;
+		return x[0] * x[0] * x[1] + x[0] * x[2];
+	});
+	const VectorN<Real, 3> point{2, 3, 4};
+	CHECK(field(point) == 20);
+	CHECK(realCalls == 1);
+	const IScalarDerivativeProvider<3>& provider = field;
+	const VectorN<Real, 3> expectedGradient{16, 4, 2};
+	const Real expectedHessian[3][3]{{6, 4, 1}, {4, 0, 0}, {1, 0, 0}};
+	const auto hessian = field.Hessian(point);
+	for (int row = 0; row < 3; ++row) {
+		CHECK(provider.EvaluatePartial(point, row) == expectedGradient[row]);
+		for (int column = 0; column < 3; ++column) {
+			CAPTURE(row, column);
+			CHECK(hessian(row, column) == expectedHessian[row][column]);
+			CHECK(provider.EvaluateSecondPartial(point, row, column) == expectedHessian[row][column]);
+		}
+	}
+	CHECK(realCalls == 1);
 }

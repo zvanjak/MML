@@ -138,16 +138,10 @@ namespace MML
 		{
 			using ResultType = EvaluationResult<VectorN<Real, N>, VectorN<Real, N>>;
 			return FieldOperationDetail::ExecuteFieldDetailed<ResultType>("GradientCart", config, [&](ResultType& result, int& func_evals) {
-				if (FieldOperationDetail::UsesProvidedDerivatives(scalarField, config)) {
-					result.value = GradientCart(scalarField, pos);
-					FieldOperationDetail::MarkProviderResult(result, N, func_evals);
-					return;
-				}
-				VectorN<Real, N> error_vec{};
-				result.value = FieldOperationDetail::DispatchGradient<N>(scalarField, pos, config.derivative_order, config.estimate_error,
-																																 &error_vec, func_evals);
-				if (config.estimate_error)
-					result.error = error_vec;
+				FieldOperationDetail::ScalarSampling<N> sampling(scalarField, pos, config, func_evals);
+				result.value = GradientCart(sampling, pos);
+				if (sampling.HasEstimate())
+					result.error = sampling.firstErrors;
 			});
 		}
 
@@ -197,7 +191,7 @@ namespace MML
 		/// @return            Gradient vector in spherical basis
 		/// @throws std::invalid_argument if der_order is not in {1, 2, 4, 6, 8}
 		/// @throws DomainError if at singularity and policy is Throw
-		static Vec3Sph GradientSpher(const IScalarFunction<3>& scalarField, const Vec3Sph& pos,
+		static inline Vec3Sph GradientSpher(const IScalarFunction<3>& scalarField, const Vec3Sph& pos,
 		                             int der_order,
 		                             SingularityPolicy policy = Singularity::DEFAULT_POLICY)
 		{
@@ -233,32 +227,19 @@ namespace MML
 		/// @param config      Field operation configuration
 		/// @param policy      Singularity handling policy (default: Throw)
 		/// @return            EvaluationResult with gradient vector and diagnostics
-		static EvaluationResult<Vec3Sph, Vec3Sph>
+		static inline EvaluationResult<Vec3Sph, Vec3Sph>
 		GradientSpherDetailed(const IScalarFunction<3>& scalarField, const Vec3Sph& pos,
 		                      const FieldOperationConfig& config = {},
 		                      SingularityPolicy policy = Singularity::DEFAULT_POLICY)
 		{
 			using ResultType = EvaluationResult<Vec3Sph, Vec3Sph>;
 			return FieldOperationDetail::ExecuteFieldDetailed<ResultType>("GradientSpher", config, [&](ResultType& result, int& func_evals) {
-				if (FieldOperationDetail::UsesProvidedDerivatives(scalarField, config)) {
-					result.value = GradientSpher(scalarField, pos, policy);
-					FieldOperationDetail::MarkProviderResult(result, 3, func_evals);
-					return;
-				}
-				VectorN<Real, 3> error_vec{};
-				result.value = FieldOperationDetail::DispatchGradient<3>(scalarField, pos, config.derivative_order, config.estimate_error,
-																																 &error_vec, func_evals);
-				if (config.estimate_error)
-					result.error = error_vec;
-
-				const Real r = pos[0];
-				const Real theta = pos[1];
-				result.value[1] *= Singularity::SafeInverseR(r, policy, "GradientSpher θ-component");
-				result.value[2] *= Singularity::SafeInverseRSinTheta(r, theta, policy, "GradientSpher φ-component");
-				// Scale error estimates by the same factors
-				if (config.estimate_error) {
-					result.error[1] *= std::abs(Singularity::SafeInverseR(r, policy, "GradientSpher θ-error"));
-					result.error[2] *= std::abs(Singularity::SafeInverseRSinTheta(r, theta, policy, "GradientSpher φ-error"));
+				FieldOperationDetail::ScalarSampling<3> sampling(scalarField, pos, config, func_evals);
+				result.value = GradientSpher(sampling, pos, policy);
+				if (sampling.HasEstimate()) {
+					result.error = sampling.firstErrors;
+					result.error[1] *= std::abs(Singularity::SafeInverseR(pos[0], policy, "GradientSpher error"));
+					result.error[2] *= std::abs(Singularity::SafeInverseRSinTheta(pos[0], pos[1], policy, "GradientSpher error"));
 				}
 			});
 		}
@@ -283,7 +264,7 @@ namespace MML
 		///
 		/// @warning Position must have r > 0 to avoid singularity at z-axis.
 		/// @param policy Singularity handling policy (default: Throw)
-		static Vec3Cyl GradientCyl(const IScalarFunction<3>& scalarField, const Vec3Cyl& pos,
+		static inline Vec3Cyl GradientCyl(const IScalarFunction<3>& scalarField, const Vec3Cyl& pos,
 		                           SingularityPolicy policy = Singularity::DEFAULT_POLICY)
 		{
 			Vector3Cylindrical ret = Differential::ScalarGradient<3>(scalarField, pos);
@@ -305,7 +286,7 @@ namespace MML
 		/// @return            Gradient vector in cylindrical basis
 		/// @throws std::invalid_argument if der_order is not in {1, 2, 4, 6, 8}
 		/// @throws DomainError if at singularity and policy is Throw
-		static Vec3Cyl GradientCyl(const IScalarFunction<3>& scalarField, const Vec3Cyl& pos,
+		static inline Vec3Cyl GradientCyl(const IScalarFunction<3>& scalarField, const Vec3Cyl& pos,
 		                           int der_order,
 		                           SingularityPolicy policy = Singularity::DEFAULT_POLICY)
 		{
@@ -337,28 +318,19 @@ namespace MML
 		/// @param config      Field operation configuration
 		/// @param policy      Singularity handling policy (default: Throw)
 		/// @return            EvaluationResult with gradient vector and diagnostics
-		static EvaluationResult<Vec3Cyl, Vec3Cyl>
+		static inline EvaluationResult<Vec3Cyl, Vec3Cyl>
 		GradientCylDetailed(const IScalarFunction<3>& scalarField, const Vec3Cyl& pos,
 		                    const FieldOperationConfig& config = {},
 		                    SingularityPolicy policy = Singularity::DEFAULT_POLICY)
 		{
 			using ResultType = EvaluationResult<Vec3Cyl, Vec3Cyl>;
 			return FieldOperationDetail::ExecuteFieldDetailed<ResultType>("GradientCyl", config, [&](ResultType& result, int& func_evals) {
-				if (FieldOperationDetail::UsesProvidedDerivatives(scalarField, config)) {
-					result.value = GradientCyl(scalarField, pos, policy);
-					FieldOperationDetail::MarkProviderResult(result, 3, func_evals);
-					return;
+				FieldOperationDetail::ScalarSampling<3> sampling(scalarField, pos, config, func_evals);
+				result.value = GradientCyl(sampling, pos, policy);
+				if (sampling.HasEstimate()) {
+					result.error = sampling.firstErrors;
+					result.error[1] *= std::abs(Singularity::SafeInverseR(pos[0], policy, "GradientCyl error"));
 				}
-				VectorN<Real, 3> error_vec{};
-				result.value = FieldOperationDetail::DispatchGradient<3>(scalarField, pos, config.derivative_order, config.estimate_error,
-																																 &error_vec, func_evals);
-				if (config.estimate_error)
-					result.error = error_vec;
-
-				const Real r = pos[0];
-				result.value[1] *= Singularity::SafeInverseR(r, policy, "GradientCyl φ-component");
-				if (config.estimate_error)
-					result.error[1] *= std::abs(Singularity::SafeInverseR(r, policy, "GradientCyl φ-error"));
 			});
 		}
 
@@ -402,30 +374,20 @@ namespace MML
 		/// @param config      Field operation configuration
 		/// @return            EvaluationResult with Laplacian value and diagnostics
 		template<int N>
-		static EvaluationResult<Real>
+		static inline EvaluationResult<Real>
 		LaplacianCartDetailed(const IScalarFunction<N>& scalarField, const VectorN<Real, N>& pos,
 		                      const FieldOperationConfig& config = {})
 		{
 			using ResultType = EvaluationResult<Real>;
 			return FieldOperationDetail::ExecuteFieldDetailed<ResultType>("LaplacianCart", config, [&](ResultType& result, int& func_evals) {
-				if (FieldOperationDetail::UsesProvidedDerivatives(scalarField, config)) {
-					result.value = LaplacianCart(scalarField, pos);
-					FieldOperationDetail::MarkProviderResult(result, N, func_evals);
-					return;
+				FieldOperationDetail::ScalarSampling<N> sampling(scalarField, pos, config, func_evals);
+				result.value = LaplacianCart(sampling, pos);
+				if (sampling.HasEstimate()) {
+					result.error = 0;
+					for (int i = 0; i < N; ++i)
+						result.error += sampling.secondErrors(i,i);
 				}
-				Real lapl = 0.0;
-				Real total_error = 0.0;
-				for (int i = 0; i < N; i++) {
-					Real err = 0.0;
-					lapl += Derivation::DeriveSecPartial<N>(scalarField, i, i, pos, config.estimate_error ? &err : nullptr);
-					if (config.estimate_error)
-						total_error += std::abs(err);
-				}
-				result.value = lapl;
-				if (config.estimate_error)
-					result.error = total_error;
-				func_evals = N * 3; // second derivative uses ~3 evaluations per dimension
-			});
+			}, true);
 		}
 
 		/// Computes Laplacian of scalar field in spherical coordinates.
@@ -516,7 +478,7 @@ namespace MML
 		/// @param config      Field operation configuration
 		/// @param policy      Singularity handling policy (default: Throw)
 		/// @return            EvaluationResult with Laplacian value and diagnostics
-		static EvaluationResult<Real>
+		static inline EvaluationResult<Real>
 		LaplacianSpherDetailed(const IScalarFunction<3>& scalarField, const Vec3Sph& pos,
 		                       const FieldOperationConfig& config = {},
 		                       SingularityPolicy policy = Singularity::DEFAULT_POLICY)
@@ -525,11 +487,15 @@ namespace MML
 			return FieldOperationDetail::ExecuteFieldDetailed<ResultType>(
 				"LaplacianSpher", config,
 				[&](ResultType& result, int& func_evals) {
-					result.value = LaplacianSpher(scalarField, pos, policy);
-					func_evals = dynamic_cast<const IScalarDerivativeProvider<3>*>(&scalarField) ? 5 : 7;
-					if (dynamic_cast<const IScalarDerivativeProvider<3>*>(&scalarField))
-						FieldOperationDetail::MarkProviderResult(result, func_evals, func_evals);
-				});
+					FieldOperationDetail::ScalarSampling<3> sampling(scalarField, pos, config, func_evals);
+					result.value = LaplacianSpher(sampling, pos, policy);
+					if (sampling.HasEstimate())
+						result.error = sampling.secondErrors(0,0)
+							+ std::abs(Real(2)*Singularity::SafeInverseR(pos[0], policy, "LaplacianSpher error"))*sampling.firstErrors[0]
+							+ std::abs(Singularity::SafeCotThetaOverR2(pos[0], pos[1], policy, "LaplacianSpher error"))*sampling.firstErrors[1]
+							+ std::abs(Singularity::SafeInverseR2(pos[0], policy, "LaplacianSpher error"))*sampling.secondErrors(1,1)
+							+ std::abs(Singularity::SafeInverseR2Sin2Theta(pos[0], pos[1], policy, "LaplacianSpher error"))*sampling.secondErrors(2,2);
+				}, true);
 		}
 
 		/// Computes Laplacian in cylindrical coordinates with structured result.
@@ -539,7 +505,7 @@ namespace MML
 		/// @param config      Field operation configuration
 		/// @param policy      Singularity handling policy (default: Throw)
 		/// @return            EvaluationResult with Laplacian value and diagnostics
-		static EvaluationResult<Real>
+		static inline EvaluationResult<Real>
 		LaplacianCylDetailed(const IScalarFunction<3>& scalarField, const Vec3Cyl& pos,
 		                     const FieldOperationConfig& config = {},
 		                     SingularityPolicy policy = Singularity::DEFAULT_POLICY)
@@ -548,11 +514,13 @@ namespace MML
 			return FieldOperationDetail::ExecuteFieldDetailed<ResultType>(
 				"LaplacianCyl", config,
 				[&](ResultType& result, int& func_evals) {
-					result.value = LaplacianCyl(scalarField, pos, policy);
-					func_evals = dynamic_cast<const IScalarDerivativeProvider<3>*>(&scalarField) ? 4 : 5;
-					if (dynamic_cast<const IScalarDerivativeProvider<3>*>(&scalarField))
-						FieldOperationDetail::MarkProviderResult(result, func_evals, func_evals);
-				});
+					FieldOperationDetail::ScalarSampling<3> sampling(scalarField, pos, config, func_evals);
+					result.value = LaplacianCyl(sampling, pos, policy);
+					if (sampling.HasEstimate())
+						result.error = sampling.secondErrors(0,0) + sampling.secondErrors(2,2)
+							+ std::abs(Singularity::SafeInverseR(pos[0], policy, "LaplacianCyl error"))*sampling.firstErrors[0]
+							+ std::abs(Singularity::SafeInverseR2(pos[0], policy, "LaplacianCyl error"))*sampling.secondErrors(1,1);
+				}, true);
 		}
 	};
 }

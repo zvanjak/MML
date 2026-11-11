@@ -78,17 +78,13 @@ namespace MML
 		/// @brief Constructs a zero-initialized rank-5 tensor with specified index variance.
 		/// @param nCovar Number of covariant (lower) indices
 		/// @param nContraVar Number of contravariant (upper) indices
-		/// @throws TensorCovarContravarNumError if nCovar + nContraVar != 5
+		/// @throws TensorCovarContravarNumError if counts are negative or do not sum to 5
 		Tensor5(int nCovar, int nContraVar) : _numContravar(nContraVar), _numCovar(nCovar) 
 		{
-			if (_numContravar + _numCovar != 5)
-				throw TensorCovarContravarNumError("Tensor5 ctor, wrong number of contravariant and covariant indices", nCovar, nContraVar);
+			detail::ValidateTensorVarianceCounts<5>(nCovar, nContraVar);
 
-			for (int i = 0; i < _numCovar; i++)
-				_isContravar[i] = false;
-
-			for (int i = _numCovar; i < _numCovar + _numContravar; i++)
-				_isContravar[i] = true;
+			for (int i = 0; i < 5; i++)
+				_isContravar[i] = i >= _numCovar;
 
 		}
 
@@ -111,6 +107,8 @@ namespace MML
 		/// @brief Sets the variance of index i, keeping covariant/contravariant counts in sync.
 		void setContravar(int i, bool val)
 		{
+			if (i < 0 || i >= 5)
+				throw TensorIndexError("Tensor5::setContravar - index position out of bounds");
 			_isContravar[i] = val;
 			_numContravar = 0;
 			for (bool c : _isContravar)
@@ -196,14 +194,24 @@ namespace MML
 		/// @param ind2 Second index to contract (0-4), must differ from ind1
 		/// @return Tensor3 containing the contracted result with proper index variance
 		/// @throws TensorIndexError if indices are out of range or equal
+		/// @throws TensorCovarContravarArithmeticError if the slots have the same variance
 		/// @note Index variance is explicitly propagated from the original tensor,
 		///       not reconstructed from covariant/contravariant counts.
 		Tensor3<N> contract(int ind1, int ind2) const override
 		{
-			if (ind1 < 0 || ind1 > 4 || ind2 < 0 || ind2 > 4)
-				throw TensorIndexError("Tensor5 Contract, index out of range [0,4]");
-			if (ind1 == ind2)
-				throw TensorIndexError("Tensor5 Contract, indices must be different");
+			detail::ValidateTensorContractionIndices<5>(ind1, ind2);
+			if (_isContravar[ind1] == _isContravar[ind2])
+				throw TensorCovarContravarArithmeticError("Tensor5 contract - slots must have opposite variance",
+					_numContravar, _numCovar, _numContravar, _numCovar);
+			return EuclideanDiagonalSum(ind1, ind2);
+		}
+
+		/// @brief Euclidean diagonal sum, preserving the surviving slots' order and variance.
+		/// @details Same-variance diagonal sums assume a Cartesian orthonormal basis,
+		///          not a general coordinate-invariant tensor contraction.
+		Tensor3<N> EuclideanDiagonalSum(int ind1, int ind2) const
+		{
+			detail::ValidateTensorContractionIndices<5>(ind1, ind2);
 			if (ind1 > ind2) std::swap(ind1, ind2);  // Normalize: ind1 < ind2
 
 			// Determine covariant/contravariant counts for result

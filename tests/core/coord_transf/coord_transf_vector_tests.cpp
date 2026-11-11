@@ -27,7 +27,7 @@ namespace MML::Tests::Core::CoordTransfVectorTests
 		Vector3Cartesian posCart{ static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0) };
 
 		Vector3Spherical v_transf_to_spher = CoordTransfCartToSpher.transfVecContravariant(v_cart, posCart);
-		REQUIRE(true == v_transf_to_spher.IsEqualTo(Vector3Spherical(sqrt(2), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0)), TOL(1e-8, 1e-4)));
+		REQUIRE(true == v_transf_to_spher.IsEqualTo(Vector3Spherical(sqrt(Real(2)), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0)), TOL(1e-8, 1e-4)));
 
 		Vector3Spherical x1_spher{ CoordTransfCartToSpher.transf(posCart) };
 		Vector3Cartesian v_back_transf_to_cart = CoordTransfSpherToCart.transfVecContravariant(v_transf_to_spher, x1_spher);
@@ -39,6 +39,8 @@ namespace MML::Tests::Core::CoordTransfVectorTests
 		Vec3Sph covar_sph{static_cast<MML::Real>(0.0), static_cast<MML::Real>(-r*r), static_cast<MML::Real>(cos(phi) * cos(phi))};
 
 		Vec3Cart res = CoordTransfSpherToCart.transfVecContravariant(contravar_sph, Vector3Spherical{ static_cast<MML::Real>(r), Constants::PI / static_cast<MML::Real>(2), static_cast<MML::Real>(phi) });
+		for (int i = 0; i < 3; ++i)
+			REQUIRE(std::isfinite(res[i]));
 
 		Vector3Cartesian v_cart1{ static_cast<MML::Real>(3.0), static_cast<MML::Real>(4.0), static_cast<MML::Real>(5.0) };
 		Vector3Cartesian posCart1{ static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0) };

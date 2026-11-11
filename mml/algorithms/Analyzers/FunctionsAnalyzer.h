@@ -28,17 +28,6 @@
 #include <mml/algorithms/RootFinding.h>
 #include <mml/algorithms/Statistics.h>
 
-// Undefine Windows.h macros that conflict with our enum values
-#ifdef _WIN32
-#ifdef INFINITE
-#undef INFINITE
-#endif
-#ifdef DOMAIN
-#undef DOMAIN
-#endif
-#endif
-
-
 namespace MML {
 	/////////////////////////////////////////////////////////////////////////////////////
 	///                      OVERFLOW PROTECTION UTILITIES                            ///
@@ -75,26 +64,13 @@ namespace MML {
 	/// @brief Safely compute the difference between two values with overflow protection
 	/// @param a First value
 	/// @param b Second value
-	/// @return The difference, or infinity if overflow would occur
+	/// @return Absolute difference; infinity on overflow/infinite input, NaN on NaN input
 	inline Real SafeDifference(Real a, Real b) {
-		// Check for potential overflow in subtraction
+		if (std::isnan(a) || std::isnan(b))
+			return std::numeric_limits<Real>::quiet_NaN();
 		if (std::isinf(a) || std::isinf(b))
 			return std::numeric_limits<Real>::infinity();
-		
-		// If both have same sign and are huge, subtraction is safe
-		// If opposite signs and huge, addition overflow is possible
-		if (std::abs(a) > Precision::InfiniteLimitThreshold && std::abs(b) > Precision::InfiniteLimitThreshold) {
-			if ((a > 0) != (b > 0)) {
-				// Opposite signs - overflow in subtraction
-				return std::numeric_limits<Real>::infinity();
-			}
-		}
-		
-		Real diff = a - b;
-		if (std::isinf(diff) || std::isnan(diff))
-			return std::numeric_limits<Real>::infinity();
-		
-		return std::abs(diff);
+		return std::abs(a - b);
 	}
 
 	// Critical point classification
@@ -111,13 +87,18 @@ namespace MML {
 	};
 
 	// Discontinuity classification
+	// Protect only the deprecated spelling; restore the caller's macro immediately.
+#pragma push_macro("INFINITE")
+#undef INFINITE
 	enum class DiscontinuityType {
 		JUMP,		 // Left and right limits exist but differ (e.g., step function)
 		REMOVABLE,	 // Limits exist and agree, but f(x) is different or undefined
-		INFINITE,	 // At least one limit is infinite (e.g., 1/x at x=0)
+		Infinite,	 // At least one limit is infinite (e.g., 1/x at x=0)
+		INFINITE [[deprecated("use DiscontinuityType::Infinite")]] = Infinite,
 		OSCILLATORY, // Limit does not exist due to oscillation (e.g., sin(1/x) at x=0)
 		UNKNOWN		 // Unable to classify
 	};
+#pragma pop_macro("INFINITE")
 
 	struct DiscontinuityPoint {
 		Real x;
@@ -177,6 +158,83 @@ namespace MML {
 	class RealFunctionAnalyzer {
 		const IRealFunction& _f;
 
+		static void ValidateProbe(Real x, Real eps) {
+			if (!std::isfinite(x) || !std::isfinite(eps) || eps <= 0)
+				throw std::invalid_argument("Function analysis requires a finite point and positive finite tolerance");
+		}
+
+		static void ValidateSampling(Real x1, Real x2, int numPoints, Real eps = Precision::LooseTolerance) {
+			ValidateProbe(x1, eps);
+			if (!std::isfinite(x2) || x2 < x1 || numPoints <= 0)
+				throw std::invalid_argument("Function analysis requires finite ordered bounds and a positive sampling count");
+		}
+
+		static Real SamplePoint(Real x1, Real x2, std::size_t index, int subdivisions) {
+			if (index == 0)
+				return x1;
+			if (index == static_cast<std::size_t>(subdivisions))
+				return x2;
+			const Real step = (x2 - x1) / static_cast<Real>(subdivisions);
+			if (std::isfinite(step))
+				return x1 + static_cast<Real>(index) * step;
+			const Real weight = static_cast<Real>(index) / static_cast<Real>(subdivisions);
+			return (Real(1) - weight) * x1 + weight * x2;
+		}
+
+		static bool UpdateSampleDirection(Real previous, Real current, int& direction) {
+			const int nextDirection = (current > previous) - (current < previous);
+			if (nextDirection == 0)
+				return true;
+			if (direction != 0 && direction != nextDirection)
+				return false;
+			direction = nextDirection;
+			return true;
+		}
+
+		Real ComputeOneSidedLimit(Real x, Real eps, int maxSteps, bool fromLeft) const {
+			ValidateProbe(x, eps);
+			Real h = eps * Real(100);
+			if (!std::isfinite(h) || maxSteps <= 0)
+				throw std::invalid_argument("Limit estimation requires a finite initial step and a positive iteration budget");
+			Real previous = std::numeric_limits<Real>::quiet_NaN();
+			int stableCount = 0;
+			int divergenceCount = 0;
+
+			for (int i = 0; i < maxSteps; ++i) {
+				const Real testPoint = fromLeft ? x - h : x + h;
+				if (!std::isfinite(testPoint) || testPoint == x)
+					break;
+				const Real value = _f(testPoint);
+				if (std::isnan(value))
+					return value;
+
+				if (std::isfinite(value) && std::isfinite(previous)) {
+					const Real difference = SafeDifference(value, previous);
+					if (difference / std::max(Real(1), std::abs(value)) < eps) {
+						if (++stableCount >= 3)
+							return value;
+					} else {
+						stableCount = 0;
+					}
+				} else {
+					stableCount = 0;
+				}
+
+				// A large constant is not a pole: require same-sign growth (or repeated infinity).
+				if (!std::isnan(previous) && std::signbit(value) == std::signbit(previous) &&
+				    std::abs(value) > Precision::InfiniteLimitThreshold &&
+				    (std::abs(value) > std::abs(previous) || (std::isinf(value) && std::isinf(previous)))) {
+					if (++divergenceCount >= 3)
+						return std::copysign(std::numeric_limits<Real>::infinity(), value);
+				} else {
+					divergenceCount = 0;
+				}
+				previous = value;
+				h /= Real(2);
+			}
+			return std::isfinite(previous) ? previous : std::numeric_limits<Real>::quiet_NaN();
+		}
+
 	public:
 		explicit RealFunctionAnalyzer(const IRealFunction& f)
 			: _f(f) {}
@@ -195,6 +253,7 @@ namespace MML {
 		/// Analyze function at a single point, returning structured results
 		/// Complexity: O(1) — constant number of f-evals plus ~16 f-evals for derivatives.
 		PointAnalysisResult AnalyzePoint(Real x, Real eps = Precision::LooseTolerance) const {
+			ValidateProbe(x, eps);
 			PointAnalysisResult result;
 			result.tolerance = eps;
 			result.x = x;
@@ -208,10 +267,11 @@ namespace MML {
 			return result;
 		}
 
-		/// Analyze function over an interval, returning structured results
+		/// Analyze numPoints samples on [x1, x2), returning structured results.
 		/// Complexity: O(numPoints) — samples the interval at numPoints positions,
 		///            performing continuity and domain checks at each point.
 		IntervalAnalysisResult AnalyzeInterval(Real x1, Real x2, int numPoints, Real eps = Precision::LooseTolerance) const {
+			ValidateSampling(x1, x2, numPoints, eps);
 			IntervalAnalysisResult result;
 			result.tolerance = eps;
 			result.x1 = x1;
@@ -219,43 +279,56 @@ namespace MML {
 			result.numPoints = numPoints;
 			result.isDefinedEverywhere = true;
 			result.isContinuousEverywhere = true;
+			result.isMonotonic = true;
 			result.minValue = std::numeric_limits<Real>::max();
 			result.maxValue = std::numeric_limits<Real>::lowest();
+			bool foundFinite = false;
+			Real previous = std::numeric_limits<Real>::quiet_NaN();
+			int direction = 0;
 
 			for (int i = 0; i < numPoints; i++) {
-				Real x = x1 + i * (x2 - x1) / numPoints;
-				if (!IsDefinedAtPoint(x)) {
+				Real x = SamplePoint(x1, x2, i, numPoints);
+				const Real value = _f(x);
+				if (!std::isfinite(value)) {
 					result.isDefinedEverywhere = false;
+					result.isContinuousEverywhere = false;
+					result.isMonotonic = false;
 					result.undefinedPoints.push_back(x);
+					result.discontinuityPoints.push_back(x);
 				} else {
-					Real val = _f(x);
-					result.minValue = std::min(result.minValue, val);
-					result.maxValue = std::max(result.maxValue, val);
+					foundFinite = true;
+					result.minValue = std::min(result.minValue, value);
+					result.maxValue = std::max(result.maxValue, value);
+					if (std::isfinite(previous) && !UpdateSampleDirection(previous, value, direction))
+						result.isMonotonic = false;
 					if (!IsContinuousAtPoint(x, eps)) {
 						result.isContinuousEverywhere = false;
 						result.discontinuityPoints.push_back(x);
 					}
 				}
+				previous = value;
 			}
 
-			result.isMonotonic = IsMonotonicOnSamples(x1, x2, numPoints);
+			if (!foundFinite)
+				result.minValue = result.maxValue = std::numeric_limits<Real>::quiet_NaN();
 			return result;
 		}
 
-		/// Analyze function at multiple points, returning detailed per-point results
+		/// Analyze numPoints samples on [x1, x2), returning detailed per-point results.
 		std::vector<PointAnalysisResult> AnalyzePoints(Real x1, Real x2, int numPoints, Real eps = Precision::LooseTolerance) const {
+			ValidateSampling(x1, x2, numPoints, eps);
 			std::vector<PointAnalysisResult> results;
 			results.reserve(numPoints);
 			for (int i = 0; i < numPoints; i++) {
-				Real x = x1 + i * (x2 - x1) / numPoints;
+				Real x = SamplePoint(x1, x2, i, numPoints);
 				results.push_back(AnalyzePoint(x, eps));
 			}
 			return results;
 		}
 
 		std::vector<Real> GetRoots(Real x1, Real x2, Real eps) {
+			ValidateSampling(x1, x2, 1000, eps);
 			std::vector<Real> roots;
-			Real step = (x2 - x1) / 1000;
 
 			// Check if x1 is a root (within tolerance)
 			Real val_x1 = _f(x1);
@@ -264,7 +337,7 @@ namespace MML {
 
 			Real prev = val_x1;
 			for (int i = 1; i <= 1000; i++) {
-				Real x_curr = x1 + i * step;
+				Real x_curr = SamplePoint(x1, x2, i, 1000);
 				Real curr = _f(x_curr);
 
 				// Check if current point is a root
@@ -272,8 +345,9 @@ namespace MML {
 					roots.push_back(x_curr);
 				}
 				// Check for sign change (bracket around root)
-				else if (prev * curr < 0) {
-					Real root = RootFinding::FindRootBisection(_f, x1 + (i - 1) * step, x_curr, eps);
+				else if (std::isfinite(prev) && std::isfinite(curr) && prev != 0 && curr != 0 &&
+				         std::signbit(prev) != std::signbit(curr)) {
+					Real root = RootFinding::FindRootBisection(_f, SamplePoint(x1, x2, i - 1, 1000), x_curr, eps);
 					// Avoid duplicate roots
 					if (roots.empty() || std::abs(root - roots.back()) > eps)
 						roots.push_back(root);
@@ -362,6 +436,7 @@ namespace MML {
 			return !std::isnan(y) && !std::isinf(y);
 		}
 		bool IsDerivativeDefinedAtPoint(Real x, Real eps = Precision::LooseTolerance) const {
+			ValidateProbe(x, eps);
 			// Derivative exists at x if left and right derivatives exist and are equal
 			// Left derivative:  lim (h→0-) [f(x+h) - f(x)] / h
 			// Right derivative: lim (h→0+) [f(x+h) - f(x)] / h
@@ -384,7 +459,7 @@ namespace MML {
 
 			// Check if left and right derivatives match (within tolerance)
 			Real deriv_diff = std::abs(leftDeriv - rightDeriv);
-			Real avg_deriv = (std::abs(leftDeriv) + std::abs(rightDeriv)) / 2.0;
+			Real avg_deriv = (std::abs(leftDeriv) + std::abs(rightDeriv)) / MML::Real(2.0);
 
 			// Use relative tolerance for large derivatives, absolute for small
 			Real tolerance = eps * 100 + eps * 100 * avg_deriv;
@@ -392,6 +467,7 @@ namespace MML {
 			return deriv_diff < tolerance;
 		}
 		bool IsContinuousAtPoint(Real x, Real eps) const {
+			ValidateProbe(x, eps);
 			// Function is continuous at x if:
 			// lim(h→0) f(x+h) = f(x) and lim(h→0) f(x-h) = f(x)
 			//
@@ -472,6 +548,7 @@ namespace MML {
 			return false;
 		}
 		bool IsLocalOptimum(Real x, Real eps) const {
+			ValidateProbe(x, eps);
 			// For a local optimum:
 			// 1. First derivative must be (approximately) zero: f'(x) ≈ 0
 			// 2. Second derivative must be non-zero with consistent sign: f''(x) ≠ 0
@@ -480,7 +557,7 @@ namespace MML {
 
 			// Check first derivative is near zero
 			Real first_der = Derivation::NDer4(_f, x);
-			if (std::abs(first_der) > eps)
+			if (!std::isfinite(first_der) || std::abs(first_der) > eps)
 				return false; // Not a stationary point
 
 			// Check second derivative has consistent sign (non-zero)
@@ -488,30 +565,35 @@ namespace MML {
 			Real right_sec_der = Derivation::NSecDer4(_f, x + 4 * eps);
 
 			// Both should have the same sign AND be non-zero
-			return left_sec_der * right_sec_der > 0;
+			return std::isfinite(left_sec_der) && std::isfinite(right_sec_der) &&
+			       left_sec_der != 0 && right_sec_der != 0 &&
+			       std::signbit(left_sec_der) == std::signbit(right_sec_der);
 		}
 		bool IsInflectionPoint(Real x, Real eps) const {
+			ValidateProbe(x, eps);
 			// Inflection point: second derivative changes sign (concavity changes)
 			// Note: First derivative does NOT need to be zero (that's for stationary points)
 			Real left_sec_der = Derivation::NSecDer4(_f, x - 4 * eps);
 			Real right_sec_der = Derivation::NSecDer4(_f, x + 4 * eps);
 
 			// Check if second derivatives have opposite signs (sign change)
-			return left_sec_der * right_sec_der < 0;
+			return std::isfinite(left_sec_der) && std::isfinite(right_sec_der) &&
+			       left_sec_der != 0 && right_sec_der != 0 &&
+			       std::signbit(left_sec_der) != std::signbit(right_sec_der);
 		}
 		bool AppearsContinuous(Real x1, Real x2, int numPoints, Real eps = Precision::LooseTolerance, std::vector<Real>* discontinuities = nullptr) const {
+			ValidateSampling(x1, x2, numPoints, eps);
 			// Multi-stage approach to detect discontinuities:
 			// 1) Sample at numPoints
 			// 2) Check continuity at each point using IsContinuousAtPoint()
 			// 3) Adaptive refinement where suspicious behavior detected
 
 			bool allContinuous = true;
-			Real step = (x2 - x1) / numPoints;
 			std::vector<Real> suspiciousPoints;
 
 			// Stage 1: Initial sampling
-			for (int i = 0; i <= numPoints; i++) {
-				Real x = x1 + i * step;
+			for (std::size_t i = 0; i <= static_cast<std::size_t>(numPoints); i++) {
+				Real x = SamplePoint(x1, x2, i, numPoints);
 				if (!IsContinuousAtPoint(x, eps)) {
 					allContinuous = false;
 					suspiciousPoints.push_back(x);
@@ -521,9 +603,9 @@ namespace MML {
 			// Stage 2: Check for sign changes in derivative (potential discontinuities)
 			// Sample derivative at midpoints to catch jump discontinuities
 			for (int i = 0; i < numPoints; i++) {
-				Real x_left = x1 + i * step;
-				Real x_right = x1 + (i + 1) * step;
-				Real x_mid = (x_left + x_right) / 2.0;
+				Real x_left = SamplePoint(x1, x2, i, numPoints);
+				Real x_right = SamplePoint(x1, x2, i + 1, numPoints);
+				Real x_mid = SamplePoint(x_left, x_right, 1, 2);
 
 				// Check for large derivative changes (potential discontinuity)
 				Real der_left = Derivation::NDer2(_f, x_left);
@@ -532,7 +614,7 @@ namespace MML {
 				// If derivative changes dramatically or function value jumps
 				Real val_left = _f(x_left);
 				Real val_right = _f(x_right);
-				Real val_mid = _f(x_mid);
+				(void)_f(x_mid);
 
 				// Check for non-smooth behavior (jump or cusp)
 				bool potentialJump = std::abs(val_right - val_left) > 10 * eps * std::abs(val_left + val_right);
@@ -551,29 +633,24 @@ namespace MML {
 			}
 
 			// Return discontinuity locations if requested
-			if (discontinuities != nullptr && !suspiciousPoints.empty()) {
+			if (discontinuities != nullptr) {
 				*discontinuities = suspiciousPoints;
 			}
 
 			return allContinuous;
 		}
+		/// Non-strict ordering on numPoints subdivisions, including both endpoints.
 		bool IsMonotonicOnSamples(Real x1, Real x2, int numPoints) const {
-			Real step = (x2 - x1) / numPoints;
-			Real prev = _f(x1 + step);
-			if (_f(x1) < _f(x1 + step)) {
-				for (int i = 2; i < numPoints; i++) {
-					Real curr = _f(x1 + i * step);
-					if (curr < prev)
-						return false;
-					prev = curr;
-				}
-			} else {
-				for (int i = 2; i < numPoints; i++) {
-					Real curr = _f(x1 + i * step);
-					if (curr > prev)
-						return false;
-					prev = curr;
-				}
+			ValidateSampling(x1, x2, numPoints);
+			Real previous = _f(x1);
+			if (!std::isfinite(previous))
+				return false;
+			int direction = 0;
+			for (std::size_t i = 1; i <= static_cast<std::size_t>(numPoints); i++) {
+				const Real current = _f(SamplePoint(x1, x2, i, numPoints));
+				if (!std::isfinite(current) || !UpdateSampleDirection(previous, current, direction))
+					return false;
+				previous = current;
 			}
 			return true;
 		}
@@ -582,20 +659,18 @@ namespace MML {
 		/// Complexity: O(N) function evaluations.
 		/// @param x1 Start of interval
 		/// @param x2 End of interval
-		/// @param numPoints Number of sample points
+		/// @param numPoints Positive subdivision count (both endpoints are sampled)
 		/// @return Minimum value found (ignoring overflow/NaN values), or NaN if all invalid
 		Real MinInNPoints(Real x1, Real x2, int numPoints) {
-			Real step = (x2 - x1) / numPoints;
+			ValidateSampling(x1, x2, numPoints);
 			Real min = std::numeric_limits<Real>::max();
 			bool foundValid = false;
 
-			for (int i = 0; i <= numPoints; i++) {
-				SafeEvalResult evalResult = SafeEvaluate(_f, x1 + i * step);
+			for (std::size_t i = 0; i <= static_cast<std::size_t>(numPoints); i++) {
+				SafeEvalResult evalResult = SafeEvaluate(_f, SamplePoint(x1, x2, i, numPoints), std::numeric_limits<Real>::max());
 				if (evalResult.isValid) {
-					if (evalResult.value < min) {
-						min = evalResult.value;
-						foundValid = true;
-					}
+					min = std::min(min, evalResult.value);
+					foundValid = true;
 				}
 			}
 			return foundValid ? min : std::numeric_limits<Real>::quiet_NaN();
@@ -605,20 +680,18 @@ namespace MML {
 		/// Complexity: O(N) function evaluations.
 		/// @param x1 Start of interval
 		/// @param x2 End of interval
-		/// @param numPoints Number of sample points
+		/// @param numPoints Positive subdivision count (both endpoints are sampled)
 		/// @return Maximum value found (ignoring overflow/NaN values), or NaN if all invalid
 		Real MaxInNPoints(Real x1, Real x2, int numPoints) {
-			Real step = (x2 - x1) / numPoints;
+			ValidateSampling(x1, x2, numPoints);
 			Real max = std::numeric_limits<Real>::lowest();
 			bool foundValid = false;
 
-			for (int i = 0; i <= numPoints; i++) {
-				SafeEvalResult evalResult = SafeEvaluate(_f, x1 + i * step);
+			for (std::size_t i = 0; i <= static_cast<std::size_t>(numPoints); i++) {
+				SafeEvalResult evalResult = SafeEvaluate(_f, SamplePoint(x1, x2, i, numPoints), std::numeric_limits<Real>::max());
 				if (evalResult.isValid) {
-					if (evalResult.value > max) {
-						max = evalResult.value;
-						foundValid = true;
-					}
+					max = std::max(max, evalResult.value);
+					foundValid = true;
 				}
 			}
 			return foundValid ? max : std::numeric_limits<Real>::quiet_NaN();
@@ -631,137 +704,13 @@ namespace MML {
 		// Compute left limit: lim(x→a⁻) f(x)
 		// With overflow protection for singularities
 		Real ComputeLeftLimit(Real x, Real eps = Precision::LooseTolerance, int maxSteps = 20) const {
-			// Approach from the left with decreasing step sizes
-			Real h = eps * 100;
-			Real prevValue = std::numeric_limits<Real>::quiet_NaN();
-			int stableCount = 0;
-			int overflowCount = 0;
-			const Real overflowThreshold = Precision::InfiniteLimitThreshold;  // Values beyond this suggest infinite limit
-
-			for (int i = 0; i < maxSteps; i++) {
-				Real testPoint = x - h;
-				
-				// Use safe evaluation with overflow detection
-				SafeEvalResult evalResult = SafeEvaluate(_f, testPoint, overflowThreshold);
-				
-				if (!evalResult.isValid) {
-					if (evalResult.isOverflow) {
-						overflowCount++;
-						// If we consistently get overflow, the limit is infinite
-						if (overflowCount >= 3)
-							return std::numeric_limits<Real>::infinity();
-					}
-					if (evalResult.isNaN)
-						return std::numeric_limits<Real>::quiet_NaN();
-					// Try with smaller h for potential underflow
-					h /= 2.0;
-					continue;
-				}
-
-				Real value = evalResult.value;
-
-				// Check for convergence with overflow-safe difference
-				if (!std::isnan(prevValue)) {
-					Real diff = SafeDifference(value, prevValue);
-					
-					// If difference computation overflowed, values are diverging
-					if (std::isinf(diff)) {
-						overflowCount++;
-						if (overflowCount >= 3)
-							return std::numeric_limits<Real>::infinity();
-						h /= 2.0;
-						continue;
-					}
-					
-					Real tolerance = eps * (1.0 + std::abs(value));
-
-					if (diff < tolerance) {
-						stableCount++;
-						if (stableCount >= 3) // Require 3 stable iterations
-							return value;
-					} else {
-						stableCount = 0;
-					}
-				}
-
-				prevValue = value;
-				h /= 2.0;
-			}
-
-			// Return best approximation, or infinity if we detected overflow trend
-			if (overflowCount >= 2 && !std::isnan(prevValue) && std::abs(prevValue) > overflowThreshold)
-				return (prevValue > 0) ? std::numeric_limits<Real>::infinity() 
-				                        : -std::numeric_limits<Real>::infinity();
-			
-			return prevValue; // Best approximation
+			return ComputeOneSidedLimit(x, eps, maxSteps, true);
 		}
 
 		// Compute right limit: lim(x→a⁺) f(x)
 		// With overflow protection for singularities
 		Real ComputeRightLimit(Real x, Real eps = Precision::LooseTolerance, int maxSteps = 20) const {
-			// Approach from the right with decreasing step sizes
-			Real h = eps * 100;
-			Real prevValue = std::numeric_limits<Real>::quiet_NaN();
-			int stableCount = 0;
-			int overflowCount = 0;
-			const Real overflowThreshold = Precision::InfiniteLimitThreshold;  // Values beyond this suggest infinite limit
-
-			for (int i = 0; i < maxSteps; i++) {
-				Real testPoint = x + h;
-				
-				// Use safe evaluation with overflow detection
-				SafeEvalResult evalResult = SafeEvaluate(_f, testPoint, overflowThreshold);
-				
-				if (!evalResult.isValid) {
-					if (evalResult.isOverflow) {
-						overflowCount++;
-						// If we consistently get overflow, the limit is infinite
-						if (overflowCount >= 3)
-							return std::numeric_limits<Real>::infinity();
-					}
-					if (evalResult.isNaN)
-						return std::numeric_limits<Real>::quiet_NaN();
-					// Try with smaller h for potential underflow
-					h /= 2.0;
-					continue;
-				}
-
-				Real value = evalResult.value;
-
-				// Check for convergence with overflow-safe difference
-				if (!std::isnan(prevValue)) {
-					Real diff = SafeDifference(value, prevValue);
-					
-					// If difference computation overflowed, values are diverging
-					if (std::isinf(diff)) {
-						overflowCount++;
-						if (overflowCount >= 3)
-							return std::numeric_limits<Real>::infinity();
-						h /= 2.0;
-						continue;
-					}
-					
-					Real tolerance = eps * (1.0 + std::abs(value));
-
-					if (diff < tolerance) {
-						stableCount++;
-						if (stableCount >= 3) // Require 3 stable iterations
-							return value;
-					} else {
-						stableCount = 0;
-					}
-				}
-
-				prevValue = value;
-				h /= 2.0;
-			}
-
-			// Return best approximation, or infinity if we detected overflow trend
-			if (overflowCount >= 2 && !std::isnan(prevValue) && std::abs(prevValue) > overflowThreshold)
-				return (prevValue > 0) ? std::numeric_limits<Real>::infinity() 
-				                        : -std::numeric_limits<Real>::infinity();
-			
-			return prevValue; // Best approximation
+			return ComputeOneSidedLimit(x, eps, maxSteps, false);
 		}
 
 		// Classify a discontinuity at point x
@@ -773,28 +722,18 @@ namespace MML {
 			disc.rightLimit = ComputeRightLimit(x, eps);
 			disc.jumpSize = 0.0;
 
-			// Check if limits exist (are finite)
-			bool leftLimitExists = !std::isnan(disc.leftLimit) && !std::isinf(disc.leftLimit);
-			bool rightLimitExists = !std::isnan(disc.rightLimit) && !std::isinf(disc.rightLimit);
-
-			// Check if limits are very large (approaching infinity)
-			const Real largeThreshold = Precision::DivergenceMagnitudeThreshold;
-			bool leftLimitVeryLarge = std::abs(disc.leftLimit) > largeThreshold;
-			bool rightLimitVeryLarge = std::abs(disc.rightLimit) > largeThreshold;
-
 			// Classify discontinuity type
-			if (!leftLimitExists && !rightLimitExists) {
-				disc.type = DiscontinuityType::OSCILLATORY; // Or could be UNKNOWN
-			} else if (!leftLimitExists || !rightLimitExists || leftLimitVeryLarge || rightLimitVeryLarge) {
-				// At least one limit is infinite or doesn't exist
-				disc.type = DiscontinuityType::INFINITE;
-			} else if (std::abs(disc.leftLimit - disc.rightLimit) > eps * 1000 * (1.0 + std::abs(disc.leftLimit))) {
+			if (std::isinf(disc.leftLimit) || std::isinf(disc.rightLimit)) {
+				disc.type = DiscontinuityType::Infinite;
+			} else if (std::isnan(disc.leftLimit) || std::isnan(disc.rightLimit)) {
+				disc.type = DiscontinuityType::UNKNOWN;
+			} else if (SafeDifference(disc.leftLimit, disc.rightLimit) > eps * 1000 * (Real(1) + std::abs(disc.leftLimit))) {
 				// Limits exist but differ significantly - JUMP discontinuity
 				disc.type = DiscontinuityType::JUMP;
-				disc.jumpSize = std::abs(disc.rightLimit - disc.leftLimit);
+				disc.jumpSize = SafeDifference(disc.rightLimit, disc.leftLimit);
 			} else {
 				// Limits exist and agree
-				Real limitValue = (disc.leftLimit + disc.rightLimit) / 2.0;
+				Real limitValue = disc.leftLimit / Real(2) + disc.rightLimit / Real(2);
 
 				if (!IsDefinedAtPoint(x)) {
 					disc.type = DiscontinuityType::REMOVABLE; // Undefined at point
@@ -811,13 +750,13 @@ namespace MML {
 
 		// Find all discontinuities in an interval
 		std::vector<DiscontinuityPoint> FindDiscontinuityCandidates(Real x1, Real x2, int numPoints = 1000, Real eps = Precision::LooseTolerance) const {
+			ValidateSampling(x1, x2, numPoints, eps);
 			std::vector<DiscontinuityPoint> discontinuities;
-			Real step = (x2 - x1) / numPoints;
 
 			// Stage 1: Check each sample point for continuity
 			std::vector<Real> candidates;
-			for (int i = 0; i <= numPoints; i++) {
-				Real x = x1 + i * step;
+			for (std::size_t i = 0; i <= static_cast<std::size_t>(numPoints); i++) {
+				Real x = SamplePoint(x1, x2, i, numPoints);
 				if (!IsContinuousAtPoint(x, eps)) {
 					candidates.push_back(x);
 				}
@@ -825,9 +764,10 @@ namespace MML {
 
 			// Stage 2: Check between sample points for rapid changes (potential jumps)
 			for (int i = 0; i < numPoints; i++) {
-				Real x_left = x1 + i * step;
-				Real x_right = x1 + (i + 1) * step;
-				Real x_mid = (x_left + x_right) / 2.0;
+				Real x_left = SamplePoint(x1, x2, i, numPoints);
+				Real x_right = SamplePoint(x1, x2, i + 1, numPoints);
+				Real x_mid = SamplePoint(x_left, x_right, 1, 2);
+				Real step = x_right - x_left;
 
 				if (!IsDefinedAtPoint(x_left) || !IsDefinedAtPoint(x_right)) {
 					// If points aren't defined, check the midpoint
@@ -860,7 +800,7 @@ namespace MML {
 				if (std::abs(val_right - val_left) > jumpThreshold) {
 					// Potential discontinuity - check multiple points in this interval
 					for (int j = 1; j <= 4; j++) {
-						Real x_test = x_left + (j / 5.0) * (x_right - x_left);
+						Real x_test = SamplePoint(x_left, x_right, j, 5);
 						if (!IsContinuousAtPoint(x_test, eps)) {
 							// Avoid duplicates
 							bool alreadyFound = false;
@@ -893,9 +833,7 @@ namespace MML {
 		/// Sampled candidates and search metadata; absence of candidates is not a continuity proof.
 		ContinuityAnalysisResult AnalyzeContinuity(Real x1, Real x2, int numSubintervals = 1000,
 		                                          Real eps = Precision::LooseTolerance) const {
-			if (!std::isfinite(x1) || !std::isfinite(x2) || x2 < x1 ||
-			    numSubintervals <= 0 || !std::isfinite(eps) || eps <= 0)
-				throw std::invalid_argument("AnalyzeContinuity requires finite ordered bounds, positive subdivisions and tolerance");
+			ValidateSampling(x1, x2, numSubintervals, eps);
 			return {x1, x2, numSubintervals, eps, FindDiscontinuityCandidates(x1, x2, numSubintervals, eps)};
 		}
 

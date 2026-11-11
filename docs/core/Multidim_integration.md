@@ -4,6 +4,22 @@
 
 Numerical integration in 2D and 3D using nested 1D quadrature methods.
 
+## Nested accuracy and diagnostics
+
+An unusable inner integral makes the full nested result unusable: extracting an
+inner value never erases its failure status. When all levels provide estimates,
+the reported uncertainty includes the outer estimate and the outer span times
+the largest observed inner uncertainty. In 3D the same composition is applied
+at both nesting levels. This is a conservative sampled-error diagnostic, not a
+proof that an unsampled inner slice has smaller error.
+
+A checked result is successful only when its aggregate uncertainty meets the
+requested criterion. Fixed Gauss10 nesting remains `Completed` with `NoEstimate`;
+fixed embedded GK retains a composed estimate without claiming convergence.
+Evaluation counts refer to actual calls of the original multidimensional
+integrand, rather than only the number of outer quadrature nodes. Missing
+required limit callbacks are rejected explicitly.
+
 ## Table of Contents
 - [Overview](#overview)
 - [2D Integration](#2d-integration)
@@ -20,8 +36,8 @@ MML provides deterministic integration for low dimensions using tensor-product r
 
 | Dimension | Function | Domain | Methods |
 |-----------|----------|--------|---------|
-| 2D | `Integrate2D` | General (variable y limits) | TRAP, SIMPSON, GAUSS10 |
-| 3D | `Integrate3D` | General (variable y,z limits) | TRAP, SIMPSON, GAUSS10 |
+| 2D | `Integrate2D` | General (variable y limits) | TRAP, SIMPSON, ROMBERG, GAUSS10, GAUSS10KRONROD21 |
+| 3D | `Integrate3D` | General (variable y,z limits) | TRAP, SIMPSON, ROMBERG, GAUSS10, GAUSS10KRONROD21 |
 
 For higher dimensions (≥ 4) or complex domains, see [Monte Carlo integration](../algorithms/MonteCarlo_integration.md).
 

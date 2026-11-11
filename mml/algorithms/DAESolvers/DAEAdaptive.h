@@ -13,14 +13,23 @@ namespace MML {
 	inline DAESolverResult SolveDAEBackwardEulerAdaptive(IODESystemDAEWithJacobian& system,
 		Real t0, const Vector<Real>& x0, const Vector<Real>& y0, Real t_end,
 		const DAESolverConfig& config = DAESolverConfig()) {
-		if (!std::isfinite(t_end - t0) || t_end == t0)
-			throw ArgumentError("SolveDAEBackwardEulerAdaptive: requires distinct finite endpoints");
-		if (!std::isfinite(config.step_size) || config.step_size <= 0)
-			throw ArgumentError("SolveDAEBackwardEulerAdaptive: config.step_size must be positive");
+		const int diffDim = system.getDiffDim(), algDim = system.getAlgDim();
+		if (!std::isfinite(t0) || !std::isfinite(t_end) || !std::isfinite(t_end - t0) || t_end == t0 ||
+			!std::isfinite(config.step_size) || config.step_size <= 0 ||
+			!std::isfinite(config.min_step_size) || config.min_step_size <= 0 ||
+			!std::isfinite(config.max_step_size) || config.max_step_size < config.min_step_size ||
+			!std::isfinite(config.abs_tolerance) || config.abs_tolerance <= 0 ||
+			!std::isfinite(config.rel_tolerance) || config.rel_tolerance < 0 ||
+			!std::isfinite(config.newton_tol) || config.newton_tol <= 0 ||
+			!std::isfinite(config.constraint_tol) || config.constraint_tol <= 0 ||
+			!std::isfinite(config.step_safety) || config.step_safety <= 0 || config.step_safety >= 1 ||
+			config.max_steps <= 0 || config.max_newton_iter <= 0 ||
+			diffDim <= 0 || algDim < 0 || x0.size() != diffDim || y0.size() != algDim)
+			throw ArgumentError("SolveDAEBackwardEulerAdaptive: requires distinct finite endpoints, matching dimensions, "
+				"positive steps/absolute, Newton and constraint tolerances/budgets, nonnegative relative tolerance, "
+				"ordered step bounds and 0 < step_safety < 1");
 
 		AlgorithmTimer timer;
-		const int diffDim = system.getDiffDim();
-		const int algDim = system.getAlgDim();
 		DAESolverResult result(t0, t_end, diffDim, algDim, 0);
 		result.algorithm_name = "DAEBackwardEulerAdaptive";
 		Vector<Real> x = x0, y = y0, constraints(algDim);
@@ -28,29 +37,19 @@ namespace MML {
 		const Real direction = t_end > t0 ? Real(1) : Real(-1);
 		Real h = direction * std::clamp(config.step_size, config.min_step_size, config.max_step_size);
 		result.solution.fillValues(0, t, x, y);
-		system.algConstraints(t, x, y, constraints);
-		result.final_constraint_norm = constraints.NormL2();
-		result.max_constraint_violation = result.final_constraint_norm;
-		if (!IsFiniteDAEVector(x) || !IsFiniteDAEVector(y) || !IsFiniteDAEVector(constraints)) {
-			result.status = AlgorithmStatus::NumericalInstability;
-			result.failure_reason = DAEFailureReason::NonFiniteState;
-			result.error_message = "Non-finite initial DAE state";
-			result.solution.setFinalSize(0);
-			result.elapsed_time_ms = timer.elapsed_ms();
-			return result;
-		}
-		if (result.final_constraint_norm > config.constraint_tol) {
-			result.status = AlgorithmStatus::InvalidInput;
-			result.failure_reason = DAEFailureReason::InconsistentInitialConditions;
-			result.error_message = "Initial algebraic constraints are inconsistent";
+		if (!ValidateDAEInitialState(system, t, x, y, config, result)) {
 			result.solution.setFinalSize(0);
 			result.elapsed_time_ms = timer.elapsed_ms();
 			return result;
 		}
 
+		const auto rejectAttempt = [&]() {
+			++result.rejected_steps;
+			result.solution.incrementRejectedSteps();
+		};
 		auto takeStep = [&](Real startTime, const Vector<Real>& startX, const Vector<Real>& startY,
 			Real stepSize, Vector<Real>& endX, Vector<Real>& endY) {
-			Vector<Real> derivative(diffDim), residualValues(diffDim + algDim);
+			Vector<Real> derivative(diffDim);
 			Matrix<Real> df_dx(diffDim, diffDim), df_dy(diffDim, algDim);
 			Matrix<Real> dg_dx(algDim, diffDim), dg_dy(algDim, algDim);
 			system.diffEqs(startTime, startX, startY, derivative);
@@ -86,14 +85,10 @@ namespace MML {
 			if (firstHalf.converged) AccumulateDAENewtonDiagnostics(result, secondHalf);
 
 			if (!full.converged || !firstHalf.converged || !secondHalf.converged) {
-				result.rejected_steps++;
-				result.solution.incrementRejectedSteps();
+				rejectAttempt();
 				if (std::abs(h) <= config.min_step_size) {
 					const DAENewtonResult& failure = !full.converged ? full : (!firstHalf.converged ? firstHalf : secondHalf);
-					result.failure_reason = failure.failure_reason;
-					result.status = failure.failure_reason == DAEFailureReason::SingularJacobian
-						? AlgorithmStatus::SingularMatrix : AlgorithmStatus::NumericalInstability;
-					result.error_message = failure.message;
+					SetDAENewtonFailure(result, failure, "Adaptive Backward Euler at minimum step");
 					break;
 				}
 				h = direction * std::max(config.min_step_size, std::abs(h) * static_cast<MML::Real>(0.5));
@@ -101,29 +96,51 @@ namespace MML {
 			}
 
 			Real errorRatio = static_cast<MML::Real>(0.0);
-			for (int i = 0; i < diffDim; ++i) {
-				Real scale = config.abs_tolerance + config.rel_tolerance * std::max(std::abs(acceptedX[i]), std::abs(x[i]));
-				errorRatio = std::max(errorRatio, std::abs(acceptedX[i] - fullX[i]) / scale);
+			for (int i = 0; i < diffDim + algDim; ++i) {
+				const Real oldValue = i < diffDim ? x[i] : y[i - diffDim];
+				const Real newValue = i < diffDim ? acceptedX[i] : acceptedY[i - diffDim];
+				const Real fullValue = i < diffDim ? fullX[i] : fullY[i - diffDim];
+				const Real scale = config.abs_tolerance + config.rel_tolerance * std::max(std::abs(newValue), std::abs(oldValue));
+				const Real componentError = std::abs(newValue - fullValue) / scale;
+				if (!std::isfinite(scale) || !std::isfinite(componentError)) {
+					errorRatio = std::numeric_limits<Real>::infinity();
+					break;
+				}
+				errorRatio = std::max(errorRatio, componentError);
 			}
-			for (int i = 0; i < algDim; ++i) {
-				Real scale = config.abs_tolerance + config.rel_tolerance * std::max(std::abs(acceptedY[i]), std::abs(y[i]));
-				errorRatio = std::max(errorRatio, std::abs(acceptedY[i] - fullY[i]) / scale);
+			result.last_error_norm = errorRatio;
+			result.max_error_norm = std::max(result.max_error_norm, errorRatio);
+			if (!std::isfinite(errorRatio)) {
+				rejectAttempt();
+				result.status = AlgorithmStatus::NumericalInstability;
+				result.failure_reason = DAEFailureReason::NonFiniteState;
+				result.error_message = "Adaptive Backward Euler: non-finite error estimate or scale";
+				break;
 			}
 
-			if (errorRatio > static_cast<MML::Real>(1.0) && std::abs(h) > config.min_step_size) {
-				result.rejected_steps++;
-				result.solution.incrementRejectedSteps();
+			if (errorRatio > static_cast<MML::Real>(1.0)) {
+				rejectAttempt();
+				if (std::abs(h) <= config.min_step_size) {
+					result.status = AlgorithmStatus::NumericalInstability;
+					result.failure_reason = DAEFailureReason::StepSizeUnderflow;
+					result.error_message = "Adaptive Backward Euler: error tolerance unattainable at minimum step";
+					break;
+				}
 				Real factor = std::max(static_cast<MML::Real>(0.2), config.step_safety / std::sqrt(errorRatio));
 				h = direction * std::max(config.min_step_size, std::abs(h) * factor);
 				continue;
 			}
 
+			system.algConstraints(t + h, acceptedX, acceptedY, constraints);
+			const Real previousConstraintNorm = result.final_constraint_norm;
+			if (!ValidateAcceptedDAEState(acceptedX, acceptedY, constraints, config, result, "Adaptive Backward Euler step")) {
+				result.final_constraint_norm = previousConstraintNorm;
+				rejectAttempt();
+				break;
+			}
 			x = acceptedX;
 			y = acceptedY;
 			t += h;
-			system.algConstraints(t, x, y, constraints);
-			if (!ValidateAcceptedDAEState(x, y, constraints, config, result, "Adaptive Backward Euler step"))
-				break;
 			result.solution.fillValues(savedStep++, t, x, y);
 			result.solution.incrementSuccessfulSteps();
 			result.accepted_steps++;

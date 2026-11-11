@@ -44,7 +44,264 @@ Statistics::HypergeometricDistribution hypergeometric(52, 13, 5);
 ```
 
 Discrete distribution inverse CDFs return the smallest supported integer `k`
-such that `cdf(k) >= p`.
+such that `cdf(k) >= p` for interior probabilities. Their shared integer search
+maintains a rejected lower point and an accepted upper point until they are
+adjacent; it does not return a heuristic iteration limit or convert an unchecked
+floating-point estimate to `int`.
+
+Existing probability clipping is retained. At `p <= 0`, the nominal lower
+support bound is returned (including zero for a certain-success Bernoulli/binomial).
+At `p >= 1`, finite distributions return their final possible mass point:
+in particular, `BinomialDistribution(5,0).inverseCdf(1)` now returns zero, not five.
+Geometric and negative-binomial distributions with success probability one also
+return zero at the upper endpoint. Nondegenerate unbounded distributions retain
+their `INT_MAX` upper-endpoint sentinel. Interior queries never use that sentinel
+as an unverified fallback: an out-of-range quantile throws `ConvergenceError`.
+
+All six inverse entry points explicitly reject NaN probabilities and invalid
+public parameter state with `StatisticsError`. The same parameter checks now
+apply to construction and every distribution operation, as described below.
+
+Binomial and negative-binomial CDFs use regularized-beta identities; Poisson
+uses GammaQ. Geometric probabilities, including the one-success negative-binomial
+case, use `log1p`/`expm1` to retain tiny success probabilities. The shared beta
+prefactor also uses `log1p`. Binomial and hypergeometric PMFs evaluate their
+log-binomial coefficients and logarithmic probability assembly in at least
+double precision, narrowing only the final probability to `Real`.
+Hypergeometric CDFs use compensated accumulation of
+the lower or upper tail, bounded by `Precision::DiscreteCdfMaxTerms`; exceeding
+that budget throws `ConvergenceError`. Only roundoff-sized probability-range
+excursions within `Precision::EqualityTolerance` are clamped; detected invalid
+probabilities throw `NumericalMethodError`.
+
+`Precision::DiscreteQuantileMaxIterations` bounds the integer search and is
+derived from the number of value bits in `int`. Count arguments are converted
+before additions in gamma/beta expressions, and accumulation stops before
+incrementing an `INT_MAX` endpoint. Existing special-function exhaustion errors
+propagate; these changes do not add large-shape asymptotic kernels.
+
+The runnable counterpart is `Docs_Demo_Statistics_DiscreteBoundaries` in
+`src/docs_demos/algorithms/docs_demo_statistics.cpp`, included in
+`MML_DocsApp --statistics`:
+
+```cpp
+int geometricLower = Statistics::GeometricDistribution(Real(0.5)).inverseCdf(Real(1e-20)); // 0
+int certainGeometric = Statistics::GeometricDistribution(1).inverseCdf(1); // 0
+int certainNegative = Statistics::NegativeBinomialDistribution(3, 1).inverseCdf(1); // 0
+int zeroBinomial = Statistics::BinomialDistribution(5, 0).inverseCdf(1); // 0
+int poissonQuantile = Statistics::PoissonDistribution(40).inverseCdf(Real(0.99)); // 55
+```
+
+### Distribution Parameter Validation
+
+Continuous distribution parameters must be finite and satisfy their existing
+domain constraints: positive shapes, scales and rates; finite locations;
+ordered finite uniform endpoints; and positive integer degrees of freedom.
+Discrete success probabilities must lie in `[0,1]` for Bernoulli/binomial and
+`(0,1]` for geometric/negative-binomial distributions. Trial, success and population
+counts retain their existing integer constraints.
+
+Public parameter fields remain mutable for compatibility. Every public sampling,
+PDF/PMF, CDF, inverse, moment and auxiliary operation revalidates those fields
+and throws `StatisticsError` on invalid state, before support/clipping shortcuts
+or RNG use. Both sampling overloads are covered. The direct
+`Statistics::SampleGamma(gen, shape, scale)` helper also requires finite positive
+arguments before drawing from the generator or entering rejection sampling.
+
+NaN inverse probabilities throw `StatisticsError`. Existing probability
+intervals and clipping conventions are unchanged, including infinite query
+probabilities for distributions whose inverse already clips outside `[0,1]`.
+This is parameter validation, not a blanket finite-output restriction:
+legitimate infinite PDF endpoint values and existing undefined-moment errors
+remain unchanged. Finite-input count/range checks and Poisson sampling have the
+additional contract below.
+
+The runnable counterpart is `Docs_Demo_Statistics_ParameterValidation` in
+`src/docs_demos/algorithms/docs_demo_statistics.cpp`, included in
+`MML_DocsApp --statistics`:
+
+```cpp
+Statistics::GammaDistribution gamma(2, 1);
+gamma.shape = std::numeric_limits<Real>::quiet_NaN();
+std::mt19937 gen(17019);
+const auto before = gen;
+bool rejected = false;
+try {
+    gamma.sample(gen);
+} catch (const StatisticsError&) {
+    rejected = true;
+}
+if (!rejected || gen != before)
+    throw std::runtime_error("Invalid gamma state was not rejected before RNG use");
+```
+
+### Checked Discrete Sampling
+
+Geometric samples use `log1p(-p)` so small positive probabilities do not round
+the denominator to zero. The existing zero-uniform guard is retained. Counts
+are checked before any floating-to-integer conversion, and negative-binomial
+sampling checks each geometric draw and each addition separately.
+An accepted count or sum outside `[0, INT_MAX]` throws `NumericalMethodError`;
+there is no saturation, sentinel return, or redraw to truncate the distribution.
+
+Poisson sampling retains Knuth's product rule below
+`Precision::PoissonSamplingSwitchRate` (30) and uses Hormann's transformed
+rejection method (PTRS) at larger rates. Log-domain acceptance uses a stable
+near-mode deviance and Stirling correction rather than subtracting large
+log-factorials. Internal arithmetic is at least double precision, including
+when `Real` is float.
+
+Wider internal arithmetic does not recover precision already lost in a `Real`
+parameter or uniform draw. Controlled sampling regressions therefore use exact
+integer references appropriate to the native probability and uniform grids,
+without integer comparison tolerances. In particular, converting `INT_MAX` to
+float rounds above the supported Poisson rate; the boundary tests use the
+largest supported representable rate and its immediately adjacent unsupported
+value. Per-draw conversion failures, accumulated-sum failures and rejection
+before RNG use remain distinct checks.
+
+By the selected sampling policy, rates above `INT_MAX` throw
+`NumericalMethodError` before RNG use, even though such a distribution can
+mathematically produce an in-range count. Construction, CDFs, moments and
+quantiles keep their existing domains. At supported rates, an accepted
+out-of-range proposal also throws; rejected proposals are not treated as samples.
+
+Both Poisson algorithms are bounded by `Precision::PoissonSamplingMaxIterations`
+(100,000 steps/proposals); exhaustion throws `ConvergenceError`. Generator draws
+already consumed before a sample-range or budget error are not rolled back.
+Small-rate Poisson sampling retains its existing seed sequence; larger-rate
+sequences intentionally change with the corrected algorithm. The `log1p`
+geometric correction can also change counts at rounding-sensitive boundaries.
+
+The runnable counterpart is `Docs_Demo_Statistics_DiscreteSampling` in
+`src/docs_demos/algorithms/docs_demo_statistics.cpp`, included in
+`MML_DocsApp --statistics`:
+
+```cpp
+std::mt19937 gen(34023);
+int largeCount = Statistics::PoissonDistribution(1000000).sample(gen);
+const auto before = gen;
+bool rejected = false;
+try {
+    Statistics::PoissonDistribution(Real(std::numeric_limits<int>::max()) + 1).sample(gen);
+} catch (const NumericalMethodError&) {
+    rejected = true;
+}
+if (largeCount < 0 || !rejected || gen != before)
+    throw std::runtime_error("Checked Poisson sampling demo failed");
+```
+
+### Representable Distribution Tails
+
+Normal and lognormal CDFs evaluate the complementary error function directly,
+and standard-normal survival/two-tailed probabilities do not subtract a rounded
+CDF from one. Standardization divides by sigma before applying the square-root
+factor; finite opposite-sign location differences that overflow subtraction are
+standardized separately. This preserves large-scale controls such as
+`NormalDistribution(0, 1e308).cdf(1e308)`.
+
+The shared inverse-normal helper passes the smaller probability directly to
+`SpecialFunctions::ErfcInv`, rather than forming `2*p - 1`. Valid probabilities
+through the smallest positive double therefore produce finite quantiles.
+The existing open interval `(0,1)` is retained, including rejection of NaN.
+Normal and lognormal quantiles and existing distribution callers reuse that helper.
+
+Float quantiles have a finite output spacing: a one-ULP change in a far-tail
+quantile can change its CDF by more than the general equality tolerance.
+The float contract tests therefore bracket the target probability with
+independently evaluated CDFs within two quantile ULPs, and require the underlying
+inverse-erfc result to bracket its tail within one ULP. The final multiplication
+by the rounded square root of two accounts for the additional quantile spacing.
+The forward `erfc` at the rounded native argument is checked separately.
+Normal-range and subnormal endpoint
+controls remain distinct; a fixed relative accuracy is not asserted when
+subnormal probability spacing cannot represent it.
+
+Poisson CDFs and chi-square right-tail p-values consume
+`SpecialFunctions::RegularizedGammaQ` directly. The shared gamma implementation
+evaluates its upper continued-fraction branch without subtracting rounded GammaP.
+Its lower-series and upper-fraction budgets are controlled by
+`Precision::IncompleteGammaMaxIterations`; exhaustion now throws `ConvergenceError`
+instead of returning an unconverged result. Invalid gamma domains throw `DomainError`,
+and detected non-finite internal arithmetic throws `NumericalMethodError`.
+Zero and positive-infinite x retain exact regularized-gamma limits.
+
+Poisson finite-sum references are independent of the gamma implementation.
+Their float comparisons use the same input-dependent log-prefactor roundoff
+bound as the shared gamma tests, while double comparisons retain the existing
+strict equality tolerance. Coverage includes representable accumulated tails
+even when the initial `exp(-lambda)` term underflows in float.
+
+`ErfcInv` preserves its exact 0/2 infinite endpoints and central symmetry.
+Small positive arguments use log-tail Newton refinement; where the standard
+library erfc becomes subnormal or zero, the shared upper-gamma fraction supplies
+the scaled tail. Refinement is bounded by `Precision::ErfcInverseMaxIterations`
+and reports exhausted convergence explicitly. This does not replace or claim
+completion of the remaining Base special-function inverse solvers.
+
+The runnable counterpart is `Docs_Demo_Statistics_ProbabilityTails` in
+`src/docs_demos/algorithms/docs_demo_statistics.cpp`, included in
+`MML_DocsApp --statistics`:
+
+```cpp
+Real lower = Statistics::StandardNormal::cdf(-10);             // about 7.619853e-24
+Real upper = Statistics::StandardNormal::sf(10);               // about 7.619853e-24
+Real quantile = Statistics::InverseStandardNormalCdf(Real(1e-20)); // about -9.26234009
+Real poisson = Statistics::PoissonDistribution(40).cdf(0);     // exp(-40), not zero
+Real gammaUpper = SpecialFunctions::RegularizedGammaQ(1, 40);  // exp(-40), not zero
+Real inverseErfc = SpecialFunctions::ErfcInv(Real(1e-20));      // about 6.60158062
+```
+
+### Safeguarded Continuous Quantiles
+
+Student-t inverses and two-sided critical values, F and chi-square right-tail
+critical values, and Gamma/Beta inverses share a positive-support, logarithmic
+bisection search. Every initial bracket is checked; unbounded supports expand
+the upper endpoint without overflowing. Both relative position-bracket width
+and relative probability residual must pass. Neither a small absolute residual
+in a tiny tail nor an exhausted iteration budget counts as convergence.
+The search replaces the old unchecked Newton steps and fixed interior clamps.
+
+Student-t lower/survival/two-sided probabilities and F right-tail probabilities
+evaluate the small beta tail directly. Student-t probabilities near zero use
+the central beta identity instead of subtracting nearly equal half-probabilities.
+Critical values therefore do not form `1 - alpha/2` or target a rounded
+`1 - alpha` CDF. Gamma and chi-square upper searches use GammaQ directly.
+All five searches choose the smaller relevant probability or its stable central
+equivalent.
+
+`Precision::DistributionQuantileMaxIterations` and
+`DistributionQuantileBracketIterations` bound refinement and expansion.
+`DistributionQuantileProbabilityTolerance` and
+`DistributionQuantileRelativeTolerance` set their relative accuracy requirements.
+`ConvergenceError` reports exhausted budgets, stagnation, insufficient tail
+resolution, or an interior quantile outside the resolvable finite support.
+This includes values that would otherwise overflow, underflow, or round to a
+support endpoint without meeting tail accuracy; no unverified clamp is returned.
+
+Student-t inverse probabilities and all three critical-value significance
+arguments retain their open `(0,1)` domain. Gamma/Beta retain their existing
+clipping: `p <= 0` returns zero, while `p >= 1` returns infinity/one respectively.
+All these quantile entry points explicitly reject NaN with `StatisticsError`;
+Gamma/Beta interior inverses also require finite positive shape/scale parameters.
+
+The shared incomplete-beta fraction now uses
+`Precision::IncompleteBetaMaxIterations` and throws `ConvergenceError` on
+exhaustion, or `NumericalMethodError` for detected invalid arithmetic.
+Kernel errors propagate from the quantile search. These safeguards do not supply
+new large-shape special-function asymptotics or rewrite the Base inverse kernels.
+
+The runnable counterpart is `Docs_Demo_Statistics_Quantiles` in
+`src/docs_demos/algorithms/docs_demo_statistics.cpp`, included in
+`MML_DocsApp --statistics`:
+
+```cpp
+Real fCritical = Statistics::FDistribution(1, 1).criticalValue(Real(0.05)); // about 161.447639
+Real betaQuantile = Statistics::BetaDistribution(Real(0.5), 1).inverseCdf(Real(1e-6)); // 1e-12
+Real tQuantile = Statistics::TDistribution(2).inverseCdf(Real(0.999999)); // about 707.105721
+Real chiCritical = Statistics::ChiSquareDistribution(2).criticalValue(Real(1e-20)); // -2*log(1e-20)
+Real gammaQuantile = Statistics::GammaDistribution(1, 2).inverseCdf(Real(0.9)); // -2*log(0.1)
+```
 
 ### Histograms, ECDF, and Quantiles
 
@@ -216,14 +473,15 @@ static Real Avg(const Vector<Real>& data)
 
 ### AvgVar - Mean and Sample Variance
 
-**Purpose**: Compute both mean and sample variance in single pass.
+**Purpose**: Compute both mean and sample variance in O(n) time.
 
 **Function**:
 ```cpp
 static void AvgVar(const Vector<Real>& data, Real& outAvg, Real& outVar)
 ```
 
-**Algorithm** (two-pass for numerical stability):
+**Algorithm** (corrected centered moments, evaluated in binary-scaled,
+origin-relative coordinates for numerical stability):
 ```
 Pass 1: μ = Avg(data)
 Pass 2: 
@@ -233,11 +491,12 @@ Pass 2:
 ```
 
 **Why Correction Term?**
-Compensates for floating-point rounding errors in mean computation. Ensures variance never negative due to numerical precision.
+Compensates for floating-point rounding errors in centering. Compensated accumulation
+and origin-relative coordinates reduce cancellation for translated data.
 
 **Bessel's Correction**: Division by (n-1) instead of n provides **unbiased estimator** of population variance.
 
-**Complexity**: O(n) (two passes)
+**Complexity**: O(n), with O(1) auxiliary storage.
 
 **Use When**:
 - Need both mean and variance
@@ -292,6 +551,53 @@ variance accepts one observation and returns zero for that singleton population.
 
 ---
 
+### Numerical Range and Validation
+
+`Avg`/`Mean`, `AvgVar`, sample/population variance and standard deviation,
+`AvgStdDev`, `Moments`, `TrimmedMean`, `Median`, `MAD`, covariance, Pearson
+correlation and their matrix wrappers reject NaN/infinite input with `StatisticsError`.
+They also throw when a requested final statistic overflows the finite `Real` range.
+Subnormal results and underflow to zero retain ordinary IEEE rounding.
+The intentional signed-infinite significance statistic for perfect correlation in
+`PearsonCorrelationWithTest` is unchanged.
+
+Means use compensated sums, switching to binary-scaled accumulation when the raw
+sum overflows. Small contributions that would lose precision under that scaling
+are accumulated separately. Even medians use an overflow-safe midpoint.
+Centered moments and cross-products use compensated, binary-scaled coordinates;
+units are restored only after normalization by the sample/population denominator.
+This reduces avoidable range failures, not the inherent conditioning of arbitrary
+near-cancelling data, and does not guarantee correctly rounded statistics.
+
+Standard deviations do **not** materialize variance first: a representable
+standard deviation remains available even when the squared-unit variance overflows
+or underflows. Pearson correlation and correlation matrices similarly avoid
+materializing dimensional covariance/variance. Constant variables still throw,
+but changing units alone does not make a nonconstant variable constant.
+
+The runnable counterpart is `Docs_Demo_Statistics_Stability` in
+`src/docs_demos/algorithms/docs_demo_statistics.cpp`; run `MML_DocsApp --statistics`.
+For double precision, this exercises the original range failures:
+
+```cpp
+const Real huge = std::pow(Real(10), std::numeric_limits<Real>::max_exponent10);
+const Real unit = std::pow(Real(10), std::min(100, std::numeric_limits<Real>::max_exponent10 / 3));
+Vector<Real> pair({huge, huge});
+Vector<Real> large({-unit, 0, unit});
+Vector<Real> small({-Real(1) / unit, 0, Real(1) / unit});
+Real mean = Statistics::Avg(pair);                           // double: 1e308
+Real median = Statistics::Median(pair);                      // double: 1e308
+Real largeCorrelation = Statistics::PearsonCorrelation(large, large); // 1
+Real smallCorrelation = Statistics::PearsonCorrelation(small, small); // 1
+```
+
+The same demo returns a finite sample standard deviation for `[-1e308, 0, 1e308]`
+while verifying that its unrepresentable sample variance throws.
+Specialized geometric/harmonic means and weighted arithmetic are not changed by
+this unweighted stability contract.
+
+---
+
 ### Weighted Statistics
 
 ```cpp
@@ -324,7 +630,9 @@ Matrix<Real> correlation = Statistics::CorrelationMatrix(data);
 ```
 
 `CovarianceMatrix` computes sample covariance with denominator `n-1` and uses
-compensated accumulation. Both helpers reject non-finite data. The correlation
+compensated, scaled accumulation. Both helpers reject non-finite data. Correlation
+is computed directly from scaled centered cross-products rather than by first
+constructing a dimensional covariance matrix. The correlation
 matrix is exactly symmetric, has an exact unit diagonal, and clamps off-diagonal
 values to `[-1, 1]`; variables with zero variance are rejected.
 
@@ -332,7 +640,8 @@ values to `[-1, 1]`; variables with zero variance are rejected.
 
 ### Moments - Complete Distribution Shape
 
-**Purpose**: Compute all four moments (mean, MAD, variance, skewness, kurtosis).
+**Purpose**: Compute mean, mean absolute deviation, sample variance, sample standard
+deviation, sample-variance-normalized skewness and excess kurtosis.
 
 **Function**:
 ```cpp
@@ -349,6 +658,9 @@ static void Moments(const Vector<Real>& data, Real& ave, Real& adev, Real& sdev,
 - **curt**: Excess kurtosis γ₂
 
 **Algorithm**:
+The following formulas are evaluated in scaled coordinates and dimensional units
+are restored only for the requested dimensional outputs:
+
 ```
 1. Compute mean: μ = Σxᵢ/n
 
@@ -368,6 +680,11 @@ static void Moments(const Vector<Real>& data, Real& ave, Real& adev, Real& sdev,
    skew = (skew/n) / (var · sdev)
    curt = (curt/n) / var² - 3
 ```
+
+The existing sample-variance normalization of skewness/kurtosis is preserved;
+these are not newly substituted population-normalized or bias-corrected estimators.
+Zero variance from truly constant data still throws. A variance that rounds to zero
+only on restoring tiny physical units does not prevent dimensionless shape results.
 
 **Interpretation**:
 

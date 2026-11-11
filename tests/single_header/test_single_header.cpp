@@ -79,6 +79,17 @@ static_assert(std::is_same_v<MML::Real, double>);
 
 using namespace MML;
 
+TEST_CASE("Single header rank significance uses scalar-typed critical values", "[single-header][statistics]")
+{
+	Statistics::RankCorrelationDetailedResult result;
+	result.zScore = 2;
+	CHECK(result.IsSignificant());
+	CHECK_FALSE(result.IsSignificant(Real(0.01)));
+	result.zScore = -2;
+	CHECK(result.IsSignificant());
+	CHECK_FALSE(result.IsSignificant(Real(0.01)));
+}
+
 TEST_CASE("Single header retains plane coefficients and protected Dirac parameter after member cleanup",
           "[single-header][reserved-members]")
 {
@@ -168,17 +179,18 @@ TEST_CASE("Single header separates numerical analyzers from optional report rend
 {
 	RealFunction function(+[](Real x) { return x * x; });
 	const RealFunctionAnalyzer analyzer(function);
-	const auto interval = analyzer.AnalyzeInterval(Real(-1), Real(1), 10);
-	const auto continuity = analyzer.AnalyzeContinuity(Real(-1), Real(1), 10);
+	const auto interval = analyzer.AnalyzeInterval(Real(-1), Real(1), 16);
+	const auto continuity = analyzer.AnalyzeContinuity(Real(-1), Real(1), 16);
+	REQUIRE(interval.minValue == 0);
 	std::ostringstream reports;
 	AnalysisReports::PrintPointAnalysis(reports, analyzer.AnalyzePoint(Real(0)));
 	AnalysisReports::PrintIntervalAnalysis(reports, interval);
-	AnalysisReports::PrintDetailedIntervalAnalysis(reports, analyzer.AnalyzePoints(Real(-1), Real(1), 10));
+	AnalysisReports::PrintDetailedIntervalAnalysis(reports, analyzer.AnalyzePoints(Real(-1), Real(1), 16));
 	AnalysisReports::PrintContinuityAnalysis(reports, continuity);
 	REQUIRE(reports.str().find("Sampled minimum: 0") != std::string::npos);
 	REQUIRE(reports.str().find("No discontinuity candidates") != std::string::npos);
-	REQUIRE_FALSE(analyzer.IsMonotonicOnSamples(Real(-1), Real(1), 10));
-	REQUIRE(analyzer.AppearsContinuous(Real(-1), Real(1), 10));
+	REQUIRE_FALSE(analyzer.IsMonotonicOnSamples(Real(-1), Real(1), 16));
+	REQUIRE(analyzer.AppearsContinuous(Real(-1), Real(1), 16));
 	const auto matrix = MatrixAnalyzer<Real>(Matrix<Real>{2, 2, {2, 0, 0, 3}}).Analyze();
 	AnalysisReports::PrintMatrixAnalysis(reports, matrix);
 	REQUIRE(reports.str().find("Rank: 2") != std::string::npos);

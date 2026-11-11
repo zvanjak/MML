@@ -5,6 +5,7 @@
 Two essential utility classes for performance measurement and parallel computation:
 
 - **Timer**: High-precision performance measurement with multiple time markers
+- **ScopedTimer**: Automatic scope timing with captured results or callbacks
 - **ThreadPool**: Thread pool for parallel task execution
 
 ---
@@ -246,6 +247,41 @@ try {
 - **Memory**: ~40 bytes per mark (name + timestamp)
 
 ---
+
+## ScopedTimer
+
+`ScopedTimer` measures scope duration with `std::chrono::steady_clock`. The name-only
+constructor prints to stdout on scope exit. The result-reference constructor
+stores seconds in a caller-owned `double`; the callback constructor receives the
+operation name and elapsed seconds. Both support `silent=true` by default, which
+suppresses the timer's own stdout reporting, not the callback.
+`elapsed()` reads the running duration without stopping it; `name()` returns the
+operation name. The timer remains non-copyable and non-movable.
+
+### Reporting Failure Contract
+
+Destruction is explicitly `noexcept`. It stores a requested timing result first,
+then invokes the callback, then attempts stdout output unless silent. Callback
+exceptions remain contained. A failed callback does **not** prevent the separate
+stdout attempt. Exceptions during stdout insertion or flush, and failed stream
+state when exceptions are disabled, are contained as well, including during
+unrelated stack unwinding.
+
+Each failed stage emits a best-effort diagnostic to **C `stderr`** containing the
+timer name, stage, and exception detail when available. Non-standard exceptions
+are identified explicitly. C stdio is deliberate: `std::cerr` could itself throw
+or flush a tied, failing `std::cout`. These diagnostics are also emitted for
+callback failures in silent mode. No structured failure-result API is added.
+
+Measured time is still available when stdout fails; a stored duration alone is
+not proof of successful reporting. The timer does not clear caller stream state,
+retry a callback, or rethrow reporting failures. Diagnostic delivery cannot be
+guaranteed if `stderr` is itself unavailable.
+
+Runnable counterpart: `Docs_Demo_ScopedTimerFailures()` in
+[docs_demo_timer.cpp](../../src/docs_demos/tools/docs_demo_timer.cpp), selected by
+`MML_DocsApp --scoped-timer-failures`. It intentionally emits one callback-failure
+diagnostic while verifying continued execution and stored timing.
 
 ## ThreadPool Class
 

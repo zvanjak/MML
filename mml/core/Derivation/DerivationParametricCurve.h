@@ -140,6 +140,7 @@ namespace MML
 		template <int N>
 		static VectorN<Real, N> NSecDer2(const IParametricCurve<N>& f, Real t, Real h, Real* error = nullptr)
 		{
+			ValidateStepSize(h, "NSecDer2 curve");
 			VectorN<Real, N> y0 = f(t);
 			VectorN<Real, N> yh = f(t + h);
 			VectorN<Real, N> ymh = f(t - h);
@@ -152,9 +153,8 @@ namespace MML
 				// Error estimate using 4th derivative approximation
 				VectorN<Real, N> y2h = f(t + 2*h);
 				VectorN<Real, N> ym2h = f(t - 2*h);
-				Real f4_approx = (ym2h - 4.0*ymh + 6.0*y0 - 4.0*yh + y2h).NormL2() / h2;
-				
-				*error = f4_approx * h2 / 12.0 + 
+				*error = Detail::EstimateSecondTruncation2(ym2h, ymh, y0, yh, y2h, h,
+					[](const auto& value) { return value.NormL2(); }) +
 				         Constants::Eps * (ymh.NormL2() + 2*y0.NormL2() + yh.NormL2()) / h2;
 			}
 			
@@ -163,7 +163,7 @@ namespace MML
 		template <int N>
 		static VectorN<Real, N> NSecDer2(const IParametricCurve<N>& f, Real t, Real* error = nullptr)
 		{
-			return NSecDer2(f, t, ScaleStep(NDer2_h, t), error);
+			return NSecDer2(f, t, ScaleStep(Precision::FourthRootEps, t), error);
 		}
 
 		// f''(t) ≈ [-f(t-2h) + 16f(t-h) - 30f(t) + 16f(t+h) - f(t+2h)] / (12h²)
@@ -171,6 +171,7 @@ namespace MML
 		template <int N>
 		static VectorN<Real, N> NSecDer4(const IParametricCurve<N>& f, Real t, Real h, Real* error = nullptr)
 		{
+			ValidateStepSize(h, "NSecDer4 curve");
 			VectorN<Real, N> y0 = f(t);
 			VectorN<Real, N> yh = f(t + h);
 			VectorN<Real, N> ymh = f(t - h);
@@ -178,18 +179,17 @@ namespace MML
 			VectorN<Real, N> ym2h = f(t - 2*h);
 			
 			Real h2 = h * h;
-			VectorN<Real, N> result = (-ym2h + 16.0*ymh - 30.0*y0 + 16.0*yh - y2h) / (12.0 * h2);
+			VectorN<Real, N> result = (-ym2h + MML::Real(16.0)*ymh - MML::Real(30.0)*y0 + MML::Real(16.0)*yh - y2h) / (MML::Real(12.0) * h2);
 			
 			if (error)
 			{
 				// Error estimate using 6th derivative approximation
 				VectorN<Real, N> y3h = f(t + 3*h);
 				VectorN<Real, N> ym3h = f(t - 3*h);
-				Real f6_approx = (ym3h - 6.0*ym2h + 15.0*ymh - 20.0*y0 + 15.0*yh - 6.0*y2h + y3h).NormL2() / h2;
-				
-				*error = f6_approx * h2 * h2 / 90.0 + 
+				*error = Detail::EstimateSecondTruncation4(ym3h, ym2h, ymh, y0, yh, y2h, y3h, h,
+					[](const auto& value) { return value.NormL2(); }) +
 				         Constants::Eps * (ym2h.NormL2() + 16*ymh.NormL2() + 30*y0.NormL2() + 
-				                           16*yh.NormL2() + y2h.NormL2()) / (12.0 * h2);
+				                           16*yh.NormL2() + y2h.NormL2()) / (Real(12) * h2);
 			}
 			
 			return result;
@@ -197,7 +197,7 @@ namespace MML
 		template <int N>
 		static VectorN<Real, N> NSecDer4(const IParametricCurve<N>& f, Real t, Real* error = nullptr)
 		{
-			return NSecDer4(f, t, ScaleStep(NDer4_h, t), error);
+			return NSecDer4(f, t, ScaleStep(Precision::SixthRootEps, t), error);
 		}
 
 		/********************************************************************************************************************/
@@ -212,23 +212,23 @@ namespace MML
 		template <int N>
 		static VectorN<Real, N> NThirdDer2(const IParametricCurve<N>& f, Real t, Real h, Real* error = nullptr)
 		{
+			ValidateStepSize(h, "NThirdDer2 curve");
 			VectorN<Real, N> yh = f(t + h);
 			VectorN<Real, N> ymh = f(t - h);
 			VectorN<Real, N> y2h = f(t + 2*h);
 			VectorN<Real, N> ym2h = f(t - 2*h);
 			
 			Real h3 = h * h * h;
-			VectorN<Real, N> result = (-ym2h + 2.0*ymh - 2.0*yh + y2h) / (2.0 * h3);
+			VectorN<Real, N> result = (-ym2h + MML::Real(2.0)*ymh - MML::Real(2.0)*yh + y2h) / (MML::Real(2.0) * h3);
 			
 			if (error)
 			{
 				// Error estimate using 5th derivative approximation
 				VectorN<Real, N> y3h = f(t + 3*h);
 				VectorN<Real, N> ym3h = f(t - 3*h);
-				Real f5_approx = (ym3h - 3.0*ym2h + 5.0*ymh - 5.0*yh + 3.0*y2h - y3h).NormL2() / h3;
-				
-				*error = f5_approx * h * h / 4.0 + 
-				         Constants::Eps * (ym2h.NormL2() + 2*ymh.NormL2() + 2*yh.NormL2() + y2h.NormL2()) / (2.0 * h3);
+				*error = Detail::EstimateThirdTruncation2(ym3h, ym2h, ymh, yh, y2h, y3h, h,
+					[](const auto& value) { return value.NormL2(); }) +
+				         Constants::Eps * (ym2h.NormL2() + 2*ymh.NormL2() + 2*yh.NormL2() + y2h.NormL2()) / (Real(2) * h3);
 			}
 			
 			return result;
@@ -245,6 +245,7 @@ namespace MML
 		template <int N>
 		static VectorN<Real, N> NThirdDer4(const IParametricCurve<N>& f, Real t, Real h, Real* error = nullptr)
 		{
+			ValidateStepSize(h, "NThirdDer4 curve");
 			VectorN<Real, N> yh = f(t + h);
 			VectorN<Real, N> ymh = f(t - h);
 			VectorN<Real, N> y2h = f(t + 2*h);
@@ -253,18 +254,17 @@ namespace MML
 			VectorN<Real, N> ym3h = f(t - 3*h);
 			
 			Real h3 = h * h * h;
-			VectorN<Real, N> result = (ym3h - 8.0*ym2h + 13.0*ymh - 13.0*yh + 8.0*y2h - y3h) / (8.0 * h3);
+			VectorN<Real, N> result = (ym3h - MML::Real(8.0)*ym2h + MML::Real(13.0)*ymh - MML::Real(13.0)*yh + MML::Real(8.0)*y2h - y3h) / (MML::Real(8.0) * h3);
 			
 			if (error)
 			{
 				// Error estimate using 7th derivative approximation
 				VectorN<Real, N> y4h = f(t + 4*h);
 				VectorN<Real, N> ym4h = f(t - 4*h);
-				Real f7_approx = (ym4h - 4.0*ym3h + 9.0*ym2h - 13.0*ymh + 13.0*yh - 9.0*y2h + 4.0*y3h - y4h).NormL2() / h3;
-				
-				*error = f7_approx * h * h * h * h / 120.0 + 
+				*error = Detail::EstimateThirdTruncation4(ym4h, ym3h, ym2h, ymh, yh, y2h, y3h, y4h, h,
+					[](const auto& value) { return value.NormL2(); }) +
 				         Constants::Eps * (ym3h.NormL2() + 8*ym2h.NormL2() + 13*ymh.NormL2() + 
-				                           13*yh.NormL2() + 8*y2h.NormL2() + y3h.NormL2()) / (8.0 * h3);
+				                           13*yh.NormL2() + 8*y2h.NormL2() + y3h.NormL2()) / (Real(8) * h3);
 			}
 			
 			return result;

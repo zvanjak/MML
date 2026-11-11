@@ -52,7 +52,7 @@ namespace MML {
 				}
 			}
 
-			inline Dataset DatasetFromJson(const Persistence::JsonValue& root) {
+			inline IOResult DatasetFromJson(const Persistence::JsonValue& root, Dataset& output) {
 				if (root.type != Persistence::JsonValueType::Array)
 					throw DataError("JSON: Expected array at root");
 
@@ -104,8 +104,10 @@ namespace MML {
 						std::string strVal;
 
 						auto result = ParseValue(values[i], col.type, realVal, intVal, boolVal, strVal);
+						if (result == ParseResult::Invalid)
+							return InvalidValueResult(values[i], col, i, dataset.columns.size());
 						bool parsed = (result == ParseResult::Parsed);
-						col.missingMask[i] = !parsed;
+						col.missingMask[i] = result == ParseResult::Missing;
 
 						switch (col.type) {
 								case ColumnType::REAL:
@@ -158,14 +160,19 @@ namespace MML {
 
 					dataset.columns.push_back(std::move(col));
 				}
-				return dataset;
+				output = std::move(dataset);
+				return IOResult::Success();
 			}
 
 			inline Dataset ParseDatasetJson(const std::string& content) {
 				Persistence::JsonParseResult parsed = Persistence::ParseJson(content);
 				if (!parsed.result.success)
 					throw DataError("JSON: " + parsed.result.message);
-				return DatasetFromJson(parsed.value);
+				Dataset dataset;
+				const auto result = DatasetFromJson(parsed.value, dataset);
+				if (!result)
+					throw DataError(result.message);
+				return dataset;
 			}
 		} // namespace Detail
 
@@ -205,7 +212,10 @@ namespace MML {
 				return parsed.result.WithFile(filename);
 			}
 			try {
-				Dataset dataset = Detail::DatasetFromJson(parsed.value);
+				Dataset dataset;
+				const auto result = Detail::DatasetFromJson(parsed.value, dataset);
+				if (!result)
+					return result.WithFile(filename);
 				dataset.name = filename;
 				output = std::move(dataset);
 				return IOResult::Success(filename);

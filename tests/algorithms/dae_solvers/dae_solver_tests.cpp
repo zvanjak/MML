@@ -43,7 +43,7 @@ public:
 	void algConstraints(Real t, const Vector<Real>& x, const Vector<Real>& y,
 	                    Vector<Real>& g) const override
 	{
-		g[0] = x[0] + y[0] - 1.0;  // x + y = 1
+		g[0] = x[0] + y[0] - MML::Real(1.0);  // x + y = 1
 	}
 
 	std::string getDiffVarName(int i) const override { return "x"; }
@@ -185,7 +185,7 @@ TEST_CASE("DAE::Interface_variable_names", "[dae][interface]")
 
 TEST_CASE("DAE::Interface_pendulum_dimensions", "[dae][interface]")
 {
-	SimplifiedPendulumDAE pendulum(1.0, 9.81);
+	SimplifiedPendulumDAE pendulum(MML::Real(1.0), MML::Real(9.81));
 	
 	REQUIRE(pendulum.getDiffDim() == 4);
 	REQUIRE(pendulum.getAlgDim() == 1);
@@ -197,8 +197,8 @@ TEST_CASE("DAE::Interface_diffEqs_evaluation", "[dae][interface]")
 	SimpleLinearDAE linearDAE;
 	
 	Vector<Real> x(1), y(1), dxdt(1);
-	x[0] = 0.3;
-	y[0] = 0.7;  // Consistent: x + y = 1
+	x[0] = MML::Real(0.3);
+	y[0] = MML::Real(0.7);  // Consistent: x + y = 1
 	
 	linearDAE.diffEqs(0.0, x, y, dxdt);
 	
@@ -211,8 +211,8 @@ TEST_CASE("DAE::Interface_algConstraints_evaluation", "[dae][interface]")
 	SimpleLinearDAE linearDAE;
 	
 	Vector<Real> x(1), y(1), g(1);
-	x[0] = 0.3;
-	y[0] = 0.7;  // Consistent: x + y = 1
+	x[0] = MML::Real(0.3);
+	y[0] = MML::Real(0.7);  // Consistent: x + y = 1
 	
 	linearDAE.algConstraints(0.0, x, y, g);
 	
@@ -226,7 +226,7 @@ TEST_CASE("DAE::Interface_algConstraints_violation", "[dae][interface]")
 	
 	Vector<Real> x(1), y(1), g(1);
 	x[0] = 0.5;
-	y[0] = 0.3;  // Inconsistent: x + y = 0.8 ≠ 1
+	y[0] = MML::Real(0.3);  // Inconsistent: x + y = 0.8 ≠ 1
 	
 	linearDAE.algConstraints(0.0, x, y, g);
 	
@@ -359,7 +359,7 @@ TEST_CASE("DAE::Interface_jacobians", "[dae][interface]")
 TEST_CASE("DAE::Interface_pendulum_constraint", "[dae][interface]")
 {
 	Real L = 1.0;
-	SimplifiedPendulumDAE pendulum(L, 9.81);
+	SimplifiedPendulumDAE pendulum(L, MML::Real(9.81));
 	
 	Vector<Real> diff(4), alg(1), g(1);
 	// Start at angle θ = 30°, at rest
@@ -432,10 +432,10 @@ TEST_CASE("DAE::DAESolution_multiplePoints", "[dae][solution]")
 	
 	for (int i = 0; i <= 10; i++)
 	{
-		Real t = i * 0.1;
+		Real t = i * MML::Real(0.1);
 		Vector<Real> x(1), y(1);
 		x[0] = t;           // x = t
-		y[0] = 1.0 - t;     // y = 1 - t (constraint x + y = 1)
+		y[0] = MML::Real(1.0) - t;     // y = 1 - t (constraint x + y = 1)
 		sol.fillValues(i, t, x, y);
 	}
 	
@@ -457,7 +457,7 @@ TEST_CASE("DAE::DAESolution_interpolation", "[dae][solution]")
 	
 	for (int i = 0; i <= 10; i++)
 	{
-		Real t = i * 0.1;
+		Real t = i * MML::Real(0.1);
 		Vector<Real> x(1), y(1);
 		x[0] = t * t;       // x = t²
 		y[0] = 2 * t;       // y = 2t
@@ -486,7 +486,7 @@ void testDiffFunc(Real t, const Vector<Real>& x, const Vector<Real>& y, Vector<R
 
 void testAlgFunc(Real t, const Vector<Real>& x, const Vector<Real>& y, Vector<Real>& g)
 {
-	g[0] = x[0] + y[0] - 1.0;  // x + y = 1
+	g[0] = x[0] + y[0] - MML::Real(1.0);  // x + y = 1
 }
 
 TEST_CASE("DAE::DAESystem_construction", "[dae][system]")
@@ -515,8 +515,8 @@ TEST_CASE("DAE::DAESystem_evaluation", "[dae][system]")
 	DAESystem sys(1, 1, testDiffFunc, testAlgFunc);
 	
 	Vector<Real> x(1), y(1), dxdt(1), g(1);
-	x[0] = 0.3;
-	y[0] = 0.7;
+	x[0] = MML::Real(0.3);
+	y[0] = MML::Real(0.7);
 	
 	sys.diffEqs(0.0, x, y, dxdt);
 	sys.algConstraints(0.0, x, y, g);
@@ -538,8 +538,8 @@ TEST_CASE("DAE::ConsistentIC_verify", "[dae][solver]")
 	SimpleLinearDAE linearDAE;
 	
 	Vector<Real> x(1), y(1);
-	x[0] = 0.3;
-	y[0] = 0.7;  // Consistent: x + y = 1
+	x[0] = MML::Real(0.3);
+	y[0] = MML::Real(0.7);  // Consistent: x + y = 1
 	
 	bool isConsistent = VerifyConsistentIC(linearDAE, 0.0, x, y, TOL(1e-10, 1e-5));
 	REQUIRE(isConsistent);
@@ -555,7 +555,7 @@ TEST_CASE("DAE::ConsistentIC_compute", "[dae][solver]")
 	SimpleLinearDAE linearDAE;
 	
 	Vector<Real> x(1), y(1);
-	x[0] = 0.3;
+	x[0] = MML::Real(0.3);
 	y[0] = 0.5;  // Initial guess (inconsistent)
 	
 	// Compute consistent y such that x + y = 1
@@ -575,11 +575,11 @@ TEST_CASE("DAE::BackwardEuler_linearDAE", "[dae][solver]")
 	// Initial conditions
 	Real t0 = 0.0, t_end = 1.0;
 	Vector<Real> x0(1), y0(1);
-	x0[0] = 0.8;               // Start away from equilibrium
-	y0[0] = 1.0 - x0[0];       // Consistent: y = 1 - x
+	x0[0] = MML::Real(0.8);               // Start away from equilibrium
+	y0[0] = MML::Real(1.0) - x0[0];       // Consistent: y = 1 - x
 	
 	DAESolverConfig config;
-	config.step_size = 0.01;
+	config.step_size = MML::Real(0.01);
 	config.newton_tol = TOL(1e-8, 1e-3);
 	config.max_newton_iter = 50;
 	config.newton_tol = TOL(1e-10, 1e-5);
@@ -592,8 +592,8 @@ TEST_CASE("DAE::BackwardEuler_linearDAE", "[dae][solver]")
 	
 	// Analytical solution: x(t) = 0.5 + (x0 - 0.5)*exp(-2t)
 	// At t = 1: x(1) = 0.5 + 0.3*exp(-2) ≈ 0.5 + 0.0406 ≈ 0.5406
-	Real x_analytical = 0.5 + (0.8 - 0.5) * std::exp(-2.0);
-	Real y_analytical = 1.0 - x_analytical;
+	Real x_analytical = MML::Real(0.5) + (MML::Real(0.8) - MML::Real(0.5)) * std::exp(-MML::Real(2.0));
+	Real y_analytical = MML::Real(1.0) - x_analytical;
 	
 	Vector<Real> xEnd = result.solution.getXValuesAtEnd();
 	Vector<Real> yEnd = result.solution.getYValuesAtEnd();
@@ -612,11 +612,11 @@ TEST_CASE("DAE::BackwardEuler_constraintSatisfaction", "[dae][solver]")
 	
 	Real t0 = 0.0, t_end = 2.0;
 	Vector<Real> x0(1), y0(1);
-	x0[0] = 0.9;
-	y0[0] = 0.1;  // Consistent
+	x0[0] = MML::Real(0.9);
+	y0[0] = MML::Real(0.1);  // Consistent
 	
 	DAESolverConfig config;
-	config.step_size = 0.02;
+	config.step_size = MML::Real(0.02);
 	
 	DAESolverResult result = SolveDAEBackwardEuler(linearDAE, t0, x0, y0, t_end, config);
 	
@@ -645,11 +645,11 @@ TEST_CASE("DAE::BDF2_linearDAE", "[dae][solver]")
 	
 	Real t0 = 0.0, t_end = 1.0;
 	Vector<Real> x0(1), y0(1);
-	x0[0] = 0.8;
-	y0[0] = 0.2;  // Consistent
+	x0[0] = MML::Real(0.8);
+	y0[0] = MML::Real(0.2);  // Consistent
 	
 	DAESolverConfig config;
-	config.step_size = 0.01;
+	config.step_size = MML::Real(0.01);
 	config.newton_tol = TOL(1e-10, 1e-5);
 	
 	DAESolverResult result = SolveDAEBDF2(linearDAE, t0, x0, y0, t_end, config);
@@ -658,8 +658,8 @@ TEST_CASE("DAE::BDF2_linearDAE", "[dae][solver]")
 	REQUIRE(result.algorithm_name == "DAEBDF2");
 	
 	// BDF2 should be more accurate than Backward Euler
-	Real x_analytical = 0.5 + (0.8 - 0.5) * std::exp(-2.0);
-	Real y_analytical = 1.0 - x_analytical;
+	Real x_analytical = MML::Real(0.5) + (MML::Real(0.8) - MML::Real(0.5)) * std::exp(-MML::Real(2.0));
+	Real y_analytical = MML::Real(1.0) - x_analytical;
 	
 	Vector<Real> xEnd = result.solution.getXValuesAtEnd();
 	Vector<Real> yEnd = result.solution.getYValuesAtEnd();
@@ -675,16 +675,16 @@ TEST_CASE("DAE::BDF2_betterThanBackwardEuler", "[dae][solver]")
 	
 	Real t0 = 0.0, t_end = 1.0;
 	Vector<Real> x0(1), y0(1);
-	x0[0] = 0.9;
-	y0[0] = 0.1;
+	x0[0] = MML::Real(0.9);
+	y0[0] = MML::Real(0.1);
 	
 	DAESolverConfig config;
-	config.step_size = 0.05;  // Larger step to see order difference
+	config.step_size = MML::Real(0.05);  // Larger step to see order difference
 	
 	DAESolverResult resultBE = SolveDAEBackwardEuler(linearDAE, t0, x0, y0, t_end, config);
 	DAESolverResult resultBDF2 = SolveDAEBDF2(linearDAE, t0, x0, y0, t_end, config);
 	
-	Real x_analytical = 0.5 + (0.9 - 0.5) * std::exp(-2.0);
+	Real x_analytical = MML::Real(0.5) + (MML::Real(0.9) - MML::Real(0.5)) * std::exp(-MML::Real(2.0));
 	
 	Real errorBE = std::abs(resultBE.solution.getXValuesAtEnd()[0] - x_analytical);
 	Real errorBDF2 = std::abs(resultBDF2.solution.getXValuesAtEnd()[0] - x_analytical);
@@ -699,21 +699,24 @@ TEST_CASE("DAE::BDF4_solves_linearDAE", "[dae][solver][bdf4]")
 	
 	Real t0 = 0.0, t_end = 1.0;
 	Vector<Real> x0(1), y0(1);
-	x0[0] = 0.8;
-	y0[0] = 0.2;  // Consistent: y = 1 - x
+	x0[0] = MML::Real(0.8);
+	y0[0] = MML::Real(0.2);  // Consistent: y = 1 - x
 	
 	DAESolverConfig config;
-	config.step_size = 0.01;
+	config.step_size = MML::Real(0.01);
 	config.newton_tol = TOL(1e-10, 1e-5);
 	
 	DAESolverResult result = SolveDAEBDF4(linearDAE, t0, x0, y0, t_end, config);
 	
+	INFO(result.error_message);
 	REQUIRE(result.status == AlgorithmStatus::Success);
 	REQUIRE(result.algorithm_name == "DAEBDF4");
+	REQUIRE(result.solution.getTValue(result.solution.size() - 1) == t_end);
+	REQUIRE(result.final_constraint_norm <= config.constraint_tol);
 	
 	// Analytical: x(t) = 0.5 + (x0 - 0.5) * exp(-2t)
-	Real x_analytical = 0.5 + (0.8 - 0.5) * std::exp(-2.0);
-	Real y_analytical = 1.0 - x_analytical;
+	Real x_analytical = MML::Real(0.5) + (MML::Real(0.8) - MML::Real(0.5)) * std::exp(-MML::Real(2.0));
+	Real y_analytical = MML::Real(1.0) - x_analytical;
 	
 	Vector<Real> xEnd = result.solution.getXValuesAtEnd();
 	Vector<Real> yEnd = result.solution.getYValuesAtEnd();
@@ -729,16 +732,16 @@ TEST_CASE("DAE::BDF4_betterThanBDF2", "[dae][solver][bdf4]")
 	
 	Real t0 = 0.0, t_end = 1.0;
 	Vector<Real> x0(1), y0(1);
-	x0[0] = 0.9;
-	y0[0] = 0.1;
+	x0[0] = MML::Real(0.9);
+	y0[0] = MML::Real(0.1);
 	
 	DAESolverConfig config;
-	config.step_size = 0.05;  // Larger step to see order difference
+	config.step_size = MML::Real(0.05);  // Larger step to see order difference
 	
 	DAESolverResult resultBDF2 = SolveDAEBDF2(linearDAE, t0, x0, y0, t_end, config);
 	DAESolverResult resultBDF4 = SolveDAEBDF4(linearDAE, t0, x0, y0, t_end, config);
 	
-	Real x_analytical = 0.5 + (0.9 - 0.5) * std::exp(-2.0);
+	Real x_analytical = MML::Real(0.5) + (MML::Real(0.9) - MML::Real(0.5)) * std::exp(-MML::Real(2.0));
 	
 	Real errorBDF2 = std::abs(resultBDF2.solution.getXValuesAtEnd()[0] - x_analytical);
 	Real errorBDF4 = std::abs(resultBDF4.solution.getXValuesAtEnd()[0] - x_analytical);
@@ -749,34 +752,33 @@ TEST_CASE("DAE::BDF4_betterThanBDF2", "[dae][solver][bdf4]")
 
 TEST_CASE("DAE::BDF4_convergence_order", "[dae][solver][bdf4]")
 {
-	// Test that BDF4 achieves better than 2nd order convergence
-	// Note: Due to bootstrap startup using substepped BDF2, we don't get
-	// full 4th order until sufficiently small step sizes
+	// High-order starting history must preserve fourth-order global convergence.
 	SimpleLinearDAE linearDAE;
 	
 	Real t0 = 0.0, t_end = 1.0;
 	Vector<Real> x0(1), y0(1);
-	x0[0] = 0.8;
-	y0[0] = 0.2;
+	x0[0] = MML::Real(0.8);
+	y0[0] = MML::Real(0.2);
 	
-	Real x_analytical = 0.5 + (0.8 - 0.5) * std::exp(-2.0);
+	Real x_analytical = MML::Real(0.5) + (MML::Real(0.8) - MML::Real(0.5)) * std::exp(-MML::Real(2.0));
 	
 	DAESolverConfig config1, config2;
-	config1.step_size = 0.02;
-	config2.step_size = 0.01;  // Half the step size
+	config1.step_size = 0.03125;
+	config2.step_size = 0.015625;
+	config1.newton_tol = config2.newton_tol = TOL(1e-13, 1e-5);
 	
 	DAESolverResult result1 = SolveDAEBDF4(linearDAE, t0, x0, y0, t_end, config1);
 	DAESolverResult result2 = SolveDAEBDF4(linearDAE, t0, x0, y0, t_end, config2);
+	REQUIRE(result1.status == AlgorithmStatus::Success);
+	REQUIRE(result2.status == AlgorithmStatus::Success);
 	
 	Real error1 = std::abs(result1.solution.getXValuesAtEnd()[0] - x_analytical);
 	Real error2 = std::abs(result2.solution.getXValuesAtEnd()[0] - x_analytical);
 	
-	// For 4th order method, halving step size should reduce error by ~16x
-	// Due to substepped bootstrap, we see ~4x initially but better as h decreases
-	// Require at least 3.5x improvement (between 2nd and 4th order)
 	if constexpr (std::is_same_v<Real, double>) {
 		Real ratio = error1 / error2;
-		REQUIRE(ratio > 3.5);
+		REQUIRE(ratio > 12);
+		REQUIRE(ratio < 20);
 	} else {
 		// Float precision floor makes order measurement unreliable at these step sizes
 		REQUIRE(result1.status == AlgorithmStatus::Success);
@@ -790,11 +792,11 @@ TEST_CASE("DAE::LinearlyImplicit_solves_linearDAE", "[dae][solver][linearly-impl
 	
 	Real t0 = 0.0, t_end = 1.0;
 	Vector<Real> x0(1), y0(1);
-	x0[0] = 0.8;
-	y0[0] = 0.2;  // Consistent: y = 1 - x
+	x0[0] = MML::Real(0.8);
+	y0[0] = MML::Real(0.2);  // Consistent: y = 1 - x
 	
 	DAESolverConfig config;
-	config.step_size = 0.01;
+	config.step_size = MML::Real(0.01);
 	
 	DAESolverResult result = SolveDAELinearlyImplicit(linearDAE, t0, x0, y0, t_end, config);
 	
@@ -802,98 +804,97 @@ TEST_CASE("DAE::LinearlyImplicit_solves_linearDAE", "[dae][solver][linearly-impl
 	REQUIRE(result.algorithm_name == "DAELinearlyImplicit");
 	
 	// Analytical: x(t) = 0.5 + (x0 - 0.5) * exp(-2t)
-	Real x_analytical = 0.5 + (0.8 - 0.5) * std::exp(-2.0);
-	Real y_analytical = 1.0 - x_analytical;
+	Real x_analytical = MML::Real(0.5) + (MML::Real(0.8) - MML::Real(0.5)) * std::exp(-MML::Real(2.0));
+	Real y_analytical = MML::Real(1.0) - x_analytical;
 	
 	Vector<Real> xEnd = result.solution.getXValuesAtEnd();
 	Vector<Real> yEnd = result.solution.getYValuesAtEnd();
 	
 	// Second-order method with linearly-implicit corrector
-	// With h=0.01, expect error O(h^2) ≈ 1e-4, use 1e-3 tolerance
-	REQUIRE_THAT(xEnd[0], WithinAbs(x_analytical, 1e-3));
-	REQUIRE_THAT(yEnd[0], WithinAbs(y_analytical, 1e-3));
+	REQUIRE_THAT(xEnd[0], WithinAbs(x_analytical, TOL(1e-4, 1e-3)));
+	REQUIRE_THAT(yEnd[0], WithinAbs(y_analytical, TOL(1e-4, 1e-3)));
 }
 
-TEST_CASE("DAE::LinearlyImplicit_betterThanBDF2", "[dae][solver][linearly-implicit]")
+TEST_CASE("DAE::LinearlyImplicit_andBDF2_linearAccuracy", "[dae][solver][linearly-implicit]")
 {
-	// RODAS (linearly-implicit) vs BDF2 (Newton iteration)
-	// Both are 2nd order, but test that RODAS is comparable accuracy
+	// Compare the second-order trapezoid and BDF2 on this smooth linear problem.
 	SimpleLinearDAE linearDAE;
 	
 	Real t0 = 0.0, t_end = 1.0;
 	Vector<Real> x0(1), y0(1);
-	x0[0] = 0.9;
-	y0[0] = 0.1;
+	x0[0] = MML::Real(0.9);
+	y0[0] = MML::Real(0.1);
 	
 	DAESolverConfig config;
-	config.step_size = 0.05;  // Larger step to see order difference
+	config.step_size = MML::Real(0.05);
 	
 	DAESolverResult resultBDF2 = SolveDAEBDF2(linearDAE, t0, x0, y0, t_end, config);
 	DAESolverResult resultLinImpl = SolveDAELinearlyImplicit(linearDAE, t0, x0, y0, t_end, config);
+	REQUIRE(resultBDF2.status == AlgorithmStatus::Success);
+	REQUIRE(resultLinImpl.status == AlgorithmStatus::Success);
 	
-	Real x_analytical = 0.5 + (0.9 - 0.5) * std::exp(-2.0);
+	Real x_analytical = MML::Real(0.5) + (MML::Real(0.9) - MML::Real(0.5)) * std::exp(-MML::Real(2.0));
 	
 	Real errorBDF2 = std::abs(resultBDF2.solution.getXValuesAtEnd()[0] - x_analytical);
-	Real errorRODAS = std::abs(resultLinImpl.solution.getXValuesAtEnd()[0] - x_analytical);
+	Real errorLinImpl = std::abs(resultLinImpl.solution.getXValuesAtEnd()[0] - x_analytical);
 	
-	// Both are 2nd order methods, RODAS uses fewer Newton iterations (none!)
-	// Allow RODAS error to be at most 10x worse than BDF2 for comparable performance
-	REQUIRE(errorRODAS < 10 * errorBDF2 + 0.01);
+	const Real expectedTrapezoid = MML::Real(0.5) + (x0[0] - MML::Real(0.5)) *
+		std::pow((1 - config.step_size) / (1 + config.step_size), (t_end - t0) / config.step_size);
+	REQUIRE_THAT(resultLinImpl.solution.getXValuesAtEnd()[0], WithinAbs(expectedTrapezoid, TOL(1e-12, 1e-5)));
 	
 	// Also verify both achieve reasonable accuracy
-	REQUIRE(errorBDF2 < 0.01);
-	REQUIRE(errorRODAS < 0.01);
+	REQUIRE(errorBDF2 < TOL(2e-4, 1e-3));
+	REQUIRE(errorLinImpl < TOL(2e-4, 1e-3));
 }
 
 TEST_CASE("DAE::LinearlyImplicit_noNewtonIterations", "[dae][solver][linearly-implicit]")
 {
-	// Verify that RODAS uses no Newton iterations (only linear solves)
+	// Only the two frozen-matrix stage solves are needed.
 	SimpleLinearDAE linearDAE;
 	
 	Real t0 = 0.0, t_end = 1.0;
 	Vector<Real> x0(1), y0(1);
-	x0[0] = 0.8;
-	y0[0] = 0.2;
+	x0[0] = MML::Real(0.8);
+	y0[0] = MML::Real(0.2);
 	
 	DAESolverConfig config;
-	config.step_size = 0.1;
+	config.step_size = MML::Real(0.1);
 	
 	DAESolverResult result = SolveDAELinearlyImplicit(linearDAE, t0, x0, y0, t_end, config);
 	
 	REQUIRE(result.status == AlgorithmStatus::Success);
-	// RODAS doesn't use Newton iteration, so this should be 0
 	REQUIRE(result.newton_iterations == 0);
 	// But it does evaluate Jacobians (once per step)
-	REQUIRE(result.jacobian_evaluations > 0);
+	REQUIRE(result.jacobian_evaluations == result.accepted_steps);
 }
 
 TEST_CASE("DAE::LinearlyImplicit_convergence_order", "[dae][solver][linearly-implicit]")
 {
-	// Test that RODAS achieves convergence (at least 1st order)
-	// The linearly-implicit predictor-corrector gives ~2x ratio on step halving
+	// Second order requires a fourfold error reduction on step halving.
 	SimpleLinearDAE linearDAE;
 	
 	Real t0 = 0.0, t_end = 1.0;
 	Vector<Real> x0(1), y0(1);
-	x0[0] = 0.8;
-	y0[0] = 0.2;
+	x0[0] = MML::Real(0.8);
+	y0[0] = MML::Real(0.2);
 	
-	Real x_analytical = 0.5 + (0.8 - 0.5) * std::exp(-2.0);
+	Real x_analytical = MML::Real(0.5) + (MML::Real(0.8) - MML::Real(0.5)) * std::exp(-MML::Real(2.0));
 	
 	DAESolverConfig config1, config2;
-	config1.step_size = 0.02;
-	config2.step_size = 0.01;  // Half the step size
+	config1.step_size = MML::Real(0.02);
+	config2.step_size = MML::Real(0.01);  // Half the step size
 	
 	DAESolverResult result1 = SolveDAELinearlyImplicit(linearDAE, t0, x0, y0, t_end, config1);
 	DAESolverResult result2 = SolveDAELinearlyImplicit(linearDAE, t0, x0, y0, t_end, config2);
+	REQUIRE(result1.status == AlgorithmStatus::Success);
+	REQUIRE(result2.status == AlgorithmStatus::Success);
 	
 	Real error1 = std::abs(result1.solution.getXValuesAtEnd()[0] - x_analytical);
 	Real error2 = std::abs(result2.solution.getXValuesAtEnd()[0] - x_analytical);
 	
-	// Linearly-implicit method gives ratio ~2 on step halving
-	// Require improvement of at least 1.5x (verify convergence)
 	Real ratio = error1 / error2;
-	REQUIRE(ratio > 1.5);
+	REQUIRE(ratio > 3.8);
+	REQUIRE(ratio < 4.2);
 }
 
 /******************************************************************************/
@@ -907,16 +908,16 @@ TEST_CASE("DAE::RadauIIA_solves_linearDAE", "[dae][solver][radauiia]")
 	
 	Real t0 = 0.0, t_end = 1.0;
 	Vector<Real> x0(1), y0(1);
-	x0[0] = 0.8;
-	y0[0] = 0.2;
+	x0[0] = MML::Real(0.8);
+	y0[0] = MML::Real(0.2);
 	
 	DAESolverConfig config;
-	config.step_size = 0.01;
+	config.step_size = MML::Real(0.01);
 	
 	DAESolverResult result = SolveDAERadauIIA(linearDAE, t0, x0, y0, t_end, config);
 	
 	// Analytical: x(t) = 0.5 + (0.8 - 0.5)*exp(-2t) = 0.5 + 0.3*exp(-2t)
-	Real x_analytical = 0.5 + 0.3 * std::exp(-2.0);
+	Real x_analytical = MML::Real(0.5) + MML::Real(0.3) * std::exp(-MML::Real(2.0));
 	
 	REQUIRE(result.status == AlgorithmStatus::Success);
 	REQUIRE_THAT(result.solution.getXValuesAtEnd()[0], WithinAbs(x_analytical, 1e-6));
@@ -929,16 +930,16 @@ TEST_CASE("DAE::RadauIIA_higherOrderThanBDF4", "[dae][solver][radauiia]")
 	
 	Real t0 = 0.0, t_end = 1.0;
 	Vector<Real> x0(1), y0(1);
-	x0[0] = 0.8;
-	y0[0] = 0.2;
+	x0[0] = MML::Real(0.8);
+	y0[0] = MML::Real(0.2);
 	
 	DAESolverConfig config;
-	config.step_size = 0.05;  // Larger step to see order difference
+	config.step_size = MML::Real(0.05);  // Larger step to see order difference
 	
 	DAESolverResult radau = SolveDAERadauIIA(linearDAE, t0, x0, y0, t_end, config);
 	DAESolverResult bdf4 = SolveDAEBDF4(linearDAE, t0, x0, y0, t_end, config);
 	
-	Real x_analytical = 0.5 + 0.3 * std::exp(-2.0);
+	Real x_analytical = MML::Real(0.5) + MML::Real(0.3) * std::exp(-MML::Real(2.0));
 	Real radau_error = std::abs(radau.solution.getXValuesAtEnd()[0] - x_analytical);
 	Real bdf4_error = std::abs(bdf4.solution.getXValuesAtEnd()[0] - x_analytical);
 	
@@ -953,11 +954,11 @@ TEST_CASE("DAE::RadauIIA_usesNewton", "[dae][solver][radauiia]")
 	
 	Real t0 = 0.0, t_end = 0.5;
 	Vector<Real> x0(1), y0(1);
-	x0[0] = 0.8;
-	y0[0] = 0.2;
+	x0[0] = MML::Real(0.8);
+	y0[0] = MML::Real(0.2);
 	
 	DAESolverConfig config;
-	config.step_size = 0.1;
+	config.step_size = MML::Real(0.1);
 	
 	DAESolverResult result = SolveDAERadauIIA(linearDAE, t0, x0, y0, t_end, config);
 	
@@ -973,14 +974,14 @@ TEST_CASE("DAE::RadauIIA_convergence_order", "[dae][solver][radauiia]")
 	
 	Real t0 = 0.0, t_end = 1.0;
 	Vector<Real> x0(1), y0(1);
-	x0[0] = 0.8;
-	y0[0] = 0.2;
+	x0[0] = MML::Real(0.8);
+	y0[0] = MML::Real(0.2);
 	
-	Real x_analytical = 0.5 + (0.8 - 0.5) * std::exp(-2.0);
+	Real x_analytical = MML::Real(0.5) + (MML::Real(0.8) - MML::Real(0.5)) * std::exp(-MML::Real(2.0));
 	
 	DAESolverConfig config1, config2;
-	config1.step_size = 0.04;
-	config2.step_size = 0.02;  // Half the step size
+	config1.step_size = MML::Real(0.04);
+	config2.step_size = MML::Real(0.02);  // Half the step size
 	config1.newton_tol = TOL(1e-8, 1e-3);
 	config2.newton_tol = TOL(1e-8, 1e-3);
 	config1.max_newton_iter = 50;
@@ -1024,11 +1025,11 @@ TEST_CASE("DAE::Solver_diagnostics", "[dae][solver]")
 	
 	Real t0 = 0.0, t_end = 0.5;
 	Vector<Real> x0(1), y0(1);
-	x0[0] = 0.8;  // Away from equilibrium
-	y0[0] = 0.2;
+	x0[0] = MML::Real(0.8);  // Away from equilibrium
+	y0[0] = MML::Real(0.2);
 	
 	DAESolverConfig config;
-	config.step_size = 0.1;
+	config.step_size = MML::Real(0.1);
 	
 	DAESolverResult result = SolveDAEBackwardEuler(linearDAE, t0, x0, y0, t_end, config);
 	
@@ -1091,7 +1092,7 @@ public:
 	void jacobian_fy(Real t, const Vector<Real>& x, const Vector<Real>& y,
 	                 Matrix<Real>& df_dy) const override
 	{
-		df_dy(0, 0) = 1.0 / _C;  // d(dV_c/dt)/dI = 1/C
+		df_dy(0, 0) = MML::Real(1.0) / _C;  // d(dV_c/dt)/dI = 1/C
 	}
 
 	void jacobian_gx(Real t, const Vector<Real>& x, const Vector<Real>& y,
@@ -1107,7 +1108,7 @@ public:
 	}
 
 	// Analytical solution for testing
-	Real analyticalVc(Real t) const { return _Vs * (1.0 - std::exp(-t / (_R * _C))); }
+	Real analyticalVc(Real t) const { return _Vs * (MML::Real(1.0) - std::exp(-t / (_R * _C))); }
 	Real analyticalI(Real t) const { return (_Vs / _R) * std::exp(-t / (_R * _C)); }
 };
 
@@ -1137,7 +1138,7 @@ public:
 	void algConstraints(Real t, const Vector<Real>& x, const Vector<Real>& y,
 	                    Vector<Real>& g) const override
 	{
-		g[0] = x[0] + y[0] - 2.0 * std::exp(-t);
+		g[0] = x[0] + y[0] - MML::Real(2.0) * std::exp(-t);
 	}
 
 	std::string getDiffVarName(int i) const override { return "x"; }
@@ -1233,8 +1234,8 @@ public:
 	{
 		df_dy(0, 0) = 0.0;
 		df_dy(1, 0) = 0.0;
-		df_dy(2, 0) = 1.0 / _m1;   // dv1/dt depends on λ
-		df_dy(3, 0) = -1.0 / _m2;  // dv2/dt depends on λ
+		df_dy(2, 0) = MML::Real(1.0) / _m1;   // dv1/dt depends on λ
+		df_dy(3, 0) = -MML::Real(1.0) / _m2;  // dv2/dt depends on λ
 	}
 
 	void jacobian_gx(Real t, const Vector<Real>& diff, const Vector<Real>& alg,
@@ -1262,11 +1263,11 @@ public:
 /// This makes ∂g/∂y nonsingular through the coupling of accelerations.
 class RigidRod1DIndex1DAE : public IODESystemDAEWithJacobian
 {
-	Real _m1, _m2, _L, _g;
+	Real _m1, _m2, _g;
 
 public:
-	RigidRod1DIndex1DAE(Real m1 = 1.0, Real m2 = 1.0, Real L = 1.0, Real g = 9.81)
-		: _m1(m1), _m2(m2), _L(L), _g(g) {}
+	RigidRod1DIndex1DAE(Real m1 = 1.0, Real m2 = 1.0, Real /* L */ = 1.0, Real g = 9.81)
+		: _m1(m1), _m2(m2), _g(g) {}
 
 	int getDiffDim() const override { return 4; }  // x1, x2, v1, v2
 	int getAlgDim() const override { return 1; }   // λ
@@ -1314,8 +1315,8 @@ public:
 	{
 		df_dy(0, 0) = 0.0;
 		df_dy(1, 0) = 0.0;
-		df_dy(2, 0) = 1.0 / _m1;
-		df_dy(3, 0) = -1.0 / _m2;
+		df_dy(2, 0) = MML::Real(1.0) / _m1;
+		df_dy(3, 0) = -MML::Real(1.0) / _m2;
 	}
 
 	void jacobian_gx(Real t, const Vector<Real>& diff, const Vector<Real>& alg,
@@ -1361,7 +1362,7 @@ public:
 		Real z = alg[0];
 
 		dxdt[0] = vel;
-		dxdt[1] = _mu * (1.0 - pos * pos) * vel - pos + z;
+		dxdt[1] = _mu * (MML::Real(1.0) - pos * pos) * vel - pos + z;
 	}
 
 	void algConstraints(Real t, const Vector<Real>& x, const Vector<Real>& alg,
@@ -1383,8 +1384,8 @@ public:
 		Real pos = x[0], vel = x[1];
 		df_dx(0, 0) = 0.0;
 		df_dx(0, 1) = 1.0;
-		df_dx(1, 0) = -2.0 * _mu * pos * vel - 1.0;
-		df_dx(1, 1) = _mu * (1.0 - pos * pos);
+		df_dx(1, 0) = -MML::Real(2.0) * _mu * pos * vel - MML::Real(1.0);
+		df_dx(1, 1) = _mu * (MML::Real(1.0) - pos * pos);
 	}
 
 	void jacobian_fy(Real t, const Vector<Real>& x, const Vector<Real>& alg,
@@ -1416,7 +1417,7 @@ TEST_CASE("DAE::RCCircuit_analyticalComparison", "[dae][solver][realistic]")
 {
 	// RC circuit with R=1kΩ, C=1μF, Vs=5V
 	// Time constant τ = RC = 1ms
-	Real R = 1000.0, C = 1e-6, Vs = 5.0;
+	Real R = MML::Real(1000.0), C = MML::Real(1e-6), Vs = MML::Real(5.0);
 	Real tau = R * C;  // 1e-3 seconds
 
 	RCCircuitDAE circuit(R, C, Vs);
@@ -1428,10 +1429,10 @@ TEST_CASE("DAE::RCCircuit_analyticalComparison", "[dae][solver][realistic]")
 	I0[0] = Vs / R;
 
 	// Integrate for 5 time constants (should reach ~99.3% of final value)
-	Real t_end = 5.0 * tau;
+	Real t_end = MML::Real(5.0) * tau;
 
 	DAESolverConfig config;
-	config.step_size = tau / 100.0;  // 100 steps per time constant
+	config.step_size = tau / MML::Real(100.0);  // 100 steps per time constant
 	config.newton_tol = TOL(1e-12, 1e-5);
 
 	auto result = SolveDAEBDF2(circuit, 0.0, Vc0, I0, t_end, config);
@@ -1467,19 +1468,19 @@ TEST_CASE("DAE::RCCircuit_analyticalComparison", "[dae][solver][realistic]")
 
 TEST_CASE("DAE::RCCircuit_constraintSatisfaction", "[dae][solver][realistic]")
 {
-	RCCircuitDAE circuit(1000.0, 1e-6, 5.0);
+	RCCircuitDAE circuit(MML::Real(1000.0), MML::Real(1e-6), MML::Real(5.0));
 
 	Vector<Real> Vc0(1), I0(1);
 	Vc0[0] = 0.0;
-	I0[0] = 5.0 / 1000.0;  // 5mA initial current
+	I0[0] = MML::Real(5.0) / MML::Real(1000.0);  // 5mA initial current
 
 	// Use reasonable tolerances for this problem scale
 	DAESolverConfig config;
-	config.step_size = 1e-5;      // 100 steps per time constant
+	config.step_size = MML::Real(1e-5);      // 100 steps per time constant
 	config.newton_tol = TOL(1e-10, 1e-5);    // Reasonable for this problem
 	config.constraint_tol = TOL(1e-10, 1e-5);
 
-	auto result = SolveDAEBackwardEuler(circuit, 0.0, Vc0, I0, 5e-3, config);
+	auto result = SolveDAEBackwardEuler(circuit, MML::Real(0.0), Vc0, I0, MML::Real(5e-3), config);
 
 	REQUIRE(result.status == AlgorithmStatus::Success);
 
@@ -1511,7 +1512,7 @@ TEST_CASE("DAE::StiffLinear_stability", "[dae][solver][realistic]")
 	Real t_end = 3.0;
 
 	DAESolverConfig config;
-	config.step_size = 0.01;  // Step much larger than 1/λ = 0.001
+	config.step_size = MML::Real(0.01);  // Step much larger than 1/λ = 0.001
 	config.newton_tol = TOL(1e-10, 1e-5);
 
 	// Backward Euler should be stable despite large step
@@ -1523,8 +1524,7 @@ TEST_CASE("DAE::StiffLinear_stability", "[dae][solver][realistic]")
 	REQUIRE(resultBDF2.status == AlgorithmStatus::Success);
 
 	// Check final values
-	Real x_analytical = std::exp(-3.0);  // ≈ 0.0498
-	Real y_analytical = std::exp(-3.0);
+	Real x_analytical = std::exp(-MML::Real(3.0));  // ≈ 0.0498
 
 	Vector<Real> xBE = resultBE.solution.getXValuesAtEnd();
 	Vector<Real> xBDF2 = resultBDF2.solution.getXValuesAtEnd();
@@ -1596,7 +1596,7 @@ TEST_CASE("DAE::VanDerPol_forcedOscillator", "[dae][solver][realistic]")
 	z0[0] = 0.0;   // z(0) = sin(0) = 0 (consistent)
 
 	DAESolverConfig config;
-	config.step_size = 0.01;
+	config.step_size = MML::Real(0.01);
 	config.newton_tol = TOL(1e-10, 1e-5);
 
 	auto result = SolveDAEBDF2(vdp, 0.0, x0, z0, 10.0, config);
@@ -1633,13 +1633,13 @@ TEST_CASE("DAE::ConvergenceOrder_backwardEuler", "[dae][solver][realistic]")
 
 	Real t_end = 1.0;
 	Vector<Real> x0(1), y0(1);
-	x0[0] = 0.9;
-	y0[0] = 0.1;
+	x0[0] = MML::Real(0.9);
+	y0[0] = MML::Real(0.1);
 
-	Real x_analytical = 0.5 + 0.4 * std::exp(-2.0);
+	Real x_analytical = MML::Real(0.5) + MML::Real(0.4) * std::exp(-MML::Real(2.0));
 
 	// Use larger step sizes to see discretization error clearly
-	std::vector<Real> stepSizes = {0.2, 0.1, 0.05};
+	std::vector<Real> stepSizes = {MML::Real(0.2), MML::Real(0.1), MML::Real(0.05)};
 	std::vector<Real> errors;
 
 	for (Real h : stepSizes)
@@ -1671,14 +1671,14 @@ TEST_CASE("DAE::ConvergenceOrder_BDF2", "[dae][solver][realistic]")
 
 	Real t_end = 1.0;
 	Vector<Real> x0(1), y0(1);
-	x0[0] = 0.9;
-	y0[0] = 0.1;
+	x0[0] = MML::Real(0.9);
+	y0[0] = MML::Real(0.1);
 
-	Real x_analytical = 0.5 + 0.4 * std::exp(-2.0);
+	Real x_analytical = MML::Real(0.5) + MML::Real(0.4) * std::exp(-MML::Real(2.0));
 
 	// Use step sizes small enough that asymptotic behavior is visible
 	// (first step is BE, so need enough BDF2 steps to dominate)
-	std::vector<Real> stepSizes = {0.05, 0.025, 0.0125};
+	std::vector<Real> stepSizes = {MML::Real(0.05), MML::Real(0.025), MML::Real(0.0125)};
 	std::vector<Real> errors;
 
 	DAESolverConfig config;
@@ -1741,8 +1741,8 @@ TEST_CASE("DAE::NumericalJacobian_matches_analytical", "[dae][numjac]")
 	DAESystemNumericalJacobian numericalDAE(analyticalDAE);
 
 	Vector<Real> x(1), y(1);
-	x[0] = 0.3;
-	y[0] = 0.7;
+	x[0] = MML::Real(0.3);
+	y[0] = MML::Real(0.7);
 
 	// Compare each Jacobian
 	Matrix<Real> ana_fx(1, 1), num_fx(1, 1);
@@ -1801,8 +1801,8 @@ TEST_CASE("DAE::NumericalJacobian_forwarding", "[dae][numjac]")
 
 	// Verify function evaluation forwarded
 	Vector<Real> x(1), y(1), dxdt(1), g(1);
-	x[0] = 0.3;
-	y[0] = 0.7;
+	x[0] = MML::Real(0.3);
+	y[0] = MML::Real(0.7);
 
 	wrapped.diffEqs(0.0, x, y, dxdt);
 	REQUIRE_THAT(dxdt[0], WithinAbs(0.4, TOL(1e-10, 1e-5)));
@@ -1814,7 +1814,7 @@ TEST_CASE("DAE::NumericalJacobian_forwarding", "[dae][numjac]")
 TEST_CASE("DAE::NumericalJacobian_consistentIC", "[dae][numjac]")
 {
 	// Use SimplifiedPendulumDAE (no analytical Jacobians) via numerical adapter
-	SimplifiedPendulumDAE pendulum(1.0, 9.81);
+	SimplifiedPendulumDAE pendulum(MML::Real(1.0), MML::Real(9.81));
 	DAESystemNumericalJacobian wrapped(pendulum);
 
 	Real L = 1.0;
@@ -1827,7 +1827,7 @@ TEST_CASE("DAE::NumericalJacobian_consistentIC", "[dae][numjac]")
 	y0[0] = 0.0;  // λ initial guess
 
 	// Verify initial conditions satisfy the position constraint
-	REQUIRE(VerifyConsistentIC(wrapped, 0.0, x0, y0, 0.1));
+	REQUIRE(VerifyConsistentIC(wrapped, MML::Real(0.0), x0, y0, MML::Real(0.1)));
 }
 
 TEST_CASE("DAE::NumericalJacobian_solver_integration", "[dae][numjac][solver]")
@@ -1845,7 +1845,7 @@ TEST_CASE("DAE::NumericalJacobian_solver_integration", "[dae][numjac][solver]")
 	y0[0] = 1.0;
 
 	DAESolverConfig config;
-	config.step_size = 0.01;
+	config.step_size = MML::Real(0.01);
 	config.newton_tol = TOL(1e-12, 1e-5);
 
 	// Solve with numerical Jacobians
@@ -1853,8 +1853,8 @@ TEST_CASE("DAE::NumericalJacobian_solver_integration", "[dae][numjac][solver]")
 	REQUIRE(result.status == AlgorithmStatus::Success);
 
 	// Analytical solution: x(t) = 0.5 + (x0 - 0.5)e^{-2t}
-	Real x_analytical = 0.5 + (0.0 - 0.5) * std::exp(-2.0 * t_end);
-	Real y_analytical = 1.0 - x_analytical;
+	Real x_analytical = MML::Real(0.5) + (MML::Real(0.0) - MML::Real(0.5)) * std::exp(-MML::Real(2.0) * t_end);
+	Real y_analytical = MML::Real(1.0) - x_analytical;
 
 	REQUIRE_THAT(result.solution.getXValuesAtEnd()[0], WithinAbs(x_analytical, TOL(2e-3, 2e-2)));
 	REQUIRE_THAT(result.solution.getYValuesAtEnd()[0], WithinAbs(y_analytical, TOL(2e-3, 2e-2)));
@@ -1863,14 +1863,14 @@ TEST_CASE("DAE::NumericalJacobian_solver_integration", "[dae][numjac][solver]")
 TEST_CASE("DAE::NumericalJacobian_pendulum_Jacobians", "[dae][numjac]")
 {
 	// Verify numerical Jacobians for multi-dimensional pendulum system
-	SimplifiedPendulumDAE pendulum(1.0, 9.81);
+	SimplifiedPendulumDAE pendulum(MML::Real(1.0), MML::Real(9.81));
 	DAESystemNumericalJacobian wrapped(pendulum);
 
 	Vector<Real> x(4), y(1);
 	x[0] = 0.5;   // x position
-	x[1] = -0.866; // y position
-	x[2] = 0.1;   // vx
-	x[3] = -0.05; // vy
+	x[1] = -MML::Real(0.866); // y position
+	x[2] = MML::Real(0.1);   // vx
+	x[3] = -MML::Real(0.05); // vy
 	y[0] = -5.0;  // lambda
 
 	// Check dimensions of Jacobians
@@ -1903,4 +1903,3 @@ TEST_CASE("DAE::NumericalJacobian_pendulum_Jacobians", "[dae][numjac]")
 }
 
 } // namespace MML::Tests::Algorithms::DAESolverTests
-

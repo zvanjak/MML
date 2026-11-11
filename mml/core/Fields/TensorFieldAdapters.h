@@ -64,6 +64,7 @@ namespace MML
 			VectorTo   posTo(pos);
 			VectorFrom posFrom = _coordTransf.transfInverse(posTo);
 			Tensor2<N> tensor  = _originalField(posFrom);
+			detail::ValidateTensorFieldValue(*this, tensor);
 			return _coordTransf.transfTensor2(tensor, posFrom);
 		}
 
@@ -105,6 +106,7 @@ namespace MML
 			VectorTo   posTo(pos);
 			VectorFrom posFrom = _coordTransf.transfInverse(posTo);
 			Tensor3<N> tensor  = _originalField(posFrom);
+			detail::ValidateTensorFieldValue(*this, tensor);
 			return _coordTransf.transfTensor3(tensor, posFrom);
 		}
 
@@ -142,12 +144,13 @@ namespace MML
 			VectorTo   posTo(pos);
 			VectorFrom posFrom = _coordTransf.transfInverse(posTo);
 			Tensor4<N> tensor  = _originalField(posFrom);
+			detail::ValidateTensorFieldValue(*this, tensor);
 			return _coordTransf.transfTensor4(tensor, posFrom);
 		}
 
 		Real component(int i, int j, int k, int l, const VectorN<Real, N>& pos) const override
 		{
-			return (*this)(pos)[i][j][k][l];
+			return (*this)(pos)(i, j, k, l);
 		}
 	};
 
@@ -178,12 +181,13 @@ namespace MML
 			VectorTo   posTo(pos);
 			VectorFrom posFrom = _coordTransf.transfInverse(posTo);
 			Tensor5<N> tensor  = _originalField(posFrom);
+			detail::ValidateTensorFieldValue(*this, tensor);
 			return _coordTransf.transfTensor5(tensor, posFrom);
 		}
 
 		Real component(int i, int j, int k, int l, int m, const VectorN<Real, N>& pos) const override
 		{
-			return (*this)(pos)[i][j][k][l][m];
+			return (*this)(pos)(i, j, k, l, m);
 		}
 	};
 }

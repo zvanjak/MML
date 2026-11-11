@@ -36,8 +36,8 @@ namespace MML
 			if (compInd < 0 || compInd >= sol.getSysDim())
 				return IOResult{false, IOError::INVALID_PARAMETERS, "component index out of range [0, " + std::to_string(sol.getSysDim() - 1) + "]"}
 					.WithFile(fileName);
-			if (fileName.empty())
-				return IOResult{false, IOError::INVALID_PARAMETERS, "fileName cannot be empty"}.WithFile(fileName);
+			const auto pathValidation = detail::ValidateFileName(fileName);
+			if (!pathValidation.success) return pathValidation;
 
 			std::ofstream file(fileName);
 			Serializer::detail::ApplyTextFormat(file);
@@ -71,13 +71,13 @@ namespace MML
 		inline IOResult SaveODESolutionAsMultiFunc(const ODESystemSolution& sol, std::string title, std::vector<std::string> legend,
 																							 std::string fileName) {
 			// Validate parameters
-			if (legend.size() != sol.getSysDim())
+			if (legend.size() != static_cast<size_t>(sol.getSysDim()))
 				return IOResult{false, IOError::INVALID_PARAMETERS,
 												"legend size (" + std::to_string(legend.size()) + ") must match ODE dimension (" + std::to_string(sol.getSysDim()) +
 													")"}
 					.WithFile(fileName);
-			if (fileName.empty())
-				return IOResult{false, IOError::INVALID_PARAMETERS, "fileName cannot be empty"}.WithFile(fileName);
+			const auto pathValidation = detail::ValidateFileName(fileName);
+			if (!pathValidation.success) return pathValidation;
 
 			std::ofstream file(fileName);
 			Serializer::detail::ApplyTextFormat(file);
@@ -122,8 +122,8 @@ namespace MML
 				return IOResult{false, IOError::INVALID_PARAMETERS,
 												"component indices out of range [0, " + std::to_string(sol.getSysDim() - 1) + "]"}
 					.WithFile(fileName);
-			if (fileName.empty())
-				return IOResult{false, IOError::INVALID_PARAMETERS, "fileName cannot be empty"}.WithFile(fileName);
+			const auto pathValidation = detail::ValidateFileName(fileName);
+			if (!pathValidation.success) return pathValidation;
 
 			std::ofstream file(fileName);
 			Serializer::detail::ApplyTextFormat(file);
@@ -168,8 +168,8 @@ namespace MML
 				return IOResult{false, IOError::INVALID_PARAMETERS,
 												"component indices out of range [0, " + std::to_string(sol.getSysDim() - 1) + "]"}
 					.WithFile(fileName);
-			if (fileName.empty())
-				return IOResult{false, IOError::INVALID_PARAMETERS, "fileName cannot be empty"}.WithFile(fileName);
+			const auto pathValidation = detail::ValidateFileName(fileName);
+			if (!pathValidation.success) return pathValidation;
 
 			std::ofstream file(fileName);
 			Serializer::detail::ApplyTextFormat(file);

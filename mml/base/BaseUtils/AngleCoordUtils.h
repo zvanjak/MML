@@ -13,6 +13,7 @@
 
 #include <cmath>
 #include <mml/MMLBase.h>
+#include <mml/MMLNumericValidation.h>
 
 namespace MML
 {
@@ -25,12 +26,12 @@ namespace MML
 		/// @brief Converts angle from degrees to radians.
 		/// @param angleDeg Angle in degrees
 		/// @return Angle in radians
-		static constexpr Real DegToRad(Real angleDeg) noexcept { return angleDeg * Constants::PI / 180.0; }
+		static constexpr Real DegToRad(Real angleDeg) noexcept { return angleDeg * Constants::PI / MML::Real(180.0); }
 
 		/// @brief Converts angle from radians to degrees.
 		/// @param angleRad Angle in radians
 		/// @return Angle in degrees
-		static constexpr Real RadToDeg(Real angleRad) noexcept { return angleRad * 180.0 / Constants::PI; }
+		static constexpr Real RadToDeg(Real angleRad) noexcept { return angleRad * MML::Real(180.0) / Constants::PI; }
 
 		/// @brief Converts decimal degrees to degrees, minutes, seconds.
 		/// @param angle Angle in decimal degrees
@@ -40,8 +41,8 @@ namespace MML
 		static void AngleDegToExplicit(Real angle, Real& deg, Real& min, Real& sec)
 		{
 			deg = floor(angle);
-			min = floor((angle - deg) * 60.0);
-			sec = (angle - deg - min / 60.0) * 3600.0;
+			min = floor((angle - deg) * MML::Real(60.0));
+			sec = (angle - deg - min / MML::Real(60.0)) * MML::Real(3600.0);
 		}
 
 		/// @brief Converts radians to degrees, minutes, seconds.
@@ -49,9 +50,9 @@ namespace MML
 		/// @param[out] deg Integer degrees
 		/// @param[out] min Integer minutes
 		/// @param[out] sec Seconds (fractional)
-		static void AngleRadToExplicit(Real angleRad, Real& deg, Real& min, Real& sec) 
+		static inline void AngleRadToExplicit(Real angleRad, Real& deg, Real& min, Real& sec)
 		{ 
-			AngleDegToExplicit(angleRad * 180.0 / Constants::PI, deg, min, sec); 
+			AngleDegToExplicit(angleRad * MML::Real(180.0) / Constants::PI, deg, min, sec);
 		}
 
 		/// @brief Converts degrees, minutes, seconds to decimal degrees.
@@ -61,7 +62,7 @@ namespace MML
 		/// @return Angle in decimal degrees
 		static constexpr Real ExplicitToAngleDeg(Real deg, Real min, Real sec) noexcept 
 		{ 
-			return deg + min / 60.0 + sec / 3600.0; 
+			return deg + min / MML::Real(60.0) + sec / MML::Real(3600.0);
 		}
 
 		/// @brief Converts degrees, minutes, seconds to radians.
@@ -71,31 +72,26 @@ namespace MML
 		/// @return Angle in radians
 		static constexpr Real ExplicitToAngleRad(Real deg, Real min, Real sec) noexcept 
 		{ 
-			return ExplicitToAngleDeg(deg, min, sec) * Constants::PI / 180.0; 
+			return ExplicitToAngleDeg(deg, min, sec) * Constants::PI / MML::Real(180.0);
 		}
 
 		/// @brief Normalizes angle to [0, 2π) range.
 		/// @param rad Angle in radians
 		/// @return Normalized angle in [0, 2π)
-		static Real AngleTo2PiRange(Real rad)
+		static inline Real AngleTo2PiRange(Real rad)
 		{
-			while (rad < 0)
+			rad = normalizeAngle(rad);
+			if (rad < 0)
 				rad += 2 * Constants::PI;
-			while (rad >= 2 * Constants::PI)
-				rad -= 2 * Constants::PI;
-			return rad;
+			return rad < 2 * Constants::PI ? rad : Real(0);
 		}
 
 		/// @brief Normalizes angle to [-π, π) range.
 		/// @param rad Angle in radians
 		/// @return Normalized angle in [-π, π)
-		static Real AngleToPiPiRange(Real rad)
+		static inline Real AngleToPiPiRange(Real rad)
 		{
-			while (rad < -Constants::PI)
-				rad += 2 * Constants::PI;
-			while (rad >= Constants::PI)
-				rad -= 2 * Constants::PI;
-			return rad;
+			return normalizeAngle(rad);
 		}
 
 		// ============================================================================
@@ -122,9 +118,13 @@ namespace MML
 		/// @param y Y-coordinate
 		/// @param[out] r Radial distance from origin
 		/// @param[out] phi Azimuthal angle from positive x-axis (radians)
-		static void CartesianToPolar(Real x, Real y, Real& r, Real& phi)
+		static inline void CartesianToPolar(Real x, Real y, Real& r, Real& phi)
 		{
-			r   = std::sqrt(x * x + y * y);
+			ValidateFinite(x, "CartesianToPolar x");
+			ValidateFinite(y, "CartesianToPolar y");
+			r   = std::hypot(x, y);
+			if (!std::isfinite(r))
+				throw NumericalMethodError("CartesianToPolar - radius is not representable");
 			phi = std::atan2(y, x);
 		}
 
@@ -133,7 +133,7 @@ namespace MML
 		/// @param phi Azimuthal angle from positive x-axis (radians)
 		/// @param[out] x X-coordinate
 		/// @param[out] y Y-coordinate
-		static void PolarToCartesian(Real r, Real phi, Real& x, Real& y)
+		static inline void PolarToCartesian(Real r, Real phi, Real& x, Real& y)
 		{
 			x = r * std::cos(phi);
 			y = r * std::sin(phi);
@@ -146,14 +146,19 @@ namespace MML
 		/// @param[out] r Radial distance from origin
 		/// @param[out] theta Polar angle from positive z-axis (radians, [0, π])
 		/// @param[out] phi Azimuthal angle in xy-plane from positive x-axis (radians)
-		static void CartesianToSpherical(Real x, Real y, Real z, Real& r, Real& theta, Real& phi)
+		static inline void CartesianToSpherical(Real x, Real y, Real z, Real& r, Real& theta, Real& phi)
 		{
-			r = std::sqrt(x * x + y * y + z * z);
+			ValidateFinite(x, "CartesianToSpherical x");
+			ValidateFinite(y, "CartesianToSpherical y");
+			ValidateFinite(z, "CartesianToSpherical z");
+			r = std::hypot(x, y, z);
+			if (!std::isfinite(r))
+				throw NumericalMethodError("CartesianToSpherical - radius is not representable");
 			if (r == 0.0) {
 				theta = 0.0;
 				phi   = 0.0;
 			} else {
-				theta = std::acos(z / r);
+				theta = std::atan2(std::hypot(x, y), z);
 				phi   = std::atan2(y, x);
 			}
 		}
@@ -165,7 +170,7 @@ namespace MML
 		/// @param[out] x X-coordinate
 		/// @param[out] y Y-coordinate
 		/// @param[out] z Z-coordinate
-		static void SphericalToCartesian(Real r, Real theta, Real phi, Real& x, Real& y, Real& z)
+		static inline void SphericalToCartesian(Real r, Real theta, Real phi, Real& x, Real& y, Real& z)
 		{
 			x = r * std::sin(theta) * std::cos(phi);
 			y = r * std::sin(theta) * std::sin(phi);
@@ -179,9 +184,14 @@ namespace MML
 		/// @param[out] r Radial distance from z-axis
 		/// @param[out] phi Azimuthal angle in xy-plane from positive x-axis (radians)
 		/// @param[out] z_out Z-coordinate (output, same as z_in)
-		static void CartesianToCylindrical(Real x, Real y, Real z_in, Real& r, Real& phi, Real& z_out)
+		static inline void CartesianToCylindrical(Real x, Real y, Real z_in, Real& r, Real& phi, Real& z_out)
 		{
-			r     = std::sqrt(x * x + y * y);
+			ValidateFinite(x, "CartesianToCylindrical x");
+			ValidateFinite(y, "CartesianToCylindrical y");
+			ValidateFinite(z_in, "CartesianToCylindrical z");
+			r     = std::hypot(x, y);
+			if (!std::isfinite(r))
+				throw NumericalMethodError("CartesianToCylindrical - radius is not representable");
 			phi   = std::atan2(y, x);
 			z_out = z_in;
 		}
@@ -193,7 +203,7 @@ namespace MML
 		/// @param[out] x X-coordinate
 		/// @param[out] y Y-coordinate
 		/// @param[out] z_out Z-coordinate (output, same as z_in)
-		static void CylindricalToCartesian(Real r, Real phi, Real z_in, Real& x, Real& y, Real& z_out)
+		static inline void CylindricalToCartesian(Real r, Real phi, Real z_in, Real& x, Real& y, Real& z_out)
 		{
 			x     = r * std::cos(phi);
 			y     = r * std::sin(phi);

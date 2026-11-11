@@ -4,6 +4,34 @@
 
 Dynamic-size matrix with runtime dimensions. Template parameter `T` can be any numeric type.
 
+## Member predicate contracts
+
+`IsZero`, `IsIdentity`, `IsSymmetric`, `IsAntiSymmetric`, `IsHermitian` and
+`IsSkewHermitian` return false for nonfinite entries or a negative/nonfinite
+absolute tolerance. Zero tolerance requests an exact comparison; the tolerance
+boundary is inclusive. Diagonal entries participate in validation even when the
+transpose relation alone would not constrain them.
+
+Antisymmetry requires a zero diagonal, including for complex matrices.
+Skew-Hermitian matrices instead require a zero **real** diagonal component:
+finite purely imaginary diagonal entries are valid. For real matrices,
+`IsSkewHermitian` and `IsAntiSymmetric` agree.
+
+`IsEqualTo` on dynamic, fixed-size and symmetric matrices also fails closed for
+NaN, infinity and invalid tolerances. Integral member comparisons compute
+differences without signed overflow or unsigned wraparound; unsigned structural
+predicates do not require a nonexistent unsigned `std::abs` overload.
+
+The runnable counterpart is `Docs_Demo_Matrix_ScaleContracts()` in
+[docs_demo_matrix_scale_contracts.cpp](../../src/docs_demos/base/docs_demo_matrix_scale_contracts.cpp).
+
+## Tridiagonal solve scaling
+
+Tridiagonal solves normalize complex coefficients by a real maximum-component scale.
+Componentwise division preserves finite maximum-magnitude and subnormal components
+without overflowing a generic complex division. Exact and scale-negligible pivots
+remain rejected.
+
 ## Allocation limits
 
 Dynamic Matrix limits allocation by the product `rows * cols`, not by an
@@ -23,6 +51,26 @@ guarantee that the operating system can satisfy a particular allocation.
 The long/narrow matrix and trajectory counterpart is
 [docs_demo_trajectory_resources.cpp](../../src/docs_demos/algorithms/docs_demo_trajectory_resources.cpp),
 run with `MML_DocsApp --trajectory-resources`.
+
+## Storage boundary guarantees
+
+Dynamic matrix copy assignment prepares replacement storage before changing its
+shape. Symmetric-matrix resize/assignment and Matrix3D resize/assignment likewise
+commit their dimensions only after replacement data (and Matrix3D pointer tables)
+are ready. Failed allocation or element copying leaves the original object intact.
+
+Block views and submatrix copies check extents by subtraction, so oversized
+`int` extents cannot wrap around the bounds check. Matrix3D requires positive
+constructor dimensions and a total element count representable by its `int`
+index/size interface; larger products raise `MatrixAllocationError` before
+allocation. Its existing resize convention clears the tensor when any requested
+extent is nonpositive. A missing required `Apply` callback raises
+`NotImplementedError`, even on an empty tensor.
+
+Fixed-size unit-vector factories and fixed-matrix row/column extraction validate
+the requested slot. Tensor variance setters validate the index position before
+updating metadata. These high-level checks do not change the intentionally
+unchecked element-access operators.
 
 ## Runnable Examples
 

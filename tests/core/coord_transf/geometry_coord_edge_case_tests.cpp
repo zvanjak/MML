@@ -42,13 +42,6 @@ using namespace MML;
 using namespace MML::Testing;
 using namespace Catch::Matchers;
 
-static bool VectorApproxEqual(const Vec3Cart& v1, const Vec3Cart& v2, Real tolerance = 1e-6)
-{
-	return std::abs(v1[0] - v2[0]) < tolerance &&
-	       std::abs(v1[1] - v2[1]) < tolerance &&
-	       std::abs(v1[2] - v2[2]) < tolerance;
-}
-
 namespace MML::Tests::Core::GeometryCoordEdgeCaseTests
 {
 
@@ -618,7 +611,7 @@ TEST_CASE("Quaternion - Slerp near-antipodal quaternions", "[quaternion][edge][s
 	for (Real t : { static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.25), static_cast<MML::Real>(0.5), static_cast<MML::Real>(0.75), static_cast<MML::Real>(1.0) })
 	{
 		Quaternion result = Quaternion::Slerp(q1, q2, t);
-		REQUIRE(result.IsUnit(1e-6));
+		REQUIRE(result.IsUnit(MML::Real(1e-6)));
 	}
 }
 

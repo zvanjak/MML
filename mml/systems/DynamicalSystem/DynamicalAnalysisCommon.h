@@ -17,6 +17,7 @@
 #include <mml/base/Vector/Vector.h>
 #include <mml/interfaces/IDynamicalSystem.h>
 #include <mml/algorithms/ODESolvers/ODESolverAdaptive.h>
+#include <mml/systems/DynamicalSystem/DynamicalSystemValidation.h>
 
 #include <exception>
 #include <utility>
@@ -32,6 +33,29 @@ namespace MML::Systems
 
 	namespace DynamicalAnalysisDetail
 	{
+		class CheckedODESystem final : public IODESystem
+		{
+			IODESystem& _system;
+			int _dimension;
+			int& _evaluations;
+			bool _checkFinite;
+		public:
+			CheckedODESystem(IODESystem& system, int& evaluations, bool checkFinite)
+				: _system(system), _dimension(system.getDim()), _evaluations(evaluations), _checkFinite(checkFinite) {}
+			int getDim() const override { return _dimension; }
+			void derivs(Real time, const Vector<Real>& state, Vector<Real>& derivative) const override
+			{
+				DynSysDetail::CheckState(state, _dimension, "Dynamical integration stage", _checkFinite);
+				derivative.resize(_dimension);
+				std::fill(derivative.begin(), derivative.end(), NoEstimate);
+				if (_evaluations == std::numeric_limits<int>::max())
+					throw ResourceLimitError("Dynamical analysis RHS evaluation counter exhausted");
+				++_evaluations;
+				_system.derivs(time, state, derivative);
+				DynSysDetail::CheckState(derivative, _dimension, "Dynamical RHS output");
+			}
+		};
+
 		inline Vector<Real> StateAt(const ODESystemSolution& solution, int point)
 		{
 			Vector<Real> state(solution.getSysDim());
@@ -41,16 +65,22 @@ namespace MML::Systems
 		}
 
 		inline ODESystemSolution Integrate(IDynamicalSystem& system, const Vector<Real>& initialState,
-			Real t0, Real tEnd, Real outputInterval, Real initialStep)
+			Real t0, Real tEnd, Real outputInterval, Real initialStep, int& evaluations, bool checkFinite)
 		{
-			ODEAdaptiveIntegrator<> integrator(system);
-			return integrator.integrate(initialState, t0, tEnd, outputInterval,
+			CheckedODESystem checked(system, evaluations, checkFinite);
+			ODEAdaptiveIntegrator<> integrator(checked);
+			auto solution = integrator.integrate(initialState, t0, tEnd, outputInterval,
 				Precision::ODEDefaultTolerance, initialStep);
+			for (int point = 0; point < solution.size(); ++point)
+				DynSysDetail::CheckState(StateAt(solution, point), system.getDim(), "Dynamical integration output");
+			return solution;
 		}
 	}
 
 	struct DynSysConfig : public EvaluationConfigBase
 	{
+		// check_finite controls optional integration-stage checks, never request,
+		// callback-output, final-result or convergence/spectrum safety checks.
 	};
 
 	namespace DynSysDetail
@@ -59,24 +89,27 @@ namespace MML::Systems
 		ResultType ExecuteDynSysDetailed(const char* algorithmName,
 			const DynSysConfig& config, ComputeFn&& compute)
 		{
-			auto execute = [&]() {
-				AlgorithmTimer timer;
-				ResultType result = MakeEvaluationSuccessResult<ResultType>(algorithmName);
-				compute(result);
-				result.elapsed_time_ms = timer.elapsed_ms();
-				return result;
-			};
-
+			AlgorithmTimer timer;
+			ResultType result = MakeEvaluationSuccessResult<ResultType>(algorithmName);
 			if (config.exception_policy == EvaluationExceptionPolicy::Propagate)
-				return execute();
-
-			try {
-				return execute();
+				compute(result);
+			else {
+				auto fail = [&](AlgorithmStatus status, const std::exception& error) {
+					result.status = status;
+					result.error_message = error.what();
+				};
+				try { compute(result); }
+				catch (const SingularMatrixError& error) { fail(AlgorithmStatus::SingularMatrix, error); }
+				catch (const std::invalid_argument& error) { fail(AlgorithmStatus::InvalidInput, error); }
+				catch (const ResourceLimitError& error) { fail(AlgorithmStatus::ResourceLimitExceeded, error); }
+				catch (const ConvergenceError& error) { fail(AlgorithmStatus::MaxIterationsExceeded, error); }
+				catch (const MatrixNumericalError& error) { fail(AlgorithmStatus::NumericalInstability, error); }
+				catch (const NumericalMethodError& error) { fail(AlgorithmStatus::NumericalInstability, error); }
+				catch (const ODESolverError& error) { fail(AlgorithmStatus::NumericalInstability, error); }
+				catch (const std::exception& error) { fail(AlgorithmStatus::AlgorithmSpecificFailure, error); }
 			}
-			catch (const std::exception& exception) {
-				return MakeEvaluationFailureResult<ResultType>(
-					AlgorithmStatus::AlgorithmSpecificFailure, exception.what(), algorithmName);
-			}
+			result.elapsed_time_ms = timer.elapsed_ms();
+			return result;
 		}
 	}
 }

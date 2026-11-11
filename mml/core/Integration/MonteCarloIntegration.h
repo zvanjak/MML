@@ -26,6 +26,7 @@
 #include <cmath>
 #include <cstddef>
 #include <limits>
+#include <type_traits>
 
 namespace MML 
 {
@@ -67,9 +68,11 @@ namespace MML
 		/// (analysis v4, CORE C7: the clamp to zero was hiding exactly that failure mode).
 		struct WelfordAccumulator
 		{
+			// Double can represent every squared float deviation, including subnormals.
+			using Moment = std::conditional_t<std::is_same_v<Real, float>, double, Real>;
 			std::size_t count = 0;
 			Real mean = 0.0;
-			Real m2 = 0.0;   ///< Sum of squared deviations from the running mean
+			Moment m2 = 0.0;   ///< Sum of squared deviations from the running mean
 
 			void add(Real x)
 			{
@@ -78,7 +81,7 @@ namespace MML
 				++count;
 				const Real delta = x - mean;
 				mean += delta / static_cast<Real>(count);
-				m2 += delta * (x - mean);
+				m2 += Moment(delta) * Moment(x - mean);
 				if (!std::isfinite(mean) || !std::isfinite(m2))
 					throw NumericalMethodError("Monte Carlo: sample statistics overflow");
 			}
@@ -89,7 +92,7 @@ namespace MML
 				if (count == 0) { *this = other; return; }
 				const size_t total = count + other.count;
 				const Real delta = other.mean - mean;
-				m2 += other.m2 + delta * delta * (Real(count) * (Real(other.count) / Real(total)));
+				m2 += other.m2 + Moment(delta) * Moment(delta) * (Moment(count) * (Moment(other.count) / Moment(total)));
 				mean += delta * (Real(other.count) / Real(total));
 				count = total;
 				if (!std::isfinite(mean) || !std::isfinite(m2))
@@ -97,9 +100,14 @@ namespace MML
 			}
 
 			/// Unbiased sample variance (n - 1); 0 for fewer than two samples
-			Real sampleVariance() const { return count > 1 ? m2 / static_cast<Real>(count - 1) : Real(0.0); }
+			Real sampleVariance() const {
+				const Real variance = count > 1 ? Real(m2 / Moment(count - 1)) : Real(0);
+				if (!std::isfinite(variance))
+					throw NumericalMethodError("Monte Carlo: sample variance overflow");
+				return variance;
+			}
 			/// Standard error of the mean, sqrt(s^2 / n)
-			Real standardError() const { return count > 0 ? std::sqrt(sampleVariance() / static_cast<Real>(count)) : Real(0.0); }
+			Real standardError() const { return count > 1 ? Real(std::sqrt(m2 / Moment(count - 1) / Moment(count))) : Real(0.0); }
 		};
 	}
 
@@ -110,7 +118,7 @@ namespace MML
 	struct MonteCarloResult : public IntegrationResult
 	{
 		// value, error_estimate (standard error), converged, status, function_evaluations: IntegrationResult
-		Real variance = 0.0;			 ///< Sample variance
+		Real variance = 0.0;			 ///< Sample variance; stratified: variance of the unscaled mean estimator
 		size_t samples_used = 0; ///< Number of samples actually used
 
 		MonteCarloResult() { error_estimated = true; iterations = 1; }
@@ -235,23 +243,22 @@ namespace MML
 			VectorN<Real, N> point;
 
 			if (config.use_antithetic) {
+				VectorN<Real, N> reflected;
 				// Antithetic variates: use both x and (1-x) to reduce variance
 				for (size_t i = 0; i < n; i += 2) {
 					// Generate random point
 					for (int d = 0; d < N; ++d) {
 						Real u = Random::UniformReal(0.0, 1.0);
-						point[d] = lower[d] + u * (upper[d] - lower[d]);
+						point[d] = std::lerp(lower[d], upper[d], u);
+						reflected[d] = std::lerp(lower[d], upper[d], Real(1) - u);
 					}
 					Real f1 = func(point);
-
-					// Antithetic point
-					for (int d = 0; d < N; ++d) {
-						point[d] = lower[d] + upper[d] - point[d]; // Reflect
-					}
-					Real f2 = func(point);
+					IntegrationDetail::RequireFinite(f1, "Monte Carlo integrand");
+					Real f2 = func(reflected);
+					IntegrationDetail::RequireFinite(f2, "Monte Carlo antithetic integrand");
 
 					// Average the pair
-					stats.add(0.5 * (f1 + f2));
+					stats.add(f1 / Real(2) + f2 / Real(2));
 				}
 			} else {
 				// Standard Monte Carlo
@@ -292,6 +299,8 @@ namespace MML
 			AlgorithmTimer timer;
 			if (numSamples == 0)
 				throw ArgumentError("MonteCarloIntegrator: numSamples must be positive");
+			if (numSamples > static_cast<size_t>(std::numeric_limits<int>::max()))
+				throw ResourceLimitError("QuasiMonteCarloIntegrator: sample count exceeds diagnostic counter range");
 
 			Real volume = Detail::ValidateMonteCarloBounds(lower, upper, "QuasiMonteCarloIntegrator");
 			if (volume == 0.0) {
@@ -312,7 +321,7 @@ namespace MML
 				for (size_t i = 0; i < numSamples; ++i) {
 					seq.Next(&u[0]);
 					for (int d = 0; d < N; ++d)
-						point[d] = lower[d] + u[d] * (upper[d] - lower[d]);
+						point[d] = std::lerp(lower[d], upper[d], u[d]);
 					stats.add(func(point));
 				}
 			};
@@ -332,6 +341,14 @@ namespace MML
 			MonteCarloResult result;
 			result.value = volume * mean;
 			result.error_estimate = volume * std_error;   // heuristic, not a rigorous QMC bound
+			IntegrationDetail::RequireFinite(result.value, "QuasiMonteCarloIntegrator");
+			if (numSamples > 1) {
+				IntegrationDetail::RequireFinite(result.error_estimate, "QuasiMonteCarloIntegrator error");
+				IntegrationDetail::RequireFinite(variance, "QuasiMonteCarloIntegrator variance");
+			} else {
+				result.error_estimated = false;
+				result.error_estimate = NoEstimate;
+			}
 			result.variance = variance;
 			result.samples_used = numSamples;
 			result.function_evaluations = static_cast<int>(numSamples);
@@ -403,16 +420,8 @@ namespace MML
 				throw ArgumentError("StratifiedMonteCarloIntegrator: samples_per_stratum must be positive");
 			}
 
-			if (seed != 0) {
-				Random::SetSeed(seed);
-			}
-
 			// Compute total volume
 			Real volume = Detail::ValidateMonteCarloBounds(lower, upper, "StratifiedMonteCarloIntegrator");
-			VectorN<Real, N> delta;
-			for (int d = 0; d < N; ++d) {
-				delta[d] = (upper[d] - lower[d]) / strata_per_dim;
-			}
 
 			if (volume == 0.0) {
 				MonteCarloResult r;
@@ -425,20 +434,24 @@ namespace MML
 				return r;
 			}
 
-			// Volume per stratum
-			Real stratum_volume = volume;
-			for (int d = 0; d < N; ++d) {
-				stratum_volume /= strata_per_dim;
-			}
-
 			// Total number of strata
+			const size_t counterLimit = static_cast<size_t>(std::numeric_limits<int>::max());
 			size_t total_strata = 1;
 			for (int d = 0; d < N; ++d) {
-				total_strata *= strata_per_dim;
+				if (total_strata > counterLimit / static_cast<size_t>(strata_per_dim))
+					throw ResourceLimitError("StratifiedMonteCarloIntegrator: stratum count exceeds diagnostic counter range");
+				total_strata *= static_cast<size_t>(strata_per_dim);
+			}
+			if (total_strata > counterLimit / static_cast<size_t>(samples_per_stratum))
+				throw ResourceLimitError("StratifiedMonteCarloIntegrator: sample count exceeds diagnostic counter range");
+			const size_t total_samples = total_strata * static_cast<size_t>(samples_per_stratum);
+
+			if (seed != 0) {
+				Random::SetSeed(seed);
 			}
 
-			Detail::WelfordAccumulator strata; // one sample per stratum: its mean
-			size_t total_samples = 0;
+			Real mean = 0;
+			Real standardError = 0;
 
 			// Iterate over all strata using N-digit base-strata_per_dim counter
 			std::vector<int> stratum_idx(N, 0);
@@ -447,25 +460,29 @@ namespace MML
 				// Compute stratum bounds
 				VectorN<Real, N> stratum_lower, stratum_upper;
 				for (int d = 0; d < N; ++d) {
-					stratum_lower[d] = lower[d] + stratum_idx[d] * delta[d];
-					stratum_upper[d] = stratum_lower[d] + delta[d];
+					stratum_lower[d] = std::lerp(lower[d], upper[d], Real(stratum_idx[d]) / Real(strata_per_dim));
+					stratum_upper[d] = std::lerp(lower[d], upper[d], Real(stratum_idx[d] + 1) / Real(strata_per_dim));
 				}
 
 				// Sample within stratum
-				Real stratum_sum = 0.0;
+				Detail::WelfordAccumulator stats;
 				VectorN<Real, N> point;
 
 				for (int i = 0; i < samples_per_stratum; ++i) {
 					for (int d = 0; d < N; ++d) {
 						Real u = Random::UniformReal(0.0, 1.0);
-						point[d] = stratum_lower[d] + u * delta[d];
+						point[d] = std::lerp(stratum_lower[d], stratum_upper[d], u);
 					}
-					stratum_sum += func(point);
+					stats.add(func(point));
 				}
 
-				Real stratum_mean = stratum_sum / samples_per_stratum;
-				strata.add(stratum_mean);
-				total_samples += samples_per_stratum;
+				mean = std::lerp(mean, stats.mean, Real(1) / Real(s + 1));
+				// Var(mean) = sum_h s_h^2 / (n_h * H^2), for H equal-volume strata.
+				// Combine standard errors before squaring to avoid premature range loss.
+				if (samples_per_stratum > 1) {
+					const Real stratumError = stats.standardError() / Real(total_strata);
+					standardError = std::hypot(standardError, stratumError);
+				}
 
 				// Increment stratum index (N-digit counter)
 				for (int d = 0; d < N; ++d) {
@@ -476,28 +493,26 @@ namespace MML
 				}
 			}
 
-			// Compute result: the estimator is the mean of the stratum means; its variance is the
-			// sample variance of the stratum means divided by the number of strata
-			Real mean = strata.mean;
-			Real variance = strata.sampleVariance() / total_strata;
-			Real std_error = std::sqrt(variance);
-
-			Real integral = volume * mean;
-			Real error = volume * std_error;
-
-			bool converged = (std::abs(integral) < PrecisionValues<Real>::DivisionSafetyThreshold) ||
-											 (error / std::abs(integral) < PrecisionValues<Real>::DefaultToleranceStrict);
-
 			MonteCarloResult result;
-			result.value = integral;
-			result.error_estimate = error;
-			result.variance = variance;
+			result.value = volume * mean;
+			IntegrationDetail::RequireFinite(result.value, "StratifiedMonteCarloIntegrator");
 			result.samples_used = total_samples;
-			result.converged = converged;
 			result.function_evaluations = static_cast<int>(total_samples);
-			result.status = AlgorithmStatus::Success;
 			result.algorithm_name = "StratifiedMonteCarloIntegrator";
 			result.elapsed_time_ms = timer.elapsed_ms();
+			if (samples_per_stratum == 1) {
+				result.MarkFixedRule(static_cast<int>(total_samples));
+				result.variance = NoEstimate;
+				return result;
+			}
+			result.error_estimate = volume * standardError;
+			result.variance = standardError * standardError;
+			IntegrationDetail::RequireFinite(result.error_estimate, "StratifiedMonteCarloIntegrator error");
+			IntegrationDetail::RequireFinite(result.variance, "StratifiedMonteCarloIntegrator variance");
+			result.converged = result.error_estimate <= Precision::DefaultToleranceStrict * std::abs(result.value);
+			result.status = result.converged ? AlgorithmStatus::Success : AlgorithmStatus::MaxIterationsExceeded;
+			if (!result.converged)
+				result.error_message = "Stratified Monte Carlo sample budget exhausted before the standard-error target was met";
 			return result;
 		}
 	};
@@ -556,7 +571,7 @@ namespace MML
 			Real volume = bounding_volume * p;
 
 			// Binomial standard error
-			Real variance = Detail::ClampMonteCarloVariance(p * (1.0 - p));
+			Real variance = Detail::ClampMonteCarloVariance(p * (MML::Real(1.0) - p));
 			Real std_error = std::sqrt(variance / num_samples);
 			Real error = bounding_volume * std_error;
 

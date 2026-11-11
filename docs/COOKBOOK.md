@@ -1208,6 +1208,17 @@ for (int i = 0; i < A.cols(); i++) {
 For large real symmetric matrices, `SymmMatEigenSolverQR` has the same result shape and is
 usually faster; Jacobi is a robust choice for small and medium dense matrices.
 
+Both solvers validate square, symmetric input in scalar and config overloads.
+For intentional averaging of a nonsymmetric square matrix, request
+`SolveSymmetricPart` explicitly. With `EigenSolverConfig`, disabling
+`sort_eigenvalues` preserves solver order, and disabling `compute_eigenvectors`
+returns a 0x0 vector matrix without accumulating transformations. Do not access
+vector columns when vectors are disabled. Scalar zero budgets stop iterative
+work; configured zero selects the documented solver default. Runnable contract
+checks are in `Docs_Demo_SelfAdjointConfig()` in
+[docs_demo_eigen_solvers.cpp](../src/docs_demos/algorithms/docs_demo_eigen_solvers.cpp);
+see [Eigen_solvers.md](algorithms/Eigen_solvers.md) for status and budget details.
+
 ### 7.2 General real matrix
 
 **Problem:** find the eigenvalues of a nonsymmetric real matrix. Unlike the symmetric case,
@@ -2259,7 +2270,10 @@ std::vector<Pnt3Cart> landmarks = {
     Pnt3Cart(0.0, 0.0, 2.0), Pnt3Cart(2.0, 2.0, 2.0), Pnt3Cart(5.0, 5.0, 0.0)
 };
 KDTree3D tree;
-tree.build(landmarks);
+KDTreeConfig config;
+config.max_leaf_size = 2;
+config.balanced = false;
+tree.build(landmarks, config);
 ```
 
 **Query**
@@ -2271,10 +2285,50 @@ auto nearest = tree.findNearest(query);
 auto neighbors = tree.findKNearest(query, 3);
 auto inRadius = tree.findInRadius(query, 2.25);
 auto inBox = tree.findInBox(Pnt3Cart(-0.1, -0.1, -0.1), Pnt3Cart(2.1, 2.1, 0.1));
+
+if (!nearest.found || !IsUsable(nearest.status) ||
+    !IsUsable(neighbors.status) || !IsUsable(inRadius.status))
+    throw InvalidStateError("KD-tree point-cloud query failed");
 ```
 
 Use nearest-neighbor queries for matching and snapping, radius queries for local neighborhoods, and
 box queries for coarse spatial filtering.
+
+**Construction and numerical contracts**
+
+- `KDTree<Dim>` requires `Dim > 0` at compile time. `max_leaf_size` must be positive,
+  even for an empty build; otherwise construction throws `ArgumentError`.
+- `balanced=true` uses median splitting. `balanced=false` uses the overflow-safe
+  midpoint of the current axis's bounds, with a median fallback if that split
+  produces an empty partition. Coincident or adjacent points therefore still
+  terminate. Midpoint trees need not be balanced and can have linear worst-case
+  depth; use the default median strategy when a depth bound matters.
+- Build inputs must have finite coordinates (`NumericInputError` otherwise).
+  Rejected builds preserve the previous tree, including the original-point
+  accessors in `KDTree2D`/`KDTree3D`. Trees own copies; result indices refer to the
+  original input order.
+- Nearest, k-nearest and radius calculations use scaled Euclidean norms rather
+  than raw squared distances, including pruning against splitting planes.
+  Large and tiny representable distances are retained. Equal-distance ties may
+  return any eligible point; k-nearest distances are sorted, radius results are
+  not promised a sort order. Radius boundaries are inclusive.
+- Nonfinite query coordinates, nonpositive `k`, and negative or nonfinite radii
+  produce `AlgorithmStatus::InvalidInput` without usable payloads. Box queries
+  have no status field: nonfinite corners throw `NumericInputError`, and reversed
+  per-axis bounds throw `ArgumentError`.
+- If a **selected output distance** cannot be represented in `Real`, nearest or
+  k-nearest returns `AlgorithmStatus::NumericalInstability`. Nearest keeps
+  `found=false` and `index=SIZE_MAX`; k-nearest leaves both vectors empty. Farther,
+  unselected overflowing distances do not invalidate a representable answer.
+  A finite-radius search simply excludes points beyond that finite radius.
+  The 2D/3D brute-force nearest helpers use the same distance and failure policy.
+- Empty-tree nearest queries retain `InvalidInput`/not-found semantics; positive
+  k-nearest and valid radius queries on empty trees return empty results.
+
+The runnable recipe checks all four results against these landmarks, not just
+their sizes. `MML_DocsApp --kdtree-contracts` runs it together with large/tiny
+distance and unrepresentable-output checks in
+[`Docs_Demo_KDTreeContracts()`](../src/docs_demos/docs_demos_cookbook.cpp).
 
 ### 12.8 Build a convex hull and test containment
 
@@ -4316,8 +4370,10 @@ auto custom = ComplexAnalysis::ContourIntegral(
   identity, ellipse, ellipseDerivative, 0.0, 2*Constants::PI);
 ```
 
-The custom closed integral is zero to about $4.4\times10^{-16}$. Circle contours are
-counterclockwise; reversing parameter limits reverses the integral sign.
+The custom closed integral is zero within the estimated integration accuracy. Circle contours are
+counterclockwise; reversing parameter limits reverses the integral sign. These calls retain their
+result-returning compatibility API; `ContourIntegralDetailed` is the diagnostic spelling.
+Check status or use `ValueOrThrow` before consuming a value.
 
 ### 27.3 Compute winding numbers
 
@@ -4330,7 +4386,8 @@ int aroundInside = ComplexAnalysis::WindingNumber(shifted, Complex(0,1)); // 1
 int aroundOutside = ComplexAnalysis::WindingNumber(shifted, Complex(6,1)); // 0
 ```
 
-Numerically this evaluates $(2\pi i)^{-1}\oint dz/(z-z_0)$ and rounds to an integer. The queried
+Numerically this evaluates $(2\pi i)^{-1}\oint dz/(z-z_0)$ and checks its uncertainty, imaginary
+part, proximity to an integer, and conversion range before accepting the count. The queried
 point must not lie on the contour. MML's winding-number convenience API currently accepts circles.
 
 ### 27.4 Recover values and derivatives with Cauchy's formula
@@ -4348,8 +4405,9 @@ Complex first = ComplexAnalysis::CauchyDerivative(exponential, contour, z0, 1);
 Complex second = ComplexAnalysis::CauchyDerivative(exponential, contour, z0, 2);
 ```
 
-All three equal $e^{z_0}$ to roughly $2.3\times10^{-16}$. The function must be analytic inside and
-on the contour, and $z_0$ must be enclosed.
+All three approximate $e^{z_0}$ at the requested absolute accuracy in output units. The function
+must be analytic inside and on the contour, and $z_0$ must be strictly enclosed. Plain theorem
+helpers throw rather than returning an unusable integration payload.
 
 ### 27.5 Compute residues and verify the residue theorem
 
@@ -4373,7 +4431,8 @@ auto bothPoles = ComplexAnalysis::ContourIntegral(
 
 The one-pole integral is $\pi$ because $2\pi i(-i/2)=\pi$. Enclosing both poles gives zero because
 their residues cancel. A residue contour must isolate its singularity; `ResidueSimplePole` applies
-only to first-order poles.
+only to first-order poles. Its Detailed result is a fixed-step `Completed` estimate, without
+claimed convergence or an error estimate; use `ResidueDetailed` for adaptive error control.
 
 ### 27.6 Count zeros and poles with the argument principle
 
@@ -4395,7 +4454,9 @@ int difference = ComplexAnalysis::ArgumentPrinciple(
 
 `CountZeros` assumes no poles inside. `ArgumentPrinciple` returns $N-P$, counting multiplicity.
 The function must be meromorphic inside, with no zero or pole on the contour because $f'/f$ would
-be singular there.
+be singular there. Detailed count results retain the unrounded complex estimate and numerical
+integer certification. This depends on analyticity, sampling resolution, and estimated numerical
+uncertainty; it is not a proof excluding unresolved zeros or poles.
 
 ### 27.7 Count roots first, then locate them
 
@@ -4574,9 +4635,26 @@ An inconsistent system such as $t\equiv0\pmod2$, $t\equiv1\pmod4$ throws `Domain
 
 - `BinomialCoefficientReal` extends binomial range using floating-point log-gamma arithmetic; it is
   not an exact replacement for overflowing integer counts.
-- `Fibonacci` is exact through $F_{92}$; other exact sequences also stop when 64-bit results overflow.
+- Exact `long long` sequence limits (inclusive) are Fibonacci 92, Lucas 90, Catalan 35,
+  Bell 25, Euler zigzag 23, tangent 12, and partition count 405. The next index throws
+  `DomainError` before overflowing; Catalan 35 is 3116285494907301262. Stirling numbers
+  are checked per requested entry, not restricted to a global row cutoff: diagonal and
+  near-diagonal entries remain available in large rows. Multinomial totals are not
+  narrowed to `int`.
 - Enumeration callbacks expose every object and therefore inherit the combinatorial explosion.
-- `Factorize(0)` is outside the meaningful prime-factorization domain; positive arguments are the
-  intended use for multiplicative functions.
+- `Factorize(0)` and `Factorize(1)` return empty lists. Multiplicative functions require
+  positive arguments. `NextPrime` throws `DomainError` if no larger prime fits `uint64_t`;
+  it never wraps to a small prime. `MulMod` and `ModPow` require a nonzero modulus,
+  while signed modular routines and CRT require positive moduli.
+- Signed gcd/LCM and extended gcd accept minimum-integer inputs, but throw `DomainError`
+  if their nonnegative result would be $2^{63}$. LCM, divisor sum, and the combined CRT
+  modulus must fit `long long`; residues are normalized without overflowing.
+- `Rational` supports the full signed numerator range, including `LLONG_MIN`, and a
+  positive `long long` denominator after reduction. A minimum-integer denominator is
+  accepted only when reduction produces a representable positive denominator. Arithmetic
+  cancels exactly before range checks, and comparisons are exact even when signed
+  cross-products would overflow, on compilers both with and without `__int128`.
+  An unrepresentable reduced result throws `DomainError`; a zero denominator/divisor
+  throws `DivisionByZeroError`.
 - Runnable version: `Cookbook_Recipe30_CombinatoricsAndNumberTheory()` in
   [docs_demos_cookbook.cpp](../src/docs_demos/docs_demos_cookbook.cpp).

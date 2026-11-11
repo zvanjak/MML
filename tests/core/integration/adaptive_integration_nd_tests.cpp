@@ -60,7 +60,7 @@ TEST_CASE("IntegrateAdaptive2D - exponential exp(x+y)", "[adaptive][integration]
     // ∬ exp(x+y) dx dy over [0,1]² = (e-1)² ≈ 2.9525
     auto f = [](Real x, Real y) { return std::exp(x + y); };
     
-    Real expected = (std::exp(1.0) - 1.0) * (std::exp(1.0) - 1.0);
+    Real expected = (std::exp(MML::Real(1.0)) - MML::Real(1.0)) * (std::exp(MML::Real(1.0)) - MML::Real(1.0));
     
     auto result = IntegrateAdaptive2DDetailed(f, 0.0, 1.0, 0.0, 1.0, TOL(1e-8, 1e-4));
     
@@ -108,14 +108,14 @@ TEST_CASE("IntegrateAdaptive2D - Gaussian peak (adaptive advantage)", "[adaptive
     // ∬ exp(-100*((x-0.5)² + (y-0.5)²)) dx dy over [0,1]²
     // Approximate analytical: π/100 ≈ 0.0314159
     auto f = [](Real x, Real y) {
-        Real dx = x - 0.5;
-        Real dy = y - 0.5;
+        Real dx = x - MML::Real(0.5);
+        Real dy = y - MML::Real(0.5);
         return std::exp(-100.0 * (dx*dx + dy*dy));
     };
     
-    Real expected = Constants::PI / 100.0;  // For a very sharp Gaussian
+    Real expected = Constants::PI / MML::Real(100.0);  // For a very sharp Gaussian
     
-    auto result = IntegrateAdaptive2DDetailed(f, 0.0, 1.0, 0.0, 1.0, 1e-6);
+    auto result = IntegrateAdaptive2DDetailed(f, MML::Real(0.0), MML::Real(1.0), MML::Real(0.0), MML::Real(1.0), MML::Real(1e-6));
     
     // The integral should be close to π/100 (with some truncation error at boundaries)
     REQUIRE_THAT(result.value, WithinRel(expected, static_cast<MML::Real>(0.01)));  // 1% tolerance
@@ -158,8 +158,8 @@ TEST_CASE("IntegrateAdaptive2D - config-based API", "[adaptive][integration][2d]
 
 TEST_CASE("IntegrateAdaptive2D - result struct operators", "[adaptive][integration][2d]")
 {
-    AdaptiveResult2D r1(1.0, 0.1, 100, 5, 3, true);
-    AdaptiveResult2D r2(2.0, 0.2, 200, 10, 5, true);
+    AdaptiveResult2D r1(MML::Real(1.0), MML::Real(0.1), 100, 5, 3, true);
+    AdaptiveResult2D r2(MML::Real(2.0), MML::Real(0.2), 200, 10, 5, true);
     
     auto combined = r1 + r2;
     
@@ -197,7 +197,7 @@ TEST_CASE("IntegrateAdaptive2D - error estimation reliability", "[adaptive][inte
     
     std::vector<TestCase> tests = {
         { 0.25, [](Real x, Real y) { return x * y; } },
-        { 2.0/3.0, [](Real x, Real y) { return x*x + y*y; } },
+        { MML::Real(2.0)/MML::Real(3.0), [](Real x, Real y) { return x*x + y*y; } },
         { 1.0, [](Real x, Real y) { return x + y; } },
         { static_cast<Real>((std::exp(1.0) - 1.0) * (std::exp(1.0) - 1.0)), 
           [](Real x, Real y) { return std::exp(x + y); } },
@@ -266,9 +266,9 @@ TEST_CASE("IntegrateAdaptive3D - exponential exp(x+y+z)", "[adaptive][integratio
     // ∭ exp(x+y+z) dx dy dz over [0,1]³ = (e-1)³ ≈ 5.0728
     auto f = [](Real x, Real y, Real z) { return std::exp(x + y + z); };
     
-    Real expected = std::pow(std::exp(1.0) - 1.0, 3);
+    Real expected = std::pow(std::exp(MML::Real(1.0)) - MML::Real(1.0), MML::Real(3));
     
-    auto result = IntegrateAdaptive3DDetailed(f, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 1e-6);
+    auto result = IntegrateAdaptive3DDetailed(f, MML::Real(0.0), MML::Real(1.0), MML::Real(0.0), MML::Real(1.0), MML::Real(0.0), MML::Real(1.0), MML::Real(1e-6));
     
     REQUIRE_THAT(result.value, WithinRel(expected, static_cast<MML::Real>(1e-4)));
     REQUIRE(result.converged);
@@ -292,7 +292,7 @@ TEST_CASE("IntegrateAdaptive3D - trigonometric sin(x)*cos(y)*z", "[adaptive][int
     // = (1-cos(π)) × sin(π/2) × (1/2) = 2 × 1 × 0.5 = 1.0
     auto f = [](Real x, Real y, Real z) { return std::sin(x) * std::cos(y) * z; };
     
-    auto result = IntegrateAdaptive3DDetailed(f, 0.0, Constants::PI, 0.0, Constants::PI/2.0, 0.0, 1.0, 1e-6);
+    auto result = IntegrateAdaptive3DDetailed(f, MML::Real(0.0), Constants::PI, MML::Real(0.0), Constants::PI/MML::Real(2.0), MML::Real(0.0), MML::Real(1.0), MML::Real(1e-6));
     
     REQUIRE_THAT(result.value, WithinAbs(1.0, 1e-4));
     REQUIRE(result.converged);
@@ -302,16 +302,16 @@ TEST_CASE("IntegrateAdaptive3D - Gaussian peak (adaptive advantage)", "[adaptive
 {
     // Sharp 3D Gaussian peak at center - adaptive should need fewer evals than uniform grid
     auto f = [](Real x, Real y, Real z) {
-        Real dx = x - 0.5;
-        Real dy = y - 0.5;
-        Real dz = z - 0.5;
+        Real dx = x - MML::Real(0.5);
+        Real dy = y - MML::Real(0.5);
+        Real dz = z - MML::Real(0.5);
         return std::exp(-50.0 * (dx*dx + dy*dy + dz*dz));
     };
     
     // Approximate: (π/50)^(3/2) ≈ 0.01575
-    Real expected = std::pow(Constants::PI / 50.0, 1.5);
+    Real expected = std::pow(Constants::PI / MML::Real(50.0), MML::Real(1.5));
     
-    auto result = IntegrateAdaptive3DDetailed(f, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 1e-4);
+    auto result = IntegrateAdaptive3DDetailed(f, MML::Real(0.0), MML::Real(1.0), MML::Real(0.0), MML::Real(1.0), MML::Real(0.0), MML::Real(1.0), MML::Real(1e-4));
     
     REQUIRE_THAT(result.value, WithinRel(expected, static_cast<MML::Real>(0.10)));  // 10% tolerance for sharp peak
     INFO("Expected: " << expected << ", Got: " << result.value);
@@ -357,8 +357,8 @@ TEST_CASE("IntegrateAdaptive3D - config-based API", "[adaptive][integration][3d]
 
 TEST_CASE("IntegrateAdaptive3D - result struct operators", "[adaptive][integration][3d]")
 {
-    AdaptiveResult3D r1(1.0, 0.1, 1000, 5, 3, true);
-    AdaptiveResult3D r2(2.0, 0.2, 2000, 10, 5, true);
+    AdaptiveResult3D r1(MML::Real(1.0), MML::Real(0.1), 1000, 5, 3, true);
+    AdaptiveResult3D r2(MML::Real(2.0), MML::Real(0.2), 2000, 10, 5, true);
     
     auto combined = r1 + r2;
     
@@ -377,7 +377,7 @@ TEST_CASE("IntegrateAdaptive3D - rational function 1/(1+x^2+y^2+z^2)", "[adaptiv
     
     // Numerical reference: ∭ 1/(1+x²+y²+z²) dx dy dz over [0,1]³ ≈ 0.536
     
-    auto result = IntegrateAdaptive3DDetailed(f, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 1e-6);
+    auto result = IntegrateAdaptive3DDetailed(f, MML::Real(0.0), MML::Real(1.0), MML::Real(0.0), MML::Real(1.0), MML::Real(0.0), MML::Real(1.0), MML::Real(1e-6));
     
     REQUIRE_THAT(result.value, WithinRel(static_cast<MML::Real>(0.536), static_cast<MML::Real>(0.02)));  // Within 2%
     REQUIRE(result.converged);
@@ -429,14 +429,14 @@ TEST_CASE("IntegrateAdaptive2D - weak singularity 1/sqrt(x)", "[adaptive][integr
     // ∬ 1/sqrt(x) dx dy over [ε,1]×[0,1] = 2(1-sqrt(ε))
     // As ε->0: approaches 2
     
-    const Real epsilon = 1e-4;  // Use larger epsilon for numerical stability
+    const Real epsilon = MML::Real(1e-4);  // Use larger epsilon for numerical stability
     auto f = [](Real x, Real y) { 
         return (x > TOL(1e-10, 1e-5)) ? 1.0 / std::sqrt(x) : 0.0; 
     };
     
-    Real expected = 2.0 * (1.0 - std::sqrt(epsilon));
+    Real expected = MML::Real(2.0) * (MML::Real(1.0) - std::sqrt(epsilon));
     
-    auto result = IntegrateAdaptive2DDetailed(f, epsilon, 1.0, 0.0, 1.0, 1e-4);
+    auto result = IntegrateAdaptive2DDetailed(f, epsilon, MML::Real(1.0), MML::Real(0.0), MML::Real(1.0), MML::Real(1e-4));
     
     REQUIRE_THAT(result.value, WithinRel(expected, static_cast<MML::Real>(0.02)));  // 2% tolerance for singularity
     INFO("Expected: " << expected << ", Got: " << result.value);
@@ -446,13 +446,13 @@ TEST_CASE("IntegrateAdaptive2D - weak singularity 1/sqrt(x)", "[adaptive][integr
 TEST_CASE("IntegrateAdaptive2D - log singularity log(x+y+eps)", "[adaptive][integration][2d][singularity]")
 {
     // log(x+y) has a singularity at the origin, use log(x+y+ε) for regularization
-    const Real epsilon = 0.01;
+    const Real epsilon = MML::Real(0.01);
     auto f = [epsilon](Real x, Real y) { 
         return std::log(x + y + epsilon); 
     };
     
     // Numerical integration - just check it converges and gives reasonable result
-    auto result = IntegrateAdaptive2DDetailed(f, 0.0, 1.0, 0.0, 1.0, 1e-4);
+    auto result = IntegrateAdaptive2DDetailed(f, MML::Real(0.0), MML::Real(1.0), MML::Real(0.0), MML::Real(1.0), MML::Real(1e-4));
     
     REQUIRE(result.converged);
     REQUIRE(result.value < 1.0);  // Should be negative or small positive
@@ -466,14 +466,14 @@ TEST_CASE("IntegrateAdaptive3D - weak singularity 1/sqrt(x)", "[adaptive][integr
     // f(x,y,z) = 1/sqrt(x) for x > 0
     // ∭ 1/sqrt(x) dx dy dz over [ε,1]×[0,1]×[0,1] = 2(1-sqrt(ε))
     
-    const Real epsilon = 1e-6;
+    const Real epsilon = MML::Real(1e-6);
     auto f = [](Real x, Real y, Real z) { 
         return (x > TOL(1e-10, 1e-5)) ? 1.0 / std::sqrt(x) : 0.0; 
     };
     
-    Real expected = 2.0 * (1.0 - std::sqrt(epsilon));
+    Real expected = MML::Real(2.0) * (MML::Real(1.0) - std::sqrt(epsilon));
     
-    auto result = IntegrateAdaptive3DDetailed(f, epsilon, 1.0, 0.0, 1.0, 0.0, 1.0, 1e-3);
+    auto result = IntegrateAdaptive3DDetailed(f, epsilon, MML::Real(1.0), MML::Real(0.0), MML::Real(1.0), MML::Real(0.0), MML::Real(1.0), MML::Real(1e-3));
     
     REQUIRE_THAT(result.value, WithinRel(expected, static_cast<MML::Real>(0.02)));  // 2% tolerance
     INFO("Expected: " << expected << ", Got: " << result.value);
@@ -520,7 +520,7 @@ TEST_CASE("IntegrateAdaptive3D - divergence theorem (radial field)", "[adaptive]
     
     Real expected = 4.0 * Constants::PI;  // 4πR³ for R=1
     
-    auto result = IntegrateAdaptive3DDetailed(f, -1.0, 1.0, -1.0, 1.0, -1.0, 1.0, 1e-3);
+    auto result = IntegrateAdaptive3DDetailed(f, -MML::Real(1.0), MML::Real(1.0), -MML::Real(1.0), MML::Real(1.0), -MML::Real(1.0), MML::Real(1.0), MML::Real(1e-3));
     
     // Discontinuous indicator function is challenging - use looser tolerance
     REQUIRE_THAT(result.value, WithinRel(expected, static_cast<MML::Real>(0.05)));  // 5% tolerance
@@ -542,7 +542,7 @@ TEST_CASE("IntegrateAdaptive2D - Green's theorem area formula", "[adaptive][inte
     
     Real expected = Constants::PI;
     
-    auto result = IntegrateAdaptive2DDetailed(f, -1.0, 1.0, -1.0, 1.0, 1e-3);
+    auto result = IntegrateAdaptive2DDetailed(f, -MML::Real(1.0), MML::Real(1.0), -MML::Real(1.0), MML::Real(1.0), MML::Real(1e-3));
     
     REQUIRE_THAT(result.value, WithinRel(expected, static_cast<MML::Real>(0.02)));  // 2% for discontinuous
     INFO("Expected π ≈ " << expected << ", Got: " << result.value);
@@ -557,7 +557,7 @@ TEST_CASE("IntegrateAdaptive3D - sphere volume 4pi/3", "[adaptive][integration][
     
     Real expected = 4.0 * Constants::PI / 3.0;
     
-    auto result = IntegrateAdaptive3DDetailed(sphere_indicator, -1.0, 1.0, -1.0, 1.0, -1.0, 1.0, 1e-3);
+    auto result = IntegrateAdaptive3DDetailed(sphere_indicator, -MML::Real(1.0), MML::Real(1.0), -MML::Real(1.0), MML::Real(1.0), -MML::Real(1.0), MML::Real(1.0), MML::Real(1e-3));
     
     REQUIRE_THAT(result.value, WithinRel(expected, static_cast<MML::Real>(0.03)));  // 3% for indicator
     INFO("Expected 4π/3 ≈ " << expected << ", Got: " << result.value);
@@ -572,15 +572,15 @@ TEST_CASE("IntegrateAdaptive2D - efficiency vs localized function", "[adaptive][
     // Adaptive should be efficient for localized functions
     // Moderately sharp peak at (0.7, 0.3) - smooth elsewhere
     auto f = [](Real x, Real y) {
-        Real dx = x - 0.7;
-        Real dy = y - 0.3;
+        Real dx = x - MML::Real(0.7);
+        Real dy = y - MML::Real(0.3);
         return std::exp(-50.0 * (dx*dx + dy*dy));  // Moderate peak for reliable convergence
     };
     
     // Use config to allow sufficient evaluations
     AdaptiveConfig2D config;
-    config.absoluteTolerance(1e-3)
-          .relativeTolerance(1e-2)
+    config.absoluteTolerance(MML::Real(1e-3))
+          .relativeTolerance(MML::Real(1e-2))
           .maxDepth(15)
           .maxEvaluations(100000);
     
@@ -639,7 +639,7 @@ TEST_CASE("IntegrateAdaptive2DDetailed - with config object", "[adaptive][Detail
     auto f = [](Real x, Real y) { return std::exp(-(x*x + y*y)); };
 
     AdaptiveConfig2D aconfig;
-    aconfig.absoluteTolerance(TOL(1e-8, 1e-4)).relativeTolerance(1e-6);
+    aconfig.absoluteTolerance(TOL(1e-8, 1e-4)).relativeTolerance(MML::Real(1e-6));
 
     auto result = IntegrateAdaptive2DDetailed(f, -1.0, 1.0, -1.0, 1.0, aconfig);
 

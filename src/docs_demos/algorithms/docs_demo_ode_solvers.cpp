@@ -15,9 +15,61 @@
 #include <mml/algorithms/ODESolvers/ODEStepCalculators.h>
 #endif
 
+#include <iomanip>
 #include "../test_beds/diff_eq_systems_test_bed.h"
 
 using namespace MML;
+
+void Docs_Demo_ODEAttemptAccounting()
+{
+	int calls = 0;
+	ODESystemFromStdFunc growth(1, [&](Real, const Vector<Real>& state, Vector<Real>& rhs) {
+		++calls;
+		rhs[0] = 10 * state[0];
+	});
+	ODEAdaptiveConfig config;
+	config.integrator.initial_step_size = Real(0.1);
+	const auto result = ODEAdaptiveIntegrateDetailed(growth, Vector<Real>{1}, 0, 1, config);
+	std::cout << result.attempted_steps << " attempts, " << result.rejected_steps
+			  << " rejected, " << result.total_func_evals << " RHS calls\n";
+	if (!result.IsSuccess() || !result.solution || result.rejected_steps <= 0 ||
+		result.attempted_steps != result.accepted_steps + result.rejected_steps ||
+		result.function_evaluations != calls || calls != 1 + 6 * result.attempted_steps ||
+		result.solution->getNumStepsBad() != result.rejected_steps)
+		throw NumericalMethodError("ODE attempt accounting documentation example failed");
+
+	calls = 0;
+	config.integrator.max_steps = 1;
+	const auto limited = ODEAdaptiveIntegrateDetailed(growth, Vector<Real>{1}, 0, 1, config);
+	std::cout << limited.attempted_steps << " budgeted attempt, " << calls << " RHS calls\n";
+	if (limited.status != AlgorithmStatus::MaxIterationsExceeded || limited.attempted_steps != 1 ||
+		limited.accepted_steps != 0 || limited.rejected_steps != 1 || calls != 7 ||
+		limited.function_evaluations != calls || !limited.solution || limited.solution->size() != 1)
+		throw NumericalMethodError("ODE attempt budget documentation example failed");
+}
+
+void Docs_Demo_BulirschStoerExtrapolation()
+{
+	ODESystem growth(1, [](Real, const Vector<Real>& y, Vector<Real>& rhs) { rhs[0] = y[0]; });
+	BulirschStoer_Stepper stepper(growth);
+	Vector<Real> state{1}, derivative{1};
+	const auto result = stepper.doStep(0, state, derivative, Real(0.5), 1);
+	std::cout << std::setprecision(std::numeric_limits<Real>::max_digits10);
+	std::cout << state[0] << ' ' << stepper.order() << '\n';
+
+	const Real expected = Real(10129) / 6144;
+	if (!result.accepted || result.funcEvals != 8 || stepper.order() != 18 ||
+		!IsWithinAbs(state[0], expected, Precision::RoundoffZeroThreshold))
+		throw NumericalMethodError("Bulirsch-Stoer documentation example failed");
+
+	BulirschStoerRational_Stepper alternate(growth);
+	state[0] = derivative[0] = 1;
+	const auto alternateResult = alternate.doStep(0, state, derivative, Real(0.5), 1);
+	std::cout << state[0] << ' ' << alternate.order() << '\n';
+	if (!alternateResult.accepted || alternateResult.funcEvals != 8 || alternate.order() != 18 ||
+		!IsWithinAbs(state[0], expected, Precision::RoundoffZeroThreshold))
+		throw NumericalMethodError("Alternate Bulirsch-Stoer documentation example failed");
+}
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 ///                       IODESystem INTERFACE DEMOS                                   ///

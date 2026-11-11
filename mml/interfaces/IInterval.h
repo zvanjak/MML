@@ -103,13 +103,22 @@ namespace MML
 		/**
 		 * @brief Generate equidistant points covering the interval.
 		 * 
-		 * Creates a vector of numPoints equally-spaced points spanning
-		 * from the lower to upper bound, suitable for sampling or plotting.
+		 * Produces at most numPoints distinct, ordered finite members, using
+		 * an equidistant grid where the set permits. Empty sets and nonpositive
+		 * requests produce no points. Singletons produce at most one point.
+		 * Unbounded implementations document their finite default window.
 		 * 
 		 * @param numPoints Number of points to generate
 		 * @param[out] points Vector to store the generated points
 		 */
 		virtual void getEquidistantCovering(int numPoints, std::vector<Real>& points) const = 0;
+		/// @brief Sample the intersection with a finite closed window.
+		/// @note Optional capability for custom implementations. BaseInterval and
+		/// CompositeInterval implement it; failures leave the output unchanged.
+		virtual void getEquidistantCovering(int numPoints, std::vector<Real>& points, Real, Real) const {
+			if (numPoints <= 0) { points.clear(); return; }
+			throw NotImplementedError("IInterval: explicit-window sampling is not implemented");
+		}
 		/// @deprecated Use getEquidistantCovering() (CONTRACT_POLICY §11: interface vocabulary is lowerCamel). Non-virtual
 		/// forwarder for callers; implementers override the lowerCamel name.
 		[[deprecated("use getEquidistantCovering()")]]

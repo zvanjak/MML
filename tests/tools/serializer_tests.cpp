@@ -23,7 +23,10 @@
 
 #include <catch2/catch_all.hpp>
 #include "../TestPrecision.h"
+#include <algorithm>
+#include <cctype>
 #include <fstream>
+#include <iomanip>
 #include <sstream>
 #include <cmath>
 #include <complex>
@@ -337,76 +340,55 @@ namespace MML::Tests::Tools::SerializerTests {
 	///                         GOLDEN FILE TEST INFRASTRUCTURE                       ///
 	/////////////////////////////////////////////////////////////////////////////////////
 
-	// Path to reference files - works from both:
-	// - CTest (runs from build/tests/): ../../tests/tools/serialization_test_data/
-	// - VS Code debug (runs from workspace root): tests/tools/serialization_test_data/
-	std::string GetReferenceDir() {
-		// Try workspace-relative path first (for VS Code debug)
-		std::string workspaceRelative = "tests/tools/serialization_test_data/";
-		std::ifstream testFile(workspaceRelative + "multi_realfunc_simple.mml");
-		if (testFile.good()) {
-			return workspaceRelative;
-		}
-		// Fall back to CTest-relative path (from build/tests/)
-		return "../../tests/tools/serialization_test_data/";
-	}
-
-	// Helper to get reference file path
 	std::string GetReferenceFilePath(const std::string& filename) {
-		static std::string refDir = GetReferenceDir();
-		return refDir + filename;
+		static const std::filesystem::path refDir =
+			std::filesystem::path(__FILE__).parent_path() / "serialization_test_data";
+		return (refDir / filename).string();
 	}
 
-	// Parse a line into numeric tokens
-	std::vector<Real> ParseNumericLine(const std::string& line) {
-		std::vector<Real> values;
+	bool ParseNumericLine(const std::string& line, std::vector<long double>& values) {
 		std::istringstream iss(line);
-		Real val;
-		while (iss >> val) {
-			values.push_back(val);
+		iss.imbue(std::locale::classic());
+		while (true) {
+			iss >> std::ws;
+			if (iss.eof()) return !values.empty();
+			long double value;
+			if (!(iss >> value) || !std::isfinite(value)) return false;
+			values.push_back(value);
 		}
-		return values;
 	}
 
 	// Check if a line looks like data (starts with number or minus sign)
 	bool IsDataLine(const std::string& line) {
 		if (line.empty()) return false;
-		char c = line[0];
+		const auto c = static_cast<unsigned char>(line[0]);
 		return std::isdigit(c) || c == '-' || c == '+' || c == '.';
 	}
 
-	// Compare two files with hybrid approach:
-	// - Exact match for header lines (type, title, metadata)
-	// - Numerical tolerance for data lines
 	struct CompareResult {
 		bool success = true;
 		std::string error_message;
 		int line_number = 0;
 	};
 
-	CompareResult CompareFilesWithTolerance(const std::string& actualPath, 
-	                                         const std::string& referencePath,
-	                                         Real tolerance = TOL(1e-10, 1e-5)) {
+	CompareResult CompareStreamsWithTolerance(std::istream& actualFile, std::istream& referenceFile,
+		Real tolerance = TOL(1e-10, 1e-5)) {
 		CompareResult result;
-		
-		std::ifstream actualFile(actualPath);
-		std::ifstream referenceFile(referencePath);
-		
-		if (!actualFile.is_open()) {
+		if (!std::isfinite(tolerance) || tolerance < 0) {
 			result.success = false;
-			result.error_message = "Cannot open actual file: " + actualPath;
+			result.error_message = "Comparison tolerance must be finite and nonnegative";
 			return result;
 		}
-		
-		if (!referenceFile.is_open()) {
-			result.success = false;
-			result.error_message = "Cannot open reference file: " + referencePath;
-			return result;
-		}
-		
+
 		std::string actualLine, refLine;
+		std::string format;
+		bool particleFrames = false;
 		int lineNum = 0;
-		
+		auto rtrim = [](std::string& text) {
+			text.erase(std::find_if(text.rbegin(), text.rend(),
+				[](unsigned char ch) { return !std::isspace(ch); }).base(), text.end());
+		};
+
 		while (std::getline(referenceFile, refLine)) {
 			lineNum++;
 			
@@ -416,12 +398,56 @@ namespace MML::Tests::Tools::SerializerTests {
 				result.error_message = "Actual file has fewer lines than reference (expected line: " + refLine + ")";
 				return result;
 			}
-			
-			if (IsDataLine(refLine) && IsDataLine(actualLine)) {
-				// Numerical comparison with tolerance
-				auto refValues = ParseNumericLine(refLine);
-				auto actualValues = ParseNumericLine(actualLine);
-				
+			rtrim(refLine);
+			rtrim(actualLine);
+			if (lineNum == 1) format = refLine;
+			const bool curve = format == SerializeFormatType::PARAMETRIC_CURVE_CARTESIAN_2D ||
+				format == SerializeFormatType::PARAMETRIC_CURVE_CARTESIAN_3D;
+			const bool surface = format == SerializeFormatType::PARAMETRIC_SURFACE_CARTESIAN;
+			const bool particles = format == SerializeFormatType::PARTICLE_SIMULATION_DATA_2D ||
+				format == SerializeFormatType::PARTICLE_SIMULATION_DATA_3D;
+			if (particles && refLine.rfind("NumSteps: ", 0) == 0) particleFrames = true;
+
+			std::string numericPrefix;
+			if (curve && lineNum == 4) numericPrefix = "t1: ";
+			if (curve && lineNum == 5) numericPrefix = "t2: ";
+			if (surface && lineNum == 4) numericPrefix = "u1: ";
+			if (surface && lineNum == 5) numericPrefix = "u2: ";
+			if (surface && lineNum == 7) numericPrefix = "w1: ";
+			if (surface && lineNum == 8) numericPrefix = "w2: ";
+			if (particleFrames && refLine.rfind("Step ", 0) == 0) {
+				const auto split = refLine.find(' ', 5);
+				if (split != std::string::npos) numericPrefix = refLine.substr(0, split + 1);
+			} else if (particleFrames && IsDataLine(refLine)) {
+				const auto split = refLine.find(' ');
+				if (split != std::string::npos) numericPrefix = refLine.substr(0, split + 1);
+			}
+
+			// Only schema-known Real fields vary in spelling; labels and integer identities remain exact.
+			const bool numeric = !numericPrefix.empty() ||
+				(lineNum > 3 && IsDataLine(refLine) && IsDataLine(actualLine));
+			if (numeric) {
+				if (!numericPrefix.empty() && (refLine.rfind(numericPrefix, 0) != 0 ||
+					actualLine.rfind(numericPrefix, 0) != 0)) {
+					result.success = false;
+					result.line_number = lineNum;
+					result.error_message = "Numeric field label or index mismatch";
+					return result;
+				}
+				std::vector<long double> refValues, actualValues;
+				if (!ParseNumericLine(refLine.substr(numericPrefix.size()), refValues) ||
+					!ParseNumericLine(actualLine.substr(numericPrefix.size()), actualValues)) {
+					result.success = false;
+					result.line_number = lineNum;
+					result.error_message = "Invalid or nonfinite numeric field";
+					return result;
+				}
+				if (!numericPrefix.empty() && refValues.size() != 1 && !IsDataLine(refLine)) {
+					result.success = false;
+					result.line_number = lineNum;
+					result.error_message = "Numeric metadata must contain exactly one value";
+					return result;
+				}
 				if (refValues.size() != actualValues.size()) {
 					result.success = false;
 					result.line_number = lineNum;
@@ -432,9 +458,9 @@ namespace MML::Tests::Tools::SerializerTests {
 				}
 				
 				for (size_t i = 0; i < refValues.size(); ++i) {
-					Real diff = std::abs(refValues[i] - actualValues[i]);
-					// Use relative tolerance for large values, absolute for small
-					Real relativeTol = std::max(tolerance, tolerance * std::abs(refValues[i]));
+					const long double diff = std::abs(refValues[i] - actualValues[i]);
+					const long double relativeTol = static_cast<long double>(tolerance) *
+						std::max(1.0L, std::abs(refValues[i]));
 					if (diff > relativeTol) {
 						result.success = false;
 						result.line_number = lineNum;
@@ -447,23 +473,11 @@ namespace MML::Tests::Tools::SerializerTests {
 					}
 				}
 			} else {
-				// Exact string comparison for headers
-				// Trim trailing whitespace for comparison
-				auto rtrim = [](std::string& s) {
-					s.erase(std::find_if(s.rbegin(), s.rend(), 
-					        [](unsigned char ch) { return !std::isspace(ch); }).base(), s.end());
-				};
-				
-				std::string trimmedActual = actualLine;
-				std::string trimmedRef = refLine;
-				rtrim(trimmedActual);
-				rtrim(trimmedRef);
-				
-				if (trimmedActual != trimmedRef) {
+				if (actualLine != refLine) {
 					result.success = false;
 					result.line_number = lineNum;
-					result.error_message = "Header mismatch: expected '" + trimmedRef + 
-					    "', got '" + trimmedActual + "'";
+					result.error_message = "Header mismatch: expected '" + refLine +
+					    "', got '" + actualLine + "'";
 					return result;
 				}
 			}
@@ -476,8 +490,19 @@ namespace MML::Tests::Tools::SerializerTests {
 			result.error_message = "Actual file has more lines than reference (extra: " + actualLine + ")";
 			return result;
 		}
-		
+		if (actualFile.bad() || referenceFile.bad()) {
+			result.success = false;
+			result.error_message = "I/O error during golden comparison";
+		}
 		return result;
+	}
+
+	CompareResult CompareFilesWithTolerance(const std::string& actualPath,
+		const std::string& referencePath, Real tolerance = TOL(1e-10, 1e-5)) {
+		std::ifstream actualFile(actualPath), referenceFile(referencePath);
+		if (!actualFile.is_open()) return {false, "Cannot open actual file: " + actualPath, 0};
+		if (!referenceFile.is_open()) return {false, "Cannot open reference file: " + referencePath, 0};
+		return CompareStreamsWithTolerance(actualFile, referenceFile, tolerance);
 	}
 
 	/////////////////////////////////////////////////////////////////////////////////////
@@ -501,6 +526,135 @@ namespace MML::Tests::Tools::SerializerTests {
 	// Helper to clean up temp file
 	void CleanupTempFile(const std::string& path) {
 		std::filesystem::remove(path);
+	}
+
+	TEST_CASE("Serializer golden comparison accepts native Real spelling only in schema numeric fields",
+		"[serializer][golden-comparator]") {
+		auto compare = [](const std::string& actual, const std::string& reference) {
+			std::istringstream actualStream(actual), referenceStream(reference);
+			return CompareStreamsWithTolerance(actualStream, referenceStream);
+		};
+		auto native = [](Real value) {
+			std::ostringstream output;
+			output.imbue(std::locale::classic());
+			output << std::setprecision(std::numeric_limits<Real>::max_digits10) << value;
+			return output.str();
+		};
+		for (const auto* format : {SerializeFormatType::PARAMETRIC_CURVE_CARTESIAN_2D,
+			SerializeFormatType::PARAMETRIC_CURVE_CARTESIAN_3D}) {
+			const std::string reference = std::string(format) +
+				"\nVERSION: 1\nCircle\nt1: 0\nt2: 6.2831853071795862\nNumPoints: 2\n0 1 0\n6.2831853071795862 1 0\n";
+			std::string actual = reference;
+			ReplaceAll(actual, "6.2831853071795862", native(2 * Constants::PI));
+			const auto result = compare(actual, reference);
+			INFO(result.error_message);
+			CHECK(result.success);
+		}
+		const std::string surface = "MML_PARAMETRIC_SURFACE_CARTESIAN\nVERSION: 1\nSphere\n"
+			"u1: 0\nu2: 6.2831853071795862\nNumPointsU: 2\nw1: 0\nw2: 3.1415926535897931\nNumPointsW: 2\n0 0 0 0 1\n";
+		std::string nativeSurface = surface;
+		ReplaceAll(nativeSurface, "6.2831853071795862", native(2 * Constants::PI));
+		ReplaceAll(nativeSurface, "3.1415926535897931", native(Constants::PI));
+		CHECK(compare(nativeSurface, surface).success);
+		for (const auto* format : {SerializeFormatType::PARTICLE_SIMULATION_DATA_2D,
+			SerializeFormatType::PARTICLE_SIMULATION_DATA_3D}) {
+			const std::string reference = std::string(format) +
+				"\nVERSION: 1\nWidth: 100\nHeight: 100\nNumBalls: 1\nBall_1 red 5\n"
+				"NumSteps: 2\nStep 0 0\n0 1 2\nStep 1 0.01\n0 3 4\n";
+			std::string actual = reference;
+			ReplaceAll(actual, "Step 1 0.01", "Step 1 " + native(Real(0.01)));
+			const auto result = compare(actual, reference);
+			INFO(result.error_message);
+			CHECK(result.success);
+		}
+	}
+
+	TEST_CASE("Serializer golden comparison rejects structural and numeric corruption",
+		"[serializer][golden-comparator]") {
+		const std::string reference = "MML_PARAMETRIC_CURVE_CARTESIAN_2D\nVERSION: 1\n"
+			"123\nt1: 0\nt2: 6.2831853071795862\nNumPoints: 2\n0 1 0\n6.2831853071795862 1 0\n";
+		auto checkFailure = [&](const std::string& actual, const std::string& expected, int line) {
+			std::istringstream actualStream(actual), referenceStream(expected);
+			const auto result = CompareStreamsWithTolerance(actualStream, referenceStream);
+			CHECK_FALSE(result.success);
+			CHECK_FALSE(result.error_message.empty());
+			CHECK(result.line_number == line);
+		};
+		auto mutate = [&](const std::string& from, const std::string& to, int line) {
+			std::string actual = reference;
+			ReplaceAll(actual, from, to);
+			INFO(actual);
+			checkFailure(actual, reference, line);
+		};
+		mutate("CARTESIAN_2D", "CARTESIAN_3D", 1);
+		mutate("VERSION: 1", "VERSION: 1.00000001", 2);
+		mutate("\n123\n", "\n123.00000001\n", 3);
+		mutate("t1: ", "t0: ", 4);
+		mutate("t2: 6.2831853071795862", "t2: 6.3", 5);
+		mutate("NumPoints: 2", "NumPoints: 2.00000001", 6);
+		mutate("t2: 6.2831853071795862", "t2: 6.2831853071795862 garbage", 5);
+		mutate("t2: 6.2831853071795862", "t2: 6.2831853071795862 0", 5);
+		mutate("t2: 6.2831853071795862", "t2:", 5);
+		for (const auto* invalid : {"nan", "inf", "-inf", "1e99999", "1junk", "1 0 trailing"}) {
+			mutate("0 1 0\n", std::string("0 ") + invalid + "\n", 7);
+			mutate("t2: 6.2831853071795862", std::string("t2: ") + invalid, 5);
+		}
+		mutate("0 1 0\n", "0 1\n", 7);
+		mutate("0 1 0\n", "0 1 0 0\n", 7);
+		mutate("0 1 0\n", "0 2 0\n", 7);
+		checkFailure(reference.substr(0, reference.rfind("6.2831853071795862 1 0")), reference, 8);
+		checkFailure(reference + "0 0 0\n", reference, 9);
+		std::string namedTitle = reference, changedTitle = reference;
+		ReplaceAll(namedTitle, "\n123\n", "\nt2: 0.01\n");
+		ReplaceAll(changedTitle, "\n123\n", "\nt2: 0.01000000001\n");
+		checkFailure(changedTitle, namedTitle, 3);
+	}
+
+	TEST_CASE("Serializer golden comparison keeps particle identities and frame structure exact",
+		"[serializer][golden-comparator]") {
+		const std::string reference = "MML_PARTICLE_SIMULATION_DATA_2D\nVERSION: 1\n"
+			"Width: 100\nHeight: 100\nNumBalls: 1\nBall_1 red 5\nNumSteps: 2\n"
+			"Step 0 0\n0 1 2\nStep 1 0.01\n0 3 4\n";
+		auto checkMutation = [&](const std::string& from, const std::string& to, int line) {
+			std::string actual = reference;
+			ReplaceAll(actual, from, to);
+			std::istringstream actualStream(actual), referenceStream(reference);
+			const auto result = CompareStreamsWithTolerance(actualStream, referenceStream);
+			INFO(result.error_message);
+			CHECK_FALSE(result.success);
+			CHECK(result.line_number == line);
+		};
+		checkMutation("NumSteps: 2", "NumSteps: 2.000001", 7);
+		checkMutation("NumBalls: 1", "NumBalls: 1.000001", 5);
+		checkMutation("Ball_1 red", "Ball_1 blue", 6);
+		checkMutation("Step 1 0.01", "Step 2 0.01", 10);
+		checkMutation("Step 1 0.01", "Step 1.000001 0.01", 10);
+		checkMutation("Step 1 0.01", "Step 1 0.02", 10);
+		checkMutation("Step 1 0.01", "Step 1 nan", 10);
+		checkMutation("Step 1 0.01", "Step 1 0.01 suffix", 10);
+		checkMutation("Step 1 0.01", "Step 1 0.01 0", 10);
+		checkMutation("0 3 4", "0.000001 3 4", 11);
+		checkMutation("0 3 4", "0 3 garbage", 11);
+	}
+
+	TEST_CASE("Serializer golden comparison retains reference precision and reports stream failures",
+		"[serializer][golden-comparator]") {
+		const std::string header = "MML_REAL_FUNCTION\nVERSION: 1\nf\nx1: 0\nx2: 1\nNumPoints: 1\n";
+		std::istringstream actual(header + "1\n"), reference(header + "1.0000000000000002\n");
+		const auto result = CompareStreamsWithTolerance(actual, reference, 0);
+		CHECK_FALSE(result.success);
+		CHECK(result.line_number == 7);
+		for (Real invalidTolerance : {Real(-1), std::numeric_limits<Real>::infinity(),
+			std::numeric_limits<Real>::quiet_NaN()}) {
+			std::istringstream actualStream(header), referenceStream(header);
+			CHECK_FALSE(CompareStreamsWithTolerance(actualStream, referenceStream, invalidTolerance).success);
+		}
+		for (bool failActual : {false, true}) {
+			std::istringstream actualStream(header), referenceStream(header);
+			if (failActual) actualStream.setstate(std::ios::badbit);
+			else referenceStream.setstate(std::ios::badbit);
+			CHECK_FALSE(CompareStreamsWithTolerance(actualStream, referenceStream).success);
+		}
 	}
 
 	TEST_CASE("Serializer text headers sanitize multiline metadata", "[serializer][headers]") {
@@ -1836,12 +1990,12 @@ namespace MML::Tests::Tools::SerializerTests {
 			// Create simple 2-ball simulation
 			int numBalls = 2;
 			Real width = 100.0, height = 100.0;
-			Real dT = 0.01;
+			Real dT = MML::Real(0.01);
 			
 			std::vector<std::vector<Pnt2Cart>> positions(numBalls);
 			for (int b = 0; b < numBalls; ++b) {
 				for (int step = 0; step < 10; ++step) {
-					positions[b].push_back(Pnt2Cart(b * 10.0 + step, b * 5.0 + step));
+					positions[b].push_back(Pnt2Cart(b * MML::Real(10.0) + step, b * MML::Real(5.0) + step));
 				}
 			}
 			
@@ -1881,7 +2035,7 @@ namespace MML::Tests::Tools::SerializerTests {
 			auto result = Serializer::SaveParticleSimulation2D(testFile, numBalls,
 			                                                    100.0, 100.0,
 			                                                    positions, colors, radii,
-			                                                    0.01, 5);
+			                                                    MML::Real(0.01), 5);
 			
 			REQUIRE(result.success == true);
 			
@@ -1903,7 +2057,7 @@ namespace MML::Tests::Tools::SerializerTests {
 			std::vector<std::vector<Pnt3Cart>> positions(numBalls);
 			for (int b = 0; b < numBalls; ++b) {
 				for (int step = 0; step < 5; ++step) {
-					positions[b].push_back(Pnt3Cart(b * 10.0, step * 1.0, static_cast<Real>(b + step)));
+					positions[b].push_back(Pnt3Cart(b * MML::Real(10.0), step * MML::Real(1.0), static_cast<Real>(b + step)));
 				}
 			}
 			
@@ -1913,7 +2067,7 @@ namespace MML::Tests::Tools::SerializerTests {
 			auto result = Serializer::SaveParticleSimulation3D(testFile, numBalls,
 			                                                    50.0, 50.0, 50.0,
 			                                                    positions, colors, radii,
-			                                                    0.01, 1);
+			                                                    MML::Real(0.01), 1);
 			
 			REQUIRE(result.success == true);
 			
@@ -1938,7 +2092,7 @@ namespace MML::Tests::Tools::SerializerTests {
 			auto result = Serializer::SaveParticleSimulation3D(testFile, numBalls,
 			                                                    100.0, 100.0, 100.0,
 			                                                    positions, colors, radii,
-			                                                    0.01, 5);
+			                                                    MML::Real(0.01), 5);
 
 			REQUIRE(result.success == true);
 
@@ -2013,7 +2167,7 @@ namespace MML::Tests::Tools::SerializerTests {
 			
 			// numBalls <= 0
 			auto result = Serializer::SaveParticleSimulation2D(testFile, 0, 100, 100,
-			                                                    {}, {}, {}, 0.01, 1);
+			                                                    {}, {}, {}, MML::Real(0.01), 1);
 			
 			REQUIRE(result.success == false);
 			REQUIRE(result.error == IOError::INVALID_PARAMETERS);
@@ -2216,7 +2370,7 @@ namespace MML::Tests::Tools::SerializerTests {
 		
 		SECTION("Complex - 8 non-uniform points") {
 			std::string testFile = GetTempFilePath("golden_realfunc_sp_complex");
-			Vector<Real> pts(std::vector<Real>{0.0, 0.5, 1.0, 1.5, 2.5, 3.5, 5.0, 6.28});
+			Vector<Real> pts(std::vector<Real>{MML::Real(0.0), MML::Real(0.5), MML::Real(1.0), MML::Real(1.5), MML::Real(2.5), MML::Real(3.5), MML::Real(5.0), MML::Real(6.28)});
 			auto result = Serializer::SaveRealFunc(cosFunc, "cos(x) custom", pts, testFile);
 			REQUIRE(result.success);
 			
@@ -2584,15 +2738,15 @@ namespace MML::Tests::Tools::SerializerTests {
 			std::vector<std::vector<Pnt2Cart>> positions(numBalls);
 			for (int b = 0; b < numBalls; ++b) {
 				for (int step = 0; step < 5; ++step) {
-					positions[b].push_back(Pnt2Cart(10.0 + b * 20.0 + step * 2.0,
-					                                 50.0 + b * 10.0 + step * 3.0));
+					positions[b].push_back(Pnt2Cart(MML::Real(10.0) + b * MML::Real(20.0) + step * MML::Real(2.0),
+					                                 MML::Real(50.0) + b * MML::Real(10.0) + step * MML::Real(3.0)));
 				}
 			}
 			std::vector<std::string> colors = {"red", "blue"};
 			std::vector<Real> radii = {5.0, 7.5};
 			
 			auto result = Serializer::SaveParticleSimulation2D(testFile, numBalls,
-			    100.0, 100.0, positions, colors, radii, 0.01, 1);
+			    MML::Real(100.0), MML::Real(100.0), positions, colors, radii, MML::Real(0.01), 1);
 			REQUIRE(result.success);
 			
 			auto cmp = CompareFilesWithTolerance(testFile,
@@ -2610,16 +2764,16 @@ namespace MML::Tests::Tools::SerializerTests {
 			std::vector<std::vector<Pnt2Cart>> positions(numBalls);
 			for (int b = 0; b < numBalls; ++b) {
 				for (int step = 0; step < 10; ++step) {
-					Real angle = step * 0.3 + b * Constants::PI / 3;
-					positions[b].push_back(Pnt2Cart(50.0 + 20.0 * std::cos(angle),
-					                                 50.0 + 20.0 * std::sin(angle)));
+					Real angle = step * MML::Real(0.3) + b * Constants::PI / 3;
+					positions[b].push_back(Pnt2Cart(MML::Real(50.0) + MML::Real(20.0) * std::cos(angle),
+					                                 MML::Real(50.0) + MML::Real(20.0) * std::sin(angle)));
 				}
 			}
 			std::vector<std::string> colors = {"green", "yellow", "purple"};
 			std::vector<Real> radii = {3.0, 4.0, 5.0};
 			
 			auto result = Serializer::SaveParticleSimulation2D(testFile, numBalls,
-			    100.0, 100.0, positions, colors, radii, 0.02, 1);
+			    MML::Real(100.0), MML::Real(100.0), positions, colors, radii, MML::Real(0.02), 1);
 			REQUIRE(result.success);
 			
 			auto cmp = CompareFilesWithTolerance(testFile,
@@ -2641,16 +2795,16 @@ namespace MML::Tests::Tools::SerializerTests {
 			std::vector<std::vector<Pnt3Cart>> positions(numBalls);
 			for (int b = 0; b < numBalls; ++b) {
 				for (int step = 0; step < 4; ++step) {
-					positions[b].push_back(Pnt3Cart(10.0 + b * 15.0,
-					                                 20.0 + step * 5.0,
-					                                 30.0 + b * step));
+					positions[b].push_back(Pnt3Cart(MML::Real(10.0) + b * MML::Real(15.0),
+					                                 MML::Real(20.0) + step * MML::Real(5.0),
+					                                 MML::Real(30.0) + b * step));
 				}
 			}
 			std::vector<std::string> colors = {"white", "black"};
 			std::vector<Real> radii = {2.0, 3.0};
 			
 			auto result = Serializer::SaveParticleSimulation3D(testFile, numBalls,
-			    50.0, 50.0, 50.0, positions, colors, radii, 0.01, 1);
+			    MML::Real(50.0), MML::Real(50.0), MML::Real(50.0), positions, colors, radii, MML::Real(0.01), 1);
 			REQUIRE(result.success);
 			
 			auto cmp = CompareFilesWithTolerance(testFile,
@@ -2668,11 +2822,11 @@ namespace MML::Tests::Tools::SerializerTests {
 			std::vector<std::vector<Pnt3Cart>> positions(numBalls);
 			for (int b = 0; b < numBalls; ++b) {
 				for (int step = 0; step < 8; ++step) {
-					Real t = step * 0.5;
+					Real t = step * MML::Real(0.5);
 					positions[b].push_back(Pnt3Cart(
-					    25.0 + 10.0 * std::cos(t + b * 2.0),
-					    25.0 + 10.0 * std::sin(t + b * 2.0),
-					    25.0 + 5.0 * t
+					    MML::Real(25.0) + MML::Real(10.0) * std::cos(t + b * MML::Real(2.0)),
+					    MML::Real(25.0) + MML::Real(10.0) * std::sin(t + b * MML::Real(2.0)),
+					    MML::Real(25.0) + MML::Real(5.0) * t
 					));
 				}
 			}
@@ -2680,7 +2834,7 @@ namespace MML::Tests::Tools::SerializerTests {
 			std::vector<Real> radii = {1.5, 2.0, 2.5};
 			
 			auto result = Serializer::SaveParticleSimulation3D(testFile, numBalls,
-			    50.0, 50.0, 75.0, positions, colors, radii, 0.02, 1);
+			    MML::Real(50.0), MML::Real(50.0), MML::Real(75.0), positions, colors, radii, MML::Real(0.02), 1);
 			REQUIRE(result.success);
 			
 			auto cmp = CompareFilesWithTolerance(testFile,
@@ -2901,9 +3055,24 @@ namespace MML::Tests::Tools::SerializerTests {
 		for (int format = 0; format < 3; ++format) {
 			CAPTURE(format);
 			const auto path = GetTempFilePath("exact_corpus_" + std::to_string(format));
-			const auto saved = format == 0	 ? Persistence::SaveMatrixToFile(original, path)
-												 : format == 1 ? Persistence::SaveMatrixToCSV(original, path)
-																			 : Persistence::SaveJson(original, path);
+			Matrix<Real> expected(original);
+			if (format == 2) {
+				const long double maximum = std::numeric_limits<double>::max();
+				if (std::any_of(corpus.begin(), corpus.end(), [&](Real value) { return std::abs(static_cast<long double>(value)) > maximum; })) {
+					const auto rejected = Persistence::SaveJson(original, path);
+					REQUIRE_FALSE(rejected.success);
+					REQUIRE(rejected.error == IOError::UNSUPPORTED_SCALAR);
+					REQUIRE_FALSE(std::filesystem::exists(path));
+				}
+				// JSON has a double numeric representation, unlike native-scalar text and CSV.
+				for (int i = 0; i < corpus.size(); ++i)
+					expected(0, i) = static_cast<Real>(static_cast<double>(
+						std::clamp(static_cast<long double>(corpus[i]), -maximum, maximum)));
+			}
+			const auto saved = format == 0	 ? Persistence::SaveMatrixToFile(expected, path)
+												 : format == 1 ? Persistence::SaveMatrixToCSV(expected, path)
+																			 : Persistence::SaveJson(expected, path);
+			INFO(saved.message);
 			REQUIRE(saved.success);
 			Matrix<Real> restored;
 			const auto loaded = format == 0		? Persistence::LoadMatrixFromFile(path, restored)
@@ -2916,8 +3085,8 @@ namespace MML::Tests::Tools::SerializerTests {
 			REQUIRE(restored.cols() == corpus.size());
 			for (int i = 0; i < corpus.size(); ++i) {
 				CAPTURE(i);
-				REQUIRE(restored(0, i) == corpus[i]);
-				REQUIRE(std::signbit(restored(0, i)) == std::signbit(corpus[i]));
+				REQUIRE(restored(0, i) == expected(0, i));
+				REQUIRE(std::signbit(restored(0, i)) == std::signbit(expected(0, i)));
 			}
 		}
 	}

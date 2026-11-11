@@ -701,6 +701,136 @@ Model finite variable bounds as explicit constraints. The revised simplex solver
 (`RevisedSimplexSolver`), mixed-integer, sparse, and advanced modeling workflows
 belong in the MML-Packages layer (`mml_ext/algorithms/Optimization/LP/`).
 
+### Model validation and conversion boundaries
+
+`lp.Validate(error)` checks nonempty dimensions, objective and constraint types,
+finite objective coefficients, finite matrix coefficients and RHS values, and
+the supported default variable bounds. It returns `false` with a diagnostic
+on invalid input and clears the diagnostic on success. `SolveLP`,
+`SolveLPTableau`, `SolveLPDual`, `SolveLPWithSensitivity`, `Dual()` and direct
+`ToStandardForm()` reject invalid models with `LinearProgrammingError`;
+the matrix-form convenience overloads use the same validation.
+
+```cpp
+LinearProgram invalid(1);
+invalid.SetObjective({1});
+invalid.AddConstraint({1}, LPConstraintType::LessEqual,
+                      std::numeric_limits<Real>::quiet_NaN());
+std::string error;
+if (!invalid.Validate(error))
+    std::cout << error << '\n'; // Constraint 0 RHS is non-finite
+```
+
+Standard-form conversion normalizes negative-RHS row senses **before** counting
+slack, surplus and artificial columns. Reusing conversion outputs clears the
+auxiliary objective coefficients and artificial index list. RHS/objective
+output vectors and slack/artificial output counters must be distinct; invalid
+models or incompatible aliases are rejected before outputs are modified.
+Expanded dimensions must fit the matrix index range and existing matrix
+element budget.
+
+Direct `SimplexTableau::Initialize` additionally checks matching matrix/vector
+dimensions, consistent variable counts, unique artificial indices in the final
+artificial-column range, finite data, and an auxiliary unit column for every
+initial basis row. A rejected initialization preserves the installed tableau;
+a successful initialization resets iteration and phase state. Finite negative
+RHS values remain allowed at this raw boundary for dual-simplex use.
+
+Finite inputs can still overflow during arithmetic. Nonfinite computed
+slacks/residuals cannot produce `Optimal`/`Success`: the solver reports
+`NumericalInstability` with an unavailable achieved tolerance instead.
+
+### Original-basis sensitivity diagnostics
+
+`SolveLPWithSensitivity` reports **absolute coefficient values**, not changes
+relative to the current tableau RHS or objective. Each interval varies one
+original RHS or objective coefficient at a time, keeping the other data fixed
+and preserving the current optimal basis. Endpoints are inclusive; at a
+degenerate endpoint another optimal basis may also exist. These intervals are
+not simultaneous perturbation guarantees or general feasibility ranges after
+the basis changes.
+
+The tableau retains its input standard-form matrix, RHS, objective and the
+constraint row operations. RHS intervals use `x_B + delta * B^{-1} e_i >= 0`,
+including equality and surplus rows without assuming a slack column exists
+for every constraint. A zero artificial basic variable left by a redundant
+equality must remain zero, so its independent RHS interval can be a singleton.
+Solver results undo negative-RHS row normalization and
+maximization's objective sign. `dualValues[i]` is the derivative of the original
+objective value with respect to the original `b[i]`: for minimization, a
+`<=` row has a nonpositive multiplier and a `>=` row a nonnegative one;
+maximization reverses these signs. `reducedCosts` uses the original objective
+sense and retains both original and auxiliary columns. These sign conventions
+are shared by ordinary, dual-simplex and sensitivity solves.
+
+`basisConditionNumber` is the spectral ratio `sigma_max(B)/sigma_min(B)` of
+the selected **input** standard-form columns, including basic slack/surplus
+columns (and any remaining zero artificial basic columns), not the unit columns
+of the pivoted tableau. It is computed by SVD
+after a common scaling, so unrepresentable unscaled singular values do not
+prevent a representable condition ratio. It is invariant under common scaling,
+row signs and row/column permutations, but not independent row rescaling.
+A zero smallest computed singular value or an overflowing ratio gives infinity;
+decomposition failure propagates explicitly. Nonoptimal results leave the
+sensitivity intervals empty and the condition estimate unavailable. The raw
+`SimplexTableau` methods use their supplied standard-form minimization
+coordinates; only solver results undo model normalization.
+
+For example, maximizing `2x` with `x <= 3` and `x <= 5` reports `[3, infinity]`
+for the second RHS, not `[0, infinity]`. A binding `diag(1, 1e-6)` basis reports
+condition `1e6`, not `1`.
+
+The runnable counterpart is `Docs_Demo_LP_Sensitivity()` in
+[`docs_demo_optimization.cpp`](../../src/docs_demos/algorithms/docs_demo_optimization.cpp),
+selected by `MML_DocsApp --lp-sensitivity`; it checks both witnesses and their
+original-coordinate shadow prices.
+
+### Constructing the mathematical dual
+
+`lp.Dual()` constructs a new LP; `SolveLP(lp.Dual())` solves that problem.
+This is different from `SolveLPDual(lp)`, which uses the **dual simplex
+algorithm to solve the supplied LP**, not its mathematical dual.
+
+For a minimization primal with nonnegative variables, the mathematical dual
+maximizes `b^T y` subject to `A^T y <= c`. For a maximization primal it minimizes
+`b^T y` subject to `A^T y >= c`. Each original row determines its multiplier:
+
+| Primal row | Minimization multiplier | Maximization multiplier |
+|---|---|---|
+| `a_i x <= b_i` | `y_i <= 0` | `y_i >= 0` |
+| `a_i x >= b_i` | `y_i >= 0` | `y_i <= 0` |
+| `a_i x = b_i` | free | free |
+
+The returned model uses only nonnegative coordinates, matching the core solver:
+`y_i = z_i` for nonnegative multipliers, `y_i = -z_i` for nonpositive ones,
+and `y_i = z_i - w_i` for free ones. With `m` primal rows and `e` equality
+rows, it has `m + e` variables and one constraint per primal variable.
+The first `m` coordinates follow original row order; the last `e` are the
+equality negative parts, also in original row order. Variable names use
+`y1`, `y1_minus`, or `y1_plus`/`y1_minus` to identify these roles.
+An equality's two parts need not be unique; their difference is the multiplier.
+Decode these coordinates from the returned solution's `x`, not its
+`dualValues` (which are shadow prices for the returned model's own constraints).
+
+```cpp
+LinearProgram primal(1);
+primal.SetObjective({-1}); // minimize -x
+primal.AddConstraint({1}, LPConstraintType::Equal, 2);
+LinearProgram dual = primal.Dual();
+LinearProgrammingResult result = SolveLP(dual);
+if (result.IsOptimal()) {
+    Real multiplier = result.x[0] - result.x[1];
+    std::cout << result.objectiveValue << " " << multiplier << '\n'; // -2 -1
+}
+```
+
+`Dual()` requires a nonempty, dimensionally consistent model with finite data,
+valid objective/row types, and default nonnegative primal variables.
+Free, nonpositive, shifted, and finite-bound primal variable metadata remain
+unsupported and are rejected by `SetVariableBounds`; express them using
+nonnegative coordinates or explicit constraints first. Negative RHS rows are
+normalized before auxiliary columns are counted in standard-form conversion.
+
 ---
 
 ### Further Heuristic Methods

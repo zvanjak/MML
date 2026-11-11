@@ -17,6 +17,39 @@ boundaries, coordinate conventions, and error/result diagnostics.
 
 ## Overview
 
+### Detailed evaluation contract
+
+All Cartesian, spherical, and cylindrical `Detailed` gradient, divergence,
+curl, and Laplacian methods share the following rules:
+
+- First derivatives accept orders **0/default, 1, 2, 4, 6, 8**. Laplacians accept
+  **0/default, 2, 4** only; other orders fail before calling the field. Order 0
+  uses an available derivative provider, otherwise the fourth-order stencil.
+  Explicit orders force numerical sampling, including for provider-backed fields.
+- `function_evaluations` counts actual calls to the original field's `operator()`,
+  including an attempted call that throws. It does **not** count derivative
+  provider operations, metric samples, or a provider's internal AD evaluations.
+  Provider-only Cartesian gradients/divergences/curls/Laplacians can report zero;
+  formulas requiring a center field value still count that call.
+- With `check_finite=true`, consumed field samples, provider derivatives,
+  numerical derivatives, and final values are checked. Nonfinite numerical data
+  produces `NumericalInstability` under `ConvertToStatus`; invalid controls or
+  coordinates produce `InvalidInput`. Disabling this check permits nonfinite
+  field results but does not disable input, stencil, or metric-domain guards.
+- Numerical error estimates are propagated with absolute coordinate coefficients,
+  component by component. They are heuristic differentiation estimates, not
+  certified enclosures or budgets for all floating-point arithmetic. If not
+  requested, or if a provider supplies derivatives without an estimate, `error`
+  is `NoEstimate` (NaN), not a successful-looking zero.
+- The default exception policy is `Propagate`. `ConvertToStatus` retains observed
+  callback counts and elapsed time on failure, provides an explicit message,
+  and marks both value and error unavailable rather than returning partial work.
+
+Runnable accounting/order checks:
+`Docs_Demo_DetailedFieldContracts` in
+[docs_demo_field_operations.cpp](../../src/docs_demos/core/docs_demo_field_operations.cpp).
+Build `MML_DocsApp` in Release and run `--metric-field-contracts`.
+
 **Scalar Field Operations:**
 - **Gradient** ∇f: Vector field pointing in direction of maximum increase
 - **Laplacian** ∇²f = ∇·∇f: Scalar measure of local curvature
@@ -71,6 +104,8 @@ As with other field `Detailed` APIs, the default is `Propagate`. Set
 `ConvertToStatus` to report a degenerate metric as `AlgorithmStatus::InvalidInput`,
 with a diagnostic message and an unusable result. Nonfinite field/derivative
 results are `NumericalInstability`, not successful zero-valued answers.
+This determinant-based operation retains its stronger arithmetic guard: a
+nonfinite divergence is rejected even when `check_finite=false`.
 
 The computation differentiates volume ratios normalized to the center, using
 scaled-pivot log absolute determinants. It does not reject a regular metric just
@@ -839,17 +874,31 @@ void Example_Spherical_Harmonics()
 
 ## Derivative Order Selection
 
-Higher derivative orders provide better accuracy but at increased computational cost.
+The order specifies the stencil's truncation order, not a guaranteed number of
+accurate digits. The following table applies to first derivatives; Laplacians
+support only orders 0, 2, and 4.
 
 | `der_order` | Accuracy | Cost | Use Case |
 |-------------|----------|------|----------|
-| 1 | O(h²) | Lowest | Quick estimates |
-| 2 | O(h⁴) | Low | Default (good balance) |
-| 4 | O(h⁶) | Medium | High accuracy |
-| 6 | O(h⁸) | High | Very high accuracy |
-| 8 | O(h¹⁰) | Highest | Maximum precision |
+| 0 | Provider, otherwise fourth-order stencil | Depends on path | Default/provider dispatch |
+| 1 | O(h), forward difference | Lowest | Quick estimates |
+| 2 | O(h²), central difference | Low | Low-cost central estimates |
+| 4 | O(h⁴) | Medium | Default numerical stencil |
+| 6 | O(h⁶) | High | Higher-order numerical estimates |
+| 8 | O(h⁸) | Highest | Higher-order numerical estimates |
 
-**Recommendation:** Start with `der_order=2` (default), increase if needed for accuracy.
+**Recommendation:** Start with order 0 to use an available derivative provider or
+the default numerical stencil. Explicit orders bypass providers.
+
+Numerical steps depend on `Real`'s machine epsilon and the coordinate magnitude.
+In particular, the first-order result has a genuine forward-difference bias even
+for a quadratic field; it should not be compared against an analytical derivative
+using a double-precision-only accuracy target when `Real=float`. Sample
+cancellation and coordinate factors such as `1/r` and `1/(r*sin(theta))` also
+affect achievable accuracy. Inspect the componentwise `Detailed` estimates and
+check against an independent analytical or AD reference when validating accuracy;
+the estimates remain heuristic, not certified error bounds. Increasing the order
+alone does not guarantee improvement for poorly conditioned samples.
 
 ---
 

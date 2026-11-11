@@ -15,6 +15,8 @@
 #include <mml/MMLBase.h>
 
 #include <chrono>
+#include <cstdio>
+#include <exception>
 #include <iomanip>
 #include <iostream>
 #include <string>
@@ -181,6 +183,9 @@ namespace MML
 	/// @endcode
 	/// 
 	/// @note Non-copyable, non-movable. Designed for stack allocation only.
+	/// @note Destruction contains callback and stdout failures and diagnoses them through
+	/// C stderr on a best-effort basis, even in silent callback mode. Stored timing survives
+	/// reporting failure; caller stream state is not cleared and callbacks are not retried.
 	/// @see Timer for multi-mark timing scenarios
 	class ScopedTimer
 	{
@@ -194,6 +199,13 @@ namespace MML
 		double* _resultPtr;
 		Callback _callback;
 		bool _silent;
+
+		void ReportFailure(const char* stage, const char* detail = nullptr) const noexcept
+		{
+			// C stderr bypasses throwing iostreams and their ties to std::cout.
+			std::fprintf(stderr, "ScopedTimer '%s': %s failed%s%s\n", _name.c_str(), stage,
+				detail ? ": " : "", detail ? detail : "");
+		}
 
 	public:
 		/// @brief Construct a ScopedTimer that prints to stdout on destruction
@@ -231,29 +243,42 @@ namespace MML
 		{}
 
 		/// @brief Destructor - reports elapsed time
-		~ScopedTimer()
+		~ScopedTimer() noexcept
 		{
-			double elapsed = std::chrono::duration<double>(
-				std::chrono::steady_clock::now() - _startTime).count();
+			const double elapsedSeconds = elapsed();
 			
 			// Store result if requested
 			if (_resultPtr)
-				*_resultPtr = elapsed;
+				*_resultPtr = elapsedSeconds;
 			
 			// Invoke callback if provided
 			if (_callback)
 			{
 				try {
-					_callback(_name, elapsed);
+					_callback(_name, elapsedSeconds);
+				}
+				catch (const std::exception& error) {
+					ReportFailure("callback", error.what());
 				}
 				catch (...) {
-					// Ignore exceptions in destructor
+					ReportFailure("callback", "non-standard exception");
 				}
 			}
 			
 			// Print unless silent
 			if (!_silent)
-				std::cout << _name << ": " << elapsed << " seconds" << std::endl;
+			{
+				try {
+					std::cout << _name << ": " << elapsedSeconds << " seconds" << std::endl;
+					if (std::cout.fail()) ReportFailure("stdout reporting", "stream failure state");
+				}
+				catch (const std::exception& error) {
+					ReportFailure("stdout reporting", error.what());
+				}
+				catch (...) {
+					ReportFailure("stdout reporting", "non-standard exception");
+				}
+			}
 		}
 
 		// Non-copyable and non-movable

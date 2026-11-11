@@ -24,8 +24,38 @@
 #include <iomanip>
 #include <cmath>
 #include <random>
+#include <stdexcept>
 
 using namespace MML;
+
+void Docs_Demo_LeastSquaresContracts()
+{
+    const Vector<Real> x{0, 1, 2}, y{0, Real(1e-10), Real(2e-10)};
+    const Vector<std::function<Real(Real)>> constant{[](Real) { return Real(1); }};
+    const auto tiny = GeneralLinearLeastSquares(x, y, constant);
+    if (!IsNearlyEqual(tiny.r_squared, Real(0), Precision::LooseTolerance))
+        throw std::runtime_error("Response units changed the fit statistic");
+    const Vector<std::function<Real(Real)>> duplicate{constant[0], constant[0]};
+    const auto deficient = GeneralLinearFitDetailed(x, y, duplicate);
+    if (deficient.effective_rank != 1 || !std::isinf(deficient.condition_number) ||
+        !IsNearlyEqual(deficient.effective_condition_number, Real(1), Precision::LooseTolerance))
+        throw std::runtime_error("Rank-deficient condition diagnostics are inconsistent");
+    CurveFittingConfig config;
+    config.estimate_error = false;
+    const auto noStatistics = GeneralLinearFitDetailed(x, y, constant, config);
+    if (!noStatistics.IsSuccess() || !std::isnan(noStatistics.r_squared) ||
+        !std::isnan(noStatistics.mean_squared_error) || !std::isfinite(noStatistics.residual_norm))
+        throw std::runtime_error("Optional fit statistics were not honored");
+    config.exception_policy = EvaluationExceptionPolicy::ConvertToStatus;
+    const auto singular = LinearFitDetailed(Vector<Real>{0, 0, 0}, y, config);
+    if (singular.status != AlgorithmStatus::SingularMatrix)
+        throw std::runtime_error("Zero-scale singular line was accepted");
+    std::cout << "Least-squares contracts: tiny-response R2=" << tiny.r_squared
+              << ", rank=" << deficient.effective_rank
+              << ", full condition=" << deficient.condition_number
+              << ", effective condition=" << deficient.effective_condition_number
+              << "; optional statistics and singular status verified.\n";
+}
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 ///                              LINEAR LEAST SQUARES                                   ///

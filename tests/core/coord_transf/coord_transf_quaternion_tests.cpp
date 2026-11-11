@@ -318,7 +318,7 @@ TEST_CASE("CoordTransfCart3DRotationQuaternion - Interpolation", "[coordtransf][
 		CoordTransfCart3DRotationQuaternion result = rot1.Interpolate(rot2, static_cast<MML::Real>(0.0));
 
 		Vec3Cart v(1, 0, 0);
-		REQUIRE(VectorApproxEqual(result.transf(v), rot1.transf(v), 1e-6));
+		REQUIRE(VectorApproxEqual(result.transf(v), rot1.transf(v), MML::Real(1e-6)));
 	}
 
 	SECTION("Interpolation at t=1 gives second rotation")
@@ -326,7 +326,7 @@ TEST_CASE("CoordTransfCart3DRotationQuaternion - Interpolation", "[coordtransf][
 		CoordTransfCart3DRotationQuaternion result = rot1.Interpolate(rot2, static_cast<MML::Real>(1.0));
 
 		Vec3Cart v(1, 0, 0);
-		REQUIRE(VectorApproxEqual(result.transf(v), rot2.transf(v), 1e-6));
+		REQUIRE(VectorApproxEqual(result.transf(v), rot2.transf(v), MML::Real(1e-6)));
 	}
 
 	SECTION("Interpolation at t=static_cast<MML::Real>(0.5) gives halfway rotation")
@@ -339,7 +339,7 @@ TEST_CASE("CoordTransfCart3DRotationQuaternion - Interpolation", "[coordtransf][
 
 		// Result should be approximately (cos(45°), sin(45°), 0)
 		Real sqrt2_inv = static_cast<MML::Real>(1.0) / std::sqrt(static_cast<MML::Real>(2.0));
-		REQUIRE(VectorApproxEqual(rotated, Vec3Cart(sqrt2_inv, sqrt2_inv, 0), 1e-6));
+		REQUIRE(VectorApproxEqual(rotated, Vec3Cart(sqrt2_inv, sqrt2_inv, 0), MML::Real(1e-6)));
 	}
 
 	SECTION("Interpolated rotations preserve vector length")

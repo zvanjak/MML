@@ -12,6 +12,26 @@
 
 using namespace MML;
 
+void Docs_Demo_GeometricPathContracts()
+{
+	Curves::LineCurve line(0, 1, Point3Cartesian{0, 0, 0}, VectorN<Real, 3>{1, 0, 0});
+	RealFunction density([](Real) { return Real(-2); });
+	ScalarFunction<3> scalar([](const VectorN<Real, 3>&) { return Real(-2); });
+	VectorFunction<3> field([](const VectorN<Real, 3>&) { return VectorN<Real, 3>{1, 0, 0}; });
+	const auto length = PathIntegration::ParametricCurveLengthDetailed(line, 1, 0, GAUSS10);
+	const auto mass = PathIntegration::ParametricCurveMassDetailed(line, density, 1, 0, GAUSS10);
+	const auto integral = PathIntegration::LineIntegralDetailed(scalar, line, 1, 0, GAUSS10);
+	const auto work = PathIntegration::LineIntegralDetailed(field, line, 1, 0, GAUSS10);
+	if (!length.IsUsable() || !mass.IsUsable() || !integral.IsUsable() || !work.IsUsable() ||
+		std::abs(length.value - 1) > Precision::SurfaceIntegrationTolerance ||
+		std::abs(mass.value + 2) > Precision::SurfaceIntegrationTolerance ||
+		std::abs(integral.value + 2) > Precision::SurfaceIntegrationTolerance ||
+		std::abs(work.value + 1) > Precision::SurfaceIntegrationTolerance)
+		throw NumericalMethodError("Geometric path documentation contract failed");
+	std::cout << "Reversed path: length " << length.value << "; mass " << mass.value
+		<< "; scalar ds " << integral.value << "; vector work " << work.value << '\n';
+}
+
 
 void Docs_Demo_Calc_curve_length()
 {

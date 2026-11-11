@@ -42,7 +42,7 @@ namespace MML {
 		/// @return Loaded dataset
 		/// @throws DataError on file/parse errors or schema violations (if strictSchema)
 		inline IOResult LoadCSV(const std::string& filename, Dataset& output, const CSVLoadOptions& opts = {}) {
-			std::ifstream file(filename);
+			std::ifstream file(filename, std::ios::binary);
 			if (!file.is_open())
 				return SerializeFailure(IOError::FILE_NOT_OPENED, "Cannot open file").WithFile(filename);
 
@@ -50,35 +50,10 @@ namespace MML {
 			dataset.name = filename;
 
 			std::vector<std::vector<std::string>> allData;
-			std::string line;
-			bool firstLine = true;
-			std::int64_t lineNumber = 0;
 			std::vector<std::int64_t> sourceLines;
-
-			while (std::getline(file, line)) {
-				++lineNumber;
-				// Handle BOM on first line
-				if (firstLine) {
-					line = RemoveBOM(line);
-					firstLine = false;
-				}
-
-				// Skip empty lines
-				if (Trim(line).empty()) continue;
-
-				// Handle Windows line endings
-				if (!line.empty() && line.back() == '\r')
-					line.pop_back();
-
-				try {
-					allData.push_back(SplitLine(line, opts.delimiter));
-				} catch (const DataError& error) {
-					return SerializeFailure(IOError::MALFORMED_INPUT, error.what()).WithFile(filename).At(lineNumber, IOOffsetKind::Line);
-				}
-				sourceLines.push_back(lineNumber);
-			}
-			if (file.bad() || !file.eof())
-				return SerializeFailure(IOError::READ_FAILED, "CSV stream read failed").WithFile(filename).At(lineNumber + 1, IOOffsetKind::Line);
+			const auto readResult = CsvUtils::ReadRecords(file, allData, sourceLines, opts.delimiter);
+			if (!readResult)
+				return readResult.WithFile(filename);
 
 			if (allData.empty())
 				return SerializeFailure(IOError::INVALID_FORMAT, "CSV file is empty").WithFile(filename).At(1, IOOffsetKind::Line);
@@ -185,8 +160,11 @@ namespace MML {
 					std::string strVal;
 
 					auto result = ParseValue(value, col.type, realVal, intVal, boolVal, strVal);
+					if (result == ParseResult::Invalid)
+						return Detail::InvalidValueResult(value, col, rowIdx, c)
+							.WithFile(filename).At(sourceLines[r], IOOffsetKind::Line);
 					bool parsed = (result == ParseResult::Parsed);
-					col.missingMask[rowIdx] = !parsed;
+					col.missingMask[rowIdx] = result == ParseResult::Missing;
 
 					switch (col.type) {
 						case ColumnType::REAL:
@@ -316,19 +294,13 @@ namespace MML {
 		/// @return Loaded dataset
 		inline Dataset LoadFromCSVString(const std::string& content, char delimiter = ',',
 		                                  bool hasHeader = true) {
-			std::string cleanContent = RemoveBOM(content);
-
 			Dataset dataset;
 			std::vector<std::vector<std::string>> allData;
-			std::istringstream iss(cleanContent);
-			std::string line;
-
-			while (std::getline(iss, line)) {
-				if (Trim(line).empty()) continue;
-				if (!line.empty() && line.back() == '\r')
-					line.pop_back();
-				allData.push_back(SplitLine(line, delimiter));
-			}
+			std::vector<std::int64_t> sourceLines;
+			std::istringstream iss(content);
+			const auto readResult = CsvUtils::ReadRecords(iss, allData, sourceLines, delimiter);
+			if (!readResult)
+				throw DataError(readResult.message);
 
 			if (allData.empty())
 				throw DataError("LoadFromCSVString: Content is empty");
@@ -407,8 +379,11 @@ namespace MML {
 					std::string strVal;
 
 					auto result = ParseValue(value, col.type, realVal, intVal, boolVal, strVal);
+					if (result == ParseResult::Invalid)
+						throw DataError(Detail::InvalidValueResult(value, col, rowIdx, c).message +
+							" (line " + std::to_string(sourceLines[r]) + ")");
 					bool parsed = (result == ParseResult::Parsed);
-					col.missingMask[rowIdx] = !parsed;
+					col.missingMask[rowIdx] = result == ParseResult::Missing;
 
 					switch (col.type) {
 						case ColumnType::REAL:

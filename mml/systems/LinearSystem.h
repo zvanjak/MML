@@ -13,6 +13,7 @@
 #define MML_LINEAR_SYSTEM_H
 
 #include <mml/MMLBase.h>
+#include <mml/MMLNumericValidation.h>
 #include <algorithm>
 #include <mml/base/Vector/Vector.h>
 #include <mml/base/Matrix/Matrix.h>
@@ -26,6 +27,7 @@
 #include <string>
 #include <memory>
 #include <cmath>
+#include <limits>
 #include <vector>
 
 namespace MML::Systems 
@@ -174,23 +176,19 @@ namespace MML::Systems
 		/// @brief Solve system with automatically selected best method
 		///
 		/// Selection logic:
-		/// 1. Triangular → back/forward substitution
-		///
-		/// 2. SPD → Cholesky (most stable, fastest for SPD)
-		/// 3. Symmetric → LU with pivoting
-		///
-		/// 4. Overdetermined → QR (least squares)
-		/// 5. Ill-conditioned → SVD (most robust)
-		///
-		/// 6. Default → LU with partial pivoting
+		/// 1. Rank-deficient, singular or ill-conditioned → SVD
+		/// 2. Exactly triangular square → back/forward substitution
+		/// 3. Overdetermined → QR (least squares)
+		/// 4. Exactly symmetric positive definite → Cholesky
+		/// 5. Default → LU with partial pivoting
 		/// @return Solution vector x
 		///
-		/// @throws std::runtime_error if no RHS provided
+		/// @throws InvalidStateError unless constructed with a vector RHS
 		Vector<Type> Solve() const {
-			RequireRHS();
+			RequireVectorRHS();
 
 			switch (SelectBestSolver()) {
-			case LinearSolverRecommendation::Triangular: return SolveTriangular();
+			case LinearSolverRecommendation::Triangular: return SolveTriangular(_b);
 			case LinearSolverRecommendation::Cholesky:   return SolveByCholesky();
 			case LinearSolverRecommendation::QR:         return SolveByQR();
 			case LinearSolverRecommendation::SVD:        return SolveBySVD();
@@ -199,27 +197,51 @@ namespace MML::Systems
 			throw InvalidStateError("LinearSystem::Solve - invalid solver recommendation");
 		}
 
-		/// @brief Solve for multiple right-hand sides
+		/// @brief Solve for multiple right-hand sides using the same selection as Solve()
 		///
+		/// @note Reuses one solver across columns; general square LU is cached across calls.
+		/// @throws InvalidStateError unless constructed with a matrix RHS
 		/// @return Solution matrix X where each column is a solution
 		Matrix<Type> SolveMultiple() const {
-			if (!_multipleRHS)
-				throw InvalidStateError("LinearSystem::SolveMultiple - no multiple RHS provided");
+			RequireMatrixRHS();
+			for (int row = 0; row < _rhsMatrix.rows(); ++row)
+				for (int col = 0; col < _rhsMatrix.cols(); ++col)
+					ValidateFinite(_rhsMatrix(row, col), "LinearSystem::SolveMultiple RHS");
 
-			// Use cached LU factorization (factor once, solve many)
-			LUSolver<Type>& solver = EnsureLUSolver();
+			const auto solveColumns = [&](auto&& solve) {
+				Matrix<Type> solutions(Cols(), _rhsMatrix.cols());
+				for (int col = 0; col < _rhsMatrix.cols(); ++col) {
+					const auto solution = solve(_rhsMatrix.VectorFromColumn(col));
+					for (int row = 0; row < Cols(); ++row) {
+						if (!std::isfinite(solution[row]))
+							throw MatrixNumericalError("LinearSystem::SolveMultiple - non-finite solution");
+						solutions(row, col) = solution[row];
+					}
+				}
+				return solutions;
+			};
 
-			int n = _coefficientMatrix.cols();
-			int p = _rhsMatrix.cols();
-			Matrix<Type> X(n, p);
-
-			for (int j = 0; j < p; ++j) {
-				Vector<Type> col = _rhsMatrix.VectorFromColumn(j);
-				Vector<Type> x = solver.Solve(col);
-				for (int i = 0; i < n; ++i)
-					X(i, j) = x[i];
+			switch (SelectBestSolver()) {
+			case LinearSolverRecommendation::Triangular:
+				return solveColumns([&](const Vector<Type>& rhs) { return SolveTriangular(rhs); });
+			case LinearSolverRecommendation::Cholesky: {
+				CholeskySolver<Type> solver(_coefficientMatrix);
+				return solveColumns([&](const Vector<Type>& rhs) { return solver.Solve(rhs); });
 			}
-			return X;
+			case LinearSolverRecommendation::QR: {
+				QRSolver<Type> solver(_coefficientMatrix);
+				return solveColumns([&](const Vector<Type>& rhs) { return solver.LeastSquaresSolve(rhs); });
+			}
+			case LinearSolverRecommendation::SVD: {
+				SVDecompositionSolver<Type> solver(_coefficientMatrix);
+				return solveColumns([&](const Vector<Type>& rhs) { return solver.Solve(rhs); });
+			}
+			case LinearSolverRecommendation::LU: {
+				auto& solver = EnsureLUSolver();
+				return solveColumns([&](const Vector<Type>& rhs) { return solver.Solve(rhs); });
+			}
+			}
+			throw InvalidStateError("LinearSystem::SolveMultiple - invalid solver recommendation");
 		}
 
 		//=========================================================================
@@ -230,7 +252,7 @@ namespace MML::Systems
 		///
 		/// @note Modifies internal copy; original matrix preserved
 		Vector<Type> SolveByGaussJordan() const {
-			RequireRHS();
+			RequireVectorRHS();
 			RequireSquare();
 			return GaussJordanSolver<Type>::SolveConst(_coefficientMatrix, _b);
 		}
@@ -239,7 +261,7 @@ namespace MML::Systems
 		///
 		/// @note General-purpose, O(n³) factorization
 		Vector<Type> SolveByLU() const {
-			RequireRHS();
+			RequireVectorRHS();
 			RequireSquare();
 			LUSolver<Type> solver(_coefficientMatrix);
 			return solver.Solve(_b);
@@ -250,7 +272,7 @@ namespace MML::Systems
 		/// @throws SingularMatrixError if matrix is not positive definite
 		/// @note Fastest and most stable for symmetric positive definite matrices
 		Vector<Type> SolveByCholesky() const {
-			RequireRHS();
+			RequireVectorRHS();
 			RequireSquare();
 			CholeskySolver<Type> solver(_coefficientMatrix);
 			return solver.Solve(_b);
@@ -260,7 +282,7 @@ namespace MML::Systems
 		///
 		/// @note Works for overdetermined systems (least squares)
 		Vector<Type> SolveByQR() const {
-			RequireRHS();
+			RequireVectorRHS();
 			QRSolver<Type> solver(_coefficientMatrix);
 			if (IsTall())
 				return solver.LeastSquaresSolve(_b);
@@ -273,7 +295,7 @@ namespace MML::Systems
 		/// @param threshold Values below this treated as zero (default: auto)
 		/// @note Most robust for ill-conditioned or rank-deficient systems
 		Vector<Type> SolveBySVD(Type threshold = -1) const {
-			RequireRHS();
+			RequireVectorRHS();
 			SVDecompositionSolver<Type> solver(_coefficientMatrix);
 			return solver.Solve(_b, threshold);
 		}
@@ -282,7 +304,7 @@ namespace MML::Systems
 		///
 		/// @note Uses QR decomposition; works for overdetermined systems
 		Vector<Type> SolveLeastSquares() const {
-			RequireRHS();
+			RequireVectorRHS();
 			return SolveByQR(); // QR naturally gives least squares
 		}
 
@@ -296,7 +318,7 @@ namespace MML::Systems
 		///
 		/// @throws ConvergenceError if method doesn't converge
 		Vector<Type> SolveIterative(IterativeMethod method = IterativeMethod::Auto, Type tol = Precision::DefaultToleranceStrict, int maxIter = 1000) const {
-			RequireRHS();
+			RequireVectorRHS();
 			RequireSquare();
 
 			if (method == IterativeMethod::Auto)
@@ -331,18 +353,13 @@ namespace MML::Systems
 
 		/// @brief Compute residual ||Ax - b||
 		Type ResidualNorm(const Vector<Type>& x) const {
-			RequireRHS();
-			Vector<Type> r = _coefficientMatrix * x - _b;
-			return r.NormL2();
+			return MeasureVerification(x).residual.Value();
 		}
 
 		/// @brief Compute relative residual ||Ax - b|| / ||b||
 		Type RelativeResidual(const Vector<Type>& x) const {
-			RequireRHS();
-			Type bNorm = _b.NormL2();
-			if (bNorm < Precision::DivisionSafetyThreshold)
-				return ResidualNorm(x); // Avoid division by zero
-			return ResidualNorm(x) / bNorm;
+			const auto measures = MeasureVerification(x);
+			return ScaledMagnitude::Ratio(measures.residual, measures.rhs);
 		}
 
 		/// @brief Full solution verification
@@ -352,25 +369,20 @@ namespace MML::Systems
 		///
 		/// @return Detailed verification results
 		VerificationResult<Type> Verify(const Vector<Type>& x, Type tol = Precision::DefaultToleranceStrict) const {
-			RequireRHS();
-
+			ValidateTolerance(tol, "LinearSystem::Verify");
+			const auto measures = MeasureVerification(x);
 			VerificationResult<Type> result;
-			result.absoluteResidual = ResidualNorm(x);
-			result.relativeResidual = RelativeResidual(x);
-
-			// Backward error estimate
-			Magnitude ANorm = _matrixAnalyzer.InfinityNorm();
-			Type xNorm = x.NormL2();
-			if (ANorm * xNorm > Precision::DivisionSafetyThreshold)
-				result.backwardError = result.absoluteResidual / (ANorm * xNorm);
-			else
-				result.backwardError = result.absoluteResidual;
+			result.absoluteResidual = measures.residual.Value();
+			result.relativeResidual = ScaledMagnitude::Ratio(measures.residual, measures.rhs);
+			result.backwardError = ScaledMagnitude::Ratio(measures.residual,
+				ScaledMagnitude::Product(measures.matrixInfinity, measures.solution));
 
 			// Forward error estimate (based on condition number)
 			Type cond = ConditionNumber();
-			result.estimatedForwardError = cond * result.relativeResidual;
+			result.estimatedForwardError = std::isfinite(cond)
+				? cond * result.relativeResidual : std::numeric_limits<Type>::quiet_NaN();
 
-			result.isAccurate = (result.relativeResidual < tol);
+			result.isAccurate = std::isfinite(result.relativeResidual) && result.relativeResidual < tol;
 
 			return result;
 		}
@@ -586,12 +598,136 @@ namespace MML::Systems
 		const Matrix<Type>& GetMatrix() const { return _coefficientMatrix; }
 
 		/// @brief Get the right-hand side vector
-		const Vector<Type>& GetRHS() const {
-			RequireRHS();
+		/// @throws InvalidStateError unless constructed with a vector RHS
+		const Vector<Type>& getRHS() const {
+			RequireVectorRHS();
 			return _b;
+		}
+		/// @deprecated Use getRHS() (CONTRACT_POLICY section 11: accessors are getX()).
+		[[deprecated("use getRHS()")]]
+		const Vector<Type>& GetRHS() const { return getRHS(); }
+
+		/// @brief Get the right-hand side matrix
+		/// @throws InvalidStateError unless constructed with a matrix RHS
+		const Matrix<Type>& getRHSMatrix() const {
+			RequireMatrixRHS();
+			return _rhsMatrix;
 		}
 
 	private:
+		static constexpr int NoExponent = std::numeric_limits<int>::min(); // tol-ok: absent integer exponent, not a tolerance
+
+		// Keep magnitudes normalized until the final ratio, even when a norm/product exceeds Type.
+		struct ScaledMagnitude {
+			Type fraction = 0;
+			int exponent = 0;
+
+			static ScaledMagnitude From(Type value, int scaleExponent = 0) {
+				int exponent = 0;
+				const Type fraction = std::frexp(std::abs(value), &exponent);
+				return {fraction, fraction == Type(0) ? 0 : exponent + scaleExponent};
+			}
+			Type Value() const { return std::ldexp(fraction, exponent); }
+			static ScaledMagnitude Product(const ScaledMagnitude& a, const ScaledMagnitude& b) {
+				return From(a.fraction * b.fraction, a.exponent + b.exponent);
+			}
+			static Type Ratio(const ScaledMagnitude& numerator, const ScaledMagnitude& denominator) {
+				if (denominator.fraction == Type(0))
+					return numerator.fraction == Type(0) ? Type(0) : std::numeric_limits<Type>::infinity();
+				return std::ldexp(numerator.fraction / denominator.fraction,
+					numerator.exponent - denominator.exponent);
+			}
+		};
+
+		struct VerificationMeasures {
+			ScaledMagnitude residual, rhs, solution, matrixInfinity;
+		};
+
+		static ScaledMagnitude ScaledNorm(const Vector<Type>& values) {
+			StableNormL2Accumulator norm;
+			for (int i = 0; i < values.size(); ++i)
+				norm.add(std::abs(values[i]));
+			return ScaledMagnitude::Product(ScaledMagnitude::From(norm.scale),
+				ScaledMagnitude::From(std::sqrt(norm.ssq)));
+		}
+
+		VerificationMeasures MeasureVerification(const Vector<Type>& x) const {
+			RequireVectorRHS();
+			if (x.size() != _coefficientMatrix.cols())
+				throw VectorDimensionError("LinearSystem verification: solution size must match matrix columns",
+					x.size(), _coefficientMatrix.cols());
+			for (int j = 0; j < x.size(); ++j)
+				ValidateFinite(x[j], "LinearSystem verification solution");
+			for (int i = 0; i < _b.size(); ++i)
+				ValidateFinite(_b[i], "LinearSystem verification RHS");
+
+			std::vector<ScaledMagnitude> residuals(static_cast<size_t>(Rows()));
+			ScaledMagnitude matrixInfinity;
+			int residualExponent = NoExponent;
+			for (int i = 0; i < Rows(); ++i) {
+				int rowExponent = NoExponent;
+				if (_b[i] != Type(0))
+					rowExponent = ScaledMagnitude::From(_b[i]).exponent;
+				Type matrixScale = 0;
+				for (int j = 0; j < Cols(); ++j) {
+					const Type coefficient = _coefficientMatrix(i, j);
+					ValidateFinite(coefficient, "LinearSystem verification matrix");
+					matrixScale = std::max(matrixScale, std::abs(coefficient));
+					if (coefficient != Type(0) && x[j] != Type(0)) {
+						const auto a = ScaledMagnitude::From(coefficient);
+						const auto b = ScaledMagnitude::From(x[j]);
+						rowExponent = std::max(rowExponent, a.exponent + b.exponent);
+					}
+				}
+				Type rowSum = 0;
+				if (matrixScale != Type(0)) {
+					for (int j = 0; j < Cols(); ++j)
+						rowSum += std::abs(_coefficientMatrix(i, j)) / matrixScale;
+				}
+				const auto rowNorm = ScaledMagnitude::Product(ScaledMagnitude::From(matrixScale),
+					ScaledMagnitude::From(rowSum));
+				if (rowNorm.fraction != Type(0) && (matrixInfinity.fraction == Type(0) ||
+					rowNorm.exponent > matrixInfinity.exponent ||
+					(rowNorm.exponent == matrixInfinity.exponent && rowNorm.fraction > matrixInfinity.fraction)))
+					matrixInfinity = rowNorm;
+				if (rowExponent == NoExponent)
+					continue;
+
+				Type sum = 0, correction = 0;
+				auto accumulate = [&](Type term) {
+					const Type next = sum + term;
+					correction += std::abs(sum) >= std::abs(term) ? (sum - next) + term : (term - next) + sum;
+					sum = next;
+				};
+				for (int j = 0; j < Cols(); ++j) {
+					int aExponent = 0, xExponent = 0;
+					const Type a = std::frexp(_coefficientMatrix(i, j), &aExponent);
+					const Type value = std::frexp(x[j], &xExponent);
+					const Type term = std::ldexp(a * value, aExponent + xExponent - rowExponent);
+					if (term == Type(0) && a != Type(0) && value != Type(0))
+						throw MatrixNumericalError("LinearSystem verification: residual term exceeds accumulation range");
+					accumulate(term);
+				}
+				int bExponent = 0;
+				const Type b = std::frexp(_b[i], &bExponent);
+				const Type rhsTerm = std::ldexp(b, bExponent - rowExponent);
+				if (rhsTerm == Type(0) && b != Type(0))
+					throw MatrixNumericalError("LinearSystem verification: RHS exceeds residual accumulation range");
+				accumulate(-rhsTerm);
+				residuals[i] = ScaledMagnitude::From(sum + correction, rowExponent);
+				if (residuals[i].fraction != Type(0))
+					residualExponent = std::max(residualExponent, residuals[i].exponent);
+			}
+			StableNormL2Accumulator residual;
+			for (const auto& component : residuals) {
+				if (component.fraction != Type(0))
+					residual.add(std::ldexp(component.fraction, component.exponent - residualExponent));
+			}
+			const auto residualNorm = ScaledMagnitude::From(residual.value(),
+				residualExponent == NoExponent ? 0 : residualExponent);
+			return {residualNorm, ScaledNorm(_b), ScaledNorm(x), matrixInfinity};
+		}
+
 		// Storage
 		Matrix<Type> _coefficientMatrix;
 		MatrixAnalyzer<Type> _matrixAnalyzer;
@@ -607,9 +743,14 @@ namespace MML::Systems
 		// INTERNAL HELPERS
 		//=========================================================================
 
-		void RequireRHS() const {
-			if (!_hasRHS)
-				throw InvalidStateError("LinearSystem: operation requires right-hand side");
+		void RequireVectorRHS() const {
+			if (!_hasRHS || _multipleRHS)
+				throw InvalidStateError("LinearSystem: operation requires a single vector right-hand side");
+		}
+
+		void RequireMatrixRHS() const {
+			if (!_hasRHS || !_multipleRHS)
+				throw InvalidStateError("LinearSystem: operation requires a matrix right-hand side");
 		}
 
 		void RequireSquare() const {
@@ -630,14 +771,16 @@ namespace MML::Systems
 				stability == MatrixAlg::MatrixStability::Singular)
 				return LinearSolverRecommendation::SVD;
 
-			if (IsSquare() && (IsUpperTriangular() || IsLowerTriangular()))
+			// Approximate property queries must not discard entries during a solve.
+			constexpr ComparisonTolerance exactStructure{};
+			if (IsSquare() && (IsUpperTriangular(exactStructure) || IsLowerTriangular(exactStructure)))
 				return LinearSolverRecommendation::Triangular;
 
 			if (IsTall())
 				return LinearSolverRecommendation::QR;
 
 			// For SPD matrices, Cholesky is best
-			if (IsSymmetric() && IsPositiveDefinite())
+			if (IsSymmetric(exactStructure) && IsPositiveDefinite())
 				return LinearSolverRecommendation::Cholesky;
 
 			// Default: LU with partial pivoting
@@ -666,14 +809,14 @@ namespace MML::Systems
 			return IterativeMethod::GaussSeidel;
 		}
 
-		Vector<Type> SolveTriangular() const {
+		Vector<Type> SolveTriangular(const Vector<Type>& rhs) const {
 			int n = Rows();
 			Vector<Type> x(n);
 
-			if (IsUpperTriangular()) {
+			if (IsUpperTriangular(ComparisonTolerance{})) {
 				// Back substitution
 				for (int i = n - 1; i >= 0; --i) {
-					Type sum = _b[i];
+					Type sum = rhs[i];
 					for (int j = i + 1; j < n; ++j)
 						sum -= _coefficientMatrix(i, j) * x[j];
 					x[i] = sum / _coefficientMatrix(i, i);
@@ -682,7 +825,7 @@ namespace MML::Systems
 			{
 				// Forward substitution
 				for (int i = 0; i < n; ++i) {
-					Type sum = _b[i];
+					Type sum = rhs[i];
 					for (int j = 0; j < i; ++j)
 						sum -= _coefficientMatrix(i, j) * x[j];
 					x[i] = sum / _coefficientMatrix(i, i);

@@ -1,7 +1,11 @@
 #ifndef MML_TEST_PRECISION_H
 #define MML_TEST_PRECISION_H
 
+#ifdef MML_SINGLE_HEADER_INCLUDE
+#include MML_SINGLE_HEADER_INCLUDE
+#else
 #include <mml/MMLBase.h>
+#endif
 #include <type_traits>
 #include <cmath>
 #include <limits>

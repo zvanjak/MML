@@ -28,47 +28,51 @@ namespace MML::Tests::Algorithms::NamingHonestyTests
 {
 	namespace
 	{
-		Real Shifted(Real x) { return x * x - 2.0; }
+		Real Shifted(Real x) { return x * x - MML::Real(2.0); }
 	}
 
 	TEST_CASE("NamingHonesty_root_finding_plain_vs_Detailed", "[RootFinding][naming]")
 	{
 		RealFunction f(Shifted);
 		RootFinding::RootFindingConfig config;
-		config.tolerance = 1e-12;
+		config.tolerance = TOL(1e-12, Precision::EqualityTolerance);
+		const Real rootTolerance = TOL(1e-11, Precision::EqualityTolerance);
+		const Real methodTolerance = TOL(1e-10, Precision::EqualityTolerance);
 
-		static_assert(std::is_same_v<decltype(RootFinding::FindRootBrent(f, 1.0, 2.0, 1e-12)), Real>);
-		static_assert(std::is_same_v<decltype(RootFinding::FindRootBrentDetailed(f, 1.0, 2.0, 1e-12)), RootFinding::RootFindingResult>);
+		static_assert(std::is_same_v<decltype(RootFinding::FindRootBrent(f, MML::Real(1.0), MML::Real(2.0), MML::Real(1e-12))), Real>);
+		static_assert(std::is_same_v<decltype(RootFinding::FindRootBrentDetailed(f, MML::Real(1.0), MML::Real(2.0), MML::Real(1e-12))), RootFinding::RootFindingResult>);
 		static_assert(std::is_same_v<decltype(RootFinding::FindRootBrentDetailed(f, 1.0, 2.0, config)), RootFinding::RootFindingResult>);
 
-		Real root = RootFinding::FindRootBrent(f, 1.0, 2.0, 1e-12);
-		REQUIRE(root == Catch::Approx(std::sqrt(2.0)).epsilon(1e-11));
+		Real root = RootFinding::FindRootBrent(f, MML::Real(1.0), MML::Real(2.0), config.tolerance);
+		REQUIRE(IsWithinAbs(root, std::sqrt(Real(2)), rootTolerance));
+		REQUIRE(std::abs(f(root)) <= Real(4) * config.tolerance);
 
-		auto r1 = RootFinding::FindRootBrentDetailed(f, 1.0, 2.0, 1e-12);
+		auto r1 = RootFinding::FindRootBrentDetailed(f, MML::Real(1.0), MML::Real(2.0), config.tolerance);
 		auto r2 = RootFinding::FindRootBrentDetailed(f, 1.0, 2.0, config);
 		REQUIRE(r1.converged);
 		REQUIRE(r2.converged);
-		REQUIRE(r1.root == Catch::Approx(root).epsilon(1e-11));
-		REQUIRE(r2.root == Catch::Approx(root).epsilon(1e-11));
+		REQUIRE(r1.root == root);
+		REQUIRE(r2.root == root);
 
 		// every scalar method has the same three spellings
-		REQUIRE(RootFinding::FindRootBisectionDetailed(f, 1.0, 2.0, 1e-10).converged);
-		REQUIRE(RootFinding::FindRootFalsePositionDetailed(f, 1.0, 2.0, 1e-10).converged);
-		REQUIRE(RootFinding::FindRootRiddersDetailed(f, 1.0, 2.0, 1e-10).converged);
-		REQUIRE(RootFinding::FindRootSecantDetailed(f, 1.0, 2.0, 1e-10).converged);
-		REQUIRE(RootFinding::FindRootNewtonDetailed(f, 1.0, 2.0, 1e-10).converged);
-		RealFunction df(+[](Real x) { return 2.0 * x; });
-		REQUIRE(RootFinding::FindRootNewtonDetailed(f, df, 1.0, 2.0, 1e-10).converged);
-		REQUIRE(RootFinding::FindRootNewtonDetailed(f, df, 1.0, 2.0, config).root == Catch::Approx(root).epsilon(1e-11));
+		REQUIRE(RootFinding::FindRootBisectionDetailed(f, MML::Real(1.0), MML::Real(2.0), methodTolerance).converged);
+		REQUIRE(RootFinding::FindRootFalsePositionDetailed(f, MML::Real(1.0), MML::Real(2.0), methodTolerance).converged);
+		REQUIRE(RootFinding::FindRootRiddersDetailed(f, MML::Real(1.0), MML::Real(2.0), methodTolerance).converged);
+		REQUIRE(RootFinding::FindRootSecantDetailed(f, MML::Real(1.0), MML::Real(2.0), methodTolerance).converged);
+		REQUIRE(RootFinding::FindRootNewtonDetailed(f, MML::Real(1.0), MML::Real(2.0), methodTolerance).converged);
+		RealFunction df(+[](Real x) { return MML::Real(2.0) * x; });
+		REQUIRE(RootFinding::FindRootNewtonDetailed(f, df, MML::Real(1.0), MML::Real(2.0), methodTolerance).converged);
+		REQUIRE(IsWithinAbs(RootFinding::FindRootNewtonDetailed(f, df, 1.0, 2.0, config).root, root, rootTolerance));
 
 		// callables
-		auto rl = RootFinding::FindRootBrentDetailed([](Real x) { return x * x - 2.0; }, 1.0, 2.0, 1e-12);
-		REQUIRE(rl.root == Catch::Approx(root).epsilon(1e-11));
+		auto rl = RootFinding::FindRootBrentDetailed([](Real x) { return x * x - MML::Real(2.0); }, MML::Real(1.0), MML::Real(2.0), config.tolerance);
+		REQUIRE(rl.converged);
+		REQUIRE(rl.root == root);
 
 		// the Detailed form reports failure instead of throwing
-		auto bad = RootFinding::FindRootBrentDetailed(f, 3.0, 4.0, 1e-12);   // no sign change
+		auto bad = RootFinding::FindRootBrentDetailed(f, MML::Real(3.0), MML::Real(4.0), config.tolerance);   // no sign change
 		REQUIRE_FALSE(bad.converged);
-		REQUIRE_THROWS_AS(RootFinding::FindRootBrent(f, 3.0, 4.0, 1e-12), RootFindingError);
+		REQUIRE_THROWS_AS(RootFinding::FindRootBrent(f, MML::Real(3.0), MML::Real(4.0), config.tolerance), RootFindingError);
 	}
 
 	TEST_CASE("NamingHonesty_symmetry_predicates_conjugation", "[Matrix][naming]")
@@ -116,8 +120,8 @@ namespace MML::Tests::Algorithms::NamingHonestyTests
 		REQUIRE(fa.IsMonotonicOnSamples(1.0, 5.0, 50));
 		REQUIRE_FALSE(fa.IsMonotonicOnSamples(-1.0, 1.0, 50));
 		REQUIRE(fa.AppearsContinuous(-1.0, 1.0, 50));
-		REQUIRE(fa.IsLocalOptimum(0.0, 1e-6));
-		REQUIRE_FALSE(fa.IsInflectionPoint(0.0, 1e-6));
+		REQUIRE(fa.IsLocalOptimum(MML::Real(0.0), MML::Real(1e-6)));
+		REQUIRE_FALSE(fa.IsInflectionPoint(MML::Real(0.0), MML::Real(1e-6)));
 	}
 
 #if defined(_MSC_VER)
@@ -131,11 +135,20 @@ namespace MML::Tests::Algorithms::NamingHonestyTests
 	{
 		RealFunction f(Shifted);
 		RootFinding::RootFindingConfig config;
-		config.tolerance = 1e-12;
+		config.tolerance = TOL(1e-12, Precision::EqualityTolerance);
 		REQUIRE(RootFinding::FindRootBrent(f, 1.0, 2.0, config).root == RootFinding::FindRootBrentDetailed(f, 1.0, 2.0, config).root);
 		REQUIRE(RootFinding::FindRootBisection(f, 1.0, 2.0, config).root == RootFinding::FindRootBisectionDetailed(f, 1.0, 2.0, config).root);
-		REQUIRE(RootFinding::FindRootNewton([](Real x) { return x * x - 2.0; }, 1.0, 2.0, config).converged);
-		RealFunction df(+[](Real x) { return 2.0 * x; });
+		const auto newtonFunction = [](Real x) { return x * x - Real(2); };
+		const auto legacyNewton = RootFinding::FindRootNewton(newtonFunction, 1.0, 2.0, config);
+		const auto detailedNewton = RootFinding::FindRootNewtonDetailed(newtonFunction, 1.0, 2.0, config);
+		REQUIRE(legacyNewton.converged);
+		REQUIRE(detailedNewton.converged);
+		REQUIRE(legacyNewton.status == detailedNewton.status);
+		REQUIRE(legacyNewton.root == detailedNewton.root);
+		REQUIRE(legacyNewton.function_value == detailedNewton.function_value);
+		REQUIRE(legacyNewton.function_evaluations == detailedNewton.function_evaluations);
+		REQUIRE(std::abs(legacyNewton.function_value) <= config.tolerance);
+		RealFunction df(+[](Real x) { return MML::Real(2.0) * x; });
 		REQUIRE(RootFinding::FindRootNewton(f, df, 1.0, 2.0, config).root == RootFinding::FindRootNewtonDetailed(f, df, 1.0, 2.0, config).root);
 
 		// the complex alias keeps its historical conjugated (skew-Hermitian) meaning

@@ -290,9 +290,35 @@ unchanged.
 Launch methods wait for the visualizer to close by default, on every platform.
 A nonzero process exit is an `IOResult` failure with the exit code and data
 filename retained, not a successful launch. Missing executables and Windows
-process-start/wait/exit-query failures also return explicit failures. The macOS
+process-start/wait/exit-query failures also return explicit failures. On Windows,
+the calling thread suppresses critical loader-error dialogs only around process
+creation, restores its previous error-mode flags before waiting, and retains the
+original process-start error code. This prevents an invalid executable from
+blocking on an interactive dialog in headless CI without changing the
+process-wide error mode or relying on the parent's settings. The macOS
 Qt app-bundle route reports the status of `/usr/bin/open -W`, not an independently
 queried application exit code.
+
+On POSIX, `posix_spawn` receives argument and environment storage prepared entirely
+in the parent. There is no MML allocation or environment mutation in a post-`fork`
+child. Linux child environments retain inherited variables, prepend the executable's
+`lib` directory to `LD_LIBRARY_PATH`, and select its `plugins` and
+`plugins/platforms` directories for Qt; the parent's environment is unchanged.
+Do not mutate the process environment concurrently with launch, or install a
+`SIGCHLD` policy/handler that discards or independently reaps MML's owned children.
+Lost child ownership is reported as a wait failure, not success.
+
+A finite timeout (including zero) uses a steady-clock deadline on POSIX.
+After expiry, MML sends `SIGTERM`, allows up to 100 ms of grace, then sends
+`SIGKILL` if necessary and reaps the owned child, retrying interrupted waits.
+Thus cleanup and scheduling can extend elapsed time beyond the requested timeout.
+Spawn, wait, signal, and reap errors are explicit failures with OS diagnostics;
+a cleanup failure is not reported as an ordinary completed timeout.
+The same policy applies to macOS `open -W`: only that owned launcher is terminated
+and reaped. LaunchServices may leave the GUI running, including an already-running
+application instance. MML neither kills unrelated GUI processes nor claims to know
+their exit codes. App-bundle success/failure messages identify the launcher, and
+timeout messages explicitly state that the GUI may still be running.
 
 Existing-file lookup tries the input path as supplied, then the results-directory fallback.
 Every resolved input is made canonical before process execution, including rigid-body inputs,
@@ -370,6 +396,20 @@ Visualizer::VisualizeRealFunction(f, "Sample Points", xValues, "samples.mml");
 ### Real Functions - Multiple Functions
 
 Visualize multiple functions on the same plot for comparison.
+
+All function and curve collection workflows require nonempty collections with
+counts representable as `int`. Pointer collections must contain no null entries.
+When legends are supplied, their size must match the collection **exactly**;
+neither missing nor extra labels are accepted. This also applies to separate-file
+function plots and the per-curve-legend 2D workflow.
+The entire collection is checked before creating any output file or launching a
+visualizer, so a bad later entry cannot leave earlier output files behind.
+Rejection returns `IOError::INVALID_PARAMETERS` with a diagnostic and filename.
+Existing file suffixes, titles, sampling, and launch behavior remain unchanged
+for valid collections.
+
+Run `MML_DocsApp --collection-contracts` for the bounded, no-GUI validation example
+in [`Docs_Demo_CollectionContracts`](../../src/docs_demos/tools/docs_demo_visualizers.cpp).
 
 #### Multiple Interface-Based Functions
 
@@ -532,10 +572,28 @@ Visualizer::VisualizeScalarFunc2DCartesian(
 
 Visualize vector fields F: ℝⁿ → ℝⁿ as arrow plots.
 
+Ordinary 2D and 3D calls export **every sampled vector**, without an implicit
+magnitude cutoff. This intentionally removes the former hidden 3D cutoff of
+`3`, which could discard an entire field merely because of its units.
+
+Both Cartesian methods also offer an overload with a final `Real upperThreshold`
+argument after the filename. Filtering is opt-in: only samples whose L2 magnitude
+is **strictly less** than the threshold are exported; samples at the threshold
+are omitted, not clamped or rescaled. The threshold is in field-value units and
+must be greater than zero; NaN is rejected with `INVALID_PARAMETERS` before
+file creation or function evaluation. Positive infinity remains a supported
+upper bound, but the ordinary overload is the way to disable filtering entirely.
+Pass `3` explicitly to request the former 3D filtering policy.
+
+The runnable `MML_DocsApp --vector-filtering` demo checks both dimensions,
+the constant `(4,0,0)` witness, explicit cutoffs, and invalid input without opening
+a GUI. Its isolated missing-executable errors are checked separately from the
+exported sample counts.
+
 #### 2D Vector Fields
 
 ```cpp
-static void VisualizeVectorField2DCartesian(
+static IOResult VisualizeVectorField2DCartesian(
     const IVectorFunction<2>& func,
     std::string title,
     Real x1, Real x2, int numPointsX,
@@ -566,7 +624,7 @@ Visualizer::VisualizeVectorField2DCartesian(
 #### 3D Vector Fields
 
 ```cpp
-static void VisualizeVectorField3DCartesian(
+static IOResult VisualizeVectorField3DCartesian(
     const IVectorFunction<3>& func,
     std::string title,
     Real x1, Real x2, int numPointsX,
@@ -598,6 +656,25 @@ Visualizer::VisualizeVectorField3DCartesian(
 ```
 
 ---
+
+**Explicit filtering example:**
+
+```cpp
+VectorFunction<3> field([](const VectorN<Real, 3>&) {
+    return VectorN<Real, 3>{4, 0, 0};
+});
+const Real upperThreshold = 3;
+auto filtered = Visualizer::VisualizeVectorField3DCartesian(
+    field, "Explicit cutoff",
+    0, 1, 2, 0, 1, 2, 0, 1, 2,
+    "vector_filtered.mml", upperThreshold);
+if (!filtered)
+    std::cerr << filtered.message << '\n';
+```
+
+This explicitly produces zero vector rows because all eight magnitudes are `4`.
+Omitting the final argument exports all eight rows. Exporting is followed by
+launching the selected visualizer; `IOResult` reports launch failures too.
 
 ### Parametric Curves
 

@@ -22,6 +22,28 @@ tail. `ApproximateChebyshevAdaptive` doubles the term count until both the
 sampled maximum error and coefficient-tail estimate meet the requested
 tolerance.
 
+Fixed-term construction explicitly reports `AlgorithmStatus::Completed` through
+`IsSuccess()`, but leaves `converged=false`: it has no requested tolerance to test.
+Only the adaptive API reports `Success` and sets `converged=true` after both
+estimates pass its tolerance. Default approximation results are `NotComputed`,
+with unavailable error estimates; use `HasEstimate` to distinguish these from
+genuinely computed zero errors.
+These are sampled estimates, not rigorous global error bounds.
+
+Construction requires a positive coefficient count and finite increasing domain
+bounds with a representable span. Samples, coefficients, and error diagnostics
+must be finite; invalid numeric values throw `NumericInputError` rather than
+producing successful-looking diagnostics. `MaxError` requires a positive
+sampling count; detailed construction requires at least two validation samples
+and a positive coefficient-tail count. Invalid counts throw `ArgumentError`.
+
+`Derivative()` and `Integral()` act on the **active** series selected by
+`SetNumTerms()` or `Truncate()`. The coefficient convention is
+`c[0]/2 + sum(c[j]*T_j, j>=1)`. An integral of `n` active terms retains `n+1`
+coefficients and is anchored to zero at the domain minimum, including constant
+series. The default empty approximation represents zero and its derivative and
+integral are zero.
+
 ```cpp
 #include <mml/base/ChebyshevApproximation.h>
 
@@ -62,6 +84,59 @@ Weights must be finite and strictly positive. The result includes the weighted
 residual norm, weighted MSE, weighted $R^2$, effective rank, condition number,
 and `weight_sum`. `WeightedPolynomialFit` supplies the power basis, while
 `WeightedGeneralLinearFitDetailed` also reports structured status and timing.
+
+## Least-Squares Validation and Diagnostics
+
+All fitting paths require nonempty, matching, finite observations, valid callable
+basis functions (or non-null borrowed basis pointers), and finite basis values.
+General fits still require at least as many observations as basis functions.
+Weights must be finite and positive; regularization diagonals must be finite and
+nonnegative. Validation is mandatory, including when `check_finite=false`, as in
+the GLS path. Invalid inputs throw `CurveFittingError`; nonfinite coefficients,
+predictions, residual norms, or requested arithmetic statistics throw
+`MatrixNumericalError`. The Detailed APIs map these to `InvalidInput` and
+`NumericalInstability` under `ConvertToStatus`; callback exceptions retain the
+existing propagation/conversion policy. Result `evaluate` methods also validate
+their coordinates, supplied callables, and finite arithmetic.
+
+`LinearLeastSquares` uses centered, unit-scaled moments rather than subtracting
+large normal-equation products. A singleton retains the horizontal line through
+its observation. Two identical or relatively indistinguishable abscissae retain
+the horizontal line through the mean response; the relative threshold uses
+`PrecisionValues<Scalar>::RoundoffZeroThreshold`. For three or more observations,
+identical abscissae throw `SingularMatrixError` (or yield `SingularMatrix` under
+status conversion), including the all-zero design. General SVD-based fits
+deliberately continue to return minimum-norm rank-deficient solutions.
+
+Ordinary, weighted, and regularized fits share scaled centering and residual
+norm/statistics calculations. R² uses a ratio of norms rather than absolute
+epsilon tests on squared, dimensional quantities, so small response units do not
+turn a poor fit into a perfect fit. Weighted solves normalize the common weight
+scale internally; residual norms and `weight_sum` retain the supplied weight units,
+while MSE and R² do not depend on a common weight multiplier. R² can be negative. For exactly constant
+responses, legacy non-GLS fits retain the convention R² = 1 for a perfect fit
+within relative roundoff and 0 otherwise; GLS retains undefined R² as NaN.
+Adjusted R² uses the effective rank and is NaN when observations do not exceed
+that rank. Regularized residual statistics concern the observation residuals,
+not the augmented penalty residual.
+
+`estimate_error=false` on any Detailed fitting API leaves R², MSE, and adjusted
+R² as NaN and skips their computation; coefficients and the residual norm are
+still checked and returned. A finite residual norm need not have a representable
+square: requesting an overflowing MSE is an explicit numerical failure, not a
+successful infinite diagnostic.
+
+For SVD-based fits, `condition_number` describes the **full solved design** and
+is infinite whenever the effective rank is below the number of columns.
+`effective_condition_number` separately reports the largest singular value divided
+by the smallest **retained** singular value (infinite for rank zero). A duplicated
+constant basis therefore has rank one, infinite full condition number, and
+effective condition number one. Weighted fits describe the row-scaled design,
+GLS describes the whitened design, and regularized fits describe the augmented
+design. Full-rank fits have equal full and effective condition numbers.
+
+Runnable validation: build `MML_DocsApp` and run `--least-squares-contracts`;
+see [docs_demo_curve_fitting.cpp](../../src/docs_demos/algorithms/docs_demo_curve_fitting.cpp).
 
 ## Generalized Least Squares: Correlated Observation Errors
 

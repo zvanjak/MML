@@ -37,15 +37,16 @@ namespace MML {
 	/// @f]
 	///
 	/// Using Newton iteration on the combined residual with the augmented Jacobian:
-	/// @f[
-	///   \begin{bmatrix}
-	///     I - h\frac{\partial f}{\partial x} & -h\frac{\partial f}{\partial y} \\
-	///     \frac{\partial g}{\partial x} & \frac{\partial g}{\partial y}
-	///   \end{bmatrix}
-	///   \begin{bmatrix} \Delta x \\ \Delta y \end{bmatrix}
-	///   =
-	///   \begin{bmatrix} -F \\ -G \end{bmatrix}
-	/// @f]
+	/** @f[
+	 *   \begin{bmatrix}
+	 *     I - h\frac{\partial f}{\partial x} & -h\frac{\partial f}{\partial y} \\
+	 *     \frac{\partial g}{\partial x} & \frac{\partial g}{\partial y}
+	 *   \end{bmatrix}
+	 *   \begin{bmatrix} \Delta x \\ \Delta y \end{bmatrix}
+	 *   =
+	 *   \begin{bmatrix} -F \\ -G \end{bmatrix}
+	 * @f]
+	 */
 	///
 	/// where F = x_new - x_old - h*f, G = g.
 	///

@@ -2,8 +2,7 @@
 ///                         MinimalMathLibrary (MML)                                  ///
 ///                                                                                   ///
 ///  File:        LinAlgEqSolvers_iterative.h                                         ///
-///  Description: Iterative linear system solvers (Jacobi, Gauss-Seidel, SOR, CG)     ///
-///               For large sparse systems where direct methods are impractical       ///
+///  Description: Dense stationary linear solvers (Jacobi, Gauss-Seidel, SOR)          ///
 ///                                                                                   ///
 ///  Copyright:   (c) 2024-2026 Zvonimir Vanjak                                       ///
 ///  License:     MIT License (see LICENSE.md)                                         ///
@@ -18,6 +17,11 @@
 #include <mml/base/Vector/Vector.h>
 #include <mml/base/Matrix/Matrix.h>
 
+#include <algorithm>
+#include <cmath>
+#include <limits>
+#include <utility>
+
 namespace MML
 {
 	///////////////////////////////////////////////////////////////////////////
@@ -26,14 +30,15 @@ namespace MML
 	/**
 	 * @brief Configuration for iterative linear equation solvers
 	 * 
-	 * Standardized config object following API Standardization Phase 5 pattern.
+	 * Residuals are normalized by ||b||, or absolute when b is zero.
+	 * Zero budget checks only the initial guess; negative budgets are invalid.
 	 */
 	struct IterativeSolverConfig
 	{
-		Real tolerance = PrecisionValues<Real>::IterativeSolverTolerance;       ///< Convergence tolerance
-		int max_iterations = 1000;    ///< Maximum iterations
+		Real tolerance = PrecisionValues<Real>::IterativeSolverTolerance;       ///< Finite positive normalized-residual tolerance
+		int max_iterations = 1000;    ///< Nonnegative sweep budget; zero checks only the initial guess
 		Real omega = 1.0;             ///< Relaxation parameter (for SOR, 0 < omega < 2)
-		bool verbose = false;         ///< Enable verbose output
+		bool verbose = false;         ///< Reserved; dense solvers do not emit progress output
 
 		/// Default constructor
 		IterativeSolverConfig() = default;
@@ -76,25 +81,125 @@ namespace MML
 	 * Contains solution vector along with convergence information.
 	 * Enhanced with diagnostic fields for API Standardization Phase 5.
 	 */
-	struct IterativeSolverResult
+	struct [[nodiscard]] IterativeSolverResult
 	{
 		Vector<Real> solution;      ///< Solution vector x
-		int          iterations;    ///< Number of iterations performed
-		Real         residual;      ///< Final residual norm ||Ax - b||
+		int          iterations;    ///< Sweeps attempted, including a sweep that fails numerically
+		Real         residual;      ///< ||Ax-b||/||b|| for returned x; absolute ||Ax|| if b=0
 		bool         converged;     ///< True if converged within tolerance
 		
 		// Enhanced diagnostic fields (API Standardization Phase 5)
 		std::string algorithm_name;  ///< Name of the algorithm used
-		AlgorithmStatus status = AlgorithmStatus::Success;  ///< Algorithm termination status
-		std::string error_message;   ///< Error message if failed
+		AlgorithmStatus status = AlgorithmStatus::InvalidInput;  ///< Algorithm termination status
+		std::string error_message = "No dense iterative solve performed";   ///< Error message if failed
 		double elapsed_time_ms = 0;  ///< Execution time in milliseconds
-		Real initial_residual = 0;   ///< Initial residual norm (before iterations)
+		Real initial_residual = NoEstimate;   ///< Initial residual, in the same units as residual
 		Real omega_used = 0;         ///< Relaxation parameter used (for SOR)
 		
-		IterativeSolverResult() : iterations(0), residual(0.0), converged(false) {}
+		IterativeSolverResult() : iterations(0), residual(NoEstimate), converged(false) {}
 		IterativeSolverResult(const Vector<Real>& sol, int iter, Real res, bool conv)
-			: solution(sol), iterations(iter), residual(res), converged(conv) {}
+			: solution(sol), iterations(iter), residual(res), converged(conv),
+			  status(conv ? AlgorithmStatus::Success : AlgorithmStatus::MaxIterationsExceeded),
+			  error_message(conv ? "" : "Iteration budget exhausted") {}
 	};
+
+	namespace DenseIterativeDetail
+	{
+		enum class Method { Jacobi, GaussSeidel, SOR };
+
+		inline bool IsFinite(const Vector<Real>& vector)
+		{
+			for (int i = 0; i < vector.size(); ++i)
+				if (!std::isfinite(vector[i]))
+					return false;
+			return true;
+		}
+
+		inline IterativeSolverResult Solve(const Matrix<Real>& a, const Vector<Real>& b,
+			const Vector<Real>& guess, Real tolerance, int budget, Method method, const char* name, Real omega = 0)
+		{
+			AlgorithmTimer timer;
+			const std::string prefix = std::string(name) + "::Solve - ";
+			const int n = a.rows();
+			if (n == 0 || a.cols() != n)
+				throw MatrixDimensionError(prefix + "matrix must be nonempty and square", n, a.cols(), -1, -1);
+			if (b.size() != n || (guess.size() != 0 && guess.size() != n))
+				throw MatrixDimensionError(prefix + "RHS and nonempty initial guess must match matrix size",
+					n, n, b.size(), guess.size());
+			if (!std::isfinite(tolerance) || tolerance <= 0 || budget < 0)
+				throw ArgumentError(prefix + "tolerance must be finite and positive; iteration budget must be nonnegative");
+			if (!IsFinite(b) || !IsFinite(guess))
+				throw ArgumentError(prefix + "RHS and initial guess entries must be finite");
+
+			Real maxDiagonal = 0;
+			for (int i = 0; i < n; ++i) {
+				for (int j = 0; j < n; ++j)
+					if (!std::isfinite(a(i, j)))
+						throw ArgumentError(prefix + "matrix entries must be finite");
+				maxDiagonal = std::max(maxDiagonal, std::abs(a(i, i)));
+			}
+			for (int i = 0; i < n; ++i)
+				if (std::abs(a(i, i)) <= maxDiagonal * Precision::Eps)
+					throw SingularMatrixError(prefix + "near-zero diagonal element at row " + std::to_string(i));
+
+			IterativeSolverResult result;
+			result.solution = guess.size() == 0 ? Vector<Real>(n, Real(0)) : guess;
+			result.algorithm_name = name;
+			result.omega_used = omega;
+			const auto finish = [&]() {
+				result.converged = result.status == AlgorithmStatus::Success;
+				result.elapsed_time_ms = timer.elapsed_ms();
+				return std::move(result);
+			};
+
+			const Real rhsNorm = b.NormL2();
+			const Real scale = rhsNorm == 0 ? Real(1) : rhsNorm;
+			const Real initial = std::isfinite(rhsNorm) ? (a * result.solution - b).NormL2() / scale : NoEstimate;
+			if (!std::isfinite(initial)) {
+				result.status = AlgorithmStatus::NumericalInstability;
+				result.error_message = prefix + "RHS norm or initial true residual is not representable";
+				return finish();
+			}
+			result.initial_residual = initial;
+			result.residual = initial;
+			result.status = AlgorithmStatus::MaxIterationsExceeded;
+
+			if (initial >= tolerance && budget > 0) {
+				Vector<Real> current = result.solution;
+				Vector<Real> next(n);
+				for (int iteration = 0; iteration < budget && result.residual >= tolerance; ++iteration) {
+					for (int i = 0; i < n; ++i) {
+						Real sigma = 0;
+						for (int j = 0; j < n; ++j)
+							if (j != i)
+								sigma += a(i, j) * (method != Method::Jacobi && j < i ? next[j] : current[j]);
+						const Real update = (b[i] - sigma) / a(i, i);
+						next[i] = method == Method::SOR ? (1 - omega) * current[i] + omega * update : update;
+					}
+					++result.iterations;
+					const Real residual = IsFinite(next) ? (a * next - b).NormL2() / scale : NoEstimate;
+					if (!std::isfinite(residual)) {
+						result.status = AlgorithmStatus::NumericalInstability;
+						result.error_message = prefix + "nonfinite iterate or true residual at sweep " + std::to_string(result.iterations);
+						return finish();
+					}
+					if (residual < result.residual) {
+						result.solution = next;
+						result.residual = residual;
+					}
+					std::swap(current, next);
+				}
+			}
+			if (result.residual < tolerance) {
+				result.status = AlgorithmStatus::Success;
+				result.error_message.clear();
+			} else {
+				result.error_message = prefix + "failed to converge after " + std::to_string(result.iterations) +
+					" sweeps; the normalized residual tolerance was not met";
+			}
+			return finish();
+		}
+	}
 
 	/**
 	 * @brief Jacobi iterative method for solving linear systems Ax = b
@@ -106,7 +211,7 @@ namespace MML
 	 * 
 	 * @par Convergence Properties:
 	 * - Guaranteed to converge for strictly diagonally dominant matrices
-	 * - Converges for symmetric positive definite matrices
+	 * - Symmetric positive definiteness alone does not guarantee convergence
 	 * - Each iteration can be parallelized (all updates independent)
 	 * - Generally slower than Gauss-Seidel but more parallelizable
 	 * 
@@ -138,71 +243,7 @@ namespace MML
 		                                    Real tol = PrecisionValues<Real>::IterativeSolverTolerance,
 		                                    int maxIter = 1000)
 		{
-			int n = A.rows();
-			
-			// Dimension checks
-			if (A.cols() != n)
-				throw MatrixDimensionError("JacobiSolver::Solve - matrix must be square", n, A.cols(), -1, -1);
-			if (b.size() != n)
-				throw MatrixDimensionError("JacobiSolver::Solve - vector b dimension mismatch", n, n, b.size(), -1);
-			
-			// Check for near-zero diagonal elements (tolerance-based)
-			Real maxDiag = Real{0};
-			for (int i = 0; i < n; i++) { Real mag = std::abs(A(i, i)); if (mag > maxDiag) maxDiag = mag; }
-			Real diagTol = maxDiag * std::numeric_limits<Real>::epsilon();
-			if (diagTol < std::numeric_limits<Real>::epsilon()) diagTol = std::numeric_limits<Real>::epsilon();
-			for (int i = 0; i < n; i++)
-			{
-				if (std::abs(A(i, i)) < diagTol)
-					throw SingularMatrixError("JacobiSolver::Solve - near-zero diagonal element at row " + std::to_string(i));
-			}
-			
-			// Initialize solution vector
-			Vector<Real> x(n);
-			if (x0.size() == n)
-				x = x0;
-			else
-				for (int i = 0; i < n; i++) x[i] = 0.0;
-			
-			Vector<Real> x_new(n);
-			Real b_norm = b.NormL2();
-			if (b_norm == 0.0) b_norm = 1.0;  // Avoid division by zero
-			
-			int iter = 0;
-			Real residual = 0.0;
-			bool converged = false;
-			
-			for (iter = 1; iter <= maxIter; iter++)
-			{
-				// Jacobi iteration: x_new[i] = (b[i] - sum_{j!=i} A[i][j]*x[j]) / A[i][i]
-				for (int i = 0; i < n; i++)
-				{
-					Real sigma = 0.0;
-					for (int j = 0; j < n; j++)
-					{
-						if (j != i)
-							sigma += A(i, j) * x[j];
-					}
-					x_new[i] = (b[i] - sigma) / A(i, i);
-				}
-				
-				// Compute residual ||Ax_new - b||
-				Vector<Real> r = A * x_new - b;
-				residual = r.NormL2() / b_norm;
-				
-				// Check convergence
-				if (residual < tol)
-				{
-					converged = true;
-					x = x_new;
-					break;
-				}
-				
-				// Update for next iteration
-				x = x_new;
-			}
-			
-			return IterativeSolverResult(x, iter, residual, converged);
+			return DenseIterativeDetail::Solve(A, b, x0, tol, maxIter, DenseIterativeDetail::Method::Jacobi, "Jacobi");
 		}
 		
 		/**
@@ -236,17 +277,7 @@ namespace MML
 		                                    const IterativeSolverConfig& config,
 		                                    const Vector<Real>& x0 = Vector<Real>())
 		{
-			AlgorithmTimer timer;
-			IterativeSolverResult result = Solve(A, b, x0, config.tolerance, config.max_iterations);
-			
-			result.algorithm_name = "Jacobi";
-			result.elapsed_time_ms = timer.elapsed_ms();
-			if (!result.converged) {
-				result.status = AlgorithmStatus::MaxIterationsExceeded;
-				result.error_message = "Jacobi method did not converge within " + 
-				                       std::to_string(config.max_iterations) + " iterations";
-			}
-			return result;
+			return Solve(A, b, x0, config.tolerance, config.max_iterations);
 		}
 	};
 
@@ -292,68 +323,7 @@ namespace MML
 		                                    Real tol = PrecisionValues<Real>::IterativeSolverTolerance,
 		                                    int maxIter = 1000)
 		{
-			int n = A.rows();
-			
-			// Dimension checks
-			if (A.cols() != n)
-				throw MatrixDimensionError("GaussSeidelSolver::Solve - matrix must be square", n, A.cols(), -1, -1);
-			if (b.size() != n)
-				throw MatrixDimensionError("GaussSeidelSolver::Solve - vector b dimension mismatch", n, n, b.size(), -1);
-			
-			// Check for near-zero diagonal elements (tolerance-based)
-			Real maxDiag = Real{0};
-			for (int i = 0; i < n; i++) { Real mag = std::abs(A(i, i)); if (mag > maxDiag) maxDiag = mag; }
-			Real diagTol = maxDiag * std::numeric_limits<Real>::epsilon();
-			if (diagTol < std::numeric_limits<Real>::epsilon()) diagTol = std::numeric_limits<Real>::epsilon();
-			for (int i = 0; i < n; i++)
-			{
-				if (std::abs(A(i, i)) < diagTol)
-					throw SingularMatrixError("GaussSeidelSolver::Solve - near-zero diagonal element at row " + std::to_string(i));
-			}
-			
-			// Initialize solution vector
-			Vector<Real> x(n);
-			if (x0.size() == n)
-				x = x0;
-			else
-				for (int i = 0; i < n; i++) x[i] = 0.0;
-			
-			Real b_norm = b.NormL2();
-			if (b_norm == 0.0) b_norm = 1.0;
-			
-			int iter = 0;
-			Real residual = 0.0;
-			bool converged = false;
-			
-			for (iter = 1; iter <= maxIter; iter++)
-			{
-				// Gauss-Seidel iteration: use updated values immediately
-				for (int i = 0; i < n; i++)
-				{
-					Real sigma = 0.0;
-					// Use new values for j < i (already computed this iteration)
-					for (int j = 0; j < i; j++)
-						sigma += A(i, j) * x[j];
-					// Use old values for j > i
-					for (int j = i + 1; j < n; j++)
-						sigma += A(i, j) * x[j];
-					
-					x[i] = (b[i] - sigma) / A(i, i);
-				}
-				
-				// Compute residual ||Ax - b||
-				Vector<Real> r = A * x - b;
-				residual = r.NormL2() / b_norm;
-				
-				// Check convergence
-				if (residual < tol)
-				{
-					converged = true;
-					break;
-				}
-			}
-			
-			return IterativeSolverResult(x, iter, residual, converged);
+			return DenseIterativeDetail::Solve(A, b, x0, tol, maxIter, DenseIterativeDetail::Method::GaussSeidel, "GaussSeidel");
 		}
 		
 		/**
@@ -387,17 +357,7 @@ namespace MML
 		                                    const IterativeSolverConfig& config,
 		                                    const Vector<Real>& x0 = Vector<Real>())
 		{
-			AlgorithmTimer timer;
-			IterativeSolverResult result = Solve(A, b, x0, config.tolerance, config.max_iterations);
-			
-			result.algorithm_name = "GaussSeidel";
-			result.elapsed_time_ms = timer.elapsed_ms();
-			if (!result.converged) {
-				result.status = AlgorithmStatus::MaxIterationsExceeded;
-				result.error_message = "Gauss-Seidel method did not converge within " + 
-				                       std::to_string(config.max_iterations) + " iterations";
-			}
-			return result;
+			return Solve(A, b, x0, config.tolerance, config.max_iterations);
 		}
 	};
 
@@ -457,75 +417,9 @@ namespace MML
 		                                    int maxIter = 1000)
 		{
 			// Validate omega
-			if (omega <= 0.0 || omega >= 2.0)
+			if (!std::isfinite(omega) || omega <= 0.0 || omega >= 2.0)
 				throw NumericalMethodError("SORSolver::Solve - omega must be in (0, 2), got " + std::to_string(omega));
-			
-			int n = A.rows();
-			
-			// Dimension checks
-			if (A.cols() != n)
-				throw MatrixDimensionError("SORSolver::Solve - matrix must be square", n, A.cols(), -1, -1);
-			if (b.size() != n)
-				throw MatrixDimensionError("SORSolver::Solve - vector b dimension mismatch", n, n, b.size(), -1);
-			
-			// Check for near-zero diagonal elements (tolerance-based)
-			Real maxDiag = Real{0};
-			for (int i = 0; i < n; i++) { Real mag = std::abs(A(i, i)); if (mag > maxDiag) maxDiag = mag; }
-			Real diagTol = maxDiag * std::numeric_limits<Real>::epsilon();
-			if (diagTol < std::numeric_limits<Real>::epsilon()) diagTol = std::numeric_limits<Real>::epsilon();
-			for (int i = 0; i < n; i++)
-			{
-				if (std::abs(A(i, i)) < diagTol)
-					throw SingularMatrixError("SORSolver::Solve - near-zero diagonal element at row " + std::to_string(i));
-			}
-			
-			// Initialize solution vector
-			Vector<Real> x(n);
-			if (x0.size() == n)
-				x = x0;
-			else
-				for (int i = 0; i < n; i++) x[i] = 0.0;
-			
-			Real b_norm = b.NormL2();
-			if (b_norm == 0.0) b_norm = 1.0;
-			
-			int iter = 0;
-			Real residual = 0.0;
-			bool converged = false;
-			
-			for (iter = 1; iter <= maxIter; iter++)
-			{
-				// SOR iteration
-				for (int i = 0; i < n; i++)
-				{
-					Real sigma = 0.0;
-					// Use new values for j < i
-					for (int j = 0; j < i; j++)
-						sigma += A(i, j) * x[j];
-					// Use old values for j > i
-					for (int j = i + 1; j < n; j++)
-						sigma += A(i, j) * x[j];
-					
-					// Gauss-Seidel update
-					Real x_gs = (b[i] - sigma) / A(i, i);
-					
-					// SOR: weighted average of old value and Gauss-Seidel update
-					x[i] = (1.0 - omega) * x[i] + omega * x_gs;
-				}
-				
-				// Compute residual ||Ax - b||
-				Vector<Real> r = A * x - b;
-				residual = r.NormL2() / b_norm;
-				
-				// Check convergence
-				if (residual < tol)
-				{
-					converged = true;
-					break;
-				}
-			}
-			
-			return IterativeSolverResult(x, iter, residual, converged);
+			return DenseIterativeDetail::Solve(A, b, x0, tol, maxIter, DenseIterativeDetail::Method::SOR, "SOR", omega);
 		}
 		
 		/**
@@ -542,7 +436,7 @@ namespace MML
 		                                           int maxIter = 1000)
 		{
 			int n = A.rows();
-			Real omega = 2.0 / (1.0 + std::sin(Constants::PI / n));
+			Real omega = n <= 1 ? Real(1) : MML::Real(2.0) / (MML::Real(1.0) + std::sin(Constants::PI / n));
 			return Solve(A, b, omega, x0, tol, maxIter);
 		}
 		
@@ -581,21 +475,26 @@ namespace MML
 		                                  int numSamples = 10,
 		                                  int testIter = 50)
 		{
+			if (numSamples <= 0 || testIter <= 0)
+				throw ArgumentError("SORSolver::EstimateOptimalOmega - sample count and trial sweep budget must be positive");
 			Real bestOmega = 1.0;
-			Real bestResidual = std::numeric_limits<Real>::max();
+			Real bestResidual = std::numeric_limits<Real>::infinity();
 			
 			// Try omega values from 1.0 to 1.95
-			for (int i = 0; i <= numSamples; i++)
+			for (int i = 0; ; ++i)
 			{
-				Real omega = 1.0 + 0.95 * i / numSamples;
+				Real omega = MML::Real(1.0) + MML::Real(0.95) * i / numSamples;
 				auto result = Solve(A, b, omega, Vector<Real>(), PrecisionValues<Real>::EigenSolverZeroThreshold, testIter);
-				if (result.residual < bestResidual)
+				if (result.status != AlgorithmStatus::NumericalInstability && result.residual < bestResidual)
 				{
 					bestResidual = result.residual;
 					bestOmega = omega;
 				}
+				if (i == numSamples)
+					break;
 			}
-			
+			if (!std::isfinite(bestResidual))
+				throw NumericalMethodError("SORSolver::EstimateOptimalOmega - all trial solves failed numerically");
 			return bestOmega;
 		}
 
@@ -613,19 +512,7 @@ namespace MML
 		                                    const IterativeSolverConfig& config,
 		                                    const Vector<Real>& x0 = Vector<Real>())
 		{
-			AlgorithmTimer timer;
-			IterativeSolverResult result = Solve(A, b, config.omega, x0, config.tolerance, config.max_iterations);
-			
-			result.algorithm_name = "SOR";
-			result.elapsed_time_ms = timer.elapsed_ms();
-			result.omega_used = config.omega;
-			if (!result.converged) {
-				result.status = AlgorithmStatus::MaxIterationsExceeded;
-				result.error_message = "SOR method (omega=" + std::to_string(config.omega) + 
-				                       ") did not converge within " + 
-				                       std::to_string(config.max_iterations) + " iterations";
-			}
-			return result;
+			return Solve(A, b, config.omega, x0, config.tolerance, config.max_iterations);
 		}
 	};
 

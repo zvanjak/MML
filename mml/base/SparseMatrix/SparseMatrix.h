@@ -17,9 +17,47 @@
 #include "SparseMatrixCOO.h"
 #include "SparseMatrixCSR.h"
 #include "SparseMatrixCSC.h"
+#include <initializer_list>
+#include <limits>
 
 namespace MML::SparseMatrix
 {
+    namespace Detail {
+        inline int CheckedGridCount(std::initializer_list<int> dimensions, int stencilWidth) {
+            bool empty = false;
+            for (int dimension : dimensions) {
+                if (dimension < 0)
+                    throw MatrixDimensionError("Sparse Laplacian: grid dimensions must be non-negative", dimension, -1, -1, -1);
+                empty = empty || dimension == 0;
+            }
+            if (empty) return 0;
+            const int limit = std::numeric_limits<int>::max() / stencilWidth;
+            int count = 1;
+            for (int dimension : dimensions) {
+                if (count > limit / dimension)
+                    throw MatrixAllocationError("Sparse Laplacian: grid/stencil exceeds index range", dimension, count);
+                count *= dimension;
+            }
+            return count;
+        }
+
+        template<typename T>
+        T InverseSquaredSpacing(T spacing) {
+            if constexpr (requires { spacing > T(0); }) {
+                if (!(spacing > T(0)) || !std::isfinite(std::abs(spacing)))
+                    throw ArgumentError("Sparse Laplacian: spacing must be finite and positive");
+            } else {
+                if (!std::isfinite(std::abs(spacing)) || std::abs(spacing) == 0)
+                    throw ArgumentError("Sparse Laplacian: spacing must be finite and nonzero");
+            }
+            const T inverse = T(1) / spacing;
+            const T squared = inverse * inverse;
+            if (!std::isfinite(std::abs(squared)) || std::abs(squared) == 0)
+                throw MatrixNumericalError("Sparse Laplacian: inverse squared spacing is not representable");
+            return squared;
+        }
+    }
+
     ///////////////////////////////////////////////////////////////////////////
     ///                     Factory Functions                               ///
     ///////////////////////////////////////////////////////////////////////////
@@ -30,10 +68,12 @@ namespace MML::SparseMatrix
     /// @return Tridiagonal Laplacian matrix in CSR format
     template<typename T = double>
     SparseMatrixCSR<T> Laplacian1D(int n, T h = T(1)) {
+        n = Detail::CheckedGridCount({n}, 3);
+        const T h2_inv = Detail::InverseSquaredSpacing(h);
+        if (!std::isfinite(std::abs(T(2) * h2_inv)))
+            throw MatrixNumericalError("Sparse Laplacian: diagonal coefficient is not representable");
         SparseMatrixCOO<T> coo(n, n);
         coo.reserve(3 * n);
-        
-        T h2_inv = T(1) / (h * h);
         
         for (int i = 0; i < n; ++i) {
             if (i > 0) {
@@ -56,13 +96,16 @@ namespace MML::SparseMatrix
     /// @return 5-point Laplacian matrix in CSR format (lexicographic ordering)
     template<typename T = double>
     SparseMatrixCSR<T> Laplacian2D(int nx, int ny, T hx = T(1), T hy = T(1)) {
-        int n = nx * ny;
+        const int n = Detail::CheckedGridCount({nx, ny}, 5);
+        const T hx2_inv = Detail::InverseSquaredSpacing(hx);
+        const T hy2_inv = Detail::InverseSquaredSpacing(hy);
+        const T diag = T(2) * hx2_inv + T(2) * hy2_inv;
+        if (!std::isfinite(std::abs(diag)))
+            throw MatrixNumericalError("Sparse Laplacian: diagonal coefficient is not representable");
         SparseMatrixCOO<T> coo(n, n);
         coo.reserve(5 * n);
+        if (n == 0) return SparseMatrixCSR<T>(coo);
         
-        T hx2_inv = T(1) / (hx * hx);
-        T hy2_inv = T(1) / (hy * hy);
-        T diag = 2 * hx2_inv + 2 * hy2_inv;
         
         for (int j = 0; j < ny; ++j) {
             for (int i = 0; i < nx; ++i) {
@@ -100,16 +143,18 @@ namespace MML::SparseMatrix
     template<typename T = double>
     SparseMatrixCSR<T> Laplacian3D(int nx, int ny, int nz, 
                                     T hx = T(1), T hy = T(1), T hz = T(1)) {
-        int n = nx * ny * nz;
+        const int n = Detail::CheckedGridCount({nx, ny, nz}, 7);
+        const T hx2_inv = Detail::InverseSquaredSpacing(hx);
+        const T hy2_inv = Detail::InverseSquaredSpacing(hy);
+        const T hz2_inv = Detail::InverseSquaredSpacing(hz);
+        const T diag = T(2) * hx2_inv + T(2) * hy2_inv + T(2) * hz2_inv;
+        if (!std::isfinite(std::abs(diag)))
+            throw MatrixNumericalError("Sparse Laplacian: diagonal coefficient is not representable");
         SparseMatrixCOO<T> coo(n, n);
         coo.reserve(7 * n);
+        if (n == 0) return SparseMatrixCSR<T>(coo);
         
-        T hx2_inv = T(1) / (hx * hx);
-        T hy2_inv = T(1) / (hy * hy);
-        T hz2_inv = T(1) / (hz * hz);
-        T diag = 2 * (hx2_inv + hy2_inv + hz2_inv);
-        
-        int nxy = nx * ny;
+        const int nxy = n == 0 ? 0 : nx * ny;
         
         for (int k = 0; k < nz; ++k) {
             for (int j = 0; j < ny; ++j) {

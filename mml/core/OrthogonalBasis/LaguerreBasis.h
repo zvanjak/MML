@@ -101,10 +101,10 @@ namespace MML
                 throw ArgumentError("LaguerreBasis::RecurrenceCoefficients: n must be non-negative");
             
             Real n_real = static_cast<Real>(n);
-            Real n_plus_1 = n_real + 1.0;
+            Real n_plus_1 = n_real + MML::Real(1.0);
             
-            a = -1.0 / n_plus_1;
-            b = (2.0 * n_real + 1.0) / n_plus_1;
+            a = -MML::Real(1.0) / n_plus_1;
+            b = (MML::Real(2.0) * n_real + MML::Real(1.0)) / n_plus_1;
             c = -n_real / n_plus_1;
         }
     };
@@ -133,8 +133,8 @@ namespace MML
     public:
         explicit AssociatedLaguerreBasis(Real alpha) : _alpha(alpha)
         {
-            if (alpha <= -1.0)
-                throw ArgumentError("AssociatedLaguerreBasis: alpha must be > -1");
+            if (!std::isfinite(alpha) || alpha <= -1)
+                throw ArgumentError("AssociatedLaguerreBasis: alpha must be finite and > -1");
         }
 
         Real Alpha() const { return _alpha; }
@@ -144,6 +144,8 @@ namespace MML
         {
             if (n < 0)
                 throw ArgumentError("AssociatedLaguerreBasis::Evaluate: n must be non-negative");
+            if (!std::isfinite(x))
+                throw DomainError("AssociatedLaguerreBasis::Evaluate: x must be finite");
             
             // Use recurrence relation:
             // (n+1)Lₙ₊₁^(α) = (2n + α + 1 - x)Lₙ^(α) - (n + α)Lₙ₋₁^(α)
@@ -151,17 +153,17 @@ namespace MML
             if (n == 0)
                 return 1.0;
             if (n == 1)
-                return 1.0 + _alpha - x;
+                return MML::Real(1.0) + _alpha - x;
             
             Real Ln_minus_1 = 1.0;
-            Real Ln = 1.0 + _alpha - x;
+            Real Ln = MML::Real(1.0) + _alpha - x;
             Real Ln_plus_1 = 0.0;
             
             for (int k = 1; k < n; k++)
             {
                 Real k_real = static_cast<Real>(k);
-                Ln_plus_1 = ((2.0*k_real + _alpha + 1.0 - x) * Ln 
-                             - (k_real + _alpha) * Ln_minus_1) / (k_real + 1.0);
+                Ln_plus_1 = ((Real(2)*k_real + _alpha + Real(1) - x) * Ln
+                             - (k_real + _alpha) * Ln_minus_1) / (k_real + MML::Real(1.0));
                 Ln_minus_1 = Ln;
                 Ln = Ln_plus_1;
             }
@@ -172,7 +174,13 @@ namespace MML
         // Weight function w(x) = x^α e^(-x)
         Real WeightFunction(Real x) const 
         { 
-            return std::pow(x, _alpha) * std::exp(-x); 
+            if (!std::isfinite(x) || x < 0)
+                throw DomainError("AssociatedLaguerreBasis::WeightFunction: x must be finite and nonnegative");
+            if (x == 0)
+                return _alpha < 0 ? Constants::PosInf : _alpha == 0 ? Real{1} : Real{0};
+            const Real value = std::exp(_alpha * std::log(x) - x);
+            IntegrationDetail::RequireFinite(value, "Associated Laguerre weight");
+            return value;
         }
 
         // Normalization: Γ(n+α+1)/n!
@@ -181,19 +189,13 @@ namespace MML
             if (n < 0)
                 throw ArgumentError("AssociatedLaguerreBasis::Normalization: n must be non-negative");
             
-            // Γ(n+α+1)/n! = (n+α)(n+α-1)...(α+1)Γ(α+1)
-            // For simplicity, use: (n+α)!/n! * Γ(α+1)/α!
-            
-            Real gamma_alpha_plus_1 = std::tgamma(_alpha + 1.0);
-            Real n_factorial = 1.0;
-            for (int k = 1; k <= n; k++)
-                n_factorial *= k;
-            
-            Real result = gamma_alpha_plus_1;
-            for (int k = 1; k <= n; k++)
-                result *= (_alpha + k);
-            result /= n_factorial;
-            
+            Real result = std::tgamma(_alpha + 1);
+            IntegrationDetail::RequireFinite(result, "Associated Laguerre normalization");
+            for (int k = 0; k < n; ++k)
+            {
+                result *= 1 + _alpha / (Real(k) + 1);
+                IntegrationDetail::RequireFinite(result, "Associated Laguerre normalization");
+            }
             return result;
         }
 
@@ -208,10 +210,10 @@ namespace MML
                 throw ArgumentError("AssociatedLaguerreBasis::RecurrenceCoefficients: n must be non-negative");
             
             Real n_real = static_cast<Real>(n);
-            Real n_plus_1 = n_real + 1.0;
+            Real n_plus_1 = n_real + MML::Real(1.0);
             
-            a = -1.0 / n_plus_1;
-            b = (2.0 * n_real + _alpha + 1.0) / n_plus_1;
+            a = -MML::Real(1.0) / n_plus_1;
+            b = (MML::Real(2.0) * n_real + _alpha + MML::Real(1.0)) / n_plus_1;
             c = -(n_real + _alpha) / n_plus_1;
         }
     };

@@ -1,9 +1,11 @@
 #include <catch2/catch_all.hpp>
 #include "../TestPrecision.h"
 
+#ifndef MML_SINGLE_HEADER_INCLUDE
 #include <mml/base/Intervals.h>
 #include <mml/interfaces/IFunction.h>
 #include <mml/systems/DynamicalSystem.h>
+#endif
 
 using namespace MML;
 using namespace MML::Systems;
@@ -71,7 +73,7 @@ namespace MML::Tests::Interfaces::DefaultImplementationTests {
 
 	TEST_CASE("Interface defaults - curve traces handle empty singleton and endpoint samples", "[interfaces][adversarial][wewi.2.7]") {
 		for (int count : {-1, 0, 1, 2, 5}) {
-			for (const auto& limits : {std::pair<Real, Real>{-2, 4}, {4, -2}, {1, 1}}) {
+			for (const auto& limits : {std::pair<Real, Real>{Real(-2), Real(4)}, {Real(4), Real(-2)}, {Real(1), Real(1)}}) {
 				CAPTURE(count, limits.first, limits.second);
 				TraceCurve curve;
 				const IParametricCurve<3>& view = curve;
@@ -117,6 +119,6 @@ namespace MML::Tests::Interfaces::DefaultImplementationTests {
 		ClosedInterval point(3, 3);
 		std::vector<Real> points;
 		point.getEquidistantCovering(2, points);
-		REQUIRE(points == std::vector<Real>{3, 3});
+		REQUIRE(points == std::vector<Real>{3});
 	}
 } // namespace MML::Tests::Interfaces::DefaultImplementationTests

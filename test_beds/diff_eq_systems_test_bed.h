@@ -203,12 +203,12 @@ namespace MML::TestBeds {
 		// Oscillators
 		static inline SimpleHarmonicOscillatorODE _sho{1.0};
 		static inline SimpleHarmonicOscillatorODE _shoOmega2{2.0};
-		static inline DampedHarmonicOscillatorODE _dampedSHO{1.0, 0.1};
+		static inline DampedHarmonicOscillatorODE _dampedSHO{MML::Real(1.0), MML::Real(0.1)};
 
 		// Nonlinear oscillators
-		static inline VanDerPolODE _vanDerPol{0.3};
+		static inline VanDerPolODE _vanDerPol{MML::Real(0.3)};
 		static inline DuffingODE _duffing;
-		static inline SimplePendulumODE _pendulum{9.81};
+		static inline SimplePendulumODE _pendulum{MML::Real(9.81)};
 
 		// Population dynamics
 		static inline LotkaVolterraODE _lotkaVolterra;
@@ -219,7 +219,7 @@ namespace MML::TestBeds {
 		static inline RosslerSystemODE _rossler;
 
 		// Physical systems
-		static inline ProjectileWithDragODE _projectile{0.05, 9.81};
+		static inline ProjectileWithDragODE _projectile{MML::Real(0.05), MML::Real(9.81)};
 		static inline KeplerProblemODE _kepler{1.0};
 
 		// Special functions
@@ -247,10 +247,10 @@ namespace MML::TestBeds {
 		static inline std::vector<ODESystemWithSolutionEntry> _systemsWithSolution = {
 			// Linear systems
 			{"ExpDecay_k1", ODECategory::Linear, &_expDecay, [](const Vector<Real>& y0, Real t) { return _expDecay.getSolution(y0, t); },
-			 Vector<Real>{0.1}, Vector<Real>{10.0}},
+			 Vector<Real>{MML::Real(0.1)}, Vector<Real>{MML::Real(10.0)}},
 
 			{"ExpGrowth_k0.5", ODECategory::Linear, &_expGrowth, [](const Vector<Real>& y0, Real t) { return _expGrowth.getSolution(y0, t); },
-			 Vector<Real>{0.1}, Vector<Real>{5.0}},
+			 Vector<Real>{MML::Real(0.1)}, Vector<Real>{MML::Real(5.0)}},
 
 			{"Linear2D_DistinctEigen", ODECategory::Linear, &_linear2D,
 			 [](const Vector<Real>& y0, Real t) { return _linear2D.getSolution(y0, t); }, Vector<Real>{-5.0, -5.0}, Vector<Real>{5.0, 5.0}},
@@ -268,7 +268,7 @@ namespace MML::TestBeds {
 
 			// Population dynamics
 			{"Logistic_r1_K10", ODECategory::Population, &_logistic, [](const Vector<Real>& y0, Real t) { return _logistic.getSolution(y0, t); },
-			 Vector<Real>{0.1}, Vector<Real>{9.0}}};
+			 Vector<Real>{MML::Real(0.1)}, Vector<Real>{MML::Real(9.0)}}};
 
 		//--------------------------------------------------------------------------------------------------------------
 		// SYSTEMS WITH END-POINT SOLUTIONS (computed from analytical solutions)
@@ -343,7 +343,7 @@ namespace MML::TestBeds {
 
 			// Chaotic systems
 			{"Lorenz", ODECategory::Chaotic, &_lorenz, Vector<Real>{1.0, 1.0, 1.0}},
-			{"Rossler", ODECategory::Chaotic, &_rossler, Vector<Real>{0.1, 0.1, 0.1}},
+			{"Rossler", ODECategory::Chaotic, &_rossler, Vector<Real>{MML::Real(0.1), MML::Real(0.1), MML::Real(0.1)}},
 
 			// Physical systems
 			{"Projectile", ODECategory::Physical, &_projectile, Vector<Real>{0.0, 10.0, 0.0, 10.0}},
@@ -519,7 +519,7 @@ namespace MML::TestBeds {
 		// Legacy static arrays for old API
 		static inline ODESystem _legacySystems[3] = {
 			ODESystem{3, TestLinODESys}, ODESystem{2, VanDerPolMju0_1},
-			ODESystem{2, [](Real t, const Vector<Real>& x, Vector<Real>& dxdt) { VanDerPol(0.1, t, x, dxdt); }}};
+			ODESystem{2, [](Real t, const Vector<Real>& x, Vector<Real>& dxdt) { VanDerPol(MML::Real(0.1), t, x, dxdt); }}};
 
 		// Legacy end solution systems (for backward compatibility with tests)
 		static inline TestODESystemWithEndSolution _legacyEndSolSystems[4] = {

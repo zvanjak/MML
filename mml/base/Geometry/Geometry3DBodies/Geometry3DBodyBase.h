@@ -24,8 +24,12 @@
 
 #include <cmath>
 #include <algorithm>
+#include <limits>
+#include <optional>
 #include <sstream>
+#include <stdexcept>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <mml/MMLBase.h>
@@ -36,42 +40,82 @@
 #include <mml/base/Geometry/Geometry3DBodies/Geometry3DBounding.h>
 
 namespace MML {
+	/// Resolution controls for estimates, not certified quadrature error bounds.
+	struct BoundaryGeometrySettings {
+		int integrationIntervals = Precision::BoundaryIntegrationIntervals;
+		Real derivativeStep = Precision::CbrtEps; ///< Step in normalized [0,1] parameters.
+	};
+
 	namespace Geometry3DBodyDetail {
-		constexpr int BoundaryIntegrationIntervals = 64;
+		inline Real FiniteValue(Real value) {
+			if (!std::isfinite(value))
+				throw GeometryError("Function-bounded geometry requires finite values and representable arithmetic");
+			return value;
+		}
+
+		inline void ValidateBounds(Real lower, Real upper) {
+			FiniteValue(lower);
+			FiniteValue(upper);
+			if (lower > upper)
+				throw GeometryError("Function-bounded geometry requires ordered boundary values");
+		}
+
+		inline Real IntervalWidth(Real lower, Real upper) {
+			ValidateBounds(lower, upper);
+			return FiniteValue(upper - lower);
+		}
+
+		inline void ValidateSettings(const BoundaryGeometrySettings& settings) {
+			if (settings.integrationIntervals < 2 || settings.integrationIntervals % 2 != 0)
+				throw GeometryError("Boundary integration requires a positive even interval count");
+			if (!std::isfinite(settings.derivativeStep) || settings.derivativeStep <= 0
+				|| settings.derivativeStep > Precision::BoundaryDerivativeMaximumStep)
+				throw GeometryError("Boundary derivative step must be finite and in (0, 1/2]");
+		}
 
 		template<typename Function>
-		Real IntegrateSimpson(Function&& function, Real lower, Real upper) {
+		Real IntegrateSimpson(Function&& function, Real lower, Real upper, int intervals) {
+			const Real width = IntervalWidth(lower, upper);
 			if (lower == upper)
-				return 0.0;
-			const Real step = (upper - lower) / BoundaryIntegrationIntervals;
-			Real sum = function(lower) + function(upper);
-			for (int index = 1; index < BoundaryIntegrationIntervals; ++index)
-				sum += (index % 2 == 0 ? 2.0 : 4.0) * function(lower + index * step);
-			return sum * step / 3.0;
+				return 0;
+			Real left = FiniteValue(function(lower));
+			Real average = 0;
+			for (int panel = 0; panel < intervals / 2; ++panel) {
+				const Real middle = FiniteValue(function(std::lerp(lower, upper, Real(2 * panel + 1) / intervals)));
+				const Real right = FiniteValue(function(std::lerp(lower, upper, Real(2 * panel + 2) / intervals)));
+				// Average Simpson panels before scaling, avoiding a large weighted sum.
+				const Real panelAverage = std::lerp(std::lerp(left, right, Real(1) / 2), middle, Real(2) / 3);
+				average = panel == 0 ? panelAverage : std::lerp(average, panelAverage, Real(1) / (panel + 1));
+				left = right;
+			}
+			return FiniteValue(average * width);
 		}
 
-		template<typename Function, typename LowerBound, typename UpperBound>
-		Real IntegrateBoundaryDomain(Function&& function, Real x1, Real x2, LowerBound&& y1, UpperBound&& y2) {
-			return IntegrateSimpson(
-				[&](Real x) {
-					return IntegrateSimpson([&](Real y) { return function(x, y); }, y1(x), y2(x));
-				},
-				x1, x2);
-		}
-
-		inline Real DerivativeX(Real (*function)(Real, Real), Real x, Real y) {
-			const Real step = Precision::CbrtEps * (1.0 + std::abs(x));   // 2nd-order central difference
-			return (function(x + step, y) - function(x - step, y)) / (2.0 * step);
-		}
-
-		inline Real DerivativeY(Real (*function)(Real, Real), Real x, Real y) {
-			const Real step = Precision::CbrtEps * (1.0 + std::abs(y));
-			return (function(x, y + step) - function(x, y - step)) / (2.0 * step);
-		}
-
-		inline Real Derivative(Real (*function)(Real), Real x) {
-			const Real step = Precision::CbrtEps * (1.0 + std::abs(x));
-			return (function(x + step) - function(x - step)) / (2.0 * step);
+		template<typename Function>
+		Real UnitDerivative(Function&& function, Real parameter, Real step) {
+			Real first, second;
+			if (parameter >= step && parameter <= 1 - step) {
+				first = parameter - step;
+				second = parameter + step;
+			} else if (parameter <= Real(1) / 2) {
+				step = std::min(step, (1 - parameter) / 2);
+				first = parameter + step;
+				second = std::min(Real(1), parameter + 2 * step);
+			} else {
+				step = std::min(step, parameter / 2);
+				first = parameter - step;
+				second = std::max(Real(0), parameter - 2 * step);
+			}
+			first = std::clamp(first, Real(0), Real(1));
+			second = std::clamp(second, Real(0), Real(1));
+			const Real delta1 = first - parameter, delta2 = second - parameter;
+			if (delta1 == 0 || delta2 == 0 || delta1 == delta2)
+				throw GeometryError("Boundary derivative step does not resolve distinct parameter nodes");
+			const Real center = FiniteValue(function(parameter));
+			const Real slope1 = FiniteValue((FiniteValue(function(first)) - center) / delta1);
+			const Real slope2 = FiniteValue((FiniteValue(function(second)) - center) / delta2);
+			// Three-point Lagrange derivative using actual, possibly asymmetric node spacing.
+			return FiniteValue(std::lerp(slope1, slope2, -delta1 / (delta2 - delta1)));
 		}
 
 		inline std::vector<Triangle3D> Triangulate(const std::vector<RectSurface3D>& surfaces) {
@@ -99,7 +143,7 @@ namespace MML {
 			const Vec3Cart a(reference, triangle.Pnt1());
 			const Vec3Cart b(reference, triangle.Pnt2());
 			const Vec3Cart c(reference, triangle.Pnt3());
-			return ScalarProduct(a, VectorProduct(b, c)) / 6.0;
+			return ScalarProduct(a, VectorProduct(b, c)) / MML::Real(6.0);
 		}
 
 		inline Real Volume(const std::vector<Triangle3D>& triangles) {
@@ -131,7 +175,8 @@ namespace MML {
 			Real momentZ = 0.0;
 			for (const auto& triangle : triangles) {
 				const Real tetrahedronVolume = SignedTetrahedronVolume(reference, triangle);
-				const Pnt3Cart centroid = (reference + triangle.Pnt1() + triangle.Pnt2() + triangle.Pnt3()) / 4.0;
+				const Vec3Cart centroid = (Vec3Cart(reference, triangle.Pnt1()) + Vec3Cart(reference, triangle.Pnt2())
+					+ Vec3Cart(reference, triangle.Pnt3())) / 4;
 				signedVolume += tetrahedronVolume;
 				momentX += tetrahedronVolume * centroid.X();
 				momentY += tetrahedronVolume * centroid.Y();
@@ -140,7 +185,8 @@ namespace MML {
 
 			if (std::abs(signedVolume) <= Precision::GeometryEpsilon)
 				throw GeometryError("Cannot calculate the center of a zero-volume surface mesh");
-			return Pnt3Cart(momentX / signedVolume, momentY / signedVolume, momentZ / signedVolume);
+			return Pnt3Cart(reference.X() + momentX / signedVolume, reference.Y() + momentY / signedVolume,
+				reference.Z() + momentZ / signedVolume);
 		}
 
 		inline Box3D BoundingBox(const std::vector<Triangle3D>& triangles) {
@@ -180,7 +226,7 @@ namespace MML {
 					+ ScalarProduct(b, c) * a.NormL2()
 					+ ScalarProduct(c, a) * b.NormL2();
 				const Real determinant = ScalarProduct(a, VectorProduct(b, c));
-				solidAngle += 2.0 * std::atan2(determinant, denominator);
+				solidAngle += MML::Real(2.0) * std::atan2(determinant, denominator);
 			}
 			return std::abs(solidAngle) > Constants::PI;
 		}
@@ -244,12 +290,104 @@ namespace MML {
 	/// - Volume integration (mass, center of mass)
 	/// - Moment of inertia calculations
 	/// - Bodies with variable density
-	/// @note Volume/SurfaceArea require numerical integration via
-	/// ContinuousMassMomentOfInertiaTensorCalculator.
+	/// @note Geometric measurements are numerical estimates. Guaranteed bounding
+	/// volumes require a caller-supplied conservative box through SetBoundingBox.
 	/// @see SolidBodyWithBoundary for variable density implementation
 	/// @see SolidBodyWithBoundaryConstDensity for constant density
 
 	class ISolidBodyWithBoundary : public IBody {
+		using YBoundary = Real (*)(Real);
+		using ZBoundary = Real (*)(Real, Real);
+		struct GuaranteedBounds {
+			Box3D box;
+			Real x1, x2;
+			YBoundary y1, y2;
+			ZBoundary z1, z2;
+		};
+		std::optional<GuaranteedBounds> _guaranteedBounds;
+
+		void ValidateDefinition() const {
+			Geometry3DBodyDetail::ValidateBounds(_x1, _x2);
+			if (!_y1 || !_y2 || !_z1 || !_z2)
+				throw GeometryError("Function-bounded geometry requires nonnull boundary callbacks");
+		}
+
+		void ValidateEstimate(const BoundaryGeometrySettings& settings) const {
+			ValidateDefinition();
+			Geometry3DBodyDetail::ValidateSettings(settings);
+		}
+
+		std::pair<Real, Real> YBounds(Real x) const {
+			const Real lower = _y1(x), upper = _y2(x);
+			Geometry3DBodyDetail::ValidateBounds(lower, upper);
+			return {lower, upper};
+		}
+
+		std::pair<Real, Real> ZBounds(Real x, Real y) const {
+			const Real lower = _z1(x, y), upper = _z2(x, y);
+			Geometry3DBodyDetail::ValidateBounds(lower, upper);
+			return {lower, upper};
+		}
+
+		Real XAt(Real s) const { return std::lerp(_x1, _x2, s); }
+
+		Real YAt(Real s, Real t) const {
+			const auto bounds = YBounds(XAt(s));
+			return std::lerp(bounds.first, bounds.second, t);
+		}
+
+		Real ZAt(bool upper, Real s, Real t) const {
+			const Real x = XAt(s);
+			const auto y = YBounds(x);
+			const auto z = ZBounds(x, std::lerp(y.first, y.second, t));
+			return upper ? z.second : z.first;
+		}
+
+		template<typename Function>
+		Real IntegrateDomain(Function&& function, const BoundaryGeometrySettings& settings) const {
+			const Real widthX = Geometry3DBodyDetail::IntervalWidth(_x1, _x2);
+			const Real average = Geometry3DBodyDetail::IntegrateSimpson([&](Real s) {
+				const Real x = XAt(s);
+				const auto bounds = YBounds(x);
+				const Real widthY = Geometry3DBodyDetail::IntervalWidth(bounds.first, bounds.second);
+				return Geometry3DBodyDetail::IntegrateSimpson([&](Real t) {
+					const Real y = std::lerp(bounds.first, bounds.second, t);
+					const auto z = ZBounds(x, y);
+					return function(x, y, z.first, z.second) * widthY;
+				}, 0, 1, settings.integrationIntervals);
+			}, 0, 1, settings.integrationIntervals);
+			return Geometry3DBodyDetail::FiniteValue(widthX * average);
+		}
+
+		static BoundingSphere3D SphereFromBox(const Box3D& box) {
+			const auto lower = box.Min(), upper = box.Max();
+			Geometry3DBodyDetail::ValidateBounds(lower.X(), upper.X());
+			Geometry3DBodyDetail::ValidateBounds(lower.Y(), upper.Y());
+			Geometry3DBodyDetail::ValidateBounds(lower.Z(), upper.Z());
+			const Pnt3Cart center(std::lerp(lower.X(), upper.X(), Real(1) / 2),
+				std::lerp(lower.Y(), upper.Y(), Real(1) / 2), std::lerp(lower.Z(), upper.Z(), Real(1) / 2));
+			const auto roundUp = [](Real value) {
+				return Geometry3DBodyDetail::FiniteValue(std::nextafter(value, std::numeric_limits<Real>::infinity()));
+			};
+			const auto extent = [&](Real lo, Real mid, Real hi) {
+				const Real difference = std::max(mid - lo, hi - mid);
+				return difference == 0 ? Real(0) : roundUp(difference);
+			};
+			const Real x = extent(lower.X(), center.X(), upper.X());
+			const Real y = extent(lower.Y(), center.Y(), upper.Y());
+			const Real z = extent(lower.Z(), center.Z(), upper.Z());
+			const Real scale = std::max({x, y, z});
+			if (scale == 0) return BoundingSphere3D(center, 0);
+			Real squaredNorm = 0;
+			// Outward-round each scaled operation so the sphere encloses the supplied box.
+			for (Real component : {x, y, z}) {
+				if (component == 0) continue;
+				const Real ratio = roundUp(component / scale);
+				squaredNorm = roundUp(squaredNorm + roundUp(ratio * ratio));
+			}
+			return BoundingSphere3D(center, roundUp(scale * roundUp(std::sqrt(squaredNorm))));
+		}
+
 	public:
 		Real _x1, _x2; ///< X-axis bounds
 
@@ -271,7 +409,7 @@ namespace MML {
 			, _y1(y1)
 			, _y2(y2)
 			, _z1(z1)
-			, _z2(z2) {}
+			, _z2(z2) { ValidateDefinition(); }
 
 		/// @brief Get density at a point inside the body.
 		/// @param x Position vector (3D)
@@ -280,15 +418,17 @@ namespace MML {
 		virtual Real getDensity(const VectorN<Real, 3>& x) const = 0;
 
 		virtual bool IsInside(const Pnt3Cart& pnt) const override {
+			ValidateDefinition();
+			detail::ValidateGeometryCoordinates({pnt.X(), pnt.Y(), pnt.Z()}, "ISolidBodyWithBoundary::IsInside");
 			const Real x = pnt.X();
 			const Real y = pnt.Y();
 			const Real z = pnt.Z();
 
 			if (_x1 < x && x < _x2) {
-				// check y bounds
-				if (_y1(x) < y && y < _y2(x)) {
-					// check z bounds
-					if (_z1(x, y) < z && z < _z2(x, y)) {
+				const auto boundsY = YBounds(x);
+				if (boundsY.first < y && y < boundsY.second) {
+					const auto boundsZ = ZBounds(x, y);
+					if (boundsZ.first < z && z < boundsZ.second) {
 						return true; // point is inside the solid body
 					}
 				}
@@ -297,88 +437,124 @@ namespace MML {
 		}
 
 		virtual Real Volume() const override {
-			return Geometry3DBodyDetail::IntegrateBoundaryDomain(
-				[&](Real x, Real y) { return _z2(x, y) - _z1(x, y); }, _x1, _x2, _y1, _y2);
+			return EstimateVolume();
 		}
 
-		virtual Real SurfaceArea() const override {
-			const auto graphArea = [&](Real (*surface)(Real, Real)) {
-				return Geometry3DBodyDetail::IntegrateBoundaryDomain(
-					[&](Real x, Real y) {
-						const Real dx = Geometry3DBodyDetail::DerivativeX(surface, x, y);
-						const Real dy = Geometry3DBodyDetail::DerivativeY(surface, x, y);
-						return std::sqrt(1.0 + dx * dx + dy * dy);
-					},
-					_x1, _x2, _y1, _y2);
+		/// Fixed-grid Simpson estimate; resolution is not a certified error bound.
+		Real EstimateVolume(const BoundaryGeometrySettings& settings = {}) const {
+			ValidateEstimate(settings);
+			return IntegrateDomain([](Real, Real, Real lower, Real upper) { return upper - lower; }, settings);
+		}
+
+		virtual Real SurfaceArea() const override { return EstimateSurfaceArea(); }
+
+		Real EstimateSurfaceArea(const BoundaryGeometrySettings& settings = {}) const {
+			ValidateEstimate(settings);
+			const Real widthX = Geometry3DBodyDetail::IntervalWidth(_x1, _x2);
+			const auto graphArea = [&](bool upper) {
+				return Geometry3DBodyDetail::IntegrateSimpson([&](Real s) {
+					const auto bounds = YBounds(XAt(s));
+					const Real widthY = Geometry3DBodyDetail::IntervalWidth(bounds.first, bounds.second);
+					return Geometry3DBodyDetail::IntegrateSimpson([&](Real t) {
+						const Real ys = Geometry3DBodyDetail::UnitDerivative([&](Real u) { return YAt(u, t); }, s, settings.derivativeStep);
+						const Real zs = Geometry3DBodyDetail::UnitDerivative([&](Real u) { return ZAt(upper, u, t); }, s, settings.derivativeStep);
+						const Real zt = Geometry3DBodyDetail::UnitDerivative([&](Real u) { return ZAt(upper, s, u); }, t, settings.derivativeStep);
+						// Norm of r_s cross r_t for r(s,t)=(x(s),y(s,t),z(s,t)).
+						return std::hypot(ys * zt - zs * widthY, widthX * zt, widthX * widthY);
+					}, 0, 1, settings.integrationIntervals);
+				}, 0, 1, settings.integrationIntervals);
 			};
 
-			const auto yWallArea = [&](Real (*boundary)(Real)) {
-				return Geometry3DBodyDetail::IntegrateSimpson(
-					[&](Real x) {
-						const Real y = boundary(x);
-						const Real derivative = Geometry3DBodyDetail::Derivative(boundary, x);
-						return (_z2(x, y) - _z1(x, y)) * std::sqrt(1.0 + derivative * derivative);
-					},
-					_x1, _x2);
+			const auto yWallArea = [&](YBoundary boundary) {
+				return Geometry3DBodyDetail::IntegrateSimpson([&](Real s) {
+					const Real x = XAt(s), y = Geometry3DBodyDetail::FiniteValue(boundary(x));
+					const auto z = ZBounds(x, y);
+					const Real derivative = Geometry3DBodyDetail::UnitDerivative(
+						[&](Real u) { return boundary(XAt(u)); }, s, settings.derivativeStep);
+					return (z.second - z.first) * std::hypot(widthX, derivative);
+				}, 0, 1, settings.integrationIntervals);
 			};
 
 			const auto xWallArea = [&](Real x) {
-				return Geometry3DBodyDetail::IntegrateSimpson(
-					[&](Real y) { return _z2(x, y) - _z1(x, y); }, _y1(x), _y2(x));
+				const auto bounds = YBounds(x);
+				return Geometry3DBodyDetail::IntegrateSimpson([&](Real y) {
+					const auto z = ZBounds(x, y);
+					return z.second - z.first;
+				}, bounds.first, bounds.second, settings.integrationIntervals);
 			};
 
-			return graphArea(_z1) + graphArea(_z2) + yWallArea(_y1) + yWallArea(_y2)
-				+ xWallArea(_x1) + xWallArea(_x2);
+			return Geometry3DBodyDetail::FiniteValue(graphArea(false) + graphArea(true)
+				+ yWallArea(_y1) + yWallArea(_y2) + xWallArea(_x1) + xWallArea(_x2));
 		}
 
-		virtual Pnt3Cart getCenter() const override {
-			const Real volume = Volume();
-			if (std::abs(volume) <= Precision::GeometryEpsilon)
+		virtual Pnt3Cart getCenter() const override { return EstimateCenter(); }
+
+		Pnt3Cart EstimateCenter(const BoundaryGeometrySettings& settings = {}) const {
+			ValidateEstimate(settings);
+			const Real volume = EstimateVolume(settings);
+			if (volume == 0)
 				throw GeometryError("Cannot calculate the center of a zero-volume bounded solid");
 
-			const auto integrate = [&](const auto& integrand) {
-				return Geometry3DBodyDetail::IntegrateBoundaryDomain(integrand, _x1, _x2, _y1, _y2);
-			};
-			const Real momentX = integrate([&](Real x, Real y) { return x * (_z2(x, y) - _z1(x, y)); });
-			const Real momentY = integrate([&](Real x, Real y) { return y * (_z2(x, y) - _z1(x, y)); });
-			const Real momentZ = integrate([&](Real x, Real y) {
-				const Real lower = _z1(x, y);
-				const Real upper = _z2(x, y);
-				return 0.5 * (upper * upper - lower * lower);
-			});
-			return Pnt3Cart(momentX / volume, momentY / volume, momentZ / volume);
+			const Real momentX = IntegrateDomain([](Real x, Real, Real lower, Real upper) { return x * (upper - lower); }, settings);
+			const Real momentY = IntegrateDomain([](Real, Real y, Real lower, Real upper) { return y * (upper - lower); }, settings);
+			const Real momentZ = IntegrateDomain([](Real, Real, Real lower, Real upper) {
+				return std::lerp(lower, upper, Real(1) / 2) * (upper - lower);
+			}, settings);
+			return Pnt3Cart(Geometry3DBodyDetail::FiniteValue(momentX / volume),
+				Geometry3DBodyDetail::FiniteValue(momentY / volume), Geometry3DBodyDetail::FiniteValue(momentZ / volume));
 		}
 
+		/// Caller asserts this box encloses the complete current boundary functions.
+		void SetBoundingBox(const Box3D& box) {
+			ValidateDefinition();
+			Geometry3DBodyDetail::ValidateBounds(box.Min().X(), box.Max().X());
+			Geometry3DBodyDetail::ValidateBounds(box.Min().Y(), box.Max().Y());
+			Geometry3DBodyDetail::ValidateBounds(box.Min().Z(), box.Max().Z());
+			if (box.Min().X() > _x1 || box.Max().X() < _x2)
+				throw GeometryError("Supplied box does not enclose the body's x interval");
+			_guaranteedBounds = GuaranteedBounds{box, _x1, _x2, _y1, _y2, _z1, _z2};
+		}
+
+		void ClearBoundingBox() { _guaranteedBounds.reset(); }
+
 		virtual Box3D getBoundingBox() const override {
-			Real minY = _y1(_x1);
-			Real maxY = _y2(_x1);
-			Real minZ = _z1(_x1, minY);
-			Real maxZ = _z2(_x1, maxY);
-			for (int xIndex = 0; xIndex <= Geometry3DBodyDetail::BoundaryIntegrationIntervals; ++xIndex) {
-				const Real x = _x1 + (_x2 - _x1) * xIndex / Geometry3DBodyDetail::BoundaryIntegrationIntervals;
-				const Real lowerY = _y1(x);
-				const Real upperY = _y2(x);
+			ValidateDefinition();
+			if (!_guaranteedBounds)
+				throw GeometryError("A caller-guaranteed box is required; use EstimateBoundingBox for sampled extrema");
+			const auto& bound = *_guaranteedBounds;
+			if (bound.x1 != _x1 || bound.x2 != _x2 || bound.y1 != _y1 || bound.y2 != _y2
+				|| bound.z1 != _z1 || bound.z2 != _z2)
+				throw GeometryError("Boundary definition changed; supply a new conservative bounding box");
+			return bound.box;
+		}
+
+		/// Sampled extrema only; this box need not enclose unsampled portions of the body.
+		Box3D EstimateBoundingBox(const BoundaryGeometrySettings& settings = {}) const {
+			ValidateEstimate(settings);
+			Real minY = std::numeric_limits<Real>::infinity(), maxY = -minY;
+			Real minZ = minY, maxZ = maxY;
+			for (int xIndex = 0; xIndex <= settings.integrationIntervals; ++xIndex) {
+				const Real x = XAt(Real(xIndex) / settings.integrationIntervals);
+				const auto bounds = YBounds(x);
+				const Real lowerY = bounds.first, upperY = bounds.second;
 				minY = std::min(minY, lowerY);
 				maxY = std::max(maxY, upperY);
-				for (int yIndex = 0; yIndex <= Geometry3DBodyDetail::BoundaryIntegrationIntervals; ++yIndex) {
-					const Real y = lowerY + (upperY - lowerY) * yIndex / Geometry3DBodyDetail::BoundaryIntegrationIntervals;
-					minZ = std::min(minZ, _z1(x, y));
-					maxZ = std::max(maxZ, _z2(x, y));
+				for (int yIndex = 0; yIndex <= settings.integrationIntervals; ++yIndex) {
+					const Real y = std::lerp(lowerY, upperY, Real(yIndex) / settings.integrationIntervals);
+					const auto z = ZBounds(x, y);
+					minZ = std::min(minZ, z.first);
+					maxZ = std::max(maxZ, z.second);
 				}
 			}
 			return Box3D(Pnt3Cart(_x1, minY, minZ), Pnt3Cart(_x2, maxY, maxZ));
 		}
 
 		virtual BoundingSphere3D getBoundingSphere() const override {
-			Pnt3Cart center = getCenter();
-			Box3D box = getBoundingBox();
+			return SphereFromBox(getBoundingBox());
+		}
 
-			Real radius = 0.0;
-			for (Real x : {box.Min().X(), box.Max().X()})
-				for (Real y : {box.Min().Y(), box.Max().Y()})
-					for (Real z : {box.Min().Z(), box.Max().Z()})
-						radius = std::max(radius, center.Dist(Pnt3Cart(x, y, z)));
-			return BoundingSphere3D(center, radius);
+		BoundingSphere3D EstimateBoundingSphere(const BoundaryGeometrySettings& settings = {}) const {
+			return SphereFromBox(EstimateBoundingBox(settings));
 		}
 
 		virtual std::string to_string() const override {
@@ -434,7 +610,11 @@ namespace MML {
 	public:
 		/// /** @brief Get the number of triangular faces. */
 
-		int getSurfaceCount() const { return _surfaces.size(); }
+		int getSurfaceCount() const {
+			if (_surfaces.size() > static_cast<size_t>((std::numeric_limits<int>::max)()))
+				throw std::length_error("BodyWithTriangleSurfaces: face count exceeds the int index range");
+			return static_cast<int>(_surfaces.size());
+		}
 		/// @deprecated Use getSurfaceCount() (CONTRACT_POLICY §11: accessors are getX()).
 		[[deprecated("use getSurfaceCount()")]]
 		int GetSurfaceCount() const { return getSurfaceCount(); }

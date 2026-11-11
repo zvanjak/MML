@@ -124,6 +124,18 @@ p *= 2.0;
 p *= q;
 ```
 
+Hamilton multiplication (`*` and `*=`) explicitly fuses the leading product pair
+in each component. This preserves the Hamilton terms under optimized GCC 15
+vectorization; last-bit rounding can differ from separately rounded products.
+
+Scalar division (`/` and `/=`) divides each component directly. Every finite nonzero
+divisor is accepted, including subnormal divisors: a tiny quaternion divided by the
+same tiny scalar can have an ordinary, finite result even when the scalar's reciprocal
+would overflow. Exact positive or negative zero throws `DivisionByZeroError`.
+Non-finite quaternion components or divisors throw `NumericInputError`; a rejected
+compound division leaves the quaternion unchanged. As with ordinary floating-point
+arithmetic, an unrepresentable component quotient can still overflow.
+
 ## Quaternion-Specific Operations
 
 ### Conjugate and Inverse
@@ -157,6 +169,24 @@ bool isUnit = q.IsUnit();        // true if ||q|| ≈ 1
 bool isId = q.IsIdentity();      // true if q ≈ [1,0,0,0]
 ```
 
+`Norm()` uses scaled hypotenuse evaluation, so squaring large or tiny components does
+not cause avoidable overflow or underflow. `NormSquared()` still returns the squared
+quantity and may overflow or underflow when that quantity cannot be represented.
+The norm itself can also be unrepresentable; in that case `Norm()` returns infinity.
+
+`Normalize()`, `Normalized()` and `Inverse()` work with scaled components rather than
+forming the original squared norm. They therefore work for finite large quaternions
+even when `NormSquared()` **or `Norm()`** overflows. Normalization preserves direction;
+inversion preserves the reciprocal magnitude.
+
+Both normalization and inversion reject a **norm** strictly less than
+`PrecisionValues<Real>::QuaternionZeroThreshold` with `QuaternionError`.
+The threshold has units of length, not squared length: inversion does not compare the
+squared norm to that unsquared threshold. A norm exactly at the threshold is accepted.
+Non-finite components throw `NumericInputError`, and failed normalization leaves the
+original quaternion unchanged. These operation-specific guards do not change the
+ordinary IEEE behavior of the raw norm queries.
+
 ### Dot Product
 ```cpp
 Quaternion p(1, 0, 0, 0);
@@ -167,6 +197,11 @@ Real dot = p.Dot(q);  // Useful for interpolation
 ```
 
 ## Rotation Operations
+
+Rotation operations (including Euler, matrix and axis-angle extraction) require a
+unit quaternion; use `Normalized()` first when starting from arbitrary components.
+Axis-angle construction requires a unit axis, and SLERP requires unit endpoints.
+These are preconditions, not implicit normalization by every conversion.
 
 ### Rotating Vectors
 ```cpp
@@ -203,6 +238,21 @@ Vec3Cart euler = q.ToEulerZYX();
 // euler[1] = pitch ≈ 0.2
 // euler[2] = roll ≈ 0.1
 ```
+
+Extraction is available for XYZ and ZYX Tait–Bryan conventions and ZXZ and ZYZ
+proper Euler conventions. The returned angle order matches the method name.
+Proper Euler extraction returns the middle angle in `[0, pi]`. Extraction uses
+quaternion half-angle sums/differences and `hypot`, avoiding cancellation in
+independently computed rotation-matrix entries near a pole. This retains the
+determined rotation in float, double, and extended long double.
+
+Euler triples are not unique at a gimbal pole. At pitch `±pi/2`, XYZ/ZYX extraction
+assigns the determined combined rotation to the first returned angle and sets the
+last to zero. At middle angle `0` or `pi`, ZXZ/ZYZ extraction likewise sets the last
+angle to zero. In particular, ZYZ at `beta = pi` retains `alpha - gamma`, not the
+zero-pole `alpha + gamma` combination. Validate extraction by reconstructing the
+rotation, not by requiring the original triple. Negating the quaternion must give
+the same reconstructed rotation.
 
 ### Converting to Rotation Matrix
 ```cpp
@@ -338,3 +388,6 @@ Vec3Cart rotated = combined.Rotate(v);
 ## Runnable Examples
 
 See `src/docs_demos/base/docs_demo_quaternions.cpp` for complete working examples.
+The bounded scale, exception and Euler-pole contracts are demonstrated and checked by
+`Docs_Demo_Quaternion_Scale_Contracts()` in
+`src/docs_demos/base/docs_demo_quaternion_scale_contracts.cpp`.

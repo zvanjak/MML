@@ -367,7 +367,7 @@ void Show_Spherical_Coord_Visualization()
 
     std::cout << "  Scene: " << path << "\n";
 
-    if (std::getenv("MML_VISUALIZER_SAVE_ONLY")) {
+    if (MML::detail::visualizer::GetEnv("MML_VISUALIZER_SAVE_ONLY")) {
         std::cout << "MML_VISUALIZER_SAVE_ONLY is set; not launching MML_WorldVisualizer.\n";
         return;
     }

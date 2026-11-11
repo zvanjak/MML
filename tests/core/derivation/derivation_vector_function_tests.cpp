@@ -216,9 +216,9 @@ namespace   // Anonymous namespace for test helpers
             VectorN<Real, 3> gradient_numerical = NDer2PartialByAll(func, func_comp, point);
             
             INFO("Testing gradient of component " << func_comp);
-            REQUIRE_THAT(gradient_numerical[0], WithinAbs(J_analytical(func_comp, static_cast<MML::Real>(0)), TOL(1e-6, 1e-3)));
-            REQUIRE_THAT(gradient_numerical[1], WithinAbs(J_analytical(func_comp, static_cast<MML::Real>(1)), TOL(1e-6, 1e-3)));
-            REQUIRE_THAT(gradient_numerical[2], WithinAbs(J_analytical(func_comp, static_cast<MML::Real>(2)), TOL(1e-6, 1e-3)));
+            REQUIRE_THAT(gradient_numerical[0], WithinAbs(J_analytical(func_comp, 0), TOL(1e-6, 1e-3)));
+            REQUIRE_THAT(gradient_numerical[1], WithinAbs(J_analytical(func_comp, 1), TOL(1e-6, 1e-3)));
+            REQUIRE_THAT(gradient_numerical[2], WithinAbs(J_analytical(func_comp, 2), TOL(1e-6, 1e-3)));
         }
     }
     
@@ -234,9 +234,9 @@ namespace   // Anonymous namespace for test helpers
             VectorN<Real, 3> gradient_numerical = NDer4PartialByAll(func, func_comp, point);
             
             INFO("Testing gradient of component " << func_comp);
-            REQUIRE_THAT(gradient_numerical[0], WithinAbs(J_analytical(func_comp, static_cast<MML::Real>(0)), TOL(1e-8, 1e-4)));
-            REQUIRE_THAT(gradient_numerical[1], WithinAbs(J_analytical(func_comp, static_cast<MML::Real>(1)), TOL(1e-8, 1e-4)));
-            REQUIRE_THAT(gradient_numerical[2], WithinAbs(J_analytical(func_comp, static_cast<MML::Real>(2)), TOL(1e-8, 1e-4)));
+            REQUIRE_THAT(gradient_numerical[0], WithinAbs(J_analytical(func_comp, 0), TOL(1e-8, 1e-4)));
+            REQUIRE_THAT(gradient_numerical[1], WithinAbs(J_analytical(func_comp, 1), TOL(1e-8, 1e-4)));
+            REQUIRE_THAT(gradient_numerical[2], WithinAbs(J_analytical(func_comp, 2), TOL(1e-8, 1e-4)));
         }
     }
 
@@ -372,11 +372,14 @@ namespace   // Anonymous namespace for test helpers
         else
             INFO("NDer1 error is zero; skipping strict NDer2 < NDer1 check");
 
-        // Allow a tiny tolerance for roundoff: higher-order methods should
-        // generally be no worse than lower-order, but floating-point noise can
-        // make the inequalities non-strict at the TOL(1e-14, 1e-5) scale.
-        REQUIRE(error4 <= error2 + static_cast<MML::Real>(5e-14));  // 4th order no worse than 2nd (tolerance for roundoff)
-        REQUIRE(error6 <= error4 + static_cast<MML::Real>(5e-14));  // 6th order no worse than 4th (tolerance for roundoff)
+        const Real roundoff = TOL(5e-14, Precision::RoundoffZeroThreshold * std::max(Real(1), std::abs(analytical)));
+        REQUIRE(error4 <= error2 + roundoff);
+        REQUIRE(error6 <= error4 + roundoff);
+        if constexpr (std::is_same_v<Real, float>) {
+            REQUIRE(error4 <= roundoff);
+            REQUIRE(error6 <= roundoff);
+            REQUIRE(error8 <= roundoff);
+        }
         // Note: NDer8 may not always be better than NDer6 due to roundoff errors
         // with very small step sizes, so we just verify both are very accurate
         REQUIRE(error8 < TOL(1e-10, 1e-3));   // 8th order still very accurate

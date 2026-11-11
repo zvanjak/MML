@@ -13,6 +13,7 @@
 #define MML_CHEBYSHEV_APPROXIMATION_H
 
 #include "../MMLBase.h"
+#include "../MMLNumericValidation.h"
 #include "../interfaces/IFunction.h"
 #include "../base/Vector/Vector.h"
 #include "../base/Polynom.h"
@@ -32,7 +33,7 @@ namespace MML {
 	// ChebyshevApproximation - Represents a function as a Chebyshev series expansion.
 	//
 	// A function f(x) on [a,b] is approximated as:
-	//   f(x) ≈ Σ_{j=0}^{n-1} c_j * T_j(y)
+	//   f(x) ≈ c_0/2 + Σ_{j=1}^{n-1} c_j * T_j(y)
 	// where y = (2x - a - b) / (b - a) maps [a,b] to [-1,1]
 	//
 	// Key features:
@@ -47,6 +48,15 @@ namespace MML {
 		Vector<Real> _coef; // Chebyshev coefficients c_0, c_1, ..., c_{n-1}
 		Real _a, _b;		// Domain [a, b]
 		int _m;				// Truncation degree (number of terms used in evaluation, ≤ n)
+
+		static int ValidateConstruction(int n, Real a, Real b) {
+			if (n <= 0)
+				throw ArgumentError("ChebyshevApproximation: number of coefficients must be positive");
+			ValidateBounds(a, b, "ChebyshevApproximation");
+			if (!(a < b) || !std::isfinite(b - a))
+				throw ArgumentError("ChebyshevApproximation: require a < b with a representable span");
+			return n;
+		}
 
 	public:
 		// Default constructor - creates empty approximation
@@ -68,65 +78,37 @@ namespace MML {
 		// 1. Sample function at Chebyshev nodes: x_k = cos(π(k+0.5)/n)
 		// 2. Compute coefficients via discrete cosine transform
 		ChebyshevApproximation(const IRealFunction& func, Real a, Real b, int n = 50)
-			: _coef(std::max(n, 0))
-			, _a(a)
-			, _b(b)
-			, _m(n) {
-			if (n <= 0)
-				throw ArgumentError("ChebyshevApproximation: n must be positive");
-			if (a >= b)
-				throw ArgumentError("ChebyshevApproximation: require a < b");
-
-			const Real pi = Constants::PI;
-			Real bma = 0.5 * (b - a); // half-width
-			Real bpa = 0.5 * (b + a); // midpoint
-
-			// Sample function at Chebyshev nodes
-			Vector<Real> f(n);
-			for (int k = 0; k < n; k++) {
-				Real y = std::cos(pi * (k + 0.5) / n); // Chebyshev node on [-1,1]
-				f[k] = func(y * bma + bpa);			   // Map to [a,b] and evaluate
-			}
-
-			// Compute Chebyshev coefficients via DCT-II formula
-			// c_k = (2/n) * Σ_{j=0}^{n-1} f[j] * cos(π * k * (j + 0.5) / n)
-			Real fac = 2.0 / n;
-			for (int k = 0; k < n; k++) {
-				Real sum = 0.0;
-				for (int j = 0; j < n; j++)
-					sum += f[j] * std::cos(pi * k * (j + 0.5) / n);
-				_coef[k] = fac * sum;
-			}
-		}
+			: ChebyshevApproximation(std::function<Real(Real)>(
+				[&func](Real x) { return func(x); }), a, b, n) {}
 
 		// Construct from std::function for convenience (lambdas, etc.)
 		ChebyshevApproximation(std::function<Real(Real)> func, Real a, Real b, int n = 50)
-			: _coef(std::max(n, 0))
+			: _coef(ValidateConstruction(n, a, b))
 			, _a(a)
 			, _b(b)
 			, _m(n) {
-			if (n <= 0)
-				throw ArgumentError("ChebyshevApproximation: n must be positive");
-			if (a >= b)
-				throw ArgumentError("ChebyshevApproximation: require a < b");
+			if (!func)
+				throw ArgumentError("ChebyshevApproximation: function must not be empty");
 
 			const Real pi = Constants::PI;
-			Real bma = 0.5 * (b - a);
-			Real bpa = 0.5 * (b + a);
+			Real bma = MML::Real(0.5) * (b - a);
+			Real bpa = a + bma;
 
 			Vector<Real> f(n);
 			for (int k = 0; k < n; k++) {
-				Real y = std::cos(pi * (k + 0.5) / n);
+				Real y = std::cos(pi * (k + MML::Real(0.5)) / n);
 				f[k] = func(y * bma + bpa);
+				ValidateFunctionValue(f[k], "Chebyshev sample");
 			}
 
 			// Compute Chebyshev coefficients via DCT-II formula
-			Real fac = 2.0 / n;
+			Real fac = MML::Real(2.0) / n;
 			for (int k = 0; k < n; k++) {
 				Real sum = 0.0;
 				for (int j = 0; j < n; j++)
-					sum += f[j] * std::cos(pi * k * (j + 0.5) / n);
-				_coef[k] = fac * sum;
+					sum += (fac * f[j]) * std::cos(pi * k * (j + MML::Real(0.5)) / n);
+				ValidateFunctionValue(sum, "Chebyshev coefficient");
+				_coef[k] = sum;
 			}
 		}
 
@@ -141,11 +123,9 @@ namespace MML {
 			: _coef(coefficients)
 			, _a(a)
 			, _b(b)
-			, _m(coefficients.size()) {
-			if (coefficients.size() == 0)
-				throw ArgumentError("ChebyshevApproximation: coefficients cannot be empty");
-			if (a >= b)
-				throw ArgumentError("ChebyshevApproximation: require a < b");
+			, _m(ValidateConstruction(coefficients.size(), a, b)) {
+			for (int i = 0; i < _m; ++i)
+				ValidateFunctionValue(_coef[i], "Chebyshev coefficient");
 		}
 
 		// Copy constructor
@@ -178,16 +158,16 @@ namespace MML {
 		//
 		// Throws if x is outside [a, b] (can be relaxed for extrapolation)
 		Real operator()(Real x) const override {
-			// Check domain (comment out for extrapolation)
-			if ((x - _a) * (x - _b) > 0.0)
+			ValidateFinite(x, "Chebyshev query");
+			if (x < _a || x > _b)
 				throw DomainError("ChebyshevApproximation: x not in range [a, b]");
 
 			if (_m == 0)
 				return 0.0;
 
 			// Map x from [a,b] to y in [-1,1]
-			Real y = (2.0 * x - _a - _b) / (_b - _a);
-			Real y2 = 2.0 * y;
+			Real y = MML::Real(2.0) * ((x - _a) / (_b - _a)) - MML::Real(1.0);
+			Real y2 = MML::Real(2.0) * y;
 
 			// Clenshaw recurrence (backward)
 			Real d = 0.0, dd = 0.0;
@@ -197,7 +177,7 @@ namespace MML {
 				dd = sv;
 			}
 
-			return y * d - dd + 0.5 * _coef[0];
+			return y * d - dd + MML::Real(0.5) * _coef[0];
 		}
 
 		// Evaluate using only the first m terms (m ≤ _m)
@@ -205,11 +185,12 @@ namespace MML {
 			if (m <= 0 || m > _m)
 				throw ArgumentError("ChebyshevApproximation::Eval: invalid m");
 
-			if ((x - _a) * (x - _b) > 0.0)
+			ValidateFinite(x, "Chebyshev query");
+			if (x < _a || x > _b)
 				throw DomainError("ChebyshevApproximation::Eval: x not in range [a, b]");
 
-			Real y = (2.0 * x - _a - _b) / (_b - _a);
-			Real y2 = 2.0 * y;
+			Real y = MML::Real(2.0) * ((x - _a) / (_b - _a)) - MML::Real(1.0);
+			Real y2 = MML::Real(2.0) * y;
 
 			Real d = 0.0, dd = 0.0;
 			for (int j = m - 1; j > 0; j--) {
@@ -218,7 +199,7 @@ namespace MML {
 				dd = sv;
 			}
 
-			return y * d - dd + 0.5 * _coef[0];
+			return y * d - dd + MML::Real(0.5) * _coef[0];
 		}
 
 		Vector<Real> Evaluate(const Vector<Real>& points) const {
@@ -232,7 +213,7 @@ namespace MML {
 				throw ArgumentError("ChebyshevApproximation::UniformGrid requires at least two points");
 			Vector<Real> points(numPoints);
 			for (int i = 0; i < numPoints; ++i)
-				points[i] = _a + (_b - _a) * i / (numPoints - 1);
+				points[i] = i == numPoints - 1 ? _b : _a + (_b - _a) * (Real(i) / (numPoints - 1));
 			return points;
 		}
 
@@ -301,7 +282,7 @@ namespace MML {
 		//   c'_{j-1} = c'_{j+1} + 2j * c_j   for j = n-2, ..., 1
 		// Then scale by 2/(b-a) for domain mapping.
 		ChebyshevApproximation Derivative() const {
-			int n = static_cast<int>(_coef.size());
+			int n = _m;
 			if (n <= 1) {
 				// Derivative of constant is zero
 				Vector<Real> zero_coef(1);
@@ -311,13 +292,13 @@ namespace MML {
 
 			Vector<Real> cder(n);
 			cder[n - 1] = 0.0;
-			cder[n - 2] = 2.0 * (n - 1) * _coef[n - 1];
+			cder[n - 2] = MML::Real(2.0) * (n - 1) * _coef[n - 1];
 
 			for (int j = n - 2; j > 0; j--)
-				cder[j - 1] = cder[j + 1] + 2.0 * j * _coef[j];
+				cder[j - 1] = cder[j + 1] + MML::Real(2.0) * j * _coef[j];
 
 			// Scale for domain mapping: d/dx = (2/(b-a)) * d/dy
-			Real con = 2.0 / (_b - _a);
+			Real con = MML::Real(2.0) / (_b - _a);
 			for (int j = 0; j < n; j++)
 				cder[j] *= con;
 
@@ -329,29 +310,31 @@ namespace MML {
 		// The constant of integration is chosen so that the integral is zero at x = a.
 		//
 		// The integral of a Chebyshev series:
-		//   c''_j = (con) * (c_{j-1} - c_{j+1}) / j   for j = 1, ..., n-2
-		//   c''_{n-1} = (con) * c_{n-2} / (n-1)
+		//   c''_j = con * (c_{j-1} - c_{j+1}) / j, for j = 1, ..., n
+		// Missing coefficients are zero; n active terms require n+1 integral terms.
 		//   c''_0 chosen to make integral(a) = 0
 		// where con = (b-a)/4.
 		ChebyshevApproximation Integral() const {
-			int n = static_cast<int>(_coef.size());
+			int n = _m;
+			if (n == 0)
+				return ChebyshevApproximation(Vector<Real>{0}, _a, _b);
+			if (n == std::numeric_limits<int>::max())
+				throw ArgumentError("ChebyshevApproximation::Integral: coefficient count exceeds integer range");
 
-			Vector<Real> cint(n);
+			Vector<Real> cint(n + 1);
 			Real sum = 0.0;
 			Real fac = 1.0;
-			Real con = 0.25 * (_b - _a);
+			Real con = MML::Real(0.25) * (_b - _a);
 
-			for (int j = 1; j < n - 1; j++) {
-				cint[j] = con * (_coef[j - 1] - _coef[j + 1]) / j;
+			for (int j = 1; j <= n; j++) {
+				const Real next = j + 1 < n ? _coef[j + 1] : 0;
+				cint[j] = con * (_coef[j - 1] - next) / j;
 				sum += fac * cint[j];
 				fac = -fac;
 			}
 
-			cint[n - 1] = con * _coef[n - 2] / (n - 1);
-			sum += fac * cint[n - 1];
-
 			// c_0 chosen so integral(a) = 0
-			cint[0] = 2.0 * sum;
+			cint[0] = MML::Real(2.0) * sum;
 
 			return ChebyshevApproximation(cint, _a, _b);
 		}
@@ -380,7 +363,7 @@ namespace MML {
 			for (int j = m - 2; j > 0; j--) {
 				for (int k = m - j; k > 0; k--) {
 					Real sv = d[k];
-					d[k] = 2.0 * d[k - 1] - dd[k];
+					d[k] = MML::Real(2.0) * d[k - 1] - dd[k];
 					dd[k] = sv;
 				}
 				Real sv = d[0];
@@ -391,7 +374,7 @@ namespace MML {
 			for (int j = m - 1; j > 0; j--)
 				d[j] = d[j - 1] - dd[j];
 
-			d[0] = -dd[0] + 0.5 * _coef[0];
+			d[0] = -dd[0] + MML::Real(0.5) * _coef[0];
 
 			return Polynom<Real>(d);
 		}
@@ -412,23 +395,22 @@ namespace MML {
 		// Compute maximum absolute error compared to a reference function
 		// by sampling at many points
 		Real MaxError(const IRealFunction& func, int numSamples = 1000) const {
-			Real maxErr = 0.0;
-			for (int i = 0; i <= numSamples; i++) {
-				Real x = _a + i * (_b - _a) / numSamples;
-				Real err = std::abs((*this)(x)-func(x));
-				if (err > maxErr)
-					maxErr = err;
-			}
-			return maxErr;
+			return MaxError(std::function<Real(Real)>(
+				[&func](Real x) { return func(x); }), numSamples);
 		}
 
 		Real MaxError(std::function<Real(Real)> func, int numSamples = 1000) const {
+			if (numSamples <= 0 || !func)
+				throw ArgumentError("ChebyshevApproximation::MaxError: require positive sampling count and a function");
 			Real maxErr = 0.0;
-			for (int i = 0; i <= numSamples; i++) {
-				Real x = _a + i * (_b - _a) / numSamples;
-				Real err = std::abs((*this)(x)-func(x));
-				if (err > maxErr)
-					maxErr = err;
+			for (int i = 0; ; ++i) {
+				Real x = i == numSamples ? _b : _a + (_b - _a) * (Real(i) / numSamples);
+				Real reference = func(x);
+				ValidateFunctionValue(reference, "Chebyshev error reference");
+				Real err = std::abs((*this)(x) - reference);
+				ValidateFunctionValue(err, "Chebyshev error estimate");
+				maxErr = std::max(maxErr, err);
+				if (i == numSamples) break;
 			}
 			return maxErr;
 		}
@@ -461,10 +443,10 @@ namespace MML {
 		int degree = -1;
 		int terms_used = 0;
 		int samples_used = 0;
-		Real coefficient_tail_error = 0.0;
-		Real max_error_estimate = 0.0;
-		Real rms_error_estimate = 0.0;
-		bool converged = false;
+		Real coefficient_tail_error = NoEstimate;
+		Real max_error_estimate = NoEstimate;
+		Real rms_error_estimate = NoEstimate;
+		bool converged = false; // Only adaptive construction tests error estimates against a tolerance.
 	};
 
 	namespace ChebyshevApproximationDetail {
@@ -473,6 +455,7 @@ namespace MML {
 			Real tail = 0.0;
 			for (int i = first; i < approximation.NumCoefficients(); ++i)
 				tail += std::abs(approximation.Coefficient(i));
+			ValidateFunctionValue(tail, "Chebyshev coefficient tail");
 			return tail;
 		}
 
@@ -480,21 +463,28 @@ namespace MML {
 		void EstimateErrors(const ChebyshevApproximation& approximation, Function&& function,
 			int sampleCount, Real& maxError, Real& rmsError) {
 			maxError = 0.0;
-			Real squaredError = 0.0;
-			int count = std::max(2, sampleCount);
+			rmsError = 0.0;
+			int count = sampleCount;
+			const Real rootCount = std::sqrt(Real(count));
 			for (int i = 0; i < count; ++i) {
-				Real x = approximation.DomainMin()
-					+ (approximation.DomainMax() - approximation.DomainMin()) * i / (count - 1);
-				Real error = approximation(x) - function(x);
+				Real x = i == count - 1 ? approximation.DomainMax() : approximation.DomainMin()
+					+ (approximation.DomainMax() - approximation.DomainMin()) * (Real(i) / (count - 1));
+				Real reference = function(x);
+				ValidateFunctionValue(reference, "Chebyshev validation sample");
+				Real error = approximation(x) - reference;
+				ValidateFunctionValue(error, "Chebyshev validation error");
 				maxError = std::max(maxError, std::abs(error));
-				squaredError += error * error;
+				rmsError = std::hypot(rmsError, error / rootCount);
 			}
-			rmsError = std::sqrt(squaredError / count);
+			ValidateFunctionValue(rmsError, "Chebyshev RMS error");
 		}
 
 		template<typename Function>
 		ChebyshevApproximationResult BuildResult(Function&& function, Real a, Real b, int terms,
 			int validationSamples, int tailTerms) {
+			if (validationSamples < 2 || tailTerms < 1
+				|| terms > std::numeric_limits<int>::max() - validationSamples)
+				throw ArgumentError("Chebyshev diagnostics: invalid sampling counts");
 			AlgorithmTimer timer;
 			ChebyshevApproximationResult result;
 			result.algorithm_name = "ChebyshevApproximation";
@@ -503,11 +493,12 @@ namespace MML {
 			result.coefficients = result.approximation.Coefficients();
 			result.degree = result.approximation.degree();
 			result.terms_used = result.approximation.NumTerms();
-			result.samples_used = terms + std::max(2, validationSamples);
+			result.samples_used = terms + validationSamples;
 			result.function_evaluations = result.samples_used;
 			result.coefficient_tail_error = CoefficientTailError(result.approximation, tailTerms);
 			EstimateErrors(result.approximation, std::forward<Function>(function), validationSamples,
 				result.max_error_estimate, result.rms_error_estimate);
+			result.status = AlgorithmStatus::Completed;
 			result.elapsed_time_ms = timer.elapsed_ms();
 			return result;
 		}
@@ -518,15 +509,15 @@ namespace MML {
 		int validationSamples = 257, int tailTerms = 4) {
 		auto result = ChebyshevApproximationDetail::BuildResult(
 			function, a, b, terms, validationSamples, tailTerms);
-		result.converged = true;
 		return result;
 	}
 
 	inline ChebyshevApproximationResult ApproximateChebyshevAdaptive(
 		const std::function<Real(Real)>& function, Real a, Real b,
 		const ChebyshevApproximationConfig& config = {}) {
+		ValidateTolerance(config.tolerance, "ApproximateChebyshevAdaptive");
 		if (config.initial_terms < 2 || config.max_terms < config.initial_terms
-			|| config.validation_samples < 2 || config.tail_terms < 1 || config.tolerance <= 0.0)
+			|| config.validation_samples < 2 || config.tail_terms < 1)
 			throw ArgumentError("ApproximateChebyshevAdaptive: invalid configuration");
 
 		int terms = config.initial_terms;
@@ -535,18 +526,23 @@ namespace MML {
 		while (true) {
 			result = ChebyshevApproximationDetail::BuildResult(function, a, b, terms,
 				config.validation_samples, config.tail_terms);
-			totalSamples += terms + config.validation_samples;
+			if (result.samples_used > std::numeric_limits<int>::max() - totalSamples)
+				throw NumericalMethodError("Chebyshev adaptive sample count exceeds integer range");
+			totalSamples += result.samples_used;
 			result.samples_used = totalSamples;
 			result.function_evaluations = totalSamples;
 			result.converged = result.coefficient_tail_error <= config.tolerance
 				&& result.max_error_estimate <= config.tolerance;
-			if (result.converged) return result;
+			if (result.converged) {
+				result.status = AlgorithmStatus::Success;
+				return result;
+			}
 			if (terms >= config.max_terms) {
 				result.status = AlgorithmStatus::ToleranceUnachievable;
 				result.error_message = "Chebyshev approximation reached max_terms before tolerance";
 				return result;
 			}
-			terms = std::min(config.max_terms, terms * 2);
+			terms += std::min(terms, config.max_terms - terms);
 		}
 	}
 
@@ -565,7 +561,7 @@ namespace MML {
 		const Real pi = Constants::PI;
 
 		for (int k = 0; k < n; k++)
-			roots[k] = std::cos(pi * (2 * k + 1) / (2.0 * n));
+			roots[k] = std::cos(pi * (2 * k + 1) / (MML::Real(2.0) * n));
 
 		return roots;
 	}

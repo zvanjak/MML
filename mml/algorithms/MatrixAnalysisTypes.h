@@ -108,9 +108,9 @@ namespace MML::MatrixAlg
 	template<MMLScalar Scalar>
 	struct FaddeevLeVerrierResult
 	{
-		Vector<Scalar> characteristicCoefficients;
+		Vector<Scalar> characteristicCoefficients; // Descending powers, leading coefficient one.
 		Scalar determinant{};
-		std::optional<Matrix<Scalar>> inverse;
+		std::optional<Matrix<Scalar>> inverse; // LU inverse, checked against both identity products.
 	};
 
 	template<MMLScalar Scalar>

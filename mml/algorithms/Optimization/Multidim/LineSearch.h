@@ -136,6 +136,9 @@ namespace MML::Optimization {
          * @param p Current point (updated to minimum along line)
          * @param xi Search direction (updated to displacement vector)
          * @return Function value at minimum
+         * @throws MultidimOptimizationError if no bracket can be found along the line or the
+         *         one-dimensional minimization does not converge; NumericInputError propagates
+         *         from the scalar minimizer when the objective returns a nonfinite value.
          */
 		template<int N>
 		static Real Minimize(const IScalarFunction<N>& func, VectorN<Real, N>& p, VectorN<Real, N>& xi, Real tol = PrecisionValues<Real>::OptimizationTolerance) {
@@ -145,11 +148,16 @@ namespace MML::Optimization {
 			auto bracket = Minimization::BracketMinimum(f1dim, 0.0, 1.0);
 			if (!bracket.valid) {
 				// Try with different initial interval
-				bracket = Minimization::BracketMinimum(f1dim, 0.0, 0.1);
+				bracket = Minimization::BracketMinimum(f1dim, MML::Real(0.0), MML::Real(0.1));
 			}
+			if (!bracket.valid)
+				throw MultidimOptimizationError("LineMinimizer: could not bracket a minimum along the search direction");
 
 			// Find minimum using Brent's method
 			auto result = Minimization::BrentMinimize(f1dim, bracket, tol);
+			if (!result.converged)
+				throw MultidimOptimizationError("LineMinimizer: Brent line minimization did not converge ("
+					+ result.error_message + ")");
 			Real xmin = result.xmin;
 
 			// Update p and xi

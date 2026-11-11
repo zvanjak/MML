@@ -2,9 +2,15 @@
 
 ## Overview
 
-The Linear System Test Bed provides a comprehensive collection of test matrices with known solutions, eigenvalues, and properties for testing and validating linear equation solvers. It includes 24 carefully selected matrices ranging from small (3×3) to large (50×50), covering various numerical characteristics and problem types.
+The Linear System Test Bed provides reusable matrices with known solutions, eigenvalues, and available reference properties for testing linear equation solvers. The current registry contains 53 systems: 27 real, 7 symmetric, 15 complex, 3 overdetermined, and 1 multi-RHS case, with square matrices ranging from 2×2 to 20×20. Query the count accessors rather than relying on historical counts in older examples below.
 
 **Location**: `test_beds/linear_alg_eq_systems_test_bed.h`
+
+**Metadata:** use `LinearAlgEqTestBed::getMetadata(name)` for source, category and
+optional stored conditioning information across all registry families. See
+[Shared Metadata](TestData_TestBeds_Conventions.md#shared-metadata-progressive-adoption)
+for unknown-value and verification semantics and a runnable example. Stored fixture
+constants, not historical approximate catalog descriptions, are the reference values.
 
 ## Quick Start
 
@@ -90,20 +96,20 @@ class TestLinearSystemMultiRHS {
 
 | Name | Size | Condition# | Description | Use Case |
 |------|------|-----------|-------------|----------|
-| `mat_3x3` | 3×3 | ~100 | General dense matrix | Basic solver validation |
-| `mat_3x3_1` | 3×3 | ~50 | Variant with different structure | Robustness testing |
-| `mat_3x3_2` | 3×3 | ~200 | Another structural variant | Edge case testing |
-| `mat_3x3_3` | 3×3 | ~150 | Additional variant | Comprehensive coverage |
-| `mat_3x3_4` | 3×3 | ~80 | Final small variant | Complete small matrix set |
+| `mat_3x3` | 3×3 | ~4.11204 | General dense matrix | Basic solver validation |
+| `mat_3x3_1` | 3×3 | ~5.65947 | Variant with different structure | Robustness testing |
+| `mat_3x3_2` | 3×3 | ~10.2630 | Another structural variant | Edge case testing |
+| `mat_3x3_3` | 3×3 | ~1.86744 | Additional variant | Comprehensive coverage |
+| `mat_3x3_4` | 3×3 | ~7.68242 | Final small variant | Complete small matrix set |
 
 #### Medium and Large Matrices
 
 | Name | Size | Condition# | Description | Use Case |
 |------|------|-----------|-------------|----------|
-| `mat_5x5` | 5×5 | ~500 | Medium dense matrix | Mid-size testing |
-| `mat_8x8` | 8×8 | ~2000 | Larger dense matrix | Scaling verification |
-| `mat_10x10` | 10×10 | ~5000 | Double-digit size | Performance baseline |
-| `mat_20x20` | 20×20 | ~20000 | Large system | Large-scale testing |
+| `mat_5x5` | 5×5 | ~18.8023 | Medium dense matrix | Mid-size testing |
+| `mat_8x8` | 8×8 | Unknown | Larger dense matrix | Scaling verification |
+| `mat_10x10` | 10×10 | Unknown | Double-digit size | Performance baseline |
+| `mat_20x20` | 20×20 | Unknown | Large system | Large-scale testing |
 
 **Usage Example**:
 ```cpp
@@ -127,7 +133,7 @@ for (int i = 0; i < LinearAlgEqTestBed::numLinAlgEqSystems(); i++) {
 | `hilbert_3x3` | 3×3 | ~524 | {1, 0, 0} | Smallest Hilbert, mildly ill-conditioned |
 | `hilbert_4x4` | 4×4 | ~15,514 | {1, 1, 1, 1} | Moderate ill-conditioning |
 | `hilbert_5x5` | 5×5 | ~476,607 | {1, 0, 0, 0, 0} | Severely ill-conditioned |
-| `hilbert_8x8` | 8×8 | ~1.53×10¹⁰ | First row | Extremely ill-conditioned |
+| `hilbert_8x8` | 8×8 | ~1.69361×10¹¹ | First row | Extremely ill-conditioned |
 
 **When to Use**:
 - Testing solver stability with ill-conditioned systems

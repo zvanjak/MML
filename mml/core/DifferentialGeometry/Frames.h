@@ -14,7 +14,9 @@
 #include <mml/MMLBase.h>
 
 #include <mml/core/Derivation.h>
+#include <mml/core/Derivation/DerivativeProviders.h>
 #include <mml/core/Surfaces.h>
+#include <mml/core/detail/GeometryChecks.h>
 
 namespace MML::DifferentialGeometry
 {
@@ -25,30 +27,41 @@ namespace MML::DifferentialGeometry
 		VectorN<Real, N> normal;
 		Real speed = static_cast<MML::Real>(0.0);
 		Real curvature = static_cast<MML::Real>(0.0);
+		bool normal_defined = false;
 	};
 
 	template<int N>
 	FrenetFrame<N> ComputeFrenetFrame(const IParametricCurve<N>& curve, Real t, Real derivativeStep = static_cast<MML::Real>(0.0))
 	{
+		ValidateFinite(t, "ComputeFrenetFrame parameter");
+		ValidateNonNegativeTolerance(derivativeStep, "ComputeFrenetFrame derivative step");
+		GeometryDetail::RequireRange(curve.getMinT(), curve.getMaxT(), "ComputeFrenetFrame curve domain");
+		if (t < curve.getMinT() || t > curve.getMaxT())
+			throw DomainError("ComputeFrenetFrame - parameter outside curve domain");
 		VectorN<Real, N> first = derivativeStep > static_cast<MML::Real>(0.0)
 			? Derivation::NDer4(curve, t, derivativeStep)
-			: Derivation::NDer4(curve, t);
+			: Differential::CurveDerivative(curve, t, 1);
 		VectorN<Real, N> second = derivativeStep > static_cast<MML::Real>(0.0)
 			? Derivation::NSecDer4(curve, t, derivativeStep)
-			: Derivation::NSecDer4(curve, t);
+			: Differential::CurveDerivative(curve, t, 2);
 
 		FrenetFrame<N> frame;
-		frame.speed = first.NormL2();
-		if (frame.speed <= PrecisionValues<Real>::NumericalZeroThreshold)
+		frame.speed = GeometryDetail::Norm(first);
+		if (frame.speed == 0)
 			throw DomainError("ComputeFrenetFrame - curve speed is zero");
 
-		frame.tangent = first / frame.speed;
-		Real tangentialAcceleration = Utils::ScalarProduct(second, frame.tangent);
-		VectorN<Real, N> normalComponent = second - tangentialAcceleration * frame.tangent;
-		Real normalMagnitude = normalComponent.NormL2();
-		frame.curvature = normalMagnitude / (frame.speed * frame.speed);
-		if (normalMagnitude > PrecisionValues<Real>::NumericalZeroThreshold)
+		frame.tangent = GeometryDetail::Unit(first);
+		const Real acceleration = GeometryDetail::Norm(second);
+		if (acceleration == 0)
+			return frame;
+		const auto direction = second / acceleration;
+		const auto normalComponent = direction - Utils::ScalarProduct(direction, frame.tangent) * frame.tangent;
+		const Real normalMagnitude = GeometryDetail::Norm(normalComponent);
+		if (normalMagnitude > PrecisionValues<Real>::NumericalZeroThreshold) {
+			frame.curvature = GeometryDetail::Checked(((normalMagnitude * acceleration) / frame.speed) / frame.speed);
 			frame.normal = normalComponent / normalMagnitude;
+			frame.normal_defined = true;
+		}
 
 		return frame;
 	}
@@ -103,32 +116,17 @@ namespace MML::DifferentialGeometry
 		Real derivativeStep = static_cast<MML::Real>(0.0))
 	{
 		Detail::SurfaceParameterCurve3D ambientCurve(surface, parameterCurve);
+		const auto frenet = ComputeFrenetFrame(ambientCurve, t, derivativeStep);
 		VectorN<Real, 2> params = parameterCurve(t);
 
-		VectorN<Real, 3> first = derivativeStep > static_cast<MML::Real>(0.0)
-			? Derivation::NDer4(ambientCurve, t, derivativeStep)
-			: Derivation::NDer4(ambientCurve, t);
-		VectorN<Real, 3> second = derivativeStep > static_cast<MML::Real>(0.0)
-			? Derivation::NSecDer4(ambientCurve, t, derivativeStep)
-			: Derivation::NSecDer4(ambientCurve, t);
-
 		DarbouxFrame frame;
-		Real speed = first.NormL2();
-		if (speed <= PrecisionValues<Real>::NumericalZeroThreshold)
-			throw DomainError("ComputeDarbouxFrame - surface curve speed is zero");
-
-		frame.tangent = first / speed;
-		frame.surfaceNormal = surface.Normal(params[0], params[1]);
-		frame.tangentNormal = Detail::Cross3D(frame.surfaceNormal, frame.tangent);
-		Real tangentNormalNorm = frame.tangentNormal.NormL2();
-		if (tangentNormalNorm > PrecisionValues<Real>::NumericalZeroThreshold)
-			frame.tangentNormal = frame.tangentNormal / tangentNormalNorm;
-
-		Real tangentialAcceleration = Utils::ScalarProduct(second, frame.tangent);
-		frame.curvatureVector = (second - tangentialAcceleration * frame.tangent) / (speed * speed);
-		frame.curvature = frame.curvatureVector.NormL2();
-		frame.normalCurvature = Utils::ScalarProduct(frame.curvatureVector, frame.surfaceNormal);
-		frame.geodesicCurvature = Utils::ScalarProduct(frame.curvatureVector, frame.tangentNormal);
+		frame.tangent = frenet.tangent;
+		frame.surfaceNormal = GeometryDetail::Unit(surface.Normal(params[0], params[1]));
+		frame.tangentNormal = GeometryDetail::Unit(Detail::Cross3D(frame.surfaceNormal, frame.tangent));
+		frame.curvatureVector = GeometryDetail::Checked(frenet.curvature * frenet.normal);
+		frame.curvature = frenet.curvature;
+		frame.normalCurvature = GeometryDetail::Checked(Utils::ScalarProduct(frame.curvatureVector, frame.surfaceNormal));
+		frame.geodesicCurvature = GeometryDetail::Checked(Utils::ScalarProduct(frame.curvatureVector, frame.tangentNormal));
 
 		return frame;
 	}

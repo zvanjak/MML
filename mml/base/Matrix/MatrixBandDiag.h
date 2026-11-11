@@ -21,17 +21,18 @@
 /// - General banded systems from discretization schemes
 /// @section banddiag_structure Matrix Structure
 /// For an n×n matrix with lower bandwidth m₁ and upper bandwidth m₂:
-/// @f[
-/// A = \begin{pmatrix}
-/// a_{0,0} & a_{0,1} & \cdots & a_{0,m_2} & 0 & \cdots \\
-/// a_{1,0} & a_{1,1} & a_{1,2} & \cdots & a_{1,m_2+1} & 0 & \cdots \\
-/// \vdots & & \ddots & & & \ddots & \\
-/// a_{m_1,0} & \cdots & & & & & a_{m_1,m_1+m_2} & 0 \\
-/// 0 & a_{m_1+1,1} & & & & & & \ddots \\
-/// \vdots & & \ddots & & & & & \\
-/// 0 & \cdots & 0 & a_{n-1,n-m_1-1} & \cdots & & & a_{n-1,n-1}
-/// \end{pmatrix}
-/// @f]
+/** @f[
+ * A = \begin{pmatrix}
+ * a_{0,0} & a_{0,1} & \cdots & a_{0,m_2} & 0 & \cdots \\
+ * a_{1,0} & a_{1,1} & a_{1,2} & \cdots & a_{1,m_2+1} & 0 & \cdots \\
+ * \vdots & & \ddots & & & \ddots & \\
+ * a_{m_1,0} & \cdots & & & & & a_{m_1,m_1+m_2} & 0 \\
+ * 0 & a_{m_1+1,1} & & & & & & \ddots \\
+ * \vdots & & \ddots & & & & & \\
+ * 0 & \cdots & 0 & a_{n-1,n-m_1-1} & \cdots & & & a_{n-1,n-1}
+ * \end{pmatrix}
+ * @f]
+ */
 /// @section banddiag_storage Storage Layout
 /// Elements are stored in a dense n × (m₁ + m₂ + 1) matrix where:
 /// - Column m₁ contains the main diagonal
@@ -71,6 +72,7 @@
 
 // Standard headers - include what we use
 #include <algorithm>
+#include <cmath>
 #include <iomanip>
 #include <iostream>
 
@@ -336,16 +338,16 @@ namespace MML {
 		/// @return √(Σ|aᵢⱼ|²) over all band elements.
 
 		Real NormFrobenius() const {
-			Real sum = 0.0;
+			StableNormL2Accumulator accumulator;
 			for (int i = 0; i < _dim; i++) {
 				int j_start = std::max(0, i - _m1);
 				int j_end = std::min(_dim - 1, i + _m2);
 				for (int j = j_start; j <= j_end; j++) {
 					Real val = (*this)(i, j);
-					sum += val * val;
+					accumulator.add(std::abs(val));
 				}
 			}
-			return std::sqrt(sum);
+			return accumulator.value();
 		}
 
 		/// @brief Computes the infinity norm (max row sum).

@@ -148,6 +148,20 @@ namespace MML::DifferentialGeometry
 	private:
 		Pole _pole;
 
+		struct ScaledPoint
+		{
+			Real u, v, reciprocalScale, denominator;
+		};
+
+		static ScaledPoint ScalePoint(const Point<Real, 2, Parameter2>& point)
+		{
+			if (!std::isfinite(point[0]) || !std::isfinite(point[1]))
+				throw DomainError("Stereographic chart: nonfinite coordinates");
+			const Real scale = std::max({Real(1), std::abs(point[0]), std::abs(point[1])});
+			const Real u = point[0] / scale, v = point[1] / scale, t = 1 / scale;
+			return {u, v, t, t * t + u * u + v * v};
+		}
+
 	public:
 		explicit UnitSphereStereographicChart(Pole pole) : _pole(pole) { }
 
@@ -155,33 +169,26 @@ namespace MML::DifferentialGeometry
 
 		Point<Real, 3, Cartesian3> map_point(const Point<Real, 2, Parameter2>& point) const override
 		{
-			Real u = point[0];
-			Real v = point[1];
-			Real radiusSquared = u * u + v * v;
-			Real denominator = static_cast<MML::Real>(1.0) + radiusSquared;
-			Real z = _pole == Pole::North
-				? (static_cast<MML::Real>(1.0) - radiusSquared) / denominator
-				: (-static_cast<MML::Real>(1.0) + radiusSquared) / denominator;
-
-			return Point<Real, 3, Cartesian3>{ static_cast<MML::Real>(2.0) * u / denominator, static_cast<MML::Real>(2.0) * v / denominator, z };
+			const auto p = ScalePoint(point);
+			const Real z = (p.reciprocalScale * p.reciprocalScale - p.u * p.u - p.v * p.v) / p.denominator;
+			return Point<Real, 3, Cartesian3>{
+				(2 * p.u / p.denominator) * p.reciprocalScale,
+				(2 * p.v / p.denominator) * p.reciprocalScale,
+				_pole == Pole::North ? z : -z};
 		}
 
 		MatrixNM<Real, 3, 2> jacobian(const Point<Real, 2, Parameter2>& point) const override
 		{
-			Real u = point[0];
-			Real v = point[1];
-			Real radiusSquared = u * u + v * v;
-			Real denominator = static_cast<MML::Real>(1.0) + radiusSquared;
-			Real denominatorSquared = denominator * denominator;
-			Real zSign = _pole == Pole::North ? -static_cast<MML::Real>(4.0) : static_cast<MML::Real>(4.0);
-
+			const auto p = ScalePoint(point);
+			const Real t2 = p.reciprocalScale * p.reciprocalScale;
+			const Real zSign = _pole == Pole::North ? Real(-4) : Real(4);
 			MatrixNM<Real, 3, 2> jac;
-			jac(0, 0) = static_cast<MML::Real>(2.0) * (static_cast<MML::Real>(1.0) - u * u + v * v) / denominatorSquared;
-			jac(0, 1) = -static_cast<MML::Real>(4.0) * u * v / denominatorSquared;
-			jac(1, 0) = -static_cast<MML::Real>(4.0) * u * v / denominatorSquared;
-			jac(1, 1) = static_cast<MML::Real>(2.0) * (static_cast<MML::Real>(1.0) + u * u - v * v) / denominatorSquared;
-			jac(2, 0) = zSign * u / denominatorSquared;
-			jac(2, 1) = zSign * v / denominatorSquared;
+			jac(0, 0) = ((2 * (t2 - p.u * p.u + p.v * p.v) / p.denominator / p.denominator) * p.reciprocalScale) * p.reciprocalScale;
+			jac(0, 1) = ((-4 * p.u / p.denominator * p.v / p.denominator) * p.reciprocalScale) * p.reciprocalScale;
+			jac(1, 0) = jac(0, 1);
+			jac(1, 1) = ((2 * (t2 + p.u * p.u - p.v * p.v) / p.denominator / p.denominator) * p.reciprocalScale) * p.reciprocalScale;
+			jac(2, 0) = ((zSign * p.u / p.denominator / p.denominator * p.reciprocalScale) * p.reciprocalScale) * p.reciprocalScale;
+			jac(2, 1) = ((zSign * p.v / p.denominator / p.denominator * p.reciprocalScale) * p.reciprocalScale) * p.reciprocalScale;
 			return jac;
 		}
 	};
@@ -193,11 +200,17 @@ namespace MML::DifferentialGeometry
 
 	inline Point<Real, 2, Parameter2> StereographicSphereTransition(const Point<Real, 2, Parameter2>& point)
 	{
-		Real radiusSquared = point[0] * point[0] + point[1] * point[1];
-		if (radiusSquared <= PrecisionValues<Real>::NumericalZeroThreshold)
+		if (!IsFiniteStereographicPoint(point))
+			throw DomainError("StereographicSphereTransition - nonfinite coordinates");
+		const Real scale = std::max(std::abs(point[0]), std::abs(point[1]));
+		if (scale == 0)
 			throw ArgumentError("StereographicSphereTransition - pole point is not in chart overlap");
-
-		return Point<Real, 2, Parameter2>{ point[0] / radiusSquared, point[1] / radiusSquared };
+		const Real u = point[0] / scale, v = point[1] / scale;
+		const Real denominator = u * u + v * v;
+		Point<Real, 2, Parameter2> result{(u / denominator) / scale, (v / denominator) / scale};
+		if (!IsFiniteStereographicPoint(result))
+			throw DomainError("StereographicSphereTransition - unrepresentable coordinates");
+		return result;
 	}
 
 	inline Atlas<2, 3, Parameter2, Cartesian3> MakeUnitSphereStereographicAtlas()

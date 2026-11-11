@@ -25,7 +25,9 @@
 
 #include "../test_data/stiff_ode_defs.h"
 
-#ifdef MML_USE_SINGLE_HEADER
+#ifdef MML_SINGLE_HEADER_INCLUDE
+#include MML_SINGLE_HEADER_INCLUDE
+#elif defined(MML_USE_SINGLE_HEADER)
 #include <MML.h>
 #else
 #include <mml/MMLBase.h>
@@ -73,8 +75,8 @@ namespace MML::TestBeds
         std::string reference;                         ///< Literature reference
         
         // Testing hints
-        Real suggestedStepSize = 0.01;                 ///< Reasonable starting step
-        Real expectedAccuracy = 1e-6;                  ///< Target accuracy for adaptive
+        Real suggestedStepSize = MML::Real(0.01);                 ///< Reasonable starting step
+        Real expectedAccuracy = MML::Real(1e-6);                  ///< Target accuracy for adaptive
         int difficulty = 2;                            ///< 1=easy, 2=medium, 3=hard, 4=extreme
     };
 
@@ -90,13 +92,13 @@ namespace MML::TestBeds
         test.createStiffSystem = []() { return std::make_unique<RobertsonODE>(); };
         test.initialCondition = RobertsonODE::getInitialCondition();
         test.tStart = 0.0;
-        test.tEnd = 1e11;  // Extremely long integration
+        test.tEnd = MML::Real(1e11);  // Extremely long integration
         test.stiffnessRatio = 1e8;
         test.stiffnessCategory = "extreme";
         test.description = RobertsonODE::getDescription();
         test.reference = "Robertson, H.H. (1966)";
-        test.suggestedStepSize = 1e-6;
-        test.expectedAccuracy = 1e-6;
+        test.suggestedStepSize = MML::Real(1e-6);
+        test.expectedAccuracy = MML::Real(1e-6);
         test.difficulty = 4;
         return test;
     }
@@ -109,13 +111,13 @@ namespace MML::TestBeds
         test.createStiffSystem = [mu]() { return std::make_unique<VanDerPolStiffODE>(mu); };
         test.initialCondition = VanDerPolStiffODE::getInitialCondition();
         test.tStart = 0.0;
-        test.tEnd = 2.0 * mu;  // About one period
+        test.tEnd = MML::Real(2.0) * mu;  // About one period
         test.stiffnessRatio = mu * mu;
         test.stiffnessCategory = (mu > 100) ? "severe" : "moderate";
         test.description = VanDerPolStiffODE::getDescription();
         test.reference = "Hairer & Wanner, Solving ODEs II";
-        test.suggestedStepSize = 0.01 / mu;
-        test.expectedAccuracy = 1e-6;
+        test.suggestedStepSize = MML::Real(0.01) / mu;
+        test.expectedAccuracy = MML::Real(1e-6);
         test.difficulty = (mu > 100) ? 3 : 2;
         return test;
     }
@@ -133,8 +135,8 @@ namespace MML::TestBeds
         test.stiffnessCategory = "moderate";
         test.description = BrusselatorODE::getDescription();
         test.reference = "Prigogine & Lefever";
-        test.suggestedStepSize = 0.01;
-        test.expectedAccuracy = 1e-6;
+        test.suggestedStepSize = MML::Real(0.01);
+        test.expectedAccuracy = MML::Real(1e-6);
         test.difficulty = 2;
         return test;
     }
@@ -148,12 +150,12 @@ namespace MML::TestBeds
         test.initialCondition = OregonatorODE::getInitialCondition();
         test.tStart = 0.0;
         test.tEnd = 360.0;
-        test.stiffnessRatio = 77.27 / 8.375e-6;  // s/q ≈ 10^7
+        test.stiffnessRatio = MML::Real(77.27) / MML::Real(8.375e-6);  // s/q ≈ 10^7
         test.stiffnessCategory = "severe";
         test.description = OregonatorODE::getDescription();
         test.reference = "Field & Noyes (1974)";
-        test.suggestedStepSize = 0.01;
-        test.expectedAccuracy = 1e-5;
+        test.suggestedStepSize = MML::Real(0.01);
+        test.expectedAccuracy = MML::Real(1e-5);
         test.difficulty = 3;
         return test;
     }
@@ -167,12 +169,12 @@ namespace MML::TestBeds
         test.initialCondition = HIRES_ODE::getInitialCondition();
         test.tStart = 0.0;
         test.tEnd = HIRES_ODE::getTypicalEndTime();
-        test.stiffnessRatio = 280.0 / 0.43;  // Approximate
+        test.stiffnessRatio = MML::Real(280.0) / MML::Real(0.43);  // Approximate
         test.stiffnessCategory = "moderate";
         test.description = HIRES_ODE::getDescription();
         test.reference = "Hairer Test Set for IVP Solvers";
-        test.suggestedStepSize = 0.001;
-        test.expectedAccuracy = 1e-6;
+        test.suggestedStepSize = MML::Real(0.001);
+        test.expectedAccuracy = MML::Real(1e-6);
         test.difficulty = 2;
         return test;
     }
@@ -190,8 +192,8 @@ namespace MML::TestBeds
         test.stiffnessCategory = "extreme";
         test.description = RobertsonScaledODE::getDescription();
         test.reference = "Robertson (conserved form)";
-        test.suggestedStepSize = 1e-6;
-        test.expectedAccuracy = 1e-6;
+        test.suggestedStepSize = MML::Real(1e-6);
+        test.expectedAccuracy = MML::Real(1e-6);
         test.difficulty = 4;
         return test;
     }
@@ -205,12 +207,12 @@ namespace MML::TestBeds
         test.initialCondition = E5_ODE::getInitialCondition();
         test.tStart = 0.0;
         test.tEnd = E5_ODE::getTypicalEndTime();
-        test.stiffnessRatio = 7.89e10 / 13.0;  // k1/k4 ≈ 6×10^9
+        test.stiffnessRatio = MML::Real(7.89e10) / MML::Real(13.0);  // k1/k4 ≈ 6×10^9
         test.stiffnessCategory = "extreme";
         test.description = E5_ODE::getDescription();
         test.reference = "Enright et al. Test Set";
-        test.suggestedStepSize = 1e-12;
-        test.expectedAccuracy = 1e-6;
+        test.suggestedStepSize = MML::Real(1e-12);
+        test.expectedAccuracy = MML::Real(1e-6);
         test.difficulty = 4;
         return test;
     }
@@ -228,8 +230,8 @@ namespace MML::TestBeds
         test.stiffnessCategory = "moderate";
         test.description = PollutionODE::getDescription();
         test.reference = "Verwer Test Set";
-        test.suggestedStepSize = 0.001;
-        test.expectedAccuracy = 1e-5;
+        test.suggestedStepSize = MML::Real(0.001);
+        test.expectedAccuracy = MML::Real(1e-5);
         test.difficulty = 3;
         return test;
     }
@@ -249,8 +251,8 @@ namespace MML::TestBeds
         test.stiffnessCategory = "severe";
         test.description = LinearStiffODE::getDescription();
         test.reference = "Standard test problem";
-        test.suggestedStepSize = 1e-4;
-        test.expectedAccuracy = 1e-8;
+        test.suggestedStepSize = MML::Real(1e-4);
+        test.expectedAccuracy = MML::Real(1e-8);
         test.difficulty = 2;
         return test;
     }
@@ -379,7 +381,7 @@ namespace MML::TestBeds
     {
         if (test.name.find("Robertson") != std::string::npos && y.size() == 3) {
             // y1 + y2 + y3 should equal 1 (mass conservation)
-            return std::abs(y[0] + y[1] + y[2] - 1.0);
+            return std::abs(y[0] + y[1] + y[2] - MML::Real(1.0));
         }
         return -1.0;  // No conservation law checked
     }

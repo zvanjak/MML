@@ -12,6 +12,7 @@
 
 #include <mml/MMLBase.h>
 #include <mml/interfaces/IODESystem.h>
+#include <mml/algorithms/ODESolvers/ODERKCoefficients.h>
 
 #include <algorithm>
 #include <array>
@@ -19,6 +20,73 @@
 #include <vector>
 
 namespace MML {
+
+	namespace ODEStepperDetail {
+		class CountingODESystem final : public IODESystem {
+			const IODESystem& _system;
+			int& _evaluations;
+			int _limit;
+		public:
+			CountingODESystem(const IODESystem& system, int& evaluations, int limit = std::numeric_limits<int>::max())
+				: _system(system), _evaluations(evaluations), _limit(limit) {}
+			int getDim() const override { return _system.getDim(); }
+			void derivs(Real time, const Vector<Real>& state, Vector<Real>& derivative) const override {
+				if (_evaluations >= _limit)
+					throw ResourceLimitError("Adaptive ODE RHS evaluation counter exhausted");
+				++_evaluations;
+				_system.derivs(time, state, derivative);
+			}
+		};
+
+		inline void RequireFinite(Real value, const char* message) {
+			if (!std::isfinite(value))
+				throw ODESolverError(message);
+		}
+
+		inline void RequireVector(const Vector<Real>& values, int dimension, const char* message) {
+			if (dimension <= 0 || values.size() != dimension)
+				throw ODESolverError(message);
+			for (int i = 0; i < dimension; ++i)
+				RequireFinite(values[i], message);
+		}
+
+		inline void EvaluateRHS(const IODESystem& system, Real time, const Vector<Real>& state, Vector<Real>& derivative) {
+			RequireFinite(time, "Non-finite ODE evaluation time");
+			RequireVector(state, system.getDim(), "Invalid ODE evaluation state");
+			system.derivs(time, state, derivative);
+			RequireVector(derivative, system.getDim(), "Invalid ODE right-hand side");
+		}
+
+		inline void ValidateStep(int dimension, Real time, const Vector<Real>& state,
+			const Vector<Real>& derivative, Real step, Real tolerance) {
+			RequireFinite(time, "Non-finite ODE step time");
+			RequireFinite(step, "Non-finite ODE step size");
+			RequireFinite(time + step, "Non-finite ODE step endpoint");
+			RequireFinite(tolerance, "Non-finite ODE tolerance");
+			if (step == 0 || tolerance <= 0)
+				throw ODESolverError("ODE step size must be nonzero and tolerance must be positive");
+			RequireVector(state, dimension, "Invalid ODE step state");
+			RequireVector(derivative, dimension, "Invalid ODE initial derivative");
+		}
+
+		inline Real RKErrorScale(Real state, Real derivative, Real step, Real candidate) {
+			RequireFinite(candidate, "Non-finite ODE candidate for error scaling");
+			const Real history = std::abs(state) + std::abs(step * derivative) + Precision::DivisionSafetyThreshold;
+			RequireFinite(history, "Non-finite ODE error scale");
+			// A stationary zero can grow at higher order than the Euler predictor.
+			return std::max(history, std::abs(candidate));
+		}
+
+		inline Real ErrorRatio(Real error, Real scale) {
+			RequireFinite(error, "Non-finite ODE error estimate");
+			RequireFinite(scale, "Non-finite ODE error scale");
+			if (scale <= 0)
+				throw ODESolverError("ODE error scale must be positive");
+			const Real ratio = std::abs(error) / scale;
+			RequireFinite(ratio, "Non-finite ODE normalized error");
+			return ratio;
+		}
+	}
 
 	/// Tunable limits and exponents for adaptive step-size control.
 	/// Errors passed to the controller are normalized, so error <= 1 means acceptable.
@@ -42,6 +110,9 @@ namespace MML {
 		Real _previousError = Real(1.0);
 
 		static void validate(const StepSizeControllerConfig& config) {
+			for (Real value : {config.safety, config.alpha, config.beta, config.minFactor,
+				config.maxFactor, config.errorFloor})
+				ODEStepperDetail::RequireFinite(value, "Non-finite step-size controller configuration");
 			if (config.safety <= 0 || config.alpha <= 0 || config.beta < 0 ||
 				config.minFactor <= 0 || config.maxFactor < config.minFactor || config.errorFloor <= 0) {
 				throw ODESolverError("Invalid step-size controller configuration");
@@ -63,13 +134,20 @@ namespace MML {
 		}
 
 		Real acceptedStep(Real h, Real error, Real alpha) {
+			ODEStepperDetail::RequireFinite(h, "Non-finite ODE controller step");
+			ODEStepperDetail::RequireFinite(error, "Non-finite ODE controller error");
+			ODEStepperDetail::RequireFinite(alpha, "Non-finite ODE controller exponent");
 			if (alpha <= 0)
 				throw ODESolverError("Step-size controller exponent must be positive");
 			const Real boundedError = std::max(std::abs(error), _config.errorFloor);
 			const Real factor = boundedFactor(_config.safety * std::pow(boundedError, -alpha) *
 													 std::pow(_previousError, _config.beta));
+			const Real next = h * factor;
+			ODEStepperDetail::RequireFinite(next, "Non-finite ODE step proposal");
+			if (next == 0)
+				throw ODESolverError("ODE step proposal underflow");
 			_previousError = boundedError;
-			return h * factor;
+			return next;
 		}
 
 		Real rejectedStep(Real h, Real error) const {
@@ -77,11 +155,18 @@ namespace MML {
 		}
 
 		Real rejectedStep(Real h, Real error, Real alpha) const {
+			ODEStepperDetail::RequireFinite(h, "Non-finite ODE controller step");
+			ODEStepperDetail::RequireFinite(error, "Non-finite ODE controller error");
+			ODEStepperDetail::RequireFinite(alpha, "Non-finite ODE controller exponent");
 			if (alpha <= 0)
 				throw ODESolverError("Step-size controller exponent must be positive");
 			const Real boundedError = std::max(std::abs(error), _config.errorFloor);
 			const Real factor = boundedFactor(_config.safety * std::pow(boundedError, -alpha));
-			return h * factor;
+			const Real next = h * factor;
+			ODEStepperDetail::RequireFinite(next, "Non-finite ODE step proposal");
+			if (next == 0)
+				throw ODESolverError("ODE step proposal underflow");
+			return next;
 		}
 
 		void reset() { _previousError = Real(1.0); }
@@ -108,10 +193,18 @@ namespace MML {
 	public:
 		void setStep(Real tStart, Real stepSize, const Vector<Real>& xStart, const Vector<Real>& xEnd,
 					 const Vector<Real>& dxStart, const Vector<Real>& dxEnd) {
+			_ready = false;
 			if (stepSize == 0 || !std::isfinite(stepSize))
 				throw ODESolverError("Hermite interpolation requires a finite, non-zero step size");
 			if (xStart.size() != xEnd.size() || xStart.size() != dxStart.size() || xStart.size() != dxEnd.size())
 				throw ODESolverError("Hermite interpolation data dimensions do not match");
+			ODEStepperDetail::ValidateStep(xStart.size(), tStart, xStart, dxStart, stepSize, Real(1));
+			ODEStepperDetail::RequireVector(xEnd, xStart.size(), "Invalid Hermite endpoint state");
+			ODEStepperDetail::RequireVector(dxEnd, xStart.size(), "Invalid Hermite endpoint derivative");
+			for (int i = 0; i < xStart.size(); ++i) {
+				ODEStepperDetail::RequireFinite(stepSize * dxStart[i], "Non-finite Hermite start slope");
+				ODEStepperDetail::RequireFinite(stepSize * dxEnd[i], "Non-finite Hermite endpoint slope");
+			}
 
 			_tStart = tStart;
 			_stepSize = stepSize;
@@ -126,6 +219,7 @@ namespace MML {
 			if (!_ready)
 				throw ODESolverError("No valid step data for interpolation");
 
+			ODEStepperDetail::RequireFinite(t, "Non-finite Hermite interpolation time");
 			// Normalizing by signed stepSize gives the same [0,1] interval in both directions.
 			const Real theta = (t - _tStart) / _stepSize;
 			if (theta <= 0)
@@ -146,6 +240,7 @@ namespace MML {
 				result[i] = h00 * _xStart[i] + h10 * _stepSize * _dxStart[i] +
 							h01 * _xEnd[i] + h11 * _stepSize * _dxEnd[i];
 			}
+			ODEStepperDetail::RequireVector(result, _xStart.size(), "Non-finite Hermite interpolated state");
 			return result;
 		}
 
@@ -172,6 +267,7 @@ namespace MML {
 	public:
 		void setStep(Real tStart, Real stepSize, const Vector<Real>& xStart, const Vector<Real>& xEnd,
 					 const std::vector<Vector<Real>>& stages) {
+			_ready = false;
 			if (stepSize == 0 || !std::isfinite(stepSize))
 				throw ODESolverError("Dormand-Prince interpolation requires a finite, non-zero step size");
 			if (stages.size() != 7 || xStart.size() != xEnd.size())
@@ -179,17 +275,20 @@ namespace MML {
 			for (const auto& stage : stages) {
 				if (stage.size() != xStart.size())
 					throw ODESolverError("Dormand-Prince interpolation data dimensions do not match");
+				ODEStepperDetail::RequireVector(stage, xStart.size(), "Invalid Dormand-Prince interpolation stage");
 			}
+			ODEStepperDetail::ValidateStep(xStart.size(), tStart, xStart, stages.front(), stepSize, Real(1));
+			ODEStepperDetail::RequireVector(xEnd, xStart.size(), "Invalid Dormand-Prince endpoint state");
 
 			// Rows correspond to k1...k7 and columns to theta...theta^4.
 			static constexpr Real weights[7][4] = {
-				{1.0, -8048581381.0 / 2820520608.0, 8663915743.0 / 2820520608.0, -12715105075.0 / 11282082432.0},
+				{MML::Real(1.0), -MML::Real(8048581381.0) / MML::Real(2820520608.0), MML::Real(8663915743.0) / MML::Real(2820520608.0), -MML::Real(12715105075.0) / MML::Real(11282082432.0)},
 				{0.0, 0.0, 0.0, 0.0},
-				{0.0, 131558114200.0 / 32700410799.0, -68118460800.0 / 10900136933.0, 87487479700.0 / 32700410799.0},
-				{0.0, -1754552775.0 / 470086768.0, 14199869525.0 / 1410260304.0, -10690763975.0 / 1880347072.0},
-				{0.0, 127303824393.0 / 49829197408.0, -318862633887.0 / 49829197408.0, 701980252875.0 / 199316789632.0},
-				{0.0, -282668133.0 / 205662961.0, 2019193451.0 / 616988883.0, -1453857185.0 / 822651844.0},
-				{0.0, 40617522.0 / 29380423.0, -110615467.0 / 29380423.0, 69997945.0 / 29380423.0}
+				{MML::Real(0.0), MML::Real(131558114200.0) / MML::Real(32700410799.0), -MML::Real(68118460800.0) / MML::Real(10900136933.0), MML::Real(87487479700.0) / MML::Real(32700410799.0)},
+				{MML::Real(0.0), -MML::Real(1754552775.0) / MML::Real(470086768.0), MML::Real(14199869525.0) / MML::Real(1410260304.0), -MML::Real(10690763975.0) / MML::Real(1880347072.0)},
+				{MML::Real(0.0), MML::Real(127303824393.0) / MML::Real(49829197408.0), -MML::Real(318862633887.0) / MML::Real(49829197408.0), MML::Real(701980252875.0) / MML::Real(199316789632.0)},
+				{MML::Real(0.0), -MML::Real(282668133.0) / MML::Real(205662961.0), MML::Real(2019193451.0) / MML::Real(616988883.0), -MML::Real(1453857185.0) / MML::Real(822651844.0)},
+				{MML::Real(0.0), MML::Real(40617522.0) / MML::Real(29380423.0), -MML::Real(110615467.0) / MML::Real(29380423.0), MML::Real(69997945.0) / MML::Real(29380423.0)}
 			};
 
 			_tStart = tStart;
@@ -203,6 +302,8 @@ namespace MML {
 					for (int stage = 0; stage < 7; ++stage)
 						coefficient += weights[stage][power] * stages[stage][component];
 					_coefficients[power][component] = coefficient;
+					ODEStepperDetail::RequireFinite(coefficient, "Non-finite Dormand-Prince dense coefficient");
+					ODEStepperDetail::RequireFinite(stepSize * coefficient, "Non-finite Dormand-Prince scaled dense coefficient");
 				}
 			}
 			_ready = true;
@@ -226,6 +327,7 @@ namespace MML {
 					 (_coefficients[1][component] + theta *
 					  (_coefficients[2][component] + theta * _coefficients[3][component])));
 			}
+			ODEStepperDetail::RequireVector(result, _xStart.size(), "Non-finite Dormand-Prince interpolated state");
 			return result;
 		}
 
@@ -253,6 +355,7 @@ namespace MML {
 		int setStep(const IODESystem& system, Real tStart, Real stepSize,
 					const Vector<Real>& xStart, const Vector<Real>& xEnd,
 					std::vector<Vector<Real>>& stages, Vector<Real>& workspace) {
+			_ready = false;
 			if (stepSize == 0 || !std::isfinite(stepSize))
 				throw ODESolverError("DOP853 interpolation requires a finite, non-zero step size");
 			if (stages.size() != DP8::extended_stages || xStart.size() != xEnd.size())
@@ -266,6 +369,11 @@ namespace MML {
 			if (workspace.size() != dimension)
 				workspace.resize(dimension);
 
+			ODEStepperDetail::ValidateStep(dimension, tStart, xStart, stages.front(), stepSize, Real(1));
+			ODEStepperDetail::RequireVector(xEnd, dimension, "Invalid DOP853 endpoint state");
+			for (int stage = 0; stage <= DP8::stages; ++stage)
+				ODEStepperDetail::RequireVector(stages[stage], dimension, "Invalid DOP853 interpolation stage");
+
 			// Stages 13 through 15 are used only by the continuous extension.
 			for (int stage = DP8::stages + 1; stage < DP8::extended_stages; ++stage) {
 				for (int component = 0; component < dimension; ++component) {
@@ -274,7 +382,7 @@ namespace MML {
 						increment += DP8::a[stage][previousStage] * stages[previousStage][component];
 					workspace[component] = xStart[component] + stepSize * increment;
 				}
-				system.derivs(tStart + DP8::c[stage] * stepSize, workspace, stages[stage]);
+				ODEStepperDetail::EvaluateRHS(system, tStart + DP8::c[stage] * stepSize, workspace, stages[stage]);
 			}
 
 			_tStart = tStart;
@@ -296,6 +404,8 @@ namespace MML {
 					_coefficients[coefficient + 3][component] = stepSize * value;
 				}
 			}
+			for (const auto& coefficient : _coefficients)
+				ODEStepperDetail::RequireVector(coefficient, dimension, "Non-finite DOP853 dense coefficient");
 			_ready = true;
 			return 3;
 		}
@@ -319,6 +429,7 @@ namespace MML {
 				}
 				result[component] = _xStart[component] + value;
 			}
+			ODEStepperDetail::RequireVector(result, _xStart.size(), "Non-finite DOP853 interpolated state");
 			return result;
 		}
 
@@ -338,6 +449,10 @@ namespace MML {
 							const Vector<Real>& initialDerivative, std::vector<Vector<Real>>& stages,
 							Vector<Real>& workspace) {
 			const int dimension = system.getDim();
+			ODEStepperDetail::RequireFinite(t, "Non-finite Runge-Kutta start time");
+			ODEStepperDetail::RequireFinite(h, "Non-finite Runge-Kutta step");
+			ODEStepperDetail::RequireVector(x, dimension, "Invalid Runge-Kutta start state");
+			ODEStepperDetail::RequireVector(initialDerivative, dimension, "Invalid Runge-Kutta initial derivative");
 			if (stages.size() < Tableau::stages)
 				stages.resize(Tableau::stages);
 			for (auto& stage : stages) {
@@ -356,7 +471,7 @@ namespace MML {
 						increment += Tableau::stageCoefficient(stage, previousStage) * stages[previousStage][component];
 					workspace[component] = x[component] + h * increment;
 				}
-				system.derivs(t + Tableau::node(stage) * h, workspace, stages[stage]);
+				ODEStepperDetail::EvaluateRHS(system, t + Tableau::node(stage) * h, workspace, stages[stage]);
 			}
 			return Tableau::stages - 1;
 		}
@@ -371,6 +486,7 @@ namespace MML {
 					increment += Tableau::solutionWeight(stage) * stages[stage][component];
 				result[component] = x[component] + h * increment;
 			}
+			ODEStepperDetail::RequireVector(result, x.size(), "Non-finite Runge-Kutta candidate");
 		}
 
 		static void combineError(Real h, const std::vector<Vector<Real>>& stages, Vector<Real>& error) {
@@ -384,6 +500,7 @@ namespace MML {
 					estimate += Tableau::errorWeight(stage) * stages[stage][component];
 				error[component] = h * estimate;
 			}
+			ODEStepperDetail::RequireVector(error, dimension, "Non-finite Runge-Kutta error estimate");
 		}
 	};
 

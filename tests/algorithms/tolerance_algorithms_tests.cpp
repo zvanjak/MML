@@ -3,6 +3,7 @@
 // Defaults:: tolerance mirrors are deprecated in favour of Precision::.
 #include <catch2/catch_all.hpp>
 #include "../TestPrecision.h"
+#include "../TestMatchers.h"
 
 #ifdef MML_USE_SINGLE_HEADER
 #include <MML.h>
@@ -47,15 +48,19 @@ namespace MML::Tests::Algorithms::ToleranceAlgorithmsTests
 
 	TEST_CASE("ToleranceAlgorithms_Ridders_without_the_minus_1e99_sentinel", "[tolerance][algorithms][RootFinding]")
 	{
-		RealFunction f(+[](Real x) { return x * x - 2.0; });
-		auto r = RootFinding::FindRootRiddersDetailed(f, 1.0, 2.0, 1e-12);
+		RealFunction f(+[](Real x) { return x * x - MML::Real(2.0); });
+		const Real rootTolerance = TOL(1e-12, Precision::Eps);
+		auto r = RootFinding::FindRootRiddersDetailed(f, MML::Real(1.0), MML::Real(2.0), rootTolerance);
 		REQUIRE(r.converged);
-		REQUIRE(r.root == Catch::Approx(std::sqrt(2.0)).epsilon(1e-11));
+		REQUIRE_THAT(r.root, RealWithinRelNoScale(std::sqrt(Real(2)), TOL(1e-11, 2 * Precision::Eps)));
+		REQUIRE(std::abs(f(r.root)) <= rootTolerance * (2 * std::abs(r.root) + rootTolerance));
 		// a root exactly at a bracket endpoint must still be found (the old sentinel compared against -1e98)
-		RealFunction g(+[](Real x) { return x - 1.0; });
-		auto r2 = RootFinding::FindRootRiddersDetailed(g, 1.0, 3.0, 1e-12);
+		RealFunction g(+[](Real x) { return x - MML::Real(1.0); });
+		auto r2 = RootFinding::FindRootRiddersDetailed(g, MML::Real(1.0), MML::Real(3.0), rootTolerance);
 		REQUIRE(IsUsable(r2.status));
-		REQUIRE(r2.root == Catch::Approx(1.0).margin(1e-12));
+		REQUIRE(r2.root == Real(1));
+		REQUIRE(r2.function_value == Real(0));
+		REQUIRE(r2.iterations_used == 0);
 	}
 
 	TEST_CASE("ToleranceAlgorithms_curve_fitting_not_applicable_is_NaN", "[tolerance][algorithms]")

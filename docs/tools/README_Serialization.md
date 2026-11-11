@@ -1,8 +1,8 @@
 # MML Serialization & Data I/O Guide
 
-> **Comprehensive documentation for MinimalMathLibrary's serialization, data loading, and file I/O capabilities.**
-
----
+Current entry points for object persistence, tabular data loading, and visualizer
+exports. Detailed persistence and export schemas live in the linked guides;
+the DataLoader examples below have checked, runnable counterparts.
 
 ## Table of Contents
 
@@ -11,850 +11,433 @@
 3. [Object Persistence](#object-persistence)
 4. [Matrix I/O](#matrix-io)
 5. [Vector I/O](#vector-io)
-6. [DataLoader (CSV, TSV, JSON)](#dataloader)
-7. [Serializer (Visualization Output)](#serializer)
+6. [DataLoader](#dataloader)
+7. [Serializer](#serializer)
 8. [RigidBody Simulation Serializer](#rigidbody-simulation-serializer)
 9. [File Format Specifications](#file-format-specifications)
 10. [Best Practices](#best-practices)
-11. [Examples](#examples)
+11. [Runnable Examples](#examples)
 
 ---
 
 ## Overview
 
-MML provides four data I/O subsystems:
-
 | Subsystem | Purpose | Direction | Header |
 |-----------|---------|-----------|--------|
-| **Matrix/Vector I/O** | Save/load basic linear algebra objects | Bidirectional | `<MML/base/Matrix/Matrix.h>`, `<MML/base/Vector/Vector.h>` |
-| **Persistence** | Durable object save/load in JSON and binary formats | Bidirectional | `<mml/tools/Persistence.h>` |
-| **DataLoader** | Load tabular data from files | Read-only | `<MML/core/DataLoader.h>` |
-| **Serializer** | Export sampled mathematical data for visualizers | Write-only presentation export | `<MML/core/Serializer.h>` |
+| **Persistence** | Durable vector/matrix object save/load | Bidirectional | `<mml/tools/Persistence.h>` |
+| **DataLoader** | Column-oriented CSV, TSV and JSON datasets | Read-only | `<mml/tools/DataLoader.h>` |
+| **Serializer** | Sample mathematical objects for visualizers | Write-only presentation export | `<mml/tools/Serializer.h>` |
 
-The `.mml` files produced by the visualizer serializers are **presentation
-exports**. They are stable inputs for MML visualizer tools and useful for
-inspection, examples, and golden-file tests, but they are not general object
-persistence files and should not be treated as round-trip reconstruction
-contracts. MML object-persistence work uses explicit `.mmlj` JSON and `.mmlb`
-binary formats.
+Matrix and vector file I/O belongs to the free `Persistence` APIs, not members of
+`Matrix` or `Vector`. Presentation exporters are free functions in
+`MML::Serializer`, with names such as `SaveRealFunc`, not `SaveRealFunction`.
+
+Visualizer `.mml` files are **presentation exports**: they do not reconstruct
+arbitrary functions, fields or solver instances. Use explicit `.mmlj` JSON and
+`.mmlb` binary formats for durable object persistence. Count-prefixed object text
+can also use `.mml`; that layout is not a visualizer presentation format.
 
 ### Supported File Formats
 
-| Format | Extension | Binary? | Description |
-|--------|-----------|---------|-------------|
-| MML Text | `.mml` | No | Human-readable visualizer presentation export; export-only unless a specific future schema says otherwise |
-| MML JSON Object | `.mmlj` | No | Structured MML object-persistence format |
-| MML Binary Object | `.mmlb` | Yes | Canonical vector and matrix persistence |
-| CSV | `.csv` | No | Comma-separated values |
-| TSV | `.tsv`, `.tab` | No | Tab-separated values |
-| JSON | `.json` | No | Array of flat objects |
+| Format | Extension | Purpose |
+|--------|-----------|---------|
+| MML JSON object | `.mmlj` | Readable object persistence |
+| MML binary object | `.mmlb` | Canonical vector/matrix binary persistence |
+| Object text | `.txt`, `.dat` | Count-prefixed vector or dimension-prefixed matrix data |
+| CSV | `.csv` | Tabular datasets or numeric matrix I/O |
+| TSV | `.tsv`, `.tab` | Tab-separated datasets |
+| JSON | `.json` | DataLoader arrays of flat objects |
+| Visualizer text | `.mml` | Sampled functions, curves, fields and simulation data |
 
----
-
-## Object Persistence
-
-The object-persistence APIs use explicit MML object extensions:
-
-- `.mmlj` for JSON object files.
-- `.mmlb` for binary object files.
-
-Implemented support currently covers dynamic `Vector` and `Matrix` in JSON and
-binary, plus `VectorN` and `MatrixNM` in JSON. Generic path APIs infer the
-format from the extension:
-
-```cpp
-#include <mml/tools/Persistence.h>
-
-using namespace MML;
-
-Vector<Real> v{1.0, 2.0, 3.0};
-Persistence::Save(v, "vector.mmlj");
-Persistence::Save(v, "vector.mmlb");
-
-Matrix<Real> A(2, 2);
-A(0, 0) = 1.0; A(0, 1) = 2.0;
-A(1, 0) = 3.0; A(1, 1) = 4.0;
-Persistence::Save(A, "matrix.mmlj");
-Persistence::Save(A, "matrix.mmlb");
-```
-
-See [SerializationPersistence.md](../../docs/tools/SerializationPersistence.md)
-for schemas, binary layout, validation behavior, troubleshooting, and complete
-examples.
+An ordinary DataLoader JSON array is not an MML `.mmlj` object schema.
 
 ---
 
 ## Quick Reference
 
-### Matrix Operations
-```cpp
-#include <MML/base/Matrix/Matrix.h>
-
-Matrix<Real> A(100, 100);
-
-// Text format (human-readable)
-A.SaveToFile("matrix.txt");
-Matrix<Real>::LoadFromFile("matrix.txt", A);
-
-// CSV format
-A.SaveToCSV("matrix.csv");
-Matrix<Real>::LoadFromCSV("matrix.csv", A);
-
-// Binary object persistence
-Persistence::Save(A, "matrix.mmlb");
-Persistence::Load("matrix.mmlb", A);
-```
-
-### Vector Operations
-```cpp
-#include <MML/base/Vector/Vector.h>
-
-Vector<Real> v(1000);
-
-// Text format
-v.SaveToFile("vector.txt");
-Vector<Real>::LoadFromFile("vector.txt", v);
-
-// Binary object persistence
-Persistence::Save(v, "vector.mmlb");
-Persistence::Load("vector.mmlb", v);
-```
-
-### DataLoader Operations
-```cpp
-#include <MML/core/DataLoader.h>
-using namespace MML::Data;
-
-// Auto-detect format by extension
-auto dataset = LoadData("data.csv");  // or .tsv, .json
-
-// Explicit format
-auto csv_data = LoadCSV("data.csv");
-auto json_data = LoadJSON("data.json");
-
-// Access data
-for (const auto& row : dataset.rows) {
-    Real x = row.GetReal("x");
-    std::string name = row.GetString("name");
-}
-```
-
-### Serializer Operations
-```cpp
-#include <MML/core/Serializer.h>
-using namespace MML::Serializer;
-
-// Save function evaluations
-RealFunction f = [](Real x) { return std::sin(x); };
-SaveRealFunction(f, "sin.mml", 0.0, 6.28, 100);
-
-// Save ODE solution
-SaveODESolution(solution, "ode.mml");
-
-// Save parametric curve
-SaveParametricCurve3D(curve, "helix.mml", 0.0, 10.0, 500);
-```
+| Goal | Current API |
+|------|-------------|
+| Save/load a vector or matrix | `Persistence::Save`, `Persistence::Load` |
+| Load a file by extension | `Data::LoadData(filename)` |
+| Load a file with structured errors | `Data::LoadData(filename, output)` |
+| Parse in-memory CSV/TSV | `Data::LoadFromCSVString(content, delimiter, hasHeader)` |
+| Parse in-memory JSON | `Data::LoadFromJSONString(content)` |
+| Parse a string in an explicit format | `Data::LoadFromString(content, format, hasHeader)` |
+| Configure CSV schema/type inference | `Data::CSVLoadOptions` and `Data::LoadCSV` |
+| Read a column | `dataset["x"]`, `dataset.GetRealColumn("x")` |
+| Export a sampled real function | `Serializer::SaveRealFunc` |
+| Export an ODE solution | `Serializer::SaveODESolutionAsMultiFunc` |
 
 ---
+
+## Object Persistence
+
+Include `<mml/tools/Persistence.h>` and use `MML::Persistence::Save` / `Load`.
+These APIs return `IOResult`; always check it before using the output. Filename
+overloads can infer the format from the extension, while stream overloads require
+an explicit `Persistence::Format`.
+
+Dynamic vectors and matrices support text, JSON and binary storage. Matrix CSV is
+also supported; fixed-size `VectorN` and `MatrixNM` support JSON. Scalar support,
+conversion rules, allocation limits, and transactional-load guarantees depend on
+the selected object and format.
+
+See [SerializationPersistence.md](SerializationPersistence.md) for exact
+signatures, schemas, options, failure contracts and runnable examples.
 
 ## Matrix I/O
 
-### Header
-```cpp
-#include <MML/base/Matrix/Matrix.h>
-```
+Use the free persistence APIs with a `Matrix<T>`:
 
-### Save Methods
+- `.txt` / `Persistence::Format::Text`: dimensions followed by matrix entries.
+- `.csv` / `Persistence::Format::CSV`: matrix CSV, without named dataset columns.
+- `.mmlj` / `Persistence::Format::JSON`: structured object schema.
+- `.mmlb` / `Persistence::Format::Binary`: canonical binary object storage.
 
-#### `SaveToFile(filename)` - Text Format
-Saves matrix in space-separated text format with dimensions header.
+The old matrix `SaveToFile`, `SaveToCSV`, `LoadFromFile` and `LoadFromCSV` members
+are not the current API. For named or mixed-type CSV columns, use DataLoader
+instead of the matrix reader. DataLoader treats the first record as a header by
+default; matrix CSV has no such named-column header.
 
-```cpp
-Matrix<Real> A(3, 4);
-// ... fill matrix ...
-A.SaveToFile("matrix.txt");
-```
+Default text/CSV precision is the scalar component's `max_digits10`, not a fixed
+15 decimal places. Positive `Persistence::SaveOptions::precision` requests a
+specific number of significant digits and can lose information.
 
-**Output format:**
-```
-3 4
-1.234567890123456 2.345678901234567 3.456789012345678 4.567890123456789
-5.678901234567890 6.789012345678901 7.890123456789012 8.901234567890123
-9.012345678901234 0.123456789012345 1.234567890123456 2.345678901234567
-```
-
-#### `SaveToCSV(filename, precision)` - CSV Format
-Saves as comma-separated values with optional precision control.
-
-```cpp
-A.SaveToCSV("matrix.csv");           // Default precision (15)
-A.SaveToCSV("matrix.csv", 6);        // 6 decimal places
-```
-
-**Output format:**
-```csv
-1.234568,2.345679,3.456789,4.567890
-5.678901,6.789012,7.890123,8.901234
-9.012346,0.123457,1.234568,2.345679
-```
-
-#### Binary Persistence
-Use the canonical persistence API for compact matrix storage:
-
-```cpp
-Persistence::Save(A, "matrix.mmlb");
-```
-
-The file starts with the 48-byte `MML_MATX` envelope, followed by little-endian
-dimensions and row-major scalar data.
-
-### Load Methods
-
-#### `LoadFromFile(filename, matrix)` - Text Format
-```cpp
-Matrix<Real> A;
-Matrix<Real>::LoadFromFile("matrix.txt", A);
-// A is now resized and filled
-```
-
-#### `LoadFromCSV(filename, matrix)` - CSV Format
-```cpp
-Matrix<Real> A;
-Matrix<Real>::LoadFromCSV("matrix.csv", A);
-```
-
-#### Binary Load
-```cpp
-Matrix<Real> A;
-Persistence::Load("matrix.mmlb", A);
-```
-
-### Performance Comparison
-
-| Format | 1000×1000 Matrix | File Size | Read Speed |
-|--------|------------------|-----------|------------|
-| Text | ~23 MB | Largest | Slowest |
-| CSV | ~18 MB | Medium | Medium |
-| Binary | ~8 MB | Smallest | Fastest |
-
-**Recommendation:** Use binary for large matrices, text/CSV for debugging and interoperability.
-
----
+The checked matrix text example is in
+[docs_demo_serializer.cpp](../../src/docs_demos/tools/docs_demo_serializer.cpp);
+run `MML_DocsApp --persistence-portability`.
 
 ## Vector I/O
 
-### Header
-```cpp
-#include <MML/base/Vector/Vector.h>
-```
+Use the same free persistence APIs with a `Vector<T>`. Text stores the element
+count followed by values; JSON and binary use their explicit object schemas.
+Vector CSV is not implemented. The removed vector `SaveToFile` / `LoadFromFile`
+members have no compatibility aliases.
 
-### Save Methods
-
-#### `SaveToFile(filename)` - Text Format
-Saves one value per line with dimension header.
-
-```cpp
-Vector<Real> v(5);
-v[0] = 1.1; v[1] = 2.2; v[2] = 3.3; v[3] = 4.4; v[4] = 5.5;
-v.SaveToFile("vector.txt");
-```
-
-**Output format:**
-```
-5
-1.100000000000000
-2.200000000000000
-3.300000000000000
-4.400000000000000
-5.500000000000000
-```
-
-#### Binary Persistence
-Real and complex vectors use the canonical `MML_VECT` envelope:
-
-```cpp
-Persistence::Save(v, "vector.mmlb");
-```
-
-### Load Methods
-
-```cpp
-Vector<Real> v;
-Vector<Real>::LoadFromFile("vector.txt", v);
-Persistence::Load("vector.mmlb", v);
-```
+Run `MML_DocsApp --vector-persistence` for checked file/stream round trips,
+formatting restoration, malformed-input diagnostics and payload budgets.
 
 ---
 
 ## DataLoader
 
 ### Header
+
 ```cpp
-#include <MML/core/DataLoader.h>
+#include <mml/MMLBase.h>
+#include <mml/tools/DataLoader.h>
+#include <iostream>
+using namespace MML;
 using namespace MML::Data;
 ```
 
-### Core Types
+Run **`MML_DocsApp --dataloader`** for the examples in this section, including
+Unicode, numeric inference and CSV-record checks. Their source is
+[docs_demo_data_loader.cpp](../../src/docs_demos/tools/docs_demo_data_loader.cpp).
+The file-loading examples create, validate and clean up their own temporary
+fixtures; they do not depend on a working-directory `sample_data.csv`.
+
+### Core Types and Column Access
+
+`Dataset` is **column-oriented**. Its `columns` member is a
+`std::vector<DataColumn>`, not a list of column names; there is no `Dataset.rows`,
+`DataRow` or `DataValue` API.
+
+| Type/member | Meaning |
+|-------------|---------|
+| `Dataset::name`, `rowCount`, `columns` | Dataset metadata and typed columns |
+| `NumRows()`, `NumColumns()`, `GetColumnNames()` | Shape and column names |
+| `dataset[index]`, `dataset[name]` | A `DataColumn`; invalid lookup throws `DataError` |
+| `HasColumn(name)` | Check a column name before lookup |
+| `GetRealColumn(name)` | Copy a `REAL` column or convert an `INT` column to `Vector<Real>` |
+| `GetIntColumn`, `GetBoolColumn`, `GetStringColumn` | Typed column extraction; string extraction uses display conversion |
+| `DataColumn::name`, `type` | Name and `ColumnType` tag |
+| `realData`, `intData`, `boolData`, `stringData`, `dateData`, `timeData` | Storage selected by the column type |
+| `Size()`, `IsMissing(row)`, `CountMissing()` | Column length and missing-value mask |
+| `GetReal(row)`, `GetAsString(row)` | Numeric conversion or display access to a cell |
+
+`ColumnType` includes `REAL`, `INT`, `BOOL`, `STRING`, `DATE`, `TIME`, `DATETIME`
+and `MISSING`. Check the tag before reading typed storage. `GetRealColumn`
+accepts only `REAL`/`INT`; `GetReal` converts `REAL`/`INT`/`BOOL` cells and returns
+NaN for missing values or other types. `GetAsString` is display formatting, not
+lossless numeric persistence.
 
 ```cpp
-// A single data value (type-safe variant)
-struct DataValue {
-    enum class Type { Null, Bool, Integer, Real, String };
-    
-    bool IsNull() const;
-    bool GetBool() const;
-    int64_t GetInt() const;
-    double GetReal() const;
-    std::string GetString() const;
-};
-
-// A row of named values
-struct DataRow {
-    DataValue Get(const std::string& column) const;
-    Real GetReal(const std::string& column) const;
-    std::string GetString(const std::string& column) const;
-    // ... convenience methods
-};
-
-// Complete dataset
-struct Dataset {
-    std::vector<std::string> columns;
-    std::vector<DataRow> rows;
-    
-    size_t NumRows() const;
-    size_t NumColumns() const;
-    bool HasColumn(const std::string& name) const;
-};
+std::string csv = "x,y,label\n1.0,2.0,A\n2.0,4.0,B\n3.0,6.0,C\n4.0,8.0,D\n5.0,10.0,E\n";
+Dataset data = LoadFromCSVString(csv, ',', true);
+const DataColumn& xColumn = data["x"];
+const DataColumn& labelColumn = data["label"];
+for (size_t row = 0; row < data.NumRows(); ++row) {
+    if (xColumn.IsMissing(row) || xColumn.GetReal(row) != static_cast<Real>(row + 1))
+        throw DataError("Column access demo lost a numeric value");
+    std::cout << labelColumn.GetAsString(row) << ": " << xColumn.GetReal(row) << '\n';
+}
+Vector<Real> xVec = data.GetRealColumn("x");
+Vector<Real> yVec = data.GetRealColumn("y");
 ```
 
-### Loading Functions
+### File Loading Versus String Parsing
 
-#### Auto-Detect by Extension
+| Input | Throwing dataset-returning API | Result-based API |
+|-------|--------------------------------|------------------|
+| CSV filename | `LoadCSV(filename)` or `LoadCSV(filename, options)` | `LoadCSVSafe(filename, output, hasHeader, delimiter, inferTypes)` or `LoadCSV(filename, output, options)` |
+| TSV filename | `LoadTSV(filename, hasHeader, inferTypes)` | `LoadTSVSafe(filename, output, hasHeader, inferTypes)` |
+| JSON filename | `LoadJSON(filename)` | `LoadJSONSafe(filename, output)` |
+| Filename with detected format | `LoadData(filename, hasHeader)` | `LoadData(filename, output, hasHeader)` |
+
+`LoadData` recognizes `.csv`, `.tsv`, `.tab` and `.json`, using ASCII-only
+case-insensitive extension matching; other/missing extensions default to CSV.
+The header flag applies to CSV/TSV, not JSON.
+
+For **in-memory content**, use `LoadFromCSVString(content, delimiter, hasHeader)`,
+`LoadFromJSONString(content)`, or `LoadFromString(content, DataFormat, hasHeader)`.
+TSV strings use the CSV parser with `'\t'`. These functions throw `DataError` on
+invalid input.
+
 ```cpp
-Dataset data = LoadData("file.csv");   // Uses LoadCSV
-Dataset data = LoadData("file.tsv");   // Uses LoadTSV  
-Dataset data = LoadData("file.json");  // Uses LoadJSON
+const std::string goodCSV = "a,b,c\n1,2,3\n4,5,6\n";
+const Dataset parsed = LoadFromCSVString(goodCSV);
 ```
 
-#### Explicit Loaders
+There is **no `fromString` flag** on a safe file loader. Do not pass CSV content
+as its filename. In particular, the string parser's argument order
+`(content, delimiter, hasHeader)` differs from the file loader's options.
+Use the `Dataset&` output overload rather than deprecated result-owning
+`LoadCSVSafe` / `LoadTSVSafe` / `LoadJSONSafe` overloads.
+
+### Safe File Loading and Error Reporting
+
+`IOResult` reports `success`, `error`, `message`, `filename`, and optional
+`offset` / `offset_kind`; it does not own the dataset. The demo creates
+`csvFilename` before executing this fragment:
+
 ```cpp
-Dataset csv_data = LoadCSV("data.csv");
-Dataset tsv_data = LoadTSV("data.tsv");
-Dataset json_data = LoadJSON("data.json");
-
-// With options
-LoadOptions opts;
-opts.hasHeader = true;
-opts.delimiter = ';';  // For European CSV
-Dataset data = LoadCSV("european.csv", opts);
+Dataset loaded;
+const IOResult result = LoadCSVSafe(csvFilename, loaded, true, ',');
+if (!result)
+    throw FileIOError(result.message, result.filename);
+std::cout << "CSV file load: " << IOErrorName(result.error) << '\n';
 ```
+
+The checked counterpart verifies two rows, three integer columns, all six values,
+the success code and filename. It also checks CSV/TSV/JSON convenience loaders,
+both `LoadData` overloads, and explicit-format string parsing.
+
+A failed result-based load leaves the output dataset unchanged. In the demo,
+`missingFilename` names an absent file in its own newly created directory:
+
+```cpp
+const IOResult missing = LoadCSVSafe(missingFilename, loaded);
+if (missing || missing.error != IOError::FILE_NOT_OPENED ||
+    missing.filename != missingFilename || missing.message.empty())
+    throw DataError("Missing CSV did not report FILE_NOT_OPENED");
+std::cout << "Expected missing-file failure: "
+          << IOErrorName(missing.error) << ": " << missing.message << '\n';
+```
+
+The demo also verifies `MALFORMED_INPUT` for malformed quotes, the physical line
+diagnostic, and preservation of the previously loaded dataset on both failures.
+Unexpected outcomes throw rather than silently printing a success-shaped result.
+
+### CSVLoadOptions and Headerless Data
+
+The actual options type is `CSVLoadOptions`, with these fields:
+
+| Field | Default | Purpose |
+|-------|---------|---------|
+| `hasHeader` | `true` | First logical record supplies column names |
+| `delimiter` | `','` | CSV/TSV field separator |
+| `inferTypes` | `true` | Infer typed columns; `false` retains strings |
+| `strictSchema` | `false` | Reject row-width mismatches |
+| `warnings` | `nullptr` | Optional `std::vector<std::string>*` for nonfatal width diagnostics |
+
+There is no DataLoader `LoadOptions` or `columnNames` option. Without a header,
+names are `Column0`, `Column1`, etc.; rename the resulting `DataColumn::name`
+fields if required. The demo creates `noHeaderFilename` containing
+`1.25;alpha` and `2.5;beta`, then executes:
+
+```cpp
+CSVLoadOptions options;
+options.hasHeader = false;
+options.delimiter = ';';
+options.inferTypes = false;
+options.strictSchema = true;
+Dataset strings = LoadCSV(noHeaderFilename, options);
+strings.columns[0].name = "x";
+strings.columns[1].name = "label";
+```
+
+Its checks verify both rows, generated names before renaming, string storage,
+and the result-based `LoadCSV(filename, output, options)` overload.
+`Persistence::LoadOptions` is a different type for object persistence.
+
+### ASCII Tokens and Unicode Text
+
+File extensions, missing-value markers, and boolean aliases are matched
+case-insensitively using **ASCII-only** folding, independent of the C character
+locale. Non-ASCII bytes are never passed to character case-conversion functions
+or changed by token normalization. This does not perform Unicode case folding,
+normalization, or validation: Greek capital/small sigma, for example, remain
+different text. Existing whitespace trimming and CSV/JSON decoding still apply.
+
+UTF-8 string values and column names retain their bytes. JSON Unicode escapes
+are decoded to UTF-8 before type inference, so a string such as `N\u00c4N`
+is text, not the ASCII missing marker `NaN`.
+
+```cpp
+const Dataset data = LoadFromJSONString(
+    R"([{"name":"Caf\u00e9","active":"TrUe"},{"name":"N\u00c4N","active":"FaLsE"}])");
+std::cout << data["name"].stringData[0] << '\n';
+```
+
+This snippet and explicit byte/boolean checks also run independently through
+`MML_DocsApp --dataloader-unicode`.
+
+### Numeric Inference and Conversion Errors
+
+The DataLoader keeps its 90% majority inference threshold, excluding recognized
+missing values. Within a numeric column, any decimal/exponent-spelled token or
+integer outside `int` range promotes the column to `REAL`, even when most rows
+contain small integers. For example:
+
+```cpp
+const std::string csv = "value\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10.75\n";
+Dataset data = LoadFromCSVString(csv);
+std::cout << data["value"].realData[9];  // 10.75, not 10
+```
+
+This example is exercised by `demo_numeric_import_contract` in the
+[DataLoader documentation demo](../../src/docs_demos/tools/docs_demo_data_loader.cpp).
+
+Numeric conversions must consume the entire trimmed token and fit the selected
+storage. Integer-spelled tokens (an optional sign followed only by digits) must
+be represented exactly: a value outside `int` range may use `Real`, but an
+integer that `Real` would round is rejected. Decimal/exponent-spelled tokens
+retain normal floating-point rounding and the existing range checks.
+
+Invalid present values are **not missing cells**. Once a numeric/bool type has
+been inferred, an invalid conversion fails the entire load with a diagnostic
+containing the value, one-based data-row number, column number and column name.
+Recognized missing markers such as `NA` and JSON `null` remain missing.
+
+The `IOResult` file overloads report `MALFORMED_INPUT`, attach the filename and
+leave the caller's `Dataset` unchanged; CSV/TSV failures also carry the physical
+line in `offset` with `IOOffsetKind::Line`. JSON conversion diagnostics identify
+the data row in the message, not a fabricated byte/line offset. Dataset-returning
+file overloads and string loaders throw `DataError`. Setting
+`CSVLoadOptions::inferTypes` to `false` explicitly retains string storage.
+
+This conversion policy does not change CSV record/quote parsing.
 
 ### CSV/TSV Format Requirements
 
-**With header (default):**
-```csv
-x,y,z,label
-1.0,2.0,3.0,point1
-4.0,5.0,6.0,point2
+CSV and TSV loaders share a strict, record-oriented quote parser. A quoted field
+may contain delimiters, doubled quotes (`""` represents one quote), and physical
+newlines. Quotes may open only at the beginning of a field; after the closing
+quote only a delimiter or record end is allowed. Spaces/tabs outside a quoted
+field are not accepted as padding.
+
+Embedded LF and CRLF bytes are preserved, including blank lines inside quoted
+fields. File loaders use binary input for the same results as string loaders.
+An initial UTF-8 BOM is accepted, blank physical lines outside quoted fields are
+skipped, and trailing empty fields are retained. Existing value trimming and
+missing-marker rules still apply after CSV decoding, even to quoted values.
+
+```cpp
+const std::string csv = "name,value\r\n\"hello\r\nworld\",1\r\n";
+Dataset data = LoadFromCSVString(csv);
+std::cout << data.NumRows() << '\n';              // 1 logical data row
+std::cout << data["name"].stringData[0] << '\n';  // contains the original CRLF
 ```
 
-**Without header:**
-```cpp
-LoadOptions opts;
-opts.hasHeader = false;
-opts.columnNames = {"x", "y", "z", "label"};
-auto data = LoadCSV("noheader.csv", opts);
-```
+This example is checked by `demo_csv_record_contract` in the
+[DataLoader documentation demo](../../src/docs_demos/tools/docs_demo_data_loader.cpp).
+
+Malformed quote syntax fails the entire load: result-based file APIs return
+`MALFORMED_INPUT` without replacing the destination, and dataset-returning APIs
+throw `DataError`. Syntax diagnostics identify the physical line and field;
+file results also carry the line in `offset` with `IOOffsetKind::Line`. An
+unclosed field is located at its opening quote. Delimiters that are themselves
+quotes or newlines are rejected with `INVALID_PARAMETERS`.
+
+`CSVLoadOptions::strictSchema` still rejects width mismatches with
+`SCHEMA_MISMATCH`; its offset is the logical record's starting physical line.
+Non-strict warning messages retain logical `Row N` numbering (including the
+header, if present), not physical line numbering.
 
 ### JSON Format Requirements
 
-The JSON parser expects an **array of flat objects**:
-
-```json
-[
-    {"x": 1.0, "y": 2.0, "label": "A"},
-    {"x": 3.0, "y": 4.0, "label": "B"},
-    {"x": 5.0, "y": 6.0, "label": "C"}
-]
-```
-
-**Supported value types:**
-- Numbers (integers and floating-point)
-- Strings (with escape sequences)
-- Booleans (`true`, `false`)
-- Null (`null`)
-
-**Not supported:**
-- Nested objects
-- Nested arrays
-- Top-level objects (must be array)
-
-### Accessing Data
-
-```cpp
-Dataset data = LoadCSV("points.csv");
-
-// Iterate all rows
-for (const auto& row : data.rows) {
-    Real x = row.GetReal("x");
-    Real y = row.GetReal("y");
-    std::string label = row.GetString("label");
-    
-    // Or use type-safe access
-    DataValue val = row.Get("x");
-    if (!val.IsNull()) {
-        double x = val.GetReal();
-    }
-}
-
-// Check columns
-if (data.HasColumn("weight")) {
-    // process weight column
-}
-
-// Get dimensions
-std::cout << "Loaded " << data.NumRows() << " rows, " 
-          << data.NumColumns() << " columns\n";
-```
+JSON input must be an **array of flat objects**. Numbers, strings (including
+escapes), booleans and `null` are supported. Nested objects, nested arrays and
+top-level objects are not supported. See `demo_json_loading` for the runnable
+array-of-objects example.
 
 ---
 
 ## Serializer
 
-The Serializer namespace provides **write-only presentation exports** for
-visualization tools. These APIs sample or flatten mathematical objects into
-`.mml` files that visualizers can consume. They deliberately do not promise to
-reconstruct arbitrary runtime objects such as executable functions, field
-objects, or solver instances.
+Include `<mml/tools/Serializer.h>` and call functions in namespace `MML::Serializer`.
+These are write-only presentation exports returning `IOResult`, not object
+round-trip persistence.
 
-Use these exporters when the goal is plotting, inspection, teaching examples, or
-visualizer interoperability. Use the newer `.mmlj` / `.mmlb` object-persistence
-framework when the goal is round-trip `Save` / `Load` of durable runtime data.
+| Object | Current function |
+|--------|----------------|
+| Real function | `Serializer::SaveRealFunc` |
+| Multiple functions | `Serializer::SaveRealMultiFunc` |
+| Parametric curve | `Serializer::SaveParamCurveCartesian2DResult`, `SaveParamCurveCartesian3DResult` |
+| Scalar field | `Serializer::SaveScalarFunc2DCartesian`, `SaveScalarFunc3DCartesian` |
+| Vector field | `Serializer::SaveVectorFunc2DCartesian`, `SaveVectorFunc3DCartesian` |
+| ODE solution | `Serializer::SaveODESolutionAsMultiFunc` |
+| Particle simulation | `Serializer::SaveParticleSimulation2D`, `SaveParticleSimulation3D` |
 
-### Header
-```cpp
-#include <MML/core/Serializer.h>
-using namespace MML::Serializer;
-```
-
-### Supported Object Types
-
-| Object Type | Function | Output Format |
-|-------------|----------|---------------|
-| Real functions | `SaveRealFunction()` | `REAL_FUNCTION_SAMPLED` |
-| Multiple functions | `SaveMultiFunctions()` | `MULTI_REAL_FUNCTION_SAMPLED` |
-| Parametric curve 2D | `SaveParametricCurve2D()` | `PARAMETRIC_CURVE_CARTESIAN_2D` |
-| Parametric curve 3D | `SaveParametricCurve3D()` | `PARAMETRIC_CURVE_CARTESIAN_3D` |
-| Parametric surface | `SaveParametricSurface()` | `PARAMETRIC_SURFACE_CARTESIAN_3D` |
-| Scalar function 2D | `SaveScalarFunction2D()` | `SCALAR_FUNCTION_CARTESIAN_2D` |
-| Scalar function 3D | `SaveScalarFunction3D()` | `SCALAR_FUNCTION_CARTESIAN_3D` |
-| Vector field 2D | `SaveVectorField2D()` | `VECTOR_FIELD_CARTESIAN_2D` |
-| Vector field 3D | `SaveVectorField3D()` | `VECTOR_FIELD_CARTESIAN_3D` |
-| ODE solution (single) | `SaveODESolution()` | `MULTI_REAL_FUNCTION_VARIABLE_SAMPLED` |
-| ODE solution (system) | `SaveODESystemSolution()` | `MULTI_REAL_FUNCTION_VARIABLE_SAMPLED` |
-| Particle simulation 2D | `SaveParticleSimulation2D()` | `PARTICLE_SIMULATION_2D` |
-| Particle simulation 3D | `SaveParticleSimulation3D()` | `PARTICLE_SIMULATION_3D` |
-| Field lines 2D | `SaveFieldLines2D()` | `FIELD_LINES_2D` |
-| Field lines 3D | `SaveFieldLines3D()` | `FIELD_LINES_3D` |
-
-### Examples
-
-#### Save a Real Function
-```cpp
-auto f = [](Real x) { return std::sin(x) * std::exp(-x/10); };
-
-SaveRealFunction(f, "damped_sine.mml", 
-    0.0,    // x_start
-    20.0,   // x_end  
-    200     // num_points
-);
-```
-
-#### Save Multiple Functions Together
-```cpp
-std::vector<std::function<Real(Real)>> funcs = {
-    [](Real x) { return std::sin(x); },
-    [](Real x) { return std::cos(x); },
-    [](Real x) { return std::sin(2*x); }
-};
-std::vector<std::string> names = {"sin", "cos", "sin2x"};
-
-SaveMultiFunctions(funcs, names, "trig.mml", 0.0, 6.28, 100);
-```
-
-#### Save Parametric Curve 3D (Helix)
-```cpp
-auto helix = [](Real t) {
-    return Vector3Cartesian(
-        std::cos(t),      // x
-        std::sin(t),      // y
-        t / (2 * M_PI)    // z
-    );
-};
-
-SaveParametricCurve3D(helix, "helix.mml", 
-    0.0,     // t_start
-    20.0,    // t_end
-    500      // num_points
-);
-```
-
-#### Save ODE Solution
-```cpp
-ODESystem system = ...;
-ODESolver solver;
-auto solution = solver.Solve(system, y0, t_span);
-
-SaveODESolution(solution, "pendulum.mml");
-```
-
-#### Save Scalar Function 2D (Heat Map)
-```cpp
-auto f = [](Real x, Real y) { return std::sin(x) * std::cos(y); };
-
-SaveScalarFunction2D(f, "sincos.mml",
-    -3.14, 3.14,  // x range
-    -3.14, 3.14,  // y range
-    50, 50        // grid resolution
-);
-```
-
-#### Save Vector Field 3D
-```cpp
-auto field = [](const Vector3Cartesian& p) {
-    return Vector3Cartesian(-p.Y(), p.X(), 0);  // Rotation field
-};
-
-SaveVectorField3D(field, "rotation.mml",
-    -2, 2, -2, 2, -2, 2,  // bounds
-    10, 10, 10            // grid resolution
-);
-```
-
----
+See the modules included by [Serializer.h](../../mml/tools/Serializer.h) for exact
+argument order, and [SerializerFormats.md](SerializerFormats.md) for the actual
+`MML_`-prefixed identifiers and versioned headers. The old `# Format: ...` layouts
+are not the current exporter header specification.
 
 ## RigidBody Simulation Serializer
 
-Specialized serializer for rigid body physics simulations.
-
-### Header
-```cpp
-#include "RigidBody/RigidBodySerializer.h"
-using namespace MPL;
-```
-
-### Two Output Modes
-
-#### Mode 1: Single File (Recommended)
-All bodies in one file with `RIGID_BODY_SIMULATION` format.
-
-```cpp
-RigidBodySerializer serializer;
-serializer.SetContainerSize(5.0);  // 10m cube container
-
-// Add body metadata
-serializer.AddBody(RigidBodyInfo::Box(10.0, 1.0, 0.5, 0.3, "Red", "Box1"));
-serializer.AddBody(RigidBodyInfo::Box(8.0, 0.75, 0.5, 0.4, "Blue", "Box2"));
-serializer.AddBody(RigidBodyInfo::Sphere(5.0, 0.5, "LimeGreen", "Sphere1"));
-
-// Run simulation...
-simulator.Run();
-
-// Save all bodies to one file
-auto result = serializer.SaveAllBodies(
-    "simulation.mml",
-    simulator.GetHistory(),
-    config.timeStep,
-    10  // Save every 10th frame
-);
-
-if (!result.success) {
-    std::cerr << "Error: " << result.message << "\n";
-}
-```
-
-#### Mode 2: Separate Files
-One file per body with `RIGID_BODY_TRAJECTORY_3D` format.
-
-```cpp
-serializer.SaveSingleBody("box1.mml", history, 0, dt, 10);
-serializer.SaveSingleBody("box2.mml", history, 1, dt, 10);
-serializer.SaveSingleBody("sphere.mml", history, 2, dt, 10);
-```
-
-### Visualization
-
-Both formats are supported by the WPF visualizer:
-
-```cpp
-// Launch visualizer automatically
-Visualizer::VisualizeRigidBodySimulation("simulation.mml");
-
-// Or with multiple separate files
-std::vector<std::string> files = {"box1.mml", "box2.mml", "sphere.mml"};
-Visualizer::VisualizeRigidBodyTrajectory(files);
-```
-
----
+Rigid-body simulation and its specialized serializer belong to **MPL**, not MML
+core. Use the MPL project's documentation and demos for that API; MML's particle
+export methods do not substitute for a rigid-body simulator.
 
 ## File Format Specifications
 
-### MML Text Header Format
+- [SerializationPersistence.md](SerializationPersistence.md): object text/JSON,
+  binary envelopes, supported scalars and conversion rules.
+- [SerializerFormats.md](SerializerFormats.md): visualizer presentation formats.
+- [Visualizers.md](Visualizers.md): consuming visualizer exports.
 
-All `.mml` visualization files start with:
-```
-# MML Visualization Data File
-# Format: <FORMAT_TYPE>
-# Generated: <timestamp>
-# 
-# <format-specific metadata>
-#
-<data section>
-```
-
-These headers identify legacy-compatible visualizer data formats. They are kept
-stable for existing visualizer workflows, but they are not schema headers for
-general object persistence. Adding a reader for a `.mml` presentation export
-requires a separate, explicit reconstruction contract for that specific format.
-
-### REAL_FUNCTION_SAMPLED
-```
-# Format: REAL_FUNCTION_SAMPLED
-# Points: 100
-#
-# x, f(x)
-0.000000000000000 0.000000000000000
-0.063466518254339 0.063424925152302
-...
-```
-
-### PARAMETRIC_CURVE_CARTESIAN_3D
-```
-# Format: PARAMETRIC_CURVE_CARTESIAN_3D
-# Points: 500
-#
-# t, x, y, z
-0.000000 1.000000 0.000000 0.000000
-0.040080 0.999196 0.040067 0.006380
-...
-```
-
-### RIGID_BODY_SIMULATION
-```
-# MML Rigid Body Simulation
-# Format: RIGID_BODY_SIMULATION
-# Version: 1.0
-#
-CONTAINER_SIZE: 5.0
-
-BODIES: 3
-BODY 0: BOX mass=10.0 half_extents=(1.0, 0.5, 0.3) color=Red name=Box1
-BODY 1: BOX mass=8.0 half_extents=(0.75, 0.5, 0.4) color=Blue name=Box2
-BODY 2: SPHERE mass=5.0 radius=0.5 color=LimeGreen name=Sphere1
-
-FRAMES: 401
-FRAME 0 t=0.000000
-  0: pos=(x,y,z) quat=(w,x,y,z) vel=(vx,vy,vz) omega=(wx,wy,wz)
-  1: pos=(x,y,z) quat=(w,x,y,z) vel=(vx,vy,vz) omega=(wx,wy,wz)
-  2: pos=(x,y,z) quat=(w,x,y,z) vel=(vx,vy,vz) omega=(wx,wy,wz)
-FRAME 1 t=0.010000
-...
-```
-
-### Binary Object Format
-
-All `.mmlb` object files use the envelope defined in `BinaryBase.h`. Dynamic
-vectors use `MML_VECT`; dynamic matrices use `MML_MATX`. Shape fields and
-floating-point payloads are encoded explicitly in little-endian order. Both
-containers support `float`, `double`, `long double`, `std::complex<float>`, and
-`std::complex<double>`. Complex values use interleaved real/imaginary components.
-The fixed 24-byte `long double` record stores the mathematical binary value
-instead of ABI bytes; loading rejects source precision that the target platform
-cannot represent exactly.
-
----
+Do not treat DataLoader JSON arrays, MML JSON object schemas, and sampled
+visualizer files as interchangeable representations.
 
 ## Best Practices
 
-### 1. Choose the Right Format
-
-| Scenario | Recommended Format |
-|----------|--------------------|
-| Large matrices (>1000×1000) | Binary `.mmlb` |
-| Debugging / inspection | Text or CSV |
-| Interoperability (Excel, Python) | CSV |
-| Visualization | `.mml` via Serializer |
-| Simulation playback | `.mml` RigidBodySerializer |
-
-### 2. Handle Errors
-
-```cpp
-// Matrix I/O returns bool
-if (!A.SaveToFile("matrix.txt")) {
-    std::cerr << "Failed to save matrix\n";
-}
-
-Matrix<Real> B;
-if (!Matrix<Real>::LoadFromFile("matrix.txt", B)) {
-    std::cerr << "Failed to load matrix\n";
-}
-
-// RigidBodySerializer returns SerializeResult
-auto result = serializer.SaveAllBodies(...);
-if (!result.success) {
-    std::cerr << "Error: " << result.message << "\n";
-}
-```
-
-### 3. Use Appropriate Precision
-
-```cpp
-// For CSV, control decimal places
-A.SaveToCSV("matrix.csv", 6);   // 6 decimals (smaller file)
-A.SaveToCSV("matrix.csv", 15);  // Full precision (default)
-
-// Binary preserves float/double bits and canonical long-double values
-Persistence::Save(A, "matrix.mmlb");
-```
-
-### 4. Downsample Large Simulations
-
-```cpp
-// Save every Nth frame to reduce file size
-int skipFactor = 10;  // 1000 Hz → 100 Hz
-serializer.SaveAllBodies(filename, history, dt, skipFactor);
-```
-
-### 5. Validate Before Processing
-
-```cpp
-Dataset data = LoadCSV("input.csv");
-
-// Check expected columns exist
-if (!data.HasColumn("x") || !data.HasColumn("y")) {
-    throw std::runtime_error("Missing required columns");
-}
-
-// Check row count
-if (data.NumRows() == 0) {
-    throw std::runtime_error("Empty dataset");
-}
-```
-
----
+1. **Check the result.** Persistence, presentation exporters and result-based
+   DataLoader file APIs return `IOResult`; report its error code, message and
+   filename. Check offset kind before interpreting an offset as a line or byte.
+2. **Choose the correct input API.** File loaders take paths, string parsers take
+   content, and CSV options belong to `CSVLoadOptions`.
+3. **Validate the schema and missing values.** Use `HasColumn`, dimensions,
+   `ColumnType` and `IsMissing` before numerical processing. Enable `strictSchema`
+   when ragged records must be rejected.
+4. **Preserve precision deliberately.** Use persistence round-trip defaults for
+   stored vectors/matrices, rather than display conversions or arbitrary
+   decimal-place assumptions.
+5. **Keep presentation separate from persistence.** Sampled `.mml` output is for
+   visualization; use the object schemas for durable reconstruction.
 
 ## Examples
 
-### Complete Example: Load CSV → Process → Save Binary
+| Command | Checked counterpart |
+|---------|---------------------|
+| `MML_DocsApp --dataloader` | File/string loading, automatic detection, column access, CSV options, success/failure diagnostics, destination preservation, numeric/CSV/Unicode contracts |
+| `MML_DocsApp --dataloader-unicode` | Focused ASCII-token and UTF-8 checks |
+| `MML_DocsApp --vector-persistence` | Vector file/stream round trips and failure contracts |
+| `MML_DocsApp --persistence-portability` | Matrix text precision and persistence portability |
+| `MML_DocsApp --serializer-sampling` | Finite sample coordinates and exported coordinate round trips |
 
-```cpp
-#include <MML/base/Matrix/Matrix.h>
-#include <MML/core/DataLoader.h>
-using namespace MML::Data;
-
-int main() {
-    // Load data from CSV
-    Dataset data = LoadCSV("measurements.csv");
-    
-    // Convert to matrix manually (extract numeric columns)
-    size_t n = data.NumRows();
-    Matrix<Real> A(n, 3);
-    
-    for (size_t i = 0; i < n; ++i) {
-        A(i, 0) = data.rows[i].GetReal("x");
-        A(i, 1) = data.rows[i].GetReal("y");
-        A(i, 2) = data.rows[i].GetReal("z");
-    }
-    
-    // Process...
-    Matrix<Real> result = SomeComputation(A);
-    
-    // Save efficiently
-    Persistence::Save(result, "result.mmlb");
-    
-    return 0;
-}
-```
-
-### Complete Example: Serialize Function for Visualization
-
-```cpp
-#include <MML/core/Serializer.h>
-#include <MML/core/Visualizer.h>
-using namespace MML::Serializer;
-
-int main() {
-    // Define a function
-    auto bessel = [](Real x) { return std::cyl_bessel_j(0, x); };
-    
-    // Save for visualization
-    SaveRealFunction(bessel, "bessel_j0.mml", 0.0, 20.0, 500);
-    
-    // Launch visualizer
-    Visualizer::VisualizeRealFunction("bessel_j0.mml");
-    
-    return 0;
-}
-```
-
-### Complete Example: Rigid Body Simulation Pipeline
-
-```cpp
-#include "RigidBody/RigidBodies.h"
-#include "RigidBody/RigidBodySimulator.h"
-#include "RigidBody/RigidBodySerializer.h"
-#include <MML/core/Visualizer.h>
-
-int main() {
-    // Create bodies
-    RigidBodyBox box(10.0, 1.0, 0.5, 0.3);
-    box.Position() = Vec3Cart(0, 0, 2);
-    box.Velocity() = Vec3Cart(1, 0, -1);
-    
-    RigidBodySphere sphere(5.0, 0.5);
-    sphere.Position() = Vec3Cart(2, 0, 3);
-    sphere.Velocity() = Vec3Cart(-1, 0, -2);
-    
-    // Configure simulation
-    SimulationConfig config;
-    config.timeStep = 0.001;
-    config.totalTime = 10.0;
-    config.containerHalfSize = 5.0;
-    config.coeffRestitution = 1.0;
-    
-    // Run simulation
-    RigidBodySimulator sim(config);
-    sim.AddBody(box);
-    sim.AddBody(sphere);
-    sim.Run();
-    
-    // Serialize
-    RigidBodySerializer serializer;
-    serializer.SetContainerSize(config.containerHalfSize);
-    serializer.AddBody(RigidBodyInfo::Box(10.0, 1.0, 0.5, 0.3, "Red", "Box"));
-    serializer.AddBody(RigidBodyInfo::Sphere(5.0, 0.5, "Green", "Sphere"));
-    
-    serializer.SaveAllBodies("simulation.mml", sim.GetHistory(), 
-                             config.timeStep, 10);
-    
-    // Visualize
-    Visualizer::VisualizeRigidBodySimulation("simulation.mml");
-    
-    return 0;
-}
-```
-
----
-
-## See Also
-
-- [docs/tools/SerializationPersistence.md](../../docs/tools/SerializationPersistence.md) - `.mmlj` / `.mmlb` object persistence guide
-- [docs/MML_FILE_FORMATS.md](../docs/MML_FILE_FORMATS.md) - Complete format specifications
-- [docs/core/Serializer.md](../docs/core/Serializer.md) - Serializer API documentation
-- [docs/core/DataLoader.md](../docs/core/DataLoader.md) - DataLoader API documentation
-- [tools/visualizers/](./visualizers/) - Visualization tools
-
----
-
-*Last updated: February 2026*
-*MML Version: 1.2+*
+Demo sources:
+[DataLoader](../../src/docs_demos/tools/docs_demo_data_loader.cpp) and
+[persistence/serializer](../../src/docs_demos/tools/docs_demo_serializer.cpp).
+These selectors do not launch a graphical visualizer.

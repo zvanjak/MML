@@ -1,9 +1,7 @@
 #include <catch2/catch_all.hpp>
 #include "../../TestPrecision.h"
 
-#ifdef MML_USE_SINGLE_HEADER
-#include <MML.h>
-#else
+#ifndef MML_SINGLE_HEADER_INCLUDE
 #include <mml/base/Geometry/GeometrySpherical.h>
 #endif
 
@@ -44,7 +42,7 @@ namespace MML::Tests::Base::GeometrySphericalTests
 		REQUIRE_THAT(SphericalGeometryCalculator::RadiusFromCartesian(pnt2), WithinAbs(3.0, TOL(1e-10, 1e-5)));
 
 		// Unit sphere point
-		Real x = 1.0 / std::sqrt(3.0);
+		Real x = MML::Real(1.0) / std::sqrt(MML::Real(3.0));
 		Pnt3Cart unitPoint(x, x, x);
 		REQUIRE_THAT(SphericalGeometryCalculator::RadiusFromCartesian(unitPoint), WithinAbs(1.0, TOL(1e-10, 1e-5)));
 	}
@@ -195,7 +193,7 @@ namespace MML::Tests::Base::GeometrySphericalTests
 	TEST_CASE("DistanceBetweenLatLong::RealWorldExample", "[GeometrySpherical]")
 	{
 		// Approximate coordinates: London (51.5°N, 0°E) to New York (40.7°N, 74°W)
-		Real distance = SphericalGeometryCalculator::DistanceBetweenLatLong(51.5, 0.0, 40.7, -74.0);
+		Real distance = SphericalGeometryCalculator::DistanceBetweenLatLong(MML::Real(51.5), MML::Real(0.0), MML::Real(40.7), -MML::Real(74.0));
 		
 		// Great circle distance London to NYC is about 51.4° or 0.897 radians
 		// Allow reasonable range due to approximate coordinates
@@ -229,8 +227,8 @@ namespace MML::Tests::Base::GeometrySphericalTests
 	TEST_CASE("Integration::LatLongToCartesianConsistency", "[GeometrySpherical][Integration]")
 	{
 		// Convert lat/long to spherical, then to cartesian, verify unit radius
-		Real lat = 37.7749;  // San Francisco latitude
-		Real lon = -122.4194; // San Francisco longitude
+		Real lat = MML::Real(37.7749);  // San Francisco latitude
+		Real lon = -MML::Real(122.4194); // San Francisco longitude
 		
 		Pnt3Sph sph = SphericalGeometryCalculator::SphericalFromLatLong(lat, lon);
 		Pnt3Cart cart = SphericalGeometryCalculator::CartesianFromSpherical(sph);
@@ -268,8 +266,8 @@ namespace MML::Tests::Base::GeometrySphericalTests
 	TEST_CASE("DistanceBetweenLatLong::WithRadius_ScalingTest", "[GeometrySpherical]")
 	{
 		// Test that distance scales linearly with radius
-		Real lat1 = 40.7128, lon1 = -74.0060;  // New York
-		Real lat2 = 51.5074, lon2 = -0.1278;   // London
+		Real lat1 = MML::Real(40.7128), lon1 = -MML::Real(74.0060);  // New York
+		Real lat2 = MML::Real(51.5074), lon2 = -MML::Real(0.1278);   // London
 		
 		Real distRadians = SphericalGeometryCalculator::DistanceBetweenLatLong(lat1, lon1, lat2, lon2);
 		
@@ -282,9 +280,13 @@ namespace MML::Tests::Base::GeometrySphericalTests
 		// Distance should scale linearly with radius
 		REQUIRE_THAT(dist2 / dist1, WithinAbs(5.0, TOL(1e-10, 1e-5)));
 		
-		// Both should equal radius * angle
-		REQUIRE_THAT(dist1, WithinAbs(radius1 * distRadians, TOL(1e-10, 1e-5)));
-		REQUIRE_THAT(dist2, WithinAbs(radius2 * distRadians, TOL(1e-10, 1e-5)));
+		for (Real radius : {Real(1e-3), Real(1), radius1, radius2}) {
+			const Real expected = radius * distRadians;
+			const Real distance = SphericalGeometryCalculator::DistanceBetweenLatLong(radius, lat1, lon1, lat2, lon2);
+			const Real budget = TOL(1e-10, Precision::EqualityTolerance * std::abs(expected));
+			CAPTURE(radius, distance, expected);
+			REQUIRE(std::abs(distance - expected) <= budget);
+		}
 	}
 
 	TEST_CASE("DistanceBetweenLatLong::RealWorldCities_MajorRoutes", "[GeometrySpherical][RealWorld]")
@@ -298,12 +300,12 @@ namespace MML::Tests::Base::GeometrySphericalTests
 			Real lat, lon;
 		};
 		
-		City newYork    = {"New York",    40.7128,  -74.0060};
-		City london     = {"London",      51.5074,   -0.1278};
-		City moscow     = {"Moscow",      55.7558,   37.6173};
-		City tokyo      = {"Tokyo",       35.6762,  139.6503};
-		City sydney     = {"Sydney",     -33.8688,  151.2093};
-		City saoPaulo   = {"Sao Paulo",  -23.5505,  -46.6333};
+		City newYork    = {"New York",    MML::Real(40.7128),  -MML::Real(74.0060)};
+		City london     = {"London",      MML::Real(51.5074),   -MML::Real(0.1278)};
+		City moscow     = {"Moscow",      MML::Real(55.7558),   MML::Real(37.6173)};
+		City tokyo      = {"Tokyo",       MML::Real(35.6762),  MML::Real(139.6503)};
+		City sydney     = {"Sydney",     -MML::Real(33.8688),  MML::Real(151.2093)};
+		City saoPaulo   = {"Sao Paulo",  -MML::Real(23.5505),  -MML::Real(46.6333)};
 		
 		SECTION("New York to London")
 		{
@@ -373,12 +375,12 @@ namespace MML::Tests::Base::GeometrySphericalTests
 		};
 		
 		std::vector<CityData> cities = {
-			{"New York",   40.7128,  -74.0060},
-			{"London",     51.5074,   -0.1278},
-			{"Moscow",     55.7558,   37.6173},
-			{"Tokyo",      35.6762,  139.6503},
-			{"Sydney",    -33.8688,  151.2093},
-			{"Sao Paulo", -23.5505,  -46.6333}
+			{"New York",   MML::Real(40.7128),  -MML::Real(74.0060)},
+			{"London",     MML::Real(51.5074),   -MML::Real(0.1278)},
+			{"Moscow",     MML::Real(55.7558),   MML::Real(37.6173)},
+			{"Tokyo",      MML::Real(35.6762),  MML::Real(139.6503)},
+			{"Sydney",    -MML::Real(33.8688),  MML::Real(151.2093)},
+			{"Sao Paulo", -MML::Real(23.5505),  -MML::Real(46.6333)}
 		};
 		
 		// Known distances in km (approximate, due to Earth's oblate shape)
@@ -403,15 +405,15 @@ namespace MML::Tests::Base::GeometrySphericalTests
 		
 		// Test all city pairs
 		int testCount = 0;
-		for (int i = 0; i < cities.size(); i++) {
-			for (int j = i + 1; j < cities.size(); j++) {
+		for (size_t i = 0; i < cities.size(); i++) {
+			for (size_t j = i + 1; j < cities.size(); j++) {
 				Real calculated = SphericalGeometryCalculator::DistanceBetweenLatLong(
 					EARTH_RADIUS_KM, 
 					cities[i].lat, cities[i].lon, 
 					cities[j].lat, cities[j].lon);
 				
-				Real expected = knownDistances[{i, j}];
-				Real tolerance = expected * 0.015;  // 1.5% tolerance
+				Real expected = knownDistances[{static_cast<int>(i), static_cast<int>(j)}];
+				Real tolerance = expected * MML::Real(0.015);  // 1.5% tolerance
 				
 				INFO("Distance from " << cities[i].name << " to " << cities[j].name);
 				REQUIRE_THAT(calculated, WithinAbs(expected, tolerance));
@@ -459,8 +461,8 @@ namespace MML::Tests::Base::GeometrySphericalTests
 		SECTION("Across International Date Line")
 		{
 			// Tokyo (Japan) to Anchorage (Alaska) crosses date line
-			Real tokyo_lat = 35.6762, tokyo_lon = 139.6503;
-			Real anchorage_lat = 61.2181, anchorage_lon = -149.9003;
+			Real tokyo_lat = MML::Real(35.6762), tokyo_lon = MML::Real(139.6503);
+			Real anchorage_lat = MML::Real(61.2181), anchorage_lon = -MML::Real(149.9003);
 			
 			Real distance = SphericalGeometryCalculator::DistanceBetweenLatLong(
 				EARTH_RADIUS_KM, tokyo_lat, tokyo_lon, anchorage_lat, anchorage_lon);

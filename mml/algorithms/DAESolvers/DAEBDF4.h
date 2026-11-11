@@ -21,6 +21,7 @@
 #define MML_DAE_BDF4_H
 
 #include "DAESolverBase.h"
+#include "DAERadauIIA.h"
 #include <algorithm>
 #include <vector>
 
@@ -30,7 +31,7 @@ namespace MML {
 	/// 
 	/// Complexity: O(N³) per step where N = diffDim + algDim.
 	///            Newton iteration with augmented Jacobian + LU solve each step.
-	///            First 3 steps use BDF2 sub-stepping for accurate history.
+	///            First 3 steps use fifth-order Radau IIA for accurate history.
 	///
 	/// BDF4 formula for differential equations:
 	/// @f[
@@ -41,8 +42,11 @@ namespace MML {
 	///   0 = g(t_{n+1}, x_{n+1}, y_{n+1})
 	/// @f]
 	///
-	/// Uses sub-stepping with BDF2 for first 3 steps to build accurate history,
-	/// then switches to BDF4 for remaining steps.
+	/// Uses Radau IIA for the first 3 intervals, then BDF4 on the uniform grid.
+	/// A clipped final interval also uses Radau IIA: a BE restart would introduce
+	/// O(h^2) endpoint error and destroy fourth-order global accuracy.
+	/// Radau's coupled stage solves are included in the Newton diagnostics, but
+	/// each completed interval counts as one accepted step.
 	/// Fourth-order accurate, A(α)-stable with α ≈ 73°.
 	/// Industry standard for stiff DAEs (DASSL, SUNDIALS IDA).
 	///
@@ -57,15 +61,17 @@ namespace MML {
 	                                     Real t0, const Vector<Real>& x0, const Vector<Real>& y0,
 	                                     Real t_end, const DAESolverConfig& config = DAESolverConfig())
 	{
-		if (!std::isfinite(t_end - t0) || t_end == t0)
-			throw ArgumentError("SolveDAEBDF4: requires distinct finite endpoints");
-		if (!std::isfinite(config.step_size) || config.step_size <= 0)
-			throw ArgumentError("SolveDAEBDF4: config.step_size must be positive");
+		const int diffDim = system.getDiffDim(), algDim = system.getAlgDim();
+		if (!std::isfinite(t0) || !std::isfinite(t_end) || !std::isfinite(t_end - t0) || t_end == t0 ||
+			!std::isfinite(config.step_size) || config.step_size <= 0 ||
+			!std::isfinite(config.newton_tol) || config.newton_tol <= 0 ||
+			!std::isfinite(config.constraint_tol) || config.constraint_tol <= 0 ||
+			config.max_steps <= 0 || config.max_newton_iter <= 0 ||
+			diffDim <= 0 || algDim < 0 || x0.size() != diffDim || y0.size() != algDim)
+			throw ArgumentError("SolveDAEBDF4: requires distinct finite endpoints, positive finite "
+				"step and tolerances, positive budgets and matching state dimensions");
 
 		AlgorithmTimer timer;
-
-		int diffDim = system.getDiffDim();
-		int algDim = system.getAlgDim();
 
 		DAESolverResult result(t0, t_end, diffDim, algDim, 0);
 		result.algorithm_name = "DAEBDF4";
@@ -78,48 +84,25 @@ namespace MML {
 		Matrix<Real> dg_dx(algDim, diffDim);
 		Matrix<Real> dg_dy(algDim, algDim);
 
-		// BDF coefficients
-		// BDF2: x_new = (4/3)*x_n - (1/3)*x_{n-1} + (2/3)*h*f
-		constexpr Real bdf2_c0 = 4.0 / 3.0;
-		constexpr Real bdf2_c1 = -1.0 / 3.0;
-		constexpr Real bdf2_h_coeff = 2.0 / 3.0;
-
 		// BDF4: x_new = (48/25)*x_n - (36/25)*x_{n-1} + (16/25)*x_{n-2} - (3/25)*x_{n-3} + (12/25)*h*f
-		constexpr Real bdf4_c0 = 48.0 / 25.0;
-		constexpr Real bdf4_c1 = -36.0 / 25.0;
-		constexpr Real bdf4_c2 = 16.0 / 25.0;
-		constexpr Real bdf4_c3 = -3.0 / 25.0;
-		constexpr Real bdf4_h_coeff = 12.0 / 25.0;
+		constexpr Real bdf4_c0 = MML::Real(48.0) / MML::Real(25.0);
+		constexpr Real bdf4_c1 = -MML::Real(36.0) / MML::Real(25.0);
+		constexpr Real bdf4_c2 = MML::Real(16.0) / MML::Real(25.0);
+		constexpr Real bdf4_c3 = -MML::Real(3.0) / MML::Real(25.0);
+		constexpr Real bdf4_h_coeff = MML::Real(12.0) / MML::Real(25.0);
 
 		auto newtonSolve = [&](Real t_next, Real h, Vector<Real>& x_new, Vector<Real>& y_new,
-		                       int bdf_order,
 		                       const Vector<Real>& xn, const Vector<Real>& xn1,
 		                       const Vector<Real>& xn2, const Vector<Real>& xn3)
 		{
-			Real derivativeCoefficient = h;
-			if (bdf_order == 4) derivativeCoefficient = bdf4_h_coeff * h;
-			else if (bdf_order == 2) derivativeCoefficient = bdf2_h_coeff * h;
+			const Real derivativeCoefficient = bdf4_h_coeff * h;
 
 			auto evaluateResidual = [&](const Vector<Real>& trialX, const Vector<Real>& trialY, Vector<Real>& residual) {
 				system.diffEqs(t_next, trialX, trialY, dxdt);
 				system.algConstraints(t_next, trialX, trialY, g);
-				if (bdf_order == 4)
-				{
-					for (int i = 0; i < diffDim; ++i)
-						residual[i] = trialX[i] - bdf4_c0 * xn[i] - bdf4_c1 * xn1[i]
-							- bdf4_c2 * xn2[i] - bdf4_c3 * xn3[i] - derivativeCoefficient * dxdt[i];
-				}
-				else if (bdf_order == 2)
-				{
-					for (int i = 0; i < diffDim; ++i)
-						residual[i] = trialX[i] - bdf2_c0 * xn[i] - bdf2_c1 * xn1[i]
-							- derivativeCoefficient * dxdt[i];
-				}
-				else
-				{
-					for (int i = 0; i < diffDim; ++i)
-						residual[i] = trialX[i] - xn[i] - h * dxdt[i];
-				}
+				for (int i = 0; i < diffDim; ++i)
+					residual[i] = trialX[i] - bdf4_c0 * xn[i] - bdf4_c1 * xn1[i]
+						- bdf4_c2 * xn2[i] - bdf4_c3 * xn3[i] - derivativeCoefficient * dxdt[i];
 				for (int i = 0; i < algDim; ++i)
 					residual[diffDim + i] = g[i];
 			};
@@ -130,25 +113,14 @@ namespace MML {
 			return SolveDAENewton(x_new, y_new, diffDim, algDim, config, evaluateResidual, evaluateJacobian);
 		};
 
-		// ========================================================================
-		// BOOTSTRAP PHASE: Build accurate history using sub-stepped BDF2
-		// Use 4 substeps per main step to achieve O(h^4) local error during bootstrap
-		// ========================================================================
-		constexpr int bootstrap_substeps = 4;
 		const Real direction = t_end > t0 ? Real(1) : Real(-1);
-		Real h_main = direction * config.step_size;
-		Real h_sub = h_main / bootstrap_substeps;
+		const Real h_main = direction * config.step_size;
 
 		// We need values at t0, t0+h, t0+2h, t0+3h for BDF4
 		// Store these in history array: hist[0]=newest, hist[3]=oldest
 		std::vector<Vector<Real>> x_history(4, x0);
 		std::vector<Vector<Real>> y_history(4, y0);
-		std::vector<Real> t_history(4, t0);
-
 		Real t_current = t0;
-		Vector<Real> x_current = x0;
-		Vector<Real> y_current = y0;
-		Vector<Real> x_sub_prev = x0;  // Previous substep for BDF2
 		result.solution.fillValues(0, t0, x0, y0);
 		if (!ValidateDAEInitialState(system, t0, x0, y0, config, result)) {
 			result.solution.setFinalSize(0);
@@ -156,100 +128,73 @@ namespace MML {
 			return result;
 		}
 
-		// Take 3 main steps using sub-stepped BDF2
 		int step = 1;
-		for (int main_step = 1; main_step <= 3 && direction * (t_end - t_current) > 0 &&
-			step <= config.max_steps; ++main_step)
-		{
-			if (!PrepareDAETrajectoryPoint(result, step)) break;
-			Real h_this = direction * std::min(std::abs(h_main), std::abs(t_end - t_current));
-			Real h_substep = h_this / bootstrap_substeps;
-
-			for (int sub = 0; sub < bootstrap_substeps; ++sub)
-			{
-				Real t_next = t_current + h_substep;
-				if (!ValidateDAETimeStep(t_current, t_next, result, "BDF4 bootstrap")) {
-					result.total_steps = result.accepted_steps;
-					result.elapsed_time_ms = timer.elapsed_ms();
-					return result;
-				}
-				
-				system.diffEqs(t_current, x_current, y_current, dxdt);
-				Vector<Real> x_pred = x_current + dxdt * h_substep;
-				Vector<Real> y_pred = y_current;
-
-				int order = (main_step == 1 && sub == 0) ||
-					(sub == 0 && std::abs(h_this - h_main) > DAETimeTolerance(t_end, h_main)) ? 1 : 2;
-				DAENewtonResult newton = newtonSolve(t_next, h_substep, x_pred, y_pred, order,
-					x_current, x_sub_prev, x_current, x_current);
-				AccumulateDAENewtonDiagnostics(result, newton);
-				if (!newton.converged)
-				{
-					SetDAENewtonFailure(result, newton, "BDF4 bootstrap Newton failure at t=" + std::to_string(t_next));
-					result.total_steps = result.accepted_steps;
-					result.elapsed_time_ms = timer.elapsed_ms();
-					return result;
-				}
-
-				x_sub_prev = x_current;
-				x_current = x_pred;
-				y_current = y_pred;
-				t_current = t_next;
-				system.algConstraints(t_current, x_current, y_current, g);
-				if (!ValidateAcceptedDAEState(x_current, y_current, g, config, result, "BDF4 bootstrap step")) {
-					result.total_steps = result.accepted_steps;
-					result.elapsed_time_ms = timer.elapsed_ms();
-					return result;
-				}
-			}
-
-			// Shift history and store main step result
-			for (int i = 3; i > 0; --i)
-			{
-				x_history[i] = x_history[i-1];
-				y_history[i] = y_history[i-1];
-				t_history[i] = t_history[i-1];
-			}
-			x_history[0] = x_current;
-			y_history[0] = y_current;
-			t_history[0] = t_current;
-			result.solution.fillValues(step++, t_current, x_current, y_current);
-			result.solution.incrementSuccessfulSteps();
-			result.accepted_steps++;
-		}
-
-		// ========================================================================
-		// MAIN PHASE: BDF4 with accurate history
-		// ========================================================================
+		const auto rejectAttempt = [&]() {
+			++result.rejected_steps;
+			result.solution.incrementRejectedSteps();
+		};
 		while (direction * (t_end - t_current) > 0 && step <= config.max_steps &&
 			result.status == AlgorithmStatus::Success)
 		{
 			if (!PrepareDAETrajectoryPoint(result, step)) break;
-			Real h = direction * std::min(std::abs(h_main), std::abs(t_end - t_current));
-			
-			// Skip degenerate final steps
-			if (std::abs(h) < std::abs(h_main) * Precision::MinimumStepRatio)
-				break;
-			
-			Real t_next = t_current + h;
+			const Real remaining = t_end - t_current;
+			Real h = direction * std::min(std::abs(h_main), std::abs(remaining));
+			// Snap grid-roundoff at the endpoint without discarding genuine short intervals.
+			if (std::abs(remaining - h_main) <= std::abs(h_main) * Precision::MinimumStepRatio)
+				h = remaining;
+			const Real t_next = h == remaining ? t_end : t_current + h;
 			if (!ValidateDAETimeStep(t_current, t_next, result, "BDF4")) break;
 
-			// Fixed BDF4 coefficients require an unchanged step; restart on a clipped endpoint.
-			int order = 4;
-			if (std::abs(h - h_main) > DAETimeTolerance(t_end, h_main))
-				order = 1;
-
-			// Prediction
-			system.diffEqs(t_current, x_history[0], y_history[0], dxdt);
-			Vector<Real> x_new = x_history[0] + dxdt * h;
+			Vector<Real> x_new = x_history[0];
 			Vector<Real> y_new = y_history[0];
-
-			DAENewtonResult newton = newtonSolve(t_next, h, x_new, y_new, order,
-				x_history[0], x_history[1], x_history[2], x_history[3]);
-			AccumulateDAENewtonDiagnostics(result, newton);
-			if (!newton.converged)
-			{
-				SetDAENewtonFailure(result, newton, "BDF4 Newton failure at t=" + std::to_string(t_next));
+			if (step <= 3 || std::abs(h - h_main) > DAETimeTolerance(t_end, h_main)) {
+				// High-order starting values preserve BDF4 convergence (Hairer-Wanner, Solving ODEs II).
+				// Reuse the L-stable collocation solver, including its algebraic stage constraints.
+				DAESolverConfig starterConfig = config;
+				starterConfig.step_size = std::abs(h);
+				starterConfig.max_steps = 1;
+				auto starter = SolveDAERadauIIA(system, t_current, x_new, y_new, t_next, starterConfig);
+				DAENewtonResult diagnostics;
+				diagnostics.iterations = starter.newton_iterations;
+				diagnostics.jacobian_evaluations = starter.jacobian_evaluations;
+				diagnostics.lu_factorizations = starter.lu_factorizations;
+				diagnostics.linear_solves = starter.linear_solves;
+				diagnostics.residual_norm = starter.final_residual_norm;
+				AccumulateDAENewtonDiagnostics(result, diagnostics);
+				result.max_constraint_violation = std::max(result.max_constraint_violation, starter.max_constraint_violation);
+				if (starter.status != AlgorithmStatus::Success) {
+					result.status = starter.status;
+					result.failure_reason = starter.failure_reason;
+					result.error_message = "BDF4 Radau history/endpoint step: " + starter.error_message;
+					rejectAttempt();
+					break;
+				}
+				if (starter.accepted_steps != 1 || starter.solution.getTValue(starter.solution.size() - 1) != t_next) {
+					result.status = AlgorithmStatus::Stalled;
+					result.failure_reason = DAEFailureReason::StepSizeUnderflow;
+					result.error_message = "BDF4 Radau history/endpoint step did not reach the requested time";
+					rejectAttempt();
+					break;
+				}
+				x_new = starter.solution.getXValuesAtEnd();
+				y_new = starter.solution.getYValuesAtEnd();
+			} else {
+				system.diffEqs(t_current, x_history[0], y_history[0], dxdt);
+				x_new += dxdt * h;
+				auto newton = newtonSolve(t_next, h, x_new, y_new,
+					x_history[0], x_history[1], x_history[2], x_history[3]);
+				AccumulateDAENewtonDiagnostics(result, newton);
+				if (!newton.converged) {
+					SetDAENewtonFailure(result, newton, "BDF4 Newton failure at t=" + std::to_string(t_next));
+					rejectAttempt();
+					break;
+				}
+			}
+			system.algConstraints(t_next, x_new, y_new, g);
+			const Real previousConstraintNorm = result.final_constraint_norm;
+			if (!ValidateAcceptedDAEState(x_new, y_new, g, config, result, "BDF4 step")) {
+				result.final_constraint_norm = previousConstraintNorm;
+				rejectAttempt();
 				break;
 			}
 
@@ -258,17 +203,10 @@ namespace MML {
 			{
 				x_history[i] = x_history[i-1];
 				y_history[i] = y_history[i-1];
-				t_history[i] = t_history[i-1];
 			}
 			x_history[0] = x_new;
 			y_history[0] = y_new;
-			t_history[0] = t_next;
 			t_current = t_next;
-
-			// Track constraint violation
-			system.algConstraints(t_current, x_history[0], y_history[0], g);
-			if (!ValidateAcceptedDAEState(x_history[0], y_history[0], g, config, result, "BDF4 step"))
-				break;
 
 			result.solution.fillValues(step, t_current, x_history[0], y_history[0]);
 			result.solution.incrementSuccessfulSteps();
@@ -280,8 +218,7 @@ namespace MML {
 		if (result.status != AlgorithmStatus::ResourceLimitExceeded)
 			result.solution.setFinalSize(step - 1);
 		result.total_steps = step - 1;
-		result.final_constraint_norm = g.NormL2();
-		if (direction * (t_end - t_current) > std::abs(h_main) * Precision::MinimumStepRatio && result.status == AlgorithmStatus::Success) {
+		if (direction * (t_end - t_current) > 0 && result.status == AlgorithmStatus::Success) {
 			result.status = AlgorithmStatus::MaxIterationsExceeded;
 			result.failure_reason = DAEFailureReason::MaxStepsExceeded;
 			result.error_message = "Maximum BDF4 step count reached before t_end";

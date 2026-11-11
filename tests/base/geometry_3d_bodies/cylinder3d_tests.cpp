@@ -25,7 +25,7 @@ TEST_CASE("Cylinder3D::Volume", "[geometry][cylinder][volume]")
     SECTION("CylinderSurface with radius 2, height 5")
     {
         Cylinder3D cyl(2.0, 5.0);
-        Real expected = Constants::PI * 4.0 * 5.0;  // π * 4 * 5 = 20π
+        Real expected = Constants::PI * MML::Real(4.0) * MML::Real(5.0);  // π * 4 * 5 = 20π
         REQUIRE_THAT(cyl.Volume() , RealApprox(expected));
     }
 
@@ -33,14 +33,14 @@ TEST_CASE("Cylinder3D::Volume", "[geometry][cylinder][volume]")
     {
         Pnt3Cart base(10.0, 20.0, 30.0);
         Cylinder3D cyl(3.0, 10.0, base);
-        Real expected = Constants::PI * 9.0 * 10.0;  // π * 9 * 10 = 90π
+        Real expected = Constants::PI * MML::Real(9.0) * MML::Real(10.0);  // π * 9 * 10 = 90π
         REQUIRE_THAT(cyl.Volume() , RealApprox(expected));
     }
 
     SECTION("Tall thin cylinder")
     {
         Cylinder3D cyl(0.5, 20.0);
-        Real expected = Constants::PI * 0.25 * 20.0;  // π * 0.25 * 20 = 5π
+        Real expected = Constants::PI * MML::Real(0.25) * MML::Real(20.0);  // π * 0.25 * 20 = 5π
         REQUIRE_THAT(cyl.Volume() , RealApprox(expected));
     }
 }
@@ -59,7 +59,7 @@ TEST_CASE("Cylinder3D::SurfaceArea", "[geometry][cylinder][surface]")
     {
         Cylinder3D cyl(2.0, 5.0);
         // SA = 2π(4) + 2π(2)(5) = 8π + 20π = 28π
-        Real expected = 28.0 * Constants::PI;
+        Real expected = MML::Real(28.0) * Constants::PI;
         REQUIRE_THAT(cyl.SurfaceArea() , RealApprox(expected));
     }
 
@@ -68,7 +68,7 @@ TEST_CASE("Cylinder3D::SurfaceArea", "[geometry][cylinder][surface]")
         Pnt3Cart base(10.0, 20.0, 30.0);
         Cylinder3D cyl(3.0, 10.0, base);
         // SA = 2π(9) + 2π(3)(10) = 18π + 60π = 78π
-        Real expected = 78.0 * Constants::PI;
+        Real expected = MML::Real(78.0) * Constants::PI;
         REQUIRE_THAT(cyl.SurfaceArea() , RealApprox(expected));
     }
 
@@ -76,7 +76,7 @@ TEST_CASE("Cylinder3D::SurfaceArea", "[geometry][cylinder][surface]")
     {
         Cylinder3D cyl(10.0, 1.0);
         // SA = 2π(100) + 2π(10)(1) = 200π + 20π = 220π
-        Real expected = 220.0 * Constants::PI;
+        Real expected = MML::Real(220.0) * Constants::PI;
         REQUIRE_THAT(cyl.SurfaceArea() , RealApprox(expected));
     }
 }
@@ -165,7 +165,7 @@ TEST_CASE("Cylinder3D::GetBoundingSphere", "[geometry][cylinder][bounding]")
         REQUIRE_THAT(bsphere.Center().Z() , RealApprox(0.0));
         
         // Radius = sqrt(R² + (H/2)²) = sqrt(9 + 16) = sqrt(25) = 5
-        Real expected_radius = std::sqrt(9.0 + 16.0);
+        Real expected_radius = std::sqrt(MML::Real(9.0) + MML::Real(16.0));
         REQUIRE_THAT(bsphere.Radius() , RealApprox(expected_radius));
     }
 
@@ -179,7 +179,7 @@ TEST_CASE("Cylinder3D::GetBoundingSphere", "[geometry][cylinder][bounding]")
         REQUIRE_THAT(bsphere.Center().Z() , RealApprox(5.0));
         
         // Radius = sqrt(4 + 25) = sqrt(29) ≈ 5.385
-        Real expected_radius = std::sqrt(4.0 + 25.0);
+        Real expected_radius = std::sqrt(MML::Real(4.0) + MML::Real(25.0));
         REQUIRE_THAT(bsphere.Radius() , RealApprox(expected_radius));
     }
 
@@ -295,8 +295,8 @@ TEST_CASE("Cylinder3D::IsInside", "[geometry][cylinder][inside]")
         Pnt3Cart base(0.0, 0.0, 0.0);
         Cylinder3D cyl(5.0, 10.0, base);
         
-        REQUIRE(cyl.IsInside(Pnt3Cart(5.1, 0.0, 5.0)) == false);
-        REQUIRE(cyl.IsInside(Pnt3Cart(0.0, 5.1, 5.0)) == false);
+        REQUIRE(cyl.IsInside(Pnt3Cart(MML::Real(5.1), MML::Real(0.0), MML::Real(5.0))) == false);
+        REQUIRE(cyl.IsInside(Pnt3Cart(MML::Real(0.0), MML::Real(5.1), MML::Real(5.0))) == false);
         REQUIRE(cyl.IsInside(Pnt3Cart(10.0, 0.0, 5.0)) == false);
     }
 
@@ -305,8 +305,8 @@ TEST_CASE("Cylinder3D::IsInside", "[geometry][cylinder][inside]")
         Pnt3Cart base(0.0, 0.0, 0.0);
         Cylinder3D cyl(5.0, 10.0, base);
         
-        REQUIRE(cyl.IsInside(Pnt3Cart(0.0, 0.0, -0.1)) == false);   // Below base
-        REQUIRE(cyl.IsInside(Pnt3Cart(0.0, 0.0, 10.1)) == false);   // Above top
+        REQUIRE(cyl.IsInside(Pnt3Cart(MML::Real(0.0), MML::Real(0.0), -MML::Real(0.1))) == false);   // Below base
+        REQUIRE(cyl.IsInside(Pnt3Cart(MML::Real(0.0), MML::Real(0.0), MML::Real(10.1))) == false);   // Above top
         REQUIRE(cyl.IsInside(Pnt3Cart(2.0, 0.0, -1.0)) == false);   // Below and within radius
         REQUIRE(cyl.IsInside(Pnt3Cart(2.0, 0.0, 11.0)) == false);   // Above and within radius
     }
@@ -322,8 +322,8 @@ TEST_CASE("Cylinder3D::IsInside", "[geometry][cylinder][inside]")
         REQUIRE(cyl.IsInside(Pnt3Cart(10.0, 20.0, 42.0)) == true);           // Top center
         
         REQUIRE(cyl.IsInside(Pnt3Cart(14.0, 20.0, 36.0)) == false);          // Outside radius
-        REQUIRE(cyl.IsInside(Pnt3Cart(10.0, 20.0, 29.9)) == false);          // Below base
-        REQUIRE(cyl.IsInside(Pnt3Cart(10.0, 20.0, 42.1)) == false);          // Above top
+        REQUIRE(cyl.IsInside(Pnt3Cart(MML::Real(10.0), MML::Real(20.0), MML::Real(29.9))) == false);          // Below base
+        REQUIRE(cyl.IsInside(Pnt3Cart(MML::Real(10.0), MML::Real(20.0), MML::Real(42.1))) == false);          // Above top
     }
 
     SECTION("3-4-5 right triangle test")
@@ -335,7 +335,7 @@ TEST_CASE("Cylinder3D::IsInside", "[geometry][cylinder][inside]")
         REQUIRE(cyl.IsInside(Pnt3Cart(3.0, 4.0, 5.0)) == true);
         
         // Point at (3, 4.1, 5): distance from axis > 5.0
-        REQUIRE(cyl.IsInside(Pnt3Cart(3.0, 4.1, 5.0)) == false);
+        REQUIRE(cyl.IsInside(Pnt3Cart(MML::Real(3.0), MML::Real(4.1), MML::Real(5.0))) == false);
     }
 }
 

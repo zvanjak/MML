@@ -69,7 +69,11 @@
 #define NOMINMAX
 #include <windows.h>
 #else
+#include <spawn.h>
 #include <unistd.h>
 #include <sys/wait.h>
 #include <signal.h>
+#ifdef __APPLE__
+#include <crt_externs.h>
+#endif
 #endif

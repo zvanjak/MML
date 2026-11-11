@@ -62,6 +62,9 @@ namespace MML
 			_inverse[2][2] = cos(_angle);
 		}
 
+		CoordTransfCart3DRotationXAxis(const CoordTransfCart3DRotationXAxis& other)
+			: CoordTransfCart3DRotationXAxis(other._angle) {}
+
 		/// @brief X component unchanged by X-axis rotation
 		/// @param q Input Cartesian coordinates
 		/// @return x coordinate (unchanged)
@@ -134,6 +137,9 @@ namespace MML
 			_inverse[2][2] = cos(_angle);
 		}
 
+		CoordTransfCart3DRotationYAxis(const CoordTransfCart3DRotationYAxis& other)
+			: CoordTransfCart3DRotationYAxis(other._angle) {}
+
 		Real func1(const VectorN<Real, 3>& q) const { return q[0] * cos(_angle) + q[2] * sin(_angle); }
 		Real func2(const VectorN<Real, 3>& q) const { return q[1]; }
 		Real func3(const VectorN<Real, 3>& q) const { return -q[0] * sin(_angle) + q[2] * cos(_angle); }
@@ -194,6 +200,9 @@ namespace MML
 			_inverse[1][1] = cos(_angle);
 			_inverse[2][2] = 1.0;
 		}
+
+		CoordTransfCart3DRotationZAxis(const CoordTransfCart3DRotationZAxis& other)
+			: CoordTransfCart3DRotationZAxis(other._angle) {}
 
 		Real func1(const VectorN<Real, 3>& q) const { return q[0] * cos(_angle) - q[1] * sin(_angle); }
 		Real func2(const VectorN<Real, 3>& q) const { return q[0] * sin(_angle) + q[1] * cos(_angle); }
@@ -269,8 +278,8 @@ namespace MML
 		/// @param gamma Third rotation around Z''-axis (radians)
 		CoordTransfCart3DRotationEuler(Real alpha, Real beta, Real gamma)
 			: _alpha(alpha), _beta(beta), _gamma(gamma),
-				_transf(buildEulerZYZMatrix(alpha, beta, gamma)),
-				_inverse(buildEulerZYZMatrix(-gamma, -beta, -alpha)), // Inverse: reverse order and sign
+				_transf(buildEulerZYZMatrix(_alpha, _beta, _gamma)),
+				_inverse(buildEulerZYZMatrix(-_gamma, -_beta, -_alpha)), // Inverse: reverse order and sign
 				_f1([this](const VectorN<Real, 3>& q) { return func1(q); }),
 				_f2([this](const VectorN<Real, 3>& q) { return func2(q); }),
 				_f3([this](const VectorN<Real, 3>& q) { return func3(q); }),
@@ -291,6 +300,9 @@ namespace MML
 		{
 			return Vec3Cart{ func1(q), func2(q), func3(q) };
 		}
+
+		CoordTransfCart3DRotationEuler(const CoordTransfCart3DRotationEuler& other)
+			: CoordTransfCart3DRotationEuler(other._alpha, other._beta, other._gamma) {}
 		Vec3Cart transfInverse(const Vec3Cart& q) const override
 		{
 			return Vec3Cart{ funcInverse1(q), funcInverse2(q), funcInverse3(q) };
@@ -348,46 +360,62 @@ namespace MML
 			_fInverse2([this](const VectorN<Real, 3>& q) { return funcInverse2(q); }),
 			_fInverse3([this](const VectorN<Real, 3>& q) { return funcInverse3(q); }) 
 		{
-			// Convert to Vec3Cart for easier operations
-			Vec3Cart base1(b1);
-			Vec3Cart base2(b2);
-			Vec3Cart base3(b3);
-
-			// Check orthogonality (dot products should be zero)
-			constexpr Real eps = PrecisionValues<Real>::OrthogonalityTolerance;
-			if (std::abs(base1 * base2) > eps ||
-					std::abs(base1 * base3) > eps ||
-					std::abs(base2 * base3) > eps)
-			{
-				throw GeometryError("CoordTransf3DCartOrthogonal: Provided base vectors are not mutually orthogonal.");
-			}
-
 			_base[0] = b1;
 			_base[1] = b2;
 			_base[2] = b3;
 
-			for (int i = 0; i < 3; i++) {
-				for (int j = 0; j < 3; j++)
+			Vec3Cart unit[3];
+			for (int i = 0; i < 3; ++i) {
+				Singularity::RequireFiniteCoordinates<3>(_base[i], "Orthogonal coordinate basis");
+				const Real scale = std::max({std::abs(_base[i][0]), std::abs(_base[i][1]), std::abs(_base[i][2])});
+				if (scale == 0)
+					throw GeometryError("CoordTransf3DCartOrthogonal: zero basis vector.");
+				const Vec3Cart scaled(_base[i] / scale);
+				const Real norm = std::hypot(scaled[0], scaled[1], scaled[2]);
+				unit[i] = scaled / norm;
+				for (int j = 0; j < 3; ++j)
 				{
 					_transf(i, j) = _base[i][j];
-					_transfInverse(i, j) = _base[j][i];
+					// Divide in stages: the squared physical axis length may overflow or underflow.
+					_transfInverse(j, i) = (unit[i][j] / norm) / scale;
 				}
 			}
+			constexpr Real eps = PrecisionValues<Real>::OrthogonalityTolerance;
+			if (std::abs(unit[0] * unit[1]) > eps ||
+				std::abs(unit[0] * unit[2]) > eps ||
+				std::abs(unit[1] * unit[2]) > eps)
+				throw GeometryError("CoordTransf3DCartOrthogonal: Provided base vectors are not mutually orthogonal.");
+			Singularity::RequireFiniteMatrix(_transfInverse, "Orthogonal coordinate inverse");
+		}
+
+		CoordTransf3DCartOrthogonal(const CoordTransf3DCartOrthogonal& other)
+			: CoordTransf3DCartOrthogonal(other._base[0], other._base[1], other._base[2]) {}
+
+		using CoordTransfWithInverse<Vec3Cart, Vec3Cart, 3>::inverseJacobian;
+		JacobianType jacobian(const VectorN<Real, 3>& q) const override
+		{
+			Singularity::RequireFiniteCoordinates<3>(q, "Orthogonal coordinate Jacobian");
+			return _transf;
+		}
+		InverseJacobianType inverseJacobian(const VectorN<Real, 3>& q) const override
+		{
+			Singularity::RequireFiniteCoordinates<3>(q, "Orthogonal coordinate inverse Jacobian");
+			return _transfInverse;
 		}
 
 		MatrixNM<Real, 3, 3> getTransfMatrix() { return _transf; }
 		MatrixNM<Real, 3, 3> getInvTransfMatrix() { return _transfInverse; }
 
-		Vec3Cart    transf(const Vec3Cart& q) const { return Vec3Cart{ func1(q), func2(q), func3(q) }; }
-		Vec3Cart    transfInverse(const Vec3Cart& q) const { return Vec3Cart{ funcInverse1(q), funcInverse2(q), funcInverse3(q) }; }
+		Vec3Cart    transf(const Vec3Cart& q) const override { return Vec3Cart{ func1(q), func2(q), func3(q) }; }
+		Vec3Cart    transfInverse(const Vec3Cart& q) const override { return Vec3Cart{ funcInverse1(q), funcInverse2(q), funcInverse3(q) }; }
 
-		const IScalarFunction<3>& coordTransfFunc(int i) const
+		const IScalarFunction<3>& coordTransfFunc(int i) const override
 		{
 			if (i == 0) return _f1;
 			else if (i == 1) return _f2;
 			else return _f3;
 		}
-		const IScalarFunction<3>& inverseCoordTransfFunc(int i) const
+		const IScalarFunction<3>& inverseCoordTransfFunc(int i) const override
 		{
 			if (i == 0) return _fInverse1;
 			else if (i == 1) return _fInverse2;
@@ -396,11 +424,10 @@ namespace MML
 
 		bool IsRightHanded()
 		{
-			Vec3Cart cross = VectorProduct(_base[0], _base[1]);
-			if (cross.ScalarProduct(_base[2]) > 0.0)
-				return true;
-			else
-				return false;
+			Vec3Cart scaled[3];
+			for (int i = 0; i < 3; ++i)
+				scaled[i] = _base[i] / std::max({std::abs(_base[i][0]), std::abs(_base[i][1]), std::abs(_base[i][2])});
+			return VectorProduct(scaled[0], scaled[1]).ScalarProduct(scaled[2]) > 0;
 		}
 	};
 
@@ -450,11 +477,15 @@ namespace MML
 				{
 					_base[i][j] = _transf(i, j);
 				}
+
 			}
 
 			// Compute proper matrix inverse (throws SingularMatrixError if singular)
 			_transfInverse = MatrixAlg::Inverse(_transf);
 		}
+
+		CoordTransf3DCartGeneral(const CoordTransf3DCartGeneral& other)
+			: CoordTransf3DCartGeneral(other._transf) {}
 
 		MatrixNM<Real, 3, 3> getTransfMatrix() { return _transf; }
 		MatrixNM<Real, 3, 3> getInvTransfMatrix() { return _transfInverse; }
@@ -530,6 +561,7 @@ namespace MML
 				_baseMat(1, i) = _base[i][1];
 				_baseMat(2, i) = _base[i][2];
 			}
+
 			// Check for non-degeneracy
 			Real V = ScalarProduct(_base[0], VectorProduct(_base[1], _base[2]));
 			if (std::abs(V) < PrecisionValues<Real>::LinearDependenceTolerance)
@@ -542,7 +574,12 @@ namespace MML
 
 		// Compute inverse of base matrix for alternative transformation method
 		_baseMatInv = MatrixAlg::Inverse(_baseMat);
-	}		/// @brief Get oblique basis vector
+		}
+
+		CoordTransfCartesianToOblique3D(const CoordTransfCartesianToOblique3D& other)
+			: CoordTransfCartesianToOblique3D(other._base[0], other._base[1], other._base[2]) {}
+
+		/// @brief Get oblique basis vector
 		/// @param i Index (0, 1, or 2)
 		/// @return Oblique basis vector i
 		Vec3Cart    Base(int i) { return _base[i]; }
@@ -670,6 +707,9 @@ namespace MML
 		{
 			initializeMatrices();
 		}
+
+		CoordTransfCart3DRotationQuaternion(const CoordTransfCart3DRotationQuaternion& other)
+			: CoordTransfCart3DRotationQuaternion(other._quat) {}
 
 		// Construct from axis-angle representation
 		CoordTransfCart3DRotationQuaternion(const Vec3Cart& axis, Real angle)

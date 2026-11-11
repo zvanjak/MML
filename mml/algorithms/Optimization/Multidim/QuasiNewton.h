@@ -16,6 +16,7 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <string>
 #include <vector>
 
 namespace MML::Optimization {
@@ -185,6 +186,169 @@ namespace MML::Optimization {
 	};
 
 	///////////////////////////////////////////////////////////////////////////
+	///               Shared quasi-Newton line-search helpers               ///
+	///////////////////////////////////////////////////////////////////////////
+	namespace detail {
+
+		/// Outcome of an inexact line search. `accepted == false` means the point was left
+		/// unchanged and the caller must not interpret the unchanged objective as convergence.
+		/// `stepBelowResolution` marks the NR "TOLX" case: every finite trial along a genuine
+		/// descent direction failed to decrease f down to a step that no longer changes x by a
+		/// relative ZeroTolerance; this is x-convergence evidence, unlike a nonfinite valley.
+		struct QuasiNewtonLineSearchResult {
+			Real f = std::numeric_limits<Real>::quiet_NaN();
+			Real alpha = 0;
+			bool accepted = false;
+			bool stepBelowResolution = false;
+			const char* reason = "";
+		};
+
+		/// NR dfpmin gradient test: max_j |g_j| * max(|x_j|,1) / max(|f|,1) < gtol
+		template<int N>
+		inline bool QuasiNewtonGradientConverged(const VectorN<Real, N>& g, const VectorN<Real, N>& x, Real f, Real gtol) {
+			Real test = 0.0;
+			Real den = std::max(std::abs(f), static_cast<MML::Real>(1.0));
+			for (int j = 0; j < N; ++j) {
+				Real temp = std::abs(g[j]) * std::max(std::abs(x[j]), static_cast<MML::Real>(1.0)) / den;
+				if (temp > test)
+					test = temp;
+			}
+			return test < gtol;
+		}
+
+		/// Scale a search direction down to the trust length stpmax; returns the directional
+		/// derivative, resetting to steepest descent if the direction is not a descent direction.
+		template<int N>
+		inline Real PrepareDescentDirection(const VectorN<Real, N>& g, VectorN<Real, N>& d, Real stpmax) {
+			Real dnorm = 0.0;
+			for (int j = 0; j < N; ++j)
+				dnorm += d[j] * d[j];
+			dnorm = std::sqrt(dnorm);
+			if (dnorm > stpmax) {
+				Real scale = stpmax / dnorm;
+				for (int j = 0; j < N; ++j)
+					d[j] *= scale;
+			}
+
+			Real slope = 0.0;
+			for (int j = 0; j < N; ++j)
+				slope += g[j] * d[j];
+			if (slope >= 0.0) {
+				for (int j = 0; j < N; ++j)
+					d[j] = -g[j];
+				slope = 0.0;
+				for (int j = 0; j < N; ++j)
+					slope += g[j] * d[j];
+			}
+			return slope;
+		}
+
+		/// Smallest step that still changes x by a relative ZeroTolerance along d.
+		template<int N>
+		inline Real MinimumMeaningfulStep(const VectorN<Real, N>& x, const VectorN<Real, N>& d) {
+			Real test = 0.0;
+			for (int j = 0; j < N; ++j) {
+				Real temp = std::abs(d[j]) / std::max(std::abs(x[j]), static_cast<MML::Real>(1.0));
+				if (temp > test)
+					test = temp;
+			}
+			return test > 0 ? Precision::ZeroTolerance / test : std::numeric_limits<Real>::infinity();
+		}
+
+		/**
+		 * @brief Bounded Armijo backtracking line search (NR lnsrch with safeguards).
+		 *
+		 * Differences from the textbook version: nonfinite trial values contract the step
+		 * before any interpolation, the loop is bounded, and falling below the minimum
+		 * meaningful step is reported as a failure instead of accepting a no-op move.
+		 */
+		template<int N>
+		inline QuasiNewtonLineSearchResult BacktrackingLineSearch(const IDifferentiableScalarFunction<N>& func,
+			VectorN<Real, N>& x, Real f, const VectorN<Real, N>& g, VectorN<Real, N>& d, Real stpmax) {
+			const Real ALF = Precision::ArmijoSufficientDecrease;
+			const int maxBacktracks = 60;
+
+			QuasiNewtonLineSearchResult result;
+			Real slope = PrepareDescentDirection<N>(g, d, stpmax);
+			if (slope >= 0.0) {
+				result.reason = "zero gradient: no descent direction";
+				return result;
+			}
+			const Real alamin = MinimumMeaningfulStep<N>(x, d);
+
+			Real alam = 1.0;
+			Real alam2 = 0.0, f2 = 0.0;
+			bool havePrevious = false;
+			bool sawNonfinite = false;
+
+			for (int iter = 0; iter < maxBacktracks; ++iter) {
+				if (alam < alamin) {
+					result.stepBelowResolution = !sawNonfinite;
+					result.reason = sawNonfinite
+						? "step fell below the minimum meaningful step while contracting away from nonfinite trials"
+						: "step fell below the minimum meaningful step without sufficient decrease";
+					return result;
+				}
+
+				VectorN<Real, N> xnew;
+				for (int j = 0; j < N; ++j)
+					xnew[j] = x[j] + alam * d[j];
+				Real fnew = func(xnew);
+
+				if (!std::isfinite(fnew)) {
+					// Invalid trial: contract geometrically, do not feed it to the interpolant
+					sawNonfinite = true;
+					alam *= static_cast<MML::Real>(0.5);
+					havePrevious = false;
+					continue;
+				}
+
+				if (fnew <= f + ALF * alam * slope) {
+					x = xnew;
+					result.f = fnew;
+					result.alpha = alam;
+					result.accepted = true;
+					return result;
+				}
+
+				Real tmplam;
+				if (!havePrevious) {
+					tmplam = -slope / (static_cast<MML::Real>(2.0) * (fnew - f - alam * slope));
+				} else {
+					Real rhs1 = fnew - f - alam * slope;
+					Real rhs2 = f2 - f - alam2 * slope;
+					Real a = (rhs1 / (alam * alam) - rhs2 / (alam2 * alam2)) / (alam - alam2);
+					Real b = (-alam2 * rhs1 / (alam * alam) + alam * rhs2 / (alam2 * alam2)) / (alam - alam2);
+					if (a == 0.0) {
+						tmplam = -slope / (static_cast<MML::Real>(2.0) * b);
+					} else {
+						Real disc = b * b - static_cast<MML::Real>(3.0) * a * slope;
+						if (disc < 0.0)
+							tmplam = static_cast<MML::Real>(0.5) * alam;
+						else if (b <= 0.0)
+							tmplam = (-b + std::sqrt(disc)) / (static_cast<MML::Real>(3.0) * a);
+						else
+							tmplam = -slope / (b + std::sqrt(disc));
+					}
+					if (tmplam > static_cast<MML::Real>(0.5) * alam)
+						tmplam = static_cast<MML::Real>(0.5) * alam;
+				}
+				if (!std::isfinite(tmplam))
+					tmplam = static_cast<MML::Real>(0.5) * alam;
+
+				alam2 = alam;
+				f2 = fnew;
+				havePrevious = true;
+				alam = std::max(tmplam, static_cast<MML::Real>(0.1) * alam);
+			}
+
+			result.reason = "backtracking budget exhausted without sufficient decrease";
+			return result;
+		}
+
+	} // namespace detail
+
+	///////////////////////////////////////////////////////////////////////////
 	///               BFGS Quasi-Newton Method                              ///
 	///////////////////////////////////////////////////////////////////////////
 	/**
@@ -284,7 +448,24 @@ namespace MML::Optimization {
 				VectorN<Real, N> pold = p;
 
 				// Perform line minimization with Wolfe conditions
-				_fret = LineSearchWolfe(func, p, g, xi, stpmax);
+				detail::QuasiNewtonLineSearchResult ls = LineSearchWolfe(func, p, fp, g, xi, stpmax);
+
+				if (!ls.accepted) {
+					// No step was taken, so an unchanged objective is not convergence evidence.
+					// A small gradient, or a step that fell below the x-resolution along a finite
+					// descent direction (NR TOLX), may still certify a minimum.
+					_fret = fp;
+					Vector<Real> result(N);
+					for (int j = 0; j < N; ++j)
+						result[j] = p[j];
+					if (detail::QuasiNewtonGradientConverged<N>(g, p, _fret, _gtol) || ls.stepBelowResolution)
+						return MultidimOptimizationResult(result, _fret, _iter + 1, true);
+					MultidimOptimizationResult failed(result, _fret, _iter + 1, false);
+					failed.status = AlgorithmStatus::Stalled;
+					failed.error_message = std::string("BFGS: line search failed (") + ls.reason + ")";
+					return failed;
+				}
+				_fret = ls.f;
 
 				// Check for convergence on function value
 				if (2.0 * std::abs(_fret - fp) <= _ftol * (std::abs(_fret) + std::abs(fp) + EPS)) {
@@ -304,14 +485,7 @@ namespace MML::Optimization {
 				func.Gradient(p, g);
 
 				// Check gradient convergence
-				Real test = 0.0;
-				Real den = std::max(std::abs(_fret), static_cast<MML::Real>(1.0));
-				for (int j = 0; j < N; ++j) {
-					Real temp = std::abs(g[j]) * std::max(std::abs(p[j]), static_cast<MML::Real>(1.0)) / den;
-					if (temp > test)
-						test = temp;
-				}
-				if (test < _gtol) {
+				if (detail::QuasiNewtonGradientConverged<N>(g, p, _fret, _gtol)) {
 					Vector<Real> result(N);
 					for (int j = 0; j < N; ++j)
 						result[j] = p[j];
@@ -339,8 +513,8 @@ namespace MML::Optimization {
 				}
 
 				if (fac > std::sqrt(EPS * sumdg * sumxi)) {
-					fac = 1.0 / fac;
-					Real fad = 1.0 / fae;
+					fac = MML::Real(1.0) / fac;
+					Real fad = MML::Real(1.0) / fae;
 
 					// Vector that makes BFGS different from DFP
 					for (int j = 0; j < N; ++j)
@@ -372,108 +546,6 @@ namespace MML::Optimization {
 
 	private:
 		/**
-         * @brief Backtracking line search with Armijo condition
-         */
-		template<int N>
-		Real LineSearchBacktrack(const IDifferentiableScalarFunction<N>& func, VectorN<Real, N>& p, const VectorN<Real, N>& g,
-								 VectorN<Real, N>& xi, Real stpmax) {
-			const Real ALF = Precision::ArmijoSufficientDecrease;   // Ensures sufficient decrease
-			const Real TOLX = Precision::ZeroTolerance; // Convergence criterion on x
-
-			// Scale if step is too big
-			Real sum = 0.0;
-			for (int j = 0; j < N; ++j)
-				sum += xi[j] * xi[j];
-			sum = std::sqrt(sum);
-
-			if (sum > stpmax) {
-				Real scale = stpmax / sum;
-				for (int j = 0; j < N; ++j)
-					xi[j] *= scale;
-			}
-
-			// Compute slope
-			Real slope = 0.0;
-			for (int j = 0; j < N; ++j)
-				slope += g[j] * xi[j];
-
-			if (slope >= 0.0) {
-				// Reset to steepest descent if slope is not negative
-				for (int j = 0; j < N; ++j)
-					xi[j] = -g[j];
-				slope = 0.0;
-				for (int j = 0; j < N; ++j)
-					slope += g[j] * xi[j];
-			}
-
-			// Compute lambda_min
-			Real test = 0.0;
-			for (int j = 0; j < N; ++j) {
-				Real temp = std::abs(xi[j]) / std::max(std::abs(p[j]), static_cast<MML::Real>(1.0));
-				if (temp > test)
-					test = temp;
-			}
-			Real alamin = TOLX / test;
-
-			Real alam = 1.0; // Always try full Newton step first
-			Real f = func(p);
-			Real alam2 = 0.0, f2 = 0.0;
-
-			for (;;) {
-				VectorN<Real, N> pnew;
-				for (int j = 0; j < N; ++j)
-					pnew[j] = p[j] + alam * xi[j];
-
-				Real fnew = func(pnew);
-
-				if (alam < alamin) {
-					// Convergence on delta x
-					for (int j = 0; j < N; ++j)
-						p[j] = pnew[j];
-					return fnew;
-				} else if (fnew <= f + ALF * alam * slope) {
-					// Sufficient decrease - accept step
-					for (int j = 0; j < N; ++j)
-						p[j] = pnew[j];
-					return fnew;
-				} else {
-					// Backtrack
-					Real tmplam;
-					if (alam == 1.0) {
-						// First backtrack: quadratic
-						tmplam = -slope / (2.0 * (fnew - f - slope));
-					} else {
-						// Subsequent backtracks: cubic
-						Real rhs1 = fnew - f - alam * slope;
-						Real rhs2 = f2 - f - alam2 * slope;
-						Real a = (rhs1 / (alam * alam) - rhs2 / (alam2 * alam2)) / (alam - alam2);
-						Real b = (-alam2 * rhs1 / (alam * alam) + alam * rhs2 / (alam2 * alam2)) / (alam - alam2);
-
-						if (a == 0.0) {
-							tmplam = -slope / (2.0 * b);
-						} else {
-							Real disc = b * b - 3.0 * a * slope;
-							if (disc < 0.0)
-								tmplam = 0.5 * alam;
-							else if (b <= 0.0)
-								tmplam = (-b + std::sqrt(disc)) / (3.0 * a);
-							else
-								tmplam = -slope / (b + std::sqrt(disc));
-						}
-
-						// Limit step size reduction
-						if (tmplam > 0.5 * alam)
-							tmplam = 0.5 * alam;
-					}
-
-					alam2 = alam;
-					f2 = fnew;
-					alam = std::max(tmplam, static_cast<MML::Real>(0.1) * alam);
-				}
-			}
-		}
-
-		/**
 		 * @brief Line search satisfying strong Wolfe conditions
 		 * 
 		 * Implements Nocedal & Wright Algorithms 3.5 (bracket phase) and 3.6 (zoom phase).
@@ -484,60 +556,58 @@ namespace MML::Optimization {
 		 *   Sufficient decrease (Armijo): f(x + α·d) ≤ f(x) + c₁·α·∇f(x)·d
 		 *   Curvature condition:          |∇f(x + α·d)·d| ≤ c₂·|∇f(x)·d|
 		 * 
+		 * Nonfinite trial values are treated as "too far" and contract the bracket. If no
+		 * step with sufficient decrease exists above the minimum meaningful step, the search
+		 * reports failure and leaves x unchanged instead of returning a zero step.
+		 * 
 		 * @reference Nocedal & Wright, "Numerical Optimization", 2nd ed., Chapter 3
 		 */
 		template<int N>
-		Real LineSearchWolfe(const IDifferentiableScalarFunction<N>& func, VectorN<Real, N>& x, const VectorN<Real, N>& g,
-							 VectorN<Real, N>& d, Real stpmax) {
+		detail::QuasiNewtonLineSearchResult LineSearchWolfe(const IDifferentiableScalarFunction<N>& func, VectorN<Real, N>& x,
+							 Real phi0, const VectorN<Real, N>& g, VectorN<Real, N>& d, Real stpmax) {
 			const Real c1 = Precision::ArmijoSufficientDecrease;    // Sufficient decrease parameter
-			const Real c2 = 0.9;       // Curvature condition parameter (0.9 for quasi-Newton)
+			const Real c2 = MML::Real(0.9);       // Curvature condition parameter (0.9 for quasi-Newton)
 			const Real alpha_max = 50.0;
 			const int max_ls_iter = 25;
 
-			// Scale direction if step is too large
-			Real dnorm = 0.0;
-			for (int j = 0; j < N; ++j)
-				dnorm += d[j] * d[j];
-			dnorm = std::sqrt(dnorm);
-
-			if (dnorm > stpmax) {
-				Real scale = stpmax / dnorm;
-				for (int j = 0; j < N; ++j)
-					d[j] *= scale;
-			}
-
-			// Directional derivative at alpha = 0: phi'(0) = g · d
-			Real dphi0 = 0.0;
-			for (int j = 0; j < N; ++j)
-				dphi0 += g[j] * d[j];
-
+			detail::QuasiNewtonLineSearchResult result;
+			Real dphi0 = detail::PrepareDescentDirection<N>(g, d, stpmax);
 			if (dphi0 >= 0.0) {
-				// Not a descent direction — fall back to steepest descent
-				for (int j = 0; j < N; ++j)
-					d[j] = -g[j];
-				dphi0 = 0.0;
-				for (int j = 0; j < N; ++j)
-					dphi0 += g[j] * d[j];
+				result.reason = "zero gradient: no descent direction";
+				return result;
 			}
-
-			Real phi0 = func(x);
+			const Real alpha_min = detail::MinimumMeaningfulStep<N>(x, d);
 
 			Real alpha_prev = 0.0;
 			Real phi_prev = phi0;
+			Real dphi_prev = dphi0;
 			Real alpha_cur = 1.0; // Full Newton step
 
-			for (int i = 0; i < max_ls_iter; ++i) {
-				// Evaluate phi(alpha_cur) = f(x + alpha_cur * d)
+			auto evaluate = [&](Real alpha, Real& phi) {
 				VectorN<Real, N> xtrial;
 				for (int j = 0; j < N; ++j)
-					xtrial[j] = x[j] + alpha_cur * d[j];
-				Real phi_cur = func(xtrial);
+					xtrial[j] = x[j] + alpha * d[j];
+				phi = func(xtrial);
+				return xtrial;
+			};
+			auto finish = [&](Real alpha, Real phi) {
+				for (int j = 0; j < N; ++j)
+					x[j] += alpha * d[j];
+				result.f = phi;
+				result.alpha = alpha;
+				result.accepted = true;
+				return result;
+			};
 
-				// Check Armijo condition or non-decrease from previous
-				if (phi_cur > phi0 + c1 * alpha_cur * dphi0 || (i > 0 && phi_cur >= phi_prev)) {
-					Real alpha_star = WolfeZoom(func, x, d, phi0, dphi0, c1, c2, alpha_prev, alpha_cur, phi_prev, phi_cur);
-					AcceptWolfeStep(func, x, d, alpha_star);
-					return func(x);
+			for (int i = 0; i < max_ls_iter; ++i) {
+				Real phi_cur;
+				VectorN<Real, N> xtrial = evaluate(alpha_cur, phi_cur);
+
+				// Armijo violated, nonfinite trial, or no decrease since the previous trial:
+				// a Wolfe point lies in (alpha_prev, alpha_cur)
+				if (!std::isfinite(phi_cur) || phi_cur > phi0 + c1 * alpha_cur * dphi0 || (i > 0 && phi_cur >= phi_prev)) {
+					return WolfeZoom(func, x, d, phi0, dphi0, c1, c2, alpha_min,
+						alpha_prev, alpha_cur, phi_prev, dphi_prev, phi_cur, result);
 				}
 
 				// Evaluate phi'(alpha_cur)
@@ -546,91 +616,134 @@ namespace MML::Optimization {
 				Real dphi_cur = 0.0;
 				for (int j = 0; j < N; ++j)
 					dphi_cur += g_trial[j] * d[j];
+				if (!std::isfinite(dphi_cur)) {
+					return WolfeZoom(func, x, d, phi0, dphi0, c1, c2, alpha_min,
+						alpha_prev, alpha_cur, phi_prev, dphi_prev, phi_cur, result);
+				}
 
 				// Check curvature condition (strong Wolfe satisfied)
-				if (std::abs(dphi_cur) <= -c2 * dphi0) {
-					AcceptWolfeStep(func, x, d, alpha_cur);
-					return func(x);
-				}
+				if (std::abs(dphi_cur) <= -c2 * dphi0)
+					return finish(alpha_cur, phi_cur);
 
 				// Slope is positive — minimum is between alpha_prev and alpha_cur
 				if (dphi_cur >= 0.0) {
-					Real alpha_star = WolfeZoom(func, x, d, phi0, dphi0, c1, c2, alpha_cur, alpha_prev, phi_cur, phi_prev);
-					AcceptWolfeStep(func, x, d, alpha_star);
-					return func(x);
+					return WolfeZoom(func, x, d, phi0, dphi0, c1, c2, alpha_min,
+						alpha_cur, alpha_prev, phi_cur, dphi_cur, phi_prev, result);
 				}
 
 				// Advance bracket
+				if (alpha_cur >= alpha_max)
+					return finish(alpha_cur, phi_cur); // Armijo holds at the trust boundary
 				alpha_prev = alpha_cur;
 				phi_prev = phi_cur;
+				dphi_prev = dphi_cur;
 				alpha_cur = std::min(Real(2.0) * alpha_cur, alpha_max);
 			}
 
-			// Fallback: accept best step found (last alpha_cur)
-			AcceptWolfeStep(func, x, d, alpha_cur);
-			return func(x);
+			// Fallback: the last trial satisfied Armijo (otherwise we would have zoomed)
+			return finish(alpha_prev, phi_prev);
 		}
 
 		/**
 		 * @brief Zoom phase of Wolfe line search (Nocedal & Wright Algorithm 3.6)
 		 * 
 		 * Finds a step length satisfying strong Wolfe conditions within [alpha_lo, alpha_hi].
-		 * Uses bisection for robustness. The interval is guaranteed to contain a Wolfe point.
+		 * alpha_lo always satisfies Armijo (or is 0). Trial points come from safeguarded
+		 * quadratic interpolation of (phi_lo, dphi_lo, phi_hi), clamped to the inner 80% of the
+		 * bracket, falling back to bisection when the model is unusable; this lets badly scaled
+		 * problems contract by orders of magnitude per iteration while staying bounded.
+		 * Nonfinite trial values contract alpha_hi. When the bracket collapses below alpha_min
+		 * with alpha_lo == 0, the search fails explicitly.
 		 */
 		template<int N>
-		Real WolfeZoom(const IDifferentiableScalarFunction<N>& func, const VectorN<Real, N>& x, const VectorN<Real, N>& d,
-					   Real phi0, Real dphi0, Real c1, Real c2,
-					   Real alpha_lo, Real alpha_hi, Real phi_lo, Real phi_hi) {
-			const int max_zoom_iter = 20;
+		detail::QuasiNewtonLineSearchResult WolfeZoom(const IDifferentiableScalarFunction<N>& func, VectorN<Real, N>& x, const VectorN<Real, N>& d,
+					   Real phi0, Real dphi0, Real c1, Real c2, Real alpha_min,
+					   Real alpha_lo, Real alpha_hi, Real phi_lo, Real dphi_lo, Real phi_hi,
+					   detail::QuasiNewtonLineSearchResult& result) {
+			const int max_zoom_iter = 40;
+			const Real tau = MML::Real(0.1); // safeguard fraction of the bracket
+
+			auto finish = [&](Real alpha, Real phi) {
+				for (int j = 0; j < N; ++j)
+					x[j] += alpha * d[j];
+				result.f = phi;
+				result.alpha = alpha;
+				result.accepted = true;
+				return result;
+			};
+			auto fail = [&](const char* reason) {
+				result.reason = reason;
+				return result;
+			};
+			bool sawNonfinite = !std::isfinite(phi_hi);
 
 			for (int i = 0; i < max_zoom_iter; ++i) {
-				// Bisection interpolant (simple and robust)
-				Real alpha_j = 0.5 * (alpha_lo + alpha_hi);
+				const Real lo = std::min(alpha_lo, alpha_hi);
+				const Real hi = std::max(alpha_lo, alpha_hi);
+				const Real width = hi - lo;
+				if (width < alpha_min) {
+					if (alpha_lo > 0)
+						return finish(alpha_lo, phi_lo);
+					result.stepBelowResolution = !sawNonfinite;
+					return fail(sawNonfinite
+						? "bracket collapsed below the minimum meaningful step while contracting away from nonfinite trials"
+						: "bracket collapsed below the minimum meaningful step without sufficient decrease");
+				}
+
+				// Quadratic model through (alpha_lo, phi_lo, dphi_lo) and (alpha_hi, phi_hi)
+				Real alpha_j = MML::Real(0.5) * (alpha_lo + alpha_hi);
+				if (std::isfinite(phi_hi) && std::isfinite(dphi_lo)) {
+					const Real h = alpha_hi - alpha_lo;
+					const Real denom = phi_hi - phi_lo - dphi_lo * h;
+					if (denom > 0) {
+						Real candidate = alpha_lo - dphi_lo * h * h / (MML::Real(2.0) * denom);
+						if (std::isfinite(candidate))
+							alpha_j = std::clamp(candidate, lo + tau * width, hi - tau * width);
+					}
+				}
 
 				VectorN<Real, N> xtrial;
 				for (int j = 0; j < N; ++j)
 					xtrial[j] = x[j] + alpha_j * d[j];
 				Real phi_j = func(xtrial);
 
-				if (phi_j > phi0 + c1 * alpha_j * dphi0 || phi_j >= phi_lo) {
+				if (!std::isfinite(phi_j) || phi_j > phi0 + c1 * alpha_j * dphi0 || phi_j >= phi_lo) {
+					if (!std::isfinite(phi_j))
+						sawNonfinite = true;
 					alpha_hi = alpha_j;
 					phi_hi = phi_j;
-				} else {
-					VectorN<Real, N> g_trial;
-					func.Gradient(xtrial, g_trial);
-					Real dphi_j = 0.0;
-					for (int j = 0; j < N; ++j)
-						dphi_j += g_trial[j] * d[j];
-
-					// Strong Wolfe satisfied
-					if (std::abs(dphi_j) <= -c2 * dphi0)
-						return alpha_j;
-
-					if (dphi_j * (alpha_hi - alpha_lo) >= 0.0) {
-						alpha_hi = alpha_lo;
-						phi_hi = phi_lo;
-					}
-
-					alpha_lo = alpha_j;
-					phi_lo = phi_j;
+					continue;
 				}
 
-				// Interval too small — accept current best
-				if (std::abs(alpha_hi - alpha_lo) < Precision::RoundoffZeroThreshold)
-					return alpha_lo;
+				VectorN<Real, N> g_trial;
+				func.Gradient(xtrial, g_trial);
+				Real dphi_j = 0.0;
+				for (int j = 0; j < N; ++j)
+					dphi_j += g_trial[j] * d[j];
+				if (!std::isfinite(dphi_j)) {
+					sawNonfinite = true;
+					alpha_hi = alpha_j;
+					phi_hi = phi_j;
+					continue;
+				}
+
+				// Strong Wolfe satisfied
+				if (std::abs(dphi_j) <= -c2 * dphi0)
+					return finish(alpha_j, phi_j);
+
+				if (dphi_j * (alpha_hi - alpha_lo) >= 0.0) {
+					alpha_hi = alpha_lo;
+					phi_hi = phi_lo;
+				}
+				alpha_lo = alpha_j;
+				phi_lo = phi_j;
+				dphi_lo = dphi_j;
 			}
 
-			return alpha_lo;
-		}
-
-		/**
-		 * @brief Accept a Wolfe step: update position x ← x + alpha * d
-		 */
-		template<int N>
-		void AcceptWolfeStep(const IDifferentiableScalarFunction<N>& /*func*/, VectorN<Real, N>& x,
-							 const VectorN<Real, N>& d, Real alpha) {
-			for (int j = 0; j < N; ++j)
-				x[j] += alpha * d[j];
+			// Budget exhausted: alpha_lo satisfies Armijo whenever it is positive
+			if (alpha_lo > 0)
+				return finish(alpha_lo, phi_lo);
+			return fail("zoom budget exhausted without sufficient decrease");
 		}
 	};
 
@@ -799,7 +912,20 @@ namespace MML::Optimization {
 				// =========================================================
 				// Line search along direction p
 				// =========================================================
-				_fret = LineSearchBacktrackLBFGS(func, x, g, p, stpmax);
+				detail::QuasiNewtonLineSearchResult ls = detail::BacktrackingLineSearch<N>(func, x, fp, g, p, stpmax);
+
+				if (!ls.accepted) {
+					// No step was taken: unchanged f is not convergence evidence, but a small
+					// gradient or a step below the x-resolution along a finite descent direction is
+					_fret = fp;
+					if (detail::QuasiNewtonGradientConverged<N>(g, x, _fret, _gtol) || ls.stepBelowResolution)
+						return MakeResult(x, true);
+					MultidimOptimizationResult failed = MakeResult(x, false);
+					failed.status = AlgorithmStatus::Stalled;
+					failed.error_message = std::string("LBFGS: line search failed (") + ls.reason + ")";
+					return failed;
+				}
+				_fret = ls.f;
 
 				// Check for convergence on function value
 				if (2.0 * std::abs(_fret - fp) <= _ftol * (std::abs(_fret) + std::abs(fp) + EPS)) {
@@ -810,14 +936,7 @@ namespace MML::Optimization {
 				func.Gradient(x, g);
 
 				// Check gradient convergence
-				Real test = 0.0;
-				Real den = std::max(std::abs(_fret), static_cast<MML::Real>(1.0));
-				for (int j = 0; j < N; ++j) {
-					Real temp = std::abs(g[j]) * std::max(std::abs(x[j]), static_cast<MML::Real>(1.0)) / den;
-					if (temp > test)
-						test = temp;
-				}
-				if (test < _gtol) {
+				if (detail::QuasiNewtonGradientConverged<N>(g, x, _fret, _gtol)) {
 					return MakeResult(x, true);
 				}
 
@@ -844,7 +963,7 @@ namespace MML::Optimization {
 
 					s_history[store_idx] = s_new;
 					y_history[store_idx] = y_new;
-					rho[store_idx] = 1.0 / sTy;
+					rho[store_idx] = MML::Real(1.0) / sTy;
 				}
 			}
 
@@ -869,105 +988,6 @@ namespace MML::Optimization {
 			for (int j = 0; j < N; ++j)
 				sum += a[j] * b[j];
 			return sum;
-		}
-
-		/**
-         * @brief Backtracking line search with Armijo condition
-         */
-		template<int N>
-		Real LineSearchBacktrackLBFGS(const IDifferentiableScalarFunction<N>& func, 
-		                               VectorN<Real, N>& x, 
-		                               const VectorN<Real, N>& g,
-		                               VectorN<Real, N>& p, 
-		                               Real stpmax) {
-			const Real ALF = Precision::ArmijoSufficientDecrease;
-			const Real TOLX = Precision::ZeroTolerance;
-
-			// Scale if step is too big
-			Real sum = 0.0;
-			for (int j = 0; j < N; ++j)
-				sum += p[j] * p[j];
-			sum = std::sqrt(sum);
-
-			if (sum > stpmax) {
-				Real scale = stpmax / sum;
-				for (int j = 0; j < N; ++j)
-					p[j] *= scale;
-			}
-
-			// Compute slope
-			Real slope = 0.0;
-			for (int j = 0; j < N; ++j)
-				slope += g[j] * p[j];
-
-			if (slope >= 0.0) {
-				// Not a descent direction - fall back to steepest descent
-				for (int j = 0; j < N; ++j)
-					p[j] = -g[j];
-				slope = 0.0;
-				for (int j = 0; j < N; ++j)
-					slope += g[j] * p[j];
-			}
-
-			// Compute lambda_min
-			Real test = 0.0;
-			for (int j = 0; j < N; ++j) {
-				Real temp = std::abs(p[j]) / std::max(std::abs(x[j]), static_cast<MML::Real>(1.0));
-				if (temp > test)
-					test = temp;
-			}
-			Real alamin = TOLX / test;
-
-			Real alam = 1.0;
-			Real f = func(x);
-			Real alam2 = 0.0, f2 = 0.0;
-
-			for (;;) {
-				VectorN<Real, N> xnew;
-				for (int j = 0; j < N; ++j)
-					xnew[j] = x[j] + alam * p[j];
-
-				Real fnew = func(xnew);
-
-				if (alam < alamin) {
-					for (int j = 0; j < N; ++j)
-						x[j] = xnew[j];
-					return fnew;
-				} else if (fnew <= f + ALF * alam * slope) {
-					for (int j = 0; j < N; ++j)
-						x[j] = xnew[j];
-					return fnew;
-				} else {
-					Real tmplam;
-					if (alam == 1.0) {
-						tmplam = -slope / (2.0 * (fnew - f - slope));
-					} else {
-						Real rhs1 = fnew - f - alam * slope;
-						Real rhs2 = f2 - f - alam2 * slope;
-						Real a = (rhs1 / (alam * alam) - rhs2 / (alam2 * alam2)) / (alam - alam2);
-						Real b = (-alam2 * rhs1 / (alam * alam) + alam * rhs2 / (alam2 * alam2)) / (alam - alam2);
-
-						if (a == 0.0) {
-							tmplam = -slope / (2.0 * b);
-						} else {
-							Real disc = b * b - 3.0 * a * slope;
-							if (disc < 0.0)
-								tmplam = 0.5 * alam;
-							else if (b <= 0.0)
-								tmplam = (-b + std::sqrt(disc)) / (3.0 * a);
-							else
-								tmplam = -slope / (b + std::sqrt(disc));
-						}
-
-						if (tmplam > 0.5 * alam)
-							tmplam = 0.5 * alam;
-					}
-
-					alam2 = alam;
-					f2 = fnew;
-					alam = std::max(tmplam, static_cast<MML::Real>(0.1) * alam);
-				}
-			}
 		}
 	};
 

@@ -44,6 +44,12 @@ predict callback cost. There is no universal automatic cost estimator.
 `threads_used`. Function evaluations are counted exactly. `iterations` is the sum
 of partition refinement counts, **not global refinement depth**.
 
+Converted callback failures preserve elapsed time and the actual number of
+executed calls after scheduled work has drained. The same rule applies to
+parallel Monte Carlo: failed blocks do not report the configured sample count
+as if it had all executed. A partial payload is unavailable until the algorithm
+has a complete-domain estimate; failure does not manufacture a computed zero.
+
 - All locally checked criteria met: `Success`, `converged=true`.
 - Composite fixed Gauss10/GK21: `Completed`, `converged=false`.
 - Embedded GK error estimates remain available despite the lack of a checked

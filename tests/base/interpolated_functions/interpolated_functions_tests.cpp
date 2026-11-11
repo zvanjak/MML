@@ -122,6 +122,7 @@ namespace MML::Tests::Core::InterpolatedFunctionsTests
 
 		// Error magnitude should be small for smooth function
 		Real actual_error = std::abs(result - f(Constants::PI / 4));
+		REQUIRE(actual_error < 0.001);
 		REQUIRE(std::abs(error) < 0.001);  // Error estimate should be small
 	}
 
@@ -203,7 +204,7 @@ namespace MML::Tests::Core::InterpolatedFunctionsTests
 		SplineInterpRealFunc spline(x, y);
 
 		Real integral = spline.Integrate(0.0, 2.0);
-		Real expected = 8.0 / 3.0;
+		Real expected = MML::Real(8.0) / MML::Real(3.0);
 
 		// Natural spline adds some error at boundaries; allow 0.02 tolerance
 		REQUIRE_THAT(integral, WithinAbs(expected, 0.02));
@@ -227,7 +228,7 @@ namespace MML::Tests::Core::InterpolatedFunctionsTests
 	TEST_CASE("SplineInterp_clamped_boundary", "[interpolation][spline]") {
 		// Test clamped spline with known boundary derivatives
 		RealFunction f{ [](Real x) -> Real { return sin(x); } };
-		Real yp1 = cos(0.0);   // derivative at x=0: cos(0) = 1
+		Real yp1 = cos(MML::Real(0.0));   // derivative at x=0: cos(0) = 1
 		Real ypn = cos(Constants::PI);  // derivative at x=π: cos(π) = -1
 
 		Vector<Real> vec_x, vec_y;
@@ -236,8 +237,8 @@ namespace MML::Tests::Core::InterpolatedFunctionsTests
 		SplineInterpRealFunc clamped(vec_x, vec_y, yp1, ypn);
 
 		// Clamped spline should be more accurate near boundaries
-		REQUIRE_THAT(clamped(0.1), WithinAbs(f(0.1), 0.001));
-		REQUIRE_THAT(clamped(Constants::PI - 0.1), WithinAbs(f(Constants::PI - 0.1), 0.001));
+		REQUIRE_THAT(clamped(MML::Real(0.1)), WithinAbs(f(MML::Real(0.1)), MML::Real(0.001)));
+		REQUIRE_THAT(clamped(Constants::PI - MML::Real(0.1)), WithinAbs(f(Constants::PI - MML::Real(0.1)), MML::Real(0.001)));
 	}
 
 	TEST_CASE("SplineInterp_natural_second_deriv_zero_at_ends", "[interpolation][spline]") {
@@ -500,7 +501,7 @@ namespace MML::Tests::Core::InterpolatedFunctionsTests
 		int n = 16;
 		Matrix<Real> points(n, 2);
 		for (int i = 0; i < n; i++) {
-			Real theta = 2.0 * Constants::PI * i / n;
+			Real theta = MML::Real(2.0) * Constants::PI * i / n;
 			points[i][0] = cos(theta);
 			points[i][1] = sin(theta);
 		}
@@ -510,6 +511,8 @@ namespace MML::Tests::Core::InterpolatedFunctionsTests
 		// Test that we can evaluate points around the curve
 		VectorN<Real, 2> pt1 = curve(0.0);
 		VectorN<Real, 2> pt2 = curve(0.5);
+		REQUIRE(std::isfinite(pt2[0]));
+		REQUIRE(std::isfinite(pt2[1]));
 
 		// At t=0, should be near (1, 0)
 		REQUIRE_THAT(pt1[0], WithinAbs(1.0, 0.1));
@@ -521,7 +524,7 @@ namespace MML::Tests::Core::InterpolatedFunctionsTests
 		int n = 16;
 		Matrix<Real> points(n, 2);
 		for (int i = 0; i < n; i++) {
-			Real theta = 2.0 * Constants::PI * i / n;
+			Real theta = MML::Real(2.0) * Constants::PI * i / n;
 			points[i][0] = cos(theta);
 			points[i][1] = sin(theta);
 		}
@@ -541,10 +544,10 @@ namespace MML::Tests::Core::InterpolatedFunctionsTests
 		int n = 20;
 		Matrix<Real> points(n, 3);
 		for (int i = 0; i < n; i++) {
-			Real t = 2.0 * Constants::PI * i / (n - 1);
+			Real t = MML::Real(2.0) * Constants::PI * i / (n - 1);
 			points[i][0] = cos(t);
 			points[i][1] = sin(t);
-			points[i][2] = t / (2.0 * Constants::PI);
+			points[i][2] = t / (MML::Real(2.0) * Constants::PI);
 		}
 
 		SplineInterpParametricCurve<3> curve(points, false);  // open curve
@@ -607,7 +610,7 @@ namespace MML::Tests::Core::InterpolatedFunctionsTests
 
 	TEST_CASE("RationalInterp_exact_at_nodes", "[interpolation][rational]") {
 		Vector<Real> x{ 0.0, 1.0, 2.0, 3.0, 4.0 };
-		Vector<Real> y{ 1.0, 0.5, 0.33, 0.25, 0.2 };
+		Vector<Real> y{ MML::Real(1.0), MML::Real(0.5), MML::Real(0.33), MML::Real(0.25), MML::Real(0.2) };
 
 		RationalInterpRealFunc interp(x, y, 3);
 
@@ -675,7 +678,7 @@ namespace MML::Tests::Core::InterpolatedFunctionsTests
 		BarycentricRationalInterp interp(vec_x, vec_y, 3);
 
 		// Should give reasonable values everywhere in the range
-		for (Real x = -1.9; x <= 1.9; x += 0.2) {
+		for (Real x = -MML::Real(1.9); x <= MML::Real(1.9); x += MML::Real(0.2)) {
 			Real result = interp(x);
 			REQUIRE(std::isfinite(result));
 			// Should be in reasonable range for Gaussian
@@ -694,8 +697,8 @@ namespace MML::Tests::Core::InterpolatedFunctionsTests
 		Vector<Real> x1(nx), x2(ny);
 		Matrix<Real> y(nx, ny);
 
-		for (int i = 0; i < nx; i++) x1[i] = i * 1.0;
-		for (int j = 0; j < ny; j++) x2[j] = j * 1.0;
+		for (int i = 0; i < nx; i++) x1[i] = i * MML::Real(1.0);
+		for (int j = 0; j < ny; j++) x2[j] = j * MML::Real(1.0);
 		for (int i = 0; i < nx; i++)
 			for (int j = 0; j < ny; j++)
 				y[i][j] = 5.0;  // constant
@@ -704,7 +707,7 @@ namespace MML::Tests::Core::InterpolatedFunctionsTests
 
 		REQUIRE_THAT(interp(0.5, 0.5), WithinAbs(5.0, TOL(1e-10, 1e-5)));
 		REQUIRE_THAT(interp(2.5, 2.5), WithinAbs(5.0, TOL(1e-10, 1e-5)));
-		REQUIRE_THAT(interp(3.7, 1.2), WithinAbs(5.0, TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(interp(MML::Real(3.7), MML::Real(1.2)), WithinAbs(MML::Real(5.0), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("BilinearInterp_linear_function", "[interpolation][2d]") {
@@ -713,8 +716,8 @@ namespace MML::Tests::Core::InterpolatedFunctionsTests
 		Vector<Real> x1(nx), x2(ny);
 		Matrix<Real> y(nx, ny);
 
-		for (int i = 0; i < nx; i++) x1[i] = i * 1.0;
-		for (int j = 0; j < ny; j++) x2[j] = j * 1.0;
+		for (int i = 0; i < nx; i++) x1[i] = i * MML::Real(1.0);
+		for (int j = 0; j < ny; j++) x2[j] = j * MML::Real(1.0);
 		for (int i = 0; i < nx; i++)
 			for (int j = 0; j < ny; j++)
 				y[i][j] = x1[i] + x2[j];
@@ -724,7 +727,7 @@ namespace MML::Tests::Core::InterpolatedFunctionsTests
 		// Test at intermediate points
 		REQUIRE_THAT(interp(0.5, 0.5), WithinAbs(1.0, TOL(1e-10, 1e-5)));
 		REQUIRE_THAT(interp(1.5, 2.5), WithinAbs(4.0, TOL(1e-10, 1e-5)));
-		REQUIRE_THAT(interp(2.7, 3.3), WithinAbs(6.0, TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(interp(MML::Real(2.7), MML::Real(3.3)), WithinAbs(MML::Real(6.0), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("BilinearInterp_exact_at_grid_points", "[interpolation][2d]") {
@@ -732,8 +735,8 @@ namespace MML::Tests::Core::InterpolatedFunctionsTests
 		Vector<Real> x1(nx), x2(ny);
 		Matrix<Real> y(nx, ny);
 
-		for (int i = 0; i < nx; i++) x1[i] = i * 0.5;
-		for (int j = 0; j < ny; j++) x2[j] = j * 0.5;
+		for (int i = 0; i < nx; i++) x1[i] = i * MML::Real(0.5);
+		for (int j = 0; j < ny; j++) x2[j] = j * MML::Real(0.5);
 		for (int i = 0; i < nx; i++)
 			for (int j = 0; j < ny; j++)
 				y[i][j] = sin(x1[i]) * cos(x2[j]);
@@ -780,11 +783,11 @@ namespace MML::Tests::Core::InterpolatedFunctionsTests
 		Vector<Real> x1(nx), x2(ny);
 		Matrix<Real> z(nx, ny);
 
-		for (int i = 0; i < nx; i++) x1[i] = i * 1.0;
-		for (int j = 0; j < ny; j++) x2[j] = j * 1.0;
+		for (int i = 0; i < nx; i++) x1[i] = i * MML::Real(1.0);
+		for (int j = 0; j < ny; j++) x2[j] = j * MML::Real(1.0);
 		for (int i = 0; i < nx; i++)
 			for (int j = 0; j < ny; j++)
-				z[i][j] = 2.0 * x1[i] + 3.0 * x2[j];
+				z[i][j] = MML::Real(2.0) * x1[i] + MML::Real(3.0) * x2[j];
 
 		BilinearInterp2D interp(x1, x2, z);
 
@@ -801,8 +804,8 @@ namespace MML::Tests::Core::InterpolatedFunctionsTests
 		Vector<Real> x1(nx), x2(ny);
 		Matrix<Real> z(nx, ny);
 
-		for (int i = 0; i < nx; i++) x1[i] = i;
-		for (int j = 0; j < ny; j++) x2[j] = j;
+		for (int i = 0; i < nx; i++) x1[i] = Real(i);
+		for (int j = 0; j < ny; j++) x2[j] = Real(j);
 		for (int i = 0; i < nx; i++)
 			for (int j = 0; j < ny; j++)
 				z[i][j] = 1.0;
@@ -823,8 +826,8 @@ namespace MML::Tests::Core::InterpolatedFunctionsTests
 		Vector<Real> x1(nx), x2(ny);
 		Matrix<Real> z(nx, ny);
 
-		for (int i = 0; i < nx; i++) x1[i] = i * 1.0;
-		for (int j = 0; j < ny; j++) x2[j] = j * 1.0;
+		for (int i = 0; i < nx; i++) x1[i] = i * MML::Real(1.0);
+		for (int j = 0; j < ny; j++) x2[j] = j * MML::Real(1.0);
 		for (int i = 0; i < nx; i++)
 			for (int j = 0; j < ny; j++)
 				z[i][j] = 7.5;
@@ -833,7 +836,7 @@ namespace MML::Tests::Core::InterpolatedFunctionsTests
 
 		REQUIRE_THAT(interp(0.5, 0.5), WithinAbs(7.5, TOL(1e-10, 1e-5)));
 		REQUIRE_THAT(interp(2.5, 2.5), WithinAbs(7.5, TOL(1e-10, 1e-5)));
-		REQUIRE_THAT(interp(3.7, 1.2), WithinAbs(7.5, TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(interp(MML::Real(3.7), MML::Real(1.2)), WithinAbs(MML::Real(7.5), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("BicubicSplineInterp_linear_function", "[interpolation][2d][bicubic]") {
@@ -842,8 +845,8 @@ namespace MML::Tests::Core::InterpolatedFunctionsTests
 		Vector<Real> x1(nx), x2(ny);
 		Matrix<Real> z(nx, ny);
 
-		for (int i = 0; i < nx; i++) x1[i] = i * 1.0;
-		for (int j = 0; j < ny; j++) x2[j] = j * 1.0;
+		for (int i = 0; i < nx; i++) x1[i] = i * MML::Real(1.0);
+		for (int j = 0; j < ny; j++) x2[j] = j * MML::Real(1.0);
 		for (int i = 0; i < nx; i++)
 			for (int j = 0; j < ny; j++)
 				z[i][j] = x1[i] + x2[j];
@@ -852,7 +855,7 @@ namespace MML::Tests::Core::InterpolatedFunctionsTests
 
 		REQUIRE_THAT(interp(0.5, 0.5), WithinAbs(1.0, TOL(1e-8, 1e-4)));
 		REQUIRE_THAT(interp(1.5, 2.5), WithinAbs(4.0, TOL(1e-8, 1e-4)));
-		REQUIRE_THAT(interp(2.7, 3.3), WithinAbs(6.0, TOL(1e-8, 1e-4)));
+		REQUIRE_THAT(interp(MML::Real(2.7), MML::Real(3.3)), WithinAbs(MML::Real(6.0), TOL(1e-8, 1e-4)));
 	}
 
 	TEST_CASE("BicubicSplineInterp_exact_at_grid_points", "[interpolation][2d][bicubic]") {
@@ -860,8 +863,8 @@ namespace MML::Tests::Core::InterpolatedFunctionsTests
 		Vector<Real> x1(nx), x2(ny);
 		Matrix<Real> z(nx, ny);
 
-		for (int i = 0; i < nx; i++) x1[i] = i * 0.5;
-		for (int j = 0; j < ny; j++) x2[j] = j * 0.5;
+		for (int i = 0; i < nx; i++) x1[i] = i * MML::Real(0.5);
+		for (int j = 0; j < ny; j++) x2[j] = j * MML::Real(0.5);
 		for (int i = 0; i < nx; i++)
 			for (int j = 0; j < ny; j++)
 				z[i][j] = sin(x1[i]) * cos(x2[j]);
@@ -909,8 +912,8 @@ namespace MML::Tests::Core::InterpolatedFunctionsTests
 		Vector<Real> x1(nx), x2(ny);
 		Matrix<Real> z(nx, ny);
 
-		for (int i = 0; i < nx; i++) x1[i] = i * 0.5;
-		for (int j = 0; j < ny; j++) x2[j] = j * 0.5;
+		for (int i = 0; i < nx; i++) x1[i] = i * MML::Real(0.5);
+		for (int j = 0; j < ny; j++) x2[j] = j * MML::Real(0.5);
 		for (int i = 0; i < nx; i++)
 			for (int j = 0; j < ny; j++)
 				z[i][j] = x1[i] * x1[i] + x2[j] * x2[j];
@@ -922,8 +925,8 @@ namespace MML::Tests::Core::InterpolatedFunctionsTests
 		interp.interpWithDerivatives(test_x1, test_x2, val, dz_dx1, dz_dx2);
 
 		Real expected_val = test_x1 * test_x1 + test_x2 * test_x2;
-		Real expected_dx1 = 2.0 * test_x1;
-		Real expected_dx2 = 2.0 * test_x2;
+		Real expected_dx1 = MML::Real(2.0) * test_x1;
+		Real expected_dx2 = MML::Real(2.0) * test_x2;
 
 		REQUIRE_THAT(val, WithinAbs(expected_val, 0.01));
 		REQUIRE_THAT(dz_dx1, WithinAbs(expected_dx1, 0.1));
@@ -935,8 +938,8 @@ namespace MML::Tests::Core::InterpolatedFunctionsTests
 		Vector<Real> x1(nx), x2(ny);
 		Matrix<Real> z(nx, ny);
 
-		for (int i = 0; i < nx; i++) x1[i] = i;
-		for (int j = 0; j < ny; j++) x2[j] = j;
+		for (int i = 0; i < nx; i++) x1[i] = Real(i);
+		for (int j = 0; j < ny; j++) x2[j] = Real(j);
 		for (int i = 0; i < nx; i++)
 			for (int j = 0; j < ny; j++)
 				z[i][j] = 1.0;
@@ -955,8 +958,8 @@ namespace MML::Tests::Core::InterpolatedFunctionsTests
 		Vector<Real> x1(nx), x2(ny);
 		Matrix<Real> z(nx, ny);
 
-		for (int i = 0; i < nx; i++) x1[i] = 0.5 + i * 0.25;
-		for (int j = 0; j < ny; j++) x2[j] = 0.5 + j * 0.25;
+		for (int i = 0; i < nx; i++) x1[i] = MML::Real(0.5) + i * MML::Real(0.25);
+		for (int j = 0; j < ny; j++) x2[j] = MML::Real(0.5) + j * MML::Real(0.25);
 		for (int i = 0; i < nx; i++)
 			for (int j = 0; j < ny; j++)
 				z[i][j] = f(x1[i], x2[j]);
@@ -966,13 +969,11 @@ namespace MML::Tests::Core::InterpolatedFunctionsTests
 
 		// Test at multiple interior points and compare errors
 		Real bilinear_err = 0.0, bicubic_err = 0.0;
-		int num_tests = 0;
-		for (Real tx = 0.6; tx < 2.2; tx += 0.3) {
-			for (Real ty = 0.6; ty < 2.2; ty += 0.3) {
+		for (Real tx = MML::Real(0.6); tx < MML::Real(2.2); tx += MML::Real(0.3)) {
+			for (Real ty = MML::Real(0.6); ty < MML::Real(2.2); ty += MML::Real(0.3)) {
 				Real expected = f(tx, ty);
 				bilinear_err += std::abs(bilinear(tx, ty) - expected);
 				bicubic_err += std::abs(bicubic(tx, ty) - expected);
-				num_tests++;
 			}
 		}
 
@@ -1022,7 +1023,7 @@ namespace MML::Tests::Core::InterpolatedFunctionsTests
 		for (int i = 0; i < 5; i++) {
 			x[i] = static_cast<Real>(i);
 			// y = x^4 - 2x^2 + 1
-			y[i] = std::pow(x[i], 4) - 2 * x[i] * x[i] + 1;
+			y[i] = std::pow(x[i], MML::Real(4)) - 2 * x[i] * x[i] + 1;
 		}
 
 		PolynomInterpRealFunc poly(x, y, 5);  // Use all 5 points
@@ -1034,7 +1035,7 @@ namespace MML::Tests::Core::InterpolatedFunctionsTests
 
 		// Check midpoint
 		Real mid = 2.5;
-		Real expected = std::pow(mid, 4) - 2 * mid * mid + 1;
+		Real expected = std::pow(mid, MML::Real(4)) - 2 * mid * mid + 1;
 		REQUIRE_THAT(poly(mid), WithinAbs(expected, TOL(1e-8, 1e-4)));
 	}
 
@@ -1183,9 +1184,9 @@ namespace MML::Tests::Core::InterpolatedFunctionsTests
 		int n = 5;
 		Matrix<Real> pts(n, 3);
 		for (int i = 0; i < n; i++) {
-			pts[i][0] = i * 1.0;
-			pts[i][1] = i * 2.0;
-			pts[i][2] = i * 3.0;
+			pts[i][0] = i * MML::Real(1.0);
+			pts[i][1] = i * MML::Real(2.0);
+			pts[i][2] = i * MML::Real(3.0);
 		}
 
 		SplineInterpParametricCurve<3> curve(0.0, 1.0, pts, false);
@@ -1393,8 +1394,8 @@ namespace MML::Tests::Core::InterpolatedFunctionsTests
 		REQUIRE(interp.isInRange(5.0));
 		REQUIRE(interp.isInRange(10.0));
 		REQUIRE(interp.isInRange(3.5));
-		REQUIRE_FALSE(interp.isInRange(-0.1));
-		REQUIRE_FALSE(interp.isInRange(10.1));
+		REQUIRE_FALSE(interp.isInRange(-MML::Real(0.1)));
+		REQUIRE_FALSE(interp.isInRange(MML::Real(10.1)));
 	}
 
 	TEST_CASE("ExtrapolationPolicy_Barycentric_throw", "[Interpolation][ExtrapolationPolicy]")
@@ -1493,13 +1494,13 @@ namespace MML::Tests::Core::InterpolatedFunctionsTests
 	TEST_CASE("MonotoneCubic_monotone_data_stays_monotone", "[interpolation][monotone]") {
 		// Strictly increasing data — interpolant must never decrease
 		Vector<Real> x{ 0.0, 1.0, 2.0, 3.0, 4.0, 5.0 };
-		Vector<Real> y{ 0.0, 0.5, 2.0, 2.1, 5.0, 9.0 };
+		Vector<Real> y{ MML::Real(0.0), MML::Real(0.5), MML::Real(2.0), MML::Real(2.1), MML::Real(5.0), MML::Real(9.0) };
 
 		MonotoneCubicInterpRealFunc interp(x, y);
 
 		Real prev = interp(0.0);
 		for (int i = 1; i <= 500; i++) {
-			Real xi = 5.0 * i / 500.0;
+			Real xi = MML::Real(5.0) * i / MML::Real(500.0);
 			Real val = interp(xi);
 			REQUIRE(val >= prev - TOL(1e-14, 1e-6));
 			prev = val;
@@ -1515,7 +1516,7 @@ namespace MML::Tests::Core::InterpolatedFunctionsTests
 
 		Real prev = interp(0.0);
 		for (int i = 1; i <= 400; i++) {
-			Real xi = 4.0 * i / 400.0;
+			Real xi = MML::Real(4.0) * i / MML::Real(400.0);
 			Real val = interp(xi);
 			REQUIRE(val <= prev + TOL(1e-14, 1e-6));
 			prev = val;
@@ -1530,7 +1531,7 @@ namespace MML::Tests::Core::InterpolatedFunctionsTests
 		MonotoneCubicInterpRealFunc interp(x, y);
 
 		for (int i = 0; i <= 500; i++) {
-			Real xi = 5.0 * i / 500.0;
+			Real xi = MML::Real(5.0) * i / MML::Real(500.0);
 			Real val = interp(xi);
 			REQUIRE(val >= -TOL(1e-14, 1e-6));
 			REQUIRE(val <= 1.0 + TOL(1e-14, 1e-6));
@@ -1550,7 +1551,7 @@ namespace MML::Tests::Core::InterpolatedFunctionsTests
 
 		// Interpolated values should all be 3.0
 		for (int i = 0; i <= 100; i++) {
-			Real xi = 4.0 * i / 100.0;
+			Real xi = MML::Real(4.0) * i / MML::Real(100.0);
 			REQUIRE_THAT(interp(xi), WithinAbs(3.0, TOL(1e-12, 1e-5)));
 		}
 	}
@@ -1585,7 +1586,7 @@ namespace MML::Tests::Core::InterpolatedFunctionsTests
 	TEST_CASE("MonotoneCubic_derivative_accuracy", "[interpolation][monotone][derivative]") {
 		// For x^2 on [0, 3], derivative should be 2x
 		RealFunction f{ [](Real x) -> Real { return x * x; } };
-		RealFunction df{ [](Real x) -> Real { return 2.0 * x; } };
+		RealFunction df{ [](Real x) -> Real { return MML::Real(2.0) * x; } };
 
 		Vector<Real> vec_x, vec_y;
 		CreateInterpolatedValues(f, 0.0, 3.0, 20, vec_x, vec_y);
@@ -1625,7 +1626,7 @@ namespace MML::Tests::Core::InterpolatedFunctionsTests
 
 		// Monotone cubic must stay in [0, 10]
 		for (int i = 0; i <= 500; i++) {
-			Real xi = 5.0 * i / 500.0;
+			Real xi = MML::Real(5.0) * i / MML::Real(500.0);
 			Real val = monotone(xi);
 			REQUIRE(val >= -TOL(1e-14, 1e-6));
 			REQUIRE(val <= 10.0 + TOL(1e-14, 1e-6));

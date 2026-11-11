@@ -34,7 +34,7 @@ namespace MML::AD
         }
     }
 
-    template<typename F, typename T = Real>
+    template<typename F, typename T = Real, typename = std::enable_if_t<Detail::HasFloatingLeaf<T>::value>>
     Matrix<T> CalcJacobianForwardAD(F&& func, const std::vector<T>& point)
     {
         const size_t n = point.size();
@@ -61,7 +61,7 @@ namespace MML::AD
         return jac;
     }
 
-    template<typename F, typename T = Real>
+    template<typename F, typename T = Real, typename = std::enable_if_t<Detail::HasFloatingLeaf<T>::value>>
     Matrix<T> CalcJacobianForwardAD(F&& func, const Vector<T>& point)
     {
         return CalcJacobianForwardAD(std::forward<F>(func), Detail::ToStdVector(point));
@@ -91,10 +91,10 @@ namespace MML::AD
                 input.emplace_back(&tape, xi);
 
             auto output = func(input);
-            output[i].backward();
+            const bool recorded = Detail::BackpropagateIfRecorded(output[i]);
 
             for (size_t j = 0; j < n; ++j)
-                jac(static_cast<int>(i), static_cast<int>(j)) = input[j].adjoint();
+                jac(static_cast<int>(i), static_cast<int>(j)) = recorded ? input[j].adjoint() : Real(0);
         }
 
         return jac;
@@ -106,7 +106,7 @@ namespace MML::AD
         return CalcJacobianReverseAD(std::forward<F>(func), Detail::ToStdVector(point));
     }
 
-    template<typename F, typename T = Real>
+    template<typename F, typename T = Real, typename = std::enable_if_t<Detail::HasFloatingLeaf<T>::value>>
     Matrix<T> CalcHessianForwardAD(F&& func, const std::vector<T>& point)
     {
         using Dual2 = Dual<Dual<T>>;
@@ -137,16 +137,16 @@ namespace MML::AD
         return hessian;
     }
 
-    template<typename F, typename T = Real>
+    template<typename F, typename T = Real, typename = std::enable_if_t<Detail::HasFloatingLeaf<T>::value>>
     Matrix<T> CalcHessianForwardAD(F&& func, const Vector<T>& point)
     {
         return CalcHessianForwardAD(std::forward<F>(func), Detail::ToStdVector(point));
     }
     // ---- Deprecated 2.0 spellings (CONTRACT_POLICY section 11: algorithms are Verb[Object][Method]) ----
-    template<typename F, typename T = Real>
+    template<typename F, typename T = Real, typename = std::enable_if_t<Detail::HasFloatingLeaf<T>::value>>
     [[deprecated("use CalcJacobianForwardAD()")]]
     Matrix<T> jacobianForwardAD(F&& func, const std::vector<T>& point) { return CalcJacobianForwardAD(std::forward<F>(func), point); }
-    template<typename F, typename T = Real>
+    template<typename F, typename T = Real, typename = std::enable_if_t<Detail::HasFloatingLeaf<T>::value>>
     [[deprecated("use CalcJacobianForwardAD()")]]
     Matrix<T> jacobianForwardAD(F&& func, const Vector<T>& point) { return CalcJacobianForwardAD(std::forward<F>(func), point); }
     template<typename F>
@@ -155,10 +155,10 @@ namespace MML::AD
     template<typename F>
     [[deprecated("use CalcJacobianReverseAD()")]]
     Matrix<Real> jacobianReverseAD(F&& func, const Vector<Real>& point) { return CalcJacobianReverseAD(std::forward<F>(func), point); }
-    template<typename F, typename T = Real>
+    template<typename F, typename T = Real, typename = std::enable_if_t<Detail::HasFloatingLeaf<T>::value>>
     [[deprecated("use CalcHessianForwardAD()")]]
     Matrix<T> hessianForwardAD(F&& func, const std::vector<T>& point) { return CalcHessianForwardAD(std::forward<F>(func), point); }
-    template<typename F, typename T = Real>
+    template<typename F, typename T = Real, typename = std::enable_if_t<Detail::HasFloatingLeaf<T>::value>>
     [[deprecated("use CalcHessianForwardAD()")]]
     Matrix<T> hessianForwardAD(F&& func, const Vector<T>& point) { return CalcHessianForwardAD(std::forward<F>(func), point); }
 }

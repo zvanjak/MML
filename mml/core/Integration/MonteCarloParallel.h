@@ -25,12 +25,14 @@ namespace MML {
 		const ParallelMonteCarloConfig& config = {}) {
 		EvaluationConfigBase policy;
 		policy.exception_policy = config.exception_policy;
-		return IntegrationDetail::ExecuteIntegrationDetailed<ParallelMonteCarloResult>(
+		std::atomic<int> totalEvaluations{0};
+		auto completed = IntegrationDetail::ExecuteIntegrationDetailed<ParallelMonteCarloResult>(
 			"MonteCarloParallel", policy, [&](ParallelMonteCarloResult& result) {
 				Detail::ValidateMonteCarloConfig(config);
 				if (config.block_size == 0) throw ArgumentError("Parallel Monte Carlo block_size must be positive");
 				const Real volume = Detail::ValidateMonteCarloBounds(lower, upper, "MonteCarloParallel");
 				if (volume == 0) {
+					result.value = 0;
 					result.status = AlgorithmStatus::Completed;
 					result.error_estimate = 0;
 					return;
@@ -56,9 +58,11 @@ namespace MML {
 							point[d] = std::lerp(lower[d], upper[d], u);
 							reflected[d] = std::lerp(lower[d], upper[d], Real(1) - u);
 						}
+						IntegrationDetail::CountEvaluation(totalEvaluations);
 						const Real value = std::invoke(function, point);
 						if (!std::isfinite(value)) throw NumericalMethodError("Parallel Monte Carlo: non-finite integrand");
 						if (config.use_antithetic) {
+							IntegrationDetail::CountEvaluation(totalEvaluations);
 							const Real opposite = std::invoke(function, reflected);
 							if (!std::isfinite(opposite)) throw NumericalMethodError("Parallel Monte Carlo: non-finite antithetic value");
 							statistics[block].add(value / 2 + opposite / 2);
@@ -71,6 +75,8 @@ namespace MML {
 				result.algorithm_name = "MonteCarloParallel";
 				result.blocks_used = blocks;
 			});
+		completed.function_evaluations = totalEvaluations.load(std::memory_order_relaxed);
+		return completed;
 	}
 
 	template<int N, class Function>

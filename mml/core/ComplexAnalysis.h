@@ -1,462 +1,572 @@
 ///////////////////////////////////////////////////////////////////////////////////////////
 ///                         MinimalMathLibrary (MML)                                  ///
-///                                                                                   ///
 ///  File:        ComplexAnalysis.h                                                   ///
-///  Description: Complex analysis tools: contours, contour integration,              ///
-///               winding number, Cauchy integral, residues, argument principle        ///
-///                                                                                   ///
-///  REFERENCES:                                                                      ///
-///    [AH79]   Ahlfors, L.V. (1979). Complex Analysis, 3rd ed. McGraw-Hill          ///
-///    [SS03]   Stein & Shakarchi (2003). Complex Analysis, Princeton Univ. Press     ///
-///    [NR3]    Press et al., Numerical Recipes 3rd ed.                               ///
-///                                                                                   ///
-///  Copyright:   (c) 2024-2026 Zvonimir Vanjak                                       ///
+///  Description: Contours, Cauchy formulas, residues and argument principle           ///
+///  References: Ahlfors, Complex Analysis (1979); Numerical Recipes, 3rd ed.           ///
+///  Copyright:   (c) 2024-2026 Zvonimir Vanjak                                         ///
 ///  License:     MIT License (see LICENSE.md)                                         ///
-///                                                                                   ///
 ///////////////////////////////////////////////////////////////////////////////////////////
 #if !defined MML_COMPLEX_ANALYSIS_H
 #define MML_COMPLEX_ANALYSIS_H
 
 #include <mml/MMLBase.h>
-
 #include <mml/interfaces/IComplexFunction.h>
 #include <mml/base/ComplexFunction.h>
 #include <mml/core/Derivation/DerivationComplex.h>
-#include <mml/base/AlgorithmTypes.h>
-#include <mml/core/Integration/IntegrationBase.h>
+#include <mml/core/Integration/GaussKronrod.h>
 
+#include <array>
 #include <cmath>
 #include <functional>
+#include <limits>
 
 namespace MML
 {
 	namespace ComplexAnalysis
 	{
-		/********************************************************************************************************************/
-		/********                                   Result Types                                                     ********/
-		/********************************************************************************************************************/
-
-		/// Result of a complex contour integration: the common integration result over Complex
-		/// (value, error_estimate on |value|, converged, status, function_evaluations, ...).
 		using ContourIntegrationResult = BasicIntegrationResult<Complex>;
 
-		/********************************************************************************************************************/
-		/********                                   Contour Classes                                                  ********/
-		/********************************************************************************************************************/
+		struct ContourIntegrationConfig : IntegrationConfig {
+			Real tolerance = Precision::ComplexAnalysisTolerance;
+			int max_depth = Precision::ComplexAnalysisMaxDepth;
+			int max_evaluations = Precision::ComplexAnalysisMaxEvaluations;
+			int initial_panels = Precision::ComplexAnalysisInitialPanels;
+		};
 
-		/// @brief Circle contour γ(t) = center + radius · e^(it), t ∈ [0, 2π]
-		/// @details The standard contour for residue computation and Cauchy integrals.
-		///          Traversed counter-clockwise (positive orientation).
-		class CircleContour : public IRealToComplexFunction
+		/// The complex payload is the unrounded estimate. Certification is numerical, not a proof of analyticity.
+		struct [[nodiscard]] IntegerContourResult : ContourIntegrationResult {
+			int integer_value = 0;
+			bool integer_certified = false;
+			Real derivative_error_estimate = 0;
+
+			int IntegerOrThrow(const char* context) const {
+				ValueOrThrow(context);
+				if (!integer_certified)
+					throw ConvergenceError(std::string(context) + ": integer estimate is not certified",
+						iterations, error_estimate);
+				return integer_value;
+			}
+		};
+
+		namespace Detail
 		{
+			inline void ValidatePoint(Complex point) {
+				if (!std::isfinite(point.real()) || !std::isfinite(point.imag()))
+					throw ArgumentError("Complex analysis requires finite points");
+			}
+
+			inline void ValidateCircle(Complex center, Real radius) {
+				ValidatePoint(center);
+				if (!std::isfinite(radius) || radius <= 0)
+					throw ArgumentError("Complex contour radius must be finite and positive");
+				for (Real coordinate : {center.real(), center.imag()})
+					if (!std::isfinite(coordinate + radius) || !std::isfinite(coordinate - radius) ||
+						coordinate + radius == coordinate || coordinate - radius == coordinate)
+						throw ArgumentError("Complex contour is not representable at its center and radius");
+			}
+
+			inline void ValidateConfig(const ContourIntegrationConfig& config) {
+				IntegrationDetail::ValidateAdaptive(config.tolerance, 0, config.max_depth, config.max_evaluations);
+				if (config.initial_panels <= 0)
+					throw ArgumentError("Complex contour integration requires positive initial_panels");
+			}
+
+			inline ContourIntegrationConfig WithTolerance(Real tolerance) {
+				ContourIntegrationConfig config;
+				config.tolerance = tolerance;
+				return config;
+			}
+
+			class CountedFunction : public IComplexFunction {
+				const IComplexFunction& _function;
+				ContourIntegrationResult& _result;
+				const ContourIntegrationConfig& _config;
+			public:
+				CountedFunction(const IComplexFunction& function, ContourIntegrationResult& result,
+					const ContourIntegrationConfig& config) : _function(function), _result(result), _config(config) {}
+				Complex operator()(Complex point) const override {
+					ValidatePoint(point);
+					if (_result.function_evaluations >= _config.max_evaluations)
+						throw ResourceLimitError("Complex contour function-evaluation budget exhausted");
+					++_result.function_evaluations;
+					const Complex value = _function(point);
+					if (_config.check_finite) IntegrationDetail::RequireFinite(value, "Complex integrand");
+					return value;
+				}
+			};
+		}
+
+		class CircleContour : public IRealToComplexFunction {
 			Complex _center;
 			Real _radius;
 		public:
-			CircleContour(Complex center, Real radius) : _center(center), _radius(radius) {}
-
-			/// @brief γ(t) = center + radius · e^(it)
+			CircleContour(Complex center, Real radius) : _center(center), _radius(radius) {
+				Detail::ValidateCircle(center, radius);
+			}
 			Complex operator()(Real t) const override {
 				return _center + _radius * Complex(std::cos(t), std::sin(t));
 			}
-
-			/// @brief γ'(t) = i · radius · e^(it)
-			Complex derivative(Real t) const {
-				return _radius * Complex(-std::sin(t), std::cos(t));
-			}
-
+			Complex derivative(Real t) const { return _radius * Complex(-std::sin(t), std::cos(t)); }
 			Complex center() const { return _center; }
 			Real radius() const { return _radius; }
-			Real t_start() const { return 0.0; }
-			Real t_end() const { return 2.0 * Constants::PI; }
+			Real t_start() const { return 0; }
+			Real t_end() const { return 2 * Constants::PI; }
 		};
 
-		/// @brief Line segment contour γ(t) = (1-t)·z1 + t·z2, t ∈ [0, 1]
-		class LineSegmentContour : public IRealToComplexFunction
-		{
+		class LineSegmentContour : public IRealToComplexFunction {
 			Complex _z1, _z2;
 		public:
-			LineSegmentContour(Complex z1, Complex z2) : _z1(z1), _z2(z2) {}
-
-			/// @brief γ(t) = (1-t)·z1 + t·z2
+			LineSegmentContour(Complex z1, Complex z2) : _z1(z1), _z2(z2) {
+				Detail::ValidatePoint(z1);
+				Detail::ValidatePoint(z2);
+				Detail::ValidatePoint(z2 - z1);
+			}
 			Complex operator()(Real t) const override {
-				return (static_cast<MML::Real>(1.0) - t) * _z1 + t * _z2;
+				return {std::lerp(_z1.real(), _z2.real(), t), std::lerp(_z1.imag(), _z2.imag(), t)};
 			}
-
-			/// @brief γ'(t) = z2 - z1 (constant)
-			Complex derivative(Real /*t*/) const {
-				return _z2 - _z1;
-			}
-
-			Real t_start() const { return 0.0; }
-			Real t_end() const { return 1.0; }
+			Complex derivative(Real) const { return _z2 - _z1; }
+			Real t_start() const { return 0; }
+			Real t_end() const { return 1; }
 		};
 
-		/// @brief Circular arc contour γ(t) = center + radius · e^(it), t ∈ [t1, t2]
-		class ArcContour : public IRealToComplexFunction
-		{
+		class ArcContour : public IRealToComplexFunction {
 			Complex _center;
-			Real _radius;
-			Real _t1, _t2;
+			Real _radius, _t1, _t2;
 		public:
 			ArcContour(Complex center, Real radius, Real t1, Real t2)
-				: _center(center), _radius(radius), _t1(t1), _t2(t2) {}
-
-			/// @brief γ(t) = center + radius · e^(it)  for t ∈ [t1, t2]
+				: _center(center), _radius(radius), _t1(t1), _t2(t2) {
+				Detail::ValidateCircle(center, radius);
+				if (!std::isfinite(t1) || !std::isfinite(t2))
+					throw ArgumentError("Complex contour parameter endpoints must be finite");
+			}
 			Complex operator()(Real t) const override {
 				return _center + _radius * Complex(std::cos(t), std::sin(t));
 			}
-
-			Complex derivative(Real t) const {
-				return _radius * Complex(-std::sin(t), std::cos(t));
-			}
-
+			Complex derivative(Real t) const { return _radius * Complex(-std::sin(t), std::cos(t)); }
 			Real t_start() const { return _t1; }
 			Real t_end() const { return _t2; }
 		};
 
-		/********************************************************************************************************************/
-		/********                          Complex Adaptive Simpson Integration                                       ********/
-		/********************************************************************************************************************/
-
 		namespace Detail
 		{
-			/// @brief Adaptive Simpson's rule for complex-valued integrands
-			/// @details Recursively subdivides intervals until error estimate < tolerance.
-			///          The integrand g: R → C maps parameter t to the complex value f(γ(t))·γ'(t).
-			static Complex AdaptiveSimpsonStep(
-				const std::function<Complex(Real)>& g,
-				Real a, Real b,
-				Complex fa, Complex fm, Complex fb,
-				Complex whole,
-				Real tol, int depth, int max_depth,
-				int& evals, bool& converged, Real& errorSum)
-			{
-				Real m = (a + b) / 2.0;
-				Real m1 = (a + m) / 2.0;
-				Real m2 = (m + b) / 2.0;
-
-				Complex f_m1 = g(m1);
-				Complex f_m2 = g(m2);
-				evals += 2;
-
-				Real h6 = (b - a) / 6.0;
-				Real h12 = h6 / 2.0;
-
-				Complex left = h12 * (fa + static_cast<MML::Real>(4.0) * f_m1 + fm);
-				Complex right = h12 * (fm + static_cast<MML::Real>(4.0) * f_m2 + fb);
-				Complex refined = left + right;
-
-				Real error = std::abs(refined - whole) / 15.0;  // Richardson error estimate
-
-				if (depth >= max_depth)
-				{
-					converged = false;
-					errorSum += error; // unrefined leaf: its local estimate is part of the total
-					return refined;
+			// G7/K15 uses nonuniform nodes; the five-node dyadic Simpson test aliases harmonic four.
+			template<class Function>
+			ContourIntegrationResult Kronrod15(Function& function, Real a, Real b) {
+				const Real half = IntegrationDetail::HalfWidth(a, b);
+				const Real center = std::midpoint(a, b);
+				IntegrationDetail::ComplexSum kronrod, gauss;
+				IntegrationDetail::Sum floor;
+				auto add = [&](Real t, int node) {
+					const Complex value = function(t);
+					IntegrationDetail::RequireFinite(value, "Complex quadrature sample");
+					auto weighted = [&](Real weight) {
+						return Complex(IntegrationDetail::Product({half, weight, value.real()}),
+							IntegrationDetail::Product({half, weight, value.imag()}));
+					};
+					const Complex contribution = weighted(Integration::wGK15[node]);
+					kronrod.Add(contribution);
+					floor.Add(Precision::IntegrationRoundoffFloorScale * std::abs(contribution));
+					if (node % 2 == 0) gauss.Add(weighted(Integration::wG7[node / 2]));
+				};
+				add(center, 0);
+				for (int node = 1; node < Integration::GK15_N; ++node) {
+					const Real offset = half * Integration::xGK15[node];
+					add(center + offset, node);
+					add(center - offset, node);
 				}
+				return {kronrod.Value(), std::max(std::abs(kronrod.Value() - gauss.Value()), floor.Value()), 0, false};
+			}
 
-				if (error < tol)
-				{
-					errorSum += error;
-					// Richardson extrapolation: add the correction term
-					return refined + (refined - whole) / static_cast<MML::Real>(15.0);
+			template<class Function>
+			void Integrate(Function& function, Real a, Real b, const ContourIntegrationConfig& config,
+				ContourIntegrationResult& result) {
+				ValidateConfig(config);
+				IntegrationDetail::HalfWidth(a, b);
+				if (a == b) {
+					result.value = 0;
+					result.error_estimate = 0;
+					result.error_estimated = result.converged = true;
+					return;
 				}
-
-				// Recurse on both halves with halved tolerance
-				return AdaptiveSimpsonStep(g, a, m, fa, f_m1, fm, left, tol / 2, depth + 1, max_depth, evals, converged, errorSum)
-				     + AdaptiveSimpsonStep(g, m, b, fm, f_m2, fb, right, tol / 2, depth + 1, max_depth, evals, converged, errorSum);
+				if (config.max_evaluations < 2 || config.initial_panels > (config.max_evaluations - 2) / 15)
+					throw ResourceLimitError("Budget cannot cover the initial complex quadrature panels");
+				using Interval = std::array<Real, 2>;
+				std::vector<Interval> intervals;
+				for (int i = 0; i < config.initial_panels; ++i) {
+					const Real left = std::lerp(a, b, Real(i) / config.initial_panels);
+					const Real right = std::lerp(a, b, Real(i + 1) / config.initial_panels);
+					if (left == right) {
+						result.status = AlgorithmStatus::ToleranceUnachievable;
+						result.error_message = "Complex quadrature initial panels cannot make floating-point progress";
+						return;
+					}
+					intervals.push_back({left, right});
+				}
+				IntegrationDetail::RequireFinite(function(a), "Complex contour endpoint");
+				IntegrationDetail::RequireFinite(function(b), "Complex contour endpoint");
+				auto evaluate = [&](const Interval& interval) { return Kronrod15(function, interval[0], interval[1]); };
+				auto split = [](const Interval& interval) {
+					const Real mid = std::midpoint(interval[0], interval[1]);
+					if (mid == interval[0] || mid == interval[1]) return std::vector<Interval>{};
+					return std::vector<Interval>{{interval[0], mid}, {mid, interval[1]}};
+				};
+				IntegrationDetail::RefineCells(result, intervals, evaluate, split, config.tolerance, 0,
+					config.max_depth, config.max_evaluations, 15);
 			}
 
-			/// @brief Top-level adaptive Simpson for complex-valued functions of a real variable
-			static ContourIntegrationResult AdaptiveSimpsonComplex(
-				const std::function<Complex(Real)>& g,
-				Real a, Real b,
-				Real tol = Precision::ComplexAnalysisTolerance,
-				int max_depth = 30)
-			{
-				ContourIntegrationResult result;
+			template<class Function, class Gamma, class Tangent>
+			void ContourCore(Function& function, const Gamma& gamma, const Tangent& tangent, Real a, Real b,
+				const ContourIntegrationConfig& config, ContourIntegrationResult& result) {
+				auto integrand = [&](Real t) {
+					const Complex point = gamma(t), derivative = tangent(t);
+					ValidatePoint(point);
+					IntegrationDetail::RequireFinite(derivative, "Complex contour tangent");
+					return function(point) * derivative;
+				};
+				Integrate(integrand, a, b, config, result);
+			}
 
-				Complex fa = g(a);
-				Complex fm = g((a + b) / 2.0);
-				Complex fb = g(b);
-				int evals = 3;
-				bool converged = true;
-				Real errorSum = 0.0;
+			inline void Scale(ContourIntegrationResult& result, Real factor) noexcept {
+				result.value = Complex(result.value.imag() * factor, -result.value.real() * factor);
+				if (result.error_estimated) result.error_estimate *= std::abs(factor);
+			}
 
-				Real h6 = (b - a) / 6.0;
-				Complex whole = h6 * (fa + static_cast<MML::Real>(4.0) * fm + fb);
+			// Preserve output units and sampled derivative uncertainty even when a callback interrupts refinement.
+			template<class Result>
+			struct ScaledResult {
+				Result& result;
+				Real factor;
+				~ScaledResult() {
+					Scale(result, factor);
+					if constexpr (requires { result.derivative_error_estimate; })
+						if (result.error_estimated) result.error_estimate += result.derivative_error_estimate;
+				}
+			};
 
-				result.value = AdaptiveSimpsonStep(g, a, b, fa, fm, fb, whole, tol, 0, max_depth, evals, converged, errorSum);
-				result.function_evaluations = evals;
-				result.converged = converged;
-				result.error_estimated = true;
-				result.iterations = max_depth;
-				result.algorithm_name = "AdaptiveSimpsonComplex";
-				result.status = converged ? AlgorithmStatus::Success : AlgorithmStatus::MaxIterationsExceeded;
-				if (!converged)
-					result.error_message = "AdaptiveSimpsonComplex: tolerance not met within max_depth";
-				// Sum of the Richardson estimates of all accepted (and max-depth) leaves: an actual estimate,
-				// not the former placeholder (tol if converged, |value|*1e-6 otherwise)
-				result.error_estimate = errorSum;
-				return result;
+			inline ContourIntegrationConfig ScaledConfig(const ContourIntegrationConfig& config, Real factor) {
+				ValidateConfig(config);
+				auto scaled = config;
+				scaled.tolerance = config.tolerance / std::abs(factor);
+				ValidateConfig(scaled);
+				return scaled;
+			}
+
+			inline void ValidateInterior(const CircleContour& contour, Complex point) {
+				ValidatePoint(point);
+				if (!(std::abs(point - contour.center()) < contour.radius()))
+					throw ArgumentError("Cauchy's formula requires a point strictly inside the circle");
+			}
+
+			inline void CertifyInteger(IntegerContourResult& result, Real tolerance) {
+				if (!result.IsUsable()) return;
+				if (!std::isfinite(result.value.real()) || !std::isfinite(result.value.imag()) ||
+					(result.error_estimated && (!std::isfinite(result.error_estimate) || result.error_estimate < 0))) {
+					result.status = AlgorithmStatus::NumericalInstability;
+					result.error_message = "Contour count or its uncertainty is non-finite or invalid";
+					result.converged = false;
+					return;
+				}
+				const Real nearest = std::round(result.value.real());
+				if (!std::isfinite(nearest) || static_cast<long double>(nearest) < std::numeric_limits<int>::min() || // tol-ok: integer conversion bound
+					static_cast<long double>(nearest) > std::numeric_limits<int>::max()) {
+					result.status = AlgorithmStatus::NumericalInstability;
+					result.error_message = "Contour count is outside the representable integer range";
+					result.converged = false;
+					return;
+				}
+				const Real discrepancy = std::abs(result.value - Complex(nearest, 0));
+				if (!result.converged || !result.error_estimated ||
+					discrepancy + result.error_estimate > std::min(tolerance, Precision::ComplexAnalysisIntegerRadius)) {
+					result.status = AlgorithmStatus::ToleranceUnachievable;
+					result.error_message = "Contour estimate, imaginary part and uncertainty do not certify a unique integer";
+					result.converged = false;
+					return;
+				}
+				result.integer_value = static_cast<int>(nearest);
+				result.integer_certified = true;
 			}
 		}
 
-		/********************************************************************************************************************/
-		/********                               Contour Integration                                                  ********/
-		/********************************************************************************************************************/
-
-		/// @brief Compute ∮_γ f(z) dz along a circle contour
-		/// @details Reduces to ∫₀²π f(γ(t)) · γ'(t) dt using adaptive Simpson
-		/// @param f Complex function f:C→C
-		/// @param contour CircleContour defining the path
-		/// @param tol Absolute tolerance for the integration (default: Precision::ComplexAnalysisTolerance)
-		/// @return ContourIntegrationResult with complex integral value
-		static ContourIntegrationResult ContourIntegral(
-			const IComplexFunction& f,
-			const CircleContour& contour,
-			Real tol = Precision::ComplexAnalysisTolerance)
-		{
-			auto integrand = [&](Real t) -> Complex {
-				return f(contour(t)) * contour.derivative(t);
-			};
-			return Detail::AdaptiveSimpsonComplex(integrand, contour.t_start(), contour.t_end(), tol);
+		template<class Contour>
+		static ContourIntegrationResult ContourIntegralDetailed(const IComplexFunction& f, const Contour& contour,
+			const ContourIntegrationConfig& config = {}) {
+			return IntegrationDetail::ExecuteIntegrationDetailed<ContourIntegrationResult>("ContourIntegral", config,
+				[&](auto& result) {
+					Detail::CountedFunction counted(f, result, config);
+					auto tangent = [&](Real t) { return contour.derivative(t); };
+					Detail::ContourCore(counted, contour, tangent, contour.t_start(), contour.t_end(), config, result);
+				});
 		}
 
-		/// @brief Compute ∫_γ f(z) dz along a line segment contour
-		static ContourIntegrationResult ContourIntegral(
-			const IComplexFunction& f,
-			const LineSegmentContour& contour,
-			Real tol = Precision::ComplexAnalysisTolerance)
-		{
-			auto integrand = [&](Real t) -> Complex {
-				return f(contour(t)) * contour.derivative(t);
-			};
-			return Detail::AdaptiveSimpsonComplex(integrand, contour.t_start(), contour.t_end(), tol);
+		static inline ContourIntegrationResult ContourIntegralDetailed(const IComplexFunction& f,
+			const std::function<Complex(Real)>& gamma, const std::function<Complex(Real)>& gamma_deriv,
+			Real t_start, Real t_end, const ContourIntegrationConfig& config = {}) {
+			return IntegrationDetail::ExecuteIntegrationDetailed<ContourIntegrationResult>("ContourIntegral", config,
+				[&](auto& result) {
+					if (!gamma || !gamma_deriv) throw ArgumentError("Contour parameterization and derivative must be callable");
+					Detail::CountedFunction counted(f, result, config);
+					Detail::ContourCore(counted, gamma, gamma_deriv, t_start, t_end, config, result);
+				});
 		}
 
-		/// @brief Compute ∫_γ f(z) dz along an arc contour
-		static ContourIntegrationResult ContourIntegral(
-			const IComplexFunction& f,
-			const ArcContour& contour,
-			Real tol = Precision::ComplexAnalysisTolerance)
-		{
-			auto integrand = [&](Real t) -> Complex {
-				return f(contour(t)) * contour.derivative(t);
-			};
-			return Detail::AdaptiveSimpsonComplex(integrand, contour.t_start(), contour.t_end(), tol);
+		template<class Contour>
+		static ContourIntegrationResult ContourIntegralDetailed(const IComplexFunction& f, const Contour& contour, Real tol) {
+			return ContourIntegralDetailed(f, contour, Detail::WithTolerance(tol));
 		}
 
-		/// @brief Generic contour integral with user-provided parameterization and derivative
-		/// @param f Complex function f:C→C
-		/// @param gamma Contour parameterization γ: R → C
-		/// @param gamma_deriv Derivative γ': R → C
-		/// @param t_start Start of parameter range
-		/// @param t_end End of parameter range
-		/// @param tol Tolerance (default: Precision::ComplexAnalysisTolerance)
-		static ContourIntegrationResult ContourIntegral(
-			const IComplexFunction& f,
-			const std::function<Complex(Real)>& gamma,
-			const std::function<Complex(Real)>& gamma_deriv,
-			Real t_start, Real t_end,
-			Real tol = Precision::ComplexAnalysisTolerance)
-		{
-			auto integrand = [&](Real t) -> Complex {
-				return f(gamma(t)) * gamma_deriv(t);
-			};
-			return Detail::AdaptiveSimpsonComplex(integrand, t_start, t_end, tol);
+		static inline ContourIntegrationResult ContourIntegralDetailed(const IComplexFunction& f,
+			const std::function<Complex(Real)>& gamma, const std::function<Complex(Real)>& gamma_deriv,
+			Real a, Real b, Real tol) {
+			return ContourIntegralDetailed(f, gamma, gamma_deriv, a, b, Detail::WithTolerance(tol));
 		}
 
-		/********************************************************************************************************************/
-		/********                               Winding Number                                                       ********/
-		/********************************************************************************************************************/
-
-		/// @brief Compute the winding number of contour γ around point z0
-		/// @details n(γ, z0) = (1/2πi) ∮_γ dz / (z - z0)
-		///          For a circle contour containing z0, this equals 1.
-		///          For a circle not containing z0, this equals 0.
-		/// @param contour Circle contour
-		/// @param z0 Point to compute winding number around
-		/// @param tol Integration tolerance (default: Precision::ComplexAnalysisTolerance)
-		/// @return Winding number (integer for closed contours, rounded from numerical result)
-		static int WindingNumber(const CircleContour& contour, Complex z0, Real tol = Precision::ComplexAnalysisTolerance)
-		{
-			// Integrand: 1/(z - z0)
-			ComplexFunctionFromStdFunc g([z0](Complex z) -> Complex {
-				return static_cast<MML::Real>(1.0) / (z - z0);
-			});
-
-			auto result = ContourIntegral(g, contour, tol);
-
-			// n = (1/2πi) · ∮ dz/(z-z0)
-			Complex winding = result.value / (static_cast<MML::Real>(2.0) * Constants::PI * Complex(0.0, 1.0));
-			return static_cast<int>(std::round(winding.real()));
+		/// Compatibility API: historically returns a result, not a plain Complex.
+		template<class Contour>
+		static ContourIntegrationResult ContourIntegral(const IComplexFunction& f, const Contour& contour,
+			Real tol = Precision::ComplexAnalysisTolerance) {
+			return ContourIntegralDetailed(f, contour, tol);
 		}
 
-		/********************************************************************************************************************/
-		/********                           Cauchy Integral Formula                                                   ********/
-		/********************************************************************************************************************/
-
-		/// @brief Evaluate f(z0) using the Cauchy integral formula
-		/// @details f(z0) = (1/2πi) ∮_γ f(z)/(z - z0) dz
-		///          where γ is a simple closed contour enclosing z0.
-		///          This is primarily useful for:
-		///          - Validating function implementations against integral representations
-		///          - Computing values at points where direct evaluation is numerically difficult
-		///          - Educational demonstration of complex analysis theorems
-		/// @param f Complex function f:C→C (must be analytic inside and on γ)
-		/// @param contour Circle contour enclosing z0
-		/// @param z0 Point at which to evaluate f
-		/// @param tol Integration tolerance (default: Precision::ComplexAnalysisTolerance)
-		/// @return f(z0) computed via contour integration
-		static Complex CauchyIntegralFormula(
-			const IComplexFunction& f,
-			const CircleContour& contour,
-			Complex z0,
-			Real tol = Precision::ComplexAnalysisTolerance)
-		{
-			// Integrand: f(z) / (z - z0)
-			ComplexFunctionFromStdFunc integrand_func([&f, z0](Complex z) -> Complex {
-				return f(z) / (z - z0);
-			});
-
-			auto result = ContourIntegral(integrand_func, contour, tol);
-			return result.value / (static_cast<MML::Real>(2.0) * Constants::PI * Complex(0.0, 1.0));
+		static inline ContourIntegrationResult ContourIntegral(const IComplexFunction& f,
+			const std::function<Complex(Real)>& gamma, const std::function<Complex(Real)>& gamma_deriv,
+			Real a, Real b, Real tol = Precision::ComplexAnalysisTolerance) {
+			return ContourIntegralDetailed(f, gamma, gamma_deriv, a, b, tol);
 		}
 
-		/// @brief Compute the n-th derivative f^(n)(z0) using the generalized Cauchy integral formula
-		/// @details f^(n)(z0) = (n! / 2πi) ∮_γ f(z) / (z - z0)^(n+1) dz
-		/// @param f Complex function (must be analytic inside and on the contour)
-		/// @param contour Circle contour enclosing z0
-		/// @param z0 Point at which to evaluate the derivative
-		/// @param n Order of derivative (n >= 0)
-		/// @param tol Integration tolerance (default: Precision::ComplexAnalysisTolerance)
-		/// @return f^(n)(z0)
-		static Complex CauchyDerivative(
-			const IComplexFunction& f,
-			const CircleContour& contour,
-			Complex z0,
-			int n,
-			Real tol = Precision::ComplexAnalysisTolerance)
-		{
-			// Integrand: f(z) / (z - z0)^(n+1)
-			ComplexFunctionFromStdFunc integrand_func([&f, z0, n](Complex z) -> Complex {
-				Complex denom = z - z0;
-				Complex denom_power = denom;
-				for (int k = 0; k < n; ++k)
-					denom_power *= denom;
-				return f(z) / denom_power;
-			});
-
-			auto result = ContourIntegral(integrand_func, contour, tol);
-
-			// Multiply by n! / (2πi)
-			Real factorial = 1.0;
-			for (int k = 2; k <= n; ++k)
-				factorial *= k;
-
-			return factorial * result.value / (static_cast<MML::Real>(2.0) * Constants::PI * Complex(0.0, 1.0));
+		static inline ContourIntegrationResult CauchyDerivativeDetailed(const IComplexFunction& f,
+			const CircleContour& contour, Complex z0, int n, const ContourIntegrationConfig& config = {}) {
+			return IntegrationDetail::ExecuteIntegrationDetailed<ContourIntegrationResult>("CauchyDerivative", config,
+				[&](auto& result) {
+					Detail::ValidateInterior(contour, z0);
+					if (n < 0) throw ArgumentError("Cauchy derivative order must be nonnegative");
+					Real factorial = 1;
+					for (int k = 2; k <= n; ++k) {
+						if (factorial > std::numeric_limits<Real>::max() / k)
+							throw ArgumentError("Cauchy derivative factorial exceeds the scalar range");
+						factorial *= k;
+					}
+					const Real factor = factorial / (2 * Constants::PI);
+					auto scaled = Detail::ScaledConfig(config, factor);
+					scaled.initial_panels = std::max(scaled.initial_panels, n + 1);
+					Detail::CountedFunction counted(f, result, config);
+					auto function = [&](Complex z) {
+						Complex denominator(1, 0);
+						for (int k = 0; k <= n; ++k) denominator *= z - z0;
+						IntegrationDetail::RequireFinite(denominator, "Cauchy denominator");
+						if (denominator == Complex(0, 0)) throw NumericalMethodError("Cauchy denominator underflowed");
+						return counted(z) / denominator;
+					};
+					auto tangent = [&](Real t) { return contour.derivative(t); };
+					Detail::ScaledResult scale{result, factor};
+					Detail::ContourCore(function, contour, tangent, contour.t_start(), contour.t_end(), scaled, result);
+				});
 		}
 
-		/********************************************************************************************************************/
-		/********                              Residue Computation                                                   ********/
-		/********************************************************************************************************************/
-
-		/// @brief Compute the residue of f at z0 via contour integration
-		/// @details Res(f, z0) = (1/2πi) ∮_γ f(z) dz
-		///          where γ is a small circle around z0 not enclosing other singularities.
-		/// @param f Complex function (may have an isolated singularity at z0)
-		/// @param z0 Isolated singularity
-		/// @param radius Radius of integration circle (must be small enough to exclude
-		///               other singularities)
-		/// @param tol Integration tolerance (default: Precision::ComplexAnalysisTolerance)
-		/// @return Residue of f at z0
-		static Complex Residue(
-			const IComplexFunction& f,
-			Complex z0,
-			Real radius = 0.1,
-			Real tol = PrecisionValues<Real>::DefaultToleranceStrict)
-		{
-			CircleContour contour(z0, radius);
-			auto result = ContourIntegral(f, contour, tol);
-			return result.value / (static_cast<MML::Real>(2.0) * Constants::PI * Complex(0.0, 1.0));
+		static inline ContourIntegrationResult CauchyDerivativeDetailed(const IComplexFunction& f,
+			const CircleContour& contour, Complex z0, int n, Real tol) {
+			return CauchyDerivativeDetailed(f, contour, z0, n, Detail::WithTolerance(tol));
 		}
 
-		/// @brief Compute residue of a simple pole: Res(f, z0) = lim_{z→z0} (z-z0)·f(z)
-		/// @details For simple poles (order 1), this direct limit is faster and more
-		///          accurate than contour integration.
-		/// @param f Complex function with a simple pole at z0
-		/// @param z0 Location of the simple pole
-		/// @param h Small displacement for limit approximation (default: 1e-8)
-		/// @return Residue at z0
-		static Complex ResidueSimplePole(
-			const IComplexFunction& f,
-			Complex z0,
-			Real h = PrecisionValues<Real>::DefaultToleranceStrict)
-		{
-			// Approximate lim_{z→z0} (z - z0) · f(z) from multiple directions
-			// Average over 4 directions for robustness
-			Complex sum(0.0, 0.0);
-			const int n_dirs = 4;
-			for (int k = 0; k < n_dirs; ++k)
-			{
-				Real angle = k * Constants::PI / (2.0 * n_dirs) + Constants::PI / 8.0;  // offset to avoid axes
-				Complex dz = h * Complex(std::cos(angle), std::sin(angle));
-				Complex z = z0 + dz;
-				sum += dz * f(z);
-			}
-			return sum / Real(n_dirs);
+		static inline Complex CauchyDerivative(const IComplexFunction& f, const CircleContour& contour, Complex z0,
+			int n, const ContourIntegrationConfig& config) {
+			return CauchyDerivativeDetailed(f, contour, z0, n, config).ValueOrThrow("CauchyDerivative");
 		}
 
-		/********************************************************************************************************************/
-		/********                            Argument Principle                                                       ********/
-		/********************************************************************************************************************/
-
-		/// @brief Apply the argument principle: count zeros minus poles inside a contour
-		/// @details N - P = (1/2πi) ∮_γ f'(z)/f(z) dz
-		///          where N = number of zeros, P = number of poles of f inside γ
-		///          (counted with multiplicity).
-		///
-		///          For polynomials and entire functions (no poles), this counts zeros.
-		///
-		/// @param f Complex function (must be meromorphic inside and analytic on γ)
-		/// @param contour Circle contour
-		/// @param tol Integration tolerance (default: DefaultToleranceStrict)
-		/// @return N - P (rounded to nearest integer)
-		static int ArgumentPrinciple(
-			const IComplexFunction& f,
-			const CircleContour& contour,
-			Real tol = PrecisionValues<Real>::DefaultToleranceStrict)
-		{
-			// Integrand: f'(z) / f(z)
-			// We compute f'(z) numerically and divide by f(z)
-			ComplexFunctionFromStdFunc logarithmic_derivative([&f](Complex z) -> Complex {
-				Complex fz = f(z);
-				Complex dfz = Derivation::NDer4Complex(f, z);
-				return dfz / fz;
-			});
-
-			auto result = ContourIntegral(logarithmic_derivative, contour, tol);
-			Complex count = result.value / (static_cast<MML::Real>(2.0) * Constants::PI * Complex(0.0, 1.0));
-			return static_cast<int>(std::round(count.real()));
+		static inline Complex CauchyDerivative(const IComplexFunction& f, const CircleContour& contour, Complex z0,
+			int n, Real tol = Precision::ComplexAnalysisTolerance) {
+			return CauchyDerivative(f, contour, z0, n, Detail::WithTolerance(tol));
 		}
 
-		/// @brief Count the number of zeros of f inside a contour (for functions with no poles)
-		/// @details Equivalent to ArgumentPrinciple when f has no poles inside γ.
-		///          This is a convenience alias with clearer semantics.
-		/// @param f Complex function (must be analytic inside and on γ)
-		/// @param contour Circle contour
-		/// @param tol Integration tolerance (default: DefaultToleranceStrict)
-		/// @return Number of zeros inside γ (counted with multiplicity)
-		static int CountZeros(
-			const IComplexFunction& f,
-			const CircleContour& contour,
-			Real tol = PrecisionValues<Real>::DefaultToleranceStrict)
-		{
-			return ArgumentPrinciple(f, contour, tol);
+		static inline ContourIntegrationResult CauchyIntegralFormulaDetailed(const IComplexFunction& f,
+			const CircleContour& contour, Complex z0, const ContourIntegrationConfig& config = {}) {
+			auto result = CauchyDerivativeDetailed(f, contour, z0, 0, config);
+			result.algorithm_name = "CauchyIntegralFormula";
+			return result;
 		}
 
-	} // namespace ComplexAnalysis
-} // namespace MML
+		static inline ContourIntegrationResult CauchyIntegralFormulaDetailed(const IComplexFunction& f,
+			const CircleContour& contour, Complex z0, Real tol) {
+			return CauchyIntegralFormulaDetailed(f, contour, z0, Detail::WithTolerance(tol));
+		}
+
+		static inline Complex CauchyIntegralFormula(const IComplexFunction& f, const CircleContour& contour, Complex z0,
+			const ContourIntegrationConfig& config) {
+			return CauchyIntegralFormulaDetailed(f, contour, z0, config).ValueOrThrow("CauchyIntegralFormula");
+		}
+
+		static inline Complex CauchyIntegralFormula(const IComplexFunction& f, const CircleContour& contour, Complex z0,
+			Real tol = Precision::ComplexAnalysisTolerance) {
+			return CauchyIntegralFormula(f, contour, z0, Detail::WithTolerance(tol));
+		}
+
+		static inline ContourIntegrationResult ResidueDetailed(const IComplexFunction& f, Complex z0, Real radius,
+			const ContourIntegrationConfig& config) {
+			return IntegrationDetail::ExecuteIntegrationDetailed<ContourIntegrationResult>("Residue", config,
+				[&](auto& result) {
+					CircleContour contour(z0, radius);
+					const Real factor = 1 / (2 * Constants::PI);
+					const auto scaled = Detail::ScaledConfig(config, factor);
+					Detail::CountedFunction counted(f, result, config);
+					auto tangent = [&](Real t) { return contour.derivative(t); };
+					Detail::ScaledResult scale{result, factor};
+					Detail::ContourCore(counted, contour, tangent, contour.t_start(), contour.t_end(), scaled, result);
+				});
+		}
+
+		static inline ContourIntegrationResult ResidueDetailed(const IComplexFunction& f, Complex z0,
+			Real radius = Real(0.1), Real tol = Precision::DefaultToleranceStrict) {
+			return ResidueDetailed(f, z0, radius, Detail::WithTolerance(tol));
+		}
+
+		static inline Complex Residue(const IComplexFunction& f, Complex z0, Real radius,
+			const ContourIntegrationConfig& config) {
+			return ResidueDetailed(f, z0, radius, config).ValueOrThrow("Residue");
+		}
+
+		static inline Complex Residue(const IComplexFunction& f, Complex z0, Real radius = Real(0.1),
+			Real tol = Precision::DefaultToleranceStrict) {
+			return Residue(f, z0, radius, Detail::WithTolerance(tol));
+		}
+
+		static inline ContourIntegrationResult ResidueSimplePoleDetailed(const IComplexFunction& f, Complex z0,
+			Real h = Precision::DefaultToleranceStrict, const ContourIntegrationConfig& config = {}) {
+			return IntegrationDetail::ExecuteIntegrationDetailed<ContourIntegrationResult>("ResidueSimplePole", config,
+				[&](auto& result) {
+					Detail::ValidateConfig(config);
+					Detail::ValidatePoint(z0);
+					if (!std::isfinite(h) || h <= 0) throw ArgumentError("Simple-pole step must be finite and positive");
+					const std::array<Complex, 4> points{z0 + Complex(h, 0), z0 - Complex(h, 0),
+						z0 + Complex(0, h), z0 - Complex(0, h)};
+					for (Complex point : points) {
+						Detail::ValidatePoint(point);
+						if (point == z0) throw ArgumentError("Simple-pole step cannot make floating-point progress");
+					}
+					Detail::CountedFunction counted(f, result, config);
+					IntegrationDetail::ComplexSum sum;
+					for (int axis = 0; axis < 2; ++axis) {
+						const Complex plus = points[2 * axis] - z0, minus = points[2 * axis + 1] - z0;
+						// Actual displacements may differ at a binade boundary: interpolate each opposite pair to zero.
+						const Real denominator = std::abs(plus) / 2 + std::abs(minus) / 2;
+						const Real weight = (std::abs(minus) / 2) / denominator;
+						sum.Add((plus * counted(points[2 * axis])) * (weight / 2));
+						sum.Add((minus * counted(points[2 * axis + 1])) * ((1 - weight) / 2));
+					}
+					result.value = sum.Value();
+					result.MarkFixedRule(result.function_evaluations);
+				});
+		}
+
+		static inline Complex ResidueSimplePole(const IComplexFunction& f, Complex z0, Real h = Precision::DefaultToleranceStrict) {
+			return ResidueSimplePoleDetailed(f, z0, h).ValueOrThrow("ResidueSimplePole");
+		}
+
+		static inline IntegerContourResult WindingNumberDetailed(const CircleContour& contour, Complex z0,
+			const ContourIntegrationConfig& config = {}) {
+			return IntegrationDetail::ExecuteIntegrationDetailed<IntegerContourResult>("WindingNumber", config,
+				[&](auto& result) {
+					Detail::ValidatePoint(z0);
+					if (std::abs(z0 - contour.center()) == contour.radius())
+						throw ArgumentError("Winding number is undefined for a point on the contour");
+					const Real factor = 1 / (2 * Constants::PI);
+					const auto scaled = Detail::ScaledConfig(config, factor);
+					ComplexFunctionFromStdFunc reciprocal([&](Complex z) {
+						if (z == z0) throw NumericalMethodError("Winding-number contour intersects its pole");
+						return Real(1) / (z - z0);
+					});
+					Detail::CountedFunction counted(reciprocal, result, config);
+					auto tangent = [&](Real t) { return contour.derivative(t); };
+					{
+						Detail::ScaledResult scale{result, factor};
+						Detail::ContourCore(counted, contour, tangent, contour.t_start(), contour.t_end(), scaled, result);
+					}
+					Detail::CertifyInteger(result, config.tolerance);
+				});
+		}
+
+		static inline IntegerContourResult WindingNumberDetailed(const CircleContour& contour, Complex z0, Real tol) {
+			return WindingNumberDetailed(contour, z0, Detail::WithTolerance(tol));
+		}
+
+		static inline int WindingNumber(const CircleContour& contour, Complex z0, const ContourIntegrationConfig& config) {
+			return WindingNumberDetailed(contour, z0, config).IntegerOrThrow("WindingNumber");
+		}
+
+		static inline int WindingNumber(const CircleContour& contour, Complex z0, Real tol = Precision::ComplexAnalysisTolerance) {
+			return WindingNumber(contour, z0, Detail::WithTolerance(tol));
+		}
+
+		static inline IntegerContourResult ArgumentPrincipleDetailed(const IComplexFunction& f, const CircleContour& contour,
+			const ContourIntegrationConfig& config) {
+			return IntegrationDetail::ExecuteIntegrationDetailed<IntegerContourResult>("ArgumentPrinciple", config,
+				[&](auto& result) {
+					const Real factor = 1 / (2 * Constants::PI);
+					auto scaled = Detail::ScaledConfig(config, factor);
+					scaled.tolerance /= 2;
+					Detail::CountedFunction counted(f, result, config);
+					auto logarithmicDerivative = [&](Complex z) {
+						const Complex value = counted(z);
+						if (value == Complex(0, 0)) throw NumericalMethodError("Argument-principle function is zero on the contour");
+						DerivativeConfig derivativeConfig;
+						derivativeConfig.estimate_error = true;
+						Real h = Derivation::Detail::ScaleStepComplex(Derivation::NDer4_h, z);
+						for (int refinement = 0; refinement <= Precision::ComplexAnalysisDerivativeRefinements; ++refinement) {
+							const auto derivative = Derivation::NDer4ComplexDetailed(counted, z, h, derivativeConfig);
+							if (!MML::IsUsable(derivative.status)) throw NumericalMethodError(derivative.error_message);
+							const Real uncertainty = IntegrationDetail::Product({derivative.error, contour.radius()}, std::abs(value));
+							if (uncertainty <= config.tolerance / 4) {
+								result.derivative_error_estimate = std::max(result.derivative_error_estimate, uncertainty);
+								return derivative.value / value;
+							}
+							h /= 2;
+						}
+						throw NumericalMethodError("Argument-principle numerical derivative cannot resolve the requested count tolerance");
+					};
+					auto tangent = [&](Real t) { return contour.derivative(t); };
+					{
+						Detail::ScaledResult scale{result, factor};
+						Detail::ContourCore(logarithmicDerivative, contour, tangent, contour.t_start(), contour.t_end(), scaled, result);
+					}
+					Detail::CertifyInteger(result, config.tolerance);
+				});
+		}
+
+		static inline IntegerContourResult ArgumentPrincipleDetailed(const IComplexFunction& f, const CircleContour& contour,
+			Real tol = Precision::DefaultToleranceStrict) {
+			return ArgumentPrincipleDetailed(f, contour, Detail::WithTolerance(tol));
+		}
+
+		static inline int ArgumentPrinciple(const IComplexFunction& f, const CircleContour& contour,
+			const ContourIntegrationConfig& config) {
+			return ArgumentPrincipleDetailed(f, contour, config).IntegerOrThrow("ArgumentPrinciple");
+		}
+
+		static inline int ArgumentPrinciple(const IComplexFunction& f, const CircleContour& contour,
+			Real tol = Precision::DefaultToleranceStrict) {
+			return ArgumentPrinciple(f, contour, Detail::WithTolerance(tol));
+		}
+
+		static inline IntegerContourResult CountZerosDetailed(const IComplexFunction& f, const CircleContour& contour,
+			const ContourIntegrationConfig& config) {
+			auto result = ArgumentPrincipleDetailed(f, contour, config);
+			result.algorithm_name = "CountZeros";
+			return result;
+		}
+
+		static inline IntegerContourResult CountZerosDetailed(const IComplexFunction& f, const CircleContour& contour,
+			Real tol = Precision::DefaultToleranceStrict) {
+			return CountZerosDetailed(f, contour, Detail::WithTolerance(tol));
+		}
+
+		static inline int CountZeros(const IComplexFunction& f, const CircleContour& contour,
+			const ContourIntegrationConfig& config) {
+			return CountZerosDetailed(f, contour, config).IntegerOrThrow("CountZeros");
+		}
+
+		static inline int CountZeros(const IComplexFunction& f, const CircleContour& contour,
+			Real tol = Precision::DefaultToleranceStrict) {
+			return CountZeros(f, contour, Detail::WithTolerance(tol));
+		}
+	}
+}
 
 #endif // MML_COMPLEX_ANALYSIS_H

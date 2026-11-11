@@ -74,14 +74,14 @@ namespace MML::Tests::Base::PolynomTests
     PolynomRealFunc pol_constant({static_cast<MML::Real>(static_cast<MML::Real>(3.5))});
 
     REQUIRE(pol_constant(static_cast<MML::Real>(static_cast<MML::Real>(0.0))) == static_cast<MML::Real>(static_cast<MML::Real>(3.5)));
-    REQUIRE_THAT(pol_constant(static_cast<MML::Real>(static_cast<MML::Real>(1.0))) , RealWithinRel(static_cast<MML::Real>(static_cast<MML::Real>(3.5)), 1e-5));
-    REQUIRE_THAT(pol_constant(-static_cast<MML::Real>(static_cast<MML::Real>(200.0))) , RealWithinRel(static_cast<MML::Real>(static_cast<MML::Real>(3.5)), 1e-5));
-    REQUIRE_THAT(pol_constant(1.0e-10) , RealWithinRel(static_cast<MML::Real>(static_cast<MML::Real>(3.5)), 1e-5));
-    REQUIRE_THAT(pol_constant(1.0e+10) , RealWithinRel(static_cast<MML::Real>(static_cast<MML::Real>(3.5)), 1e-5));
+    REQUIRE_THAT(pol_constant(static_cast<MML::Real>(static_cast<MML::Real>(1.0))) , RealWithinRel(static_cast<MML::Real>(static_cast<MML::Real>(3.5)), MML::Real(1e-5)));
+    REQUIRE_THAT(pol_constant(-static_cast<MML::Real>(static_cast<MML::Real>(200.0))) , RealWithinRel(static_cast<MML::Real>(static_cast<MML::Real>(3.5)), MML::Real(1e-5)));
+    REQUIRE_THAT(pol_constant(MML::Real(1.0e-10)) , RealWithinRel(static_cast<MML::Real>(static_cast<MML::Real>(3.5)), MML::Real(1e-5)));
+    REQUIRE_THAT(pol_constant(MML::Real(1.0e+10)) , RealWithinRel(static_cast<MML::Real>(static_cast<MML::Real>(3.5)), MML::Real(1e-5)));
 
     PolynomRealFunc pol_lin({static_cast<MML::Real>(static_cast<MML::Real>(3.5)), static_cast<MML::Real>(static_cast<MML::Real>(1.0))});
 
-    REQUIRE_THAT(pol_lin(static_cast<MML::Real>(static_cast<MML::Real>(0.0))) , RealWithinRel(static_cast<MML::Real>(static_cast<MML::Real>(3.5)), 1e-5));
+    REQUIRE_THAT(pol_lin(static_cast<MML::Real>(static_cast<MML::Real>(0.0))) , RealWithinRel(static_cast<MML::Real>(static_cast<MML::Real>(3.5)), MML::Real(1e-5)));
     REQUIRE(pol_lin(static_cast<MML::Real>(static_cast<MML::Real>(1.0))) == static_cast<MML::Real>(static_cast<MML::Real>(4.5)));
     REQUIRE_THAT(pol_lin(-static_cast<MML::Real>(static_cast<MML::Real>(100.0))) , RealWithinRel(-static_cast<MML::Real>(static_cast<MML::Real>(96.5)), static_cast<MML::Real>(1e-5)));
   }
@@ -287,16 +287,16 @@ namespace MML::Tests::Base::PolynomTests
     poly.Derive(static_cast<MML::Real>(static_cast<MML::Real>(2.0)), pd);
     
     // f(2) = 3*4 + 2*2 + 1 = 17
-    REQUIRE_THAT(pd[0] , RealWithinRel(static_cast<MML::Real>(static_cast<MML::Real>(17.0)), 1e-5));
+    REQUIRE_THAT(pd[0] , RealWithinRel(static_cast<MML::Real>(static_cast<MML::Real>(17.0)), MML::Real(1e-5)));
     
     // f'(2) = 6*2 + 2 = 14
-    REQUIRE_THAT(pd[1] , RealWithinRel(static_cast<MML::Real>(static_cast<MML::Real>(14.0)), 1e-5));
+    REQUIRE_THAT(pd[1] , RealWithinRel(static_cast<MML::Real>(static_cast<MML::Real>(14.0)), MML::Real(1e-5)));
     
     // f''(2) = 6
-    REQUIRE_THAT(pd[2] , RealWithinRel(static_cast<MML::Real>(static_cast<MML::Real>(6.0)), 1e-5));
+    REQUIRE_THAT(pd[2] , RealWithinRel(static_cast<MML::Real>(static_cast<MML::Real>(6.0)), MML::Real(1e-5)));
     
     // f'''(2) = 0
-    REQUIRE_THAT(pd[3] , RealWithinRel(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), 1e-5));
+    REQUIRE_THAT(pd[3] , RealWithinRel(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), MML::Real(1e-5)));
   }
 
   TEST_CASE("Polynom::Derivatives_quartic", "[derivatives]")
@@ -312,16 +312,16 @@ namespace MML::Tests::Base::PolynomTests
     REQUIRE_THAT(pd[0] , RealWithinRel(-static_cast<MML::Real>(static_cast<MML::Real>(1.0)), static_cast<MML::Real>(1e-5)));
     
     // f'(1) = 4 + 6 - 6 + 4 = 8
-    REQUIRE_THAT(pd[1] , RealWithinRel(static_cast<MML::Real>(static_cast<MML::Real>(8.0)), 1e-5));
+    REQUIRE_THAT(pd[1] , RealWithinRel(static_cast<MML::Real>(static_cast<MML::Real>(8.0)), MML::Real(1e-5)));
     
     // f''(1) = 12 + 12 - 6 = 18
-    REQUIRE_THAT(pd[2] , RealWithinRel(static_cast<MML::Real>(static_cast<MML::Real>(18.0)), 1e-5));
+    REQUIRE_THAT(pd[2] , RealWithinRel(static_cast<MML::Real>(static_cast<MML::Real>(18.0)), MML::Real(1e-5)));
     
     // f'''(1) = 24 + 12 = 36
-    REQUIRE_THAT(pd[3] , RealWithinRel(static_cast<MML::Real>(static_cast<MML::Real>(36.0)), 1e-5));
+    REQUIRE_THAT(pd[3] , RealWithinRel(static_cast<MML::Real>(static_cast<MML::Real>(36.0)), MML::Real(1e-5)));
     
     // f''''(1) = 24
-    REQUIRE_THAT(pd[4] , RealWithinRel(static_cast<MML::Real>(static_cast<MML::Real>(24.0)), 1e-5));
+    REQUIRE_THAT(pd[4] , RealWithinRel(static_cast<MML::Real>(static_cast<MML::Real>(24.0)), MML::Real(1e-5)));
   }
 
   TEST_CASE("Polynom::Derivatives_constant", "[derivatives]")
@@ -332,9 +332,9 @@ namespace MML::Tests::Base::PolynomTests
     
     poly.Derive(static_cast<MML::Real>(static_cast<MML::Real>(10.0)), pd);
     
-    REQUIRE_THAT(pd[0] , RealWithinRel(static_cast<MML::Real>(static_cast<MML::Real>(5.0)), 1e-5));  // f(x) = 5
-    REQUIRE_THAT(pd[1] , RealWithinRel(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), 1e-5));  // f'(x) = 0
-    REQUIRE_THAT(pd[2] , RealWithinRel(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), 1e-5));  // f''(x) = 0
+    REQUIRE_THAT(pd[0] , RealWithinRel(static_cast<MML::Real>(static_cast<MML::Real>(5.0)), MML::Real(1e-5)));  // f(x) = 5
+    REQUIRE_THAT(pd[1] , RealWithinRel(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), MML::Real(1e-5)));  // f'(x) = 0
+    REQUIRE_THAT(pd[2] , RealWithinRel(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), MML::Real(1e-5)));  // f''(x) = 0
   }
 
   /*********************************************************************/
@@ -345,26 +345,26 @@ namespace MML::Tests::Base::PolynomTests
     // Test Zero polynomial
     auto zero = PolynomRealFunc::Zero();
     REQUIRE(zero.degree() == 0);
-    REQUIRE_THAT(zero(static_cast<MML::Real>(static_cast<MML::Real>(5.0))) , RealWithinRel(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), 1e-5));
+    REQUIRE_THAT(zero(static_cast<MML::Real>(static_cast<MML::Real>(5.0))) , RealWithinRel(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), MML::Real(1e-5)));
     
     // Test Monomial x^3
     auto monomial = PolynomRealFunc::Monomial(3);
     REQUIRE(monomial.degree() == 3);
-    REQUIRE_THAT(monomial(static_cast<MML::Real>(static_cast<MML::Real>(2.0))) , RealWithinRel(static_cast<MML::Real>(static_cast<MML::Real>(8.0)), 1e-5));   // 2^3 = 8
-    REQUIRE_THAT(monomial(static_cast<MML::Real>(static_cast<MML::Real>(3.0))) , RealWithinRel(static_cast<MML::Real>(static_cast<MML::Real>(27.0)), 1e-5));  // 3^3 = 27
+    REQUIRE_THAT(monomial(static_cast<MML::Real>(static_cast<MML::Real>(2.0))) , RealWithinRel(static_cast<MML::Real>(static_cast<MML::Real>(8.0)), MML::Real(1e-5)));   // 2^3 = 8
+    REQUIRE_THAT(monomial(static_cast<MML::Real>(static_cast<MML::Real>(3.0))) , RealWithinRel(static_cast<MML::Real>(static_cast<MML::Real>(27.0)), MML::Real(1e-5)));  // 3^3 = 27
     
     // Test Constant polynomial
     auto constant = PolynomRealFunc::Constant(static_cast<MML::Real>(static_cast<MML::Real>(7.5)));
     REQUIRE(constant.degree() == 0);
-    REQUIRE_THAT(constant(static_cast<MML::Real>(static_cast<MML::Real>(100.0))) , RealWithinRel(static_cast<MML::Real>(static_cast<MML::Real>(7.5)), 1e-5));
-    REQUIRE_THAT(constant(-static_cast<MML::Real>(static_cast<MML::Real>(50.0))) , RealWithinRel(static_cast<MML::Real>(static_cast<MML::Real>(7.5)), 1e-5));
+    REQUIRE_THAT(constant(static_cast<MML::Real>(static_cast<MML::Real>(100.0))) , RealWithinRel(static_cast<MML::Real>(static_cast<MML::Real>(7.5)), MML::Real(1e-5)));
+    REQUIRE_THAT(constant(-static_cast<MML::Real>(static_cast<MML::Real>(50.0))) , RealWithinRel(static_cast<MML::Real>(static_cast<MML::Real>(7.5)), MML::Real(1e-5)));
     
     // Test Linear polynomial: 3x + 5
     auto linear = PolynomRealFunc::Linear(static_cast<MML::Real>(static_cast<MML::Real>(3.0)), static_cast<MML::Real>(static_cast<MML::Real>(5.0)));
     REQUIRE(linear.degree() == 1);
-    REQUIRE_THAT(linear(static_cast<MML::Real>(static_cast<MML::Real>(0.0))) , RealWithinRel(static_cast<MML::Real>(static_cast<MML::Real>(5.0)), 1e-5));
-    REQUIRE_THAT(linear(static_cast<MML::Real>(static_cast<MML::Real>(1.0))) , RealWithinRel(static_cast<MML::Real>(static_cast<MML::Real>(8.0)), 1e-5));
-    REQUIRE_THAT(linear(static_cast<MML::Real>(static_cast<MML::Real>(2.0))) , RealWithinRel(static_cast<MML::Real>(static_cast<MML::Real>(11.0)), 1e-5));
+    REQUIRE_THAT(linear(static_cast<MML::Real>(static_cast<MML::Real>(0.0))) , RealWithinRel(static_cast<MML::Real>(static_cast<MML::Real>(5.0)), MML::Real(1e-5)));
+    REQUIRE_THAT(linear(static_cast<MML::Real>(static_cast<MML::Real>(1.0))) , RealWithinRel(static_cast<MML::Real>(static_cast<MML::Real>(8.0)), MML::Real(1e-5)));
+    REQUIRE_THAT(linear(static_cast<MML::Real>(static_cast<MML::Real>(2.0))) , RealWithinRel(static_cast<MML::Real>(static_cast<MML::Real>(11.0)), MML::Real(1e-5)));
   }
 
   /*********************************************************************/
@@ -375,7 +375,7 @@ namespace MML::Tests::Base::PolynomTests
     // Linear: 2x + 4 = 0, root at x = -2
     PolynomRealFunc linear({static_cast<MML::Real>(static_cast<MML::Real>(4.0)), static_cast<MML::Real>(static_cast<MML::Real>(2.0))});
     
-    REQUIRE_THAT(linear(-static_cast<MML::Real>(static_cast<MML::Real>(2.0))) , RealWithinRel(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), 1e-5));
+    REQUIRE_THAT(linear(-static_cast<MML::Real>(static_cast<MML::Real>(2.0))) , RealWithinRel(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), MML::Real(1e-5)));
   }
 
   TEST_CASE("Polynom::Roots_quadratic", "[roots]")
@@ -383,8 +383,8 @@ namespace MML::Tests::Base::PolynomTests
     // Quadratic: x^2 - 5x + 6 = (x-2)(x-3), roots at x=2 and x=3
     PolynomRealFunc quad({static_cast<MML::Real>(static_cast<MML::Real>(6.0)), -static_cast<MML::Real>(static_cast<MML::Real>(5.0)), static_cast<MML::Real>(static_cast<MML::Real>(1.0))});
     
-    REQUIRE_THAT(quad(static_cast<MML::Real>(static_cast<MML::Real>(2.0))) , RealWithinRel(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), 1e-5));
-    REQUIRE_THAT(quad(static_cast<MML::Real>(static_cast<MML::Real>(3.0))) , RealWithinRel(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), 1e-5));
+    REQUIRE_THAT(quad(static_cast<MML::Real>(static_cast<MML::Real>(2.0))) , RealWithinRel(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), MML::Real(1e-5)));
+    REQUIRE_THAT(quad(static_cast<MML::Real>(static_cast<MML::Real>(3.0))) , RealWithinRel(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), MML::Real(1e-5)));
   }
 
   TEST_CASE("Polynom::Roots_cubic", "[roots]")
@@ -392,9 +392,9 @@ namespace MML::Tests::Base::PolynomTests
     // Cubic: (x-1)(x-2)(x-3) = x^3 - 6x^2 + 11x - 6
     PolynomRealFunc cubic({-static_cast<MML::Real>(static_cast<MML::Real>(6.0)), static_cast<MML::Real>(static_cast<MML::Real>(11.0)), -static_cast<MML::Real>(static_cast<MML::Real>(6.0)), static_cast<MML::Real>(static_cast<MML::Real>(1.0))});
     
-    REQUIRE_THAT(cubic(static_cast<MML::Real>(static_cast<MML::Real>(1.0))) , RealWithinRel(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), 1e-5));
-    REQUIRE_THAT(cubic(static_cast<MML::Real>(static_cast<MML::Real>(2.0))) , RealWithinRel(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), 1e-5));
-    REQUIRE_THAT(cubic(static_cast<MML::Real>(static_cast<MML::Real>(3.0))) , RealWithinRel(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), 1e-5));
+    REQUIRE_THAT(cubic(static_cast<MML::Real>(static_cast<MML::Real>(1.0))) , RealWithinRel(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), MML::Real(1e-5)));
+    REQUIRE_THAT(cubic(static_cast<MML::Real>(static_cast<MML::Real>(2.0))) , RealWithinRel(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), MML::Real(1e-5)));
+    REQUIRE_THAT(cubic(static_cast<MML::Real>(static_cast<MML::Real>(3.0))) , RealWithinRel(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), MML::Real(1e-5)));
   }
 
   /*********************************************************************/
@@ -428,9 +428,9 @@ namespace MML::Tests::Base::PolynomTests
     
     // Test addition with scalar
     auto p_plus_5 = poly + static_cast<MML::Real>(static_cast<MML::Real>(5.0));
-    REQUIRE_THAT(p_plus_5[0] , RealWithinRel(static_cast<MML::Real>(static_cast<MML::Real>(6.0)), 1e-5));  // constant term becomes 6
-    REQUIRE_THAT(p_plus_5[1] , RealWithinRel(static_cast<MML::Real>(static_cast<MML::Real>(2.0)), 1e-5));  // other terms unchanged
-    REQUIRE_THAT(p_plus_5[2] , RealWithinRel(static_cast<MML::Real>(static_cast<MML::Real>(3.0)), 1e-5));
+    REQUIRE_THAT(p_plus_5[0] , RealWithinRel(static_cast<MML::Real>(static_cast<MML::Real>(6.0)), MML::Real(1e-5)));  // constant term becomes 6
+    REQUIRE_THAT(p_plus_5[1] , RealWithinRel(static_cast<MML::Real>(static_cast<MML::Real>(2.0)), MML::Real(1e-5)));  // other terms unchanged
+    REQUIRE_THAT(p_plus_5[2] , RealWithinRel(static_cast<MML::Real>(static_cast<MML::Real>(3.0)), MML::Real(1e-5)));
     
     // Test scalar + polynomial
     auto five_plus_p = static_cast<MML::Real>(static_cast<MML::Real>(5.0)) + poly;
@@ -439,12 +439,12 @@ namespace MML::Tests::Base::PolynomTests
     // Test subtraction with scalar
     auto p_minus_3 = poly - static_cast<MML::Real>(static_cast<MML::Real>(3.0));
     REQUIRE_THAT(p_minus_3[0] , RealWithinRel(-static_cast<MML::Real>(static_cast<MML::Real>(2.0)), static_cast<MML::Real>(1e-5)));  // 1 - 3 = -2
-    REQUIRE_THAT(p_minus_3[1] , RealWithinRel(static_cast<MML::Real>(static_cast<MML::Real>(2.0)), 1e-5));
+    REQUIRE_THAT(p_minus_3[1] , RealWithinRel(static_cast<MML::Real>(static_cast<MML::Real>(2.0)), MML::Real(1e-5)));
     
     // Test scalar - polynomial (using multiplication by -1 and addition)
     auto neg_p = poly * (-static_cast<MML::Real>(static_cast<MML::Real>(1.0)));
     auto three_minus_p = static_cast<MML::Real>(static_cast<MML::Real>(3.0)) + neg_p;
-    REQUIRE_THAT(three_minus_p[0] , RealWithinRel(static_cast<MML::Real>(static_cast<MML::Real>(2.0)), 1e-5));  // 3 + (-1) = 2
+    REQUIRE_THAT(three_minus_p[0] , RealWithinRel(static_cast<MML::Real>(static_cast<MML::Real>(2.0)), MML::Real(1e-5)));  // 3 + (-1) = 2
     REQUIRE_THAT(three_minus_p[1] , RealWithinRel(-static_cast<MML::Real>(static_cast<MML::Real>(2.0)), static_cast<MML::Real>(1e-5))); // 0 + (-2) = -2
     REQUIRE_THAT(three_minus_p[2] , RealWithinRel(-static_cast<MML::Real>(static_cast<MML::Real>(3.0)), static_cast<MML::Real>(1e-5))); // 0 + (-3) = -3
   }
@@ -453,13 +453,13 @@ namespace MML::Tests::Base::PolynomTests
   {
     PolynomRealFunc poly({static_cast<MML::Real>(static_cast<MML::Real>(5.0)), static_cast<MML::Real>(static_cast<MML::Real>(3.0)), static_cast<MML::Real>(static_cast<MML::Real>(2.0)), static_cast<MML::Real>(static_cast<MML::Real>(7.0))});  // 7x^3 + 2x^2 + 3x + 5
     
-    REQUIRE_THAT(poly.leadingTerm() , RealWithinRel(static_cast<MML::Real>(static_cast<MML::Real>(7.0)), 1e-5));
-    REQUIRE_THAT(poly.constantTerm() , RealWithinRel(static_cast<MML::Real>(static_cast<MML::Real>(5.0)), 1e-5));
+    REQUIRE_THAT(poly.leadingTerm() , RealWithinRel(static_cast<MML::Real>(static_cast<MML::Real>(7.0)), MML::Real(1e-5)));
+    REQUIRE_THAT(poly.constantTerm() , RealWithinRel(static_cast<MML::Real>(static_cast<MML::Real>(5.0)), MML::Real(1e-5)));
     
     // Test empty polynomial
     PolynomRealFunc empty;
-    REQUIRE_THAT(empty.leadingTerm() , RealWithinRel(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), 1e-5));
-    REQUIRE_THAT(empty.constantTerm() , RealWithinRel(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), 1e-5));
+    REQUIRE_THAT(empty.leadingTerm() , RealWithinRel(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), MML::Real(1e-5)));
+    REQUIRE_THAT(empty.constantTerm() , RealWithinRel(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), MML::Real(1e-5)));
   }
 
   TEST_CASE("Polynom::Reduce_degree", "[properties]")
@@ -472,9 +472,9 @@ namespace MML::Tests::Base::PolynomTests
     poly.Reduce();
     
     REQUIRE(poly.degree() == 2);  // After reduction
-    REQUIRE_THAT(poly[0] , RealWithinRel(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), 1e-5));
-    REQUIRE_THAT(poly[1] , RealWithinRel(static_cast<MML::Real>(static_cast<MML::Real>(3.0)), 1e-5));
-    REQUIRE_THAT(poly[2] , RealWithinRel(static_cast<MML::Real>(static_cast<MML::Real>(2.0)), 1e-5));
+    REQUIRE_THAT(poly[0] , RealWithinRel(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), MML::Real(1e-5)));
+    REQUIRE_THAT(poly[1] , RealWithinRel(static_cast<MML::Real>(static_cast<MML::Real>(3.0)), MML::Real(1e-5)));
+    REQUIRE_THAT(poly[2] , RealWithinRel(static_cast<MML::Real>(static_cast<MML::Real>(2.0)), MML::Real(1e-5)));
   }
 
   TEST_CASE("Polynom::FromValues - Quadratic (degree 2)", "[interpolation]")
@@ -594,7 +594,7 @@ namespace MML::Tests::Base::PolynomTests
     REQUIRE(poly.degree() == 8);
     
     // Verify coefficients (with reasonable tolerance for high-degree polynomials)
-    for (size_t i = 0; i < coeffs.size(); i++) {
+    for (int i = 0; i <= poly.degree(); i++) {
       REQUIRE_THAT(poly[i], WithinAbs(coeffs[i], TOL(1e-6, 1e-2)));
     }
     

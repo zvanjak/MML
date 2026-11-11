@@ -2,13 +2,14 @@
 #include "../../TestPrecision.h"
 #include "../../TestMatchers.h"
 
-#ifdef MML_USE_SINGLE_HEADER
-#include <MML.h>
-#else
+#ifndef MML_SINGLE_HEADER_INCLUDE
 #include <mml/MMLBase.h>
 #include <mml/core/Integration/MonteCarloIntegration.h>
 #include <mml/base/Function.h>
 #endif
+
+#include <stdexcept>
+#include <vector>
 
 using namespace MML;
 using namespace MML::Testing;
@@ -567,13 +568,16 @@ namespace MML::Tests::Algorithms::MonteCarloIntegrationTests
 
     TEST_CASE("MonteCarlo variance survives a large constant offset (Welford)", "[montecarlo][variance][wewi.1.12]")
     {
-        // f(x) = 1e8 + x on [0,1]: Var = 1/12. E[f^2] - E[f]^2 in double loses ~16 digits here
-        // (1e16 - 1e16) and used to be clamped to 0, giving error_estimate 0 (analysis v4, CORE C7).
+        // Resolve x in the samples while making E[f^2] - E[f]^2 lose the variance.
         class OffsetLinear : public IScalarFunction<1> {
+            Real _offset;
         public:
-            Real operator()(const VectorN<Real, 1>& p) const override { return static_cast<MML::Real>(1e8) + p[0]; }
+            explicit OffsetLinear(Real offset) : _offset(offset) {}
+            Real operator()(const VectorN<Real, 1>& p) const override { return _offset + p[0]; }
         };
-        OffsetLinear func;
+        const Real offset = TOL(1e8, std::ldexp(Real(1), std::numeric_limits<Real>::digits / 2));
+        OffsetLinear func(offset);
+        REQUIRE(func(VectorN<Real, 1>{0}) != func(VectorN<Real, 1>{1}));
         MonteCarloIntegrator<1> mc(42);
         VectorN<Real, 1> lower{static_cast<MML::Real>(0.0)}, upper{static_cast<MML::Real>(1.0)};
 
@@ -581,13 +585,311 @@ namespace MML::Tests::Algorithms::MonteCarloIntegrationTests
         INFO("variance " << result.variance << " error " << result.error_estimate);
         REQUIRE_THAT(result.variance, WithinRel(static_cast<MML::Real>(1.0) / static_cast<MML::Real>(12.0), static_cast<MML::Real>(0.1)));
         REQUIRE(result.error_estimate > static_cast<MML::Real>(0.0));
-        REQUIRE_THAT(result.value, WithinAbs(static_cast<MML::Real>(1e8) + static_cast<MML::Real>(0.5), static_cast<MML::Real>(0.05)));
+        REQUIRE_THAT(result.value, WithinAbs(offset + Real(0.5), Real(0.05)));
 
         // Welford accumulator unit check against the closed form for 1..n
         Detail::WelfordAccumulator acc;
-        for (int i = 1; i <= 100; ++i) acc.add(static_cast<MML::Real>(i) + static_cast<MML::Real>(1e9));
-        REQUIRE_THAT(acc.mean, WithinRel(static_cast<MML::Real>(1e9) + static_cast<MML::Real>(50.5), static_cast<MML::Real>(1e-12)));
-        REQUIRE_THAT(acc.sampleVariance(), WithinRel(static_cast<MML::Real>(841.6666666666666), static_cast<MML::Real>(1e-9)));  // n(n+1)/12 for n = 100
+        const Real sequenceOffset = TOL(1e9, std::ldexp(Real(1), std::numeric_limits<Real>::digits - 3));
+        for (int i = 1; i <= 100; ++i) acc.add(Real(i) + sequenceOffset);
+        REQUIRE_THAT(acc.mean, WithinRel(sequenceOffset + Real(50.5), TOL(1e-12, Real(2) * Precision::Eps)));
+        REQUIRE_THAT(acc.sampleVariance(), WithinRel(Real(841.6666666666666), TOL(1e-9, Real(4) * Precision::Eps)));
+    }
+
+    TEST_CASE("Stratified MC uncertainty matches independent within-stratum statistics", "[montecarlo][stratified][kko3]")
+    {
+        for (int strata : {1, 10}) {
+            const int samples = 1000 / strata;
+            std::vector<Real> values;
+            ScalarFunctionFromStdFunc<1> linear([&](const VectorN<Real, 1>& x) {
+                values.push_back(x[0]);
+                return x[0];
+            });
+            StratifiedMonteCarloIntegrator<1> integrator;
+            const auto result = integrator.integrate(linear, VectorN<Real, 1>{0}, VectorN<Real, 1>{1}, strata, samples, 42);
+            REQUIRE(values.size() == 1000);
+            long double expectedMean = 0;
+            long double expectedVariance = 0;
+            for (int s = 0; s < strata; ++s) {
+                long double sum = 0;
+                for (int i = 0; i < samples; ++i)
+                    sum += values[s * samples + i];
+                const long double mean = sum / samples;
+                long double squaredDeviations = 0;
+                for (int i = 0; i < samples; ++i) {
+                    const long double delta = static_cast<long double>(values[s * samples + i]) - mean;
+                    squaredDeviations += delta * delta;
+                }
+                expectedMean += mean / strata;
+                expectedVariance += squaredDeviations / (samples - 1) / samples / strata / strata;
+            }
+            CHECK_THAT(result.value, WithinRel(static_cast<Real>(expectedMean), Precision::EqualityTolerance));
+            CHECK_THAT(result.variance, WithinRel(static_cast<Real>(expectedVariance), Precision::EqualityTolerance));
+            CHECK_THAT(result.error_estimate, WithinRel(static_cast<Real>(std::sqrt(expectedVariance)), Precision::EqualityTolerance));
+            CHECK(result.error_estimate > 0);
+            CHECK(std::abs(result.value - Real(0.5)) <= Real(6) * result.error_estimate);
+            CHECK(result.samples_used == values.size());
+            CHECK(result.function_evaluations == static_cast<int>(values.size()));
+            CHECK(result.error_estimated);
+            CHECK_FALSE(result.converged);
+            CHECK(result.status == AlgorithmStatus::MaxIterationsExceeded);
+            CHECK_FALSE(result.IsUsable());
+            CHECK_FALSE(result.error_message.empty());
+        }
+    }
+
+    TEST_CASE("Stratified MC excludes between-stratum variation from uncertainty", "[montecarlo][stratified][kko3]")
+    {
+        int calls = 0;
+        ScalarFunctionFromStdFunc<1> piecewise([&](const VectorN<Real, 1>& x) {
+            ++calls;
+            return x[0] < Real(0.5) ? Real(-1) : Real(1);
+        });
+        const auto result = StratifiedMonteCarloIntegrator<1>().integrate(
+            piecewise, VectorN<Real, 1>{0}, VectorN<Real, 1>{1}, 2, 10, 42);
+        CHECK(result.value == 0);
+        CHECK(result.variance == 0);
+        CHECK(result.error_estimate == 0);
+        CHECK(result.error_estimated);
+        CHECK(result.converged);
+        CHECK(result.status == AlgorithmStatus::Success);
+        CHECK(result.IsUsable());
+        CHECK(result.error_message.empty());
+        CHECK(calls == 20);
+        CHECK(result.samples_used == 20);
+        CHECK(result.function_evaluations == calls);
+    }
+
+    TEST_CASE("Stratified MC zero and tiny means cannot bypass uncertainty", "[montecarlo][stratified][kko3]")
+    {
+        for (Real amplitude : {Real(1), Precision::DivisionSafetyThreshold / Real(2)}) {
+            int calls = 0;
+            ScalarFunctionFromStdFunc<1> alternating([&](const VectorN<Real, 1>&) {
+                return ++calls % 2 ? -amplitude : amplitude;
+            });
+            const auto result = StratifiedMonteCarloIntegrator<1>().integrate(
+                alternating, VectorN<Real, 1>{0}, VectorN<Real, 1>{1}, 1, 2, 42);
+            CHECK(result.value == 0);
+            CHECK_THAT(result.error_estimate, WithinRel(amplitude, Precision::EqualityTolerance));
+            CHECK_FALSE(result.converged);
+            CHECK(result.status == AlgorithmStatus::MaxIterationsExceeded);
+            CHECK_FALSE(result.error_message.empty());
+            CHECK(calls == 2);
+            CHECK(result.function_evaluations == calls);
+            CHECK(result.samples_used == 2);
+        }
+    }
+
+    TEST_CASE("Stratified MC single observations retain values without invented uncertainty", "[montecarlo][stratified][kko3]")
+    {
+        for (int strata : {1, 4}) {
+            std::vector<Real> values;
+            ScalarFunctionFromStdFunc<1> linear([&](const VectorN<Real, 1>& x) {
+                values.push_back(x[0]);
+                return x[0];
+            });
+            const auto result = StratifiedMonteCarloIntegrator<1>().integrate(
+                linear, VectorN<Real, 1>{0}, VectorN<Real, 1>{1}, strata, 1, 42);
+            Real expected = 0;
+            for (Real value : values)
+                expected += value / static_cast<Real>(strata);
+            CHECK_THAT(result.value, WithinRel(expected, Precision::EqualityTolerance));
+            CHECK(result.status == AlgorithmStatus::Completed);
+            CHECK_FALSE(result.converged);
+            CHECK_FALSE(result.error_estimated);
+            CHECK_FALSE(HasEstimate(result.error_estimate));
+            CHECK_FALSE(HasEstimate(result.variance));
+            CHECK(result.IsUsable());
+            CHECK(result.error_message.empty());
+            CHECK(values.size() == static_cast<std::size_t>(strata));
+            CHECK(result.samples_used == values.size());
+            CHECK(result.function_evaluations == strata);
+        }
+    }
+
+    TEST_CASE("Stratified MC checks grid and diagnostic budgets before callbacks", "[montecarlo][stratified][kko3]")
+    {
+        int calls = 0;
+        ScalarFunctionFromStdFunc<64> guard64([&](const VectorN<Real, 64>&) -> Real {
+            ++calls;
+            throw std::logic_error("oversized grid reached the callback");
+        });
+        VectorN<Real, 64> lower64, upper64;
+        for (int d = 0; d < 64; ++d) {
+            lower64[d] = 0;
+            upper64[d] = 1;
+        }
+        CHECK_THROWS_AS(StratifiedMonteCarloIntegrator<64>().integrate(guard64, lower64, upper64, 2, 2), ResourceLimitError);
+        CHECK(calls == 0);
+
+        ScalarFunctionFromStdFunc<2> guard2([&](const VectorN<Real, 2>&) -> Real {
+            ++calls;
+            throw std::logic_error("oversized work reached the callback");
+        });
+        CHECK_THROWS_AS(StratifiedMonteCarloIntegrator<2>().integrate(
+            guard2, VectorN<Real, 2>{0, 0}, VectorN<Real, 2>{1, 1}, 46341, 1), ResourceLimitError);
+        CHECK(calls == 0);
+        ScalarFunctionFromStdFunc<1> guard1([&](const VectorN<Real, 1>&) -> Real {
+            ++calls;
+            throw std::logic_error("counter boundary reached the callback");
+        });
+        CHECK_THROWS_AS(StratifiedMonteCarloIntegrator<1>().integrate(
+            guard1, VectorN<Real, 1>{0}, VectorN<Real, 1>{1}, 2, std::numeric_limits<int>::max()), ResourceLimitError);
+        CHECK(calls == 0);
+        calls = 0;
+        CHECK_THROWS_AS(StratifiedMonteCarloIntegrator<1>().integrate(
+            guard1, VectorN<Real, 1>{0}, VectorN<Real, 1>{1}, 1, std::numeric_limits<int>::max()), std::logic_error);
+        CHECK(calls == 1);
+    }
+
+    TEST_CASE("Stratified MC scales values and standard errors by the domain volume", "[montecarlo][stratified][kko3]")
+    {
+        std::vector<Real> unitValues, scaledValues;
+        auto run = [](Real width, std::vector<Real>& values) {
+            ScalarFunctionFromStdFunc<2> linear([&](const VectorN<Real, 2>& x) {
+                const Real value = x[0] / width + Real(2) * x[1];
+                values.push_back(value);
+                return value;
+            });
+            return StratifiedMonteCarloIntegrator<2>().integrate(
+                linear, VectorN<Real, 2>{0, 0}, VectorN<Real, 2>{width, 1}, 2, 8, 123);
+        };
+        const auto unit = run(1, unitValues);
+        const auto scaled = run(4, scaledValues);
+        CHECK(unitValues == scaledValues);
+        CHECK(scaled.value == Real(4) * unit.value);
+        CHECK(scaled.error_estimate == Real(4) * unit.error_estimate);
+        CHECK(scaled.variance == unit.variance);
+        CHECK(unit.samples_used == 32);
+        CHECK(scaled.samples_used == 32);
+        CHECK(unit.function_evaluations == 32);
+        CHECK(scaled.function_evaluations == 32);
+        CHECK(unit.status == AlgorithmStatus::MaxIterationsExceeded);
+        CHECK(scaled.status == unit.status);
+    }
+
+    TEST_CASE("Stratified MC retains finite large constants and rejects nonfinite samples", "[montecarlo][stratified][kko3]")
+    {
+        const Real large = std::numeric_limits<Real>::max() * Real(0.75);
+        int calls = 0;
+        ScalarFunctionFromStdFunc<1> constant([&](const VectorN<Real, 1>&) {
+            ++calls;
+            return large;
+        });
+        const auto result = StratifiedMonteCarloIntegrator<1>().integrate(
+            constant, VectorN<Real, 1>{0}, VectorN<Real, 1>{Real(1) / large}, 2, 4, 42);
+        CHECK_THAT(result.value, WithinAbs(Real(1), Precision::EqualityTolerance));
+        CHECK(result.error_estimate == 0);
+        CHECK(result.status == AlgorithmStatus::Success);
+        CHECK(result.converged);
+        CHECK(result.samples_used == 8);
+        CHECK(result.function_evaluations == calls);
+        for (Real invalid : {std::numeric_limits<Real>::quiet_NaN(), std::numeric_limits<Real>::infinity()}) {
+            calls = 0;
+            ScalarFunctionFromStdFunc<1> nonfinite([&](const VectorN<Real, 1>&) {
+                ++calls;
+                return invalid;
+            });
+            CHECK_THROWS_AS(StratifiedMonteCarloIntegrator<1>().integrate(
+                nonfinite, VectorN<Real, 1>{0}, VectorN<Real, 1>{1}, 2, 4), NumericalMethodError);
+            CHECK(calls == 1);
+        }
+    }
+
+    TEST_CASE("Serial antithetic averaging does not overflow a representable integral", "[montecarlo][antithetic][kko3]")
+    {
+        const Real large = std::numeric_limits<Real>::max() * Real(0.75);
+        int calls = 0;
+        ScalarFunctionFromStdFunc<1> constant([&](const VectorN<Real, 1>&) {
+            ++calls;
+            return large;
+        });
+        MonteCarloConfig config;
+        config.num_samples = 4;
+        config.use_antithetic = true;
+        config.seed = 42;
+        const auto result = MonteCarloIntegrator<1>().integrate(
+            constant, VectorN<Real, 1>{0}, VectorN<Real, 1>{Real(1) / large}, config);
+        CHECK_THAT(result.value, WithinAbs(Real(1), Precision::EqualityTolerance));
+        CHECK(result.error_estimate == 0);
+        CHECK(result.variance == 0);
+        CHECK(result.converged);
+        CHECK(result.status == AlgorithmStatus::Success);
+        CHECK(calls == 4);
+        CHECK(result.samples_used == 4);
+        CHECK(result.function_evaluations == calls);
+    }
+
+    TEST_CASE("Serial antithetic reflections remain inside extreme finite bounds", "[montecarlo][antithetic][kko3]")
+    {
+        for (Real sign : {Real(-1), Real(1)}) {
+            const Real first = sign * std::numeric_limits<Real>::max() * Real(0.6);
+            const Real second = sign * std::numeric_limits<Real>::max() * Real(0.7);
+            const Real lower = std::min(first, second);
+            const Real upper = std::max(first, second);
+            const Real width = upper - lower;
+            std::vector<Real> points;
+            ScalarFunctionFromStdFunc<1> constant([&](const VectorN<Real, 1>& x) {
+                points.push_back(x[0]);
+                CHECK(std::isfinite(x[0]));
+                CHECK(x[0] >= lower);
+                CHECK(x[0] <= upper);
+                return Real(1) / width;
+            });
+            MonteCarloConfig config;
+            config.num_samples = 4;
+            config.use_antithetic = true;
+            config.seed = 42;
+            const auto result = MonteCarloIntegrator<1>().integrate(
+                constant, VectorN<Real, 1>{lower}, VectorN<Real, 1>{upper}, config);
+            REQUIRE(points.size() == 4);
+            for (std::size_t i = 0; i < points.size(); i += 2) {
+                const Real reflectedSum = (points[i] - lower) / width + (points[i + 1] - lower) / width;
+                CHECK_THAT(reflectedSum, WithinAbs(Real(1), Precision::EqualityTolerance));
+            }
+            CHECK_THAT(result.value, WithinAbs(Real(1), Precision::EqualityTolerance));
+            CHECK(result.status == AlgorithmStatus::Success);
+            CHECK(result.function_evaluations == 4);
+        }
+    }
+
+    TEST_CASE("Stratified MC zero-volume domains perform no sampling", "[montecarlo][stratified][kko3]")
+    {
+        int calls = 0;
+        ScalarFunctionFromStdFunc<2> guard([&](const VectorN<Real, 2>&) -> Real {
+            ++calls;
+            throw std::logic_error("zero-volume domain reached the callback");
+        });
+        const auto result = StratifiedMonteCarloIntegrator<2>().integrate(
+            guard, VectorN<Real, 2>{0, 0}, VectorN<Real, 2>{0, 1}, 2, 4, 42);
+        CHECK(calls == 0);
+        CHECK(result.value == 0);
+        CHECK(result.error_estimate == 0);
+        CHECK(result.error_estimated);
+        CHECK_FALSE(result.converged);
+        CHECK(result.status == AlgorithmStatus::Completed);
+        CHECK(result.samples_used == 0);
+        CHECK(result.function_evaluations == 0);
+    }
+
+    TEST_CASE("Stratified MC rejects overflowing scaled payloads and uncertainties", "[montecarlo][stratified][kko3]")
+    {
+        int calls = 0;
+        ScalarFunctionFromStdFunc<1> constant([&](const VectorN<Real, 1>&) {
+            ++calls;
+            return std::numeric_limits<Real>::max() * Real(0.75);
+        });
+        CHECK_THROWS_AS(StratifiedMonteCarloIntegrator<1>().integrate(
+            constant, VectorN<Real, 1>{0}, VectorN<Real, 1>{2}, 1, 2, 42), NumericalMethodError);
+        CHECK(calls == 2);
+        calls = 0;
+        ScalarFunctionFromStdFunc<1> alternating([&](const VectorN<Real, 1>&) {
+            const Real amplitude = std::sqrt(std::numeric_limits<Real>::max()) / Real(4);
+            return ++calls % 2 ? -amplitude : amplitude;
+        });
+        CHECK_THROWS_AS(StratifiedMonteCarloIntegrator<1>().integrate(
+            alternating, VectorN<Real, 1>{0}, VectorN<Real, 1>{std::numeric_limits<Real>::max() / Real(4)}, 1, 2, 42),
+            NumericalMethodError);
+        CHECK(calls == 2);
     }
 
 }  // namespace

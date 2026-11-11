@@ -1,825 +1,546 @@
-# Intervals — Comprehensive Reference
+# Intervals: Sets, Domains and Sampling
 
-**File**: `mml/base/Intervals.h`
+**Implementation:** [Intervals.h](../../mml/base/Intervals.h)
 
-> **Note**: Interval classes are NOT templates - they use `Real` type internally.
-> Example: Use `ClosedInterval(0.0, 10.0)` not `ClosedInterval<double>(0.0, 10.0)`
+**Interface:** [IInterval.h](../../mml/interfaces/IInterval.h)
 
-## Overview
+MML intervals represent sets of real values: finite ranges, rays, the real line,
+periodically punctured ranges, and unions of pieces. This is **set algebra**, not
+outward-rounded interval arithmetic for error enclosures. In particular, the
+binary `-` operator means set difference, not subtraction of interval bounds.
 
-The MinimalMathLibrary (MML) provides a comprehensive interval arithmetic system for representing and manipulating mathematical intervals. The implementation supports both simple intervals (single contiguous ranges) and compound intervals (unions of multiple ranges), with support for open/closed endpoints and infinite bounds.
+All classes are **non-templated** and use the configured `MML::Real`.
+`Interval` is an alias for `CompositeInterval`, not a separate implementation.
+Use `ClosedInterval(0, 10)`, not a template specialization. Include the
+implementation header and use the `MML` namespace; the examples also use
+`<algorithm>`, `<cmath>`, `<iostream>`, `<limits>` and `<vector>`.
 
-## Highlights
-- Full support for open/closed endpoints and infinite bounds.
-- Simple and compound intervals (unions of ranges) with set operations.
-- Epsilon-aware comparisons for floating-point robustness.
-- Factory methods and friend access patterns for efficient implementations.
-- Tools for coverings, membership tests, intersection/difference/complement.
+## Runnable Examples
 
-### Runnable Examples
+Every C++ block below has a runnable counterpart in
+[docs_demo_intervals.cpp](../../src/docs_demos/base/docs_demo_intervals.cpp).
+The named example functions are called by `Docs_Demo_Intervals()`;
+`Docs_Demo_IntervalContracts()` additionally checks endpoint predicates, hole
+rejection, distinct budgets and finite windows. Failures throw rather than just
+printing an expected result.
 
-| Demo Function | Description | Location |
-|--------------|-------------|----------|
-| `Docs_Demo_Intervals()` | Basic interval operations | `src/docs_demos/docs_demo_intervals.cpp` |
+From the repository root on Windows:
 
-**Build and Run:**
-```bash
-cmake --build build --target MML_DocsApp
-./build/src/MML_DocsApp   # Linux/macOS
-.\build\src\Release\MML_DocsApp.exe   # Windows
+```powershell
+cmake --build build --config Release --target MML_DocsApp --parallel
+& .\build\src\docs_demos\Release\MML_DocsApp.exe --interval-contracts
 ```
 
-## Table of Contents
+For a single-configuration Linux/macOS Release build, configure with
+`cmake -B build -DCMAKE_BUILD_TYPE=Release`, build the same target, and run
+`./build/src/docs_demos/MML_DocsApp --interval-contracts`.
 
-1. [Design Philosophy](#design-philosophy)
-2. [Architecture](#architecture)
-3. [Interval Types](#interval-types)
-4. [Core Operations](#core-operations)
-5. [Usage Examples](#usage-examples)
-6. [Advanced Features](#advanced-features)
-7. [Best Practices](#best-practices)
-8. [Mathematical Background](#mathematical-background)
-9. [API Reference](#api-reference)
+## Contents
 
-## Design Philosophy
+- [Types and endpoint semantics](#types-and-endpoint-semantics)
+- [Set operations and predicates](#set-operations-and-predicates)
+- [Compound properties and normalization](#compound-properties-and-normalization)
+- [Function domains](#function-domains)
+- [Chaining operations and using rays](#chaining-operations-and-using-rays)
+- [Preparing root brackets](#preparing-root-brackets)
+- [Sampling contracts](#sampling-contracts)
+- [Error handling](#error-handling)
+- [API inventory](#api-inventory)
+- [Cost and numerical limitations](#cost-and-numerical-limitations)
+- [Validation](#validation)
 
-The interval system is built on several key principles:
+## Types and Endpoint Semantics
 
-- **Type Safety**: Different endpoint types (open/closed) are enforced through the type system
-- **Precision Handling**: Careful epsilon-based comparisons for floating-point arithmetic
-- **Composability**: Simple intervals can be combined into compound intervals
-- **Mathematical Correctness**: All operations preserve mathematical semantics
-- **Performance**: Efficient algorithms with minimal overhead for common operations
+`IInterval` provides point membership, bounds, length/measure, a continuity flag
+and sampling. `BaseInterval` implements the shared queries and sampling;
+concrete subclasses supply membership semantics. `CompositeInterval` derives
+directly from `IInterval` and adds set algebra and interval predicates.
 
-## Architecture
+| Concrete type / constructor | Mathematical set |
+|---|---|
+| `ClosedInterval(a, b)` | `[a, b]` |
+| `OpenInterval(a, b)` | `(a, b)` |
+| `OpenClosedInterval(a, b)` | `(a, b]` |
+| `ClosedOpenInterval(a, b)` | `[a, b)` |
+| `ClosedToInfInterval(a)` | `[a, +infinity)` |
+| `OpenToInfInterval(a)` | `(a, +infinity)` |
+| `NegInfToClosedInterval(b)` | `(-infinity, b]` |
+| `NegInfToOpenInterval(b)` | `(-infinity, b)` |
+| `CompleteRInterval()` | The real line |
+| `CompleteRWithReccuringPointHoles(hole0, period)` | Real line excluding `hole0 + n * period`, integer `n` |
+| `ClosedIntervalWithReccuringPointHoles(a, b, hole0, period)` | `[a, b]` with the same periodic exclusions |
 
-### Class Hierarchy
-
-```
-IInterval (interface)
-    ↓
-BaseInterval (abstract base)
-    ↓
-    ├── ClosedInterval           [a, b]
-    ├── OpenInterval             (a, b)
-    ├── OpenClosedInterval       (a, b]
-    ├── ClosedOpenInterval       [a, b)
-    ├── ClosedToInfInterval      [a, +∞)
-    ├── NegInfToClosedInterval   (-∞, b]
-    ├── OpenToInfInterval        (a, +∞)
-    ├── NegInfToOpenInterval     (-∞, b)
-    └── CompleteRInterval        (-∞, +∞)
-    
-Interval (compound interval - union of BaseIntervals)
-```
-
-### Key Design Decisions
-
-1. **Friend Class Pattern**: `Interval` is declared as a friend of `BaseInterval` to access protected members for set operations
-2. **Vector-Based Output**: `getEquidistantCovering` returns points via output parameter for efficiency
-3. **Static Factory Methods**: Set operations (`Intersection`, `Difference`, `Complement`) available as static constructors on `Interval`
-4. **Epsilon-Based Comparisons**: All floating-point comparisons use configurable epsilon for numerical stability
-
-## Interval Types
-
-### Simple Intervals (BaseInterval Subclasses)
-
-#### ClosedInterval [a, b]
-Contains both endpoints.
+The public names spell **`Reccuring`** as shown. Ordinary finite endpoints are
+compared exactly: no epsilon merges nearby bounds or closes an open endpoint.
+A closed interval with equal bounds is a singleton; the other three bounded
+endpoint combinations with equal bounds are empty.
 
 ```cpp
-ClosedInterval interval(0.0, 10.0);
-// Represents [0, 10]
-// Contains: 0.0, 5.0, 10.0
-```
-
-**Use Cases**: Physical measurements, bounded domains, probability distributions
-
-#### OpenInterval (a, b)
-Excludes both endpoints.
-
-```cpp
-OpenInterval interval(0.0, 10.0);
-// Represents (0, 10)
-// Contains: 5.0
-// Excludes: 0.0, 10.0
-```
-
-**Use Cases**: Strict inequalities, domains with singularities at boundaries
-
-#### OpenClosedInterval (a, b]
-Open at lower bound, closed at upper bound.
-
-```cpp
-OpenClosedInterval interval(0.0, 10.0);
-// Represents (0, 10]
-// Contains: 5.0, 10.0
-// Excludes: 0.0
-```
-
-**Use Cases**: Right-continuous functions, cumulative distributions
-
-#### ClosedOpenInterval [a, b)
-Closed at lower bound, open at upper bound.
-
-```cpp
-ClosedOpenInterval interval(0.0, 10.0);
-// Represents [0, 10)
-// Contains: 0.0, 5.0
-// Excludes: 10.0
-```
-
-**Use Cases**: Left-continuous functions, array indexing analogs
-
-### Infinite Bound Intervals
-
-#### ClosedToInfInterval [a, +∞)
-Unbounded on the right.
-
-```cpp
-ClosedToInfInterval ray(0.0);
-// Represents [0, +∞)
-// Contains: 0.0, 1.0, 1000.0, ...
-```
-
-#### NegInfToClosedInterval (-∞, b]
-Unbounded on the left.
-
-```cpp
-NegInfToClosedInterval ray(0.0);
-// Represents (-∞, 0]
-// Contains: -1000.0, -1.0, 0.0
-```
-
-#### OpenToInfInterval (a, +∞)
-Open lower bound, unbounded on the right.
-
-```cpp
-OpenToInfInterval ray(0.0);
-// Represents (0, +∞)
-// Excludes: 0.0
-```
-
-#### NegInfToOpenInterval (-∞, b)
-Unbounded on the left, open upper bound.
-
-```cpp
-NegInfToOpenInterval ray(0.0);
-// Represents (-∞, 0)
-// Excludes: 0.0
-```
-
-#### CompleteRInterval (-∞, +∞)
-Represents all real numbers.
-
-```cpp
-CompleteRInterval line;
-// Represents (-∞, +∞)
-// Contains all finite values
-```
-
-### Compound Intervals
-
-The `Interval` class represents unions of `BaseInterval` objects.
-
-```cpp
-Interval compound;
-compound.AddInterval(ClosedInterval(0.0, 5.0));
-compound.AddInterval(ClosedInterval(10.0, 15.0));
-// Represents [0, 5] ∪ [10, 15]
-```
-
-## Core Operations
-
-### Containment Testing
-
-```cpp
-ClosedInterval interval(0.0, 10.0);
-
-// Point containment
-bool contains5 = interval.contains(5.0);      // true
-bool contains0 = interval.contains(0.0);      // true (closed endpoint)
-bool contains15 = interval.contains(15.0);    // false
-
-// Interval containment
-ClosedInterval sub(2.0, 8.0);
-bool isContained = interval.contains(sub);    // true
-```
-
-### Intersection
-
-Returns the overlapping region of two intervals.
-
-```cpp
-ClosedInterval a(0.0, 10.0);          // [0, 10]
-ClosedInterval b(5.0, 15.0);          // [5, 15]
-
-Interval result = Interval::Intersection(a, b);
-// Result: [5, 10]
-```
-
-**Endpoint Type Rules**:
-- Closed ∩ Closed = Closed
-- Open ∩ Closed = Open
-- Open ∩ Open = Open
-- **Open endpoint "wins"** in intersections
-
-**Examples**:
-```cpp
-// Example 1: Both closed
-ClosedInterval c1(0.0, 10.0);         // [0, 10]
-ClosedInterval c2(5.0, 15.0);         // [5, 15]
-auto r1 = Interval::Intersection(c1, c2);  // [5, 10]
-
-// Example 2: Mixed endpoints
-OpenInterval o1(0.0, 10.0);           // (0, 10)
-ClosedInterval c3(5.0, 10.0);         // [5, 10]
-auto r2 = Interval::Intersection(o1, c3);  // [5, 10) - open at 10
-```
-
-### Difference
-
-Returns the portion of the first interval not covered by the second.
-
-```cpp
-ClosedInterval a(0.0, 10.0);          // [0, 10]
-ClosedInterval b(3.0, 7.0);           // [3, 7]
-
-Interval result = Interval::Difference(a, b);
-// Result: [0, 3) ∪ (7, 10]  (two sub-intervals)
-```
-
-**Five Cases Handled**:
-
-1. **No Intersection**: Returns original interval
-   ```cpp
-   a = [0, 5], b = [10, 15]
-   a \ b = [0, 5]
-   ```
-
-2. **Complete Containment**: Returns empty interval
-   ```cpp
-   a = [3, 7], b = [0, 10]
-   a \ b = ∅
-   ```
-
-3. **Left Cut**: Removes left portion
-   ```cpp
-   a = [5, 10], b = [0, 7]
-   a \ b = (7, 10]
-   ```
-
-4. **Right Cut**: Removes right portion
-   ```cpp
-   a = [0, 10], b = [7, 15]
-   a \ b = [0, 7)
-   ```
-
-5. **Middle Cut (Split)**: Removes middle portion, creating two intervals
-   ```cpp
-   a = [0, 10], b = [3, 7]
-   a \ b = [0, 3) ∪ (7, 10]
-   ```
-
-### Complement
-
-Returns the complement of an interval with respect to the real line.
-
-```cpp
-// Finite interval complement
-ClosedInterval interval(0.0, 10.0);   // [0, 10]
-Interval comp = Interval::Complement(interval);
-// Result: (-∞, 0) ∪ (10, +∞)
-
-// Infinite interval complement
-ClosedToInfInterval ray(5.0);          // [5, +∞)
-Interval comp2 = Interval::Complement(ray);
-// Result: (-∞, 5)
-```
-
-**Endpoint Inversion**:
-- Closed endpoint → Open endpoint in complement
-- Open endpoint → Closed endpoint in complement
-
-### Equidistant Covering
-
-Generates uniformly distributed points across the interval.
-
-```cpp
-ClosedInterval interval(0.0, 10.0);
-std::vector<Real> points;
-interval.getEquidistantCovering(5, points);
-// points = {0.0, 2.5, 5.0, 7.5, 10.0}
-
-OpenInterval open(0.0, 10.0);
-std::vector<Real> openPoints;
-open.getEquidistantCovering(5, openPoints);
-// openPoints ≈ {0.0+ε, 2.5, 5.0, 7.5, 10.0-ε}
-// where ε is a small offset for open endpoints
-```
-
-**Features**:
-- Respects endpoint types (adds epsilon offset for open endpoints)
-- Handles infinite bounds gracefully
-- Configurable number of points
-- Useful for numerical integration, sampling, visualization
-
-## Usage Examples
-
-### Example 1: Function Domain Analysis
-
-Determine where a function is defined.
-
-```cpp
-// tan(x) is undefined at x = π/2 + nπ
-// Domain: ℝ \ {π/2, 3π/2, 5π/2, ...}
-
-Interval<double> domain;
-double pi = Constants::PI;
-
-// Add valid intervals between singularities
-domain.addInterval(std::make_unique<OpenInterval<double>>(-pi/2, pi/2));
-domain.addInterval(std::make_unique<OpenInterval<double>>(pi/2, 3*pi/2));
-domain.addInterval(std::make_unique<OpenInterval<double>>(3*pi/2, 5*pi/2));
-
-// Test points
-bool validAt0 = domain.contains(0.0);           // true
-bool validAtPiOver2 = domain.contains(pi/2);    // false (singularity)
-```
-
-### Example 2: Temperature Range Analysis
-
-Analyze overlapping temperature ranges.
-
-```cpp
-// Comfortable temperature ranges for different activities
-ClosedInterval<double> sleeping(15.0, 20.0);   // [15°C, 20°C]
-ClosedInterval<double> working(18.0, 24.0);    // [18°C, 24°C]
-
-// Optimal range for both
-Interval<double> optimal = Interval<double>::Intersection(sleeping, working);
-// Result: [18, 20]
-
-// Temperature range suitable only for sleeping
-Interval<double> sleepOnly = Interval<double>::Difference(sleeping, working);
-// Result: [15, 18)
-```
-
-### Example 3: Root Finding Preparation
-
-Bracket roots before applying numerical methods.
-
-```cpp
-// Find where f(x) = x² - 4x + 3 might have roots
-// Known: roots are in [0, 5]
-
-ClosedInterval<double> searchRange(0.0, 5.0);
-std::vector<double> testPoints;
-searchRange.getEquidistantCovering(20, testPoints);
-
-// Sample function at test points to find sign changes
-// (sign changes indicate roots by Intermediate Value Theorem)
-for (size_t i = 0; i < testPoints.size() - 1; ++i) {
-    double f1 = /* evaluate f at testPoints[i] */;
-    double f2 = /* evaluate f at testPoints[i+1] */;
-    
-    if (f1 * f2 < 0) {
-        // Root exists in [testPoints[i], testPoints[i+1]]
-        ClosedInterval<double> bracket(testPoints[i], testPoints[i+1]);
-        // Apply bisection, Newton-Raphson, etc.
-    }
+void IntervalTypesExample()
+{
+	const ClosedInterval closed(0, 10);
+	const OpenInterval open(0, 10);
+	const OpenClosedInterval openClosed(0, 10);
+	const ClosedOpenInterval closedOpen(0, 10);
+	const ClosedToInfInterval right(0);
+	const OpenToInfInterval openRight(0);
+	const NegInfToClosedInterval left(0);
+	const NegInfToOpenInterval openLeft(0);
+	const CompleteRInterval line;
+	const ClosedInterval singleton(3, 3);
+	const OpenInterval empty(3, 3);
+
+	if (!closed.contains(0) || !closed.contains(10) ||
+		open.contains(0) || open.contains(10) || !open.contains(5) ||
+		openClosed.contains(0) || !openClosed.contains(10) ||
+		!closedOpen.contains(0) || closedOpen.contains(10) ||
+		!right.contains(0) || !right.contains(100) || openRight.contains(0) ||
+		!openRight.contains(100) || !left.contains(0) || !left.contains(-100) ||
+		openLeft.contains(0) || !openLeft.contains(-100) ||
+		!line.contains(-100) || !line.contains(100) ||
+		!singleton.contains(3) || empty.contains(3))
+		throw InvalidStateError("Interval type example failed");
+	std::cout << "Finite endpoints, rays, real line, singleton and empty interval verified.\n";
 }
 ```
 
-### Example 4: Set Operations Chain
+Use the ray classes instead of passing IEEE infinity as a finite bound.
+Internally, unbounded endpoints have distinct endpoint tags and use
+`+/-std::numeric_limits<Real>::max()` as scalar bound sentinels. Bounds alone do
+not distinguish a finite extreme endpoint from an unbounded endpoint. Use
+finite query points; IEEE infinities and NaNs are not a portable membership
+protocol across the concrete classes.
 
-Combine multiple set operations.
+## Set Operations and Predicates
 
-```cpp
-ClosedInterval<double> universe(0.0, 100.0);   // [0, 100]
-ClosedInterval<double> exclude1(20.0, 30.0);   // [20, 30]
-ClosedInterval<double> exclude2(60.0, 70.0);   // [60, 70]
+For ordinary pieces, union, intersection, difference and complement return
+normalized `Interval` values. A `BaseInterval` converts implicitly to a composite,
+so a simple interval can be passed to the static and member operations.
+For operators, put a composite on the left, as in `Interval(a) & b`.
 
-// Remove two ranges from universe
-Interval<double> step1 = Interval<double>::Difference(universe, exclude1);
-// step1: [0, 20) ∪ (30, 100]
+| Operation | Static form | Member form | Operator |
+|---|---|---|---|
+| Union | `Interval::Union(a, b)` | `a.unionWith(b)` | `a \| b` |
+| Intersection | `Interval::Intersection(a, b)` | `a.intersectWith(b)` | `a & b` |
+| Difference | `Interval::Difference(a, b)` | `a.differenceWith(b)` | `a - b` |
+| Complement in the real line | `Interval::Complement(a)` | `a.complement()` | `~a` |
 
-Interval<double> final = Interval<double>::Difference(step1, exclude2);
-// final: [0, 20) ∪ (30, 60) ∪ (70, 100]
-```
+`contains(Real)` is available through every interval type.
+`contains(const BaseInterval&)` and `intersects(const BaseInterval&)` belong to
+**`CompositeInterval`**, not `IInterval` or `BaseInterval`. Containment means the
+argument minus the receiving set is empty; it includes self-containment, empty
+subsets and joint coverage by several pieces. Intersection predicates test an
+actual nonempty intersection, not touching hulls.
 
-### Example 5: Compound Interval Operations
-
-Work with unions of intervals.
-
-```cpp
-// Create compound interval: [0, 5] ∪ [10, 15] ∪ [20, 25]
-Interval<double> compound;
-compound.addInterval(std::make_unique<ClosedInterval<double>>(0.0, 5.0));
-compound.addInterval(std::make_unique<ClosedInterval<double>>(10.0, 15.0));
-compound.addInterval(std::make_unique<ClosedInterval<double>>(20.0, 25.0));
-
-// Query properties
-double totalLength = compound.getLength();           // 15.0
-double lowerBound = compound.getLowerBound();        // 0.0
-double upperBound = compound.getUpperBound();        // 25.0
-
-// Test containment
-bool contains3 = compound.contains(3.0);             // true (in [0, 5])
-bool contains7 = compound.contains(7.0);             // false (gap)
-bool contains12 = compound.contains(12.0);           // true (in [10, 15])
-
-// Generate covering points
-std::vector<double> points;
-compound.getEquidistantCovering(15, points);
-// Distributes points proportionally across all sub-intervals
-```
-
-## Advanced Features
-
-### Epsilon Handling
-
-All comparisons use epsilon-based tolerance for floating-point arithmetic:
+An intersection includes a selected boundary only if both operands include that
+point. At coincident finite boundaries an open endpoint wins; an unrelated open
+endpoint does not make every result boundary open. Difference and complement
+invert inclusion at a cut: `[0,10] \ [3,7]` is `[0,3) union (7,10]`.
 
 ```cpp
-// Configured in MMLPrecision.h
-constexpr double EPSILON_STRICT = 1e-10;
+void IntervalSetOperationsExample()
+{
+	const ClosedInterval sleeping(15, 20);
+	const ClosedInterval working(18, 24);
+	const Interval optimal = Interval::Intersection(sleeping, working);
+	const Interval sleepOnly = Interval::Difference(sleeping, working);
+	const Interval either = Interval::Union(sleeping, working);
+	const Interval outside = Interval::Complement(sleeping);
+	const Interval set(sleeping);
 
-// Used internally for:
-// - Endpoint proximity detection
-// - Intersection boundary calculation
-// - Containment testing with numerical tolerance
-```
+	if (!optimal.contains(ClosedInterval(18, 20)) || optimal.contains(21) ||
+		!sleepOnly.contains(15) || sleepOnly.contains(18) ||
+		!either.contains(ClosedInterval(15, 24)) ||
+		!outside.contains(14) || outside.contains(15) || !outside.contains(21) ||
+		!set.contains(sleeping) || !set.intersects(working) ||
+		!(set & working).contains(18) || !(set - working).contains(15) ||
+		!(set | working).contains(24) || !(~set).contains(14) ||
+		!set.intersectWith(working).contains(18) ||
+		!set.differenceWith(working).contains(15) ||
+		!set.unionWith(working).contains(24) || !set.complement().contains(14))
+		throw InvalidStateError("Interval set-operation example failed");
 
-### Infinite Bound Support
-
-Operations gracefully handle infinite bounds:
-
-```cpp
-RightRay<double> ray(0.0);                     // [0, +∞)
-ClosedInterval<double> finite(5.0, 10.0);     // [5, 10]
-
-// Intersection with infinite bound
-Interval<double> result = Interval<double>::Intersection(ray, finite);
-// Result: [5, 10]
-
-// Difference with infinite bound
-Interval<double> diff = Interval<double>::Difference(ray, finite);
-// Result: [0, 5) ∪ (10, +∞)
-```
-
-### Endpoint Type Propagation
-
-Set operations intelligently propagate endpoint types:
-
-- **Intersection**: More restrictive endpoint wins (open > closed)
-- **Difference**: Inverts endpoint type at cut points
-- **Complement**: Inverts all endpoint types
-
-```cpp
-OpenInterval<double> open(0.0, 10.0);          // (0, 10)
-ClosedInterval<double> closed(5.0, 15.0);      // [5, 15]
-
-auto inter = Interval<double>::Intersection(open, closed);
-// Result: [5, 10) - lower closed from 'closed', upper open from 'open'
-
-auto comp = Interval<double>::Complement(closed);
-// Result: (-∞, 5) ∪ (15, +∞) - endpoints inverted
-```
-
-### Performance Considerations
-
-- **Point containment**: O(n) for compound intervals with n sub-intervals
-- **Intersection**: O(1) for simple intervals
-- **Difference**: O(1) for simple intervals (up to 2 result sub-intervals)
-- **Complement**: O(1) for finite intervals (always 2 or fewer sub-intervals)
-- **Equidistant covering**: O(m*n) where m = points, n = sub-intervals
-
-## Best Practices
-
-### 1. Choose Appropriate Interval Types
-
-Match the interval type to your mathematical requirements:
-
-```cpp
-// ✓ GOOD: Use open interval for strict inequality domains
-OpenInterval<double> strictPositive(0.0, INFINITY);  // x > 0
-
-// ✗ AVOID: Using closed interval when singularity exists at boundary
-ClosedInterval<double> withSingularity(0.0, 10.0);  // If f(0) undefined
-```
-
-### 2. Handle Empty Results
-
-Set operations may produce empty intervals:
-
-```cpp
-ClosedInterval<double> a(0.0, 5.0);
-ClosedInterval<double> b(10.0, 15.0);
-
-Interval<double> inter = Interval<double>::Intersection(a, b);
-if (inter.IsEmpty()) {
-    // Handle no intersection case
+	const Interval touching = Interval::Intersection(OpenInterval(0, 1), OpenInterval(1, 2));
+	std::vector<Real> points;
+	touching.getEquidistantCovering(1, points);
+	if (!points.empty() || Interval(OpenInterval(0, 1)).intersects(OpenInterval(1, 2)))
+		throw InvalidStateError("Open intervals must not intersect at an excluded endpoint");
+	std::cout << "Set operations: [18,20], [15,18), [15,24] and the complement of [15,20].\n";
 }
 ```
 
-### 3. Use Equidistant Covering Wisely
+There is no public `IsEmpty()` query. For two ordinary simple intervals,
+`!Interval(a).intersects(b)` determines that their intersection is empty. The
+example also samples the known-empty result and checks the empty vector.
+In general an empty sample vector is not a mathematical emptiness certificate:
+the default window may miss the set, or a narrow interval may contain no
+representable samples.
 
-Balance point count vs. accuracy needs:
+### Periodic-hole policy
 
-```cpp
-// ✓ GOOD: Reasonable point count for numerical integration
-ClosedInterval<double> domain(0.0, 1.0);
-std::vector<double> points;
-domain.getEquidistantCovering(100, points);  // 100 points usually sufficient
+Periodic-hole membership excludes lattice coordinates within
+`Precision::RoundoffZeroThreshold` of an integer. This numerical roundoff rule
+is separate from exact ordinary endpoint comparisons.
 
-// ✗ AVOID: Excessive points causing performance issues
-domain.getEquidistantCovering(1000000, points);  // Overkill for most cases
-```
+Store a hole-bearing concrete piece with `AddInterval(concretePiece)` to retain
+its membership and supported sampling. `Normalize()` is a no-op if any stored
+piece is noncontinuous. Algebra, interval-containment predicates, intersection
+predicates, and reconstruction through `BaseInterval` reject hole-bearing pieces
+with `NotImplementedError`; they do not silently replace them with a hull.
 
-### 4. Leverage Compound Intervals
+The existing `Docs_Demo_IntervalContracts()` checks this rejection as well as
+membership and sampling of `ClosedIntervalWithReccuringPointHoles(0, 4, 1, 2)`.
 
-Use compound intervals for complex domains:
+## Compound Properties and Normalization
 
-```cpp
-// ✓ GOOD: Model non-contiguous valid ranges
-Interval<double> validRanges;
-validRanges.addInterval(std::make_unique<ClosedInterval<double>>(-10.0, -5.0));
-validRanges.addInterval(std::make_unique<ClosedInterval<double>>(5.0, 10.0));
+`AddInterval` **copies the concrete piece** and returns a reference for chaining.
+It does not normalize automatically. For ordinary pieces, `Normalize()` sorts,
+removes empty degenerate pieces and merges overlaps or touching pieces when at
+least one touching endpoint is closed. Two open endpoints leave the missing
+point excluded.
 
-// ✗ AVOID: Trying to force single interval for disjoint sets
-// Can't represent {x : -10 ≤ x ≤ -5 or 5 ≤ x ≤ 10} as one BaseInterval
-```
-
-### 5. Mind Endpoint Semantics in Operations
-
-Understand endpoint type propagation:
-
-```cpp
-OpenInterval<double> open(0.0, 10.0);          // (0, 10)
-ClosedInterval<double> closed(0.0, 10.0);      // [0, 10]
-
-// These are NOT the same interval!
-bool sameAtZero = open.contains(0.0);          // false
-bool sameAtTen = closed.contains(0.0);         // true
-```
-
-## Mathematical Background
-
-### Interval Arithmetic Foundations
-
-An interval is a set of real numbers with a specific structure:
-
-**Definition**: An interval `I` is a subset of ℝ such that for any `x, y ∈ I` with `x < y`, all points `z` with `x < z < y` are also in `I`.
-
-**Types** (for finite `a, b` with `a ≤ b`):
-- Closed: `[a, b] = {x ∈ ℝ : a ≤ x ≤ b}`
-- Open: `(a, b) = {x ∈ ℝ : a < x < b}`
-- Half-open: `[a, b) = {x ∈ ℝ : a ≤ x < b}` and `(a, b] = {x ∈ ℝ : a < x ≤ b}`
-
-### Set Operations
-
-**Intersection**: `A ∩ B = {x : x ∈ A and x ∈ B}`
-
-Properties:
-- Commutative: `A ∩ B = B ∩ A`
-- Associative: `(A ∩ B) ∩ C = A ∩ (B ∩ C)`
-- Idempotent: `A ∩ A = A`
-
-**Difference**: `A \ B = {x : x ∈ A and x ∉ B}`
-
-Properties:
-- Non-commutative: `A \ B ≠ B \ A` (in general)
-- Not associative
-- Result may be disconnected (compound interval)
-
-**Complement**: `A^c = {x ∈ ℝ : x ∉ A}`
-
-Properties:
-- Involution: `(A^c)^c = A`
-- De Morgan's laws: `(A ∪ B)^c = A^c ∩ B^c`, `(A ∩ B)^c = A^c ∪ B^c`
-
-### Endpoint Type Rules
-
-For intersection of intervals `I₁` and `I₂` with overlapping region:
-
-| I₁ endpoint | I₂ endpoint | Result endpoint |
-|-------------|-------------|-----------------|
-| Closed      | Closed      | Closed          |
-| Closed      | Open        | Open            |
-| Open        | Closed      | Open            |
-| Open        | Open        | Open            |
-
-**Rule**: The more restrictive (open) endpoint type wins.
-
-**Mathematical Justification**: 
-- `[a, b] ∩ (a, b) = (a, b)` because a point in the intersection must be in BOTH intervals
-- If one interval excludes a boundary point, the intersection must also exclude it
-
-## API Reference
-
-### IInterval Interface
+- `getLength()` is the **hull span**, maximum stored upper bound minus minimum
+  stored lower bound.
+- `getMeasure()` is the **sum of stored piece lengths**. Overlaps are counted
+  repeatedly until ordinary pieces are normalized. It is not a membership-based
+  integration of periodic roundoff exclusion bands.
+- An empty default composite reports zero bounds, length and measure. A singleton
+  also has length zero, so length is not an emptiness test. Stored empty pieces
+  can affect bounds until normalization.
+- `CompositeInterval::isContinuous()` currently returns `false` even for one
+  connected normalized piece. It is not a connectivity or emptiness test.
+- Reset a composite by assignment from `Interval{}`. There are no public
+  `Clear()`, `NumIntervals()` or piece-iteration methods.
 
 ```cpp
-template<typename Real>
-class IInterval {
-public:
-    virtual bool contains(Real x) const = 0;
-    virtual bool contains(const BaseInterval<Real>& inSecond) const = 0;
-    virtual bool intersects(const BaseInterval<Real>& inSecond) const = 0;
-    virtual int GetEquidistantCovering(int num_points, 
-                                       std::vector<Real>& outPoints) const = 0;
-    virtual Real getLowerBound() const = 0;
-    virtual Real getUpperBound() const = 0;
-    virtual Real getLength() const = 0;
-};
+void IntervalCompoundPropertiesExample()
+{
+	Interval compound;
+	compound.AddInterval(ClosedInterval(0, 5))
+		.AddInterval(ClosedInterval(10, 15))
+		.AddInterval(ClosedInterval(20, 25));
+	if (compound.getLowerBound() != 0 || compound.getUpperBound() != 25 ||
+		compound.getLength() != 25 || compound.getMeasure() != 15 ||
+		!compound.contains(3) || compound.contains(7) || !compound.contains(12))
+		throw InvalidStateError("Compound interval properties failed");
+
+	Interval overlapping;
+	overlapping.AddInterval(ClosedInterval(0, 2)).AddInterval(ClosedInterval(1, 3));
+	if (overlapping.getMeasure() != 4)
+		throw InvalidStateError("Stored-piece measure must count an overlap before normalization");
+	overlapping.Normalize();
+	if (overlapping.getMeasure() != 3 || overlapping.getLength() != 3 ||
+		!overlapping.contains(ClosedInterval(0, 3)) || overlapping.isContinuous())
+		throw InvalidStateError("Normalized composite properties failed");
+	overlapping = Interval{};
+	std::vector<Real> points;
+	overlapping.getEquidistantCovering(1, points);
+	if (!points.empty()) throw InvalidStateError("Reset interval is not empty");
+	std::cout << "Disjoint measure=15, hull length=25; overlapping stored measure=4, normalized=3.\n";
+}
 ```
 
-### BaseInterval<Real>
+## Function Domains
 
-Abstract base class for all simple intervals.
-
-**Key Methods**:
-- `bool contains(Real x) const` - Test if point is in interval
-- `bool contains(const BaseInterval<Real>&) const` - Test interval containment
-- `bool intersects(const BaseInterval<Real>&) const` - Test if intervals overlap
-- `int GetEquidistantCovering(int n, vector<Real>&) const` - Generate n uniform points
-- `Real getLowerBound() const` - Get lower bound
-- `Real getUpperBound() const` - Get upper bound
-- `Real getLength() const` - Get interval length (may be infinite)
-
-**Protected Members**:
-- `Real _a` - Lower bound
-- `Real _b` - Upper bound
-
-### ClosedInterval<Real>
-
-Represents `[a, b]` - includes both endpoints.
+For tangent, the excluded points are `pi/2 + n*pi` for **all integer** `n`.
+Use the periodic-hole class for that global domain. A finite union of open
+branches describes only the branches added, not the whole tangent domain.
+Membership does not evaluate the function or certify that every included input
+will produce a well-conditioned numerical result.
 
 ```cpp
-template<typename Real>
-class ClosedInterval : public BaseInterval<Real> {
-public:
-    ClosedInterval(Real a, Real b);
-    
-    bool contains(Real x) const override;
-    int GetEquidistantCovering(int num_points, 
-                               std::vector<Real>& outPoints) const override;
-    // ... other IInterval methods
-};
+void IntervalDomainsExample()
+{
+	const Real pi = Constants::PI;
+	const CompleteRWithReccuringPointHoles tangentDomain(pi / 2, pi);
+	Interval threeBranches;
+	threeBranches.AddInterval(OpenInterval(-pi / 2, pi / 2))
+		.AddInterval(OpenInterval(pi / 2, 3 * pi / 2))
+		.AddInterval(OpenInterval(3 * pi / 2, 5 * pi / 2));
+	if (!tangentDomain.contains(0) || tangentDomain.contains(pi / 2) ||
+		!tangentDomain.contains(-pi) || !threeBranches.contains(0) ||
+		!threeBranches.contains(pi) || threeBranches.contains(pi / 2) ||
+		threeBranches.contains(-pi))
+		throw InvalidStateError("Tangent-domain example failed");
+	std::cout << "Global periodic tangent domain and three finite open branches verified.\n";
+}
 ```
 
-### OpenInterval<Real>
+## Chaining Operations and Using Rays
 
-Represents `(a, b)` - excludes both endpoints.
+Composite results feed directly into subsequent operations. Infinite endpoint
+tags are preserved; they are not finite bounds passed as IEEE infinity.
 
 ```cpp
-template<typename Real>
-class OpenInterval : public BaseInterval<Real> {
-public:
-    OpenInterval(Real a, Real b);
-    
-    bool contains(Real x) const override;
-    int GetEquidistantCovering(int num_points, 
-                               std::vector<Real>& outPoints) const override;
-    // ... other IInterval methods
-};
+void IntervalSetChainExample()
+{
+	const ClosedInterval universe(0, 100);
+	const ClosedInterval exclude1(20, 30);
+	const ClosedInterval exclude2(60, 70);
+	const Interval step1 = Interval::Difference(universe, exclude1);
+	const Interval remaining = Interval::Difference(step1, exclude2);
+	if (!remaining.contains(0) || remaining.contains(20) || remaining.contains(30) ||
+		!remaining.contains(40) || remaining.contains(60) || remaining.contains(70) ||
+		!remaining.contains(100) || remaining.getMeasure() != 80)
+		throw InvalidStateError("Chained interval difference failed");
+
+	const ClosedToInfInterval ray(0);
+	const Interval overlap = Interval::Intersection(ray, ClosedInterval(5, 10));
+	const Interval cutRay = Interval::Difference(ray, ClosedInterval(5, 10));
+	if (!overlap.contains(ClosedInterval(5, 10)) ||
+		!cutRay.contains(0) || cutRay.contains(5) || cutRay.contains(10) || !cutRay.contains(11))
+		throw InvalidStateError("Ray set operations failed");
+	std::cout << "Chained difference: [0,20) U (30,60) U (70,100].\n";
+}
 ```
 
-### Interval<Real>
+## Preparing Root Brackets
 
-Compound interval class - represents unions of BaseIntervals.
+The continuous polynomial `(x - 1) * (x - 3)` has roots at 1 and 3. This example
+handles exact sampled zeros separately from strict sign changes, avoids a
+potentially overflowing product of endpoint values, and does not subtract one
+from an empty vector's size. Six samples hit both roots exactly; eight samples
+produce two sign-change brackets. Each bracket is checked against the known roots.
 
-**Constructors**:
+This is **not a general root-isolation guarantee**: coarse samples can miss
+even-multiplicity roots or several crossings inside one cell. A sign change only
+implies a root when the function is continuous on that bracket. Sampling alone
+does not establish continuity across a gap or singularity.
+
 ```cpp
-Interval();  // Empty interval
+void IntervalBracketingExample()
+{
+	const auto f = [](Real x) { return (x - 1) * (x - 3); };
+	const ClosedInterval searchRange(0, 5);
+	for (const int sampleCount : {6, 8}) {
+		std::vector<Real> points;
+		searchRange.getEquidistantCovering(sampleCount, points);
+		std::vector<Real> exactRoots;
+		std::vector<ClosedInterval> brackets;
+		for (size_t i = 0; i < points.size(); ++i) {
+			const Real value = f(points[i]);
+			if (value == 0) exactRoots.push_back(points[i]);
+			if (i == 0) continue;
+			const Real previous = f(points[i - 1]);
+			if (previous != 0 && value != 0 && std::signbit(previous) != std::signbit(value))
+				brackets.emplace_back(points[i - 1], points[i]);
+		}
+		if (exactRoots.size() + brackets.size() != 2 ||
+			(sampleCount == 6 && exactRoots != std::vector<Real>{1, 3}) ||
+			(sampleCount == 8 && brackets.size() != 2))
+			throw InvalidStateError("Root sampling missed the two roots in this example");
+		for (const auto& bracket : brackets)
+			if (bracket.contains(1) == bracket.contains(3))
+				throw InvalidStateError("Expected exactly one known root in each bracket");
+		std::cout << sampleCount << " samples: " << exactRoots.size()
+			<< " exact roots, " << brackets.size() << " sign-change brackets.\n";
+	}
+}
 ```
 
-**Interval Management**:
+## Sampling Contracts
+
+Sampling through `IInterval`, `BaseInterval` or `CompositeInterval` returns
+**at most N distinct, ascending finite members**:
+
+- Nonpositive requests clear the output without inspecting unused window arguments.
+- Empty clipped sets produce no points; a singleton produces at most one.
+- A one-point request uses an overflow-safe midpoint where it is a member.
+- Closed endpoints are included where the budget permits; open endpoints move
+  inward to the next representable value. Narrow ranges may have fewer than N
+  representable members.
+- Ordinary intervals use an equidistant grid. Hole-bearing sets use checked
+  alternatives inside grid cells, so their samples need not be equidistant.
+- Composite allocation uses normalized clipped occupied spans, not hull gaps.
+  A small budget may omit components. Singletons receive at most one point.
+  `Docs_Demo_IntervalContracts()` checks that 100 samples over `[0,1] union
+  [100,101]` give 50 per piece.
+- Bounded sets use their own bounds. If any component is unbounded, the default
+  window is `[-Precision::UnboundedIntervalSamplingLimit,
+  Precision::UnboundedIntervalSamplingLimit]`, intersected with the actual set.
+- The four-argument overload takes an explicit **finite closed window**:
+  `getEquidistantCovering(N, points, lower, upper)`. Custom `IInterval`
+  implementations need not support it; the default throws `NotImplementedError`
+  for positive requests.
+- Sampling failures leave the old output unchanged. Membership callback
+  exceptions propagate; unresolved periodic membership or candidate searches
+  throw `NumericalMethodError` rather than publish partial success.
+
 ```cpp
-void addInterval(std::unique_ptr<BaseInterval<Real>> interval);
-void Clear();
-bool IsEmpty() const;
-int NumIntervals() const;
+void IntervalSamplingExample()
+{
+	std::vector<Real> points;
+	ClosedInterval(0, 10).getEquidistantCovering(5, points);
+	if (points != std::vector<Real>{0, Real(2.5), 5, Real(7.5), 10})
+		throw InvalidStateError("Closed covering grid failed");
+	OpenInterval(0, 10).getEquidistantCovering(5, points);
+	if (points.size() != 5 || points.front() != std::nextafter(Real(0), Real(10)) ||
+		points.back() != std::nextafter(Real(10), Real(0)))
+		throw InvalidStateError("Open covering endpoints failed");
+	ClosedInterval(3, 3).getEquidistantCovering(100, points);
+	if (points != std::vector<Real>{3}) throw InvalidStateError("Singleton covering failed");
+
+	const Real outside = 2 * Precision::UnboundedIntervalSamplingLimit;
+	const ClosedToInfInterval ray(outside);
+	const IInterval& view = ray;
+	view.getEquidistantCovering(5, points);
+	if (!points.empty()) throw InvalidStateError("Far ray must miss the default window");
+	view.getEquidistantCovering(5, points, outside, outside + 4);
+	if (points.size() != 5 || points.front() != outside || points.back() != outside + 4)
+		throw InvalidStateError("Explicit window covering failed");
+	std::cout << "Closed/open grids, distinct singleton and explicit ray window verified.\n";
+}
 ```
 
-**Set Operations** (static methods):
-```cpp
-static Interval<Real> Intersection(const BaseInterval<Real>& a, 
-                                   const BaseInterval<Real>& b);
-
-static Interval<Real> Difference(const BaseInterval<Real>& a, 
-                                const BaseInterval<Real>& b);
-
-static Interval<Real> Complement(const BaseInterval<Real>& a);
-```
-
-**Query Methods**:
-```cpp
-bool contains(Real x) const;
-bool contains(const BaseInterval<Real>& other) const;
-bool intersects(const BaseInterval<Real>& other) const;
-Real getLowerBound() const;
-Real getUpperBound() const;
-Real getLength() const;
-int GetEquidistantCovering(int num_points, std::vector<Real>& outPoints) const;
-```
-
-### Infinite Bound Intervals
-
-**RightRay<Real>**: `[a, +∞)`
-```cpp
-RightRay(Real a);
-```
-
-**LeftRay<Real>**: `(-∞, b]`
-```cpp
-LeftRay(Real b);
-```
-
-**OpenRightRay<Real>**: `(a, +∞)`
-```cpp
-OpenRightRay(Real a);
-```
-
-**OpenLeftRay<Real>**: `(-∞, b)`
-```cpp
-OpenLeftRay(Real b);
-```
-
-**RealLine<Real>**: `(-∞, +∞)`
-```cpp
-RealLine();
-```
+Choose a sample count for the application and check the returned size rather than
+assuming it equals the requested count. No fixed count guarantees integration
+accuracy or makes a discontinuous composite a single valid integration bracket.
 
 ## Error Handling
 
-The interval system performs validation:
+| Condition | Exception / behavior |
+|---|---|
+| Nonfinite finite bounds, hole origin/period or used window bounds | `NumericInputError` |
+| Reversed finite bounds or used window | `ArgumentError` |
+| Zero periodic-hole period | `ArgumentError` |
+| Finite negative period | Accepted; describes the same lattice as its positive counterpart |
+| Unsupported hole-bearing algebra or abstract reconstruction | `NotImplementedError` |
+| Positive window request on a custom implementation without that capability | `NotImplementedError` |
+| Unrepresentable periodic lattice coordinate or unresolved nontrivial sampling cell | `NumericalMethodError` |
+| Nonpositive sampling count | Clears output; no error, unused window arguments ignored |
+
+Catch only errors the caller can handle. The deliberate failures below verify the
+actual exception types. Use a ray constructor, not the rejected finite-bound form.
 
 ```cpp
-// Throws InvalidInterval exception if a > b
-ClosedInterval<double> invalid(10.0, 5.0);  // ERROR!
-
-// Check for empty results from set operations
-Interval<double> result = Interval<double>::Intersection(a, b);
-if (result.IsEmpty()) {
-    // Handle empty intersection
+void IntervalErrorsExample()
+{
+	bool reversedRejected = false;
+	try {
+		(void)ClosedInterval(10, 5);
+	} catch (const ArgumentError& error) {
+		reversedRejected = true;
+		std::cout << error.what() << "\n";
+	}
+	bool nonfiniteRejected = false;
+	try {
+		(void)ClosedInterval(0, std::numeric_limits<Real>::infinity());
+	} catch (const NumericInputError& error) {
+		nonfiniteRejected = true;
+		std::cout << error.what() << "\n";
+	}
+	if (!reversedRejected || !nonfiniteRejected)
+		throw InvalidStateError("Invalid interval definitions were accepted");
 }
 ```
 
-## Testing
+## API Inventory
 
-Comprehensive test suite in `tests/base/intervals_tests.cpp`:
-- 26 test cases
-- 346 assertions
-- Coverage of all interval types and operations
-- Edge cases, precision handling, and performance tests
+The tables below describe the current non-templated classes, not replacement
+class declarations. Return types and `const` qualification matter: sampling
+returns `void` and writes through the vector reference.
 
-Run tests:
-```bash
-cd build
-cmake --build . --target MML_Tests
-.\tests\Debug\MML_Tests.exe "[intervals]"
+### `IInterval`
+
+| Member | Contract |
+|---|---|
+| `virtual Real getLowerBound() const = 0` | Lower scalar bound |
+| `virtual Real getUpperBound() const = 0` | Upper scalar bound |
+| `virtual Real getLength() const = 0` | Hull span |
+| `virtual Real getMeasure() const` | Defaults to `getLength()` |
+| `virtual bool isContinuous() const = 0` | Implementation-specific flag; see composite caveat above |
+| `virtual bool contains(Real x) const = 0` | Point membership |
+| `virtual void getEquidistantCovering(int n, std::vector<Real>& points) const = 0` | Required sampling implementation |
+| `virtual void getEquidistantCovering(int n, std::vector<Real>& points, Real lower, Real upper) const` | Optional explicit-window capability |
+| `void GetEquidistantCovering(int n, std::vector<Real>& points) const` | Deprecated, nonvirtual two-argument forwarding alias; new code uses lowerCamel |
+| `virtual ~IInterval()` | Polymorphic destruction |
+
+Custom implementations override the lowerCamel name; the deprecated alias is
+for callers, not an override point.
+
+### `BaseInterval` and concrete pieces
+
+`BaseInterval` has a protected constructor and remains abstract because point
+membership is supplied by subclasses. It implements bounds, `getLength()`,
+`isContinuous()` (true by default) and both sampling overloads; it inherits the
+default `getMeasure()`. Periodic-hole subclasses return false for continuity.
+The concrete public constructors are listed in the [types table](#types-and-endpoint-semantics).
+There are no interval-containment or intersection predicates on `BaseInterval`.
+
+### `CompositeInterval` / `Interval`
+
+| Member | Result / behavior |
+|---|---|
+| `CompositeInterval()` | Empty stored piece list |
+| `CompositeInterval(const BaseInterval& piece)` | Implicit reconstruction of an ordinary endpoint-typed piece; rejects holes |
+| `template<class IntervalType> CompositeInterval& AddInterval(const IntervalType& piece)` | Copies a concrete `BaseInterval`-derived piece; chainable |
+| `void Normalize()` | Canonicalizes ordinary pieces; no-op if any piece has holes |
+| `CompositeInterval unionWith(const CompositeInterval& other) const` | Normalized union |
+| `CompositeInterval intersectWith(const CompositeInterval& other) const` | Normalized intersection |
+| `CompositeInterval differenceWith(const CompositeInterval& other) const` | Normalized difference |
+| `CompositeInterval complement() const` | Complement in the real line |
+| `bool contains(Real x) const` | Membership in any stored piece |
+| `bool contains(const BaseInterval& other) const` | Whole simple interval is covered |
+| `bool intersects(const BaseInterval& other) const` | Nonempty intersection with a simple interval |
+
+The four static methods are `Union`, `Intersection` and `Difference`, each
+returning `CompositeInterval` and accepting two `const CompositeInterval&`
+arguments, and `Complement`, accepting one. The `|`, `&`, `-`, `~` operators
+forward to the corresponding member methods. Ordinary simple arguments convert
+implicitly; the predicate overloads themselves accept `BaseInterval`, not an
+arbitrary composite.
+
+The composite also overrides all required `IInterval` queries, `getMeasure()`
+and both sampling overloads. These operations do not expose the stored vector.
+There are no `RightRay`, `LeftRay`, `OpenRightRay`, `OpenLeftRay` or `RealLine`
+aliases; use the concrete names in the types table.
+
+## Cost and Numerical Limitations
+
+These are source-level costs, not benchmark claims. With `n` and `m` stored
+pieces and `k` generated candidate points:
+
+- Composite point membership scans up to `n` pieces. Bounds and measure also
+  scan stored pieces; `getLength()` performs two bound scans.
+- Ordinary normalization sorts the stored pieces: `O(n log n)` time plus
+  temporary storage.
+- Union copies piece handles and normalizes; it is not an implicit side effect
+  of `AddInterval`.
+- Intersection checks all `n*m` pairs and normalizes the resulting pieces.
+  Difference constructs a complement and then intersects. Containment uses
+  difference, and the intersection predicate constructs an intersection result.
+  These predicates are not promised constant-time or allocation-free.
+- Sampling constructs and normalizes clipped allocation pieces, apportions
+  budgets, checks candidate membership and sorts/deduplicates composite output.
+  Hole searches add bounded refinement work dependent on `Real` precision.
+  It is not accurately summarized as just a uniform-grid `O(k)` operation.
+- For one ordinary piece per operand, set operations produce only a bounded
+  number of pieces, but can still allocate.
+
+Length/measure use ordinary `Real` subtraction and accumulation; extreme spans
+can overflow, and unbounded sentinels are not mathematical measure values.
+Sampling uses a separate overflow-safe finite-window path. Periodic-hole
+membership can fail for an unrepresentable lattice coordinate. Neither these
+queries nor sampling supply rigorous rounding-error enclosures.
+
+## Validation
+
+Executable examples live in
+[docs_demo_intervals.cpp](../../src/docs_demos/base/docs_demo_intervals.cpp).
+Interval tests are in [intervals_tests.cpp](../../tests/base/intervals_tests.cpp)
+and [interval_set_contract_tests.cpp](../../tests/base/interval_set_contract_tests.cpp).
+There are also degenerate-input and interface-default regressions. No fixed
+assertion count or percentage coverage is claimed here.
+
+For a focused Release double run on Windows, invoke the built executable
+directly in one process:
+
+```powershell
+cmake --build build --config Release --target MML_Tests --parallel
+& .\build\tests\Release\MML_Tests.exe '[intervals],[interval-contract]'
 ```
 
-## Implementation Notes
-
-### Files
-
-- **Interface**: `mml/interfaces/IInterval.h`
-- **Implementation**: `mml/base/Intervals.h`
-- **Tests**: `tests/base/intervals_tests.cpp`
-
-### Dependencies
-
-- `MMLBase.h` - Base type definitions
-- `MMLPrecision.h` - Epsilon constants
-- `MMLExceptions.h` - Exception types
-
-### Commits
-
-- Implementation: 9096bfa7
-- Test suite: 8aa58407
-- Documentation: 489db81b, a10abe90
-
-## References
-
-- **Numerical Analysis**: Burden & Faires, "Numerical Analysis" (9th ed.)
-- **Real Analysis**: Rudin, "Principles of Mathematical Analysis"
-- **Interval Arithmetic**: Moore et al., "Introduction to Interval Analysis"
-
-## Future Enhancements
-
-Potential improvements for future versions:
-
-1. **Arithmetic Operations**: Add `+`, `-`, `*`, `/` for interval arithmetic
-2. **Union Optimization**: Automatic merging of overlapping sub-intervals
-3. **Interval Arithmetic Error Bounds**: Track rounding error propagation
-4. **Multi-dimensional Intervals**: Support for interval vectors/boxes
-5. **Constraint Propagation**: Integration with constraint solving systems
-
----
-
-*Last Updated: December 13, 2025*  
-*Implementation Version: 1.0*  
-*Test Coverage: 100% (26 tests, 346 assertions)*
+The repository's final code-change gate is one unfiltered direct Release
+`MML_Tests` run; see [AGENTS.md](../../AGENTS.md). Builds enforce the configured
+warning-as-error policy. Changing the example text requires updating and running
+its demo counterpart, not merely making the Markdown look plausible.

@@ -32,9 +32,8 @@ namespace MML
 		/// @return True if both real and imaginary differences are within tolerance
 		static bool AreEqual(const Complex& a, const Complex& b, Real eps = Precision::ComplexAreEqualTolerance)
 		{
-			if (std::abs(a.real() - b.real()) > eps || std::abs(a.imag() - b.imag()) > eps)
-				return false;
-			return true;
+			return std::isfinite(eps) && eps >= 0 &&
+				std::abs(a.real() - b.real()) <= eps && std::abs(a.imag() - b.imag()) <= eps;
 		}
 
 		/// @brief Tests if two complex numbers are equal within tolerance (absolute value).
@@ -44,9 +43,7 @@ namespace MML
 		/// @return True if |a - b| <= eps
 		static bool AreEqualAbs(const Complex& a, const Complex& b, Real eps = Precision::ComplexAreEqualAbsTolerance)
 		{
-			if (Abs(a - b) > eps)
-				return false;
-			return true;
+			return std::isfinite(eps) && eps >= 0 && Abs(a - b) <= eps;
 		}
 
 		// ============================================================================
@@ -58,7 +55,7 @@ namespace MML
 		/// @param b Second vector
 		/// @param eps Tolerance for element-wise comparison
 		/// @return True if vectors are equal within tolerance
-		static bool AreEqual(const Vector<Real> &a, const Vector<Real> &b, 
+		static inline bool AreEqual(const Vector<Real> &a, const Vector<Real> &b,
 		                     Real eps = Precision::VectorIsEqualTolerance)
 		{
 			return a.IsEqualTo(b, eps);
@@ -73,9 +70,11 @@ namespace MML
 		/// @param b Second complex vector
 		/// @param eps Tolerance for each complex element
 		/// @return True if all elements are equal within tolerance
-		static bool AreEqual(const Vector<Complex>& a, const Vector<Complex>& b, 
+		static inline bool AreEqual(const Vector<Complex>& a, const Vector<Complex>& b,
 		                     Real eps = Precision::ComplexAreEqualTolerance)
 		{
+			if (!std::isfinite(eps) || eps < 0)
+				return false;
 			if (a.size() != b.size())
 				return false;
 
@@ -91,9 +90,11 @@ namespace MML
 		/// @param b Second complex vector
 		/// @param eps Tolerance for |a[i] - b[i]|
 		/// @return True if all elements differ by at most eps in absolute value
-		static bool AreEqualAbs(const Vector<Complex>& a, const Vector<Complex>& b, 
+		static inline bool AreEqualAbs(const Vector<Complex>& a, const Vector<Complex>& b,
 		                        Real eps = Precision::ComplexAreEqualAbsTolerance)
 		{
+			if (!std::isfinite(eps) || eps < 0)
+				return false;
 			if (a.size() != b.size())
 				return false;
 

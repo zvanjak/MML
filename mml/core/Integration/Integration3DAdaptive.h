@@ -77,13 +77,14 @@ struct AdaptiveResult3D : public IntegrationResult
 
     /// @brief Combine two results (for accumulating from child cells)
     AdaptiveResult3D& operator+=(const AdaptiveResult3D& other) {
+        const bool identity = function_evaluations == 0 && cells_subdivided == 0 && value == 0 && error_estimate == 0;
         value += other.value;
         error_estimate += other.error_estimate;
         function_evaluations += other.function_evaluations;
         cells_subdivided += other.cells_subdivided;
         max_depth_reached = std::max(max_depth_reached, other.max_depth_reached);
         iterations = max_depth_reached;
-        converged = converged && other.converged;
+        converged = (identity || converged) && other.converged;
         status = converged ? AlgorithmStatus::Success : AlgorithmStatus::MaxIterationsExceeded;
         return *this;
     }
@@ -125,17 +126,17 @@ namespace Detail {
 /// @details Evaluates f at all 15×15×15 = 3375 GK15 node triplets, computing both:
 ///          - Kronrod estimate (15×15×15): high-order approximation
 ///          - Gauss estimate (7×7×7): low-order approximation (using embedded G7 nodes)
-///          Error = |Kronrod - Gauss| is a reliable error bound.
+///          Error = |Kronrod - Gauss| is an embedded estimate, not a rigorous bound.
 ///
 /// @note This is expensive (3375 evals vs 225 for 2D) but gives proper 3D error estimation.
 template<typename Func>
 static GKResult IntegrateCell3D_TensorGK15(Func f, Real x1, Real x2, Real y1, Real y2, Real z1, Real z2) {
-    const Real cx = 0.5 * (x1 + x2);  // Center x
-    const Real hx = 0.5 * (x2 - x1);  // Half-width x
-    const Real cy = 0.5 * (y1 + y2);  // Center y
-    const Real hy = 0.5 * (y2 - y1);  // Half-width y
-    const Real cz = 0.5 * (z1 + z2);  // Center z
-    const Real hz = 0.5 * (z2 - z1);  // Half-width z
+    const Real cx = std::midpoint(x1, x2);
+    const Real hx = IntegrationDetail::HalfWidth(x1, x2);
+    const Real cy = std::midpoint(y1, y2);
+    const Real hy = IntegrationDetail::HalfWidth(y1, y2);
+    const Real cz = std::midpoint(z1, z2);
+    const Real hz = IntegrationDetail::HalfWidth(z1, z2);
 
     Real result_kronrod = 0.0;
     Real result_gauss = 0.0;
@@ -157,21 +158,21 @@ static GKResult IntegrateCell3D_TensorGK15(Func f, Real x1, Real x2, Real y1, Re
         Real xi_neg = cx - hx * xGK15[i];
         Real wi = wGK15[i];
         bool i_gauss = is_gauss_index(i);
-        Real wgi = i_gauss ? wG7[gauss_weight_index(i)] : 0.0;
+        Real wgi = i_gauss ? wG7[gauss_weight_index(i)] : MML::Real(0.0);
         
         for (int j = 0; j < GK15_N; ++j) {
             Real yj_pos = cy + hy * xGK15[j];
             Real yj_neg = cy - hy * xGK15[j];
             Real wj = wGK15[j];
             bool j_gauss = is_gauss_index(j);
-            Real wgj = j_gauss ? wG7[gauss_weight_index(j)] : 0.0;
+            Real wgj = j_gauss ? wG7[gauss_weight_index(j)] : MML::Real(0.0);
             
             for (int k = 0; k < GK15_N; ++k) {
                 Real zk_pos = cz + hz * xGK15[k];
                 Real zk_neg = cz - hz * xGK15[k];
                 Real wk = wGK15[k];
                 bool k_gauss = is_gauss_index(k);
-                Real wgk = k_gauss ? wG7[gauss_weight_index(k)] : 0.0;
+                Real wgk = k_gauss ? wG7[gauss_weight_index(k)] : MML::Real(0.0);
                 
                 // Evaluate function at all octant combinations
                 Real f_ppp = f(xi_pos, yj_pos, zk_pos);
@@ -229,21 +230,45 @@ static GKResult IntegrateCell3D_TensorGK15(Func f, Real x1, Real x2, Real y1, Re
     }
 
     // Scale by Jacobian (product of half-widths)
-    Real jacobian = hx * hy * hz;
-    result_kronrod *= jacobian;
-    result_gauss *= jacobian;
+    result_kronrod = IntegrationDetail::Product({hx, hy, hz, result_kronrod});
+    result_gauss = IntegrationDetail::Product({hx, hy, hz, result_gauss});
 
     Real error = std::abs(result_kronrod - result_gauss);
 
-    return GKResult(result_kronrod, error, evals, true);
+    return GKResult::Fixed(result_kronrod, error, evals);
 }
 
 } // namespace Detail
 
-/// @brief Recursive helper for adaptive 3D integration
+template<class Func>
+static void RunAdaptive3D(Func& function, Real x1, Real x2, Real y1, Real y2, Real z1, Real z2,
+    Real absolute, Real relative, int depth, int budget, GKRule rule, AdaptiveResult3D& result, bool checkFinite = true) {
+    IntegrationDetail::HalfWidth(x1, x2);
+    IntegrationDetail::HalfWidth(y1, y2);
+    IntegrationDetail::HalfWidth(z1, z2);
+    IntegrationDetail::ValidateAdaptive(absolute, relative, depth, budget);
+    if (rule != GKRule::GK15)
+        throw NotImplementedError("IntegrateAdaptive3D: only GKRule::GK15 is implemented");
+    if (x2 <= x1 || y2 <= y1 || z2 <= z1) {
+        result = AdaptiveResult3D(0, 0, 0, 0, 0, true);
+        return;
+    }
+    using Box = std::array<std::array<Real, 2>, 3>;
+    auto sample = [&](Real x, Real y, Real z) {
+        return IntegrationDetail::Sample(function, result.function_evaluations, checkFinite, x, y, z);
+    };
+    auto evaluate = [&](const Box& box) {
+        return Detail::IntegrateCell3D_TensorGK15(sample, box[0][0], box[0][1], box[1][0], box[1][1], box[2][0], box[2][1]);
+    };
+    const Box domain{{{x1, x2}, {y1, y2}, {z1, z2}}};
+    IntegrationDetail::RefineCells(result, std::vector<Box>{domain}, evaluate,
+        IntegrationDetail::SplitBox<3>, absolute, relative, depth, budget, 3375);
+}
+
+/// @brief Compatibility entry for adaptive 3D integration using global frontier refinement
 /// @param f Function f(x,y,z) -> Real
 /// @param x1,x2,y1,y2,z1,z2 Cell bounds
-/// @param total_volume Total integration domain volume (for tolerance scaling)
+/// @param total_volume Legacy parameter; the requested domain now has one global error target
 /// @param tol_abs Absolute tolerance
 /// @param tol_rel Relative tolerance
 /// @param depth Current recursion depth
@@ -260,43 +285,11 @@ static AdaptiveResult3D IntegrateAdaptive3D_Recursive(
     int& evals_remaining,
     GKRule rule)
 {
-    // Integrate this cell using tensor product GK15 with proper error estimation
-    auto cell_result = Detail::IntegrateCell3D_TensorGK15(f, x1, x2, y1, y2, z1, z2);
-    evals_remaining -= cell_result.function_evaluations;
-
-    Real cell_volume = (x2 - x1) * (y2 - y1) * (z2 - z1);
-    Real volume_fraction = cell_volume / total_volume;
-    
-    // Tolerance for this cell: scale by volume fraction
-    Real cell_tol = std::max(tol_abs * volume_fraction, tol_rel * std::abs(cell_result.value));
-
-    // Check convergence
-    if (cell_result.error_estimate <= cell_tol || depth >= max_depth || evals_remaining <= 0) {
-        bool conv = (cell_result.error_estimate <= cell_tol);
-        return AdaptiveResult3D(cell_result.value, cell_result.error_estimate,
-                                 cell_result.function_evaluations, 0, depth, conv);
-    }
-
-    // Subdivide into 8 octants
-    Real mx = 0.5 * (x1 + x2);
-    Real my = 0.5 * (y1 + y2);
-    Real mz = 0.5 * (z1 + z2);
-
     AdaptiveResult3D result;
-    result.cells_subdivided = 1;  // This cell was subdivided
-
-    // Process all 8 children (2×2×2 = 8 octants)
-    // Lower z half (z1 to mz)
-    result += IntegrateAdaptive3D_Recursive(f, x1, mx, y1, my, z1, mz, total_volume, tol_abs, tol_rel, depth+1, max_depth, evals_remaining, rule);
-    result += IntegrateAdaptive3D_Recursive(f, mx, x2, y1, my, z1, mz, total_volume, tol_abs, tol_rel, depth+1, max_depth, evals_remaining, rule);
-    result += IntegrateAdaptive3D_Recursive(f, x1, mx, my, y2, z1, mz, total_volume, tol_abs, tol_rel, depth+1, max_depth, evals_remaining, rule);
-    result += IntegrateAdaptive3D_Recursive(f, mx, x2, my, y2, z1, mz, total_volume, tol_abs, tol_rel, depth+1, max_depth, evals_remaining, rule);
-    // Upper z half (mz to z2)
-    result += IntegrateAdaptive3D_Recursive(f, x1, mx, y1, my, mz, z2, total_volume, tol_abs, tol_rel, depth+1, max_depth, evals_remaining, rule);
-    result += IntegrateAdaptive3D_Recursive(f, mx, x2, y1, my, mz, z2, total_volume, tol_abs, tol_rel, depth+1, max_depth, evals_remaining, rule);
-    result += IntegrateAdaptive3D_Recursive(f, x1, mx, my, y2, mz, z2, total_volume, tol_abs, tol_rel, depth+1, max_depth, evals_remaining, rule);
-    result += IntegrateAdaptive3D_Recursive(f, mx, x2, my, y2, mz, z2, total_volume, tol_abs, tol_rel, depth+1, max_depth, evals_remaining, rule);
-
+    RunAdaptive3D(f, x1, x2, y1, y2, z1, z2, tol_abs, tol_rel, max_depth - depth, evals_remaining, rule, result);
+    evals_remaining -= result.function_evaluations;
+    result.max_depth_reached += depth;
+    result.iterations = result.max_depth_reached;
     return result;
 }
 
@@ -350,21 +343,9 @@ static AdaptiveResult3D IntegrateAdaptive3DCore(
     int max_depth = 15,
     int max_evals = 10000000)
 {
-    if (x2 <= x1 || y2 <= y1 || z2 <= z1) {
-        return AdaptiveResult3D(0.0, 0.0, 0, 0, 0, true);
-    }
-
-    Real total_volume = (x2 - x1) * (y2 - y1) * (z2 - z1);
-    int evals_remaining = max_evals;
-
-    return IntegrateAdaptive3D_Recursive(
-        f, x1, x2, y1, y2, z1, z2,
-        total_volume,
-        tolerance, tolerance,  // Use same tolerance for both abs and rel
-        0, max_depth,
-        evals_remaining,
-        GKRule::GK15
-    );
+    AdaptiveResult3D result;
+    RunAdaptive3D(f, x1, x2, y1, y2, z1, z2, tolerance, tolerance, max_depth, max_evals, GKRule::GK15, result);
+    return result;
 }
 
 /// Result-returning variant with the plain argument list (RESULT_POLICY §4).
@@ -417,21 +398,9 @@ static AdaptiveResult3D IntegrateAdaptive3DCore(
     Real z1, Real z2,
     const AdaptiveConfig3D& config)
 {
-    if (x2 <= x1 || y2 <= y1 || z2 <= z1) {
-        return AdaptiveResult3D(0.0, 0.0, 0, 0, 0, true);
-    }
-
-    Real total_volume = (x2 - x1) * (y2 - y1) * (z2 - z1);
-    int evals_remaining = config.max_evaluations;
-
-    return IntegrateAdaptive3D_Recursive(
-        f, x1, x2, y1, y2, z1, z2,
-        total_volume,
-        config.tol_abs, config.tol_rel,
-        0, config.max_depth,
-        evals_remaining,
-        config.rule
-    );
+    AdaptiveResult3D result;
+    RunAdaptive3D(f, x1, x2, y1, y2, z1, z2, config.tol_abs, config.tol_rel, config.max_depth, config.max_evaluations, config.rule, result);
+    return result;
 }
 
 template<typename Func>
@@ -464,10 +433,7 @@ static AdaptiveResult3D IntegrateAdaptive3DDetailed(
     return IntegrationDetail::ExecuteIntegrationDetailed<AdaptiveResult3D>(
         "IntegrateAdaptive3D", config,
         [&](AdaptiveResult3D& result) {
-            auto r = IntegrateAdaptive3DCore(f, x1, x2, y1, y2, z1, z2, tolerance, max_depth, max_evals);
-            IntegrationDetail::Adopt(result, r, "IntegrateAdaptive3D");
-            result.cells_subdivided = r.cells_subdivided;
-            result.max_depth_reached = r.max_depth_reached;
+            RunAdaptive3D(f, x1, x2, y1, y2, z1, z2, tolerance, tolerance, max_depth, max_evals, GKRule::GK15, result, config.check_finite);
         });
 }
 
@@ -484,10 +450,8 @@ static AdaptiveResult3D IntegrateAdaptive3DDetailed(
     return IntegrationDetail::ExecuteIntegrationDetailed<AdaptiveResult3D>(
         "IntegrateAdaptive3D", config,
         [&](AdaptiveResult3D& result) {
-            auto r = IntegrateAdaptive3DCore(f, x1, x2, y1, y2, z1, z2, adaptive_config);
-            IntegrationDetail::Adopt(result, r, "IntegrateAdaptive3D");
-            result.cells_subdivided = r.cells_subdivided;
-            result.max_depth_reached = r.max_depth_reached;
+            RunAdaptive3D(f, x1, x2, y1, y2, z1, z2, adaptive_config.tol_abs, adaptive_config.tol_rel, adaptive_config.max_depth,
+                adaptive_config.max_evaluations, adaptive_config.rule, result, config.check_finite);
         });
 }
 

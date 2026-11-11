@@ -111,7 +111,7 @@ namespace MML::TestBeds
         test.isSymmetric = true;
         test.isPositiveDefinite = true;
         test.hasRealEigenvalues = true;
-        test.conditionNumber = 1.6e13;  // Extremely ill-conditioned
+        test.conditionNumber = MML::Real(1.6e13);  // Extremely ill-conditioned
         test.eigenvalueSpread = 1e10;
         test.category = "standard";
         test.description = "Hilbert matrix - extremely ill-conditioned, tests numerical precision.";
@@ -501,7 +501,7 @@ namespace MML::TestBeds
         test.dimension = 3;
         test.isSymmetric = true;
         test.hasRealEigenvalues = true;
-        test.eigenvalueSpread = 2.0 / eps;
+        test.eigenvalueSpread = MML::Real(2.0) / eps;
         test.category = "pathological";
         test.description = "One eigenvalue at machine epsilon scale. Tests underflow handling.";
         test.difficulty = 3;
@@ -669,7 +669,7 @@ namespace MML::TestBeds
         
         // Sort both for comparison
         std::vector<Real> comp(computed.size()), exp(expected.size());
-        for (size_t i = 0; i < computed.size(); ++i) {
+        for (int i = 0; i < computed.size(); ++i) {
             comp[i] = computed[i];
             exp[i] = expected[i];
         }
@@ -688,7 +688,7 @@ namespace MML::TestBeds
     inline Real computeEigenvalueError(Vector<Real> computed, Vector<Real> expected)
     {
         std::vector<Real> comp(computed.size()), exp(expected.size());
-        for (size_t i = 0; i < computed.size(); ++i) {
+        for (int i = 0; i < computed.size(); ++i) {
             comp[i] = computed[i];
             exp[i] = expected[i];
         }
@@ -714,7 +714,7 @@ namespace MML::TestBeds
                 Real dot = 0;
                 for (int k = 0; k < n; ++k)
                     dot += V(k, i) * V(k, j);
-                Real expected = (i == j) ? 1.0 : 0.0;
+                Real expected = (i == j) ? MML::Real(1.0) : MML::Real(0.0);
                 if (std::abs(dot - expected) > tolerance)
                     return false;
             }

@@ -28,6 +28,8 @@
 #include <vector>
 #include <functional>
 
+#include "test_case_metadata.h"
+
 #include "../test_data/linear_alg_eq_systems_real_defs.h"
 #include "../test_data/linear_alg_eq_systems_sym_defs.h"
 #include "../test_data/linear_alg_eq_systems_complex_defs.h"
@@ -91,6 +93,13 @@ namespace MML::TestBeds
             _n(n), _mat(mat), _rhs(rhs), _sol(sol), _eigen_values(eigen_values), _eigen_vectors(eigen_vectors),
             _determinant(determinant), _singular_values(singular_values), _cond_2(cond_2), _rank(rank)
         {}
+
+        // Rectangular compatibility cases have no determinant.
+        TestLinearSystem(int n, const Matrix<Real> &mat, const Vector<Real> &rhs, const Vector<Real> &sol,
+                         const Vector<Complex> &eigen_values, const Vector<Real> &singular_values, Real cond_2, int rank) :
+            _n(n), _mat(mat), _rhs(rhs), _sol(sol), _eigen_values(eigen_values),
+            _singular_values(singular_values), _cond_2(cond_2), _rank(rank)
+        {}
     };
 
     class TestLinearSystemMultiRHS
@@ -101,8 +110,19 @@ namespace MML::TestBeds
         Matrix<Real> _rhs;
         Matrix<Real> _sol;
 
+        Real _determinant = 0.0;
+        Vector<Real> _singular_values;
+        Real _cond_2 = 0.0;
+        int _rank = 0;
+
         TestLinearSystemMultiRHS(int n, const Matrix<Real> &mat, const Matrix<Real> &rhs, const Matrix<Real> &sol) : 
             _n(n), _mat(mat), _rhs(rhs), _sol(sol)
+        {}
+
+        TestLinearSystemMultiRHS(int n, const Matrix<Real> &mat, const Matrix<Real> &rhs, const Matrix<Real> &sol,
+                                Real determinant, const Vector<Real> &singular_values, Real cond_2, int rank) :
+            _n(n), _mat(mat), _rhs(rhs), _sol(sol), _determinant(determinant),
+            _singular_values(singular_values), _cond_2(cond_2), _rank(rank)
         {}
     };    
 
@@ -134,6 +154,13 @@ namespace MML::TestBeds
         TestLinearSystemSymmetric(int n, const MatrixSym<Real> &mat, const Vector<Real> &rhs, const Vector<Real> &sol, 
                                   const Vector<Real> &eigen_values, Real determinant, const Vector<Real> &singular_values, Real cond_2, int rank) : 
             _n(n), _mat(mat), _rhs(rhs), _sol(sol), _eigen_values(eigen_values),
+            _determinant(determinant), _singular_values(singular_values), _cond_2(cond_2), _rank(rank)
+        {}
+
+        TestLinearSystemSymmetric(int n, const MatrixSym<Real> &mat, const Vector<Real> &rhs, const Vector<Real> &sol,
+                                  const Vector<Real> &eigen_values, const std::vector<Vector<Real>> &eigen_vectors,
+                                  Real determinant, const Vector<Real> &singular_values, Real cond_2, int rank) :
+            _n(n), _mat(mat), _rhs(rhs), _sol(sol), _eigen_values(eigen_values), _eigen_vectors(eigen_vectors),
             _determinant(determinant), _singular_values(singular_values), _cond_2(cond_2), _rank(rank)
         {}
     };
@@ -196,43 +223,53 @@ namespace MML::TestBeds
      *******************************************************************************************************************/
 
     inline TestLinearSystem overdetermined_4x3() {
-        return TestLinearSystem(3, overdetermined_4x3_mat, overdetermined_4x3_rhs, overdetermined_4x3_sol, overdetermined_4x3_eigen);
+        return TestLinearSystem(3, overdetermined_4x3_mat, overdetermined_4x3_rhs, overdetermined_4x3_sol, overdetermined_4x3_eigen,
+                                overdetermined_4x3_singular_values, overdetermined_4x3_cond_2, overdetermined_4x3_rank);
     }
 
     inline TestLinearSystem overdetermined_5x3_regression() {
-        return TestLinearSystem(3, overdetermined_5x3_regression_mat, overdetermined_5x3_regression_rhs, overdetermined_5x3_regression_sol, overdetermined_5x3_regression_eigen);
+        return TestLinearSystem(3, overdetermined_5x3_regression_mat, overdetermined_5x3_regression_rhs, overdetermined_5x3_regression_sol, overdetermined_5x3_regression_eigen,
+                                overdetermined_5x3_regression_singular_values, overdetermined_5x3_regression_cond_2, overdetermined_5x3_regression_rank);
     }
 
     inline TestLinearSystem overdetermined_6x4_polynomial() {
-        return TestLinearSystem(4, overdetermined_6x4_polynomial_mat, overdetermined_6x4_polynomial_rhs, overdetermined_6x4_polynomial_sol, overdetermined_6x4_polynomial_eigen);
+        return TestLinearSystem(4, overdetermined_6x4_polynomial_mat, overdetermined_6x4_polynomial_rhs, overdetermined_6x4_polynomial_sol, overdetermined_6x4_polynomial_eigen,
+                                overdetermined_6x4_polynomial_singular_values, overdetermined_6x4_polynomial_cond_2, overdetermined_6x4_polynomial_rank);
     }
 
     inline TestLinearSystem diag_dominant_4x4() {
-        return TestLinearSystem(4, diag_dominant_4x4_mat, diag_dominant_4x4_rhs, diag_dominant_4x4_sol, diag_dominant_4x4_eigen);
+        return TestLinearSystem(4, diag_dominant_4x4_mat, diag_dominant_4x4_rhs, diag_dominant_4x4_sol, diag_dominant_4x4_eigen,
+                                diag_dominant_4x4_det, diag_dominant_4x4_singular_values, diag_dominant_4x4_cond_2, diag_dominant_4x4_rank);
     }
 
     inline TestLinearSystem diag_dominant_5x5_tridiag() {
-        return TestLinearSystem(5, diag_dominant_5x5_tridiag_mat, diag_dominant_5x5_tridiag_rhs, diag_dominant_5x5_tridiag_sol, diag_dominant_5x5_tridiag_eigen);
+        return TestLinearSystem(5, diag_dominant_5x5_tridiag_mat, diag_dominant_5x5_tridiag_rhs, diag_dominant_5x5_tridiag_sol, diag_dominant_5x5_tridiag_eigen,
+                                diag_dominant_5x5_tridiag_det, diag_dominant_5x5_tridiag_singular_values, diag_dominant_5x5_tridiag_cond_2, diag_dominant_5x5_tridiag_rank);
     }
 
     inline TestLinearSystem diag_dominant_6x6_poisson2d() {
-        return TestLinearSystem(6, diag_dominant_6x6_poisson2d_mat, diag_dominant_6x6_poisson2d_rhs, diag_dominant_6x6_poisson2d_sol, diag_dominant_6x6_poisson2d_eigen);
+        return TestLinearSystem(6, diag_dominant_6x6_poisson2d_mat, diag_dominant_6x6_poisson2d_rhs, diag_dominant_6x6_poisson2d_sol, diag_dominant_6x6_poisson2d_eigen,
+                                diag_dominant_6x6_poisson2d_det, diag_dominant_6x6_poisson2d_singular_values, diag_dominant_6x6_poisson2d_cond_2, diag_dominant_6x6_poisson2d_rank);
     }
 
     inline TestLinearSystemSymmetric spd_3x3() {
-        return TestLinearSystemSymmetric(3, spd_3x3_mat, spd_3x3_rhs, spd_3x3_sol, spd_3x3_eigen);
+        return TestLinearSystemSymmetric(3, spd_3x3_mat, spd_3x3_rhs, spd_3x3_sol, spd_3x3_eigen,
+                                         spd_3x3_det, spd_3x3_singular_values, spd_3x3_cond_2, spd_3x3_rank);
     }
 
     inline TestLinearSystemSymmetric spd_4x4_correlation() {
-        return TestLinearSystemSymmetric(4, spd_4x4_correlation_mat, spd_4x4_correlation_rhs, spd_4x4_correlation_sol, spd_4x4_correlation_eigen);
+        return TestLinearSystemSymmetric(4, spd_4x4_correlation_mat, spd_4x4_correlation_rhs, spd_4x4_correlation_sol, spd_4x4_correlation_eigen,
+                                         spd_4x4_correlation_det, spd_4x4_correlation_singular_values, spd_4x4_correlation_cond_2, spd_4x4_correlation_rank);
     }
 
     inline TestLinearSystemSymmetric spd_5x5_mass_matrix() {
-        return TestLinearSystemSymmetric(5, spd_5x5_mass_matrix_mat, spd_5x5_mass_matrix_rhs, spd_5x5_mass_matrix_sol, spd_5x5_mass_matrix_eigen);
+        return TestLinearSystemSymmetric(5, spd_5x5_mass_matrix_mat, spd_5x5_mass_matrix_rhs, spd_5x5_mass_matrix_sol, spd_5x5_mass_matrix_eigen,
+                                         spd_5x5_mass_matrix_det, spd_5x5_mass_matrix_singular_values, spd_5x5_mass_matrix_cond_2, spd_5x5_mass_matrix_rank);
     }
 
     inline TestLinearSystemSymmetric spd_6x6_graph_laplacian() {
-        return TestLinearSystemSymmetric(6, spd_6x6_graph_laplacian_mat, spd_6x6_graph_laplacian_rhs, spd_6x6_graph_laplacian_sol, spd_6x6_graph_laplacian_eigen);
+        return TestLinearSystemSymmetric(6, spd_6x6_graph_laplacian_mat, spd_6x6_graph_laplacian_rhs, spd_6x6_graph_laplacian_sol, spd_6x6_graph_laplacian_eigen,
+                                         spd_6x6_graph_laplacian_det, spd_6x6_graph_laplacian_singular_values, spd_6x6_graph_laplacian_cond_2, spd_6x6_graph_laplacian_rank);
     }
 
     /*******************************************************************************************************************
@@ -284,13 +321,13 @@ namespace MML::TestBeds
 
         static const std::vector<std::pair<std::string, TestLinearSystemSymmetric>>& getSymmetricSystemsArray() {
             static const std::vector<std::pair<std::string, TestLinearSystemSymmetric>> systems = {
-                { "symm_mat_3x3()", { 3, symm_mat_3x3(), symm_mat_3x3_rhs0(), symm_mat_3x3_rhs0_sol(), symm_mat_3x3_eigen_val(), symm_mat_3x3_eigen_vecs() } },
-                { "symm_mat_5x5()", { 5, symm_mat_5x5(), symm_mat_5x5_rhs0(), symm_mat_5x5_rhs0_sol(), symm_mat_5x5_eigen_val(), symm_mat_5x5_eigen_vecs() } },
-                { "symm_mat_10x10()", { 10, symm_mat_10x10(), symm_mat_10x10_rhs0(), symm_mat_10x10_rhs0_sol(), symm_mat_10x10_eigen_val(), symm_mat_10x10_eigen_vecs() } },
-                { "spd_3x3", { 3, spd_3x3_mat, spd_3x3_rhs, spd_3x3_sol, spd_3x3_eigen } },
-                { "spd_4x4_correlation", { 4, spd_4x4_correlation_mat, spd_4x4_correlation_rhs, spd_4x4_correlation_sol, spd_4x4_correlation_eigen } },
-                { "spd_5x5_mass_matrix", { 5, spd_5x5_mass_matrix_mat, spd_5x5_mass_matrix_rhs, spd_5x5_mass_matrix_sol, spd_5x5_mass_matrix_eigen } },
-                { "spd_6x6_graph_laplacian", { 6, spd_6x6_graph_laplacian_mat, spd_6x6_graph_laplacian_rhs, spd_6x6_graph_laplacian_sol, spd_6x6_graph_laplacian_eigen } }
+                { "symm_mat_3x3()", { 3, symm_mat_3x3(), symm_mat_3x3_rhs0(), symm_mat_3x3_rhs0_sol(), symm_mat_3x3_eigen_val(), symm_mat_3x3_eigen_vecs(), symm_mat_3x3_det, symm_mat_3x3_singular_values(), symm_mat_3x3_cond_2, symm_mat_3x3_rank } },
+                { "symm_mat_5x5()", { 5, symm_mat_5x5(), symm_mat_5x5_rhs0(), symm_mat_5x5_rhs0_sol(), symm_mat_5x5_eigen_val(), symm_mat_5x5_eigen_vecs(), symm_mat_5x5_det, symm_mat_5x5_singular_values(), symm_mat_5x5_cond_2, symm_mat_5x5_rank } },
+                { "symm_mat_10x10()", { 10, symm_mat_10x10(), symm_mat_10x10_rhs0(), symm_mat_10x10_rhs0_sol(), symm_mat_10x10_eigen_val(), symm_mat_10x10_eigen_vecs(), symm_mat_10x10_det, symm_mat_10x10_singular_values(), symm_mat_10x10_cond_2, symm_mat_10x10_rank } },
+                { "spd_3x3", spd_3x3() },
+                { "spd_4x4_correlation", spd_4x4_correlation() },
+                { "spd_5x5_mass_matrix", spd_5x5_mass_matrix() },
+                { "spd_6x6_graph_laplacian", spd_6x6_graph_laplacian() }
             };
             return systems;
         }
@@ -301,21 +338,22 @@ namespace MML::TestBeds
                     "mat_5x5_multi_rhs1",
                     {
                         5, 
-                        Matrix<Real>{5, 5, {1.4, 2.1, 2.1, 7.4, 9.6,
-                                        1.6, 1.5, 1.1, 0.7, 5.0,
-                                        3.8, 8.0, 9.6, 5.4, 8.8,
-                                        4.6, 8.2, 8.4, 0.4, 8.0,
-                                        2.6, 2.9, 0.1, 9.6, 7.7}},
-                        Matrix<Real>{5, 2, {1.1, 1.6, 
-                                        4.7, 9.1, 
-                                        0.1, 4.0, 
-                                        9.3, 8.4, 
-                                        0.4, 4.1}},
-                        Matrix<Real>{5, 2, {-3.9032710424808688,  15.643114174796667, 
-                                        5.2353433160849479, -11.587503332831671, 
-                                        -3.2920957702478550,   4.4111268480786325, 
-                                        -1.7183300108528281,   0.21432757972725644, 
-                                        1.5832710097423177,  -0.70999930382454612}}
+                        Matrix<Real>{5, 5, {MML::Real(1.4), MML::Real(2.1), MML::Real(2.1), MML::Real(7.4), MML::Real(9.6),
+                                        MML::Real(1.6), MML::Real(1.5), MML::Real(1.1), MML::Real(0.7), MML::Real(5.0),
+                                        MML::Real(3.8), MML::Real(8.0), MML::Real(9.6), MML::Real(5.4), MML::Real(8.8),
+                                        MML::Real(4.6), MML::Real(8.2), MML::Real(8.4), MML::Real(0.4), MML::Real(8.0),
+                                        MML::Real(2.6), MML::Real(2.9), MML::Real(0.1), MML::Real(9.6), MML::Real(7.7)}},
+                        Matrix<Real>{5, 2, {MML::Real(1.1), MML::Real(1.6),
+                                        MML::Real(4.7), MML::Real(9.1),
+                                        MML::Real(0.1), MML::Real(4.0),
+                                        MML::Real(9.3), MML::Real(8.4),
+                                        MML::Real(0.4), MML::Real(4.1)}},
+                        Matrix<Real>{5, 2, {-MML::Real(3.9032710424808688),  MML::Real(15.643114174796667),
+                                        MML::Real(5.2353433160849479), -MML::Real(11.587503332831671),
+                                        -MML::Real(3.2920957702478550),   MML::Real(4.4111268480786325),
+                                        -MML::Real(1.7183300108528281),   MML::Real(0.21432757972725644),
+                                        MML::Real(1.5832710097423177),  -MML::Real(0.70999930382454612)}},
+                        mat_5x5_det, mat_5x5_singular_values(), mat_5x5_cond_2, mat_5x5_rank
                     }
                 }
             };
@@ -353,6 +391,47 @@ namespace MML::TestBeds
         }
 
     public:
+        static TestCaseMetadata getMetadata(const std::string& name)
+        {
+            const auto metadata = [](const std::string& source, const std::string& category, Real condition)
+            {
+                TestCaseMetadata result;
+                result.source = source;
+                result.category = category;
+                if (condition > 0)
+                    result.conditionNumber = condition;
+                return result;
+            };
+            for (const auto& entry : getLinearSystemsArray())
+            {
+                if (entry.first != name)
+                    continue;
+                if (name.find("mat_") == 0)
+                    return metadata("test_data/linear_alg_eq_systems_real_defs.h", "random", entry.second._cond_2);
+                if (name.find("diag_dominant_") == 0)
+                    return metadata("test_data/linear_alg_eq_systems_solverspecific_defs.h", "diagonally-dominant", entry.second._cond_2);
+                return metadata("test_data/linear_alg_eq_systems_classic_defs.h", name.substr(0, name.find('_')), entry.second._cond_2);
+            }
+            for (const auto& entry : getSymmetricSystemsArray())
+            {
+                if (entry.first != name)
+                    continue;
+                if (name.find("spd_") == 0)
+                    return metadata("test_data/linear_alg_eq_systems_solverspecific_defs.h", "spd", entry.second._cond_2);
+                return metadata("test_data/linear_alg_eq_systems_sym_defs.h", "symmetric", entry.second._cond_2);
+            }
+            for (const auto& entry : getComplexSystemsArray())
+                if (entry.first == name)
+                    return metadata("test_data/linear_alg_eq_systems_complex_defs.h", "complex", entry.second._cond_2);
+            for (const auto& entry : getOverdeterminedSystemsArray())
+                if (entry.first == name)
+                    return metadata("test_data/linear_alg_eq_systems_solverspecific_defs.h", "overdetermined", entry.second._cond_2);
+            for (const auto& entry : getMultiRHSSystemsArray())
+                if (entry.first == name)
+                    return metadata("test_beds/linear_alg_eq_systems_test_bed.h", "multi-rhs", entry.second._cond_2);
+            throw std::runtime_error("LinearAlgEqTestBed::getMetadata: system with name " + name + " not found");
+        }
+
         //==============================================================================================================
         // ORIGINAL INTERFACE (backward compatible)
         //==============================================================================================================

@@ -207,11 +207,11 @@ namespace MML::Tests::Algorithms::ODEEventDetectionTests
 		TEST_PRECISION_INFO();
 		
 		// Ball dropped from height 10 with zero initial velocity
-		BouncingBall ball(9.81, 0.9);  // 10% energy loss per bounce
+		BouncingBall ball(MML::Real(9.81), MML::Real(0.9));  // 10% energy loss per bounce
 		Vector<Real> x0(std::vector<Real>{ 10.0, 0.0 });  // y=10, v=0
 		
 		DormandPrince5EventIntegrator integrator(ball);
-		auto result = integrator.integrateWithEvents(ball, x0, 0.0, 5.0, 0.01, TOL(1e-10, 1e-5), TOL(1e-12, 1e-5));
+		auto result = integrator.integrateWithEvents(ball, x0, MML::Real(0.0), MML::Real(5.0), MML::Real(0.01), TOL(1e-10, 1e-5), TOL(1e-12, 1e-5));
 		
 		// Should have at least 2 bounces in 5 seconds (first bounce at ~1.43s)
 		REQUIRE(result.events.size() >= 2);
@@ -262,7 +262,7 @@ namespace MML::Tests::Algorithms::ODEEventDetectionTests
 		Vector<Real> x0(std::vector<Real>{ 1.0, 0.0 });  // Start at max displacement
 		
 		DormandPrince5EventIntegrator integrator(osc);
-		auto result = integrator.integrateWithEvents(osc, x0, 0.0, 2.0, 0.01, TOL(1e-10, 1e-5), TOL(1e-12, 1e-5));
+		auto result = integrator.integrateWithEvents(osc, x0, MML::Real(0.0), MML::Real(2.0), MML::Real(0.01), TOL(1e-10, 1e-5), TOL(1e-12, 1e-5));
 		
 		// In 2 periods, should have 4 zero crossings
 		REQUIRE(result.events.size() == 4);
@@ -299,12 +299,12 @@ namespace MML::Tests::Algorithms::ODEEventDetectionTests
 		// x' = -x, x(0) = 1
 		// Solution: x(t) = e^(-t)
 		// Stop when x = 0.1 => t = -ln(0.1) ≈ 2.303
-		Real threshold = 0.1;
+		Real threshold = MML::Real(0.1);
 		ExponentialDecayWithTermination decay(threshold);
 		Vector<Real> x0(std::vector<Real>{ 1.0 });
 		
 		DormandPrince5EventIntegrator integrator(decay);
-		auto result = integrator.integrateWithEvents(decay, x0, 0.0, 10.0, 0.1, TOL(1e-10, 1e-5), TOL(1e-12, 1e-5));
+		auto result = integrator.integrateWithEvents(decay, x0, MML::Real(0.0), MML::Real(10.0), MML::Real(0.1), TOL(1e-10, 1e-5), TOL(1e-12, 1e-5));
 		
 		// Should terminate before tEnd
 		REQUIRE(result.terminatedByEvent == true);
@@ -327,7 +327,7 @@ namespace MML::Tests::Algorithms::ODEEventDetectionTests
 		// Projectile launched at 45 degrees with v0 = 20 m/s
 		Real v0 = 20.0;
 		Real angle = Constants::PI / 4.0;  // 45 degrees
-		Real g = 9.81;
+		Real g = MML::Real(9.81);
 		Real apexHeight = 5.0;  // Detect when y crosses 5m
 		
 		ProjectileWithMultipleEvents proj(g, apexHeight);
@@ -339,7 +339,7 @@ namespace MML::Tests::Algorithms::ODEEventDetectionTests
 		});
 		
 		DormandPrince5EventIntegrator integrator(proj);
-		auto result = integrator.integrateWithEvents(proj, x0, 0.0, 10.0, 0.01, TOL(1e-10, 1e-5), TOL(1e-12, 1e-5));
+		auto result = integrator.integrateWithEvents(proj, x0, MML::Real(0.0), MML::Real(10.0), MML::Real(0.01), TOL(1e-10, 1e-5), TOL(1e-12, 1e-5));
 		
 		// Should detect apex crossing and ground impact
 		REQUIRE(result.events.size() >= 2);
@@ -361,7 +361,7 @@ namespace MML::Tests::Algorithms::ODEEventDetectionTests
 			REQUIRE_THAT(lastEvent.state[1], WithinAbs(0.0, TOL(1e-10, 1e-5)));
 			
 			// Flight time: t = 2 * v0 * sin(angle) / g
-			Real expectedFlightTime = 2.0 * v0 * std::sin(angle) / g;
+			Real expectedFlightTime = MML::Real(2.0) * v0 * std::sin(angle) / g;
 			REQUIRE_THAT(lastEvent.time, WithinRel(expectedFlightTime, static_cast<MML::Real>(1e-3)));
 		}
 	}
@@ -384,7 +384,7 @@ namespace MML::Tests::Algorithms::ODEEventDetectionTests
 		Vector<Real> x0(std::vector<Real>{ 1.0, 0.0 });
 		
 		DormandPrince5EventIntegrator integrator(osc);
-		auto result = integrator.integrateWithEvents(osc, x0, 0.0, 2.0, 0.01, TOL(1e-10, 1e-5), TOL(1e-12, 1e-5));
+		auto result = integrator.integrateWithEvents(osc, x0, MML::Real(0.0), MML::Real(2.0), MML::Real(0.01), TOL(1e-10, 1e-5), TOL(1e-12, 1e-5));
 		
 		// Should only have 2 events (one per period, increasing only)
 		REQUIRE(result.events.size() == 2);
@@ -404,11 +404,11 @@ namespace MML::Tests::Algorithms::ODEEventDetectionTests
 		TEST_PRECISION_INFO();
 		
 		// Exponential decay that never reaches threshold
-		ExponentialDecayWithTermination decay(0.001);  // Very low threshold
+		ExponentialDecayWithTermination decay(MML::Real(0.001));  // Very low threshold
 		Vector<Real> x0(std::vector<Real>{ 1.0 });
 		
 		DormandPrince5EventIntegrator integrator(decay);
-		auto result = integrator.integrateWithEvents(decay, x0, 0.0, 2.0, 0.1, TOL(1e-10, 1e-5), TOL(1e-12, 1e-5));
+		auto result = integrator.integrateWithEvents(decay, x0, MML::Real(0.0), MML::Real(2.0), MML::Real(0.1), TOL(1e-10, 1e-5), TOL(1e-12, 1e-5));
 		
 		// x(2) = e^(-2) ≈ 0.135, still above threshold 0.001
 		REQUIRE(result.events.empty());
@@ -420,25 +420,115 @@ namespace MML::Tests::Algorithms::ODEEventDetectionTests
 		TEST_PRECISION_INFO();
 		
 		// Test that event detection works with different steppers
-		BouncingBall ball(9.81, 0.9);
+		BouncingBall ball(MML::Real(9.81), MML::Real(0.9));
 		Vector<Real> x0(std::vector<Real>{ 5.0, 0.0 });
 		
 		SECTION("DormandPrince5") {
 			DormandPrince5EventIntegrator integrator(ball);
-			auto result = integrator.integrateWithEvents(ball, x0, 0.0, 3.0, 0.01, TOL(1e-10, 1e-5), TOL(1e-12, 1e-5));
+			auto result = integrator.integrateWithEvents(ball, x0, MML::Real(0.0), MML::Real(3.0), MML::Real(0.01), TOL(1e-10, 1e-5), TOL(1e-12, 1e-5));
 			REQUIRE(result.events.size() >= 2);
 		}
 		
 		SECTION("DormandPrince8") {
 			DormandPrince8EventIntegrator integrator(ball);
-			auto result = integrator.integrateWithEvents(ball, x0, 0.0, 3.0, 0.01, TOL(1e-10, 1e-5), TOL(1e-12, 1e-5));
+			auto result = integrator.integrateWithEvents(ball, x0, MML::Real(0.0), MML::Real(3.0), MML::Real(0.01), TOL(1e-10, 1e-5), TOL(1e-12, 1e-5));
 			REQUIRE(result.events.size() >= 2);
 		}
 		
 		SECTION("CashKarp") {
 			CashKarpEventIntegrator integrator(ball);
-			auto result = integrator.integrateWithEvents(ball, x0, 0.0, 3.0, 0.01, TOL(1e-10, 1e-5), TOL(1e-12, 1e-5));
+			auto result = integrator.integrateWithEvents(ball, x0, MML::Real(0.0), MML::Real(3.0), MML::Real(0.01), TOL(1e-10, 1e-5), TOL(1e-12, 1e-5));
 			REQUIRE(result.events.size() >= 2);
+		}
+	}
+
+	/**
+	 * @brief Clock ODE x' = 1 with several time-triggered events, used to exercise
+	 * multiple crossings inside a single integration step and tiny-magnitude events.
+	 */
+	class ClockEvents : public IODESystemWithEvents {
+	public:
+		std::vector<Real> times;
+		Real scale = 1;
+		EventAction action = EventAction::Continue;
+
+		int getDim() const override { return 1; }
+		void derivs(Real, const Vector<Real>&, Vector<Real>& dxdt) const override { dxdt[0] = 1; }
+		int getNumEvents() const override { return static_cast<int>(times.size()); }
+		Real eventFunction(int i, Real t, const Vector<Real>&) const override { return scale * (t - times[i]); }
+		EventDirection getEventDirection(int) const override { return EventDirection::Both; }
+		EventAction getEventAction(int) const override { return action; }
+	};
+
+	TEST_CASE("Event Detection - All Continue crossings within one step are reported in order",
+		"[ODEEventDetection][MinimalMathLibrary-hrdm]") {
+		TEST_PRECISION_INFO();
+		ClockEvents sys;
+		sys.times = { Real(0.75), Real(0.25) }; // deliberately out of time order
+
+		DormandPrince5EventIntegrator integrator(sys);
+		// h0 = 1 forces a single step 0 -> 1 for the trivial ODE
+		auto result = integrator.integrateWithEvents(sys, Vector<Real>{0}, Real(0), Real(1), Real(0.5),
+			Precision::CoarseTolerance, Precision::EventTolerance, Real(1));
+
+		REQUIRE_FALSE(result.terminatedByEvent);
+		REQUIRE(result.events.size() == 2);
+		REQUIRE(result.events[0].eventIndex == 1);
+		REQUIRE(result.events[1].eventIndex == 0);
+		REQUIRE_THAT(result.events[0].time, WithinAbs(Real(0.25), TOL(1e-9, 1e-4)));
+		REQUIRE_THAT(result.events[1].time, WithinAbs(Real(0.75), TOL(1e-9, 1e-4)));
+		REQUIRE_THAT(result.events[0].state[0], WithinAbs(Real(0.25), TOL(1e-9, 1e-4)));
+		REQUIRE_THAT(result.events[1].state[0], WithinAbs(Real(0.75), TOL(1e-9, 1e-4)));
+		REQUIRE_THAT(result.finalTime, WithinAbs(Real(1), TOL(1e-12, 1e-6)));
+
+		SECTION("Reverse integration path keeps path order") {
+			auto reverse = integrator.integrateWithEvents(sys, Vector<Real>{1}, Real(1), Real(0), Real(0.5),
+				Precision::CoarseTolerance, Precision::EventTolerance, Real(1));
+			REQUIRE(reverse.events.size() == 2);
+			REQUIRE(reverse.events[0].eventIndex == 0);
+			REQUIRE(reverse.events[1].eventIndex == 1);
+			REQUIRE(reverse.events[0].direction == EventDirection::Decreasing);
+			REQUIRE_THAT(reverse.events[0].time, WithinAbs(Real(0.75), TOL(1e-9, 1e-4)));
+			REQUIRE_THAT(reverse.events[1].time, WithinAbs(Real(0.25), TOL(1e-9, 1e-4)));
+		}
+
+		SECTION("A Stop event after a Continue event in the same step terminates there") {
+			class MixedActions : public ClockEvents {
+			public:
+				EventAction getEventAction(int i) const override {
+					return i == 0 ? EventAction::Stop : EventAction::Continue;
+				}
+			};
+			MixedActions mixed;
+			mixed.times = sys.times;
+			DormandPrince5EventIntegrator mixedIntegrator(mixed);
+			auto mixedResult = mixedIntegrator.integrateWithEvents(mixed, Vector<Real>{0}, Real(0), Real(1), Real(0.5),
+				Precision::CoarseTolerance, Precision::EventTolerance, Real(1));
+			REQUIRE(mixedResult.terminatedByEvent);
+			REQUIRE(mixedResult.events.size() == 2);
+			REQUIRE(mixedResult.events[0].eventIndex == 1);
+			REQUIRE(mixedResult.events[1].eventIndex == 0);
+			REQUIRE_THAT(mixedResult.finalTime, WithinAbs(Real(0.75), TOL(1e-9, 1e-4)));
+		}
+	}
+
+	TEST_CASE("Event Detection - Tiny-magnitude event functions are not lost to sign-product underflow",
+		"[ODEEventDetection][MinimalMathLibrary-hrdm]") {
+		TEST_PRECISION_INFO();
+		if constexpr (!std::is_same_v<Real, float>) {
+			ClockEvents sys;
+			sys.times = { Real(0.5) };
+			sys.scale = Real(1e-200);
+
+			REQUIRE(EventSignChange(Real(-1e-200), Real(1e-200)));
+			REQUIRE_FALSE(EventSignChange(Real(0), Real(1e-200)));
+			REQUIRE(EventSignChange(Real(1e-200), Real(0)));
+
+			DormandPrince5EventIntegrator integrator(sys);
+			auto result = integrator.integrateWithEvents(sys, Vector<Real>{0}, Real(0), Real(1), Real(0.5),
+				Precision::CoarseTolerance, Real(1e-210), Real(1));
+			REQUIRE(result.events.size() == 1);
+			REQUIRE_THAT(result.events[0].time, WithinAbs(Real(0.5), Real(1e-6)));
 		}
 	}
 

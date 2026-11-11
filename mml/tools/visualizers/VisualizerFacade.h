@@ -67,6 +67,8 @@ namespace MML {
 		/// @brief Visualize multiple real functions on the same plot
 		static IOResult VisualizeMultiRealFunction(std::vector<IRealFunction*> funcs, std::string title, std::vector<std::string> func_legend,
 																							 Real x1, Real x2, int numPoints, std::string fileName) {
+			const auto validation = Serializer::detail::ValidateMultiFunctionRequest(funcs, func_legend, x1, x2, numPoints);
+			if (!validation.success) return validation.WithFile(fileName);
 			return SaveAndLaunch(Kind::RealFunction, fileName, [&](const std::string& name) {
 				return Serializer::SaveRealMultiFunc(funcs, title, func_legend, x1, x2, numPoints, name);
 			});
@@ -75,6 +77,8 @@ namespace MML {
 		static IOResult VisualizeMultiRealFunction(std::vector<LinearInterpRealFunc> funcs, std::string title,
 																							 std::vector<std::string> func_legend, Real x1, Real x2, int numPoints,
 																							 std::string fileName) {
+			const auto validation = Serializer::detail::ValidateMultiFunctionRequest(funcs, func_legend, x1, x2, numPoints);
+			if (!validation.success) return validation.WithFile(fileName);
 			return SaveAndLaunch(Kind::RealFunction, fileName, [&](const std::string& name) {
 				return Serializer::SaveRealMultiFunc(funcs, title, func_legend, x1, x2, numPoints, name);
 			});
@@ -83,6 +87,8 @@ namespace MML {
 		static IOResult VisualizeMultiRealFunctionSeparately(std::vector<LinearInterpRealFunc> funcs, std::string title,
 																												 std::vector<std::string> func_legend, Real x1, Real x2, int numPoints,
 																												 std::string fileName) {
+			const auto validation = Serializer::detail::ValidateMultiFunctionRequest(funcs, func_legend, x1, x2, numPoints);
+			if (!validation.success) return validation.WithFile(fileName);
 			// for each function, serialize data to file, with name generated from fileName
 			std::vector<std::string> fileNames;
 			int i = 0;
@@ -93,10 +99,10 @@ namespace MML {
 					return output;
 				const std::string& name = output.filename;
 
-				Real xLow = x1 < funcs[i].MinX() ? funcs[i].MinX() : x1;
-				Real xHigh = x2 > funcs[i].MaxX() ? funcs[i].MaxX() : x2;
+				Real xLow = x1 < func.MinX() ? func.MinX() : x1;
+				Real xHigh = x2 > func.MaxX() ? func.MaxX() : x2;
 
-				auto saveResult = Serializer::SaveRealFunc(funcs[i], func_legend[i], xLow, xHigh, numPoints, name);
+				auto saveResult = Serializer::SaveRealFunc(func, func_legend[i], xLow, xHigh, numPoints, name);
 				if (!saveResult.success) {
 					return saveResult.WithFile(name);
 				}
@@ -109,6 +115,8 @@ namespace MML {
 		static IOResult VisualizeMultiRealFunction(std::vector<PolynomInterpRealFunc> funcs, std::string title,
 																							 std::vector<std::string> func_legend, Real x1, Real x2, int numPoints,
 																							 std::string fileName) {
+			const auto validation = Serializer::detail::ValidateMultiFunctionRequest(funcs, func_legend, x1, x2, numPoints);
+			if (!validation.success) return validation.WithFile(fileName);
 			return SaveAndLaunch(Kind::RealFunction, fileName, [&](const std::string& name) {
 				return Serializer::SaveRealMultiFunc(funcs, title, func_legend, x1, x2, numPoints, name);
 			});
@@ -117,6 +125,8 @@ namespace MML {
 		static IOResult VisualizeMultiRealFunction(std::vector<SplineInterpRealFunc> funcs, std::string title,
 																							 std::vector<std::string> func_legend, Real x1, Real x2, int numPoints,
 																							 std::string fileName) {
+			const auto validation = Serializer::detail::ValidateMultiFunctionRequest(funcs, func_legend, x1, x2, numPoints);
+			if (!validation.success) return validation.WithFile(fileName);
 			return SaveAndLaunch(Kind::RealFunction, fileName, [&](const std::string& name) {
 				return Serializer::SaveRealMultiFunc(funcs, title, func_legend, x1, x2, numPoints, name);
 			});
@@ -168,6 +178,7 @@ namespace MML {
 		}
 
 		// visualizations of Vector fields
+		/// @brief Visualize every sampled 2D vector without magnitude filtering.
 		static IOResult VisualizeVectorField2DCartesian(const IVectorFunction<2>& func, std::string title, Real x1, Real x2, int numPointsX,
 																										Real y1, Real y2, int numPointsY, std::string fileName) {
 			return SaveAndLaunch(Kind::VectorField2D, fileName, [&](const std::string& name) {
@@ -175,11 +186,33 @@ namespace MML {
 			});
 		}
 
+		/// @brief Visualize only 2D vectors with magnitude strictly below upperThreshold.
+		/// @param upperThreshold Positive exclusive cutoff in field-value units.
+		static IOResult VisualizeVectorField2DCartesian(const IVectorFunction<2>& func, std::string title, Real x1, Real x2, int numPointsX,
+																										Real y1, Real y2, int numPointsY, std::string fileName,
+																										Real upperThreshold) {
+			return SaveAndLaunch(Kind::VectorField2D, fileName, [&](const std::string& name) {
+				return Serializer::SaveVectorFunc2DCartesian(func, title, x1, x2, numPointsX, y1, y2, numPointsY, name, upperThreshold);
+			});
+		}
+
+		/// @brief Visualize every sampled 3D vector without magnitude filtering.
 		static IOResult VisualizeVectorField3DCartesian(const IVectorFunction<3>& func, std::string title, Real x1, Real x2, int numPointsX,
 																										Real y1, Real y2, int numPointsY, Real z1, Real z2, int numPointsZ,
 																										std::string fileName) {
 			return SaveAndLaunch(Kind::VectorField3D, fileName, [&](const std::string& name) {
-				return Serializer::SaveVectorFunc3DCartesian(func, title, x1, x2, numPointsX, y1, y2, numPointsY, z1, z2, numPointsZ, name, 3.0);
+				return Serializer::SaveVectorFunc3DCartesian(func, title, x1, x2, numPointsX, y1, y2, numPointsY, z1, z2, numPointsZ, name);
+			});
+		}
+
+		/// @brief Visualize only 3D vectors with magnitude strictly below upperThreshold.
+		/// @param upperThreshold Positive exclusive cutoff in field-value units; pass 3 to opt into the former cutoff.
+		static IOResult VisualizeVectorField3DCartesian(const IVectorFunction<3>& func, std::string title, Real x1, Real x2, int numPointsX,
+																										Real y1, Real y2, int numPointsY, Real z1, Real z2, int numPointsZ,
+																										std::string fileName, Real upperThreshold) {
+			return SaveAndLaunch(Kind::VectorField3D, fileName, [&](const std::string& name) {
+				return Serializer::SaveVectorFunc3DCartesian(
+					func, title, x1, x2, numPointsX, y1, y2, numPointsY, z1, z2, numPointsZ, name, upperThreshold);
 			});
 		}
 
@@ -214,6 +247,8 @@ namespace MML {
 
 		static IOResult VisualizeMultiParamCurve2D(std::vector<IRealToVectorFunction<2>*> curves, std::string title, Real t1, Real t2,
 																							 int numPoints, std::string fileName) {
+			const auto validation = Serializer::detail::ValidateCollection(curves, "curves");
+			if (!validation.success) return validation.WithFile(fileName);
 			// for each function, serialize data to file, with name generated from fileName
 			std::vector<std::string> fileNames;
 			int i = 0;
@@ -235,6 +270,8 @@ namespace MML {
 
 		static IOResult VisualizeMultiParamCurve2D(std::vector<IRealToVectorFunction<2>*> curves, std::vector<std::string> legend, Real t1,
 																							 Real t2, int numPoints, std::string fileName) {
+			const auto validation = Serializer::detail::ValidateLabeledCollection(curves, legend, "curves");
+			if (!validation.success) return validation.WithFile(fileName);
 			// for each function, serialize data to file, with name generated from fileName
 			std::vector<std::string> fileNames;
 			int i = 0;
@@ -267,6 +304,8 @@ namespace MML {
 
 		static IOResult VisualizeMultiParamCurve3D(std::vector<IRealToVectorFunction<3>*> curves, std::string title, Real t1, Real t2,
 																							 int numPoints, std::string fileName) {
+			const auto validation = Serializer::detail::ValidateCollection(curves, "curves");
+			if (!validation.success) return validation.WithFile(fileName);
 			// for each function, serialize data to file, with name generated from fileName
 			std::vector<std::string> fileNames;
 			int i = 0;

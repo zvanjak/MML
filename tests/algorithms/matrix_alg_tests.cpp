@@ -742,6 +742,39 @@ namespace MML::Tests::Algorithms::MatrixAlgTests
 		REQUIRE_THROWS_AS(ClassifyDefiniteness(nonsymmetric), MatrixDimensionError);
 		REQUIRE_THROWS_AS(IsPositiveDefinite(nonsymmetric), MatrixDimensionError);
 	}
+
+	TEST_CASE("Definiteness_ExtremeMagnitudesAndNonfinite", "[MatrixAlg][Definiteness][MinimalMathLibrary-uk6l]")
+	{
+		TEST_PRECISION_INFO();
+		if constexpr (std::is_same_v<Real, float>) {
+			SUCCEED("double/long double witnesses");
+		} else {
+			const Real big = static_cast<MML::Real>(1e308);
+
+			// SPD with eigenvalues 9e307 and 1.1e308: the 0.5*(a+b) averaging used to overflow to inf,
+			// and the resulting NaN spectrum was classified as ZeroSemidefinite.
+			Matrix<Real> spd{2, 2, {big, big / 10, big / 10, big}};
+			REQUIRE(ClassifyDefiniteness(spd) == Definiteness::PositiveDefinite);
+			REQUIRE(IsPositiveDefinite(spd));
+
+			// Indefinite with eigenvalues +-sqrt(2)*1e308
+			Matrix<Real> indefinite{2, 2, {big, big, big, -big}};
+			REQUIRE(ClassifyDefiniteness(indefinite) == Definiteness::Indefinite);
+			REQUIRE(IsIndefinite(indefinite));
+			MatrixSym<Real> indefiniteSym{2, {big, big, -big}};
+			REQUIRE(IsIndefinite(indefiniteSym));
+
+			Matrix<Complex> hermitian{2, 2, {Complex(big, 0), Complex(big, 0), Complex(big, 0), Complex(-big, 0)}};
+			REQUIRE(ClassifyDefiniteness(hermitian) == Definiteness::Indefinite);
+
+			// Nonfinite data carries no sign information and must not be classified
+			MatrixSym<Real> nan{2, {static_cast<MML::Real>(1.0), std::numeric_limits<Real>::quiet_NaN(), static_cast<MML::Real>(1.0)}};
+			REQUIRE_THROWS_AS(ClassifyDefiniteness(nan), MatrixNumericalError);
+			REQUIRE_THROWS_AS(IsPositiveSemiDefinite(nan), MatrixNumericalError);
+			Vector<Real> nanSpectrum{static_cast<MML::Real>(1.0), std::numeric_limits<Real>::quiet_NaN()};
+			REQUIRE_THROWS_AS(MatrixAlg::Detail::ClassifyEigenvalueSigns(nanSpectrum, static_cast<MML::Real>(1e-10)), MatrixNumericalError);
+		}
+	}
 	
 	/*********************************************************************/
 	/*****                SVD-BASED UTILITIES                        *****/

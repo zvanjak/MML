@@ -105,7 +105,7 @@ TEST_CASE("IntegrateGK21 - higher accuracy tests", "[gauss-kronrod][integration]
 		// ∫₋₃³ exp(-x²) dx ≈ √π * erf(3) ≈ 1.7724538509055159
 		auto f = [](Real x) { return std::exp(-x * x); };
 		auto result = IntegrateGK21Detailed(f, -3.0, 3.0);
-		Real expected = std::sqrt(Constants::PI) * std::erf(3.0);
+		Real expected = std::sqrt(Constants::PI) * std::erf(MML::Real(3.0));
 		// Note: TOL(1e-10, 1e-5) relative tolerance due to slight numerical differences
 		// in erf() implementations across platforms
 		REQUIRE(result.value == Approx(expected).epsilon(TOL(1e-10, 1e-5)));
@@ -141,14 +141,14 @@ TEST_CASE("IntegrateGKAdaptive - functions requiring subdivision", "[gauss-kronr
 	{
 		// ∫₀¹ 1/(1+(x-0.5)²/0.001) dx - sharp peak at x=0.5
 		auto f = [](Real x) { 
-			Real t = x - 0.5;
+			Real t = x - MML::Real(0.5);
 			return 1.0 / (1.0 + t * t / 0.001); 
 		};
 		auto result = IntegrateGKAdaptiveDetailed(f, 0.0, 1.0, TOL(1e-8, 1e-4), TOL(1e-8, 1e-4), 50, GKRule::GK15);
 		
 		// Exact: √0.001 * (arctan(0.5/√0.001) + arctan(0.5/√0.001))
-		Real sqrtEps = std::sqrt(0.001);
-		Real expected = sqrtEps * (std::atan(0.5 / sqrtEps) + std::atan(0.5 / sqrtEps));
+		Real sqrtEps = std::sqrt(MML::Real(0.001));
+		Real expected = sqrtEps * (std::atan(MML::Real(0.5) / sqrtEps) + std::atan(MML::Real(0.5) / sqrtEps));
 		
 		REQUIRE(result.value == Approx(expected).epsilon(TOL(1e-6, 1e-4)));
 		REQUIRE(result.converged);
@@ -166,7 +166,7 @@ TEST_CASE("IntegrateGKAdaptive - functions requiring subdivision", "[gauss-kronr
 	{
 		// ∫₀¹ tanh(100*(x-0.5)) dx ≈ 0 (antisymmetric about 0.5)
 		auto f = [](Real x) { return std::tanh(100.0 * (x - 0.5)); };
-		auto result = IntegrateGKAdaptiveDetailed(f, 0.0, 1.0, 1e-6, 1e-6);
+		auto result = IntegrateGKAdaptiveDetailed(f, MML::Real(0.0), MML::Real(1.0), MML::Real(1e-6), MML::Real(1e-6));
 		REQUIRE(result.value == Approx(0.0).margin(1e-4));
 	}
 }
@@ -182,7 +182,7 @@ TEST_CASE("Gauss-Kronrod error estimates", "[gauss-kronrod][integration]")
 		auto f = [](Real x) { return std::exp(x); };
 		auto result = IntegrateGK15Detailed(f, 0.0, 1.0);
 		
-		Real true_value = std::exp(1.0) - 1.0;
+		Real true_value = std::exp(MML::Real(1.0)) - MML::Real(1.0);
 		Real actual_error = std::abs(result.value - true_value);
 		
 		// Error estimate should bound actual error (conservatively)
@@ -199,7 +199,7 @@ TEST_CASE("Gauss-Kronrod error estimates", "[gauss-kronrod][integration]")
 		auto result31 = IntegrateGK31Detailed(f, 0.0, Constants::PI);
 		
 		// True value: ∫sin(5x)dx = -cos(5x)/5, from 0 to π: (-cos(5π)+cos(0))/5 = 2/5
-		Real true_value = 2.0 / 5.0;
+		Real true_value = MML::Real(2.0) / MML::Real(5.0);
 		
 		Real err15 = std::abs(result15.value - true_value);
 		Real err21 = std::abs(result21.value - true_value);
@@ -250,7 +250,10 @@ TEST_CASE("Gauss-Kronrod convenience functions", "[gauss-kronrod][integration]")
 		Real error = 0.0;
 		Real result = IntegrateGaussKronrod(f, 0.0, Constants::PI, &error);
 		REQUIRE(result == Approx(expected).epsilon(TOL(1e-10, 1e-5)));
-		REQUIRE(error < TOL(1e-10, 1e-5));
+		REQUIRE(std::isfinite(error));
+		REQUIRE(error >= 0);
+		REQUIRE(error < TOL(1e-10, Precision::IntegrationTolerance * std::max(Real(1), std::abs(result))));
+		REQUIRE(std::abs(result - expected) <= error + Precision::Eps * std::abs(expected));
 	}
 }
 
@@ -268,7 +271,7 @@ TEST_CASE("Gauss-Kronrod vs other integration methods", "[gauss-kronrod][integra
 		
 		// Test with degree 25 polynomial (should be exact for all rules)
 		auto f = [](Real x) { return std::pow(x, 25); };
-		Real expected = 1.0 / 26.0;  // ∫₀¹ x^25 dx = 1/26
+		Real expected = MML::Real(1.0) / MML::Real(26.0);  // ∫₀¹ x^25 dx = 1/26
 		
 		auto result15 = IntegrateGK15Detailed(f, 0.0, 1.0);
 		auto result21 = IntegrateGK21Detailed(f, 0.0, 1.0);
@@ -308,10 +311,15 @@ TEST_CASE("Gauss-Kronrod edge cases", "[gauss-kronrod][integration]")
 			if (std::abs(x) < Real(TOL(1e-10, 1e-5))) return Real(1.0);  // sinc(0) = 1
 			return std::sin(x) / x; 
 		};
-		auto result = IntegrateGKAdaptiveDetailed(f, 0.001, 100.0, 1e-6, 1e-6);
-		// Si(100) - Si(0.001) ≈ 1.5622 (Sine integral)
+		const Real tolerance = TOL(1e-6, Real(2) * Precision::RoundoffZeroThreshold);
+		auto result = IntegrateGKAdaptiveDetailed(f, Real(0.001), Real(100), tolerance, tolerance);
+		INFO(result.error_message);
 		REQUIRE(result.converged);
-		REQUIRE(result.value > 1.0);  // Sanity check
+		REQUIRE(result.status == AlgorithmStatus::Success);
+		const Real reference = Real(1.5612254669446119); // Si(100) - Si(0.001).
+		const Real budget = tolerance * std::max(Real(1), std::abs(reference));
+		REQUIRE(std::abs(result.value - reference) <= budget);
+		REQUIRE(result.error_estimate <= budget);
 	}
 }
 
@@ -356,7 +364,7 @@ TEST_CASE("IntegrateGK31Detailed - basic success", "[gauss-kronrod][Detailed]")
 TEST_CASE("IntegrateGKAdaptiveDetailed - peaked function", "[gauss-kronrod][Detailed]")
 {
 	auto f = [](Real x) {
-		Real t = x - 0.5;
+		Real t = x - MML::Real(0.5);
 		return 1.0 / (1.0 + t * t / 0.001);
 	};
 
@@ -367,8 +375,8 @@ TEST_CASE("IntegrateGKAdaptiveDetailed - peaked function", "[gauss-kronrod][Deta
 	REQUIRE(result.converged);
 	REQUIRE(result.function_evaluations > 15);  // Must subdivide
 
-	Real sqrtEps = std::sqrt(0.001);
-	Real expected = sqrtEps * 2.0 * std::atan(0.5 / sqrtEps);
+	Real sqrtEps = std::sqrt(MML::Real(0.001));
+	Real expected = sqrtEps * MML::Real(2.0) * std::atan(MML::Real(0.5) / sqrtEps);
 	REQUIRE(result.value == Approx(expected).epsilon(TOL(1e-6, 1e-4)));
 }
 

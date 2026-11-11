@@ -92,7 +92,7 @@ namespace MML {
 			// This keeps x_out as the state at (t+h) and provides a simple local error estimate.
 			odeSystem.derivs(t + h, x_new, dxdt_end);
 			for (i = 0; i < n; i++)
-				x_out[i] = x_start[i] + 0.5 * h * (dxdt[i] + dxdt_end[i]);
+				x_out[i] = x_start[i] + MML::Real(0.5) * h * (dxdt[i] + dxdt_end[i]);
 
 			// Error estimate: difference between improved-Euler (2nd order) and Euler (1st order)
 			for (i = 0; i < n; i++)
@@ -123,7 +123,7 @@ namespace MML {
 
 			// 1. Update positions
 			for (int i = 0; i < half_n; ++i)
-				x_out[i] = x_start[i] + x_start[half_n + i] * h + 0.5 * dxdt[half_n + i] * h * h;
+				x_out[i] = x_start[i] + x_start[half_n + i] * h + MML::Real(0.5) * dxdt[half_n + i] * h * h;
 
 			// 2. Compute new acceleration at new position
 			Vector<Real> x_temp = x_out;
@@ -135,7 +135,7 @@ namespace MML {
 
 			// 3. Update velocities
 			for (int i = 0; i < half_n; ++i)
-				x_out[half_n + i] = x_start[half_n + i] + 0.5 * (dxdt[half_n + i] + dxdt_temp[half_n + i]) * h;
+				x_out[half_n + i] = x_start[half_n + i] + MML::Real(0.5) * (dxdt[half_n + i] + dxdt_temp[half_n + i]) * h;
 
 			// No error estimate
 			for (int i = 0; i < n; ++i)
@@ -160,9 +160,9 @@ namespace MML {
 			Vector<Real> dx_mid(n);
 
 			for (i = 0; i < n; i++)
-				x_mid[i] = x_start[i] + 0.5 * h * dxdt[i];
+				x_mid[i] = x_start[i] + MML::Real(0.5) * h * dxdt[i];
 
-			odeSystem.derivs(t + 0.5 * h, x_mid, dx_mid);
+			odeSystem.derivs(t + MML::Real(0.5) * h, x_mid, dx_mid);
 			
       for (i = 0; i < n; i++)
 				x_out[i] = x_start[i] + h * dx_mid[i];
@@ -185,8 +185,8 @@ namespace MML {
 			Vector<Real> dx_mid(n), dx_temp(n), x_temp(n);
 
 			Real xh, hh, h6;
-			hh = h * 0.5;
-			h6 = h / 6.0;
+			hh = h * MML::Real(0.5);
+			h6 = h / MML::Real(6.0);
 			xh = t + hh;
 
 			for (i = 0; i < n; i++) // First step
@@ -207,7 +207,7 @@ namespace MML {
 			odeSystem.derivs(t + h, x_temp, dx_temp); // Fourth step
 
 			for (i = 0; i < n; i++)
-				x_out[i] = x_start[i] + h6 * (dxdt[i] + dx_temp[i] + 2.0 * dx_mid[i]);
+				x_out[i] = x_start[i] + h6 * (dxdt[i] + dx_temp[i] + MML::Real(2.0) * dx_mid[i]);
 
 			// No error estimate
 			for (i = 0; i < n; i++)

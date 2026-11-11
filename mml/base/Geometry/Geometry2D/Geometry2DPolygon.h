@@ -21,6 +21,7 @@
 #include <mml/base/Geometry/Geometry.h>
 #include <mml/base/Geometry/Geometry2D/Geometry2DLines.h>
 #include <mml/base/Geometry/Geometry2D/Geometry2DTriangle.h>
+#include <mml/base/Geometry/GeometryBase/GeometryPredicates.h>
 
 namespace MML
 {
@@ -35,23 +36,30 @@ namespace MML
 	private:
 		std::vector<Point2Cartesian> _vertices;
 
-		/// @brief Helper for segment intersection test (proper intersection only)
+		static bool InSegmentBounds(const Point2Cartesian& point,
+			const Point2Cartesian& first, const Point2Cartesian& second)
+		{
+			return point.X() >= std::min(first.X(), second.X()) && point.X() <= std::max(first.X(), second.X())
+				&& point.Y() >= std::min(first.Y(), second.Y()) && point.Y() <= std::max(first.Y(), second.Y());
+		}
+
 		static bool SegmentsIntersect(const Point2Cartesian& p1, const Point2Cartesian& p2,
 		                              const Point2Cartesian& p3, const Point2Cartesian& p4)
 		{
-			auto sign = [](Real val) { return (val > 0) - (val < 0); };
-			
-			// Compute cross products for orientation tests
-			Real d1 = (p3.X() - p1.X()) * (p2.Y() - p1.Y()) - (p3.Y() - p1.Y()) * (p2.X() - p1.X());
-			Real d2 = (p4.X() - p1.X()) * (p2.Y() - p1.Y()) - (p4.Y() - p1.Y()) * (p2.X() - p1.X());
-			Real d3 = (p1.X() - p3.X()) * (p4.Y() - p3.Y()) - (p1.Y() - p3.Y()) * (p4.X() - p3.X());
-			Real d4 = (p2.X() - p3.X()) * (p4.Y() - p3.Y()) - (p2.Y() - p3.Y()) * (p4.X() - p3.X());
-			
-			// Check if segments straddle each other
-			if (sign(d1) * sign(d2) < 0 && sign(d3) * sign(d4) < 0)
-				return true;
-			
-			return false;
+			if (std::max(p1.X(), p2.X()) < std::min(p3.X(), p4.X())
+				|| std::max(p3.X(), p4.X()) < std::min(p1.X(), p2.X())
+				|| std::max(p1.Y(), p2.Y()) < std::min(p3.Y(), p4.Y())
+				|| std::max(p3.Y(), p4.Y()) < std::min(p1.Y(), p2.Y()))
+				return false;
+			const int d1 = detail::GeometryOrientation2D::Sign(p1, p2, p3);
+			const int d2 = detail::GeometryOrientation2D::Sign(p1, p2, p4);
+			const int d3 = detail::GeometryOrientation2D::Sign(p3, p4, p1);
+			const int d4 = detail::GeometryOrientation2D::Sign(p3, p4, p2);
+			return (d1 * d2 < 0 && d3 * d4 < 0)
+				|| (d1 == 0 && InSegmentBounds(p3, p1, p2))
+				|| (d2 == 0 && InSegmentBounds(p4, p1, p2))
+				|| (d3 == 0 && InSegmentBounds(p1, p3, p4))
+				|| (d4 == 0 && InSegmentBounds(p2, p3, p4));
 		}
 
 	public:
@@ -128,7 +136,7 @@ namespace MML
 				area += _vertices[i].X() * _vertices[(i + 1) % n].Y();
 				area -= _vertices[i].Y() * _vertices[(i + 1) % n].X();
 			}
-			return area / 2.0;
+			return area / MML::Real(2.0);
 		}
 
 		/// @brief Calculates the unsigned area
@@ -146,8 +154,8 @@ namespace MML
 				return _vertices[0];
 			
 			if (NumVertices() == 2)
-				return Point2Cartesian((_vertices[0].X() + _vertices[1].X()) / 2.0,
-				                      (_vertices[0].Y() + _vertices[1].Y()) / 2.0);
+				return Point2Cartesian((_vertices[0].X() + _vertices[1].X()) / MML::Real(2.0),
+				                      (_vertices[0].Y() + _vertices[1].Y()) / MML::Real(2.0));
 			
 			// For polygons with 3+ vertices, use area-weighted formula
 			Real cx = 0.0, cy = 0.0;
@@ -166,8 +174,8 @@ namespace MML
 			if (std::abs(signedArea) < Precision::GeometryEpsilon)
 				throw GeometryError("Polygon2D::Centroid - degenerate polygon (zero area)");
 			
-			cx /= (6.0 * signedArea);
-			cy /= (6.0 * signedArea);
+			cx /= (MML::Real(6.0) * signedArea);
+			cy /= (MML::Real(6.0) * signedArea);
 			
 			return Point2Cartesian(cx, cy);
 		}
@@ -181,7 +189,7 @@ namespace MML
 			/// @brief Gets the height of the bounding box
 			Real Height() const { return maxY - minY; }
 			/// @brief Gets the center of the bounding box
-			Point2Cartesian Center() const { return Point2Cartesian((minX + maxX) / 2.0, (minY + maxY) / 2.0); }
+			Point2Cartesian Center() const { return Point2Cartesian((minX + maxX) / MML::Real(2.0), (minY + maxY) / MML::Real(2.0)); }
 		};
 		
 		/// @brief Computes the axis-aligned bounding box
@@ -222,29 +230,29 @@ namespace MML
 			std::reverse(_vertices.begin(), _vertices.end());
 		}
 
-		/// @brief Tests if the polygon is simple (no self-intersections)
+		/// @brief Tests strict stored-coordinate topology with implicit closing.
+		/// @details Rejects zero-length edges, retracing and non-adjacent touching.
+		///          Collinear subdivisions are allowed; nonfinite coordinates throw GeometryError.
 		bool IsSimple() const {
-			int n = NumVertices();
+			for (const auto& vertex : _vertices)
+				detail::ValidateGeometryCoordinates({vertex.X(), vertex.Y()}, "Polygon2D::IsSimple");
+			const std::size_t n = _vertices.size();
 			if (n < 3) return false;
-			
-			// Check all non-adjacent edge pairs for intersections
-			for (int i = 0; i < n; i++) {
-				Point2Cartesian p1 = _vertices[i];
-				Point2Cartesian p2 = _vertices[(i + 1) % n];
-				
-				// Check against non-adjacent edges
-				for (int j = i + 2; j < n; j++) {
-					// Skip if edges are adjacent (share a vertex)
-					if (j == (i + n - 1) % n) continue;
-					
-					Point2Cartesian p3 = _vertices[j];
-					Point2Cartesian p4 = _vertices[(j + 1) % n];
-					
-					if (SegmentsIntersect(p1, p2, p3, p4))
+			for (std::size_t i = 0; i < n; ++i) {
+				const auto& first = _vertices[i];
+				const auto& shared = _vertices[(i + 1) % n];
+				const auto& last = _vertices[(i + 2) % n];
+				if (first.X() == shared.X() && first.Y() == shared.Y())
+					return false;
+				if (detail::GeometryOrientation2D::Sign(first, shared, last) == 0
+					&& !InSegmentBounds(shared, first, last))
+					return false;
+				for (std::size_t j = i + 2; j < n; ++j) {
+					if (i == 0 && j == n - 1) continue;
+					if (SegmentsIntersect(first, shared, _vertices[j], _vertices[(j + 1) % n]))
 						return false;
 				}
 			}
-			
 			return true;
 		}
 

@@ -227,6 +227,9 @@ namespace MML::Tests::Core::DerivationParametricSurfaceTests
         REQUIRE_THAT(r_u_2[0], WithinAbs(r_u_x, TOL(1e-6, 1e-3)));
         REQUIRE_THAT(r_u_2[1], WithinAbs(r_u_y, TOL(1e-6, 1e-3)));
         REQUIRE_THAT(r_u_2[2], WithinAbs(r_u_z, TOL(1e-6, 1e-3)));
+        REQUIRE_THAT(r_w_2[0], WithinAbs(-R * sin(u) * sin(w), TOL(1e-6, 1e-3)));
+        REQUIRE_THAT(r_w_2[1], WithinAbs(R * sin(u) * cos(w), TOL(1e-6, 1e-3)));
+        REQUIRE_THAT(r_w_2[2], WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-6, 1e-3)));
     }
 
     ///////////////////////////////////////////////////////////////////////////

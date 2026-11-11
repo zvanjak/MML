@@ -1,7 +1,7 @@
 #include <catch2/catch_all.hpp>
 #include "../../TestPrecision.h"
 
-#ifdef MML_USE_SINGLE_HEADER
+#if defined(MML_USE_SINGLE_HEADER) || defined(MML_SINGLE_HEADER_INCLUDE)
 #include <MML.h>
 #else
 #include <mml/algorithms/Analyzers/MatrixAnalyzer.h>
@@ -15,6 +15,122 @@ using namespace MML::Testing;
 
 namespace MML::Tests::Algorithms::MatrixAnalyzerTests
 {
+	TEST_CASE("Eigenvalue-only facades reject failed general eigensystems", "[MatrixAlg][MatrixAnalyzer][EigenUsability]")
+	{
+		const auto check = [](const auto& matrix) {
+			using Scalar = typename std::remove_cvref_t<decltype(matrix)>::value_type;
+			const Real tolerance = PrecisionValues<Real>::EigenSolverConvergenceTolerance;
+			const auto partial = MatrixAlg::Eigensystem(matrix, tolerance, 0);
+			REQUIRE_FALSE(partial.converged);
+			REQUIRE(partial.status == AlgorithmStatus::MaxIterationsExceeded);
+			REQUIRE(partial.eigenvalues.size() == matrix.rows());
+			REQUIRE_FALSE(partial.errorMessage.empty());
+			REQUIRE_THROWS_AS(MatrixAlg::Eigenvalues(matrix, tolerance, 0), MatrixNumericalError);
+			REQUIRE_THROWS_AS(MatrixAlg::SpectralRadius(matrix, tolerance, 0), MatrixNumericalError);
+
+			MatrixAnalyzer<Scalar> analyzer(matrix);
+			const auto& cachedPartial = analyzer.Eigensystem(tolerance, 0);
+			REQUIRE(cachedPartial.status == partial.status);
+			REQUIRE(cachedPartial.errorMessage == partial.errorMessage);
+			REQUIRE_THROWS_AS(analyzer.Eigenvalues(tolerance, 0), MatrixNumericalError);
+			REQUIRE_THROWS_AS(analyzer.SpectralRadius(tolerance, 0), MatrixNumericalError);
+			REQUIRE_THROWS_AS(analyzer.HasComplexEigenvalues(tolerance, 0), MatrixNumericalError);
+			REQUIRE(&cachedPartial == &analyzer.Eigensystem(tolerance, 0));
+			REQUIRE(cachedPartial.eigenvalues.size() == matrix.rows());
+
+			const auto complete = MatrixAlg::Eigensystem(matrix, tolerance, 1000);
+			REQUIRE(complete.converged);
+			REQUIRE(IsUsable(complete.status));
+			REQUIRE(MatrixAlg::Eigenvalues(matrix, tolerance, 1000).IsEqualTo(complete.eigenvalues, tolerance));
+			REQUIRE(analyzer.Eigenvalues(tolerance, 1000).IsEqualTo(complete.eigenvalues, tolerance));
+			REQUIRE(analyzer.SpectralRadius(tolerance, 1000) == MatrixAlg::SpectralRadius(matrix, tolerance, 1000));
+			REQUIRE_NOTHROW(analyzer.HasComplexEigenvalues(tolerance, 1000));
+			REQUIRE_FALSE(cachedPartial.converged);
+			REQUIRE(cachedPartial.status == AlgorithmStatus::MaxIterationsExceeded);
+		};
+
+		SECTION("General real QR") {
+			check(Matrix<Real>{3, 3, {4, 1, 2, 2, 3, 1, 1, 2, 5}});
+		}
+		SECTION("General complex QR") {
+			check(Matrix<Complex>{3, 3, {
+				Complex{4, 1}, 1, 2, 2, Complex{3, -1}, 1, 1, 2, Complex{5, 2}
+			}});
+		}
+	}
+
+	TEST_CASE("Self-adjoint eigenvalue helpers reject populated failed iterates", "[MatrixAlg][MatrixAnalyzer][EigenUsability]")
+	{
+		const Real tolerance = PrecisionValues<Real>::EigenSolverConvergenceTolerance;
+		SECTION("Symmetric Jacobi") {
+			const Matrix<Real> matrix{3, 3, {4, 1, 2, 1, 3, 1, 2, 1, 5}};
+			MatrixAnalyzer<Real> analyzer(matrix);
+			const auto& partial = analyzer.SymmetricEigensystem(tolerance, 1);
+			REQUIRE_FALSE(partial.converged);
+			REQUIRE(partial.status == AlgorithmStatus::MaxIterationsExceeded);
+			REQUIRE(partial.eigenvalues.size() == 3);
+			REQUIRE_THROWS_AS(MatrixAlg::SymmetricEigenvalues(matrix, tolerance, 1), MatrixNumericalError);
+			REQUIRE_THROWS_AS(analyzer.SymmetricEigenvalues(tolerance, 1), MatrixNumericalError);
+			REQUIRE_THROWS_AS(MatrixAlg::Eigenvalues(matrix, tolerance, 1), MatrixNumericalError);
+			REQUIRE_THROWS_AS(analyzer.Eigenvalues(tolerance, 1), MatrixNumericalError);
+			REQUIRE_THROWS_AS(MatrixAlg::SpectralRadius(matrix, tolerance, 1), MatrixNumericalError);
+			REQUIRE_THROWS_AS(analyzer.SpectralRadius(tolerance, 1), MatrixNumericalError);
+			REQUIRE_THROWS_AS(analyzer.HasComplexEigenvalues(tolerance, 1), MatrixNumericalError);
+			REQUIRE(analyzer.SymmetricEigensystem(tolerance, 100).converged);
+			REQUIRE(analyzer.SymmetricEigenvalues(tolerance, 100).IsEqualTo(
+				MatrixAlg::SymmetricEigenvalues(matrix, tolerance, 100), tolerance));
+			REQUIRE_FALSE(partial.converged);
+			REQUIRE(analyzer.Analyze().definiteness == MatrixAlg::Definiteness::PositiveDefinite);
+		}
+		SECTION("Hermitian Jacobi") {
+			const Matrix<Complex> matrix{3, 3, {
+				4, Complex{1, 1}, 2, Complex{1, -1}, 3, 1, 2, 1, 5
+			}};
+			MatrixAnalyzer<Complex> analyzer(matrix);
+			const auto& partial = analyzer.HermitianEigensystem(tolerance, 1);
+			REQUIRE_FALSE(partial.converged);
+			REQUIRE(partial.status == AlgorithmStatus::MaxIterationsExceeded);
+			REQUIRE(partial.eigenvalues.size() == 3);
+			REQUIRE_THROWS_AS(MatrixAlg::HermitianEigenvalues(matrix, tolerance, 1), MatrixNumericalError);
+			REQUIRE_THROWS_AS(analyzer.HermitianEigenvalues(tolerance, 1), MatrixNumericalError);
+			REQUIRE_THROWS_AS(MatrixAlg::Eigenvalues(matrix, tolerance, 1), MatrixNumericalError);
+			REQUIRE_THROWS_AS(analyzer.Eigenvalues(tolerance, 1), MatrixNumericalError);
+			REQUIRE_THROWS_AS(MatrixAlg::SpectralRadius(matrix, tolerance, 1), MatrixNumericalError);
+			REQUIRE_THROWS_AS(analyzer.SpectralRadius(tolerance, 1), MatrixNumericalError);
+			REQUIRE_THROWS_AS(analyzer.HasComplexEigenvalues(tolerance, 1), MatrixNumericalError);
+			REQUIRE(analyzer.HermitianEigensystem(tolerance, 100).converged);
+			REQUIRE(analyzer.HermitianEigenvalues(tolerance, 100).IsEqualTo(
+				MatrixAlg::HermitianEigenvalues(matrix, tolerance, 100), tolerance));
+			REQUIRE_FALSE(partial.converged);
+			REQUIRE(analyzer.Analyze().definiteness == MatrixAlg::Definiteness::PositiveDefinite);
+		}
+	}
+
+	TEST_CASE("Real eigensystem facade preserves kernel failure diagnostics", "[MatrixAlg][MatrixAnalyzer][EigenUsability]")
+	{
+		const Matrix<Real> matrix{3, 3, {4, 1, 2, 2, 3, 1, 1, 2, 5}};
+		const Real tolerance = PrecisionValues<Real>::EigenSolverConvergenceTolerance;
+		const auto kernel = EigenSolver::Solve(matrix, tolerance, 0);
+		const auto facade = MatrixAlg::Eigensystem(matrix, tolerance, 0);
+		REQUIRE_FALSE(kernel.converged);
+		REQUIRE(facade.status == kernel.status);
+		REQUIRE(facade.errorMessage == kernel.error_message);
+		REQUIRE(facade.iterations == kernel.iterations);
+		REQUIRE_THROWS_WITH(MatrixAlg::Eigenvalues(matrix, tolerance, 0),
+			Catch::Matchers::ContainsSubstring(kernel.error_message));
+
+		MatrixAlg::EigensystemResult<Real> diagnostic;
+		diagnostic.converged = true;
+		diagnostic.status = AlgorithmStatus::NumericalInstability;
+		diagnostic.errorMessage = "non-finite residual";
+		REQUIRE_THROWS_WITH(MatrixAlg::Detail::RequireUsableEigensystem(diagnostic, "eigen regression"),
+			Catch::Matchers::ContainsSubstring(diagnostic.errorMessage));
+		diagnostic.converged = false;
+		diagnostic.status = AlgorithmStatus::Success;
+		REQUIRE_THROWS_AS(MatrixAlg::Detail::RequireUsableEigensystem(diagnostic, "eigen regression"),
+			MatrixNumericalError);
+	}
+
 	template<typename Scalar>
 	concept SupportsSymmetricAnalyzerEigensystem = requires(const MatrixAnalyzer<Scalar>& analyzer) {
 		analyzer.SymmetricEigensystem();

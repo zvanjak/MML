@@ -57,8 +57,8 @@ namespace MML
 		/// @param dim System dimension (number of equations)
 		/// @param maxSteps Initial storage capacity
 		ODESystemSolution(Real x1, Real x2, int dim, int maxSteps)
-			: _t1(x1), _t2(x2), _sysDim(dim),
-				_numStepsOK(0), _numStepsBad(0), _totalSavedSteps(0), _count(0)
+			: _numStepsOK(0), _numStepsBad(0), _sysDim(dim),
+				_totalSavedSteps(0), _count(0), _t1(x1), _t2(x2)
 		{
 			const int capacity = detail::TrajectoryCapacity(0, static_cast<std::int64_t>(maxSteps) + 1,
 				max_size(), false);

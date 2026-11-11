@@ -35,7 +35,7 @@ namespace MML::Tests::BugfixZ5pg {
 TEST_CASE("BugFix_z5pg.33 - VectorN::Normalized near-zero vector throws", "[bugfix][z5pg][vector]")
 {
 	// A vector with components much smaller than epsilon should not be normalized
-	Real tiny = std::numeric_limits<Real>::epsilon() * 1e-3;
+	Real tiny = std::numeric_limits<Real>::epsilon() * MML::Real(1e-3);
 	VectorN<Real, 3> v({tiny, tiny, tiny});
 
 	REQUIRE_THROWS(v.Normalized());
@@ -61,7 +61,7 @@ TEST_CASE("BugFix_z5pg.33 - VectorN::Normalized exactly zero throws", "[bugfix][
 
 TEST_CASE("BugFix_z5pg.34 - VectorN::isNearZero with near-zero values", "[bugfix][z5pg][vector]")
 {
-	Real tiny = std::numeric_limits<Real>::epsilon() * 0.1;
+	Real tiny = std::numeric_limits<Real>::epsilon() * MML::Real(0.1);
 	VectorN<Real, 3> v({tiny, -tiny, tiny});
 
 	// Near-zero values smaller than tolerance should be considered near-zero
@@ -230,7 +230,7 @@ TEST_CASE("BugFix_z5pg.44 - Chebyshev weight function at boundary", "[bugfix][z5
 
 TEST_CASE("BugFix_z5pg.45 - IntegrationResult value access", "[bugfix][z5pg][integration]")
 {
-	IntegrationResult res(3.14, 1e-10, 5, true);
+	IntegrationResult res(MML::Real(3.14), MML::Real(1e-10), 5, true);
 	
 	// Direct .value access (preferred)
 	REQUIRE(res.value == Catch::Approx(3.14));

@@ -70,7 +70,7 @@ namespace MML {
 	/// auto sol = SolveBackwardEuler(system, t0, y0, t_end, config);
 	struct StiffSolverConfig {
 		/// Requested step size; BE/BDF2 retain a smaller step after Newton retries.
-		Real step_size = 0.01;
+		Real step_size = MML::Real(0.01);
 
 		/// Maximum Newton iterations per step (default: 10)
 		int max_newton_iter = 10;
@@ -85,7 +85,7 @@ namespace MML {
 		Real min_step_size = Precision::StiffMinStepSize;
 
 		/// Maximum step size for adaptive methods (default: 0.1)
-		Real max_step_size = 0.1;
+		Real max_step_size = MML::Real(0.1);
 
 		/// Maximum steps; BE/BDF2 count both accepted and rejected attempts.
 		int max_steps = 100000;
@@ -179,12 +179,13 @@ namespace MML {
 					result.error_message = result.algorithm_name + ": step cannot advance floating-point time";
 					break;
 				}
+				const Real actualH = nextTime - t;
 				Vector<Real> history = y;
 				Vector<Real> trial = y;
-				Real coefficient = h;
+				Real coefficient = actualH;
 				if (bdf2 && result.total_steps > 0) {
 					// Variable-step BDF2 (Hairer-Wanner II): r=h_n/h_{n-1}.
-					Real ratio = h / previousH;
+					Real ratio = actualH / previousH;
 					history += (y - previous) * (ratio * ratio / (1 + 2 * ratio));
 					coefficient *= (1 + ratio) / (1 + 2 * ratio);
 					trial += (y - previous) * ratio;
@@ -195,8 +196,7 @@ namespace MML {
 				std::string message = "Newton iteration limit exceeded";
 				bool retry = true;
 				Detail::ImplicitNewtonMatrix iterationMatrix;
-				for (int iteration = 0; iteration < config.max_newton_iter; ++iteration) {
-					++result.newton_iterations;
+				for (int iteration = 0; ; ++iteration) {
 					system.derivs(nextTime, trial, f);
 					++result.function_evaluations;
 					Vector<Real> residual = trial - history - f * coefficient;
@@ -210,6 +210,9 @@ namespace MML {
 						converged = true;
 						break;
 					}
+					if (iteration >= config.max_newton_iter)
+						break;
+					++result.newton_iterations;
 					Vector<Real> delta;
 					try {
 						if (iterationMatrix.NeedsRefresh(norm, config.newton_tol,
@@ -247,7 +250,7 @@ namespace MML {
 					continue;
 				}
 				previous = y;
-				previousH = h;
+				previousH = actualH;
 				y = std::move(trial);
 				t = nextTime;
 				result.solution.fillValues(++result.total_steps, t, y);
@@ -380,7 +383,7 @@ namespace MML {
 
 		// ROS2 coefficients - 2-stage, 2nd order, L-stable method
 		// γ = 1 + 1/sqrt(2) ≈ 1.707 for L-stability
-		const Real gamma_ros = 1.7071067811865475; // 1.0 + 0.5 * sqrt(2)
+		const Real gamma_ros = MML::Real(1.7071067811865475); // 1.0 + 0.5 * sqrt(2)
 
 	public:
 		ROS2Solver(IODESystemWithJacobian& system, Real abs_tol = Precision::ODEDefaultTolerance, Real rel_tol = Precision::ODEDefaultTolerance, int /*max_newton_iter*/ = 10,
@@ -465,11 +468,11 @@ namespace MML {
 			Real h = direction * h_init;
 
 			// Safety factors for step size control
-			const Real safety = 0.9;
+			const Real safety = MML::Real(0.9);
 			const Real h_min = Precision::StiffMinStepSize;		   // Minimum step size
-			const Real h_max = h_init * 100.0; // Maximum step size
+			const Real h_max = h_init * MML::Real(100.0); // Maximum step size
 			const Real fac_max = 5.0;		   // Maximum step increase factor
-			const Real fac_min = 0.2;		   // Minimum step decrease factor
+			const Real fac_min = MML::Real(0.2);		   // Minimum step decrease factor
 
 			sol.fillValues(0, t, y);
 			int step = 1;
@@ -492,7 +495,7 @@ namespace MML {
 
 				if (!success) {
 					// Linear solve failed, reduce step size
-					h = h_actual * 0.5;
+					h = h_actual * MML::Real(0.5);
 					if (std::abs(h) < h_min) {
 						throw ODESolverError("Rosenbrock: Linear solve failed, system may be singular");
 					}
@@ -522,12 +525,12 @@ namespace MML {
 
 					// Compute new step size (PI controller formula for 2nd order method)
 					// h_new = h * safety * (1/err_norm)^(1/3)
-					Real factor = safety * std::pow(1.0 / err_norm, 1.0 / 3.0);
+					Real factor = safety * std::pow(MML::Real(1.0) / err_norm, MML::Real(1.0) / MML::Real(3.0));
 					factor = std::min(fac_max, std::max(fac_min, factor));
 					h = direction * std::min(h_max, std::abs(h_actual) * factor);
 				} else {
 					// Reject and retry with smaller step
-					Real factor = safety * std::pow(1.0 / err_norm, 0.5); // More aggressive for rejection
+					Real factor = safety * std::pow(MML::Real(1.0) / err_norm, MML::Real(0.5)); // More aggressive for rejection
 					factor = std::max(fac_min, factor);
 					h = h_actual * factor;
 
@@ -574,7 +577,7 @@ namespace MML {
 			_rel_tol = config.tolerance;
 
 			try {
-				Real h_init = (config.step_size > 0) ? config.step_size : std::abs(t_end - t0) / 100.0;
+				Real h_init = (config.step_size > 0) ? config.step_size : std::abs(t_end - t0) / MML::Real(100.0);
 				if (!SolveInto(result.solution, t0, y0, t_end, h_init, config.max_steps)) {
 					result.status = AlgorithmStatus::MaxIterationsExceeded;
 					result.error_message = "ROS2: attempted-step budget exhausted";

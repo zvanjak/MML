@@ -18,7 +18,9 @@
 #include <mml/interfaces/IFunction.h>
 #include <mml/core/OrthogonalBasis.h>
 
+#include <algorithm>
 #include <cmath>
+#include <cstdint>
 #include <limits>
 #include <stdexcept>
 
@@ -78,7 +80,7 @@ namespace MML
                 throw ArgumentError("HermiteBasis::Normalization: n must be non-negative");
             
             // 2^n * n! * sqrt(π)
-            Real two_to_n = std::pow(2.0, static_cast<Real>(n));
+            Real two_to_n = std::pow(MML::Real(2.0), static_cast<Real>(n));
             Real n_factorial = 1.0;
             for (int k = 1; k <= n; k++)
                 n_factorial *= k;
@@ -109,7 +111,7 @@ namespace MML
             
             a = 2.0;
             b = 0.0;
-            c = -2.0 * n;
+            c = -MML::Real(2.0) * n;
         }
 
         // Quantum harmonic oscillator wavefunction ψₙ(x) = Nₙ Hₙ(x) e^(-x²/2)
@@ -118,12 +120,35 @@ namespace MML
         {
             if (n < 0)
                 throw ArgumentError("HermiteBasis::QuantumWavefunction: n must be non-negative");
-            
-            Real Hn = Evaluate(n, x);
-            Real norm_factor = 1.0 / std::sqrt(Normalization(n));
-            Real gaussian = std::exp(-0.5 * x * x);
-            
-            return norm_factor * Hn * gaussian;
+            if (!std::isfinite(x))
+                throw DomainError("HermiteBasis::QuantumWavefunction: x must be finite");
+
+            // DLMF 18.9.1's normalized recurrence, with a shared binary exponent.
+            // Keep the Gaussian separate so its underflow cannot erase a representable high-order wave.
+            int xExponent = 0;
+            std::frexp(x, &xExponent);
+            xExponent = std::max(0, xExponent);
+            const Real scaledX = std::ldexp(x, -xExponent);
+            Real previous = 0, current = 1 / std::sqrt(std::sqrt(Constants::PI));
+            std::int64_t exponent = 0;
+            for (int k = 0; k < n; ++k)
+            {
+                const Real next = std::sqrt(Real(2) / (Real(k) + 1)) * scaledX * current -
+                    std::sqrt(Real(k) / (Real(k) + 1)) * std::ldexp(previous, -xExponent);
+                previous = std::ldexp(current, -xExponent);
+                current = next;
+                int shift = 0;
+                std::frexp(std::max(std::abs(previous), std::abs(current)), &shift);
+                previous = std::ldexp(previous, -shift);
+                current = std::ldexp(current, -shift);
+                exponent += xExponent + shift;
+            }
+            if (current == 0)
+                return current;
+            const Real magnitude = std::exp(std::log(std::abs(current)) +
+                Real(exponent) * std::log(Real(2)) - (x / 2) * x);
+            IntegrationDetail::RequireFinite(magnitude, "Normalized Hermite wavefunction");
+            return std::copysign(magnitude, current);
         }
     };
 
@@ -152,7 +177,7 @@ namespace MML
             // Convert: Heₙ(x) = 2^(-n/2) Hₙ(x/√2)
             Real x_scaled = x / Constants::SQRT2;
             Real Hn = Functions::Hermite(static_cast<unsigned int>(n), x_scaled);
-            Real scale = std::pow(2.0, -0.5 * n);
+            Real scale = std::pow(MML::Real(2.0), -MML::Real(0.5) * n);
             
             return scale * Hn;
         }
@@ -160,7 +185,7 @@ namespace MML
         // Weight function w(x) = e^(-x²/2)
         Real WeightFunction(Real x) const 
         { 
-            return std::exp(-0.5 * x * x); 
+            return std::exp(-MML::Real(0.5) * x * x);
         }
 
         // Normalization: ||Heₙ||² = n!√(2π)
@@ -173,7 +198,7 @@ namespace MML
             for (int k = 1; k <= n; k++)
                 n_factorial *= k;
             
-            return n_factorial * std::sqrt(2.0 * Constants::PI);
+            return n_factorial * std::sqrt(MML::Real(2.0) * Constants::PI);
         }
 
         // Domain bounds

@@ -91,16 +91,16 @@ namespace MML::TestBeds
         void derivs(const Real t, const Vector<Real>& y, Vector<Real>& dydt) const override
         {
             dydt[0] = -y[0] + y[1];
-            dydt[1] = -4.0 * y[1];
+            dydt[1] = -MML::Real(4.0) * y[1];
         }
         
         Vector<Real> getSolution(const Vector<Real>& y0, Real t) const
         {
-            Real c1 = y0[0] - y0[1] / 3.0;
-            Real c2 = y0[1] / 3.0;
+            Real c1 = y0[0] - y0[1] / MML::Real(3.0);
+            Real c2 = y0[1] / MML::Real(3.0);
             Vector<Real> sol(2);
-            sol[0] = c1 * std::exp(-t) + c2 * std::exp(-4.0 * t);
-            sol[1] = y0[1] * std::exp(-4.0 * t);
+            sol[0] = c1 * std::exp(-t) + c2 * std::exp(-MML::Real(4.0) * t);
+            sol[1] = y0[1] * std::exp(-MML::Real(4.0) * t);
             return sol;
         }
     };
@@ -120,7 +120,7 @@ namespace MML::TestBeds
         void derivs(const Real t, const Vector<Real>& y, Vector<Real>& dydt) const override
         {
             dydt[0] = y[0] + y[1] - y[2];
-            dydt[1] = -y[0] + 3.0 * y[1] - y[2];
+            dydt[1] = -y[0] + MML::Real(3.0) * y[1] - y[2];
             dydt[2] = -y[0] + y[1] + y[2];
         }
         
@@ -128,7 +128,7 @@ namespace MML::TestBeds
         Vector<Real> getSolutionForUnitIC(Real t) const
         {
             Real e1 = std::exp(t);
-            Real e2 = std::exp(2.0 * t);
+            Real e2 = std::exp(MML::Real(2.0) * t);
             return Vector<Real>{ e1, e1 + e2, e1 + e2 };
         }
     };
@@ -189,7 +189,7 @@ namespace MML::TestBeds
         void derivs(const Real t, const Vector<Real>& y, Vector<Real>& dydt) const override
         {
             dydt[0] = y[1];
-            dydt[1] = -2.0 * _zeta * _omega * y[1] - _omega * _omega * y[0];
+            dydt[1] = -MML::Real(2.0) * _zeta * _omega * y[1] - _omega * _omega * y[0];
         }
         
         // Analytical solution for underdamped case (zeta < 1)
@@ -198,7 +198,7 @@ namespace MML::TestBeds
             if (_zeta >= 1.0) {
                 throw std::runtime_error("Analytical solution only implemented for underdamped case (zeta < 1)");
             }
-            Real omega_d = _omega * std::sqrt(1.0 - _zeta * _zeta);
+            Real omega_d = _omega * std::sqrt(MML::Real(1.0) - _zeta * _zeta);
             Real decay = std::exp(-_zeta * _omega * t);
             Real c = std::cos(omega_d * t);
             Real s = std::sin(omega_d * t);
@@ -239,7 +239,7 @@ namespace MML::TestBeds
         void derivs(const Real t, const Vector<Real>& y, Vector<Real>& dydt) const override
         {
             dydt[0] = y[1];
-            dydt[1] = _mu * (1.0 - y[0] * y[0]) * y[1] - y[0];
+            dydt[1] = _mu * (MML::Real(1.0) - y[0] * y[0]) * y[1] - y[0];
         }
         
         Real getMu() const { return _mu; }
@@ -351,7 +351,7 @@ namespace MML::TestBeds
         int getDim() const override { return 1; }
         void derivs(const Real t, const Vector<Real>& y, Vector<Real>& dydt) const override
         {
-            dydt[0] = _r * y[0] * (1.0 - y[0] / _carryingCapacity);
+            dydt[0] = _r * y[0] * (MML::Real(1.0) - y[0] / _carryingCapacity);
         }
         
         Vector<Real> getSolution(const Vector<Real>& y0, Real t) const
@@ -377,7 +377,7 @@ namespace MML::TestBeds
     {
         Real _sigma, _rho, _beta;
     public:
-        LorenzSystemODE() : _sigma(10.0), _rho(28.0), _beta(8.0 / 3.0) {}
+        LorenzSystemODE() : _sigma(MML::Real(10.0)), _rho(MML::Real(28.0)), _beta(MML::Real(8.0) / MML::Real(3.0)) {}
         LorenzSystemODE(Real sigma, Real rho, Real beta) : _sigma(sigma), _rho(rho), _beta(beta) {}
         
         int getNumParam() const override { return 3; }
@@ -473,7 +473,7 @@ namespace MML::TestBeds
             dydt[0] = rdot;                                    // dr/dt
             dydt[1] = r * thetadot * thetadot - _mu / (r * r); // d²r/dt²
             dydt[2] = thetadot;                                // dθ/dt
-            dydt[3] = -2.0 * rdot * thetadot / r;              // dθ'/dt (from angular momentum conservation)
+            dydt[3] = -MML::Real(2.0) * rdot * thetadot / r;              // dθ'/dt (from angular momentum conservation)
         }
         
         // Angular momentum (should be conserved)
@@ -489,7 +489,7 @@ namespace MML::TestBeds
             Real rdot = y[1];
             Real thetadot = y[3];
             Real v2 = rdot * rdot + r * r * thetadot * thetadot;
-            return 0.5 * v2 - _mu / r;
+            return MML::Real(0.5) * v2 - _mu / r;
         }
     };
 
@@ -510,9 +510,9 @@ namespace MML::TestBeds
         int getDim() const override { return 2; }
         void derivs(const Real x, const Vector<Real>& y, Vector<Real>& dydx) const override
         {
-            Real denom = 1.0 - x * x;
+            Real denom = MML::Real(1.0) - x * x;
             dydx[0] = y[1];
-            dydx[1] = 2.0 * x / denom * y[1] - _n * (_n + 1) / denom * y[0];
+            dydx[1] = MML::Real(2.0) * x / denom * y[1] - _n * (_n + 1) / denom * y[0];
         }
         
         int getOrder() const { return _n; }
@@ -532,7 +532,7 @@ namespace MML::TestBeds
         void derivs(const Real x, const Vector<Real>& y, Vector<Real>& dydx) const override
         {
             dydx[0] = y[1];
-            dydx[1] = (x - 1.0) / x * y[1] - static_cast<Real>(_n) / x * y[0];
+            dydx[1] = (x - MML::Real(1.0)) / x * y[1] - static_cast<Real>(_n) / x * y[0];
         }
         
         int getOrder() const { return _n; }
@@ -552,7 +552,7 @@ namespace MML::TestBeds
         void derivs(const Real x, const Vector<Real>& y, Vector<Real>& dydx) const override
         {
             dydx[0] = y[1];
-            dydx[1] = 2.0 * x * y[1] - 2.0 * _n * y[0];
+            dydx[1] = MML::Real(2.0) * x * y[1] - MML::Real(2.0) * _n * y[0];
         }
         
         int getOrder() const { return _n; }
@@ -572,7 +572,7 @@ namespace MML::TestBeds
         void derivs(const Real x, const Vector<Real>& y, Vector<Real>& dydx) const override
         {
             dydx[0] = y[1];
-            dydx[1] = -y[1] / x - (1.0 - static_cast<Real>(_n * _n) / (x * x)) * y[0];
+            dydx[1] = -y[1] / x - (MML::Real(1.0) - static_cast<Real>(_n * _n) / (x * x)) * y[0];
         }
         
         int getOrder() const { return _n; }
@@ -582,32 +582,32 @@ namespace MML::TestBeds
     // LEGACY FUNCTION-BASED DEFINITIONS (for backward compatibility)
     //==================================================================================================================
 
-    static void VanDerPol(Real mu, const Real t, const Vector<Real>& y, Vector<Real>& dydt) 
+    static inline void VanDerPol(Real mu, const Real t, const Vector<Real>& y, Vector<Real>& dydt)
     {
         dydt[0] = y[1];
-        dydt[1] = mu * (1.0 - y[0] * y[0]) * y[1] - y[0];
+        dydt[1] = mu * (MML::Real(1.0) - y[0] * y[0]) * y[1] - y[0];
     }
     
-    static void VanDerPolMju0_1(const Real t, const Vector<Real>& y, Vector<Real>& dydt) 
+    static inline void VanDerPolMju0_1(const Real t, const Vector<Real>& y, Vector<Real>& dydt)
     { 
-        VanDerPol(0.1, t, y, dydt); 
+        VanDerPol(MML::Real(0.1), t, y, dydt);
     }
 
-    static void TestLinODESys(Real t, const Vector<Real>& x, Vector<Real>& ret)
+    static inline void TestLinODESys(Real t, const Vector<Real>& x, Vector<Real>& ret)
     {
         ret[0] = x[0] + x[1] - x[2];
         ret[1] = -x[0] + 3 * x[1] - x[2];
         ret[2] = -x[0] + x[1] + x[2];
     }
     
-    static Vector<Real> TestLinODESys_sol(Real t)
+    static inline Vector<Real> TestLinODESys_sol(Real t)
     {
         Real e1 = std::exp(t);
         Real e2 = std::exp(2 * t);
         return Vector<Real>{ e1, e1 + e2, e1 + e2 };
     }
     
-    static Vector<Real> TestLinODESys_sol1(Vector<Real> initCond, Real t)
+    static inline Vector<Real> TestLinODESys_sol1(Vector<Real> initCond, Real t)
     {
         // For IC = [1, 1, 1], solution is [exp(t), exp(t)+exp(2t), exp(t)+exp(2t)]
         Real e1 = std::exp(t);
@@ -621,9 +621,9 @@ namespace MML::TestBeds
 
     static void stiff_sys1_derivs(Real t, const Vector<Real>& x, Vector<Real>& dydx)
     {
-        dydx[0] = -0.013 * x[0] - 1000.0 * x[0] * x[2];
-        dydx[1] = -2500.0 * x[1] * x[2];
-        dydx[2] = -0.013 * x[0] - 1000.0 * x[0] * x[2] - 2500.0 * x[1] * x[2];
+        dydx[0] = -MML::Real(0.013) * x[0] - MML::Real(1000.0) * x[0] * x[2];
+        dydx[1] = -MML::Real(2500.0) * x[1] * x[2];
+        dydx[2] = -MML::Real(0.013) * x[0] - MML::Real(1000.0) * x[0] * x[2] - MML::Real(2500.0) * x[1] * x[2];
     }
     
     static void stiff_sys1_jac(const Real t, const Vector<Real>& x, Vector<Real>& dxdt, Matrix<Real>& dydx)
@@ -632,15 +632,15 @@ namespace MML::TestBeds
         for (int i = 0; i < n; i++)
             dxdt[i] = 0.0;
 
-        dydx[0][0] = -0.013 - 1000.0 * x[2];
+        dydx[0][0] = -MML::Real(0.013) - MML::Real(1000.0) * x[2];
         dydx[0][1] = 0.0;
-        dydx[0][2] = -1000.0 * x[0];
+        dydx[0][2] = -MML::Real(1000.0) * x[0];
         dydx[1][0] = 0.0;
-        dydx[1][1] = -2500.0 * x[2];
-        dydx[1][2] = -2500.0 * x[1];
-        dydx[2][0] = -0.013 - 1000.0 * x[2];
-        dydx[2][1] = -2500.0 * x[2];
-        dydx[2][2] = -1000.0 * x[0] - 2500.0 * x[1];
+        dydx[1][1] = -MML::Real(2500.0) * x[2];
+        dydx[1][2] = -MML::Real(2500.0) * x[1];
+        dydx[2][0] = -MML::Real(0.013) - MML::Real(1000.0) * x[2];
+        dydx[2][1] = -MML::Real(2500.0) * x[2];
+        dydx[2][2] = -MML::Real(1000.0) * x[0] - MML::Real(2500.0) * x[1];
     }
 
     class TestStiffSysWithJacobian1 : public IODESystemWithJacobian

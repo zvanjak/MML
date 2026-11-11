@@ -1,5 +1,6 @@
-#ifndef MML_USE_SINGLE_HEADER
+#if !defined(MML_USE_SINGLE_HEADER) && !defined(MML_SINGLE_HEADER_INCLUDE)
 #include <mml/algorithms/MatrixAlg/MatrixInversion.h>
+#include <mml/algorithms/MatrixAlg/Eigensystems.h>
 #endif
 /**
  * @file eigensolver_adversarial_tests.cpp
@@ -15,7 +16,9 @@
  * returned eigenpair (complex pairs included), and the full spectrum against known values.
  */
 
-#ifdef MML_USE_SINGLE_HEADER
+#ifdef MML_SINGLE_HEADER_INCLUDE
+#include MML_SINGLE_HEADER_INCLUDE
+#elif defined(MML_USE_SINGLE_HEADER)
 #include <MML.h>
 #else
 #include <mml/base/Vector/Vector.h>
@@ -113,6 +116,125 @@ namespace
         return S * D * Sinv;
     }
 } // namespace
+
+TEST_CASE("EigenSolver - real and complex spectra survive changes of matrix units",
+          "[eigensolver][adversarial][hessenberg-scale-contract]")
+{
+    const Matrix<Real> witness{3, 3, {0, 0, 2, 1, 0, 0, 1, 0, 0}};
+    const Matrix<Real> cycle{3, 3, {0, 0, 1, 1, 0, 0, 0, 1, 0}};
+    const Matrix<Real> cycle4{4, 4, {
+        0, 0, 0, 1,
+        1, 0, 0, 0,
+        0, 1, 0, 0,
+        0, 0, 1, 0}};
+    const std::vector<std::pair<Matrix<Real>, std::vector<CReal>>> references{
+        {witness, {{-std::sqrt(Real{2}), 0}, {0, 0}, {std::sqrt(Real{2}), 0}}},
+        {DenseBlock123(), {{1, 0}, {2, 0}, {3, 0}}},
+        {cycle, {{1, 0}, {Real(-0.5), std::sqrt(Real{3}) / 2}, {Real(-0.5), -std::sqrt(Real{3}) / 2}}},
+        {cycle4, {{1, 0}, {-1, 0}, {0, 1}, {0, -1}}}};
+    for (const auto& reference : references)
+        for (Real scale : {Real{1}, Real{-1}, Real(1e-20), TOL(1e-200, 1e-20),
+            TOL(1e160, 1e20), TOL(1e300, 1e30), TOL(1e-300, 1e-30)})
+        {
+            CAPTURE(scale, reference.second);
+            const auto matrix = reference.first * scale;
+            // QR similarity updates and a length-n residual dot product each
+            // accumulate rounding. These well-conditioned witnesses allow four
+            // unit roundoffs per dimension, not a precision-independent residual.
+            const Real accuracy = std::max(Precision::EqualityTolerance,
+                4 * reference.first.rows() * Precision::Eps);
+            auto result = EigenSolver::Solve(matrix, 0);
+            REQUIRE(result.converged);
+            REQUIRE(result.status == AlgorithmStatus::Success);
+            REQUIRE(std::isfinite(result.maxResidual));
+            CHECK(result.maxResidual / std::abs(scale) <= accuracy);
+            for (auto& value : result.eigenvalues)
+            {
+                REQUIRE(std::isfinite(value.real));
+                REQUIRE(std::isfinite(value.imag));
+                CHECK(std::isfinite(value.magnitude()));
+                const Real magnitude = value.magnitude() / std::abs(scale);
+                value.real /= scale;
+                value.imag /= scale;
+                CHECK_THAT(magnitude, Catch::Matchers::WithinAbs(
+                    std::hypot(value.real, value.imag), Precision::EqualityTolerance));
+            }
+            RequireSpectrum(result, reference.second, accuracy);
+            CHECK(MaxEigenpairResidual(reference.first, result) <= accuracy);
+            const auto canonical = MatrixAlg::Eigensystem(matrix, 0);
+            REQUIRE(canonical.converged);
+            REQUIRE(canonical.status == AlgorithmStatus::Success);
+            CHECK(std::isfinite(canonical.maxResidual));
+            for (const auto& expected : reference.second)
+            {
+                Real closest = std::numeric_limits<Real>::max();
+                for (int col = 0; col < canonical.eigenvalues.size(); ++col)
+                    closest = std::min(closest, std::abs(canonical.eigenvalues[col] / scale - expected));
+                CHECK(closest <= accuracy);
+            }
+        }
+}
+
+TEST_CASE("EigenSolver - normalization does not erase disconnected small eigenvalues",
+          "[eigensolver][adversarial][hessenberg-scale-contract]")
+{
+    for (const auto& matrix : {
+        Matrix<Real>{2, 2, {std::numeric_limits<Real>::max() / 4, 0, 0,
+            std::numeric_limits<Real>::min() * 4}},
+        Matrix<Real>{2, 2, {100, 0, 0, std::numeric_limits<Real>::denorm_min() * 1001}}})
+    {
+        const auto result = EigenSolver::Solve(matrix, 0);
+        REQUIRE(result.converged);
+        REQUIRE(result.eigenvalues.size() == 2);
+        CHECK(result.eigenvalues[0].real == matrix(0, 0));
+        CHECK(result.eigenvalues[1].real == matrix(1, 1));
+        CHECK(result.maxResidual == Real{0});
+    }
+}
+
+TEST_CASE("EigenSolver - unrepresentable spectra never report successful zero residuals",
+          "[eigensolver][adversarial][hessenberg-scale-contract]")
+{
+    const Real largest = std::numeric_limits<Real>::max();
+    const Matrix<Real> matrix{2, 2, {largest, largest / 2, largest / 2, largest}};
+    const auto direct = EigenSolver::Solve(matrix, 0);
+    EigenSolverConfig config;
+    config.tolerance = 0;
+    const auto configured = EigenSolver::Solve(matrix, config);
+    for (const auto& result : {direct, configured})
+    {
+        CHECK_FALSE(result.converged);
+        CHECK(result.status == AlgorithmStatus::NumericalInstability);
+        CHECK_FALSE(HasEstimate(result.maxResidual));
+        CHECK_FALSE(result.error_message.empty());
+    }
+    Vector<Real> zero(2);
+    const auto identity = Matrix<Real>::Identity(2);
+    CHECK_FALSE(std::isfinite(MML::detail::EigenpairResidual(identity, zero, zero, 1, 0)));
+    Vector<Real> vector{1, 0};
+    CHECK_FALSE(std::isfinite(MML::detail::EigenpairResidual(identity, vector, zero,
+        std::numeric_limits<Real>::quiet_NaN(), 0)));
+}
+
+TEST_CASE("EigenSolver - unsupported normalization ranges retain explicit failure payloads",
+          "[eigensolver][adversarial][hessenberg-scale-contract]")
+{
+    Matrix<Real> matrix(3, 3);
+    matrix(1, 0) = matrix(2, 0) = std::numeric_limits<Real>::max();
+    matrix(0, 2) = 4 * std::numeric_limits<Real>::min();
+    const auto direct = EigenSolver::Solve(matrix, 0);
+    CHECK_FALSE(direct.converged);
+    CHECK(direct.status == AlgorithmStatus::NumericalInstability);
+    CHECK_FALSE(HasEstimate(direct.maxResidual));
+    CHECK(direct.error_message.find("Hessenberg") != std::string::npos);
+    CHECK(direct.eigenvalues.size() == 3);
+    CHECK(direct.isComplexPair.size() == 3);
+    const auto canonical = MatrixAlg::Eigensystem(matrix, 0);
+    CHECK_FALSE(canonical.converged);
+    CHECK(canonical.status == AlgorithmStatus::NumericalInstability);
+    CHECK_FALSE(HasEstimate(canonical.maxResidual));
+    CHECK_FALSE(canonical.errorMessage.empty());
+}
 
 TEST_CASE("EigenSolver - block upper triangular, dense block at the bottom (interior deflation)",
           "[eigensolver][adversarial][deflation]")
@@ -242,19 +364,20 @@ TEST_CASE("EigenSolver - complex conjugate pairs: eigenvalues and complex eigenv
 
 TEST_CASE("EigenSolver - companion matrix (polynomial roots path)", "[eigensolver][adversarial][companion]")
 {
-    // (x-1)(x-2)(x+3)(x^2+1) = x^5 + 0x^4 - 6x^3 + 0x^2 - 7x + 6  ->  check by expansion below
+    // (x-1)(x-2)(x+3)(x^2+1) = x^5 - 6x^3 + 6x^2 - 7x + 6.
     std::vector<Real> p{static_cast<MML::Real>(1.0)};
     auto mul = [&](std::vector<Real> q) {
         std::vector<Real> out(p.size() + q.size() - 1, static_cast<MML::Real>(0.0));
         for (std::size_t i = 0; i < p.size(); i++)
             for (std::size_t j = 0; j < q.size(); j++)
                 out[i + j] += p[i] * q[j];
-        p = out;
+        p.swap(out);
     };
     mul({static_cast<MML::Real>(1.0), -static_cast<MML::Real>(1.0)});
     mul({static_cast<MML::Real>(1.0), -static_cast<MML::Real>(2.0)});
     mul({static_cast<MML::Real>(1.0), static_cast<MML::Real>(3.0)});
     mul({static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0)});
+    REQUIRE((p == std::vector<Real>{1, 0, -6, 6, -7, 6}));
 
     const int n = static_cast<int>(p.size()) - 1;
     Matrix<Real> C(n, n);

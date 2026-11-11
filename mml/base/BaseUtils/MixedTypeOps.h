@@ -31,7 +31,7 @@ namespace MML
 		/// @param b Real vector
 		/// @return Complex vector with a[i] + b[i]
 		/// @throws VectorDimensionError if vectors have different sizes
-		static Vector<Complex> AddVec(const Vector<Complex>& a, const Vector<Real>& b)
+		static inline Vector<Complex> AddVec(const Vector<Complex>& a, const Vector<Real>& b)
 		{
 			if (a.size() != b.size())
 				throw VectorDimensionError("AddVec(Complex, Real) - must be same dim", a.size(), b.size());
@@ -47,7 +47,7 @@ namespace MML
 		/// @param b Complex vector
 		/// @return Complex vector with a[i] + b[i]
 		/// @throws VectorDimensionError if vectors have different sizes
-		static Vector<Complex> AddVec(const Vector<Real>& a, const Vector<Complex>& b)
+		static inline Vector<Complex> AddVec(const Vector<Real>& a, const Vector<Complex>& b)
 		{
 			if (a.size() != b.size())
 				throw VectorDimensionError("AddVec(Real, Complex) - must be same dim", a.size(), b.size());
@@ -63,7 +63,7 @@ namespace MML
 		/// @param b Real vector
 		/// @return Complex vector with a[i] - b[i]
 		/// @throws VectorDimensionError if vectors have different sizes
-		static Vector<Complex> SubVec(const Vector<Complex>& a, const Vector<Real>& b)
+		static inline Vector<Complex> SubVec(const Vector<Complex>& a, const Vector<Real>& b)
 		{
 			if (a.size() != b.size())
 				throw VectorDimensionError("SubVec(Complex, Real) - must be same dim", a.size(), b.size());
@@ -79,7 +79,7 @@ namespace MML
 		/// @param b Complex vector
 		/// @return Complex vector with a[i] - b[i]
 		/// @throws VectorDimensionError if vectors have different sizes
-		static Vector<Complex> SubVec(const Vector<Real>& a, const Vector<Complex>& b)
+		static inline Vector<Complex> SubVec(const Vector<Real>& a, const Vector<Complex>& b)
 		{
 			if (a.size() != b.size())
 				throw VectorDimensionError("SubVec(Real, Complex) - must be same dim", a.size(), b.size());
@@ -94,7 +94,7 @@ namespace MML
 		/// @param a Complex scalar
 		/// @param b Real vector
 		/// @return Complex vector with a * b[i]
-		static Vector<Complex> MulVec(const Complex& a, const Vector<Real>& b)
+		static inline Vector<Complex> MulVec(const Complex& a, const Vector<Real>& b)
 		{
 			Vector<Complex> ret(b.size());;
 			for (int i = 0; i < b.size(); i++)
@@ -106,7 +106,7 @@ namespace MML
 		/// @param a Real vector
 		/// @param b Complex scalar
 		/// @return Complex vector with b * a[i]
-		static Vector<Complex> MulVec(const Vector<Real>& a, const Complex& b)
+		static inline Vector<Complex> MulVec(const Vector<Real>& a, const Complex& b)
 		{
 			Vector<Complex> ret(a.size());;
 			for (int i = 0; i < a.size(); i++)
@@ -123,7 +123,7 @@ namespace MML
 		/// @param b Real matrix
 		/// @return Complex matrix with a[i][j] + b[i][j]
 		/// @throws MatrixDimensionError if matrices have different dimensions
-		static Matrix<Complex> AddMat(const Matrix<Complex>& a, const Matrix<Real>& b)
+		static inline Matrix<Complex> AddMat(const Matrix<Complex>& a, const Matrix<Real>& b)
 		{
 			if (a.rows() != b.rows() || a.cols() != b.cols())
 				throw MatrixDimensionError("AddMat(Complex, Real) - must be same dim", a.rows(), a.cols(), b.rows(), b.cols());
@@ -140,7 +140,7 @@ namespace MML
 		/// @param b Complex matrix
 		/// @return Complex matrix with a[i][j] + b[i][j]
 		/// @throws MatrixDimensionError if matrices have different dimensions
-		static Matrix<Complex> AddMat(const Matrix<Real>& a, const Matrix<Complex>& b)
+		static inline Matrix<Complex> AddMat(const Matrix<Real>& a, const Matrix<Complex>& b)
 		{
 			if (a.rows() != b.rows() || a.cols() != b.cols())
 				throw MatrixDimensionError("AddMat(Real, Complex) - must be same dim", a.rows(), a.cols(), b.rows(), b.cols());
@@ -157,7 +157,7 @@ namespace MML
 		/// @param b Real matrix
 		/// @return Complex matrix with a[i][j] - b[i][j]
 		/// @throws MatrixDimensionError if matrices have different dimensions
-		static Matrix<Complex> SubMat(const Matrix<Complex>& a, const Matrix<Real>& b)
+		static inline Matrix<Complex> SubMat(const Matrix<Complex>& a, const Matrix<Real>& b)
 		{
 			if (a.rows() != b.rows() || a.cols() != b.cols())
 				throw MatrixDimensionError("SubMat(Complex, Real) - must be same dim", a.rows(), a.cols(), b.rows(), b.cols());
@@ -174,7 +174,7 @@ namespace MML
 		/// @param b Complex matrix
 		/// @return Complex matrix with a[i][j] - b[i][j]
 		/// @throws MatrixDimensionError if matrices have different dimensions
-		static Matrix<Complex> SubMat(const Matrix<Real>& a, const Matrix<Complex>& b)
+		static inline Matrix<Complex> SubMat(const Matrix<Real>& a, const Matrix<Complex>& b)
 		{
 			if (a.rows() != b.rows() || a.cols() != b.cols())
 				throw MatrixDimensionError("SubMat(Real, Complex) - must be same dim", a.rows(), a.cols(), b.rows(), b.cols());
@@ -190,7 +190,7 @@ namespace MML
 		/// @param a Complex scalar
 		/// @param b Real matrix
 		/// @return Complex matrix with a * b[i][j]
-		static Matrix<Complex> MulMat(const Complex& a, const Matrix<Real>& b)
+		static inline Matrix<Complex> MulMat(const Complex& a, const Matrix<Real>& b)
 		{
 			Matrix<Complex> ret(b.rows(), b.cols());
 
@@ -206,7 +206,7 @@ namespace MML
 		/// @param a Real matrix
 		/// @param b Complex scalar
 		/// @return Complex matrix with b * a[i][j]
-		static Matrix<Complex> MulMat(const Matrix<Real>& a, const Complex& b)
+		static inline Matrix<Complex> MulMat(const Matrix<Real>& a, const Complex& b)
 		{
 			Matrix<Complex> ret(a.rows(), a.cols());
 
@@ -223,7 +223,7 @@ namespace MML
 		/// @param b Real matrix (n×p)
 		/// @return Complex matrix (m×p)
 		/// @throws MatrixDimensionError if inner dimensions don't match
-		static Matrix<Complex> MulMat(const Matrix<Complex>& a, const Matrix<Real>& b)
+		static inline Matrix<Complex> MulMat(const Matrix<Complex>& a, const Matrix<Real>& b)
 		{
 			if (a.cols() != b.rows())
 				throw MatrixDimensionError("MulMat(Complex, Real) - a.colNum must be equal to b.rowNum", a.rows(), a.cols(), b.rows(), b.cols());
@@ -244,7 +244,7 @@ namespace MML
 		/// @param b Complex matrix (n×p)
 		/// @return Complex matrix (m×p)
 		/// @throws MatrixDimensionError if inner dimensions don't match
-		static Matrix<Complex> MulMat(const Matrix<Real>& a, const Matrix<Complex>& b)
+		static inline Matrix<Complex> MulMat(const Matrix<Real>& a, const Matrix<Complex>& b)
 		{
 			if (a.cols() != b.rows())
 				throw MatrixDimensionError("MulMat(Real, Complex) - a.colNum must be equal to b.rowNum", a.rows(), a.cols(), b.rows(), b.cols());
@@ -269,7 +269,7 @@ namespace MML
 		/// @param b Complex vector (size n)
 		/// @return Complex vector (size m)
 		/// @throws MatrixDimensionError if matrix columns don't match vector size
-		static Vector<Complex> MulMatVec(const Matrix<Real>& a, const Vector<Complex>& b)
+		static inline Vector<Complex> MulMatVec(const Matrix<Real>& a, const Vector<Complex>& b)
 		{
 			if (a.cols() != b.size())
 				throw MatrixDimensionError("MulMatVec(Real, Complex) - a.colNum must be equal to vector size", a.rows(), a.cols(), (int)b.size(), -1);
@@ -289,7 +289,7 @@ namespace MML
 		/// @param b Real vector (size n)
 		/// @return Complex vector (size m)
 		/// @throws MatrixDimensionError if matrix columns don't match vector size
-		static Vector<Complex> MulMatVec(const Matrix<Complex>& a, const Vector<Real>& b)
+		static inline Vector<Complex> MulMatVec(const Matrix<Complex>& a, const Vector<Real>& b)
 		{
 			if (a.cols() != b.size())
 				throw MatrixDimensionError("MulMatVec(Complex, Real) - a.colNum must be equal to vector size", a.rows(), a.cols(), (int)b.size(), -1);
@@ -309,7 +309,7 @@ namespace MML
 		/// @param b Real matrix (m×n)
 		/// @return Complex vector (size n)
 		/// @throws MatrixDimensionError if vector size doesn't match matrix rows
-		static Vector<Complex> MulVecMat(const Vector<Complex>& a, const Matrix<Real>& b)
+		static inline Vector<Complex> MulVecMat(const Vector<Complex>& a, const Matrix<Real>& b)
 		{
 			if (a.size() != b.rows())
 				throw MatrixDimensionError("MulVecMat(Complex, Real) - vector size must be equal to b.rowNum", (int)a.size(), -1, b.rows(), b.cols());
@@ -329,7 +329,7 @@ namespace MML
 		/// @param b Complex matrix (m×n)
 		/// @return Complex vector (size n)
 		/// @throws MatrixDimensionError if vector size doesn't match matrix rows
-		static Vector<Complex> MulVecMat(const Vector<Real>& a, const Matrix<Complex>& b)
+		static inline Vector<Complex> MulVecMat(const Vector<Real>& a, const Matrix<Complex>& b)
 		{
 			if (a.size() != b.rows())
 				throw MatrixDimensionError("MulVecMat(Real, Complex) - vector size must be equal to b.rowNum", (int)a.size(), -1, b.rows(), b.cols());

@@ -31,8 +31,6 @@ namespace MML::Tests::Algorithms::ODESystemSolverTests
 		// Rewrite as system: x' = y, y' = mu*(1-x^2)*y - x
 		// For mu >> 1, this becomes stiff
 
-		Real mu = static_cast<MML::Real>(10.0); // Stiffness parameter
-
 		// Van der Pol equation as function pointer
 		auto vanDerPolFunc = [](Real t, const Vector<Real>& x, Vector<Real>& dxdt) {
 			Real mu = static_cast<MML::Real>(10.0);
@@ -447,7 +445,7 @@ namespace MML::Tests::Algorithms::AdaptiveIntegratorTests {
 		Vector<Real> dxdt{-1.0}; // Initial derivative
 		Real t = 0.0;
 		Real eps = TOL(1e-10, 1e-5);
-		Real htry = 0.1;
+		Real htry = MML::Real(0.1);
 
 		StepResult result = stepper.doStep(t, x, dxdt, htry, eps);
 
@@ -473,7 +471,7 @@ namespace MML::Tests::Algorithms::AdaptiveIntegratorTests {
 		Vector<Real> dxdt{-1.0};
 		Real t = 0.0;
 		Real eps = TOL(1e-10, 1e-5);
-		Real htry = 0.1;
+		Real htry = MML::Real(0.1);
 
 		// First step
 		StepResult r1 = stepper.doStep(t, x, dxdt, htry, eps);
@@ -482,13 +480,12 @@ namespace MML::Tests::Algorithms::AdaptiveIntegratorTests {
 
 		t += r1.hDone;
 
-		// Second step - should use FSAL (one less function evaluation)
+		// The first step receives k1; subsequent steps reuse the previous k7.
 		StepResult r2 = stepper.doStep(t, x, dxdt, r1.hNext, eps);
 		REQUIRE(r2.accepted);
 		int evals2 = r2.funcEvals;
 
-		// Due to FSAL, second step should use same or fewer evals
-		// (First step computes k1 fresh, subsequent steps reuse k7)
+		// Both supplied and FSAL derivatives are excluded from executed work.
 		INFO("First step evals: " << evals1 << ", Second step evals: " << evals2);
 		REQUIRE(evals2 <= evals1);
 	}
@@ -542,11 +539,11 @@ namespace MML::Tests::Algorithms::AdaptiveIntegratorTests {
 		REQUIRE(stepper.interpolate(0.0)[0] == Catch::Approx(1.0));
 		REQUIRE(stepper.interpolate(result.hDone)[0] == Catch::Approx(x[0]));
 		REQUIRE(stepper.interpolate(1.0)[0] == Catch::Approx(x[0]));
-		REQUIRE_THAT(stepper.interpolate(0.1)[0], WithinAbs(std::exp(0.1), 3e-7));
+		REQUIRE_THAT(stepper.interpolate(MML::Real(0.1))[0], WithinAbs(std::exp(MML::Real(0.1)), MML::Real(3e-7)));
 		REQUIRE(ode.evaluations == evaluationsAfterStep);
 
 		stepper.resetFSAL();
-		REQUIRE_THROWS_AS(stepper.interpolate(0.1), ODESolverError);
+		REQUIRE_THROWS_AS(stepper.interpolate(MML::Real(0.1)), ODESolverError);
 	}
 
 	TEST_CASE("DormandPrince5_Stepper_NativeDenseOutputSupportsBackwardSteps", "[AdaptiveIntegrator][DP5][DenseOutput][i5u3.3.8]") {
@@ -560,7 +557,7 @@ namespace MML::Tests::Algorithms::AdaptiveIntegratorTests {
 		REQUIRE(result.hDone == Catch::Approx(-0.25));
 		REQUIRE(stepper.interpolate(2.0)[0] == Catch::Approx(std::exp(1.0)));
 		REQUIRE(stepper.interpolate(0.0)[0] == Catch::Approx(x[0]));
-		REQUIRE_THAT(stepper.interpolate(0.9)[0], WithinAbs(std::exp(0.9), TOL(1.2e-6, 2e-6)));
+		REQUIRE_THAT(stepper.interpolate(MML::Real(0.9))[0], WithinAbs(std::exp(MML::Real(0.9)), TOL(1.2e-6, 2e-6)));
 	}
 
 	TEST_CASE("DormandPrince5_Stepper_NativeDenseOutputHasFifthOrderLocalAccuracy", "[AdaptiveIntegrator][DP5][DenseOutput][i5u3.3.8]") {
@@ -576,8 +573,8 @@ namespace MML::Tests::Algorithms::AdaptiveIntegratorTests {
 			return std::abs(stepper.interpolate(queryTime)[0] - std::exp(queryTime));
 		};
 
-		const Real coarseError = midpointError(0.4);
-		const Real fineError = midpointError(0.2);
+		const Real coarseError = midpointError(MML::Real(0.4));
+		const Real fineError = midpointError(MML::Real(0.2));
 		INFO("coarse error = " << coarseError << ", fine error = " << fineError);
 		REQUIRE(fineError > 0.0);
 		REQUIRE(coarseError / fineError > TOL(20.0, 8.0));
@@ -605,7 +602,7 @@ namespace MML::Tests::Algorithms::AdaptiveIntegratorTests {
 		REQUIRE_THAT(stepper.interpolate(0.0)[0], WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-12, 1e-6)));
 		REQUIRE_THAT(stepper.interpolate(result.hDone)[0], WithinAbs(x[0], TOL(1e-12, 1e-6)));
 		REQUIRE_THAT(stepper.interpolate(1.0)[0], WithinAbs(x[0], TOL(1e-12, 1e-6)));
-		REQUIRE_THAT(stepper.interpolate(0.23)[0], WithinAbs(std::exp(0.23), TOL(5e-9, 2e-6)));
+		REQUIRE_THAT(stepper.interpolate(MML::Real(0.23))[0], WithinAbs(std::exp(MML::Real(0.23)), TOL(5e-9, 2e-6)));
 		REQUIRE(ode.evaluations == evaluationsAfterStep);
 
 		const StepResult secondResult = stepper.doStep(result.hDone, x, dxdt, 0.25, 1.0);
@@ -614,7 +611,7 @@ namespace MML::Tests::Algorithms::AdaptiveIntegratorTests {
 		REQUIRE(ode.evaluations == evaluationsAfterStep + 15);
 
 		stepper.resetFSAL();
-		REQUIRE_THROWS_AS(stepper.interpolate(0.23), ODESolverError);
+		REQUIRE_THROWS_AS(stepper.interpolate(MML::Real(0.23)), ODESolverError);
 	}
 
 	TEST_CASE("DormandPrince8_Stepper_DOP853DenseOutputSupportsBackwardSteps", "[AdaptiveIntegrator][DP8][DenseOutput][i5u3.3.9]") {
@@ -629,7 +626,7 @@ namespace MML::Tests::Algorithms::AdaptiveIntegratorTests {
 		REQUIRE(result.funcEvals == 15);
 		REQUIRE(stepper.interpolate(2.0)[0] == Catch::Approx(std::exp(1.0)));
 		REQUIRE(stepper.interpolate(0.0)[0] == Catch::Approx(x[0]));
-		REQUIRE_THAT(stepper.interpolate(0.77)[0], WithinAbs(std::exp(0.77), TOL(1e-8, 2e-6)));
+		REQUIRE_THAT(stepper.interpolate(MML::Real(0.77))[0], WithinAbs(std::exp(MML::Real(0.77)), TOL(1e-8, 2e-6)));
 	}
 
 	TEST_CASE("DormandPrince8_Stepper_DOP853DenseOutputHasEighthOrderLocalAccuracy", "[AdaptiveIntegrator][DP8][DenseOutput][i5u3.3.9]") {
@@ -648,8 +645,8 @@ namespace MML::Tests::Algorithms::AdaptiveIntegratorTests {
 			};
 		};
 
-		const auto coarseErrors = errors(0.8);
-		const auto fineErrors = errors(0.4);
+		const auto coarseErrors = errors(MML::Real(0.8));
+		const auto fineErrors = errors(MML::Real(0.4));
 		INFO("dense coarse error = " << coarseErrors.first << ", dense fine error = " << fineErrors.first);
 		INFO("endpoint coarse error = " << coarseErrors.second << ", endpoint fine error = " << fineErrors.second);
 		REQUIRE(fineErrors.first > 0.0);
@@ -740,7 +737,7 @@ namespace MML::Tests::Algorithms::AdaptiveIntegratorTests {
 		Vector<Real> x0{1.0};
 
 		// Specify exact output times
-		Vector<Real> times{0.0, 0.1, 0.5, 1.0, 2.0, 3.0, 5.0};
+		Vector<Real> times{MML::Real(0.0), MML::Real(0.1), MML::Real(0.5), MML::Real(1.0), MML::Real(2.0), MML::Real(3.0), MML::Real(5.0)};
 		Real eps = TOL(1e-10, 1e-5);
 
 		ODESystemSolution sol = integrator.integrateAt(x0, times, eps);
@@ -765,20 +762,20 @@ namespace MML::Tests::Algorithms::AdaptiveIntegratorTests {
 		DormandPrince5Integrator integrator(ode);
 
 		Vector<Real> x0{1.0, 0.0};					// x(0) = 1, v(0) = 0
-		Real t0 = 0.0, tEnd = 10.0 * Constants::PI; // 5 full periods
+		Real t0 = MML::Real(0.0), tEnd = MML::Real(10.0) * Constants::PI; // 5 full periods
 		Real outputInterval = Constants::PI / 5.0;
 		Real eps = TOL(1e-12, 1e-5); // Tight tolerance
 
 		ODESystemSolution sol = integrator.integrate(x0, t0, tEnd, outputInterval, eps);
 
-		Real initialEnergy = 0.5 * (x0[0] * x0[0] + x0[1] * x0[1]);
+		Real initialEnergy = MML::Real(0.5) * (x0[0] * x0[0] + x0[1] * x0[1]);
 		Real maxEnergyDrift = 0.0;
 
 		int numPoints = sol.getNumSteps() + 1;
 		for (int i = 0; i < numPoints; i++) {
 			Real x = sol.getXValue(i, 0);
 			Real v = sol.getXValue(i, 1);
-			Real energy = 0.5 * (x * x + v * v);
+			Real energy = MML::Real(0.5) * (x * x + v * v);
 			Real drift = std::abs(energy - initialEnergy);
 			maxEnergyDrift = std::max(maxEnergyDrift, drift);
 		}
@@ -855,8 +852,8 @@ namespace MML::Tests::Algorithms::AdaptiveIntegratorTests {
 		auto sol = integrator.integrate(x0, t0, tEnd, 0.5, eps);
 
 		// Check final values: cos(10) and -sin(10)
-		Real exactY = std::cos(10.0);
-		Real exactV = -std::sin(10.0);
+		Real exactY = std::cos(MML::Real(10.0));
+		Real exactV = -std::sin(MML::Real(10.0));
 
 		Vector<Real> finalX = sol.getXValuesAtEnd();
 		Real errY = std::abs(finalX[0] - exactY);
@@ -893,8 +890,8 @@ namespace MML::Tests::Algorithms::AdaptiveIntegratorTests {
 
 		auto sol = integrator.integrate(x0, t0, tEnd, 0.5, eps);
 
-		Real exactY = std::cos(10.0);
-		Real exactV = -std::sin(10.0);
+		Real exactY = std::cos(MML::Real(10.0));
+		Real exactV = -std::sin(MML::Real(10.0));
 
 		Vector<Real> finalX = sol.getXValuesAtEnd();
 		Real errY = std::abs(finalX[0] - exactY);
@@ -1015,7 +1012,7 @@ namespace MML::Tests::Algorithms::AdaptiveIntegratorTests {
 		// Request many output points
 		Vector<Real> times(21);
 		for (int i = 0; i <= 20; i++)
-			times[i] = tEnd * i / 20.0;
+			times[i] = tEnd * i / MML::Real(20.0);
 
 		auto sol = integrator.integrateAt(x0, times, eps);
 
@@ -1066,8 +1063,8 @@ namespace MML::Tests::Algorithms::AdaptiveIntegratorTests {
 		REQUIRE_THAT(xFinal[1], WithinAbs(exactV, TOL(1e-5, 1e-2)));
 
 		// Verify energy conservation (should be good for BS)
-		Real initialEnergy = 0.5 * (x0[0] * x0[0] + x0[1] * x0[1]);
-		Real finalEnergy = 0.5 * (xFinal[0] * xFinal[0] + xFinal[1] * xFinal[1]);
+		Real initialEnergy = MML::Real(0.5) * (x0[0] * x0[0] + x0[1] * x0[1]);
+		Real finalEnergy = MML::Real(0.5) * (xFinal[0] * xFinal[0] + xFinal[1] * xFinal[1]);
 		Real energyError = std::abs(finalEnergy - initialEnergy) / initialEnergy;
 
 		INFO("Energy error: " << energyError);
@@ -1321,7 +1318,7 @@ namespace MML::Tests::Algorithms::ComprehensiveAdaptiveTests
 		int getDim() const override { return 4; }
 		void derivs(Real t, const Vector<Real>& y, Vector<Real>& dydt) const override {
 			// y[0] = x, y[1] = y, y[2] = vx, y[3] = vy
-			Real r3 = std::pow(y[0]*y[0] + y[1]*y[1], 1.5);
+			Real r3 = std::pow(y[0]*y[0] + y[1]*y[1], MML::Real(1.5));
 			dydt[0] = y[2];
 			dydt[1] = y[3];
 			dydt[2] = -y[0] / r3;
@@ -1331,7 +1328,7 @@ namespace MML::Tests::Algorithms::ComprehensiveAdaptiveTests
 		static Real computeEnergy(const Vector<Real>& y) {
 			Real r = std::sqrt(y[0]*y[0] + y[1]*y[1]);
 			Real v2 = y[2]*y[2] + y[3]*y[3];
-			return 0.5 * v2 - 1.0 / r;
+			return MML::Real(0.5) * v2 - MML::Real(1.0) / r;
 		}
 		
 		static Vector<Real> getCircularOrbitIC() {
@@ -1378,7 +1375,7 @@ namespace MML::Tests::Algorithms::ComprehensiveAdaptiveTests
 		Vector<Real> dxdt(2);
 		ode.derivs(0.0, x, dxdt);
 
-		Real eps = 1e-6;
+		Real eps = MML::Real(1e-6);
 		Real htry = 1.0;  // Deliberately large initial step
 
 		StepResult result = stepper.doStep(0.0, x, dxdt, htry, eps);
@@ -1404,8 +1401,8 @@ namespace MML::Tests::Algorithms::ComprehensiveAdaptiveTests
 		Vector<Real> x{1.0};
 		Vector<Real> dxdt{-1.0};
 
-		Real eps = 1e-6;
-		Real htry = 0.001;  // Deliberately small initial step
+		Real eps = MML::Real(1e-6);
+		Real htry = MML::Real(0.001);  // Deliberately small initial step
 
 		StepResult result = stepper.doStep(0.0, x, dxdt, htry, eps);
 
@@ -1428,12 +1425,12 @@ namespace MML::Tests::Algorithms::ComprehensiveAdaptiveTests
 
 		// Loose tolerance
 		DormandPrince5Integrator integratorLoose(ode);
-		auto solLoose = integratorLoose.integrate(x0, t0, tEnd, 0.1, 1e-3);
+		auto solLoose = integratorLoose.integrate(x0, t0, tEnd, MML::Real(0.1), MML::Real(1e-3));
 		auto statsLoose = integratorLoose.getStatistics();
 
 		// Tight tolerance
 		DormandPrince5Integrator integratorTight(ode);
-		auto solTight = integratorTight.integrate(x0, t0, tEnd, 0.1, TOL(1e-10, 1e-5));
+		auto solTight = integratorTight.integrate(x0, t0, tEnd, MML::Real(0.1), TOL(1e-10, 1e-5));
 		auto statsTight = integratorTight.getStatistics();
 
 		INFO("Loose tolerance (1e-3):  steps=" << statsLoose.acceptedSteps);
@@ -1456,7 +1453,7 @@ namespace MML::Tests::Algorithms::ComprehensiveAdaptiveTests
 		TEST_PRECISION_INFO();
 
 		ExponentialDecayODE ode;
-		std::vector<Real> tolerances = {1e-3, 1e-6, TOL(1e-9, 1e-4)};
+		std::vector<Real> tolerances = {MML::Real(1e-3), MML::Real(1e-6), TOL(1e-9, 1e-4)};
 
 		for (Real tol : tolerances) {
 			DYNAMIC_SECTION("Tolerance = " << tol) {
@@ -1466,7 +1463,7 @@ namespace MML::Tests::Algorithms::ComprehensiveAdaptiveTests
 				Real t0 = 0.0;
 				Real tEnd = 5.0;
 
-				auto sol = integrator.integrate(x0, t0, tEnd, 0.1, tol);
+				auto sol = integrator.integrate(x0, t0, tEnd, MML::Real(0.1), tol);
 
 				// Check error at several points
 				for (int i = 0; i < sol.getTotalSavedSteps(); ++i) {
@@ -1507,7 +1504,7 @@ namespace MML::Tests::Algorithms::ComprehensiveAdaptiveTests
 
 		SECTION("DormandPrince5") {
 			DormandPrince5Integrator integrator(ode);
-			auto sol = integrator.integrate(x0, t0, tEnd, 0.1, eps);
+			auto sol = integrator.integrate(x0, t0, tEnd, MML::Real(0.1), eps);
 			Real err = std::abs(sol.getXValuesAtEnd()[0] - std::exp(-tEnd));
 			INFO("DP5 error: " << err);
 			REQUIRE(err < eps * 100);
@@ -1515,7 +1512,7 @@ namespace MML::Tests::Algorithms::ComprehensiveAdaptiveTests
 
 		SECTION("CashKarp") {
 			CashKarpIntegrator integrator(ode);
-			auto sol = integrator.integrate(x0, t0, tEnd, 0.1, eps);
+			auto sol = integrator.integrate(x0, t0, tEnd, MML::Real(0.1), eps);
 			Real err = std::abs(sol.getXValuesAtEnd()[0] - std::exp(-tEnd));
 			INFO("CashKarp error: " << err);
 			REQUIRE(err < eps * 100);
@@ -1523,7 +1520,7 @@ namespace MML::Tests::Algorithms::ComprehensiveAdaptiveTests
 
 		SECTION("DormandPrince8") {
 			DormandPrince8Integrator integrator(ode);
-			auto sol = integrator.integrate(x0, t0, tEnd, 0.1, eps);
+			auto sol = integrator.integrate(x0, t0, tEnd, MML::Real(0.1), eps);
 			Real err = std::abs(sol.getXValuesAtEnd()[0] - std::exp(-tEnd));
 			INFO("DP8 error: " << err);
 			REQUIRE(err < eps * 100);
@@ -1531,7 +1528,7 @@ namespace MML::Tests::Algorithms::ComprehensiveAdaptiveTests
 
 		SECTION("BulirschStoer") {
 			BulirschStoerIntegrator integrator(ode);
-			auto sol = integrator.integrate(x0, t0, tEnd, 0.1, eps);
+			auto sol = integrator.integrate(x0, t0, tEnd, MML::Real(0.1), eps);
 			Real err = std::abs(sol.getXValuesAtEnd()[0] - std::exp(-tEnd));
 			INFO("BS error: " << err);
 			REQUIRE(err < eps * 100);
@@ -1539,7 +1536,7 @@ namespace MML::Tests::Algorithms::ComprehensiveAdaptiveTests
 
 		SECTION("BulirschStoerRational") {
 			BulirschStoerRationalIntegrator integrator(ode);
-			auto sol = integrator.integrate(x0, t0, tEnd, 0.1, eps);
+			auto sol = integrator.integrate(x0, t0, tEnd, MML::Real(0.1), eps);
 			Real err = std::abs(sol.getXValuesAtEnd()[0] - std::exp(-tEnd));
 			INFO("BSRational error: " << err);
 			REQUIRE(err < eps * 100);
@@ -1556,7 +1553,7 @@ namespace MML::Tests::Algorithms::ComprehensiveAdaptiveTests
 		Real eps = TOL(1e-8, 1e-4);
 
 		auto testIntegrator = [&](auto& integrator, const std::string& name) {
-			auto sol = integrator.integrate(x0, t0, tEnd, 0.2, eps);
+			auto sol = integrator.integrate(x0, t0, tEnd, MML::Real(0.2), eps);
 			Real errX = std::abs(sol.getXValuesAtEnd()[0] - std::cos(tEnd));
 			Real errV = std::abs(sol.getXValuesAtEnd()[1] + std::sin(tEnd));
 			INFO(name << " x-error: " << errX << ", v-error: " << errV);
@@ -1605,13 +1602,13 @@ namespace MML::Tests::Algorithms::ComprehensiveAdaptiveTests
 
 		auto testDense = [&](auto& integrator, const std::string& name) {
 			// Use smaller output interval for better interpolation
-			auto sol = integrator.integrate(x0, t0, tEnd, 0.1, eps);
+			auto sol = integrator.integrate(x0, t0, tEnd, MML::Real(0.1), eps);
 
 			// Check interpolated output at non-saved points using spline
 			auto interpX = sol.getSolAsSplineInterp(0);
 			auto interpV = sol.getSolAsSplineInterp(1);
 			
-			for (Real t = 0.15; t < tEnd - 0.1; t += 0.2) {
+			for (Real t = MML::Real(0.15); t < tEnd - MML::Real(0.1); t += MML::Real(0.2)) {
 				Real yDenseX = interpX(t);
 				Real yDenseV = interpV(t);
 				
@@ -1699,7 +1696,7 @@ namespace MML::Tests::Algorithms::ComprehensiveAdaptiveTests
 		// Check amplitude is preserved (|x|^2 + |v|^2 = 1)
 		auto yFinal = sol.getXValuesAtEnd();
 		Real amplitude = std::sqrt(yFinal[0]*yFinal[0] + yFinal[1]*yFinal[1]);
-		Real ampError = std::abs(amplitude - 1.0);
+		Real ampError = std::abs(amplitude - MML::Real(1.0));
 
 		INFO("Final amplitude: " << amplitude);
 		INFO("Amplitude error: " << ampError);
@@ -1723,7 +1720,7 @@ namespace MML::Tests::Algorithms::ComprehensiveAdaptiveTests
 
 		// Conserved quantity: H = δx - γ*ln(x) + βy - α*ln(y)
 		auto computeH = [](const Vector<Real>& y) {
-			Real alpha = 1.0, beta = 0.1, gamma = 1.5, delta = 0.075;
+			Real alpha = MML::Real(1.0), beta = MML::Real(0.1), gamma = MML::Real(1.5), delta = MML::Real(0.075);
 			return delta * y[0] - gamma * std::log(y[0]) + 
 			       beta * y[1] - alpha * std::log(y[1]);
 		};
@@ -1731,7 +1728,7 @@ namespace MML::Tests::Algorithms::ComprehensiveAdaptiveTests
 		Real H0 = computeH(y0);
 
 		DormandPrince8Integrator integrator(ode);
-		auto sol = integrator.integrate(y0, t0, tEnd, 0.2, eps);
+		auto sol = integrator.integrate(y0, t0, tEnd, MML::Real(0.2), eps);
 
 		Real Hfinal = computeH(sol.getXValuesAtEnd());
 		Real Hdrift = std::abs(Hfinal - H0) / std::abs(H0);
@@ -1758,7 +1755,7 @@ namespace MML::Tests::Algorithms::ComprehensiveAdaptiveTests
 		Real eps = TOL(1e-8, 1e-4);
 
 		DormandPrince5Integrator integrator(ode);
-		auto sol = integrator.integrate(x0, t0, tEnd, 0.1, eps);
+		auto sol = integrator.integrate(x0, t0, tEnd, MML::Real(0.1), eps);
 
 		// Lorenz attractor is bounded: |x|, |y| < 30, |z| < 50 typically
 		for (int i = 0; i < sol.getTotalSavedSteps(); ++i) {
@@ -1792,7 +1789,7 @@ namespace MML::Tests::Algorithms::ComprehensiveAdaptiveTests
 		Real eps = TOL(1e-6, 1e-4);
 
 		DormandPrince5Integrator integrator(ode);
-		auto sol = integrator.integrate(x0, t0, tEnd, 0.1, eps);
+		auto sol = integrator.integrate(x0, t0, tEnd, MML::Real(0.1), eps);
 		auto stats = integrator.getStatistics();
 
 		// With omega=50, period ≈ 0.126, so expect many steps
@@ -1821,7 +1818,7 @@ namespace MML::Tests::Algorithms::ComprehensiveAdaptiveTests
 		Real eps = TOL(1e-14, 1e-5);  // Very tight
 
 		DormandPrince8Integrator integrator(ode);  // Need high-order for tight tol
-		auto sol = integrator.integrate(x0, t0, tEnd, 0.1, eps);
+		auto sol = integrator.integrate(x0, t0, tEnd, MML::Real(0.1), eps);
 		auto stats = integrator.getStatistics();
 
 		Real exact = std::exp(-tEnd);
@@ -1841,7 +1838,7 @@ namespace MML::Tests::Algorithms::ComprehensiveAdaptiveTests
 		Vector<Real> x0{1.0, 0.0};
 		Real t0 = 0.0;
 		Real tEnd = Constants::PI;
-		Real eps = 1e-2;  // Very loose
+		Real eps = MML::Real(1e-2);  // Very loose
 
 		DormandPrince5Integrator integrator(ode);
 		auto sol = integrator.integrate(x0, t0, tEnd, 0.5, eps);
@@ -1862,11 +1859,11 @@ namespace MML::Tests::Algorithms::ComprehensiveAdaptiveTests
 		ExponentialDecayODE ode;
 		Vector<Real> x0{1.0};
 		Real t0 = 0.0;
-		Real tEnd = 1e-6;  // Very short
+		Real tEnd = MML::Real(1e-6);  // Very short
 		Real eps = TOL(1e-10, 1e-5);
 
 		DormandPrince5Integrator integrator(ode);
-		auto sol = integrator.integrate(x0, t0, tEnd, 1e-7, eps);
+		auto sol = integrator.integrate(x0, t0, tEnd, MML::Real(1e-7), eps);
 
 		Real exact = std::exp(-tEnd);
 		Real err = std::abs(sol.getXValuesAtEnd()[0] - exact);
@@ -1956,7 +1953,7 @@ namespace MML::Tests::Algorithms::ComprehensiveAdaptiveTests
 		Vector<Real> dxdt{-1.0};
 		Real t = 0.0;
 		Real eps = TOL(1e-10, 1e-5);
-		Real h = 0.1;
+		Real h = MML::Real(0.1);
 
 		// Do first step
 		StepResult r1 = stepper.doStep(t, x, dxdt, h, eps);
@@ -2058,7 +2055,7 @@ namespace MML::Tests::Algorithms::StiffSolverTests
 		
 		Real t0 = 0.0;
 		Real t_end = 1.0;
-		Real h = 0.1;
+		Real h = MML::Real(0.1);
 		
 		auto sol = SolveBackwardEuler(system, t0, y0, t_end, h);
 		
@@ -2078,7 +2075,7 @@ namespace MML::Tests::Algorithms::StiffSolverTests
 		
 		Real t0 = 0.0;
 		Real t_end = 1.0;
-		Real h = 0.1;
+		Real h = MML::Real(0.1);
 		
 		auto sol = SolveBDF2(system, t0, y0, t_end, h);
 		
@@ -2102,12 +2099,12 @@ namespace MML::Tests::Algorithms::StiffSolverTests
 				REQUIRE(y0.size() == 1);
 				
 				SECTION("Create solver") {
-					ROS2Solver solver(system, 1e-3, 1e-3);
+					ROS2Solver solver(system, MML::Real(1e-3), MML::Real(1e-3));
 					
 					SECTION("Solve") {
 						Real t0 = 0.0;
 						Real t_end = 1.0;
-						Real h_init = 0.1;
+						Real h_init = MML::Real(0.1);
 						
 						auto sol = solver.Solve(t0, y0, t_end, h_init);
 						
@@ -2132,7 +2129,7 @@ namespace MML::Tests::Algorithms::StiffSolverTests
 		
 		Real t0 = 0.0;
 		Real t_end = 2.0;
-		Real h = 0.05;
+		Real h = MML::Real(0.05);
 		
 		// Backward Euler
 		auto sol_be = SolveBackwardEuler(system, t0, y0, t_end, h);
@@ -2143,7 +2140,7 @@ namespace MML::Tests::Algorithms::StiffSolverTests
 		Real err_bdf2 = std::abs(sol_bdf2.getXValuesAtEnd()[0] - system.exactSolution(t_end));
 		
 		// Rosenbrock (ROS2 - 2nd order, adaptive)
-		ROS2Solver solver(system, 1e-3, 1e-3);
+		ROS2Solver solver(system, MML::Real(1e-3), MML::Real(1e-3));
 		auto sol_ros = solver.Solve(t0, y0, t_end, h);
 		Real err_ros = std::abs(sol_ros.getXValuesAtEnd()[0] - system.exactSolution(t_end));
 		
@@ -2169,7 +2166,7 @@ namespace MML::Tests::Algorithms::StiffSolverTests
 		Real t_end = 2.0;
 		
 		SECTION("Backward Euler handles moderate stiffness") {
-			Real h = 0.05;
+			Real h = MML::Real(0.05);
 			auto sol = SolveBackwardEuler(*system, t0, y0, t_end, h);
 			
 			REQUIRE(sol.getNumStepsOK() > 0);
@@ -2182,7 +2179,7 @@ namespace MML::Tests::Algorithms::StiffSolverTests
 		}
 		
 		SECTION("BDF2 handles moderate stiffness efficiently") {
-			Real h = 0.1;  // Can use larger step than Backward Euler
+			Real h = MML::Real(0.1);  // Can use larger step than Backward Euler
 			auto sol = SolveBDF2(*system, t0, y0, t_end, h);
 			
 			REQUIRE(sol.getNumStepsOK() > 0);
@@ -2194,8 +2191,8 @@ namespace MML::Tests::Algorithms::StiffSolverTests
 		}
 		
 		SECTION("Rosenbrock adapts step size appropriately") {
-			Real h_init = 0.1;
-			ROS2Solver solver(*system, 1e-2, 1e-2);  // Relaxed tolerances for Van der Pol
+			Real h_init = MML::Real(0.1);
+			ROS2Solver solver(*system, MML::Real(1e-2), MML::Real(1e-2));  // Relaxed tolerances for Van der Pol
 			auto sol = solver.Solve(t0, y0, t_end, h_init);
 			
 			REQUIRE(sol.getNumStepsOK() > 0);
@@ -2218,10 +2215,10 @@ namespace MML::Tests::Algorithms::StiffSolverTests
 		Vector<Real> y0 = RobertsonODE::getInitialCondition();
 		
 		Real t0 = 0.0;
-		Real t_end = 0.1;  // Very short integration time
+		Real t_end = MML::Real(0.1);  // Very short integration time
 		
 		SECTION("BDF2 can integrate Robertson (short time)") {
-			Real h = 1e-4;  // Very small step needed
+			Real h = MML::Real(1e-4);  // Very small step needed
 			
 			try {
 				auto sol = SolveBDF2(*system, t0, y0, t_end, h);
@@ -2280,7 +2277,7 @@ namespace MML::Tests::Algorithms::ODEDetailedTests
 	{
 		TestBeds::SimpleHarmonicOscillatorODE sho;
 		Vector<Real> x0({1.0, 0.0});
-		Real t0 = 0.0, tEnd = 6.283185;  // ~2π
+		Real t0 = MML::Real(0.0), tEnd = MML::Real(6.283185);  // ~2π
 
 		ODEAdaptiveConfig config;
 		config.integrator = ODEIntegratorConfig::HighPrecision();
@@ -2352,7 +2349,7 @@ namespace MML::Tests::Algorithms::ODEDetailedTests
 		y0[0] = 1.0;
 
 		ODEStiffConfig config;
-		config.solver.step_size = 0.1;
+		config.solver.step_size = MML::Real(0.1);
 
 		auto result = SolveBackwardEulerDetailed(system, 0.0, y0, 1.0, config);
 
@@ -2373,7 +2370,7 @@ namespace MML::Tests::Algorithms::ODEDetailedTests
 		y0[0] = 1.0;
 
 		ODEStiffConfig config;
-		config.solver.step_size = 0.1;
+		config.solver.step_size = MML::Real(0.1);
 
 		auto result = SolveBDF2Detailed(system, 0.0, y0, 1.0, config);
 
@@ -2394,8 +2391,8 @@ namespace MML::Tests::Algorithms::ODEDetailedTests
 		y0[0] = 1.0;
 
 		ODEStiffConfig config;
-		config.solver.step_size = 0.1;
-		config.solver.tolerance = 1e-3;
+		config.solver.step_size = MML::Real(0.1);
+		config.solver.tolerance = MML::Real(1e-3);
 		config.solver.max_steps = 10000;
 
 		auto result = SolveROS2Detailed(system, y0, 0.0, 1.0, config);
@@ -2421,7 +2418,7 @@ namespace MML::Tests::Algorithms::ODEDetailedTests
 		config.exception_policy = EvaluationExceptionPolicy::ConvertToStatus;
 		config.solver.step_size = 10.0;  // Far too large
 		config.solver.max_newton_iter = 2;
-		config.solver.newton_tol = 1e-20;  // Impossibly tight
+		config.solver.newton_tol = MML::Real(1e-20);  // Impossibly tight
 
 		auto result = SolveBackwardEulerDetailed(system, 0.0, y0, 100.0, config);
 

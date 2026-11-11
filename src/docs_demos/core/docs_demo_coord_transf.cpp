@@ -8,16 +8,69 @@
 #include <mml/base/Tensor/Tensor2.h>
 
 #include <mml/core/CoordTransf/CoordTransfBase.h>
+#include <mml/core/CoordTransf/CoordTransf2D.h>
 #include <mml/core/CoordTransf/CoordTransfSpherical.h>
 #include <mml/core/CoordTransf/CoordTransfCylindrical.h>
 #include <mml/core/CoordTransf/CoordTransf3D.h>
 #include <mml/core/Fields/Fields.h>
+#include <mml/core/DifferentialGeometry/Atlas.h>
+#include <mml/core/DifferentialGeometry/CoordinateMap.h>
 
 #endif
 
 
 using namespace MML;
 using namespace MML::Utils;
+
+void Docs_Demo_CoordinateContracts()
+{
+	auto require = [](bool condition, const char* message) {
+		if (!condition) throw std::runtime_error(message);
+	};
+	auto copied = [] {
+		CoordTransfCart2DRotation original(Constants::PI / 2);
+		return CoordTransfCart2DRotation(original);
+	}();
+	const auto rotated = copied(Vector2Cartesian{1, 0});
+	require(std::abs(rotated[0]) < Precision::LooseTolerance &&
+		std::abs(rotated[1] - 1) < Precision::LooseTolerance, "Copied transform lost its component state");
+
+	CoordTransf3DCartOrthogonal basis(Vec3Cart{2, 0, 0}, Vec3Cart{0, 3, 0}, Vec3Cart{0, 0, 4});
+	const auto back = basis.transfInverse(basis.transf(Vec3Cart{1, 1, 1}));
+	for (int i = 0; i < 3; ++i)
+		require(std::abs(back[i] - 1) < Precision::LooseTolerance, "Scaled orthogonal basis roundtrip failed");
+	Tensor4<3> tensor4(2, 2);
+	for (int slot = 0; slot < 4; ++slot) tensor4.setContravar(slot, slot % 2 == 0);
+	tensor4(0, 1, 2, 0) = 1;
+	const auto transformed4 = basis.transfTensor4(tensor4, Vec3Cart{1, 1, 1});
+	require(std::abs(transformed4(0, 1, 2, 0) - Real(4) / 3) < Precision::LooseTolerance,
+		"Rank-four mixed variance failed");
+	Tensor5<3> tensor5(3, 2);
+	for (int slot = 0; slot < 5; ++slot) tensor5.setContravar(slot, slot == 0 || slot == 3);
+	tensor5(0, 1, 2, 0, 1) = 1;
+	const auto transformed5 = basis.transfTensor5(tensor5, Vec3Cart{1, 1, 1});
+	require(std::abs(transformed5(0, 1, 2, 0, 1) - Real(1) / 9) < Precision::LooseTolerance,
+		"Rank-five mixed variance failed");
+
+	CoordTransfPolarToCartesian2D polar;
+	require(std::abs(polar.inverseJacobian(VectorN<Real, 2>{-1, 0})(1, 1) + 1) < Precision::LooseTolerance,
+		"Polar local derivative crossed the branch cut");
+	const Real large = std::sqrt(std::numeric_limits<Real>::max()) * 16;
+	const auto spherical = CoordTransfCartToSpher.transf(Vec3Cart{large, 0, large});
+	require(std::isfinite(spherical[0]) && std::abs(spherical[1] - Constants::PI / 4) < Precision::LooseTolerance,
+		"Large finite spherical conversion failed");
+
+	auto atlas = DifferentialGeometry::MakeUnitSphereStereographicAtlas();
+	const Point<Real, 2, Parameter2> p{large, 0};
+	const auto embedded = atlas.chart(0).map_point(p);
+	const auto opposite = atlas.transition(0, 1, p);
+	require(std::isfinite(embedded[2]) && std::abs(opposite[0] * large - 1) < Precision::LooseTolerance,
+		"Large finite stereographic chart transition failed");
+	auto identity = MakeIdentityCoordinateMap<Cartesian2, 2>();
+	const auto pulled = identity.pull_back(BasisOneForm<0, 2, Cartesian2>(), Point<Real, 2, Cartesian2>{1, 2});
+	require(pulled.Component(0) == 1 && pulled.Component(1) == 0, "Identity one-form overload is hidden");
+	std::cout << "Coordinate value, mixed-variance tensor, local derivative, and finite chart contracts passed\n";
+}
 
 void Docs_Demo_CoordTransf_Transf()
 {

@@ -7,9 +7,27 @@
 #include <mml/core/MetricTensor.h>
 #include <mml/core/CoordTransf/CoordTransfBase.h>
 #include <mml/core/CoordTransf/CoordTransfSpherical.h>
+#include <mml/core/DifferentialGeometry/MetricAdapters.h>
 #endif
 
 using namespace MML;
+
+void Docs_Demo_MetricStorageContracts()
+{
+    MetricTensorSphericalContravar inverse;
+    const VectorN<Real, 3> pos{2, Constants::PI/2, 0};
+    const auto sampled = MetricAt<3, Spherical3>(inverse, pos);
+    if (sampled.covariantComponents()(1,1) != 4)
+        throw GeometryError("Metric storage demo - inverse storage was treated as covariant");
+    Tensor2<3> covariant(2,0);
+    covariant(0,1) = 2;
+    MetricTensorCartesian3D cartesian;
+    const auto raised = cartesian.RaiseIndex(covariant, 0, pos);
+    if (!raised.isContravar(0) || !raised.isCovar(1) || raised(0,1) != 2)
+        throw GeometryError("Metric storage demo - musical operation lost slot variance");
+    std::cout << "Inverse-storage metric sampled correctly; raised slot flags: "
+              << raised.isContravar(0) << raised.isContravar(1) << '\n';
+}
 
 ///////////////////////////////////////////////////////////////////////////////////////
 ///                    PREDEFINED METRIC TENSORS

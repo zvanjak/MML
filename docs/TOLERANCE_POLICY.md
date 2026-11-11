@@ -29,6 +29,12 @@ series/approximation coefficients, physical constants), loop counters, array siz
 formatting. The inventory script allow-lists coefficient tables by file and accepts a
 `// tol-ok: <reason>` marker on a line for the rare justified case.
 
+Mathematical coefficients used in `Real` arithmetic must be explicitly typed for `Real`;
+an untyped decimal can promote float arithmetic to double and narrow the result afterward.
+Retain the supplied digits in reference and coefficient tables rather than adding float
+suffixes to shared data. Generic scalar algorithms must use their own scalar or magnitude
+type, not the build's `Real`, for conversions and tolerance defaults.
+
 ---
 
 ## 2. Vocabulary: tiers and families
@@ -62,6 +68,93 @@ use `Precision::GeometryEpsilon` directly, with no compatibility alias.
 | `EqualityTolerance` | 1e-10 | 1e-6 | 1e-15 | two computed values of the same quantity agree (`*IsEqualTolerance`, `GeometryEpsilon`, `IsMatrix*Tolerance`, `OrthogonalityTolerance`) |
 | `ZeroTolerance` | 1e-12 | 1e-6 | 1e-15 | a computed quantity is negligible (`NumericalZeroThreshold`, `QuaternionZeroThreshold`, `LinearDependenceTolerance`) |
 | `StrictTolerance` | 1e-15 | 1e-6 | 1e-18 | structural zero: pivots, determinants, eigenvalues (`DeterminantZeroThreshold`, `EigenSolverZeroThreshold`) |
+
+Tier ordering is non-strict: float deliberately shares the same value across several tiers.
+Tests must not require distinct tier values or use double-only finite ranges and accuracy
+requests when running with float. A warning-clean float build is a compilation gate, not
+evidence that its numerical runtime tests have passed.
+
+Float regression fixtures must also resolve the numerical operation they exercise: do not
+differentiate unresolved spectral tails, request root tolerances below representable spacing,
+or use a loose Newton stopping criterion to test a much tighter trajectory contract.
+For computed residuals and composed derivatives, account for the problem scale and the
+roundoff amplification of the dot products or difference stencils. Outward-rounded enclosing
+geometry is checked for containment as well as proximity to the exact radius.
+Fixed-step refinement must reduce truncation error above the accumulated roundoff floor;
+below it, both resolutions must remain within that floor and the original accuracy limits.
+These float-specific checks do not relax the double-precision fixtures.
+
+Fused multiply-add can change a rounded boundary by one ulp without changing the
+mathematical expression. Closed-domain fixtures must use the same explicitly rounded
+boundary callbacks in their membership guards; independently recomputing a curved
+bound is not a portable containment oracle. Keep next-representable out-of-domain
+points rejected rather than widening the domain.
+
+Linear-solve residual checks use the componentwise backward-error scale
+`|A| |x| + |b|` and a dimension-derived roundoff budget, not a fixed absolute
+unit threshold. Float forward-error checks for large reference solutions are
+normwise relative and retain a separate backward-error gate; double reference
+accuracy remains unchanged. A quadratic central-difference witness can use a
+dyadic step for a strict identity check, while its default-step check must also
+account for sample and coordinate roundoff amplified by `1/h`.
+
+Offset-variance fixtures must preserve the input variation before accumulation, and
+integer-limit fixtures must distinguish the last representable in-range input from
+the first out-of-range one. Solver norm helpers retain their element magnitude type
+even when the build uses a narrower `Real`, with scaled accumulation for extreme ranges.
+CG normalizes search directions before matrix products and uses normalized inner products
+and norm ratios instead of underflowing or overflowing squared residuals.
+Composed numerical Jacobians propagate both derivative uncertainties through the matrix
+products and retain an independent accuracy cap. Order ratios require resolved errors:
+the float RODAS4 linear witness resolves fourth order, while its nonlinear near-roundoff
+errors retain bounded accuracy and constraint checks; double keeps both order witnesses.
+
+DCT reference transforms evaluate phases and sums in at least double precision, including
+the inverse path; high-frequency mode identities check the reference independently of FFT
+agreement. Large-count negative-binomial masses use the conditional-Poisson identity with
+the existing deviance/Stirling log-mass kernel, rather than subtracting nearly equal
+log-gamma values. Widening the final result alone cannot repair either cancellation.
+Euler extraction at a gimbal pole assigns the determined combined rotation to one angle.
+Tests reconstruct the rotation for both conventions, both poles, and either quaternion
+sign instead of demanding a unique singular Euler triple.
+
+Float implicit-retry fixtures need a resolved Newton stopping criterion and an explicit
+iteration budget that actually induces retries. Both reused and full-Newton paths must
+meet the reference accuracy contract. Work savings remain strict; a double-only percentage
+reduction is not required when float BDF2 steps already need few Newton corrections.
+Adaptive tolerance-refinement witnesses must use distinct representable requests, and
+minimum-step rejection witnesses must have a truncation error above the requested tolerance.
+
+Numerical Jacobian defaults using second-order central differences use `CbrtEps`,
+not the forward-difference `SqrtEps`, and divide by the actual representable sample
+separation. Kernel zero-limit tests use the dimensionless argument (for sinc, `N*x`),
+not an absolute input threshold independent of sharpness. A DAE time tolerance is not
+permission to skip a representable final interval: Radau and its BDF4 history/endpoint
+use must reach the exact requested endpoint or report failure.
+
+For numerical curvature identities, float checks propagate the derivative stencil's
+reported estimates or analytically bounded stencil truncation and roundoff errors,
+with a separate accuracy cap on that uncertainty, rather than demanding analytic precision.
+Analytic reference curves also check the derivative-error bounds themselves.
+Integration error estimates must satisfy the requested absolute-or-relative bound and
+need not lie below the roundoff floor. Failure-policy fixtures bound the refinement budget
+instead of assuming that a sub-roundoff accuracy request cannot converge.
+Periodic rotations are compared by geodesic
+distance at the branch cut while still checking the canonical angle range.
+
+Rational interpolation evaluates its correction tableau in at least double precision:
+rounded float corrections must not manufacture a pole. Exact nodes, constant data and genuine
+poles retain their contracts; reciprocal references cover both node orders and several scales.
+Public ODE/map Jacobians use the central-difference `CbrtEps` default and the actual representable
+sample separation, with overflow-safe quotients and unchanged explicit relative-step semantics.
+
+Float curve fixtures must keep every analytic derivative finite and nonzero; locally centering
+a numerical curve preserves the physical point without an excessive parameter-scaled stencil.
+The full Robertson float witness uses the equivalent conserved coordinate `u = x0 + x1`,
+reconstructs all physical species, and resolves the terminal minor-species error budget.
+It retains the published full horizon, reference accuracy, mass checks and measured solver work;
+double keeps the original species coordinates. Oscillatory quadrature requests must exceed the
+accumulated roundoff bound, and both the estimate and independent value must meet that request.
 
 **Families** keep their semantic names — `Precision::Vec3CartIsEqualTolerance` documents *what*
 is compared — but each is defined as a tier in `MMLPrecision.h`, so retuning a tier retunes the
@@ -143,7 +236,9 @@ pure numeric multiplier (`ε·1000`, `ε·100`) is a tuning literal and must be 
 
 ## 5. Geometry
 
-One tolerance: `Precision::GeometryEpsilon` (= `EqualityTolerance`). The former
+One tolerance: `Precision::GeometryEpsilon` (= `EqualityTolerance` in all three scalar
+specializations, including extended-precision `long double`). It is a tier alias, not an
+independently tuned geometry threshold. The former
 `Constants::GEOMETRY_EPSILON` spelling has been removed. Orientation / incidence predicates (`IsPointOnLine`, `IsInside`,
 `Intersects`, `IsParallel`) default their `eps` argument to the matching `Precision::*` family
 constant and, where a scale exists, test scale-aware (`‖a×b‖ ≤ eps·‖a‖·‖b‖`, see

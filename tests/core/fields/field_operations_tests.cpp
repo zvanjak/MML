@@ -216,6 +216,10 @@ namespace MML::Tests::Core::FieldOperationsTests
 		// Both should be reasonably accurate
 		REQUIRE_THAT(grad4[0], WithinRel(expected_x, static_cast<MML::Real>(1e-6)));
 		REQUIRE_THAT(grad8[0], WithinRel(expected_x, TOL(1e-9, 1e-4)));
+		REQUIRE_THAT(grad4[1], WithinRel(expected_y, static_cast<MML::Real>(1e-6)));
+		REQUIRE_THAT(grad4[2], WithinRel(expected_z, static_cast<MML::Real>(1e-6)));
+		REQUIRE_THAT(grad8[1], WithinRel(expected_y, TOL(1e-9, 1e-4)));
+		REQUIRE_THAT(grad8[2], WithinRel(expected_z, TOL(1e-9, 1e-4)));
 	}
 
 	/*********************************************************************/
@@ -419,9 +423,6 @@ namespace MML::Tests::Core::FieldOperationsTests
 		// For any scalar field f, ∇×(∇f) = 0
 		TrigExpScalarField f;
 		VectorN<Real, 3> pos{static_cast<MML::Real>(0.5), static_cast<MML::Real>(0.7), static_cast<MML::Real>(0.3)};
-
-		// Compute gradient
-		auto grad = ScalarFieldOperations::GradientCart<3>(f, pos);
 
 		// Create a vector field from the gradient (wrapping in lambda)
 		class GradientWrapper : public IVectorFunction<3>

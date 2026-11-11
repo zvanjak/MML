@@ -83,6 +83,8 @@ namespace Persistence
 	 */
 	template<class Type>
 	IOResult SaveMatrixToFile(const Matrix<Type>& mat, const std::string& filename) {
+		const auto validation = Detail::ValidateSaveFilename(filename);
+		if (!validation.success) return validation;
 		std::ofstream file(filename);
 		TextIO::ApplyClassicFormat(file);
 		if (!file.is_open()) {
@@ -155,6 +157,8 @@ namespace Persistence
 	 */
 	template<class Type>
 	IOResult SaveMatrixToCSV(const Matrix<Type>& mat, const std::string& filename) {
+		const auto validation = Detail::ValidateSaveFilename(filename);
+		if (!validation.success) return validation;
 		std::ofstream file(filename);
 		TextIO::ApplyClassicFormat(file);
 		if (!file.is_open())
@@ -311,6 +315,8 @@ namespace Persistence
 
 	template<class Type>
 	IOResult Save(const Matrix<Type>& mat, const std::string& filename, Format format = Format::Auto) {
+		const auto validation = Detail::ValidateSaveFilename(filename);
+		if (!validation.success) return validation;
 		const Format resolvedFormat = format == Format::Auto ? DetectFormatFromPath(filename) : format;
 		switch (resolvedFormat)
 		{
@@ -336,6 +342,8 @@ namespace Persistence
 
 	template<class Type>
 	IOResult Save(const Matrix<Type>& mat, const std::string& filename, const SaveOptions& options, Format format = Format::Auto) {
+		const auto validation = Detail::ValidateSaveFilename(filename);
+		if (!validation.success) return validation;
 		const Format resolvedFormat = format == Format::Auto ? DetectFormatFromPath(filename) : format;
 		if (resolvedFormat == Format::JSON) {
 			if constexpr (std::is_floating_point_v<Type>)
@@ -353,6 +361,10 @@ namespace Persistence
 				return SerializeFailure(IOError::UNSUPPORTED_SCALAR, "Unsupported Matrix binary scalar").WithFile(filename);
 		}
 
+		if (resolvedFormat != Format::Text && resolvedFormat != Format::CSV)
+			return SerializeFailure(IOError::INVALID_FORMAT, "Matrix persistence requires Text, CSV, JSON or Binary format").WithFile(filename);
+		if (options.precision < 0)
+			return SerializeFailure(IOError::INVALID_PARAMETERS, "Text precision must be zero (automatic) or positive").WithFile(filename);
 		const std::ios::openmode mode = std::ios::openmode{};
 		std::ofstream file(filename, mode);
 		TextIO::ApplyClassicFormat(file);

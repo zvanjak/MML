@@ -315,7 +315,7 @@ namespace MML::TestBeds
             "(x-1)(x-1.001) close roots",
             Close_roots_1_1001,
             Close_roots_1_1001_deriv,
-            { 1.0, 1.001 },
+            { MML::Real(1.0), MML::Real(1.001) },
             { 1, 1 },
             { {static_cast<MML::Real>(0.99), static_cast<MML::Real>(1.0005)}, {static_cast<MML::Real>(1.0005), static_cast<MML::Real>(1.01)} },
             "close_roots",
@@ -330,7 +330,7 @@ namespace MML::TestBeds
             "(x-2)(x-2.0001) very close roots",
             Close_roots_2_20001,
             Close_roots_2_20001_deriv,
-            { 2.0, 2.0001 },
+            { MML::Real(2.0), MML::Real(2.0001) },
             { 1, 1 },
             { {static_cast<MML::Real>(1.99), static_cast<MML::Real>(2.00005)}, {static_cast<MML::Real>(2.00005), static_cast<MML::Real>(2.01)} },
             "close_roots",
@@ -433,7 +433,7 @@ namespace MML::TestBeds
             "ln(x) + x - 2 (log singularity)",
             Sing_lnx_plus_x_minus_2,
             Sing_lnx_plus_x_minus_2_deriv,
-            { 1.5571455989976115 },  // Approximate
+            { MML::Real(1.5571455989976115) },  // Approximate
             { 1 },
             { {static_cast<MML::Real>(0.5), static_cast<MML::Real>(2.5)} },
             "singularity",
@@ -452,7 +452,7 @@ namespace MML::TestBeds
             "Van der Waals cubic",
             Phys_vdw,
             Phys_vdw_deriv,
-            { 0.10874 },  // Approximate numerical root
+            { MML::Real(0.10874) },  // Approximate numerical root
             { 1 },
             { {static_cast<MML::Real>(0.05), static_cast<MML::Real>(0.5)} },
             "physics",

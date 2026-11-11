@@ -216,8 +216,8 @@ namespace Persistence
 			return SerializeFailure(IOError::TYPE_MISMATCH, "Binary magic object code and object-kind field disagree");
 		if (header.container_version != BinaryEnvelope::VERSION)
 			return SerializeFailure(IOError::UNSUPPORTED_VERSION, "Unsupported binary envelope version");
-		if (header.header_size < BinaryEnvelope::HEADER_SIZE)
-			return SerializeFailure(IOError::SCHEMA_MISMATCH, "Binary envelope header size is too small");
+		if (header.header_size != BinaryEnvelope::HEADER_SIZE)
+			return SerializeFailure(IOError::SCHEMA_MISMATCH, "Binary envelope v1 requires exactly 48 header bytes");
 		if (header.endian_marker != BinaryEnvelope::ENDIAN_MARKER)
 			return SerializeFailure(IOError::ENDIAN_MISMATCH, "Binary envelope endian marker is invalid");
 		if (header.flags != 0)

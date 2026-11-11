@@ -128,7 +128,7 @@ TEST_CASE("MMLException - catch all MML exceptions", "[exceptions]")
 	SECTION("ConvergenceError caught as MMLException") {
 		bool caught = false;
 		try {
-			throw ConvergenceError("did not converge", 1000, 1e-3);
+			throw ConvergenceError("did not converge", 1000, MML::Real(1e-3));
 		} catch (const MMLException& e) {
 			caught = true;
 			REQUIRE(std::string(e.message()) == "did not converge");
@@ -191,7 +191,7 @@ TEST_CASE("MMLException - enriched exception data preserved", "[exceptions]")
 
 	SECTION("ConvergenceError preserves iteration info") {
 		try {
-			throw ConvergenceError("no convergence", 500, 1e-4);
+			throw ConvergenceError("no convergence", 500, MML::Real(1e-4));
 		} catch (const ConvergenceError& e) {
 			REQUIRE(e.iterations() == 500);
 			REQUIRE(e.residual() == Catch::Approx(1e-4));
@@ -200,7 +200,7 @@ TEST_CASE("MMLException - enriched exception data preserved", "[exceptions]")
 
 	SECTION("SingularMatrixError preserves pivot info") {
 		try {
-			throw SingularMatrixError("singular", 1e-15, 3);
+			throw SingularMatrixError("singular", MML::Real(1e-15), 3);
 		} catch (const SingularMatrixError& e) {
 			REQUIRE(e.determinant() == Catch::Approx(1e-15));
 			REQUIRE(e.pivot_row() == 3);

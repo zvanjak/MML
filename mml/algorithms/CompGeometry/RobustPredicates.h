@@ -14,16 +14,18 @@
 #include <algorithm>
 #include <mml/base/Geometry/Geometry2D.h>
 #include <mml/base/Geometry/Geometry3D.h>
+#include <mml/base/Geometry/GeometryBase/GeometryPredicates.h>
 
 #include <array>
 #include <cmath>
+#include <initializer_list>
 #include <limits>
 #include <utility>
 
 namespace MML::CompGeometry {
 
 	/// Adaptive predicates use a fast error-bounded evaluation and fall back to
-	/// floating-point expansions whose sum is the exact value for the input values.
+	/// exact arithmetic for the input values.
 	class RobustPredicates {
 		template<std::size_t Capacity>
 		struct Expansion {
@@ -154,32 +156,43 @@ namespace MML::CompGeometry {
 			std::swap(result, scratch);
 		}
 
+		static bool SafeProductRange(std::initializer_list<Real> values, int degree) {
+			// Keep the smallest significand bits, not merely product heads, in range
+			// for error-free expansion products. Reserve carry room for determinant sums.
+			const Real lower = std::ldexp(Real(1), std::numeric_limits<Real>::min_exponent / degree + std::numeric_limits<Real>::digits);
+			const Real upper = std::ldexp(Real(1), (std::numeric_limits<Real>::max_exponent - 16) / degree);
+			for (Real value : values)
+				if (!std::isfinite(value) || (value != 0 && (std::abs(value) < lower || std::abs(value) > upper))) return false;
+			return true;
+		}
+
+		template<std::size_t N>
+		static bool SafeCoordinateRange(const std::array<Point3Cartesian, N>& points, int degree) {
+			for (const auto& p : points)
+				if (!SafeProductRange({p.X(), p.Y(), p.Z()}, degree)) return false;
+			return true;
+		}
+
 	public:
 		/// Sign of the oriented area: +1 counter-clockwise, -1 clockwise, 0 collinear.
 		static int Orientation2D(const Point2Cartesian& a, const Point2Cartesian& b,
 			const Point2Cartesian& c) {
-			const Real acx = a.X() - c.X();
-			const Real bcx = b.X() - c.X();
-			const Real acy = a.Y() - c.Y();
-			const Real bcy = b.Y() - c.Y();
-			const Real determinant = acx * bcy - acy * bcx;
-			const Real determinantSum = std::abs(acx * bcy) + std::abs(acy * bcx);
-			const Real epsilon = std::numeric_limits<Real>::epsilon();
-			if (std::abs(determinant) > (static_cast<MML::Real>(3.0) + static_cast<MML::Real>(16.0) * epsilon) * epsilon * determinantSum)
-				return Sign(determinant);
-
-			return ExpansionSign(ExactCross(
-				Difference(a.X(), c.X()), Difference(a.Y(), c.Y()),
-				Difference(b.X(), c.X()), Difference(b.Y(), c.Y())));
+			return MML::detail::GeometryOrientation2D::Sign(a, b, c);
 		}
 
 		/// Sign of the in-circle determinant for oriented triangle (a,b,c).
 		/// For counter-clockwise (a,b,c), +1 means d is inside and 0 cocircular.
 		static int InCircle2D(const Point2Cartesian& a, const Point2Cartesian& b,
 			const Point2Cartesian& c, const Point2Cartesian& d) {
+			MML::detail::ValidateGeometryCoordinates({a.X(), a.Y(), b.X(), b.Y(), c.X(), c.Y(), d.X(), d.Y()}, "InCircle2D");
 			const Real adx = a.X() - d.X(), ady = a.Y() - d.Y();
 			const Real bdx = b.X() - d.X(), bdy = b.Y() - d.Y();
 			const Real cdx = c.X() - d.X(), cdy = c.Y() - d.Y();
+			const Real lower = std::ldexp(Real(1), std::numeric_limits<Real>::min_exponent / 4 + std::numeric_limits<Real>::digits);
+			const Real upper = std::ldexp(Real(1), (std::numeric_limits<Real>::max_exponent - 8) / 4);
+			for (Real difference : {adx, ady, bdx, bdy, cdx, cdy})
+				if (!std::isfinite(difference) || (difference != 0 && (std::abs(difference) < lower || std::abs(difference) > upper)))
+					return MML::detail::GeometryExact2D::InCircleSign(a, b, c, d);
 			const Real abdet = adx * bdy - bdx * ady;
 			const Real bcdet = bdx * cdy - cdx * bdy;
 			const Real cadet = cdx * ady - adx * cdy;
@@ -194,21 +207,7 @@ namespace MML::CompGeometry {
 			if (std::abs(determinant) > (static_cast<MML::Real>(10.0) + static_cast<MML::Real>(96.0) * epsilon) * epsilon * permanent)
 				return Sign(determinant);
 
-			const auto adxExact = Difference(a.X(), d.X());
-			const auto adyExact = Difference(a.Y(), d.Y());
-			const auto bdxExact = Difference(b.X(), d.X());
-			const auto bdyExact = Difference(b.Y(), d.Y());
-			const auto cdxExact = Difference(c.X(), d.X());
-			const auto cdyExact = Difference(c.Y(), d.Y());
-			const auto abdetExact = ExactCross(adxExact, adyExact, bdxExact, bdyExact);
-			const auto bcdetExact = ExactCross(bdxExact, bdyExact, cdxExact, cdyExact);
-			const auto cadetExact = ExactCross(cdxExact, cdyExact, adxExact, adyExact);
-			const auto aliftExact = Add(Multiply(adxExact, adxExact), Multiply(adyExact, adyExact));
-			const auto bliftExact = Add(Multiply(bdxExact, bdxExact), Multiply(bdyExact, bdyExact));
-			const auto cliftExact = Add(Multiply(cdxExact, cdxExact), Multiply(cdyExact, cdyExact));
-
-			return ExpansionSign(Add(Add(Multiply(aliftExact, bcdetExact),
-				Multiply(bliftExact, cadetExact)), Multiply(cliftExact, abdetExact)));
+			return MML::detail::GeometryExact2D::InCircleSign(a, b, c, d);
 		}
 
 		/// Sign of the oriented volume: +1 when d is below oriented plane (a,b,c),
@@ -216,28 +215,17 @@ namespace MML::CompGeometry {
 		static int Orientation3D(const Point3Cartesian& a, const Point3Cartesian& b,
 			const Point3Cartesian& c, const Point3Cartesian& d) {
 			const std::array<Point3Cartesian, 4> points = {a, b, c, d};
-			Real maxCoordinate = static_cast<MML::Real>(0.0);
-			for (const auto& point : points) {
-				maxCoordinate = std::max(maxCoordinate, std::abs(point.X()));
-				maxCoordinate = std::max(maxCoordinate, std::abs(point.Y()));
-				maxCoordinate = std::max(maxCoordinate, std::abs(point.Z()));
-			}
-			int coordinateExponent = 0;
-			if (std::isfinite(maxCoordinate) && maxCoordinate != static_cast<MML::Real>(0.0))
-				std::frexp(maxCoordinate, &coordinateExponent);
-			const int safeCoordinateExponent = (std::numeric_limits<Real>::max_exponent - 4) / 3;
-			const int scaleExponent = std::min(0, safeCoordinateExponent - coordinateExponent);
-			const auto scaled = [scaleExponent](Real value) {
-				return std::scalbn(value, scaleExponent);
-			};
-
-			const Real ax = scaled(a.X()), ay = scaled(a.Y()), az = scaled(a.Z());
-			const Real bx = scaled(b.X()), by = scaled(b.Y()), bz = scaled(b.Z());
-			const Real cx = scaled(c.X()), cy = scaled(c.Y()), cz = scaled(c.Z());
-			const Real dx = scaled(d.X()), dy = scaled(d.Y()), dz = scaled(d.Z());
+			for (const auto& point : points)
+				MML::detail::ValidateGeometryCoordinates({point.X(), point.Y(), point.Z()}, "Orientation3D");
+			const Real ax = a.X(), ay = a.Y(), az = a.Z();
+			const Real bx = b.X(), by = b.Y(), bz = b.Z();
+			const Real cx = c.X(), cy = c.Y(), cz = c.Z();
+			const Real dx = d.X(), dy = d.Y(), dz = d.Z();
 			const Real adx = ax - dx, ady = ay - dy, adz = az - dz;
 			const Real bdx = bx - dx, bdy = by - dy, bdz = bz - dz;
 			const Real cdx = cx - dx, cdy = cy - dy, cdz = cz - dz;
+			if (!SafeProductRange({adx, ady, adz, bdx, bdy, bdz, cdx, cdy, cdz}, 3))
+				return MML::detail::GeometryExact3D::OrientationSign(points);
 			const Real bdxcdy = bdx * cdy, cdxbdy = cdx * bdy;
 			const Real cdxady = cdx * ady, adxcdy = adx * cdy;
 			const Real adxbdy = adx * bdy, bdxady = bdx * ady;
@@ -249,6 +237,7 @@ namespace MML::CompGeometry {
 			const Real epsilon = std::numeric_limits<Real>::epsilon();
 			if (std::abs(determinant) > (static_cast<MML::Real>(7.0) + static_cast<MML::Real>(56.0) * epsilon) * epsilon * permanent)
 				return Sign(determinant);
+			if (!SafeCoordinateRange(points, 3)) return MML::detail::GeometryExact3D::OrientationSign(points);
 
 			const auto adxExact = Difference(ax, dx);
 			const auto adyExact = Difference(ay, dy);
@@ -270,28 +259,9 @@ namespace MML::CompGeometry {
 		/// (a,b,c,d): +1 inside, -1 outside, and 0 when e is cospherical.
 		static int InSphere3D(const Point3Cartesian& a, const Point3Cartesian& b,
 			const Point3Cartesian& c, const Point3Cartesian& d, const Point3Cartesian& e) {
-			const std::array<Point3Cartesian, 5> inputPoints = {a, b, c, d, e};
-			Real maxCoordinate = static_cast<MML::Real>(0.0);
-			for (const auto& point : inputPoints) {
-				maxCoordinate = std::max(maxCoordinate, std::abs(point.X()));
-				maxCoordinate = std::max(maxCoordinate, std::abs(point.Y()));
-				maxCoordinate = std::max(maxCoordinate, std::abs(point.Z()));
-			}
-			int coordinateExponent = 0;
-			if (std::isfinite(maxCoordinate) && maxCoordinate != static_cast<MML::Real>(0.0))
-				std::frexp(maxCoordinate, &coordinateExponent);
-			const int safeCoordinateExponent = (std::numeric_limits<Real>::max_exponent - 6) / 5;
-			const int scaleExponent = std::min(0, safeCoordinateExponent - coordinateExponent);
-			const auto scaled = [scaleExponent](Real value) {
-				return std::scalbn(value, scaleExponent);
-			};
-			const std::array<Point3Cartesian, 5> points = {
-				Point3Cartesian(scaled(a.X()), scaled(a.Y()), scaled(a.Z())),
-				Point3Cartesian(scaled(b.X()), scaled(b.Y()), scaled(b.Z())),
-				Point3Cartesian(scaled(c.X()), scaled(c.Y()), scaled(c.Z())),
-				Point3Cartesian(scaled(d.X()), scaled(d.Y()), scaled(d.Z())),
-				Point3Cartesian(scaled(e.X()), scaled(e.Y()), scaled(e.Z()))
-			};
+			const std::array<Point3Cartesian, 5> points = {a, b, c, d, e};
+			for (const auto& point : points)
+				MML::detail::ValidateGeometryCoordinates({point.X(), point.Y(), point.Z()}, "InSphere3D");
 			const Real aex = points[0].X() - points[4].X();
 			const Real aey = points[0].Y() - points[4].Y();
 			const Real aez = points[0].Z() - points[4].Z();
@@ -304,6 +274,8 @@ namespace MML::CompGeometry {
 			const Real dex = points[3].X() - points[4].X();
 			const Real dey = points[3].Y() - points[4].Y();
 			const Real dez = points[3].Z() - points[4].Z();
+			if (!SafeProductRange({aex, aey, aez, bex, bey, bez, cex, cey, cez, dex, dey, dez}, 5))
+				return MML::detail::GeometryExact3D::InSphereSign(points);
 			const Real ab = aex * bey - bex * aey;
 			const Real bc = bex * cey - cex * bey;
 			const Real cd = cex * dey - dex * cey;
@@ -334,6 +306,7 @@ namespace MML::CompGeometry {
 			const Real epsilon = std::numeric_limits<Real>::epsilon();
 			if (std::abs(determinant) > (static_cast<MML::Real>(16.0) + static_cast<MML::Real>(224.0) * epsilon) * epsilon * permanent)
 				return Sign(determinant);
+			if (!SafeCoordinateRange(points, 5)) return MML::detail::GeometryExact3D::InSphereSign(points);
 
 			std::array<Expansion<6>, 5> lifts;
 			for (std::size_t i = 0; i < points.size(); ++i) {

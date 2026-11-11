@@ -20,7 +20,9 @@
 #include <initializer_list>
 #include <iomanip>
 #include <iostream>
+#include <limits>
 #include <sstream>
+#include <stdexcept>
 #include <string>
 #include <type_traits>
 #include <vector>
@@ -46,6 +48,14 @@ namespace MML
 	private:
 		std::vector<Type> _elems;
 
+		template<std::unsigned_integral Size>
+		static int CheckedSize(Size n)
+		{
+			if (n > static_cast<Size>((std::numeric_limits<int>::max)()))
+				throw std::length_error("Vector: size exceeds the int dimension range");
+			return static_cast<int>(n);
+		}
+
 	public:
 		typedef Type value_type;      ///< Element type alias for STL compatibility
 
@@ -68,7 +78,11 @@ namespace MML
 			} else {
 				_elems.resize(n);
 			}
+
 		}
+
+		template<std::unsigned_integral Size>
+		explicit Vector(Size n) : Vector(CheckedSize(n)) {}
 		
 		/// @brief Construct vector of given size with uniform value
 		/// @param n Number of elements (must be non-negative)
@@ -80,6 +94,9 @@ namespace MML
 
 			_elems.resize(n, val);
 		}
+
+		template<std::unsigned_integral Size>
+		explicit Vector(Size n, const Type& val) : Vector(CheckedSize(n), val) {}
 		
 		/// @brief Construct vector from C-style array
 		/// @param n Number of elements to copy (must be non-negative)
@@ -94,6 +111,9 @@ namespace MML
 			for (int i = 0; i < n; ++i)
 				_elems[i] = vals[i];
 		}
+
+		template<std::unsigned_integral Size>
+		explicit Vector(Size n, Type* vals) : Vector(CheckedSize(n), vals) {}
 		
 		/// @brief Construct from std::vector
 		explicit Vector(const std::vector<Type> &values) : _elems(values) {}
@@ -112,7 +132,7 @@ namespace MML
 				throw VectorDimensionError("Vector::UnitVector - wrong unit index", dimVec, indUnit);
 
 			Vector ret(dimVec);
-			ret[indUnit] = Type{ 1.0 };
+			ret[indUnit] = Type{ 1 };
 			return ret;
 		}
 
@@ -167,7 +187,9 @@ namespace MML
 				throw VectorAccessBoundsError("Vector::erase - range out of bounds", start, static_cast<int>(_elems.size()));
 			_elems.erase(_elems.begin() + start, _elems.begin() + end);
 		}
-		void erase(const Type& val)			{ _elems.erase(std::remove(_elems.begin(), _elems.end(), val), _elems.end()); }
+		void eraseValue(const Type& val) { _elems.erase(std::remove(_elems.begin(), _elems.end(), val), _elems.end()); }
+		[[deprecated("use eraseValue(value)")]]
+		void erase(const Type& val) requires (!std::is_same_v<Type, int>) { eraseValue(val); }
 
 		/// @brief Remove all elements (STL spelling)
 		void clear()	{ _elems.clear(); }
@@ -178,9 +200,21 @@ namespace MML
 		/// @brief Resize the vector (STL spelling)
 		/// @param newLen New size
 		/// @param preserveElements Ignored (std::vector::resize always preserves existing elements)
+		/// @details New arithmetic elements are zero; other types are default-constructed.
 		void resize(int newLen, [[maybe_unused]] bool preserveElements = false)	
 		{ 
-			_elems.resize(newLen); 
+			if (newLen < 0)
+				throw std::length_error("Vector::resize - negative size");
+			if constexpr (MMLArithmetic<Type>)
+				_elems.resize(newLen, Type{0});
+			else
+				_elems.resize(newLen);
+		}
+
+		template<std::unsigned_integral Size>
+		void resize(Size newLen, bool preserveElements = false)
+		{
+			resize(CheckedSize(newLen), preserveElements);
 		}
 
 		/// @deprecated Use resize() (CONTRACT_POLICY §11: STL-shaped protocol is spelled as the STL spells it).
@@ -193,6 +227,11 @@ namespace MML
 		inline Type&       operator[](int n)       noexcept { return _elems[n]; }
 		/// @brief Unchecked element access (const)
 		inline const Type& operator[](int n) const noexcept { return _elems[n]; }
+
+		template<std::unsigned_integral Index>
+		Type& operator[](Index n) noexcept { return _elems[n]; }
+		template<std::unsigned_integral Index>
+		const Type& operator[](Index n) const noexcept { return _elems[n]; }
 
 		/// @brief Checked element access
 		/// @param n Index (0-based)
@@ -314,8 +353,12 @@ namespace MML
 		/// @throws DivisionByZeroError if |b| < DivisionSafetyThreshold
 		[[nodiscard]] Vector safeDivide(Type b) const
 		{
-			if (std::abs(b) < Precision::DivisionSafetyThreshold)
+			if constexpr (std::is_integral_v<Type>) {
+				if (b == 0)
+					throw DivisionByZeroError("Vector::safeDivide - division by zero scalar");
+			} else if (Abs(b) < Precision::DivisionSafetyThreshold) {
 				throw DivisionByZeroError("Vector::safeDivide - division by near-zero scalar");
+			}
 			return *this / b;
 		}
 		
@@ -358,10 +401,12 @@ namespace MML
 		{
 			if (size() != b.size())
 				throw VectorDimensionError("Vector::IsEqual - vectors must be equal size", size(), b.size());
+			if (!std::isfinite(eps) || eps < 0)
+				return false;
 
 			for (int i = 0; i < size(); i++)
 			{
-				if (Abs((*this)[i] - b[i]) > eps)
+				if (!(Abs((*this)[i] - b[i]) <= eps))
 					return false;
 			}
 			return true;
@@ -381,8 +426,10 @@ namespace MML
 		/// @return true if |this[i]| <= eps for all i
 		bool IsNearZero(Real eps = Precision::VectorIsEqualTolerance) const noexcept
 		{
+			if (!std::isfinite(eps) || eps < 0)
+				return false;
 			for (int i = 0; i < size(); i++)
-				if (Abs((*this)[i]) > eps)
+				if (!(Abs((*this)[i]) <= eps))
 					return false;
 			return true;
 		}

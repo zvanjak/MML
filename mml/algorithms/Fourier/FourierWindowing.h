@@ -81,7 +81,7 @@ namespace MML::Fourier
 
 			Vector<Real> window(n);
 			for (int i = 0; i < n; i++)
-				window[i] = 0.5 * (1.0 - std::cos(2.0 * Constants::PI * i / (n - 1)));
+				window[i] = MML::Real(0.5) * (MML::Real(1.0) - std::cos(MML::Real(2.0) * Constants::PI * i / (n - 1)));
 
 			return window;
 		}
@@ -104,7 +104,7 @@ namespace MML::Fourier
 
 			Vector<Real> window(n);
 			for (int i = 0; i < n; i++)
-				window[i] = 0.54 - 0.46 * std::cos(2.0 * Constants::PI * i / (n - 1));
+				window[i] = MML::Real(0.54) - MML::Real(0.46) * std::cos(MML::Real(2.0) * Constants::PI * i / (n - 1));
 
 			return window;
 		}
@@ -127,8 +127,8 @@ namespace MML::Fourier
 
 			Vector<Real> window(n);
 			for (int i = 0; i < n; i++) {
-				Real angle = 2.0 * Constants::PI * i / (n - 1);
-				window[i] = 0.42 - 0.5 * std::cos(angle) + 0.08 * std::cos(2.0 * angle);
+				Real angle = MML::Real(2.0) * Constants::PI * i / (n - 1);
+				window[i] = MML::Real(0.42) - MML::Real(0.5) * std::cos(angle) + MML::Real(0.08) * std::cos(MML::Real(2.0) * angle);
 			}
 
 			return window;
@@ -148,8 +148,8 @@ namespace MML::Fourier
 
 			Vector<Real> window(n);
 			for (int i = 0; i < n; i++) {
-				Real angle = 2.0 * Constants::PI * i / (n - 1);
-				window[i] = 0.35875 - 0.48829 * std::cos(angle) + 0.14128 * std::cos(2.0 * angle) - 0.01168 * std::cos(3.0 * angle);
+				Real angle = MML::Real(2.0) * Constants::PI * i / (n - 1);
+				window[i] = MML::Real(0.35875) - MML::Real(0.48829) * std::cos(angle) + MML::Real(0.14128) * std::cos(MML::Real(2.0) * angle) - MML::Real(0.01168) * std::cos(MML::Real(3.0) * angle);
 			}
 
 			return window;
@@ -169,8 +169,8 @@ namespace MML::Fourier
 
 			Vector<Real> window(n);
 			for (int i = 0; i < n; i++) {
-				Real angle = 2.0 * Constants::PI * i / (n - 1);
-				window[i] = 1.0 - 1.93 * std::cos(angle) + 1.29 * std::cos(2.0 * angle) - 0.388 * std::cos(3.0 * angle) + 0.028 * std::cos(4.0 * angle);
+				Real angle = MML::Real(2.0) * Constants::PI * i / (n - 1);
+				window[i] = MML::Real(1.0) - MML::Real(1.93) * std::cos(angle) + MML::Real(1.29) * std::cos(MML::Real(2.0) * angle) - MML::Real(0.388) * std::cos(MML::Real(3.0) * angle) + MML::Real(0.028) * std::cos(MML::Real(4.0) * angle);
 			}
 
 			return window;
@@ -194,7 +194,7 @@ namespace MML::Fourier
 
 			Vector<Real> window(n);
 			for (int i = 0; i < n; i++)
-				window[i] = 1.0 - std::abs(2.0 * i / (n - 1) - 1.0);
+				window[i] = MML::Real(1.0) - std::abs(MML::Real(2.0) * i / (n - 1) - MML::Real(1.0));
 
 			return window;
 		}
@@ -217,8 +217,8 @@ namespace MML::Fourier
 
 			Vector<Real> window(n);
 			for (int i = 0; i < n; i++) {
-				Real x = 2.0 * i / (n - 1) - 1.0;
-				window[i] = 1.0 - x * x;
+				Real x = MML::Real(2.0) * i / (n - 1) - MML::Real(1.0);
+				window[i] = MML::Real(1.0) - x * x;
 			}
 
 			return window;
@@ -245,11 +245,14 @@ namespace MML::Fourier
 			FourierValidation::ValidateWindowSize(n);
 			FourierValidation::ValidateNonNegative(beta, "beta", "Windows::Kaiser");
 
+			if (n == 1)
+				return Vector<Real>(1, 1.0);
+
 			// Modified Bessel function I0(x) using series expansion
 			auto bessel_i0 = [](Real x) -> Real {
 				Real sum = 1.0;
 				Real term = 1.0;
-				Real x_half = x / 2.0;
+				Real x_half = x / MML::Real(2.0);
 
 				for (int k = 1; k <= 50; k++) // Sufficient for typical accuracy
 				{
@@ -268,8 +271,8 @@ namespace MML::Fourier
 			Vector<Real> window(n);
 
 			for (int i = 0; i < n; i++) {
-				Real x = 2.0 * i / (n - 1) - 1.0; // Normalize to [-1, 1]
-				Real arg = beta * std::sqrt(1.0 - x * x);
+				Real x = MML::Real(2.0) * i / (n - 1) - MML::Real(1.0); // Normalize to [-1, 1]
+				Real arg = beta * std::sqrt(MML::Real(1.0) - x * x);
 				window[i] = bessel_i0(arg) / i0_beta;
 			}
 
@@ -295,13 +298,16 @@ namespace MML::Fourier
 			FourierValidation::ValidateWindowSize(n);
 			FourierValidation::ValidatePositive(sigma, "sigma", "Windows::Gaussian");
 
+			if (n == 1)
+				return Vector<Real>(1, 1.0);
+
 			Vector<Real> window(n);
-			Real center = (n - 1) / 2.0;
-			Real denominator = sigma * (n - 1) / 2.0;
+			Real center = (n - 1) / MML::Real(2.0);
+			Real denominator = sigma * (n - 1) / MML::Real(2.0);
 
 			for (int i = 0; i < n; i++) {
 				Real x = (i - center) / denominator;
-				window[i] = std::exp(-0.5 * x * x);
+				window[i] = std::exp(-MML::Real(0.5) * x * x);
 			}
 
 			return window;
@@ -327,14 +333,14 @@ namespace MML::Fourier
 
 			Vector<Real> window(n, 1.0);
 			Real denominator = alpha * (n - 1);
-			Real left_edge = alpha * (n - 1) / 2.0;
-			Real right_edge = (n - 1) * (1.0 - alpha / 2.0);
+			Real left_edge = alpha * (n - 1) / MML::Real(2.0);
+			Real right_edge = (n - 1) * (MML::Real(1.0) - alpha / MML::Real(2.0));
 
 			for (int i = 0; i < n; i++) {
 				if (i < left_edge) {
-					window[i] = 0.5 * (1.0 + std::cos(Constants::PI * (2.0 * i / denominator - 1.0)));
+					window[i] = MML::Real(0.5) * (MML::Real(1.0) + std::cos(Constants::PI * (MML::Real(2.0) * i / denominator - MML::Real(1.0))));
 				} else if (i > right_edge) {
-					window[i] = 0.5 * (1.0 + std::cos(Constants::PI * (2.0 * i / denominator - 2.0 / alpha + 1.0)));
+					window[i] = MML::Real(0.5) * (MML::Real(1.0) + std::cos(Constants::PI * (MML::Real(2.0) * i / denominator - MML::Real(2.0) / alpha + MML::Real(1.0))));
 				}
 			}
 

@@ -14,11 +14,62 @@
 
 #include <mml/MMLBase.h>
 #include <algorithm>
+#include <limits>
 #include <mml/base/AlgorithmTypes.h>
 #include <mml/base/Function.h>
 
 namespace MML {
 	namespace RootFinding {
+		namespace Detail {
+			inline Real EvaluateFunction(const IRealFunction& function, Real x, int& evaluations) {
+				if (evaluations == std::numeric_limits<int>::max())
+					throw RootFindingError("Root finding: function evaluation counter overflow");
+				++evaluations;
+				return function(x);
+			}
+
+			class CountingRealFunction : public IRealFunction {
+			public:
+				explicit CountingRealFunction(const IRealFunction& function) : _function(function) {}
+
+				Real operator()(Real x) const override {
+					return EvaluateFunction(_function, x, _evaluations);
+				}
+
+				[[nodiscard]] int Evaluations() const noexcept { return _evaluations; }
+
+			private:
+				const IRealFunction& _function;
+				mutable int _evaluations = 0;
+			};
+
+			inline bool HaveOppositeSigns(Real first, Real second) {
+				return (first < 0 && second > 0) || (first > 0 && second < 0);
+			}
+
+			// Callers supply finite values with at least one nonzero endpoint.
+			inline Real ScaledSecantFraction(Real numerator, Real other) {
+				const Real scale = std::max(std::abs(numerator), std::abs(other));
+				const Real normalizedNumerator = numerator / scale;
+				const Real difference = normalizedNumerator - other / scale;
+				if (difference == 0) return NoEstimate; // tol-ok: exact zero denominator; caller reports the non-finite step.
+				return normalizedNumerator / difference;
+			}
+
+			// sqrt(abs(first * second)), without forming an overflowing/underflowing product.
+			inline Real GeometricMeanMagnitude(Real first, Real second) {
+				int firstExponent, secondExponent;
+				Real product = std::frexp(std::abs(first), &firstExponent)
+					* std::frexp(std::abs(second), &secondExponent);
+				int exponent = firstExponent + secondExponent;
+				if (exponent % 2 != 0) {
+					product *= 2;
+					--exponent;
+				}
+				return std::ldexp(std::sqrt(product), exponent / 2);
+			}
+		}
+
 		/*********************************************************************/
 		/*****           Configuration and Result Types                  *****/
 		/*********************************************************************/
@@ -50,9 +101,8 @@ namespace MML {
 			/// Set to 0 to use algorithm-specific default from Defaults namespace
 			int max_iterations = 100;
 			
-			/// Initial step size for derivative-free methods (default: 0.01)
-			/// Used by some algorithms for initial search or derivative approximation
-			Real initial_step = 0.01;
+			/// Reserved compatibility field; scalar refinement solvers do not use it.
+			Real initial_step = MML::Real(0.01);
 			
 			/// Enable verbose output for debugging (default: false)
 			/// When true, prints iteration details to *verboseStream (nothing if null)
@@ -61,8 +111,8 @@ namespace MML {
 			/// Stream for verbose iteration output; null suppresses output (contract policy: no hardcoded std::cout)
 			std::ostream* verboseStream = nullptr;
 
-			/// Number of consecutive negligible-progress iterations before reporting Stalled.
-			/// Zero disables explicit stagnation detection.
+			/// Reserved compatibility field; does not enable configurable stagnation detection.
+			/// Must remain nonnegative for configuration validation.
 			int max_stagnant_iterations = 3;
 		};
 
@@ -87,7 +137,7 @@ namespace MML {
 			Real function_value = 0.0;
 			
 			/// Root estimate change or final bracket width, depending on the method.
-			Real x_error = 0.0;
+			Real x_error = NoEstimate;
 
 			[[nodiscard]] bool IsSuccess() const noexcept {
 				return converged && status == AlgorithmStatus::Success;
@@ -156,7 +206,7 @@ namespace MML {
 				if (_result.converged) {
 					_result.status = AlgorithmStatus::Success;
 					_result.error_message.clear();
-				} else if (_result.status == AlgorithmStatus::Success) {
+				} else if (_result.status == AlgorithmStatus::Success || _result.status == AlgorithmStatus::NotComputed) {
 					_result.status = AlgorithmStatus::AlgorithmSpecificFailure;
 				}
 			}

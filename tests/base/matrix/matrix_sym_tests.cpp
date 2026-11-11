@@ -200,7 +200,8 @@ namespace MML::Tests::Base::MatrixSymTests
     {
         MatrixSym<Real> a(2, { static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0) });
         
-        a = a;  // Self-assignment
+        auto& self = a;
+        a = self;  // Self-assignment
 
         REQUIRE(2 == a.rows());
         REQUIRE(static_cast<MML::Real>(1.0) == a(0, 0));
@@ -212,7 +213,8 @@ namespace MML::Tests::Base::MatrixSymTests
     {
         MatrixSym<Real> a(2, { static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0) });
         
-        a = std::move(a);  // Self move-assignment
+        auto& self = a;
+        a = std::move(self);  // Self move-assignment
 
         REQUIRE(2 == a.rows());
         REQUIRE(static_cast<MML::Real>(1.0) == a(0, 0));
@@ -315,7 +317,7 @@ namespace MML::Tests::Base::MatrixSymTests
         MatrixSym<Real> a;
         
         // data() on empty should return nullptr or be safe
-        Real* ptr = a.data();
+        REQUIRE_NOTHROW(a.data());
         REQUIRE(a.size() == 0);
     }
 
@@ -620,8 +622,8 @@ namespace MML::Tests::Base::MatrixSymTests
         MatrixSym<Real> a(2, { static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(4.0) });
         MatrixSym<Real> b(2, { static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(4.0001) });
 
-        REQUIRE(a.IsEqualTo(b, 1e-3));
-        REQUIRE_FALSE(a.IsEqualTo(b, 1e-5));
+        REQUIRE(a.IsEqualTo(b, MML::Real(1e-3)));
+        REQUIRE_FALSE(a.IsEqualTo(b, MML::Real(1e-5)));
     }
 
     //=============================================================================
@@ -835,10 +837,10 @@ namespace MML::Tests::Base::MatrixSymTests
 
     TEST_CASE("MatrixSym_numerical_precision", "[MatrixSym][edge-cases]")
     {
-        MatrixSym<Real> a(2, { TOL(1e-15, 1e-5), 2e-15, 3e-15 });
-        MatrixSym<Real> b(2, { TOL(1e-15, 1e-5), 2e-15, 3e-15 });
+        MatrixSym<Real> a(2, { TOL(1e-15, 1e-5), MML::Real(2e-15), MML::Real(3e-15) });
+        MatrixSym<Real> b(2, { TOL(1e-15, 1e-5), MML::Real(2e-15), MML::Real(3e-15) });
 
-        REQUIRE(a.IsEqualTo(b, 1e-16));
+        REQUIRE(a.IsEqualTo(b, MML::Real(1e-16)));
     }
 
     TEST_CASE("MatrixSym_storage_efficiency", "[MatrixSym][edge-cases]")
@@ -880,5 +882,3 @@ namespace MML::Tests::Base::MatrixSymTests
     }
 
 } // namespace MML::Tests::Base::MatrixSymTests
-
-

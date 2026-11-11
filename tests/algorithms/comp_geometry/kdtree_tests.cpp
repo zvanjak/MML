@@ -173,7 +173,7 @@ TEST_CASE("KDTree<2>_FourCorners", "[algorithms][kdtree]") {
 		auto result = tree.findNearest({5.0, 5.0});
 		REQUIRE(result.found);
 		// All corners are equidistant, so any is acceptable
-		Real expectedDist = std::sqrt(50.0);
+		Real expectedDist = std::sqrt(MML::Real(50.0));
 		REQUIRE(result.distance == Approx(expectedDist).margin(TOL(1e-10, 1e-5)));
 	}
 }
@@ -317,8 +317,8 @@ TEST_CASE("KDTree<2>_BoxSearch", "[algorithms][kdtree]") {
 	}
 	
 	SECTION("Tiny box") {
-		VectorN<Real, 2> minCorner({0.9, 0.9});
-		VectorN<Real, 2> maxCorner({1.1, 1.1});
+		VectorN<Real, 2> minCorner({MML::Real(0.9), MML::Real(0.9)});
+		VectorN<Real, 2> maxCorner({MML::Real(1.1), MML::Real(1.1)});
 		
 		auto result = tree.findInBox(minCorner, maxCorner);
 		
@@ -355,12 +355,12 @@ TEST_CASE("KDTree<3>_BasicOperations", "[algorithms][kdtree]") {
 	REQUIRE(tree.size() == 5);
 	
 	// Nearest to origin should be origin
-	auto result = tree.findNearest({0.1, 0.1, 0.1});
+	auto result = tree.findNearest({MML::Real(0.1), MML::Real(0.1), MML::Real(0.1)});
 	REQUIRE(result.found);
 	REQUIRE(result.index == 0);
 	
 	// Nearest to (1,1,1) should be (1,1,1)
-	result = tree.findNearest({0.9, 0.9, 0.9});
+	result = tree.findNearest({MML::Real(0.9), MML::Real(0.9), MML::Real(0.9)});
 	REQUIRE(result.index == 4);
 }
 
@@ -405,7 +405,7 @@ TEST_CASE("KDTree2D_Point2CartesianAPI", "[algorithms][kdtree]") {
 	REQUIRE(tree.size() == 4);
 	
 	SECTION("findNearest") {
-		auto result = tree.findNearest({0.1, 0.1});
+		auto result = tree.findNearest({MML::Real(0.1), MML::Real(0.1)});
 		REQUIRE(result.found);
 		REQUIRE(result.index == 0);
 	}
@@ -474,7 +474,7 @@ TEST_CASE("KDTree3D_Point3CartesianAPI", "[algorithms][kdtree]") {
 	REQUIRE(tree.size() == 5);
 	
 	SECTION("findNearest") {
-		auto result = tree.findNearest({0.1, 0.1, 0.1});
+		auto result = tree.findNearest({MML::Real(0.1), MML::Real(0.1), MML::Real(0.1)});
 		REQUIRE(result.found);
 		REQUIRE(result.index == 0);
 	}
@@ -485,7 +485,7 @@ TEST_CASE("KDTree3D_Point3CartesianAPI", "[algorithms][kdtree]") {
 	}
 	
 	SECTION("findInRadius") {
-		auto result = tree.findInRadius({0.0, 0.0, 0.0}, 1.1);
+		auto result = tree.findInRadius({MML::Real(0.0), MML::Real(0.0), MML::Real(0.0)}, MML::Real(1.1));
 		// Origin, (1,0,0), (0,1,0), (0,0,1) are within 1.1
 		REQUIRE(result.indices.size() == 4);
 	}

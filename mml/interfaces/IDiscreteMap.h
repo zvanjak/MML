@@ -39,6 +39,7 @@ namespace MML
 	/// @tparam N State dimension
 	template <int N>
 	class IDiscreteMap : public IFunction<Vector<Real>, const Vector<Real>&>, public IParametrized {
+		static_assert(N > 0, "IDiscreteMap requires a positive state dimension");
 	public:
 		static constexpr int Dimension = N;
 
@@ -70,10 +71,18 @@ namespace MML
 		// of IParametrized; getParams() / setParams() come with checked defaults.
 
 		/// @brief Get parameter name (default "p0", "p1", ...)
-		virtual std::string getParamName(int index) const { return "p" + std::to_string(index); }
+		virtual std::string getParamName(int index) const {
+			if (index < 0 || index >= getNumParam())
+				throw IndexError("IDiscreteMap::getParamName - parameter index out of range");
+			return "p" + std::to_string(index);
+		}
 
 		/// @brief Get state name (default "x0", "x1", ...)
-		virtual std::string getStateName(int index) const { return "x" + std::to_string(index); }
+		virtual std::string getStateName(int index) const {
+			if (index < 0 || index >= N)
+				throw IndexError("IDiscreteMap::getStateName - state index out of range");
+			return "x" + std::to_string(index);
+		}
 	};
 }
 

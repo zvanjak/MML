@@ -56,6 +56,9 @@ listFiles = [
     "mml/base/Matrix/MatrixPrintFormat.h",
     "mml/base/PrintFormatting.h",
 
+    # Checked arithmetic precedes StandardFunctions (FactorialInt uses it).
+    "mml/base/ExactInteger.h",
+
     # Standard math functions
     "mml/base/StandardFunctions.h",
     "mml/base/SpecialFunctions.h",
@@ -78,6 +81,8 @@ listFiles = [
     # Geometry fundamentals - Core geometry components (in GeometryBase/ subfolder)
     # [AGGREGATE] "mml/base/Geometry/Geometry.h",  # Only includes GeometryBase/* headers below
     "mml/base/Geometry/GeometryBase/GeometryPoints.h",
+    "mml/base/Geometry/GeometryBase/GeometryArithmetic.h",
+    "mml/base/Geometry/GeometryBase/GeometryPredicates.h",
     "mml/base/Geometry/GeometryBase/Geometry2DShapes.h",
     "mml/base/Geometry/GeometryBase/Geometry3DShapes.h",
 
@@ -85,6 +90,7 @@ listFiles = [
     "mml/base/Matrix/Matrix.h",
     "mml/base/Matrix/Matrix3D.h",
     "mml/base/Matrix/MatrixNM.h",
+    "mml/base/detail/NumericalJacobian.h",
 
     # Algebra representations depend on fixed-size matrices and vectors
     "mml/base/Matrix/MatrixSym.h",
@@ -271,6 +277,7 @@ listFiles = [
     "mml/core/Derivation/Hessians.h",
     "mml/core/Derivation/DerivationComplexStep.h",
     "mml/core/Derivation/DerivationComplex.h",
+    "mml/core/Derivation/ADArithmetic.h",
     "mml/core/Derivation/ForwardAD.h",
     "mml/core/Derivation/ReverseAD.h",
     "mml/core/Derivation/ADJacobians.h",
@@ -305,6 +312,7 @@ listFiles = [
     "mml/core/Fields/ScalarFieldOperations.h",
     "mml/core/Fields/VectorFieldOperations.h",
     "mml/core/DifferentialGeometry/FieldOperations.h",
+    "mml/core/DifferentialGeometry/FormIntegration.h",
     "mml/core/Fields/Fields.h",
 
     # Coordinate transformations - CoordTransfBase.h is emitted before MetricTensor.h
@@ -313,11 +321,15 @@ listFiles = [
     "mml/core/CoordTransf/CoordTransfSpherical.h",
     "mml/core/CoordTransf/CoordTransfCylindrical.h",
     "mml/core/DifferentialGeometry/CoordinateMap.h",
+    "mml/core/DifferentialGeometry/Chart.h",
+    "mml/core/DifferentialGeometry/Atlas.h",
 
     # Field operations, curves, surfaces
     # Standard primitives and geometry operations only; showcase catalogs live in test_data/.
+    "mml/core/detail/GeometryChecks.h",
     "mml/core/Curves.h",
     "mml/core/Surfaces.h",
+    "mml/core/DifferentialGeometry/Frames.h",
     "mml/core/Derivation/ADAdapters.h",
     "mml/core/Fields/TensorFieldAdapters.h",
 
@@ -341,6 +353,7 @@ listFiles = [
     "mml/algorithms/Eigen/detail/RealSchurAnalysis.h",
     "mml/algorithms/Eigen/detail/HessenbergQRIteration.h",
     "mml/algorithms/Eigen/detail/SchurEigenvectors.h",
+    "mml/algorithms/Eigen/detail/SelfAdjointScaling.h",
     "mml/algorithms/Eigen/SymmMatEigenSolverJacobi.h",
     "mml/algorithms/Eigen/HermitianMatEigenSolverJacobi.h",
     "mml/algorithms/Eigen/SymmMatEigenSolverQR.h",
@@ -390,10 +403,10 @@ listFiles = [
     "mml/algorithms/DAESolvers/DAEBackwardEuler.h",
     "mml/algorithms/DAESolvers/DAEAdaptive.h",
     "mml/algorithms/DAESolvers/DAEBDF2.h",
+    "mml/algorithms/DAESolvers/DAERadauIIA.h",
     "mml/algorithms/DAESolvers/DAEBDF4.h",
     "mml/algorithms/DAESolvers/DAELinearlyImplicit.h",
     "mml/algorithms/DAESolvers/DAERODAS4.h",
-    "mml/algorithms/DAESolvers/DAERadauIIA.h",
     "mml/algorithms/DAESolvers/DAEEventDetection.h",
 
     # Geodesic helpers depend on metric tensors and ODE fixed-step solvers
@@ -435,6 +448,7 @@ listFiles = [
     # Fourier analysis
     "mml/algorithms/Fourier/Fourier.h",
     "mml/algorithms/Fourier/FourierRealFFT.h",
+    "mml/algorithms/Fourier/FourierSpectrum.h",
     "mml/algorithms/Fourier/FourierWindowing.h",
 
     # Graph algorithms
@@ -462,9 +476,9 @@ listFiles = [
     # =========================================================================
     # TOOLS - Utility classes
     # =========================================================================
+	"mml/tools/IOResult.h",
     "mml/tools/CsvUtils.h",
     "mml/tools/ConsolePrinter.h",
-	"mml/tools/IOResult.h",
 	"mml/tools/TextIOFormat.h",
     "mml/tools/analyzers/FunctionAnalysisReports.h",
     "mml/tools/analyzers/MatrixAnalysisReports.h",
@@ -498,18 +512,20 @@ listFiles = [
     "mml/tools/visualizers/VisualizerFacade.h",
     "mml/tools/Timer.h",
 
-    # DataLoader - Individual components (in data_loader/ subfolder)
-    # [AGGREGATE] "mml/tools/DataLoader.h",  # Only includes data_loader/* headers below
+    # DataLoader components and public auto-format loading facade
     "mml/tools/data_loader/DataLoaderTypes.h",
     "mml/tools/data_loader/DataLoaderParsing.h",
     "mml/tools/data_loader/DataLoaderCSV.h",
     "mml/tools/data_loader/DataLoaderJSON.h",
+    "mml/tools/DataLoader.h",
 
     # =========================================================================
     # SYSTEMS - High-level mathematical systems
     # =========================================================================
     "mml/systems/LinearSystem.h",
     "mml/systems/DynamicalSystem/DynamicalSystemTypes.h",
+    "mml/systems/DynamicalSystem/DynamicalSystemValidation.h",
+    "mml/systems/DynamicalSystem/LyapunovQR.h",
     "mml/systems/DynamicalSystem/DynamicalSystemBase.h",
     "mml/systems/ContinuousSystems.h",
     "mml/systems/DiscreteMaps.h",

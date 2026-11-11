@@ -202,7 +202,7 @@ Coordinate-free shapes defined by intrinsic parameters only (no position/orienta
 | `CylinderGeom` | radius, height | `Volume()`, `LateralArea()`, `SurfaceArea()` |
 | `ConeGeom` | radius, height | `Volume()`, `SlantHeight()`, `ApexAngle()` |
 | `Frustum` | two radii, height | `Volume()`, `SlantHeight()`, `SurfaceArea()` |
-| `Tetrahedron` | 6 edge lengths | `Volume()` (Cayley-Menger), `SurfaceArea()`, face triangles |
+| `Tetrahedron` | 6 edge lengths | `Volume()` (scaled Gram determinant, equivalent to Cayley-Menger), `SurfaceArea()`, face triangles |
 | `Spheroid` | equatorial, polar radii | `Volume()`, `Flattening()`, `Eccentricity()`, `Earth()` |
 | `TorusGeom` | major, minor radius | `Volume()`, `SurfaceArea()`, `IsRingTorus()` |
 
@@ -237,6 +237,231 @@ Real tetVol = tet.Volume();     // Regular tetrahedron volume
 ```
 
 > **Note**: 3D shape classes use `Geom` suffix (e.g., `SphereGeom`) to avoid conflicts with parametric surface classes in `Surfaces.h`.
+
+### Shape and Mesh Contracts
+
+- Function-bounded solids preserve their existing constructors, but
+  `getBoundingBox()` and `getBoundingSphere()` require a conservative box
+  supplied through `SetBoundingBox()`. The caller guarantees enclosure of the
+  **entire** boundary functions; sampling cannot establish that guarantee.
+  Without it, these queries throw `GeometryError`. The sphere encloses the
+  supplied box, using its midpoint rather than an estimated centroid and
+  outward-rounded radius arithmetic. Known changes to the public x interval
+  or boundary callback pointers require a new box; callers must also maintain
+  the guarantee when callback state changes externally. `ClearBoundingBox()`
+  removes the supplied guarantee.
+- `EstimateBoundingBox()` and `EstimateBoundingSphere()` are explicitly
+  heuristic sampled extrema and can miss narrow peaks. `Volume()`,
+  `SurfaceArea()` and `getCenter()` remain numerical estimates, forwarding to
+  `EstimateVolume()`, `EstimateSurfaceArea()` and `EstimateCenter()`.
+  The estimate methods accept `BoundaryGeometrySettings`: a positive even
+  `integrationIntervals` count (default 64) and a finite `derivativeStep` in
+  (0, 1/2], measured in normalized [0,1] parameters (default
+  `Precision::CbrtEps`). These are resolution controls, **not** certified
+  error bounds or convergence claims; fixed-grid quadrature can alias
+  oscillatory callbacks even when all evaluations are finite.
+- Function-bounded surface area differentiates the domain-preserving
+  parameterization, including moving y boundaries, rather than sampling
+  Cartesian partial derivatives outside the body domain. Three-point
+  stencils are central in the interior and one-sided at endpoints; all
+  physical samples stay within the closed callback domain. Callbacks must be
+  deterministic and finite there, with ordered lower/upper boundaries and
+  sufficient smoothness for meaningful numerical derivatives. Null callbacks,
+  invalid settings, nonfinite/reversed sampled bounds, unresolved parameter
+  stencils and nonfinite arithmetic throw `GeometryError`. A zero estimated
+  volume has no centroid; small positive volumes are not treated as zero by an
+  absolute geometry tolerance.
+- `Polygon2D::IsSimple()` tests strict topology of the supplied finite
+  coordinates, without an epsilon-expanded boundary. The last vertex closes
+  back to the first implicitly: repeating the first vertex at the end is a
+  zero-length edge and is not simple. Other zero-length edges, repeated
+  vertices, crossings, non-adjacent touches, collinear overlaps and adjacent
+  retracing are also rejected. Adjacent edges may share only their common
+  endpoint; harmless collinear subdivisions and valid concavity remain simple.
+  Shared exact-sign orientation arithmetic handles cancellation, product
+  overflow/underflow and mixed exponent ranges without changing vertex storage.
+  Nonfinite coordinates throw `GeometryError`. This predicate does not change
+  containment, convexity or the existing convex-only fan triangulation contract.
+- Cartesian point distances and Cartesian-to-polar/spherical/cylindrical
+  constructors use scaled `hypot` norms. Curvilinear point distances combine
+  native radial differences with scaled half-angle chord components rather
+  than subtracting large squared terms. Signed radii and noncanonical finite
+  angles remain accepted; spherical zero/pi poles and canonical angular wrap
+  boundaries retain their geometric identities. Distance/radius operations
+  reject nonfinite coordinates and unrepresentable required results with
+  `GeometryError`, rather than returning a spurious coincidence or nonfinite
+  distance. These changes do not redesign general vector norms or coordinate
+  transformation APIs.
+  Coordinates are interpreted after conversion to the configured `Real` type:
+  a radial increment smaller than its representable spacing can round to the
+  original radius, giving genuinely coincident stored points. No distance
+  algorithm can recover that lost input difference. Extreme-coordinate inputs
+  and near-antipodal offsets must themselves be finite and distinct in the active
+  precision; this is separate from preserving a representable result when
+  intermediate squares or angular products would overflow or underflow.
+- Great-circle distances evaluate the near and complementary half-angle
+  chords independently and use `atan2`, preserving both nearby and near-antipodal
+  separations. Geographic latitudes must be finite and in [-90, 90]; finite
+  longitudes are periodic, including outside [-180, 180]. The four-argument
+  overload returns radians; the five-argument overload returns arc length in
+  the supplied radius units. Radius must be finite and nonnegative; zero is
+  allowed. The physical-distance overload scales tiny chord components before
+  they underflow, even when the angular result itself is unrepresentable.
+  Invalid inputs and unrepresentable required distances throw `GeometryError`.
+  `SphericalFromLatLong` uses the same geographic validation and continues to
+  store the supplied longitude in radians without canonicalizing it.
+- `Triangle2D` computes side lengths from its current vertices rather than a
+  mutable cache. Writes through retained vertex or coordinate references are
+  visible to subsequent side-derived queries, including on copied/moved
+  triangles. Read-only queries do not write shared cache state; concurrent
+  vertex mutation still requires caller synchronization.
+  `Area()` is the absolute coordinate-determinant `SignedArea()`, so a thin
+  triangle does not lose its height merely because its rounded side lengths
+  satisfy a degenerate side-only triangle inequality. This does not change the
+  separate side-length-based `Triangle` class or promise exact orientation
+  predicates or arbitrary extreme-scale arithmetic.
+  The height must still be present in the stored `Real` coordinates: if adding
+  a translation rounds it away, the resulting collinear vertices have zero
+  area and neither winding. Choosing a local coordinate frame can avoid that
+  input-rounding loss; increasing an area tolerance cannot recover lost data.
+- `TriangleSurface3D` publicly implements `IParametricSurface<3>`, including
+  pointer/reference conversion and polymorphic evaluation through its inherited
+  `IVectorFunctionNM<2, 3>` interface. Existing parameter bounds, vertex
+  reordering and local-coordinate mapping are unchanged.
+- `Line3D::Intersection` and both line-line `Dist` overloads use the existing
+  `IsParallel` direction tolerance consistently. Very-nearly-parallel lines are
+  deliberately treated as a parallel approximation, even if their infinite
+  extensions meet far away. For this branch, detailed results fix `t2 = 0`,
+  project the second reference point onto the first line, and populate both
+  points, parameters and separation, including for coincident lines. This
+  representative pair is not a unique minimum for tolerance-parallel directions.
+  The distance overload with point outputs retains its `false` return and leaves
+  those outputs unchanged for parallel/coincident lines; its distance is populated.
+  Nonparallel pairs use a cross-product solve rather than a cancellation-prone
+  Gram determinant. Separation is evaluated from the line geometry, not by
+  subtracting potentially large closest-point coordinates. Invalid inputs and
+  unrepresentable required results throw `GeometryError`; scalar distance does
+  not require representable closest-point parameters.
+- `SegmentLine2D::ClosestPoint` and `DistanceToPoint` treat only identical
+  endpoints as a point-segment. Nonzero small segments retain their projections;
+  scaled projection and `hypot` avoid squaring tiny or large lengths.
+  Nonfinite coordinates or unrepresentable required coordinate differences and
+  distances throw `GeometryError`. Intersections involving a point-segment test
+  its actual distance to the other segment against `Precision::GeometryEpsilon`,
+  in either operand order. Two point-segments intersect within that same distance
+  tolerance. Nondegenerate orientation/collinearity tolerances are unchanged.
+- `Tetrahedron` orders its edge lengths as AB, AC, AD, BC, BD, CD.
+  `Volume()` validates the current lengths, including changes through mutable accessors.
+  Nonfinite or negative lengths, violated face triangle inequalities, nonrealizable
+  tetrahedra, and volume overflow throw `GeometryError`. Realizable degenerate shapes
+  have zero volume. Validation uses scaled roundoff allowances; only roundoff-sized
+  negative Gram determinants are clamped to zero, not arbitrary negative determinants.
+  Range tests must keep the cubic volume representable in the active `Real`
+  type; representable edge lengths alone do not guarantee a representable volume.
+- `Parallelogram::FromDiagonals(p, q, angleBetween)` takes positive diagonal lengths
+  and an angle strictly between zero and pi. The returned `DiagonalP()` and
+  `DiagonalQ()` match `p` and `q`; its included side angle follows that diagonal
+  convention and need not equal `angleBetween`.
+  Scaled half-angle formulas and `atan2` avoid cancellation in side/angle
+  reconstruction; the diagonal accessors also use half-angle norms rather than
+  subtracting nearly equal squares. The stored `Real` angle still limits
+  resolution for included angles extremely close to pi.
+- A plane-plane intersection returns a line whose reference point satisfies both
+  plane equations, not merely a direction parallel to both planes. Parallel planes
+  return `false`.
+- `Pyramid3D` places the square base in the XY plane through its base center and
+  its apex one height above that point. Both constructors generate the same geometry
+  up to translation. Its six outward triangular faces agree with analytic volume,
+  area, centroid and bounding box.
+- `PyramidEquilateral3D` is a **square-based pyramid with all eight edges equal**,
+  not a regular tetrahedron. Its height is the base side length divided by sqrt(2).
+- Sphere triangles use coherent outward winding, including both pole caps.
+  Sphere and torus `Volume()` and `SurfaceArea()` retain their smooth-body analytic
+  formulas; their finite meshes approximate those curved bodies.
+  Closed triangle/quad mesh centroids accumulate first moments relative to a
+  mesh vertex, then restore the translation. Large world coordinates therefore
+  do not enter the moment sums; input vertex quantization and ordinary summation
+  roundoff still limit accuracy.
+- `RectSurface3D` uses a bilinear map over the existing rectangular parameter bounds
+  for coplanar, cyclically ordered convex quadrilaterals. Every parameter corner
+  maps to the corresponding stored corner, and `getArea()` measures the planar
+  quadrilateral rather than an assumed parallelogram. Rectangle and parallelogram
+  parameterizations are unchanged. `getCenter()` is the vertex average (the
+  parameter-center point), not generally the area centroid. Torus patches retain
+  their quad API and face count and use this same mapping and area.
+- Point-normal and three-point `Plane3D` construction normalize nonzero directions
+  independently of their physical magnitude. Scaled, compensated cross products
+  avoid premature product overflow, underflow and cancellation. Nonfinite inputs,
+  zero normals/collinear points and unrepresentable plane offsets throw `GeometryError`.
+- `RectSurface3D` checks coplanarity relative to the larger of its two adjacent
+  edge lengths, using `Precision::Plane3DIsPointOnPlaneTolerance`. This intentionally
+  replaces the old absolute-distance constructor check: uniformly scaled copies
+  receive the same planarity decision, within floating-point rounding. The public
+  `Plane3D::IsPointOnPlane` API retains its **absolute** tolerance.
+  Adjacent edge lengths and parameter half-widths must be nonzero and representable.
+  `getArea()` retains representable tiny and large areas and throws `GeometryError`
+  if the area is zero, underflows to zero or overflows. Centers and adaptive
+  rectangular-mesh edge midpoints avoid overflowing coordinate sums.
+
+### Plane query range and coefficient contracts
+
+Plane queries accept finite nonzero normals, including nonunit coefficients from
+the intercept constructor or mutable `A()`, `B()`, `C()`, `D()` accessors.
+`Normal()` returns those stored coefficients, not a newly normalized vector.
+Distances, projections, geometric angle/parallel tests and intersections account
+for their magnitude. Line/plane intersection parallel tolerances are angular
+(normalized normal/direction dot products).
+
+Membership deliberately retains the **absolute algebraic-residual** contract:
+`abs(A*x+B*y+C*z+D) < tolerance`, not a coordinate-relative or normalized-distance
+test. Rescaling coefficients can therefore change approximate membership.
+The strict inequality is unchanged; zero tolerance always returns false.
+Line membership evaluates the residual at parameters zero and one without
+constructing a potentially overflowing second point.
+
+Shared exponent-separated, compensated arithmetic avoids premature product,
+sum, normal-square and intersection-parameter range loss. Projection also
+retains cancellation in its coordinate numerators. These are floating-point
+queries, not arbitrary-precision output or exact incidence predicates.
+Rounding stored offsets or returned coordinates can still matter at a tight
+absolute membership tolerance, especially far from the origin.
+
+As approved for these queries, invalid geometry (zero/nonfinite normals,
+nonfinite offsets/points or invalid line directions) raises `GeometryError`.
+Explicit tolerances must be finite and nonnegative. A genuinely unrepresentable
+numeric output, including nonzero underflow to zero, also raises `GeometryError`.
+An unrepresentable intermediate alone does not: projection can succeed when
+the point-to-plane distance is too large to return, and an intersection can
+succeed when its line parameter is outside `Real` range.
+Valid parallel intersections still return false; axis-parallel intercepts
+still return positive infinity by definition. Output arguments are unchanged
+on false or an exception.
+
+`getPointOnPlane()` now deterministically returns the closest point to the
+origin, rather than selecting an arbitrary coordinate-axis intercept.
+This can remain finite when every axis intercept is out of range.
+
+This checked example is runnable through `MML_DocsApp --plane-query-range`:
+
+```cpp
+const Real largest = std::numeric_limits<Real>::max();
+const Plane3D plane(Pnt3Cart(0, 0, 0), Vec3Cart(1, 1, 1));
+const Pnt3Cart point(largest, largest, -largest / 2);
+const Real distance = plane.DistToPoint(point);
+const auto projection = plane.ProjectionToPlane(point);
+std::cout << "Scaled plane distance: " << distance / largest << '\n';
+std::cout << "Scaled projection: " << projection.X() / largest << ", "
+    << projection.Y() / largest << ", " << projection.Z() / largest << '\n';
+```
+
+The following construction example is runnable through `MML_DocsApp --plane-rectangle-contracts`:
+
+```cpp
+const Real side = Real(1e-8);
+const RectSurface3D square(Pnt3Cart(0, 0, 0), Pnt3Cart(side, 0, 0),
+    Pnt3Cart(side, side, 0), Pnt3Cart(0, side, 0));
+std::cout << "Scaled patch area: " << square.getArea() << '\n'; // 1e-16
+```
 
 ---
 
@@ -357,4 +582,3 @@ typedef Point3Cylindrical  Pnt3Cyl;
 | 3D Points Demo | Point3Cartesian, Spherical, and Cylindrical | [`docs_demo_geometry.cpp`](../../src/docs_demos/docs_demo_geometry.cpp) |
 
 **To run:** Build and execute `MML_DocsApp` target.
-

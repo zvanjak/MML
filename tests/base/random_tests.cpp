@@ -82,7 +82,7 @@ TEST_CASE("Random::UniformReal - Basic range tests", "[Random][UniformReal]")
         constexpr int NUM_SAMPLES = 1000;
         for (int i = 0; i < NUM_SAMPLES; ++i)
         {
-            Real val = Random::UniformReal(0.001, 0.002);
+            Real val = Random::UniformReal(MML::Real(0.001), MML::Real(0.002));
             REQUIRE(val >= 0.001);
             REQUIRE(val < 0.002);
         }
@@ -122,8 +122,8 @@ TEST_CASE("Random::UniformReal - Distribution uniformity", "[Random][UniformReal
     {
         constexpr int NUM_SAMPLES = 10000;
         Real min = 0.0, max = 10.0;
-        Real expected_mean = (min + max) / 2.0;  // 5.0
-        Real expected_variance = (max - min) * (max - min) / 12.0;  // 8.333...
+        Real expected_mean = (min + max) / MML::Real(2.0);  // 5.0
+        Real expected_variance = (max - min) * (max - min) / MML::Real(12.0);  // 8.333...
 
         std::vector<Real> samples(NUM_SAMPLES);
         for (int i = 0; i < NUM_SAMPLES; ++i)
@@ -132,7 +132,7 @@ TEST_CASE("Random::UniformReal - Distribution uniformity", "[Random][UniformReal
         }
 
         // Calculate sample mean
-        Real sum = std::accumulate(samples.begin(), samples.end(), 0.0);
+        Real sum = std::accumulate(samples.begin(), samples.end(), MML::Real(0.0));
         Real mean = sum / NUM_SAMPLES;
 
         // Calculate sample variance
@@ -199,6 +199,7 @@ TEST_CASE("Random::UniformInt - Basic range tests", "[Random][UniformInt]")
             else ones++;
         }
         // Both should appear roughly equally (within 40% of expected 500)
+        REQUIRE(zeros + ones == NUM_SAMPLES);
         REQUIRE(zeros >= 300);
         REQUIRE(zeros <= 700);
     }

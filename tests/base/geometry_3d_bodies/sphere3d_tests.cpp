@@ -15,33 +15,34 @@ namespace MML::Tests::Base::Geometry3DBodies::Sphere3DTests {
 
 TEST_CASE("Sphere3D::Volume", "[geometry][sphere][volume]")
 {
+    const Real tolerance = TOL(Tolerance::Standard, Real(6) * Precision::Eps);
     SECTION("Unit sphere centered at origin")
     {
         Sphere3D sphere(1.0);
         Real expected = (4.0 / 3.0) * Constants::PI;  // (4/3)π ≈ 4.1888
-        REQUIRE_THAT(sphere.Volume() , RealApprox(expected));
+        REQUIRE_THAT(sphere.Volume(), RealApprox(expected).epsilon(tolerance));
     }
 
     SECTION("Sphere with radius 5 centered at origin")
     {
         Sphere3D sphere(5.0);
-        Real expected = (4.0 / 3.0) * Constants::PI * 125.0;  // (4/3)π·125 ≈ 523.599
-        REQUIRE_THAT(sphere.Volume() , RealApprox(expected));
+        Real expected = (MML::Real(4.0) / MML::Real(3.0)) * Constants::PI * MML::Real(125.0);  // (4/3)π·125 ≈ 523.599
+        REQUIRE_THAT(sphere.Volume(), RealApprox(expected).epsilon(tolerance));
     }
 
     SECTION("Sphere centered at arbitrary point")
     {
         Pnt3Cart center(10.0, 20.0, 30.0);
         Sphere3D sphere(3.0, center);
-        Real expected = (4.0 / 3.0) * Constants::PI * 27.0;  // (4/3)π·27 ≈ 113.097
-        REQUIRE_THAT(sphere.Volume() , RealApprox(expected));
+        Real expected = (MML::Real(4.0) / MML::Real(3.0)) * Constants::PI * MML::Real(27.0);  // (4/3)π·27 ≈ 113.097
+        REQUIRE_THAT(sphere.Volume(), RealApprox(expected).epsilon(tolerance));
     }
 
     SECTION("Small sphere")
     {
-        Sphere3D sphere(0.1);
-        Real expected = (4.0 / 3.0) * Constants::PI * 0.001;  // (4/3)π·0.001 ≈ 0.004189
-        REQUIRE_THAT(sphere.Volume() , RealApprox(expected));
+        Sphere3D sphere(MML::Real(0.1));
+        Real expected = (MML::Real(4.0) / MML::Real(3.0)) * Constants::PI * MML::Real(0.001);  // (4/3)π·0.001 ≈ 0.004189
+        REQUIRE_THAT(sphere.Volume(), RealApprox(expected).epsilon(tolerance));
     }
 }
 
@@ -57,7 +58,7 @@ TEST_CASE("Sphere3D::SurfaceArea", "[geometry][sphere][surface]")
     SECTION("Sphere with radius 5 centered at origin")
     {
         Sphere3D sphere(5.0);
-        Real expected = 4.0 * Constants::PI * 25.0;  // 4π·25 ≈ 314.159
+        Real expected = MML::Real(4.0) * Constants::PI * MML::Real(25.0);  // 4π·25 ≈ 314.159
         REQUIRE_THAT(sphere.SurfaceArea() , RealApprox(expected));
     }
 
@@ -65,14 +66,14 @@ TEST_CASE("Sphere3D::SurfaceArea", "[geometry][sphere][surface]")
     {
         Pnt3Cart center(10.0, 20.0, 30.0);
         Sphere3D sphere(3.0, center);
-        Real expected = 4.0 * Constants::PI * 9.0;  // 4π·9 ≈ 113.097
+        Real expected = MML::Real(4.0) * Constants::PI * MML::Real(9.0);  // 4π·9 ≈ 113.097
         REQUIRE_THAT(sphere.SurfaceArea() , RealApprox(expected));
     }
 
     SECTION("Large sphere")
     {
         Sphere3D sphere(100.0);
-        Real expected = 4.0 * Constants::PI * 10000.0;  // 4π·10000 ≈ 125663.7
+        Real expected = MML::Real(4.0) * Constants::PI * MML::Real(10000.0);  // 4π·10000 ≈ 125663.7
         REQUIRE_THAT(sphere.SurfaceArea() , RealApprox(expected));
     }
 }
@@ -263,9 +264,9 @@ TEST_CASE("Sphere3D::IsInside", "[geometry][sphere][inside]")
     SECTION("Point just outside is not inside")
     {
         Sphere3D sphere(5.0);
-        REQUIRE(sphere.IsInside(Pnt3Cart(5.1, 0.0, 0.0)) == false);
-        REQUIRE(sphere.IsInside(Pnt3Cart(0.0, 5.1, 0.0)) == false);
-        REQUIRE(sphere.IsInside(Pnt3Cart(0.0, 0.0, 5.1)) == false);
+        REQUIRE(sphere.IsInside(Pnt3Cart(MML::Real(5.1), MML::Real(0.0), MML::Real(0.0))) == false);
+        REQUIRE(sphere.IsInside(Pnt3Cart(MML::Real(0.0), MML::Real(5.1), MML::Real(0.0))) == false);
+        REQUIRE(sphere.IsInside(Pnt3Cart(MML::Real(0.0), MML::Real(0.0), MML::Real(5.1))) == false);
     }
 
     SECTION("Point far outside is not inside")

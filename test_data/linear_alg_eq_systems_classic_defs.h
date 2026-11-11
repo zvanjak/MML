@@ -29,9 +29,9 @@ namespace MML::TestBeds
 
     inline const Matrix<Real>& hilbert_3x3() {
         static const Matrix<Real> m{3, 3, { 
-            1.0,        0.5,        1.0/3.0,
-            0.5,        1.0/3.0,    0.25,
-            1.0/3.0,    0.25,       0.2
+            MML::Real(1.0),        MML::Real(0.5),        MML::Real(1.0)/MML::Real(3.0),
+            MML::Real(0.5),        MML::Real(1.0)/MML::Real(3.0),    MML::Real(0.25),
+            MML::Real(1.0)/MML::Real(3.0),    MML::Real(0.25),       MML::Real(0.2)
         }};
         return m;
     }
@@ -42,37 +42,37 @@ namespace MML::TestBeds
         return v;
     }
     inline const Vector<Real>& hilbert_3x3_rhs0_sol() {
-        static const Vector<Real> v{ 9.000000000000028422,
-                                         -36.000000000000142109,
-                                         30.000000000000131450 };
+        static const Vector<Real> v{ MML::Real(9.000000000000028422),
+                                         -MML::Real(36.000000000000142109),
+                                         MML::Real(30.000000000000131450) };
         return v;
     }
 
     inline const VectorComplex& hilbert_3x3_eigen_val() {
         static const VectorComplex v{
-            Complex(1.40831893063717, 0),
-            Complex(0.122327059972063, 0),
-            Complex(0.00268734272409464, 0)
+            Complex(MML::Real(1.40831893063717), 0),
+            Complex(MML::Real(0.122327059972063), 0),
+            Complex(MML::Real(0.00268734272409464), 0)
         };
         return v;
     }
 
     // Matrix properties for hilbert_3x3 (primitives - SIOF safe)
-    inline constexpr Real              hilbert_3x3_det = 0.00046296296296296285;
+    inline constexpr Real              hilbert_3x3_det = MML::Real(0.00046296296296296285);
     inline const Vector<Real>& hilbert_3x3_singular_values() {
-        static const Vector<Real> v{1.4083189306371614, 0.12232705997206326, 0.0026873427240946386};
+        static const Vector<Real> v{MML::Real(1.4083189306371614), MML::Real(0.12232705997206326), MML::Real(0.0026873427240946386)};
         return v;
     }
-    inline constexpr Real              hilbert_3x3_cond_2 = 524.0567775860644;
+    inline constexpr Real              hilbert_3x3_cond_2 = MML::Real(524.0567775860644);
     inline constexpr int               hilbert_3x3_rank = 3;
 
     /////////////////////////////////////////////////////////////////////////////////////////////////
     inline const Matrix<Real>& hilbert_4x4() {
         static const Matrix<Real> m{4, 4, { 
-            1.0,        0.5,        1.0/3.0,    0.25,
-            0.5,        1.0/3.0,    0.25,       0.2,
-            1.0/3.0,    0.25,       0.2,        1.0/6.0,
-            0.25,       0.2,        1.0/6.0,    1.0/7.0
+            MML::Real(1.0),        MML::Real(0.5),        MML::Real(1.0)/MML::Real(3.0),    MML::Real(0.25),
+            MML::Real(0.5),        MML::Real(1.0)/MML::Real(3.0),    MML::Real(0.25),       MML::Real(0.2),
+            MML::Real(1.0)/MML::Real(3.0),    MML::Real(0.25),       MML::Real(0.2),        MML::Real(1.0)/MML::Real(6.0),
+            MML::Real(0.25),       MML::Real(0.2),        MML::Real(1.0)/MML::Real(6.0),    MML::Real(1.0)/MML::Real(7.0)
         }};
         return m;
     }
@@ -83,40 +83,40 @@ namespace MML::TestBeds
         return v;
     }
     inline const Vector<Real>& hilbert_4x4_rhs0_sol() {
-        static const Vector<Real> v{ -3.99999999999889511,
-                                         59.9999999999874873,
-                                         -179.999999999969873,
-                                         139.999999999980417 };
+        static const Vector<Real> v{ -MML::Real(3.99999999999889511),
+                                         MML::Real(59.9999999999874873),
+                                         -MML::Real(179.999999999969873),
+                                         MML::Real(139.999999999980417) };
         return v;
     }
 
     inline const VectorComplex& hilbert_4x4_eigen_val() {
         static const VectorComplex v{
-            Complex(1.50021428498598, 0),
-            Complex(0.169141194528054, 0),
-            Complex(0.00673882617794846, 0),
-            Complex(0.0000967080422693108, 0)
+            Complex(MML::Real(1.50021428498598), 0),
+            Complex(MML::Real(0.169141194528054), 0),
+            Complex(MML::Real(0.00673882617794846), 0),
+            Complex(MML::Real(0.0000967080422693108), 0)
         };
         return v;
     }
 
     // Matrix properties for hilbert_4x4
-    inline constexpr Real              hilbert_4x4_det = 1.653439153439153e-07;
+    inline constexpr Real              hilbert_4x4_det = MML::Real(1.653439153439153e-07);
     inline const Vector<Real>& hilbert_4x4_singular_values() {
-        static const Vector<Real> v{1.5002142849859763, 0.16914119452805447, 0.006738826177948463, 9.670804226931078e-05};
+        static const Vector<Real> v{MML::Real(1.5002142849859763), MML::Real(0.16914119452805447), MML::Real(0.006738826177948463), MML::Real(9.670804226931078e-05)};
         return v;
     }
-    inline constexpr Real              hilbert_4x4_cond_2 = 15513.738738929038;
+    inline constexpr Real              hilbert_4x4_cond_2 = MML::Real(15513.738738929038);
     inline constexpr int               hilbert_4x4_rank = 4;
 
     /////////////////////////////////////////////////////////////////////////////////////////////////
     inline const Matrix<Real>& hilbert_5x5() {
         static const Matrix<Real> m{5, 5, { 
-            1.0,        0.5,        1.0/3.0,    0.25,       0.2,
-            0.5,        1.0/3.0,    0.25,       0.2,        1.0/6.0,
-            1.0/3.0,    0.25,       0.2,        1.0/6.0,    1.0/7.0,
-            0.25,       0.2,        1.0/6.0,    1.0/7.0,    0.125,
-            0.2,        1.0/6.0,    1.0/7.0,    0.125,      1.0/9.0
+            MML::Real(1.0),        MML::Real(0.5),        MML::Real(1.0)/MML::Real(3.0),    MML::Real(0.25),       MML::Real(0.2),
+            MML::Real(0.5),        MML::Real(1.0)/MML::Real(3.0),    MML::Real(0.25),       MML::Real(0.2),        MML::Real(1.0)/MML::Real(6.0),
+            MML::Real(1.0)/MML::Real(3.0),    MML::Real(0.25),       MML::Real(0.2),        MML::Real(1.0)/MML::Real(6.0),    MML::Real(1.0)/MML::Real(7.0),
+            MML::Real(0.25),       MML::Real(0.2),        MML::Real(1.0)/MML::Real(6.0),    MML::Real(1.0)/MML::Real(7.0),    MML::Real(0.125),
+            MML::Real(0.2),        MML::Real(1.0)/MML::Real(6.0),    MML::Real(1.0)/MML::Real(7.0),    MML::Real(0.125),      MML::Real(1.0)/MML::Real(9.0)
         }};
         return m;
     }
@@ -127,52 +127,52 @@ namespace MML::TestBeds
         return v;
     }
     inline const Vector<Real>& hilbert_5x5_rhs0_sol() {
-        static const Vector<Real> v{ 24.9999999999885745,
-                                         -299.999999999816851,
-                                         1049.99999999928991,
-                                         -1399.99999999900933,
-                                         629.999999999544343 };
+        static const Vector<Real> v{ MML::Real(24.9999999999885745),
+                                         -MML::Real(299.999999999816851),
+                                         MML::Real(1049.99999999928991),
+                                         -MML::Real(1399.99999999900933),
+                                         MML::Real(629.999999999544343) };
         return v;
     }
 
     inline const VectorComplex& hilbert_5x5_eigen_val() {
         static const VectorComplex v{
-            Complex(1.56705104127683, 0),
-            Complex(0.208534218611057, 0),
-            Complex(0.0114075076537421, 0),
-            Complex(0.000305898135857558, 0),
-            Complex(3.28793161393089e-06, 0)
+            Complex(MML::Real(1.56705104127683), 0),
+            Complex(MML::Real(0.208534218611057), 0),
+            Complex(MML::Real(0.0114075076537421), 0),
+            Complex(MML::Real(0.000305898135857558), 0),
+            Complex(MML::Real(3.28793161393089e-06), 0)
         };
         return v;
     }
 
     // Matrix properties for hilbert_5x5
-    inline constexpr Real              hilbert_5x5_det = 3.7492951918427907e-12;
+    inline constexpr Real              hilbert_5x5_det = MML::Real(3.7492951918427907e-12);
     inline const Vector<Real>& hilbert_5x5_singular_values() {
-        static const Vector<Real> v{1.5670510412768291, 0.20853421861105685, 0.011407507653742109, 0.00030589813585755764, 3.2879316139308927e-06};
+        static const Vector<Real> v{MML::Real(1.5670510412768291), MML::Real(0.20853421861105685), MML::Real(0.011407507653742109), MML::Real(0.00030589813585755764), MML::Real(3.2879316139308927e-06)};
         return v;
     }
-    inline constexpr Real              hilbert_5x5_cond_2 = 476607.25024259434;
+    inline constexpr Real              hilbert_5x5_cond_2 = MML::Real(476607.25024259434);
     inline constexpr int               hilbert_5x5_rank = 5;
 
     /////////////////////////////////////////////////////////////////////////////////////////////////
     inline const Matrix<Real>& hilbert_8x8() {
         static const Matrix<Real> m{8, 8, { 
-            1.0,        0.5,        1.0/3.0,    0.25,       0.2,        1.0/6.0,    1.0/7.0,    0.125,
-            0.5,        1.0/3.0,    0.25,       0.2,        1.0/6.0,    1.0/7.0,    0.125,      1.0/9.0,
-            1.0/3.0,    0.25,       0.2,        1.0/6.0,    1.0/7.0,    0.125,      1.0/9.0,    0.1,
-            0.25,       0.2,        1.0/6.0,    1.0/7.0,    0.125,      1.0/9.0,    0.1,        1.0/11.0,
-            0.2,        1.0/6.0,    1.0/7.0,    0.125,      1.0/9.0,    0.1,        1.0/11.0,   1.0/12.0,
-            1.0/6.0,    1.0/7.0,    0.125,      1.0/9.0,    0.1,        1.0/11.0,   1.0/12.0,   1.0/13.0,
-            1.0/7.0,    0.125,      1.0/9.0,    0.1,        1.0/11.0,   1.0/12.0,   1.0/13.0,   1.0/14.0,
-            0.125,      1.0/9.0,    0.1,        1.0/11.0,   1.0/12.0,   1.0/13.0,   1.0/14.0,   1.0/15.0
+            MML::Real(1.0),        MML::Real(0.5),        MML::Real(1.0)/MML::Real(3.0),    MML::Real(0.25),       MML::Real(0.2),        MML::Real(1.0)/MML::Real(6.0),    MML::Real(1.0)/MML::Real(7.0),    MML::Real(0.125),
+            MML::Real(0.5),        MML::Real(1.0)/MML::Real(3.0),    MML::Real(0.25),       MML::Real(0.2),        MML::Real(1.0)/MML::Real(6.0),    MML::Real(1.0)/MML::Real(7.0),    MML::Real(0.125),      MML::Real(1.0)/MML::Real(9.0),
+            MML::Real(1.0)/MML::Real(3.0),    MML::Real(0.25),       MML::Real(0.2),        MML::Real(1.0)/MML::Real(6.0),    MML::Real(1.0)/MML::Real(7.0),    MML::Real(0.125),      MML::Real(1.0)/MML::Real(9.0),    MML::Real(0.1),
+            MML::Real(0.25),       MML::Real(0.2),        MML::Real(1.0)/MML::Real(6.0),    MML::Real(1.0)/MML::Real(7.0),    MML::Real(0.125),      MML::Real(1.0)/MML::Real(9.0),    MML::Real(0.1),        MML::Real(1.0)/MML::Real(11.0),
+            MML::Real(0.2),        MML::Real(1.0)/MML::Real(6.0),    MML::Real(1.0)/MML::Real(7.0),    MML::Real(0.125),      MML::Real(1.0)/MML::Real(9.0),    MML::Real(0.1),        MML::Real(1.0)/MML::Real(11.0),   MML::Real(1.0)/MML::Real(12.0),
+            MML::Real(1.0)/MML::Real(6.0),    MML::Real(1.0)/MML::Real(7.0),    MML::Real(0.125),      MML::Real(1.0)/MML::Real(9.0),    MML::Real(0.1),        MML::Real(1.0)/MML::Real(11.0),   MML::Real(1.0)/MML::Real(12.0),   MML::Real(1.0)/MML::Real(13.0),
+            MML::Real(1.0)/MML::Real(7.0),    MML::Real(0.125),      MML::Real(1.0)/MML::Real(9.0),    MML::Real(0.1),        MML::Real(1.0)/MML::Real(11.0),   MML::Real(1.0)/MML::Real(12.0),   MML::Real(1.0)/MML::Real(13.0),   MML::Real(1.0)/MML::Real(14.0),
+            MML::Real(0.125),      MML::Real(1.0)/MML::Real(9.0),    MML::Real(0.1),        MML::Real(1.0)/MML::Real(11.0),   MML::Real(1.0)/MML::Real(12.0),   MML::Real(1.0)/MML::Real(13.0),   MML::Real(1.0)/MML::Real(14.0),   MML::Real(1.0)/MML::Real(15.0)
         }};
         return m;
     }
     // Condition number ≈ 1.53e10
     
     inline const Vector<Real>& hilbert_8x8_rhs0() {
-        static const Vector<Real> v{1.0, 0.5, 1.0/3.0, 0.25, 0.2, 1.0/6.0, 1.0/7.0, 0.125};
+        static const Vector<Real> v{MML::Real(1.0), MML::Real(0.5), MML::Real(1.0)/MML::Real(3.0), MML::Real(0.25), MML::Real(0.2), MML::Real(1.0)/MML::Real(6.0), MML::Real(1.0)/MML::Real(7.0), MML::Real(0.125)};
         return v;
     }
     inline const Vector<Real>& hilbert_8x8_rhs0_sol() {
@@ -182,25 +182,25 @@ namespace MML::TestBeds
 
     inline const VectorComplex& hilbert_8x8_eigen_val() {
         static const VectorComplex v{
-            Complex(1.61916364657347, 0),
-            Complex(0.258198877582623, 0),
-            Complex(0.0201263409990808, 0),
-            Complex(0.000893442051546472, 0),
-            Complex(0.0000232704524858034, 0),
-            Complex(3.50923176262494e-07, 0),
-            Complex(2.82226770346168e-09, 0),
-            Complex(9.56466020563318e-12, 0)
+            Complex(MML::Real(1.61916364657347), 0),
+            Complex(MML::Real(0.258198877582623), 0),
+            Complex(MML::Real(0.0201263409990808), 0),
+            Complex(MML::Real(0.000893442051546472), 0),
+            Complex(MML::Real(0.0000232704524858034), 0),
+            Complex(MML::Real(3.50923176262494e-07), 0),
+            Complex(MML::Real(2.82226770346168e-09), 0),
+            Complex(MML::Real(9.56466020563318e-12), 0)
         };
         return v;
     }
 
     // Matrix properties for hilbert_8x8
-    inline constexpr Real              hilbert_8x8_det = 2.737050310006999e-33;
+    inline constexpr Real              hilbert_8x8_det = MML::Real(2.737050310006999e-33);
     inline const Vector<Real>& hilbert_8x8_singular_values() {
-        static const Vector<Real> v{1.6191636465734691, 0.2581988775826232, 0.020126340999080806, 0.000893442051546472, 2.327045248580339e-05, 3.509231762624942e-07, 2.822267703461677e-09, 9.564660205633179e-12};
+        static const Vector<Real> v{MML::Real(1.6191636465734691), MML::Real(0.2581988775826232), MML::Real(0.020126340999080806), MML::Real(0.000893442051546472), MML::Real(2.327045248580339e-05), MML::Real(3.509231762624942e-07), MML::Real(2.822267703461677e-09), MML::Real(9.564660205633179e-12)};
         return v;
     }
-    inline constexpr Real              hilbert_8x8_cond_2 = 169361458044.76382;
+    inline constexpr Real              hilbert_8x8_cond_2 = MML::Real(169361458044.76382);
     inline constexpr int               hilbert_8x8_rank = 8;
 
     /***********************************************************************************************/
@@ -233,9 +233,9 @@ namespace MML::TestBeds
 
     inline const VectorComplex& pascal_3x3_eigen_val() {
         static const VectorComplex v{
-            Complex(7.61803398874989, 0),
+            Complex(MML::Real(7.61803398874989), 0),
             Complex(1.0, 0),
-            Complex(0.381966011250105, 0)
+            Complex(MML::Real(0.381966011250105), 0)
         };
         return v;
     }
@@ -243,10 +243,10 @@ namespace MML::TestBeds
     // Matrix properties for pascal_3x3
     inline constexpr Real              pascal_3x3_det = 1.0;
     inline const Vector<Real>& pascal_3x3_singular_values() {
-        static const Vector<Real> v{7.872762035082037, 0.8507709622346417, 0.1494315782430217};
+        static const Vector<Real> v{MML::Real(7.872762035082037), MML::Real(0.8507709622346417), MML::Real(0.1494315782430217)};
         return v;
     }
-    inline constexpr Real              pascal_3x3_cond_2 = 52.68486290776987;
+    inline constexpr Real              pascal_3x3_cond_2 = MML::Real(52.68486290776987);
     inline constexpr int               pascal_3x3_rank = 3;
 
     /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -272,10 +272,10 @@ namespace MML::TestBeds
 
     inline const VectorComplex& pascal_4x4_eigen_val() {
         static const VectorComplex v{
-            Complex(24.5397807763306, 0),
-            Complex(3.48698392376551, 0),
-            Complex(0.973235297903924, 0),
-            Complex(3.21154315992916e-14, 0)
+            Complex(MML::Real(24.5397807763306), 0),
+            Complex(MML::Real(3.48698392376551), 0),
+            Complex(MML::Real(0.973235297903924), 0),
+            Complex(MML::Real(3.21154315992916e-14), 0)
         };
         return v;
     }
@@ -283,10 +283,10 @@ namespace MML::TestBeds
     // Matrix properties for pascal_4x4
     inline constexpr Real              pascal_4x4_det = 1.0;
     inline const Vector<Real>& pascal_4x4_singular_values() {
-        static const Vector<Real> v{26.089727103276627, 2.4668466068098166, 0.3831706927996587, 0.039877906206478744};
+        static const Vector<Real> v{MML::Real(26.089727103276627), MML::Real(2.4668466068098166), MML::Real(0.3831706927996587), MML::Real(0.039877906206478744)};
         return v;
     }
-    inline constexpr Real              pascal_4x4_cond_2 = 654.285632428704;
+    inline constexpr Real              pascal_4x4_cond_2 = MML::Real(654.285632428704);
     inline constexpr int               pascal_4x4_rank = 4;
 
     /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -313,11 +313,11 @@ namespace MML::TestBeds
 
     inline const VectorComplex& pascal_5x5_eigen_val() {
         static const VectorComplex v{
-            Complex(88.5877825190949, 0),
-            Complex(10.3176453932877, 0),
-            Complex(0.927623858889912, 0),
-            Complex(0.166948228727329, 0),
-            Complex(6.14164823655194e-14, 0)
+            Complex(MML::Real(88.5877825190949), 0),
+            Complex(MML::Real(10.3176453932877), 0),
+            Complex(MML::Real(0.927623858889912), 0),
+            Complex(MML::Real(0.166948228727329), 0),
+            Complex(MML::Real(6.14164823655194e-14), 0)
         };
         return v;
     }
@@ -325,10 +325,10 @@ namespace MML::TestBeds
     // Matrix properties for pascal_5x5
     inline constexpr Real              pascal_5x5_det = 1.0;
     inline const Vector<Real>& pascal_5x5_singular_values() {
-        static const Vector<Real> v{94.54195398399082, 7.256851312892555, 0.8048379619730833, 0.10569063399135155, 0.011289445168814684};
+        static const Vector<Real> v{MML::Real(94.54195398399082), MML::Real(7.256851312892555), MML::Real(0.8048379619730833), MML::Real(0.10569063399135155), MML::Real(0.011289445168814684)};
         return v;
     }
-    inline constexpr Real              pascal_5x5_cond_2 = 8375.934668920896;
+    inline constexpr Real              pascal_5x5_cond_2 = MML::Real(8375.934668920896);
     inline constexpr int               pascal_5x5_rank = 5;
 
     /***********************************************************************************************/
@@ -364,9 +364,9 @@ namespace MML::TestBeds
 
     inline const VectorComplex& vandermonde_3x3_eigen_val() {
         static const VectorComplex v{
-            Complex(10.3848189354378, 0),
+            Complex(MML::Real(10.3848189354378), 0),
             Complex(1.0, 0),
-            Complex(0.615181064562221, 0)
+            Complex(MML::Real(0.615181064562221), 0)
         };
         return v;
     }
@@ -374,10 +374,10 @@ namespace MML::TestBeds
     // Matrix properties for vandermonde_3x3
     inline constexpr Real              vandermonde_3x3_det = 2.0;
     inline const Vector<Real>& vandermonde_3x3_singular_values() {
-        static const Vector<Real> v{10.638266291116246, 1.1312948855215682, 0.16617047629946406};
+        static const Vector<Real> v{MML::Real(10.638266291116246), MML::Real(1.1312948855215682), MML::Real(0.16617047629946406)};
         return v;
     }
-    inline constexpr Real              vandermonde_3x3_cond_2 = 64.02236697259854;
+    inline constexpr Real              vandermonde_3x3_cond_2 = MML::Real(64.02236697259854);
     inline constexpr int               vandermonde_3x3_rank = 3;
 
     /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -407,10 +407,10 @@ namespace MML::TestBeds
 
     inline const VectorComplex& vandermonde_4x4_eigen_val() {
         static const VectorComplex v{
-            Complex(67.6524329833645, 0),
-            Complex(2.95912959527421, 0),
-            Complex(0.388437421361318, 0),
-            Complex(1.40166556476996e-13, 0)
+            Complex(MML::Real(67.6524329833645), 0),
+            Complex(MML::Real(2.95912959527421), 0),
+            Complex(MML::Real(0.388437421361318), 0),
+            Complex(MML::Real(1.40166556476996e-13), 0)
         };
         return v;
     }
@@ -418,10 +418,10 @@ namespace MML::TestBeds
     // Matrix properties for vandermonde_4x4
     inline constexpr Real              vandermonde_4x4_det = 12.0;
     inline const Vector<Real>& vandermonde_4x4_singular_values() {
-        static const Vector<Real> v{69.5629001766858, 2.7626831649139155, 0.23018082437095295, 0.02262652879688948};
+        static const Vector<Real> v{MML::Real(69.5629001766858), MML::Real(2.7626831649139155), MML::Real(0.23018082437095295), MML::Real(0.02262652879688948)};
         return v;
     }
-    inline constexpr Real              vandermonde_4x4_cond_2 = 3074.691795753135;
+    inline constexpr Real              vandermonde_4x4_cond_2 = MML::Real(3074.691795753135);
     inline constexpr int               vandermonde_4x4_rank = 4;
 
     /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -444,20 +444,20 @@ namespace MML::TestBeds
     }
     inline const Vector<Real>& vandermonde_5x5_rhs0_sol() {
         static const Vector<Real> v{ 1.0,
-                                         2.08333333333333304,
-                                         1.45833333333333348,
-                                         0.416666666666666685,
-                                         0.0416666666666666644 };
+                                         MML::Real(2.08333333333333304),
+                                         MML::Real(1.45833333333333348),
+                                         MML::Real(0.416666666666666685),
+                                         MML::Real(0.0416666666666666644) };
         return v;
     }
 
     inline const VectorComplex& vandermonde_5x5_eigen_val() {
         static const VectorComplex v{
-            Complex(650.010456765544, 0),
-            Complex(6.06264621645773, 0),
-            Complex(0.231473876551471, 0),
-            Complex(0.0954241414532509, 0),
-            Complex(2.48335869750195e-13, 0)
+            Complex(MML::Real(650.010456765544), 0),
+            Complex(MML::Real(6.06264621645773), 0),
+            Complex(MML::Real(0.231473876551471), 0),
+            Complex(MML::Real(0.0954241414532509), 0),
+            Complex(MML::Real(2.48335869750195e-13), 0)
         };
         return v;
     }
@@ -465,10 +465,10 @@ namespace MML::TestBeds
     // Matrix properties for vandermonde_5x5
     inline constexpr Real              vandermonde_5x5_det = 288.0;
     inline const Vector<Real>& vandermonde_5x5_singular_values() {
-        static const Vector<Real> v{673.3959135063234, 6.068058403816063, 0.3062006587217439, 0.015871700050915376, 0.0010389398037693148};
+        static const Vector<Real> v{MML::Real(673.3959135063234), MML::Real(6.068058403816063), MML::Real(0.3062006587217439), MML::Real(0.015871700050915376), MML::Real(0.0010389398037693148)};
         return v;
     }
-    inline constexpr Real              vandermonde_5x5_cond_2 = 648162.2009285765;
+    inline constexpr Real              vandermonde_5x5_cond_2 = MML::Real(648162.2009285765);
     inline constexpr int               vandermonde_5x5_rank = 5;
 
     /***********************************************************************************************/
@@ -501,20 +501,20 @@ namespace MML::TestBeds
 
     inline const VectorComplex& frank_3x3_eigen_val() {
         static const VectorComplex v{
-            Complex(4.94948316672145, 0),
-            Complex(1.10557280900008, 0),
-            Complex(-0.0550560157215357, 0)
+            Complex(MML::Real(4.94948316672145), 0),
+            Complex(MML::Real(1.10557280900008), 0),
+            Complex(-MML::Real(0.0550560157215357), 0)
         };
         return v;
     }
 
     // Matrix properties for frank_3x3
-    inline constexpr Real              frank_3x3_det = -0.30000000000000055;
+    inline constexpr Real              frank_3x3_det = -MML::Real(0.30000000000000055);
     inline const Vector<Real>& frank_3x3_singular_values() {
-        static const Vector<Real> v{5.147935685095287, 1.3484320232019912, 0.04313437538952867};
+        static const Vector<Real> v{MML::Real(5.147935685095287), MML::Real(1.3484320232019912), MML::Real(0.04313437538952867)};
         return v;
     }
-    inline constexpr Real              frank_3x3_cond_2 = 119.35063706339016;
+    inline constexpr Real              frank_3x3_cond_2 = MML::Real(119.35063706339016);
     inline constexpr int               frank_3x3_rank = 3;
 
     /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -540,21 +540,21 @@ namespace MML::TestBeds
 
     inline const VectorComplex& frank_4x4_eigen_val() {
         static const VectorComplex v{
-            Complex(7.65828103570816, 0),
-            Complex(2.16331577368876, 0),
-            Complex(0.280113127328669, 0),
-            Complex(-0.101710036725597, 0)
+            Complex(MML::Real(7.65828103570816), 0),
+            Complex(MML::Real(2.16331577368876), 0),
+            Complex(MML::Real(0.280113127328669), 0),
+            Complex(-MML::Real(0.101710036725597), 0)
         };
         return v;
     }
 
     // Matrix properties for frank_4x4
-    inline constexpr Real              frank_4x4_det = -0.049999999999999954;
+    inline constexpr Real              frank_4x4_det = -MML::Real(0.049999999999999954);
     inline const Vector<Real>& frank_4x4_singular_values() {
-        static const Vector<Real> v{8.003098817046832, 2.0770306888073584, 0.20261050821755314, 0.029854389282313704};
+        static const Vector<Real> v{MML::Real(8.003098817046832), MML::Real(2.0770306888073584), MML::Real(0.20261050821755314), MML::Real(0.029854389282313704)};
         return v;
     }
-    inline constexpr Real              frank_4x4_cond_2 = 268.05660277538714;
+    inline constexpr Real              frank_4x4_cond_2 = MML::Real(268.05660277538714);
     inline constexpr int               frank_4x4_rank = 4;
 
     /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -581,22 +581,22 @@ namespace MML::TestBeds
 
     inline const VectorComplex& frank_5x5_eigen_val() {
         static const VectorComplex v{
-            Complex(11.4949816267438, 0),
-            Complex(3.12758815478237, 0),
-            Complex(0.486387764798014, 0),
-            Complex(0.0415030413691732, 0),
-            Complex(-0.149559386692964, 0)
+            Complex(MML::Real(11.4949816267438), 0),
+            Complex(MML::Real(3.12758815478237), 0),
+            Complex(MML::Real(0.486387764798014), 0),
+            Complex(MML::Real(0.0415030413691732), 0),
+            Complex(-MML::Real(0.149559386692964), 0)
         };
         return v;
     }
 
     // Matrix properties for frank_5x5
-    inline constexpr Real              frank_5x5_det = -0.008333333333333327;
+    inline constexpr Real              frank_5x5_det = -MML::Real(0.008333333333333327);
     inline const Vector<Real>& frank_5x5_singular_values() {
-        static const Vector<Real> v{11.760929127988423, 2.8177426117551053, 0.28424303706296697, 0.024867896379831584, 0.003005538820706936};
+        static const Vector<Real> v{MML::Real(11.760929127988423), MML::Real(2.8177426117551053), MML::Real(0.28424303706296697), MML::Real(0.024867896379831584), MML::Real(0.003005538820706936)};
         return v;
     }
-    inline constexpr Real              frank_5x5_cond_2 = 3912.5971096430165;
+    inline constexpr Real              frank_5x5_cond_2 = MML::Real(3912.5971096430165);
     inline constexpr int               frank_5x5_rank = 5;
 
     /***********************************************************************************************/
@@ -611,7 +611,7 @@ namespace MML::TestBeds
     inline const Matrix<Real>& kahan_3x3() {
         static const Matrix<Real> m{3, 3, {
             1.0,        -0.5,       -0.5,
-            0.0,        0.866025,   -0.433013,
+            MML::Real(0.0),        MML::Real(0.866025),   -MML::Real(0.433013),
             0.0,        0.0,        0.75
         }};
         return m;
@@ -620,12 +620,12 @@ namespace MML::TestBeds
     // Condition number ≈ 4.62
     
     inline const Vector<Real>& kahan_3x3_rhs0() {
-        static const Vector<Real> v{0.0, 0.433013, 0.75};
+        static const Vector<Real> v{MML::Real(0.0), MML::Real(0.433013), MML::Real(0.75)};
         return v;
     }
     inline const Vector<Real>& kahan_3x3_rhs0_sol() {
-        static const Vector<Real> v{ 1.000000577350538489,
-                                         1.000001154701076755,
+        static const Vector<Real> v{ MML::Real(1.000000577350538489),
+                                         MML::Real(1.000001154701076755),
                                          1.000000000000000000 };
         return v;
     }
@@ -633,28 +633,28 @@ namespace MML::TestBeds
     inline const VectorComplex& kahan_3x3_eigen_val() {
         static const VectorComplex v{
             Complex(1.0, 0),
-            Complex(0.866025403784439, 0),
+            Complex(MML::Real(0.866025403784439), 0),
             Complex(0.75, 0)
         };
         return v;
     }
 
     // Matrix properties for kahan_3x3
-    inline constexpr Real              kahan_3x3_det = 0.6495187500000001;
+    inline constexpr Real              kahan_3x3_det = MML::Real(0.6495187500000001);
     inline const Vector<Real>& kahan_3x3_singular_values() {
-        static const Vector<Real> v{1.3108974376855447, 0.8770399269579917, 0.5652434916251133};
+        static const Vector<Real> v{MML::Real(1.3108974376855447), MML::Real(0.8770399269579917), MML::Real(0.5652434916251133)};
         return v;
     }
-    inline constexpr Real              kahan_3x3_cond_2 = 2.3191997618579485;
+    inline constexpr Real              kahan_3x3_cond_2 = MML::Real(2.3191997618579485);
     inline constexpr int               kahan_3x3_rank = 3;
 
     /////////////////////////////////////////////////////////////////////////////////////////////////
     inline const Matrix<Real>& kahan_5x5() {
         static const Matrix<Real> m{5, 5, {
             1.0,        -0.5,       -0.5,       -0.5,       -0.5,
-            0.0,        0.866025,   -0.433013,  -0.433013,  -0.433013,
+            MML::Real(0.0),        MML::Real(0.866025),   -MML::Real(0.433013),  -MML::Real(0.433013),  -MML::Real(0.433013),
             0.0,        0.0,        0.75,       -0.375,     -0.375,
-            0.0,        0.0,        0.0,        0.649519,   -0.32476,
+            MML::Real(0.0),        MML::Real(0.0),        MML::Real(0.0),        MML::Real(0.649519),   -MML::Real(0.32476),
             0.0,        0.0,        0.0,        0.0,        0.5625
         }};
         return m;
@@ -663,14 +663,14 @@ namespace MML::TestBeds
     // Condition number ≈ 59.94
     
     inline const Vector<Real>& kahan_5x5_rhs0() {
-        static const Vector<Real> v{-2.0, -0.866025, -0.75, -0.649519, 0.5625};
+        static const Vector<Real> v{-MML::Real(2.0), -MML::Real(0.866025), -MML::Real(0.75), -MML::Real(0.649519), MML::Real(0.5625)};
         return v;
     }
     inline const Vector<Real>& kahan_5x5_rhs0_sol() {
-        static const Vector<Real> v{ -2.687499206143009634,
-                                         -1.124999566986651933,
-                                         -0.749999615099789185,
-                                         -0.499999230199578426,
+        static const Vector<Real> v{ -MML::Real(2.687499206143009634),
+                                         -MML::Real(1.124999566986651933),
+                                         -MML::Real(0.749999615099789185),
+                                         -MML::Real(0.499999230199578426),
                                          1.000000000000000000 };
         return v;
     }
@@ -678,21 +678,21 @@ namespace MML::TestBeds
     inline const VectorComplex& kahan_5x5_eigen_val() {
         static const VectorComplex v{
             Complex(1.0, 0),
-            Complex(0.866025403784439, 0),
+            Complex(MML::Real(0.866025403784439), 0),
             Complex(0.75, 0),
-            Complex(0.649519052838329, 0),
+            Complex(MML::Real(0.649519052838329), 0),
             Complex(0.5625, 0)
         };
         return v;
     }
 
     // Matrix properties for kahan_5x5
-    inline constexpr Real              kahan_5x5_det = 0.2371621878051758;
+    inline constexpr Real              kahan_5x5_det = MML::Real(0.2371621878051758);
     inline const Vector<Real>& kahan_5x5_singular_values() {
-        static const Vector<Real> v{1.5889817050568896, 0.8773413135200024, 0.6303116648310096, 0.5005118188605684, 0.3367626116437704};
+        static const Vector<Real> v{MML::Real(1.5889817050568896), MML::Real(0.8773413135200024), MML::Real(0.6303116648310096), MML::Real(0.5005118188605684), MML::Real(0.3367626116437704)};
         return v;
     }
-    inline constexpr Real              kahan_5x5_cond_2 = 4.718811649912687;
+    inline constexpr Real              kahan_5x5_cond_2 = MML::Real(4.718811649912687);
     inline constexpr int               kahan_5x5_rank = 5;
 
 } // namespace MML::TestBeds

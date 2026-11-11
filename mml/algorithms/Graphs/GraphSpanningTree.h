@@ -70,7 +70,7 @@ namespace MML
 	/// Find Minimum Spanning Tree using Kruskal's algorithm
 	/// Complexity: O(E log E)
 	///
-	/// @param graph  The graph (must be connected for a valid MST)
+	/// @param graph  An undirected graph (must be connected for a valid MST)
 	/// @return MSTResult with MST edges and total weight
 	template<typename V, typename E>
 	MSTResult Kruskal(const Graph<V, E>& graph)
@@ -79,6 +79,15 @@ namespace MML
 		MSTResult result;
 		result.algorithm_name = "Kruskal";
 		size_t n = graph.numVertices();
+
+		if (graph.isDirected())
+		{
+			result.status = AlgorithmStatus::InvalidInput;
+			result.graphStatus = GraphAlgorithmStatus::GraphTypeMismatch;
+			detail::SetGraphMessage(result.message, result.diagnostics, "Minimum spanning tree requires an undirected graph");
+			result.elapsed_time_ms = detail::ElapsedMilliseconds(startTime);
+			return result;
+		}
 
 		if (n == 0)
 		{
@@ -125,6 +134,7 @@ namespace MML
 	}
 
 	/// Alternative MST using Prim's algorithm
+	/// Requires an undirected graph.
 	/// Better for dense graphs
 	/// Complexity: O((V + E) log V) with priority queue
 	template<typename V, typename E>
@@ -134,6 +144,15 @@ namespace MML
 		MSTResult result;
 		result.algorithm_name = "Prim";
 		size_t n = graph.numVertices();
+
+		if (graph.isDirected())
+		{
+			result.status = AlgorithmStatus::InvalidInput;
+			result.graphStatus = GraphAlgorithmStatus::GraphTypeMismatch;
+			detail::SetGraphMessage(result.message, result.diagnostics, "Minimum spanning tree requires an undirected graph");
+			result.elapsed_time_ms = detail::ElapsedMilliseconds(startTime);
+			return result;
+		}
 
 		if (n == 0)
 		{

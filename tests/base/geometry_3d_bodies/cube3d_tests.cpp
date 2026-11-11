@@ -21,7 +21,7 @@ namespace {
     Real UnitY1(Real) { return 0.0; }
     Real UnitY2(Real) { return 1.0; }
     Real UnitZ1(Real, Real) { return 0.0; }
-    Real SlopedZ2(Real x, Real) { return 1.0 + x; }
+    Real SlopedZ2(Real x, Real) { return MML::Real(1.0) + x; }
 }
 
 TEST_CASE("Cube3D::Volume", "[geometry][cube][volume]")
@@ -47,8 +47,8 @@ TEST_CASE("Cube3D::Volume", "[geometry][cube][volume]")
 
     SECTION("Small cube")
     {
-        Cube3D cube(0.1);
-        REQUIRE_THAT(cube.Volume() , RealApprox(0.001));  // 0.1³ = 0.001
+        Cube3D cube(MML::Real(0.1));
+        REQUIRE_THAT(cube.Volume() , RealApprox(MML::Real(0.001)));  // 0.1³ = 0.001
     }
 }
 
@@ -173,7 +173,7 @@ TEST_CASE("Cube3D::GetBoundingSphere", "[geometry][cube][bounding]")
         REQUIRE_THAT(bsphere.Center().Z() , RealApprox(0.0));
         
         // Radius = (a√3)/2 = 2√3/2 = √3 ≈ 1.732
-        Real expected_radius = 2.0 * std::sqrt(3.0) / 2.0;
+        Real expected_radius = MML::Real(2.0) * std::sqrt(MML::Real(3.0)) / MML::Real(2.0);
         REQUIRE_THAT(bsphere.Radius() , RealApprox(expected_radius));
     }
 
@@ -188,7 +188,7 @@ TEST_CASE("Cube3D::GetBoundingSphere", "[geometry][cube][bounding]")
         REQUIRE_THAT(bsphere.Center().Z() , RealApprox(30.0));
         
         // Radius = (4√3)/2 = 2√3 ≈ 3.464
-        Real expected_radius = 4.0 * std::sqrt(3.0) / 2.0;
+        Real expected_radius = MML::Real(4.0) * std::sqrt(MML::Real(3.0)) / MML::Real(2.0);
         REQUIRE_THAT(bsphere.Radius() , RealApprox(expected_radius));
     }
 
@@ -291,9 +291,9 @@ TEST_CASE("Cube3D::IsInside", "[geometry][cube][inside]")
     SECTION("Points just outside are not inside")
     {
         Cube3D cube(10.0);
-        REQUIRE(cube.IsInside(Pnt3Cart(5.1, 0.0, 0.0)) == false);
-        REQUIRE(cube.IsInside(Pnt3Cart(0.0, 5.1, 0.0)) == false);
-        REQUIRE(cube.IsInside(Pnt3Cart(0.0, 0.0, 5.1)) == false);
+        REQUIRE(cube.IsInside(Pnt3Cart(MML::Real(5.1), MML::Real(0.0), MML::Real(0.0))) == false);
+        REQUIRE(cube.IsInside(Pnt3Cart(MML::Real(0.0), MML::Real(5.1), MML::Real(0.0))) == false);
+        REQUIRE(cube.IsInside(Pnt3Cart(MML::Real(0.0), MML::Real(0.0), MML::Real(5.1))) == false);
     }
 
     SECTION("Points far outside are not inside")
@@ -349,13 +349,14 @@ TEST_CASE("BodyWithRectSurfaces derives geometry from a closed quad mesh", "[geo
 
     REQUIRE(cube.BodyWithRectSurfaces::IsInside(Pnt3Cart(3.0, 4.0, 5.0)));
     REQUIRE(cube.BodyWithRectSurfaces::IsInside(Pnt3Cart(4.0, 4.0, 5.0)));
-    REQUIRE_FALSE(cube.BodyWithRectSurfaces::IsInside(Pnt3Cart(4.1, 4.0, 5.0)));
+    REQUIRE_FALSE(cube.BodyWithRectSurfaces::IsInside(Pnt3Cart(MML::Real(4.1), MML::Real(4.0), MML::Real(5.0))));
 }
 
 TEST_CASE("ISolidBodyWithBoundary numerically derives body geometry", "[geometry][boundary-body]")
 {
     SolidBodyWithBoundaryConstDensity box(
         2.0, 4.0, BoundaryBoxY1, BoundaryBoxY2, BoundaryBoxZ1, BoundaryBoxZ2, 1.0);
+    box.SetBoundingBox(Box3D(Pnt3Cart(2, -1, 5), Pnt3Cart(4, 2, 9)));
 
     REQUIRE_THAT(box.Volume(), RealApprox(24.0));
     REQUIRE_THAT(box.SurfaceArea(), RealApprox(52.0));
@@ -372,10 +373,22 @@ TEST_CASE("ISolidBodyWithBoundary numerically derives body geometry", "[geometry
     REQUIRE_THAT(bounds.Max().X(), RealApprox(4.0));
     REQUIRE_THAT(bounds.Max().Y(), RealApprox(2.0));
     REQUIRE_THAT(bounds.Max().Z(), RealApprox(9.0));
-    REQUIRE_THAT(box.getBoundingSphere().Radius(), RealApprox(std::sqrt(7.25)));
+    const auto sphere = box.getBoundingSphere();
+    const Real exactRadius = std::sqrt(Real(7.25));
+    if constexpr (std::is_same_v<Real, float>) {
+        // The enclosing sphere rounds every extent and scaled norm operation outward.
+        REQUIRE(sphere.Radius() >= exactRadius);
+        REQUIRE(sphere.Radius() - exactRadius <= 16 * Precision::Eps * exactRadius);
+    } else {
+        REQUIRE_THAT(sphere.Radius(), RealApprox(exactRadius));
+    }
+    for (Real x : {Real(2), Real(4)})
+        for (Real y : {Real(-1), Real(2)})
+            for (Real z : {Real(5), Real(9)})
+                REQUIRE(sphere.Contains(Pnt3Cart(x, y, z)));
 
     REQUIRE(box.IsInside(Pnt3Cart(3.0, 0.0, 7.0)));
-    REQUIRE_FALSE(box.IsInside(Pnt3Cart(4.1, 0.0, 7.0)));
+    REQUIRE_FALSE(box.IsInside(Pnt3Cart(MML::Real(4.1), MML::Real(0.0), MML::Real(7.0))));
 }
 
 TEST_CASE("ISolidBodyWithBoundary includes graph slopes in surface area", "[geometry][boundary-body]")
@@ -384,7 +397,7 @@ TEST_CASE("ISolidBodyWithBoundary includes graph slopes in surface area", "[geom
         0.0, 1.0, UnitY1, UnitY2, UnitZ1, SlopedZ2, 1.0);
 
     REQUIRE_THAT(wedge.Volume(), RealApprox(1.5));
-    REQUIRE_THAT(wedge.SurfaceArea(), RealApprox(7.0 + std::sqrt(2.0)).epsilon(TOL(1e-9, 2e-5)).margin(TOL(1e-9, 2e-5)));
+    REQUIRE_THAT(wedge.SurfaceArea(), RealApprox(MML::Real(7.0) + std::sqrt(MML::Real(2.0))).epsilon(TOL(1e-9, 2e-5)).margin(TOL(1e-9, 2e-5)));
 }
 
 } // namespace MML::Tests::Base::Geometry3DBodies::Cube3DTests

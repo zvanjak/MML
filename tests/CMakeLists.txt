@@ -8,12 +8,39 @@ set(MML_ISOLATED_HEADERS
     mml/MMLBase.h
     mml/MMLTypeDefs.h
     mml/base/PrintFormatting.h
+    mml/base/ExactInteger.h
+    mml/base/BaseUtils/AngleCoordUtils.h
+    mml/core/Integration/IntegrationBase.h
+    mml/core/Integration/Integration1D.h
+    mml/core/Integration/GaussKronrod.h
+    mml/core/Integration/GaussianQuadrature.h
+    mml/core/Integration/Integration2D.h
+    mml/core/Integration/Integration3D.h
+    mml/core/Integration/Integration2DAdaptive.h
+    mml/core/Integration/Integration3DAdaptive.h
+    mml/core/Integration/IntegrationImproper.h
+    mml/core/Integration/SurfaceIntegration.h
+    mml/core/Integration/PathIntegration.h
+    mml/core/Integration/IntegrationParallel.h
+    mml/core/Integration/MonteCarloIntegration.h
+    mml/core/Integration/MonteCarloParallel.h
     mml/algorithms/MatrixAlg/MatrixInversion.h
     mml/algorithms/MatrixSingularity.h
+    mml/algorithms/Eigen/HessenbergReduction.h
+    mml/algorithms/Eigen/EigenSolver.h
+    mml/algorithms/Eigen/detail/SchurEigenvectors.h
     mml/core/DifferentialGeometry/Metric.h
     mml/algorithms/ImplicitNewtonMatrix.h
+    mml/algorithms/ODESolvers/ODEStepperInfrastructure.h
     mml/MMLExceptions.h
     mml/algorithms/Fourier/Fourier.h
+    mml/algorithms/Optimization/LP/LinearProgram.h
+    mml/algorithms/Optimization/LP/SimplexTableau.h
+    mml/algorithms/Optimization/LP/SimplexSolver.h
+    mml/algorithms/Optimization/Constraints/BoundConstraints.h
+    mml/algorithms/Optimization/Constraints/BoxConstrainedNelderMead.h
+    mml/algorithms/Optimization/Constraints/AugmentedLagrangian.h
+    mml/algorithms/Optimization/LinearProgramming.h
     mml/algorithms/Statistics.h
     mml/algorithms/Statistics/Histogram.h
     mml/algorithms/Statistics/Distributions.h
@@ -30,12 +57,29 @@ set(MML_ISOLATED_HEADERS
     mml/base/Matrix/MatrixTriDiag.h
     mml/base/Geometry/Geometry.h
     mml/base/Geometry/GeometryBase/GeometryPoints.h
+    mml/base/Geometry/GeometryBase/GeometryArithmetic.h
+    mml/base/Geometry/Geometry3D/Geometry3DPlane.h
+    mml/base/Geometry/Geometry3D/Geometry3DSurfaces.h
+    mml/core/Derivation/DerivationRealFunction.h
+    mml/core/Derivation/DerivationComplex.h
+    mml/core/ComplexAnalysis.h
+    mml/core/SparseSolvers/IterativeSolverBase.h
+    mml/core/SparseSolvers/ConjugateGradient.h
+    mml/core/SparseSolvers/BiCGSTAB.h
+    mml/core/SparseSolvers/GMRES.h
+    mml/core/SparseSolvers/Preconditioners.h
+    mml/core/SparseSolvers/IterativeSolvers.h
+    mml/core/LinAlgEqSolvers/LinAlgDirect.h
+    mml/core/LinAlgEqSolvers/LinAlgSVD.h
+    mml/core/Derivation/DerivationParametricCurve.h
+    mml/core/Derivation/DerivationScalarFunction.h
     mml/base/Geometry/GeometryBase/Geometry2DShapes.h
     mml/base/Geometry/GeometryBase/Geometry3DShapes.h
     mml/interfaces/IFunction.h
     mml/base/StandardFunctions.h
     mml/core/DifferentialGeometry/Chart.h
     mml/core/DifferentialGeometry/FieldOperations.h
+    mml/core/DifferentialGeometry/FormIntegration.h
     mml/algorithms/Analyzers/FunctionsAnalyzer.h
     mml/algorithms/Analyzers/MatrixAnalyzer.h
     mml/tools/analyzers/FunctionAnalysisReports.h
@@ -50,7 +94,12 @@ set(MML_ISOLATED_HEADERS
     test_data/parametric_surfaces_defs.h
     test_beds/parametric_curves_test_bed.h
     test_beds/parametric_surfaces_test_bed.h
+    test_beds/test_case_metadata.h
+    test_beds/linear_alg_eq_systems_test_bed.h
 )
+if(BUILD_SINGLE_HEADER_TESTS)
+    list(APPEND MML_ISOLATED_HEADERS mml/single_header/MML.h)
+endif()
 set(MML_ISOLATED_SOURCES)
 foreach(header IN LISTS MML_ISOLATED_HEADERS)
     string(MAKE_C_IDENTIFIER "${header}" source_name)
@@ -98,6 +147,7 @@ file(GLOB BASE_TESTS
     "base/algebra/finite_groups_tests.cpp"
     "base/algebra/group_action_tests.cpp"
     "base/algebra/lie_groups_tests.cpp"
+    "base/algebra/lie_group_contract_tests.cpp"
     "base/algebra/modular_arithmetic_tests.cpp"
     "base/algebra/polynomial_finite_field_tests.cpp"
     "base/algebra/representation_tests.cpp"
@@ -108,11 +158,18 @@ file(GLOB BASE_TESTS
     "base/bugfix_epic_z5pg_tests.cpp"
     "base/bugfix_epic_i5u3_tests.cpp"
     "base/baseutils_tests.cpp"
+    "base/baseutils_contract_tests.cpp"
+    "base/coordinate_scale_contract_tests.cpp"
+    "base/quaternion_scale_contract_tests.cpp"
+    "base/matrix_scale_contract_tests.cpp"
+    "base/interpolated_functions/construction_contract_tests.cpp"
+    "base/interpolated_functions/numerical_contract_tests.cpp"
     "base/complex_instantiation_tests.cpp"
     "base/degenerate_inputs_tests.cpp"
     "base/matrix_naming_tests.cpp"
     "base/vector_naming_tests.cpp"
     "base/result_policy_tests.cpp"
+    "base/uncomputed_result_contract_tests.cpp"
     "base/tolerance_policy_tests.cpp"
     "base/tolerance_base_tests.cpp"
     "base/matrixops_tests.cpp"
@@ -122,26 +179,42 @@ file(GLOB BASE_TESTS
     "base/reserved_member_behavior_tests.cpp"
     "base/function_tests.cpp"
     "base/intervals_tests.cpp"
+    "base/interval_set_contract_tests.cpp"
     "base/combinatorics_tests.cpp"
+    "base/exact_integer_regression_tests.cpp"
     "base/mml_concepts_tests.cpp"
     "base/number_theory_tests.cpp"
     "base/ode_system_tests.cpp"
     "base/trajectory_storage_tests.cpp"
+    "base/storage_boundary_regressions_tests.cpp"
     "base/polynom_tests.cpp"
     "base/quaternion_tests.cpp"
     "base/random_tests.cpp"
     "base/rational_tests.cpp"
     "base/quasi_random_tests.cpp"
     "base/special_functions_tests.cpp"
+    "base/special_function_tail_contract_tests.cpp"
     "base/standard_functions_tests.cpp"
+    "base/integer_boundary_contract_tests.cpp"
+    "base/complex_reciprocal_contract_tests.cpp"
+    "base/standard_fallback_contract_tests.cpp"
     # Differential forms
     "base/differential_forms/differential_form_tests.cpp"
     "base/differential_forms/hodge_tests.cpp"
+    "base/differential_forms/hodge_scaling_tests.cpp"
     # Geometry tests
     "base/geometry/bounding_volumes_tests.cpp"
     "base/geometry/geometry_tests.cpp"
     "base/geometry/geometry_2d_tests.cpp"
     "base/geometry/geometry_3d_tests.cpp"
+    "base/geometry/shape_formula_mesh_regressions_tests.cpp"
+    "base/geometry/plane_rectangle_scale_contract_tests.cpp"
+    "base/geometry/plane_query_range_contract_tests.cpp"
+    "base/geometry/line_segment_contract_tests.cpp"
+    "base/geometry/triangle_contract_tests.cpp"
+    "base/geometry/distance_contract_tests.cpp"
+    "base/geometry/polygon_contract_tests.cpp"
+    "base/geometry/boundary_body_contract_tests.cpp"
     "base/geometry/geometry_spherical_tests.cpp"
     "base/geometry/metric_musical_tests.cpp"
     "base/geometry/polygon_tests.cpp"
@@ -168,8 +241,10 @@ file(GLOB BASE_TESTS
     # Tensor tests
     "base/tensor/rank1_tensor_tests.cpp"
     "base/tensor/tensors_tests.cpp"
+    "base/tensor/tensor_contract_regressions_tests.cpp"
     # Vector tests
     "base/vector/vector_tests.cpp"
+    "base/vector/vector_resize_contract_tests.cpp"
     "base/vector/unsigned_vector_tests.cpp"
     "base/vector/vectorn_tests.cpp"
     "base/vector/vectorn_subtypes_tests.cpp"
@@ -191,17 +266,21 @@ file(GLOB CORE_TESTS
     # Coordinate systems and transformations
     "core/coordinate_map_variance_tests.cpp"
     "core/coord_transf/coord_transf_tests.cpp"
+    "core/coord_transf/coordinate_transform_contract_tests.cpp"
     "interfaces/icoord_transf_tests.cpp"
     "interfaces/iparametrized_tests.cpp"
     "interfaces/idiscrete_map_tests.cpp"
     "interfaces/interface_naming_tests.cpp"
     "interfaces/ijacobian_contract_tests.cpp"
     "interfaces/default_implementation_tests.cpp"
+    "interfaces/interface_validation_contract_tests.cpp"
     "core/coord_transf/coord_transf_quaternion_tests.cpp"
     "core/coord_transf/coord_transf_tensor_tests.cpp"
     "core/coord_transf/coord_transf_vector_tests.cpp"
     # Curves and surfaces
     "core/curves_tests.cpp"
+    "core/curve_surface_contract_tests.cpp"
+    "core/surface_step_contract_tests.cpp"
     "core/surfaces_tests.cpp"
     "core/showcase_geometry_tests.cpp"
     "core/differential_geometry/atlas_tests.cpp"
@@ -216,6 +295,14 @@ file(GLOB CORE_TESTS
     "core/derivation/derivation_naming_tests.cpp"
     "core/derivation/derivation_characterization_tests.cpp"
     "core/derivation/derivation_tests.cpp"
+    "core/derivation/richardson_tensor_contract_tests.cpp"
+    "core/derivation/higher_derivative_error_contract_tests.cpp"
+    "core/derivation/second_derivative_step_contract_tests.cpp"
+    "core/derivation/jacobian_contract_tests.cpp"
+    "core/derivation/derivative_step_contract_tests.cpp"
+    "core/derivation/ad_quotient_constant_contract_tests.cpp"
+    "core/derivation/ad_domain_type_contract_tests.cpp"
+    "core/derivation/ad_tape_lifetime_contract_tests.cpp"
      "core/derivation/first_derivative_stencil_tests.cpp"
     "core/derivation/derivation_parametric_curve_tests.cpp"
     "core/derivation/derivation_parametric_surface_tests.cpp"
@@ -232,6 +319,8 @@ file(GLOB CORE_TESTS
     # Function spaces
     # Integration
     "core/integration/integration_tests.cpp"
+    "core/integration/integration_contract_regressions_tests.cpp"
+    "core/integration/geometric_integration_contract_tests.cpp"
     "core/integration/integration_2d_tests.cpp"
     "core/integration/integration_3d_tests.cpp"
     "core/integration/gauss_kronrod_tests.cpp"
@@ -243,12 +332,18 @@ file(GLOB CORE_TESTS
     "core/integration/surface_integration_tests.cpp"
     # Linear algebra
     "core/lin_alg_solvers/iterative_linear_solvers_tests.cpp"
+    "core/lin_alg_solvers/dense_iterative_contract_tests.cpp"
     "core/lin_alg_solvers/linear_alg_eq_solvers_tests.cpp"
+    "core/lin_alg_solvers/test_bed_metadata_tests.cpp"
+    "base/vector/vector_unsigned_size_tests.cpp"
+    "core/lin_alg_solvers/solver_scale_regressions_tests.cpp"
      "core/sparse_solvers/sparse_solvers_tests.cpp"
      "core/sparse_solvers/krylov_solvers_tests.cpp"
+     "core/sparse_solvers/solver_boundary_contract_tests.cpp"
      "core/result_honesty_tests.cpp"
     "core/tolerance_core_tests.cpp"
     "core/metric_tensor_tests.cpp"
+    "core/metric_field_contract_tests.cpp"
     "core/singularity_policy_tests.cpp"
     "core/mathematical_identity_tests.cpp"
     "core/typed_field_operations_tests.cpp"
@@ -263,6 +358,7 @@ file(GLOB CORE_TESTS
     "core/algorithm_types_tests.cpp"
     # Orthogonal basis
     "core/orthogonal_basis_tests.cpp"
+    "core/orthogonal_basis_contract_tests.cpp"
     # Richardson extrapolation
     "core/richardson_extrapolation_tests.cpp"
     # Singularity handling
@@ -279,6 +375,7 @@ file(GLOB CORE_TESTS
 file(GLOB ALGORITHMS_TESTS
     # Curve fitting and analysis
     "algorithms/curve_fitting_tests.cpp"
+    "algorithms/least_squares_contract_tests.cpp"
     "algorithms/generalized_least_squares_tests.cpp"
     "algorithms/domain_exception_tests.cpp"
     "algorithms/parametric_curve_analyzer_tests.cpp"
@@ -287,19 +384,31 @@ file(GLOB ALGORITHMS_TESTS
     "algorithms/eigensolver_adversarial_tests.cpp"
     "algorithms/eigensolver_building_blocks_tests.cpp"
     "algorithms/eigensystem_solvers_tests.cpp"
+    "algorithms/self_adjoint_config_contract_tests.cpp"
     # Field analysis
     "algorithms/analyzers/field_analyzers_tests.cpp"
+    "algorithms/analyzers/field_analyzer_contract_tests.cpp"
     "algorithms/analyzers/function_analyzer_tests.cpp"
+    "algorithms/analyzers/function_analyzer_macro_contract_tests.cpp"
     "algorithms/analyzers/matrix_analyzer_tests.cpp"
     "algorithms/naming_honesty_tests.cpp"
     "algorithms/tolerance_algorithms_tests.cpp"
     # Root finding
     "algorithms/root_finding/root_finding_tests.cpp"
     "algorithms/root_finding/advanced_root_finding_tests.cpp"
+    "algorithms/root_finding/convergence_contract_tests.cpp"
+    "algorithms/root_finding/scalar_sign_contract_tests.cpp"
+    "algorithms/callback_accounting_contract_tests.cpp"
     "algorithms/root_finding/polynomial_roots_tests.cpp"
+    "algorithms/root_finding/polynomial_scale_contract_tests.cpp"
     "algorithms/root_finding/nonlinear_system_solvers_tests.cpp"
     # ODE solvers
     "algorithms/ode_solvers/ode_system_solvers_tests.cpp"
+    "algorithms/ode_solvers/adaptive_acceptance_contract_tests.cpp"
+    "algorithms/ode_solvers/adaptive_output_contract_tests.cpp"
+    "algorithms/ode_solvers/adaptive_work_contract_tests.cpp"
+    "algorithms/ode_solvers/stepper_infrastructure_header_tests.cpp"
+    "algorithms/ode_solvers/bulirsch_stoer_extrapolation_tests.cpp"
     "algorithms/ode_solvers/stiff_benchmark_tests.cpp"
     "algorithms/ode_solvers/implicit_retry_tests.cpp"
     "algorithms/ode_solvers/trajectory_resource_tests.cpp"
@@ -307,23 +416,33 @@ file(GLOB ALGORITHMS_TESTS
     "algorithms/ode_solvers/ode_step_calculators_tests.cpp"
     "algorithms/ode_solvers/ode_event_detection_tests.cpp"
     "algorithms/ode_solvers/bvp_shooting_method_tests.cpp"
+    "algorithms/ode_solvers/boundary_newton_status_tests.cpp"
     # DAE solvers
     "algorithms/dae_solvers/dae_solver_tests.cpp"
+    "algorithms/dae_solvers/adaptive_dae_contract_tests.cpp"
+    "algorithms/dae_solvers/linearly_implicit_contract_tests.cpp"
+    "algorithms/dae_solvers/bdf4_contract_tests.cpp"
     "algorithms/dae_solvers/rodas4_tests.cpp"
     "algorithms/dae_solvers/dae_event_detection_tests.cpp"
     # Matrix algorithms
     "algorithms/matrix_alg_tests.cpp"
+    "algorithms/faddeev_leverrier_contract_tests.cpp"
     "algorithms/matrix_inversion_consolidation_tests.cpp"
     # Graph algorithms
     "algorithms/graph_tests.cpp"
+    "algorithms/graph_contract_tests.cpp"
     # Computational geometry
     "algorithms/comp_geometry/circles_tests.cpp"
     "algorithms/comp_geometry/convex_hull_tests.cpp"
     "algorithms/comp_geometry/convex_hull_3d_tests.cpp"
     "algorithms/comp_geometry/intersections_tests.cpp"
     "algorithms/comp_geometry/kdtree_tests.cpp"
+    "algorithms/comp_geometry/kdtree_contract_tests.cpp"
     "algorithms/comp_geometry/polygon_ops_tests.cpp"
     "algorithms/comp_geometry/triangulation_tests.cpp"
+    "algorithms/comp_geometry/triangulation_contract_tests.cpp"
+    "algorithms/comp_geometry/circle_voronoi_contract_tests.cpp"
+    "algorithms/comp_geometry/robust_predicate_contract_tests.cpp"
     "algorithms/comp_geometry/voronoi_tests.cpp"
     # Optimization algorithms (1D minimization)
     "algorithms/optimization/optimization_tests.cpp"
@@ -337,15 +456,28 @@ file(GLOB ALGORITHMS_TESTS
     # Optimization algorithms (global stochastic)
     # Optimization algorithms (linear programming)
     "algorithms/optimization/optimization_linear_programming_tests.cpp"
+    "algorithms/optimization/lp_duality_contract_tests.cpp"
+    "algorithms/optimization/lp_model_contract_tests.cpp"
+    "algorithms/optimization/lp_sensitivity_contract_tests.cpp"
     "algorithms/optimization/augmented_lagrangian_tests.cpp"
+    "algorithms/optimization/alm_contract_tests.cpp"
     # Statistics tests
     "algorithms/statistics/statistics_tests.cpp"
+    "algorithms/statistics/statistics_scaling_contract_tests.cpp"
+    "algorithms/statistics/probability_tail_contract_tests.cpp"
+    "algorithms/statistics/quantile_contract_tests.cpp"
+    "algorithms/statistics/discrete_boundary_contract_tests.cpp"
+    "algorithms/statistics/distribution_parameter_contract_tests.cpp"
+    "algorithms/statistics/discrete_sampling_contract_tests.cpp"
     "algorithms/statistics/distributions_tests.cpp"
     "algorithms/statistics/distribution_sampling_tests.cpp"
     "algorithms/statistics/discrete_distributions_tests.cpp"
     "algorithms/statistics/histogram_tests.cpp"
     # Fourier tests
     "algorithms/fourier/fourier_tests.cpp"
+    "algorithms/fourier/dct_reference_contract_tests.cpp"
+    "algorithms/fourier/fourier_detailed_contract_tests.cpp"
+    "algorithms/fourier/fourier_helper_contract_tests.cpp"
     "algorithms/fourier/spectrum_layering_tests.cpp"
 )
 
@@ -354,7 +486,17 @@ file(GLOB ALGORITHMS_TESTS
 ###############################################################################
 file(GLOB SYSTEMS_TESTS
     "systems/linear_system_tests.cpp"
+    "systems/linear_dispatch_contract_tests.cpp"
+    "systems/linear_rhs_contract_tests.cpp"
+    "systems/linear_verification_regressions_tests.cpp"
     "systems/dynamical_system_tests.cpp"
+    "systems/fixed_point_contract_tests.cpp"
+    "systems/lyapunov_contract_tests.cpp"
+    "systems/systems_evaluation_contract_tests.cpp"
+    "systems/parameter_scan_contract_tests.cpp"
+    "systems/bifurcation_clock_contract_tests.cpp"
+    "systems/report_qualification_contract_tests.cpp"
+    "systems/model_domain_contract_tests.cpp"
 )
 
 ###############################################################################
@@ -362,15 +504,31 @@ file(GLOB SYSTEMS_TESTS
 ###############################################################################
 file(GLOB TOOLS_TESTS
     "tools/console_printer_tests.cpp"
+    "tools/column_format_contract_tests.cpp"
+    "tools/table_export_contract_tests.cpp"
+    "tools/vector_table_contract_tests.cpp"
     "tools/shared_print_formatting_tests.cpp"
     "tools/analyzer_reports_tests.cpp"
     "tools/dataloader_tests.cpp"
+    "tools/dataloader_numeric_contract_tests.cpp"
+    "tools/dataloader_csv_record_tests.cpp"
+    "tools/dataloader_case_folding_contract_tests.cpp"
     "tools/serializer_tests.cpp"
+    "tools/serializer_preflight_contract_tests.cpp"
+    "tools/serializer_metadata_contract_tests.cpp"
+    "tools/serializer_sampling_contract_tests.cpp"
     "tools/persistence_portability_tests.cpp"
+    "tools/binary_schema_contract_tests.cpp"
     "tools/vector_persistence_tests.cpp"
+    "tools/json_conversion_contract_tests.cpp"
+    "tools/persistence_save_contract_tests.cpp"
+    "tools/particle_history_contract_tests.cpp"
+    "tools/collection_contract_tests.cpp"
     "tools/timer_tests.cpp"
+    "tools/scoped_timer_contract_tests.cpp"
     "tools/threadpool_tests.cpp"
     "tools/visualizer_tests.cpp"
+    "tools/visualizer_posix_contract_tests.cpp"
     "tools/visualization_example_results_tests.cpp"
 )
 
@@ -397,15 +555,26 @@ add_executable(MML_Tests
 target_link_libraries(MML_Tests PRIVATE 
     Catch2::Catch2WithMain
 )
-add_dependencies(MML_Tests MML_HeaderChecks)
+add_executable(MML_SolverBoundaryConsumerChecks EXCLUDE_FROM_ALL core/sparse_solvers/solver_boundary_consumer_checks.cpp)
+target_link_libraries(MML_SolverBoundaryConsumerChecks PRIVATE minimalmathlib::minimalmathlib)
+set_target_properties(MML_SolverBoundaryConsumerChecks PROPERTIES UNITY_BUILD OFF DISABLE_PRECOMPILE_HEADERS ON)
+add_test(NAME MML_SolverBoundaryConsumerChecks COMMAND MML_SolverBoundaryConsumerChecks)
+add_dependencies(MML_Tests MML_HeaderChecks MML_SolverBoundaryConsumerChecks)
 
 add_executable(MML_VisualizerProcessFixture tools/visualizer_process_fixture.cpp)
+add_executable(MML_ScopedTimerProcessFixture tools/scoped_timer_process_fixture.cpp)
+target_link_libraries(MML_ScopedTimerProcessFixture PRIVATE minimalmathlib::minimalmathlib)
+function(configure_mml_timer_fixture target fixture)
+    add_dependencies(${target} ${fixture})
+    target_compile_definitions(${target} PRIVATE MML_SCOPED_TIMER_FIXTURE="$<TARGET_FILE:${fixture}>")
+endfunction()
 function(configure_mml_launcher_fixture target)
     add_dependencies(${target} MML_VisualizerProcessFixture)
     target_compile_definitions(${target} PRIVATE
         MML_VISUALIZER_PROCESS_FIXTURE="$<TARGET_FILE:MML_VisualizerProcessFixture>")
 endfunction()
 configure_mml_launcher_fixture(MML_Tests)
+configure_mml_timer_fixture(MML_Tests MML_ScopedTimerProcessFixture)
 
 add_executable(MML_StiffBenchmarks EXCLUDE_FROM_ALL
     "${CMAKE_SOURCE_DIR}/testing/stiff_solver_benchmark.cpp")
@@ -431,6 +600,11 @@ endif()
 # Use catch_discover_tests for better CTest integration
 # Label allows filtering: ctest -L core -j8
 include(Catch)
+add_executable(MML_StandardFallback_Tests base/standard_fallback_contract_tests.cpp)
+target_link_libraries(MML_StandardFallback_Tests PRIVATE Catch2::Catch2WithMain)
+target_compile_definitions(MML_StandardFallback_Tests PRIVATE MML_HAS_STD_SPECIAL_FUNCTIONS=0 MML_EXPECT_STANDARD_FALLBACK)
+catch_discover_tests(MML_StandardFallback_Tests)
+
 catch_discover_tests(MML_Tests 
     PROPERTIES LABELS "core"
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
@@ -444,10 +618,27 @@ catch_discover_tests(MML_Tests
 # Enable with: cmake -B build -DMML_BUILD_ALL_PRECISION_TESTS=ON
 #
 # Usage:
-#   ctest -L float          # Run only float tests
-#   ctest -L long_double    # Run only long double tests
-#   ctest -L core           # Run only tests for the configured default
+#   & .\build\tests\Release\MML_Tests_Float.exe
+#   & .\build\tests\Release\MML_Tests_LongDbl.exe
+#   & .\build\tests\Release\MML_Tests.exe
 # =============================================================================
+function(configure_mml_test_precision target selection scalar)
+    target_compile_definitions(${target} PRIVATE ${selection})
+    foreach(other IN ITEMS MML_USE_FLOAT MML_USE_DOUBLE MML_USE_LONG_DOUBLE)
+        if(NOT other STREQUAL selection)
+            if(MSVC)
+                target_compile_options(${target} PRIVATE "/U${other}")
+            else()
+                target_compile_options(${target} PRIVATE "-U${other}")
+            endif()
+        endif()
+    endforeach()
+    set(check "${CMAKE_CURRENT_BINARY_DIR}/${target}_precision.cpp")
+    file(GENERATE OUTPUT "${check}" CONTENT
+        "#include <mml/MMLBase.h>\n#include <type_traits>\nstatic_assert(std::is_same_v<MML::Real, ${scalar}>);\n")
+    target_sources(${target} PRIVATE "${check}")
+endfunction()
+
 if(MML_BUILD_ALL_PRECISION_TESTS)
     # --- Float tests ---
     add_executable(MML_Tests_Float
@@ -460,6 +651,7 @@ if(MML_BUILD_ALL_PRECISION_TESTS)
     )
     target_link_libraries(MML_Tests_Float PRIVATE Catch2::Catch2WithMain)
     configure_mml_launcher_fixture(MML_Tests_Float)
+    configure_mml_timer_fixture(MML_Tests_Float MML_ScopedTimerProcessFixture)
     if(UNIX AND NOT APPLE)
         target_link_libraries(MML_Tests_Float PRIVATE atomic)
     endif()
@@ -469,7 +661,7 @@ if(MML_BUILD_ALL_PRECISION_TESTS)
         ${CMAKE_SOURCE_DIR}/test_beds
         ${CMAKE_SOURCE_DIR}/tests
     )
-    target_compile_definitions(MML_Tests_Float PRIVATE MML_USE_FLOAT)
+    configure_mml_test_precision(MML_Tests_Float MML_USE_FLOAT float)
     if(MSVC)
         target_compile_options(MML_Tests_Float PRIVATE /FS)
     endif()
@@ -489,6 +681,7 @@ if(MML_BUILD_ALL_PRECISION_TESTS)
     )
     target_link_libraries(MML_Tests_LongDbl PRIVATE Catch2::Catch2WithMain)
     configure_mml_launcher_fixture(MML_Tests_LongDbl)
+    configure_mml_timer_fixture(MML_Tests_LongDbl MML_ScopedTimerProcessFixture)
     if(UNIX AND NOT APPLE)
         target_link_libraries(MML_Tests_LongDbl PRIVATE atomic)
     endif()
@@ -498,7 +691,7 @@ if(MML_BUILD_ALL_PRECISION_TESTS)
         ${CMAKE_SOURCE_DIR}/test_beds
         ${CMAKE_SOURCE_DIR}/tests
     )
-    target_compile_definitions(MML_Tests_LongDbl PRIVATE MML_USE_LONG_DOUBLE)
+    configure_mml_test_precision(MML_Tests_LongDbl MML_USE_LONG_DOUBLE "long double")
     if(MSVC)
         target_compile_options(MML_Tests_LongDbl PRIVATE /FS)
     endif()
@@ -533,16 +726,186 @@ if(BUILD_SINGLE_HEADER_TESTS)
     endfunction()
 
     add_mml_single_header_test(MML_SingleHeader_Tests MML.h)
+    add_executable(MML_SingleHeader_ScopedTimerProcessFixture tools/scoped_timer_process_fixture.cpp)
+    target_include_directories(MML_SingleHeader_ScopedTimerProcessFixture PRIVATE ${CMAKE_SOURCE_DIR}/mml/single_header)
+    target_compile_definitions(MML_SingleHeader_ScopedTimerProcessFixture PRIVATE MML_SINGLE_HEADER_INCLUDE=<MML.h>)
+    configure_mml_timer_fixture(MML_SingleHeader_Tests MML_SingleHeader_ScopedTimerProcessFixture)
+    target_sources(MML_SingleHeader_Tests PRIVATE tools/scoped_timer_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE
+        base/coordinate_scale_contract_tests.cpp
+        base/quaternion_scale_contract_tests.cpp
+        base/matrix_scale_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE core/complex_svd_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE algorithms/faddeev_leverrier_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE algorithms/analyzers/field_analyzer_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE algorithms/analyzers/function_analyzer_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE algorithms/analyzers/function_analyzer_macro_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE algorithms/comp_geometry/kdtree_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE algorithms/comp_geometry/triangulation_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE algorithms/comp_geometry/circle_voronoi_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE algorithms/comp_geometry/robust_predicate_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE algorithms/analyzers/field_analyzers_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE tools/visualizer_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE tools/visualizer_posix_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE algorithms/graph_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE tools/vector_table_contract_tests.cpp)
+    configure_mml_launcher_fixture(MML_SingleHeader_Tests)
     target_sources(MML_SingleHeader_Tests PRIVATE single_header/test_showcase_fixtures.cpp)
     target_sources(MML_SingleHeader_Tests PRIVATE single_header/namespace_collision_single_header.cpp)
     target_sources(MML_SingleHeader_Tests PRIVATE single_header/algebra_boundary_checks.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE base/matrix_naming_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE core/tolerance_core_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE algorithms/statistics/discrete_distributions_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE algorithms/ode_solvers/implicit_retry_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE algorithms/ode_solvers/boundary_newton_status_tests.cpp)
     target_sources(MML_SingleHeader_Tests PRIVATE single_header/trajectory_storage_single_header.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE single_header/first_five_regressions_single_header.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE single_header/integration_contract_single_header.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE core/integration/integration_contract_regressions_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE core/integration/monte_carlo_integration_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE core/integration/geometric_integration_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE core/differential_geometry/form_integration_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE base/tensor/tensor_contract_regressions_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE base/geometry/shape_formula_mesh_regressions_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE base/geometry/geometry_spherical_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE base/geometry/plane_rectangle_scale_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE base/geometry/plane_query_range_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE base/geometry/line_segment_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE base/geometry/triangle_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE base/geometry/distance_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE base/geometry/polygon_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE base/geometry/boundary_body_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE base/differential_forms/hodge_scaling_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE systems/linear_dispatch_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE systems/linear_rhs_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE systems/linear_verification_regressions_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE algorithms/ode_solvers/adaptive_acceptance_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE algorithms/ode_solvers/adaptive_output_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE algorithms/ode_solvers/adaptive_work_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE algorithms/ode_solvers/bulirsch_stoer_extrapolation_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE algorithms/complex_eigenanalysis_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE algorithms/eigensolver_building_blocks_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE algorithms/eigensolver_adversarial_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE algorithms/self_adjoint_config_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE algorithms/root_finding/convergence_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE algorithms/root_finding/scalar_sign_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE algorithms/callback_accounting_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE algorithms/optimization/optimization_bound_constraints_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE algorithms/root_finding/polynomial_scale_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE tools/dataloader_numeric_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE tools/serializer_preflight_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE tools/serializer_metadata_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE tools/serializer_sampling_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE tools/binary_schema_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE tools/dataloader_csv_record_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE tools/dataloader_case_folding_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE tools/column_format_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE tools/table_export_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE algorithms/dae_solvers/adaptive_dae_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE algorithms/dae_solvers/linearly_implicit_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE algorithms/dae_solvers/bdf4_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE core/curve_surface_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE core/surface_step_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE core/metric_field_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE core/orthogonal_basis_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE core/lin_alg_solvers/dense_iterative_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE core/lin_alg_solvers/solver_scale_regressions_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE core/lin_alg_solvers/test_bed_metadata_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE base/vector/vector_unsigned_size_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE base/vector/vector_resize_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE core/derivation/richardson_tensor_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE core/derivation/higher_derivative_error_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE core/derivation/second_derivative_step_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE core/derivation/jacobian_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE core/derivation/derivative_step_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE core/derivation/ad_quotient_constant_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE core/derivation/ad_domain_type_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE core/derivation/ad_tape_lifetime_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE core/derivation/ad_adapters_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE algorithms/statistics/statistics_scaling_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE algorithms/statistics/probability_tail_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE algorithms/statistics/quantile_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE algorithms/statistics/discrete_boundary_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE algorithms/statistics/distribution_parameter_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE algorithms/statistics/discrete_sampling_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE tools/json_conversion_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE tools/persistence_save_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE tools/vector_persistence_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE tools/particle_history_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE tools/collection_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE systems/fixed_point_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE systems/lyapunov_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE systems/systems_evaluation_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE systems/parameter_scan_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE systems/bifurcation_clock_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE systems/report_qualification_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE systems/model_domain_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE base/special_function_tail_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE base/integer_boundary_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE interfaces/default_implementation_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE interfaces/interface_validation_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE base/interval_set_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE base/complex_reciprocal_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE base/standard_fallback_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE base/baseutils_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE base/uncomputed_result_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE base/interpolated_functions/construction_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE base/interpolated_functions/numerical_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE base/algebra/lie_group_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE algorithms/fourier/dct_reference_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE algorithms/fourier/fourier_detailed_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE algorithms/fourier/fourier_helper_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE core/complex_analysis_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE core/sparse_solvers/solver_boundary_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE algorithms/optimization/lp_duality_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE algorithms/optimization/lp_model_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE algorithms/optimization/lp_sensitivity_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE algorithms/optimization/alm_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE algorithms/analyzers/matrix_analyzer_tests.cpp)
     target_sources(MML_SingleHeader_Tests PRIVATE single_header/generalized_least_squares_single_header.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE algorithms/least_squares_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Tests PRIVATE core/coord_transf/coordinate_transform_contract_tests.cpp)
     target_sources(MML_SingleHeader_Tests PRIVATE single_header/parallel_integration_single_header.cpp)
     target_include_directories(MML_SingleHeader_Tests PRIVATE ${CMAKE_SOURCE_DIR})
+    add_executable(MML_SingleHeader_StandardFallback_Tests base/standard_fallback_contract_tests.cpp)
+    target_link_libraries(MML_SingleHeader_StandardFallback_Tests PRIVATE Catch2::Catch2WithMain)
+    target_include_directories(MML_SingleHeader_StandardFallback_Tests PRIVATE ${CMAKE_SOURCE_DIR}/mml/single_header)
+    target_compile_definitions(MML_SingleHeader_StandardFallback_Tests PRIVATE MML_SINGLE_HEADER_INCLUDE=<MML.h> MML_HAS_STD_SPECIAL_FUNCTIONS=0 MML_EXPECT_STANDARD_FALLBACK)
+    catch_discover_tests(MML_SingleHeader_StandardFallback_Tests)
     add_mml_single_header_test(MML_SingleHeader_Float_Tests MML_float.h)
+    target_sources(MML_SingleHeader_Float_Tests PRIVATE core/complex_svd_tests.cpp)
+    target_sources(MML_SingleHeader_Float_Tests PRIVATE base/geometry/geometry_spherical_tests.cpp)
+    target_sources(MML_SingleHeader_Float_Tests PRIVATE base/differential_forms/hodge_scaling_tests.cpp)
+    target_sources(MML_SingleHeader_Float_Tests PRIVATE base/matrix_naming_tests.cpp)
+    target_sources(MML_SingleHeader_Float_Tests PRIVATE core/tolerance_core_tests.cpp)
+    target_sources(MML_SingleHeader_Float_Tests PRIVATE algorithms/statistics/discrete_distributions_tests.cpp)
+    target_sources(MML_SingleHeader_Float_Tests PRIVATE algorithms/statistics/quantile_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Float_Tests PRIVATE algorithms/ode_solvers/implicit_retry_tests.cpp)
+    target_sources(MML_SingleHeader_Float_Tests PRIVATE algorithms/dae_solvers/adaptive_dae_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Float_Tests PRIVATE algorithms/statistics/discrete_sampling_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Float_Tests PRIVATE core/integration/geometric_integration_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Float_Tests PRIVATE core/derivation/jacobian_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Float_Tests PRIVATE algorithms/root_finding/convergence_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Float_Tests PRIVATE systems/bifurcation_clock_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Float_Tests PRIVATE algorithms/ode_solvers/adaptive_acceptance_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Float_Tests PRIVATE algorithms/ode_solvers/adaptive_output_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Float_Tests PRIVATE algorithms/ode_solvers/adaptive_work_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Float_Tests PRIVATE systems/lyapunov_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Float_Tests PRIVATE core/integration/integration_contract_regressions_tests.cpp)
+    target_sources(MML_SingleHeader_Float_Tests PRIVATE base/special_function_tail_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Float_Tests PRIVATE algorithms/statistics/probability_tail_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Float_Tests PRIVATE tools/vector_persistence_tests.cpp)
+    target_sources(MML_SingleHeader_Float_Tests PRIVATE base/geometry/distance_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Float_Tests PRIVATE core/derivation/ad_adapters_tests.cpp)
+    target_sources(MML_SingleHeader_Float_Tests PRIVATE base/geometry/shape_formula_mesh_regressions_tests.cpp)
+    target_sources(MML_SingleHeader_Float_Tests PRIVATE algorithms/ode_solvers/bulirsch_stoer_extrapolation_tests.cpp)
+    target_sources(MML_SingleHeader_Float_Tests PRIVATE base/geometry/triangle_contract_tests.cpp)
+    target_sources(MML_SingleHeader_Float_Tests PRIVATE systems/linear_verification_regressions_tests.cpp)
     target_compile_definitions(MML_SingleHeader_Float_Tests PRIVATE MML_SINGLE_HEADER_EXPECT_FLOAT)
     add_mml_single_header_test(MML_SingleHeader_LongDouble_Tests MML_long_double.h)
+    target_sources(MML_SingleHeader_LongDouble_Tests PRIVATE core/complex_svd_tests.cpp)
+    target_sources(MML_SingleHeader_LongDouble_Tests PRIVATE base/geometry/geometry_spherical_tests.cpp)
+    target_sources(MML_SingleHeader_LongDouble_Tests PRIVATE base/differential_forms/hodge_scaling_tests.cpp)
     target_compile_definitions(MML_SingleHeader_LongDouble_Tests PRIVATE MML_SINGLE_HEADER_EXPECT_LONG_DOUBLE)
 endif()
 

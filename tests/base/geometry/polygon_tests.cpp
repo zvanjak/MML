@@ -1,4 +1,5 @@
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include "../../TestPrecision.h"
@@ -402,11 +403,14 @@ TEST_CASE("Polygon2D - Edge cases", "[Polygon2D][EdgeCases]")
     REQUIRE_THAT(empty.Perimeter(), WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));
     
     // Single vertex
-    Polygon2D singleVertex{Point2Cartesian(1, 2)};
+    const auto vertices = GENERATE(
+        std::vector<Point2Cartesian>{Point2Cartesian(1, 2)},
+        std::vector<Point2Cartesian>{Point2Cartesian(-3, 4)});
+    Polygon2D singleVertex(vertices);
     REQUIRE(singleVertex.NumVertices() == 1);
     auto centroid1 = singleVertex.Centroid();
-    REQUIRE_THAT(centroid1.X(), WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-10, 1e-5)));
-    REQUIRE_THAT(centroid1.Y(), WithinAbs(static_cast<MML::Real>(2.0), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(centroid1.X(), WithinAbs(vertices[0].X(), TOL(1e-10, 1e-5)));
+    REQUIRE_THAT(centroid1.Y(), WithinAbs(vertices[0].Y(), TOL(1e-10, 1e-5)));
     
     // Two vertices (degenerate)
     Polygon2D twoVertices{

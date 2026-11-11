@@ -5,6 +5,7 @@
 #include <mml/base/Vector/Vector.h>
 #include <mml/base/Matrix/Matrix.h>
 #include <mml/base/BaseUtils.h>
+#include <mml/base/AlgorithmTypes.h>
 #include <mml/algorithms/Eigen/detail/RealSchurAnalysis.h>
 #include <algorithm>
 #include <cmath>
@@ -270,9 +271,13 @@ namespace MML::detail {
 	/// Works for real pairs too (pass a zero vi and λi = 0).
 	inline Real EigenpairResidual(const Matrix<Real>& A, const Vector<Real>& vr, const Vector<Real>& vi, Real lambda_real, Real lambda_imag) {
 		const int n = A.rows();
+		if (!std::isfinite(lambda_real) || !std::isfinite(lambda_imag))
+			return NoEstimate;
 		Real residual = 0.0;
 		Real vnorm = 0.0;
 		for (int i = 0; i < n; i++) {
+			if (!std::isfinite(vr[i]) || !std::isfinite(vi[i]))
+				return NoEstimate;
 			Real Avr = 0.0, Avi = 0.0;
 			for (int j = 0; j < n; j++) {
 				Avr += A(i, j) * vr[j];
@@ -281,11 +286,12 @@ namespace MML::detail {
 			// (λr + iλi)(vr + i vi) = (λr vr - λi vi) + i(λr vi + λi vr)
 			const Real dr = Avr - (lambda_real * vr[i] - lambda_imag * vi[i]);
 			const Real di = Avi - (lambda_real * vi[i] + lambda_imag * vr[i]);
-			residual += dr * dr + di * di;
-			vnorm += vr[i] * vr[i] + vi[i] * vi[i];
+			if (!std::isfinite(dr) || !std::isfinite(di))
+				return NoEstimate;
+			residual = std::hypot(residual, dr, di);
+			vnorm = std::hypot(vnorm, vr[i], vi[i]);
 		}
-		vnorm = std::sqrt(vnorm);
-		return vnorm > PrecisionValues<Real>::DivisionSafetyThreshold ? std::sqrt(residual) / vnorm : static_cast<MML::Real>(0.0);
+		return std::isfinite(vnorm) && vnorm > Real{0} ? residual / vnorm : NoEstimate;
 	}
 
 	/// Verify eigenvector: compute ||A*v - λ*v|| / ||v||

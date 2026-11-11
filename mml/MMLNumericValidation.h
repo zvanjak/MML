@@ -49,7 +49,10 @@ namespace MML {
 	/// @return true if x is finite, false if NaN or Inf
 	template<typename T>
 	inline bool IsFiniteValue(T x) noexcept {
-		return std::isfinite(x);
+		if constexpr (MMLComplex<T>)
+			return std::isfinite(x.real()) && std::isfinite(x.imag());
+		else
+			return std::isfinite(x);
 	}
 
 	/// @brief Validate that a value is finite, throw if not
@@ -106,6 +109,14 @@ namespace MML {
 	/// @brief Validate tolerance (string version)
 	inline void ValidateTolerance(Real tol, const std::string& context) {
 		ValidateTolerance(tol, context.c_str());
+	}
+
+	/// @brief Validate a finite, nonnegative tolerance, allowing zero for exact comparisons.
+	/// @throws NumericInputError if tolerance is negative or nonfinite
+	inline void ValidateNonNegativeTolerance(Real tol, const char* context = "algorithm") {
+		if (!std::isfinite(tol) || tol < 0)
+			throw NumericInputError(std::string(context) + ": tolerance must be nonnegative and finite (got " +
+				std::to_string(tol) + ")");
 	}
 
 	/// @brief Validate a function value returned during iteration

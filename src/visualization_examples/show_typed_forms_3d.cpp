@@ -245,7 +245,7 @@ void Show_Typed_Forms_3D_Visualization()
 	std::cout << "  orange patch  : oriented surface for the two-form flux\n";
 	std::cout << "  green arrow   : oriented normal from cross(ru, rv)\n\n";
 
-	if (std::getenv("MML_VISUALIZER_SAVE_ONLY") != nullptr) {
+	if (MML::detail::visualizer::GetEnv("MML_VISUALIZER_SAVE_ONLY") != nullptr) {
 		std::cout << "MML_VISUALIZER_SAVE_ONLY is set; not launching MML_WorldVisualizer.\n";
 		return;
 	}
@@ -302,7 +302,7 @@ void Show_Typed_Forms_Vortex_Tube_Visualization()
 	std::cout << "  orange patches: local flux two-form *v_flat(p)\n";
 	std::cout << "  white points  : sample locations\n\n";
 
-	if (std::getenv("MML_VISUALIZER_SAVE_ONLY") != nullptr) {
+	if (MML::detail::visualizer::GetEnv("MML_VISUALIZER_SAVE_ONLY") != nullptr) {
 		std::cout << "MML_VISUALIZER_SAVE_ONLY is set; not launching MML_WorldVisualizer.\n";
 		return;
 	}
@@ -366,7 +366,7 @@ void Show_Typed_Forms_EM_Dipole_Visualization()
 	std::cout << "  amber patches: local magnetic flux two-form *B_flat(p)\n";
 	std::cout << "  orange rings : stylized current loop / dipole source\n\n";
 
-	if (std::getenv("MML_VISUALIZER_SAVE_ONLY") != nullptr) {
+	if (MML::detail::visualizer::GetEnv("MML_VISUALIZER_SAVE_ONLY") != nullptr) {
 		std::cout << "MML_VISUALIZER_SAVE_ONLY is set; not launching MML_WorldVisualizer.\n";
 		return;
 	}

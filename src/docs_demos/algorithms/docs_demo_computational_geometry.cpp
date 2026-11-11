@@ -11,9 +11,51 @@
 #endif
 
 #include <iostream>
+#include <limits>
 #include <vector>
 
 using namespace MML;
+
+void Docs_Demo_CircleVoronoiContracts()
+{
+    using namespace MML::CompGeometry;
+    const Real scale = Real{1e-6};
+    const auto circle = Circles::MinimumEnclosingCircle(std::vector<Point2Cartesian>{
+        {0, 0}, {2 * scale, 0}, {scale, std::sqrt(Real{3}) * scale}});
+    const Real offset = Real{1e9};
+    const auto translated = Voronoi::ComputeVoronoi({
+        {offset, offset}, {offset + 2, offset}, {offset, offset + 2}});
+    const auto collinear = Voronoi::ComputeVoronoi({{2, 0}, {0, 0}, {1, 0}});
+    if (!IsWithinAbs(circle.Radius() / scale, Real{2} / std::sqrt(Real{3}), Precision::EqualityTolerance) ||
+        translated.NumVertices() != 1 || translated.vertices[0].X() != offset + 1 ||
+        translated.vertices[0].Y() != offset + 1 || collinear.NumEdges() != 2)
+        throw GeometryError("Circle and Voronoi construction demo failed");
+    std::cout << "Tiny enclosing radius: " << circle.Radius()
+              << "; translated Voronoi center offset: " << translated.vertices[0].X() - offset
+              << "; collinear bisectors: " << collinear.NumEdges() << '\n';
+
+    const int exponent = 3 * std::numeric_limits<Real>::max_exponent / 4;
+    const Real queryScale = std::scalbn(Real{1}, exponent);
+    const auto farSites = Voronoi::ComputeVoronoi({{0, 0}, {queryScale, 0}});
+    const int nearest = farSites.FindNearestSite({2 * queryScale, 0});
+    const Real spacing = std::scalbn(Real{1}, -exponent);
+    const auto tinySites = Voronoi::ComputeVoronoi({{0, 0}, {spacing, 0}, {2 * spacing, 0}});
+    const auto middle = tinySites.GetClippedCell(1, -spacing, -spacing, 3 * spacing, spacing);
+    if (nearest != 1 || middle.NumVertices() != 4)
+        throw GeometryError("Voronoi scaled query and clipping demo failed");
+    int left = 0, right = 0;
+    for (const auto& vertex : middle.Vertices()) {
+        const Real x = vertex.X() / spacing, y = vertex.Y() / spacing;
+        if ((x != Real{0.5} && x != Real{1.5}) || std::abs(y) != 1)
+            throw GeometryError("Voronoi clipped middle cell violates its independent strip bounds");
+        if (x == Real{0.5}) ++left;
+        else ++right;
+    }
+    if (left != 2 || right != 2)
+        throw GeometryError("Voronoi clipped middle cell lost a strip boundary");
+    std::cout << "Huge-scale nearest site: " << nearest
+              << "; tiny clipped middle cell: " << middle.NumVertices() << " vertices\n";
+}
 
 void Docs_Demo_ComputationalGeometry()
 {
@@ -55,4 +97,3 @@ void Docs_Demo_ComputationalGeometry()
     
     std::cout << "=== Demo Complete ===" << std::endl;
 }
-

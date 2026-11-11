@@ -44,6 +44,64 @@ MinimalMathLibrary provides six direct solver methods, each optimized for differ
 
 All solvers are defined in [`mml/core/LinAlgEqSolvers.h`](../../mml/core/LinAlgEqSolvers.h).
 
+### Scale and diagnostic contracts
+
+Direct `*SolveDetailed` operations report `Completed` after solving, not `Success`:
+they do not check a requested accuracy target. `IsSuccess()` accepts this usable status.
+With `check_finite=true`, nonfinite right-hand sides, solutions or measured residuals
+are rejected; `ConvertToStatus` reports `NumericalInstability` instead of propagating
+the numerical exception. An unrequested residual remains `NoEstimate` (NaN), never
+an invented zero. Zero band pivots are singular, including an all-zero operator.
+
+Singularity checks use the matrix scale, not an unconditional unit-scale floor.
+Uniformly scaling a condition-one system down does not by itself make Cholesky,
+QR or stationary iteration singular. QR rejects empty input and recognizes a zero
+terminal pivot even for a 1×1 matrix. Gauss–Jordan rejects nonfinite inputs before
+selecting a pivot.
+
+LU equilibrates extreme exponents internally and scales each right-hand side
+consistently. Its owning solver's `GetDecomposition()` still exports factors of the
+original matrix; it throws when an original-scale upper factor is unrepresentable,
+even if solving with the internal scaled factors succeeds. In-place LU exposes its
+equilibration divisor through `getFactorScale()`; its overwritten matrix contains
+factors of the original matrix divided by that divisor.
+
+Real SVD performs its decomposition at normalized input scale and then restores the
+singular values. Complex SVD uses scaled column norms and correlations: resolved
+raw singular values are retained even far below the largest singular value.
+Jacobi rotations remove componentwise cancellation roundoff using the participating
+real and imaginary terms' own scales, not a cutoff against the largest column.
+This lets exact dependencies converge without waiting for underflow in extended-range
+types, while independent tiny columns and tiny complex components remain representable.
+Numerical rank and pseudoinverse thresholds are a separate policy; excluding a
+singular value from a rank count does not replace that raw value with zero.
+
+### Aliasing and lifetime
+
+`SVDecompositionSolver::Solve(b, x)` supports `b` and `x` being the same vector,
+including tall least-squares problems where the result is shorter. It projects
+the complete original RHS before resizing/writing output, without allocating an
+extra RHS snapshot. Invalid RHS dimensions are rejected before modifying output.
+
+```cpp
+Matrix<Real> tall(3, 2, {1, 0, 0, 1, 1, 1});
+SVDecompositionSolver<Real> svd(tall);
+Vector<Real> aliasedRhs{2, 3, 5};
+svd.Solve(aliasedRhs, aliasedRhs); // Resized to (2, 3).
+```
+
+The snippet runs in `MML_DocsApp --solver-boundaries`
+(`src/docs_demos/core/docs_demo_lin_alg_solvers.cpp`).
+
+`GaussJordanSolver::SolveInPlace(A, B)` has two different outputs: `A` becomes
+the inverse and `B` becomes the solved RHS matrix. The same matrix cannot fill
+both roles: `SolveInPlace(A, A)` now throws `ArgumentError` before changing it.
+Use distinct matrices, or the single-RHS/value-returning helpers.
+
+These contracts do not change `LUSolverInPlace` borrowing: its caller-owned
+factor matrix must remain alive and must not be independently modified while
+the solver uses it. It is deliberately not an owning snapshot.
+
 ---
 
 ## Solver Selection Guide
@@ -999,6 +1057,65 @@ Null space dimension: 1
 | Linear System Tests | [linear_alg_eq_systems_test_bed.h](../../test_beds/linear_alg_eq_systems_test_bed.h) | Test matrices for linear algebra |
 
 ---
+
+## Dense Stationary Iteration Contracts
+
+`JacobiSolver`, `GaussSeidelSolver` and `SORSolver` are dense stationary solvers,
+declared in `mml/core/LinAlgEqSolvers/LinAlgEqSolvers_iterative.h`. Their legacy
+scalar-argument and `IterativeSolverConfig` overloads share the same implementation
+and diagnostic contracts:
+
+- `tolerance` must be finite and positive. `max_iterations` must be nonnegative.
+  An empty guess means zero; a nonempty guess must have the correct size.
+  Matrices must be nonempty and square, and matrix/RHS/guess entries finite.
+  Dimensions raise `MatrixDimensionError`, invalid controls/nonfinite entries raise
+  `ArgumentError`, and numerically zero diagonals retain `SingularMatrixError`.
+- Both `initial_residual` and `residual` mean `||Ax-b||/||b||`; when `b=0`,
+  they mean the absolute residual `||Ax||`. Convergence requires this value
+  to be strictly below the tolerance, including for the initial guess.
+- A zero budget evaluates the initial guess without a sweep: already-converged
+  guesses return `Success`; otherwise `MaxIterationsExceeded`. `iterations`
+  counts attempted sweeps, never budget plus one. A failed numerical sweep is counted.
+- Nonconverged results retain the lowest-residual finite iterate seen, not
+  necessarily the last attempted iterate. `residual` always describes that payload.
+  Numerical breakdown reports `NumericalInstability` even through config overloads.
+  Unrepresentable initial norms/residuals have `NoEstimate`, not fabricated zeros.
+  Finite input is not a guarantee that subsequent arithmetic remains representable.
+- `algorithm_name`, `elapsed_time_ms`, status and error text are populated by all
+  overloads. SOR also reports `omega_used`; omega must be finite and in `(0,2)`
+  (`NumericalMethodError` otherwise). `verbose` remains reserved: these solvers
+  do not emit progress output.
+- `SolveSimple` and `LinearSystem::SolveIterative` throw `ConvergenceError` on
+  nonconvergence. Inspect a detailed result when the failure status matters.
+  `SolveOptimal` uses omega one for a one-variable system; its existing formula
+  for larger systems is a Poisson-specific heuristic, not universally optimal.
+  `EstimateOptimalOmega` requires positive sample and trial-sweep counts, compares
+  each trial's retained best residual, and throws if every trial fails numerically.
+
+**SPD is not a Jacobi convergence guarantee.** For the SPD matrix with diagonal
+one and all off-diagonal entries `0.9`, eigenvalues are `0.1, 0.1, 2.8`, but the
+Jacobi iteration has an eigenvalue `-1.8` and diverges from a zero guess for
+`b=(1,1,1)`. Strict diagonal dominance is sufficient for Jacobi; Gauss-Seidel and
+SOR with `0<omega<2` also have the standard SPD convergence guarantees in exact
+arithmetic. These dense routines do not certify SPD or convergence in advance.
+
+```cpp
+Matrix<Real> A(2, 2, {4, 1, 1, 3});
+Vector<Real> b{1, 2};
+IterativeSolverConfig config(Precision::IterativeSolverTolerance, 0);
+auto limited = JacobiSolver::Solve(A, b, config);
+// limited: zero sweeps, initial_residual=residual=1, MaxIterationsExceeded.
+
+Vector<Real> exact{1, 2};
+Vector<Real> rhs{6, 7};
+auto checked = GaussSeidelSolver::Solve(A, rhs, config, exact);
+// checked: zero sweeps, zero residual, Success.
+```
+
+Runnable, checked counterpart: `Docs_Demo_DenseIterativeContracts()` in
+`src/docs_demos/core/docs_demo_lin_alg_solvers.cpp`. Build `MML_DocsApp` and run
+`MML_DocsApp --dense-iterative-contracts`. It also checks the SPD Jacobi
+counterexample and an ordinary convergent SOR solve.
 
 ## See Also
 

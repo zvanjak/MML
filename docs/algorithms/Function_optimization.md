@@ -336,8 +336,81 @@ auto powell = BoxConstrainedPowellMinimize(func, start, bounds, config);
 - ✅ Variables have physical, geometric, or calibration bounds
 - ✅ Projection onto the feasible set is enough
 - ✅ You need compact local bounded optimization in core MML
-- ❌ General nonlinear constraints such as `g(x) <= 0` or `h(x) = 0` (use the optimization package layer)
+- ❌ General nonlinear constraints such as `g(x) <= 0` or `h(x) = 0` (use the core ALM below for conservative local problems)
 - ❌ Large-scale production bound-constrained quasi-Newton workflows (future L-BFGS-B style work)
+
+### AugmentedLagrangian - General Nonlinear Constraints
+
+`<mml/algorithms/Optimization/Constraints/AugmentedLagrangian.h>` provides the
+core `AugmentedLagrangian<N>` and `SolveConstrained<N>` APIs for positive fixed
+dimension `N`. Inequalities use `g(x) <= 0`; equalities use `h(x) = 0`. Add them
+with `AddInequalityConstraint` and `AddEqualityConstraint`.
+
+Without bounds, inner problems use Nelder-Mead. `SetBounds(lower, upper)` selects
+the existing box-constrained wrapper: finite out-of-box starts are projected,
+and **every objective and nonlinear-constraint evaluation** uses a box-feasible
+point. Both uniform and per-coordinate bounds are supported, including fixed
+coordinates and one-sided infinite bounds. NaNs, reversed intervals, lower
+`+infinity`, upper `-infinity`, and nonfinite starting coordinates are rejected.
+Rejected bounds/config setters preserve the previous settings.
+
+```cpp
+#include <mml/algorithms/Optimization/Constraints/AugmentedLagrangian.h>
+using namespace MML;
+using namespace MML::Optimization;
+
+ALMConfig config;
+config.max_outer_iterations = 4;
+config.max_inner_iterations = 256;
+config.inner_simplex_delta = Real(3) / 10;
+AugmentedLagrangian<2> solver(config);
+solver.SetBounds(2, 3);
+auto result = solver.Optimize(
+    [](const VectorN<Real, 2>& x) { return 1 + x[0] * x[0] + x[1] * x[1]; },
+    VectorN<Real, 2>{Real(5) / 2, Real(12) / 5});
+std::cout << MML::to_string(result.status) << " " << result.objective_value << '\n';
+// Success, objective near 9, minimizer near (2, 2), not the unbounded minimum (0, 0).
+```
+
+Named lvalues, rvalue lambdas, `IScalarFunction<N>`, and legacy dynamic-vector
+objectives are accepted without retaining references beyond the call. Results
+are `[[nodiscard]]` `ALMResult<N>` objects on `IterativeResultBase`.
+
+**What convergence means:** the latest inner solve must itself converge, the
+maximum box/nonlinear violation must meet `feasibility_tolerance`, and two
+successive successful inner solves must satisfy
+`stationarity_measure = step_norm / max(1, ||x||_infinity) <= stationarity_tolerance`.
+This is an **outer-step proxy**, not a gradient, projected-gradient or KKT
+residual. Nelder-Mead and projection can stagnate or miss better local points;
+`Success` certifies these configured checks, not a global optimum or KKT
+stationarity. Use an independently checked first-order solver when that
+certificate is required.
+
+An unsuccessful inner solve stops ALM immediately and propagates its failure
+status and an inner-solve diagnostic. The returned point/objective and measured
+feasibility are retained; `last_inner_status` identifies the attempted solve,
+while `stationarity_measure` is `NoEstimate` on inner failure. A repeated point
+from exhausted work cannot produce `Success`.
+
+**Work and configuration:**
+- `function_evaluations` counts actual original-objective calls, including
+  simplex initialization, the bounded wrapper's reevaluation, and the final
+  reported objective. Constraint-only calls are not objective calls.
+- `inner_iterations` counts simplex iterations; `outer_iterations` and
+  `iterations_used` count attempted outer solves.
+- The legacy name `max_inner_iterations` controls Nelder-Mead's
+  evaluation/iteration budget. It is **not a strict total objective-call cap**:
+  initialization, the last simplex operation and reporting can add calls.
+- A zero outer budget returns the assessed, projected starting point with
+  `MaxIterationsExceeded`, no inner status, and unavailable step/proxy metrics.
+- Outer budgets must be nonnegative and inner budgets positive. All tolerances
+  must be finite and positive; simplex delta finite and nonzero; penalties
+  finite with `0 < initial_penalty <= max_penalty` and `penalty_multiplier >= 1`.
+  Finite multiplier clipping bounds must be ordered and contain zero.
+- Invalid configuration, empty constraints, nonfinite callbacks or
+  unrepresentable augmented values throw `MultidimOptimizationInputError`,
+  following the inner solver's explicit-error convention. User exceptions
+  propagate unchanged.
 
 ---
 

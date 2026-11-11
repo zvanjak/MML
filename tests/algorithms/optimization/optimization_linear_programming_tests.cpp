@@ -396,8 +396,8 @@ TEST_CASE("LP: Dual construction", "[LP][dual]")
     
     LinearProgram primal(2);
     primal.SetObjective({3.0, 2.0}, LPObjective::Minimize);
-    primal.AddConstraint({1.0, 1.0}, LPConstraintType::LessEqual, 4.0);
-    primal.AddConstraint({2.0, 1.0}, LPConstraintType::LessEqual, 5.0);
+    primal.AddConstraint({1.0, 1.0}, LPConstraintType::GreaterEqual, 4.0);
+    primal.AddConstraint({2.0, 1.0}, LPConstraintType::GreaterEqual, 5.0);
     
     LinearProgram dual = primal.Dual();
     
@@ -406,6 +406,12 @@ TEST_CASE("LP: Dual construction", "[LP][dual]")
     // Dual should have 2 constraints (one per primal variable)
     REQUIRE(dual.NumConstraints() == 2);
     REQUIRE(dual.ObjectiveSense() == LPObjective::Maximize);
+    const auto primalResult = SolveLP(primal);
+    const auto dualResult = SolveLP(dual);
+    REQUIRE(primalResult.IsOptimal());
+    REQUIRE(dualResult.IsOptimal());
+    REQUIRE_THAT(primalResult.objectiveValue, WithinAbs(Real(9), LPObjectiveTolerance));
+    REQUIRE_THAT(dualResult.objectiveValue, WithinAbs(Real(9), LPObjectiveTolerance));
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -641,8 +647,9 @@ TEST_CASE("LP: Sensitivity analysis - shadow prices", "[LP][sensitivity]")
 		REQUIRE(result.lp_status == LPStatus::Optimal);
 		REQUIRE(result.dualValues.size() == 2);
     
-    // Shadow prices should be non-negative for <= constraints in minimization
-    // (binding constraints have positive shadow prices)
+    // d(minimum objective)/d(resource bound) is nonpositive for <= rows.
+    REQUIRE_THAT(result.dualValues[0], WithinAbs(Real(-0.4), Precision::DefaultToleranceStrict));
+    REQUIRE_THAT(result.dualValues[1], WithinAbs(Real(-0.2), Precision::DefaultToleranceStrict));
 }
 
 TEST_CASE("LP: Sensitivity analysis - basis condition number", "[LP][sensitivity][numerical]")

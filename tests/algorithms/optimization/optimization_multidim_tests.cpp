@@ -162,8 +162,8 @@ TEST_CASE("NelderMead - Rosenbrock banana function", "[NelderMead][2D][Rosenbroc
 	auto result = optimizer.Minimize(func, start, static_cast<MML::Real>(static_cast<MML::Real>(0.5)));
 
 	REQUIRE(result.converged);
-	REQUIRE_THAT(result.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), 1e-4));
-	REQUIRE_THAT(result.xmin[1], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), 1e-4));
+	REQUIRE_THAT(result.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), MML::Real(1e-4)));
+	REQUIRE_THAT(result.xmin[1], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), MML::Real(1e-4)));
 	REQUIRE_THAT(result.fmin, RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), TOL(1e-6, 1e-3)));
 }
 
@@ -175,8 +175,8 @@ TEST_CASE("NelderMead - Beale's function", "[NelderMead][2D]") {
 	auto result = optimizer.Minimize(func, start, static_cast<MML::Real>(static_cast<MML::Real>(1.0)));
 
 	REQUIRE(result.converged);
-	REQUIRE_THAT(result.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(3.0)), 1e-4));
-	REQUIRE_THAT(result.xmin[1], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(0.5)), 1e-4));
+	REQUIRE_THAT(result.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(3.0)), MML::Real(1e-4)));
+	REQUIRE_THAT(result.xmin[1], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(0.5)), MML::Real(1e-4)));
 	REQUIRE_THAT(result.fmin, RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), TOL(1e-6, 1e-3)));
 }
 
@@ -200,8 +200,8 @@ TEST_CASE("NelderMead - Himmelblau's function (find one minimum)", "[NelderMead]
 
 	REQUIRE(result.converged);
 	// Should find the (3, 2) minimum from this starting point
-	REQUIRE_THAT(result.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(3.0)), 1e-4));
-	REQUIRE_THAT(result.xmin[1], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(2.0)), 1e-4));
+	REQUIRE_THAT(result.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(3.0)), MML::Real(1e-4)));
+	REQUIRE_THAT(result.xmin[1], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(2.0)), MML::Real(1e-4)));
 	REQUIRE_THAT(result.fmin, RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), TOL(1e-6, 1e-3)));
 }
 
@@ -240,7 +240,7 @@ TEST_CASE("NelderMead - 4D weighted sum of squares", "[NelderMead][4D]") {
 
 	REQUIRE(result.converged);
 	for (int i = 0; i < 4; ++i) {
-		REQUIRE_THAT(result.xmin[i], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), 1e-5));
+		REQUIRE_THAT(result.xmin[i], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), MML::Real(1e-5)));
 	}
 	REQUIRE_THAT(result.fmin, RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), TOL(1e-8, 1e-4)));
 }
@@ -308,8 +308,8 @@ TEST_CASE("NelderMead - Very small initial simplex", "[NelderMead][2D][EdgeCase]
 	auto result = NelderMeadMinimize(func, start, static_cast<MML::Real>(static_cast<MML::Real>(0.01))); // Tiny simplex
 
 	REQUIRE(result.converged);
-	REQUIRE_THAT(result.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), 1e-5));
-	REQUIRE_THAT(result.xmin[1], RealWithinAbs(-static_cast<MML::Real>(static_cast<MML::Real>(1.0)), 1e-5));
+	REQUIRE_THAT(result.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), MML::Real(1e-5)));
+	REQUIRE_THAT(result.xmin[1], RealWithinAbs(-static_cast<MML::Real>(static_cast<MML::Real>(1.0)), MML::Real(1e-5)));
 }
 
 TEST_CASE("NelderMead - Large initial simplex", "[NelderMead][2D][EdgeCase]") {
@@ -319,8 +319,8 @@ TEST_CASE("NelderMead - Large initial simplex", "[NelderMead][2D][EdgeCase]") {
 	auto result = NelderMeadMinimize(func, start, static_cast<MML::Real>(static_cast<MML::Real>(100.0))); // Huge simplex
 
 	REQUIRE(result.converged);
-	REQUIRE_THAT(result.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), 1e-5));
-	REQUIRE_THAT(result.xmin[1], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), 1e-5));
+	REQUIRE_THAT(result.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), MML::Real(1e-5)));
+	REQUIRE_THAT(result.xmin[1], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), MML::Real(1e-5)));
 }
 
 TEST_CASE("NelderMead - Function evaluation count", "[NelderMead][2D]") {
@@ -337,9 +337,9 @@ TEST_CASE("NelderMead - Function evaluation count", "[NelderMead][2D]") {
 }
 
 TEST_CASE("NelderMead - Accessor methods", "[NelderMead][API]") {
-	NelderMead optimizer(1e-6, 3000);
+	NelderMead optimizer(MML::Real(1e-6), 3000);
 
-	REQUIRE_THAT(optimizer.getFtol(), RealApprox(1e-6));
+	REQUIRE_THAT(optimizer.getFtol(), RealApprox(MML::Real(1e-6)));
 	REQUIRE(optimizer.getMaxIter() == 3000);
 
 	optimizer.setFtol(TOL(1e-10, 1e-5));
@@ -362,8 +362,8 @@ TEST_CASE("NelderMead - Different starting points find same minimum", "[NelderMe
 		auto result = NelderMeadMinimize(func, start, static_cast<MML::Real>(static_cast<MML::Real>(2.0)));
 
 		REQUIRE(result.converged);
-		REQUIRE_THAT(result.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), 1e-5));
-		REQUIRE_THAT(result.xmin[1], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(3.0)), 1e-5));
+		REQUIRE_THAT(result.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), MML::Real(1e-5)));
+		REQUIRE_THAT(result.xmin[1], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(3.0)), MML::Real(1e-5)));
 	}
 }
 
@@ -436,8 +436,8 @@ TEST_CASE("NelderMead - Rosenbrock from difficult start", "[NelderMead][2D][Rose
 	auto result = optimizer.Minimize(func, start, static_cast<MML::Real>(static_cast<MML::Real>(1.0)));
 
 	REQUIRE(result.converged);
-	REQUIRE_THAT(result.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), 1e-3));
-	REQUIRE_THAT(result.xmin[1], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), 1e-3));
+	REQUIRE_THAT(result.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), MML::Real(1e-3)));
+	REQUIRE_THAT(result.xmin[1], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), MML::Real(1e-3)));
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -566,8 +566,8 @@ TEST_CASE("Powell - Booth function", "[Powell][2D]") {
 	auto result = PowellMinimize(func, start);
 
 	REQUIRE(result.converged);
-	REQUIRE_THAT(result.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), 1e-5));
-	REQUIRE_THAT(result.xmin[1], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(3.0)), 1e-5));
+	REQUIRE_THAT(result.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), MML::Real(1e-5)));
+	REQUIRE_THAT(result.xmin[1], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(3.0)), MML::Real(1e-5)));
 }
 
 TEST_CASE("Powell - 3D quadratic", "[Powell][3D]") {
@@ -590,8 +590,8 @@ TEST_CASE("Powell - Rosenbrock function", "[Powell][2D][Rosenbrock]") {
 	auto result = optimizer.Minimize(func, start);
 
 	REQUIRE(result.converged);
-	REQUIRE_THAT(result.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), 1e-4));
-	REQUIRE_THAT(result.xmin[1], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), 1e-4));
+	REQUIRE_THAT(result.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), MML::Real(1e-4)));
+	REQUIRE_THAT(result.xmin[1], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), MML::Real(1e-4)));
 }
 
 TEST_CASE("Powell - Custom direction matrix", "[Powell][2D]") {
@@ -647,8 +647,8 @@ TEST_CASE("ConjugateGradient - Booth function", "[CG][2D]") {
 	auto result = ConjugateGradientMinimize(func, start);
 
 	REQUIRE(result.converged);
-	REQUIRE_THAT(result.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), 1e-5));
-	REQUIRE_THAT(result.xmin[1], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(3.0)), 1e-5));
+	REQUIRE_THAT(result.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), MML::Real(1e-5)));
+	REQUIRE_THAT(result.xmin[1], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(3.0)), MML::Real(1e-5)));
 }
 
 TEST_CASE("ConjugateGradient - 3D quadratic", "[CG][3D]") {
@@ -683,8 +683,8 @@ TEST_CASE("ConjugateGradient - Rosenbrock function", "[CG][2D][Rosenbrock]") {
 	auto result = optimizer.Minimize(func, start);
 
 	REQUIRE(result.converged);
-	REQUIRE_THAT(result.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), 1e-4));
-	REQUIRE_THAT(result.xmin[1], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), 1e-4));
+	REQUIRE_THAT(result.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), MML::Real(1e-4)));
+	REQUIRE_THAT(result.xmin[1], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), MML::Real(1e-4)));
 }
 
 TEST_CASE("ConjugateGradient - Fletcher-Reeves method", "[CG][2D]") {
@@ -743,8 +743,8 @@ TEST_CASE("BFGS - Booth function", "[BFGS][2D]") {
 	auto result = BFGSMinimize(func, start);
 
 	REQUIRE(result.converged);
-	REQUIRE_THAT(result.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), 1e-5));
-	REQUIRE_THAT(result.xmin[1], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(3.0)), 1e-5));
+	REQUIRE_THAT(result.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), MML::Real(1e-5)));
+	REQUIRE_THAT(result.xmin[1], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(3.0)), MML::Real(1e-5)));
 }
 
 TEST_CASE("BFGS - 3D quadratic", "[BFGS][3D]") {
@@ -779,8 +779,8 @@ TEST_CASE("BFGS - Rosenbrock function", "[BFGS][2D][Rosenbrock]") {
 	auto result = optimizer.Minimize(func, start);
 
 	REQUIRE(result.converged);
-	REQUIRE_THAT(result.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), 1e-4));
-	REQUIRE_THAT(result.xmin[1], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), 1e-4));
+	REQUIRE_THAT(result.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), MML::Real(1e-4)));
+	REQUIRE_THAT(result.xmin[1], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), MML::Real(1e-4)));
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -817,8 +817,8 @@ TEST_CASE("L-BFGS - Booth function", "[LBFGS][2D]") {
 	auto result = LBFGSMinimize(func, start);
 
 	REQUIRE(result.converged);
-	REQUIRE_THAT(result.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), 1e-5));
-	REQUIRE_THAT(result.xmin[1], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(3.0)), 1e-5));
+	REQUIRE_THAT(result.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), MML::Real(1e-5)));
+	REQUIRE_THAT(result.xmin[1], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(3.0)), MML::Real(1e-5)));
 }
 
 TEST_CASE("L-BFGS - 3D quadratic", "[LBFGS][3D]") {
@@ -853,8 +853,8 @@ TEST_CASE("L-BFGS - Rosenbrock function", "[LBFGS][2D][Rosenbrock]") {
 	auto result = optimizer.Minimize(func, start);
 
 	REQUIRE(result.converged);
-	REQUIRE_THAT(result.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), 1e-4));
-	REQUIRE_THAT(result.xmin[1], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), 1e-4));
+	REQUIRE_THAT(result.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), MML::Real(1e-4)));
+	REQUIRE_THAT(result.xmin[1], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), MML::Real(1e-4)));
 }
 
 TEST_CASE("L-BFGS - Different memory sizes", "[LBFGS][MemorySize]") {
@@ -868,8 +868,8 @@ TEST_CASE("L-BFGS - Different memory sizes", "[LBFGS][MemorySize]") {
 
 		INFO("Memory size: " << m);
 		REQUIRE(result.converged);
-		REQUIRE_THAT(result.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), 1e-3));
-		REQUIRE_THAT(result.xmin[1], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), 1e-3));
+		REQUIRE_THAT(result.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), MML::Real(1e-3)));
+		REQUIRE_THAT(result.xmin[1], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), MML::Real(1e-3)));
 	}
 }
 
@@ -886,6 +886,116 @@ TEST_CASE("L-BFGS - Config-based API", "[LBFGS][API]") {
 	REQUIRE_THAT(result.xmin[1], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(0.0)), TOL(1e-6, 1e-3)));
 }
 
+///////////////////////////////////////////////////////////////////////////////
+///          Quasi-Newton line-search robustness (MinimalMathLibrary-zp7v)   ///
+///////////////////////////////////////////////////////////////////////////////
+
+namespace {
+	// f(x) = (s*x - 1)^2 with s = 1e10: smooth and convex, minimizer at x = 1/s.
+	// A bisection-only zoom from alpha in [0,1] cannot reach the required step ~1e-12.
+	class BadlyScaledQuadratic1D : public IDifferentiableScalarFunction<1> {
+	public:
+		mutable int calls = 0;
+		Real operator()(const VectorN<Real, 1>& x) const override {
+			++calls;
+			Real r = static_cast<MML::Real>(1e10) * x[0] - static_cast<MML::Real>(1.0);
+			return r * r;
+		}
+		void Gradient(const VectorN<Real, 1>& x, VectorN<Real, 1>& grad) const override {
+			Real r = static_cast<MML::Real>(1e10) * x[0] - static_cast<MML::Real>(1.0);
+			grad[0] = static_cast<MML::Real>(2e10) * r;
+		}
+	};
+
+	// f(x) = -log(x) + x^2 on x > 0 (minimizer 1/sqrt(2)), NaN elsewhere.
+	class LogBarrier1D : public IDifferentiableScalarFunction<1> {
+	public:
+		mutable int calls = 0;
+		Real operator()(const VectorN<Real, 1>& x) const override {
+			++calls;
+			if (!(x[0] > 0)) return std::numeric_limits<Real>::quiet_NaN();
+			return -std::log(x[0]) + x[0] * x[0];
+		}
+		void Gradient(const VectorN<Real, 1>& x, VectorN<Real, 1>& grad) const override {
+			grad[0] = x[0] > 0 ? -static_cast<MML::Real>(1.0) / x[0] + static_cast<MML::Real>(2.0) * x[0]
+							   : std::numeric_limits<Real>::quiet_NaN();
+		}
+	};
+
+	// Finite only at the starting point; every trial step is invalid, so no decrease exists.
+	class StartOnlyFinite2D : public IDifferentiableScalarFunction<2> {
+	public:
+		mutable int calls = 0;
+		Real operator()(const VectorN<Real, 2>& x) const override {
+			++calls;
+			if (x[0] == static_cast<MML::Real>(1.0) && x[1] == static_cast<MML::Real>(2.0)) return static_cast<MML::Real>(1.0);
+			return std::numeric_limits<Real>::quiet_NaN();
+		}
+		void Gradient(const VectorN<Real, 2>&, VectorN<Real, 2>& grad) const override {
+			grad[0] = static_cast<MML::Real>(1.0);
+			grad[1] = static_cast<MML::Real>(-1.0);
+		}
+	};
+}
+
+TEST_CASE("BFGS - badly scaled convex quadratic is not falsely converged at the start",
+	"[BFGS][LineSearch][MinimalMathLibrary-zp7v]") {
+	if constexpr (!std::is_same_v<Real, float>) {
+		BadlyScaledQuadratic1D func;
+		VectorN<Real, 1> start{static_cast<MML::Real>(0.0)};
+		BFGS optimizer(MML::Real(3e-8), MML::Real(1e-8), 4);
+		auto result = optimizer.Minimize(func, start);
+
+		INFO(result.error_message);
+		// Either genuine progress or an explicit failure; never Success at the untouched start
+		REQUIRE_FALSE((result.converged && result.xmin[0] == static_cast<MML::Real>(0.0)));
+		REQUIRE(result.converged);
+		REQUIRE(result.status == AlgorithmStatus::Success);
+		REQUIRE_THAT(result.xmin[0], RealWithinAbs(static_cast<MML::Real>(1e-10), static_cast<MML::Real>(1e-13)));
+		REQUIRE(result.fmin < static_cast<MML::Real>(1e-12));
+	}
+}
+
+TEST_CASE("L-BFGS - nonfinite trial steps are contracted and the search stays bounded",
+	"[LBFGS][LineSearch][MinimalMathLibrary-zp7v]") {
+	LogBarrier1D func;
+	VectorN<Real, 1> start{static_cast<MML::Real>(3.0)};
+	LBFGS optimizer;
+	auto result = optimizer.Minimize(func, start);
+
+	INFO(result.error_message);
+	REQUIRE(result.converged);
+	REQUIRE_THAT(result.xmin[0], RealWithinAbs(static_cast<MML::Real>(1.0) / std::sqrt(static_cast<MML::Real>(2.0)), TOL(1e-5, 1e-3)));
+	REQUIRE(func.calls < 400);
+}
+
+TEST_CASE("Quasi-Newton - line-search failure is reported as Stalled, not Success",
+	"[BFGS][LBFGS][LineSearch][MinimalMathLibrary-zp7v]") {
+	StartOnlyFinite2D func;
+	VectorN<Real, 2> start{static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0)};
+
+	SECTION("BFGS") {
+		BFGS optimizer;
+		auto result = optimizer.Minimize(func, start);
+		REQUIRE_FALSE(result.converged);
+		REQUIRE(result.status == AlgorithmStatus::Stalled);
+		REQUIRE(result.error_message.find("line search failed") != std::string::npos);
+		REQUIRE(result.xmin[0] == static_cast<MML::Real>(1.0));
+		REQUIRE(result.xmin[1] == static_cast<MML::Real>(2.0));
+		REQUIRE(func.calls < 200);
+	}
+	SECTION("L-BFGS") {
+		LBFGS optimizer;
+		auto result = optimizer.Minimize(func, start);
+		REQUIRE_FALSE(result.converged);
+		REQUIRE(result.status == AlgorithmStatus::Stalled);
+		REQUIRE(result.error_message.find("line search failed") != std::string::npos);
+		REQUIRE(result.xmin[0] == static_cast<MML::Real>(1.0));
+		REQUIRE(result.xmin[1] == static_cast<MML::Real>(2.0));
+		REQUIRE(func.calls < 200);
+	}
+}
+
 TEST_CASE("L-BFGS vs BFGS comparison", "[LBFGS][BFGS][Comparison]") {
 	DiffEllipticParaboloid2D func;
 	VectorN<Real, 2> start{static_cast<MML::Real>(static_cast<MML::Real>(5.0)), -static_cast<MML::Real>(static_cast<MML::Real>(5.0))};
@@ -898,10 +1008,10 @@ TEST_CASE("L-BFGS vs BFGS comparison", "[LBFGS][BFGS][Comparison]") {
 	REQUIRE(lbfgsResult.converged);
 
 	// Both should find the same minimum
-	REQUIRE_THAT(bfgsResult.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), 1e-4));
-	REQUIRE_THAT(lbfgsResult.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), 1e-4));
-	REQUIRE_THAT(bfgsResult.xmin[1], RealWithinAbs(-static_cast<MML::Real>(static_cast<MML::Real>(1.0)), 1e-4));
-	REQUIRE_THAT(lbfgsResult.xmin[1], RealWithinAbs(-static_cast<MML::Real>(static_cast<MML::Real>(1.0)), 1e-4));
+	REQUIRE_THAT(bfgsResult.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), MML::Real(1e-4)));
+	REQUIRE_THAT(lbfgsResult.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), MML::Real(1e-4)));
+	REQUIRE_THAT(bfgsResult.xmin[1], RealWithinAbs(-static_cast<MML::Real>(static_cast<MML::Real>(1.0)), MML::Real(1e-4)));
+	REQUIRE_THAT(lbfgsResult.xmin[1], RealWithinAbs(-static_cast<MML::Real>(static_cast<MML::Real>(1.0)), MML::Real(1e-4)));
 
 	INFO("BFGS iterations: " << bfgsResult.iterations);
 	INFO("L-BFGS iterations: " << lbfgsResult.iterations);
@@ -930,17 +1040,17 @@ TEST_CASE("All methods converge to same minimum", "[Powell][CG][BFGS][LBFGS][Com
 	REQUIRE(lbfgsResult.converged);
 
 	// All should find the same minimum
-	REQUIRE_THAT(nelderResult.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), 1e-4));
-	REQUIRE_THAT(powellResult.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), 1e-4));
-	REQUIRE_THAT(cgResult.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), 1e-4));
-	REQUIRE_THAT(bfgsResult.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), 1e-4));
-	REQUIRE_THAT(lbfgsResult.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), 1e-4));
+	REQUIRE_THAT(nelderResult.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), MML::Real(1e-4)));
+	REQUIRE_THAT(powellResult.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), MML::Real(1e-4)));
+	REQUIRE_THAT(cgResult.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), MML::Real(1e-4)));
+	REQUIRE_THAT(bfgsResult.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), MML::Real(1e-4)));
+	REQUIRE_THAT(lbfgsResult.xmin[0], RealWithinAbs(static_cast<MML::Real>(static_cast<MML::Real>(1.0)), MML::Real(1e-4)));
 
-	REQUIRE_THAT(nelderResult.xmin[1], RealWithinAbs(-static_cast<MML::Real>(static_cast<MML::Real>(1.0)), 1e-4));
-	REQUIRE_THAT(powellResult.xmin[1], RealWithinAbs(-static_cast<MML::Real>(static_cast<MML::Real>(1.0)), 1e-4));
-	REQUIRE_THAT(cgResult.xmin[1], RealWithinAbs(-static_cast<MML::Real>(static_cast<MML::Real>(1.0)), 1e-4));
-	REQUIRE_THAT(bfgsResult.xmin[1], RealWithinAbs(-static_cast<MML::Real>(static_cast<MML::Real>(1.0)), 1e-4));
-	REQUIRE_THAT(lbfgsResult.xmin[1], RealWithinAbs(-static_cast<MML::Real>(static_cast<MML::Real>(1.0)), 1e-4));
+	REQUIRE_THAT(nelderResult.xmin[1], RealWithinAbs(-static_cast<MML::Real>(static_cast<MML::Real>(1.0)), MML::Real(1e-4)));
+	REQUIRE_THAT(powellResult.xmin[1], RealWithinAbs(-static_cast<MML::Real>(static_cast<MML::Real>(1.0)), MML::Real(1e-4)));
+	REQUIRE_THAT(cgResult.xmin[1], RealWithinAbs(-static_cast<MML::Real>(static_cast<MML::Real>(1.0)), MML::Real(1e-4)));
+	REQUIRE_THAT(bfgsResult.xmin[1], RealWithinAbs(-static_cast<MML::Real>(static_cast<MML::Real>(1.0)), MML::Real(1e-4)));
+	REQUIRE_THAT(lbfgsResult.xmin[1], RealWithinAbs(-static_cast<MML::Real>(static_cast<MML::Real>(1.0)), MML::Real(1e-4)));
 }
 
 TEST_CASE("Gradient methods are more efficient", "[Powell][CG][BFGS][LBFGS][Comparison]") {
@@ -986,9 +1096,9 @@ TEST_CASE("Gradient methods are more efficient", "[Powell][CG][BFGS][LBFGS][Comp
 ///////////////////////////////////////////////////////////////////////////////
 
 TEST_CASE("Powell - Accessor methods", "[Powell][API]") {
-	Powell optimizer(1e-6, 300);
+	Powell optimizer(MML::Real(1e-6), 300);
 
-	REQUIRE_THAT(optimizer.getFtol(), RealApprox(1e-6));
+	REQUIRE_THAT(optimizer.getFtol(), RealApprox(MML::Real(1e-6)));
 	REQUIRE(optimizer.getMaxIter() == 300);
 
 	optimizer.setFtol(TOL(1e-10, 1e-5));
@@ -999,10 +1109,10 @@ TEST_CASE("Powell - Accessor methods", "[Powell][API]") {
 }
 
 TEST_CASE("ConjugateGradient - Accessor methods", "[CG][API]") {
-	ConjugateGradient optimizer(1e-6, 1e-7, 300, ConjugateGradient::Method::FletcherReeves);
+	ConjugateGradient optimizer(MML::Real(1e-6), MML::Real(1e-7), 300, ConjugateGradient::Method::FletcherReeves);
 
-	REQUIRE_THAT(optimizer.getFtol(), RealApprox(1e-6));
-	REQUIRE_THAT(optimizer.getGtol(), RealApprox(1e-7));
+	REQUIRE_THAT(optimizer.getFtol(), RealApprox(MML::Real(1e-6)));
+	REQUIRE_THAT(optimizer.getGtol(), RealApprox(MML::Real(1e-7)));
 	REQUIRE(optimizer.getMaxIter() == 300);
 	REQUIRE(optimizer.getMethod() == ConjugateGradient::Method::FletcherReeves);
 
@@ -1011,10 +1121,10 @@ TEST_CASE("ConjugateGradient - Accessor methods", "[CG][API]") {
 }
 
 TEST_CASE("BFGS - Accessor methods", "[BFGS][API]") {
-	BFGS optimizer(1e-6, 1e-7, 300);
+	BFGS optimizer(MML::Real(1e-6), MML::Real(1e-7), 300);
 
-	REQUIRE_THAT(optimizer.getFtol(), RealApprox(1e-6));
-	REQUIRE_THAT(optimizer.getGtol(), RealApprox(1e-7));
+	REQUIRE_THAT(optimizer.getFtol(), RealApprox(MML::Real(1e-6)));
+	REQUIRE_THAT(optimizer.getGtol(), RealApprox(MML::Real(1e-7)));
 	REQUIRE(optimizer.getMaxIter() == 300);
 
 	optimizer.setFtol(TOL(1e-10, 1e-5));
@@ -1063,7 +1173,7 @@ TEST_CASE("NelderMead_All2DConvexTestBed", "[NelderMead][TestBed][Convex][Compre
 				INFO("Function value: " << result.fmin);
 
 				// Check if we're near any known minimum
-				bool nearMinimum = verifyNDMinimum(test, result.xmin, 1e-3);
+				bool nearMinimum = verifyNDMinimum(test, result.xmin, MML::Real(1e-3));
 				CHECK(nearMinimum);
 				CHECK(std::abs(result.fmin - test.trueMinimumF) < 1e-4);
 			}
@@ -1091,15 +1201,15 @@ TEST_CASE("NelderMead_ClassicBenchmarks2DTestBed", "[NelderMead][TestBed][Classi
 			auto result = optimizer.Minimize(f, test.suggestedStart, 1.0);
 
 			// Adjust tolerance based on difficulty
-			Real posTol = 1e-3;
-			Real valTol = 1e-4;
+			Real posTol = MML::Real(1e-3);
+			Real valTol = MML::Real(1e-4);
 			if (test.difficulty >= 3) {
-				posTol = 1e-2;
-				valTol = 1e-2;
+				posTol = MML::Real(1e-2);
+				valTol = MML::Real(1e-2);
 			}
 			if (test.difficulty >= 4) {
-				posTol = 1e-1;
-				valTol = 1e-1;
+				posTol = MML::Real(1e-1);
+				valTol = MML::Real(1e-1);
 			}
 
 			if (result.converged) {
@@ -1148,7 +1258,7 @@ TEST_CASE("Powell_All2DConvexTestBed", "[Powell][TestBed][Convex][Comprehensive]
 				INFO("Found minimum at (" << result.xmin[0] << ", " << result.xmin[1] << ")");
 				INFO("Function value: " << result.fmin);
 
-				bool nearMinimum = verifyNDMinimum(test, result.xmin, 1e-4);
+				bool nearMinimum = verifyNDMinimum(test, result.xmin, MML::Real(1e-4));
 				CHECK(nearMinimum);
 				CHECK(std::abs(result.fmin - test.trueMinimumF) < 1e-5);
 			}
@@ -1172,10 +1282,10 @@ TEST_CASE("Powell_ClassicBenchmarks2DTestBed", "[Powell][TestBed][Classic]") {
 			Powell optimizer(TOL(1e-8, 1e-4), 500);
 			auto result = optimizer.Minimize(f, test.suggestedStart);
 
-			Real posTol = 1e-3;
-			Real valTol = 1e-4;
+			Real posTol = MML::Real(1e-3);
+			Real valTol = MML::Real(1e-4);
 			if (test.difficulty >= 3) {
-				posTol = 1e-1;
+				posTol = MML::Real(1e-1);
 				valTol = 1.0;
 			} // Very relaxed for hard multimodal
 			if (test.difficulty >= 4) {
@@ -1231,7 +1341,7 @@ TEST_CASE("NelderMead_Multimodal2DTestBed", "[NelderMead][TestBed][Multimodal]")
 
 				// For multimodal, check if we found any of the known minima
 				// or at least a valid local minimum (function value <= nearby points)
-				bool nearKnownMinimum = verifyNDMinimum(test, result.xmin, 0.1);
+				bool nearKnownMinimum = verifyNDMinimum(test, result.xmin, MML::Real(0.1));
 
 				if (nearKnownMinimum) {
 					INFO("Found known global minimum");
@@ -1239,7 +1349,7 @@ TEST_CASE("NelderMead_Multimodal2DTestBed", "[NelderMead][TestBed][Multimodal]")
 				} else {
 					// Verify it's at least a local minimum by checking gradient is small
 					// (function value should be lower than nearby points)
-					Real delta = 1e-4;
+					Real delta = MML::Real(1e-4);
 					VectorN<Real, 2> x{result.xmin[0], result.xmin[1]};
 					VectorN<Real, 2> xp, xm;
 
@@ -1325,15 +1435,15 @@ TEST_CASE("NelderMead_All2DTestBed", "[NelderMead][TestBed][All][Comprehensive]"
 			auto result = optimizer.Minimize(f, test.suggestedStart, 1.0);
 
 			// Relaxed tolerance for comprehensive test
-			Real posTol = 0.1;
-			Real valTol = 0.1;
+			Real posTol = MML::Real(0.1);
+			Real valTol = MML::Real(0.1);
 			if (test.difficulty <= 2) {
-				posTol = 1e-2;
-				valTol = 1e-2;
+				posTol = MML::Real(1e-2);
+				valTol = MML::Real(1e-2);
 			}
 			if (test.difficulty == 1) {
-				posTol = 1e-3;
-				valTol = 1e-4;
+				posTol = MML::Real(1e-3);
+				valTol = MML::Real(1e-4);
 			}
 
 			if (result.converged) {

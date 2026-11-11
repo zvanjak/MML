@@ -13,12 +13,14 @@
 #define MML_DYNAMICAL_SYSTEM_TYPES_H
 
 #include <mml/MMLBase.h>
+#include <mml/base/AlgorithmTypes.h>
 #include <mml/base/Vector/Vector.h>
 #include <mml/base/Matrix/Matrix.h>
 
 #include <vector>
 #include <string>
 #include <complex>
+#include <limits>
 
 namespace MML::Systems 
 {
@@ -35,7 +37,7 @@ namespace MML::Systems
 		SaddleFocus,		 ///< Mixed signs with complex eigenvalues (e.g., Lorenz attractor)
 		StableFocus,		 ///< Complex with negative real part (spiral in)
 		UnstableFocus,	 ///< Complex with positive real part (spiral out)
-		Center,					 ///< Purely imaginary eigenvalues
+		Center,					 ///< Purely imaginary nonzero spectrum; linearized label only
 		StableStarNode,	 ///< Degenerate stable node
 		UnstableStarNode ///< Degenerate unstable node
 	};
@@ -80,9 +82,12 @@ namespace MML::Systems
 		std::vector<std::complex<Type>> eigenvalues; ///< Jacobian eigenvalues
 		Matrix<Type> jacobian;											 ///< Jacobian at fixed point
 		FixedPointType type = FixedPointType::Unknown;												 ///< Stability classification
-		bool isStable = false;															 ///< Overall stability (false until classified)
-		Type convergenceResidual = Type(0);										 ///< ||f(x*)|| at convergence
+		bool isStable = false;															 ///< Strictly decaying linear spectrum; false does not prove instability
+		Type convergenceResidual = std::numeric_limits<Type>::quiet_NaN(); ///< ||f(location)||, unavailable until evaluated
 		int iterations = 0;															 ///< Newton iterations used
+		AlgorithmStatus status = AlgorithmStatus::AlgorithmSpecificFailure; ///< Finding/classification outcome
+		std::string error_message = "Fixed-point analysis has not run";
+		int function_evaluations = 0; ///< Direct Newton derivs calls; excludes calls internal to user Jacobians
 	};
 
 	/// @brief Result of Lyapunov exponent computation
@@ -92,9 +97,11 @@ namespace MML::Systems
 		Type maxExponent = Type(0);						///< Largest exponent (λ₁)
 		Type sum = Type(0);										///< Sum of all exponents
 		Type kaplanYorkeDimension = Type(0);	///< Kaplan-Yorke dimension
-		bool isChaotic = false;							///< True if λ₁ > 0
+		bool isChaotic = false;							///< Positive-growth heuristic using Precision::LyapunovChaosThreshold
 		int numOrthonormalizations = 0; ///< Number of QR steps performed
 		Type totalTime = Type(0);							///< Total integration time
+		int function_evaluations = 0; ///< Direct trajectory RHS calls, including rejected QR trials; excludes calls inside Jacobians
+		int qr_refinements = 0; ///< Internal block halvings needed to resolve the tangent frame
 	};
 
 	/// @brief Result of bifurcation sweep
@@ -103,8 +110,8 @@ namespace MML::Systems
 		std::string parameterName;											///< Name of swept parameter
 		std::vector<Type> parameterValues;							///< Parameter values
 		std::vector<std::vector<Type>> attractorValues; ///< Attractor points at each param
-		int numTransientSteps = 0;													///< Transient removal steps
-		int numRecordedPoints = 0;													///< Points recorded per parameter
+		int numTransientSteps = 0;													///< Legacy rounded transientTime/initialStep estimate, not adaptive work
+		int numRecordedPoints = 0;													///< Legacy rounded recordTime/initialStep estimate, not actual output count
 	};
 
 	/// @brief Poincaré section definition

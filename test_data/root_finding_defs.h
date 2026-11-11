@@ -60,8 +60,8 @@ namespace MML::TestBeds
     // Known root: ≈ 0.7390851332151607 (Dottie number)
 
     // 7. Kepler's equation: f(x) = x - e*sin(x) - M  (here e=0.5, M=0.5)
-    static Real Trans_kepler(Real x) { return x - 0.5 * std::sin(x) - 0.5; }
-    static Real Trans_kepler_deriv(Real x) { return 1 - 0.5 * std::cos(x); }
+    static Real Trans_kepler(Real x) { return x - MML::Real(0.5) * std::sin(x) - MML::Real(0.5); }
+    static Real Trans_kepler_deriv(Real x) { return 1 - MML::Real(0.5) * std::cos(x); }
     // Known root: ≈ 0.7581847193 (eccentric anomaly for e=0.5, M=0.5)
 
     // 8. Exponential decay: f(x) = exp(-x) - x  (intersection of exp(-x) and x)
@@ -71,11 +71,11 @@ namespace MML::TestBeds
 
     // 9. Log equation: f(x) = ln(x) - 1  (root at x = e)
     static Real Trans_lnx_minus_1(Real x) { return std::log(x) - 1; }
-    static Real Trans_lnx_minus_1_deriv(Real x) { return 1.0 / x; }
+    static Real Trans_lnx_minus_1_deriv(Real x) { return MML::Real(1.0) / x; }
     // Known root: e ≈ 2.718281828
 
     // 10. Trigonometric: f(x) = sin(x) - 0.5
-    static Real Trans_sinx_minus_half(Real x) { return std::sin(x) - 0.5; }
+    static Real Trans_sinx_minus_half(Real x) { return std::sin(x) - MML::Real(0.5); }
     static Real Trans_sinx_minus_half_deriv(Real x) { return std::cos(x); }
     // Known roots: π/6 ≈ 0.5236, 5π/6 ≈ 2.618, etc.
 
@@ -83,7 +83,7 @@ namespace MML::TestBeds
     static Real Trans_tanx_minus_x(Real x) { return std::tan(x) - x; }
     static Real Trans_tanx_minus_x_deriv(Real x) { 
         Real c = std::cos(x);
-        return 1.0 / (c * c) - 1; 
+        return MML::Real(1.0) / (c * c) - 1;
     }
     // Known roots: 0 (trivial), ≈4.4934, ≈7.7253, etc.
 
@@ -111,13 +111,13 @@ namespace MML::TestBeds
     // ========================================================================================
 
     // 15. Nearly coincident: f(x) = (x - 1)(x - 1.001) = x² - 2.001x + 1.001
-    static Real Close_roots_1_1001(Real x) { return (x - 1) * (x - 1.001); }
-    static Real Close_roots_1_1001_deriv(Real x) { return 2*x - 2.001; }
+    static Real Close_roots_1_1001(Real x) { return (x - 1) * (x - MML::Real(1.001)); }
+    static Real Close_roots_1_1001_deriv(Real x) { return 2*x - MML::Real(2.001); }
     // Known roots: 1.0, 1.001
 
     // 16. Very close: f(x) = (x - 2)(x - 2.0001)
-    static Real Close_roots_2_20001(Real x) { return (x - 2) * (x - 2.0001); }
-    static Real Close_roots_2_20001_deriv(Real x) { return 2*x - 4.0001; }
+    static Real Close_roots_2_20001(Real x) { return (x - 2) * (x - MML::Real(2.0001)); }
+    static Real Close_roots_2_20001_deriv(Real x) { return 2*x - MML::Real(4.0001); }
     // Known roots: 2.0, 2.0001
 
     // ========================================================================================
@@ -130,7 +130,7 @@ namespace MML::TestBeds
     // Known root: ln(10000) ≈ 9.210340372
 
     // 18. Flat near root: f(x) = (x-1)³ - 0.001 (slow convergence)
-    static Real Patho_flat_cubic(Real x) { return (x - 1) * (x - 1) * (x - 1) - 0.001; }
+    static Real Patho_flat_cubic(Real x) { return (x - 1) * (x - 1) * (x - 1) - MML::Real(0.001); }
     static Real Patho_flat_cubic_deriv(Real x) { return 3 * (x - 1) * (x - 1); }
     // Known root: 1 + ∛0.001 ≈ 1.1
 
@@ -154,13 +154,13 @@ namespace MML::TestBeds
     // ========================================================================================
 
     // 21. Near singularity: f(x) = 1/x - 2 (root at x=0.5, singularity at x=0)
-    static Real Sing_1_over_x_minus_2(Real x) { return 1.0 / x - 2; }
-    static Real Sing_1_over_x_minus_2_deriv(Real x) { return -1.0 / (x * x); }
+    static Real Sing_1_over_x_minus_2(Real x) { return MML::Real(1.0) / x - 2; }
+    static Real Sing_1_over_x_minus_2_deriv(Real x) { return -MML::Real(1.0) / (x * x); }
     // Known root: 0.5
 
     // 22. Log singularity: f(x) = ln(x) + x - 2 (root near x≈1.56, singularity at x=0)
     static Real Sing_lnx_plus_x_minus_2(Real x) { return std::log(x) + x - 2; }
-    static Real Sing_lnx_plus_x_minus_2_deriv(Real x) { return 1.0 / x + 1; }
+    static Real Sing_lnx_plus_x_minus_2_deriv(Real x) { return MML::Real(1.0) / x + 1; }
     // Known root: ≈ 1.5571455990
 
     // ========================================================================================
@@ -169,7 +169,7 @@ namespace MML::TestBeds
 
     // 23. Van der Waals equation (simplified): f(V) = V³ - 2V² + V - 0.1
     // (Looking for molar volume at certain P,T)
-    static Real Phys_vdw(Real V) { return V*V*V - 2*V*V + V - 0.1; }
+    static Real Phys_vdw(Real V) { return V*V*V - 2*V*V + V - MML::Real(0.1); }
     static Real Phys_vdw_deriv(Real V) { return 3*V*V - 4*V + 1; }
     // Root approximately 0.11
 

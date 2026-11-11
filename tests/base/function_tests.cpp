@@ -37,10 +37,10 @@ namespace MML::Tests::Core::FunctionTests
 	class ClassProvidingFuncToDerive
 	{
 	private:
-		double _param;
+		Real _param;
 	public:
-		ClassProvidingFuncToDerive(double param) : _param(param) { }
-		void setParam(double inParam) { _param = inParam; }
+		ClassProvidingFuncToDerive(Real param) : _param(param) { }
+		void setParam(Real inParam) { _param = inParam; }
 
 		Real operator()(Real x) const { return _param * sin(x); }
 	};
@@ -121,7 +121,7 @@ namespace MML::Tests::Core::FunctionTests
 		// here we implement function with behavior we want
 		Real operator()(Real x)
 		{
-			return _ref._param * _ref.complexCalc(x);
+			return Real(_ref._param) * _ref.complexCalc(x);
 		}
 	};
 

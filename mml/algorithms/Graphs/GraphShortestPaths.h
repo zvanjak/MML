@@ -206,33 +206,6 @@ namespace MML
 	///                    PATH UTILITIES                                   ///
 	///////////////////////////////////////////////////////////////////////////
 
-	/// Reconstruct path from parent array (used by BFS/DFS/Dijkstra)
-	inline std::vector<size_t> ReconstructPath(
-		const std::vector<size_t>& parent,
-		size_t start,
-		size_t target)
-	{
-		std::vector<size_t> path;
-
-		if (target >= parent.size())
-			return path;
-
-		if (parent[target] == GRAPH_NOT_FOUND && target != start)
-			return path;  // No path exists
-
-		size_t curr = target;
-		while (curr != GRAPH_NOT_FOUND)
-		{
-			path.push_back(curr);
-			if (curr == start)
-				break;
-			curr = parent[curr];
-		}
-
-		std::reverse(path.begin(), path.end());
-		return path;
-	}
-
 	/// Find shortest path (unweighted) using BFS
 	template<typename V, typename E>
 	PathResult ShortestPathUnweighted(const Graph<V, E>& graph, size_t start, size_t target)
@@ -283,7 +256,10 @@ namespace MML
 	}
 
 	/// Find shortest path from start to target using A* with a user-provided heuristic.
-	/// The heuristic is called as heuristic(vertex, target) and should be admissible for optimality.
+	/// The heuristic is called as heuristic(vertex, target) and must be admissible (never
+	/// overestimate) for optimality. Consistency is not required: a closed vertex whose
+	/// g-score improves is reopened and re-expanded, so the returned path and totalWeight
+	/// always agree and equal the optimal cost (at the price of extra expansions).
 	template<typename V, typename E, typename Heuristic>
 	PathResult AStarPath(const Graph<V, E>& graph, size_t start, size_t target, Heuristic heuristic)
 	{
@@ -325,16 +301,26 @@ namespace MML
 		std::vector<bool> closed(n, false);
 		gScore[start] = 0;
 
-		using PQEntry = std::pair<Real, size_t>;
-		std::priority_queue<PQEntry, std::vector<PQEntry>, std::greater<PQEntry>> open;
-		open.push({ static_cast<Real>(heuristic(start, target)), start });
+		struct OpenEntry {
+			Real f;
+			Real g;
+			size_t vertex;
+			bool operator>(const OpenEntry& other) const {
+				return f > other.f || (f == other.f && g > other.g);
+			}
+		};
+		std::priority_queue<OpenEntry, std::vector<OpenEntry>, std::greater<OpenEntry>> open;
+		open.push({ static_cast<Real>(heuristic(start, target)), Real(0), start });
 
 		while (!open.empty())
 		{
-			auto [fScore, current] = open.top();
-			(void)fScore;
+			const OpenEntry entry = open.top();
 			open.pop();
+			const size_t current = entry.vertex;
 
+			// Stale entry: a better g-score for this vertex has been pushed since.
+			if (entry.g > gScore[current])
+				continue;
 			if (closed[current])
 				continue;
 
@@ -358,8 +344,11 @@ namespace MML
 				{
 					gScore[neighbor] = tentative;
 					parent[neighbor] = current;
+					// Reopen an already-expanded vertex (admissible but inconsistent heuristic)
+					// so its successors see the improved score.
+					closed[neighbor] = false;
 					Real estimated = tentative + static_cast<Real>(heuristic(neighbor, target));
-					open.push({ estimated, neighbor });
+					open.push({ estimated, tentative, neighbor });
 				}
 			}
 		}

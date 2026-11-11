@@ -101,7 +101,7 @@ TEST_CASE("MinimumEnclosingCircle - Points on Circle2D boundary", "[Computationa
     std::vector<Point2Cartesian> points;
     for (int i = 0; i < 8; i++)
     {
-        Real angle = i * Constants::PI / 4.0;
+        Real angle = i * Constants::PI / MML::Real(4.0);
         points.push_back(Point2Cartesian(std::cos(angle), std::sin(angle)));
     }
 
@@ -225,7 +225,7 @@ TEST_CASE("ClosestPair - Grid of points", "[ComputationalGeometry][ClosestPair]"
     {
         for (int j = 0; j < 3; j++)
         {
-            points.push_back(Point2Cartesian(i, j));
+            points.push_back(Point2Cartesian(Real(i), Real(j)));
         }
     }
 
@@ -242,7 +242,7 @@ TEST_CASE("ClosestPair - Random cloud", "[ComputationalGeometry][ClosestPair]")
         Point2Cartesian(5, 8),
         Point2Cartesian(3, 1),
         Point2Cartesian(7, 4),
-        Point2Cartesian(3.1, 1.1),  // Very close to (3,1)
+        Point2Cartesian(MML::Real(3.1), MML::Real(1.1)),  // Very close to (3,1)
         Point2Cartesian(9, 2)
     };
 
@@ -254,4 +254,3 @@ TEST_CASE("ClosestPair - Random cloud", "[ComputationalGeometry][ClosestPair]")
 }
 
 } // namespace MML::Tests::Algorithms::CompGeometry::CirclesTests
-

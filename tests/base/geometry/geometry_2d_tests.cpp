@@ -37,8 +37,8 @@ namespace MML::Tests::Base::Geometry2DTests
 
 		REQUIRE(line2.StartPoint().X() == static_cast<MML::Real>(1.0));
 		REQUIRE(line2.StartPoint().Y() == static_cast<MML::Real>(1.0));
-		REQUIRE_THAT(line2.Direction().X() , RealWithinRel(static_cast<MML::Real>(0.7071067811865475), 1e-5));
-		REQUIRE_THAT(line2.Direction().Y() , RealWithinRel(static_cast<MML::Real>(0.7071067811865475), 1e-5));
+		REQUIRE_THAT(line2.Direction().X() , RealWithinRel(static_cast<MML::Real>(0.7071067811865475), MML::Real(1e-5)));
+		REQUIRE_THAT(line2.Direction().Y() , RealWithinRel(static_cast<MML::Real>(0.7071067811865475), MML::Real(1e-5)));
 	}
 
 	/*********************************************************************/
@@ -50,10 +50,10 @@ namespace MML::Tests::Base::Geometry2DTests
 		Point2Cartesian p1(static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0));
 		Point2Cartesian p2(static_cast<MML::Real>(4.0), static_cast<MML::Real>(6.0));
 		SegmentLine2D seg(p1, p2);
-		REQUIRE_THAT(seg.StartPoint().X() , RealWithinRel(static_cast<MML::Real>(1.0), 1e-5));
-		REQUIRE_THAT(seg.StartPoint().Y() , RealWithinRel(static_cast<MML::Real>(2.0), 1e-5));
-		REQUIRE_THAT(seg.EndPoint().X() , RealWithinRel(static_cast<MML::Real>(4.0), 1e-5));
-		REQUIRE_THAT(seg.EndPoint().Y() , RealWithinRel(static_cast<MML::Real>(6.0), 1e-5));
+		REQUIRE_THAT(seg.StartPoint().X() , RealWithinRel(static_cast<MML::Real>(1.0), MML::Real(1e-5)));
+		REQUIRE_THAT(seg.StartPoint().Y() , RealWithinRel(static_cast<MML::Real>(2.0), MML::Real(1e-5)));
+		REQUIRE_THAT(seg.EndPoint().X() , RealWithinRel(static_cast<MML::Real>(4.0), MML::Real(1e-5)));
+		REQUIRE_THAT(seg.EndPoint().Y() , RealWithinRel(static_cast<MML::Real>(6.0), MML::Real(1e-5)));
 	}
 
 	TEST_CASE("SegmentLine2D::PointOnSegment", "[SegmentLine2D]")
@@ -69,8 +69,8 @@ namespace MML::Tests::Base::Geometry2DTests
 
 		// Midpoint
 		Point2Cartesian mid = seg.PointOnSegment(static_cast<MML::Real>(0.5));
-		REQUIRE_THAT(mid.X() , RealWithinRel(static_cast<MML::Real>(1.0), 1e-5));
-		REQUIRE_THAT(mid.Y() , RealWithinRel(static_cast<MML::Real>(1.0), 1e-5));
+		REQUIRE_THAT(mid.X() , RealWithinRel(static_cast<MML::Real>(1.0), MML::Real(1e-5)));
+		REQUIRE_THAT(mid.Y() , RealWithinRel(static_cast<MML::Real>(1.0), MML::Real(1e-5)));
 	}
 
 	TEST_CASE("SegmentLine2D::Length", "[SegmentLine2D]")
@@ -79,7 +79,7 @@ namespace MML::Tests::Base::Geometry2DTests
 		Point2Cartesian p1(static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.0));
 		Point2Cartesian p2(static_cast<MML::Real>(4.0), static_cast<MML::Real>(5.0));
 		SegmentLine2D seg(p1, p2);
-		Real expected_length = sqrt(pow(static_cast<MML::Real>(4.0) - static_cast<MML::Real>(1.0), 2) + pow(static_cast<MML::Real>(5.0) - static_cast<MML::Real>(1.0), 2));
+		Real expected_length = sqrt(pow(static_cast<MML::Real>(4.0) - static_cast<MML::Real>(1.0), MML::Real(2)) + pow(static_cast<MML::Real>(5.0) - static_cast<MML::Real>(1.0), MML::Real(2)));
 		REQUIRE_THAT(seg.StartPoint().Dist(seg.EndPoint()) , RealWithinRel(expected_length, static_cast<MML::Real>(1e-5)));
 	}
 
@@ -92,8 +92,8 @@ namespace MML::Tests::Base::Geometry2DTests
 		Vector2Cartesian dir(p1, p2);
 		// Direction should be (3,4) normalized
 		Real norm = sqrt(static_cast<MML::Real>(3.0) * static_cast<MML::Real>(3.0) + static_cast<MML::Real>(4.0) * static_cast<MML::Real>(4.0));
-		REQUIRE_THAT(dir.X() / norm , RealWithinRel(static_cast<MML::Real>(0.6), 1e-5));
-		REQUIRE_THAT(dir.Y() / norm , RealWithinRel(static_cast<MML::Real>(0.8), 1e-5));
+		REQUIRE_THAT(dir.X() / norm , RealWithinRel(static_cast<MML::Real>(0.6), MML::Real(1e-5)));
+		REQUIRE_THAT(dir.Y() / norm , RealWithinRel(static_cast<MML::Real>(0.8), MML::Real(1e-5)));
 	}
 
 	/*********************************************************************/
@@ -117,7 +117,7 @@ namespace MML::Tests::Base::Geometry2DTests
 		Triangle2D tri(p1, p2, p3);
 
 		Real area = tri.Area();
-		REQUIRE_THAT(area , RealWithinRel(static_cast<MML::Real>(6.0), 1e-5));
+		REQUIRE_THAT(area , RealWithinRel(static_cast<MML::Real>(6.0), MML::Real(1e-5)));
 
 		// Degenerate triangle (collinear)
 		Point2Cartesian p4(1, 1);
@@ -125,7 +125,7 @@ namespace MML::Tests::Base::Geometry2DTests
 		Point2Cartesian p6(3, 3);
 		Triangle2D degenerate(p4, p5, p6);
 		Real deg_area = degenerate.Area();
-		REQUIRE_THAT(deg_area , RealWithinRel(static_cast<MML::Real>(0.0), 1e-5));
+		REQUIRE_THAT(deg_area , RealWithinRel(static_cast<MML::Real>(0.0), MML::Real(1e-5)));
 	}
 
 	/*********************************************************************/
@@ -146,7 +146,7 @@ namespace MML::Tests::Base::Geometry2DTests
 			{0, 0}, {2, 0}, {2, 2}, {0, 2}
 		};
 		Polygon2D poly(square);
-		REQUIRE_THAT(poly.Area() , RealWithinRel(static_cast<MML::Real>(4.0), 1e-5));
+		REQUIRE_THAT(poly.Area() , RealWithinRel(static_cast<MML::Real>(4.0), MML::Real(1e-5)));
 	}
 
 	TEST_CASE("Polygon2D::Area2", "[Polygon2D]")
@@ -157,7 +157,7 @@ namespace MML::Tests::Base::Geometry2DTests
 			{0, 0}, {4, 0}, {0, 3}
 		};
 		Polygon2D poly(triangle);
-		REQUIRE_THAT(poly.Area() , RealWithinRel(static_cast<MML::Real>(6.0), 1e-5));
+		REQUIRE_THAT(poly.Area() , RealWithinRel(static_cast<MML::Real>(6.0), MML::Real(1e-5)));
 	}
 
 	TEST_CASE("Polygon2D::Area3", "[Polygon2D]")
@@ -168,7 +168,7 @@ namespace MML::Tests::Base::Geometry2DTests
 			{1, 1}, {2, 2}, {3, 3}
 		};
 		Polygon2D poly(line);
-		REQUIRE_THAT(poly.Area() , RealWithinRel(static_cast<MML::Real>(0.0), 1e-5));
+		REQUIRE_THAT(poly.Area() , RealWithinRel(static_cast<MML::Real>(0.0), MML::Real(1e-5)));
 
 		// Regular pentagon, side length 1, area ≈ 2.3776
 		std::vector<Point2Cartesian> pentagon = {
@@ -179,7 +179,7 @@ namespace MML::Tests::Base::Geometry2DTests
 			{-static_cast<MML::Real>(0.9510565163), static_cast<MML::Real>(0.309017)}
 		};
 		Polygon2D poly2(pentagon);
-		REQUIRE_THAT(poly2.Area() , RealWithinRel(static_cast<MML::Real>(2.3776), 1e-4));
+		REQUIRE_THAT(poly2.Area() , RealWithinRel(static_cast<MML::Real>(2.3776), MML::Real(1e-4)));
 	}
 
 	TEST_CASE("Polygon2D::IsSimple", "[Polygon2D]")
@@ -481,12 +481,11 @@ namespace MML::Tests::Base::Geometry2DTests
 		REQUIRE_FALSE(cw.IsCounterClockwise());
 	}
 
-	TEST_CASE("Triangle2D - Cached side lengths", "[Triangle2D][Performance]")
+	TEST_CASE("Triangle2D - Repeatable side lengths", "[Triangle2D][SideLengths]")
 	{
 		TEST_PRECISION_INFO();
 		Triangle2D tri(Point2Cartesian(0, 0), Point2Cartesian(3, 0), Point2Cartesian(0, 4));
 		
-		// Multiple calls should use cached values
 		Real a1 = tri.A();
 		Real a2 = tri.A();
 		Real a3 = tri.A();
@@ -520,7 +519,6 @@ namespace MML::Tests::Base::Geometry2DTests
 		REQUIRE_THAT(ccw.Pnt2().X(), WithinAbs(static_cast<MML::Real>(4.0), TOL(1e-10, 1e-5)));
 		REQUIRE_THAT(ccw.Pnt3().Y(), WithinAbs(static_cast<MML::Real>(3.0), TOL(1e-10, 1e-5)));
 		
-		// Mutable accessor invalidates cache
 		ccw.Pnt1() = Point2Cartesian(1, 0);
 		REQUIRE_THAT(ccw.A(), WithinAbs(static_cast<MML::Real>(3.0), TOL(1e-10, 1e-5))); // Distance (1,0) to (4,0) = 3
 	}
@@ -632,7 +630,8 @@ namespace MML::Tests::Base::Geometry2DTests
 		SegmentLine2D edge1 = poly.Edge(1); // (3,0) to (3,4)
 		REQUIRE_THAT(edge1.Length(), WithinAbs(static_cast<MML::Real>(4.0), TOL(1e-10, 1e-5)));
 		
-		REQUIRE_THROWS(poly.Edge(10)); // Out of range
+		const int invalidEdge = GENERATE(4, 10);
+		REQUIRE_THROWS_AS(poly.Edge(invalidEdge), VectorAccessBoundsError);
 		
 		// Index operator
 		REQUIRE_THAT(poly[0].X(), WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-10, 1e-5)));

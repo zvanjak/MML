@@ -27,6 +27,16 @@ namespace MML
 	template<typename T>
 	struct is_std_complex<std::complex<T>> : std::true_type { };
 
+	namespace ScalarDetail {
+		template<typename Scalar>
+		constexpr Scalar ScalarFromInteger(int value) {
+			if constexpr (is_std_complex<Scalar>::value)
+				return Scalar(static_cast<typename Scalar::value_type>(value));
+			else
+				return static_cast<Scalar>(value);
+		}
+	}
+
 	template<typename T>
 	struct is_mml_complex_scalar : std::false_type { };
 

@@ -28,11 +28,12 @@ TEST_CASE("VectorN<Complex>::IsEqualTo compiles and compares magnitudes", "[comp
 {
     // eps used to be `Type eps`, so Abs(difference) > eps was Real > Complex and did not compile
     VectorN<Complex, 2> a{Complex(1.0, 2.0), Complex(-3.0, 0.5)};
-    VectorN<Complex, 2> b{Complex(1.0, 2.0 + 1e-12), Complex(-3.0, 0.5)};
+    VectorN<Complex, 2> b{Complex(Real(1), Real(2) + Precision::VectorIsEqualTolerance / 4), Complex(-Real(3), Real(0.5))};
     VectorN<Complex, 2> c{Complex(1.0, 2.5), Complex(-3.0, 0.5)};
 
+    REQUIRE(a[0] != b[0]);
     REQUIRE(a.IsEqualTo(b));
-    REQUIRE(a.IsEqualTo(b, static_cast<MML::Real>(1e-9)));
+    REQUIRE(a.IsEqualTo(b, 4 * Precision::VectorIsEqualTolerance));
     REQUIRE_FALSE(a.IsEqualTo(c));
     REQUIRE(a.IsEqualTo(c, static_cast<MML::Real>(1.0)));
 }
@@ -42,9 +43,9 @@ TEST_CASE("Matrix<Complex>::Print with threshold compiles and zeroes small entri
     // static_cast<Real>(complex) was instantiated because is_MML_simple_numeric<Complex> is true
     Matrix<Complex> m(2, 2);
     m(0, 0) = Complex(1.0, 0.0);
-    m(0, 1) = Complex(1e-14, -1e-14);
+    m(0, 1) = Complex(MML::Real(1e-14), -MML::Real(1e-14));
     m(1, 0) = Complex(0.0, 2.0);
-    m(1, 1) = Complex(-1e-13, 0.0);
+    m(1, 1) = Complex(-MML::Real(1e-13), MML::Real(0.0));
 
     std::ostringstream out;
     m.Print(out, 8, 3, static_cast<MML::Real>(1e-10));
@@ -58,13 +59,14 @@ TEST_CASE("Matrix<Complex>::Print with threshold compiles and zeroes small entri
 TEST_CASE("PolynomComplex::Reduce compiles and strips trailing near-zero coefficients", "[complex-instantiation][polynom][wewi.1.6]")
 {
     // std::numeric_limits<Complex>::epsilon() is 0 and std::abs(c) < Complex did not compile
-    PolynomComplex p{Complex(1.0, 1.0), Complex(2.0, 0.0), Complex(1e-15, -1e-15), Complex(0.0, 1e-16)};
+    const Real tiny = Precision::RoundoffZeroThreshold / 4;
+    PolynomComplex p{Complex(1, 1), Complex(2, 0), Complex(tiny, -tiny), Complex(0, tiny / 2)};
     REQUIRE(p.degree() == 3);
     p.Reduce();
     REQUIRE(p.degree() == 1);
     REQUIRE(p[1] == Complex(2.0, 0.0));
 
-    PolynomComplex q{Complex(0.5, 0.5), Complex(0.0, 0.01)};
+    PolynomComplex q{Complex(MML::Real(0.5), MML::Real(0.5)), Complex(MML::Real(0.0), MML::Real(0.01))};
     q.Reduce(static_cast<MML::Real>(0.1));
     REQUIRE(q.degree() == 0);
 }
@@ -134,9 +136,10 @@ namespace {
 TEST_CASE("VectorN<Complex>::AreEqual compiles with a real tolerance", "[complex-instantiation][vectorn][wewi.2.1]")
 {
     VectorN<Complex, 2> a{Complex(1.0, 2.0), Complex(-3.0, 0.5)};
-    VectorN<Complex, 2> b{Complex(1.0, 2.0 + 1e-12), Complex(-3.0, 0.5)};
+    VectorN<Complex, 2> b{Complex(Real(1), Real(2) + Precision::VectorIsEqualTolerance / 4), Complex(-Real(3), Real(0.5))};
+    REQUIRE(a[0] != b[0]);
     REQUIRE(VectorN<Complex, 2>::AreEqual(a, b));
-    REQUIRE_FALSE(VectorN<Complex, 2>::AreEqual(a, b, static_cast<MML::Real>(1e-15)));
+    REQUIRE_FALSE(VectorN<Complex, 2>::AreEqual(a, b, Precision::VectorIsEqualTolerance / 16));
 }
 
 TEST_CASE("MatrixNM<Complex>::Invert / SolveGaussJordan pivot on magnitude", "[complex-instantiation][matrixnm][wewi.2.1]")
@@ -178,9 +181,10 @@ TEST_CASE("PolynomComplex: IsEqualTo exists and Derive produces complex jets", "
 {
     // IsEqualTo was SFINAE-restricted to floating-point CoefT -> no such member on PolynomComplex
     PolynomComplex p{Complex(1.0, 1.0), Complex(0.0, 2.0), Complex(3.0, 0.0)};   // (1+i) + 2i x + 3 x^2
-    PolynomComplex q{Complex(1.0, 1.0 + 1e-13), Complex(0.0, 2.0), Complex(3.0, 0.0)};
+    PolynomComplex q{Complex(MML::Real(1.0), MML::Real(1.0) + TOL(1e-13, Precision::Eps)), Complex(MML::Real(0.0), MML::Real(2.0)), Complex(MML::Real(3.0), MML::Real(0.0))};
+    REQUIRE(p[0] != q[0]);
     REQUIRE(p.IsEqualTo(q));
-    REQUIRE_FALSE(p.IsEqualTo(q, static_cast<MML::Real>(1e-15)));
+    REQUIRE_FALSE(p.IsEqualTo(q, TOL(1e-15, Precision::Eps / Real(2))));
 
     // Derive took Vector<Real> and could not store complex coefficients
     Vector<Complex> jet(3);
@@ -279,7 +283,7 @@ TEST_CASE("MatrixNDim<Complex>::IsEqualTo and arithmetic", "[complex-instantiati
     MatrixNDim<Complex, 2, 2> a, b;
     a(0, 0) = Complex(1.0, 1.0); a(1, 1) = Complex(0.0, -2.0);
     b = a;
-    b(1, 1) += Complex(1e-13, 0.0);
+    b(1, 1) += Complex(MML::Real(1e-13), MML::Real(0.0));
     REQUIRE(a.IsEqualTo(b, static_cast<MML::Real>(1e-12)));
     REQUIRE_FALSE(a.IsEqualTo(b, static_cast<MML::Real>(1e-15)));
     auto s = a + b;

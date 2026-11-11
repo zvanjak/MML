@@ -18,6 +18,7 @@
 
 #include <limits>
 #include <algorithm>
+#include <type_traits>
 
 #include <mml/base/InterpolatedFunctions/InterpolatedRealFunctionLinear.h>
 
@@ -58,7 +59,7 @@ namespace MML {
 
 		RationalInterpRealFunc(const Vector<Real>& xv, const Vector<Real>& yv, int m)
 			: RealFunctionInterpolated(xv, yv, m)
-			, _errorEst(0.) {}
+			, _errorEst(NoEstimate) {}
 
 		/// /** @brief Get the error estimate from the last interpolation. */
 
@@ -73,35 +74,56 @@ namespace MML {
 		/// @throws RealFuncInterpRuntimeError if a pole is detected
 
 		Real calcInterpValue(int startInd, Real x) const override {
+			// Float correction cancellation can otherwise manufacture a zero pole denominator.
+			using Work = std::common_type_t<Real, double>;
 			int m, i, ns = 0;
-			Real y, w, t, hh, h, dd;
+			Work y, w, t, hh, h, dd;
 			int mm = getInterpOrder();
-			Vector<Real> c(mm), d(mm);
+			Vector<Work> c(mm), d(mm);
+			// Canonical node order keeps removable high-order corrections independent of storage direction.
+			const bool descending = X(startInd) > X(startInd + mm - 1);
+			const auto index = [&](int offset) { return startInd + (descending ? mm - 1 - offset : offset); };
 
-			hh = std::abs(x - X(startInd));
+			hh = std::abs(Work(x) - X(index(0)));
+			bool constant = true;
 			for (i = 0; i < mm; i++) {
-				h = std::abs(x - X(startInd + i));
-				const Real nodeScale = std::max({Real{1}, std::abs(x), std::abs(X(startInd + i))});
-				const Real nodeTolerance = Real{4} * std::numeric_limits<Real>::epsilon() * nodeScale;
-				if (h <= nodeTolerance) {
+				h = std::abs(Work(x) - X(index(i)));
+				if (x == X(index(i))) {
 					_errorEst = 0.0;
-					return Y(startInd + i);
+					return Y(index(i));
 				} else if (h < hh) {
 					ns = i;
 					hh = h;
 				}
-				c[i] = Y(startInd + i);
-				d[i] = Y(startInd + i) + TINY; // TINY prevents rare zero-over-zero condition
+				constant = constant && Y(index(i)) == Y(index(0));
+				c[i] = Y(index(i));
+				d[i] = Work(Y(index(i))) + TINY;
 			}
-			y = Y(startInd + ns--);
+			Real separation = std::numeric_limits<Real>::max();
+			if (ns > 0)
+				separation = std::min(separation, std::abs(X(index(ns)) - X(index(ns - 1))));
+			if (ns + 1 < mm)
+				separation = std::min(separation, std::abs(X(index(ns + 1)) - X(index(ns))));
+			const Real nodeScale = std::min(separation, std::max({Real{1}, std::abs(x), std::abs(X(index(ns)))}));
+			const Real nodeTolerance = Real{4} * std::numeric_limits<Real>::epsilon() * nodeScale;
+			if (constant || hh <= nodeTolerance) {
+				_errorEst = 0;
+				return Y(index(ns));
+			}
+			y = Y(index(ns--));
 
 			for (m = 1; m < mm; m++) {
 				for (i = 0; i < mm - m; i++) {
 					w = c[i + 1] - d[i];
-					h = X(startInd + i + m) - x;
-					if (std::abs(h) < TINY)
+					if (w == 0) {
+						// A vanished correction is removable, not a pole of the interpolant.
+						c[i] = d[i] = 0;
+						continue;
+					}
+					h = Work(X(index(i + m))) - x;
+					if (h == 0)
 						throw RealFuncInterpRuntimeError("Error in RationalInterpRealFunc: x coincides with a node");
-					t = (X(startInd + i) - x) * d[i] / h;
+					t = ((Work(X(index(i))) - x) / h) * d[i];
 					dd = t - c[i + 1];
 					if (dd == 0.0)
 						throw RealFuncInterpRuntimeError("Error in RationalInterpRealFunc: pole detected");
@@ -109,10 +131,11 @@ namespace MML {
 					d[i] = c[i + 1] * dd;
 					c[i] = t * dd;
 				}
-				_errorEst = (2 * (ns + 1) < (mm - m) ? c[ns + 1] : d[ns--]);
-				y += _errorEst;
+				const Work correction = (2 * (ns + 1) < (mm - m) ? c[ns + 1] : d[ns--]);
+				_errorEst = static_cast<Real>(correction);
+				y += correction;
 			}
-			return y;
+			return static_cast<Real>(y);
 		}
 	};
 

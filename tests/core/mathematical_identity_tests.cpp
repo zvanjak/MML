@@ -18,21 +18,48 @@ namespace MML::Tests::Core::MathematicalIdentityTests {
 			const auto back = transform.transfInverse(mapped);
 			const auto forward = transform.jacobian(point);
 			const auto inverse = transform.inverseJacobian(mapped);
+			MatrixNM<Real, N, N> forwardError, inverseError, numericalForward;
+			for (int i = 0; i < N; ++i)
+				for (int j = 0; j < N; ++j) {
+					numericalForward(i, j) = Derivation::NDer4Partial(transform.coordTransfFunc(i), j, point, &forwardError(i, j));
+					if constexpr (std::is_same_v<Real, float>)
+						Derivation::NDer4Partial(transform.inverseCoordTransfFunc(i), j, mapped, &inverseError(i, j));
+				}
 			for (int i = 0; i < N; ++i) {
 				CAPTURE(i);
 				REQUIRE(IsWithinAbs(back[i], point[i], Precision::LooseTolerance));
 				for (int j = 0; j < N; ++j) {
 					CAPTURE(j);
 					Real left = 0, right = 0;
+					Real leftError = 0, rightError = 0, leftMagnitude = 0, rightMagnitude = 0;
 					for (int k = 0; k < N; ++k) {
 						left += inverse(i, k) * forward(k, j);
 						right += forward(i, k) * inverse(k, j);
+						if constexpr (std::is_same_v<Real, float>) {
+							leftMagnitude += std::abs(inverse(i, k) * forward(k, j));
+							rightMagnitude += std::abs(forward(i, k) * inverse(k, j));
+							leftError += std::abs(inverse(i, k)) * forwardError(k, j) +
+								std::abs(forward(k, j)) * inverseError(i, k) + inverseError(i, k) * forwardError(k, j);
+							rightError += std::abs(forward(i, k)) * inverseError(k, j) +
+								std::abs(inverse(k, j)) * forwardError(i, k) + forwardError(i, k) * inverseError(k, j);
+						}
 					}
-					const Real expected = i == j ? 1 : 0;
-					REQUIRE(IsWithinAbs(left, expected, Precision::LooseTolerance));
-					REQUIRE(IsWithinAbs(right, expected, Precision::LooseTolerance));
-					const Real numerical = Derivation::NDer4Partial(transform.coordTransfFunc(i), j, point);
-					REQUIRE(IsWithinAbs(forward(i, j), numerical, Precision::LooseTolerance));
+					const Real expected = i == j ? Real(1) : Real(0);
+					Real leftTolerance = Precision::LooseTolerance, rightTolerance = Precision::LooseTolerance;
+					Real derivativeTolerance = Precision::LooseTolerance;
+					if constexpr (std::is_same_v<Real, float>) {
+						const Real gamma = Real(2 * N) * Precision::Eps / (1 - Real(2 * N) * Precision::Eps);
+						leftTolerance += leftError + gamma * leftMagnitude;
+						rightTolerance += rightError + gamma * rightMagnitude;
+						derivativeTolerance += forwardError(i, j);
+						CAPTURE(left, right, leftTolerance, rightTolerance, derivativeTolerance);
+						REQUIRE(leftTolerance < Precision::CoarseTolerance);
+						REQUIRE(rightTolerance < Precision::CoarseTolerance);
+						REQUIRE(derivativeTolerance < Precision::CoarseTolerance);
+					}
+					REQUIRE(IsWithinAbs(left, expected, leftTolerance));
+					REQUIRE(IsWithinAbs(right, expected, rightTolerance));
+					REQUIRE(IsWithinAbs(forward(i, j), numericalForward(i, j), derivativeTolerance));
 				}
 			}
 		}
@@ -81,7 +108,26 @@ namespace MML::Tests::Core::MathematicalIdentityTests {
 																	metric->GetChristoffelSymbolSecondKind(i, k, j, point), Precision::EqualityTolerance));
 							for (int l = 0; l < 3; ++l) {
 								CAPTURE(l);
-								REQUIRE(IsWithinAbs(metric->GetRiemannCurvatureTensor(i, j, k, l, point), 0, Precision::LooseTolerance));
+								Real tolerance = Precision::LooseTolerance;
+								if constexpr (std::is_same_v<Real, float>) {
+									auto connectionDerivativeError = [&](int a, int b, int c, int axis) {
+										Real error = 0;
+										Derivation::NDer4([&](Real coordinate) {
+											auto shifted = point;
+											shifted[axis] = coordinate;
+											return metric->GetChristoffelSymbolSecondKind(a, b, c, shifted);
+										}, point[axis], &error);
+										REQUIRE(std::isfinite(error));
+										REQUIRE(error >= 0);
+										return error;
+									};
+									tolerance += connectionDerivativeError(i, j, l, k) + connectionDerivativeError(i, j, k, l);
+									CAPTURE(tolerance);
+									REQUIRE(tolerance < Precision::CoarseTolerance * Real(10));
+								}
+								const Real curvature = metric->GetRiemannCurvatureTensor(i, j, k, l, point);
+								CAPTURE(curvature, tolerance);
+								REQUIRE(IsWithinAbs(curvature, 0, tolerance));
 							}
 						}
 			}
@@ -118,8 +164,17 @@ namespace MML::Tests::Core::MathematicalIdentityTests {
 				[&](const VectorN<Real, 3>& p) { return VectorFieldOperations::ToContravariant(physicalGradient(p), p, metric); });
 			for (const VectorN<Real, 3>& point : {VectorN<Real, 3>{2, Real(0.8), Real(-0.7)}, {Real(3.5), Real(1.4), Real(0.5)}}) {
 				CAPTURE(coordinates, point);
-				REQUIRE(convertedPhysical(point).IsEqualTo(physicalGradient(point), Precision::LooseTolerance));
-				REQUIRE(convertedCoordinate(point).IsEqualTo(coordinateGradient(point), Precision::LooseTolerance));
+				Real gradientTolerance = Precision::LooseTolerance;
+				Real laplacianTolerance = Precision::CoarseTolerance;
+				if constexpr (std::is_same_v<Real, float>) {
+					const Real gradientScale = std::max(physicalGradient(point).NormL2(), coordinateGradient(point).NormL2());
+					gradientTolerance = std::max(gradientTolerance, 3 * Precision::Eps * gradientScale);
+					// Second/composed derivatives amplify sample roundoff by epsilon / h^2.
+					laplacianTolerance += 3 * std::abs(scalar(point)) * Precision::Eps /
+						(Precision::SixthRootEps * Precision::SixthRootEps);
+				}
+				REQUIRE(convertedPhysical(point).IsEqualTo(physicalGradient(point), gradientTolerance));
+				REQUIRE(convertedCoordinate(point).IsEqualTo(coordinateGradient(point), gradientTolerance));
 				const Real laplacian = coordinates == 0		? ScalarFieldOperations::LaplacianCart(scalar, point)
 															 : coordinates == 1 ? ScalarFieldOperations::LaplacianSpher(scalar, Vec3Sph(point))
 																									: ScalarFieldOperations::LaplacianCyl(scalar, Vec3Cyl(point));
@@ -131,8 +186,10 @@ namespace MML::Tests::Core::MathematicalIdentityTests {
 																										 : VectorFieldOperations::DivCyl(convertedPhysical, point);
 				for (Real actual : {laplacian, physicalDiv, VectorFieldOperations::Divergence(coordinateGradient, point, metric),
 														VectorFieldOperations::DivergenceViaDet(coordinateGradient, point, metric), convertedDiv,
-														VectorFieldOperations::Divergence(convertedCoordinate, point, metric)})
-					REQUIRE(IsWithinAbs(actual, 12, Precision::CoarseTolerance));
+														VectorFieldOperations::Divergence(convertedCoordinate, point, metric)}) {
+					CAPTURE(actual, laplacianTolerance);
+					REQUIRE(IsWithinAbs(actual, 12, laplacianTolerance));
+				}
 			}
 		}
 	}
@@ -140,7 +197,7 @@ namespace MML::Tests::Core::MathematicalIdentityTests {
 	TEST_CASE("Field components - metric scale factors convert basis components without lowering indices", "[fields][components][wewi.8.1]") {
 		class DiagonalMetric : public MetricTensorField<2> {
 		public:
-			Real component(int i, int j, const VectorN<Real, 2>&) const override { return i != j ? 0 : i == 0 ? 4 : 9; }
+			Real component(int i, int j, const VectorN<Real, 2>&) const override { return Real(i != j ? 0 : i == 0 ? 4 : 9); }
 		} metric;
 		const VectorN<Real, 2> point{2, -1};
 		const VectorN<Real, 2> coordinate{3, -4};
@@ -240,7 +297,34 @@ namespace MML::Tests::Core::MathematicalIdentityTests {
 			NumericalHelix helix(pitch);
 			for (Real t : {Real(-2), Real(0), Real(0.75), Real(4)}) {
 				CAPTURE(pitch, t);
-				REQUIRE(IsWithinAbs(helix.getCurvature(t), 2 / (4 + pitch * pitch), Precision::LooseTolerance));
+				Real curvatureTolerance = Precision::LooseTolerance;
+				if constexpr (std::is_same_v<Real, float>) {
+					const Real h = Derivation::ScaleStep(Derivation::NDer4_h, t);
+					const Real gamma = Real(8) * Precision::Eps / (1 - Real(8) * Precision::Eps);
+					const Real sampledNorm = helix(t + 2 * h).NormL2() + helix(t - 2 * h).NormL2() +
+						8 * (helix(t + h).NormL2() + helix(t - h).NormL2());
+					// The helix's fifth derivative has norm 2; the first stencil's bias is h^4/30.
+					const Real velocityError = Real(2) * h * h * h * h / 30 + gamma * sampledNorm / (12 * h);
+					Real accelerationError = 0;
+					const Vec3Cart velocity = helix.getTangent(t);
+					const Vec3Cart acceleration(Derivation::NSecDer4(helix, t, &accelerationError));
+					const Vec3Cart exactVelocity(-2 * std::sin(t), 2 * std::cos(t), pitch);
+					const Vec3Cart exactAcceleration(-2 * std::cos(t), -2 * std::sin(t), 0);
+					REQUIRE((velocity - exactVelocity).NormL2() <= velocityError);
+					REQUIRE((acceleration - exactAcceleration).NormL2() <= accelerationError);
+					const Real speed = velocity.NormL2(), crossNorm = VectorProduct(velocity, acceleration).NormL2();
+					const Real crossError = acceleration.NormL2() * velocityError + speed * accelerationError +
+						velocityError * accelerationError;
+					const Real lowerSpeed = speed - velocityError;
+					REQUIRE(lowerSpeed > 0);
+					REQUIRE(std::isfinite(accelerationError));
+					REQUIRE(accelerationError >= 0);
+					curvatureTolerance += crossError / (lowerSpeed * lowerSpeed * lowerSpeed) +
+						crossNorm * (1 / (lowerSpeed * lowerSpeed * lowerSpeed) - 1 / (speed * speed * speed));
+					CAPTURE(curvatureTolerance);
+					REQUIRE(curvatureTolerance < Real(10) * Precision::CoarseTolerance);
+				}
+				REQUIRE(IsWithinAbs(helix.getCurvature(t), 2 / (4 + pitch * pitch), curvatureTolerance));
 				REQUIRE(IsWithinAbs(helix.getTorsion(t), pitch / (4 + pitch * pitch), Precision::CoarseTolerance));
 			}
 		}

@@ -78,7 +78,7 @@ namespace MML {
 			Real yp1 = NaturalBoundaryDerivative, Real ypn = NaturalBoundaryDerivative)
 			: RealFunctionInterpolated(xv, yv, 2)
 			, _secDerY(xv.size()) {
-			initSecDerivs(&xv[0], &yv[0], yp1, ypn);
+			InitSecDerivs(xv.size(), &xv[0], &yv[0], yp1, ypn);
 		}
 
 		/// @brief Initialize second derivatives by solving the tridiagonal system.
@@ -91,41 +91,46 @@ namespace MML {
 		/// (zero second derivative at that boundary).
 
 		void initSecDerivs(const Real* xv, const Real* yv, Real yp1, Real ypn) {
+			InitSecDerivs(getNumPoints(), xv, yv, yp1, ypn);
+		}
+
+	private:
+		void InitSecDerivs(int numPoints, const Real* xv, const Real* yv, Real yp1, Real ypn) {
 			int i, k;
 			Real p, qn, sig, un;
 
-			int numPoints = (int)_secDerY.size();
 			Vector<Real> u(numPoints - 1);
 
 			if (IsNaturalBoundaryDerivative(yp1))
 				_secDerY[0] = u[0] = 0.0;
 			else {
 				_secDerY[0] = -0.5;
-				u[0] = (3.0 / (xv[1] - xv[0])) * ((yv[1] - yv[0]) / (xv[1] - xv[0]) - yp1);
+				u[0] = (MML::Real(3.0) / (xv[1] - xv[0])) * ((yv[1] - yv[0]) / (xv[1] - xv[0]) - yp1);
 			}
 			for (i = 1; i < numPoints - 1; i++) {
 				sig = (xv[i] - xv[i - 1]) / (xv[i + 1] - xv[i - 1]);
-				p = sig * _secDerY[i - 1] + 2.0;
+				p = sig * _secDerY[i - 1] + MML::Real(2.0);
 
-				_secDerY[i] = (sig - 1.0) / p;
+				_secDerY[i] = (sig - MML::Real(1.0)) / p;
 
 				u[i] = (yv[i + 1] - yv[i]) / (xv[i + 1] - xv[i]) - (yv[i] - yv[i - 1]) / (xv[i] - xv[i - 1]);
-				u[i] = (6.0 * u[i] / (xv[i + 1] - xv[i - 1]) - sig * u[i - 1]) / p;
+				u[i] = (MML::Real(6.0) * u[i] / (xv[i + 1] - xv[i - 1]) - sig * u[i - 1]) / p;
 			}
 			if (IsNaturalBoundaryDerivative(ypn))
 				qn = un = 0.0;
 			else {
 				qn = 0.5;
-				un = (3.0 / (xv[numPoints - 1] - xv[numPoints - 2])) *
+				un = (MML::Real(3.0) / (xv[numPoints - 1] - xv[numPoints - 2])) *
 					 (ypn - (yv[numPoints - 1] - yv[numPoints - 2]) / (xv[numPoints - 1] - xv[numPoints - 2]));
 			}
 
-			_secDerY[numPoints - 1] = (un - qn * u[numPoints - 2]) / (qn * _secDerY[numPoints - 2] + 1.0);
+			_secDerY[numPoints - 1] = (un - qn * u[numPoints - 2]) / (qn * _secDerY[numPoints - 2] + MML::Real(1.0));
 
 			for (k = numPoints - 2; k >= 0; k--)
 				_secDerY[k] = _secDerY[k] * _secDerY[k + 1] + u[k];
 		}
 
+	public:
 		/// @name Spline Evaluation
 		/// @{
 
@@ -145,7 +150,7 @@ namespace MML {
 			a = (X(indUpp) - x) / h;
 			b = (x - X(indLow)) / h;
 
-			y = a * Y(indLow) + b * Y(indUpp) + ((POW3(a) - a) * _secDerY[indLow] + (POW3(b) - b) * _secDerY[indUpp]) * (h * h) / 6.0;
+			y = a * Y(indLow) + b * Y(indUpp) + ((POW3(a) - a) * _secDerY[indLow] + (POW3(b) - b) * _secDerY[indUpp]) * (h * h) / MML::Real(6.0);
 
 			return y;
 		}
@@ -175,8 +180,8 @@ namespace MML {
 
 			// Derivative of cubic spline:
 			// dy/dx = (y[hi] - y[lo])/h - (3a² - 1)/6 * h * y2[lo] + (3b² - 1)/6 * h * y2[hi]
-			Real dydx = (Y(indUpp) - Y(indLow)) / h - (3.0 * a * a - 1.0) / 6.0 * h * _secDerY[indLow] +
-						(3.0 * b * b - 1.0) / 6.0 * h * _secDerY[indUpp];
+			Real dydx = (Y(indUpp) - Y(indLow)) / h - (MML::Real(3.0) * a * a - MML::Real(1.0)) / MML::Real(6.0) * h * _secDerY[indLow] +
+						(MML::Real(3.0) * b * b - MML::Real(1.0)) / MML::Real(6.0) * h * _secDerY[indUpp];
 
 			return dydx;
 		}
@@ -217,14 +222,14 @@ namespace MML {
 		/// summing contributions from all segments intersected by [a, b].
 
 		Real Integrate(Real a, Real b) const {
+			if (!std::isfinite(a) || !std::isfinite(b))
+				throw DomainError("Spline integration: bounds must be finite");
 			if (a > b)
 				return -Integrate(b, a);
 			if (a < MinX() || b > MaxX())
 				throw DomainError("Spline integration: bounds exceed data domain");
 
 			Real integral = 0.0;
-			int iLow = locate(a);
-			int iHigh = locate(b);
 
 			// Helper lambda to integrate one segment from x0 to x1 within [X(i), X(i+1)]
 			auto integrateSegment = [this](int i, Real x0, Real x1) -> Real {
@@ -249,26 +254,21 @@ namespace MML {
 				// For (a³-a)*h²/6*y2_lo: integral is -h/6 * (a⁴/4 - a²/2) * h * y2_lo = -h³/6 * (a⁴/4 - a²/2) * y2_lo
 				// For (b³-b)*h²/6*y2_hi: integral is h/6 * (b⁴/4 - b²/2) * h * y2_hi = h³/6 * (b⁴/4 - b²/2) * y2_hi
 
-				Real term1 = h * y_lo * 0.5 * (a0 * a0 - a1 * a1);
-				Real term2 = h * y_hi * 0.5 * (b1 * b1 - b0 * b0);
+				Real term1 = h * y_lo * MML::Real(0.5) * (a0 * a0 - a1 * a1);
+				Real term2 = h * y_hi * MML::Real(0.5) * (b1 * b1 - b0 * b0);
 				Real term3 =
-					h * h * h / 6.0 * y2_lo * ((a0 * a0 * a0 * a0 / 4.0 - a0 * a0 / 2.0) - (a1 * a1 * a1 * a1 / 4.0 - a1 * a1 / 2.0));
+					h * h * h / MML::Real(6.0) * y2_lo * ((a0 * a0 * a0 * a0 / MML::Real(4.0) - a0 * a0 / MML::Real(2.0)) - (a1 * a1 * a1 * a1 / MML::Real(4.0) - a1 * a1 / MML::Real(2.0)));
 				Real term4 =
-					h * h * h / 6.0 * y2_hi * ((b1 * b1 * b1 * b1 / 4.0 - b1 * b1 / 2.0) - (b0 * b0 * b0 * b0 / 4.0 - b0 * b0 / 2.0));
+					h * h * h / MML::Real(6.0) * y2_hi * ((b1 * b1 * b1 * b1 / MML::Real(4.0) - b1 * b1 / MML::Real(2.0)) - (b0 * b0 * b0 * b0 / MML::Real(4.0) - b0 * b0 / MML::Real(2.0)));
 
 				return term1 + term2 + term3 + term4;
 			};
 
-			if (iLow == iHigh) {
-				// Both endpoints in same segment
-				integral = integrateSegment(iLow, a, b);
-			} else {
-				// Multiple segments
-				integral += integrateSegment(iLow, a, X(iLow + 1));
-				for (int i = iLow + 1; i < iHigh; i++) {
-					integral += integrateSegment(i, X(i), X(i + 1));
-				}
-				integral += integrateSegment(iHigh, X(iHigh), b);
+			for (int i = 0; i < getNumPoints() - 1; ++i) {
+				const Real left = std::max(a, std::min(X(i), X(i + 1)));
+				const Real right = std::min(b, std::max(X(i), X(i + 1)));
+				if (left < right)
+					integral += integrateSegment(i, left, right);
 			}
 
 			return integral;
@@ -370,7 +370,7 @@ namespace MML {
 				if (delta[k - 1] * delta[k] <= 0.0)
 					_d[k] = 0.0;  // Different signs or zero — flat tangent
 				else
-					_d[k] = (delta[k - 1] + delta[k]) / 2.0;
+					_d[k] = (delta[k - 1] + delta[k]) / MML::Real(2.0);
 			}
 			_d[n - 1] = delta[n - 2];
 
@@ -392,7 +392,7 @@ namespace MML {
 					if (r2 > fritschCarlsonRadiusSq)
 					{
 						// Rescale to satisfy α² + β² ≤ 9
-						Real tau = 3.0 / std::sqrt(r2);
+						Real tau = MML::Real(3.0) / std::sqrt(r2);
 						_d[k] = tau * alpha * delta[k];
 						_d[k + 1] = tau * beta * delta[k];
 					}
@@ -418,9 +418,9 @@ namespace MML {
 			Real t3 = t2 * t;
 
 			// Hermite basis functions
-			Real h00 = 2.0 * t3 - 3.0 * t2 + 1.0;
-			Real h10 = t3 - 2.0 * t2 + t;
-			Real h01 = -2.0 * t3 + 3.0 * t2;
+			Real h00 = MML::Real(2.0) * t3 - MML::Real(3.0) * t2 + MML::Real(1.0);
+			Real h10 = t3 - MML::Real(2.0) * t2 + t;
+			Real h01 = -MML::Real(2.0) * t3 + MML::Real(3.0) * t2;
 			Real h11 = t3 - t2;
 
 			return h00 * Y(lo) + h10 * h * _d[lo] + h01 * Y(hi) + h11 * h * _d[hi];

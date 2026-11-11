@@ -26,6 +26,7 @@
 #include <cmath>
 #include <limits>
 #include <functional>
+#include <array>
 
 #include <mml/MMLBase.h>
 #include <mml/core/Integration/IntegrationBase.h>
@@ -36,6 +37,7 @@ namespace MML {
 		/// @brief Result of Gauss-Kronrod integration: the common IntegrationResult with the GK
 		///        constructor order (value, error, function evaluations, converged).
 		struct GKResult : public IntegrationResult {
+			Real roundoff_floor = 0; ///< Arithmetic floor used by adaptive control, separate from the fixed embedded estimate.
 			GKResult(Real v = 0.0, Real e = 0.0, int n = 0, bool c = false)
 				: IntegrationResult(v, e, 1, c, /*error_estimated*/ true)
 			{
@@ -44,6 +46,8 @@ namespace MML {
 			}
 			GKResult(const IntegrationResult& r) : IntegrationResult(r) {}
 			static GKResult Fixed(Real value, Real error, int evaluations) {
+				IntegrationDetail::RequireFinite(value, "Gauss-Kronrod");
+				IntegrationDetail::RequireFinite(error, "Gauss-Kronrod error");
 				GKResult result(value, error, evaluations, false);
 				result.status = AlgorithmStatus::Completed;
 				return result;
@@ -63,35 +67,35 @@ namespace MML {
 		static constexpr int GK15_N = 8; // Number of unique positive nodes + origin
 		static constexpr Real xGK15[GK15_N] = {
 			0.0,																	 // x0 (origin)
-			0.20778495500789846760068940377324491, // x1
-			0.40584515137739716690660641207696146, // x2
-			0.58608723546769113029414483825872959, // x3
-			0.74153118559939443986386477328078841, // x4
-			0.86486442335976907278971278864092620, // x5
-			0.94910791234275852452618968404785126, // x6
-			0.99145537112081263920685469752632851	 // x7
+			MML::Real(0.20778495500789846760068940377324491L), // x1
+			MML::Real(0.40584515137739716690660641207696146L), // x2
+			MML::Real(0.58608723546769113029414483825872959L), // x3
+			MML::Real(0.74153118559939443986386477328078841L), // x4
+			MML::Real(0.86486442335976907278971278864092620L), // x5
+			MML::Real(0.94910791234275852452618968404785126L), // x6
+			MML::Real(0.99145537112081263920685469752632851L)	 // x7
 		};
 
 		/// @brief 15-point Kronrod weights (for all 15 points including symmetric)
 		static constexpr Real wGK15[GK15_N] = {
-			0.20948214108472782801299917489171426, // w0 (origin)
-			0.20443294007529889241416199923464908, // w1
-			0.19035057806478540991325640242101368, // w2
-			0.16900472663926790282658342659855028, // w3
-			0.14065325971552591874518959051023792, // w4
-			0.10479001032225018383987632254151801, // w5
-			0.06309209262997855329070066318920429, // w6
-			0.02293532201052922496373200805896959	 // w7
+			MML::Real(0.20948214108472782801299917489171426L), // w0 (origin)
+			MML::Real(0.20443294007529889241416199923464908L), // w1
+			MML::Real(0.19035057806478540991325640242101368L), // w2
+			MML::Real(0.16900472663926790282658342659855028L), // w3
+			MML::Real(0.14065325971552591874518959051023792L), // w4
+			MML::Real(0.10479001032225018383987632254151801L), // w5
+			MML::Real(0.06309209262997855329070066318920429L), // w6
+			MML::Real(0.02293532201052922496373200805896959L)	 // w7
 		};
 
 		/// @brief 7-point Gauss weights (for odd-indexed Kronrod nodes only)
 		/// @details Gauss nodes are xGK15[1,3,5,7] (every other Kronrod node starting from x1)
 		static constexpr int G7_N = 4; // Half of 7 (symmetric) + different handling
 		static constexpr Real wG7[G7_N] = {
-			0.41795918367346938775510204081632653, // w0 (at x=0, but stored at index 0)
-			0.38183005050511894495036977548897513, // w1 (at xGK15[2])
-			0.27970539148927666790146777142377958, // w2 (at xGK15[4])
-			0.12948496616886969327061143267908202	 // w3 (at xGK15[6])
+			MML::Real(0.41795918367346938775510204081632653L), // w0 (at x=0, but stored at index 0)
+			MML::Real(0.38183005050511894495036977548897513L), // w1 (at xGK15[2])
+			MML::Real(0.27970539148927666790146777142377958L), // w2 (at xGK15[4])
+			MML::Real(0.12948496616886969327061143267908202L)	 // w3 (at xGK15[6])
 		};
 
 		/// @brief Apply G7K15 rule to integrate f over [a,b].
@@ -103,44 +107,55 @@ namespace MML {
 		/// @param b Upper limit
 		/// @return GKResult with integral estimate and error
 		template<typename Func>
-		static GKResult IntegrateGK15Core(Func f, Real a, Real b) {
-			const Real center = 0.5 * (a + b);
-			const Real half_length = 0.5 * (b - a);
+		static GKResult IntegrateGK15Impl(Func f, Real a, Real b, IntegrationResult* progress, bool checkFinite) {
+			const Real half_length = IntegrationDetail::HalfWidth(a, b);
+			const Real center = std::midpoint(a, b);
+			int evaluations = 0;
+			auto counted = [&](Real x) {
+				if (progress) progress->function_evaluations = evaluations;
+				return f(x);
+			};
+			auto sample = [&](Real x) { return IntegrationDetail::Sample(counted, evaluations, checkFinite, x); };
+			auto weighted = [&](Real weight, Real value) { return IntegrationDetail::Product({half_length, weight, value}); };
 
 			// Function value at center (used by both Gauss and Kronrod)
-			Real f_center = f(center);
+			Real f_center = sample(center);
 
 			// Compute sums
-			Real result_gauss = wG7[0] * f_center;		 // G7 weight at origin
-			Real result_kronrod = wGK15[0] * f_center; // K15 weight at origin
+			Real result_gauss = weighted(wG7[0], f_center);
+			Real result_kronrod = weighted(wGK15[0], f_center);
+			Real roundoffFloor = Precision::IntegrationRoundoffFloorScale * std::abs(result_kronrod);
 
 			// Symmetric pairs
 			for (int i = 1; i < GK15_N; i++) {
 				Real x_scaled = half_length * xGK15[i];
-				Real f_plus = f(center + x_scaled);
-				Real f_minus = f(center - x_scaled);
-				Real f_sum = f_plus + f_minus;
+				Real f_plus = sample(center + x_scaled);
+				Real f_minus = sample(center - x_scaled);
 
 				// All points contribute to Kronrod
-				result_kronrod += wGK15[i] * f_sum;
+				result_kronrod += weighted(wGK15[i], f_plus) + weighted(wGK15[i], f_minus);
+				roundoffFloor += Precision::IntegrationRoundoffFloorScale * std::abs(weighted(wGK15[i], f_plus)) +
+					Precision::IntegrationRoundoffFloorScale * std::abs(weighted(wGK15[i], f_minus));
 
 				// Only odd-indexed points (i = 2, 4, 6) contribute to Gauss
 				// i=2 uses wG7[1], i=4 uses wG7[2], i=6 uses wG7[3]
 				if (i == 2)
-					result_gauss += wG7[1] * f_sum;
+					result_gauss += weighted(wG7[1], f_plus) + weighted(wG7[1], f_minus);
 				else if (i == 4)
-					result_gauss += wG7[2] * f_sum;
+					result_gauss += weighted(wG7[2], f_plus) + weighted(wG7[2], f_minus);
 				else if (i == 6)
-					result_gauss += wG7[3] * f_sum;
+					result_gauss += weighted(wG7[3], f_plus) + weighted(wG7[3], f_minus);
 			}
 
 			// Scale by half-length for change of variables
-			result_gauss *= half_length;
-			result_kronrod *= half_length;
+			auto result = GKResult::Fixed(result_kronrod, std::abs(result_kronrod - result_gauss), evaluations);
+			result.roundoff_floor = roundoffFloor;
+			return result;
+		}
 
-			Real error = std::abs(result_kronrod - result_gauss);
-
-			return GKResult::Fixed(result_kronrod, error, 15);
+		template<typename Func>
+		static GKResult IntegrateGK15Core(Func f, Real a, Real b) {
+			return IntegrateGK15Impl(f, a, b, nullptr, true);
 		}
 
 		template<typename Func>
@@ -159,85 +174,99 @@ namespace MML {
 		///          21 Kronrod points = 11 unique abscissae (mirrored about center)
 		///          10 Gauss points at odd Kronrod indices (1,3,5,7,9)
 		template<typename Func>
-		static GKResult IntegrateGK21Core(Func f, Real a, Real b) {
+		static GKResult IntegrateGK21Impl(Func f, Real a, Real b, IntegrationResult* progress, bool checkFinite) {
 			// 21-point Kronrod abscissae (11 unique, from GSL qk21.c)
 			// xgk[1], xgk[3], ... are the 10-point Gauss abscissae
 			// xgk[0], xgk[2], ... are added by Kronrod extension
 			static constexpr Real xgk[11] = {
-				0.995657163025808080735527280689003, // 0 - Kronrod only
-				0.973906528517171720077964012084452, // 1 - Gauss
-				0.930157491355708226001207180059508, // 2 - Kronrod only
-				0.865063366688984510732096688423493, // 3 - Gauss
-				0.780817726586416897063717578345042, // 4 - Kronrod only
-				0.679409568299024406234327365114874, // 5 - Gauss
-				0.562757134668604683339000099272694, // 6 - Kronrod only
-				0.433395394129247190799265943165784, // 7 - Gauss
-				0.294392862701460198131126603103866, // 8 - Kronrod only
-				0.148874338981631210884826001129720, // 9 - Gauss
+				MML::Real(0.995657163025808080735527280689003L), // 0 - Kronrod only
+				MML::Real(0.973906528517171720077964012084452L), // 1 - Gauss
+				MML::Real(0.930157491355708226001207180059508L), // 2 - Kronrod only
+				MML::Real(0.865063366688984510732096688423493L), // 3 - Gauss
+				MML::Real(0.780817726586416897063717578345042L), // 4 - Kronrod only
+				MML::Real(0.679409568299024406234327365114874L), // 5 - Gauss
+				MML::Real(0.562757134668604683339000099272694L), // 6 - Kronrod only
+				MML::Real(0.433395394129247190799265943165784L), // 7 - Gauss
+				MML::Real(0.294392862701460198131126603103866L), // 8 - Kronrod only
+				MML::Real(0.148874338981631210884826001129720L), // 9 - Gauss
 				0.000000000000000000000000000000000	 // 10 - Center (Kronrod only)
 			};
 
 			// 10-point Gauss weights (for odd-indexed Kronrod nodes)
 			static constexpr Real wg[5] = {
-				0.066671344308688137593568809893332, // for xgk[1]
-				0.149451349150580593145776339657697, // for xgk[3]
-				0.219086362515982043995534934228163, // for xgk[5]
-				0.269266719309996355091226921569469, // for xgk[7]
-				0.295524224714752870173892994651338	 // for xgk[9]
+				MML::Real(0.066671344308688137593568809893332L), // for xgk[1]
+				MML::Real(0.149451349150580593145776339657697L), // for xgk[3]
+				MML::Real(0.219086362515982043995534934228163L), // for xgk[5]
+				MML::Real(0.269266719309996355091226921569469L), // for xgk[7]
+				MML::Real(0.295524224714752870173892994651338L)	 // for xgk[9]
 			};
 
 			// 21-point Kronrod weights (for all nodes)
 			static constexpr Real wgk[11] = {
-				0.011694638867371874278064396062192, // for xgk[0]
-				0.032558162307964727478818972459390, // for xgk[1]
-				0.054755896574351996031381300244580, // for xgk[2]
-				0.075039674810919952767043140916190, // for xgk[3]
-				0.093125454583697605535065465083366, // for xgk[4]
-				0.109387158802297641899210590325805, // for xgk[5]
-				0.123491976262065851077958109831074, // for xgk[6]
-				0.134709217311473325928054001771707, // for xgk[7]
-				0.142775938577060080797094273138717, // for xgk[8]
-				0.147739104901338491374841515972068, // for xgk[9]
-				0.149445554002916905664936468389821	 // for xgk[10] (center)
+				MML::Real(0.011694638867371874278064396062192L), // for xgk[0]
+				MML::Real(0.032558162307964727478818972459390L), // for xgk[1]
+				MML::Real(0.054755896574351996031381300244580L), // for xgk[2]
+				MML::Real(0.075039674810919952767043140916190L), // for xgk[3]
+				MML::Real(0.093125454583697605535065465083366L), // for xgk[4]
+				MML::Real(0.109387158802297641899210590325805L), // for xgk[5]
+				MML::Real(0.123491976262065851077958109831074L), // for xgk[6]
+				MML::Real(0.134709217311473325928054001771707L), // for xgk[7]
+				MML::Real(0.142775938577060080797094273138717L), // for xgk[8]
+				MML::Real(0.147739104901338491374841515972068L), // for xgk[9]
+				MML::Real(0.149445554002916905664936468389821L)	 // for xgk[10] (center)
 			};
 
-			const Real center = 0.5 * (a + b);
-			const Real half_length = 0.5 * (b - a);
+			const Real half_length = IntegrationDetail::HalfWidth(a, b);
+			const Real center = std::midpoint(a, b);
+			int evaluations = 0;
+			auto counted = [&](Real x) {
+				if (progress) progress->function_evaluations = evaluations;
+				return f(x);
+			};
+			auto sample = [&](Real x) { return IntegrationDetail::Sample(counted, evaluations, checkFinite, x); };
+			auto weighted = [&](Real weight, Real value) { return IntegrationDetail::Product({half_length, weight, value}); };
 
-			Real f_center = f(center);
+			Real f_center = sample(center);
 
 			// Center point (index 10) - Kronrod only (n=11 is odd, so no Gauss at center)
-			Real result_kronrod = wgk[10] * f_center;
+			Real result_kronrod = weighted(wgk[10], f_center);
 			Real result_gauss = 0.0;
+			Real roundoffFloor = Precision::IntegrationRoundoffFloorScale * std::abs(result_kronrod);
 
 			// Process symmetric pairs (indices 0-9)
 			for (int j = 0; j < 5; j++) {
 				// Odd indices (1,3,5,7,9) contribute to both Gauss and Kronrod
 				int jtw = j * 2 + 1; // 1, 3, 5, 7, 9
 				Real x_scaled = half_length * xgk[jtw];
-				Real f_plus = f(center + x_scaled);
-				Real f_minus = f(center - x_scaled);
-				Real f_sum = f_plus + f_minus;
+				Real f_plus = sample(center + x_scaled);
+				Real f_minus = sample(center - x_scaled);
 
-				result_gauss += wg[j] * f_sum;
-				result_kronrod += wgk[jtw] * f_sum;
+				result_gauss += weighted(wg[j], f_plus) + weighted(wg[j], f_minus);
+				result_kronrod += weighted(wgk[jtw], f_plus) + weighted(wgk[jtw], f_minus);
+				roundoffFloor += Precision::IntegrationRoundoffFloorScale * std::abs(weighted(wgk[jtw], f_plus)) +
+					Precision::IntegrationRoundoffFloorScale * std::abs(weighted(wgk[jtw], f_minus));
 			}
 
 			for (int j = 0; j < 5; j++) {
 				// Even indices (0,2,4,6,8) contribute to Kronrod only
 				int jtwm1 = j * 2; // 0, 2, 4, 6, 8
 				Real x_scaled = half_length * xgk[jtwm1];
-				Real f_plus = f(center + x_scaled);
-				Real f_minus = f(center - x_scaled);
-				Real f_sum = f_plus + f_minus;
+				Real f_plus = sample(center + x_scaled);
+				Real f_minus = sample(center - x_scaled);
 
-				result_kronrod += wgk[jtwm1] * f_sum;
+				result_kronrod += weighted(wgk[jtwm1], f_plus) + weighted(wgk[jtwm1], f_minus);
+				roundoffFloor += Precision::IntegrationRoundoffFloorScale * std::abs(weighted(wgk[jtwm1], f_plus)) +
+					Precision::IntegrationRoundoffFloorScale * std::abs(weighted(wgk[jtwm1], f_minus));
 			}
 
-			result_gauss *= half_length;
-			result_kronrod *= half_length;
+			auto result = GKResult::Fixed(result_kronrod, std::abs(result_kronrod - result_gauss), evaluations);
+			result.roundoff_floor = roundoffFloor;
+			return result;
+		}
 
-			return GKResult::Fixed(result_kronrod, std::abs(result_kronrod - result_gauss), 21);
+		template<typename Func>
+		static GKResult IntegrateGK21Core(Func f, Real a, Real b) {
+			return IntegrateGK21Impl(f, a, b, nullptr, true);
 		}
 
 		template<typename Func>
@@ -257,99 +286,113 @@ namespace MML {
 		///          15 Gauss points at odd Kronrod indices (1,3,5,7,9,11,13,15)
 		///          Note: n=16 is even, so center IS a Gauss point
 		template<typename Func>
-		static GKResult IntegrateGK31Core(Func f, Real a, Real b) {
+		static GKResult IntegrateGK31Impl(Func f, Real a, Real b, IntegrationResult* progress, bool checkFinite) {
 			// 31-point Kronrod abscissae (16 unique, from GSL qk31.c)
 			// xgk[1], xgk[3], ... are the 15-point Gauss abscissae
 			// xgk[0], xgk[2], ... are added by Kronrod extension
 			static constexpr Real xgk[16] = {
-				0.998002298693397060285172840152271, // 0 - Kronrod only
-				0.987992518020485428489565718586613, // 1 - Gauss
-				0.967739075679139134257347978784337, // 2 - Kronrod only
-				0.937273392400705904307758947710209, // 3 - Gauss
-				0.897264532344081900882509656454496, // 4 - Kronrod only
-				0.848206583410427216200648320774217, // 5 - Gauss
-				0.790418501442465932967649294817947, // 6 - Kronrod only
-				0.724417731360170047416186054613938, // 7 - Gauss
-				0.650996741297416970533735895313275, // 8 - Kronrod only
-				0.570972172608538847537226737253911, // 9 - Gauss
-				0.485081863640239680693655740232351, // 10 - Kronrod only
-				0.394151347077563369897207370981045, // 11 - Gauss
-				0.299180007153168812166780024266389, // 12 - Kronrod only
-				0.201194093997434522300628303394596, // 13 - Gauss
-				0.101142066918717499027074231447392, // 14 - Kronrod only
+				MML::Real(0.998002298693397060285172840152271L), // 0 - Kronrod only
+				MML::Real(0.987992518020485428489565718586613L), // 1 - Gauss
+				MML::Real(0.967739075679139134257347978784337L), // 2 - Kronrod only
+				MML::Real(0.937273392400705904307758947710209L), // 3 - Gauss
+				MML::Real(0.897264532344081900882509656454496L), // 4 - Kronrod only
+				MML::Real(0.848206583410427216200648320774217L), // 5 - Gauss
+				MML::Real(0.790418501442465932967649294817947L), // 6 - Kronrod only
+				MML::Real(0.724417731360170047416186054613938L), // 7 - Gauss
+				MML::Real(0.650996741297416970533735895313275L), // 8 - Kronrod only
+				MML::Real(0.570972172608538847537226737253911L), // 9 - Gauss
+				MML::Real(0.485081863640239680693655740232351L), // 10 - Kronrod only
+				MML::Real(0.394151347077563369897207370981045L), // 11 - Gauss
+				MML::Real(0.299180007153168812166780024266389L), // 12 - Kronrod only
+				MML::Real(0.201194093997434522300628303394596L), // 13 - Gauss
+				MML::Real(0.101142066918717499027074231447392L), // 14 - Kronrod only
 				0.000000000000000000000000000000000	 // 15 - Center (Gauss + Kronrod, n=16 even)
 			};
 
 			// 15-point Gauss weights (for odd-indexed nodes plus center)
 			// wg[0..6] for xgk[1,3,5,7,9,11,13], wg[7] for center xgk[15]
 			static constexpr Real wg[8] = {
-				0.030753241996117268354628393577204, // for xgk[1]
-				0.070366047488108124709267416450667, // for xgk[3]
-				0.107159220467171935011869546685869, // for xgk[5]
-				0.139570677926154314447804794511028, // for xgk[7]
-				0.166269205816993933553200860481209, // for xgk[9]
-				0.186161000015562211026800561866423, // for xgk[11]
-				0.198431485327111576456118326443839, // for xgk[13]
-				0.202578241925561272880620199967519	 // for xgk[15] (center)
+				MML::Real(0.030753241996117268354628393577204L), // for xgk[1]
+				MML::Real(0.070366047488108124709267416450667L), // for xgk[3]
+				MML::Real(0.107159220467171935011869546685869L), // for xgk[5]
+				MML::Real(0.139570677926154314447804794511028L), // for xgk[7]
+				MML::Real(0.166269205816993933553200860481209L), // for xgk[9]
+				MML::Real(0.186161000015562211026800561866423L), // for xgk[11]
+				MML::Real(0.198431485327111576456118326443839L), // for xgk[13]
+				MML::Real(0.202578241925561272880620199967519L)	 // for xgk[15] (center)
 			};
 
 			// 31-point Kronrod weights (for all nodes)
 			static constexpr Real wgk[16] = {
-				0.005377479872923348987792051430128, // for xgk[0]
-				0.015007947329316122538374763075807, // for xgk[1]
-				0.025460847326715320186874001019653, // for xgk[2]
-				0.035346360791375846222037948478360, // for xgk[3]
-				0.044589751324764876608227299373280, // for xgk[4]
-				0.053481524690928087265343147239430, // for xgk[5]
-				0.062009567800670640285139230960803, // for xgk[6]
-				0.069854121318728258709520077099147, // for xgk[7]
-				0.076849680757720378894432777482659, // for xgk[8]
-				0.083080502823133021038289247286104, // for xgk[9]
-				0.088564443056211770647275443693774, // for xgk[10]
-				0.093126598170825321225486872747346, // for xgk[11]
-				0.096642726983623678505179907627589, // for xgk[12]
-				0.099173598721791959332393173484603, // for xgk[13]
-				0.100769845523875595044946662617570, // for xgk[14]
-				0.101330007014791549017374792767493	 // for xgk[15] (center)
+				MML::Real(0.005377479872923348987792051430128L), // for xgk[0]
+				MML::Real(0.015007947329316122538374763075807L), // for xgk[1]
+				MML::Real(0.025460847326715320186874001019653L), // for xgk[2]
+				MML::Real(0.035346360791375846222037948478360L), // for xgk[3]
+				MML::Real(0.044589751324764876608227299373280L), // for xgk[4]
+				MML::Real(0.053481524690928087265343147239430L), // for xgk[5]
+				MML::Real(0.062009567800670640285139230960803L), // for xgk[6]
+				MML::Real(0.069854121318728258709520077099147L), // for xgk[7]
+				MML::Real(0.076849680757720378894432777482659L), // for xgk[8]
+				MML::Real(0.083080502823133021038289247286104L), // for xgk[9]
+				MML::Real(0.088564443056211770647275443693774L), // for xgk[10]
+				MML::Real(0.093126598170825321225486872747346L), // for xgk[11]
+				MML::Real(0.096642726983623678505179907627589L), // for xgk[12]
+				MML::Real(0.099173598721791959332393173484603L), // for xgk[13]
+				MML::Real(0.100769845523875595044946662617570L), // for xgk[14]
+				MML::Real(0.101330007014791549017374792767493L)	 // for xgk[15] (center)
 			};
 
-			const Real center = 0.5 * (a + b);
-			const Real half_length = 0.5 * (b - a);
+			const Real half_length = IntegrationDetail::HalfWidth(a, b);
+			const Real center = std::midpoint(a, b);
+			int evaluations = 0;
+			auto counted = [&](Real x) {
+				if (progress) progress->function_evaluations = evaluations;
+				return f(x);
+			};
+			auto sample = [&](Real x) { return IntegrationDetail::Sample(counted, evaluations, checkFinite, x); };
+			auto weighted = [&](Real weight, Real value) { return IntegrationDetail::Product({half_length, weight, value}); };
 
-			Real f_center = f(center);
+			Real f_center = sample(center);
 
 			// Center point (index 15) - Both Gauss and Kronrod (n=16 is even)
-			Real result_kronrod = wgk[15] * f_center;
-			Real result_gauss = wg[7] * f_center; // wg[n/2-1] = wg[7]
+			Real result_kronrod = weighted(wgk[15], f_center);
+			Real result_gauss = weighted(wg[7], f_center);
+			Real roundoffFloor = Precision::IntegrationRoundoffFloorScale * std::abs(result_kronrod);
 
 			// Process symmetric pairs (indices 0-14)
 			for (int j = 0; j < 7; j++) {
 				// Odd indices (1,3,5,7,9,11,13) contribute to both Gauss and Kronrod
 				int jtw = j * 2 + 1; // 1, 3, 5, 7, 9, 11, 13
 				Real x_scaled = half_length * xgk[jtw];
-				Real f_plus = f(center + x_scaled);
-				Real f_minus = f(center - x_scaled);
-				Real f_sum = f_plus + f_minus;
+				Real f_plus = sample(center + x_scaled);
+				Real f_minus = sample(center - x_scaled);
 
-				result_gauss += wg[j] * f_sum;
-				result_kronrod += wgk[jtw] * f_sum;
+				result_gauss += weighted(wg[j], f_plus) + weighted(wg[j], f_minus);
+				result_kronrod += weighted(wgk[jtw], f_plus) + weighted(wgk[jtw], f_minus);
+				roundoffFloor += Precision::IntegrationRoundoffFloorScale * std::abs(weighted(wgk[jtw], f_plus)) +
+					Precision::IntegrationRoundoffFloorScale * std::abs(weighted(wgk[jtw], f_minus));
 			}
 
 			for (int j = 0; j < 8; j++) {
 				// Even indices (0,2,4,6,8,10,12,14) contribute to Kronrod only
 				int jtwm1 = j * 2; // 0, 2, 4, 6, 8, 10, 12, 14
 				Real x_scaled = half_length * xgk[jtwm1];
-				Real f_plus = f(center + x_scaled);
-				Real f_minus = f(center - x_scaled);
-				Real f_sum = f_plus + f_minus;
+				Real f_plus = sample(center + x_scaled);
+				Real f_minus = sample(center - x_scaled);
 
-				result_kronrod += wgk[jtwm1] * f_sum;
+				result_kronrod += weighted(wgk[jtwm1], f_plus) + weighted(wgk[jtwm1], f_minus);
+				roundoffFloor += Precision::IntegrationRoundoffFloorScale * std::abs(weighted(wgk[jtwm1], f_plus)) +
+					Precision::IntegrationRoundoffFloorScale * std::abs(weighted(wgk[jtwm1], f_minus));
 			}
 
-			result_gauss *= half_length;
-			result_kronrod *= half_length;
+			auto result = GKResult::Fixed(result_kronrod, std::abs(result_kronrod - result_gauss), evaluations);
+			result.roundoff_floor = roundoffFloor;
+			return result;
+		}
 
-			return GKResult::Fixed(result_kronrod, std::abs(result_kronrod - result_gauss), 31);
+		template<typename Func>
+		static GKResult IntegrateGK31Core(Func f, Real a, Real b) {
+			return IntegrateGK31Impl(f, a, b, nullptr, true);
 		}
 
 		template<typename Func>
@@ -366,9 +409,41 @@ namespace MML {
 		/// @brief Rule selection for adaptive Gauss-Kronrod
 		enum class GKRule { GK15, GK21, GK31 };
 
+		namespace GKDetail {
+			template<class Function>
+			void Adaptive(Function& function, Real a, Real b, Real absolute, Real relative, int depth,
+				GKRule rule, IntegrationResult& result, bool checkFinite = true) {
+				IntegrationDetail::HalfWidth(a, b);
+				if (rule != GKRule::GK15 && rule != GKRule::GK21 && rule != GKRule::GK31)
+					throw ArgumentError("Adaptive Gauss-Kronrod: invalid rule");
+				using Interval = std::array<Real, 2>;
+				auto sample = [&](Real x) {
+					return IntegrationDetail::Sample(function, result.function_evaluations, checkFinite, x);
+				};
+				auto evaluate = [&](const Interval& interval) -> IntegrationResult {
+					GKResult local;
+					switch (rule) {
+					case GKRule::GK15: local = IntegrateGK15Impl(sample, interval[0], interval[1], nullptr, false); break;
+					case GKRule::GK21: local = IntegrateGK21Impl(sample, interval[0], interval[1], nullptr, false); break;
+					case GKRule::GK31: local = IntegrateGK31Impl(sample, interval[0], interval[1], nullptr, false); break;
+					}
+					local.error_estimate = std::max(local.error_estimate, local.roundoff_floor);
+					return local;
+				};
+				auto split = [](const Interval& interval) {
+					const Real midpoint = std::midpoint(interval[0], interval[1]);
+					if (midpoint == interval[0] || midpoint == interval[1]) return std::vector<Interval>{};
+					return std::vector<Interval>{{interval[0], midpoint}, {midpoint, interval[1]}};
+				};
+				const int cost = rule == GKRule::GK15 ? 15 : rule == GKRule::GK21 ? 21 : 31;
+				IntegrationDetail::RefineCells(result, std::vector<Interval>{{a, b}}, evaluate, split,
+					absolute, relative, depth, std::numeric_limits<int>::max(), cost);
+			}
+		}
+
 		/// @brief Adaptive Gauss-Kronrod integration with automatic subdivision.
-		/// @details Uses recursive bisection when local error exceeds tolerance.
-		///          This is the standard approach used by QUADPACK/GSL.
+		/// @details Bisects the largest refinable error and checks the aggregate frontier.
+		///          Includes parent work, arithmetic floors and stagnation diagnostics.
 		/// @tparam Func Callable with signature Real(Real)
 		/// @param f Function to integrate
 		/// @param a Lower limit
@@ -381,29 +456,9 @@ namespace MML {
 		template<typename Func>
 		static GKResult IntegrateGKAdaptiveCore(Func f, Real a, Real b, Real tol_abs = PrecisionValues<Real>::IntegrationTolerance, Real tol_rel = PrecisionValues<Real>::IntegrationTolerance, int max_depth = 50,
 																				GKRule rule = GKRule::GK15) {
-			// Apply basic rule first
-			// Qualified dispatch excludes scalar-wrapper overloads found by argument-dependent lookup.
-			GKResult local = (rule == GKRule::GK15)		? ::MML::Integration::IntegrateGK15Core(f, a, b)
-											 : (rule == GKRule::GK21) ? ::MML::Integration::IntegrateGK21Core(f, a, b)
-																								: ::MML::Integration::IntegrateGK31Core(f, a, b);
-
-			Real tolerance = std::max(tol_abs, tol_rel * std::abs(local.value));
-
-			// Check if we meet tolerance or hit max depth
-			if (local.error_estimate <= tolerance || max_depth <= 0) {
-				local.converged = (local.error_estimate <= tolerance);
-				local.status = local.converged ? AlgorithmStatus::Success : AlgorithmStatus::MaxIterationsExceeded;
-				if (!local.converged) local.error_message = "Adaptive Gauss-Kronrod depth exhausted before tolerance was met";
-				return local;
-			}
-
-			// Subdivide and recurse
-			Real mid = 0.5 * (a + b);
-			GKResult left = IntegrateGKAdaptiveCore(f, a, mid, tol_abs / 2.0, tol_rel, max_depth - 1, rule);
-			GKResult right = IntegrateGKAdaptiveCore(f, mid, b, tol_abs / 2.0, tol_rel, max_depth - 1, rule);
-
-			return GKResult(left.value + right.value, left.error_estimate + right.error_estimate, left.function_evaluations + right.function_evaluations,
-											left.converged && right.converged);
+			GKResult result;
+			GKDetail::Adaptive(f, a, b, tol_abs, tol_rel, max_depth, rule, result);
+			return result;
 		}
 
 		/// Result-returning variant with the plain argument list (RESULT_POLICY §4).
@@ -456,7 +511,7 @@ namespace MML {
 		/// @return Integral value
 		template<typename Func>
 		static Real IntegrateGaussKronrod(Func f, Real a, Real b, Real tol = Precision::IntegrationTolerance) {
-			return IntegrateGKAdaptiveCore(f, a, b, tol, tol, 50, GKRule::GK15).value;
+			return IntegrateGKAdaptiveCore(f, a, b, tol, tol, 50, GKRule::GK15).ValueOrThrow("IntegrateGaussKronrod");
 		}
 
 		/// @brief Adaptive Gauss-Kronrod with error estimate.
@@ -471,7 +526,7 @@ namespace MML {
 			auto result = IntegrateGKAdaptiveCore(f, a, b, tol, tol, 50, GKRule::GK15);
 			if (error)
 				*error = result.error_estimate;
-			return result.value;
+			return result.ValueOrThrow("IntegrateGaussKronrod");
 		}
 
 		/*****************************************************************/
@@ -496,7 +551,7 @@ namespace MML {
 			return IntegrationDetail::ExecuteIntegrationDetailed<IntegrationDetailedResult>(
 				"IntegrateGK15", config,
 				[&](IntegrationDetailedResult& result) {
-					auto gk = IntegrateGK15Core(f, a, b);
+					auto gk = IntegrateGK15Impl(f, a, b, &result, config.check_finite);
 					GKDetail::PopulateFromGK(result, gk, "IntegrateGK15");
 				});
 		}
@@ -510,7 +565,7 @@ namespace MML {
 			return IntegrationDetail::ExecuteIntegrationDetailed<IntegrationDetailedResult>(
 				"IntegrateGK21", config,
 				[&](IntegrationDetailedResult& result) {
-					auto gk = IntegrateGK21Core(f, a, b);
+					auto gk = IntegrateGK21Impl(f, a, b, &result, config.check_finite);
 					GKDetail::PopulateFromGK(result, gk, "IntegrateGK21");
 				});
 		}
@@ -524,7 +579,7 @@ namespace MML {
 			return IntegrationDetail::ExecuteIntegrationDetailed<IntegrationDetailedResult>(
 				"IntegrateGK31", config,
 				[&](IntegrationDetailedResult& result) {
-					auto gk = IntegrateGK31Core(f, a, b);
+					auto gk = IntegrateGK31Impl(f, a, b, &result, config.check_finite);
 					GKDetail::PopulateFromGK(result, gk, "IntegrateGK31");
 				});
 		}
@@ -540,8 +595,7 @@ namespace MML {
 			return IntegrationDetail::ExecuteIntegrationDetailed<IntegrationDetailedResult>(
 				"IntegrateGKAdaptive", config,
 				[&](IntegrationDetailedResult& result) {
-					auto gk = IntegrateGKAdaptiveCore(f, a, b, tol_abs, tol_rel, max_depth, rule);
-					GKDetail::PopulateFromGK(result, gk, "IntegrateGKAdaptive");
+					GKDetail::Adaptive(f, a, b, tol_abs, tol_rel, max_depth, rule, result, config.check_finite);
 				});
 		}
 

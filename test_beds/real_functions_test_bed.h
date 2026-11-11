@@ -95,11 +95,11 @@ namespace MML::TestBeds
                         Real (*f4)(Real), std::string funcThirdDerExpr, 
                         Real (*f5)(Real), std::string funcIntegratedExpr
                         ) : _funcName(funcName),
-                            _func(f1), _funcExpr(funcExpr),
-                            _funcDerived(f2), _funcDerivedExpr(funcDerivedExpr),
-                            _funcSecDer(f3), _funcSecDerExpr(funcSecDerExpr),
-                            _funcThirdDer(f4), _funcThirdDerExpr(funcThirdDerExpr),
-                            _funcIntegrated(f5), _funcIntegratedExpr(funcIntegratedExpr)
+                            _func(f1), _funcDerived(f2), _funcSecDer(f3),
+                            _funcThirdDer(f4), _funcIntegrated(f5),
+                            _funcExpr(funcExpr), _funcDerivedExpr(funcDerivedExpr),
+                            _funcSecDerExpr(funcSecDerExpr), _funcThirdDerExpr(funcThirdDerExpr),
+                            _funcIntegratedExpr(funcIntegratedExpr)
         {
             _intervalDef = std::shared_ptr<IInterval>(inIntervalDef);
             _intervalTest = std::shared_ptr<IInterval>(inIntervalTest);
@@ -481,37 +481,37 @@ namespace MML::TestBeds
                 {"TestDer3", new CompleteRInterval(),
                             new OpenInterval(-10.0, 10.0),
                             [](Real x) -> Real { return tanh(x); },  "tanh(x)",
-                            [](Real x) -> Real { return 1.0 / (cosh(x) * cosh(x)); },  "1/cosh(x)^2"
+                            [](Real x) -> Real { return MML::Real(1.0) / (cosh(x) * cosh(x)); },  "1/cosh(x)^2"
                 },
                 // Gaussian: f(x) = exp(-x^2), f'(x) = -2x * exp(-x^2)
                 {"Gaussian", new CompleteRInterval(),
                             new ClosedInterval(-5.0, 5.0),
                             [](Real x) -> Real { return exp(-x * x); }, "exp(-x^2)",
-                            [](Real x) -> Real { return -2.0 * x * exp(-x * x); }, "-2x * exp(-x^2)"
+                            [](Real x) -> Real { return -MML::Real(2.0) * x * exp(-x * x); }, "-2x * exp(-x^2)"
                 },
                 // Logistic: f(x) = 1 / (1 + exp(-x)), f'(x) = exp(-x) / (1 + exp(-x))^2
                 {"Logistic", new CompleteRInterval(),
                             new ClosedInterval(-10.0, 10.0),
-                            [](Real x) -> Real { return 1.0 / (1.0 + exp(-x)); }, "1 / (1 + exp(-x))",
-                            [](Real x) -> Real { Real e = exp(-x); return e / ((1.0 + e) * (1.0 + e)); }, "exp(-x) / (1 + exp(-x))^2"
+                            [](Real x) -> Real { return MML::Real(1.0) / (MML::Real(1.0) + exp(-x)); }, "1 / (1 + exp(-x))",
+                            [](Real x) -> Real { Real e = exp(-x); return e / ((MML::Real(1.0) + e) * (MML::Real(1.0) + e)); }, "exp(-x) / (1 + exp(-x))^2"
                 },
                 // Error function: f(x) = erf(x), f'(x) = 2/sqrt(pi) * exp(-x^2)
                 {"ErrorFunction", new CompleteRInterval(),
                                   new ClosedInterval(-3.0, 3.0),
                                   [](Real x) -> Real { return std::erf(x); }, "erf(x)",
-                                  [](Real x) -> Real { return 2.0 / sqrt(MML::Constants::PI) * exp(-x * x); }, "2/sqrt(pi) * exp(-x^2)"
+                                  [](Real x) -> Real { return MML::Real(2.0) / sqrt(MML::Constants::PI) * exp(-x * x); }, "2/sqrt(pi) * exp(-x^2)"
                 },
                 // Reciprocal quadratic: f(x) = 1 / (1 + x^2), f'(x) = -2x / (1 + x^2)^2
                 {"ReciprocalQuadratic", new CompleteRInterval(),
                                         new ClosedInterval(-10.0, 10.0),
-                                        [](Real x) -> Real { return 1.0 / (1.0 + x * x); }, "1 / (1 + x^2)",
-                                        [](Real x) -> Real { return -2.0 * x / pow(1.0 + x * x, 2); }, "-2x / (1 + x^2)^2"
+                                        [](Real x) -> Real { return MML::Real(1.0) / (MML::Real(1.0) + x * x); }, "1 / (1 + x^2)",
+                                        [](Real x) -> Real { return -MML::Real(2.0) * x / pow(MML::Real(1.0) + x * x, MML::Real(2)); }, "-2x / (1 + x^2)^2"
                 },
                 // Polynomial with Mixed Powers: f(x) = x^5 - 3x^3 + 2x, f'(x) = 5x^4 - 9x^2 + 2
                 {"PolyMixedPowers", new CompleteRInterval(),
                                     new ClosedInterval(-10.0, 10.0),
-                                    [](Real x) -> Real { return pow(x, 5) - 3.0 * pow(x, 3) + 2.0 * x; }, "x^5 - 3x^3 + 2x",
-                                    [](Real x) -> Real { return 5.0 * pow(x, 4) - 9.0 * pow(x, 2) + 2.0; }, "5x^4 - 9x^2 + 2"
+                                    [](Real x) -> Real { return pow(x, MML::Real(5)) - MML::Real(3.0) * pow(x, MML::Real(3)) + MML::Real(2.0) * x; }, "x^5 - 3x^3 + 2x",
+                                    [](Real x) -> Real { return MML::Real(5.0) * pow(x, MML::Real(4)) - MML::Real(9.0) * pow(x, MML::Real(2)) + MML::Real(2.0); }, "5x^4 - 9x^2 + 2"
                 },
                 // Composite Trigonometric: f(x) = sin(x) * cos(x), f'(x) = cos^2(x) - sin^2(x)
                 {"SinCosComposite", new CompleteRInterval(),
@@ -523,15 +523,15 @@ namespace MML::TestBeds
                 {"ExpPoly", new CompleteRInterval(),
                             new ClosedInterval(-10.0, 10.0),
                             [](Real x) -> Real { return x * x * exp(x); }, "x^2 * exp(x)",
-                            [](Real x) -> Real { return exp(x) * (x * x + 2.0 * x); }, "exp(x) * (x^2 + 2x)"
+                            [](Real x) -> Real { return exp(x) * (x * x + MML::Real(2.0) * x); }, "exp(x) * (x^2 + 2x)"
                 },
                 // Rational Function: f(x) = (x^2 + 1) / (x^3 + 2), f'(x) = [2x(x^3 + 2) - 3x^2(x^2 + 1)] / (x^3 + 2)^2
                 {"RationalFunc", new CompleteRInterval(),
                                 new ClosedInterval(-10.0, 10.0),
-                                [](Real x) -> Real { return (x * x + 1.0) / (pow(x, 3) + 2.0); }, "(x^2 + 1) / (x^3 + 2)",
+                                [](Real x) -> Real { return (x * x + MML::Real(1.0)) / (pow(x, MML::Real(3)) + MML::Real(2.0)); }, "(x^2 + 1) / (x^3 + 2)",
                                 [](Real x) -> Real {
-                                    Real num = 2.0 * x * (pow(x, 3) + 2.0) - 3.0 * pow(x, 2) * (x * x + 1.0);
-                                    Real denom = pow(pow(x, 3) + 2.0, 2);
+                                    Real num = MML::Real(2.0) * x * (pow(x, MML::Real(3)) + MML::Real(2.0)) - MML::Real(3.0) * pow(x, MML::Real(2)) * (x * x + MML::Real(1.0));
+                                    Real denom = pow(pow(x, MML::Real(3)) + MML::Real(2.0), MML::Real(2));
                                     return num / denom;
                                 }, "[2x(x^3 + 2) - 3x^2(x^2 + 1)] / (x^3 + 2)^2"
                 }
@@ -551,79 +551,79 @@ namespace MML::TestBeds
                             [](Real x) -> Real { return 4*x*(x*x-7)*sin(x)-((Real) pow(x,4.0)-14*x*x+28)*cos(x);},  "4.0*x*(x*x-7.0)*sin(x)-(pow(x,4.0)-14.0*x*x+28.0)*cos(x)"},                                   
                 {"TestInt2", new CompleteRInterval(), 
                             new OpenInterval(-20.0, 20.0 ),
-                            [](Real x) -> Real { return 1.0 / (4.0 + x*x);},  "1 / (4 + x*x)", 
-                            [](Real x) -> Real { return 0.5 * atan(x/2);},  "1 / 2 * atan(x/2)"},
+                            [](Real x) -> Real { return MML::Real(1.0) / (MML::Real(4.0) + x*x);},  "1 / (4 + x*x)",
+                            [](Real x) -> Real { return MML::Real(0.5) * atan(x/2);},  "1 / 2 * atan(x/2)"},
                 // x^2, integral is x^3 / 3
                 {"XSquared", new CompleteRInterval(),
                             new OpenInterval(-10.0, 10.0),
                             [](Real x) -> Real { return x * x; }, "x^2",
-                            [](Real x) -> Real { return x * x * x / 3.0; }, "x^3 / 3"
+                            [](Real x) -> Real { return x * x * x / MML::Real(3.0); }, "x^3 / 3"
                 },
                 // 1/x, integral is ln|x|
                 {"Reciprocal", new OpenInterval(-10.0, 0.0), // avoid x=0
-                              new OpenInterval(0.1, 10.0),
-                              [](Real x) -> Real { return 1.0 / x; }, "1/x",
+                              new OpenInterval(MML::Real(0.1), MML::Real(10.0)),
+                              [](Real x) -> Real { return MML::Real(1.0) / x; }, "1/x",
                               [](Real x) -> Real { return log(std::abs(x)); }, "ln|x|"
                 },
                 // Exponential Decay: f(x) = exp(-a*x), integral = -1/a * exp(-a*x)
                 {"ExpDecay", new CompleteRInterval(),
                             new ClosedInterval(-10.0, 10.0),
                             [](Real x) -> Real { constexpr Real a = 2.0; return exp(-a * x); }, "exp(-2x)",
-                            [](Real x) -> Real { constexpr Real a = 2.0; return -1.0 / a * exp(-a * x); }, "-1/2 * exp(-2x)"
+                            [](Real x) -> Real { constexpr Real a = MML::Real(2.0); return -MML::Real(1.0) / a * exp(-a * x); }, "-1/2 * exp(-2x)"
                 },
                 // Gaussian: f(x) = exp(-x^2), integral = sqrt(pi)/2 * erf(x)
                 {"Gaussian", new CompleteRInterval(),
                             new ClosedInterval(-3.0, 3.0),
                             [](Real x) -> Real { return exp(-x * x); }, "exp(-x^2)",
-                            [](Real x) -> Real { return 0.5 * sqrt(MML::Constants::PI) * std::erf(x); }, "0.5*sqrt(pi)*erf(x)"
+                            [](Real x) -> Real { return MML::Real(0.5) * sqrt(MML::Constants::PI) * std::erf(x); }, "0.5*sqrt(pi)*erf(x)"
                 },
                 // Logistic: f(x) = 1/(1+exp(-x)), integral = x - ln(1+exp(-x))
                 {"Logistic", new CompleteRInterval(),
                             new ClosedInterval(-10.0, 10.0),
-                            [](Real x) -> Real { return 1.0 / (1.0 + exp(-x)); }, "1/(1+exp(-x))",
-                            [](Real x) -> Real { return x - log(1.0 + exp(-x)); }, "x - ln(1+exp(-x))"
+                            [](Real x) -> Real { return MML::Real(1.0) / (MML::Real(1.0) + exp(-x)); }, "1/(1+exp(-x))",
+                            [](Real x) -> Real { return x - log(MML::Real(1.0) + exp(-x)); }, "x - ln(1+exp(-x))"
                 },
                 // Rational: f(x) = x/(x^2+1), integral = 0.5*ln(x^2+1)
                 {"RationalXOverXSquaredPlus1", new CompleteRInterval(),
                                               new ClosedInterval(-10.0, 10.0),
-                                              [](Real x) -> Real { return x / (x * x + 1.0); }, "x/(x^2+1)",
-                                              [](Real x) -> Real { return 0.5 * log(x * x + 1.0); }, "0.5*ln(x^2+1)"
+                                              [](Real x) -> Real { return x / (x * x + MML::Real(1.0)); }, "x/(x^2+1)",
+                                              [](Real x) -> Real { return MML::Real(0.5) * log(x * x + MML::Real(1.0)); }, "0.5*ln(x^2+1)"
                 },
                 // Arctangent: f(x) = atan(x), integral = x*atan(x) - 0.5*ln(1+x^2)
                 {"Arctangent", new CompleteRInterval(),
                               new ClosedInterval(-10.0, 10.0),
                               [](Real x) -> Real { return atan(x); }, "atan(x)",
-                              [](Real x) -> Real { return x * atan(x) - 0.5 * log(1.0 + x * x); }, "x*atan(x) - 0.5*ln(1+x^2)"
+                              [](Real x) -> Real { return x * atan(x) - MML::Real(0.5) * log(MML::Real(1.0) + x * x); }, "x*atan(x) - 0.5*ln(1+x^2)"
                 },
                 // Sine Squared: f(x) = sin^2(x), integral = x/2 - (1/4) * sin(2x)
                 {"SineSquared", new CompleteRInterval(),
                                 new ClosedInterval(-10.0, 10.0),
                                 [](Real x) -> Real { return sin(x) * sin(x); }, "sin^2(x)",
-                                [](Real x) -> Real { return x / 2.0 - 0.25 * sin(2.0 * x); }, "x/2 - 0.25*sin(2x)"
+                                [](Real x) -> Real { return x / MML::Real(2.0) - MML::Real(0.25) * sin(MML::Real(2.0) * x); }, "x/2 - 0.25*sin(2x)"
                 },
                 // Cosine Cubed: f(x) = cos^3(x), integral = (sin(x)/3) + (sin(3x)/9)
                 {"CosineCubed", new CompleteRInterval(),
                                 new ClosedInterval(-10.0, 10.0),
-                                [](Real x) -> Real { return pow(cos(x), 3); }, "cos^3(x)",
-                                [](Real x) -> Real { return (sin(x) / 3.0) + (sin(3.0 * x) / 9.0); }, "sin(x)/3 + sin(3x)/9"
+                                [](Real x) -> Real { return pow(cos(x), MML::Real(3)); }, "cos^3(x)",
+                                [](Real x) -> Real { return (sin(x) / MML::Real(3.0)) + (sin(MML::Real(3.0) * x) / MML::Real(9.0)); }, "sin(x)/3 + sin(3x)/9"
                 },
                 // Reciprocal Quadratic: f(x) = 1/(x^2 + a^2), integral = (1/a) * atan(x/a)
                 {"ReciprocalQuadratic", new CompleteRInterval(),
                                         new ClosedInterval(-10.0, 10.0),
-                                        [](Real x) -> Real { constexpr Real a = 2.0; return 1.0 / (x * x + a * a); }, "1/(x^2+4)",
-                                        [](Real x) -> Real { constexpr Real a = 2.0; return (1.0 / a) * atan(x / a); }, "0.5*atan(x/2)"
+                                        [](Real x) -> Real { constexpr Real a = MML::Real(2.0); return MML::Real(1.0) / (x * x + a * a); }, "1/(x^2+4)",
+                                        [](Real x) -> Real { constexpr Real a = MML::Real(2.0); return (MML::Real(1.0) / a) * atan(x / a); }, "0.5*atan(x/2)"
                 },
                 // Exponential Times Polynomial: f(x) = x*exp(x), integral = (x-1)*exp(x)
                 {"ExpTimesX", new CompleteRInterval(),
                               new ClosedInterval(-10.0, 10.0),
                               [](Real x) -> Real { return x * exp(x); }, "x*exp(x)",
-                              [](Real x) -> Real { return (x - 1.0) * exp(x); }, "(x-1)*exp(x)"
+                              [](Real x) -> Real { return (x - MML::Real(1.0)) * exp(x); }, "(x-1)*exp(x)"
                 },
                 // Logarithmic Composite: f(x) = ln(1 + x^2), integral = x*ln(1 + x^2) - 2x + 2*atan(x)
                 {"LogComposite", new CompleteRInterval(),
                                 new ClosedInterval(-10.0, 10.0),
-                                [](Real x) -> Real { return log(1.0 + x * x); }, "ln(1 + x^2)",
-                                [](Real x) -> Real { return x * log(1.0 + x * x) - 2.0 * x + 2.0 * atan(x); }, "x*ln(1 + x^2) - 2x + 2*atan(x)"
+                                [](Real x) -> Real { return log(MML::Real(1.0) + x * x); }, "ln(1 + x^2)",
+                                [](Real x) -> Real { return x * log(MML::Real(1.0) + x * x) - MML::Real(2.0) * x + MML::Real(2.0) * atan(x); }, "x*ln(1 + x^2) - 2x + 2*atan(x)"
                 },
                 // Hyperbolic Tangent: f(x) = tanh(x), integral = ln(cosh(x))
                 {"Tanh", new CompleteRInterval(),
@@ -635,7 +635,7 @@ namespace MML::TestBeds
                 {"ExpQuadratic", new CompleteRInterval(),
                                 new ClosedInterval(-3.0, 3.0),
                                 [](Real x) -> Real { constexpr Real a = 1.0; return exp(a * x * x); }, "exp(x^2)",
-                                [](Real x) -> Real { constexpr Real a = 1.0; return 0.5 * sqrt(MML::Constants::PI / a) * std::erf(sqrt(a) * x); }, "0.5*sqrt(pi)*erf(x)"
+                                [](Real x) -> Real { constexpr Real a = MML::Real(1.0); return MML::Real(0.5) * sqrt(MML::Constants::PI / a) * std::erf(sqrt(a) * x); }, "0.5*sqrt(pi)*erf(x)"
                 }
             };
         return listFuncRealWithIntegral;
@@ -653,8 +653,8 @@ namespace MML::TestBeds
             // f'(x) = -50x / (1 + 25x²)²
             {"Runge", new CompleteRInterval(),
                       new ClosedInterval(-1.0, 1.0),
-                      [](Real x) -> Real { return 1.0 / (1.0 + 25.0 * x * x); }, "1/(1 + 25x^2)",
-                      [](Real x) -> Real { Real d = 1.0 + 25.0 * x * x; return -50.0 * x / (d * d); }, "-50x/(1 + 25x^2)^2"
+                      [](Real x) -> Real { return MML::Real(1.0) / (MML::Real(1.0) + MML::Real(25.0) * x * x); }, "1/(1 + 25x^2)",
+                      [](Real x) -> Real { Real d = MML::Real(1.0) + MML::Real(25.0) * x * x; return -MML::Real(50.0) * x / (d * d); }, "-50x/(1 + 25x^2)^2"
             },
             
             // 2. Steep Gradient: f(x) = tanh(kx) with large k
@@ -671,8 +671,8 @@ namespace MML::TestBeds
             // f'(x) = -2x/ε * exp(-x²/ε)
             {"PeakedGaussian_eps0.01", new CompleteRInterval(),
                                        new ClosedInterval(-1.0, 1.0),
-                                       [](Real x) -> Real { constexpr Real eps = 0.01; return exp(-x * x / eps); }, "exp(-x^2/0.01)",
-                                       [](Real x) -> Real { constexpr Real eps = 0.01; return -2.0 * x / eps * exp(-x * x / eps); }, "-200x*exp(-x^2/0.01)"
+                                       [](Real x) -> Real { constexpr Real eps = MML::Real(0.01); return exp(-x * x / eps); }, "exp(-x^2/0.01)",
+                                       [](Real x) -> Real { constexpr Real eps = MML::Real(0.01); return -MML::Real(2.0) * x / eps * exp(-x * x / eps); }, "-200x*exp(-x^2/0.01)"
             },
             
             // 4. Witch of Agnesi: f(x) = 1/(1 + x²)
@@ -680,8 +680,8 @@ namespace MML::TestBeds
             // f'(x) = -2x / (1 + x²)²
             {"WitchOfAgnesi", new CompleteRInterval(),
                              new ClosedInterval(-10.0, 10.0),
-                             [](Real x) -> Real { return 1.0 / (1.0 + x * x); }, "1/(1 + x^2)",
-                             [](Real x) -> Real { Real d = 1.0 + x * x; return -2.0 * x / (d * d); }, "-2x/(1 + x^2)^2"
+                             [](Real x) -> Real { return MML::Real(1.0) / (MML::Real(1.0) + x * x); }, "1/(1 + x^2)",
+                             [](Real x) -> Real { Real d = MML::Real(1.0) + x * x; return -MML::Real(2.0) * x / (d * d); }, "-2x/(1 + x^2)^2"
             },
             
             // 5. Oscillatory Decay: f(x) = exp(-x) * sin(10x)
@@ -689,41 +689,41 @@ namespace MML::TestBeds
             // f'(x) = exp(-x) * (10*cos(10x) - sin(10x))
             {"OscillatoryDecay", new CompleteRInterval(),
                                  new ClosedInterval(0.0, 10.0),
-                                 [](Real x) -> Real { return exp(-x) * sin(10.0 * x); }, "exp(-x)*sin(10x)",
-                                 [](Real x) -> Real { return exp(-x) * (10.0 * cos(10.0 * x) - sin(10.0 * x)); }, "exp(-x)*(10*cos(10x) - sin(10x))"
+                                 [](Real x) -> Real { return exp(-x) * sin(MML::Real(10.0) * x); }, "exp(-x)*sin(10x)",
+                                 [](Real x) -> Real { return exp(-x) * (MML::Real(10.0) * cos(MML::Real(10.0) * x) - sin(MML::Real(10.0) * x)); }, "exp(-x)*(10*cos(10x) - sin(10x))"
             },
             
             // 6. Near-Singular Power: f(x) = x^0.1 for x > 0
             // Tests handling of functions with infinite derivative at boundary
             // f'(x) = 0.1 * x^(-0.9)
             {"NearSingularPower", new OpenToInfInterval(0.0),
-                                  new OpenClosedInterval(0.001, 10.0),  // Avoid x=0
-                                  [](Real x) -> Real { return pow(x, 0.1); }, "x^0.1",
-                                  [](Real x) -> Real { return 0.1 * pow(x, -0.9); }, "0.1*x^(-0.9)"
+                                  new OpenClosedInterval(MML::Real(0.001), MML::Real(10.0)),  // Avoid x=0
+                                  [](Real x) -> Real { return pow(x, MML::Real(0.1)); }, "x^0.1",
+                                  [](Real x) -> Real { return MML::Real(0.1) * pow(x, -MML::Real(0.9)); }, "0.1*x^(-0.9)"
             },
             
             // 7. Bessel-like oscillation: f(x) = sin(x)/x (sinc function)
             // Removable singularity at x=0, oscillatory decay
             // f'(x) = (x*cos(x) - sin(x))/x²
             {"Sinc", new CompleteRInterval(),
-                     new ClosedInterval(0.1, 20.0),  // Avoid singularity at 0 for testing
-                     [](Real x) -> Real { return x != 0.0 ? sin(x) / x : 1.0; }, "sin(x)/x",
-                     [](Real x) -> Real { return x != 0.0 ? (x * cos(x) - sin(x)) / (x * x) : 0.0; }, "(x*cos(x) - sin(x))/x^2"
+                     new ClosedInterval(MML::Real(0.1), MML::Real(20.0)),  // Avoid singularity at 0 for testing
+                     [](Real x) -> Real { return x != MML::Real(0.0) ? sin(x) / x : MML::Real(1.0); }, "sin(x)/x",
+                     [](Real x) -> Real { return x != MML::Real(0.0) ? (x * cos(x) - sin(x)) / (x * x) : MML::Real(0.0); }, "(x*cos(x) - sin(x))/x^2"
             },
             
             // 8. Bump-like function: f(x) = exp(-1/(1-x²)) for |x| < 1
             // Smooth function with very flat behavior near boundaries
             // Used in smooth approximations
             {"SmoothBump", new OpenInterval(-1.0, 1.0),
-                           new OpenInterval(-0.99, 0.99),
+                           new OpenInterval(-MML::Real(0.99), MML::Real(0.99)),
                            [](Real x) -> Real { 
-                               Real t = 1.0 - x * x;
-                               return t > 0 ? exp(-1.0 / t) : 0.0; 
+                               Real t = MML::Real(1.0) - x * x;
+                               return t > 0 ? exp(-MML::Real(1.0) / t) : MML::Real(0.0);
                            }, "exp(-1/(1-x^2))",
                            [](Real x) -> Real { 
-                               Real t = 1.0 - x * x;
+                               Real t = MML::Real(1.0) - x * x;
                                if (t <= 0) return 0.0;
-                               return -2.0 * x * exp(-1.0 / t) / (t * t); 
+                               return -MML::Real(2.0) * x * exp(-MML::Real(1.0) / t) / (t * t);
                            }, "-2x*exp(-1/(1-x^2))/(1-x^2)^2"
             }
         };
@@ -746,16 +746,16 @@ namespace MML::TestBeds
                             [](Real x) -> Real { 
                                 // Fresnel S integral approximation using series or erf
                                 // For simplicity, we use a reference computation
-                                Real u = x * sqrt(2.0 / MML::Constants::PI);
+                                Real u = x * sqrt(MML::Real(2.0) / MML::Constants::PI);
                                 // S(u) approximation via series for small u
                                 Real sum = 0.0;
                                 Real term = u;
                                 for (int n = 0; n < 50 && std::abs(term) > 1e-15; n++) {
                                     sum += term;
                                     term *= -MML::Constants::PI * MML::Constants::PI * u * u * u * u / 
-                                            ((4.0 * n + 3.0) * (4.0 * n + 4.0) * (2.0 * n + 1.0) * (2.0 * n + 2.0));
+                                            ((MML::Real(4.0) * n + MML::Real(3.0)) * (MML::Real(4.0) * n + MML::Real(4.0)) * (MML::Real(2.0) * n + MML::Real(1.0)) * (MML::Real(2.0) * n + MML::Real(2.0)));
                                 }
-                                return sqrt(MML::Constants::PI / 2.0) * sum;
+                                return sqrt(MML::Constants::PI / MML::Real(2.0)) * sum;
                             }, "sqrt(pi/2)*FresnelS(sqrt(2/pi)*x)"
             },
             
@@ -765,15 +765,15 @@ namespace MML::TestBeds
                               new ClosedInterval(0.0, 5.0),
                               [](Real x) -> Real { return cos(x * x); }, "cos(x^2)",
                               [](Real x) -> Real { 
-                                  Real u = x * sqrt(2.0 / MML::Constants::PI);
+                                  Real u = x * sqrt(MML::Real(2.0) / MML::Constants::PI);
                                   Real sum = 0.0;
                                   Real term = 1.0;
                                   for (int n = 0; n < 50 && std::abs(term) > 1e-15; n++) {
                                       sum += term;
                                       term *= -MML::Constants::PI * MML::Constants::PI * u * u * u * u / 
-                                              ((4.0 * n + 1.0) * (4.0 * n + 2.0) * (2.0 * n + 1.0) * (2.0 * n + 2.0));
+                                              ((MML::Real(4.0) * n + MML::Real(1.0)) * (MML::Real(4.0) * n + MML::Real(2.0)) * (MML::Real(2.0) * n + MML::Real(1.0)) * (MML::Real(2.0) * n + MML::Real(2.0)));
                                   }
-                                  return sqrt(MML::Constants::PI / 2.0) * u * sum;
+                                  return sqrt(MML::Constants::PI / MML::Real(2.0)) * u * sum;
                               }, "sqrt(pi/2)*FresnelC(sqrt(2/pi)*x)"
             },
             
@@ -781,16 +781,16 @@ namespace MML::TestBeds
             // ∫ 1/(1+25x²) dx = (1/5)*atan(5x)
             {"RungeIntegral", new CompleteRInterval(),
                               new ClosedInterval(-1.0, 1.0),
-                              [](Real x) -> Real { return 1.0 / (1.0 + 25.0 * x * x); }, "1/(1+25x^2)",
-                              [](Real x) -> Real { return 0.2 * atan(5.0 * x); }, "(1/5)*atan(5x)"
+                              [](Real x) -> Real { return MML::Real(1.0) / (MML::Real(1.0) + MML::Real(25.0) * x * x); }, "1/(1+25x^2)",
+                              [](Real x) -> Real { return MML::Real(0.2) * atan(MML::Real(5.0) * x); }, "(1/5)*atan(5x)"
             },
             
             // 4. Peaked Gaussian integral
             // ∫ exp(-x²/ε) dx = sqrt(π*ε) * erf(x/sqrt(ε)) / 2
             {"PeakedGaussianIntegral", new CompleteRInterval(),
                                        new ClosedInterval(-1.0, 1.0),
-                                       [](Real x) -> Real { constexpr Real eps = 0.01; return exp(-x * x / eps); }, "exp(-x^2/0.01)",
-                                       [](Real x) -> Real { constexpr Real eps = 0.01; return 0.5 * sqrt(MML::Constants::PI * eps) * std::erf(x / sqrt(eps)); }, "0.5*sqrt(0.01*pi)*erf(10x)"
+                                       [](Real x) -> Real { constexpr Real eps = MML::Real(0.01); return exp(-x * x / eps); }, "exp(-x^2/0.01)",
+                                       [](Real x) -> Real { constexpr Real eps = MML::Real(0.01); return MML::Real(0.5) * sqrt(MML::Constants::PI * eps) * std::erf(x / sqrt(eps)); }, "0.5*sqrt(0.01*pi)*erf(10x)"
             },
             
             // 5. Oscillatory decay integral
@@ -800,16 +800,16 @@ namespace MML::TestBeds
                                          [](Real x) -> Real { constexpr Real w = 10.0; return exp(-x) * sin(w * x); }, "exp(-x)*sin(10x)",
                                          [](Real x) -> Real { 
                                              constexpr Real w = 10.0; 
-                                             return exp(-x) * (-sin(w * x) - w * cos(w * x)) / (1.0 + w * w); 
+                                             return exp(-x) * (-sin(w * x) - w * cos(w * x)) / (MML::Real(1.0) + w * w);
                                          }, "exp(-x)*(-sin(10x) - 10*cos(10x))/101"
             },
             
             // 6. Near-singular power integral
             // ∫ x^α dx = x^(α+1)/(α+1) for α > -1
             {"NearSingularPowerIntegral", new OpenToInfInterval(0.0),
-                                          new OpenClosedInterval(0.001, 10.0),
-                                          [](Real x) -> Real { return pow(x, 0.1); }, "x^0.1",
-                                          [](Real x) -> Real { return pow(x, 1.1) / 1.1; }, "x^1.1/1.1"
+                                          new OpenClosedInterval(MML::Real(0.001), MML::Real(10.0)),
+                                          [](Real x) -> Real { return pow(x, MML::Real(0.1)); }, "x^0.1",
+                                          [](Real x) -> Real { return pow(x, MML::Real(1.1)) / MML::Real(1.1); }, "x^1.1/1.1"
             }
         };
         return listFuncExtendedWithIntegral;

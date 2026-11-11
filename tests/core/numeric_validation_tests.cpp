@@ -38,7 +38,7 @@ TEST_CASE("IsFinite - NaN", "[NumericValidation][IsFinite]")
 {
 	REQUIRE_FALSE(IsFinite(std::numeric_limits<Real>::quiet_NaN()));
 	REQUIRE_FALSE(IsFinite(std::numeric_limits<Real>::signaling_NaN()));
-	REQUIRE_FALSE(IsFinite(std::nan("")));
+	REQUIRE_FALSE(IsFinite(std::numeric_limits<Real>::quiet_NaN()));
 }
 
 TEST_CASE("IsFinite - Infinity", "[NumericValidation][IsFinite]")
@@ -109,7 +109,7 @@ TEST_CASE("ValidateFinite - String version", "[NumericValidation][ValidateFinite
 	std::string name = "my_parameter";
 	
 	REQUIRE_NOTHROW(ValidateFinite(1.0, name));
-	REQUIRE_THROWS_AS(ValidateFinite(std::nan(""), name), NumericInputError);
+	REQUIRE_THROWS_AS(ValidateFinite(std::numeric_limits<Real>::quiet_NaN(), name), NumericInputError);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -131,7 +131,7 @@ TEST_CASE("ValidateBounds - Normal bounds pass", "[NumericValidation][ValidateBo
 
 TEST_CASE("ValidateBounds - NaN lower bound throws", "[NumericValidation][ValidateBounds]")
 {
-	Real nan_val = std::nan("");
+	Real nan_val = std::numeric_limits<Real>::quiet_NaN();
 	
 	REQUIRE_THROWS_AS(ValidateBounds(nan_val, 1.0, "test"), NumericInputError);
 	
@@ -147,7 +147,7 @@ TEST_CASE("ValidateBounds - NaN lower bound throws", "[NumericValidation][Valida
 
 TEST_CASE("ValidateBounds - NaN upper bound throws", "[NumericValidation][ValidateBounds]")
 {
-	Real nan_val = std::nan("");
+	Real nan_val = std::numeric_limits<Real>::quiet_NaN();
 	
 	REQUIRE_THROWS_AS(ValidateBounds(0.0, nan_val, "test"), NumericInputError);
 	
@@ -176,7 +176,7 @@ TEST_CASE("ValidateBounds - String version", "[NumericValidation][ValidateBounds
 	std::string ctx = "my_algorithm";
 	
 	REQUIRE_NOTHROW(ValidateBounds(0.0, 1.0, ctx));
-	REQUIRE_THROWS_AS(ValidateBounds(std::nan(""), 1.0, ctx), NumericInputError);
+	REQUIRE_THROWS_AS(ValidateBounds(std::numeric_limits<Real>::quiet_NaN(), MML::Real(1.0), ctx), NumericInputError);
 }
 
 TEST_CASE("ValidateBounds - Default context", "[NumericValidation][ValidateBounds]")
@@ -184,7 +184,7 @@ TEST_CASE("ValidateBounds - Default context", "[NumericValidation][ValidateBound
 	REQUIRE_NOTHROW(ValidateBounds(0.0, 1.0));  // Default "algorithm"
 	
 	try {
-		ValidateBounds(std::nan(""), 1.0);  // Default context
+		ValidateBounds(std::numeric_limits<Real>::quiet_NaN(), MML::Real(1.0));  // Default context
 	} catch (const NumericInputError& e) {
 		std::string msg = e.what();
 		REQUIRE(msg.find("algorithm") != std::string::npos);
@@ -197,9 +197,9 @@ TEST_CASE("ValidateBounds - Default context", "[NumericValidation][ValidateBound
 
 TEST_CASE("ValidateTolerance - Valid tolerances pass", "[NumericValidation][ValidateTolerance]")
 {
-	REQUIRE_NOTHROW(ValidateTolerance(1e-6, "test"));
+	REQUIRE_NOTHROW(ValidateTolerance(MML::Real(1e-6), "test"));
 	REQUIRE_NOTHROW(ValidateTolerance(TOL(1e-12, 1e-5), "high precision"));
-	REQUIRE_NOTHROW(ValidateTolerance(0.1, "low precision"));
+	REQUIRE_NOTHROW(ValidateTolerance(MML::Real(0.1), "low precision"));
 	REQUIRE_NOTHROW(ValidateTolerance(std::numeric_limits<Real>::min(), "smallest"));
 }
 
@@ -210,13 +210,13 @@ TEST_CASE("ValidateTolerance - Zero throws", "[NumericValidation][ValidateTolera
 
 TEST_CASE("ValidateTolerance - Negative throws", "[NumericValidation][ValidateTolerance]")
 {
-	REQUIRE_THROWS_AS(ValidateTolerance(-1e-6, "test"), NumericInputError);
-	REQUIRE_THROWS_AS(ValidateTolerance(-0.1, "test"), NumericInputError);
+	REQUIRE_THROWS_AS(ValidateTolerance(-MML::Real(1e-6), "test"), NumericInputError);
+	REQUIRE_THROWS_AS(ValidateTolerance(-MML::Real(0.1), "test"), NumericInputError);
 }
 
 TEST_CASE("ValidateTolerance - NaN throws", "[NumericValidation][ValidateTolerance]")
 {
-	REQUIRE_THROWS_AS(ValidateTolerance(std::nan(""), "test"), NumericInputError);
+	REQUIRE_THROWS_AS(ValidateTolerance(std::numeric_limits<Real>::quiet_NaN(), "test"), NumericInputError);
 }
 
 TEST_CASE("ValidateTolerance - Infinity throws", "[NumericValidation][ValidateTolerance]")
@@ -227,7 +227,7 @@ TEST_CASE("ValidateTolerance - Infinity throws", "[NumericValidation][ValidateTo
 TEST_CASE("ValidateTolerance - Error message content", "[NumericValidation][ValidateTolerance]")
 {
 	try {
-		ValidateTolerance(-0.001, "Newton iteration");
+		ValidateTolerance(-MML::Real(0.001), "Newton iteration");
 		FAIL("Should have thrown");
 	} catch (const NumericInputError& e) {
 		std::string msg = e.what();
@@ -241,7 +241,7 @@ TEST_CASE("ValidateTolerance - String version", "[NumericValidation][ValidateTol
 {
 	std::string ctx = "my_tolerance";
 	
-	REQUIRE_NOTHROW(ValidateTolerance(1e-6, ctx));
+	REQUIRE_NOTHROW(ValidateTolerance(MML::Real(1e-6), ctx));
 	REQUIRE_THROWS_AS(ValidateTolerance(0.0, ctx), NumericInputError);
 }
 
@@ -259,10 +259,10 @@ TEST_CASE("ValidateFunctionValue - Normal values pass", "[NumericValidation][Val
 
 TEST_CASE("ValidateFunctionValue - NaN throws", "[NumericValidation][ValidateFunctionValue]")
 {
-	REQUIRE_THROWS_AS(ValidateFunctionValue(std::nan(""), "f(x)"), NumericInputError);
+	REQUIRE_THROWS_AS(ValidateFunctionValue(std::numeric_limits<Real>::quiet_NaN(), "f(x)"), NumericInputError);
 	
 	try {
-		ValidateFunctionValue(std::nan(""), "function at x=0.5");
+		ValidateFunctionValue(std::numeric_limits<Real>::quiet_NaN(), "function at x=0.5");
 		FAIL("Should have thrown");
 	} catch (const NumericInputError& e) {
 		std::string msg = e.what();
@@ -293,7 +293,7 @@ TEST_CASE("ValidateFunctionValue - Default context", "[NumericValidation][Valida
 	REQUIRE_NOTHROW(ValidateFunctionValue(1.0));  // Default "function evaluation"
 	
 	try {
-		ValidateFunctionValue(std::nan(""));
+		ValidateFunctionValue(std::numeric_limits<Real>::quiet_NaN());
 	} catch (const NumericInputError& e) {
 		std::string msg = e.what();
 		REQUIRE(msg.find("function evaluation") != std::string::npos);
@@ -314,7 +314,7 @@ TEST_CASE("IsFunctionValueValid - Normal values", "[NumericValidation][IsFunctio
 
 TEST_CASE("IsFunctionValueValid - Invalid values", "[NumericValidation][IsFunctionValueValid]")
 {
-	REQUIRE_FALSE(IsFunctionValueValid(std::nan("")));
+	REQUIRE_FALSE(IsFunctionValueValid(std::numeric_limits<Real>::quiet_NaN()));
 	REQUIRE_FALSE(IsFunctionValueValid(std::numeric_limits<Real>::infinity()));
 	REQUIRE_FALSE(IsFunctionValueValid(-std::numeric_limits<Real>::infinity()));
 }
@@ -322,7 +322,7 @@ TEST_CASE("IsFunctionValueValid - Invalid values", "[NumericValidation][IsFuncti
 TEST_CASE("IsFunctionValueValid - No throw on invalid", "[NumericValidation][IsFunctionValueValid]")
 {
 	// This should never throw, even with bad input
-	REQUIRE_NOTHROW(IsFunctionValueValid(std::nan("")));
+	REQUIRE_NOTHROW(IsFunctionValueValid(std::numeric_limits<Real>::quiet_NaN()));
 	REQUIRE_NOTHROW(IsFunctionValueValid(std::numeric_limits<Real>::infinity()));
 }
 
@@ -378,8 +378,8 @@ TEST_CASE("ValidateMaxIterations - Default context", "[NumericValidation][Valida
 
 TEST_CASE("ValidateStepSize - Valid values pass", "[NumericValidation][ValidateStepSize]")
 {
-	REQUIRE_NOTHROW(ValidateStepSize(0.01, "test"));
-	REQUIRE_NOTHROW(ValidateStepSize(1e-6, "differentiation"));
+	REQUIRE_NOTHROW(ValidateStepSize(MML::Real(0.01), "test"));
+	REQUIRE_NOTHROW(ValidateStepSize(MML::Real(1e-6), "differentiation"));
 	REQUIRE_NOTHROW(ValidateStepSize(1.0, "integration"));
 	REQUIRE_NOTHROW(ValidateStepSize(std::numeric_limits<Real>::min(), "tiny"));
 }
@@ -391,13 +391,13 @@ TEST_CASE("ValidateStepSize - Zero throws", "[NumericValidation][ValidateStepSiz
 
 TEST_CASE("ValidateStepSize - Negative throws", "[NumericValidation][ValidateStepSize]")
 {
-	REQUIRE_THROWS_AS(ValidateStepSize(-0.01, "test"), NumericInputError);
-	REQUIRE_THROWS_AS(ValidateStepSize(-1e-6, "test"), NumericInputError);
+	REQUIRE_THROWS_AS(ValidateStepSize(-MML::Real(0.01), "test"), NumericInputError);
+	REQUIRE_THROWS_AS(ValidateStepSize(-MML::Real(1e-6), "test"), NumericInputError);
 }
 
 TEST_CASE("ValidateStepSize - NaN throws", "[NumericValidation][ValidateStepSize]")
 {
-	REQUIRE_THROWS_AS(ValidateStepSize(std::nan(""), "test"), NumericInputError);
+	REQUIRE_THROWS_AS(ValidateStepSize(std::numeric_limits<Real>::quiet_NaN(), "test"), NumericInputError);
 }
 
 TEST_CASE("ValidateStepSize - Infinity throws", "[NumericValidation][ValidateStepSize]")
@@ -408,7 +408,7 @@ TEST_CASE("ValidateStepSize - Infinity throws", "[NumericValidation][ValidateSte
 TEST_CASE("ValidateStepSize - Error message", "[NumericValidation][ValidateStepSize]")
 {
 	try {
-		ValidateStepSize(-0.001, "Romberg");
+		ValidateStepSize(-MML::Real(0.001), "Romberg");
 		FAIL("Should have thrown");
 	} catch (const NumericInputError& e) {
 		std::string msg = e.what();

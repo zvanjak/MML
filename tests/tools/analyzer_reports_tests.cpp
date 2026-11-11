@@ -142,7 +142,7 @@ TEST_CASE("Continuity reporting covers every candidate classification", "[Analys
 {
 	ContinuityAnalysisResult result{Real(-1), Real(1), 16, Precision::LooseTolerance, {}};
 	for (auto type : {DiscontinuityType::JUMP, DiscontinuityType::REMOVABLE,
-	                  DiscontinuityType::INFINITE, DiscontinuityType::OSCILLATORY,
+	                  DiscontinuityType::Infinite, DiscontinuityType::OSCILLATORY,
 	                  DiscontinuityType::UNKNOWN})
 		result.candidates.push_back({Real(0), type, Real(-1), Real(1),
 		                             std::numeric_limits<Real>::quiet_NaN(), Real(2)});

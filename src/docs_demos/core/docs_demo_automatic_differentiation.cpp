@@ -2,6 +2,7 @@
 #include <MML.h>
 #else
 #include <mml/core/Derivation/ADAdapters.h>
+#include <mml/core/Derivation/ReverseAD.h>
 #include <mml/core/DifferentialGeometry/InducedMetric.h>
 #include <mml/core/Fields/FieldOperations.h>
 #include <mml/core/Integration/PathIntegration.h>
@@ -133,6 +134,50 @@ namespace {
 			throw std::runtime_error("Undefined AD derivative was not reported explicitly");
 		std::cout << "Undefined derivative reported: " << failed.error_message << '\n';
 	}
+
+	void DomainContractExample() {
+		auto squared = AD::CalcDerivativeForwardAD(
+			[](auto x) { using std::pow; return pow(x, 2); }, Real(0));
+		auto constantPower = AD::CalcDerivativeForwardAD(
+			[](auto x) { using std::pow; return pow(x, 0); }, Real(0));
+		auto endpoint = AD::asin(AD::Dual<Real>(1, 1));
+		Verify(squared.first, Real(0));
+		Verify(squared.second, Real(0));
+		Verify(constantPower.first, Real(1));
+		Verify(constantPower.second, Real(0));
+		if (!std::isinf(endpoint.deriv) || std::signbit(endpoint.deriv))
+			throw std::runtime_error("Singular AD endpoint was incorrectly reported as finite");
+
+		auto field = AD::MakeADScalarField<1>([](const auto& x) { using std::asin; return asin(x[0]); });
+		bool rejected = false;
+		try {
+			field.EvaluateSecondPartial({1}, 0, 0);
+		} catch (const DomainError& error) {
+			rejected = true;
+			std::cout << "Singular nested AD endpoint rejected: " << error.what() << '\n';
+		}
+		if (!rejected)
+			throw std::runtime_error("Checked AD adapter accepted a singular endpoint");
+		std::cout << "AD power contracts: x^2 at zero=(" << squared.first << ", " << squared.second
+							<< "), x^0 at zero=(" << constantPower.first << ", " << constantPower.second << ")\n";
+	}
+
+	void TapeLifetimeExample() {
+		AD::Tape tape;
+		AD::ADVar old(&tape, 2);
+		tape.clear();
+		AD::ADVar replacement(&tape, 5);
+		bool rejected = false;
+		try {
+			(void)old.value();
+		} catch (const ArgumentError& error) {
+			rejected = true;
+			std::cout << "Stale AD handle rejected: " << error.what() << '\n';
+		}
+		if (!rejected)
+			throw std::runtime_error("Stale AD handle was accepted");
+		Verify(replacement.value(), Real(5));
+	}
 } // namespace
 
 void Docs_Demo_AutomaticDifferentiation() {
@@ -141,4 +186,6 @@ void Docs_Demo_AutomaticDifferentiation() {
 	MetricExample();
 	FieldExample();
 	NumericalReferenceAndFailureExample();
+	DomainContractExample();
+	TapeLifetimeExample();
 }

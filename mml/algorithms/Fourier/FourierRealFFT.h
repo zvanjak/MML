@@ -63,12 +63,15 @@ namespace MML::Fourier
 		static Vector<Complex> Forward(const Vector<Real>& data, TransformNormalization normalization) {
 			int n = data.size();
 			FourierValidation::ValidateRealFFTSize(n, 2, "RealFFT::Forward");
+			const Real scale = FourierDetail::NormalizationScale(n, normalization, true);
+			const int inputShift = FourierDetail::TransformInputShift(data, FourierDetail::CeilLog2(n) + 3);
 
 			// Pack real data into complex vector (treating pairs as complex numbers)
 			int n2 = n / 2;
 			Vector<Complex> temp(n2);
 			for (int i = 0; i < n2; i++)
-				temp[i] = Complex(data[2 * i], data[2 * i + 1]);
+				temp[i] = Complex(FourierDetail::ScalePowerOfTwo(data[2 * i], -inputShift),
+					FourierDetail::ScalePowerOfTwo(data[2 * i + 1], -inputShift));
 
 			// Complex FFT of packed data
 			FFT::Transform(temp, 1);
@@ -101,7 +104,7 @@ namespace MML::Fourier
 				result[k] = even + w * odd;
 			}
 
-			FourierDetail::ApplyScale(result, FourierDetail::NormalizationScale(n, normalization, true));
+			FourierDetail::RestoreTransformScale(result, scale, inputShift);
 
 			return result;
 		}
@@ -127,12 +130,15 @@ namespace MML::Fourier
 			int n = 2 * n2;
 
 			FourierValidation::ValidateMinSize(n2, 1, "RealFFT::Inverse");
+			const Real scale = Real(2) * FourierDetail::NormalizationScale(n, normalization, false);
+			const int inputShift = FourierDetail::TransformInputShift(spectrum, FourierDetail::CeilLog2(n) + 3);
+			auto bin = [&](int index) { return FourierDetail::ScalePowerOfTwo(spectrum[index], -inputShift); };
 
 			// Pack spectrum back into complex vector using reverse process
 			Vector<Complex> temp(n2);
 
 			// Reconstruct DC and Nyquist into temp[0]
-			temp[0] = Complex(Real(0.5) * (spectrum[0].real() + spectrum[n2].real()), Real(0.5) * (spectrum[0].real() - spectrum[n2].real()));
+			temp[0] = Complex(Real(0.5) * (bin(0).real() + bin(n2).real()), Real(0.5) * (bin(0).real() - bin(n2).real()));
 
 			// Reconstruct middle components
 			Real theta = Constants::PI / n2; // pi/n for inverse
@@ -140,8 +146,8 @@ namespace MML::Fourier
 				Complex w = std::exp(Complex(0, k * theta)); // exp(i*2*pi*k/n)
 
 				// Get spectrum values and conjugate pair
-				Complex z1 = spectrum[k];
-				Complex z2 = std::conj(spectrum[n2 - k]);
+				Complex z1 = bin(k);
+				Complex z2 = std::conj(bin(n2 - k));
 
 				// Even and odd parts
 				Complex even = Real(0.5) * (z1 + z2);
@@ -161,17 +167,7 @@ namespace MML::Fourier
 				result[2 * i + 1] = temp[i].imag();
 			}
 
-			// Apply normalization
-			for (int i = 0; i < n; i++)
-				result[i] /= n2;
-
-			Real adjustment = 1.0;
-			if (normalization == TransformNormalization::None || normalization == TransformNormalization::Forward)
-				adjustment = n;
-			else if (normalization == TransformNormalization::Orthonormal)
-				adjustment = std::sqrt(static_cast<Real>(n));
-
-			FourierDetail::ApplyScale(result, adjustment);
+			FourierDetail::RestoreTransformScale(result, scale, inputShift);
 
 			return result;
 		}

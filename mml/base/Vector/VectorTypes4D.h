@@ -16,12 +16,89 @@
 #include <mml/base/Vector/VectorN.h>
 
 #include <cmath>
+#include <algorithm>
+#include <array>
+#include <utility>
 
 namespace MML
 {
 	/// @brief 4D Minkowski spacetime vector with T (time), X, Y, Z components.
 	class Vector4Minkowski : public VectorN<Real, 4>
 	{
+		struct ScaledProduct {
+			Real mantissa = 0;
+			int exponent = 0;
+		};
+
+		bool HasFiniteComponents() const
+		{
+			return std::isfinite(T()) && std::isfinite(X()) && std::isfinite(Y()) && std::isfinite(Z());
+		}
+
+		static ScaledProduct ComputeProduct(const Vector4Minkowski& a, const Vector4Minkowski& b)
+		{
+			if (!a.HasFiniteComponents() || !b.HasFiniteComponents())
+				throw NumericInputError("Minkowski products require finite components");
+			struct Term { Real high, low; int exponent; };
+			std::array<Term, 4> terms{};
+			size_t count = 0;
+			for (int i = 0; i < 4; ++i) {
+				if (a[i] == 0 || b[i] == 0)
+					continue;
+				int firstExponent, secondExponent;
+				const Real first = std::frexp(a[i], &firstExponent);
+				const Real second = std::frexp(b[i], &secondExponent);
+				Real high = first * second;
+				Real low = std::fma(first, second, -high);
+				if (i == 0) { high = -high; low = -low; }
+				terms[count++] = {high, low, firstExponent + secondExponent};
+			}
+			// Bound the four-term sort explicitly to avoid GCC's inlined std::sort bounds diagnostic.
+			for (size_t i = 1; i < count; ++i) {
+				const Term term = terms[i];
+				size_t position = i;
+				while (position > 0 && term.exponent > terms[position - 1].exponent) {
+					terms[position] = terms[position - 1];
+					--position;
+				}
+				terms[position] = term;
+			}
+			const auto twoSum = [](Real first, Real second) {
+				const Real sum = first + second;
+				const Real part = sum - first;
+				return std::pair<Real, Real>{sum, (first - (sum - part)) + (second - part)};
+			};
+			Real high = 0, low = 0;
+			int exponent = 0;
+			// Sum largest products first, retaining FMA product errors. Rebase after cancellation
+			// so a small surviving spatial term is not lost beneath an enormous lightlike pair.
+			for (size_t i = 0; i < count; ++i) {
+				const auto& term = terms[i];
+				if (high == 0 && low == 0) {
+					high = term.high;
+					low = term.low;
+					exponent = term.exponent;
+				} else {
+					const int commonExponent = std::max(exponent, term.exponent);
+					high = std::scalbn(high, exponent - commonExponent);
+					low = std::scalbn(low, exponent - commonExponent);
+					const auto sum = twoSum(high, std::scalbn(term.high, term.exponent - commonExponent));
+					const auto normalized = twoSum(sum.first, low + sum.second +
+						std::scalbn(term.low, term.exponent - commonExponent));
+					high = normalized.first;
+					low = normalized.second;
+					exponent = commonExponent;
+				}
+				if (high != 0) {
+					int shift;
+					high = std::frexp(high, &shift);
+					low = std::scalbn(low, -shift);
+					exponent += shift;
+				}
+			}
+			return {high + low, exponent};
+		}
+
 	public:
 		/// @brief Returns T component (const).
 		Real  T() const { return val(0); }
@@ -51,22 +128,24 @@ namespace MML
 		/// @param b Second 4-vector
 		friend Real ScalarProduct(const Vector4Minkowski& a, const Vector4Minkowski& b)
 		{
-			return -a[0] * b[0] + a[1] * b[1] + a[2] * b[2] + a[3] * b[3];
+			const auto product = ComputeProduct(a, b);
+			return std::scalbn(product.mantissa, product.exponent);
 		}
 
 		/// @brief Computes Minkowski norm (spacetime interval).
 		Real Norm() const
 		{
-			if(T() == 0.0 && X() == 0.0 && Y() == 0.0 && Z() == 0.0)
-				return 0.0;
-
-			Real interval_squared = ScalarProduct(*this, *this);
-			if (IsTimelike())
-				return sqrt(-interval_squared);
-			else if (IsSpacelike())
-				return -sqrt(interval_squared);
-			else 
-				return 0.0; // Lightlike vectors have zero Minkowski norm
+			auto interval = ComputeProduct(*this, *this);
+			if (interval.mantissa == 0)
+				return 0;
+			const bool timelike = interval.mantissa < 0;
+			interval.mantissa = std::abs(interval.mantissa);
+			if (interval.exponent % 2 != 0) {
+				interval.mantissa *= Real{2};
+				--interval.exponent;
+			}
+			const Real norm = std::scalbn(std::sqrt(interval.mantissa), interval.exponent / 2);
+			return timelike ? norm : -norm;
 		}
 
 		/// @brief Computes Minkowski distance to another 4-vector.
@@ -80,17 +159,17 @@ namespace MML
 		/// @brief Checks if 4-vector is timelike (inside light cone).
 		bool IsTimelike() const
 		{
-			return ScalarProduct(*this, *this) < 0;
+			return HasFiniteComponents() && ComputeProduct(*this, *this).mantissa < 0;
 		}
 		/// @brief Checks if 4-vector is spacelike (outside light cone).
 		bool IsSpacelike() const
 		{
-			return ScalarProduct(*this, *this) > 0;
+			return HasFiniteComponents() && ComputeProduct(*this, *this).mantissa > 0;
 		}
 		/// @brief Checks if 4-vector is lightlike (on light cone).
 		bool IsLightlike() const
 		{
-			return ScalarProduct(*this, *this) == 0;
+			return HasFiniteComponents() && ComputeProduct(*this, *this).mantissa == 0;
 		}
 
 		/// @deprecated Use IsTimelike() (CONTRACT_POLICY §11: mathematical predicates are PascalCase).

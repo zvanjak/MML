@@ -20,6 +20,23 @@ namespace MML
 {
 	namespace Serializer
 	{
+		namespace detail
+		{
+			inline IOResult ValidateRealFunctionRange(Real x1, Real x2, int numPoints) {
+				if (numPoints < 2)
+					return SerializeFailure(IOError::INVALID_PARAMETERS, "numPoints must be >= 2");
+				if (x1 >= x2)
+					return SerializeFailure(IOError::INVALID_PARAMETERS, "x1 must be less than x2");
+				return SerializeSuccess();
+			}
+
+			inline IOResult ValidateRealFunctionPoints(const Vector<Real>& points) {
+				if (points.size() < 2)
+					return SerializeFailure(IOError::INVALID_PARAMETERS, "points vector must have at least 2 elements");
+				return SerializeSuccess();
+			}
+		}
+
 		//===================================================================================
 		// Real function serialization
 		//===================================================================================
@@ -36,10 +53,8 @@ namespace MML
 		/// @return IOResult with success flag and error details
 		inline IOResult SaveRealFunc(std::ostream& out, const IRealFunction& f, std::string title, Real x1, Real x2, int numPoints,
 																 int precision = 15) {
-			if (numPoints < 2)
-				return {false, IOError::INVALID_PARAMETERS, "numPoints must be >= 2"};
-			if (x1 >= x2)
-				return {false, IOError::INVALID_PARAMETERS, "x1 must be less than x2"};
+			const auto validation = detail::ValidateRealFunctionRange(x1, x2, numPoints);
+			if (!validation.success) return validation;
 
 			try
 			{
@@ -47,10 +62,9 @@ namespace MML
 				if (auto headerResult = WriteRealFuncHeader(out, SerializeFormatType::REAL_FUNCTION, title, x1, x2, numPoints); !headerResult.success)
 					return headerResult;
 
-				Real step = (x2 - x1) / (numPoints - 1);
 				for (int i = 0; i < numPoints; i++)
 				{
-					Real x = x1 + i * step;
+					Real x = detail::SampleCoordinate(x1, x2, i, numPoints);
 					out << x << " " << f(x) << std::endl;
 				}
 				return Serializer::detail::StreamResult(out);
@@ -65,8 +79,10 @@ namespace MML
 		/// @details Convenience wrapper that opens file and delegates to stream version
 		inline IOResult SaveRealFunc(const IRealFunction& f, std::string title, Real x1, Real x2, int numPoints, std::string fileName,
 																 int precision = 15) {
-			if (fileName.empty())
-				return IOResult{false, IOError::INVALID_PARAMETERS, "fileName cannot be empty"}.WithFile(fileName);
+			const auto pathValidation = detail::ValidateFileName(fileName);
+			if (!pathValidation.success) return pathValidation;
+			const auto validation = detail::ValidateRealFunctionRange(x1, x2, numPoints);
+			if (!validation.success) return validation.WithFile(fileName);
 
 			std::ofstream file(fileName);
 			Serializer::detail::ApplyTextFormat(file);
@@ -80,8 +96,8 @@ namespace MML
 		/// @brief Serialize a real function to a stream at specified points
 		/// @details Core stream version - writes to any std::ostream (stringstream, cout, etc.)
 		inline IOResult SaveRealFunc(std::ostream& out, const IRealFunction& f, std::string title, Vector<Real> points, int precision = 15) {
-			if (points.size() < 2)
-				return {false, IOError::INVALID_PARAMETERS, "points vector must have at least 2 elements"};
+			const auto validation = detail::ValidateRealFunctionPoints(points);
+			if (!validation.success) return validation;
 
 			try
 			{
@@ -104,8 +120,10 @@ namespace MML
 
 		/// @brief Serialize a real function to file at specified points (file version)
 		inline IOResult SaveRealFunc(const IRealFunction& f, std::string title, Vector<Real> points, std::string fileName, int precision = 15) {
-			if (fileName.empty())
-				return IOResult{false, IOError::INVALID_PARAMETERS, "fileName cannot be empty"}.WithFile(fileName);
+			const auto pathValidation = detail::ValidateFileName(fileName);
+			if (!pathValidation.success) return pathValidation;
+			const auto validation = detail::ValidateRealFunctionPoints(points);
+			if (!validation.success) return validation.WithFile(fileName);
 
 			std::ofstream file(fileName);
 			Serializer::detail::ApplyTextFormat(file);
@@ -119,10 +137,8 @@ namespace MML
 		/// @brief Serialize a real function to stream saving only function values (space-optimized)
 		inline IOResult SaveRealFuncEquallySpaced(std::ostream& out, const IRealFunction& f, std::string title, Real x1, Real x2, int numPoints,
 																							int precision = 15) {
-			if (numPoints < 2)
-				return {false, IOError::INVALID_PARAMETERS, "numPoints must be >= 2"};
-			if (x1 >= x2)
-				return {false, IOError::INVALID_PARAMETERS, "x1 must be less than x2"};
+			const auto validation = detail::ValidateRealFunctionRange(x1, x2, numPoints);
+			if (!validation.success) return validation;
 
 			try
 			{
@@ -130,10 +146,9 @@ namespace MML
 				if (auto headerResult = WriteRealFuncHeader(out, SerializeFormatType::REAL_FUNCTION_EQUALLY_SPACED, title, x1, x2, numPoints); !headerResult.success)
 					return headerResult;
 
-				Real step = (x2 - x1) / (numPoints - 1);
 				for (int i = 0; i < numPoints; i++)
 				{
-					Real x = x1 + i * step;
+					Real x = detail::SampleCoordinate(x1, x2, i, numPoints);
 					out << f(x) << std::endl;
 				}
 				return Serializer::detail::StreamResult(out);
@@ -147,8 +162,10 @@ namespace MML
 		/// @brief Serialize a real function saving only function values to file (space-optimized)
 		inline IOResult SaveRealFuncEquallySpaced(const IRealFunction& f, std::string title, Real x1, Real x2, int numPoints,
 																							std::string fileName, int precision = 15) {
-			if (fileName.empty())
-				return IOResult{false, IOError::INVALID_PARAMETERS, "fileName cannot be empty"}.WithFile(fileName);
+			const auto pathValidation = detail::ValidateFileName(fileName);
+			if (!pathValidation.success) return pathValidation;
+			const auto validation = detail::ValidateRealFunctionRange(x1, x2, numPoints);
+			if (!validation.success) return validation.WithFile(fileName);
 
 			std::ofstream file(fileName);
 			Serializer::detail::ApplyTextFormat(file);
@@ -163,27 +180,32 @@ namespace MML
 		// Multi-function serialization
 		//===================================================================================
 
+		namespace detail
+		{
+			template<class Type>
+			IOResult ValidateMultiFunctionRequest(const std::vector<Type>& funcs, const std::vector<std::string>& legend,
+												 Real x1, Real x2, int numPoints) {
+				const auto validation = ValidateLabeledCollection(funcs, legend, "funcs");
+				if (!validation.success) return validation;
+				return ValidateRealFunctionRange(x1, x2, numPoints);
+			}
+		}
+
 		/// @brief Serialize multiple real functions to a stream
 		inline IOResult SaveRealMultiFunc(std::ostream& out, const std::vector<IRealFunction*>& funcs, std::string title,
 																			std::vector<std::string> legend, Real x1, Real x2, int numPoints, int precision = 15) {
-			if (funcs.empty())
-				return {false, IOError::INVALID_PARAMETERS, "funcs vector cannot be empty"};
-			if (numPoints < 2)
-				return {false, IOError::INVALID_PARAMETERS, "numPoints must be >= 2"};
-			if (x1 >= x2)
-				return {false, IOError::INVALID_PARAMETERS, "x1 must be less than x2"};
-			if (funcs.size() != legend.size())
-				return {false, IOError::INVALID_PARAMETERS, "funcs and legend sizes must match"};
+			const auto validation = detail::ValidateMultiFunctionRequest(funcs, legend, x1, x2, numPoints);
+			if (!validation.success) return validation;
 
 			try
 			{
 				Serializer::detail::ApplyTextFormat(out, precision);
-				if (auto headerResult = WriteRealMultiFuncHeader(out, title, funcs.size(), legend, x1, x2, numPoints); !headerResult.success)
+				if (auto headerResult = WriteRealMultiFuncHeader(out, title, static_cast<int>(funcs.size()), legend, x1, x2, numPoints); !headerResult.success)
 					return headerResult;
 
 				for (int i = 0; i < numPoints; i++)
 				{
-					Real x = x1 + (x2 - x1) * i / (numPoints - 1);
+					Real x = detail::SampleCoordinate(x1, x2, i, numPoints);
 					out << x << " ";
 
 					for (size_t j = 0; j < funcs.size(); j++)
@@ -202,8 +224,10 @@ namespace MML
 		/// @brief Serialize multiple real functions to a single file
 		inline IOResult SaveRealMultiFunc(const std::vector<IRealFunction*>& funcs, std::string title, std::vector<std::string> legend, Real x1,
 																			Real x2, int numPoints, std::string fileName, int precision = 15) {
-			if (fileName.empty())
-				return IOResult{false, IOError::INVALID_PARAMETERS, "fileName cannot be empty"}.WithFile(fileName);
+			const auto validation = detail::ValidateMultiFunctionRequest(funcs, legend, x1, x2, numPoints);
+			if (!validation.success) return validation.WithFile(fileName);
+			const auto pathValidation = detail::ValidateFileName(fileName);
+			if (!pathValidation.success) return pathValidation;
 
 			std::ofstream file(fileName);
 			Serializer::detail::ApplyTextFormat(file);
@@ -218,16 +242,10 @@ namespace MML
 		template<class InterpFunc>
 		IOResult SaveRealMultiFunc(const std::vector<InterpFunc>& funcs, std::string title, std::vector<std::string> legend, Real x1, Real x2,
 															 int numPoints, std::string fileName) {
-			if (funcs.empty())
-				return IOResult{false, IOError::INVALID_PARAMETERS, "funcs vector cannot be empty"}.WithFile(fileName);
-			if (numPoints < 2)
-				return IOResult{false, IOError::INVALID_PARAMETERS, "numPoints must be >= 2"}.WithFile(fileName);
-			if (x1 >= x2)
-				return IOResult{false, IOError::INVALID_PARAMETERS, "x1 must be less than x2"}.WithFile(fileName);
-			if (funcs.size() != legend.size())
-				return IOResult{false, IOError::INVALID_PARAMETERS, "funcs and legend sizes must match"}.WithFile(fileName);
-			if (fileName.empty())
-				return IOResult{false, IOError::INVALID_PARAMETERS, "fileName cannot be empty"}.WithFile(fileName);
+			const auto validation = detail::ValidateMultiFunctionRequest(funcs, legend, x1, x2, numPoints);
+			if (!validation.success) return validation.WithFile(fileName);
+			const auto pathValidation = detail::ValidateFileName(fileName);
+			if (!pathValidation.success) return pathValidation;
 
 			std::ofstream file(fileName);
 			Serializer::detail::ApplyTextFormat(file);
@@ -236,15 +254,15 @@ namespace MML
 
 			try
 			{
-				if (auto headerResult = WriteRealMultiFuncHeader(file, title, funcs.size(), legend, x1, x2, numPoints); !headerResult.success)
+				if (auto headerResult = WriteRealMultiFuncHeader(file, title, static_cast<int>(funcs.size()), legend, x1, x2, numPoints); !headerResult.success)
 					return (headerResult).WithFile(fileName);
 
 				for (int i = 0; i < numPoints; i++)
 				{
-					Real x = x1 + (x2 - x1) * i / (numPoints - 1);
+					Real x = detail::SampleCoordinate(x1, x2, i, numPoints);
 					file << x << " ";
 
-					for (int j = 0; j < funcs.size(); j++)
+					for (size_t j = 0; j < funcs.size(); j++)
 						file << funcs[j](x) << " ";
 
 					file << std::endl;

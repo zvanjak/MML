@@ -156,7 +156,7 @@ namespace MML::TestBeds
               0.0, 2.0 * Constants::PI, 
               0.0, 2.0 * Constants::PI, 
               Torus,
-              4.0 * Constants::PI * Constants::PI * 2.0,  // Area = 4π²Rr ≈ 78.96
+              MML::Real(4.0) * Constants::PI * Constants::PI * MML::Real(2.0),  // Area = 4π²Rr ≈ 78.96
               std::numeric_limits<Real>::quiet_NaN(),     // K varies
               false, false },
 
@@ -267,8 +267,8 @@ namespace MML::TestBeds
             // 13. Scherk's Surface - doubly periodic minimal surface
             { "Scherk Surface", 
               "z = ln(cos(v)/cos(u))", 
-              -1.2, 1.2,                 // avoid singularities at ±π/2
-              -1.2, 1.2, 
+              -MML::Real(1.2), MML::Real(1.2),                 // avoid singularities at ±π/2
+              -MML::Real(1.2), MML::Real(1.2),
               ScherkSurface,
               std::numeric_limits<Real>::quiet_NaN(),
               std::numeric_limits<Real>::quiet_NaN(),
@@ -278,7 +278,7 @@ namespace MML::TestBeds
             { "Dini Surface", 
               "Twisted pseudosphere with constant negative curvature", 
               0.0, 4.0 * Constants::PI, 
-              0.1, Constants::PI - 0.1,  // avoid singularities at 0 and π
+              MML::Real(0.1), Constants::PI - MML::Real(0.1),  // avoid singularities at 0 and π
               DiniSurface,
               std::numeric_limits<Real>::quiet_NaN(),
               -1.0,                       // K = -1 (constant negative curvature)
@@ -361,8 +361,8 @@ namespace MML::TestBeds
             // 1. Upper Unit Hemisphere: z = sqrt(1 - x² - y²)
             { "Upper Unit Hemisphere", 
               "z = sqrt(1 - x² - y²)", 
-              -0.99, 0.99,   // avoid singularity at edge
-              -0.99, 0.99, 
+              -MML::Real(0.99), MML::Real(0.99),   // avoid singularity at edge
+              -MML::Real(0.99), MML::Real(0.99),
               [](Real x, Real y) { 
                   Real r2 = x*x + y*y;
                   return VectorN<Real,3>{ x, y, r2 < static_cast<MML::Real>(1.0) ? std::sqrt(static_cast<MML::Real>(1.0) - r2) : static_cast<MML::Real>(0.0) };

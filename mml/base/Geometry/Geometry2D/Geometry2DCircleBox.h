@@ -108,7 +108,7 @@ namespace MML
 
 		/// @brief Calculates sector area for given central angle
 		/// @param theta Central angle in radians
-		Real SectorArea(Real theta) const { return 0.5 * _radius * _radius * std::abs(theta); }
+		Real SectorArea(Real theta) const { return MML::Real(0.5) * _radius * _radius * std::abs(theta); }
 
 		/// @brief Calculates chord length for given central angle
 		/// @param theta Central angle in radians

@@ -103,7 +103,7 @@ TEST_CASE("ConvexHull - Random point cloud", "[ComputationalGeometry][ConvexHull
     // Add Circle2D boundary points
     for (int i = 0; i < 8; i++)
     {
-        Real angle = i * Constants::PI / 4.0;
+        Real angle = i * Constants::PI / MML::Real(4.0);
         points.push_back(Point2Cartesian(std::cos(angle), std::sin(angle)));
     }
     

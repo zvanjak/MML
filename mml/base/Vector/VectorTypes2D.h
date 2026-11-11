@@ -134,6 +134,8 @@ namespace MML
 		/// @param absEps Absolute tolerance
 		bool IsEqualTo(const Vector2Cartesian& b, Real absEps = Precision::Vec2CartIsEqualTolerance) const
 		{
+			if (!std::isfinite(absEps) || absEps < 0)
+				return false;
 			return (std::abs(X() - b.X()) < absEps) && (std::abs(Y() - b.Y()) < absEps);
 		}
 
@@ -203,6 +205,27 @@ namespace MML
 	/// @brief 2D Polar vector with R (radius), Phi (angle) components.
 	class Vector2Polar : public VectorN<Real, 2>
 	{
+		Vector2Polar Combine(const Vector2Polar& b, Real sign) const
+		{
+			if (!std::isfinite(R()) || !std::isfinite(Phi()) || !std::isfinite(b.R()) || !std::isfinite(b.Phi()))
+				throw NumericInputError("Vector2Polar arithmetic requires finite radii and angles");
+			const Real scale = std::max(std::abs(R()), std::abs(b.R()));
+			if (scale == 0)
+				return Vector2Polar(0, Phi());
+			Real delta = b.Phi() - Phi();
+			if (!std::isfinite(delta) || std::abs(delta) > Constants::PI)
+				delta = std::atan2(std::sin(b.Phi()) * std::cos(Phi()) - std::cos(b.Phi()) * std::sin(Phi()),
+					std::cos(b.Phi()) * std::cos(Phi()) + std::sin(b.Phi()) * std::sin(Phi()));
+			const Real half = delta / Real{2};
+			const Real first = R() / scale;
+			const Real second = sign * (b.R() / scale);
+			// A midpoint frame avoids the 1-cos(delta) cancellation of near-equal vectors.
+			const Real x = (first + second) * std::cos(half);
+			const Real y = (second - first) * std::sin(half);
+			const Real angle = std::atan2(std::sin(Phi()), std::cos(Phi())) + half + std::atan2(y, x);
+			return Vector2Polar(scale * std::hypot(x, y), std::atan2(std::sin(angle), std::cos(angle)));
+		}
+
 	public:
 		/// @brief Returns R component (const).
 		Real  R() const		{ return val(0); }
@@ -238,32 +261,18 @@ namespace MML
 		/// @param b Vector to add
 		Vector2Polar operator+(const Vector2Polar& b) const
 		{
-			Real r1 = R();
-			Real phi1 = Phi();
-			Real r2 = b.R();
-			Real phi2 = b.Phi();
-
-			Real delta = phi2 - phi1;
-			Real r	 = std::sqrt(r1 * r1 + r2 * r2 + 2 * r1 * r2 * std::cos(delta));
-			Real phi = phi1 + std::atan2(r2 * std::sin(delta), r1 + r2 * std::cos(delta));
-
-			return Vector2Polar(r, phi);
+			return Combine(b, Real{1});
 		}
 		/// @brief Vector subtraction (converts to Cartesian, subtracts, converts back).
 		/// @param b Vector to subtract
 		Vector2Polar operator-(const Vector2Polar& b) const
 		{
-			Real r1 = R();
-			Real phi1 = Phi();
-			Real r2 = b.R();
-			Real phi2 = b.Phi();
-
-			Real delta = phi2 - phi1;
-			Real r	 = std::sqrt(r1 * r1 + r2 * r2 - 2 * r1 * r2 * std::cos(delta));
-			Real phi = phi1 + std::atan2(-r2 * std::sin(delta), r1 - r2 * std::cos(delta));
-
-			return Vector2Polar(r, phi);
+			return Combine(b, Real{-1});
 		}
+		Vector2Polar& operator+=(const Vector2Polar& b) { *this = *this + b; return *this; }
+		Vector2Polar& operator-=(const Vector2Polar& b) { *this = *this - b; return *this; }
+		Vector2Polar& operator*=(Real b) { *this = *this * b; return *this; }
+		Vector2Polar& operator/=(Real b) { *this = *this / b; return *this; }
 		/// @brief Scalar multiplication (scales radius).
 		/// @param b Scalar multiplier
 		Vector2Polar operator*(Real b) const

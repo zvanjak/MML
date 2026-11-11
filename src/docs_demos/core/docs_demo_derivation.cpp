@@ -14,6 +14,20 @@
 using namespace MML;
 
 void Docs_Demo_Derivation_JacobianVocabulary();
+void Docs_Demo_Derivation_Contracts();
+
+void Docs_Demo_SecondDerivativeSteps()
+{
+	RealFunction exponential([](Real x) { return std::exp(x); });
+	const auto result = Derivation::NSecDer4Detailed(exponential, Real(0.3));
+	std::cout << "Second derivative: " << result.value << '\n';
+	std::cout << "Step used: " << result.step_used << '\n';
+	const Real relativeError = std::abs(result.value / std::exp(Real(0.3)) - 1);
+	std::cout << "Relative error: " << relativeError << '\n';
+	if (result.status != AlgorithmStatus::Success ||
+		!std::isfinite(relativeError) || relativeError > 16 * std::pow(Constants::Eps, Real(2) / 3))
+		throw NumericalMethodError("Second-derivative documentation accuracy contract failed");
+}
 
 void Docs_Demo_Derivation()
 {
@@ -56,6 +70,20 @@ void Docs_Demo_Derivation()
 	VectorN<Real, 3>    third_f4Curve = Derivation::NThirdDer2(f4Curve, 1.0); // O(h²), 4 evals
 
 	Docs_Demo_Derivation_JacobianVocabulary();
+	Docs_Demo_Derivation_Contracts();
+}
+
+void Docs_Demo_Derivation_Contracts()
+{
+	RealFunction bounded([](Real x) {
+		if (x < 0 || x > 1) throw DomainError("outside [0,1]");
+		return x * x;
+	});
+	Real h = 0.01;
+	Real shifted = Derivation::NDer4Right(bounded, 0.0, h);
+	std::cout << shifted << '\n';  // About 0.08: derivative at 4h, NOT at zero
+	std::cout << "Left shifted-center derivative at x=1: "
+	          << Derivation::NDer4Left(bounded, 1.0, h) << '\n';
 }
 
 // Derivation.md "Jacobians, Hessians and Gradients — one vocabulary": the numerical and the two

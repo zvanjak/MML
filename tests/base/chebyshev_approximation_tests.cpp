@@ -372,11 +372,14 @@ namespace MML::Tests::Base::ChebyshevTests
 
         // Maximum error should be reasonably small
         Real maxErr = approx.MaxError(runge);
-        REQUIRE(maxErr < 1e-6);  // Much better than equidistant polynomial interpolation
+        const Real errorBudget = TOL(1e-6, approx.NumCoefficients() * Precision::Eps);
+        REQUIRE(maxErr < errorBudget);
+        const ChebyshevApproximation coarse(runge, Real(-1), Real(1), 20);
+        REQUIRE(maxErr < coarse.MaxError(runge) / Real(100));
 
         // Test at critical points
-        REQUIRE_THAT(approx(static_cast<MML::Real>(0.0)), WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-6, 1e-3)));
-        REQUIRE_THAT(approx(static_cast<MML::Real>(0.2)), WithinAbs(runge(static_cast<MML::Real>(0.2)), TOL(1e-6, 1e-3)));
+        REQUIRE_THAT(approx(Real(0)), WithinAbs(Real(1), errorBudget));
+        REQUIRE_THAT(approx(Real(0.2)), WithinAbs(runge(Real(0.2)), errorBudget));
     }
 
     TEST_CASE("ChebyshevApproximation - Domain mapping", "[chebyshev][approximation]")
@@ -417,7 +420,7 @@ namespace MML::Tests::Base::ChebyshevTests
         std::function<Real(Real)> function = [](Real x) { return std::exp(x); };
         auto result = ApproximateChebyshevDetailed(function, -static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.0), 24, 129, 4);
         REQUIRE(result.IsSuccess());
-        REQUIRE(result.converged);
+        REQUIRE_FALSE(result.converged);
         REQUIRE(result.algorithm_name == "ChebyshevApproximation");
         REQUIRE(result.degree == 23);
         REQUIRE(result.terms_used == 24);
@@ -523,8 +526,11 @@ namespace MML::Tests::Base::ChebyshevTests
     {
         auto exp_f = [](Real x) { return std::exp(x); };
 
-        ChebyshevApproximation exp_approx(exp_f, -static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.0), 25);
+        // Beyond the resolved float coefficients, differentiation amplifies DCT roundoff.
+        const int terms = std::is_same_v<Real, float> ? 10 : 25;
+        ChebyshevApproximation exp_approx(exp_f, -static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.0), terms);
         ChebyshevApproximation deriv = exp_approx.Derivative();
+        REQUIRE(exp_approx.MaxError(exp_f) < TOL(1e-10, 1e-5));
 
         // Derivative of exp should be exp
         for (Real x = -static_cast<MML::Real>(0.9); x < static_cast<MML::Real>(0.9); x += static_cast<MML::Real>(0.1))
@@ -575,14 +581,17 @@ namespace MML::Tests::Base::ChebyshevTests
     {
         auto f = [](Real x) { return std::sin(x) * std::exp(-x/2); };
 
-        ChebyshevApproximation approx(f, static_cast<MML::Real>(0.0), static_cast<MML::Real>(5.0), 40);
+        const int terms = std::is_same_v<Real, float> ? 16 : 40;
+        ChebyshevApproximation approx(f, static_cast<MML::Real>(0.0), static_cast<MML::Real>(5.0), terms);
         ChebyshevApproximation integ = approx.Integral();
         ChebyshevApproximation recovered = integ.Derivative();
 
         // Derivative of integral should recover original
         for (Real x = static_cast<MML::Real>(0.1); x < static_cast<MML::Real>(4.9); x += static_cast<MML::Real>(0.2))
         {
-            REQUIRE_THAT(recovered(x), WithinAbs(f(x), static_cast<MML::Real>(1e-7)));
+            REQUIRE_THAT(approx(x), WithinAbs(f(x), TOL(1e-7, Precision::ZeroTolerance)));
+            REQUIRE_THAT(recovered(x), WithinAbs(approx(x), TOL(1e-7, Precision::ZeroTolerance)));
+            REQUIRE_THAT(recovered(x), WithinAbs(f(x), TOL(1e-7, Precision::ZeroTolerance)));
         }
     }
 
@@ -829,7 +838,7 @@ namespace MML::Tests::Base::ChebyshevTests
         for (int n = 1; n <= 5; n++)
         {
             auto extrema = basis.GetExtrema(n);
-            REQUIRE(extrema.size() == n + 1);
+            REQUIRE(extrema.size() == static_cast<size_t>(n + 1));
             
             for (int k = 0; k <= n; k++)
             {
@@ -850,7 +859,7 @@ namespace MML::Tests::Base::ChebyshevTests
         for (int n = 1; n <= 5; n++)
         {
             auto zeros = basis.GetZeros(n);
-            REQUIRE(zeros.size() == n);
+            REQUIRE(zeros.size() == static_cast<size_t>(n));
             
             for (int k = 0; k < n; k++)
             {
@@ -946,7 +955,7 @@ namespace MML::Tests::Base::ChebyshevTests
         for (int n = 1; n <= 5; n++)
         {
             auto zeros = basis.GetZeros(n);
-            REQUIRE(zeros.size() == n);
+            REQUIRE(zeros.size() == static_cast<size_t>(n));
             
             for (int k = 0; k < n; k++)
             {

@@ -8,9 +8,10 @@
 ///  This makes it efficient for problems where Jacobian computation is expensive.    ///
 ///                                                                                   ///
 ///  Properties:                                                                      ///
-///  - L-stable (strong damping of stiff components)                                  ///
+///  - Second order for smooth index-1 DAEs                                           ///
+///  - A-stable on linear problems, NOT L-stable                                     ///
 ///  - No Newton iteration required                                                   ///
-///  - ~1st-2nd order accuracy (linearly-implicit predictor-corrector)                ///
+///  - One frozen-matrix predictor and residual correction                           ///
 ///                                                                                   ///
 ///  Reference: Hairer & Wanner, "Solving ODEs II"                                    ///
 ///                                                                                   ///
@@ -28,21 +29,18 @@ namespace MML {
 	/// @brief Linearly-implicit trapezoid (predictor-corrector, Rosenbrock-type) for index-1 DAEs
 	///
 	/// @note Until analysis v4 this function was called SolveDAERODAS. It is NOT the 4th-order
-	///       6-stage RODAS of Hairer & Wanner (RODAS4 / RODAS3); it is a 1st-2nd-order
-	///       linearly-implicit trapezoidal scheme with a frozen Jacobian. The old name is kept
-	///       as a deprecated alias.
+	///       6-stage RODAS of Hairer & Wanner. It is a second-order linearly-implicit
+	///       trapezoidal scheme with a frozen Jacobian. The old name remains a deprecated
+	///       alias. Its linear stability function is (1+z/2)/(1-z/2), tending to -1,
+	///       not zero, for stiff decay. Use SolveDAERODAS4 for L-stable damping.
 	/// 
 	/// Complexity: O(N³) per step where N = diffDim + algDim.
 	///            One LU factorization and two back-substitutions per step (no Newton iteration).
 	///            Most efficient implicit method per step for small-to-medium N.
 	///
-	/// Uses the linearly implicit approach that requires only linear system solves,
-	/// not iterative Newton methods. Each step solves a linear system once (or twice
-	/// for 2-stage methods) using a frozen Jacobian.
-	///
-	/// This implementation uses a 2-stage method based on the trapezoidal rule:
-	/// 1. Solve (I - h*J/2) * Δ = h*F(t,x,y) for increment Δ
-	/// 2. Update x = x + Δ_x, y = y + Δ_y
+	/// The predictor linearizes the trapezoidal equations at the current state. A
+	/// second solve corrects their residual at the predicted endpoint, using the
+	/// same matrix. Nonlinear constraints are checked, not iterated to convergence.
 	///
 	/// Reference: Hairer & Wanner, "Solving ODEs II", Section IV.7 (linearly implicit methods)
 	///
@@ -57,15 +55,16 @@ namespace MML {
 	                                      Real t0, const Vector<Real>& x0, const Vector<Real>& y0,
 	                                      Real t_end, const DAESolverConfig& config = DAESolverConfig())
 	{
-		if (!std::isfinite(t_end - t0) || t_end == t0)
-			throw ArgumentError("SolveDAELinearlyImplicit: requires distinct finite endpoints");
-		if (!std::isfinite(config.step_size) || config.step_size <= 0)
-			throw ArgumentError("SolveDAELinearlyImplicit: config.step_size must be positive");
+		const int diffDim = system.getDiffDim(), algDim = system.getAlgDim();
+		if (!std::isfinite(t0) || !std::isfinite(t_end) || !std::isfinite(t_end - t0) || t_end == t0 ||
+			!std::isfinite(config.step_size) || config.step_size <= 0 ||
+			!std::isfinite(config.constraint_tol) || config.constraint_tol <= 0 || config.max_steps <= 0 ||
+			diffDim <= 0 || algDim < 0 || x0.size() != diffDim || y0.size() != algDim)
+			throw ArgumentError("SolveDAELinearlyImplicit: requires distinct finite endpoints, positive finite "
+				"step and constraint tolerance, a positive step budget and matching state dimensions");
 
 		AlgorithmTimer timer;
 
-		int diffDim = system.getDiffDim();
-		int algDim = system.getAlgDim();
 		int totalDim = diffDim + algDim;
 		DAESolverResult result(t0, t_end, diffDim, algDim, 0);
 		result.algorithm_name = "DAELinearlyImplicit";
@@ -105,6 +104,10 @@ namespace MML {
 			return result;
 		}
 		int step = 1;
+		const auto rejectAttempt = [&]() {
+			++result.rejected_steps;
+			result.solution.incrementRejectedSteps();
+		};
 
 		// Main time-stepping loop
 		while (direction * (t_end - t) > 0 && step <= config.max_steps)
@@ -121,6 +124,13 @@ namespace MML {
 			system.algConstraints(t, x, y, g_curr);
 			system.allJacobians(t, x, y, df_dx, df_dy, dg_dx, dg_dy);
 			result.jacobian_evaluations++;
+			if (!IsFiniteDAEVector(f_curr) || !IsFiniteDAEVector(g_curr)) {
+				result.status = AlgorithmStatus::NumericalInstability;
+				result.failure_reason = DAEFailureReason::NonFiniteState;
+				result.error_message = "Linearly-implicit step has a non-finite derivative or constraint";
+				rejectAttempt();
+				break;
+			}
 
 			// ================================================================
 			// Rosenbrock step using linearly-implicit trapezoidal method
@@ -137,7 +147,7 @@ namespace MML {
 			// dg/dx*Δx + dg/dy*Δy = -g_n  (project to constraint)
 			// ================================================================
 			
-			Real hHalf = h * 0.5;
+			Real hHalf = h * MML::Real(0.5);
 			
 			AssembleDAEAugmentedJacobian(df_dx, df_dy, dg_dx, dg_dy, hHalf, J_aug);
 
@@ -158,12 +168,14 @@ namespace MML {
 				result.status = AlgorithmStatus::SingularMatrix;
 				result.failure_reason = DAEFailureReason::SingularJacobian;
 				result.error_message = std::string("Linearly-implicit predictor solve failed: ") + error.what();
+				rejectAttempt();
 				break;
 			}
 			catch (const MatrixNumericalError& error) {
 				result.status = AlgorithmStatus::NumericalInstability;
 				result.failure_reason = DAEFailureReason::NonFiniteState;
 				result.error_message = error.what();
+				rejectAttempt();
 				break;
 			}
 
@@ -172,6 +184,13 @@ namespace MML {
 				x_pred[i] = x[i] + delta[i];
 			for (int i = 0; i < algDim; ++i)
 				y_pred[i] = y[i] + delta[diffDim + i];
+			if (!IsFiniteDAEVector(x_pred) || !IsFiniteDAEVector(y_pred)) {
+				result.status = AlgorithmStatus::NumericalInstability;
+				result.failure_reason = DAEFailureReason::NonFiniteState;
+				result.error_message = "Linearly-implicit predictor produced a non-finite state";
+				rejectAttempt();
+				break;
+			}
 
 			// ================================================================
 			// Second stage: corrector using updated function values
@@ -179,11 +198,18 @@ namespace MML {
 			// ================================================================
 			system.diffEqs(t + h, x_pred, y_pred, f_pred);
 			system.algConstraints(t + h, x_pred, y_pred, g_pred);
+			if (!IsFiniteDAEVector(f_pred) || !IsFiniteDAEVector(g_pred)) {
+				result.status = AlgorithmStatus::NumericalInstability;
+				result.failure_reason = DAEFailureReason::NonFiniteState;
+				result.error_message = "Linearly-implicit corrector has a non-finite derivative or constraint";
+				rejectAttempt();
+				break;
+			}
 
-			// Corrector: use average of f values
-			// Build RHS: h/2*(f_n + f_{n+1}) for diff eqs
+			// One frozen-Jacobian correction of the trapezoidal residual (Hairer-Wanner II, IV.7).
+			// Subtract the predictor increment, then apply the correction to the predictor.
 			for (int i = 0; i < diffDim; ++i)
-				rhs[i] = hHalf * (f_curr[i] + f_pred[i]);
+				rhs[i] = hHalf * f_curr[i] + hHalf * f_pred[i] - (x_pred[i] - x[i]);
 			for (int i = 0; i < algDim; ++i)
 				rhs[diffDim + i] = -g_pred[i];
 
@@ -196,27 +222,39 @@ namespace MML {
 				result.status = AlgorithmStatus::SingularMatrix;
 				result.failure_reason = DAEFailureReason::SingularJacobian;
 				result.error_message = std::string("Linearly-implicit corrector solve failed: ") + error.what();
+				rejectAttempt();
+				break;
+			}
+			catch (const MatrixNumericalError& error) {
+				result.status = AlgorithmStatus::NumericalInstability;
+				result.failure_reason = DAEFailureReason::NonFiniteState;
+				result.error_message = std::string("Linearly-implicit corrector solve failed: ") + error.what();
+				rejectAttempt();
 				break;
 			}
 
-			// Update solution
 			for (int i = 0; i < diffDim; ++i)
-				x[i] += delta[i];
+				x_pred[i] += delta[i];
 			for (int i = 0; i < algDim; ++i)
-				y[i] += delta[diffDim + i];
-			if (!IsFiniteDAEVector(x) || !IsFiniteDAEVector(y)) {
+				y_pred[i] += delta[diffDim + i];
+			if (!IsFiniteDAEVector(x_pred) || !IsFiniteDAEVector(y_pred)) {
 				result.status = AlgorithmStatus::NumericalInstability;
 				result.failure_reason = DAEFailureReason::NonFiniteState;
 				result.error_message = "Linearly-implicit step produced a non-finite state";
+				rejectAttempt();
 				break;
 			}
 
-			t += h;
-
-			// Track constraint violation
-			system.algConstraints(t, x, y, g_pred);
-			if (!ValidateAcceptedDAEState(x, y, g_pred, config, result, "Linearly-implicit step"))
+			system.algConstraints(t + h, x_pred, y_pred, g_pred);
+			const Real previousConstraintNorm = result.final_constraint_norm;
+			if (!ValidateAcceptedDAEState(x_pred, y_pred, g_pred, config, result, "Linearly-implicit step")) {
+				result.final_constraint_norm = previousConstraintNorm;
+				rejectAttempt();
 				break;
+			}
+			x = x_pred;
+			y = y_pred;
+			t += h;
 
 			result.solution.fillValues(step, t, x, y);
 			result.solution.incrementSuccessfulSteps();

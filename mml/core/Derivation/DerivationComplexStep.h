@@ -14,6 +14,7 @@
 #define MML_DERIVATION_COMPLEX_STEP_H
 
 #include <mml/MMLBase.h>
+#include <mml/MMLNumericValidation.h>
 
 #include <complex>
 #include <type_traits>
@@ -58,9 +59,19 @@ namespace MML
 		template<typename F>
 		static Real ComplexStep(F&& f, Real x, Real h = Precision::ComplexStepH)
 		{
+			ValidateStepSize(h, "ComplexStep");
+			ValidateFinite(x, "ComplexStep point");
 			Complex z(x, h);
 			Complex fz = f(z);
-			return fz.imag() / h;
+			if (!IsFiniteValue(fz))
+				throw NumericalMethodError("ComplexStep: non-finite function value");
+			int valueExponent = 0, stepExponent = 0;
+			const Real valueMantissa = std::frexp(fz.imag(), &valueExponent);
+			const Real stepMantissa = std::frexp(h, &stepExponent);
+			const Real derivative = std::scalbn(valueMantissa / stepMantissa, valueExponent - stepExponent);
+			if (!std::isfinite(derivative))
+				throw NumericalMethodError("ComplexStep: non-finite derivative result");
+			return derivative;
 		}
 
 		/// @brief Compute second derivative using the complex-step method.
@@ -76,9 +87,21 @@ namespace MML
 		template<typename F>
 		static Real ComplexStep2(F&& f, Real x, Real h = Precision::ComplexStepH2)
 		{
-			Real fx = std::real(f(Complex(x, 0.0)));
+			ValidateStepSize(h, "ComplexStep2");
+			ValidateFinite(x, "ComplexStep2 point");
+			const Real h2 = h * h;
+			if (!std::isfinite(h2) || h2 == 0)
+				throw NumericalMethodError("ComplexStep2: unrepresentable squared step");
+			Complex fx = f(Complex(x, 0.0));
+			if (!IsFiniteValue(fx))
+				throw NumericalMethodError("ComplexStep2: non-finite center function value");
 			Complex fz = f(Complex(x, h));
-			return 2.0 * (fx - fz.real()) / (h * h);
+			if (!IsFiniteValue(fz))
+				throw NumericalMethodError("ComplexStep2: non-finite function value");
+			const Real derivative = Real(2) * ((fx.real() - fz.real()) / h2);
+			if (!std::isfinite(derivative))
+				throw NumericalMethodError("ComplexStep2: non-finite derivative result");
+			return derivative;
 		}
 
 	} // namespace Derivation

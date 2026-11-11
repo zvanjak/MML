@@ -56,7 +56,7 @@ namespace MML {
 
 		// Basic properties
 		Real Perimeter() const { return _a + _b + _c; }
-		Real Semiperimeter() const { return (_a + _b + _c) / 2.0; }
+		Real Semiperimeter() const { return (_a + _b + _c) / MML::Real(2.0); }
 
 		Real Area() const {
 			Real s = Semiperimeter();
@@ -69,18 +69,18 @@ namespace MML {
 		Real AngleC() const { return acos(std::clamp((_a * _a + _b * _b - _c * _c) / (2 * _a * _b), (Real)-1.0, (Real)1.0)); } // opposite to side c
 
 		// Altitudes (heights)
-		Real AltitudeToA() const { return 2.0 * Area() / _a; }
-		Real AltitudeToB() const { return 2.0 * Area() / _b; }
-		Real AltitudeToC() const { return 2.0 * Area() / _c; }
+		Real AltitudeToA() const { return MML::Real(2.0) * Area() / _a; }
+		Real AltitudeToB() const { return MML::Real(2.0) * Area() / _b; }
+		Real AltitudeToC() const { return MML::Real(2.0) * Area() / _c; }
 
 		// Medians
-		Real MedianToA() const { return 0.5 * sqrt(2 * _b * _b + 2 * _c * _c - _a * _a); }
-		Real MedianToB() const { return 0.5 * sqrt(2 * _a * _a + 2 * _c * _c - _b * _b); }
-		Real MedianToC() const { return 0.5 * sqrt(2 * _a * _a + 2 * _b * _b - _c * _c); }
+		Real MedianToA() const { return MML::Real(0.5) * sqrt(2 * _b * _b + 2 * _c * _c - _a * _a); }
+		Real MedianToB() const { return MML::Real(0.5) * sqrt(2 * _a * _a + 2 * _c * _c - _b * _b); }
+		Real MedianToC() const { return MML::Real(0.5) * sqrt(2 * _a * _a + 2 * _b * _b - _c * _c); }
 
 		// Inscribed and circumscribed circles
 		Real Inradius() const { return Area() / Semiperimeter(); }
-		Real Circumradius() const { return (_a * _b * _c) / (4.0 * Area()); }
+		Real Circumradius() const { return (_a * _b * _c) / (MML::Real(4.0) * Area()); }
 
 		// Classification
 		bool IsRight(Real eps = Precision::ShapePropertyTolerance) const {
@@ -109,7 +109,7 @@ namespace MML {
 	public:
 		Real Radius() const { return _radius; }
 		Real& Radius() { return _radius; }
-		Real Diameter() const { return 2.0 * _radius; }
+		Real Diameter() const { return MML::Real(2.0) * _radius; }
 
 		Circle()
 			: _radius(0.0) {}
@@ -119,22 +119,22 @@ namespace MML {
 		bool IsValid() const { return _radius > 0; }
 
 		Real Area() const { return Constants::PI * _radius * _radius; }
-		Real Circumference() const { return 2.0 * Constants::PI * _radius; }
+		Real Circumference() const { return MML::Real(2.0) * Constants::PI * _radius; }
 		Real Perimeter() const { return Circumference(); }
 
 		// Arc and sector for given central angle (radians)
 		Real ArcLength(Real angle) const { return _radius * angle; }
-		Real SectorArea(Real angle) const { return 0.5 * _radius * _radius * angle; }
+		Real SectorArea(Real angle) const { return MML::Real(0.5) * _radius * _radius * angle; }
 
 		// Chord length for given central angle
-		Real ChordLength(Real angle) const { return 2.0 * _radius * sin(angle / 2.0); }
+		Real ChordLength(Real angle) const { return MML::Real(2.0) * _radius * sin(angle / MML::Real(2.0)); }
 
 		// Segment area (region between chord and arc)
-		Real SegmentArea(Real angle) const { return 0.5 * _radius * _radius * (angle - sin(angle)); }
+		Real SegmentArea(Real angle) const { return MML::Real(0.5) * _radius * _radius * (angle - sin(angle)); }
 
 		// Relationships
 		static Circle FromArea(Real area) { return Circle(sqrt(area / Constants::PI)); }
-		static Circle FromCircumference(Real circ) { return Circle(circ / (2.0 * Constants::PI)); }
+		static Circle FromCircumference(Real circ) { return Circle(circ / (MML::Real(2.0) * Constants::PI)); }
 		static Circle Inscribed(const Triangle& t) { return Circle(t.Inradius()); }
 		static Circle Circumscribed(const Triangle& t) { return Circle(t.Circumradius()); }
 	};
@@ -151,8 +151,8 @@ namespace MML {
 		Real& SemiMajor() { return _a; }
 		Real SemiMinor() const { return _b; }
 		Real& SemiMinor() { return _b; }
-		Real MajorAxis() const { return 2.0 * _a; }
-		Real MinorAxis() const { return 2.0 * _b; }
+		Real MajorAxis() const { return MML::Real(2.0) * _a; }
+		Real MinorAxis() const { return MML::Real(2.0) * _b; }
 
 		Ellipse()
 			: _a(0.0)
@@ -169,7 +169,7 @@ namespace MML {
 		// Circumference approximation (Ramanujan's formula)
 		Real Circumference() const {
 			Real h = POW2(_a - _b) / POW2(_a + _b);
-			return Constants::PI * (_a + _b) * (1.0 + 3.0 * h / (10.0 + sqrt(4.0 - 3.0 * h)));
+			return Constants::PI * (_a + _b) * (MML::Real(1.0) + MML::Real(3.0) * h / (MML::Real(10.0) + sqrt(MML::Real(4.0) - MML::Real(3.0) * h)));
 		}
 		Real Perimeter() const { return Circumference(); }
 
@@ -177,14 +177,14 @@ namespace MML {
 		Real Eccentricity() const {
 			if (_a == 0)
 				return 0;
-			return sqrt(1.0 - (_b * _b) / (_a * _a));
+			return sqrt(MML::Real(1.0) - (_b * _b) / (_a * _a));
 		}
 
 		// Linear eccentricity (distance from center to focus)
 		Real LinearEccentricity() const { return sqrt(_a * _a - _b * _b); }
 
 		// Focal distance (distance between foci)
-		Real FocalDistance() const { return 2.0 * LinearEccentricity(); }
+		Real FocalDistance() const { return MML::Real(2.0) * LinearEccentricity(); }
 
 		// Semi-latus rectum (half the chord through focus perpendicular to major axis)
 		Real SemiLatusRectum() const { return (_b * _b) / _a; }
@@ -193,8 +193,8 @@ namespace MML {
 		Real DirectrixDistance() const { return _a / Eccentricity(); }
 
 		static Ellipse FromFoci(Real focalDist, Real majorAxis) {
-			Real a = majorAxis / 2.0;
-			Real c = focalDist / 2.0;
+			Real a = majorAxis / MML::Real(2.0);
+			Real c = focalDist / MML::Real(2.0);
 			Real b = sqrt(a * a - c * c);
 			return Ellipse(a, b);
 		}
@@ -219,7 +219,7 @@ namespace MML {
 		/// @brief Gets the central angle in radians (mutable reference)
 		Real& Angle() { return _angle; }
 		/// @brief Gets the central angle in degrees
-		Real AngleDegrees() const { return _angle * 180.0 / Constants::PI; }
+		Real AngleDegrees() const { return _angle * MML::Real(180.0) / Constants::PI; }
 
 		/// @brief Default constructor - creates invalid sector
 		CircularSector()
@@ -238,16 +238,16 @@ namespace MML {
 
 		/// @brief Calculates the area of the sector
 		/// @return Area = ½r²θ
-		Real Area() const { return 0.5 * _radius * _radius * _angle; }
+		Real Area() const { return MML::Real(0.5) * _radius * _radius * _angle; }
 		/// @brief Calculates the arc length
 		/// @return Arc length = rθ
 		Real ArcLength() const { return _radius * _angle; }
 		/// @brief Calculates the perimeter (two radii plus arc)
 		/// @return Perimeter = 2r + arc length
-		Real Perimeter() const { return 2.0 * _radius + ArcLength(); }
+		Real Perimeter() const { return MML::Real(2.0) * _radius + ArcLength(); }
 		/// @brief Calculates the chord length (straight line between arc endpoints)
 		/// @return Chord length = 2r·sin(θ/2)
-		Real ChordLength() const { return 2.0 * _radius * sin(_angle / 2.0); }
+		Real ChordLength() const { return MML::Real(2.0) * _radius * sin(_angle / MML::Real(2.0)); }
 	};
 
 	/// @brief Circular segment (region between chord and arc)
@@ -272,16 +272,16 @@ namespace MML {
 
 		// Construct from radius and chord height (sagitta)
 		static CircularSegment FromSagitta(Real radius, Real sagitta) {
-			Real angle = 2.0 * acos(1.0 - sagitta / radius);
+			Real angle = MML::Real(2.0) * acos(MML::Real(1.0) - sagitta / radius);
 			return CircularSegment(radius, angle);
 		}
 
 		bool IsValid() const { return _radius > 0 && _angle > 0 && _angle <= 2.0 * Constants::PI; }
 
-		Real Area() const { return 0.5 * _radius * _radius * (_angle - sin(_angle)); }
+		Real Area() const { return MML::Real(0.5) * _radius * _radius * (_angle - sin(_angle)); }
 		Real ArcLength() const { return _radius * _angle; }
-		Real ChordLength() const { return 2.0 * _radius * sin(_angle / 2.0); }
-		Real Sagitta() const { return _radius * (1.0 - cos(_angle / 2.0)); } // height of segment
+		Real ChordLength() const { return MML::Real(2.0) * _radius * sin(_angle / MML::Real(2.0)); }
+		Real Sagitta() const { return _radius * (MML::Real(1.0) - cos(_angle / MML::Real(2.0))); } // height of segment
 		Real Perimeter() const { return ArcLength() + ChordLength(); }
 	};
 
@@ -310,8 +310,8 @@ namespace MML {
 
 		Real Area() const { return Constants::PI * (_outerRadius * _outerRadius - _innerRadius * _innerRadius); }
 
-		Real InnerCircumference() const { return 2.0 * Constants::PI * _innerRadius; }
-		Real OuterCircumference() const { return 2.0 * Constants::PI * _outerRadius; }
+		Real InnerCircumference() const { return MML::Real(2.0) * Constants::PI * _innerRadius; }
+		Real OuterCircumference() const { return MML::Real(2.0) * Constants::PI * _outerRadius; }
 		Real MeanCircumference() const { return Constants::PI * (_innerRadius + _outerRadius); }
 
 		Circle InnerCircle() const { return Circle(_innerRadius); }
@@ -341,18 +341,18 @@ namespace MML {
 		bool IsValid() const { return _n >= 3 && _sideLength > 0; }
 
 		Real InteriorAngle() const { return (_n - 2) * Constants::PI / _n; }
-		Real ExteriorAngle() const { return 2.0 * Constants::PI / _n; }
-		Real CentralAngle() const { return 2.0 * Constants::PI / _n; }
+		Real ExteriorAngle() const { return MML::Real(2.0) * Constants::PI / _n; }
+		Real CentralAngle() const { return MML::Real(2.0) * Constants::PI / _n; }
 
 		Real Perimeter() const { return _n * _sideLength; }
 
-		Real Area() const { return 0.25 * _n * _sideLength * _sideLength / tan(Constants::PI / _n); }
+		Real Area() const { return MML::Real(0.25) * _n * _sideLength * _sideLength / tan(Constants::PI / _n); }
 
 		// Apothem (distance from center to midpoint of side)
-		Real Apothem() const { return _sideLength / (2.0 * tan(Constants::PI / _n)); }
+		Real Apothem() const { return _sideLength / (MML::Real(2.0) * tan(Constants::PI / _n)); }
 
 		// Circumradius (distance from center to vertex)
-		Real Circumradius() const { return _sideLength / (2.0 * sin(Constants::PI / _n)); }
+		Real Circumradius() const { return _sideLength / (MML::Real(2.0) * sin(Constants::PI / _n)); }
 
 		// Inradius = apothem
 		Real Inradius() const { return Apothem(); }
@@ -362,17 +362,17 @@ namespace MML {
 
 		// Factory methods
 		static RegularPolygon FromCircumradius(int n, Real R) {
-			Real side = 2.0 * R * sin(Constants::PI / n);
+			Real side = MML::Real(2.0) * R * sin(Constants::PI / n);
 			return RegularPolygon(n, side);
 		}
 
 		static RegularPolygon FromInradius(int n, Real r) {
-			Real side = 2.0 * r * tan(Constants::PI / n);
+			Real side = MML::Real(2.0) * r * tan(Constants::PI / n);
 			return RegularPolygon(n, side);
 		}
 
 		static RegularPolygon FromArea(int n, Real area) {
-			Real side = sqrt(4.0 * area * tan(Constants::PI / n) / n);
+			Real side = sqrt(MML::Real(4.0) * area * tan(Constants::PI / n) / n);
 			return RegularPolygon(n, side);
 		}
 
@@ -412,20 +412,20 @@ namespace MML {
 		bool IsSquare(Real eps = Precision::ShapePropertyTolerance) const { return std::abs(_width - _height) < eps; }
 
 		Real Area() const { return _width * _height; }
-		Real Perimeter() const { return 2.0 * (_width + _height); }
+		Real Perimeter() const { return MML::Real(2.0) * (_width + _height); }
 		Real Diagonal() const { return sqrt(_width * _width + _height * _height); }
 
 		// Aspect ratio (width/height)
 		Real AspectRatio() const { return _width / _height; }
 
 		// Inscribed/circumscribed circles
-		Real InscribedCircleRadius() const { return std::min(_width, _height) / 2.0; }
-		Real CircumscribedCircleRadius() const { return Diagonal() / 2.0; }
+		Real InscribedCircleRadius() const { return std::min(_width, _height) / MML::Real(2.0); }
+		Real CircumscribedCircleRadius() const { return Diagonal() / MML::Real(2.0); }
 
 		static Rectangle Square(Real side) { return Rectangle(side, side); }
 		static Rectangle GoldenRectangle(Real width) { return Rectangle(width, width / Constants::GoldenRatio); }
 		static Rectangle FromDiagonalAndRatio(Real diagonal, Real ratio) {
-			Real h = diagonal / sqrt(1.0 + ratio * ratio);
+			Real h = diagonal / sqrt(MML::Real(1.0) + ratio * ratio);
 			Real w = h * ratio;
 			return Rectangle(w, h);
 		}
@@ -446,7 +446,7 @@ namespace MML {
 		Real& SideB() { return _b; }
 		Real Angle() const { return _angle; }
 		Real& Angle() { return _angle; }
-		Real AngleDegrees() const { return _angle * 180.0 / Constants::PI; }
+		Real AngleDegrees() const { return _angle * MML::Real(180.0) / Constants::PI; }
 
 		Parallelogram()
 			: _a(0.0)
@@ -463,25 +463,36 @@ namespace MML {
 		bool IsSquare(Real eps = Precision::ShapePropertyTolerance) const { return IsRectangle(eps) && IsRhombus(eps); }
 
 		Real Area() const { return _a * _b * sin(_angle); }
-		Real Perimeter() const { return 2.0 * (_a + _b); }
+		Real Perimeter() const { return MML::Real(2.0) * (_a + _b); }
 
 		// Heights
 		Real HeightToA() const { return _b * sin(_angle); }
 		Real HeightToB() const { return _a * sin(_angle); }
 
-		// Diagonals (using law of cosines)
-		Real DiagonalP() const { return sqrt(_a * _a + _b * _b - 2 * _a * _b * cos(_angle)); }
-		Real DiagonalQ() const { return sqrt(_a * _a + _b * _b + 2 * _a * _b * cos(_angle)); }
+		// Half-angle forms avoid subtracting nearly equal squared lengths.
+		Real DiagonalP() const {
+			const Real sine = std::sin(_angle / 2), cosine = std::cos(_angle / 2);
+			return std::hypot((_a - _b) * cosine, _a * sine + _b * sine);
+		}
+		Real DiagonalQ() const {
+			const Real sine = std::sin(_angle / 2), cosine = std::cos(_angle / 2);
+			return std::hypot((_a - _b) * sine, _a * cosine + _b * cosine);
+		}
 
 		// The two angles
 		Real AcuteAngle() const { return std::min<Real>(_angle, Constants::PI - _angle); }
 		Real ObtuseAngle() const { return std::max<Real>(_angle, Constants::PI - _angle); }
 
 		static Parallelogram FromDiagonals(Real p, Real q, Real angleBetween) {
-			// Diagonals bisect each other; use parallelogram law
-			Real a = 0.5 * sqrt(p * p + q * q + 2 * p * q * cos(angleBetween));
-			Real b = 0.5 * sqrt(p * p + q * q - 2 * p * q * cos(angleBetween));
-			Real angle = acos((a * a + b * b - 0.25 * p * p) / (2 * a * b));
+			const Real scale = std::max(p, q);
+			const Real first = p / scale, second = q / scale;
+			const Real sum = (first + second) / 2, difference = (first - second) / 2;
+			const Real sine = std::sin(angleBetween / 2), cosine = std::cos(angleBetween / 2);
+			const Real a = scale * std::hypot(difference * sine, sum * cosine);
+			const Real b = scale * std::hypot(difference * cosine, sum * sine);
+			// atan2(cross, dot) retains small included angles that acos rounds to zero.
+			const Real angle = std::atan2(2 * first * second * std::abs(std::sin(angleBetween)),
+				(second - first) * (second + first));
 			return Parallelogram(a, b, angle);
 		}
 	};
@@ -511,36 +522,36 @@ namespace MML {
 		Rhombus(Real d1, Real d2)
 			: _d1(d1)
 			, _d2(d2) {
-			_side = sqrt(d1 * d1 + d2 * d2) / 2.0;
+			_side = sqrt(d1 * d1 + d2 * d2) / MML::Real(2.0);
 		}
 
 		static Rhombus FromSideAndDiagonal(Real side, Real diagonal) {
-			Real halfD1 = diagonal / 2.0;
+			Real halfD1 = diagonal / MML::Real(2.0);
 			Real halfD2 = sqrt(side * side - halfD1 * halfD1);
-			return Rhombus(diagonal, 2.0 * halfD2);
+			return Rhombus(diagonal, MML::Real(2.0) * halfD2);
 		}
 
 		static Rhombus FromSideAndAngle(Real side, Real angle) {
-			Real d1 = 2.0 * side * sin(angle / 2.0);
-			Real d2 = 2.0 * side * cos(angle / 2.0);
+			Real d1 = MML::Real(2.0) * side * sin(angle / MML::Real(2.0));
+			Real d2 = MML::Real(2.0) * side * cos(angle / MML::Real(2.0));
 			return Rhombus(d1, d2);
 		}
 
 		bool IsValid() const { return _side > 0 && _d1 > 0 && _d2 > 0; }
 		bool IsSquare(Real eps = Precision::ShapePropertyTolerance) const { return std::abs(_d1 - _d2) < eps; }
 
-		Real Area() const { return 0.5 * _d1 * _d2; }
-		Real Perimeter() const { return 4.0 * _side; }
+		Real Area() const { return MML::Real(0.5) * _d1 * _d2; }
+		Real Perimeter() const { return MML::Real(4.0) * _side; }
 
 		// Angles (acute and obtuse)
-		Real AcuteAngle() const { return 2.0 * atan(std::min(_d1, _d2) / std::max(_d1, _d2)); }
+		Real AcuteAngle() const { return MML::Real(2.0) * atan(std::min(_d1, _d2) / std::max(_d1, _d2)); }
 		Real ObtuseAngle() const { return Constants::PI - AcuteAngle(); }
 
 		// Height (perpendicular distance between parallel sides)
 		Real Height() const { return Area() / _side; }
 
 		// Inscribed circle (rhombus has incircle tangent to all sides)
-		Real Inradius() const { return (_d1 * _d2) / (2.0 * sqrt(_d1 * _d1 + _d2 * _d2)); }
+		Real Inradius() const { return (_d1 * _d2) / (MML::Real(2.0) * sqrt(_d1 * _d1 + _d2 * _d2)); }
 		Circle InscribedCircle() const { return Circle(Inradius()); }
 	};
 
@@ -572,14 +583,14 @@ namespace MML {
 		bool IsValid() const { return _a > 0 && _b > 0 && _height > 0; }
 		bool IsParallelogram(Real eps = Precision::ShapePropertyTolerance) const { return std::abs(_a - _b) < eps; }
 
-		Real Area() const { return 0.5 * (_a + _b) * _height; }
+		Real Area() const { return MML::Real(0.5) * (_a + _b) * _height; }
 
 		// Median (midsegment) - line connecting midpoints of non-parallel sides
-		Real Median() const { return 0.5 * (_a + _b); }
+		Real Median() const { return MML::Real(0.5) * (_a + _b); }
 
 		// For isosceles trapezoid with known leg length
 		static Trapezoid Isosceles(Real base, Real top, Real leg) {
-			Real height = sqrt(leg * leg - 0.25 * POW2(base - top));
+			Real height = sqrt(leg * leg - MML::Real(0.25) * POW2(base - top));
 			return Trapezoid(base, top, height);
 		}
 	};

@@ -52,8 +52,8 @@ private:
 				Real lhs = 0;
 				for (int j = 0; j < lp.NumVariables(); ++j)
 					lhs += constraint.coefficients[j] * result.x[j];
-				finite = finite && std::isfinite(lhs);
 				result.slacks[i] = constraint.rhs - lhs;
+				finite = finite && std::isfinite(constraint.rhs) && std::isfinite(lhs) && std::isfinite(result.slacks[i]);
 				const Real residual = constraint.type == LPConstraintType::Equal			 ? std::abs(lhs - constraint.rhs)
 															: constraint.type == LPConstraintType::LessEqual ? lhs - constraint.rhs
 																																							 : constraint.rhs - lhs;
@@ -69,6 +69,15 @@ private:
 				result.error_message = "Simplex returned a non-finite or infeasible iterate";
 			} else {
 				result.error_message = result.lp_status == LPStatus::Optimal ? "" : result.statusMessage();
+			}
+			if (result.lp_status == LPStatus::Optimal) {
+				const Real objectiveSign = lp.ObjectiveSense() == LPObjective::Maximize ? Real(-1) : Real(1);
+				result.dualValues = tableau.GetDualValues();
+				for (int i = 0; i < lp.NumConstraints(); ++i)
+					result.dualValues[i] *= objectiveSign * (lp.GetConstraint(i).rhs < 0 ? Real(-1) : Real(1));
+				result.reducedCosts = tableau.GetReducedCosts();
+				for (auto& cost : result.reducedCosts) cost *= objectiveSign;
+				result.basisIndices = tableau.Basis();
 			}
 			result.converged = result.lp_status == LPStatus::Optimal && result.status == AlgorithmStatus::Success;
 			result.algorithm_name = name;
@@ -88,12 +97,6 @@ public:
 			ValidateConfig();
 			AlgorithmTimer timer;
 			LinearProgrammingResult result;
-
-			// Validate problem
-			std::string errorMsg;
-			if (!lp.Validate(errorMsg)) {
-				throw LinearProgrammingError("Invalid LP: " + errorMsg);
-			}
 
 			// Convert to standard form
 			Matrix<Real> A;
@@ -173,11 +176,6 @@ public:
 				if (lp.ObjectiveSense() == LPObjective::Maximize) {
 					result.objectiveValue = -result.objectiveValue;
 				}
-
-				// Dual values and reduced costs
-				result.dualValues = tableau.GetDualValues();
-				result.reducedCosts = tableau.GetReducedCosts();
-				result.basisIndices = tableau.Basis();
 
 				// Compute slacks
 				result.slacks.resize(lp.NumConstraints());
@@ -293,12 +291,6 @@ public:
 			*_config.verboseStream << "Constraints: " << lp.NumConstraints() << "\n";
 		}
 
-		// Validate problem
-		std::string errorMsg;
-		if (!lp.Validate(errorMsg)) {
-			throw LinearProgrammingError("Invalid LP: " + errorMsg);
-		}
-
 		// Convert to standard form
 		Matrix<Real> A;
 		Vector<Real> b, c;
@@ -343,11 +335,6 @@ public:
 				result.objectiveValue = -result.objectiveValue;
 			}
 
-			// Dual values and reduced costs
-			result.dualValues = tableau.GetDualValues();
-			result.reducedCosts = tableau.GetReducedCosts();
-			result.basisIndices = tableau.Basis();
-
 			// Compute slacks
 			result.slacks.resize(lp.NumConstraints());
 			for (int i = 0; i < lp.NumConstraints(); ++i) {
@@ -377,9 +364,6 @@ public:
 	LinearProgrammingResult SolveWithSensitivity(const LinearProgram& lp) {
 		ValidateConfig();
 		AlgorithmTimer timer;
-		std::string errorMsg;
-		if (!lp.Validate(errorMsg))
-			throw LinearProgrammingError("Invalid LP: " + errorMsg);
 		LinearProgrammingResult result;
 		result.lp_status = LPStatus::Error;
 
@@ -428,47 +412,25 @@ public:
 		LPStatus status = RunSimplex(tableau);
 		result.lp_status = status;
 		result.iterations = tableau.Iterations();
+		result = Finalize(std::move(result), lp, tableau, timer, "SimplexWithSensitivity");
 
-		if (status == LPStatus::Optimal) {
-			// Extract solution
-			Vector<Real> fullSolution = tableau.GetOriginalSolution();
-			result.x.resize(lp.NumVariables());
-			for (int j = 0; j < lp.NumVariables(); ++j) {
-				result.x[j] = fullSolution[j];
-			}
-
-			result.objectiveValue = tableau.GetObjectiveValue();
-			if (lp.ObjectiveSense() == LPObjective::Maximize) {
-				result.objectiveValue = -result.objectiveValue;
-			}
-
-			result.dualValues = tableau.GetDualValues();
-			result.reducedCosts = tableau.GetReducedCosts();
-			result.basisIndices = tableau.Basis();
-
-			// Compute slacks
-			result.slacks.resize(lp.NumConstraints());
-			for (int i = 0; i < lp.NumConstraints(); ++i) {
-				const auto& con = lp.GetConstraint(i);
-				Real lhs = 0;
-				for (int j = 0; j < lp.NumVariables(); ++j) {
-					lhs += con.coefficients[j] * result.x[j];
-				}
-				result.slacks[i] = con.rhs - lhs;
-			}
-
+		if (result.IsOptimal()) {
 			// === Sensitivity Analysis ===
 
 			// Objective coefficient ranges
 			result.objectiveRanges.resize(lp.NumVariables());
 			for (int j = 0; j < lp.NumVariables(); ++j) {
-				result.objectiveRanges[j] = tableau.GetObjectiveCoefficientRange(j);
+				const auto range = tableau.GetObjectiveCoefficientRange(j);
+				result.objectiveRanges[j] = lp.ObjectiveSense() == LPObjective::Maximize
+					? std::pair<Real, Real>{-range.second, -range.first} : range;
 			}
 
 			// RHS ranges
 			result.rhsRanges.resize(lp.NumConstraints());
 			for (int i = 0; i < lp.NumConstraints(); ++i) {
-				result.rhsRanges[i] = tableau.GetRHSRange(i);
+				const auto range = tableau.GetRHSRange(i);
+				result.rhsRanges[i] = lp.GetConstraint(i).rhs < 0
+					? std::pair<Real, Real>{-range.second, -range.first} : range;
 			}
 
 			// Basis condition number for numerical stability assessment
@@ -489,7 +451,7 @@ public:
 			}
 		}
 
-		result = Finalize(std::move(result), lp, tableau, timer, "SimplexWithSensitivity");
+		result.elapsed_time_ms = timer.elapsed_ms();
 		if (_config.verbose && _config.verboseStream) {
 			*_config.verboseStream << "Final result: " << result.statusMessage() << "\n";
 			if (result.IsOptimal()) {

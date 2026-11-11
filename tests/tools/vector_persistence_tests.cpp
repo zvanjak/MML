@@ -1,10 +1,8 @@
-#include <catch2/catch_all.hpp>
-
-#ifdef MML_USE_SINGLE_HEADER
-#include <MML.h>
-#else
+#include "../TestPrecision.h"
+#ifndef MML_SINGLE_HEADER_INCLUDE
 #include <mml/tools/Persistence.h>
 #endif
+#include <catch2/catch_all.hpp>
 
 #include <chrono>
 #include <complex>
@@ -92,7 +90,9 @@ TEMPLATE_TEST_CASE("Vector text preserves exact scalar values in files and strea
 	std::stringstream stream;
 	REQUIRE(Save(stream, original, Format::Text).success);
 	Vector<TestType> restored;
-	REQUIRE(Load(stream, restored, Format::Text).success);
+	const auto loaded = Load(stream, restored, Format::Text);
+	INFO(loaded.message);
+	REQUIRE(loaded.success);
 	CheckVector(restored, original);
 	TempFile file;
 	REQUIRE(Save(original, file.path.string()).success);
@@ -179,6 +179,70 @@ TEST_CASE("Complex vector text validates delimiters, components and completeness
 	}
 }
 
+TEMPLATE_TEST_CASE("Vector floating text retains signed decimal grammar and transactional range errors",
+                   "[VectorPersistence][Text][Errors]", float, double, long double)
+{
+	std::istringstream valid("7\n+1.25\n-.5\n.5\n1.\n-2.5e+1\n+0e99999\n-0e-99999\n");
+	Vector<TestType> restored;
+	REQUIRE(Load(valid, restored, Format::Text).success);
+	CheckVector(restored, Vector<TestType>{TestType(1.25), TestType(-0.5), TestType(0.5),
+	            TestType(1), TestType(-25), TestType(0), -TestType(0)});
+	for (const char* token : {"1e99999", "-1e99999", "1e-99999", "-1e-99999",
+	                          "4x", "1e", "1e+", "0x1p0", "-0X1P2", "1,5", "+", "+-1", "++1",
+	                          "NAN", "-nan", "infinity"}) {
+		INFO(token);
+		std::istringstream input("2\n1\n" + std::string(token) + "\n");
+		const Vector<TestType> original{TestType(11), TestType(22)};
+		Vector<TestType> destination = original;
+		const auto result = Load(input, destination, Format::Text);
+		REQUIRE(result.error == IOError::MALFORMED_INPUT);
+		REQUIRE(result.offset_kind == IOOffsetKind::Line);
+		REQUIRE(result.offset == 3);
+		REQUIRE_FALSE(result.message.empty());
+		CheckVector(destination, original);
+		std::istringstream complexInput("1\n(1," + std::string(token) + ")\n");
+		using ComplexType = std::complex<TestType>;
+		const Vector<ComplexType> complexOriginal{ComplexType(3, 4)};
+		Vector<ComplexType> complexDestination = complexOriginal;
+		const auto complexResult = Load(complexInput, complexDestination, Format::Text);
+		REQUIRE(complexResult.error == IOError::MALFORMED_INPUT);
+		REQUIRE(complexResult.offset_kind == IOOffsetKind::Line);
+		REQUIRE(complexResult.offset == 2);
+		REQUIRE_FALSE(complexResult.message.empty());
+		CheckVector(complexDestination, complexOriginal);
+	}
+}
+
+TEMPLATE_TEST_CASE("Classic floating parsing preserves subnormals without accepting range loss or trailing data",
+                   "[VectorPersistence][Text][Errors]", float, double, long double)
+{
+	const TestType smallest = std::numeric_limits<TestType>::denorm_min();
+	const TestType largest = std::nextafter(std::numeric_limits<TestType>::min(), TestType(0));
+	REQUIRE(smallest > 0);
+	REQUIRE(std::fpclassify(smallest) == FP_SUBNORMAL);
+	for (TestType expected : {smallest, -smallest, largest, -largest,
+	                         std::numeric_limits<TestType>::min(), -std::numeric_limits<TestType>::min()}) {
+		std::ostringstream encoded;
+		TextIO::ApplyClassicFormat(encoded, std::numeric_limits<TestType>::max_digits10);
+		encoded << expected;
+		INFO(encoded.str());
+		TestType actual = TestType(1);
+		REQUIRE(TextIO::ParseFloatClassic(encoded.str(), actual));
+		CheckValue(actual, expected);
+		REQUIRE(TextIO::ParseFloatClassic(" \t" + encoded.str() + "\n", actual));
+		CheckValue(actual, expected);
+		for (const char* suffix : {"x", "e", "e+", ",5"}) {
+			REQUIRE_FALSE(TextIO::ParseFloatClassic(encoded.str() + suffix, actual));
+			CheckValue(actual, expected);
+		}
+	}
+	for (const char* token : {"1e99999", "-1e99999", "1e-99999", "-1e-99999", "1e", "1e+"}) {
+		TestType unchanged = TestType(7);
+		REQUIRE_FALSE(TextIO::ParseFloatClassic(token, unchanged));
+		REQUIRE(unchanged == TestType(7));
+	}
+}
+
 TEST_CASE("Vector text validates counts and configured payload allocation before resizing", "[VectorPersistence][Allocation]")
 {
 	for (const char* count : {"18446744073709551616", "2147483648", "99999999999999999999999999999999"}) {
@@ -202,7 +266,8 @@ TEST_CASE("Vector text validates counts and configured payload allocation before
 	REQUIRE(destination.empty());
 }
 
-TEST_CASE("Vector text preserves stream formatting and locale on success, failure and exceptions", "[VectorPersistence][StreamState]")
+TEMPLATE_TEST_CASE("Vector text preserves stream formatting and locale on success, failure and exceptions",
+                   "[VectorPersistence][StreamState]", double, long double)
 {
 	std::stringstream stream;
 	stream.imbue(std::locale(std::locale::classic(), new CommaDecimal));
@@ -212,14 +277,14 @@ TEST_CASE("Vector text preserves stream formatting and locale on success, failur
 	stream.fill('#');
 	const auto flags = stream.flags();
 	const auto locale = stream.getloc();
-	Vector<double> original{std::nextafter(1.0, 2.0), 1.0 / 3};
+	const auto original = BoundaryValues<TestType>();
 	REQUIRE(Save(stream, original, Format::Text).success);
 	REQUIRE(stream.flags() == flags);
 	REQUIRE(stream.getloc() == locale);
 	REQUIRE(stream.precision() == 2);
 	REQUIRE(stream.width() == 17);
 	REQUIRE(stream.fill() == '#');
-	Vector<double> restored;
+	Vector<TestType> restored;
 	REQUIRE(Load(stream, restored, Format::Text).success);
 	CheckVector(restored, original);
 	REQUIRE(stream.flags() == flags);

@@ -245,8 +245,8 @@ namespace MML::Tests::Algorithms::BVPShootingMethodTests
 		
 		Projectile3DBVPResult() : finalPosition(3), trajectory(0.0, 1.0, 6, 100) {}
 		
-		Real launchElevationDegrees() const { return launchElevation * 180.0 / Constants::PI; }
-		Real launchAzimuthDegrees() const { return launchAzimuth * 180.0 / Constants::PI; }
+		Real launchElevationDegrees() const { return launchElevation * MML::Real(180.0) / Constants::PI; }
+		Real launchAzimuthDegrees() const { return launchAzimuth * MML::Real(180.0) / Constants::PI; }
 	};
 
 	/**
@@ -343,7 +343,7 @@ namespace MML::Tests::Algorithms::BVPShootingMethodTests
 			// such that landing position = (targetX, targetZ)
 			// This is a 2x2 system: F(vx, vz) = [land_x - targetX, land_z - targetZ]
 			
-			const Real delta = 1e-4;  // Perturbation for numerical Jacobian
+			const Real delta = MML::Real(1e-4);  // Perturbation for numerical Jacobian
 			
 			for (int iter = 0; iter < 30; ++iter)
 			{
@@ -480,7 +480,7 @@ namespace MML::Tests::Algorithms::BVPShootingMethodTests
 		
 		ProjectileBVPResult() : trajectory(0.0, 1.0, 4, 100) {}
 		
-		Real launchAngleDegrees() const { return launchAngle * 180.0 / Constants::PI; }
+		Real launchAngleDegrees() const { return launchAngle * MML::Real(180.0) / Constants::PI; }
 	};
 
 	/**
@@ -567,7 +567,7 @@ namespace MML::Tests::Algorithms::BVPShootingMethodTests
 				
 				RungeKutta4_StepCalculator stepCalc;
 				ODESystemFixedStepSolver solver(_system, stepCalc);
-				result.trajectory = solver.integrate(initCond, 0, result.flightTime * 1.1, _numSteps);
+				result.trajectory = solver.integrate(initCond, 0, result.flightTime * MML::Real(1.1), _numSteps);
 				
 				result.maxHeight = y0;
 				for (int i = 0; i < result.trajectory.size(); ++i)
@@ -647,7 +647,7 @@ namespace MML::Tests::Algorithms::BVPShootingMethodTests
 				
 				RungeKutta4_StepCalculator stepCalc;
 				ODESystemFixedStepSolver solver(_system, stepCalc);
-				result.trajectory = solver.integrate(initCond, 0, result.flightTime * 1.1, _numSteps);
+				result.trajectory = solver.integrate(initCond, 0, result.flightTime * MML::Real(1.1), _numSteps);
 				
 				result.maxHeight = y0;
 				for (int i = 0; i < result.trajectory.size(); ++i)
@@ -883,15 +883,21 @@ namespace MML::Tests::Algorithms::BVPShootingMethodTests
 		TEST_PRECISION_INFO();
 		
 		LinearODE system;
-		BVPShootingSolver<RungeKutta4_StepCalculator> solver(system, 1000, TOL(1e-10, 1e-5));
+		// The float boundary budget includes roundoff from 1000 integrations at scale ten.
+		const Real tolerance = TOL(1e-10, 1e-4);
+		BVPShootingSolver<RungeKutta4_StepCalculator> solver(system, 1000, tolerance);
 		
 		// y(0) = 0, y(1) = 10 → y = 10t, y'(0) = 10
 		auto result = solver.solvePositionBVP(static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0),
 		                                      static_cast<MML::Real>(0.0), static_cast<MML::Real>(10.0),
 		                                      static_cast<MML::Real>(5.0), static_cast<MML::Real>(15.0));
 		
+		CAPTURE(result.residual, result.failureDetails, result.shootingParams);
 		REQUIRE(result.converged);
-		REQUIRE_THAT(result.shootingParams[0], WithinRel(static_cast<MML::Real>(10.0), static_cast<MML::Real>(1e-5)));
+		REQUIRE(result.residual <= tolerance);
+		const Real parameterTolerance = std::max(Real(1e-4),
+			tolerance + Real(1000) * std::numeric_limits<Real>::epsilon() * Real(10));
+		REQUIRE_THAT(result.shootingParams[0], WithinAbs(Real(10), parameterTolerance));
 	}
 
 	/*********************************************************************/

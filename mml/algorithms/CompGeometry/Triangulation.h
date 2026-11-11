@@ -16,7 +16,8 @@
 #include <algorithm>
 #include <array>
 #include <map>
-#include <random>
+#include <limits>
+#include <numeric>
 #include <string>
 #include <utility>
 #include <vector>
@@ -54,16 +55,17 @@ struct DelaunayTriangulation {
 	/// @param p The query point
 	/// @return Index of containing triangle, or -1 if outside convex hull
 	int LocatePoint(const Point2Cartesian& p) const {
+		MML::detail::ValidateGeometryCoordinates({p.X(), p.Y()}, "DelaunayTriangulation::LocatePoint");
 		for (int i = 0; i < NumTriangles(); i++) {
 			const auto& tri = triangles[i];
 			const Point2Cartesian& a = points[tri[0]];
 			const Point2Cartesian& b = points[tri[1]];
 			const Point2Cartesian& c = points[tri[2]];
 
-			// Check if point is inside triangle using barycentric coordinates
-			Real d1 = Sign(p, a, b);
-			Real d2 = Sign(p, b, c);
-			Real d3 = Sign(p, c, a);
+			if (RobustPredicates::Orientation2D(a, b, c) == 0) continue;
+			int d1 = RobustPredicates::Orientation2D(p, a, b);
+			int d2 = RobustPredicates::Orientation2D(p, b, c);
+			int d3 = RobustPredicates::Orientation2D(p, c, a);
 
 			bool hasNeg = (d1 < 0) || (d2 < 0) || (d3 < 0);
 			bool hasPos = (d1 > 0) || (d2 > 0) || (d3 > 0);
@@ -81,9 +83,10 @@ struct DelaunayTriangulation {
 	/// @return Linearly interpolated value using barycentric coordinates
 	Real Interpolate(const Point2Cartesian& p, const std::vector<Real>& values, 
 					 Real defaultVal = 0.0) const {
-		constexpr Real EPSILON = Precision::GeometryEpsilon;
 		if (values.size() != points.size())
-			return defaultVal;
+			throw ArgumentError("DelaunayTriangulation::Interpolate - one value per input point required");
+		for (Real value : values)
+			MML::detail::ValidateGeometryCoordinates({value}, "DelaunayTriangulation::Interpolate");
 
 		int triIdx = LocatePoint(p);
 		if (triIdx < 0)
@@ -94,16 +97,14 @@ struct DelaunayTriangulation {
 		const Point2Cartesian& b = points[tri[1]];
 		const Point2Cartesian& c = points[tri[2]];
 
-		// Compute barycentric coordinates
-		Real denom = (b.Y() - c.Y()) * (a.X() - c.X()) + (c.X() - b.X()) * (a.Y() - c.Y());
-		if (std::abs(denom) < EPSILON)
-			return defaultVal;
-
-		Real w1 = ((b.Y() - c.Y()) * (p.X() - c.X()) + (c.X() - b.X()) * (p.Y() - c.Y())) / denom;
-		Real w2 = ((c.Y() - a.Y()) * (p.X() - c.X()) + (a.X() - c.X()) * (p.Y() - c.Y())) / denom;
-		Real w3 = 1.0 - w1 - w2;
-
-		return w1 * values[tri[0]] + w2 * values[tri[1]] + w3 * values[tri[2]];
+		if (values[tri[0]] == values[tri[1]] && values[tri[1]] == values[tri[2]])
+			return values[tri[0]];
+		using B = MML::detail::GeometryBinary;
+		using Exact = MML::detail::GeometryExact2D;
+		const std::array<B, 3> areas{Exact::Determinant(p, b, c), Exact::Determinant(a, p, c), Exact::Determinant(a, b, p)};
+		const std::array<B, 3> samples{B(values[tri[0]]), B(values[tri[1]]), B(values[tri[2]])};
+		const auto numerator = B::SumProducts(areas, samples);
+		return B::Quotient(numerator, Exact::Determinant(a, b, c)).CheckedValue();
 	}
 
 	/// @brief Get convex hull edges (boundary of triangulation)
@@ -123,12 +124,6 @@ struct DelaunayTriangulation {
 		return hull;
 	}
 
-private:
-	static Real Sign(const Point2Cartesian& p1, const Point2Cartesian& p2, 
-					 const Point2Cartesian& p3) {
-		return (p1.X() - p3.X()) * (p2.Y() - p3.Y()) - 
-			   (p2.X() - p3.X()) * (p1.Y() - p3.Y());
-	}
 };
 
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -136,9 +131,6 @@ private:
 /// @details Provides ear clipping for simple polygons and Delaunay triangulation
 //////////////////////////////////////////////////////////////////////////////////////////
 class Triangulation {
-	// Use centralized geometry epsilon from Constants
-	static constexpr Real EPSILON = Precision::GeometryEpsilon;
-
 public:
 	// ========================================================================
 	// Ear Clipping Triangulation
@@ -174,22 +166,17 @@ public:
 		if (n < 3)
 			return result;
 
-		if (n == 3) {
-			triangles.push_back(Triangle2D(polygon[0], polygon[1], polygon[2]));
-			return result;
-		}
-
 		// Copy vertices to working list
 		std::vector<Point2Cartesian> vertices = polygon.Vertices();
-
-		// Ensure CCW orientation (ear clipping assumes CCW)
-		Real signedArea = 0;
-		for (int i = 0; i < n; i++) {
-			int j = (i + 1) % n;
-			signedArea += vertices[i].X() * vertices[j].Y();
-			signedArea -= vertices[i].Y() * vertices[j].X();
-		}
-		if (signedArea < 0) {
+		for (const auto& p : vertices)
+			MML::detail::ValidateGeometryCoordinates({p.X(), p.Y()}, "EarClipTriangulation");
+		// At a lexicographic extreme of a simple polygon, the local turn
+		// has the polygon's winding, without global shoelace cancellation.
+		const auto extreme = std::min_element(vertices.begin(), vertices.end(), [](const auto& a, const auto& b) {
+			return a.X() < b.X() || (a.X() == b.X() && a.Y() < b.Y());
+		});
+		const int pivot = static_cast<int>(extreme - vertices.begin());
+		if (RobustPredicates::Orientation2D(vertices[(pivot + n - 1) % n], vertices[pivot], vertices[(pivot + 1) % n]) < 0) {
 			std::reverse(vertices.begin(), vertices.end());
 		}
 
@@ -246,142 +233,67 @@ public:
 	}
 
 	// ========================================================================
-	// Delaunay Triangulation (Bowyer-Watson Algorithm)
+	// Delaunay Triangulation (real-point hull insertion and Lawson flips)
 	// ========================================================================
 	// Computes the Delaunay triangulation of a point set.
-	// Time complexity: O(n log n) expected, O(n²) worst case
+	// Sorting O(n log n); hull scans and legalization can be quadratic.
 	// ========================================================================
 
-	/// @brief Compute Delaunay triangulation using Bowyer-Watson algorithm
-	/// @param points Input point set (at least 3 non-collinear points)
+	/// @brief Compute Delaunay triangulation without finite auxiliary vertices
+	/// @param points Finite input points, preserved in their original order.
+	/// Exact duplicates use their first input index; collinear sets have no faces.
 	/// @return DelaunayTriangulation structure with triangles and adjacency
 	static DelaunayTriangulation ComputeDelaunay(std::vector<Point2Cartesian> points) {
 		DelaunayTriangulation result;
 
-		int n = static_cast<int>(points.size());
-		if (n < 3) {
-			result.points = std::move(points);
-			return result;
-		}
+		if (points.size() > static_cast<std::size_t>(std::numeric_limits<int>::max() / 2))
+			throw ArgumentError("ComputeDelaunay - mesh too large for integer indices");
+		for (const auto& p : points)
+			MML::detail::ValidateGeometryCoordinates({p.X(), p.Y()}, "ComputeDelaunay");
+		result.points = std::move(points);
+		const auto& input = result.points;
+		std::vector<int> order(input.size());
+		std::iota(order.begin(), order.end(), 0);
+		std::sort(order.begin(), order.end(), [&](int a, int b) {
+			if (input[a].X() != input[b].X()) return input[a].X() < input[b].X();
+			if (input[a].Y() != input[b].Y()) return input[a].Y() < input[b].Y();
+			return a < b;
+		});
+		order.erase(std::unique(order.begin(), order.end(), [&](int a, int b) {
+			return input[a].X() == input[b].X() && input[a].Y() == input[b].Y();
+		}), order.end());
+		if (order.size() < 3) return result;
+		std::size_t seed = 2;
+		while (seed < order.size() && RobustPredicates::Orientation2D(input[order[0]], input[order[1]], input[order[seed]]) == 0)
+			++seed;
+		if (seed == order.size()) return result;
 
-		// Find bounding box
-		Real minX = points[0].X(), maxX = points[0].X();
-		Real minY = points[0].Y(), maxY = points[0].Y();
-		for (const auto& p : points) {
-			minX = std::min(minX, p.X());
-			maxX = std::max(maxX, p.X());
-			minY = std::min(minY, p.Y());
-			maxY = std::max(maxY, p.Y());
-		}
-
-		// Create super-triangle that contains all points
-		// Make it large enough to ensure all points fit well inside
-		Real dx = maxX - minX;
-		Real dy = maxY - minY;
-		Real deltaMax = std::max(dx, dy);
-		
-		// Ensure deltaMax is large enough for numerical stability
-		deltaMax = std::max<Real>(deltaMax, std::max<Real>(std::abs(minX), std::abs(minY)) * Precision::GeometryEpsilon);
-		deltaMax = std::max<Real>(deltaMax, std::max<Real>(std::abs(maxX), std::abs(maxY)) * Precision::GeometryEpsilon);
-		deltaMax = std::max<Real>(deltaMax, Precision::GeometryEpsilon);  // Absolute minimum
-		
-		Real midX = (minX + maxX) / Real(2.0);
-		Real midY = (minY + maxY) / Real(2.0);
-
-		// Super-triangle vertices in CCW order (very large to contain all points)
-		Point2Cartesian st1(midX - 20 * deltaMax, midY - deltaMax);
-		Point2Cartesian st2(midX + 20 * deltaMax, midY - deltaMax);
-		Point2Cartesian st3(midX, midY + 20 * deltaMax);
-
-		// Working point list: original points then super-triangle vertices
-		std::vector<Point2Cartesian> workPoints = points;
-		int st1Idx = static_cast<int>(workPoints.size());
-		int st2Idx = st1Idx + 1;
-		int st3Idx = st1Idx + 2;
-		workPoints.push_back(st1);
-		workPoints.push_back(st2);
-		workPoints.push_back(st3);
-
-		// Triangle representation: vertex indices and validity flag
-		struct Tri {
-			std::array<int, 3> v;
-			bool valid = true;
+		std::map<EdgeKey, std::pair<int, int>> boundary;
+		const auto addFace = [&](int a, int b, int c) {
+			if (RobustPredicates::Orientation2D(input[a], input[b], input[c]) < 0) std::swap(a, b);
+			const std::array<int, 3> face{a, b, c};
+			result.triangles.push_back(face);
+			for (int e = 0; e < 3; ++e) {
+				const int first = face[e], second = face[(e + 1) % 3];
+				const EdgeKey key(first, second);
+				if (boundary.erase(key) == 0) boundary.emplace(key, std::make_pair(first, second));
+			}
 		};
-		std::vector<Tri> tris;
-		tris.push_back({{st1Idx, st2Idx, st3Idx}, true});
-
-		// Incrementally add each point
-		for (int i = 0; i < n; i++) {
-			const Point2Cartesian& p = workPoints[i];
-
-			// Find all triangles whose circumcircle contains the new point
-			std::vector<int> badTriangles;
-			for (size_t t = 0; t < tris.size(); t++) {
-				if (!tris[t].valid) continue;
-
-				const Point2Cartesian& a = workPoints[tris[t].v[0]];
-				const Point2Cartesian& b = workPoints[tris[t].v[1]];
-				const Point2Cartesian& c = workPoints[tris[t].v[2]];
-
-				if (InCircumcircle(p, a, b, c)) {
-					badTriangles.push_back(static_cast<int>(t));
-				}
+		// Retain every vertex of the initial collinear chain, not just its endpoints.
+		for (std::size_t i = 1; i < seed; ++i)
+			addFace(order[i - 1], order[i], order[seed]);
+		for (std::size_t i = seed + 1; i < order.size(); ++i) {
+			// Lexicographic insertion puts each new point outside the current hull.
+			std::vector<std::pair<int, int>> visible;
+			for (const auto& entry : boundary) {
+				const auto [a, b] = entry.second;
+				if (RobustPredicates::Orientation2D(input[a], input[b], input[order[i]]) < 0)
+					visible.push_back({a, b});
 			}
-
-			// Find boundary polygon: edges that appear exactly once
-			std::map<EdgeKey, int> edgeCount;
-			std::map<EdgeKey, std::pair<int, int>> edgeDir;  // Original direction
-			
-			for (int t : badTriangles) {
-				for (int j = 0; j < 3; j++) {
-					int v1 = tris[t].v[j];
-					int v2 = tris[t].v[(j + 1) % 3];
-					EdgeKey key(v1, v2);
-					edgeCount[key]++;
-					edgeDir[key] = {v1, v2};
-				}
-			}
-
-			// Collect boundary edges (edges appearing exactly once)
-			std::vector<std::pair<int, int>> polygon;
-			for (const auto& [key, count] : edgeCount) {
-				if (count == 1) {
-					polygon.push_back(edgeDir[key]);
-				}
-			}
-
-			// Remove bad triangles
-			for (int t : badTriangles) {
-				tris[t].valid = false;
-			}
-
-			// Create new triangles from the new point to each boundary edge
-			for (const auto& [v1, v2] : polygon) {
-				tris.push_back({{i, v1, v2}, true});
-			}
+			if (visible.empty()) throw GeometryError("ComputeDelaunay - no visible hull edge for a distinct point");
+			for (const auto& [a, b] : visible) addFace(a, order[i], b);
 		}
-
-		// Extract final triangulation (exclude triangles using super-triangle vertices)
-		result.points = points;  // Only original points
-		
-		for (const auto& tri : tris) {
-			if (!tri.valid) continue;
-
-			// Skip if any vertex is a super-triangle vertex
-			bool usesSuperTri = false;
-			for (int j = 0; j < 3; j++) {
-				if (tri.v[j] >= n) {
-					usesSuperTri = true;
-					break;
-				}
-			}
-
-			if (!usesSuperTri) {
-				result.triangles.push_back(tri.v);
-			}
-		}
-
-		// Build neighbor information
+		LegalizeEdges(result);
 		BuildNeighborInfo(result);
 
 		return result;
@@ -443,22 +355,7 @@ private:
 		return !(hasNeg && hasPos);
 	}
 
-	// Check if point is inside circumcircle of triangle (Delaunay property)
-	static bool InCircumcircle(const Point2Cartesian& p,
-							   const Point2Cartesian& a,
-							   const Point2Cartesian& b,
-							   const Point2Cartesian& c) {
-		// For a CCW-oriented triangle abc, point p is inside circumcircle if:
-		// | ax-px  ay-py  (ax-px)²+(ay-py)² |
-		// | bx-px  by-py  (bx-px)²+(by-py)² | > 0
-		// | cx-px  cy-py  (cx-px)²+(cy-py)² |
-		
-		const int orientation = RobustPredicates::Orientation2D(a, b, c);
-		const int inCircle = RobustPredicates::InCircle2D(a, b, c, p);
-		return orientation > 0 ? inCircle > 0 : inCircle < 0;
-	}
-
-	// Unique edge representation for Bowyer-Watson
+	// Undirected edge key; triangle-local edges retain their CCW direction.
 	struct EdgeKey {
 		int v1, v2;
 		EdgeKey(int a, int b) : v1(std::min(a, b)), v2(std::max(a, b)) {}
@@ -469,6 +366,60 @@ private:
 			return v1 < other.v1 || (v1 == other.v1 && v2 < other.v2);
 		}
 	};
+
+	using EdgeMap = std::map<EdgeKey, std::vector<std::pair<int, int>>>;
+
+	static EdgeMap BuildEdgeMap(const DelaunayTriangulation& dt) {
+		EdgeMap edges;
+		for (int t = 0; t < dt.NumTriangles(); ++t)
+			for (int e = 0; e < 3; ++e)
+				edges[EdgeKey(dt.triangles[t][e], dt.triangles[t][(e + 1) % 3])].push_back({t, e});
+		for (const auto& entry : edges)
+			if (entry.second.size() > 2) throw GeometryError("ComputeDelaunay - nonmanifold edge");
+		return edges;
+	}
+
+	static void LegalizeEdges(DelaunayTriangulation& dt) {
+		auto edges = BuildEdgeMap(dt);
+		std::vector<EdgeKey> pending;
+		for (const auto& entry : edges)
+			if (entry.second.size() == 2) pending.push_back(entry.first);
+		const auto detach = [&](int t) {
+			for (int e = 0; e < 3; ++e) {
+				const EdgeKey key(dt.triangles[t][e], dt.triangles[t][(e + 1) % 3]);
+				auto& owners = edges.at(key);
+				owners.erase(std::remove_if(owners.begin(), owners.end(), [t](const auto& owner) { return owner.first == t; }), owners.end());
+				if (owners.empty()) edges.erase(key);
+			}
+		};
+		// Lawson (1977): flip strictly illegal, convex interior edges; exact
+		// cocircular ties stay unchanged, so legalization cannot oscillate.
+		while (!pending.empty()) {
+			const auto key = pending.back();
+			pending.pop_back();
+			const auto found = edges.find(key);
+			if (found == edges.end() || found->second.size() != 2) continue;
+			const auto [first, e] = found->second[0];
+			const auto [second, f] = found->second[1];
+			const auto triangle = dt.triangles[first];
+			const int a = triangle[e], b = triangle[(e + 1) % 3], c = triangle[(e + 2) % 3];
+			const int d = dt.triangles[second][(f + 2) % 3];
+			const auto& p = dt.points;
+			if (RobustPredicates::Orientation2D(p[c], p[d], p[b]) <= 0 ||
+				RobustPredicates::Orientation2D(p[d], p[c], p[a]) <= 0) continue;
+			if (RobustPredicates::InCircle2D(p[a], p[b], p[c], p[d]) <= 0) continue;
+			detach(first);
+			detach(second);
+			dt.triangles[first] = {c, d, b};
+			dt.triangles[second] = {d, c, a};
+			for (int t : {first, second})
+				for (int j = 0; j < 3; ++j) {
+					const EdgeKey changed(dt.triangles[t][j], dt.triangles[t][(j + 1) % 3]);
+					edges[changed].push_back({t, j});
+					pending.push_back(changed);
+				}
+		}
+	}
 
 	// Build adjacency information for triangulation
 	static void BuildNeighborInfo(DelaunayTriangulation& dt) {
@@ -481,15 +432,7 @@ private:
 		}
 
 		// Build edge-to-triangle map
-		std::map<EdgeKey, std::vector<std::pair<int, int>>> edgeToTri;  // edge -> [(triIdx, edgeIdx)]
-		for (int i = 0; i < numTri; i++) {
-			for (int j = 0; j < 3; j++) {
-				int v1 = dt.triangles[i][j];
-				int v2 = dt.triangles[i][(j + 1) % 3];
-				EdgeKey key(v1, v2);
-				edgeToTri[key].push_back({i, j});
-			}
-		}
+		const auto edgeToTri = BuildEdgeMap(dt);
 
 		// Set neighbors
 		for (const auto& [edge, triList] : edgeToTri) {

@@ -121,12 +121,12 @@ namespace MML {
 
 		MatrixNM(std::initializer_list<Type> values) {
 			auto val = values.begin();
-			for (size_t i = 0; i < rows(); ++i)
-				for (size_t j = 0; j < cols(); ++j)
+			for (int i = 0; i < rows(); ++i)
+				for (int j = 0; j < cols(); ++j)
 					if (val != values.end())
 						_vals[i][j] = *val++;
 					else
-						_vals[i][j] = 0.0;
+						_vals[i][j] = Type{0};
 		}
 
 		/// @brief Constructs from nested initializer list (row-wise).
@@ -164,8 +164,8 @@ namespace MML {
 
 		MatrixNM(const Type* arr, size_t len) {
 			size_t idx = 0;
-			for (size_t i = 0; i < rows(); ++i) {
-				for (size_t j = 0; j < cols(); ++j) {
+			for (int i = 0; i < rows(); ++i) {
+				for (int j = 0; j < cols(); ++j) {
 					if (idx < len)
 						_vals[i][j] = arr[idx++];
 					else
@@ -176,8 +176,8 @@ namespace MML {
 
 		/// @brief Copy constructor.
 		MatrixNM(const MatrixNM& m) {
-			for (size_t i = 0; i < rows(); ++i)
-				for (size_t j = 0; j < cols(); ++j)
+			for (int i = 0; i < rows(); ++i)
+				for (int j = 0; j < cols(); ++j)
 					_vals[i][j] = m._vals[i][j];
 		}
 
@@ -314,6 +314,8 @@ namespace MML {
 		/// @return Vector of M elements from the specified row.
 
 		VectorN<Type, M> VectorFromRow(int rowInd) {
+			if (rowInd < 0 || rowInd >= N)
+				throw MatrixAccessBoundsError("MatrixNM::VectorFromRow - index out of bounds", rowInd, 0, N, M);
 			VectorN<Type, M> ret;
 			for (int j = 0; j < M; j++)
 				ret[j] = _vals[rowInd][j];
@@ -326,6 +328,8 @@ namespace MML {
 		/// @return Vector of N elements from the specified column.
 
 		VectorN<Type, N> VectorFromColumn(int colInd) {
+			if (colInd < 0 || colInd >= M)
+				throw MatrixAccessBoundsError("MatrixNM::VectorFromColumn - index out of bounds", 0, colInd, N, M);
 			VectorN<Type, N> ret;
 			for (int i = 0; i < N; i++)
 				ret[i] = _vals[i][colInd];
@@ -356,8 +360,8 @@ namespace MML {
 			if (this == &m)
 				return *this;
 
-			for (size_t i = 0; i < rows(); ++i)
-				for (size_t j = 0; j < cols(); ++j)
+			for (int i = 0; i < rows(); ++i)
+				for (int j = 0; j < cols(); ++j)
 					_vals[i][j] = m._vals[i][j];
 
 			return *this;
@@ -365,8 +369,8 @@ namespace MML {
 
 		/// @brief Scalar broadcast assignment (sets all elements to scalar).
 		MatrixNM& operator=(const Type& m) {
-			for (size_t i = 0; i < rows(); ++i)
-				for (size_t j = 0; j < cols(); ++j)
+			for (int i = 0; i < rows(); ++i)
+				for (int j = 0; j < cols(); ++j)
 					_vals[i][j] = m;
 
 			return *this;
@@ -443,8 +447,8 @@ namespace MML {
 		/// @brief Unary negation (returns -A).
 		[[nodiscard]] MatrixNM operator-() const {
 			MatrixNM temp;
-			for (size_t i = 0; i < rows(); i++)
-				for (size_t j = 0; j < cols(); j++)
+			for (int i = 0; i < rows(); i++)
+				for (int j = 0; j < cols(); j++)
 					temp._vals[i][j] = -_vals[i][j];
 			return temp;
 		}
@@ -452,8 +456,8 @@ namespace MML {
 		/// @brief Matrix addition (A + B).
 		[[nodiscard]] MatrixNM operator+(const MatrixNM& b) const {
 			MatrixNM temp;
-			for (size_t i = 0; i < rows(); i++)
-				for (size_t j = 0; j < cols(); j++)
+			for (int i = 0; i < rows(); i++)
+				for (int j = 0; j < cols(); j++)
 					temp._vals[i][j] = b._vals[i][j] + _vals[i][j];
 			return temp;
 		}
@@ -461,8 +465,8 @@ namespace MML {
 		/// @brief Matrix subtraction (A - B).
 		[[nodiscard]] MatrixNM operator-(const MatrixNM& b) const {
 			MatrixNM temp;
-			for (size_t i = 0; i < rows(); i++)
-				for (size_t j = 0; j < cols(); j++)
+			for (int i = 0; i < rows(); i++)
+				for (int j = 0; j < cols(); j++)
 					temp._vals[i][j] = _vals[i][j] - b._vals[i][j];
 			return temp;
 		}
@@ -595,10 +599,20 @@ namespace MML {
 		/// @return True if |A[i][j] - B[i][j]| ≤ eps for all i, j.
 
 		bool IsEqualTo(const MatrixNM& b, Real eps = Precision::MatrixIsEqualTolerance) const {
+			if (!std::isfinite(eps) || eps < 0)
+				return false;
 			for (int i = 0; i < rows(); i++)
-				for (int j = 0; j < cols(); j++)
-					if (std::abs(_vals[i][j] - b._vals[i][j]) > eps)
-						return false;
+				for (int j = 0; j < cols(); j++) {
+					if constexpr (std::is_integral_v<Type>) {
+						const auto difference = _vals[i][j] >= b._vals[i][j]
+							? static_cast<unsigned long long>(_vals[i][j]) - static_cast<unsigned long long>(b._vals[i][j])
+							: static_cast<unsigned long long>(b._vals[i][j]) - static_cast<unsigned long long>(_vals[i][j]);
+						if (!(static_cast<long double>(difference) <= eps))
+							return false;
+					} else {
+						if (!(Abs(_vals[i][j] - b._vals[i][j]) <= eps)) return false;
+					}
+				}
 
 			return true;
 		}
@@ -635,8 +649,8 @@ namespace MML {
 			if (rows() != cols())
 				throw MatrixDimensionError("MatrixNM::Transpose - inplace Transpose possible only for square  matrix", N, M, -1, -1);
 
-			for (size_t i = 0; i < rows(); i++)
-				for (size_t j = i + 1; j < cols(); j++)
+			for (int i = 0; i < rows(); i++)
+				for (int j = i + 1; j < cols(); j++)
 					std::swap(_vals[i][j], _vals[j][i]);
 		}
 
@@ -645,8 +659,8 @@ namespace MML {
 		/// @note Returns different type for non-square matrices.
 		[[nodiscard]] MatrixNM<Type, M, N> Transposed() const {
 			MatrixNM<Type, M, N> ret;
-			for (size_t i = 0; i < cols(); i++)
-				for (size_t j = 0; j < rows(); j++)
+			for (int i = 0; i < cols(); i++)
+				for (int j = 0; j < rows(); j++)
 					ret._vals[i][j] = _vals[j][i];
 			return ret;
 		}

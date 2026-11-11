@@ -100,24 +100,16 @@ namespace MML {
 		/// @throws RealFuncInterpInitError if sizes are invalid
 
 		RealFunctionInterpolated(const Vector<Real>& x, const Vector<Real>& y, int usedPointsInInterpolation)
-			: _x(x)
-			, _y(y)
-			, _numPoints(x.size())
-			, _usedPoints(usedPointsInInterpolation) {
+			: _numPoints(x.size())
+			, _usedPoints(usedPointsInInterpolation)
+			, _x(x)
+			, _y(y) {
 			// throw if not enough points
 			if (_numPoints < 2 || _usedPoints < 2 || _usedPoints > _numPoints)
 				throw RealFuncInterpInitError("RealFunctionInterpolated size error");
 			if (y.size() != _numPoints)
 				throw RealFuncInterpInitError("RealFunctionInterpolated: x and y must have the same size");
-			// x must be strictly monotonic (ascending or descending): the locate/hunt table search
-			// and every derived interpolant assume it, and duplicates divide by zero.
-			const bool ascending = _x[1] > _x[0];
-			for (int i = 1; i < _numPoints; i++) {
-				if (_x[i] == _x[i - 1])
-					throw RealFuncInterpInitError("RealFunctionInterpolated: duplicate x-value at indices " + std::to_string(i - 1) + " and " + std::to_string(i));
-				if ((_x[i] > _x[i - 1]) != ascending)
-					throw RealFuncInterpInitError("RealFunctionInterpolated: x-values must be strictly monotonic (violation at index " + std::to_string(i) + ")");
-			}
+			detail::ValidateInterpolationNodes(_x, 2, "RealFunctionInterpolated");
 		}
 
 		virtual ~RealFunctionInterpolated() {}
@@ -134,7 +126,7 @@ namespace MML {
 
 		virtual const char* InterpolationMethodName() const { return "Interpolation"; }
 
-		virtual Real DetailedErrorEstimate() const { return 0.0; }
+		virtual Real DetailedErrorEstimate() const { return NoEstimate; }
 
 		/// @name Data Range Accessors
 		/// @{
@@ -232,9 +224,11 @@ namespace MML {
 
 				result.interval_index = locate(result.evaluated_point);
 				result.value = calcDetailedValue(result.interval_index, result.evaluated_point);
-				result.error_estimate = config.estimate_error ? DetailedErrorEstimate() : 0.0;
+				result.error_estimate = config.estimate_error ? DetailedErrorEstimate() : NoEstimate;
 				result.function_evaluations = 1;
-				if (config.check_finite && (!std::isfinite(result.value) || !std::isfinite(result.error_estimate))) {
+				result.status = AlgorithmStatus::Completed;
+				if (config.check_finite && (!std::isfinite(result.value)
+					|| (HasEstimate(result.error_estimate) && !std::isfinite(result.error_estimate)))) {
 					result.status = AlgorithmStatus::NumericalInstability;
 					result.error_message = "Interpolation produced a non-finite result";
 				}

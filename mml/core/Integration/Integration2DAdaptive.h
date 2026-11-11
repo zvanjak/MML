@@ -77,13 +77,14 @@ struct AdaptiveResult2D : public IntegrationResult
 
     /// @brief Combine two results (for accumulating from child cells)
     AdaptiveResult2D& operator+=(const AdaptiveResult2D& other) {
+        const bool identity = function_evaluations == 0 && cells_subdivided == 0 && value == 0 && error_estimate == 0;
         value += other.value;
         error_estimate += other.error_estimate;
         function_evaluations += other.function_evaluations;
         cells_subdivided += other.cells_subdivided;
         max_depth_reached = std::max(max_depth_reached, other.max_depth_reached);
         iterations = max_depth_reached;
-        converged = converged && other.converged;
+        converged = (identity || converged) && other.converged;
         status = converged ? AlgorithmStatus::Success : AlgorithmStatus::MaxIterationsExceeded;
         return *this;
     }
@@ -125,16 +126,16 @@ namespace Detail {
 /// @details Evaluates f at all 15×15 = 225 GK15 node pairs, computing both:
 ///          - Kronrod estimate (15×15): high-order approximation
 ///          - Gauss estimate (7×7): low-order approximation (using embedded G7 nodes)
-///          Error = |Kronrod - Gauss| is a reliable error bound.
+///          Error = |Kronrod - Gauss| is an embedded estimate, not a rigorous bound.
 ///
 /// @note This is more expensive than nested 1D but gives proper 2D error estimation.
 ///       The embedded G7 nodes are at GK15 indices {0, 2, 4, 6} (symmetric around 0).
 template<typename Func>
 static GKResult IntegrateCell2D_TensorGK15(Func f, Real x1, Real x2, Real y1, Real y2) {
-    const Real cx = 0.5 * (x1 + x2);  // Center x
-    const Real hx = 0.5 * (x2 - x1);  // Half-width x
-    const Real cy = 0.5 * (y1 + y2);  // Center y
-    const Real hy = 0.5 * (y2 - y1);  // Half-width y
+    const Real cx = std::midpoint(x1, x2);
+    const Real hx = IntegrationDetail::HalfWidth(x1, x2);
+    const Real cy = std::midpoint(y1, y2);
+    const Real hy = IntegrationDetail::HalfWidth(y1, y2);
 
     Real result_kronrod = 0.0;
     Real result_gauss = 0.0;
@@ -143,7 +144,6 @@ static GKResult IntegrateCell2D_TensorGK15(Func f, Real x1, Real x2, Real y1, Re
     // Gauss node indices within GK15: the G7 nodes are at positions 0, 2, 4, 6
     // (GK15 node 0 = center, nodes 1-7 are positive, symmetric with negatives)
     // G7 uses nodes at positions (relative to GK15): 0 (center), ±2, ±4, ±6
-    constexpr int gauss_indices[] = {0, 2, 4, 6};  // 4 indices (representing 7 points with symmetry)
 
     // Helper to check if a GK15 index maps to a Gauss node
     auto is_gauss_index = [](int i) -> bool {
@@ -165,7 +165,7 @@ static GKResult IntegrateCell2D_TensorGK15(Func f, Real x1, Real x2, Real y1, Re
         Real xi_neg = cx - hx * xGK15[i];
         Real wi = wGK15[i];
         bool i_gauss = is_gauss_index(i);
-        Real wgi = i_gauss ? wG7[gauss_weight_index(i)] : 0.0;
+        Real wgi = i_gauss ? wG7[gauss_weight_index(i)] : MML::Real(0.0);
         
         // Loop over all GK15 y-nodes
         for (int j = 0; j < GK15_N; ++j) {
@@ -173,7 +173,7 @@ static GKResult IntegrateCell2D_TensorGK15(Func f, Real x1, Real x2, Real y1, Re
             Real yj_neg = cy - hy * xGK15[j];
             Real wj = wGK15[j];
             bool j_gauss = is_gauss_index(j);
-            Real wgj = j_gauss ? wG7[gauss_weight_index(j)] : 0.0;
+            Real wgj = j_gauss ? wG7[gauss_weight_index(j)] : MML::Real(0.0);
             
             // Evaluate function at all quadrant combinations
             // For i=0 (center), xi_pos = xi_neg; same for j=0
@@ -181,7 +181,6 @@ static GKResult IntegrateCell2D_TensorGK15(Func f, Real x1, Real x2, Real y1, Re
             evals++;
             
             Real sum_f = f_pp;
-            int multiplicity = 1;
             
             if (i > 0 && j > 0) {
                 // All 4 quadrants are distinct
@@ -190,17 +189,14 @@ static GKResult IntegrateCell2D_TensorGK15(Func f, Real x1, Real x2, Real y1, Re
                 Real f_nn = f(xi_neg, yj_neg);
                 evals += 3;
                 sum_f = f_pp + f_pn + f_np + f_nn;
-                multiplicity = 4;
             } else if (i > 0) {  // j == 0: yj_pos == yj_neg
                 Real f_np = f(xi_neg, yj_pos);
                 evals++;
                 sum_f = f_pp + f_np;
-                multiplicity = 2;
             } else if (j > 0) {  // i == 0: xi_pos == xi_neg
                 Real f_pn = f(xi_pos, yj_neg);
                 evals++;
                 sum_f = f_pp + f_pn;
-                multiplicity = 2;
             }
             // else i == 0 && j == 0: center point, multiplicity = 1
             
@@ -217,21 +213,44 @@ static GKResult IntegrateCell2D_TensorGK15(Func f, Real x1, Real x2, Real y1, Re
     }
 
     // Scale by Jacobian (half-widths product)
-    Real jacobian = hx * hy;
-    result_kronrod *= jacobian;
-    result_gauss *= jacobian;
+    result_kronrod = IntegrationDetail::Product({hx, hy, result_kronrod});
+    result_gauss = IntegrationDetail::Product({hx, hy, result_gauss});
 
     Real error = std::abs(result_kronrod - result_gauss);
 
-    return GKResult(result_kronrod, error, evals, true);
+    return GKResult::Fixed(result_kronrod, error, evals);
 }
 
 } // namespace Detail
 
-/// @brief Recursive helper for adaptive 2D integration
+template<class Func>
+static void RunAdaptive2D(Func& function, Real x1, Real x2, Real y1, Real y2,
+    Real absolute, Real relative, int depth, int budget, GKRule rule, AdaptiveResult2D& result, bool checkFinite = true) {
+    IntegrationDetail::HalfWidth(x1, x2);
+    IntegrationDetail::HalfWidth(y1, y2);
+    IntegrationDetail::ValidateAdaptive(absolute, relative, depth, budget);
+    if (rule != GKRule::GK15)
+        throw NotImplementedError("IntegrateAdaptive2D: only GKRule::GK15 is implemented");
+    if (x2 <= x1 || y2 <= y1) {
+        result = AdaptiveResult2D(0, 0, 0, 0, 0, true);
+        return;
+    }
+    using Box = std::array<std::array<Real, 2>, 2>;
+    auto sample = [&](Real x, Real y) {
+        return IntegrationDetail::Sample(function, result.function_evaluations, checkFinite, x, y);
+    };
+    auto evaluate = [&](const Box& box) {
+        return Detail::IntegrateCell2D_TensorGK15(sample, box[0][0], box[0][1], box[1][0], box[1][1]);
+    };
+    const Box domain{{{x1, x2}, {y1, y2}}};
+    IntegrationDetail::RefineCells(result, std::vector<Box>{domain}, evaluate,
+        IntegrationDetail::SplitBox<2>, absolute, relative, depth, budget, 225);
+}
+
+/// @brief Compatibility entry for adaptive 2D integration using global frontier refinement
 /// @param f Function f(x,y) -> Real
 /// @param x1,x2,y1,y2 Cell bounds
-/// @param total_area Total integration domain area (for tolerance scaling)
+/// @param total_area Legacy parameter; the requested domain now has one global error target
 /// @param tol_abs Absolute tolerance
 /// @param tol_rel Relative tolerance
 /// @param depth Current recursion depth
@@ -246,38 +265,11 @@ static AdaptiveResult2D IntegrateAdaptive2D_Recursive(
     int depth, int max_depth,
     int& evals_remaining)
 {
-    // Integrate this cell using tensor product GK15 with proper error estimation
-    auto cell_result = Detail::IntegrateCell2D_TensorGK15(f, x1, x2, y1, y2);
-    evals_remaining -= cell_result.function_evaluations;
-
-    Real cell_area = (x2 - x1) * (y2 - y1);
-    Real area_fraction = cell_area / total_area;
-    
-    // Tolerance for this cell: scale by area fraction, with an underflow floor
-    Real cell_tol = std::max({tol_abs * area_fraction, 
-                              tol_rel * std::abs(cell_result.value),
-                              std::numeric_limits<Real>::min()});   // underflow floor
-
-    // Check convergence
-    if (cell_result.error_estimate <= cell_tol || depth >= max_depth || evals_remaining <= 0) {
-        bool conv = (cell_result.error_estimate <= cell_tol);
-        return AdaptiveResult2D(cell_result.value, cell_result.error_estimate,
-                                 cell_result.function_evaluations, 0, depth, conv);
-    }
-
-    // Subdivide into 4 quadrants
-    Real mx = 0.5 * (x1 + x2);
-    Real my = 0.5 * (y1 + y2);
-
     AdaptiveResult2D result;
-    result.cells_subdivided = 1;  // This cell was subdivided
-
-    // Process all 4 children
-    result += IntegrateAdaptive2D_Recursive(f, x1, mx, y1, my, total_area, tol_abs, tol_rel, depth+1, max_depth, evals_remaining);
-    result += IntegrateAdaptive2D_Recursive(f, mx, x2, y1, my, total_area, tol_abs, tol_rel, depth+1, max_depth, evals_remaining);
-    result += IntegrateAdaptive2D_Recursive(f, x1, mx, my, y2, total_area, tol_abs, tol_rel, depth+1, max_depth, evals_remaining);
-    result += IntegrateAdaptive2D_Recursive(f, mx, x2, my, y2, total_area, tol_abs, tol_rel, depth+1, max_depth, evals_remaining);
-
+    RunAdaptive2D(f, x1, x2, y1, y2, tol_abs, tol_rel, max_depth - depth, evals_remaining, GKRule::GK15, result);
+    evals_remaining -= result.function_evaluations;
+    result.max_depth_reached += depth;
+    result.iterations = result.max_depth_reached;
     return result;
 }
 
@@ -327,20 +319,9 @@ static AdaptiveResult2D IntegrateAdaptive2DCore(
     int max_depth = 20,
     int max_evals = 1000000)
 {
-    if (x2 <= x1 || y2 <= y1) {
-        return AdaptiveResult2D(0.0, 0.0, 0, 0, 0, true);
-    }
-
-    Real total_area = (x2 - x1) * (y2 - y1);
-    int evals_remaining = max_evals;
-
-    return IntegrateAdaptive2D_Recursive(
-        f, x1, x2, y1, y2,
-        total_area,
-        tolerance, tolerance,  // Use same tolerance for both abs and rel
-        0, max_depth,
-        evals_remaining
-    );
+    AdaptiveResult2D result;
+    RunAdaptive2D(f, x1, x2, y1, y2, tolerance, tolerance, max_depth, max_evals, GKRule::GK15, result);
+    return result;
 }
 
 /// Result-returning variant with the plain argument list (RESULT_POLICY §4).
@@ -380,24 +361,9 @@ static AdaptiveResult2D IntegrateAdaptive2DCore(
     Real y1, Real y2,
     const AdaptiveConfig2D& config)
 {
-    // Only the tensor-product GK15 cell rule is implemented (see IntegrateCell2D_TensorGK15)
-    if (config.rule != GKRule::GK15)
-        throw NotImplementedError("IntegrateAdaptive2D: only GKRule::GK15 is implemented for 2D integration");
-
-    if (x2 <= x1 || y2 <= y1) {
-        return AdaptiveResult2D(0.0, 0.0, 0, 0, 0, true);
-    }
-
-    Real total_area = (x2 - x1) * (y2 - y1);
-    int evals_remaining = config.max_evaluations;
-
-    return IntegrateAdaptive2D_Recursive(
-        f, x1, x2, y1, y2,
-        total_area,
-        config.tol_abs, config.tol_rel,
-        0, config.max_depth,
-        evals_remaining
-    );
+    AdaptiveResult2D result;
+    RunAdaptive2D(f, x1, x2, y1, y2, config.tol_abs, config.tol_rel, config.max_depth, config.max_evaluations, config.rule, result);
+    return result;
 }
 
 template<typename Func>
@@ -428,10 +394,7 @@ static AdaptiveResult2D IntegrateAdaptive2DDetailed(
     return IntegrationDetail::ExecuteIntegrationDetailed<AdaptiveResult2D>(
         "IntegrateAdaptive2D", config,
         [&](AdaptiveResult2D& result) {
-            auto r = IntegrateAdaptive2DCore(f, x1, x2, y1, y2, tolerance, max_depth, max_evals);
-            IntegrationDetail::Adopt(result, r, "IntegrateAdaptive2D");
-            result.cells_subdivided = r.cells_subdivided;
-            result.max_depth_reached = r.max_depth_reached;
+            RunAdaptive2D(f, x1, x2, y1, y2, tolerance, tolerance, max_depth, max_evals, GKRule::GK15, result, config.check_finite);
         });
 }
 
@@ -447,10 +410,8 @@ static AdaptiveResult2D IntegrateAdaptive2DDetailed(
     return IntegrationDetail::ExecuteIntegrationDetailed<AdaptiveResult2D>(
         "IntegrateAdaptive2D", config,
         [&](AdaptiveResult2D& result) {
-            auto r = IntegrateAdaptive2DCore(f, x1, x2, y1, y2, adaptive_config);
-            IntegrationDetail::Adopt(result, r, "IntegrateAdaptive2D");
-            result.cells_subdivided = r.cells_subdivided;
-            result.max_depth_reached = r.max_depth_reached;
+            RunAdaptive2D(f, x1, x2, y1, y2, adaptive_config.tol_abs, adaptive_config.tol_rel, adaptive_config.max_depth,
+                adaptive_config.max_evaluations, adaptive_config.rule, result, config.check_finite);
         });
 }
 

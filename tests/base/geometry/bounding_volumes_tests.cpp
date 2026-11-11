@@ -40,7 +40,7 @@ namespace MML::Tests::Base::BoundingVolumesTests
 		
 		// Volume = (4/3) * π * r³ = (4/3) * π * 125
 		Real expected = (static_cast<MML::Real>(4.0) / static_cast<MML::Real>(3.0)) * Constants::PI * static_cast<MML::Real>(125.0);
-		REQUIRE_THAT(sphere.Volume() , RealApprox(expected));
+		REQUIRE_THAT(sphere.Volume(), RealApprox(expected).epsilon(TOL(Tolerance::Standard, Real(6) * Precision::Eps)));
 	}
 
 	TEST_CASE("BoundingSphere3D::Contains", "[BoundingSphere3D]") {

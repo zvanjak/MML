@@ -128,7 +128,7 @@ TEST_CASE("CubeWithTriangles3D::GetBoundingSphere", "[geometry][cubewithtriangle
         REQUIRE_THAT(bsphere.Center().Z() , RealApprox(0.0));
         
         // Radius = (a/2)*sqrt(3) = 3*sqrt(3)
-        Real expected_radius = 3.0 * std::sqrt(3.0);
+        Real expected_radius = MML::Real(3.0) * std::sqrt(MML::Real(3.0));
         REQUIRE_THAT(bsphere.Radius() , RealApprox(expected_radius));
     }
 
@@ -158,7 +158,7 @@ TEST_CASE("CubeWithTriangles3D::GetBoundingSphere", "[geometry][cubewithtriangle
         REQUIRE_THAT(bsphere.Center().Y() , RealApprox(20.0));
         REQUIRE_THAT(bsphere.Center().Z() , RealApprox(30.0));
         
-        Real expected_radius = 2.0 * std::sqrt(3.0);
+        Real expected_radius = MML::Real(2.0) * std::sqrt(MML::Real(3.0));
         REQUIRE_THAT(bsphere.Radius() , RealApprox(expected_radius));
     }
 }
@@ -235,9 +235,9 @@ TEST_CASE("CubeWithTriangles3D::IsInside", "[geometry][cubewithtriangles][inside
     SECTION("Points outside are not inside")
     {
         CubeWithTriangles3D cube(10.0);
-        REQUIRE(cube.IsInside(Pnt3Cart(5.1, 0.0, 0.0)) == false);
-        REQUIRE(cube.IsInside(Pnt3Cart(0.0, 5.1, 0.0)) == false);
-        REQUIRE(cube.IsInside(Pnt3Cart(0.0, 0.0, 5.1)) == false);
+        REQUIRE(cube.IsInside(Pnt3Cart(MML::Real(5.1), MML::Real(0.0), MML::Real(0.0))) == false);
+        REQUIRE(cube.IsInside(Pnt3Cart(MML::Real(0.0), MML::Real(5.1), MML::Real(0.0))) == false);
+        REQUIRE(cube.IsInside(Pnt3Cart(MML::Real(0.0), MML::Real(0.0), MML::Real(5.1))) == false);
         REQUIRE(cube.IsInside(Pnt3Cart(6.0, 6.0, 6.0)) == false);
     }
 
@@ -258,8 +258,8 @@ TEST_CASE("CubeWithTriangles3D::IsInside", "[geometry][cubewithtriangles][inside
         REQUIRE(cube.IsInside(Pnt3Cart(6.0, 16.0, 26.0)) == true);
         
         // Outside
-        REQUIRE(cube.IsInside(Pnt3Cart(14.1, 20.0, 30.0)) == false);
-        REQUIRE(cube.IsInside(Pnt3Cart(10.0, 24.1, 30.0)) == false);
+        REQUIRE(cube.IsInside(Pnt3Cart(MML::Real(14.1), MML::Real(20.0), MML::Real(30.0))) == false);
+        REQUIRE(cube.IsInside(Pnt3Cart(MML::Real(10.0), MML::Real(24.1), MML::Real(30.0))) == false);
     }
 }
 
@@ -294,11 +294,11 @@ TEST_CASE("BodyWithTriangleSurfaces derives geometry from a closed triangle mesh
     REQUIRE_THAT(center.Z(), RealApprox(5.0));
 
     const BoundingSphere3D sphere = cube.BodyWithTriangleSurfaces::getBoundingSphere();
-    REQUIRE_THAT(sphere.Radius(), RealApprox(std::sqrt(3.0)).epsilon(TOL(1e-9, 1e-6)).margin(TOL(1e-9, 1e-6)));
+    REQUIRE_THAT(sphere.Radius(), RealApprox(std::sqrt(MML::Real(3.0))).epsilon(TOL(1e-9, 1e-6)).margin(TOL(1e-9, 1e-6)));
 
     REQUIRE(cube.BodyWithTriangleSurfaces::IsInside(Pnt3Cart(3.0, 4.0, 5.0)));
     REQUIRE(cube.BodyWithTriangleSurfaces::IsInside(Pnt3Cart(4.0, 4.0, 5.0)));
-    REQUIRE_FALSE(cube.BodyWithTriangleSurfaces::IsInside(Pnt3Cart(4.1, 4.0, 5.0)));
+    REQUIRE_FALSE(cube.BodyWithTriangleSurfaces::IsInside(Pnt3Cart(MML::Real(4.1), MML::Real(4.0), MML::Real(5.0))));
 }
 
 } // namespace MML::Tests::Base::Geometry3DBodies::CubeWithTriangles3DTests

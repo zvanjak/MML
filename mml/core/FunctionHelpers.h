@@ -46,11 +46,11 @@ namespace MML
 
 		Real val = f(a);
 		Real coef1 = Derivation::NDer6(f, a);           // f'(a), 6th order accuracy
-		Real coef2 = Derivation::NSecDer4(f, a) / 2.0;  // f''(a)/2!, 4th order accuracy
+		Real coef2 = Derivation::NSecDer4(f, a) / MML::Real(2.0);  // f''(a)/2!, 4th order accuracy
 
 		// Convert from Taylor form to standard polynomial: p(x) = c0 + c1*x + c2*x²
 		ret[0] = val - coef1 * a + coef2 * POW2(a);
-		ret[1] = coef1 - 2.0 * coef2 * a;
+		ret[1] = coef1 - MML::Real(2.0) * coef2 * a;
 		ret[2] = coef2;
 
 		return ret;
@@ -67,13 +67,13 @@ namespace MML
 
 		Real val = f(a);
 		Real coef1 = Derivation::NDer6(f, a);            // f'(a), 6th order accuracy
-		Real coef2 = Derivation::NSecDer4(f, a) / 2.0;   // f''(a)/2!, 4th order accuracy
-		Real coef3 = Derivation::NThirdDer2(f, a) / 6.0; // f'''(a)/3!, 2nd order accuracy
+		Real coef2 = Derivation::NSecDer4(f, a) / MML::Real(2.0);   // f''(a)/2!, 4th order accuracy
+		Real coef3 = Derivation::NThirdDer2(f, a) / MML::Real(6.0); // f'''(a)/3!, 2nd order accuracy
 
 		// Convert from Taylor form to standard polynomial: p(x) = c0 + c1*x + c2*x² + c3*x³
-		ret[0] = val - coef1 * a + coef2 * POW2(a) - coef3 * pow(a, 3);
-		ret[1] = coef1 - 2.0 * coef2 * a + 3.0 * coef3 * POW2(a);
-		ret[2] = coef2 - 3.0 * coef3 * a;
+		ret[0] = val - coef1 * a + coef2 * POW2(a) - coef3 * POW3(a);
+		ret[1] = coef1 - MML::Real(2.0) * coef2 * a + MML::Real(3.0) * coef3 * POW2(a);
+		ret[2] = coef2 - MML::Real(3.0) * coef3 * a;
 		ret[3] = coef3;
 
 		return ret;

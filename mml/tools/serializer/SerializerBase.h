@@ -16,6 +16,8 @@
 #include <mml/tools/IOResult.h>
 #include <mml/tools/TextIOFormat.h>
 
+#include <algorithm>
+#include <cmath>
 #include <fstream>
 #include <iomanip>
 #include <ios>
@@ -24,6 +26,7 @@
 #include <cstddef>
 #include <map>
 #include <string>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
@@ -63,6 +66,69 @@ namespace MML
 		//===================================================================================
 		namespace detail
 		{
+			// Interpolate the fraction first: a finite interval need not have a representable span or step.
+			inline Real SampleCoordinate(Real first, Real last, int index, int count) {
+				if (index == 0) return first;
+				if (index == count - 1) return last;
+				return std::lerp(first, last, Real(index) / Real(count - 1));
+			}
+
+			inline IOResult ValidateFileName(const std::string& fileName) {
+				if (fileName.empty())
+					return IOResult{false, IOError::INVALID_PARAMETERS, "fileName cannot be empty"}.WithFile(fileName);
+				if (fileName.find('\0') != std::string::npos)
+					return IOResult{false, IOError::INVALID_PARAMETERS, "fileName cannot contain embedded NUL"}.WithFile(fileName);
+				return SerializeSuccess();
+			}
+
+			inline IOResult ValidateCollectionCount(std::size_t count, const char* name) {
+				if (count == 0 || count > static_cast<std::size_t>(std::numeric_limits<int>::max()))
+					return SerializeFailure(IOError::INVALID_PARAMETERS, std::string(name) + " count must be in [1, INT_MAX]");
+				return SerializeSuccess();
+			}
+
+			template<class Type>
+			IOResult ValidateCollection(const std::vector<Type>& values, const char* name) {
+				const auto result = ValidateCollectionCount(values.size(), name);
+				if (!result.success) return result;
+				if constexpr (std::is_pointer_v<Type>)
+					for (std::size_t i = 0; i < values.size(); ++i)
+						if (values[i] == nullptr)
+							return SerializeFailure(IOError::INVALID_PARAMETERS,
+								std::string(name) + " contains a null pointer at index " + std::to_string(i));
+				return SerializeSuccess();
+			}
+
+			template<class Type>
+			IOResult ValidateLabeledCollection(const std::vector<Type>& values, const std::vector<std::string>& legend, const char* name) {
+				const auto result = ValidateCollection(values, name);
+				if (!result.success) return result;
+				if (values.size() != legend.size())
+					return SerializeFailure(IOError::INVALID_PARAMETERS, std::string(name) + " and legend sizes must match");
+				return SerializeSuccess();
+			}
+
+			inline IOResult ValidateHeaderCollectionCount(int count, std::size_t size, const char* name) {
+				if (count < 0 || static_cast<std::size_t>(count) != size)
+					return SerializeFailure(IOError::INVALID_PARAMETERS, std::string(name) + " size must match the nonnegative header count");
+				return SerializeSuccess();
+			}
+
+			inline IOResult ValidateParticleCatalog(int numBalls, const std::vector<std::string>& colors, const std::vector<Real>& radii) {
+				auto validation = ValidateHeaderCollectionCount(numBalls, colors.size(), "ballColors");
+				if (!validation.success) return validation;
+				validation = ValidateHeaderCollectionCount(numBalls, radii.size(), "ballRadius");
+				if (!validation.success) return validation;
+				for (std::size_t i = 0; i < colors.size(); ++i) {
+					const auto& color = colors[i];
+					if (color.empty() || std::any_of(color.begin(), color.end(),
+						[](unsigned char character) { return character <= ' ' || character == '\x7f'; }))
+						return SerializeFailure(IOError::INVALID_PARAMETERS, "ballColors[" + std::to_string(i) +
+							"] must be a nonempty token without whitespace or control characters");
+				}
+				return SerializeSuccess();
+			}
+
 			/// @brief Put a text stream into the one format MML files are defined in:
 			/// classic "C" locale (a '.' decimal point and no thousands grouping regardless of the
 			/// process locale) and round-trip precision for Real by default.
@@ -131,6 +197,8 @@ namespace MML
 		/// @return IOResult with success flag and error details
 		inline IOResult WriteRealMultiFuncHeader(std::ostream& out, std::string title, int numFuncs, std::vector<std::string> legend, Real x1,
 																						 Real x2, int numPoints) {
+			const auto validation = detail::ValidateHeaderCollectionCount(numFuncs, legend.size(), "legend");
+			if (!validation.success) return validation;
 			try
 			{
 				out << SerializeFormatType::MULTI_REAL_FUNCTION << std::endl;
@@ -157,8 +225,7 @@ namespace MML
 			{
 				out << type << std::endl;
 				out << "VERSION: " << SerializeFormatType::CURRENT_VERSION << std::endl;
-				if (!title.empty())
-					out << SanitizeHeaderLine(title) << std::endl;
+				out << SanitizeHeaderLine(title) << std::endl;
 				out << "t1: " << t1 << std::endl;
 				out << "t2: " << t2 << std::endl;
 				out << "NumPoints: " << numPoints << std::endl;
@@ -275,6 +342,8 @@ namespace MML
 		inline IOResult WriteParticleSimulation2DHeader(std::ostream& out, int numBalls, Real width, Real height,
 																										const std::vector<std::string>& ballColors, const std::vector<Real>& ballRadius,
 																										int numSteps) {
+			const auto validation = detail::ValidateParticleCatalog(numBalls, ballColors, ballRadius);
+			if (!validation.success) return validation;
 			try
 			{
 				out << SerializeFormatType::PARTICLE_SIMULATION_DATA_2D << std::endl;
@@ -297,6 +366,8 @@ namespace MML
 		inline IOResult WriteParticleSimulation3DHeader(std::ostream& out, int numBalls, Real width, Real height, Real depth,
 																										const std::vector<std::string>& ballColors, const std::vector<Real>& ballRadius,
 																										int numSteps) {
+			const auto validation = detail::ValidateParticleCatalog(numBalls, ballColors, ballRadius);
+			if (!validation.success) return validation;
 			try
 			{
 				out << SerializeFormatType::PARTICLE_SIMULATION_DATA_3D << std::endl;

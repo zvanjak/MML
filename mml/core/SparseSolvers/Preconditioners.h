@@ -23,6 +23,7 @@
 
 #include "IterativeSolverBase.h"
 #include <algorithm>
+#include <optional>
 #include <stdexcept>
 
 namespace MML::SparseSolvers {
@@ -60,7 +61,7 @@ public:
 				throw std::invalid_argument("JacobiPreconditioner input size does not match setup matrix");
 			}
 			z.resize(r.size());
-			for (size_t i = 0; i < r.size(); ++i) {
+			for (int i = 0; i < r.size(); ++i) {
 				z[i] = r[i] * invDiag_[i];
 			}
 		}
@@ -75,31 +76,38 @@ public:
 // 
 // Applied as: (D + ωL) z' = r, then (D + ωU) z = (ω(2-ω)) D z'
 // Good for elliptic PDEs, ω ∈ (0, 2), typically ω ≈ 1.0-1.5
-template<typename T>
+template<MMLReal T>
 class SSORPreconditioner : public Preconditioner<T> {
-    const SparseMatrixCSR<T>* A_ = nullptr;
+    std::optional<SparseMatrixCSR<T>> A_;
 		Vector<T> diag_;
 		T omega_ = T(1.0);  // Relaxation parameter (0 < omega < 2)
+
+    static void ValidateOmega(T omega) {
+        if (!std::isfinite(omega) || omega <= T(0) || omega >= T(2))
+            throw ArgumentError("SSORPreconditioner omega must be finite and strictly between zero and two");
+    }
     
 public:
-    explicit SSORPreconditioner(T omega = T(1.0)) : omega_(omega) {}
+    explicit SSORPreconditioner(T omega = T(1.0)) : omega_(omega) { ValidateOmega(omega); }
     
-    void setOmega(T omega) { omega_ = omega; }
+    void setOmega(T omega) { ValidateOmega(omega); omega_ = omega; }
     T omega() const { return omega_; }
     
     void setup(const SparseMatrixCSR<T>& A) override {
-        if (!A.IsSquare()) {
-            throw MatrixDimensionError("SSORPreconditioner::setup - matrix must be square", A.rows(), A.cols(), A.rows(), A.rows());
+        if (!A.IsSquare() || A.rows() == 0) {
+            throw MatrixDimensionError("SSORPreconditioner::setup - matrix must be nonempty and square", A.rows(), A.cols(), A.rows(), A.rows());
         }
-        A_ = &A;
-				diag_ = Vector<T>(A.getDiagonal());
-				for (const auto& diagonalValue : diag_) {
+        for (T value : A.values())
+            if (!std::isfinite(value)) throw ArgumentError("SSORPreconditioner::setup requires finite coefficients");
+        Vector<T> diagonal(A.getDiagonal());
+        for (const auto& diagonalValue : diagonal) {
             if (diagonalValue == T(0)) {
-                A_ = nullptr;
-                diag_.clear();
                 throw SingularMatrixError("SSORPreconditioner::setup - missing or zero diagonal");
             }
         }
+        SparseMatrixCSR<T> snapshot(A);
+        A_ = std::move(snapshot);
+        diag_ = std::move(diagonal);
     }
     
     // Apply M⁻¹r where M is the SSOR preconditioner
@@ -112,12 +120,14 @@ public:
     //   2. Solve (D/ω + U) z = D/ω * y  (backward substitution)
 		void apply(const Vector<T>& r, Vector<T>& z) const override {
 			const int n = static_cast<int>(r.size());
-			if (!A_) {
+			if (!A_ || diag_.empty()) {
 				throw std::logic_error("SSORPreconditioner::setup() must be called before apply()");
 			}
 			if (A_->rows() != n) {
 				throw std::invalid_argument("SSORPreconditioner input size does not match setup matrix");
 			}
+			for (T value : r)
+				if (!std::isfinite(value)) throw ArgumentError("SSORPreconditioner::apply requires finite residuals");
 			z.resize(n);
 
 			const auto& rowPtr = A_->rowPointers();
@@ -137,6 +147,7 @@ public:
 					}
 				}
 				y[i] = omega_ * sum / diag_[i];
+				if (!std::isfinite(y[i])) throw NumericalMethodError("SSORPreconditioner forward substitution is not representable");
 			}
 
 			// Backward sweep: (D/ω + U) z = D/ω * y
@@ -151,6 +162,7 @@ public:
 					}
 				}
 				z[i] = sum;
+				if (!std::isfinite(z[i])) throw NumericalMethodError("SSORPreconditioner backward substitution is not representable");
 			}
 
 			// Multiplying z by (2-ω) would recover the textbook scaling; omitted because a
@@ -310,30 +322,36 @@ public:
 
 // Divides the matrix into blocks and inverts each block independently.
 // Good for parallel implementations and multi-physics problems.
-template<typename T>
+template<MMLReal T>
 class BlockJacobiPreconditioner : public Preconditioner<T> {
 	std::vector<std::vector<Vector<T>>> blockInverses_; // Dense block inverses
 	std::vector<int> blockStarts_;											// Starting index of each block
 	int blockSize_ = 4;
+
+    static void ValidateBlockSize(int size) {
+        if (size <= 0) throw ArgumentError("BlockJacobiPreconditioner block size must be positive");
+    }
     
 public:
-    explicit BlockJacobiPreconditioner(int blockSize = 4) : blockSize_(blockSize) {}
+    explicit BlockJacobiPreconditioner(int blockSize = 4) : blockSize_(blockSize) { ValidateBlockSize(blockSize); }
     
-    void setBlockSize(int bs) { blockSize_ = bs; }
+    void setBlockSize(int bs) { ValidateBlockSize(bs); blockSize_ = bs; }
     
     void setup(const SparseMatrixCSR<T>& A) override {
         int n = A.rows();
-        int numBlocks = (n + blockSize_ - 1) / blockSize_;
-        
-        blockStarts_.resize(numBlocks + 1);
-        blockInverses_.resize(numBlocks);
+        if (!A.IsSquare() || n == 0)
+            throw MatrixDimensionError("BlockJacobiPreconditioner::setup requires a nonempty square matrix", n, A.cols(), n, n);
+        for (T value : A.values())
+            if (!std::isfinite(value)) throw ArgumentError("BlockJacobiPreconditioner::setup requires finite coefficients");
+        const int numBlocks = (n - 1) / blockSize_ + 1;
+        std::vector<int> starts(static_cast<size_t>(numBlocks) + 1);
+        std::vector<std::vector<Vector<T>>> inverses(numBlocks);
         
         for (int b = 0; b < numBlocks; ++b) {
             int start = b * blockSize_;
-            int end = std::min(start + blockSize_, n);
-            int size = end - start;
+            int size = std::min(blockSize_, n - start);
             
-            blockStarts_[b] = start;
+            starts[b] = start;
             
             // Extract dense block
 						std::vector<Vector<T>> block(size, Vector<T>(size, T(0)));
@@ -344,9 +362,11 @@ public:
             }
             
             // Compute inverse (simple Gaussian elimination for small blocks)
-            blockInverses_[b] = invertSmallMatrix(block);
+            inverses[b] = invertSmallMatrix(block);
         }
-        blockStarts_[numBlocks] = n;
+        starts[numBlocks] = n;
+        blockStarts_ = std::move(starts);
+        blockInverses_ = std::move(inverses);
     }
 
 		void apply(const Vector<T>& r, Vector<T>& z) const override {
@@ -355,6 +375,14 @@ public:
 			}
 			if (blockStarts_.back() != static_cast<int>(r.size())) {
 				throw std::invalid_argument("BlockJacobiPreconditioner input size does not match setup matrix");
+			}
+			for (T value : r)
+				if (!std::isfinite(value)) throw ArgumentError("BlockJacobiPreconditioner::apply requires finite residuals");
+			Vector<T> rhsSnapshot;
+			const Vector<T>* rhs = &r;
+			if (&r == &z) {
+				rhsSnapshot = r;
+				rhs = &rhsSnapshot;
 			}
 			z.resize(r.size());
 
@@ -368,8 +396,9 @@ public:
 				for (int i = 0; i < size; ++i) {
 					T sum = T(0);
 					for (int j = 0; j < size; ++j) {
-						sum += blockInverses_[b][i][j] * r[start + j];
+						sum += blockInverses_[b][i][j] * (*rhs)[start + j];
 					}
+					if (!std::isfinite(sum)) throw NumericalMethodError("BlockJacobiPreconditioner::apply result is not representable");
 					z[start + i] = sum;
 				}
 			}
@@ -380,6 +409,11 @@ private:
 	static std::vector<Vector<T>> invertSmallMatrix(std::vector<Vector<T>> A) {
 		int n = static_cast<int>(A.size());
 		std::vector<Vector<T>> inv(n, Vector<T>(n, T(0)));
+		T scale = T(0);
+		for (const auto& row : A)
+			for (T value : row)
+				scale = std::max(scale, std::abs(value));
+		if (scale == T(0)) throw SingularMatrixError("BlockJacobiPreconditioner::setup - singular block");
 
 		// Initialize inverse as identity
 		for (int i = 0; i < n; ++i)
@@ -398,21 +432,17 @@ private:
 			std::swap(inv[k], inv[maxRow]);
 
 			// Check for singular
-			if (std::abs(A[k][k]) < PrecisionValues<T>::RoundoffZeroThreshold) {
-				// Fallback to identity for this block
-				for (int i = 0; i < n; ++i) {
-					for (int j = 0; j < n; ++j) {
-						inv[i][j] = (i == j) ? T(1) : T(0);
-					}
-				}
-				return inv;
-			}
+			if (!std::isfinite(A[k][k])) throw NumericalMethodError("BlockJacobiPreconditioner factor is not representable");
+			if (A[k][k] == T(0) || std::abs(A[k][k]) / scale < PrecisionValues<T>::RoundoffZeroThreshold)
+				throw SingularMatrixError("BlockJacobiPreconditioner::setup - singular block");
 
 			// Scale pivot row
 			T pivot = A[k][k];
 			for (int j = 0; j < n; ++j) {
 				A[k][j] /= pivot;
 				inv[k][j] /= pivot;
+				if (!std::isfinite(A[k][j]) || !std::isfinite(inv[k][j]))
+					throw NumericalMethodError("BlockJacobiPreconditioner inverse is not representable");
 			}
 
 			// Eliminate column
@@ -422,6 +452,8 @@ private:
 					for (int j = 0; j < n; ++j) {
 						A[i][j] -= factor * A[k][j];
 						inv[i][j] -= factor * inv[k][j];
+						if (!std::isfinite(A[i][j]) || !std::isfinite(inv[i][j]))
+							throw NumericalMethodError("BlockJacobiPreconditioner elimination is not representable");
 					}
 				}
 			}

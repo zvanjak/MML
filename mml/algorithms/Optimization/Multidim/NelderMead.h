@@ -15,6 +15,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
 
 namespace MML::Optimization {
 
@@ -51,7 +52,7 @@ namespace MML::Optimization {
 
 	private:
 		Real _ftol;	  // Fractional tolerance for convergence
-		int _maxIter; // Maximum number of function evaluations (also caps outer iterations)
+		int _maxIter; // Evaluation threshold checked between simplex iterations; also caps iterations
 		int _nfunc;	  // Number of function evaluations
 		int _ndim;	  // Problem dimension
 		int _mpts;	  // Number of simplex points (ndim + 1)
@@ -63,9 +64,9 @@ namespace MML::Optimization {
 		/**
          * @brief Construct Nelder-Mead optimizer
          * @param ftol Fractional convergence tolerance (default 1e-8)
-         * @param maxIter Maximum number of function evaluations (default 5000).
-         *                Note: this budget counts function evaluations, not simplex
-         *                iterations; each iteration performs 1-2+ evaluations.
+         * @param maxIter Evaluation threshold checked between iterations (default 5000);
+         *                also caps simplex iterations. Initialization and a started
+         *                iteration finish their batches, so evaluations may exceed it.
          */
 		NelderMead(Real ftol = PrecisionValues<Real>::OptimizationGradientTolerance, int maxIter = 5000)
 			: _ftol(ftol)
@@ -80,6 +81,7 @@ namespace MML::Optimization {
 		int getMaxIter() const { return _maxIter; }
 		void setMaxIter(int maxIter) { _maxIter = maxIter; }
 
+		/// Attempted objective calls in the latest Minimize call, including throwing calls.
 		int getNumFuncEvals() const { return _nfunc; }
 
 		/**
@@ -108,6 +110,7 @@ namespace MML::Optimization {
          */
 		template<int N>
 		MultidimOptimizationResult Minimize(const IScalarFunction<N>& func, const VectorN<Real, N>& start, Real delta = 1.0) {
+			_nfunc = 0;
 			// Validate inputs
 			ValidateVectorFinite<N>(start, "NelderMead::Minimize starting point");
 			if (!std::isfinite(delta) || delta == 0.0)
@@ -133,6 +136,7 @@ namespace MML::Optimization {
          */
 		template<int N>
 		MultidimOptimizationResult Minimize(const IScalarFunction<N>& func, const VectorN<Real, N>& start, const Vector<Real>& deltas) {
+			_nfunc = 0;
 			if (deltas.size() != N)
 				throw MultidimOptimizationError("Deltas vector dimension mismatch");
 
@@ -177,6 +181,7 @@ namespace MML::Optimization {
          */
 		template<int N>
 		MultidimOptimizationResult Minimize(const IScalarFunction<N>& func, const Matrix<Real>& simplex) {
+			_nfunc = 0;
 			if (simplex.rows() != N + 1 || simplex.cols() != N)
 				throw MultidimOptimizationError("Simplex dimensions invalid: expected " + std::to_string(N + 1) + " x " +
 												std::to_string(N));
@@ -229,10 +234,9 @@ namespace MML::Optimization {
 			for (int i = 0; i < _mpts; ++i) {
 				for (int j = 0; j < _ndim; ++j)
 					x[j] = _p(i, j);
-				_y[i] = func(x);
+				_y[i] = EvaluateObjective(func, x);
 				ValidateMultidimFunctionValue(_y[i], "NelderMead initial evaluation");
 			}
-			_nfunc = _mpts;
 
 			// Compute initial psum (sum of vertex coordinates)
 			GetPsum(psum);
@@ -261,7 +265,7 @@ namespace MML::Optimization {
 				}
 
 				// Check convergence
-				Real rtol = 2.0 * std::abs(_y[ihi] - _y[ilo]) / (std::abs(_y[ihi]) + std::abs(_y[ilo]) + tiny);
+				Real rtol = MML::Real(2.0) * std::abs(_y[ihi] - _y[ilo]) / (std::abs(_y[ihi]) + std::abs(_y[ilo]) + tiny);
 
 				if (rtol < _ftol) {
 					// Converged - swap best to position 0
@@ -288,17 +292,14 @@ namespace MML::Optimization {
 
 				// Try reflection
 				Real ytry = Amotry<N>(psum, ihi, -ALPHA, func);
-				_nfunc++;
 
 				if (ytry <= _y[ilo]) {
 					// Reflection is better than best - try expansion
 					ytry = Amotry<N>(psum, ihi, GAMMA, func);
-					_nfunc++;
 				} else if (ytry >= _y[inhi]) {
 					// Reflection is worse than second-worst
 					Real ysave = _y[ihi];
 					ytry = Amotry<N>(psum, ihi, RHO, func);
-					_nfunc++;
 
 					if (ytry >= ysave) {
 						// Contraction failed - do shrink
@@ -308,10 +309,9 @@ namespace MML::Optimization {
 									_p(i, j) = SIGMA * (_p(i, j) + _p(ilo, j));
 									x[j] = _p(i, j);
 								}
-								_y[i] = func(x);
+								_y[i] = EvaluateObjective(func, x);
 							}
 						}
-						_nfunc += _ndim;
 						GetPsum(psum);
 					}
 				}
@@ -364,15 +364,23 @@ namespace MML::Optimization {
          * For fac = 0.5: contraction toward centroid
          */
 		template<int N>
+		Real EvaluateObjective(const IScalarFunction<N>& func, const VectorN<Real, N>& point) {
+			if (_nfunc == std::numeric_limits<int>::max())
+				throw MultidimOptimizationError("NelderMead: function evaluation counter overflow");
+			++_nfunc;
+			return func(point);
+		}
+
+		template<int N>
 		Real Amotry(Vector<Real>& psum, int ihi, Real fac, const IScalarFunction<N>& func) {
 			VectorN<Real, N> ptry;
-			Real fac1 = (1.0 - fac) / _ndim;
+			Real fac1 = (MML::Real(1.0) - fac) / _ndim;
 			Real fac2 = fac1 - fac;
 
 			for (int j = 0; j < _ndim; ++j)
 				ptry[j] = psum[j] * fac1 - _p(ihi, j) * fac2;
 
-			Real ytry = func(ptry);
+			Real ytry = EvaluateObjective(func, ptry);
 
 			if (ytry < _y[ihi]) {
 				// Accept the new point
@@ -485,7 +493,7 @@ namespace MML::Optimization {
 		result.function_evaluations = optimizer.getNumFuncEvals();
 		if (!result.converged) {
 			result.status = AlgorithmStatus::MaxIterationsExceeded;
-			result.error_message = "Nelder-Mead did not converge within " + std::to_string(config.max_iterations) + " iterations";
+			result.error_message = "Nelder-Mead did not converge within evaluation threshold/iteration cap " + std::to_string(config.max_iterations);
 		}
 		return result;
 	}
@@ -512,7 +520,7 @@ namespace MML::Optimization {
 		result.function_evaluations = optimizer.getNumFuncEvals();
 		if (!result.converged) {
 			result.status = AlgorithmStatus::MaxIterationsExceeded;
-			result.error_message = "Nelder-Mead did not converge within " + std::to_string(config.max_iterations) + " iterations";
+			result.error_message = "Nelder-Mead did not converge within evaluation threshold/iteration cap " + std::to_string(config.max_iterations);
 		}
 		return result;
 	}

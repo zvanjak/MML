@@ -267,7 +267,7 @@ TEST_CASE("Infinite Bound Intervals", "[intervals][infinite]") {
 	SECTION("NegInfToClosedInterval") {
 		NegInfToClosedInterval interval(static_cast<MML::Real>(5.0));
 		
-		REQUIRE(interval.contains(-1e100));  // Very negative
+		REQUIRE(interval.contains(-std::numeric_limits<Real>::max()));  // Very negative
 		REQUIRE(interval.contains(static_cast<MML::Real>(0.0)));
 		REQUIRE(interval.contains(static_cast<MML::Real>(4.999)));
 		REQUIRE(interval.contains(static_cast<MML::Real>(5.0)));     // Closed upper bound
@@ -277,7 +277,7 @@ TEST_CASE("Infinite Bound Intervals", "[intervals][infinite]") {
 	SECTION("NegInfToOpenInterval") {
 		NegInfToOpenInterval interval(static_cast<MML::Real>(5.0));
 		
-		REQUIRE(interval.contains(-1e100));
+		REQUIRE(interval.contains(-std::numeric_limits<Real>::max()));
 		REQUIRE(interval.contains(static_cast<MML::Real>(0.0)));
 		REQUIRE(interval.contains(static_cast<MML::Real>(4.999)));
 		REQUIRE_FALSE(interval.contains(static_cast<MML::Real>(5.0))); // Open upper bound
@@ -290,7 +290,7 @@ TEST_CASE("Infinite Bound Intervals", "[intervals][infinite]") {
 		REQUIRE(interval.contains(static_cast<MML::Real>(5.0)));      // Closed lower bound
 		REQUIRE(interval.contains(static_cast<MML::Real>(5.001)));
 		REQUIRE(interval.contains(static_cast<MML::Real>(100.0)));
-		REQUIRE(interval.contains(1e100));    // Very positive
+		REQUIRE(interval.contains(std::numeric_limits<Real>::max()));    // Very positive
 		REQUIRE_FALSE(interval.contains(static_cast<MML::Real>(4.999)));
 	}
 	
@@ -300,16 +300,16 @@ TEST_CASE("Infinite Bound Intervals", "[intervals][infinite]") {
 		REQUIRE_FALSE(interval.contains(static_cast<MML::Real>(5.0))); // Open lower bound
 		REQUIRE(interval.contains(static_cast<MML::Real>(5.001)));
 		REQUIRE(interval.contains(static_cast<MML::Real>(100.0)));
-		REQUIRE(interval.contains(1e100));
+		REQUIRE(interval.contains(std::numeric_limits<Real>::max()));
 		REQUIRE_FALSE(interval.contains(static_cast<MML::Real>(4.999)));
 	}
 	
 	SECTION("CompleteRInterval") {
 		CompleteRInterval interval;
 		
-		REQUIRE(interval.contains(-1e100));
+		REQUIRE(interval.contains(-std::numeric_limits<Real>::max()));
 		REQUIRE(interval.contains(static_cast<MML::Real>(0.0)));
-		REQUIRE(interval.contains(1e100));
+		REQUIRE(interval.contains(std::numeric_limits<Real>::max()));
 		REQUIRE(interval.contains(-static_cast<MML::Real>(0.000001)));
 		REQUIRE(interval.contains(static_cast<MML::Real>(0.000001)));
 	}
@@ -358,7 +358,9 @@ TEST_CASE("GetEquidistantCovering - Closed Interval", "[intervals][covering][clo
 		// Verify equidistant spacing
 		Real delta = points[1] - points[0];
 		for (size_t i = 1; i < points.size() - 1; i++) {
-			REQUIRE_THAT(points[i+1] - points[i], RealApprox(delta).epsilon(TOL(1e-9, 1e-5)));
+			const Real roundingBudget = std::numeric_limits<Real>::epsilon() *
+				(std::abs(points[i+1]) + std::abs(points[i]));
+			REQUIRE_THAT(points[i+1] - points[i], RealApprox(delta).epsilon(TOL(1e-9, 1e-5)).margin(roundingBudget));
 		}
 	}
 }
@@ -880,11 +882,12 @@ TEST_CASE("Edge Cases - Precision", "[intervals][edge][precision]") {
 	}
 	
 	SECTION("Very Large Interval") {
-		ClosedInterval huge(-1e100, 1e100);
+		const Real bound = std::numeric_limits<Real>::max() / Real(4);
+		ClosedInterval huge(-bound, bound);
 		
 		REQUIRE(huge.contains(static_cast<MML::Real>(0.0)));
-		REQUIRE(huge.contains(-5e99));
-		REQUIRE(huge.contains(5e99));
+		REQUIRE(huge.contains(-bound / Real(2)));
+		REQUIRE(huge.contains(bound / Real(2)));
 	}
 }
 
@@ -951,19 +954,24 @@ TEST_CASE("Real-World Use Cases", "[intervals][practical]") {
 	}
 	
 	SECTION("Root Finding Search Interval") {
-		ClosedInterval searchSpace(-static_cast<MML::Real>(10.0), static_cast<MML::Real>(10.0));
+		// Dyadic sampling fractions keep the unit-spacing oracle exact, including with FMA.
+		ClosedInterval searchSpace(-static_cast<MML::Real>(8.0), static_cast<MML::Real>(8.0));
 		std::vector<Real> samplePoints;
 		
-		searchSpace.getEquidistantCovering(21, samplePoints);
+		searchSpace.getEquidistantCovering(17, samplePoints);
 		
-		REQUIRE(samplePoints.size() == 21);
-		REQUIRE_THAT(samplePoints[0], RealApprox(-static_cast<MML::Real>(10.0)));
-		REQUIRE_THAT(samplePoints[10], RealApprox(static_cast<MML::Real>(0.0)));
-		REQUIRE_THAT(samplePoints[20], RealApprox(static_cast<MML::Real>(10.0)));
+		REQUIRE(samplePoints.size() == 17);
+		REQUIRE_THAT(samplePoints[0], RealApprox(-static_cast<MML::Real>(8.0)));
+		REQUIRE_THAT(samplePoints[8], RealApprox(static_cast<MML::Real>(0.0)));
+		REQUIRE_THAT(samplePoints[16], RealApprox(static_cast<MML::Real>(8.0)));
+		for (size_t i = 0; i < samplePoints.size(); ++i)
+			REQUIRE(samplePoints[i] == Real(static_cast<int>(i) - 8));
 		
 		// Verify uniform spacing of static_cast<MML::Real>(1.0)
 		for (size_t i = 0; i < samplePoints.size() - 1; i++) {
-			REQUIRE_THAT(samplePoints[i+1] - samplePoints[i], RealApprox(static_cast<MML::Real>(1.0)));
+			const Real roundingBudget = std::numeric_limits<Real>::epsilon() *
+				(std::abs(samplePoints[i+1]) + std::abs(samplePoints[i]));
+			REQUIRE_THAT(samplePoints[i+1] - samplePoints[i], RealApprox(static_cast<MML::Real>(1.0)).margin(roundingBudget));
 		}
 	}
 }

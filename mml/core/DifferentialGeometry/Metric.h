@@ -12,6 +12,7 @@
 #define MML_DIFFERENTIAL_GEOMETRY_METRIC_H
 
 #include <mml/MMLBase.h>
+#include <mml/MMLSingularityHandling.h>
 #include <mml/algorithms/MatrixAlg/MatrixInversion.h>
 
 #include <mml/base/Matrix/MatrixNM.h>
@@ -25,6 +26,10 @@ namespace MML
 	{
 		MatrixNM<Real, N, N> _covariantComponents;
 		MatrixNM<Real, N, N> _contravariantComponents;
+		static MatrixNM<Real, N, N> ValidatedInverse(const MatrixNM<Real, N, N>& components) {
+			Singularity::RequireSymmetricMatrix(components, "Typed metric");
+			return MatrixAlg::Inverse(components);
+		}
 
 	public:
 		using value_type = Real;
@@ -34,7 +39,7 @@ namespace MML
 		Metric() : Metric(MatrixNM<Real, N, N>(static_cast<MML::Real>(1.0))) { }
 		explicit Metric(const MatrixNM<Real, N, N>& covariantComponents)
 			: _covariantComponents(covariantComponents),
-			  _contravariantComponents(MatrixAlg::Inverse(covariantComponents))
+			  _contravariantComponents(ValidatedInverse(covariantComponents))
 		{
 		}
 

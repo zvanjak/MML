@@ -196,7 +196,7 @@ namespace MML::Tests::Core::IntegrationTests
 
 		// Analytical integral: x + x^2/2 + x^3/3 + x^4/4 + x^5/5 + x^6/6
 		auto exactIntegral = [](Real x) -> Real {
-			return x + x * x / static_cast<MML::Real>(2.0) + std::pow(x, 3) / static_cast<MML::Real>(3.0) + std::pow(x, 4) / static_cast<MML::Real>(4.0) + std::pow(x, 5) / static_cast<MML::Real>(5.0) + std::pow(x, 6) / static_cast<MML::Real>(6.0);
+			return x + x * x / static_cast<MML::Real>(2.0) + std::pow(x, MML::Real(3)) / static_cast<MML::Real>(3.0) + std::pow(x, MML::Real(4)) / static_cast<MML::Real>(4.0) + std::pow(x, MML::Real(5)) / static_cast<MML::Real>(5.0) + std::pow(x, MML::Real(6)) / static_cast<MML::Real>(6.0);
 		};
 
 		Real a = static_cast<MML::Real>(0.0), b = static_cast<MML::Real>(2.0);
@@ -279,17 +279,17 @@ namespace MML::Tests::Core::IntegrationTests
 		// We start slightly away from 0 to avoid numerical issues. Plain trapezoid cannot meet
 		// 1e-5 next to a singularity in 20 halvings (the plain call throws ConvergenceError);
 		// the Detailed result still carries the best estimate, and the singular-aware rule converges.
-		auto trapNearSingular = IntegrateTrapDetailed(invSqrt, 1e-6, static_cast<MML::Real>(1.0), static_cast<MML::Real>(1e-5));
+		auto trapNearSingular = IntegrateTrapDetailed(invSqrt, MML::Real(1e-6), static_cast<MML::Real>(1.0), static_cast<MML::Real>(1e-5));
 		REQUIRE_FALSE(trapNearSingular.converged);
 		REQUIRE_THAT(trapNearSingular.value, WithinAbs(static_cast<MML::Real>(2.0), static_cast<MML::Real>(2e-3)));
-		REQUIRE_THROWS_AS(IntegrateTrap(invSqrt, 1e-6, static_cast<MML::Real>(1.0), static_cast<MML::Real>(1e-5)), ConvergenceError);
+		REQUIRE_THROWS_AS(IntegrateTrap(invSqrt, MML::Real(1e-6), static_cast<MML::Real>(1.0), static_cast<MML::Real>(1e-5)), ConvergenceError);
 		REQUIRE_THAT(IntegrateLowerSingular(invSqrt, static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(1e-8)), WithinAbs(static_cast<MML::Real>(2.0), TOL(1e-6, 1e-3)));
 
 		// f(x) = ln(x) on (0, 1] - integrable with x*ln(x) - x
 		RealFunctionFromStdFunc logFunc( [](Real x) -> Real { return std::log(x); } );
 
 		// Analytical result: [x*ln(x) - x] from epsilon to 1 = -1
-		auto trapLog = IntegrateTrapDetailed(logFunc, 1e-6, static_cast<MML::Real>(1.0), static_cast<MML::Real>(1e-5));
+		auto trapLog = IntegrateTrapDetailed(logFunc, MML::Real(1e-6), static_cast<MML::Real>(1.0), static_cast<MML::Real>(1e-5));
 		REQUIRE_THAT(trapLog.value, WithinAbs(-static_cast<MML::Real>(1.0), static_cast<MML::Real>(1e-2)));
 	}
 
@@ -324,18 +324,22 @@ namespace MML::Tests::Core::IntegrationTests
 		Real backward = IntegrateTrap(simpleFunc, static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0));
 		REQUIRE_THAT(forward, WithinAbs(-backward, TOL(1e-10, 1e-5)));
 
-		// Very small interval. A relative precision of 1e-12 is beyond what 20 trapezoid halvings
-		// can deliver (error ~ 1/N^2 ~ 4e-12 at N = 2^19), so the plain call would throw; take the
-		// Detailed result, which carries the best value and says it did not converge.
-		auto tiny = IntegrateTrapDetailed(simpleFunc, static_cast<MML::Real>(0.0), TOL(1e-8, 1e-4), TOL(1e-12, 1e-5));
-		REQUIRE_FALSE(tiny.converged);
-		REQUIRE(tiny.status == AlgorithmStatus::MaxIterationsExceeded);
-		REQUIRE_THROWS_AS(IntegrateTrap(simpleFunc, static_cast<MML::Real>(0.0), TOL(1e-8, 1e-4), TOL(1e-12, 1e-5)), ConvergenceError);
-		// For x^2, integral from 0 to h ≈ h^3/3
-		REQUIRE_THAT(tiny.value, WithinAbs(std::pow(TOL(1e-8, 1e-4), static_cast<MML::Real>(3)) / static_cast<MML::Real>(3.0), TOL(1e-25, 1e-11)));
-		// Romberg reaches it comfortably
-		REQUIRE_THAT(IntegrateRomberg(simpleFunc, static_cast<MML::Real>(0.0), TOL(1e-8, 1e-4), TOL(1e-12, 1e-5)),
-		             WithinAbs(std::pow(TOL(1e-8, 1e-4), static_cast<MML::Real>(3)) / static_cast<MML::Real>(3.0), TOL(1e-25, 1e-11)));
+		const Real h = TOL(1e-8, 1e-4), tolerance = TOL(1e-12, 1e-5);
+		auto tiny = IntegrateTrapDetailed(simpleFunc, Real(0), h, tolerance);
+		if constexpr (std::is_same_v<Real, float>) {
+			REQUIRE(tiny.converged);
+			REQUIRE(tiny.status == AlgorithmStatus::Success);
+			REQUIRE(IntegrateTrap(simpleFunc, Real(0), h, tolerance) == tiny.value);
+		} else {
+			// Twenty trapezoid halvings cannot deliver the double request of 1e-12.
+			REQUIRE_FALSE(tiny.converged);
+			REQUIRE(tiny.status == AlgorithmStatus::MaxIterationsExceeded);
+			REQUIRE_THROWS_AS(IntegrateTrap(simpleFunc, Real(0), h, tolerance), ConvergenceError);
+		}
+		const Real exact = h * h * h / 3;
+		REQUIRE_THAT(tiny.value, WithinAbs(exact, TOL(1e-25, Real(4) * tolerance * std::abs(exact))));
+		REQUIRE_THAT(IntegrateRomberg(simpleFunc, Real(0), h, tolerance),
+		             WithinAbs(exact, TOL(1e-25, Real(4) * tolerance * std::abs(exact))));
 	}
 
 	TEST_CASE("Integration::Precision_limits", "[precision]")
@@ -813,13 +817,13 @@ namespace MML::Tests::Core::IntegrationTests
 		// ∫[0,1] x^4 dx = 1/5 = static_cast<MML::Real>(0.2)
 		Real integral = 0;
 		for (int i = 0; i < 5; i++)
-			integral += w[i] * std::pow(x[i], 4);
+			integral += w[i] * std::pow(x[i], MML::Real(4));
 		REQUIRE_THAT(integral, WithinAbs(static_cast<MML::Real>(0.2), TOL(1e-14, 1e-5)));
 		
 		// ∫[0,1] x^8 dx = 1/9
 		integral = 0;
 		for (int i = 0; i < 5; i++)
-			integral += w[i] * std::pow(x[i], 8);
+			integral += w[i] * std::pow(x[i], MML::Real(8));
 		REQUIRE_THAT(integral, WithinAbs(static_cast<MML::Real>(1.0)/static_cast<MML::Real>(9.0), TOL(1e-14, 1e-5)));
 	}
 	
@@ -969,7 +973,7 @@ namespace MML::Tests::Core::IntegrationTests
 		
 		for (int k = 0; k < n; k++) {
 			Real angle = (k + static_cast<MML::Real>(1.0)) * Constants::PI / (n + static_cast<MML::Real>(1.0));
-			Real expected = Constants::PI / (n + static_cast<MML::Real>(1.0)) * std::pow(std::sin(angle), 2);
+			Real expected = Constants::PI / (n + static_cast<MML::Real>(1.0)) * std::pow(std::sin(angle), MML::Real(2));
 			REQUIRE_THAT(w[k], WithinAbs(expected, TOL(1e-14, 1e-5)));
 		}
 	}
@@ -1548,7 +1552,6 @@ namespace MML::Tests::Core::IntegrationTests
 		TEST_PRECISION_INFO();
 		// Verify that runtime and template versions give identical results
 		RealFunctionFromStdFunc f([](Real x) -> Real { return std::cos(x) * std::cos(x); });
-		Real expected = (Constants::PI + std::sin(static_cast<MML::Real>(2.0) * Constants::PI)) / static_cast<MML::Real>(4.0);  // ∫[0,π] cos²(x) dx = π/2
 		
 		auto runtime_trap = IntegrateDetailed(f, static_cast<MML::Real>(0.0), Constants::PI, TRAP);
 		auto template_trap = IntegrateDetailed<TRAP>(f, static_cast<MML::Real>(0.0), Constants::PI);
@@ -1878,4 +1881,3 @@ namespace MML::Tests::Core::IntegrationTests
 		REQUIRE_THAT(result.value, WithinAbs(Constants::PI / static_cast<MML::Real>(2.0), TOL(1e-12, 1e-5)));
 	}
 }
-

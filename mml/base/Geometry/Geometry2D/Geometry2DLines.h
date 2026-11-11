@@ -279,8 +279,8 @@ namespace MML
 		/// @brief Gets the midpoint of the segment
 		Point2Cartesian Midpoint() const
 		{
-			return Point2Cartesian((_point1.X() + _point2.X()) / 2.0,
-			                      (_point1.Y() + _point2.Y()) / 2.0);
+			return Point2Cartesian((_point1.X() + _point2.X()) / MML::Real(2.0),
+			                      (_point1.Y() + _point2.Y()) / MML::Real(2.0));
 		}
 
 		/// @brief Calculates the distance from a point to the segment
@@ -288,36 +288,36 @@ namespace MML
 		/// @return Shortest distance from p to any point on the segment
 		Real DistanceToPoint(const Point2Cartesian& p) const
 		{
-			Vector2Cartesian v(_point1, _point2);
-			Vector2Cartesian w(_point1, p);
-			
-			Real lenSq = v.NormL2() * v.NormL2();
-			if (lenSq < Precision::GeometryEpsilon)
-				return _point1.Dist(p); // Degenerate segment
-			
-			// Project w onto v
-			Real t = (w.X() * v.X() + w.Y() * v.Y()) / lenSq;
-			t = std::clamp(t, static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0)); // Clamp to segment
-			
-			Point2Cartesian projection = _point1 + v * t;
-			return p.Dist(projection);
+			const auto projection = ClosestPoint(p);
+			const Real distance = std::hypot(p.X() - projection.X(), p.Y() - projection.Y());
+			if (!std::isfinite(distance))
+				throw GeometryError("SegmentLine2D::DistanceToPoint - distance is not representable");
+			return distance;
 		}
 
 		/// @brief Finds the closest point on the segment to a given point
 		/// @param p The point
 		/// @return Point on segment closest to p
+		/// @details Only identical endpoints define a degenerate segment.
+		/// @throws GeometryError if coordinates or required differences are nonfinite
 		Point2Cartesian ClosestPoint(const Point2Cartesian& p) const
 		{
-			Vector2Cartesian v(_point1, _point2);
-			Vector2Cartesian w(_point1, p);
-			
-			Real lenSq = v.NormL2() * v.NormL2();
-			if (lenSq < Precision::GeometryEpsilon)
-				return _point1; // Degenerate segment
-			
-			Real t = (w.X() * v.X() + w.Y() * v.Y()) / lenSq;
+			const Vector2Cartesian v(_point1, _point2), w(_point1, p);
+			if (!std::isfinite(v.X()) || !std::isfinite(v.Y()) || !std::isfinite(w.X()) || !std::isfinite(w.Y()))
+				throw GeometryError("SegmentLine2D::ClosestPoint - finite coordinates and differences required");
+			const Real scale = std::max(std::abs(v.X()), std::abs(v.Y()));
+			if (scale == 0)
+				return _point1;
+
+			// Scale before squaring; weight before summing to retain tiny and large segments.
+			const Real x = v.X() / scale, y = v.Y() / scale;
+			const Real denominator = x * x + y * y;
+			Real t = (w.X() * (x / denominator) + w.Y() * (y / denominator)) / scale;
+			if (std::isnan(t))
+				throw GeometryError("SegmentLine2D::ClosestPoint - projection is not representable");
 			t = std::clamp(t, static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0));
-			
+			if (t == 0) return _point1;
+			if (t == 1) return _point2;
 			return _point1 + v * t;
 		}
 
@@ -349,6 +349,18 @@ namespace MML
 			const Point2Cartesian& q1 = _point2;
 			const Point2Cartesian& p2 = other._point1;
 			const Point2Cartesian& q2 = other._point2;
+
+			const bool firstIsPoint = p1.X() == q1.X() && p1.Y() == q1.Y();
+			const bool secondIsPoint = p2.X() == q2.X() && p2.Y() == q2.Y();
+			if (firstIsPoint || secondIsPoint) {
+				const auto& point = firstIsPoint ? p1 : p2;
+				const auto& segment = firstIsPoint ? other : *this;
+				if (segment.DistanceToPoint(point) <= EPSILON) {
+					result.type = SegmentIntersectionType::Point;
+					result.point = point;
+				}
+				return result;
+			}
 
 			Real d1 = Cross(p2, q2, p1);
 			Real d2 = Cross(p2, q2, q1);
@@ -391,14 +403,10 @@ namespace MML
 
 					if (candidates.size() >= 2) {
 						std::sort(candidates.begin(), candidates.end(), 
-							[&p1, &q1, EPSILON](const Point2Cartesian& a, const Point2Cartesian& b) {
-								Real ta = (std::abs(q1.X() - p1.X()) > EPSILON) 
-									? (a.X() - p1.X()) / (q1.X() - p1.X())
-									: (a.Y() - p1.Y()) / (q1.Y() - p1.Y());
-								Real tb = (std::abs(q1.X() - p1.X()) > EPSILON) 
-									? (b.X() - p1.X()) / (q1.X() - p1.X())
-									: (b.Y() - p1.Y()) / (q1.Y() - p1.Y());
-								return ta < tb;
+							[&p1, &q1](const Point2Cartesian& a, const Point2Cartesian& b) {
+								if (std::abs(q1.X() - p1.X()) >= std::abs(q1.Y() - p1.Y()))
+									return q1.X() > p1.X() ? a.X() < b.X() : a.X() > b.X();
+								return q1.Y() > p1.Y() ? a.Y() < b.Y() : a.Y() > b.Y();
 							});
 
 						result.overlapStart = candidates.front();

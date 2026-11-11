@@ -14,11 +14,75 @@
 
 #include <algorithm>
 #include <cmath>
+#include <initializer_list>
+#include <limits>
 
 #include <mml/MMLBase.h>
 
 
 namespace MML {
+	namespace detail {
+		inline void ValidateGeometryCoordinates(std::initializer_list<Real> coordinates, const char* context) {
+			for (Real coordinate : coordinates)
+				if (!std::isfinite(coordinate))
+					throw GeometryError(std::string(context) + " - finite coordinates required");
+		}
+
+		inline Real CheckedGeometryDistance(Real distance, const char* context, bool nonzero = false) {
+			if (!std::isfinite(distance) || (distance == 0 && nonzero))
+				throw GeometryError(std::string(context) + " - distance is not representable");
+			return distance;
+		}
+
+		inline Real GeometryAngleDifferenceError(Real first, Real second, Real difference) {
+			// Knuth/Shewchuk TwoDiff: retain the low part of a finite angular subtraction.
+			const Real virtualSecond = first - difference;
+			return (first - (difference + virtualSecond)) + (virtualSecond - second);
+		}
+
+		inline Real GeometrySineChord(Real first, Real second) {
+			const Real difference = first - second;
+			if (std::abs(difference) >= 3 * Constants::PI / 2 && std::abs(difference) <= 5 * Constants::PI / 2) {
+				const Real residual = (difference - std::copysign(2 * Constants::PI, difference))
+					+ GeometryAngleDifferenceError(first, second, difference);
+				return -GeometrySineChord(residual, 0);
+			}
+			// Retain subnormal angular differences before multiplying by a large radius.
+			const Real underflow = std::numeric_limits<Real>::min();
+			if (std::abs(difference) < underflow) return difference;
+			const Real half = std::isfinite(difference) ? difference / 2 : first / 2 - second / 2;
+			return 2 * std::sin(half);
+		}
+
+		inline Real GeometryCosineChord(Real first, Real second) {
+			const Real difference = first - second;
+			if (std::abs(difference) >= Constants::PI / 2 && std::abs(difference) <= 3 * Constants::PI / 2) {
+				const Real residual = (difference - std::copysign(Constants::PI, difference))
+					+ GeometryAngleDifferenceError(first, second, difference);
+				return (difference < 0 ? 1 : -1) * GeometrySineChord(residual, 0);
+			}
+			const Real half = std::isfinite(difference) ? difference / 2 : first / 2 - second / 2;
+			return 2 * std::cos(half);
+		}
+
+		inline Real GeometryAngularComponent(Real firstRadius, Real secondRadius, Real chord) {
+			return (std::sqrt(std::max(firstRadius, secondRadius)) * chord)
+				* std::sqrt(std::min(firstRadius, secondRadius));
+		}
+
+		inline Real GeometryRadialDistance(Real radius1, Real angle1, Real radius2, Real angle2,
+			Real height, const char* context) {
+			ValidateGeometryCoordinates({radius1, angle1, radius2, angle2}, context);
+			const Real first = std::abs(radius1), second = std::abs(radius2);
+			const Real chord = std::signbit(radius1) != std::signbit(radius2)
+				? GeometryCosineChord(angle1, angle2) : GeometrySineChord(angle1, angle2);
+			const Real radial = first - second;
+			const Real angular = GeometryAngularComponent(first, second, chord);
+			return CheckedGeometryDistance(std::hypot(radial, angular, height), context,
+				height != 0 || radial != 0 || (first != 0 && second != 0 && chord != 0));
+		}
+	}
+
 	/// @brief 2D point in Cartesian coordinates (x, y)
 	/// @details Represents a point in 2D Euclidean space using Cartesian coordinates.
 	///          Supports basic arithmetic operations (addition, subtraction, scalar multiplication/division),
@@ -51,7 +115,10 @@ namespace MML {
 		/// @brief Computes Euclidean distance to another point
 		/// @param b The other point
 		/// @return Distance between this point and b
-		Real Dist(const Point2Cartesian& b) const { return sqrt(POW2(b.X() - X()) + POW2(b.Y() - Y())); }
+		Real Dist(const Point2Cartesian& b) const {
+			detail::ValidateGeometryCoordinates({X(), Y(), b.X(), b.Y()}, "Point2Cartesian::Dist");
+			return detail::CheckedGeometryDistance(std::hypot(b.X() - X(), b.Y() - Y()), "Point2Cartesian::Dist");
+		}
 
 		/// @brief Exact equality comparison
 		bool operator==(const Point2Cartesian& b) const { return (X() == b.X()) && (Y() == b.Y()); }
@@ -134,7 +201,7 @@ namespace MML {
 		/// @brief Constructs a polar point from a Cartesian point
 		/// @param pnt The Cartesian point to convert
 		Point2Polar(const Point2Cartesian& pnt) {
-			_r = sqrt(POW2(pnt.X()) + POW2(pnt.Y()));
+			_r = Point2Cartesian().Dist(pnt);
 			_phi = atan2(pnt.Y(), pnt.X());
 		}
 
@@ -152,10 +219,12 @@ namespace MML {
 		/// @return Equivalent Point2Cartesian (x = r*cos(φ), y = r*sin(φ))
 		Point2Cartesian TransfToCart() const { return Point2Cartesian(R() * cos(Phi()), R() * sin(Phi())); }
 
-		/// @brief Computes distance to another polar point using law of cosines
+		/// @brief Computes distance using radial differences and a scaled angular chord
 		/// @param b The other point
 		/// @return Euclidean distance between the two points
-		Real Dist(const Point2Polar& b) const { return sqrt(R() * R() + b.R() * b.R() - 2 * R() * b.R() * cos(b.Phi() - Phi())); }
+		Real Dist(const Point2Polar& b) const {
+			return detail::GeometryRadialDistance(R(), Phi(), b.R(), b.Phi(), 0, "Point2Polar::Dist");
+		}
 	};
 
 	/// @brief 3D point in Cartesian coordinates (x, y, z)
@@ -197,7 +266,11 @@ namespace MML {
 		/// @brief Computes Euclidean distance to another point
 		/// @param b The other point
 		/// @return Distance between this point and b
-		Real Dist(const Point3Cartesian& b) const { return sqrt(POW2(b.X() - X()) + POW2(b.Y() - Y()) + POW2(b.Z() - Z())); }
+		Real Dist(const Point3Cartesian& b) const {
+			detail::ValidateGeometryCoordinates({X(), Y(), Z(), b.X(), b.Y(), b.Z()}, "Point3Cartesian::Dist");
+			return detail::CheckedGeometryDistance(std::hypot(b.X() - X(), b.Y() - Y(), b.Z() - Z()),
+				"Point3Cartesian::Dist");
+		}
 
 		/// @brief Exact equality comparison
 		bool operator==(const Point3Cartesian& b) const { return (X() == b.X()) && (Y() == b.Y()) && (Z() == b.Z()); }
@@ -293,8 +366,8 @@ namespace MML {
 		/// @brief Constructs a spherical point from a Cartesian point
 		/// @param pnt The Cartesian point to convert
 		Point3Spherical(const Point3Cartesian& pnt) {
-			_r = sqrt(POW2(pnt.X()) + POW2(pnt.Y()) + POW2(pnt.Z()));
-			_theta = atan2(sqrt(POW2(pnt.X()) + POW2(pnt.Y())), pnt.Z());
+			_r = Point3Cartesian().Dist(pnt);
+			_theta = atan2(std::hypot(pnt.X(), pnt.Y()), pnt.Z());
 			_phi = atan2(pnt.Y(), pnt.X());
 		}
 
@@ -316,11 +389,31 @@ namespace MML {
 
 		/// @brief Computes distance to another spherical point
 		/// @param b The other point
-		/// @return Euclidean distance between the two points (using spherical law of cosines)
+		/// @return Euclidean distance from radial and half-angle chord components
 		Real Dist(const Point3Spherical& b) const {
-			Real cosGamma = cos(Theta()) * cos(b.Theta()) + sin(Theta()) * sin(b.Theta()) * cos(b.Phi() - Phi());
-			cosGamma = std::clamp(cosGamma, (Real)-1.0, (Real)1.0);
-			return sqrt(R() * R() + b.R() * b.R() - 2 * R() * b.R() * cosGamma);
+			detail::ValidateGeometryCoordinates({R(), Theta(), Phi(), b.R(), b.Theta(), b.Phi()}, "Point3Spherical::Dist");
+			const Real first = std::abs(R()), second = std::abs(b.R());
+			const Real sine1 = std::abs(Theta()) == Constants::PI ? 0 : std::sin(Theta());
+			const Real sine2 = std::abs(b.Theta()) == Constants::PI ? 0 : std::sin(b.Theta());
+			const Real theta1 = sine1 < 0 ? -Theta() : Theta();
+			const Real theta2 = sine2 < 0 ? -b.Theta() : b.Theta();
+			const bool oppositeRadii = std::signbit(R()) != std::signbit(b.R());
+			Real meridianChord;
+			if (!oppositeRadii)
+				meridianChord = detail::GeometrySineChord(theta1, theta2);
+			else if (theta1 >= 0 && theta1 <= Constants::PI && theta2 >= 0 && theta2 <= Constants::PI)
+				meridianChord = detail::GeometrySineChord(Constants::PI - std::max(theta1, theta2), std::min(theta1, theta2));
+			else
+				meridianChord = detail::GeometryCosineChord(theta1, -theta2);
+			const bool oppositeMeridians = (sine1 < 0) != (sine2 < 0);
+			const Real azimuthChord = oppositeMeridians != oppositeRadii
+				? detail::GeometryCosineChord(Phi(), b.Phi()) : detail::GeometrySineChord(Phi(), b.Phi());
+			const Real radial = first - second;
+			const Real meridian = detail::GeometryAngularComponent(first, second, meridianChord);
+			const Real azimuth = detail::GeometryAngularComponent(first * std::abs(sine1), second * std::abs(sine2), azimuthChord);
+			return detail::CheckedGeometryDistance(std::hypot(radial, meridian, azimuth), "Point3Spherical::Dist",
+				radial != 0 || (first != 0 && second != 0 &&
+					(meridianChord != 0 || (sine1 != 0 && sine2 != 0 && azimuthChord != 0))));
 		}
 	};
 
@@ -364,7 +457,8 @@ namespace MML {
 		/// @brief Constructs a cylindrical point from a Cartesian point
 		/// @param pnt The Cartesian point to convert
 		Point3Cylindrical(const Point3Cartesian& pnt) {
-			_r = sqrt(POW2(pnt.X()) + POW2(pnt.Y()));
+			detail::ValidateGeometryCoordinates({pnt.X(), pnt.Y(), pnt.Z()}, "Point3Cylindrical conversion");
+			_r = Point2Cartesian().Dist(Point2Cartesian(pnt.X(), pnt.Y()));
 			_phi = atan2(pnt.Y(), pnt.X());
 			_z = pnt.Z();
 		}
@@ -387,7 +481,8 @@ namespace MML {
 		/// @param b The other point
 		/// @return Euclidean distance between the two points
 		Real Dist(const Point3Cylindrical& b) const {
-			return sqrt(R() * R() + b.R() * b.R() - 2 * R() * b.R() * cos(b.Phi() - Phi()) + POW2(b.Z() - Z()));
+			detail::ValidateGeometryCoordinates({Z(), b.Z()}, "Point3Cylindrical::Dist");
+			return detail::GeometryRadialDistance(R(), Phi(), b.R(), b.Phi(), b.Z() - Z(), "Point3Cylindrical::Dist");
 		}
 	};
 

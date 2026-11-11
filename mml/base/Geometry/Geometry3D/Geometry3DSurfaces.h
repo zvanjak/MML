@@ -68,7 +68,7 @@ namespace MML
 		///       the cross-product form is exact for degenerate input (0) and better conditioned.
 		Real Area() const
 		{
-			return 0.5 * VectorProduct(Vec3Cart(_pnt1, _pnt2), Vec3Cart(_pnt1, _pnt3)).NormL2();
+			return MML::Real(0.5) * VectorProduct(Vec3Cart(_pnt1, _pnt2), Vec3Cart(_pnt1, _pnt3)).NormL2();
 		}
 
 		/// @brief Tests if this is a right triangle
@@ -155,7 +155,7 @@ namespace MML
 	/// @details Extends Triangle3D to implement IParametricSurface interface.
 	///          Establishes a local coordinate system for parametric mapping.
 	///          The longest side is used as the base for the local x-axis.
-	class TriangleSurface3D : public Triangle3D, IParametricSurface<3>
+	class TriangleSurface3D : public Triangle3D, public IParametricSurface<3>
 	{
 	public:
 		Real _minX, _maxX, _minY, _maxY;
@@ -255,8 +255,8 @@ namespace MML
 		}
 	};
 
-	/// @brief Rectangular parametric surface in 3D
-	/// @details Represents a planar rectangular region in 3D space.
+	/// @brief Planar quadrilateral surface on a rectangular parameter domain
+	/// @details Uses bilinear interpolation between four cyclically ordered corners.
 	///          Implements IParametricSurfaceRect interface for integration and analysis.
 	///          All four corners must be coplanar.
 	class RectSurface3D : public IParametricSurfaceRect<3>
@@ -271,34 +271,34 @@ namespace MML
 		/// @brief Default constructor
 		RectSurface3D() {}
 		
-		/// @brief Constructs a rectangular surface from four coplanar corners
+		/// @brief Constructs a planar quadrilateral from four coplanar corners in boundary order
 		/// @param pnt1 First corner
 		/// @param pnt2 Second corner (along x-direction from pnt1)
 		/// @param pnt3 Third corner (diagonal from pnt1)
 		/// @param pnt4 Fourth corner (along y-direction from pnt1)
-		/// @throws GeometryError if points are not coplanar
+		/// @throws GeometryError for nonfinite, degenerate, noncoplanar or unrepresentable parameter geometry
 		RectSurface3D(Pnt3Cart pnt1, Pnt3Cart pnt2, Pnt3Cart pnt3, Pnt3Cart pnt4)
 			: _pnt1(pnt1), _pnt2(pnt2), _pnt3(pnt3), _pnt4(pnt4)
 		{
-			// Validate coplanarity: all 4 points must lie in the same plane
-			Plane3D plane(pnt1, pnt2, pnt3);
-			if (!plane.IsPointOnPlane(pnt4))
+			const auto normal = detail::GeometryCrossProduct(pnt1, pnt2, pnt1, pnt3).Unit();
+			const Real lenX = _pnt1.Dist(_pnt2);
+			const Real lenY = _pnt1.Dist(_pnt4);
+			_localX = detail::GeometryUnitDirection<3>(Vec3Cart(_pnt1, _pnt2));
+			_localY = detail::GeometryUnitDirection<3>(Vec3Cart(_pnt1, _pnt4));
+			const auto relativeEdge = Vec3Cart(pnt1, pnt4) / std::max(lenX, lenY);
+			if (std::abs(Utils::ScalarProduct(normal, relativeEdge)) >= Precision::Plane3DIsPointOnPlaneTolerance)
 				throw GeometryError("RectSurface3D ctor - points are not coplanar");
+			(void)getNormal();
 
-			// podesiti min i max
-			Real lenX = _pnt1.Dist(_pnt2);
-			Real lenY = _pnt1.Dist(_pnt4);
 			_minX = -lenX / 2;
 			_maxX = lenX / 2;
 			_minY = -lenY / 2;
 			_maxY = lenY / 2;
+			if (_maxX == 0 || _maxY == 0)
+				throw GeometryError("RectSurface3D ctor - parameter range is not representable");
 
-			// calculate center
-			_center = (_pnt1 + _pnt2 + _pnt3 + _pnt4) / 4.0;
-
-			// calculate local coordinate system
-			_localX = Vec3Cart(_pnt1, _pnt2).Normalized();
-			_localY = Vec3Cart(_pnt1, _pnt4).Normalized();
+			_center = detail::GeometryMidpoint(detail::GeometryMidpoint(_pnt1, _pnt2),
+				detail::GeometryMidpoint(_pnt3, _pnt4));
 		}
 
 		/// @brief Gets minimum u parameter
@@ -312,23 +312,27 @@ namespace MML
 
 		/// @brief Gets the surface normal vector
 		Vec3Cart getNormal() const {
-			return VectorProduct(Vec3Cart(_pnt1, _pnt2), Vec3Cart(_pnt1, _pnt4)).Normalized();
+			return detail::GeometryCrossProduct(_pnt1, _pnt2, _pnt1, _pnt4).Unit();
 		}
 		
-		/// @brief Gets the center point
+		/// @brief Gets the parameter-center point (the average of the four vertices)
 		Pnt3Cart getCenter() const { return _center; }
 
-		/// @brief Gets the area of the rectangle
+		/// @brief Gets the area of the planar quadrilateral
 		Real getArea() const {
-			return VectorProduct(Vec3Cart(_pnt1, _pnt2), Vec3Cart(_pnt1, _pnt4)).NormL2();
+			return detail::GeometryCrossProduct(_pnt1, _pnt3, _pnt2, _pnt4).HalfMagnitude();
 		}
 		
 		/// @brief Evaluates the surface at parameters (u, w)
-		/// @param u First parameter (along local x-axis)
-		/// @param w Second parameter (along local y-axis)
+		/// @param u First coordinate in the rectangular parameter domain
+		/// @param w Second coordinate in the rectangular parameter domain
 		/// @return 3D point on the surface
 		VectorN<Real, 3> operator()(Real u, Real w) const {
-			Pnt3Cart ret = _center + u * _localX + w * _localY;
+			const Real s = (u - _minX) / (_maxX - _minX);
+			const Real t = (w - _minY) / (_maxY - _minY);
+			const Pnt3Cart lower = _pnt1 + s * Vec3Cart(_pnt1, _pnt2);
+			const Pnt3Cart upper = _pnt4 + s * Vec3Cart(_pnt4, _pnt3);
+			const Pnt3Cart ret = lower + t * Vec3Cart(lower, upper);
 			return VectorN<Real, 3>({ ret.X(), ret.Y(), ret.Z() });
 		}
 	};

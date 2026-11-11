@@ -39,7 +39,7 @@ namespace MML::TestBeds
     // Classic test surface with constant positive curvature
     // x = cos(u)sin(v), y = sin(u)sin(v), z = cos(v)
     // K = 1, H = 1, Area = 4π
-    static VectorN<Real,3> UnitSphere(Real u, Real v) {
+    static inline VectorN<Real,3> UnitSphere(Real u, Real v) {
         return VectorN<Real,3>{ std::cos(u) * std::sin(v), 
                                 std::sin(u) * std::sin(v), 
                                 std::cos(v) };
@@ -49,7 +49,7 @@ namespace MML::TestBeds
     // (R + r*cos(v))cos(u), (R + r*cos(v))sin(u), r*sin(v)
     // R=2 (major), r=1 (minor), Area = 4π²Rr = 8π²
     // K varies: positive on outside, negative on inside
-    static VectorN<Real,3> Torus(Real u, Real v) {
+    static inline VectorN<Real,3> Torus(Real u, Real v) {
         const Real R = static_cast<MML::Real>(2.0), r = static_cast<MML::Real>(1.0);
         return VectorN<Real,3>{ (R + r * std::cos(v)) * std::cos(u),
                                 (R + r * std::cos(v)) * std::sin(u),
@@ -60,14 +60,14 @@ namespace MML::TestBeds
     // Developable surface (K=0), H≠0
     // x = cos(u), y = sin(u), z = v
     // Area = 2π*h (for height h)
-    static VectorN<Real,3> Cylinder(Real u, Real v) {
+    static inline VectorN<Real,3> Cylinder(Real u, Real v) {
         return VectorN<Real,3>{ std::cos(u), std::sin(u), v };
     }
 
     // ========== 4. CONE ==========
     // Developable surface (K=0)
     // x = v*cos(u), y = v*sin(u), z = v
-    static VectorN<Real,3> Cone(Real u, Real v) {
+    static inline VectorN<Real,3> Cone(Real u, Real v) {
         return VectorN<Real,3>{ v * std::cos(u), v * std::sin(u), v };
     }
 
@@ -75,7 +75,7 @@ namespace MML::TestBeds
     // Minimal surface (H=0), K<0
     // x = v*cos(u), y = v*sin(u), z = u
     // One of only two ruled minimal surfaces (other is plane)
-    static VectorN<Real,3> Helicoid(Real u, Real v) {
+    static inline VectorN<Real,3> Helicoid(Real u, Real v) {
         return VectorN<Real,3>{ v * std::cos(u), v * std::sin(u), u };
     }
 
@@ -83,7 +83,7 @@ namespace MML::TestBeds
     // Minimal surface (H=0), K<0
     // x = cosh(v)*cos(u), y = cosh(v)*sin(u), z = v
     // Surface of revolution of catenary
-    static VectorN<Real,3> Catenoid(Real u, Real v) {
+    static inline VectorN<Real,3> Catenoid(Real u, Real v) {
         return VectorN<Real,3>{ std::cosh(v) * std::cos(u), 
                                 std::cosh(v) * std::sin(u), 
                                 v };
@@ -92,7 +92,7 @@ namespace MML::TestBeds
     // ========== 7. ENNEPER SURFACE ==========
     // Self-intersecting minimal surface
     // Classic example for testing minimal surface algorithms
-    static VectorN<Real,3> EnneperSurface(Real u, Real v) {
+    static inline VectorN<Real,3> EnneperSurface(Real u, Real v) {
         return VectorN<Real,3>{ u - u*u*u/3 + u*v*v,
                                 v - v*v*v/3 + v*u*u,
                                 u*u - v*v };
@@ -101,7 +101,7 @@ namespace MML::TestBeds
     // ========== 8. MÖBIUS STRIP ==========
     // Non-orientable surface
     // x = (1 + v/2*cos(u/2))cos(u), y = (1 + v/2*cos(u/2))sin(u), z = v/2*sin(u/2)
-    static VectorN<Real,3> MobiusStrip(Real u, Real v) {
+    static inline VectorN<Real,3> MobiusStrip(Real u, Real v) {
         Real halfU = u / static_cast<MML::Real>(2.0);
         return VectorN<Real,3>{ (static_cast<MML::Real>(1.0) + v/static_cast<MML::Real>(2.0) * std::cos(halfU)) * std::cos(u),
                                 (static_cast<MML::Real>(1.0) + v/static_cast<MML::Real>(2.0) * std::cos(halfU)) * std::sin(u),
@@ -111,7 +111,7 @@ namespace MML::TestBeds
     // ========== 9. HYPERBOLOID OF ONE SHEET ==========
     // Doubly ruled surface, K<0
     // x = cosh(v)*cos(u), y = cosh(v)*sin(u), z = sinh(v)
-    static VectorN<Real,3> HyperboloidOneSheet(Real u, Real v) {
+    static inline VectorN<Real,3> HyperboloidOneSheet(Real u, Real v) {
         return VectorN<Real,3>{ std::cosh(v) * std::cos(u),
                                 std::cosh(v) * std::sin(u),
                                 std::sinh(v) };
@@ -120,20 +120,20 @@ namespace MML::TestBeds
     // ========== 10. PARABOLOID ==========
     // Bowl shape, K>0 everywhere
     // x = u, y = v, z = u² + v²
-    static VectorN<Real,3> Paraboloid(Real u, Real v) {
+    static inline VectorN<Real,3> Paraboloid(Real u, Real v) {
         return VectorN<Real,3>{ u, v, u*u + v*v };
     }
 
     // ========== 11. HYPERBOLIC PARABOLOID (SADDLE) ==========
     // Doubly ruled, K<0 everywhere
     // x = u, y = v, z = u² - v²  (saddle point at origin)
-    static VectorN<Real,3> HyperbolicParaboloid(Real u, Real v) {
+    static inline VectorN<Real,3> HyperbolicParaboloid(Real u, Real v) {
         return VectorN<Real,3>{ u, v, u*u - v*v };
     }
 
     // ========== 12. KLEIN BOTTLE ==========
     // Non-orientable, self-intersecting immersion (Figure-8 immersion in R³)
-    static VectorN<Real,3> KleinBottle(Real u, Real v) {
+    static inline VectorN<Real,3> KleinBottle(Real u, Real v) {
         Real r = static_cast<MML::Real>(4.0) * (static_cast<MML::Real>(1.0) - std::cos(u) / static_cast<MML::Real>(2.0));
         if (u < Constants::PI) {
             return VectorN<Real,3>{ 
@@ -155,7 +155,7 @@ namespace MML::TestBeds
     // ========== 13. SCHERK'S SURFACE ==========
     // Doubly periodic minimal surface
     // z = ln(cos(y)/cos(x)) for |x|, |y| < π/2
-    static VectorN<Real,3> ScherkSurface(Real u, Real v) {
+    static inline VectorN<Real,3> ScherkSurface(Real u, Real v) {
         // Domain: |u|, |v| < π/2 - ε to avoid singularities
         Real cosU = std::cos(u);
         Real cosV = std::cos(v);
@@ -167,7 +167,7 @@ namespace MML::TestBeds
     // ========== 14. DINI'S SURFACE ==========
     // Twisted pseudosphere - surface of constant negative curvature
     // x = a*cos(u)*sin(v), y = a*sin(u)*sin(v), z = a*(cos(v) + ln(tan(v/2))) + b*u
-    static VectorN<Real,3> DiniSurface(Real u, Real v) {
+    static inline VectorN<Real,3> DiniSurface(Real u, Real v) {
         const Real a = static_cast<MML::Real>(1.0), b = static_cast<MML::Real>(0.2);
         Real sinV = std::sin(v);
         Real cosV = std::cos(v);
@@ -180,7 +180,7 @@ namespace MML::TestBeds
 
     // ========== 15. BOY'S SURFACE ==========
     // Immersion of real projective plane in R³ (non-orientable, self-intersecting)
-    static VectorN<Real,3> BoysSurface(Real u, Real v) {
+    static inline VectorN<Real,3> BoysSurface(Real u, Real v) {
         Real x = std::cos(u) * std::sin(v);
         Real y = std::sin(u) * std::sin(v);
         Real z = std::cos(v);
@@ -198,7 +198,7 @@ namespace MML::TestBeds
 
     // ========== 16. ROMAN SURFACE (STEINER SURFACE) ==========
     // Another immersion of RP² with tetrahedral symmetry
-    static VectorN<Real,3> RomanSurface(Real u, Real v) {
+    static inline VectorN<Real,3> RomanSurface(Real u, Real v) {
         Real sinU = std::sin(u), cosU = std::cos(u);
         Real sinV = std::sin(v), cosV = std::cos(v);
         Real sin2V = std::sin(static_cast<MML::Real>(2.0) * v);
@@ -212,9 +212,9 @@ namespace MML::TestBeds
 
     // ========== 17. CROSS-CAP ==========
     // Yet another non-orientable surface (simplest immersion of RP²)
-    static VectorN<Real,3> CrossCap(Real u, Real v) {
+    static inline VectorN<Real,3> CrossCap(Real u, Real v) {
         Real sinU = std::sin(u), cosU = std::cos(u);
-        Real sinV = std::sin(v), cosV = std::cos(v);
+        Real cosV = std::cos(v);
         Real sin2U = std::sin(static_cast<MML::Real>(2.0) * u);
         
         return VectorN<Real,3>{ 
@@ -226,10 +226,10 @@ namespace MML::TestBeds
 
     // ========== 18. HENNEBERG'S SURFACE ==========
     // Minimal surface discovered by Henneberg (1875)
-    static VectorN<Real,3> HennebergSurface(Real u, Real v) {
+    static inline VectorN<Real,3> HennebergSurface(Real u, Real v) {
         Real sinhU = std::sinh(u), coshU = std::cosh(u);
         Real cosV = std::cos(v), sinV = std::sin(v);
-        Real cos2V = std::cos(static_cast<MML::Real>(2.0) * v), sin2V = std::sin(static_cast<MML::Real>(2.0) * v);
+        Real cos2V = std::cos(static_cast<MML::Real>(2.0) * v);
         Real cos3V = std::cos(static_cast<MML::Real>(3.0) * v), sin3V = std::sin(static_cast<MML::Real>(3.0) * v);
         
         return VectorN<Real,3>{ 
@@ -368,12 +368,12 @@ namespace MML::TestBeds
 			Real _a;  // Scaling factor
 			Real _b;  // Controls twist rate
 		public:
-			DiniSurface() : _a(1.0), _b(0.15) {}
+			DiniSurface() : _a(MML::Real(1.0)), _b(MML::Real(0.15)) {}
 			DiniSurface(Real a, Real b) : _a(a), _b(b) {}
 
-			Real getMinU() const { return 0.01; }  // Avoid singularity at 0
+			Real getMinU() const { return MML::Real(0.01); }  // Avoid singularity at 0
 			Real getMaxU() const { return 4 * Constants::PI; }
-			Real getMinW() const { return 0.01; }  // Avoid singularity at 0
+			Real getMinW() const { return MML::Real(0.01); }  // Avoid singularity at 0
 			Real getMaxW() const { return 2; }
 
 			VectorN<Real, 3> operator()(Real u, Real v) const {

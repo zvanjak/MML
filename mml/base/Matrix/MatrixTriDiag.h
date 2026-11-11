@@ -40,7 +40,7 @@ namespace MML
 		Vector<Type> _aboveDiag;
 
 	public:
-		TridiagonalMatrix(int dim, const Vector<Type>& a, const Vector<Type>& diag, const Vector<Type>& c) : _belowDiag(a), _diag(diag), _aboveDiag(c), _dim(dim)
+		TridiagonalMatrix(int dim, const Vector<Type>& a, const Vector<Type>& diag, const Vector<Type>& c) : _dim(dim), _belowDiag(a), _diag(diag), _aboveDiag(c)
 		{
 			if( dim < 1)
 				throw MatrixDimensionError("TridiagonalMatrix constructor: dimension must be >= 1");
@@ -58,12 +58,12 @@ namespace MML
 
 			auto val = values.begin();
 			if (dim == 1) {
-				_belowDiag[0] = 0.0;
+				_belowDiag[0] = Type{};
 				_diag[0] = *val;
-				_aboveDiag[0] = 0.0;
+				_aboveDiag[0] = Type{};
 				return;
 			}
-			_belowDiag[0] = 0.0;
+			_belowDiag[0] = Type{};
 			_diag[0] = *val++;
 			_aboveDiag[0] = *val++;
 			for (int i = 1; i < dim - 1; ++i)
@@ -74,7 +74,7 @@ namespace MML
 			}
 			_belowDiag[dim - 1] = *val++;
 			_diag[dim - 1] = *val++;
-			_aboveDiag[dim - 1] = 0.0;
+			_aboveDiag[dim - 1] = Type{};
 		}
 
 		int rows() const noexcept { return _dim; }
@@ -105,17 +105,28 @@ namespace MML
 				throw MatrixAccessBoundsError("TridiagonalMatrix::operator() - element outside the three diagonals is not writable", i, j, _dim, _dim);
 		}
 
+		/// @brief Inclusive absolute-tolerance comparison of all stored band entries.
+		/// @return False for mismatched dimensions, nonfinite entries or invalid tolerance.
 		bool IsEqualTo(const TridiagonalMatrix& b, Real eps = Precision::MatrixIsEqualTolerance) const
 		{
-			if (_dim != b._dim)
+			if (_dim != b._dim || !std::isfinite(eps) || eps < 0)
 				return false;
 
+			const auto equal = [eps](const Type& first, const Type& second) {
+				if constexpr (std::is_integral_v<Type>) {
+					const auto difference = first >= second
+						? static_cast<unsigned long long>(first) - static_cast<unsigned long long>(second)
+						: static_cast<unsigned long long>(second) - static_cast<unsigned long long>(first);
+					// Compare in integer space: converting a large difference to Real can round it down to eps.
+					return eps >= static_cast<Real>(std::numeric_limits<unsigned long long>::max()) ||
+						difference <= static_cast<unsigned long long>(eps);
+				} else {
+					return IsFiniteValue(first) && IsFiniteValue(second) && Abs(first - second) <= eps;
+				}
+			};
 			for (int i = 0; i < _dim; i++) {
-				if (std::abs(_diag[i] - b._diag[i]) > eps)
-					return false;
-				if (std::abs(_belowDiag[i] - b._belowDiag[i]) > eps)
-					return false;
-				if (std::abs(_aboveDiag[i] - b._aboveDiag[i]) > eps)
+				if (!equal(_diag[i], b._diag[i]) || !equal(_belowDiag[i], b._belowDiag[i]) ||
+					!equal(_aboveDiag[i], b._aboveDiag[i]))
 					return false;
 			}
 			return true;
@@ -154,7 +165,6 @@ namespace MML
 
 		friend TridiagonalMatrix operator*(const TridiagonalMatrix& a, Type b)
 		{
-			int	i, j;
 			TridiagonalMatrix	ret(a);
 
 			for (int i = 0; i < ret._belowDiag.size(); i++)
@@ -168,7 +178,6 @@ namespace MML
 		}
 		friend TridiagonalMatrix operator*(Type a, const TridiagonalMatrix& b)
 		{
-			int	i, j;
 			TridiagonalMatrix	ret(b);
 
 			for (int i = 0; i < ret._belowDiag.size(); i++)
@@ -182,7 +191,6 @@ namespace MML
 		}
 		friend TridiagonalMatrix operator/(const TridiagonalMatrix& a, Type b)
 		{
-			int	i, j;
 			TridiagonalMatrix	ret(a);
 
 			for (int i = 0; i < ret._belowDiag.size(); i++)
@@ -243,29 +251,51 @@ namespace MML
 			Type bet;  // Must be Type to work with complex matrices
 			Vector<Type> gam(n);
 
-			// Compute scale-relative tolerance based on max diagonal magnitude
-			Real maxDiag = Real{0};
+			Real matrixScale = Real{0};
+			const auto coefficientMagnitude = [](const Type& value) {
+				if constexpr (MMLComplex<Type>)
+					return std::max(Abs(value.real()), Abs(value.imag()));
+				else
+					return Abs(value);
+			};
 			for (int i = 0; i < n; i++) {
-				Real mag = std::abs(_diag[i]);
-				if (mag > maxDiag) maxDiag = mag;
+				if (!IsFiniteValue(_diag[i]) || !IsFiniteValue(rhs[i]) ||
+					(i > 0 && !IsFiniteValue(_belowDiag[i])) ||
+					(i + 1 < n && !IsFiniteValue(_aboveDiag[i])))
+					throw NumericInputError("TridiagonalMatrix::Solve - matrix and rhs must be finite");
+				matrixScale = std::max(matrixScale, coefficientMagnitude(_diag[i]));
+				if (i > 0) matrixScale = std::max(matrixScale, coefficientMagnitude(_belowDiag[i]));
+				if (i + 1 < n) matrixScale = std::max(matrixScale, coefficientMagnitude(_aboveDiag[i]));
 			}
-			Real tol = maxDiag * std::numeric_limits<Real>::epsilon();
-			if (tol < std::numeric_limits<Real>::epsilon())
-				tol = std::numeric_limits<Real>::epsilon();
+			if (matrixScale == 0)
+				throw SingularMatrixError("TridiagonalMatrix::Solve - zero pivot at element 0", 0, 0);
+			// Normalize the Thomas recurrence before elimination. Both epsilon*scale
+			// and unscaled elimination products can underflow in subnormal systems.
+			// Integral instantiations retain their existing integer-division arithmetic.
+			// A real divisor keeps complex normalization componentwise, avoiding complex-division overflow.
+			using CoefficientScale = std::conditional_t<MMLComplex<Type>, Real, Type>;
+			const CoefficientScale coefficientScale = std::is_integral_v<Type> ? CoefficientScale{1} : CoefficientScale(matrixScale);
+			const Real pivotScale = std::is_integral_v<Type> ? matrixScale : Real{1};
+			const auto unsafePivot = [pivotScale](const Type& pivot) {
+				const Real magnitude = Abs(pivot);
+				return !std::isfinite(magnitude) || magnitude == 0 ||
+					magnitude / pivotScale < Precision::Eps;
+			};
 
-			if (std::abs(_diag[0]) < tol)
+			bet = _diag[0] / coefficientScale;
+			if (unsafePivot(bet))
 				throw SingularMatrixError("TridiagonalMatrix::Solve - zero pivot at element 0", 0, 0);
 
-			sol[0] = rhs[0] / (bet = _diag[0]);
+			sol[0] = (rhs[0] / coefficientScale) / bet;
 
 			for (j = 1; j < n; j++) {
-				gam[j] = _aboveDiag[j - 1] / bet;
-				bet = _diag[j] - _belowDiag[j] * gam[j];
+				gam[j] = (_aboveDiag[j - 1] / coefficientScale) / bet;
+				bet = (_diag[j] / coefficientScale) - (_belowDiag[j] / coefficientScale) * gam[j];
 
-				if (std::abs(bet) < tol)
-					throw SingularMatrixError("TridiagonalMatrix::Solve - zero pivot during elimination", j, j);
+				if (unsafePivot(bet))
+					throw SingularMatrixError("TridiagonalMatrix::Solve - zero pivot during elimination", Real(j), j);
 
-				sol[j] = (rhs[j] - _belowDiag[j] * sol[j - 1]) / bet;
+				sol[j] = ((rhs[j] / coefficientScale) - (_belowDiag[j] / coefficientScale) * sol[j - 1]) / bet;
 			}
 			for (j = (n - 2); j >= 0; j--)
 				sol[j] -= gam[j + 1] * sol[j + 1];

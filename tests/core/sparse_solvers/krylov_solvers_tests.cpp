@@ -38,14 +38,14 @@ namespace MML::Tests::Core::KrylovSolversTests
 			double ResidualNorm(const SparseMatrixCSR<double>& A, const Vector<double>& x, const Vector<double>& b) {
 				Vector<double> Ax = A * x;
 				double s = 0.0;
-				for (std::size_t i = 0; i < b.size(); ++i)
+				for (int i = 0; i < b.size(); ++i)
 					s += (b[i] - Ax[i]) * (b[i] - Ax[i]);
 				return std::sqrt(s);
 			}
 
 			double MaxAbsDiff(const Vector<double>& a, const Vector<double>& b) {
 				double m = 0.0;
-				for (std::size_t i = 0; i < a.size(); ++i)
+				for (int i = 0; i < a.size(); ++i)
 					m = std::max(m, std::abs(a[i] - b[i]));
 				return m;
 			}
@@ -291,7 +291,7 @@ namespace MML::Tests::Core::KrylovSolversTests
             auto r = solver.solve(A, b, x);
 						REQUIRE(r.converged);
 						REQUIRE(history.size() >= 2);
-            for (std::size_t i = 1; i < history.size(); ++i)
+            for (int i = 1; i < history.size(); ++i)
                 REQUIRE(history[i] <= history[i - 1] * (1.0 + 1e-12));
         }
 

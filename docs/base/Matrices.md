@@ -53,9 +53,59 @@ Matrix<Real> Ainv = MatrixAlg::Inverse(A); // Returns inverse copy
 ## Specialized Matrix Types
 
 MML provides efficient storage for special matrix structures:
-- **MatrixSym** - Symmetric matrices (stores only upper triangle)
+- **MatrixSym** - Symmetric matrices (stores only lower triangle)
 - **MatrixTridiag** - Tridiagonal matrices (three diagonals)
 - **MatrixBandDiag** - Band-diagonal matrices (configurable bandwidth)
+
+### Scale and failure contracts
+
+`TridiagonalMatrix::IsEqualTo` uses an inclusive **absolute** tolerance on each
+stored band entry, matching the comparison convention for dynamic, fixed-size
+and symmetric matrices. Complex differences use their magnitude, not separate
+real/imaginary component thresholds. Dimensions must match; negative or
+nonfinite tolerances, or any nonfinite stored entry in either operand, return
+false (including self-comparison). A zero tolerance requests exact equality
+of finite entries. Integral comparisons avoid overflow, unsigned wraparound,
+and rounding a large difference down to the tolerance.
+
+The three-vector constructor's unused boundary slots (`below[0]` and
+`above[dim-1]`) remain part of the stored-entry comparison, preserving existing
+behavior; they are also checked for nonfinite values.
+
+```cpp
+const Real nan = std::numeric_limits<Real>::quiet_NaN();
+const TridiagonalMatrix<Real> zero(1, {0}), invalid(1, {nan}), one(1, {1});
+const bool finiteOnly = invalid.IsEqualTo(zero); // false
+const bool invalidTolerance = zero.IsEqualTo(zero, nan); // false
+const bool inclusiveBoundary = zero.IsEqualTo(one, 1); // true
+```
+
+This example runs in `Docs_Demo_Matrix_ScaleContracts()`, selected with
+`MML_DocsApp --arithmetic-scale-contracts`.
+
+`MatrixSym::NormFrobenius` and `BandDiagonalMatrix::NormFrobenius` use scaled
+sum-of-squares accumulation. They do not square unscaled entries, so a finite,
+representable norm is retained even when individual squared entries would
+overflow or underflow. Symmetric off-diagonal entries are counted twice;
+complex norms include both real and imaginary components.
+
+`TridiagonalMatrix::Solve` normalizes the Thomas recurrence by the largest
+active coefficient magnitude (largest component magnitude for complex entries).
+Pivot rejection is relative to that scale, not
+an absolute epsilon floor, and normalized elimination avoids products
+underflowing solely because the whole system was scaled down.
+Uniformly scaling a well-conditioned matrix and its right-hand side therefore
+preserves the solution, including for subnormal coefficients.
+
+This is still a nonpivoting solver: exact zero or numerically negligible
+elimination pivots raise `SingularMatrixError`, even if a different row ordering
+could solve the system. Incorrect vector dimensions raise `VectorDimensionError`;
+nonfinite active coefficients or right-hand-side entries raise
+`NumericInputError`. The caller-provided solution may be partially modified
+if a later elimination pivot fails.
+
+The executable counterpart is `Docs_Demo_Matrix_ScaleContracts()` in
+[docs_demo_matrix_scale_contracts.cpp](../../src/docs_demos/base/docs_demo_matrix_scale_contracts.cpp).
 
 ## Related Documentation
 - [MatrixAnalysisContracts.md](../algorithms/MatrixAnalysisContracts.md) - Canonical matrix-analysis architecture, numerical contracts, caching, and migration

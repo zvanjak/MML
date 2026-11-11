@@ -2,7 +2,9 @@
 #define MML_TEST_BEDS_STIFF_SOLVER_BENCHMARKS_H
 
 #include "stiff_ode_test_bed.h"
+#if !defined(MML_SINGLE_HEADER_INCLUDE) && !defined(MML_USE_SINGLE_HEADER)
 #include <mml/algorithms/ODESolvers/ODESolverStiff.h>
+#endif
 
 #include <algorithm>
 #include <chrono>

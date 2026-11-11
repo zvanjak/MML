@@ -3,9 +3,21 @@
 
 #include <mml/MMLBase.h>
 #include <mml/base/AlgorithmTypes.h>
+#include <mml/MMLNumericValidation.h>
 
+#include <algorithm>
+#include <array>
+#include <atomic>
+#include <cmath>
+#include <functional>
+#include <initializer_list>
+#include <limits>
+#include <numeric>
 #include <ostream>
+#include <queue>
 #include <string>
+#include <type_traits>
+#include <vector>
 
 namespace MML
 {
@@ -114,6 +126,241 @@ namespace MML
 
 	namespace IntegrationDetail
 	{
+		struct Sum {
+			Real sum = 0, correction = 0;
+			void Add(Real value) {
+				const Real next = sum + value;
+				correction += std::abs(sum) >= std::abs(value) ? (sum - next) + value : (value - next) + sum;
+				sum = next;
+			}
+			Real Value() const { return sum + correction; }
+		};
+
+		struct ComplexSum {
+			Sum real, imaginary;
+			void Add(Complex value) { real.Add(value.real()); imaginary.Add(value.imag()); }
+			Complex Value() const { return {real.Value(), imaginary.Value()}; }
+		};
+
+		inline Real Product(std::initializer_list<Real> factors, Real denominator = 1) {
+			int exponent = 0;
+			Real fraction = 1 / std::frexp(denominator, &exponent);
+			exponent = -exponent;
+			for (Real factor : factors) {
+				int shift = 0;
+				fraction *= std::frexp(factor, &shift);
+				exponent += shift;
+			}
+			return std::ldexp(fraction, exponent);
+		}
+
+		inline Real HalfWidth(Real a, Real b) {
+			ValidateBounds(a, b, "Integration");
+			return std::signbit(a) != std::signbit(b) ? b / 2 - a / 2 : (b - a) / 2;
+		}
+
+		inline void RequireFinite(Real value, const char* context) {
+			if (!std::isfinite(value))
+				throw NumericalMethodError(std::string(context) + ": non-finite integral or error estimate");
+		}
+
+		inline void RequireFinite(Complex value, const char* context) {
+			RequireFinite(value.real(), context);
+			RequireFinite(value.imag(), context);
+		}
+
+		template<class Function, class... Args>
+		Real Sample(Function& function, int& evaluations, bool checkFinite, Args&&... args) {
+			if constexpr (requires { static_cast<bool>(function); })
+				if (!function) throw NotImplementedError("Integration requires a callable");
+			if (evaluations == std::numeric_limits<int>::max())
+				throw ResourceLimitError("Integration evaluation counter exhausted");
+			++evaluations;
+			const Real value = static_cast<Real>(std::invoke(function, std::forward<Args>(args)...));
+			if (checkFinite) RequireFinite(value, "Integration integrand");
+			return value;
+		}
+
+		inline void CountEvaluation(std::atomic<int>& evaluations) {
+			int used = evaluations.load(std::memory_order_relaxed);
+			do {
+				if (used == std::numeric_limits<int>::max())
+					throw ResourceLimitError("Parallel integration evaluation counter exhausted");
+			} while (!evaluations.compare_exchange_weak(used, used + 1, std::memory_order_relaxed));
+		}
+
+		inline void ValidateAdaptive(Real absolute, Real relative, int depth, int evaluations) {
+			if (!std::isfinite(absolute) || !std::isfinite(relative) || absolute < 0 || relative < 0 ||
+				(absolute == 0 && relative == 0) || depth < 0 || evaluations <= 0)
+				throw ArgumentError("Adaptive integration requires nonnegative finite tolerances, a positive target, nonnegative depth and positive evaluation budget");
+		}
+
+		inline IntegrationResult CombineIntegrals(const IntegrationResult& left, const IntegrationResult& right, Real tolerance,
+			bool checkTolerance = true) {
+			if (left.function_evaluations > std::numeric_limits<int>::max() - right.function_evaluations ||
+				left.iterations > std::numeric_limits<int>::max() - right.iterations)
+				throw ResourceLimitError("Combined integration counters exceed supported range");
+			IntegrationResult result(left.value + right.value, left.error_estimate + right.error_estimate,
+				left.iterations + right.iterations, left.converged && right.converged,
+				left.error_estimated && right.error_estimated);
+			result.function_evaluations = left.function_evaluations + right.function_evaluations;
+			RequireFinite(result.value, "Combined integration");
+			if (result.error_estimated) RequireFinite(result.error_estimate, "Combined integration error");
+			for (const auto* part : {&left, &right})
+				if (!part->IsUsable()) {
+					result.status = part->status;
+					result.converged = false;
+					result.error_message = part->error_message;
+					return result;
+				}
+			const Real floor = Precision::IntegrationRoundoffFloorScale * std::abs(left.value) +
+				Precision::IntegrationRoundoffFloorScale * std::abs(right.value);
+			if (checkTolerance && result.converged && result.error_estimate > tolerance * std::abs(result.value) + floor) {
+				result.converged = false;
+				result.status = AlgorithmStatus::MaxIterationsExceeded;
+				result.error_message = "Combined integration uncertainty exceeds the global tolerance";
+			}
+			return result;
+		}
+
+		template<size_t Dimension>
+		std::vector<std::array<std::array<Real, 2>, Dimension>> SplitBox(
+			const std::array<std::array<Real, 2>, Dimension>& box) {
+			using Box = std::array<std::array<Real, 2>, Dimension>;
+			std::array<Real, Dimension> midpoints;
+			for (size_t i = 0; i < Dimension; ++i) {
+				midpoints[i] = std::midpoint(box[i][0], box[i][1]);
+				if (midpoints[i] == box[i][0] || midpoints[i] == box[i][1]) return {};
+			}
+			std::vector<Box> children(size_t(1) << Dimension);
+			for (size_t mask = 0; mask < children.size(); ++mask)
+				for (size_t axis = 0; axis < Dimension; ++axis)
+					children[mask][axis] = (mask & (size_t(1) << axis))
+						? std::array<Real, 2>{midpoints[axis], box[axis][1]}
+						: std::array<Real, 2>{box[axis][0], midpoints[axis]};
+			return children;
+		}
+
+		template<class Result, class Domain, class Evaluate, class Split>
+		void RefineCells(Result& result, const std::vector<Domain>& domains, Evaluate&& evaluate, Split&& split,
+			Real absolute, Real relative, int maxDepth, int maxEvaluations, int ruleCost) {
+			ValidateAdaptive(absolute, relative, maxDepth, maxEvaluations);
+			using Value = decltype(result.value);
+			using ValueSum = std::conditional_t<std::is_same_v<Value, Complex>, ComplexSum, Sum>;
+			struct Cell {
+				Domain domain;
+				BasicIntegrationResult<Value> estimate;
+				int depth;
+				bool operator<(const Cell& other) const { return estimate.error_estimate < other.estimate.error_estimate; }
+			};
+			std::priority_queue<Cell> pending;
+			ValueSum values, terminalValues;
+			Sum errors, terminalErrors;
+			int deepest = 0, subdivisions = 0, stalled = 0;
+			result.value = NoEstimate;
+			result.error_estimate = NoEstimate;
+			result.error_estimated = false;
+			auto fail = [&](AlgorithmStatus status, const char* message) {
+				result.status = status;
+				result.converged = false;
+				result.error_message = message;
+			};
+			auto publish = [&]() {
+				result.value = values.Value();
+				result.error_estimate = errors.Value();
+				RequireFinite(result.value, "Adaptive integration");
+				RequireFinite(result.error_estimate, "Adaptive integration");
+				result.error_estimated = true;
+				result.iterations = deepest;
+				if constexpr (requires { result.cells_subdivided; result.max_depth_reached; }) {
+					result.cells_subdivided = subdivisions;
+					result.max_depth_reached = deepest;
+				}
+			};
+			if (domains.size() > static_cast<size_t>(maxEvaluations / ruleCost)) {
+				fail(AlgorithmStatus::ResourceLimitExceeded, "Evaluation budget cannot cover the initial integration domain");
+				return;
+			}
+			for (const auto& domain : domains) {
+				auto estimate = evaluate(domain);
+				RequireFinite(estimate.value, "Adaptive cell");
+				RequireFinite(estimate.error_estimate, "Adaptive cell");
+				values.Add(estimate.value);
+				errors.Add(estimate.error_estimate);
+				if (maxDepth > 0) pending.push({domain, estimate, 0});
+				else {
+					terminalValues.Add(estimate.value);
+					terminalErrors.Add(estimate.error_estimate);
+				}
+			}
+			publish();
+			for (;;) {
+				Real target = std::max(absolute, relative * std::abs(result.value));
+				if (result.error_estimate <= target) {
+					// Re-sum the retained frontier before approval; removed parent errors must not cancel leaf uncertainty.
+					auto frontier = pending;
+					values = terminalValues;
+					errors = terminalErrors;
+					while (!frontier.empty()) {
+						values.Add(frontier.top().estimate.value);
+						errors.Add(frontier.top().estimate.error_estimate);
+						frontier.pop();
+					}
+					publish();
+					target = std::max(absolute, relative * std::abs(result.value));
+					if (result.error_estimate <= target) {
+						result.status = AlgorithmStatus::Success;
+						result.converged = true;
+						result.error_message.clear();
+						return;
+					}
+				}
+				if (pending.empty()) {
+					fail(AlgorithmStatus::MaxIterationsExceeded, "Adaptive integration depth exhausted before the global tolerance was met");
+					return;
+				}
+				const auto parent = pending.top();
+				const auto children = split(parent.domain);
+				if (children.empty()) {
+					fail(AlgorithmStatus::ToleranceUnachievable, "Adaptive integration cannot subdivide floating-point coordinates further");
+					return;
+				}
+				if (children.size() > static_cast<size_t>((maxEvaluations - result.function_evaluations) / ruleCost)) {
+					fail(AlgorithmStatus::ResourceLimitExceeded, "Evaluation budget cannot complete another whole-domain refinement");
+					return;
+				}
+				std::vector<Cell> replacements;
+				for (const auto& child : children) {
+					auto estimate = evaluate(child);
+					RequireFinite(estimate.value, "Adaptive cell");
+					RequireFinite(estimate.error_estimate, "Adaptive cell");
+					replacements.push_back({child, estimate, parent.depth + 1});
+				}
+				const Real previousError = result.error_estimate;
+				pending.pop();
+				values.Add(-parent.estimate.value);
+				errors.Add(-parent.estimate.error_estimate);
+				for (const auto& child : replacements) {
+					values.Add(child.estimate.value);
+					errors.Add(child.estimate.error_estimate);
+					deepest = std::max(deepest, child.depth);
+					if (child.depth < maxDepth) pending.push(child);
+					else {
+						terminalValues.Add(child.estimate.value);
+						terminalErrors.Add(child.estimate.error_estimate);
+					}
+				}
+				++subdivisions;
+				publish();
+				stalled = result.error_estimate >= previousError ? stalled + 1 : 0;
+				if (stalled >= Precision::IntegrationStagnationLimit &&
+					result.error_estimate > std::max(absolute, relative * std::abs(result.value))) {
+					fail(AlgorithmStatus::ToleranceUnachievable, "Adaptive integration error estimate stopped improving before the global tolerance was met");
+					return;
+				}
+			}
+		}
+
 		/// Copy the integration payload and diagnostics of a core result into a Detailed result
 		/// while keeping the wrapper's algorithm_name / elapsed_time_ms, and derive the status
 		/// per RESULT_POLICY: converged -> Success, no estimate -> Completed, checked and missed ->
@@ -128,6 +375,7 @@ namespace MML
 			out.converged = r.converged;
 			out.error_estimated = r.error_estimated;
 			out.error_estimate = r.error_estimated ? r.error_estimate : NoEstimate;
+			out.error_message = r.error_message;
 			if (r.function_evaluations > 0)
 				out.function_evaluations = r.function_evaluations;
 			if (!IsUsable(r.status)) {
@@ -161,36 +409,55 @@ namespace MML
 		                                     const EvaluationConfigBase& config,
 		                                     ComputeFn&& compute)
 		{
+			AlgorithmTimer timer;
+			ResultType result = MakeEvaluationSuccessResult<ResultType>(algorithm_name);
+			result.value = NoEstimate;
 			auto execute = [&]() {
-				AlgorithmTimer timer;
-				ResultType result = MakeEvaluationSuccessResult<ResultType>(algorithm_name);
 				compute(result);
+				if (MML::IsUsable(result.status)) {
+					if constexpr (requires { result.value.real(); result.value.imag(); }) {
+						RequireFinite(result.value.real(), algorithm_name);
+						RequireFinite(result.value.imag(), algorithm_name);
+					} else RequireFinite(result.value, algorithm_name);
+					if (result.error_estimated) RequireFinite(result.error_estimate, algorithm_name);
+				}
+			};
+			auto finish = [&]() {
+				if (!config.estimate_error) {
+					result.error_estimated = false;
+					result.error_estimate = NoEstimate;
+				}
 				result.elapsed_time_ms = timer.elapsed_ms();
 				return result;
 			};
-
-			if (config.exception_policy == EvaluationExceptionPolicy::Propagate)
-				return execute();
-
+			auto fail = [&](AlgorithmStatus status, const std::exception& error) {
+				result.status = status;
+				result.converged = false;
+				result.error_message = error.what();
+			};
+			if (config.exception_policy == EvaluationExceptionPolicy::Propagate) {
+				execute();
+				return finish();
+			}
 			try {
-				return execute();
+				execute();
 			}
 			catch (const NumericalMethodError& ex) {
-				return MakeEvaluationFailureResult<ResultType>(
-					AlgorithmStatus::NumericalInstability, ex.what(), algorithm_name);
+				fail(AlgorithmStatus::NumericalInstability, ex);
 			}
 			catch (const ResourceLimitError& ex) {
-				return MakeEvaluationFailureResult<ResultType>(
-					AlgorithmStatus::ResourceLimitExceeded, ex.what(), algorithm_name);
+				fail(AlgorithmStatus::ResourceLimitExceeded, ex);
+			}
+			catch (const NumericInputError& ex) {
+				fail(AlgorithmStatus::InvalidInput, ex);
 			}
 			catch (const std::invalid_argument& ex) {
-				return MakeEvaluationFailureResult<ResultType>(
-					AlgorithmStatus::InvalidInput, ex.what(), algorithm_name);
+				fail(AlgorithmStatus::InvalidInput, ex);
 			}
 			catch (const std::exception& ex) {
-				return MakeEvaluationFailureResult<ResultType>(
-					AlgorithmStatus::AlgorithmSpecificFailure, ex.what(), algorithm_name);
+				fail(AlgorithmStatus::AlgorithmSpecificFailure, ex);
 			}
+			return finish();
 		}
 	} // namespace IntegrationDetail
 }

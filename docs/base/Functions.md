@@ -94,11 +94,51 @@ public:
     virtual Real getMinT() const = 0;
     virtual Real getMaxT() const = 0;
     
-    std::vector<VectorN<Real, N>> GetTrace(double t1, double t2, int numPoints) const;
+    std::vector<VectorN<Real, N>> getTrace(Real t1, Real t2, int numPoints) const;
 };
 ```
 
 **Use with**: Curve visualization, arc length calculation, path integration
+
+### Default sampling and parameter contracts
+
+`IRealFunction::getValues(x1, x2, count, x, y)` requires at least two points
+and finite bounds. Both endpoints are exact; interpolation does not form
+`x2-x1`, so even opposite finite extremes are supported. Reversed/equal
+ranges are valid. Every callback value must be finite. Invalid numeric inputs
+or outputs throw `NumericInputError`; callback exceptions propagate unchanged.
+The output vectors are replaced only after all samples succeed.
+
+`IParametricCurve::getTrace` keeps its count compatibility: nonpositive counts
+return an empty trace without inspecting bounds or calling the curve; a singleton
+evaluates only the finite start and ignores the unused end. Larger traces require
+two finite bounds and include both endpoints. Returned point components must be
+finite. Adjacent floating-point bounds can produce repeated samples; neither
+sampler promises distinct representable interior points. A concrete curve remains
+responsible for its own parameter domain.
+
+`IParametricCurveParametrized` exposes both the stored-parameter one-argument
+call and the explicit-parameter two-argument call through its abstract view.
+Bulk parameter access rejects negative parameter counts. A wrong-sized
+`setParams` throws `VectorDimensionError` with `expected()` equal to the declared
+count and `actual()` equal to the supplied size, before any setters run.
+Parameter-value domains are still the concrete implementation's responsibility.
+
+Run the finite-extreme sampling and trace-count examples with
+`MML_DocsApp --interface-contracts`; their runnable counterparts are in
+[`docs_demo_interfaces.cpp`](../../src/docs_demos/core/docs_demo_interfaces.cpp).
+
+### Tensor-field metadata
+
+Rank-2 through rank-5 field constructors take **contravariant count first,
+covariant count second** and reject negative counts or totals unequal to the rank.
+These counts describe totals, not slot order. Each returned tensor's
+`isContravar(slot)` flags are authoritative, including noncontiguous mixed layouts.
+A field must return a consistent layout at every position and make `component()`
+agree with full evaluation. Coordinate adapters preserve the slot flags and throw
+`TensorCovarContravarArithmeticError` if a returned tensor's totals disagree with
+the field declaration. Concrete tensor constructors, unlike field constructors,
+take covariant count first.
 
 ### IParametricSurface\<N\> (r: ℝ² → ℝⁿ)
 ```cpp
@@ -572,6 +612,5 @@ auto solution = SolveODE_RK4(lorenz, initial, 0.0, 100.0, 0.01);
 cmake --build build --target MML_DocsApp
 ./build/src/docs_demos/Release/MML_DocsApp
 ```
-
 
 

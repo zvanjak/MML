@@ -26,21 +26,30 @@ namespace Persistence
 {
 	namespace Detail
 	{
-		template<class Type, class SizeFunction, class ValueFunction>
-		IOResult SaveVectorBinary(std::ostream& out, SizeFunction size, ValueFunction value) {
-			const uint64_t count = static_cast<uint64_t>(size());
+		inline constexpr uint32_t VECTOR_BINARY_SCHEMA_VERSION = 1;
+
+		template<class Type>
+		IOResult BuildVectorBinaryHeader(uint64_t count, BinaryEnvelopeHeader& header) {
 			const uint64_t scalarBytes = BinaryScalarByteSize<Type>();
 			if (count > (std::numeric_limits<uint64_t>::max() - 8) / scalarBytes)
 				return SerializeFailure(IOError::ALLOCATION_LIMIT_EXCEEDED, "Vector binary payload size overflows uint64");
 
-			BinaryEnvelopeHeader header;
 			header.object_kind = BinaryObjectKind::Vector;
-			header.object_schema_version = 1;
+			header.magic = BinaryMagic(header.object_kind);
+			header.object_schema_version = VECTOR_BINARY_SCHEMA_VERSION;
 			header.scalar_type = BinaryScalarTypeFor<Type>();
 			header.scalar_byte_size = static_cast<uint32_t>(scalarBytes);
 			header.payload_byte_count = 8 + count * scalarBytes;
+			return ValidateBinaryEnvelopeHeader(header);
+		}
 
-			IOResult result = WriteBinaryEnvelopeHeader(out, header);
+		template<class Type, class SizeFunction, class ValueFunction>
+		IOResult SaveVectorBinary(std::ostream& out, SizeFunction size, ValueFunction value) {
+			const uint64_t count = static_cast<uint64_t>(size());
+			BinaryEnvelopeHeader header;
+			IOResult result = BuildVectorBinaryHeader<Type>(count, header);
+			if (!result.success) return result;
+			result = WriteBinaryEnvelopeHeader(out, header);
 			if (!result.success) return result;
 			WriteUInt64LE(out, count);
 			for (uint64_t index = 0; index < count; ++index)
@@ -57,6 +66,8 @@ namespace Persistence
 			if (!envelope.result.success) return envelope.result;
 			if (envelope.header.object_kind != BinaryObjectKind::Vector)
 				return SerializeFailure(IOError::TYPE_MISMATCH, "Binary payload is not a Vector");
+			if (envelope.header.object_schema_version != VECTOR_BINARY_SCHEMA_VERSION)
+				return SerializeFailure(IOError::UNSUPPORTED_VERSION, "Unsupported Vector binary object schema version");
 			IOResult result = ValidateBinaryScalarType<Type>(envelope.header.scalar_type, envelope.header.scalar_byte_size);
 			if (!result.success) return result;
 			if (envelope.header.payload_byte_count < 8)
@@ -123,6 +134,11 @@ namespace Persistence
 
 	template<class VectorType>
 	IOResult SaveVectorBinaryFile(const VectorType& vec, const std::string& filename, const SaveOptions& options = {}) {
+		auto validation = Detail::ValidateSaveFilename(filename);
+		if (!validation.success) return validation;
+		BinaryEnvelopeHeader header;
+		validation = Detail::BuildVectorBinaryHeader<typename VectorType::value_type>(static_cast<uint64_t>(vec.size()), header);
+		if (!validation.success) return validation.WithFile(filename);
 		std::ofstream file(filename, std::ios::binary);
 		if (!file.is_open())
 			return SerializeFailure(IOError::FILE_NOT_OPENED, "Could not create binary file " + filename).WithFile(filename);

@@ -14,6 +14,7 @@
 #include "../TestPrecision.h"
 #include "../TestMatchers.h"
 #include <cmath>
+#include <type_traits>
 
 #ifdef MML_USE_SINGLE_HEADER
 #include <MML.h>
@@ -35,6 +36,14 @@ using namespace Catch::Matchers;
 
 namespace MML::Tests::Base::BaseMathFormulaFixesTests
 {
+	TEMPLATE_TEST_CASE("Abs complex component types retain the Real result contract",
+		"[Abs][Complex][precision-contract]", float, double, long double)
+	{
+		const std::complex<TestType> value(TestType(3), TestType(-4));
+		STATIC_REQUIRE((std::is_same_v<decltype(MML::Abs(value)), Real>));
+		REQUIRE(MML::Abs(value) == Real(5));
+	}
+
 	/*********************************************************************/
 	/*****          VectorN::NormL2 Complex Tests                   *****/
 	/*********************************************************************/
@@ -57,7 +66,7 @@ namespace MML::Tests::Base::BaseMathFormulaFixesTests
 		VectorN<Complex, 3> v{Complex(1.0, 1.0), Complex(1.0, 1.0), Complex(1.0, 1.0)};
 		
 		Real norm = v.NormL2();
-		Real expected = std::sqrt(6.0);
+		Real expected = std::sqrt(MML::Real(6.0));
 		REQUIRE_THAT(norm, WithinAbs(expected, TOL(1e-10, 1e-5)));
 	}
 	
@@ -113,7 +122,7 @@ namespace MML::Tests::Base::BaseMathFormulaFixesTests
 		M(1, 1) = Complex(1.0, 1.0);
 		
 		Real norm = MatrixAlg::FrobeniusNorm(M);
-		Real expected = std::sqrt(8.0);
+		Real expected = std::sqrt(MML::Real(8.0));
 		REQUIRE_THAT(norm, WithinAbs(expected, TOL(1e-10, 1e-5)));
 	}
 	
@@ -243,6 +252,7 @@ namespace MML::Tests::Base::BaseMathFormulaFixesTests
 		}
 		
 		// Should be roughly equal (within statistical noise)
+		REQUIRE(countPosZ + countNegZ == numSamples);
 		Real ratio = static_cast<Real>(countPosZ) / numSamples;
 		REQUIRE_THAT(ratio, WithinAbs(static_cast<MML::Real>(0.5), static_cast<MML::Real>(0.05)));  // 5% tolerance
 	}
@@ -268,6 +278,7 @@ namespace MML::Tests::Base::BaseMathFormulaFixesTests
 		}
 		
 		// With uniform sampling, equatorial and polar should be equal
+		REQUIRE(countEquatorial + countPolar == numSamples);
 		Real ratio = static_cast<Real>(countEquatorial) / numSamples;
 		REQUIRE_THAT(ratio, WithinAbs(static_cast<MML::Real>(0.5), static_cast<MML::Real>(0.05)));
 	}
@@ -468,4 +479,3 @@ namespace MML::Tests::Base::BaseMathFormulaFixesTests
 		REQUIRE_THAT(norm1, WithinAbs(normInf, TOL(1e-10, 1e-5)));
 	}
 }
-

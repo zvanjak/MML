@@ -20,13 +20,122 @@ namespace MML
 {
 	namespace Statistics
 	{
+		namespace StatisticsDetail
+		{
+			inline void RequireGammaParameters(Real shape, Real scale) {
+				if (!(std::isfinite(shape) && shape > 0 && std::isfinite(scale) && scale > 0))
+					throw StatisticsError("Gamma shape and scale must be finite and positive");
+			}
+
+			inline Real NormalCdf(Real z) {
+				return Real(0.5) * std::erfc(-z / std::sqrt(Real(2)));
+			}
+
+			inline Real StandardizeNormal(Real x, Real mean, Real sigma) {
+				Real difference = x - mean;
+				if (std::isfinite(x) && std::isfinite(mean) && !std::isfinite(difference))
+					return x / sigma - mean / sigma;
+				return difference / sigma;
+			}
+
+			// Unlike general root solvers, require both relative tail accuracy and a relative x bracket.
+			// Logarithmic bisection covers tiny positive roots without an arbitrary support clamp.
+			template<class Probability>
+			Real PositiveQuantile(Real target, Probability probability, bool increasing, Real high = 1,
+				bool expand = true, int maxIterations = Precision::DistributionQuantileMaxIterations,
+				int bracketIterations = Precision::DistributionQuantileBracketIterations) {
+				auto evaluate = [&](Real x) {
+					Real value = probability(x);
+					if (!(std::isfinite(value) && value >= 0 && value <= 1))
+						throw NumericalMethodError("Invalid probability during distribution quantile search");
+					return value;
+				};
+				auto belowRoot = [&](Real value) { return increasing ? value < target : value > target; };
+				const Real minimum = std::numeric_limits<Real>::denorm_min() > 0
+					? std::numeric_limits<Real>::denorm_min() : std::numeric_limits<Real>::min();
+				Real low = minimum;
+				Real lowValue = evaluate(low);
+				Real highValue = evaluate(high);
+				if (belowRoot(highValue) && expand) {
+					int iteration = 0;
+					for (; iteration < bracketIterations && belowRoot(highValue); ++iteration) {
+						if (high == std::numeric_limits<Real>::max())
+							break;
+						low = high;
+						lowValue = highValue;
+						high = high > std::numeric_limits<Real>::max() / 2
+							? std::numeric_limits<Real>::max() : 2 * high;
+						highValue = evaluate(high);
+					}
+					if (belowRoot(highValue))
+						throw ConvergenceError("Cannot bracket a finite distribution quantile", iteration,
+							std::abs(highValue / target - 1));
+				}
+				if (belowRoot(highValue) || (lowValue != target && !belowRoot(lowValue)))
+					throw ConvergenceError("Distribution quantile lies outside the resolvable positive range", 0,
+						std::abs(lowValue / target - 1));
+
+				Real logLow = std::log(low);
+				Real logHigh = std::log(high);
+				Real residual = std::numeric_limits<Real>::infinity();
+				for (int iteration = 0; iteration < maxIterations; ++iteration) {
+					Real logX = std::midpoint(logLow, logHigh);
+					Real x = std::clamp(std::exp(logX), low, high);
+					Real value = evaluate(x);
+					residual = std::abs(value / target - 1);
+					if (residual <= Precision::DistributionQuantileProbabilityTolerance
+						&& logHigh - logLow <= std::log1p(Precision::DistributionQuantileRelativeTolerance)) {
+						Real probabilityResolution = (std::nextafter(value, std::numeric_limits<Real>::infinity()) - value) / target;
+						if (probabilityResolution > Precision::DistributionQuantileProbabilityTolerance)
+							throw ConvergenceError("Distribution quantile tail has insufficient probability resolution",
+								iteration + 1, probabilityResolution);
+						return x;
+					}
+					if (logX == logLow || logX == logHigh)
+						throw ConvergenceError("Distribution quantile stagnated before reaching tail accuracy",
+							iteration + 1, residual);
+					if (belowRoot(value))
+						logLow = logX;
+					else
+						logHigh = logX;
+				}
+				throw ConvergenceError("Distribution quantile exhausted its iteration budget", maxIterations, residual);
+			}
+
+			inline Real StudentCentralProbability(Real x, Real nu) {
+				Real ratio = x / std::sqrt(nu);
+				Real square = ratio * ratio;
+				return SpecialFunctions::RegularizedBetaI(square / (1 + square), Real(0.5), nu / 2);
+			}
+
+			inline Real StudentTwoSidedTail(Real x, Real nu) {
+				if (nu == 1)
+					return 2 * std::atan(1 / x) / Constants::PI;
+				if (x <= 1)
+					return 1 - StudentCentralProbability(x, nu);
+				Real ratio = std::sqrt(nu) / x;
+				Real square = ratio * ratio;
+				return SpecialFunctions::RegularizedBetaI(square / (1 + square), nu / 2, Real(0.5));
+			}
+
+			inline Real StudentCriticalValue(Real alpha, Real nu) {
+				if (alpha > Real(0.5))
+					return PositiveQuantile(1 - alpha,
+						[=](Real x) { return StudentCentralProbability(x, nu); }, true);
+				return PositiveQuantile(alpha,
+					[=](Real x) { return StudentTwoSidedTail(x, nu); }, false);
+			}
+		}
+
 		/// @brief Inverse of the standard normal CDF (probit): z such that Phi(z)=p.
-		/// @details z = sqrt(2)*erf^{-1}(2p-1), full double precision via SpecialFunctions::ErfInv.
+		/// @details Uses the smaller probability directly via the shared complementary error-function inverse.
 		inline Real InverseStandardNormalCdf(Real p)
 		{
-			if (p <= 0.0 || p >= 1.0)
+			if (!(p > 0.0 && p < 1.0))
 				throw StatisticsError("Probability must be in (0, 1) in InverseStandardNormalCdf");
-			return std::sqrt(2.0) * SpecialFunctions::ErfInv(2.0 * p - 1.0);
+			Real tail = p < Real(0.5) ? p : 1 - p;
+			Real magnitude = std::sqrt(Real(2)) * SpecialFunctions::ErfcInv(2 * tail);
+			return p < Real(0.5) ? -magnitude : magnitude;
 		}
 
 		/// @brief Draw U ~ Uniform(0,1) from a uniform random bit generator.
@@ -43,25 +152,26 @@ namespace MML
 			Real u1;
 			do { u1 = SampleUniform01(gen); } while (u1 == static_cast<MML::Real>(0.0));
 			Real u2 = SampleUniform01(gen);
-			return std::sqrt(-2.0 * std::log(u1)) * std::cos(2.0 * Constants::PI * u2);
+			return std::sqrt(-MML::Real(2.0) * std::log(u1)) * std::cos(MML::Real(2.0) * Constants::PI * u2);
 		}
 
 		/// @brief Draw X ~ Gamma(shape, scale) via the Marsaglia-Tsang method.
 		template<class URBG>
 		inline Real SampleGamma(URBG& gen, Real shape, Real scale)
 		{
+			StatisticsDetail::RequireGammaParameters(shape, scale);
 			if (shape < 1.0)
 			{
 				Real u;
 				do { u = SampleUniform01(gen); } while (u == static_cast<MML::Real>(0.0));
-				return SampleGamma(gen, shape + 1.0, scale) * std::pow(u, 1.0 / shape);
+				return SampleGamma(gen, shape + MML::Real(1.0), scale) * std::pow(u, MML::Real(1.0) / shape);
 			}
-			Real d = shape - 1.0 / 3.0;
-			Real c = 1.0 / std::sqrt(9.0 * d);
+			Real d = shape - MML::Real(1.0) / MML::Real(3.0);
+			Real c = MML::Real(1.0) / std::sqrt(MML::Real(9.0) * d);
 			while (true)
 			{
 				Real x, v;
-				do { x = SampleStandardNormal(gen); v = 1.0 + c * x; } while (v <= 0.0);
+				do { x = SampleStandardNormal(gen); v = MML::Real(1.0) + c * x; } while (v <= MML::Real(0.0));
 				v = v * v * v;
 				Real u = SampleUniform01(gen);
 				if (u < 1.0 - static_cast<MML::Real>(0.0331) * x * x * x * x) return d * v * scale;
@@ -87,14 +197,13 @@ namespace MML
 			NormalDistribution(Real mean = 0.0, Real stddev = 1.0)
 				: mu(mean), sigma(stddev)
 			{
-				if (sigma <= 0.0)
-					throw StatisticsError("Standard deviation must be positive in NormalDistribution");
+				ValidateParameters();
 			}
 
 			/// @brief Draw a random variate using the given URBG (e.g. std::mt19937).
-			template<class URBG> Real sample(URBG& gen) const { return mu + sigma * SampleStandardNormal(gen); }
+			template<class URBG> Real sample(URBG& gen) const { ValidateParameters(); return mu + sigma * SampleStandardNormal(gen); }
 			/// @brief Draw a random variate using MML's thread-local engine.
-			Real sample() const { return sample(Random::Engine()); }
+			Real sample() const { ValidateParameters(); return sample(Random::Engine()); }
 
 			/// @brief Probability density function (PDF)
 			///
@@ -102,35 +211,35 @@ namespace MML
 			/// @return Probability density at x
 			Real pdf(Real x) const
 			{
+				ValidateParameters();
 				Real z = (x - mu) / sigma;
-				return std::exp(-0.5 * z * z) / (sigma * std::sqrt(2.0 * Constants::PI));
+				return std::exp(-MML::Real(0.5) * z * z) / (sigma * std::sqrt(MML::Real(2.0) * Constants::PI));
 			}
 
 			/// @brief Cumulative distribution function (CDF)
 			///
-			/// Uses the error function: Φ(x) = 0.5 * (1 + erf(x/√2))
+			/// Uses the complementary error function to preserve the small lower tail.
 			/// @param x Value at which to evaluate the CDF
 			///
 			/// @return Probability that X <= x
 			Real cdf(Real x) const
 			{
-				Real z = (x - mu) / (sigma * std::sqrt(2.0));
-				return 0.5 * (1.0 + std::erf(z));
+				ValidateParameters();
+				return StatisticsDetail::NormalCdf(StatisticsDetail::StandardizeNormal(x, mu, sigma));
 			}
 
 			/// @brief Inverse cumulative distribution function (quantile/probit function)
 			///
-			/// Uses Abramowitz and Stegun approximation for the inverse error function.
+			/// Uses the shared tail-aware inverse standard normal CDF.
 			/// @param p Probability (must be in (0, 1))
 			///
 			/// @return Value x such that P(X <= x) = p
 			Real inverseCdf(Real p) const
 			{
-				if (p <= 0.0 || p >= 1.0)
+				ValidateParameters();
+				if (!(p > 0.0 && p < 1.0))
 					throw StatisticsError("Probability must be in (0, 1) in NormalDistribution::inverseCdf");
 
-				// Use rational approximation for inverse normal CDF
-				// Based on Abramowitz and Stegun approximation 26.2.23
 				Real z = InverseStandardNormalCdf(p);
 				return mu + sigma * z;
 			}
@@ -141,7 +250,8 @@ namespace MML
 			/// @return Standardized value (z-score)
 			Real zScore(Real x) const
 			{
-				return (x - mu) / sigma;
+				ValidateParameters();
+				return StatisticsDetail::StandardizeNormal(x, mu, sigma);
 			}
 
 			/// @brief Convert z-score back to raw value
@@ -150,17 +260,29 @@ namespace MML
 			/// @return Raw value
 			Real fromZScore(Real z) const
 			{
+				ValidateParameters();
 				return mu + sigma * z;
 			}
 
 			/// @brief Mean of the distribution
-			Real mean() const { return mu; }
+			Real mean() const { ValidateParameters(); return mu; }
 
 			/// @brief Variance of the distribution
-			Real variance() const { return sigma * sigma; }
+			Real variance() const {
+				ValidateParameters();
+				int exponent = 0;
+				const Real mantissa = std::frexp(sigma, &exponent);
+				return std::scalbn(mantissa * mantissa, 2 * exponent);
+			}
 
 			/// @brief Standard deviation of the distribution
-			Real stddev() const { return sigma; }
+			Real stddev() const { ValidateParameters(); return sigma; }
+
+		private:
+			void ValidateParameters() const {
+				if (!(std::isfinite(mu) && std::isfinite(sigma) && sigma > 0))
+					throw StatisticsError("Invalid parameters in NormalDistribution");
+			}
 		};
 
 		/// @brief Standard normal distribution (mean=0, stddev=1)
@@ -171,13 +293,13 @@ namespace MML
 			/// @brief PDF of standard normal
 			static Real pdf(Real z)
 			{
-				return std::exp(-0.5 * z * z) / std::sqrt(2.0 * Constants::PI);
+				return std::exp(-MML::Real(0.5) * z * z) / std::sqrt(MML::Real(2.0) * Constants::PI);
 			}
 
 			/// @brief CDF of standard normal (Φ function)
 			static Real cdf(Real z)
 			{
-				return 0.5 * (1.0 + std::erf(z / std::sqrt(2.0)));
+				return StatisticsDetail::NormalCdf(z);
 			}
 
 			/// @brief Inverse CDF (probit function)
@@ -190,13 +312,13 @@ namespace MML
 			/// @brief Survival function: P(Z > z) = 1 - Φ(z)
 			static Real sf(Real z)
 			{
-				return 1.0 - cdf(z);
+				return StatisticsDetail::NormalCdf(-z);
 			}
 
 			/// @brief Two-tailed p-value: P(|Z| > |z|)
 			static Real twoTailedPValue(Real z)
 			{
-				return 2.0 * sf(std::abs(z));
+				return MML::Real(2.0) * sf(std::abs(z));
 			}
 		};
 
@@ -221,19 +343,19 @@ namespace MML
 			/// @param degreesOfFreedom Degrees of freedom (must be >= 1)
 			TDistribution(int degreesOfFreedom) : df(degreesOfFreedom)
 			{
-				if (df < 1)
-					throw StatisticsError("Degrees of freedom must be at least 1 in TDistribution");
+				ValidateParameters();
 			}
 
 			/// @brief Draw a random variate (Z / sqrt(chi2_df / df)) using the given URBG.
 			template<class URBG> Real sample(URBG& gen) const
 			{
+				ValidateParameters();
 				Real z = SampleStandardNormal(gen);
-				Real v = SampleGamma(gen, df / 2.0, 2.0);
+				Real v = SampleGamma(gen, df / MML::Real(2.0), MML::Real(2.0));
 				return z / std::sqrt(v / df);
 			}
 			/// @brief Draw a random variate using MML's thread-local engine.
-			Real sample() const { return sample(Random::Engine()); }
+			Real sample() const { ValidateParameters(); return sample(Random::Engine()); }
 
 			/// @brief Probability density function (PDF)
 			///
@@ -241,12 +363,13 @@ namespace MML
 			/// @return Probability density at x
 			Real pdf(Real x) const
 			{
+				ValidateParameters();
 				Real nu = static_cast<Real>(df);
 				
 				// Log-space computation for numerical stability
-				Real logNumerator = std::lgamma((nu + 1.0) / 2.0);
-				Real logDenominator = 0.5 * std::log(nu * Constants::PI) + std::lgamma(nu / 2.0);
-				Real logBase = -(nu + 1.0) / 2.0 * std::log(1.0 + x * x / nu);
+				Real logNumerator = std::lgamma((nu + MML::Real(1.0)) / MML::Real(2.0));
+				Real logDenominator = MML::Real(0.5) * std::log(nu * Constants::PI) + std::lgamma(nu / MML::Real(2.0));
+				Real logBase = -(nu + MML::Real(1.0)) / MML::Real(2.0) * std::log(MML::Real(1.0) + x * x / nu);
 				
 				return std::exp(logNumerator - logDenominator + logBase);
 			}
@@ -259,33 +382,9 @@ namespace MML
 			/// @return Probability that T <= x
 			Real cdf(Real x) const
 			{
-				if (df == 1) {
-					// Special case: df=1 is Cauchy distribution centered at 0
-					return 0.5 + std::atan(x) / Constants::PI;
-				}
-
-				Real nu = static_cast<Real>(df);
-				
-				if (x == 0.0)
-					return 0.5;
-				
-				// Standard formula for t-distribution CDF:
-				// For t > 0: P(T <= t) = 1 - 0.5 * I_x(df/2, 0.5)
-				// where x = df/(df + t²)
-				// For t < 0: Use symmetry P(T <= -|t|) = 1 - P(T <= |t|)
-				
-				Real absX = std::abs(x);
-				Real x2 = absX * absX;
-				Real xBeta = nu / (nu + x2);
-				Real betaReg = SpecialFunctions::RegularizedBetaI(xBeta, nu / 2.0, 0.5);
-				
-				Real result = 1.0 - 0.5 * betaReg;
-				
-				// If x < 0, use symmetry
-				if (x < 0.0)
-					result = 1.0 - result;
-				
-				return result;
+				ValidateParameters();
+				Real tail = Real(0.5) * StatisticsDetail::StudentTwoSidedTail(std::abs(x), Real(df));
+				return x < 0 ? tail : 1 - tail;
 			}
 
 			/// @brief Inverse cumulative distribution function (quantile function)
@@ -296,43 +395,24 @@ namespace MML
 			/// @return Value t such that P(T <= t) = p
 			Real inverseCdf(Real p) const
 			{
-				if (p <= 0.0 || p >= 1.0)
+				ValidateParameters();
+				if (!(p > 0 && p < 1))
 					throw StatisticsError("Probability must be in (0, 1) in TDistribution::inverseCdf");
 
 				if (p == 0.5)
 					return 0.0;
 
-				if (df == 1) {
-					// Special case: df=1 is Cauchy
-					return std::tan(Constants::PI * (p - 0.5));
-				}
-
-				// Use Newton-Raphson iteration
-				// Start with normal approximation
-				Real t = StandardNormal::inverseCdf(p);
-				
-				// Refine with Newton-Raphson
-				for (int iter = 0; iter < 10; iter++) {
-					Real f = cdf(t) - p;
-					Real fprime = pdf(t);
-					
-					if (std::abs(fprime) < 1e-14)
-						break;
-					
-					Real delta = f / fprime;
-					t -= delta;
-					
-					if (std::abs(delta) < Precision::DefaultToleranceStrict)
-						break;
-				}
-				
-				return t;
+				Real tail = p < Real(0.5) ? p : 1 - p;
+				Real magnitude = StatisticsDetail::StudentCriticalValue(2 * tail, Real(df));
+				return p < Real(0.5) ? -magnitude : magnitude;
 			}
 
 			/// @brief Survival function: P(T > t)
 			Real sf(Real x) const
 			{
-				return 1.0 - cdf(x);
+				ValidateParameters();
+				Real tail = Real(0.5) * StatisticsDetail::StudentTwoSidedTail(std::abs(x), Real(df));
+				return x < 0 ? 1 - tail : tail;
 			}
 
 			/// @brief Two-tailed p-value: P(|T| > |t|)
@@ -340,7 +420,8 @@ namespace MML
 			/// This is the standard p-value used in t-tests.
 			Real twoTailedPValue(Real t) const
 			{
-				return 2.0 * sf(std::abs(t));
+				ValidateParameters();
+				return StatisticsDetail::StudentTwoSidedTail(std::abs(t), Real(df));
 			}
 
 			/// @brief Critical value for given significance level (two-tailed)
@@ -351,11 +432,11 @@ namespace MML
 			/// @return Critical value t*
 			Real criticalValue(Real alpha) const
 			{
-				if (alpha <= 0.0 || alpha >= 1.0)
+				ValidateParameters();
+				if (!(alpha > 0 && alpha < 1))
 					throw StatisticsError("Alpha must be in (0, 1) in TDistribution::criticalValue");
 				
-				// Two-tailed: find t* where P(T > t*) = alpha/2
-				return inverseCdf(1.0 - alpha / 2.0);
+				return StatisticsDetail::StudentCriticalValue(alpha, Real(df));
 			}
 
 			/// @brief Mean of the distribution (if it exists)
@@ -363,6 +444,7 @@ namespace MML
 			/// Mean exists only for df >= 2, and equals 0.
 			Real mean() const
 			{
+				ValidateParameters();
 				if (df < 2)
 					throw StatisticsError("Mean does not exist for df < 2 in TDistribution");
 				return 0.0;
@@ -374,11 +456,18 @@ namespace MML
 			/// Var(T) = ν/(ν-2) for ν > 2
 			Real variance() const
 			{
+				ValidateParameters();
 				if (df <= 2)
 					throw StatisticsError("Variance does not exist for df <= 2 in TDistribution");
 				
 				Real nu = static_cast<Real>(df);
-				return nu / (nu - 2.0);
+				return nu / (nu - MML::Real(2.0));
+			}
+
+		private:
+			void ValidateParameters() const {
+				if (!(df > 0))
+					throw StatisticsError("Invalid parameters in TDistribution");
 			}
 		};
 
@@ -407,23 +496,23 @@ namespace MML
 			}
 
 			/// @brief Draw a random variate (chi2 = Gamma(df/2, 2)) using the given URBG.
-			template<class URBG> Real sample(URBG& gen) const { return SampleGamma(gen, _df / 2.0, 2.0); }
+			template<class URBG> Real sample(URBG& gen) const { return SampleGamma(gen, _df / MML::Real(2.0), MML::Real(2.0)); }
 			/// @brief Draw a random variate using MML's thread-local engine.
 			Real sample() const { return sample(Random::Engine()); }
 
 			int df() const { return _df; }
 			Real mean() const { return static_cast<Real>(_df); }
-			Real variance() const { return 2.0 * _df; }
+			Real variance() const { return MML::Real(2.0) * _df; }
 			Real stddev() const { return std::sqrt(variance()); }
 
 			/// @brief Probability Density Function
 			Real pdf(Real x) const
 			{
 				if (x < 0.0) return 0.0;
-				if (x == 0.0) return (_df == 2) ? 0.5 : 0.0;
+				if (x == MML::Real(0.0)) return (_df == 2) ? MML::Real(0.5) : MML::Real(0.0);
 
-				Real k2 = _df / 2.0;
-				return std::exp((k2 - 1.0) * std::log(x) - x / 2.0 - k2 * std::log(2.0) - std::lgamma(k2));
+				Real k2 = _df / MML::Real(2.0);
+				return std::exp((k2 - MML::Real(1.0)) * std::log(x) - x / MML::Real(2.0) - k2 * std::log(MML::Real(2.0)) - std::lgamma(k2));
 			}
 
 			/// @brief Cumulative Distribution Function (CDF)
@@ -434,7 +523,7 @@ namespace MML
 				if (x <= 0.0) return 0.0;
 				
 				// CDF = P(k/2, x/2) where P is regularized lower incomplete gamma
-				return SpecialFunctions::RegularizedGammaP(_df / 2.0, x / 2.0);
+				return SpecialFunctions::RegularizedGammaP(_df / MML::Real(2.0), x / MML::Real(2.0));
 			}
 
 			/// @brief Right-tail probability P(X ≥ x)
@@ -442,7 +531,8 @@ namespace MML
 			/// This is the p-value for chi-square tests
 			Real rightTailPValue(Real chiSquare) const
 			{
-				return 1.0 - cdf(chiSquare);
+				if (chiSquare <= 0) return 1;
+				return SpecialFunctions::RegularizedGammaQ(_df / MML::Real(2.0), chiSquare / 2);
 			}
 
 			/// @brief Critical value for given significance level (right-tail test)
@@ -450,30 +540,11 @@ namespace MML
 			/// Returns x such that P(X ≥ x) = alpha
 			Real criticalValue(Real alpha) const
 			{
-				if (alpha <= 0.0 || alpha >= 1.0)
+				if (!(alpha > 0 && alpha < 1))
 					throw StatisticsError("Alpha must be in (0, 1)");
-
-				// Find x where CDF(x) = 1 - alpha using binary search
-				Real low = 0.0;
-				Real high = mean() + 10.0 * stddev();  // Start with reasonable upper bound
-				Real tolerance = 1e-9;
-				int maxIterations = 100;
-
-				for (int iter = 0; iter < maxIterations; iter++) {
-					Real mid = (low + high) / 2.0;
-					Real cdf_mid = cdf(mid);
-					Real target = 1.0 - alpha;
-
-					if (std::abs(cdf_mid - target) < tolerance)
-						return mid;
-
-					if (cdf_mid < target)
-						low = mid;
-					else
-						high = mid;
-				}
-
-				return (low + high) / 2.0;
+				if (alpha > Real(0.5))
+					return StatisticsDetail::PositiveQuantile(1 - alpha, [this](Real x) { return cdf(x); }, true, Real(_df));
+				return StatisticsDetail::PositiveQuantile(alpha, [this](Real x) { return rightTailPValue(x); }, false, Real(_df));
 			}
 		};
 
@@ -506,8 +577,8 @@ namespace MML
       /// @brief Draw a random variate (ratio of scaled chi-squares) using the given URBG.
       template<class URBG> Real sample(URBG& gen) const
       {
-        Real u1 = SampleGamma(gen, _df1 / 2.0, 2.0);
-        Real u2 = SampleGamma(gen, _df2 / 2.0, 2.0);
+        Real u1 = SampleGamma(gen, _df1 / MML::Real(2.0), MML::Real(2.0));
+        Real u2 = SampleGamma(gen, _df2 / MML::Real(2.0), MML::Real(2.0));
         return (u1 / _df1) / (u2 / _df2);
       }
       /// @brief Draw a random variate using MML's thread-local engine.
@@ -529,22 +600,22 @@ namespace MML
           throw StatisticsError("F-distribution variance undefined for df2 <= 4");
         Real d1 = static_cast<Real>(_df1);
         Real d2 = static_cast<Real>(_df2);
-        return (2.0 * d2 * d2 * (d1 + d2 - 2.0)) /
-              (d1 * (d2 - 2.0) * (d2 - 2.0) * (d2 - 4.0));
+        return (MML::Real(2.0) * d2 * d2 * (d1 + d2 - MML::Real(2.0))) /
+              (d1 * (d2 - MML::Real(2.0)) * (d2 - MML::Real(2.0)) * (d2 - MML::Real(4.0)));
       }
 
       /// @brief Probability Density Function
       Real pdf(Real x) const
       {
         if (x < 0.0) return 0.0;
-        if (x == 0.0) return (_df1 == 2) ? 1.0 : 0.0;
+        if (x == MML::Real(0.0)) return (_df1 == 2) ? MML::Real(1.0) : MML::Real(0.0);
 
-        Real d1 = _df1 / 2.0;
-        Real d2 = _df2 / 2.0;
+        Real d1 = _df1 / MML::Real(2.0);
+        Real d2 = _df2 / MML::Real(2.0);
 
         // log PDF to avoid overflow
-        Real logPdf = d1 * std::log(_df1) + d2 * std::log(_df2) +
-                      (d1 - 1.0) * std::log(x) -
+        Real logPdf = d1 * std::log(Real(_df1)) + d2 * std::log(Real(_df2)) +
+                      (d1 - MML::Real(1.0)) * std::log(x) -
                       (d1 + d2) * std::log(_df2 + _df1 * x) +
                       std::lgamma(d1 + d2) - std::lgamma(d1) - std::lgamma(d2);
 
@@ -558,10 +629,11 @@ namespace MML
       {
         if (x <= 0.0) return 0.0;
 
-        // F-CDF = I_y(df1/2, df2/2) where y = (df1*x)/(df1*x + df2)
-        // I is regularized incomplete beta function
-        Real y = (_df1 * x) / (_df1 * x + _df2);
-        return SpecialFunctions::RegularizedBetaI(y, _df1 / 2.0, _df2 / 2.0);
+        Real ratio = Real(_df2) / Real(_df1);
+        if (x > ratio)
+          return 1 - rightTailPValue(x);
+        Real y = x / ratio;
+        return SpecialFunctions::RegularizedBetaI(y / (1 + y), _df1 / MML::Real(2.0), _df2 / MML::Real(2.0));
       }
 
       /// @brief Right-tail probability P(F ≥ f)
@@ -569,7 +641,12 @@ namespace MML
       /// This is the p-value for F-tests (ANOVA, regression)
       Real rightTailPValue(Real f) const
       {
-        return 1.0 - cdf(f);
+        if (f <= 0) return 1;
+        Real ratio = Real(_df2) / Real(_df1);
+        if (f < ratio)
+          return 1 - cdf(f);
+        Real y = ratio / f;
+        return SpecialFunctions::RegularizedBetaI(y / (1 + y), _df2 / MML::Real(2.0), _df1 / MML::Real(2.0));
       }
 
       /// @brief Critical value for given significance level (right-tail test)
@@ -577,29 +654,12 @@ namespace MML
       /// Returns f such that P(F ≥ f) = alpha
       Real criticalValue(Real alpha) const
       {
-        if (alpha <= 0.0 || alpha >= 1.0)
+        if (!(alpha > 0 && alpha < 1))
           throw StatisticsError("Alpha must be in (0, 1)");
 
-        // Binary search for critical value
-        Real low = 0.0;
-        Real high = 100.0;  // Start with reasonable upper bound
-        Real tolerance = 1e-9;
-        int maxIterations = 100;
-
-        for (int iter = 0; iter < maxIterations; iter++) {
-          Real mid = (low + high) / 2.0;
-          Real pValue = rightTailPValue(mid);
-
-          if (std::abs(pValue - alpha) < tolerance)
-            return mid;
-
-          if (pValue > alpha)  // Need larger F
-            low = mid;
-          else  // Need smaller F
-            high = mid;
-        }
-
-        return (low + high) / 2.0;
+        if (alpha > Real(0.5))
+          return StatisticsDetail::PositiveQuantile(1 - alpha, [this](Real x) { return cdf(x); }, true);
+        return StatisticsDetail::PositiveQuantile(alpha, [this](Real x) { return rightTailPValue(x); }, false);
       }
     };
 
@@ -616,14 +676,13 @@ namespace MML
 			CauchyDistribution(Real location = 0.0, Real scale = 1.0) 
 				: mu(location), sigma(scale)
 			{
-				if (sigma <= 0.0)
-					throw StatisticsError("Scale parameter must be positive in CauchyDistribution");
+				ValidateParameters();
 			}
 
 			/// @brief Draw a random variate using the given URBG.
-			template<class URBG> Real sample(URBG& gen) const { return mu + sigma * std::tan(Constants::PI * (SampleUniform01(gen) - 0.5)); }
+			template<class URBG> Real sample(URBG& gen) const { ValidateParameters(); return mu + sigma * std::tan(Constants::PI * (SampleUniform01(gen) - MML::Real(0.5))); }
 			/// @brief Draw a random variate using MML's thread-local engine.
-			Real sample() const { return sample(Random::Engine()); }
+			Real sample() const { ValidateParameters(); return sample(Random::Engine()); }
 
 			/// @brief Probability density function (PDF)
 			///
@@ -631,8 +690,9 @@ namespace MML
 			/// @return Probability density at x
 			Real pdf(Real x) const
 			{
+				ValidateParameters();
 				Real z = (x - mu) / sigma;
-				return 1.0 / (Constants::PI * sigma * (1.0 + z * z));
+				return MML::Real(1.0) / (Constants::PI * sigma * (MML::Real(1.0) + z * z));
 			}
 
 			/// @brief Cumulative distribution function (CDF)
@@ -641,7 +701,8 @@ namespace MML
 			/// @return Probability that X <= x
 			Real cdf(Real x) const
 			{
-				return 0.5 + std::atan2(x - mu, sigma) / Constants::PI;
+				ValidateParameters();
+				return MML::Real(0.5) + std::atan2(x - mu, sigma) / Constants::PI;
 			}
 
 			/// @brief Inverse cumulative distribution function (quantile function)
@@ -650,9 +711,16 @@ namespace MML
 			/// @return Value x such that P(X <= x) = p
 			Real inverseCdf(Real p) const
 			{
-				if (p <= 0.0 || p >= 1.0)
+				ValidateParameters();
+				if (!(p > 0.0 && p < 1.0))
 					throw StatisticsError("Probability must be in (0, 1) in CauchyDistribution::inverseCdf");
-				return mu + sigma * std::tan(Constants::PI * (p - 0.5));
+				return mu + sigma * std::tan(Constants::PI * (p - MML::Real(0.5)));
+			}
+
+		private:
+			void ValidateParameters() const {
+				if (!(std::isfinite(mu) && std::isfinite(sigma) && sigma > 0))
+					throw StatisticsError("Invalid parameters in CauchyDistribution");
 			}
 		};
 
@@ -666,20 +734,20 @@ namespace MML
 			/// @param rate Rate parameter λ (must be > 0)
 			ExponentialDistribution(Real rate) : lambda(rate)
 			{
-				if (lambda <= 0.0)
-					throw StatisticsError("Rate parameter must be positive in ExponentialDistribution");
+				ValidateParameters();
 			}
 
 			/// @brief Draw a random variate (inverse-CDF) using the given URBG.
-			template<class URBG> Real sample(URBG& gen) const { return -std::log(1.0 - SampleUniform01(gen)) / lambda; }
+			template<class URBG> Real sample(URBG& gen) const { ValidateParameters(); return -std::log(MML::Real(1.0) - SampleUniform01(gen)) / lambda; }
 			/// @brief Draw a random variate using MML's thread-local engine.
-			Real sample() const { return sample(Random::Engine()); }
+			Real sample() const { ValidateParameters(); return sample(Random::Engine()); }
 
 			/// @brief Probability density function (PDF)
 			/// @param x Value at which to evaluate the PDF (must be >= 0)
 			/// @return Probability density at x
 			Real pdf(Real x) const
 			{
+				ValidateParameters();
 				if (x < 0.0)
 					throw StatisticsError("x must be non-negative in ExponentialDistribution::pdf");
 				return lambda * std::exp(-lambda * x);
@@ -690,9 +758,10 @@ namespace MML
 			/// @return Probability that X <= x
 			Real cdf(Real x) const
 			{
+				ValidateParameters();
 				if (x < 0.0)
 					throw StatisticsError("x must be non-negative in ExponentialDistribution::cdf");
-				return 1.0 - std::exp(-lambda * x);
+				return MML::Real(1.0) - std::exp(-lambda * x);
 			}
 
 			/// @brief Inverse CDF (quantile function)
@@ -700,18 +769,25 @@ namespace MML
 			/// @return Value x such that P(X <= x) = p
 			Real inverseCdf(Real p) const
 			{
-				if (p < 0.0 || p >= 1.0)
+				ValidateParameters();
+				if (!(p >= 0.0 && p < 1.0))
 					throw StatisticsError("Probability must be in [0, 1) in ExponentialDistribution::inverseCdf");
-				return -std::log(1.0 - p) / lambda;
+				return -std::log(MML::Real(1.0) - p) / lambda;
 			}
 
 			/// @brief Get the mean of the distribution
 			/// @return Mean = 1/λ
-			Real mean() const { return 1.0 / lambda; }
+			Real mean() const { ValidateParameters(); return MML::Real(1.0) / lambda; }
 
 			/// @brief Get the variance of the distribution
 			/// @return Variance = 1/λ²
-			Real variance() const { return 1.0 / (lambda * lambda); }
+			Real variance() const { ValidateParameters(); return MML::Real(1.0) / (lambda * lambda); }
+
+		private:
+			void ValidateParameters() const {
+				if (!(std::isfinite(lambda) && lambda > 0))
+					throw StatisticsError("Invalid parameters in ExponentialDistribution");
+			}
 		};
 
 		/// @brief Logistic distribution (used in logistic regression, neural networks)
@@ -727,20 +803,20 @@ namespace MML
 			LogisticDistribution(Real location = 0.0, Real scale = 1.0)
 				: mu(location), sigma(scale)
 			{
-				if (sigma <= 0.0)
-					throw StatisticsError("Scale parameter must be positive in LogisticDistribution");
+				ValidateParameters();
 			}
 
 			/// @brief Draw a random variate (inverse-CDF) using the given URBG.
 			template<class URBG> Real sample(URBG& gen) const
 			{
+				ValidateParameters();
 				Real u = SampleUniform01(gen);
 				if (u < static_cast<MML::Real>(1e-300)) u = static_cast<MML::Real>(1e-300);
-				if (u > 1.0 - static_cast<MML::Real>(1e-16)) u = 1.0 - static_cast<MML::Real>(1e-16);
-				return mu + sigma * std::log(u / (1.0 - u));
+				if (u > MML::Real(1.0) - static_cast<MML::Real>(1e-16)) u = MML::Real(1.0) - static_cast<MML::Real>(1e-16);
+				return mu + sigma * std::log(u / (MML::Real(1.0) - u));
 			}
 			/// @brief Draw a random variate using MML's thread-local engine.
-			Real sample() const { return sample(Random::Engine()); }
+			Real sample() const { ValidateParameters(); return sample(Random::Engine()); }
 
 			/// @brief Probability density function (PDF)
 			///
@@ -748,11 +824,12 @@ namespace MML
 			/// @return Probability density at x
 			Real pdf(Real x) const
 			{
+				ValidateParameters();
 				// Standard logistic PDF: f(x) = e^(-z) / (σ(1 + e^(-z))²)
 				// where z = (x - μ) / σ
 				Real z = (x - mu) / sigma;
 				Real exp_neg_z = std::exp(-z);
-				Real denom = 1.0 + exp_neg_z;
+				Real denom = MML::Real(1.0) + exp_neg_z;
 				return exp_neg_z / (sigma * denom * denom);
 			}
 
@@ -762,14 +839,15 @@ namespace MML
 			/// @return Probability that X <= x
 			Real cdf(Real x) const
 			{
+				ValidateParameters();
 				// Numerically stable computation using the logistic function
 				Real z = (x - mu) / sigma;
 				Real exp_z = std::exp(-std::abs(z));
 				
 				if (z >= 0.0)
-					return 1.0 / (1.0 + exp_z);
+					return MML::Real(1.0) / (MML::Real(1.0) + exp_z);
 				else
-					return exp_z / (1.0 + exp_z);
+					return exp_z / (MML::Real(1.0) + exp_z);
 			}
 
 			/// @brief Inverse cumulative distribution function (quantile function)
@@ -778,20 +856,28 @@ namespace MML
 			/// @return Value x such that P(X <= x) = p
 			Real inverseCdf(Real p) const
 			{
-				if (p <= 0.0 || p >= 1.0)
+				ValidateParameters();
+				if (!(p > 0.0 && p < 1.0))
 					throw StatisticsError("Probability must be in (0, 1) in LogisticDistribution::inverseCdf");
-				return mu + sigma * std::log(p / (1.0 - p));
+				return mu + sigma * std::log(p / (MML::Real(1.0) - p));
 			}
 
 			/// @brief Get the mean of the distribution
 			/// @return Mean = μ
-			Real mean() const { return mu; }
+			Real mean() const { ValidateParameters(); return mu; }
 
 			/// @brief Get the variance of the distribution
 			/// @return Variance = (π·σ)²/3
 			Real variance() const 
-			{ 
-				return (Constants::PI * sigma) * (Constants::PI * sigma) / 3.0;
+			{
+				ValidateParameters();
+				return (Constants::PI * sigma) * (Constants::PI * sigma) / MML::Real(3.0);
+			}
+
+		private:
+			void ValidateParameters() const {
+				if (!(std::isfinite(mu) && std::isfinite(sigma) && sigma > 0))
+					throw StatisticsError("Invalid parameters in LogisticDistribution");
 			}
 		};
 
@@ -812,26 +898,27 @@ namespace MML
 			UniformDistribution(Real lower = 0.0, Real upper = 1.0)
 				: a(lower), b(upper)
 			{
-				if (b <= a)
-					throw StatisticsError("Upper bound must be greater than lower bound in UniformDistribution");
+				ValidateParameters();
 			}
 
 			/// @brief Draw a random variate using the given URBG.
-			template<class URBG> Real sample(URBG& gen) const { return a + (b - a) * SampleUniform01(gen); }
+			template<class URBG> Real sample(URBG& gen) const { ValidateParameters(); return a + (b - a) * SampleUniform01(gen); }
 			/// @brief Draw a random variate using MML's thread-local engine.
-			Real sample() const { return sample(Random::Engine()); }
+			Real sample() const { ValidateParameters(); return sample(Random::Engine()); }
 
 			/// @brief Probability density function (PDF)
 			Real pdf(Real x) const
 			{
+				ValidateParameters();
 				if (x < a || x > b)
 					return 0.0;
-				return 1.0 / (b - a);
+				return MML::Real(1.0) / (b - a);
 			}
 
 			/// @brief Cumulative distribution function (CDF)
 			Real cdf(Real x) const
 			{
+				ValidateParameters();
 				if (x < a) return 0.0;
 				if (x > b) return 1.0;
 				return (x - a) / (b - a);
@@ -840,13 +927,26 @@ namespace MML
 			/// @brief Inverse CDF (quantile function)
 			Real inverseCdf(Real p) const
 			{
-				if (p < 0.0 || p > 1.0)
+				ValidateParameters();
+				if (!(p >= 0.0 && p <= 1.0))
 					throw StatisticsError("Probability must be in [0, 1] in UniformDistribution::inverseCdf");
 				return a + p * (b - a);
 			}
 
-			Real mean() const { return (a + b) / 2.0; }
-			Real variance() const { return (b - a) * (b - a) / 12.0; }
+			Real mean() const { ValidateParameters(); return (a + b) / MML::Real(2.0); }
+			Real variance() const {
+				ValidateParameters();
+				const Real halfWidth = b / 2 - a / 2;
+				int exponent = 0;
+				const Real mantissa = std::frexp(halfWidth, &exponent);
+				return std::scalbn(mantissa * mantissa / Real(3), 2 * exponent);
+			}
+
+		private:
+			void ValidateParameters() const {
+				if (!(std::isfinite(a) && std::isfinite(b) && a < b))
+					throw StatisticsError("Invalid parameters in UniformDistribution");
+			}
 		};
 
 		//=========================================================================
@@ -868,26 +968,24 @@ namespace MML
 			GammaDistribution(Real k, Real theta = 1.0)
 				: shape(k), scale(theta)
 			{
-				if (shape <= 0.0)
-					throw StatisticsError("Shape parameter must be positive in GammaDistribution");
-				if (scale <= 0.0)
-					throw StatisticsError("Scale parameter must be positive in GammaDistribution");
+				ValidateParameters();
 			}
 
 			/// @brief Draw a random variate (Marsaglia-Tsang) using the given URBG.
-			template<class URBG> Real sample(URBG& gen) const { return SampleGamma(gen, shape, scale); }
+			template<class URBG> Real sample(URBG& gen) const { ValidateParameters(); return SampleGamma(gen, shape, scale); }
 			/// @brief Draw a random variate using MML's thread-local engine.
-			Real sample() const { return sample(Random::Engine()); }
+			Real sample() const { ValidateParameters(); return sample(Random::Engine()); }
 
 			/// @brief Probability density function (PDF)
 			Real pdf(Real x) const
 			{
+				ValidateParameters();
 				if (x < 0.0) return 0.0;
-				if (x == 0.0) return (shape < 1.0) ? std::numeric_limits<Real>::infinity() 
-				                                  : (shape == 1.0 ? 1.0/scale : 0.0);
+				if (x == MML::Real(0.0)) return (shape < MML::Real(1.0)) ? std::numeric_limits<Real>::infinity()
+				                                  : (shape == MML::Real(1.0) ? MML::Real(1.0)/scale : MML::Real(0.0));
 				
 				// Use log-space for numerical stability
-				Real logPdf = (shape - 1.0) * std::log(x) - x / scale 
+				Real logPdf = (shape - MML::Real(1.0)) * std::log(x) - x / scale
 				            - shape * std::log(scale) - std::lgamma(shape);
 				return std::exp(logPdf);
 			}
@@ -896,42 +994,33 @@ namespace MML
 			/// Uses regularized incomplete gamma function
 			Real cdf(Real x) const
 			{
+				ValidateParameters();
 				if (x <= 0.0) return 0.0;
 				return SpecialFunctions::RegularizedGammaP(shape, x / scale);
 			}
 
-			/// @brief Inverse CDF (quantile function) - uses Newton-Raphson
+			/// @brief Inverse CDF with verified bracketing and relative tail/position accuracy.
+			/// @throws ConvergenceError if no resolvable finite interior quantile is found.
 			Real inverseCdf(Real p) const
 			{
+				ValidateParameters();
+				if (std::isnan(p))
+					throw StatisticsError("Probability must not be NaN in GammaDistribution::inverseCdf");
 				if (p <= 0.0) return 0.0;
 				if (p >= 1.0) return std::numeric_limits<Real>::infinity();
-
-				// Initial guess using Wilson-Hilferty approximation for large shape
-				Real x;
-				if (shape >= 1.0) {
-					Real z = InverseStandardNormalCdf(p);
-					Real h = 1.0 / (9.0 * shape);
-					x = shape * scale * std::pow(1.0 - h + z * std::sqrt(h), 3);
-					if (x <= 0.0) x = 0.5 * shape * scale;
-				} else {
-					x = 0.5 * shape * scale;
-				}
-
-				// Newton-Raphson refinement
-				for (int iter = 0; iter < 50; iter++) {
-					Real f = cdf(x) - p;
-					Real fp = pdf(x);
-					if (std::abs(fp) < 1e-30) break;
-					Real dx = f / fp;
-					x -= dx;
-					if (x <= 0.0) x = 1e-10;
-					if (std::abs(dx) < 1e-12 * x) break;
-				}
-				return x;
+				if (p <= Real(0.5))
+					return StatisticsDetail::PositiveQuantile(p, [this](Real x) { return cdf(x); }, true, scale);
+				return StatisticsDetail::PositiveQuantile(1 - p,
+					[this](Real x) { return SpecialFunctions::RegularizedGammaQ(shape, x / scale); }, false, scale);
 			}
 
-			Real mean() const { return shape * scale; }
-			Real variance() const { return shape * scale * scale; }
+			Real mean() const { ValidateParameters(); return shape * scale; }
+			Real variance() const { ValidateParameters(); return shape * scale * scale; }
+
+		private:
+			void ValidateParameters() const {
+				StatisticsDetail::RequireGammaParameters(shape, scale);
+			}
 		};
 
 		//=========================================================================
@@ -952,33 +1041,32 @@ namespace MML
 			BetaDistribution(Real a, Real b)
 				: alpha(a), beta(b)
 			{
-				if (alpha <= 0.0)
-					throw StatisticsError("Alpha parameter must be positive in BetaDistribution");
-				if (beta <= 0.0)
-					throw StatisticsError("Beta parameter must be positive in BetaDistribution");
+				ValidateParameters();
 			}
 
 			/// @brief Draw a random variate (two-gamma method) using the given URBG.
 			template<class URBG> Real sample(URBG& gen) const
 			{
+				ValidateParameters();
 				Real x = SampleGamma(gen, alpha, 1.0);
 				Real y = SampleGamma(gen, beta, 1.0);
 				return x / (x + y);
 			}
 			/// @brief Draw a random variate using MML's thread-local engine.
-			Real sample() const { return sample(Random::Engine()); }
+			Real sample() const { ValidateParameters(); return sample(Random::Engine()); }
 
 			/// @brief Probability density function (PDF)
 			Real pdf(Real x) const
 			{
+				ValidateParameters();
 				if (x < 0.0 || x > 1.0) return 0.0;
-				if (x == 0.0) return (alpha < 1.0) ? std::numeric_limits<Real>::infinity()
-				                                  : (alpha == 1.0 ? beta : 0.0);
-				if (x == 1.0) return (beta < 1.0) ? std::numeric_limits<Real>::infinity()
-				                                 : (beta == 1.0 ? alpha : 0.0);
+				if (x == MML::Real(0.0)) return (alpha < MML::Real(1.0)) ? std::numeric_limits<Real>::infinity()
+				                                  : (alpha == MML::Real(1.0) ? beta : MML::Real(0.0));
+				if (x == MML::Real(1.0)) return (beta < MML::Real(1.0)) ? std::numeric_limits<Real>::infinity()
+				                                 : (beta == MML::Real(1.0) ? alpha : MML::Real(0.0));
 
 				// Log-space for numerical stability
-				Real logPdf = (alpha - 1.0) * std::log(x) + (beta - 1.0) * std::log(1.0 - x)
+				Real logPdf = (alpha - MML::Real(1.0)) * std::log(x) + (beta - MML::Real(1.0)) * std::log(MML::Real(1.0) - x)
 				            - std::lgamma(alpha) - std::lgamma(beta) + std::lgamma(alpha + beta);
 				return std::exp(logPdf);
 			}
@@ -987,43 +1075,39 @@ namespace MML
 			/// Uses regularized incomplete beta function
 			Real cdf(Real x) const
 			{
+				ValidateParameters();
 				if (x <= 0.0) return 0.0;
 				if (x >= 1.0) return 1.0;
 				return SpecialFunctions::RegularizedBetaI(x, alpha, beta);
 			}
 
-			/// @brief Inverse CDF (quantile function) - uses Newton-Raphson
+			/// @brief Inverse CDF with verified bracketing and relative tail/position accuracy.
+			/// @throws ConvergenceError if no resolvable interior quantile is found.
 			Real inverseCdf(Real p) const
 			{
+				ValidateParameters();
+				if (std::isnan(p))
+					throw StatisticsError("Probability must not be NaN in BetaDistribution::inverseCdf");
 				if (p <= 0.0) return 0.0;
 				if (p >= 1.0) return 1.0;
-
-				// Initial guess
-				Real x = 0.5;
-				if (alpha > 1.0 && beta > 1.0) {
-					// Mode-based initial guess
-					x = (alpha - 1.0) / (alpha + beta - 2.0);
-				}
-
-				// Newton-Raphson
-				for (int iter = 0; iter < 50; iter++) {
-					Real f = cdf(x) - p;
-					Real fp = pdf(x);
-					if (std::abs(fp) < 1e-30) break;
-					Real dx = f / fp;
-					x -= dx;
-					if (x <= 0.0) x = 1e-10;
-					if (x >= 1.0) x = 1.0 - 1e-10;
-					if (std::abs(dx) < 1e-12) break;
-				}
-				return x;
+				if (p <= Real(0.5))
+					return StatisticsDetail::PositiveQuantile(p, [this](Real x) { return cdf(x); }, true, 1, false);
+				return StatisticsDetail::PositiveQuantile(1 - p,
+					[this](Real x) { return SpecialFunctions::RegularizedBetaI(1 - x, beta, alpha); }, false, 1, false);
 			}
 
-			Real mean() const { return alpha / (alpha + beta); }
+			Real mean() const { ValidateParameters(); return alpha / (alpha + beta); }
 			Real variance() const 
-			{ 
+			{
+				ValidateParameters();
 				Real ab = alpha + beta;
-				return (alpha * beta) / (ab * ab * (ab + 1.0));
+				return (alpha * beta) / (ab * ab * (ab + MML::Real(1.0)));
+			}
+
+		private:
+			void ValidateParameters() const {
+				if (!(std::isfinite(alpha) && alpha > 0 && std::isfinite(beta) && beta > 0))
+					throw StatisticsError("Invalid parameters in BetaDistribution");
 			}
 		};
 
@@ -1045,48 +1129,57 @@ namespace MML
 			WeibullDistribution(Real k, Real lambda = 1.0)
 				: shape(k), scale(lambda)
 			{
-				if (shape <= 0.0)
-					throw StatisticsError("Shape parameter must be positive in WeibullDistribution");
-				if (scale <= 0.0)
-					throw StatisticsError("Scale parameter must be positive in WeibullDistribution");
+				ValidateParameters();
 			}
 
 			/// @brief Draw a random variate (inverse-CDF) using the given URBG.
-			template<class URBG> Real sample(URBG& gen) const { return scale * std::pow(-std::log(1.0 - SampleUniform01(gen)), 1.0 / shape); }
+			template<class URBG> Real sample(URBG& gen) const { ValidateParameters(); return scale * std::pow(-std::log(MML::Real(1.0) - SampleUniform01(gen)), MML::Real(1.0) / shape); }
 			/// @brief Draw a random variate using MML's thread-local engine.
-			Real sample() const { return sample(Random::Engine()); }
+			Real sample() const { ValidateParameters(); return sample(Random::Engine()); }
 
 			/// @brief Probability density function (PDF)
 			Real pdf(Real x) const
 			{
+				ValidateParameters();
 				if (x < 0.0) return 0.0;
-				if (x == 0.0) return (shape < 1.0) ? std::numeric_limits<Real>::infinity()
-				                                  : (shape == 1.0 ? 1.0/scale : 0.0);
+				if (x == MML::Real(0.0)) return (shape < MML::Real(1.0)) ? std::numeric_limits<Real>::infinity()
+				                                  : (shape == MML::Real(1.0) ? MML::Real(1.0)/scale : MML::Real(0.0));
 				Real z = x / scale;
-				return (shape / scale) * std::pow(z, shape - 1.0) * std::exp(-std::pow(z, shape));
+				return (shape / scale) * std::pow(z, shape - MML::Real(1.0)) * std::exp(-std::pow(z, shape));
 			}
 
 			/// @brief Cumulative distribution function (CDF)
 			Real cdf(Real x) const
 			{
+				ValidateParameters();
 				if (x <= 0.0) return 0.0;
-				return 1.0 - std::exp(-std::pow(x / scale, shape));
+				return MML::Real(1.0) - std::exp(-std::pow(x / scale, shape));
 			}
 
 			/// @brief Inverse CDF (quantile function) - closed form
 			Real inverseCdf(Real p) const
 			{
+				ValidateParameters();
+				if (std::isnan(p))
+					throw StatisticsError("Probability must not be NaN in WeibullDistribution::inverseCdf");
 				if (p <= 0.0) return 0.0;
 				if (p >= 1.0) return std::numeric_limits<Real>::infinity();
-				return scale * std::pow(-std::log(1.0 - p), 1.0 / shape);
+				return scale * std::pow(-std::log(MML::Real(1.0) - p), MML::Real(1.0) / shape);
 			}
 
-			Real mean() const { return scale * std::tgamma(1.0 + 1.0 / shape); }
+			Real mean() const { ValidateParameters(); return scale * std::tgamma(MML::Real(1.0) + MML::Real(1.0) / shape); }
 			Real variance() const 
 			{
-				Real g1 = std::tgamma(1.0 + 1.0 / shape);
-				Real g2 = std::tgamma(1.0 + 2.0 / shape);
+				ValidateParameters();
+				Real g1 = std::tgamma(MML::Real(1.0) + MML::Real(1.0) / shape);
+				Real g2 = std::tgamma(MML::Real(1.0) + MML::Real(2.0) / shape);
 				return scale * scale * (g2 - g1 * g1);
+			}
+
+		private:
+			void ValidateParameters() const {
+				if (!(std::isfinite(shape) && shape > 0 && std::isfinite(scale) && scale > 0))
+					throw StatisticsError("Invalid parameters in WeibullDistribution");
 			}
 		};
 
@@ -1108,53 +1201,63 @@ namespace MML
 			ParetoDistribution(Real shape, Real scale = 1.0)
 				: alpha(shape), xm(scale)
 			{
-				if (alpha <= 0.0)
-					throw StatisticsError("Shape parameter must be positive in ParetoDistribution");
-				if (xm <= 0.0)
-					throw StatisticsError("Scale parameter must be positive in ParetoDistribution");
+				ValidateParameters();
 			}
 
 			/// @brief Draw a random variate (inverse-CDF) using the given URBG.
-			template<class URBG> Real sample(URBG& gen) const { return xm / std::pow(1.0 - SampleUniform01(gen), 1.0 / alpha); }
+			template<class URBG> Real sample(URBG& gen) const { ValidateParameters(); return xm / std::pow(MML::Real(1.0) - SampleUniform01(gen), MML::Real(1.0) / alpha); }
 			/// @brief Draw a random variate using MML's thread-local engine.
-			Real sample() const { return sample(Random::Engine()); }
+			Real sample() const { ValidateParameters(); return sample(Random::Engine()); }
 
 			/// @brief Probability density function (PDF)
 			Real pdf(Real x) const
 			{
+				ValidateParameters();
 				if (x < xm) return 0.0;
-				return alpha * std::pow(xm, alpha) / std::pow(x, alpha + 1.0);
+				return alpha * std::pow(xm, alpha) / std::pow(x, alpha + MML::Real(1.0));
 			}
 
 			/// @brief Cumulative distribution function (CDF)
 			Real cdf(Real x) const
 			{
+				ValidateParameters();
 				if (x < xm) return 0.0;
-				return 1.0 - std::pow(xm / x, alpha);
+				return MML::Real(1.0) - std::pow(xm / x, alpha);
 			}
 
 			/// @brief Inverse CDF (quantile function) - closed form
 			Real inverseCdf(Real p) const
 			{
+				ValidateParameters();
+				if (std::isnan(p))
+					throw StatisticsError("Probability must not be NaN in ParetoDistribution::inverseCdf");
 				if (p <= 0.0) return xm;
 				if (p >= 1.0) return std::numeric_limits<Real>::infinity();
-				return xm / std::pow(1.0 - p, 1.0 / alpha);
+				return xm / std::pow(MML::Real(1.0) - p, MML::Real(1.0) / alpha);
 			}
 
 			/// @brief Mean (only defined for α > 1)
 			Real mean() const
 			{
+				ValidateParameters();
 				if (alpha <= 1.0)
 					throw StatisticsError("Mean undefined for alpha <= 1 in ParetoDistribution");
-				return alpha * xm / (alpha - 1.0);
+				return alpha * xm / (alpha - MML::Real(1.0));
 			}
 
 			/// @brief Variance (only defined for α > 2)
 			Real variance() const
 			{
+				ValidateParameters();
 				if (alpha <= 2.0)
 					throw StatisticsError("Variance undefined for alpha <= 2 in ParetoDistribution");
-				return (xm * xm * alpha) / ((alpha - 1.0) * (alpha - 1.0) * (alpha - 2.0));
+				return (xm * xm * alpha) / ((alpha - MML::Real(1.0)) * (alpha - MML::Real(1.0)) * (alpha - MML::Real(2.0)));
+			}
+
+		private:
+			void ValidateParameters() const {
+				if (!(std::isfinite(alpha) && alpha > 0 && std::isfinite(xm) && xm > 0))
+					throw StatisticsError("Invalid parameters in ParetoDistribution");
 			}
 		};
 
@@ -1176,34 +1279,37 @@ namespace MML
 			LogNormalDistribution(Real logMean = 0.0, Real logStdDev = 1.0)
 				: mu(logMean), sigma(logStdDev)
 			{
-				if (sigma <= 0.0)
-					throw StatisticsError("Sigma must be positive in LogNormalDistribution");
+				ValidateParameters();
 			}
 
 			/// @brief Draw a random variate (exp of a normal draw) using the given URBG.
-			template<class URBG> Real sample(URBG& gen) const { return std::exp(mu + sigma * SampleStandardNormal(gen)); }
+			template<class URBG> Real sample(URBG& gen) const { ValidateParameters(); return std::exp(mu + sigma * SampleStandardNormal(gen)); }
 			/// @brief Draw a random variate using MML's thread-local engine.
-			Real sample() const { return sample(Random::Engine()); }
+			Real sample() const { ValidateParameters(); return sample(Random::Engine()); }
 
 			/// @brief Probability density function (PDF)
 			Real pdf(Real x) const
 			{
+				ValidateParameters();
 				if (x <= 0.0) return 0.0;
 				Real z = (std::log(x) - mu) / sigma;
-				return std::exp(-0.5 * z * z) / (x * sigma * std::sqrt(2.0 * Constants::PI));
+				return std::exp(-MML::Real(0.5) * z * z) / (x * sigma * std::sqrt(MML::Real(2.0) * Constants::PI));
 			}
 
 			/// @brief Cumulative distribution function (CDF)
 			Real cdf(Real x) const
 			{
+				ValidateParameters();
 				if (x <= 0.0) return 0.0;
-				Real z = (std::log(x) - mu) / (sigma * std::sqrt(2.0));
-				return 0.5 * (1.0 + std::erf(z));
+				return StatisticsDetail::NormalCdf(StatisticsDetail::StandardizeNormal(std::log(x), mu, sigma));
 			}
 
 			/// @brief Inverse CDF (quantile function)
 			Real inverseCdf(Real p) const
 			{
+				ValidateParameters();
+				if (std::isnan(p))
+					throw StatisticsError("Probability must not be NaN in LogNormalDistribution::inverseCdf");
 				if (p <= 0.0) return 0.0;
 				if (p >= 1.0) return std::numeric_limits<Real>::infinity();
 				// Use inverse normal for ln(x)
@@ -1211,13 +1317,20 @@ namespace MML
 				return std::exp(mu + sigma * z);
 			}
 
-			Real mean() const { return std::exp(mu + 0.5 * sigma * sigma); }
+			Real mean() const { ValidateParameters(); return std::exp(mu + MML::Real(0.5) * sigma * sigma); }
 			Real variance() const 
 			{
+				ValidateParameters();
 				Real expSigma2 = std::exp(sigma * sigma);
-				return std::exp(2.0 * mu + sigma * sigma) * (expSigma2 - 1.0);
+				return std::exp(MML::Real(2.0) * mu + sigma * sigma) * (expSigma2 - MML::Real(1.0));
 			}
-			Real median() const { return std::exp(mu); }
+			Real median() const { ValidateParameters(); return std::exp(mu); }
+
+		private:
+			void ValidateParameters() const {
+				if (!(std::isfinite(mu) && std::isfinite(sigma) && sigma > 0))
+					throw StatisticsError("Invalid parameters in LogNormalDistribution");
+			}
 		};
 
   }

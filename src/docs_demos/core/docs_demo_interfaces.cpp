@@ -23,7 +23,8 @@
 #include <mml/interfaces/IDynamicalSystem.h>
 #include <mml/interfaces/IInterval.h>
 #include <mml/interfaces/IODESystem.h>
-// Note: Other interface headers may be included as needed
+#include <mml/interfaces/IODESystemDAE.h>
+#include <mml/algorithms/DAESolvers.h>
 
 #include <iostream>
 #include <cmath>
@@ -283,10 +284,10 @@ namespace MML::docs_demos::interfaces
     {
         std::cout << "\n=== IODESystemDAE Interface ===\n";
 
-        std::cout << "IODESystemDAE extends IODESystem for differential-algebraic equations:\n";
-        std::cout << "  - M * dx/dt = f(t, x) where M is the mass matrix\n";
-        std::cout << "  - getMassMatrix(): Returns the mass matrix M\n";
-        std::cout << "  - Supports index-1 DAE systems\n\n";
+        std::cout << "IODESystemDAE describes semi-explicit index-1 systems:\n";
+        std::cout << "  - x' = f(t, x, y), 0 = g(t, x, y)\n";
+        std::cout << "  - getDiffDim(), getAlgDim(), diffEqs(), algConstraints()\n";
+        std::cout << "  - Requires a nonsingular g_y, not a mass-matrix accessor\n\n";
 
         std::cout << "See docs_demo_dae_system.cpp for full examples.\n";
     }
@@ -393,6 +394,72 @@ namespace MML::docs_demos::interfaces
         std::cout << "\n" << std::string(70, '=') << "\n";
     }
 } // namespace
+
+namespace MML::docs_demos::interfaces {
+    class IdentitySampler : public IRealFunction {
+    public:
+        Real operator()(Real x) const override { return x; }
+    };
+
+    class ParametrizedDecay : public IODESystemDAEWithJacobian, public IODESystemDAEParametrized {
+        Real rate = 1;
+    public:
+        int getDiffDim() const override { return 1; }
+        int getAlgDim() const override { return 1; }
+        int getNumParam() const override { return 1; }
+        Real getParam(int i) const override {
+            if (i != 0) throw IndexError("Invalid parameter index");
+            return rate;
+        }
+        void setParam(int i, Real value) override {
+            if (i != 0) throw IndexError("Invalid parameter index");
+            rate = value;
+        }
+        void diffEqs(Real, const Vector<Real>&, const Vector<Real>& y, Vector<Real>& f) const override { f[0] = -y[0]; }
+        void algConstraints(Real, const Vector<Real>& x, const Vector<Real>& y, Vector<Real>& g) const override { g[0] = y[0] - rate * x[0]; }
+        void jacobian_fx(Real, const Vector<Real>&, const Vector<Real>&, Matrix<Real>& j) const override { j(0, 0) = 0; }
+        void jacobian_fy(Real, const Vector<Real>&, const Vector<Real>&, Matrix<Real>& j) const override { j(0, 0) = -1; }
+        void jacobian_gx(Real, const Vector<Real>&, const Vector<Real>&, Matrix<Real>& j) const override { j(0, 0) = -rate; }
+        void jacobian_gy(Real, const Vector<Real>&, const Vector<Real>&, Matrix<Real>& j) const override { j(0, 0) = 1; }
+    };
+}
+
+void Docs_Demo_InterfaceContracts() {
+    using namespace MML::docs_demos::interfaces;
+    IdentitySampler identity;
+    Vector<Real> x, y;
+    const Real maximum = std::numeric_limits<Real>::max();
+    identity.getValues(-maximum, maximum, 5, x, y);
+    if (x[0] != -maximum || x[2] != 0 || x[4] != maximum || y != x)
+        throw NumericalMethodError("Finite extreme sampling contract failed");
+    Helix helix(1, 1);
+    const auto trace = helix.getTrace(0, Constants::PI, 5);
+    const auto singleton = helix.getTrace(0, std::numeric_limits<Real>::quiet_NaN(), 1);
+    if (trace.size() != 5 || singleton.size() != 1 || !helix.getTrace(0, 1, -1).empty())
+        throw NumericalMethodError("Curve count compatibility failed");
+
+    ParametrizedDecay system;
+    system.setParams(Vector<Real>{2});
+    IODESystemDAE& base = system;
+    IODESystemDAEParametrized& parameters = system;
+    if (&base != static_cast<IODESystemDAE*>(&parameters))
+        throw InvalidStateError("DAE capabilities do not share one base");
+    Vector<Real> x0{1}, y0{2};
+    Matrix<Real> gy(1, 1);
+    system.jacobian_gy(0, x0, y0, gy);
+    if (gy(0, 0) != 1) throw NumericalMethodError("Example is not index-1");
+    DAESolverConfig config;
+    config.step_size = Real(1) / 8;
+    const auto result = SolveDAEBackwardEuler(system, 0, x0, y0, 1, config);
+    if (result.status != AlgorithmStatus::Success) throw NumericalMethodError(result.error_message);
+    const Real expected = std::pow(1 + 2 * config.step_size, -8);
+    if (result.total_steps != 8 ||
+        !IsNearlyEqual(result.solution.getXValuesAtEnd()[0], expected, Precision::DefaultToleranceStrict) ||
+        !IsNearlyEqual(result.solution.getYValuesAtEnd()[0], 2 * expected, Precision::DefaultToleranceStrict))
+        throw NumericalMethodError("Index-1 example violates the independent BE recurrence");
+    std::cout << "Finite extreme sampling, trace counts, shared DAE capabilities and g_y=1 verified.\n";
+    std::cout << "Decay endpoint: " << result.solution.getXValuesAtEnd()[0] << "\n";
+}
 
 void Docs_Demo_Interfaces() {
     MML::docs_demos::interfaces::Run();

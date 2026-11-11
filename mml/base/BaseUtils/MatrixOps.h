@@ -14,9 +14,11 @@
 #include <algorithm>
 #include <vector>
 #include <complex>
+#include <limits>
 
 #include <mml/MMLBase.h>
 #include <mml/MMLExceptions.h>
+#include <mml/MMLNumericValidation.h>
 #include <mml/base/Vector/Vector.h>
 #include <mml/base/Vector/VectorN.h>
 #include <mml/base/Matrix/Matrix.h>
@@ -27,6 +29,24 @@ namespace MML
 {
 	namespace Utils
 	{
+		namespace Detail
+		{
+			template<class Type>
+			int RectangularVectorExtent(const std::vector<Vector<Type>>& vectors)
+			{
+				if (vectors.size() > static_cast<size_t>(std::numeric_limits<int>::max()))
+					throw MatrixAllocationError("Matrix factory - vector count exceeds integer dimensions", -1, -1);
+				if (vectors.empty())
+					return 0;
+				const int extent = vectors.front().size();
+				for (const auto& vector : vectors)
+					if (vector.size() != extent)
+						throw MatrixDimensionError("Matrix factory - vectors must have equal lengths",
+							static_cast<int>(vectors.size()), extent, vector.size(), -1);
+				return extent;
+			}
+		}
+
 		// ============================================================================
 		// Creating Matrix from Vector
 		// ============================================================================
@@ -80,9 +100,10 @@ namespace MML
 		template<class Type> 
 		static Matrix<Type> MatrixFromVectorsInRows(const std::vector<Vector<Type>>& b)
 		{
-			Matrix<Type> ret((int)b.size(), (int)b[0].size());
-			for (int i = 0; i < b.size(); i++)
-				for (int j = 0; j < b[i].size(); j++)
+			const int extent = Detail::RectangularVectorExtent(b);
+			Matrix<Type> ret(static_cast<int>(b.size()), extent);
+			for (int i = 0; i < ret.rows(); i++)
+				for (int j = 0; j < extent; j++)
 					ret[i][j] = b[i][j];
 			return ret;
 		}
@@ -94,9 +115,10 @@ namespace MML
 		template<class Type> 
 		static Matrix<Type> MatrixFromVectorsInColumns(const std::vector<Vector<Type>>& b)
 		{
-			Matrix<Type> ret((int)b[0].size(), (int)b.size());
-			for (int i = 0; i < b.size(); i++)
-				for (int j = 0; j < b[i].size(); j++)
+			const int extent = Detail::RectangularVectorExtent(b);
+			Matrix<Type> ret(extent, static_cast<int>(b.size()));
+			for (int i = 0; i < ret.cols(); i++)
+				for (int j = 0; j < extent; j++)
 					ret[j][i] = b[i][j];
 			return ret;
 		}
@@ -198,9 +220,14 @@ namespace MML
 			const int rows = std::min(left.rows(), right.rows());
 			const int cols = std::min(left.cols(), right.cols());
 			for (int row = 0; row < rows; ++row)
-				for (int col = 0; col < cols; ++col)
-					maximum = std::max(maximum,
-						static_cast<Real>(std::abs(left(row, col) - right(row, col))));
+				for (int col = 0; col < cols; ++col) {
+					if (!IsFiniteValue(left(row, col)) || !IsFiniteValue(right(row, col)))
+						throw NumericInputError("MaxAbsDiff - entries must be finite");
+					const Real difference = static_cast<Real>(std::abs(left(row, col) - right(row, col)));
+					if (!std::isfinite(difference))
+						throw NumericalMethodError("MaxAbsDiff - difference is not representable");
+					maximum = std::max(maximum, difference);
+				}
 			return maximum;
 		}
 
@@ -208,6 +235,10 @@ namespace MML
 		template<class Type>
 		Matrix<Type> SimilarityTransform(const Matrix<Type>& transformation, const Matrix<Type>& matrix)
 		{
+			if (matrix.rows() != matrix.cols() || transformation.rows() != matrix.rows() ||
+				transformation.cols() != matrix.cols())
+				throw MatrixDimensionError("SimilarityTransform - equal square dimensions required",
+					transformation.rows(), transformation.cols(), matrix.rows(), matrix.cols());
 			const int size = matrix.rows();
 			Matrix<Type> temporary(size, size);
 			Matrix<Type> result(size, size);
@@ -238,12 +269,12 @@ namespace MML
 			Matrix<Type> ret(a.rows(), a.cols());
 			Matrix<Type> a_pow_n(a);
 
-			double fact = 1.0;
+			Type fact = Type(1);
 			ret.SetIdentity();
 
 			for (int i = 1; i <= n; i++)
 			{
-				fact *= (double)i;
+				fact *= ScalarDetail::ScalarFromInteger<Type>(i);
 				ret += a_pow_n / fact;
 
 				a_pow_n = a_pow_n * a;
@@ -264,14 +295,14 @@ namespace MML
 			Matrix<Type> ret(a.rows(), a.cols());		// initialized to zero matrix!
 			Matrix<Type> a_pow_n(a);
 			
-			double fact = 1.0;
+			Type fact = Type(1);
 			
 			for (int i = 1; i <= n; i += 2)
 			{
 				ret += a_pow_n / fact;
 				
-				a_pow_n = (-1.0) * a_pow_n * a * a;
-				fact *= (double)(i + 1) * (i + 2);
+				a_pow_n = Type(-1) * a_pow_n * a * a;
+				fact *= ScalarDetail::ScalarFromInteger<Type>(i + 1) * ScalarDetail::ScalarFromInteger<Type>(i + 2);
 			}
 			return ret;
 		}
@@ -288,14 +319,14 @@ namespace MML
 			Matrix<Type> ret(a.rows(), a.cols());
 			Matrix<Type> a_pow_n(a.rows(), a.cols());
 
-			double fact = 1.0;
+			Type fact = Type(1);
 			ret.SetIdentity();
 			a_pow_n.SetIdentity();
 
 			for (int i = 1; i <= n; i+=2)
 			{
-				a_pow_n = (-1.0) * a_pow_n * a * a;
-				fact *= (double)(i) * (i + 1);
+				a_pow_n = Type(-1) * a_pow_n * a * a;
+				fact *= ScalarDetail::ScalarFromInteger<Type>(i) * ScalarDetail::ScalarFromInteger<Type>(i + 1);
 
 				ret += a_pow_n / fact;
 			}
@@ -313,7 +344,7 @@ namespace MML
 			Matrix<Type> ret(a.rows(), a.cols());		// initialized to zero matrix
 			Matrix<Type> a_pow_n(a);
 			
-			double fact = 1.0;
+			Type fact = Type(1);
 			
 			// sinh(x) = x + x³/3! + x⁵/5! + ... (odd powers, all positive)
 			for (int i = 1; i <= n; i += 2)
@@ -321,7 +352,7 @@ namespace MML
 				ret += a_pow_n / fact;
 				
 				a_pow_n = a_pow_n * a * a;  // Next odd power
-				fact *= (double)(i + 1) * (i + 2);
+				fact *= ScalarDetail::ScalarFromInteger<Type>(i + 1) * ScalarDetail::ScalarFromInteger<Type>(i + 2);
 			}
 			return ret;
 		}
@@ -337,7 +368,7 @@ namespace MML
 			Matrix<Type> ret(a.rows(), a.cols());
 			Matrix<Type> a_pow_n(a.rows(), a.cols());
 
-			double fact = 1.0;
+			Type fact = Type(1);
 			ret.SetIdentity();
 			a_pow_n.SetIdentity();
 
@@ -345,7 +376,7 @@ namespace MML
 			for (int i = 2; i <= n; i += 2)
 			{
 				a_pow_n = a_pow_n * a * a;  // Next even power
-				fact *= (double)(i - 1) * i;
+				fact *= ScalarDetail::ScalarFromInteger<Type>(i - 1) * ScalarDetail::ScalarFromInteger<Type>(i);
 
 				ret += a_pow_n / fact;
 			}
@@ -359,7 +390,7 @@ namespace MML
 		/// @brief Extracts real part of complex matrix.
 		/// @param a Complex matrix
 		/// @return Real matrix with a[i][j].real()
-		static Matrix<Real> GetRealPart(const Matrix<Complex>& a)
+		static inline Matrix<Real> GetRealPart(const Matrix<Complex>& a)
 		{
 			Matrix<Real> ret(a.rows(), a.cols());
 
@@ -374,7 +405,7 @@ namespace MML
 		/// @brief Extracts imaginary part of complex matrix.
 		/// @param a Complex matrix
 		/// @return Real matrix with a[i][j].imag()
-		static Matrix<Real> GetImagPart(const Matrix<Complex>& a)
+		static inline Matrix<Real> GetImagPart(const Matrix<Complex>& a)
 		{
 			Matrix<Real> ret(a.rows(), a.cols());
 
@@ -390,7 +421,7 @@ namespace MML
 		/// @details Result[j][i] = conj(mat[i][j])
 		/// @param mat Complex matrix
 		/// @return Conjugate transpose matrix
-		static Matrix<Complex> GetConjugateTranspose(const Matrix<Complex>& mat)
+		static inline Matrix<Complex> GetConjugateTranspose(const Matrix<Complex>& mat)
 		{
 			Matrix<Complex> ret(mat.cols(), mat.rows());
 
@@ -404,7 +435,7 @@ namespace MML
 		/// @brief Creates complex matrix from real matrix (zero imaginary parts).
 		/// @param mat Real matrix
 		/// @return Complex matrix with mat[i][j] + 0i
-		static Matrix<Complex> CmplxMatFromRealMat(const Matrix<Real>& mat)
+		static inline Matrix<Complex> CmplxMatFromRealMat(const Matrix<Real>& mat)
 		{
 			Matrix<Complex> mat_cmplx(mat.rows(), mat.cols());
 
@@ -418,7 +449,7 @@ namespace MML
 		/// @brief Tests if complex matrix has all real entries (zero imaginary parts).
 		/// @param mat Complex matrix
 		/// @return True if all imaginary parts are exactly zero
-		static bool IsComplexMatReal(const Matrix<Complex>& mat)
+		static inline bool IsComplexMatReal(const Matrix<Complex>& mat)
 		{
 			for (int i = 0; i < mat.rows(); i++)
 				for (int j = 0; j < mat.cols(); j++)
@@ -428,10 +459,43 @@ namespace MML
 			return true;
 		}
 
+		namespace Detail
+		{
+			template<class TVector, class BasisComponent>
+			bool OrthonormalizeColumn(TVector& vector, int basisCount, BasisComponent basisComponent, Real tolerance)
+			{
+				Real scale = 0;
+				for (int row = 0; row < vector.size(); ++row) {
+					ValidateFinite(vector[row], "GramSchmidt input");
+					scale = std::max(scale, std::abs(vector[row]));
+				}
+				if (scale == 0)
+					return false;
+				for (int row = 0; row < vector.size(); ++row)
+					vector[row] /= scale;
+				const Real inputNorm = vector.NormL2();
+				// Two-pass MGS; see Bjorck, Numerical Methods for Least Squares Problems.
+				for (int pass = 0; pass < 2; ++pass)
+					for (int previous = 0; previous < basisCount; ++previous) {
+						Real projection = 0;
+						for (int row = 0; row < vector.size(); ++row)
+							projection += vector[row] * basisComponent(previous, row);
+						for (int row = 0; row < vector.size(); ++row)
+							vector[row] -= projection * basisComponent(previous, row);
+					}
+				const Real norm = vector.NormL2();
+				if (IsNegligibleRelativeTo(norm, inputNorm, tolerance))
+					return false;
+				for (int row = 0; row < vector.size(); ++row)
+					vector[row] /= norm;
+				return true;
+			}
+		}
 	} // namespace Utils
 
 	inline Matrix<Real> GramSchmidt(const Matrix<Real>& matrix, Real tolerance = Precision::LinearDependenceTolerance)
 	{
+		ValidateTolerance(tolerance, "GramSchmidt");
 		const int rows = matrix.rows();
 		const int cols = matrix.cols();
 		Matrix<Real> result(rows, cols);
@@ -439,17 +503,10 @@ namespace MML
 			Vector<Real> vector(rows);
 			for (int row = 0; row < rows; ++row)
 				vector[row] = matrix(row, col);
-			for (int previous = 0; previous < col; ++previous) {
-				Real projection = static_cast<MML::Real>(0.0);
+			if (Utils::Detail::OrthonormalizeColumn(vector, col,
+				[&](int previous, int row) { return result(row, previous); }, tolerance))
 				for (int row = 0; row < rows; ++row)
-					projection += vector[row] * result(row, previous);
-				for (int row = 0; row < rows; ++row)
-					vector[row] -= projection * result(row, previous);
-			}
-			const Real norm = vector.NormL2();
-			if (norm >= tolerance)
-				for (int row = 0; row < rows; ++row)
-					result(row, col) = vector[row] / norm;
+					result(row, col) = vector[row];
 		}
 		return result;
 	}
@@ -458,15 +515,16 @@ namespace MML
 	std::vector<VectorN<Real, N>> GramSchmidtVectors(
 			const std::vector<VectorN<Real, N>>& vectors, Real tolerance = Precision::LinearDependenceTolerance)
 	{
+		ValidateTolerance(tolerance, "GramSchmidtVectors");
+		if (vectors.size() > static_cast<size_t>(std::numeric_limits<int>::max()))
+			throw ArgumentError("GramSchmidtVectors - vector count exceeds integer dimensions");
 		std::vector<VectorN<Real, N>> result;
 		result.reserve(vectors.size());
 		for (const auto& input : vectors) {
 			VectorN<Real, N> vector = input;
-			for (const auto& basis : result)
-				vector = vector - Utils::ScalarProduct<N>(vector, basis) * basis;
-			const Real norm = vector.NormL2();
-			if (norm >= tolerance)
-				result.push_back(vector / norm);
+			if (Utils::Detail::OrthonormalizeColumn(vector, static_cast<int>(result.size()),
+				[&](int previous, int row) { return result[previous][row]; }, tolerance))
+				result.push_back(vector);
 		}
 		return result;
 	}
@@ -476,11 +534,16 @@ namespace MML
 			const std::vector<VectorN<Real, N>>& vectors,
 			Real tolerance = Precision::OrthogonalityTolerance)
 	{
+		if (!std::isfinite(tolerance) || tolerance < 0)
+			return false;
 		for (size_t left = 0; left < vectors.size(); ++left) {
-			if (std::abs(vectors[left].NormL2() - static_cast<MML::Real>(1.0)) > tolerance)
+			for (int component = 0; component < N; ++component)
+				if (!std::isfinite(vectors[left][component]))
+					return false;
+			if (!(std::abs(vectors[left].NormL2() - static_cast<MML::Real>(1.0)) <= tolerance))
 				return false;
 			for (size_t right = left + 1; right < vectors.size(); ++right)
-				if (std::abs(Utils::ScalarProduct<N>(vectors[left], vectors[right])) > tolerance)
+				if (!(std::abs(Utils::ScalarProduct<N>(vectors[left], vectors[right])) <= tolerance))
 					return false;
 		}
 		return true;
@@ -488,4 +551,3 @@ namespace MML
 } // namespace MML
 
 #endif // MML_MATRIX_OPS_H
-

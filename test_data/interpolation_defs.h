@@ -119,7 +119,7 @@ namespace MML::TestBeds
     }
 
     // 15. Bessel-like: f(x) = sin(x)/x (sinc function, defined as 1 at x=0)
-    static Real Sinc_TrueFunc(Real x) 
+    static inline Real Sinc_TrueFunc(Real x)
     { 
         if (std::abs(x) < static_cast<Real>(1e-10)) return static_cast<Real>(1.0);
         return std::sin(x) / x; 
@@ -130,10 +130,10 @@ namespace MML::TestBeds
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     // Runge function on uniform nodes [-1, 1], n=11
-    const static inline Vector<Real> runge_uniform_11_x{-1.0, -0.8, -0.6, -0.4, -0.2, 0.0, 0.2, 0.4, 0.6, 0.8, 1.0};
+    const static inline Vector<Real> runge_uniform_11_x{-MML::Real(1.0), -MML::Real(0.8), -MML::Real(0.6), -MML::Real(0.4), -MML::Real(0.2), MML::Real(0.0), MML::Real(0.2), MML::Real(0.4), MML::Real(0.6), MML::Real(0.8), MML::Real(1.0)};
     const static inline Vector<Real> runge_uniform_11_y{
-        0.038461538461538464, 0.058823529411764705, 0.1, 0.2, 0.5, 1.0, 
-        0.5, 0.2, 0.1, 0.058823529411764705, 0.038461538461538464
+        MML::Real(0.038461538461538464), MML::Real(0.058823529411764705), MML::Real(0.1), MML::Real(0.2), MML::Real(0.5), MML::Real(1.0),
+        MML::Real(0.5), MML::Real(0.2), MML::Real(0.1), MML::Real(0.058823529411764705), MML::Real(0.038461538461538464)
     };
 
     // Smooth polynomial x³-2x²+x-1 on [-2,2], n=5
@@ -142,110 +142,110 @@ namespace MML::TestBeds
 
     // Gaussian exp(-x²) on [-3,3], n=15
     const static inline Vector<Real> gaussian_15_x{
-        -3.0, -2.571428571, -2.142857143, -1.714285714, -1.285714286, 
-        -0.857142857, -0.428571429, 0.0, 0.428571429, 0.857142857, 
-        1.285714286, 1.714285714, 2.142857143, 2.571428571, 3.0
+        -MML::Real(3.0), -MML::Real(2.571428571), -MML::Real(2.142857143), -MML::Real(1.714285714), -MML::Real(1.285714286),
+        -MML::Real(0.857142857), -MML::Real(0.428571429), MML::Real(0.0), MML::Real(0.428571429), MML::Real(0.857142857),
+        MML::Real(1.285714286), MML::Real(1.714285714), MML::Real(2.142857143), MML::Real(2.571428571), MML::Real(3.0)
     };
     const static inline Vector<Real> gaussian_15_y{
-        0.000123409804, 0.001350455, 0.010064502, 0.051065857, 0.192107629,
-        0.480968586, 0.832115086, 1.0, 0.832115086, 0.480968586,
-        0.192107629, 0.051065857, 0.010064502, 0.001350455, 0.000123409804
+        MML::Real(0.000123409804), MML::Real(0.001350455), MML::Real(0.010064502), MML::Real(0.051065857), MML::Real(0.192107629),
+        MML::Real(0.480968586), MML::Real(0.832115086), MML::Real(1.0), MML::Real(0.832115086), MML::Real(0.480968586),
+        MML::Real(0.192107629), MML::Real(0.051065857), MML::Real(0.010064502), MML::Real(0.001350455), MML::Real(0.000123409804)
     };
 
     // Sine(πx) on [-1,1], n=9
     const static inline Vector<Real> sinepi_9_x{-1.0, -0.75, -0.5, -0.25, 0.0, 0.25, 0.5, 0.75, 1.0};
     const static inline Vector<Real> sinepi_9_y{
-        0.0, -0.707106781, -1.0, -0.707106781, 0.0, 0.707106781, 1.0, 0.707106781, 0.0
+        MML::Real(0.0), -MML::Real(0.707106781), -MML::Real(1.0), -MML::Real(0.707106781), MML::Real(0.0), MML::Real(0.707106781), MML::Real(1.0), MML::Real(0.707106781), MML::Real(0.0)
     };
 
     // Exponential exp(x) on [-2,2], n=9
     const static inline Vector<Real> exp_9_x{-2.0, -1.5, -1.0, -0.5, 0.0, 0.5, 1.0, 1.5, 2.0};
     const static inline Vector<Real> exp_9_y{
-        0.135335283, 0.223130160, 0.367879441, 0.606530660, 1.0, 
-        1.648721271, 2.718281828, 4.481689070, 7.389056099
+        MML::Real(0.135335283), MML::Real(0.223130160), MML::Real(0.367879441), MML::Real(0.606530660), MML::Real(1.0),
+        MML::Real(1.648721271), MML::Real(2.718281828), MML::Real(4.481689070), MML::Real(7.389056099)
     };
 
     // Absolute value |x| on [-2,2], n=11
-    const static inline Vector<Real> absval_11_x{-2.0, -1.6, -1.2, -0.8, -0.4, 0.0, 0.4, 0.8, 1.2, 1.6, 2.0};
-    const static inline Vector<Real> absval_11_y{2.0, 1.6, 1.2, 0.8, 0.4, 0.0, 0.4, 0.8, 1.2, 1.6, 2.0};
+    const static inline Vector<Real> absval_11_x{-MML::Real(2.0), -MML::Real(1.6), -MML::Real(1.2), -MML::Real(0.8), -MML::Real(0.4), MML::Real(0.0), MML::Real(0.4), MML::Real(0.8), MML::Real(1.2), MML::Real(1.6), MML::Real(2.0)};
+    const static inline Vector<Real> absval_11_y{MML::Real(2.0), MML::Real(1.6), MML::Real(1.2), MML::Real(0.8), MML::Real(0.4), MML::Real(0.0), MML::Real(0.4), MML::Real(0.8), MML::Real(1.2), MML::Real(1.6), MML::Real(2.0)};
 
     // Step-like tanh(10x) on [-1,1], n=21
     const static inline Vector<Real> steplike_21_x{
-        -1.0, -0.9, -0.8, -0.7, -0.6, -0.5, -0.4, -0.3, -0.2, -0.1, 0.0,
-        0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0
+        -MML::Real(1.0), -MML::Real(0.9), -MML::Real(0.8), -MML::Real(0.7), -MML::Real(0.6), -MML::Real(0.5), -MML::Real(0.4), -MML::Real(0.3), -MML::Real(0.2), -MML::Real(0.1), MML::Real(0.0),
+        MML::Real(0.1), MML::Real(0.2), MML::Real(0.3), MML::Real(0.4), MML::Real(0.5), MML::Real(0.6), MML::Real(0.7), MML::Real(0.8), MML::Real(0.9), MML::Real(1.0)
     };
     const static inline Vector<Real> steplike_21_y{
-        -0.9999999959, -0.9999999588, -0.9999996829, -0.9999983370, -0.9999877117,
-        -0.9999092043, -0.9993292997, -0.9950547537, -0.9640275801, -0.7615941560, 0.0,
-        0.7615941560, 0.9640275801, 0.9950547537, 0.9993292997, 0.9999092043,
-        0.9999877117, 0.9999983370, 0.9999996829, 0.9999999588, 0.9999999959
+        -MML::Real(0.9999999959), -MML::Real(0.9999999588), -MML::Real(0.9999996829), -MML::Real(0.9999983370), -MML::Real(0.9999877117),
+        -MML::Real(0.9999092043), -MML::Real(0.9993292997), -MML::Real(0.9950547537), -MML::Real(0.9640275801), -MML::Real(0.7615941560), MML::Real(0.0),
+        MML::Real(0.7615941560), MML::Real(0.9640275801), MML::Real(0.9950547537), MML::Real(0.9993292997), MML::Real(0.9999092043),
+        MML::Real(0.9999877117), MML::Real(0.9999983370), MML::Real(0.9999996829), MML::Real(0.9999999588), MML::Real(0.9999999959)
     };
 
     // Chebyshev T_5(x) on Chebyshev nodes [-1,1], n=7
     const static inline Vector<Real> cheb5_chebNodes_7_x{
-        0.9749279122, 0.7818314825, 0.4338837391, 0.0, -0.4338837391, -0.7818314825, -0.9749279122
+        MML::Real(0.9749279122), MML::Real(0.7818314825), MML::Real(0.4338837391), MML::Real(0.0), -MML::Real(0.4338837391), -MML::Real(0.7818314825), -MML::Real(0.9749279122)
     };
     const static inline Vector<Real> cheb5_chebNodes_7_y{
-        0.7818314825, -0.9749279122, -0.4338837391, 0.0, 0.4338837391, 0.9749279122, -0.7818314825
+        MML::Real(0.7818314825), -MML::Real(0.9749279122), -MML::Real(0.4338837391), MML::Real(0.0), MML::Real(0.4338837391), MML::Real(0.9749279122), -MML::Real(0.7818314825)
     };
 
     // High-frequency sin(5πx) on [-1,1], n=21
     const static inline Vector<Real> highfreq_21_x{
-        -1.0, -0.9, -0.8, -0.7, -0.6, -0.5, -0.4, -0.3, -0.2, -0.1, 0.0,
-        0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0
+        -MML::Real(1.0), -MML::Real(0.9), -MML::Real(0.8), -MML::Real(0.7), -MML::Real(0.6), -MML::Real(0.5), -MML::Real(0.4), -MML::Real(0.3), -MML::Real(0.2), -MML::Real(0.1), MML::Real(0.0),
+        MML::Real(0.1), MML::Real(0.2), MML::Real(0.3), MML::Real(0.4), MML::Real(0.5), MML::Real(0.6), MML::Real(0.7), MML::Real(0.8), MML::Real(0.9), MML::Real(1.0)
     };
     const static inline Vector<Real> highfreq_21_y{
-        0.0, -0.951056516, 0.587785252, 0.587785252, -0.951056516, 0.0,
-        0.951056516, -0.587785252, -0.587785252, 0.951056516, 0.0,
-        -0.951056516, 0.587785252, 0.587785252, -0.951056516, 0.0,
-        0.951056516, -0.587785252, -0.587785252, 0.951056516, 0.0
+        MML::Real(0.0), -MML::Real(0.951056516), MML::Real(0.587785252), MML::Real(0.587785252), -MML::Real(0.951056516), MML::Real(0.0),
+        MML::Real(0.951056516), -MML::Real(0.587785252), -MML::Real(0.587785252), MML::Real(0.951056516), MML::Real(0.0),
+        -MML::Real(0.951056516), MML::Real(0.587785252), MML::Real(0.587785252), -MML::Real(0.951056516), MML::Real(0.0),
+        MML::Real(0.951056516), -MML::Real(0.587785252), -MML::Real(0.587785252), MML::Real(0.951056516), MML::Real(0.0)
     };
 
     // Witch of Agnesi on [-5,5], n=15
     const static inline Vector<Real> witch_15_x{
-        -5.0, -4.285714286, -3.571428571, -2.857142857, -2.142857143,
-        -1.428571429, -0.714285714, 0.0, 0.714285714, 1.428571429,
-        2.142857143, 2.857142857, 3.571428571, 4.285714286, 5.0
+        -MML::Real(5.0), -MML::Real(4.285714286), -MML::Real(3.571428571), -MML::Real(2.857142857), -MML::Real(2.142857143),
+        -MML::Real(1.428571429), -MML::Real(0.714285714), MML::Real(0.0), MML::Real(0.714285714), MML::Real(1.428571429),
+        MML::Real(2.142857143), MML::Real(2.857142857), MML::Real(3.571428571), MML::Real(4.285714286), MML::Real(5.0)
     };
     const static inline Vector<Real> witch_15_y{
-        0.038461538, 0.051652893, 0.072727273, 0.109090909, 0.178947368,
-        0.329411765, 0.662162162, 1.0, 0.662162162, 0.329411765,
-        0.178947368, 0.109090909, 0.072727273, 0.051652893, 0.038461538
+        MML::Real(0.038461538), MML::Real(0.051652893), MML::Real(0.072727273), MML::Real(0.109090909), MML::Real(0.178947368),
+        MML::Real(0.329411765), MML::Real(0.662162162), MML::Real(1.0), MML::Real(0.662162162), MML::Real(0.329411765),
+        MML::Real(0.178947368), MML::Real(0.109090909), MML::Real(0.072727273), MML::Real(0.051652893), MML::Real(0.038461538)
     };
 
     // Logarithm ln(x+2) on [-1,3], n=15
     const static inline Vector<Real> log_15_x{
-        -1.0, -0.714285714, -0.428571429, -0.142857143, 0.142857143,
-        0.428571429, 0.714285714, 1.0, 1.285714286, 1.571428571,
-        1.857142857, 2.142857143, 2.428571429, 2.714285714, 3.0
+        -MML::Real(1.0), -MML::Real(0.714285714), -MML::Real(0.428571429), -MML::Real(0.142857143), MML::Real(0.142857143),
+        MML::Real(0.428571429), MML::Real(0.714285714), MML::Real(1.0), MML::Real(1.285714286), MML::Real(1.571428571),
+        MML::Real(1.857142857), MML::Real(2.142857143), MML::Real(2.428571429), MML::Real(2.714285714), MML::Real(3.0)
     };
     const static inline Vector<Real> log_15_y{
-        0.0, 0.251314428, 0.451076387, 0.617000854, 0.758317636,
-        0.880534220, 0.987565958, 1.098612289, 1.190619774, 1.274397839,
-        1.351355906, 1.422467814, 1.488489739, 1.550015831, 1.609437912
+        MML::Real(0.0), MML::Real(0.251314428), MML::Real(0.451076387), MML::Real(0.617000854), MML::Real(0.758317636),
+        MML::Real(0.880534220), MML::Real(0.987565958), MML::Real(1.098612289), MML::Real(1.190619774), MML::Real(1.274397839),
+        MML::Real(1.351355906), MML::Real(1.422467814), MML::Real(1.488489739), MML::Real(1.550015831), MML::Real(1.609437912)
     };
 
     // Square root sqrt(x+1) on [0,4], n=11
-    const static inline Vector<Real> sqrt_11_x{0.0, 0.4, 0.8, 1.2, 1.6, 2.0, 2.4, 2.8, 3.2, 3.6, 4.0};
+    const static inline Vector<Real> sqrt_11_x{MML::Real(0.0), MML::Real(0.4), MML::Real(0.8), MML::Real(1.2), MML::Real(1.6), MML::Real(2.0), MML::Real(2.4), MML::Real(2.8), MML::Real(3.2), MML::Real(3.6), MML::Real(4.0)};
     const static inline Vector<Real> sqrt_11_y{
-        1.0, 1.183215957, 1.341640786, 1.483239697, 1.612451550,
-        1.732050808, 1.843908891, 1.949358869, 2.049390153, 2.144761059, 2.236067977
+        MML::Real(1.0), MML::Real(1.183215957), MML::Real(1.341640786), MML::Real(1.483239697), MML::Real(1.612451550),
+        MML::Real(1.732050808), MML::Real(1.843908891), MML::Real(1.949358869), MML::Real(2.049390153), MML::Real(2.144761059), MML::Real(2.236067977)
     };
 
     // Multi-frequency on [-π, π], n=25
     const static inline Vector<Real> multifreq_25_x{
-        -3.141592654, -2.879793266, -2.617993878, -2.356194490, -2.094395102,
-        -1.832595714, -1.570796327, -1.308996939, -1.047197551, -0.785398163,
-        -0.523598776, -0.261799388, 0.0, 0.261799388, 0.523598776,
-        0.785398163, 1.047197551, 1.308996939, 1.570796327, 1.832595714,
-        2.094395102, 2.356194490, 2.617993878, 2.879793266, 3.141592654
+        -MML::Real(3.141592654), -MML::Real(2.879793266), -MML::Real(2.617993878), -MML::Real(2.356194490), -MML::Real(2.094395102),
+        -MML::Real(1.832595714), -MML::Real(1.570796327), -MML::Real(1.308996939), -MML::Real(1.047197551), -MML::Real(0.785398163),
+        -MML::Real(0.523598776), -MML::Real(0.261799388), MML::Real(0.0), MML::Real(0.261799388), MML::Real(0.523598776),
+        MML::Real(0.785398163), MML::Real(1.047197551), MML::Real(1.308996939), MML::Real(1.570796327), MML::Real(1.832595714),
+        MML::Real(2.094395102), MML::Real(2.356194490), MML::Real(2.617993878), MML::Real(2.879793266), MML::Real(3.141592654)
     };
     const static inline Vector<Real> multifreq_25_y{
-        0.0, -0.465011316, -0.771329079, -0.866025404, -0.767175251,
-        -0.537109750, -0.250000000, 0.022096262, 0.224014303, 0.340536025,
-        0.387595562, 0.395240461, 0.0, -0.395240461, -0.387595562,
-        -0.340536025, -0.224014303, -0.022096262, 0.250000000, 0.537109750,
-        0.767175251, 0.866025404, 0.771329079, 0.465011316, 0.0
+        MML::Real(0.0), -MML::Real(0.465011316), -MML::Real(0.771329079), -MML::Real(0.866025404), -MML::Real(0.767175251),
+        -MML::Real(0.537109750), -MML::Real(0.250000000), MML::Real(0.022096262), MML::Real(0.224014303), MML::Real(0.340536025),
+        MML::Real(0.387595562), MML::Real(0.395240461), MML::Real(0.0), -MML::Real(0.395240461), -MML::Real(0.387595562),
+        -MML::Real(0.340536025), -MML::Real(0.224014303), -MML::Real(0.022096262), MML::Real(0.250000000), MML::Real(0.537109750),
+        MML::Real(0.767175251), MML::Real(0.866025404), MML::Real(0.771329079), MML::Real(0.465011316), MML::Real(0.0)
     };
 
 } // namespace MML::TestBeds

@@ -7,14 +7,95 @@
 #include <mml/base/Vector/Vector.h>
 
 #include <mml/algorithms/RootFinding.h>
+#include <mml/algorithms/Optimization/Constraints/AugmentedLagrangian.h>
 #endif
 
 #include <iostream>
 #include <iomanip>
 #include <cmath>
+#include <limits>
+#include <stdexcept>
+#include <string_view>
 
 using namespace std;
 using namespace MML;
+
+void Docs_Demo_CallbackAccounting()
+{
+    int rootCalls = 0;
+    auto function = [&](Real x) { ++rootCalls; return x * x - 2; };
+    RootFinding::RootFindingConfig config;
+    config.max_iterations = 1;
+    const auto root = RootFinding::FindRootNewtonDetailed(function, 1, 2, config);
+    if (root.function_evaluations != rootCalls || rootCalls != 8 || root.iterations_used != 1)
+        throw std::runtime_error("Newton callback accounting failed");
+    std::cout << "Newton: " << root.iterations_used << " iteration, "
+              << root.function_evaluations << " objective calls\n";
+
+    int objectiveCalls = 0;
+    ScalarFunctionFromStdFunc<2> objective([&](const VectorN<Real, 2>&) {
+        ++objectiveCalls;
+        return Real(1);
+    });
+    Optimization::NelderMead optimizer;
+    const auto minimum = optimizer.Minimize(objective, VectorN<Real, 2>{0, 0});
+    if (minimum.function_evaluations != objectiveCalls || objectiveCalls != 3
+        || minimum.iterations != 0)
+        throw std::runtime_error("Nelder-Mead callback accounting failed");
+    std::cout << "Nelder-Mead: " << minimum.iterations << " iterations, "
+              << minimum.function_evaluations << " objective calls\n";
+
+    objectiveCalls = 0;
+    ScalarFunctionFromStdFunc<2> throwing([&](const VectorN<Real, 2>&) {
+        if (++objectiveCalls == 2) throw std::runtime_error("demo callback failure");
+        return Real(1);
+    });
+    bool propagated = false;
+    try {
+        const auto unexpected = optimizer.Minimize(throwing, VectorN<Real, 2>{0, 0});
+        (void)unexpected;
+    } catch (const std::runtime_error& error) {
+        if (std::string_view(error.what()) != "demo callback failure") throw;
+        propagated = true;
+    }
+    if (!propagated || objectiveCalls != 2 || optimizer.getNumFuncEvals() != objectiveCalls)
+        throw std::runtime_error("Throwing callback accounting failed");
+    std::cout << "Propagated callback failure: " << optimizer.getNumFuncEvals() << " attempts\n";
+
+    Optimization::ALMConfig almConfig;
+    almConfig.max_inner_iterations = 1;
+    Optimization::AugmentedLagrangian<2> alm(almConfig);
+    int almCalls = 0;
+    auto almObjective = [&](const VectorN<Real, 2>& x) {
+        ++almCalls;
+        return 1 + x[0] * x[0] + x[1] * x[1];
+    };
+    const auto constrained = alm.Optimize(almObjective, VectorN<Real, 2>{1, 1});
+    if (constrained.converged || constrained.inner_iterations != 0
+        || constrained.function_evaluations != almCalls || almCalls != 4)
+        throw std::runtime_error("ALM exhausted-inner callback accounting failed");
+    std::cout << "ALM: " << constrained.inner_iterations << " inner iterations, "
+              << constrained.function_evaluations << " objective calls\n";
+}
+
+void Docs_Demo_RootSignScaling()
+{
+    const int exponent = std::numeric_limits<Real>::max_exponent * 3 / 4;
+    for (Real unit : {std::ldexp(Real(1), -exponent), Real(1), std::ldexp(Real(1), exponent)}) {
+        RealFunctionFromStdFunc function([=](Real x) { return unit * (x - Real(0.25)); });
+        RootFinding::RootFindingConfig config;
+        config.x_tolerance = Precision::EqualityTolerance;
+        config.f_tolerance = unit * Precision::EqualityTolerance;
+        config.max_iterations = 16;
+        const auto result = RootFinding::FindRootBrentDetailed(function, 0, 1, config);
+        if (!result) throw std::runtime_error(result.error_message);
+        if (std::abs(result.root - Real(0.25)) > Precision::DefaultToleranceStrict
+            || std::abs(result.function_value) > config.f_tolerance)
+            throw std::runtime_error("Scaled root failed its root/residual checks");
+        std::cout << "unit=" << unit << " root=" << result.root
+                  << " residual=" << result.function_value << '\n';
+    }
+}
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 // Demo: BracketRoot - Find Initial Bracket
@@ -254,6 +335,27 @@ void Docs_Demo_PolynomialRootDiagnostics()
                   << ", multiplicity ~= " << root.estimated_multiplicity << "\n";
     }
     std::cout << "\n";
+}
+
+void Docs_Demo_PolynomialScaling()
+{
+    Complex first, second;
+    const int count = SolveQuadratic(Real(1e-20), 0, Real(-1e-20), first, second);
+    std::cout << "Scaled quadratic: " << count << " real roots: " << first << ", " << second << '\n';
+
+    for (Real scale : {Real(1e-200), Real(1), Real(1e200)}) {
+        const PolynomReal polynomial{4 * scale, 0, -5 * scale, 0, scale};
+        RootFinding::PolynomialRootConfig config;
+        config.method = RootFinding::PolynomialRootMethod::CompanionMatrix;
+        config.max_iterations = 500;
+        const auto result = RootFinding::FindPolynomialRootsDetailed(polynomial, config);
+        std::cout << "Scale " << scale << ": " << to_string(result.status)
+                  << ", degree " << result.polynomial_degree
+                  << ", relative residual " << result.max_relative_residual << '\n';
+        if (!result.IsSuccess())
+            throw RootFindingError(result.error_message);
+        for (const auto& root : result.roots) std::cout << "  " << root.root << '\n';
+    }
 }
 
 void Docs_Demo_NonlinearSystemNewton()

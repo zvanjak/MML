@@ -105,7 +105,7 @@ namespace MML::Optimization {
 	struct [[nodiscard]] MultidimOptimizationResult : IterativeResultBase {
 		Vector<Real> xmin; ///< Location of minimum
 		Real fmin;		   ///< Function value at minimum
-		int iterations;	   ///< Number of iterations (or function evaluations)
+		int iterations;	   ///< Algorithm iterations, independent of function_evaluations
 		
 		// Enhanced diagnostic fields (API Standardization Phase 4)
 
@@ -137,7 +137,7 @@ namespace MML::Optimization {
 
 	struct MultidimOptimizationConfig {
 		Real tolerance = Precision::OptimizationGradientTolerance;           ///< Convergence tolerance
-		int max_iterations = 5000;       ///< Maximum iterations
+		int max_iterations = 5000;       ///< Iteration cap; Nelder-Mead also checks an evaluation threshold between iterations
 		bool verbose = false;            ///< Enable verbose output
 		Real initial_delta = 1.0;        ///< Initial simplex/step size
 		int lbfgs_memory_size = 10;      ///< L-BFGS: number of correction pairs (typical: 3-20)

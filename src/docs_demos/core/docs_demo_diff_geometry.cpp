@@ -8,6 +8,8 @@
 #include <mml/core/Curves.h>
 #include <mml/core/Surfaces.h>
 #include <mml/core/Integration/PathIntegration.h>
+#include <mml/core/DifferentialGeometry/Frames.h>
+#include <mml/core/DifferentialGeometry/FormIntegration.h>
 #endif
 
 #include "../test_beds/parametric_curves_test_bed.h"
@@ -15,6 +17,110 @@
 using namespace MML;
 using namespace MML::Curves;
 using namespace MML::Surfaces;
+
+void Docs_Demo_FormIntegration()
+{
+	class RotationOneForm2D : public IFormField<2, 1, Cartesian2> {
+	public:
+		Form1<2, Cartesian2> operator()(const Point<Real, 2, Cartesian2>& p) const override {
+			Form1<2, Cartesian2> omega;
+			omega.Component(0) = -0.5 * p[1];
+			omega.Component(1) =  0.5 * p[0];
+			return omega;
+		}
+	};
+
+	RotationOneForm2D omega;
+	Real residual = DifferentialGeometry::GreenTheoremResidual(omega, 0.0, 1.0, 0.0, 1.0);
+	auto detailed = DifferentialGeometry::GreenTheoremResidualDetailed(omega, 0.0, 1.0, 0.0, 1.0);
+	std::cout << "Green residual: " << residual
+		<< "; boundary error estimate: " << detailed.boundary.error_estimate
+		<< "; interior error estimated: " << detailed.interior.error_estimated << '\n';
+	if (std::abs(residual) > Precision::DefaultTolerance || !detailed.IsUsable() ||
+		detailed.status != AlgorithmStatus::Completed || detailed.converged || detailed.error_estimated ||
+		!detailed.boundary.error_estimated || detailed.interior.error_estimated)
+		throw NumericalMethodError("Form integration demo: dishonest theorem residual diagnostics");
+
+	struct QuadraticAreaForm : IFormField<2, 2, Cartesian2> {
+		Form2<2, Cartesian2> operator()(const Point<Real, 2, Cartesian2>& p) const override {
+			Form2<2, Cartesian2> area;
+			area.SetAlternatingComponent(p[0] * p[0], 0, 1);
+			return area;
+		}
+	} area;
+	const auto coarse = DifferentialGeometry::IntegrateTwoFormOverRectangleDetailed(area, 0, 1, 0, 1, 1, 1);
+	std::cout << "One-cell midpoint: " << coarse.value << "; exact: " << Real(1) / 3
+		<< "; error estimated: " << coarse.error_estimated << '\n';
+	if (coarse.value != Real(0.25) || coarse.status != AlgorithmStatus::Completed ||
+		coarse.converged || coarse.error_estimated || !std::isnan(coarse.error_estimate))
+		throw NumericalMethodError("Form integration demo: unchecked midpoint rule claimed accuracy");
+}
+
+void Docs_Demo_SurfaceDerivativeSteps()
+{
+	Surfaces::Sphere sphere(2);
+	const Real u = Real(0.9), w = Real(0.2);
+	Real estimate;
+	const auto secondUU = Derivation::NDer2_uu(sphere, u, w, &estimate);
+	const Real gaussian = sphere.GaussianCurvature(u, w);
+	const Real mean = sphere.MeanCurvature(u, w);
+	std::cout << "Surface second partial norm: " << secondUU.NormL2() << '\n';
+	std::cout << "Second partial error estimate: " << estimate << '\n';
+	std::cout << "Normalized curvature errors: " << gaussian * 4 - 1 << ", " << mean * 2 + 1 << '\n';
+	const Real budget = 16 * Precision::SqrtEps;
+	if (std::abs(secondUU.NormL2() / 2 - 1) > budget ||
+		!std::isfinite(estimate) || estimate < 0 || estimate / 2 > budget ||
+		std::abs(gaussian * 4 - 1) > budget || std::abs(mean * 2 + 1) > budget)
+		throw GeometryError("Surface derivative step demo - smooth sphere accuracy check failed");
+}
+
+void Docs_Demo_TypedFrameContracts()
+{
+	struct SlowCircle : IParametricCurve<2> {
+		Real getMinT() const override { return Constants::NegInf; }
+		Real getMaxT() const override { return Constants::PosInf; }
+		VectorN<Real,2> operator()(Real t) const override { return {std::cos(Real(1e-8)*t),std::sin(Real(1e-8)*t)}; }
+	} circle;
+	const auto frame = DifferentialGeometry::ComputeFrenetFrame(circle, 0, Real(1e5));
+	if (!frame.normal_defined || frame.normal[0] != -1 || frame.curvature <= 0)
+		throw GeometryError("Typed frame demo - slow regular circle lost its principal normal");
+	std::cout << "Slow circle: normal defined, curvature = " << frame.curvature << '\n';
+}
+
+void Docs_Demo_CurveSurfaceContracts()
+{
+	Curves::Circle2DCurve circle(Real(1e-5));
+	Surfaces::Sphere sphere(Real(1e-4));
+	std::cout << circle.getCurvature(0) << '\n';
+	std::cout << sphere.GaussianCurvature(Constants::PI / 2, 0) << '\n';
+	if (std::abs(circle.getCurvature(0) * Real(1e-5) - 1) > Precision::DefaultTolerance ||
+		std::abs(sphere.GaussianCurvature(Constants::PI / 2, 0) * Real(1e-8) - 1) > Precision::DefaultTolerance)
+		throw GeometryError("Curve/surface demo - scale invariance failed");
+	PlaneSurface plane(Vec3Cart{}, Vec3Cart{0, 0, 1}, Vec3Cart{2, 0, 3});
+	if (std::abs((plane(1, 0) - plane(0, 0)).NormL2() - 1) > Precision::RoundoffZeroThreshold)
+		throw GeometryError("Curve/surface demo - plane frame is not unit length");
+	LogSpiralCurve spiral(-1, 4);
+	if (spiral(0)[0] != 4)
+		throw GeometryError("Curve/surface demo - spiral scale was ignored");
+	Circle2DCurvePolar polar(2);
+	std::cout << "Polar seam tangent Y: " << polar.getTangent(Constants::PI)[1] << '\n';
+	if (std::abs(polar.getTangent(Constants::PI)[1] + 2) > Precision::DefaultTolerance)
+		throw GeometryError("Curve/surface demo - polar seam tangent failed");
+	const auto acceleration2D = circle.getSecondDerivative(0);
+	const auto normal2D = circle.getNormal(0);
+	const auto unitNormal2D = circle.getNormalUnit(0);
+	HelixCurve helix;
+	const auto acceleration3D = helix.getSecondDerivative(0);
+	const auto unitNormal3D = helix.getNormal(0);
+	if (acceleration2D[0] >= 0 || normal2D[0] >= 0 || acceleration3D[0] >= 0 ||
+		std::abs(unitNormal2D.NormL2() - 1) > Precision::RoundoffZeroThreshold ||
+		std::abs(unitNormal3D.NormL2() - 1) > Precision::RoundoffZeroThreshold)
+		throw GeometryError("Curve/surface demo - acceleration or normal contract failed");
+	CurveCartesian3D fast(+[](Real t) -> VectorN<Real, 3> { return {2 * t, 0, 0}; });
+	if (fast.isArcLengthParametrized(0, 1, 1))
+		throw GeometryError("Curve/surface demo - a single sample must detect speed two");
+	std::cout << "Plane, spiral, normals and single-sample speed checks passed\n";
+}
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 /////                              2D CURVES DEMOS                                    /////
@@ -678,6 +784,7 @@ void Docs_Demo_Surfaces_Classification()
 
 void Docs_Demo_Diff_geometry_curves()
 {
+	Docs_Demo_CurveSurfaceContracts();
 	Docs_Demo_Curves_2D_Basic();
 	Docs_Demo_Curves_3D_Basic();
 	Docs_Demo_Curves_Frenet_Frame();
@@ -699,6 +806,7 @@ void Docs_Demo_Diff_geometry_surfaces()
 
 void Docs_Demo_Diff_geometry()
 {
+	Docs_Demo_FormIntegration();
 	Docs_Demo_Diff_geometry_curves();
 	Docs_Demo_Diff_geometry_surfaces();
 }

@@ -506,7 +506,7 @@ TEST_CASE("Algorithm result display - IterativeResultBase streams via ConsolePri
     result.status = AlgorithmStatus::Success;
     result.converged = true;
     result.iterations_used = 7;
-    result.achieved_tolerance = 1e-12;
+    result.achieved_tolerance = MML::Real(1e-12);
     result.function_evaluations = 9;
     result.elapsed_time_ms = 0.25;
 
@@ -581,7 +581,7 @@ TEST_CASE("VectorTablePrinter - Different length vectors", "[ConsolePrinter][Vec
 }
 
 TEST_CASE("VectorTablePrinter - With ColumnFormat", "[ConsolePrinter][VectorTablePrinter]") {
-    Vector<Real> v({1.23456, 2.34567});
+    Vector<Real> v({MML::Real(1.23456), MML::Real(2.34567)});
     
     VectorTablePrinter printer;
     ColumnFormat fmt("Values");

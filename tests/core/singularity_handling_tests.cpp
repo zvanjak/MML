@@ -88,30 +88,30 @@ TEST_CASE("Singularity - Default constants are reasonable", "[Singularity][Const
 TEST_CASE("IsNearZero - Zero value", "[Singularity][Detection]") {
     REQUIRE(IsNearZero(0.0) == true);
     REQUIRE(IsNearZero(0.0, TOL(1e-10, 1e-5)) == true);
-    REQUIRE(IsNearZero(0.0, 1e-20) == true);
+    REQUIRE(IsNearZero(MML::Real(0.0), MML::Real(1e-20)) == true);
 }
 
 TEST_CASE("IsNearZero - Very small positive values", "[Singularity][Detection]") {
     REQUIRE(IsNearZero(TOL3(1e-15, 1e-7, 1e-18)) == true);   // Below default tolerance
     REQUIRE(IsNearZero(TOL3(1e-13, 1e-7, 1e-16)) == true);   // Below default tolerance
     REQUIRE(IsNearZero(TOL(1e-11, 1e-5)) == false);  // Above default tolerance
-    REQUIRE(IsNearZero(1e-6) == false);   // Well above tolerance
+    REQUIRE(IsNearZero(MML::Real(1e-6)) == false);   // Well above tolerance
 }
 
 TEST_CASE("IsNearZero - Very small negative values", "[Singularity][Detection]") {
     REQUIRE(IsNearZero(-TOL3(1e-15, 1e-7, 1e-18)) == true);   // Below default tolerance
     REQUIRE(IsNearZero(-TOL3(1e-13, 1e-7, 1e-16)) == true);   // Below default tolerance
     REQUIRE(IsNearZero(-TOL(1e-11, 1e-5)) == false);  // Above default tolerance
-    REQUIRE(IsNearZero(-1e-6) == false);   // Well above tolerance
+    REQUIRE(IsNearZero(-MML::Real(1e-6)) == false);   // Well above tolerance
 }
 
 TEST_CASE("IsNearZero - Custom tolerance", "[Singularity][Detection]") {
-    double value = 0.001;
+    Real value = Real(0.001);
     REQUIRE(IsNearZero(value, TOL(1e-12, 1e-5)) == false);  // Stricter tolerance
-    REQUIRE(IsNearZero(value, 0.01) == true);    // Looser tolerance
+    REQUIRE(IsNearZero(value, MML::Real(0.01)) == true);    // Looser tolerance
     // Note: Uses strict < comparison, so exactly at tolerance returns false
-    REQUIRE(IsNearZero(value, 0.001) == false);  // Exactly at tolerance
-    REQUIRE(IsNearZero(value, 0.0011) == true);  // Just above tolerance
+    REQUIRE(IsNearZero(value, MML::Real(0.001)) == false);  // Exactly at tolerance
+    REQUIRE(IsNearZero(value, MML::Real(0.0011)) == true);  // Just above tolerance
 }
 
 TEST_CASE("IsNearZero - Normal values are not near zero", "[Singularity][Detection]") {
@@ -138,8 +138,8 @@ TEST_CASE("IsAtSphericalOrigin - Near-zero radius", "[Singularity][Detection]") 
 
 TEST_CASE("IsAtSphericalOrigin - Positive radius", "[Singularity][Detection]") {
     REQUIRE(IsAtSphericalOrigin(1.0) == false);
-    REQUIRE(IsAtSphericalOrigin(0.1) == false);
-    REQUIRE(IsAtSphericalOrigin(1e-6) == false);
+    REQUIRE(IsAtSphericalOrigin(MML::Real(0.1)) == false);
+    REQUIRE(IsAtSphericalOrigin(MML::Real(1e-6)) == false);
 }
 
 TEST_CASE("IsAtSphericalOrigin - Negative radius (unusual but checked)", "[Singularity][Detection]") {
@@ -160,28 +160,28 @@ TEST_CASE("IsAtSphericalPole - At theta = 0 (north pole)", "[Singularity][Detect
 }
 
 TEST_CASE("IsAtSphericalPole - At theta = pi (south pole)", "[Singularity][Detection]") {
-    const double pi = 3.14159265358979323846;
+    const Real pi = Constants::PI;
     REQUIRE(IsAtSphericalPole(pi) == true);
     REQUIRE(IsAtSphericalPole(pi - TOL3(1e-15, 1e-7, 1e-18)) == true);
     REQUIRE(IsAtSphericalPole(pi + TOL3(1e-15, 1e-7, 1e-18)) == true);  // Slightly past pi
 }
 
 TEST_CASE("IsAtSphericalPole - Away from poles", "[Singularity][Detection]") {
-    const double pi = 3.14159265358979323846;
+    const Real pi = Constants::PI;
     REQUIRE(IsAtSphericalPole(pi / 2) == false);     // Equator
     REQUIRE(IsAtSphericalPole(pi / 4) == false);     // 45 degrees
     REQUIRE(IsAtSphericalPole(3 * pi / 4) == false); // 135 degrees
-    REQUIRE(IsAtSphericalPole(0.1) == false);
-    REQUIRE(IsAtSphericalPole(pi - 0.1) == false);
+    REQUIRE(IsAtSphericalPole(MML::Real(0.1)) == false);
+    REQUIRE(IsAtSphericalPole(pi - MML::Real(0.1)) == false);
 }
 
 TEST_CASE("IsAtSphericalPole - Custom tolerance", "[Singularity][Detection]") {
-    const double pi = 3.14159265358979323846;
+    const Real pi = Constants::PI;
     // With looser tolerance
-    REQUIRE(IsAtSphericalPole(0.001, 0.01) == true);
-    REQUIRE(IsAtSphericalPole(pi - 0.001, 0.01) == true);
+    REQUIRE(IsAtSphericalPole(MML::Real(0.001), MML::Real(0.01)) == true);
+    REQUIRE(IsAtSphericalPole(pi - MML::Real(0.001), MML::Real(0.01)) == true);
     // With stricter tolerance
-    REQUIRE(IsAtSphericalPole(0.001, 1e-6) == false);
+    REQUIRE(IsAtSphericalPole(MML::Real(0.001), MML::Real(1e-6)) == false);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -196,13 +196,13 @@ TEST_CASE("IsAtCylindricalAxis - Zero radius", "[Singularity][Detection]") {
 
 TEST_CASE("IsAtCylindricalAxis - Away from axis", "[Singularity][Detection]") {
     REQUIRE(IsAtCylindricalAxis(1.0) == false);
-    REQUIRE(IsAtCylindricalAxis(0.001) == false);
-    REQUIRE(IsAtCylindricalAxis(1e-6) == false);
+    REQUIRE(IsAtCylindricalAxis(MML::Real(0.001)) == false);
+    REQUIRE(IsAtCylindricalAxis(MML::Real(1e-6)) == false);
 }
 
 TEST_CASE("IsAtCylindricalAxis - Custom tolerance", "[Singularity][Detection]") {
-    REQUIRE(IsAtCylindricalAxis(0.0001, 0.001) == true);
-    REQUIRE(IsAtCylindricalAxis(0.0001, 1e-6) == false);
+    REQUIRE(IsAtCylindricalAxis(MML::Real(0.0001), MML::Real(0.001)) == true);
+    REQUIRE(IsAtCylindricalAxis(MML::Real(0.0001), MML::Real(1e-6)) == false);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -210,17 +210,17 @@ TEST_CASE("IsAtCylindricalAxis - Custom tolerance", "[Singularity][Detection]") 
 ///////////////////////////////////////////////////////////////////////////////
 
 TEST_CASE("IsAtSphericalSingularity - Origin only", "[Singularity][Detection]") {
-    const double pi = 3.14159265358979323846;
+    const Real pi = Constants::PI;
     // r=0, theta not at pole
-    REQUIRE(IsAtSphericalSingularity(0.0, pi / 2) == true);
+    REQUIRE(IsAtSphericalSingularity(MML::Real(0.0), pi / 2) == true);
     REQUIRE(IsAtSphericalSingularity(TOL3(1e-15, 1e-7, 1e-18), pi / 4) == true);
 }
 
 TEST_CASE("IsAtSphericalSingularity - Pole only", "[Singularity][Detection]") {
-    const double pi = 3.14159265358979323846;
+    const Real pi = Constants::PI;
     // r nonzero, theta at pole
     REQUIRE(IsAtSphericalSingularity(1.0, 0.0) == true);
-    REQUIRE(IsAtSphericalSingularity(1.0, pi) == true);
+    REQUIRE(IsAtSphericalSingularity(MML::Real(1.0), pi) == true);
     REQUIRE(IsAtSphericalSingularity(1.0, TOL3(1e-15, 1e-7, 1e-18)) == true);
 }
 
@@ -230,9 +230,9 @@ TEST_CASE("IsAtSphericalSingularity - Both origin and pole", "[Singularity][Dete
 }
 
 TEST_CASE("IsAtSphericalSingularity - No singularity", "[Singularity][Detection]") {
-    const double pi = 3.14159265358979323846;
-    REQUIRE(IsAtSphericalSingularity(1.0, pi / 2) == false);
-    REQUIRE(IsAtSphericalSingularity(0.5, pi / 4) == false);
+    const Real pi = Constants::PI;
+    REQUIRE(IsAtSphericalSingularity(MML::Real(1.0), pi / 2) == false);
+    REQUIRE(IsAtSphericalSingularity(MML::Real(0.5), pi / 4) == false);
     REQUIRE(IsAtSphericalSingularity(10.0, 1.0) == false);
 }
 
@@ -241,8 +241,8 @@ TEST_CASE("IsAtSphericalSingularity - No singularity", "[Singularity][Detection]
 ///////////////////////////////////////////////////////////////////////////////
 
 TEST_CASE("DescribeSphericalSingularity - Origin", "[Singularity][Detection]") {
-    const double pi = 3.14159265358979323846;
-    std::string desc = DescribeSphericalSingularity(0.0, pi / 2);
+    const Real pi = Constants::PI;
+    std::string desc = DescribeSphericalSingularity(MML::Real(0.0), pi / 2);
     REQUIRE(desc == "origin (r=0)");
     
     desc = DescribeSphericalSingularity(TOL3(1e-15, 1e-7, 1e-18), pi / 4);
@@ -250,11 +250,11 @@ TEST_CASE("DescribeSphericalSingularity - Origin", "[Singularity][Detection]") {
 }
 
 TEST_CASE("DescribeSphericalSingularity - Pole", "[Singularity][Detection]") {
-    const double pi = 3.14159265358979323846;
+    const Real pi = Constants::PI;
     std::string desc = DescribeSphericalSingularity(1.0, 0.0);
     REQUIRE(desc == "pole (sin(θ)=0)");
     
-    desc = DescribeSphericalSingularity(1.0, pi);
+    desc = DescribeSphericalSingularity(MML::Real(1.0), pi);
     REQUIRE(desc == "pole (sin(θ)=0)");
 }
 
@@ -265,8 +265,8 @@ TEST_CASE("DescribeSphericalSingularity - Origin takes precedence", "[Singularit
 }
 
 TEST_CASE("DescribeSphericalSingularity - No singularity", "[Singularity][Detection]") {
-    const double pi = 3.14159265358979323846;
-    std::string desc = DescribeSphericalSingularity(1.0, pi / 2);
+    const Real pi = Constants::PI;
+    std::string desc = DescribeSphericalSingularity(MML::Real(1.0), pi / 2);
     REQUIRE(desc == "none");
 }
 
@@ -405,16 +405,16 @@ TEST_CASE("SafeInverseR2 - Near-zero r triggers singularity", "[Singularity][Saf
 ///////////////////////////////////////////////////////////////////////////////
 
 TEST_CASE("SafeInverseRSinTheta - Normal operation", "[Singularity][SafeArithmetic]") {
-    const double pi = 3.14159265358979323846;
+    const Real pi = Constants::PI;
     // At equator (theta = pi/2), sin(theta) = 1
-    REQUIRE(SafeInverseRSinTheta(2.0, pi / 2) == Catch::Approx(0.5));
+    REQUIRE(SafeInverseRSinTheta(MML::Real(2.0), pi / 2) == Catch::Approx(MML::Real(0.5)));
     
     // At theta = pi/6, sin = 0.5
-    REQUIRE(SafeInverseRSinTheta(1.0, pi / 6) == Catch::Approx(2.0));
+    REQUIRE(SafeInverseRSinTheta(MML::Real(1.0), pi / 6) == Catch::Approx(MML::Real(2.0)));
 }
 
 TEST_CASE("SafeInverseRSinTheta - Singularity at r=0", "[Singularity][SafeArithmetic]") {
-    const double pi = 3.14159265358979323846;
+    const Real pi = Constants::PI;
     REQUIRE_THROWS_AS(
         SafeInverseRSinTheta(0.0, pi / 2, SingularityPolicy::Throw),
         DomainError
@@ -422,7 +422,7 @@ TEST_CASE("SafeInverseRSinTheta - Singularity at r=0", "[Singularity][SafeArithm
 }
 
 TEST_CASE("SafeInverseRSinTheta - Singularity at pole", "[Singularity][SafeArithmetic]") {
-    const double pi = 3.14159265358979323846;
+    const Real pi = Constants::PI;
     // At pole, sin(theta) = 0
     REQUIRE_THROWS_AS(
         SafeInverseRSinTheta(1.0, 0.0, SingularityPolicy::Throw),
@@ -443,16 +443,16 @@ TEST_CASE("SafeInverseRSinTheta - ReturnNaN policy", "[Singularity][SafeArithmet
 ///////////////////////////////////////////////////////////////////////////////
 
 TEST_CASE("SafeInverseR2Sin2Theta - Normal operation", "[Singularity][SafeArithmetic]") {
-    const double pi = 3.14159265358979323846;
+    const Real pi = Constants::PI;
     // At equator, sin²(pi/2) = 1
-    REQUIRE(SafeInverseR2Sin2Theta(2.0, pi / 2) == Catch::Approx(0.25));
+    REQUIRE(SafeInverseR2Sin2Theta(MML::Real(2.0), pi / 2) == Catch::Approx(MML::Real(0.25)));
     
     // At theta = pi/6, sin² = 0.25, so 1/(r²*0.25) = 4/r²
-    REQUIRE(SafeInverseR2Sin2Theta(1.0, pi / 6) == Catch::Approx(4.0));
+    REQUIRE(SafeInverseR2Sin2Theta(MML::Real(1.0), pi / 6) == Catch::Approx(MML::Real(4.0)));
 }
 
 TEST_CASE("SafeInverseR2Sin2Theta - Singularity at origin", "[Singularity][SafeArithmetic]") {
-    const double pi = 3.14159265358979323846;
+    const Real pi = Constants::PI;
     REQUIRE_THROWS_AS(
         SafeInverseR2Sin2Theta(0.0, pi / 2, SingularityPolicy::Throw),
         DomainError
@@ -467,8 +467,8 @@ TEST_CASE("SafeInverseR2Sin2Theta - Singularity at pole", "[Singularity][SafeAri
 }
 
 TEST_CASE("SafeInverseR2Sin2Theta - ReturnInf policy", "[Singularity][SafeArithmetic]") {
-    const double pi = 3.14159265358979323846;
-    Real result = SafeInverseR2Sin2Theta(0.0, pi / 2, SingularityPolicy::ReturnInf);
+    const Real pi = Constants::PI;
+    Real result = SafeInverseR2Sin2Theta(MML::Real(0.0), pi / 2, SingularityPolicy::ReturnInf);
     REQUIRE(std::isinf(result));
 }
 
@@ -477,16 +477,16 @@ TEST_CASE("SafeInverseR2Sin2Theta - ReturnInf policy", "[Singularity][SafeArithm
 ///////////////////////////////////////////////////////////////////////////////
 
 TEST_CASE("SafeCotThetaOverR2 - Normal operation", "[Singularity][SafeArithmetic]") {
-    const double pi = 3.14159265358979323846;
+    const Real pi = Constants::PI;
     // At theta = pi/4, cot = 1, so result = 1/r²
-    REQUIRE(SafeCotThetaOverR2(2.0, pi / 4) == Catch::Approx(0.25));
+    REQUIRE(SafeCotThetaOverR2(MML::Real(2.0), pi / 4) == Catch::Approx(MML::Real(0.25)));
     
     // At equator (theta = pi/2), cot = 0, so result ≈ 0 (with floating-point tolerance)
-    REQUIRE(SafeCotThetaOverR2(1.0, pi / 2) == Catch::Approx(0.0).margin(TOL(1e-14, 1e-5)));
+    REQUIRE(SafeCotThetaOverR2(MML::Real(1.0), pi / 2) == Catch::Approx(MML::Real(0.0)).margin(TOL(1e-14, 1e-5)));
 }
 
 TEST_CASE("SafeCotThetaOverR2 - Singularity at origin", "[Singularity][SafeArithmetic]") {
-    const double pi = 3.14159265358979323846;
+    const Real pi = Constants::PI;
     REQUIRE_THROWS_AS(
         SafeCotThetaOverR2(0.0, pi / 4, SingularityPolicy::Throw),
         DomainError
@@ -502,9 +502,9 @@ TEST_CASE("SafeCotThetaOverR2 - Singularity at pole", "[Singularity][SafeArithme
 }
 
 TEST_CASE("SafeCotThetaOverR2 - Negative cotangent", "[Singularity][SafeArithmetic]") {
-    const double pi = 3.14159265358979323846;
+    const Real pi = Constants::PI;
     // For theta > pi/2, cot is negative
-    Real result = SafeCotThetaOverR2(1.0, 3 * pi / 4);
+    Real result = SafeCotThetaOverR2(MML::Real(1.0), 3 * pi / 4);
     REQUIRE(result < 0);
     REQUIRE(result == Catch::Approx(-1.0));  // cot(3π/4) = -1
 }
@@ -531,14 +531,14 @@ TEST_CASE("Singularity - Very large values", "[Singularity][EdgeCases]") {
 }
 
 TEST_CASE("Singularity - Denormalized numbers", "[Singularity][EdgeCases]") {
-    double denorm = std::numeric_limits<double>::denorm_min();
+    Real denorm = std::numeric_limits<Real>::denorm_min();
     REQUIRE(IsNearZero(denorm) == true);  // Denormalized is very close to zero
-    REQUIRE(IsNearZero(denorm, 0.0) == false);  // But not exactly zero with tol=0
+    REQUIRE(IsNearZero(denorm, MML::Real(0.0)) == false);  // But not exactly zero with tol=0
 }
 
 TEST_CASE("Singularity - Special IEEE values", "[Singularity][EdgeCases]") {
-    double inf = std::numeric_limits<double>::infinity();
-    double nan = std::numeric_limits<double>::quiet_NaN();
+    Real inf = std::numeric_limits<Real>::infinity();
+    Real nan = std::numeric_limits<Real>::quiet_NaN();
     
     // Infinity is not near zero
     REQUIRE(IsNearZero(inf) == false);
@@ -549,16 +549,16 @@ TEST_CASE("Singularity - Special IEEE values", "[Singularity][EdgeCases]") {
 }
 
 TEST_CASE("Singularity - Tolerance boundary cases", "[Singularity][EdgeCases]") {
-    double tol = 1e-6;
+    Real tol = Real(1e-6);
     
     // Uses strict < comparison, so exactly at tolerance returns false
     REQUIRE(IsNearZero(tol, tol) == false);       // |tol| < tol is false
     
     // Just above tolerance
-    REQUIRE(IsNearZero(tol * 1.01, tol) == false);
+    REQUIRE(IsNearZero(tol * MML::Real(1.01), tol) == false);
     
     // Just below tolerance
-    REQUIRE(IsNearZero(tol * 0.99, tol) == true);
+    REQUIRE(IsNearZero(tol * MML::Real(0.99), tol) == true);
 }
 
 } // namespace MML::Tests::Core::SingularityHandlingTests

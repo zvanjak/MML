@@ -26,6 +26,17 @@ namespace Persistence
 {
 	namespace Detail
 	{
+		template<class MatrixType>
+		IOResult ValidateMatrixJsonSave(const MatrixType& mat, const SaveOptions& options) {
+			const auto validation = ValidateJsonSaveOptions(options);
+			if (!validation.success) return validation;
+			for (int row = 0; row < mat.rows(); ++row)
+				for (int col = 0; col < mat.cols(); ++col)
+					if (!JsonNumberIsWritable(mat(row, col)))
+						return SerializeFailure(IOError::UNSUPPORTED_SCALAR, "Matrix JSON data exceeds the finite JSON number range");
+			return SerializeSuccess();
+		}
+
 		template<class Type>
 		constexpr const char* MatrixJsonScalarName()
 		{
@@ -91,16 +102,19 @@ namespace Persistence
 
 			if (format == nullptr || format->type != JsonValueType::String || format->string_value != "MML_JSON")
 				return SerializeFailure(IOError::INVALID_FORMAT, "Matrix JSON format must be MML_JSON");
-			if (version == nullptr || version->type != JsonValueType::Number || static_cast<int>(version->number_value) != 1)
+			if (!JsonIntegerEquals(version, 1))
 				return SerializeFailure(IOError::UNSUPPORTED_VERSION, "Unsupported Matrix JSON container version");
 			if (object == nullptr || object->type != JsonValueType::String || object->string_value != objectName)
 				return SerializeFailure(IOError::TYPE_MISMATCH, "Matrix JSON object kind does not match target type");
-			if (objectVersion == nullptr || objectVersion->type != JsonValueType::Number || static_cast<int>(objectVersion->number_value) != 1)
+			if (!JsonIntegerEquals(objectVersion, 1))
 				return SerializeFailure(IOError::UNSUPPORTED_VERSION, "Unsupported Matrix JSON object schema version");
 			if (scalar == nullptr || scalar->type != JsonValueType::String || scalar->string_value != MatrixJsonScalarName<Type>())
 				return SerializeFailure(IOError::UNSUPPORTED_SCALAR, "Matrix JSON scalar type does not match target type");
-			if (scalarBytes == nullptr || scalarBytes->type != JsonValueType::Number || static_cast<int>(scalarBytes->number_value) != static_cast<int>(sizeof(Type)))
+			if (!JsonIntegerEquals(scalarBytes, static_cast<int>(sizeof(Type))))
 				return SerializeFailure(IOError::UNSUPPORTED_SCALAR, "Matrix JSON scalar byte size does not match target type");
+			if constexpr (std::is_same_v<Type, Real>)
+				if (!JsonRealTypeMatches(FindMatrixJsonField(*mml, "real_type")))
+					return SerializeFailure(IOError::UNSUPPORTED_SCALAR, "Matrix JSON real_type does not match Real");
 			if (scalarEncoding == nullptr || scalarEncoding->type != JsonValueType::String || scalarEncoding->string_value != "ieee754")
 				return SerializeFailure(IOError::UNSUPPORTED_SCALAR, "Matrix JSON scalar encoding is unsupported");
 			if (layout == nullptr || layout->type != JsonValueType::String || layout->string_value != "row_major")
@@ -112,10 +126,11 @@ namespace Persistence
 				shape->array_value[0].type != JsonValueType::Number || shape->array_value[1].type != JsonValueType::Number)
 				return SerializeFailure(IOError::SCHEMA_MISMATCH, "Matrix JSON shape must be a two-element array");
 
-			const int rows = static_cast<int>(shape->array_value[0].number_value);
-			const int cols = static_cast<int>(shape->array_value[1].number_value);
-			if (rows < 0 || cols < 0)
-				return SerializeFailure(IOError::SCHEMA_MISMATCH, "Matrix JSON shape dimensions cannot be negative");
+			int rows, cols;
+			IOResult dimension = ReadJsonDimension(shape->array_value[0], rows);
+			if (!dimension.success) return dimension;
+			dimension = ReadJsonDimension(shape->array_value[1], cols);
+			if (!dimension.success) return dimension;
 			if (expectedRows >= 0 && rows != expectedRows)
 				return SerializeFailure(IOError::SCHEMA_MISMATCH, "Matrix JSON row count does not match fixed target dimension");
 			if (expectedCols >= 0 && cols != expectedCols)
@@ -131,9 +146,12 @@ namespace Persistence
 			if (data == nullptr || data->type != JsonValueType::Array || data->array_value.size() != count)
 				return SerializeFailure(IOError::SCHEMA_MISMATCH, "Matrix JSON data length does not match shape");
 
-			for (const JsonValue& value : data->array_value)
+			for (const JsonValue& value : data->array_value) {
 				if (value.type != JsonValueType::Number)
 					return SerializeFailure(IOError::MALFORMED_INPUT, "Matrix JSON data values must be numbers");
+				if (!JsonScalarFits<Type>(value))
+					return SerializeFailure(IOError::UNSUPPORTED_SCALAR, "Matrix JSON data exceeds the finite target scalar range");
+			}
 
 			return SerializeSuccess();
 		}
@@ -142,6 +160,8 @@ namespace Persistence
 	template<class Type>
 	IOResult SaveJson(std::ostream& out, const Matrix<Type>& mat, const SaveOptions& options = {}) {
 		static_assert(std::is_floating_point_v<Type>, "Matrix JSON persistence currently supports floating-point scalar types");
+		const auto validation = Detail::ValidateMatrixJsonSave(mat, options);
+		if (!validation.success) return validation;
 		JsonValue::Object root;
 		root["mml"] = Detail::BuildMatrixJsonHeader<Type>("Matrix", 1);
 		root["shape"] = JsonValue::ArrayValue({ JsonValue::Number(static_cast<double>(mat.rows())), JsonValue::Number(static_cast<double>(mat.cols())) });
@@ -183,6 +203,8 @@ namespace Persistence
 	template<class Type, int N, int M>
 	IOResult SaveJson(std::ostream& out, const MatrixNM<Type, N, M>& mat, const SaveOptions& options = {}) {
 		static_assert(std::is_floating_point_v<Type>, "MatrixNM JSON persistence currently supports floating-point scalar types");
+		const auto validation = Detail::ValidateMatrixJsonSave(mat, options);
+		if (!validation.success) return validation;
 		JsonValue::Object root;
 		root["mml"] = Detail::BuildMatrixJsonHeader<Type>("MatrixNM", 1);
 		root["shape"] = JsonValue::ArrayValue({ JsonValue::Number(static_cast<double>(N)), JsonValue::Number(static_cast<double>(M)) });
@@ -219,6 +241,10 @@ namespace Persistence
 
 	template<class Type>
 	IOResult SaveJson(const Matrix<Type>& mat, const std::string& filename, const SaveOptions& options = {}) {
+		auto validation = Detail::ValidateSaveFilename(filename);
+		if (!validation.success) return validation;
+		validation = Detail::ValidateMatrixJsonSave(mat, options);
+		if (!validation.success) return validation.WithFile(filename);
 		std::ofstream file(filename);
 		if (!file.is_open())
 			return SerializeFailure(IOError::FILE_NOT_OPENED, "Could not create JSON file " + filename).WithFile(filename);
@@ -235,6 +261,10 @@ namespace Persistence
 
 	template<class Type, int N, int M>
 	IOResult SaveJson(const MatrixNM<Type, N, M>& mat, const std::string& filename, const SaveOptions& options = {}) {
+		auto validation = Detail::ValidateSaveFilename(filename);
+		if (!validation.success) return validation;
+		validation = Detail::ValidateMatrixJsonSave(mat, options);
+		if (!validation.success) return validation.WithFile(filename);
 		std::ofstream file(filename);
 		if (!file.is_open())
 			return SerializeFailure(IOError::FILE_NOT_OPENED, "Could not create JSON file " + filename).WithFile(filename);

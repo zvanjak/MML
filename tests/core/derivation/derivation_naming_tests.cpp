@@ -39,35 +39,37 @@ namespace MML::Tests::Core::DerivationNamingTests
 		const Real r = 2.0, phi = 0.5;
 		// exact: d(x)/d(phi) = -r sin(phi), d(y)/d(r) = sin(phi)
 		MatrixNM<Real, 2, 2> Jfix = Derivation::CalcJacobian(polar, q0);
-		REQUIRE(Jfix(0, 1) == Catch::Approx(-r * std::sin(phi)).epsilon(1e-9));
-		REQUIRE(Jfix(1, 0) == Catch::Approx(std::sin(phi)).epsilon(1e-9));
+		const Real jacobianTolerance = TOL(1e-9, Precision::RoundoffZeroThreshold);
+		REQUIRE(Jfix(0, 1) == Catch::Approx(-r * std::sin(phi)).epsilon(jacobianTolerance));
+		REQUIRE(Jfix(1, 0) == Catch::Approx(std::sin(phi)).epsilon(jacobianTolerance));
 
 		int evals = 0;
 		Matrix<Real> Jdyn = Derivation::CalcJacobian(PolarDyn, Vector<Real>{ 2.0, 0.5 }, 0.0, &evals);
 		REQUIRE(evals == 8);
-		REQUIRE(Jdyn(0, 1) == Catch::Approx(Jfix(0, 1)).epsilon(1e-9));
+		REQUIRE(Jdyn(0, 1) == Catch::Approx(Jfix(0, 1)).epsilon(jacobianTolerance));
 		Matrix<Real> Jrect = Derivation::CalcJacobian(PolarDyn, Vector<Real>{ 2.0, 0.5 }, 2);   // explicit outputDim
 		REQUIRE(Jrect.rows() == 2);
 		Matrix<Real> Jin(2, 2);
 		Derivation::CalcJacobianInPlace(PolarDyn, Vector<Real>{ 2.0, 0.5 }, Jin);
-		REQUIRE(Jin.IsEqualTo(Jdyn, 1e-12));
+		REQUIRE(Jin.IsEqualTo(Jdyn, MML::Real(1e-12)));
 		Matrix<Real> J2 = Derivation::CalcJacobianOrder2(PolarDyn, Vector<Real>{ 2.0, 0.5 });
-		REQUIRE(J2(0, 1) == Catch::Approx(Jfix(0, 1)).epsilon(1e-6));
+		REQUIRE(J2(0, 1) == Catch::Approx(Jfix(0, 1)).epsilon(TOL(1e-6, Real(2) * Precision::RoundoffZeroThreshold)));
 
 		Matrix<Real> Jfwd = AD::CalcJacobianForwardAD(PolarAD, std::vector<Real>{ 2.0, 0.5 });
 		Matrix<Real> Jrev = AD::CalcJacobianReverseAD(PolarAD, Vector<Real>{ 2.0, 0.5 });
 		REQUIRE(Jfwd(0, 1) == Catch::Approx(-r * std::sin(phi)).epsilon(1e-14));
-		REQUIRE(Jrev.IsEqualTo(Jfwd, 1e-14));
+		REQUIRE(Jrev.IsEqualTo(Jfwd, TOL(1e-14, Real(4) * Precision::Eps)));
 
 		Matrix<Real> Jode;
 		Derivation::CalcJacobianODE([](Real, const Vector<Real>& x, Vector<Real>& dxdt) { dxdt = PolarDyn(x); }, 0.0, Vector<Real>{ 2.0, 0.5 }, Jode);
-		REQUIRE(Jode(0, 1) == Catch::Approx(Jfix(0, 1)).epsilon(1e-6));
+		REQUIRE(Jode(0, 1) == Catch::Approx(Jfix(0, 1)).epsilon(TOL(1e-6, Real(2) * Precision::RoundoffZeroThreshold)));
 		Matrix<Real> Jmap;
 		Derivation::CalcJacobianMap(PolarDyn, Vector<Real>{ 2.0, 0.5 }, Jmap);
-		REQUIRE(Jmap.IsEqualTo(Jode, 1e-12));
+		REQUIRE(Jmap.IsEqualTo(Jode, MML::Real(1e-12)));
 
-		ScalarFunction<2> bowl([](const VectorN<Real, 2>& x) { return x[0] * x[0] + 3.0 * x[0] * x[1]; });
-		MatrixNM<Real, 2, 2> H = Derivation::CalcHessian(bowl, q0);
+		ScalarFunction<2> bowl([](const VectorN<Real, 2>& x) { return x[0] * x[0] + MML::Real(3.0) * x[0] * x[1]; });
+		// A dyadic stencil resolves this quadratic without subtracting nearly equal float samples.
+		MatrixNM<Real, 2, 2> H = Derivation::CalcHessian(bowl, q0, TOL(0, 0.25));
 		Matrix<Real> Had = AD::CalcHessianForwardAD(BowlAD, std::vector<Real>{ 2.0, 0.5 });
 		REQUIRE(H(0, 0) == Catch::Approx(2.0).epsilon(1e-7));
 		REQUIRE(H(0, 1) == Catch::Approx(3.0).epsilon(1e-7));
@@ -111,7 +113,7 @@ namespace MML::Tests::Core::DerivationNamingTests
 		Derivation::CalcJacobianMap(PolarDyn, p, b);
 		REQUIRE(a.IsEqualTo(b));
 
-		ScalarFunction<2> bowl([](const VectorN<Real, 2>& x) { return x[0] * x[0] + 3.0 * x[0] * x[1]; });
+		ScalarFunction<2> bowl([](const VectorN<Real, 2>& x) { return x[0] * x[0] + MML::Real(3.0) * x[0] * x[1]; });
 		REQUIRE(Derivation::calcHessian(bowl, q0).IsEqualTo(Derivation::CalcHessian(bowl, q0)));
 
 		REQUIRE(AD::jacobianForwardAD(PolarAD, p).IsEqualTo(AD::CalcJacobianForwardAD(PolarAD, p)));

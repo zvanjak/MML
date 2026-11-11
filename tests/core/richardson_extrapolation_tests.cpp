@@ -60,10 +60,10 @@ TEST_CASE("Richardson::NevilleExtrapolate - basic polynomial extrapolation", "[r
 		Real true_val = Constants::PI;
 		for (int k = 0; k < 5; k++)
 		{
-			Real hk = h / std::pow(2.0, k);
+			Real hk = h / std::pow(MML::Real(2.0), MML::Real(k));
 			x_vals.push_back(hk * hk);  // h² position
 			// Simulate: estimate = true + error*h²
-			y_vals.push_back(true_val + 0.1 * hk * hk);
+			y_vals.push_back(true_val + MML::Real(0.1) * hk * hk);
 		}
 		
 		auto result = Richardson::NevilleExtrapolate(y_vals, x_vals);
@@ -86,10 +86,10 @@ TEST_CASE("Richardson::Extrapolate - derivative estimation", "[richardson]")
 		
 		// Central difference evaluator: (f(x+h) - f(x-h)) / (2h)
 		auto central_diff = [x0](Real h) -> Real {
-			return (std::sin(x0 + h) - std::sin(x0 - h)) / (2.0 * h);
+			return (std::sin(x0 + h) - std::sin(x0 - h)) / (MML::Real(2.0) * h);
 		};
 		
-		auto result = Richardson::Extrapolate(central_diff, 0.5, 1.4, 10, 2.0);
+		auto result = Richardson::Extrapolate(central_diff, MML::Real(0.5), MML::Real(1.4), 10, MML::Real(2.0));
 		
 		REQUIRE(result.value == Approx(true_deriv).epsilon(TOL(1e-10, 1e-5)));
 		REQUIRE(result.converged);
@@ -103,10 +103,10 @@ TEST_CASE("Richardson::Extrapolate - derivative estimation", "[richardson]")
 		Real true_deriv = 1.0;
 		
 		auto central_diff = [x0](Real h) -> Real {
-			return (std::exp(x0 + h) - std::exp(x0 - h)) / (2.0 * h);
+			return (std::exp(x0 + h) - std::exp(x0 - h)) / (MML::Real(2.0) * h);
 		};
 		
-		auto result = Richardson::Extrapolate(central_diff, 0.1, 1.4, 10, 2.0);
+		auto result = Richardson::Extrapolate(central_diff, MML::Real(0.1), MML::Real(1.4), 10, MML::Real(2.0));
 		
 		REQUIRE(result.value == Approx(true_deriv).epsilon(TOL(1e-12, 1e-5)));
 		REQUIRE(result.converged);
@@ -120,10 +120,10 @@ TEST_CASE("Richardson::Extrapolate - derivative estimation", "[richardson]")
 		
 		auto central_diff = [x0](Real h) -> Real {
 			auto f = [](Real t) { return t * t * t; };
-			return (f(x0 + h) - f(x0 - h)) / (2.0 * h);
+			return (f(x0 + h) - f(x0 - h)) / (MML::Real(2.0) * h);
 		};
 		
-		auto result = Richardson::Extrapolate(central_diff, 0.5, 1.4, 10, 2.0);
+		auto result = Richardson::Extrapolate(central_diff, MML::Real(0.5), MML::Real(1.4), 10, MML::Real(2.0));
 		
 		REQUIRE(result.value == Approx(true_deriv).epsilon(TOL(1e-10, 1e-5)));
 	}
@@ -136,10 +136,10 @@ TEST_CASE("Richardson::Extrapolate - derivative estimation", "[richardson]")
 		
 		// Second derivative central difference: (f(x+h) - 2f(x) + f(x-h)) / h²
 		auto central_diff2 = [x0](Real h) -> Real {
-			return (std::sin(x0 + h) - 2.0 * std::sin(x0) + std::sin(x0 - h)) / (h * h);
+			return (std::sin(x0 + h) - MML::Real(2.0) * std::sin(x0) + std::sin(x0 - h)) / (h * h);
 		};
 		
-		auto result = Richardson::Extrapolate(central_diff2, 0.3, 1.4, 10, 2.0);
+		auto result = Richardson::Extrapolate(central_diff2, MML::Real(0.3), MML::Real(1.4), 10, MML::Real(2.0));
 		
 		REQUIRE(result.value == Approx(true_deriv2).epsilon(TOL(1e-8, 1e-4)));
 	}
@@ -152,7 +152,7 @@ TEST_CASE("Richardson::Extrapolate - different shrink factors", "[richardson]")
 	Real true_deriv = std::cos(x0);
 	
 	auto central_diff = [x0](Real h) -> Real {
-		return (std::sin(x0 + h) - std::sin(x0 - h)) / (2.0 * h);
+		return (std::sin(x0 + h) - std::sin(x0 - h)) / (MML::Real(2.0) * h);
 	};
 	
 	SECTION("con = 2.0")
@@ -180,8 +180,8 @@ TEST_CASE("Richardson::SimpleExtrapolate - known error order", "[richardson]")
 		Real true_val = 2.0;
 		
 		// Simulated trapezoidal estimates (error ~ h²)
-		Real T_h = 1.98;      // estimate at h
-		Real T_h2 = 1.995;    // estimate at h/2 (better)
+		Real T_h = MML::Real(1.98);      // estimate at h
+		Real T_h2 = MML::Real(1.995);    // estimate at h/2 (better)
 		
 		Real improved = Richardson::SimpleExtrapolate(T_h, T_h2, 2.0, 2);
 		
@@ -192,8 +192,8 @@ TEST_CASE("Richardson::SimpleExtrapolate - known error order", "[richardson]")
 	SECTION("Simpson's rule error order p=4")
 	{
 		Real true_val = 2.0;
-		Real S_h = 1.9998;
-		Real S_h2 = 1.99999;
+		Real S_h = MML::Real(1.9998);
+		Real S_h2 = MML::Real(1.99999);
 		
 		Real improved = Richardson::SimpleExtrapolate(S_h, S_h2, 2.0, 4);
 		
@@ -206,11 +206,11 @@ TEST_CASE("Richardson::SimpleErrorEstimate", "[richardson]")
 	// With trapezoidal rule (p=2) and r=2:
 	// error estimate = |T_{h/2} - T_h| / (2^2 - 1) = |T_{h/2} - T_h| / 3
 	
-	Real T_h = 1.9;
-	Real T_h2 = 1.975;
+	Real T_h = MML::Real(1.9);
+	Real T_h2 = MML::Real(1.975);
 	
 	Real err = Richardson::SimpleErrorEstimate(T_h, T_h2, 2.0, 2);
-	Real expected = std::abs(T_h2 - T_h) / 3.0;
+	Real expected = std::abs(T_h2 - T_h) / MML::Real(3.0);
 	
 	REQUIRE(err == Approx(expected).epsilon(TOL(1e-12, 1e-5)));
 }
@@ -241,19 +241,17 @@ TEST_CASE("Richardson - edge cases", "[richardson]")
 	SECTION("Extrapolate with h=0")
 	{
 		auto eval = [](Real h) { return 1.0; };
-		auto result = Richardson::Extrapolate(eval, 0.0);
-		REQUIRE(!result.converged);
+		REQUIRE_THROWS_AS(Richardson::Extrapolate(eval, 0.0), ArgumentError);
 	}
 
 	SECTION("Extrapolate with constant function")
 	{
 		// f(x) = 5, derivative = 0
-		Real x0 = 1.0;
-		auto central_diff = [x0](Real h) -> Real {
-			return (5.0 - 5.0) / (2.0 * h);  // Always 0
+		auto central_diff = [](Real h) -> Real {
+			return (MML::Real(5.0) - MML::Real(5.0)) / (MML::Real(2.0) * h);  // Always 0
 		};
 		
-		auto result = Richardson::Extrapolate(central_diff, 0.1);
+		auto result = Richardson::Extrapolate(central_diff, MML::Real(0.1));
 		REQUIRE(result.value == Approx(0.0).margin(TOL(1e-15, 1e-5)));
 	}
 }

@@ -14,6 +14,7 @@
 #include <iostream>
 #include <iomanip>
 #include <cmath>
+#include <stdexcept>
 
 using namespace MML;
 
@@ -42,6 +43,13 @@ void Docs_Demo_FieldAnalyzers()
     // Check for critical points (where gradient = 0)
     Vec3Cart origin(0.0, 0.0, 0.0);
     std::cout << "  Critical at origin: " << (scalarAnalyzer.IsCriticalPoint(origin) ? "Yes" : "No") << std::endl;
+    Vec3Cart lower{-1, -1, -1}, upper{1, 1, 1};
+    const auto criticalPoints = scalarAnalyzer.FindCriticalPoints(lower, upper, 2);
+    const bool harmonic = scalarAnalyzer.IsHarmonic(lower, upper, 2);
+    std::cout << "Critical samples: " << criticalPoints.size()
+              << ", harmonic: " << harmonic << '\n';
+    if (criticalPoints.size() != 1 || harmonic)
+        throw std::runtime_error("Scalar field analyzer demo failed");
     
     // Define a vector field: F(x,y,z) = (y, -x, 0) (rotation around z-axis)
     VectorFunctionFromStdFunc<3> rotationField([](const VectorN<Real,3>& p) {
@@ -57,6 +65,20 @@ void Docs_Demo_FieldAnalyzers()
     Vec3Cart curl = vectorAnalyzer.CurlAt(point);
     std::cout << "  Curl: (" << curl.X() << ", " << curl.Y() << ", " << curl.Z() << ")" << std::endl;
     std::cout << "  Expected: (0, 0, -2)" << std::endl;
+    const bool solenoidal = vectorAnalyzer.IsSolenoidal(lower, upper, 2);
+    const bool curlFreeOnSamples = vectorAnalyzer.IsConservative(lower, upper, 2);
+    const Real maxCurl = vectorAnalyzer.MaxCurlMagnitude(lower, upper, 2);
+    std::cout << "Solenoidal: " << solenoidal
+              << ", curl-free on samples: " << curlFreeOnSamples
+              << ", maximum curl magnitude: " << maxCurl << '\n';
+    if (!solenoidal || curlFreeOnSamples || !IsNearlyEqual(maxCurl, Real(2), Precision::CoarseTolerance))
+        throw std::runtime_error("Vector field analyzer demo failed");
+    try {
+        (void)vectorAnalyzer.IsConservative(lower, upper, -1);
+        throw std::runtime_error("Invalid sampling was not rejected");
+    } catch (const ArgumentError& error) {
+        std::cout << "  Invalid sampling rejected: " << error.what() << '\n';
+    }
     
     std::cout << "=== Demo Complete ===" << std::endl;
 }

@@ -46,28 +46,11 @@ namespace MML::RootFinding {
 	};
 
 	namespace Detail {
-		class CountingRealFunction : public IRealFunction {
-		public:
-			explicit CountingRealFunction(const IRealFunction& function) : _function(function) {}
-
-			Real operator()(Real x) const override {
-				++_evaluations;
-				return _function(x);
-			}
-
-			[[nodiscard]] int Evaluations() const noexcept { return _evaluations; }
-
-		private:
-			const IRealFunction& _function;
-			mutable int _evaluations = 0;
-		};
-
 		inline RootFindingResult RefineExactCandidate(const IRealFunction& function,
 			const RootCandidate& candidate, const RootFindingConfig& config) {
 			RootFindingResult result;
 			result.root = candidate.estimate;
-			result.function_value = function(candidate.estimate);
-			result.function_evaluations = 1;
+			result.function_value = EvaluateFunction(function, candidate.estimate, result.function_evaluations);
 			result.algorithm_name = "ExactSample";
 			result.achieved_tolerance = std::abs(result.function_value);
 			if (!std::isfinite(result.function_value)) {
@@ -90,12 +73,13 @@ namespace MML::RootFinding {
 			const int iterations = std::max(1, config.isolation.tangent_refinement_iterations);
 			RootIsolationConfig localConfig = config.isolation;
 			localConfig.tangent_refinement_iterations = iterations;
-			RootCandidate refined = RefineTangentCandidate(function,
+			CountingRealFunction counted(function);
+			RootCandidate refined = RefineTangentCandidate(counted,
 				candidate.interval.lower, candidate.interval.upper,
 				candidate.sample_index, localConfig);
 			result.root = refined.estimate;
-			result.function_value = function(refined.estimate);
-			result.function_evaluations = iterations + 5;
+			result.function_value = counted(refined.estimate);
+			result.function_evaluations = counted.Evaluations();
 			result.iterations_used = iterations;
 			result.x_error = refined.interval.Width();
 			result.achieved_tolerance = std::abs(result.function_value);
@@ -147,6 +131,7 @@ namespace MML::RootFinding {
 		int failedRefinements = 0;
 		for (const RootCandidate& candidate : candidates) {
 			RootFindingResult refinement;
+			const int evaluationsBefore = counted.Evaluations();
 			try {
 				if (candidate.type == RootCandidateType::SignChange) {
 					refinement = FindRootBrentDetailed(counted, candidate.interval.lower,
@@ -163,6 +148,7 @@ namespace MML::RootFinding {
 				refinement.algorithm_name = "CandidateRefinement";
 				refinement.error_message = error.what();
 			}
+			refinement.function_evaluations = counted.Evaluations() - evaluationsBefore;
 
 			RealRootResult rootResult{candidate, refinement};
 			if (refinement.IsSuccess()) result.accepted.push_back(rootResult);

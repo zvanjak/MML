@@ -172,7 +172,7 @@ namespace MML::TestBeds
             Runge_TrueFunc, "1/(1+25x^2)",
             -1.0, 1.0,
             false, false, false, false,  // No Runge phenomenon with Chebyshev nodes!
-            10, 1e-3  // Can use high order safely
+            10, MML::Real(1e-3)  // Can use high order safely
         );
     }
 
@@ -186,7 +186,7 @@ namespace MML::TestBeds
             SmoothPoly_TrueFunc, "x^3 - 2x^2 + x - 1",
             -2.0, 2.0,
             false, false, false, false,
-            4, 1e-12  // Should be machine precision
+            4, MML::Real(1e-12)  // Should be machine precision
         );
     }
 
@@ -200,7 +200,7 @@ namespace MML::TestBeds
             Gaussian_TrueFunc, "exp(-x^2)",
             -3.0, 3.0,
             false, false, false, false,
-            6, 1e-6
+            6, MML::Real(1e-6)
         );
     }
 
@@ -214,7 +214,7 @@ namespace MML::TestBeds
             SinePi_TrueFunc, "sin(pi*x)",
             -1.0, 1.0,
             false, false, false, false,
-            6, 1e-5
+            6, MML::Real(1e-5)
         );
     }
 
@@ -228,7 +228,7 @@ namespace MML::TestBeds
             OscillatoryHighFreq_TrueFunc, "sin(5*pi*x)",
             -1.0, 1.0,
             false, false, true, false,  // Oscillatory = true
-            4, 0.1  // Low order to avoid instability
+            4, MML::Real(0.1)  // Low order to avoid instability
         );
     }
 
@@ -242,7 +242,7 @@ namespace MML::TestBeds
             AbsValue_TrueFunc, "|x|",
             -2.0, 2.0,
             true, false, false, false,  // Discontinuous derivative = true
-            4, 0.1  // Gibbs-like oscillations expected
+            4, MML::Real(0.1)  // Gibbs-like oscillations expected
         );
     }
 
@@ -256,7 +256,7 @@ namespace MML::TestBeds
             SqrtShift_TrueFunc, "sqrt(x+1)",
             0.0, 4.0,
             true, false, false, false,  // Effectively discontinuous derivative at boundary
-            4, 1e-3
+            4, MML::Real(1e-3)
         );
     }
 
@@ -270,7 +270,7 @@ namespace MML::TestBeds
             Exponential_TrueFunc, "exp(x)",
             -2.0, 2.0,
             false, false, false, false,
-            6, 1e-6
+            6, MML::Real(1e-6)
         );
     }
 
@@ -284,7 +284,7 @@ namespace MML::TestBeds
             LogShift_TrueFunc, "ln(x+2)",
             -1.0, 3.0,
             false, false, false, false,
-            6, 1e-4
+            6, MML::Real(1e-4)
         );
     }
 
@@ -303,7 +303,7 @@ namespace MML::TestBeds
             Gaussian_TrueFunc, "exp(-x^2) + noise",
             -3.0, 3.0,
             false, true, false, false,  // Has noise = true
-            4, 0.1  // Noise dominates at high orders
+            4, MML::Real(0.1)  // Noise dominates at high orders
         );
     }
 
@@ -317,7 +317,7 @@ namespace MML::TestBeds
             StepLike_TrueFunc, "tanh(10x)",
             -1.0, 1.0,
             false, false, false, true,  // Runge-like behavior expected
-            4, 0.2
+            4, MML::Real(0.2)
         );
     }
 
@@ -331,7 +331,7 @@ namespace MML::TestBeds
             Chebyshev5_TrueFunc, "16x^5 - 20x^3 + 5x",
             -1.0, 1.0,
             false, false, false, false,
-            6, 1e-12  // Machine precision expected
+            6, MML::Real(1e-12)  // Machine precision expected
         );
     }
 
@@ -345,7 +345,7 @@ namespace MML::TestBeds
             WitchOfAgnesi_TrueFunc, "1/(1+x^2)",
             -5.0, 5.0,
             false, false, false, true,  // Mild Runge phenomenon
-            6, 0.1
+            6, MML::Real(0.1)
         );
     }
 
@@ -359,7 +359,7 @@ namespace MML::TestBeds
             MultiFreq_TrueFunc, "sin(x) + 0.5*sin(3x) + 0.25*sin(5x)",
             -static_cast<Real>(Constants::PI), static_cast<Real>(Constants::PI),
             false, false, true, false,  // Oscillatory
-            8, 1e-3
+            8, MML::Real(1e-3)
         );
     }
 

@@ -63,9 +63,81 @@ and evaluated query points, error estimate where available, timing, evaluation
 count, `AlgorithmStatus`, and interpolation-specific status. Out-of-range calls
 are consistently reported as `Extrapolated`, `Clamped`, or `OutOfRange`.
 
+Default results are `NotComputed`. An evaluated interpolant reports `Completed`,
+not checked convergence. Disabled or unavailable estimates are `NoEstimate`;
+use `HasEstimate(result.error_estimate)`. Linear/spline/barycentric evaluation has
+no general error estimator, while Neville and Bulirsch-Stoer evaluation retains
+its calculated correction estimate when requested. Their `getLastErrorEst()`
+is unknown until the first interpolation is performed.
+
 `InterpolationConfig` also centralizes tolerance, duplicate handling, monotonic
 data validation intent, finite checking, error estimation, and exception policy.
-Legacy `operator()` behavior remains unchanged for source compatibility.
+Legacy extrapolation policies remain supported on `operator()`.
+
+### Construction Contracts
+
+- `RealFunctionInterpolated`-based interpolators require at least two finite, strictly monotonic
+  nodes (ascending or descending), with matching ordinate counts.
+- Scalar spline initialization uses that validated node count. With two nodes,
+  natural boundaries give a line; clamped or mixed boundaries retain their cubic
+  boundary conditions in either node order.
+- `BarycentricRationalInterp` requires matching nonempty x/y arrays, finite
+  strictly monotonic nodes, and `0 <= d < number of nodes`. Its existing
+  single-node, `d=0` case is a constant interpolant. Both evaluation surfaces
+  honor their extrapolation policies; detailed results use interval index `-1`
+  because a single node has no interval.
+- Bilinear and bicubic grid interpolation require at least two finite, strictly
+  monotonic nodes on **each** axis and a data matrix with exactly matching
+  dimensions. Ascending/descending axes and existing extrapolation behavior
+  remain supported.
+- Linear and spline parametric curves require at least two finite control
+  points with exactly `N` columns. Dimension mismatches throw
+  `MatrixDimensionError`; invalid counts, nonfinite coordinates and
+  unrepresentable chord lengths throw `RealFuncInterpInitError` before unsafe
+  indexing. Spline parameter bounds must be finite, increasing, and have a
+  representable span. Linear curves retain support for constant repeated-point
+  paths; spline curves retain their rejection of consecutive identical points.
+
+### Numerical and Periodic Contracts
+
+- Rational interpolation gives exact node hits precedence over approximate
+  proximity checks. Any remaining proximity tolerance is limited by local
+  node separation. Constant data and vanished tableau corrections are
+  removable cases; a genuine nonzero-numerator pole still throws
+  `RealFuncInterpRuntimeError`.
+- Polynomial and Floater-Hormann barycentric interpolators use common-normalized
+  **relative** weights: `getWeight()` has maximum absolute weight one, not a
+  prescribed raw scale. Weight setup is scaled to the node range and evaluation
+  scales terms by the nearest-node distance, including subnormal distances.
+  Unrepresentable relative weights fail explicitly during construction.
+  Evaluation failures throw `RealFuncInterpRuntimeError`; detailed evaluation
+  with `ConvertToStatus` reports `NumericalInstability` and an error message.
+- Spline integration uses physical segment intersections, so ascending and
+  descending tables give the same integral. Reversed bounds negate the result;
+  nonfinite or out-of-domain bounds throw `DomainError`.
+- Closed linear curves include the last-to-first chord in both traversal and
+  total arc-length timing. Their parameters still wrap periodically; open
+  linear curves still clamp.
+- Closed spline curves normalize the configured parameter interval **before**
+  wrapping. The interval endpoints identify the same position. For compatibility,
+  closed splines still reject parameters outside their configured interval;
+  open splines retain extrapolation.
+
+### Related Utility: Richardson Tableau
+
+[`Richardson::Extrapolate`](../../mml/base/RichardsonExtrapolation.h) requires a
+positive iteration budget, a finite nonzero initial step (either sign), and
+finite reduction/safety factors greater than one. Invalid configuration throws
+`ArgumentError` before tableau allocation or evaluator invocation; zero steps
+no longer silently return a failure-shaped result. A one-iteration budget
+returns the initial estimate with no extrapolation error estimate and
+`converged=false`.
+
+Nonfinite evaluator/tableau estimates throw `NumericInputError`. A refinement
+that rounds to zero or fails to change the step throws `NumericalMethodError`
+before evaluating that unusable step. `converged` retains its existing meaning:
+an extrapolation error estimate was obtained, not that a caller-specified
+tolerance was met (this API has no tolerance parameter).
 
 ### LinearInterpRealFunc
 
@@ -507,6 +579,7 @@ LinInterpParametricCurve(const Matrix<Real>& points, bool close = false);
 
 **Properties:**
 - Parameterization: Arc-length normalized to [0,1]
+- Closed-curve arc length includes the last-to-first segment
 - Continuity: C⁰ (continuous, piecewise linear)
 - Parameter range: t ∈ [0,1]; wraps if closed
 
@@ -557,6 +630,8 @@ SplineInterpParametricCurve(Real minT, Real maxT, const Matrix<Real>& points,
 - Coordinate splines are value-owned; copying and moving the curve is safe
 - Continuity: C² in each coordinate
 - Parameterization: Arc-length based, mapped to [minT, maxT]
+- Closed curves wrap after normalization within this interval; out-of-range
+  closed-curve parameters throw `DomainError`
 - Endpoint derivatives: Estimated from neighboring points (≥4 points required)
 
 **Methods:**

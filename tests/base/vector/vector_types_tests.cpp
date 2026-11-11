@@ -511,7 +511,10 @@ TEST_CASE("Vector3Cartesian - Geometric operations", "[VectorTypes][Vector3Carte
     SECTION("NormL2")
     {
         Vector3Cartesian v(static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0), static_cast<MML::Real>(6.0));
-        REQUIRE(v.NormL2() == static_cast<MML::Real>(7.0));  // 2² + 3² + 6² = 49 = 7²
+        if constexpr (std::is_same_v<Real, float>)
+            REQUIRE_THAT(v.NormL2(), RealWithinRelNoScale(Real(7), Real(4) * Precision::Eps));
+        else
+            REQUIRE(v.NormL2() == Real(7));
     }
 
     SECTION("Normalized")

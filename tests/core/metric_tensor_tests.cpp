@@ -202,7 +202,6 @@ namespace MML::Tests::Core::MetricTensorTests
 		
 		SECTION("Contravariant metric is inverse of covariant")
 		{
-			auto g = metric.GetCovariantMetric(pos);
 			auto g_inv = metric.GetContravariantMetric(pos);
 			
 			// g^rr = 1
@@ -696,8 +695,9 @@ namespace MML::Tests::Core::MetricTensorTests
 		auto riemann = metric.GetRiemannCurvatureTensor(pos);
 		REQUIRE(riemann.numContravar() == 1);
 		REQUIRE(riemann.numCovar() == 3);
-		REQUIRE(riemann.isContravar(3));
-		REQUIRE(riemann.isCovar(0));
+		REQUIRE(riemann.isContravar(0));
+		for (int slot : {1, 2, 3})
+			REQUIRE(riemann.isCovar(slot));
 		REQUIRE_THAT(riemann(0, 1, 0, 1), WithinAbs(expected, TOL(1e-5, 1e-2)));
 	}
 
@@ -1125,7 +1125,7 @@ namespace MML::Tests::Core::MetricTensorTests
 	TEST_CASE("Spherical analytical connection integrates a Cartesian straight line", "[MetricTensor][Christoffel][Geodesic][wewi.8.2]") {
 		MetricTensorSpherical metric;
 		const VectorN<Real, 3> pos{2, static_cast<MML::Real>(1.1), static_cast<MML::Real>(0.3)}, velocity{static_cast<MML::Real>(0.2), static_cast<MML::Real>(-0.1), static_cast<MML::Real>(0.15)};
-		const Real end = 0.4;
+		const Real end = MML::Real(0.4);
 		const auto solution = IntegrateGeodesicFixedStep<3>(metric, pos, velocity, 0, end, 80);
 		const auto state = solution.getXValuesAtEnd();
 		const auto actual = CoordTransfSpherToCart.transf(GeodesicPositionFromState<3>(state));
@@ -1148,7 +1148,7 @@ namespace MML::Tests::Core::MetricTensorTests
 						"[MetricTensor][Christoffel][ParallelTransport][wewi.8.2]") {
 		MetricTensorSpherical metric;
 		ParametricCurveFromStdFunc<3> equator([](Real t) { return VectorN<Real, 3>{2, Constants::PI / 2, t}; });
-		const Real end = 0.6;
+		const Real end = MML::Real(0.6);
 		const auto solution = IntegrateParallelTransportFixedStep<3>(metric, equator, VectorN<Real, 3>{1, 0, 0}, 0, end, 80);
 		const auto actual = ParallelTransportVectorFromState<3>(solution.getXValuesAtEnd());
 		const VectorN<Real, 3> expected{std::cos(end), 0, -std::sin(end) / 2};

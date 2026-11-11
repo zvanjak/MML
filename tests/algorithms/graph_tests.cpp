@@ -148,7 +148,7 @@ TEST_CASE("Graph - edge weights are stored correctly", "[Graph][edge]")
 	Graph<> g(3);
 
 	g.addEdge(0, 1, 1.5);
-	g.addEdge(1, 2, 2.7);
+	g.addEdge(1, 2, MML::Real(2.7));
 
 	REQUIRE_THAT(g.edgeWeight(0, 1), Catch::Matchers::WithinRel(static_cast<MML::Real>(1.5), TOL(1e-10, 1e-5)));
 	REQUIRE_THAT(g.edgeWeight(1, 0), Catch::Matchers::WithinRel(static_cast<MML::Real>(1.5), TOL(1e-10, 1e-5)));
@@ -629,11 +629,11 @@ TEST_CASE("DFS - on simple path graph", "[Graph][DFS]")
 
 TEST_CASE("DFS - on tree structure", "[Graph][DFS]")
 {
-	//       0
-	//      / \
-	//     1   2
-	//    / \
-	//   3   4
+	/*       0
+	      / \
+	     1   2
+	    / \
+	   3   4 */
 	Graph<> g(5);
 	g.addEdge(0, 1);
 	g.addEdge(0, 2);
@@ -1524,11 +1524,11 @@ TEST_CASE("TopologicalSort - simple DAG", "[Graph][TopologicalSort]")
 
 TEST_CASE("TopologicalSort - diamond DAG", "[Graph][TopologicalSort]")
 {
-	//     1
-	//    / \
-	//   0   3
-	//    \ /
-	//     2
+	/*     1
+	    / \
+	   0   3
+	    \ /
+	     2 */
 	Graph<> g(4, Graph<>::Type::Directed);
 	g.addEdge(0, 1);
 	g.addEdge(0, 2);
@@ -1624,12 +1624,12 @@ TEST_CASE("IsDAG - false for cyclic graph", "[Graph][TopologicalSort]")
 
 TEST_CASE("Kruskal - simple triangle", "[Graph][MST]")
 {
-	//     2
-	//   0---1
-	//    \ /
-	//   1 X 3
-	//    / \
-	//     2
+	/*     2
+	   0---1
+	    \ /
+	   1 X 3
+	    / \
+	     2 */
 	Graph<int, Real> g(3);
 	g.addEdge(0, 1, 2.0);
 	g.addEdge(1, 2, 3.0);
@@ -1879,6 +1879,37 @@ namespace
 	}
 }
 
+TEST_CASE("AStarPath - admissible but inconsistent heuristic reopens improved vertices",
+	"[Graph][AStar][MinimalMathLibrary-gvnh]")
+{
+	// Witness from the GPT-Sol-6.1 analysis: h(2)=3 is admissible (true distance 2->3 is 3)
+	// but inconsistent with edge 0->2 (h(0)=0 > 1 + h(2) would be needed for consistency).
+	// Without reopening, vertex 1 is closed with g=3 before 0->2->1 improves it to g=2,
+	// so vertex 3 kept g=5 while the reconstructed path 0,2,1,3 actually weighs 4.
+	Graph<int, Real> g(4, Graph<int, Real>::Type::Directed);
+	g.addEdge(0, 1, 3.0);
+	g.addEdge(0, 2, 1.0);
+	g.addEdge(2, 1, 1.0);
+	g.addEdge(1, 3, 2.0);
+	g.addEdge(2, 3, 100.0);
+
+	auto inconsistent = [](size_t v, size_t) { return v == 2 ? Real(3) : Real(0); };
+	auto result = AStarPath(g, 0, 3, inconsistent);
+	auto reference = DijkstraPath(g, 0, 3);
+
+	REQUIRE(result.succeeded());
+	REQUIRE(result.found);
+	REQUIRE(result.path == std::vector<size_t>{0, 2, 1, 3});
+	REQUIRE(result.totalWeight == Real(4));
+	REQUIRE(result.totalWeight == reference.totalWeight);
+	REQUIRE(result.path == reference.path);
+
+	Real pathWeight = 0;
+	for (size_t i = 1; i < result.path.size(); ++i)
+		pathWeight += g.edgeWeight(result.path[i - 1], result.path[i]);
+	REQUIRE(pathWeight == result.totalWeight);
+}
+
 TEST_CASE("Graph differential - nonnegative shortest paths agree on seeded random graphs",
 	"[Graph][differential][shortest-path]")
 {
@@ -1897,6 +1928,12 @@ TEST_CASE("Graph differential - nonnegative shortest paths agree on seeded rando
 					REQUIRE(johnson.succeeded());
 					REQUIRE(floyd.distance.size() == n);
 					REQUIRE(johnson.distance == floyd.distance);
+					// Per-vertex random scaling of the exact distance: admissible by construction,
+					// but generally inconsistent, so A* must reopen improved vertices.
+					std::vector<Real> scale(n);
+					std::uniform_real_distribution<Real> scaleDist(Real(0), Real(1));
+					for (auto& s : scale)
+						s = scaleDist(rng);
 					for (size_t source = 0; source < n; ++source)
 					{
 						CAPTURE(source);
@@ -1912,20 +1949,29 @@ TEST_CASE("Graph differential - nonnegative shortest paths agree on seeded rando
 							auto path = DijkstraPath(graph, source, target);
 							auto astar = AStarPath(graph, source, target,
 								[](size_t, size_t) { return Real{0}; });
+							auto inconsistentAStar = AStarPath(graph, source, target,
+								[&](size_t v, size_t to) {
+									Real exact = floyd.distance[v][to];
+									return exact == std::numeric_limits<Real>::infinity() ? Real{0} : scale[v] * exact;
+								});
 							REQUIRE(path.found == reachable);
 							REQUIRE(astar.found == reachable);
+							REQUIRE(inconsistentAStar.found == reachable);
 							REQUIRE(path.succeeded() == reachable);
 							REQUIRE(astar.succeeded() == reachable);
+							REQUIRE(inconsistentAStar.succeeded() == reachable);
 							REQUIRE(floyd.hasPath(source, target) == reachable);
 							REQUIRE(johnson.hasPath(source, target) == reachable);
 							RequirePath(graph, path.path, source, target, distance);
 							RequirePath(graph, astar.path, source, target, distance);
+							RequirePath(graph, inconsistentAStar.path, source, target, distance);
 							RequirePath(graph, floyd.path(source, target), source, target, distance);
 							RequirePath(graph, johnson.path(source, target), source, target, distance);
 							if (reachable)
 							{
 								REQUIRE(path.totalWeight == distance);
 								REQUIRE(astar.totalWeight == distance);
+								REQUIRE(inconsistentAStar.totalWeight == distance);
 							}
 							else
 							{

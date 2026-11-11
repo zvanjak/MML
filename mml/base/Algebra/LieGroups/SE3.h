@@ -12,6 +12,7 @@
 #define MML_ALGEBRA_SE3_H
 
 #include <mml/MMLExceptions.h>
+#include <mml/MMLNumericValidation.h>
 #include <mml/base/Algebra/LieGroups/SO3.h>
 #include <mml/base/DifferentialGeometry/Point.h>
 
@@ -75,6 +76,11 @@ namespace MML::Algebra
 		static SE3 FromHomogeneousMatrix(const MatrixNM<Real, 4, 4>& matrix,
 			Real tolerance = PrecisionValues<Real>::OrthogonalityTolerance)
 		{
+			ValidateNonNegativeTolerance(tolerance, "SE3::FromHomogeneousMatrix");
+			for (int row = 0; row < 4; ++row)
+				for (int column = 0; column < 4; ++column)
+					if (!std::isfinite(matrix(row, column)))
+						throw DomainError("SE3 homogeneous matrix entries must be finite");
 			for (int column = 0; column < 3; column++)
 				if (std::abs(matrix(3, column)) > tolerance)
 					throw DomainError("SE3 homogeneous matrix must have bottom row [0,0,0,1]");

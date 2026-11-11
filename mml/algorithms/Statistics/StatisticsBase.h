@@ -61,8 +61,8 @@ namespace MML
 			int n{};                     ///< Sample size
 
 			/// Check if correlation is significant at given alpha level
-			bool IsSignificant(Real alpha = 0.05) const {
-				Real criticalZ = (alpha <= 0.01) ? 2.576 : 1.96;
+			bool IsSignificant(Real alpha = Real(0.05)) const {
+				const Real criticalZ = (alpha <= Real(0.01)) ? Real(2.576) : Real(1.96);
 				return std::abs(zScore) > criticalZ;
 			}
 		};

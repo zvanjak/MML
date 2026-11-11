@@ -645,6 +645,22 @@ void Docs_Demo_LinearSystem_MultipleRHS()
 	std::cout << "\nVerification A*X:\n";
 	Matrix<Real> AX = A * X;
 	AX.Print(std::cout, 10, 6);
+
+	{
+		Matrix<Real> A(3, 2, {1, 0, 0, 1, 1, 1});
+		Matrix<Real> B(3, 2, {1, 1, 2, 2, 3, 4});
+		LinearSystem<Real> sys(A, B);
+		const Matrix<Real>& storedB = sys.getRHSMatrix();
+		Matrix<Real> X = sys.SolveMultiple();
+		// X columns: [1, 2] (exact) and [4/3, 7/3] (least squares).
+		std::cout << "\nTall system RHS matrix:\n";
+		storedB.Print(std::cout, 10, 6);
+		std::cout << "QR solutions (exact and least squares):\n";
+		X.Print(std::cout, 10, 6);
+		if (!IsNearlyEqual(X(0, 0), Real(1)) || !IsNearlyEqual(X(1, 0), Real(2)) ||
+			!IsNearlyEqual(X(0, 1), Real(4) / 3) || !IsNearlyEqual(X(1, 1), Real(7) / 3))
+			throw InvalidStateError("LinearSystem multiple-RHS demo: unexpected least-squares solutions");
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////

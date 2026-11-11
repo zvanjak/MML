@@ -35,7 +35,7 @@ TEST_CASE("Pyramid3D::Volume", "[geometry][pyramid][volume]")
     {
         Pyramid3D pyramid(1.0, 1.0);
         // Volume = (1/3) * 1 * 1 = 1/3
-        Real expected = 1.0 / 3.0;
+        Real expected = MML::Real(1.0) / MML::Real(3.0);
         REQUIRE_THAT(pyramid.Volume() , RealApprox(expected));
     }
 
@@ -77,8 +77,8 @@ TEST_CASE("Pyramid3D::SurfaceArea", "[geometry][pyramid][surface]")
         // Base = 1
         // Slant height s = sqrt(1 + 0.25) = sqrt(1.25)
         // SA = 1 + 2*sqrt(1.25)
-        Real slant = std::sqrt(1.25);
-        Real expected = 1.0 + 2.0 * slant;
+        Real slant = std::sqrt(MML::Real(1.25));
+        Real expected = MML::Real(1.0) + MML::Real(2.0) * slant;
         REQUIRE_THAT(pyramid.SurfaceArea() , RealApprox(expected));
     }
 
@@ -87,7 +87,7 @@ TEST_CASE("Pyramid3D::SurfaceArea", "[geometry][pyramid][surface]")
         Pyramid3D pyramid(6.0, 4.0);
         // Base side = 6, height = 4
         // Half base = 3, so slant height = sqrt(4² + 3²) = 5
-        Real slant_height = std::sqrt(16.0 + 9.0);
+        Real slant_height = std::sqrt(MML::Real(16.0) + MML::Real(9.0));
         REQUIRE_THAT(slant_height , RealApprox(5.0));
     }
 }
@@ -311,22 +311,22 @@ TEST_CASE("Pyramid3D::IsInside", "[geometry][pyramid][inside]")
     SECTION("Points below base are not inside")
     {
         Pyramid3D pyramid(10.0, 12.0);
-        REQUIRE(pyramid.IsInside(Pnt3Cart(0.0, 0.0, -0.1)) == false);
+        REQUIRE(pyramid.IsInside(Pnt3Cart(MML::Real(0.0), MML::Real(0.0), -MML::Real(0.1))) == false);
         REQUIRE(pyramid.IsInside(Pnt3Cart(0.0, 0.0, -1.0)) == false);
     }
 
     SECTION("Points above apex are not inside")
     {
         Pyramid3D pyramid(10.0, 12.0);
-        REQUIRE(pyramid.IsInside(Pnt3Cart(0.0, 0.0, 12.1)) == false);
+        REQUIRE(pyramid.IsInside(Pnt3Cart(MML::Real(0.0), MML::Real(0.0), MML::Real(12.1))) == false);
         REQUIRE(pyramid.IsInside(Pnt3Cart(0.0, 0.0, 13.0)) == false);
     }
 
     SECTION("Points outside base are not inside")
     {
         Pyramid3D pyramid(10.0, 12.0);
-        REQUIRE(pyramid.IsInside(Pnt3Cart(5.1, 0.0, 0.0)) == false);
-        REQUIRE(pyramid.IsInside(Pnt3Cart(0.0, 5.1, 0.0)) == false);
+        REQUIRE(pyramid.IsInside(Pnt3Cart(MML::Real(5.1), MML::Real(0.0), MML::Real(0.0))) == false);
+        REQUIRE(pyramid.IsInside(Pnt3Cart(MML::Real(0.0), MML::Real(5.1), MML::Real(0.0))) == false);
         REQUIRE(pyramid.IsInside(Pnt3Cart(6.0, 6.0, 0.0)) == false);
     }
 
@@ -336,7 +336,7 @@ TEST_CASE("Pyramid3D::IsInside", "[geometry][pyramid][inside]")
         // At z=5, half-side = 2.5, so x or y > 2.5 should be outside
         REQUIRE(pyramid.IsInside(Pnt3Cart(3.0, 0.0, 5.0)) == false);
         REQUIRE(pyramid.IsInside(Pnt3Cart(0.0, 3.0, 5.0)) == false);
-        REQUIRE(pyramid.IsInside(Pnt3Cart(2.6, 2.6, 5.0)) == false);
+        REQUIRE(pyramid.IsInside(Pnt3Cart(MML::Real(2.6), MML::Real(2.6), MML::Real(5.0))) == false);
     }
 
     SECTION("Pyramid at arbitrary position")
@@ -355,8 +355,8 @@ TEST_CASE("Pyramid3D::IsInside", "[geometry][pyramid][inside]")
         
         // Outside
         REQUIRE(pyramid.IsInside(Pnt3Cart(15.0, 20.0, 30.0)) == false);
-        REQUIRE(pyramid.IsInside(Pnt3Cart(10.0, 20.0, 29.9)) == false);
-        REQUIRE(pyramid.IsInside(Pnt3Cart(10.0, 20.0, 42.1)) == false);
+        REQUIRE(pyramid.IsInside(Pnt3Cart(MML::Real(10.0), MML::Real(20.0), MML::Real(29.9))) == false);
+        REQUIRE(pyramid.IsInside(Pnt3Cart(MML::Real(10.0), MML::Real(20.0), MML::Real(42.1))) == false);
     }
 
     SECTION("Linear cross-section reduction")
@@ -372,8 +372,8 @@ TEST_CASE("Pyramid3D::IsInside", "[geometry][pyramid][inside]")
         REQUIRE(pyramid.IsInside(Pnt3Cart(2.5, 0.0, 5.0)) == true);
         REQUIRE(pyramid.IsInside(Pnt3Cart(1.25, 0.0, 7.5)) == true);
         
-        REQUIRE(pyramid.IsInside(Pnt3Cart(3.76, 0.0, 2.5)) == false);
-        REQUIRE(pyramid.IsInside(Pnt3Cart(2.51, 0.0, 5.0)) == false);
+        REQUIRE(pyramid.IsInside(Pnt3Cart(MML::Real(3.76), MML::Real(0.0), MML::Real(2.5))) == false);
+        REQUIRE(pyramid.IsInside(Pnt3Cart(MML::Real(2.51), MML::Real(0.0), MML::Real(5.0))) == false);
     }
 }
 

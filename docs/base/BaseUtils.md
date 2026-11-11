@@ -4,6 +4,35 @@
 
 Collection of utility functions for angles, complex numbers, vectors, matrices, and physics constants.
 
+## Numerical and Boundary Contracts
+
+- Approximate equality, near-zero and orthonormality predicates do not certify NaN or infinity.
+  Comparison tolerances must be finite and nonnegative; invalid tolerances return false,
+  including for empty containers. For element-wise comparisons, zero tolerance requests
+  exact finite equality.
+- Angle normalization uses bounded remainder reduction, including for very large finite
+  angles. The intervals remain `[0, 2*pi)` and `[-pi, pi)`; nonfinite angles throw `DomainError`.
+  As with any floating-point reduction, huge-angle accuracy is relative to the stored value
+  of `pi`, not the exact mathematical constant.
+- Cartesian-to-polar, spherical and cylindrical conversions reject nonfinite coordinates
+  and use scale-safe radii. An unrepresentable radius throws `NumericalMethodError`.
+  The spherical origin retains zero angles. Vector projection rejects nonfinite inputs
+  and zero directions, and avoids premature product overflow and underflow.
+- Matrix factories return a `0 x 0` matrix for an empty vector list, reject ragged lists,
+  and validate integer dimensions before copying. Similarity transforms require equally
+  sized square inputs. `MaxAbsDiff` still compares the shared extent, but rejects nonfinite
+  entries and throws if the resulting difference is not representable.
+- Both Gram-Schmidt helpers require a positive finite tolerance and finite input.
+  Dependence is tested relative to each input column's norm, making the decision invariant
+  under representable column rescaling. Two modified Gram-Schmidt passes improve
+  orthogonality. The matrix form retains dependent columns as zero columns; the vector-list
+  form omits them. Neither form silently substitutes for invalid input.
+- `Singularity::SafeDivide` validates finite operands, a positive finite tolerance and a
+  recognized policy even for nonsingular denominators. `ReturnInf` uses the quotient sign,
+  including signed zeros; its explicit policy still maps zero-over-zero to signed infinity.
+  `Clamp` preserves the denominator's sign, including negative zero. `ReturnNaN` and
+  `ReturnZero` remain explicit singularity policies, not fallbacks for invalid input.
+
 ## Table of Contents
 - [Levi-Civita Symbol](#levi-civita-symbol)
 - [Angle Utilities](#angle-utilities)
@@ -442,8 +471,6 @@ Matrix<Complex> sigma_x_mat = // convert to dynamic matrix if needed
 cmake --build build --target MML_DocsApp
 ./build/src/docs_demos/Release/MML_DocsApp
 ```
-
-
 
 
 

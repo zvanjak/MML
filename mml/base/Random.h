@@ -57,7 +57,7 @@ namespace MML
 			// This ensures uniform distribution over the sphere surface
 			Real theta = UniformReal(0, 2 * Constants::PI); // azimuthal angle
 			Real u = UniformReal(-1.0, 1.0);               // cos(polar angle)
-			Real sin_phi = std::sqrt(1.0 - u * u);         // sin(phi) = sqrt(1 - cos²(phi))
+			Real sin_phi = std::sqrt(MML::Real(1.0) - u * u);         // sin(phi) = sqrt(1 - cos²(phi))
 			vx = abs * sin_phi * std::cos(theta);
 			vy = abs * sin_phi * std::sin(theta);
 			vz = abs * u;  // cos(phi) = u

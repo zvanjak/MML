@@ -24,11 +24,20 @@
 #include <cmath>
 #include <complex>
 #include <string>
+#include <utility>
 
 namespace MML::MatrixAlg
 {
 	namespace Detail
 	{
+		template<typename Result>
+		void RequireUsableEigensystem(const Result& result, const char* operation)
+		{
+			if (!result.converged || !IsUsable(result.status))
+				throw MatrixNumericalError(std::string(operation) + " - " + to_string(result.status) +
+					(result.errorMessage.empty() ? "" : ": " + result.errorMessage));
+		}
+
 		template<MMLScalar Scalar>
 		MatrixMagnitude<Scalar> MaximumEigenResidual(
 				const Matrix<Scalar>& matrix,
@@ -41,12 +50,26 @@ namespace MML::MatrixAlg
 			for (int row = 0; row < matrix.rows(); ++row)
 				for (int col = 0; col < matrix.cols(); ++col)
 					matrixNorm = std::hypot(matrixNorm, static_cast<Magnitude>(std::abs(matrix(row, col))));
+			if (!std::isfinite(matrixNorm))
+				throw MatrixNumericalError("Eigensystem - non-finite matrix norm in residual validation");
 
 			Magnitude maximum{};
 			for (int eigenIndex = 0; eigenIndex < matrix.rows(); ++eigenIndex)
 			{
-				Magnitude residual{};
+				if (!std::isfinite(eigenvalues[eigenIndex].real()) || !std::isfinite(eigenvalues[eigenIndex].imag()))
+					throw MatrixNumericalError("Eigensystem - non-finite eigenvalue at column " + std::to_string(eigenIndex));
 				Magnitude vectorNorm{};
+				for (int row = 0; row < matrix.rows(); ++row)
+					vectorNorm = std::hypot(vectorNorm,
+						static_cast<Magnitude>(std::abs(eigenvectors(row, eigenIndex))));
+				if (!std::isfinite(vectorNorm) || vectorNorm == Magnitude{})
+					throw MatrixNumericalError("Eigensystem - zero or non-finite eigenvector norm at column " +
+						std::to_string(eigenIndex));
+				const Magnitude denominator = std::max(Magnitude{1}, matrixNorm * vectorNorm);
+				if (!std::isfinite(denominator))
+					throw MatrixNumericalError("Eigensystem - non-finite residual denominator at column " +
+						std::to_string(eigenIndex));
+				Magnitude residual{};
 				for (int row = 0; row < matrix.rows(); ++row)
 				{
 					ComplexScalar product{};
@@ -54,12 +77,36 @@ namespace MML::MatrixAlg
 						product += static_cast<ComplexScalar>(matrix(row, col)) * eigenvectors(col, eigenIndex);
 					residual = std::hypot(residual, static_cast<Magnitude>(
 						std::abs(product - eigenvalues[eigenIndex] * eigenvectors(row, eigenIndex))));
-					vectorNorm = std::hypot(vectorNorm,
-						static_cast<Magnitude>(std::abs(eigenvectors(row, eigenIndex))));
 				}
-				maximum = std::max(maximum, residual / std::max(Magnitude{1}, matrixNorm * vectorNorm));
+				if (!std::isfinite(residual))
+					throw MatrixNumericalError("Eigensystem - non-finite eigenpair residual at column " +
+						std::to_string(eigenIndex));
+				maximum = std::max(maximum, residual / denominator);
 			}
 			return maximum;
+		}
+
+		template<MMLScalar Scalar, typename Result>
+		void SetEigenResidual(
+				const Matrix<Scalar>& matrix,
+				const Vector<MatrixComplexScalar<Scalar>>& eigenvalues,
+				const Matrix<MatrixComplexScalar<Scalar>>& eigenvectors,
+				Result& result)
+		{
+			try
+			{
+				result.maxResidual = MaximumEigenResidual(matrix, eigenvalues, eigenvectors);
+			}
+			catch (const MatrixNumericalError& error)
+			{
+				result.maxResidual = NoEstimate;
+				result.converged = false;
+				if (IsUsable(result.status))
+					result.status = AlgorithmStatus::NumericalInstability;
+				if (!result.errorMessage.empty())
+					result.errorMessage += "; ";
+				result.errorMessage += error.what();
+			}
 		}
 	}
 
@@ -100,7 +147,7 @@ namespace MML::MatrixAlg
 		for (int row = 0; row < eigenvectors.rows(); ++row)
 			for (int col = 0; col < eigenvectors.cols(); ++col)
 				eigenvectors(row, col) = Complex{result.eigenvectors(row, col), static_cast<MML::Real>(0.0)};
-		result.maxResidual = Detail::MaximumEigenResidual(matrix, eigenvalues, eigenvectors);
+		Detail::SetEigenResidual(matrix, eigenvalues, eigenvectors, result);
 		return result;
 	}
 
@@ -144,7 +191,7 @@ namespace MML::MatrixAlg
 		Vector<Complex> eigenvalues(result.eigenvalues.size());
 		for (int index = 0; index < eigenvalues.size(); ++index)
 			eigenvalues[index] = Complex{result.eigenvalues[index], static_cast<MML::Real>(0.0)};
-		result.maxResidual = Detail::MaximumEigenResidual(matrix, eigenvalues, result.eigenvectors);
+		Detail::SetEigenResidual(matrix, eigenvalues, result.eigenvectors, result);
 		return result;
 	}
 
@@ -153,7 +200,9 @@ namespace MML::MatrixAlg
 			Real tolerance = PrecisionValues<Real>::EigenSolverConvergenceTolerance,
 			int maxIterations = 100)
 	{
-		return SymmetricEigensystem(matrix, tolerance, maxIterations).eigenvalues;
+		auto result = SymmetricEigensystem(matrix, tolerance, maxIterations);
+		Detail::RequireUsableEigensystem(result, "SymmetricEigenvalues");
+		return std::move(result.eigenvalues);
 	}
 
 	inline Vector<Real> HermitianEigenvalues(
@@ -161,7 +210,9 @@ namespace MML::MatrixAlg
 			Real tolerance = PrecisionValues<Real>::EigenSolverConvergenceTolerance,
 			int maxIterations = 100)
 	{
-		return HermitianEigensystem(matrix, tolerance, maxIterations).eigenvalues;
+		auto result = HermitianEigensystem(matrix, tolerance, maxIterations);
+		Detail::RequireUsableEigensystem(result, "HermitianEigenvalues");
+		return std::move(result.eigenvalues);
 	}
 
 	template<MMLScalar Scalar>
@@ -203,10 +254,10 @@ namespace MML::MatrixAlg
 			result.eigenvectors = decomposition.eigenvectors;
 			result.converged = decomposition.converged;
 			result.iterations = decomposition.iterations;
-			result.maxResidual = decomposition.maxResidual;
 			result.status = decomposition.status;
 			result.algorithmName = decomposition.algorithmName;
 			result.errorMessage = decomposition.errorMessage;
+			Detail::SetEigenResidual(matrix, result.eigenvalues, result.eigenvectors, result);
 			return result;
 		}
 		else
@@ -237,7 +288,7 @@ namespace MML::MatrixAlg
 				result.eigenvalues[index] = ComplexScalar{legacy.eigenvalues[index].real, legacy.eigenvalues[index].imag};
 			for (int index = 0; index < matrix.rows(); ++index)
 			{
-				if (legacy.isComplexPair[index] && legacy.eigenvalues[index].imag > tolerance && index + 1 < matrix.rows())
+				if (legacy.isComplexPair[index] && index + 1 < matrix.rows())
 				{
 					for (int row = 0; row < matrix.rows(); ++row)
 					{
@@ -255,12 +306,10 @@ namespace MML::MatrixAlg
 			}
 			result.converged = legacy.converged;
 			result.iterations = legacy.iterations;
-			result.status = result.converged ? AlgorithmStatus::Success : AlgorithmStatus::MaxIterationsExceeded;
+			result.status = legacy.status;
 			result.algorithmName = "GeneralRealQR";
-			if (!result.converged)
-				result.errorMessage = "General real QR iteration did not converge within " +
-					std::to_string(maxIterations) + " iterations";
-			result.maxResidual = Detail::MaximumEigenResidual(matrix, result.eigenvalues, result.eigenvectors);
+			result.errorMessage = legacy.error_message;
+			Detail::SetEigenResidual(matrix, result.eigenvalues, result.eigenvectors, result);
 			return result;
 		}
 	}
@@ -271,7 +320,9 @@ namespace MML::MatrixAlg
 			MatrixMagnitude<Scalar> tolerance = PrecisionValues<MatrixMagnitude<Scalar>>::EigenSolverConvergenceTolerance,
 			int maxIterations = 1000)
 	{
-		return Eigensystem(matrix, tolerance, maxIterations).eigenvalues;
+		auto result = Eigensystem(matrix, tolerance, maxIterations);
+		Detail::RequireUsableEigensystem(result, "Eigenvalues");
+		return std::move(result.eigenvalues);
 	}
 
 	template<MMLScalar Scalar>
@@ -281,7 +332,7 @@ namespace MML::MatrixAlg
 			int maxIterations = 1000)
 	{
 		MatrixMagnitude<Scalar> maximum{};
-		for (const auto& eigenvalue : Eigensystem(matrix, tolerance, maxIterations).eigenvalues)
+		for (const auto& eigenvalue : Eigenvalues(matrix, tolerance, maxIterations))
 			maximum = std::max(maximum, static_cast<MatrixMagnitude<Scalar>>(std::abs(eigenvalue)));
 		return maximum;
 	}

@@ -24,6 +24,7 @@
 
 #include <cmath>
 #include <vector>
+#include <limits>
 
 #include <mml/MMLBase.h>
 #include <mml/MMLExceptions.h>
@@ -36,6 +37,24 @@
 #include <mml/base/InterpolatedFunctions/InterpolatedFunctionSpline.h>
 
 namespace MML {
+	namespace detail {
+		template<int N>
+		int ValidateParametricCurvePoints(const Matrix<Real>& points, Real minT = 0, Real maxT = 1, bool extendClosed = false) {
+			if (points.cols() != N)
+				throw MatrixDimensionError("Parametric curve: template dimension must match point matrix column count");
+			if (points.rows() < 2)
+				throw RealFuncInterpInitError("Parametric curve: at least two control points are required");
+			if (!std::isfinite(minT) || !std::isfinite(maxT) || !(minT < maxT) || !std::isfinite(maxT - minT))
+				throw RealFuncInterpInitError("Parametric curve: parameter range must be finite, increasing and representable");
+			if (extendClosed && points.rows() > std::numeric_limits<int>::max() / 2)
+				throw RealFuncInterpInitError("Parametric curve: extended closed-curve point count exceeds integer range");
+			for (int row = 0; row < points.rows(); ++row)
+				for (int col = 0; col < N; ++col)
+					if (!std::isfinite(points(row, col)))
+						throw RealFuncInterpInitError("Parametric curve: control points must be finite");
+			return points.rows();
+		}
+	}
 
 	/////////////////////////////////////////////////////////////////////////////////////
 	///                    PARAMETRIC CURVE INTERPOLATION                             ///
@@ -64,29 +83,43 @@ namespace MML {
 		Vector<Real> _arcLen;	   ///< Normalized arc length parameter [0,1]
 		bool _isCurveClosed;	   ///< True for closed curves
 
+		static int PointCount(const Matrix<Real>& points, bool close) {
+			const int count = detail::ValidateParametricCurvePoints<N>(points);
+			if (close && count == std::numeric_limits<int>::max())
+				throw RealFuncInterpInitError("Linear parametric curve: closed point count exceeds integer range");
+			return count + (close ? 1 : 0);
+		}
+
 	public:
 		/// @brief Construct a linearly interpolated parametric curve.
 		/// @param ptsin Matrix of control points [numPoints x N]
 		/// @param close If true, the curve is closed (connects last to first point)
+		/// @throws MatrixDimensionError if the matrix does not have exactly N columns
+		/// @throws RealFuncInterpInitError for fewer than two points, nonfinite coordinates or unrepresentable chord lengths
 
 		LinInterpParametricCurve(const Matrix<Real>& ptsin, bool close = false)
-			: _numPoints(ptsin.rows())
-			, _curvePoints(ptsin)
+			: _numPoints(PointCount(ptsin, close))
+			, _curvePoints(_numPoints, N)
 			, _arcLen(_numPoints)
 			, _isCurveClosed(close) {
+			for (int i = 0; i < _numPoints; ++i)
+				for (int j = 0; j < N; ++j)
+					_curvePoints(i, j) = ptsin(i % ptsin.rows(), j);
 			// Compute normalized arc length parameterization
 			_arcLen[0] = 0.0;
 			Real totalLen = 0.0;
 			for (int i = 1; i < _numPoints; ++i) {
 				Real segLen = 0.0;
 				for (int j = 0; j < N; ++j)
-					segLen += std::pow(_curvePoints[i][j] - _curvePoints[i - 1][j], 2);
-				totalLen += std::sqrt(segLen);
+					segLen = std::hypot(segLen, _curvePoints[i][j] - _curvePoints[i - 1][j]);
+				totalLen += segLen;
+				if (!std::isfinite(totalLen))
+					throw RealFuncInterpInitError("Linear parametric curve: chord length is not representable");
 				_arcLen[i] = totalLen;
 			}
 			// Normalize to [0,1]
 			for (int i = 0; i < _numPoints; ++i)
-				_arcLen[i] /= totalLen > 0 ? totalLen : 1.0;
+				_arcLen[i] /= totalLen > 0 ? totalLen : MML::Real(1.0);
 		}
 
 		/// /** @brief Get the minimum parameter value (0). */
@@ -121,7 +154,7 @@ namespace MML {
 
 			// Linear interpolation
 			Real t0 = _arcLen[i], t1 = _arcLen[i + 1];
-			Real alpha = (t1 - t0 > 0) ? (t - t0) / (t1 - t0) : 0.0;
+			Real alpha = (t1 - t0 > 0) ? (t - t0) / (t1 - t0) : MML::Real(0.0);
 
 			VectorN<Real, N> result;
 			for (int j = 0; j < N; ++j)
@@ -168,37 +201,38 @@ namespace MML {
 		/// @param maxT Maximum parameter value
 		/// @param ptsin Matrix of control points [numPoints x dim]
 		/// @param close If true, curve is closed (last connects to first)
-		/// @throws If N doesn't match matrix column count
+		/// @throws MatrixDimensionError if the matrix does not have exactly N columns
+		/// @throws RealFuncInterpInitError for invalid point counts, nonfinite coordinates or invalid parameter bounds
 		/// @note For closed curves, do not duplicate the first point as the last.
 
 		SplineInterpParametricCurve(Real minT, Real maxT, const Matrix<Real>& ptsin, bool close = 0)
-			: _numPoints(ptsin.rows())
+			: _minT(minT)
+			, _maxT(maxT)
 			, _dim(ptsin.cols())
+			, _numPoints(detail::ValidateParametricCurvePoints<N>(ptsin, minT, maxT, close))
 			, _bemba(close ? 2 * _numPoints : _numPoints)
 			, _isCurveClosed(close)
 			, _curvePoints(_dim, _bemba)
 			, s(_bemba)
-			, ans(_dim)
-			, _minT(minT)
-			, _maxT(maxT) {
-			// check N == dim
-			if (N != _dim)
-				throw MatrixDimensionError("SplineInterpParametricCurve: template dimension N must match point matrix column count");
-
+			, ans(_dim) {
 			int i, ii, im, j, ofs;
 			Real ss, soff, db, de;
 
 			ofs = close ? _numPoints / 2 : 0;
 			s[0] = 0.;
 			for (i = 0; i < _bemba; i++) {
-				ii = (i - ofs + _numPoints) % _numPoints;
-				im = (ii - 1 + _numPoints) % _numPoints;
+				// Wrap without forming i + _numPoints, which can overflow for large inputs.
+				ii = i % _numPoints;
+				ii = ii < ofs ? _numPoints - (ofs - ii) : ii - ofs;
+				im = ii == 0 ? _numPoints - 1 : ii - 1;
 
 				for (j = 0; j < _dim; j++)
 					_curvePoints[j][i] = ptsin[ii][j];
 
 				if (i > 0) {
 					s[i] = s[i - 1] + rad(&ptsin[ii][0], &ptsin[im][0]);
+					if (!std::isfinite(s[i]))
+						throw RealFuncInterpInitError("Spline parametric curve: chord length is not representable");
 
 					if (s[i] == s[i - 1])
 						throw RealFuncInterpRuntimeError("Parametric curve interpolation: consecutive identical points not allowed");
@@ -214,8 +248,8 @@ namespace MML {
 
 			srp.reserve(_dim);
 			for (j = 0; j < _dim; j++) {
-				db = _bemba < 4 ? 1.e99 : fprime(&s[0], &_curvePoints[j][0], 1);
-				de = _bemba < 4 ? 1.e99 : fprime(&s[_bemba - 1], &_curvePoints[j][_bemba - 1], -1);
+				db = _bemba < 4 ? MML::Real(1.e99) : fprime(&s[0], &_curvePoints[j][0], 1);
+				de = _bemba < 4 ? MML::Real(1.e99) : fprime(&s[_bemba - 1], &_curvePoints[j][_bemba - 1], -1);
 
 				Vector<Real> vec = _curvePoints.VectorFromRow(j);
 
@@ -251,11 +285,10 @@ namespace MML {
 
 			VectorN<Real, N> ans;
 
-			if (_isCurveClosed)
-				t = t - floor(t);
-
 			// we have to map t from [minT, maxT] to [0, 1]
 			t = (t - _minT) / (_maxT - _minT);
+			if (_isCurveClosed)
+				t = t - std::floor(t);
 			for (int j = 0; j < _dim; j++)
 				ans[j] = srp[j](t);
 
@@ -272,7 +305,7 @@ namespace MML {
 		Real fprime(Real* x, Real* y, int pm) {
 			Real s1 = x[0] - x[pm * 1], s2 = x[0] - x[pm * 2], s3 = x[0] - x[pm * 3], s12 = s1 - s2, s13 = s1 - s3, s23 = s2 - s3;
 			return -(s1 * s2 / (s13 * s23 * s3)) * y[pm * 3] + (s1 * s3 / (s12 * s2 * s23)) * y[pm * 2] -
-				   (s2 * s3 / (s1 * s12 * s13)) * y[pm * 1] + (1. / s1 + 1. / s2 + 1. / s3) * y[0];
+				   (s2 * s3 / (s1 * s12 * s13)) * y[pm * 1] + (MML::Real(1.) / s1 + MML::Real(1.) / s2 + MML::Real(1.) / s3) * y[0];
 		}
 
 		/// @brief Compute Euclidean distance between two points.
@@ -283,8 +316,8 @@ namespace MML {
 		Real rad(const Real* p1, const Real* p2) {
 			Real sum = 0.;
 			for (int i = 0; i < _dim; i++)
-				sum += POW2(p1[i] - p2[i]);
-			return sqrt(sum);
+				sum = std::hypot(sum, p1[i] - p2[i]);
+			return sum;
 		}
 	};
 

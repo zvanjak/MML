@@ -20,6 +20,41 @@ using namespace MML::Testing;
 
 namespace MML::Tests::Core::LinearAlgSolversTests
 {
+	namespace {
+		void RequireBackwardStableSolve(const Matrix<Real>& matrix, const Vector<Real>& rhs, const Vector<Real>& solution)
+		{
+			// Two operations per dot-product term, plus the RHS subtraction.
+			const long double operations = 2 * static_cast<long double>(matrix.cols()) + 1;
+			const long double gamma = operations * Precision::Eps / (1 - operations * Precision::Eps);
+			for (int row = 0; row < matrix.rows(); ++row) {
+				long double residual = -static_cast<long double>(rhs[row]);
+				long double scale = std::abs(static_cast<long double>(rhs[row]));
+				for (int col = 0; col < matrix.cols(); ++col) {
+					residual = std::fma(static_cast<long double>(matrix(row, col)),
+						static_cast<long double>(solution[col]), residual);
+					scale += std::abs(static_cast<long double>(matrix(row, col)) * solution[col]);
+				}
+				CAPTURE(row, residual, scale, gamma);
+				REQUIRE(std::isfinite(residual));
+				REQUIRE(std::abs(residual) <= gamma * scale);
+			}
+		}
+
+		void RequireSVDForwardAccuracy(const Vector<Real>& solution, const Vector<Real>& reference, Real tolerance)
+		{
+			if constexpr (std::is_same_v<Real, float>) {
+				Real scale = 0;
+				for (int index = 0; index < reference.size(); ++index)
+					scale = std::max(scale, std::abs(reference[index]));
+				REQUIRE(scale > 0);
+				// Forward error is normwise relative to the known solution, not an absolute unit budget.
+				REQUIRE((solution / scale).IsEqualTo(reference / scale, tolerance));
+			} else {
+				REQUIRE(solution.IsEqualTo(reference, tolerance));
+			}
+		}
+	}
+
 	/*********************************************************************/
 	/*****           Test bed initialization sanity check            *****/
 	/*********************************************************************/
@@ -120,8 +155,7 @@ namespace MML::Tests::Core::LinearAlgSolversTests
 		vecSol = luSolver.Solve(rhs);
 		REQUIRE(true == vecSol.IsEqualTo(TestBeds::mat_8x8_rhs0_sol(), TOL(1e-14, 1e-5)));
 
-		Vector<Real>    res_rhs = mat * vecSol;
-		REQUIRE(true == res_rhs.IsEqualTo(TestBeds::mat_8x8_rhs0(), TOL(1e-14, 1e-5)));
+		RequireBackwardStableSolve(mat, rhs, vecSol);
 	}
 	TEST_CASE("Test_LUSolve_10_x_10", "[LUSolver]")
 	{
@@ -369,7 +403,8 @@ namespace MML::Tests::Core::LinearAlgSolversTests
 		SVDecompositionSolver<Real> svd(mat);
 
 		Vector<Real> vecSol = svd.Solve(rhs);
-		REQUIRE(true == vecSol.IsEqualTo(TestBeds::get_mat_20x20_rhs0_sol(), TOL(1e-12, 1e-3)));
+		RequireSVDForwardAccuracy(vecSol, TestBeds::get_mat_20x20_rhs0_sol(), TOL(1e-12, 1e-3));
+		RequireBackwardStableSolve(mat, rhs, vecSol);
 
 		Vector<Real>    res_rhs = mat * vecSol;
 		REQUIRE(true == res_rhs.IsEqualTo(TestBeds::get_mat_20x20_rhs0(), TOL(1e-12, 1e-3)));
@@ -436,6 +471,7 @@ namespace MML::Tests::Core::LinearAlgSolversTests
 				break;
 			}
 		}
+		REQUIRE(hasImaginary);
 		// If the test data has imaginary components, solution should too
 		// (This catches silent truncation to Real)
 		INFO("Solution should have imaginary components if input does");
@@ -513,7 +549,7 @@ namespace MML::Tests::Core::LinearAlgSolversTests
 		REQUIRE(isUnitary(TestBeds::mat_cmplx_unitary_2x2()));
 
 		for (const auto& systemName : { "mat_cmplx_symmetric_2x2", "mat_cmplx_hermitian_2x2", "mat_cmplx_unitary_2x2" }) {
-			const auto& system = TestBeds::LinearAlgEqTestBed::getComplexSystem(systemName);
+			const auto system = TestBeds::LinearAlgEqTestBed::getComplexSystem(systemName);
 			Vector<Complex> solution(system._rhs.size());
 			LUSolver<Complex> solver(system._mat);
 			solver.Solve(system._rhs, solution);
@@ -814,7 +850,12 @@ namespace MML::Tests::Core::LinearAlgSolversTests
 				// Skip ill-conditioned systems for float - SVD solution is unreliable
 				if (i >= 11) continue;
 			}
-			REQUIRE(true == sol.IsEqualTo(testBed._sol, tol));
+			if (i == 8) {
+				RequireSVDForwardAccuracy(sol, testBed._sol, tol);
+				RequireBackwardStableSolve(mat, rhs, sol);
+			} else {
+				REQUIRE(true == sol.IsEqualTo(testBed._sol, tol));
+			}
 
 			Vector<Real>    res_rhs = testBed._mat * sol;
 			REQUIRE(true == res_rhs.IsEqualTo(testBed._rhs, tol));
@@ -2451,14 +2492,14 @@ namespace MML::Tests::Core::LinearAlgSolversTests
 	//                       DETAILED API TESTS                                               //
 	///////////////////////////////////////////////////////////////////////////////////////////
 
-	TEST_CASE("GaussJordanSolveDetailed - Success", "[LinAlgDirect][Detailed][GaussJordan]") {
+	TEST_CASE("GaussJordanSolveDetailed - Completed", "[LinAlgDirect][Detailed][GaussJordan]") {
 		Matrix<Real> A(3, 3, {2, 1, -1, -3, -1, 2, -2, 1, 2});
 		Vector<Real> b({8, -11, -3});
 
 		auto result = GaussJordanSolveDetailed(A, b);
 
 		REQUIRE(result.IsSuccess());
-		REQUIRE(result.status == AlgorithmStatus::Success);
+		REQUIRE(result.status == AlgorithmStatus::Completed);
 		REQUIRE(result.solution.size() == 3);
 		REQUIRE(result.algorithm_name == "GaussJordanSolver");
 		REQUIRE(result.elapsed_time_ms >= 0.0);

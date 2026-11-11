@@ -1,6 +1,3 @@
-#ifndef MML_USE_SINGLE_HEADER
-#include <mml/algorithms/MatrixAlg/MatrixInversion.h>
-#endif
 // Naming-convention regression tests for the matrix family (CONTRACT_POLICY section 11,
 // task MinimalMathLibrary-wewi.5.2).  Every matrix type must expose the same vocabulary:
 //   STL protocol lowercase (rows/cols/empty/resize), mathematical operations PascalCase
@@ -10,9 +7,8 @@
 #include <catch2/catch_all.hpp>
 #include "../TestPrecision.h"
 
-#ifdef MML_USE_SINGLE_HEADER
-#include <MML.h>
-#else
+#ifndef MML_SINGLE_HEADER_INCLUDE
+#include <mml/algorithms/MatrixAlg/MatrixInversion.h>
 #include <mml/base/Vector/Vector.h>
 #include <mml/base/Matrix/Matrix.h>
 #include <mml/base/Matrix/MatrixNM.h>
@@ -102,7 +98,7 @@ namespace MML::Tests::Base::MatrixNamingTests
 		REQUIRE(inv(0, 1) == Catch::Approx(-0.7));
 		Matrix<Real> b = original;
 		MatrixAlg::Invert(b);
-		REQUIRE(b.IsEqualTo(inv, 1e-14));
+		REQUIRE(b.IsEqualTo(inv, MML::Real(1e-14)));
 
 		REQUIRE(original.Trace() == 10.0);
 		REQUIRE(original.getDiagonal()[1] == 6.0);
@@ -141,7 +137,7 @@ namespace MML::Tests::Base::MatrixNamingTests
 		MatrixNM<Real, 2, 2> inv = MatrixAlg::Inverse(m);
 		REQUIRE(inv(1, 1) == Catch::Approx(0.4));
 		MatrixAlg::Invert(m);
-		REQUIRE(m.IsEqualTo(inv, 1e-14));
+		REQUIRE(m.IsEqualTo(inv, MML::Real(1e-14)));
 
 		m.SetIdentity();
 		REQUIRE(m(0, 0) == 1.0);
@@ -164,7 +160,7 @@ namespace MML::Tests::Base::MatrixNamingTests
 
 		Matrix<Real> inv = MatrixAlg::Inverse(s);
 		Matrix<Real> prod = full * inv;
-		REQUIRE(prod.IsIdentity(1e-12));
+		REQUIRE(prod.IsIdentity(TOL(Real(1e-12), Precision::EqualityTolerance)));
 
 		MatrixSym<Real> d = MatrixSym<Real>::Diagonal(Vector<Real>{ 1.0, 2.0, 3.0 });
 		REQUIRE(d.Trace() == 6.0);
@@ -191,7 +187,7 @@ namespace MML::Tests::Base::MatrixNamingTests
 		REQUIRE(full(1, 0) == 2.0);
 		REQUIRE(full(0, 2) == 0.0);
 		Matrix<Real> prod = full * MatrixAlg::Inverse(tri);
-		REQUIRE(prod.IsIdentity(1e-12));
+		REQUIRE(prod.IsIdentity(TOL(1e-12, Precision::RoundoffZeroThreshold)));
 
 		Matrix<Real> data(3, 3, { 0.0, 1.0, 2.0,
 		                          3.0, 4.0, 5.0,

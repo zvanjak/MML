@@ -10,6 +10,15 @@ All type strings carry the `MML_` prefix and every header includes a `VERSION:` 
 
 Type string constants and the version number are defined in `FormatType` namespace (see `SerializerBase.h`). Titles and legend entries are single-line display metadata; carriage returns and line feeds are written as spaces so accidental multiline input cannot corrupt the header structure.
 
+Numeric export text uses the active `Real` type's round-trip precision by default,
+so float and double can spell the same intended parameter or timestamp differently.
+The serializer golden tests keep the canonical double reference files and compare
+schema-defined curve/surface bounds and particle timestamps using the same
+precision-aware numeric budget as data rows. Format identifiers, versions, titles,
+counts, frame indices and particle identities remain exact. Numeric comparisons
+consume complete finite fields; malformed tokens, extra columns and missing or
+extra lines are failures rather than ignored text.
+
 ---
 
 ## Real Function (1D)
@@ -92,6 +101,12 @@ NumPoints: 100
 ```
 
 Data columns: `t x(t) y(t)`
+
+The title always occupies the line immediately after `VERSION: 1`, including
+an empty line when no title is supplied. The `t1`, `t2`, and `NumPoints` lines
+must not shift. This mandatory title slot applies to both 2D and 3D curves,
+including curves exported from ODE solutions. CR/LF characters within titles
+are replaced by spaces.
 
 ---
 
@@ -231,6 +246,27 @@ Step 1 0.016
 ```
 
 Each step contains one row per ball: `ballIndex x y`
+
+Input is particle-major (`positions[particle][originalStep]`) and must be
+rectangular. `NumSteps` is the ceiling of the common history length divided by
+the positive decimation stride; zero-length rectangular histories emit zero
+frames. `Step` numbers are consecutive output-frame numbers, but their times
+are original step indices multiplied by `dT`. The 2D/3D formats and version
+remain unchanged.
+
+Each catalog record is exactly `Ball_<index> <color> <radius>`. A color must be a
+nonempty token without ASCII whitespace or control characters (including NUL and
+DEL). Invalid colors return `INVALID_PARAMETERS` before a stream header is
+written or a destination file is opened. Replacing a color's newline with a
+space is not sufficient: readers consume the color as a single token, unlike a
+free-form title. Valid color tokens are emitted unchanged; this is structural
+validation, not a visualizer-specific color-palette check. The same rules apply
+to 2D and 3D particle catalogs.
+
+Run `MML_DocsApp --serializer-metadata` for the
+[runnable metadata example](../../src/docs_demos/tools/docs_demo_serializer.cpp),
+which checks the empty curve title slot and rejects multiline particle colors
+without truncating an existing file.
 
 ---
 

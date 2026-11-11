@@ -65,6 +65,42 @@ namespace MML
 
 	class SphericalGeometryCalculator
 	{
+		struct DistanceChords {
+			Real latitude, longitude, weight, opposite;
+		};
+
+		static void ValidateGeographicCoordinates(Real latitude, Real longitude) {
+			detail::ValidateGeometryCoordinates({latitude, longitude}, "Spherical geographic coordinates");
+			if (latitude < -90 || latitude > 90)
+				throw GeometryError("Spherical geographic latitude must be in [-90,90]");
+		}
+
+		static Real DegreeChord(Real degrees) {
+			// Degree-scaled chords retain tiny input differences before radius multiplication.
+			if (std::abs(degrees) <= Precision::RoundoffZeroThreshold) return degrees;
+			const Real radiansPerDegree = Constants::PI / 180;
+			return 2 * std::sin(degrees * radiansPerDegree / 2) / radiansPerDegree;
+		}
+
+		static DistanceChords GeographicChords(Real latitude1, Real longitude1, Real latitude2, Real longitude2) {
+			ValidateGeographicCoordinates(latitude1, longitude1);
+			ValidateGeographicCoordinates(latitude2, longitude2);
+			Real longitudeDifference = longitude2 - longitude1;
+			if (std::isfinite(longitudeDifference)) {
+				const Real error = detail::GeometryAngleDifferenceError(longitude2, longitude1, longitudeDifference);
+				longitudeDifference = std::remainder(longitudeDifference, Real(360)) + error;
+			} else {
+				longitudeDifference = std::remainder(longitude2, Real(360)) - std::remainder(longitude1, Real(360));
+			}
+			longitudeDifference = std::remainder(longitudeDifference, Real(360));
+			const Real cosine1 = std::abs(latitude1) == 90 ? 0 : std::cos(latitude1 * (Constants::PI / 180));
+			const Real cosine2 = std::abs(latitude2) == 90 ? 0 : std::cos(latitude2 * (Constants::PI / 180));
+			const Real weight = std::sqrt(cosine1) * std::sqrt(cosine2);
+			const Real opposite = std::hypot(DegreeChord(latitude1 + latitude2),
+				weight * DegreeChord(180 - std::abs(longitudeDifference)));
+			return {DegreeChord(latitude2 - latitude1), DegreeChord(longitudeDifference), weight, opposite};
+		}
+
 		public:
 		/// @name Coordinate Conversions
 		/// @{
@@ -75,7 +111,7 @@ namespace MML
 
 		static Real RadiusFromCartesian(const Pnt3Cart& pnt)
 		{
-			return hypot(pnt.X(), hypot(pnt.Y(), pnt.Z()));
+			return Pnt3Cart().Dist(pnt);
 		}
 		
 		/// @brief Convert spherical coordinates to Cartesian.
@@ -100,10 +136,11 @@ namespace MML
 
 		static Pnt3Sph SphericalFromLatLong(Real latitudeDeg, Real longitudeDeg)
 		{
-			Real latitudeRad = Utils::DegToRad(latitudeDeg);
-			Real longitudeRad = Utils::DegToRad(longitudeDeg);
+			ValidateGeographicCoordinates(latitudeDeg, longitudeDeg);
+			Real latitudeRad = latitudeDeg * (Constants::PI / 180);
+			Real longitudeRad = longitudeDeg * (Constants::PI / 180);
 			// latitude 90° (North) -> theta = 0, latitude -90° (South) -> theta = PI
-			Real theta = Constants::PI / 2.0 - latitudeRad;
+			Real theta = Constants::PI / MML::Real(2.0) - latitudeRad;
 			return Pnt3Sph(1.0, theta, longitudeRad);
 		}
 		/// @}
@@ -117,25 +154,16 @@ namespace MML
     /// @param lat2Deg Second point latitude (degrees)
     /// @param long2Deg Second point longitude (degrees)
     /// @return Angular distance in radians
-    /// Uses spherical law of cosines. The result is the central angle
+    /// Uses independently evaluated half-angle chords and atan2. The result is the central angle
     /// subtended by the two points. Multiply by sphere radius to get arc length.
     /// @note For Earth: multiply by 6371 km for approximate surface distance.
 
 		static Real DistanceBetweenLatLong(Real lat1Deg, Real long1Deg, Real lat2Deg, Real long2Deg)
 		{
-			if (lat1Deg == lat2Deg && long1Deg == long2Deg)
-				return Real(0.0);
-
-			Pnt3Sph pnt1 = SphericalFromLatLong(lat1Deg, long1Deg);
-			Pnt3Sph pnt2 = SphericalFromLatLong(lat2Deg, long2Deg);
-
-			// Spherical law of cosines
-			Real cosAngle = cos(pnt1.Theta()) * cos(pnt2.Theta()) +
-											sin(pnt1.Theta()) * sin(pnt2.Theta()) *
-											cos(pnt1.Phi() - pnt2.Phi());
-			// Clamp to [-1, 1] for numerical stability
-			cosAngle = std::max(Real(-1.0), std::min(Real(1.0), cosAngle));
-			return acos(cosAngle);
+			const auto chords = GeographicChords(lat1Deg, long1Deg, lat2Deg, long2Deg);
+			const Real direct = std::hypot(chords.latitude, chords.weight * chords.longitude);
+			return detail::CheckedGeometryDistance(2 * std::atan2(direct, chords.opposite), "Great-circle angle",
+				chords.latitude != 0 || (chords.weight != 0 && chords.longitude != 0));
 		}
 		
 		/// @brief Compute great circle distance in physical units.
@@ -149,9 +177,22 @@ namespace MML
 
 		static Real DistanceBetweenLatLong(Real radius, Real lat1Deg, Real long1Deg, Real lat2Deg, Real long2Deg)
 		{
-      Real angleRad = DistanceBetweenLatLong(lat1Deg, long1Deg, lat2Deg, long2Deg);
-      return radius * angleRad;
-    }
+			if (!std::isfinite(radius) || radius < 0)
+				throw GeometryError("Great-circle radius must be finite and nonnegative");
+			const auto chords = GeographicChords(lat1Deg, long1Deg, lat2Deg, long2Deg);
+			if (radius == 0) return 0;
+			const Real direct = std::hypot(chords.latitude, chords.weight * chords.longitude);
+			Real distance;
+			if (direct <= Precision::RoundoffZeroThreshold * chords.opposite) {
+				// atan(x)=x up to relative O(x^2); scale before tiny angular components underflow.
+				const Real scale = radius / (chords.opposite / 2);
+				distance = std::hypot(scale * chords.latitude, (scale * chords.weight) * chords.longitude);
+			} else {
+				distance = radius * (2 * std::atan2(direct, chords.opposite));
+			}
+			return detail::CheckedGeometryDistance(distance, "Great-circle arc length",
+				chords.latitude != 0 || (chords.weight != 0 && chords.longitude != 0));
+		}
 		/// @}
 	};
 }

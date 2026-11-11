@@ -33,24 +33,24 @@ namespace MML
 		/// @brief Compute x coordinate from polar: x = r�cos(f)
 		/// @param q Polar coordinates (r, f)
 		/// @return x coordinate
-		static Real func1(const VectorN<Real, 2>& q) { return q[0] * cos(q[1]); }
+		static Real func1(const VectorN<Real, 2>& q) { return CoordTransfDetail::CheckedCoordinate(q, q[0] * cos(q[1])); }
 		
 		/// @brief Compute y coordinate from polar: y = r�sin(f)
 		/// @param q Polar coordinates (r, f)
 		/// @return y coordinate
-		static Real func2(const VectorN<Real, 2>& q) { return q[0] * sin(q[1]); }
+		static Real func2(const VectorN<Real, 2>& q) { return CoordTransfDetail::CheckedCoordinate(q, q[0] * sin(q[1])); }
 
 		// q[0] = x
 		// q[1] = y
 		/// @brief Compute radial distance: r = v(x�+y�)
 		/// @param q Cartesian coordinates (x, y)
 		/// @return Radial distance r
-		static Real funcInverse1(const VectorN<Real, 2>& q) { return sqrt(q[0] * q[0] + q[1] * q[1]); }
+		static Real funcInverse1(const VectorN<Real, 2>& q) { return CoordTransfDetail::CheckedCoordinate(q, std::hypot(q[0], q[1])); }
 		
 		/// @brief Compute polar angle: f = atan2(y, x)
 		/// @param q Cartesian coordinates (x, y)
 		/// @return Polar angle f in radians
-		static Real funcInverse2(const VectorN<Real, 2>& q) { return atan2(q[1], q[0]); }
+		static Real funcInverse2(const VectorN<Real, 2>& q) { return CoordTransfDetail::CheckedCoordinate(q, atan2(q[1], q[0])); }
 
 		inline static ScalarFunction<2> _func[2] = { ScalarFunction<2>{func1},
 																								 ScalarFunction<2>{func2}
@@ -63,22 +63,42 @@ namespace MML
 		/// @brief Transform polar coordinates to Cartesian
 		/// @param q Polar coordinates (r, f)
 		/// @return Cartesian coordinates (x, y)
-		Vector2Cartesian     transf(const Vector2Polar& q) const { return Vector2Cartesian{ func1(q), func2(q) }; }
+		Vector2Cartesian     transf(const Vector2Polar& q) const override { return Vector2Cartesian{ func1(q), func2(q) }; }
 		
 		/// @brief Transform Cartesian coordinates to polar
 		/// @param q Cartesian coordinates (x, y)
 		/// @return Polar coordinates (r, f)
-		Vector2Polar         transfInverse(const Vector2Cartesian& q) const { return Vector2Polar{ funcInverse1(q), funcInverse2(q) }; }
+		Vector2Polar         transfInverse(const Vector2Cartesian& q) const override { return Vector2Polar{ funcInverse1(q), funcInverse2(q) }; }
+
+		using CoordTransfWithInverse<Vector2Polar, Vector2Cartesian, 2>::inverseJacobian;
+
+		JacobianType jacobian(const VectorN<Real, 2>& q) const override
+		{
+			Singularity::RequireFiniteCoordinates<2>(q, "Polar Jacobian");
+			const Real c = std::cos(q[1]), s = std::sin(q[1]);
+			return JacobianType{c, -q[0] * s, s, q[0] * c};
+		}
+
+		InverseJacobianType inverseJacobian(const VectorN<Real, 2>& q) const override
+		{
+			const Real radius = funcInverse1(q);
+			if (Singularity::IsNearZero(radius))
+				throw SingularMatrixError("Polar inverse Jacobian is singular at the origin");
+			const Real c = q[0] / radius, s = q[1] / radius;
+			InverseJacobianType result{c, s, -s / radius, c / radius};
+			Singularity::RequireFiniteMatrix(result, "Polar inverse Jacobian");
+			return result;
+		}
 
 		/// @brief Get forward transformation function component
 		/// @param i Component index (0 or 1)
 		/// @return Scalar function for component i
-		const IScalarFunction<2>& coordTransfFunc(int i) const { return _func[i]; }
+		const IScalarFunction<2>& coordTransfFunc(int i) const override { return _func[i]; }
 		
 		/// @brief Get inverse transformation function component
 		/// @param i Component index (0 or 1)
 		/// @return Inverse scalar function for component i
-		const IScalarFunction<2>& inverseCoordTransfFunc(int i) const { return _funcInverse[i]; }
+		const IScalarFunction<2>& inverseCoordTransfFunc(int i) const override { return _funcInverse[i]; }
 	};
 
 	/// @brief 2D Cartesian rotation transformation
@@ -100,6 +120,9 @@ namespace MML
 		const ScalarFunctionFromStdFunc<2> _fInverse2;
 
 	public:
+		CoordTransfCart2DRotation(const CoordTransfCart2DRotation& other)
+			: CoordTransfCart2DRotation(other._angle) {}
+
 		/// @brief Constructor for 2D rotation transformation
 		/// @param inAngle Rotation angle in radians (counterclockwise positive)
 		CoordTransfCart2DRotation(Real inAngle) : 
@@ -143,19 +166,33 @@ namespace MML
 		/// @brief Apply rotation transformation
 		/// @param q Input Cartesian coordinates
 		/// @return Rotated Cartesian coordinates
-		Vector2Cartesian    transf(const Vector2Cartesian& q) const { return Vector2Cartesian{ func1(q), func2(q) }; }
+		Vector2Cartesian    transf(const Vector2Cartesian& q) const override { return Vector2Cartesian{ func1(q), func2(q) }; }
 		
 		/// @brief Apply inverse rotation transformation
 		/// @param q Rotated Cartesian coordinates
 		/// @return Original Cartesian coordinates
-		Vector2Cartesian    transfInverse(const Vector2Cartesian& q) const { return Vector2Cartesian{ funcInverse1(q), funcInverse2(q) }; }
+		Vector2Cartesian    transfInverse(const Vector2Cartesian& q) const override { return Vector2Cartesian{ funcInverse1(q), funcInverse2(q) }; }
 
-		const IScalarFunction<2>& coordTransfFunc(int i) const
+		using CoordTransfWithInverse<Vector2Cartesian, Vector2Cartesian, 2>::inverseJacobian;
+
+		JacobianType jacobian(const VectorN<Real, 2>& q) const override
+		{
+			Singularity::RequireFiniteCoordinates<2>(q, "Rotation Jacobian");
+			return _transf;
+		}
+
+		InverseJacobianType inverseJacobian(const VectorN<Real, 2>& q) const override
+		{
+			Singularity::RequireFiniteCoordinates<2>(q, "Rotation inverse Jacobian");
+			return _inverse;
+		}
+
+		const IScalarFunction<2>& coordTransfFunc(int i) const override
 		{
 			if (i == 0) return _f1;
 			else return _f2;
 		}
-		const IScalarFunction<2>& inverseCoordTransfFunc(int i) const
+		const IScalarFunction<2>& inverseCoordTransfFunc(int i) const override
 		{
 			if (i == 0) return _fInverse1;
 			else return _fInverse2;
@@ -180,6 +217,9 @@ namespace MML
 		const ScalarFunctionFromStdFunc<2> _fInverse2;
 
 	public:
+		CoordTransfObliqueToCartesian2D(const CoordTransfObliqueToCartesian2D& other)
+			: CoordTransfObliqueToCartesian2D(other._angle) {}
+
 		/// @brief Constructor for oblique to Cartesian transformation
 		/// @param inAngle Angle between oblique Y-axis and X-axis (in radians)
 		CoordTransfObliqueToCartesian2D(Real inAngle)
@@ -244,6 +284,9 @@ namespace MML
 		const ScalarFunctionFromStdFunc<2> _fInverse2;
 
 	public:
+		CoordTransfCartesianToOblique2D(const CoordTransfCartesianToOblique2D& other)
+			: CoordTransfCartesianToOblique2D(other._angle) {}
+
 		/// @brief Constructor for Cartesian to oblique transformation
 		/// @param inAngle Angle between oblique Y-axis and X-axis (in radians)
 		CoordTransfCartesianToOblique2D(Real inAngle)

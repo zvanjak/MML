@@ -179,6 +179,25 @@ Form2<3, Cartesian3> flux = hodge_star(velocityFlat, metric, Orientation::Positi
 
 The Hodge star requires both metric and orientation. That is deliberate: changing either changes the meaning of flux and normals.
 
+For native floating-point and `std::complex` form scalars, Hodge evaluation
+retains binary mantissas and exponents through determinant elimination, the
+square-root volume factor, inverse-metric products, form coefficients and
+factorial division. These factors are combined before converting each final
+component; an overflowing or underflowing determinant alone no longer destroys
+a representable result. Complex real and imaginary parts are scaled separately.
+Existing form scalar types, frame tags, orientation signs and alternating
+projection of raw component arrays are preserved.
+
+Nonfinite native form components, nonfinite metric/inverse entries, a singular
+metric, invalid orientation, or an unrepresentable final native component throw
+`GeometryError`. A nonzero result rounded to zero is reported as unrepresentable;
+representable subnormal results and exact zero components remain valid.
+Binary scaling prevents range failures, not ordinary rounding or cancellation
+in ill-conditioned computations. Metric construction and the separate
+`Flat`, `Wedge` and `Sharp` operations retain their own arithmetic and validation
+contracts. Non-native custom form scalars retain their existing arithmetic path
+rather than acquiring native floating-point range guarantees.
+
 ## Coordinate Maps
 
 Typed coordinate maps adapt existing `CoordTransf` implementations without replacing them. The adapter uses the existing convention `J(row=target, col=source)`.

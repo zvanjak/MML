@@ -94,6 +94,8 @@ namespace MML
 		/// @param indUnit Index for the unit component
 		static VectorN UnitVector(int indUnit)
 		{
+			if (indUnit < 0 || indUnit >= N)
+				throw VectorAccessBoundsError("VectorN::UnitVector - index out of bounds", indUnit, N);
 			VectorN ret;
 			ret[indUnit] = 1.0;
 			return ret;
@@ -192,9 +194,11 @@ namespace MML
 		/// @param eps Tolerance (a real magnitude, also for complex element types)
 		bool IsEqualTo(const VectorN& b, Real eps = Precision::VectorIsEqualTolerance) const
 		{
+			if (!std::isfinite(eps) || eps < 0)
+				return false;
 			for (int i = 0; i < N; i++)
 			{
-				if (Abs((*this)[i] - b[i]) > eps)
+				if (!(Abs((*this)[i] - b[i]) <= eps))
 					return false;
 			}
 			return true;
@@ -219,8 +223,10 @@ namespace MML
 		/// @brief Checks if all elements are near zero within tolerance.
 		bool IsNearZero(Real eps = Precision::VectorIsEqualTolerance) const noexcept
 		{
+			if (!std::isfinite(eps) || eps < 0)
+				return false;
 			for (int i = 0; i < N; i++)
-				if (std::abs(_val[i]) > eps)
+				if (!(Abs(_val[i]) <= eps))
 					return false;
 
 			return true;

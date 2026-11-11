@@ -36,8 +36,8 @@ namespace MML::Optimization
 	struct [[nodiscard]] ProjectedGradientResult : IterativeResultBase {
 		VectorN<Real, N> xmin;
 		Real fmin = static_cast<MML::Real>(0.0);
-		Real projected_gradient_norm = static_cast<MML::Real>(0.0);
-		Real step_norm = static_cast<MML::Real>(0.0);
+		Real projected_gradient_norm = NoEstimate;
+		Real step_norm = NoEstimate;
 		int iterations = 0;
 		int gradient_evaluations = 0;
 	};
@@ -175,7 +175,7 @@ namespace MML::Optimization
 				}
 			}
 
-			if (!result.converged && result.status == AlgorithmStatus::Success) {
+			if (!result.converged && (result.status == AlgorithmStatus::Success || result.status == AlgorithmStatus::NotComputed)) {
 				result.status = AlgorithmStatus::MaxIterationsExceeded;
 				result.error_message = "maximum iterations reached";
 			}

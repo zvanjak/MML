@@ -29,8 +29,8 @@ namespace MML
 		template<int N>
 		inline IOResult SaveParamCurve(const IRealToVectorFunction<N>& f, std::string inType, std::string title, Real t1, Real t2,
 																	 int numPoints, std::string fileName) {
-			if (fileName.empty())
-				return IOResult{false, IOError::INVALID_PARAMETERS, "fileName cannot be empty"}.WithFile(fileName);
+			const auto pathValidation = detail::ValidateFileName(fileName);
+			if (!pathValidation.success) return pathValidation;
 			if (numPoints < 2)
 				return IOResult{false, IOError::INVALID_PARAMETERS, "numPoints must be >= 2"}.WithFile(fileName);
 			if (t1 >= t2)
@@ -47,10 +47,9 @@ namespace MML
 				if (!headerResult.success)
 					return (headerResult).WithFile(fileName);
 
-				Real delta = (t2 - t1) / (numPoints - 1);
 				for (int n = 0; n < numPoints; n++)
 				{
-					Real t = t1 + n * delta;
+					Real t = detail::SampleCoordinate(t1, t2, n, numPoints);
 					file << t << " ";
 					auto val = f(t);
 					for (int i = 0; i < N; i++)
@@ -71,8 +70,8 @@ namespace MML
 		template<int N>
 		inline IOResult SaveParamCurve(const IRealToVectorFunction<N>& f, std::string inType, std::string title, Vector<Real> points,
 																	 std::string fileName) {
-			if (fileName.empty())
-				return IOResult{false, IOError::INVALID_PARAMETERS, "fileName cannot be empty"}.WithFile(fileName);
+			const auto pathValidation = detail::ValidateFileName(fileName);
+			if (!pathValidation.success) return pathValidation;
 			if (points.size() < 2)
 				return IOResult{false, IOError::INVALID_PARAMETERS, "points vector must have at least 2 elements"}.WithFile(fileName);
 
@@ -111,13 +110,13 @@ namespace MML
 		template<int N>
 		inline IOResult SaveAsParamCurve(std::vector<VectorN<Real, N>> vals, std::string inType, std::string title, Real t1, Real t2,
 																		 int numPoints, std::string fileName) {
-			if (fileName.empty())
-				return IOResult{false, IOError::INVALID_PARAMETERS, "fileName cannot be empty"}.WithFile(fileName);
+			const auto pathValidation = detail::ValidateFileName(fileName);
+			if (!pathValidation.success) return pathValidation;
 			if (numPoints < 2)
 				return IOResult{false, IOError::INVALID_PARAMETERS, "numPoints must be >= 2"}.WithFile(fileName);
 			if (t1 >= t2)
 				return IOResult{false, IOError::INVALID_PARAMETERS, "t1 must be < t2"}.WithFile(fileName);
-			if (static_cast<int>(vals.size()) < numPoints)
+			if (vals.size() < static_cast<std::size_t>(numPoints))
 				return IOResult{false, IOError::INVALID_PARAMETERS, "vals vector size must be >= numPoints"}.WithFile(fileName);
 
 			std::ofstream file(fileName);
@@ -131,10 +130,9 @@ namespace MML
 				if (!headerResult.success)
 					return (headerResult).WithFile(fileName);
 
-				Real delta = (t2 - t1) / (numPoints - 1);
 				for (int i = 0; i < numPoints; i++)
 				{
-					Real t = t1 + i * delta;
+					Real t = detail::SampleCoordinate(t1, t2, i, numPoints);
 					file << t << " ";
 					for (int j = 0; j < N; j++)
 						file << vals[i][j] << " ";
@@ -154,11 +152,11 @@ namespace MML
 		template<int N>
 		inline IOResult SaveAsParamCurve(std::vector<VectorN<Real, N>> vals, std::string inType, std::string title, Vector<Real> points,
 																		 std::string fileName) {
-			if (fileName.empty())
-				return IOResult{false, IOError::INVALID_PARAMETERS, "fileName cannot be empty"}.WithFile(fileName);
+			const auto pathValidation = detail::ValidateFileName(fileName);
+			if (!pathValidation.success) return pathValidation;
 			if (points.size() < 2)
 				return IOResult{false, IOError::INVALID_PARAMETERS, "points vector must have at least 2 elements"}.WithFile(fileName);
-			if (vals.size() < points.size())
+			if (vals.size() < static_cast<size_t>(points.size()))
 				return IOResult{false, IOError::INVALID_PARAMETERS, "vals vector size must be >= points size"}.WithFile(fileName);
 
 			std::ofstream file(fileName);
@@ -199,15 +197,14 @@ namespace MML
 		/// @param t1 Start of parameter range (default: 0.0, used to label parameter axis)
 		/// @param t2 End of parameter range (default: 1.0, used to label parameter axis)
 		/// @return IOResult with success flag and error details
-		/// @pre vec_x.size() >= 2, vec_x.size() == vec_y.size(), t1 < t2, !fileName.empty()
+		/// @pre vec_x.size() >= 2, vec_x.size() == vec_y.size(), t1 < t2, nonempty filename without NUL
 		/// @post File is closed and flushed; parameter range [t1, t2] mapped across vector indices
 		/// @note Parameter values are computed linearly from t1 to t2 across indices
 		inline IOResult SaveAsParamCurve2D(const Vector<Real>& vec_x, const Vector<Real>& vec_y, std::string title, std::string fileName,
 																			 Real t1 = 0.0, Real t2 = 1.0) {
 			// Validate parameters
-			if (fileName.empty()) {
-				return IOResult{false, IOError::INVALID_PARAMETERS, "fileName cannot be empty"}.WithFile(fileName);
-			}
+			const auto pathValidation = detail::ValidateFileName(fileName);
+			if (!pathValidation.success) return pathValidation;
 			if (vec_x.size() < 2) {
 				return IOResult{false, IOError::INVALID_PARAMETERS, "vec_x must have at least 2 elements"}.WithFile(fileName);
 			}
@@ -230,7 +227,7 @@ namespace MML
 
 				for (int i = 0; i < vec_x.size(); i++)
 				{
-					Real t = t1 + (t2 - t1) * i / (vec_x.size() - 1);
+					Real t = detail::SampleCoordinate(t1, t2, i, static_cast<int>(vec_x.size()));
 					file << t << " " << vec_x[i] << " " << vec_y[i] << std::endl;
 				}
 				return Serializer::detail::FinishFile(file, fileName, "Successfully saved parametric curve 2D");

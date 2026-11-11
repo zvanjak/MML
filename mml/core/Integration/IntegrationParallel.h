@@ -21,7 +21,8 @@ namespace MML {
 	template<RealFunctionCallable Function>
 	ParallelIntegrationResult IntegrateParallelDetailed(Function&& function, Real a, Real b,
 		const ParallelIntegrationConfig& config = {}) {
-		return IntegrationDetail::ExecuteIntegrationDetailed<ParallelIntegrationResult>(
+		std::atomic<int> totalEvaluations{0};
+		auto completed = IntegrationDetail::ExecuteIntegrationDetailed<ParallelIntegrationResult>(
 			"IntegrateParallel", config, [&](ParallelIntegrationResult& result) {
 				if (!std::isfinite(a) || !std::isfinite(b) || !std::isfinite(config.tolerance) || config.tolerance <= 0)
 					throw ArgumentError("Parallel integration requires finite endpoints and positive finite tolerance");
@@ -53,14 +54,16 @@ namespace MML {
 						if (evaluations == std::numeric_limits<int>::max())
 							throw ResourceLimitError("Parallel integration function counter exhausted");
 						++evaluations;
+						IntegrationDetail::CountEvaluation(totalEvaluations);
 						const Real value = std::invoke(function, x);
-						if (!std::isfinite(value)) throw NumericalMethodError("Parallel integration: non-finite integrand");
+						if (config.check_finite && !std::isfinite(value)) throw NumericalMethodError("Parallel integration: non-finite integrand");
 						return value;
 					};
-					results[index] = IntegrateCore(counted, left, right, config.method, config.tolerance);
+					results[index] = IntegrationDetail::ConfiguredAxis(counted, left, right, config.method, config.tolerance, config);
 					results[index].function_evaluations = evaluations;
 				});
 				Real correction = 0, error = 0;
+				result.value = 0;
 				bool allConverged = true, allEstimated = true;
 				result.status = AlgorithmStatus::Success;
 				std::int64_t evaluations = 0, iterations = 0;
@@ -96,6 +99,8 @@ namespace MML {
 				if (MML::IsUsable(result.status))
 					result.status = result.converged ? AlgorithmStatus::Success : AlgorithmStatus::Completed;
 			});
+		completed.function_evaluations = totalEvaluations.load(std::memory_order_relaxed);
+		return completed;
 	}
 
 	template<RealFunctionCallable Function>

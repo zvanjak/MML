@@ -18,6 +18,7 @@
 #include <chrono>
 #include <cmath>
 #include <limits>
+#include <optional>
 
 namespace MML {
 
@@ -59,6 +60,9 @@ namespace MML {
 
 		/// A storage or allocation limit prevented further progress.
 		ResourceLimitExceeded = 8,
+
+		/// No algorithm has run; a default-constructed result has no usable payload.
+		NotComputed = 9,
 		
 		/// Algorithm-specific failure (see error_message for details)
 		AlgorithmSpecificFailure = 100
@@ -76,6 +80,7 @@ namespace MML {
 			case AlgorithmStatus::ToleranceUnachievable:  return "ToleranceUnachievable";
 			case AlgorithmStatus::Completed:              return "Completed";
 			case AlgorithmStatus::ResourceLimitExceeded:  return "ResourceLimitExceeded";
+			case AlgorithmStatus::NotComputed:            return "NotComputed";
 			case AlgorithmStatus::AlgorithmSpecificFailure: return "AlgorithmSpecificFailure";
 			default:                                      return "Unknown";
 		}
@@ -102,6 +107,105 @@ namespace MML {
 	/// True if an estimate field holds a computed value (i.e. is not NoEstimate).
 	[[nodiscard]] inline bool HasEstimate(Real estimate) noexcept {
 		return !std::isnan(estimate);
+	}
+
+	template<class Type>
+	[[nodiscard]] std::enable_if_t<std::is_floating_point_v<Type>, bool>
+	HasEstimate(Type estimate) noexcept {
+		return !std::isnan(estimate);
+	}
+
+	template<class Type>
+	[[nodiscard]] bool HasEstimate(const std::optional<Type>& estimate) noexcept {
+		return estimate.has_value();
+	}
+
+	template<class Type>
+	[[nodiscard]] bool HasEstimate(const std::complex<Type>& estimate) noexcept {
+		return HasEstimate(estimate.real()) && HasEstimate(estimate.imag());
+	}
+
+	template<class Type, int N> class VectorN;
+	template<class Type, int N, int M> requires Field<Type> class MatrixNM;
+
+	template<class Type, int N>
+	[[nodiscard]] bool HasEstimate(const VectorN<Type, N>& estimate) noexcept {
+		for (int i = 0; i < N; ++i)
+			if (!HasEstimate(estimate[i])) return false;
+		return true;
+	}
+
+	template<class Type, int N, int M> requires Field<Type>
+	[[nodiscard]] bool HasEstimate(const MatrixNM<Type, N, M>& estimate) noexcept {
+		for (int i = 0; i < N; ++i)
+			for (int j = 0; j < M; ++j)
+				if (!HasEstimate(estimate(i, j))) return false;
+		return true;
+	}
+
+	namespace Detail {
+		template<class Scalar, int N>
+		struct VectorEstimateShape {
+			using ScalarType = Scalar;
+			static constexpr int Dimension = N;
+		};
+		template<class Scalar, int N>
+		VectorEstimateShape<Scalar, N> IdentifyVectorEstimate(const VectorN<Scalar, N>*);
+
+		template<class Error, class = void>
+		struct EstimateStorage {
+			using Type = std::optional<Error>;
+			static constexpr bool HasNaNSentinel = false;
+			static Type Unknown() { return std::nullopt; }
+		};
+
+		template<class Error>
+		struct EstimateStorage<Error, std::enable_if_t<std::is_floating_point_v<Error>>> {
+			using Type = Error;
+			static constexpr bool HasNaNSentinel = true;
+			static constexpr Type Unknown() { return std::numeric_limits<Error>::quiet_NaN(); }
+		};
+
+		template<class Scalar>
+		struct EstimateStorage<std::complex<Scalar>, std::enable_if_t<std::is_floating_point_v<Scalar>>> {
+			using Type = std::complex<Scalar>;
+			static constexpr bool HasNaNSentinel = true;
+			static constexpr Type Unknown() {
+				const auto unknown = EstimateStorage<Scalar>::Unknown();
+				return Type(unknown, unknown);
+			}
+		};
+
+		// Deduction through the base also covers Cartesian/spherical/cylindrical vectors.
+		template<class Error>
+		struct EstimateStorage<Error, std::void_t<
+			typename decltype(IdentifyVectorEstimate(static_cast<const Error*>(nullptr)))::ScalarType,
+			std::enable_if_t<EstimateStorage<typename decltype(
+				IdentifyVectorEstimate(static_cast<const Error*>(nullptr)))::ScalarType>::HasNaNSentinel>>> {
+			using Shape = decltype(IdentifyVectorEstimate(static_cast<const Error*>(nullptr)));
+			using Type = Error;
+			static constexpr bool HasNaNSentinel = true;
+			static Type Unknown() {
+				Type estimate;
+				for (int i = 0; i < Shape::Dimension; ++i)
+					estimate[i] = EstimateStorage<typename Shape::ScalarType>::Unknown();
+				return estimate;
+			}
+		};
+
+		template<class Scalar, int N, int M> requires Field<Scalar>
+		struct EstimateStorage<MatrixNM<Scalar, N, M>,
+			std::enable_if_t<EstimateStorage<Scalar>::HasNaNSentinel>> {
+			using Type = MatrixNM<Scalar, N, M>;
+			static constexpr bool HasNaNSentinel = true;
+			static Type Unknown() {
+				Type estimate;
+				for (int i = 0; i < N; ++i)
+					for (int j = 0; j < M; ++j)
+						estimate(i, j) = EstimateStorage<Scalar>::Unknown();
+				return estimate;
+			}
+		};
 	}
 
 	/******************************************************************************/
@@ -163,14 +267,14 @@ namespace MML {
 	///     // === Convergence info (from IterativeResultBase pattern) ===
 	///     bool converged = false;
 	///     int iterations_used = 0;
-	///     Real achieved_tolerance = 0.0;
-	///     AlgorithmStatus status = AlgorithmStatus::Success;
+	///     Real achieved_tolerance = NoEstimate;
+	///     AlgorithmStatus status = AlgorithmStatus::NotComputed;
 	///     std::string error_message;
 	///     
 	///     // === Diagnostics ===
 	///     std::string algorithm_name;
 	///     double elapsed_time_ms = 0.0;
-	///     Real max_residual = 0.0;  // Algorithm-specific
+	///     Real max_residual = NoEstimate;  // Algorithm-specific
 	/// };
 	struct IterativeResultBase {
 		/// True only if a convergence criterion was checked and met (status == Success).
@@ -186,7 +290,7 @@ namespace MML {
 		Real achieved_tolerance = NoEstimate;
 		
 		/// Structured status code for programmatic handling
-		AlgorithmStatus status = AlgorithmStatus::Success;
+		AlgorithmStatus status = AlgorithmStatus::NotComputed;
 		
 		/// Human-readable error message (empty string if successful)
 		/// Should be specific and actionable, e.g.:
@@ -253,7 +357,7 @@ namespace MML {
 	/// numerical operations: structured status, message, timing, and evaluation count.
 	struct EvaluationResultBase {
 		/// Structured status code for programmatic handling
-		AlgorithmStatus status = AlgorithmStatus::Success;
+		AlgorithmStatus status = AlgorithmStatus::NotComputed;
 
 		/// Human-readable error message (empty on success)
 		std::string error_message;
@@ -287,8 +391,9 @@ namespace MML {
 		/// Primary computed value
 		TValue value{};
 
-		/// Error estimate associated with the computed value
-		TError error{};
+		/// Unknown until computed: native NaN for floating/fixed-shape estimates,
+		/// empty optional for error types without a NaN representation.
+		typename Detail::EstimateStorage<TError>::Type error = Detail::EstimateStorage<TError>::Unknown();
 	};
 
 	/// Configuration for numerical differentiation algorithms.

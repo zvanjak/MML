@@ -69,11 +69,24 @@ namespace MML
         // Weight function w(x) = 1/√(1-x²)
         Real WeightFunction(Real x) const override 
         { 
-            if (std::abs(x) >= 1.0)
+            if (!std::isfinite(x) || std::abs(x) > 1)
+                throw DomainError("ChebyshevBasis::WeightFunction: x must be in [-1,1]");
+            if (std::abs(x) == 1)
             {
                 return std::numeric_limits<Real>::infinity();  // Singular at x = ±1
             }
-            return 1.0 / std::sqrt(1.0 - x * x); 
+            return MML::Real(1.0) / std::sqrt(MML::Real(1.0) - x * x);
+        }
+
+        Real ComputeCoefficient(const IRealFunction& f, int n, Real eps = Precision::OrthogonalBasisCoefficientTolerance) const override
+        {
+            const Real norm = CoefficientNormalization(n, eps);
+            // x = cos(theta) removes w(x) dx's endpoint singularities exactly.
+            auto integrand = [&](Real theta) {
+                const Real x = std::cos(theta);
+                return IntegrationDetail::Product({f(x), Evaluate(n, x)}, norm);
+            };
+            return Integration::IntegrateGKAdaptive(integrand, 0, Constants::PI, eps, eps);
         }
 
         // Normalization: ||Tₙ||² = { π    if n = 0
@@ -111,8 +124,8 @@ namespace MML
         // Chebyshev extrema: xₖ = cos(kπ/n) for k = 0, 1, ..., n
         std::vector<Real> GetExtrema(int n) const
         {
-            if (n < 0)
-                throw ArgumentError("ChebyshevBasis::GetExtrema: n must be non-negative");
+            if (n <= 0)
+                throw ArgumentError("ChebyshevBasis::GetExtrema: n must be positive");
             
             std::vector<Real> extrema(n + 1);
             for (int k = 0; k <= n; k++)
@@ -128,7 +141,7 @@ namespace MML
             
             std::vector<Real> zeros(n);
             for (int k = 1; k <= n; k++)
-                zeros[k-1] = std::cos((2.0*k - 1.0) * Constants::PI / (2.0 * n));
+                zeros[k-1] = std::cos((MML::Real(2.0)*k - MML::Real(1.0)) * Constants::PI / (MML::Real(2.0) * n));
             return zeros;
         }
     };
@@ -173,7 +186,7 @@ namespace MML
         { 
             if (std::abs(x) >= 1.0)
                 return 0.0;  // Zero at boundaries
-            return std::sqrt(1.0 - x * x); 
+            return std::sqrt(MML::Real(1.0) - x * x);
         }
 
         // Normalization: ||Uₙ||² = π/2 for all n ≥ 0
@@ -208,7 +221,7 @@ namespace MML
             
             std::vector<Real> zeros(n);
             for (int k = 1; k <= n; k++)
-                zeros[k-1] = std::cos(k * Constants::PI / (n + 1.0));
+                zeros[k-1] = std::cos(k * Constants::PI / (n + MML::Real(1.0)));
             return zeros;
         }
     };

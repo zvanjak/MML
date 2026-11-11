@@ -29,7 +29,52 @@ Based on `VectorN<T,N>` with domain-specific semantics:
 - `Vector2Polar` — 2D polar components
 - `Vector3Spherical` — physics convention (r, theta, phi)
 - `Vector3Cylindrical` — cylindrical components
-- `Vector4Lorentz` — spacetime (t, x, y, z)
+- `Vector4Minkowski` — spacetime (t, x, y, z)
+
+### Geometric arithmetic and scale
+
+Typed polar, spherical, and cylindrical compound operators follow their binary
+geometric operations, not inherited raw coordinate-wise arithmetic. Addition and
+subtraction combine displacements. Scalar multiplication/division scale lengths
+only (polar/spherical radius; cylindrical radius and height), leaving angles
+unchanged. Existing negative-radius conventions are preserved. Spherical and
+cylindrical division by zero remains an explicit error; polar scalar division
+retains its unchecked IEEE contract. Polar addition/subtraction requires finite
+radii and angles and uses a scaled midpoint frame to retain close-angle
+differences without squaring enormous or tiny radii.
+
+Cartesian direction queries normalize bounded components before dot/cross
+comparisons. Parallel and perpendicular tolerances are dimensionless bounds on
+the absolute sine and cosine of the angle, respectively. Finite, nonzero vectors
+have directions at any representable magnitude, including subnormal magnitudes;
+this is distinct from the unit-scale near-zero threshold of `Normalized()`.
+Zero/nonfinite vectors or invalid (negative/nonfinite) tolerances return false
+from direction predicates. Angles reject nonfinite inputs with `NumericInputError`
+and zero vectors with `DivisionByZeroError`. Angles use `atan2` of cross magnitude
+and dot product, rather than clamping a nonfinite cosine to apparent validity.
+Spherical/cylindrical local unit-direction helpers likewise avoid magnitude
+overflow/underflow and retain their existing zero-vector result convention.
+
+Minkowski operations retain signature `(-,+,+,+)` and the existing signed norm:
+positive for timelike vectors, negative for spacelike vectors, zero for
+lightlike vectors. Exponent-scaled, compensated products allow norms and
+classification even when the squared interval is not representable, including
+small residuals after large lightlike cancellation. A directly returned scalar
+product can still overflow/underflow when its mathematical result is outside
+`Real`'s range. Classification predicates fail closed on nonfinite components;
+norms/products reject them with `NumericInputError`.
+
+```cpp
+Vector2Polar polar(1, 0);
+polar += Vector2Polar(1, Constants::PI / Real{2}); // radius sqrt(2), angle pi/4
+const auto difference = Vector2Polar(1, 0) - Vector2Polar(1, Real{1e-10});
+Vector3Cartesian huge(Real{1e200}, 0, 0), diagonal(Real{1e200}, Real{1e200}, 0);
+const Real angle = huge.AngleToVector(diagonal); // pi/4, not zero
+```
+
+Runnable counterpart: `Docs_Demo_CoordinateScaleContracts()` in
+`src/docs_demos/base/docs_demo_coordinate_scale_contracts.cpp`, selected with
+`MML_DocsApp --arithmetic-scale-contracts`.
 
 ## Tips
 - Prefer `VectorN` in tight inner loops with small dimensions to exploit stack allocation.
@@ -51,6 +96,5 @@ auto sum = v + Vector<Real>({0.5, 0.5, 0.5});
 ## Related
 - Matrices overview: [Matrices.md](Matrices.md)
 - Geometry: [Geometry_2D_3D.md](Geometry_2D_3D.md)
-
 
 

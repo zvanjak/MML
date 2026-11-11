@@ -77,7 +77,7 @@ namespace MML::TestBeds
         TestCartesianCurve3D( std::string curveName, std::string curveExpr, Real x1, Real x2,
                               VectorN<Real, 3>(*f1)(Real), VectorN<Real, 3>(*f2)(Real), VectorN<Real, 3>(*f3)(Real),
                               Real(*f_curv)(Real), Real(*f_tors)(Real) ) 
-            : _start(x1), _end(x2), _curveName(curveName), _curveExpr(curveExpr),
+            : _curveName(curveName), _curveExpr(curveExpr), _start(x1), _end(x2),
               _curve(f1), _curveDerived(f2), _curveDerSecond(f3),
               _curvatureFunc(f_curv), _torsionFunc(f_tors)
         {

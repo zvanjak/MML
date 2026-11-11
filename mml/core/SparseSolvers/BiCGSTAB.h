@@ -35,7 +35,7 @@
 
 namespace MML::SparseSolvers {
 
-template<typename T>
+template<MMLReal T>
 class BiCGSTAB : public IterativeSolverBase<T> {
     using Base = IterativeSolverBase<T>;
     using Base::config_;
@@ -276,7 +276,7 @@ public:
 };
 
 // Convenience function
-template<typename T>
+template<MMLReal T>
 KrylovResult<T> solveBiCGSTAB(const SparseMatrixCSR<T>& A, const Vector<T>& b, Vector<T>& x,
 															const SolverConfig<T>& config = SolverConfig<T>()) {
 	BiCGSTAB<T> solver;
@@ -285,7 +285,7 @@ KrylovResult<T> solveBiCGSTAB(const SparseMatrixCSR<T>& A, const Vector<T>& b, V
 }
 
 // Convenience function with preconditioner
-template<typename T, typename PrecType>
+template<MMLReal T, typename PrecType>
 KrylovResult<T> solveBiCGSTAB(const SparseMatrixCSR<T>& A, const Vector<T>& b, Vector<T>& x, std::shared_ptr<PrecType> prec,
 															const SolverConfig<T>& config = SolverConfig<T>()) {
 	BiCGSTAB<T> solver;

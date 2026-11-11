@@ -34,6 +34,32 @@ namespace MML
 	/// @brief Sentinel value for "no parent" / "not found" in graph algorithms
 	static constexpr size_t GRAPH_NOT_FOUND = static_cast<size_t>(-1);
 
+	/// Reconstruct the parent-chain path from start to target; empty if start is not reached.
+	/// Throws IndexError for invalid endpoints/visited parent indices and ArgumentError for a cycle.
+	inline std::vector<size_t> ReconstructPath(const std::vector<size_t>& parent, size_t start, size_t target)
+	{
+		if (start >= parent.size() || target >= parent.size())
+			throw IndexError("ReconstructPath: start or target vertex is out of range");
+
+		std::vector<size_t> path;
+		size_t current = target;
+		for (size_t steps = 0; current != GRAPH_NOT_FOUND; ++steps)
+		{
+			if (current >= parent.size())
+				throw IndexError("ReconstructPath: parent vertex is out of range");
+			if (steps >= parent.size())
+				throw ArgumentError("ReconstructPath: parent cycle does not reach the requested start");
+			path.push_back(current);
+			if (current == start)
+			{
+				std::reverse(path.begin(), path.end());
+				return path;
+			}
+			current = parent[current];
+		}
+		return {};
+	}
+
 	/// Graph-specific status detail used alongside AlgorithmStatus.
 	enum class GraphAlgorithmStatus
 	{
@@ -142,23 +168,13 @@ namespace MML
 
 		std::vector<size_t> pathTo(size_t target) const
 		{
-			std::vector<size_t> path;
-			if (source == GRAPH_NOT_FOUND || target >= parent.size() || !isReachable(target))
-				return path;
-
-			size_t curr = target;
-			while (curr != GRAPH_NOT_FOUND)
-			{
-				path.push_back(curr);
-				if (curr == source)
-					break;
-				curr = parent[curr];
-			}
-
-			if (path.empty() || path.back() != source)
+			if (source == GRAPH_NOT_FOUND)
 				return {};
-
-			std::reverse(path.begin(), path.end());
+			if (distance.size() != parent.size())
+				throw ArgumentError("ShortestPathTreeResult::pathTo: distance and parent sizes must match");
+			auto path = ReconstructPath(parent, source, target);
+			if (!isReachable(target))
+				return {};
 			return path;
 		}
 	};
@@ -392,23 +408,13 @@ namespace MML
 
 		std::vector<size_t> pathTo(size_t target) const
 		{
-			std::vector<size_t> path;
-			if (source == GRAPH_NOT_FOUND || target >= parent.size() || distance[target] == -std::numeric_limits<Real>::infinity())
-				return path;
-
-			size_t curr = target;
-			while (curr != GRAPH_NOT_FOUND)
-			{
-				path.push_back(curr);
-				if (curr == source)
-					break;
-				curr = parent[curr];
-			}
-
-			if (path.empty() || path.back() != source)
+			if (source == GRAPH_NOT_FOUND)
 				return {};
-
-			std::reverse(path.begin(), path.end());
+			if (distance.size() != parent.size())
+				throw ArgumentError("LongestPathDAGResult::pathTo: distance and parent sizes must match");
+			auto path = ReconstructPath(parent, source, target);
+			if (distance[target] == -std::numeric_limits<Real>::infinity())
+				return {};
 			return path;
 		}
 	};
@@ -419,6 +425,8 @@ namespace MML
 		AlgorithmStatus      status;
 		GraphAlgorithmStatus graphStatus;
 		Real                 maxFlow;
+		/// Positive-capacity arcs as (from, to, signed net flow, capacity).
+		/// Net flow is antisymmetric, may be negative, and lies in [-capacity(to, from), capacity(from, to)].
 		std::vector<std::tuple<size_t, size_t, Real, Real>> flowEdges;
 		std::vector<size_t>  sourceSide;
 		std::vector<size_t>  sinkSide;
@@ -514,6 +522,13 @@ namespace MML
 		std::vector<std::vector<Edge<E>>>      _adjList;
 		size_t                                 _numEdges;
 		bool                                   _allowSelfLoops;
+
+		int MatrixDimension() const
+		{
+			if (_vertexData.size() > static_cast<size_t>((std::numeric_limits<int>::max)()))
+				throw std::length_error("Graph: vertex count exceeds the matrix dimension range");
+			return static_cast<int>(_vertexData.size());
+		}
 
 	public:
 		//////////////////////////////////////////////////////////////////////////
@@ -775,20 +790,20 @@ namespace MML
 		/// Convert to adjacency matrix A where A[i][j] = weight of edge i->j
 		Matrix<E> toAdjacencyMatrix() const
 		{
-			size_t n = _vertexData.size();
+			const int n = MatrixDimension();
 			Matrix<E> A(n, n);
 
 			// Initialize to zero
-			for (size_t i = 0; i < n; ++i)
-				for (size_t j = 0; j < n; ++j)
+			for (int i = 0; i < n; ++i)
+				for (int j = 0; j < n; ++j)
 					A(i, j) = E{0};
 
 			// Fill in edges
-			for (size_t i = 0; i < n; ++i)
+			for (int i = 0; i < n; ++i)
 			{
 				for (const auto& edge : _adjList[i])
 				{
-					A(i, edge.to) = edge.weight;
+					A(i, static_cast<int>(edge.to)) = edge.weight;
 				}
 			}
 
@@ -798,16 +813,16 @@ namespace MML
 		/// Convert to degree matrix D where D[i][i] = degree of vertex i
 		Matrix<E> toDegreeMatrix() const
 		{
-			size_t n = _vertexData.size();
+			const int n = MatrixDimension();
 			Matrix<E> D(n, n);
 
 			// Initialize to zero
-			for (size_t i = 0; i < n; ++i)
-				for (size_t j = 0; j < n; ++j)
+			for (int i = 0; i < n; ++i)
+				for (int j = 0; j < n; ++j)
 					D(i, j) = E{0};
 
 			// Set diagonal to degrees
-			for (size_t i = 0; i < n; ++i)
+			for (int i = 0; i < n; ++i)
 			{
 				E deg = E{0};
 				for (const auto& edge : _adjList[i])
@@ -822,20 +837,20 @@ namespace MML
 		/// For spectral graph theory applications
 		Matrix<E> toLaplacianMatrix() const
 		{
-			size_t n = _vertexData.size();
+			const int n = MatrixDimension();
 			Matrix<E> L(n, n);
 
 			// Initialize to zero
-			for (size_t i = 0; i < n; ++i)
-				for (size_t j = 0; j < n; ++j)
+			for (int i = 0; i < n; ++i)
+				for (int j = 0; j < n; ++j)
 					L(i, j) = E{0};
 
-			for (size_t i = 0; i < n; ++i)
+			for (int i = 0; i < n; ++i)
 			{
 				E deg = E{0};
 				for (const auto& edge : _adjList[i])
 				{
-					L(i, edge.to) = -edge.weight;  // Off-diagonal: -weight
+					L(i, static_cast<int>(edge.to)) = -edge.weight;  // Off-diagonal: -weight
 					deg += edge.weight;
 				}
 				L(i, i) = deg;  // Diagonal: sum of weights

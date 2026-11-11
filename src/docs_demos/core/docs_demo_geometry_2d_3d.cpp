@@ -9,6 +9,35 @@
 
 using namespace MML;
 
+void Docs_Demo_PlaneQueryRange()
+{
+    const Real largest = std::numeric_limits<Real>::max();
+    const Plane3D plane(Pnt3Cart(0, 0, 0), Vec3Cart(1, 1, 1));
+    const Pnt3Cart point(largest, largest, -largest / 2);
+    const Real distance = plane.DistToPoint(point);
+    const auto projection = plane.ProjectionToPlane(point);
+    std::cout << "Scaled plane distance: " << distance / largest << '\n';
+    std::cout << "Scaled projection: " << projection.X() / largest << ", "
+        << projection.Y() / largest << ", " << projection.Z() / largest << '\n';
+    if (!std::isfinite(distance) || !std::isfinite(projection.Z()) ||
+        std::abs(distance / largest - std::sqrt(Real(3)) / 2) > Precision::EqualityTolerance ||
+        std::abs(projection.X() / largest - Real(0.5)) > Precision::EqualityTolerance ||
+        std::abs(projection.Y() / largest - Real(0.5)) > Precision::EqualityTolerance ||
+        std::abs(projection.Z() / largest + 1) > Precision::EqualityTolerance)
+        throw GeometryError("Plane query documentation contract failed");
+}
+
+void Docs_Demo_PlaneRectangleContracts()
+{
+    const Real side = Real(1e-8);
+    const RectSurface3D square(Pnt3Cart(0, 0, 0), Pnt3Cart(side, 0, 0),
+        Pnt3Cart(side, side, 0), Pnt3Cart(0, side, 0));
+    std::cout << "Scaled patch area: " << square.getArea() << '\n'; // 1e-16
+    if (std::abs(square.getArea() / (side * side) - 1) > Precision::EqualityTolerance ||
+        square.getNormal().Z() != 1)
+        throw GeometryError("Plane/rectangle documentation contract failed");
+}
+
 void Docs_Demo_2D_Lines()
 {
     std::cout << "=== 2D Lines and Segments ===" << std::endl << std::endl;

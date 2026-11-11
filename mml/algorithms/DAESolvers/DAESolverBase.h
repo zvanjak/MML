@@ -50,7 +50,7 @@ namespace MML {
 	struct DAESolverConfig {
 		/// Requested step size; initial magnitude for adaptive methods such as RODAS4.
 		/// BE/BDF2 retain a smaller step after Newton retries.
-		Real step_size = 0.01;
+		Real step_size = MML::Real(0.01);
 
 		/// Maximum Newton iterations per step (default: 20)
 		int max_newton_iter = 20;
@@ -61,7 +61,7 @@ namespace MML {
 		/// Tolerance for constraint satisfaction g(t,x,y) ≈ 0 (precision-aware default)
 		Real constraint_tol = PrecisionValues<Real>::IntegrationTolerance;
 
-		/// Maximum steps; BE/BDF2 and RODAS4 count both accepted and rejected attempts.
+		/// Maximum steps; BE/BDF2, adaptive BE and RODAS4 count accepted and rejected attempts.
 		int max_steps = 100000;
 
 		/// Absolute and relative tolerances for adaptive methods
@@ -79,7 +79,7 @@ namespace MML {
 		/// Factory method for high-precision configuration
 		static DAESolverConfig HighPrecision() {
 			DAESolverConfig config;
-			config.step_size = 0.001;
+			config.step_size = MML::Real(0.001);
 			config.newton_tol = PrecisionValues<Real>::IntegrationTolerance;
 			config.constraint_tol = PrecisionValues<Real>::IntegrationTolerance;
 			config.max_newton_iter = 30;
@@ -89,7 +89,7 @@ namespace MML {
 		/// Factory method for fast (lower precision) configuration
 		static DAESolverConfig Fast() {
 			DAESolverConfig config;
-			config.step_size = 0.05;
+			config.step_size = MML::Real(0.05);
 			config.newton_tol = PrecisionValues<Real>::NewtonTolerance * 100;
 			config.constraint_tol = PrecisionValues<Real>::IntegrationTolerance * 100;
 			config.max_newton_iter = 10;
@@ -134,8 +134,8 @@ namespace MML {
 		Real max_residual_norm = 0.0;
 		Real final_constraint_norm = 0.0;
 		Real max_constraint_violation = 0.0;  ///< Maximum |g(t,x,y)| seen
-		Real last_error_norm = 0.0;		///< RODAS4 scaled embedded error, last completed attempt
-		Real max_error_norm = 0.0;		///< RODAS4 maximum, including rejected attempts
+		Real last_error_norm = 0.0;		///< Adaptive BE/RODAS4 scaled error, last completed estimate
+		Real max_error_norm = 0.0;		///< Maximum scaled error, including rejected attempts
 		DAEFailureReason failure_reason = DAEFailureReason::None;
 
 		DAESolverResult(Real t0, Real t_end, int diffDim, int algDim, int num_steps)
@@ -185,7 +185,7 @@ namespace MML {
 		int jacobian_evaluations = 0;
 		int lu_factorizations = 0;
 		int linear_solves = 0;
-		Real residual_norm = 0.0;
+		Real residual_norm = NoEstimate;
 		DAEFailureReason failure_reason = DAEFailureReason::None;
 		std::string message;
 	};
@@ -199,8 +199,8 @@ namespace MML {
 		Matrix<Real> jacobian(diffDim + algDim, diffDim + algDim);
 		Detail::ImplicitNewtonMatrix iterationMatrix;
 
-		for (int iteration = 0; iteration < config.max_newton_iter; ++iteration) {
-			result.iterations = iteration + 1;
+		for (int iteration = 0; ; ++iteration) {
+			result.residual_norm = NoEstimate;
 			evaluateResidual(x, y, residual);
 			if (!IsFiniteDAEVector(residual) || !IsFiniteDAEVector(x) || !IsFiniteDAEVector(y)) {
 				result.failure_reason = DAEFailureReason::NonFiniteState;
@@ -218,6 +218,9 @@ namespace MML {
 				result.converged = true;
 				return result;
 			}
+			if (iteration >= config.max_newton_iter)
+				break;
+			result.iterations = iteration + 1;
 
 			Vector<Real> delta = residual * static_cast<MML::Real>(-1.0);
 			try {
@@ -443,8 +446,8 @@ namespace MML {
 		bool converged = false;
 		int iterations = 0;
 		int line_search_reductions = 0;
-		Real initial_residual_norm = 0.0;
-		Real final_residual_norm = 0.0;
+		Real initial_residual_norm = NoEstimate;
+		Real final_residual_norm = NoEstimate;
 		DAEFailureReason failure_reason = DAEFailureReason::None;
 		std::string message;
 	};
@@ -458,10 +461,10 @@ namespace MML {
 		Vector<Real> g(algDim);
 		Matrix<Real> dg_dy(algDim, algDim);
 
-		for (int iter = 0; iter < max_iter; ++iter)
+		for (int iter = 0; ; ++iter)
 		{
-			result.iterations = iter + 1;
 			// Evaluate constraint residual
+			result.final_residual_norm = NoEstimate;
 			system.algConstraints(t0, x0, y0, g);
 			if (!IsFiniteDAEVector(g) || !IsFiniteDAEVector(y0)) {
 				result.failure_reason = DAEFailureReason::NonFiniteState;
@@ -473,10 +476,18 @@ namespace MML {
 			Real g_norm = g.NormL2();
 			if (iter == 0) result.initial_residual_norm = g_norm;
 			result.final_residual_norm = g_norm;
+			if (!std::isfinite(g_norm)) {
+				result.failure_reason = DAEFailureReason::NonFiniteState;
+				result.message = "non-finite consistent-IC residual norm";
+				return result;
+			}
 			if (g_norm < tol) {
 				result.converged = true;
 				return result;
 			}
+			if (iter >= max_iter)
+				break;
+			result.iterations = iter + 1;
 
 			// Compute Jacobian ∂g/∂y
 			system.jacobian_gy(t0, x0, y0, dg_dy);
@@ -487,9 +498,14 @@ namespace MML {
 				Matrix<Real> A = dg_dy;
 				GaussJordanSolver<Real>::SolveInPlace(A, rhs);
 			}
-			catch (const std::exception& error) {
+			catch (const SingularMatrixError& error) {
 				result.failure_reason = DAEFailureReason::HigherIndexSuspected;
 				result.message = std::string("singular dg/dy while computing consistent IC: ") + error.what();
+				return result;
+			}
+			catch (const MatrixNumericalError& error) {
+				result.failure_reason = DAEFailureReason::NonFiniteState;
+				result.message = error.what();
 				return result;
 			}
 
@@ -499,7 +515,7 @@ namespace MML {
 				Vector<Real> trial = y0 + rhs * damping;
 				Vector<Real> trialResidual(algDim);
 				system.algConstraints(t0, x0, trial, trialResidual);
-				if (IsFiniteDAEVector(trialResidual) && trialResidual.NormL2() < g_norm) {
+				if (IsFiniteDAEVector(trial) && IsFiniteDAEVector(trialResidual) && trialResidual.NormL2() < g_norm) {
 					y0 = trial;
 					accepted = true;
 					break;

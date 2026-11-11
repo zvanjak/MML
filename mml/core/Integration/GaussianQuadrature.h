@@ -22,17 +22,23 @@
 #include <mml/base/StandardFunctions.h>
 #include "IntegrationBase.h"
 
+#include <mml/interfaces/IFunction.h>
+
 namespace MML
 {
 	/**
 	 * @brief Result structure for Gaussian quadrature computation
 	 */
 	struct GaussQuadratureRule {
+		static size_t CheckedOrder(int order) {
+			if (order <= 0) throw ArgumentError("Gaussian quadrature order must be positive");
+			return static_cast<size_t>(order);
+		}
 		std::vector<Real> nodes;    ///< Quadrature nodes (abscissas)
 		std::vector<Real> weights;  ///< Quadrature weights
 		int n;                      ///< Number of points
 		
-		GaussQuadratureRule(int numPoints) : nodes(numPoints), weights(numPoints), n(numPoints) {}
+		GaussQuadratureRule(int numPoints) : nodes(CheckedOrder(numPoints)), weights(numPoints), n(numPoints) {}
 	};
 
 	/*************************************************************************/
@@ -72,13 +78,13 @@ namespace MML
 			throw VectorDimensionError("GaussLegendre: x and w must have same size", static_cast<int>(x.size()), static_cast<int>(w.size()));
 		
 		int m = (n + 1) / 2;  // Exploit symmetry
-		Real xm = 0.5 * (x2 + x1);  // Midpoint
-		Real xl = 0.5 * (x2 - x1);  // Half-width
+		Real xl = IntegrationDetail::HalfWidth(x1, x2);
+		Real xm = std::midpoint(x1, x2);
 		
 		for (int i = 0; i < m; i++)
 		{
 			// Initial approximation for i-th root using asymptotic formula
-			Real z = std::cos(PI * (i + 0.75) / (n + 0.5));
+			Real z = std::cos(PI * (i + MML::Real(0.75)) / (n + MML::Real(0.5)));
 			
 			// Newton-Raphson iteration
 			int its = MAXIT;
@@ -92,11 +98,11 @@ namespace MML
 				{
 					Real p3 = p2;
 					p2 = p1;
-					p1 = ((2.0 * j + 1.0) * z * p2 - j * p3) / (j + 1);
+					p1 = ((MML::Real(2.0) * j + MML::Real(1.0)) * z * p2 - j * p3) / (j + 1);
 				}
 				
 				// Derivative: Pₙ'(z) = n(zPₙ - Pₙ₋₁)/(z² - 1)
-				pp = n * (z * p1 - p2) / (z * z - 1.0);
+				pp = n * (z * p1 - p2) / (z * z - MML::Real(1.0));
 				
 				z1 = z;
 				z = z1 - p1 / pp;  // Newton update
@@ -106,7 +112,7 @@ namespace MML
 			// Store symmetric nodes and weights
 			x[i] = xm - xl * z;
 			x[n - 1 - i] = xm + xl * z;
-			w[i] = 2.0 * xl / ((1.0 - z * z) * pp * pp);
+			w[i] = IntegrationDetail::Product({2, xl, Real(1) / ((1 - z * z) * pp * pp)});
 			w[n - 1 - i] = w[i];
 		}
 	}
@@ -160,13 +166,13 @@ namespace MML
 			// Initial approximation for roots
 			Real z;
 			if (i == 0) {
-				z = (1.0 + alpha) * (3.0 + 0.92 * alpha) / (1.0 + 2.4 * n + 1.8 * alpha);
+				z = (MML::Real(1.0) + alpha) * (MML::Real(3.0) + MML::Real(0.92) * alpha) / (MML::Real(1.0) + MML::Real(2.4) * n + MML::Real(1.8) * alpha);
 			} else if (i == 1) {
-				z = x[0] + (15.0 + 6.25 * alpha) / (1.0 + 0.9 * alpha + 2.5 * n);
+				z = x[0] + (MML::Real(15.0) + MML::Real(6.25) * alpha) / (MML::Real(1.0) + MML::Real(0.9) * alpha + MML::Real(2.5) * n);
 			} else {
-				Real ai = i - 1;
-				z = x[i-1] + ((1.0 + 2.55 * ai) / (1.9 * ai) + 1.26 * ai * alpha / 
-				              (1.0 + 3.5 * ai)) * (x[i-1] - x[i-2]) / (1.0 + 0.3 * alpha);
+				Real ai = Real(i - 1);
+				z = x[i-1] + ((MML::Real(1.0) + MML::Real(2.55) * ai) / (MML::Real(1.9) * ai) + MML::Real(1.26) * ai * alpha /
+				              (MML::Real(1.0) + MML::Real(3.5) * ai)) * (x[i-1] - x[i-2]) / (MML::Real(1.0) + MML::Real(0.3) * alpha);
 			}
 			
 			// Newton-Raphson iteration
@@ -236,7 +242,7 @@ namespace MML
 	static void GaussHermite(std::vector<Real>& x, std::vector<Real>& w)
 	{
 		const Real EPS = std::numeric_limits<Real>::epsilon();
-		const Real PIM4 = 0.7511255444649425;  // π^(-1/4)
+		const Real PIM4 = MML::Real(0.7511255444649425);  // π^(-1/4)
 		const int MAXIT = 15;  // Increased for edge cases
 		
 		int n = static_cast<int>(x.size());
@@ -251,15 +257,15 @@ namespace MML
 			// Initial approximation for roots (z preserves value from previous iteration)
 			if (i == 0) {
 				z = std::sqrt(static_cast<Real>(2 * n + 1)) - 
-				    1.85575 * std::pow(static_cast<Real>(2 * n + 1), -0.16667);
+				    MML::Real(1.85575) * std::pow(static_cast<Real>(2 * n + 1), -MML::Real(0.16667));
 			} else if (i == 1) {
-				z = z - 1.14 * std::pow(static_cast<Real>(n), 0.426) / z;
+				z = z - MML::Real(1.14) * std::pow(static_cast<Real>(n), MML::Real(0.426)) / z;
 			} else if (i == 2) {
-				z = 1.86 * z - 0.86 * x[0];
+				z = MML::Real(1.86) * z - MML::Real(0.86) * x[0];
 			} else if (i == 3) {
-				z = 1.91 * z - 0.91 * x[1];
+				z = MML::Real(1.91) * z - MML::Real(0.91) * x[1];
 			} else {
-				z = 2.0 * z - x[i - 2];
+				z = MML::Real(2.0) * z - x[i - 2];
 			}
 			
 			// Newton-Raphson iteration
@@ -275,7 +281,7 @@ namespace MML
 				{
 					Real p3 = p2;
 					p2 = p1;
-					p1 = z * std::sqrt(2.0 / (j + 1)) * p2 - 
+					p1 = z * std::sqrt(MML::Real(2.0) / (j + 1)) * p2 -
 					     std::sqrt(static_cast<Real>(j) / (j + 1)) * p3;
 				}
 				
@@ -292,7 +298,7 @@ namespace MML
 			// Store symmetric nodes and weights
 			x[i] = z;
 			x[n - 1 - i] = -z;
-			w[i] = 2.0 / (pp * pp);
+			w[i] = MML::Real(2.0) / (pp * pp);
 			w[n - 1 - i] = w[i];
 		}
 	}
@@ -353,31 +359,31 @@ namespace MML
 			if (i == 0) {
 				Real an = alpha / n;
 				Real bn = beta / n;
-				Real r1 = (1.0 + alpha) * (2.78 / (4.0 + n * n) + 0.768 * an / n);
-				Real r2 = 1.0 + 1.48 * an + 0.96 * bn + 0.452 * an * an + 0.83 * an * bn;
-				z = 1.0 - r1 / r2;
+				Real r1 = (MML::Real(1.0) + alpha) * (MML::Real(2.78) / (MML::Real(4.0) + n * n) + MML::Real(0.768) * an / n);
+				Real r2 = MML::Real(1.0) + MML::Real(1.48) * an + MML::Real(0.96) * bn + MML::Real(0.452) * an * an + MML::Real(0.83) * an * bn;
+				z = MML::Real(1.0) - r1 / r2;
 			} else if (i == 1) {
-				Real r1 = (4.1 + alpha) / ((1.0 + alpha) * (1.0 + 0.156 * alpha));
-				Real r2 = 1.0 + 0.06 * (n - 8.0) * (1.0 + 0.12 * alpha) / n;
-				Real r3 = 1.0 + 0.012 * beta * (1.0 + 0.25 * std::abs(alpha)) / n;
-				z = z - (1.0 - z) * r1 * r2 * r3;
+				Real r1 = (MML::Real(4.1) + alpha) / ((MML::Real(1.0) + alpha) * (MML::Real(1.0) + MML::Real(0.156) * alpha));
+				Real r2 = MML::Real(1.0) + MML::Real(0.06) * (n - MML::Real(8.0)) * (MML::Real(1.0) + MML::Real(0.12) * alpha) / n;
+				Real r3 = MML::Real(1.0) + MML::Real(0.012) * beta * (MML::Real(1.0) + MML::Real(0.25) * std::abs(alpha)) / n;
+				z = z - (MML::Real(1.0) - z) * r1 * r2 * r3;
 			} else if (i == 2) {
-				Real r1 = (1.67 + 0.28 * alpha) / (1.0 + 0.37 * alpha);
-				Real r2 = 1.0 + 0.22 * (n - 8.0) / n;
-				Real r3 = 1.0 + 8.0 * beta / ((6.28 + beta) * n * n);
+				Real r1 = (MML::Real(1.67) + MML::Real(0.28) * alpha) / (MML::Real(1.0) + MML::Real(0.37) * alpha);
+				Real r2 = MML::Real(1.0) + MML::Real(0.22) * (n - MML::Real(8.0)) / n;
+				Real r3 = MML::Real(1.0) + MML::Real(8.0) * beta / ((MML::Real(6.28) + beta) * n * n);
 				z = z - (x[0] - z) * r1 * r2 * r3;
 			} else if (i == n - 2) {
-				Real r1 = (1.0 + 0.235 * beta) / (0.766 + 0.119 * beta);
-				Real r2 = 1.0 / (1.0 + 0.639 * (n - 4.0) / (1.0 + 0.71 * (n - 4.0)));
-				Real r3 = 1.0 / (1.0 + 20.0 * alpha / ((7.5 + alpha) * n * n));
+				Real r1 = (MML::Real(1.0) + MML::Real(0.235) * beta) / (MML::Real(0.766) + MML::Real(0.119) * beta);
+				Real r2 = MML::Real(1.0) / (MML::Real(1.0) + MML::Real(0.639) * (n - MML::Real(4.0)) / (MML::Real(1.0) + MML::Real(0.71) * (n - MML::Real(4.0))));
+				Real r3 = MML::Real(1.0) / (MML::Real(1.0) + MML::Real(20.0) * alpha / ((MML::Real(7.5) + alpha) * n * n));
 				z = z + (z - x[n - 4]) * r1 * r2 * r3;
 			} else if (i == n - 1) {
-				Real r1 = (1.0 + 0.37 * beta) / (1.67 + 0.28 * beta);
-				Real r2 = 1.0 / (1.0 + 0.22 * (n - 8.0) / n);
-				Real r3 = 1.0 / (1.0 + 8.0 * alpha / ((6.28 + alpha) * n * n));
+				Real r1 = (MML::Real(1.0) + MML::Real(0.37) * beta) / (MML::Real(1.67) + MML::Real(0.28) * beta);
+				Real r2 = MML::Real(1.0) / (MML::Real(1.0) + MML::Real(0.22) * (n - MML::Real(8.0)) / n);
+				Real r3 = MML::Real(1.0) / (MML::Real(1.0) + MML::Real(8.0) * alpha / ((MML::Real(6.28) + alpha) * n * n));
 				z = z + (z - x[n - 3]) * r1 * r2 * r3;
 			} else {
-				z = 3.0 * x[i - 1] - 3.0 * x[i - 2] + x[i - 3];
+				z = MML::Real(3.0) * x[i - 1] - MML::Real(3.0) * x[i - 2] + x[i - 3];
 			}
 			
 			// Newton-Raphson iteration
@@ -385,8 +391,8 @@ namespace MML
 			Real pp, p2;
 			for (its = 0; its < MAXIT; its++)
 			{
-				Real temp = 2.0 + alfbet;
-				Real p1 = (alpha - beta + temp * z) / 2.0;
+				Real temp = MML::Real(2.0) + alfbet;
+				Real p1 = (alpha - beta + temp * z) / MML::Real(2.0);
 				p2 = 1.0;
 				
 				// Evaluate Jacobi polynomial using recurrence
@@ -395,16 +401,16 @@ namespace MML
 					Real p3 = p2;
 					p2 = p1;
 					temp = 2 * j + alfbet;
-					Real a = 2 * j * (j + alfbet) * (temp - 2.0);
-					Real b = (temp - 1.0) * (alpha * alpha - beta * beta + temp * (temp - 2.0) * z);
-					Real c = 2.0 * (j - 1 + alpha) * (j - 1 + beta) * temp;
+					Real a = 2 * j * (j + alfbet) * (temp - MML::Real(2.0));
+					Real b = (temp - MML::Real(1.0)) * (alpha * alpha - beta * beta + temp * (temp - MML::Real(2.0)) * z);
+					Real c = MML::Real(2.0) * (j - 1 + alpha) * (j - 1 + beta) * temp;
 					p1 = (b * p2 - c * p3) / a;
 				}
 				
 				// Derivative
 				Real temp2 = 2 * n + alfbet;
 				pp = (n * (alpha - beta - temp2 * z) * p1 + 
-				      2.0 * (n + alpha) * (n + beta) * p2) / (temp2 * (1.0 - z * z));
+				      MML::Real(2.0) * (n + alpha) * (n + beta) * p2) / (temp2 * (MML::Real(1.0) - z * z));
 				
 				Real z1 = z;
 				z = z1 - p1 / pp;
@@ -418,8 +424,8 @@ namespace MML
 			// For extreme parameters (large n, α, β), exp(LGamma(...)) can overflow
 			Real temp = 2 * n + alfbet;
 			Real log_weight = Functions::LGamma(alpha + n) + Functions::LGamma(beta + n) -
-			                  Functions::LGamma(n + 1.0) - Functions::LGamma(n + alfbet + 1.0) +
-			                  alfbet * std::log(2.0);
+			                  Functions::LGamma(n + MML::Real(1.0)) - Functions::LGamma(n + alfbet + MML::Real(1.0)) +
+			                  alfbet * std::log(MML::Real(2.0));
 			
 			// Check for overflow before calling exp() (exp(709) ≈ 1.7e308, near DBL_MAX)
 			if (log_weight > 700.0) {
@@ -462,7 +468,7 @@ namespace MML
 		Real wgt = Constants::PI / n;
 		for (int i = 0; i < n; i++)
 		{
-			x[i] = std::cos(Constants::PI * (2 * i + 1) / (2.0 * n));
+			x[i] = std::cos(Constants::PI * (2 * i + 1) / (MML::Real(2.0) * n));
 			w[i] = wgt;
 		}
 	}
@@ -523,14 +529,31 @@ namespace MML
 	 * @param rule Pre-computed quadrature rule (nodes and weights)
 	 * @return Approximate integral value
 	 */
-	static Real IntegrateWithRule(const IRealFunction& func, const GaussQuadratureRule& rule)
+	static Real IntegrateWithRuleImpl(const IRealFunction& func, const GaussQuadratureRule& rule,
+		IntegrationResult* progress, bool checkFinite)
 	{
-		Real sum = 0.0;
+		if (rule.n <= 0 || rule.nodes.size() != static_cast<size_t>(rule.n) || rule.weights.size() != rule.nodes.size())
+			throw ArgumentError("Gaussian quadrature: inconsistent rule storage");
+		for (int i = 0; i < rule.n; ++i)
+			if (!std::isfinite(rule.nodes[i]) || !std::isfinite(rule.weights[i]))
+				throw ArgumentError("Gaussian quadrature: rule nodes and weights must be finite");
+		IntegrationDetail::Sum sum;
+		int evaluations = 0;
+		auto counted = [&](Real point) {
+			if (progress) progress->function_evaluations = evaluations;
+			return func(point);
+		};
 		for (int i = 0; i < rule.n; i++)
 		{
-			sum += rule.weights[i] * func(rule.nodes[i]);
+			sum.Add(IntegrationDetail::Product({rule.weights[i],
+				IntegrationDetail::Sample(counted, evaluations, checkFinite, rule.nodes[i])}));
 		}
-		return sum;
+		IntegrationDetail::RequireFinite(sum.Value(), "Gaussian quadrature");
+		return sum.Value();
+	}
+
+	static Real IntegrateWithRule(const IRealFunction& func, const GaussQuadratureRule& rule) {
+		return IntegrateWithRuleImpl(func, rule, nullptr, true);
 	}
 
 	/**
@@ -549,24 +572,24 @@ namespace MML
 	{
 		auto rule = GaussLegendreRule(n, a, b);
 		Real value = IntegrateWithRule(func, rule);
-		return IntegrationResult::FixedRule(value);
+		return IntegrationResult::FixedRule(value, rule.n);
 	}
 
-	static Real IntegrateGaussLegendre(const IRealFunction& func, 
+	static inline Real IntegrateGaussLegendre(const IRealFunction& func,
 	                                                 Real a, Real b, int n = 20)
 	{
 		return IntegrateGaussLegendreCore(func, a, b, n).ValueOrThrow("IntegrateGaussLegendre");
 	}
 
 	/// @brief Detailed variant with AlgorithmStatus, timing, and diagnostics
-	static IntegrationDetailedResult IntegrateGaussLegendreDetailed(const IRealFunction& func, 
+	static inline IntegrationDetailedResult IntegrateGaussLegendreDetailed(const IRealFunction& func,
 	                                                                 Real a, Real b, int n = 20,
 	                                                                 const IntegrationConfig& config = IntegrationConfig())
 	{
 		return IntegrationDetail::ExecuteIntegrationDetailed<IntegrationDetailedResult>(
 			"GaussLegendre", config, [&](IntegrationDetailedResult& r) {
 				auto rule = GaussLegendreRule(n, a, b);
-				r.value = IntegrateWithRule(func, rule);
+				r.value = IntegrateWithRuleImpl(func, rule, &r, config.check_finite);
 				r.MarkFixedRule(n);
 			});
 	}
@@ -587,24 +610,24 @@ namespace MML
 	{
 		auto rule = GaussLaguerreRule(n, alpha);
 		Real value = IntegrateWithRule(func, rule);
-		return IntegrationResult::FixedRule(value);
+		return IntegrationResult::FixedRule(value, rule.n);
 	}
 
-	static Real IntegrateGaussLaguerre(const IRealFunction& func, 
+	static inline Real IntegrateGaussLaguerre(const IRealFunction& func,
 	                                                 int n = 20, Real alpha = 0.0)
 	{
 		return IntegrateGaussLaguerreCore(func, n, alpha).ValueOrThrow("IntegrateGaussLaguerre");
 	}
 
 	/// @brief Detailed variant with AlgorithmStatus, timing, and diagnostics
-	static IntegrationDetailedResult IntegrateGaussLaguerreDetailed(const IRealFunction& func, 
+	static inline IntegrationDetailedResult IntegrateGaussLaguerreDetailed(const IRealFunction& func,
 	                                                                 int n = 20, Real alpha = 0.0,
 	                                                                 const IntegrationConfig& config = IntegrationConfig())
 	{
 		return IntegrationDetail::ExecuteIntegrationDetailed<IntegrationDetailedResult>(
 			"GaussLaguerre", config, [&](IntegrationDetailedResult& r) {
 				auto rule = GaussLaguerreRule(n, alpha);
-				r.value = IntegrateWithRule(func, rule);
+				r.value = IntegrateWithRuleImpl(func, rule, &r, config.check_finite);
 				r.MarkFixedRule(n);
 			});
 	}
@@ -623,23 +646,23 @@ namespace MML
 	{
 		auto rule = GaussHermiteRule(n);
 		Real value = IntegrateWithRule(func, rule);
-		return IntegrationResult::FixedRule(value);
+		return IntegrationResult::FixedRule(value, rule.n);
 	}
 
-	static Real IntegrateGaussHermite(const IRealFunction& func, int n = 20)
+	static inline Real IntegrateGaussHermite(const IRealFunction& func, int n = 20)
 	{
 		return IntegrateGaussHermiteCore(func, n).ValueOrThrow("IntegrateGaussHermite");
 	}
 
 	/// @brief Detailed variant with AlgorithmStatus, timing, and diagnostics
-	static IntegrationDetailedResult IntegrateGaussHermiteDetailed(const IRealFunction& func, 
+	static inline IntegrationDetailedResult IntegrateGaussHermiteDetailed(const IRealFunction& func,
 	                                                                int n = 20,
 	                                                                const IntegrationConfig& config = IntegrationConfig())
 	{
 		return IntegrationDetail::ExecuteIntegrationDetailed<IntegrationDetailedResult>(
 			"GaussHermite", config, [&](IntegrationDetailedResult& r) {
 				auto rule = GaussHermiteRule(n);
-				r.value = IntegrateWithRule(func, rule);
+				r.value = IntegrateWithRuleImpl(func, rule, &r, config.check_finite);
 				r.MarkFixedRule(n);
 			});
 	}
@@ -666,24 +689,24 @@ namespace MML
 	{
 		auto rule = GaussJacobiRule(n, alpha, beta);
 		Real value = IntegrateWithRule(func, rule);
-		return IntegrationResult::FixedRule(value);
+		return IntegrationResult::FixedRule(value, rule.n);
 	}
 
-	static Real IntegrateGaussJacobi(const IRealFunction& func, 
+	static inline Real IntegrateGaussJacobi(const IRealFunction& func,
 	                                               Real alpha, Real beta, int n = 20)
 	{
 		return IntegrateGaussJacobiCore(func, alpha, beta, n).ValueOrThrow("IntegrateGaussJacobi");
 	}
 
 	/// @brief Detailed variant with AlgorithmStatus, timing, and diagnostics
-	static IntegrationDetailedResult IntegrateGaussJacobiDetailed(const IRealFunction& func, 
+	static inline IntegrationDetailedResult IntegrateGaussJacobiDetailed(const IRealFunction& func,
 	                                                               Real alpha, Real beta, int n = 20,
 	                                                               const IntegrationConfig& config = IntegrationConfig())
 	{
 		return IntegrationDetail::ExecuteIntegrationDetailed<IntegrationDetailedResult>(
 			"GaussJacobi", config, [&](IntegrationDetailedResult& r) {
 				auto rule = GaussJacobiRule(n, alpha, beta);
-				r.value = IntegrateWithRule(func, rule);
+				r.value = IntegrateWithRuleImpl(func, rule, &r, config.check_finite);
 				r.MarkFixedRule(n);
 			});
 	}
@@ -704,23 +727,23 @@ namespace MML
 	{
 		auto rule = GaussChebyshev1Rule(n);
 		Real value = IntegrateWithRule(func, rule);
-		return IntegrationResult::FixedRule(value);
+		return IntegrationResult::FixedRule(value, rule.n);
 	}
 
-	static Real IntegrateGaussChebyshev1(const IRealFunction& func, int n = 20)
+	static inline Real IntegrateGaussChebyshev1(const IRealFunction& func, int n = 20)
 	{
 		return IntegrateGaussChebyshev1Core(func, n).ValueOrThrow("IntegrateGaussChebyshev1");
 	}
 
 	/// @brief Detailed variant with AlgorithmStatus, timing, and diagnostics
-	static IntegrationDetailedResult IntegrateGaussChebyshev1Detailed(const IRealFunction& func, 
+	static inline IntegrationDetailedResult IntegrateGaussChebyshev1Detailed(const IRealFunction& func,
 	                                                                   int n = 20,
 	                                                                   const IntegrationConfig& config = IntegrationConfig())
 	{
 		return IntegrationDetail::ExecuteIntegrationDetailed<IntegrationDetailedResult>(
 			"GaussChebyshev1", config, [&](IntegrationDetailedResult& r) {
 				auto rule = GaussChebyshev1Rule(n);
-				r.value = IntegrateWithRule(func, rule);
+				r.value = IntegrateWithRuleImpl(func, rule, &r, config.check_finite);
 				r.MarkFixedRule(n);
 			});
 	}
@@ -741,23 +764,23 @@ namespace MML
 	{
 		auto rule = GaussChebyshev2Rule(n);
 		Real value = IntegrateWithRule(func, rule);
-		return IntegrationResult::FixedRule(value);
+		return IntegrationResult::FixedRule(value, rule.n);
 	}
 
-	static Real IntegrateGaussChebyshev2(const IRealFunction& func, int n = 20)
+	static inline Real IntegrateGaussChebyshev2(const IRealFunction& func, int n = 20)
 	{
 		return IntegrateGaussChebyshev2Core(func, n).ValueOrThrow("IntegrateGaussChebyshev2");
 	}
 
 	/// @brief Detailed variant with AlgorithmStatus, timing, and diagnostics
-	static IntegrationDetailedResult IntegrateGaussChebyshev2Detailed(const IRealFunction& func, 
+	static inline IntegrationDetailedResult IntegrateGaussChebyshev2Detailed(const IRealFunction& func,
 	                                                                   int n = 20,
 	                                                                   const IntegrationConfig& config = IntegrationConfig())
 	{
 		return IntegrationDetail::ExecuteIntegrationDetailed<IntegrationDetailedResult>(
 			"GaussChebyshev2", config, [&](IntegrationDetailedResult& r) {
 				auto rule = GaussChebyshev2Rule(n);
-				r.value = IntegrateWithRule(func, rule);
+				r.value = IntegrateWithRuleImpl(func, rule, &r, config.check_finite);
 				r.MarkFixedRule(n);
 			});
 	}

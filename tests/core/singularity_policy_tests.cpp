@@ -200,7 +200,7 @@ namespace MML::Tests::Core::SingularityPolicyTests {
 						"[MetricTensor][field_operations][Singularity][wewi.8.3]") {
 		class SwapMetric : public LorentzianMetric<2> {
 		public:
-			Real component(int i, int j, const VectorN<Real, 2>&) const override { return i == j ? 0 : 1; }
+			Real component(int i, int j, const VectorN<Real, 2>&) const override { return i == j ? Real(0) : Real(1); }
 		};
 		SwapMetric signedMetric;
 		VectorFunction<2> radial([](const VectorN<Real, 2>& p) { return p; });
@@ -208,7 +208,7 @@ namespace MML::Tests::Core::SingularityPolicyTests {
 		REQUIRE_THAT(VectorFieldOperations::DivergenceViaDet(radial, pos, signedMetric), WithinAbs(2, TOL(1e-8, 1e-3)));
 		class RankOneMetric : public MetricTensorField<2> {
 		public:
-			Real component(int i, int j, const VectorN<Real, 2>&) const override { return (i + 1) * (j + 1); }
+			Real component(int i, int j, const VectorN<Real, 2>&) const override { return Real((i + 1) * (j + 1)); }
 		};
 		RankOneMetric rankOne;
 		REQUIRE_THROWS_AS(rankOne.GetContravariantMetric(pos), SingularMatrixError);

@@ -14,6 +14,21 @@ higher derivatives. The existing low-level forward/reverse Jacobian and gradient
 utilities remain available; see [Derivation](Derivation.md). There are no new
 nonlinear-system, ODE-system, or optimization adapters.
 
+AD removes finite-difference truncation and subtraction of nearby samples; it
+does not remove floating-point roundoff. Nested elementary-function identities
+can leave small residuals even when their analytical higher derivatives vanish.
+Curvature and connection calculations also accumulate roundoff in products,
+normalization, inversion, and contractions. Comparisons must respect the active
+`Real` precision and the scale of the result.
+
+A numerical reference has a separate accuracy budget. Differentiating numerical
+connections compounds stencil roundoff (proportional to epsilon divided by the
+step squared) as well as truncation. Near a cancelling Ricci scalar, an absolute
+budget is needed even when the individual terms are well resolved. This does
+not justify relaxing AD's analytical checks, exact polynomial identities,
+provider dispatch, or failure propagation. The adapter regressions exercise
+these contracts with both modular and generated float/double headers.
+
 ## Build and run the examples
 
 Build `MML_DocsApp` in Release and run it with `--automatic-differentiation`.
@@ -35,6 +50,13 @@ using namespace MML;
 ```
 
 Alternatively, the generated `MML.h` contains the adapters and provider contracts.
+
+Field `Detailed` results count calls to the Real-valued field `operator()`, not
+derivative-provider operations or the adapter's internal dual-number evaluations.
+Provider-only Cartesian operations can therefore have `function_evaluations=0`;
+determinant divergence with metric/vector providers counts its one center field
+call. See the [Detailed field contract](Field_operations.md#detailed-evaluation-contract)
+for order selection, finite checking, error availability, and failure accounting.
 
 ## Authoring contract: opt-in, not automatic conversion
 
@@ -254,6 +276,10 @@ No AD failure triggers an automatic numerical retry. A provider is selected
 because it exists; an exception from it propagates, or is reported by the
 existing `Detailed` exception policy.
 
+Field derivative axes, vector components, and metric component indices must
+be in `[0, N)`. Invalid indices throw `IndexError` before the adapter invokes
+the user expression, including either axis of a second partial derivative.
+
 Runnable counterpart: `NumericalReferenceAndFailureExample` (the polynomial
 potential is the same definition as in `FieldExample`).
 
@@ -291,6 +317,135 @@ Typed differential-geometry field/frame/form APIs and surface-flux quadrature
 have their own explicit numerical derivative paths; this addition does not
 silently change them. Parallel-transport curve tangents retain their configured
 numerical step, even if the metric connection is AD-backed.
+
+## Quotient arithmetic and constant reverse outputs
+
+Forward `Dual` division uses direct scalar division for the primal value. Free,
+compound and mixed-scalar division share the same tangent implementation; compound
+self-division reads both operands before updating either field. Floating-point leaf
+tangents use binary-scaled, compensated product differences instead of forming the
+denominator square or an overflowing reciprocal. Reverse division uses the same
+leaf arithmetic for the denominator contribution, including the incoming adjoint.
+This retains representable derivatives such as **-1e-200** at numerator and denominator
+values **1e200**. Nested duals remain differentiable, including rational Hessians;
+this is not a guarantee that all intermediate arithmetic in every nested expression
+is range-safe.
+
+`CalcGradientReverseAD` accepts a finite, untracked `ADVar` constant result and returns
+exactly one zero per input coordinate. `CalcJacobianReverseAD` likewise fills constant
+output rows with exact zeros, preserving the full output-by-input shape and any
+interleaved variable-dependent rows. These zero results do not depend on adjoints left
+by callback-side work. A constant scalar callback is evaluated once; the reverse
+Jacobian retains its shape-probe evaluation plus one evaluation per output row.
+
+Untracked NaN/infinite constant outputs throw `NumericalMethodError` rather than being
+accepted as successful zero derivatives. Callback exceptions propagate unchanged.
+Direct `ADVar(7).backward()` still throws `ArgumentError`: only the high-level
+mathematical helpers interpret an untracked constant output as having zero derivatives.
+Recorded constants remain supported through the ordinary tape sweep. Reverse-mode
+division by zero still throws `DivisionByZeroError`. Domain and tape-lifetime
+contracts are described below.
+
+## Floating leaves, singular endpoints and real powers
+
+`Dual<T>` requires a floating-point leaf: `float`, `double`, `long double`, or
+nested duals over one of these. Integer/bool leaves, including integer-only
+class-template deduction, are compile-time errors. Forward derivative and gradient
+helpers, and both `std::vector`/MML `Vector` Jacobian and Hessian overloads, reject
+integer-deduced element types. Their deprecated aliases follow the same rule. Use
+floating inputs such as `Real(2)`; integer constants mixed with floating duals remain
+supported.
+
+Raw forward and reverse `asin`/`acos` do not clamp singular derivatives to finite
+numbers. At either endpoint **-1** or **1**, a nonzero directional seed produces a
+signed infinity; a zero seed can produce NaN. Inputs outside the real domain produce
+NaN. Nested derivatives likewise retain nonfinite results, not fabricated finite
+higher derivatives. The checked AD adapters reject nonfinite derivatives with their
+existing `DomainError` contract.
+
+AD power overloads require finite primal base and exponent values. A fixed zero
+exponent retains **x^0 = 1**, including **0^0**, with exactly zero derivatives.
+Negative bases require a fixed integer exponent; zero bases reject negative
+exponents. Variable exponents require strictly positive bases, including when their
+current value is zero or an integer. Invalid cases throw `DomainError` before
+recording a reverse power operation.
+
+Forward fixed exponents have no seeded derivative coefficients at any nesting
+level. Reverse fixed exponents are untracked constants or recorded expressions
+whose ancestry contains no input-variable nodes; this is structural classification,
+not symbolic simplification of expressions such as `x - x`. Positive bases do not
+require an ancestry walk. Ordinary fixed integer powers, including negative-base
+powers and zero-base polynomial Hessians, retain their real derivatives. Singular
+or overflowing results from otherwise valid finite inputs remain explicit IEEE
+nonfinite results; checked adapters still reject them.
+
+The following runs in `src/docs_demos/core/docs_demo_automatic_differentiation.cpp`:
+
+```cpp
+auto squared = AD::CalcDerivativeForwardAD(
+    [](auto x) { using std::pow; return pow(x, 2); }, Real(0));
+auto constantPower = AD::CalcDerivativeForwardAD(
+    [](auto x) { using std::pow; return pow(x, 0); }, Real(0));
+auto endpoint = AD::asin(AD::Dual<Real>(1, 1));
+// squared is (0, 0); constantPower is (1, 0); endpoint.deriv is +infinity.
+```
+
+## Reverse tape lifetime and handle invalidation
+
+The modular tape and handle APIs are declared in
+[ReverseAD.h](../../mml/core/Derivation/ReverseAD.h).
+
+`ADVar` is a non-owning value handle, not an owner of its `Tape`. The tape object
+must be alive at the same address whenever a recorded handle is used. Destruction
+is a caller lifetime precondition: generation checking does not make a dangling
+tape pointer safe, detect destroyed tapes, or extend a tape's lifetime.
+
+For a live tape, recorded handles capture its invalidation generation:
+
+| Operation | Effect on existing recorded handles |
+|---|---|
+| Append nodes, including storage reallocation | Handles remain valid |
+| `clear()` | All handles into that tape become invalid, even if indices are reused |
+| Copy construction | Independent graph storage; source handles remain valid |
+| Copy assignment | Destination handles become invalid; source handles remain valid |
+| Move construction | Source handles become invalid; they do not follow the graph |
+| Move assignment | Source and replaced destination handles become invalid |
+| Direct self-copy or self-move assignment | No change to handles, graph or completed-sweep state |
+
+Moved-from tapes are empty, have no completed sweep, and can record a fresh graph.
+The destination retains the transferred entries and completed-sweep state. Copies
+retain independent entries and their copied sweep state. Untracked constants are
+unaffected by these transitions.
+
+Invalid recorded handles throw `ArgumentError` from value, adjoint, index and tape
+accessors, backward sweeps, arithmetic and recording factories. Both operands are
+validated before a recording factory inserts constants or nodes. Division validates
+handles before its zero-denominator check. Copying a handle preserves its generation;
+it does not rebind an invalid handle to a replacement graph.
+
+Raw integer indices and `TapeEntry` references are not generation-aware handles:
+callers must use them only with the current graph and respect storage invalidation.
+This is not a thread-safety or concurrent-mutation guarantee. Invalidation-counter
+exhaustion throws `ResourceLimitError` before modifying a graph rather than wrapping
+and resurrecting old handles; copy/move replacement can therefore throw.
+
+The bounded docs demo checks rejection even after a new node reuses the old index:
+
+```cpp
+AD::Tape tape;
+AD::ADVar old(&tape, 2);
+tape.clear();
+AD::ADVar replacement(&tape, 5);
+bool rejected = false;
+try {
+    (void)old.value();
+} catch (const ArgumentError& error) {
+    rejected = true;
+    std::cout << "Stale AD handle rejected: " << error.what() << '\n';
+}
+if (!rejected)
+    throw std::runtime_error("Stale AD handle was accepted");
+```
 
 ## Extension contracts and limitations
 

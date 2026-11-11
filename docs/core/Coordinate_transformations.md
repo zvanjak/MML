@@ -7,7 +7,7 @@
 
 ## Overview
 
-The coordinate transformation system provides a comprehensive framework for converting between different coordinate systems, transforming vectors and tensors, computing basis vectors and Jacobians. The implementation supports both forward and inverse transformations with automatic differentiation for basis vector computation.
+The coordinate transformation system provides a comprehensive framework for converting between different coordinate systems, transforming vectors and tensors, computing basis vectors and Jacobians. The implementation supports both forward and inverse transformations with analytic Jacobians where available and numerical differentiation otherwise.
 
 ### Key Capabilities
 
@@ -17,6 +17,47 @@ The coordinate transformation system provides a comprehensive framework for conv
 - **Vector Transformations**: Covariant and contravariant vector components
 - **Tensor Transformations**: Rank-2 through rank-5 tensor transformations
 - **Automatic Jacobians**: Numerical computation using differentiation module
+
+### Value, basis, and finite-range contracts
+
+- Stateful 2D and 3D rotations and basis transforms support independent copy and
+  rvalue construction. Their component functions remain bound to the destination,
+  including after the original object is destroyed. Rvalue construction uses the
+  safe copy constructor; the pre-existing nonassignable interface is unchanged.
+  Coordinate-map and tensor-field adapters still **borrow** their transform and
+  field; those original objects must outlive the adapters.
+- `CoordTransf3DCartOrthogonal` accepts finite, nonzero, mutually perpendicular
+  axes, not just unit axes. The axes remain the rows of the forward matrix, so
+  their scales are preserved. Its inverse divides the transposed axes by their
+  squared lengths; transpose alone is correct only for orthonormal axes.
+  Orthogonality is tested relative to axis lengths, and orientation checks do not
+  form overflowing raw cross products.
+- Forward Jacobians are evaluated at source coordinates; inverse Jacobians at
+  target coordinates. Polar Jacobians are analytic local-chart derivatives:
+  crossing the `atan2` branch cut does not create a fictitious angular derivative.
+  The angle itself retains the usual principal-value discontinuity. The inverse
+  Jacobian at the origin follows the existing singularity policy. Nonfinite
+  coordinates and unrepresentable radii raise `DomainError`, even when a singular
+  matrix sentinel policy was requested.
+- Ordinary polar, cylindrical, and spherical conversions use scaled radial
+  arithmetic in both directions and through their component functions. Small
+  nonzero spherical points retain their direction; only the exact origin uses
+  the zero-inclination convention.
+- Rank-4 and rank-5 transformations preserve each individual variance slot.
+  Contravariant slots use the forward Jacobian and covariant slots the inverse
+  Jacobian transpose. Field adapters accept target positions, evaluate the
+  original field at the inverse-mapped source position, and expose the same
+  components through full-tensor and component access.
+- The unit-sphere stereographic charts and their Jacobians use scaled formulas
+  for large finite parameters. Every finite nonzero parameter point is in the
+  mathematical chart overlap, including tiny points. Transitions reject the
+  exact pole, nonfinite parameters, and unrepresentable reciprocal coordinates
+  explicitly rather than returning NaN or silently treating a tiny overlap as a
+  pole. Derivatives smaller than the scalar representation may still underflow.
+
+The runnable `Docs_Demo_CoordinateContracts` example exercises these contracts,
+including direct identity-map one-form pullback. Run `MML_DocsApp
+--coordinate-contracts` for this focused demonstration.
 
 ### Physical Applications
 
@@ -402,6 +443,44 @@ Vector3Cylindrical cylBack = CoordTransfCartToCyl.transf(point);
 ```
 
 ---
+
+### Lorentz Force in Two Coordinate Systems
+
+The runnable [Lorentz-force demo](../../src/docs_demos/core/docs_demo_Lorentz_force_transf.cpp)
+evaluates **F = q(E + v x B)** in Cartesian and cylindrical coordinates at the
+same physical point. This is a change of spatial coordinates, not a relativistic
+Lorentz boost.
+
+The two calculations are isolated in `LorentzForceCartesian(q, E, v, B)` and
+`LorentzForceCylindrical(q, E, v, B)`. Each explicitly evaluates
+**F = q(E + v x B)**; coordinate transformations occur outside these functions.
+The first accepts Cartesian vectors; the second accepts cylindrical
+physical-component vectors at the same point and explicitly forms v x B.
+
+An ideal infinite solenoid along the z-axis has radius 0.5 m, 1000 turns/m and
+current 2 A. Ampere's law gives **B = mu0 n I e_z** inside and zero outside;
+the demo uses the textbook approximation mu0 = 4 pi x 10^-7 H/m. The current
+sheet itself is excluded. E is zero for the solenoid-only examples; additional
+examples specify an applied electric field.
+
+`transfVecContravariant` transforms a velocity at its **position**, not as a
+point. Its cylindrical result contains coordinate components
+**(v^rho, v^phi, v^z) = (d rho/dt, d phi/dt, dz/dt)**. The physical components
+in the right-handed orthonormal basis are **(v^rho, rho v^phi, v^z)**.
+Only these physical components may be used in the ordinary cross-product
+determinant. Before transforming the force back, divide its physical azimuthal
+component by rho to recover F^phi. Cylindrical component arithmetic is performed
+explicitly: `Vector3Cylindrical` addition and scaling describe position-style
+(rho, phi, z) vectors, not local component triples.
+
+Run `MML_DocsApp --lorentz-force`. Eleven cases cover Cartesian x/y velocities,
+radial and azimuthal motion, motion parallel to B, mixed velocities in different
+quadrants, an exterior point, a negative charge with applied E, a stationary
+charge, and a neutral particle. All points avoid the cylindrical axis. Executable
+checks verify velocity projections and round trips, force agreement in both
+bases, the analytic Cartesian force **q(Ex + vy Bz, Ey - vx Bz, Ez)**, and
+orthogonality of the magnetic force to velocity. SI units and differences are
+printed for each case.
 
 ## 3D Rotations
 

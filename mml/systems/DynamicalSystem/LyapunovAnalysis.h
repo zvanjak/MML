@@ -13,6 +13,7 @@
 
 #include <mml/systems/DynamicalSystem/DynamicalAnalysisCommon.h>
 #include <mml/systems/DynamicalSystem/DynamicalSystemTypes.h>
+#include <mml/systems/DynamicalSystem/LyapunovQR.h>
 #include <mml/algorithms/ODESolvers/ODESolverFixedStep.h>
 #include <mml/algorithms/ODESolvers/ODEStepCalculators.h>
 #include <mml/base/Matrix/Matrix.h>
@@ -23,20 +24,28 @@
 #include <functional>
 #include <limits>
 #include <type_traits>
+#include <utility>
 #include <vector>
 
 namespace MML::Systems
 {
 	namespace DynamicalAnalysisDetail
 	{
+		class TangentFrameResolutionError : public NumericalMethodError
+		{
+		public:
+			using NumericalMethodError::NumericalMethodError;
+		};
+
 		class VariationalSystem final : public IODESystem
 		{
 			IDynamicalSystem& _system;
 			int _dimension;
+			int& _functionEvaluations;
 
 		public:
-			explicit VariationalSystem(IDynamicalSystem& system)
-				: _system(system), _dimension(system.getDim()) {}
+			VariationalSystem(IDynamicalSystem& system, int& functionEvaluations)
+				: _system(system), _dimension(system.getDim()), _functionEvaluations(functionEvaluations) {}
 
 			int getDim() const override { return _dimension + _dimension * _dimension; }
 
@@ -45,33 +54,45 @@ namespace MML::Systems
 				Vector<Real> trajectory(_dimension);
 				for (int row = 0; row < _dimension; ++row)
 					trajectory[row] = state[row];
+				DynSysDetail::CheckState(trajectory, _dimension, "Continuous Lyapunov trajectory");
 
-				Vector<Real> trajectoryDerivative(_dimension);
+				if (_functionEvaluations == std::numeric_limits<int>::max())
+					throw ResourceLimitError("Lyapunov: RHS evaluation counter exhausted");
+				++_functionEvaluations;
+				Vector<Real> trajectoryDerivative(_dimension, std::numeric_limits<Real>::quiet_NaN());
 				_system.derivs(t, trajectory, trajectoryDerivative);
+				DynSysDetail::CheckState(trajectoryDerivative, _dimension, "Continuous Lyapunov RHS output");
 				for (int row = 0; row < _dimension; ++row)
 					derivative[row] = trajectoryDerivative[row];
 
-				Matrix<Real> jacobian(_dimension, _dimension);
+				Matrix<Real> jacobian(_dimension, _dimension, std::numeric_limits<Real>::quiet_NaN());
 				_system.jacobian(t, trajectory, jacobian);
+				DynSysDetail::CheckJacobian(jacobian, _dimension);
 				for (int row = 0; row < _dimension; ++row) {
 					for (int column = 0; column < _dimension; ++column) {
 						Real value = 0;
 						for (int inner = 0; inner < _dimension; ++inner)
 							value += jacobian(row, inner) * state[_dimension + inner * _dimension + column];
+						if (!std::isfinite(value))
+							throw TangentFrameResolutionError("Lyapunov: non-finite variational derivative; shorten the QR block");
 						derivative[_dimension + row * _dimension + column] = value;
 					}
 				}
 			}
 		};
-	}
-
-	class LyapunovAnalyzer
+	class LyapunovComputation
 	{
 	public:
 		static LyapunovResult<Real> Compute(IDynamicalSystem& system, const Vector<Real>& initialState,
-			Real totalTime, Real orthonormalizationInterval = static_cast<MML::Real>(1.0), Real initialStep = static_cast<MML::Real>(0.01))
+			Real totalTime, Real orthonormalizationInterval, Real initialStep, int& functionEvaluations)
 		{
 			const int dimension = system.getDim();
+			DynSysDetail::CheckVariationalDimension(dimension);
+			if (!std::isfinite(totalTime) || totalTime <= 0 ||
+				!std::isfinite(orthonormalizationInterval) || orthonormalizationInterval <= 0 ||
+				!std::isfinite(initialStep) || initialStep <= 0)
+				throw ArgumentError("Lyapunov: total time, QR interval and initial step must be finite and positive");
+			DynSysDetail::CheckState<ArgumentError>(initialState, dimension, "Continuous Lyapunov initial state");
 			LyapunovResult<Real> result;
 			result.exponents.resize(dimension);
 			Vector<Real> state = initialState;
@@ -79,13 +100,58 @@ namespace MML::Systems
 			Vector<Real> sums(dimension, static_cast<MML::Real>(0.0));
 			Real time = static_cast<MML::Real>(0.0);
 			int orthonormalizations = 0;
+			Real blockInterval = std::min(orthonormalizationInterval, totalTime);
+			// Keep accepted tangent stretches above the IVP absolute-error floor.
+			// This is a resolution safeguard, not a Lyapunov-exponent error estimate.
+			const Real logStretchLimit = -std::log(std::sqrt(IntegrationTolerance()));
 
 			while (time < totalTime) {
-				const Real endTime = std::min(time + orthonormalizationInterval, totalTime);
-				IntegrateWithVariational(system, state, frame, time, endTime, initialStep);
-				GramSchmidtQR(frame, sums);
-				++orthonormalizations;
-				time = endTime;
+				int refinements = 0;
+				while (true) {
+					const Real endTime = time + std::min(blockInterval, totalTime - time);
+					if (!(endTime > time))
+						throw NumericalMethodError("Lyapunov: QR block cannot advance floating-point time");
+					Vector<Real> trialState = state;
+					Matrix<Real> trialFrame = frame;
+					bool resolved = true;
+					try {
+						IntegrateWithVariational(system, trialState, trialFrame, time, endTime, initialStep, functionEvaluations);
+					}
+					catch (const TangentFrameResolutionError&) {
+						resolved = false;
+					}
+					Vector<Real> logarithms;
+					if (resolved) {
+						try {
+							logarithms = LyapunovDetail::Orthonormalize(trialFrame);
+						}
+						catch (const SingularMatrixError&) {
+							resolved = false;
+						}
+					}
+					if (resolved)
+						for (Real logarithm : logarithms)
+							if (std::abs(logarithm) > logStretchLimit)
+								resolved = false;
+					if (resolved) {
+						if (orthonormalizations == std::numeric_limits<int>::max())
+							throw ResourceLimitError("Lyapunov: QR counter exhausted");
+						for (int column = 0; column < dimension; ++column)
+							sums[column] += logarithms[column];
+						state = std::move(trialState);
+						frame = std::move(trialFrame);
+						++orthonormalizations;
+						time = endTime;
+						break;
+					}
+					if (refinements == Precision::LyapunovMaxQRRefinements)
+						throw NumericalMethodError("Lyapunov: tangent frame unresolved after QR refinement budget; shorten the requested interval");
+					if (result.qr_refinements == std::numeric_limits<int>::max())
+						throw ResourceLimitError("Lyapunov: QR refinement counter exhausted");
+					++refinements;
+					++result.qr_refinements;
+					blockInterval = (endTime - time) / 2;
+				}
 			}
 
 			std::vector<Real> sorted(dimension);
@@ -103,12 +169,22 @@ namespace MML::Systems
 			result.kaplanYorkeDimension = ComputeKaplanYorkeDimension(result.exponents);
 			result.numOrthonormalizations = orthonormalizations;
 			result.totalTime = totalTime;
+			result.function_evaluations = functionEvaluations;
+			if (!std::isfinite(result.maxExponent) || !std::isfinite(result.sum) ||
+				!std::isfinite(result.kaplanYorkeDimension))
+				throw NumericalMethodError("Lyapunov: non-finite spectrum or derived quantity");
 			return result;
 		}
 
 	private:
+		static Real IntegrationTolerance()
+		{
+			return std::max(Precision::ODEDefaultTolerance,
+				Precision::LyapunovToleranceEpsilonFactor * std::numeric_limits<Real>::epsilon());
+		}
+
 		static void IntegrateWithVariational(IDynamicalSystem& system, Vector<Real>& state,
-			Matrix<Real>& frame, Real startTime, Real endTime, Real initialStep)
+			Matrix<Real>& frame, Real startTime, Real endTime, Real initialStep, int& functionEvaluations)
 		{
 			if (endTime < startTime)
 				throw ArgumentError("IntegrateWithVariational: t1 must be >= t0 (reverse-time integration is not supported)");
@@ -123,19 +199,21 @@ namespace MML::Systems
 					augmented[dimension + row * dimension + column] = frame(row, column);
 			}
 
-			DynamicalAnalysisDetail::VariationalSystem variational(system);
+			VariationalSystem variational(system, functionEvaluations);
 			const auto solution = [&]() {
 				if constexpr (std::is_same_v<Real, float>) {
-					const int numSteps = std::max(1, static_cast<int>(std::ceil((endTime - startTime) / initialStep)));
+					const Real requestedSteps = std::ceil((endTime - startTime) / initialStep);
+					if (!std::isfinite(requestedSteps) ||
+						static_cast<long double>(requestedSteps) > std::numeric_limits<int>::max())
+						throw ResourceLimitError("Lyapunov: fixed-step count exceeds the integer range");
+					const int numSteps = std::max(1, static_cast<int>(requestedSteps));
 					ODESystemFixedStepSolver solver(variational, StepCalculators::RK4_Basic);
 					return solver.integrate(augmented, startTime, endTime, numSteps);
 				}
 				else {
 					ODEAdaptiveIntegrator<> integrator(variational);
-					const Real tolerance = std::max(Precision::ODEDefaultTolerance,
-						Real(1000000) * std::numeric_limits<Real>::epsilon());
 					return integrator.integrate(augmented, startTime, endTime, endTime - startTime,
-						tolerance, std::min(initialStep, endTime - startTime));
+						IntegrationTolerance(), std::min(initialStep, endTime - startTime));
 				}
 			}();
 			const Vector<Real> finalState = solution.getXValuesAtEnd();
@@ -144,38 +222,7 @@ namespace MML::Systems
 				for (int column = 0; column < dimension; ++column)
 					frame(row, column) = finalState[dimension + row * dimension + column];
 			}
-		}
-
-		static void GramSchmidtQR(Matrix<Real>& frame, Vector<Real>& sums)
-		{
-			const int dimension = frame.rows();
-			for (int column = 0; column < dimension; ++column) {
-				Vector<Real> vector(dimension);
-				for (int row = 0; row < dimension; ++row)
-					vector[row] = frame(row, column);
-
-				for (int previous = 0; previous < column; ++previous) {
-					Real dot = static_cast<MML::Real>(0.0);
-					for (int row = 0; row < dimension; ++row)
-						dot += vector[row] * frame(row, previous);
-					for (int row = 0; row < dimension; ++row)
-						vector[row] -= dot * frame(row, previous);
-				}
-
-				Real norm = static_cast<MML::Real>(0.0);
-				for (int row = 0; row < dimension; ++row)
-					norm += vector[row] * vector[row];
-				norm = std::sqrt(norm);
-				if (norm > Precision::DivisionSafetyThreshold) {
-					sums[column] += std::log(norm);
-					for (int row = 0; row < dimension; ++row)
-						frame(row, column) = vector[row] / norm;
-				}
-				else {
-					for (int row = 0; row < dimension; ++row)
-						frame(row, column) = row == column ? static_cast<MML::Real>(1.0) : static_cast<MML::Real>(0.0);
-				}
-			}
+			DynSysDetail::CheckState(state, dimension, "Continuous Lyapunov final trajectory");
 		}
 
 		static Real ComputeKaplanYorkeDimension(const Vector<Real>& exponents)
@@ -202,6 +249,21 @@ namespace MML::Systems
 			return index + partialSum / std::abs(exponents[index]);
 		}
 	};
+	}
+
+	class LyapunovAnalyzer
+	{
+	public:
+		/// Finite-time spectrum from the full variational flow; the requested QR interval
+		/// is a maximum. Throws if bounded subdivision cannot resolve a finite full frame.
+		static LyapunovResult<Real> Compute(IDynamicalSystem& system, const Vector<Real>& initialState,
+			Real totalTime, Real orthonormalizationInterval = Real(1), Real initialStep = Real(0.01))
+		{
+			int functionEvaluations = 0;
+			return DynamicalAnalysisDetail::LyapunovComputation::Compute(system, initialState, totalTime,
+				orthonormalizationInterval, initialStep, functionEvaluations);
+		}
+	};
 
 	template<typename Type = Real>
 	struct LyapunovAnalysisResult : public EvaluationResultBase
@@ -215,9 +277,8 @@ namespace MML::Systems
 	{
 		return DynSysDetail::ExecuteDynSysDetailed<LyapunovAnalysisResult<Real>>(
 			"LyapunovAnalyzer", config, [&](LyapunovAnalysisResult<Real>& result) {
-				result.lyapunov = LyapunovAnalyzer::Compute(system, initialState, totalTime,
-					orthonormalizationInterval, initialStep);
-				result.function_evaluations = result.lyapunov.numOrthonormalizations;
+				result.lyapunov = DynamicalAnalysisDetail::LyapunovComputation::Compute(system, initialState, totalTime,
+					orthonormalizationInterval, initialStep, result.function_evaluations);
 			});
 	}
 }

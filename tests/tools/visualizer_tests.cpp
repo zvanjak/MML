@@ -13,17 +13,35 @@
 #include <optional>
 #include <stdexcept>
 #include <array>
+#include <sstream>
+#include <limits>
 
+#ifdef MML_SINGLE_HEADER_INCLUDE
+#include MML_SINGLE_HEADER_INCLUDE
+#else
 #include <mml/tools/visualizers/VisualizerConfig.h>
 #include <mml/MMLVisualizators.h>
 #include <mml/base/Function.h>
 #include <mml/tools/Visualizer.h>
+#endif
 
 using namespace MML;
 
 namespace MML::Tests::Tools::VisualizerTests {
 
 namespace {
+#ifdef _WIN32
+	struct ThreadErrorModeFixture {
+		DWORD previous = 0;
+
+		explicit ThreadErrorModeFixture(DWORD mode) {
+			if (!SetThreadErrorMode(mode, &previous))
+				throw std::runtime_error("Failed to set test thread error mode: " + std::to_string(GetLastError()));
+		}
+		~ThreadErrorModeFixture() { CHECK(SetThreadErrorMode(previous, nullptr) != FALSE); }
+	};
+#endif
+
 	void SetTestEnvironment(const char* name, const std::optional<std::string>& value) {
 #ifdef _WIN32
 		const int error = _putenv_s(name, value ? value->c_str() : "");
@@ -88,6 +106,10 @@ namespace {
 		std::filesystem::path path = std::filesystem::path(GetResultFilesPath()) /
 			("visualizer_workflow_" + std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()) + ".mml");
 
+		GeneratedOutput() {
+			std::filesystem::create_directories(path.parent_path());
+		}
+
 		~GeneratedOutput() {
 			for (const auto& file : {path, std::filesystem::path(path.string() + ".argv")}) {
 				std::error_code error;
@@ -97,6 +119,194 @@ namespace {
 			}
 		}
 	};
+
+	std::string ReadGeneratedOutput(const std::filesystem::path& path) {
+		std::ifstream in(path);
+		REQUIRE(in.is_open());
+		std::ostringstream out;
+		out << in.rdbuf();
+		REQUIRE_FALSE(in.bad());
+		return out.str();
+	}
+
+	void CheckVectorRows(const std::string& text, int dimension, int expectedRows, Real magnitude) {
+		std::istringstream input(text);
+		std::string line;
+		for (int header = 0; header < 3; ++header) REQUIRE(static_cast<bool>(std::getline(input, line)));
+		int rows = 0;
+		while (std::getline(input, line)) {
+			std::istringstream values(line);
+			Real value;
+			for (int coordinate = 0; coordinate < dimension; ++coordinate) REQUIRE(static_cast<bool>(values >> value));
+			for (int component = 0; component < dimension; ++component) {
+				REQUIRE(static_cast<bool>(values >> value));
+				CHECK(value == (component == 0 ? magnitude : Real(0)));
+			}
+			std::string extra;
+			CHECK_FALSE(static_cast<bool>(values >> extra));
+			++rows;
+		}
+		CHECK(rows == expectedRows);
+	}
+}
+
+TEST_CASE("Ordinary 3D vector visualization retains all sampled magnitudes", "[Visualizer][VectorFiltering]") {
+	LauncherFixture fixture;
+	fixture.Install("MML_VectorField3D_Visualizer");
+	for (Real magnitude : {Real(0), Real(3), Real(4), Real(40), std::numeric_limits<Real>::max() / 4}) {
+		CAPTURE(magnitude);
+		GeneratedOutput output, reference;
+		int evaluations = 0;
+		VectorFunctionFromStdFunc<3> field([&](const VectorN<Real, 3>&) {
+			++evaluations;
+			return VectorN<Real, 3>{magnitude, 0, 0};
+		});
+		const auto result = Visualizer::VisualizeVectorField3DCartesian(
+			field, "constant", 0, 1, 2, 0, 1, 2, 0, 1, 2, output.path.filename().string());
+		INFO(result.message);
+		REQUIRE(result.success);
+		CHECK(evaluations == 8);
+		CHECK(std::filesystem::path(result.filename) == std::filesystem::weakly_canonical(output.path));
+		CHECK(std::filesystem::exists(output.path.string() + ".argv"));
+		REQUIRE(Serializer::SaveVectorFunc3DCartesian(field, "constant", 0, 1, 2, 0, 1, 2, 0, 1, 2, reference.path.string()).success);
+		const auto text = ReadGeneratedOutput(output.path);
+		CHECK(text == ReadGeneratedOutput(reference.path));
+		CheckVectorRows(text, 3, 8, magnitude);
+	}
+}
+
+TEST_CASE("Ordinary 2D vector visualization remains unfiltered", "[Visualizer][VectorFiltering]") {
+	LauncherFixture fixture;
+	fixture.Install("MML_VectorField2D_Visualizer");
+	GeneratedOutput output, reference;
+	VectorFunctionFromStdFunc<2> field([](const VectorN<Real, 2>&) { return VectorN<Real, 2>{4, 0}; });
+	const auto result = Visualizer::VisualizeVectorField2DCartesian(
+		field, "constant", 0, 1, 2, 0, 1, 2, output.path.filename().string());
+	INFO(result.message);
+	REQUIRE(result.success);
+	CHECK(std::filesystem::exists(output.path.string() + ".argv"));
+	REQUIRE(Serializer::SaveVectorFunc2DCartesian(field, "constant", 0, 1, 2, 0, 1, 2, reference.path.string()).success);
+	const auto text = ReadGeneratedOutput(output.path);
+	CHECK(text == ReadGeneratedOutput(reference.path));
+	CheckVectorRows(text, 2, 4, 4);
+}
+
+TEST_CASE("Explicit 3D vector cutoff preserves exclusive serializer semantics", "[Visualizer][VectorFiltering]") {
+	LauncherFixture fixture;
+	fixture.Install("MML_VectorField3D_Visualizer");
+	VectorFunctionFromStdFunc<3> field([](const VectorN<Real, 3>&) { return VectorN<Real, 3>{4, 0, 0}; });
+	for (Real cutoff : {Real(3), Real(4), Real(5), std::numeric_limits<Real>::infinity()}) {
+		CAPTURE(cutoff);
+		GeneratedOutput output, reference;
+		const auto result = Visualizer::VisualizeVectorField3DCartesian(
+			field, "constant", 0, 1, 2, 0, 1, 2, 0, 1, 2, output.path.filename().string(), cutoff);
+		INFO(result.message);
+		REQUIRE(result.success);
+		CHECK(std::filesystem::exists(output.path.string() + ".argv"));
+		REQUIRE(Serializer::SaveVectorFunc3DCartesian(
+			field, "constant", 0, 1, 2, 0, 1, 2, 0, 1, 2, reference.path.string(), cutoff).success);
+		const auto text = ReadGeneratedOutput(output.path);
+		CHECK(text == ReadGeneratedOutput(reference.path));
+		CheckVectorRows(text, 3, cutoff > 4 ? 8 : 0, 4);
+	}
+}
+
+TEST_CASE("Explicit 2D vector cutoff matches the serializer", "[Visualizer][VectorFiltering]") {
+	LauncherFixture fixture;
+	fixture.Install("MML_VectorField2D_Visualizer");
+	VectorFunctionFromStdFunc<2> field([](const VectorN<Real, 2>&) { return VectorN<Real, 2>{4, 0}; });
+	for (Real cutoff : {Real(3), Real(4), Real(5), std::numeric_limits<Real>::infinity()}) {
+		CAPTURE(cutoff);
+		GeneratedOutput output, reference;
+		const auto result = Visualizer::VisualizeVectorField2DCartesian(
+			field, "constant", 0, 1, 2, 0, 1, 2, output.path.filename().string(), cutoff);
+		INFO(result.message);
+		REQUIRE(result.success);
+		CHECK(std::filesystem::exists(output.path.string() + ".argv"));
+		REQUIRE(Serializer::SaveVectorFunc2DCartesian(field, "constant", 0, 1, 2, 0, 1, 2, reference.path.string(), cutoff).success);
+		const auto text = ReadGeneratedOutput(output.path);
+		CHECK(text == ReadGeneratedOutput(reference.path));
+		CheckVectorRows(text, 2, cutoff > 4 ? 4 : 0, 4);
+	}
+}
+
+TEST_CASE("Explicit vector cutoff selectively retains samples below its bound", "[Visualizer][VectorFiltering]") {
+	LauncherFixture fixture;
+	fixture.Install("MML_VectorField2D_Visualizer");
+	fixture.Install("MML_VectorField3D_Visualizer");
+	VectorFunctionFromStdFunc<2> field2([](const VectorN<Real, 2>& p) { return VectorN<Real, 2>{2 + 2 * p[0], 0}; });
+	VectorFunctionFromStdFunc<3> field3([](const VectorN<Real, 3>& p) { return VectorN<Real, 3>{2 + 2 * p[0], 0, 0}; });
+	GeneratedOutput output2, output3;
+	REQUIRE(Visualizer::VisualizeVectorField2DCartesian(
+		field2, "mixed", 0, 1, 2, 0, 1, 2, output2.path.filename().string(), 3).success);
+	REQUIRE(Visualizer::VisualizeVectorField3DCartesian(
+		field3, "mixed", 0, 1, 2, 0, 1, 2, 0, 1, 2, output3.path.filename().string(), 3).success);
+	CheckVectorRows(ReadGeneratedOutput(output2.path), 2, 2, 2);
+	CheckVectorRows(ReadGeneratedOutput(output3.path), 3, 4, 2);
+}
+
+TEST_CASE("Invalid vector cutoffs reject before evaluation file writes or launching", "[Visualizer][VectorFiltering]") {
+	LauncherFixture fixture;
+	fixture.Install("MML_VectorField2D_Visualizer");
+	fixture.Install("MML_VectorField3D_Visualizer");
+	int evaluations = 0;
+	VectorFunctionFromStdFunc<2> field2([&](const VectorN<Real, 2>&) { ++evaluations; return VectorN<Real, 2>{4, 0}; });
+	VectorFunctionFromStdFunc<3> field3([&](const VectorN<Real, 3>&) { ++evaluations; return VectorN<Real, 3>{4, 0, 0}; });
+	for (int dimension : {2, 3}) {
+		for (Real cutoff : {Real(0), Real(-1), -std::numeric_limits<Real>::infinity(), std::numeric_limits<Real>::quiet_NaN()}) {
+			for (bool facade : {false, true}) {
+				for (bool seed : {false, true}) {
+					CAPTURE(dimension, cutoff, facade, seed);
+					GeneratedOutput output;
+					if (seed) {
+						std::ofstream out(output.path);
+						out << "SENTINEL";
+						out.close();
+						REQUIRE_FALSE(out.fail());
+					}
+					IOResult result;
+					if (dimension == 2) {
+						result = facade ? Visualizer::VisualizeVectorField2DCartesian(
+							field2, "invalid", 0, 1, 2, 0, 1, 2, output.path.filename().string(), cutoff) :
+							Serializer::SaveVectorFunc2DCartesian(field2, "invalid", 0, 1, 2, 0, 1, 2, output.path.string(), cutoff);
+					} else {
+						result = facade ? Visualizer::VisualizeVectorField3DCartesian(
+							field3, "invalid", 0, 1, 2, 0, 1, 2, 0, 1, 2, output.path.filename().string(), cutoff) :
+							Serializer::SaveVectorFunc3DCartesian(field3, "invalid", 0, 1, 2, 0, 1, 2, 0, 1, 2, output.path.string(), cutoff);
+					}
+					CHECK_FALSE(result.success);
+					CHECK(result.error == IOError::INVALID_PARAMETERS);
+					CHECK_FALSE(result.message.empty());
+					CHECK(std::filesystem::path(result.filename) == std::filesystem::weakly_canonical(output.path));
+					CHECK(evaluations == 0);
+					CHECK_FALSE(std::filesystem::exists(output.path.string() + ".argv"));
+					if (seed) CHECK(ReadGeneratedOutput(output.path) == "SENTINEL");
+					else CHECK_FALSE(std::filesystem::exists(output.path));
+				}
+			}
+		}
+	}
+}
+
+TEST_CASE("Filtered vector facade propagates invalid sampling requests", "[Visualizer][VectorFiltering]") {
+	LauncherFixture fixture;
+	fixture.Install("MML_VectorField2D_Visualizer");
+	fixture.Install("MML_VectorField3D_Visualizer");
+	int evaluations = 0;
+	VectorFunctionFromStdFunc<2> field2([&](const VectorN<Real, 2>&) { ++evaluations; return VectorN<Real, 2>{4, 0}; });
+	VectorFunctionFromStdFunc<3> field3([&](const VectorN<Real, 3>&) { ++evaluations; return VectorN<Real, 3>{4, 0, 0}; });
+	GeneratedOutput output2, output3;
+	const auto result2 = Visualizer::VisualizeVectorField2DCartesian(
+		field2, "invalid", 0, 1, 1, 0, 1, 2, output2.path.filename().string(), 5);
+	const auto result3 = Visualizer::VisualizeVectorField3DCartesian(
+		field3, "invalid", 0, 1, 2, 0, 1, 2, 0, 1, 1, output3.path.filename().string(), 5);
+	CHECK(result2.error == IOError::INVALID_PARAMETERS);
+	CHECK(result3.error == IOError::INVALID_PARAMETERS);
+	CHECK(evaluations == 0);
+	CHECK_FALSE(std::filesystem::exists(output2.path));
+	CHECK_FALSE(std::filesystem::exists(output3.path));
+	CHECK_FALSE(std::filesystem::exists(output2.path.string() + ".argv"));
+	CHECK_FALSE(std::filesystem::exists(output3.path.string() + ".argv"));
 }
 
 TEST_CASE("Visualizer catalog drives all legacy path getters", "[Visualizer][Launcher][Catalog]") {
@@ -411,12 +621,73 @@ TEST_CASE("Visualizer surfaces process-start failures for an invalid executable"
 	invalid.close();
 	REQUIRE(IsBackendAvailable(VisualizerBackend::FLTK));
 	const auto input = fixture.Data("start failure.mml");
+#ifdef _WIN32
+	const DWORD processMode = GetErrorMode();
+	DWORD expectedError = ERROR_SUCCESS;
+	{
+		ThreadErrorModeFixture nativeMode(GetThreadErrorMode() | SEM_FAILCRITICALERRORS);
+		STARTUPINFOA startup = {};
+		startup.cb = sizeof(startup);
+		PROCESS_INFORMATION process = {};
+		const BOOL created = CreateProcessA(executable.string().c_str(), nullptr, nullptr, nullptr,
+			FALSE, 0, nullptr, nullptr, &startup, &process);
+		expectedError = created ? ERROR_SUCCESS : GetLastError();
+		if (created) {
+			CloseHandle(process.hThread);
+			CloseHandle(process.hProcess);
+		}
+		REQUIRE_FALSE(created);
+	}
+	REQUIRE(expectedError != ERROR_SUCCESS);
+	for (DWORD mode : {DWORD(0), DWORD(SEM_NOOPENFILEERRORBOX), DWORD(SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX)}) {
+		CAPTURE(mode);
+		ThreadErrorModeFixture errorMode(mode);
+#endif
 	const auto result = Visualizer::VisualizeRealFunctionFromFile(input.string());
 	REQUIRE_FALSE(result.success);
 	REQUIRE(result.exitCode != 0);
 	REQUIRE_FALSE(result.message.empty());
 	REQUIRE(std::filesystem::path(result.filename) == std::filesystem::weakly_canonical(input));
+#ifdef _WIN32
+		CHECK(result.error == IOError::PROCESS_FAILED);
+		CHECK_FALSE(result.timedOut);
+		CHECK(result.exitCode == static_cast<int>(expectedError));
+		CHECK(result.message.find(std::to_string(expectedError)) != std::string::npos);
+		CHECK(GetThreadErrorMode() == mode);
+		CHECK(GetErrorMode() == processMode);
+	}
+#endif
 }
+
+#ifdef _WIN32
+TEST_CASE("Windows visualizer launches preserve caller error modes on success failure and timeout", "[Visualizer][Launcher][Process]") {
+	LauncherFixture fixture;
+	const auto executable = fixture.Install();
+	const auto input = fixture.Data("error mode success.mml");
+	const auto failingInput = fixture.Data("error mode exit7.mml", 7);
+	const DWORD processMode = GetErrorMode();
+	for (DWORD mode : {DWORD(0), DWORD(SEM_NOOPENFILEERRORBOX), DWORD(SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX)}) {
+		CAPTURE(mode);
+		ThreadErrorModeFixture errorMode(mode);
+		const auto success = detail::visualizer::ExecuteVisualizer(executable.string(), {input.string()});
+		INFO(success.message);
+		CHECK(success.success);
+		CHECK(GetThreadErrorMode() == mode);
+		CHECK(GetErrorMode() == processMode);
+		const auto failure = detail::visualizer::ExecuteVisualizer(executable.string(), {failingInput.string()});
+		CHECK_FALSE(failure.success);
+		CHECK(failure.exitCode == 7);
+		CHECK(GetThreadErrorMode() == mode);
+		CHECK(GetErrorMode() == processMode);
+		const auto timeout = detail::visualizer::ExecuteVisualizer(executable.string(), {"--sleep"}, 25);
+		CHECK_FALSE(timeout.success);
+		CHECK(timeout.timedOut);
+		CHECK(timeout.error == IOError::TIMEOUT);
+		CHECK(GetThreadErrorMode() == mode);
+		CHECK(GetErrorMode() == processMode);
+	}
+}
+#endif
 
 ///////////////////////////////////////////////////////////////////////////////
 //                        VISUALIZER RESULT - SUCCESS                        //

@@ -1,10 +1,9 @@
 #include <catch2/catch_all.hpp>
-#include "TestPrecision.h"
-#include "TestMatchers.h"
+#include "../../TestPrecision.h"
+#include "../../TestMatchers.h"
+#include <cstdint>
 
-#ifdef MML_USE_SINGLE_HEADER
-#include <MML.h>
-#else
+#ifndef MML_SINGLE_HEADER_INCLUDE
 #include <mml/algorithms/Statistics.h>
 #include <mml/algorithms/Statistics/DiscreteDistributions.h>
 #endif
@@ -120,7 +119,7 @@ namespace MML::Tests::Algorithms::DiscreteDistributionsTests
 		Statistics::BinomialDistribution noSuccesses(5, static_cast<MML::Real>(0.0));
 		REQUIRE_THAT(noSuccesses.pmf(0), WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-12, 1e-6)));
 		REQUIRE_THAT(noSuccesses.pmf(1), WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-12, 1e-6)));
-		REQUIRE(noSuccesses.inverseCdf(static_cast<MML::Real>(1.0)) == 5);
+		REQUIRE(noSuccesses.inverseCdf(static_cast<MML::Real>(1.0)) == 0);
 
 		Statistics::BinomialDistribution allSuccesses(5, static_cast<MML::Real>(1.0));
 		REQUIRE_THAT(allSuccesses.pmf(4), WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-12, 1e-6)));
@@ -288,8 +287,18 @@ namespace MML::Tests::Algorithms::DiscreteDistributionsTests
 		REQUIRE_THAT(hypergeometric.variance(), WithinAbs(static_cast<MML::Real>(0.7346938776), TOL(1e-9, 1e-5)));
 
 		Real pmfSum = 0.0;
-		for (int k = 0; k <= 5; ++k)
+		const auto choose = [](int n, int k) {
+			std::uint64_t value = 1;
+			for (int i = 1; i <= k; ++i)
+				value = value * static_cast<std::uint64_t>(n - k + i) / static_cast<std::uint64_t>(i);
+			return value;
+		};
+		for (int k = 0; k <= 5; ++k) {
+			CAPTURE(k);
+			const Real expected = Real(static_cast<long double>(choose(10, k) * choose(40, 5 - k)) / choose(50, 5));
+			CHECK_THAT(hypergeometric.pmf(k), WithinAbs(expected, Precision::EqualityTolerance * expected));
 			pmfSum += hypergeometric.pmf(k);
+		}
 		REQUIRE_THAT(pmfSum, WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-12, 1e-6)));
 
 		REQUIRE_THAT(hypergeometric.cdf(-1), WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-12, 1e-6)));

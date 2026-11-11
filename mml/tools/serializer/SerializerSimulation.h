@@ -19,6 +19,31 @@ namespace MML
 {
 	namespace Serializer
 	{
+		namespace detail
+		{
+			inline IOResult ParticleSimulationFrameCount(std::size_t numSteps, int stride, int& frames) {
+				if (stride < 1)
+					return SerializeFailure(IOError::INVALID_PARAMETERS, "saveEveryNSteps must be >= 1");
+				if (numSteps > static_cast<std::size_t>(std::numeric_limits<int>::max()))
+					return SerializeFailure(IOError::INVALID_PARAMETERS, "Particle history length exceeds the supported int range");
+				const auto stepStride = static_cast<std::size_t>(stride);
+				frames = static_cast<int>(numSteps / stepStride + (numSteps % stepStride != 0));
+				return SerializeSuccess();
+			}
+
+			template<class Point>
+			IOResult ValidateParticleHistories(const std::vector<std::vector<Point>>& histories, int stride, int& frames) {
+				if (histories.empty())
+					return SerializeFailure(IOError::INVALID_PARAMETERS, "Particle histories must contain at least one particle");
+				const auto numSteps = histories.front().size();
+				for (std::size_t particle = 1; particle < histories.size(); ++particle)
+					if (histories[particle].size() != numSteps)
+						return SerializeFailure(IOError::INVALID_PARAMETERS,
+							"Particle history " + std::to_string(particle) + " length must match the first particle history");
+				return ParticleSimulationFrameCount(numSteps, stride, frames);
+			}
+		}
+
 		//===================================================================================
 		// Particle simulation serialization
 		//===================================================================================
@@ -44,13 +69,18 @@ namespace MML
 				return IOResult{false, IOError::INVALID_PARAMETERS, "width and height must be positive"}.WithFile(fileName);
 			if (dT <= 0)
 				return IOResult{false, IOError::INVALID_PARAMETERS, "dT must be positive"}.WithFile(fileName);
-			if (ballPositions.size() != numBalls || ballColors.size() != numBalls || ballRadius.size() != numBalls)
+			if (ballPositions.size() != static_cast<size_t>(numBalls) || ballColors.size() != static_cast<size_t>(numBalls) ||
+					ballRadius.size() != static_cast<size_t>(numBalls))
 				return IOResult{false, IOError::INVALID_PARAMETERS, "ballPositions, ballColors, and ballRadius sizes must equal numBalls"}.WithFile(
 					fileName);
-			if (fileName.empty())
-				return IOResult{false, IOError::INVALID_PARAMETERS, "fileName cannot be empty"}.WithFile(fileName);
-			if (saveEveryNSteps < 1)
-				return IOResult{false, IOError::INVALID_PARAMETERS, "saveEveryNSteps must be >= 1"}.WithFile(fileName);
+			const auto catalogValidation = detail::ValidateParticleCatalog(numBalls, ballColors, ballRadius);
+			if (!catalogValidation.success) return catalogValidation.WithFile(fileName);
+			const auto pathValidation = detail::ValidateFileName(fileName);
+			if (!pathValidation.success) return pathValidation;
+			int actualFrames = 0;
+			const auto validation = detail::ValidateParticleHistories(ballPositions, saveEveryNSteps, actualFrames);
+			if (!validation.success)
+				return validation.WithFile(fileName);
 
 			std::ofstream file(fileName);
 			Serializer::detail::ApplyTextFormat(file);
@@ -61,15 +91,13 @@ namespace MML
 			{
 				std::ostringstream buffer;
 				Serializer::detail::ApplyTextFormat(buffer);
-				int numSteps = ballPositions[0].size() ;
-				int actualFrames = (numSteps + saveEveryNSteps - 1) / saveEveryNSteps;
 				auto headerResult = WriteParticleSimulation2DHeader(buffer, numBalls, width, height, ballColors, ballRadius, actualFrames);
 				if (!headerResult.success)
 					return (headerResult).WithFile(fileName);
 
-				int realStep = 0;
-				for (int i = 0; i < numSteps; i+=saveEveryNSteps, realStep++)
+				for (int realStep = 0; realStep < actualFrames; ++realStep)
 				{
+					const auto i = static_cast<std::size_t>(realStep) * static_cast<std::size_t>(saveEveryNSteps);
 					buffer << "Step " << realStep << " " << i * dT << std::endl;
 					for (int j = 0; j < numBalls; j++)
 					{
@@ -107,13 +135,18 @@ namespace MML
 				return IOResult{false, IOError::INVALID_PARAMETERS, "width, height, and depth must be positive"}.WithFile(fileName);
 			if (dT <= 0)
 				return IOResult{false, IOError::INVALID_PARAMETERS, "dT must be positive"}.WithFile(fileName);
-			if (ballPositions.size() != numBalls || ballColors.size() != numBalls || ballRadius.size() != numBalls)
+			if (ballPositions.size() != static_cast<size_t>(numBalls) || ballColors.size() != static_cast<size_t>(numBalls) ||
+					ballRadius.size() != static_cast<size_t>(numBalls))
 				return IOResult{false, IOError::INVALID_PARAMETERS, "ballPositions, ballColors, and ballRadius sizes must equal numBalls"}.WithFile(
 					fileName);
-			if (fileName.empty())
-				return IOResult{false, IOError::INVALID_PARAMETERS, "fileName cannot be empty"}.WithFile(fileName);
-			if (saveEveryNSteps < 1)
-				return IOResult{false, IOError::INVALID_PARAMETERS, "saveEveryNSteps must be >= 1"}.WithFile(fileName);
+			const auto catalogValidation = detail::ValidateParticleCatalog(numBalls, ballColors, ballRadius);
+			if (!catalogValidation.success) return catalogValidation.WithFile(fileName);
+			const auto pathValidation = detail::ValidateFileName(fileName);
+			if (!pathValidation.success) return pathValidation;
+			int actualFrames = 0;
+			const auto validation = detail::ValidateParticleHistories(ballPositions, saveEveryNSteps, actualFrames);
+			if (!validation.success)
+				return validation.WithFile(fileName);
 
 			std::ofstream file(fileName);
 			Serializer::detail::ApplyTextFormat(file);
@@ -122,15 +155,13 @@ namespace MML
 
 			try
 			{
-				int numSteps = ballPositions[0].size();
-				int actualFrames = (numSteps + saveEveryNSteps - 1) / saveEveryNSteps;
 				auto headerResult = WriteParticleSimulation3DHeader(file, numBalls, width, height, depth, ballColors, ballRadius, actualFrames);
 				if (!headerResult.success)
 					return (headerResult).WithFile(fileName);
 
-				int realStep = 0;
-				for (int i = 0; i < numSteps; i += saveEveryNSteps, realStep++)
+				for (int realStep = 0; realStep < actualFrames; ++realStep)
 				{
+					const auto i = static_cast<std::size_t>(realStep) * static_cast<std::size_t>(saveEveryNSteps);
 					file << "Step " << realStep << " " << i * dT << std::endl;
 					for (int j = 0; j < numBalls; j++)
 					{

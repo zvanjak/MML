@@ -20,6 +20,7 @@
 #include <mml/MMLBase.h>
 
 #include <mml/interfaces/IFunction.h>
+#include "Integration1D.h"
 
 namespace MML
 {
@@ -28,12 +29,16 @@ namespace MML
 	{
 		mutable Real				_currX;
 		const IScalarFunction<2>& _funcToIntegrate;
+		mutable int _evaluations = 0;
 
 		Integral2DInner(const IScalarFunction<2>& func) : _currX(0.0), _funcToIntegrate(func) {}
 
 		Real operator()(const Real y) const
 		{
 			VectorN<Real, 2> v{ _currX, y };
+			if (_evaluations == std::numeric_limits<int>::max())
+				throw ResourceLimitError("Nested integration evaluation counter exhausted");
+			++_evaluations;
 			return _funcToIntegrate(v);
 		}
 	};
@@ -48,31 +53,33 @@ namespace MML
 
 		Real(*_yRangeLow)(Real);
 		Real(*_yRangeUpp)(Real);
+		IntegrationConfig _config;
+		mutable IntegrationDetail::NestedErrors _errors;
 
 		Integral2DOuter(const IScalarFunction<2>& func, IntegrationMethod inMethod, 
-										Real yy1(Real), Real yy2(Real)) 
-				: _yRangeLow(yy1), _yRangeUpp(yy2), 
-					_fInner(func), _funcToIntegrate(func), _integrMethod(inMethod)	{	}
+										Real yy1(Real), Real yy2(Real), const IntegrationConfig& config = {})
+				: _fInner(func), _integrMethod(inMethod), _funcToIntegrate(func),
+					_yRangeLow(yy1), _yRangeUpp(yy2), _config(config) {
+			if (!yy1 || !yy2) throw NotImplementedError("Nested integration requires both bound callbacks");
+		}
 
 		// for given x, will return (ie. integrate function over Y-range)
 		Real operator()(const Real x) const
 		{
 			_fInner._currX = x;
-			switch (_integrMethod)
-			{
-				case SIMPSON:
-					return IntegrateSimpsonCore(_fInner, _yRangeLow(x), _yRangeUpp(x)).value;
-				case ROMBERG:
-					return IntegrateRombergCore(_fInner, _yRangeLow(x), _yRangeUpp(x)).value;
-				case GAUSS10:
-					return IntegrateGauss10Core(_fInner, _yRangeLow(x), _yRangeUpp(x)).value;
-				case GAUSS10KRONROD21:
-					return IntegrateGK21Core(_fInner, _yRangeLow(x), _yRangeUpp(x)).value;
-				default:
-					return IntegrateTrapCore(_fInner, _yRangeLow(x), _yRangeUpp(x)).value;
-			}
+			const auto inner = IntegrationDetail::NestedAxis(_fInner, _yRangeLow(x), _yRangeUpp(x), _integrMethod, _config);
+			_errors.Observe(inner);
+			return inner.value;
 		}
 	};
+	static void RunIntegration2D(IntegrationResult& result, const IScalarFunction<2>& function, IntegrationMethod method,
+		Real a, Real b, Real lower(Real), Real upper(Real), const IntegrationConfig& config = {}) {
+		Integral2DOuter outer(function, method, lower, upper, config);
+		IntegrationDetail::EvaluationCountGuard count{result, outer._fInner._evaluations};
+		auto integrated = IntegrationDetail::NestedAxis(outer, a, b, method, config, &result);
+		outer._errors.Combine(integrated, a, b, method);
+		IntegrationDetail::Adopt(result, integrated, "Integrate2D");
+	}
 	/// @brief Double integral ∬_D f(x,y) dx dy with variable y-limits
 	/// @param func Scalar function f: ℝ² → ℝ to integrate
 	/// @param method Integration method (TRAP, SIMPSON, ROMBERG, GAUSS10)
@@ -83,24 +90,12 @@ namespace MML
 																			 const Real x1, const Real x2, 
 																			 Real y1(Real), Real y2(Real))
 	{
-		Integral2DOuter f1(func, method, y1, y2);
-
-		switch (method)
-		{
-			case SIMPSON:
-				return IntegrateSimpsonCore(f1, x1, x2);
-			case ROMBERG:
-				return IntegrateRombergCore(f1, x1, x2);
-			case GAUSS10:
-				return IntegrateGauss10Core(f1, x1, x2);  // Now returns IntegrationResult directly
-			case GAUSS10KRONROD21:
-				return IntegrateGK21Core(f1, x1, x2);
-			default:
-				return IntegrateTrapCore(f1, x1, x2);
-		}
+		IntegrationResult result;
+		RunIntegration2D(result, func, method, x1, x2, y1, y2);
+		return result;
 	}
 
-	static Real Integrate2D(const IScalarFunction<2>& func, IntegrationMethod method, 
+	static inline Real Integrate2D(const IScalarFunction<2>& func, IntegrationMethod method,
 																			 const Real x1, const Real x2, 
 																			 Real y1(Real), Real y2(Real))
 	{
@@ -112,7 +107,7 @@ namespace MML
 	/******************************************************************************/
 
 	/// 2D integration with full diagnostics
-	static IntegrationDetailedResult Integrate2DDetailed(
+	static inline IntegrationDetailedResult Integrate2DDetailed(
 		const IScalarFunction<2>& func, IntegrationMethod method,
 		const Real x1, const Real x2,
 		Real y1(Real), Real y2(Real),
@@ -121,8 +116,7 @@ namespace MML
 		return IntegrationDetail::ExecuteIntegrationDetailed<IntegrationDetailedResult>(
 			"Integrate2D", config,
 			[&](IntegrationDetailedResult& result) {
-				auto r = Integrate2DCore(func, method, x1, x2, y1, y2);
-				IntegrationDetail::PopulateFromSimple(result, r, "Integrate2D");
+				RunIntegration2D(result, func, method, x1, x2, y1, y2, config);
 			});
 	}
 }

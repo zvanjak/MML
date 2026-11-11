@@ -51,7 +51,7 @@ namespace MML
 	///     // Create a true rank-3 tensor with 1 up, 2 down indices
 	///     Tensor3<3> torsion(2, 1);  // 2 covariant, 1 contravariant
 	///     
-	///     // Contract indices 1 and 2 (trace over the covariant indices)
+	///     // Contract a covariant slot with the contravariant slot
 	///     VectorN<Real, 3> contracted = torsion.contract(1, 2);
 	/// @endcode
 	template <int N>
@@ -86,34 +86,26 @@ namespace MML
 		/// @brief Constructs a zero-initialized rank-3 tensor with specified index variance.
 		/// @param nCovar Number of covariant (lower) indices
 		/// @param nContraVar Number of contravariant (upper) indices
-		/// @throws TensorCovarContravarNumError if nCovar + nContraVar != 3
+		/// @throws TensorCovarContravarNumError if counts are negative or do not sum to 3
 		Tensor3(int nCovar, int nContraVar) : _numContravar(nContraVar), _numCovar(nCovar)
 		{
-			if (_numContravar + _numCovar != 3)
-				throw TensorCovarContravarNumError("Tensor3 ctor, wrong number of contravariant and covariant indices", nCovar, nContraVar);
+			detail::ValidateTensorVarianceCounts<3>(nCovar, nContraVar);
 
-			for (int i = 0; i < _numCovar; i++)
-				_isContravar[i] = false;
-
-			for (int i = _numCovar; i < _numCovar + _numContravar; i++)
-				_isContravar[i] = true;
+			for (int i = 0; i < 3; i++)
+				_isContravar[i] = i >= _numCovar;
 		}
 
 		/// @brief Constructs a rank-3 tensor with specified values and index variance.
 		/// @param nCovar Number of covariant (lower) indices
 		/// @param nContraVar Number of contravariant (upper) indices  
 		/// @param values Initializer list of N³ values in lexicographic order
-		/// @throws TensorCovarContravarNumError if nCovar + nContraVar != 3
+		/// @throws TensorCovarContravarNumError if counts are negative or do not sum to 3
 		Tensor3(int nCovar, int nContraVar, std::initializer_list<Real> values) : _numContravar(nContraVar), _numCovar(nCovar)
 		{
-			if (_numContravar + _numCovar != 3)
-				throw TensorCovarContravarNumError("Tensor3 ctor, wrong number of contravariant and covariant indices", nCovar, nContraVar);
+			detail::ValidateTensorVarianceCounts<3>(nCovar, nContraVar);
 			
-			for (int i = 0; i < _numCovar; i++)
-				_isContravar[i] = false;
-			
-			for (int i = _numCovar; i < _numCovar + _numContravar; i++)
-				_isContravar[i] = true;
+			for (int i = 0; i < 3; i++)
+				_isContravar[i] = i >= _numCovar;
 			
 			if (values.size() > N * N * N)
 				throw TensorCovarContravarNumError("Tensor3 ctor, initializer_list has more than N*N*N elements", static_cast<int>(values.size()), N * N * N);
@@ -147,6 +139,8 @@ namespace MML
 		/// @brief Sets the variance of index i, keeping covariant/contravariant counts in sync.
 		void setContravar(int i, bool val)
 		{
+			if (i < 0 || i >= 3)
+				throw TensorIndexError("Tensor3::setContravar - index position out of bounds");
 			_isContravar[i] = val;
 			_numContravar = 0;
 			for (bool c : _isContravar)
@@ -219,13 +213,23 @@ namespace MML
 		/// @param ind2 Second index to contract (0-2), must differ from ind1
 		/// @return VectorN containing the contracted result (rank-1 tensor)
 		/// @throws TensorIndexError if indices are out of range or equal
-		/// @note The result inherits the variance of the remaining (non-contracted) index.
+		/// @throws TensorCovarContravarArithmeticError if the slots have the same variance
+		/// @note VectorN stores components only; the remaining slot's variance belongs to the source tensor.
 		VectorN<Real, N> contract(int ind1, int ind2) const override
 		{
-			if (ind1 < 0 || ind1 > 2 || ind2 < 0 || ind2 > 2)
-				throw TensorIndexError("Tensor3 Contract, index out of range [0,2]");
-			if (ind1 == ind2)
-				throw TensorIndexError("Tensor3 Contract, indices must be different");
+			detail::ValidateTensorContractionIndices<3>(ind1, ind2);
+			if (_isContravar[ind1] == _isContravar[ind2])
+				throw TensorCovarContravarArithmeticError("Tensor3 contract - slots must have opposite variance",
+					_numContravar, _numCovar, _numContravar, _numCovar);
+			return EuclideanDiagonalSum(ind1, ind2);
+		}
+
+		/// @brief Sum equal-coordinate components without requiring opposite variance.
+		/// @details For same-variance slots this assumes a Cartesian orthonormal basis;
+		///          it is not a coordinate-invariant tensor contraction in a general basis.
+		VectorN<Real, N> EuclideanDiagonalSum(int ind1, int ind2) const
+		{
+			detail::ValidateTensorContractionIndices<3>(ind1, ind2);
 			if (ind1 > ind2) std::swap(ind1, ind2);  // Normalize: ind1 < ind2
 
 			VectorN<Real, N> result;

@@ -198,7 +198,9 @@ namespace MML
 		Vector<MatrixAlg::MatrixComplexScalar<Scalar>> Eigenvalues(
 				Magnitude tolerance = PrecisionValues<Magnitude>::EigenSolverConvergenceTolerance,
 				int maxIterations = 1000) const {
-			return Eigensystem(tolerance, maxIterations).eigenvalues;
+			const auto& result = Eigensystem(tolerance, maxIterations);
+			MatrixAlg::Detail::RequireUsableEigensystem(result, "MatrixAnalyzer::Eigenvalues");
+			return result.eigenvalues;
 		}
 
 		const MatrixAlg::SelfAdjointEigensystemResult<Scalar>& SymmetricEigensystem(
@@ -213,7 +215,9 @@ namespace MML
 		Vector<Magnitude> SymmetricEigenvalues(
 				Magnitude tolerance = PrecisionValues<Magnitude>::EigenSolverConvergenceTolerance,
 				int maxIterations = 100) const requires MMLReal<Scalar> {
-			return SymmetricEigensystem(tolerance, maxIterations).eigenvalues;
+			const auto& result = SymmetricEigensystem(tolerance, maxIterations);
+			MatrixAlg::Detail::RequireUsableEigensystem(result, "MatrixAnalyzer::SymmetricEigenvalues");
+			return result.eigenvalues;
 		}
 
 		const MatrixAlg::SelfAdjointEigensystemResult<Scalar>& HermitianEigensystem(
@@ -228,14 +232,18 @@ namespace MML
 		Vector<Magnitude> HermitianEigenvalues(
 				Magnitude tolerance = PrecisionValues<Magnitude>::EigenSolverConvergenceTolerance,
 				int maxIterations = 100) const requires MMLComplex<Scalar> {
-			return HermitianEigensystem(tolerance, maxIterations).eigenvalues;
+			const auto& result = HermitianEigensystem(tolerance, maxIterations);
+			MatrixAlg::Detail::RequireUsableEigensystem(result, "MatrixAnalyzer::HermitianEigenvalues");
+			return result.eigenvalues;
 		}
 
 		Magnitude SpectralRadius(
 				Magnitude tolerance = PrecisionValues<Magnitude>::EigenSolverConvergenceTolerance,
 				int maxIterations = 1000) const {
+			const auto& result = Eigensystem(tolerance, maxIterations);
+			MatrixAlg::Detail::RequireUsableEigensystem(result, "MatrixAnalyzer::SpectralRadius");
 			Magnitude maximum{};
-			for (const auto& eigenvalue : Eigensystem(tolerance, maxIterations).eigenvalues)
+			for (const auto& eigenvalue : result.eigenvalues)
 				maximum = std::max(maximum, static_cast<Magnitude>(std::abs(eigenvalue)));
 			return maximum;
 		}
@@ -243,7 +251,9 @@ namespace MML
 		bool HasComplexEigenvalues(
 				Magnitude tolerance = PrecisionValues<Magnitude>::EigenSolverConvergenceTolerance,
 				int maxIterations = 1000) const {
-			for (const auto& eigenvalue : Eigensystem(tolerance, maxIterations).eigenvalues)
+			const auto& result = Eigensystem(tolerance, maxIterations);
+			MatrixAlg::Detail::RequireUsableEigensystem(result, "MatrixAnalyzer::HasComplexEigenvalues");
+			for (const auto& eigenvalue : result.eigenvalues)
 				if (std::abs(eigenvalue.imag()) > tolerance)
 					return true;
 			return false;

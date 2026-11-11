@@ -144,7 +144,7 @@ TEST_CASE("Functions::FactorialStirling - Approximation quality", "[StandardFunc
         // For n=50, error should be < 0.2%
         if constexpr (!std::is_same_v<Real, float>) {
             // 50! exceeds float range (~3.04e64 > float max ~3.4e38)
-            Real exact_50 = std::tgamma(51.0);  // Use gamma function for large factorials
+            Real exact_50 = std::tgamma(MML::Real(51.0));  // Use gamma function for large factorials
             Real stirling_50 = FactorialStirling(50);
             Real rel_error_50 = std::abs(stirling_50 - exact_50) / exact_50;
             REQUIRE(rel_error_50 < 0.002);  // < 0.2% error
@@ -187,7 +187,7 @@ TEST_CASE("Functions::FactorialStirling - Convergence to exact", "[StandardFunct
         
         for (int n = 5; n <= 30; n += 5)
         {
-            Real exact = std::tgamma(n + 1.0);  // n! = Gamma(n+1)
+            Real exact = std::tgamma(n + MML::Real(1.0));  // n! = Gamma(n+1)
             Real stirling = FactorialStirling(n);
             Real rel_error = std::abs(stirling - exact) / exact;
             

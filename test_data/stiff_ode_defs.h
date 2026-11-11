@@ -4,7 +4,9 @@
 #include <cmath>
 #include <string>
 
-#ifdef MML_USE_SINGLE_HEADER
+#ifdef MML_SINGLE_HEADER_INCLUDE
+#include MML_SINGLE_HEADER_INCLUDE
+#elif defined(MML_USE_SINGLE_HEADER)
 #include <MML.h>
 #else
 #include <mml/MMLBase.h>
@@ -47,29 +49,29 @@ namespace MML::TestBeds
         
         void derivs(const Real t, const Vector<Real>& y, Vector<Real>& dydt) const override
         {
-            dydt[0] = -0.04 * y[0] + 1.0e4 * y[1] * y[2];
-            dydt[1] = 0.04 * y[0] - 1.0e4 * y[1] * y[2] - 3.0e7 * y[1] * y[1];
-            dydt[2] = 3.0e7 * y[1] * y[1];
+            dydt[0] = -MML::Real(0.04) * y[0] + MML::Real(1.0e4) * y[1] * y[2];
+            dydt[1] = MML::Real(0.04) * y[0] - MML::Real(1.0e4) * y[1] * y[2] - MML::Real(3.0e7) * y[1] * y[1];
+            dydt[2] = MML::Real(3.0e7) * y[1] * y[1];
         }
         
         void jacobian(Real t, const Vector<Real>& y, Matrix<Real>& J) const override
         {
             
-            J[0][0] = -0.04;
-            J[0][1] = 1.0e4 * y[2];
-            J[0][2] = 1.0e4 * y[1];
+            J[0][0] = -MML::Real(0.04);
+            J[0][1] = MML::Real(1.0e4) * y[2];
+            J[0][2] = MML::Real(1.0e4) * y[1];
             
-            J[1][0] = 0.04;
-            J[1][1] = -1.0e4 * y[2] - 6.0e7 * y[1];
-            J[1][2] = -1.0e4 * y[1];
+            J[1][0] = MML::Real(0.04);
+            J[1][1] = -MML::Real(1.0e4) * y[2] - MML::Real(6.0e7) * y[1];
+            J[1][2] = -MML::Real(1.0e4) * y[1];
             
             J[2][0] = 0.0;
-            J[2][1] = 6.0e7 * y[1];
+            J[2][1] = MML::Real(6.0e7) * y[1];
             J[2][2] = 0.0;
         }
         
         static Vector<Real> getInitialCondition() { return Vector<Real>{1.0, 0.0, 0.0}; }
-        static Real getTypicalEndTime() { return 1.0e11; }
+        static Real getTypicalEndTime() { return MML::Real(1.0e11); }
         static std::string getDescription() { return "Robertson chemical kinetics (extreme stiffness ~10^8)"; }
     };
 
@@ -97,7 +99,7 @@ namespace MML::TestBeds
         void derivs(const Real t, const Vector<Real>& y, Vector<Real>& dydt) const override
         {
             dydt[0] = y[1];
-            dydt[1] = _mu * (1.0 - y[0] * y[0]) * y[1] - y[0];
+            dydt[1] = _mu * (MML::Real(1.0) - y[0] * y[0]) * y[1] - y[0];
         }
         
         void jacobian(Real t, const Vector<Real>& y, Matrix<Real>& J) const override
@@ -105,8 +107,8 @@ namespace MML::TestBeds
             
             J[0][0] = 0.0;
             J[0][1] = 1.0;
-            J[1][0] = -2.0 * _mu * y[0] * y[1] - 1.0;
-            J[1][1] = _mu * (1.0 - y[0] * y[0]);
+            J[1][0] = -MML::Real(2.0) * _mu * y[0] * y[1] - MML::Real(1.0);
+            J[1][1] = _mu * (MML::Real(1.0) - y[0] * y[0]);
         }
         
         Real getMu() const { return _mu; }
@@ -142,7 +144,7 @@ namespace MML::TestBeds
         void derivs(const Real t, const Vector<Real>& y, Vector<Real>& dydt) const override
         {
             Real x = y[0], Y = y[1];
-            dydt[0] = _paramA + x * x * Y - (_paramB + 1.0) * x;
+            dydt[0] = _paramA + x * x * Y - (_paramB + MML::Real(1.0)) * x;
             dydt[1] = _paramB * x - x * x * Y;
         }
         
@@ -150,9 +152,9 @@ namespace MML::TestBeds
         {
             
             Real x = y[0], Y = y[1];
-            J[0][0] = 2.0 * x * Y - (_paramB + 1.0);
+            J[0][0] = MML::Real(2.0) * x * Y - (_paramB + MML::Real(1.0));
             J[0][1] = x * x;
-            J[1][0] = _paramB - 2.0 * x * Y;
+            J[1][0] = _paramB - MML::Real(2.0) * x * Y;
             J[1][1] = -x * x;
         }
         
@@ -180,7 +182,7 @@ namespace MML::TestBeds
     {
         Real _s, _w, _q;
     public:
-        OregonatorODE() : _s(77.27), _w(0.161), _q(8.375e-6) {}
+        OregonatorODE() : _s(MML::Real(77.27)), _w(MML::Real(0.161)), _q(MML::Real(8.375e-6)) {}
         OregonatorODE(Real s, Real w, Real q) : _s(s), _w(w), _q(q) {}
         
         int getDim() const override { return 3; }
@@ -195,13 +197,13 @@ namespace MML::TestBeds
         void jacobian(Real t, const Vector<Real>& y, Matrix<Real>& J) const override
         {
             
-            J[0][0] = _s * (-y[1] + 1.0 - 2.0 * _q * y[0]);
-            J[0][1] = _s * (1.0 - y[0]);
+            J[0][0] = _s * (-y[1] + MML::Real(1.0) - MML::Real(2.0) * _q * y[0]);
+            J[0][1] = _s * (MML::Real(1.0) - y[0]);
             J[0][2] = 0.0;
             
             J[1][0] = -y[1] / _s;
-            J[1][1] = (-1.0 - y[0]) / _s;
-            J[1][2] = 1.0 / _s;
+            J[1][1] = (-MML::Real(1.0) - y[0]) / _s;
+            J[1][2] = MML::Real(1.0) / _s;
             
             J[2][0] = _w;
             J[2][1] = 0.0;
@@ -228,14 +230,14 @@ namespace MML::TestBeds
         
         void derivs(const Real t, const Vector<Real>& y, Vector<Real>& f) const override
         {
-            f[0] = -1.71 * y[0] + 0.43 * y[1] + 8.32 * y[2] + 0.0007;
-            f[1] = 1.71 * y[0] - 8.75 * y[1];
-            f[2] = -10.03 * y[2] + 0.43 * y[3] + 0.035 * y[4];
-            f[3] = 8.32 * y[1] + 1.71 * y[2] - 1.12 * y[3];
-            f[4] = -1.745 * y[4] + 0.43 * y[5] + 0.43 * y[6];
-            f[5] = -280.0 * y[5] * y[7] + 0.69 * y[3] + 1.71 * y[4] - 0.43 * y[5] + 0.69 * y[6];
-            f[6] = 280.0 * y[5] * y[7] - 1.81 * y[6];
-            f[7] = -280.0 * y[5] * y[7] + 1.81 * y[6];
+            f[0] = -MML::Real(1.71) * y[0] + MML::Real(0.43) * y[1] + MML::Real(8.32) * y[2] + MML::Real(0.0007);
+            f[1] = MML::Real(1.71) * y[0] - MML::Real(8.75) * y[1];
+            f[2] = -MML::Real(10.03) * y[2] + MML::Real(0.43) * y[3] + MML::Real(0.035) * y[4];
+            f[3] = MML::Real(8.32) * y[1] + MML::Real(1.71) * y[2] - MML::Real(1.12) * y[3];
+            f[4] = -MML::Real(1.745) * y[4] + MML::Real(0.43) * y[5] + MML::Real(0.43) * y[6];
+            f[5] = -MML::Real(280.0) * y[5] * y[7] + MML::Real(0.69) * y[3] + MML::Real(1.71) * y[4] - MML::Real(0.43) * y[5] + MML::Real(0.69) * y[6];
+            f[6] = MML::Real(280.0) * y[5] * y[7] - MML::Real(1.81) * y[6];
+            f[7] = -MML::Real(280.0) * y[5] * y[7] + MML::Real(1.81) * y[6];
         }
         
         void jacobian(Real t, const Vector<Real>& y, Matrix<Real>& J) const override
@@ -246,52 +248,52 @@ namespace MML::TestBeds
             }
             
             // Row 0
-            J[0][0] = -1.71;
-            J[0][1] = 0.43;
-            J[0][2] = 8.32;
+            J[0][0] = -MML::Real(1.71);
+            J[0][1] = MML::Real(0.43);
+            J[0][2] = MML::Real(8.32);
             
             // Row 1
-            J[1][0] = 1.71;
+            J[1][0] = MML::Real(1.71);
             J[1][1] = -8.75;
             
             // Row 2
-            J[2][2] = -10.03;
-            J[2][3] = 0.43;
-            J[2][4] = 0.035;
+            J[2][2] = -MML::Real(10.03);
+            J[2][3] = MML::Real(0.43);
+            J[2][4] = MML::Real(0.035);
             
             // Row 3
-            J[3][1] = 8.32;
-            J[3][2] = 1.71;
-            J[3][3] = -1.12;
+            J[3][1] = MML::Real(8.32);
+            J[3][2] = MML::Real(1.71);
+            J[3][3] = -MML::Real(1.12);
             
             // Row 4
-            J[4][4] = -1.745;
-            J[4][5] = 0.43;
-            J[4][6] = 0.43;
+            J[4][4] = -MML::Real(1.745);
+            J[4][5] = MML::Real(0.43);
+            J[4][6] = MML::Real(0.43);
             
             // Row 5
-            J[5][3] = 0.69;
-            J[5][4] = 1.71;
-            J[5][5] = -280.0 * y[7] - 0.43;
-            J[5][6] = 0.69;
-            J[5][7] = -280.0 * y[5];
+            J[5][3] = MML::Real(0.69);
+            J[5][4] = MML::Real(1.71);
+            J[5][5] = -MML::Real(280.0) * y[7] - MML::Real(0.43);
+            J[5][6] = MML::Real(0.69);
+            J[5][7] = -MML::Real(280.0) * y[5];
             
             // Row 6
-            J[6][5] = 280.0 * y[7];
-            J[6][6] = -1.81;
-            J[6][7] = 280.0 * y[5];
+            J[6][5] = MML::Real(280.0) * y[7];
+            J[6][6] = -MML::Real(1.81);
+            J[6][7] = MML::Real(280.0) * y[5];
             
             // Row 7
-            J[7][5] = -280.0 * y[7];
-            J[7][6] = 1.81;
-            J[7][7] = -280.0 * y[5];
+            J[7][5] = -MML::Real(280.0) * y[7];
+            J[7][6] = MML::Real(1.81);
+            J[7][7] = -MML::Real(280.0) * y[5];
         }
         
         static Vector<Real> getInitialCondition()
         {
-            return Vector<Real>{1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0057};
+            return Vector<Real>{MML::Real(1.0), MML::Real(0.0), MML::Real(0.0), MML::Real(0.0), MML::Real(0.0), MML::Real(0.0), MML::Real(0.0), MML::Real(0.0057)};
         }
-        static Real getTypicalEndTime() { return 321.8122; }
+        static Real getTypicalEndTime() { return MML::Real(321.8122); }
         static std::string getDescription() { return "HIRES (8D plant physiology, moderate stiffness)"; }
     };
 
@@ -308,19 +310,19 @@ namespace MML::TestBeds
         
         void derivs(const Real t, const Vector<Real>& y, Vector<Real>& dydt) const override
         {
-            Real y3 = 1.0 - y[0] - y[1];
-            dydt[0] = -0.04 * y[0] + 1.0e4 * y[1] * y3;
-            dydt[1] = 0.04 * y[0] - 1.0e4 * y[1] * y3 - 3.0e7 * y[1] * y[1];
+            Real y3 = MML::Real(1.0) - y[0] - y[1];
+            dydt[0] = -MML::Real(0.04) * y[0] + MML::Real(1.0e4) * y[1] * y3;
+            dydt[1] = MML::Real(0.04) * y[0] - MML::Real(1.0e4) * y[1] * y3 - MML::Real(3.0e7) * y[1] * y[1];
         }
         
         void jacobian(Real t, const Vector<Real>& y, Matrix<Real>& J) const override
         {
             
-            Real y3 = 1.0 - y[0] - y[1];
-            J[0][0] = -0.04 - 1.0e4 * y[1];
-            J[0][1] = 1.0e4 * (y3 - y[1]);
-            J[1][0] = 0.04 + 1.0e4 * y[1];
-            J[1][1] = -1.0e4 * (y3 - y[1]) - 6.0e7 * y[1];
+            Real y3 = MML::Real(1.0) - y[0] - y[1];
+            J[0][0] = -MML::Real(0.04) - MML::Real(1.0e4) * y[1];
+            J[0][1] = MML::Real(1.0e4) * (y3 - y[1]);
+            J[1][0] = MML::Real(0.04) + MML::Real(1.0e4) * y[1];
+            J[1][1] = -MML::Real(1.0e4) * (y3 - y[1]) - MML::Real(6.0e7) * y[1];
         }
         
         static Vector<Real> getInitialCondition() { return Vector<Real>{1.0, 0.0}; }
@@ -337,7 +339,7 @@ namespace MML::TestBeds
      */
     class E5_ODE : public IODESystemWithJacobian
     {
-        static constexpr Real k1 = 7.89e10;
+        static constexpr Real k1 = MML::Real(7.89e10);
         static constexpr Real k2 = 1.1e7;
         static constexpr Real k3 = 1.13e3;
         static constexpr Real k4 = 13.0;
@@ -369,8 +371,8 @@ namespace MML::TestBeds
             J[3][3] = -k4;
         }
         
-        static Vector<Real> getInitialCondition() { return Vector<Real>{1.76e-3, 0.0, 0.0, 0.0}; }
-        static Real getTypicalEndTime() { return 1.0e13; }
+        static Vector<Real> getInitialCondition() { return Vector<Real>{MML::Real(1.76e-3), MML::Real(0.0), MML::Real(0.0), MML::Real(0.0)}; }
+        static Real getTypicalEndTime() { return MML::Real(1.0e13); }
         static std::string getDescription() { return "E5 decay chain (4D, extreme stiffness ~6×10^9)"; }
     };
 
@@ -386,13 +388,13 @@ namespace MML::TestBeds
     class PollutionODE : public IODESystemWithJacobian
     {
         // Rate constants
-        static constexpr Real k1 = 0.35e0;
-        static constexpr Real k2 = 0.266e2;
+        static constexpr Real k1 = MML::Real(0.35e0);
+        static constexpr Real k2 = MML::Real(0.266e2);
         static constexpr Real k3 = 0.123e5;
-        static constexpr Real k4 = 0.86e-3;
-        static constexpr Real k5 = 0.82e-3;
+        static constexpr Real k4 = MML::Real(0.86e-3);
+        static constexpr Real k5 = MML::Real(0.82e-3);
         static constexpr Real k6 = 0.15e5;
-        static constexpr Real k7 = 0.13e-3;
+        static constexpr Real k7 = MML::Real(0.13e-3);
         static constexpr Real k8 = 0.24e5;
         static constexpr Real k9 = 0.165e5;
         static constexpr Real k10 = 0.9e4;
@@ -453,7 +455,7 @@ namespace MML::TestBeds
         
         static Vector<Real> getInitialCondition()
         {
-            return Vector<Real>{0.0, 0.2, 0.0, 0.04, 0.0, 0.0, 0.1, 0.3, 0.01, 0.0};
+            return Vector<Real>{MML::Real(0.0), MML::Real(0.2), MML::Real(0.0), MML::Real(0.04), MML::Real(0.0), MML::Real(0.0), MML::Real(0.1), MML::Real(0.3), MML::Real(0.01), MML::Real(0.0)};
         }
         static std::string getDescription() { return "Atmospheric pollution (10D, moderate stiffness)"; }
     };
@@ -477,8 +479,8 @@ namespace MML::TestBeds
             // A = V * diag(-1, -1000, -10000) * V^{-1}
             // Using simple form: diagonal system rotated
             dydt[0] = -y[0];
-            dydt[1] = -1000.0 * y[1];
-            dydt[2] = -10000.0 * y[2];
+            dydt[1] = -MML::Real(1000.0) * y[1];
+            dydt[2] = -MML::Real(10000.0) * y[2];
         }
         
         void jacobian(Real t, const Vector<Real>& y, Matrix<Real>& J) const override

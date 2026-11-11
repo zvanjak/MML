@@ -70,25 +70,23 @@ namespace MML
 		/// q[1] = theta - inclination
 		/// q[2] = phi   - azimuthal angle
 		/// @brief Convert spherical to Cartesian x-coordinate
-		static Real x(const VectorN<Real, 3>& q) { return q[0] * sin(q[1]) * cos(q[2]); }
+		static Real x(const VectorN<Real, 3>& q) { return CoordTransfDetail::CheckedCoordinate(q, q[0] * sin(q[1]) * cos(q[2])); }
 		/// @brief Convert spherical to Cartesian y-coordinate
-		static Real y(const VectorN<Real, 3>& q) { return q[0] * sin(q[1]) * sin(q[2]); }
+		static Real y(const VectorN<Real, 3>& q) { return CoordTransfDetail::CheckedCoordinate(q, q[0] * sin(q[1]) * sin(q[2])); }
 		/// @brief Convert spherical to Cartesian z-coordinate
-		static Real z(const VectorN<Real, 3>& q) { return q[0] * cos(q[1]); }
+		static Real z(const VectorN<Real, 3>& q) { return CoordTransfDetail::CheckedCoordinate(q, q[0] * cos(q[1])); }
 
 		/// q[0] = x
 		/// q[1] = y
 		/// q[2] = z
 		/// @brief Convert Cartesian to spherical radial distance
-		static Real r(const VectorN<Real, 3>& q)		 { return sqrt(q[0]*q[0] + q[1]*q[1] + q[2]*q[2]); }
+		static Real r(const VectorN<Real, 3>& q) { return CoordTransfDetail::CheckedCoordinate(q, std::hypot(q[0], q[1], q[2])); }
 		/// @brief Convert Cartesian to spherical polar angle (inclination from z-axis)
 		static Real theta(const VectorN<Real, 3>& q) {
-			Real r = sqrt(q[0]*q[0] + q[1]*q[1] + q[2]*q[2]);
-			if (r < Precision::RoundoffZeroThreshold) return Real(0);
-			return acos(std::clamp(q[2] / r, Real(-1), Real(1)));
+			return CoordTransfDetail::PolarInclination(q);
 		}
 		/// @brief Convert Cartesian to spherical azimuthal angle
-		static Real phi(const VectorN<Real, 3>& q)	 { return atan2(q[1], q[0]); }
+		static Real phi(const VectorN<Real, 3>& q) { return CoordTransfDetail::CheckedCoordinate(q, atan2(q[1], q[0])); }
 
 		inline static ScalarFunction<3> _func[3] = { ScalarFunction<3>{x},
 																								 ScalarFunction<3>{y},
@@ -110,6 +108,7 @@ namespace MML
 
 		MatrixNM<Real, 3, 3> jacobian(const VectorN<Real, 3>& pos) const override
 		{
+			Singularity::RequireFiniteCoordinates<3>(pos, "Spherical Jacobian");
 			const Real radius = pos[0];
 			const Real sinTheta = sin(pos[1]);
 			const Real cosTheta = cos(pos[1]);
@@ -182,7 +181,6 @@ namespace MML
 		/// @param pos Position in spherical coordinates
 		Vector3Cartesian getUnitBasisVec(int ind, const Vector3Spherical& pos) const
 		{
-			const Real r = pos[0];
 			const Real theta = pos[1];
 			const Real phi = pos[2];
 			switch (ind)
@@ -217,7 +215,6 @@ namespace MML
 		/// @param pos Position in spherical coordinates
 		Vector3Spherical getInverseUnitBasisVec(int ind, const Vector3Spherical& pos) const
 		{
-			const Real r = pos[0];
 			const Real theta = pos[1];
 			const Real phi = pos[2];
 			switch(ind)
@@ -241,22 +238,20 @@ namespace MML
 		/// q[1] = y
 		/// q[2] = z
 		/// @brief Convert Cartesian to spherical radial distance
-		static Real r(const VectorN<Real, 3>& q) { return sqrt(q[0] * q[0] + q[1] * q[1] + q[2] * q[2]); }
+		static Real r(const VectorN<Real, 3>& q) { return CoordTransfDetail::CheckedCoordinate(q, std::hypot(q[0], q[1], q[2])); }
 		/// @brief Convert Cartesian to spherical polar angle
 		static Real theta(const VectorN<Real, 3>& q) {
-			Real r = sqrt(q[0] * q[0] + q[1] * q[1] + q[2] * q[2]);
-			if (r < Precision::RoundoffZeroThreshold) return Real(0);
-			return acos(std::clamp(q[2] / r, Real(-1), Real(1)));
+			return CoordTransfDetail::PolarInclination(q);
 		}
 		/// @brief Convert Cartesian to spherical azimuthal angle
-		static Real phi(const VectorN<Real, 3>& q) { return atan2(q[1], q[0]); }
+		static Real phi(const VectorN<Real, 3>& q) { return CoordTransfDetail::CheckedCoordinate(q, atan2(q[1], q[0])); }
 
 		// q[0] = r     - radial distance
 		// q[1] = theta - inclination
 		// q[2] = phi   - azimuthal angle
-		static Real x(const VectorN<Real, 3>& q) { return q[0] * sin(q[1]) * cos(q[2]); }
-		static Real y(const VectorN<Real, 3>& q) { return q[0] * sin(q[1]) * sin(q[2]); }
-		static Real z(const VectorN<Real, 3>& q) { return q[0] * cos(q[1]); }
+		static Real x(const VectorN<Real, 3>& q) { return CoordTransfDetail::CheckedCoordinate(q, q[0] * sin(q[1]) * cos(q[2])); }
+		static Real y(const VectorN<Real, 3>& q) { return CoordTransfDetail::CheckedCoordinate(q, q[0] * sin(q[1]) * sin(q[2])); }
+		static Real z(const VectorN<Real, 3>& q) { return CoordTransfDetail::CheckedCoordinate(q, q[0] * cos(q[1])); }
 
 		inline static ScalarFunction<3> _func[3] = { ScalarFunction<3>{r},
 																								 ScalarFunction<3>{theta},

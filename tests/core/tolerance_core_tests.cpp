@@ -4,9 +4,7 @@
 #include <catch2/catch_all.hpp>
 #include "../TestPrecision.h"
 
-#ifdef MML_USE_SINGLE_HEADER
-#include <MML.h>
-#else
+#ifndef MML_SINGLE_HEADER_INCLUDE
 #include <mml/base/SparseMatrix/SparseMatrix.h>
 #include <mml/core/SparseSolvers/GMRES.h>
 #include <mml/core/SparseSolvers/ConjugateGradient.h>
@@ -27,17 +25,21 @@ namespace MML::Tests::Core::ToleranceCoreTests
 		Vector<Real> b(n, 1.0), x0(n, 0.0);
 
 		SparseSolvers::SolverConfig<Real> cfg;
-		cfg.tolerance = 1e-10;
+		cfg.tolerance = TOL(1e-10, Precision::CoarseTolerance);
+		cfg.absTolerance = 0;
 		cfg.maxIterations = 200;
 
 		SparseSolvers::GMRES<Real> solver(n);
 		solver.setConfig(cfg);
 		Vector<Real> xPlain = x0;
 		auto plain = solver.solve(A, b, xPlain);
+		INFO(plain.error_message);
 		REQUIRE(plain.converged);
+		REQUIRE(plain.iterations_used > 1);
+		REQUIRE(plain.relativeResidual <= cfg.tolerance);
 
 		// scale the whole system by 1e-20: identical solution, must take the same path (no fake breakdown)
-		const Real s = 1e-20;
+		const Real s = MML::Real(1e-20);
 		SparseMatrix::SparseMatrixCOO<Real> coo(n, n);
 		for (int i = 0; i < n; ++i)
 			for (int k = A.rowPointers()[i]; k < A.rowPointers()[i + 1]; ++k)
@@ -49,10 +51,19 @@ namespace MML::Tests::Core::ToleranceCoreTests
 		solverS.setConfig(cfg);
 		Vector<Real> xScaled = x0;
 		auto scaled = solverS.solve(As, bs, xScaled);
+		INFO(scaled.error_message);
 		REQUIRE(scaled.converged);
+		REQUIRE(scaled.relativeResidual <= cfg.tolerance);
 		REQUIRE(scaled.iterations_used == plain.iterations_used);
-		for (int i = 0; i < n; ++i)
-			REQUIRE(xScaled[i] == Catch::Approx(xPlain[i]).epsilon(1e-8));
+		REQUIRE(SparseSolvers::norm2(A * xPlain - b) / SparseSolvers::norm2(b) <= cfg.tolerance);
+		REQUIRE(SparseSolvers::norm2(As * xScaled - bs) / SparseSolvers::norm2(bs) <= cfg.tolerance);
+		for (int i = 0; i < n; ++i) {
+			const Real expected = Real((i + 1) * (n - i)) / 2;
+			const Real budget = TOL(1e-8, Precision::RoundoffZeroThreshold) * std::abs(expected);
+			REQUIRE(IsWithinAbs(xPlain[i], expected, budget));
+			REQUIRE(IsWithinAbs(xScaled[i], expected, budget));
+			REQUIRE(IsWithinAbs(xScaled[i], xPlain[i], 2 * budget));
+		}
 	}
 
 	TEST_CASE("ToleranceCore_named_defaults", "[tolerance][core]")

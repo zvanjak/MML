@@ -7,6 +7,7 @@
 #include <mml/base/Matrix/MatrixSym.h>
 #include <mml/base/AlgorithmTypes.h>
 #include <mml/algorithms/Eigen/EigenSolverConfig.h>
+#include <mml/algorithms/Eigen/detail/SelfAdjointScaling.h>
 #include <algorithm>
 #include <cmath>
 #include <complex>
@@ -31,14 +32,20 @@ namespace MML {
 			std::string error_message;
 			double elapsed_time_ms = 0.0;
 
-			Result(int n)
+			Result(int n, bool computeEigenvectors = true)
 				: eigenvalues(n)
-				, eigenvectors(n, n) {}
+				, eigenvectors(computeEigenvectors ? n : 0, computeEigenvectors ? n : 0) {}
 
 			Result() = default;
 		};
 
 		static Result Solve(const Matrix<Complex>& A, Real tol = PrecisionValues<Real>::EigenSolverConvergenceTolerance, int maxIter = 100) {
+			return SolveImpl(A, tol, maxIter, true, true);
+		}
+
+	private:
+		static Result SolveImpl(const Matrix<Complex>& A, Real tol, int maxIter, bool sortEigenvalues, bool computeEigenvectors) {
+			detail::ValidateSelfAdjointControls(tol, maxIter);
 			if (A.rows() != A.cols())
 				throw MatrixDimensionError("HermitianMatEigenSolverJacobi::Solve - matrix must be square", A.rows(), A.cols(), A.rows(), A.rows());
 
@@ -52,54 +59,94 @@ namespace MML {
 						throw MatrixDimensionError("HermitianMatEigenSolverJacobi::Solve - matrix is not Hermitian", n, n, -1, -1);
 			}
 
-			Result result(n);
+			Result result(n, computeEigenvectors);
+			if (n == 0) {
+				result.status = AlgorithmStatus::Completed;
+				result.residual = NoEstimate;
+				return result;
+			}
 			Matrix<Complex> D(A);
-			Matrix<Complex> V = Matrix<Complex>::Identity(n);
-			int sweep = 0;
-			Real offDiagonalNorm = OffDiagonalNorm(D);
 
-			while (offDiagonalNorm > tol && sweep < maxIter) {
+			const Real maxAbs = detail::MaxAbsEntry(D);
+			if (!std::isfinite(maxAbs)) {
+				result.eigenvalues = Vector<Real>(n, std::numeric_limits<Real>::quiet_NaN());
+				if (computeEigenvectors)
+					result.eigenvectors = Matrix<Complex>(n, n, Complex(std::numeric_limits<Real>::quiet_NaN(), 0));
+				result.residual = std::numeric_limits<Real>::quiet_NaN();
+				result.converged = false;
+				result.status = AlgorithmStatus::NumericalInstability;
+				result.error_message = "HermitianMatEigenSolverJacobi: matrix contains nonfinite entries";
+				return result;
+			}
+
+			// Overflow guard: work on D/scale (exact power-of-two scaling). The skip threshold is
+			// capped by the scaled tolerance so skipped entries stay within tolerance.
+			const Real scale = detail::SelfAdjointScale(maxAbs);
+			const Real tolScaled = tol / scale;
+			const Real zeroThresholdScaled = std::min(PrecisionValues<Real>::EigenSolverZeroThreshold, tolScaled);
+			if (scale != 1)
+				for (int i = 0; i < n; i++)
+					for (int j = 0; j < n; j++)
+						D[i][j] /= scale;
+
+			Matrix<Complex> V;
+			if (computeEigenvectors) V = Matrix<Complex>::Identity(n);
+			int sweep = 0;
+			Real offDiagonalNorm = detail::OffDiagonalNormSafe(D);
+
+			while (offDiagonalNorm > tolScaled && sweep < maxIter) {
 				for (int p = 0; p < n - 1; p++) {
 					for (int q = p + 1; q < n; q++) {
 						const Real magnitude = std::abs(D[p][q]);
-						if (magnitude < PrecisionValues<Real>::EigenSolverZeroThreshold)
+						if (magnitude <= zeroThresholdScaled)
 							continue;
 
 						const Real app = D[p][p].real();
 						const Real aqq = D[q][q].real();
-						const Real tau = (aqq - app) / (2.0 * magnitude);
-						const Real t = tau >= 0.0
-							? 1.0 / (tau + std::sqrt(1.0 + tau * tau))
-							: -1.0 / (-tau + std::sqrt(1.0 + tau * tau));
-						const Real c = 1.0 / std::sqrt(1.0 + t * t);
+						const Real tau = (aqq - app) / (MML::Real(2.0) * magnitude);
+						const Real t = tau >= MML::Real(0.0)
+							? MML::Real(1.0) / (tau + std::sqrt(MML::Real(1.0) + tau * tau))
+							: -MML::Real(1.0) / (-tau + std::sqrt(MML::Real(1.0) + tau * tau));
+						const Real c = MML::Real(1.0) / std::sqrt(MML::Real(1.0) + t * t);
 						const Real s = t * c;
 						ApplyRotation(D, V, p, q, c, s, D[p][q] / magnitude);
 					}
 				}
 
 				sweep++;
-				offDiagonalNorm = OffDiagonalNorm(D);
+				offDiagonalNorm = detail::OffDiagonalNormSafe(D);
 			}
 
 			for (int i = 0; i < n; i++)
-				result.eigenvalues[i] = D[i][i].real();
+				result.eigenvalues[i] = D[i][i].real() * scale;
 			result.eigenvectors = V;
-			SortEigenpairs(result.eigenvalues, result.eigenvectors);
+			if (sortEigenvalues) SortEigenpairs(result.eigenvalues, result.eigenvectors);
 			result.iterations = sweep;
-			result.residual = offDiagonalNorm;
-			result.converged = offDiagonalNorm <= tol;
-			return result;
-		}
-
-		static Result Solve(const Matrix<Complex>& A, const EigenSolverConfig& config) {
-			AlgorithmTimer timer;
-			const int maxIter = config.max_iterations > 0 ? config.max_iterations : 100;
-			Result result = Solve(A, config.tolerance, maxIter);
-			result.elapsed_time_ms = timer.elapsed_ms();
-			if (!result.converged) {
+			result.residual = offDiagonalNorm * scale;
+			result.converged = offDiagonalNorm <= tolScaled;
+			if (!detail::EigenResultIsFinite(result.eigenvalues, result.eigenvectors)) {
+				result.converged = false;
+				result.status = AlgorithmStatus::NumericalInstability;
+				result.error_message = "HermitianMatEigenSolverJacobi: iteration produced nonfinite eigenvalues or eigenvectors";
+			} else if (!result.converged) {
 				result.status = AlgorithmStatus::MaxIterationsExceeded;
 				result.error_message = "Hermitian Jacobi iteration did not converge within " + std::to_string(maxIter) + " sweeps";
 			}
+			return result;
+		}
+
+	public:
+		static Result Solve(const Matrix<Complex>& A, const EigenSolverConfig& config) {
+			AlgorithmTimer timer;
+			detail::ValidateSelfAdjointControls(config.tolerance, config.max_iterations);
+			const int maxIter = config.max_iterations == 0 ? 100 : config.max_iterations;
+			Result result = SolveImpl(A, config.tolerance, maxIter, config.sort_eigenvalues, config.compute_eigenvectors);
+			result.elapsed_time_ms = timer.elapsed_ms();
+			if (!result.converged && result.status == AlgorithmStatus::Success) {
+				result.status = AlgorithmStatus::MaxIterationsExceeded;
+				result.error_message = "Hermitian Jacobi iteration did not converge within " + std::to_string(maxIter) + " sweeps";
+			}
+			if (config.verbose) detail::LogSelfAdjointResult(result);
 			return result;
 		}
 
@@ -120,24 +167,16 @@ namespace MML {
 			const Real app = A[p][p].real();
 			const Real aqq = A[q][q].real();
 			const Real apq = std::abs(A[p][q]);
-			A[p][p] = Complex(c * c * app - 2.0 * s * c * apq + s * s * aqq, 0.0);
-			A[q][q] = Complex(s * s * app + 2.0 * s * c * apq + c * c * aqq, 0.0);
+			A[p][p] = Complex(c * c * app - MML::Real(2.0) * s * c * apq + s * s * aqq, MML::Real(0.0));
+			A[q][q] = Complex(s * s * app + MML::Real(2.0) * s * c * apq + c * c * aqq, MML::Real(0.0));
 			A[p][q] = A[q][p] = Complex{0.0, 0.0};
 
-			for (int i = 0; i < n; i++) {
+			for (int i = 0; i < V.rows(); i++) {
 				const Complex vip = V[i][p];
 				const Complex viq = V[i][q];
 				V[i][p] = c * phase * vip - s * viq;
 				V[i][q] = s * phase * vip + c * viq;
 			}
-		}
-
-		static Real OffDiagonalNorm(const Matrix<Complex>& A) {
-			Real sum = 0.0;
-			for (int i = 0; i < A.rows() - 1; i++)
-				for (int j = i + 1; j < A.cols(); j++)
-					sum += std::norm(A[i][j]);
-			return std::sqrt(sum);
 		}
 
 		static void SortEigenpairs(Vector<Real>& eigenvalues, Matrix<Complex>& eigenvectors) {
@@ -150,7 +189,7 @@ namespace MML {
 
 				if (minIndex != i) {
 					std::swap(eigenvalues[i], eigenvalues[minIndex]);
-					for (int row = 0; row < n; row++)
+					for (int row = 0; row < eigenvectors.rows(); row++)
 						std::swap(eigenvectors[row][i], eigenvectors[row][minIndex]);
 				}
 			}

@@ -242,7 +242,7 @@ TEST_CASE("Intervals: point coverings with 0/1/2 points and reversed bounds", "[
 
     ClosedInterval degenerate(static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.0));
     degenerate.getEquidistantCovering(3, pts);
-    REQUIRE(pts.size() == 3);
+    REQUIRE(pts.size() == 1);
     for (Real p : pts) REQUIRE(p == static_cast<MML::Real>(1.0));
 
     REQUIRE_THROWS_AS(ClosedInterval(static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0)), ArgumentError);
@@ -270,13 +270,15 @@ TEST_CASE("Zero vectors: normalisation, angle and projection throw instead of pr
 
 TEST_CASE("VectorsAngle is exact for parallel, antiparallel and orthogonal vectors", "[degenerate][vector][wewi.2.2]")
 {
-    // acos(dot/(|a||b|)) returned ~2e-8 for identical vectors; Kahan's atan2 formula is exact
+    // Kahan's formula is exact for identical vectors; independent normalization can round.
     Vector<Real> a{static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0)};
     REQUIRE(Utils::VectorsAngle(a, a) == static_cast<MML::Real>(0.0));
-    REQUIRE(Utils::VectorsAngle(a, a * static_cast<MML::Real>(3.0)) == static_cast<MML::Real>(0.0));
+    const Real parallelAngle = Utils::VectorsAngle(a, a * Real(3));
+    REQUIRE(IsWithinAbs(parallelAngle, 0, Precision::Eps));
     REQUIRE(Utils::VectorsAngle(a, a * static_cast<MML::Real>(-1.0)) == Catch::Approx(Constants::PI));
     REQUIRE(Utils::VectorsAngle(Vector<Real>{static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0)}, Vector<Real>{static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0)}) == Catch::Approx(Constants::PI / 2));
-    REQUIRE(Utils::VectorsAngle(Vector<Real>{static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0)}, Vector<Real>{static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.0)}) == Catch::Approx(Constants::PI / 4).epsilon(1e-15));
+    REQUIRE(IsWithinAbs(Utils::VectorsAngle(Vector<Real>{1, 0}, Vector<Real>{1, 1}),
+        Constants::PI / 4, TOL(1e-15, Precision::Eps)));
 
     REQUIRE(Utils::VectorsAngle(Vector3Cartesian(1, 2, 3), Vector3Cartesian(2, 4, 6)) == static_cast<MML::Real>(0.0));
     REQUIRE(Utils::VectorsAngle(Vector3Cartesian(1, 2, 3), Vector3Cartesian(-2, -4, -6)) == Catch::Approx(Constants::PI));

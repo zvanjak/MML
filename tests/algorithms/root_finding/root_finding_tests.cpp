@@ -341,7 +341,6 @@ namespace MML::Tests::Algorithms::RootFindingTests
 			TEST_PRECISION_INFO();
 		// Test with small but non-zero leading coefficient (not quite degenerate)
 		// static_cast<MML::Real>(0.001)(x-1)(x-2)(x-3)(x-4) expanded
-		Real a = static_cast<MML::Real>(0.001);
 		Real roots_expected[4] = {static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0), static_cast<MML::Real>(4.0)};
 		// (x-1)(x-2)(x-3)(x-4) = x^4 - 10x^3 + 35x^2 - 50x + 24
 		Complex x1, x2, x3, x4;
@@ -1041,4 +1040,3 @@ namespace MML::Tests::Algorithms::RootFindingTests
 		                  std::runtime_error);
 	}
 }
-

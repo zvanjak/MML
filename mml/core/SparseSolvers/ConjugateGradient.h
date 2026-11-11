@@ -32,7 +32,7 @@
 
 namespace MML::SparseSolvers {
 
-template<typename T>
+template<MMLReal T>
 class ConjugateGradient : public IterativeSolverBase<T> {
     using Base = IterativeSolverBase<T>;
     using Base::config_;
@@ -78,6 +78,7 @@ public:
 			Vector<T> r(n);	 // Residual
 			Vector<T> z(n);	 // Preconditioned residual
 			Vector<T> p(n);	 // Search direction
+			Vector<T> unitP(n);
 			Vector<T> Ap(n); // Matrix-vector product
 
 			// Initial residual: r = b - Ax
@@ -96,30 +97,50 @@ public:
 				return result;
 			}
 
-			// z = M⁻¹r
-			preconditioner_->apply(r, z);
-
-			// p = z
-			p = z;
-
-			// rz = (r, z) = (r, M⁻¹r)
-			T rz = dot(r, z);
+			T previousRnorm = T(0), previousZnorm = T(0), previousRz = T(0);
 
 			// Main CG iteration
 			for (int iter = 1; iter <= config_.maxIterations; ++iter) {
-				// Ap = A * p
-				Ap = A * p;
+				preconditioner_->apply(r, z);
+				const T znorm = norm2(z);
+				if (!(znorm > T(0)) || !std::isfinite(znorm)) {
+					result.status = AlgorithmStatus::NumericalInstability;
+					result.iterations_used = iter;
+					result.residualNorm = rnorm;
+					result.relativeResidual = rnorm / bnorm;
+					result.error_message = "CG breakdown: invalid preconditioned residual";
+					return result;
+				}
+				const T rz = NormalizedDot(r, rnorm, z, znorm);
+				if (iter == 1) {
+					p = z;
+				} else {
+					const T beta = (rnorm / previousRnorm) * (znorm / previousZnorm) * (rz / previousRz);
+					for (int i = 0; i < n; ++i)
+						p[i] = z[i] + beta * p[i];
+				}
+				const T pnorm = norm2(p);
+				if (!(pnorm > T(0)) || !std::isfinite(pnorm) || !(rz > T(0))) {
+					result.status = AlgorithmStatus::NumericalInstability;
+					result.iterations_used = iter;
+					result.residualNorm = rnorm;
+					result.relativeResidual = rnorm / bnorm;
+					result.error_message = "CG breakdown: invalid search direction";
+					return result;
+				}
+				for (int i = 0; i < n; ++i)
+					unitP[i] = p[i] / pnorm;
+				Ap = A * unitP;
 
-				// α = (r, z) / (p, Ap)
-				T pAp = dot(p, Ap);
+				const T apnorm = norm2(Ap);
+				const T pAp = apnorm > T(0) ? NormalizedDot(unitP, T(1), Ap, apnorm) : T(0);
 
 				// Breakdown check. For SPD A, (p, Ap) > 0 whenever p != 0, and
 				// (p, Ap) / (||p|| ||Ap||) >= 2 sqrt(k)/(k+1) (Kantorovich), so a value that is
 				// non-positive or negligible *relative* to ||p|| ||Ap|| signals loss of
 				// definiteness. An absolute threshold is wrong here: (p, Ap) is quadratic in
 				// the residual and legitimately drops below any fixed epsilon near convergence.
-				const T pApScale = norm2(p) * norm2(Ap);
-				if (!(pAp > std::numeric_limits<T>::epsilon() * pApScale)) {
+				if (!(pAp > std::numeric_limits<T>::epsilon()) || !std::isfinite(apnorm)) {
 					result.status = AlgorithmStatus::NumericalInstability;
 					result.iterations_used = iter;
 					result.residualNorm = rnorm;
@@ -128,10 +149,22 @@ public:
 					return result;
 				}
 
-				T alpha = rz / pAp;
+				// Unit search directions and norm ratios avoid squaring tiny/large residuals (Saad, CG).
+				const T alpha = (rnorm / pnorm) * (znorm / apnorm) * (rz / pAp);
+				if (!std::isfinite(alpha)) {
+					result.status = AlgorithmStatus::NumericalInstability;
+					result.iterations_used = iter;
+					result.residualNorm = rnorm;
+					result.relativeResidual = rnorm / bnorm;
+					result.error_message = "CG breakdown: non-finite step";
+					return result;
+				}
+				previousRnorm = rnorm;
+				previousZnorm = znorm;
+				previousRz = rz;
 
 				// x = x + α * p
-				axpy(alpha, p, x);
+				axpy(alpha, unitP, x);
 
 				// r = r - α * Ap
 				axpy(-alpha, Ap, r);
@@ -149,18 +182,6 @@ public:
 					return result;
 				}
 
-				// z = M⁻¹r
-				preconditioner_->apply(r, z);
-
-				// β = (r_new, z_new) / (r_old, z_old)
-				T rz_new = dot(r, z);
-				T beta = rz_new / rz;
-				rz = rz_new;
-
-				// p = z + β * p
-				for (int i = 0; i < n; ++i) {
-					p[i] = z[i] + beta * p[i];
-				}
 			}
 
 			// Did not converge
@@ -173,19 +194,26 @@ public:
 		}
 
 private:
+	static T NormalizedDot(const Vector<T>& a, T aNorm, const Vector<T>& b, T bNorm) {
+		T value = T(0);
+		for (int i = 0; i < a.size(); ++i)
+			value += (a[i] / aNorm) * (b[i] / bNorm);
+		return value;
+	}
+
     static bool isPositiveDefinite(const SparseMatrixCSR<T>& A) {
-        T matrixScale = T(1);
+        T matrixScale = T(0);
         for (const T value : A.values()) {
             matrixScale = std::max(matrixScale, std::abs(value));
         }
 
-        const T symmetryTolerance = std::sqrt(std::numeric_limits<T>::epsilon()) * matrixScale;
+        const T symmetryTolerance = PrecisionValues<T>::SqrtEps * matrixScale;
         if (!A.IsSymmetric(symmetryTolerance)) {
             return false;
         }
 
         const int n = A.rows();
-        const T pivotTolerance = std::numeric_limits<T>::epsilon() * matrixScale * T(100);
+        const T pivotTolerance = PrecisionValues<T>::RoundoffZeroThreshold * matrixScale;
 				std::vector<Vector<T>> lower(n, Vector<T>(n, T(0)));
 
 				for (int i = 0; i < n; ++i) {
@@ -211,7 +239,7 @@ private:
 };
 
 // Convenience function
-template<typename T>
+template<MMLReal T>
 KrylovResult<T> solveCG(const SparseMatrixCSR<T>& A, const Vector<T>& b, Vector<T>& x, const SolverConfig<T>& config = SolverConfig<T>()) {
 	ConjugateGradient<T> cg;
 	cg.setConfig(config);
@@ -219,7 +247,7 @@ KrylovResult<T> solveCG(const SparseMatrixCSR<T>& A, const Vector<T>& b, Vector<
 }
 
 // Convenience function with preconditioner
-template<typename T, typename PrecType>
+template<MMLReal T, typename PrecType>
 KrylovResult<T> solveCG(const SparseMatrixCSR<T>& A, const Vector<T>& b, Vector<T>& x, std::shared_ptr<PrecType> prec,
 												const SolverConfig<T>& config = SolverConfig<T>()) {
 	ConjugateGradient<T> cg;

@@ -640,7 +640,7 @@ namespace MML::Tests::Base::VectorTests
 		
 		// Erase by value
 		Vector<Real> v3({static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0)});
-		v3.erase(static_cast<MML::Real>(2.0));  // Erase all occurrences of 2.0
+		v3.eraseValue(static_cast<MML::Real>(2.0));  // Erase all occurrences of 2.0
 		REQUIRE(v3.size() == 2);
 		REQUIRE(v3[0] == static_cast<MML::Real>(1.0));
 		REQUIRE(v3[1] == static_cast<MML::Real>(3.0));
@@ -952,26 +952,30 @@ namespace MML::Tests::Base::VectorTests
 
 	TEST_CASE("Vector/VectorN NormL2 is overflow- and underflow-safe (scaled accumulation)", "[Vector][VectorN][norm][wewi.1.16]")
 	{
-		// Naive sqrt(sum x^2) overflows to inf for |x| > ~1e154 and underflows to 0 below ~1e-154
-		const Real big = static_cast<MML::Real>(1e200), tiny = static_cast<MML::Real>(1e-200);
+		const Real big = std::sqrt(std::numeric_limits<Real>::max()) * Real(4);
+		const Real tiny = std::sqrt(std::numeric_limits<Real>::denorm_min()) / Real(4);
+		const Real tolerance = TOL(1e-14, Real(8) * Precision::Eps);
+		REQUIRE(big > std::sqrt(std::numeric_limits<Real>::max()));
+		REQUIRE(tiny > 0);
+		REQUIRE(tiny < std::sqrt(std::numeric_limits<Real>::denorm_min()));
 
 		Vector<Real> vBig({big, big});
 		REQUIRE(std::isfinite(vBig.NormL2()));
-		REQUIRE_THAT(vBig.NormL2(), Catch::Matchers::WithinRel(big * std::sqrt(static_cast<MML::Real>(2.0)), static_cast<MML::Real>(1e-14)));
+		REQUIRE_THAT(vBig.NormL2(), RealWithinRelNoScale(big * std::sqrt(Real(2)), tolerance));
 
 		Vector<Real> vTiny({tiny, tiny});
 		REQUIRE(vTiny.NormL2() > static_cast<MML::Real>(0.0));
-		REQUIRE_THAT(vTiny.NormL2(), Catch::Matchers::WithinRel(tiny * std::sqrt(static_cast<MML::Real>(2.0)), static_cast<MML::Real>(1e-14)));
+		REQUIRE_THAT(vTiny.NormL2(), RealWithinRelNoScale(tiny * std::sqrt(Real(2)), tolerance));
 
 		VectorN<Real, 3> nBig{big, -big, big};
-		REQUIRE_THAT(nBig.NormL2(), Catch::Matchers::WithinRel(big * std::sqrt(static_cast<MML::Real>(3.0)), static_cast<MML::Real>(1e-14)));
+		REQUIRE_THAT(nBig.NormL2(), RealWithinRelNoScale(big * std::sqrt(Real(3)), tolerance));
 
 		Vector<Real> mixed({static_cast<MML::Real>(3.0), static_cast<MML::Real>(4.0), static_cast<MML::Real>(0.0), tiny});
-		REQUIRE_THAT(mixed.NormL2(), Catch::Matchers::WithinRel(static_cast<MML::Real>(5.0), static_cast<MML::Real>(1e-15)));
+		REQUIRE_THAT(mixed.NormL2(), RealWithinRelNoScale(Real(5), TOL(1e-15, Real(8) * Precision::Eps)));
 
 		Vector<Complex> cBig({Complex(big, big), Complex(0.0, big)});
 		REQUIRE(std::isfinite(cBig.NormL2()));
-		REQUIRE_THAT(cBig.NormL2(), Catch::Matchers::WithinRel(big * std::sqrt(static_cast<MML::Real>(3.0)), static_cast<MML::Real>(1e-14)));
+		REQUIRE_THAT(cBig.NormL2(), RealWithinRelNoScale(big * std::sqrt(Real(3)), tolerance));
 
 		Vector<Real> zero(4, static_cast<MML::Real>(0.0));
 		REQUIRE(zero.NormL2() == static_cast<MML::Real>(0.0));
@@ -982,7 +986,7 @@ namespace MML::Tests::Base::VectorTests
 		Vector<Complex> z({Complex(1.0, 2.0), Complex(-3.0, 0.5)});
 		Complex zz = Utils::ScalarProduct(z, z);
 		REQUIRE_THAT(zz.imag(), Catch::Matchers::WithinAbs(static_cast<MML::Real>(0.0), static_cast<MML::Real>(1e-15)));
-		REQUIRE_THAT(std::sqrt(zz.real()), Catch::Matchers::WithinRel(z.NormL2(), static_cast<MML::Real>(1e-14)));
+		REQUIRE_THAT(std::sqrt(zz.real()), RealWithinRelNoScale(z.NormL2(), tolerance));
 	}
 
 } // namespace MML::VectorTests

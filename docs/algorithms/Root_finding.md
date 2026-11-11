@@ -73,6 +73,93 @@ time. Invalid configuration/endpoints, non-finite values, stalls, and iteration
 exhaustion are returned as structured failures by detailed overloads; legacy
 overloads continue to throw `RootFindingError` on failure.
 
+Scalar refinement accepts either the configured x criterion **or** the function-value
+criterion; it does not require both. Bisection returns the evaluated midpoint whose
+residual was checked, including on iteration exhaustion. Safeguarded Newton checks
+endpoint and initial midpoint residuals before requesting a derivative, and validates
+each new residual before accepting a small step. An accepted endpoint or initial
+midpoint uses zero iterations and has no x-error estimate (`x_error` is `NoEstimate`,
+which is NaN); its achieved tolerance is the absolute residual. Numerical Newton's
+function-evaluation count includes its finite-difference samples.
+
+`function_evaluations` counts attempted objective invocations, not iterations:
+endpoint, initial-midpoint, numerical-derivative samples and final residual checks
+all count. An analytic derivative callback is not an objective invocation.
+Invalid configuration or endpoints rejected before evaluation report zero calls.
+Standalone callback exceptions still propagate; they do not manufacture a result.
+The runnable `Docs_Demo_CallbackAccounting` (`MML_DocsApp --callback-accounting`)
+checks, for example, eight objective calls for one numerical-Newton iteration:
+
+```cpp
+int rootCalls = 0;
+auto function = [&](Real x) { ++rootCalls; return x * x - 2; };
+RootFinding::RootFindingConfig config;
+config.max_iterations = 1;
+const auto root = RootFinding::FindRootNewtonDetailed(function, 1, 2, config);
+if (root.function_evaluations != rootCalls || rootCalls != 8 || root.iterations_used != 1)
+    throw std::runtime_error("Newton callback accounting failed");
+```
+
+`initial_step` and `max_stagnant_iterations` are reserved source-compatibility fields:
+scalar refinement solvers currently ignore them. In particular, the latter does not
+enable a configurable stagnation detector, although negative values remain invalid
+configuration. Method-specific degeneracy checks can still report `Stalled`.
+For scalar refinement, `max_iterations == 0` retains its algorithm-specific default.
+
+### Bracket signs and function units
+
+After validating finite endpoint values and accepting endpoints within the function
+tolerance (including either signed zero), scalar refiners require strictly opposite
+signs. They compare signs directly, never by multiplying endpoint values: a tiny
+opposite-sign bracket remains valid, and tiny same-sign values remain invalid.
+`BracketRoot` also compares signs directly, but accepts only exact endpoint zeros;
+it has no function-tolerance setting.
+
+Secant and false-position interpolation normalize function values before dividing;
+Ridders uses an exponent-safe geometric mean and a scaled hypotenuse instead of
+squaring or multiplying raw residuals. Safeguarded Newton tests the proposed point
+against the current bracket and compares step lengths directly. Brent's interpolation
+already uses dimensionless ratios. These protections avoid sign-product and
+interpolation overflow/underflow; they do not repair a function that itself returns
+nonfinite values, underflows to zero, or loses accuracy through subnormal rounding.
+
+When replacing `f` by `unit * f`, scale the absolute `f_tolerance` by `abs(unit)`;
+leave x tolerances unchanged. Tolerances are not automatically rescaled, and a zero
+`f_tolerance` still inherits the legacy tolerance. The plain overload has only one
+fallback tolerance, so use a Detailed configuration to control x and residual units
+independently.
+
+This runnable example is covered by `Docs_Demo_RootSignScaling` in
+[`docs_demo_root_finding.cpp`](../../src/docs_demos/algorithms/docs_demo_root_finding.cpp);
+run `MML_DocsApp --root-sign-scaling`:
+
+```cpp
+const int exponent = std::numeric_limits<Real>::max_exponent * 3 / 4;
+for (Real unit : {std::ldexp(Real(1), -exponent), Real(1), std::ldexp(Real(1), exponent)}) {
+    RealFunctionFromStdFunc function([=](Real x) { return unit * (x - Real(0.25)); });
+    RootFinding::RootFindingConfig config;
+    config.x_tolerance = Precision::EqualityTolerance;
+    config.f_tolerance = unit * Precision::EqualityTolerance;
+    config.max_iterations = 16;
+    const auto result = RootFinding::FindRootBrentDetailed(function, 0, 1, config);
+    if (!result) throw std::runtime_error(result.error_message);
+    if (std::abs(result.root - Real(0.25)) > Precision::DefaultToleranceStrict
+        || std::abs(result.function_value) > config.f_tolerance)
+        throw std::runtime_error("Scaled root failed its root/residual checks");
+    std::cout << "unit=" << unit << " root=" << result.root
+              << " residual=" << result.function_value << '\n';
+}
+```
+
+Precision matters when testing these contracts: a small scalar step must still
+change the represented point to exercise a new residual. Complex Newton uses a
+numerical derivative, so even a linear function need not reach its exact root in
+one floating-point update. Choose a residual tolerance appropriate to `Real`;
+the final permitted update is checked against that same tolerance. A nonfinite
+residual fixture must also leave the derivative stencil in the finite domain if
+it is intended to test rejection of the updated point rather than derivative
+failure.
+
 ## Nonlinear Systems
 
 `NonlinearSystemSolvers.h` solves square systems
@@ -156,7 +243,7 @@ Let eₙ = |xₙ - x*| be error at iteration n.
 
 ### BracketRoot - Find Initial Bracket
 
-**Purpose**: Expand initial guess range until sign change detected.
+**Purpose**: Expand initial guess range until a finite endpoint root or sign change is detected.
 
 **Algorithm**:
 ```cpp
@@ -166,16 +253,20 @@ static bool BracketRoot(const IRealFunction& func, Real& x1, Real& x2, int MaxTr
 **Strategy**:
 1. Start with [x₁, x₂]
 2. Evaluate f(x₁), f(x₂)
-3. If f(x₁)·f(x₂) < 0: **Done!** Root bracketed
+3. If either endpoint is exactly zero, or the finite endpoint values have opposite signs: **Done!**
 4. Else: Expand interval geometrically (scaleFactor = 1.6)
    - Expand in direction of smaller |f|
    - x₁ ← x₁ + 1.6·(x₁ - x₂) if |f(x₁)| < |f(x₂)|
    - x₂ ← x₂ + 1.6·(x₂ - x₁) otherwise
-5. Repeat up to MaxTry iterations
+5. Repeat up to MaxTry expansions, checking the endpoints after the final expansion too
 
 **Returns**: 
-- `true` if bracket found (x₁, x₂ updated with bracket)
-- `false` if search failed (no sign change found)
+- `true` if a bracket or exact endpoint root is found (x₁, x₂ updated)
+- `false` if the search is exhausted or an endpoint function value is non-finite
+
+An expansion budget of zero still checks the initial endpoints. Sign comparison
+does not multiply function values, so representable tiny values cannot hide a
+sign change through product underflow.
 
 **Use When**:
 - Have rough estimate of root location
@@ -308,6 +399,13 @@ candidate-found/accepted/rejected and unique-root counts, aggregate function eva
 and a `complete` flag. A search with no candidates is a successful complete
 result with an empty root vector. If any candidate fails final verification,
 the status is `ToleranceUnachievable` and successful roots remain available.
+Its aggregate evaluation count includes isolation, refinement and merge-residual
+checks. Each accepted/rejected candidate's refinement count covers only that
+candidate's refinement, including a throwing invocation or a non-finite result.
+Thus a caught refinement failure retains its actual partial count rather than zero.
+Tangent-refinement counts are measured from callbacks, independently of the
+configured golden-section iteration count. Disabling rejected-candidate storage
+does not remove their work from the aggregate count.
 
 ---
 
@@ -1146,12 +1244,16 @@ assert(residual < 1e-6);  // Application-specific threshold
 
 | Method | Per-Iteration | Total to 10⁻¹⁰ | Function Evals | Derivative Evals |
 |--------|---------------|----------------|----------------|------------------|
-| **BracketRoot** | O(1) | ~30 expansions | ~60 | 0 |
-| **FindRootBrackets** | O(n) | O(n) | n | 0 |
-| **Bisection** | O(1) | ~33 iterations | 33 | 0 |
-| **Newton** | O(1) | ~5 iterations | 5 | 5 |
+| **BracketRoot** | O(1) | ~30 expansions | ~32 | 0 |
+| **FindRootBrackets** | O(n) | n sampling cells | n + 1, plus optional tangent refinement | 0 |
+| **Bisection** | O(1) | ~33 iterations | ~35 | 0 |
+| **Newton (analytic derivative)** | O(1) | ~5 iterations | ~8 | ~5 |
+| **Newton (numerical derivative)** | O(1) | ~5 iterations | ~28 | 0 analytic callbacks |
 
-**Key Insight**: Newton is 6-7× fewer iterations, but each iteration needs derivative (~5 extra function evaluations for NDer4). **Total work similar** if f(x) cheap, **Newton wins** if f(x) expensive.
+These are illustrative work counts, not guaranteed convergence rates. Numerical
+Newton's `NDer4` requests four objective samples per derivative, in addition to
+two endpoints, an initial midpoint and each new-iterate residual. Fewer iterations
+therefore need not mean fewer objective calls; use `function_evaluations` to compare work.
 
 ### When Function Evaluation is Expensive
 
@@ -1247,7 +1349,17 @@ Real r3 = FindRootNewton(f_deflated, z1, z2, tol);
   derivative.
 
 Both return `ComplexRootFindingResult` with the root, residual, iteration count,
-status, method name, message, and elapsed time. General polynomial roots are
+status, method name, message, and elapsed time. They check the initial current
+estimate and every permitted update, including the last one, against
+`abs(function_value) < tolerance`. An initial root takes zero iterations.
+Unlike the scalar configuration, their explicit `max_iterations == 0` permits
+no updates: the initial current estimate is checked, then a non-root reports
+`MaxIterationsExceeded`. For Muller the current estimate is the third starting
+point, `z2`. Negative budgets, nonpositive/non-finite tolerances, and non-finite
+starting points report `InvalidInput`; non-finite sampled values or steps report
+`NumericalInstability`. A rejected non-finite step retains the last evaluated
+point and its matching residual rather than pairing a new point with an old value.
+General polynomial roots are
 also available through the Laguerre, Durand-Kerner, companion-matrix, and
 low-degree polynomial APIs in `RootFindingPolynoms.h`.
 
@@ -1280,6 +1392,58 @@ not a progressively deflated copy. Nearby estimates are clustered to estimate
 multiplicity, and modified Newton steps use that estimate for repeated roots.
 `PolishPolynomialRoots` is also public for callers that already have root
 estimates from another source.
+
+### Coefficient Scaling and Degree
+
+The quadratic (real and complex), cubic, and quartic solvers reduce degree only when
+the leading coefficient is **exactly zero**, not when its absolute magnitude is below
+machine epsilon. General root methods require the stored leading coefficient to be
+nonzero; trailing zero storage is invalid rather than silently changing the degree.
+A nonzero constant, however small, has no roots. The detailed API rejects the zero
+polynomial because its root set is not finite.
+
+All polynomial root methods use power-of-two coefficient normalization. Common finite,
+nonzero coefficient scaling therefore does not change degree decisions or impose an
+absolute coefficient-size convergence floor. The stable quadratic and Cardano branches
+are retained; the complex quadratic and Bairstow factor extraction also use the stable
+quadratic construction. Common scaling can still round subnormal input coefficients
+before the solver receives them; normalization cannot undo that information loss.
+Nonfinite inputs are rejected. Normalization that cannot preserve a coefficient
+component, unrepresentable arithmetic, and iterative nonconvergence are explicit
+failures, not permission to discard a nonzero leading term.
+
+Polishing and final verification use a normalized copy of the **original, undeflated**
+polynomial. The relative residual is
+`abs(P(z)) / sum(abs(a[k]) * abs(z)^k)` and acceptance uses that scale-independent
+quantity. Its numerator and denominator must be finite; an exact zero numerator and
+zero denominator at `z == 0` represent an exact root. Absolute residuals are converted
+back to the caller's coefficient units and can underflow or overflow there without
+changing the normalized verification criterion.
+
+`PolynomialRootConfig.max_iterations` is forwarded to the selected method, including
+the companion matrix's total QR iteration budget. `EigenvalueRoots(polynomial, maxIter)`
+exposes the same limit directly; the existing one-argument overload retains its
+1000-iteration default. Polishing has its separate `polishing_iterations` budget.
+
+The following witness and scaled companion examples run with
+`MML_DocsApp --polynomial-scaling`:
+
+```cpp
+Complex first, second;
+const int count = SolveQuadratic(Real(1e-20), 0, Real(-1e-20), first, second);
+std::cout << count << " real roots: " << first << ", " << second << '\n'; // -1 and +1.
+
+for (Real scale : {Real(1e-200), Real(1), Real(1e200)}) {
+    const PolynomReal polynomial{4 * scale, 0, -5 * scale, 0, scale};
+    RootFinding::PolynomialRootConfig config;
+    config.method = RootFinding::PolynomialRootMethod::CompanionMatrix;
+    config.max_iterations = 500;
+    const auto result = RootFinding::FindPolynomialRootsDetailed(polynomial, config);
+    if (!result.IsSuccess())
+        throw RootFindingError(result.error_message);
+    std::cout << "Relative residual: " << result.max_relative_residual << '\n';
+}
+```
 
 ## Runnable Examples
 

@@ -12,7 +12,7 @@
 
 /// @file Geometry3DTorusCylinder.h
 /// @brief Torus and Cylinder solid body representations.
-/// - Torus3D: Donut shape with rectangular surface mesh
+/// - Torus3D: Donut shape with planar quadrilateral surface mesh
 /// - Cylinder3D: Cylinder with triangular surface mesh
 /// @see Geometry3DBodies.h for the aggregate header
 
@@ -29,7 +29,7 @@
 
 namespace MML {
 
-	/// @brief Torus (donut shape) with rectangular surface mesh.
+	/// @brief Torus (donut shape) with bilinear planar quadrilateral patches.
 	/// Parametric surface: (R + r·cos(v))·cos(u), (R + r·cos(v))·sin(u), r·sin(v)
 	/// where R is major radius and r is minor (tube) radius.
 	/// @note Formulas:
@@ -81,12 +81,12 @@ namespace MML {
 		/// @name Surface Generation
 		/// @{
 
-		/// /** @brief Generate rectangular patches for the torus surface. */
+		/// /** @brief Generate coplanar quadrilateral patches for the torus surface. */
 
 		void constructSurfaces() {
 			_surfaces.clear();
-			Real du = 2.0 * Constants::PI / _numU;
-			Real dv = 2.0 * Constants::PI / _numV;
+			Real du = MML::Real(2.0) * Constants::PI / _numU;
+			Real dv = MML::Real(2.0) * Constants::PI / _numV;
 
 			for (int i = 0; i < _numU; ++i) {
 				for (int j = 0; j < _numV; ++j) {
@@ -142,11 +142,11 @@ namespace MML {
 
 		/// /** @brief Volume = 2π²Rr² */
 
-		Real Volume() const override { return 2.0 * Constants::PI * Constants::PI * _majorRadius * _minorRadius * _minorRadius; }
+		Real Volume() const override { return MML::Real(2.0) * Constants::PI * Constants::PI * _majorRadius * _minorRadius * _minorRadius; }
 
 		/// /** @brief Surface area = 4π²Rr */
 
-		Real SurfaceArea() const override { return 4.0 * Constants::PI * Constants::PI * _majorRadius * _minorRadius; }
+		Real SurfaceArea() const override { return MML::Real(4.0) * Constants::PI * Constants::PI * _majorRadius * _minorRadius; }
 
 		Pnt3Cart getCenter() const override { return _center; }
 
@@ -248,7 +248,7 @@ namespace MML {
 
 		void constructSurfaces() {
 			_surfaces.clear();
-			Real angleStep = 2.0 * Constants::PI / _numSegments;
+			Real angleStep = MML::Real(2.0) * Constants::PI / _numSegments;
 
 			Pnt3Cart bottomCenter(_center.X(), _center.Y(), _center.Z());
 			Pnt3Cart topCenter(_center.X(), _center.Y(), _center.Z() + _height);
@@ -305,11 +305,11 @@ namespace MML {
 
 		/// /** @brief Surface area = 2πR² + 2πRH */
 
-		Real SurfaceArea() const override { return 2.0 * Constants::PI * _radius * _radius + 2.0 * Constants::PI * _radius * _height; }
+		Real SurfaceArea() const override { return MML::Real(2.0) * Constants::PI * _radius * _radius + MML::Real(2.0) * Constants::PI * _radius * _height; }
 
 		/// /** @brief Return geometric center (middle of cylinder). */
 
-		Pnt3Cart getCenter() const override { return Pnt3Cart(_center.X(), _center.Y(), _center.Z() + _height / 2.0); }
+		Pnt3Cart getCenter() const override { return Pnt3Cart(_center.X(), _center.Y(), _center.Z() + _height / MML::Real(2.0)); }
 
 		Box3D getBoundingBox() const override {
 			Pnt3Cart min(_center.X() - _radius, _center.Y() - _radius, _center.Z());
@@ -321,7 +321,7 @@ namespace MML {
 
 		BoundingSphere3D getBoundingSphere() const override {
 			Pnt3Cart geomCenter = getCenter();
-			Real halfH = _height / 2.0;
+			Real halfH = _height / MML::Real(2.0);
 			Real radius = std::sqrt(_radius * _radius + halfH * halfH);
 			return BoundingSphere3D(geomCenter, radius);
 		}

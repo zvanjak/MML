@@ -24,9 +24,13 @@
  * - ITensorField4<N>: Rank-4 tensor field, e.g., Riemann curvature R^i_jkl(x)
  * - ITensorField5<N>: Rank-5 tensor field for specialized applications
  * 
- * Each field tracks its index variance (number of contravariant/covariant indices)
- * and provides both full tensor evaluation via operator() and component-wise
- * access via component().
+ * Each field tracks valid total counts of contravariant/covariant indices.
+ * Counts do not prescribe slot order: the tensor returned by operator() is the
+ * authoritative per-slot metadata and must match the declared totals. A field
+ * must use the same slot layout at every position; component() must agree with
+ * operator() at the same indices/position. Consumers must preserve the returned
+ * slot flags rather than reconstructing them from counts. Coordinate adapters
+ * reject returned values whose totals disagree with the field declaration.
  * 
  * **Usage Examples:**
  * - Metric tensor fields for curved spacetime
@@ -48,9 +52,21 @@
 #include <mml/base/Vector/Vector.h>
 #include <mml/base/Vector/VectorN.h>
 #include <mml/base/Tensor.h>
+#include <mml/base/Tensor/TensorCommon.h>
 
 namespace MML
 {
+	namespace detail
+	{
+		template<typename Field, typename Tensor>
+		void ValidateTensorFieldValue(const Field& field, const Tensor& tensor)
+		{
+			if (field.getNumContravar() != tensor.numContravar() || field.getNumCovar() != tensor.numCovar())
+				throw TensorCovarContravarArithmeticError("Tensor field value disagrees with declared variance counts",
+					field.getNumContravar(), field.getNumCovar(), tensor.numContravar(), tensor.numCovar());
+		}
+	}
+
 	/**
 	 * @brief Interface for rank-2 tensor fields in N-dimensional space.
 	 * 
@@ -74,7 +90,9 @@ namespace MML
 		 * @param numContra Number of contravariant indices (0, 1, or 2)
 		 * @param numCo Number of covariant indices (2-numContra)
 		 */
-		ITensorField2(int numContra, int numCo) : _numContravar(numContra), _numCovar(numCo) {}
+		ITensorField2(int numContra, int numCo) : _numContravar(numContra), _numCovar(numCo) {
+			detail::ValidateTensorVarianceCounts<2>(numCo, numContra);
+		}
 
 		/** @brief Get the number of contravariant indices. */
 		int getNumContravar() const { return _numContravar; }
@@ -120,8 +138,10 @@ namespace MML
 		int _numContravar;
 		int _numCovar;
 	public:
-		ITensorField3(int numContra, int numCo) : _numContravar(numContra), _numCovar(numCo) {}
-		ITensorField3() : _numContravar(0), _numCovar(3) {}
+		ITensorField3(int numContra, int numCo) : _numContravar(numContra), _numCovar(numCo) {
+			detail::ValidateTensorVarianceCounts<3>(numCo, numContra);
+		}
+		ITensorField3() : ITensorField3(0, 3) {}
 
 		int getNumContravar() const { return _numContravar; }
 		int getNumCovar() const { return _numCovar; }
@@ -165,8 +185,10 @@ namespace MML
 		int _numContravar;
 		int _numCovar;
 	public:
-		ITensorField4(int numContra, int numCo) : _numContravar(numContra), _numCovar(numCo) {}
-		ITensorField4() : _numContravar(0), _numCovar(4) {}
+		ITensorField4(int numContra, int numCo) : _numContravar(numContra), _numCovar(numCo) {
+			detail::ValidateTensorVarianceCounts<4>(numCo, numContra);
+		}
+		ITensorField4() : ITensorField4(0, 4) {}
 
 		int getNumContravar() const { return _numContravar; }
 		int getNumCovar() const { return _numCovar; }
@@ -205,8 +227,10 @@ namespace MML
 		int _numContravar;
 		int _numCovar;
 	public:
-		ITensorField5(int numContra, int numCo) : _numContravar(numContra), _numCovar(numCo) {}
-		ITensorField5() : _numContravar(0), _numCovar(5) {}
+		ITensorField5(int numContra, int numCo) : _numContravar(numContra), _numCovar(numCo) {
+			detail::ValidateTensorVarianceCounts<5>(numCo, numContra);
+		}
+		ITensorField5() : ITensorField5(0, 5) {}
 
 		int getNumContravar() const { return _numContravar; }
 		int getNumCovar() const { return _numCovar; }

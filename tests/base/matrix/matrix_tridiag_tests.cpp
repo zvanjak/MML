@@ -121,8 +121,8 @@ namespace MML::Tests::Base::TridiagMatrixTests
 																	 static_cast<MML::Real>(1.000001), static_cast<MML::Real>(2.000001), static_cast<MML::Real>(1.000001),
 																			static_cast<MML::Real>(1.000001), static_cast<MML::Real>(2.000001) });
 
-		REQUIRE(a.IsEqualTo(b, 1e-5));     // Within tolerance
-		REQUIRE_FALSE(a.IsEqualTo(b, 1e-7));  // Outside tolerance
+		REQUIRE(a.IsEqualTo(b, MML::Real(1e-5)));     // Within tolerance
+		REQUIRE_FALSE(a.IsEqualTo(b, MML::Real(1e-7)));  // Outside tolerance
 	}
 
 	TEST_CASE("MatrixTridiag_GetTranspose", "[tridiag][transpose]")

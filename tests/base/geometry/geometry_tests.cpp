@@ -330,10 +330,12 @@ namespace MML::Tests::Base::GeometryTests
 	TEST_CASE("Point2Polar::IsEqualTo", "[Point2Polar]")
 	{
 		Point2Polar a(static_cast<MML::Real>(2.0), static_cast<MML::Real>(0.5));
-		Point2Polar b(static_cast<MML::Real>(2.0) + TOL(1e-12, 1e-5), static_cast<MML::Real>(0.5));
+		Point2Polar b(Real(2) + Precision::Pnt2PolarIsEqualTolerance / 4, Real(0.5));
+		REQUIRE(b.R() != a.R());
 		
 		REQUIRE(a.IsEqualTo(b));
 		REQUIRE(a.IsEqualTo(a));
+		REQUIRE_FALSE(a.IsEqualTo(Point2Polar(Real(2) + 4 * Precision::Pnt2PolarIsEqualTolerance, Real(0.5))));
 	}
 
 	TEST_CASE("Point2Polar::RoundTrip", "[Point2Polar]")

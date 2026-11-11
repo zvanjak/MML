@@ -30,12 +30,12 @@ namespace {
     class Decay : public IODESystemWithJacobian {
     public:
         int getDim() const override { return 1; }
-        void derivs(Real, const Vector<Real>& y, Vector<Real>& dydt) const override { dydt[0] = -2.0 * y[0]; }
+        void derivs(Real, const Vector<Real>& y, Vector<Real>& dydt) const override { dydt[0] = -MML::Real(2.0) * y[0]; }
         void jacobian(Real, const Vector<Real>&, Matrix<Real>& J) const override { J(0, 0) = -2.0; }
     };
 
     // Numerical-Recipes style callback: third argument is df/dt (zero here), NOT dy/dt
-    void decayDerivs(Real, const Vector<Real>& y, Vector<Real>& dydt) { dydt[0] = -2.0 * y[0]; }
+    void decayDerivs(Real, const Vector<Real>& y, Vector<Real>& dydt) { dydt[0] = -MML::Real(2.0) * y[0]; }
     void decayJacobn(const Real, const Vector<Real>&, Vector<Real>& dfdt, Matrix<Real>& J) { dfdt[0] = 0.0; J(0, 0) = -2.0; }
     void decayJacobianOnly(Real, const Vector<Real>&, Matrix<Real>& J) { J(0, 0) = -2.0; }
 }
@@ -98,7 +98,7 @@ TEST_CASE("derivsAndJacobian cannot clobber the derivatives (regression for the 
     REQUIRE(J(0, 0) == static_cast<MML::Real>(-2.0));
 
     ODESystemWithJacobianFromStdFunc fromStd(1,
-        [](Real, const Vector<Real>& yy, Vector<Real>& dd) { dd[0] = -2.0 * yy[0]; },
+        [](Real, const Vector<Real>& yy, Vector<Real>& dd) { dd[0] = -MML::Real(2.0) * yy[0]; },
         [](Real, const Vector<Real>&, Matrix<Real>& JJ) { JJ(0, 0) = -2.0; });
     fromStd.derivsAndJacobian(static_cast<MML::Real>(0.0), y, dydt, J);
     REQUIRE(dydt[0] == static_cast<MML::Real>(-2.0));

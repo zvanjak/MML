@@ -244,7 +244,8 @@ namespace MML::Tests::GLS {
 	TEST_CASE("GLS retains callback exceptions and reports arithmetic overflow explicitly", "[CurveFitting][GLS]")
 	{
 		const Vector<Real> x{0, 1, 2, 3}, y{0, 2, 4, 3};
-		Vector<std::function<Real(Real)>> throwing{[](Real) -> Real { throw std::runtime_error("GLS callback failed"); }};
+		Vector<std::function<Real(Real)>> throwing(1);
+		throwing[0] = [](Real) -> Real { throw std::runtime_error("GLS callback failed"); };
 		REQUIRE_THROWS_WITH(GeneralizedLinearFitDetailed(x, y, CorrelatedCovariance(), throwing), "GLS callback failed");
 		CurveFittingConfig config;
 		config.exception_policy = EvaluationExceptionPolicy::ConvertToStatus;

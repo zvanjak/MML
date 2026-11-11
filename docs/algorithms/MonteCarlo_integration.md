@@ -12,6 +12,12 @@ do not bypass uncertainty checks. `absolute_error` provides a near-zero absolute
 target in addition to `target_error`. At least two independent observations are
 required; antithetic budgets must be even and at least four evaluations.
 
+Stratified Monte Carlo uses within-stratum sample variances, not variation between
+stratum means. With at least two samples per stratum, `Success` requires its
+standard-error target to be met; otherwise it returns `MaxIterationsExceeded`
+with the retained estimate. One sample per stratum remains supported as a
+`Completed`, nonconverged point estimate with unavailable uncertainty.
+
 Monte Carlo (MC) methods solve integrals by **random sampling** instead of systematic grid evaluation. The revolutionary insight:
 - **Deterministic quadrature**: Error ~ O(n^(-k/d)) where d = dimension, k = order
   - **Curse of dimensionality**: Exponentially more points needed as d increases
@@ -34,6 +40,12 @@ Monte Carlo (MC) methods solve integrals by **random sampling** instead of syste
 - **Approximate accuracy acceptable** (1-3 significant digits often enough)
 
 ## Quick Reference
+
+Quasi-Monte Carlo validates the final scaled value and available uncertainty.
+A finite integrand whose volume-scaled integral overflows does not receive
+`Completed`. Sample counts must fit the diagnostic counter range. Its
+sample-based uncertainty remains heuristic, not a rigorous low-discrepancy
+error bound; a single observation has no sample-based uncertainty estimate.
 
 | Method | Variance Reduction | Complexity | Best For |
 |--------|-------------------|------------|----------|
@@ -115,7 +127,9 @@ If f has monotone regions, Cov[f(x), f(x̄)] < 0
 ```
 Partition Ω into strata Ω₁, Ω₂, ..., Ωₘ
 Sample proportionally from each
-Variance = Σᵢ (Vᵢ/V)² · σᵢ²
+Var[Î] = Σᵢ Vᵢ² · sᵢ²/nᵢ
+SE[Î] = sqrt(Var[Î])
+where sᵢ² is the unbiased within-stratum sample variance (nᵢ >= 2)
 
 If between-strata variance large, within-strata variance small:
 → Total variance << unstratified variance
@@ -160,10 +174,25 @@ std::cout << "Used " << result.samples_used << " samples\n";
 std::cout << "Converged: " << (result.converged ? "YES" : "NO") << "\n";
 ```
 
-**Convergence Criterion**:
-```cpp
-converged = (|I| < 10⁻¹⁵)  OR  (error / |I| < target_error)
-```
+**Convergence Criterion**: plain serial and parallel MC require the standard error
+to be no greater than the larger of `config.absolute_error` and
+`config.target_error * abs(result.value)`. Stratified MC retains its fixed relative
+target, `Precision::DefaultToleranceStrict`, and requires
+`result.error_estimate <= Precision::DefaultToleranceStrict * abs(result.value)`.
+A zero or tiny estimate does not bypass the uncertainty check. A computed zero
+standard error can satisfy the criterion even when the estimate is zero.
+
+Float sample moments accumulate in double, whose range covers squared float
+deviations. Standard errors are formed before conversion back to `Real`, so
+representable tiny uncertainty is not lost when the variance rounds to zero.
+An unrepresentable sample variance is reported as an error, not an infinite result.
+
+For stratified MC, `variance` is the variance of the **unscaled mean estimator**:
+`sum(s_h^2 / n_h) / H^2` for `H` equal-volume strata. Its standard error is scaled
+by the full domain volume for `error_estimate`. Plain/antithetic MC instead retain
+their sample/pair sample-variance interpretation. With one observation per stratum,
+`error_estimated` is false and both `error_estimate` and `variance` are `NoEstimate`;
+the usable point estimate is `Completed`, not a certified accuracy result.
 
 ---
 
@@ -242,7 +271,7 @@ void seed(unsigned int s);
    c) sum += fᵢ
    d) sum_sq += fᵢ²
 3. mean = sum / n
-4. variance = (sum_sq / n) - mean²
+4. Compute unbiased sample variance with Welford's online mean/variance updates
 5. std_error = √(variance / n)
 6. I_est = V · mean
 7. error_est = V · std_error
@@ -253,7 +282,7 @@ void seed(unsigned int s);
 1. Ensure n is even
 2. For i = 1 to n by steps of 2:
    a) Generate xᵢ uniformly
-   b) Compute x̄ᵢ = lower + upper - xᵢ (reflected point)
+   b) Interpolate the reflected point with 1-u (avoid forming lower+upper)
    c) f₁ = f(xᵢ), f₂ = f(x̄ᵢ)
    d) f_avg = (f₁ + f₂) / 2
    e) Accumulate f_avg
@@ -332,9 +361,37 @@ MonteCarloResult integrate(
 2. For each stratum:
    a) Compute stratum bounds [s_lower, s_upper]
    b) Generate samples_per_stratum uniform points in stratum
-   c) Compute stratum mean m_s
+   c) Compute stratum mean m_s and unbiased sample variance s_s² with Welford updates
 3. Global mean = average of stratum means
-4. Variance from between-strata variation
+4. Var[global mean] = sum_s(s_s² / samples_per_stratum) / (total_strata)²
+5. Integral = volume * global mean; standard error = volume * sqrt(Var[global mean])
+```
+
+At least two observations per stratum are needed for step 4. With only one,
+the point estimate is still returned, but its uncertainty is unavailable.
+All sample values, the final scaled integral, and any available uncertainty must
+be finite; numerical overflow or nonfinite samples throw `NumericalMethodError`.
+Stratum counts and total evaluations are checked before sampling. A nonzero-volume
+request exceeding the `int` diagnostic counter range throws `ResourceLimitError`
+without invoking the integrand, rather than wrapping the count or narrowing it.
+Zero-volume domains retain their exact-zero, `Completed`, zero-evaluation behavior.
+Interpolation keeps random and reflected points inside the supplied finite bounds;
+serial antithetic pair averages divide each value before adding to avoid
+overflowing a representable average.
+
+**Replicated versus unreplicated estimates** (runnable via `MML_DocsApp --montecarlo`):
+
+```cpp
+ScalarFunctionFromStdFunc<1> linear([](const VectorN<Real, 1>& x) { return x[0]; });
+const VectorN<Real, 1> lower{0}, upper{1};
+StratifiedMonteCarloIntegrator<1> integrator;
+const auto replicated = integrator.integrate(linear, lower, upper, 1, 1000, 42);
+const auto unreplicated = integrator.integrate(linear, lower, upper, 10, 1, 42);
+std::cout << "Stratified estimate: " << replicated.value << " +/- " << replicated.error_estimate
+          << ", status=" << to_string(replicated.status) << '\n';
+std::cout << "Single sample per stratum: " << unreplicated.value
+          << ", uncertainty available=" << unreplicated.error_estimated
+          << ", status=" << to_string(unreplicated.status) << '\n';
 ```
 
 **Stratum Structure** (1D example with strata_per_dim=4):

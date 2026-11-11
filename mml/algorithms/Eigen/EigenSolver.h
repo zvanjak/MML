@@ -70,7 +70,7 @@ namespace MML {
 				, imag(i) {}
 
 			bool isComplex(Real tol = Precision::ZeroTolerance) const { return std::abs(imag) > tol; }
-			Real magnitude() const { return std::sqrt(real * real + imag * imag); }
+			Real magnitude() const { return std::hypot(real, imag); }
 
 			friend std::ostream& operator<<(std::ostream& os, const ComplexEigenvalue& value) {
 				return os << value.real << (value.imag < static_cast<MML::Real>(0.0) ? " - " : " + ") << std::abs(value.imag) << 'i';
@@ -131,6 +131,14 @@ namespace MML {
 				return result;
 			}
 
+			Real matrixScale = 0;
+			for (int row = 0; row < n; ++row)
+				for (int col = 0; col < n; ++col) {
+					if (!std::isfinite(A(row, col)))
+						throw MatrixNumericalError("EigenSolver::Solve - non-finite input matrix");
+					matrixScale = std::max(matrixScale, std::abs(A(row, col)));
+				}
+
 			if (n == 1) {
 				// Closed form: A v = A(0,0) v with v = 1, residual exactly 0 - the criterion is checked and met
 				result.eigenvalues.push_back(ComplexEigenvalue(A(0, 0), 0.0));
@@ -141,8 +149,37 @@ namespace MML {
 				return result;
 			}
 
-			// Step 1: Reduce to Hessenberg form  (H = Q^T A Q)
-			auto hess = ReduceToHessenberg(A);
+			// QR shifts contain products and squared norms. Work in dimensionless units
+			// when that preserves normal precision; never erase or coarsen a small disconnected block.
+			Matrix<Real> working = A;
+			if (matrixScale > Real{0}) {
+				bool canNormalize = true;
+				for (int row = 0; row < n; ++row)
+					for (int col = 0; col < n; ++col) {
+						working(row, col) /= matrixScale;
+						if (A(row, col) != Real{0} && !std::isnormal(working(row, col)))
+							canNormalize = false;
+					}
+				if (!canNormalize) {
+					working = A;
+					matrixScale = 1;
+				}
+			} else {
+				matrixScale = 1;
+			}
+
+			// Step 1: Reduce to Hessenberg form  (H = Q^T working Q)
+			HessenbergResult hess(n);
+			try {
+				hess = ReduceToHessenberg(working);
+			} catch (const MatrixNumericalError& error) {
+				result.eigenvalues.assign(n, ComplexEigenvalue(NoEstimate, NoEstimate));
+				result.isComplexPair.assign(n, false);
+				result.maxResidual = NoEstimate;
+				result.status = AlgorithmStatus::NumericalInstability;
+				result.error_message = std::string("Hessenberg reduction failed: ") + error.what();
+				return result;
+			}
 			Matrix<Real> H = hess.H;
 			Matrix<Real> Q = hess.Q; // Accumulated transformation
 
@@ -204,11 +241,32 @@ namespace MML {
 				totalIter++;
 			}
 
+			result.iterations = totalIter;
+			if (!allDeflated) {
+				result.status = AlgorithmStatus::MaxIterationsExceeded;
+				result.error_message = "General QR iteration did not converge within " + std::to_string(maxIter) + " iterations";
+			}
+			auto rejectEigenpairs = [&](const char* message) {
+				result.converged = false;
+				result.maxResidual = NoEstimate;
+				if (allDeflated)
+					result.status = AlgorithmStatus::NumericalInstability;
+				if (!result.error_message.empty())
+					result.error_message += "; ";
+				result.error_message += message;
+			};
+
 			// Step 3: Extract eigenvalues from the (now exactly) quasi-triangular form.
 			// Deflated subdiagonals are exact zeros, so tol = 0 classifies blocks structurally.
 			auto eigResult = detail::ExtractEigenvalues(H, static_cast<MML::Real>(0.0));
 			for (const auto& e : eigResult.eigenvalues)
-				result.eigenvalues.push_back(ComplexEigenvalue(e.real, e.imag));
+				result.eigenvalues.push_back(ComplexEigenvalue(e.real * matrixScale, e.imag * matrixScale));
+			result.isComplexPair.resize(n, false);
+			for (const auto& value : result.eigenvalues)
+				if (!std::isfinite(value.real) || !std::isfinite(value.imag)) {
+					rejectEigenpairs("Non-finite or unrepresentable eigenvalue");
+					return result;
+				}
 
 			// Step 4: Compute eigenvectors (quasi-triangular back-substitution, then X = Q Y)
 			auto vecResult = detail::ComputeEigenvectorsFromSchur(H, Q, static_cast<MML::Real>(0.0));
@@ -216,7 +274,6 @@ namespace MML {
 			result.isComplexPair = vecResult.isComplexPair;
 
 			// Step 5: Residuals ||A v - λ v|| / ||v|| for every eigenpair (complex pairs included)
-			result.iterations = totalIter;
 			result.maxResidual = 0.0;
 			{
 				Vector<Real> vr(n), vi(n);
@@ -230,19 +287,16 @@ namespace MML {
 
 					Real residual = detail::EigenpairResidual(A, vr, vi, result.eigenvalues[i].real,
 															  pair ? result.eigenvalues[i].imag : static_cast<MML::Real>(0.0));
+					if (!std::isfinite(residual)) {
+						rejectEigenpairs("Zero or non-finite eigenvector, or unrepresentable eigenpair residual");
+						return result;
+					}
 					result.maxResidual = std::max(result.maxResidual, residual);
 					i += pair ? 2 : 1;
 				}
 			}
 
-			result.converged = allDeflated && std::isfinite(result.maxResidual);
-			if (!allDeflated) {
-				result.status = AlgorithmStatus::MaxIterationsExceeded;
-				result.error_message = "General QR iteration did not converge within " + std::to_string(maxIter) + " iterations";
-			} else if (!std::isfinite(result.maxResidual)) {
-				result.status = AlgorithmStatus::NumericalInstability;
-				result.error_message = "Non-finite eigenvector residual";
-			}
+			result.converged = allDeflated;
 
 			return result;
 		}
@@ -260,10 +314,6 @@ namespace MML {
 
 			// Populate diagnostic fields
 			result.elapsed_time_ms = timer.elapsed_ms();
-			if (!result.converged) {
-				result.status = AlgorithmStatus::MaxIterationsExceeded;
-				result.error_message = "General QR iteration did not converge within " + std::to_string(maxIter) + " iterations";
-			}
 
 			return result;
 		}

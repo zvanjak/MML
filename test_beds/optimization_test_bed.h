@@ -218,7 +218,7 @@ namespace MML::TestBeds
             Opt1D_Rastrigin_deriv,
             Opt1D_Rastrigin_min_x,
             Opt1D_Rastrigin_min_f,
-            -5.12, 5.12,
+            -MML::Real(5.12), MML::Real(5.12),
             "multimodal",
             "Highly multimodal with many local minima. Global at x=0.",
             true, true, 3
@@ -233,7 +233,7 @@ namespace MML::TestBeds
             nullptr,  // Complex derivative
             Opt1D_Ackley_min_x,
             Opt1D_Ackley_min_f,
-            -32.768, 32.768,
+            -MML::Real(32.768), MML::Real(32.768),
             "multimodal",
             "Nearly flat outer region with sharp global minimum at x=0.",
             false, true, 3
@@ -246,8 +246,8 @@ namespace MML::TestBeds
             "Sinusoidal sin(x)+sin(3x)/3",
             Opt1D_Sinusoidal,
             Opt1D_Sinusoidal_deriv,
-            -1.9, // Approximate global minimum
-            -0.87, // Approximate value
+            -MML::Real(1.9), // Approximate global minimum
+            -MML::Real(0.87), // Approximate value
             -Constants::PI, 2 * Constants::PI,
             "multimodal",
             "Oscillating function with multiple local minima.",

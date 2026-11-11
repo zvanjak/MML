@@ -19,7 +19,7 @@ TEST_CASE("Torus3D::Volume", "[geometry][torus][volume]")
     {
         Torus3D torus(3.0, 1.0);
         // Volume = 2π²Rr² = 2π² * 3 * 1 = 6π²
-        Real expected = 6.0 * Constants::PI * Constants::PI;
+        Real expected = MML::Real(6.0) * Constants::PI * Constants::PI;
         REQUIRE_THAT(torus.Volume() , RealApprox(expected));
     }
 
@@ -27,7 +27,7 @@ TEST_CASE("Torus3D::Volume", "[geometry][torus][volume]")
     {
         Torus3D torus(5.0, 2.0);
         // Volume = 2π² * 5 * 4 = 40π²
-        Real expected = 40.0 * Constants::PI * Constants::PI;
+        Real expected = MML::Real(40.0) * Constants::PI * Constants::PI;
         REQUIRE_THAT(torus.Volume() , RealApprox(expected));
     }
 
@@ -36,7 +36,7 @@ TEST_CASE("Torus3D::Volume", "[geometry][torus][volume]")
         Pnt3Cart center(10.0, 20.0, 30.0);
         Torus3D torus(4.0, 1.5, center);
         // Volume = 2π² * 4 * 2.25 = 18π²
-        Real expected = 18.0 * Constants::PI * Constants::PI;
+        Real expected = MML::Real(18.0) * Constants::PI * Constants::PI;
         REQUIRE_THAT(torus.Volume() , RealApprox(expected));
     }
 
@@ -44,27 +44,28 @@ TEST_CASE("Torus3D::Volume", "[geometry][torus][volume]")
     {
         Torus3D torus(10.0, 0.5);
         // Volume = 2π² * 10 * 0.25 = 5π²
-        Real expected = 5.0 * Constants::PI * Constants::PI;
+        Real expected = MML::Real(5.0) * Constants::PI * Constants::PI;
         REQUIRE_THAT(torus.Volume() , RealApprox(expected));
     }
 }
 
 TEST_CASE("Torus3D::SurfaceArea", "[geometry][torus][surface]")
 {
+    const Real tolerance = TOL(Tolerance::Standard, Real(6) * Precision::Eps);
     SECTION("Torus with R=3, r=1")
     {
         Torus3D torus(3.0, 1.0);
         // SA = 4π²Rr = 4π² * 3 * 1 = 12π²
-        Real expected = 12.0 * Constants::PI * Constants::PI;
-        REQUIRE_THAT(torus.SurfaceArea() , RealApprox(expected));
+        Real expected = MML::Real(12.0) * Constants::PI * Constants::PI;
+        REQUIRE_THAT(torus.SurfaceArea(), RealApprox(expected).epsilon(tolerance));
     }
 
     SECTION("Torus with R=5, r=2")
     {
         Torus3D torus(5.0, 2.0);
         // SA = 4π² * 5 * 2 = 40π²
-        Real expected = 40.0 * Constants::PI * Constants::PI;
-        REQUIRE_THAT(torus.SurfaceArea() , RealApprox(expected));
+        Real expected = MML::Real(40.0) * Constants::PI * Constants::PI;
+        REQUIRE_THAT(torus.SurfaceArea(), RealApprox(expected).epsilon(tolerance));
     }
 
     SECTION("Torus centered at arbitrary point")
@@ -72,16 +73,16 @@ TEST_CASE("Torus3D::SurfaceArea", "[geometry][torus][surface]")
         Pnt3Cart center(10.0, 20.0, 30.0);
         Torus3D torus(4.0, 1.5, center);
         // SA = 4π² * 4 * 1.5 = 24π²
-        Real expected = 24.0 * Constants::PI * Constants::PI;
-        REQUIRE_THAT(torus.SurfaceArea() , RealApprox(expected));
+        Real expected = MML::Real(24.0) * Constants::PI * Constants::PI;
+        REQUIRE_THAT(torus.SurfaceArea(), RealApprox(expected).epsilon(tolerance));
     }
 
     SECTION("Large torus")
     {
         Torus3D torus(20.0, 3.0);
         // SA = 4π² * 20 * 3 = 240π²
-        Real expected = 240.0 * Constants::PI * Constants::PI;
-        REQUIRE_THAT(torus.SurfaceArea() , RealApprox(expected));
+        Real expected = MML::Real(240.0) * Constants::PI * Constants::PI;
+        REQUIRE_THAT(torus.SurfaceArea(), RealApprox(expected).epsilon(tolerance));
     }
 }
 
@@ -295,15 +296,15 @@ TEST_CASE("Torus3D::IsInside", "[geometry][torus][inside]")
     {
         Torus3D torus(5.0, 2.0);
         // Beyond outer radius
-        REQUIRE(torus.IsInside(Pnt3Cart(7.1, 0.0, 0.0)) == false);
-        REQUIRE(torus.IsInside(Pnt3Cart(0.0, 7.1, 0.0)) == false);
+        REQUIRE(torus.IsInside(Pnt3Cart(MML::Real(7.1), MML::Real(0.0), MML::Real(0.0))) == false);
+        REQUIRE(torus.IsInside(Pnt3Cart(MML::Real(0.0), MML::Real(7.1), MML::Real(0.0))) == false);
     }
 
     SECTION("Points inside inner hole are not inside")
     {
         Torus3D torus(5.0, 2.0);
         // Inside the hole (distance < R-r)
-        REQUIRE(torus.IsInside(Pnt3Cart(2.9, 0.0, 0.0)) == false);
+        REQUIRE(torus.IsInside(Pnt3Cart(MML::Real(2.9), MML::Real(0.0), MML::Real(0.0))) == false);
         REQUIRE(torus.IsInside(Pnt3Cart(2.0, 0.0, 0.0)) == false);
         REQUIRE(torus.IsInside(Pnt3Cart(1.0, 0.0, 0.0)) == false);
     }
@@ -311,8 +312,8 @@ TEST_CASE("Torus3D::IsInside", "[geometry][torus][inside]")
     SECTION("Points above/below torus height are not inside")
     {
         Torus3D torus(5.0, 2.0);
-        REQUIRE(torus.IsInside(Pnt3Cart(5.0, 0.0, 2.1)) == false);
-        REQUIRE(torus.IsInside(Pnt3Cart(5.0, 0.0, -2.1)) == false);
+        REQUIRE(torus.IsInside(Pnt3Cart(MML::Real(5.0), MML::Real(0.0), MML::Real(2.1))) == false);
+        REQUIRE(torus.IsInside(Pnt3Cart(MML::Real(5.0), MML::Real(0.0), -MML::Real(2.1))) == false);
         REQUIRE(torus.IsInside(Pnt3Cart(5.0, 0.0, 3.0)) == false);
     }
 
@@ -331,18 +332,18 @@ TEST_CASE("Torus3D::IsInside", "[geometry][torus][inside]")
         REQUIRE(torus.IsInside(Pnt3Cart(17.0, 20.0, 30.0)) == true);
         
         // Point outside
-        REQUIRE(torus.IsInside(Pnt3Cart(17.1, 20.0, 30.0)) == false);
+        REQUIRE(torus.IsInside(Pnt3Cart(MML::Real(17.1), MML::Real(20.0), MML::Real(30.0))) == false);
         
         // Point inside hole
-        REQUIRE(torus.IsInside(Pnt3Cart(12.9, 20.0, 30.0)) == false);
+        REQUIRE(torus.IsInside(Pnt3Cart(MML::Real(12.9), MML::Real(20.0), MML::Real(30.0))) == false);
     }
 
     SECTION("Diagonal points in tube cross-section")
     {
         Torus3D torus(5.0, 2.0);
         // Point at 45° in tube cross-section: distance from major circle = √2 ≈ 1.414 < 2
-        Real offset = std::sqrt(2.0) / 2.0;  // ≈ 0.707
-        REQUIRE(torus.IsInside(Pnt3Cart(5.0 + offset, 0.0, offset)) == true);
+        Real offset = std::sqrt(MML::Real(2.0)) / MML::Real(2.0);  // ≈ 0.707
+        REQUIRE(torus.IsInside(Pnt3Cart(MML::Real(5.0) + offset, MML::Real(0.0), offset)) == true);
     }
 }
 

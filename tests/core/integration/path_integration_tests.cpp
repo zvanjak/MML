@@ -253,7 +253,7 @@ namespace MML::Tests::Algorithms::PathIntegrationTests
 			return VectorN<Real, 3>{std::cos(t), std::sin(t), static_cast<MML::Real>(0.0)};
 		});
 
-		Real integral = PathIntegration::LineIntegral(unit_field, circle, static_cast<MML::Real>(0.0), static_cast<MML::Real>(2.0) * Constants::PI, 1e-5);
+		Real integral = PathIntegration::LineIntegral(unit_field, circle, static_cast<MML::Real>(0.0), static_cast<MML::Real>(2.0) * Constants::PI, MML::Real(1e-5));
 		Real expected = static_cast<MML::Real>(2.0) * Constants::PI;
 
 		REQUIRE_THAT(integral, WithinRel(expected, static_cast<MML::Real>(1e-3)));
@@ -276,7 +276,7 @@ namespace MML::Tests::Algorithms::PathIntegrationTests
 			return VectorN<Real, 3>{R * std::cos(t), R * std::sin(t), static_cast<MML::Real>(0.0)};
 		});
 
-		Real integral = PathIntegration::LineIntegral(linear_field, quarter_circle, static_cast<MML::Real>(0.0), Constants::PI / static_cast<MML::Real>(2.0), 1e-5);
+		Real integral = PathIntegration::LineIntegral(linear_field, quarter_circle, static_cast<MML::Real>(0.0), Constants::PI / static_cast<MML::Real>(2.0), MML::Real(1e-5));
 		Real expected = static_cast<MML::Real>(18.0);
 
 		REQUIRE_THAT(integral, WithinRel(expected, static_cast<MML::Real>(1e-3)));
@@ -296,7 +296,7 @@ namespace MML::Tests::Algorithms::PathIntegrationTests
 			return VectorN<Real, 3>{std::cos(t), std::sin(t), static_cast<MML::Real>(0.0)};
 		});
 
-		Real integral = PathIntegration::LineIntegral(radial_field, circle, static_cast<MML::Real>(0.0), static_cast<MML::Real>(2.0) * Constants::PI, 1e-5);
+		Real integral = PathIntegration::LineIntegral(radial_field, circle, static_cast<MML::Real>(0.0), static_cast<MML::Real>(2.0) * Constants::PI, MML::Real(1e-5));
 		Real expected = static_cast<MML::Real>(2.0) * Constants::PI;
 
 		REQUIRE_THAT(integral, WithinRel(expected, static_cast<MML::Real>(1e-3)));
@@ -317,7 +317,7 @@ namespace MML::Tests::Algorithms::PathIntegrationTests
 			return VectorN<Real, 3>{std::cos(t), std::sin(t), t};
 		});
 
-		Real integral = PathIntegration::LineIntegral(height_field, helix, static_cast<MML::Real>(0.0), static_cast<MML::Real>(2.0) * Constants::PI, 1e-5);
+		Real integral = PathIntegration::LineIntegral(height_field, helix, static_cast<MML::Real>(0.0), static_cast<MML::Real>(2.0) * Constants::PI, MML::Real(1e-5));
 		Real expected = std::sqrt(static_cast<MML::Real>(2.0)) * static_cast<MML::Real>(2.0) * Constants::PI * Constants::PI;
 
 		REQUIRE_THAT(integral, WithinRel(expected, static_cast<MML::Real>(1e-3)));
@@ -345,7 +345,7 @@ namespace MML::Tests::Algorithms::PathIntegrationTests
 			return VectorN<Real, 3>{t, static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0)};
 		});
 
-		Real work = PathIntegration::LineIntegral(const_field, x_line, static_cast<MML::Real>(0.0), L, 1e-5);
+		Real work = PathIntegration::LineIntegral(const_field, x_line, static_cast<MML::Real>(0.0), L, MML::Real(1e-5));
 		Real expected = L;
 
 		REQUIRE_THAT(work, WithinRel(expected, static_cast<MML::Real>(1e-6)));
@@ -369,7 +369,7 @@ namespace MML::Tests::Algorithms::PathIntegrationTests
 			return VectorN<Real, 3>{R * std::cos(t), R * std::sin(t), static_cast<MML::Real>(0.0)};
 		});
 
-		Real circulation = PathIntegration::LineIntegral(rotation_field, circle, static_cast<MML::Real>(0.0), static_cast<MML::Real>(2.0) * Constants::PI, 1e-5);
+		Real circulation = PathIntegration::LineIntegral(rotation_field, circle, static_cast<MML::Real>(0.0), static_cast<MML::Real>(2.0) * Constants::PI, MML::Real(1e-5));
 		Real expected = static_cast<MML::Real>(2.0) * Constants::PI * R * R;
 
 		REQUIRE_THAT(circulation, WithinRel(expected, static_cast<MML::Real>(1e-3)));
@@ -399,9 +399,9 @@ namespace MML::Tests::Algorithms::PathIntegrationTests
 			return VectorN<Real, 3>{static_cast<MML::Real>(0.0), t, t};
 		});
 
-		Real work1 = PathIntegration::LineIntegral(grad_field, path1, static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), 1e-5);
-		Real work2a = PathIntegration::LineIntegral(grad_field, path2a, static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), 1e-5);
-		Real work2b = PathIntegration::LineIntegral(grad_field, path2b, static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), 1e-5);
+		Real work1 = PathIntegration::LineIntegral(grad_field, path1, static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), MML::Real(1e-5));
+		Real work2a = PathIntegration::LineIntegral(grad_field, path2a, static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), MML::Real(1e-5));
+		Real work2b = PathIntegration::LineIntegral(grad_field, path2b, static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), MML::Real(1e-5));
 		Real work2 = work2a + work2b;
 
 		// Both should equal φ(end) - φ(start) = (0+1+1) - (1+0+0) = 1
@@ -426,7 +426,7 @@ namespace MML::Tests::Algorithms::PathIntegrationTests
 			return VectorN<Real, 3>{std::cos(t), std::sin(t), static_cast<MML::Real>(0.0)};
 		});
 
-		Real work = PathIntegration::LineIntegral(grad_field, circle, static_cast<MML::Real>(0.0), static_cast<MML::Real>(2.0) * Constants::PI, 1e-5);
+		Real work = PathIntegration::LineIntegral(grad_field, circle, static_cast<MML::Real>(0.0), static_cast<MML::Real>(2.0) * Constants::PI, MML::Real(1e-5));
 
 		REQUIRE_THAT(work, WithinAbs(static_cast<MML::Real>(0.0), static_cast<MML::Real>(1e-3)));
 	}
@@ -448,7 +448,7 @@ namespace MML::Tests::Algorithms::PathIntegrationTests
 			return VectorN<Real, 3>{static_cast<MML::Real>(1.0) + t, static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0)};
 		});
 
-		Real work = PathIntegration::LineIntegral(radial_field, line, static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), 1e-5);
+		Real work = PathIntegration::LineIntegral(radial_field, line, static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), MML::Real(1e-5));
 		Real expected = static_cast<MML::Real>(1.5);
 
 		REQUIRE_THAT(work, WithinRel(expected, TOL(1e-4, 5e-4)));
@@ -474,7 +474,7 @@ namespace MML::Tests::Algorithms::PathIntegrationTests
 			return VectorN<Real, 3>{static_cast<MML::Real>(1.0) + t, static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0)};
 		});
 
-		Real work = PathIntegration::LineIntegral(inv_sq_field, line, static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), 1e-5);
+		Real work = PathIntegration::LineIntegral(inv_sq_field, line, static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), MML::Real(1e-5));
 		// Work = ∫(-k/r²)dr from r=1 to r=2 = k[1/r]₁² = k(1/2 - 1) = -k/2 = -5
 		Real expected = -k / static_cast<MML::Real>(2.0);  // = -5
 
@@ -547,8 +547,8 @@ namespace MML::Tests::Algorithms::PathIntegrationTests
 			return VectorN<Real, 3>{static_cast<MML::Real>(1.0) - t, static_cast<MML::Real>(1.0) - t, static_cast<MML::Real>(0.0)};
 		});
 
-		Real work_fwd = PathIntegration::LineIntegral(field, forward, static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), 1e-5);
-		Real work_bwd = PathIntegration::LineIntegral(field, backward, static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), 1e-5);
+		Real work_fwd = PathIntegration::LineIntegral(field, forward, static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), MML::Real(1e-5));
+		Real work_bwd = PathIntegration::LineIntegral(field, backward, static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), MML::Real(1e-5));
 
 		REQUIRE_THAT(work_fwd, WithinRel(-work_bwd, static_cast<MML::Real>(1e-3)));
 	}
@@ -569,8 +569,8 @@ namespace MML::Tests::Algorithms::PathIntegrationTests
 			return VectorN<Real, 3>{static_cast<MML::Real>(1.0) - t, static_cast<MML::Real>(1.0) - t, static_cast<MML::Real>(0.0)};
 		});
 
-		Real int_fwd = PathIntegration::LineIntegral(field, forward, static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), 1e-5);
-		Real int_bwd = PathIntegration::LineIntegral(field, backward, static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), 1e-5);
+		Real int_fwd = PathIntegration::LineIntegral(field, forward, static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), MML::Real(1e-5));
+		Real int_bwd = PathIntegration::LineIntegral(field, backward, static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), MML::Real(1e-5));
 
 		REQUIRE_THAT(int_fwd, WithinRel(int_bwd, static_cast<MML::Real>(1e-3)));  // Same value
 	}
@@ -596,7 +596,7 @@ namespace MML::Tests::Algorithms::PathIntegrationTests
 			return VectorN<Real, 3>{static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), h * t};
 		});
 
-		Real work = PathIntegration::LineIntegral(gravity, vertical, static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), 1e-6);
+		Real work = PathIntegration::LineIntegral(gravity, vertical, static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), MML::Real(1e-6));
 		Real expected = -m * g * h;
 
 		REQUIRE_THAT(work, WithinRel(expected, static_cast<MML::Real>(1e-5)));
@@ -607,7 +607,7 @@ namespace MML::Tests::Algorithms::PathIntegrationTests
 			TEST_PRECISION_INFO();
 		// Uniform electric field E = (E₀, 0, 0)
 		// Work on charge q moving from x=0 to x=d: W = qE₀d
-		Real E0 = static_cast<MML::Real>(100.0), q = 1.6e-19, d = static_cast<MML::Real>(0.01);
+		Real E0 = static_cast<MML::Real>(100.0), q = MML::Real(1.6e-19), d = static_cast<MML::Real>(0.01);
 
 		VectorFunctionFromStdFunc<3> E_field([E0, q](const VectorN<Real, 3>&) {
 			return VectorN<Real, 3>{q * E0, static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0)};  // Force = qE
@@ -617,7 +617,7 @@ namespace MML::Tests::Algorithms::PathIntegrationTests
 			return VectorN<Real, 3>{d * t, static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0)};
 		});
 
-		Real work = PathIntegration::LineIntegral(E_field, path, static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), 1e-6);
+		Real work = PathIntegration::LineIntegral(E_field, path, static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), MML::Real(1e-6));
 		Real expected = q * E0 * d;
 
 		REQUIRE_THAT(work, WithinRel(expected, static_cast<MML::Real>(1e-5)));

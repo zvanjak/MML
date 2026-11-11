@@ -71,17 +71,22 @@ namespace MML
 
 		/** @brief Get all parameters as a vector.
 		 *  Default implementation loops over getParam().
+		 *  @throws ArgumentError if the implementation reports a negative count.
 		 */
 		virtual Vector<Real> getParams() const
 		{
-			Vector<Real> p(getNumParam());
-			for (int i = 0; i < getNumParam(); ++i)
+			const int n = getNumParam();
+			if (n < 0)
+				throw ArgumentError("IParametrized::getParams - negative parameter count");
+			Vector<Real> p(n);
+			for (int i = 0; i < n; ++i)
 				p[i] = getParam(i);
 			return p;
 		}
 
 		/** @brief Set all parameters from a vector.
 		 *  Default implementation loops over setParam().
+		 *  @throws ArgumentError if the implementation reports a negative count.
 		 *  @throws VectorDimensionError if params.size() != getNumParam(). Silent truncation /
 		 *          partial assignment was removed (MinimalMathLibrary-wewi.6.4): a wrong-sized
 		 *          parameter vector is a programming error, never a request to set a prefix.
@@ -89,8 +94,10 @@ namespace MML
 		virtual void setParams(const Vector<Real>& params)
 		{
 			const int n = getNumParam();
+			if (n < 0)
+				throw ArgumentError("IParametrized::setParams - negative parameter count");
 			if (params.size() != n)
-				throw VectorDimensionError("IParametrized::setParams - parameter vector size must equal getNumParam()", params.size(), n);
+				throw VectorDimensionError("IParametrized::setParams - parameter vector size must equal getNumParam()", n, params.size());
 			for (int i = 0; i < n; ++i)
 				setParam(i, params[i]);
 		}

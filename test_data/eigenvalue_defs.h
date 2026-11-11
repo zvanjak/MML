@@ -37,7 +37,7 @@ namespace MML::TestBeds
     }};
     // Eigenvalues (verified by solver - product ≈ det = 1)
     const static inline Vector<Real> classic_pascal_5x5_eigenvalues{
-        0.0108354247894, 0.181242088628, 1.0, 5.51748985992, 92.2904329266
+        MML::Real(0.0108354247894), MML::Real(0.181242088628), MML::Real(1.0), MML::Real(5.51748985992), MML::Real(92.2904329266)
     };
 
     // ========================================================================================
@@ -49,14 +49,14 @@ namespace MML::TestBeds
         Matrix<Real> H(10, 10);
         for (int i = 0; i < 10; ++i)
             for (int j = 0; j < 10; ++j)
-                H(i, j) = 1.0 / (i + j + 1);
+                H(i, j) = MML::Real(1.0) / (i + j + 1);
         return H;
     }
     // Eigenvalues (high precision - condition number ~10^13)
     const static inline Vector<Real> classic_hilbert_10x10_eigenvalues{
-        1.75219e-10, 3.07855e-09, 4.47524e-08, 5.42563e-07,
-        5.47398e-06, 4.54373e-05, 3.05898e-04, 1.62338e-03,
-        6.38379e-03, 1.75191e+00
+        MML::Real(1.75219e-10), MML::Real(3.07855e-09), MML::Real(4.47524e-08), MML::Real(5.42563e-07),
+        MML::Real(5.47398e-06), MML::Real(4.54373e-05), MML::Real(3.05898e-04), MML::Real(1.62338e-03),
+        MML::Real(6.38379e-03), MML::Real(1.75191e+00)
     };
 
     // ========================================================================================
@@ -76,7 +76,7 @@ namespace MML::TestBeds
     inline Vector<Real> getToeplitz20x20_eigenvalues() {
         Vector<Real> eig(20);
         for (int k = 1; k <= 20; ++k)
-            eig[k-1] = 2.0 + 2.0 * std::cos(k * Constants::PI / 21.0);
+            eig[k-1] = MML::Real(2.0) + MML::Real(2.0) * std::cos(k * Constants::PI / MML::Real(21.0));
         return eig;
     }
 
@@ -183,7 +183,7 @@ namespace MML::TestBeds
         Matrix<Real> W(n, n);
         int m = (n - 1) / 2;
         for (int i = 0; i < n; ++i) {
-            W(i, i) = std::abs(m - i);
+            W(i, i) = Real(std::abs(m - i));
             if (i > 0) W(i, i-1) = 1.0;
             if (i < n-1) W(i, i+1) = 1.0;
         }
@@ -200,35 +200,35 @@ namespace MML::TestBeds
 
     // Cluster around 1: eigenvalues 0.999, 1.0, 1.001, 2.0
     const static inline Matrix<Real> clustered_tight_4x4{4, 4, {
-        0.999,     0.0,   0.0, 0.0,
+        MML::Real(0.999),     MML::Real(0.0),   MML::Real(0.0), MML::Real(0.0),
           0.0,     1.0,   0.0, 0.0,
-          0.0,     0.0, 1.001, 0.0,
+          MML::Real(0.0),     MML::Real(0.0), MML::Real(1.001), MML::Real(0.0),
           0.0,     0.0,   0.0, 2.0
     }};
-    const static inline Vector<Real> clustered_tight_4x4_eigenvalues{0.999, 1.0, 1.001, 2.0};
+    const static inline Vector<Real> clustered_tight_4x4_eigenvalues{MML::Real(0.999), MML::Real(1.0), MML::Real(1.001), MML::Real(2.0)};
 
     // Very tight cluster: 1.0, 1.0001, 1.0002, 1.0003, 2.0
     const static inline Matrix<Real> clustered_very_tight_5x5{5, 5, {
         1.0000, 0, 0, 0, 0,
-        0, 1.0001, 0, 0, 0,
-        0, 0, 1.0002, 0, 0,
-        0, 0, 0, 1.0003, 0,
+        0, MML::Real(1.0001), 0, 0, 0,
+        0, 0, MML::Real(1.0002), 0, 0,
+        0, 0, 0, MML::Real(1.0003), 0,
         0, 0, 0, 0, 2.0000
     }};
     const static inline Vector<Real> clustered_very_tight_5x5_eigenvalues{
-        1.0, 1.0001, 1.0002, 1.0003, 2.0
+        MML::Real(1.0), MML::Real(1.0001), MML::Real(1.0002), MML::Real(1.0003), MML::Real(2.0)
     };
 
     // Graded clusters: well-separated groups but close within groups
     // Group 1: ~0.1, Group 2: ~1.0, Group 3: ~10.0
     inline Matrix<Real> getGradedClusters6x6() {
         Matrix<Real> A(6, 6);
-        Vector<Real> diag{0.10, 0.11, 1.00, 1.01, 10.0, 10.1};
+        Vector<Real> diag{MML::Real(0.10), MML::Real(0.11), MML::Real(1.00), MML::Real(1.01), MML::Real(10.0), MML::Real(10.1)};
         for (int i = 0; i < 6; ++i) A(i, i) = diag[i];
         return A;
     }
     const static inline Vector<Real> clustered_graded_6x6_eigenvalues{
-        0.10, 0.11, 1.00, 1.01, 10.0, 10.1
+        MML::Real(0.10), MML::Real(0.11), MML::Real(1.00), MML::Real(1.01), MML::Real(10.0), MML::Real(10.1)
     };
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -245,7 +245,7 @@ namespace MML::TestBeds
         Matrix<Real> V(5, 5);
         for (int i = 0; i < 5; ++i)
             for (int j = 0; j < 5; ++j)
-                V(i, j) = std::pow(static_cast<Real>(i + 1), j);
+                V(i, j) = std::pow(static_cast<Real>(i + 1), MML::Real(j));
         return V;
     }
 
@@ -255,7 +255,7 @@ namespace MML::TestBeds
         Matrix<Real> F(n, n);
         for (int i = 0; i < n; ++i)
             for (int j = 0; j < n; ++j)
-                F(i, j) = (i <= j) ? (n - j) : (n - i - 1);
+                F(i, j) = Real((i <= j) ? (n - j) : (n - i - 1));
         return F;
     }
 
@@ -265,9 +265,9 @@ namespace MML::TestBeds
         Real s = std::sqrt(1 - c * c);
         Matrix<Real> K(n, n);
         for (int i = 0; i < n; ++i) {
-            K(i, i) = std::pow(s, i);
+            K(i, i) = std::pow(s, MML::Real(i));
             for (int j = i + 1; j < n; ++j)
-                K(i, j) = -c * std::pow(s, i);
+                K(i, j) = -c * std::pow(s, MML::Real(i));
         }
         return K;
     }
@@ -378,10 +378,10 @@ namespace MML::TestBeds
 
     // Stochastic (row sums = 1): always has eigenvalue 1
     const static inline Matrix<Real> stochastic_4x4{4, 4, {
-        0.5, 0.3, 0.1, 0.1,
-        0.2, 0.5, 0.2, 0.1,
-        0.1, 0.2, 0.6, 0.1,
-        0.1, 0.1, 0.1, 0.7
+        MML::Real(0.5), MML::Real(0.3), MML::Real(0.1), MML::Real(0.1),
+        MML::Real(0.2), MML::Real(0.5), MML::Real(0.2), MML::Real(0.1),
+        MML::Real(0.1), MML::Real(0.2), MML::Real(0.6), MML::Real(0.1),
+        MML::Real(0.1), MML::Real(0.1), MML::Real(0.1), MML::Real(0.7)
     }};
     // Dominant eigenvalue = 1 (Perron-Frobenius)
 

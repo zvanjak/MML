@@ -120,10 +120,11 @@ namespace MML
         throw ArgumentError("FromValues: arrays cannot be empty");
 
       // Check for duplicate x-values (causes division by zero in interpolation)
-      for (int i = 0; i < n; i++)
+      for (int i = 0; i < n; i++) {
         for (int j = i + 1; j < n; j++)
           if (x[i] == x[j])
             throw ArgumentError("FromValues: duplicate x-value at indices " + std::to_string(i) + " and " + std::to_string(j));
+      }
 
 	using CalcT = std::conditional_t<std::is_floating_point_v<FieldT>, long double, FieldT>;
 
@@ -145,9 +146,9 @@ namespace MML
       
       // Compute coefficients using the basis
       for (int j = 0; j < n; j++) {
-				CalcT phi = CalcT(n);
+				CalcT phi = ScalarDetail::ScalarFromInteger<CalcT>(n);
         for (int k = n-1; k > 0; k--)
-					phi = CalcT(k) * s[k] + static_cast<CalcT>(x[j]) * phi;
+					phi = ScalarDetail::ScalarFromInteger<CalcT>(k) * s[k] + static_cast<CalcT>(x[j]) * phi;
       
 				CalcT ff = static_cast<CalcT>(y[j]) / phi;
 				CalcT b = CalcT(1);
@@ -312,9 +313,9 @@ namespace MML
 		Polynom operator+(const Polynom& b) const
 		{
 			Polynom result;
-			int n = (int)std::max(_vecCoef.size(), b._vecCoef.size());
+			const auto n = std::max(_vecCoef.size(), b._vecCoef.size());
 			result._vecCoef.resize(n);
-			for (int i = 0; i < n; i++)
+			for (size_t i = 0; i < n; i++)
 			{
 				if (i < _vecCoef.size())
 					result._vecCoef[i] += _vecCoef[i];
@@ -329,9 +330,9 @@ namespace MML
 		Polynom operator-(const Polynom& b) const
 		{
 			Polynom result;
-			int n = (int)std::max(_vecCoef.size(), b._vecCoef.size());
+			const auto n = std::max(_vecCoef.size(), b._vecCoef.size());
 			result._vecCoef.resize(n);
-			for (int i = 0; i < n; i++)
+			for (size_t i = 0; i < n; i++)
 			{
 				if (i < _vecCoef.size())
 					result._vecCoef[i] += _vecCoef[i];
@@ -350,10 +351,10 @@ namespace MML
 			if (_vecCoef.empty() || b._vecCoef.empty())
 				return result;   // size() + size() - 1 would underflow to a huge resize (length_error)
 
-			int n = (int)(_vecCoef.size() + b._vecCoef.size() - 1);
+			const auto n = _vecCoef.size() + b._vecCoef.size() - 1;
 			result._vecCoef.resize(n);
-			for (int i = 0; i < _vecCoef.size(); i++)
-				for (int j = 0; j < b._vecCoef.size(); j++)
+			for (size_t i = 0; i < _vecCoef.size(); i++)
+				for (size_t j = 0; j < b._vecCoef.size(); j++)
 					result._vecCoef[i + j] += _vecCoef[i] * b._vecCoef[j];
 			return result;
 		}
@@ -508,7 +509,7 @@ namespace MML
 			}
 			result._vecCoef.resize(deg);
 			for (int i = 1; i <= deg; ++i) {
-				result._vecCoef[i - 1] = _vecCoef[i] * CoefT(i);
+				result._vecCoef[i - 1] = _vecCoef[i] * ScalarDetail::ScalarFromInteger<CoefT>(i);
 			}
 			return result;
 		}
@@ -519,7 +520,7 @@ namespace MML
 			int deg = degree();
 			result._vecCoef.resize(deg + 2, CoefT(0));
 			for (int i = 0; i <= deg; ++i) {
-				result._vecCoef[i + 1] = _vecCoef[i] / CoefT(i + 1);
+				result._vecCoef[i + 1] = _vecCoef[i] / ScalarDetail::ScalarFromInteger<CoefT>(i + 1);
 			}
 			return result;
 		}

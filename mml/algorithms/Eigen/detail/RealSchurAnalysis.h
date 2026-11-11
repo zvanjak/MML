@@ -31,14 +31,13 @@ namespace MML::detail {
 		Eigenvalue2x2Result result;
 
 		Real trace = a + d;
-		Real det = a * d - b * c;
 
 		// Discriminant = trace²/4 - det = (a-d)²/4 + bc
-		Real p = (a - d) / 2.0;
+		Real p = (a - d) / MML::Real(2.0);
 		Real disc = p * p + b * c;
 
-		result.real1 = trace / 2.0;
-		result.real2 = trace / 2.0;
+		result.real1 = trace / MML::Real(2.0);
+		result.real2 = trace / MML::Real(2.0);
 
 		if (disc >= 0.0) {
 			// Two real eigenvalues

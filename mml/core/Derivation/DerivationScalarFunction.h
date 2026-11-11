@@ -274,8 +274,8 @@ namespace MML
 		/********        For mixed partials (der_ind1 != der_ind2): ∂²f/∂x∂y                                        ********/
 		/********        For pure partials (der_ind1 == der_ind2): ∂²f/∂x²                                          ********/
 		/********                                                                                                    ********/
-		/********        NSecDer2Partial: O(h²) accuracy, 4-9 function evals depending on pure/mixed                ********/
-		/********        NSecDer4Partial: O(h⁴) accuracy, 5-13 function evals depending on pure/mixed               ********/
+		/********        NSecDer2Partial: 3/4 evals (pure/mixed), 5/8 with error                                     ********/
+		/********        NSecDer4Partial: 5/8 evals (pure/mixed), 7/12 with error                                    ********/
 		/********************************************************************************************************************/
 		
 		// Second-order accurate (O(h²)) second partial derivative
@@ -285,6 +285,7 @@ namespace MML
 		static Real NSecDer2Partial(const IScalarFunction<N>& f, int der_ind1, int der_ind2, 
 		                            const VectorN<Real, N>& point, Real h, Real* error = nullptr)
 		{
+			ValidateStepSize(h, "NSecDer2Partial");
 			Real h2 = h * h;
 			
 			if (der_ind1 == der_ind2)
@@ -300,7 +301,7 @@ namespace MML
 				Real fh = f(x_plus);
 				Real fmh = f(x_minus);
 				
-				Real result = (fmh - 2.0*f0 + fh) / h2;
+				Real result = (fmh - MML::Real(2.0)*f0 + fh) / h2;
 				
 				if (error)
 				{
@@ -310,8 +311,9 @@ namespace MML
 					x_2plus[der_ind1] = point[der_ind1] + 2*h;
 					x_2minus[der_ind1] = point[der_ind1] - 2*h;
 					
-					Real f4_approx = std::abs(f(x_2minus) - 4.0*fmh + 6.0*f0 - 4.0*fh + f(x_2plus)) / h2;
-					*error = f4_approx * h2 / 12.0 + 
+					const Real fm2h = f(x_2minus), f2h = f(x_2plus);
+					*error = Detail::EstimateSecondTruncation2(fm2h, fmh, f0, fh, f2h, h,
+						[](Real value) { return std::abs(value); }) +
 					         Constants::Eps * (std::abs(fmh) + 2*std::abs(f0) + std::abs(fh)) / h2;
 				}
 				
@@ -320,6 +322,8 @@ namespace MML
 			else
 			{
 				// Mixed partial ∂²f/∂xᵢ∂xⱼ - use 4-point cross-difference formula
+				const Real halfI = error ? Detail::RefineMixedDerivativeStep(point[der_ind1], h) : Real(0);
+				const Real halfJ = error ? Detail::RefineMixedDerivativeStep(point[der_ind2], h) : Real(0);
 				auto x_pp = point;  // +h in both directions
 				auto x_pm = point;  // +h in i, -h in j
 				auto x_mp = point;  // -h in i, +h in j
@@ -342,13 +346,25 @@ namespace MML
 				Real fmp = f(x_mp);
 				Real fmm = f(x_mm);
 				
-				Real result = (fpp - fpm - fmp + fmm) / (4.0 * h2);
+				Real result = (fpp - fpm - fmp + fmm) / (MML::Real(4.0) * h2);
 				
 				if (error)
 				{
-					// Approximate error using higher-order differences
-					*error = Constants::Eps * (std::abs(fpp) + std::abs(fpm) + 
-					                           std::abs(fmp) + std::abs(fmm)) / (4.0 * h2);
+					auto fineSample = [&](Real signI, Real signJ) {
+						auto x = point;
+						x[der_ind1] += signI * halfI;
+						x[der_ind2] += signJ * halfJ;
+						return f(x);
+					};
+					const Real gpp = fineSample(1, 1), gpm = fineSample(1, -1);
+					const Real gmp = fineSample(-1, 1), gmm = fineSample(-1, -1);
+					const Real fine = (gpp - gpm - gmp + gmm) / h2;
+					const Real coarseRoundoff = Constants::Eps *
+						(std::abs(fpp) + std::abs(fpm) + std::abs(fmp) + std::abs(fmm)) / (4 * h2);
+					const Real fineRoundoff = Constants::Eps *
+						(std::abs(gpp) + std::abs(gpm) + std::abs(gmp) + std::abs(gmm)) / h2;
+					*error = Detail::EstimateMixedDerivativeError<2>(result, fine, coarseRoundoff, fineRoundoff,
+						[](Real value) { return std::abs(value); });
 				}
 				
 				return result;
@@ -359,18 +375,19 @@ namespace MML
 		                            const VectorN<Real, N>& point, Real* error = nullptr)
 		{
 			Real scale = std::max(std::abs(point[der_ind1]), std::abs(point[der_ind2]));
-			return NSecDer2Partial(f, der_ind1, der_ind2, point, NDer2_h * std::max(Real(1), scale), error);
+			return NSecDer2Partial(f, der_ind1, der_ind2, point, Precision::FourthRootEps * std::max(Real(1), scale), error);
 		}
 
 		/// @brief Fourth-order accurate (O(h⁴)) second partial derivative
-		/// @note Pure (i=j): 5-point formula, mixed (i≠j): Richardson extrapolation (13 evals)
+		/// @note Pure: 5 evals (7 with error); mixed: 8 evals (12 with error).
 		// Fourth-order accurate (O(h⁴)) second partial derivative
 		// For pure second partial (∂²f/∂xᵢ²): [-f(x-2h) + 16f(x-h) - 30f(x) + 16f(x+h) - f(x+2h)] / (12h²) - 5 evaluations
-		// For mixed partial (∂²f/∂xᵢ∂xⱼ): Higher-order cross-difference stencil - 13 evaluations
+		// For mixed partial (∂²f/∂xᵢ∂xⱼ): Richardson-extrapolated cross-differences - 8 evaluations
 		template <int N>
 		static Real NSecDer4Partial(const IScalarFunction<N>& f, int der_ind1, int der_ind2, 
 		                            const VectorN<Real, N>& point, Real h, Real* error = nullptr)
 		{
+			ValidateStepSize(h, "NSecDer4Partial");
 			Real h2 = h * h;
 			
 			if (der_ind1 == der_ind2)
@@ -393,7 +410,7 @@ namespace MML
 				x[der_ind1] = x_orig - 2*h;
 				Real fm2h = f(x);
 				
-				Real result = (-fm2h + 16.0*fmh - 30.0*f0 + 16.0*fh - f2h) / (12.0 * h2);
+				Real result = (-fm2h + MML::Real(16.0)*fmh - MML::Real(30.0)*f0 + MML::Real(16.0)*fh - f2h) / (MML::Real(12.0) * h2);
 				
 				if (error)
 				{
@@ -403,10 +420,10 @@ namespace MML
 					x[der_ind1] = x_orig - 3*h;
 					Real fm3h = f(x);
 					
-					Real f6_approx = std::abs(fm3h - 6.0*fm2h + 15.0*fmh - 20.0*f0 + 15.0*fh - 6.0*f2h + f3h) / h2;
-					*error = f6_approx * h2 * h2 / 90.0 + 
+					*error = Detail::EstimateSecondTruncation4(fm3h, fm2h, fmh, f0, fh, f2h, f3h, h,
+						[](Real value) { return std::abs(value); }) +
 					         Constants::Eps * (std::abs(fm2h) + 16*std::abs(fmh) + 30*std::abs(f0) + 
-					                           16*std::abs(fh) + std::abs(f2h)) / (12.0 * h2);
+					                           16*std::abs(fh) + std::abs(f2h)) / (Real(12) * h2);
 				}
 				
 				return result;
@@ -429,35 +446,46 @@ namespace MML
 				
 				Real x_i = point[der_ind1];
 				Real x_j = point[der_ind2];
+				const Real halfI = error ? Detail::RefineMixedDerivativeStep(x_i, h) : Real(0);
+				const Real halfJ = error ? Detail::RefineMixedDerivativeStep(x_j, h) : Real(0);
 				
 				auto eval = [&](Real di, Real dj) {
 					auto x = point;
-					x[der_ind1] = x_i + di * h;
-					x[der_ind2] = x_j + dj * h;
+					x[der_ind1] = x_i + di;
+					x[der_ind2] = x_j + dj;
 					return f(x);
 				};
 				
 				// Cross-difference at step h
-				Real f_p1_p1 = eval( 1,  1);
-				Real f_p1_m1 = eval( 1, -1);
-				Real f_m1_p1 = eval(-1,  1);
-				Real f_m1_m1 = eval(-1, -1);
+				Real f_p1_p1 = eval( h,  h);
+				Real f_p1_m1 = eval( h, -h);
+				Real f_m1_p1 = eval(-h,  h);
+				Real f_m1_m1 = eval(-h, -h);
 				Real d1 = (f_p1_p1 - f_p1_m1 - f_m1_p1 + f_m1_m1);
 				
 				// Cross-difference at step 2h  
-				Real f_p2_p2 = eval( 2,  2);
-				Real f_p2_m2 = eval( 2, -2);
-				Real f_m2_p2 = eval(-2,  2);
-				Real f_m2_m2 = eval(-2, -2);
+				Real f_p2_p2 = eval( 2*h,  2*h);
+				Real f_p2_m2 = eval( 2*h, -2*h);
+				Real f_m2_p2 = eval(-2*h,  2*h);
+				Real f_m2_m2 = eval(-2*h, -2*h);
 				Real d2 = (f_p2_p2 - f_p2_m2 - f_m2_p2 + f_m2_m2);
 				
 				// Richardson extrapolation: (4·D_h - D_2h) / 3 = (16·d1 - d2) / (48·h²)
-				Real result = (16.0 * d1 - d2) / (48.0 * h2);
+				Real result = (MML::Real(16.0) * d1 - d2) / (MML::Real(48.0) * h2);
 				
 				if (error)
 				{
-					*error = Constants::Eps * (std::abs(f_p1_p1) + std::abs(f_p1_m1) + 
-					                           std::abs(f_m1_p1) + std::abs(f_m1_m1)) / (4.0 * h2);
+					const Real gpp = eval(halfI, halfJ), gpm = eval(halfI, -halfJ);
+					const Real gmp = eval(-halfI, halfJ), gmm = eval(-halfI, -halfJ);
+					const Real dHalf = gpp - gpm - gmp + gmm;
+					const Real fine = (16 * dHalf - d1) / (12 * h2);
+					const Real sum1 = std::abs(f_p1_p1) + std::abs(f_p1_m1) + std::abs(f_m1_p1) + std::abs(f_m1_m1);
+					const Real sum2 = std::abs(f_p2_p2) + std::abs(f_p2_m2) + std::abs(f_m2_p2) + std::abs(f_m2_m2);
+					const Real sumHalf = std::abs(gpp) + std::abs(gpm) + std::abs(gmp) + std::abs(gmm);
+					const Real coarseRoundoff = Constants::Eps * (16 * sum1 + sum2) / (48 * h2);
+					const Real fineRoundoff = Constants::Eps * (16 * sumHalf + sum1) / (12 * h2);
+					*error = Detail::EstimateMixedDerivativeError<4>(result, fine, coarseRoundoff, fineRoundoff,
+						[](Real value) { return std::abs(value); });
 				}
 				
 				return result;
@@ -468,7 +496,7 @@ namespace MML
 		                            const VectorN<Real, N>& point, Real* error = nullptr)
 		{
 			Real scale = std::max(std::abs(point[der_ind1]), std::abs(point[der_ind2]));
-			return NSecDer4Partial(f, der_ind1, der_ind2, point, NDer4_h * std::max(Real(1), scale), error);
+			return NSecDer4Partial(f, der_ind1, der_ind2, point, Precision::SixthRootEps * std::max(Real(1), scale), error);
 		}
 
 		/********************************************************************************************************************/

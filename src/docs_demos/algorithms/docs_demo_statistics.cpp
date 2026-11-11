@@ -5,6 +5,8 @@
 
 #include <mml/base/Vector/Vector.h>
 #include <mml/algorithms/Statistics.h>
+#include <mml/algorithms/Statistics/Distributions.h>
+#include <mml/algorithms/Statistics/DiscreteDistributions.h>
 #endif
 
 using namespace MML;
@@ -258,6 +260,156 @@ void Docs_Demo_Statistics_CovMatrix()
 ///                         MAIN DEMO FUNCTION                                          ///
 ///////////////////////////////////////////////////////////////////////////////////////////
 
+void Docs_Demo_Statistics_Stability()
+{
+	const Real huge = std::pow(Real(10), std::numeric_limits<Real>::max_exponent10);
+	const Real unit = std::pow(Real(10), std::min(100, std::numeric_limits<Real>::max_exponent10 / 3));
+	Vector<Real> pair({huge, huge});
+	Vector<Real> large({-unit, 0, unit});
+	Vector<Real> small({-Real(1) / unit, 0, Real(1) / unit});
+	Real mean = Statistics::Avg(pair);
+	Real median = Statistics::Median(pair);
+	Real largeCorrelation = Statistics::PearsonCorrelation(large, large);
+	Real smallCorrelation = Statistics::PearsonCorrelation(small, small);
+	std::cout << "\n--- Unit-stable summaries (double: 1e308, 1e100, 1e-100) ---\n"
+	          << "Mean: " << mean << ", median: " << median
+	          << ", correlations: " << largeCorrelation << ", " << smallCorrelation << '\n';
+	if (!std::isfinite(mean) || !std::isfinite(median)
+	    || !IsWithinRel(mean, huge, Precision::EqualityTolerance)
+	    || !IsWithinRel(median, huge, Precision::EqualityTolerance)
+	    || !IsWithinRel(largeCorrelation, Real(1), Precision::EqualityTolerance)
+	    || !IsWithinRel(smallCorrelation, Real(1), Precision::EqualityTolerance))
+		throw std::runtime_error("Statistical stability demo failed");
+
+	Vector<Real> extreme({-huge, 0, huge});
+	Real stddev = Statistics::SampleStdDev(extreme);
+	bool varianceRejected = false;
+	try {
+		Statistics::SampleVariance(extreme);
+	}
+	catch (const StatisticsError&) {
+		varianceRejected = true;
+	}
+	if (!varianceRejected || !std::isfinite(stddev) || !IsWithinRel(stddev, huge, Precision::EqualityTolerance))
+		throw std::runtime_error("Statistical output range demo failed");
+	std::cout << "Finite sample stddev: " << stddev << "; overflowing variance rejected\n";
+}
+
+void Docs_Demo_Statistics_ProbabilityTails()
+{
+	Real lower = Statistics::StandardNormal::cdf(-10);
+	Real upper = Statistics::StandardNormal::sf(10);
+	Real quantile = Statistics::InverseStandardNormalCdf(Real(1e-20));
+	Real poisson = Statistics::PoissonDistribution(40).cdf(0);
+	Real gammaUpper = SpecialFunctions::RegularizedGammaQ(1, 40);
+	Real inverseErfc = SpecialFunctions::ErfcInv(Real(1e-20));
+	std::cout << "\n--- Representable probability tails ---\n"
+	          << "Normal lower/upper: " << lower << ", " << upper
+	          << "; probit(1e-20): " << quantile << '\n'
+	          << "Poisson CDF(0): " << poisson << "; GammaQ(1,40): " << gammaUpper
+	          << "; ErfcInv(1e-20): " << inverseErfc << '\n';
+	Real normalReference = Real(0.5) * std::erfc(Real(10) / std::sqrt(Real(2)));
+	Real poissonReference = std::exp(Real(-40));
+	if (!(lower > 0 && upper > 0 && poisson > 0 && gammaUpper > 0)
+	    || !IsWithinRel(lower, normalReference, Precision::EqualityTolerance)
+	    || !IsWithinRel(upper, normalReference, Precision::EqualityTolerance)
+	    || !IsWithinRel(poisson, poissonReference, Precision::EqualityTolerance)
+	    || !IsWithinRel(gammaUpper, poissonReference, Precision::EqualityTolerance)
+	    || !std::isfinite(quantile) || !std::isfinite(inverseErfc)
+	    || !IsWithinRel(quantile, Real(-9.2623400897984075737), Precision::EqualityTolerance)
+	    || !IsWithinRel(inverseErfc, Real(6.6015806223551425615), Precision::EqualityTolerance))
+		throw std::runtime_error("Probability tail demo failed");
+}
+
+void Docs_Demo_Statistics_Quantiles()
+{
+	Real fCritical = Statistics::FDistribution(1, 1).criticalValue(Real(0.05));
+	Real betaQuantile = Statistics::BetaDistribution(Real(0.5), 1).inverseCdf(Real(1e-6));
+	Real tQuantile = Statistics::TDistribution(2).inverseCdf(Real(0.999999));
+	Real chiCritical = Statistics::ChiSquareDistribution(2).criticalValue(Real(1e-20));
+	Real gammaQuantile = Statistics::GammaDistribution(1, 2).inverseCdf(Real(0.9));
+	std::cout << "\n--- Safeguarded continuous quantiles ---\n"
+	          << "F critical: " << fCritical << "; Beta quantile: " << betaQuantile
+	          << "; Student-t quantile: " << tQuantile << '\n'
+	          << "Chi-square critical: " << chiCritical << "; Gamma quantile: " << gammaQuantile << '\n';
+	Real p = Real(0.999999);
+	if (!IsWithinRel(fCritical, 1 / std::pow(std::tan(Constants::PI * Real(0.05) / 2), 2), Precision::EqualityTolerance)
+	    || !IsWithinRel(betaQuantile, Real(1e-12), Precision::EqualityTolerance)
+	    || !IsWithinRel(tQuantile, (2 * p - 1) / std::sqrt(2 * p * (1 - p)), Precision::EqualityTolerance)
+	    || !IsWithinRel(chiCritical, -2 * std::log(Real(1e-20)), Precision::EqualityTolerance)
+	    || !IsWithinRel(gammaQuantile, -2 * std::log1p(-Real(0.9)), Precision::EqualityTolerance))
+		throw std::runtime_error("Continuous quantile demo failed");
+}
+
+void Docs_Demo_Statistics_DiscreteBoundaries()
+{
+	Statistics::BinomialDistribution binomial(20, Real(0.4));
+	Real probability = binomial.pmf(8);
+	Real cumulative = binomial.cdf(8);
+	int quantile = binomial.inverseCdf(Real(0.95));
+	Statistics::PoissonDistribution poisson(3);
+	Statistics::HypergeometricDistribution hypergeometric(52, 13, 5);
+	int geometricLower = Statistics::GeometricDistribution(Real(0.5)).inverseCdf(Real(1e-20));
+	int certainGeometric = Statistics::GeometricDistribution(1).inverseCdf(1);
+	int certainNegative = Statistics::NegativeBinomialDistribution(3, 1).inverseCdf(1);
+	int zeroBinomial = Statistics::BinomialDistribution(5, 0).inverseCdf(1);
+	int poissonQuantile = Statistics::PoissonDistribution(40).inverseCdf(Real(0.99));
+	std::cout << "\n--- Discrete quantile support and checked boundaries ---\n"
+	          << "Binomial PMF/CDF: " << probability << ", " << cumulative << "; 95% quantile: " << quantile << '\n'
+	          << "Geometric lower/degenerate: " << geometricLower << ", " << certainGeometric
+	          << "; negative-binomial degenerate: " << certainNegative << "; binomial zero mass: " << zeroBinomial << '\n'
+	          << "Poisson(40) 99% quantile: " << poissonQuantile << '\n';
+	if (geometricLower != 0 || certainGeometric != 0 || certainNegative != 0 || zeroBinomial != 0 || poissonQuantile != 55
+	    || !(probability > 0 && cumulative > 0 && cumulative <= 1)
+	    || binomial.cdf(quantile) < Real(0.95) || binomial.cdf(quantile - 1) >= Real(0.95)
+	    || poisson.cdf(0) <= 0 || hypergeometric.pmf(2) <= 0)
+		throw std::runtime_error("Discrete quantile support demo failed");
+	bool rejected = false;
+	try {
+		Statistics::GeometricDistribution(Real(1e-20)).inverseCdf(Real(0.5));
+	} catch (const ConvergenceError&) {
+		rejected = true;
+	}
+	if (!rejected)
+		throw std::runtime_error("Unrepresentable discrete quantile was not rejected");
+}
+
+void Docs_Demo_Statistics_ParameterValidation()
+{
+	Statistics::GammaDistribution gamma(2, 1);
+	gamma.shape = std::numeric_limits<Real>::quiet_NaN();
+	std::mt19937 gen(17019);
+	const auto before = gen;
+	bool rejected = false;
+	try {
+		gamma.sample(gen);
+	} catch (const StatisticsError&) {
+		rejected = true;
+	}
+	if (!rejected || gen != before)
+		throw std::runtime_error("Invalid gamma state was not rejected before RNG use");
+	std::cout << "\n--- Distribution parameter validation ---\n"
+	          << "Invalid mutable gamma state rejected without advancing the generator.\n";
+}
+
+void Docs_Demo_Statistics_DiscreteSampling()
+{
+	std::mt19937 gen(34023);
+	int largeCount = Statistics::PoissonDistribution(1000000).sample(gen);
+	const auto before = gen;
+	bool rejected = false;
+	try {
+		Statistics::PoissonDistribution(Real(std::numeric_limits<int>::max()) + 1).sample(gen);
+	} catch (const NumericalMethodError&) {
+		rejected = true;
+	}
+	if (largeCount < 0 || !rejected || gen != before)
+		throw std::runtime_error("Checked Poisson sampling demo failed");
+	std::cout << "\n--- Checked discrete sampling ---\n"
+	          << "Poisson(1000000) sample: " << largeCount
+	          << "; unsupported sampling rate rejected without advancing the generator.\n";
+}
+
 void Docs_Demo_Statistics()
 {
 	std::cout << "\n##########################################################################\n";
@@ -271,6 +423,12 @@ void Docs_Demo_Statistics()
 	Docs_Demo_Statistics_Means();
 	Docs_Demo_Statistics_Correlation();
 	Docs_Demo_Statistics_CovMatrix();
+	Docs_Demo_Statistics_Stability();
+	Docs_Demo_Statistics_ProbabilityTails();
+	Docs_Demo_Statistics_Quantiles();
+	Docs_Demo_Statistics_DiscreteBoundaries();
+	Docs_Demo_Statistics_ParameterValidation();
+	Docs_Demo_Statistics_DiscreteSampling();
 	
 	std::cout << "\n=== All Statistics Demos Complete ===\n";
 }

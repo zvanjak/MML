@@ -43,8 +43,8 @@ namespace MML::Tests::Algorithms::VolumeIntegrationTests
 	
 	// For precision tests
 	inline Real y_same(Real x) { return static_cast<MML::Real>(0.5); }
-	inline Real y_eps(Real x) { return 1e-3; }
-	inline Real z_eps(Real x, Real y) { return 1e-3; }
+	inline Real y_eps(Real x) { return MML::Real(1e-3); }
+	inline Real z_eps(Real x, Real y) { return MML::Real(1e-3); }
 
 	///////////////////////////         TEST FUNCTIONS         ///////////////////////////
 
@@ -263,7 +263,7 @@ namespace MML::Tests::Algorithms::VolumeIntegrationTests
 		// Integrate over very small region
 		ConstantFunction func;
 		
-		Real eps = 1e-3;  // Set in helper functions
+		Real eps = MML::Real(1e-3);  // Set in helper functions
 		
 		Real result = Integrate3D(func, static_cast<MML::Real>(0.0), eps, y1_const, y_eps, z1_const, z_eps);
 		Real expected = eps * eps * eps;

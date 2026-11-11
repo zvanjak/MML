@@ -93,6 +93,7 @@ namespace MML::Tests::Base::TensorsTests
 	Vec3 v2{ static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0) };
 
 		auto b = t2.contract();
+		REQUIRE(b == 15);
 	}
 
 	TEST_CASE("Tensors::Tensor2_Contraction", "[simple]")
@@ -629,7 +630,7 @@ Vec3 v1{ static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0), static_cast<M
 		REQUIRE_THAT(r02[2], RealWithinRel(static_cast<MML::Real>(48.0), TOL(1e-10, 1e-5)));   // j=2: 30+18=48
 
 		// Contract indices 1 and 2: result[i] = sum_j T[i][j][j]
-		auto r12 = t3.contract(1, 2);
+		auto r12 = t3.EuclideanDiagonalSum(1, 2);
 		// sum_j (i + 3*j + 9*j) = sum_j (i + 12*j) = 3*i + (0+12+24) = 3*i + 36
 		REQUIRE_THAT(r12[0], RealWithinRel(static_cast<MML::Real>(36.0), TOL(1e-10, 1e-5)));   // i=0: 36
 		REQUIRE_THAT(r12[1], RealWithinRel(static_cast<MML::Real>(39.0), TOL(1e-10, 1e-5)));   // i=1: 36+3=39
@@ -651,9 +652,8 @@ Vec3 v1{ static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0), static_cast<M
 		REQUIRE_THROWS_AS(t3.contract(1, 1), TensorIndexError);
 
 		// Out of range
-		REQUIRE_THROWS_AS(t3.contract(-1, 1), TensorIndexError);
-		REQUIRE_THROWS_AS(t3.contract(0, 3), TensorIndexError);
-		REQUIRE_THROWS_AS(t3.contract(5, 0), TensorIndexError);
+		for (const auto& indices : {std::pair{-1, 1}, std::pair{0, 3}, std::pair{5, 0}})
+			REQUIRE_THROWS_AS(t3.contract(indices.first, indices.second), TensorIndexError);
 	}
 
 	TEST_CASE("Tensors::Tensor4_Contract_all_index_pairs", "[contraction]")
@@ -669,14 +669,14 @@ Vec3 v1{ static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0), static_cast<M
 						t4(i, j, k, l) = Real(i + 3*j + 9*k + 27*l);
 
 		// Contract indices 0 and 1: result[k][l] = sum_s T[s][s][k][l]
-		auto r01 = t4.contract(0, 1);
+		auto r01 = t4.EuclideanDiagonalSum(0, 1);
 		// sum_s (s + 3*s + 9*k + 27*l) = 4*(0+1+2) + 3*(9*k + 27*l) = 12 + 27*k + 81*l
 		REQUIRE_THAT(r01(0, 0), RealWithinRel(static_cast<MML::Real>(12.0), TOL(1e-10, 1e-5)));    // k=0,l=0
 		REQUIRE_THAT(r01(1, 0), RealWithinRel(static_cast<MML::Real>(39.0), TOL(1e-10, 1e-5)));    // k=1,l=0
 		REQUIRE_THAT(r01(0, 1), RealWithinRel(static_cast<MML::Real>(93.0), TOL(1e-10, 1e-5)));    // k=0,l=1
 
 		// Contract indices 2 and 3: result[i][j] = sum_s T[i][j][s][s]
-		auto r23 = t4.contract(2, 3);
+		auto r23 = t4.EuclideanDiagonalSum(2, 3);
 		// sum_s (i + 3*j + 9*s + 27*s) = 3*(i + 3*j) + 36*(0+1+2) = 3*i + 9*j + 108
 		REQUIRE_THAT(r23(0, 0), RealWithinRel(static_cast<MML::Real>(108.0), TOL(1e-10, 1e-5)));   // i=0,j=0
 		REQUIRE_THAT(r23(1, 0), RealWithinRel(static_cast<MML::Real>(111.0), TOL(1e-10, 1e-5)));   // i=1,j=0
@@ -724,7 +724,7 @@ Vec3 v1{ static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0), static_cast<M
 							t5(i, j, k, l, m) = Real(i + 2*j + 4*k + 8*l + 16*m);
 
 		// Contract indices 0 and 1: result[k][l][m] = sum_s T[s][s][k][l][m]
-		auto r01 = t5.contract(0, 1);
+		auto r01 = t5.EuclideanDiagonalSum(0, 1);
 		// sum_s (s + 2*s + 4*k + 8*l + 16*m) = 3*(0+1) + 2*(4*k + 8*l + 16*m)
 		// = 3 + 8*k + 16*l + 32*m
 		REQUIRE_THAT(r01(0, 0, 0), RealWithinRel(static_cast<MML::Real>(3.0), TOL(1e-10, 1e-5)));   // k=0,l=0,m=0
@@ -733,7 +733,7 @@ Vec3 v1{ static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0), static_cast<M
 		REQUIRE_THAT(r01(0, 0, 1), RealWithinRel(static_cast<MML::Real>(35.0), TOL(1e-10, 1e-5)));  // k=0,l=0,m=1
 
 		// Contract indices 3 and 4: result[i][j][k] = sum_s T[i][j][k][s][s]
-		auto r34 = t5.contract(3, 4);
+		auto r34 = t5.EuclideanDiagonalSum(3, 4);
 		// sum_s (i + 2*j + 4*k + 8*s + 16*s) = 2*(i + 2*j + 4*k) + 24*(0+1)
 		// = 2*i + 4*j + 8*k + 24
 		REQUIRE_THAT(r34(0, 0, 0), RealWithinRel(static_cast<MML::Real>(24.0), TOL(1e-10, 1e-5)));  // i=0,j=0,k=0
@@ -808,11 +808,13 @@ Vec3 v1{ static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0), static_cast<M
 		// Create a Tensor4 that is product of two Kronecker deltas
 		// delta^i_j * delta^k_l
 		Tensor4<3> delta4(2, 2);
+		delta4.setContravar(0, true);
+		delta4.setContravar(3, false);
 		for (int i = 0; i < 3; i++)
 			for (int j = 0; j < 3; j++)
 				for (int k = 0; k < 3; k++)
 					for (int l = 0; l < 3; l++)
-						delta4(i, j, k, l) = (i == j ? 1.0 : 0.0) * (k == l ? 1.0 : 0.0);
+						delta4(i, j, k, l) = (i == j ? MML::Real(1.0) : MML::Real(0.0)) * (k == l ? MML::Real(1.0) : MML::Real(0.0));
 
 		// Contract first pair (0,1): should give delta^k_l * 3
 		auto contracted = delta4.contract(0, 1);
@@ -1279,5 +1281,3 @@ Vec3 v1{ static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.0), static_cast<M
 	}
 
 }
-
-

@@ -32,6 +32,7 @@ It is normative: a result that violates it is a bug, not a style issue.
 
 | Status | Meaning | `converged` | payload usable |
 |---|---|---|---|
+| `NotComputed` | no algorithm has run; shared result bases default to this state | `false` | no |
 | `Success` | criterion checked **and met** | `true` | yes |
 | `Completed` | no criterion exists; ran to completion | `false` | yes |
 | `MaxIterationsExceeded` | iteration budget exhausted before the criterion was met | `false` | partial — best iterate so far |
@@ -50,6 +51,14 @@ checked. Such results remain usable with `converged=false`. Adaptive GK separate
 tests its tolerance and reports `Success` or a nonconvergence failure.
 Iterative algorithms that can never be `Completed` may override `IsSuccess()` as
 `converged && status == Success` (RootFinding does); the two definitions agree for them.
+
+Default construction is not successful computation. `IterativeResultBase` and
+`EvaluationResultBase` start as `NotComputed` (numeric code 9; existing status codes
+are unchanged), with zero counters and empty diagnostics. Domain-specific result
+constructors may retain their existing nonusable state, such as an unsolved Krylov
+result. Populate an outcome explicitly after work; do not rely on the old success
+default. `NotComputed` is absence of an outcome, not a numerical failure, so it does
+not require a failure message before any algorithm was attempted.
 
 **Partial payloads** (`MaxIterationsExceeded`, `ResourceLimitExceeded`, `Stalled`, `ToleranceUnachievable`) must still be
 the best estimate the algorithm has — never zero-initialised or stale — and the estimate fields
@@ -72,6 +81,52 @@ must describe *that* payload (e.g. the residual of the returned `x`, not of some
 Helpers: `MakeSuccessResult`, `MakeCompletedResult`, `MakeFailureResult`,
 `MakeEvaluationSuccessResult`, `MakeEvaluationFailureResult` in `AlgorithmTypes.h` set these
 consistently; prefer them to hand-filling.
+
+### Generic error storage
+
+`EvaluationResult<TValue, TError>` and `DerivativeResult<TValue, TError>` keep native
+error fields for floating-point scalars, floating-point complex values, MML fixed
+vectors (including coordinate-vector subclasses), and fixed matrices with
+NaN-capable elements. Unknown scalars use their **own type's** quiet NaN; unknown
+composite estimates have NaN in every component.
+
+Other error types, such as integers or arbitrary custom error objects, use
+`std::optional<TError>`: empty means uncomputed, and an assigned zero/empty bound is
+present. This is an intentional member-type change only for these fallback types;
+use `HasEstimate(result.error)` and dereference a present optional when reading it.
+Absence does not require constructing a `TError` object.
+
+`HasEstimate` tests availability, independently of the result status. A computed
+zero remains an estimate; a numeric NaN is unavailable. For a fixed composite
+estimate, **every component** must be available. For an optional, presence of the
+payload is the criterion; validating a custom payload remains the algorithm's job.
+Success/completion helpers do not manufacture missing estimates.
+
+Real and complex Detailed differentiation leave disabled or failed estimates
+unknown. Interpolation methods without an estimator (including linear, spline,
+and barycentric evaluation) also report unknown, not zero; Neville and
+Bulirsch-Stoer methods retain their calculated correction estimates when requested.
+Fixed interpolation and fixed-degree Chebyshev construction report `Completed`;
+adaptive Chebyshev reports `Success` only after both its tail and validation-error
+criteria pass. None of these conventions equates estimate availability with
+convergence.
+
+The following snippet is exercised by `MML_DocsApp --uncomputed-results` in
+[`docs_demo_result_policy.cpp`](../src/docs_demos/core/docs_demo_result_policy.cpp):
+
+```cpp
+EvaluationResult<Real> fresh;
+if (fresh || HasEstimate(fresh.error))
+    throw NumericalMethodError("Default result must be uncomputed");
+EvaluationResult<Real, int> discrete;
+if (HasEstimate(discrete.error))
+    throw NumericalMethodError("Default integer estimate must be absent");
+discrete.error = 0;
+if (!HasEstimate(discrete.error) || *discrete.error != 0)
+    throw NumericalMethodError("Computed zero estimate must remain present");
+std::cout << to_string(fresh.status) << " zero estimate present: "
+          << HasEstimate(discrete.error) << '\n';
+```
 
 ## 4. Plain / Detailed pairs
 
@@ -134,6 +189,18 @@ Nelder–Mead now reports actual simplex iterations in `iterations`/`iterations_
 its separately counted objective calls in `function_evaluations` (the former `iterations`
 field incorrectly held objective calls).
 
+`ALMResult<N>` reports outer attempts in `iterations_used`/`outer_iterations`,
+simplex iterations in `inner_iterations`, and independently counted original
+objective calls in `function_evaluations` (including reporting reevaluations).
+`achieved_tolerance` is the returned point's maximum nonlinear/box violation.
+`step_norm` is an outer displacement; `stationarity_measure` normalizes it by
+`max(1, ||x||_infinity)` after a converged inner solve. It is a step proxy, **not
+a KKT residual**. Success requires inner convergence, feasibility, and a small
+proxy after at least two successful outer solves. An inner failure is propagated
+immediately with its partial point, measured feasibility and `last_inner_status`;
+the proxy is `NoEstimate`. With zero outer budget, the assessed starting point is
+returned without an inner status or computed step/proxy.
+
 LP `.status` is now `AlgorithmStatus`. Use `.lp_status` for `Optimal`, `Infeasible`,
 `Unbounded`, etc.; `ToAlgorithmStatus(LPStatus)` supplies the common classification.
 Phase-one budget exhaustion is `MaxIterationsExceeded`, not a proof of infeasibility.
@@ -143,10 +210,24 @@ constraint violation; an uncomputed basis condition number is `NoEstimate`.
 Krylov APIs take `Vector<T>`, return `KrylovResult<T>`, and expose `.converged` (a boolean),
 `.iterations_used` and `.error_message`. `SolverResult<T>` and `SolverStatus` remain deprecated
 type aliases, but callers must migrate the old status enumerators and result member spellings.
+The zero-guess `solver.solve(A, b)` overload owns its returned/partial iterate in `.solution`.
+For `solver.solve(A, b, x)`, `.solution` is empty and `x` is the output, avoiding an extra copy.
+Aliased `b`/`x` uses a private RHS snapshot for both iteration and residual measurement.
 `residualNorm` and `achieved_tolerance` are the absolute norm of **the true residual of the
 returned iterate**, including iteration-limit outcomes and small nonzero right-hand sides.
 Success requires that residual to satisfy the configured criterion, not just a recursive
 estimate; BiCGSTAB refreshes and restarts when rounding separates those estimates.
+
+The dense stationary `JacobiSolver`, `GaussSeidelSolver` and `SORSolver` retain their
+legacy `IterativeSolverResult` field names. Both `residual` and `initial_residual`
+use `||Ax-b||/||b||`, or absolute `||Ax||` when `b=0`. `iterations` counts attempted
+sweeps, including a numerically failed sweep; an initial-guess check costs no sweep.
+Zero budget checks that guess and reports either `Success` or `MaxIterationsExceeded`.
+All overloads retain the lowest-residual finite iterate seen, with its actual
+residual. Numerical breakdown reports `NumericalInstability`, not budget exhaustion;
+an unrepresentable initial norm/residual leaves estimates as `NoEstimate`.
+Invalid dimensions, nonfinite inputs and invalid controls throw before iteration.
+See [dense stationary solver contracts](core/Linear_equations_solvers.md#dense-stationary-iteration-contracts).
 
 ### I/O migration
 

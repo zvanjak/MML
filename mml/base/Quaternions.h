@@ -68,6 +68,31 @@ namespace MML
 	private:
 		Real _data[4];  // [w, x, y, z] storage
 
+		Real FiniteScale() const
+		{
+			Real scale = 0;
+			for (Real component : _data) {
+				if (!std::isfinite(component))
+					throw NumericInputError("Quaternion components must be finite");
+				scale = std::max(scale, std::abs(component));
+			}
+			return scale;
+		}
+
+		Quaternion ScaledForNorm(Real& scale, Real& scaledNorm) const
+		{
+			scale = FiniteScale();
+			if (scale == 0)
+				throw QuaternionError("Cannot normalize or invert zero quaternion");
+			const Quaternion scaled(_data[0] / scale, _data[1] / scale,
+				_data[2] / scale, _data[3] / scale);
+			scaledNorm = std::sqrt(scaled.NormSquared());
+			// Compare lengths without forming an overflowing norm or a squared tolerance.
+			if (scale < PrecisionValues<Real>::QuaternionZeroThreshold / scaledNorm)
+				throw QuaternionError("Cannot normalize or invert near-zero quaternion");
+			return scaled;
+		}
+
 	public:
 		/// @brief Default constructor - creates identity quaternion [1, 0, 0, 0] (no rotation)
 		Quaternion() : _data{1, 0, 0, 0} {}
@@ -87,6 +112,8 @@ namespace MML
 		Quaternion(const Quaternion& q) 
 			: _data{q._data[0], q._data[1], q._data[2], q._data[3]} {}
 
+		Quaternion& operator=(const Quaternion&) = default;
+
 		/// @brief Create identity quaternion (no rotation)
 		static Quaternion Identity()
 		{
@@ -98,7 +125,7 @@ namespace MML
 		/// @param angle Rotation angle in radians (right-hand rule)
 		static Quaternion FromAxisAngle(const Vec3Cart& axis, Real angle)
 		{
-			Real halfAngle = angle / 2.0;
+			Real halfAngle = angle / MML::Real(2.0);
 			Real sinHalf = std::sin(halfAngle);
 			Real cosHalf = std::cos(halfAngle);
 			
@@ -115,12 +142,12 @@ namespace MML
 		/// @details Applied as R = Rz(yaw) * Ry(pitch) * Rx(roll)
 		static Quaternion FromEulerZYX(Real yaw, Real pitch, Real roll)
 		{
-			Real cy = std::cos(yaw * 0.5);
-			Real sy = std::sin(yaw * 0.5);
-			Real cp = std::cos(pitch * 0.5);
-			Real sp = std::sin(pitch * 0.5);
-			Real cr = std::cos(roll * 0.5);
-			Real sr = std::sin(roll * 0.5);
+			Real cy = std::cos(yaw * MML::Real(0.5));
+			Real sy = std::sin(yaw * MML::Real(0.5));
+			Real cp = std::cos(pitch * MML::Real(0.5));
+			Real sp = std::sin(pitch * MML::Real(0.5));
+			Real cr = std::cos(roll * MML::Real(0.5));
+			Real sr = std::sin(roll * MML::Real(0.5));
 
 			return Quaternion(
 				cr * cp * cy + sr * sp * sy,
@@ -137,12 +164,12 @@ namespace MML
 		/// @details Applied as R = Rx(roll) * Ry(pitch) * Rz(yaw)
 		static Quaternion FromEulerXYZ(Real roll, Real pitch, Real yaw)
 		{
-			Real cr = std::cos(roll * 0.5);
-			Real sr = std::sin(roll * 0.5);
-			Real cp = std::cos(pitch * 0.5);
-			Real sp = std::sin(pitch * 0.5);
-			Real cy = std::cos(yaw * 0.5);
-			Real sy = std::sin(yaw * 0.5);
+			Real cr = std::cos(roll * MML::Real(0.5));
+			Real sr = std::sin(roll * MML::Real(0.5));
+			Real cp = std::cos(pitch * MML::Real(0.5));
+			Real sp = std::sin(pitch * MML::Real(0.5));
+			Real cy = std::cos(yaw * MML::Real(0.5));
+			Real sy = std::sin(yaw * MML::Real(0.5));
 
 			return Quaternion(
 				cr * cp * cy - sr * sp * sy,
@@ -159,9 +186,9 @@ namespace MML
 		/// @details Applied as R = Rx(xAngle) * Rz(zAngle) * Ry(yAngle)
 		static Quaternion FromEulerXZY(Real xAngle, Real zAngle, Real yAngle)
 		{
-			Real c1 = std::cos(xAngle * 0.5), s1 = std::sin(xAngle * 0.5);
-			Real c2 = std::cos(zAngle * 0.5), s2 = std::sin(zAngle * 0.5);
-			Real c3 = std::cos(yAngle * 0.5), s3 = std::sin(yAngle * 0.5);
+			Real c1 = std::cos(xAngle * MML::Real(0.5)), s1 = std::sin(xAngle * MML::Real(0.5));
+			Real c2 = std::cos(zAngle * MML::Real(0.5)), s2 = std::sin(zAngle * MML::Real(0.5));
+			Real c3 = std::cos(yAngle * MML::Real(0.5)), s3 = std::sin(yAngle * MML::Real(0.5));
 
 			return Quaternion(
 				c1*c2*c3 + s1*s2*s3,
@@ -178,9 +205,9 @@ namespace MML
 		/// @details Applied as R = Ry(yAngle) * Rx(xAngle) * Rz(zAngle)
 		static Quaternion FromEulerYXZ(Real yAngle, Real xAngle, Real zAngle)
 		{
-			Real c1 = std::cos(yAngle * 0.5), s1 = std::sin(yAngle * 0.5);
-			Real c2 = std::cos(xAngle * 0.5), s2 = std::sin(xAngle * 0.5);
-			Real c3 = std::cos(zAngle * 0.5), s3 = std::sin(zAngle * 0.5);
+			Real c1 = std::cos(yAngle * MML::Real(0.5)), s1 = std::sin(yAngle * MML::Real(0.5));
+			Real c2 = std::cos(xAngle * MML::Real(0.5)), s2 = std::sin(xAngle * MML::Real(0.5));
+			Real c3 = std::cos(zAngle * MML::Real(0.5)), s3 = std::sin(zAngle * MML::Real(0.5));
 
 			return Quaternion(
 				c1*c2*c3 + s1*s2*s3,
@@ -197,9 +224,9 @@ namespace MML
 		/// @details Applied as R = Ry(yAngle) * Rz(zAngle) * Rx(xAngle)
 		static Quaternion FromEulerYZX(Real yAngle, Real zAngle, Real xAngle)
 		{
-			Real c1 = std::cos(yAngle * 0.5), s1 = std::sin(yAngle * 0.5);
-			Real c2 = std::cos(zAngle * 0.5), s2 = std::sin(zAngle * 0.5);
-			Real c3 = std::cos(xAngle * 0.5), s3 = std::sin(xAngle * 0.5);
+			Real c1 = std::cos(yAngle * MML::Real(0.5)), s1 = std::sin(yAngle * MML::Real(0.5));
+			Real c2 = std::cos(zAngle * MML::Real(0.5)), s2 = std::sin(zAngle * MML::Real(0.5));
+			Real c3 = std::cos(xAngle * MML::Real(0.5)), s3 = std::sin(xAngle * MML::Real(0.5));
 
 			return Quaternion(
 				c1*c2*c3 - s1*s2*s3,
@@ -216,9 +243,9 @@ namespace MML
 		/// @details Applied as R = Rz(zAngle) * Rx(xAngle) * Ry(yAngle)
 		static Quaternion FromEulerZXY(Real zAngle, Real xAngle, Real yAngle)
 		{
-			Real c1 = std::cos(zAngle * 0.5), s1 = std::sin(zAngle * 0.5);
-			Real c2 = std::cos(xAngle * 0.5), s2 = std::sin(xAngle * 0.5);
-			Real c3 = std::cos(yAngle * 0.5), s3 = std::sin(yAngle * 0.5);
+			Real c1 = std::cos(zAngle * MML::Real(0.5)), s1 = std::sin(zAngle * MML::Real(0.5));
+			Real c2 = std::cos(xAngle * MML::Real(0.5)), s2 = std::sin(xAngle * MML::Real(0.5));
+			Real c3 = std::cos(yAngle * MML::Real(0.5)), s3 = std::sin(yAngle * MML::Real(0.5));
 
 			return Quaternion(
 				c1*c2*c3 - s1*s2*s3,
@@ -235,9 +262,9 @@ namespace MML
 		/// @details Applied as R = Rz(alpha) * Rx(beta) * Rz(gamma). Classical physics convention.
 		static Quaternion FromEulerZXZ(Real alpha, Real beta, Real gamma)
 		{
-			Real cb = std::cos(beta * 0.5),  sb = std::sin(beta * 0.5);
-			Real cag = std::cos((alpha + gamma) * 0.5), sag = std::sin((alpha + gamma) * 0.5);
-			Real cdg = std::cos((alpha - gamma) * 0.5), sdg = std::sin((alpha - gamma) * 0.5);
+			Real cb = std::cos(beta * MML::Real(0.5)),  sb = std::sin(beta * MML::Real(0.5));
+			Real cag = std::cos((alpha + gamma) * MML::Real(0.5)), sag = std::sin((alpha + gamma) * MML::Real(0.5));
+			Real cdg = std::cos((alpha - gamma) * MML::Real(0.5)), sdg = std::sin((alpha - gamma) * MML::Real(0.5));
 
 			return Quaternion(cb * cag, sb * cdg, sb * sdg, cb * sag);
 		}
@@ -249,9 +276,9 @@ namespace MML
 		/// @details Applied as R = Rz(alpha) * Ry(beta) * Rz(gamma).
 		static Quaternion FromEulerZYZ(Real alpha, Real beta, Real gamma)
 		{
-			Real cb = std::cos(beta * 0.5),  sb = std::sin(beta * 0.5);
-			Real cag = std::cos((alpha + gamma) * 0.5), sag = std::sin((alpha + gamma) * 0.5);
-			Real cdg = std::cos((alpha - gamma) * 0.5), sdg = std::sin((alpha - gamma) * 0.5);
+			Real cb = std::cos(beta * MML::Real(0.5)),  sb = std::sin(beta * MML::Real(0.5));
+			Real cag = std::cos((alpha + gamma) * MML::Real(0.5)), sag = std::sin((alpha + gamma) * MML::Real(0.5));
+			Real cdg = std::cos((alpha - gamma) * MML::Real(0.5)), sdg = std::sin((alpha - gamma) * MML::Real(0.5));
 
 			return Quaternion(cb * cag, -sb * sdg, sb * cdg, cb * sag);
 		}
@@ -324,19 +351,21 @@ namespace MML
 		// Scalar division
 		Quaternion operator/(Real scalar) const
 		{
-			Real inv = 1.0 / scalar;
-			return (*this) * inv;
+			Quaternion result(*this);
+			result /= scalar;
+			return result;
 		}
 
 		/// @brief Quaternion multiplication (Hamilton product)
 		/// @note Non-commutative: p*q != q*p in general
 		Quaternion operator*(const Quaternion& q) const
 		{
+			// Explicit fused leading pairs avoid GCC 15 SLP mis-contraction of shared products.
 			return Quaternion(
-				_data[0] * q._data[0] - _data[1] * q._data[1] - _data[2] * q._data[2] - _data[3] * q._data[3],
-				_data[0] * q._data[1] + _data[1] * q._data[0] + _data[2] * q._data[3] - _data[3] * q._data[2],
-				_data[0] * q._data[2] - _data[1] * q._data[3] + _data[2] * q._data[0] + _data[3] * q._data[1],
-				_data[0] * q._data[3] + _data[1] * q._data[2] - _data[2] * q._data[1] + _data[3] * q._data[0]
+				std::fma(_data[0], q._data[0], -_data[1] * q._data[1]) - _data[2] * q._data[2] - _data[3] * q._data[3],
+				std::fma(_data[0], q._data[1], _data[1] * q._data[0]) + _data[2] * q._data[3] - _data[3] * q._data[2],
+				std::fma(_data[0], q._data[2], -_data[1] * q._data[3]) + _data[2] * q._data[0] + _data[3] * q._data[1],
+				std::fma(_data[0], q._data[3], _data[1] * q._data[2]) - _data[2] * q._data[1] + _data[3] * q._data[0]
 			);
 		}
 
@@ -370,6 +399,19 @@ namespace MML
 			return *this;
 		}
 
+		/// @brief In-place scalar division; rejects zero and non-finite inputs
+		Quaternion& operator/=(Real scalar)
+		{
+			if (!std::isfinite(scalar))
+				throw NumericInputError("Quaternion divisor must be finite");
+			if (scalar == 0)
+				throw DivisionByZeroError("Quaternion scalar division by zero");
+			FiniteScale();
+			for (Real& component : _data)
+				component /= scalar;
+			return *this;
+		}
+
 		/// @brief In-place quaternion multiplication
 		Quaternion& operator*=(const Quaternion& q)
 		{
@@ -396,36 +438,30 @@ namespace MML
 		/// @brief Norm (magnitude) ||q|| = sqrt(w² + x² + y² + z²)
 		Real Norm() const
 		{
-			return std::sqrt(NormSquared());
+			return std::hypot(std::hypot(_data[0], _data[1]), std::hypot(_data[2], _data[3]));
 		}
 
 		/// @brief Inverse q^(-1) = q* / ||q||²
 		/// @note For unit quaternions: q^(-1) = q*
 		Quaternion Inverse() const
 		{
-			Real normSq = NormSquared();
-			if (normSq < PrecisionValues<Real>::QuaternionZeroThreshold)
-				throw QuaternionError("Cannot invert zero quaternion");
-			
-			Real invNormSq = 1.0 / normSq;
-			return Quaternion(_data[0] * invNormSq,
-											 -_data[1] * invNormSq,
-											 -_data[2] * invNormSq,
-											 -_data[3] * invNormSq);
+			Real scale, scaledNorm;
+			const Quaternion scaled = ScaledForNorm(scale, scaledNorm);
+			const Real normSq = scaled.NormSquared();
+			// Divide in stages: scale*normSq can overflow even when the inverse is representable.
+			return Quaternion((scaled.w() / normSq) / scale,
+				(-scaled.x() / normSq) / scale,
+				(-scaled.y() / normSq) / scale,
+				(-scaled.z() / normSq) / scale);
 		}
 
 		/// @brief Normalize quaternion to unit length
 		void Normalize()
 		{
-			Real norm = Norm();
-			if (norm < PrecisionValues<Real>::QuaternionZeroThreshold)
-				throw QuaternionError("Cannot normalize zero quaternion");
-			
-			Real invNorm = 1.0 / norm;
-			_data[0] *= invNorm;
-			_data[1] *= invNorm;
-			_data[2] *= invNorm;
-			_data[3] *= invNorm;
+			Real scale, scaledNorm;
+			const Quaternion scaled = ScaledForNorm(scale, scaledNorm);
+			for (int i = 0; i < 4; ++i)
+				_data[i] = scaled[i] / scaledNorm;
 		}
 
 		/// @brief Return normalized copy
@@ -476,7 +512,7 @@ namespace MML
 			Vec3Cart uCrossV = VectorProduct(u, v);
 			Vec3Cart uCrossUCrossV = VectorProduct(u, uCrossV);
 			
-			return v + uCrossV * (2.0 * w) + uCrossUCrossV * 2.0;
+			return v + uCrossV * (MML::Real(2.0) * w) + uCrossUCrossV * MML::Real(2.0);
 		}
 
 		/// @brief Get rotation axis (for non-identity rotation quaternions)
@@ -505,7 +541,7 @@ namespace MML
 			if (w > 1.0) w = 1.0;
 			if (w < -1.0) w = -1.0;
 			
-			return 2.0 * std::acos(w);
+			return MML::Real(2.0) * std::acos(w);
 		}
 
 		/// @brief Get axis-angle representation
@@ -521,27 +557,18 @@ namespace MML
 		/// @return Vector [yaw, pitch, roll] in radians
 		Vec3Cart ToEulerZYX() const
 		{
-			Real w = _data[0], x = _data[1], y = _data[2], z = _data[3];
-			
-			// Roll (x-axis rotation)
-			Real sinr_cosp = 2.0 * (w * x + y * z);
-			Real cosr_cosp = 1.0 - 2.0 * (x * x + y * y);
-			Real roll = std::atan2(sinr_cosp, cosr_cosp);
-			
-			// Pitch (y-axis rotation)
-			Real sinp = 2.0 * (w * y - z * x);
-			Real pitch;
-			if (std::abs(sinp) >= 1.0)
-				pitch = std::copysign(Constants::PI / 2.0, sinp); // Gimbal lock
-			else
-				pitch = std::asin(sinp);
-			
-			// Yaw (z-axis rotation)
-			Real siny_cosp = 2.0 * (w * z + x * y);
-			Real cosy_cosp = 1.0 - 2.0 * (y * y + z * z);
-			Real yaw = std::atan2(siny_cosp, cosy_cosp);
-			
-			return Vec3Cart(yaw, pitch, roll);
+			const Real w = _data[0], x = _data[1], y = _data[2], z = _data[3];
+			// Half-angle sums and differences keep the determined rotation at a pole
+			// without cancellation in independently evaluated matrix entries.
+			const Real plus = std::hypot(w + y, z - x), minus = std::hypot(w - y, z + x);
+			const Real halfSum = std::atan2(z + x, w - y), halfDifference = std::atan2(z - x, w + y);
+			const Real pitch = std::atan2(Real(2) * (w * y - z * x), plus * minus);
+			const Real turn = Real(2) * Constants::PI;
+			if (IsNearlyZero(std::cos(pitch), Precision::EqualityTolerance))
+				return Vec3Cart(std::remainder(Real(2) * (pitch > 0 ? halfDifference : halfSum), turn),
+					std::copysign(Constants::PI / Real(2), pitch), 0);
+			return Vec3Cart(std::remainder(halfSum + halfDifference, turn), pitch,
+				std::remainder(halfSum - halfDifference, turn));
 		}
 
 		/// @brief Convert to Euler angles (XYZ convention)
@@ -549,27 +576,16 @@ namespace MML
 		/// @details Extracts angles for R = Rx(roll) * Ry(pitch) * Rz(yaw)
 		Vec3Cart ToEulerXYZ() const
 		{
-			Real w = _data[0], x = _data[1], y = _data[2], z = _data[3];
-
-			// Pitch (y-axis rotation)
-			Real sinp = 2.0 * (x * z + w * y);
-			Real pitch;
-			if (std::abs(sinp) >= 1.0)
-				pitch = std::copysign(Constants::PI / 2.0, sinp); // Gimbal lock
-			else
-				pitch = std::asin(sinp);
-
-			// Roll (x-axis rotation)
-			Real sinr = -2.0 * (y * z - w * x);
-			Real cosr = 1.0 - 2.0 * (x * x + y * y);
-			Real roll = std::atan2(sinr, cosr);
-
-			// Yaw (z-axis rotation)
-			Real siny = -2.0 * (x * y - w * z);
-			Real cosy = 1.0 - 2.0 * (y * y + z * z);
-			Real yaw = std::atan2(siny, cosy);
-
-			return Vec3Cart(roll, pitch, yaw);
+			const Real w = _data[0], x = _data[1], y = _data[2], z = _data[3];
+			const Real plus = std::hypot(w + y, x + z), minus = std::hypot(w - y, x - z);
+			const Real halfSum = std::atan2(x + z, w + y), halfDifference = std::atan2(x - z, w - y);
+			const Real pitch = std::atan2(Real(2) * (x * z + w * y), plus * minus);
+			const Real turn = Real(2) * Constants::PI;
+			if (IsNearlyZero(std::cos(pitch), Precision::EqualityTolerance))
+				return Vec3Cart(std::remainder(Real(2) * (pitch > 0 ? halfSum : halfDifference), turn),
+					std::copysign(Constants::PI / Real(2), pitch), 0);
+			return Vec3Cart(std::remainder(halfSum + halfDifference, turn), pitch,
+				std::remainder(halfSum - halfDifference, turn));
 		}
 
 		/// @brief Convert to Euler angles (ZXZ proper Euler convention)
@@ -578,26 +594,15 @@ namespace MML
 		///          beta in [0, pi]. Gimbal lock when beta ≈ 0 or beta ≈ pi.
 		Vec3Cart ToEulerZXZ() const
 		{
-			Real w = _data[0], x = _data[1], y = _data[2], z = _data[3];
-
-			// beta from R22 = cos(beta) = 1 - 2(x² + y²)
-			Real cosBeta = 1.0 - 2.0 * (x*x + y*y);
-			cosBeta = std::clamp(cosBeta, static_cast<Real>(-1.0), static_cast<Real>(1.0));
-			Real beta = std::acos(cosBeta);
-
-			Real alpha, gamma;
-			if (IsNearlyZero(std::sin(beta), Precision::EqualityTolerance)) {   // gimbal lock
-				// Gimbal lock: beta ≈ 0 or π, assign all rotation to alpha
-				alpha = std::atan2(2.0 * (x*y + w*z), 1.0 - 2.0 * (y*y + z*z));
-				gamma = 0.0;
-			} else {
-				// alpha = atan2(R02, -R12) = atan2(2(xz+wy), 2(wx-yz))
-				alpha = std::atan2(2.0 * (x*z + w*y), 2.0 * (w*x - y*z));
-				// gamma = atan2(R20, R21) = atan2(2(xz-wy), 2(yz+wx))
-				gamma = std::atan2(2.0 * (x*z - w*y), 2.0 * (y*z + w*x));
-			}
-
-			return Vec3Cart(alpha, beta, gamma);
+			const Real w = _data[0], x = _data[1], y = _data[2], z = _data[3];
+			const Real beta = Real(2) * std::atan2(std::hypot(x, y), std::hypot(w, z));
+			const Real halfSum = std::atan2(z, w), halfDifference = std::atan2(y, x);
+			const Real turn = Real(2) * Constants::PI;
+			if (IsNearlyZero(std::sin(beta), Precision::EqualityTolerance))
+				return Vec3Cart(std::remainder(Real(2) * (beta < Constants::PI / Real(2) ? halfSum : halfDifference), turn),
+					beta, 0);
+			return Vec3Cart(std::remainder(halfSum + halfDifference, turn), beta,
+				std::remainder(halfSum - halfDifference, turn));
 		}
 
 		/// @brief Convert to Euler angles (ZYZ proper Euler convention)
@@ -606,26 +611,15 @@ namespace MML
 		///          beta in [0, pi]. Gimbal lock when beta ≈ 0 or beta ≈ pi.
 		Vec3Cart ToEulerZYZ() const
 		{
-			Real w = _data[0], x = _data[1], y = _data[2], z = _data[3];
-
-			// beta from R22 = cos(beta) = 1 - 2(x² + y²)
-			Real cosBeta = 1.0 - 2.0 * (x*x + y*y);
-			cosBeta = std::clamp(cosBeta, static_cast<Real>(-1.0), static_cast<Real>(1.0));
-			Real beta = std::acos(cosBeta);
-
-			Real alpha, gamma;
-			if (IsNearlyZero(std::sin(beta), Precision::EqualityTolerance)) {   // gimbal lock
-				// Gimbal lock: beta ≈ 0 or π, assign all rotation to alpha
-				alpha = std::atan2(2.0 * (x*y + w*z), 1.0 - 2.0 * (y*y + z*z));
-				gamma = 0.0;
-			} else {
-				// alpha = atan2(R12, R02) = atan2(2(yz-wx), 2(xz+wy))
-				alpha = std::atan2(2.0 * (y*z - w*x), 2.0 * (x*z + w*y));
-				// gamma = atan2(R21, -R20) = atan2(2(yz+wx), 2(wy-xz))
-				gamma = std::atan2(2.0 * (y*z + w*x), 2.0 * (w*y - x*z));
-			}
-
-			return Vec3Cart(alpha, beta, gamma);
+			const Real w = _data[0], x = _data[1], y = _data[2], z = _data[3];
+			const Real beta = Real(2) * std::atan2(std::hypot(x, y), std::hypot(w, z));
+			const Real halfSum = std::atan2(z, w), halfDifference = std::atan2(-x, y);
+			const Real turn = Real(2) * Constants::PI;
+			if (IsNearlyZero(std::sin(beta), Precision::EqualityTolerance))
+				return Vec3Cart(std::remainder(Real(2) * (beta < Constants::PI / Real(2) ? halfSum : halfDifference), turn),
+					beta, 0);
+			return Vec3Cart(std::remainder(halfSum + halfDifference, turn), beta,
+				std::remainder(halfSum - halfDifference, turn));
 		}
 
 		/// @brief Convert to 3×3 rotation matrix
@@ -637,19 +631,19 @@ namespace MML
 			MatrixNM<Real, 3, 3> mat;
 			
 			// First row
-			mat[0][0] = 1.0 - 2.0 * (y*y + z*z);
-			mat[0][1] = 2.0 * (x*y - w*z);
-			mat[0][2] = 2.0 * (x*z + w*y);
+			mat[0][0] = MML::Real(1.0) - MML::Real(2.0) * (y*y + z*z);
+			mat[0][1] = MML::Real(2.0) * (x*y - w*z);
+			mat[0][2] = MML::Real(2.0) * (x*z + w*y);
 			
 			// Second row
-			mat[1][0] = 2.0 * (x*y + w*z);
-			mat[1][1] = 1.0 - 2.0 * (x*x + z*z);
-			mat[1][2] = 2.0 * (y*z - w*x);
+			mat[1][0] = MML::Real(2.0) * (x*y + w*z);
+			mat[1][1] = MML::Real(1.0) - MML::Real(2.0) * (x*x + z*z);
+			mat[1][2] = MML::Real(2.0) * (y*z - w*x);
 			
 			// Third row
-			mat[2][0] = 2.0 * (x*z - w*y);
-			mat[2][1] = 2.0 * (y*z + w*x);
-			mat[2][2] = 1.0 - 2.0 * (x*x + y*y);
+			mat[2][0] = MML::Real(2.0) * (x*z - w*y);
+			mat[2][1] = MML::Real(2.0) * (y*z + w*x);
+			mat[2][2] = MML::Real(1.0) - MML::Real(2.0) * (x*x + y*y);
 			
 			return mat;
 		}
@@ -665,8 +659,8 @@ namespace MML
 			if (trace > 0.0)
 			{
 				// w is the largest component
-				Real s = std::sqrt(trace + 1.0) * 2.0;  // s = 4*w
-				Real w = 0.25 * s;
+				Real s = std::sqrt(trace + MML::Real(1.0)) * MML::Real(2.0);  // s = 4*w
+				Real w = MML::Real(0.25) * s;
 				Real x = (mat[2][1] - mat[1][2]) / s;
 				Real y = (mat[0][2] - mat[2][0]) / s;
 				Real z = (mat[1][0] - mat[0][1]) / s;
@@ -675,9 +669,9 @@ namespace MML
 			else if (mat[0][0] > mat[1][1] && mat[0][0] > mat[2][2])
 			{
 				// x is the largest component
-				Real s = std::sqrt(1.0 + mat[0][0] - mat[1][1] - mat[2][2]) * 2.0;  // s = 4*x
+				Real s = std::sqrt(MML::Real(1.0) + mat[0][0] - mat[1][1] - mat[2][2]) * MML::Real(2.0);  // s = 4*x
 				Real w = (mat[2][1] - mat[1][2]) / s;
-				Real x = 0.25 * s;
+				Real x = MML::Real(0.25) * s;
 				Real y = (mat[0][1] + mat[1][0]) / s;
 				Real z = (mat[0][2] + mat[2][0]) / s;
 				return Quaternion(w, x, y, z);
@@ -685,21 +679,21 @@ namespace MML
 			else if (mat[1][1] > mat[2][2])
 			{
 				// y is the largest component
-				Real s = std::sqrt(1.0 + mat[1][1] - mat[0][0] - mat[2][2]) * 2.0;  // s = 4*y
+				Real s = std::sqrt(MML::Real(1.0) + mat[1][1] - mat[0][0] - mat[2][2]) * MML::Real(2.0);  // s = 4*y
 				Real w = (mat[0][2] - mat[2][0]) / s;
 				Real x = (mat[0][1] + mat[1][0]) / s;
-				Real y = 0.25 * s;
+				Real y = MML::Real(0.25) * s;
 				Real z = (mat[1][2] + mat[2][1]) / s;
 				return Quaternion(w, x, y, z);
 			}
 			else
 			{
 				// z is the largest component
-				Real s = std::sqrt(1.0 + mat[2][2] - mat[0][0] - mat[1][1]) * 2.0;  // s = 4*z
+				Real s = std::sqrt(MML::Real(1.0) + mat[2][2] - mat[0][0] - mat[1][1]) * MML::Real(2.0);  // s = 4*z
 				Real w = (mat[1][0] - mat[0][1]) / s;
 				Real x = (mat[0][2] + mat[2][0]) / s;
 				Real y = (mat[1][2] + mat[2][1]) / s;
-				Real z = 0.25 * s;
+				Real z = MML::Real(0.25) * s;
 				return Quaternion(w, x, y, z);
 			}
 		}
@@ -711,7 +705,7 @@ namespace MML
 		/// @return Interpolated quaternion (should be normalized for rotations)
 		static Quaternion Lerp(const Quaternion& q1, const Quaternion& q2, Real t)
 		{
-			return q1 * (1.0 - t) + q2 * t;
+			return q1 * (MML::Real(1.0) - t) + q2 * t;
 		}
 
 		/// @brief Spherical linear interpolation (constant angular velocity)
@@ -750,7 +744,7 @@ namespace MML
 				return Lerp(q1, q2_adjusted, t).Normalized();
 			}
 			
-			Real w1 = std::sin((1.0 - t) * theta) / sinTheta;
+			Real w1 = std::sin((MML::Real(1.0) - t) * theta) / sinTheta;
 			Real w2 = std::sin(t * theta) / sinTheta;
 			
 			return q1 * w1 + q2_adjusted * w2;

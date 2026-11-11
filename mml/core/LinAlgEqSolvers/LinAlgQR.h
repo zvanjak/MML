@@ -64,6 +64,17 @@ namespace MML
 		{
 			if (_m < _n)
 				throw MatrixDimensionError("QRSolver: Matrix must have m >= n (rows >= columns)", _m, _n, _m, _n);
+			if (_m == 0 || _n == 0)
+				throw MatrixDimensionError("QRSolver: Matrix must be non-empty", _m, _n, -1, -1);
+
+			RealType matrixScale = 0;
+			for (int row = 0; row < _m; ++row)
+				for (int col = 0; col < _n; ++col) {
+					const RealType magnitude = std::abs(a(row, col));
+					if (!std::isfinite(magnitude))
+						throw MatrixNumericalError("QRSolver: non-finite input matrix");
+					matrixScale = std::max(matrixScale, magnitude);
+				}
 
 			// Perform Householder reduction
 			// For square matrices: process n-1 columns (last has no elements below diagonal)
@@ -75,7 +86,8 @@ namespace MML
 				for (int i = k; i < _m; i++)
 					scale = std::max(scale, std::abs(_qr[i][k]));
 
-				if (scale <= std::numeric_limits<RealType>::epsilon())
+				if (IsNegligibleRelativeTo(scale, matrixScale,
+						PrecisionValues<RealType>::Eps * _m))
 				{
 					_sing = true;
 					_beta[k] = 0.0;
@@ -116,13 +128,8 @@ namespace MML
 			if (_m == _n)
 			{
 				_d[_n - 1] = _qr[_n - 1][_n - 1];
-				// Use norm-scaled threshold instead of exact zero
-				RealType norm_a = 0.0;
-				for (int ii = 0; ii < _m; ii++)
-					for (int jj = 0; jj < _n; jj++)
-						norm_a = std::max(norm_a, std::abs(a(ii, jj)));
-				RealType threshold = std::numeric_limits<RealType>::epsilon() * norm_a * _n;
-				if (std::abs(_d[_n - 1]) < threshold)
+				if (IsNegligibleRelativeTo(std::abs(_d[_n - 1]), matrixScale,
+						PrecisionValues<RealType>::Eps * _n))
 					_sing = true;
 			}
 		}
@@ -133,7 +140,7 @@ namespace MML
 		{
 			if (_m != _n)
 				throw MatrixDimensionError("QRSolver::Solve - Use LeastSquaresSolve for overdetermined systems (m > n)", _m, _n, _m, _m);
-			if (b.size() != static_cast<size_t>(_m))
+			if (b.size() != _m)
 				throw VectorDimensionError("QRSolver::Solve - Vector size mismatch", _m, b.size());
 			if (_sing)
 				throw SingularMatrixError("QRSolver::Solve - Singular matrix");
@@ -156,7 +163,7 @@ namespace MML
 		// Minimizes ||Ax - b||₂ by solving R*x = Q^T*b
 		void LeastSquaresSolve(const Vector<Type>& b, Vector<Type>& x)
 		{
-			if (b.size() != static_cast<size_t>(_m))
+			if (b.size() != _m)
 				throw VectorDimensionError("QRSolver::LeastSquaresSolve - Vector size mismatch", _m, b.size());
 			if (_sing)
 				throw SingularMatrixError("QRSolver::LeastSquaresSolve - Singular matrix");
@@ -184,7 +191,7 @@ namespace MML
 		// b and x can be the same vector (in-place operation)
 		void RSolve(const Vector<Type>& b, Vector<Type>& x)
 		{
-			if (b.size() != static_cast<size_t>(_n))
+			if (b.size() != _n)
 				throw VectorDimensionError("QRSolver::RSolve - Vector size mismatch", _n, b.size());
 			if (_sing)
 				throw SingularMatrixError("QRSolver::RSolve - Singular matrix");
@@ -207,7 +214,7 @@ namespace MML
 		// Uses the Householder vectors stored in QR
 		void QAdjointMultiply(const Vector<Type>& b, Vector<Type>& qtb)
 		{
-			if (b.size() != static_cast<size_t>(_m))
+			if (b.size() != _m)
 				throw VectorDimensionError("QRSolver::QAdjointMultiply - Vector size mismatch", _m, b.size());
 
 			qtb.resize(_m);
@@ -240,7 +247,7 @@ namespace MML
 		// Useful for computing residuals and verifying decomposition
 		void QMultiply(const Vector<Type>& b, Vector<Type>& qb)
 		{
-			if (b.size() != static_cast<size_t>(_m))
+			if (b.size() != _m)
 				throw VectorDimensionError("QRSolver::QMultiply - Vector size mismatch", _m, b.size());
 
 			qb.resize(_m);
@@ -288,7 +295,7 @@ namespace MML
 			// Initialize Q as I (first n columns)
 			for (int i = 0; i < _m; i++)
 				for (int j = 0; j < _n; j++)
-					Q[i][j] = (i == j) ? 1.0 : 0.0;
+					Q[i][j] = (i == j) ? MML::Real(1.0) : MML::Real(0.0);
 
 			// Apply Householder transformations in reverse order
 			for (int k = _n - 1; k >= 0; k--)
@@ -349,7 +356,7 @@ namespace MML
 			{
 				// Set up unit vector e_j
 				for (int i = 0; i < _n; i++)
-					ei[i] = (i == j) ? 1.0 : 0.0;
+					ei[i] = (i == j) ? MML::Real(1.0) : MML::Real(0.0);
 
 				// Solve A * col = e_j
 				Solve(ei, col);

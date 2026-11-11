@@ -38,7 +38,7 @@ namespace MML::Tests::Tools::TimerTests {
 			std::this_thread::sleep_for(std::chrono::milliseconds(100));
 			timer.MarkTime("End");  // Must mark time before GetTotalTime()
 			
-			Real elapsed = timer.GetTotalTime();
+			double elapsed = timer.GetTotalTime();
 			
 			// Should be at least 50ms (generous margin for system overhead under load)
 			REQUIRE(elapsed >= 0.05);
@@ -52,7 +52,7 @@ namespace MML::Tests::Tools::TimerTests {
 			std::this_thread::sleep_for(std::chrono::milliseconds(100));
 			timer.MarkTime("First End");
 			
-			Real firstMeasure = timer.GetTotalTime();
+			double firstMeasure = timer.GetTotalTime();
 			REQUIRE(timer.GetMarkCount() == 1);
 			
 			timer.Start();  // Restart clears marks
@@ -62,7 +62,7 @@ namespace MML::Tests::Tools::TimerTests {
 			timer.MarkTime("Second End");
 			
 			REQUIRE(timer.GetMarkCount() == 1);
-			Real secondMeasure = timer.GetTotalTime();
+			double secondMeasure = timer.GetTotalTime();
 			
 			// Second measurement (50ms) should be less than first (100ms)
 			REQUIRE(secondMeasure < firstMeasure);
@@ -91,8 +91,8 @@ namespace MML::Tests::Tools::TimerTests {
 			timer.MarkTime("Second");
 			
 			// GetIntervalTime returns interval between marks
-			Real firstInterval = timer.GetIntervalTime(0);
-			Real secondInterval = timer.GetIntervalTime(1);
+			double firstInterval = timer.GetIntervalTime(0);
+			double secondInterval = timer.GetIntervalTime(1);
 			
 			// Both intervals should be at least 40ms (generous lower bound)
 			REQUIRE(firstInterval >= 0.04);
@@ -111,8 +111,8 @@ namespace MML::Tests::Tools::TimerTests {
 			std::this_thread::sleep_for(std::chrono::milliseconds(75));
 			timer.MarkTime("Second");
 			
-			Real firstFromStart = timer.GetMarkTimeFromStart(0);
-			Real secondFromStart = timer.GetMarkTimeFromStart(1);
+			double firstFromStart = timer.GetMarkTimeFromStart(0);
+			double secondFromStart = timer.GetMarkTimeFromStart(1);
 			
 			// Second mark should be further from start than first
 			REQUIRE(secondFromStart > firstFromStart);
@@ -145,7 +145,7 @@ namespace MML::Tests::Tools::TimerTests {
 			// New marks work correctly
 			timer.MarkTime("NewMark");
 			REQUIRE(timer.GetMarkCount() == 1);
-			Real elapsed = timer.GetTotalTime();
+			double elapsed = timer.GetTotalTime();
 			REQUIRE(elapsed >= 0.0);
 			REQUIRE(elapsed < 0.01);  // Should be very small (no sleep)
 		}
@@ -166,13 +166,13 @@ namespace MML::Tests::Tools::TimerTests {
 			timer.Start();
 			std::this_thread::sleep_for(std::chrono::milliseconds(100));
 			timer.MarkTime("First");
-			Real firstTotal = timer.GetTotalTime();
+			double firstTotal = timer.GetTotalTime();
 			REQUIRE(firstTotal >= 0.05);
 			
 			// Restart and add a quick mark
 			timer.Start();
 			timer.MarkTime("AfterRestart");
-			Real secondTotal = timer.GetTotalTime();
+			double secondTotal = timer.GetTotalTime();
 			
 			// Second total should be near zero (no sleep after restart)
 			REQUIRE(secondTotal >= 0.0);
@@ -200,7 +200,7 @@ namespace MML::Tests::Tools::TimerTests {
 			}
 			
 			// Collect samples from marks
-			std::vector<Real> samples;
+			std::vector<double> samples;
 			for (int i = 0; i < 5; ++i) {
 				samples.push_back(timer.GetMarkTimeFromStart(i));
 			}
@@ -237,7 +237,7 @@ namespace MML::Tests::Tools::TimerTests {
 			Timer timer;
 			timer.Start();
 			timer.MarkTime("Immediate");  // Mark immediately
-			Real elapsed = timer.GetTotalTime();
+			double elapsed = timer.GetTotalTime();
 			
 			// Should be a very small non-negative number
 			REQUIRE(elapsed >= 0.0);
@@ -255,7 +255,7 @@ namespace MML::Tests::Tools::TimerTests {
 			
 			// All marks should be accessible
 			for (int i = 0; i < NUM_MARKS; ++i) {
-				Real time = timer.GetMarkTimeFromStart(i);
+				double time = timer.GetMarkTimeFromStart(i);
 				REQUIRE(time >= 0.0);
 			}
 		}

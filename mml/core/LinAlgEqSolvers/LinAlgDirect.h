@@ -40,7 +40,7 @@ namespace MML
 		Vector<Type> solution{};
 
 		/// Residual norm ||Ax - b|| (populated when config.estimate_error is true)
-		Real residual_norm = 0.0;
+		Real residual_norm = NoEstimate;
 	};
 
 	///////////////////////////////////////////////////////////////////////////////////////////
@@ -48,6 +48,51 @@ namespace MML
 	///////////////////////////////////////////////////////////////////////////////////////////
 	namespace LinearSolverDetail
 	{
+		template<typename Type>
+		void RequireFinite(const Type& value)
+		{
+			if (!std::isfinite(Abs(value)))
+				throw MatrixNumericalError("Linear solver encountered a non-finite input, factor or solution");
+		}
+
+		template<typename Type>
+		void RequireFiniteVector(const Vector<Type>& values)
+		{
+			for (const auto& value : values)
+				RequireFinite(value);
+		}
+
+		// Keep ordinary factors unchanged, but equilibrate extreme exponents before elimination.
+		// The stored factors then represent A / scale, so every RHS must use the same scale.
+		template<typename Type>
+		Real ScaleForFactorization(Matrix<Type>& matrix)
+		{
+			Real largest = 0;
+			Real smallest = std::numeric_limits<Real>::max();
+			for (int row = 0; row < matrix.rows(); ++row)
+				for (int col = 0; col < matrix.cols(); ++col) {
+					RequireFinite(matrix(row, col));
+					const Real magnitude = Abs(matrix(row, col));
+					largest = std::max(largest, magnitude);
+					if (magnitude > 0)
+						smallest = std::min(smallest, magnitude);
+				}
+			Real scale = 1;
+			if (largest > std::sqrt(std::numeric_limits<Real>::max()) ||
+					(largest > 0 && largest < std::sqrt(std::numeric_limits<Real>::min()))) { // tol-ok: IEEE underflow bound for exponent equilibration, not a numerical tolerance.
+				int exponent;
+				std::frexp(largest, &exponent);
+				scale = std::scalbn(Real(1), exponent - 1);
+				// Prefer guarded unscaled elimination to destroying a nonzero input.
+				if (scale > 1 && smallest / scale == Real(0))
+					return Real(1);
+				for (int row = 0; row < matrix.rows(); ++row)
+					for (int col = 0; col < matrix.cols(); ++col)
+						matrix(row, col) /= scale;
+			}
+			return scale;
+		}
+
 		/// Execute a linear solver Detailed operation with timing and exception handling.
 		template<typename ResultType, typename ComputeFn>
 		ResultType ExecuteLinearSolverDetailed(const char* algorithm_name,
@@ -60,6 +105,12 @@ namespace MML
 				ResultType result = MakeEvaluationSuccessResult<ResultType>(algorithm_name);
 
 				compute(result);
+				if (config.check_finite) {
+					RequireFiniteVector(result.solution);
+					if (config.estimate_error)
+						RequireFinite(result.residual_norm);
+				}
+				result.status = AlgorithmStatus::Completed;
 
 				result.elapsed_time_ms = timer.elapsed_ms();
 				return result;
@@ -108,9 +159,12 @@ namespace MML
 		/// @throws MatrixDimensionError if dimensions incompatible
 		/// @throws SingularMatrixError if matrix is singular
 		/// @throws MatrixNumericalError if pivot inverse is non-finite
+		/// @throws ArgumentError if A and B are the same matrix (incompatible inverse/solution outputs)
 		static void SolveInPlace(Matrix<Type>& a, Matrix<Type>& b)
 		{
-			int i, icol, irow, j, k, l, ll;
+			if (&a == &b)
+				throw ArgumentError("GaussJordanSolver::SolveInPlace - coefficient and RHS output matrices must be distinct");
+			int i, icol = -1, irow = -1, j, k, l, ll;
 			Real big;
 			Type dum, pivinv;
 
@@ -131,14 +185,20 @@ namespace MML
 			// Compute infinity norm for norm-scaled singularity threshold
 			Real norm_a = 0.0;
 			for (int ii = 0; ii < n; ii++)
-				for (int jj = 0; jj < n; jj++)
+				for (int jj = 0; jj < n; jj++) {
+					LinearSolverDetail::RequireFinite(a[ii][jj]);
 					if (Abs(a[ii][jj]) > norm_a)
 						norm_a = Abs(a[ii][jj]);
+				}
+			for (int ii = 0; ii < n; ++ii)
+				for (int jj = 0; jj < m; ++jj)
+					LinearSolverDetail::RequireFinite(b[ii][jj]);
 			Real singularity_threshold = std::numeric_limits<Real>::epsilon() * norm_a * n;
 
 			for (j = 0; j < n; j++) ipiv[j] = 0;
 			for (i = 0; i < n; i++) {
 				big = 0.0;
+				irow = icol = -1;
 				for (j = 0; j < n; j++)
 					if (ipiv[j] != 1)
 						for (k = 0; k < n; k++) {
@@ -150,6 +210,8 @@ namespace MML
 								}
 							}
 						}
+				if (icol < 0 || irow < 0)
+					throw MatrixNumericalError("GaussJordanSolver::SolveInPlace - no finite pivot selected");
 				++(ipiv[icol]);
 				if (irow != icol) {
 					for (l = 0; l < n; l++) std::swap(a[irow][l], a[icol][l]);
@@ -158,7 +220,8 @@ namespace MML
 				indxr[i] = irow;
 				indxc[i] = icol;
 
-				if (Abs(a[icol][icol]) < singularity_threshold)
+				LinearSolverDetail::RequireFinite(a[icol][icol]);
+				if (Abs(a[icol][icol]) <= singularity_threshold)
 					throw SingularMatrixError("GaussJordanSolver::SolveInPlace - Singular Matrix", Abs(a[icol][icol]));
 
 				pivinv = Real{ 1.0 } / a[icol][icol];
@@ -268,8 +331,11 @@ namespace MML
 		int _n;
 
 		Matrix<Type> _lu;
+		Matrix<Type> _originalScaleFactors;
+		bool _originalScaleFactorsFinite = true;
 		std::vector<int> _indx;
 		Real _d;
+		Real _factorScale = 1;
 
 	public:
 		/// @brief Constructor - performs LU decomposition with partial pivoting
@@ -286,10 +352,10 @@ namespace MML
 				throw MatrixDimensionError("LUSolver::ctor - matrix must be square", inMatRef.rows(), inMatRef.cols(), -1, -1);
 			if (inMatRef.rows() == 0)
 				throw MatrixDimensionError("LUSolver::ctor - matrix must be non-empty", 0, 0, -1, -1);
+			_factorScale = LinearSolverDetail::ScaleForFactorization(_lu);
 			int i, imax, j, k;
 			Real big, temp;
 			Type temp2;
-			Vector<Type> vv(_n);
 			std::vector<Real> rowScales(_n);
 			
 			_d = 1.0;
@@ -319,7 +385,6 @@ namespace MML
 					throw SingularMatrixError("LUSolver::ctor - Singular Matrix (zero row)");
 
 				rowScales[i] = big;
-				vv[i] = 1.0 / big;
 			}
 
 			// main loop
@@ -329,7 +394,7 @@ namespace MML
 				imax = k;
 				for (i = k; i < _n; i++) 
 				{
-					temp = Abs(vv[i] * _lu[i][k]);
+					temp = Abs(_lu[i][k]) / rowScales[i];
 					if (temp > big) {
 						big = temp;
 						imax = i;
@@ -345,7 +410,6 @@ namespace MML
 						_lu[k][j] = temp2;
 					}
 					_d = -_d;
-					std::swap(vv[imax], vv[k]);
 					std::swap(rowScales[imax], rowScales[k]);
 				}
 
@@ -368,9 +432,20 @@ namespace MML
 							throw MatrixNumericalError("Non-finite multiplier in LU decomposition (Complex)");
 					}
 					
-					for (j = k + 1; j < _n; j++)
+					for (j = k + 1; j < _n; j++) {
 						_lu[i][j] -= temp2 * _lu[k][j];
+						LinearSolverDetail::RequireFinite(_lu[i][j]);
+					}
 				}
+			}
+			if (_factorScale != Real(1)) {
+				_originalScaleFactors = _lu;
+				for (int row = 0; row < _n; ++row)
+					for (int col = row; col < _n; ++col) {
+						_originalScaleFactors(row, col) *= _factorScale;
+						if (!std::isfinite(Abs(_originalScaleFactors(row, col))))
+							_originalScaleFactorsFinite = false;
+					}
 			}
 		}
 
@@ -420,7 +495,7 @@ namespace MML
 				throw VectorDimensionError("LUSolver::Solve - b and x must match system size", b.size(), _n);
 
 			for (i = 0; i < _n; i++)
-				x[i] = b[i];
+				x[i] = b[i] / _factorScale;
 
 			for (i = 0; i < _n; i++) {
 				ip = _indx[i];
@@ -466,12 +541,20 @@ namespace MML
 		{
 			Type dd = _d;
 			for (int i = 0; i < _n; i++)
-				dd = dd * _lu[i][i];
+				dd = dd * (_lu[i][i] * _factorScale);
 			return dd;
 		}
 
-		/// @brief Access the combined LU storage: L (unit diagonal implicit) below, U on and above the diagonal
-		const Matrix<Type>& GetDecomposition() const { return _lu; }
+		/// @brief Combined LU of A: unit-diagonal L below, U on/above diagonal.
+		/// @throws MatrixNumericalError if an original-scale U entry is unrepresentable.
+		/// Solving remains available even when such an export cannot be represented.
+		const Matrix<Type>& GetDecomposition() const {
+			if (_factorScale == Real(1))
+				return _lu;
+			if (!_originalScaleFactorsFinite)
+				throw MatrixNumericalError("LUSolver::GetDecomposition - original-scale U is not representable");
+			return _originalScaleFactors;
+		}
 
 		/// @brief Access the pivot swap record: indx[k] = row swapped with row k during elimination step k
 		const std::vector<int>& GetPivotIndices() const { return _indx; }
@@ -490,6 +573,7 @@ namespace MML
 		Matrix<Type> &_lu;
 		std::vector<int> _indx;
 		Real _d;
+		Real _factorScale = 1;
 
 	public:
 		/// @brief Constructor - performs LU decomposition in-place on input matrix
@@ -497,6 +581,7 @@ namespace MML
 		/// @throws MatrixDimensionError if matrix is not square or is empty
 		/// @throws SingularMatrixError if matrix is singular
 		/// @warning Matrix is modified during decomposition - original data destroyed
+		/// Extreme exponents are equilibrated: stored factors represent A/getFactorScale().
 		LUSolverInPlace(Matrix<Type>& inMatRef)
 			: _n(inMatRef.rows()), _lu(inMatRef), _indx(_n)
 		{
@@ -505,6 +590,7 @@ namespace MML
 				throw MatrixDimensionError("LUSolverInPlace::ctor - matrix must be square", inMatRef.rows(), inMatRef.cols(), -1, -1);
 			if (inMatRef.rows() == 0)
 				throw MatrixDimensionError("LUSolverInPlace::ctor - matrix must be non-empty", 0, 0, -1, -1);
+			_factorScale = LinearSolverDetail::ScaleForFactorization(_lu);
 			
 			// Input validation: check for NaN/Inf
 			for (int ii = 0; ii < _n; ii++)
@@ -515,7 +601,7 @@ namespace MML
 			int i, imax, j, k;
 			Real big, temp;
 			Type temp2;
-			Vector<Type> vv(_n);
+			std::vector<Real> rowScales(_n);
 			Real norm_a = 0.0;
 			_d = 1.0;
 			for (i = 0; i < _n; i++) {
@@ -526,14 +612,14 @@ namespace MML
 					throw SingularMatrixError("LUSolverInPlace::ctor - Singular Matrix (zero row)");
 
 				if (big > norm_a) norm_a = big;
-				vv[i] = 1.0 / big;
+				rowScales[i] = big;
 			}
 			Real singularity_threshold = std::numeric_limits<Real>::epsilon() * norm_a * _n;
 			for (k = 0; k < _n; k++) {
 				big = 0.0;
 				imax = k;
 				for (i = k; i < _n; i++) {
-					temp = Abs(vv[i] * _lu[i][k]);
+					temp = Abs(_lu[i][k]) / rowScales[i];
 					if (temp > big) {
 						big = temp;
 						imax = i;
@@ -546,19 +632,24 @@ namespace MML
 						_lu[k][j] = temp2;
 					}
 					_d = -_d;
-					vv[imax] = vv[k];
+					std::swap(rowScales[imax], rowScales[k]);
 				}
 				_indx[k] = imax;
-				if (Abs(_lu[k][k]) < singularity_threshold)
+				if (Abs(_lu[k][k]) <= singularity_threshold)
 					throw SingularMatrixError("LUSolverInPlace::ctor - Singular Matrix", Abs(_lu[k][k]));
 
 				for (i = k + 1; i < _n; i++) {
 					temp2 = _lu[i][k] /= _lu[k][k];
-					for (j = k + 1; j < _n; j++)
+					LinearSolverDetail::RequireFinite(temp2);
+					for (j = k + 1; j < _n; j++) {
 						_lu[i][j] -= temp2 * _lu[k][j];
+						LinearSolverDetail::RequireFinite(_lu[i][j]);
+					}
 				}
 			}
 		}
+		/// @brief In-place factors represent the original matrix divided by this scale.
+		Real getFactorScale() const { return _factorScale; }
 		// solving with Matrix RHS (ie. solving simultaneously for multiple RHS)
 		// while using the LU decomposition already performed in the constructor
 
@@ -611,7 +702,7 @@ namespace MML
 				throw VectorDimensionError("LUSolverInPlace::Solve - b and x must match system size", b.size(), _n);
 
 			for (i = 0; i < _n; i++)
-				x[i] = b[i];
+				x[i] = b[i] / _factorScale;
 
 			for (i = 0; i < _n; i++) {
 				ip = _indx[i];
@@ -705,6 +796,7 @@ namespace MML
 					int col = j - _m1 + i;
 					if (col >= 0 && col < _n) {
 						_au[i][j] = a(i, col);
+						LinearSolverDetail::RequireFinite(_au[i][j]);
 						row_sum += Abs(_au[i][j]);
 					} else
 						_au[i][j] = 0.0;
@@ -747,7 +839,8 @@ namespace MML
 				
 				_indx[k] = i + 1;  // Store 1-based index for compatibility
 				
-				if (Abs(dum) < singularity_threshold)
+				LinearSolverDetail::RequireFinite(dum);
+				if (Abs(dum) <= singularity_threshold)
 					throw SingularMatrixError("BandDiagonalSolver::ctor - Singular Matrix", Abs(dum));
 				
 				// Interchange rows if necessary
@@ -762,9 +855,12 @@ namespace MML
 				for (int i2 = k + 1; i2 < l; i2++)
 				{
 					dum = _au[i2][0] / _au[k][0];
+					LinearSolverDetail::RequireFinite(dum);
 					_al[k][i2 - k - 1] = dum;
-					for (int j = 1; j < mm; j++)
+					for (int j = 1; j < mm; j++) {
 						_au[i2][j - 1] = _au[i2][j] - dum * _au[k][j];
+						LinearSolverDetail::RequireFinite(_au[i2][j - 1]);
+					}
 					_au[i2][mm - 1] = 0.0;
 				}
 			}
@@ -778,7 +874,7 @@ namespace MML
 		 */
 		void Solve(const Vector<Real>& b, Vector<Real>& x) const
 		{
-			if (b.size() != static_cast<size_t>(_n) || x.size() != static_cast<size_t>(_n))
+			if (b.size() != _n || x.size() != _n)
 				throw VectorDimensionError("BandDiagonalSolver::Solve - b and x must match system size", b.size(), _n);
 
 			int mm = _m1 + _m2 + 1;
@@ -950,11 +1046,13 @@ namespace MML
 			if (!std::isfinite(tolerance) || tolerance < Magnitude{})
 				throw DomainError("CholeskySolver::ctor - tolerance must be finite and nonnegative");
 
-			Magnitude scale{1};
+			Magnitude scale{};
 			for (int row = 0; row < n; ++row)
-				for (int col = 0; col < n; ++col)
+				for (int col = 0; col < n; ++col) {
+					LinearSolverDetail::RequireFinite(a[row][col]);
 					scale = std::max(scale, static_cast<Magnitude>(std::abs(a[row][col])));
-			const Magnitude hermitianThreshold = tolerance * (Magnitude{1} + scale);
+				}
+			const Magnitude hermitianThreshold = tolerance * scale;
 			for (int row = 0; row < n; ++row) {
 				if (ImaginaryMagnitude(a[row][row]) > hermitianThreshold)
 					throw DomainError("CholeskySolver::ctor - matrix must be Hermitian");
@@ -963,12 +1061,13 @@ namespace MML
 						throw DomainError("CholeskySolver::ctor - matrix must be Hermitian");
 			}
 
-			const Magnitude pivotTolerance = std::numeric_limits<Magnitude>::epsilon() * scale * static_cast<Magnitude>(n * 8);
+			const Magnitude pivotTolerance = PrecisionValues<Magnitude>::Eps * scale * n;
 			for (int row = 0; row < n; ++row) {
 				for (int col = 0; col <= row; ++col) {
 					Type sum = (a[row][col] + Conjugate(a[col][row])) / Type{2};
 					for (int index = 0; index < col; ++index)
 						sum -= el[row][index] * Conjugate(el[col][index]);
+					LinearSolverDetail::RequireFinite(sum);
 
 					if (row == col) {
 						const Magnitude pivot = RealPart(sum);
@@ -1049,7 +1148,7 @@ namespace MML
 			{
 				// Set up unit vector e_j
 				for (int i = 0; i < n; i++)
-					ei[i] = (i == j) ? 1.0 : 0.0;
+					ei[i] = (i == j) ? MML::Real(1.0) : MML::Real(0.0);
 				
 				// Solve A * col = e_j
 				Solve(ei, col);
@@ -1089,6 +1188,8 @@ namespace MML
 		return LinearSolverDetail::ExecuteLinearSolverDetailed<ResultType>(
 			"GaussJordanSolver", config,
 			[&](ResultType& result) {
+				if (config.check_finite)
+					LinearSolverDetail::RequireFiniteVector(b);
 				result.solution = GaussJordanSolver<Type>::SolveConst(A, b);
 				result.function_evaluations = A.rows() * A.rows() * A.rows(); // O(n³)
 
@@ -1111,6 +1212,8 @@ namespace MML
 		return LinearSolverDetail::ExecuteLinearSolverDetailed<ResultType>(
 			"LUSolver", config,
 			[&](ResultType& result) {
+				if (config.check_finite)
+					LinearSolverDetail::RequireFiniteVector(b);
 				LUSolver<Type> solver(A);
 				result.solution = solver.Solve(b);
 				result.function_evaluations = A.rows() * A.rows() * A.rows(); // O(n³) decomp + O(n²) solve
@@ -1133,6 +1236,8 @@ namespace MML
 		return LinearSolverDetail::ExecuteLinearSolverDetailed<ResultType>(
 			"CholeskySolver", config,
 			[&](ResultType& result) {
+				if (config.check_finite)
+					LinearSolverDetail::RequireFiniteVector(b);
 				CholeskySolver<Type> solver(A);
 				result.solution = solver.Solve(b);
 				result.function_evaluations = A.rows() * A.rows() * A.rows() / 3; // O(n³/3)
@@ -1154,6 +1259,8 @@ namespace MML
 		return LinearSolverDetail::ExecuteLinearSolverDetailed<ResultType>(
 			"BandDiagonalSolver", config,
 			[&](ResultType& result) {
+				if (config.check_finite)
+					LinearSolverDetail::RequireFiniteVector(b);
 				BandDiagonalSolver solver(A);
 				result.solution = solver.Solve(b);
 				int n = A.rows();

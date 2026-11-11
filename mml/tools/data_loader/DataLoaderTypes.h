@@ -16,6 +16,7 @@
 #include <mml/MMLExceptions.h>
 #include <mml/base/Vector/Vector.h>
 #include <mml/tools/IOResult.h>
+#include <mml/tools/TextIOFormat.h>
 
 #include <algorithm>
 #include <cmath>
@@ -82,7 +83,7 @@ namespace MML {
 		inline bool IsMissingValue(const std::string& s) {
 			if (s.empty()) return true;
 			std::string lower = s;
-			std::transform(lower.begin(), lower.end(), lower.begin(), ::tolower);
+			std::transform(lower.begin(), lower.end(), lower.begin(), TextIO::ToLowerAscii);
 			return lower == "na" || lower == "n/a" || lower == "nan" ||
 			       lower == "null" || lower == "none" || lower == "." ||
 			       lower == "?" || lower == "-" || lower == "";
@@ -173,7 +174,7 @@ namespace MML {
 					case ColumnType::INT:
 						return static_cast<Real>(intData[index]);
 					case ColumnType::BOOL:
-						return boolData[index] ? 1.0 : 0.0;
+						return boolData[index] ? MML::Real(1.0) : MML::Real(0.0);
 					default:
 						return std::numeric_limits<Real>::quiet_NaN();
 				}
@@ -255,7 +256,7 @@ namespace MML {
 
 				// Convert int to real; missing values become NaN instead of silent zeros
 				Vector<Real> result(col.intData.size());
-				for (size_t i = 0; i < col.intData.size(); ++i)
+				for (int i = 0; i < col.intData.size(); ++i)
 					result[i] = col.IsMissing(i) ? std::numeric_limits<Real>::quiet_NaN()
 					                             : static_cast<Real>(col.intData[i]);
 				return result;
@@ -326,14 +327,14 @@ namespace MML {
 						Vector<Real> data = (col.type == ColumnType::REAL) ? col.realData :
 							[&col]() {
 								Vector<Real> r(col.intData.size());
-								for (size_t i = 0; i < col.intData.size(); ++i)
+								for (int i = 0; i < col.intData.size(); ++i)
 									r[i] = static_cast<Real>(col.intData[i]);
 								return r;
 							}();
 
 						// Filter out NaN/missing
 						std::vector<Real> valid;
-						for (size_t i = 0; i < data.size(); ++i) {
+						for (int i = 0; i < data.size(); ++i) {
 							if (!col.IsMissing(i) && !std::isnan(data[i]))
 								valid.push_back(data[i]);
 						}
@@ -341,7 +342,7 @@ namespace MML {
 						if (!valid.empty()) {
 							Real minVal = *std::min_element(valid.begin(), valid.end());
 							Real maxVal = *std::max_element(valid.begin(), valid.end());
-							Real sum = std::accumulate(valid.begin(), valid.end(), 0.0);
+							Real sum = std::accumulate(valid.begin(), valid.end(), MML::Real(0.0));
 							Real mean = sum / valid.size();
 							Real sqSum = 0.0;
 							for (Real v : valid) sqSum += (v - mean) * (v - mean);

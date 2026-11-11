@@ -39,6 +39,97 @@ All curves and surfaces support:
 - Differential geometry tools (curvatures, fundamental forms)
 - Integration with visualization and ODE solvers
 
+## Geometry contracts
+
+Primitive radii, semi-axes and heights must be finite and nonnegative.
+Zero sizes remain valid when they describe a degenerate object; the paraboloid
+height scale must be strictly positive. Spiral scales and helix pitch may be
+signed, but must be finite; a logarithmic spiral additionally requires a
+finite negative lambda and a finite nonzero scale. Centers, frame vectors and
+evaluated parameters must be finite. Invalid scalar domains, null callbacks and
+invalid parameter intervals raise `DomainError` (`ArgumentError` is retained for
+logarithmic-spiral constructor errors). Nonfinite geometric arithmetic and
+undefined unit frames raise `GeometryError`.
+
+The three-argument plane constructor projects its direction onto the plane and
+creates a right-handed **unit** frame. The explicit-axis constructor preserves
+both supplied axis lengths and permits degenerate charts; a zero normal is invalid.
+Plane limits and callback-curve intervals may be unbounded, but must be ordered
+and contain no NaN. These limits describe a parameter domain, not general
+per-evaluation clipping; a paraboloid separately rejects negative u because its
+square-root chart is not real there.
+
+Planar Cartesian `getNormal` returns the component of acceleration perpendicular
+to the tangent, not the raw acceleration. `getSecondDerivative` provides raw
+acceleration. Its unit normal follows the curvature direction. In 3D,
+`getNormal` is already the unit Frenet principal normal. Zero-speed curvature and
+undefined unit Frenet normals, binormals or torsion raise `GeometryError`.
+A regular straight line still has zero curvature, infinite curvature radius,
+and zero curvature vector.
+
+Curve curvature and Frenet calculations use normalized directions instead of
+dimensionful small-product cutoffs. Polar tangents and curvature differentiate
+Cartesian evaluation across angular seams; analytic polar derivative providers
+are retained through the coordinate chain rule.
+
+Surface normals use normalized parameter tangents. Fundamental-form curvature
+calculations normalize the Gram metric and diagonalize the symmetric shape
+operator in an orthonormal tangent basis. Their relative degeneracy test compares
+the squared sine between tangent directions with `Precision::RoundoffZeroThreshold`,
+rather than comparing a dimensional area or metric determinant with an absolute
+cutoff. Documented degenerate-chart compatibility is retained: `isRegular` is
+false and normals, second fundamental forms, curvatures and principal directions
+are zero. These zero sentinels are not a claim that the singular chart is flat.
+This compatibility describes the default numerical implementation; overrides
+retain their own domain contracts, including AD-surface errors for undefined normals.
+Nonfinite or unrepresentable intermediate metric arithmetic raises `GeometryError`.
+Finite-difference resolution, translation cancellation, ill-conditioned charts
+and floating-point range still limit accuracy.
+
+Numerical surface second partials use `Precision::FourthRootEps` as their base
+step, balancing O(h²) truncation against O(epsilon/h²) roundoff. First-partial
+defaults and analytic/AD overrides are unchanged. Existing parameter scaling is
+retained; explicit steps remain available for poorly scaled or narrow charts.
+The centered routines require valid samples on both sides, including ±2h for
+pure-partial error estimates; they do not clamp to chart limits. See
+[automatic step selection](Derivation.md#automatic-step-size) for the exact conventions.
+
+This example is covered by `Docs_Demo_SurfaceDerivativeSteps()` in
+`src/docs_demos/core/docs_demo_diff_geometry.cpp`, runnable through
+`MML_DocsApp --curve-surface-contracts`. The error estimate is a heuristic,
+not a certified bound:
+
+```cpp
+Surfaces::Sphere sphere(2);
+const Real u = Real(0.9), w = Real(0.2);
+Real estimate;
+const auto secondUU = Derivation::NDer2_uu(sphere, u, w, &estimate);
+const Real gaussian = sphere.GaussianCurvature(u, w);
+const Real mean = sphere.MeanCurvature(u, w);
+std::cout << "Surface second partial norm: " << secondUU.NormL2() << '\n';
+std::cout << "Second partial error estimate: " << estimate << '\n';
+std::cout << "Normalized curvature errors: " << gaussian * 4 - 1 << ", " << mean * 2 + 1 << '\n';
+```
+
+`isArcLengthParametrized` now checks speed against one, using
+`Precision::ArcLengthSpeedTolerance` as its dimensionless speed budget. It requires
+a positive sample count and finite ordered endpoints, then samples by integer
+index, stopping early if a sample fails. One sample checks the midpoint.
+Equal endpoints check that point. At adjacent huge endpoints, rounded sample
+parameters can coincide or reach an endpoint, but the work remains bounded by
+the requested sample count. This is a sampled diagnostic, not a proof of
+unit speed throughout the interval.
+
+Run `MML_DocsApp --curve-surface-contracts` for checked counterparts of these
+contracts, including the following small-scale witnesses:
+
+```cpp
+Curves::Circle2DCurve circle(Real(1e-5));
+Surfaces::Sphere sphere(Real(1e-4));
+std::cout << circle.getCurvature(0) << '\n'; // approximately 1e5
+std::cout << sphere.GaussianCurvature(Constants::PI / 2, 0) << '\n'; // approximately 1e8
+```
+
 ---
 
 ## Quick Reference
@@ -84,7 +175,8 @@ All 2D curves implement `IParametricCurve<2>` and provide:
 ```cpp
 Vec2Cart getTangent(Real t);          // First derivative
 Vec2Cart getTangentUnit(Real t);      // Unit tangent
-Vec2Cart getNormal(Real t);           // Second derivative
+Vec2Cart getSecondDerivative(Real t); // Acceleration
+Vec2Cart getNormal(Real t);           // Perpendicular component of acceleration
 Vec2Cart getNormalUnit(Real t);       // Unit normal
 ```
 
@@ -197,8 +289,8 @@ All 3D curves implement `IParametricCurve<3>` with comprehensive differential ge
 // Frenet-Serret frame
 Vec3Cart getTangent(Real t) const;        // First derivative r'(t)
 Vec3Cart getTangentUnit(Real t) const;    // Unit tangent T = r'/|r'|
-Vec3Cart getNormal(Real t) const;         // Second derivative r''(t)
-Vec3Cart getNormalUnit(Real t) const;     // Principal normal N
+Vec3Cart getSecondDerivative(Real t) const; // Acceleration r''(t)
+Vec3Cart getNormal(Real t) const;          // Unit principal normal N
 Vec3Cart getBinormal(Real t) const;       // Binormal B = T × N
 
 // Curvature and torsion

@@ -39,8 +39,8 @@ namespace MML
 	};
 
 	/// @brief Step function (rectangular) approximation of Dirac delta.
-	/// @details Returns N for |x| < 1/(2N), otherwise 0. Rectangle has area 1.
-	///          δ_N(x) = N for |x| < 1/(2N), 0 otherwise
+	/// @details Returns N for |x| <= 1/(2N), otherwise 0. Rectangle has area 1.
+	///          δ_N(x) = N for |x| <= 1/(2N), 0 otherwise
 	class DiracStep : public DiracFunction
 	{
 	public:
@@ -50,13 +50,14 @@ namespace MML
 
 		/// @brief Evaluates the step function approximation.
 		/// @param x Point to evaluate
-		/// @return N if |x| < 1/(2N), otherwise 0
+		/// @return N if |x| <= 1/(2N), otherwise 0
 		Real operator()(const Real x) const
 		{
-			if (x < -1.0 / (2 * _sharpness) || x > 1.0 / (2 * _sharpness))
+			const Real halfWidth = Real(0.5) / static_cast<Real>(_sharpness);
+			if (x < -halfWidth || x > halfWidth)
 				return 0.0;
 			else
-				return _sharpness;
+				return Real(_sharpness);
 		}
 	};
 
@@ -74,7 +75,7 @@ namespace MML
 		/// @brief Evaluates the Gaussian approximation.
 		/// @param x Point to evaluate
 		/// @return N/√(2π) · exp(-N²x²/2)
-		Real operator()(const Real x) const { return _sharpness / std::sqrt(2 * Constants::PI) * std::exp(-x * x * _sharpness * _sharpness / 2.0); }
+		Real operator()(const Real x) const { return _sharpness / std::sqrt(2 * Constants::PI) * std::exp(-x * x * _sharpness * _sharpness / MML::Real(2.0)); }
 	};
 
 	/// @brief Lorentzian (Cauchy) approximation of Dirac delta.
@@ -90,7 +91,10 @@ namespace MML
 		/// @brief Evaluates the Lorentzian approximation.
 		/// @param x Point to evaluate
 		/// @return N / (π(1 + N²x²))
-		Real operator()(const Real x) const { return _sharpness / Constants::PI / (1 + _sharpness * _sharpness * x * x); }
+		Real operator()(const Real x) const {
+			const Real sharpness = static_cast<Real>(_sharpness);
+			return sharpness / Constants::PI / (1 + sharpness * sharpness * x * x);
+		}
 	};
 
 	/// @brief Sinc function approximation of Dirac delta.
@@ -108,7 +112,7 @@ namespace MML
 		/// @param x Point to evaluate
 		/// @return sin(Nx) / (πx), or N/π when x = 0
 		Real operator()(const Real x) const { 
-			if (IsNearlyZero(x, Precision::StrictTolerance))  // Handle x ≈ 0: lim(x→0) sin(Nx)/(πx) = N/π
+			if (IsNearlyZero(static_cast<Real>(_sharpness) * x, Precision::StrictTolerance))
 				return static_cast<Real>(_sharpness) / Constants::PI;
 			return std::sin(_sharpness * x) / (Constants::PI * x);
 		}

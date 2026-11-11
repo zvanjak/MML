@@ -107,6 +107,7 @@ namespace MML::Derivation::Detail
 	                                              const ValueOffsets& value_offsets, const ErrorOffsets& error_offsets,
 	                                              ErrorEstimate&& error_estimate = nullptr)
 	{
+		ValidateStepSize(h, "First derivative stencil");
 		using Stencil = FirstDerivativeStencil<Order>;
 		using Value = std::remove_cvref_t<std::invoke_result_t<Sample&, int>>;
 		std::array<std::optional<Value>, 2 * Stencil::max_reach + 1> samples;

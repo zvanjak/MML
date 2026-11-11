@@ -77,7 +77,7 @@ namespace MML {
 
 		/// /** @brief Calculate sphere volume: V = 4/3 π r³ */
 
-		Real Volume() const { return (4.0 / 3.0) * Constants::PI * _radius * _radius * _radius; }
+		Real Volume() const { return (MML::Real(4.0) / MML::Real(3.0)) * Constants::PI * _radius * _radius * _radius; }
 
 		/// @brief Test if a point lies inside or on the sphere.
 		/// @param pnt Point to test

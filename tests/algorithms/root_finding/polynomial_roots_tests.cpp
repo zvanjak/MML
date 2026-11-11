@@ -368,7 +368,7 @@ TEST_CASE("PolynomialRoots::Edge cases", "[RootFinding][Polynomial][Edge]")
 TEST_CASE("PolynomialRoots::Original polynomial polishing reduces residuals", "[RootFinding][Polynomial][Polishing]")
 {
   PolynomReal polynomial({-6, 11, -6, 1});
-  Vector<Complex> estimates({Complex(0.9, 0.0), Complex(2.1, 0.0), Complex(2.9, 0.0)});
+  Vector<Complex> estimates({Complex(MML::Real(0.9), MML::Real(0.0)), Complex(MML::Real(2.1), MML::Real(0.0)), Complex(MML::Real(2.9), MML::Real(0.0))});
   Real initialMaxResidual = 0.0;
   for (const Complex& root : estimates) {
     Complex value = Complex(polynomial[polynomial.degree()], 0.0);
@@ -400,7 +400,7 @@ TEST_CASE("PolynomialRoots::Original polynomial polishing reduces residuals", "[
 TEST_CASE("PolynomialRoots::Polishing estimates repeated-root multiplicity", "[RootFinding][Polynomial][Polishing][Multiplicity]")
 {
   PolynomReal polynomial({4, -4, 1});
-  Vector<Complex> estimates({Complex(1.999, 0.0), Complex(2.001, 0.0)});
+  Vector<Complex> estimates({Complex(MML::Real(1.999), MML::Real(0.0)), Complex(MML::Real(2.001), MML::Real(0.0))});
   RootFinding::PolynomialRootConfig config;
   config.tolerance = TOL(1e-12, 1e-5);
   config.multiplicity_tolerance = static_cast<MML::Real>(0.01);
@@ -499,7 +499,7 @@ TEST_CASE("PolynomialRoots::Wilkinson polynomial (ill-conditioned)", "[RootFindi
   
   // Print roots for educational purposes
   INFO("Wilkinson polynomial roots (should be 1,2,3,4,5):");
-  for (size_t i = 0; i < roots.size(); ++i) {
+  for (int i = 0; i < roots.size(); ++i) {
     INFO("  root[" << i << "] = " << roots[i].real() << " + " << roots[i].imag() << "i");
   }
   
@@ -515,7 +515,7 @@ TEST_CASE("PolynomialRoots::Wilkinson polynomial (ill-conditioned)", "[RootFindi
   {
     bool found = false;
     for (const auto& root : roots)
-      if (isCloseComplex(root, expectedRoot, 0.1))
+      if (isCloseComplex(root, expectedRoot, MML::Real(0.1)))
         found = true;
     CHECK(found);
   }

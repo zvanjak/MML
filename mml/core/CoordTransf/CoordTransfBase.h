@@ -25,9 +25,31 @@
 #include <mml/base/Function.h>
 
 #include <mml/core/Derivation.h>
+#include <mml/MMLSingularityHandling.h>
 
 namespace MML
 {
+	namespace CoordTransfDetail
+	{
+		template<int N>
+		Real CheckedCoordinate(const VectorN<Real, N>& point, Real value)
+		{
+			Singularity::RequireFiniteCoordinates<N>(point, "Coordinate transformation");
+			if (!std::isfinite(value))
+				throw DomainError("Coordinate transformation: unrepresentable coordinate");
+			return value;
+		}
+
+		inline Real PolarInclination(const VectorN<Real, 3>& point)
+		{
+			Singularity::RequireFiniteCoordinates<3>(point, "Spherical inclination");
+			const Real scale = std::max({std::abs(point[0]), std::abs(point[1]), std::abs(point[2])});
+			if (scale == 0)
+				return 0;
+			return std::atan2(std::hypot(point[0] / scale, point[1] / scale), point[2] / scale);
+		}
+	}
+
 	///////////////////////////////////////////////////////////////////////////////
 	// COORDINATE TRANSFORMATION CONVENTIONS
 	//
@@ -82,9 +104,11 @@ namespace MML
 		/// @note Must be consistent with transf() — both use coordTransfFunc(i)
 		VectorTo operator()(const VectorFrom& x) const override
 		{
+			Singularity::RequireFiniteCoordinates<FromDim>(x, "Coordinate transformation");
 			VectorTo ret;
 			for (int i = 0; i < ToDim; i++)
 				ret[i] = this->coordTransfFunc(i)(x);
+			Singularity::RequireFiniteCoordinates<ToDim>(ret, "Coordinate transformation result");
 			return ret;
 		}
 
@@ -122,6 +146,7 @@ namespace MML
 		/// @return Jacobian matrix J_ij = ∂x'_i/∂x_j (ToDim x FromDim)
 		virtual JacobianType jacobian(const VectorN<Real, FromDim>& pos) const
 		{
+			Singularity::RequireFiniteCoordinates<FromDim>(pos, "Coordinate Jacobian");
 			JacobianType jac;
 
 			for (int i = 0; i < ToDim; ++i)
@@ -130,6 +155,7 @@ namespace MML
 					jac(i, j) = Derivation::NDer4Partial(this->coordTransfFunc(i), j, pos);
 				}
 
+			Singularity::RequireFiniteMatrix(jac, "Coordinate Jacobian");
 			return jac;
 		}
 
@@ -387,7 +413,7 @@ namespace MML
 					for (int k = 0; k < N; k++)
 						for (int l = 0; l < N; l++)
 						{
-							ret[i][j][k][l] = 0;
+							ret(i, j, k, l) = 0;
 							for (int m = 0; m < N; m++)
 								for (int n = 0; n < N; n++)
 									for (int o = 0; o < N; o++)
@@ -414,7 +440,7 @@ namespace MML
 											else
 												coef4 = inverseJac(p, l);
 
-											ret[i][j][k][l] += coef1 * coef2 * coef3 * coef4 * tensor[m][n][o][p];
+											ret(i, j, k, l) += coef1 * coef2 * coef3 * coef4 * tensor(m, n, o, p);
 										}
 						}
 
@@ -440,7 +466,7 @@ namespace MML
 						for (int l = 0; l < N; l++)
 							for (int m = 0; m < N; m++)
 							{
-								ret[i][j][k][l][m] = 0;
+								ret(i, j, k, l, m) = 0;
 								for (int n = 0; n < N; n++)
 									for (int o = 0; o < N; o++)
 										for (int p = 0; p < N; p++)
@@ -473,7 +499,7 @@ namespace MML
 											    else
 												    coef5 = inverseJac(r, m);
 													
-                          ret[i][j][k][l][m] += coef1 * coef2 * coef3 * coef4 * coef5 * tensor[n][o][p][q][r];
+													ret(i, j, k, l, m) += coef1 * coef2 * coef3 * coef4 * coef5 * tensor(n, o, p, q, r);
 												}
 							}
 

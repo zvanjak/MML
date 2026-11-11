@@ -33,21 +33,21 @@ namespace MML::Tests::Base::ToleranceBaseTests
 		REQUIRE(small.Normalized()[0] == Catch::Approx(1.0));
 		REQUIRE(tiny.NormalizedOrZero().IsZero());
 
-		VectorN<Real, 2> v{ thr * 0.5, 0.0 };
+		VectorN<Real, 2> v{ thr * Real(0.5), Real(0) };
 		REQUIRE_THROWS_AS(v.Normalized(), VectorDimensionError);
 	}
 
 	TEST_CASE("ToleranceBase_named_defaults_in_signatures", "[tolerance][base]")
 	{
 		// MatrixBandDiag::IsSymmetric and SparseMatrixCSR::IsSymmetric default to the same family constant as Matrix
-		Matrix<Real> data(2, 3, { 0.0, 1.0, 2.0, 2.0 + 0.5 * Precision::IsMatrixSymmetricTolerance, 3.0, 0.0 });
+		Matrix<Real> data(2, 3, { MML::Real(0.0), MML::Real(1.0), MML::Real(2.0), MML::Real(2.0) + MML::Real(0.5) * Precision::IsMatrixSymmetricTolerance, MML::Real(3.0), MML::Real(0.0) });
 		BandDiagonalMatrix band(2, 1, 1, data);
 		REQUIRE(band.IsSymmetric());
-		REQUIRE_FALSE(band.IsSymmetric(Precision::IsMatrixSymmetricTolerance * 0.1));
+		REQUIRE_FALSE(band.IsSymmetric(Precision::IsMatrixSymmetricTolerance * MML::Real(0.1)));
 
 		SparseMatrix::SparseMatrixCOO<Real> coo(2, 2);
 		coo.addEntry(0, 1, 2.0);
-		coo.addEntry(1, 0, 2.0 + 0.5 * Precision::IsMatrixSymmetricTolerance);
+		coo.addEntry(1, 0, MML::Real(2.0) + MML::Real(0.5) * Precision::IsMatrixSymmetricTolerance);
 		SparseMatrix::SparseMatrixCSR<Real> csr(coo);
 		REQUIRE(csr.IsSymmetric());
 
@@ -69,7 +69,7 @@ namespace MML::Tests::Base::ToleranceBaseTests
 	TEST_CASE("ToleranceBase_gimbal_lock_and_slerp_thresholds_are_named", "[tolerance][base]")
 	{
 		// Euler extraction near the gimbal-lock pole must not produce NaN
-		Quaternion q = Quaternion::FromEulerZYX(0.3, Constants::PI / 2, 0.0);
+		Quaternion q = Quaternion::FromEulerZYX(MML::Real(0.3), Constants::PI / 2, MML::Real(0.0));
 		Vec3Cart e = q.ToEulerZYX();
 		REQUIRE(std::isfinite(e[0]));
 		REQUIRE(std::isfinite(e[1]));
@@ -78,7 +78,7 @@ namespace MML::Tests::Base::ToleranceBaseTests
 
 		// slerp of two nearly identical rotations falls back to lerp and stays unit
 		Quaternion a = Quaternion::FromAxisAngle(Vec3Cart(0, 0, 1), 0.5);
-		Quaternion b = Quaternion::FromAxisAngle(Vec3Cart(0, 0, 1), 0.5 + 1e-9);
+		Quaternion b = Quaternion::FromAxisAngle(Vec3Cart(0, 0, 1), MML::Real(0.5) + MML::Real(1e-9));
 		REQUIRE(Quaternion::Slerp(a, b, 0.5).IsUnit());
 	}
 

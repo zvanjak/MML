@@ -1,9 +1,7 @@
 #include <catch2/catch_all.hpp>
 #include "../TestPrecision.h"
 
-#ifdef MML_USE_SINGLE_HEADER
-#include <MML.h>
-#else
+#ifndef MML_SINGLE_HEADER_INCLUDE
 #include <mml/algorithms/MatrixAlg.h>
 #endif
 
@@ -88,6 +86,10 @@ namespace MML::Tests::Core::ComplexSVDTests
 			Complex{-1.0, -1.0}, Complex{-2.0, 1.0}
 		}};
 		RequireSVD(rankOne, 1, TOL(1e-8, 1e-4));
+		const auto bounded = ComplexSVDecompositionSolver::Decompose(rankOne,
+			Precision::EigenSolverConvergenceTolerance, 4);
+		REQUIRE(bounded.singularValues[1] == 0);
+		REQUIRE(bounded.sweeps < 4);
 		const auto spaces = MatrixAlg::FundamentalSubspacesOf(rankOne);
 		REQUIRE(spaces.nullSpace.rows() == 2);
 		REQUIRE(spaces.nullSpace.cols() == 1);
@@ -128,5 +130,37 @@ namespace MML::Tests::Core::ComplexSVDTests
 		const auto scaled = MatrixAlg::SVDDecompose(matrix * Complex{scale, 0.0});
 		for (int index = 0; index < baseline.singularValues.size(); ++index)
 			REQUIRE(std::abs(scaled.singularValues[index] / scale - baseline.singularValues[index]) < TOL(1e-8, 1e-4));
+	}
+
+	TEST_CASE("Complex SVD retains independent tiny columns and complex components", "[ComplexSVD][Scaling][RankDeficient][MML2]")
+	{
+		const Real tiny = std::numeric_limits<Real>::min();
+		const Matrix<Complex> diagonal{2, 2, {Complex{1, 0}, Complex{}, Complex{}, Complex{tiny, 0}}};
+		const auto separated = ComplexSVDecompositionSolver::Decompose(diagonal);
+		REQUIRE(separated.singularValues[1] == tiny);
+		const Matrix<Complex> coupled{2, 2, {
+			Complex{1, 0}, Complex{1, tiny}, Complex{1, 0}, Complex{1, -tiny}
+		}};
+		const auto resolved = ComplexSVDecompositionSolver::Decompose(coupled,
+			Precision::EigenSolverConvergenceTolerance, 4);
+		REQUIRE(resolved.singularValues[1] > 0);
+		REQUIRE(IsWithinRel(resolved.singularValues[1], tiny,
+			Precision::RoundoffZeroThreshold));
+		RequireUnitary(resolved.U, Precision::RoundoffZeroThreshold);
+		RequireUnitary(resolved.V, Precision::RoundoffZeroThreshold);
+	}
+
+	TEST_CASE("Complex SVD retains a resolved near-dependent singular value below its rank cutoff", "[ComplexSVD][Scaling][MML2]")
+	{
+		const Real delta = Precision::RoundoffZeroThreshold;
+		const Matrix<Complex> matrix{2, 2, {
+			Complex{1, 0}, Complex{1, 0}, Complex{1, 0}, Complex{1 + delta, 0}
+		}};
+		const auto result = ComplexSVDecompositionSolver::Decompose(matrix);
+		const Real expected = delta / (1 + delta / 2 + std::hypot(Real(1), delta / 2));
+		REQUIRE(result.singularValues[1] > 0);
+		REQUIRE(IsWithinAbs(result.singularValues[1], expected, Precision::RoundoffZeroThreshold / 10));
+		RequireUnitary(result.U, Precision::RoundoffZeroThreshold);
+		RequireUnitary(result.V, Precision::RoundoffZeroThreshold);
 	}
 }

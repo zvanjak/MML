@@ -31,8 +31,8 @@ namespace MML
 				return IOResult{false, IOError::INVALID_PARAMETERS, "numPointsX1 and numPointsX2 must be >= 2"}.WithFile(fileName);
 			if (x1_start >= x1_end || x2_start >= x2_end)
 				return IOResult{false, IOError::INVALID_PARAMETERS, "x1_start < x1_end and x2_start < x2_end required"}.WithFile(fileName);
-			if (fileName.empty())
-				return IOResult{false, IOError::INVALID_PARAMETERS, "fileName cannot be empty"}.WithFile(fileName);
+			const auto pathValidation = detail::ValidateFileName(fileName);
+			if (!pathValidation.success) return pathValidation;
 
 			std::ofstream file(fileName);
 			Serializer::detail::ApplyTextFormat(file);
@@ -44,13 +44,11 @@ namespace MML
 				if (auto headerResult = WriteVectorFieldHeader(file, inType, title); !headerResult.success)
 					return (headerResult).WithFile(fileName);
 
-				Real stepX = (x1_end - x1_start) / (numPointsX1 - 1);
-				Real stepY = (x2_end - x2_start) / (numPointsX2 - 1);
 				for (int i = 0; i < numPointsX1; i++)
 					for (int j = 0; j < numPointsX2; j++)
 					{
-						Real x = x1_start + i * stepX;
-						Real y = x2_start + j * stepY;
+						Real x = detail::SampleCoordinate(x1_start, x1_end, i, numPointsX1);
+						Real y = detail::SampleCoordinate(x2_start, x2_end, j, numPointsX2);
 						auto val = f(VectorN<Real, 2>{x, y});
 						file << x << " " << y << " " << val[0] << " " << val[1] << std::endl;
 					}
@@ -70,10 +68,10 @@ namespace MML
 				return IOResult{false, IOError::INVALID_PARAMETERS, "numPointsX1 and numPointsX2 must be >= 2"}.WithFile(fileName);
 			if (x1_start >= x1_end || x2_start >= x2_end)
 				return IOResult{false, IOError::INVALID_PARAMETERS, "x1_start < x1_end and x2_start < x2_end required"}.WithFile(fileName);
-			if (upper_threshold <= 0)
+			if (!(upper_threshold > 0))
 				return IOResult{false, IOError::INVALID_PARAMETERS, "upper_threshold must be positive"}.WithFile(fileName);
-			if (fileName.empty())
-				return IOResult{false, IOError::INVALID_PARAMETERS, "fileName cannot be empty"}.WithFile(fileName);
+			const auto pathValidation = detail::ValidateFileName(fileName);
+			if (!pathValidation.success) return pathValidation;
 
 			std::ofstream file(fileName);
 			Serializer::detail::ApplyTextFormat(file);
@@ -85,13 +83,11 @@ namespace MML
 				if (auto headerResult = WriteVectorFieldHeader(file, inType, title); !headerResult.success)
 					return (headerResult).WithFile(fileName);
 
-				Real stepX = (x1_end - x1_start) / (numPointsX1 - 1);
-				Real stepY = (x2_end - x2_start) / (numPointsX2 - 1);
 				for (int i = 0; i < numPointsX1; i++)
 					for (int j = 0; j < numPointsX2; j++)
 					{
-						Real x = x1_start + i * stepX;
-						Real y = x2_start + j * stepY;
+						Real x = detail::SampleCoordinate(x1_start, x1_end, i, numPointsX1);
+						Real y = detail::SampleCoordinate(x2_start, x2_end, j, numPointsX2);
 						auto val = f(VectorN<Real, 2>{x, y});
 						if (val.NormL2() < upper_threshold)
 							file << x << " " << y << " " << val[0] << " " << val[1] << std::endl;
@@ -129,8 +125,8 @@ namespace MML
 				return IOResult{false, IOError::INVALID_PARAMETERS, "all numPoints must be >= 2"}.WithFile(fileName);
 			if (x1_start >= x1_end || x2_start >= x2_end || x3_start >= x3_end)
 				return IOResult{false, IOError::INVALID_PARAMETERS, "all start bounds must be less than end bounds"}.WithFile(fileName);
-			if (fileName.empty())
-				return IOResult{false, IOError::INVALID_PARAMETERS, "fileName cannot be empty"}.WithFile(fileName);
+			const auto pathValidation = detail::ValidateFileName(fileName);
+			if (!pathValidation.success) return pathValidation;
 
 			std::ofstream file(fileName);
 			Serializer::detail::ApplyTextFormat(file);
@@ -142,16 +138,13 @@ namespace MML
 				if (auto headerResult = WriteVectorFieldHeader(file, inType, title); !headerResult.success)
 					return (headerResult).WithFile(fileName);
 
-				Real stepX = (x1_end - x1_start) / (numPointsX1 - 1);
-				Real stepY = (x2_end - x2_start) / (numPointsX2 - 1);
-				Real stepZ = (x3_end - x3_start) / (numPointsX3 - 1);
 				for (int i = 0; i < numPointsX1; i++)
 					for (int j = 0; j < numPointsX2; j++)
 						for (int k = 0; k < numPointsX3; k++)
 						{
-							Real x = x1_start + i * stepX;
-							Real y = x2_start + j * stepY;
-							Real z = x3_start + k * stepZ;
+							Real x = detail::SampleCoordinate(x1_start, x1_end, i, numPointsX1);
+							Real y = detail::SampleCoordinate(x2_start, x2_end, j, numPointsX2);
+							Real z = detail::SampleCoordinate(x3_start, x3_end, k, numPointsX3);
 							auto val = f(VectorN<Real, 3>{x, y, z});
 							file << x << " " << y << " " << z << " " << val[0] << " " << val[1] << " " << val[2] << std::endl;
 						}
@@ -172,10 +165,10 @@ namespace MML
 				return IOResult{false, IOError::INVALID_PARAMETERS, "all numPoints must be >= 2"}.WithFile(fileName);
 			if (x1_start >= x1_end || x2_start >= x2_end || x3_start >= x3_end)
 				return IOResult{false, IOError::INVALID_PARAMETERS, "all start bounds must be less than end bounds"}.WithFile(fileName);
-			if (upper_threshold <= 0)
+			if (!(upper_threshold > 0))
 				return IOResult{false, IOError::INVALID_PARAMETERS, "upper_threshold must be positive"}.WithFile(fileName);
-			if (fileName.empty())
-				return IOResult{false, IOError::INVALID_PARAMETERS, "fileName cannot be empty"}.WithFile(fileName);
+			const auto pathValidation = detail::ValidateFileName(fileName);
+			if (!pathValidation.success) return pathValidation;
 
 			std::ofstream file(fileName);
 			Serializer::detail::ApplyTextFormat(file);
@@ -187,16 +180,13 @@ namespace MML
 				if (auto headerResult = WriteVectorFieldHeader(file, inType, title); !headerResult.success)
 					return (headerResult).WithFile(fileName);
 
-				Real stepX = (x1_end - x1_start) / (numPointsX1 - 1);
-				Real stepY = (x2_end - x2_start) / (numPointsX2 - 1);
-				Real stepZ = (x3_end - x3_start) / (numPointsX3 - 1);
 				for (int i = 0; i < numPointsX1; i++)
 					for (int j = 0; j < numPointsX2; j++)
 						for (int k = 0; k < numPointsX3; k++)
 						{
-							Real x = x1_start + i * stepX;
-							Real y = x2_start + j * stepY;
-							Real z = x3_start + k * stepZ;
+							Real x = detail::SampleCoordinate(x1_start, x1_end, i, numPointsX1);
+							Real y = detail::SampleCoordinate(x2_start, x2_end, j, numPointsX2);
+							Real z = detail::SampleCoordinate(x3_start, x3_end, k, numPointsX3);
 							auto val = f(VectorN<Real, 3>{x, y, z});
 
 							if (val.NormL2() < upper_threshold)

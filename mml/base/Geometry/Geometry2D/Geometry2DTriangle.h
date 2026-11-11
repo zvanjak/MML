@@ -21,7 +21,7 @@
 namespace MML
 {
 	/// @brief 2D triangle defined by three vertices
-	/// @details Professional 2D triangle class with cached side lengths for efficiency.
+	/// @details Side lengths are computed from the current vertices without cached state.
 	///          Provides comprehensive geometric computations including area (signed and unsigned),
 	///          perimeter, centroid, circumcenter, incenter, circumradius, inradius, angles,
 	///          point containment tests, and triangle classification (right, isosceles, equilateral).
@@ -29,19 +29,6 @@ namespace MML
 	{
 	private:
 		Point2Cartesian _pnt1, _pnt2, _pnt3;
-		mutable Real _a, _b, _c; // Cached side lengths
-		mutable bool _sidesComputed;
-
-		/// @brief Computes and caches side lengths on demand
-		void ComputeSides() const
-		{
-			if (!_sidesComputed) {
-				_a = _pnt1.Dist(_pnt2);
-				_b = _pnt2.Dist(_pnt3);
-				_c = _pnt3.Dist(_pnt1);
-				_sidesComputed = true;
-			}
-		}
 
 	public:
 		/// @brief Constructs a triangle from three vertices
@@ -49,38 +36,36 @@ namespace MML
 		/// @param pnt2 Second vertex
 		/// @param pnt3 Third vertex
 		Triangle2D(const Point2Cartesian& pnt1, const Point2Cartesian& pnt2, const Point2Cartesian& pnt3) 
-			: _pnt1(pnt1), _pnt2(pnt2), _pnt3(pnt3), _a(0), _b(0), _c(0), _sidesComputed(false)
+			: _pnt1(pnt1), _pnt2(pnt2), _pnt3(pnt3)
 		{ }
 
 		/// @brief Gets first vertex (const version)
 		Point2Cartesian  Pnt1() const { return _pnt1; }
-		/// @brief Gets first vertex (mutable reference, invalidates cache)
-		Point2Cartesian& Pnt1() { _sidesComputed = false; return _pnt1; }
+		/// @brief Gets first vertex (mutable reference)
+		Point2Cartesian& Pnt1() { return _pnt1; }
 		/// @brief Gets second vertex (const version)
 		Point2Cartesian  Pnt2() const { return _pnt2; }
-		/// @brief Gets second vertex (mutable reference, invalidates cache)
-		Point2Cartesian& Pnt2() { _sidesComputed = false; return _pnt2; }
+		/// @brief Gets second vertex (mutable reference)
+		Point2Cartesian& Pnt2() { return _pnt2; }
 		/// @brief Gets third vertex (const version)
 		Point2Cartesian  Pnt3() const { return _pnt3; }
-		/// @brief Gets third vertex (mutable reference, invalidates cache)
-		Point2Cartesian& Pnt3() { _sidesComputed = false; return _pnt3; }
+		/// @brief Gets third vertex (mutable reference)
+		Point2Cartesian& Pnt3() { return _pnt3; }
 
 		/// @brief Gets length of side a (P1 to P2)
-		Real A() const { ComputeSides(); return _a; }
+		Real A() const { return _pnt1.Dist(_pnt2); }
 		/// @brief Gets length of side b (P2 to P3)
-		Real B() const { ComputeSides(); return _b; }
+		Real B() const { return _pnt2.Dist(_pnt3); }
 		/// @brief Gets length of side c (P3 to P1)
-		Real C() const { ComputeSides(); return _c; }
+		Real C() const { return _pnt3.Dist(_pnt1); }
 
 		/// @brief Calculates the perimeter
 		Real Perimeter() const { return A() + B() + C(); }
 
-		/// @brief Calculates the area using Heron's formula
+		/// @brief Calculates the unsigned area from the coordinate determinant
 		Real Area() const
 		{
-			Real a = A(), b = B(), c = C();
-			Real s = (a + b + c) / 2.0;
-			return std::sqrt(s * (s - a) * (s - b) * (s - c));
+			return std::abs(SignedArea());
 		}
 
 		/// @brief Calculates the signed area (positive = CCW, negative = CW)
@@ -88,22 +73,22 @@ namespace MML
 		{
 			Real area = (_pnt2.X() - _pnt1.X()) * (_pnt3.Y() - _pnt1.Y()) -
 			           (_pnt3.X() - _pnt1.X()) * (_pnt2.Y() - _pnt1.Y());
-			return area / 2.0;
+			return area / MML::Real(2.0);
 		}
 
 		/// @brief Calculates the centroid (geometric center)
 		/// @return Point at (P1 + P2 + P3) / 3
 		Point2Cartesian Centroid() const
 		{
-			return Point2Cartesian((_pnt1.X() + _pnt2.X() + _pnt3.X()) / 3.0,
-			                      (_pnt1.Y() + _pnt2.Y() + _pnt3.Y()) / 3.0);
+			return Point2Cartesian((_pnt1.X() + _pnt2.X() + _pnt3.X()) / MML::Real(3.0),
+			                      (_pnt1.Y() + _pnt2.Y() + _pnt3.Y()) / MML::Real(3.0));
 		}
 
 		/// @brief Calculates the circumcenter (center of circumscribed circle)
 		/// @throws GeometryError if triangle is degenerate
 		Point2Cartesian Circumcenter() const
 		{
-			Real D = 2.0 * (_pnt1.X() * (_pnt2.Y() - _pnt3.Y()) +
+			Real D = MML::Real(2.0) * (_pnt1.X() * (_pnt2.Y() - _pnt3.Y()) +
 			               _pnt2.X() * (_pnt3.Y() - _pnt1.Y()) +
 			               _pnt3.X() * (_pnt1.Y() - _pnt2.Y()));
 			
@@ -135,7 +120,7 @@ namespace MML
 			if (area < Precision::GeometryEpsilon)
 				throw GeometryError("Triangle2D::CircumRadius - degenerate triangle");
 			
-			return (a * b * c) / (4.0 * area);
+			return (a * b * c) / (MML::Real(4.0) * area);
 		}
 
 		/// @brief Calculates the incenter (center of inscribed circle)
@@ -159,7 +144,7 @@ namespace MML
 		Real InRadius() const
 		{
 			Real area = Area();
-			Real s = Perimeter() / 2.0;
+			Real s = Perimeter() / MML::Real(2.0);
 			
 			if (s < Precision::GeometryEpsilon)
 				throw GeometryError("Triangle2D::InRadius - degenerate triangle");
@@ -172,7 +157,7 @@ namespace MML
 		{
 			Real a = A(), b = B(), c = C();
 			// Law of cosines: a² = b² + c² - 2bc·cos(A)
-			Real cosA = (b * b + c * c - a * a) / (2.0 * b * c);
+			Real cosA = (b * b + c * c - a * a) / (MML::Real(2.0) * b * c);
 			return std::acos(std::clamp(cosA, static_cast<MML::Real>(-1.0), static_cast<MML::Real>(1.0)));
 		}
 
@@ -180,7 +165,7 @@ namespace MML
 		Real AngleB() const
 		{
 			Real a = A(), b = B(), c = C();
-			Real cosB = (a * a + c * c - b * b) / (2.0 * a * c);
+			Real cosB = (a * a + c * c - b * b) / (MML::Real(2.0) * a * c);
 			return std::acos(std::clamp(cosB, static_cast<MML::Real>(-1.0), static_cast<MML::Real>(1.0)));
 		}
 
@@ -188,7 +173,7 @@ namespace MML
 		Real AngleC() const
 		{
 			Real a = A(), b = B(), c = C();
-			Real cosC = (a * a + b * b - c * c) / (2.0 * a * b);
+			Real cosC = (a * a + b * b - c * c) / (MML::Real(2.0) * a * b);
 			return std::acos(std::clamp(cosC, static_cast<MML::Real>(-1.0), static_cast<MML::Real>(1.0)));
 		}
 
@@ -211,7 +196,7 @@ namespace MML
 			Real b = ((_pnt3.Y() - _pnt1.Y()) * (p.X() - _pnt3.X()) +
 			         (_pnt1.X() - _pnt3.X()) * (p.Y() - _pnt3.Y())) / denom;
 			
-			Real c = 1.0 - a - b;
+			Real c = MML::Real(1.0) - a - b;
 			
 			// Point is inside if all barycentric coordinates are non-negative
 			return (a >= -epsilon) && (b >= -epsilon) && (c >= -epsilon);

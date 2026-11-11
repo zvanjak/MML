@@ -14,6 +14,31 @@ Comprehensive toolkit for **line integrals, curve lengths, and work integrals** 
 
 ## Quick Reference
 
+For vector work integrals, trapezoidal-based refinement uses the sampled
+`||F||_2 * ||r'||_2` scale when assessing cancellation and roundoff. Cancellation
+inside `F dot r'` therefore does not turn finite-difference noise into an
+unattainable relative target for an analytically zero closed-loop integral.
+The scale follows physical units; there is no unit-sized absolute floor or
+clamping of small work values. This does not certify the derivative approximation.
+
+**Orientation contract:** arc length, wire mass and scalar `ds` integrals
+normalize reversed parameter limits. Traversing the same parameter interval
+in reverse leaves these integrals unchanged. This is not an absolute value of
+the result: negative density and scalar-field contributions remain negative.
+Vector work and circulation remain oriented and change sign under reversal.
+The contract applies to plain and Detailed overloads and every integration
+method. Nonfinite endpoints are still invalid; zero-width intervals retain the
+underlying quadrature method's callback behavior.
+
+The checked `MML_DocsApp --geometric-integration-contracts` example traverses
+`r(t)=(t,0,0)` from one to zero. Length is one; constant density and scalar field
+minus two give mass and scalar integral minus two; the constant vector field
+`(1,0,0)` gives work minus one. The runnable counterpart is
+[docs_demo_integration_path.cpp](../../src/docs_demos/core/docs_demo_integration_path.cpp).
+Sorting limits does not repair domain-boundary limitations in the general
+numerical curve-derivative fallback; analytic derivative providers remain
+preferred when available.
+
 ### Integration Types
 
 | Type | Formula | Physical Meaning | Method |

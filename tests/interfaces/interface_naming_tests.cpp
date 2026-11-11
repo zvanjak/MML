@@ -32,7 +32,7 @@ namespace MML::Tests::Interfaces::InterfaceNamingTests
 	{
 	public:
 		DiagonalField2() : ITensorField2<3>(0, 2) {}
-		Real component(int i, int j, const VectorN<Real, 3>& pos) const override { return i == j ? pos[i] : 0.0; }
+		Real component(int i, int j, const VectorN<Real, 3>& pos) const override { return i == j ? pos[i] : MML::Real(0.0); }
 		Tensor2<3> operator()(const VectorN<Real, 3>& pos) const override
 		{
 			Tensor2<3> t(0, 2);
@@ -130,7 +130,7 @@ namespace MML::Tests::Interfaces::InterfaceNamingTests
 		REQUIRE(t3.NumCovar() == t3.numCovar());
 		REQUIRE(t3.Contract(0, 1).size() == t3.contract(0, 1).size());
 		Tensor4<2> t4(2, 2);
-		REQUIRE(t4.Contract(0, 1).numCovar() == t4.contract(0, 1).numCovar());
+		REQUIRE(t4.Contract(0, 2).numCovar() == t4.contract(0, 2).numCovar());
 
 		DiagonalField2 field;
 		VectorN<Real, 3> pos{ 1.0, 2.0, 3.0 };

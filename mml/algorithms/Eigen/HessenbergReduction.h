@@ -30,8 +30,15 @@ namespace MML {
 	/// This is the CANONICAL implementation used by all eigen solvers.
 	/// MatrixAlg::ReduceToHessenberg() delegates to this function.
 	inline HessenbergResult ReduceToHessenberg(const Matrix<Real>& A) {
+		if (A.rows() != A.cols())
+			throw MatrixDimensionError("ReduceToHessenberg: matrix must be square", A.rows(), A.cols(), -1, -1);
 		int n = A.rows();
+		for (int i = 0; i < n; ++i)
+			for (int j = 0; j < n; ++j)
+				if (!std::isfinite(A(i, j)))
+					throw MatrixNumericalError("ReduceToHessenberg: non-finite input matrix");
 		HessenbergResult result(n);
+		if (n == 0) return result;
 
 		if (n <= 2) {
 			result.H = A;
@@ -49,76 +56,83 @@ namespace MML {
 
 		// For each column k, zero out elements below the subdiagonal
 		for (int k = 0; k < n - 2; k++) {
-			// Compute the norm of the column below the diagonal
-			Real sigma = 0.0;
+			Real columnScale = 0;
 			for (int i = k + 1; i < n; i++)
-				sigma += result.H(i, k) * result.H(i, k);
-			sigma = std::sqrt(sigma);
+				columnScale = std::max(columnScale, std::abs(result.H(i, k)));
 
-			if (sigma < PrecisionValues<Real>::DivisionSafetyThreshold)
-				continue; // Column already zero below subdiagonal
-
-			// Choose sign to avoid cancellation: sign opposite to H(k+1, k)
-			if (result.H(k + 1, k) > 0.0)
-				sigma = -sigma;
-
-			// Build Householder vector v = [0, ..., 0, H(k+1,k) - sigma, H(k+2,k), ..., H(n-1,k)]
-			// But we only need elements k+1 to n-1
-			Real h_k1_k_minus_sigma = result.H(k + 1, k) - sigma;
-
-			// Compute ||v||^2
-			Real vNormSq = h_k1_k_minus_sigma * h_k1_k_minus_sigma;
-			for (int i = k + 2; i < n; i++)
-				vNormSq += result.H(i, k) * result.H(i, k);
-
-			if (vNormSq < PrecisionValues<Real>::DivisionSafetyThreshold)
+			if (columnScale == Real{0}) // tol-ok: exact structural zero; nonzero columns must be reduced at every scale.
 				continue;
 
-			// beta = 2 / ||v||^2
-			Real beta = 2.0 / vNormSq;
+			// Dimensionless Householder construction (Golub & Van Loan, section 5.1).
+			Real normSquared = 0;
+			for (int i = k + 1; i < n; i++) {
+				v[i] = result.H(i, k) / columnScale;
+				normSquared += v[i] * v[i];
+			}
+			Real sigma = std::sqrt(normSquared);
+			if (v[k + 1] > Real{0})
+				sigma = -sigma;
+			const Real subdiagonal = sigma * columnScale;
+			if (!std::isfinite(subdiagonal))
+				throw MatrixNumericalError("ReduceToHessenberg: transformed subdiagonal is not representable");
 
-			// Store v in temporary array
-			v[k + 1] = h_k1_k_minus_sigma;
+			v[k + 1] -= sigma;
+			Real vNormSq = v[k + 1] * v[k + 1];
 			for (int i = k + 2; i < n; i++)
-				v[i] = result.H(i, k);
+				vNormSq += v[i] * v[i];
+			const Real vNorm = std::sqrt(vNormSq);
+			for (int i = k + 1; i < n; i++)
+				v[i] /= vNorm;
 
-			// Apply Householder from left: H = (I - beta*v*v^T) * H
-			// H(i,j) -= beta * v(i) * sum_m(v(m) * H(m,j))
-			for (int j = k; j < n; j++) {
-				Real dot = 0.0;
+			// Scale each projection and fuse the update so an intermediate need not fit in Real.
+			for (int j = k + 1; j < n; j++) {
+				Real scale = 0;
 				for (int i = k + 1; i < n; i++)
-					dot += v[i] * result.H(i, j);
+					scale = std::max(scale, std::abs(result.H(i, j)));
+				if (scale == Real{0}) // tol-ok: exact zero segment has no Householder projection.
+					continue;
+				Real dot = 0;
+				for (int i = k + 1; i < n; i++)
+					dot += v[i] * (result.H(i, j) / scale);
 
-				for (int i = k + 1; i < n; i++)
-					result.H(i, j) -= beta * v[i] * dot;
+				for (int i = k + 1; i < n; i++) {
+					result.H(i, j) = std::fma(-Real{2} * v[i] * dot, scale, result.H(i, j));
+					if (!std::isfinite(result.H(i, j)))
+						throw MatrixNumericalError("ReduceToHessenberg: left transformation is not representable");
+				}
 			}
 
-			// Apply Householder from right: H = H * (I - beta*v*v^T)
-			// H(i,j) -= beta * H(i,m) * v(m) * v(j)
 			for (int i = 0; i < n; i++) {
-				Real dot = 0.0;
+				Real scale = 0;
 				for (int j = k + 1; j < n; j++)
-					dot += result.H(i, j) * v[j];
+					scale = std::max(scale, std::abs(result.H(i, j)));
+				if (scale == Real{0}) // tol-ok: exact zero segment has no Householder projection.
+					continue;
+				Real dot = 0;
+				for (int j = k + 1; j < n; j++)
+					dot += (result.H(i, j) / scale) * v[j];
 
-				for (int j = k + 1; j < n; j++)
-					result.H(i, j) -= beta * dot * v[j];
+				for (int j = k + 1; j < n; j++) {
+					result.H(i, j) = std::fma(-Real{2} * dot * v[j], scale, result.H(i, j));
+					if (!std::isfinite(result.H(i, j)))
+						throw MatrixNumericalError("ReduceToHessenberg: right transformation is not representable");
+				}
 			}
 
-			// Accumulate Q: Q = Q * (I - beta*v*v^T)
-			// Q(i,j) -= beta * Q(i,m) * v(m) * v(j)
+			// Accumulate the same unit-vector reflection in Q.
 			for (int i = 0; i < n; i++) {
 				Real dot = 0.0;
 				for (int j = k + 1; j < n; j++)
 					dot += result.Q(i, j) * v[j];
 
 				for (int j = k + 1; j < n; j++)
-					result.Q(i, j) -= beta * dot * v[j];
+					result.Q(i, j) -= Real{2} * dot * v[j];
 			}
 
 			// After applying transformation, H(k+1, k) should be sigma
 			// and H(k+2:n-1, k) should be 0
 			// Clean up the zeros explicitly
-			result.H(k + 1, k) = sigma;
+			result.H(k + 1, k) = subdiagonal;
 			for (int i = k + 2; i < n; i++)
 				result.H(i, k) = 0.0;
 		}

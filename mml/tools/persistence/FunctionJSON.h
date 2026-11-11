@@ -105,6 +105,10 @@ namespace Persistence
 			if (data.nodes.size() != data.values.size())
 				return SerializeFailure(IOError::INVALID_PARAMETERS, "Sampled function nodes and values must have equal length");
 
+			for (int i = 0; i < data.nodes.size(); ++i)
+				if (!JsonNumberIsWritable(data.nodes[i]) || !JsonNumberIsWritable(data.values[i]))
+					return SerializeFailure(IOError::UNSUPPORTED_SCALAR, "Sampled function data exceeds the finite JSON number range");
+
 			const Real firstDelta = data.nodes[1] - data.nodes[0];
 			if (firstDelta == 0.0)
 				return SerializeFailure(IOError::INVALID_PARAMETERS, "Sampled function nodes must be distinct");
@@ -119,6 +123,47 @@ namespace Persistence
 			}
 
 			return SerializeSuccess();
+		}
+
+		inline IOResult SampleRealFunction(const IRealFunction& function, std::string label, SampleGrid grid,
+										  SampledRealFunctionData& data) {
+			if (grid.num_points < 2)
+				return SerializeFailure(IOError::INVALID_PARAMETERS, "SampleGrid num_points must be at least 2");
+			if (!std::isfinite(grid.x_min) || !std::isfinite(grid.x_max) || grid.x_min >= grid.x_max)
+				return SerializeFailure(IOError::INVALID_PARAMETERS, "SampleGrid requires finite x_min less than x_max");
+
+			const Real step = (grid.x_max - grid.x_min) / (grid.num_points - 1);
+			if (!std::isfinite(step))
+				return SerializeFailure(IOError::INVALID_PARAMETERS, "SampleGrid step exceeds the finite scalar range");
+			data.nodes.resize(grid.num_points);
+			data.values.resize(grid.num_points);
+			data.label = std::move(label);
+			data.source = "sampled from IRealFunction";
+			for (int i = 0; i < grid.num_points; ++i) {
+				const Real x = grid.x_min + i * step;
+				if (!JsonNumberIsWritable(x))
+					return SerializeFailure(IOError::UNSUPPORTED_SCALAR, "SampleGrid nodes exceed the finite JSON number range");
+				if (i > 0 && x <= data.nodes[i - 1])
+					return SerializeFailure(IOError::INVALID_PARAMETERS, "SampleGrid nodes must be distinct and increasing");
+				data.nodes[i] = x;
+			}
+			for (int i = 0; i < grid.num_points; ++i)
+				data.values[i] = function(data.nodes[i]);
+			return SerializeSuccess();
+		}
+
+		inline SampledRealFunctionData InterpolatedFunctionData(const RealFunctionInterpolated& function, std::string label) {
+			SampledRealFunctionData data;
+			const int count = function.getNumPoints();
+			data.nodes.resize(count);
+			data.values.resize(count);
+			data.label = std::move(label);
+			data.source = function.InterpolationMethodName();
+			for (int i = 0; i < count; ++i) {
+				data.nodes[i] = function.X(i);
+				data.values[i] = function.Y(i);
+			}
+			return data;
 		}
 
 		inline IOResult ValidateSampledFunctionJsonRoot(const JsonValue& root, const LoadOptions& options) {
@@ -139,16 +184,18 @@ namespace Persistence
 
 			if (format == nullptr || format->type != JsonValueType::String || format->string_value != "MML_JSON")
 				return SerializeFailure(IOError::INVALID_FORMAT, "Sampled function JSON format must be MML_JSON");
-			if (version == nullptr || version->type != JsonValueType::Number || static_cast<int>(version->number_value) != 1)
+			if (!JsonIntegerEquals(version, 1))
 				return SerializeFailure(IOError::UNSUPPORTED_VERSION, "Unsupported sampled function JSON container version");
 			if (object == nullptr || object->type != JsonValueType::String || object->string_value != "SampledRealFunction")
 				return SerializeFailure(IOError::TYPE_MISMATCH, "Sampled function JSON object kind does not match target type");
-			if (objectVersion == nullptr || objectVersion->type != JsonValueType::Number || static_cast<int>(objectVersion->number_value) != 1)
+			if (!JsonIntegerEquals(objectVersion, 1))
 				return SerializeFailure(IOError::UNSUPPORTED_VERSION, "Unsupported sampled function JSON object schema version");
 			if (scalar == nullptr || scalar->type != JsonValueType::String || scalar->string_value != "Real")
 				return SerializeFailure(IOError::UNSUPPORTED_SCALAR, "Sampled function JSON scalar type must be Real");
-			if (scalarBytes == nullptr || scalarBytes->type != JsonValueType::Number || static_cast<int>(scalarBytes->number_value) != static_cast<int>(sizeof(Real)))
+			if (!JsonIntegerEquals(scalarBytes, static_cast<int>(sizeof(Real))))
 				return SerializeFailure(IOError::UNSUPPORTED_SCALAR, "Sampled function JSON scalar byte size does not match Real");
+			if (!JsonRealTypeMatches(FindFunctionJsonField(*mml, "real_type")))
+				return SerializeFailure(IOError::UNSUPPORTED_SCALAR, "Sampled function JSON real_type does not match Real");
 			if (scalarEncoding == nullptr || scalarEncoding->type != JsonValueType::String || scalarEncoding->string_value != "ieee754")
 				return SerializeFailure(IOError::UNSUPPORTED_SCALAR, "Sampled function JSON scalar encoding is unsupported");
 
@@ -167,22 +214,35 @@ namespace Persistence
 				return SerializeFailure(IOError::SCHEMA_MISMATCH, "Sampled function JSON requires at least two nodes");
 			if (nodes->array_value.size() != values->array_value.size())
 				return SerializeFailure(IOError::SCHEMA_MISMATCH, "Sampled function JSON nodes and values lengths must match");
+			if (nodes->array_value.size() > static_cast<std::size_t>(std::numeric_limits<int>::max()))
+				return SerializeFailure(IOError::ALLOCATION_LIMIT_EXCEEDED, "Sampled function JSON node count exceeds supported dimension range");
 			if (nodes->array_value.size() > options.max_allocation_bytes / (2 * sizeof(Real)))
 				return SerializeFailure(IOError::ALLOCATION_LIMIT_EXCEEDED, "Sampled function JSON data exceeds configured allocation limit");
 
-			for (const JsonValue& node : nodes->array_value)
+			for (const JsonValue& endpoint : domain->array_value)
+				if (!JsonScalarFits<Real>(endpoint))
+					return SerializeFailure(IOError::UNSUPPORTED_SCALAR, "Sampled function domain exceeds the finite Real range");
+			for (const JsonValue& node : nodes->array_value) {
 				if (node.type != JsonValueType::Number)
 					return SerializeFailure(IOError::MALFORMED_INPUT, "Sampled function nodes must be numeric");
-			for (const JsonValue& value : values->array_value)
+				if (!JsonScalarFits<Real>(node))
+					return SerializeFailure(IOError::UNSUPPORTED_SCALAR, "Sampled function nodes exceed the finite Real range");
+			}
+			for (const JsonValue& value : values->array_value) {
 				if (value.type != JsonValueType::Number)
 					return SerializeFailure(IOError::MALFORMED_INPUT, "Sampled function values must be numeric");
+				if (!JsonScalarFits<Real>(value))
+					return SerializeFailure(IOError::UNSUPPORTED_SCALAR, "Sampled function values exceed the finite Real range");
+			}
 
 			return SerializeSuccess();
 		}
 	}
 
 	inline IOResult SaveSampledFunction(std::ostream& out, const SampledRealFunctionData& data, const SaveOptions& options = {}) {
-		IOResult validation = Detail::ValidateSampledFunctionData(data);
+		IOResult validation = Detail::ValidateJsonSaveOptions(options);
+		if (!validation.success) return validation;
+		validation = Detail::ValidateSampledFunctionData(data);
 		if (!validation.success)
 			return validation;
 
@@ -217,64 +277,54 @@ namespace Persistence
 	}
 
 	inline IOResult SaveSampledFunction(const SampledRealFunctionData& data, const std::string& filename, const SaveOptions& options = {}) {
+		auto validation = Detail::ValidateSaveFilename(filename);
+		if (!validation.success) return validation;
+		validation = Detail::ValidateJsonSaveOptions(options);
+		if (!validation.success) return validation.WithFile(filename);
+		validation = Detail::ValidateSampledFunctionData(data);
+		if (!validation.success) return validation.WithFile(filename);
 		std::ofstream file(filename);
 		if (!file.is_open())
 			return SerializeFailure(IOError::FILE_NOT_OPENED, "Could not create sampled function JSON file " + filename).WithFile(filename);
-		return (SaveSampledFunction(file, data, options)).WithFile(filename);
+		return FinishOutputFile(file, filename, SaveSampledFunction(file, data, options));
 	}
 
 	inline IOResult SaveSampledFunction(std::ostream& out, const IRealFunction& function, std::string label, SampleGrid grid,
 																			const SaveOptions& options = {}) {
-		if (grid.num_points < 2)
-			return SerializeFailure(IOError::INVALID_PARAMETERS, "SampleGrid num_points must be at least 2");
-		if (grid.x_min >= grid.x_max)
-			return SerializeFailure(IOError::INVALID_PARAMETERS, "SampleGrid x_min must be less than x_max");
-
+		auto validation = Detail::ValidateJsonSaveOptions(options);
+		if (!validation.success) return validation;
 		SampledRealFunctionData data;
-		data.nodes.resize(grid.num_points);
-		data.values.resize(grid.num_points);
-		data.label = std::move(label);
-		data.source = "sampled from IRealFunction";
-		const Real step = (grid.x_max - grid.x_min) / (grid.num_points - 1);
-		for (int i = 0; i < grid.num_points; ++i)
-		{
-			const Real x = grid.x_min + i * step;
-			data.nodes[i] = x;
-			data.values[i] = function(x);
-		}
+		validation = Detail::SampleRealFunction(function, std::move(label), grid, data);
+		if (!validation.success) return validation;
 		return SaveSampledFunction(out, data, options);
 	}
 
 	inline IOResult SaveSampledFunction(const IRealFunction& function, std::string label, SampleGrid grid, const std::string& filename,
 																			const SaveOptions& options = {}) {
-		std::ofstream file(filename);
-		if (!file.is_open())
-			return SerializeFailure(IOError::FILE_NOT_OPENED, "Could not create sampled function JSON file " + filename).WithFile(filename);
-		return (SaveSampledFunction(file, function, std::move(label), grid, options)).WithFile(filename);
+		auto validation = Detail::ValidateSaveFilename(filename);
+		if (!validation.success) return validation;
+		validation = Detail::ValidateJsonSaveOptions(options);
+		if (!validation.success) return validation.WithFile(filename);
+		SampledRealFunctionData data;
+		validation = Detail::SampleRealFunction(function, std::move(label), grid, data);
+		if (!validation.success) return validation.WithFile(filename);
+		return SaveSampledFunction(data, filename, options);
 	}
 
 	inline IOResult SaveInterpolatedFunction(std::ostream& out, const RealFunctionInterpolated& function, std::string label = {},
 																					 const SaveOptions& options = {}) {
-		SampledRealFunctionData data;
-		const int count = function.getNumPoints();
-		data.nodes.resize(count);
-		data.values.resize(count);
-		data.label = std::move(label);
-		data.source = function.InterpolationMethodName();
-		for (int i = 0; i < count; ++i)
-		{
-			data.nodes[i] = function.X(i);
-			data.values[i] = function.Y(i);
-		}
-		return SaveSampledFunction(out, data, options);
+		const auto validation = Detail::ValidateJsonSaveOptions(options);
+		if (!validation.success) return validation;
+		return SaveSampledFunction(out, Detail::InterpolatedFunctionData(function, std::move(label)), options);
 	}
 
 	inline IOResult SaveInterpolatedFunction(const RealFunctionInterpolated& function, const std::string& filename, std::string label = {},
 																					 const SaveOptions& options = {}) {
-		std::ofstream file(filename);
-		if (!file.is_open())
-			return SerializeFailure(IOError::FILE_NOT_OPENED, "Could not create sampled function JSON file " + filename).WithFile(filename);
-		return (SaveInterpolatedFunction(file, function, std::move(label), options)).WithFile(filename);
+		const auto validation = Detail::ValidateSaveFilename(filename);
+		if (!validation.success) return validation;
+		const auto optionValidation = Detail::ValidateJsonSaveOptions(options);
+		if (!optionValidation.success) return optionValidation.WithFile(filename);
+		return SaveSampledFunction(Detail::InterpolatedFunctionData(function, std::move(label)), filename, options);
 	}
 
 	inline IOResult LoadSampledFunctionData(std::istream& in, SampledRealFunctionData& data, const LoadOptions& options = {}) {

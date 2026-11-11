@@ -219,7 +219,7 @@ TEST_CASE("Quaternion - Multiplication", "[quaternion]")
 		Quaternion result2 = q2 * q1;
 		
 		// Should not be equal (within reasonable tolerance)
-		REQUIRE_FALSE(result1.IsEqualTo(result2, 1e-6));
+		REQUIRE_FALSE(result1.IsEqualTo(result2, MML::Real(1e-6)));
 	}
 
 	SECTION("Known quaternion multiplication")
@@ -314,7 +314,7 @@ TEST_CASE("Quaternion - Norm and Normalization", "[quaternion]")
 	SECTION("Norm calculation")
 	{
 		Quaternion q(1, 2, 2, 0);
-		Real expected_norm = std::sqrt(1 + 4 + 4);  // sqrt(9) = 3
+		Real expected_norm = std::sqrt(Real(1 + 4 + 4));  // sqrt(9) = 3
 		REQUIRE(std::abs(q.Norm() - expected_norm) < TOL(1e-10, 1e-5));
 		REQUIRE(std::abs(q.NormSquared() - static_cast<MML::Real>(9.0)) < TOL(1e-10, 1e-5));
 	}
@@ -531,22 +531,22 @@ TEST_CASE("Quaternion - Interpolation", "[quaternion]")
 	SECTION("Slerp at t=0 returns first quaternion")
 	{
 		Quaternion result = Quaternion::Slerp(q1, q2, static_cast<MML::Real>(0.0));
-		REQUIRE(result.IsEqualTo(q1, 1e-6));
+		REQUIRE(result.IsEqualTo(q1, MML::Real(1e-6)));
 	}
 
 	SECTION("Slerp at t=1 returns second quaternion")
 	{
 		Quaternion result = Quaternion::Slerp(q1, q2, static_cast<MML::Real>(1.0));
-		REQUIRE(result.IsEqualTo(q2, 1e-6));
+		REQUIRE(result.IsEqualTo(q2, MML::Real(1e-6)));
 	}
 
 	SECTION("Slerp produces unit quaternions")
 	{
 		Quaternion result = Quaternion::Slerp(q1, q2, static_cast<MML::Real>(0.3));
-		REQUIRE(result.IsUnit(1e-6));
+		REQUIRE(result.IsUnit(MML::Real(1e-6)));
 		
 		result = Quaternion::Slerp(q1, q2, static_cast<MML::Real>(0.7));
-		REQUIRE(result.IsUnit(1e-6));
+		REQUIRE(result.IsUnit(MML::Real(1e-6)));
 	}
 
 	SECTION("Slerp at t=static_cast<MML::Real>(0.5) gives halfway rotation")
@@ -558,7 +558,7 @@ TEST_CASE("Quaternion - Interpolation", "[quaternion]")
 		REQUIRE(std::abs(angle - Constants::PI / static_cast<MML::Real>(4.0)) < 1e-6);
 		
 		Vec3Cart axis = result.getRotationAxis();
-		REQUIRE(VectorApproxEqual(axis, Vec3Cart(0, 0, 1), 1e-6));
+		REQUIRE(VectorApproxEqual(axis, Vec3Cart(0, 0, 1), MML::Real(1e-6)));
 	}
 
 	SECTION("Slerp handles opposite quaternions")
@@ -568,7 +568,7 @@ TEST_CASE("Quaternion - Interpolation", "[quaternion]")
 		
 		// Slerp should handle this gracefully
 		Quaternion result = Quaternion::Slerp(q_a, q_b, static_cast<MML::Real>(0.5));
-		REQUIRE(result.IsUnit(1e-6));
+		REQUIRE(result.IsUnit(MML::Real(1e-6)));
 	}
 
 	SECTION("Slerp near-identical quaternions (sinTheta stability)")
@@ -579,7 +579,7 @@ TEST_CASE("Quaternion - Interpolation", "[quaternion]")
 
 		// Should not produce NaN or Inf
 		Quaternion result = Quaternion::Slerp(q_a, q_b, static_cast<MML::Real>(0.5));
-		REQUIRE(result.IsUnit(1e-4));
+		REQUIRE(result.IsUnit(MML::Real(1e-4)));
 		REQUIRE_FALSE(std::isnan(result.w()));
 		REQUIRE_FALSE(std::isnan(result.x()));
 		REQUIRE_FALSE(std::isnan(result.y()));
@@ -629,9 +629,9 @@ TEST_CASE("Quaternion - Comparison and Equality", "[quaternion]")
 	SECTION("Approximate equality")
 	{
 		Quaternion q1(static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0), static_cast<MML::Real>(4.0));
-		Quaternion q2(static_cast<MML::Real>(1.0) + 1e-7, static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0), static_cast<MML::Real>(4.0));
+		Quaternion q2(static_cast<MML::Real>(1.0) + MML::Real(1e-7), static_cast<MML::Real>(2.0), static_cast<MML::Real>(3.0), static_cast<MML::Real>(4.0));
 		
-		REQUIRE(q1.IsEqualTo(q2, 1e-6));
+		REQUIRE(q1.IsEqualTo(q2, MML::Real(1e-6)));
 		REQUIRE_FALSE(q1.IsEqualTo(q2, TOL(1e-8, 1e-8)));
 	}
 }
@@ -672,8 +672,8 @@ TEST_CASE("Quaternion - Special Cases and Edge Cases", "[quaternion]")
 
 	SECTION("IsUnit check with tolerance")
 	{
-		Quaternion q(static_cast<MML::Real>(1.0) + 1e-7, 0, 0, 0);
-		REQUIRE(q.IsUnit(1e-6));
+		Quaternion q(static_cast<MML::Real>(1.0) + MML::Real(1e-7), 0, 0, 0);
+		REQUIRE(q.IsUnit(MML::Real(1e-6)));
 		REQUIRE_FALSE(q.IsUnit(TOL(1e-8, 1e-8)));
 	}
 
@@ -1071,7 +1071,7 @@ TEST_CASE("Quaternion - Tait-Bryan Euler roundtrip via rotation matrix", "[quate
 	{
 		// Any rotation created via FromEulerXZY should produce same matrix
 		// as composing individual axis rotations
-		Real a1 = 0.3, a2 = 0.5, a3 = 0.7;
+		Real a1 = MML::Real(0.3), a2 = MML::Real(0.5), a3 = MML::Real(0.7);
 		Quaternion q = Quaternion::FromEulerXZY(a1, a2, a3);
 		Quaternion qx = Quaternion::FromAxisAngle(Vec3Cart(1,0,0), a1);
 		Quaternion qz = Quaternion::FromAxisAngle(Vec3Cart(0,0,1), a2);
@@ -1083,7 +1083,7 @@ TEST_CASE("Quaternion - Tait-Bryan Euler roundtrip via rotation matrix", "[quate
 
 	SECTION("FromEulerYXZ produces correct rotation")
 	{
-		Real a1 = 0.4, a2 = -0.6, a3 = 0.2;
+		Real a1 = MML::Real(0.4), a2 = -MML::Real(0.6), a3 = MML::Real(0.2);
 		Quaternion q = Quaternion::FromEulerYXZ(a1, a2, a3);
 		Quaternion qy = Quaternion::FromAxisAngle(Vec3Cart(0,1,0), a1);
 		Quaternion qx = Quaternion::FromAxisAngle(Vec3Cart(1,0,0), a2);
@@ -1094,7 +1094,7 @@ TEST_CASE("Quaternion - Tait-Bryan Euler roundtrip via rotation matrix", "[quate
 
 	SECTION("FromEulerYZX produces correct rotation")
 	{
-		Real a1 = -0.5, a2 = 0.8, a3 = 0.1;
+		Real a1 = -MML::Real(0.5), a2 = MML::Real(0.8), a3 = MML::Real(0.1);
 		Quaternion q = Quaternion::FromEulerYZX(a1, a2, a3);
 		Quaternion qy = Quaternion::FromAxisAngle(Vec3Cart(0,1,0), a1);
 		Quaternion qz = Quaternion::FromAxisAngle(Vec3Cart(0,0,1), a2);
@@ -1105,7 +1105,7 @@ TEST_CASE("Quaternion - Tait-Bryan Euler roundtrip via rotation matrix", "[quate
 
 	SECTION("FromEulerZXY produces correct rotation")
 	{
-		Real a1 = 0.7, a2 = 0.3, a3 = -0.4;
+		Real a1 = MML::Real(0.7), a2 = MML::Real(0.3), a3 = -MML::Real(0.4);
 		Quaternion q = Quaternion::FromEulerZXY(a1, a2, a3);
 		Quaternion qz = Quaternion::FromAxisAngle(Vec3Cart(0,0,1), a1);
 		Quaternion qx = Quaternion::FromAxisAngle(Vec3Cart(1,0,0), a2);
@@ -1130,7 +1130,7 @@ TEST_CASE("Quaternion - Proper Euler roundtrip via rotation matrix", "[quaternio
 
 	SECTION("FromEulerZXZ produces correct rotation")
 	{
-		Real alpha = 0.5, beta = 1.0, gamma = 0.3;
+		Real alpha = MML::Real(0.5), beta = MML::Real(1.0), gamma = MML::Real(0.3);
 		Quaternion q = Quaternion::FromEulerZXZ(alpha, beta, gamma);
 		Quaternion qz1 = Quaternion::FromAxisAngle(Vec3Cart(0,0,1), alpha);
 		Quaternion qx  = Quaternion::FromAxisAngle(Vec3Cart(1,0,0), beta);
@@ -1142,7 +1142,7 @@ TEST_CASE("Quaternion - Proper Euler roundtrip via rotation matrix", "[quaternio
 
 	SECTION("FromEulerZYZ produces correct rotation")
 	{
-		Real alpha = -0.7, beta = 0.8, gamma = 1.2;
+		Real alpha = -MML::Real(0.7), beta = MML::Real(0.8), gamma = MML::Real(1.2);
 		Quaternion q = Quaternion::FromEulerZYZ(alpha, beta, gamma);
 		Quaternion qz1 = Quaternion::FromAxisAngle(Vec3Cart(0,0,1), alpha);
 		Quaternion qy  = Quaternion::FromAxisAngle(Vec3Cart(0,1,0), beta);
@@ -1159,7 +1159,7 @@ TEST_CASE("Quaternion - ToEulerXYZ roundtrip", "[quaternion][euler]")
 
 	SECTION("Roundtrip away from gimbal lock")
 	{
-		Real roll = 0.3, pitch = 0.5, yaw = 0.7;
+		Real roll = MML::Real(0.3), pitch = MML::Real(0.5), yaw = MML::Real(0.7);
 		Quaternion q = Quaternion::FromEulerXYZ(roll, pitch, yaw);
 		Vec3Cart euler = q.ToEulerXYZ();
 
@@ -1170,7 +1170,7 @@ TEST_CASE("Quaternion - ToEulerXYZ roundtrip", "[quaternion][euler]")
 
 	SECTION("Roundtrip with negative angles")
 	{
-		Real roll = -0.4, pitch = 0.2, yaw = -0.6;
+		Real roll = -MML::Real(0.4), pitch = MML::Real(0.2), yaw = -MML::Real(0.6);
 		Quaternion q = Quaternion::FromEulerXYZ(roll, pitch, yaw);
 		Vec3Cart euler = q.ToEulerXYZ();
 
@@ -1187,7 +1187,7 @@ TEST_CASE("Quaternion - ToEulerZXZ roundtrip", "[quaternion][euler]")
 
 	SECTION("Roundtrip away from gimbal lock")
 	{
-		Real alpha = 0.5, beta = 1.0, gamma = 0.3;
+		Real alpha = MML::Real(0.5), beta = MML::Real(1.0), gamma = MML::Real(0.3);
 		Quaternion q = Quaternion::FromEulerZXZ(alpha, beta, gamma);
 		Vec3Cart euler = q.ToEulerZXZ();
 
@@ -1204,7 +1204,7 @@ TEST_CASE("Quaternion - ToEulerZYZ roundtrip", "[quaternion][euler]")
 
 	SECTION("Roundtrip away from gimbal lock")
 	{
-		Real alpha = -0.7, beta = 0.8, gamma = 1.2;
+		Real alpha = -MML::Real(0.7), beta = MML::Real(0.8), gamma = MML::Real(1.2);
 		Quaternion q = Quaternion::FromEulerZYZ(alpha, beta, gamma);
 		Vec3Cart euler = q.ToEulerZYZ();
 
@@ -1219,7 +1219,7 @@ TEST_CASE("Quaternion - All FromEuler produce unit quaternions", "[quaternion][e
 	TEST_PRECISION_INFO();
 	const Real tol = TOL(1e-10, 1e-5);
 
-	Real a = 0.5, b = 0.7, c = 1.1;
+	Real a = MML::Real(0.5), b = MML::Real(0.7), c = MML::Real(1.1);
 	REQUIRE(Quaternion::FromEulerXYZ(a, b, c).IsUnit(tol));
 	REQUIRE(Quaternion::FromEulerXZY(a, b, c).IsUnit(tol));
 	REQUIRE(Quaternion::FromEulerYXZ(a, b, c).IsUnit(tol));
@@ -1239,7 +1239,7 @@ TEST_CASE("Quaternion - Euler identity rotation", "[quaternion][euler]")
 	Quaternion id;
 	auto approxEqual = [&](const Quaternion& q) {
 		// q or -q both represent identity
-		Real sign = (q.w() >= 0) ? 1.0 : -1.0;
+		Real sign = (q.w() >= 0) ? MML::Real(1.0) : -MML::Real(1.0);
 		REQUIRE(std::abs(q.w() * sign - 1.0) < tol);
 		REQUIRE(std::abs(q.x() * sign) < tol);
 		REQUIRE(std::abs(q.y() * sign) < tol);
@@ -1255,4 +1255,3 @@ TEST_CASE("Quaternion - Euler identity rotation", "[quaternion][euler]")
 }
 
 } // namespace MML::Tests::Base::QuaternionTests
-

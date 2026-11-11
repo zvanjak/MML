@@ -65,6 +65,7 @@
 #include <functional>
 #include <iomanip>
 #include <iostream>
+#include <limits>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -92,6 +93,15 @@ namespace MML {
 		std::vector<Type*>   _rows;   ///< Row pointers for [i][j][k] access
 		std::vector<Type**>  _slices; ///< Slice pointers (one per slice)
 
+		void SwapStorage(Matrix3D& other) noexcept {
+			std::swap(_dim1, other._dim1);
+			std::swap(_dim2, other._dim2);
+			std::swap(_dim3, other._dim3);
+			_data.swap(other._data);
+			_rows.swap(other._rows);
+			_slices.swap(other._slices);
+		}
+
 		/// @brief Builds pointer structure for [i][j][k] access from _data.
 		void BuildPointers() {
 			_rows.resize(_dim1 * _dim2);
@@ -109,7 +119,15 @@ namespace MML {
 		static int ValidateDims(int d1, int d2, int d3) {
 			if (d1 <= 0 || d2 <= 0 || d3 <= 0)
 				throw ArgumentError("Matrix3D dimensions must be positive");
-			return d1 * d2 * d3;
+			const size_t limit = std::min(static_cast<size_t>(std::numeric_limits<int>::max()),
+				std::vector<Type>().max_size());
+			size_t count = static_cast<size_t>(d1);
+			if (count > limit / static_cast<size_t>(d2))
+				throw MatrixAllocationError("Matrix3D dimensions exceed element/index range", d1, d2);
+			count *= static_cast<size_t>(d2);
+			if (count > limit / static_cast<size_t>(d3))
+				throw MatrixAllocationError("Matrix3D dimensions exceed element/index range", d1, d3);
+			return static_cast<int>(count * static_cast<size_t>(d3));
 		}
 
 	public:
@@ -171,16 +189,8 @@ namespace MML {
 		/// @brief Copy assignment (deep copy).
 		Matrix3D& operator=(const Matrix3D& other) {
 			if (this != &other) {
-				_dim1 = other._dim1;
-				_dim2 = other._dim2;
-				_dim3 = other._dim3;
-				_data = other._data;
-				if (!_data.empty())
-					BuildPointers();
-				else {
-					_rows.clear();
-					_slices.clear();
-				}
+				Matrix3D replacement(other);
+				SwapStorage(replacement);
 			}
 			return *this;
 		}
@@ -303,6 +313,8 @@ namespace MML {
 		/// @brief Applies a function to all elements in-place.
 		/// @param func Unary function Type → Type.
 		void Apply(std::function<Type(Type)> func) {
+			if (!func)
+				throw NotImplementedError("Matrix3D::Apply requires a callback");
 			for (auto& elem : _data)
 				elem = func(elem);
 		}
@@ -316,9 +328,8 @@ namespace MML {
 			if (d1 == _dim1 && d2 == _dim2 && d3 == _dim3)
 				return;
 			if (d1 > 0 && d2 > 0 && d3 > 0) {
-				_dim1 = d1; _dim2 = d2; _dim3 = d3;
-				_data.assign(d1 * d2 * d3, Type{});
-				BuildPointers();
+				Matrix3D replacement(d1, d2, d3);
+				SwapStorage(replacement);
 			} else {
 				_dim1 = _dim2 = _dim3 = 0;
 				_data.clear();
@@ -334,9 +345,8 @@ namespace MML {
 		/// @param initVal Value to initialize all elements.
 		void resize(int d1, int d2, int d3, const Type& initVal) {
 			if (d1 > 0 && d2 > 0 && d3 > 0) {
-				_dim1 = d1; _dim2 = d2; _dim3 = d3;
-				_data.assign(d1 * d2 * d3, initVal);
-				BuildPointers();
+				Matrix3D replacement(d1, d2, d3, initVal);
+				SwapStorage(replacement);
 			} else {
 				_dim1 = _dim2 = _dim3 = 0;
 				_data.clear();

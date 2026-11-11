@@ -58,6 +58,43 @@ A·v = λ·v
 
 ## Algorithm Overview
 
+### Self-adjoint input and configuration contracts
+
+Both scalar and configured `SymmMatEigenSolverJacobi::Solve` and
+`SymmMatEigenSolverQR::Solve` require square, symmetric dense input.
+They check symmetry with `PrecisionValues<Real>::EigenSolverZeroThreshold`,
+independently of convergence tolerance. Packed `MatrixSym` input already
+encodes symmetry. Non-square matrices are rejected before indexing.
+Nonsymmetric dense input is no longer implicitly averaged by QR or configured
+Jacobi; use either solver's explicit `SolveSymmetricPart` scalar or config
+overload to request `(A + A^T)/2`, still requiring square shape.
+
+The real symmetric solvers and `HermitianMatEigenSolverJacobi` honor:
+
+- `sort_eigenvalues=false`: retain iteration/diagonal order; this is not an
+  ordering guarantee for a nondiagonal input. Corresponding eigenvectors retain
+  the same column order.
+- `compute_eigenvectors=false`: skip vector allocation and transformation
+  accumulation and return a **0x0 eigenvector matrix**, including failure results.
+  Eigenvalues and convergence criteria remain unchanged.
+- `verbose=true`: emit a diagnostic summary to `std::clog`; false is silent.
+
+Tolerance must be finite and nonnegative, and negative budgets are rejected with
+`DomainError`. Jacobi uses an absolute off-diagonal tolerance; symmetric QR
+uses both an absolute floor and a relative deflation factor, so do not increase
+its tolerance in proportion to a large input scale.
+Scalar `maxIter=0` performs no Jacobi sweeps or QR steps; closed-form
+or already-converged input can still succeed. Exhaustion reports
+`MaxIterationsExceeded` with a nonempty message in scalar and config results.
+Configured `max_iterations=0` retains its documented default-budget meaning:
+100 sweeps for Jacobi/Hermitian Jacobi, 1000 steps for symmetric QR. Empty input
+returns `Completed`, not convergence, with an unavailable residual. Nonfinite
+computed results cannot report successful convergence.
+
+The runnable counterpart is `Docs_Demo_SelfAdjointConfig()` in
+[`docs_demo_eigen_solvers.cpp`](../../src/docs_demos/algorithms/docs_demo_eigen_solvers.cpp),
+selected by `MML_DocsApp --self-adjoint-config`.
+
 ### Symmetric Matrices
 
 **Why symmetric matrices are special:**
@@ -630,6 +667,44 @@ Example 5×5 Hessenberg:
 
 **Why?** QR iteration on Hessenberg is O(n²) per step vs O(n³) for dense!
 
+`ReduceToHessenberg(A)` (also exposed through `MatrixAlg`) returns `H` and `Q`
+with $H \approx Q^T A Q$ and $Q^TQ \approx I$. Reflectors are constructed from a
+column scaled by its largest magnitude, then normalized to unit length.
+Only an exactly zero active column is skipped; there is no absolute cutoff tied
+to the units of `A`. Scaled projections and fused updates avoid unnecessary
+intermediate overflow. Entries below the first subdiagonal are set to exact zero.
+Nonsquare input throws `MatrixDimensionError`; nonfinite input or an
+unrepresentable reduction throws `MatrixNumericalError`.
+
+The general real `EigenSolver` also performs its Schur/QR work in dimensionless
+units and rescales eigenvalues back to the original units. If normalization
+would round a nonzero input to zero or reduce it to subnormal precision, it
+retains the original units instead of deleting or coarsening a small block.
+This is not a guarantee for every possible
+dynamic range or conditioning. Nonfinite/unrepresentable eigenvalues, zero or
+nonfinite eigenvectors, and invalid residuals cannot produce a successful result:
+`converged` is false, `maxResidual` is `NoEstimate`, and the numerical diagnostic
+is retained by the configuration overload. An existing iteration-limit status
+is preserved rather than replaced by the validation failure.
+
+The witness below has normalized eigenvalues $-\sqrt{2},0,\sqrt{2}$, not an
+all-zero spectrum. Its runnable counterpart, `Docs_Demo_HessenbergScaling` in
+`src/docs_demos/algorithms/docs_demo_eigen_solvers.cpp`, also checks orthogonality,
+similarity, and the same spectrum at unit and very large scales. Run
+`MML_DocsApp --hessenberg-scaling`.
+
+```cpp
+const Real scale = Real(1e-20);
+const Matrix<Real> base{3, 3, {0, 0, 2, 1, 0, 0, 1, 0, 0}};
+const Matrix<Real> matrix = base * scale;
+const auto reduced = ReduceToHessenberg(matrix);
+const auto result = EigenSolver::Solve(matrix, 0);
+if (!result.converged || result.status != AlgorithmStatus::Success)
+    throw MatrixNumericalError(result.error_message);
+for (const auto& value : result.eigenvalues)
+    std::cout << value.real / scale << '\n';
+```
+
 #### Stage 2: Francis Double-Shift QR (O(cn²), c ≈ n)
 
 **Implicit Q theorem**: Can perform QR step without forming Q explicitly! Uses "bulge chasing":
@@ -665,6 +740,45 @@ Real maxResidual = result.maxResidual;
 
 Column `i` of `eigenvectors` corresponds directly to `eigenvalues[i]`. Complex
 components are explicit and are never packed into adjacent real columns.
+
+For real input, reconstruction follows the QR solver's structural conjugate-pair
+metadata, even when the imaginary part is smaller than the convergence tolerance.
+That tolerance does not reclassify an existing conjugate pair as two real eigenvalues.
+
+The canonical real, complex, symmetric and Hermitian entry points validate finite
+eigenvalues, finite nonzero eigenvector norms, and representable residual arithmetic.
+There is no absolute lower cutoff on a nonzero vector norm. The reported residual
+remains the maximum of
+$\|A v_i-\lambda_i v_i\|_2/\max(1,\|A\|_F\|v_i\|_2)$.
+This diagnostic is not a componentwise or conditioning-independent accuracy guarantee.
+In particular, the unit denominator floor matters for very small problems.
+
+If residual validation fails, the result is not converged, `maxResidual` is
+`NoEstimate`, and `errorMessage` explains the failure. An otherwise usable result
+becomes `NumericalInstability`; an existing failure such as `MaxIterationsExceeded`
+is retained, with the validation diagnostic appended. The payload-only
+`Eigenvalues`, `SpectralRadius`, `SymmetricEigenvalues` and `HermitianEigenvalues`
+wrappers throw `MatrixNumericalError` rather than returning an unusable payload.
+Finite inputs whose norms or residual scaling overflow are reported as failures,
+not certified by dividing through an infinite denominator.
+
+The unbalanced example below has eigenvalues approximately $\pm10^{-11}i$ and
+nonzero complex eigenvectors, despite the small imaginary parts. Its runnable
+counterpart is `Docs_Demo_StructuralEigenpairs` in
+`src/docs_demos/algorithms/docs_demo_eigen_solvers.cpp`; run
+`MML_DocsApp --structural-eigenpairs`.
+
+```cpp
+const Matrix<Real> A{2, 2, {0, Real(-1e-22), 1, 0}};
+const auto result = MatrixAlg::Eigensystem(A);
+if (!result.converged || result.status != AlgorithmStatus::Success)
+    throw MatrixNumericalError(result.errorMessage);
+for (int col = 0; col < 2; ++col) {
+    const auto vector = result.eigenvectors.VectorFromColumn(col);
+    std::cout << "lambda = " << result.eigenvalues[col]
+              << ", vector norm = " << vector.NormL2() << '\n';
+}
+```
 
 ### Example 8: Matrix with Complex Eigenvalues
 
@@ -1006,5 +1120,3 @@ The Eigen Solver framework provides:
 - Numerical Recipes, 3rd Edition, Chapter 11
 - Wilkinson, "The Algebraic Eigenvalue Problem"
 - Francis, "The QR Transformation"
-
-

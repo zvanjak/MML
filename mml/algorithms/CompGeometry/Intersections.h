@@ -134,7 +134,7 @@ namespace CompGeometry {
 				if (std::abs(det) < EPSILON) return result;
 			}
 
-			Real invDet = 1.0 / det;
+			Real invDet = MML::Real(1.0) / det;
 			Vector3Cartesian tvec(v0, rayOrigin);
 
 			Real u = ScalarProduct(tvec, pvec) * invDet;

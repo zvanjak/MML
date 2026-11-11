@@ -91,6 +91,11 @@ of configured `Real`. Finite values round-trip exactly; signed zero is preserved
 tokens are `nan`, `inf`, and `-inf`, including within complex components. NaN payload bits
 and NaN sign are not preserved. Formatting is classic-locale and caller stream formatting
 is restored on success, returned failure, or exceptions.
+Long-double text is parsed directly in its native type with the classic-locale reader,
+including complex components. This does not narrow through `double` or require a
+`std::from_chars` overload for `long double`, which some standard libraries do not provide.
+Representable subnormals remain valid even when the stream implementation reports a range
+warning; overflow, nonzero underflow to zero and trailing nonnumeric input are still rejected.
 
 ```cpp
 std::stringstream text;
@@ -370,6 +375,38 @@ text option.
 newlines. User metadata is available for object-persistence formats, but the
 current dense vector/matrix serializers only emit required schema metadata.
 
+### File Save Validation and Completion
+
+Persistence file saves validate their requests before opening the destination.
+Empty or embedded-NUL filenames, unsupported format/scalar combinations, negative
+text/CSV/JSON precision, and invalid JSON numeric data are rejected without
+creating a file or truncating an existing one. JSON values must be finite and
+within its internal `double` range before conversion. Text and binary formats
+retain their existing special-value support; binary continues to ignore text
+precision and uses the existing envelope payload limit.
+
+Sampled-function saves also check sample counts, matching node/value lengths,
+finite numeric data and strictly monotonic nodes before opening. Sampling from
+`IRealFunction` evaluates the function once at each generated node, before the
+file is opened, so an invalid result or a propagated callback exception cannot
+truncate an existing destination. Invalid grids (including nonfinite endpoints),
+options and filenames are rejected before callbacks run. Interpolated functions
+use the same validated data-save path.
+
+Successful file-save results are returned only after checked flush and close,
+including all sampled/interpolated-function routes. `IOResult` preserves the
+filename and original validation error; write/finalization failures report
+`WRITE_FAILED` with an available byte offset.
+
+This is **not atomic replacement**: once a valid request opens the destination,
+a later I/O failure can leave a truncated or partially written file. Stream
+overloads do not flush or close caller-owned streams.
+
+Runnable counterpart: `Docs_Demo_SavePrevalidation()` in
+`src/docs_demos/tools/docs_demo_serializer.cpp`, included in
+`MML_DocsApp --persistence-portability`. It checks that a rejected nonfinite JSON
+save leaves an existing sentinel file unchanged.
+
 ### Exact Matrix Text/CSV Round Trips
 
 Default file helpers and stream overloads share the same round-trip formatting.
@@ -510,6 +547,57 @@ The current JSON serializers support floating-point scalar types. Exact numeric
 types such as rational and big integer are intentionally not part of this first
 dense implementation.
 
+### Checked JSON Numeric Conversions
+
+Container/schema versions and scalar byte sizes must be integral and match their
+supported values; they are never truncated to integers. Shape dimensions must be
+finite nonnegative integers within `int` range, checked before conversion or
+allocation. This includes the preserved decimal token: a fraction that rounds to
+an integer in the parser's `double` cache is still rejected. Integral decimal or
+exponential spellings such as `1.0` and `10e-1` remain valid.
+
+When `mml.scalar` is `Real`, the emitted `mml.real_type` is required and must match
+the target backing type, including when two types happen to have the same byte
+size. Missing, non-string or mismatched values return `UNSUPPORTED_SCALAR`.
+Neither `strict_schema = false` nor `allow_scalar_conversion = true` bypasses
+these checks or enables a new cross-scalar JSON conversion mode. Existing
+conversion support in other formats is unchanged.
+
+Every dense payload value, and sampled-function domain/node/value, is checked
+against the finite target scalar range before any narrowing or destination
+mutation. Overflow returns `UNSUPPORTED_SCALAR`; invalid dimensions return
+`SCHEMA_MISMATCH`, or `ALLOCATION_LIMIT_EXCEEDED` for integral dimensions beyond
+the supported range. Unsupported version fields retain `UNSUPPORTED_VERSION`.
+Diagnostics are returned through `IOResult`, and rejected loads leave their
+destination unchanged.
+
+JSON retains its internal `double` numeric representation. Ordinary in-range
+rounding, explicitly requested low-precision output, and underflow to zero remain
+allowed; these checks do not require exact payload representability or add a new
+precision-loss policy.
+
+Runnable counterpart: `Docs_Demo_JsonConversions()` in
+`src/docs_demos/tools/docs_demo_serializer.cpp`, called by
+`MML_DocsApp --persistence-portability`:
+
+```cpp
+Vector<float> original{1, 2};
+std::ostringstream saved;
+if (!Persistence::SaveJson(saved, original).success)
+    throw std::runtime_error("Could not encode JSON conversion example");
+auto parsed = Persistence::ParseJson(saved.str());
+if (!parsed.result.success)
+    throw std::runtime_error(parsed.result.message);
+parsed.value.object_value.at("shape").array_value[0] = Persistence::JsonValue::Number(2.9);
+std::stringstream malformed;
+if (!Persistence::WriteJson(malformed, parsed.value).success)
+    throw std::runtime_error("Could not encode malformed-dimension example");
+Vector<float> destination{9};
+const auto rejected = Persistence::LoadJson(malformed, destination);
+if (rejected.error != IOError::SCHEMA_MISMATCH || destination != Vector<float>{9})
+    throw std::runtime_error("Fractional JSON dimension was not rejected transactionally");
+```
+
 ---
 
 ## Binary Layout
@@ -534,6 +622,32 @@ bit representation in little-endian byte order.
 | 32 | 8 | payload byte count |
 | 40 | 4 | flags, currently `0` |
 | 44 | 4 | sidecar metadata policy enum |
+
+Envelope v1 requires `header_size == 48`. Smaller declarations and larger
+declarations, even with physically present extension bytes, are rejected with
+`SCHEMA_MISMATCH`; this implementation does not interpret or skip extensions.
+An incomplete base header returns `TRUNCATED_INPUT`.
+
+Concrete `Vector<T>`, `Matrix<T>`, and `std::vector<std::complex<T>>` binary
+readers support **object schema version 1 only**. Other positive versions return
+`UNSUPPORTED_VERSION`; zero is malformed and returns `SCHEMA_MISMATCH`.
+These header/schema failures happen before reading the shape or resizing the
+destination, including through file and format-dispatch overloads. Neither
+`strict_schema=false` nor `allow_scalar_conversion=true` enables an unknown schema.
+The low-level envelope helpers still accept positive future object versions,
+such as 2, for header inspection or future codec implementations; that does not
+mean the current dense payload readers can decode them.
+
+The current sidecar enum is retained as metadata: dense readers do not locate or
+require a sidecar file, even for `Required`. A successful stream read consumes
+exactly one declared dense payload and leaves trailing bytes for the caller;
+file readers do not reject trailing bytes either. This change adds no sidecar,
+trailing-byte, or checksum enforcement. Do not treat successful decoding as a
+cryptographic integrity guarantee.
+
+Runnable counterpart: `Docs_Demo_BinarySchema()` in
+[docs_demo_serializer.cpp](../../src/docs_demos/tools/docs_demo_serializer.cpp),
+selected by `MML_DocsApp --binary-schema`.
 
 ### Object Codes
 
@@ -640,7 +754,9 @@ performed in the first implementation.
 ### Version Policy
 
 The current JSON container version is `1`. The current binary envelope version is
-`1`. Readers reject unsupported future versions with `UNSUPPORTED_VERSION`.
+`1`, with an exact 48-byte header. Concrete dense binary readers require object
+schema version `1`; positive future versions return `UNSUPPORTED_VERSION`.
+Low-level envelope helpers validate header structure, not concrete payload schemas.
 
 ---
 

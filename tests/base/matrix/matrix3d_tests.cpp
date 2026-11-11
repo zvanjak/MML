@@ -92,8 +92,12 @@ namespace MML::Tests::Base::Matrix3DTests
 		REQUIRE(target(0, 0, 0) == 3.14);
 		
 		// Self-assignment should be safe
-		target = target;
+		auto& self = target;
+		target = self;
 		REQUIRE(target.dim1() == 2);
+		REQUIRE(target.dim2() == 2);
+		REQUIRE(target.dim3() == 2);
+		REQUIRE(target(0, 0, 0) == 3.14);
 	}
 
 	TEST_CASE("Matrix3D::MoveConstruction", "[Matrix3D]") {

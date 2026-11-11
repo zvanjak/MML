@@ -157,6 +157,9 @@ TEST_CASE("Reverse time - implicit ODE solvers reach clipped endpoints and round
 		config.step_size = Real(0.001);
 		config.max_steps = 5000;
 		config.tolerance = Precision::CoarseTolerance;
+		// The float default Newton tolerance exceeds the BDF2 predictor defect.
+		if constexpr (std::is_same_v<Real, float>)
+			config.newton_tol = Precision::ZeroTolerance;
 		auto solve = [&](Real start, Real end, const Vector<Real>& initial) {
 			if (method == 0) return SolveBackwardEuler(system, start, initial, end, config);
 			if (method == 1) return SolveBDF2(system, start, initial, end, config);
@@ -166,10 +169,12 @@ TEST_CASE("Reverse time - implicit ODE solvers reach clipped endpoints and round
 		auto forward = solve(0, Real(0.625), Vector<Real>{1});
 		INFO(forward.error_message);
 		REQUIRE(forward.status == AlgorithmStatus::Success);
+		REQUIRE(forward.solution.getTValue(forward.solution.size() - 1) == Real(0.625));
 		auto reverse = solve(Real(0.625), 0, forward.solution.getXValuesAtEnd());
 		INFO(reverse.error_message);
 		REQUIRE(reverse.status == AlgorithmStatus::Success);
 		RequireReverse(reverse.solution);
+		REQUIRE(reverse.solution.getTValue(reverse.solution.size() - 1) == Real(0));
 		REQUIRE(IsWithinAbs(reverse.solution.getXValuesAtEnd()[0], Real(1), Precision::CoarseTolerance * Real(20)));
 	}
 }
@@ -183,6 +188,8 @@ TEST_CASE("Reverse time - every DAE driver preserves order constraints and round
 		DAESolverConfig config;
 		config.step_size = Real(0.01);
 		config.newton_tol = Precision::ZeroTolerance;
+		config.abs_tolerance = TOL(PrecisionValues<double>::IntegrationTolerance, Precision::ZeroTolerance);
+		config.rel_tolerance = TOL(100 * PrecisionValues<double>::IntegrationTolerance, Precision::ZeroTolerance);
 		auto solve = [&](Real start, Real end, const Vector<Real>& x, const Vector<Real>& y) {
 			switch (method) {
 			case 0: return SolveDAEBackwardEuler(system, start, x, y, end, config);
@@ -328,9 +335,12 @@ TEST_CASE("Reverse time - state dependent ODE iteration matrices have the signed
 {
 	ExponentialODE system;
 	for (int method = 0; method < 3; ++method) {
+		CAPTURE(method);
 		StiffSolverConfig config;
 		config.step_size = Real(0.001);
 		config.tolerance = Precision::CoarseTolerance;
+		if constexpr (std::is_same_v<Real, float>)
+			config.newton_tol = Precision::ZeroTolerance;
 		auto solve = [&](Real start, Real end, const Vector<Real>& initial) {
 			if (method == 0) return SolveBackwardEuler(system, start, initial, end, config);
 			if (method == 1) return SolveBDF2(system, start, initial, end, config);
@@ -339,8 +349,10 @@ TEST_CASE("Reverse time - state dependent ODE iteration matrices have the signed
 		};
 		auto forward = solve(0, Real(0.25), Vector<Real>{1});
 		REQUIRE(forward.status == AlgorithmStatus::Success);
+		REQUIRE(forward.solution.getTValue(forward.solution.size() - 1) == Real(0.25));
 		auto backward = solve(Real(0.25), 0, forward.solution.getXValuesAtEnd());
 		REQUIRE(backward.status == AlgorithmStatus::Success);
+		REQUIRE(backward.solution.getTValue(backward.solution.size() - 1) == 0);
 		RequireReverse(backward.solution);
 		REQUIRE(IsWithinAbs(forward.solution.getXValuesAtEnd()[0], std::exp(Real(0.25)),
 			Precision::CoarseTolerance * Real(10)));
@@ -358,6 +370,8 @@ TEST_CASE("Reverse time - state dependent DAEs and spans shorter than a requeste
 			DAESolverConfig config;
 			config.step_size = shortSpan ? Real(1) : Real(0.001);
 			config.newton_tol = Precision::ZeroTolerance;
+			config.abs_tolerance = TOL(PrecisionValues<double>::IntegrationTolerance, Precision::ZeroTolerance);
+			config.rel_tolerance = TOL(100 * PrecisionValues<double>::IntegrationTolerance, Precision::ZeroTolerance);
 			auto solve = [&](Real start, Real end, const Vector<Real>& x, const Vector<Real>& y) {
 				switch (method) {
 				case 0: return SolveDAEBackwardEuler(system, start, x, y, end, config);
@@ -391,10 +405,12 @@ TEST_CASE("Reverse time - Newton retries retain accepted history and bounded fai
 	for (bool bdf2 : {false, true}) {
 		StiffSolverConfig odeConfig;
 		odeConfig.step_size = 1;
-		odeConfig.max_newton_iter = 4;
+		odeConfig.max_newton_iter = 3;
+		if constexpr (std::is_same_v<Real, float>)
+			odeConfig.newton_tol = Precision::ZeroTolerance;
 		DAESolverConfig daeConfig;
 		daeConfig.step_size = 1;
-		daeConfig.max_newton_iter = 4;
+		daeConfig.max_newton_iter = 3;
 		auto result = bdf2 ? SolveBDF2(ode, 1, Vector<Real>{1}, 0, odeConfig)
 			: SolveBackwardEuler(ode, 1, Vector<Real>{1}, 0, odeConfig);
 		auto daeResult = bdf2 ? SolveDAEBDF2(dae, 1, Vector<Real>{1}, Vector<Real>{2}, 0, daeConfig)

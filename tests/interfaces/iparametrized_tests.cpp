@@ -73,7 +73,7 @@ TEST_CASE("IParametrized::setParams throws on size mismatch and leaves the param
 
 TEST_CASE("DynamicalSystemBase::setParams / setParam / getParam are bounds-checked", "[interfaces][parametrized][systems][wewi.6.4]")
 {
-    LorenzSystem lorenz(10.0, 28.0, 8.0 / 3.0);   // 3 parameters
+    LorenzSystem lorenz(MML::Real(10.0), MML::Real(28.0), MML::Real(8.0) / MML::Real(3.0));   // 3 parameters
     REQUIRE(lorenz.getNumParam() == 3);
 
     // too few: the old override read p[1], p[2] past the end of a 1-element vector

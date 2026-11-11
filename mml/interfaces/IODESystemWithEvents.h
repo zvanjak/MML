@@ -13,6 +13,7 @@
 #define MML_IODE_SYSTEM_WITH_EVENTS_H
 
 #include <mml/interfaces/IODESystem.h>
+#include <cmath>
 
 namespace MML {
 
@@ -47,6 +48,21 @@ namespace MML {
 		Stop,      ///< Stop integration at event
 		Restart    ///< Update state and restart integration
 	};
+
+	/**
+	 * @brief Sign-based zero-crossing test for event functions.
+	 *
+	 * Uses direct sign comparisons instead of the product `before * after < 0`, which
+	 * underflows to zero (and misses the crossing) for tiny event values such as
+	 * 1e-200 * (t - c), and overflows for huge ones. A landing exactly on zero from a
+	 * nonzero value counts as a crossing; starting on zero does not.
+	 */
+	inline bool EventSignChange(Real before, Real after) {
+		if (!std::isfinite(before) || !std::isfinite(after)) return false;
+		if (before == 0) return false;
+		if (after == 0) return true;
+		return (before < 0) != (after < 0);
+	}
 
 	/**
 	 * @brief Detailed information about a detected event.

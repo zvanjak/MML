@@ -38,7 +38,7 @@ namespace {
     void FillMatrix(Matrix<Real>& m, Real seed = 1.0) {
         for (int i = 0; i < m.rows(); ++i) {
             for (int j = 0; j < m.cols(); ++j) {
-                m(i, j) = seed * (i * 100 + j) + 0.123456789012345;
+                m(i, j) = seed * (i * 100 + j) + MML::Real(0.123456789012345);
             }
         }
     }
@@ -101,7 +101,7 @@ TEST_CASE("Matrix I/O - Text format round-trip small", "[Matrix][IO][Text]")
     REQUIRE(loaded.rows() == original.rows());
     REQUIRE(loaded.cols() == original.cols());
     // Text format uses default stream precision (~6 digits)
-    REQUIRE(MatricesEqual(original, loaded, 1e-5));
+    REQUIRE(MatricesEqual(original, loaded, MML::Real(1e-5)));
 }
 
 TEST_CASE("Matrix I/O - Text format round-trip square", "[Matrix][IO][Text]")
@@ -118,7 +118,7 @@ TEST_CASE("Matrix I/O - Text format round-trip square", "[Matrix][IO][Text]")
     REQUIRE(LoadMatrixFromFile(path, loaded).success);
     
     // Text format uses default stream precision (~6 digits)
-    REQUIRE(MatricesEqual(original, loaded, 1e-5));
+    REQUIRE(MatricesEqual(original, loaded, MML::Real(1e-5)));
 }
 
 TEST_CASE("Matrix I/O - Text format round-trip large", "[Matrix][IO][Text]")
@@ -137,7 +137,7 @@ TEST_CASE("Matrix I/O - Text format round-trip large", "[Matrix][IO][Text]")
     REQUIRE(loaded.rows() == 50);
     REQUIRE(loaded.cols() == 50);
     // Text format uses default stream precision (~6 digits)
-    REQUIRE(MatricesEqual(original, loaded, 1e-5));
+    REQUIRE(MatricesEqual(original, loaded, MML::Real(1e-5)));
 }
 
 TEST_CASE("Matrix I/O - Text format single element", "[Matrix][IO][Text]")
@@ -146,7 +146,7 @@ TEST_CASE("Matrix I/O - Text format single element", "[Matrix][IO][Text]")
     TempFileGuard guard(path);
     
     Matrix<Real> original(1, 1);
-    original(0, 0) = 3.14159265358979323846;
+    original(0, 0) = MML::Real(3.14159265358979323846);
     
     REQUIRE(SaveMatrixToFile(original, path).success);
     
@@ -166,7 +166,7 @@ TEST_CASE("Matrix I/O - Text format row vector", "[Matrix][IO][Text]")
     
     Matrix<Real> original(1, 10);
     for (int j = 0; j < 10; ++j)
-        original(0, j) = j * 1.1;
+        original(0, j) = j * MML::Real(1.1);
     
     REQUIRE(SaveMatrixToFile(original, path).success);
     
@@ -176,7 +176,7 @@ TEST_CASE("Matrix I/O - Text format row vector", "[Matrix][IO][Text]")
     REQUIRE(loaded.rows() == 1);
     REQUIRE(loaded.cols() == 10);
     // Text format uses default stream precision (~6 digits)
-    REQUIRE(MatricesEqual(original, loaded, 1e-5));
+    REQUIRE(MatricesEqual(original, loaded, MML::Real(1e-5)));
 }
 
 TEST_CASE("Matrix I/O - Text format column vector", "[Matrix][IO][Text]")
@@ -186,7 +186,7 @@ TEST_CASE("Matrix I/O - Text format column vector", "[Matrix][IO][Text]")
     
     Matrix<Real> original(10, 1);
     for (int i = 0; i < 10; ++i)
-        original(i, 0) = i * 2.2;
+        original(i, 0) = i * MML::Real(2.2);
     
     REQUIRE(SaveMatrixToFile(original, path).success);
     
@@ -196,7 +196,7 @@ TEST_CASE("Matrix I/O - Text format column vector", "[Matrix][IO][Text]")
     REQUIRE(loaded.rows() == 10);
     REQUIRE(loaded.cols() == 1);
     // Text format uses default stream precision (~6 digits)
-    REQUIRE(MatricesEqual(original, loaded, 1e-5));
+    REQUIRE(MatricesEqual(original, loaded, MML::Real(1e-5)));
 }
 
 TEST_CASE("Matrix I/O - Text format special values", "[Matrix][IO][Text]")
@@ -204,15 +204,13 @@ TEST_CASE("Matrix I/O - Text format special values", "[Matrix][IO][Text]")
     std::string path = TempFilePath("matrix_special.txt");
     TempFileGuard guard(path);
     
-    // Values like 1e-300 and 1e+300 overflow/underflow for float
-    if constexpr (!std::is_same_v<Real, float>) {
     Matrix<Real> original(2, 3);
     original(0, 0) = 0.0;
     original(0, 1) = -0.0;  // Negative zero
-    original(0, 2) = 1e-300;  // Very small
-    original(1, 0) = 1e+300;  // Very large
-    original(1, 1) = -1.23456789012345e-100;  // Negative scientific
-    original(1, 2) = 1.0 / 3.0;  // Repeating decimal
+    original(0, 2) = std::sqrt(std::numeric_limits<Real>::min());
+    original(1, 0) = std::sqrt(std::numeric_limits<Real>::max());
+    original(1, 1) = -std::sqrt(std::numeric_limits<Real>::min()) * Real(10);
+    original(1, 2) = MML::Real(1.0) / MML::Real(3.0);  // Repeating decimal
     
     REQUIRE(SaveMatrixToFile(original, path).success);
     
@@ -220,8 +218,7 @@ TEST_CASE("Matrix I/O - Text format special values", "[Matrix][IO][Text]")
     REQUIRE(LoadMatrixFromFile(path, loaded).success);
     
     // Text format loses precision - use relative tolerance for large/small values
-    REQUIRE(MatricesEqual(original, loaded, 1e-5));
-    }
+    REQUIRE(MatricesEqual(original, loaded, MML::Real(1e-5)));
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -244,7 +241,7 @@ TEST_CASE("Matrix I/O - CSV format round-trip", "[Matrix][IO][CSV]")
     REQUIRE(loaded.rows() == original.rows());
     REQUIRE(loaded.cols() == original.cols());
     // CSV format uses default stream precision (~6 digits)
-    REQUIRE(MatricesEqual(original, loaded, 1e-5));
+    REQUIRE(MatricesEqual(original, loaded, MML::Real(1e-5)));
 }
 
 TEST_CASE("Matrix I/O - CSV format high precision values", "[Matrix][IO][CSV]")
@@ -253,10 +250,10 @@ TEST_CASE("Matrix I/O - CSV format high precision values", "[Matrix][IO][CSV]")
     TempFileGuard guard(path);
     
     Matrix<Real> original(2, 2);
-    original(0, 0) = 1.123456789012345;
-    original(0, 1) = 2.234567890123456;
-    original(1, 0) = 3.345678901234567;
-    original(1, 1) = 4.456789012345678;
+    original(0, 0) = MML::Real(1.123456789012345);
+    original(0, 1) = MML::Real(2.234567890123456);
+    original(1, 0) = MML::Real(3.345678901234567);
+    original(1, 1) = MML::Real(4.456789012345678);
     
     REQUIRE(SaveMatrixToCSV(original, path).success);
     
@@ -264,7 +261,7 @@ TEST_CASE("Matrix I/O - CSV format high precision values", "[Matrix][IO][CSV]")
     REQUIRE(LoadMatrixFromCSV(path, loaded).success);
     
     // CSV uses default precision (~6 digits), check with appropriate tolerance
-    REQUIRE(MatricesEqual(original, loaded, 1e-5));
+    REQUIRE(MatricesEqual(original, loaded, MML::Real(1e-5)));
 }
 
 TEST_CASE("Matrix I/O - CSV format large matrix", "[Matrix][IO][CSV]")
@@ -283,7 +280,7 @@ TEST_CASE("Matrix I/O - CSV format large matrix", "[Matrix][IO][CSV]")
     REQUIRE(loaded.rows() == 100);
     REQUIRE(loaded.cols() == 100);
     // CSV uses default precision (~6 digits)
-    REQUIRE(MatricesEqual(original, loaded, 1e-5));
+    REQUIRE(MatricesEqual(original, loaded, MML::Real(1e-5)));
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -340,9 +337,9 @@ TEST_CASE("Matrix I/O - Binary format special values", "[Matrix][IO][Binary]")
     original(1, 0) = std::numeric_limits<Real>::min();
     original(1, 1) = std::numeric_limits<Real>::max();
     original(1, 2) = std::numeric_limits<Real>::denorm_min();
-    original(2, 0) = 1e-300;
-    original(2, 1) = 1e+300;
-    original(2, 2) = -1.7976931348623157e+308;
+    original(2, 0) = std::numeric_limits<Real>::min() / Real(2);
+    original(2, 1) = std::numeric_limits<Real>::max() / Real(2);
+    original(2, 2) = -std::numeric_limits<Real>::max();
     
     REQUIRE(SaveMatrixToBinary(original, path).success);
     
@@ -359,7 +356,7 @@ TEST_CASE("Matrix I/O - Binary format single element", "[Matrix][IO][Binary]")
     TempFileGuard guard(path);
     
     Matrix<Real> original(1, 1);
-    original(0, 0) = 3.14159265358979323846;
+    original(0, 0) = MML::Real(3.14159265358979323846);
     
     REQUIRE(SaveMatrixToBinary(original, path).success);
     
@@ -426,7 +423,7 @@ TEST_CASE("Matrix I/O - Generic Save Load dispatch uses explicit format", "[Matr
 
     REQUIRE(loaded.rows() == original.rows());
     REQUIRE(loaded.cols() == original.cols());
-    REQUIRE(MatricesEqual(original, loaded, 1e-5));
+    REQUIRE(MatricesEqual(original, loaded, MML::Real(1e-5)));
 }
 
 TEST_CASE("Matrix I/O - Generic Save Load dispatch infers binary format", "[Matrix][IO][Dispatch]")
@@ -455,7 +452,7 @@ TEST_CASE("Matrix I/O - Generic Save Load dispatch supports streams", "[Matrix][
 
     Matrix<Real> textLoaded;
     REQUIRE(Load(textBuffer, textLoaded, Format::Text).success);
-    REQUIRE(MatricesEqual(original, textLoaded, 1e-5));
+    REQUIRE(MatricesEqual(original, textLoaded, MML::Real(1e-5)));
 
     std::stringstream binaryBuffer(std::ios::in | std::ios::out | std::ios::binary);
     REQUIRE(Save(binaryBuffer, original, Format::Binary).success);
@@ -508,7 +505,7 @@ TEST_CASE("Matrix I/O - Generic Save Load dispatch infers JSON format", "[Matrix
 
     auto unknownResult = Save(original, unknownPath);
     REQUIRE_FALSE(unknownResult.success);
-    REQUIRE(unknownResult.error == SerializeError::INVALID_FORMAT);
+    REQUIRE(unknownResult.error == IOError::INVALID_FORMAT);
 }
 
 TEST_CASE("Matrix I/O - Generic Save reports unknown formats", "[Matrix][IO][Dispatch]")
@@ -521,7 +518,7 @@ TEST_CASE("Matrix I/O - Generic Save reports unknown formats", "[Matrix][IO][Dis
 
     auto unknownResult = Save(original, unknownPath);
     REQUIRE_FALSE(unknownResult.success);
-    REQUIRE(unknownResult.error == SerializeError::INVALID_FORMAT);
+    REQUIRE(unknownResult.error == IOError::INVALID_FORMAT);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -564,7 +561,7 @@ TEST_CASE("Matrix I/O - Binary truncated file", "[Matrix][IO][Error]")
     
     Matrix<Real> loaded;
     // Should fail or handle gracefully (not crash)
-    SerializeResult result = LoadMatrixFromBinary(path, loaded);
+    IOResult result = LoadMatrixFromBinary(path, loaded);
     // Either fails or loads empty - should not crash
     (void)result;
 }

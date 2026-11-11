@@ -82,32 +82,27 @@ namespace MML
 	 * 
 	 * @example
 	 * @code
-	 * // Simple pendulum in Cartesian coordinates
-	 * // Differential: dx/dt = vx, dy/dt = vy, dvx/dt = λx, dvy/dt = λy - g
-	 * // Constraint: x² + y² = L²
-	 * class PendulumDAE : public IODESystemDAE {
-	 *     Real L = 1.0, g = 9.81;
+	 * // Index-1 decay: x' = -y, 0 = y - x. Here g_y = 1.
+	 * // Consistent data x(0) = y(0) = 1 give x(t) = y(t) = exp(-t).
+	 * class DecayDAE : public IODESystemDAE {
 	 * public:
-	 *     int getDiffDim() const override { return 4; }  // x, y, vx, vy
-	 *     int getAlgDim() const override { return 1; }   // λ (tension/L)
+	 *     int getDiffDim() const override { return 1; }
+	 *     int getAlgDim() const override { return 1; }
 	 *     
-	 *     void diffEqs(Real t, const Vector<Real>& diff, const Vector<Real>& alg,
+	 *     void diffEqs(Real, const Vector<Real>&, const Vector<Real>& alg,
 	 *                  Vector<Real>& dxdt) const override {
-	 *         Real x = diff[0], y = diff[1], vx = diff[2], vy = diff[3];
-	 *         Real lambda = alg[0];
-	 *         dxdt[0] = vx;
-	 *         dxdt[1] = vy;
-	 *         dxdt[2] = lambda * x;
-	 *         dxdt[3] = lambda * y - g;
+	 *         dxdt[0] = -alg[0];
 	 *     }
 	 *     
-	 *     void algConstraints(Real t, const Vector<Real>& diff, const Vector<Real>& alg,
+	 *     void algConstraints(Real, const Vector<Real>& diff, const Vector<Real>& alg,
 	 *                         Vector<Real>& constraints) const override {
-	 *         Real x = diff[0], y = diff[1];
-	 *         constraints[0] = x*x + y*y - L*L;
+	 *         constraints[0] = alg[0] - diff[0];
 	 *     }
 	 * };
 	 * @endcode
+	 * A Cartesian pendulum position constraint is not an index-1 example:
+	 * its derivative with respect to the algebraic tension is zero. Such a model
+	 * requires index reduction before it can use this interface's solvers.
 	 */
 	class IODESystemDAE
 	{
@@ -228,10 +223,12 @@ namespace MML
 	 * must be nonsingular. If this matrix is singular, the DAE has index > 1
 	 * and requires index reduction before solving.
 	 * 
+	 * @note Capability interfaces share a virtual IODESystemDAE base, so analytic
+	 *       Jacobian, parameter, and event capabilities can be composed.
 	 * @note Providing analytic Jacobians significantly improves both accuracy
 	 *       and performance compared to numerical differentiation.
 	 */
-	class IODESystemDAEWithJacobian : public IODESystemDAE
+	class IODESystemDAEWithJacobian : public virtual IODESystemDAE
 	{
 	public:
 		/**
@@ -315,20 +312,24 @@ namespace MML
 	 * 
 	 * @example
 	 * @code
-	 * // Pendulum with adjustable length and gravity
-	 * class ParametrizedPendulum : public IODESystemDAEParametrized {
-	 *     Real L = 1.0, g = 9.81;  // Default values
+	 * // Index-1 decay with adjustable rate: x' = -y, 0 = y - rate*x.
+	 * class ParametrizedDecay : public IODESystemDAEParametrized {
+	 *     Real rate = 1;
 	 * public:
-	 *     int getNumParam() const override { return 2; }
-	 *     Real getParam(int i) const override { return i == 0 ? L : g; }
+	 *     int getNumParam() const override { return 1; }
+	 *     Real getParam(int i) const override {
+	 *         if (i != 0) throw IndexError("Invalid parameter index");
+	 *         return rate;
+	 *     }
 	 *     void setParam(int i, Real val) override { 
-	 *         if (i == 0) L = val; else g = val; 
+	 *         if (i != 0) throw IndexError("Invalid parameter index");
+	 *         rate = val;
 	 *     }
 	 *     // ... rest of DAE implementation
 	 * };
 	 * @endcode
 	 */
-	class IODESystemDAEParametrized : public IODESystemDAE, public IParametrized
+	class IODESystemDAEParametrized : public virtual IODESystemDAE, public IParametrized
 	{
 	public:
 		virtual ~IODESystemDAEParametrized() = default;

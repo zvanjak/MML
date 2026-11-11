@@ -30,8 +30,113 @@
 #endif
 
 #include <stdexcept>
+#include <chrono>
+#include <fstream>
+#include <sstream>
+#include <limits>
 
 using namespace MML;
+
+void Docs_Demo_VectorFiltering()
+{
+	const std::string base = "mml_vector_filter_demo_" +
+		std::to_string(std::chrono::steady_clock::now().time_since_epoch().count());
+	const std::filesystem::path results = GetResultFilesPath();
+	const auto all3 = results / (base + "_all3.mml");
+	const auto filtered3 = results / (base + "_filtered3.mml");
+	const auto retained3 = results / (base + "_retained3.mml");
+	const auto all2 = results / (base + "_all2.mml");
+	const auto filtered2 = results / (base + "_filtered2.mml");
+	const auto invalidPath = results / (base + "_invalid.mml");
+	struct Cleanup {
+		std::filesystem::path previousRoot;
+		std::vector<std::filesystem::path> paths;
+		~Cleanup() {
+			SetVisualizerRoot(previousRoot);
+			for (const auto& path : paths) {
+				std::error_code error;
+				std::filesystem::remove(path, error);
+				if (error) std::cerr << "Cannot remove vector filtering demo file: " << error.message() << '\n';
+			}
+		}
+	} cleanup{detail::GetVisualizerRootState(), {all3, filtered3, retained3, all2, filtered2, invalidPath}};
+	SetVisualizerRoot(std::filesystem::temp_directory_path() / (base + "_missing_bundle"));
+	if (std::filesystem::exists(GetVectorField2DVisualizerPath()) || std::filesystem::exists(GetVectorField3DVisualizerPath()))
+		throw std::runtime_error("Headless vector demo requires its isolated bundle to be absent");
+	auto checkExport = [](const IOResult& result, const std::filesystem::path& path, int expectedRows) {
+		if (result.success || result.error != IOError::FILE_NOT_OPENED ||
+			std::filesystem::path(result.filename) != std::filesystem::weakly_canonical(path))
+			throw std::runtime_error("Expected a reported missing-executable failure after serialization");
+		std::ifstream in(path);
+		if (!in.is_open()) throw std::runtime_error("Vector filtering demo did not create its data file");
+		int lines = 0;
+		for (std::string line; std::getline(in, line);) ++lines;
+		if (in.bad() || lines != expectedRows + 3)
+			throw std::runtime_error("Vector filtering demo exported an unexpected sample count");
+	};
+	VectorFunction<3> field([](const VectorN<Real, 3>&) { return VectorN<Real, 3>{4, 0, 0}; });
+	const auto all = Visualizer::VisualizeVectorField3DCartesian(
+		field, "All vectors", 0, 1, 2, 0, 1, 2, 0, 1, 2, all3.filename().string());
+	checkExport(all, all3, 8);
+	const Real upperThreshold = 3;
+	const auto filtered = Visualizer::VisualizeVectorField3DCartesian(
+		field, "Explicit cutoff", 0, 1, 2, 0, 1, 2, 0, 1, 2, filtered3.filename().string(), upperThreshold);
+	checkExport(filtered, filtered3, 0);
+	const auto retained = Visualizer::VisualizeVectorField3DCartesian(
+		field, "Larger cutoff", 0, 1, 2, 0, 1, 2, 0, 1, 2, retained3.filename().string(), 5);
+	checkExport(retained, retained3, 8);
+	VectorFunction<2> field2([](const VectorN<Real, 2>&) { return VectorN<Real, 2>{4, 0}; });
+	checkExport(Visualizer::VisualizeVectorField2DCartesian(
+		field2, "All vectors", 0, 1, 2, 0, 1, 2, all2.filename().string()), all2, 4);
+	checkExport(Visualizer::VisualizeVectorField2DCartesian(
+		field2, "Explicit cutoff", 0, 1, 2, 0, 1, 2, filtered2.filename().string(), upperThreshold), filtered2, 0);
+	const auto invalid = Visualizer::VisualizeVectorField3DCartesian(
+		field, "Invalid cutoff", 0, 1, 2, 0, 1, 2, 0, 1, 2, invalidPath.filename().string(),
+		std::numeric_limits<Real>::quiet_NaN());
+	if (invalid.error != IOError::INVALID_PARAMETERS || std::filesystem::exists(invalidPath))
+		throw std::runtime_error("NaN vector cutoff was not rejected before creating the output");
+	std::cout << "3D constant (4,0,0): default=8 samples, explicit cutoff 3=0, cutoff 5=8.\n";
+	std::cout << "2D constant (4,0): default=4 samples, explicit cutoff 3=0; NaN cutoff rejected.\n";
+	std::cout << "No GUI launched; missing-executable failures were reported separately from successful exports.\n";
+}
+
+void Docs_Demo_CollectionContracts()
+{
+	RealFunction sine([](Real x) { return std::sin(x); });
+	RealFunction cosine([](Real x) { return std::cos(x); });
+	std::vector<IRealFunction*> funcs{&sine, &cosine};
+	const std::vector<std::string> legend{"sin(x)", "cos(x)"};
+	const auto path = std::filesystem::temp_directory_path() /
+		("mml_collection_demo_" + std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()) + ".mml");
+	const auto saved = Serializer::SaveRealMultiFunc(funcs, "Trig Functions", legend, 0, 2 * Constants::PI, 100, path.string(), 8);
+	if (!saved.success) throw std::runtime_error(saved.message);
+
+	const auto invalidFile = Serializer::SaveRealMultiFunc(funcs, "invalid", {"missing"}, 0, 1, 3, path.string());
+	std::ifstream in(path);
+	std::string type, version, title;
+	std::getline(in, type);
+	std::getline(in, version);
+	std::getline(in, title);
+	in.close();
+	std::filesystem::remove(path);
+	if (invalidFile.error != IOError::INVALID_PARAMETERS || title != "Trig Functions")
+		throw std::runtime_error("Invalid legend changed an existing destination");
+
+	std::ostringstream out;
+	out << "unchanged";
+	funcs.push_back(nullptr);
+	const auto invalidStream = Serializer::SaveRealMultiFunc(out, funcs, "invalid", {"a", "b", "c"}, 0, 1, 3);
+	if (invalidStream.error != IOError::INVALID_PARAMETERS || out.str() != "unchanged")
+		throw std::runtime_error("Null collection entry was not rejected before writing");
+	const auto invalidVisualizer = Visualizer::VisualizeMultiRealFunction(funcs, "invalid", {"a", "b", "c"}, 0, 1, 3, path.string());
+	if (invalidVisualizer.error != IOError::INVALID_PARAMETERS || std::filesystem::exists(path))
+		throw std::runtime_error("Visualizer did not reject its collection before creating output");
+
+	std::ostringstream emptyHeader;
+	if (!Serializer::WriteRealMultiFuncHeader(emptyHeader, "zero", 0, {}, 0, 1, 2).success)
+		throw std::runtime_error("Matching empty low-level header collections must remain valid");
+	std::cout << "Collection contracts passed: exact legends, null rejection, preserved output, zero-count headers; no GUI launched.\n";
+}
 
 void Docs_Demo_VisualizerConfiguration()
 {

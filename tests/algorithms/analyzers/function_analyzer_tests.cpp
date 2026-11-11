@@ -2,9 +2,7 @@
 #include "../../TestPrecision.h"
 #include "../../TestMatchers.h"
 
-#ifdef MML_USE_SINGLE_HEADER
-#include <MML.h>
-#else
+#ifndef MML_SINGLE_HEADER_INCLUDE
 #include <mml/base/Vector/Vector.h>
 
 #include <mml/base/Function.h>
@@ -33,6 +31,198 @@ namespace MML::Tests::Algorithms::FunctionAnalyzerTests
 		REQUIRE(an.IsDefinedAtPoint(static_cast<MML::Real>(1.0)) == false);
 	}
 
+	TEST_CASE("FunctionAnalyzer sampled monotonicity handles plateaus and endpoints", "[FunctionAnalyzer][function-analyzer-regression]") {
+		for (Real sign : {Real(-1), Real(1)}) {
+			RealFunctionFromStdFunc plateau([sign](Real x) { return sign * std::max(Real(0), x - Real(0.5)); });
+			REQUIRE(RealFunctionAnalyzer(plateau).IsMonotonicOnSamples(0, 1, 10));
+		}
+		RealFunction constant(+[](Real) { return Real(1); });
+		REQUIRE(RealFunctionAnalyzer(constant).IsMonotonicOnSamples(0, 1, 1));
+		RealFunction endpointReversal(+[](Real x) { return x == Real(1) ? Real(-1) : x; });
+		REQUIRE_FALSE(RealFunctionAnalyzer(endpointReversal).IsMonotonicOnSamples(0, 1, 4));
+		RealFunction reversalAfterPlateau(+[](Real x) { return x <= Real(0.5) ? Real(0) : (x < Real(1) ? Real(1) : Real(0)); });
+		REQUIRE_FALSE(RealFunctionAnalyzer(reversalAfterPlateau).IsMonotonicOnSamples(0, 1, 4));
+	}
+
+	TEST_CASE("FunctionAnalyzer interval flags reject nonfinite samples", "[FunctionAnalyzer][function-analyzer-regression]") {
+		for (Real invalid : {std::numeric_limits<Real>::quiet_NaN(), std::numeric_limits<Real>::infinity()}) {
+			RealFunctionFromStdFunc undefined([invalid](Real) { return invalid; });
+			RealFunctionAnalyzer analyzer(undefined);
+			const auto result = analyzer.AnalyzeInterval(0, 1, 4);
+			CHECK_FALSE(result.isDefinedEverywhere);
+			CHECK_FALSE(result.isContinuousEverywhere);
+			CHECK_FALSE(result.isMonotonic);
+			CHECK(result.undefinedPoints == std::vector<Real>{0, Real(0.25), Real(0.5), Real(0.75)});
+			CHECK(result.discontinuityPoints == result.undefinedPoints);
+			CHECK(std::isnan(result.minValue));
+			CHECK(std::isnan(result.maxValue));
+			CHECK_FALSE(analyzer.IsMonotonicOnSamples(0, 1, 4));
+			CHECK(std::isnan(analyzer.MinInNPoints(0, 1, 4)));
+			CHECK(std::isnan(analyzer.MaxInNPoints(0, 1, 4)));
+		}
+		RealFunction mixed(+[](Real x) { return x == Real(0.5) ? std::numeric_limits<Real>::quiet_NaN() : x; });
+		const auto result = RealFunctionAnalyzer(mixed).AnalyzeInterval(0, 1, 4);
+		CHECK_FALSE(result.isContinuousEverywhere);
+		CHECK_FALSE(result.isMonotonic);
+		CHECK(result.minValue == Real(0));
+		CHECK(result.maxValue == Real(0.75));
+	}
+
+	TEST_CASE("FunctionAnalyzer preserves half-open reports and closed sampling endpoints",
+						"[FunctionAnalyzer][function-analyzer-regression]") {
+		RealFunction endpointReversal(+[](Real x) { return x == Real(1) ? Real(-1) : x; });
+		RealFunctionAnalyzer analyzer(endpointReversal);
+		const auto interval = analyzer.AnalyzeInterval(0, 1, 4);
+		const auto points = analyzer.AnalyzePoints(0, 1, 4);
+		REQUIRE(points.size() == 4);
+		CHECK(points.front().x == Real(0));
+		CHECK(points.back().x == Real(0.75));
+		CHECK(interval.minValue == Real(0));
+		CHECK(interval.maxValue == Real(0.75));
+		CHECK(interval.isMonotonic);
+		CHECK(analyzer.MinInNPoints(0, 1, 4) == Real(-1));
+		CHECK(analyzer.MaxInNPoints(0, 1, 4) == Real(0.75));
+
+		RealFunction highest(+[](Real) { return std::numeric_limits<Real>::max(); });
+		RealFunction lowest(+[](Real) { return std::numeric_limits<Real>::lowest(); });
+		CHECK(RealFunctionAnalyzer(highest).MinInNPoints(0, 1, 1) == std::numeric_limits<Real>::max());
+		CHECK(RealFunctionAnalyzer(lowest).MaxInNPoints(0, 1, 1) == std::numeric_limits<Real>::lowest());
+	}
+
+	TEST_CASE("FunctionAnalyzer continuity output replaces stale locations", "[FunctionAnalyzer][function-analyzer-regression]") {
+		RealFunction constant(+[](Real) { return Real(1); });
+		std::vector<Real> locations{Real(42)};
+		REQUIRE(RealFunctionAnalyzer(constant).AppearsContinuous(0, 1, 4, Precision::LooseTolerance, &locations));
+		CHECK(locations.empty());
+		RealFunction jump(+[](Real x) { return x < Real(0) ? Real(-1) : Real(1); });
+		locations = {Real(42)};
+		REQUIRE_FALSE(RealFunctionAnalyzer(jump).AppearsContinuous(-1, 1, 4, Precision::LooseTolerance, &locations));
+		CHECK(std::find(locations.begin(), locations.end(), Real(0)) != locations.end());
+		CHECK(std::find(locations.begin(), locations.end(), Real(42)) == locations.end());
+	}
+
+	TEST_CASE("FunctionAnalyzer sign checks survive tiny function scales", "[FunctionAnalyzer][function-analyzer-regression]") {
+		const Real scale = std::scalbn(Real(1), -2 * std::numeric_limits<Real>::max_exponent / 3);
+		const Real eps = scale * Precision::EqualityTolerance;
+		RealFunctionFromStdFunc linear([scale](Real x) { return scale * (x - Real(0.123456)); });
+		auto roots = RealFunctionAnalyzer(linear).GetRoots(0, 1, eps);
+		REQUIRE(roots.size() == 1);
+		CHECK_THAT(roots.front(), WithinAbs(Real(0.123456), Precision::ModerateTolerance));
+		RealFunctionFromStdFunc cubic([scale](Real x) { return scale * x * x * x; });
+		RealFunctionFromStdFunc quadratic([scale](Real x) { return scale * x * x; });
+		CHECK(RealFunctionAnalyzer(cubic).IsInflectionPoint(0, Precision::CoarseTolerance));
+		CHECK(RealFunctionAnalyzer(quadratic).IsLocalOptimum(0, Precision::CoarseTolerance));
+	}
+
+	TEST_CASE("FunctionAnalyzer safe difference respects representable range", "[FunctionAnalyzer][function-analyzer-regression]") {
+		const Real large = Real(10) * Precision::InfiniteLimitThreshold;
+		CHECK(SafeDifference(large, -large) == Real(2) * large);
+		CHECK(SafeDifference(-large, large) == Real(2) * large);
+		CHECK(SafeDifference(large, large) == Real(0));
+		// Keep the intentional overflow witness in runtime arithmetic.
+		volatile Real runtimeMax = std::numeric_limits<Real>::max();
+		CHECK(std::isinf(SafeDifference(runtimeMax, -runtimeMax)));
+		CHECK(std::isinf(SafeDifference(std::numeric_limits<Real>::infinity(), Real(0))));
+		CHECK(std::isnan(SafeDifference(std::numeric_limits<Real>::quiet_NaN(), Real(0))));
+	}
+
+	TEST_CASE("FunctionAnalyzer limits preserve signs and distinguish invalid evidence", "[FunctionAnalyzer][function-analyzer-regression]") {
+		const Real eps = Real(1) / std::sqrt(Precision::InfiniteLimitThreshold);
+		for (Real sign : {Real(-1), Real(1)}) {
+			RealFunctionFromStdFunc pole([sign](Real x) { return sign / (x * x); });
+			const RealFunctionAnalyzer analyzer(pole);
+			for (Real limit : {analyzer.ComputeLeftLimit(0, eps), analyzer.ComputeRightLimit(0, eps)}) {
+				CHECK(std::isinf(limit));
+				CHECK(std::signbit(limit) == std::signbit(sign));
+			}
+			RealFunctionFromStdFunc overflowPole([sign](Real x) { return sign * Precision::OverflowDetectionThreshold / (x * x); });
+			const auto disc = RealFunctionAnalyzer(overflowPole).ClassifyDiscontinuity(0);
+			CHECK(disc.type == DiscontinuityType::Infinite);
+			CHECK(std::signbit(disc.leftLimit) == std::signbit(sign));
+			CHECK(std::signbit(disc.rightLimit) == std::signbit(sign));
+		}
+		RealFunctionFromStdFunc oddPole([](Real x) { return Precision::OverflowDetectionThreshold / x; });
+		const auto odd = RealFunctionAnalyzer(oddPole).ClassifyDiscontinuity(0);
+		CHECK(odd.type == DiscontinuityType::Infinite);
+		CHECK(std::signbit(odd.leftLimit));
+		CHECK_FALSE(std::signbit(odd.rightLimit));
+
+		RealFunction largeConstant(+[](Real) { return Real(10) * Precision::InfiniteLimitThreshold; });
+		const RealFunctionAnalyzer constantAnalyzer(largeConstant);
+		CHECK(constantAnalyzer.ComputeLeftLimit(0) == largeConstant(0));
+		CHECK(constantAnalyzer.ComputeRightLimit(0) == largeConstant(0));
+		CHECK(constantAnalyzer.ClassifyDiscontinuity(0).type == DiscontinuityType::UNKNOWN);
+		RealFunction undefined(+[](Real) { return std::numeric_limits<Real>::quiet_NaN(); });
+		CHECK(RealFunctionAnalyzer(undefined).ClassifyDiscontinuity(0).type == DiscontinuityType::UNKNOWN);
+
+		RealFunction centerOnly(+[](Real x) { return x == Real(1) ? Real(100) : Real(2); });
+		CHECK(std::isnan(RealFunctionAnalyzer(centerOnly).ComputeLeftLimit(1, std::numeric_limits<Real>::min())));
+		CHECK(std::isnan(RealFunctionAnalyzer(centerOnly).ComputeRightLimit(1, std::numeric_limits<Real>::min())));
+	}
+
+	TEST_CASE("FunctionAnalyzer rejects invalid sampling and probe parameters", "[FunctionAnalyzer][function-analyzer-regression]") {
+		RealFunction identity(+[](Real x) { return x; });
+		RealFunctionAnalyzer analyzer(identity);
+		for (int count : {0, -1}) {
+			CHECK_THROWS_AS(analyzer.AnalyzeInterval(0, 1, count), std::invalid_argument);
+			CHECK_THROWS_AS(analyzer.AnalyzePoints(0, 1, count), std::invalid_argument);
+			CHECK_THROWS_AS(analyzer.IsMonotonicOnSamples(0, 1, count), std::invalid_argument);
+			CHECK_THROWS_AS(analyzer.AppearsContinuous(0, 1, count), std::invalid_argument);
+			CHECK_THROWS_AS(analyzer.FindDiscontinuityCandidates(0, 1, count), std::invalid_argument);
+			CHECK_THROWS_AS(analyzer.MinInNPoints(0, 1, count), std::invalid_argument);
+			CHECK_THROWS_AS(analyzer.MaxInNPoints(0, 1, count), std::invalid_argument);
+			CHECK_THROWS_AS(analyzer.ComputeLeftLimit(0, Precision::LooseTolerance, count), std::invalid_argument);
+			CHECK_THROWS_AS(analyzer.ComputeRightLimit(0, Precision::LooseTolerance, count), std::invalid_argument);
+		}
+		for (Real invalid : {Real(0), Real(-1), std::numeric_limits<Real>::quiet_NaN(), std::numeric_limits<Real>::infinity()}) {
+			CHECK_THROWS_AS(analyzer.AnalyzeInterval(0, 1, 4, invalid), std::invalid_argument);
+			CHECK_THROWS_AS(analyzer.AnalyzePoints(0, 1, 4, invalid), std::invalid_argument);
+			CHECK_THROWS_AS(analyzer.AppearsContinuous(0, 1, 4, invalid), std::invalid_argument);
+			CHECK_THROWS_AS(analyzer.FindDiscontinuityCandidates(0, 1, 4, invalid), std::invalid_argument);
+			CHECK_THROWS_AS(analyzer.GetRoots(0, 1, invalid), std::invalid_argument);
+			CHECK_THROWS_AS(analyzer.ComputeLeftLimit(0, invalid), std::invalid_argument);
+			CHECK_THROWS_AS(analyzer.ComputeRightLimit(0, invalid), std::invalid_argument);
+		}
+		CHECK_THROWS_AS(analyzer.AnalyzeInterval(1, 0, 4), std::invalid_argument);
+		CHECK_THROWS_AS(analyzer.AnalyzePoints(0, std::numeric_limits<Real>::infinity(), 4), std::invalid_argument);
+		CHECK_THROWS_AS(analyzer.IsMonotonicOnSamples(std::numeric_limits<Real>::quiet_NaN(), 1, 4), std::invalid_argument);
+		CHECK(analyzer.AnalyzePoints(1, 1, 1).front().x == Real(1));
+	}
+
+	TEST_CASE("FunctionAnalyzer closed grids evaluate exact endpoints without range overflow",
+						"[FunctionAnalyzer][function-analyzer-regression]") {
+		std::vector<Real> sampled;
+		// Exercise the overflowing-span fallback without compile-time overflow.
+		volatile Real runtimeBound = std::numeric_limits<Real>::max();
+		const Real bound = runtimeBound;
+		RealFunctionFromStdFunc identity([&sampled, bound](Real x) {
+			sampled.push_back(x);
+			return x / bound;
+		});
+		RealFunctionAnalyzer analyzer(identity);
+		REQUIRE(analyzer.IsMonotonicOnSamples(-bound, bound, 4));
+		REQUIRE(sampled.size() == 5);
+		CHECK(sampled.front() == -bound);
+		CHECK(sampled.back() == bound);
+		CHECK(sampled[2] == Real(0));
+		for (Real x : sampled)
+			CHECK(std::isfinite(x));
+		sampled.clear();
+		REQUIRE(analyzer.MinInNPoints(Real(0.1), Real(0.3), 7) == Real(0.1) / bound);
+		REQUIRE(sampled.size() == 8);
+		CHECK(sampled.back() == Real(0.3));
+	}
+
+	TEST_CASE("FunctionAnalyzer unresolved infinite probes do not invent a signed limit",
+						"[FunctionAnalyzer][function-analyzer-regression]") {
+		int evaluations = 0;
+		RealFunctionFromStdFunc alternating(
+			[&evaluations](Real) { return ++evaluations % 2 ? std::numeric_limits<Real>::infinity() : -std::numeric_limits<Real>::infinity(); });
+		const RealFunctionAnalyzer analyzer(alternating);
+		CHECK(std::isnan(analyzer.ComputeLeftLimit(0)));
+		CHECK(std::isnan(analyzer.ComputeRightLimit(0)));
+	}
+
 	Real test_func_123(Real x)
 	{
 		return 9 - (x - 3) * (x - 3);
@@ -52,6 +242,7 @@ namespace MML::Tests::Algorithms::FunctionAnalyzerTests
 
 		double triangleArea = 6 * test_func_123(static_cast<MML::Real>(3.0)) / 2;
 		double parabolaArea = IntegrateTrap(test, static_cast<MML::Real>(0.0), static_cast<MML::Real>(6.0));
+		REQUIRE_THAT(parabolaArea - triangleArea, WithinRel(static_cast<MML::Real>(9.0), static_cast<MML::Real>(1e-4)));
 
 		REQUIRE_THAT(RealFunctionComparer::getIntegratedDiff(myfunc, test, static_cast<MML::Real>(0.0), static_cast<MML::Real>(6.0)) , WithinRel(-static_cast<MML::Real>(9.0), static_cast<MML::Real>(1e-4)));
 		REQUIRE_THAT(RealFunctionComparer::getIntegratedDiff(myfunc, test, static_cast<MML::Real>(0.0), static_cast<MML::Real>(6.0)) , !WithinRel(-static_cast<MML::Real>(9.0), static_cast<MML::Real>(1e-5)));
@@ -127,11 +318,11 @@ namespace MML::Tests::Algorithms::FunctionAnalyzerTests
 		RealFunctionAnalyzer analyzer(cubic);
 
 		// Test inflection point at x=0
-		REQUIRE(analyzer.IsInflectionPoint(static_cast<MML::Real>(0.0), 1e-4));
+		REQUIRE(analyzer.IsInflectionPoint(static_cast<MML::Real>(0.0), MML::Real(1e-4)));
 
 		// Test that x=1 and x=-1 are not inflection points
-		REQUIRE_FALSE(analyzer.IsInflectionPoint(static_cast<MML::Real>(1.0), 1e-4));
-		REQUIRE_FALSE(analyzer.IsInflectionPoint(-static_cast<MML::Real>(1.0), 1e-4));
+		REQUIRE_FALSE(analyzer.IsInflectionPoint(static_cast<MML::Real>(1.0), MML::Real(1e-4)));
+		REQUIRE_FALSE(analyzer.IsInflectionPoint(-static_cast<MML::Real>(1.0), MML::Real(1e-4)));
 	}
 
 	TEST_CASE("FunctionAnalyzer::Inflection_point_sine", "[inflection]")
@@ -144,13 +335,13 @@ namespace MML::Tests::Algorithms::FunctionAnalyzerTests
 		RealFunctionAnalyzer analyzer(sine);
 
 		// Test inflection points at x=0, π, 2π
-		REQUIRE(analyzer.IsInflectionPoint(static_cast<MML::Real>(0.0), 1e-4));
-		REQUIRE(analyzer.IsInflectionPoint(Constants::PI, 1e-4));
-		REQUIRE(analyzer.IsInflectionPoint(static_cast<MML::Real>(2.0) * Constants::PI, 1e-4));
+		REQUIRE(analyzer.IsInflectionPoint(static_cast<MML::Real>(0.0), MML::Real(1e-4)));
+		REQUIRE(analyzer.IsInflectionPoint(Constants::PI, MML::Real(1e-4)));
+		REQUIRE(analyzer.IsInflectionPoint(static_cast<MML::Real>(2.0) * Constants::PI, MML::Real(1e-4)));
 
 		// Test that π/2 and 3π/2 are not inflection points (they're extrema)
-		REQUIRE_FALSE(analyzer.IsInflectionPoint(Constants::PI / static_cast<MML::Real>(2.0), 1e-4));
-		REQUIRE_FALSE(analyzer.IsInflectionPoint(static_cast<MML::Real>(3.0) * Constants::PI / static_cast<MML::Real>(2.0), 1e-4));
+		REQUIRE_FALSE(analyzer.IsInflectionPoint(Constants::PI / static_cast<MML::Real>(2.0), MML::Real(1e-4)));
+		REQUIRE_FALSE(analyzer.IsInflectionPoint(static_cast<MML::Real>(3.0) * Constants::PI / static_cast<MML::Real>(2.0), MML::Real(1e-4)));
 	}
 
 	TEST_CASE("FunctionAnalyzer::Inflection_point_polynomial", "[inflection]")
@@ -166,11 +357,11 @@ namespace MML::Tests::Algorithms::FunctionAnalyzerTests
 		RealFunctionAnalyzer analyzer(quartic);
 
 		// Test inflection points at x=-1 and x=1
-		REQUIRE(analyzer.IsInflectionPoint(-static_cast<MML::Real>(1.0), 1e-4));
-		REQUIRE(analyzer.IsInflectionPoint(static_cast<MML::Real>(1.0), 1e-4));
+		REQUIRE(analyzer.IsInflectionPoint(-static_cast<MML::Real>(1.0), MML::Real(1e-4)));
+		REQUIRE(analyzer.IsInflectionPoint(static_cast<MML::Real>(1.0), MML::Real(1e-4)));
 
 		// Test that x=0 is not an inflection point (it's a local maximum)
-		REQUIRE_FALSE(analyzer.IsInflectionPoint(static_cast<MML::Real>(0.0), 1e-4));
+		REQUIRE_FALSE(analyzer.IsInflectionPoint(static_cast<MML::Real>(0.0), MML::Real(1e-4)));
 	}
 
 	/*********************************************************************/
@@ -240,10 +431,10 @@ namespace MML::Tests::Algorithms::FunctionAnalyzerTests
 		RealFunction poly([](Real x) { return x * x * x - static_cast<MML::Real>(2.0) * x + static_cast<MML::Real>(1.0); });
 		RealFunctionAnalyzer analyzer(poly);
 
-		REQUIRE(analyzer.IsContinuousAtPoint(static_cast<MML::Real>(0.0), 1e-6));
-		REQUIRE(analyzer.IsContinuousAtPoint(static_cast<MML::Real>(1.0), 1e-6));
-		REQUIRE(analyzer.IsContinuousAtPoint(-static_cast<MML::Real>(5.0), 1e-4));  // Use larger tolerance for larger values
-		REQUIRE(analyzer.IsContinuousAtPoint(static_cast<MML::Real>(10.0), 1e-3));  // Use larger tolerance for larger values
+		REQUIRE(analyzer.IsContinuousAtPoint(static_cast<MML::Real>(0.0), MML::Real(1e-6)));
+		REQUIRE(analyzer.IsContinuousAtPoint(static_cast<MML::Real>(1.0), MML::Real(1e-6)));
+		REQUIRE(analyzer.IsContinuousAtPoint(-static_cast<MML::Real>(5.0), MML::Real(1e-4)));  // Use larger tolerance for larger values
+		REQUIRE(analyzer.IsContinuousAtPoint(static_cast<MML::Real>(10.0), MML::Real(1e-3)));  // Use larger tolerance for larger values
 	}
 
 	TEST_CASE("FunctionAnalyzer::Continuity_discontinuous_at_point", "[continuity]")
@@ -253,10 +444,10 @@ namespace MML::Tests::Algorithms::FunctionAnalyzerTests
 		RealFunction rational([](Real x) { return static_cast<MML::Real>(1.0) / (x - static_cast<MML::Real>(2.0)); });
 		RealFunctionAnalyzer analyzer(rational);
 
-		REQUIRE(analyzer.IsContinuousAtPoint(static_cast<MML::Real>(0.0), 1e-6));
-		REQUIRE(analyzer.IsContinuousAtPoint(static_cast<MML::Real>(1.0), 1e-6));
-		REQUIRE_FALSE(analyzer.IsContinuousAtPoint(static_cast<MML::Real>(2.0), 1e-6));
-		REQUIRE(analyzer.IsContinuousAtPoint(static_cast<MML::Real>(3.0), 1e-6));
+		REQUIRE(analyzer.IsContinuousAtPoint(static_cast<MML::Real>(0.0), MML::Real(1e-6)));
+		REQUIRE(analyzer.IsContinuousAtPoint(static_cast<MML::Real>(1.0), MML::Real(1e-6)));
+		REQUIRE_FALSE(analyzer.IsContinuousAtPoint(static_cast<MML::Real>(2.0), MML::Real(1e-6)));
+		REQUIRE(analyzer.IsContinuousAtPoint(static_cast<MML::Real>(3.0), MML::Real(1e-6)));
 	}
 
 	TEST_CASE("FunctionAnalyzer::Continuity_piecewise", "[continuity]")
@@ -269,9 +460,9 @@ namespace MML::Tests::Algorithms::FunctionAnalyzerTests
 		});
 		RealFunctionAnalyzer analyzer(piecewise);
 
-		REQUIRE(analyzer.IsContinuousAtPoint(-static_cast<MML::Real>(1.0), 1e-6));
-		REQUIRE(analyzer.IsContinuousAtPoint(static_cast<MML::Real>(0.0), 1e-3));  // Need larger epsilon at boundary
-		REQUIRE(analyzer.IsContinuousAtPoint(static_cast<MML::Real>(1.0), 1e-6));
+		REQUIRE(analyzer.IsContinuousAtPoint(-static_cast<MML::Real>(1.0), MML::Real(1e-6)));
+		REQUIRE(analyzer.IsContinuousAtPoint(static_cast<MML::Real>(0.0), MML::Real(1e-3)));  // Need larger epsilon at boundary
+		REQUIRE(analyzer.IsContinuousAtPoint(static_cast<MML::Real>(1.0), MML::Real(1e-6)));
 	}
 
 	TEST_CASE("FunctionAnalyzer::Continuity_step_function", "[continuity]")
@@ -284,9 +475,9 @@ namespace MML::Tests::Algorithms::FunctionAnalyzerTests
 		});
 		RealFunctionAnalyzer analyzer(step);
 
-		REQUIRE(analyzer.IsContinuousAtPoint(-static_cast<MML::Real>(1.0), 1e-6));
-		REQUIRE_FALSE(analyzer.IsContinuousAtPoint(static_cast<MML::Real>(0.0), 1e-6));
-		REQUIRE(analyzer.IsContinuousAtPoint(static_cast<MML::Real>(1.0), 1e-6));
+		REQUIRE(analyzer.IsContinuousAtPoint(-static_cast<MML::Real>(1.0), MML::Real(1e-6)));
+		REQUIRE_FALSE(analyzer.IsContinuousAtPoint(static_cast<MML::Real>(0.0), MML::Real(1e-6)));
+		REQUIRE(analyzer.IsContinuousAtPoint(static_cast<MML::Real>(1.0), MML::Real(1e-6)));
 	}
 
 	/*********************************************************************/
@@ -302,7 +493,7 @@ namespace MML::Tests::Algorithms::FunctionAnalyzerTests
 		});
 		RealFunctionAnalyzer analyzer(step);
 
-		auto discontinuities = analyzer.FindDiscontinuityCandidates(-static_cast<MML::Real>(2.0), static_cast<MML::Real>(2.0), 100, 1e-6);
+		auto discontinuities = analyzer.FindDiscontinuityCandidates(-static_cast<MML::Real>(2.0), static_cast<MML::Real>(2.0), 100, MML::Real(1e-6));
 		
 		REQUIRE(discontinuities.size() == 1);
 		REQUIRE(std::abs(discontinuities[0].x - static_cast<MML::Real>(0.0)) < static_cast<MML::Real>(0.1));  // Found near x=0
@@ -365,8 +556,8 @@ namespace MML::Tests::Algorithms::FunctionAnalyzerTests
 			if (std::abs(disc.x - static_cast<MML::Real>(2.0)) < static_cast<MML::Real>(0.15))
 			{
 				foundAtTwo = true;
-				// Should be INFINITE type (limits don't exist or are very large)
-				REQUIRE((disc.type == DiscontinuityType::INFINITE || disc.type == DiscontinuityType::JUMP));
+				// Should be Infinite type (limits don't exist or are very large)
+				REQUIRE((disc.type == DiscontinuityType::Infinite || disc.type == DiscontinuityType::JUMP));
 			}
 		}
 		REQUIRE(foundAtTwo);
@@ -381,7 +572,7 @@ namespace MML::Tests::Algorithms::FunctionAnalyzerTests
 		});
 		RealFunctionAnalyzer analyzer(poly);
 
-		auto discontinuities = analyzer.FindDiscontinuityCandidates(-static_cast<MML::Real>(5.0), static_cast<MML::Real>(5.0), 100, 1e-6);
+		auto discontinuities = analyzer.FindDiscontinuityCandidates(-static_cast<MML::Real>(5.0), static_cast<MML::Real>(5.0), 100, MML::Real(1e-6));
 		
 		REQUIRE(discontinuities.size() == 0);  // Should find no discontinuities
 	}
@@ -398,7 +589,7 @@ namespace MML::Tests::Algorithms::FunctionAnalyzerTests
 		});
 		RealFunctionAnalyzer analyzer(multiJump);
 
-		auto discontinuities = analyzer.FindDiscontinuityCandidates(-static_cast<MML::Real>(3.0), static_cast<MML::Real>(3.0), 300, 1e-5);
+		auto discontinuities = analyzer.FindDiscontinuityCandidates(-static_cast<MML::Real>(3.0), static_cast<MML::Real>(3.0), 300, MML::Real(1e-5));
 		
 		// Should find at least one discontinuity (ideally 2)
 		// The strict >= 2 requirement might be too aggressive depending on sampling
@@ -471,7 +662,7 @@ namespace MML::Tests::Algorithms::FunctionAnalyzerTests
 		RealFunction linear([](Real x) { return static_cast<MML::Real>(2.0) * x - static_cast<MML::Real>(4.0); });
 		RealFunctionAnalyzer analyzer(linear);
 
-		std::vector<Real> roots = analyzer.GetRoots(static_cast<MML::Real>(0.0), static_cast<MML::Real>(5.0), 1e-6);
+		std::vector<Real> roots = analyzer.GetRoots(static_cast<MML::Real>(0.0), static_cast<MML::Real>(5.0), MML::Real(1e-6));
 
 		REQUIRE(roots.size() == 1);
 		REQUIRE_THAT(roots[0], WithinAbs(static_cast<MML::Real>(2.0), static_cast<MML::Real>(1e-5)));
@@ -487,7 +678,7 @@ namespace MML::Tests::Algorithms::FunctionAnalyzerTests
 		});
 		RealFunctionAnalyzer analyzer(quadratic);
 
-		std::vector<Real> roots = analyzer.GetRoots(static_cast<MML::Real>(0.0), static_cast<MML::Real>(5.0), 1e-6);
+		std::vector<Real> roots = analyzer.GetRoots(static_cast<MML::Real>(0.0), static_cast<MML::Real>(5.0), MML::Real(1e-6));
 
 		REQUIRE(roots.size() == 2);
 		REQUIRE_THAT(roots[0], WithinAbs(static_cast<MML::Real>(2.0), static_cast<MML::Real>(1e-5)));
@@ -501,7 +692,7 @@ namespace MML::Tests::Algorithms::FunctionAnalyzerTests
 		RealFunction sine([](Real x) { return std::sin(x); });
 		RealFunctionAnalyzer analyzer(sine);
 
-		std::vector<Real> roots = analyzer.GetRoots(static_cast<MML::Real>(0.0), static_cast<MML::Real>(2.0) * Constants::PI, 1e-6);
+		std::vector<Real> roots = analyzer.GetRoots(static_cast<MML::Real>(0.0), static_cast<MML::Real>(2.0) * Constants::PI, MML::Real(1e-6));
 
 		REQUIRE(roots.size() >= 2);  // At least π and 2π (0 might be on boundary)
 		// Check that roots are near multiples of π
@@ -519,7 +710,7 @@ namespace MML::Tests::Algorithms::FunctionAnalyzerTests
 		RealFunction quadratic([](Real x) { return x * x + static_cast<MML::Real>(1.0); });
 		RealFunctionAnalyzer analyzer(quadratic);
 
-		std::vector<Real> roots = analyzer.GetRoots(-static_cast<MML::Real>(10.0), static_cast<MML::Real>(10.0), 1e-6);
+		std::vector<Real> roots = analyzer.GetRoots(-static_cast<MML::Real>(10.0), static_cast<MML::Real>(10.0), MML::Real(1e-6));
 
 		REQUIRE(roots.size() == 0);
 	}
@@ -538,8 +729,8 @@ namespace MML::Tests::Algorithms::FunctionAnalyzerTests
 		REQUIRE(analyzer.IsMonotonicOnSamples(static_cast<MML::Real>(0.0), static_cast<MML::Real>(10.0), 100));
 
 		// No inflection points
-		REQUIRE_FALSE(analyzer.IsInflectionPoint(static_cast<MML::Real>(0.0), 1e-4));
-		REQUIRE_FALSE(analyzer.IsInflectionPoint(static_cast<MML::Real>(5.0), 1e-4));
+		REQUIRE_FALSE(analyzer.IsInflectionPoint(static_cast<MML::Real>(0.0), MML::Real(1e-4)));
+		REQUIRE_FALSE(analyzer.IsInflectionPoint(static_cast<MML::Real>(5.0), MML::Real(1e-4)));
 
 		// All points are "extrema" in a sense, but isLocalOptimum should handle this
 		// (second derivative is zero everywhere)
@@ -554,7 +745,7 @@ namespace MML::Tests::Algorithms::FunctionAnalyzerTests
 		RealFunctionAnalyzer analyzer(absValue);
 
 		// Should be continuous everywhere including x=0
-		REQUIRE(analyzer.IsContinuousAtPoint(static_cast<MML::Real>(0.0), 1e-3));
+		REQUIRE(analyzer.IsContinuousAtPoint(static_cast<MML::Real>(0.0), MML::Real(1e-3)));
 
 		// x=0 is a local minimum (but not smooth)
 		// isLocalOptimum uses second derivative which doesn't exist at x=0
@@ -796,11 +987,11 @@ namespace MML::Tests::Algorithms::FunctionAnalyzerTests
 		REQUIRE(rightLimit > static_cast<MML::Real>(0.0)); // Must be positive when approaching from right
 
 		// isContinuousAtPoint should return false at singularity
-		REQUIRE(analyzer.IsContinuousAtPoint(static_cast<MML::Real>(0.0), 1e-6) == false);
+		REQUIRE(analyzer.IsContinuousAtPoint(static_cast<MML::Real>(0.0), MML::Real(1e-6)) == false);
 
 		// Should be continuous away from singularity
-		REQUIRE(analyzer.IsContinuousAtPoint(static_cast<MML::Real>(1.0), 1e-6) == true);
-		REQUIRE(analyzer.IsContinuousAtPoint(static_cast<MML::Real>(-1.0), 1e-6) == true);
+		REQUIRE(analyzer.IsContinuousAtPoint(static_cast<MML::Real>(1.0), MML::Real(1e-6)) == true);
+		REQUIRE(analyzer.IsContinuousAtPoint(static_cast<MML::Real>(-1.0), MML::Real(1e-6)) == true);
 	}
 
 	TEST_CASE("FunctionAnalyzer::OverflowProtection_1_over_x_squared", "[overflow]")
@@ -818,7 +1009,7 @@ namespace MML::Tests::Algorithms::FunctionAnalyzerTests
 		REQUIRE((std::isinf(rightLimit) || rightLimit > static_cast<MML::Real>(1e10)));
 
 		// isContinuousAtPoint should return false at singularity
-		REQUIRE(analyzer.IsContinuousAtPoint(static_cast<MML::Real>(0.0), 1e-6) == false);
+		REQUIRE(analyzer.IsContinuousAtPoint(static_cast<MML::Real>(0.0), MML::Real(1e-6)) == false);
 	}
 
 	TEST_CASE("FunctionAnalyzer::OverflowProtection_MinMax_with_singularity", "[overflow]")
@@ -850,11 +1041,11 @@ namespace MML::Tests::Algorithms::FunctionAnalyzerTests
 		const Real halfPi = pi / static_cast<MML::Real>(2.0);
 
 		// Near π/2, should detect discontinuity/overflow
-		REQUIRE(analyzer.IsContinuousAtPoint(halfPi, 1e-6) == false);
+		REQUIRE(analyzer.IsContinuousAtPoint(halfPi, MML::Real(1e-6)) == false);
 
 		// Away from singularity, should be continuous
-		REQUIRE(analyzer.IsContinuousAtPoint(static_cast<MML::Real>(0.0), 1e-6) == true);
-		REQUIRE(analyzer.IsContinuousAtPoint(static_cast<MML::Real>(1.0), 1e-6) == true);
+		REQUIRE(analyzer.IsContinuousAtPoint(static_cast<MML::Real>(0.0), MML::Real(1e-6)) == true);
+		REQUIRE(analyzer.IsContinuousAtPoint(static_cast<MML::Real>(1.0), MML::Real(1e-6)) == true);
 	}
 
 	TEST_CASE("FunctionAnalyzer::SafeEvaluate_utility", "[overflow]")

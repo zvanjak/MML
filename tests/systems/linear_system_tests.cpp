@@ -34,7 +34,7 @@ Matrix<Real> CreateHilbertMatrix(int n)
 	Matrix<Real> H(n, n);
 	for (int i = 0; i < n; ++i)
 		for (int j = 0; j < n; ++j)
-			H(i, j) = 1.0 / (i + j + 1);
+			H(i, j) = MML::Real(1.0) / (i + j + 1);
 	return H;
 }
 
@@ -45,7 +45,7 @@ Matrix<Real> CreateSPDMatrix(int n)
 	// Create A = diag dominant + small off-diagonal
 	for (int i = 0; i < n; ++i)
 	{
-		A(i, i) = 10.0 + i;  // Large diagonal
+		A(i, i) = MML::Real(10.0) + i;  // Large diagonal
 		for (int j = 0; j < n; ++j)
 			if (i != j)
 				A(i, j) = 0.5;  // Small symmetric off-diagonal
@@ -528,7 +528,7 @@ TEST_CASE("LinearSystem - Matrix Operations", "[LinearSystem][Operations]")
 		{
 			for (int j = 0; j < 3; ++j)
 			{
-				Real expected = (i == j) ? 1.0 : 0.0;
+				Real expected = (i == j) ? MML::Real(1.0) : MML::Real(0.0);
 				REQUIRE_THAT(I(i, j), WithinAbs(expected, TOL(1e-10, 1e-5)));
 			}
 		}
@@ -606,7 +606,7 @@ TEST_CASE("LinearSystem - Comprehensive Analysis", "[LinearSystem][Analysis]")
 		Matrix<Real> A(5, 3);
 		for (int i = 0; i < 5; ++i)
 			for (int j = 0; j < 3; ++j)
-				A(i, j) = i + j + 1;
+				A(i, j) = Real(i + j + 1);
 		
 		LinearSystem<Real> sys(A);
 		

@@ -104,11 +104,11 @@ TEST_CASE("Rational_overflow_is_detected_without_undefined_behaviour", "[rationa
 	REQUIRE((Rational(std::numeric_limits<long long>::max(), 1) * Rational(1, 1)).Num() == std::numeric_limits<long long>::max());
 	REQUIRE((Rational(std::numeric_limits<long long>::max() - 1, 1) + Rational(1, 1)).Num() == std::numeric_limits<long long>::max());
 
-	// -LLONG_MIN is not representable: negation and sign normalisation must throw, not wrap
+	// Unrepresentable negation/positive denominators throw; LLONG_MIN remains a valid numerator.
 	Rational minVal(std::numeric_limits<long long>::min());
 	REQUIRE_THROWS_AS(-minVal, DomainError);
 	REQUIRE_THROWS_AS(Rational(1, std::numeric_limits<long long>::min()), DomainError);
-	REQUIRE_THROWS_AS(Rational(std::numeric_limits<long long>::min(), 3), DomainError);
+	REQUIRE(Rational(std::numeric_limits<long long>::min(), 3).Num() == std::numeric_limits<long long>::min());
 	REQUIRE_NOTHROW(Rational(std::numeric_limits<long long>::min() + 1, 1));
 	REQUIRE(Rational(-3, -4) == Rational(3, 4));
 }

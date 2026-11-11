@@ -44,12 +44,15 @@
 #define MML_IFUNCTION_H
 
 #include <mml/MMLBase.h>
+#include <mml/MMLNumericValidation.h>
 
 #include <mml/base/Vector/Vector.h>
 #include <mml/base/Vector/VectorN.h>
 #include <mml/interfaces/IParametrized.h>
 
 #include <vector>
+#include <cmath>
+#include <utility>
 
 namespace MML
 {
@@ -107,19 +110,25 @@ namespace MML
 		 * @param numPnt Number of sample points
 		 * @param[out] outX Vector of x coordinates
 		 * @param[out] outY Vector of corresponding y = f(x) values
+		 * @throws NumericInputError for nonfinite bounds or sampled values.
+		 * @note Endpoints are exact; reversed and equal bounds are supported. Outputs
+		 *       are replaced only after all evaluations succeed. Callback exceptions propagate.
 		 */
 		void getValues(Real x1, Real x2, int numPnt, Vector<Real>& outX, Vector<Real>& outY) const
 		{
 			if (numPnt < 2)
 				throw ArgumentError("GetValues: numPnt must be >= 2");
 
-			outX.resize(numPnt);
-			outY.resize(numPnt);
+			ValidateBounds(x1, x2, "IRealFunction::getValues");
+			Vector<Real> samples(numPnt), values(numPnt);
 
 			for (int i = 0; i < numPnt; i++) {
-				outX[i] = x1 + i * (x2 - x1) / (numPnt - 1);
-				outY[i] = (*this)(outX[i]);
+				samples[i] = i == 0 ? x1 : i == numPnt - 1 ? x2 : std::lerp(x1, x2, Real(i) / Real(numPnt - 1));
+				values[i] = (*this)(samples[i]);
+				ValidateFunctionValue(values[i], "IRealFunction::getValues");
 			}
+			outX = std::move(samples);
+			outY = std::move(values);
 		}
 		/// @deprecated Use getValues() (CONTRACT_POLICY §11: interface vocabulary is lowerCamel).
 		[[deprecated("use getValues()")]]
@@ -359,27 +368,27 @@ namespace MML
 		 * @param t2 End parameter
 		 * @param numPoints Number of sample points
 		 * @return Vector of points on the curve
+		 * @note Nonpositive counts return an empty trace without evaluating any input.
+		 *       A singleton uses only t1; t2 is ignored. Larger traces include both endpoints.
+		 * @throws NumericInputError for nonfinite used bounds or point components.
 		 */
 		std::vector<VectorN<Real, N>> getTrace(Real t1, Real t2, int numPoints) const
 		{
 			std::vector<VectorN<Real, N>> ret;
 			if (numPoints <= 0)
 				return ret;
+			ValidateFinite(t1, "IParametricCurve::getTrace start");
+			if (numPoints > 1)
+				ValidateFinite(t2, "IParametricCurve::getTrace end");
 			ret.reserve(static_cast<size_t>(numPoints));
 
-			const Real tStart = static_cast<Real>(t1);
-			if (numPoints == 1)
-			{
-				ret.push_back((*this)(tStart));
-				return ret;
-			}
-
-			const Real tEnd = static_cast<Real>(t2);
-			const Real deltaT = (tEnd - tStart) / (numPoints - 1);
 			for (int i = 0; i < numPoints; i++)
 			{
-				const Real t = tStart + static_cast<Real>(i) * deltaT;
-				ret.push_back((*this)(t));
+				const Real t = i == 0 ? t1 : i == numPoints - 1 ? t2 : std::lerp(t1, t2, Real(i) / Real(numPoints - 1));
+				const auto point = (*this)(t);
+				for (int component = 0; component < N; ++component)
+					ValidateFunctionValue(point[component], "IParametricCurve::getTrace");
+				ret.push_back(point);
 			}
 			return ret;
 		}
@@ -399,6 +408,7 @@ namespace MML
 	class IParametricCurveParametrized : public IParametricCurve<N>, public IParametrized
 	{
 	public:
+			using IParametricCurve<N>::operator();
 			/**
 			 * @brief Evaluate the curve with explicit parameters.
 			 * @param t Curve parameter

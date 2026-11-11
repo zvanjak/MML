@@ -143,20 +143,15 @@ namespace MML::Tests::Algorithms::Optimization {
 		REQUIRE(bracket.fb <= bracket.fc);
 	}
 
-	TEST_CASE("BracketMinimum_DivergentDirection_ReturnsInvalid", "[Optimization][Bracket]") {
+	TEST_CASE("BracketMinimum_DivergentDirection_ReportsFailure", "[Optimization][Bracket]") {
 		TEST_PRECISION_INFO();
 		CubicFunc f;
 
-		// Starting at (2,4) the algorithm goes downhill toward -infinity
-		// where the cubic diverges; iteration limit should catch this
-		auto bracket = Minimization::BracketMinimum(f, static_cast<MML::Real>(2.0), static_cast<MML::Real>(4.0));
-
-		// With float, limited range may allow bracketing to succeed
-		// before values diverge; with double, it correctly detects divergence
+		// Float overflows the cubic before the iteration limit is reached.
 		if constexpr (std::is_same_v<Real, float>) {
-			// Float may or may not find valid bracket - either outcome is acceptable
-			(void)bracket;
+			REQUIRE_THROWS_AS(Minimization::BracketMinimum(f, Real(2), Real(4)), NumericInputError);
 		} else {
+			const auto bracket = Minimization::BracketMinimum(f, Real(2), Real(4));
 			REQUIRE_FALSE(bracket.valid);
 		}
 	}
@@ -239,7 +234,7 @@ namespace MML::Tests::Algorithms::Optimization {
 		QuadraticFunc f;
 
 		// Looser tolerance should require fewer iterations
-		auto result1 = Minimization::GoldenSectionSearch(f, static_cast<MML::Real>(0.0), static_cast<MML::Real>(5.0), 1e-4);
+		auto result1 = Minimization::GoldenSectionSearch(f, static_cast<MML::Real>(0.0), static_cast<MML::Real>(5.0), MML::Real(1e-4));
 		auto result2 = Minimization::GoldenSectionSearch(f, static_cast<MML::Real>(0.0), static_cast<MML::Real>(5.0), TOL(1e-10, 1e-5));
 
 		REQUIRE(result1.iterations < result2.iterations);
@@ -651,6 +646,83 @@ namespace MML::Tests::Algorithms::Optimization {
 			NumericInputError);
 	}
 
+	TEST_CASE("Optimization_ScalarMinimizers_HonorBudgetsAndRejectNonfinite",
+		"[Optimization][Config][Diagnostics][MinimalMathLibrary-seds]") {
+		TEST_PRECISION_INFO();
+
+		SECTION("Golden section honors max_iterations and reports exhaustion") {
+			int calls = 0;
+			auto quadratic = [&calls](Real x) { ++calls; return (x - static_cast<MML::Real>(2.0)) * (x - static_cast<MML::Real>(2.0)); };
+			Minimization1DConfig config;
+			config.tolerance = TOL(1e-6, 1e-4);
+			config.max_iterations = 1;
+
+			auto result = Minimization::GoldenSectionSearch(quadratic, static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), config);
+			REQUIRE_FALSE(result.converged);
+			REQUIRE(result.status == AlgorithmStatus::MaxIterationsExceeded);
+			REQUIRE(result.iterations == 1);
+			REQUIRE(result.iterations_used == 1);
+			REQUIRE_FALSE(result.error_message.empty());
+			REQUIRE(std::isfinite(result.xmin));
+			REQUIRE(std::isfinite(result.fmin));
+			REQUIRE(result.achieved_tolerance > config.tolerance);
+			REQUIRE(calls <= 12); // bracketing plus two initial samples plus one reduction
+
+			config.max_iterations = 100;
+			auto converged = Minimization::GoldenSectionSearch(quadratic, static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0), config);
+			REQUIRE(converged.converged);
+			REQUIRE(converged.iterations <= 100);
+			REQUIRE_THAT(converged.xmin, RealWithinAbs(static_cast<MML::Real>(2.0), TOL(1e-5, 1e-3)));
+		}
+
+		SECTION("Golden section terminates for a minimum at x = 0") {
+			auto atZero = [](Real x) { return x * x; };
+			auto result = Minimization::GoldenSectionSearch(atZero, -static_cast<MML::Real>(1.0), static_cast<MML::Real>(0.5), TOL(3e-8, 1e-5));
+			REQUIRE(result.converged);
+			REQUIRE(result.iterations <= 100);
+			REQUIRE_THAT(result.xmin, RealWithinAbs(static_cast<MML::Real>(0.0), TOL(1e-6, 1e-3)));
+		}
+
+		SECTION("Derivative-free Brent rejects a NaN sample on a valid bracket") {
+			QuadraticFunc quadratic;
+			auto bracket = Minimization::BracketMinimum(quadratic, static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0));
+			REQUIRE(bracket.valid);
+
+			int calls = 0;
+			auto nanCallback = [&calls](Real) { ++calls; return std::numeric_limits<Real>::quiet_NaN(); };
+			REQUIRE_THROWS_AS(Minimization::BrentMinimize(nanCallback, bracket, TOL(3e-8, 1e-5), 64), NumericInputError);
+			REQUIRE(calls == 1);
+
+			auto nanLater = [](Real x) { return x > static_cast<MML::Real>(1.5) ? std::numeric_limits<Real>::quiet_NaN() : (x - static_cast<MML::Real>(2.0)) * (x - static_cast<MML::Real>(2.0)); };
+			REQUIRE_THROWS_AS(Minimization::BrentMinimize(nanLater, bracket, TOL(3e-8, 1e-5)), NumericInputError);
+			REQUIRE_THROWS_AS(Minimization::GoldenSectionSearch(nanLater, bracket, TOL(3e-8, 1e-5)), NumericInputError);
+		}
+
+		SECTION("Bracket geometry is validated before any sampling") {
+			QuadraticFunc quadratic;
+			MinimumBracket outside;
+			outside.ax = static_cast<MML::Real>(0.0);
+			outside.bx = static_cast<MML::Real>(5.0);
+			outside.cx = static_cast<MML::Real>(1.0);
+			outside.fa = quadratic(outside.ax);
+			outside.fb = quadratic(outside.bx);
+			outside.fc = quadratic(outside.cx);
+			outside.valid = true;
+			REQUIRE_THROWS_AS(Minimization::BrentMinimize(quadratic, outside, TOL(3e-8, 1e-5)), NumericInputError);
+			REQUIRE_THROWS_AS(Minimization::GoldenSectionSearch(quadratic, outside, TOL(3e-8, 1e-5)), NumericInputError);
+
+			MinimumBracket degenerate = outside;
+			degenerate.bx = static_cast<MML::Real>(0.5);
+			degenerate.cx = degenerate.ax;
+			REQUIRE_THROWS_AS(Minimization::BrentMinimize(quadratic, degenerate, TOL(3e-8, 1e-5)), NumericInputError);
+
+			MinimumBracket nonfinite = outside;
+			nonfinite.bx = static_cast<MML::Real>(0.5);
+			nonfinite.cx = std::numeric_limits<Real>::infinity();
+			REQUIRE_THROWS_AS(Minimization::GoldenSectionSearch(quadratic, nonfinite, TOL(3e-8, 1e-5)), NumericInputError);
+		}
+	}
+
 } // namespace MML::Tests::Algorithms::Optimization
 
 /***************************************************************************************************
@@ -815,7 +887,7 @@ TEST_CASE("GoldenSection_Multimodal1DTestBed", "[Optimization][GoldenSection][Te
 
 				// For multimodal, verify it's a valid local minimum:
 				// f(xmin) should be <= f(xmin ± small delta)
-				Real delta = 1e-4;
+				Real delta = MML::Real(1e-4);
 				Real fLeft = test.func(result.xmin - delta);
 				Real fRight = test.func(result.xmin + delta);
 
@@ -856,7 +928,7 @@ TEST_CASE("Brent_Multimodal1DTestBed", "[Optimization][Brent][TestBed][Multimoda
 				INFO("Found minimum at x=" << result.xmin << ", f=" << result.fmin);
 
 				// Verify it's a valid local minimum
-				Real delta = 1e-4;
+				Real delta = MML::Real(1e-4);
 				Real fLeft = test.func(result.xmin - delta);
 				Real fRight = test.func(result.xmin + delta);
 
@@ -881,8 +953,8 @@ TEST_CASE("BracketMinimum_All1DTestBed", "[Optimization][Bracket][TestBed]") {
 			OptRealFunctionWrapper f(test.func);
 
 			// Start bracketing from the middle of the search range
-			Real startA = (test.searchLow + test.searchHigh) / 2 - 0.5;
-			Real startB = (test.searchLow + test.searchHigh) / 2 + 0.5;
+			Real startA = (test.searchLow + test.searchHigh) / 2 - MML::Real(0.5);
+			Real startB = (test.searchLow + test.searchHigh) / 2 + MML::Real(0.5);
 
 			MinimumBracket bracket = Minimization::BracketMinimum(f, startA, startB);
 

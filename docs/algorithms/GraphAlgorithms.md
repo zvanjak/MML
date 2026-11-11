@@ -113,12 +113,36 @@ auto bfs = BFS(graph, 0);
 | `DijkstraShortestPathTree(graph, start)` | Dijkstra result packaged as a `ShortestPathTreeResult` |
 | `DijkstraPath(graph, start, target)` | Targeted Dijkstra path and total weight |
 | `ShortestPathUnweighted(graph, start, target)` | BFS-based shortest path in unweighted graphs |
-| `AStarPath(graph, start, target, heuristic)` | A* search with caller-supplied heuristic |
+| `AStarPath(graph, start, target, heuristic)` | A* search with caller-supplied heuristic; optimal for any admissible heuristic (consistency is not required — improved vertices are reopened) |
 | `BellmanFord(graph, start)` | Single-source shortest paths with negative edges and negative-cycle detection |
 | `FloydWarshall(graph)` | All-pairs shortest paths with negative-cycle detection |
 | `HasNegativeCycle(graph, start)` | Negative-cycle check reachable from a start vertex |
 
 `Dijkstra` and `AStarPath` reject negative weights with `UnsupportedNegativeWeights`. `BellmanFord` and `FloydWarshall` report `NegativeCycle` when applicable.
+
+### Parent-path reconstruction
+
+`ReconstructPath(parent, start, target)` returns a path only if following parents
+from `target` actually reaches the requested `start`. Reaching a different root
+returns an empty path, as does an ordinary unreachable target. An ancestor may
+serve as `start` even if it is not the forest's root. A vertex-to-itself path
+contains that vertex and does not inspect its unused predecessor.
+
+Invalid endpoint indices or out-of-range parent indices encountered on the walk
+throw `IndexError`. A parent cycle that does not reach `start` throws
+`ArgumentError`, after at most `parent.size()` visited vertices. These are explicit
+malformed-input failures, not empty-path results.
+
+`ShortestPathTreeResult::pathTo` and `LongestPathDAGResult::pathTo` use the same
+checked walk. For initialized results, invalid indices throw `IndexError`;
+mismatched distance/parent sizes throw `ArgumentError`. Unreachable targets and
+default results with no source retain their empty-path behavior.
+
+```cpp
+const std::vector<size_t> parent{GRAPH_NOT_FOUND, 0, 1, GRAPH_NOT_FOUND};
+const auto connected = ReconstructPath(parent, 0, 2); // {0, 1, 2}
+const auto differentRoot = ReconstructPath(parent, 3, 2); // empty
+```
 
 ## Structural Algorithms
 
@@ -137,6 +161,18 @@ auto bfs = BFS(graph, 0);
 
 Directed-only routines return `GraphTypeMismatch` when called on an undirected graph; undirected-only routines do the same when called on a directed graph.
 
+`BipartiteColoring` supports both graph kinds: it colors the **underlying
+undirected graph**, so every edge constrains its two endpoints regardless of
+orientation. Both `HopcroftKarp` overloads follow this same convention, including
+incoming-only and antiparallel edges. Self-loops and odd cycles are not bipartite.
+
+```cpp
+Graph<> incoming(2, Graph<>::Type::Directed);
+incoming.addEdge(1, 0);
+const auto coloring = BipartiteColoring(incoming); // bipartite
+const auto matching = HopcroftKarp(incoming); // cardinality 1
+```
+
 ## Spanning Trees, Flow, and Matching
 
 | Function | Description |
@@ -148,7 +184,52 @@ Directed-only routines return `GraphTypeMismatch` when called on an undirected g
 | `HopcroftKarp(graph, leftPartition)` | Maximum cardinality bipartite matching with explicit left partition |
 | `HopcroftKarp(graph)` | Maximum cardinality bipartite matching after deriving a two-coloring |
 
-MST routines report `DisconnectedGraph` if the result cannot span all vertices. Flow routines require directed graphs and non-negative capacities. Matching routines require a bipartite graph or a valid explicit partition.
+MST routines require undirected graphs. Directed inputs return
+`AlgorithmStatus::InvalidInput` with `GraphTypeMismatch`, no edges, and
+`isComplete == false`, even for empty graphs or an invalid Prim start.
+Undirected inputs report `DisconnectedGraph` if the result cannot span all
+vertices; empty undirected graphs retain a complete empty MST.
+Flow routines require directed graphs and non-negative capacities. Matching
+routines require a bipartite graph or a valid explicit partition.
+
+### Signed net-flow output
+
+For both `EdmondsKarp` and `Dinic`, each `MaxFlowMinCutResult::flowEdges` tuple is
+`(from, to, signedNetFlow, capacity)`, and only original **positive-capacity** arcs
+are emitted. Zero-capacity arcs are omitted.
+
+The residual representation reports `f(u,v) = capacity(u,v) - residual(u,v)`.
+Conceptually `f(v,u) = -f(u,v)`, with bounds
+`-capacity(v,u) <= f(u,v) <= capacity(u,v)`; a missing reverse capacity is zero.
+Consequently, a reported arc can have **negative net flow** when its reverse arc
+carries flow. This is not a negative physical per-arc flow or an incorrect
+`maxFlow`. Net flows conserve flow at intermediate vertices, and the reported
+minimum-cut capacity equals `maxFlow`.
+
+Callers needing a non-negative, cancellation-free per-arc decomposition can use
+`std::max(signedNetFlow, Real{0})` for each reported arc. This cancels simultaneous
+opposing flow while preserving capacities, vertex balances, and maximum value.
+Do not sum all reported tuple flows to obtain the maximum: antiparallel tuples
+describe the same net transfer twice with opposite signs.
+
+```cpp
+Graph<> network(3, Graph<>::Type::Directed);
+network.addEdge(0, 1, 5);
+network.addEdge(1, 0, 3);
+network.addEdge(1, 2, 5);
+network.addEdge(2, 1, 2);
+const auto flow = Dinic(network, 0, 2); // maxFlow == 5
+for (const auto& [from, to, signedNetFlow, capacity] : flow.flowEdges) {
+    const Real oneWayFlow = std::max(signedNetFlow, Real{0});
+    std::cout << from << " -> " << to << ": net=" << signedNetFlow
+              << ", one-way=" << oneWayFlow << ", capacity=" << capacity << '\n';
+}
+```
+
+The examples in the parent-path, directed-coloring, and net-flow sections are
+executed by `Docs_Demo_GraphContracts()` in
+`src/docs_demos/algorithms/docs_demo_graph_algorithms.cpp`, selected with
+`MML_DocsApp --graph-contracts`.
 
 ## Matrix Conversions
 

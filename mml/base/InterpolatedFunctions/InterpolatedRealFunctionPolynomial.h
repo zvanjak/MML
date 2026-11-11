@@ -54,7 +54,7 @@ namespace MML {
 
 		PolynomInterpRealFunc(const Vector<Real>& xv, const Vector<Real>& yv, int m)
 			: RealFunctionInterpolated(xv, yv, m)
-			, _errorEst(0.) {}
+			, _errorEst(NoEstimate) {}
 
 		/// /** @brief Get the error estimate from the last interpolation. */
 
@@ -70,7 +70,7 @@ namespace MML {
 
 		Real calcInterpValue(int startInd, Real x) const override {
 			int i, m, ns = 0;
-			Real y, den, dif, dift, ho, hp, w, dy;
+			Real y, den, dif, dift, ho, hp, w, dy = 0.0;
 			Vector<Real> c(getInterpOrder()), d(getInterpOrder());
 
 			dif = std::abs(x - X(startInd));

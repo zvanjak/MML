@@ -33,9 +33,10 @@ namespace MML::AD {
 				RequireFinite(pos[i]);
 		}
 		template<int N>
-		void RequireIndex(int i) {
+		inline int RequireIndex(int i) {
 			if (i < 0 || i >= N)
 				throw IndexError("AD adapter index outside dimension");
+			return i;
 		}
 		template<int N, typename Values>
 		void RequireSize(const Values& values) {
@@ -62,7 +63,7 @@ namespace MML::AD {
 		}
 		template<int N, typename F>
 		Real Partial(const F& f, const VectorN<Real, N>& pos, int axis) {
-			RequireIndex<N>(axis);
+			axis = RequireIndex<N>(axis);
 			auto x = Point<N, Dual<Real>>(pos);
 			x[axis].deriv = 1;
 			const Dual<Real> y = f(x);
@@ -72,8 +73,8 @@ namespace MML::AD {
 		}
 		template<int N, typename F>
 		Real SecondPartial(const F& f, const VectorN<Real, N>& pos, int a, int b) {
-			RequireIndex<N>(a);
-			RequireIndex<N>(b);
+			a = RequireIndex<N>(a);
+			b = RequireIndex<N>(b);
 			using D = Dual<Real>;
 			auto x = Point<N, Dual<D>>(pos);
 			x[a].deriv.value = 1;
@@ -172,7 +173,7 @@ namespace MML::AD {
 			return result;
 		}
 		Real EvaluateComponentPartial(const VectorN<Real, N>& pos, int component, int axis) const override {
-			AdapterDetail::RequireIndex<N>(component);
+			component = AdapterDetail::RequireIndex<N>(component);
 			return AdapterDetail::Partial<N>(
 				[&](const auto& x) {
 					const auto values = _expression(x);
@@ -281,8 +282,8 @@ namespace MML::AD {
 		}
 		typename MetricTensorField<N>::SignatureType Signature() const override { return _signature; }
 		Real component(int i, int j, const VectorN<Real, N>& pos) const override {
-			AdapterDetail::RequireIndex<N>(i);
-			AdapterDetail::RequireIndex<N>(j);
+			i = AdapterDetail::RequireIndex<N>(i);
+			j = AdapterDetail::RequireIndex<N>(j);
 			const auto values = _expression(AdapterDetail::Point<N, Real>(pos));
 			AdapterDetail::RequireMatrixSize<N>(values);
 			AdapterDetail::RequireFinite(values[i][j]);

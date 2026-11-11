@@ -201,6 +201,48 @@ Canonical result types are:
 - `FundamentalSubspaces<Scalar>`: column, row, null, and left-null bases with one rank/threshold policy.
 - `FaddeevLeVerrierResult<Scalar>`: characteristic coefficients, determinant, and optional inverse.
 
+### Faddeev-LeVerrier numerical contract
+
+`FaddeevLeVerrier` requires a nonempty square matrix with finite real or complex entries.
+The coefficients are ordered from the monic leading coefficient to the constant term of
+`det(lambda I - A)`. The determinant is the constant term with the appropriate parity sign.
+
+The recurrence uses power-of-two normalization and rescales each coefficient according to
+its degree. This avoids intermediate trace overflow for cases such as `1e154 * I` in double
+precision, whose 2-by-2 determinant is the representable value `1e308`. Normalization that
+loses an input component, nonfinite recurrence arithmetic, and coefficient overflow or
+nonzero-to-zero rescaling underflow throw `MatrixNumericalError`; no partially corrupted
+result is returned.
+
+The optional inverse is computed independently using pivoted LU, not by dividing recurrence
+matrices by a potentially cancelled constant coefficient. An absent inverse means LU
+classified the matrix as singular (including its numerical pivot threshold). A present
+inverse has finite entries and both `A * inverse` and `inverse * A` are finite and agree
+entrywise with identity within `n * PrecisionValues<MatrixMagnitude<Scalar>>::MatrixIsEqualTolerance`.
+An unrepresentable inverse or failed identity check throws `MatrixNumericalError`, rather
+than masquerading as singularity or publishing an unusable matrix.
+
+Power-of-two scaling does not remove the inherent cancellation sensitivity of the
+Faddeev-LeVerrier coefficients. In particular, a rounded zero constant term is not a
+singularity certificate and does not determine optional-inverse presence. For a determinant
+without the full characteristic polynomial, prefer the LU-based `Determinant` API. These
+checks do not promise coefficient accuracy for every conditioning or dynamic range.
+
+Runnable counterpart: `Demo_FaddeevLeverrier` in
+`src/docs_demos/core/docs_demo_matrix_analysis.cpp`, selected with
+`MML_DocsApp --faddeev-leverrier`.
+
+```cpp
+const Real scale = 1e154; // Double-precision example.
+const Matrix<Real> scaledIdentity{2, 2, {scale, 0, 0, scale}};
+const auto scaled = MatrixAlg::FaddeevLeVerrier(scaledIdentity);
+std::cout << "Determinant: " << scaled.determinant << '\n'; // Approximately 1e308.
+if (scaled.inverse) {
+    std::cout << "A * inverse:\n";
+    (scaledIdentity * *scaled.inverse).Print(std::cout, 10, 6);
+}
+```
+
 For complex matrices, orthogonality and subspaces use the Hermitian inner product:
 
 $$
@@ -221,7 +263,21 @@ No API named `Eigenvalues` discards imaginary parts.
 - General complex matrices use the complex shifted QR solver.
 - Spectral radius is magnitude-valued.
 
-Invalid dimensions and invalid self-adjoint preconditions throw. Numerical nonconvergence returns diagnostic metadata with `converged == false`; imaginary components are never truncated.
+Invalid dimensions and invalid self-adjoint preconditions throw. Structured eigensystem APIs
+retain partial eigenvalues and eigenvectors on numerical nonconvergence, with
+`converged == false` and failure diagnostics. The general real facade preserves the kernel's
+status and error message rather than relabeling every failure as iteration exhaustion.
+Imaginary components are never truncated.
+
+Value-only `Eigenvalues`, `SymmetricEigenvalues`, `HermitianEigenvalues`, and `SpectralRadius`
+helpers require both convergence and a usable status; otherwise they throw
+`MatrixNumericalError` including the status and available solver message. The same rule applies
+to cached `MatrixAnalyzer` helpers, including `HasComplexEigenvalues`. Use the structured
+eigensystem APIs to inspect partial results instead. A failed cached request remains available
+for inspection and does not prevent a separate request with a larger iteration budget.
+
+Definiteness classification and the definiteness component of `Analyze()` also reject
+nonconverged eigensolves rather than classifying partial eigenvalues.
 
 ## Matrix And System Reports
 

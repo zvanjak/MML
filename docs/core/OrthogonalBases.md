@@ -4,6 +4,14 @@
 
 MML provides a complete framework for working with orthogonal function bases - one of the most beautiful and useful concepts in mathematics and physics! These bases allow us to decompose arbitrary functions into series expansions, solve differential equations, and understand the structure of function spaces.
 
+Core polynomial-basis coefficient integration defaults to
+`Precision::OrthogonalBasisCoefficientTolerance`, the larger of
+`DefaultToleranceStrict` and `IntegrationTolerance`. This keeps the float default
+above the adaptive Gauss-Kronrod arithmetic floor; double and long-double defaults
+remain unchanged. Explicit accuracy requests are still honored: a request below
+the achievable arithmetic floor fails with `ConvergenceError`, rather than silently
+returning a less accurate coefficient.
+
 ## Available Orthogonal Bases
 
 ### 1. Fourier Basis 🌊
@@ -40,7 +48,7 @@ Real coeff = fourier.ComputeCoefficient(f, 10);
 ```
 
 ### 2. Legendre Polynomials 🌍
-**File:** `mml/core/LegendreBasis.h`
+**File:** `mml/core/OrthogonalBasis/LegendreBasis.h`
 
 **Domain:** [-1, 1]  
 **Weight:** w(x) = 1 (uniform)  
@@ -62,7 +70,7 @@ P₁(x) = x
 - Gauss-Legendre quadrature
 
 ```cpp
-#include <mml/core/LegendreBasis.h>
+#include <mml/core/OrthogonalBasis/LegendreBasis.h>
 
 LegendreBasis legendre;
 
@@ -77,13 +85,15 @@ Real a, b, c;
 legendre.RecurrenceCoefficients(5, a, b, c);
 // Now: P₆ = (a*x + b)*P₅ + c*P₄
 
-// Associated Legendre for spherical harmonics
+// Raw associated polynomial in x, without Condon-Shortley phase
 AssociatedLegendreBasis P_l_m(2);  // m = 2
-Real Y_value = P_l_m.Evaluate(5, 0.8);  // P₅²(0.8)
+Real P_value = P_l_m.Evaluate(5, 0.8);  // P₅²(0.8)
+// Normalized angular factor, including Condon-Shortley phase
+Real angular_value = P_l_m.EvaluateSpherical(5, std::acos(0.8));
 ```
 
 ### 3. Hermite Polynomials 🎵
-**File:** `mml/core/HermiteBasis.h`
+**File:** `mml/core/OrthogonalBasis/HermiteBasis.h`
 
 **Domain:** (-∞, ∞)  
 **Weight:** w(x) = e^(-x²)  
@@ -109,7 +119,7 @@ Hₙ₊₁(x) = 2xHₙ(x) - 2nHₙ₋₁(x)
 - Signal processing (Gabor transform)
 
 ```cpp
-#include <mml/core/HermiteBasis.h>
+#include <mml/core/OrthogonalBasis/HermiteBasis.h>
 
 HermiteBasis hermite;
 
@@ -132,7 +142,7 @@ Real He4 = prob_hermite.Evaluate(4, 1.5);
 ```
 
 ### 4. Chebyshev Polynomials 📐
-**File:** `mml/core/ChebyshevBasis.h`
+**File:** `mml/core/OrthogonalBasis/ChebyshevBasis.h`
 
 **Domain:** [-1, 1]  
 **Weight:** w(x) = 1/√(1-x²)  
@@ -155,7 +165,7 @@ Tₙ₊₁(x) = 2xTₙ(x) - Tₙ₋₁(x)
 - Clenshaw-Curtis quadrature
 
 ```cpp
-#include <mml/core/ChebyshevBasis.h>
+#include <mml/core/OrthogonalBasis/ChebyshevBasis.h>
 
 ChebyshevBasis chebyshev;
 
@@ -177,7 +187,7 @@ Real U5 = U.Evaluate(5, 0.7);
 ```
 
 ### 5. Laguerre Polynomials ☢️
-**File:** `mml/core/LaguerreBasis.h`
+**File:** `mml/core/OrthogonalBasis/LaguerreBasis.h`
 
 **Domain:** [0, ∞)  
 **Weight:** w(x) = e^(-x)  
@@ -202,7 +212,7 @@ L₁(x) = 1 - x
 - Time-dependent perturbation theory
 
 ```cpp
-#include <mml/core/LaguerreBasis.h>
+#include <mml/core/OrthogonalBasis/LaguerreBasis.h>
 
 LaguerreBasis laguerre;
 
@@ -217,6 +227,72 @@ Real norm = laguerre.Normalization(5);  // Returns 1.0
 AssociatedLaguerreBasis L_n_l(5);  // α = 5 = 2l+1 for l=2
 
 Real L_assoc = L_n_l.Evaluate(3, 1.5);  // L₃^(5)(1.5)
+```
+
+## Coefficient, convention and range contracts
+
+`ComputeCoefficient(f,n,eps)` computes the weighted projection divided by the
+basis squared norm. It uses adaptive Gauss-Kronrod quadrature, not the old
+endpoint trapezoidal rule. Chebyshev's substitution `x=cos(theta)` removes its
+weight singularities analytically. Generic unbounded domains use rational
+changes of variables covering the complete tails, never a fixed finite cutoff.
+The absolute and relative error targets are both `eps` on the normalized
+coefficient, so zero coefficients have a meaningful absolute error target.
+Normalization participates in the scaled sample product before exponent
+reconstruction, avoiding avoidable intermediate product overflow/underflow.
+
+The callback must return finite values at the queried finite coordinates.
+Invalid degree/tolerance/interval arguments raise `ArgumentError`; a nonpositive
+or unrepresentable squared norm and nonfinite sample arithmetic raise
+`NumericalMethodError`. Unmet adaptive convergence raises `ConvergenceError`;
+callback exceptions propagate. The adaptive error estimate is not a rigorous
+tail bound or a guarantee of detecting arbitrary unsampled narrow/oscillatory
+features. Very high raw polynomial values/norms can exceed floating-point range.
+
+**Convention correction:** `AssociatedLegendreBasis::Evaluate(l,x)` now follows
+its advertised raw-polynomial contract on `[-1,1]`, without Condon-Shortley
+phase, matching MML's `Functions::AssocLegendre` and C++ `assoc_legendre`.
+For the old normalized angular convention use `EvaluateSpherical(l,theta)`,
+where `theta` is in `[0,pi]`. This method includes Condon-Shortley phase and the
+normalization `sqrt((2l+1)/(4*pi) * (l-m)!/(l+m)!)`. Both require `l >= m >= 0`.
+
+`ChebyshevBasis::GetExtrema` requires positive degree: the constant polynomial
+has no uniquely distinguished finite extremum set. Its weight remains infinite
+at the two endpoints but rejects coordinates outside `[-1,1]`.
+
+`AssociatedLaguerreBasis` requires finite `alpha > -1`. Its squared norm uses
+products of ratios rather than overflowing factorials. Its weight is evaluated
+in logarithmic form for finite nonnegative x: at x=0 it is infinite for negative
+alpha, one for alpha=0 and zero for positive alpha. Nonfinite raw polynomial
+coordinates are rejected; finite polynomial continuation outside the weighted
+interval remains supported.
+
+`HermiteBasis::QuantumWavefunction` uses a binary-scaled normalized recurrence
+and combines the Gaussian only at the end. This avoids both overflowing raw
+normalizations and premature Gaussian underflow, for example at n=1000,x=40.
+It accepts finite real x and nonnegative n. Genuine final underflow can still
+produce zero; high-order accuracy remains limited by conditioning and roundoff.
+This does not make the separate raw Hermite polynomials/norms representable at
+arbitrarily large degree. The auxiliary associated-Laguerre, probabilist-Hermite
+and second-kind-Chebyshev classes are not `OrthogonalBasis` subclasses and do
+not acquire a coefficient API through this change.
+
+Run `MML_DocsApp --orthogonal-basis-contracts` for checked runnable counterparts:
+
+```cpp
+RealFunction constant(+[](Real) { return Real{1}; });
+LegendreBasis legendre;
+ChebyshevBasis chebyshev;
+HermiteBasis hermite;
+LaguerreBasis laguerre;
+for (const OrthogonalBasis* basis : std::array<const OrthogonalBasis*, 4>{
+        &legendre, &chebyshev, &hermite, &laguerre})
+    std::cout << basis->ComputeCoefficient(constant, 0) << '\n'; // approximately 1
+
+AssociatedLaguerreBasis associated(0);
+std::cout << associated.Normalization(171) << '\n'; // 1
+std::cout << hermite.QuantumWavefunction(152, 0) << '\n'; // approximately 0.19092575562964689
+std::cout << hermite.QuantumWavefunction(1000, 40) << '\n'; // approximately 0.17225052073279227
 ```
 
 ## Integration with Gaussian Quadrature

@@ -12,7 +12,9 @@
  * Also tests the integrated EigenSolver class.
  */
 
-#ifdef MML_USE_SINGLE_HEADER
+#ifdef MML_SINGLE_HEADER_INCLUDE
+#include MML_SINGLE_HEADER_INCLUDE
+#elif defined(MML_USE_SINGLE_HEADER)
 #include <MML.h>
 #else
 #include <mml/base/Vector/Vector.h>
@@ -44,6 +46,137 @@ constexpr Real TOL = TOL(1e-10, 1e-4);
 // ============================================================================
 // BUILDING BLOCK 1: HESSENBERG REDUCTION TESTS
 // ============================================================================
+
+TEST_CASE("Hessenberg - similarity and structure do not depend on matrix units",
+          "[eigensolver][building-block][hessenberg][hessenberg-scale-contract]")
+{
+    const Matrix<Real> witness{3, 3, {0, 0, 2, 1, 0, 0, 1, 0, 0}};
+    const Matrix<Real> dense{5, 5, {
+        0, 2, -1, 3, 4,
+        0, 1, 1, 2, -2,
+        1, 0, 3, -1, 1,
+        -1, 3, 0, 2, 4,
+        2, -1, 2, 0, 1}};
+    const Matrix<Real> split{4, 4, {
+        1, 2, 0, 3,
+        0, 0, 2, 1,
+        0, 1, 3, -1,
+        0, 1, 1, 2}};
+    for (const auto& base : {witness, dense, split})
+        for (Real scale : {Real{1}, Real{-1}, Real(1e-20),
+            TOL(1e-200, 1e-20), TOL(1e160, 1e20),
+            TOL(1e-300, 1e-30), TOL(1e300, 1e30),
+            std::numeric_limits<Real>::min(), std::numeric_limits<Real>::max() / 64})
+        {
+            CAPTURE(base.rows(), scale);
+            const auto result = MML::ReduceToHessenberg(base * scale);
+            Matrix<Real> normalized(base.rows(), base.cols());
+            for (int row = 0; row < base.rows(); ++row)
+                for (int col = 0; col < base.cols(); ++col)
+                {
+                    CHECK(std::isfinite(result.H(row, col)));
+                    CHECK(std::isfinite(result.Q(row, col)));
+                    normalized(row, col) = result.H(row, col) / scale;
+                    if (row > col + 1)
+                        CHECK(result.H(row, col) == Real{0});
+                }
+            CHECK(MatrixAlg::IsOrthogonal(result.Q,
+                {Precision::EqualityTolerance, Precision::EqualityTolerance}));
+            const auto similar = Utils::SimilarityTransform(result.Q, base);
+            CHECK(Utils::MaxAbsDiff(similar, normalized) <=
+                base.rows() * Precision::EqualityTolerance);
+            const auto facade = MatrixAlg::ReduceToHessenberg(base * scale);
+            CHECK(Utils::MaxAbsDiff(facade.Q, result.Q) == Real{0});
+            CHECK(Utils::MaxAbsDiff(facade.H, result.H) == Real{0});
+        }
+}
+
+TEST_CASE("Hessenberg - scaled projections avoid overflowing intermediate updates",
+          "[eigensolver][building-block][hessenberg][hessenberg-scale-contract]")
+{
+    const Real largest = std::numeric_limits<Real>::max();
+    const Matrix<Real> matrix{3, 3, {0, 0, 0, 1, 0, largest / 2, 1, 0, largest * Real(0.875)}};
+    const auto result = MML::ReduceToHessenberg(matrix);
+    Matrix<Real> normalized(3, 3), normalizedInput(3, 3);
+    for (int row = 0; row < 3; ++row)
+        for (int col = 0; col < 3; ++col)
+        {
+            REQUIRE(std::isfinite(result.H(row, col)));
+            normalized(row, col) = result.H(row, col) / largest;
+            normalizedInput(row, col) = matrix(row, col) / largest;
+        }
+    CHECK(result.H(2, 0) == Real{0});
+    CHECK(MatrixAlg::IsOrthogonal(result.Q,
+        {Precision::EqualityTolerance, Precision::EqualityTolerance}));
+    CHECK(Utils::MaxAbsDiff(Utils::SimilarityTransform(result.Q, normalizedInput), normalized) <=
+        Precision::EqualityTolerance);
+}
+
+TEST_CASE("Hessenberg - invalid or unrepresentable reductions fail explicitly",
+          "[eigensolver][building-block][hessenberg][hessenberg-scale-contract]")
+{
+    for (int rows : {2, 4})
+        CHECK_THROWS_AS(MML::ReduceToHessenberg(Matrix<Real>(rows, 3)), MatrixDimensionError);
+    for (int size : {1, 2, 3})
+        for (Real invalid : {std::numeric_limits<Real>::infinity(), std::numeric_limits<Real>::quiet_NaN()})
+        {
+            auto matrix = Matrix<Real>::Identity(size);
+            matrix(0, size - 1) = invalid;
+            CHECK_THROWS_AS(MML::ReduceToHessenberg(matrix), MatrixNumericalError);
+        }
+    Matrix<Real> matrix(3, 3);
+    matrix(1, 0) = matrix(2, 0) = std::numeric_limits<Real>::max();
+    CHECK_THROWS_AS(MML::ReduceToHessenberg(matrix), MatrixNumericalError);
+}
+
+TEST_CASE("Hessenberg - normalized spectra retain the scaled witness eigenvalues",
+          "[eigensolver][building-block][hessenberg][hessenberg-scale-contract]")
+{
+    const Matrix<Real> base{3, 3, {0, 0, 2, 1, 0, 0, 1, 0, 0}};
+    for (Real scale : {Real{1}, Real(1e-20), TOL(1e-200, 1e-20), TOL(1e160, 1e20)})
+    {
+        CAPTURE(scale);
+        const auto reduced = MML::ReduceToHessenberg(base * scale);
+        Matrix<Real> normalized(3, 3);
+        for (int row = 0; row < 3; ++row)
+            for (int col = 0; col < 3; ++col)
+                normalized(row, col) = reduced.H(row, col) / scale;
+        const auto spectrum = EigenSolver::Solve(normalized, 0);
+        REQUIRE(spectrum.converged);
+        REQUIRE(spectrum.eigenvalues.size() == 3);
+        std::vector<Real> values;
+        for (const auto& value : spectrum.eigenvalues)
+        {
+            CHECK(std::abs(value.imag) <= Precision::EqualityTolerance);
+            values.push_back(value.real);
+        }
+        std::sort(values.begin(), values.end());
+        CHECK_THAT(values[0], Catch::Matchers::WithinAbs(-std::sqrt(Real{2}), Precision::EqualityTolerance));
+        CHECK_THAT(values[1], Catch::Matchers::WithinAbs(Real{0}, Precision::EqualityTolerance));
+        CHECK_THAT(values[2], Catch::Matchers::WithinAbs(std::sqrt(Real{2}), Precision::EqualityTolerance));
+    }
+}
+
+TEST_CASE("EigenSolver - small-unit Hessenberg witness is not a zero spectrum",
+          "[eigensolver][hessenberg-scale-contract]")
+{
+    const Real scale = Real(1e-20);
+    const Matrix<Real> matrix = Matrix<Real>{3, 3, {0, 0, 2, 1, 0, 0, 1, 0, 0}} * scale;
+    const auto result = EigenSolver::Solve(matrix, 0);
+    REQUIRE(result.converged);
+    REQUIRE(result.status == AlgorithmStatus::Success);
+    REQUIRE(result.eigenvalues.size() == 3);
+    std::vector<Real> values;
+    for (const auto& value : result.eigenvalues)
+    {
+        CHECK(std::abs(value.imag / scale) <= Precision::EqualityTolerance);
+        values.push_back(value.real / scale);
+    }
+    std::sort(values.begin(), values.end());
+    CHECK_THAT(values[0], Catch::Matchers::WithinAbs(-std::sqrt(Real{2}), Precision::EqualityTolerance));
+    CHECK_THAT(values[1], Catch::Matchers::WithinAbs(Real{0}, Precision::EqualityTolerance));
+    CHECK_THAT(values[2], Catch::Matchers::WithinAbs(std::sqrt(Real{2}), Precision::EqualityTolerance));
+}
 
 TEST_CASE("Hessenberg - 2x2 matrix unchanged", "[eigensolver][building-block][hessenberg]")
 {

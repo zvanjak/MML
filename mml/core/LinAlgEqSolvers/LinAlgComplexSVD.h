@@ -73,19 +73,20 @@ namespace MML
 			return result;
 		}
 
-		static Complex ColumnInnerProduct(const Matrix<Complex>& matrix, int left, int right)
+		static Complex NormalizedColumnInnerProduct(const Matrix<Complex>& matrix,
+			int left, int right, Real leftNorm, Real rightNorm)
 		{
 			Complex result{};
 			for (int row = 0; row < matrix.rows(); ++row)
-				result += std::conj(matrix(row, left)) * matrix(row, right);
+				result += std::conj(matrix(row, left) / leftNorm) * (matrix(row, right) / rightNorm);
 			return result;
 		}
 
-		static Real ColumnNormSquared(const Matrix<Complex>& matrix, int col)
+		static Real ColumnNorm(const Matrix<Complex>& matrix, int col)
 		{
 			Real result = static_cast<MML::Real>(0.0);
 			for (int row = 0; row < matrix.rows(); ++row)
-				result += std::norm(matrix(row, col));
+				result = std::hypot(result, std::abs(matrix(row, col)));
 			return result;
 		}
 
@@ -96,6 +97,38 @@ namespace MML
 				const Complex right = matrix(row, q);
 				matrix(row, p) = cosine * left - sine * std::conj(phase) * right;
 				matrix(row, q) = sine * phase * left + cosine * right;
+			}
+		}
+
+		static Complex SubtractCancellation(const Complex& left, const Complex& right)
+		{
+			const auto component = [](Real a, Real b) {
+				const Real difference = a - b;
+				return std::abs(difference) <= Precision::Eps *
+					(std::abs(a) + std::abs(b)) ? Real(0) : difference;
+			};
+			return {component(left.real(), right.real()), component(left.imag(), right.imag())};
+		}
+
+		static void RotateWorkingColumns(Matrix<Complex>& matrix, int p, int q,
+			Real cosine, Real sine, Real scaledSine, Complex phase, Real normP, Real normQ)
+		{
+			// Form the cancellation in unit-column coordinates before restoring the
+			// small norm. Discard only componentwise cancellation roundoff, not a small
+			// column norm: otherwise exact dependencies chase underflow for hundreds
+			// of sweeps in extended-range types, while independent tiny entries must survive.
+			const bool smallerLeft = normP <= normQ;
+			for (int row = 0; row < matrix.rows(); ++row) {
+				const Complex left = matrix(row, p), right = matrix(row, q);
+				if (smallerLeft) {
+					matrix(row, p) = normP * SubtractCancellation(cosine * (left / normP),
+						scaledSine * std::conj(phase) * (right / normQ));
+					matrix(row, q) = sine * phase * left + cosine * right;
+				} else {
+					matrix(row, p) = cosine * left - sine * std::conj(phase) * right;
+					matrix(row, q) = normQ * SubtractCancellation(scaledSine * phase * (left / normP),
+						-cosine * (right / normQ));
+				}
 			}
 		}
 
@@ -168,25 +201,32 @@ namespace MML
 				bool rotated = false;
 				for (int p = 0; p < cols - 1; ++p)
 					for (int q = p + 1; q < cols; ++q) {
-						const Real alpha = ColumnNormSquared(working, p);
-						const Real beta = ColumnNormSquared(working, q);
-						if (alpha == static_cast<MML::Real>(0.0) || beta == static_cast<MML::Real>(0.0))
+						const Real normP = ColumnNorm(working, p);
+						const Real normQ = ColumnNorm(working, q);
+						if (normP == static_cast<MML::Real>(0.0) || normQ == static_cast<MML::Real>(0.0))
 							continue;
-						const Complex gamma = ColumnInnerProduct(working, p, q);
-						const Real gammaMagnitude = std::abs(gamma);
-						const Real correlation = gammaMagnitude / std::sqrt(alpha * beta);
+						const Complex normalizedGamma = NormalizedColumnInnerProduct(working, p, q, normP, normQ);
+						const Real correlation = std::abs(normalizedGamma);
 						maxCorrelation = std::max(maxCorrelation, correlation);
 						if (correlation <= convergenceTolerance)
 							continue;
 
-						const Real zeta = (beta - alpha) / (static_cast<MML::Real>(2.0) * gammaMagnitude);
-						const Real tangent = zeta >= static_cast<MML::Real>(0.0)
-							? static_cast<MML::Real>(1.0) / (zeta + std::hypot(static_cast<MML::Real>(1.0), zeta))
-							: -static_cast<MML::Real>(1.0) / (-zeta + std::hypot(static_cast<MML::Real>(1.0), zeta));
+						const Real pairScale = std::max(normP, normQ);
+						const Real scaledP = normP / pairScale, scaledQ = normQ / pairScale;
+						const Real delta = scaledQ * scaledQ - scaledP * scaledP;
+						const Real twiceGamma = Real(2) * correlation * scaledP * scaledQ;
+						// Equivalent to the usual zeta formula without forming a huge zeta.
+						const Real tangent = delta == Real(0) ? Real(1) :
+							std::copysign(twiceGamma / (std::abs(delta) + std::hypot(delta, twiceGamma)), delta);
 						const Real cosine = static_cast<MML::Real>(1.0) / std::hypot(static_cast<MML::Real>(1.0), tangent);
 						const Real sine = tangent * cosine;
-						const Complex phase = gamma / gammaMagnitude;
-						RotateColumns(working, p, q, cosine, sine, phase);
+						// Compute sine*(largerNorm/smallerNorm) without first rounding
+						// a subnormal sine; it is the coefficient used for cancellation.
+						const Real scaledSine = delta == Real(0) ? sine :
+							std::copysign((Real(2) * correlation /
+								(std::abs(delta) + std::hypot(delta, twiceGamma))) * cosine, delta);
+						const Complex phase = normalizedGamma / correlation;
+						RotateWorkingColumns(working, p, q, cosine, sine, scaledSine, phase, normP, normQ);
 						RotateColumns(right, p, q, cosine, sine, phase);
 						rotated = true;
 					}
@@ -198,7 +238,7 @@ namespace MML
 
 			Vector<Real> singularValues(cols);
 			for (int col = 0; col < cols; ++col)
-				singularValues[col] = std::sqrt(ColumnNormSquared(working, col)) * scale;
+				singularValues[col] = ColumnNorm(working, col) * scale;
 			for (int left = 0; left < cols - 1; ++left) {
 				int largest = left;
 				for (int rightIndex = left + 1; rightIndex < cols; ++rightIndex)
@@ -216,8 +256,8 @@ namespace MML
 			Matrix<Complex> economyLeft(rows, cols);
 			int normalizedColumns = 0;
 			for (int col = 0; col < cols; ++col) {
-				const Real scaledNorm = singularValues[col] / scale;
-				if (scaledNorm <= std::numeric_limits<Real>::min())   // underflow guard: denormal reflector
+				const Real scaledNorm = ColumnNorm(working, col);
+				if (scaledNorm == Real(0))
 					break;
 				for (int row = 0; row < rows; ++row)
 					economyLeft(row, col) = working(row, col) / scaledNorm;

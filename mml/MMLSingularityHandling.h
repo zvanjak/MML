@@ -13,6 +13,7 @@
 
 #include <mml/MMLBase.h>
 #include <mml/MMLExceptions.h>
+#include <mml/MMLNumericValidation.h>
 
 #include <algorithm>
 #include <cmath>
@@ -60,7 +61,7 @@ namespace MML
 			case SingularityPolicy::Clamp:
 				return;
 			default:
-				throw ArgumentError("Unknown matrix singularity policy");
+				throw ArgumentError("Unknown singularity policy");
 			}
 		}
 
@@ -77,6 +78,22 @@ namespace MML
 				for (int j = 0; j < matrix.cols(); ++j)
 					if (!std::isfinite(matrix(i, j)))
 						throw DomainError(std::string(context) + ": nonfinite matrix");
+		}
+
+		template<class TMatrix>
+		void RequireSymmetricMatrix(const TMatrix& matrix, const char* context) {
+			RequireFiniteMatrix(matrix, context);
+			if (matrix.rows() != matrix.cols())
+				throw DomainError(std::string(context) + ": matrix must be square");
+			Real scale = 0;
+			for (int i = 0; i < matrix.rows(); ++i)
+				for (int j = 0; j < matrix.cols(); ++j)
+					scale = std::max(scale, std::abs(matrix(i,j)));
+			if (scale != 0)
+				for (int i = 0; i < matrix.rows(); ++i)
+					for (int j = i + 1; j < matrix.cols(); ++j)
+						if (std::abs(matrix(i,j)/scale - matrix(j,i)/scale) > Precision::IsMatrixSymmetricTolerance)
+							throw DomainError(std::string(context) + ": matrix must be symmetric");
 		}
 
 		/// Explicit sentinel for a singular fixed-size real matrix, never an inverse.
@@ -157,11 +174,20 @@ namespace MML
 			return std::abs(value) < tol;
 		}
 
+		// Runtime policy/tolerance checks are not followed by MSVC's zero-division analysis.
+#if defined(_MSC_VER) && !defined(__clang__)
+#pragma warning(push)
+#pragma warning(disable: 4723)
+#endif
 		inline Real SafeDivide(Real numerator, Real denominator,
 		                       SingularityPolicy policy = DEFAULT_POLICY,
 		                       const char* context = nullptr,
 		                       Real tol = DEFAULT_SINGULARITY_TOL)
 		{
+			RequireMatrixPolicy(policy);
+			ValidateTolerance(tol, "SafeDivide");
+			ValidateFinite(numerator, "SafeDivide numerator");
+			ValidateFinite(denominator, "SafeDivide denominator");
 			if (!IsNearZero(denominator, tol)) {
 				return numerator / denominator;
 			}
@@ -182,13 +208,11 @@ namespace MML
 					return std::numeric_limits<Real>::quiet_NaN();
 
 				case SingularityPolicy::ReturnInf:
-					if (numerator >= 0)
-						return std::numeric_limits<Real>::infinity();
-					else
-						return -std::numeric_limits<Real>::infinity();
+					return std::signbit(numerator) != std::signbit(denominator) ?
+						-std::numeric_limits<Real>::infinity() : std::numeric_limits<Real>::infinity();
 
 				case SingularityPolicy::Clamp: {
-					Real clampedDenom = (denominator >= 0) ? tol : -tol;
+					Real clampedDenom = std::copysign(tol, denominator);
 					return numerator / clampedDenom;
 				}
 
@@ -196,9 +220,12 @@ namespace MML
 					return Real(0);
 
 				default:
-					return std::numeric_limits<Real>::quiet_NaN();
+					throw ArgumentError("Unknown singularity policy");
 			}
 		}
+#if defined(_MSC_VER) && !defined(__clang__)
+#pragma warning(pop)
+#endif
 	} // namespace Singularity
 } // namespace MML
 

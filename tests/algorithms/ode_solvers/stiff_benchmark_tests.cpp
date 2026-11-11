@@ -5,6 +5,20 @@
 using namespace MML;
 using namespace MML::TestBeds;
 
+namespace {
+	void RequireRefinement(Real coarseError, Real fineError, int fineSteps, Real stateScale) {
+		if constexpr (std::is_same_v<Real, float>) {
+			const Real operations = Real(3) * fineSteps;
+			const Real gamma = operations * Precision::Eps / (1 - operations * Precision::Eps);
+			const Real roundoffFloor = gamma * stateScale;
+			CAPTURE(coarseError, fineError, roundoffFloor);
+			REQUIRE((fineError < coarseError || (coarseError <= roundoffFloor && fineError <= roundoffFloor)));
+		} else {
+			REQUIRE(fineError < coarseError);
+		}
+	}
+}
+
 TEST_CASE("Stiff benchmark references - fixed-step refinement on classical problems",
 	"[StiffSolvers][stiff-benchmark]")
 {
@@ -25,7 +39,8 @@ TEST_CASE("Stiff benchmark references - fixed-step refinement on classical probl
 			REQUIRE(fine.acceptedSteps >= coarse.acceptedSteps * 3);
 			REQUIRE(fine.rhsCalls > coarse.rhsCalls);
 			REQUIRE(fine.jacobianCalls > 0);
-			REQUIRE(fine.maxAbsoluteError < coarse.maxAbsoluteError);
+			RequireRefinement(coarse.maxAbsoluteError, fine.maxAbsoluteError, fine.acceptedSteps,
+				std::max(problem.initial.NormL2(), problem.smokeReference.NormL2()));
 			REQUIRE(fine.maxAbsoluteError < Precision::CoarseTolerance * Real(10));
 			if (method == StiffBenchmarkMethod::BDF2)
 				REQUIRE(fine.maxAbsoluteError < Precision::CoarseTolerance);
@@ -50,14 +65,16 @@ TEST_CASE("Stiff benchmark references - ROS2 accuracy and measured work",
 		INFO(fine.message);
 		REQUIRE(coarse.status == AlgorithmStatus::Success);
 		REQUIRE(fine.status == AlgorithmStatus::Success);
-		REQUIRE(fine.maxAbsoluteError < coarse.maxAbsoluteError);
+		RequireRefinement(coarse.maxAbsoluteError, fine.maxAbsoluteError, fine.acceptedSteps,
+			std::max(problem.initial.NormL2(), problem.smokeReference.NormL2()));
 		REQUIRE(fine.maxAbsoluteError < Precision::CoarseTolerance);
 		REQUIRE(fine.rhsCalls > coarse.rhsCalls);
 		REQUIRE(fine.jacobianCalls > 0);
 		REQUIRE(fine.acceptedSteps > 0);
 		REQUIRE(fine.rhsCalls == 3 * fine.jacobianCalls);
 		REQUIRE(fine.jacobianCalls == static_cast<std::uint64_t>(fine.acceptedSteps + fine.rejectedSteps));
-		REQUIRE(fine.luFactorizations == fine.jacobianCalls);
+		REQUIRE(fine.luFactorizations >= 0);
+		REQUIRE(static_cast<std::uint64_t>(fine.luFactorizations) == fine.jacobianCalls);
 		REQUIRE(fine.linearSolves == 2 * fine.luFactorizations);
 	}
 }

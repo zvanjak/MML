@@ -40,7 +40,7 @@ void Docs_Demo_ProtectedDiracParameter()
 void Docs_Demo_DiracStep()
 {
     std::cout << "\n=== DiracStep - Rectangular Approximation ===" << std::endl;
-    std::cout << "Formula: delta(x) = N for |x| < 1/(2N), else 0" << std::endl;
+    std::cout << "Formula: delta(x) = N for |x| <= 1/(2N), else 0" << std::endl;
     std::cout << "Properties: Width = 1/N, Height = N, Area = 1 (exact)" << std::endl;
     
     DiracStep delta10(10);

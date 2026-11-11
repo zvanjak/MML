@@ -46,8 +46,8 @@ namespace MML
 				return IOResult{false, IOError::INVALID_PARAMETERS, "numPointsU and numPointsW must be >= 2"}.WithFile(fileName);
 			if (u1 >= u2 || w1 >= w2)
 				return IOResult{false, IOError::INVALID_PARAMETERS, "u1 < u2 and w1 < w2 required"}.WithFile(fileName);
-			if (fileName.empty())
-				return IOResult{false, IOError::INVALID_PARAMETERS, "fileName cannot be empty"}.WithFile(fileName);
+			const auto pathValidation = detail::ValidateFileName(fileName);
+			if (!pathValidation.success) return pathValidation;
 
 			std::ofstream file(fileName);
 			Serializer::detail::ApplyTextFormat(file);
@@ -61,15 +61,12 @@ namespace MML
 					return (headerResult).WithFile(fileName);
 
 				// Write grid data
-				Real stepU = (u2 - u1) / (numPointsU - 1);
-				Real stepW = (w2 - w1) / (numPointsW - 1);
-				
 				for (int i = 0; i < numPointsU; i++)
 				{
-					Real u = u1 + i * stepU;
+					Real u = detail::SampleCoordinate(u1, u2, i, numPointsU);
 					for (int j = 0; j < numPointsW; j++)
 					{
-						Real w = w1 + j * stepW;
+						Real w = detail::SampleCoordinate(w1, w2, j, numPointsW);
 						VectorN<Real, 3> pos = surface(u, w);
 						file << u << " " << w << " " << pos[0] << " " << pos[1] << " " << pos[2] << std::endl;
 					}
@@ -93,8 +90,8 @@ namespace MML
 				return IOResult{false, IOError::INVALID_PARAMETERS, "numPointsU and numPointsW must be >= 2"}.WithFile(fileName);
 			if (u1 >= u2 || w1 >= w2)
 				return IOResult{false, IOError::INVALID_PARAMETERS, "u1 < u2 and w1 < w2 required"}.WithFile(fileName);
-			if (fileName.empty())
-				return IOResult{false, IOError::INVALID_PARAMETERS, "fileName cannot be empty"}.WithFile(fileName);
+			const auto pathValidation = detail::ValidateFileName(fileName);
+			if (!pathValidation.success) return pathValidation;
 
 			std::ofstream file(fileName);
 			Serializer::detail::ApplyTextFormat(file);
@@ -108,15 +105,12 @@ namespace MML
 					return (headerResult).WithFile(fileName);
 
 				// Write grid data
-				Real stepU = (u2 - u1) / (numPointsU - 1);
-				Real stepW = (w2 - w1) / (numPointsW - 1);
-				
 				for (int i = 0; i < numPointsU; i++)
 				{
-					Real u = u1 + i * stepU;
+					Real u = detail::SampleCoordinate(u1, u2, i, numPointsU);
 					for (int j = 0; j < numPointsW; j++)
 					{
-						Real w = w1 + j * stepW;
+						Real w = detail::SampleCoordinate(w1, w2, j, numPointsW);
 						VectorN<Real, 3> pos = f(VectorN<Real, 2>{u, w});
 						file << u << " " << w << " " << pos[0] << " " << pos[1] << " " << pos[2] << std::endl;
 					}
@@ -155,8 +149,8 @@ namespace MML
 				return IOResult{false, IOError::INVALID_PARAMETERS, "numPointsX and numPointsY must be >= 2"}.WithFile(fileName);
 			if (x1 >= x2 || y1 >= y2)
 				return IOResult{false, IOError::INVALID_PARAMETERS, "x1 < x2 and y1 < y2 required"}.WithFile(fileName);
-			if (fileName.empty())
-				return IOResult{false, IOError::INVALID_PARAMETERS, "fileName cannot be empty"}.WithFile(fileName);
+			const auto pathValidation = detail::ValidateFileName(fileName);
+			if (!pathValidation.success) return pathValidation;
 
 			std::ofstream file(fileName);
 			Serializer::detail::ApplyTextFormat(file);
@@ -169,14 +163,12 @@ namespace MML
 				if (!headerResult.success)
 					return (headerResult).WithFile(fileName);
 
-				Real stepX = (x2 - x1) / (numPointsX - 1);
-				Real stepY = (y2 - y1) / (numPointsY - 1);
 				for (int i = 0; i < numPointsX; i++)
 				{
 					for (int j = 0; j < numPointsY; j++)
 					{
-						Real x = x1 + i * stepX;
-						Real y = y1 + j * stepY;
+						Real x = detail::SampleCoordinate(x1, x2, i, numPointsX);
+						Real y = detail::SampleCoordinate(y1, y2, j, numPointsY);
 						file << x << " " << y << " " << f(VectorN<Real, 2>{x, y}) << std::endl;
 					}
 				}
@@ -199,8 +191,8 @@ namespace MML
 				return IOResult{false, IOError::INVALID_PARAMETERS, "numPointsX, numPointsY, and numPointsZ must be >= 2"}.WithFile(fileName);
 			if (x1 >= x2 || y1 >= y2 || z1 >= z2)
 				return IOResult{false, IOError::INVALID_PARAMETERS, "x1 < x2, y1 < y2, and z1 < z2 required"}.WithFile(fileName);
-			if (fileName.empty())
-				return IOResult{false, IOError::INVALID_PARAMETERS, "fileName cannot be empty"}.WithFile(fileName);
+			const auto pathValidation = detail::ValidateFileName(fileName);
+			if (!pathValidation.success) return pathValidation;
 
 			std::ofstream file(fileName);
 			Serializer::detail::ApplyTextFormat(file);
@@ -213,18 +205,15 @@ namespace MML
 				if (!headerResult.success)
 					return (headerResult).WithFile(fileName);
 
-				Real stepX = (x2 - x1) / (numPointsX - 1);
-				Real stepY = (y2 - y1) / (numPointsY - 1);
-				Real stepZ = (z2 - z1) / (numPointsZ - 1);
 				for (int i = 0; i < numPointsX; i++)
 				{
 					for (int j = 0; j < numPointsY; j++)
 					{
 						for (int k = 0; k < numPointsZ; k++)
 						{
-							Real x = x1 + i * stepX;
-							Real y = y1 + j * stepY;
-							Real z = z1 + k * stepZ;
+							Real x = detail::SampleCoordinate(x1, x2, i, numPointsX);
+							Real y = detail::SampleCoordinate(y1, y2, j, numPointsY);
+							Real z = detail::SampleCoordinate(z1, z2, k, numPointsZ);
 							file << x << " " << y << " " << z << " " << f(VectorN<Real, 3>{x, y, z}) << std::endl;
 						}
 					}
@@ -257,8 +246,8 @@ namespace MML
 		template<typename GridFunc>
 		inline IOResult SaveGridFunction2D(const GridFunc& gridFunc, std::string title, std::string fileName, Real scaleXY = 1.0,
 																			 Real scaleValue = 1.0) {
-			if (fileName.empty())
-				return IOResult{false, IOError::INVALID_PARAMETERS, "fileName cannot be empty"}.WithFile(fileName);
+			const auto pathValidation = detail::ValidateFileName(fileName);
+			if (!pathValidation.success) return pathValidation;
 
 			std::ofstream file(fileName);
 			Serializer::detail::ApplyTextFormat(file);

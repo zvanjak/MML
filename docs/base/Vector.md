@@ -40,6 +40,19 @@ for format, precision, transactional loading and runnable examples.
 
 ## Construction
 
+Size-based construction (including uniform-value and C-array forms) and `resize`
+also accept unsigned integral counts such as `std::size_t`. These overloads check
+the existing `int` dimension limit before conversion: a count greater than
+`std::numeric_limits<int>::max()` throws `std::length_error` before allocation or
+mutation. Counts never silently wrap to a smaller size. Existing `int` overloads
+and their negative-size behavior are unchanged.
+
+Unchecked `operator[]` accepts unsigned integral indices directly, without first
+narrowing them to `int`; its existing unchecked-access contract still applies.
+The signed `int` indexing overloads remain available, including their exact
+member-function signatures. This is not a widening of MML's mathematical dimension
+or checked `at(int)` interface.
+
 ### Empty Vector
 ```cpp
 Vector<double> v;  // Empty vector, size 0
@@ -94,13 +107,19 @@ v[1] = 10.0;
 // Safe access (with bounds checking)
 double y = v.at(1);  // 10.0
 v.at(2) = 20.0;      // Sets v[2] = 20.0
-// v.at(5) = 5.0;    // Throws VectorDimensionError
+// v.at(5) = 5.0;    // Throws VectorAccessBoundsError
 
 // Front and back
 double first = v.front();  // 1.5
 double last = v.back();    // 20.0
 v.front() = 99.0;          // Modify first element
 ```
+
+`at()` throws `VectorAccessBoundsError` for an out-of-range index; its `index()`
+and `size()` accessors report the rejected index and vector size.
+`Demo_Vector_Access()` checks this exception and its metadata. Run the complete
+vector demo, including the later modification and resize examples, with
+`MML_DocsApp --vectors`.
 
 ### Size and State
 ```cpp
@@ -242,18 +261,37 @@ v.erase(2);          // Remove position 2: v = [1.0, 1.5, 3.0]
 v.erase(0, 2);       // Remove range [0, 2): v = [3.0]
 ```
 
+`erase(index)` and `erase(first, last)` remove positions. Use `eraseValue(value)`
+to remove every occurrence of a value. In particular, `Vector<int>::erase(0)`
+unambiguously removes the first element, not all zeroes. The old value-shaped
+`erase(value)` remains a deprecated alias where its signature is unambiguous
+(`T != int`).
+
+```cpp
+Vector<int> values{1, 2, 1};
+values.erase(0);       // {2, 1}
+values.eraseValue(1);  // {2}
+```
+
+This integer example runs in `Docs_Demo_CoordinateScaleContracts()`, selected with
+`MML_DocsApp --arithmetic-scale-contracts`.
+
 ### Resizing
+
+Like `std::vector::resize`, resizing always preserves the retained prefix. New
+arithmetic elements are zero-initialized; other element types are
+default-constructed. The legacy `preserveElements` argument is ignored.
+Negative sizes throw `std::length_error` without changing the vector.
+
 ```cpp
 Vector<double> v({1, 2, 3, 4, 5});
 
-// Resize without preserving elements
-v.resize(3);  // v = [0, 0, 0] (elements lost)
-
-// Resize preserving elements
-v = Vector<double>({1, 2, 3, 4, 5});
-v.resize(3, true);   // v = [1, 2, 3] (elements preserved)
-v.resize(7, true);   // v = [1, 2, 3, 0, 0, 0, 0] (extended with zeros)
+v.resize(3);        // v = [1, 2, 3]
+v.resize(7);        // v = [1, 2, 3, 0, 0, 0, 0]
+v.resize(2, true);  // v = [1, 2]
 ```
+
+This example runs in `Demo_Vector_Modification()`, selected with `MML_DocsApp --vector-resize`.
 
 ### Clearing
 ```cpp

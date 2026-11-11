@@ -58,16 +58,16 @@ namespace MML
 		/// q2 = phi - angle to symmetry axis
 		/// q3 = z   - z
 		/// @brief Convert cylindrical to Cartesian x-coordinate
-		static Real x(const VectorN<Real, 3>& q) { return q[0] * cos(q[1]); }
-		static Real y(const VectorN<Real, 3>& q) { return q[0] * sin(q[1]); }
+		static Real x(const VectorN<Real, 3>& q) { return CoordTransfDetail::CheckedCoordinate(q, q[0] * cos(q[1])); }
+		static Real y(const VectorN<Real, 3>& q) { return CoordTransfDetail::CheckedCoordinate(q, q[0] * sin(q[1])); }
 		/// @brief Convert cylindrical to Cartesian z-coordinate (unchanged)
-		static Real z(const VectorN<Real, 3>& q) { return q[2]; }
+		static Real z(const VectorN<Real, 3>& q) { return CoordTransfDetail::CheckedCoordinate(q, q[2]); }
 
 		// q[0] = x
 		// q[1] = y
 		// q[2] = z
-		static Real r(const VectorN<Real, 3>& q) { return sqrt(q[0] * q[0] + q[1] * q[1]); }
-		static Real phi(const VectorN<Real, 3>& q) { return atan2(q[1], q[0]); }
+		static Real r(const VectorN<Real, 3>& q) { return CoordTransfDetail::CheckedCoordinate(q, std::hypot(q[0], q[1])); }
+		static Real phi(const VectorN<Real, 3>& q) { return CoordTransfDetail::CheckedCoordinate(q, atan2(q[1], q[0])); }
 		// z-coordinate is the same, so we'll use for inverse the same function as for forward transformation
 
 		inline static ScalarFunction<3> _func[3] = { ScalarFunction<3>{x},
@@ -89,6 +89,7 @@ namespace MML
 
 		MatrixNM<Real, 3, 3> jacobian(const VectorN<Real, 3>& pos) const override
 		{
+			Singularity::RequireFiniteCoordinates<3>(pos, "Cylindrical Jacobian");
 			const Real radius = pos[0];
 			const Real sinPhi = sin(pos[1]);
 			const Real cosPhi = cos(pos[1]);
@@ -144,17 +145,17 @@ namespace MML
 		/// q[1] = y
 		/// q[2] = z
 		/// @brief Convert Cartesian to cylindrical radial distance
-		static Real r(const VectorN<Real, 3>& q) { return sqrt(q[0] * q[0] + q[1] * q[1]); }
+		static Real r(const VectorN<Real, 3>& q) { return CoordTransfDetail::CheckedCoordinate(q, std::hypot(q[0], q[1])); }
 		/// @brief Convert Cartesian to cylindrical azimuthal angle
-		static Real phi(const VectorN<Real, 3>& q) { return atan2(q[1], q[0]); }
+		static Real phi(const VectorN<Real, 3>& q) { return CoordTransfDetail::CheckedCoordinate(q, atan2(q[1], q[0])); }
 		/// @brief Convert Cartesian to cylindrical z-coordinate (unchanged)
-		static Real z(const VectorN<Real, 3>& q) { return q[2]; }
+		static Real z(const VectorN<Real, 3>& q) { return CoordTransfDetail::CheckedCoordinate(q, q[2]); }
 
 		// q1 = r   - distance from symmetry axis
 		// q2 = phi - angle to symmetry axis
 		// q3 = z   - z
-		static Real x(const VectorN<Real, 3>& q) { return q[0] * cos(q[1]); }
-		static Real y(const VectorN<Real, 3>& q) { return q[0] * sin(q[1]); }
+		static Real x(const VectorN<Real, 3>& q) { return CoordTransfDetail::CheckedCoordinate(q, q[0] * cos(q[1])); }
+		static Real y(const VectorN<Real, 3>& q) { return CoordTransfDetail::CheckedCoordinate(q, q[0] * sin(q[1])); }
 
 		inline static ScalarFunction<3> _func[3] = { ScalarFunction<3>{r},
 																								 ScalarFunction<3>{phi},

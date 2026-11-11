@@ -77,11 +77,11 @@ namespace MML::Tests::Core::IterativeLinearSolversTests
 			TEST_PRECISION_INFO();
 		auto sys = TestBeds::diag_dominant_4x4();
 		
-		// Start with solution as initial guess - should converge in 1 iteration
+		// An exact initial guess should not spend a sweep.
 		auto result = JacobiSolver::Solve(sys._mat, sys._rhs, sys._sol);
 		
 		REQUIRE(result.converged);
-		REQUIRE(result.iterations <= 2);  // Should be very fast with perfect initial guess
+		REQUIRE(result.iterations == 0);
 	}
 	
 	TEST_CASE("Jacobi_ZeroDiagonal_Throws", "[JacobiSolver][Iterative]")
@@ -326,7 +326,7 @@ namespace MML::Tests::Core::IterativeLinearSolversTests
 		
 		// Should not converge with only 5 iterations
 		REQUIRE_FALSE(result.converged);
-		REQUIRE(result.iterations <= 6);  // May be 5 or 6 depending on iteration counting
+		REQUIRE(result.iterations == 5);
 		
 		// SolveSimple should throw
 		REQUIRE_THROWS_AS(

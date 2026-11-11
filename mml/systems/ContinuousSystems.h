@@ -36,7 +36,7 @@ namespace MML::Systems
 	public:
 		/// @brief Construct with default chaotic parameters
 		LorenzSystem(Real sigma = static_cast<MML::Real>(10.0), Real rho = static_cast<MML::Real>(28.0), Real beta = static_cast<MML::Real>(8.0) / static_cast<MML::Real>(3.0)) {
-			_params = {sigma, rho, beta};
+			setParams(Vector<Real>{sigma, rho, beta});
 			_stateNames = {"x", "y", "z"};
 			_paramNames = {"sigma", "rho", "beta"};
 			_paramRanges = {{static_cast<MML::Real>(0.0), static_cast<MML::Real>(50.0)}, {static_cast<MML::Real>(0.0), static_cast<MML::Real>(100.0)}, {static_cast<MML::Real>(0.0), static_cast<MML::Real>(10.0)}};
@@ -90,7 +90,7 @@ namespace MML::Systems
 	public:
 		/// @brief Construct with default parameters
 		RosslerSystem(Real a = static_cast<MML::Real>(0.2), Real b = static_cast<MML::Real>(0.2), Real c = static_cast<MML::Real>(5.7)) {
-			_params = {a, b, c};
+			setParams(Vector<Real>{a, b, c});
 			_stateNames = {"x", "y", "z"};
 			_paramNames = {"a", "b", "c"};
 			_paramRanges = {{static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0)}, {static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0)}, {static_cast<MML::Real>(0.0), static_cast<MML::Real>(20.0)}};
@@ -137,7 +137,7 @@ namespace MML::Systems
 	public:
 		/// @brief Construct with nonlinearity parameter
 		VanDerPolSystem(Real mu = static_cast<MML::Real>(1.0)) {
-			_params = {mu};
+			setParams(Vector<Real>{mu});
 			_stateNames = {"x", "v"};
 			_paramNames = {"mu"};
 			_paramRanges = {{static_cast<MML::Real>(0.0), static_cast<MML::Real>(10.0)}};
@@ -171,7 +171,7 @@ namespace MML::Systems
 	public:
 		/// @brief Construct with parameters
 		DuffingSystem(Real delta = static_cast<MML::Real>(0.3), Real alpha = static_cast<MML::Real>(-1.0), Real beta = static_cast<MML::Real>(1.0), Real gamma = static_cast<MML::Real>(0.5), Real omega = static_cast<MML::Real>(1.2)) {
-			_params = {delta, alpha, beta, gamma, omega};
+			setParams(Vector<Real>{delta, alpha, beta, gamma, omega});
 			_stateNames = {"x", "v", "theta"};
 			_paramNames = {"delta", "alpha", "beta", "gamma", "omega"};
 			_paramRanges = {{static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0)}, {static_cast<MML::Real>(-2.0), static_cast<MML::Real>(2.0)}, {static_cast<MML::Real>(0.0), static_cast<MML::Real>(2.0)}, {static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0)}, {static_cast<MML::Real>(0.0), static_cast<MML::Real>(3.0)}};
@@ -225,7 +225,7 @@ namespace MML::Systems
 	class ChuaCircuit : public DynamicalSystemBase<3, 4> {
 	public:
 		ChuaCircuit(Real alpha = static_cast<MML::Real>(15.6), Real beta = static_cast<MML::Real>(28.0), Real a = static_cast<MML::Real>(-1.143), Real b = static_cast<MML::Real>(-0.714)) {
-			_params = {alpha, beta, a, b};
+			setParams(Vector<Real>{alpha, beta, a, b});
 			_stateNames = {"x", "y", "z"};
 			_paramNames = {"alpha", "beta", "a", "b"};
 			_paramRanges = {{static_cast<MML::Real>(0.0), static_cast<MML::Real>(30.0)}, {static_cast<MML::Real>(0.0), static_cast<MML::Real>(50.0)}, {static_cast<MML::Real>(-2.0), static_cast<MML::Real>(0.0)}, {static_cast<MML::Real>(-1.0), static_cast<MML::Real>(0.0)}};
@@ -239,7 +239,7 @@ namespace MML::Systems
 
 			// Chua's nonlinearity
 			Real x = y[0];
-			Real fx = b * x + 0.5 * (a - b) * (std::abs(x + 1) - std::abs(x - 1));
+			Real fx = b * x + MML::Real(0.5) * (a - b) * (std::abs(x + 1) - std::abs(x - 1));
 
 			dydt[0] = alpha * (y[1] - x - fx);
 			dydt[1] = y[0] - y[1] + y[2];
@@ -287,7 +287,7 @@ namespace MML::Systems
 	public:
 		/// @brief Construct with energy level
 		HenonHeilesSystem(Real energy = static_cast<MML::Real>(0.1)) {
-			_params = {energy};
+			setParams(Vector<Real>{energy});
 			_stateNames = {"x", "y", "px", "py"};
 			_paramNames = {"E"};
 			_paramRanges = {{static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.166)}};
@@ -321,17 +321,23 @@ namespace MML::Systems
 		bool isDissipative() const override { return false; }
 		
 		Vector<Real> getDefaultInitialCondition() const override { 
-			return Vector<Real>({0.3, 0.0, 0.2, 0.0}); // x=0.3, y=0, px=0.2, py=0
+			return Vector<Real>({MML::Real(0.3), MML::Real(0.0), MML::Real(0.2), MML::Real(0.0)}); // x=0.3, y=0, px=0.2, py=0
 		}
 
 		int getNumInvariants() const override { return 1; }
-		std::string getInvariantName(int /*i*/) const override { return "Energy"; }
-		Real computeInvariant(int /*i*/, const Vector<Real>& x) const override { return getEnergy(x); }
+		std::string getInvariantName(int i) const override {
+			if (i != 0) throw IndexError("HenonHeilesSystem::getInvariantName - invariant index out of range");
+			return "Energy";
+		}
+		Real computeInvariant(int i, const Vector<Real>& x) const override {
+			if (i != 0) throw IndexError("HenonHeilesSystem::computeInvariant - invariant index out of range");
+			return getEnergy(x);
+		}
 
 		/// @brief Get Hamiltonian value
 		Real getEnergy(const Vector<Real>& y) const {
 			Real x = y[0], yc = y[1], px = y[2], py = y[3];
-			return 0.5 * (px * px + py * py + x * x + yc * yc) + x * x * yc - yc * yc * yc / 3.0;
+			return MML::Real(0.5) * (px * px + py * py + x * x + yc * yc) + x * x * yc - yc * yc * yc / MML::Real(3.0);
 		}
 	};
 
@@ -343,10 +349,19 @@ namespace MML::Systems
 	///
 	/// State: [θ1, θ2, ω1, ω2] (angles and angular velocities)
 	/// Parameters: [m1, m2, L1, L2, g]
+	/// Masses and lengths must be finite and positive; gravity may be any finite value.
 	class DoublePendulumSystem : public DynamicalSystemBase<4, 5> {
+	protected:
+		void ValidateParameter(int index, Real value) const override {
+			if (index < 4)
+				DynSysDetail::RequirePositive(value, "DoublePendulumSystem mass or length");
+			else
+				DynamicalSystemBase<4, 5>::ValidateParameter(index, value);
+		}
+
 	public:
 		DoublePendulumSystem(Real m1 = 1.0, Real m2 = 1.0, Real L1 = 1.0, Real L2 = 1.0, Real gravity = 9.80665) {
-			_params = {m1, m2, L1, L2, gravity};
+			setParams(Vector<Real>{m1, m2, L1, L2, gravity});
 			_stateNames = {"theta1", "theta2", "omega1", "omega2"};
 			_paramNames = {"m1", "m2", "L1", "L2", "g"};
 			_paramRanges = {{static_cast<MML::Real>(0.1), static_cast<MML::Real>(10.0)}, {static_cast<MML::Real>(0.1), static_cast<MML::Real>(10.0)}, {static_cast<MML::Real>(0.1), static_cast<MML::Real>(5.0)}, {static_cast<MML::Real>(0.1), static_cast<MML::Real>(5.0)}, {static_cast<MML::Real>(0.0), static_cast<MML::Real>(20.0)}};
@@ -366,8 +381,10 @@ namespace MML::Systems
 
 			// Denominators
 			Real M = m1 + m2;
-			Real d1 = L1 * (M - m2 * c * c);
-			Real d2 = L2 * (M - m2 * c * c);
+			// Avoid cancellation of m1 when the rods align and m2 is much larger.
+			Real denominatorMass = m1 + m2 * s * s;
+			Real d1 = L1 * denominatorMass;
+			Real d2 = L2 * denominatorMass;
 
 			// Numerators
 			Real n1 = -m2 * L1 * w1 * w1 * s * c + m2 * g * std::sin(th2) * c - m2 * L2 * w2 * w2 * s - M * g * std::sin(th1);
@@ -405,8 +422,14 @@ namespace MML::Systems
 		}
 
 		int getNumInvariants() const override { return 1; }
-		std::string getInvariantName(int /*i*/) const override { return "Energy"; }
-		Real computeInvariant(int /*i*/, const Vector<Real>& x) const override { return getEnergy(x); }
+		std::string getInvariantName(int i) const override {
+			if (i != 0) throw IndexError("DoublePendulumSystem::getInvariantName - invariant index out of range");
+			return "Energy";
+		}
+		Real computeInvariant(int i, const Vector<Real>& x) const override {
+			if (i != 0) throw IndexError("DoublePendulumSystem::computeInvariant - invariant index out of range");
+			return getEnergy(x);
+		}
 
 		/// @brief Total energy (should be conserved)
 		Real getEnergy(const Vector<Real>& y) const {
@@ -419,7 +442,7 @@ namespace MML::Systems
 
 			// Kinetic energy
 			Real T =
-				0.5 * (m1 + m2) * L1 * L1 * w1 * w1 + 0.5 * m2 * L2 * L2 * w2 * w2 + m2 * L1 * L2 * w1 * w2 * std::cos(th1 - th2);
+				MML::Real(0.5) * (m1 + m2) * L1 * L1 * w1 * w1 + MML::Real(0.5) * m2 * L2 * L2 * w2 * w2 + m2 * L1 * L2 * w1 * w2 * std::cos(th1 - th2);
 
 			// Potential energy (reference at y = 0)
 			Real V = -(m1 + m2) * g * L1 * std::cos(th1) - m2 * g * L2 * std::cos(th2);

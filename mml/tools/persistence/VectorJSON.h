@@ -28,6 +28,16 @@ namespace Persistence
 {
 	namespace Detail
 	{
+		template<class VectorType>
+		IOResult ValidateVectorJsonSave(const VectorType& vec, const SaveOptions& options) {
+			const auto validation = ValidateJsonSaveOptions(options);
+			if (!validation.success) return validation;
+			for (int i = 0; i < vec.size(); ++i)
+				if (!JsonNumberIsWritable(vec[i]))
+					return SerializeFailure(IOError::UNSUPPORTED_SCALAR, "Vector JSON data exceeds the finite JSON number range");
+			return SerializeSuccess();
+		}
+
 		template<class Type>
 		constexpr const char* JsonScalarName()
 		{
@@ -90,16 +100,19 @@ namespace Persistence
 
 			if (format == nullptr || format->type != JsonValueType::String || format->string_value != "MML_JSON")
 				return SerializeFailure(IOError::INVALID_FORMAT, "Vector JSON format must be MML_JSON");
-			if (version == nullptr || version->type != JsonValueType::Number || static_cast<int>(version->number_value) != 1)
+			if (!JsonIntegerEquals(version, 1))
 				return SerializeFailure(IOError::UNSUPPORTED_VERSION, "Unsupported Vector JSON container version");
 			if (object == nullptr || object->type != JsonValueType::String || object->string_value != objectName)
 				return SerializeFailure(IOError::TYPE_MISMATCH, "Vector JSON object kind does not match target type");
-			if (objectVersion == nullptr || objectVersion->type != JsonValueType::Number || static_cast<int>(objectVersion->number_value) != 1)
+			if (!JsonIntegerEquals(objectVersion, 1))
 				return SerializeFailure(IOError::UNSUPPORTED_VERSION, "Unsupported Vector JSON object schema version");
 			if (scalar == nullptr || scalar->type != JsonValueType::String || scalar->string_value != JsonScalarName<Type>())
 				return SerializeFailure(IOError::UNSUPPORTED_SCALAR, "Vector JSON scalar type does not match target type");
-			if (scalarBytes == nullptr || scalarBytes->type != JsonValueType::Number || static_cast<int>(scalarBytes->number_value) != static_cast<int>(sizeof(Type)))
+			if (!JsonIntegerEquals(scalarBytes, static_cast<int>(sizeof(Type))))
 				return SerializeFailure(IOError::UNSUPPORTED_SCALAR, "Vector JSON scalar byte size does not match target type");
+			if constexpr (std::is_same_v<Type, Real>)
+				if (!JsonRealTypeMatches(FindObjectField(*mml, "real_type")))
+					return SerializeFailure(IOError::UNSUPPORTED_SCALAR, "Vector JSON real_type does not match Real");
 			if (scalarEncoding == nullptr || scalarEncoding->type != JsonValueType::String || scalarEncoding->string_value != "ieee754")
 				return SerializeFailure(IOError::UNSUPPORTED_SCALAR, "Vector JSON scalar encoding is unsupported");
 
@@ -107,12 +120,9 @@ namespace Persistence
 			const JsonValue* data = FindObjectField(root, "data");
 			if (shape == nullptr || shape->type != JsonValueType::Array || shape->array_value.size() != 1 || shape->array_value[0].type != JsonValueType::Number)
 				return SerializeFailure(IOError::SCHEMA_MISMATCH, "Vector JSON shape must be a one-element array");
-			const double encodedCount = shape->array_value[0].number_value;
-			if (!std::isfinite(encodedCount) || encodedCount < 0 || encodedCount != std::trunc(encodedCount))
-				return SerializeFailure(IOError::SCHEMA_MISMATCH, "Vector JSON shape count must be a nonnegative integer");
-			if (encodedCount > std::numeric_limits<int>::max())
-				return SerializeFailure(IOError::ALLOCATION_LIMIT_EXCEEDED, "Vector JSON count exceeds supported dimension range");
-			const int count = static_cast<int>(encodedCount);
+			int count;
+			const IOResult dimension = ReadJsonDimension(shape->array_value[0], count);
+			if (!dimension.success) return dimension;
 			if (expectedSize >= 0 && count != expectedSize)
 				return SerializeFailure(IOError::SCHEMA_MISMATCH, "Vector JSON shape does not match fixed target dimension");
 			if (static_cast<std::size_t>(count) > std::numeric_limits<std::size_t>::max() / sizeof(Type))
@@ -122,9 +132,12 @@ namespace Persistence
 			if (data == nullptr || data->type != JsonValueType::Array || data->array_value.size() != static_cast<std::size_t>(count))
 				return SerializeFailure(IOError::SCHEMA_MISMATCH, "Vector JSON data length does not match shape");
 
-			for (const JsonValue& value : data->array_value)
+			for (const JsonValue& value : data->array_value) {
 				if (value.type != JsonValueType::Number)
 					return SerializeFailure(IOError::MALFORMED_INPUT, "Vector JSON data values must be numbers");
+				if (!JsonScalarFits<Type>(value))
+					return SerializeFailure(IOError::UNSUPPORTED_SCALAR, "Vector JSON data exceeds the finite target scalar range");
+			}
 
 			return SerializeSuccess();
 		}
@@ -133,6 +146,8 @@ namespace Persistence
 	template<class Type>
 	IOResult SaveJson(std::ostream& out, const Vector<Type>& vec, const SaveOptions& options = {}) {
 		static_assert(std::is_floating_point_v<Type>, "Vector JSON persistence currently supports floating-point scalar types");
+		const auto validation = Detail::ValidateVectorJsonSave(vec, options);
+		if (!validation.success) return validation;
 		JsonValue::Object root;
 		root["mml"] = Detail::BuildVectorJsonHeader<Type>("Vector", 1);
 		root["shape"] = JsonValue::ArrayValue({ JsonValue::Number(static_cast<double>(vec.size())) });
@@ -171,6 +186,8 @@ namespace Persistence
 	template<class Type, int N>
 	IOResult SaveJson(std::ostream& out, const VectorN<Type, N>& vec, const SaveOptions& options = {}) {
 		static_assert(std::is_floating_point_v<Type>, "VectorN JSON persistence currently supports floating-point scalar types");
+		const auto validation = Detail::ValidateVectorJsonSave(vec, options);
+		if (!validation.success) return validation;
 		JsonValue::Object root;
 		root["mml"] = Detail::BuildVectorJsonHeader<Type>("VectorN", 1);
 		root["shape"] = JsonValue::ArrayValue({ JsonValue::Number(static_cast<double>(N)) });
@@ -205,6 +222,10 @@ namespace Persistence
 
 	template<class Type>
 	IOResult SaveJson(const Vector<Type>& vec, const std::string& filename, const SaveOptions& options = {}) {
+		auto validation = Detail::ValidateSaveFilename(filename);
+		if (!validation.success) return validation;
+		validation = Detail::ValidateVectorJsonSave(vec, options);
+		if (!validation.success) return validation.WithFile(filename);
 		std::ofstream file(filename);
 		if (!file.is_open())
 			return SerializeFailure(IOError::FILE_NOT_OPENED, "Could not create JSON file " + filename).WithFile(filename);
@@ -221,6 +242,10 @@ namespace Persistence
 
 	template<class Type, int N>
 	IOResult SaveJson(const VectorN<Type, N>& vec, const std::string& filename, const SaveOptions& options = {}) {
+		auto validation = Detail::ValidateSaveFilename(filename);
+		if (!validation.success) return validation;
+		validation = Detail::ValidateVectorJsonSave(vec, options);
+		if (!validation.success) return validation.WithFile(filename);
 		std::ofstream file(filename);
 		if (!file.is_open())
 			return SerializeFailure(IOError::FILE_NOT_OPENED, "Could not create JSON file " + filename).WithFile(filename);

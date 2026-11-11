@@ -16,6 +16,21 @@ using Catch::Matchers::WithinRel;
 
 namespace MML::Tests::Algorithms::DistributionsTests
 {
+	TEST_CASE("Distribution variances preserve representable results across binary scales", "[statistics][distribution][precision]")
+	{
+		const Real maximum = std::numeric_limits<Real>::max();
+		const Real scale = std::sqrt(maximum) / Real(4);
+		const Real expected = scale * scale;
+		CHECK_THAT(Statistics::NormalDistribution(0, scale).variance(),
+			WithinRel(expected, Precision::EqualityTolerance));
+		CHECK(std::isinf(Statistics::NormalDistribution(0, maximum).variance()));
+		CHECK_THAT(Statistics::UniformDistribution(-scale, scale).variance(),
+			WithinRel(expected / Real(3), Precision::EqualityTolerance));
+		CHECK(std::isinf(Statistics::UniformDistribution(-maximum, maximum).variance()));
+		CHECK(Statistics::UniformDistribution(0, Real(1)).variance() == Real(1) / Real(12));
+		CHECK(Statistics::NormalDistribution(0, Real(2)).variance() == Real(4));
+	}
+
 	/*********************************************************************/
 	/*****             Cauchy Distribution Tests                     *****/
 	/*********************************************************************/
@@ -385,7 +400,7 @@ namespace MML::Tests::Algorithms::DistributionsTests
 		Statistics::NormalDistribution norm(0.0, 1.0);
 		
 		// PDF at mean should be 1/sqrt(2*pi) â‰ˆ 0.3989
-		Real expected = 1.0 / std::sqrt(2.0 * Constants::PI);
+		Real expected = MML::Real(1.0) / std::sqrt(MML::Real(2.0) * Constants::PI);
 		REQUIRE_THAT(norm.pdf(0.0), WithinAbs(expected, TOL(1e-10, 1e-5)));
 	}
 
@@ -465,9 +480,9 @@ namespace MML::Tests::Algorithms::DistributionsTests
 		
 		// Known quantiles
 		REQUIRE_THAT(norm.inverseCdf(0.5), WithinAbs(static_cast<MML::Real>(0.0), static_cast<MML::Real>(1e-6)));
-		REQUIRE_THAT(norm.inverseCdf(0.84134), WithinAbs(static_cast<MML::Real>(1.0), static_cast<MML::Real>(1e-3)));
-		REQUIRE_THAT(norm.inverseCdf(0.97725), WithinAbs(static_cast<MML::Real>(2.0), static_cast<MML::Real>(1e-3)));
-		REQUIRE_THAT(norm.inverseCdf(0.15866), WithinAbs(static_cast<MML::Real>(-1.0), static_cast<MML::Real>(1e-3)));
+		REQUIRE_THAT(norm.inverseCdf(MML::Real(0.84134)), WithinAbs(static_cast<MML::Real>(1.0), static_cast<MML::Real>(1e-3)));
+		REQUIRE_THAT(norm.inverseCdf(MML::Real(0.97725)), WithinAbs(static_cast<MML::Real>(2.0), static_cast<MML::Real>(1e-3)));
+		REQUIRE_THAT(norm.inverseCdf(MML::Real(0.15866)), WithinAbs(static_cast<MML::Real>(-1.0), static_cast<MML::Real>(1e-3)));
 	}
 
 	TEST_CASE("Statistics::NormalDistribution_InverseCDF_RoundTrip", "[statistics][distribution]")
@@ -476,7 +491,7 @@ namespace MML::Tests::Algorithms::DistributionsTests
 		Statistics::NormalDistribution norm(10.0, 3.0);
 		
 		// CDF(inverseCDF(p)) should equal p
-		for (Real p = 0.1; p <= 0.9; p += 0.1) {
+		for (Real p = MML::Real(0.1); p <= MML::Real(0.9); p += MML::Real(0.1)) {
 			Real x = norm.inverseCdf(p);
 			Real pBack = norm.cdf(x);
 			REQUIRE_THAT(pBack, WithinAbs(p, static_cast<MML::Real>(1e-6)));
@@ -490,8 +505,8 @@ namespace MML::Tests::Algorithms::DistributionsTests
 		
 		REQUIRE_THROWS_AS(norm.inverseCdf(0.0), StatisticsError);
 		REQUIRE_THROWS_AS(norm.inverseCdf(1.0), StatisticsError);
-		REQUIRE_THROWS_AS(norm.inverseCdf(-0.1), StatisticsError);
-		REQUIRE_THROWS_AS(norm.inverseCdf(1.1), StatisticsError);
+		REQUIRE_THROWS_AS(norm.inverseCdf(-MML::Real(0.1)), StatisticsError);
+		REQUIRE_THROWS_AS(norm.inverseCdf(MML::Real(1.1)), StatisticsError);
 	}
 
 	TEST_CASE("Statistics::NormalDistribution_ZScore", "[statistics][distribution]")
@@ -534,7 +549,7 @@ namespace MML::Tests::Algorithms::DistributionsTests
 	{
 		TEST_PRECISION_INFO();
 		
-		Real expected = 1.0 / std::sqrt(2.0 * Constants::PI);
+		Real expected = MML::Real(1.0) / std::sqrt(MML::Real(2.0) * Constants::PI);
 		REQUIRE_THAT(Statistics::StandardNormal::pdf(0.0), WithinAbs(expected, TOL(1e-10, 1e-5)));
 	}
 
@@ -543,7 +558,7 @@ namespace MML::Tests::Algorithms::DistributionsTests
 		TEST_PRECISION_INFO();
 		
 		REQUIRE_THAT(Statistics::StandardNormal::cdf(0.0), WithinAbs(static_cast<MML::Real>(0.5), TOL(1e-10, 1e-5)));
-		REQUIRE_THAT(Statistics::StandardNormal::cdf(1.96), WithinAbs(static_cast<MML::Real>(0.975), static_cast<MML::Real>(1e-3)));
+		REQUIRE_THAT(Statistics::StandardNormal::cdf(MML::Real(1.96)), WithinAbs(static_cast<MML::Real>(0.975), static_cast<MML::Real>(1e-3)));
 	}
 
 	TEST_CASE("Statistics::StandardNormal_InverseCDF", "[statistics][distribution]")
@@ -551,7 +566,7 @@ namespace MML::Tests::Algorithms::DistributionsTests
 		TEST_PRECISION_INFO();
 		
 		REQUIRE_THAT(Statistics::StandardNormal::inverseCdf(0.5), WithinAbs(static_cast<MML::Real>(0.0), static_cast<MML::Real>(1e-6)));
-		REQUIRE_THAT(Statistics::StandardNormal::inverseCdf(0.975), WithinAbs(static_cast<MML::Real>(1.96), static_cast<MML::Real>(1e-2)));
+		REQUIRE_THAT(Statistics::StandardNormal::inverseCdf(MML::Real(0.975)), WithinAbs(static_cast<MML::Real>(1.96), static_cast<MML::Real>(1e-2)));
 	}
 
 	TEST_CASE("Statistics::StandardNormal_SurvivalFunction", "[statistics][distribution]")
@@ -560,7 +575,7 @@ namespace MML::Tests::Algorithms::DistributionsTests
 		
 		// sf(z) = 1 - cdf(z) = P(Z > z)
 		REQUIRE_THAT(Statistics::StandardNormal::sf(0.0), WithinAbs(static_cast<MML::Real>(0.5), TOL(1e-10, 1e-5)));
-		REQUIRE_THAT(Statistics::StandardNormal::sf(1.96), WithinAbs(static_cast<MML::Real>(0.025), static_cast<MML::Real>(1e-3)));
+		REQUIRE_THAT(Statistics::StandardNormal::sf(MML::Real(1.96)), WithinAbs(static_cast<MML::Real>(0.025), static_cast<MML::Real>(1e-3)));
 	}
 
 	TEST_CASE("Statistics::StandardNormal_TwoTailedPValue", "[statistics][distribution]")
@@ -569,12 +584,12 @@ namespace MML::Tests::Algorithms::DistributionsTests
 		
 		// Two-tailed p-value: P(|Z| > |z|) = 2 * P(Z > |z|)
 		REQUIRE_THAT(Statistics::StandardNormal::twoTailedPValue(0.0), WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-10, 1e-5)));
-		REQUIRE_THAT(Statistics::StandardNormal::twoTailedPValue(1.96), WithinAbs(static_cast<MML::Real>(0.05), static_cast<MML::Real>(1e-3)));
-		REQUIRE_THAT(Statistics::StandardNormal::twoTailedPValue(2.576), WithinAbs(static_cast<MML::Real>(0.01), static_cast<MML::Real>(1e-3)));
+		REQUIRE_THAT(Statistics::StandardNormal::twoTailedPValue(MML::Real(1.96)), WithinAbs(static_cast<MML::Real>(0.05), static_cast<MML::Real>(1e-3)));
+		REQUIRE_THAT(Statistics::StandardNormal::twoTailedPValue(MML::Real(2.576)), WithinAbs(static_cast<MML::Real>(0.01), static_cast<MML::Real>(1e-3)));
 		
 		// Symmetric: p-value for -z equals p-value for z
-		REQUIRE_THAT(Statistics::StandardNormal::twoTailedPValue(-1.96), 
-		             WithinAbs(Statistics::StandardNormal::twoTailedPValue(1.96), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(Statistics::StandardNormal::twoTailedPValue(-MML::Real(1.96)),
+		             WithinAbs(Statistics::StandardNormal::twoTailedPValue(Real(1.96)), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("Statistics::StandardNormal_ConsistentWithNormalDistribution", "[statistics][distribution]")
@@ -679,10 +694,10 @@ namespace MML::Tests::Algorithms::DistributionsTests
 		
 		// Known values from t-table (df=10)
 		// t = 1.812 gives P(T <= t) â‰ˆ 0.95 (one-tailed)
-		REQUIRE_THAT(t.cdf(1.812), WithinAbs(static_cast<MML::Real>(0.95), static_cast<MML::Real>(1e-2)));
+		REQUIRE_THAT(t.cdf(MML::Real(1.812)), WithinAbs(static_cast<MML::Real>(0.95), static_cast<MML::Real>(1e-2)));
 		
 		// By symmetry
-		REQUIRE_THAT(t.cdf(-1.812), WithinAbs(static_cast<MML::Real>(0.05), static_cast<MML::Real>(1e-2)));
+		REQUIRE_THAT(t.cdf(-MML::Real(1.812)), WithinAbs(static_cast<MML::Real>(0.05), static_cast<MML::Real>(1e-2)));
 	}
 
 	TEST_CASE("Statistics::TDistribution_CDF_DF1_IsCauchy", "[statistics][distribution]")
@@ -712,10 +727,10 @@ namespace MML::Tests::Algorithms::DistributionsTests
 		
 		// Known critical values from t-table (df=10)
 		// 95th percentile (one-tailed) â‰ˆ 1.812
-		REQUIRE_THAT(t.inverseCdf(0.95), WithinAbs(static_cast<MML::Real>(1.812), static_cast<MML::Real>(1e-2)));
+		REQUIRE_THAT(t.inverseCdf(MML::Real(0.95)), WithinAbs(static_cast<MML::Real>(1.812), static_cast<MML::Real>(1e-2)));
 		
 		// By symmetry
-		REQUIRE_THAT(t.inverseCdf(0.05), WithinAbs(static_cast<MML::Real>(-1.812), static_cast<MML::Real>(1e-2)));
+		REQUIRE_THAT(t.inverseCdf(MML::Real(0.05)), WithinAbs(static_cast<MML::Real>(-1.812), static_cast<MML::Real>(1e-2)));
 	}
 
 	TEST_CASE("Statistics::TDistribution_InverseCDF_RoundTrip", "[statistics][distribution]")
@@ -724,7 +739,7 @@ namespace MML::Tests::Algorithms::DistributionsTests
 		Statistics::TDistribution t(20);
 		
 		// CDF(inverseCDF(p)) should equal p
-		for (Real p = 0.1; p <= 0.9; p += 0.1) {
+		for (Real p = MML::Real(0.1); p <= MML::Real(0.9); p += MML::Real(0.1)) {
 			Real x = t.inverseCdf(p);
 			Real pBack = t.cdf(x);
 			REQUIRE_THAT(pBack, WithinAbs(p, static_cast<MML::Real>(1e-6)));
@@ -738,8 +753,8 @@ namespace MML::Tests::Algorithms::DistributionsTests
 		
 		REQUIRE_THROWS_AS(t.inverseCdf(0.0), StatisticsError);
 		REQUIRE_THROWS_AS(t.inverseCdf(1.0), StatisticsError);
-		REQUIRE_THROWS_AS(t.inverseCdf(-0.1), StatisticsError);
-		REQUIRE_THROWS_AS(t.inverseCdf(1.1), StatisticsError);
+		REQUIRE_THROWS_AS(t.inverseCdf(-MML::Real(0.1)), StatisticsError);
+		REQUIRE_THROWS_AS(t.inverseCdf(MML::Real(1.1)), StatisticsError);
 	}
 
 	TEST_CASE("Statistics::TDistribution_SurvivalFunction", "[statistics][distribution]")
@@ -762,10 +777,10 @@ namespace MML::Tests::Algorithms::DistributionsTests
 		
 		// Two-tailed p-value: P(|T| > |t|)
 		// For t = 2.228 (df=10), two-tailed p â‰ˆ 0.05
-		REQUIRE_THAT(t.twoTailedPValue(2.228), WithinAbs(static_cast<MML::Real>(0.05), static_cast<MML::Real>(1e-2)));
+		REQUIRE_THAT(t.twoTailedPValue(MML::Real(2.228)), WithinAbs(static_cast<MML::Real>(0.05), static_cast<MML::Real>(1e-2)));
 		
 		// Symmetric
-		REQUIRE_THAT(t.twoTailedPValue(-2.228), WithinAbs(t.twoTailedPValue(2.228), TOL(1e-10, 1e-5)));
+		REQUIRE_THAT(t.twoTailedPValue(-MML::Real(2.228)), WithinAbs(t.twoTailedPValue(MML::Real(2.228)), TOL(1e-10, 1e-5)));
 	}
 
 	TEST_CASE("Statistics::TDistribution_CriticalValue", "[statistics][distribution]")
@@ -774,7 +789,7 @@ namespace MML::Tests::Algorithms::DistributionsTests
 		Statistics::TDistribution t(10);
 		
 		// Critical value for Î± = 0.05 (two-tailed) with df=10 is â‰ˆ 2.228
-		Real critical = t.criticalValue(0.05);
+		Real critical = t.criticalValue(MML::Real(0.05));
 		REQUIRE_THAT(critical, WithinAbs(static_cast<MML::Real>(2.228), static_cast<MML::Real>(1e-2)));
 		
 		// Check that this gives correct p-value
@@ -788,7 +803,7 @@ namespace MML::Tests::Algorithms::DistributionsTests
 		
 		REQUIRE_THROWS_AS(t.criticalValue(0.0), StatisticsError);
 		REQUIRE_THROWS_AS(t.criticalValue(1.0), StatisticsError);
-		REQUIRE_THROWS_AS(t.criticalValue(-0.1), StatisticsError);
+		REQUIRE_THROWS_AS(t.criticalValue(-MML::Real(0.1)), StatisticsError);
 	}
 
 	TEST_CASE("Statistics::TDistribution_Mean", "[statistics][distribution]")
@@ -852,8 +867,8 @@ namespace MML::Tests::Algorithms::DistributionsTests
 		REQUIRE(t10.pdf(3.0) > t30.pdf(3.0));
 		
 		// With lower df, critical values are larger
-		REQUIRE(t3.criticalValue(0.05) > t10.criticalValue(0.05));
-		REQUIRE(t10.criticalValue(0.05) > t30.criticalValue(0.05));
+		REQUIRE(t3.criticalValue(MML::Real(0.05)) > t10.criticalValue(MML::Real(0.05)));
+		REQUIRE(t10.criticalValue(MML::Real(0.05)) > t30.criticalValue(MML::Real(0.05)));
 	}
 
 	/*********************************************************************/
@@ -895,7 +910,7 @@ namespace MML::Tests::Algorithms::DistributionsTests
 		REQUIRE_THAT(beta.cdf(1.0), WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-10, 1e-5)));
 		
 		// PDF integrates to 1 (spot check)
-		REQUIRE(beta.pdf(0.3) > 0.0);
+		REQUIRE(beta.pdf(MML::Real(0.3)) > MML::Real(0.0));
 	}
 
 	TEST_CASE("WeibullDistribution_BasicProperties", "[statistics][distributions]")

@@ -16,6 +16,79 @@
 using namespace MML;
 using namespace MML::Fourier;
 
+void Docs_Demo_FourierRange()
+{
+	const Real huge = std::numeric_limits<Real>::max() * Real(0.75);
+	const Vector<Complex> signal(2, Complex(huge, 0));
+	const auto spectrum = FFT::Forward(signal, TransformNormalization::Forward);
+	if (spectrum[0] != Complex(huge, 0) || spectrum[1] != Complex(0, 0))
+		throw NumericalMethodError("Normalized radix-2 FFT overflowed a representable result");
+	std::cout << "Normalized 2-point FFT DC: " << spectrum[0] << '\n';
+
+	FourierConfig config;
+	config.normalization = TransformNormalization::Forward;
+	const auto arbitrary = FFT::ForwardDetailed(Vector<Complex>(3, Complex(huge, 0)), config);
+	if (!arbitrary.IsSuccess() || arbitrary.kernel_name != "Bluestein" ||
+		!std::isfinite(arbitrary.value[0].real()) ||
+		!IsWithinAbs(arbitrary.value[0].real() / huge, Real(1), Precision::EqualityTolerance))
+		throw NumericalMethodError("Normalized Bluestein FFT overflowed a representable result");
+	std::cout << "Normalized 3-point FFT DC: " << arbitrary.value[0] << '\n';
+
+	const auto inverse = DFT::Inverse(signal);
+	const auto real = RealFFT::Forward(Vector<Real>(2, huge), TransformNormalization::Forward);
+	if (inverse[0] != Complex(huge, 0) || real[0] != Complex(huge, 0))
+		throw NumericalMethodError("DFT or RealFFT normalized range demo failed");
+}
+
+void Docs_Demo_FourierDetailedContracts()
+{
+	Vector<Complex> signal{Complex(1, 0), Complex(2, 0), Complex(3, 0)};
+	FourierConfig config;
+	config.allow_padding = true;
+	config.target_size = 8;
+	config.normalization = TransformNormalization::Orthonormal;
+	auto spectrum = FFT::ForwardDetailed(signal, config);
+	if (!spectrum.IsSuccess() || spectrum.input_size != 3 || spectrum.output_size != 8 || !spectrum.padding_applied)
+		throw NumericalMethodError("Fourier Detailed demo: padded transform failed");
+	auto recovered = FFT::InverseDetailed(spectrum.value, config);
+	if (!recovered.IsSuccess() || recovered.output_size != 8 || recovered.padding_applied)
+		throw NumericalMethodError("Fourier Detailed demo: inverse metadata failed");
+	for (int i = 0; i < 8; ++i) {
+		const Complex expected = i < signal.size() ? signal[i] : Complex(0, 0);
+		if (std::abs(recovered.value[i] - expected) > Precision::EqualityTolerance)
+			throw NumericalMethodError("Fourier Detailed demo: padded round trip failed");
+	}
+	std::cout << spectrum.kernel_name << ": " << spectrum.input_size << " -> " << spectrum.output_size
+		<< ", work units = " << spectrum.work_units << '\n';
+
+	FourierConfig cosineConfig;
+	cosineConfig.normalization = TransformNormalization::Orthonormal;
+	auto cosine = DCT::ForwardIIDetailed(Vector<Real>(8, Real(1)), cosineConfig);
+	if (!cosine.IsSuccess() || cosine.output_size != 8 ||
+		!IsWithinAbs(cosine.value[0], std::sqrt(Real(8)), Precision::EqualityTolerance))
+		throw NumericalMethodError("Fourier Detailed demo: orthonormal DCT failed");
+	std::cout << "Orthonormal DCT DC: " << cosine.value[0] << '\n';
+
+	FourierConfig checked;
+	checked.exception_policy = EvaluationExceptionPolicy::ConvertToStatus;
+	auto invalid = FFT::ForwardDetailed(Vector<Complex>{Complex(std::numeric_limits<Real>::infinity(), 0)}, checked);
+	if (invalid.status != AlgorithmStatus::InvalidInput || invalid.error_message.empty())
+		throw NumericalMethodError("Fourier Detailed demo: finite-input validation failed");
+	std::cout << "Nonfinite input: " << invalid.error_message << '\n';
+
+	const auto kaiser = Windows::Kaiser(1, Real{8.6});
+	const auto gaussian = Windows::Gaussian(1, Real{0.4});
+	const Vector<Real> samples{1, 2, 3};
+	const bool roundTrip = DCT::VerifyRoundTrip(samples, Precision::EqualityTolerance);
+	const bool fastMatches = DCT::VerifyFastMatchesReference(samples, Precision::EqualityTolerance);
+	const auto unwrapped = UnwrapPhase(Vector<Real>{0, Real{5} * Constants::PI});
+	if (kaiser[0] != 1 || gaussian[0] != 1 || !roundTrip || !fastMatches ||
+		!IsWithinAbs(unwrapped[1], Constants::PI, Precision::EqualityTolerance))
+		throw NumericalMethodError("Fourier helper demo: singleton, verification or multi-turn unwrap failed");
+	std::cout << "Singleton weights: " << kaiser[0] << ", " << gaussian[0]
+		<< "; length-3 DCT verified; unwrapped 5*pi: " << unwrapped[1] << '\n';
+}
+
 void Docs_Demo_SpectrumUtilities()
 {
 	Vector<Complex> coefficients{Complex(3, 4), Complex(0, 2)};
@@ -89,7 +162,7 @@ void Docs_Demo_Fourier_FFT_Basic()
 	std::cout << "==========================================================================\n";
 	
 	std::cout << "\nFFT: Cooley-Tukey radix-2 algorithm, O(n log n)\n";
-	std::cout << "Requires input size to be power of 2.\n";
+	std::cout << "Every non-empty size is supported; padding is opt-in.\n";
 	
 	// Create a test signal: sum of two sinusoids
 	int N = 64;
@@ -315,6 +388,7 @@ void Docs_Demo_Fourier_Convolution()
 
 void Docs_Demo_Fourier()
 {
+	Docs_Demo_FourierDetailedContracts();
 	std::cout << "\n##########################################################################\n";
 	std::cout << "#                   FOURIER TRANSFORM DEMOS                              #\n";
 	std::cout << "##########################################################################\n";

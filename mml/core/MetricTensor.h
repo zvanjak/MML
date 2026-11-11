@@ -64,6 +64,19 @@ namespace MML
 	template<int N>
 	class MetricTensorField : public ITensorField2<N>
 	{
+		MatrixNM<Real, N, N> ReadStoredMetric(const VectorN<Real, N>& pos) const {
+			if (!((this->getNumCovar() == 2 && this->getNumContravar() == 0) ||
+			      (this->getNumCovar() == 0 && this->getNumContravar() == 2)))
+				throw DomainError("Metric tensor requires fully covariant or fully contravariant storage");
+			Singularity::RequireFiniteCoordinates<N>(pos, "Metric tensor");
+			MatrixNM<Real, N, N> g;
+			for (int i = 0; i < N; ++i)
+				for (int j = 0; j < N; ++j)
+					g(i,j) = this->component(i,j,pos);
+			Singularity::RequireSymmetricMatrix(g, "Metric tensor");
+			return g;
+		}
+
 	public:
 		enum class SignatureType
 		{
@@ -101,11 +114,9 @@ namespace MML
 		// Get the covariant metric tensor components at a point (gᵢⱼ)
 		virtual MatrixNM<Real, N, N> GetCovariantMetric(const VectorN<Real, N>& pos) const
 		{
-			MatrixNM<Real, N, N> g_covar;
-			for (int i = 0; i < N; i++)
-				for (int j = 0; j < N; j++)
-					g_covar[i][j] = this->component(i, j, pos);
-			return g_covar;
+			const auto stored = ReadStoredMetric(pos);
+			return this->getNumContravar() == 2
+				? Singularity::InverseMatrix(stored, Singularity::DEFAULT_POLICY) : stored;
 		}
 
 		/// @brief Get contravariant metric tensor components gⁱʲ (inverse of gᵢⱼ)
@@ -122,6 +133,8 @@ namespace MML
 		MatrixNM<Real, N, N> GetContravariantMetric(const VectorN<Real, N>& pos, SingularityPolicy policy) const {
 			Singularity::RequireMatrixPolicy(policy);
 			Singularity::RequireFiniteCoordinates<N>(pos, "Metric inversion");
+			if (this->getNumContravar() == 2)
+				return ReadStoredMetric(pos);
 			return Singularity::InverseMatrix(GetCovariantMetric(pos), policy);
 		}
 
@@ -158,27 +171,20 @@ namespace MML
 		}
 
 		/// @brief Raise one index of a rank-2 tensor: T^i_j = gⁱᵏ T_kj
-		/// @param t Rank-2 covariant tensor T_ij (must have numContravar == 0)
+		/// @param t Rank-2 tensor whose selected slot is covariant
 		/// @param index_to_raise Which index to raise (0 or 1)
 		/// @param pos Position where metric is evaluated
-		/// @return Mixed tensor with one raised index
+		/// @return Tensor with only the selected slot raised
 		Tensor2<N> RaiseIndex(const Tensor2<N>& t, int index_to_raise, const VectorN<Real, N>& pos) const
 		{
-			MatrixNM<Real, N, N> g_inv = GetContravariantMetric(pos);
-			Tensor2<N> result(1, 1);  // one covariant, one contravariant
-
-			for (int i = 0; i < N; i++)
-				for (int j = 0; j < N; j++) {
-					result(i, j) = 0.0;
-					for (int k = 0; k < N; k++) {
-						if (index_to_raise == 0)
-							result(i, j) += g_inv[i][k] * t(k, j);
-						else
-							result(i, j) += g_inv[j][k] * t(i, k);
-					}
-				}
-
-			return result;
+			if (index_to_raise < 0 || index_to_raise > 1)
+				throw ArgumentError("MetricTensorField::RaiseIndex - slot must be 0 or 1");
+			const auto components = GetContravariantMetric(pos);
+			Tensor2<N> inverse(0, 2);
+			for (int i = 0; i < N; ++i)
+				for (int j = 0; j < N; ++j)
+					inverse(i,j) = components(i,j);
+			return index_to_raise == 0 ? t.RaiseFirstIndex(inverse) : t.RaiseSecondIndex(inverse);
 		}
 
 		/// @brief Lower one index of a rank-2 tensor: T_ij = g_ik T^k_j
@@ -188,21 +194,14 @@ namespace MML
 		/// @return Tensor with one lowered index
 		Tensor2<N> LowerIndex(const Tensor2<N>& t, int index_to_lower, const VectorN<Real, N>& pos) const
 		{
-			MatrixNM<Real, N, N> g = GetCovariantMetric(pos);
-			Tensor2<N> result(1, 1);  // one covariant, one contravariant
-
-			for (int i = 0; i < N; i++)
-				for (int j = 0; j < N; j++) {
-					result(i, j) = 0.0;
-					for (int k = 0; k < N; k++) {
-						if (index_to_lower == 0)
-							result(i, j) += g[i][k] * t(k, j);
-						else
-							result(i, j) += g[j][k] * t(i, k);
-					}
-				}
-
-			return result;
+			if (index_to_lower < 0 || index_to_lower > 1)
+				throw ArgumentError("MetricTensorField::LowerIndex - slot must be 0 or 1");
+			const auto components = GetCovariantMetric(pos);
+			Tensor2<N> metric(2, 0);
+			for (int i = 0; i < N; ++i)
+				for (int j = 0; j < N; ++j)
+					metric(i,j) = components(i,j);
+			return index_to_lower == 0 ? t.LowerFirstIndex(metric) : t.LowerSecondIndex(metric);
 		}
 
 		/// @brief Get Christoffel symbol of the first kind Γᵢⱼₖ (all indices lowered)
@@ -250,7 +249,7 @@ namespace MML
 				Real coef2 = Derivation::NDer4Partial<N>(g, l, j, k, pos, nullptr);  // ∂ₖgₗⱼ
 				Real coef3 = Derivation::NDer4Partial<N>(g, j, k, l, pos, nullptr);  // ∂ₗgⱼₖ
 
-				gamma_ijk += 0.5 * g_contravar[i][l] * (coef1 + coef2 - coef3);
+				gamma_ijk += MML::Real(0.5) * g_contravar[i][l] * (coef1 + coef2 - coef3);
 			}
 			if (!std::isfinite(gamma_ijk))
 				throw DomainError("Numerical Christoffel calculation produced a non-finite coefficient");
@@ -281,7 +280,8 @@ namespace MML
 		/// @return Rank-4 tensor with index variance (1 contravariant, 3 covariant)
 		Tensor4<N> GetRiemannCurvatureTensor(const VectorN<Real, N>& pos) const
 		{
-			Tensor4<N> riemann(3, 1);
+			Tensor4<N> riemann(4, 0);
+			riemann.setContravar(0, true);
 
 			for (int rho = 0; rho < N; rho++)
 				for (int sigma = 0; sigma < N; sigma++)
@@ -509,17 +509,21 @@ namespace MML
 
 		Real IntervalSquared(const VectorN<Real, N>& displacement, const VectorN<Real, N>& pos) const
 		{
+			Singularity::RequireFiniteCoordinates<N>(displacement, "Lorentzian interval displacement");
 			MatrixNM<Real, N, N> g = this->GetCovariantMetric(pos);
 			Real ds2 = static_cast<MML::Real>(0.0);
 			for (int i = 0; i < N; i++)
 				for (int j = 0; j < N; j++)
 					ds2 += g(i, j) * displacement[i] * displacement[j];
+			if (!std::isfinite(ds2))
+				throw NumericalMethodError("Lorentzian interval is not representable");
 			return ds2;
 		}
 
 		IntervalType ClassifyInterval(const VectorN<Real, N>& displacement, const VectorN<Real, N>& pos,
 			Real tolerance = Precision::ZeroTolerance) const
 		{
+			ValidateNonNegativeTolerance(tolerance, "Lorentzian interval tolerance");
 			Real ds2 = IntervalSquared(displacement, pos);
 			if (std::abs(ds2) <= tolerance)
 				return IntervalType::Null;
@@ -679,29 +683,40 @@ namespace MML
 	public:
 		explicit MetricTensorFromCoordTransf(const CoordTransf<VectorFrom, VectorTo, N>& inTransf) : _coordTransf(inTransf)
 		{ }
+		MetricTensorFromCoordTransf(CoordTransf<VectorFrom, VectorTo, N>&&) = delete;
+		MetricTensorFromCoordTransf(const CoordTransf<VectorFrom, VectorTo, N>&&) = delete;
 
 		Real component(int i, int j, const VectorN<Real, N>& pos) const override
 		{
+			if (i < 0 || i >= N || j < 0 || j >= N)
+				throw ArgumentError("Induced metric - component index out of range");
+			Singularity::RequireFiniteCoordinates<N>(pos, "Induced metric");
 			const auto jac = _coordTransf.jacobian(pos);
+			Singularity::RequireFiniteMatrix(jac, "Induced metric Jacobian");
 			Real g_ij = 0.0;
-			for (int k = 0; k < N; k++)
+			for (int k = 0; k < CoordTransf<VectorFrom, VectorTo, N>::ToDim; k++)
 				g_ij += jac(k, i) * jac(k, j);
+			if (!std::isfinite(g_ij))
+				throw NumericalMethodError("Induced metric component is not representable");
 			return g_ij;
 		}
 
 		MatrixNM<Real, N, N> GetCovariantMetric(const VectorN<Real, N>& pos) const override
 		{
+			Singularity::RequireFiniteCoordinates<N>(pos, "Induced metric");
 			const auto jac = _coordTransf.jacobian(pos);
+			Singularity::RequireFiniteMatrix(jac, "Induced metric Jacobian");
 			MatrixNM<Real, N, N> metric;
 
 			for (int i = 0; i < N; ++i)
 				for (int j = 0; j < N; ++j)
 				{
 					metric(i, j) = static_cast<MML::Real>(0.0);
-					for (int k = 0; k < N; ++k)
+					for (int k = 0; k < CoordTransf<VectorFrom, VectorTo, N>::ToDim; ++k)
 						metric(i, j) += jac(k, i) * jac(k, j);
 				}
 
+			Singularity::RequireFiniteMatrix(metric, "Induced metric");
 			return metric;
 		}
 	};

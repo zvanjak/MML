@@ -22,6 +22,24 @@ namespace MML
 {
 	namespace detail
 	{
+		template<int Rank>
+		void ValidateTensorVarianceCounts(int covariant, int contravariant)
+		{
+			if (covariant < 0 || covariant > Rank || contravariant < 0 || contravariant > Rank ||
+				contravariant != Rank - covariant)
+				throw TensorCovarContravarNumError("Tensor variance counts must be nonnegative and sum to the rank",
+					contravariant, covariant);
+		}
+
+		template<int Rank>
+		inline void ValidateTensorContractionIndices(int first, int second)
+		{
+			if (first < 0 || first >= Rank || second < 0 || second >= Rank)
+				throw TensorIndexError("Tensor contraction - index position out of range");
+			if (first == second)
+				throw TensorIndexError("Tensor contraction - index positions must differ");
+		}
+
 		template<int N>
 		Real DeterminantForLeviCivitaTensor(const MatrixNM<Real, N, N>& matrix)
 		{

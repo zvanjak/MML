@@ -23,8 +23,10 @@
 #include "FirstDerivativeStencil.h"
 
 #include <functional>
+#include <optional>
 #include <type_traits>
 #include <utility>
+#include <vector>
 
 namespace MML
 {
@@ -45,6 +47,85 @@ namespace MML
 				return config.step != static_cast<MML::Real>(0.0) ? config.step : ScaleStep(default_step, x);
 			}
 
+			inline Real RequireFiniteRichardson(Real value)
+			{
+				if (!std::isfinite(value))
+					throw NumericalMethodError("Richardson derivative: non-finite sample or arithmetic");
+				return value;
+			}
+
+			template<int DerivativeOrder>
+			Real EvaluateRichardsonDerivative(const IRealFunction& f, Real x, Real h,
+				Real* error, int maxIterations, Real shrink)
+			{
+				ValidateFinite(x, "Richardson derivative center");
+				ValidateStepSize(h, "Richardson derivative");
+				ValidateMaxIterations(maxIterations, "Richardson derivative");
+				const Real shrinkSquared = shrink * shrink;
+				if (!std::isfinite(shrink) || shrink <= 1 || !std::isfinite(shrinkSquared))
+					throw NumericInputError("Richardson derivative: shrink factor and its square must be finite, factor > 1");
+
+				std::vector<std::vector<Real>> table(maxIterations, std::vector<Real>(maxIterations));
+				std::optional<Real> centerValue;
+				auto estimate = [&](Real step) {
+					const Real plus = x + step, minus = x - step;
+					if (!std::isfinite(step) || step <= 0 || !std::isfinite(plus) || !std::isfinite(minus) ||
+						!(minus < x && x < plus))
+						throw NumericalMethodError("Richardson derivative: stencil cannot advance representable coordinates");
+
+					if constexpr (DerivativeOrder == 3) {
+						const Real plus2 = x + 2 * step, minus2 = x - 2 * step;
+						if (!std::isfinite(plus2) || !std::isfinite(minus2) || !(minus2 < minus && plus < plus2))
+							throw NumericalMethodError("Richardson derivative: outer stencil coordinates collapse or overflow");
+						const Real fPlus2 = RequireFiniteRichardson(f(plus2));
+						const Real fPlus = RequireFiniteRichardson(f(plus));
+						const Real fMinus = RequireFiniteRichardson(f(minus));
+						const Real fMinus2 = RequireFiniteRichardson(f(minus2));
+						return RequireFiniteRichardson(
+							((fPlus2 - fMinus2) - 2 * (fPlus - fMinus)) / step / step / step / 2);
+					} else {
+						if constexpr (DerivativeOrder == 2)
+							if (!centerValue) centerValue = RequireFiniteRichardson(f(x));
+						const Real fPlus = RequireFiniteRichardson(f(plus));
+						const Real fMinus = RequireFiniteRichardson(f(minus));
+						if constexpr (DerivativeOrder == 1)
+							return RequireFiniteRichardson((fPlus - fMinus) / step / 2);
+						else
+							return RequireFiniteRichardson(((fPlus - *centerValue) + (fMinus - *centerValue)) / step / step);
+					}
+				};
+
+				Real step = h;
+				table[0][0] = estimate(step);
+				Real answer = table[0][0];
+				Real bestError = std::numeric_limits<Real>::max();
+				for (int i = 1; i < maxIterations; ++i) {
+					const Real refinedStep = step / shrink;
+					if (refinedStep >= step)
+						throw NumericalMethodError("Richardson derivative: step refinement cannot advance");
+					step = refinedStep;
+					table[0][i] = estimate(step);
+					Real factor = shrinkSquared;
+					for (int j = 1; j <= i; ++j) {
+						const Real difference = RequireFiniteRichardson(table[j - 1][i] - table[j - 1][i - 1]);
+						// NR dfridr extrapolation, rearranged to avoid factor * table-entry overflow.
+						table[j][i] = RequireFiniteRichardson(table[j - 1][i] + difference / (factor - 1));
+						const Real candidateError = std::max(
+							RequireFiniteRichardson(std::abs(table[j][i] - table[j - 1][i])),
+							RequireFiniteRichardson(std::abs(table[j][i] - table[j - 1][i - 1])));
+						if (candidateError <= bestError) {
+							bestError = candidateError;
+							answer = table[j][i];
+						}
+						if (j < i) factor = RequireFiniteRichardson(factor * shrinkSquared);
+					}
+					if (RequireFiniteRichardson(std::abs(table[i][i] - table[i - 1][i - 1])) / 2 >= bestError)
+						break;
+				}
+				if (error) *error = bestError;
+				return answer;
+			}
+
 			template<typename ComputeFn>
 			DerivativeResult<Real> ExecuteDerivativeDetailed(const char* algorithm_name,
 			                                              Real h,
@@ -62,9 +143,9 @@ namespace MML
 						config.estimate_error ? evals_with_error : evals_without_error);
 					result.step_used = h;
 
-					Real error_estimate = static_cast<MML::Real>(0.0);
+					Real error_estimate = NoEstimate;
 					result.value = compute(config.estimate_error ? &error_estimate : nullptr);
-					result.error = config.estimate_error ? error_estimate : static_cast<MML::Real>(0.0);
+					result.error = config.estimate_error ? error_estimate : NoEstimate;
 
 					if (config.check_finite)
 					{
@@ -112,7 +193,7 @@ namespace MML
 		                                           const DerivativeConfig& config = {})
 		{
 			using Stencil = Detail::FirstDerivativeStencil<Detail::FirstDerivativeOrder::One>;
-			return Detail::ExecuteDerivativeDetailed("NDer1", h, config, Stencil::value_offsets.size(), Stencil::error_offsets.size(),
+			return Detail::ExecuteDerivativeDetailed("NDer1", h, config, int{Stencil::value_offsets.size()}, int{Stencil::error_offsets.size()},
 				[&](Real* error) {
 					auto result = Detail::EvaluateFirstDerivativeStencil<Detail::FirstDerivativeOrder::One>(
 						[&](int offset) { return f(x + offset * h); }, [](Real value) { return std::abs(value); }, h, error != nullptr);
@@ -120,7 +201,7 @@ namespace MML
 					return result.value;
 				});
 		}
-		static DerivativeResult<Real> NDer1Detailed(const IRealFunction& f, Real x,
+		static inline DerivativeResult<Real> NDer1Detailed(const IRealFunction& f, Real x,
 		                                           const DerivativeConfig& config = {})
 		{
 			return NDer1Detailed(f, x, Detail::ResolveDerivativeStep(config, NDer1_h, x), config);
@@ -150,11 +231,11 @@ namespace MML
 				*error = result.error;
 			return result.value;
 		}
-		static Real NDer1(const IRealFunction& f, Real x, Real* error)
+		static inline Real NDer1(const IRealFunction& f, Real x, Real* error)
 		{
 			return NDer1(f, x, ScaleStep(NDer1_h, x), error);
 		}
-		static Real NDer1(const IRealFunction& f, Real x)
+		static inline Real NDer1(const IRealFunction& f, Real x)
 		{
 			return NDer1(f, x, ScaleStep(NDer1_h, x), nullptr);
 		}
@@ -180,13 +261,13 @@ namespace MML
 				[&](const IRealFunction& adapter) { return NDer1(adapter, x); });
 		}
 		
-		static Real NDer1Left(const IRealFunction& f, Real x, Real* error = nullptr) 
+		static inline Real NDer1Left(const IRealFunction& f, Real x, Real* error = nullptr)
 		{ Real h = ScaleStep(NDer1_h, x); return NDer1(f, x - h, h, error); }
-		static Real NDer1Right(const IRealFunction& f, Real x, Real* error = nullptr) 
+		static inline Real NDer1Right(const IRealFunction& f, Real x, Real* error = nullptr)
 		{ Real h = ScaleStep(NDer1_h, x); return NDer1(f, x, h, error); }
-		static Real NDer1Left(const IRealFunction& f, Real x, Real h, Real* error = nullptr) 
+		static inline Real NDer1Left(const IRealFunction& f, Real x, Real h, Real* error = nullptr)
 		{ return NDer1(f, x - h, h, error); }
-		static Real NDer1Right(const IRealFunction& f, Real x, Real h, Real* error = nullptr) 
+		static inline Real NDer1Right(const IRealFunction& f, Real x, Real h, Real* error = nullptr)
 		{ return NDer1(f, x, h, error); }
 
 		/********************************************************************************************************************/
@@ -196,7 +277,7 @@ namespace MML
 		                                           const DerivativeConfig& config = {})
 		{
 			using Stencil = Detail::FirstDerivativeStencil<Detail::FirstDerivativeOrder::Two>;
-			return Detail::ExecuteDerivativeDetailed("NDer2", h, config, Stencil::value_offsets.size(), Stencil::error_offsets.size(),
+			return Detail::ExecuteDerivativeDetailed("NDer2", h, config, int{Stencil::value_offsets.size()}, int{Stencil::error_offsets.size()},
 				[&](Real* error) {
 					auto result = Detail::EvaluateFirstDerivativeStencil<Detail::FirstDerivativeOrder::Two>(
 						[&](int offset) { return f(x + offset * h); }, [](Real value) { return std::abs(value); }, h, error != nullptr);
@@ -204,7 +285,7 @@ namespace MML
 					return result.value;
 				});
 		}
-		static DerivativeResult<Real> NDer2Detailed(const IRealFunction& f, Real x,
+		static inline DerivativeResult<Real> NDer2Detailed(const IRealFunction& f, Real x,
 		                                           const DerivativeConfig& config = {})
 		{
 			return NDer2Detailed(f, x, Detail::ResolveDerivativeStep(config, NDer2_h, x), config);
@@ -234,11 +315,11 @@ namespace MML
 				*error = result.error;
 			return result.value;
 		}
-		static Real NDer2(const IRealFunction& f, Real x, Real* error)
+		static inline Real NDer2(const IRealFunction& f, Real x, Real* error)
 		{
 			return NDer2(f, x, ScaleStep(NDer2_h, x), error);
 		}
-		static Real NDer2(const IRealFunction& f, Real x)
+		static inline Real NDer2(const IRealFunction& f, Real x)
 		{
 			return NDer2(f, x, ScaleStep(NDer2_h, x), nullptr);
 		}
@@ -266,10 +347,10 @@ namespace MML
 		
 		// Offset 3h keeps the full stencil (value ±h, error ±2h) strictly on one side of x,
 		// matching the NDer4/6/8 family pattern (shift = error-stencil reach + 1).
-		static Real NDer2Left(const IRealFunction& f, Real x, Real* error = nullptr) { Real h = ScaleStep(NDer2_h, x); return NDer2(f, x - 3 * h, h, error); }
-		static Real NDer2Right(const IRealFunction& f, Real x, Real* error = nullptr) { Real h = ScaleStep(NDer2_h, x); return NDer2(f, x + 3 * h, h, error); }
-		static Real NDer2Left(const IRealFunction& f, Real x, Real h, Real* error = nullptr) { return NDer2(f, x - 3 * h, h, error); }
-		static Real NDer2Right(const IRealFunction& f, Real x, Real h, Real* error = nullptr) { return NDer2(f, x + 3 * h, h, error); }
+		static inline Real NDer2Left(const IRealFunction& f, Real x, Real* error = nullptr) { Real h = ScaleStep(NDer2_h, x); return NDer2(f, x - 3 * h, h, error); }
+		static inline Real NDer2Right(const IRealFunction& f, Real x, Real* error = nullptr) { Real h = ScaleStep(NDer2_h, x); return NDer2(f, x + 3 * h, h, error); }
+		static inline Real NDer2Left(const IRealFunction& f, Real x, Real h, Real* error = nullptr) { return NDer2(f, x - 3 * h, h, error); }
+		static inline Real NDer2Right(const IRealFunction& f, Real x, Real h, Real* error = nullptr) { return NDer2(f, x + 3 * h, h, error); }
 
 		/********************************************************************************************************************/
 		/********                               Numerical derivatives of FOURTH order                                ********/
@@ -278,7 +359,7 @@ namespace MML
 		                                           const DerivativeConfig& config = {})
 		{
 			using Stencil = Detail::FirstDerivativeStencil<Detail::FirstDerivativeOrder::Four>;
-			return Detail::ExecuteDerivativeDetailed("NDer4", h, config, Stencil::value_offsets.size(), Stencil::error_offsets.size(),
+			return Detail::ExecuteDerivativeDetailed("NDer4", h, config, int{Stencil::value_offsets.size()}, int{Stencil::error_offsets.size()},
 				[&](Real* error) {
 					auto result = Detail::EvaluateFirstDerivativeStencil<Detail::FirstDerivativeOrder::Four>(
 						[&](int offset) { return f(x + offset * h); }, [](Real value) { return std::abs(value); }, h, error != nullptr);
@@ -286,7 +367,7 @@ namespace MML
 					return result.value;
 				});
 		}
-		static DerivativeResult<Real> NDer4Detailed(const IRealFunction& f, Real x,
+		static inline DerivativeResult<Real> NDer4Detailed(const IRealFunction& f, Real x,
 		                                           const DerivativeConfig& config = {})
 		{
 			return NDer4Detailed(f, x, Detail::ResolveDerivativeStep(config, NDer4_h, x), config);
@@ -346,10 +427,10 @@ namespace MML
 				[&](const IRealFunction& adapter) { return NDer4(adapter, x); });
 		}
 
-		static Real NDer4Left(const IRealFunction& f, Real x, Real* error = nullptr) { Real h = ScaleStep(NDer4_h, x); return NDer4(f, x - 4 * h, h, error); }
-		static Real NDer4Right(const IRealFunction& f, Real x, Real* error = nullptr) { Real h = ScaleStep(NDer4_h, x); return NDer4(f, x + 4 * h, h, error); }
-		static Real NDer4Left(const IRealFunction& f, Real x, Real h, Real* error = nullptr) { return NDer4(f, x - 4 * h, h, error); }
-		static Real NDer4Right(const IRealFunction& f, Real x, Real h, Real* error = nullptr) { return NDer4(f, x + 4 * h, h, error); }
+		static inline Real NDer4Left(const IRealFunction& f, Real x, Real* error = nullptr) { Real h = ScaleStep(NDer4_h, x); return NDer4(f, x - 4 * h, h, error); }
+		static inline Real NDer4Right(const IRealFunction& f, Real x, Real* error = nullptr) { Real h = ScaleStep(NDer4_h, x); return NDer4(f, x + 4 * h, h, error); }
+		static inline Real NDer4Left(const IRealFunction& f, Real x, Real h, Real* error = nullptr) { return NDer4(f, x - 4 * h, h, error); }
+		static inline Real NDer4Right(const IRealFunction& f, Real x, Real h, Real* error = nullptr) { return NDer4(f, x + 4 * h, h, error); }
 
 		/********************************************************************************************************************/
 		/********                               Numerical derivatives of SIXTH order                                 ********/
@@ -358,7 +439,7 @@ namespace MML
 		                                           const DerivativeConfig& config = {})
 		{
 			using Stencil = Detail::FirstDerivativeStencil<Detail::FirstDerivativeOrder::Six>;
-			return Detail::ExecuteDerivativeDetailed("NDer6", h, config, Stencil::value_offsets.size(), Stencil::error_offsets.size(),
+			return Detail::ExecuteDerivativeDetailed("NDer6", h, config, int{Stencil::value_offsets.size()}, int{Stencil::error_offsets.size()},
 				[&](Real* error) {
 					auto result = Detail::EvaluateFirstDerivativeStencil<Detail::FirstDerivativeOrder::Six>(
 						[&](int offset) { return f(x + offset * h); }, [](Real value) { return std::abs(value); }, h, error != nullptr);
@@ -366,7 +447,7 @@ namespace MML
 					return result.value;
 				});
 		}
-		static DerivativeResult<Real> NDer6Detailed(const IRealFunction& f, Real x,
+		static inline DerivativeResult<Real> NDer6Detailed(const IRealFunction& f, Real x,
 		                                           const DerivativeConfig& config = {})
 		{
 			return NDer6Detailed(f, x, Detail::ResolveDerivativeStep(config, NDer6_h, x), config);
@@ -396,11 +477,11 @@ namespace MML
 				*error = result.error;
 			return result.value;
 		}
-		static Real NDer6(const IRealFunction& f, Real x, Real* error)
+		static inline Real NDer6(const IRealFunction& f, Real x, Real* error)
 		{
 			return NDer6(f, x, ScaleStep(NDer6_h, x), error);
 		}
-		static Real NDer6(const IRealFunction& f, Real x)
+		static inline Real NDer6(const IRealFunction& f, Real x)
 		{
 			return NDer6(f, x, ScaleStep(NDer6_h, x), nullptr);
 		}
@@ -426,10 +507,10 @@ namespace MML
 				[&](const IRealFunction& adapter) { return NDer6(adapter, x); });
 		}
 
-		static Real NDer6Left(const IRealFunction& f, Real x, Real* error = nullptr) { Real h = ScaleStep(NDer6_h, x); return NDer6(f, x - 5 * h, h, error); }
-		static Real NDer6Right(const IRealFunction& f, Real x, Real* error = nullptr) { Real h = ScaleStep(NDer6_h, x); return NDer6(f, x + 5 * h, h, error); }
-		static Real NDer6Left(const IRealFunction& f, Real x, Real h, Real* error = nullptr) { return NDer6(f, x - 5 * h, h, error); }
-		static Real NDer6Right(const IRealFunction& f, Real x, Real h, Real* error = nullptr) { return NDer6(f, x + 5 * h, h, error); }
+		static inline Real NDer6Left(const IRealFunction& f, Real x, Real* error = nullptr) { Real h = ScaleStep(NDer6_h, x); return NDer6(f, x - 5 * h, h, error); }
+		static inline Real NDer6Right(const IRealFunction& f, Real x, Real* error = nullptr) { Real h = ScaleStep(NDer6_h, x); return NDer6(f, x + 5 * h, h, error); }
+		static inline Real NDer6Left(const IRealFunction& f, Real x, Real h, Real* error = nullptr) { return NDer6(f, x - 5 * h, h, error); }
+		static inline Real NDer6Right(const IRealFunction& f, Real x, Real h, Real* error = nullptr) { return NDer6(f, x + 5 * h, h, error); }
 
 		/********************************************************************************************************************/
 		/********                               Numerical derivatives of EIGHTH order                                ********/
@@ -438,7 +519,7 @@ namespace MML
 		                                           const DerivativeConfig& config = {})
 		{
 			using Stencil = Detail::FirstDerivativeStencil<Detail::FirstDerivativeOrder::Eight>;
-			return Detail::ExecuteDerivativeDetailed("NDer8", h, config, Stencil::value_offsets.size(), Stencil::error_offsets.size(),
+			return Detail::ExecuteDerivativeDetailed("NDer8", h, config, int{Stencil::value_offsets.size()}, int{Stencil::error_offsets.size()},
 				[&](Real* error) {
 					auto result = Detail::EvaluateFirstDerivativeStencil<Detail::FirstDerivativeOrder::Eight>(
 						[&](int offset) { return f(x + offset * h); }, [](Real value) { return std::abs(value); }, h, error != nullptr);
@@ -446,7 +527,7 @@ namespace MML
 					return result.value;
 				});
 		}
-		static DerivativeResult<Real> NDer8Detailed(const IRealFunction& f, Real x,
+		static inline DerivativeResult<Real> NDer8Detailed(const IRealFunction& f, Real x,
 		                                           const DerivativeConfig& config = {})
 		{
 			return NDer8Detailed(f, x, Detail::ResolveDerivativeStep(config, NDer8_h, x), config);
@@ -476,11 +557,11 @@ namespace MML
 				*error = result.error;
 			return result.value;
 		}
-		static Real NDer8(const IRealFunction& f, Real x, Real* error)
+		static inline Real NDer8(const IRealFunction& f, Real x, Real* error)
 		{
 			return NDer8(f, x, ScaleStep(NDer8_h, x), error);
 		}
-		static Real NDer8(const IRealFunction& f, Real x)
+		static inline Real NDer8(const IRealFunction& f, Real x)
 		{
 			return NDer8(f, x, ScaleStep(NDer8_h, x), nullptr);
 		}
@@ -506,10 +587,10 @@ namespace MML
 				[&](const IRealFunction& adapter) { return NDer8(adapter, x); });
 		}
 
-		static Real NDer8Left(const IRealFunction& f, Real x, Real* error = nullptr) { Real h = ScaleStep(NDer8_h, x); return NDer8(f, x - 6 * h, h, error); }
-		static Real NDer8Right(const IRealFunction& f, Real x, Real* error = nullptr) { Real h = ScaleStep(NDer8_h, x); return NDer8(f, x + 6 * h, h, error); }
-		static Real NDer8Left(const IRealFunction& f, Real x, Real h, Real* error = nullptr) { return NDer8(f, x - 6 * h, h, error); }
-		static Real NDer8Right(const IRealFunction& f, Real x, Real h, Real* error = nullptr) { return NDer8(f, x + 6 * h, h, error); }
+		static inline Real NDer8Left(const IRealFunction& f, Real x, Real* error = nullptr) { Real h = ScaleStep(NDer8_h, x); return NDer8(f, x - 6 * h, h, error); }
+		static inline Real NDer8Right(const IRealFunction& f, Real x, Real* error = nullptr) { Real h = ScaleStep(NDer8_h, x); return NDer8(f, x + 6 * h, h, error); }
+		static inline Real NDer8Left(const IRealFunction& f, Real x, Real h, Real* error = nullptr) { return NDer8(f, x - 6 * h, h, error); }
+		static inline Real NDer8Right(const IRealFunction& f, Real x, Real h, Real* error = nullptr) { return NDer8(f, x + 6 * h, h, error); }
 
 		/********************************************************************************************************************/
 		/********                                      SECOND DERIVATIVES                                            ********/
@@ -530,24 +611,24 @@ namespace MML
 					Real ymh = f(x - h);
 
 					Real h2 = h * h;
-					Real result = (ymh - 2.0 * y0 + yh) / h2;
+					Real result = (ymh - MML::Real(2.0) * y0 + yh) / h2;
 
 					if (error)
 					{
 						Real y2h = f(x + 2 * h);
 						Real ym2h = f(x - 2 * h);
-						Real f4_approx = std::abs(ym2h - 4 * ymh + 6 * y0 - 4 * yh + y2h) / h2;
-						*error = f4_approx * h2 / 12.0 +
+						*error = Detail::EstimateSecondTruncation2(ym2h, ymh, y0, yh, y2h, h,
+							[](Real value) { return std::abs(value); }) +
 						         Constants::Eps * (std::abs(ymh) + 2 * std::abs(y0) + std::abs(yh)) / h2;
 					}
 
 					return result;
 				});
 		}
-		static DerivativeResult<Real> NSecDer2Detailed(const IRealFunction& f, Real x,
+		static inline DerivativeResult<Real> NSecDer2Detailed(const IRealFunction& f, Real x,
 		                                              const DerivativeConfig& config = {})
 		{
-			return NSecDer2Detailed(f, x, Detail::ResolveDerivativeStep(config, NDer2_h, x), config);
+			return NSecDer2Detailed(f, x, Detail::ResolveDerivativeStep(config, Precision::FourthRootEps, x), config);
 		}
 		template<RealFunctionCallable Function>
 			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
@@ -574,9 +655,9 @@ namespace MML
 				*error = result.error;
 			return result.value;
 		}
-		static Real NSecDer2(const IRealFunction& f, Real x, Real* error = nullptr)
+		static inline Real NSecDer2(const IRealFunction& f, Real x, Real* error = nullptr)
 		{
-			return NSecDer2(f, x, ScaleStep(NDer2_h, x), error);
+			return NSecDer2(f, x, ScaleStep(Precision::FourthRootEps, x), error);
 		}
 		template<RealFunctionCallable Function>
 			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
@@ -607,25 +688,25 @@ namespace MML
 					Real ym2h = f(x - 2 * h);
 
 					Real h2 = h * h;
-					Real result = (-ym2h + 16.0 * ymh - 30.0 * y0 + 16.0 * yh - y2h) / (12.0 * h2);
+					Real result = (-ym2h + MML::Real(16.0) * ymh - MML::Real(30.0) * y0 + MML::Real(16.0) * yh - y2h) / (MML::Real(12.0) * h2);
 
 					if (error)
 					{
 						Real y3h = f(x + 3 * h);
 						Real ym3h = f(x - 3 * h);
-						Real f6_approx = std::abs(ym3h - 6 * ym2h + 15 * ymh - 20 * y0 + 15 * yh - 6 * y2h + y3h) / h2;
-						*error = f6_approx * h2 * h2 / 90.0 +
+						*error = Detail::EstimateSecondTruncation4(ym3h, ym2h, ymh, y0, yh, y2h, y3h, h,
+							[](Real value) { return std::abs(value); }) +
 						         Constants::Eps * (std::abs(ym2h) + 16 * std::abs(ymh) + 30 * std::abs(y0) +
-						                           16 * std::abs(yh) + std::abs(y2h)) / (12.0 * h2);
+						                           16 * std::abs(yh) + std::abs(y2h)) / (Real(12) * h2);
 					}
 
 					return result;
 				});
 		}
-		static DerivativeResult<Real> NSecDer4Detailed(const IRealFunction& f, Real x,
+		static inline DerivativeResult<Real> NSecDer4Detailed(const IRealFunction& f, Real x,
 		                                              const DerivativeConfig& config = {})
 		{
-			return NSecDer4Detailed(f, x, Detail::ResolveDerivativeStep(config, NDer4_h, x), config);
+			return NSecDer4Detailed(f, x, Detail::ResolveDerivativeStep(config, Precision::SixthRootEps, x), config);
 		}
 		template<RealFunctionCallable Function>
 			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
@@ -654,7 +735,7 @@ namespace MML
 		}
 		static Real NSecDer4(const IRealFunction& f, Real x, Real* error = nullptr)
 		{
-			return NSecDer4(f, x, ScaleStep(NDer4_h, x), error);
+			return NSecDer4(f, x, ScaleStep(Precision::SixthRootEps, x), error);
 		}
 		template<RealFunctionCallable Function>
 			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
@@ -691,21 +772,21 @@ namespace MML
 					Real ym2h = f(x - 2 * h);
 
 					Real h3 = h * h * h;
-					Real result = (-ym2h + 2.0 * ymh - 2.0 * yh + y2h) / (2.0 * h3);
+					Real result = (-ym2h + MML::Real(2.0) * ymh - MML::Real(2.0) * yh + y2h) / (MML::Real(2.0) * h3);
 
 					if (error)
 					{
 						Real y3h = f(x + 3 * h);
 						Real ym3h = f(x - 3 * h);
-						Real f5_approx = std::abs(ym3h - 3 * ym2h + 5 * ymh - 5 * yh + 3 * y2h - y3h) / h3;
-						*error = f5_approx * h * h / 4.0 +
-						         Constants::Eps * (std::abs(ym2h) + 2 * std::abs(ymh) + 2 * std::abs(yh) + std::abs(y2h)) / (2.0 * h3);
+						*error = Detail::EstimateThirdTruncation2(ym3h, ym2h, ymh, yh, y2h, y3h, h,
+							[](Real value) { return std::abs(value); }) +
+						         Constants::Eps * (std::abs(ym2h) + 2 * std::abs(ymh) + 2 * std::abs(yh) + std::abs(y2h)) / (Real(2) * h3);
 					}
 
 					return result;
 				});
 		}
-		static DerivativeResult<Real> NThirdDer2Detailed(const IRealFunction& f, Real x,
+		static inline DerivativeResult<Real> NThirdDer2Detailed(const IRealFunction& f, Real x,
 		                                                const DerivativeConfig& config = {})
 		{
 			return NThirdDer2Detailed(f, x, Detail::ResolveDerivativeStep(config, NDer4_h, x), config);
@@ -769,22 +850,22 @@ namespace MML
 					Real ym3h = f(x - 3 * h);
 
 					Real h3 = h * h * h;
-					Real result = (ym3h - 8.0 * ym2h + 13.0 * ymh - 13.0 * yh + 8.0 * y2h - y3h) / (8.0 * h3);
+					Real result = (ym3h - MML::Real(8.0) * ym2h + MML::Real(13.0) * ymh - MML::Real(13.0) * yh + MML::Real(8.0) * y2h - y3h) / (MML::Real(8.0) * h3);
 
 					if (error)
 					{
 						Real y4h = f(x + 4 * h);
 						Real ym4h = f(x - 4 * h);
-						Real f7_approx = std::abs(ym4h - 4 * ym3h + 9 * ym2h - 13 * ymh + 13 * yh - 9 * y2h + 4 * y3h - y4h) / h3;
-						*error = f7_approx * h * h * h * h / 120.0 +
+						*error = Detail::EstimateThirdTruncation4(ym4h, ym3h, ym2h, ymh, yh, y2h, y3h, y4h, h,
+							[](Real value) { return std::abs(value); }) +
 						         Constants::Eps * (std::abs(ym3h) + 8 * std::abs(ym2h) + 13 * std::abs(ymh) +
-						                           13 * std::abs(yh) + 8 * std::abs(y2h) + std::abs(y3h)) / (8.0 * h3);
+						                           13 * std::abs(yh) + 8 * std::abs(y2h) + std::abs(y3h)) / (Real(8) * h3);
 					}
 
 					return result;
 				});
 		}
-		static DerivativeResult<Real> NThirdDer4Detailed(const IRealFunction& f, Real x,
+		static inline DerivativeResult<Real> NThirdDer4Detailed(const IRealFunction& f, Real x,
 		                                                const DerivativeConfig& config = {})
 		{
 			return NThirdDer4Detailed(f, x, Detail::ResolveDerivativeStep(config, NDer4_h, x), config);
@@ -814,7 +895,7 @@ namespace MML
 				*error = result.error;
 			return result.value;
 		}
-		static Real NThirdDer4(const IRealFunction& f, Real x, Real* error = nullptr)
+		static inline Real NThirdDer4(const IRealFunction& f, Real x, Real* error = nullptr)
 		{
 			return NThirdDer4(f, x, ScaleStep(NDer4_h, x), error);
 		}
@@ -843,6 +924,9 @@ namespace MML
 		/// @details Builds a Richardson tableau using successively smaller step sizes,
 		///          automatically finding the optimal step size. Uses central differences.
 		///          Typically achieves ~10-12 digits of accuracy for smooth functions.
+		///          All three Richardson derivatives reject invalid parameters with NumericInputError
+		///          and collapsed/overflowing stencils or nonfinite arithmetic with NumericalMethodError.
+		///          With max_iter=1 the error is unavailable (numeric_limits<Real>::max()).
 		/// @param f Function to differentiate
 		/// @param x Point at which to evaluate derivative
 		/// @param h Initial step size (will be refined automatically). Default: 0.1
@@ -853,57 +937,7 @@ namespace MML
 		static Real NDerRichardson(const IRealFunction& f, Real x, Real h = 0.1, 
 		                           Real* error = nullptr, int max_iter = 10, Real con = 1.4)
 		{
-			const Real con2 = con * con;
-			const Real big = std::numeric_limits<Real>::max();
-			const Real safe = 2.0;
-
-			if (h == 0.0)
-			{
-				if (error) *error = big;
-				return 0.0;
-			}
-
-			// Allocate tableau (triangular matrix stored as 2D)
-			std::vector<std::vector<Real>> a(max_iter, std::vector<Real>(max_iter));
-
-			Real hh = h;
-			a[0][0] = (f(x + hh) - f(x - hh)) / (2.0 * hh);
-			Real err = big;
-			Real ans = a[0][0];
-
-			for (int i = 1; i < max_iter; i++)
-			{
-				// Shrink step size
-				hh /= con;
-				a[0][i] = (f(x + hh) - f(x - hh)) / (2.0 * hh);
-
-				// Richardson extrapolation: eliminate error terms
-				Real fac = con2;
-				for (int j = 1; j <= i; j++)
-				{
-					// A_j(h) = (con^(2j) * A_{j-1}(h/con) - A_{j-1}(h)) / (con^(2j) - 1)
-					a[j][i] = (a[j - 1][i] * fac - a[j - 1][i - 1]) / (fac - 1.0);
-					fac *= con2;
-
-					// Error estimate: max difference from neighboring tableau entries
-					Real errt = std::max(std::abs(a[j][i] - a[j - 1][i]),
-					                     std::abs(a[j][i] - a[j - 1][i - 1]));
-
-					// Track best answer (lowest error)
-					if (errt <= err)
-					{
-						err = errt;
-						ans = a[j][i];
-					}
-				}
-
-				// Convergence check: error growing means we've passed optimal h
-				if (std::abs(a[i][i] - a[i - 1][i - 1]) >= safe * err)
-					break;
-			}
-
-			if (error) *error = err;
-			return ans;
+			return Detail::EvaluateRichardsonDerivative<1>(f, x, h, error, max_iter, con);
 		}
 
 		/// @brief First derivative using Richardson extrapolation with default parameters.
@@ -911,9 +945,9 @@ namespace MML
 		/// @param x Point at which to evaluate derivative
 		/// @param error Output parameter for error estimate (optional)
 		/// @return Derivative estimate
-		static Real NDerRichardson(const IRealFunction& f, Real x, Real* error)
+		static inline Real NDerRichardson(const IRealFunction& f, Real x, Real* error)
 		{
-			return NDerRichardson(f, x, 0.1, error, 10, 1.4);
+			return NDerRichardson(f, x, MML::Real(0.1), error, 10, MML::Real(1.4));
 		}
 		template<RealFunctionCallable Function>
 			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
@@ -944,57 +978,13 @@ namespace MML
 		static Real NSecDerRichardson(const IRealFunction& f, Real x, Real h = 0.1,
 		                              Real* error = nullptr, int max_iter = 10, Real con = 1.4)
 		{
-			const Real con2 = con * con;
-			const Real big = std::numeric_limits<Real>::max();
-			const Real safe = 2.0;
-
-			if (h == 0.0)
-			{
-				if (error) *error = big;
-				return 0.0;
-			}
-
-			std::vector<std::vector<Real>> a(max_iter, std::vector<Real>(max_iter));
-
-			Real hh = h;
-			Real fx = f(x);
-			a[0][0] = (f(x + hh) - 2.0 * fx + f(x - hh)) / (hh * hh);
-			Real err = big;
-			Real ans = a[0][0];
-
-			for (int i = 1; i < max_iter; i++)
-			{
-				hh /= con;
-				a[0][i] = (f(x + hh) - 2.0 * fx + f(x - hh)) / (hh * hh);
-
-				Real fac = con2;
-				for (int j = 1; j <= i; j++)
-				{
-					a[j][i] = (a[j - 1][i] * fac - a[j - 1][i - 1]) / (fac - 1.0);
-					fac *= con2;
-
-					Real errt = std::max(std::abs(a[j][i] - a[j - 1][i]),
-					                     std::abs(a[j][i] - a[j - 1][i - 1]));
-
-					if (errt <= err)
-					{
-						err = errt;
-						ans = a[j][i];
-					}
-				}
-
-				if (std::abs(a[i][i] - a[i - 1][i - 1]) >= safe * err)
-					break;
-			}
-
-			if (error) *error = err;
-			return ans;
+			return Detail::EvaluateRichardsonDerivative<2>(f, x, h, error, max_iter, con);
 		}
 
 		/// @brief Second derivative using Richardson extrapolation with default parameters.
-		static Real NSecDerRichardson(const IRealFunction& f, Real x, Real* error)
+		static inline Real NSecDerRichardson(const IRealFunction& f, Real x, Real* error)
 		{
-			return NSecDerRichardson(f, x, 0.1, error, 10, 1.4);
+			return NSecDerRichardson(f, x, MML::Real(0.1), error, 10, MML::Real(1.4));
 		}
 		template<RealFunctionCallable Function>
 			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
@@ -1025,59 +1015,13 @@ namespace MML
 		static Real NThirdDerRichardson(const IRealFunction& f, Real x, Real h = 0.2,
 		                                Real* error = nullptr, int max_iter = 10, Real con = 1.4)
 		{
-			const Real con2 = con * con;
-			const Real big = std::numeric_limits<Real>::max();
-			const Real safe = 2.0;
-
-			if (h == 0.0)
-			{
-				if (error) *error = big;
-				return 0.0;
-			}
-
-			std::vector<std::vector<Real>> a(max_iter, std::vector<Real>(max_iter));
-
-			Real hh = h;
-			// f'''(x) ≈ [f(x+2h) - 2f(x+h) + 2f(x-h) - f(x-2h)] / (2h³)
-			Real h3 = hh * hh * hh;
-			a[0][0] = (f(x + 2*hh) - 2.0*f(x + hh) + 2.0*f(x - hh) - f(x - 2*hh)) / (2.0 * h3);
-			Real err = big;
-			Real ans = a[0][0];
-
-			for (int i = 1; i < max_iter; i++)
-			{
-				hh /= con;
-				h3 = hh * hh * hh;
-				a[0][i] = (f(x + 2*hh) - 2.0*f(x + hh) + 2.0*f(x - hh) - f(x - 2*hh)) / (2.0 * h3);
-
-				Real fac = con2;
-				for (int j = 1; j <= i; j++)
-				{
-					a[j][i] = (a[j - 1][i] * fac - a[j - 1][i - 1]) / (fac - 1.0);
-					fac *= con2;
-
-					Real errt = std::max(std::abs(a[j][i] - a[j - 1][i]),
-					                     std::abs(a[j][i] - a[j - 1][i - 1]));
-
-					if (errt <= err)
-					{
-						err = errt;
-						ans = a[j][i];
-					}
-				}
-
-				if (std::abs(a[i][i] - a[i - 1][i - 1]) >= safe * err)
-					break;
-			}
-
-			if (error) *error = err;
-			return ans;
+			return Detail::EvaluateRichardsonDerivative<3>(f, x, h, error, max_iter, con);
 		}
 
 		/// @brief Third derivative using Richardson extrapolation with default parameters.
-		static Real NThirdDerRichardson(const IRealFunction& f, Real x, Real* error)
+		static inline Real NThirdDerRichardson(const IRealFunction& f, Real x, Real* error)
 		{
-			return NThirdDerRichardson(f, x, 0.2, error, 10, 1.4);
+			return NThirdDerRichardson(f, x, MML::Real(0.2), error, 10, MML::Real(1.4));
 		}
 		template<RealFunctionCallable Function>
 			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
@@ -1109,9 +1053,9 @@ namespace MML
 		/// @param x Point at which to evaluate derivative
 		/// @param error Output parameter for error estimate (optional)
 		/// @return Derivative estimate
-		static Real NDerAdaptive(const IRealFunction& f, Real x, Real* error = nullptr)
+		static inline Real NDerAdaptive(const IRealFunction& f, Real x, Real* error = nullptr)
 		{
-			return NDerRichardson(f, x, 0.1, error, 10, 1.4);
+			return NDerRichardson(f, x, MML::Real(0.1), error, 10, MML::Real(1.4));
 		}
 		template<RealFunctionCallable Function>
 			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
@@ -1126,9 +1070,9 @@ namespace MML
 		/// @param x Point at which to evaluate second derivative
 		/// @param error Output parameter for error estimate (optional)
 		/// @return Second derivative estimate
-		static Real NSecDerAdaptive(const IRealFunction& f, Real x, Real* error = nullptr)
+		static inline Real NSecDerAdaptive(const IRealFunction& f, Real x, Real* error = nullptr)
 		{
-			return NSecDerRichardson(f, x, 0.1, error, 10, 1.4);
+			return NSecDerRichardson(f, x, MML::Real(0.1), error, 10, MML::Real(1.4));
 		}
 		template<RealFunctionCallable Function>
 			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
@@ -1143,9 +1087,9 @@ namespace MML
 		/// @param x Point at which to evaluate third derivative
 		/// @param error Output parameter for error estimate (optional)
 		/// @return Third derivative estimate
-		static Real NThirdDerAdaptive(const IRealFunction& f, Real x, Real* error = nullptr)
+		static inline Real NThirdDerAdaptive(const IRealFunction& f, Real x, Real* error = nullptr)
 		{
-			return NThirdDerRichardson(f, x, 0.2, error, 10, 1.4);
+			return NThirdDerRichardson(f, x, MML::Real(0.2), error, 10, MML::Real(1.4));
 		}
 		template<RealFunctionCallable Function>
 			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
@@ -1158,12 +1102,12 @@ namespace MML
 		/********************************************************************************************************************/
 		/********                            Definitions of default derivation functions                             ********/
 		/********************************************************************************************************************/
-		static inline Real(*Derive)(const IRealFunction& f, Real x) = Derivation::NDer4;
-		static inline Real(*DeriveErr)(const IRealFunction& f, 
+		[[maybe_unused]] static inline Real(*Derive)(const IRealFunction& f, Real x) = Derivation::NDer4;
+		[[maybe_unused]] static inline Real(*DeriveErr)(const IRealFunction& f,
 																	 Real x, Real* error) = Derivation::NDer4;
-		static inline Real(*DeriveSec)(const IRealFunction& f, 
+		[[maybe_unused]] static inline Real(*DeriveSec)(const IRealFunction& f,
 																	 Real x, Real* error) = Derivation::NSecDer4;
-		static inline Real(*DeriveThird)(const IRealFunction& f, 
+		[[maybe_unused]] static inline Real(*DeriveThird)(const IRealFunction& f,
 																		 Real x, Real* error) = Derivation::NThirdDer2;
 	}
 }

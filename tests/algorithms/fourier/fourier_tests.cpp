@@ -11,7 +11,7 @@
 #include <mml/algorithms/Fourier/FourierSpectrum.h>
 #include <mml/algorithms/Fourier/FourierWindowing.h>
 
-#include "../../test_beds/fourier_test_bed.h"
+#include "../../../test_beds/fourier_test_bed.h"
 
 using namespace MML;
 using namespace MML::Fourier;
@@ -60,8 +60,8 @@ namespace MML::Tests::Algorithms::FourierTests {
 		REQUIRE(std::abs(tapered[0]) < TOL(1e-12, 1e-6));
 		REQUIRE(std::abs(tapered[4] - static_cast<MML::Real>(1.0)) < TOL(1e-12, 1e-6));
 		REQUIRE(std::abs(tapered[8]) < TOL(1e-12, 1e-6));
-		REQUIRE_THROWS_AS(Windows::Tukey(8, -0.1), std::invalid_argument);
-		REQUIRE_THROWS_AS(Windows::Tukey(8, 1.1), std::invalid_argument);
+		REQUIRE_THROWS_AS(Windows::Tukey(8, -MML::Real(0.1)), std::invalid_argument);
+		REQUIRE_THROWS_AS(Windows::Tukey(8, MML::Real(1.1)), std::invalid_argument);
 	}
 
 	TEST_CASE("Fourier windows - apply helper and metrics", "[Fourier][Windowing]") {
@@ -125,8 +125,8 @@ namespace MML::Tests::Algorithms::FourierTests {
 	TEST_CASE("Fourier spectrum helpers - phase unwrap", "[Fourier][Spectrum]") {
 		Vector<Real> wrapped(5);
 		wrapped[0] = 0.0;
-		wrapped[1] = 0.75 * Constants::PI;
-		wrapped[2] = -0.75 * Constants::PI;
+		wrapped[1] = MML::Real(0.75) * Constants::PI;
+		wrapped[2] = -MML::Real(0.75) * Constants::PI;
 		wrapped[3] = -0.5 * Constants::PI;
 		wrapped[4] = 0.5 * Constants::PI;
 
@@ -163,7 +163,7 @@ namespace MML::Tests::Algorithms::FourierTests {
 	TEST_CASE("Fourier spectrum helpers - FFTShift and IFFTShift", "[Fourier][Spectrum]") {
 		Vector<Real> even(6);
 		for (int i = 0; i < even.size(); i++)
-			even[i] = i;
+			even[i] = Real(i);
 
 		auto even_shifted = FFTShift(even);
 		std::array<Real, 6> expected_even = {3.0, 4.0, 5.0, 0.0, 1.0, 2.0};
@@ -176,7 +176,7 @@ namespace MML::Tests::Algorithms::FourierTests {
 
 		Vector<Real> odd(5);
 		for (int i = 0; i < odd.size(); i++)
-			odd[i] = i;
+			odd[i] = Real(i);
 
 		auto odd_shifted = FFTShift(odd);
 		std::array<Real, 5> expected_odd = {3.0, 4.0, 0.0, 1.0, 2.0};
@@ -288,7 +288,7 @@ namespace MML::Tests::Algorithms::FourierTests {
 		for (int N : sizes) {
 			Vector<Real> signal(N);
 			for (int i = 0; i < N; i++) {
-				signal[i] = std::sin(2.0 * Constants::PI * i / N) + 0.5 * std::cos(4.0 * Constants::PI * i / N);
+				signal[i] = std::sin(MML::Real(2.0) * Constants::PI * i / N) + MML::Real(0.5) * std::cos(MML::Real(4.0) * Constants::PI * i / N);
 			}
 
 			auto coeffs = DCT::ForwardII(signal);
@@ -318,7 +318,7 @@ namespace MML::Tests::Algorithms::FourierTests {
 		int N = 32;
 		Vector<Real> signal(N);
 		for (int i = 0; i < N; i++) {
-			signal[i] = std::sin(2.0 * Constants::PI * 5.0 * i / N);
+			signal[i] = std::sin(MML::Real(2.0) * Constants::PI * MML::Real(5.0) * i / N);
 		}
 
 		Real signalEnergy = 0.0;
@@ -330,9 +330,9 @@ namespace MML::Tests::Algorithms::FourierTests {
 
 		// Parseval's theorem for DCT-II with 2/N normalization:
 		// ||x||² = (N/2) * [ (1/2)|X[0]|² + Σ_{k=1}^{N-1} |X[k]|² ]
-		Real dctEnergy = (N / 2.0) * (0.5 * coeffs[0] * coeffs[0]);
+		Real dctEnergy = (N / MML::Real(2.0)) * (MML::Real(0.5) * coeffs[0] * coeffs[0]);
 		for (int k = 1; k < N; k++) {
-			dctEnergy += (N / 2.0) * coeffs[k] * coeffs[k];
+			dctEnergy += (N / MML::Real(2.0)) * coeffs[k] * coeffs[k];
 		}
 
 		Real relativeError = std::abs(dctEnergy - signalEnergy) / signalEnergy;
@@ -342,7 +342,7 @@ namespace MML::Tests::Algorithms::FourierTests {
 	TEST_CASE("DCT Helper - VerifyRoundTrip", "[Fourier][DCT]") {
 		Vector<Real> signal(16);
 		for (int i = 0; i < 16; i++) {
-			signal[i] = std::exp(-0.1 * i) * std::cos(2.0 * Constants::PI * i / 16);
+			signal[i] = std::exp(-MML::Real(0.1) * i) * std::cos(MML::Real(2.0) * Constants::PI * i / 16);
 		}
 
 		REQUIRE(DCT::VerifyRoundTrip(signal, TOL(1e-12, 1e-5)));
@@ -354,7 +354,7 @@ namespace MML::Tests::Algorithms::FourierTests {
 		int N = 32;
 		Vector<Real> signal(N);
 		for (int i = 0; i < N; i++) {
-			signal[i] = 3.0 + std::sin(2.0 * Constants::PI * i / N); // DC offset of 3.0
+			signal[i] = MML::Real(3.0) + std::sin(MML::Real(2.0) * Constants::PI * i / N); // DC offset of 3.0
 		}
 
 		// Inverse comparison: fast should match reference
@@ -372,7 +372,7 @@ namespace MML::Tests::Algorithms::FourierTests {
 		int N = 32; // Above threshold, uses fast
 		Vector<Real> signal(N);
 		for (int i = 0; i < N; i++) {
-			signal[i] = std::sin(2.0 * Constants::PI * i / N);
+			signal[i] = std::sin(MML::Real(2.0) * Constants::PI * i / N);
 		}
 
 		// Forward comparison
@@ -462,7 +462,7 @@ namespace MML::Tests::Algorithms::FourierTests {
 		for (int N : sizes) {
 			Vector<Real> signal(N);
 			for (int i = 0; i < N; i++) {
-				signal[i] = std::sin(2.0 * Constants::PI * i / N) + 0.5 * std::cos(4.0 * Constants::PI * i / N);
+				signal[i] = std::sin(MML::Real(2.0) * Constants::PI * i / N) + MML::Real(0.5) * std::cos(MML::Real(4.0) * Constants::PI * i / N);
 			}
 
 			// Time fast implementation
@@ -534,7 +534,7 @@ namespace MML::Tests::Algorithms::FourierTests {
 
 		REQUIRE(dftResult.size() == fftResult.size());
 
-		for (size_t i = 0; i < dftResult.size(); i++) {
+		for (int i = 0; i < dftResult.size(); i++) {
 			REQUIRE(std::abs(dftResult[i] - fftResult[i]) < TOL(1e-10, 5e-3));
 		}
 	}
@@ -551,7 +551,7 @@ namespace MML::Tests::Algorithms::FourierTests {
 
 		REQUIRE(dftResult.size() == fftResult.size());
 
-		for (size_t i = 0; i < dftResult.size(); i++) {
+		for (int i = 0; i < dftResult.size(); i++) {
 			REQUIRE(std::abs(dftResult[i] - fftResult[i]) < TOL(1e-9, 0.05));
 		}
 	}
@@ -572,7 +572,7 @@ namespace MML::Tests::Algorithms::FourierTests {
 				REQUIRE(dftResult.size() == fftResult.size());
 
 				Real maxError = 0.0;
-				for (size_t i = 0; i < dftResult.size(); i++) {
+				for (int i = 0; i < dftResult.size(); i++) {
 					Real error = std::abs(dftResult[i] - fftResult[i]);
 					maxError = std::max(maxError, error);
 				}
@@ -599,7 +599,7 @@ namespace MML::Tests::Algorithms::FourierTests {
 
 		REQUIRE(original.size() == recovered.size());
 
-		for (size_t i = 0; i < original.size(); i++) {
+		for (int i = 0; i < original.size(); i++) {
 			REQUIRE(std::abs(original[i] - recovered[i]) < TOL(1e-10, 1e-5));
 		}
 	}
@@ -619,7 +619,7 @@ namespace MML::Tests::Algorithms::FourierTests {
 				auto recovered = FFT::Inverse(spectrum);
 
 				Real maxError = 0.0;
-				for (size_t i = 0; i < original.size(); i++) {
+				for (int i = 0; i < original.size(); i++) {
 					Real error = std::abs(original[i] - recovered[i]);
 					maxError = std::max(maxError, error);
 				}
@@ -642,14 +642,14 @@ namespace MML::Tests::Algorithms::FourierTests {
 
 		// Time domain energy
 		Real timeEnergy = 0.0;
-		for (size_t i = 0; i < data.size(); i++) {
+		for (int i = 0; i < data.size(); i++) {
 			timeEnergy += std::norm(data[i]);
 		}
 
 		// Frequency domain energy
 		auto spectrum = FFT::Forward(data);
 		Real freqEnergy = 0.0;
-		for (size_t i = 0; i < spectrum.size(); i++) {
+		for (int i = 0; i < spectrum.size(); i++) {
 			freqEnergy += std::norm(spectrum[i]);
 		}
 		freqEnergy /= spectrum.size(); // Normalization
@@ -668,13 +668,13 @@ namespace MML::Tests::Algorithms::FourierTests {
 				}
 
 				Real timeEnergy = 0.0;
-				for (size_t i = 0; i < data.size(); i++) {
+				for (int i = 0; i < data.size(); i++) {
 					timeEnergy += std::norm(data[i]);
 				}
 
 				auto spectrum = FFT::Forward(data);
 				Real freqEnergy = 0.0;
-				for (size_t i = 0; i < spectrum.size(); i++) {
+				for (int i = 0; i < spectrum.size(); i++) {
 					freqEnergy += std::norm(spectrum[i]);
 				}
 				freqEnergy /= spectrum.size();
@@ -742,7 +742,7 @@ namespace MML::Tests::Algorithms::FourierTests {
 				DYNAMIC_SECTION("N=" << size << " normalization=" << static_cast<int>(normalization)) {
 					const auto spectrum = FFT::Forward(data, normalization);
 					const auto recovered = FFT::Inverse(spectrum, normalization);
-					const Real expectedScale = normalization == TransformNormalization::None ? size : 1.0;
+					const Real expectedScale = normalization == TransformNormalization::None ? size : MML::Real(1.0);
 					for (int i = 0; i < size; i++)
 						REQUIRE(std::abs(recovered[i] - expectedScale * data[i]) < TOL(1e-9, 5e-4));
 				}
@@ -778,7 +778,7 @@ namespace MML::Tests::Algorithms::FourierTests {
 		int N = 8;
 		Vector<Complex> data(N);
 		for (int i = 0; i < N; i++)
-			data[i] = Complex(std::sin(2.0 * Constants::PI * i / N), std::cos(4.0 * Constants::PI * i / N));
+			data[i] = Complex(std::sin(MML::Real(2.0) * Constants::PI * i / N), std::cos(MML::Real(4.0) * Constants::PI * i / N));
 
 		auto legacy = FFT::Forward(data);
 		auto explicit_inverse = FFT::Forward(data, TransformNormalization::Inverse);
@@ -808,7 +808,7 @@ namespace MML::Tests::Algorithms::FourierTests {
 		int N = 16;
 		Vector<Real> data(N);
 		for (int i = 0; i < N; i++)
-			data[i] = std::sin(2.0 * Constants::PI * i / N) + static_cast<MML::Real>(0.25) * std::cos(6.0 * Constants::PI * i / N);
+			data[i] = std::sin(MML::Real(2.0) * Constants::PI * i / N) + static_cast<MML::Real>(0.25) * std::cos(MML::Real(6.0) * Constants::PI * i / N);
 
 		for (auto normalization : {TransformNormalization::Forward, TransformNormalization::Inverse, TransformNormalization::Orthonormal}) {
 			auto spectrum = RealFFT::Forward(data, normalization);
@@ -821,7 +821,7 @@ namespace MML::Tests::Algorithms::FourierTests {
 	TEST_CASE("Fourier detailed APIs report normalization metadata", "[Fourier][Normalization][Detailed]") {
 		Vector<Complex> data(8);
 		for (int i = 0; i < data.size(); i++)
-			data[i] = Complex(std::sin(2.0 * Constants::PI * i / data.size()), 0.0);
+			data[i] = Complex(std::sin(MML::Real(2.0) * Constants::PI * i / data.size()), MML::Real(0.0));
 
 		FourierConfig config;
 		config.normalization = TransformNormalization::Orthonormal;
@@ -841,7 +841,7 @@ namespace MML::Tests::Algorithms::FourierTests {
 	TEST_CASE("DFT ForwardDetailed - Success", "[Fourier][DFT][Detailed]") {
 		Vector<Complex> data(4);
 		for (int i = 0; i < 4; i++)
-			data[i] = Complex(std::cos(2.0 * Constants::PI * i / 4), 0.0);
+			data[i] = Complex(std::cos(MML::Real(2.0) * Constants::PI * i / 4), MML::Real(0.0));
 
 		auto result = DFT::ForwardDetailed(data);
 
@@ -856,7 +856,7 @@ namespace MML::Tests::Algorithms::FourierTests {
 	TEST_CASE("DFT ForwardDetailed - Real Input", "[Fourier][DFT][Detailed]") {
 		Vector<Real> data(8);
 		for (int i = 0; i < 8; i++)
-			data[i] = std::sin(2.0 * Constants::PI * i / 8);
+			data[i] = std::sin(MML::Real(2.0) * Constants::PI * i / 8);
 
 		auto result = DFT::ForwardDetailed(data);
 
@@ -897,7 +897,7 @@ namespace MML::Tests::Algorithms::FourierTests {
 	TEST_CASE("DFT InverseRealDetailed - Round Trip", "[Fourier][DFT][Detailed]") {
 		Vector<Real> data(8);
 		for (int i = 0; i < 8; i++)
-			data[i] = std::sin(2.0 * Constants::PI * i / 8);
+			data[i] = std::sin(MML::Real(2.0) * Constants::PI * i / 8);
 
 		auto fwd = DFT::ForwardDetailed(data);
 		REQUIRE(fwd.IsSuccess());
@@ -914,7 +914,7 @@ namespace MML::Tests::Algorithms::FourierTests {
 		int N = 16;
 		Vector<Complex> data(N);
 		for (int i = 0; i < N; i++)
-			data[i] = Complex(std::sin(2.0 * Constants::PI * i / N), 0.0);
+			data[i] = Complex(std::sin(MML::Real(2.0) * Constants::PI * i / N), MML::Real(0.0));
 
 		auto result = FFT::ForwardDetailed(data);
 
@@ -928,7 +928,7 @@ namespace MML::Tests::Algorithms::FourierTests {
 		int N = 32;
 		Vector<Complex> data(N);
 		for (int i = 0; i < N; i++)
-			data[i] = Complex(std::cos(4.0 * Constants::PI * i / N), std::sin(2.0 * Constants::PI * i / N));
+			data[i] = Complex(std::cos(MML::Real(4.0) * Constants::PI * i / N), std::sin(MML::Real(2.0) * Constants::PI * i / N));
 
 		auto fwd = FFT::ForwardDetailed(data);
 		REQUIRE(fwd.IsSuccess());
@@ -954,7 +954,7 @@ namespace MML::Tests::Algorithms::FourierTests {
 	TEST_CASE("DCT ForwardIIDetailed - Success", "[Fourier][DCT][Detailed]") {
 		Vector<Real> signal(16);
 		for (int i = 0; i < 16; i++)
-			signal[i] = std::sin(2.0 * Constants::PI * i / 16) + 0.5;
+			signal[i] = std::sin(MML::Real(2.0) * Constants::PI * i / 16) + MML::Real(0.5);
 
 		auto result = DCT::ForwardIIDetailed(signal);
 
@@ -967,7 +967,7 @@ namespace MML::Tests::Algorithms::FourierTests {
 	TEST_CASE("DCT Detailed - Round Trip", "[Fourier][DCT][Detailed]") {
 		Vector<Real> signal(8);
 		for (int i = 0; i < 8; i++)
-			signal[i] = std::cos(2.0 * Constants::PI * i / 8) + 0.3;
+			signal[i] = std::cos(MML::Real(2.0) * Constants::PI * i / 8) + MML::Real(0.3);
 
 		auto fwd = DCT::ForwardIIDetailed(signal);
 		REQUIRE(fwd.IsSuccess());

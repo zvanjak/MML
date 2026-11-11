@@ -29,6 +29,21 @@
 
 using namespace MML;
 
+void Docs_Demo_UncomputedResults()
+{
+    EvaluationResult<Real> fresh;
+    if (fresh || HasEstimate(fresh.error))
+        throw NumericalMethodError("Default result must be uncomputed");
+    EvaluationResult<Real, int> discrete;
+    if (HasEstimate(discrete.error))
+        throw NumericalMethodError("Default integer estimate must be absent");
+    discrete.error = 0;
+    if (!HasEstimate(discrete.error) || *discrete.error != 0)
+        throw NumericalMethodError("Computed zero estimate must remain present");
+    std::cout << to_string(fresh.status) << " zero estimate present: "
+              << HasEstimate(discrete.error) << '\n';
+}
+
 void Docs_Demo_ExceptionOwnership()
 {
 	const FourierError fourier("Fourier validation");

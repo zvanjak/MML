@@ -46,7 +46,7 @@ namespace MML
 
 			Real operator()(Real x) const override
 			{
-				return std::invoke(*_function, x);
+				return static_cast<Real>(std::invoke(*_function, x));
 			}
 		};
 	}
@@ -223,14 +223,14 @@ namespace MML
 		/// @brief Constructs unbounded parametric curve.
 		/// @param inFunc Function pointer Real → VectorN<N>
 		ParametricCurve(VectorN<Real, N>(*inFunc)(Real)) 
-			: _func(inFunc), _minT(Constants::NegInf), _maxT(Constants::PosInf) {}
+			: _minT(Constants::NegInf), _maxT(Constants::PosInf), _func(inFunc) {}
 
 		/// @brief Constructs bounded parametric curve.
 		/// @param minT Minimum parameter value
 		/// @param maxT Maximum parameter value
 		/// @param inFunc Function pointer Real → VectorN<N>
 		ParametricCurve(Real minT, Real maxT, VectorN<Real, N>(*inFunc)(Real)) 
-			: _func(inFunc), _minT(minT), _maxT(maxT) {}
+			: _minT(minT), _maxT(maxT), _func(inFunc) {}
 
 		/// @brief Gets minimum parameter value.
 		/// @return Minimum t
@@ -260,14 +260,14 @@ namespace MML
 		/// @brief Constructs unbounded parametric curve.
 		/// @param inFunc Callable object Real → VectorN<N>
 		ParametricCurveFromStdFunc(const std::function<VectorN<Real, N>(Real)>& inFunc) 
-			: _func(inFunc), _minT(Constants::NegInf), _maxT(Constants::PosInf) {}
+			: _minT(Constants::NegInf), _maxT(Constants::PosInf), _func(inFunc) {}
 
 		/// @brief Constructs bounded parametric curve.
 		/// @param minT Minimum parameter value
 		/// @param maxT Maximum parameter value
 		/// @param inFunc Callable object Real → VectorN<N>
 		ParametricCurveFromStdFunc(Real minT, Real maxT, const std::function<VectorN<Real, N>(Real)>& inFunc) 
-			: _func(inFunc), _minT(minT), _maxT(maxT) {}
+			: _minT(minT), _maxT(maxT), _func(inFunc) {}
 
 		/// @brief Gets minimum parameter value.
 		Real getMinT() const { return _minT; }
@@ -306,7 +306,7 @@ namespace MML
 		ParametricSurface(VectorN<Real, N>(*inFunc)(Real x, Real y),
 											Real minX, Real maxX,
 											Real(*y1)(Real), Real(*y2)(Real))
-			: _func(inFunc), _minX(minX), _maxX(maxX), _y1(y1), _y2(y2)
+			: _minX(minX), _maxX(maxX), _y1(y1), _y2(y2), _func(inFunc)
 		{	}
 
 		/// @brief Evaluates surface at (x, y).
@@ -352,8 +352,8 @@ namespace MML
 		/// @brief Constructs unbounded rectangular parametric surface.
 		/// @param inFunc Surface function (u,w) → point
 		ParametricSurfaceRect(VectorN<Real, N>(*inFunc)(Real u, Real w)) 
-				: _func(inFunc), _minX(Constants::NegInf), _maxX(Constants::PosInf), 
-					_minY(Constants::NegInf), _maxY(Constants::PosInf) {}
+				: _minX(Constants::NegInf), _maxX(Constants::PosInf),
+					_minY(Constants::NegInf), _maxY(Constants::PosInf), _func(inFunc) {}
 
 		/// @brief Constructs bounded rectangular parametric surface.
 		/// @param inFunc Surface function (u,w) → point
@@ -363,7 +363,7 @@ namespace MML
 		/// @param maxY Maximum w parameter
 		ParametricSurfaceRect(VectorN<Real, N>(*inFunc)(Real u, Real w), 
 													Real minX, Real maxX, Real minY, Real maxY) 
-				: _func(inFunc), _minX(minX), _maxX(maxX), _minY(minY), _maxY(maxY) {}
+				: _minX(minX), _maxX(maxX), _minY(minY), _maxY(maxY), _func(inFunc) {}
 
 		/// @brief Evaluates surface at (u, w).
 		/// @param u First parameter
@@ -398,7 +398,7 @@ namespace MML
 	public:
 		/// @brief Constructs unbounded surface from std::function.
 		/// @param inFunc Callable object (u,w) → VectorN<N>
-		ParametricSurfaceFromStdFunc(std::function<VectorN<Real, N>(Real u, Real w)>& inFunc) : _func(inFunc), _minX(Constants::NegInf), _maxX(Constants::PosInf), _minY(Constants::NegInf), _maxY(Constants::PosInf) {}
+		ParametricSurfaceFromStdFunc(std::function<VectorN<Real, N>(Real u, Real w)>& inFunc) : _minX(Constants::NegInf), _maxX(Constants::PosInf), _minY(Constants::NegInf), _maxY(Constants::PosInf), _func(inFunc) {}
 
 		/// @brief Constructs bounded surface from std::function.
 		/// @param inFunc Callable object (u,w) → VectorN<N>
@@ -406,7 +406,7 @@ namespace MML
 		/// @param maxX Maximum u parameter
 		/// @param minY Minimum w parameter
 		/// @param maxY Maximum w parameter
-		ParametricSurfaceFromStdFunc(std::function<VectorN<Real, N>(Real u, Real w)>& inFunc, Real minX, Real maxX, Real minY, Real maxY) : _func(inFunc), _minX(minX), _maxX(maxX), _minY(minY), _maxY(maxY) {}
+		ParametricSurfaceFromStdFunc(std::function<VectorN<Real, N>(Real u, Real w)>& inFunc, Real minX, Real maxX, Real minY, Real maxY) : _minX(minX), _maxX(maxX), _minY(minY), _maxY(maxY), _func(inFunc) {}
 
 		/// @brief Evaluates surface at (u, w).
 		/// @param u First parameter

@@ -70,7 +70,7 @@ namespace MML::Fourier
 				x_padded[i] *= h_padded[i];
 
 			FFT::Transform(x_padded, -1);
-			Real norm = 1.0 / fft_size;
+			Real norm = MML::Real(1.0) / fft_size;
 			Vector<Complex> result(result_size);
 			for (int i = 0; i < result_size; i++)
 				result[i] = x_padded[i] * norm;

@@ -57,22 +57,32 @@ namespace MML::Fourier
 		return result;
 	}
 
+	/// Removes the minimum whole turns needed to cross the selected jump threshold.
+	/// Accepts arbitrary finite radians; thresholds below pi can produce opposite-sign jumps exceeding the threshold.
 	inline Vector<Real> UnwrapPhase(const Vector<Real>& phase, Real discontinuity = Constants::PI) {
 		FourierValidation::ValidateNonEmpty(phase.size(), "UnwrapPhase");
 		FourierValidation::ValidatePositive(discontinuity, "discontinuity", "UnwrapPhase");
+		FourierDetail::ValidateFinite(phase, true);
 
 		Vector<Real> result = phase;
-		Real offset = 0.0;
 		const Real period = 2.0 * Constants::PI;
 
 		for (int i = 1; i < result.size(); i++) {
 			Real delta = phase[i] - phase[i - 1];
-			if (delta > discontinuity)
-				offset -= period;
-			else if (delta < -discontinuity)
-				offset += period;
-
-			result[i] = phase[i] + offset;
+			if (delta > discontinuity || delta < -discontinuity) {
+				// Reduce before subtracting: huge phase differences can overflow or lose whole turns.
+				Real reduced = std::fmod(phase[i], period) - std::fmod(phase[i - 1], period);
+				if (delta < 0)
+					reduced = -reduced;
+				Real excess = std::fmod(reduced - std::fmod(discontinuity, period), period);
+				if (excess < 0)
+					excess += period;
+				const Real adjusted = discontinuity - (excess == 0 ? Real{0} : period - excess);
+				delta = delta > 0 ? adjusted : -adjusted;
+			}
+			result[i] = result[i - 1] + delta;
+			if (!std::isfinite(result[i]))
+				throw NumericalMethodError("UnwrapPhase - unwrapped output exceeds the finite range");
 		}
 
 		return result;

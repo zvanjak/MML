@@ -157,7 +157,7 @@ void Demo_DAESystemWithJacobian()
 {
     std::cout << "\n=== DAE System with Jacobian ===\n\n";
 
-    std::cout << "DAESystemWithJacobian extends DAESystem with Jacobian matrices:\n";
+    std::cout << "DAESystemWithJacobian implements IODESystemDAEWithJacobian with four Jacobian matrices:\n";
     std::cout << "  - df/dx: Jacobian of differential eqs w.r.t. diff variables\n";
     std::cout << "  - df/dy: Jacobian of differential eqs w.r.t. alg variables\n";
     std::cout << "  - dg/dx: Jacobian of constraints w.r.t. diff variables\n";

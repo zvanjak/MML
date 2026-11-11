@@ -257,7 +257,7 @@ namespace MML::RootFinding {
 			}
 		}
 
-		if (!result.converged && result.status == AlgorithmStatus::Success) {
+		if (!result.converged && (result.status == AlgorithmStatus::Success || result.status == AlgorithmStatus::NotComputed)) {
 			result.status = AlgorithmStatus::MaxIterationsExceeded;
 			result.error_message = "SolveNonlinearSystemNewton: maximum iterations exceeded";
 		}

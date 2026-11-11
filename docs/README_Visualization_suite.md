@@ -30,6 +30,16 @@ All visualizers have **complete cross-platform support** with multiple backend o
 - `../src/book/chapters/Chapter_02_vizualization/` — Comprehensive examples from the companion book
 - Examples of custom styling, multi-plot layouts, and animation controls
 
+The book examples in this repository are a convenience mirror, not the canonical
+book or physics sources. With `MML_BUILD_BOOK` enabled, `MML_BookApp` builds the
+combined examples and the `ChapterXXApp` targets build individual chapters.
+The mirror's [BookSupport helper](../src/book/BookSupport.h) reports failed
+serialization/visualization results with their error code, filename and message.
+Failed saves stop the dependent visualization; visualizer launch failures remain
+best-effort diagnostics. Visualizer methods still attempt to launch a GUI after
+saving; use Serializer methods directly for export-only workflows. This mirror
+compatibility layer is not part of MML's public API.
+
 ---
 
 ## Gallery

@@ -24,12 +24,13 @@ namespace MML {
 		Real tolerance = PrecisionValues<Real>::EigenSolverConvergenceTolerance;
 
 		/// Maximum number of iterations/sweeps. Set to 0 for the solver default.
+		/// Self-adjoint solvers reject negative budgets; scalar maxIter=0 performs no iterations.
 		int max_iterations = 100;
 
-		/// Sort eigenvalues in ascending order.
+		/// Sort eigenvalues in ascending order (honored by the self-adjoint solvers).
 		bool sort_eigenvalues = true;
 
-		/// Compute eigenvectors when supported by the solver.
+		/// Self-adjoint solvers omit allocation/accumulation and return a 0x0 matrix when false.
 		bool compute_eigenvectors = true;
 
 		/// Enable verbose diagnostic output.

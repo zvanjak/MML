@@ -408,7 +408,7 @@ namespace MML
 		return result;
 	}
 
-	/// Check whether a graph is bipartite and return a two-coloring when possible.
+	/// Check bipartiteness of the underlying undirected graph, ignoring edge orientation.
 	template<typename V, typename E>
 	BipartiteResult BipartiteColoring(const Graph<V, E>& graph)
 	{
@@ -417,6 +417,16 @@ namespace MML
 		result.algorithm_name = "BipartiteColoring";
 		size_t n = graph.numVertices();
 		result.color.assign(n, -1);
+		std::vector<std::vector<size_t>> adjacency(n);
+		for (size_t u = 0; u < n; ++u)
+		{
+			for (const auto& edge : graph.neighbors(u))
+			{
+				adjacency[u].push_back(edge.to);
+				if (graph.isDirected())
+					adjacency[edge.to].push_back(u);
+			}
+		}
 
 		for (size_t start = 0; start < n; ++start)
 		{
@@ -430,9 +440,8 @@ namespace MML
 			{
 				size_t u = queue.front();
 				queue.pop();
-				for (const auto& edge : graph.neighbors(u))
+				for (size_t v : adjacency[u])
 				{
-					size_t v = edge.to;
 					if (result.color[v] == -1)
 					{
 						result.color[v] = 1 - result.color[u];

@@ -52,17 +52,17 @@ namespace MML::Fields
 	/// @details Used for gravitational and Coulomb potentials: Φ(r) = -GM/r, Φ(r) = kQ/r
 	
 	/// @brief Cartesian inverse radial potential Φ = 1/|r|
-	static Real InverseRadialPotentialFieldCart(const VectorN<Real, 3>& x) { return 1.0 / x.NormL2(); }
+	static Real InverseRadialPotentialFieldCart(const VectorN<Real, 3>& x) { return MML::Real(1.0) / x.NormL2(); }
 	/// @brief Cartesian inverse radial potential with constant Φ = C/|r|
-	static Real InverseRadialPotentialFieldCart(Real constant, const VectorN<Real, 3>& x) { return constant / x.NormL2(); }
+	static inline Real InverseRadialPotentialFieldCart(Real constant, const VectorN<Real, 3>& x) { return constant / x.NormL2(); }
 	/// @brief Spherical inverse radial potential Φ = 1/r
-	static Real InverseRadialPotentialFieldSpher(const VectorN<Real, 3>& x) { return 1.0 / x[0]; }
+	static Real InverseRadialPotentialFieldSpher(const VectorN<Real, 3>& x) { return MML::Real(1.0) / x[0]; }
 	/// @brief Spherical inverse radial potential with constant Φ = C/r
-	static Real InverseRadialPotentialFieldSpher(Real constant, const VectorN<Real, 3>& x) { return constant / x[0]; }
+	static inline Real InverseRadialPotentialFieldSpher(Real constant, const VectorN<Real, 3>& x) { return constant / x[0]; }
 	/// @brief Cylindrical inverse radial potential Φ = 1/√(r²+z²)
-	static Real InverseRadialPotentialFieldCyl(const VectorN<Real, 3>& x) { return 1.0 / sqrt(x[0] * x[0] + x[2] * x[2]); }
+	static inline Real InverseRadialPotentialFieldCyl(const VectorN<Real, 3>& x) { return MML::Real(1.0) / sqrt(x[0] * x[0] + x[2] * x[2]); }
 	/// @brief Cylindrical inverse radial potential with constant Φ = C/√(r²+z²)
-	static Real InverseRadialPotentialFieldCyl(Real constant, const VectorN<Real, 3>& x) { return constant / sqrt(x[0] * x[0] + x[2] * x[2]); }
+	static inline Real InverseRadialPotentialFieldCyl(Real constant, const VectorN<Real, 3>& x) { return constant / sqrt(x[0] * x[0] + x[2] * x[2]); }
 
 	/// @brief Force field functions (F = -∇Φ for inverse square law)
 	/// @details F(r) ∝ r/|r|³, used for gravity and Coulomb force
@@ -71,12 +71,12 @@ namespace MML::Fields
 	/// @note Returns VectorN<Real,3> for VectorFunction<3> interface compatibility
 	static VectorN<Real, 3> InverseRadialPotentialForceFieldCart(const VectorN<Real, 3>& x)
 	{
-		return (-1) * x / std::pow((x).NormL2(), 3);
+		return (-1) * x / POW3(x.NormL2());
 	}
 	/// @brief Cartesian force field with constant F = -C·r/|r|³
-	static VectorN<Real, 3> InverseRadialPotentialForceFieldCart(Real constant, const VectorN<Real, 3>& x)
+	static inline VectorN<Real, 3> InverseRadialPotentialForceFieldCart(Real constant, const VectorN<Real, 3>& x)
 	{
-		return -constant * x / std::pow((x).NormL2(), 3);
+		return -constant * x / POW3(x.NormL2());
 	}
 	/// @brief Spherical force field F = (-1/r²)e_r
 	static VectorN<Real, 3> InverseRadialPotentialForceFieldSph(const VectorN<Real, 3>& x)
@@ -84,7 +84,7 @@ namespace MML::Fields
 		return VectorN<Real, 3>{-1 / (x[0] * x[0]), 0.0, 0.0};
 	}
 	/// @brief Spherical force field with constant F = (-C/r²)e_r
-	static VectorN<Real, 3> InverseRadialPotentialForceFieldSph(Real constant, const VectorN<Real, 3>& x)
+	static inline VectorN<Real, 3> InverseRadialPotentialForceFieldSph(Real constant, const VectorN<Real, 3>& x)
 	{
 		return VectorN<Real, 3>{-constant / (x[0] * x[0]), 0.0, 0.0};
 	}
@@ -237,7 +237,7 @@ namespace MML::Fields
 		VectorN<Real, 3> operator()(const VectorN<Real, 3>& x) const
 		{
 			// Field direction flips across the plane (z=0)
-			Real sign = (x[2] >= 0.0) ? 1.0 : -1.0;
+			Real sign = (x[2] >= MML::Real(0.0)) ? MML::Real(1.0) : -MML::Real(1.0);
 			return sign * _constant * _dir;
 		}
 	};
@@ -461,7 +461,7 @@ namespace MML::Fields
 			Real dz = x[2] - _center[2];
 			Real r_sq = dx*dx + dy*dy + dz*dz;
 			Real sigma_sq = _sigma * _sigma;
-			return _amplitude * (1.0 - r_sq / sigma_sq) * std::exp(-r_sq / (2.0 * sigma_sq));
+			return _amplitude * (MML::Real(1.0) - r_sq / sigma_sq) * std::exp(-r_sq / (MML::Real(2.0) * sigma_sq));
 		}
 	};
 

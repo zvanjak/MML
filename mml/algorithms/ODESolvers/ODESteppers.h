@@ -18,6 +18,7 @@
 #include <mml/interfaces/IODESystem.h>
 #include "ODERKCoefficients.h"
 #include "ODEStepperInfrastructure.h"
+#include <utility>
 
 namespace MML {
 
@@ -33,11 +34,14 @@ namespace MML {
 
 		// === Error Information ===
 		Real errMax = 0.0;	   ///< Maximum error ratio (for diagnostics)
-		int funcEvals = 0;	   ///< Number of function evaluations used
+		int funcEvals = 0;	   ///< Executed RHS calls, excluding the supplied initial derivative
 
 		// === Diagnostics (for single-step analysis) ===
 		AlgorithmStatus status = AlgorithmStatus::Success;  ///< Step status
 		std::string error_message;  ///< Error description (usually empty for steps)
+		int attemptedSteps = 1;    ///< Actual trials, including internal retries; legacy custom results describe one trial
+
+		int rejectedSteps() const { return attemptedSteps - (accepted ? 1 : 0); }
 	};
 
 	//===================================================================================
@@ -51,8 +55,37 @@ namespace MML {
 	/// - Dense output (interpolation within accepted steps)
 	/// - FSAL (First Same As Last) optimization support
 	class IAdaptiveStepper {
+		template<typename> friend class ODEAdaptiveIntegrator;
+		int _functionEvaluationLimit = std::numeric_limits<int>::max();
+		int _stepAttemptLimit = std::numeric_limits<int>::max();
+	protected:
+		int _lastFunctionEvaluations = 0;
+		int _lastAttemptedSteps = 0;
+		int _lastRejectedSteps = 0;
+		ODEStepperDetail::CountingODESystem TrackEvaluations(const IODESystem& system) {
+			_lastFunctionEvaluations = _lastAttemptedSteps = _lastRejectedSteps = 0;
+			return ODEStepperDetail::CountingODESystem(system, _lastFunctionEvaluations, _functionEvaluationLimit);
+		}
+		void BeginAttempt() {
+			if (!CanRetry())
+				throw ResourceLimitError("Adaptive ODE step attempt counter exhausted");
+			++_lastAttemptedSteps;
+		}
+		bool CanRetry() const { return _lastAttemptedSteps < _stepAttemptLimit; }
+		void RejectAttempt() { ++_lastRejectedSteps; }
+		StepResult FinishStep(StepResult result) const {
+			result.funcEvals = _lastFunctionEvaluations;
+			result.attemptedSteps = _lastAttemptedSteps;
+			return result;
+		}
 	public:
 		virtual ~IAdaptiveStepper() = default;
+
+		/// RHS calls in the last doStep, including work before an exception.
+		int getLastFunctionEvaluations() const { return _lastFunctionEvaluations; }
+		/// Trials started and error-control rejections, including work before an exception.
+		int getLastAttemptedSteps() const { return _lastAttemptedSteps; }
+		int getLastRejectedSteps() const { return _lastRejectedSteps; }
 
 		/// @brief Attempt a step from current state
 		/// @param t Current time
@@ -128,6 +161,8 @@ namespace MML {
 		}
 
 		StepResult doStep(Real t, Vector<Real>& x, Vector<Real>& dxdt, Real htry, Real eps) override {
+			const auto system = TrackEvaluations(_sys);
+			ODEStepperDetail::ValidateStep(_n, t, x, dxdt, htry, eps);
 			StepResult result;
 			result.accepted = false;
 			result.funcEvals = 0;
@@ -135,22 +170,22 @@ namespace MML {
 			Real h = htry;
 			// Main step loop (retry with smaller h if rejected)
 			while (true) {
+				BeginAttempt();
 				// FSAL reuses the previous accepted step's final stage as this step's k1.
-				const Vector<Real>& initialDerivative = _haveFSAL ? _stages.back() : dxdt;
-				if (!_haveFSAL)
-					result.funcEvals++;
-				StageEvaluator::evaluate(_sys, t, x, h, initialDerivative, _stages, _workspace);
+				const bool reuseFSAL = _haveFSAL;
+				_haveFSAL = false;
+				const Vector<Real>& initialDerivative = reuseFSAL ? _stages.back() : dxdt;
+				StageEvaluator::evaluate(system, t, x, h, initialDerivative, _stages, _workspace);
 				StageEvaluator::combineSolution(x, h, _stages, _xNew);
 				StageEvaluator::combineError(h, _stages, _error);
-				result.funcEvals += DP::stages - 1;
 
 				// Error estimation
 				Real errMax = 0.0;
 				for (int i = 0; i < _n; i++) {
-					Real scale = std::abs(x[i]) + std::abs(h * _stages[0][i]) + Precision::DivisionSafetyThreshold;
-					errMax = std::max(errMax, std::abs(_error[i]) / scale);
+					const Real scale = ODEStepperDetail::RKErrorScale(x[i], _stages[0][i], h, _xNew[i]);
+					errMax = std::max(errMax, ODEStepperDetail::ErrorRatio(_error[i], scale));
 				}
-				errMax /= eps;
+				errMax = ODEStepperDetail::ErrorRatio(errMax, eps);
 				result.errMax = errMax;
 
 				if (errMax <= 1.0) {
@@ -159,22 +194,26 @@ namespace MML {
 					result.hDone = h;
 
 					_interpolator.setStep(t, h, x, _xNew, _stages);
+					result.hNext = _controller.acceptedStep(h, errMax);
 					x = _xNew;
 					dxdt = _stages.back();
 					_haveFSAL = true;
-					result.hNext = _controller.acceptedStep(h, errMax);
 					break;
 				}
 
-				h = _controller.rejectedStep(h, errMax);
+				RejectAttempt();
+				result.hDone = h;
+				result.hNext = _controller.rejectedStep(h, errMax);
 				_haveFSAL = false;
+				if (!CanRetry()) break;
+				h = result.hNext;
 
 				if (std::abs(h) < Constants::Eps) {
 					throw ODESolverError("Step size underflow in DormandPrince5_Stepper");
 				}
 			}
 
-			return result;
+			return FinishStep(std::move(result));
 		}
 
 		Vector<Real> interpolate(Real t) const override {
@@ -236,24 +275,26 @@ namespace MML {
 		}
 
 		StepResult doStep(Real t, Vector<Real>& x, Vector<Real>& dxdt, Real htry, Real eps) override {
+			const auto system = TrackEvaluations(_sys);
+			ODEStepperDetail::ValidateStep(_n, t, x, dxdt, htry, eps);
 			StepResult result;
 			result.accepted = false;
 
 			Real h = htry;
 
 			while (true) {
-				StageEvaluator::evaluate(_sys, t, x, h, dxdt, _stages, _workspace);
+				BeginAttempt();
+				StageEvaluator::evaluate(system, t, x, h, dxdt, _stages, _workspace);
 				StageEvaluator::combineSolution(x, h, _stages, _xNew);
 				StageEvaluator::combineError(h, _stages, _error);
-				result.funcEvals += CK::stages;
 
 				// Error estimate
 				Real errMax = 0.0;
 				for (int i = 0; i < _n; i++) {
-					Real scale = std::abs(x[i]) + std::abs(h * dxdt[i]) + Precision::DivisionSafetyThreshold;
-					errMax = std::max(errMax, std::abs(_error[i]) / scale);
+					const Real scale = ODEStepperDetail::RKErrorScale(x[i], dxdt[i], h, _xNew[i]);
+					errMax = std::max(errMax, ODEStepperDetail::ErrorRatio(_error[i], scale));
 				}
-				errMax /= eps;
+				errMax = ODEStepperDetail::ErrorRatio(errMax, eps);
 				result.errMax = errMax;
 
 				if (errMax <= 1.0) {
@@ -261,23 +302,26 @@ namespace MML {
 					result.hDone = h;
 
 					// Cash-Karp is not FSAL; evaluate the endpoint derivative for Hermite output.
-					_sys.derivs(t + h, _xNew, _dxNew);
-					result.funcEvals++;
+					ODEStepperDetail::EvaluateRHS(system, t + h, _xNew, _dxNew);
 					_interpolator.setStep(t, h, x, _xNew, _stages[0], _dxNew);
+					result.hNext = _controller.acceptedStep(h, errMax);
 					x = _xNew;
 					dxdt = _dxNew;
-					result.hNext = _controller.acceptedStep(h, errMax);
 
 					break;
 				}
 
-				h = _controller.rejectedStep(h, errMax);
+				RejectAttempt();
+				result.hDone = h;
+				result.hNext = _controller.rejectedStep(h, errMax);
+				if (!CanRetry()) break;
+				h = result.hNext;
 
 				if (std::abs(h) < Constants::Eps)
 					throw ODESolverError("Step size underflow in CashKarp_Stepper");
 			}
 
-			return result;
+			return FinishStep(std::move(result));
 		}
 
 		Vector<Real> interpolate(Real t) const override {
@@ -346,6 +390,8 @@ namespace MML {
 		}
 
 		StepResult doStep(Real t, Vector<Real>& x, Vector<Real>& dxdt, Real htry, Real eps) override {
+			const auto system = TrackEvaluations(_sys);
+			ODEStepperDetail::ValidateStep(_n, t, x, dxdt, htry, eps);
 			StepResult result;
 			result.accepted = false;
 			result.funcEvals = 0;
@@ -353,49 +399,55 @@ namespace MML {
 			Real h = htry;
 
 			while (true) {
-				StageEvaluator::evaluate(_sys, t, x, h, dxdt, _k, _workspace);
+				BeginAttempt();
+				StageEvaluator::evaluate(system, t, x, h, dxdt, _k, _workspace);
 				StageEvaluator::combineSolution(x, h, _k, _xNew);
-				_sys.derivs(t + h, _xNew, _k[12]);
-				result.funcEvals += DP8::stages;
+				ODEStepperDetail::EvaluateRHS(system, t + h, _xNew, _k[12]);
 
 				Real error5NormSquared = 0;
 				Real error3NormSquared = 0;
 				for (int i = 0; i < _n; i++) {
-					Real scale = std::abs(x[i]) + std::abs(h * _k[0][i]) + Precision::DivisionSafetyThreshold;
+					const Real scale = ODEStepperDetail::RKErrorScale(x[i], _k[0][i], h, _xNew[i]);
 					Real error5 = 0;
 					Real error3 = 0;
 					for (int stage = 0; stage <= DP8::stages; ++stage) {
 						error5 += DP8::error5Weight(stage) * _k[stage][i];
 						error3 += DP8::error3Weight(stage) * _k[stage][i];
 					}
-					const Real normalizedError5 = error5 / scale;
-					const Real normalizedError3 = error3 / scale;
+					const Real normalizedError5 = ODEStepperDetail::ErrorRatio(error5, scale);
+					const Real normalizedError3 = ODEStepperDetail::ErrorRatio(error3, scale);
 					error5NormSquared += normalizedError5 * normalizedError5;
 					error3NormSquared += normalizedError3 * normalizedError3;
 				}
 				const Real denominator = error5NormSquared + Real(0.01) * error3NormSquared;
+				ODEStepperDetail::RequireFinite(denominator * _n, "Non-finite DOP853 error norm");
 				const Real errMax = denominator == 0 ? 0 :
 					std::abs(h) * error5NormSquared / std::sqrt(denominator * _n) / eps;
+				ODEStepperDetail::RequireFinite(errMax, "Non-finite DOP853 normalized error");
 				result.errMax = errMax;
 
 				if (errMax <= 1.0) {
 					result.accepted = true;
 					result.hDone = h;
 
-					result.funcEvals += _interpolator.setStep(_sys, t, h, x, _xNew, _k, _workspace);
+					_interpolator.setStep(system, t, h, x, _xNew, _k, _workspace);
+					result.hNext = _controller.acceptedStep(h, errMax);
 					x = _xNew;
 					dxdt = _k[12];
-					result.hNext = _controller.acceptedStep(h, errMax);
 					break;
 				}
 
-				h = _controller.rejectedStep(h, errMax);
+				RejectAttempt();
+				result.hDone = h;
+				result.hNext = _controller.rejectedStep(h, errMax);
+				if (!CanRetry()) break;
+				h = result.hNext;
 
 				if (std::abs(h) < Constants::Eps)
 					throw ODESolverError("Step size underflow in DormandPrince8_Stepper");
 			}
 
-			return result;
+			return FinishStep(std::move(result));
 		}
 
 		Vector<Real> interpolate(Real t) const override {
@@ -438,7 +490,7 @@ namespace MML {
 		int _n; ///< System dimension
 
 		// Substep sequence (even numbers for modified midpoint)
-		static constexpr int KMAXX = 8; // Maximum columns in extrapolation
+		static constexpr int KMAXX = 8; // Highest zero-based extrapolation column
 		int _nseq[KMAXX + 1] = {2, 4, 6, 8, 10, 12, 14, 16, 18};
 
 		// Working arrays
@@ -456,16 +508,17 @@ namespace MML {
 
 		/// @brief Modified midpoint method (Gragg's method)
 		/// Computes y(x+H) using nstep substeps of size h = H/nstep
-		void mmid(const Vector<Real>& y, const Vector<Real>& dydx, Real xs, Real htot, int nstep, Vector<Real>& yout) const {
+		void mmid(const IODESystem& system, const Vector<Real>& y, const Vector<Real>& dydx,
+			Real xs, Real htot, int nstep, Vector<Real>& yout) const {
 			Real h = htot / nstep;
-			Real h2 = 2.0 * h;
+			Real h2 = MML::Real(2.0) * h;
 
 			Vector<Real> ym = y;
 			Vector<Real> yn = y + dydx * h; // First step
 
 			Real x = xs + h;
 			Vector<Real> dyn(_n);
-			_sys.derivs(x, yn, dyn);
+			ODEStepperDetail::EvaluateRHS(system, x, yn, dyn);
 
 			// General step
 			for (int n = 1; n < nstep; n++) {
@@ -473,11 +526,12 @@ namespace MML {
 				ym = yn;
 				yn = swap;
 				x += h;
-				_sys.derivs(x, yn, dyn);
+				ODEStepperDetail::EvaluateRHS(system, x, yn, dyn);
 			}
 
 			// Last step - smoothing
 			yout = (ym + yn + dyn * h) * 0.5;
+			ODEStepperDetail::RequireVector(yout, _n, "Non-finite modified-midpoint candidate");
 		}
 
 		/// @brief Polynomial extrapolation using Neville's algorithm
@@ -497,11 +551,13 @@ namespace MML {
 					_d[0][j] = yest[j];
 				}
 			} else {
-				// Use Neville's algorithm
+				// Numerical Recipes pzextr: initialize each column, then accumulate every Neville correction.
+				yz = yest;
+				dy = yest;
 				Vector<Real> c = yest;
 
 				for (int k = 0; k < iest; k++) {
-					Real delta = 1.0 / (_xCoords[iest - k - 1] - xest);
+					Real delta = MML::Real(1.0) / (_xCoords[iest - k - 1] - xest);
 					Real f1 = xest * delta;
 					Real f2 = _xCoords[iest - k - 1] * delta;
 
@@ -511,11 +567,11 @@ namespace MML {
 						delta = c[j] - q;
 						dy[j] = f1 * delta;
 						c[j] = f2 * delta;
+						yz[j] += dy[j];
 					}
 				}
 
 				for (int j = 0; j < _n; j++) {
-					yz[j] += dy[j];
 					_d[iest][j] = dy[j];
 				}
 			}
@@ -539,9 +595,11 @@ namespace MML {
 		}
 
 		StepResult doStep(Real t, Vector<Real>& x, Vector<Real>& dxdt, Real htry, Real eps) override {
+			const auto system = TrackEvaluations(_sys);
+			ODEStepperDetail::ValidateStep(_n, t, x, dxdt, htry, eps);
+			BeginAttempt();
 			StepResult result;
 			result.accepted = false;
-			result.funcEvals = 1; // We already have dxdt
 
 			_xOld = x;
 			_dydxOld = dxdt; // Store initial derivative for Hermite interpolation
@@ -553,21 +611,22 @@ namespace MML {
 			// Try step with current h, building up extrapolation tableau
 			for (int k = 0; k <= KMAXX; k++) {
 				// Modified midpoint with _nseq[k] substeps
-				mmid(ysav, dxdt, t, h, _nseq[k], yseq);
-				result.funcEvals += _nseq[k];
+				mmid(system, ysav, dxdt, t, h, _nseq[k], yseq);
 
 				// The "x-coordinate" for extrapolation is (h/n)^2
 				Real xest = (h / _nseq[k]) * (h / _nseq[k]);
 
 				// Extrapolate
 				pzextr(k, xest, yseq, yest, yerr);
+				ODEStepperDetail::RequireVector(yest, _n, "Non-finite Bulirsch-Stoer candidate");
+				ODEStepperDetail::RequireVector(yerr, _n, "Non-finite Bulirsch-Stoer error estimate");
 
 				if (k > 0) { // Need at least 2 points to estimate error
 					// Compute scaled error
 					Real errMax = 0.0;
 					for (int i = 0; i < _n; ++i) {
 						Real scale = eps * (std::abs(ysav[i]) + std::abs(yest[i]) + Precision::DivisionSafetyThreshold);
-						Real errRatio = std::abs(yerr[i]) / scale;
+						Real errRatio = ODEStepperDetail::ErrorRatio(yerr[i], scale);
 						errMax = std::max<Real>(errMax, errRatio);
 					}
 
@@ -579,16 +638,15 @@ namespace MML {
 						_xNew = yest;
 						_err = yerr;
 
-						_sys.derivs(t + h, yest, dxdt);
-						_dydxFinal = dxdt;
-						result.funcEvals++;
+						ODEStepperDetail::EvaluateRHS(system, t + h, yest, _dydxFinal);
 						result.hDone = h;
 						_interpolator.setStep(t, h, x, yest, _dydxOld, _dydxFinal);
-						x = yest;
 						// Extrapolation order grows with the converged tableau column.
 						result.hNext = _controller.acceptedStep(h, errMax, Real(1.0) / (2 * k + 1));
+						x = yest;
+						dxdt = _dydxFinal;
 
-						return result;
+						return FinishStep(std::move(result));
 					}
 				}
 			}
@@ -597,9 +655,10 @@ namespace MML {
 			result.accepted = false;
 			result.hDone = h;
 			result.errMax = Real(999.0);
+			RejectAttempt();
 			result.hNext = _controller.rejectedStep(h, result.errMax, Real(1.0) / (2 * KMAXX + 1));
 
-			return result;
+			return FinishStep(std::move(result));
 		}
 
 		Vector<Real> interpolate(Real t) const override {
@@ -614,7 +673,7 @@ namespace MML {
 
 		int stageCount() const override { return KMAXX; }
 
-		int order() const override { return 2 * KMAXX; }
+		int order() const override { return 2 * (KMAXX + 1); }
 
 		void resetFSAL() override {
 			_controller.reset();
@@ -643,7 +702,7 @@ namespace MML {
 		int _n; ///< System dimension
 
 		// Bulirsch's original step sequence (more aggressive growth)
-		static constexpr int KMAXX = 8; // Maximum columns in extrapolation
+		static constexpr int KMAXX = 8; // Highest zero-based extrapolation column
 		int _nseq[KMAXX + 1] = {2, 4, 6, 8, 12, 16, 24, 32, 48};
 
 		// Working arrays
@@ -655,22 +714,23 @@ namespace MML {
 		StepSizeController _controller;
 		HermiteInterpolator _interpolator;
 
-		// Extrapolation tableau for rational extrapolation
-		mutable std::vector<Vector<Real>> _d; // Differences for rational extrapolation
+		// Extrapolation tableau for the alternate polynomial sequence
+		mutable std::vector<Vector<Real>> _d; // Differences for Neville
 		mutable std::vector<Real> _xCoords;	  // x-coordinates for extrapolation
 
 		/// @brief Modified midpoint method (Gragg's method)
 		/// Computes y(x+H) using nstep substeps of size h = H/nstep
-		void mmid(const Vector<Real>& y, const Vector<Real>& dydx, Real xs, Real htot, int nstep, Vector<Real>& yout) const {
+		void mmid(const IODESystem& system, const Vector<Real>& y, const Vector<Real>& dydx,
+			Real xs, Real htot, int nstep, Vector<Real>& yout) const {
 			Real h = htot / nstep;
-			Real h2 = 2.0 * h;
+			Real h2 = MML::Real(2.0) * h;
 
 			Vector<Real> ym = y;
 			Vector<Real> yn = y + dydx * h; // First step
 
 			Real x = xs + h;
 			Vector<Real> dyn(_n);
-			_sys.derivs(x, yn, dyn);
+			ODEStepperDetail::EvaluateRHS(system, x, yn, dyn);
 
 			// General step
 			for (int n = 1; n < nstep; n++) {
@@ -678,11 +738,12 @@ namespace MML {
 				ym = yn;
 				yn = swap;
 				x += h;
-				_sys.derivs(x, yn, dyn);
+				ODEStepperDetail::EvaluateRHS(system, x, yn, dyn);
 			}
 
 			// Last step - smoothing
 			yout = (ym + yn + dyn * h) * 0.5;
+			ODEStepperDetail::RequireVector(yout, _n, "Non-finite modified-midpoint candidate");
 		}
 
 		/// @brief Polynomial extrapolation (same as pzextr but for rational stepper)
@@ -705,10 +766,12 @@ namespace MML {
 
 			// Use Neville's polynomial extrapolation (same as pzextr)
 			// This is more stable than rational extrapolation
+			yz = yest;
+			dy = yest;
 			Vector<Real> c = yest;
 
 			for (int k = 0; k < iest; k++) {
-				Real delta = 1.0 / (_xCoords[iest - k - 1] - xest);
+				Real delta = MML::Real(1.0) / (_xCoords[iest - k - 1] - xest);
 				Real f1 = xest * delta;
 				Real f2 = _xCoords[iest - k - 1] * delta;
 
@@ -718,11 +781,11 @@ namespace MML {
 					Real diff = c[j] - q;
 					dy[j] = f1 * diff;
 					c[j] = f2 * diff;
+					yz[j] += dy[j];
 				}
 			}
 
 			for (int j = 0; j < _n; j++) {
-				yz[j] += dy[j];
 				_d[iest][j] = dy[j];
 			}
 		}
@@ -745,9 +808,11 @@ namespace MML {
 		}
 
 		StepResult doStep(Real t, Vector<Real>& x, Vector<Real>& dxdt, Real htry, Real eps) override {
+			const auto system = TrackEvaluations(_sys);
+			ODEStepperDetail::ValidateStep(_n, t, x, dxdt, htry, eps);
+			BeginAttempt();
 			StepResult result;
 			result.accepted = false;
-			result.funcEvals = 1; // We already have dxdt
 
 			_xOld = x;
 			_dydxOld = dxdt; // Store initial derivative for Hermite interpolation
@@ -759,21 +824,22 @@ namespace MML {
 			// Try step with current h, building up extrapolation tableau
 			for (int k = 0; k <= KMAXX; k++) {
 				// Modified midpoint with _nseq[k] substeps
-				mmid(ysav, dxdt, t, h, _nseq[k], yseq);
-				result.funcEvals += _nseq[k];
+				mmid(system, ysav, dxdt, t, h, _nseq[k], yseq);
 
 				// The "x-coordinate" for extrapolation is (h/n)^2
 				Real xest = (h / _nseq[k]) * (h / _nseq[k]);
 
-				// Rational extrapolation
+				// Polynomial extrapolation with the alternate substep sequence
 				rzextr(k, xest, yseq, yest, yerr);
+				ODEStepperDetail::RequireVector(yest, _n, "Non-finite Bulirsch-Stoer candidate");
+				ODEStepperDetail::RequireVector(yerr, _n, "Non-finite Bulirsch-Stoer error estimate");
 
 				if (k > 0) { // Need at least 2 points to estimate error
 					// Compute scaled error
 					Real errMax = 0.0;
 					for (int i = 0; i < _n; ++i) {
 						Real scale = eps * (std::abs(ysav[i]) + std::abs(yest[i]) + Precision::DivisionSafetyThreshold);
-						Real errRatio = std::abs(yerr[i]) / scale;
+						Real errRatio = ODEStepperDetail::ErrorRatio(yerr[i], scale);
 						errMax = std::max<Real>(errMax, errRatio);
 					}
 
@@ -785,16 +851,15 @@ namespace MML {
 						_xNew = yest;
 						_err = yerr;
 
-						_sys.derivs(t + h, yest, dxdt);
-						_dydxFinal = dxdt;
-						result.funcEvals++;
+						ODEStepperDetail::EvaluateRHS(system, t + h, yest, _dydxFinal);
 						result.hDone = h;
 						_interpolator.setStep(t, h, x, yest, _dydxOld, _dydxFinal);
-						x = yest;
 						// Extrapolation order grows with the converged tableau column.
 						result.hNext = _controller.acceptedStep(h, errMax, Real(1.0) / (2 * k + 1));
+						x = yest;
+						dxdt = _dydxFinal;
 
-						return result;
+						return FinishStep(std::move(result));
 					}
 				}
 			}
@@ -803,9 +868,10 @@ namespace MML {
 			result.accepted = false;
 			result.hDone = h;
 			result.errMax = Real(999.0);
+			RejectAttempt();
 			result.hNext = _controller.rejectedStep(h, result.errMax, Real(1.0) / (2 * KMAXX + 1));
 
-			return result;
+			return FinishStep(std::move(result));
 		}
 
 		Vector<Real> interpolate(Real t) const override {
@@ -820,7 +886,7 @@ namespace MML {
 
 		int stageCount() const override { return KMAXX; }
 
-		int order() const override { return 2 * KMAXX; }
+		int order() const override { return 2 * (KMAXX + 1); }
 
 		void resetFSAL() override {
 			_controller.reset();

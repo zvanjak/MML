@@ -38,8 +38,8 @@ namespace MML
 		// Helper function: numerically stable sqrt(a^2 + b^2)
 		Type pythag(const Type a, const Type b) const {
 			Type absa = std::abs(a), absb = std::abs(b);
-			return (absa > absb ? absa * std::sqrt(1.0 + (absb / absa) * (absb / absa)) :
-				(absb == 0.0 ? 0.0 : absb * std::sqrt(1.0 + (absa / absb) * (absa / absb))));
+			return (absa > absb ? absa * std::sqrt(MML::Real(1.0) + (absb / absa) * (absb / absa)) :
+				(absb == MML::Real(0.0) ? MML::Real(0.0) : absb * std::sqrt(MML::Real(1.0) + (absa / absb) * (absa / absb))));
 		}
 
 		// Core SVD decomposition using Householder reduction and QR iteration
@@ -70,16 +70,34 @@ namespace MML
 				throw MatrixDimensionError("SVDecompositionSolver::ctor - matrix must be non-empty", m, n, -1, -1);
 			
 			eps = std::numeric_limits<Type>::epsilon();
+			// The bidiagonal QR shift contains products of singular values. Work at
+			// unit input scale so representable large/small matrices do not square out.
+			Type inputScale = 0;
+			for (int row = 0; row < m; ++row)
+				for (int col = 0; col < n; ++col) {
+					if (!std::isfinite(u(row, col)))
+						throw MatrixNumericalError("SVDecompositionSolver: non-finite input matrix");
+					inputScale = std::max(inputScale, std::abs(u(row, col)));
+				}
+			if (inputScale > 0)
+				for (int row = 0; row < m; ++row)
+					for (int col = 0; col < n; ++col)
+						u(row, col) /= inputScale;
 			decompose();
 			reorder();
-			tsh = 0.5 * std::sqrt(m + n + 1.0) * w[0] * eps;
+			for (int index = 0; index < n; ++index) {
+				w[index] *= inputScale;
+				if (!std::isfinite(w[index]))
+					throw MatrixNumericalError("SVDecompositionSolver: singular value is not representable");
+			}
+			tsh = (MML::Real(0.5) * std::sqrt(m + n + MML::Real(1.0)) * eps) * w[0];
 		}
 
 		/// @brief Compute inverse condition number (ratio of smallest to largest singular value)
 		/// @return σₘᵢₙ/σₘₐₓ (0 if any singular value ≤0)
 		/// @note Measures numerical stability - smaller values indicate ill-conditioning
 		Type inv_condition() {
-			return (w[0] <= 0. || w[n - 1] <= 0.) ? 0. : w[n - 1] / w[0];
+			return (w[0] <= MML::Real(0.) || w[n - 1] <= MML::Real(0.)) ? MML::Real(0.) : w[n - 1] / w[0];
 		}
 
 		/// @brief Solve Ax=b using pseudoinverse from SVD (handles rank deficiency)
@@ -99,10 +117,6 @@ namespace MML
 			if (b.size() != m)
 				throw VectorDimensionError("SVDecompositionSolver::Solve - vector b must have size m (number of rows)", m, b.size());
 			
-			// Resize output vector if needed
-			if (x.size() != n)
-				x.resize(n);
-			
 			Type tshEff = EffectiveThreshold(thresh);
 			
 			Vector<Type> tmp(n);
@@ -118,7 +132,11 @@ namespace MML
 				}
 				tmp[j] = s;
 			}
-			
+
+			// All RHS reads precede resizing/writing x, including a tall in-place Solve(b, b).
+			if (x.size() != n)
+				x.resize(n);
+
 			// Calculate x = V · tmp
 			for (int j = 0; j < n; j++)
 			{
@@ -320,7 +338,7 @@ namespace MML
 			for (j = l; j < n; j++) u[i][j] = 0.0;
 			if (g != 0.0)
 			{
-				g = 1.0 / g;
+				g = MML::Real(1.0) / g;
 				for (j = l; j < n; j++)
 				{
 					for (s = 0.0, k = l; k < m; k++) s += u[k][i] * u[k][j];
@@ -363,7 +381,7 @@ namespace MML
 						g = w[i];
 						h = pythag(f, g);
 						w[i] = h;
-						h = 1.0 / h;
+						h = MML::Real(1.0) / h;
 						c = g * h;
 						s = -f * h;
 						for (j = 0; j < m; j++)
@@ -394,7 +412,7 @@ namespace MML
 				y = w[nm];
 				g = rv1[nm];
 				h = rv1[k];
-				f = ((y - z) * (y + z) + (g - h) * (g + h)) / (2.0 * h * y);
+				f = ((y - z) * (y + z) + (g - h) * (g + h)) / (MML::Real(2.0) * h * y);
 				g = pythag(f, 1.0);
 				f = ((x - z) * (x + z) + h * ((y / (f + std::copysign(g, f))) - h)) / x;
 				c = s = 1.0;
@@ -425,7 +443,7 @@ namespace MML
 					w[j] = z;
 					if (z)
 					{
-						z = 1.0 / z;
+						z = MML::Real(1.0) / z;
 						c = f * z;
 						s = h * z;
 					}

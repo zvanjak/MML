@@ -84,7 +84,7 @@ namespace MML {
 		void constructSurfaces() {
 			_surfaces.clear();
 			Real dTheta = Constants::PI / _numLatitude;
-			Real dPhi = 2.0 * Constants::PI / _numLongitude;
+			Real dPhi = MML::Real(2.0) * Constants::PI / _numLongitude;
 
 			for (int i = 0; i < _numLatitude; ++i) {
 				Real theta1 = i * dTheta;
@@ -105,11 +105,11 @@ namespace MML {
 						_surfaces.emplace_back(p1, p4, p3);
 					} else if (i == _numLatitude - 1) {
 						// Bottom pole: single triangle
-						_surfaces.emplace_back(p1, p2, p3);
+						_surfaces.emplace_back(p1, p3, p2);
 					} else {
 						// Regular patch: two triangles
-						_surfaces.emplace_back(p1, p2, p3);
-						_surfaces.emplace_back(p1, p3, p4);
+						_surfaces.emplace_back(p1, p3, p2);
+						_surfaces.emplace_back(p1, p4, p3);
 					}
 				}
 			}
@@ -144,11 +144,11 @@ namespace MML {
 
 		/// /** @brief Volume = (4/3)πR³ */
 
-		Real Volume() const override { return (4.0 / 3.0) * Constants::PI * _radius * _radius * _radius; }
+		Real Volume() const override { return (MML::Real(4.0) / MML::Real(3.0)) * Constants::PI * _radius * _radius * _radius; }
 
 		/// /** @brief Surface area = 4πR² */
 
-		Real SurfaceArea() const override { return 4.0 * Constants::PI * _radius * _radius; }
+		Real SurfaceArea() const override { return MML::Real(4.0) * Constants::PI * _radius * _radius; }
 
 		Pnt3Cart getCenter() const override { return _center; }
 
@@ -208,22 +208,7 @@ namespace MML {
 		/// @param h Height (apex at z = h)
 
 		Pyramid3D(Real a, Real h)
-			: _a(a)
-			, _h(h)
-			, _center(0, 0, 0) {
-			Pnt3Cart pnt1(a / 2, -a / 2, -a / 2);
-			Pnt3Cart pnt2(a / 2, a / 2, -a / 2);
-			Pnt3Cart pnt3(-a / 2, a / 2, -a / 2);
-			Pnt3Cart pnt4(-a / 2, -a / 2, -a / 2);
-			Pnt3Cart pnt5(0, 0, h); // apex
-
-			_surfaces.push_back(TriangleSurface3D(pnt1, pnt4, pnt3)); // base triangle 1
-			_surfaces.push_back(TriangleSurface3D(pnt1, pnt3, pnt2)); // base triangle 2
-			_surfaces.push_back(TriangleSurface3D(pnt5, pnt1, pnt2)); // front face
-			_surfaces.push_back(TriangleSurface3D(pnt5, pnt2, pnt3)); // right face
-			_surfaces.push_back(TriangleSurface3D(pnt5, pnt3, pnt4)); // back face
-			_surfaces.push_back(TriangleSurface3D(pnt5, pnt4, pnt1)); // left face
-		}
+			: Pyramid3D(a, h, Vec3Cart(0, 0, 0)) {}
 
 		/// @brief Construct pyramid with base centered at specified point.
 		/// @param a Base side length
@@ -231,8 +216,21 @@ namespace MML {
 		/// @param center Base center point
 
 		Pyramid3D(Real a, Real h, const Vec3Cart& center)
-			: Pyramid3D(a, h) {
-			_center = center;
+			: _a(a)
+			, _h(h)
+			, _center(center) {
+			const Pnt3Cart pnt1(center.X() + a / 2, center.Y() - a / 2, center.Z());
+			const Pnt3Cart pnt2(center.X() + a / 2, center.Y() + a / 2, center.Z());
+			const Pnt3Cart pnt3(center.X() - a / 2, center.Y() + a / 2, center.Z());
+			const Pnt3Cart pnt4(center.X() - a / 2, center.Y() - a / 2, center.Z());
+			const Pnt3Cart pnt5(center.X(), center.Y(), center.Z() + h);
+
+			_surfaces.push_back(TriangleSurface3D(pnt1, pnt4, pnt3));
+			_surfaces.push_back(TriangleSurface3D(pnt1, pnt3, pnt2));
+			_surfaces.push_back(TriangleSurface3D(pnt5, pnt1, pnt2));
+			_surfaces.push_back(TriangleSurface3D(pnt5, pnt2, pnt3));
+			_surfaces.push_back(TriangleSurface3D(pnt5, pnt3, pnt4));
+			_surfaces.push_back(TriangleSurface3D(pnt5, pnt4, pnt1));
 		}
 		/// @}
 
@@ -250,7 +248,7 @@ namespace MML {
 				return false;
 
 			// Cross-section shrinks linearly from base to apex
-			Real half_side = (_a / 2.0) * (1.0 - z / _h);
+			Real half_side = (_a / MML::Real(2.0)) * (MML::Real(1.0) - z / _h);
 
 			return (std::abs(x) <= half_side && std::abs(y) <= half_side);
 		}
@@ -261,21 +259,21 @@ namespace MML {
 
 		/// /** @brief Volume = (1/3)a²h */
 
-		Real Volume() const override { return (_a * _a * _h) / 3.0; }
+		Real Volume() const override { return (_a * _a * _h) / MML::Real(3.0); }
 
 		/// /** @brief Surface area = a² + 2as where s = √(h² + (a/2)²) */
 
 		Real SurfaceArea() const override {
-			Real slant_height = std::sqrt(_h * _h + (_a / 2.0) * (_a / 2.0));
-			return _a * _a + 2.0 * _a * slant_height;
+			Real slant_height = std::sqrt(_h * _h + (_a / MML::Real(2.0)) * (_a / MML::Real(2.0)));
+			return _a * _a + MML::Real(2.0) * _a * slant_height;
 		}
 
 		/// /** @brief Centroid at 1/4 height from base. */
 
-		Pnt3Cart getCenter() const override { return Pnt3Cart(_center.X(), _center.Y(), _center.Z() + _h / 4.0); }
+		Pnt3Cart getCenter() const override { return Pnt3Cart(_center.X(), _center.Y(), _center.Z() + _h / MML::Real(4.0)); }
 
 		Box3D getBoundingBox() const override {
-			Real half_a = _a / 2.0;
+			Real half_a = _a / MML::Real(2.0);
 			Pnt3Cart min(_center.X() - half_a, _center.Y() - half_a, _center.Z());
 			Pnt3Cart max(_center.X() + half_a, _center.Y() + half_a, _center.Z() + _h);
 			return Box3D(min, max);
@@ -283,13 +281,13 @@ namespace MML {
 
 		BoundingSphere3D getBoundingSphere() const override {
 			Pnt3Cart geomCenter = getCenter();
-			Real half_a = _a / 2.0;
+			Real half_a = _a / MML::Real(2.0);
 
 			// Distance from centroid to base corner
-			Real distToBaseCorner = std::sqrt(half_a * half_a + half_a * half_a + (_h / 4.0) * (_h / 4.0));
+			Real distToBaseCorner = std::sqrt(half_a * half_a + half_a * half_a + (_h / MML::Real(4.0)) * (_h / MML::Real(4.0)));
 
 			// Distance from centroid to apex (dz = 3h/4)
-			Real distToApex = (3.0 * _h) / 4.0;
+			Real distToApex = (MML::Real(3.0) * _h) / MML::Real(4.0);
 
 			Real radius = std::max(distToBaseCorner, distToApex);
 			return BoundingSphere3D(geomCenter, radius);
@@ -322,28 +320,28 @@ namespace MML {
 		/// @}
 	};
 
-	/// @brief Equilateral pyramid (height = a/√3).
-	/// Special case of Pyramid3D with all edges equal length.
+	/// @brief Equilateral square-based pyramid (height = a/√2).
+	/// Special case of Pyramid3D with all eight edges equal length.
 
 	class PyramidEquilateral3D : public Pyramid3D {
 	public:
 		/// @brief Construct equilateral pyramid centered at origin.
-		/// @param a Base side length (height = a/√3)
+		/// @param a Base side length (height = a/√2)
 
 		PyramidEquilateral3D(Real a)
-			: Pyramid3D(a, a / sqrt(3)) {}
+			: Pyramid3D(a, a / sqrt(Real(2))) {}
 
 		/// @brief Construct equilateral pyramid centered at specified point.
 		/// @param a Base side length
 		/// @param center Base center point
 
 		PyramidEquilateral3D(Real a, const Vec3Cart& center)
-			: Pyramid3D(a, a / sqrt(3), center) {}
+			: Pyramid3D(a, a / sqrt(Real(2)), center) {}
 
 		std::string to_string() const override {
 			std::ostringstream oss;
 			Vec3Cart baseCenter = getBaseCenter();
-			oss << "PyramidEquilateral3D (Equilateral triangular base): Center=(" << baseCenter.X() << ", " << baseCenter.Y() << ", "
+			oss << "PyramidEquilateral3D (Square base, all edges equal): Center=(" << baseCenter.X() << ", " << baseCenter.Y() << ", "
 				<< baseCenter.Z() << ")"
 				<< ", BaseSize=" << getBaseSize() << ", Height=" << getHeight() << ", Volume=" << Volume()
 				<< ", SurfaceArea=" << SurfaceArea();

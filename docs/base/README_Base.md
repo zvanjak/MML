@@ -499,7 +499,7 @@ bool inside = PointInBox(point, box);
 | `Torus3D` | Torus with major radius R, minor radius r | V = 2π²Rr², SA = 4π²Rr |
 | `Pyramid3D` | Square-base pyramid | V = (1/3)a²h |
 | `CubeWithTriangles3D` | Triangulated cube (12 triangles) | Same as Cube3D |
-| `PyramidEquilateral3D` | Regular tetrahedron (equilateral) | h = a/√3 constraint |
+| `PyramidEquilateral3D` | Square-base pyramid with all eight edges equal | h = a/√2 |
 
 #### IBody Interface
 
@@ -1272,6 +1272,17 @@ Random::UniformVecDirection3(vx, vy, vz, 1.0);
 
 **Purpose**: Approximations of Dirac delta function for numerical work.
 
+All four constructors require positive `int` sharpness; nonpositive values throw
+`ArgumentError`. `DiracStep` includes both support endpoints (`|x| <= 1/(2N)`).
+Its half-width and the `DiracSqr` squared sharpness are computed in `Real`, not
+`int`, so valid large values such as 50,000 and `INT_MAX` do not cause signed
+integer overflow. This is an integer-arithmetic guarantee, not a promise of
+uniform relative accuracy for every floating-point tail. The Gaussian and sinc
+kernels retain their existing behavior.
+
+The maximum-sharpness example in [Standard_functions.md](Standard_functions.md#exact-integer-boundaries)
+is checked by `MML_DocsApp --integer-boundaries`.
+
 ```cpp
 // Base class
 class DiracFunction : public IRealFunction {
@@ -1283,7 +1294,7 @@ public:
 
 // Approximations:
 class DiracStep : public DiracFunction {  // Rectangular pulse
-    // δ(x) ≈ N for |x| < 1/(2N), 0 otherwise
+    // δ(x) ≈ N for |x| <= 1/(2N), 0 otherwise
 };
 
 class DiracExp : public DiracFunction {   // Gaussian approximation

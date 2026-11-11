@@ -53,6 +53,13 @@ The exponential uses a series coefficient near zero to avoid division by a tiny 
 The logarithm uses a canonical quaternion hemisphere and `atan2`, remaining stable for
 small rotations and near $\pi$.
 
+Canonicalization keeps the quaternion scalar component nonnegative. Only an
+exactly zero scalar component uses a lexicographic vector sign tie-break;
+small positive scalar values are not ties. Recanonicalizing through identity
+composition therefore does not flip a near-half-turn quaternion's sign.
+Principal logarithms have angle in $[0,\pi]$, up to floating-point roundoff,
+and geodesic distances use the shortest rotation.
+
 Matrix construction has deliberately separate semantics:
 
 - `SO3::FromMatrix` is strict and rejects matrices that are not orthogonal with
@@ -89,6 +96,16 @@ $$
 `FromHomogeneousMatrix` strictly validates the bottom row and rotation block. It does
 not silently project malformed rotations; repair a rotation explicitly with
 `SO3::Project` before constructing an `SE3` when numerical drift is expected.
+
+Strict matrix construction requires **every** entry to be finite, including
+translation and the homogeneous bottom row; nonfinite entries throw `DomainError`.
+`SO3::IsRotationMatrix` returns false for nonfinite matrix entries, and
+`SO3::FromMatrix` rejects them with `DomainError`.
+The SO3 rotation-matrix checks and both homogeneous-matrix constructors require
+finite, nonnegative tolerances; invalid tolerances throw `NumericInputError`.
+Zero remains supported for exact comparisons. Positive tolerances retain their
+existing bottom-row and rotation-block checks; malformed input is not silently
+projected or repaired.
 
 Frame-aware overloads map `Point<Real,N,FromFrame>` to
 `Point<Real,N,ToFrame>` and `TangentVector<N,FromFrame>` to

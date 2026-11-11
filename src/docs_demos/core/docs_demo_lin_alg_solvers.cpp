@@ -4,6 +4,7 @@
 #include <mml/MMLBase.h>
 
 #include <mml/core/LinAlgEqSolvers.h>
+#include <mml/core/SparseSolvers/IterativeSolvers.h>
 
 #endif
 
@@ -439,9 +440,79 @@ void Docs_Demo_LinAlgSolvers_Comparison()
 	std::cout << "Differences appear for ill-conditioned or singular matrices.\n";
 }
 
+void Docs_Demo_DenseIterativeContracts()
+{
+	Matrix<Real> A(2, 2, {4, 1, 1, 3});
+	Vector<Real> b{1, 2};
+	IterativeSolverConfig config(Precision::IterativeSolverTolerance, 0);
+	auto limited = JacobiSolver::Solve(A, b, config);
+	if (limited.status != AlgorithmStatus::MaxIterationsExceeded || limited.converged ||
+		limited.iterations != 0 || limited.initial_residual != 1 || limited.residual != 1)
+		throw NumericalMethodError("Dense iteration zero-budget documentation contract failed");
+
+	Vector<Real> exact{1, 2};
+	Vector<Real> rhs{6, 7};
+	auto checked = GaussSeidelSolver::Solve(A, rhs, config, exact);
+	if (checked.status != AlgorithmStatus::Success || !checked.converged || checked.iterations != 0 ||
+		checked.initial_residual != 0 || checked.residual != 0)
+		throw NumericalMethodError("Dense iteration initial-guess documentation contract failed");
+
+	Matrix<Real> spd(3, 3, {1, Real(.9), Real(.9), Real(.9), 1, Real(.9), Real(.9), Real(.9), 1});
+	auto divergent = JacobiSolver::Solve(spd, Vector<Real>{1, 1, 1}, {}, Precision::IterativeSolverTolerance, 5);
+	if (divergent.converged || divergent.status != AlgorithmStatus::MaxIterationsExceeded ||
+		divergent.iterations != 5 || divergent.residual != 1)
+		throw NumericalMethodError("Dense Jacobi SPD counterexample documentation contract failed");
+	auto convergent = SORSolver::Solve(A, b, IterativeSolverConfig::SOR(Real(1.25)));
+	if (!convergent.converged || convergent.status != AlgorithmStatus::Success ||
+		convergent.residual >= Precision::IterativeSolverTolerance)
+		throw NumericalMethodError("Dense SOR documentation convergence check failed");
+	std::cout << "Dense iteration budgets, residuals, status and SPD counterexample passed\n";
+}
+
 ///////////////////////////////////////////////////////////////////////////////////////////
 ///                       MASTER DEMO FUNCTION                                         ///
 ///////////////////////////////////////////////////////////////////////////////////////////
+
+void Docs_Demo_SolverBoundaryContracts()
+{
+	using namespace MML::SparseSolvers;
+	SparseMatrix::SparseMatrixCSR<Real> matrix(
+		2, 2, {4, 1, 1, 3}, {0, 1, 0, 1}, {0, 2, 4});
+	BlockJacobiPreconditioner<Real> block(2);
+	block.setup(matrix);
+	Vector<Real> residual{1, 3};
+	block.apply(residual, residual);
+	if (std::abs(residual[0]) > Precision::DefaultToleranceStrict ||
+		std::abs(residual[1] - Real(1)) > Precision::DefaultToleranceStrict)
+		throw InvalidStateError("In-place block-Jacobi application changed the RHS mid-product");
+
+	ConjugateGradient<Real> solver;
+	Vector<Real> rhs{1, 2};
+	auto result = solver.solve(matrix, rhs);
+	if (!result.converged)
+		throw ConvergenceError(result.error_message, result.iterations_used, result.residualNorm);
+	const Vector<Real>& solution = result.solution;
+	if (norm2(matrix * solution - rhs) > Precision::DefaultToleranceStrict)
+		throw InvalidStateError("Zero-guess Krylov result lost its solution");
+
+	SSORPreconditioner<Real> ssor;
+	ssor.setup(matrix);
+	matrix.values()[1] = Real(2);
+	Vector<Real> applied;
+	ssor.apply(rhs, applied);
+	if (std::abs(applied[0] - Real(5) / 48) > Precision::DefaultToleranceStrict ||
+		std::abs(applied[1] - Real(7) / 12) > Precision::DefaultToleranceStrict)
+		throw InvalidStateError("SSOR did not preserve its installed matrix snapshot");
+
+	Matrix<Real> tall(3, 2, {1, 0, 0, 1, 1, 1});
+	SVDecompositionSolver<Real> svd(tall);
+	Vector<Real> aliasedRhs{2, 3, 5};
+	svd.Solve(aliasedRhs, aliasedRhs);
+	if (aliasedRhs.size() != 2 || std::abs(aliasedRhs[0] - Real(2)) > Precision::DefaultToleranceStrict ||
+		std::abs(aliasedRhs[1] - Real(3)) > Precision::DefaultToleranceStrict)
+		throw InvalidStateError("Tall SVD solve resized the RHS before consuming it");
+	std::cout << "Solver alias, owned-snapshot and zero-guess payload contracts verified.\n";
+}
 
 void Docs_Demo_LinAlgSolvers()
 {
@@ -458,4 +529,5 @@ void Docs_Demo_LinAlgSolvers()
 	Docs_Demo_LinAlgSolvers_IllConditioned();
 	Docs_Demo_LinAlgSolvers_RankDeficient();
 	Docs_Demo_LinAlgSolvers_Comparison();
+	Docs_Demo_DenseIterativeContracts();
 }

@@ -30,6 +30,7 @@
 #define MML_PATH_INTEGRATION_H
 
 #include <mml/MMLBase.h>
+#include <utility>
 
 #include <mml/interfaces/IFunction.h>
 
@@ -41,6 +42,8 @@
 #include <mml/core/Integration.h>
 
 #include <mml/core/Fields/FieldOperations.h>
+
+#include <algorithm>
 
 namespace MML
 {
@@ -131,9 +134,15 @@ namespace MML
 
 			Real operator()(Real t) const
 			{
+				return EvaluateWithAbsoluteScale(t).first;
+			}
+
+			std::pair<Real, Real> EvaluateWithAbsoluteScale(Real t) const
+			{
 				auto tangent_vec = Differential::CurveDerivative<N>(_curve, t, 1);
 				auto field_vec = _vector_field(_curve(t));
-				return Utils::ScalarProduct<N>(tangent_vec, field_vec);
+				return {Utils::ScalarProduct<N>(tangent_vec, field_vec),
+					IntegrationDetail::Product({tangent_vec.NormL2(), field_vec.NormL2()})};
 			}
 		};
 
@@ -168,7 +177,8 @@ namespace MML
 			IntegrationMethod method = TRAP, const Real eps = Defaults::TrapezoidIntegrationEPS)
 		{
 			HelperCurveLen<N> helper(curve);
-			return IntegrateCore(helper, a, b, method, eps);
+			const auto bounds = std::minmax(a, b);
+			return IntegrateCore(helper, bounds.first, bounds.second, method, eps);
 		}
 
 		template<int N>
@@ -214,7 +224,8 @@ namespace MML
 													const Real eps = Defaults::TrapezoidIntegrationEPS)
 		{
 			HelperCurveMass<N> helper(curve, density);
-			return IntegrateCore(helper, a, b, method, eps);
+			const auto bounds = std::minmax(a, b);
+			return IntegrateCore(helper, bounds.first, bounds.second, method, eps);
 		}
 
 		template<int N>
@@ -257,7 +268,8 @@ namespace MML
 														 const Real t1, const Real t2, const Real eps = Defaults::WorkIntegralPrecision)
 		{
 			HelperLineIntegralScalarFunc<3> helper(scalarField, curve);
-			return IntegrateCore(helper, t1, t2, TRAP, eps);
+			const auto bounds = std::minmax(t1, t2);
+			return IntegrateCore(helper, bounds.first, bounds.second, TRAP, eps);
 		}
 
 		static Real LineIntegral(const IScalarFunction<3>& scalarField, const IParametricCurve<3>& curve, 
@@ -274,7 +286,8 @@ namespace MML
 												 const Real eps = Defaults::WorkIntegralPrecision)
 		{
 			HelperLineIntegralScalarFunc<3> helper(scalarField, curve);
-			return IntegrateCore(helper, t1, t2, method, eps);
+			const auto bounds = std::minmax(t1, t2);
+			return IntegrateCore(helper, bounds.first, bounds.second, method, eps);
 		}
 
 		static Real LineIntegral(const IScalarFunction<3>& scalarField, const IParametricCurve<3>& curve,
@@ -326,7 +339,7 @@ namespace MML
 														 const Real t1, const Real t2, const Real eps = Defaults::LineIntegralPrecision)
 		{
 			HelperLineIntegralVectorFunc<3> helper(vectorField, curve);
-			return IntegrateCore(helper, t1, t2, TRAP, eps);
+			return IntegrationDetail::ConfiguredAxis(helper, t1, t2, TRAP, eps, {});
 		}
 
 		static Real LineIntegral(const IVectorFunction<3>& vectorField, const IParametricCurve<3>& curve, 
@@ -343,7 +356,7 @@ namespace MML
 												 const Real eps = Defaults::LineIntegralPrecision)
 		{
 			HelperLineIntegralVectorFunc<3> helper(vectorField, curve);
-			return IntegrateCore(helper, t1, t2, method, eps);
+			return IntegrationDetail::ConfiguredAxis(helper, t1, t2, method, eps, {});
 		}
 
 		static Real LineIntegral(const IVectorFunction<3>& vectorField, const IParametricCurve<3>& curve,

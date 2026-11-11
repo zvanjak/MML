@@ -12,6 +12,7 @@
 #define MML_LP_SIMPLEX_TABLEAU_H
 
 #include <mml/algorithms/Optimization/LP/LPTypes.h>
+#include <mml/core/LinAlgEqSolvers/LinAlgSVD.h>
 
 #include <algorithm>
 #include <cmath>
@@ -30,6 +31,10 @@ namespace MML::Optimization {
 class SimplexTableau {
 private:
     Matrix<Real> _tableau;       ///< Full tableau matrix
+    Matrix<Real> _originalA;     ///< Standard-form columns before pivoting
+    Matrix<Real> _rowTransform;  ///< Constraint row operations, B^(-1)
+    Vector<Real> _originalRHS;
+    Vector<Real> _objective;
     int _numRows;                ///< Number of constraints (m)
     int _numCols;                ///< Number of all variables including RHS (n + m + 1)
     int _numOriginalVars;        ///< Original problem variables (n)
@@ -60,76 +65,99 @@ public:
                     const LPConfig& config = LPConfig()) {
         if (config.pivotRule == LPPivotRule::Steepest)
             throw NotImplementedError("SimplexTableau: LPPivotRule::Steepest is not implemented");
+        const int rows = A.rows();
+        const int cols = A.cols();
+        if (rows <= 0 || cols <= 0 || b.size() != rows || c.size() != cols ||
+            numOriginalVars <= 0 || numSlack < 0 || numArtificial < 0 ||
+            numOriginalVars > cols || numSlack > cols - numOriginalVars ||
+            numArtificial != cols - numOriginalVars - numSlack)
+            throw LinearProgrammingError("Tableau dimensions or variable counts are inconsistent");
+        if (rows == Matrix<Real>::MaxDimension() || cols == Matrix<Real>::MaxDimension() ||
+            static_cast<size_t>(rows + 1) > Matrix<Real>::MaxElementCount() / static_cast<size_t>(cols + 1))
+            throw LinearProgrammingError("Tableau dimensions exceed matrix storage limits");
+        if (artificialIndices.size() != static_cast<size_t>(numArtificial))
+            throw LinearProgrammingError("Artificial index count does not match the tableau");
+
+        const int artificialStart = numOriginalVars + numSlack;
+        std::vector<bool> seen(numArtificial, false);
+        for (int index : artificialIndices) {
+            if (index < artificialStart || index >= cols)
+                throw LinearProgrammingError("Artificial index is outside the artificial column range");
+            if (seen[index - artificialStart])
+                throw LinearProgrammingError("Artificial indices must be unique");
+            seen[index - artificialStart] = true;
+        }
+        for (int i = 0; i < rows; ++i) {
+            if (!std::isfinite(b[i]))
+                throw LinearProgrammingError("Tableau RHS must be finite");
+            for (int j = 0; j < cols; ++j) {
+                if (!std::isfinite(A(i, j)))
+                    throw LinearProgrammingError("Tableau coefficients must be finite");
+            }
+        }
+        for (int j = 0; j < cols; ++j) {
+            if (!std::isfinite(c[j]))
+                throw LinearProgrammingError("Tableau objective must be finite");
+        }
+
+        const auto isUnitColumn = [&](int row, int col) {
+            if (std::abs(A(row, col) - Real(1)) >= Precision::EqualityTolerance)
+                return false;
+            for (int k = 0; k < rows; ++k) {
+                if (k != row && std::abs(A(k, col)) > Precision::EqualityTolerance)
+                    return false;
+            }
+            return true;
+        };
+        std::vector<int> basis(rows, -1);
+        for (int i = 0; i < rows; ++i) {
+            // Artificial unit columns take priority for two-phase simplex.
+            for (int artIdx : artificialIndices) {
+                if (isUnitColumn(i, artIdx)) {
+                    basis[i] = artIdx;
+                    break;
+                }
+            }
+            if (basis[i] < 0) {
+                for (int j = numOriginalVars; j < artificialStart; ++j) {
+                    if (isUnitColumn(i, j)) {
+                        basis[i] = j;
+                        break;
+                    }
+                }
+            }
+            if (basis[i] < 0)
+                throw LinearProgrammingError("Tableau row has no auxiliary unit column for its initial basis");
+        }
+
+        auto indices = artificialIndices;
+        Matrix<Real> originalA(A);
+        Matrix<Real> rowTransform = Matrix<Real>::Identity(rows);
+        Vector<Real> originalRHS(b), objective(c);
+        Matrix<Real> tableau(rows + 1, cols + 1);
+        for (int i = 0; i < rows; ++i) {
+            for (int j = 0; j < cols; ++j)
+                tableau(i, j) = A(i, j);
+            tableau(i, cols) = b[i];
+        }
+        for (int j = 0; j < cols; ++j)
+            tableau(rows, j) = c[j];
+
+        _tableau = std::move(tableau);
+        _originalA = std::move(originalA);
+        _rowTransform = std::move(rowTransform);
+        _originalRHS = std::move(originalRHS);
+        _objective = std::move(objective);
+        _basis = std::move(basis);
+        _artificialIndices = std::move(indices);
         _config = config;
-        _numRows = A.rows();
+        _numRows = rows;
+        _numCols = cols + 1;
         _numOriginalVars = numOriginalVars;
         _numSlack = numSlack;
         _numArtificial = numArtificial;
-        _numCols = A.cols() + 1;  // +1 for RHS column
-        _artificialIndices = artificialIndices;
-        
-        // Tableau: [A | b] with objective row at bottom
-        _tableau = Matrix<Real>(_numRows + 1, _numCols);
-        
-        // Fill constraint rows
-        for (int i = 0; i < _numRows; ++i) {
-            for (int j = 0; j < A.cols(); ++j) {
-                _tableau(i, j) = A(i, j);
-            }
-            _tableau(i, _numCols - 1) = b[i];  // RHS
-        }
-        
-        // Fill objective row (bottom)
-        for (int j = 0; j < c.size(); ++j) {
-            _tableau(_numRows, j) = c[j];
-        }
-        _tableau(_numRows, _numCols - 1) = 0;  // Initial objective value
-        
-        // Initial basis: Find the unit column for each row
-        // The basic variable for row i is the column j where A(i,j)=1 and A(k,j)=0 for k!=i
-        _basis.resize(_numRows);
-        
-        for (int i = 0; i < _numRows; ++i) {
-            _basis[i] = -1;  // Not found yet
-            
-            // First check artificial variables (they take priority for two-phase)
-            for (int artIdx : artificialIndices) {
-                if (std::abs(_tableau(i, artIdx) - 1.0) < Precision::EqualityTolerance) {
-                    // Verify it's a unit column (1 in row i, 0 elsewhere)
-                    bool isUnit = true;
-                    for (int k = 0; k < _numRows && isUnit; ++k) {
-                        if (k != i && std::abs(_tableau(k, artIdx)) > Precision::EqualityTolerance) {
-                            isUnit = false;
-                        }
-                    }
-                    if (isUnit) {
-                        _basis[i] = artIdx;
-                        break;
-                    }
-                }
-            }
-            
-            if (_basis[i] >= 0) continue;  // Found artificial
-            
-            // Look for slack variable (unit column with +1, not -1 like surplus)
-            int slackStart = numOriginalVars;
-            int slackEnd = numOriginalVars + numSlack;
-            for (int j = slackStart; j < slackEnd; ++j) {
-                if (std::abs(_tableau(i, j) - 1.0) < Precision::EqualityTolerance) {
-                    // Verify it's a unit column
-                    bool isUnit = true;
-                    for (int k = 0; k < _numRows && isUnit; ++k) {
-                        if (k != i && std::abs(_tableau(k, j)) > Precision::EqualityTolerance) {
-                            isUnit = false;
-                        }
-                    }
-                    if (isUnit) {
-                        _basis[i] = j;
-                        break;
-                    }
-                }
-            }
-        }
+        _iterations = 0;
+        _phase = 0;
     }
     
     //---------------------------------------------------------------------------------
@@ -233,6 +261,8 @@ public:
         for (int j = 0; j < _numCols; ++j) {
             _tableau(pivotRow, j) /= pivot;
         }
+        for (int j = 0; j < _numRows; ++j)
+            _rowTransform(pivotRow, j) /= pivot;
         
         // Eliminate column in other rows
         for (int i = 0; i <= _numRows; ++i) {  // Include objective row
@@ -241,6 +271,9 @@ public:
                 for (int j = 0; j < _numCols; ++j) {
                     _tableau(i, j) -= factor * _tableau(pivotRow, j);
                 }
+                if (i < _numRows)
+                    for (int j = 0; j < _numRows; ++j)
+                        _rowTransform(i, j) -= factor * _rowTransform(pivotRow, j);
             }
         }
         
@@ -363,15 +396,9 @@ public:
     
     /// @brief Get dual values (shadow prices)
     Vector<Real> GetDualValues() const {
-        // Dual values are the reduced costs of slack variables
-        // (with sign adjustment)
         Vector<Real> dual(_numRows);
-        for (int i = 0; i < _numRows; ++i) {
-            int slackCol = _numOriginalVars + i;
-            if (slackCol < _numCols - 1) {
-                dual[i] = -_tableau(_numRows, slackCol);
-            }
-        }
+        for (int i = 0; i < _numRows; ++i)
+            dual[i] = GetShadowPrice(i);
         return dual;
     }
     
@@ -432,6 +459,10 @@ public:
     
     /// @brief Restore original objective for Phase 2
     void SetupPhase2(const Vector<Real>& originalC) {
+        Vector<Real> objective(_numCols - 1);
+        for (int j = 0; j < originalC.size() && j < _numCols - 1; ++j)
+            objective[j] = originalC[j];
+        _objective = std::move(objective);
         _phase = 2;
         
         // Reset objective row
@@ -462,6 +493,8 @@ public:
     /// @param varIndex Variable index (original variable)
     /// @return Pair (lower_bound, upper_bound) for the coefficient
     std::pair<Real, Real> GetObjectiveCoefficientRange(int varIndex) const {
+        if (varIndex < 0 || varIndex >= _numOriginalVars)
+            throw LinearProgrammingError("Objective sensitivity index is outside the original variables");
         Real lower = -std::numeric_limits<Real>::infinity();
         Real upper = std::numeric_limits<Real>::infinity();
         
@@ -481,7 +514,7 @@ public:
                     Real aij = _tableau(basicRow, j);
                     Real cj = _tableau(_numRows, j);
                     
-                    if (std::abs(aij) > _config.tolerance) {
+                    if (aij != 0) {
                         // Change delta must keep c_j - delta * a_{ij} >= 0
                         if (aij > 0) {
                             upper = std::min(upper, cj / aij);
@@ -497,77 +530,70 @@ public:
             lower = -cj;  // Current reduced cost is the margin
         }
         
-        return {lower, upper};
+        return {_objective[varIndex] + lower, _objective[varIndex] + upper};
     }
     
     /// @brief Get allowable range for a RHS value (constraint bound)
     /// @param constraintIndex Constraint index
     /// @return Pair (lower_bound, upper_bound) for the RHS
     std::pair<Real, Real> GetRHSRange(int constraintIndex) const {
+        if (constraintIndex < 0 || constraintIndex >= _numRows)
+            throw LinearProgrammingError("RHS sensitivity index is outside the original rows");
         Real lower = -std::numeric_limits<Real>::infinity();
         Real upper = std::numeric_limits<Real>::infinity();
-        
-        Real currentRHS = _tableau(constraintIndex, _numCols - 1);
-        
-        // Change in RHS affects the solution through B^(-1)
-        // The basic solution changes as: x_B = B^(-1)b, so x_B_i += delta * B^(-1)_{i,row}
+
+        // x_B(delta) = B^(-1)b + delta B^(-1)e_j, with b in the input row coordinates.
         for (int i = 0; i < _numRows; ++i) {
-            // The i-th element of B^(-1) column for this constraint
-            // In the tableau, this is stored in the slack column for this constraint
-            int slackCol = _numOriginalVars + constraintIndex;
-            if (slackCol < _numCols - 1) {
-                Real coef = _tableau(i, slackCol);
-                Real xi = _tableau(i, _numCols - 1);
-                
-                if (std::abs(coef) > _config.tolerance) {
-                    // Need x_B_i + delta * coef >= 0
-                    if (coef > 0) {
-                        lower = std::max(lower, -xi / coef);
-                    } else {
-                        upper = std::min(upper, -xi / coef);
-                    }
+            const Real coef = _rowTransform(i, constraintIndex);
+            const Real xi = _tableau(i, _numCols - 1);
+            if (!std::isfinite(coef) || !std::isfinite(xi))
+                throw LinearProgrammingError("Cannot compute RHS sensitivity from a non-finite basis transform");
+            if (IsArtificial(_basis[i])) {
+                // A zero artificial left by a redundant row must remain zero, not merely nonnegative.
+                if (coef != 0) {
+                    lower = std::max(lower, -xi / coef);
+                    upper = std::min(upper, -xi / coef);
                 }
+            } else {
+                if (coef > 0) lower = std::max(lower, -xi / coef);
+                if (coef < 0) upper = std::min(upper, -xi / coef);
             }
         }
-        
-        // Convert to absolute bounds
-        lower = currentRHS + lower;
-        upper = currentRHS + upper;
-        
-        return {lower, upper};
+
+        return {_originalRHS[constraintIndex] + lower, _originalRHS[constraintIndex] + upper};
     }
     
     /// @brief Get shadow price for a constraint
     Real GetShadowPrice(int constraintIndex) const {
-        // Shadow price is the dual value (reduced cost of slack variable)
-        int slackCol = _numOriginalVars + constraintIndex;
-        if (slackCol < _numCols - 1) {
-            return -_tableau(_numRows, slackCol);
-        }
-        return 0;
+        if (constraintIndex < 0 || constraintIndex >= _numRows)
+            throw LinearProgrammingError("Shadow price index is outside the original rows");
+        Real value = 0;
+        for (int i = 0; i < _numRows; ++i)
+            value += _objective[_basis[i]] * _rowTransform(i, constraintIndex);
+        if (!std::isfinite(value))
+            throw LinearProgrammingError("Shadow price is not representable");
+        return value;
     }
     
-    /// @brief Compute basis condition number (measure of numerical stability)
+    /// @brief Compute the spectral condition number of the input basis, not its canonical columns
     Real ComputeBasisCondition() const {
-        // Approximate condition using max/min absolute values in basis columns
-        Real maxVal = 0;
-        Real minVal = std::numeric_limits<Real>::infinity();
-        
-        for (int i = 0; i < _numRows; ++i) {
-            int bCol = _basis[i];
-            for (int k = 0; k < _numRows; ++k) {
-                Real absVal = std::abs(_tableau(k, bCol));
-                if (absVal > _config.tolerance) {
-                    maxVal = std::max(maxVal, absVal);
-                    minVal = std::min(minVal, absVal);
-                }
+        if (_numRows == 0)
+            throw LinearProgrammingError("Basis conditioning requires an initialized tableau");
+        Matrix<Real> basis(_numRows, _numRows);
+        Real scale = 0;
+        for (int i = 0; i < _numRows; ++i)
+            for (int j = 0; j < _numRows; ++j) {
+                basis(i, j) = _originalA(i, _basis[j]);
+                scale = std::max(scale, std::abs(basis(i, j)));
             }
-        }
-        
-        if (minVal > _config.tolerance && minVal != std::numeric_limits<Real>::infinity()) {
-            return maxVal / minVal;
-        }
-        return std::numeric_limits<Real>::infinity();
+        if (scale == 0) return std::numeric_limits<Real>::infinity();
+        // Conditioning is scale invariant; the unscaled singular values may overflow.
+        for (int i = 0; i < _numRows; ++i)
+            for (int j = 0; j < _numRows; ++j)
+                basis(i, j) /= scale;
+        const auto values = SVDecompositionSolver<Real>(basis).getW();
+        if (values[_numRows - 1] <= 0) return std::numeric_limits<Real>::infinity();
+        return values[0] / values[_numRows - 1];
     }
     
     //---------------------------------------------------------------------------------

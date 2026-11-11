@@ -61,6 +61,7 @@ TEST_CASE("Non-square transformation: Jacobian is ToDim x FromDim and vector tra
 {
     CylinderEmbedding emb;
     STATIC_REQUIRE(std::is_same_v<CylinderEmbedding::JacobianType, MatrixNM<Real, 3, 2>>);
+    const Real jacobianTolerance = TOL(1e-8, Precision::RoundoffZeroThreshold);
 
     Vector2Cartesian q(Constants::PI / 3, static_cast<MML::Real>(2.0));
     Vector3Cartesian p = emb.transf(q);
@@ -78,28 +79,28 @@ TEST_CASE("Non-square transformation: Jacobian is ToDim x FromDim and vector tra
 
     // J = [[-sin, 0], [cos, 0], [0, 1]]
     auto J = emb.jacobian(q);
-    REQUIRE(J(0, 0) == Catch::Approx(-std::sin(Constants::PI / 3)).margin(1e-8));
-    REQUIRE(J(1, 0) == Catch::Approx(std::cos(Constants::PI / 3)).margin(1e-8));
-    REQUIRE(J(2, 0) == Catch::Approx(0.0).margin(1e-8));
-    REQUIRE(J(0, 1) == Catch::Approx(0.0).margin(1e-8));
-    REQUIRE(J(1, 1) == Catch::Approx(0.0).margin(1e-8));
-    REQUIRE(J(2, 1) == Catch::Approx(1.0).margin(1e-8));
+    REQUIRE(IsWithinAbs(J(0, 0), -std::sin(Constants::PI / 3), jacobianTolerance));
+    REQUIRE(IsWithinAbs(J(1, 0), std::cos(Constants::PI / 3), jacobianTolerance));
+    REQUIRE(IsWithinAbs(J(2, 0), 0, jacobianTolerance));
+    REQUIRE(IsWithinAbs(J(0, 1), 0, jacobianTolerance));
+    REQUIRE(IsWithinAbs(J(1, 1), 0, jacobianTolerance));
+    REQUIRE(IsWithinAbs(J(2, 1), 1, jacobianTolerance));
 
     // tangent (contravariant) push-forward of d/dphi is the circle tangent
     Vector3Cartesian t = emb.transfVecContravariant(Vector2Cartesian(1.0, 0.0), q);
-    REQUIRE(t[0] == Catch::Approx(-std::sin(Constants::PI / 3)).margin(1e-8));
-    REQUIRE(t[1] == Catch::Approx(std::cos(Constants::PI / 3)).margin(1e-8));
-    REQUIRE(t[2] == Catch::Approx(0.0).margin(1e-8));
+    REQUIRE(IsWithinAbs(t[0], -std::sin(Constants::PI / 3), jacobianTolerance));
+    REQUIRE(IsWithinAbs(t[1], std::cos(Constants::PI / 3), jacobianTolerance));
+    REQUIRE(IsWithinAbs(t[2], 0, jacobianTolerance));
 
     // basis vectors: e_phi (column 0) and e_z (column 1) of the 3 x 2 Jacobian
-    REQUIRE(emb.getBasisVec(0, q).IsEqualTo(t, 1e-8));
+    REQUIRE(emb.getBasisVec(0, q).IsEqualTo(t, jacobianTolerance));
     Vector3Cartesian ez = emb.getBasisVec(1, q);
-    REQUIRE(ez.IsEqualTo(Vector3Cartesian(0, 0, 1), 1e-8));
+    REQUIRE(ez.IsEqualTo(Vector3Cartesian(0, 0, 1), jacobianTolerance));
 
     // pull-back of a covector (gradient of z in R^3) onto the chart is (0, 1)
     Vector2Cartesian w = emb.transfInverseVecCovariant(Vector3Cartesian(0, 0, 1), q);
-    REQUIRE(w[0] == Catch::Approx(0.0).margin(1e-8));
-    REQUIRE(w[1] == Catch::Approx(1.0).margin(1e-8));
+    REQUIRE(IsWithinAbs(w[0], 0, jacobianTolerance));
+    REQUIRE(IsWithinAbs(w[1], 1, jacobianTolerance));
 }
 
 TEST_CASE("Square transformations keep their behaviour and types", "[interfaces][coord-transf][wewi.6.3]")
@@ -113,14 +114,15 @@ TEST_CASE("Square transformations keep their behaviour and types", "[interfaces]
 
     Vector3Spherical s(2.0, Constants::PI / 2, 0.0);
     Vector3Cartesian c = sph2cart.transf(s);
-    REQUIRE(c[0] == Catch::Approx(2.0).margin(1e-12));
-    REQUIRE(c[1] == Catch::Approx(0.0).margin(1e-12));
-    REQUIRE(c[2] == Catch::Approx(0.0).margin(1e-12));
-    REQUIRE(sph2cart(s).IsEqualTo(c, 1e-12));                       // IFunction form agrees with transf()
-    REQUIRE(sph2cart.transfInverse(c).IsEqualTo(s, 1e-10));
+    const Real trigRoundoff = TOL(1e-12, Real(4) * Precision::Eps);
+    REQUIRE(c[0] == Catch::Approx(2.0).margin(trigRoundoff));
+    REQUIRE(c[1] == Catch::Approx(0.0).margin(trigRoundoff));
+    REQUIRE(c[2] == Catch::Approx(0.0).margin(trigRoundoff));
+    REQUIRE(sph2cart(s).IsEqualTo(c, MML::Real(1e-12)));                       // IFunction form agrees with transf()
+    REQUIRE(sph2cart.transfInverse(c).IsEqualTo(s, MML::Real(1e-10)));
 
     // inverse Jacobian is FromDim x ToDim and K * J = I at a regular point
-    Vector3Spherical s2(1.5, 1.0, 0.7);
+    Vector3Spherical s2(MML::Real(1.5), MML::Real(1.0), MML::Real(0.7));
     auto J = sph2cart.jacobian(s2);
     auto K = sph2cart.inverseJacobian(sph2cart.transf(s2));
     for (int i = 0; i < 3; ++i)

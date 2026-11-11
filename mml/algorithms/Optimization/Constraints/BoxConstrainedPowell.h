@@ -15,6 +15,7 @@
 #include <mml/algorithms/Optimization/Multidim/Powell.h>
 
 #include <cmath>
+#include <limits>
 #include <string>
 
 namespace MML::Optimization
@@ -97,11 +98,13 @@ namespace MML::Optimization
 			result.xmin = Vector<Real>(N);
 			for (int component = 0; component < N; ++component)
 				result.xmin[component] = projectedXmin[component];
+			if (result.function_evaluations == std::numeric_limits<int>::max())
+				throw MultidimOptimizationError("BoxConstrainedPowell: function evaluation counter overflow");
+			++result.function_evaluations;
 			result.fmin = func(projectedXmin);
 			ValidateMultidimFunctionValue(result.fmin, "BoxConstrainedPowell final evaluation");
 			result.algorithm_name = "BoxConstrainedPowell";
 			result.elapsed_time_ms = timer.elapsed_ms();
-			result.function_evaluations = projectedFunc.functionEvaluations() + 1;
 			if (!result.converged) {
 				result.status = AlgorithmStatus::MaxIterationsExceeded;
 				result.error_message = "Box-constrained Powell did not converge within " + std::to_string(_config.max_iterations) + " iterations";

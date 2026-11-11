@@ -71,7 +71,7 @@ namespace MML
             if (n < 0)
                 throw ArgumentError("LegendreBasis::Normalization: n must be non-negative");
             
-            return 2.0 / (2.0 * n + 1.0);
+            return MML::Real(2.0) / (MML::Real(2.0) * n + MML::Real(1.0));
         }
 
         // Domain bounds
@@ -89,9 +89,9 @@ namespace MML
                 throw ArgumentError("LegendreBasis::RecurrenceCoefficients: n must be non-negative");
             
             Real n_real = static_cast<Real>(n);
-            a = (2.0 * n_real + 1.0) / (n_real + 1.0);
+            a = (MML::Real(2.0) * n_real + MML::Real(1.0)) / (n_real + MML::Real(1.0));
             b = 0.0;
-            c = -n_real / (n_real + 1.0);
+            c = -n_real / (n_real + MML::Real(1.0));
         }
     };
 
@@ -122,8 +122,19 @@ namespace MML
         {
             if (l < _m)
                 throw ArgumentError("AssociatedLegendreBasis::Evaluate: l must be >= m");
-            
-            return Functions::SphLegendre(static_cast<unsigned int>(l), static_cast<unsigned int>(_m), x);
+            if (!std::isfinite(x) || std::abs(x) > 1)
+                throw DomainError("AssociatedLegendreBasis::Evaluate: x must be in [-1,1]");
+            return Functions::AssocLegendre(static_cast<unsigned int>(l), static_cast<unsigned int>(_m), x);
+        }
+
+        // Normalized angular factor, including Condon-Shortley phase (the former Evaluate convention).
+        Real EvaluateSpherical(int l, Real theta) const
+        {
+            if (l < _m)
+                throw ArgumentError("AssociatedLegendreBasis::EvaluateSpherical: l must be >= m");
+            if (!std::isfinite(theta) || theta < 0 || theta > Constants::PI)
+                throw DomainError("AssociatedLegendreBasis::EvaluateSpherical: theta must be in [0,pi]");
+            return Functions::SphLegendre(static_cast<unsigned int>(l), static_cast<unsigned int>(_m), theta);
         }
 
         // Domain bounds

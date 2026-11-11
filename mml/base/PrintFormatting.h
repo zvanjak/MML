@@ -5,6 +5,7 @@
 #include <mml/base/Matrix/MatrixPrintFormat.h>
 
 #include <iomanip>
+#include <cmath>
 #include <ios>
 #include <locale>
 #include <ostream>
@@ -46,9 +47,9 @@ namespace MML::PrintFormatting {
 		}
 	}
 
-	template<class Type>
+	template<class Type, class Threshold = Real>
 	void Value(std::ostream& out, const Type& value, int width, int precision,
-	           Real threshold = 0, bool replaceZero = false) {
+	           Threshold threshold = 0, bool replaceZero = false) {
 		out << std::setw(width) << std::setprecision(precision);
 		if constexpr (std::is_arithmetic_v<Type> || is_std_complex<Type>::value) {
 			bool zero = false;
@@ -130,9 +131,20 @@ namespace MML::PrintFormatting {
 	std::string Text(const Type& value, int precision, Notation notation) {
 		std::ostringstream out;
 		ApplyNotation(out, notation);
-		if (notation == Notation::Integer || notation == Notation::Hexadecimal)
-			out << value;
-		else
+		if (notation == Notation::Integer) {
+			if constexpr (std::is_floating_point_v<Type>)
+				// Round before formatting, without narrowing to any integer storage type.
+				out << std::fixed << std::setprecision(0) << std::round(value);
+			else if constexpr (std::is_integral_v<Type>)
+				out << std::dec << +value;
+			else
+				throw ArgumentError("PrintFormatting::Text: Integer requires an integral or floating-point scalar");
+		} else if (notation == Notation::Hexadecimal) {
+			if constexpr (std::is_integral_v<Type>)
+				out << +value;
+			else
+				throw ArgumentError("PrintFormatting::Text: Hexadecimal requires an integral scalar");
+		} else
 			Value(out, value, 0, precision);
 		return out.str();
 	}

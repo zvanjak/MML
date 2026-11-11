@@ -47,8 +47,8 @@ The Function Analyzer framework provides comprehensive tools for analyzing real-
 |-------|---------|-------------|
 | `RealFunctionAnalyzer` | Single function analysis | `GetRoots`, `GetLocalOptimums`, `FindDiscontinuityCandidates` |
 | `RealFunctionComparer` | Compare two functions | `getAbsDiffMax`, `getIntegratedAbsDiff` |
-| `ScalarFieldAnalyzer` | 3D scalar field analysis | `IsConservative` (gradient field check) |
-| `VectorFieldAnalyzer` | 3D vector field analysis | `IsSolenoidal` (divergence-free check) |
+| `ScalarFieldAnalyzer` | 3D scalar field analysis | `GradientAt`, `LaplacianAt`, `FindCriticalPoints`, `IsHarmonic` |
+| `VectorFieldAnalyzer` | 3D vector field analysis | `DivergenceAt`, `CurlAt`, `IsSolenoidal`, `IsIrrotational`, `CirculationAroundCircle` |
 
 ### Discontinuity Types
 
@@ -56,7 +56,7 @@ The Function Analyzer framework provides comprehensive tools for analyzing real-
 |------|-------------|---------|
 | `JUMP` | Left/right limits differ | Step function, `floor(x)` |
 | `REMOVABLE` | Limits match but f(x) differs/undefined | `sin(x)/x` at x=0 |
-| `INFINITE` | At least one limit is infinite | `1/x` at x=0 |
+| `Infinite` | At least one limit is infinite | `1/x` at x=0 |
 | `OSCILLATORY` | Limit doesn't exist due to oscillation | `sin(1/x)` at x=0 |
 
 ### Critical Point Types
@@ -110,10 +110,14 @@ std::vector<Real> GetRoots(Real x1, Real x2, Real eps = 1e-6);
 ```
 
 **Algorithm**:
-1. Create derivative wrapper f'(x)
-2. Find roots of derivative (critical points)
-3. Use root bracketing to find all sign changes
-4. Refine with bisection to tolerance `eps`
+1. Sample 1000 subintervals, including both endpoints
+2. Record samples whose absolute function value is below `eps`
+3. Detect finite, nonzero opposite-sign neighbors without multiplying their values
+4. Refine sign-change brackets with bisection to tolerance `eps`
+
+This is a sampling search, not an all-roots guarantee: tangent roots and multiple roots
+inside one grid cell can be missed. The tolerance is used both for sampled residuals and
+for bisection, so rescaling the function also changes its residual-based stopping behavior.
 
 **Example 2: Finding Roots**
 
@@ -414,6 +418,24 @@ Real ComputeRightLimit(Real x, Real eps = 1e-6, int maxSteps = 20) const;
 
 **Algorithm**: Approach point with decreasing step sizes, check convergence.
 
+Both directions preserve the sign of detected infinite limits. Finite values above
+`Precision::InfiniteLimitThreshold` are not automatically infinite: the probe requires
+repeated same-sign growth above that threshold, or repeated same-sign infinities.
+A large finite constant therefore retains its finite estimate. These remain heuristic
+estimates; exhausting the budget returns the last finite sample, not a convergence
+certificate. NaN evaluations, unresolved nonfinite sequences, or the absence of a
+representable one-sided probe return NaN. A probe never substitutes `f(x)` when its
+step rounds back to `x`.
+
+`ClassifyDiscontinuity` checks for infinite limits before missing estimates, including
+when both sides are infinite. Missing/NaN estimates are `UNKNOWN`, not evidence of
+oscillation; `OSCILLATORY` remains an available classification value but is not inferred
+merely from invalid evaluations. Large finite estimates alone do not establish a pole.
+
+The `SafeDifference` utility computes an absolute difference over the representable
+range. It returns infinity for an infinite input or arithmetic overflow, and propagates
+NaN inputs rather than inventing an infinite difference.
+
 **Example 11: Computing Limits**
 
 ```cpp
@@ -435,6 +457,12 @@ std::cout << "  Jump size: " << std::abs(rightLimit - leftLimit) << std::endl;  
 
 ### ClassifyDiscontinuity - Detailed Classification
 
+Use `DiscontinuityType::Infinite` for infinite limits. The numerical analyzer and optional
+report header preserve caller-defined `INFINITE` and `DOMAIN` macros, including Windows
+definitions. The deprecated `DiscontinuityType::INFINITE` alias retains the same value for
+one minor release, but that legacy spelling is usable only when the `INFINITE` macro is
+absent. No enumerator values or report labels have changed.
+
 ```cpp
 DiscontinuityPoint ClassifyDiscontinuity(Real x, Real eps = 1e-6) const;
 ```
@@ -444,7 +472,7 @@ DiscontinuityPoint ClassifyDiscontinuity(Real x, Real eps = 1e-6) const;
 struct DiscontinuityPoint
 {
     Real x;                       // Location
-    DiscontinuityType type;       // JUMP, REMOVABLE, INFINITE, OSCILLATORY, UNKNOWN
+    DiscontinuityType type;       // JUMP, REMOVABLE, Infinite, OSCILLATORY, UNKNOWN
     Real leftLimit;               // lim(x→a⁻) f(x)
     Real rightLimit;              // lim(x→a⁺) f(x)
     Real valueAtPoint;            // f(a)
@@ -472,7 +500,7 @@ switch (disc.type)
     case DiscontinuityType::REMOVABLE:
         std::cout << "REMOVABLE" << std::endl;
         break;
-    case DiscontinuityType::INFINITE:
+    case DiscontinuityType::Infinite:
         std::cout << "INFINITE" << std::endl;
         break;
     default:
@@ -512,7 +540,7 @@ RealFunctionAnalyzer analyzer(func);
 
 DiscontinuityPoint disc = analyzer.ClassifyDiscontinuity(0.0);
 
-std::cout << "Type: " << (disc.type == DiscontinuityType::INFINITE ? "INFINITE" : "OTHER") << std::endl;
+std::cout << "Type: " << (disc.type == DiscontinuityType::Infinite ? "INFINITE" : "OTHER") << std::endl;
 std::cout << "Left limit:  " << disc.leftLimit << std::endl;   // -∞
 std::cout << "Right limit: " << disc.rightLimit << std::endl;  // +∞
 ```
@@ -550,7 +578,7 @@ for (const auto& disc : discontinuities)
     std::cout << "  Type: ";
     switch (disc.type)
     {
-        case DiscontinuityType::INFINITE:
+        case DiscontinuityType::Infinite:
             std::cout << "INFINITE (vertical asymptote)" << std::endl;
             break;
         default:
@@ -732,8 +760,28 @@ AnalysisReports::PrintIntervalAnalysis(std::cout, interval, "1/(1+x^2)");
 
 The interval grid is unchanged: `x1 + i*(x2-x1)/numPoints`, for `0 <= i < numPoints`.
 The right endpoint is excluded. `minValue` and `maxValue` are **finite sampled extrema**,
-not global bounds. If every sample is nonfinite, the report says extrema are unavailable
-rather than printing numerical sentinel values.
+not global bounds. `AnalyzePoints` uses the same half-open grid. The structured interval
+monotonicity flag is computed on that grid, not on a different endpoint set.
+Any nonfinite sample makes the defined, continuity, and monotonicity flags false and
+is listed among both undefined points and discontinuity candidates. If every sample is
+nonfinite, both extrema are NaN and the report says extrema are unavailable rather than
+printing numerical sentinel values.
+
+In contrast, `IsMonotonicOnSamples`, `AppearsContinuous`, `MinInNPoints`,
+`MaxInNPoints`, and `FindDiscontinuityCandidates` interpret their legacy `numPoints`
+argument as a **subinterval count** and inspect its `numPoints + 1` grid nodes,
+including both endpoints. Continuity searches may add refinement probes.
+Monotonicity permits plateaus, determines direction from the first unequal pair, and
+rejects nonfinite samples. Minimum/maximum searches ignore nonfinite samples, accept
+every finite magnitude, and return NaN only when no finite sample exists.
+`AppearsContinuous` replaces a supplied discontinuity vector on every successful
+return, including clearing it when no candidates were found.
+
+These sampling APIs require positive counts and finite ordered bounds (`x1 <= x2`);
+tolerance-taking analysis/probe APIs require a positive finite `eps`.
+Limit probes additionally require a positive iteration budget and a representable
+initial step. Invalid parameters throw `std::invalid_argument` before sampling or
+reserving output storage. A zero-width interval is permitted.
 
 ### Reusing Results and Detailed Tables
 
@@ -760,7 +808,7 @@ their legacy field names do not strengthen these guarantees.
 - Use `IsMonotonicOnSamples`, `AppearsContinuous`, and `FindDiscontinuityCandidates`.
   The former `IsMonotonic`, `IsContinuous`, and `FindDiscontinuities` spellings remain deprecated
   numerical aliases. Printer member functions are removed, not forwarded back into tools.
-- Numerical comparisons and searches remain in algorithms. Field analyzers are unchanged.
+- Numerical comparisons and searches remain in algorithms. Checked field sampling is documented below.
 
 Runnable counterparts: [docs_demo_function_analyzer.cpp](../../src/docs_demos/algorithms/docs_demo_function_analyzer.cpp).
 Build `MML_DocsApp` and run it with `--analyzer-reports`.
@@ -772,32 +820,75 @@ Build `MML_DocsApp` and run it with `--analyzer-reports`.
 ### ScalarFieldAnalyzer - 3D Field Analysis
 
 ```cpp
-class ScalarFieldAnalyzer
-{
-public:
-    ScalarFieldAnalyzer(IScalarFunction<3>& f);
-    bool IsConservative();
-};
+ScalarFunctionFromStdFunc<3> distSqField([](const VectorN<Real, 3>& p) {
+    return p[0]*p[0] + p[1]*p[1] + p[2]*p[2];
+});
+ScalarFieldAnalyzer scalarAnalyzer(distSqField);
+Vec3Cart lower{-1, -1, -1}, upper{1, 1, 1};
+const auto criticalPoints = scalarAnalyzer.FindCriticalPoints(lower, upper, 2);
+const bool harmonic = scalarAnalyzer.IsHarmonic(lower, upper, 2);
+std::cout << "Critical samples: " << criticalPoints.size()
+          << ", harmonic: " << harmonic << '\n'; // 1, false
 ```
 
-**Purpose**: Check if gradient field is conservative (curl = 0).
-
-**Note**: Currently under development - checks curl of gradient field.
+`GradientAt`, `IsCriticalPoint`, and `LaplacianAt` evaluate individual positions.
+`FindCriticalPoints` returns grid points whose gradient magnitude is below tolerance;
+it does not refine roots or prove that other critical points are absent.
+`IsHarmonic` checks the absolute Laplacian against tolerance at each visited grid point.
 
 ### VectorFieldAnalyzer - 3D Vector Analysis
 
 ```cpp
-class VectorFieldAnalyzer
-{
-public:
-    VectorFieldAnalyzer(IVectorFunction<3>& f);
-    bool IsSolenoidal();
-};
+VectorFunctionFromStdFunc<3> rotationField([](const VectorN<Real, 3>& p) {
+    return VectorN<Real, 3>{p[1], -p[0], 0};
+});
+VectorFieldAnalyzer vectorAnalyzer(rotationField);
+Vec3Cart lower{-1, -1, -1}, upper{1, 1, 1};
+const bool solenoidal = vectorAnalyzer.IsSolenoidal(lower, upper, 2);
+const bool curlFreeOnSamples = vectorAnalyzer.IsConservative(lower, upper, 2);
+const Real maxCurl = vectorAnalyzer.MaxCurlMagnitude(lower, upper, 2);
+std::cout << "Solenoidal: " << solenoidal
+          << ", curl-free on samples: " << curlFreeOnSamples
+          << ", maximum curl magnitude: " << maxCurl << '\n'; // true, false, about 2
 ```
 
-**Purpose**: Check if vector field is divergence-free (∇·F = 0).
+`DivergenceAt`, `CurlAt`, `IsSolenoidalAt`, and `IsIrrotationalAt` evaluate a point.
+`MaxDivergence` and `MaxCurlMagnitude` return sampled maxima, not certified bounds.
+`CirculationAroundCircle` approximates the oriented circular line integral using
+midpoint field values on polygonal chords.
 
-**Note**: Currently under development.
+### Sampling, failure, and lifetime contracts
+
+- Both analyzers **borrow** a const field reference. The field must outlive the analyzer;
+  constructing an analyzer directly from a temporary field is rejected at compile time.
+- `samplesPerDim` is a positive number of subintervals. Each axis includes both endpoints:
+  a completed traversal visits `(samplesPerDim + 1)^3` nodes. Equal endpoints are allowed
+  and retain repeated samples on collapsed axes; reversed bounds are invalid.
+  Coordinates are interpolated without forming a potentially overflowing endpoint difference.
+- Coordinates and bounds must be finite, and every explicit tolerance must be positive
+  and finite. Invalid numeric inputs throw `NumericInputError`; nonpositive counts or
+  reversed bounds throw `ArgumentError`. An unrepresentable grid node count throws
+  `ResourceLimitError`, rather than overflowing loop or work accounting.
+- Differential evaluations use the checked Cartesian
+  [Core field operations](../core/Field_operations.md), preserving default stencils and
+  derivative-provider dispatch without requesting error estimates. Nonfinite consumed
+  samples, provider derivatives, resulting derivatives, or magnitude/arithmetic reductions
+  throw `NumericalMethodError`; they never become successful flags or zero maxima.
+  Exceptions thrown by field callbacks propagate unchanged.
+- Region predicates short-circuit on the first failing sample. A successful result
+  describes only the sampled evidence; a negative result need not evaluate later samples.
+- Circle centers/normals must be finite, normals nonzero, radii finite and nonnegative,
+  and `numPoints` positive. Invalid numeric inputs throw `NumericInputError`, while
+  negative radii, zero normals, or nonpositive counts throw `ArgumentError`.
+  A zero radius is supported. Finite samples and representable path/integral arithmetic
+  are required even for a degenerate circle.
+- `IsConservative` is retained as a compatibility spelling for **sampled irrotationality**
+  (`IsIrrotational`). It does not establish global path independence or even zero curl
+  between samples. The mathematical implication from curl-free to conservative requires
+  appropriate smoothness and domain topology (for example a simply connected domain).
+
+Runnable counterparts: [docs_demo_field_analyzers.cpp](../../src/docs_demos/algorithms/docs_demo_field_analyzers.cpp).
+Build `MML_DocsApp` and run it with `--field-analyzers`.
 
 ---
 
@@ -985,7 +1076,7 @@ std::vector<Real> FindAllFeatures(const IRealFunction& func, Real a, Real b)
 The Function Analyzer framework provides:
 
 ✅ **Critical Point Analysis** - Classify local min/max/saddle points with second derivative test  
-✅ **Discontinuity Detection** - Find and classify JUMP, REMOVABLE, INFINITE, OSCILLATORY  
+✅ **Discontinuity Detection** - Find and classify JUMP, REMOVABLE, Infinite, OSCILLATORY
 ✅ **Limit Computation** - Numerical left/right limits with adaptive convergence  
 ✅ **Root Finding** - Comprehensive zero detection with bracketing + refinement  
 ✅ **Inflection Points** - Locate concavity changes via f''(x) sign changes  

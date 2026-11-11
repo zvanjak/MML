@@ -36,8 +36,8 @@ namespace MML
 		/// @return IOResult with success/error information
 		inline IOResult SaveFieldLines2D(const std::vector<std::vector<VectorN<Real, 2>>>& lines, const std::string& title,
 																		 const std::string& fileName) {
-			if (fileName.empty())
-				return IOResult{false, IOError::INVALID_PARAMETERS, "fileName cannot be empty"}.WithFile(fileName);
+			const auto pathValidation = detail::ValidateFileName(fileName);
+			if (!pathValidation.success) return pathValidation;
 			if (lines.empty())
 				return IOResult{false, IOError::INVALID_PARAMETERS, "lines vector cannot be empty"}.WithFile(fileName);
 
@@ -82,8 +82,8 @@ namespace MML
 		/// @brief Save 3D field lines from raw point vectors
 		inline IOResult SaveFieldLines3D(const std::vector<std::vector<VectorN<Real, 3>>>& lines, const std::string& title,
 																		 const std::string& fileName) {
-			if (fileName.empty())
-				return IOResult{false, IOError::INVALID_PARAMETERS, "fileName cannot be empty"}.WithFile(fileName);
+			const auto pathValidation = detail::ValidateFileName(fileName);
+			if (!pathValidation.success) return pathValidation;
 			if (lines.empty())
 				return IOResult{false, IOError::INVALID_PARAMETERS, "lines vector cannot be empty"}.WithFile(fileName);
 

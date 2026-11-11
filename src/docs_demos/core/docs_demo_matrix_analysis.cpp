@@ -353,6 +353,15 @@ void Demo_FaddeevLeverrier()
     Matrix<Real> product = A * *result.inverse;
     std::cout << "\nVerification A * A^(-1):" << std::endl;
     product.Print(std::cout, 10, 6);
+
+    const Real scale = 1e154; // Double-precision example.
+    const Matrix<Real> scaledIdentity{2, 2, {scale, 0, 0, scale}};
+    const auto scaled = MatrixAlg::FaddeevLeVerrier(scaledIdentity);
+    std::cout << "Determinant: " << scaled.determinant << '\n';
+    if (scaled.inverse) {
+        std::cout << "A * inverse:\n";
+        (scaledIdentity * *scaled.inverse).Print(std::cout, 10, 6);
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////

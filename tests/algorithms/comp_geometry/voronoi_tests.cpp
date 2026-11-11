@@ -100,9 +100,8 @@ TEST_CASE("VoronoiDiagram - Collinear points", "[ComputationalGeometry][Voronoi]
     
     REQUIRE(voronoi.NumSites() == 4);
     
-    // Collinear points have no triangulation, so Voronoi computed from Delaunay has no edges
-    // This is a degenerate case - implementation returns empty structure
-    // All cells are infinite for collinear case
+    REQUIRE(voronoi.NumEdges() == 3);
+    REQUIRE(voronoi.NumVertices() == 0);
     for (int i = 0; i < 4; i++) {
         REQUIRE(voronoi.IsCellInfinite(i));
     }
@@ -152,17 +151,17 @@ TEST_CASE("VoronoiDiagram - Nearest site query", "[ComputationalGeometry][Vorono
     auto voronoi = MML::CompGeometry::Voronoi::ComputeVoronoi(sites);
     
     // Query point very close to first site
-    Point2Cartesian query1(0.1, 0.1);
+    Point2Cartesian query1(MML::Real(0.1), MML::Real(0.1));
     int nearest1 = voronoi.FindNearestSite(query1);
     REQUIRE(nearest1 == 0);
     
     // Query point very close to second site
-    Point2Cartesian query2(3.9, 0.1);
+    Point2Cartesian query2(MML::Real(3.9), MML::Real(0.1));
     int nearest2 = voronoi.FindNearestSite(query2);
     REQUIRE(nearest2 == 1);
     
     // Query point very close to third site
-    Point2Cartesian query3(2, 3.8);
+    Point2Cartesian query3(2, MML::Real(3.8));
     int nearest3 = voronoi.FindNearestSite(query3);
     REQUIRE(nearest3 == 2);
 }
@@ -364,5 +363,4 @@ TEST_CASE("VoronoiDiagram - Cell is infinite check", "[ComputationalGeometry][Vo
 }
 
 } // namespace MML::Tests::Algorithms::CompGeometry::VoronoiTests
-
 

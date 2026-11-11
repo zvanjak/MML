@@ -54,17 +54,17 @@ namespace MML::TestBeds
 
     // 4. Absolute value (non-smooth): f(x) = |x - 1.5| + 2
     // Minimum at x=1.5, f(1.5)=2
-    static Real Opt1D_AbsValue(Real x) { return std::abs(x - 1.5) + 2; }
+    static Real Opt1D_AbsValue(Real x) { return std::abs(x - MML::Real(1.5)) + 2; }
     const static inline Real Opt1D_AbsValue_min_x = 1.5;
     const static inline Real Opt1D_AbsValue_min_f = 2.0;
 
     // 5. Fourth-degree polynomial: f(x) = x⁴ - 4x³ + 4x² + 1
     // = (x² - 2x)² + 1, minimum at x=0 and x=2, f=1
-    static Real Opt1D_PolyDouble(Real x) { 
+    static inline Real Opt1D_PolyDouble(Real x) {
         Real t = x * x - 2 * x;
         return t * t + 1; 
     }
-    static Real Opt1D_PolyDouble_deriv(Real x) { 
+    static inline Real Opt1D_PolyDouble_deriv(Real x) {
         return 4 * (x * x - 2 * x) * (2 * x - 2); 
     }
     const static inline Real Opt1D_PolyDouble_min_x1 = 0.0;
@@ -78,7 +78,7 @@ namespace MML::TestBeds
     // 6. Sinusoidal: f(x) = sin(x) + sin(3x)/3 + 0.5
     // Multiple local minima, global minimum near x ≈ -1.9
     static Real Opt1D_Sinusoidal(Real x) { 
-        return std::sin(x) + std::sin(3 * x) / 3 + 0.5; 
+        return std::sin(x) + std::sin(3 * x) / 3 + MML::Real(0.5);
     }
     static Real Opt1D_Sinusoidal_deriv(Real x) { 
         return std::cos(x) + std::cos(3 * x); 
@@ -98,7 +98,7 @@ namespace MML::TestBeds
     // 8. Ackley 1D: f(x) = -20*exp(-0.2*|x|) - exp(cos(2πx)) + 20 + e
     // Global minimum at x=0, f(0)=0
     static Real Opt1D_Ackley(Real x) { 
-        return -20 * std::exp(-0.2 * std::abs(x)) 
+        return -20 * std::exp(-Real(0.2) * std::abs(x))
                - std::exp(std::cos(2 * Constants::PI * x)) 
                + 20 + Constants::E; 
     }
@@ -107,7 +107,7 @@ namespace MML::TestBeds
 
     // 9. Gramacy & Lee (2012): f(x) = sin(10πx)/(2x) + (x-1)⁴
     // Tricky function with local minima, on [0.5, 2.5]
-    static Real Opt1D_GramacyLee(Real x) { 
+    static inline Real Opt1D_GramacyLee(Real x) {
         return std::sin(10 * Constants::PI * x) / (2 * x) + (x - 1) * (x - 1) * (x - 1) * (x - 1); 
     }
 
@@ -117,16 +117,16 @@ namespace MML::TestBeds
 
     // 10. Very flat: f(x) = exp(-1/(x²+0.01))
     // Nearly flat minimum region around x=0
-    static Real Opt1D_VeryFlat(Real x) { 
-        return std::exp(-1.0 / (x * x + 0.01)); 
+    static inline Real Opt1D_VeryFlat(Real x) {
+        return std::exp(-MML::Real(1.0) / (x * x + MML::Real(0.01)));
     }
     const static inline Real Opt1D_VeryFlat_min_x = 0.0;
 
     // 11. Steep valley: f(x) = (x-2)² + 0.1/((x-2)²+0.001)
     // Sharp minimum at x=2
-    static Real Opt1D_SteepValley(Real x) { 
+    static inline Real Opt1D_SteepValley(Real x) {
         Real d = (x - 2) * (x - 2);
-        return d + 0.1 / (d + 0.001); 
+        return d + MML::Real(0.1) / (d + MML::Real(0.001));
     }
 
     // 12. Log barrier: f(x) = x² - log(x), x > 0
@@ -135,10 +135,10 @@ namespace MML::TestBeds
         return x * x - std::log(x); 
     }
     static Real Opt1D_LogBarrier_deriv(Real x) { 
-        return 2 * x - 1.0 / x; 
+        return 2 * x - MML::Real(1.0) / x;
     }
-    const static inline Real Opt1D_LogBarrier_min_x = 0.7071067811865476;  // 1/sqrt(2)
-    const static inline Real Opt1D_LogBarrier_min_f = 0.8465735902799727;  // 0.5 + 0.5*ln(2)
+    const static inline Real Opt1D_LogBarrier_min_x = MML::Real(0.7071067811865476);  // 1/sqrt(2)
+    const static inline Real Opt1D_LogBarrier_min_f = MML::Real(0.8465735902799727);  // 0.5 + 0.5*ln(2)
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     //                    N-DIMENSIONAL OPTIMIZATION TEST FUNCTIONS                           //
@@ -278,7 +278,7 @@ namespace MML::TestBeds
             sum_sq += x[i] * x[i];
             sum_cos += std::cos(2 * Constants::PI * x[i]);
         }
-        return -20 * std::exp(-0.2 * std::sqrt(sum_sq / N)) 
+        return -20 * std::exp(-Real(0.2) * std::sqrt(sum_sq / N))
                - std::exp(sum_cos / N) 
                + 20 + Constants::E;
     }
@@ -307,7 +307,7 @@ namespace MML::TestBeds
             sum += x[i] * std::sin(std::sqrt(std::abs(x[i])));
         return 418.9829 * N - sum;
     }
-    const static inline Real OptND_Schwefel_min_coord = 420.9687;
+    const static inline Real OptND_Schwefel_min_coord = MML::Real(420.9687);
 
     // 23. LEVY: Complex multimodal function
     // Global minimum: f(1,...,1) = 0
@@ -335,9 +335,9 @@ namespace MML::TestBeds
     // 24. BEALE: f(x,y) = (1.5-x+xy)² + (2.25-x+xy²)² + (2.625-x+xy³)²
     // Global minimum: f(3, 0.5) = 0
     static Real OptND_Beale(const VectorN<Real, 2>& x) {
-        Real t1 = 1.5 - x[0] + x[0] * x[1];
-        Real t2 = 2.25 - x[0] + x[0] * x[1] * x[1];
-        Real t3 = 2.625 - x[0] + x[0] * x[1] * x[1] * x[1];
+        Real t1 = MML::Real(1.5) - x[0] + x[0] * x[1];
+        Real t2 = MML::Real(2.25) - x[0] + x[0] * x[1] * x[1];
+        Real t3 = MML::Real(2.625) - x[0] + x[0] * x[1] * x[1] * x[1];
         return t1 * t1 + t2 * t2 + t3 * t3;
     }
     const static inline VectorN<Real, 2> OptND_Beale_min = {3.0, 0.5};
@@ -356,7 +356,7 @@ namespace MML::TestBeds
     // 26. MATYAS: f(x,y) = 0.26(x²+y²) - 0.48xy
     // Global minimum: f(0, 0) = 0
     static Real OptND_Matyas(const VectorN<Real, 2>& x) {
-        return 0.26 * (x[0] * x[0] + x[1] * x[1]) - 0.48 * x[0] * x[1];
+        return MML::Real(0.26) * (x[0] * x[0] + x[1] * x[1]) - MML::Real(0.48) * x[0] * x[1];
     }
     const static inline VectorN<Real, 2> OptND_Matyas_min = {0.0, 0.0};
     const static inline Real OptND_Matyas_min_f = 0.0;
@@ -370,9 +370,9 @@ namespace MML::TestBeds
         return t1 * t1 + t2 * t2;
     }
     const static inline VectorN<Real, 2> OptND_Himmelblau_min1 = {3.0, 2.0};
-    const static inline VectorN<Real, 2> OptND_Himmelblau_min2 = {-2.805118, 3.131312};
-    const static inline VectorN<Real, 2> OptND_Himmelblau_min3 = {-3.779310, -3.283186};
-    const static inline VectorN<Real, 2> OptND_Himmelblau_min4 = {3.584428, -1.848126};
+    const static inline VectorN<Real, 2> OptND_Himmelblau_min2 = {-MML::Real(2.805118), MML::Real(3.131312)};
+    const static inline VectorN<Real, 2> OptND_Himmelblau_min3 = {-MML::Real(3.779310), -MML::Real(3.283186)};
+    const static inline VectorN<Real, 2> OptND_Himmelblau_min4 = {MML::Real(3.584428), -MML::Real(1.848126)};
     const static inline Real OptND_Himmelblau_min_f = 0.0;
 
     // 28. GOLDSTEIN-PRICE: 
@@ -380,9 +380,9 @@ namespace MML::TestBeds
     //          [30+(2x-3y)²(18-32x+12x²+48y-36xy+27y²)]
     // Global minimum: f(0, -1) = 3
     static Real OptND_GoldsteinPrice(const VectorN<Real, 2>& x) {
-        Real a = 1 + std::pow(x[0] + x[1] + 1, 2) * 
+        Real a = 1 + std::pow(x[0] + x[1] + 1, MML::Real(2)) *
                  (19 - 14*x[0] + 3*x[0]*x[0] - 14*x[1] + 6*x[0]*x[1] + 3*x[1]*x[1]);
-        Real b = 30 + std::pow(2*x[0] - 3*x[1], 2) *
+        Real b = 30 + std::pow(2*x[0] - 3*x[1], MML::Real(2)) *
                  (18 - 32*x[0] + 12*x[0]*x[0] + 48*x[1] - 36*x[0]*x[1] + 27*x[1]*x[1]);
         return a * b;
     }
@@ -395,7 +395,7 @@ namespace MML::TestBeds
         Real x2 = x[0] * x[0];
         Real x4 = x2 * x2;
         Real x6 = x4 * x2;
-        return 2*x2 - 1.05*x4 + x6/6 + x[0]*x[1] + x[1]*x[1];
+        return 2*x2 - MML::Real(1.05)*x4 + x6/6 + x[0]*x[1] + x[1]*x[1];
     }
     const static inline VectorN<Real, 2> OptND_ThreeHumpCamel_min = {0.0, 0.0};
     const static inline Real OptND_ThreeHumpCamel_min_f = 0.0;
@@ -405,11 +405,11 @@ namespace MML::TestBeds
     static Real OptND_SixHumpCamel(const VectorN<Real, 2>& x) {
         Real x2 = x[0] * x[0];
         Real y2 = x[1] * x[1];
-        return (4 - 2.1*x2 + x2*x2/3)*x2 + x[0]*x[1] + (-4 + 4*y2)*y2;
+        return (4 - MML::Real(2.1)*x2 + x2*x2/3)*x2 + x[0]*x[1] + (-4 + 4*y2)*y2;
     }
-    const static inline VectorN<Real, 2> OptND_SixHumpCamel_min1 = {0.0898, -0.7126};
-    const static inline VectorN<Real, 2> OptND_SixHumpCamel_min2 = {-0.0898, 0.7126};
-    const static inline Real OptND_SixHumpCamel_min_f = -1.0316284535;
+    const static inline VectorN<Real, 2> OptND_SixHumpCamel_min1 = {MML::Real(0.0898), -MML::Real(0.7126)};
+    const static inline VectorN<Real, 2> OptND_SixHumpCamel_min2 = {-MML::Real(0.0898), MML::Real(0.7126)};
+    const static inline Real OptND_SixHumpCamel_min_f = -MML::Real(1.0316284535);
 
     // 31. EASOM: f(x,y) = -cos(x)cos(y)exp(-[(x-π)²+(y-π)²])
     // Global minimum: f(π, π) = -1
@@ -434,8 +434,8 @@ namespace MML::TestBeds
         }
         return 0.5 * sum;
     }
-    const static inline Real OptND_StyblinskiTang_min_coord = -2.903534;
-    const static inline Real OptND_StyblinskiTang_min_f_per_dim = -39.16599;
+    const static inline Real OptND_StyblinskiTang_min_coord = -MML::Real(2.903534);
+    const static inline Real OptND_StyblinskiTang_min_f_per_dim = -MML::Real(39.16599);
 
     // ========================================================================================
     // CATEGORY 5: ILL-CONDITIONED FUNCTIONS
@@ -482,17 +482,17 @@ namespace MML::TestBeds
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     // Typical search domains for benchmark functions
-    const static inline Real Domain_Sphere_low = -5.12;
-    const static inline Real Domain_Sphere_high = 5.12;
+    const static inline Real Domain_Sphere_low = -MML::Real(5.12);
+    const static inline Real Domain_Sphere_high = MML::Real(5.12);
 
     const static inline Real Domain_Rosenbrock_low = -5.0;
     const static inline Real Domain_Rosenbrock_high = 10.0;
 
-    const static inline Real Domain_Rastrigin_low = -5.12;
-    const static inline Real Domain_Rastrigin_high = 5.12;
+    const static inline Real Domain_Rastrigin_low = -MML::Real(5.12);
+    const static inline Real Domain_Rastrigin_high = MML::Real(5.12);
 
-    const static inline Real Domain_Ackley_low = -32.768;
-    const static inline Real Domain_Ackley_high = 32.768;
+    const static inline Real Domain_Ackley_low = -MML::Real(32.768);
+    const static inline Real Domain_Ackley_high = MML::Real(32.768);
 
     const static inline Real Domain_Griewank_low = -600.0;
     const static inline Real Domain_Griewank_high = 600.0;

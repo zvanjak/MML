@@ -47,6 +47,41 @@ The metric tensor framework provides tools for working with distances, angles, a
 | Minkowski (4D) | `MetricTensorMinkowski` | 4 | diag(-1, 1, 1, 1) |
 | From Transform | `MetricTensorFromCoordTransf<From,To,N>` | N | Computed from Jacobian |
 
+### Storage, variance, and validity contracts
+
+`component(i,j,pos)` and the field call operator expose the declared storage.
+`GetCovariantMetric` and `GetContravariantMetric` instead return the variance
+named by the accessor: inverse storage is inverted when requesting covariant
+components, and returned directly when requesting contravariant components.
+Consequently, `MetricAt` also samples inverse-stored fields correctly.
+The base accessors reject mixed storage, nonfinite data, and nonsymmetric
+components using a matrix-scale-relative symmetry check. They do not impose
+positive definiteness: valid Lorentzian metrics remain supported.
+Direct typed `Metric` construction uses the same finite/symmetry guard.
+Connection/curvature differentiation and determinant divergence still require
+covariant storage; these are not inverse-storage connection adapters.
+
+Rank-two `RaiseIndex`/`LowerIndex` accept only slots 0 and 1. They flip exactly
+that slot, preserve the other slot, and reject an already-raised/already-lowered
+selected slot. Repeated operations can therefore produce fully raised or lowered
+tensors without corrupting metadata. The full Riemann tensor has slot flags
+`1000`, corresponding to its documented first-upper convention.
+
+`MetricTensorFromCoordTransf` forms the Gram matrix from **all target-dimension
+Jacobian rows**, including rectangular embeddings and reductions. A reduction
+can produce a rank-deficient Gram matrix; sampling it is allowed, inversion is
+not. This adapter borrows an lvalue transformation that must outlive it; temporary
+transformations are rejected at compile time.
+
+Lorentzian interval classification rejects nonfinite coordinates/displacements
+and nonfinite or negative tolerances. Nonrepresentable interval arithmetic fails
+explicitly instead of falling through to a spacelike classification.
+
+Runnable storage/slot checks:
+`Docs_Demo_MetricStorageContracts` in
+[docs_demo_metric_tensor.cpp](../../src/docs_demos/core/docs_demo_metric_tensor.cpp).
+Build `MML_DocsApp` in Release and run `--metric-field-contracts`.
+
 ### Key Operations
 
 | Operation | Method | Use Case |
@@ -166,7 +201,9 @@ inversion checks; explicit inversion sentinel policies are described below.
 Both connection paths require covariant metric storage. In particular,
 `MetricTensorSphericalContravar` is **not** a covariant metric field and connection
 calculations now throw `DomainError`: use `MetricTensorSpherical` instead.
-Its existing inverse-component accessors are unchanged.
+Its `component` and field-call operator still expose inverse components.
+`GetCovariantMetric` inverts that storage; `GetContravariantMetric` returns it
+directly, as their names require.
 
 #### Explicit metric inversion policy
 

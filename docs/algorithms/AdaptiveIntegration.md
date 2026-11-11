@@ -18,6 +18,34 @@ fewer evaluations in smooth regions.
 
 ## API Reference
 
+### Global accuracy, budgets and partial results
+
+Refinement prioritizes the largest refinable cell error. Success requires the
+sum of retained leaf errors to satisfy
+`error <= max(tol_abs, tol_rel * abs(value))`; locally acceptable children alone
+cannot establish success. The retained frontier is re-summed before approval.
+Depth exhaustion, coordinate stagnation and exhausted work budgets are explicit
+nonconvergence outcomes, not successful partial integrations.
+
+Evaluation budgets are checked before work. A 2D GK15 root costs 225 calls and
+one complete quadtree replacement costs another 900; a 3D root costs 3,375 and
+an octree replacement another 27,000. Counts include discarded parent estimates.
+If the next full replacement cannot fit, the previous complete-domain estimate
+and error are retained with `ResourceLimitExceeded`. If even the root cannot fit,
+there are no calls and no computed payload/estimate.
+
+Both dimensions currently support only the GK15 tensor rule. Unsupported rule
+selections raise `NotImplementedError`, rather than silently selecting GK15.
+Finite nonnegative tolerances (at least one positive), nonnegative depth and a
+positive evaluation budget are required. The existing convention that a reversed
+or empty ND extent represents an empty domain is preserved.
+
+For adaptive 1D Gauss-Kronrod, accumulated error includes an arithmetic floor.
+Repeated lack of improvement yields `ToleranceUnachievable`; a cancelling
+integral does not receive success merely because its individual cells met local
+relative targets. These estimates still depend on sampled behavior and do not
+certify arbitrary unsampled features.
+
 ### 2D Integration
 
 ```cpp

@@ -101,7 +101,7 @@ namespace MML::TestBeds {
 		Real energy = 0.0;
 		for (int i = 0; i < N; i++) {
 			Real t = i / sampleRate;
-			test.data[i] = amplitude * std::sin(2.0 * Constants::PI * freq * t);
+			test.data[i] = amplitude * std::sin(MML::Real(2.0) * Constants::PI * freq * t);
 			energy += test.data[i] * test.data[i];
 		}
 
@@ -133,7 +133,7 @@ namespace MML::TestBeds {
 		Real energy = 0.0;
 		for (int i = 0; i < N; i++) {
 			Real t = i / sampleRate;
-			test.data[i] = amplitude * std::cos(2.0 * Constants::PI * freq * t);
+			test.data[i] = amplitude * std::cos(MML::Real(2.0) * Constants::PI * freq * t);
 			energy += test.data[i] * test.data[i];
 		}
 
@@ -171,7 +171,7 @@ namespace MML::TestBeds {
 		Real energy = 0.0;
 		for (int i = 0; i < N; i++) {
 			Real t = i / sampleRate;
-			test.data[i] = amp1 * std::sin(2.0 * Constants::PI * freq1 * t) + amp2 * std::sin(2.0 * Constants::PI * freq2 * t);
+			test.data[i] = amp1 * std::sin(MML::Real(2.0) * Constants::PI * freq1 * t) + amp2 * std::sin(MML::Real(2.0) * Constants::PI * freq2 * t);
 			energy += test.data[i] * test.data[i];
 		}
 
@@ -200,14 +200,14 @@ namespace MML::TestBeds {
 		test.sampleRate = sampleRate;
 		test.data.resize(N);
 
-		std::vector<Real> amplitudes = {1.0, 0.5, 0.33, 0.25, 0.2};
+		std::vector<Real> amplitudes = {MML::Real(1.0), MML::Real(0.5), MML::Real(0.33), MML::Real(0.25), MML::Real(0.2)};
 
 		Real energy = 0.0;
 		for (int i = 0; i < N; i++) {
 			Real t = i / sampleRate;
 			test.data[i] = 0.0;
 			for (int h = 1; h <= numHarmonics; h++) {
-				test.data[i] += amplitudes[h - 1] * std::sin(2.0 * Constants::PI * h * fundamental * t);
+				test.data[i] += amplitudes[h - 1] * std::sin(MML::Real(2.0) * Constants::PI * h * fundamental * t);
 			}
 			energy += test.data[i] * test.data[i];
 		}
@@ -249,7 +249,7 @@ namespace MML::TestBeds {
 		Real energy = 0.0;
 		for (int i = 0; i < N; i++) {
 			Real t = i / sampleRate;
-			Real phase = 2.0 * Constants::PI * (f0 * t + 0.5 * k * t * t);
+			Real phase = MML::Real(2.0) * Constants::PI * (f0 * t + MML::Real(0.5) * k * t * t);
 			test.data[i] = std::sin(phase);
 			energy += test.data[i] * test.data[i];
 		}
@@ -271,7 +271,7 @@ namespace MML::TestBeds {
 		const Real f1 = 64.0; // End frequency
 		const Real sampleRate = 512.0;
 		const Real duration = N / sampleRate;
-		const Real k = std::pow(f1 / f0, 1.0 / duration);
+		const Real k = std::pow(f1 / f0, MML::Real(1.0) / duration);
 
 		TestSignal test;
 		test.name = "Exponential Chirp (2-64 Hz)";
@@ -281,8 +281,7 @@ namespace MML::TestBeds {
 		Real energy = 0.0;
 		for (int i = 0; i < N; i++) {
 			Real t = i / sampleRate;
-			Real freq = f0 * std::pow(k, t);
-			Real phase = 2.0 * Constants::PI * f0 * (std::pow(k, t) - 1.0) / std::log(k);
+			Real phase = MML::Real(2.0) * Constants::PI * f0 * (std::pow(k, t) - MML::Real(1.0)) / std::log(k);
 			test.data[i] = std::sin(phase);
 			energy += test.data[i] * test.data[i];
 		}
@@ -333,7 +332,7 @@ namespace MML::TestBeds {
 		test.data.resize(N);
 
 		for (int i = 0; i < N; i++) {
-			test.data[i] = (i >= stepPos) ? 1.0 : 0.0;
+			test.data[i] = (i >= stepPos) ? MML::Real(1.0) : MML::Real(0.0);
 		}
 
 		test.category = "step";
@@ -364,7 +363,7 @@ namespace MML::TestBeds {
 		for (int i = 0; i < N; i++) {
 			test.data[i] = 0.0;
 			for (int k = 1; k <= 20; k++) {
-				test.data[i] += std::sin(2.0 * Constants::PI * k * i / N + k) / (20.0);
+				test.data[i] += std::sin(MML::Real(2.0) * Constants::PI * k * i / N + k) / (MML::Real(20.0));
 			}
 			energy += test.data[i] * test.data[i];
 		}
@@ -422,7 +421,7 @@ namespace MML::TestBeds {
 		Real energy = 0.0;
 		for (int i = 0; i < N; i++) {
 			Real x = (i - center) / sigma;
-			test.data[i] = std::exp(-0.5 * x * x);
+			test.data[i] = std::exp(-MML::Real(0.5) * x * x);
 			energy += test.data[i] * test.data[i];
 		}
 
@@ -499,7 +498,7 @@ namespace MML::TestBeds {
 
 		for (int i = 0; i < N; i++) {
 			Real t = i / sampleRate;
-			test.signal1[i] = std::sin(2.0 * Constants::PI * freq * t);
+			test.signal1[i] = std::sin(MML::Real(2.0) * Constants::PI * freq * t);
 		}
 
 		test.signal2 = test.signal1;
@@ -527,7 +526,7 @@ namespace MML::TestBeds {
 		Real sigma = 3.0;
 		for (int i = 0; i < N; i++) {
 			Real x = (i - center) / sigma;
-			test.signal1[i] = std::exp(-0.5 * x * x);
+			test.signal1[i] = std::exp(-MML::Real(0.5) * x * x);
 		}
 
 		// Signal 2: Same pulse delayed

@@ -70,12 +70,12 @@ namespace MML {
 		/// @return true if root successfully bracketed, false if search exhausted
 		///
 		/// POSTCONDITION:
-		/// If returns true: func(x1) and func(x2) have opposite signs
+		/// If returns true: a finite endpoint is a root, or finite endpoint values have opposite signs
 		/// If returns false: x1, x2 modified but no bracket found
 		///
 		/// Based on Numerical Recipes §9.1
-		static bool BracketRoot(const IRealFunction& func, Real& x1, Real& x2, int MaxTry = 50) {
-			const Real scaleFactor = 1.6;
+		static inline bool BracketRoot(const IRealFunction& func, Real& x1, Real& x2, int MaxTry = 50) {
+			const Real scaleFactor = MML::Real(1.6);
 
 			if (x1 == x2)
 				throw RootFindingError("Bad initial range in BracketRoot");
@@ -83,16 +83,19 @@ namespace MML {
 			Real f1 = func(x1);
 			Real f2 = func(x2);
 
-			for (int j = 0; j < MaxTry; j++) {
-				if (f1 * f2 < 0.0)
+			for (int j = 0; ; j++) {
+				if (!std::isfinite(f1) || !std::isfinite(f2))
+					return false;
+				if (f1 == 0 || f2 == 0 || std::signbit(f1) != std::signbit(f2))
 					return true;
+				if (j >= MaxTry)
+					return false;
 
 				if (std::abs(f1) < std::abs(f2))
 					f1 = func(x1 += scaleFactor * (x1 - x2));
 				else
 					f2 = func(x2 += scaleFactor * (x2 - x1));
 			}
-			return false;
 		}
 
 		template<RealFunctionCallable Function>
@@ -151,7 +154,7 @@ namespace MML {
 		/// - For each i: func(xb1[i]) and func(xb2[i]) have opposite signs
 		///
 		/// Based on Numerical Recipes §9.1
-		static int FindRootBrackets(const IRealFunction& func, const Real x1, const Real x2, const int numPoints, Vector<Real>& xb1,
+		static inline int FindRootBrackets(const IRealFunction& func, const Real x1, const Real x2, const int numPoints, Vector<Real>& xb1,
 									Vector<Real>& xb2) {
 			RootIsolationConfig config;
 			config.num_intervals = numPoints;
@@ -238,7 +241,7 @@ namespace MML {
 		///
 		/// Based on Numerical Recipes §9.1
 		/// @see FindRootBisectionDetailed(const IRealFunction&, Real, Real, const RootFindingConfig&)
-		static Real FindRootBisection(const IRealFunction& func, Real x1, Real x2, Real xacc) {
+		static inline Real FindRootBisection(const IRealFunction& func, Real x1, Real x2, Real xacc) {
 			RootFindingConfig config;
 			config.tolerance = xacc;
 			config.max_iterations = 0;  // Use default from Defaults namespace
@@ -285,11 +288,10 @@ namespace MML {
 				result.error_message = "Invalid configuration or endpoints in FindRootBisection";
 				return result;
 			}
-			Real dx, xmid, rtb;
+			Real dx, rtb;
 
-			Real f = func(x1);
-			Real fmid = func(x2);
-			result.function_evaluations = 2;
+			Real f = Detail::EvaluateFunction(func, x1, result.function_evaluations);
+			Real fmid = Detail::EvaluateFunction(func, x2, result.function_evaluations);
 
 			// Check for non-finite initial values using shared validation helper
 			if (!IsFunctionValueValid(f) || !IsFunctionValueValid(fmid)) {
@@ -299,7 +301,7 @@ namespace MML {
 			}
 			if (AcceptEndpointRoot(result, config, x1, f, x2, fmid)) return result;
 
-			if (f * fmid >= 0.0) {
+			if (f == 0 || fmid == 0 || std::signbit(f) == std::signbit(fmid)) {
 				result.status = AlgorithmStatus::InvalidInput;
 				result.error_message = "Root must be bracketed for bisection in FindRootBisection";
 				return result;
@@ -314,20 +316,21 @@ namespace MML {
 			}
 
 			int maxIter = (config.max_iterations > 0) ? config.max_iterations : Defaults::BisectionMaxSteps;
+			Real xmid = rtb;
 
 			for (int j = 0; j < maxIter; j++) {
 				dx *= 0.5;
 				xmid = rtb + dx;
-				fmid = func(xmid);
-				++result.function_evaluations;
+				fmid = Detail::EvaluateFunction(func, xmid, result.function_evaluations);
 
 				// Check for non-finite midpoint value using shared validation helper
 				if (!IsFunctionValueValid(fmid)) {
 					result.status = AlgorithmStatus::NumericalInstability;
-					result.root = rtb;
+					result.root = xmid;
 					result.function_value = fmid;
 					result.iterations_used = j + 1;
 					result.achieved_tolerance = std::abs(dx);
+					result.x_error = std::abs(dx);
 					result.error_message = "Non-finite function value in FindRootBisection iteration";
 					return result;
 				}
@@ -336,13 +339,13 @@ namespace MML {
 					rtb = xmid;
 
 				if (config.verbose && config.verboseStream) {
-					*config.verboseStream << "Bisection iter " << j << ": x=" << rtb 
+					*config.verboseStream << "Bisection iter " << j << ": x=" << xmid
 							  << ", f(x)=" << fmid << ", dx=" << dx << std::endl;
 				}
 
-				if (MeetsConvergence(config, rtb, std::abs(dx), fmid) || fmid == 0.0) {
-					result.root = rtb;
-					result.function_value = func(rtb);
+				if (MeetsConvergence(config, xmid, std::abs(dx), fmid)) {
+					result.root = xmid;
+					result.function_value = fmid;
 					result.iterations_used = j + 1;
 					result.converged = true;
 					result.achieved_tolerance = std::abs(dx);
@@ -351,8 +354,8 @@ namespace MML {
 				}
 			}
 			
-			result.root = rtb;
-			result.function_value = func(rtb);
+			result.root = xmid;
+			result.function_value = fmid;
 			result.iterations_used = maxIter;
 			result.achieved_tolerance = std::abs(dx);
 			result.x_error = std::abs(dx);
@@ -428,7 +431,7 @@ namespace MML {
 		///
 		/// Based on Numerical Recipes §9.2
 		/// @see FindRootFalsePositionDetailed(const IRealFunction&, Real, Real, const RootFindingConfig&)
-		static Real FindRootFalsePosition(const IRealFunction& func, Real x1, Real x2, Real xacc) {
+		static inline Real FindRootFalsePosition(const IRealFunction& func, Real x1, Real x2, Real xacc) {
 			RootFindingConfig config;
 			config.tolerance = xacc;
 			config.max_iterations = 0;
@@ -457,9 +460,8 @@ namespace MML {
 				result.error_message = "Invalid configuration or endpoints in FindRootFalsePosition";
 				return result;
 			}
-			Real f1 = func(x1);
-			Real f2 = func(x2);
-			result.function_evaluations = 2;
+			Real f1 = Detail::EvaluateFunction(func, x1, result.function_evaluations);
+			Real f2 = Detail::EvaluateFunction(func, x2, result.function_evaluations);
 
 			if (!IsFunctionValueValid(f1) || !IsFunctionValueValid(f2)) {
 				result.status = AlgorithmStatus::NumericalInstability;
@@ -467,7 +469,7 @@ namespace MML {
 				return result;
 			}
 			if (AcceptEndpointRoot(result, config, x1, f1, x2, f2)) return result;
-			if (f1 * f2 >= 0.0) {
+			if (!Detail::HaveOppositeSigns(f1, f2)) {
 				result.status = AlgorithmStatus::InvalidInput;
 				result.error_message = "Root must be bracketed for false position";
 				return result;
@@ -483,9 +485,8 @@ namespace MML {
 
 			for (int j = 0; j < maxIter; j++) {
 				Real dx = x2 - x1;
-				rtf = x1 + dx * f1 / (f1 - f2);
-				Real f = func(rtf);
-				++result.function_evaluations;
+				rtf = x1 + dx * Detail::ScaledSecantFraction(f1, f2);
+				Real f = Detail::EvaluateFunction(func, rtf, result.function_evaluations);
 
 				if (!IsFunctionValueValid(f)) {
 					result.status = AlgorithmStatus::NumericalInstability;
@@ -521,8 +522,7 @@ namespace MML {
 			}
 			
 			result.root = rtf;
-			result.function_value = func(rtf);
-			++result.function_evaluations;
+			result.function_value = Detail::EvaluateFunction(func, rtf, result.function_evaluations);
 			result.iterations_used = maxIter;
 			result.achieved_tolerance = std::abs(x2 - x1);
 			result.x_error = std::abs(x2 - x1);
@@ -546,7 +546,7 @@ namespace MML {
 
 		/// @deprecated Use FindRootBisectionDetailed() - the result-returning spelling (CONTRACT_POLICY section 11).
 		[[deprecated("use FindRootBisectionDetailed()")]]
-		static RootFindingResult FindRootBisection(const IRealFunction& func, Real x1, Real x2, const RootFindingConfig& config)
+		static inline RootFindingResult FindRootBisection(const IRealFunction& func, Real x1, Real x2, const RootFindingConfig& config)
 		{ return FindRootBisectionDetailed(func, x1, x2, config); }
 		template<RealFunctionCallable Function>
 			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
@@ -555,7 +555,7 @@ namespace MML {
 		{ MML::Detail::RealFunctionCallableAdapter<Function> adapter(func); return FindRootBisectionDetailed(adapter, x1, x2, config); }
 
 		/// Result-returning form with the plain argument list: tolerance xacc, default iteration budget.
-		static RootFindingResult FindRootBisectionDetailed(const IRealFunction& func, Real x1, Real x2, Real xacc)
+		static inline RootFindingResult FindRootBisectionDetailed(const IRealFunction& func, Real x1, Real x2, Real xacc)
 		{ RootFindingConfig config; config.tolerance = xacc; config.max_iterations = 0; return FindRootBisectionDetailed(func, x1, x2, config); }
 		template<RealFunctionCallable Function>
 			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
@@ -564,7 +564,7 @@ namespace MML {
 
 		/// @deprecated Use FindRootFalsePositionDetailed() - the result-returning spelling (CONTRACT_POLICY section 11).
 		[[deprecated("use FindRootFalsePositionDetailed()")]]
-		static RootFindingResult FindRootFalsePosition(const IRealFunction& func, Real x1, Real x2, const RootFindingConfig& config)
+		static inline RootFindingResult FindRootFalsePosition(const IRealFunction& func, Real x1, Real x2, const RootFindingConfig& config)
 		{ return FindRootFalsePositionDetailed(func, x1, x2, config); }
 		template<RealFunctionCallable Function>
 			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)
@@ -573,7 +573,7 @@ namespace MML {
 		{ MML::Detail::RealFunctionCallableAdapter<Function> adapter(func); return FindRootFalsePositionDetailed(adapter, x1, x2, config); }
 
 		/// Result-returning form with the plain argument list: tolerance xacc, default iteration budget.
-		static RootFindingResult FindRootFalsePositionDetailed(const IRealFunction& func, Real x1, Real x2, Real xacc)
+		static inline RootFindingResult FindRootFalsePositionDetailed(const IRealFunction& func, Real x1, Real x2, Real xacc)
 		{ RootFindingConfig config; config.tolerance = xacc; config.max_iterations = 0; return FindRootFalsePositionDetailed(func, x1, x2, config); }
 		template<RealFunctionCallable Function>
 			requires (!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>)

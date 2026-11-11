@@ -204,6 +204,44 @@ class VectorTablePrinter {
 };
 ```
 
+**Borrowing contract:** the printer stores pointers to the supplied vector objects;
+it does not copy their values. Pass named mutable or const lvalues that remain alive
+through every use of the printer (and any copies of it). Both `addVector` forms
+reject temporary/rvalue vectors at compile time. The pointer-list constructor also
+borrows its inputs and throws `std::invalid_argument` for any null entry.
+
+Each `print()` or `toString()` observes the vectors' current values and sizes, so
+growing, shrinking, or assigning a borrowed vector between calls is supported.
+Shorter columns are padded with empty cells. Do not destroy or concurrently mutate
+the borrowed objects while printing.
+
+`ColumnFormat::autoWidth()` is supported: each print recomputes the display width
+from the heading and the formatted live values, respecting precision, notation,
+alignment, and UTF-8 heading width. Calculated widths are local to the print and
+can shrink on a later call. Fixed nonnegative widths keep their existing behavior
+(minimum width, not truncation); zero means no padding. Negative widths other than
+`AUTO_WIDTH` are rejected with `std::invalid_argument` when adding the column.
+The pointer-list constructor still supplies default formats for missing entries
+and ignores surplus formats.
+
+```cpp
+Vector<Real> values{1};
+VectorTablePrinter table;
+table.addVector(
+    ColumnFormat("live").autoWidth().precision(2).format(FormatType::Fixed),
+    values);
+values.push_back(Real(1234.5));
+values.push_back(Real(-2));
+table.print();  // All three current rows; width accommodates 1234.50.
+values = Vector<Real>{2};
+table.print();  // One row; automatic width shrinks to the heading/value width.
+```
+
+Runnable counterpart:
+[`Docs_Demo_BorrowedVectorTables`](../../src/docs_demos/tools/docs_demo_console_printer.cpp),
+selected by `MML_DocsApp --borrowed-vector-tables`. It also checks const borrowing,
+null rejection, and stream-format preservation.
+
 ### 5. StreamStateGuard
 
 RAII class preserving stream formatting state.
@@ -236,6 +274,24 @@ enum class FormatType {
     Integer       // Integer formatting (no decimal point)
 };
 ```
+
+`Integer` accepts integral and floating-point **scalars**. Floating values are
+rounded to nearest with halfway values away from zero (`1.5` becomes `2`,
+`-2.5` becomes `-3`), then printed in fixed notation with zero fractional
+digits; the column precision does not affect this mode. No integer-storage
+conversion is performed, so large finite floating values do not overflow an
+integer cast. Signed zero is preserved; NaN and infinities retain the stream's
+nonfinite spellings. Integral values remain exact; character scalars display
+their numeric code and booleans display `0` or `1`.
+
+`Hexadecimal` accepts integral scalars only and uses `std::hex`; it is **not**
+floating-point `std::hexfloat`. Complex, string, and other non-scalar values
+in either special mode throw `ArgumentError`, as do floating-point hexadecimal
+values. General, fixed, and scientific formatting retain their existing stream
+semantics.
+
+These column settings affect console rendering and `formatValue`, not the
+existing CSV/TSV/Markdown/LaTeX/HTML export serialization of original values.
 
 #### Alignment
 Controls column text alignment.
@@ -314,6 +370,31 @@ Alignment alignment() const;             // Get alignment
 
 ---
 
+#### Width Validation
+
+Widths must be `ColumnFormat::AUTO_WIDTH` (`-1`) or in
+`[0, ColumnFormat::MAX_WIDTH]`, where `MAX_WIDTH` is `INT_MAX - 2` to reserve
+the two border-padding cells. Invalid explicit or calculated widths throw
+`ArgumentError` **before changing the column**. Zero means no padding; content
+is never truncated. The limit is an arithmetic bound, not a guarantee that the
+machine has enough memory to render that many cells.
+
+Setting `width(...)` or `autoWidth()` clears a previous calculated width.
+Standalone `formatAligned` with unresolved auto-width returns content unchanged;
+table rendering computes auto-width from formatted values and headings before
+alignment. Both generic and borrowed-vector tables use the same width limits.
+Impossible repeated-border byte lengths throw `ResourceLimitError` before
+allocation or overflow.
+
+```cpp
+const auto integer = ColumnFormat("Rounded").width(5).format(FormatType::Integer);
+std::cout << integer.formatAligned(integer.formatValue(Real(-2.5))) << '\n';
+```
+
+This snippet, rounding checks, and explicit invalid-width/type rejection run in
+`MML_DocsApp --column-format-contracts`, implemented by
+[`Docs_Demo_ColumnFormatContracts`](../../src/docs_demos/tools/docs_demo_console_printer.cpp).
+
 ### TableStyle Class
 
 Controls table visual styling.
@@ -378,6 +459,41 @@ void exportTo(std::ostream& os, ExportFormat format) const;
 // Convert to string
 std::string toString() const;
 ```
+
+#### File Completion and Stream Ownership
+
+`printToFile` and `exportToFile` own their output file. Successful return means
+the writes, explicit flush, and explicit close completed without a stream error.
+Open failures and late write/flush/close failures throw `FileIOError`; both
+`error.filename()` and the diagnostic identify the destination. Late failures
+include `WRITE_FAILED` in the message. File helpers retain their existing `void`
+signatures and exception policy.
+
+Caller-owned `print(std::ostream&)` and `exportTo(std::ostream&, ...)` do **not**
+flush or close the stream. With the default nonthrowing exception mask, inspect
+the stream state after writing and after any flush/close performed by the owner.
+A caller-enabled exception mask retains standard stream exception behavior.
+Formatting state is restored on success and failure.
+
+These exports are not atomic replacements: a failed export may leave a partial
+file. Exceptions from custom value rendering or column validation propagate
+without being relabeled as an I/O failure; normal RAII still closes the file
+during unwinding.
+
+With `filename` set to a destination path:
+
+```cpp
+TablePrinter<std::string, Real> table("Tag", {"Value"});
+table.addRow("row", {Real(1.25)});
+table.exportToFile(filename, ExportFormat::CSV);
+```
+
+This snippet, a read-back check, and filename-bearing open-error handling run in
+`MML_DocsApp --table-export-contracts`, implemented by
+[`Docs_Demo_TableExportContracts`](../../src/docs_demos/tools/docs_demo_console_printer.cpp).
+Bounded regression tests inject failing stream buffers into a real owned file
+to exercise write, delayed flush, and close failures without exhausting a disk
+or relying on external devices.
 
 #### Query Methods
 

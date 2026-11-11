@@ -587,7 +587,7 @@ namespace MML::Tests::Base::Geometry3DTests
 
 		// Nearly isosceles (perturbation must be >1 ULP in sqrt(5) for float)
 		Triangle3D tri2(Pnt3Cart(0, 0, 0), Pnt3Cart(2, 0, 0), Pnt3Cart(static_cast<MML::Real>(1.00001), 2, 0));
-		REQUIRE(tri2.IsIsosceles(1e-4));
+		REQUIRE(tri2.IsIsosceles(MML::Real(1e-4)));
 		REQUIRE_FALSE(tri2.IsIsosceles(TOL(1e-12, 1e-8)));
 
 		// Equilateral (also isosceles)
@@ -608,7 +608,7 @@ namespace MML::Tests::Base::Geometry3DTests
 
 		// Nearly equilateral (perturbation must survive float arithmetic)
 		Triangle3D tri2(Pnt3Cart(0, 0, 0), Pnt3Cart(1, 0, 0), Pnt3Cart(static_cast<MML::Real>(0.5), sqrt(static_cast<MML::Real>(3.0)) / static_cast<MML::Real>(2.0) + static_cast<MML::Real>(0.00001), 0));
-		REQUIRE(tri2.IsEquilateral(1e-4));
+		REQUIRE(tri2.IsEquilateral(MML::Real(1e-4)));
 		REQUIRE_FALSE(tri2.IsEquilateral(TOL(1e-12, 1e-8)));
 
 		// Isosceles but not equilateral
@@ -1083,7 +1083,7 @@ namespace MML::Tests::Base::Geometry3DTests
 	{
 		TEST_PRECISION_INFO();
 		// Heron's formula produced NaN here: s(s-a)(s-b)(s-c) rounds to a tiny negative number
-		Triangle3D needle(Pnt3Cart(0, 0, 0), Pnt3Cart(1e8, 0, 0), Pnt3Cart(5e7, 1e-7, 0));
+		Triangle3D needle(Pnt3Cart(0, 0, 0), Pnt3Cart(MML::Real(1e8), 0, 0), Pnt3Cart(MML::Real(5e7), MML::Real(1e-7), 0));
 		REQUIRE(std::isfinite(needle.Area()));
 		REQUIRE_THAT(needle.Area(), RealApprox(static_cast<MML::Real>(0.5) * static_cast<MML::Real>(1e8) * static_cast<MML::Real>(1e-7)).epsilon(TOL(1e-6, 1e-3)));
 
@@ -1098,8 +1098,8 @@ namespace MML::Tests::Base::Geometry3DTests
 
 		// Off-plane point whose projection is inside: used to be reported inside (no plane test)
 		REQUIRE_FALSE(right.IsPointInside(Pnt3Cart(1, 1, 5)));
-		REQUIRE_FALSE(right.IsPointInside(Pnt3Cart(1, 1, -1e-3)));
-		REQUIRE(right.IsPointInside(Pnt3Cart(1, 1, 1e-12)));        // within eps of the plane
+		REQUIRE_FALSE(right.IsPointInside(Pnt3Cart(1, 1, -MML::Real(1e-3))));
+		REQUIRE(right.IsPointInside(Pnt3Cart(1, 1, Precision::GeometryEpsilon / 4)));
 		REQUIRE(right.IsPointInside(Pnt3Cart(1, 1, 0.5), static_cast<MML::Real>(1.0))); // explicit loose eps
 	}
 }

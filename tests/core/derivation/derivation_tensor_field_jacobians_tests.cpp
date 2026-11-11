@@ -30,7 +30,7 @@ public:
     {
         Real x = pos[0];
         Real y = pos[1];
-        return std::pow(x, i) * std::pow(y, j);
+        return std::pow(x, MML::Real(i)) * std::pow(y, MML::Real(j));
     }
 
     Tensor2<2> operator()(const VectorN<Real, 2>& pos) const override
@@ -47,7 +47,7 @@ public:
         if (i == 0) return static_cast<MML::Real>(0.0);
         Real x = pos[0];
         Real y = pos[1];
-        return i * std::pow(x, i - 1) * std::pow(y, j);
+        return i * std::pow(x, MML::Real(i - 1)) * std::pow(y, MML::Real(j));
     }
 
     Real ComponentDerivY(int i, int j, const VectorN<Real, 2>& pos) const
@@ -55,7 +55,7 @@ public:
         if (j == 0) return static_cast<MML::Real>(0.0);
         Real x = pos[0];
         Real y = pos[1];
-        return j * std::pow(x, i) * std::pow(y, j - 1);
+        return j * std::pow(x, MML::Real(i)) * std::pow(y, MML::Real(j - 1));
     }
 };
 

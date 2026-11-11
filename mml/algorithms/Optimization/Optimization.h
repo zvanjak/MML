@@ -23,6 +23,7 @@
 #include <mml/base/Function.h>
 
 #include <cmath>
+#include <limits>
 #include <stdexcept>
 #include <type_traits>
 
@@ -150,6 +151,38 @@ namespace MML {
 	/// // Result: xmin ≈ 2.0, fmin ≈ 1.0
 	/// @endcode
 	namespace Minimization {
+		namespace Detail {
+			class CountingRealFunction final : public IRealFunction {
+				const IRealFunction& _function;
+				int& _evaluations;
+			public:
+				CountingRealFunction(const IRealFunction& function, int& evaluations)
+					: _function(function), _evaluations(evaluations) {}
+
+				Real operator()(Real x) const override {
+					if (_evaluations == std::numeric_limits<int>::max())
+						throw OptimizationError("1D minimization: function evaluation counter overflow");
+					++_evaluations;
+					return _function(x);
+				}
+			};
+		}
+
+		/// @brief Validate the positional geometry of a bracket (finite points, bx inside [ax, cx]).
+		///
+		/// Function values are intentionally not compared: golden-section and Brent only use the
+		/// endpoints and the interior start point, which also permits a plain bounded search.
+		static inline void ValidateMinimumBracketGeometry(const MinimumBracket& bracket, const char* context) {
+			if (!bracket.valid)
+				throw NumericInputError(std::string(context) + ": invalid bracket provided");
+			if (!std::isfinite(bracket.ax) || !std::isfinite(bracket.bx) || !std::isfinite(bracket.cx))
+				throw NumericInputError(std::string(context) + ": bracket points must be finite");
+			if (bracket.ax == bracket.cx)
+				throw NumericInputError(std::string(context) + ": bracket endpoints coincide");
+			if (bracket.bx < std::min(bracket.ax, bracket.cx) || bracket.bx > std::max(bracket.ax, bracket.cx))
+				throw NumericInputError(std::string(context) + ": bracket midpoint lies outside [ax, cx]");
+		}
+
 		/*********************************************************************/
 		/*****                  10.1 Bracket Minimum                     *****/
 		/*********************************************************************/
@@ -229,10 +262,19 @@ namespace MML {
 
 			// First guess for cx using golden ratio
 			result.cx = result.bx + GOLD * (result.bx - result.ax);
+			if (!std::isfinite(result.cx))
+				return result;
 			result.fc = func(result.cx);
 			ValidateFunctionValue(result.fc, "BracketMinimum: f(c)");
 
 			Real fu;
+			auto evaluate = [&](Real x) {
+				if (!std::isfinite(x))
+					return false;
+				fu = func(x);
+				ValidateFunctionValue(fu, "BracketMinimum: extrapolated function value");
+				return true;
+			};
 
 			const int MAX_BRACKET_ITER = 200;
 			int iter = 0;
@@ -247,13 +289,13 @@ namespace MML {
 				Real r = (result.bx - result.ax) * (result.fb - result.fc);
 				Real q = (result.bx - result.cx) * (result.fb - result.fa);
 				Real u = result.bx - ((result.bx - result.cx) * q - (result.bx - result.ax) * r) /
-										 (2.0 * std::copysign(std::max(std::abs(q - r), TINY), q - r));
+										 (MML::Real(2.0) * std::copysign(std::max(std::abs(q - r), TINY), q - r));
 				Real ulim = result.bx + GLIMIT * (result.cx - result.bx);
 
 				// Test various possibilities for u
 				if ((result.bx - u) * (u - result.cx) > 0.0) {
 					// u is between bx and cx
-					fu = func(u);
+					if (!evaluate(u)) return result;
 					if (fu < result.fc) {
 						// Minimum between bx and cx
 						result.ax = result.bx;
@@ -271,10 +313,10 @@ namespace MML {
 					}
 					// Parabolic fit was useless, use golden section
 					u = result.cx + GOLD * (result.cx - result.bx);
-					fu = func(u);
+					if (!evaluate(u)) return result;
 				} else if ((result.cx - u) * (u - ulim) > 0.0) {
 					// u is between cx and limit
-					fu = func(u);
+					if (!evaluate(u)) return result;
 					if (fu < result.fc) {
 						// Shift triplet
 						result.bx = result.cx;
@@ -282,16 +324,16 @@ namespace MML {
 						u = result.cx + GOLD * (result.cx - result.bx);
 						result.fb = result.fc;
 						result.fc = fu;
-						fu = func(u);
+						if (!evaluate(u)) return result;
 					}
 				} else if ((u - ulim) * (ulim - result.cx) >= 0.0) {
 					// u is beyond the limit
 					u = ulim;
-					fu = func(u);
+					if (!evaluate(u)) return result;
 				} else {
 					// Reject parabolic u, use golden section
 					u = result.cx + GOLD * (result.cx - result.bx);
-					fu = func(u);
+					if (!evaluate(u)) return result;
 				}
 
 				// Shift triplet (ax, bx, cx) <- (bx, cx, u)
@@ -360,27 +402,32 @@ namespace MML {
 		/// @param func    Real function to minimize
 		/// @param bracket Pre-computed bracket from BracketMinimum
 		/// @param tol     Fractional tolerance (default: 3e-8, ≈ √(machine epsilon))
-		/// @return Minimization1DResult with xmin, fmin, and iteration count
+		/// @param maxIter Maximum number of interval reductions (default: 100)
+		/// @return Minimization1DResult with xmin, fmin, and iteration count; `converged == false`
+		///         with MaxIterationsExceeded when the budget runs out first
+		/// @throws NumericInputError on an invalid bracket, tolerance, budget, or a nonfinite sample
 		///
 		/// @note Based on Numerical Recipes §10.2
 		/// @see BracketMinimum to obtain initial bracket
 		/// @see BrentMinimize for typically faster convergence
 		static Minimization1DResult GoldenSectionSearch(const IRealFunction& func, const MinimumBracket& bracket,
-																										Real tol = PrecisionValues<Real>::OptimizationTolerance) {
+																										Real tol = PrecisionValues<Real>::OptimizationTolerance, int maxIter = 100) {
 			// Input validation
 			ValidateTolerance(tol, "GoldenSectionSearch");
-			if (!bracket.valid) {
-				throw NumericInputError("GoldenSectionSearch: invalid bracket provided");
-			}
+			ValidateMinimumBracketGeometry(bracket, "GoldenSectionSearch");
+			if (maxIter <= 0)
+				throw NumericInputError("GoldenSectionSearch: maxIter must be positive");
 			
-			const Real R = 0.61803399; // Golden ratio conjugate (1 - φ) = (√5-1)/2
+			const Real R = MML::Real(0.61803399); // Golden ratio conjugate (1 - φ) = (√5-1)/2
 			const Real C = 1.0 - R;	   // = 1/φ = 2/(√5+1)
+			const Real ZEPS = Precision::BrentZeroEpsilon; // absolute floor so a minimum at x = 0 terminates
 
 			AlgorithmTimer timer;
 			Minimization1DResult result;
 			result.algorithm_name = "GoldenSectionSearch";
 			result.converged = false;
 			result.iterations = 0;
+			Detail::CountingRealFunction counted(func, result.function_evaluations);
 
 			Real x0 = bracket.ax;
 			Real x3 = bracket.cx;
@@ -395,11 +442,17 @@ namespace MML {
 				x1 = bracket.bx - C * (bracket.bx - bracket.ax);
 			}
 
-			Real f1 = func(x1);
-			Real f2 = func(x2);
+			Real f1 = counted(x1);
+			ValidateFunctionValue(f1, "GoldenSectionSearch: f(x1)");
+			Real f2 = counted(x2);
+			ValidateFunctionValue(f2, "GoldenSectionSearch: f(x2)");
 
-			// Main iteration loop
-			while (std::abs(x3 - x0) > tol * (std::abs(x1) + std::abs(x2))) {
+			auto withinTolerance = [&]() {
+				return std::abs(x3 - x0) <= tol * (std::abs(x1) + std::abs(x2)) + ZEPS;
+			};
+
+			// Main iteration loop (one new sample per reduction)
+			while (!withinTolerance() && result.iterations < maxIter) {
 				result.iterations++;
 				result.iterations_used = result.iterations;
 
@@ -409,14 +462,16 @@ namespace MML {
 					x1 = x2;
 					x2 = R * x2 + C * x3;
 					f1 = f2;
-					f2 = func(x2);
+					f2 = counted(x2);
+					ValidateFunctionValue(f2, "GoldenSectionSearch: iteration sample");
 				} else {
 					// Minimum is in [x0, x2], narrow from right
 					x3 = x2;
 					x2 = x1;
 					x1 = R * x1 + C * x0;
 					f2 = f1;
-					f1 = func(x1);
+					f1 = counted(x1);
+					ValidateFunctionValue(f1, "GoldenSectionSearch: iteration sample");
 				}
 			}
 
@@ -429,45 +484,59 @@ namespace MML {
 				result.fmin = f2;
 			}
 
-			result.converged = true;
 			result.achieved_tolerance = std::abs(x3 - x0);
+			result.converged = withinTolerance();
+			if (!result.converged) {
+				result.status = AlgorithmStatus::MaxIterationsExceeded;
+				result.error_message = "GoldenSectionSearch: maximum iterations (" + std::to_string(maxIter)
+					+ ") reached with bracket width " + std::to_string(static_cast<double>(result.achieved_tolerance));
+			}
 			result.elapsed_time_ms = timer.elapsed_ms();
 			return result;
 		}
 
 		template<RealFunctionCallable Function>
 		requires(!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>) static Minimization1DResult
-			GoldenSectionSearch(Function&& func, const MinimumBracket& bracket, Real tol = PrecisionValues<Real>::OptimizationTolerance) {
+			GoldenSectionSearch(Function&& func, const MinimumBracket& bracket, Real tol = PrecisionValues<Real>::OptimizationTolerance,
+								int maxIter = 100) {
 			MML::Detail::RealFunctionCallableAdapter<Function> adapter(func);
-			return GoldenSectionSearch(adapter, bracket, tol);
+			return GoldenSectionSearch(adapter, bracket, tol, maxIter);
 		}
 
 		/// @brief Convenience function combining bracketing and golden section search.
 		///
-		/// @param func  Real function to minimize
-		/// @param a     Initial left search bound
-		/// @param b     Initial right search bound
-		/// @param tol   Fractional tolerance
+		/// @param func    Real function to minimize
+		/// @param a       Initial left search bound
+		/// @param b       Initial right search bound
+		/// @param tol     Fractional tolerance
+		/// @param maxIter Maximum number of interval reductions
 		/// @return Minimization1DResult with xmin, fmin, and iteration count
 		static Minimization1DResult GoldenSectionSearch(const IRealFunction& func, Real a, Real b,
-																										Real tol = PrecisionValues<Real>::OptimizationTolerance) {
+																										Real tol = PrecisionValues<Real>::OptimizationTolerance, int maxIter = 100) {
 			// Input validation (bounds validated in BracketMinimum, tolerance here)
 			ValidateTolerance(tol, "GoldenSectionSearch");
-			MinimumBracket bracket = BracketMinimum(func, a, b);
+			if (maxIter <= 0)
+				throw NumericInputError("GoldenSectionSearch: maxIter must be positive");
+			int evaluations = 0;
+			Detail::CountingRealFunction counted(func, evaluations);
+			MinimumBracket bracket = BracketMinimum(counted, a, b);
 			if (!bracket.valid) {
 				Minimization1DResult result;
+				result.function_evaluations = evaluations;
 				result.status = AlgorithmStatus::AlgorithmSpecificFailure;
 				result.error_message = "Failed to bracket minimum in GoldenSectionSearch";
 				return result;
 			}
-			return GoldenSectionSearch(func, bracket, tol);
+			auto result = GoldenSectionSearch(counted, bracket, tol, maxIter);
+			result.function_evaluations = evaluations;
+			return result;
 		}
 
 		template<RealFunctionCallable Function>
 		requires(!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>) static Minimization1DResult
-			GoldenSectionSearch(Function&& func, Real a, Real b, Real tol = PrecisionValues<Real>::OptimizationTolerance) {
+			GoldenSectionSearch(Function&& func, Real a, Real b, Real tol = PrecisionValues<Real>::OptimizationTolerance, int maxIter = 100) {
 			MML::Detail::RealFunctionCallableAdapter<Function> adapter(func);
-			return GoldenSectionSearch(adapter, a, b, tol);
+			return GoldenSectionSearch(adapter, a, b, tol, maxIter);
 		}
 
 		/*********************************************************************/
@@ -531,14 +600,12 @@ namespace MML {
 																							Real tol = PrecisionValues<Real>::OptimizationTolerance, int maxIter = 100) {
 			// Input validation
 			ValidateTolerance(tol, "BrentMinimize");
-			if (!bracket.valid) {
-				throw NumericInputError("BrentMinimize: invalid bracket provided");
-			}
+			ValidateMinimumBracketGeometry(bracket, "BrentMinimize");
 			if (maxIter <= 0) {
 				throw NumericInputError("BrentMinimize: maxIter must be positive");
 			}
 			
-			const Real CGOLD = 0.3819660; // Golden ratio for section (1 - 1/φ)
+			const Real CGOLD = MML::Real(0.3819660); // Golden ratio for section (1 - 1/φ)
 			const Real ZEPS = Precision::BrentZeroEpsilon;
 
 			AlgorithmTimer timer;
@@ -546,6 +613,7 @@ namespace MML {
 			result.algorithm_name = "BrentMinimize";
 			result.converged = false;
 			result.iterations = 0;
+			Detail::CountingRealFunction counted(func, result.function_evaluations);
 
 			Real a, b, d = 0.0, etemp, fu, fv, fw, fx;
 			Real p, q, r, tol1, tol2, u, v, w, x, xm;
@@ -557,20 +625,22 @@ namespace MML {
 
 			// Initialize x, w, v to the best point (bx from bracket)
 			x = w = v = bracket.bx;
-			fw = fv = fx = func(x);
+			fw = fv = fx = counted(x);
+			ValidateFunctionValue(fx, "BrentMinimize: initial sample");
 
 			for (int iter = 0; iter < maxIter; iter++) {
 				result.iterations++;
 				result.iterations_used = result.iterations;
-				xm = 0.5 * (a + b); // Midpoint
+				xm = MML::Real(0.5) * (a + b); // Midpoint
 				tol1 = tol * std::abs(x) + ZEPS;
-				tol2 = 2.0 * tol1;
+				tol2 = MML::Real(2.0) * tol1;
 
 				// Test for convergence
 				if (std::abs(x - xm) <= (tol2 - 0.5 * (b - a))) {
 					result.xmin = x;
 					result.fmin = fx;
 					result.converged = true;
+					result.status = AlgorithmStatus::Success;
 					result.elapsed_time_ms = timer.elapsed_ms();
 					return result;
 				}
@@ -581,7 +651,7 @@ namespace MML {
 					r = (x - w) * (fx - fv);
 					q = (x - v) * (fx - fw);
 					p = (x - v) * q - (x - w) * r;
-					q = 2.0 * (q - r);
+					q = MML::Real(2.0) * (q - r);
 					if (q > 0.0)
 						p = -p;
 					q = std::abs(q);
@@ -609,7 +679,8 @@ namespace MML {
 
 				// Function evaluation (never closer than tol1)
 				u = (std::abs(d) >= tol1) ? x + d : x + std::copysign(tol1, d);
-				fu = func(u);
+				fu = counted(u);
+				ValidateFunctionValue(fu, "BrentMinimize: iteration sample");
 
 				// Update bracket and best points
 				if (fu <= fx) {
@@ -676,14 +747,19 @@ namespace MML {
 				throw NumericInputError("BrentMinimize: maxIter must be positive");
 			// BracketMinimum validates bounds a and b
 			
-			MinimumBracket bracket = BracketMinimum(func, a, b);
+			int evaluations = 0;
+			Detail::CountingRealFunction counted(func, evaluations);
+			MinimumBracket bracket = BracketMinimum(counted, a, b);
 			if (!bracket.valid) {
 				Minimization1DResult result;
+				result.function_evaluations = evaluations;
 				result.status = AlgorithmStatus::AlgorithmSpecificFailure;
 				result.error_message = "Failed to bracket minimum in BrentMinimize";
 				return result;
 			}
-			return BrentMinimize(func, bracket, tol, maxIter);
+			auto result = BrentMinimize(counted, bracket, tol, maxIter);
+			result.function_evaluations = evaluations;
+			return result;
 		}
 
 		template<RealFunctionCallable Function>
@@ -752,8 +828,7 @@ namespace MML {
 			ValidateTolerance(tol, "BrentMinimizeWithDeriv");
 			if (maxIter <= 0)
 				throw NumericInputError("BrentMinimizeWithDeriv: maxIter must be positive");
-			if (!bracket.valid)
-				throw NumericInputError("BrentMinimizeWithDeriv: bracket is not valid");
+			ValidateMinimumBracketGeometry(bracket, "BrentMinimizeWithDeriv");
 			
 			const Real ZEPS = Precision::BrentZeroEpsilon;
 
@@ -762,6 +837,7 @@ namespace MML {
 			result.algorithm_name = "BrentMinimizeWithDeriv";
 			result.converged = false;
 			result.iterations = 0;
+			Detail::CountingRealFunction counted(func, result.function_evaluations);
 
 			bool ok1, ok2;
 			Real a, b, d = 0.0, d1, d2, du, dv, dw, dx, e = 0.0;
@@ -773,30 +849,31 @@ namespace MML {
 
 			// Initialize x, w, v to the best point
 			x = w = v = bracket.bx;
-			fw = fv = fx = func(x);
+			fw = fv = fx = counted(x);
 			ValidateFunctionValue(fx, "BrentMinimizeWithDeriv initial");
 			dw = dv = dx = dfunc(x);
 			ValidateFunctionValue(dx, "BrentMinimizeWithDeriv initial derivative");
 
 			for (int iter = 0; iter < maxIter; iter++) {
 				result.iterations++;
-				xm = 0.5 * (a + b);
+				xm = MML::Real(0.5) * (a + b);
 				result.iterations_used = result.iterations;
 				tol1 = tol * std::abs(x) + ZEPS;
-				tol2 = 2.0 * tol1;
+				tol2 = MML::Real(2.0) * tol1;
 
 				// Test for convergence
 				if (std::abs(x - xm) <= (tol2 - 0.5 * (b - a))) {
 					result.xmin = x;
 					result.fmin = fx;
 					result.converged = true;
+					result.status = AlgorithmStatus::Success;
 					result.elapsed_time_ms = timer.elapsed_ms();
 					return result;
 				}
 
 				if (std::abs(e) > tol1) {
 					// Use derivatives for secant extrapolation
-					d1 = 2.0 * (b - a);
+					d1 = MML::Real(2.0) * (b - a);
 					d2 = d1;
 
 					if (dw != dx)
@@ -830,33 +907,34 @@ namespace MML {
 						} else {
 							// Bisection
 							e = (dx >= 0.0) ? a - x : b - x;
-							d = 0.5 * e;
+							d = MML::Real(0.5) * e;
 						}
 					} else {
 						// Bisection
 						e = (dx >= 0.0) ? a - x : b - x;
-						d = 0.5 * e;
+						d = MML::Real(0.5) * e;
 					}
 				} else {
 					// Bisection
 					e = (dx >= 0.0) ? a - x : b - x;
-					d = 0.5 * e;
+					d = MML::Real(0.5) * e;
 				}
 
 				// Function evaluation
 				if (std::abs(d) >= tol1) {
 					u = x + d;
-					fu = func(u);
+					fu = counted(u);
 					ValidateFunctionValue(fu, "BrentMinimizeWithDeriv iteration");
 				} else {
 					u = x + std::copysign(tol1, d);
-					fu = func(u);
+					fu = counted(u);
 					ValidateFunctionValue(fu, "BrentMinimizeWithDeriv iteration");
 					if (fu > fx) {
 						// Minimum bracketed, return
 						result.xmin = x;
 						result.fmin = fx;
 						result.converged = true;
+						result.status = AlgorithmStatus::Success;
 						result.elapsed_time_ms = timer.elapsed_ms();
 						return result;
 					}
@@ -931,7 +1009,7 @@ namespace MML {
 		/// @param maxIter Maximum iterations
 		/// @return Minimization1DResult with xmin, fmin, and iteration count
 		/// @throws NumericInputError if inputs are invalid (NaN/Inf bounds, invalid tolerance)
-		static Minimization1DResult BrentMinimizeWithDeriv(const IRealFunction& func, const IRealFunction& dfunc, Real a, Real b,
+		static inline Minimization1DResult BrentMinimizeWithDeriv(const IRealFunction& func, const IRealFunction& dfunc, Real a, Real b,
 																											 Real tol = PrecisionValues<Real>::OptimizationTolerance, int maxIter = 100) {
 			// Validate inputs early for clear error messages
 			ValidateTolerance(tol, "BrentMinimizeWithDeriv");
@@ -939,14 +1017,19 @@ namespace MML {
 				throw NumericInputError("BrentMinimizeWithDeriv: maxIter must be positive");
 			// BracketMinimum validates bounds a and b
 			
-			MinimumBracket bracket = BracketMinimum(func, a, b);
+			int evaluations = 0;
+			Detail::CountingRealFunction counted(func, evaluations);
+			MinimumBracket bracket = BracketMinimum(counted, a, b);
 			if (!bracket.valid) {
 				Minimization1DResult result;
+				result.function_evaluations = evaluations;
 				result.status = AlgorithmStatus::AlgorithmSpecificFailure;
 				result.error_message = "Failed to bracket minimum in BrentMinimizeWithDeriv";
 				return result;
 			}
-			return BrentMinimizeWithDeriv(func, dfunc, bracket, tol, maxIter);
+			auto result = BrentMinimizeWithDeriv(counted, dfunc, bracket, tol, maxIter);
+			result.function_evaluations = evaluations;
+			return result;
 		}
 
 		template<RealFunctionCallable Function, RealFunctionCallable DerivativeFunction>
@@ -964,25 +1047,26 @@ namespace MML {
 		/*********************************************************************/
 		/// @brief Find maximum using golden section search (negates function).
 		///
-		/// @param func  Real function to maximize
-		/// @param a     Initial left search bound
-		/// @param b     Initial right search bound
-		/// @param tol   Fractional tolerance
+		/// @param func    Real function to maximize
+		/// @param a       Initial left search bound
+		/// @param b       Initial right search bound
+		/// @param tol     Fractional tolerance
+		/// @param maxIter Maximum number of interval reductions
 		/// @return Minimization1DResult with xmax, fmax (note: fmax is actual max value)
-		static Minimization1DResult GoldenSectionMaximize(const IRealFunction& func, Real a, Real b,
-																											Real tol = PrecisionValues<Real>::OptimizationTolerance) {
+		static inline Minimization1DResult GoldenSectionMaximize(const IRealFunction& func, Real a, Real b,
+																											Real tol = PrecisionValues<Real>::OptimizationTolerance, int maxIter = 100) {
 			// Negate function to turn maximum into minimum
 			RealFunctionFromStdFunc negFunc([&func](Real x) { return -func(x); });
-			Minimization1DResult result = GoldenSectionSearch(negFunc, a, b, tol);
+			Minimization1DResult result = GoldenSectionSearch(negFunc, a, b, tol, maxIter);
 			result.fmin = -result.fmin; // Restore original function value
 			return result;
 		}
 
 		template<RealFunctionCallable Function>
 		requires(!std::derived_from<std::remove_cvref_t<Function>, IRealFunction>) static Minimization1DResult
-			GoldenSectionMaximize(Function&& func, Real a, Real b, Real tol = PrecisionValues<Real>::OptimizationTolerance) {
+			GoldenSectionMaximize(Function&& func, Real a, Real b, Real tol = PrecisionValues<Real>::OptimizationTolerance, int maxIter = 100) {
 			MML::Detail::RealFunctionCallableAdapter<Function> adapter(func);
-			return GoldenSectionMaximize(adapter, a, b, tol);
+			return GoldenSectionMaximize(adapter, a, b, tol, maxIter);
 		}
 
 		/// @brief Find maximum using Brent's method (negates function).
@@ -993,7 +1077,7 @@ namespace MML {
 		/// @param tol     Fractional tolerance
 		/// @param maxIter Maximum iterations
 		/// @return Minimization1DResult with xmax, fmax
-		static Minimization1DResult BrentMaximize(const IRealFunction& func, Real a, Real b,
+		static inline Minimization1DResult BrentMaximize(const IRealFunction& func, Real a, Real b,
 																							Real tol = PrecisionValues<Real>::OptimizationTolerance, int maxIter = 100) {
 			RealFunctionFromStdFunc negFunc([&func](Real x) { return -func(x); });
 			Minimization1DResult result = BrentMinimize(negFunc, a, b, tol, maxIter);
@@ -1019,16 +1103,17 @@ namespace MML {
 		/// @param b      Initial right search bound
 		/// @param config Configuration with tolerance and max iterations
 		/// @return Minimization1DResult with xmin, fmin, diagnostics, and timing
-		static Minimization1DResult GoldenSectionSearch(const IRealFunction& func, Real a, Real b, const Minimization1DConfig& config) {
+		static inline Minimization1DResult GoldenSectionSearch(const IRealFunction& func, Real a, Real b, const Minimization1DConfig& config) {
 			AlgorithmTimer timer;  // Starts automatically
 
-			Minimization1DResult result = GoldenSectionSearch(func, a, b, config.tolerance);
+			Minimization1DResult result = GoldenSectionSearch(func, a, b, config.tolerance, config.max_iterations);
 			result.algorithm_name = "GoldenSection";
 			result.elapsed_time_ms = timer.elapsed_ms();
 
-			if (!result.converged && result.status == AlgorithmStatus::Success) {
+			if (!result.converged && (result.status == AlgorithmStatus::Success || result.status == AlgorithmStatus::NotComputed)) {
 				result.status = AlgorithmStatus::MaxIterationsExceeded;
-				result.error_message = "Golden Section did not converge within tolerance";
+				result.error_message = "Golden Section did not converge within " +
+				                       std::to_string(config.max_iterations) + " iterations";
 			}
 
 			return result;
@@ -1048,14 +1133,14 @@ namespace MML {
 		/// @param b      Initial right search bound
 		/// @param config Configuration with tolerance and max iterations
 		/// @return Minimization1DResult with xmin, fmin, diagnostics, and timing
-		static Minimization1DResult BrentMinimize(const IRealFunction& func, Real a, Real b, const Minimization1DConfig& config) {
+		static inline Minimization1DResult BrentMinimize(const IRealFunction& func, Real a, Real b, const Minimization1DConfig& config) {
 			AlgorithmTimer timer;  // Starts automatically
 
 			Minimization1DResult result = BrentMinimize(func, a, b, config.tolerance, config.max_iterations);
 			result.algorithm_name = "Brent";
 			result.elapsed_time_ms = timer.elapsed_ms();
 
-			if (!result.converged && result.status == AlgorithmStatus::Success) {
+			if (!result.converged && (result.status == AlgorithmStatus::Success || result.status == AlgorithmStatus::NotComputed)) {
 				result.status = AlgorithmStatus::MaxIterationsExceeded;
 				result.error_message = "Brent method did not converge within " + 
 				                       std::to_string(config.max_iterations) + " iterations";
@@ -1079,7 +1164,7 @@ namespace MML {
 		/// @param b      Initial right search bound
 		/// @param config Configuration with tolerance and max iterations
 		/// @return Minimization1DResult with xmin, fmin, diagnostics, and timing
-		static Minimization1DResult BrentMinimizeWithDeriv(const IRealFunction& func, const IRealFunction& dfunc, Real a, Real b,
+		static inline Minimization1DResult BrentMinimizeWithDeriv(const IRealFunction& func, const IRealFunction& dfunc, Real a, Real b,
 																											 const Minimization1DConfig& config) {
 			AlgorithmTimer timer;  // Starts automatically
 
@@ -1087,7 +1172,7 @@ namespace MML {
 			result.algorithm_name = "BrentWithDeriv";
 			result.elapsed_time_ms = timer.elapsed_ms();
 
-			if (!result.converged && result.status == AlgorithmStatus::Success) {
+			if (!result.converged && (result.status == AlgorithmStatus::Success || result.status == AlgorithmStatus::NotComputed)) {
 				result.status = AlgorithmStatus::MaxIterationsExceeded;
 				result.error_message = "Brent method with derivatives did not converge within " + 
 				                       std::to_string(config.max_iterations) + " iterations";
@@ -1106,7 +1191,7 @@ namespace MML {
 		}
 
 		/// @brief Find maximum using Brent's method with configuration object.
-		static Minimization1DResult BrentMaximize(const IRealFunction& func, Real a, Real b, const Minimization1DConfig& config) {
+		static inline Minimization1DResult BrentMaximize(const IRealFunction& func, Real a, Real b, const Minimization1DConfig& config) {
 			AlgorithmTimer timer;
 
 			RealFunctionFromStdFunc negFunc([&func](Real x) { return -func(x); });
@@ -1115,7 +1200,7 @@ namespace MML {
 			result.algorithm_name = "BrentMaximize";
 			result.elapsed_time_ms = timer.elapsed_ms();
 
-			if (!result.converged && result.status == AlgorithmStatus::Success) {
+			if (!result.converged && (result.status == AlgorithmStatus::Success || result.status == AlgorithmStatus::NotComputed)) {
 				result.status = AlgorithmStatus::MaxIterationsExceeded;
 				result.error_message = "Brent maximize did not converge within " + 
 				                       std::to_string(config.max_iterations) + " iterations";

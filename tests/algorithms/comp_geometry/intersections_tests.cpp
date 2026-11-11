@@ -24,7 +24,7 @@ TEST_CASE("SegmentIntersection - Crossing segments", "[ComputationalGeometry][Se
 {
     // X pattern
     Point2Cartesian p1(0, 0), q1(2, 2);  // diagonal /
-    Point2Cartesian p2(0, 2), q2(2, 0);  // diagonal \
+    Point2Cartesian p2(0, 2), q2(2, 0);  // descending diagonal
 
     auto result = MML::CompGeometry::Intersections::IntersectSegments(p1, q1, p2, q2);
     
@@ -277,7 +277,7 @@ TEST_CASE("RayTriangleIntersection - Direct hit through center", "[Computational
     Point3Cartesian v2(1, 2, 0);
     
     // Ray from above, pointing down through centroid
-    Point3Cartesian origin(1, 0.666667, 5);
+    Point3Cartesian origin(1, MML::Real(0.666667), 5);
     Vector3Cartesian dir(0, 0, -1);
     
     auto hit = MML::CompGeometry::Intersections::IntersectRayTriangle(origin, dir, v0, v1, v2);
@@ -419,7 +419,7 @@ TEST_CASE("RayTriangleIntersection - Using Triangle3D object", "[ComputationalGe
         Point3Cartesian(1, 2, 0)
     );
     
-    Point3Cartesian origin(1, 0.666667, 3);
+    Point3Cartesian origin(1, MML::Real(0.666667), 3);
     Vector3Cartesian dir(0, 0, -1);
     
     auto hit = MML::CompGeometry::Intersections::IntersectRayTriangle(origin, dir, triangle);
@@ -487,6 +487,5 @@ TEST_CASE("RayTriangleIntersection - Barycentric coordinates verify", "[Computat
 }
 
 } // namespace MML::Tests::Algorithms::CompGeometry::IntersectionsTests
-
 
 

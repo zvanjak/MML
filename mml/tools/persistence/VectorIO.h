@@ -136,8 +136,14 @@ namespace MML::Persistence {
 				if (token == "nan") { value = std::numeric_limits<Type>::quiet_NaN(); return true; }
 				if (token == "inf") { value = std::numeric_limits<Type>::infinity(); return true; }
 				if (token == "-inf") { value = -std::numeric_limits<Type>::infinity(); return true; }
-				const auto parsed = std::from_chars(token.data(), token.data() + token.size(), value, std::chars_format::general);
-				return parsed.ec == std::errc{} && parsed.ptr == token.data() + token.size() && std::isfinite(value);
+				if constexpr (std::is_same_v<Type, long double>) {
+					// Streams may accept hex floats; retain the decimal-only from_chars grammar.
+					return token.find_first_of("xXpP") == std::string_view::npos &&
+						TextIO::ParseFloatClassic(std::string(token), value) && std::isfinite(value);
+				} else {
+					const auto parsed = std::from_chars(token.data(), token.data() + token.size(), value, std::chars_format::general);
+					return parsed.ec == std::errc{} && parsed.ptr == token.data() + token.size() && std::isfinite(value);
+				}
 			} else {
 				const auto parsed = std::from_chars(token.data(), token.data() + token.size(), value);
 				return parsed.ec == std::errc{} && parsed.ptr == token.data() + token.size();
@@ -277,9 +283,16 @@ namespace MML::Persistence {
 		const Format resolved = format == Format::Auto ? DetectFormatFromPath(filename) : format;
 		const auto validation = Detail::ValidateVectorFormat<Type>(resolved);
 		if (!validation) return validation.WithFile(filename);
-		if (filename.empty() || filename.find('\0') != std::string::npos ||
-		    (resolved != Format::Binary && options.precision < 0))
-			return SerializeFailure(IOError::INVALID_PARAMETERS, "Invalid vector filename or text/JSON precision").WithFile(filename);
+		const auto pathValidation = Detail::ValidateSaveFilename(filename);
+		if (!pathValidation.success) return pathValidation;
+		if (resolved == Format::JSON) {
+			if constexpr (std::is_floating_point_v<Type>) return SaveJson(vec, filename, options);
+		}
+		if (resolved == Format::Binary) {
+			if constexpr (Detail::BinaryScalarTypeFor<Type>() != BinaryScalarType::Unknown) return SaveBinary(vec, filename, options);
+		}
+		if (resolved != Format::Binary && options.precision < 0)
+			return SerializeFailure(IOError::INVALID_PARAMETERS, "Vector text precision must be zero or positive").WithFile(filename);
 		std::ofstream file(filename, std::ios::out | (resolved == Format::Binary ? std::ios::binary : std::ios::openmode{}));
 		if (!file.is_open())
 			return SerializeFailure(IOError::FILE_NOT_OPENED, "Could not create vector file").WithFile(filename);

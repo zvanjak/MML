@@ -14,7 +14,9 @@
 #include <mml/algorithms/CompGeometry/Triangulation.h>
 
 #include <algorithm>
+#include <array>
 #include <cmath>
+#include <numeric>
 #include <set>
 #include <vector>
 
@@ -53,19 +55,21 @@ struct VoronoiDiagram {
 	int NumEdges() const { return static_cast<int>(edges.size()); }
 
 	/// @brief Find the site (input point) nearest to a query point
-	/// Uses simple linear search - O(n)
+	/// Uses linear search with scaled distances; rounded ties keep the first site.
 	int FindNearestSite(const Point2Cartesian& p) const {
+		MML::detail::ValidateGeometryCoordinates({p.X(), p.Y()}, "FindNearestSite");
 		if (sites.empty()) return -1;
 		
 		int nearest = 0;
-		Real minDist2 = (sites[0].X() - p.X()) * (sites[0].X() - p.X()) + 
-		                (sites[0].Y() - p.Y()) * (sites[0].Y() - p.Y());
+		auto minDistance = MML::detail::GeometryDistance2D(sites[0], p);
 		
 		for (int i = 1; i < NumSites(); i++) {
-			Real dist2 = (sites[i].X() - p.X()) * (sites[i].X() - p.X()) + 
-			             (sites[i].Y() - p.Y()) * (sites[i].Y() - p.Y());
-			if (dist2 < minDist2) {
-				minDist2 = dist2;
+			const auto distance = MML::detail::GeometryDistance2D(sites[i], p);
+			const bool closer = distance.fraction == 0 ? minDistance.fraction != 0
+				: minDistance.fraction != 0 && (distance.exponent < minDistance.exponent
+					|| (distance.exponent == minDistance.exponent && distance.fraction < minDistance.fraction));
+			if (closer) {
+				minDistance = distance;
 				nearest = i;
 			}
 		}
@@ -106,128 +110,91 @@ struct VoronoiDiagram {
 		return cellIsInfinite[siteIndex];
 	}
 
-	/// @brief Get a clipped version of cell for visualization
-	/// Clips infinite cells to the specified bounding box
+	/// @brief Intersect a site's closed nearest-site halfplanes with a finite bounding box.
+	/// Invalid site indices and zero-area intersections return an empty polygon.
 	Polygon2D GetClippedCell(int siteIndex, Real minX, Real minY, Real maxX, Real maxY) const {
+		MML::detail::ValidateGeometryCoordinates({minX, minY, maxX, maxY}, "GetClippedCell");
+		if (minX > maxX || minY > maxY)
+			throw GeometryError("GetClippedCell - bounding box endpoints must be ordered");
 		if (siteIndex < 0 || siteIndex >= NumSites()) return Polygon2D();
-		
-		// For finite cells, just return the cell (optionally clip to bounds)
-		if (!cellIsInfinite[siteIndex]) {
-			Polygon2D cell = GetCell(siteIndex);
-			if (cell.NumVertices() > 0) {
-				return ClipToRect(cell, minX, minY, maxX, maxY);
-			}
-			return Polygon2D();
-		}
-		
-		// For infinite cells, we need to construct the cell with clipped boundaries
-		Real expand = 2.0 * std::max(maxX - minX, maxY - minY);
-		Real bigMinX = minX - expand;
-		Real bigMaxX = maxX + expand;
-		Real bigMinY = minY - expand;
-		Real bigMaxY = maxY + expand;
-		
-		// Start with a large box centered on the site
-		const Point2Cartesian& site = sites[siteIndex];
-		std::vector<Point2Cartesian> cellPts = {
-			Point2Cartesian(bigMinX, bigMinY),
-			Point2Cartesian(bigMaxX, bigMinY),
-			Point2Cartesian(bigMaxX, bigMaxY),
-			Point2Cartesian(bigMinX, bigMaxY)
+		for (const auto& point : sites)
+			MML::detail::ValidateGeometryCoordinates({point.X(), point.Y()}, "GetClippedCell sites");
+		if (minX == maxX || minY == maxY) return Polygon2D();
+
+		// Starting at the requested rectangle avoids an overflowing artificial outer box.
+		std::vector<Point2Cartesian> points{
+			{minX, minY}, {maxX, minY}, {maxX, maxY}, {minX, maxY}
 		};
-		Polygon2D cell(cellPts);
-		
-		// Clip against perpendicular bisectors with all other sites
+		const auto& site = sites[siteIndex];
+		using B = MML::detail::GeometryBinary;
 		for (int j = 0; j < NumSites(); j++) {
 			if (j == siteIndex) continue;
-			
-			const Point2Cartesian& other = sites[j];
-			// Midpoint between sites
-			Real midX = (site.X() + other.X()) / 2.0;
-			Real midY = (site.Y() + other.Y()) / 2.0;
-			
-			// Normal pointing from other toward site (we keep the side containing site)
-			Real nx = site.X() - other.X();
-			Real ny = site.Y() - other.Y();
-			Real len = std::sqrt(nx * nx + ny * ny);
-			if (len < Precision::GeometryEpsilon) continue;
-			nx /= len;
-			ny /= len;
-			
-			// Clip the cell to keep only points where (p - mid) · n >= 0
-			std::vector<Point2Cartesian> clipped;
-			int n = cell.NumVertices();
-			for (int k = 0; k < n; k++) {
-				const Point2Cartesian& p1 = cell[k];
-				const Point2Cartesian& p2 = cell[(k + 1) % n];
-				
-				Real d1 = (p1.X() - midX) * nx + (p1.Y() - midY) * ny;
-				Real d2 = (p2.X() - midX) * nx + (p2.Y() - midY) * ny;
-				
-				if (d1 >= -Precision::GeometryEpsilon) {
-					clipped.push_back(p1);
-				}
-				
-				// Edge crosses the bisector line
-				if ((d1 > Precision::GeometryEpsilon && d2 < -Precision::GeometryEpsilon) || (d1 < -Precision::GeometryEpsilon && d2 > Precision::GeometryEpsilon)) {
-					Real t = d1 / (d1 - d2);
-					Real ix = p1.X() + t * (p2.X() - p1.X());
-					Real iy = p1.Y() + t * (p2.Y() - p1.Y());
-					clipped.push_back(Point2Cartesian(ix, iy));
-				}
-			}
-			
-			if (clipped.size() < 3) {
-				return Polygon2D();  // Cell was clipped away
-			}
-			cell = Polygon2D(clipped);
+			const auto& other = sites[j];
+			const std::array<B, 2> normal{B::Difference(other.X(), site.X()), B::Difference(other.Y(), site.Y())};
+			if (normal[0].fraction == 0 && normal[1].fraction == 0) continue;
+			auto halfSquared = B::SumProducts(normal, normal);
+			--halfSquared.exponent;
+			points = ClipAgainstBisector(points, site, normal, halfSquared);
+			if (points.size() < 3) return Polygon2D();
 		}
-		
-		// Final clip to the requested bounding box
-		return ClipToRect(cell, minX, minY, maxX, maxY);
+		for (std::size_t i = 2; i < points.size(); ++i)
+			if (MML::detail::GeometryOrientation2D::Sign(points[0], points[1], points[i]) != 0)
+				return Polygon2D(points);
+		return Polygon2D();
 	}
 
 private:
-	// Simple rectangle clipping helper
-	static Polygon2D ClipToRect(const Polygon2D& poly, Real minX, Real minY, Real maxX, Real maxY) {
-		std::vector<Point2Cartesian> pts = poly.Vertices();
-		
-		// Clip against left edge
-		pts = ClipAgainstLine(pts, minX, 0, 1, 0);
-		// Clip against right edge
-		pts = ClipAgainstLine(pts, maxX, 0, -1, 0);
-		// Clip against bottom edge
-		pts = ClipAgainstLine(pts, 0, minY, 0, 1);
-		// Clip against top edge
-		pts = ClipAgainstLine(pts, 0, maxY, 0, -1);
-		
-		return pts.size() >= 3 ? Polygon2D(pts) : Polygon2D();
+	static MML::detail::GeometryBinary BisectorDistance(const Point2Cartesian& point,
+		const Point2Cartesian& site, const std::array<MML::detail::GeometryBinary, 2>& normal,
+		const MML::detail::GeometryBinary& halfSquared) {
+		using B = MML::detail::GeometryBinary;
+		// |other-site|^2/2 - (point-site).(other-site): no rounded global midpoint.
+		const std::array<B, 3> a{halfSquared, B::Difference(site.X(), point.X()), B::Difference(site.Y(), point.Y())};
+		const std::array<B, 3> b{B(1), normal[0], normal[1]};
+		const auto distance = B::SumProducts(a, b);
+		B magnitude;
+		for (std::size_t i = 0; i < a.size(); ++i) {
+			auto term = B::Product(a[i], b[i]);
+			term.fraction = std::abs(term.fraction);
+			magnitude = B::Add(magnitude, term);
+		}
+		if (distance.fraction != 0 &&
+			std::abs(B::Quotient(distance, magnitude).Value()) <= Precision::RoundoffZeroThreshold)
+			return {};
+		return distance;
 	}
-	
-	static std::vector<Point2Cartesian> ClipAgainstLine(const std::vector<Point2Cartesian>& pts,
-														Real px, Real py, Real nx, Real ny) {
+
+	static std::vector<Point2Cartesian> ClipAgainstBisector(const std::vector<Point2Cartesian>& points,
+		const Point2Cartesian& site, const std::array<MML::detail::GeometryBinary, 2>& normal,
+		const MML::detail::GeometryBinary& halfSquared) {
+		using B = MML::detail::GeometryBinary;
 		std::vector<Point2Cartesian> result;
-		int n = static_cast<int>(pts.size());
-		if (n == 0) return result;
-		
-		for (int i = 0; i < n; i++) {
-			const Point2Cartesian& p1 = pts[i];
-			const Point2Cartesian& p2 = pts[(i + 1) % n];
-			
-			Real d1 = (p1.X() - px) * nx + (p1.Y() - py) * ny;
-			Real d2 = (p2.X() - px) * nx + (p2.Y() - py) * ny;
-			
-			if (d1 >= -Precision::GeometryEpsilon) {
-				result.push_back(p1);
-			}
-			
-			if ((d1 > Precision::GeometryEpsilon && d2 < -Precision::GeometryEpsilon) || (d1 < -Precision::GeometryEpsilon && d2 > Precision::GeometryEpsilon)) {
-				Real t = d1 / (d1 - d2);
-				Real ix = p1.X() + t * (p2.X() - p1.X());
-				Real iy = p1.Y() + t * (p2.Y() - p1.Y());
-				result.push_back(Point2Cartesian(ix, iy));
+		const auto append = [&](const Point2Cartesian& point) {
+			if (result.empty() || point.X() != result.back().X() || point.Y() != result.back().Y())
+				result.push_back(point);
+		};
+		for (std::size_t i = 0; i < points.size(); ++i) {
+			const auto& first = points[i];
+			const auto& second = points[(i + 1) % points.size()];
+			auto d1 = BisectorDistance(first, site, normal, halfSquared);
+			auto d2 = BisectorDistance(second, site, normal, halfSquared);
+			const bool inside1 = d1.fraction >= 0, inside2 = d2.fraction >= 0;
+			if (inside1) append(first);
+			if (inside1 != inside2) {
+				d1.fraction = std::abs(d1.fraction);
+				d2.fraction = std::abs(d2.fraction);
+				const auto denominator = B::Add(d1, d2);
+				const auto interpolate = [&](Real a, Real b) {
+					// The interpolation weight may underflow even when the vertex is representable.
+					const auto numerator = B::SumProducts<2>({B(a), B(b)}, {d2, d1});
+					const Real value = B::Quotient(numerator, denominator).Value();
+					return std::clamp(value, std::min(a, b), std::max(a, b));
+				};
+				append({interpolate(first.X(), second.X()), interpolate(first.Y(), second.Y())});
 			}
 		}
+		if (result.size() > 1 && result.front().X() == result.back().X() && result.front().Y() == result.back().Y())
+			result.pop_back();
 		return result;
 	}
 };
@@ -237,9 +204,6 @@ private:
 /// @details Constructs Voronoi diagram as the dual of Delaunay triangulation
 //////////////////////////////////////////////////////////////////////////////////////////
 class Voronoi {
-	// Use centralized geometry epsilon from Constants
-	static constexpr Real EPSILON = Precision::GeometryEpsilon;
-
 public:
 	/// @brief Compute Voronoi diagram from a set of points
 	/// 
@@ -251,33 +215,40 @@ public:
 	/// @param points Input points (sites)
 	/// @return VoronoiDiagram structure
 	static VoronoiDiagram ComputeVoronoi(std::vector<Point2Cartesian> points) {
+		if (points.size() > static_cast<std::size_t>(std::numeric_limits<int>::max() / 2))
+			throw ArgumentError("ComputeVoronoi - too many points for integer indices");
+		for (const auto& point : points)
+			MML::detail::ValidateGeometryCoordinates({point.X(), point.Y()}, "ComputeVoronoi");
 		VoronoiDiagram vd;
 		vd.sites = points;
 		
 		int n = static_cast<int>(points.size());
-		if (n < 2) {
-			// Degenerate cases
-			vd.cells.resize(n);
-			vd.cellIsInfinite.resize(n, true);
-			return vd;
+		std::vector<int> order(n), unique, representative(n);
+		std::iota(order.begin(), order.end(), 0);
+		std::sort(order.begin(), order.end(), [&](int a, int b) {
+			if (points[a].X() != points[b].X()) return points[a].X() < points[b].X();
+			if (points[a].Y() != points[b].Y()) return points[a].Y() < points[b].Y();
+			return a < b;
+		});
+		for (int index : order) {
+			if (unique.empty() || points[index].X() != points[unique.back()].X() || points[index].Y() != points[unique.back()].Y())
+				unique.push_back(index);
+			representative[index] = unique.back();
 		}
-		
-		if (n == 2) {
-			// Two points: single perpendicular bisector, both cells infinite
-			vd.cells.resize(2);
-			vd.cellIsInfinite = {true, true};
-			
-			// Add the edge between the two infinite cells
-			VoronoiEdge edge;
-			edge.v1 = -1;
-			edge.v2 = -1;
-			edge.site1 = 0;
-			edge.site2 = 1;
-			// Direction perpendicular to line between sites
-			Real dx = points[1].X() - points[0].X();
-			Real dy = points[1].Y() - points[0].Y();
-			edge.direction = Vector2Cartesian(-dy, dx);
-			vd.edges.push_back(edge);
+		bool collinear = true;
+		for (std::size_t i = 2; i < unique.size(); ++i)
+			if (RobustPredicates::Orientation2D(points[unique[0]], points[unique[1]], points[unique[i]]) != 0) {
+				collinear = false;
+				break;
+			}
+		vd.cells.resize(n);
+		vd.cellIsInfinite.resize(n, collinear);
+		if (collinear) {
+			for (std::size_t i = 1; i < unique.size(); ++i) {
+				const int first = unique[i - 1], second = unique[i];
+				const auto direction = MML::detail::GeometryUnitDifference2D(points[first], points[second]);
+				vd.edges.push_back({-1, -1, first, second, Vector2Cartesian(-direction.Y(), direction.X())});
+			}
 			return vd;
 		}
 		
@@ -285,10 +256,7 @@ public:
 		auto dt = Triangulation::ComputeDelaunay(std::move(points));
 		
 		if (dt.NumTriangles() == 0) {
-			// All points collinear - each cell is infinite
-			vd.cells.resize(n);
-			vd.cellIsInfinite.resize(n, true);
-			return vd;
+			throw GeometryError("ComputeVoronoi - incomplete Delaunay topology for noncollinear sites");
 		}
 		
 		// Compute circumcenters (Voronoi vertices)
@@ -350,25 +318,15 @@ public:
 					// Direction perpendicular to the Delaunay edge, pointing outward
 					const Point2Cartesian& p1 = dt.points[v1];
 					const Point2Cartesian& p2 = dt.points[v2];
-					Real dx = p2.X() - p1.X();
-					Real dy = p2.Y() - p1.Y();
 					
 					// The third vertex of the triangle
 					int v3 = dt.triangles[t][(e + 2) % 3];
 					const Point2Cartesian& p3 = dt.points[v3];
 					
 					// Direction perpendicular to edge
-					Vector2Cartesian perp(-dy, dx);
-					Real len = std::sqrt(perp.X() * perp.X() + perp.Y() * perp.Y());
-					if (len > Precision::GeometryEpsilon) {
-						perp = Vector2Cartesian(perp.X() / len, perp.Y() / len);
-					}
-					
-					// Check if perp points away from the third vertex
-					Real midX = (p1.X() + p2.X()) / 2.0;
-					Real midY = (p1.Y() + p2.Y()) / 2.0;
-					Real toThird = (p3.X() - midX) * perp.X() + (p3.Y() - midY) * perp.Y();
-					if (toThird > 0) {
+					const auto direction = MML::detail::GeometryUnitDifference2D(p1, p2);
+					Vector2Cartesian perp(-direction.Y(), direction.X());
+					if (RobustPredicates::Orientation2D(p1, p2, p3) > 0) {
 						perp = Vector2Cartesian(-perp.X(), -perp.Y());
 					}
 					vedge.direction = perp;
@@ -440,6 +398,12 @@ public:
 			
 			vd.cells[s] = ordered;
 		}
+		for (int s = 0; s < n; ++s) {
+			if (representative[s] != s) {
+				vd.cells[s] = vd.cells[representative[s]];
+				vd.cellIsInfinite[s] = vd.cellIsInfinite[representative[s]];
+			}
+		}
 		
 		return vd;
 	}
@@ -449,22 +413,10 @@ private:
 	static Point2Cartesian ComputeCircumcenter(const Point2Cartesian& a, 
 	                                           const Point2Cartesian& b, 
 	                                           const Point2Cartesian& c) {
-		Real ax = a.X(), ay = a.Y();
-		Real bx = b.X(), by = b.Y();
-		Real cx = c.X(), cy = c.Y();
-		
-		Real d = 2 * (ax * (by - cy) + bx * (cy - ay) + cx * (ay - by));
-		if (std::abs(d) < Precision::RoundoffZeroThreshold) {
-			// Degenerate triangle - return centroid
-			return Point2Cartesian((ax + bx + cx) / 3.0, (ay + by + cy) / 3.0);
-		}
-		
-		Real ux = ((ax*ax + ay*ay) * (by - cy) + (bx*bx + by*by) * (cy - ay) + 
-		           (cx*cx + cy*cy) * (ay - by)) / d;
-		Real uy = ((ax*ax + ay*ay) * (cx - bx) + (bx*bx + by*by) * (ax - cx) + 
-		           (cx*cx + cy*cy) * (bx - ax)) / d;
-		
-		return Point2Cartesian(ux, uy);
+		Point2Cartesian center;
+		if (!MML::detail::GeometryCircumcenter2D(a, b, c, center))
+			throw GeometryError("ComputeVoronoi - degenerate Delaunay face has no circumcenter");
+		return center;
 	}
 };
 

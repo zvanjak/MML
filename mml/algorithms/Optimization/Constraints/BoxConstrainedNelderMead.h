@@ -124,14 +124,16 @@ namespace MML::Optimization
 			result.xmin = Vector<Real>(N);
 			for (int component = 0; component < N; ++component)
 				result.xmin[component] = projectedXmin[component];
+			if (result.function_evaluations == std::numeric_limits<int>::max())
+				throw MultidimOptimizationError("BoxConstrainedNelderMead: function evaluation counter overflow");
+			++result.function_evaluations;
 			result.fmin = func(projectedXmin);
 			ValidateMultidimFunctionValue(result.fmin, "BoxConstrainedNelderMead final evaluation");
 			result.algorithm_name = "BoxConstrainedNelderMead";
 			result.elapsed_time_ms = timer.elapsed_ms();
-			result.function_evaluations = optimizer.getNumFuncEvals() + 1;
 			if (!result.converged) {
 				result.status = AlgorithmStatus::MaxIterationsExceeded;
-				result.error_message = "Box-constrained Nelder-Mead did not converge within " + std::to_string(_config.max_iterations) + " iterations";
+				result.error_message = "Box-constrained Nelder-Mead did not converge within evaluation threshold/iteration cap " + std::to_string(_config.max_iterations);
 			}
 			return result;
 		}

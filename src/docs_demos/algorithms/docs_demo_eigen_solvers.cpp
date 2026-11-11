@@ -7,9 +7,98 @@
 #include <mml/base/Matrix/Matrix.h>
 #include <mml/base/Matrix/MatrixSym.h>
 #include <mml/algorithms/EigenSystemSolvers.h>
+#include <mml/algorithms/MatrixAlg/Eigensystems.h>
 #endif
 
 using namespace MML;
+
+void Docs_Demo_SelfAdjointConfig()
+{
+	const Matrix<Real> diagonal(2, 2, {3, 0, 0, 1});
+	EigenSolverConfig config;
+	config.sort_eigenvalues = false;
+	config.compute_eigenvectors = false;
+	const auto jacobi = SymmMatEigenSolverJacobi::Solve(diagonal, config);
+	const auto qr = SymmMatEigenSolverQR::Solve(diagonal, config);
+	if (!jacobi.converged || !qr.converged || jacobi.eigenvalues != Vector<Real>{3, 1} ||
+		qr.eigenvalues != Vector<Real>{3, 1} || jacobi.eigenvectors.rows() != 0 || qr.eigenvectors.rows() != 0)
+		throw MatrixNumericalError("Self-adjoint configuration demo did not preserve ordering or omit vectors");
+	const Matrix<Real> nonsymmetric(2, 2, {1, 2, 0, 3});
+	bool rejected = false;
+	try {
+		(void)SymmMatEigenSolverQR::Solve(nonsymmetric, config);
+	} catch (const MatrixDimensionError&) {
+		rejected = true;
+	}
+	if (!rejected) throw MatrixNumericalError("Configured QR accepted a nonsymmetric matrix");
+	const auto averaged = SymmMatEigenSolverQR::SolveSymmetricPart(nonsymmetric, config);
+	if (!averaged.converged || averaged.eigenvectors.rows() != 0)
+		throw MatrixNumericalError("Explicit symmetric-part demo failed");
+	const auto stopped = SymmMatEigenSolverJacobi::Solve(MatrixSym<Real>(2, {2, 1, 2}),
+		PrecisionValues<Real>::EigenSolverConvergenceTolerance, 0);
+	if (stopped.converged || stopped.iterations != 0 || stopped.status != AlgorithmStatus::MaxIterationsExceeded)
+		throw MatrixNumericalError("Scalar zero budget did not stop iterative work");
+	std::cout << "Jacobi and QR: unsorted eigenvalues 3, 1; eigenvectors omitted.\n"
+		<< "Nonsymmetric input rejected; explicit symmetric-part solve accepted; scalar zero budget stopped.\n";
+}
+
+void Docs_Demo_HessenbergScaling()
+{
+	const Matrix<Real> base{3, 3, {0, 0, 2, 1, 0, 0, 1, 0, 0}};
+	const Real large = std::pow(Real{10}, std::numeric_limits<Real>::max_exponent10 / 2 + 6);
+	for (Real scale : {Real{1}, Real(1e-20), large}) {
+		const Matrix<Real> matrix = base * scale;
+		const auto reduced = ReduceToHessenberg(matrix);
+		Matrix<Real> normalized(3, 3);
+		for (int row = 0; row < 3; ++row)
+			for (int col = 0; col < 3; ++col)
+				normalized(row, col) = reduced.H(row, col) / scale;
+		const auto similar = reduced.Q.Transposed() * base * reduced.Q;
+		if (reduced.H(2, 0) != Real{0} ||
+			Utils::MaxAbsDiff(similar, normalized) > Precision::EqualityTolerance ||
+			!MatrixAlg::IsOrthogonal(reduced.Q, {Precision::EqualityTolerance, Precision::EqualityTolerance}))
+			throw MatrixNumericalError("Hessenberg scaling demo failed structure or similarity validation");
+
+		const auto result = EigenSolver::Solve(matrix, 0);
+		if (!result.converged || result.status != AlgorithmStatus::Success)
+			throw MatrixNumericalError(result.error_message);
+		std::vector<Real> values;
+		for (const auto& value : result.eigenvalues) {
+			if (!std::isfinite(value.real) || !std::isfinite(value.imag) ||
+				std::abs(value.imag / scale) > Precision::EqualityTolerance)
+				throw MatrixNumericalError("Hessenberg scaling demo returned invalid eigenvalues");
+			values.push_back(value.real / scale);
+		}
+		std::sort(values.begin(), values.end());
+		if (values.size() != 3 || !std::isfinite(result.maxResidual) ||
+			result.maxResidual / scale > Precision::EqualityTolerance ||
+			std::abs(values[0] + std::sqrt(Real{2})) > Precision::EqualityTolerance ||
+			std::abs(values[1]) > Precision::EqualityTolerance ||
+			std::abs(values[2] - std::sqrt(Real{2})) > Precision::EqualityTolerance)
+			throw MatrixNumericalError("Hessenberg scaling demo failed its normalized spectrum check");
+		std::cout << "scale=" << scale << ", normalized eigenvalues="
+			<< values[0] << ", " << values[1] << ", " << values[2] << '\n';
+	}
+}
+
+void Docs_Demo_StructuralEigenpairs()
+{
+	const Matrix<Real> A{2, 2, {0, Real(-1e-22), 1, 0}};
+	const auto result = MatrixAlg::Eigensystem(A);
+	if (!result.converged || result.status != AlgorithmStatus::Success)
+		throw MatrixNumericalError(result.errorMessage);
+	for (int col = 0; col < 2; ++col) {
+		const auto vector = result.eigenvectors.VectorFromColumn(col);
+		std::cout << "lambda = " << result.eigenvalues[col]
+			<< ", vector norm = " << vector.NormL2() << '\n';
+		if (!std::isfinite(vector.NormL2()) || vector.NormL2() <= Real{0})
+			throw MatrixNumericalError("Structural eigenpair demo returned an invalid vector");
+	}
+	if (!std::isfinite(result.maxResidual) || result.maxResidual > Precision::RoundoffZeroThreshold ||
+		result.eigenvalues[0].imag() <= Real{0} ||
+		result.eigenvalues[1] != std::conj(result.eigenvalues[0]))
+		throw MatrixNumericalError("Structural eigenpair demo failed its conjugacy or residual check");
+}
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 ///                 JACOBI METHOD FOR SYMMETRIC MATRICES                                ///
@@ -366,6 +455,8 @@ void Docs_Demo_Eigen_solvers()
 	Docs_Demo_Eigen_Inverse_Iteration();
 	Docs_Demo_Eigen_Generalized();
 	Docs_Demo_Eigen_Special_Matrices();
+	Docs_Demo_StructuralEigenpairs();
+	Docs_Demo_HessenbergScaling();
 	
 	std::cout << "\n=== All Eigenvalue Solver Demos Complete ===\n";
 }

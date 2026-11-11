@@ -54,6 +54,8 @@ void Docs_Demo_Spline_Interpolation()
     std::cout << "  f'(2.5) = " << f.Derivative(2.5) << std::endl;
     std::cout << "  f''(2.5) = " << f.SecondDerivative(2.5) << std::endl;
     std::cout << "  Integral [1,4] = " << f.Integrate(1.0, 4.0) << std::endl << std::endl;
+    SplineInterpRealFunc descending(Vector<Real>{2, 1, 0}, Vector<Real>{2, 1, 0});
+    std::cout << "  Descending f(x)=x integral [0,2] = " << descending.Integrate(0, 2) << std::endl;
 }
 
 void Docs_Demo_Barycentric_Interpolation()
@@ -147,6 +149,14 @@ void Docs_Demo_Parametric_Curve()
     
     pos = curve(1.0);
     std::cout << "  Position at t=1: (" << pos[0] << ", " << pos[1] << ", " << pos[2] << ")" << std::endl << std::endl;
+    Matrix<Real> triangle(3, 2, {0, 0, 3, 0, 3, 4});
+    LinInterpParametricCurve<2> closedLinear(triangle, true);
+    auto closingMidpoint = closedLinear(Real(19) / 24);
+    std::cout << "  Closing chord midpoint: (" << closingMidpoint[0] << ", " << closingMidpoint[1] << ")" << std::endl;
+    Matrix<Real> square(4, 2, {0, 0, 1, 0, 1, 1, 0, 1});
+    SplineInterpParametricCurve<2> closedSpline(2, 4, square, true);
+    auto opposite = closedSpline(3);
+    std::cout << "  Closed spline [2,4] at t=3: (" << opposite[0] << ", " << opposite[1] << ")" << std::endl;
 }
 
 void Docs_Demo_Interpolated_functions()

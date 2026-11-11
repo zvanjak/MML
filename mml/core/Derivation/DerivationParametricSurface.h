@@ -104,29 +104,37 @@ namespace MML
 		/********************************************************************************************************************/
 		/********                                      SECOND DERIVATIVES                                            ********/
 		/********************************************************************************************************************/
+		// Balance O(epsilon/h^2) roundoff with O(h^2) truncation at epsilon^(1/4) (NR 5.7).
 		template <int N>
 		static VectorN<Real, N> NDer2_uu(const IParametricSurfaceRect<N>& f, Real u, Real w, Real h, Real* error = nullptr)
 		{
+			ValidateStepSize(h, "NDer2_uu");
 			VectorN<Real, N> yh = f(u + h, w);
 			VectorN<Real, N> ym = f(u - h, w);
 			VectorN<Real, N> y0 = f(u, w);
 			VectorN<Real, N> diff = yh - 2 * y0 + ym;
 			if (error)
 			{
-				Real ypph = diff.NormL2() / (h * h);
-				*error = ypph / 2 + (yh.NormL2() + ym.NormL2() + y0.NormL2()) * Constants::Eps / (h * h);
+				const auto y2h = f(u + 2 * h, w), ym2h = f(u - 2 * h, w);
+				*error = Detail::EstimateSecondTruncation2(ym2h, ym, y0, yh, y2h, h,
+					[](const auto& value) { return value.NormL2(); }) +
+					(yh.NormL2() + ym.NormL2() + 2 * y0.NormL2()) * Constants::Eps / (h * h);
 			}
 			return diff / (h * h);
 		}
 		template <int N>
 		static VectorN<Real, N> NDer2_uu(const IParametricSurfaceRect<N>& f, Real u, Real w, Real* error = nullptr)
 		{
-			return NDer2_uu(f, u, w, ScaleStep(NDer2_h, u), error);
+			return NDer2_uu(f, u, w, ScaleStep(Precision::FourthRootEps, u), error);
 		}
 
 		template <int N>
 		static VectorN<Real, N> NDer2_uw(const IParametricSurfaceRect<N>& f, Real u, Real w, Real h_u, Real h_w, Real* error = nullptr)
 		{
+			ValidateStepSize(h_u, "NDer2_uw u step");
+			ValidateStepSize(h_w, "NDer2_uw w step");
+			const Real halfU = error ? Detail::RefineMixedDerivativeStep(u, h_u) : Real(0);
+			const Real halfW = error ? Detail::RefineMixedDerivativeStep(w, h_w) : Real(0);
 			// Mixed partial derivative: ∂²f/∂u∂w
 			// Central difference: [f(u+hu,w+hw) - f(u+hu,w-hw) - f(u-hu,w+hw) + f(u-hu,w-hw)] / (4*hu*hw)
 			VectorN<Real, N> fpp = f(u + h_u, w + h_w);
@@ -138,8 +146,15 @@ namespace MML
 			
 			if (error)
 			{
-				Real norm_sum = fpp.NormL2() + fpm.NormL2() + fmp.NormL2() + fmm.NormL2();
-				*error = norm_sum * Constants::Eps / (4 * h_u * h_w);
+				const auto gpp = f(u + halfU, w + halfW), gpm = f(u + halfU, w - halfW);
+				const auto gmp = f(u - halfU, w + halfW), gmm = f(u - halfU, w - halfW);
+				const auto fine = (gpp - gpm - gmp + gmm) / (h_u * h_w);
+				const Real coarseRoundoff = Constants::Eps *
+					(fpp.NormL2() + fpm.NormL2() + fmp.NormL2() + fmm.NormL2()) / (4 * h_u * h_w);
+				const Real fineRoundoff = Constants::Eps *
+					(gpp.NormL2() + gpm.NormL2() + gmp.NormL2() + gmm.NormL2()) / (h_u * h_w);
+				*error = Detail::EstimateMixedDerivativeError<2>(diff / (4 * h_u * h_w), fine,
+					coarseRoundoff, fineRoundoff, [](const auto& value) { return value.NormL2(); });
 			}
 			return diff / (4 * h_u * h_w);
 		}
@@ -153,27 +168,30 @@ namespace MML
 		{
 			// Scale step by max parameter magnitude for stability at large u, w
 			Real scale = std::max(std::abs(u), std::abs(w));
-			return NDer2_uw(f, u, w, ScaleStep(NDer2_h, scale), error);
+			return NDer2_uw(f, u, w, ScaleStep(Precision::FourthRootEps, scale), error);
 		}
 
 		template <int N>
 		static VectorN<Real, N> NDer2_ww(const IParametricSurfaceRect<N>& f, Real u, Real w, Real h, Real* error = nullptr)
 		{
+			ValidateStepSize(h, "NDer2_ww");
 			VectorN<Real, N> yh = f(u, w + h);
 			VectorN<Real, N> ym = f(u, w - h);
 			VectorN<Real, N> y0 = f(u, w);
 			VectorN<Real, N> diff = yh - 2 * y0 + ym;
 			if (error)
 			{
-				Real ypph = diff.NormL2() / (h * h);
-				*error = ypph / 2 + (yh.NormL2() + ym.NormL2() + y0.NormL2()) * Constants::Eps / (h * h);
+				const auto y2h = f(u, w + 2 * h), ym2h = f(u, w - 2 * h);
+				*error = Detail::EstimateSecondTruncation2(ym2h, ym, y0, yh, y2h, h,
+					[](const auto& value) { return value.NormL2(); }) +
+					(yh.NormL2() + ym.NormL2() + 2 * y0.NormL2()) * Constants::Eps / (h * h);
 			}
 			return diff / (h * h);
 		}
 		template <int N>
 		static VectorN<Real, N> NDer2_ww(const IParametricSurfaceRect<N>& f, Real u, Real w, Real* error = nullptr)
 		{
-			return NDer2_ww(f, u, w, ScaleStep(NDer2_h, w), error);
+			return NDer2_ww(f, u, w, ScaleStep(Precision::FourthRootEps, w), error);
 		}
 	}
 }

@@ -33,7 +33,7 @@ namespace MML::Demos::Algorithms
         DemoHeader("Chebyshev_BasicApproximation", "Creating Chebyshev approximations");
         
         std::cout << "ChebyshevApproximation represents f(x) as:\n";
-        std::cout << "  f(x) ≈ Σ cⱼ Tⱼ(y), where y maps [a,b] to [-1,1]\n\n";
+        std::cout << "  f(x) = c[0]/2 + sum(c[j]*T_j(y), j>=1), where y maps [a,b] to [-1,1]\n\n";
         
         // Approximate sin(x) on [0, π]
         auto sinFunc = [](Real x) { return std::sin(x); };
@@ -105,6 +105,10 @@ namespace MML::Demos::Algorithms
         Vector<Real> values;
         result.approximation.SampleUniform(9, points, values);
         std::cout << "Uniform diagnostic samples: " << values.size() << "\n";
+        auto fixed = ApproximateChebyshevDetailed(
+            [](Real x) { return std::exp(x); }, -1, 1, 16);
+        std::cout << "Fixed-term success / tolerance-converged: "
+                  << fixed.IsSuccess() << " / " << fixed.converged << "\n";
     }
     
     void Chebyshev_Truncation()

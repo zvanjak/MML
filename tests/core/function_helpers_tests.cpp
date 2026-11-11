@@ -79,14 +79,13 @@ namespace MML::Tests::Core::FunctionHelpersTests
 
         // e^x ≈ 1 + x + x²/2 near x=0
         REQUIRE_THAT(taylor(0.0), RealWithinRel(f(0.0), TOL(1e-8, 1e-4)));
-        REQUIRE_THAT(taylor(0.1), RealWithinRel(f(0.1), 1e-3));  // Good near expansion point
-        REQUIRE_THAT(taylor(0.5), RealWithinRel(f(0.5), 0.05));  // Acceptable further out
+        REQUIRE_THAT(taylor(MML::Real(0.1)), RealWithinRel(f(MML::Real(0.1)), MML::Real(1e-3)));  // Good near expansion point
+        REQUIRE_THAT(taylor(MML::Real(0.5)), RealWithinRel(f(MML::Real(0.5)), MML::Real(0.05)));  // Acceptable further out
     }
 
     TEST_CASE("FunctionHelpers::TaylorSeries3 - cubic function", "[taylor][exact]")
     {
         // For a cubic function, Taylor series of degree 3 should be exact
-        auto cubic = [](Real x) { return x * x * x - 2 * x * x + 3 * x - 1; };
         class CubicFunc : public IRealFunction {
         public:
             Real operator()(Real x) const override { return x * x * x - 2 * x * x + 3 * x - 1; }
@@ -97,8 +96,8 @@ namespace MML::Tests::Core::FunctionHelpersTests
         auto taylor = TaylorSeries3(f, a);
 
         REQUIRE_THAT(taylor(0.0), RealWithinRel(f(0.0), TOL(1e-8, 1e-4)));
-        REQUIRE_THAT(taylor(1.0), RealWithinRel(f(1.0), 1e-4));
-        REQUIRE_THAT(taylor(-0.5), RealWithinRel(f(-0.5), 1e-4));
+        REQUIRE_THAT(taylor(MML::Real(1.0)), RealWithinRel(f(MML::Real(1.0)), MML::Real(1e-4)));
+        REQUIRE_THAT(taylor(-MML::Real(0.5)), RealWithinRel(f(-MML::Real(0.5)), MML::Real(1e-4)));
     }
 
     TEST_CASE("FunctionHelpers::TaylorSeries3 - sin function", "[taylor]")
@@ -110,8 +109,8 @@ namespace MML::Tests::Core::FunctionHelpersTests
 
         // sin(x) ≈ x - x³/6 near x=0
         REQUIRE_THAT(taylor(0.0), RealWithinAbs(0.0, TOL(1e-10, 1e-5)));
-        REQUIRE_THAT(taylor(0.1), RealWithinRel(f(0.1), 1e-5));
-        REQUIRE_THAT(taylor(0.5), RealWithinRel(f(0.5), 1e-2));
+        REQUIRE_THAT(taylor(MML::Real(0.1)), RealWithinRel(f(MML::Real(0.1)), MML::Real(1e-5)));
+        REQUIRE_THAT(taylor(MML::Real(0.5)), RealWithinRel(f(MML::Real(0.5)), MML::Real(1e-2)));
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -129,7 +128,7 @@ namespace MML::Tests::Core::FunctionHelpersTests
         RealFuncDerived6 d6(f);
         RealFuncDerived8 d8(f);
 
-        REQUIRE_THAT(d1(0.0), RealWithinRel(3.0, 1e-4));
+        REQUIRE_THAT(d1(MML::Real(0.0)), RealWithinRel(MML::Real(3.0), MML::Real(1e-4)));
         REQUIRE_THAT(d2(0.0), RealWithinRel(3.0, TOL(1e-8, 1e-4)));
         REQUIRE_THAT(d4(0.0), RealWithinRel(3.0, TOL(1e-10, 1e-5)));
         REQUIRE_THAT(d6(0.0), RealWithinRel(3.0, TOL(1e-10, 1e-5)));
@@ -157,7 +156,7 @@ namespace MML::Tests::Core::FunctionHelpersTests
         QuadraticFunc f(1.0, 0.0, 0.0);  // f(x) = x²
 
         RealFuncDerived2 d2_auto(f);
-        RealFuncDerived2 d2_custom(f, 1e-4);
+        RealFuncDerived2 d2_custom(f, MML::Real(1e-4));
 
         Real x = 2.0;  // f'(2) = 4
         REQUIRE_THAT(d2_auto(x), RealWithinRel(4.0, TOL(1e-8, 1e-4)));
@@ -269,8 +268,8 @@ namespace MML::Tests::Core::FunctionHelpersTests
         RealFuncCompose fog(f, g);  // sin(x^2)
 
         REQUIRE_THAT(fog(0.0), RealWithinAbs(0.0, TOL(1e-10, 1e-5)));
-        REQUIRE_THAT(fog(1.0), RealWithinAbs(std::sin(1.0), TOL(1e-10, 1e-5)));
-        REQUIRE_THAT(fog(2.0), RealWithinAbs(std::sin(4.0), TOL(1e-10, 1e-5)));
+        REQUIRE_THAT(fog(MML::Real(1.0)), RealWithinAbs(std::sin(MML::Real(1.0)), TOL(1e-10, 1e-5)));
+        REQUIRE_THAT(fog(MML::Real(2.0)), RealWithinAbs(std::sin(MML::Real(4.0)), TOL(1e-10, 1e-5)));
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -390,7 +389,7 @@ namespace MML::Tests::Core::FunctionHelpersTests
         RealFuncCompose f(sinf, sqr);  // sin(x²)
         RealFuncDerived4 df(f);
 
-        auto expected = [](Real x) { return 2.0 * x * std::cos(x * x); };
+        auto expected = [](Real x) { return Real(2) * x * std::cos(x * x); };
 
         Real x = 1.0;
         REQUIRE_THAT(df(x), RealWithinRel(expected(x), TOL(1e-6, 5e-3)));

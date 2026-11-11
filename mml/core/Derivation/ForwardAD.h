@@ -15,6 +15,7 @@
 #define MML_AD_FORWARD_AD_H
 
 #include <mml/MMLBase.h>
+#include <mml/core/Derivation/ADArithmetic.h>
 #include <algorithm>
 
 #include <cmath>
@@ -45,6 +46,8 @@ namespace MML::AD
     template<typename T = Real>
     struct Dual
     {
+        static_assert(Detail::HasFloatingLeaf<T>::value, "Dual requires a floating-point leaf type");
+
         T value;  ///< Function value f(x)
         T deriv;  ///< Derivative f'(x)
 
@@ -85,9 +88,10 @@ namespace MML::AD
         }
 
         Dual& operator/=(const Dual& other) {
-            // (a + a'ε)/(b + b'ε) = a/b + (a'b - ab')/b² ε
-            deriv = (deriv * other.value - value * other.deriv) / (other.value * other.value);
-            value /= other.value;
+            const T quotient = value / other.value;
+            const T tangent = Detail::QuotientTangent(value, deriv, other.value, other.deriv);
+            value = quotient;
+            deriv = tangent;
             return *this;
         }
     };
@@ -114,9 +118,7 @@ namespace MML::AD
 
     template<typename T>
     Dual<T> operator/(const Dual<T>& a, const Dual<T>& b) {
-        // Quotient rule: (a,a') / (b,b') = (a/b, (a'b - ab')/b²)
-        T inv = T(1) / b.value;
-        return Dual<T>(a.value * inv, (a.deriv * b.value - a.value * b.deriv) * inv * inv);
+        return Dual<T>(a.value / b.value, Detail::QuotientTangent(a.value, a.deriv, b.value, b.deriv));
     }
 
     template<typename T>
@@ -180,26 +182,6 @@ namespace MML::AD
     // Mathematical functions
     //////////////////////////////////////////////////////////////////////////////////////////
 
-		namespace Detail {
-			template<typename T>
-			T Primal(const T& x) {
-				return x;
-			}
-			template<typename T>
-			auto Primal(const Dual<T>& x) {
-				return Primal(x.value);
-			}
-
-			template<typename T>
-			bool IsZero(const T& x) {
-				return x == T(0);
-			}
-			template<typename T>
-			bool IsZero(const Dual<T>& x) {
-				return IsZero(x.value) && IsZero(x.deriv);
-			}
-		} // namespace Detail
-
 		/// Square root: d/dx(sqrt(x)) = 1/(2*sqrt(x))
     template<typename T>
     Dual<T> sqrt(const Dual<T>& x) {
@@ -211,42 +193,18 @@ namespace MML::AD
     /// Power function: d/dx(x^n) = n*x^(n-1)
     template<typename T>
     Dual<T> pow(const Dual<T>& base, const Dual<T>& exp) {
-			using std::log;
-			using std::pow;
-			if (Detail::IsZero(exp.deriv)) {
-				if (Detail::IsZero(exp.value))
-					return Dual<T>(T(1), T(0));
-				// Constant exponent: d/dx(f^n) = n*f^(n-1)*f'
-				T p = pow(base.value, exp.value);
-				return Dual<T>(p, exp.value * pow(base.value, exp.value - T(1)) * base.deriv);
-			} else if (Detail::IsZero(base.deriv)) {
-				// Constant base: d/dx(a^g) = a^g * ln(a) * g'
-				T p = pow(base.value, exp.value);
-				return Dual<T>(p, p * log(base.value) * exp.deriv);
-			} else {
-				// General case: d/dx(f^g) = f^g * (g' * ln(f) + g * f'/f)
-				T p = pow(base.value, exp.value);
-				T d = p * (exp.deriv * log(base.value) + exp.value * base.deriv / base.value);
-				return Dual<T>(p, d);
-			}
+			Detail::RequirePowerDomain(Detail::Primal(base), Detail::Primal(exp), Detail::IsConstantJet(exp));
+			return Detail::PowJetUnchecked(base, exp);
 		}
 
     template<typename T, typename S, typename = std::enable_if_t<std::is_arithmetic_v<S>>>
     Dual<T> pow(const Dual<T>& base, S exp) {
-			if (exp == S(0))
-				return Dual<T>(T(1), T(0));
-			using std::pow;
-			T p = pow(base.value, exp);
-			return Dual<T>(p, T(exp) * pow(base.value, exp - S(1)) * base.deriv);
+			return pow(base, Dual<T>(T(exp)));
 		}
 
     template<typename T, typename S, typename = std::enable_if_t<std::is_arithmetic_v<S>>>
     Dual<T> pow(S base, const Dual<T>& exp) {
-        T b = static_cast<T>(base);
-				using std::log;
-				using std::pow;
-				T p = pow(b, exp.value);
-				return Dual<T>(p, p * log(b) * exp.deriv);
+				return pow(Dual<T>(T(base)), exp);
 		}
 
     /// Exponential: d/dx(e^x) = e^x
@@ -303,9 +261,7 @@ namespace MML::AD
     Dual<T> asin(const Dual<T>& x) {
 			using std::asin;
 			using std::sqrt;
-			using Scalar = decltype(Detail::Primal(x.value));
-			const T fpmin = T(std::numeric_limits<Scalar>::min());
-			T denom = sqrt(std::max(T(1) - x.value * x.value, fpmin));
+			T denom = sqrt(T(1) - x.value * x.value);
 			return Dual<T>(asin(x.value), x.deriv / denom);
 		}
 
@@ -314,9 +270,7 @@ namespace MML::AD
     Dual<T> acos(const Dual<T>& x) {
 			using std::acos;
 			using std::sqrt;
-			using Scalar = decltype(Detail::Primal(x.value));
-			const T fpmin = T(std::numeric_limits<Scalar>::min());
-			T denom = sqrt(std::max(T(1) - x.value * x.value, fpmin));
+			T denom = sqrt(T(1) - x.value * x.value);
 			return Dual<T>(acos(x.value), -x.deriv / denom);
 		}
 
@@ -411,7 +365,7 @@ namespace MML::AD
     /// @param f Function to differentiate
     /// @param x Point at which to compute derivative
     /// @return Pair of (f(x), f'(x))
-    template<typename F, typename T = Real>
+    template<typename F, typename T = Real, typename = std::enable_if_t<Detail::HasFloatingLeaf<T>::value>>
     std::pair<T, T> CalcDerivativeForwardAD(F&& f, T x) {
         Dual<T> xd(x, T(1));  // dx/dx = 1
         Dual<T> result = f(xd);
@@ -420,7 +374,7 @@ namespace MML::AD
 
     /// Compute gradient of f: R^n -> R at point x using forward-mode AD
     /// Requires n evaluations of f
-    template<typename F, typename T = Real>
+    template<typename F, typename T = Real, typename = std::enable_if_t<Detail::HasFloatingLeaf<T>::value>>
     std::vector<T> CalcGradientForwardAD(F&& f, const std::vector<T>& x) {
         std::vector<T> grad(x.size());
         std::vector<Dual<T>> xd(x.size());
@@ -451,10 +405,10 @@ namespace MML::AD
 
 
     // ---- Deprecated 2.0 spellings (CONTRACT_POLICY section 11) ----
-    template<typename F, typename T = Real>
+    template<typename F, typename T = Real, typename = std::enable_if_t<Detail::HasFloatingLeaf<T>::value>>
     [[deprecated("use CalcDerivativeForwardAD()")]]
     std::pair<T, T> derivative(F&& f, T x) { return CalcDerivativeForwardAD(std::forward<F>(f), x); }
-    template<typename F, typename T = Real>
+    template<typename F, typename T = Real, typename = std::enable_if_t<Detail::HasFloatingLeaf<T>::value>>
     [[deprecated("use CalcGradientForwardAD()")]]
     std::vector<T> gradient(F&& f, const std::vector<T>& x) { return CalcGradientForwardAD(std::forward<F>(f), x); }
 

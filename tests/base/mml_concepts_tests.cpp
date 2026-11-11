@@ -67,6 +67,17 @@ namespace MML::Tests::Base::ConceptsTests
 		REQUIRE(Matrix<Real>(2, 3).rows() == 2);
 	}
 
+	TEST_CASE("MMLConcepts - integer scalar conversion preserves the destination type", "[Concepts][precision]")
+	{
+		static_assert(std::is_same_v<decltype(ScalarDetail::ScalarFromInteger<float>(1)), float>);
+		static_assert(std::is_same_v<decltype(ScalarDetail::ScalarFromInteger<double>(1)), double>);
+		static_assert(std::is_same_v<decltype(ScalarDetail::ScalarFromInteger<std::complex<float>>(1)), std::complex<float>>);
+		CHECK(ScalarDetail::ScalarFromInteger<float>(-3) == -3.0f);
+		CHECK(ScalarDetail::ScalarFromInteger<double>(16777217) == 16777217.0);
+		CHECK(ScalarDetail::ScalarFromInteger<std::complex<float>>(-3) == std::complex<float>(-3.0f, 0.0f));
+		CHECK(ScalarDetail::ScalarFromInteger<std::complex<double>>(16777217) == std::complex<double>(16777217.0, 0.0));
+	}
+
 	TEST_CASE("MMLConcepts - requires clauses constrain arithmetic-only vector APIs", "[Concepts][C++20]")
 	{
 		static_assert(HasUnitVector<Vector<Real>>);

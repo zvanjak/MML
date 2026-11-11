@@ -85,7 +85,6 @@ namespace MML {
 		// Abscissae (nodes)
 		const Real c1 = (4 - sqrt6) / 10;  // ≈ 0.1550510257
 		const Real c2 = (4 + sqrt6) / 10;  // ≈ 0.6449489743
-		const Real c3 = 1;
 
 		// Butcher tableau A matrix (for Radau IIA order 5)
 		const Real a11 = (88 - 7*sqrt6) / 360;
@@ -98,7 +97,7 @@ namespace MML {
 		
 		const Real a31 = (16 - sqrt6) / 36;
 		const Real a32 = (16 + sqrt6) / 36;
-		const Real a33 = 1.0 / 9;
+		const Real a33 = MML::Real(1.0) / 9;
 
 		// Weights (b = last row of A for Radau methods)
 		// b1 = a31, b2 = a32, b3 = a33
@@ -131,9 +130,10 @@ namespace MML {
 			if (!PrepareDAETrajectoryPoint(result, step)) break;
 
 			// Clamp step size to reach t_end exactly
-			Real h_actual = direction * std::min(std::abs(h), std::abs(t_end - t));
-			if (!ValidateDAETimeStep(t, t + h_actual, result, "Radau IIA")) break;
-			if (std::abs(h_actual) < DAETimeTolerance(t_end, h)) break;
+			const Real remaining = t_end - t;
+			const Real h_actual = direction * std::min(std::abs(h), std::abs(remaining));
+			const Real t_next = h_actual == remaining ? t_end : t + h_actual;
+			if (!ValidateDAETimeStep(t, t_next, result, "Radau IIA")) break;
 
 			Vector<Real> stageX(3 * diffDim), stageY(3 * algDim);
 			for (int stage = 0; stage < 3; ++stage) {
@@ -153,10 +153,10 @@ namespace MML {
 				unpackStages(valuesX, valuesY);
 				system.diffEqs(t + c1 * h_actual, X1, Y1, K1);
 				system.diffEqs(t + c2 * h_actual, X2, Y2, K2);
-				system.diffEqs(t + c3 * h_actual, X3, Y3, K3);
+				system.diffEqs(t_next, X3, Y3, K3);
 				system.algConstraints(t + c1 * h_actual, X1, Y1, G1);
 				system.algConstraints(t + c2 * h_actual, X2, Y2, G2);
-				system.algConstraints(t + c3 * h_actual, X3, Y3, G3);
+				system.algConstraints(t_next, X3, Y3, G3);
 				for (int i = 0; i < diffDim; ++i) {
 					residual[i] = X1[i] - x[i] - h_actual * (a11 * K1[i] + a12 * K2[i] + a13 * K3[i]);
 					residual[diffDim + i] = X2[i] - x[i] - h_actual * (a21 * K1[i] + a22 * K2[i] + a23 * K3[i]);
@@ -171,7 +171,7 @@ namespace MML {
 			};
 			auto evaluateJacobian = [&](const Vector<Real>& valuesX, const Vector<Real>& valuesY, Matrix<Real>& jacobian) {
 				unpackStages(valuesX, valuesY);
-				const std::array<Real, 3> stageTimes = {t + c1 * h_actual, t + c2 * h_actual, t + c3 * h_actual};
+				const std::array<Real, 3> stageTimes = {t + c1 * h_actual, t + c2 * h_actual, t_next};
 				const std::array<Vector<Real>*, 3> stageXs = {&X1, &X2, &X3};
 				const std::array<Vector<Real>*, 3> stageYs = {&Y1, &Y2, &Y3};
 				for (int stage = 0; stage < 3; ++stage)
@@ -215,7 +215,7 @@ namespace MML {
 			// Update solution using stage 3 (for Radau IIA, c3 = 1, so X3, Y3 is the solution at t+h_actual)
 			x = X3;
 			y = Y3;
-			t += h_actual;
+			t = t_next;
 
 			// Track constraint violation
 			Vector<Real> g_check(algDim);
@@ -233,7 +233,7 @@ namespace MML {
 		if (result.status != AlgorithmStatus::ResourceLimitExceeded)
 			result.solution.setFinalSize(step - 1);
 		result.total_steps = step - 1;
-		if (direction * (t_end - t) > DAETimeTolerance(t_end, config.step_size) && result.status == AlgorithmStatus::Success) {
+		if (direction * (t_end - t) > 0 && result.status == AlgorithmStatus::Success) {
 			result.status = AlgorithmStatus::MaxIterationsExceeded;
 			result.failure_reason = DAEFailureReason::MaxStepsExceeded;
 			result.error_message = "Maximum Radau IIA step count reached before t_end";

@@ -13,18 +13,17 @@
 #define MML_FUNCTIONS_H
 
 #include <mml/MMLBase.h>
+#include <mml/base/ExactInteger.h>
 
 #include <cmath>
 
-// Feature detection for C++17 special math functions
-// macOS libc++ doesn't support these yet, so we need fallbacks
-#if defined(__cpp_lib_math_special_functions) || \
-    (defined(_MSC_VER) && _MSC_VER >= 1910) || \
-    (defined(__GNUC__) && !defined(__clang__) && __GNUC__ >= 7) || \
-    (defined(__clang__) && !defined(__APPLE__) && __clang_major__ >= 10)
+// Detect the standard library's C++17 special math support, not the compiler's version.
+#ifndef MML_HAS_STD_SPECIAL_FUNCTIONS
+#if defined(__cpp_lib_math_special_functions) && __cpp_lib_math_special_functions >= 201603L
     #define MML_HAS_STD_SPECIAL_FUNCTIONS 1
 #else
     #define MML_HAS_STD_SPECIAL_FUNCTIONS 0
+#endif
 #endif
 
 namespace MML
@@ -38,13 +37,13 @@ namespace MML
 		template<typename T>
 		static inline T Cos(T x) { return std::cos(x); }
 		template<typename T>
-		static inline T Sec(T x) { T c = std::cos(x); if (std::abs(c) < std::numeric_limits<T>::epsilon()) throw DomainError("Sec: cos(x) is zero"); return T{1} / c; }
+		static inline T Sec(T x) { T c = std::cos(x); if (std::abs(c) < std::numeric_limits<decltype(std::abs(c))>::epsilon()) throw DomainError("Sec: cos(x) is zero"); return T{1} / c; }
 		template<typename T>
-		static inline T Csc(T x) { T s = std::sin(x); if (std::abs(s) < std::numeric_limits<T>::epsilon()) throw DomainError("Csc: sin(x) is zero"); return T{1} / s; }
+		static inline T Csc(T x) { T s = std::sin(x); if (std::abs(s) < std::numeric_limits<decltype(std::abs(s))>::epsilon()) throw DomainError("Csc: sin(x) is zero"); return T{1} / s; }
 		template<typename T>
 		static inline T Tan(T x) { return std::tan(x); }
 		template<typename T>
-		static inline T Ctg(T x) { T t = std::tan(x); if (std::abs(t) < std::numeric_limits<T>::epsilon()) throw DomainError("Ctg: tan(x) is zero"); return T{1} / t; }
+		static inline T Ctg(T x) { T t = std::tan(x); if (std::abs(t) < std::numeric_limits<decltype(std::abs(t))>::epsilon()) throw DomainError("Ctg: tan(x) is zero"); return T{1} / t; }
 
 		template<typename T>
 		static inline T Exp(T x) { return std::exp(x); }
@@ -64,11 +63,11 @@ namespace MML
 		template<typename T>
 		static inline T Sech(T x) { return T{1} / std::cosh(x); }
 		template<typename T>
-		static inline T Csch(T x) { T s = std::sinh(x); if (std::abs(s) < std::numeric_limits<T>::epsilon()) throw DomainError("Csch: sinh(x) is zero"); return T{1} / s; }
+		static inline T Csch(T x) { T s = std::sinh(x); if (std::abs(s) < std::numeric_limits<decltype(std::abs(s))>::epsilon()) throw DomainError("Csch: sinh(x) is zero"); return T{1} / s; }
 		template<typename T>
 		static inline T Tanh(T x) { return std::tanh(x); }
 		template<typename T>
-		static inline T Ctgh(T x) { T t = std::tanh(x); if (std::abs(t) < std::numeric_limits<T>::epsilon()) throw DomainError("Ctgh: tanh(x) is zero"); return T{1} / t; }
+		static inline T Ctgh(T x) { T t = std::tanh(x); if (std::abs(t) < std::numeric_limits<decltype(std::abs(t))>::epsilon()) throw DomainError("Ctgh: tanh(x) is zero"); return T{1} / t; }
 
 		template<typename T>
 		static inline T Asin(T x) { return std::asin(x); }
@@ -92,9 +91,8 @@ namespace MML
 		static inline Real LGamma(Real x) { return std::lgamma(x); }
 
 #if MML_HAS_STD_SPECIAL_FUNCTIONS
-		// C++17 special math functions (not available on macOS libc++)
-		// NOTE: These are ONLY wrappers around std:: functions. They are NOT used by MML internally.
-		//       MML uses its own implementations in mml/algorithms/ which work on all platforms.
+		// C++17 special math functions supplied by the selected standard library.
+		// Complete elliptic E uses the shared portable implementation below.
 		static inline Real RiemannZeta(Real x) { return std::riemann_zeta(x); }
 
 		static inline Real Hermite(unsigned int n, Real x) { return std::hermite(n, x); }
@@ -108,7 +106,6 @@ namespace MML
 		static inline Real Ellint_2(Real k, Real phi) { return std::ellint_2(k, phi); }
 		static inline Real Ellint_3(Real k, Real n, Real phi) { return std::ellint_3(k, n, phi); }
 		static inline Real Comp_ellint_1(Real x) { return std::comp_ellint_1(x); }
-		static inline Real Comp_ellint_2(Real x) { return std::comp_ellint_2(x); }
 		static inline Real Comp_ellint_3(Real k, Real n) { return std::comp_ellint_3(k, n); }
 
 		// Bessel functions
@@ -121,7 +118,11 @@ namespace MML
 		static inline Real SphNeumann(unsigned int n, Real x) { return std::sph_neumann(n, x); }
 
 		// Associated Legendre and Laguerre polynomials
-		static inline Real AssocLegendre(unsigned int l, unsigned int m, Real x) { return std::assoc_legendre(l, m, x); }
+		static inline Real AssocLegendre(unsigned int l, unsigned int m, Real x) {
+			if (std::isnan(x)) return x;
+			if (std::abs(x) > 1) throw DomainError("AssocLegendre: |x| must not exceed 1");
+			return std::assoc_legendre(l, m, x);
+		}
 		static inline Real AssocLaguerre(unsigned int n, unsigned int m, Real x) { return std::assoc_laguerre(n, m, x); }
 
 		// Beta and exponential integral functions
@@ -177,14 +178,16 @@ namespace MML
 
 		// Associated Legendre polynomial Pₗᵐ(x) using recurrence
 		static inline Real AssocLegendre(unsigned int l, unsigned int m, Real x) {
+			if (std::isnan(x)) return x;
+			if (std::abs(x) > 1) throw DomainError("AssocLegendre: |x| must not exceed 1");
 			if (m > l) return 0.0;
 			// Start with P_m^m
 			Real P_mm = 1.0;
 			if (m > 0) {
-				Real sqrt1mx2 = std::sqrt(1.0 - x * x);
+				Real sqrt1mx2 = std::sqrt((1 - x) * (1 + x));
 				Real fact = 1.0;
 				for (unsigned int i = 1; i <= m; ++i) {
-					P_mm *= -fact * sqrt1mx2;
+					P_mm *= fact * sqrt1mx2;
 					fact += 2.0;
 				}
 			}
@@ -219,10 +222,13 @@ namespace MML
 
 		// Spherical Legendre function Y_l^m(theta) (real, normalized)
 		static inline Real SphLegendre(unsigned int l, unsigned int m, Real theta) {
-			// Y_l^m(theta) = K_l^m * P_l^m(cos(theta))
+			if (std::isnan(theta)) return theta;
+			if (m > l) return 0;
+			// Unlike AssocLegendre, the spherical function includes the Condon-Shortley phase.
 			// Normalization: K_l^m = sqrt((2l+1)/(4π) * (l-m)!/(l+m)!)
 			Real x = std::cos(theta);
 			Real P_lm = AssocLegendre(l, m, x);
+			if (m % 2 != 0) P_lm = -P_lm;
 			// Compute (l-m)! / (l+m)!
 			Real ratio = 1.0;
 			for (unsigned int i = l - m + 1; i <= l + m; ++i)
@@ -242,47 +248,57 @@ namespace MML
 			return Constants::PI / (2.0 * a);
 		}
 
-		// Complete elliptic integral of the second kind E(k) using AGM
-		static inline Real Comp_ellint_2(Real k) {
-			Real a = 1.0, b = std::sqrt(1.0 - k * k);
-			Real c = k, sum = k * k / 2.0;
-			Real power_of_2 = 1.0;
-			while (std::abs(c) > PrecisionValues<Real>::AGMConvergenceTolerance) {
-				Real a_new = (a + b) / 2.0;
-				Real b_new = std::sqrt(a * b);
-				c = (a - b) / 2.0;
-				power_of_2 *= 2.0;
-				sum += power_of_2 * c * c;
-				a = a_new;
-				b = b_new;
-			}
-			return Constants::PI / (2.0 * a) * (1.0 - sum);
-		}
-
 		// Note: More special functions (Bessel, Beta, etc.) can be added here if needed.
 		// For now, use MML's own implementations from mml/algorithms/ for those.
 #endif
 
+		// Shared AGM implementation: native libstdc++ E loses accuracy near |k|=1.
+		static inline Real Comp_ellint_2(Real k) {
+			if (std::isnan(k)) return k;
+			if (std::abs(k) > 1) throw DomainError("Comp_ellint_2: |k| must not exceed 1");
+			if (std::abs(k) == 1) return 1;
+			Real a = 1, b = std::sqrt((1 - k) * (1 + k));
+			Real sum = k * k / 2, power_of_2 = 1;
+			// DLMF 19.8(i): E/K = 1 - k^2/2 - c_1^2 - 2*c_2^2 - 4*c_3^2 - ...
+			for (int iteration = 0; iteration < Precision::EllipticAGMMaxIterations; ++iteration) {
+				const Real c = (a - b) / 2;
+				const Real a_new = (a + b) / 2;
+				const Real b_new = std::sqrt(a * b);
+				sum += power_of_2 * c * c;
+				a = a_new;
+				b = b_new;
+				if (std::abs(c) <= Precision::AGMConvergenceTolerance * a)
+					return Constants::PI / (2 * a) * (1 - sum);
+				power_of_2 *= 2;
+			}
+			throw ConvergenceError("Comp_ellint_2: AGM iteration budget exhausted");
+		}
+
 		// Factorial functions
+		/// @brief n! as Real; negative n throws DomainError, overflow returns positive infinity.
 		static inline Real Factorial(int n) {
 			if (n < 0) throw DomainError("Factorial: negative argument");
 			Real fact = 1.0;
-			for (int i = 2; i <= n; i++)
+			for (int i = 2; i <= n; i++) {
+				if (fact > std::numeric_limits<Real>::max() / i)
+					return Constants::PosInf;
 				fact *= i;
+			}
 			return fact;
 		}
+		/// @brief Exact factorial; throws DomainError for negative n or a result outside signed 64-bit range.
 		static inline long long FactorialInt(int n) {
 			if (n < 0) throw DomainError("FactorialInt: negative argument");
 			long long fact = 1;
 			for (int i = 2; i <= n; i++)
-				fact *= i;
+				fact = ExactInteger::Multiply(fact, i);
 			return fact;
 		}
 		static inline Real FactorialStirling(int n)
 		{
 			if (n < 0) throw DomainError("FactorialStirling: negative argument");
 			if (n == 0 || n == 1) return 1.0;
-			return sqrt(2 * Constants::PI * n) * std::pow(n / Constants::E, n);
+			return sqrt(2 * Constants::PI * n) * std::pow(n / Constants::E, Real(n));
 		}
 	}
 }

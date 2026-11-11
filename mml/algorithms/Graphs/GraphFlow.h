@@ -100,7 +100,7 @@ namespace MML
 		}
 	}  // namespace detail
 
-	/// Compute max-flow/min-cut using Edmonds-Karp.
+	/// Compute max-flow/min-cut using Edmonds-Karp; flowEdges reports signed net flow.
 	template<typename V, typename E>
 	MaxFlowMinCutResult EdmondsKarp(const Graph<V, E>& graph, size_t source, size_t sink)
 	{
@@ -183,7 +183,7 @@ namespace MML
 		return result;
 	}
 
-	/// Compute max-flow/min-cut using Dinic's algorithm.
+	/// Compute max-flow/min-cut using Dinic's algorithm; flowEdges reports signed net flow.
 	template<typename V, typename E>
 	MaxFlowMinCutResult Dinic(const Graph<V, E>& graph, size_t source, size_t sink)
 	{
@@ -402,7 +402,7 @@ namespace MML
 		return result;
 	}
 
-	/// Compute maximum cardinality bipartite matching by first deriving a two-coloring.
+	/// Compute maximum cardinality matching on the underlying undirected graph after two-coloring.
 	template<typename V, typename E>
 	BipartiteMatchingResult HopcroftKarp(const Graph<V, E>& graph)
 	{

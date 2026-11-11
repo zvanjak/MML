@@ -57,14 +57,12 @@ namespace MML::SparseSolvers {
 //=============================================================================
 
 // Automatic solver selection based on matrix properties
-template<typename T>
+template<MMLReal T>
 class AutoSolver {
 public:
     // Choose best solver for the given matrix
     static std::unique_ptr<IterativeSolverBase<T>> create(const SparseMatrixCSR<T>& A) {
-        // CG requires SPD. A symmetric matrix with positive diagonal that is weakly diagonally
-        // dominant in every row (strictly in at least one) is positive definite by Gershgorin,
-        // so that is the condition we actually check - over ALL rows, not the first ten.
+        // Irreducible weak dominance needs a strict row in EACH connected component.
         if (A.IsSymmetric() && isDiagonallyDominantWithPositiveDiagonal(A)) {
             return std::make_unique<ConjugateGradient<T>>();
         }
@@ -81,28 +79,50 @@ public:
 		}
 
 		/// Sufficient condition for positive definiteness of a symmetric matrix (Gershgorin):
-    /// every diagonal entry positive and >= the sum of |off-diagonal| in its row, with the
-    /// inequality strict in at least one row. O(nnz).
+    /// every diagonal entry positive and >= the sum of |off-diagonal| in its row, with a
+    /// strict row in every connected component. O(n + nnz) work/storage linear in n.
     /// @note Until analysis v4 (CORE C4) this was `hasDiagonalDominance`, which only tested
     ///       diag > 0 on the first ten rows and routed indefinite matrices to CG.
     static bool isDiagonallyDominantWithPositiveDiagonal(const SparseMatrixCSR<T>& A) {
+        if (!A.IsSquare() || A.rows() == 0) return false;
         const auto& rowPtr = A.rowPointers();
         const auto& colIdx = A.colIndices();
         const auto& vals   = A.values();
-        bool strictSomewhere = false;
+        std::vector<bool> strict(A.rows(), false);
         for (int i = 0; i < A.rows(); ++i) {
             T diag = T(0);
             T offSum = T(0);
             for (int k = rowPtr[i]; k < rowPtr[i + 1]; ++k) {
+                if (!std::isfinite(vals[k])) return false;
                 if (colIdx[k] == i) diag += vals[k];
                 else                offSum += std::abs(vals[k]);
             }
-            if (!(diag > T(0)) || diag < offSum)
+            if (!std::isfinite(diag) || !std::isfinite(offSum) || !(diag > T(0)) || diag < offSum)
                 return false;
-            if (diag > offSum)
-                strictSomewhere = true;
+            strict[i] = diag > offSum;
         }
-        return strictSomewhere;
+        std::vector<bool> visited(A.rows(), false);
+        std::vector<int> pending;
+        for (int root = 0; root < A.rows(); ++root) {
+            if (visited[root]) continue;
+            bool strictInComponent = false;
+            visited[root] = true;
+            pending.push_back(root);
+            while (!pending.empty()) {
+                const int row = pending.back();
+                pending.pop_back();
+                strictInComponent = strictInComponent || strict[row];
+                for (int k = rowPtr[row]; k < rowPtr[row + 1]; ++k) {
+                    const int column = colIdx[k];
+                    if (vals[k] != T(0) && !visited[column]) {
+                        visited[column] = true;
+                        pending.push_back(column);
+                    }
+                }
+            }
+            if (!strictInComponent) return false;
+        }
+        return true;
     }
 };
 
@@ -111,7 +131,7 @@ public:
 //=============================================================================
 
 // Auto-select solver and solve
-template<typename T>
+template<MMLReal T>
 KrylovResult<T> autoSolve(const SparseMatrixCSR<T>& A, const Vector<T>& b, Vector<T>& x,
 													const SolverConfig<T>& config = SolverConfig<T>()) {
 	return AutoSolver<T>::solve(A, b, x, config);
@@ -119,7 +139,7 @@ KrylovResult<T> autoSolve(const SparseMatrixCSR<T>& A, const Vector<T>& b, Vecto
 
 // Solve Poisson equation: -∇²u = f on unit square with zero Dirichlet BC
 // Returns solution u on (nx-2) × (ny-2) interior grid
-template<typename T>
+template<MMLReal T>
 Vector<T> solvePoisson2D(int nx, int ny,
 												 const Vector<T>& f, // RHS on interior points
 												 const SolverConfig<T>& config = SolverConfig<T>()) {
@@ -132,7 +152,7 @@ Vector<T> solvePoisson2D(int nx, int ny,
 
 	// RHS: b = h² * f
 	Vector<T> b(f.size());
-	for (size_t i = 0; i < f.size(); ++i) {
+	for (int i = 0; i < f.size(); ++i) {
 		b[i] = h2 * f[i];
 	}
 

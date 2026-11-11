@@ -144,6 +144,35 @@ Tensor2<3> divided = A / 2.0;
 ```
 
 ### Contraction
+
+`contract()` requires one covariant and one contravariant slot, for every supported rank.
+For ranks 3-5, same-variance calls now throw `TensorCovarContravarArithmeticError`;
+this intentionally replaces the former implicit Euclidean diagonal-sum behavior.
+Use `EuclideanDiagonalSum(first, second)` explicitly when that component calculation
+in a Cartesian orthonormal basis is intended. In a general basis, raise or lower a slot
+with the appropriate metric before contracting; a same-variance diagonal sum is not
+coordinate-invariant.
+
+```cpp
+Tensor3<2> tensor(1, 2);  // slot 0 covariant, slots 1 and 2 contravariant
+tensor(0, 0, 0) = 2;
+tensor(0, 1, 1) = 3;
+auto contracted = tensor.contract(0, 1);             // components {2, 0}
+auto diagonal = tensor.EuclideanDiagonalSum(1, 2);   // components {5, 0}
+```
+
+The rank-3 result is a `VectorN` of components, not a variance-tagged rank-1 object;
+the remaining slot's variance is available on the source tensor. Rank-4/5 reductions
+preserve the order and individual variance flags of the remaining slots.
+The runnable counterpart is in
+[the tensor demo](../../src/docs_demos/base/docs_demo_tensors.cpp);
+run `MML_DocsApp --tensors`.
+
+Variance constructors require each count to lie between zero and the rank, with
+the counts summing to the rank. Metadata setters reject out-of-range slot positions
+without modifying the tensor. Rank-2 raising/lowering preserves every untouched
+slot's variance and changes exactly the requested slot.
+
 ```cpp
 // Contract tensor (sum over diagonal) - requires 1 contra + 1 covar
 Tensor2<3> mixed(1, 1);
@@ -352,4 +381,3 @@ MML tensors track index variance to ensure correct transformations in coordinate
 - [Metric_tensor.md](../core/Metric_tensor.md) - Metric tensor utilities
 - [Matrices.md](Matrices.md) - Matrix operations (Tensor2 with matrix interface)
 - [VectorN.md](VectorN.md) - Fixed-size vectors (rank-1 tensors)
-

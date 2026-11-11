@@ -9,6 +9,12 @@
 #include <iostream>
 #include <iomanip>
 #include <cmath>
+#include <sstream>
+#include <stdexcept>
+#include <chrono>
+#include <filesystem>
+#include <fstream>
+#include <iterator>
 
 using namespace MML;
 
@@ -156,4 +162,110 @@ namespace MML::docs_demos::console_printer
 
 void Docs_Demo_ConsolePrinter() {
     MML::docs_demos::console_printer::Run();
+}
+
+void Docs_Demo_TableExportContracts()
+{
+	const auto directory = std::filesystem::temp_directory_path() /
+		("mml_table_export_demo_" + std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
+	std::filesystem::create_directory(directory);
+	struct Cleanup {
+		std::filesystem::path directory;
+		~Cleanup() {
+			std::error_code error;
+			std::filesystem::remove_all(directory, error);
+			if (error)
+				std::cerr << "Cannot clean table export demo: " << error.message() << '\n';
+		}
+	} cleanup{directory};
+	const std::string filename = (directory / "table.csv").string();
+	TablePrinter<std::string, Real> table("Tag", {"Value"});
+	table.addRow("row", {Real(1.25)});
+	table.exportToFile(filename, ExportFormat::CSV);
+	{
+		std::ifstream input(filename);
+		if (!input)
+			throw FileIOError("Cannot read table export demo", filename);
+		const std::string content(std::istreambuf_iterator<char>(input), {});
+		if (content != "Tag,Value\nrow,1.25\n")
+			throw FileIOError("Unexpected table export content", filename);
+	}
+	const auto badFilename = (directory / "missing" / "table.csv").string();
+	bool rejected = false;
+	try {
+		table.printToFile(badFilename);
+	} catch (const FileIOError& error) {
+		rejected = true;
+		if (error.filename() != badFilename)
+			throw ArgumentError("Table export error lost the destination filename");
+		std::cout << "Open failure reported: " << error.what() << '\n';
+	}
+	if (!rejected)
+		throw ArgumentError("Table export accepted an unavailable destination");
+	std::cout << "Table CSV written, flushed, closed, and read back successfully\n";
+}
+
+void Docs_Demo_ColumnFormatContracts()
+{
+	const auto integer = ColumnFormat("Rounded").width(5).format(FormatType::Integer);
+	if (integer.formatValue(Real(1.5)) != "2" || integer.formatValue(Real(-2.5)) != "-3")
+		throw ArgumentError("Integer display rounding contract failed");
+	std::cout << integer.formatAligned(integer.formatValue(Real(-2.5))) << '\n';
+	bool invalidWidth = false;
+	try {
+		ColumnFormat("Invalid").width(-2);
+	} catch (const ArgumentError& error) {
+		invalidWidth = true;
+		std::cout << error.what() << '\n';
+	}
+	if (!invalidWidth)
+		throw ArgumentError("Negative column width was accepted");
+	bool invalidType = false;
+	try {
+		ColumnFormat("Hex").format(FormatType::Hexadecimal).formatValue(Real(1.25));
+	} catch (const ArgumentError& error) {
+		invalidType = true;
+		std::cout << error.what() << '\n';
+	}
+	if (!invalidType)
+		throw ArgumentError("Floating hexadecimal column was accepted");
+}
+
+void Docs_Demo_BorrowedVectorTables()
+{
+	Vector<Real> values{1};
+	VectorTablePrinter table;
+	table.addVector(ColumnFormat("live").autoWidth().precision(2).format(FormatType::Fixed), values);
+	const auto initial = table.toString();
+	values.push_back(Real(1234.5));
+	values.push_back(Real(-2));
+	const auto grown = table.toString();
+	if (grown.find("1234.50") == std::string::npos || grown.find("-2.00") == std::string::npos || grown == initial)
+		throw std::runtime_error("Borrowed vector table did not observe its live size and automatic width");
+	std::cout << "Live vector after growth:\n" << grown;
+	values = Vector<Real>{2};
+	const auto shrunk = table.toString();
+	if (shrunk != "+------+\n| live |\n+------+\n| 2.00 |\n+------+\n")
+		throw std::runtime_error("Borrowed vector table retained stale rows or automatic width after shrinking");
+	std::cout << "Live vector after shrinking:\n" << shrunk;
+	const Vector<Real> constant{3};
+	VectorTablePrinter constBorrow;
+	constBorrow.addVector("const lvalue", constant);
+	if (constBorrow.toString().find("const lvalue") == std::string::npos)
+		throw std::runtime_error("Const lvalue borrowing failed");
+	bool rejectedNull = false;
+	try {
+		VectorTablePrinter invalid({}, {nullptr});
+	} catch (const std::invalid_argument& error) {
+		rejectedNull = true;
+		std::cout << "Null input rejected: " << error.what() << '\n';
+	}
+	if (!rejectedNull) throw std::runtime_error("Null vector pointer was accepted");
+	std::ostringstream out;
+	out << std::scientific;
+	out.precision(3);
+	const auto flags = out.flags();
+	table.print(out);
+	if (out.flags() != flags || out.precision() != 3)
+		throw std::runtime_error("Vector table modified caller stream formatting");
 }

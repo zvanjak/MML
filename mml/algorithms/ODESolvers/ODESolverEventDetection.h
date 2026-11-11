@@ -15,6 +15,7 @@
 
 #include <mml/algorithms/ODESolvers/ODESolverAdaptive.h>
 #include <algorithm>
+#include <vector>
 #include <mml/interfaces/IODESystemWithEvents.h>
 
 namespace MML {
@@ -106,14 +107,15 @@ namespace MML {
 			Vector<Real> x = x0;
 			Vector<Real> dxdt(n);
 			Real t = t0;
-			sys.derivs(t, x, dxdt);
+			const ODEStepperDetail::CountingODESystem system(sys, this->_stats.totalFuncEvals);
+			ODEStepperDetail::EvaluateRHS(system, t, x, dxdt);
 
 			// Event function values at current time
 			Vector<Real> gPrev(numEvents);
 			sys.eventFunctions(t, x, gPrev);
 
 			// Initial step size
-			Real h = (h0 > 0) ? h0 : this->estimateInitialStep(t0, x0, tEnd, eps);
+			Real h = (h0 > 0) ? h0 : this->EstimateInitialStepBounded(t0, x0, tEnd, eps, std::numeric_limits<Real>::infinity());
 			h = direction * std::min(h, std::abs(tEnd - t0));
 
 			// Output management
@@ -146,8 +148,14 @@ namespace MML {
 				if (t + h == t)
 					throw ODESolverError("Event step cannot advance floating-point time");
 
-				StepResult stepResult = this->_stepper.doStep(t, x, dxdt, h, eps);
-				this->_stats.recordStep(stepResult);
+				StepResult stepResult;
+				{
+					typename ODEAdaptiveIntegrator<Stepper>::StepWorkRecorder work(
+						this->_stats, this->_stepper, stepResult, result.solution);
+					stepResult = this->_stepper.doStep(t, x, dxdt, h, eps);
+					work.recordReturn();
+					work.recordStep();
+				}
 
 				if (stepResult.accepted) {
 					Real tNew = t + stepResult.hDone;
@@ -156,89 +164,78 @@ namespace MML {
 					Vector<Real> gNew(numEvents);
 					sys.eventFunctions(tNew, x, gNew);
 
-					// Check for zero crossings
-					bool eventDetected = false;
-					int eventIndex = -1;
-					Real eventTime = tNew;
+					// Locate every crossing in this step; they are processed in integration order
+					// so that several Continue events within one step are all reported.
+					struct LocatedCrossing {
+						int index;
+						Real time;
+						EventDirection direction;
+					};
+					std::vector<LocatedCrossing> crossings;
 
 					for (int i = 0; i < numEvents; ++i) {
-						bool crossing = false;
-						EventDirection actualDir = EventDirection::Both;
+						if (!EventSignChange(gPrev[i], gNew[i]))
+							continue;
 
-						// Check sign change
-						if (gPrev[i] * gNew[i] < 0 || (gPrev[i] != 0 && gNew[i] == 0)) {
-							// Determine crossing direction
-							if (gPrev[i] < gNew[i]) {
-								actualDir = EventDirection::Increasing;
+						EventDirection actualDir = gPrev[i] < gNew[i] ? EventDirection::Increasing
+																	  : EventDirection::Decreasing;
+						EventDirection wantDir = sys.getEventDirection(i);
+						if (wantDir != EventDirection::Both && wantDir != actualDir)
+							continue;
+
+						// Find exact crossing time using bracketed regula falsi on dense output
+						Real tLo = t;
+						Real tHi = tNew;
+						Real gLo = gPrev[i];
+						Real gHi = gNew[i];
+
+						for (int iter = 0; iter < maxEventIterations; ++iter) {
+							if (std::abs(tHi - tLo) < eventTol)
+								break;
+
+							// Illinois method (modified regula falsi)
+							Real tMid = tLo - gLo * (tHi - tLo) / (gHi - gLo);
+							// Clamp to interval
+							Real inner1 = tLo + Real(0.1) * (tHi - tLo);
+							Real inner2 = tHi - Real(0.1) * (tHi - tLo);
+							tMid = std::clamp(tMid, std::min(inner1, inner2), std::max(inner1, inner2));
+
+							Vector<Real> xMid = this->_stepper.interpolate(tMid);
+							Real gMid = sys.eventFunction(i, tMid, xMid);
+
+							if (std::abs(gMid) < eventTol) {
+								tLo = tMid;
+								break;
+							}
+
+							if (EventSignChange(gLo, gMid)) {
+								tHi = tMid;
+								gHi = gMid;
 							} else {
-								actualDir = EventDirection::Decreasing;
-							}
-
-							// Check if this direction should trigger
-							EventDirection wantDir = sys.getEventDirection(i);
-							if (wantDir == EventDirection::Both || wantDir == actualDir) {
-								crossing = true;
+								tLo = tMid;
+								gLo = gMid;
 							}
 						}
 
-						if (crossing) {
-							// Find exact crossing time using bisection with dense output
-							Real tLo = t;
-							Real tHi = tNew;
-							Real gLo = gPrev[i];
-							Real gHi = gNew[i];
-
-							for (int iter = 0; iter < maxEventIterations; ++iter) {
-								if (std::abs(tHi - tLo) < eventTol)
-									break;
-
-								// Illinois method (modified regula falsi)
-								Real tMid = tLo - gLo * (tHi - tLo) / (gHi - gLo);
-								// Clamp to interval
-								Real inner1 = tLo + Real(0.1) * (tHi - tLo);
-								Real inner2 = tHi - Real(0.1) * (tHi - tLo);
-								tMid = std::clamp(tMid, std::min(inner1, inner2), std::max(inner1, inner2));
-
-								Vector<Real> xMid = this->_stepper.interpolate(tMid);
-								Real gMid = sys.eventFunction(i, tMid, xMid);
-
-								if (std::abs(gMid) < eventTol) {
-									tLo = tMid;
-									break;
-								}
-
-								if (gLo * gMid < 0) {
-									tHi = tMid;
-									gHi = gMid;
-								} else {
-									tLo = tMid;
-									gLo = gMid;
-								}
-							}
-
-							Real tEvent = tLo;
-							if (!eventDetected || direction * (tEvent - eventTime) < 0) {
-								eventTime = tEvent;
-								eventIndex = i;
-								eventDetected = true;
-							}
-						}
+						crossings.push_back({i, tLo, actualDir});
 					}
 
-					if (eventDetected && eventIndex >= 0) {
+					std::stable_sort(crossings.begin(), crossings.end(),
+						[direction](const LocatedCrossing& a, const LocatedCrossing& b) {
+							return direction * (a.time - b.time) < 0;
+						});
+
+					bool restarted = false;
+					for (const LocatedCrossing& crossing : crossings) {
+						const int eventIndex = crossing.index;
+						const Real eventTime = crossing.time;
+
 						// Get precise state at event
 						Vector<Real> xEvent = this->_stepper.interpolate(eventTime);
 						Real gEvent = sys.eventFunction(eventIndex, eventTime, xEvent);
 
-						EventDirection actualDir;
-						if (gPrev[eventIndex] < gNew[eventIndex]) {
-							actualDir = EventDirection::Increasing;
-						} else {
-							actualDir = EventDirection::Decreasing;
-						}
-
 						// Record event
-						EventInfo evt(eventIndex, eventTime, xEvent, actualDir, gEvent);
+						EventInfo evt(eventIndex, eventTime, xEvent, crossing.direction, gEvent);
 						result.events.push_back(evt);
 
 						// Dense output up to event time
@@ -264,21 +261,25 @@ namespace MML {
 							// Apply state update
 							sys.handleEvent(eventIndex, eventTime, xEvent);
 
-							// Reset integration from event point
+							// Reset integration from event point; later crossings of this step
+							// belong to the discarded trajectory and are re-detected afterwards.
 							t = eventTime;
 							x = xEvent;
-							sys.derivs(t, x, dxdt);
+							ODEStepperDetail::EvaluateRHS(system, t, x, dxdt);
 							sys.eventFunctions(t, x, gPrev);
 							gPrev[eventIndex] = 0;
 							this->_stepper.resetFSAL();
 
 							// Re-estimate step size
-							h = this->estimateInitialStep(t, x, tEnd, eps);
+							h = this->EstimateInitialStepBounded(t, x, tEnd, eps, std::numeric_limits<Real>::infinity());
 							h = direction * std::min(h, std::abs(tEnd - t));
-							continue; // Skip normal update
+							restarted = true;
+							break;
 						}
-						// EventAction::Continue: fall through to normal update
+						// EventAction::Continue: proceed to the next crossing of this step
 					}
+					if (restarted)
+						continue; // Skip normal update
 
 					// Dense output for this step
 					while (direction * (tNextOutput - tNew) <= Constants::Eps && outputIdx < numOutputPoints) {

@@ -36,7 +36,7 @@
 
 namespace MML::SparseSolvers {
 
-template<typename T>
+template<MMLReal T>
 class GMRES : public IterativeSolverBase<T> {
     using Base = IterativeSolverBase<T>;
     using Base::config_;
@@ -110,7 +110,7 @@ public:
 			T rnorm = T(0);
 
 			// Outer restart loop
-			for (int restart = 0; restart < config_.maxIterations / m + 1; ++restart) {
+			while (true) {
 				// Compute initial residual: r = b - Ax
 				Vector<T> r = residual(A, x, b);
 				rnorm = norm2(r);
@@ -126,6 +126,8 @@ public:
 					result.error_message = "Converged";
 					return result;
 				}
+				if (totalIter >= config_.maxIterations)
+					break;
 
 				preconditioner_->apply(r, tmp);
 				const T preconditionedRnorm = norm2(tmp);
@@ -163,6 +165,7 @@ public:
 					// Arnoldi step for the left-preconditioned operator M⁻¹A
 					tmp = A * V[j];
 					preconditioner_->apply(tmp, w);
+					const T operatorVectorNorm = norm2(w);
 
 					// Modified Gram-Schmidt orthogonalization
 					for (int i = 0; i <= j; ++i) {
@@ -184,9 +187,9 @@ public:
 
 					// Check for breakdown (H[j+1][j] ≈ 0 means Krylov subspace exhausted)
 					// This is "lucky breakdown" - exact solution lies in the current subspace
-					// Relative to the Arnoldi start norm: an absolute test would declare breakdown on any well-scaled-down system
-					const T breakdown_tol = PrecisionValues<T>::KrylovBreakdownThreshold * preconditionedRnorm;
-					if (H[j + 1][j] < breakdown_tol) {
+					// Arnoldi acts on unit vectors; its scale belongs to M^-1 A, not the RHS.
+					const T breakdown_tol = PrecisionValues<T>::KrylovBreakdownThreshold * operatorVectorNorm;
+					if (H[j + 1][j] <= breakdown_tol) {
 						if (config_.verbose) {
 							std::cout << "  Breakdown: H[" << j + 1 << "][" << j << "] = " << H[j + 1][j] << " < " << breakdown_tol << "\n";
 						}
@@ -288,9 +291,17 @@ public:
 					for (int k = i + 1; k < j; ++k) {
 						y[i] -= H[i][k] * y[k];
 					}
-					if (std::abs(H[i][i]) > PrecisionValues<T>::RoundoffZeroThreshold * preconditionedRnorm) {
-						y[i] /= H[i][i];
+					T rowScale = T(0);
+					for (int k = i; k < j; ++k)
+						rowScale = std::max(rowScale, std::abs(H[i][k]));
+					if (!std::isfinite(H[i][i]) ||
+							std::abs(H[i][i]) <= PrecisionValues<T>::Eps * std::abs(rowScale)) {
+						result.status = AlgorithmStatus::NumericalInstability;
+						result.iterations_used = totalIter;
+						result.error_message = "GMRES breakdown: singular projected triangular system";
+						return result;
 					}
+					y[i] /= H[i][i];
 				}
 
 				if (config_.verbose) {
@@ -356,7 +367,7 @@ private:
 };
 
 // Convenience function
-template<typename T>
+template<MMLReal T>
 KrylovResult<T> solveGMRES(const SparseMatrixCSR<T>& A, const Vector<T>& b, Vector<T>& x, int restart = 30,
 													 const SolverConfig<T>& config = SolverConfig<T>()) {
 	GMRES<T> solver(restart);
@@ -364,7 +375,7 @@ KrylovResult<T> solveGMRES(const SparseMatrixCSR<T>& A, const Vector<T>& b, Vect
 	return solver.solve(A, b, x);
 }
 
-template<typename T, typename PrecType>
+template<MMLReal T, typename PrecType>
 KrylovResult<T> solveGMRES(const SparseMatrixCSR<T>& A, const Vector<T>& b, Vector<T>& x, std::shared_ptr<PrecType> prec, int restart = 30,
 													 const SolverConfig<T>& config = SolverConfig<T>()) {
 	GMRES<T> solver(restart);

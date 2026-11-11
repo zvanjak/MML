@@ -19,7 +19,7 @@ namespace MML::Tests::Base::TolerancePolicyTests
 {
 	TEST_CASE("TolerancePolicy_tiers_are_ordered_and_drive_the_families", "[tolerance][policy]")
 	{
-		static_assert(Precision::StrictTolerance < Precision::ZeroTolerance);
+		static_assert(Precision::StrictTolerance <= Precision::ZeroTolerance);
 		static_assert(Precision::ZeroTolerance <= Precision::EqualityTolerance);
 		static_assert(Precision::EqualityTolerance <= Precision::ModerateTolerance);
 		static_assert(Precision::ModerateTolerance <= Precision::LooseTolerance);
@@ -48,35 +48,44 @@ namespace MML::Tests::Base::TolerancePolicyTests
 
 	TEST_CASE("TolerancePolicy_comparison_vocabulary", "[tolerance][policy]")
 	{
-		REQUIRE(IsNearlyEqual(1.0, 1.0 + 1e-11));
-		REQUIRE_FALSE(IsNearlyEqual(1.0, 1.0 + 1e-9));
-		REQUIRE(IsNearlyEqual(1e12, 1e12 + 1.0, 0.0, 1e-10));      // relative part carries large values
-		REQUIRE_FALSE(IsNearlyEqual(1e12, 1e12 + 1.0, 1e-10, 0.0)); // absolute part alone does not
-		REQUIRE(IsNearlyEqual(0.0, 1e-12, 1e-10, 0.0));            // absolute part carries near-zero values
+		const Real near = Precision::EqualityTolerance / Real(4);
+		const Real far = Real(4) * Precision::EqualityTolerance;
+		REQUIRE(1 + near != 1);
+		REQUIRE(IsNearlyEqual(Real(1), 1 + near));
+		REQUIRE_FALSE(IsNearlyEqual(Real(1), 1 + far));
+		const Real large = TOL(1e12, 1e6), increment = TOL(1, 0.25);
+		REQUIRE(large + increment != large);
+		REQUIRE(IsNearlyEqual(large, large + increment, 0, TOL(1e-10, Precision::EqualityTolerance)));
+		REQUIRE_FALSE(IsNearlyEqual(large, large + increment, Real(1e-10), 0));
+		REQUIRE(IsNearlyEqual(MML::Real(0.0), MML::Real(1e-12), MML::Real(1e-10), MML::Real(0.0)));            // absolute part carries near-zero values
 
-		REQUIRE(IsWithinAbs(0.0, 1e-13, 1e-12));
-		REQUIRE_FALSE(IsWithinAbs(0.0, 1e-11, 1e-12));
+		REQUIRE(IsWithinAbs(MML::Real(0.0), MML::Real(1e-13), MML::Real(1e-12)));
+		REQUIRE_FALSE(IsWithinAbs(MML::Real(0.0), MML::Real(1e-11), MML::Real(1e-12)));
 
-		REQUIRE(IsWithinRel(0.0, 0.0, 1e-10));                      // the historical (0,0) == false defect
-		REQUIRE(IsWithinRel(5.0, 5.0, 1e-10));
-		REQUIRE(IsWithinRel(1e-300, 1e-300, 1e-10));
-		REQUIRE(IsWithinRel(100.0, 100.0 + 1e-9, 1e-10));
-		REQUIRE_FALSE(IsWithinRel(0.0, 1e-300, 1e-10));            // one side zero: nothing is relatively close to 0
+		REQUIRE(IsWithinRel(MML::Real(0.0), MML::Real(0.0), MML::Real(1e-10)));                      // the historical (0,0) == false defect
+		REQUIRE(IsWithinRel(MML::Real(5.0), MML::Real(5.0), MML::Real(1e-10)));
+		const Real tiny = TOL(1e-300, std::numeric_limits<Real>::min());
+		REQUIRE(tiny > 0);
+		REQUIRE(IsWithinRel(tiny, tiny, Real(1e-10)));
+		REQUIRE(IsWithinRel(Real(100), Real(100) + TOL(1e-9, Real(400) * Precision::Eps),
+			TOL(1e-10, Precision::EqualityTolerance)));
+		REQUIRE_FALSE(IsWithinRel(Real(0), tiny, Real(1e-10)));
 
-		REQUIRE(IsNearlyZero(1e-13));
-		REQUIRE_FALSE(IsNearlyZero(1e-11));
-		REQUIRE(IsNearlyZero(1e-7, Precision::LooseTolerance));
+		REQUIRE(IsNearlyZero(Precision::ZeroTolerance / Real(4)));
+		REQUIRE_FALSE(IsNearlyZero(Real(4) * Precision::ZeroTolerance));
+		REQUIRE(IsNearlyZero(MML::Real(1e-7), Precision::LooseTolerance));
 
 		// scale-aware negligibility: a pivot against the matrix norm
-		REQUIRE(IsNegligibleRelativeTo(1e-13, 1e3 * 10));           // 1e-13 <= eps * 1e4 ≈ 2.2e-12
-		REQUIRE_FALSE(IsNegligibleRelativeTo(1e-13, 1.0));
+		const Real pivot = Precision::RoundoffZeroThreshold;
+		REQUIRE(IsNegligibleRelativeTo(pivot, Real(1e3) * 10));
+		REQUIRE_FALSE(IsNegligibleRelativeTo(pivot, Real(1)));
 		REQUIRE(IsNegligibleRelativeTo(0.0, 0.0));                  // 0 <= 0: exact zero is negligible at any scale
 
 		REQUIRE(IsUnsafeDenominator(0.0));
-		REQUIRE(IsUnsafeDenominator(1e-31));
-		REQUIRE_FALSE(IsUnsafeDenominator(1e-20));
+		REQUIRE(IsUnsafeDenominator(Precision::DivisionSafetyThreshold / 4));
+		REQUIRE_FALSE(IsUnsafeDenominator(4 * Precision::DivisionSafetyThreshold));
 
-		REQUIRE(AnglesAreEqual(Constants::PI, -Constants::PI, 1e-12));
+		REQUIRE(AnglesAreEqual(Constants::PI, -Constants::PI, MML::Real(1e-12)));
 	}
 
 	TEST_CASE("TolerancePolicy_geometry_epsilon_unified", "[tolerance][policy]")
@@ -90,11 +99,11 @@ namespace MML::Tests::Base::TolerancePolicyTests
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #endif
 		// deprecated lowerCamel helpers forward
-		REQUIRE(isNearlyEqual(1.0, 1.0 + 1e-11, 1e-10) == IsNearlyEqual(1.0, 1.0 + 1e-11, 1e-10));
-		REQUIRE(isNearlyEqual(1e12, 1e12 + 1.0, 0.0, 1e-10) == IsNearlyEqual(1e12, 1e12 + 1.0, 0.0, 1e-10));
-		REQUIRE(isWithinAbsPrec(0.0, 1e-13, 1e-12) == IsWithinAbs(0.0, 1e-13, 1e-12));
-		REQUIRE(isWithinRelPrec(0.0, 0.0, 1e-10));                  // fixed through the forwarder too
-		REQUIRE(isNearlyZero(1e-13) == IsNearlyZero(1e-13));
+		REQUIRE(isNearlyEqual(MML::Real(1.0), MML::Real(1.0) + MML::Real(1e-11), MML::Real(1e-10)) == IsNearlyEqual(MML::Real(1.0), MML::Real(1.0) + MML::Real(1e-11), MML::Real(1e-10)));
+		REQUIRE(isNearlyEqual(MML::Real(1e12), MML::Real(1e12) + MML::Real(1.0), MML::Real(0.0), MML::Real(1e-10)) == IsNearlyEqual(MML::Real(1e12), MML::Real(1e12) + MML::Real(1.0), MML::Real(0.0), MML::Real(1e-10)));
+		REQUIRE(isWithinAbsPrec(MML::Real(0.0), MML::Real(1e-13), MML::Real(1e-12)) == IsWithinAbs(MML::Real(0.0), MML::Real(1e-13), MML::Real(1e-12)));
+		REQUIRE(isWithinRelPrec(MML::Real(0.0), MML::Real(0.0), MML::Real(1e-10)));                  // fixed through the forwarder too
+		REQUIRE(isNearlyZero(MML::Real(1e-13)) == IsNearlyZero(MML::Real(1e-13)));
 #if defined(_MSC_VER)
 #pragma warning(pop)
 #elif defined(__GNUC__) || defined(__clang__)

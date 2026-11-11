@@ -30,7 +30,7 @@ namespace MML::Tests::Algorithms::CurveAnalysisTests
 			TEST_PRECISION_INFO();
 		// Test: r(t) = {cos(t), sin(t), t}
 		// r'(t) = {-sin(t), cos(t), 1}
-		const auto& helix = TestBeds::ParametricCurvesTestBed::getTestCurve("Helix");
+		const auto helix = TestBeds::ParametricCurvesTestBed::getTestCurve("Helix");
 		
 		Real t = Constants::PI / static_cast<MML::Real>(4.0);
 		auto tangent = helix._curve.getTangent(t);
@@ -46,7 +46,7 @@ namespace MML::Tests::Algorithms::CurveAnalysisTests
 			TEST_PRECISION_INFO();
 		// Circle in XY plane: r(t) = {cos(t), sin(t), 0}
 		// Unit tangent should have norm = 1
-		const auto& circle = TestBeds::ParametricCurvesTestBed::getTestCurve("Circle3DXYCurve");
+		const auto circle = TestBeds::ParametricCurvesTestBed::getTestCurve("Circle3DXYCurve");
 		
 		Real t = Constants::PI / static_cast<MML::Real>(3.0);
 		auto unitTangent = circle._curve.getTangentUnit(t);
@@ -83,7 +83,7 @@ namespace MML::Tests::Algorithms::CurveAnalysisTests
 	{
 			TEST_PRECISION_INFO();
 		// Test second derivative calculation
-		const auto& helix = TestBeds::ParametricCurvesTestBed::getTestCurve("Helix");
+		const auto helix = TestBeds::ParametricCurvesTestBed::getTestCurve("Helix");
 		
 		Real t = Constants::PI / static_cast<MML::Real>(6.0);
 		auto normal = helix._curve.getNormal(t);
@@ -99,7 +99,7 @@ namespace MML::Tests::Algorithms::CurveAnalysisTests
 			TEST_PRECISION_INFO();
 		// Binormal = Tangent × Normal (cross product)
 		// For helix, should be unit vector
-		const auto& helix = TestBeds::ParametricCurvesTestBed::getTestCurve("Helix");
+		const auto helix = TestBeds::ParametricCurvesTestBed::getTestCurve("Helix");
 		
 		Real t = Constants::PI / static_cast<MML::Real>(3.0);
 		auto binormal = helix._curve.getBinormal(t);
@@ -118,7 +118,7 @@ namespace MML::Tests::Algorithms::CurveAnalysisTests
 	{
 			TEST_PRECISION_INFO();
 		// For a circle, principal normal points toward center
-		const auto& circle = TestBeds::ParametricCurvesTestBed::getTestCurve("Circle3DXYCurve");
+		const auto circle = TestBeds::ParametricCurvesTestBed::getTestCurve("Circle3DXYCurve");
 		
 		Real t = Constants::PI / static_cast<MML::Real>(2.0);
 		auto principalNormal = circle._curve.getNormal(t);
@@ -140,7 +140,7 @@ namespace MML::Tests::Algorithms::CurveAnalysisTests
 	{
 			TEST_PRECISION_INFO();
 		// Helix has constant curvature κ = static_cast<MML::Real>(0.5)
-		const auto& helix = TestBeds::ParametricCurvesTestBed::getTestCurve("Helix");
+		const auto helix = TestBeds::ParametricCurvesTestBed::getTestCurve("Helix");
 		
 		// Test at multiple points
 		std::vector<Real> test_points = {static_cast<MML::Real>(0.0), Constants::PI/4, Constants::PI/2, Constants::PI, 3*Constants::PI/2};
@@ -174,13 +174,13 @@ namespace MML::Tests::Algorithms::CurveAnalysisTests
 			TEST_PRECISION_INFO();
 		// Scaled helix: r(t) = {2cos(t), 2sin(t), 0.5t}
 		// Has different curvature than standard helix
-		const auto& helix2 = TestBeds::ParametricCurvesTestBed::getTestCurve("Helix2");
+		const auto helix2 = TestBeds::ParametricCurvesTestBed::getTestCurve("Helix2");
 		
 		Real t = Constants::PI / static_cast<MML::Real>(4.0);
 		Real curvature = helix2._curve.getCurvature(t);
 		Real expected = helix2._curvatureFunc(t);
 		
-		REQUIRE_THAT(curvature, WithinAbs(expected, static_cast<MML::Real>(1e-6)));
+		REQUIRE_THAT(curvature, WithinAbs(expected, TOL(1e-6, Precision::RoundoffZeroThreshold)));
 	}
 
 	// SKIPPED: Viviani curvature test - test bed formula appears incorrect
@@ -207,14 +207,14 @@ namespace MML::Tests::Algorithms::CurveAnalysisTests
 	{
 			TEST_PRECISION_INFO();
 		// For a circle, curvature vector points toward center
-		const auto& circle = TestBeds::ParametricCurvesTestBed::getTestCurve("Circle3DXYCurve");
+		const auto circle = TestBeds::ParametricCurvesTestBed::getTestCurve("Circle3DXYCurve");
 		
 		Real t = Constants::PI / static_cast<MML::Real>(4.0);
 		auto curvatureVec = circle._curve.getCurvatureVector(t);
 		
 		// Magnitude should equal curvature (1 for unit circle)
 		Real magnitude = curvatureVec.NormL2();
-		REQUIRE_THAT(magnitude, WithinAbs(static_cast<MML::Real>(1.0), static_cast<MML::Real>(1e-5)));
+		REQUIRE_THAT(magnitude, WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-5, Precision::CoarseTolerance)));
 
 		// Direction should point toward center (opposite to position)
 		auto position = circle._curve(t);
@@ -230,7 +230,7 @@ namespace MML::Tests::Algorithms::CurveAnalysisTests
 	{
 			TEST_PRECISION_INFO();
 		// Test that Tangent, Principal Normal, and Binormal form orthonormal frame
-		const auto& helix = TestBeds::ParametricCurvesTestBed::getTestCurve("Helix");
+		const auto helix = TestBeds::ParametricCurvesTestBed::getTestCurve("Helix");
 		
 		Real t = Constants::PI / static_cast<MML::Real>(3.0);
 		auto T = helix._curve.getTangentUnit(t);
@@ -281,7 +281,7 @@ namespace MML::Tests::Algorithms::CurveAnalysisTests
 	{
 			TEST_PRECISION_INFO();
 		// Unit circle is NOT arc-length parametrized with standard parametrization
-		const auto& circle = TestBeds::ParametricCurvesTestBed::getTestCurve("Circle3DXYCurve");
+		const auto circle = TestBeds::ParametricCurvesTestBed::getTestCurve("Circle3DXYCurve");
 		
 		// Standard parametrization has constant speed |r'(t)| = 1, so it IS arc-length parametrized
 		bool isArcLen = circle._curve.isArcLengthParametrized(static_cast<MML::Real>(0.0), Constants::PI);

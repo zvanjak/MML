@@ -7,6 +7,7 @@ This document covers numerical computation of derivatives using finite differenc
 - [Order Selection Guide](#order-selection-guide)
 - [API Reference](#api-reference)
 - [Automatic Step Size](#automatic-step-size)
+- [Legacy One-Sided Sampling](#legacy-one-sided-sampling)
 - [Error Estimation](#error-estimation)
 - [Function Types](#function-types)
 - [Jacobians, Hessians and Gradients — one vocabulary](#jacobians-hessians-and-gradients--one-vocabulary)
@@ -35,9 +36,12 @@ MinimalMathLibrary provides **finite-difference numerical differentiation** for 
 **Key Features:**
 - **Automatic step sizing:** Optimal `h` based on order and `Real` precision
 - **Error estimation:** Optional error output parameter
+- **Detailed result honesty:** default results are `NotComputed`; disabled or failed
+  error estimates are `NoEstimate`, while a genuinely computed zero remains available
+  through `HasEstimate(result.error)` (see [RESULT_POLICY](../RESULT_POLICY.md)).
 - **Multiple function types:** Real, Scalar, Vector, Parametric curves, Tensor fields
 - **Higher derivatives:** Second and third derivatives available
-- **One-sided derivatives:** Left/right derivatives for boundary points
+- **Legacy left/right wrappers:** Shifted stencils; see their actual evaluation centers and sampling reach below
 
 **Default:** `Derive()` uses **Order 4** (best balance of accuracy and robustness)
 
@@ -109,6 +113,32 @@ Real robust_der = Derivation::NDer2(noisy_data_func, x);
 
 ## API Reference
 
+### Richardson refinement contracts
+
+`NDerRichardson`, `NSecDerRichardson` and `NThirdDerRichardson` require a finite
+evaluation point, a positive finite initial step, a positive tableau depth
+`max_iter`, and a finite shrinking factor `con > 1` whose square is finite.
+Invalid parameters throw `NumericInputError` before allocating the tableau or
+evaluating the function. Zero step is not an automatic-step request in these APIs.
+
+Each initial or refined stencil must have finite, strictly ordered, distinct
+coordinates around the requested point; the third derivative also requires
+distinct outer samples at twice the step. Collapsed or overflowing coordinates,
+step underflow, nonfinite callback values and nonfinite extrapolation arithmetic
+throw `NumericalMethodError`. A failed refinement does not silently return an
+earlier estimate or write a success-shaped error estimate. Callback exceptions
+propagate unchanged. The adaptive aliases share these contracts.
+
+The error output is a heuristic difference between neighboring Richardson
+tableau estimates, not a certified error bound. A one-level tableau is allowed
+and returns the raw central-difference estimate, with
+`std::numeric_limits<Real>::max()` meaning that no extrapolation error estimate
+is available. On failure, the caller's error output is left unchanged.
+
+Rank-3 and rank-4 tensor `NDer1Partial`, `NDer2Partial` and `NDer4Partial`
+default-step overloads use the same formulas and scaled steps as their
+explicit-step counterparts, including optional error estimation.
+
 ### Real Functions (f: ℝ → ℝ)
 
 ```cpp
@@ -139,7 +169,7 @@ Real NDer8(const IRealFunction& f, Real x, Real h, Real* error = nullptr);
 
 // ========== One-Sided Derivatives ==========
 
-// For boundary points (left/right-sided differences)
+// Legacy left/right wrappers: higher orders evaluate at shifted centers, not at x
 Real NDer1Left(const IRealFunction& f, Real x, Real* error = nullptr);
 Real NDer1Right(const IRealFunction& f, Real x, Real* error = nullptr);
 Real NDer2Left(const IRealFunction& f, Real x, Real* error = nullptr);
@@ -275,31 +305,94 @@ Real NDer4Partial(
 
 ## Automatic Step Size
 
-When **h is not provided**, the optimal step size is **automatically calculated** based on:
-1. **Derivation order** (higher order → smaller h)
+An explicitly supplied derivative step must be **finite and strictly positive**. Zero,
+negative, NaN and infinite steps throw `NumericInputError` before any callback, with or
+without an error pointer, across real/complex, scalar/vector partials, tensor fields,
+curves and surfaces. Aggregate gradient/Jacobian-element wrappers inherit this rule;
+error outputs are not modified on invalid-step rejection. Detailed real/complex APIs
+convert it to `InvalidInput` only when `ConvertToStatus` is selected.
+
+Zero means automatic **only for APIs that explicitly promise it**: `DerivativeConfig::step`,
+the numerical `CalcJacobian*`/`CalcHessian` entry points, and `NDer2PartialDyn`/
+`NDer4PartialDyn`. It is not an automatic-step sentinel for an explicit `NDer*` step.
+
+When **h is omitted**, the step is selected based on:
+1. **Derivative order and stencil accuracy order** (both affect the step scale)
 2. **Machine epsilon** (`std::numeric_limits<Real>::epsilon()`)
 3. **Balance between truncation and roundoff errors**
 
 ### Automatic Step Formulas
 
+The first-derivative base steps in `DerivationBase.h`, with epsilon supplied by `Constants::Eps`, are:
+
+| Accuracy order | Base step |
+|----------------|-----------|
+| 1 | 2√ε |
+| 2 | (3ε)^(1/3) |
+| 4 | (11.25ε)^(1/5) |
+| 6 | (ε/168)^(1/7) |
+| 8 | (551.25ε)^(1/9) |
+
+Ordinary default overloads multiply the relevant base step by `max(1, |x|)`, or the
+corresponding input coordinate magnitude for partials (`|z|` for complex arguments).
+An explicit positive step is used unchanged. The Jacobian-specific conventions below
+are intentionally distinct.
+
+Surface second partials `NDer2_uu`, `NDer2_uw` and `NDer2_ww` instead use
+`Precision::FourthRootEps`, approximately epsilon^(1/4). Their O(h²) truncation
+balances O(epsilon/h²) roundoff, not the O(epsilon/h) term of a first derivative.
+Pure partials retain coordinate-relative scaling; the mixed default retains its
+common step scaled by `max(1, |u|, |w|)`. The one-step and independent-u/w-step
+explicit overloads and first-partial defaults are unchanged.
+This is a smooth, well-scaled-function heuristic, not a universal accuracy
+guarantee: translation cancellation, parameter conditioning and higher derivatives
+can still require explicit steps.
+
+These centered surface routines do not clip or switch to one-sided stencils at
+chart boundaries. All requested samples must be valid: uu/ww error estimation
+also evaluates at ±2h, while mixed error estimation stays inside its corner
+stencil. A larger automatic step may require more room inside a bounded chart.
+
+Real-function and curve `NSecDer2`/`NSecDer4`, including the detailed real-function
+APIs, and scalar `NSecDer2Partial`/`NSecDer4Partial` use derivative-order-aware bases:
+
+| Second-derivative accuracy order | Base step | Pure samples without / with error |
+|---|---|---|
+| 2 | `Precision::FourthRootEps`, approximately epsilon^(1/4) | 0, ±h / also ±2h |
+| 4 | `Precision::SixthRootEps`, epsilon^(1/6) | 0, ±h, ±2h / also ±3h |
+
+The sixth-root constant is computed with typed square/cube roots of the actual
+type's epsilon, including platforms where `long double` differs from `double`.
+Real and curve defaults retain `max(1, |x|)` scaling. A scalar pure partial scales
+by its coordinate, while a mixed partial retains a common h scaled by
+`max(1, |x_i|, |x_j|)`. The fourth-order mixed stencil reaches the ±2h corners;
+error estimation also uses half-h corners.
+
+Default second-derivative aliases and numerical `CalcHessian` inherit these bases.
+Positive explicit steps and nonzero `DerivativeConfig::step` remain absolute;
+an explicit step argument takes priority over the config field. First derivatives,
+third derivatives, Richardson/adaptive starting steps, analytic/AD dispatch and
+error/result policies are unchanged. No centered stencil is clipped or changed to
+one-sided at a boundary. Larger automatic steps may expose a callback-domain error
+that a smaller step avoided; choose an explicit step when interior room is limited.
+These defaults and error estimates are smooth-function heuristics, not certified
+accuracy guarantees.
+
+Runnable example: `MML_DocsApp --second-derivative-steps`.
+
 ```cpp
-// From DerivationBase.h
-constexpr Real NDer1_h = pow(Constants::Eps, Real{ 1.0 / 2.0 });   // ε^(1/2)
-constexpr Real NDer2_h = pow(Constants::Eps, Real{ 1.0 / 3.0 });   // ε^(1/3)
-constexpr Real NDer4_h = pow(Constants::Eps, Real{ 1.0 / 5.0 });   // ε^(1/5)
-constexpr Real NDer6_h = pow(Constants::Eps, Real{ 1.0 / 7.0 });   // ε^(1/7)
-constexpr Real NDer8_h = pow(Constants::Eps, Real{ 1.0 / 9.0 });   // ε^(1/9)
+RealFunction exponential([](Real x) { return std::exp(x); });
+const auto result = Derivation::NSecDer4Detailed(exponential, Real(0.3));
+std::cout << "Second derivative: " << result.value << '\n';
+std::cout << "Step used: " << result.step_used << '\n';
 ```
 
-### For double precision (ε ≈ 2.22e-16):
-
-| Order | Automatic h | Approximate Value |
-|-------|-------------|-------------------|
-| 1 | ε^(1/2) | ≈ 1.5e-8 |
-| 2 | ε^(1/3) | ≈ 6.1e-6 |
-| 4 | ε^(1/5) | ≈ 7.4e-4 |
-| 6 | ε^(1/7) | ≈ 3.7e-3 |
-| 8 | ε^(1/9) | ≈ 1.0e-2 |
+`ComplexStep` and `ComplexStep2` also require finite positive steps and finite real
+evaluation points, and reject nonfinite callback values or final quotients with
+`NumericalMethodError`. The first method retains support for extremely small positive
+steps, including representable subnormals. The second method requires a positive finite
+representable `h²`, checked before callbacks; it involves real subtraction and remains
+subject to cancellation. Both propagate callback exceptions unchanged.
 
 ### When to Use Custom h
 
@@ -339,6 +432,37 @@ Real der_manual = Derivation::NDer4(huge, 1.0, h_custom);
 
 ---
 
+## Legacy One-Sided Sampling
+
+The `NDer*Left`/`NDer*Right` wrappers retain their historical formulas. They are
+**not a family of endpoint-anchored high-order one-sided formulas**. Orders 2, 4, 6
+and 8 call a central stencil at a shifted center. Automatic overloads choose the
+step using the original `x`, then shift the center using that same step.
+
+Offsets below are multiples of positive `h` relative to the original `x`. A range
+describes the sampling extent, not a promise to evaluate every interior grid point.
+
+| Accuracy order | Underlying center, Left / Right | Value-sample extent, Left / Right | Extent with error, Left / Right |
+|----------------|--------------------------------|----------------------------------|--------------------------------|
+| 1 | x-h / x (forward stencil) | [-1, 0] / [0, 1] | [-2, 0] / [-1, 1] |
+| 2 | x-3h / x+3h | [-4, -2] / [2, 4] | [-5, -1] / [1, 5] |
+| 4 | x-4h / x+4h | [-6, -2] / [2, 6] | [-7, -1] / [1, 7] |
+| 6 | x-5h / x+5h | [-8, -2] / [2, 8] | [-9, -1] / [1, 9] |
+| 8 | x-6h / x+6h | [-10, -2] / [2, 10] | [-11, -1] / [1, 11] |
+
+For example, `NDer4Left` applied to x² at x=1 with h=0.01 returns approximately
+**1.92**, the derivative at x=0.96, not the endpoint derivative 2. Its optional error
+estimates the underlying stencil error; it does **not** include the bias from moving
+the requested evaluation point. The first-order wrappers are ordinary forward/backward
+quotients and retain their first-order endpoint bias.
+
+Requesting error estimates adds samples. In particular, `NDer1Right` at x=0 samples
+0 and h without error, but also **-h** with error, so a function restricted to
+nonnegative inputs can fail only when an error pointer is supplied. Higher-order
+shifted wrappers stay on their named side but reach farther with error. Check the
+entire required interval, not just the named point. Callback exceptions propagate
+unchanged; direct error outputs are written only after a successful calculation.
+
 ## Error Estimation
 
 ### Error Output Parameter
@@ -355,7 +479,9 @@ std::cout << "f'(" << x << ") = " << derivative
 
 ### Error Composition
 
-Total error = **Truncation error** + **Roundoff error**
+The reported heuristic is **estimated truncation error + a roundoff allowance**,
+not a certified error bound. The value returned at the requested step is not
+replaced by a finer or extrapolated value just because an error output is requested.
 
 **Truncation error** (from finite h):
 - Depends on higher derivatives and h
@@ -363,25 +489,62 @@ Total error = **Truncation error** + **Roundoff error**
 
 **Roundoff error** (from finite precision):
 - From function evaluation errors
-- ∝ ε·|f|/h (grows as h decreases!)
+- For an m-th derivative, scales roughly as ε·|f|/h^m (grows as h decreases!)
 
 **Optimal h minimizes total error:**
-```
-Total error ≈ C₁·h^n + C₂·ε/h
-Minimum at h ∝ ε^(1/(n+1))
-```
+For an m-th derivative with accuracy order p, the model is
+C₁·h^p + C₂·ε/h^m, with an optimum proportional to ε^(1/(m+p)).
 
-### Error Formulas by Order
+### Leading Truncation Terms
 
-**Order 2:**
-```cpp
-error = ε·(|f(x+h)| + |f(x-h)|)/(2h) + |f⁽⁴⁾|·h²/6
-```
+These smooth-function Taylor terms describe magnitude, not rigorous bounds.
+Higher derivatives are approximated by centered finite-difference residuals
+with the corresponding powers of h; vector-valued results use Euclidean norms.
 
-**Order 4:**
-```cpp
-error = ε·(|f(x±2h)| + 8|f(x±h)|)/(12h) + |f⁽⁶⁾|·h⁴/30
-```
+| Returned derivative | Accuracy order | Leading truncation magnitude |
+|---|---:|---|
+| First derivative | 2 | \|f'''(x)\| h² / 6 |
+| First derivative | 4 | \|f⁽⁵⁾(x)\| h⁴ / 30 |
+| Pure second derivative | 2 | \|f⁽⁴⁾(x)\| h² / 12 |
+| Pure second derivative | 4 | \|f⁽⁶⁾(x)\| h⁴ / 90 |
+| Third derivative | 2 | \|f⁽⁵⁾(x)\| h² / 4 |
+| Third derivative | 4 | 7 \|f⁽⁷⁾(x)\| h⁴ / 120 |
+
+The pure second-derivative formulas are shared by real functions, scalar
+partials, curves and surface uu/ww derivatives; third-derivative formulas are
+shared by real functions and curves.
+
+### Mixed Partials and Evaluation Cost
+
+Scalar mixed `NSecDer2Partial` / `NSecDer4Partial` and surface `NDer2_uw`
+include truncation by comparing the requested-step result Dₕ with Dₕ/₂.
+The truncation estimate is 4/3 times their difference for second-order methods
+and 16/15 times their difference for fourth-order methods. Roundoff allowances
+from both calculations are included; fourth-order scalar estimates include the
+outer 2h samples as well. Surface u/w steps can differ; both are halved together.
+The derivative returned remains Dₕ.
+
+| Routine | Without error output | With error output |
+|---|---:|---:|
+| Real/curve pure second, order 2 | 3 | 5 |
+| Real/curve pure second, order 4 | 5 | 7 |
+| Real/curve third, order 2 | 4 | 6 |
+| Real/curve third, order 4 | 6 | 8 |
+| Scalar pure second, order 2 / 4 | 3 / 5 | 5 / 7 |
+| Scalar mixed second, order 2 / 4 | 4 / 8 | 8 / 12 |
+| Surface uu/ww | 3 | 5 |
+| Surface uw | 4 | 8 |
+
+Mixed error estimation adds only samples inside the existing stencil region;
+fourth-order scalar partials reuse the h-grid in the refined calculation.
+Surface uu/ww error estimation extends the stencil from ±h to ±2h.
+As with other centered stencils, callers must provide a function valid at all
+sampled coordinates; these routines do not clamp to a declared parameter domain.
+The affected higher-derivative entry points require positive finite explicit
+steps. If mixed error refinement cannot form distinct finite half-step
+coordinates, it throws `NumericalMethodError` instead of reporting zero
+truncation. Callback exceptions propagate. Disable the error output to avoid
+the additional samples, not to obtain a domain-safe one-sided stencil.
 
 ### Interpreting Error Estimates
 
@@ -558,7 +721,7 @@ select fixed vs. dynamic size (no `Dyn` suffix). The 2.0 spellings (`calcJacobia
 | `Derivation::CalcJacobian(f, pos [, h, &evals])` | `IVectorFunction<N>` / `IVectorFunctionNM<N,M>` + `VectorN` | `MatrixNM` | central differences | `ε^{1/5}·max(1,|x_j|)` per column | 4th order, 4·N vector evaluations |
 | `Derivation::CalcJacobian(f, pos [, outputDim] [, h, &evals])` | `std::function<Vector(const Vector&)>` + `Vector` | `Matrix` | central differences | same | 4th order, 4·n; validates output dimension and finiteness |
 | `Derivation::CalcJacobianInPlace(f, pos, J [, h, &evals])`, `CalcJacobianColumns(f, pos, J, m, h, &evals)` | as above, pre-allocated `J` | in place | same | same | same — for Newton loops |
-| `Derivation::CalcJacobianOrder2(f, pos [, h])` | `std::function` + `Vector` | `Matrix` | central differences | `ε^{1/3}` | 2nd order, 2·n — half the cost |
+| `Derivation::CalcJacobianOrder2(f, pos [, h])` | `std::function` + `Vector` | `Matrix` | central differences | `ε^{1/3}` | 2nd order, 2·n² vector evaluations (per-entry implementation) |
 | `Derivation::CalcJacobianODE(derivs, t, x [, J] [, h])` | `derivs(t, x, dxdt)` | `Matrix` | central differences | `√ε·max(1,|x_j|)` | 2nd order, 2·n — what stiff steppers use |
 | `Derivation::CalcJacobianMap(map, x, J [, h])` | `x_{n+1} = f(x_n)` | in place | central differences | `√ε·max(1,|x_j|)` | 2nd order, 2·n |
 | `Derivation::CalcHessian(f, pos [, H] [, h])` | `IScalarFunction<N>` + `VectorN` | `MatrixNM` | `NSecDer4Partial` per entry | per-entry automatic step | 4th order, N(N+1)/2 mixed partials |
@@ -569,8 +732,32 @@ select fixed vs. dynamic size (no `Dyn` suffix). The 2.0 spellings (`calcJacobia
 | `AD::CalcDerivativeForwardAD(f, x)` | scalar callable on `Dual<T>` | `{value, derivative}` | forward AD | — | 1 evaluation |
 
 The finite-difference entries report **no error estimate** — they are raw matrices, and the step
-column above is the only accuracy knob (`h == 0` selects the default; a nonzero `h` is an absolute
-step applied to every coordinate). Per-element error estimates are available through
+column above is the only accuracy knob. Zero selects the default. An explicit positive step is
+absolute for `CalcJacobian`, `CalcJacobianOrder2`, the dynamic component helpers and `CalcHessian`.
+For legacy `CalcJacobianODE`/`CalcJacobianMap`, it is instead a **relative factor**:
+the actual step is `h·max(1,|x_j|)`. The dynamic component helpers select unscaled
+`ε^{1/3}`/`ε^{1/5}` when zero is passed; large coordinates can therefore require an explicit step.
+
+Numerical Jacobians cancel common sample offsets before applying binary-scaled difference
+quotients, avoiding unnecessary overflow of weighted samples or denominators. All public
+Jacobian paths reject nonfinite input coordinates, nonfinite/negative steps, collapsed or
+overflowing stencil coordinates, invalid callback output shapes/nonfinite components and
+nonfinite final entries. Invalid input arguments throw `ArgumentError`; unrepresentable stencils
+or numerical values throw `NumericalMethodError`; shape mismatches throw `VectorDimensionError`.
+Each column's coordinates are checked before its callbacks, and a rejected stencil makes no
+callbacks for that column. Callback exceptions and accumulated attempted-call counters are
+preserved. In-place outputs need not be complete after an exception. These checks are safety
+contracts, not certified accuracy bounds.
+
+Extreme-scale Jacobian tests must use finite, nonzero magnitudes representable in
+the active `Real` type; double-range constants can instead become infinity or zero
+in float. The regressions separately verify overflowing raw differences and
+denominators, representable subnormal steps, cancellation of equal huge outer
+samples, and rejection of nonfinite final entries after finite callback samples.
+These preconditions distinguish numerical range handling from earlier input or
+callback validation failures; they do not relax the derivative accuracy bounds.
+
+Per-element error estimates are available through
 `NDer4Partial(..., &err)` and friends. The AD entries are exact up to rounding and do not take a
 step at all. For a user-supplied Jacobian on an ODE system see `IODESystemWithJacobian`.
 
@@ -978,17 +1165,22 @@ Real der2 = Derivation::NDer2(noisy_data, x);  // Better
 
 ### 4. Derivatives at Boundaries
 
-**Problem:** Central differences fail at domain boundaries
+**Problem:** A side-named wrapper is not necessarily an endpoint derivative
 
 ```cpp
-RealFunction f([](Real x) { /* defined on [0,1] */ });
-
-// ❌ BAD: Central difference at boundary (evaluates outside domain)
-Real der = Derivation::NDer4(f, 0.0);  // Tries f(-h) — undefined!
-
-// ✅ GOOD: One-sided derivative
-Real der = Derivation::NDer4Right(f, 0.0);  // Uses f(h), f(2h), etc.
+RealFunction bounded([](Real x) {
+    if (x < 0 || x > 1) throw DomainError("outside [0,1]");
+    return x * x;
+});
+Real h = 0.01;
+Real shifted = Derivation::NDer4Right(bounded, 0.0, h);
+std::cout << shifted << '\n';  // About 0.08: derivative at 4h, NOT at zero
 ```
+
+The samples are inside the domain here, but the requested endpoint derivative is zero.
+Choose a justified interior point or an endpoint-specific method if the derivative at
+the boundary itself is required. See [Legacy One-Sided Sampling](#legacy-one-sided-sampling)
+before supplying an error pointer.
 
 ### 5. Not Scaling Inputs
 

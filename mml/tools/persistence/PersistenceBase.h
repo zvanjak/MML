@@ -12,6 +12,7 @@
 #define MML_PERSISTENCE_PERSISTENCE_BASE_H
 
 #include <mml/tools/IOResult.h>
+#include <mml/tools/TextIOFormat.h>
 
 #include <cstddef>
 #include <map>
@@ -55,9 +56,18 @@ namespace Persistence
 		std::size_t max_allocation_bytes = 1ull << 30;
 	};
 
+	namespace Detail
+	{
+		inline IOResult ValidateSaveFilename(const std::string& filename) {
+			if (filename.empty() || filename.find('\0') != std::string::npos)
+				return SerializeFailure(IOError::INVALID_PARAMETERS, "Invalid persistence output filename").WithFile(filename);
+			return SerializeSuccess();
+		}
+	}
+
 	inline char ToLowerAscii(char c)
 	{
-		return c >= 'A' && c <= 'Z' ? static_cast<char>(c - 'A' + 'a') : c;
+		return TextIO::ToLowerAscii(c);
 	}
 
 	inline std::string FileExtensionLower(const std::string& path)

@@ -25,6 +25,8 @@
 #include <map>
 #include <sstream>
 #include <string>
+#include <string_view>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
@@ -113,6 +115,88 @@ namespace Persistence
 
 	namespace Detail
 	{
+		inline IOResult ValidateJsonSaveOptions(const SaveOptions& options) {
+			if (options.precision < 0)
+				return SerializeFailure(IOError::INVALID_PARAMETERS, "JSON precision must be zero (automatic) or positive");
+			return SerializeSuccess();
+		}
+
+		template<class Type>
+		bool JsonNumberIsWritable(Type value) {
+			static_assert(std::is_floating_point_v<Type>, "JSON numbers require a floating-point scalar");
+			const long double number = value;
+			return std::isfinite(number) && number >= std::numeric_limits<double>::lowest()
+				&& number <= std::numeric_limits<double>::max();
+		}
+
+		inline bool IsJsonInteger(const JsonValue& value) {
+			if (value.type != JsonValueType::Number || !std::isfinite(value.number_value)
+				|| value.number_value != std::trunc(value.number_value))
+				return false;
+			if (value.number_text.empty()) return true;
+
+			// Check the preserved decimal token too: double may have rounded a fractional schema value.
+			const std::string_view text(value.number_text);
+			const auto exponentPosition = text.find_first_of("eE");
+			const auto mantissa = text.substr(0, exponentPosition);
+			const auto point = mantissa.find('.');
+			const auto fractional = point == std::string_view::npos ? 0 : mantissa.size() - point - 1;
+			std::size_t trailingZeros = 0;
+			bool nonzero = false;
+			for (std::size_t i = mantissa.size(); i > 0; --i) {
+				const char c = mantissa[i - 1];
+				if (c == '.' || c == '-') continue;
+				if (c != '0') { nonzero = true; break; }
+				++trailingZeros;
+			}
+			if (!nonzero) return true;
+			auto exponent = exponentPosition == std::string_view::npos ? std::string_view("0") : text.substr(exponentPosition + 1);
+			const bool negativeExponent = exponent.front() == '-';
+			if (exponent.front() == '+' || exponent.front() == '-') exponent.remove_prefix(1);
+			const auto firstNonzero = exponent.find_first_not_of('0');
+			exponent = firstNonzero == std::string_view::npos ? std::string_view("0") : exponent.substr(firstNonzero);
+			auto compareExponent = [&](std::size_t bound) {
+				const std::string limit = std::to_string(bound);
+				if (exponent.size() != limit.size()) return exponent.size() < limit.size() ? -1 : 1;
+				return exponent.compare(limit);
+			};
+			if (fractional >= trailingZeros) {
+				const auto required = fractional - trailingZeros;
+				if (negativeExponent) return required == 0 && exponent == "0";
+				return compareExponent(required) >= 0;
+			}
+			return !negativeExponent || compareExponent(trailingZeros - fractional) <= 0;
+		}
+
+		inline bool JsonIntegerEquals(const JsonValue* value, int expected) {
+			return value != nullptr && IsJsonInteger(*value) && value->number_value == expected;
+		}
+
+		inline IOResult ReadJsonDimension(const JsonValue& value, int& dimension) {
+			if (!IsJsonInteger(value) || value.number_value < 0)
+				return SerializeFailure(IOError::SCHEMA_MISMATCH, "JSON shape dimensions must be nonnegative integers");
+			if (value.number_value > std::numeric_limits<int>::max())
+				return SerializeFailure(IOError::ALLOCATION_LIMIT_EXCEEDED, "JSON shape exceeds supported dimension range");
+			dimension = static_cast<int>(value.number_value);
+			return SerializeSuccess();
+		}
+
+		inline bool JsonRealTypeMatches(const JsonValue* value) {
+			if (value == nullptr || value->type != JsonValueType::String) return false;
+			if constexpr (std::is_same_v<Real, float>) return value->string_value == "float";
+			else if constexpr (std::is_same_v<Real, double>) return value->string_value == "double";
+			else if constexpr (std::is_same_v<Real, long double>) return value->string_value == "long_double";
+			else return false;
+		}
+
+		template<class Type>
+		bool JsonScalarFits(const JsonValue& value) {
+			static_assert(std::is_floating_point_v<Type>, "JSON scalar validation requires a floating-point type");
+			const long double number = value.number_value;
+			return value.type == JsonValueType::Number && std::isfinite(number)
+				&& number >= std::numeric_limits<Type>::lowest() && number <= std::numeric_limits<Type>::max();
+		}
+
 		class JsonParser
 		{
 		public:
@@ -554,9 +638,9 @@ namespace Persistence
 	}
 
 	inline IOResult WriteJson(std::ostream& out, const JsonValue& value, const SaveOptions& options = {}) {
-		if (options.precision < 0)
-			return SerializeFailure(IOError::INVALID_PARAMETERS, "JSON precision must be zero (automatic) or positive");
-		IOResult validation = Detail::ValidateJsonForWrite(value);
+		IOResult validation = Detail::ValidateJsonSaveOptions(options);
+		if (!validation.success) return validation;
+		validation = Detail::ValidateJsonForWrite(value);
 		if (!validation.success)
 			return validation;
 

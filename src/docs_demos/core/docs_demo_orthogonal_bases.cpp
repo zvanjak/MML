@@ -14,6 +14,7 @@
 #include <iomanip>
 #include <cmath>
 #include <functional>
+#include <array>
 
 #include <mml/MMLBase.h>
 #include <mml/base/Function.h>
@@ -23,6 +24,44 @@
 #include <mml/core/OrthogonalBasis/ChebyshevBasis.h>
 
 using namespace MML;
+
+void Docs_Demo_OrthogonalBasisContracts()
+{
+    RealFunction constant(+[](Real) { return Real{1}; });
+    LegendreBasis legendre;
+    ChebyshevBasis chebyshev;
+    HermiteBasis hermite;
+    LaguerreBasis laguerre;
+    for (const OrthogonalBasis* basis : std::array<const OrthogonalBasis*, 4>{
+            &legendre, &chebyshev, &hermite, &laguerre})
+    {
+        const Real coefficient = basis->ComputeCoefficient(constant, 0);
+        std::cout << std::setprecision(17) << coefficient << '\n';
+        if (std::abs(coefficient - 1) > Precision::DefaultToleranceStrict)
+            throw NumericalMethodError("Orthogonal basis demo - constant projection failed");
+    }
+    AssociatedLaguerreBasis associated(0);
+    std::cout << associated.Normalization(171) << '\n';
+    std::cout << hermite.QuantumWavefunction(152, 0) << '\n';
+    std::cout << hermite.QuantumWavefunction(1000, 40) << '\n';
+    if (associated.Normalization(171) != 1 ||
+        std::abs(hermite.QuantumWavefunction(152, 0) - Real(0.190925755629646892434)) > Precision::DefaultToleranceStrict ||
+        std::abs(hermite.QuantumWavefunction(1000, 40) - Real(0.172250520732792269826)) > Precision::DefaultToleranceStrict)
+        throw NumericalMethodError("Orthogonal basis demo - stable normalization failed");
+    AssociatedLegendreBasis P_l_m(2);
+    const Real P_value = P_l_m.Evaluate(5, 0.8);
+    const Real angular_value = P_l_m.EvaluateSpherical(5, std::acos(0.8));
+    const Real expected = std::sqrt(11 / (4 * Constants::PI * 840)) * P_value;
+    if (std::abs(angular_value - expected) > Precision::DefaultToleranceStrict ||
+        AssociatedLegendreBasis(0).Evaluate(0, 0) != 1)
+        throw NumericalMethodError("Orthogonal basis demo - associated Legendre convention failed");
+    bool rejected = false;
+    try { static_cast<void>(chebyshev.GetExtrema(0)); }
+    catch (const ArgumentError&) { rejected = true; }
+    if (!rejected)
+        throw NumericalMethodError("Orthogonal basis demo - constant extrema must be rejected");
+    std::cout << "Weighted projections, conventions and normalized waves passed\n";
+}
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 // Demo: Legendre Polynomials
@@ -350,21 +389,9 @@ void Docs_Demo_FunctionExpansion()
     std::function<Real(Real)> f = [](Real x) { return x * x; };
     RealFunctionFromStdFunc fWrapper(f);
 
-    // Compute coefficients using numerical integration
-    int nPoints = 1000;
-    Real dx = 2.0 / nPoints;
-    
     std::vector<Real> coeffs(5);
     for (int n = 0; n < 5; ++n)
-    {
-        Real inner_product = 0.0;
-        for (int i = 0; i < nPoints; ++i)
-        {
-            Real xi = -1.0 + (i + 0.5) * dx;
-            inner_product += f(xi) * legendre.Evaluate(n, xi) * dx;
-        }
-        coeffs[n] = inner_product / legendre.Normalization(n);
-    }
+        coeffs[n] = legendre.ComputeCoefficient(fWrapper, n);
 
     std::cout << "Expansion coefficients:\n";
     for (int n = 0; n < 5; ++n)
@@ -432,6 +459,7 @@ void Docs_Demo_OrthogonalityComparison()
 ///////////////////////////////////////////////////////////////////////////////////////////
 void Docs_Demo_OrthogonalBases()
 {
+    Docs_Demo_OrthogonalBasisContracts();
     std::cout << "\n";
     std::cout << "╔════════════════════════════════════════════════════════════════╗\n";
     std::cout << "║         ORTHOGONAL POLYNOMIAL BASES - DOCUMENTATION DEMOS      ║\n";

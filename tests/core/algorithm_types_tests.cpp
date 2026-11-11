@@ -7,15 +7,15 @@ using namespace MML;
 
 namespace MML::Tests::Core::AlgorithmTypesTests {
 
-TEST_CASE("AlgorithmTypes - EvaluationResultBase reports success by default", "[core][api]") {
+TEST_CASE("AlgorithmTypes - EvaluationResultBase reports uncomputed state by default", "[core][api][result-policy]") {
 	EvaluationResultBase result;
 
-	REQUIRE(result.status == AlgorithmStatus::Success);
+	REQUIRE(result.status == AlgorithmStatus::NotComputed);
 	REQUIRE(result.error_message.empty());
 	REQUIRE(result.algorithm_name.empty());
 	REQUIRE(result.function_evaluations == 0);
-	REQUIRE(result.IsSuccess());
-	REQUIRE(static_cast<bool>(result));
+	REQUIRE_FALSE(result.IsSuccess());
+	REQUIRE_FALSE(static_cast<bool>(result));
 }
 
 TEST_CASE("AlgorithmTypes - DerivativeConfig has derivation-friendly defaults", "[core][api]") {
@@ -27,7 +27,7 @@ TEST_CASE("AlgorithmTypes - DerivativeConfig has derivation-friendly defaults", 
 	REQUIRE(config.exception_policy == EvaluationExceptionPolicy::Propagate);
 }
 
-TEST_CASE("AlgorithmTypes - MakeEvaluationSuccessResult populates shared fields", "[core][api]") {
+TEST_CASE("AlgorithmTypes - MakeEvaluationSuccessResult populates shared fields", "[core][api][result-policy]") {
 	auto result = MakeEvaluationSuccessResult<DerivativeResult<Real>>("NDer4Detailed", 5);
 
 	REQUIRE(result.status == AlgorithmStatus::Success);
@@ -38,7 +38,7 @@ TEST_CASE("AlgorithmTypes - MakeEvaluationSuccessResult populates shared fields"
 	REQUIRE(static_cast<bool>(result));
 	REQUIRE(result.step_used == static_cast<MML::Real>(0.0));
 	REQUIRE(result.value == static_cast<MML::Real>(0.0));
-	REQUIRE(result.error == static_cast<MML::Real>(0.0));
+	REQUIRE_FALSE(HasEstimate(result.error));
 }
 
 TEST_CASE("AlgorithmTypes - MakeEvaluationFailureResult populates failure diagnostics", "[core][api]") {

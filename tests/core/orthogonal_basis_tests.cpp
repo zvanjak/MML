@@ -86,7 +86,7 @@ TEST_CASE("LegendreBasis - P_n(-1) = (-1)^n", "[OrthogonalBasis][Legendre]")
 	LegendreBasis basis;
 	
 	for (int n = 0; n <= 10; n++) {
-		Real expected = (n % 2 == 0) ? 1.0 : -1.0;
+		Real expected = (n % 2 == 0) ? MML::Real(1.0) : -MML::Real(1.0);
 		REQUIRE(basis.Evaluate(n, -1.0) == Catch::Approx(expected));
 	}
 }
@@ -149,10 +149,8 @@ TEST_CASE("AssociatedLegendreBasis - Evaluation for m=0", "[OrthogonalBasis][Ass
 {
 	AssociatedLegendreBasis assoc(0);
 	
-	// SphLegendre uses spherical harmonics normalization, so values differ from standard Legendre
-	// Just verify it returns reasonable finite values
 	for (int l = 0; l <= 5; l++) {
-		REQUIRE(std::isfinite(assoc.Evaluate(l, 0.5)));
+		REQUIRE(assoc.Evaluate(l, 0.5) == Catch::Approx(Functions::Legendre(l, 0.5)));
 	}
 }
 
@@ -229,7 +227,7 @@ TEST_CASE("HermiteBasis - Parity: H_n(-x) = (-1)^n H_n(x)", "[OrthogonalBasis][H
 	for (int n = 0; n <= 8; n++) {
 		Real H_pos = basis.Evaluate(n, x);
 		Real H_neg = basis.Evaluate(n, -x);
-		Real expected_sign = (n % 2 == 0) ? 1.0 : -1.0;
+		Real expected_sign = (n % 2 == 0) ? MML::Real(1.0) : -MML::Real(1.0);
 		REQUIRE(H_neg == Catch::Approx(expected_sign * H_pos));
 	}
 }
@@ -488,10 +486,10 @@ TEST_CASE("Legendre - Orthogonality (discrete check)", "[OrthogonalBasis][Orthog
 	
 	// Check that P_0 and P_1 have different parity at symmetric points
 	// This is a weak orthogonality check
-	Real P0_sum = 0, P1_sum = 0;
+	Real P0_sum = 0;
 	int N = 100;
 	for (int i = 0; i < N; i++) {
-		Real x = -1.0 + 2.0 * i / (N - 1);
+		Real x = -MML::Real(1.0) + MML::Real(2.0) * i / (N - 1);
 		P0_sum += basis.Evaluate(0, x) * basis.Evaluate(1, x);
 	}
 	// P_0 * P_1 should integrate to approximately 0

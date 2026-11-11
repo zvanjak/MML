@@ -33,6 +33,10 @@ namespace MML::MatrixAlg
 
 			for (int index = 0; index < eigenvalues.size(); ++index)
 			{
+				// A nonfinite eigenvalue satisfies neither sign test and would silently count as
+				// zero; it carries no definiteness information, so refuse to classify.
+				if (!std::isfinite(eigenvalues[index]))
+					throw MatrixNumericalError("ClassifyDefiniteness - eigensolver returned a nonfinite eigenvalue");
 				if (eigenvalues[index] > tolerance)
 					++numPositive;
 				else if (eigenvalues[index] < -tolerance)
@@ -95,7 +99,7 @@ namespace MML::MatrixAlg
 				hermitian(row, row) = Complex{A(row, row).real(), static_cast<MML::Real>(0.0)};
 				for (int col = row + 1; col < n; ++col)
 				{
-					const Complex value = static_cast<MML::Real>(0.5) * (A(row, col) + std::conj(A(col, row)));
+					const Complex value = detail::HermitizeEntries(A(row, col), std::conj(A(col, row)));
 					hermitian(row, col) = value;
 					hermitian(col, row) = std::conj(value);
 				}
@@ -112,7 +116,7 @@ namespace MML::MatrixAlg
 			MatrixSym<Real> symmetric(n);
 			for (int row = 0; row < n; ++row)
 				for (int col = row; col < n; ++col)
-					symmetric(row, col) = static_cast<MML::Real>(0.5) * (A(row, col) + A(col, row));
+					symmetric(row, col) = detail::SymmetrizeEntries(A(row, col), A(col, row));
 			return ClassifyDefiniteness(symmetric, tol);
 		}
 	}

@@ -72,8 +72,11 @@
 #endif
 
 #include <array>
+#include <algorithm>
+#include <cmath>
 #include <filesystem>
 #include <iostream>
+#include <limits>
 #include <map>
 #include <sstream>
 #include <string>
@@ -1814,13 +1817,28 @@ namespace
 			Pnt3Cart(0.0, 0.0, 2.0), Pnt3Cart(2.0, 2.0, 2.0), Pnt3Cart(5.0, 5.0, 0.0)
 		};
 		KDTree3D tree;
-		tree.build(landmarks);
+		KDTreeConfig config;
+		config.max_leaf_size = 2;
+		config.balanced = false;
+		tree.build(landmarks, config);
 
 		Pnt3Cart query(1.1, 0.2, 0.1);
 		auto nearest = tree.findNearest(query);
 		auto neighbors = tree.findKNearest(query, 3);
 		auto inRadius = tree.findInRadius(query, 2.25);
 		auto inBox = tree.findInBox(Pnt3Cart(-0.1, -0.1, -0.1), Pnt3Cart(2.1, 2.1, 0.1));
+
+		if (!nearest.found || !IsUsable(nearest.status) ||
+			!IsUsable(neighbors.status) || !IsUsable(inRadius.status))
+			throw InvalidStateError("KD-tree point-cloud query failed");
+		auto radiusIndices = inRadius.indices;
+		auto boxIndices = inBox;
+		std::sort(radiusIndices.begin(), radiusIndices.end());
+		std::sort(boxIndices.begin(), boxIndices.end());
+		if (nearest.index != 1 || neighbors.indices != std::vector<size_t>{1, 0, 2} ||
+			radiusIndices != std::vector<size_t>{0, 1, 2, 3} ||
+			boxIndices != std::vector<size_t>{0, 1, 2})
+			throw InvalidStateError("KD-tree point-cloud results disagree with the example geometry");
 
 		out << "  [12.7] nearest index=" << nearest.index
 		    << ", distance=" << nearest.distance
@@ -2445,7 +2463,7 @@ namespace
 		switch (type) {
 		case DiscontinuityType::JUMP: return "jump";
 		case DiscontinuityType::REMOVABLE: return "removable";
-		case DiscontinuityType::INFINITE: return "infinite";
+		case DiscontinuityType::Infinite: return "infinite";
 		case DiscontinuityType::OSCILLATORY: return "oscillatory";
 		default: return "unknown";
 		}
@@ -3740,6 +3758,72 @@ namespace
 		Cookbook_Recipe22_3_Holonomy(out);
 	}
 } // namespace
+
+void Docs_Demo_KDTreeContracts()
+{
+	Cookbook_Recipe12_7_KDTreePointCloud(std::cout);
+	for (const int exponent : {std::numeric_limits<Real>::max_exponent * 2 / 3,
+		std::numeric_limits<Real>::min_exponent * 2 / 3}) {
+		const Real scale = std::scalbn(Real(1), exponent);
+		KDTree2D tree;
+		KDTreeConfig config;
+		config.max_leaf_size = 1;
+		config.balanced = false;
+		tree.build({{2 * scale, 0}, {scale, 0}}, config);
+		const auto nearest = tree.findNearest({0, 0});
+		const auto neighbors = tree.findKNearest({0, 0}, 2);
+		const auto inside = tree.findInRadius({0, 0}, scale);
+		if (!nearest.found || nearest.index != 1 || nearest.distance != scale ||
+			neighbors.indices != std::vector<size_t>{1, 0} ||
+			neighbors.distances != std::vector<Real>{scale, 2 * scale} ||
+			inside.indices != std::vector<size_t>{1})
+			throw InvalidStateError("KD-tree scale-safe query example failed");
+	}
+	KDTree<2> tree;
+	const Real maximum = std::numeric_limits<Real>::max();
+	tree.build({{maximum, 0}});
+	const auto failed = tree.findNearest({-maximum, 0});
+	if (failed.status != AlgorithmStatus::NumericalInstability || failed.found || failed.index != SIZE_MAX)
+		throw InvalidStateError("KD-tree unrepresentable distance was reported as usable");
+	std::cout << "KD-tree midpoint construction, scale-safe queries and numerical failure contracts verified.\n";
+}
+
+void Docs_Demo_ComplexContourContracts()
+{
+	using namespace MML;
+	Cookbook_Recipe27_ComplexAnalysis(std::cout);
+
+	ComplexFunctionFromStdFunc f([](Complex z) { return Real(1) / z; });
+	ComplexAnalysis::CircleContour unit(Complex(0, 0), 1);
+	ComplexAnalysis::ContourIntegrationConfig config;
+	config.exception_policy = EvaluationExceptionPolicy::ConvertToStatus;
+	auto integral = ComplexAnalysis::ContourIntegralDetailed(f, unit, config);
+	Complex value = integral.ValueOrThrow("contour example");
+	if (std::abs(value - Complex(0, 2 * Constants::PI)) > Precision::DefaultToleranceStrict)
+		throw InvalidStateError("Complex contour demo failed its analytic integral check");
+
+	ComplexFunctionFromStdFunc nonvanishing([](Complex z) { return std::exp(z * z * z * z); });
+	auto count = ComplexAnalysis::CountZerosDetailed(nonvanishing, unit);
+	int zeros = count.IntegerOrThrow("nonvanishing example");
+	if (zeros != 0) throw InvalidStateError("Nonvanishing exponential acquired a spurious zero");
+
+	ComplexFunctionFromStdFunc one([](Complex) { return Complex(1, 0); });
+	const auto fourth = ComplexAnalysis::CauchyDerivativeDetailed(one, unit, Complex(0, 0), 4, config);
+	if (std::abs(fourth.ValueOrThrow("fourth derivative")) > config.tolerance)
+		throw InvalidStateError("Constant function acquired a spurious fourth derivative");
+
+	ComplexFunctionFromStdFunc pole([](Complex z) { return Real(1) / z + Real(100000000); });
+	const auto residue = ComplexAnalysis::ResidueSimplePoleDetailed(pole, Complex(0, 0));
+	if (residue.status != AlgorithmStatus::Completed || residue.converged || residue.error_estimated ||
+		std::abs(residue.ValueOrThrow("simple pole") - Complex(1, 0)) > Precision::DefaultToleranceStrict)
+		throw InvalidStateError("Simple-pole fixed-step contract failed");
+
+	config.max_evaluations = 1;
+	const auto limited = ComplexAnalysis::CountZerosDetailed(nonvanishing, unit, config);
+	if (limited.IsUsable() || limited.integer_certified || limited.status != AlgorithmStatus::ResourceLimitExceeded)
+		throw InvalidStateError("Complex count discarded its evaluation-budget failure");
+	std::cout << "Complex contour aliasing, result propagation and finite-step contracts verified.\n";
+}
 
 void Docs_Demo_Cookbook()
 {

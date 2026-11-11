@@ -63,7 +63,7 @@ TEST_CASE("IDiscreteMap: operator() == iterate(), dimension is checked, defaults
 
 TEST_CASE("Concrete maps use the IParametrized mixin: getNumParam, bulk get/set, checked indices", "[interfaces][discrete-map][systems][wewi.6.2]")
 {
-    Systems::HenonMap henon(1.4, 0.3);
+    Systems::HenonMap henon(MML::Real(1.4), MML::Real(0.3));
     REQUIRE(henon.getNumParam() == 2);
     Vector<Real> p = henon.getParams();
     REQUIRE(p.size() == 2);
@@ -77,7 +77,7 @@ TEST_CASE("Concrete maps use the IParametrized mixin: getNumParam, bulk get/set,
     REQUIRE(henon.getParamName(0) == "a");
     REQUIRE(henon.getStateName(1) == "y");
 
-    Systems::LogisticMap logistic(3.9);
+    Systems::LogisticMap logistic(MML::Real(3.9));
     REQUIRE(logistic.getNumParam() == 1);
     REQUIRE_THROWS_AS(logistic.getParam(1), IndexError);                                     // used to return 0 silently
     REQUIRE(logistic.getParams()[0] == Catch::Approx(3.9));

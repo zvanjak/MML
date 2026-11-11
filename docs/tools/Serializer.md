@@ -60,6 +60,30 @@ For round-trip object persistence of vectors and matrices, use `.mmlj` JSON or
 
 ## Quick Start
 
+### Finite sampling coordinates
+
+For finite, strictly increasing bounds and at least two samples, the range-based
+function, multi-function, curve, parametric-surface, scalar-field, and vector-field
+exporters generate finite coordinates within the supplied interval. They interpolate
+the normalized sample fraction without forming an overflowing full span, step, or
+index-times-span intermediate. The first and last callback coordinates are exactly
+the supplied endpoints. This also applies to filtered and spherical vector exports
+and to visualizer calls that delegate to these serializers.
+
+Floating-point rounding can repeat coordinates when the interval contains fewer
+representable values than the requested sample count; it does not change the count
+or move the endpoints. Text precision remains configurable and unchanged: use
+`std::numeric_limits<Real>::max_digits10` when exact coordinate round trips are
+needed. This guarantee concerns generated coordinates, not callback payloads,
+caller-supplied point arrays, externally supplied grids, or a new NaN/infinity
+acceptance policy.
+
+The runnable `Docs_Demo_SerializerSampling()` counterpart in
+[`docs_demo_serializer.cpp`](../../src/docs_demos/tools/docs_demo_serializer.cpp),
+selected by `MML_DocsApp --serializer-sampling`, checks three samples across
+`[-max, max]` and `[0, max]`, including exact callback endpoints and serialized
+coordinate round trips.
+
 ### Save a Simple Function
 
 ```cpp
@@ -126,6 +150,41 @@ Use `if (result)` or `.success`; boolean conversion is explicit. Byte offsets ar
 line offsets are one-based, and `-1`/`Unknown` means unavailable (including open failures).
 File success checks flush and close. See [RESULT_POLICY.md](../RESULT_POLICY.md) for
 the common contract and migration aliases.
+
+### Validation Before Opening Files
+
+Real-function exports validate sampling counts (at least two), ordered sampling
+bounds (`x1 < x2`), or explicit point-list length before opening the destination,
+just as their stream overloads validate before writing or changing stream formatting.
+Explicit sample points retain their supplied order, including repeated points.
+Existing collection, dimension, and shape checks in other exporters also precede
+opening the file.
+
+Every serializer file exporter rejects both empty filenames and filenames containing
+an embedded NUL with `INVALID_PARAMETERS`. `IOResult::filename` retains the complete
+input string; a NUL-containing name must never silently select its prefix path.
+These preflight failures neither create a new file nor truncate an existing one,
+and invalid function requests do not evaluate the function.
+
+This is **not transactional replacement**: a valid request that later encounters a
+function-evaluation, write, flush, or close failure can modify the destination.
+Successful file results still require checked flush and close.
+
+The runnable `MML_DocsApp --serializer-preflight` example in
+[`docs_demo_serializer.cpp`](../../src/docs_demos/tools/docs_demo_serializer.cpp)
+verifies that an invalid sample count and an embedded-NUL filename preserve an
+eight-byte sentinel, then verifies a valid export.
+
+### Line-Based Metadata
+
+Curve exports always write a title line, even when the title is empty, so the
+fixed-position reader headers remain aligned. Titles and legends replace CR/LF
+with spaces. Particle colors instead occupy one token in each catalog record:
+empty strings, ASCII whitespace, and control characters are rejected with
+`INVALID_PARAMETERS` before any header output or file opening. Valid tokens
+remain unchanged; no particular visualizer's palette is imposed.
+See [SerializerFormats.md](SerializerFormats.md) and the runnable
+`MML_DocsApp --serializer-metadata` demo.
 
 ### Error Handling Pattern
 
@@ -286,12 +345,18 @@ Save multiple functions to one file for comparison plots.
 
 #### SaveRealMultiFunc (Function Pointers)
 
+The function collection must be nonempty, contain no null pointers, and fit the
+format's `int` count range. Legends must have **exactly** one entry per function;
+extra labels are invalid too. These checks run before any callback, stream write
+or destination-file opening, returning `INVALID_PARAMETERS` on rejection.
+The same count and legend rules apply to interpolated-function collections.
+
 ```cpp
-static IOResult SaveRealMultiFunc(
+IOResult SaveRealMultiFunc(
     const std::vector<IRealFunction*>& funcs,  // Functions to save
     std::string title,                         // Display title
-    Real x1, Real x2, int numPoints,           // Range and sampling
     std::vector<std::string> legend,           // Function names
+    Real x1, Real x2, int numPoints,           // Range and sampling
     std::string fileName,
     int precision = 15
 );
@@ -302,11 +367,14 @@ static IOResult SaveRealMultiFunc(
 MML_MULTI_REAL_FUNCTION
 VERSION: 1
 <title>
-NumFunctions: <n>
+<n>
+<legend[0]>
+<legend[1]>
+...
+<legend[n-1]>
 x1: <x1>
 x2: <x2>
 NumPoints: <numPoints>
-<legend[0]> <legend[1]> ... <legend[n-1]>
 <x0> <f0(x0)> <f1(x0)> ... <fn-1(x0)>
 <x1> <f0(x1)> <f1(x1)> ... <fn-1(x1)>
 ...
@@ -322,8 +390,17 @@ std::vector<IRealFunction*> funcs = {&f1, &f2};
 std::vector<std::string> legend = {"sin(x)", "cos(x)"};
 
 auto result = Serializer::SaveRealMultiFunc(
-    funcs, "Trig Functions", 0, 2*M_PI, 100, legend, "trig.mml", 8);
+    funcs, "Trig Functions", legend, 0, 2*Constants::PI, 100, "trig.mml", 8);
 ```
+
+The runnable counterpart and rejection checks are in
+[`Docs_Demo_CollectionContracts`](../../src/docs_demos/tools/docs_demo_visualizers.cpp)
+(`MML_DocsApp --collection-contracts`; no GUI launched).
+Standalone multi-function and particle header writers require a nonnegative
+explicit count exactly matching every legend/color/radius vector. A zero count
+with matching empty vectors remains supported; invalid headers leave the stream
+unchanged. This does not change the documented prefix behavior of precomputed
+curve-point serialization.
 
 #### SaveRealMultiFunc (Interpolated Functions)
 
@@ -502,6 +579,14 @@ static IOResult SaveScalarFunc3DCartesian(
 #### SaveVectorFunc2DCartesian
 
 Save 2D vector field data.
+
+Overloads without a threshold export every sample. Explicit threshold overloads
+(2D, 3D, and spherical) retain only vectors with `NormL2() < upper_threshold`;
+the cutoff is exclusive and uses field-value units. Nonpositive thresholds and
+NaN are rejected before opening the destination. Positive infinity remains
+accepted. The visualizer facade now follows the same unfiltered-by-default
+policy; see [Visualizers.md](Visualizers.md#vector-fields) and its runnable
+`--vector-filtering` demo.
 
 ```cpp
 static IOResult SaveVectorFunc2DCartesian(
@@ -697,83 +782,76 @@ auto result = Serializer::SaveODESolAsParametricCurve3D(
 
 #### SaveParticleSimulation2D
 
-Save 2D particle animation data.
-
-```cpp
-static IOResult SaveParticleSimulation2D(
-    std::string fileName,
-    int numBalls,
-    Real width, Real height,
-    const std::vector<std::vector<Vector2Cartesian>>& positions,
-    const std::vector<std::string>& ballColors,
-    const std::vector<Real>& ballRadius,
-    Real dT,
-    int saveEveryNSteps = 1
-);
-```
+Save 2D particle animation data with `Serializer::SaveParticleSimulation2D`.
+Arguments are the output filename, particle count, domain width/height,
+`std::vector<std::vector<Pnt2Cart>>` position histories, color strings, radii,
+the original time step, and an optional integer decimation stride (default 1).
+The filename and containers are passed by value.
 
 **File Format:**
 ```
 MML_PARTICLE_SIMULATION_DATA_2D
 VERSION: 1
-NumBalls: <numBalls>
 Width: <width>
 Height: <height>
-TimeStep: <dT>
+NumBalls: <numBalls>
+Ball_1 <color> <radius>
+...
 NumSteps: <frames>
 Step 0 0.000000
 <ballIndex> <x> <y>
 <ballIndex> <x> <y>
 ...
-Step 1 <dT>
+Step 1 <saveEveryNSteps * dT>
 <ballIndex> <x> <y>
 <ballIndex> <x> <y>
 ...
 ```
 
 **Parameters:**
-- `positions[i]`: Position history of particle i
+- `positions[i][step]`: Position of particle i at the original simulation step;
+  the outer dimension is particles, **not frames**
 - `ballColors[i]`: Color string (e.g., "red", "#FF0000")
 - `ballRadius[i]`: Radius for rendering
 - `dT`: Time step between simulation updates
 - `saveEveryNSteps`: Frame decimation (default 1 = all frames)
 
-**Example:**
+All histories must have exactly the same length, including histories that would
+not be sampled by the requested stride. Longer, shorter and empty mismatched
+histories return `INVALID_PARAMETERS` before the destination is opened; rejected
+requests neither create a new file nor truncate an existing one. Equal-length
+empty histories remain valid and produce a zero-frame header.
+
+History lengths must fit in `int`, and the stride must be positive. The output
+frame count is the ceiling of history length divided by stride, computed without
+overflow. A stride as large as `INT_MAX` is valid. Frames are numbered
+consecutively from zero, while timestamps use the **original step index** times
+`dT`; decimation does not compress simulation time.
+
+**Example** (choose an `outputPath` for the file):
 ```cpp
-int numBalls = 10;
-int numFrames = 100;
-std::vector<std::vector<Vector2Cartesian>> trajectory(numFrames);
-
-// Simulate particle motion
-for (int frame = 0; frame < numFrames; frame++) {
-    trajectory[frame].resize(numBalls);
-    for (int i = 0; i < numBalls; i++) {
-        // Update particle positions
-        trajectory[frame][i] = updatePosition(particles[i], dt);
-    }
-}
-
-auto result = Serializer::SaveParticleSimulation2D(
-    "animation.mml", numBalls, 10.0, 10.0, trajectory,
-    ballColors, ballRadii, dT);
+std::vector<std::vector<Pnt2Cart>> trajectory(2);
+for (int particle = 0; particle < 2; ++particle)
+    for (int step = 0; step < 5; ++step)
+        trajectory[particle].emplace_back(Real(step), Real(particle));
+const auto result = Serializer::SaveParticleSimulation2D(
+    outputPath, 2, 10, 20, trajectory, {"red", "blue"},
+    {Real(0.5), Real(0.75)}, Real(0.25), 2);
+if (!result.success)
+    throw std::runtime_error(result.message);
 ```
+
+This writes three frames at original times 0, 0.5 and 1. The runnable counterpart
+is `Docs_Demo_ParticleHistory()` in `src/docs_demos/tools/docs_demo_serializer.cpp`;
+run `MML_DocsApp --particle-history`. It also checks pre-open ragged-history
+rejection and a 3D export with an `INT_MAX` stride.
 
 #### SaveParticleSimulation3D
 
-Save 3D particle animation data.
-
-```cpp
-static IOResult SaveParticleSimulation3D(
-    std::string fileName,
-    int numBalls,
-    Real width, Real height, Real depth,
-    const std::vector<std::vector<Vector3Cartesian>>& positions,
-    const std::vector<std::string>& ballColors,
-    const std::vector<Real>& ballRadius,
-    Real dT,
-    int saveEveryNSteps = 1
-);
-```
+`Serializer::SaveParticleSimulation3D` takes the same arguments, with a domain
+depth after width/height and `std::vector<std::vector<Pnt3Cart>>` histories.
+The same rectangular-history validation, supported count range, zero-frame
+behavior and original-timestamp decimation contract apply.
 
 ---
 

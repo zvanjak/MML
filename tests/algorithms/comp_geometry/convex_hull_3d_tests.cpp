@@ -135,7 +135,7 @@ TEST_CASE("ConvexHull3D - Octahedron", "[ComputationalGeometry][ConvexHull3D]")
     REQUIRE(hull.NumVertices() == 6);
     
     // Volume of octahedron with vertices at ±1 on axes = 4/3
-    Real expectedVolume = 4.0 / 3.0;
+    Real expectedVolume = MML::Real(4.0) / MML::Real(3.0);
     REQUIRE_THAT(hull.Volume(), WithinAbs(expectedVolume, 1e-6));
 }
 
@@ -307,7 +307,7 @@ TEST_CASE("ConvexHull3D - Euler characteristic", "[ComputationalGeometry][Convex
 TEST_CASE("ConvexHull3D - Icosahedron", "[ComputationalGeometry][ConvexHull3D][Shape]")
 {
     // Generate icosahedron vertices using golden ratio
-    Real phi = (1.0 + std::sqrt(5.0)) / 2.0;
+    Real phi = (MML::Real(1.0) + std::sqrt(MML::Real(5.0))) / MML::Real(2.0);
     
     std::vector<Point3Cartesian> points = {
         Point3Cartesian(0, 1, phi),

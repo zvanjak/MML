@@ -161,6 +161,7 @@ namespace MML
 																													 const FieldOperationConfig& config = {}) {
 			using ResultType = EvaluationResult<Real>;
 			return FieldOperationDetail::ExecuteFieldDetailed<ResultType>("DivergenceViaDet", config, [&](ResultType& result, int& func_evals) {
+				FieldOperationDetail::VectorSampling<N> sampling(vectorField, pos, config, func_evals);
 				if (metricTensorField.getNumContravar() != 0 || metricTensorField.getNumCovar() != 2)
 					throw DomainError("DivergenceViaDet requires covariant metric storage");
 				const auto* vectorDerivatives = dynamic_cast<const IVectorDerivativeProvider<N>*>(&vectorField);
@@ -174,8 +175,7 @@ namespace MML
 					} catch (const SingularMatrixError&) {
 						throw DomainError("DivergenceViaDet: degenerate metric");
 					}
-					const auto field = vectorField(pos);
-					++func_evals;
+					const auto field = sampling(pos);
 					Real div = 0;
 					for (int i = 0; i < N; ++i) {
 						Singularity::RequireFiniteMatrix(jet.first[i], "DivergenceViaDet metric derivative");
@@ -183,13 +183,11 @@ namespace MML
 						for (int a = 0; a < N; ++a)
 							for (int b = 0; b < N; ++b)
 								logVolumePartial += Real(0.5) * inverse(a, b) * jet.first[i](b, a);
-						div += vectorDerivatives->EvaluateComponentPartial(pos, i, i) + field[i] * logVolumePartial;
-						++func_evals;
+						div += sampling.EvaluateComponentPartial(pos, i, i) + field[i] * logVolumePartial;
 					}
 					if (!std::isfinite(div))
 						throw NumericalMethodError("DivergenceViaDet: nonfinite provider result");
 					result.value = div;
-					FieldOperationDetail::MarkProviderResult(result, func_evals, func_evals);
 					return;
 				}
 				auto logVolume = [&](const VectorN<Real, N>& x) {
@@ -207,8 +205,7 @@ namespace MML
 						const Real weight = std::exp(logVolume(x) - reference);
 						if (!std::isfinite(weight) || weight == 0)
 							throw NumericalMethodError("DivergenceViaDet: volume ratio underflow or overflow");
-						++func_evals;
-						const Real value = weight * vectorField(x)[i];
+						const Real value = weight * sampling(x)[i];
 						if (config.check_finite && !std::isfinite(value))
 							throw NumericalMethodError("DivergenceViaDet: nonfinite volume-weighted field value");
 						return value;
@@ -298,29 +295,19 @@ namespace MML
 		/// @param config      Field operation configuration
 		/// @return            EvaluationResult with divergence value and diagnostics
 		template<int N>
-		static EvaluationResult<Real>
+		static inline EvaluationResult<Real>
 		DivCartDetailed(const IVectorFunction<N>& vectorField, const VectorN<Real, N>& pos,
 		                const FieldOperationConfig& config = {})
 		{
 			using ResultType = EvaluationResult<Real>;
 			return FieldOperationDetail::ExecuteFieldDetailed<ResultType>("DivCart", config, [&](ResultType& result, int& func_evals) {
-				if (FieldOperationDetail::UsesProvidedDerivatives(vectorField, config)) {
-					result.value = DivCart(vectorField, pos);
-					FieldOperationDetail::MarkProviderResult(result, N, func_evals);
-					return;
+				FieldOperationDetail::VectorSampling<N> sampling(vectorField, pos, config, func_evals);
+				result.value = DivCart(sampling, pos);
+				if (sampling.HasEstimate()) {
+					result.error = 0;
+					for (int i = 0; i < N; ++i)
+						result.error += sampling.errors(i,i);
 				}
-				Real div = 0.0;
-				Real total_error = 0.0;
-				for (int i = 0; i < N; i++) {
-					Real err = 0.0;
-					div += Derivation::DeriveVecPartial<N>(vectorField, i, i, pos, config.estimate_error ? &err : nullptr);
-					if (config.estimate_error)
-						total_error += std::abs(err);
-				}
-				result.value = div;
-				if (config.estimate_error)
-					result.error = total_error;
-				func_evals = N * 5; // NDer4 default: ~5 evaluations per component
 			});
 		}
 
@@ -375,7 +362,7 @@ namespace MML
 		/// @param config      Field operation configuration
 		/// @param policy      Singularity handling policy (default: Throw)
 		/// @return            EvaluationResult with divergence value and diagnostics
-		static EvaluationResult<Real>
+		static inline EvaluationResult<Real>
 		DivSpherDetailed(const IVectorFunction<3>& vectorField, const VectorN<Real, 3>& pos,
 		                 const FieldOperationConfig& config = {},
 		                 SingularityPolicy policy = Singularity::DEFAULT_POLICY)
@@ -384,10 +371,15 @@ namespace MML
 			return FieldOperationDetail::ExecuteFieldDetailed<ResultType>(
 				"DivSpher", config,
 				[&](ResultType& result, int& func_evals) {
-					result.value = DivSpher(vectorField, pos, policy);
-					func_evals = dynamic_cast<const IVectorDerivativeProvider<3>*>(&vectorField) ? 4 : 3 * 5 + 1;
-					if (dynamic_cast<const IVectorDerivativeProvider<3>*>(&vectorField))
-						FieldOperationDetail::MarkProviderResult(result, func_evals, func_evals);
+					FieldOperationDetail::VectorSampling<3> sampling(vectorField, pos, config, func_evals);
+					result.value = DivSpher(sampling, pos, policy);
+					if (sampling.HasEstimate()) {
+						const Real inv_r2 = Singularity::SafeInverseR2(pos[0], policy, "DivSpher error");
+						const Real inv_r_sin = Singularity::SafeInverseRSinTheta(pos[0], pos[1], policy, "DivSpher error");
+						result.error = std::abs(inv_r2*pos[0]*pos[0])*sampling.errors(0,0)
+							+ std::abs(inv_r_sin*std::sin(pos[1]))*sampling.errors(1,1)
+							+ std::abs(inv_r_sin)*sampling.errors(2,2);
+					}
 				});
 		}
 
@@ -440,7 +432,7 @@ namespace MML
 		/// @param config      Field operation configuration
 		/// @param policy      Singularity handling policy (default: Throw)
 		/// @return            EvaluationResult with divergence value and diagnostics
-		static EvaluationResult<Real>
+		static inline EvaluationResult<Real>
 		DivCylDetailed(const IVectorFunction<3>& vectorField, const VectorN<Real, 3>& pos,
 		               const FieldOperationConfig& config = {},
 		               SingularityPolicy policy = Singularity::DEFAULT_POLICY)
@@ -449,10 +441,13 @@ namespace MML
 			return FieldOperationDetail::ExecuteFieldDetailed<ResultType>(
 				"DivCyl", config,
 				[&](ResultType& result, int& func_evals) {
-					result.value = DivCyl(vectorField, pos, policy);
-					func_evals = dynamic_cast<const IVectorDerivativeProvider<3>*>(&vectorField) ? 4 : 3 * 5 + 1;
-					if (dynamic_cast<const IVectorDerivativeProvider<3>*>(&vectorField))
-						FieldOperationDetail::MarkProviderResult(result, func_evals, func_evals);
+					FieldOperationDetail::VectorSampling<3> sampling(vectorField, pos, config, func_evals);
+					result.value = DivCyl(sampling, pos, policy);
+					if (sampling.HasEstimate()) {
+						const Real inv_r = Singularity::SafeInverseR(pos[0], policy, "DivCyl error");
+						result.error = std::abs(inv_r*pos[0])*sampling.errors(0,0)
+							+ std::abs(inv_r)*sampling.errors(1,1) + sampling.errors(2,2);
+					}
 				});
 		}
 
@@ -509,40 +504,18 @@ namespace MML
 		/// @param pos         Position vector (x, y, z)
 		/// @param config      Field operation configuration
 		/// @return            EvaluationResult with curl vector and per-component error estimates
-		static EvaluationResult<Vec3Cart, Vec3Cart>
+		static inline EvaluationResult<Vec3Cart, Vec3Cart>
 		CurlCartDetailed(const IVectorFunction<3>& vectorField, const VectorN<Real, 3>& pos,
 		                 const FieldOperationConfig& config = {})
 		{
 			using ResultType = EvaluationResult<Vec3Cart, Vec3Cart>;
 			return FieldOperationDetail::ExecuteFieldDetailed<ResultType>("CurlCart", config, [&](ResultType& result, int& func_evals) {
-				if (FieldOperationDetail::UsesProvidedDerivatives(vectorField, config)) {
-					result.value = CurlCart(vectorField, pos);
-					FieldOperationDetail::MarkProviderResult(result, 6, func_evals);
-					return;
-				}
-				Real e_dzdy = 0, e_dydz = 0, e_dxdz = 0, e_dzdx = 0, e_dydx = 0, e_dxdy = 0;
-				Real* ep = config.estimate_error ? &e_dzdy : nullptr;
-
-				Real dzdy = Derivation::DeriveVecPartial<3>(vectorField, 2, 1, pos, ep);
-				ep = config.estimate_error ? &e_dydz : nullptr;
-				Real dydz = Derivation::DeriveVecPartial<3>(vectorField, 1, 2, pos, ep);
-
-				ep = config.estimate_error ? &e_dxdz : nullptr;
-				Real dxdz = Derivation::DeriveVecPartial<3>(vectorField, 0, 2, pos, ep);
-				ep = config.estimate_error ? &e_dzdx : nullptr;
-				Real dzdx = Derivation::DeriveVecPartial<3>(vectorField, 2, 0, pos, ep);
-
-				ep = config.estimate_error ? &e_dydx : nullptr;
-				Real dydx = Derivation::DeriveVecPartial<3>(vectorField, 1, 0, pos, ep);
-				ep = config.estimate_error ? &e_dxdy : nullptr;
-				Real dxdy = Derivation::DeriveVecPartial<3>(vectorField, 0, 1, pos, ep);
-
-				result.value = Vec3Cart{dzdy - dydz, dxdz - dzdx, dydx - dxdy};
-				if (config.estimate_error) {
-					result.error =
-						Vec3Cart{std::abs(e_dzdy) + std::abs(e_dydz), std::abs(e_dxdz) + std::abs(e_dzdx), std::abs(e_dydx) + std::abs(e_dxdy)};
-				}
-				func_evals = 6 * 5; // 6 partial derivatives, ~5 evals each (NDer4)
+				FieldOperationDetail::VectorSampling<3> sampling(vectorField, pos, config, func_evals);
+				result.value = CurlCart(sampling, pos);
+				if (sampling.HasEstimate())
+					result.error = {sampling.errors(2,1) + sampling.errors(1,2),
+					                sampling.errors(0,2) + sampling.errors(2,0),
+					                sampling.errors(1,0) + sampling.errors(0,1)};
 			});
 		}
 
@@ -605,7 +578,7 @@ namespace MML
 		/// @param config      Field operation configuration
 		/// @param policy      Singularity handling policy (default: Throw)
 		/// @return            EvaluationResult with curl vector and diagnostics
-		static EvaluationResult<Vec3Sph, Vec3Sph>
+		static inline EvaluationResult<Vec3Sph, Vec3Sph>
 		CurlSpherDetailed(const IVectorFunction<3>& vectorField, const VectorN<Real, 3>& pos,
 		                  const FieldOperationConfig& config = {},
 		                  SingularityPolicy policy = Singularity::DEFAULT_POLICY)
@@ -614,10 +587,18 @@ namespace MML
 			return FieldOperationDetail::ExecuteFieldDetailed<ResultType>(
 				"CurlSpher", config,
 				[&](ResultType& result, int& func_evals) {
-					result.value = CurlSpher(vectorField, pos, policy);
-					func_evals = dynamic_cast<const IVectorDerivativeProvider<3>*>(&vectorField) ? 7 : 6 * 5 + 1;
-					if (dynamic_cast<const IVectorDerivativeProvider<3>*>(&vectorField))
-						FieldOperationDetail::MarkProviderResult(result, func_evals, func_evals);
+					FieldOperationDetail::VectorSampling<3> sampling(vectorField, pos, config, func_evals);
+					result.value = CurlSpher(sampling, pos, policy);
+					if (sampling.HasEstimate()) {
+						const Real r = pos[0], theta = pos[1];
+						const Real inv_r = Singularity::SafeInverseR(r, policy, "CurlSpher error");
+						const Real inv_r_sin = Singularity::SafeInverseRSinTheta(r, theta, policy, "CurlSpher error");
+						const Real inv_sin = Singularity::SafeDivide(1, std::sin(theta), policy, "CurlSpher error");
+						result.error = {
+							std::abs(inv_r_sin*std::sin(theta))*sampling.errors(2,1) + std::abs(inv_r_sin)*sampling.errors(1,2),
+							std::abs(inv_r*inv_sin)*sampling.errors(0,2) + std::abs(inv_r*r)*sampling.errors(2,0),
+							std::abs(inv_r*r)*sampling.errors(1,0) + std::abs(inv_r)*sampling.errors(0,1)};
+					}
 				});
 		}
 
@@ -678,7 +659,7 @@ namespace MML
 		/// @param config      Field operation configuration
 		/// @param policy      Singularity handling policy (default: Throw)
 		/// @return            EvaluationResult with curl vector and diagnostics
-		static EvaluationResult<Vec3Cyl, Vec3Cyl>
+		static inline EvaluationResult<Vec3Cyl, Vec3Cyl>
 		CurlCylDetailed(const IVectorFunction<3>& vectorField, const VectorN<Real, 3>& pos,
 		                const FieldOperationConfig& config = {},
 		                SingularityPolicy policy = Singularity::DEFAULT_POLICY)
@@ -687,10 +668,15 @@ namespace MML
 			return FieldOperationDetail::ExecuteFieldDetailed<ResultType>(
 				"CurlCyl", config,
 				[&](ResultType& result, int& func_evals) {
-					result.value = CurlCyl(vectorField, pos, policy);
-					func_evals = dynamic_cast<const IVectorDerivativeProvider<3>*>(&vectorField) ? 7 : 6 * 5 + 1;
-					if (dynamic_cast<const IVectorDerivativeProvider<3>*>(&vectorField))
-						FieldOperationDetail::MarkProviderResult(result, func_evals, func_evals);
+					FieldOperationDetail::VectorSampling<3> sampling(vectorField, pos, config, func_evals);
+					result.value = CurlCyl(sampling, pos, policy);
+					if (sampling.HasEstimate()) {
+						const Real inv_r = Singularity::SafeInverseR(pos[0], policy, "CurlCyl error");
+						result.error = {
+							std::abs(inv_r)*sampling.errors(2,1) + sampling.errors(1,2),
+							sampling.errors(0,2) + sampling.errors(2,0),
+							std::abs(inv_r*pos[0])*sampling.errors(1,0) + std::abs(inv_r)*sampling.errors(0,1)};
+					}
 				});
 		}
 	};

@@ -11,6 +11,27 @@
 
 using namespace MML;
 
+void Docs_Demo_DetailedFieldContracts()
+{
+    int calls = 0;
+    ScalarFunctionFromStdFunc<3> f([&](const VectorN<Real,3>& p) {
+        ++calls;
+        return p[0]*p[0] + p[1]*p[1] + p[2]*p[2];
+    });
+    FieldOperationConfig config;
+    config.derivative_order = 4;
+    config.estimate_error = true;
+    const auto gradient = ScalarFieldOperations::GradientCartDetailed(f, {2,1,0}, config);
+    if (!gradient.IsSuccess() || gradient.function_evaluations != calls || calls != 18)
+        throw NumericalMethodError("Detailed field demo - inaccurate evaluation count");
+    config.derivative_order = 6;
+    config.exception_policy = EvaluationExceptionPolicy::ConvertToStatus;
+    const auto unsupported = ScalarFieldOperations::LaplacianCartDetailed(f, {2,1,0}, config);
+    if (unsupported.status != AlgorithmStatus::InvalidInput || unsupported.function_evaluations != 0)
+        throw NumericalMethodError("Detailed field demo - unsupported Laplacian order was ignored");
+    std::cout << "Gradient callbacks: " << calls << "; unsupported Laplacian order rejected\n";
+}
+
 ///////////////////////////////////////////////////////////////////////////////////////
 ///                           PREDEFINED FIELDS DEMOS
 ///////////////////////////////////////////////////////////////////////////////////////

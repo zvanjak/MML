@@ -993,6 +993,10 @@ public:
 RotationOneForm2D omega;
 Real residual = DifferentialGeometry::GreenTheoremResidual(
     omega, 0.0, 1.0, 0.0, 1.0);
+auto detailed = DifferentialGeometry::GreenTheoremResidualDetailed(
+    omega, 0.0, 1.0, 0.0, 1.0);
+std::cout << detailed.boundary.error_estimate << '\n';
+std::cout << detailed.interior.error_estimated << '\n'; // false: fixed midpoint rule
 ```
 
 Core helpers:
@@ -1001,6 +1005,43 @@ Core helpers:
 - `IntegrateTwoForm(omega, surface, u0, u1, w0, w1)` computes `int_S omega`.
 - `GreenTheoremResidual(omega, x0, x1, y0, y1)` checks `int_boundary omega - int_region d omega`.
 - `StokesResidual(omega, surface)` checks `int_boundary omega - int_surface d omega` for rectangular surface patches.
+
+Each helper has a `Detailed` counterpart. One-form integrals use refined trapezoids;
+rectangle boundaries sum the actual edge values, uncertainty estimates and work,
+and retain any failed edge status. Plain-value helpers throw for unusable results
+instead of accepting a failed component.
+
+Two-form surface and rectangle integrals use **unchecked fixed midpoint rules**.
+Their results are usable `Completed` values, with `converged=false`,
+`error_estimated=false` and `error_estimate=NoEstimate`. For example, one midpoint
+for `x*x dx wedge dy` on the unit square gives `0.25`, not the exact `1/3`;
+increasing the grid improves the approximation but does not create an error estimate.
+
+`GreenTheoremResidualDetailed` and `StokesResidualDetailed` return a
+`FormTheoremResult`: its inherited integration result describes the difference,
+while `boundary` and `interior` retain their individual diagnostics. An unchecked
+interior makes the residual's total error unknown, even when the boundary has an
+estimate. Thus a usable residual is not a certified theorem/accuracy check.
+Reported uncertainty concerns quadrature only, not numerical tangent or exterior
+derivative error.
+
+Integration bounds must be finite, subdivision counts positive, and the cell count
+must fit the integer evaluation counter. Curves and surfaces must declare domains
+containing the requested interval/rectangle. Reversing a curve integral reverses
+its orientation without reversing its declared domain. Curve derivative providers
+take precedence; otherwise numerical tangents use in-domain stencils, including
+one-sided quadratic stencils at closed endpoints. A positive `derivativeStep`
+sets the fallback step (which may shrink to fit the domain); zero selects it
+automatically. Nonfinite geometry, form components and weighted results are errors.
+Exterior differentiation still requires the form to be defined in an ambient
+neighborhood of each sample.
+
+`function_evaluations` counts logical one-form integrands or midpoint form samples;
+it excludes extra geometry and component samples used for numerical derivatives.
+The theorem result sums boundary and interior counts on that same basis.
+Inputs are borrowed only during the synchronous call; returned diagnostics own
+their values. The example above and the one-cell accuracy witness run in
+`MML_DocsApp --form-integration`.
 
 Orientation convention for rectangular domains is counter-clockwise in parameter
 space: bottom edge, right edge, top edge reversed, left edge reversed. For a
@@ -1044,6 +1085,26 @@ Frame helpers:
 
 - `ComputeFrenetFrame<N>(curve, t)` gives tangent, principal normal, speed, and curvature for arbitrary-dimensional curves.
 - `ComputeDarbouxFrame(surface, parameterCurve, t)` gives tangent, surface normal, tangent-normal, curvature vector, normal curvature, and geodesic curvature for curves on a surface.
+
+`FrenetFrame::normal_defined` distinguishes a principal normal from its absence.
+A regular straight curve returns its unit tangent, zero curvature, a zero normal,
+and `normal_defined=false`; it is not a zero-speed failure. Nonzero speed and
+acceleration are normalized with scaled/hypot arithmetic, and normal degeneracy
+is tested relative to acceleration direction rather than absolute acceleration.
+Slow or small regular parameterizations therefore do not lose their normal
+solely because their derivatives are tiny.
+
+Frame evaluation rejects nonfinite/out-of-domain parameters, negative/nonfinite
+derivative steps, zero speed, and nonfinite derivative/arithmetic data. A zero
+step selects provider derivatives when available, otherwise the default numerical
+stencils; a positive step explicitly selects numerical differentiation. This does
+not eliminate ordinary differentiation error or restore unrepresentable data.
+Darboux frames reuse this curvature computation and normalize both surface-frame
+directions rather than silently retaining zero vectors.
+
+Runnable slow-circle check: `Docs_Demo_TypedFrameContracts` in
+[docs_demo_diff_geometry.cpp](../../src/docs_demos/core/docs_demo_diff_geometry.cpp).
+Build `MML_DocsApp` in Release and run `--metric-field-contracts`.
 
 For a great-circle equator on the unit sphere, `geodesicCurvature` is zero and
 `abs(normalCurvature)` is one.

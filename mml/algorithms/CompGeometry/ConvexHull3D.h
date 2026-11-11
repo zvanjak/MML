@@ -74,7 +74,7 @@ struct ConvexHull3D {
 			// Signed volume of tetrahedron with origin
 			volume += (a.X() * (b.Y() * c.Z() - b.Z() * c.Y()) +
 			           a.Y() * (b.Z() * c.X() - b.X() * c.Z()) +
-			           a.Z() * (b.X() * c.Y() - b.Y() * c.X())) / 6.0;
+			           a.Z() * (b.X() * c.Y() - b.Y() * c.X())) / MML::Real(6.0);
 		}
 		return std::abs(volume);
 	}
@@ -91,7 +91,7 @@ struct ConvexHull3D {
 			Vector3Cartesian ac(c.X() - a.X(), c.Y() - a.Y(), c.Z() - a.Z());
 			Vector3Cartesian cross = VectorProduct(ab, ac);
 			
-			area += 0.5 * std::sqrt(cross.X() * cross.X() + 
+			area += MML::Real(0.5) * std::sqrt(cross.X() * cross.X() +
 			                        cross.Y() * cross.Y() + 
 			                        cross.Z() * cross.Z());
 		}
@@ -321,9 +321,9 @@ public:
 				fd.normal = Vector3Cartesian(fd.normal.X() / len, fd.normal.Y() / len, fd.normal.Z() / len);
 			}
 			
-			fd.centroid = Point3Cartesian((a.X() + b.X() + c.X()) / 3.0,
-			                              (a.Y() + b.Y() + c.Y()) / 3.0,
-			                              (a.Z() + b.Z() + c.Z()) / 3.0);
+			fd.centroid = Point3Cartesian((a.X() + b.X() + c.X()) / MML::Real(3.0),
+			                              (a.Y() + b.Y() + c.Y()) / MML::Real(3.0),
+			                              (a.Z() + b.Z() + c.Z()) / MML::Real(3.0));
 			return fd;
 		};
 		

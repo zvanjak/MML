@@ -40,6 +40,17 @@ namespace MML
     ///////////////////////////////////////////////////////////////////////////////////////////
     class OrthogonalBasis
     {
+    protected:
+        Real CoefficientNormalization(int n, Real eps) const
+        {
+            if (n < 0 || !std::isfinite(eps) || eps <= 0)
+                throw ArgumentError("OrthogonalBasis::ComputeCoefficient: require n >= 0 and finite positive tolerance");
+            const Real norm = Normalization(n);
+            if (!std::isfinite(norm) || norm <= 0)
+                throw NumericalMethodError("OrthogonalBasis::ComputeCoefficient: normalization must be finite and positive");
+            return norm;
+        }
+
     public:
         virtual ~OrthogonalBasis() = default;
 
@@ -57,24 +68,29 @@ namespace MML
         virtual Real DomainMax() const = 0;
 
         // Compute expansion coefficient for function f: cₙ = ⟨f, φₙ⟩ / ||φₙ||²
-        virtual Real ComputeCoefficient(const IRealFunction& f, int n, Real eps = Precision::DefaultToleranceStrict) const
+        virtual Real ComputeCoefficient(const IRealFunction& f, int n, Real eps = Precision::OrthogonalBasisCoefficientTolerance) const
         {
-            // Helper class for integrand f(x) * φₙ(x) * w(x)
-            class Integrand : public IRealFunction {
-                const OrthogonalBasis& _basis;
-                const IRealFunction& _f;
-                int _n;
-            public:
-                Integrand(const OrthogonalBasis& basis, const IRealFunction& f, int n)
-                    : _basis(basis), _f(f), _n(n) {}
-                Real operator()(Real x) const override {
-                    return _f(x) * _basis.Evaluate(_n, x) * _basis.WeightFunction(x);
-                }
+            const Real norm = CoefficientNormalization(n, eps);
+            const Real a = DomainMin(), b = DomainMax();
+            if (std::isnan(a) || std::isnan(b) || a >= b)
+                throw ArgumentError("OrthogonalBasis::ComputeCoefficient: invalid basis interval");
+            auto contribution = [&](Real x, Real jacobian) {
+                IntegrationDetail::RequireFinite(x, "Basis coefficient coordinate");
+                return IntegrationDetail::Product({f(x), Evaluate(n, x), WeightFunction(x), jacobian}, norm);
             };
-
-            Integrand integrand(*this, f, n);
-            Real inner_product = IntegrateTrap(integrand, DomainMin(), DomainMax(), eps);
-            return inner_product / Normalization(n);
+            if (std::isfinite(a) && std::isfinite(b))
+                return Integration::IntegrateGKAdaptive([&](Real x) { return contribution(x, 1); }, a, b, eps, eps);
+            // Rational maps cover the complete tails; open GK nodes never sample infinity.
+            auto transformed = [&](Real t) {
+                const Real distance = (1 - t) / t;
+                const Real jacobian = (1 / t) / t;
+                if (std::isfinite(a))
+                    return contribution(a + distance, jacobian);
+                if (std::isfinite(b))
+                    return contribution(b - distance, jacobian);
+                return contribution(distance, jacobian) + contribution(-distance, jacobian);
+            };
+            return Integration::IntegrateGKAdaptive(transformed, 0, 1, eps, eps);
         }
     };
   }

@@ -75,14 +75,18 @@
 #define MML_INTERVALS_H
 
 #include <mml/MMLBase.h>
+#include <mml/MMLNumericValidation.h>
 
 #include <mml/interfaces/IInterval.h>
 
 // Standard headers - include what we use
 #include <algorithm>
+#include <cmath>
 #include <initializer_list>
 #include <limits>
 #include <memory>
+#include <numeric>
+#include <utility>
 #include <vector>
 
 namespace MML {
@@ -100,6 +104,76 @@ namespace MML {
 		NEG_INF, ///< Endpoint extends to negative infinity (-∞)
 		POS_INF	 ///< Endpoint extends to positive infinity (+∞)
 	};
+
+	namespace IntervalDetail {
+		struct SamplingRange { Real lower, upper, center; };
+
+		inline void ValidateSamplingWindow(Real lower, Real upper) {
+			ValidateFinite(lower, "Interval sampling window lower bound");
+			ValidateFinite(upper, "Interval sampling window upper bound");
+			if (lower > upper) throw ArgumentError("Interval sampling window is reversed");
+		}
+
+		inline bool ClipSamplingRange(Real lower, EndpointType lowerType, Real upper, EndpointType upperType,
+			Real windowLower, Real windowUpper, SamplingRange& range) {
+			const Real lo = std::max(lower, windowLower), hi = std::min(upper, windowUpper);
+			if (lo > hi) return false;
+			const bool openLower = lo == lower && lowerType == EndpointType::OPEN;
+			const bool openUpper = hi == upper && upperType == EndpointType::OPEN;
+			if (lo == hi && (openLower || openUpper)) return false;
+			range.center = std::midpoint(lo, hi);
+			range.lower = openLower ? std::nextafter(lo, hi) : lo;
+			range.upper = openUpper ? std::nextafter(hi, lo) : hi;
+			return range.lower <= range.upper;
+		}
+
+		inline bool FindSamplingMember(const IInterval& domain, Real lower, Real upper, Real target, Real& value) {
+			if (domain.contains(target)) { value = target; return true; }
+			if (lower == upper) return false;
+			Real left = lower, right = upper;
+			// Dyadic alternatives avoid periodic holes without iterating through their roundoff bands one ULP at a time.
+			for (int bit = 0; bit < std::numeric_limits<Real>::digits; ++bit) {
+				left = std::midpoint(left, target);
+				right = std::midpoint(target, right);
+				if (domain.contains(left)) { value = left; return true; }
+				if (domain.contains(right)) { value = right; return true; }
+			}
+			if (domain.contains(lower)) { value = lower; return true; }
+			if (domain.contains(upper)) { value = upper; return true; }
+			if (std::nextafter(lower, upper) == upper) return false;
+			throw NumericalMethodError("Interval sampling: no member resolved in a grid cell");
+		}
+
+		inline std::vector<Real> SampleRange(const IInterval& domain, int count, const SamplingRange& range) {
+			std::vector<Real> result;
+			if (count <= 0) return result;
+			if (range.lower == range.upper) {
+				if (domain.contains(range.lower)) result.push_back(range.lower);
+				return result;
+			}
+			if (count > 1 && std::nextafter(range.lower, range.upper) == range.upper) {
+				if (domain.contains(range.lower)) result.push_back(range.lower);
+				if (domain.contains(range.upper)) result.push_back(range.upper);
+				return result;
+			}
+			const auto grid = [&](int i) {
+				if (count == 1) return std::clamp(range.center, range.lower, range.upper);
+				if (i == 0) return range.lower;
+				if (i == count - 1) return range.upper;
+				return std::lerp(range.lower, range.upper, Real(i) / Real(count - 1));
+			};
+			for (int i = 0; i < count; ++i) {
+				const Real target = grid(i);
+				const Real left = i == 0 ? range.lower : std::midpoint(grid(i - 1), target);
+				const Real right = i == count - 1 ? range.upper : std::midpoint(target, grid(i + 1));
+				Real value;
+				if (FindSamplingMember(domain, left, right, target, value)) result.push_back(value);
+			}
+			std::sort(result.begin(), result.end());
+			result.erase(std::unique(result.begin(), result.end()), result.end());
+			return result;
+		}
+	}
 	/// /** @} */
 
 
@@ -129,37 +203,39 @@ namespace MML {
 
 		BaseInterval(Real lower, EndpointType lowerType, Real upper, EndpointType upperType)
 			: _lower(lower)
-			, _lowerType(lowerType)
 			, _upper(upper)
+			, _lowerType(lowerType)
 			, _upperType(upperType) {
+			ValidateFinite(lower, "Interval lower bound");
+			ValidateFinite(upper, "Interval upper bound");
 			if (lower > upper)
 				throw ArgumentError("Interval: lower bound must not exceed upper bound");
 		}
 
 	public:
-		virtual ~BaseInterval() {}
+		~BaseInterval() override {}
 
 		/// @brief Gets the lower bound of the interval.
-		Real getLowerBound() const { return _lower; }
+		Real getLowerBound() const override { return _lower; }
 
 		/// @brief Gets the upper bound of the interval.
-		Real getUpperBound() const { return _upper; }
+		Real getUpperBound() const override { return _upper; }
 
 		/// @brief Gets the length of the interval (upper - lower).
-		Real getLength() const { return _upper - _lower; }
+		Real getLength() const override { return _upper - _lower; }
 
 		/// @brief Returns true if the interval is continuous (no holes).
-		virtual bool isContinuous() const { return true; } // we suppose continuous intervals by default
+		bool isContinuous() const override { return true; } // we suppose continuous intervals by default
 
 		/// @brief Generates equidistant points covering the interval.
 		/// Creates a uniform distribution of points across the interval, useful for:
 		/// - Numerical integration sampling
 		/// - Function plotting
 		/// - Data point generation for curve fitting
-		/// For open endpoints, points are slightly offset inward (by 0.1% of spacing)
-		/// to ensure they remain strictly inside the interval.
-		/// For infinite endpoints, practical limits (±10^10) are used.
-		/// @param numPoints Number of points to generate (minimum 1).
+		/// Open endpoints move inward by one representable step. Periodic holes
+		/// use checked alternatives within grid cells, not a globally uniform grid.
+		/// Unbounded sets are clipped to +/-Precision::UnboundedIntervalSamplingLimit.
+		/// @param numPoints Maximum number of distinct points; nonpositive requests clear output.
 		/// @param[out] points Vector to receive the generated points.
 		/// @code{.cpp}
 		/// ClosedInterval interval(0.0, 1.0);
@@ -168,39 +244,22 @@ namespace MML {
 		/// // pts = {0.0, 0.25, 0.5, 0.75, 1.0}
 		/// @endcode
 
-		void getEquidistantCovering(int numPoints, std::vector<Real>& points) const {
-			points.clear();
-			if (numPoints <= 0)
-				return;
+		void getEquidistantCovering(int numPoints, std::vector<Real>& points) const override {
+			const bool unbounded = _lowerType == EndpointType::NEG_INF || _upperType == EndpointType::POS_INF;
+			getEquidistantCovering(numPoints, points,
+				unbounded ? -Precision::UnboundedIntervalSamplingLimit : _lower,
+				unbounded ? Precision::UnboundedIntervalSamplingLimit : _upper);
+		}
 
-			// Handle infinite endpoints
-			Real lower = _lower;
-			Real upper = _upper;
-
-			// For infinite bounds, use practical limits (precision-dependent)
-			if (_lowerType == EndpointType::NEG_INF)
-				lower = -Precision::UnboundedIntervalSamplingLimit;
-			if (_upperType == EndpointType::POS_INF)
-				upper = Precision::UnboundedIntervalSamplingLimit;
-
-			if (numPoints == 1) {
-				points.push_back((lower + upper) / 2.0);
-				return;
-			}
-
-			Real delta = (upper - lower) / (numPoints - 1);
-
-			for (int i = 0; i < numPoints; i++) {
-				Real x = lower + i * delta;
-
-				// Adjust for open endpoints
-				if (i == 0 && _lowerType == EndpointType::OPEN)
-					x += delta * 0.001; // Small epsilon inside
-				if (i == numPoints - 1 && _upperType == EndpointType::OPEN)
-					x -= delta * 0.001; // Small epsilon inside
-
-				points.push_back(x);
-			}
+		/// @brief Sample only members inside [windowLower,windowUpper]; output is unchanged on failure.
+		void getEquidistantCovering(int numPoints, std::vector<Real>& points, Real windowLower, Real windowUpper) const override {
+			if (numPoints <= 0) { points.clear(); return; }
+			IntervalDetail::ValidateSamplingWindow(windowLower, windowUpper);
+			IntervalDetail::SamplingRange range;
+			std::vector<Real> result;
+			if (IntervalDetail::ClipSamplingRange(_lower, _lowerType, _upper, _upperType, windowLower, windowUpper, range))
+				result = IntervalDetail::SampleRange(*this, numPoints, range);
+			points = std::move(result);
 		}
 	};
 	/// /** @} */
@@ -223,7 +282,7 @@ namespace MML {
 						   EndpointType::POS_INF) {}
 
 		/// @brief Returns true for any real number x.
-		bool contains(Real x) const { return true; }
+		bool contains(Real x) const { return std::isfinite(x); }
 	};
 
 	/// @brief The real line with periodic point exclusions.
@@ -248,11 +307,16 @@ namespace MML {
 						   EndpointType::POS_INF) {
 			_hole0 = hole0;
 			_holeDelta = holeDelta;
+			ValidateFinite(hole0, "Interval hole origin");
+			ValidateFinite(holeDelta, "Interval hole period");
+			if (holeDelta == 0) throw ArgumentError("Interval hole period must be nonzero");
 		}
 
 		/// @brief Returns true if x is not at a hole position.
 		bool contains(Real x) const {
+			if (!std::isfinite(x)) return false;
 			Real diff = (x - _hole0) / _holeDelta;
+			if (!std::isfinite(diff)) throw NumericalMethodError("Interval periodic membership is unrepresentable");
 			if (IsNearlyZero(diff - std::round(diff), Precision::RoundoffZeroThreshold))
 				return false;
 
@@ -334,14 +398,18 @@ namespace MML {
 			: BaseInterval(lower, EndpointType::CLOSED, upper, EndpointType::CLOSED) {
 			_hole0 = hole0;
 			_holeDelta = holeDelta;
+			ValidateFinite(hole0, "Interval hole origin");
+			ValidateFinite(holeDelta, "Interval hole period");
+			if (holeDelta == 0) throw ArgumentError("Interval hole period must be nonzero");
 		}
 
 		/// @brief Returns true if x is in [lower, upper] and not at a hole.
 		bool contains(Real x) const {
-			if (x < _lower || x > _upper)
+			if (!std::isfinite(x) || x < _lower || x > _upper)
 				return false;
 
 			Real diff = (x - _hole0) / _holeDelta;
+			if (!std::isfinite(diff)) throw NumericalMethodError("Interval periodic membership is unrepresentable");
 			if (IsNearlyZero(diff - std::round(diff), Precision::RoundoffZeroThreshold))
 				return false;
 
@@ -469,6 +537,12 @@ namespace MML {
 	class CompositeInterval : public IInterval {
 		std::vector<std::shared_ptr<BaseInterval>> _intervals; ///< Disjoint component pieces
 
+		void requirePlainAlgebra() const {
+			for (const auto& piece : _intervals)
+				if (!piece->isContinuous())
+					throw NotImplementedError("CompositeInterval: set algebra for hole-bearing pieces is not supported");
+		}
+
 		/// @brief Endpoint ordering used when sorting pieces by starting edge.
 		static int endpointRank(EndpointType t) {
 			switch (t) {
@@ -515,8 +589,12 @@ namespace MML {
 		/// @brief Wraps a single interval piece as a one-piece composite (implicit).
 		/// @details Reconstructs a plain endpoint-typed piece from the source bounds, enabling
 		///          any BaseInterval to be passed where a CompositeInterval is expected.
-		/// @note Periodic-hole intervals are treated as their continuous hull for set algebra.
+		/// @throws NotImplementedError for non-continuous pieces, which cannot be
+		/// copied faithfully through this abstract view. Use AddInterval(concretePiece)
+		/// to retain holes for membership and sampling.
 		CompositeInterval(const BaseInterval& piece) {
+			if (!piece.isContinuous())
+				throw NotImplementedError("CompositeInterval: cannot reconstruct a hole-bearing piece from bounds");
 			addPiece(piece._lower, piece._lowerType, piece._upper, piece._upperType);
 		}
 
@@ -545,8 +623,11 @@ namespace MML {
 			struct Seg { Real lo, hi; EndpointType loT, hiT; };
 			std::vector<Seg> segs;
 			segs.reserve(_intervals.size());
-			for (const auto& p : _intervals)
+			for (const auto& p : _intervals) {
+				if (p->_lower == p->_upper && (p->_lowerType == EndpointType::OPEN || p->_upperType == EndpointType::OPEN))
+					continue;
 				segs.push_back({ p->_lower, p->_upper, p->_lowerType, p->_upperType });
+			}
 
 			std::sort(segs.begin(), segs.end(), [](const Seg& x, const Seg& y) {
 				if (x.lo != y.lo) return x.lo < y.lo;
@@ -588,13 +669,17 @@ namespace MML {
 			hi = std::min(hi1, hi2);
 			if (lo > hi) return false;
 
-			if (lo1 == lo2) {
+			if (lo1T == EndpointType::NEG_INF && lo2T != EndpointType::NEG_INF) { lo = lo2; loT = lo2T; }
+			else if (lo2T == EndpointType::NEG_INF && lo1T != EndpointType::NEG_INF) { lo = lo1; loT = lo1T; }
+			else if (lo1 == lo2) {
 				if (lo1T == EndpointType::NEG_INF && lo2T == EndpointType::NEG_INF) loT = EndpointType::NEG_INF;
 				else loT = (lo1T == EndpointType::CLOSED && lo2T == EndpointType::CLOSED) ? EndpointType::CLOSED : EndpointType::OPEN;
 			}
 			else loT = (lo == lo1) ? lo1T : lo2T;
 
-			if (hi1 == hi2) {
+			if (hi1T == EndpointType::POS_INF && hi2T != EndpointType::POS_INF) { hi = hi2; hiT = hi2T; }
+			else if (hi2T == EndpointType::POS_INF && hi1T != EndpointType::POS_INF) { hi = hi1; hiT = hi1T; }
+			else if (hi1 == hi2) {
 				if (hi1T == EndpointType::POS_INF && hi2T == EndpointType::POS_INF) hiT = EndpointType::POS_INF;
 				else hiT = (hi1T == EndpointType::CLOSED && hi2T == EndpointType::CLOSED) ? EndpointType::CLOSED : EndpointType::OPEN;
 			}
@@ -610,6 +695,8 @@ namespace MML {
 
 		/// @brief Union with another interval set: this ∪ other (normalized).
 		CompositeInterval unionWith(const CompositeInterval& other) const {
+			requirePlainAlgebra();
+			other.requirePlainAlgebra();
 			CompositeInterval ret;
 			ret._intervals = _intervals;
 			ret._intervals.insert(ret._intervals.end(), other._intervals.begin(), other._intervals.end());
@@ -619,6 +706,8 @@ namespace MML {
 
 		/// @brief Intersection with another interval set: this ∩ other (normalized).
 		CompositeInterval intersectWith(const CompositeInterval& other) const {
+			requirePlainAlgebra();
+			other.requirePlainAlgebra();
 			CompositeInterval ret;
 			for (const auto& p : _intervals)
 				for (const auto& q : other._intervals) {
@@ -634,6 +723,7 @@ namespace MML {
 
 		/// @brief Complement over the whole real line: ℝ \ this (normalized).
 		CompositeInterval complement() const {
+			requirePlainAlgebra();
 			CompositeInterval norm = *this;
 			norm.Normalize();
 
@@ -666,6 +756,7 @@ namespace MML {
 
 		/// @brief Set difference: this \ other = this ∩ (ℝ \ other).
 		CompositeInterval differenceWith(const CompositeInterval& other) const {
+			requirePlainAlgebra();
 			return intersectWith(other.complement());
 		}
 
@@ -683,7 +774,7 @@ namespace MML {
 		static CompositeInterval Complement(const CompositeInterval& a)                               { return a.complement(); }
 
 		/// @brief Gets the minimum lower bound across all subintervals.
-		Real getLowerBound() const {
+		Real getLowerBound() const override {
 			if (_intervals.empty())
 				return 0;
 			Real minLower = _intervals[0]->getLowerBound();
@@ -693,7 +784,7 @@ namespace MML {
 		}
 
 		/// @brief Gets the maximum upper bound across all subintervals.
-		Real getUpperBound() const {
+		Real getUpperBound() const override {
 			if (_intervals.empty())
 				return 0;
 			Real maxUpper = _intervals[0]->getUpperBound();
@@ -705,13 +796,13 @@ namespace MML {
 		/// @brief Gets the hull length (span from min to max bound).
 		/// @return getUpperBound() - getLowerBound()
 		/// @see getMeasure() for total length of all subintervals
-		Real getLength() const {
+		Real getLength() const override {
 			return getUpperBound() - getLowerBound();
 		}
 
 		/// @brief Gets the total measure (sum of all subinterval lengths).
 		/// @return Sum of individual subinterval lengths
-		Real getMeasure() const {
+		Real getMeasure() const override {
 			Real totalMeasure = 0;
 			for (const auto& interval : _intervals)
 				totalMeasure += interval->getLength();
@@ -719,13 +810,13 @@ namespace MML {
 		}
 
 		/// @brief Returns false (composite intervals are not continuous by definition).
-		bool isContinuous() const { return false; }
+		bool isContinuous() const override { return false; }
 
 		/// @brief Checks if x is contained in any subinterval.
 		/// @param x The point to test.
 		/// @return True if x is in at least one subinterval.
 
-		bool contains(Real x) const {
+		bool contains(Real x) const override {
 			// check for each interval if it contains x
 			for (auto& interval : _intervals) {
 				if (interval->contains(x))
@@ -736,17 +827,12 @@ namespace MML {
 
 		/// @brief Checks if another interval is fully contained.
 		/// @param other The interval to test.
-		/// @return True if other is entirely within one of the subintervals.
-		/// @note This is a simplified check using only bounds, not full containment.
+		/// @return True if other minus this set is empty (including joint coverage).
+		/// @throws NotImplementedError for hole-bearing set predicates.
 
 		bool contains(const BaseInterval& other) const {
-			// Check if all points in 'other' are contained in at least one of our intervals
-			// For simplicity, we check if other's bounds are contained
-			for (const auto& interval : _intervals) {
-				if (interval->contains(other.getLowerBound()) && interval->contains(other.getUpperBound()))
-					return true;
-			}
-			return false;
+			requirePlainAlgebra();
+			return CompositeInterval(other).differenceWith(*this)._intervals.empty();
 		}
 
 		/// @brief Checks if this composite intersects with another interval.
@@ -754,36 +840,96 @@ namespace MML {
 		/// @return True if any subinterval overlaps with other.
 
 		bool intersects(const BaseInterval& other) const {
-			// Check if any of our intervals intersect with 'other'
-			for (const auto& interval : _intervals) {
-				// Two intervals intersect if one contains a point from the other
-				if (interval->getLowerBound() <= other.getUpperBound() && interval->getUpperBound() >= other.getLowerBound())
-					return true;
-			}
-			return false;
+			return !intersectWith(CompositeInterval(other))._intervals.empty();
 		}
 
-		/// @brief Generates equidistant points across all subintervals.
-		/// Points are distributed proportionally to subinterval lengths.
-		/// @param numPoints Total number of points to generate.
+		/// @brief Samples at most numPoints distinct ordered members.
+		/// Budgets use normalized clipped occupied lengths, never hull gaps.
+		/// If any component is unbounded the default window is
+		/// +/-Precision::UnboundedIntervalSamplingLimit; otherwise the hull is used.
+		/// @param numPoints Maximum number of points to generate.
 		/// @param[out] points Vector to receive the generated points.
 
-		void getEquidistantCovering(int numPoints, std::vector<Real>& points) const {
-			points.clear();
-			if (_intervals.empty() || numPoints <= 0)
-				return;
+		void getEquidistantCovering(int numPoints, std::vector<Real>& points) const override {
+			const bool unbounded = std::any_of(_intervals.begin(), _intervals.end(), [](const auto& piece) {
+				return piece->_lowerType == EndpointType::NEG_INF || piece->_upperType == EndpointType::POS_INF;
+			});
+			getEquidistantCovering(numPoints, points,
+				unbounded ? -Precision::UnboundedIntervalSamplingLimit : getLowerBound(),
+				unbounded ? Precision::UnboundedIntervalSamplingLimit : getUpperBound());
+		}
 
-			// Distribute points across all intervals based on their relative lengths
-			Real totalLength = getLength();
-			if (totalLength <= 0)
-				return;
-
-			for (const auto& interval : _intervals) {
-				int intervalPoints = std::max(1, (int)(numPoints * interval->getLength() / totalLength));
-				std::vector<Real> intervalPointsVec;
-				interval->getEquidistantCovering(intervalPoints, intervalPointsVec);
-				points.insert(points.end(), intervalPointsVec.begin(), intervalPointsVec.end());
+		/// @brief Sample inside a finite closed window, preserving holes and the caller output on failure.
+		void getEquidistantCovering(int numPoints, std::vector<Real>& points, Real windowLower, Real windowUpper) const override {
+			if (numPoints <= 0) { points.clear(); return; }
+			IntervalDetail::ValidateSamplingWindow(windowLower, windowUpper);
+			// Plain hulls are used only for grid allocation; every sample is checked against the original set.
+			CompositeInterval grid;
+			for (const auto& piece : _intervals) {
+				const Real lo = std::max(piece->_lower, windowLower), hi = std::min(piece->_upper, windowUpper);
+				const auto loType = lo > piece->_lower || piece->_lowerType == EndpointType::NEG_INF ? EndpointType::CLOSED : piece->_lowerType;
+				const auto hiType = hi < piece->_upper || piece->_upperType == EndpointType::POS_INF ? EndpointType::CLOSED : piece->_upperType;
+				grid.addPiece(lo, loType, hi, hiType);
 			}
+			grid.Normalize();
+			std::vector<IntervalDetail::SamplingRange> ranges;
+			for (const auto& piece : grid._intervals) {
+				IntervalDetail::SamplingRange range;
+				if (IntervalDetail::ClipSamplingRange(piece->_lower, piece->_lowerType, piece->_upper, piece->_upperType,
+					windowLower, windowUpper, range))
+					ranges.push_back(range);
+			}
+
+			std::vector<int> counts(ranges.size(), 0);
+			int remaining = numPoints;
+			if (ranges.size() <= static_cast<size_t>(remaining)) {
+				for (auto& count : counts) count = 1;
+				remaining -= static_cast<int>(ranges.size());
+			}
+			const bool halfWidths = std::any_of(ranges.begin(), ranges.end(), [](const auto& range) {
+				return !std::isfinite(range.upper - range.lower);
+			});
+			std::vector<Real> weights;
+			Real maxWeight = 0;
+			for (const auto& range : ranges) {
+				const Real width = halfWidths ? range.upper / 2 - range.lower / 2 : range.upper - range.lower;
+				weights.push_back(width);
+				maxWeight = std::max(maxWeight, width);
+			}
+			if (maxWeight > 0 && remaining > 0) {
+				Real totalWeight = 0;
+				for (auto& weight : weights) { weight /= maxWeight; totalWeight += weight; }
+				std::vector<std::pair<Real, size_t>> remainders;
+				const int budget = remaining;
+				for (size_t i = 0; i < ranges.size(); ++i) {
+					if (weights[i] == 0) continue;
+					const Real quota = Real(budget) * (weights[i] / totalWeight);
+					// Bound before conversion: even Real(INT_MAX) can round beyond int in float builds.
+					const int count = quota >= Real(remaining) ? remaining : static_cast<int>(quota);
+					counts[i] += count;
+					remaining -= count;
+					remainders.emplace_back(quota - Real(count), i);
+				}
+				std::stable_sort(remainders.begin(), remainders.end(), [](const auto& a, const auto& b) { return a.first > b.first; });
+				size_t next = 0;
+				while (remaining > 0) {
+					++counts[remainders[next].second];
+					--remaining;
+					next = (next + 1) % remainders.size();
+				}
+			}
+			else if (maxWeight == 0) {
+				for (size_t i = 0; i < ranges.size() && remaining > 0; ++i)
+					if (counts[i] == 0) { counts[i] = 1; --remaining; }
+			}
+			std::vector<Real> result;
+			for (size_t i = 0; i < ranges.size(); ++i) {
+				const auto samples = IntervalDetail::SampleRange(*this, counts[i], ranges[i]);
+				result.insert(result.end(), samples.begin(), samples.end());
+			}
+			std::sort(result.begin(), result.end());
+			result.erase(std::unique(result.begin(), result.end()), result.end());
+			points = std::move(result);
 		}
 	};
 	/// /** @} */

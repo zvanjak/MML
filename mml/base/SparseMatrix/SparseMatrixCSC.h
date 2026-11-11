@@ -60,10 +60,11 @@ namespace MML::SparseMatrix
         
         /// @brief Construct from dimensions (empty matrix)
         SparseMatrixCSC(int rows, int cols) 
-            : rows_(rows), cols_(cols), col_pointers_(cols >= 0 ? cols + 1 : 0, 0) {
+            : rows_(rows), cols_(cols) {
             if (rows < 0 || cols < 0) {
                 throw MatrixDimensionError("SparseMatrixCSC: matrix dimensions must be non-negative", rows, cols, -1, -1);
             }
+            col_pointers_.assign(static_cast<size_t>(cols) + 1, 0);
         }
         
         /// @brief Construct from COO format
@@ -92,26 +93,23 @@ namespace MML::SparseMatrix
         
         /// @brief Build CSC from COO matrix
         void FromCOO(SparseMatrixCOO<T>& coo) {
-            rows_ = coo.rows();
-            cols_ = coo.cols();
-            
             coo.consolidate();
             const auto& triplets = coo.triplets();
-            
+            if (triplets.size() > static_cast<size_t>(std::numeric_limits<int>::max()))
+                throw MatrixAllocationError("SparseMatrixCSC: nonzero count exceeds index range", coo.rows(), coo.cols());
             int nnz = static_cast<int>(triplets.size());
-            values_.resize(nnz);
-            row_indices_.resize(nnz);
-            col_pointers_.resize(cols_ + 1);
+            std::vector<T> values(nnz);
+            std::vector<int> indices(nnz);
+            std::vector<int> pointers(static_cast<size_t>(coo.cols()) + 1, 0);
             
             // Count entries per column
-            std::fill(col_pointers_.begin(), col_pointers_.end(), 0);
             for (const auto& t : triplets) {
-                col_pointers_[t.col + 1]++;
+                pointers[t.col + 1]++;
             }
             
             // Cumulative sum
-            for (int j = 0; j < cols_; ++j) {
-                col_pointers_[j + 1] += col_pointers_[j];
+            for (int j = 0; j < coo.cols(); ++j) {
+                pointers[j + 1] += pointers[j];
             }
             
             // Fill values (need to sort by column first)
@@ -123,20 +121,25 @@ namespace MML::SparseMatrix
                 });
             
             for (int k = 0; k < nnz; ++k) {
-                values_[k] = sorted_triplets[k].value;
-                row_indices_[k] = sorted_triplets[k].row;
+                values[k] = sorted_triplets[k].value;
+                indices[k] = sorted_triplets[k].row;
             }
+            values_.swap(values);
+            row_indices_.swap(indices);
+            col_pointers_.swap(pointers);
+            rows_ = coo.rows();
+            cols_ = coo.cols();
         }
         
         /// @brief Build CSC from CSR matrix
         void fromCSR(const SparseMatrixCSR<T>& csr) {
-            rows_ = csr.rows();
-            cols_ = csr.cols();
+            if (!csr.validate())
+                throw ArgumentError("SparseMatrixCSC::fromCSR - invalid CSR storage");
             int nnz = csr.nnz();
             
-            values_.resize(nnz);
-            row_indices_.resize(nnz);
-            col_pointers_.assign(cols_ + 1, 0);
+            std::vector<T> values(nnz);
+            std::vector<int> indices(nnz);
+            std::vector<int> pointers(static_cast<size_t>(csr.cols()) + 1, 0);
             
             const auto& csr_vals = csr.values();
             const auto& csr_cols = csr.colIndices();
@@ -144,25 +147,30 @@ namespace MML::SparseMatrix
             
             // Count entries per column
             for (int k = 0; k < nnz; ++k) {
-                col_pointers_[csr_cols[k] + 1]++;
+                pointers[csr_cols[k] + 1]++;
             }
             
             // Cumulative sum
-            for (int j = 0; j < cols_; ++j) {
-                col_pointers_[j + 1] += col_pointers_[j];
+            for (int j = 0; j < csr.cols(); ++j) {
+                pointers[j + 1] += pointers[j];
             }
             
             // Fill values and row indices
-            std::vector<int> col_counts(cols_, 0);
-            for (int i = 0; i < rows_; ++i) {
+            std::vector<int> col_counts(csr.cols(), 0);
+            for (int i = 0; i < csr.rows(); ++i) {
                 for (int k = csr_rows[i]; k < csr_rows[i + 1]; ++k) {
                     int j = csr_cols[k];
-                    int idx = col_pointers_[j] + col_counts[j];
-                    values_[idx] = csr_vals[k];
-                    row_indices_[idx] = i;
+                    int idx = pointers[j] + col_counts[j];
+                    values[idx] = csr_vals[k];
+                    indices[idx] = i;
                     col_counts[j]++;
                 }
             }
+            values_.swap(values);
+            row_indices_.swap(indices);
+            col_pointers_.swap(pointers);
+            rows_ = csr.rows();
+            cols_ = csr.cols();
         }
         
         /// @brief Convert to CSR format
@@ -194,10 +202,14 @@ namespace MML::SparseMatrix
         /// @brief Check dimensions and canonical CSC storage invariants
         bool validate() const {
             if (rows_ < 0 || cols_ < 0 || values_.size() != row_indices_.size()) return false;
+            if (values_.size() > static_cast<size_t>(std::numeric_limits<int>::max())) return false;
             if (col_pointers_.size() != static_cast<size_t>(cols_) + 1 || col_pointers_.front() != 0) return false;
             if (col_pointers_.back() != static_cast<int>(values_.size())) return false;
             for (int col = 0; col < cols_; ++col) {
-                if (col_pointers_[col] < 0 || col_pointers_[col] > col_pointers_[col + 1]) return false;
+                if (col_pointers_[col] < 0 || col_pointers_[col] > col_pointers_[col + 1] ||
+                    col_pointers_[col + 1] > nnz()) return false;
+            }
+            for (int col = 0; col < cols_; ++col) {
                 int previousRow = -1;
                 for (int k = col_pointers_[col]; k < col_pointers_[col + 1]; ++k) {
                     if (row_indices_[k] < 0 || row_indices_[k] >= rows_ || row_indices_[k] <= previousRow) return false;
@@ -228,8 +240,13 @@ namespace MML::SparseMatrix
         
         /// @brief Sparse matrix-vector product: y = A * x
         void Multiply(const std::vector<T>& x, std::vector<T>& y) const {
-            if (static_cast<int>(x.size()) != cols_) {
+            if (x.size() != static_cast<size_t>(cols_)) {
                 throw VectorDimensionError("SparseMatrixCSC::multiply - vector size must match matrix cols", static_cast<int>(x.size()), cols_);
+            }
+            if (&x == &y) {
+                const auto input = x;
+                Multiply(input, y);
+                return;
             }
             y.assign(rows_, T(0));
             
@@ -243,6 +260,11 @@ namespace MML::SparseMatrix
         void Multiply(const Vector<T>& x, Vector<T>& y) const {
             if (x.size() != cols_) {
                 throw VectorDimensionError("SparseMatrixCSC::multiply - vector size must match matrix cols", x.size(), cols_);
+            }
+            if (&x == &y) {
+                const auto input = x;
+                Multiply(input, y);
+                return;
             }
             y.resize(rows_);
             for (int i = 0; i < rows_; ++i) y[i] = T(0);
@@ -267,8 +289,13 @@ namespace MML::SparseMatrix
         
         /// @brief Transpose matrix-vector product: y = A^T * x
         void MultiplyTranspose(const std::vector<T>& x, std::vector<T>& y) const {
-            if (static_cast<int>(x.size()) != rows_) {
+            if (x.size() != static_cast<size_t>(rows_)) {
                 throw VectorDimensionError("SparseMatrixCSC::multiplyTranspose - vector size must match matrix rows", static_cast<int>(x.size()), rows_);
+            }
+            if (&x == &y) {
+                const auto input = x;
+                MultiplyTranspose(input, y);
+                return;
             }
             y.resize(cols_);
             
@@ -284,6 +311,11 @@ namespace MML::SparseMatrix
         void MultiplyTranspose(const Vector<T>& x, Vector<T>& y) const {
             if (x.size() != rows_) {
                 throw VectorDimensionError("SparseMatrixCSC::multiplyTranspose - vector size must match matrix rows", x.size(), rows_);
+            }
+            if (&x == &y) {
+                const auto input = x;
+                MultiplyTranspose(input, y);
+                return;
             }
             y.resize(cols_);
             for (int j = 0; j < cols_; ++j) {

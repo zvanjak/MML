@@ -83,8 +83,8 @@ namespace MML
 	struct [[nodiscard]] IOResult {
 		bool success = false;
 		IOError error = IOError::INVALID_PARAMETERS;
-		std::string message;
-		std::string filename;
+		std::string message{};
+		std::string filename{};
 		std::int64_t offset = -1;
 		IOOffsetKind offset_kind = IOOffsetKind::Unknown;
 		bool timedOut = false;

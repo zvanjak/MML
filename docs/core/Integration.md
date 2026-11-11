@@ -43,6 +43,52 @@ All integration methods are defined in [`mml/core/Integration/Integration1D.h`](
 
 ## Method Selection Guide
 
+### Outcome and work contracts
+
+Finite-interval methods validate finite endpoints, supported refinement controls
+and finite positive tolerances before work. Midpoints and quadrature contributions
+are formed without avoidable endpoint-sum or scale-product overflow. Nonfinite
+final values or computed errors cannot receive a usable status.
+
+Fixed Gauss rules remain `Completed`, not converged. Gauss10 has `NoEstimate`;
+fixed Gauss-Kronrod retains its embedded Gauss/Kronrod difference. Adaptive GK
+additionally accounts for an arithmetic roundoff floor, without changing that
+fixed-rule diagnostic.
+
+Choose fixtures and accuracy requests for the active `Real` type: endpoints,
+samples and reference scales must remain finite and represent the intended
+problem after conversion. Safe midpoint arithmetic cannot recover endpoints
+that have already overflowed during conversion.
+
+For cancelling integrals, adaptive GK tests the error summed over the whole
+frontier against the maximum of the absolute tolerance and the relative
+tolerance times the magnitude of the whole integral. Individually acceptable
+panels need not satisfy that global budget. A nearly zero integral can still
+have a substantial roundoff floor, proportional to machine epsilon times the
+integral of the absolute integrand. Requests below that floor must remain
+nonconverged (`ToleranceUnachievable`), rather than receiving a false success.
+
+Path integration also includes any error from a numerically differentiated
+curve tangent; the quadrature estimate alone does not bound that separate
+approximation. An `ICurveDerivativeProvider` supplies an analytic tangent when
+available and avoids that finite-difference contribution.
+
+`function_evaluations` counts executed integrand calls, including a call that
+throws. With `ConvertToStatus`, elapsed time and any available complete-domain
+partial estimate survive conversion. An unavailable payload is `NoEstimate`,
+not a computed zero. Open/improper wrappers likewise retain actual callback
+counts; a split or transformed computation may not yet have a complete-domain
+payload when interrupted.
+
+`check_finite=false` disables optional sample checks, not final validity checks.
+`estimate_error=false` hides the reported estimate; adaptive methods still check
+their convergence criterion internally. Error estimates remain numerical
+diagnostics, not mathematical certification of an arbitrary black-box integrand.
+
+Finite Monte Carlo or QMC samples do not guarantee a finite final integral:
+the domain volume times the sampled mean can overflow. QMC rejects that
+unrepresentable final value instead of reporting `Completed`.
+
 ### Decision Tree
 
 ```

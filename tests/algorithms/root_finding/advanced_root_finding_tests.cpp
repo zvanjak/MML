@@ -158,9 +158,10 @@ namespace MML::Tests::Algorithms::AdvancedRootFindingTests
 	{
 			TEST_PRECISION_INFO();
 		// f(x) = x^5 - x - 1, verify fast convergence
-		RealFunction func([](Real x) -> Real { return std::pow(x, 5) - x - static_cast<MML::Real>(1.0); });
+		RealFunction func([](Real x) -> Real { return std::pow(x, MML::Real(5)) - x - static_cast<MML::Real>(1.0); });
 
 	Real root = RootFinding::FindRootRidders(func, static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), TOL(1e-15, 1e-5));
+	REQUIRE_THAT(func(root), WithinAbs(static_cast<MML::Real>(0.0), TOL(1e-12, 1e-3)));
 	}
 
 	TEST_CASE("RootFinding::Ridders_error_not_bracketed", "[RootFinding][ridders][error]")
@@ -217,7 +218,7 @@ namespace MML::Tests::Algorithms::AdvancedRootFindingTests
 	{
 			TEST_PRECISION_INFO();
 		// f(x) = x^7 - x - 1, challenging function
-		RealFunction func([](Real x) -> Real { return std::pow(x, 7) - x - static_cast<MML::Real>(1.0); });
+		RealFunction func([](Real x) -> Real { return std::pow(x, MML::Real(7)) - x - static_cast<MML::Real>(1.0); });
 
 	Real root = RootFinding::FindRootBrent(func, static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0), TOL(1e-15, 1e-5));
 
@@ -229,7 +230,7 @@ TEST_CASE("RootFinding::Brent_difficult_function", "[RootFinding][brent]")
 {
 		TEST_PRECISION_INFO();
 	// f(x) = x^20 - 1, very flat near x=1
-	RealFunction func([](Real x) -> Real { return std::pow(x, 20) - static_cast<MML::Real>(1.0); });
+	RealFunction func([](Real x) -> Real { return std::pow(x, MML::Real(20)) - static_cast<MML::Real>(1.0); });
 
 	Real root = RootFinding::FindRootBrent(func, static_cast<MML::Real>(0.5), static_cast<MML::Real>(1.5), TOL(1e-10, 1e-5));
 

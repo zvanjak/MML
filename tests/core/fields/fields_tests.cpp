@@ -99,7 +99,7 @@ TEST_CASE("InverseRadialPotentialFieldSpher - With constant", "[Fields][Potentia
 TEST_CASE("InverseRadialPotentialFieldSpher - Independent of angles", "[Fields][Potential][Spherical]") {
     // Same r, different angles should give same potential
     VectorN<Real, 3> x1{2.0, 0.0, 0.0};
-    VectorN<Real, 3> x2{2.0, 1.57, 3.14};
+    VectorN<Real, 3> x2{MML::Real(2.0), MML::Real(1.57), MML::Real(3.14)};
     VectorN<Real, 3> x3{2.0, 0.5, 1.0};
     
     Real r1 = InverseRadialPotentialFieldSpher(x1);
@@ -172,7 +172,7 @@ TEST_CASE("InverseRadialPotentialForceFieldCart - 3D point", "[Fields][Force][Ca
     
     // |r| = sqrt(3), |r|³ = 3*sqrt(3)
     // F = -r / |r|³ = -(1,1,1) / (3*sqrt(3))
-    Real expected = -1.0 / (3.0 * std::sqrt(3.0));
+    Real expected = -MML::Real(1.0) / (MML::Real(3.0) * std::sqrt(MML::Real(3.0)));
     REQUIRE(F[0] == Catch::Approx(expected));
     REQUIRE(F[1] == Catch::Approx(expected));
     REQUIRE(F[2] == Catch::Approx(expected));
@@ -433,7 +433,7 @@ TEST_CASE("Fields - Force is negative gradient of potential", "[Fields][Physics]
 TEST_CASE("Fields - Spherical and Cartesian match at same point", "[Fields][Physics]") {
     // At (r, theta, phi) = (2, π/2, 0), Cartesian = (2, 0, 0)
     VectorN<Real, 3> cart{2.0, 0.0, 0.0};
-    VectorN<Real, 3> spher{2.0, 1.5707963267948966, 0.0};  // r=2, theta=π/2
+    VectorN<Real, 3> spher{MML::Real(2.0), MML::Real(1.5707963267948966), MML::Real(0.0)};  // r=2, theta=π/2
     
     InverseRadialFieldCart potCart(1.0);
     InverseRadialFieldSpher potSpher(1.0);
@@ -447,7 +447,7 @@ TEST_CASE("Fields - Spherical and Cartesian match at same point", "[Fields][Phys
 TEST_CASE("Fields - Force magnitude consistent between coordinates", "[Fields][Physics]") {
     // At same physical point, force magnitude should match
     VectorN<Real, 3> cart{2.0, 0.0, 0.0};
-    VectorN<Real, 3> spher{2.0, 1.5707963267948966, 0.0};
+    VectorN<Real, 3> spher{MML::Real(2.0), MML::Real(1.5707963267948966), MML::Real(0.0)};
     
     InverseRadialForceFieldCart forceCart(1.0);
     InverseRadialForceFieldSpher forceSpher(1.0);

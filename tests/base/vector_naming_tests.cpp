@@ -44,7 +44,7 @@ namespace MML::Tests::Base::VectorNamingTests
 
 	TEST_CASE("VectorNaming_Vector_VectorN_vocabulary", "[Vector][VectorN][naming]")
 	{
-		Vector<Real> v({ 1e-14, -1e-14, 0.0 });
+		Vector<Real> v({ Precision::VectorIsEqualTolerance / 4, -Precision::VectorIsEqualTolerance / 4, Real(0) });
 		REQUIRE_FALSE(v.IsZero());
 		REQUIRE(v.IsNearZero());
 		REQUIRE(Vector<Real>({ 0.0, 0.0 }).IsZero());
@@ -58,9 +58,9 @@ namespace MML::Tests::Base::VectorNamingTests
 		w.SetZero();
 		REQUIRE(w.size() == 3);
 		REQUIRE(w.IsZero());
-		w[0] = 1e-13;
+		w[0] = MML::Real(1e-13);
 		REQUIRE_FALSE(w.IsZero());
-		REQUIRE(w.IsNearZero(1e-12));
+		REQUIRE(w.IsNearZero(MML::Real(1e-12)));
 	}
 
 	TEST_CASE("VectorNaming_Cartesian_conversions_and_normalization", "[Vector][naming]")
@@ -93,7 +93,7 @@ namespace MML::Tests::Base::VectorNamingTests
 		Vector3Cartesian a(1.0, 2.0, 3.0);
 		REQUIRE(a.IsParallelTo(Vector3Cartesian(2.0, 4.0, 6.0)));
 		REQUIRE(a.IsParallelTo(Vector3Cartesian(-1.0, -2.0, -3.0)));       // antiparallel IS parallel
-		REQUIRE(a.IsParallelTo(Vector3Cartesian(1e-8, 2e-8, 3e-8)));       // scale invariant
+		REQUIRE(a.IsParallelTo(Vector3Cartesian(MML::Real(1e-8), MML::Real(2e-8), MML::Real(3e-8))));       // scale invariant
 		REQUIRE(a.IsParallelTo(Vector3Cartesian(1e8, 2e8, 3e8)));
 		REQUIRE_FALSE(a.IsParallelTo(Vector3Cartesian(1.0, 0.0, 0.0)));
 		REQUIRE_FALSE(a.IsParallelTo(Vector3Cartesian(0.0, 0.0, 0.0)));    // zero has no direction: false, not NaN
@@ -180,15 +180,21 @@ namespace MML::Tests::Base::VectorNamingTests
 #endif
 	TEST_CASE("VectorNaming_deprecated_aliases_forward", "[Vector][naming][deprecated]")
 	{
-		Vector<Real> v({ 1e-14, 0.0 });
+		Vector<Real> v({ MML::Real(1e-14), MML::Real(0.0) });
 		REQUIRE(v.isZero() == v.IsZero());
 		REQUIRE(v.isNearZero() == v.IsNearZero());
 		v.Clear();
 		REQUIRE(v.empty());
+		Vector<Real> legacyValues{1, 2, 1};
+		legacyValues.erase(Real{1});
+		REQUIRE(legacyValues == Vector<Real>{2});
+		Vector<unsigned> legacyUnsigned{1, 2, 1};
+		legacyUnsigned.erase(1u);
+		REQUIRE(legacyUnsigned == Vector<unsigned>{2});
 
 		VectorN<Real, 2> w({ 1.0, 2.0 });
 		REQUIRE(w.isZero() == w.IsZero());
-		REQUIRE(w.isNearZero(1e-3) == w.IsNearZero(1e-3));
+		REQUIRE(w.isNearZero(MML::Real(1e-3)) == w.IsNearZero(MML::Real(1e-3)));
 		w.clear();                                   // zeroes (kept semantics), does not resize
 		REQUIRE(w.size() == 2);
 		REQUIRE(w.IsZero());

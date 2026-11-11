@@ -19,8 +19,7 @@ TEST_CASE("PyramidEquilateral3D::Constructor", "[geometry][pyramidequilateral][c
     {
         PyramidEquilateral3D pyramid(6.0);
         
-        // Height should be a/sqrt(3) = 6/sqrt(3) = 2*sqrt(3)
-        Real expected_height = 6.0 / std::sqrt(3.0);
+        Real expected_height = MML::Real(6.0) / std::sqrt(MML::Real(2.0));
         REQUIRE_THAT(pyramid.getHeight() , RealApprox(expected_height));
         REQUIRE_THAT(pyramid.getBaseSize() , RealApprox(6.0));
     }
@@ -30,7 +29,7 @@ TEST_CASE("PyramidEquilateral3D::Constructor", "[geometry][pyramidequilateral][c
         Vec3Cart baseCenter(10.0, 20.0, 30.0);
         PyramidEquilateral3D pyramid(9.0, baseCenter);
         
-        Real expected_height = 9.0 / std::sqrt(3.0);
+        Real expected_height = MML::Real(9.0) / std::sqrt(MML::Real(2.0));
         REQUIRE_THAT(pyramid.getHeight() , RealApprox(expected_height));
         REQUIRE_THAT(pyramid.getBaseSize() , RealApprox(9.0));
         
@@ -43,22 +42,19 @@ TEST_CASE("PyramidEquilateral3D::Constructor", "[geometry][pyramidequilateral][c
 
 TEST_CASE("PyramidEquilateral3D::Volume", "[geometry][pyramidequilateral][volume]")
 {
+    const Real tolerance = TOL(Tolerance::Standard, Real(6) * Precision::Eps);
     SECTION("Equilateral pyramid inherits volume calculation")
     {
         PyramidEquilateral3D pyramid(6.0);
-        // h = 6/sqrt(3) = 2*sqrt(3)
-        // Volume = (1/3) * 6² * 2*sqrt(3) = (1/3) * 36 * 2*sqrt(3) = 24*sqrt(3)
-        Real expected = 24.0 * std::sqrt(3.0);
-        REQUIRE_THAT(pyramid.Volume() , RealApprox(expected));
+        Real expected = MML::Real(36.0) * std::sqrt(MML::Real(2.0));
+        REQUIRE_THAT(pyramid.Volume(), RealApprox(expected).epsilon(tolerance));
     }
 
     SECTION("Equilateral pyramid with base 3")
     {
         PyramidEquilateral3D pyramid(3.0);
-        // h = 3/sqrt(3) = sqrt(3)
-        // Volume = (1/3) * 9 * sqrt(3) = 3*sqrt(3)
-        Real expected = 3.0 * std::sqrt(3.0);
-        REQUIRE_THAT(pyramid.Volume() , RealApprox(expected));
+        Real expected = MML::Real(9.0) / std::sqrt(MML::Real(2.0));
+        REQUIRE_THAT(pyramid.Volume(), RealApprox(expected).epsilon(tolerance));
     }
 }
 
@@ -67,12 +63,8 @@ TEST_CASE("PyramidEquilateral3D::SurfaceArea", "[geometry][pyramidequilateral][s
     SECTION("Surface area calculation")
     {
         PyramidEquilateral3D pyramid(6.0);
-        // h = 2*sqrt(3)
-        // Slant height s = sqrt(h² + (a/2)²) = sqrt(12 + 9) = sqrt(21)
-        // SA = a² + 2*a*s = 36 + 12*sqrt(21)
-        Real h = 6.0 / std::sqrt(3.0);
-        Real slant = std::sqrt(h * h + 3.0 * 3.0);
-        Real expected = 36.0 + 12.0 * slant;
+        // Square plus four equilateral triangles.
+        Real expected = MML::Real(36.0) + MML::Real(36.0) * std::sqrt(MML::Real(3.0));
         REQUIRE_THAT(pyramid.SurfaceArea() , RealApprox(expected));
     }
 }
@@ -84,9 +76,7 @@ TEST_CASE("PyramidEquilateral3D::GetCenter", "[geometry][pyramidequilateral][cen
         PyramidEquilateral3D pyramid(12.0);
         Pnt3Cart center = pyramid.getCenter();
         
-        // h = 12/sqrt(3) = 4*sqrt(3)
-        // Centroid at h/4 = sqrt(3)
-        Real expected_z = 12.0 / (4.0 * std::sqrt(3.0));
+        Real expected_z = MML::Real(12.0) / (MML::Real(4.0) * std::sqrt(MML::Real(2.0)));
         REQUIRE_THAT(center.X() , RealApprox(0.0));
         REQUIRE_THAT(center.Y() , RealApprox(0.0));
         REQUIRE_THAT(center.Z() , RealApprox(expected_z));
@@ -98,11 +88,10 @@ TEST_CASE("PyramidEquilateral3D::GetCenter", "[geometry][pyramidequilateral][cen
         PyramidEquilateral3D pyramid(6.0, baseCenter);
         Pnt3Cart center = pyramid.getCenter();
         
-        // h = 6/sqrt(3) = 2*sqrt(3), centroid at h/4 = sqrt(3)/2
-        Real offset_z = 6.0 / (4.0 * std::sqrt(3.0));
+        Real offset_z = MML::Real(6.0) / (MML::Real(4.0) * std::sqrt(MML::Real(2.0)));
         REQUIRE_THAT(center.X() , RealApprox(5.0));
         REQUIRE_THAT(center.Y() , RealApprox(10.0));
-        REQUIRE_THAT(center.Z() , RealApprox(15.0 + offset_z));
+        REQUIRE_THAT(center.Z() , RealApprox(MML::Real(15.0) + offset_z));
     }
 }
 
@@ -113,7 +102,7 @@ TEST_CASE("PyramidEquilateral3D::GetBoundingBox", "[geometry][pyramidequilateral
         PyramidEquilateral3D pyramid(8.0);
         Box3D bbox = pyramid.getBoundingBox();
         
-        Real h = 8.0 / std::sqrt(3.0);
+        Real h = MML::Real(8.0) / std::sqrt(MML::Real(2.0));
         REQUIRE_THAT(bbox.Min().X() , RealApprox(-4.0));
         REQUIRE_THAT(bbox.Min().Y() , RealApprox(-4.0));
         REQUIRE_THAT(bbox.Min().Z() , RealApprox(0.0));
@@ -131,7 +120,7 @@ TEST_CASE("PyramidEquilateral3D::GetBoundingSphere", "[geometry][pyramidequilate
         PyramidEquilateral3D pyramid(6.0);
         BoundingSphere3D bsphere = pyramid.getBoundingSphere();
         
-        Real h = 6.0 / std::sqrt(3.0);
+        Real h = MML::Real(6.0) / std::sqrt(MML::Real(2.0));
         
         // Check base corners
         REQUIRE(bsphere.Contains(Pnt3Cart(3.0, 3.0, 0.0)));
@@ -146,8 +135,8 @@ TEST_CASE("PyramidEquilateral3D::GetBoundingSphere", "[geometry][pyramidequilate
         PyramidEquilateral3D pyramid(12.0);
         BoundingSphere3D bsphere = pyramid.getBoundingSphere();
         
-        Real h = 12.0 / std::sqrt(3.0);
-        Real centroid_z = h / 4.0;
+        Real h = MML::Real(12.0) / std::sqrt(MML::Real(2.0));
+        Real centroid_z = h / MML::Real(4.0);
         
         REQUIRE_THAT(bsphere.Center().X() , RealApprox(0.0));
         REQUIRE_THAT(bsphere.Center().Y() , RealApprox(0.0));
@@ -191,15 +180,15 @@ TEST_CASE("PyramidEquilateral3D::IsInside", "[geometry][pyramidequilateral][insi
     SECTION("Centroid is inside")
     {
         PyramidEquilateral3D pyramid(12.0);
-        Real h = 12.0 / std::sqrt(3.0);
-        Real centroid_z = h / 4.0;
+        Real h = MML::Real(12.0) / std::sqrt(MML::Real(2.0));
+        Real centroid_z = h / MML::Real(4.0);
         REQUIRE(pyramid.IsInside(Pnt3Cart(0.0, 0.0, centroid_z)) == true);
     }
 
     SECTION("Apex is inside")
     {
         PyramidEquilateral3D pyramid(9.0);
-        Real h = 9.0 / std::sqrt(3.0);
+        Real h = MML::Real(9.0) / std::sqrt(MML::Real(2.0));
         REQUIRE(pyramid.IsInside(Pnt3Cart(0.0, 0.0, h)) == true);
     }
 
@@ -213,27 +202,27 @@ TEST_CASE("PyramidEquilateral3D::IsInside", "[geometry][pyramidequilateral][insi
     SECTION("Points outside are not inside")
     {
         PyramidEquilateral3D pyramid(6.0);
-        Real h = 6.0 / std::sqrt(3.0);
+        Real h = MML::Real(6.0) / std::sqrt(MML::Real(2.0));
         
-        REQUIRE(pyramid.IsInside(Pnt3Cart(0.0, 0.0, -0.1)) == false);  // Below base
-        REQUIRE(pyramid.IsInside(Pnt3Cart(0.0, 0.0, h + 0.1)) == false);  // Above apex
-        REQUIRE(pyramid.IsInside(Pnt3Cart(3.1, 0.0, 0.0)) == false);  // Outside base
+        REQUIRE(pyramid.IsInside(Pnt3Cart(MML::Real(0.0), MML::Real(0.0), -MML::Real(0.1))) == false);  // Below base
+        REQUIRE(pyramid.IsInside(Pnt3Cart(MML::Real(0.0), MML::Real(0.0), h + MML::Real(0.1))) == false);  // Above apex
+        REQUIRE(pyramid.IsInside(Pnt3Cart(MML::Real(3.1), MML::Real(0.0), MML::Real(0.0))) == false);  // Outside base
     }
 
     SECTION("Equilateral pyramid at arbitrary position")
     {
         Vec3Cart baseCenter(10.0, 20.0, 30.0);
         PyramidEquilateral3D pyramid(6.0, baseCenter);
-        Real h = 6.0 / std::sqrt(3.0);
+        Real h = MML::Real(6.0) / std::sqrt(MML::Real(2.0));
         
         // Base center
         REQUIRE(pyramid.IsInside(Pnt3Cart(10.0, 20.0, 30.0)) == true);
         
         // Near apex (slightly below to avoid boundary condition)
-        REQUIRE(pyramid.IsInside(Pnt3Cart(10.0, 20.0, 30.0 + h - 0.01)) == true);
+        REQUIRE(pyramid.IsInside(Pnt3Cart(MML::Real(10.0), MML::Real(20.0), MML::Real(30.0) + h - MML::Real(0.01))) == true);
         
         // Outside
-        REQUIRE(pyramid.IsInside(Pnt3Cart(10.0, 20.0, 29.9)) == false);
+        REQUIRE(pyramid.IsInside(Pnt3Cart(MML::Real(10.0), MML::Real(20.0), MML::Real(29.9))) == false);
     }
 }
 
@@ -250,6 +239,9 @@ TEST_CASE("PyramidEquilateral3D::InheritedMethods", "[geometry][pyramidequilater
         Box3D bbox = pyramid.getBoundingBox();
         BoundingSphere3D bsphere = pyramid.getBoundingSphere();
         std::string str = pyramid.to_string();
+        REQUIRE(center.Z() >= bbox.Min().Z());
+        REQUIRE(center.Z() <= bbox.Max().Z());
+        REQUIRE(bsphere.Contains(center));
         
         REQUIRE(volume > 0);
         REQUIRE(surfaceArea > 0);
@@ -261,7 +253,7 @@ TEST_CASE("PyramidEquilateral3D::InheritedMethods", "[geometry][pyramidequilater
         PyramidEquilateral3D pyramid(9.0);
         
         REQUIRE_THAT(pyramid.getBaseSize() , RealApprox(9.0));
-        REQUIRE_THAT(pyramid.getHeight() , RealApprox(9.0 / std::sqrt(3.0)).epsilon(TOL(1e-10, 1e-5)));
+        REQUIRE_THAT(pyramid.getHeight() , RealApprox(MML::Real(9.0) / std::sqrt(MML::Real(2.0))).epsilon(TOL(1e-10, 1e-5)));
         
         Vec3Cart baseCenter = pyramid.getBaseCenter();
         REQUIRE_THAT(baseCenter.X() , RealApprox(0.0));
@@ -272,11 +264,11 @@ TEST_CASE("PyramidEquilateral3D::InheritedMethods", "[geometry][pyramidequilater
 
 TEST_CASE("PyramidEquilateral3D::GeometricProperties", "[geometry][pyramidequilateral][properties]")
 {
-    SECTION("Height-to-base ratio is 1/sqrt(3)")
+    SECTION("Height-to-base ratio is 1/sqrt(2)")
     {
-        for (Real a : {3.0, 6.0, 9.0, 12.0}) {
+        for (Real a : {MML::Real(3.0), MML::Real(6.0), MML::Real(9.0), MML::Real(12.0)}) {
             PyramidEquilateral3D pyramid(a);
-            Real expected_ratio = 1.0 / std::sqrt(3.0);
+            Real expected_ratio = MML::Real(1.0) / std::sqrt(MML::Real(2.0));
             Real actual_ratio = pyramid.getHeight() / pyramid.getBaseSize();
             REQUIRE_THAT(actual_ratio , RealApprox(expected_ratio));
         }

@@ -13,6 +13,7 @@
 #define MML_KDTREE_H
 
 #include <mml/MMLBase.h>
+#include <mml/MMLNumericValidation.h>
 #include <mml/base/AlgorithmTypes.h>
 #include <mml/base/Vector/Vector.h>
 #include <mml/base/Geometry/Geometry2D.h>
@@ -23,8 +24,32 @@
 #include <algorithm>
 #include <queue>
 #include <cmath>
+#include <limits>
+#include <numeric>
 
 namespace MML {
+
+	namespace KDTreeDetail {
+		template<int Dim>
+		bool IsFinitePoint(const VectorN<Real, Dim>& point) {
+			for (int d = 0; d < Dim; ++d)
+				if (!std::isfinite(point[d])) return false;
+			return true;
+		}
+
+		template<int Dim>
+		Real Distance(const VectorN<Real, Dim>& a, const VectorN<Real, Dim>& b) {
+			Real distance = 0;
+			for (int d = 0; d < Dim; ++d)
+				distance = std::hypot(distance, a[d] - b[d]);
+			// An overflowing coordinate difference already implies an unrepresentable distance.
+			// Keep it infinite internally; only a selected output distance makes the query fail.
+			return distance;
+		}
+
+		inline VectorN<Real, 2> Coordinates(const Point2Cartesian& point) { return {point.X(), point.Y()}; }
+		inline VectorN<Real, 3> Coordinates(const Point3Cartesian& point) { return {point.X(), point.Y(), point.Z()}; }
+	}
 
 	/******************************************************************************/
 	/*****                    Configuration                                   *****/
@@ -32,8 +57,8 @@ namespace MML {
 
 	/// @brief Configuration for KD-tree construction
 	struct KDTreeConfig {
-		int max_leaf_size = 10;           ///< Maximum points per leaf node before splitting
-		bool balanced = true;             ///< Use median split (balanced) vs midpoint split
+		int max_leaf_size = 10;           ///< Positive maximum points per leaf before splitting
+		bool balanced = true;             ///< Median vs midpoint split, with median fallback for empty partitions
 		
 		/// Default configuration
 		static KDTreeConfig Default() { return {}; }
@@ -119,6 +144,7 @@ namespace MML {
 	/// }
 	template<int Dim>
 	class KDTree {
+		static_assert(Dim > 0, "KDTree requires a positive dimension");
 	public:
 		using PointType = VectorN<Real, Dim>;
 
@@ -127,7 +153,7 @@ namespace MML {
 		struct Node {
 			int split_axis = -1;                    ///< Axis used for splitting (0 to Dim-1)
 			Real split_value = 0.0;                 ///< Split value on the axis
-			std::unique_ptr<Node> left;             ///< Left child (points < split_value)
+			std::unique_ptr<Node> left;             ///< Left child (points <= split_value; ties may straddle a median)
 			std::unique_ptr<Node> right;            ///< Right child (points >= split_value)
 			std::vector<size_t> point_indices;      ///< Point indices (only for leaf nodes)
 			
@@ -162,21 +188,20 @@ namespace MML {
 		/// @param points Vector of N-dimensional points
 		/// @param config Tree configuration
 		///
-		/// Complexity: O(n log n) average case
+		/// Rejects nonpositive leaf limits and nonfinite coordinates before replacing the tree.
+		/// Complexity: O(n log n) average case for balanced construction
 		void build(const std::vector<PointType>& points, 
 		           const KDTreeConfig& config = KDTreeConfig::Default()) {
 			AlgorithmTimer timer;
-			
-			_config = config;
-			_points = points;  // Store copy
-			_stats = KDTreeStats{};
-			_stats.num_points = points.size();
-			
-			if (points.empty()) {
-				_root = nullptr;
-				_stats.build_time_ms = timer.elapsed_ms();
-				return;
-			}
+			if (config.max_leaf_size <= 0)
+				throw ArgumentError("KDTree: max_leaf_size must be positive");
+			for (const auto& point : points)
+				for (int d = 0; d < Dim; ++d) ValidateFinite(point[d], "KDTree point coordinate");
+
+			KDTree next;
+			next._config = config;
+			next._points = points;
+			next._stats.num_points = points.size();
 			
 			// Create index array
 			std::vector<size_t> indices(points.size());
@@ -186,9 +211,10 @@ namespace MML {
 			
 			// Build tree recursively
 			size_t depth = 0;
-			_root = buildRecursive(indices, 0, depth);
-			_stats.tree_depth = depth;
-			_stats.build_time_ms = timer.elapsed_ms();
+			next._root = next.buildRecursive(indices, 0, depth);
+			next._stats.tree_depth = depth;
+			next._stats.build_time_ms = timer.elapsed_ms();
+			*this = std::move(next);
 		}
 
 		/**************************************************************************/
@@ -204,19 +230,23 @@ namespace MML {
 		NearestNeighborResult findNearest(const PointType& query) const {
 			NearestNeighborResult result;
 			
-			if (!_root) {
+			if (!_root || !KDTreeDetail::IsFinitePoint(query)) {
 				result.status = AlgorithmStatus::InvalidInput;
 				return result;
 			}
 			
-			Real bestDistSq = std::numeric_limits<Real>::max();
+			Real bestDistance = std::numeric_limits<Real>::infinity();
 			size_t bestIndex = SIZE_MAX;
 			
-			nearestRecursive(_root.get(), query, bestIndex, bestDistSq, result.nodes_visited);
+			nearestRecursive(_root.get(), query, bestIndex, bestDistance, result.nodes_visited);
+			if (!std::isfinite(bestDistance)) {
+				result.status = AlgorithmStatus::NumericalInstability;
+				return result;
+			}
 			
 			if (bestIndex != SIZE_MAX) {
 				result.index = bestIndex;
-				result.distance = std::sqrt(bestDistSq);
+				result.distance = bestDistance;
 				result.found = true;
 			}
 			
@@ -233,16 +263,21 @@ namespace MML {
 		KNearestResult findKNearest(const PointType& query, int k) const {
 			KNearestResult result;
 			
-			if (!_root || k <= 0) {
-				if (k <= 0) result.status = AlgorithmStatus::InvalidInput;
+			if (k <= 0 || !KDTreeDetail::IsFinitePoint(query)) {
+				result.status = AlgorithmStatus::InvalidInput;
 				return result;
 			}
+			if (!_root) return result;
 			
-			// Max-heap: (distance_sq, index)
+			// Max-heap: (distance, index)
 			using HeapEntry = std::pair<Real, size_t>;
 			std::priority_queue<HeapEntry> maxHeap;
 			
 			kNearestRecursive(_root.get(), query, k, maxHeap, result.nodes_visited);
+			if (!maxHeap.empty() && !std::isfinite(maxHeap.top().first)) {
+				result.status = AlgorithmStatus::NumericalInstability;
+				return result;
+			}
 			
 			// Extract results (in reverse order since it's a max-heap)
 			result.indices.resize(maxHeap.size());
@@ -251,7 +286,7 @@ namespace MML {
 			int i = static_cast<int>(maxHeap.size()) - 1;
 			while (!maxHeap.empty()) {
 				result.indices[i] = maxHeap.top().second;
-				result.distances[i] = std::sqrt(maxHeap.top().first);
+				result.distances[i] = maxHeap.top().first;
 				maxHeap.pop();
 				--i;
 			}
@@ -269,22 +304,12 @@ namespace MML {
 		RadiusSearchResult findInRadius(const PointType& query, Real radius) const {
 			RadiusSearchResult result;
 			
-			if (!_root) {
-				return result;
-			}
-			
-			if (radius < 0) {
+			if (!KDTreeDetail::IsFinitePoint(query) || !std::isfinite(radius) || radius < 0) {
 				result.status = AlgorithmStatus::InvalidInput;
 				return result;
 			}
 			
-			Real radiusSq = radius * radius;
-			radiusRecursive(_root.get(), query, radiusSq, result.indices, result.distances);
-			
-			// Convert squared distances to actual distances
-			for (auto& d : result.distances) {
-				d = std::sqrt(d);
-			}
+			radiusRecursive(_root.get(), query, radius, result.indices, result.distances);
 			
 			return result;
 		}
@@ -297,6 +322,12 @@ namespace MML {
 		std::vector<size_t> findInBox(const PointType& minCorner, 
 		                               const PointType& maxCorner) const {
 			std::vector<size_t> result;
+			for (int d = 0; d < Dim; ++d) {
+				ValidateFinite(minCorner[d], "KDTree box lower coordinate");
+				ValidateFinite(maxCorner[d], "KDTree box upper coordinate");
+				if (minCorner[d] > maxCorner[d])
+					throw ArgumentError("KDTree: box lower corner must not exceed upper corner");
+			}
 			
 			if (!_root) {
 				return result;
@@ -335,35 +366,49 @@ namespace MML {
 		/**************************************************************************/
 
 		std::unique_ptr<Node> buildRecursive(std::vector<size_t>& indices, 
-		                                      int depth, size_t& maxDepth) {
+		                                      size_t depth, size_t& maxDepth) {
 			if (indices.empty()) {
 				return nullptr;
 			}
 			
-			maxDepth = std::max(maxDepth, static_cast<size_t>(depth));
+			maxDepth = std::max(maxDepth, depth);
 			
 			auto node = std::make_unique<Node>();
 			_stats.num_nodes++;
 			
 			// Create leaf if few points
-			if (static_cast<int>(indices.size()) <= _config.max_leaf_size) {
+			if (indices.size() <= static_cast<size_t>(_config.max_leaf_size)) {
 				node->point_indices = std::move(indices);
 				_stats.num_leaf_nodes++;
 				return node;
 			}
 			
 			// Choose split axis (cycle through dimensions)
-			int axis = depth % Dim;
+			const int axis = static_cast<int>(depth % static_cast<size_t>(Dim));
 			node->split_axis = axis;
 			
-			// Find median along this axis
 			size_t mid = indices.size() / 2;
-			std::nth_element(indices.begin(), indices.begin() + mid, indices.end(),
-				[this, axis](size_t a, size_t b) {
-					return _points[a][axis] < _points[b][axis];
+			const auto compare = [this, axis](size_t a, size_t b) {
+				return _points[a][axis] < _points[b][axis];
+			};
+			bool useMedian = true;
+			if (!_config.balanced) {
+				const auto bounds = std::minmax_element(indices.begin(), indices.end(), compare);
+				const Real split = std::midpoint(_points[*bounds.first][axis], _points[*bounds.second][axis]);
+				const auto boundary = std::partition(indices.begin(), indices.end(), [this, axis, split](size_t index) {
+					return _points[index][axis] < split;
 				});
-			
-			node->split_value = _points[indices[mid]][axis];
+				const size_t count = static_cast<size_t>(boundary - indices.begin());
+				if (count != 0 && count != indices.size()) {
+					mid = count;
+					node->split_value = split;
+					useMedian = false;
+				}
+			}
+			if (useMedian) {
+				std::nth_element(indices.begin(), indices.begin() + mid, indices.end(), compare);
+				node->split_value = _points[indices[mid]][axis];
+			}
 			
 			// Split indices
 			std::vector<size_t> leftIndices(indices.begin(), indices.begin() + mid);
@@ -380,18 +425,8 @@ namespace MML {
 		/*****                    Query Helpers                               *****/
 		/**************************************************************************/
 
-		/// Squared Euclidean distance
-		Real distanceSquared(const PointType& a, const PointType& b) const {
-			Real sum = 0.0;
-			for (int i = 0; i < Dim; ++i) {
-				Real diff = a[i] - b[i];
-				sum += diff * diff;
-			}
-			return sum;
-		}
-
 		void nearestRecursive(const Node* node, const PointType& query,
-		                      size_t& bestIndex, Real& bestDistSq,
+		                      size_t& bestIndex, Real& bestDistance,
 		                      int& nodesVisited) const {
 			if (!node) return;
 			
@@ -400,9 +435,9 @@ namespace MML {
 			if (node->isLeaf()) {
 				// Check all points in leaf
 				for (size_t idx : node->point_indices) {
-					Real distSq = distanceSquared(query, _points[idx]);
-					if (distSq < bestDistSq) {
-						bestDistSq = distSq;
+					const Real distance = KDTreeDetail::Distance(query, _points[idx]);
+					if (bestIndex == SIZE_MAX || distance < bestDistance) {
+						bestDistance = distance;
 						bestIndex = idx;
 					}
 				}
@@ -417,12 +452,12 @@ namespace MML {
 			Node* secondChild = (diff < 0) ? node->right.get() : node->left.get();
 			
 			// Search the closer child first
-			nearestRecursive(firstChild, query, bestIndex, bestDistSq, nodesVisited);
+			nearestRecursive(firstChild, query, bestIndex, bestDistance, nodesVisited);
 			
 			// Check if we need to search the other child
 			// (only if the splitting plane is closer than current best)
-			if (diff * diff < bestDistSq) {
-				nearestRecursive(secondChild, query, bestIndex, bestDistSq, nodesVisited);
+			if (std::abs(diff) < bestDistance) {
+				nearestRecursive(secondChild, query, bestIndex, bestDistance, nodesVisited);
 			}
 		}
 
@@ -435,13 +470,13 @@ namespace MML {
 			
 			if (node->isLeaf()) {
 				for (size_t idx : node->point_indices) {
-					Real distSq = distanceSquared(query, _points[idx]);
+					const Real distance = KDTreeDetail::Distance(query, _points[idx]);
 					
 					if (static_cast<int>(maxHeap.size()) < k) {
-						maxHeap.push({distSq, idx});
-					} else if (distSq < maxHeap.top().first) {
+						maxHeap.push({distance, idx});
+					} else if (distance < maxHeap.top().first) {
 						maxHeap.pop();
-						maxHeap.push({distSq, idx});
+						maxHeap.push({distance, idx});
 					}
 				}
 				return;
@@ -456,24 +491,24 @@ namespace MML {
 			kNearestRecursive(firstChild, query, k, maxHeap, nodesVisited);
 			
 			// Check other side if heap not full or plane is closer than k-th best
-			Real worstDistSq = maxHeap.empty() ? std::numeric_limits<Real>::max() 
+			Real worstDistance = maxHeap.empty() ? std::numeric_limits<Real>::infinity()
 			                                    : maxHeap.top().first;
-			if (static_cast<int>(maxHeap.size()) < k || diff * diff < worstDistSq) {
+			if (static_cast<int>(maxHeap.size()) < k || std::abs(diff) < worstDistance) {
 				kNearestRecursive(secondChild, query, k, maxHeap, nodesVisited);
 			}
 		}
 
-		void radiusRecursive(const Node* node, const PointType& query, Real radiusSq,
+		void radiusRecursive(const Node* node, const PointType& query, Real radius,
 		                     std::vector<size_t>& indices, 
-		                     std::vector<Real>& distancesSq) const {
+		                     std::vector<Real>& distances) const {
 			if (!node) return;
 			
 			if (node->isLeaf()) {
 				for (size_t idx : node->point_indices) {
-					Real distSq = distanceSquared(query, _points[idx]);
-					if (distSq <= radiusSq) {
+					const Real distance = KDTreeDetail::Distance(query, _points[idx]);
+					if (distance <= radius) {
 						indices.push_back(idx);
-						distancesSq.push_back(distSq);
+						distances.push_back(distance);
 					}
 				}
 				return;
@@ -484,15 +519,15 @@ namespace MML {
 			
 			// Search child containing query point
 			if (diff < 0) {
-				radiusRecursive(node->left.get(), query, radiusSq, indices, distancesSq);
+				radiusRecursive(node->left.get(), query, radius, indices, distances);
 				// Search other child if sphere crosses splitting plane
-				if (diff * diff <= radiusSq) {
-					radiusRecursive(node->right.get(), query, radiusSq, indices, distancesSq);
+				if (std::abs(diff) <= radius) {
+					radiusRecursive(node->right.get(), query, radius, indices, distances);
 				}
 			} else {
-				radiusRecursive(node->right.get(), query, radiusSq, indices, distancesSq);
-				if (diff * diff <= radiusSq) {
-					radiusRecursive(node->left.get(), query, radiusSq, indices, distancesSq);
+				radiusRecursive(node->right.get(), query, radius, indices, distances);
+				if (std::abs(diff) <= radius) {
+					radiusRecursive(node->left.get(), query, radius, indices, distances);
 				}
 			}
 		}
@@ -554,7 +589,7 @@ namespace MML {
 		/// Build tree from Point2Cartesian points
 		void build(const std::vector<Point2Cartesian>& points,
 		           const KDTreeConfig& config = KDTreeConfig::Default()) {
-			_originalPoints = points;
+			auto originalPoints = points;
 			
 			std::vector<VectorN<Real, 2>> vecPoints;
 			vecPoints.reserve(points.size());
@@ -563,6 +598,7 @@ namespace MML {
 			}
 			
 			_tree.build(vecPoints, config);
+			_originalPoints = std::move(originalPoints);
 		}
 		
 		/// Find nearest neighbor
@@ -616,7 +652,7 @@ namespace MML {
 		/// Build tree from Point3Cartesian points
 		void build(const std::vector<Point3Cartesian>& points,
 		           const KDTreeConfig& config = KDTreeConfig::Default()) {
-			_originalPoints = points;
+			auto originalPoints = points;
 			
 			std::vector<VectorN<Real, 3>> vecPoints;
 			vecPoints.reserve(points.size());
@@ -625,6 +661,7 @@ namespace MML {
 			}
 			
 			_tree.build(vecPoints, config);
+			_originalPoints = std::move(originalPoints);
 		}
 		
 		/// Find nearest neighbor
@@ -659,67 +696,54 @@ namespace MML {
 	/*****                    Utility Functions                               *****/
 	/******************************************************************************/
 
+	namespace KDTreeDetail {
+		template<class CartesianPoint>
+		NearestNeighborResult FindNearestBruteForce(const std::vector<CartesianPoint>& points, const CartesianPoint& query) {
+			NearestNeighborResult result;
+			const auto queryCoordinates = Coordinates(query);
+			if (!IsFinitePoint(queryCoordinates)) {
+				result.status = AlgorithmStatus::InvalidInput;
+				return result;
+			}
+			Real bestDistance = std::numeric_limits<Real>::infinity();
+			size_t bestIndex = SIZE_MAX;
+			for (size_t i = 0; i < points.size(); ++i) {
+				const auto coordinates = Coordinates(points[i]);
+				if (!IsFinitePoint(coordinates)) {
+					result.status = AlgorithmStatus::InvalidInput;
+					return result;
+				}
+				const Real distance = Distance(coordinates, queryCoordinates);
+				if (bestIndex == SIZE_MAX || distance < bestDistance) {
+					bestDistance = distance;
+					bestIndex = i;
+				}
+			}
+			result.nodes_visited = static_cast<int>(points.size());
+			if (bestIndex == SIZE_MAX) return result;
+			if (!std::isfinite(bestDistance)) {
+				result.status = AlgorithmStatus::NumericalInstability;
+				return result;
+			}
+			result.index = bestIndex;
+			result.distance = bestDistance;
+			result.found = true;
+			return result;
+		}
+	}
+
 	/// @brief Brute-force nearest neighbor search (for testing/comparison)
 	inline NearestNeighborResult FindNearestBruteForce2D(
 		const std::vector<Point2Cartesian>& points,
 		const Point2Cartesian& query) {
-		
-		NearestNeighborResult result;
-		
-		if (points.empty()) {
-			return result;
-		}
-		
-		Real bestDistSq = std::numeric_limits<Real>::max();
-		
-		for (size_t i = 0; i < points.size(); ++i) {
-			Real dx = points[i].X() - query.X();
-			Real dy = points[i].Y() - query.Y();
-			Real distSq = dx * dx + dy * dy;
-			
-			if (distSq < bestDistSq) {
-				bestDistSq = distSq;
-				result.index = i;
-			}
-		}
-		
-		result.distance = std::sqrt(bestDistSq);
-		result.found = true;
-		result.nodes_visited = static_cast<int>(points.size());  // All points checked
-		
-		return result;
+		return KDTreeDetail::FindNearestBruteForce(points, query);
 	}
 
 	/// @brief Brute-force nearest neighbor search for 3D (for testing/comparison)
 	inline NearestNeighborResult FindNearestBruteForce3D(
 		const std::vector<Point3Cartesian>& points,
 		const Point3Cartesian& query) {
-		
-		NearestNeighborResult result;
-		
-		if (points.empty()) {
-			return result;
-		}
-		
-		Real bestDistSq = std::numeric_limits<Real>::max();
-		
-		for (size_t i = 0; i < points.size(); ++i) {
-			Real dx = points[i].X() - query.X();
-			Real dy = points[i].Y() - query.Y();
-			Real dz = points[i].Z() - query.Z();
-			Real distSq = dx * dx + dy * dy + dz * dz;
-			
-			if (distSq < bestDistSq) {
-				bestDistSq = distSq;
-				result.index = i;
-			}
-		}
-		
-		result.distance = std::sqrt(bestDistSq);
-		result.found = true;
-		result.nodes_visited = static_cast<int>(points.size());
-		
-		return result;
+		return KDTreeDetail::FindNearestBruteForce(points, query);
 	}
 
 } // namespace MML

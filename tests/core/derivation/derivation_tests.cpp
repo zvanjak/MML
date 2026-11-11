@@ -942,9 +942,24 @@ namespace MML::Tests::Core::DerivationTests
 		
 		VectorN<Real, 2> point{ static_cast<MML::Real>(1.0), static_cast<MML::Real>(1.0) };
 		
-		Real Hxx = Derivation::NSecDer4Partial(negDefFunc, 0, 0, point);
-		Real Hxy = Derivation::NSecDer4Partial(negDefFunc, 0, 1, point);
-		Real Hyy = Derivation::NSecDer4Partial(negDefFunc, 1, 1, point);
+		const auto secondPartial = [&](int first, int second) {
+			// A quadratic has zero truncation error; dyadic float samples avoid cancellation.
+			if constexpr (std::is_same_v<Real, float>)
+				return Derivation::NSecDer4Partial(negDefFunc, first, second, point, Real(1) / 8);
+			else
+				return Derivation::NSecDer4Partial(negDefFunc, first, second, point);
+		};
+		Real Hxx = secondPartial(0, 0);
+		Real Hxy = secondPartial(0, 1);
+		Real Hyy = secondPartial(1, 1);
+		if constexpr (std::is_same_v<Real, float>) {
+			Real estimatedError = 0;
+			const Real defaultMixed = Derivation::NSecDer4Partial(negDefFunc, 0, 1, point, &estimatedError);
+			REQUIRE(std::isfinite(estimatedError));
+			REQUIRE(estimatedError >= 0);
+			REQUIRE(std::abs(defaultMixed) <= estimatedError);
+			REQUIRE(estimatedError < Precision::SqrtEps * std::abs(Hxx));
+		}
 		
 		// Negative definite: Hxx < 0, det(H) > 0
 		REQUIRE(Hxx < 0);
@@ -1188,4 +1203,3 @@ namespace MML::Tests::Core::DerivationTests
 		REQUIRE_THAT(rightDeriv, WithinRel(analytical, TOL(0.01, 0.03)));
 	}
 }
-

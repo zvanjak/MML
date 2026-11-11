@@ -257,6 +257,7 @@ namespace MML::Tests::Base::DiracDeltaFunctionTests
 		Real val1 = std::abs(delta(static_cast<MML::Real>(0.1)));
 		Real val2 = std::abs(delta(static_cast<MML::Real>(0.5)));
 		Real val3 = std::abs(delta(static_cast<MML::Real>(1.0)));
+		REQUIRE(std::isfinite(val2));
 		
 		// Magnitude should generally decrease (ignoring oscillations)
 		REQUIRE(val1 > val3);

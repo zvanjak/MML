@@ -196,7 +196,7 @@ namespace MML::Tests::Core::DerivationCharacterizationTests
 			RequireOffsets(function.arguments, x, h, value_offsets);
 			REQUIRE(value_only.function_evaluations == static_cast<int>(value_offsets.size()));
 			REQUIRE(value_only.value == Catch::Approx(expected_value));
-			REQUIRE(value_only.error == static_cast<MML::Real>(0.0));
+			REQUIRE_FALSE(HasEstimate(value_only.error));
 
 			config.estimate_error = true;
 			function.clear();

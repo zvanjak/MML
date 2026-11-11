@@ -114,7 +114,7 @@ namespace MML::TestBeds
     {
         Real r2 = v[0]*v[0] + v[1]*v[1] + v[2]*v[2];
         if (r2 < 1e-20) return VectorN<Real, 3>{0, 0, 0};  // Regularize at origin
-        Real r3_inv = 1.0 / (r2 * std::sqrt(r2));
+        Real r3_inv = MML::Real(1.0) / (r2 * std::sqrt(r2));
         return VectorN<Real, 3>{v[0] * r3_inv, v[1] * r3_inv, v[2] * r3_inv};
     }
     static MML::VectorN<Real, 3> TestVectorFunc_RadialInvSq_derived(const VectorN<Real, 3> &v, int ind) 
@@ -123,7 +123,7 @@ namespace MML::TestBeds
         Real r2 = v[0]*v[0] + v[1]*v[1] + v[2]*v[2];
         if (r2 < 1e-20) return VectorN<Real, 3>{0, 0, 0};
         Real r = std::sqrt(r2);
-        Real r3_inv = 1.0 / (r2 * r);
+        Real r3_inv = MML::Real(1.0) / (r2 * r);
         Real r5_inv = r3_inv / r2;
         
         // Row ind of Jacobian: [dF_0/dx_ind, dF_1/dx_ind, dF_2/dx_ind]

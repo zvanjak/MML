@@ -20,6 +20,7 @@
 #include <algorithm>
 #include <stdexcept>
 #include <tuple>
+#include <limits>
 
 namespace MML::SparseMatrix
 {
@@ -102,6 +103,8 @@ namespace MML::SparseMatrix
                 throw MatrixAccessBoundsError("SparseMatrixCOO::addEntry - index out of bounds", row, col, rows_, cols_);
             }
             if (value != T(0)) {  // Skip explicit zeros
+                if (triplets_.size() == static_cast<size_t>(std::numeric_limits<int>::max()))
+                    throw MatrixAllocationError("SparseMatrixCOO: nonzero count exceeds index range", rows_, cols_);
                 triplets_.emplace_back(row, col, value);
                 sorted_ = false;
             }
@@ -121,6 +124,8 @@ namespace MML::SparseMatrix
         
         /// @brief Reserve space for expected number of non-zeros
         void reserve(int expected_nnz) {
+            if (expected_nnz < 0)
+                throw ArgumentError("SparseMatrixCOO::reserve - nonzero count must be non-negative");
             triplets_.reserve(expected_nnz);
         }
         
@@ -160,7 +165,7 @@ namespace MML::SparseMatrix
         /// @param ny Number of y points
         /// @param h_squared_inv 1/h^2 (assuming uniform grid)
         void addLaplacian2D_5pt(int row, int i, int j, int nx, int ny, T h_squared_inv) {
-            if (nx <= 0 || ny <= 0 || i < 0 || i >= nx || j < 0 || j >= ny || nx * ny > cols_) {
+            if (nx <= 0 || ny <= 0 || i < 0 || i >= nx || j < 0 || j >= ny || nx > cols_ / ny) {
                 throw ArgumentError("SparseMatrixCOO::addLaplacian2D_5pt - invalid grid dimensions or node index");
             }
             int idx = i + j * nx;

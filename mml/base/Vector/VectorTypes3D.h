@@ -29,6 +29,18 @@ namespace MML
 	/// @brief 3D Cartesian vector with X, Y, Z components.
 	class Vector3Cartesian : public VectorN<Real, 3>
 	{
+		bool TryUnitDirection(Vector3Cartesian& unit) const
+		{
+			if (!std::isfinite(X()) || !std::isfinite(Y()) || !std::isfinite(Z()))
+				return false;
+			const Real scale = std::max({std::abs(X()), std::abs(Y()), std::abs(Z())});
+			if (scale == 0)
+				return false;
+			unit = Vector3Cartesian(X() / scale, Y() / scale, Z() / scale);
+			unit /= std::hypot(unit.X(), unit.Y(), unit.Z());
+			return true;
+		}
+
 	public:
 		/// @brief Returns X component (const).
 		Real  X() const { return val(0); }
@@ -194,6 +206,8 @@ namespace MML
 		/// @param absEps Absolute tolerance
 		bool IsEqualTo(const Vector3Cartesian& b, Real absEps = Precision::Vec3CartIsEqualTolerance) const
 		{
+			if (!std::isfinite(absEps) || absEps < 0)
+				return false;
 			return (std::abs(X() - b.X()) < absEps) && (std::abs(Y() - b.Y()) < absEps) && (std::abs(Z() - b.Z()) < absEps);
 		}
 
@@ -210,22 +224,20 @@ namespace MML
 		/// @param eps Tolerance on |sin θ|
 		bool IsParallelTo(const Vector3Cartesian& b, Real eps = Precision::Vec3CartIsParallelTolerance) const
 		{
-			Real normA = NormL2();
-			Real normB = b.NormL2();
-			if (normA == Real(0) || normB == Real(0))
+			Vector3Cartesian first, second;
+			if (!std::isfinite(eps) || eps < 0 || !TryUnitDirection(first) || !b.TryUnitDirection(second))
 				return false;
-
-			return VectorProduct(*this, b).NormL2() <= eps * normA * normB;
+			return VectorProduct(first, second).NormL2() <= eps;
 		}
 		/// @brief Checks if vectors are perpendicular.
 		/// @param b Vector to compare
-		/// @param eps Tolerance
+		/// @param eps Dimensionless tolerance on the absolute cosine of the angle
 		bool IsPerpendicularTo(const Vector3Cartesian& b, Real eps = Precision::OrthogonalityTolerance) const
 		{
-			if (std::abs(this->ScalarProduct(b)) < eps)
-				return true;
-			else
+			Vector3Cartesian first, second;
+			if (!std::isfinite(eps) || eps < 0 || !TryUnitDirection(first) || !b.TryUnitDirection(second))
 				return false;
+			return std::abs(first.ScalarProduct(second)) <= eps;
 		}
 		/// @brief Computes two vectors perpendicular to this vector.
 		/// @param v1 First perpendicular vector (output)
@@ -233,7 +245,8 @@ namespace MML
 		/// @return true if successful, false if zero vector
 		bool GetPerpendicularVectors(Vector3Cartesian& v1, Vector3Cartesian& v2) const
 		{
-			if (IsZero())
+			Vector3Cartesian direction;
+			if (!TryUnitDirection(direction))
 				return false;
 			
 			// find a vector that is not parallel to this vector
@@ -245,8 +258,8 @@ namespace MML
 			else
 				not_parallel = Vector3Cartesian(0.0, 0.0, 1.0);
 			
-			v1 = VectorProduct(*this, not_parallel).Normalized();
-			v2 = VectorProduct(*this, v1).Normalized();
+			v1 = VectorProduct(direction, not_parallel).Normalized();
+			v2 = VectorProduct(direction, v1).Normalized();
 			
 			return true;
 		}
@@ -256,14 +269,13 @@ namespace MML
 		/// @return Angle in radians [0, p]
 		Real AngleToVector(const Vector3Cartesian& b)
 		{
-			Real normA = NormL2(), normB = b.NormL2();
-			if (normA < std::numeric_limits<Real>::epsilon() ||
-			    normB < std::numeric_limits<Real>::epsilon())
+			if (!std::isfinite(X()) || !std::isfinite(Y()) || !std::isfinite(Z()) ||
+				!std::isfinite(b.X()) || !std::isfinite(b.Y()) || !std::isfinite(b.Z()))
+				throw NumericInputError("AngleToVector requires finite vectors");
+			Vector3Cartesian first, second;
+			if (!TryUnitDirection(first) || !b.TryUnitDirection(second))
 				throw DivisionByZeroError("AngleToVector: cannot compute angle with zero vector");
-			Real cos_phi = this->ScalarProduct(b) / (normA * normB);
-			// Clamp to [-1, 1] to prevent NaN from floating-point rounding errors
-			cos_phi = std::max(Real{-1.0}, std::min(Real{1.0}, cos_phi));
-			return std::acos(cos_phi);
+			return std::atan2(VectorProduct(first, second).NormL2(), first.ScalarProduct(second));
 		}
 
 		/// @brief Scalar product (member method).
@@ -361,6 +373,10 @@ namespace MML
 			Utils::CartesianToSpherical(x1 - x2, y1 - y2, z1 - z2, r, theta, phi);
 			return Vector3Spherical(r, theta, phi);
 		}
+		Vector3Spherical& operator+=(const Vector3Spherical& b) { *this = *this + b; return *this; }
+		Vector3Spherical& operator-=(const Vector3Spherical& b) { *this = *this - b; return *this; }
+		Vector3Spherical& operator*=(Real b) { *this = *this * b; return *this; }
+		Vector3Spherical& operator/=(Real b) { *this = *this / b; return *this; }
 
 		/// @brief Scalar multiplication (scales radius).
 		/// @param b Scalar multiplier
@@ -403,6 +419,8 @@ namespace MML
 		///       Phi comparison uses AnglesAreEqual() to handle wrap-around at ±π.
 		bool IsEqualTo(const Vector3Spherical& b, Real absEps = Precision::Vec3SphIsEqualTolerance) const
 		{
+			if (!std::isfinite(absEps) || absEps < 0)
+				return false;
 			// R and theta are straightforward comparisons
 			// Phi needs angle-aware comparison for wrap-around at ±π
 			return (std::abs(R() - b.R()) < absEps) && 
@@ -414,8 +432,13 @@ namespace MML
 		/// @param pos Position in spherical coordinates
 		Vector3Spherical GetAsUnitVectorAtPosGlobalSpher(const Vector3Spherical& pos) const
 		{
+			if (!std::isfinite(R()) || !std::isfinite(Theta()) || !std::isfinite(Phi()) ||
+				!std::isfinite(pos.Theta()) || !std::isfinite(pos.Phi()))
+				throw NumericInputError("Spherical unit directions require finite components and position angles");
+			if (R() == 0)
+				return Vector3Spherical(0, 0, 0);
 			// Convert this vector to Cartesian (as a displacement from the origin)
-			Real r = R();
+			Real r = std::copysign(Real{1}, R());
 			Real theta = Theta();
 			Real phi = Phi();
 
@@ -447,7 +470,7 @@ namespace MML
 			Real v_phi = x * e_phi[0] + y * e_phi[1] + z * e_phi[2];
 
 			// Normalize
-			Real norm = std::sqrt(v_r * v_r + v_theta * v_theta + v_phi * v_phi);
+			Real norm = std::hypot(v_r, v_theta, v_phi);
 			if (norm == 0.0)
 				return Vector3Spherical(0.0, 0.0, 0.0);
 
@@ -459,8 +482,13 @@ namespace MML
 		/// @param pos Position in spherical coordinates
 		Vector3Spherical GetAsUnitVectorAtPos(const Vector3Spherical& pos) const
 		{
+			if (!std::isfinite(R()) || !std::isfinite(Theta()) || !std::isfinite(Phi()) ||
+				!std::isfinite(pos.Theta()) || !std::isfinite(pos.Phi()))
+				throw NumericInputError("Spherical unit directions require finite components and position angles");
+			if (R() == 0)
+				return Vector3Spherical(0, 0, 0);
 			// Step 1: Convert *this to Cartesian (as a displacement from the origin)
-			Real r = R();
+			Real r = std::copysign(Real{1}, R());
 			Real theta = Theta();
 			Real phi = Phi();
 
@@ -485,7 +513,7 @@ namespace MML
 			Real v_phi = x * e_phi[0] + y * e_phi[1] + z * e_phi[2];
 
 			// Step 4: Normalize
-			Real norm = std::sqrt(v_r * v_r + v_theta * v_theta + v_phi * v_phi);
+			Real norm = std::hypot(v_r, v_theta, v_phi);
 			if (norm == 0.0)
 				return Vector3Spherical(0.0, 0.0, 0.0);
 
@@ -573,6 +601,10 @@ namespace MML
 			Utils::CartesianToCylindrical(x1 - x2, y1 - y2, z1 - z2, r, phi, z);
 			return Vector3Cylindrical(r, phi, z);
 		}
+		Vector3Cylindrical& operator+=(const Vector3Cylindrical& b) { *this = *this + b; return *this; }
+		Vector3Cylindrical& operator-=(const Vector3Cylindrical& b) { *this = *this - b; return *this; }
+		Vector3Cylindrical& operator*=(Real b) { *this = *this * b; return *this; }
+		Vector3Cylindrical& operator/=(Real b) { *this = *this / b; return *this; }
 
 		/// @brief Scalar multiplication (scales R and Z).
 		/// @param b Scalar multiplier
@@ -600,13 +632,18 @@ namespace MML
 		/// @param pos Position in cylindrical coordinates
 		Vector3Cylindrical GetAsUnitVectorAtPos(const Vector3Cylindrical& pos) const
 		{
+			if (!std::isfinite(R()) || !std::isfinite(Phi()) || !std::isfinite(Z()) || !std::isfinite(pos.Phi()))
+				throw NumericInputError("Cylindrical unit directions require finite components and position angles");
+			const Real scale = std::max(std::abs(R()), std::abs(Z()));
+			if (scale == 0)
+				return Vector3Cylindrical(0, 0, 0);
 			// Step 1: Convert *this to Cartesian
-			Real x = R() * std::cos(Phi());
-			Real y = R() * std::sin(Phi());
-			Real z = Z();
+			Real x = (R() / scale) * std::cos(Phi());
+			Real y = (R() / scale) * std::sin(Phi());
+			Real z = Z() / scale;
 
 			// Step 2: Normalize in Cartesian
-			Real norm = std::sqrt(x * x + y * y + z * z);
+			Real norm = std::hypot(x, y, z);
 			if (norm == static_cast<MML::Real>(0.0))
 				return Vector3Cylindrical(static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0));
 

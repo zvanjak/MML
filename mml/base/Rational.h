@@ -24,53 +24,74 @@ namespace MML
 	/// @brief Exact rational number p/q backed by 64-bit integers.
 	/// @details The value is always kept in lowest terms with a strictly positive
 	///          denominator, so equality is a plain member comparison. Arithmetic is
-	///          overflow-checked and throws DomainError if a 64-bit result would overflow.
+	///          exact, including LLONG_MIN numerators; DomainError means the reduced
+	///          numerator or positive denominator cannot fit long long.
 	class Rational
 	{
 		long long num_ = 0;   // numerator, carries the sign
 		long long den_ = 1;   // denominator, always > 0
 
-		// Overflow checks are performed BEFORE the operation: evaluating a*b or a+b first and
-		// inspecting the result is signed-integer overflow, i.e. undefined behaviour, and the
-		// optimiser is entitled to delete the "check" (analysis v4, BASE D8).
-		static long long mulChecked(long long a, long long b)
-		{
-			constexpr long long kMax = std::numeric_limits<long long>::max();
-			constexpr long long kMin = std::numeric_limits<long long>::min();
-			if (a == 0 || b == 0) return 0;
-			bool overflow;
-			if (a > 0)
-				overflow = (b > 0) ? (a > kMax / b) : (b < kMin / a);
-			else
-				overflow = (b > 0) ? (a < kMin / b) : (a != 0 && b < kMax / a);
-			if (overflow) throw DomainError("Rational: 64-bit integer overflow");
-			return a * b;
-		}
-
-		static long long addChecked(long long a, long long b)
-		{
-			constexpr long long kMax = std::numeric_limits<long long>::max();
-			constexpr long long kMin = std::numeric_limits<long long>::min();
-			if ((b > 0 && a > kMax - b) || (b < 0 && a < kMin - b))
-				throw DomainError("Rational: 64-bit integer overflow");
-			return a + b;
-		}
-
-		static long long negChecked(long long a)
-		{
-			if (a == std::numeric_limits<long long>::min())
-				throw DomainError("Rational: 64-bit integer overflow (negating LLONG_MIN)");
-			return -a;
-		}
-
 		void normalize()
 		{
 			if (den_ == 0) throw DivisionByZeroError("Rational: zero denominator");
-			if (den_ < 0) { num_ = negChecked(num_); den_ = negChecked(den_); }
-			if (num_ == std::numeric_limits<long long>::min())
-				throw DomainError("Rational: numerator LLONG_MIN is not representable in lowest terms");
-			long long g = NumberTheory::Gcd(num_, den_);
-			if (g > 1) { num_ /= g; den_ /= g; }
+			auto n = ExactInteger::Magnitude(num_), d = ExactInteger::Magnitude(den_);
+			const auto g = ExactInteger::Gcd(n, d);
+			const bool negative = (num_ < 0) != (den_ < 0);
+			num_ = ExactInteger::FromMagnitude(n / g, negative);
+			den_ = ExactInteger::FromMagnitude(d / g, false);
+		}
+
+		static Rational fromMagnitudes(std::uint64_t n, std::uint64_t d, bool negative)
+		{
+			const auto g = ExactInteger::Gcd(n, d);
+			Rational result;
+			result.num_ = ExactInteger::FromMagnitude(n / g, negative);
+			result.den_ = ExactInteger::FromMagnitude(d / g, false);
+			return result;
+		}
+
+		Rational add(const Rational& r, bool subtract) const
+		{
+			using ExactInteger::WideUnsigned;
+			const auto b = static_cast<std::uint64_t>(den_);
+			const auto d = static_cast<std::uint64_t>(r.den_);
+			const auto g = ExactInteger::Gcd(b, d);
+			const auto left = WideUnsigned::Product(ExactInteger::Magnitude(num_), d / g);
+			const auto right = WideUnsigned::Product(ExactInteger::Magnitude(r.num_), b / g);
+			const bool leftNegative = num_ < 0;
+			const bool rightNegative = (r.num_ < 0) != subtract;
+			const bool negative = leftNegative == rightNegative || !(left < right)
+				? leftNegative : rightNegative;
+			const auto sum = leftNegative == rightNegative ? left + right
+				: (left < right ? right - left : left - right);
+			// Only a factor of g can still cancel. Keep the at-most-127-bit
+			// numerator exact until that cancellation, even without __int128.
+			std::uint64_t remainder = 0;
+			sum.Divide(g, remainder);
+			const auto h = ExactInteger::Gcd(remainder, g);
+			const auto numerator = sum.Divide(h, remainder);
+			if (numerator.high != 0)
+				throw DomainError("Rational: reduced numerator exceeds signed 64-bit range");
+			Rational result;
+			result.num_ = ExactInteger::FromMagnitude(numerator.low, negative);
+			result.den_ = ExactInteger::Multiply(static_cast<long long>(b / g),
+				static_cast<long long>(d / h));
+			return result;
+		}
+
+		Rational multiply(const Rational& r, bool divide) const
+		{
+			auto a = ExactInteger::Magnitude(num_), b = static_cast<std::uint64_t>(den_);
+			auto c = divide ? static_cast<std::uint64_t>(r.den_) : ExactInteger::Magnitude(r.num_);
+			auto d = divide ? ExactInteger::Magnitude(r.num_) : static_cast<std::uint64_t>(r.den_);
+			if (d == 0) throw DivisionByZeroError("Rational: division by zero");
+			const auto g1 = ExactInteger::Gcd(a, d), g2 = ExactInteger::Gcd(c, b);
+			a /= g1; d /= g1; c /= g2; b /= g2;
+			const auto n = ExactInteger::WideUnsigned::Product(a, c);
+			const auto den = ExactInteger::WideUnsigned::Product(b, d);
+			if (n.high != 0 || den.high != 0)
+				throw DomainError("Rational: reduced result exceeds signed 64-bit range");
+			return fromMagnitudes(n.low, den.low, (num_ < 0) != (r.num_ < 0));
 		}
 
 	public:
@@ -82,32 +103,23 @@ namespace MML
 		long long Den() const { return den_; }
 		Real ToReal() const { return static_cast<Real>(num_) / static_cast<Real>(den_); }
 
-		Rational operator-() const { return Rational(negChecked(num_), den_); }
+		Rational operator-() const { return Rational(ExactInteger::Subtract(0, num_), den_); }
 
 		Rational operator+(const Rational& r) const
 		{
-			long long g = NumberTheory::Gcd(den_, r.den_);
-			long long den = mulChecked(den_ / g, r.den_);
-			long long num = addChecked(mulChecked(num_, r.den_ / g), mulChecked(r.num_, den_ / g));
-			return Rational(num, den);
+			return add(r, false);
 		}
 
-		Rational operator-(const Rational& r) const { return *this + (-r); }
+		Rational operator-(const Rational& r) const { return add(r, true); }
 
 		Rational operator*(const Rational& r) const
 		{
-			// Cross-reduce before multiplying to keep the operands small.
-			long long g1 = NumberTheory::Gcd(num_, r.den_);
-			long long g2 = NumberTheory::Gcd(r.num_, den_);
-			long long num = mulChecked(num_ / g1, r.num_ / g2);
-			long long den = mulChecked(den_ / g2, r.den_ / g1);
-			return Rational(num, den);
+			return multiply(r, false);
 		}
 
 		Rational operator/(const Rational& r) const
 		{
-			if (r.num_ == 0) throw DivisionByZeroError("Rational: division by zero");
-			return *this * Rational(r.den_, r.num_);
+			return multiply(r, true);
 		}
 
 		Rational& operator+=(const Rational& r) { *this = *this + r; return *this; }
@@ -120,11 +132,13 @@ namespace MML
 
 		bool operator<(const Rational& r) const
 		{
-#if defined(__SIZEOF_INT128__)
-			return static_cast<__int128>(num_) * r.den_ < static_cast<__int128>(r.num_) * den_;
-#else
-			return mulChecked(num_, r.den_) < mulChecked(r.num_, den_);
-#endif
+			if ((num_ < 0) != (r.num_ < 0)) return num_ < 0;
+			// Compare magnitudes exactly in fixed-width unsigned scratch space.
+			const auto left = ExactInteger::WideUnsigned::Product(
+				ExactInteger::Magnitude(num_), static_cast<std::uint64_t>(r.den_));
+			const auto right = ExactInteger::WideUnsigned::Product(
+				ExactInteger::Magnitude(r.num_), static_cast<std::uint64_t>(den_));
+			return num_ < 0 ? right < left : left < right;
 		}
 		bool operator>(const Rational& r) const { return r < *this; }
 		bool operator<=(const Rational& r) const { return !(r < *this); }

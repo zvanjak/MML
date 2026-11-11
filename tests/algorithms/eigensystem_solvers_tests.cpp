@@ -117,6 +117,117 @@ TEST_CASE("HermitianJacobi validates its input and reports convergence", "[Eigen
 	REQUIRE_THROWS_AS(HermitianMatEigenSolverJacobi::Solve(nonHermitian), MatrixDimensionError);
 }
 
+/***************************************************************************************************
+ * EXTREME-MAGNITUDE / NONFINITE ROBUSTNESS (MinimalMathLibrary-uk6l)
+ ***************************************************************************************************/
+
+TEST_CASE("SelfAdjointEigen_ExtremeMagnitudes_StayFinite", "[EigenSolvers][Jacobi][HermitianJacobi][QR][MinimalMathLibrary-uk6l]")
+{
+	TEST_PRECISION_INFO();
+	{
+		// Float uses the same overflow-adjacent witness in its own finite range:
+		// 2*big overflows, while both 1.1*big and sqrt(2)*big remain finite.
+		const Real big = TOL(1e308, std::numeric_limits<Real>::max() * Real(0.55));
+		const Real relTol = std::max(Real(1e-12), 8 * Precision::Eps);
+
+		SECTION("SPD near the overflow boundary (Jacobi, QR, Matrix overloads)") {
+			// eigenvalues 9e307 and 1.1e308 are representable; 0.5*(a+a) symmetrization is not
+			MatrixSym<Real> A(2, {big, big / 10, big});
+			Matrix<Real> G(2, 2, {big, big / 10, big / 10, big});
+
+			auto checkSpd = [&](const auto& result) {
+				INFO(result.error_message);
+				REQUIRE(result.converged);
+				REQUIRE(result.status == AlgorithmStatus::Success);
+				REQUIRE(std::isfinite(result.residual));
+				REQUIRE_THAT(result.eigenvalues[0], RealWithinRel(big - big / 10, relTol));
+				REQUIRE_THAT(result.eigenvalues[1], RealWithinRel(big + big / 10, relTol));
+			};
+			checkSpd(SymmMatEigenSolverJacobi::Solve(A));
+			checkSpd(SymmMatEigenSolverJacobi::Solve(G));
+			checkSpd(SymmMatEigenSolverJacobi::SolveSymmetricPart(G));
+			checkSpd(SymmMatEigenSolverQR::Solve(A));
+			checkSpd(SymmMatEigenSolverQR::Solve(G));
+		}
+
+		SECTION("Indefinite near the overflow boundary (Jacobi, HermitianJacobi)") {
+			// eigenvalues are +-sqrt(2)*1e308, both representable
+			const Real expected = std::sqrt(static_cast<MML::Real>(2.0)) * big;
+			MatrixSym<Real> A(2, {big, big, -big});
+			auto jacobi = SymmMatEigenSolverJacobi::Solve(A);
+			INFO(jacobi.error_message);
+			REQUIRE(jacobi.converged);
+			REQUIRE_THAT(jacobi.eigenvalues[0], RealWithinRel(-expected, relTol));
+			REQUIRE_THAT(jacobi.eigenvalues[1], RealWithinRel(expected, relTol));
+
+			Matrix<Complex> H(2, 2, {Complex(big, 0), Complex(big, 0), Complex(big, 0), Complex(-big, 0)});
+			auto hermitian = HermitianMatEigenSolverJacobi::Solve(H);
+			INFO(hermitian.error_message);
+			REQUIRE(hermitian.converged);
+			REQUIRE_THAT(hermitian.eigenvalues[0], RealWithinRel(-expected, relTol));
+			REQUIRE_THAT(hermitian.eigenvalues[1], RealWithinRel(expected, relTol));
+			for (int column = 0; column < 2; column++) {
+				Vector<Complex> v = hermitian.eigenvectors.VectorFromColumn(column);
+				REQUIRE(std::isfinite(std::abs(v[0])));
+				REQUIRE(std::isfinite(std::abs(v[1])));
+			}
+		}
+
+		SECTION("SymmetricQR on a 3x3 scaled by 1e160 matches the unit-scale spectrum") {
+			const Real s = TOL(1e160, 1e20);
+			MatrixSym<Real> unit(3, {static_cast<MML::Real>(2.0), static_cast<MML::Real>(1.0), static_cast<MML::Real>(3.0),
+				static_cast<MML::Real>(0.5), static_cast<MML::Real>(1.0), static_cast<MML::Real>(4.0)});
+			MatrixSym<Real> scaled(3);
+			for (int i = 0; i < 3; i++)
+				for (int j = i; j < 3; j++)
+					scaled(i, j) = unit(i, j) * s;
+
+			auto reference = SymmMatEigenSolverQR::Solve(unit);
+			REQUIRE(reference.converged);
+			auto checkScaled = [&](const auto& result, Real factor) {
+				INFO(result.error_message);
+				REQUIRE(result.converged);
+				REQUIRE(std::isfinite(result.residual));
+				// Compare two computed reductions, each accumulating O(4*n)
+				// unit roundoffs, rather than an exact analytic eigenvalue.
+				const Real comparisonBudget = std::max(Real(1e-10), 8 * unit.rows() * Precision::Eps);
+				for (int i = 0; i < 3; i++)
+					REQUIRE_THAT(result.eigenvalues[i] / factor, RealWithinRel(reference.eigenvalues[i],
+						comparisonBudget));
+			};
+			checkScaled(SymmMatEigenSolverQR::Solve(scaled), s);
+			checkScaled(SymmMatEigenSolverJacobi::Solve(scaled), s);
+
+			// Tiny magnitudes must not underflow either. The tolerance is absolute (in matrix units),
+			// so it is scaled along with the matrix to keep the request meaningful.
+			const Real t = TOL(1e-200, 1e-20);
+			MatrixSym<Real> tiny(3);
+			for (int i = 0; i < 3; i++)
+				for (int j = i; j < 3; j++)
+					tiny(i, j) = unit(i, j) * t;
+			checkScaled(SymmMatEigenSolverJacobi::Solve(tiny, PrecisionValues<Real>::EigenSolverConvergenceTolerance * t), t);
+			checkScaled(SymmMatEigenSolverQR::Solve(tiny, PrecisionValues<Real>::EigenSolverConvergenceTolerance * t), t);
+		}
+
+		SECTION("Nonfinite input is reported, never Success") {
+			MatrixSym<Real> nan(2, {static_cast<MML::Real>(1.0), std::numeric_limits<Real>::quiet_NaN(), static_cast<MML::Real>(1.0)});
+			auto jacobi = SymmMatEigenSolverJacobi::Solve(nan);
+			REQUIRE_FALSE(jacobi.converged);
+			REQUIRE(jacobi.status == AlgorithmStatus::NumericalInstability);
+			auto qr = SymmMatEigenSolverQR::Solve(nan);
+			REQUIRE_FALSE(qr.converged);
+			REQUIRE(qr.status == AlgorithmStatus::NumericalInstability);
+
+			MatrixSym<Real> inf(2, {std::numeric_limits<Real>::infinity(), static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0)});
+			EigenSolverConfig config;
+			auto configured = SymmMatEigenSolverJacobi::Solve(inf, config);
+			REQUIRE_FALSE(configured.converged);
+			REQUIRE(configured.status == AlgorithmStatus::NumericalInstability);
+			REQUIRE_FALSE(configured.error_message.empty());
+		}
+	}
+}
+
 TEST_CASE("JacobiEigen_3x3_Identity", "[EigenSolvers][Jacobi][Small]")
 {
 		TEST_PRECISION_INFO();
@@ -580,7 +691,6 @@ TEST_CASE("QREigen_SymmetricMatrix_5x5_Verified", "[EigenSolvers][QR][Verified]"
 	// Use verified 5x5 symmetric matrix from test data
 	const auto& symm_mat = symm_mat_5x5();
 	MatrixSym<Real> A(5);
-	int idx = 0;
 	for (int i = 0; i < 5; i++)
 		for (int j = i; j < 5; j++)
 			A(i, j) = symm_mat(i, j);
@@ -824,8 +934,8 @@ TEST_CASE("JacobiEigen_AllSymmetricTestBed", "[EigenSolvers][Jacobi][TestBed][Co
 			
 			// Adjust tolerance based on difficulty and condition number
 			// Use reasonable baseline accounting for limited precision in stored eigenvalues
-			Real baseTol = 1e-5;  // Accounts for ~6-digit precision in test bed eigenvalues
-			Real tol = baseTol * std::pow(10.0, test.difficulty - 1);
+			Real baseTol = MML::Real(1e-5);  // Accounts for ~6-digit precision in test bed eigenvalues
+			Real tol = baseTol * std::pow(MML::Real(10.0), MML::Real(test.difficulty - 1));
 			if (test.conditionNumber > 1e6) tol *= 100;   // Well-conditioned but still sensitive
 			if (test.conditionNumber > 1e10) tol *= 1e3;  // Ill-conditioned
 			if (test.hasClusteredEigenvalues) tol *= 10;  // Clustered eigenvalues
@@ -845,10 +955,10 @@ TEST_CASE("JacobiEigen_AllSymmetricTestBed", "[EigenSolvers][Jacobi][TestBed][Co
 					// Print computed vs expected eigenvalues for diagnostics
 					std::ostringstream ss;
 					ss << "Computed: ";
-					for (size_t i = 0; i < result.eigenvalues.size(); ++i)
+					for (int i = 0; i < result.eigenvalues.size(); ++i)
 						ss << result.eigenvalues[i] << " ";
 					ss << "\nExpected: ";
-					for (size_t i = 0; i < test.realEigenvalues.size(); ++i)
+					for (int i = 0; i < test.realEigenvalues.size(); ++i)
 						ss << test.realEigenvalues[i] << " ";
 					WARN(ss.str());
 				}
@@ -912,7 +1022,7 @@ TEST_CASE("QREigen_AllSymmetricTestBed", "[EigenSolvers][QR][TestBed][Comprehens
 			// Adjust tolerance based on difficulty and condition number
 			// Use reasonable baseline accounting for limited precision in stored eigenvalues
 			Real baseTol = TOL(1e-5, 5e-4);  // Accounts for ~6-digit precision in test bed eigenvalues
-			Real tol = baseTol * std::pow(10.0, test.difficulty - 1);
+			Real tol = baseTol * std::pow(MML::Real(10.0), MML::Real(test.difficulty - 1));
 			if (test.conditionNumber > 1e6) tol *= 100;   // Well-conditioned but still sensitive
 			if (test.conditionNumber > 1e10) tol *= 1e3;  // Ill-conditioned
 			if (test.hasClusteredEigenvalues) tol *= 10;  // Clustered eigenvalues
@@ -984,7 +1094,7 @@ TEST_CASE("EigenSolvers_EasyTestBed", "[EigenSolvers][TestBed][Quick]")
 			if (test.realEigenvalues.size() > 0)
 			{
 				// Use 1e-5 tolerance to account for limited precision in stored eigenvalues
-				CHECK(TestBeds::verifyRealEigenvalues(result.eigenvalues, test.realEigenvalues, 1e-5));
+				CHECK(TestBeds::verifyRealEigenvalues(result.eigenvalues, test.realEigenvalues, MML::Real(1e-5)));
 			}
 		}
 		

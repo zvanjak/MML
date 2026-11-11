@@ -95,14 +95,10 @@ namespace MML
 		///       For example, (1, 1) creates T_i^j where index 0 is covariant and index 1 is contravariant.
 		Tensor2(int nCovar, int nContraVar) : _numContravar(nContraVar), _numCovar(nCovar)
 		{
-			if ( _numContravar < 0 || _numCovar  < 0 || _numContravar + _numCovar != 2 )
-				throw TensorCovarContravarNumError("Tensor2 ctor, wrong number of contravariant and covariant indices", nCovar, nContraVar);
+			detail::ValidateTensorVarianceCounts<2>(nCovar, nContraVar);
 
-			for (int i = 0; i < _numCovar; i++)
-				_isContravar[i] = false;
-
-			for (int i = _numCovar; i < _numCovar + _numContravar; i++)
-				_isContravar[i] = true;
+			for (int i = 0; i < 2; i++)
+				_isContravar[i] = i >= _numCovar;
 		}
 
 		/// @brief Constructs a rank-2 tensor with specified values and index variance.
@@ -113,14 +109,10 @@ namespace MML
 		/// @note Values are filled row-by-row. Missing values are zero-initialized.
 		Tensor2(int nCovar, int nContraVar, std::initializer_list<Real> values) : _numContravar(nContraVar), _numCovar(nCovar)
 		{
-			if ( _numContravar < 0 || _numCovar  < 0 || _numContravar + _numCovar != 2 )
-				throw TensorCovarContravarNumError("Tensor2 ctor, wrong number of covariant and contravariant indices", nCovar, nContraVar);
+			detail::ValidateTensorVarianceCounts<2>(nCovar, nContraVar);
 
-			for (int i = 0; i < _numCovar; i++)
-				_isContravar[i] = false;
-
-			for (int i = _numCovar; i < _numCovar + _numContravar; i++)
-				_isContravar[i] = true;
+			for (int i = 0; i < 2; i++)
+				_isContravar[i] = i >= _numCovar;
 
 			if (values.size() > N * N)
 				throw TensorCovarContravarNumError("Tensor2 ctor, initializer_list has more than N*N elements", static_cast<int>(values.size()), N * N);
@@ -167,6 +159,8 @@ namespace MML
 		/// @brief Sets the variance of index i, keeping covariant/contravariant counts in sync.
 		void setContravar(int i, bool val)
 		{
+			if (i < 0 || i >= 2)
+				throw TensorIndexError("Tensor2::setContravar - index position out of bounds");
 			_isContravar[i] = val;
 			_numContravar = 0;
 			for (bool c : _isContravar)
@@ -351,7 +345,8 @@ namespace MML
 			if (metricInverse.numContravar() != 2)
 				throw TensorCovarContravarNumError("Tensor2::RaiseFirstIndex - metric must be fully contravariant (2,0)", metricInverse.numCovar(), metricInverse.numContravar());
 
-			Tensor2 result(_numCovar - 1, _numContravar + 1);
+			Tensor2 result = sameShapeZero();
+			result.setContravar(0, true);
 			for (int i = 0; i < N; i++)
 				for (int j = 0; j < N; j++) {
 					Real sum = 0;
@@ -375,7 +370,8 @@ namespace MML
 			if (metricInverse.numContravar() != 2)
 				throw TensorCovarContravarNumError("Tensor2::RaiseSecondIndex - metric must be fully contravariant (2,0)", metricInverse.numCovar(), metricInverse.numContravar());
 
-			Tensor2 result(_numCovar - 1, _numContravar + 1);
+			Tensor2 result = sameShapeZero();
+			result.setContravar(1, true);
 			for (int i = 0; i < N; i++)
 				for (int j = 0; j < N; j++) {
 					Real sum = 0;
@@ -399,7 +395,8 @@ namespace MML
 			if (metric.numCovar() != 2)
 				throw TensorCovarContravarNumError("Tensor2::LowerFirstIndex - metric must be fully covariant (0,2)", metric.numCovar(), metric.numContravar());
 
-			Tensor2 result(_numCovar + 1, _numContravar - 1);
+			Tensor2 result = sameShapeZero();
+			result.setContravar(0, false);
 			for (int i = 0; i < N; i++)
 				for (int j = 0; j < N; j++) {
 					Real sum = 0;
@@ -423,7 +420,8 @@ namespace MML
 			if (metric.numCovar() != 2)
 				throw TensorCovarContravarNumError("Tensor2::LowerSecondIndex - metric must be fully covariant (0,2)", metric.numCovar(), metric.numContravar());
 
-			Tensor2 result(_numCovar + 1, _numContravar - 1);
+			Tensor2 result = sameShapeZero();
+			result.setContravar(1, false);
 			for (int i = 0; i < N; i++)
 				for (int j = 0; j < N; j++) {
 					Real sum = 0;

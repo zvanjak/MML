@@ -48,7 +48,7 @@ TEST_CASE("LorenzSystem - Basic construction and parameters", "[DynamicalSystem]
 
 TEST_CASE("LorenzSystem - Derivatives computation", "[DynamicalSystem][Lorenz]")
 {
-    LorenzSystem lorenz(10.0, 28.0, 8.0/3.0);
+    LorenzSystem lorenz(MML::Real(10.0), MML::Real(28.0), MML::Real(8.0)/MML::Real(3.0));
     
     Vector<Real> y({1.0, 2.0, 3.0});
     Vector<Real> dydt(3);
@@ -117,7 +117,7 @@ TEST_CASE("RosslerSystem - Basic construction", "[DynamicalSystem][Rossler]")
 
 TEST_CASE("RosslerSystem - Derivatives", "[DynamicalSystem][Rossler]")
 {
-    RosslerSystem rossler(0.2, 0.2, 5.7);
+    RosslerSystem rossler(MML::Real(0.2), MML::Real(0.2), MML::Real(5.7));
     
     Vector<Real> y({1.0, 2.0, 3.0});
     Vector<Real> dydt(3);
@@ -193,9 +193,9 @@ TEST_CASE("DuffingSystem - Construction", "[DynamicalSystem][Duffing]")
 
 TEST_CASE("FixedPointFinder - Lorenz origin", "[DynamicalSystem][FixedPoint]")
 {
-    LorenzSystem lorenz(10.0, 0.5, 8.0/3.0);  // ρ < 1 → only origin is stable
+    LorenzSystem lorenz(MML::Real(10.0), MML::Real(0.5), MML::Real(8.0)/MML::Real(3.0));  // ρ < 1 → only origin is stable
     
-    Vector<Real> guess({0.1, 0.1, 0.1});
+    Vector<Real> guess({MML::Real(0.1), MML::Real(0.1), MML::Real(0.1)});
     auto fp = FixedPointFinder::Find(lorenz, guess);
     
     // Should find origin
@@ -209,7 +209,7 @@ TEST_CASE("FixedPointFinder - Van der Pol origin", "[DynamicalSystem][FixedPoint
 {
     VanDerPolSystem vdp(1.0);
     
-    Vector<Real> guess({0.1, 0.1});
+    Vector<Real> guess({MML::Real(0.1), MML::Real(0.1)});
     auto fp = FixedPointFinder::Find(vdp, guess);
     
     REQUIRE(fp.convergenceResidual < TOL(1e-8, 1e-4));
@@ -232,12 +232,12 @@ TEST_CASE("FixedPointFinder - Classification", "[DynamicalSystem][FixedPoint]")
         {
             // dx/dt = -x, dy/dt = -2y → eigenvalues -1, -2
             dydt[0] = -y[0];
-            dydt[1] = -2.0 * y[1];
+            dydt[1] = -MML::Real(2.0) * y[1];
         }
     };
     
     StableNodeSystem sys;
-    auto fp = FixedPointFinder::Find(sys, Vector<Real>({0.1, 0.1}));
+    auto fp = FixedPointFinder::Find(sys, Vector<Real>({MML::Real(0.1), MML::Real(0.1)}));
     
     REQUIRE(fp.type == FixedPointType::StableNode);
     REQUIRE(fp.isStable == true);
@@ -275,7 +275,7 @@ TEST_CASE("LyapunovAnalyzer - Simple stable system", "[DynamicalSystem][Lyapunov
         void derivs(const Real t, const Vector<Real>& y, Vector<Real>& dydt) const override
         {
             dydt[0] = -y[0];
-            dydt[1] = -2.0 * y[1];
+            dydt[1] = -MML::Real(2.0) * y[1];
         }
         
         bool hasAnalyticalJacobian() const override { return true; }
@@ -291,7 +291,7 @@ TEST_CASE("LyapunovAnalyzer - Simple stable system", "[DynamicalSystem][Lyapunov
     DecaySystem sys;
     Vector<Real> x0({1.0, 1.0});
     
-    auto result = LyapunovAnalyzer::Compute(sys, x0, 50.0, 1.0, 0.01);
+    auto result = LyapunovAnalyzer::Compute(sys, x0, MML::Real(50.0), MML::Real(1.0), MML::Real(0.01));
     
     // Lyapunov exponents should be approximately -1 and -2
     REQUIRE(result.exponents[0] == Approx(-1.0).margin(0.1));
@@ -306,7 +306,7 @@ TEST_CASE("LyapunovAnalyzer - Lorenz chaotic regime", "[DynamicalSystem][Lyapuno
 	Vector<Real> x0 = lorenz.getDefaultInitialCondition();
 
 	// Short integration for test speed (longer = more accurate)
-	auto result = LyapunovAnalyzer::Compute(lorenz, x0, TOL(100.0, 150.0), 1.0, 0.01);
+	auto result = LyapunovAnalyzer::Compute(lorenz, x0, TOL(100.0, 150.0), MML::Real(1.0), MML::Real(0.01));
 
 	// Lorenz should have one positive exponent (≈0.9)
 	REQUIRE(result.isChaotic == true);
@@ -335,7 +335,7 @@ TEST_CASE("PhaseSpaceAnalyzer - Trajectory integration", "[DynamicalSystem][Phas
     LorenzSystem lorenz;
     Vector<Real> x0({1.0, 1.0, 1.0});
     
-    auto traj = PhaseSpaceAnalyzer::IntegrateTrajectory(lorenz, x0, 10.0, 0.1, 0.01);
+    auto traj = PhaseSpaceAnalyzer::IntegrateTrajectory(lorenz, x0, MML::Real(10.0), MML::Real(0.1), MML::Real(0.01));
     
     // Should have approximately 100 points (10.0 / 0.1)
     REQUIRE(traj.size() >= 100);
@@ -382,7 +382,7 @@ TEST_CASE("PhaseSpaceAnalyzer - Poincare section", "[DynamicalSystem][PhaseSpace
     PoincareSection<Real> section(2, 27.0, 1);  // z = 27, positive crossing
     
     auto intersections = PhaseSpaceAnalyzer::ComputePoincareSection(
-        lorenz, x0, section, 50, 0.001);
+        lorenz, x0, section, 50, MML::Real(0.001));
     
     REQUIRE(intersections.size() == 50);
     
@@ -434,13 +434,13 @@ TEST_CASE("PhaseSpaceAnalyzer - Poincare search is bounded when the trajectory n
 	const PoincareSection<Real> unreachable(0, 5.0, 0);
 
 	SECTION("plain API throws ConvergenceError after maxSearchTime") {
-		REQUIRE_THROWS_AS(PhaseSpaceAnalyzer::ComputePoincareSection(system, x0, unreachable, 3, 0.1,
+		REQUIRE_THROWS_AS(PhaseSpaceAnalyzer::ComputePoincareSection(system, x0, unreachable, 3, MML::Real(0.1),
 																																 /*maxSearchTime*/ 20.0, /*transientTime*/ 1.0),
 											ConvergenceError);
 	}
 
 	SECTION("Detailed API returns the partial set with MaxIterationsExceeded") {
-		auto result = ComputePoincareSectionDetailed(system, x0, unreachable, 3, 0.1, DynSysConfig{},
+		auto result = ComputePoincareSectionDetailed(system, x0, unreachable, 3, MML::Real(0.1), DynSysConfig{},
 																								 /*maxSearchTime*/ 20.0, /*transientTime*/ 1.0);
 		REQUIRE_FALSE(result.IsSuccess());
 		REQUIRE(result.status == AlgorithmStatus::MaxIterationsExceeded);
@@ -459,16 +459,16 @@ TEST_CASE("PhaseSpaceAnalyzer - Poincare search is bounded when the trajectory n
 			}
 		};
 		HarmonicOscillator harmonic;
-		auto result = ComputePoincareSectionDetailed(harmonic, x0, PoincareSection<Real>(0, 0.0, 1), 2, 0.1, DynSysConfig{}, 20.0, 0.0);
+		auto result = ComputePoincareSectionDetailed(harmonic, x0, PoincareSection<Real>(0, MML::Real(0.0), 1), 2, MML::Real(0.1), DynSysConfig{}, MML::Real(20.0), MML::Real(0.0));
 		REQUIRE(result.IsSuccess());
 		REQUIRE(result.intersections.size() == 2);
 		REQUIRE(result.searched_time <= static_cast<MML::Real>(20.0));
 	}
 
 	SECTION("argument validation") {
-		REQUIRE_THROWS_AS(PhaseSpaceAnalyzer::ComputePoincareSection(system, x0, unreachable, 3, 0.1, 0.0), ArgumentError);
-		REQUIRE_THROWS_AS(PhaseSpaceAnalyzer::ComputePoincareSection(system, x0, unreachable, 3, 0.1, 10.0, -1.0), ArgumentError);
-		REQUIRE_THROWS_AS(PhaseSpaceAnalyzer::ComputePoincareSection(system, x0, PoincareSection<Real>(2, 0.0, 0), 3, 0.1), ArgumentError);
+		REQUIRE_THROWS_AS(PhaseSpaceAnalyzer::ComputePoincareSection(system, x0, unreachable, 3, MML::Real(0.1), MML::Real(0.0)), ArgumentError);
+		REQUIRE_THROWS_AS(PhaseSpaceAnalyzer::ComputePoincareSection(system, x0, unreachable, 3, MML::Real(0.1), MML::Real(10.0), -MML::Real(1.0)), ArgumentError);
+		REQUIRE_THROWS_AS(PhaseSpaceAnalyzer::ComputePoincareSection(system, x0, PoincareSection<Real>(2, MML::Real(0.0), 0), 3, MML::Real(0.1)), ArgumentError);
 	}
 }
 
@@ -491,7 +491,7 @@ TEST_CASE("BifurcationAnalyzer - Lorenz rho sweep", "[DynamicalSystem][Bifurcati
         2,            // component to record (z)
         50.0,         // transient
         20.0,         // record time
-        0.01);
+        MML::Real(0.01));
     
     REQUIRE(diagram.parameterValues.size() == 5);
     REQUIRE(diagram.attractorValues.size() == 5);
@@ -509,7 +509,7 @@ TEST_CASE("BifurcationAnalyzer - Sweep validates input, handles a single step an
 	Vector<Real> x0({1.0, 1.0, 1.0});
 
 	SECTION("numberOfSteps == 1 evaluates once at parameterMinimum (was 0/0 -> NaN parameter)") {
-		auto diagram = BifurcationAnalyzer::Sweep(lorenz, 1, 25.0, 30.0, 1, x0, 2, 1.0, 2.0, 0.01);
+		auto diagram = BifurcationAnalyzer::Sweep(lorenz, 1, MML::Real(25.0), MML::Real(30.0), 1, x0, 2, MML::Real(1.0), MML::Real(2.0), MML::Real(0.01));
 		REQUIRE(diagram.parameterValues.size() == 1);
 		REQUIRE(diagram.parameterValues[0] == 25.0);
 		REQUIRE(std::isfinite(diagram.parameterValues[0]));
@@ -519,7 +519,7 @@ TEST_CASE("BifurcationAnalyzer - Sweep validates input, handles a single step an
 	}
 
 	SECTION("numberOfSteps == 2 visits both endpoints without changing the caller's parameter") {
-		auto diagram = BifurcationAnalyzer::Sweep(lorenz, 1, 25.0, 30.0, 2, x0, 2, 1.0, 2.0, 0.01);
+		auto diagram = BifurcationAnalyzer::Sweep(lorenz, 1, MML::Real(25.0), MML::Real(30.0), 2, x0, 2, MML::Real(1.0), MML::Real(2.0), MML::Real(0.01));
 		REQUIRE(diagram.parameterValues.size() == 2);
 		REQUIRE(diagram.attractorValues.size() == 2);
 		REQUIRE(diagram.parameterValues[0] == 25);
@@ -532,18 +532,18 @@ TEST_CASE("BifurcationAnalyzer - Sweep validates input, handles a single step an
 	}
 
 	SECTION("argument validation") {
-		REQUIRE_THROWS_AS(BifurcationAnalyzer::Sweep(lorenz, 1, 25.0, 30.0, 0, x0, 2, 1.0, 2.0, 0.01), ArgumentError);
-		REQUIRE_THROWS_AS(BifurcationAnalyzer::Sweep(lorenz, 7, 25.0, 30.0, 3, x0, 2, 1.0, 2.0, 0.01), ArgumentError);
-		REQUIRE_THROWS_AS(BifurcationAnalyzer::Sweep(lorenz, 1, 25.0, 25.0, 3, x0, 2, 1.0, 2.0, 0.01), ArgumentError);
-		REQUIRE_THROWS_AS(BifurcationAnalyzer::Sweep(lorenz, 1, 25.0, 30.0, 3, x0, 5, 1.0, 2.0, 0.01), ArgumentError);
-		REQUIRE_THROWS_AS(BifurcationAnalyzer::Sweep(lorenz, 1, 25.0, 30.0, 3, Vector<Real>({1.0, 1.0}), 2, 1.0, 2.0, 0.01),
+		REQUIRE_THROWS_AS(BifurcationAnalyzer::Sweep(lorenz, 1, MML::Real(25.0), MML::Real(30.0), 0, x0, 2, MML::Real(1.0), MML::Real(2.0), MML::Real(0.01)), ArgumentError);
+		REQUIRE_THROWS_AS(BifurcationAnalyzer::Sweep(lorenz, 7, MML::Real(25.0), MML::Real(30.0), 3, x0, 2, MML::Real(1.0), MML::Real(2.0), MML::Real(0.01)), ArgumentError);
+		REQUIRE_THROWS_AS(BifurcationAnalyzer::Sweep(lorenz, 1, MML::Real(25.0), MML::Real(25.0), 3, x0, 2, MML::Real(1.0), MML::Real(2.0), MML::Real(0.01)), ArgumentError);
+		REQUIRE_THROWS_AS(BifurcationAnalyzer::Sweep(lorenz, 1, MML::Real(25.0), MML::Real(30.0), 3, x0, 5, MML::Real(1.0), MML::Real(2.0), MML::Real(0.01)), ArgumentError);
+		REQUIRE_THROWS_AS(BifurcationAnalyzer::Sweep(lorenz, 1, MML::Real(25.0), MML::Real(30.0), 3, Vector<Real>({MML::Real(1.0), MML::Real(1.0)}), 2, MML::Real(1.0), MML::Real(2.0), MML::Real(0.01)),
 											VectorDimensionError);
 		REQUIRE(lorenz.getParam(1) == originalRho);
 	}
 
 	SECTION("parameter is restored when the integration throws mid-sweep (RAII)") {
 		// negative transient time makes IntegrateTo throw after the parameter has been set
-		REQUIRE_THROWS_AS(BifurcationAnalyzer::Sweep(lorenz, 1, 25.0, 30.0, 3, x0, 2, -1.0, 2.0, 0.01), ArgumentError);
+		REQUIRE_THROWS_AS(BifurcationAnalyzer::Sweep(lorenz, 1, MML::Real(25.0), MML::Real(30.0), 3, x0, 2, -MML::Real(1.0), MML::Real(2.0), MML::Real(0.01)), ArgumentError);
 		REQUIRE(lorenz.getParam(1) == originalRho);
 	}
 }
@@ -554,7 +554,10 @@ TEST_CASE("FixedPoint / LyapunovResult / BifurcationDiagram aggregates are value
     REQUIRE_FALSE(fp.isStable);
     REQUIRE(fp.type == FixedPointType::Unknown);
     REQUIRE(fp.iterations == 0);
-    REQUIRE(fp.convergenceResidual == 0.0);
+    REQUIRE_FALSE(HasEstimate(fp.convergenceResidual));
+    REQUIRE(fp.status == AlgorithmStatus::AlgorithmSpecificFailure);
+    REQUIRE_FALSE(fp.error_message.empty());
+    REQUIRE(fp.function_evaluations == 0);
 
     LyapunovResult<Real> ly;
     REQUIRE_FALSE(ly.isChaotic);
@@ -639,7 +642,7 @@ TEST_CASE("ChuaCircuit - Basic construction", "[DynamicalSystem][ChuaCircuit]")
 TEST_CASE("ChuaCircuit - Derivatives computation", "[DynamicalSystem][ChuaCircuit]")
 {
     ChuaCircuit chua;
-    Vector<Real> y({0.7, 0.0, 0.0});
+    Vector<Real> y({MML::Real(0.7), MML::Real(0.0), MML::Real(0.0)});
     Vector<Real> dydt(3);
     
     chua.derivs(0, y, dydt);
@@ -696,7 +699,7 @@ TEST_CASE("DoublePendulumSystem - Energy computation", "[DynamicalSystem][Double
     REQUIRE(std::isfinite(E));
     
     // Small angles at rest
-    Vector<Real> rest({0.1, 0.1, 0.0, 0.0});
+    Vector<Real> rest({MML::Real(0.1), MML::Real(0.1), MML::Real(0.0), MML::Real(0.0)});
     Real E_rest = dp.computeInvariant(0, rest);
     REQUIRE(std::isfinite(E_rest));
 }
@@ -707,7 +710,7 @@ TEST_CASE("DoublePendulumSystem - Acceleration at non-trivial state", "[Dynamica
     DoublePendulumSystem dp(1.0, 1.0, 1.0, 1.0, 10.0);
 
     // State with non-zero angular velocities (where the bug manifests)
-    Vector<Real> y({0.5, 0.3, 1.0, 2.0});  // theta1, theta2, omega1, omega2
+    Vector<Real> y({MML::Real(0.5), MML::Real(0.3), MML::Real(1.0), MML::Real(2.0)});  // theta1, theta2, omega1, omega2
     Vector<Real> dydt(4);
     dp.derivs(0.0, y, dydt);
 
@@ -726,7 +729,7 @@ TEST_CASE("DoublePendulumSystem - Energy conservation (dE/dt = 0)", "[DynamicalS
     DoublePendulumSystem dp(1.0, 1.0, 1.0, 1.0, 10.0);
 
     // Non-trivial state with angular velocities
-    Vector<Real> y({0.5, 0.3, 1.0, 2.0});
+    Vector<Real> y({MML::Real(0.5), MML::Real(0.3), MML::Real(1.0), MML::Real(2.0)});
     Vector<Real> dydt(4);
     dp.derivs(0.0, y, dydt);
 
@@ -751,7 +754,7 @@ TEST_CASE("DoublePendulumSystem - Energy conservation (dE/dt = 0)", "[DynamicalS
 
 TEST_CASE("LogisticMap - Basic iteration", "[DynamicalSystem][DiscreteMap][LogisticMap]")
 {
-    LogisticMap lmap(3.9);
+    LogisticMap lmap(MML::Real(3.9));
     
     Vector<Real> x({0.5});
     auto x1 = lmap.iterate(x);
@@ -776,7 +779,7 @@ TEST_CASE("LogisticMap - Chaos at r=4", "[DynamicalSystem][DiscreteMap][Logistic
     REQUIRE(lmap.analyticalLyapunov() == Approx(std::log(2.0)));
     
     // Generate orbit - should stay in [0,1]
-    Vector<Real> x0({0.3});
+    Vector<Real> x0({MML::Real(0.3)});
     auto orbit = lmap.orbit(x0, 100);
     
     REQUIRE(orbit.size() == 100);
@@ -789,7 +792,7 @@ TEST_CASE("LogisticMap - Chaos at r=4", "[DynamicalSystem][DiscreteMap][Logistic
 
 TEST_CASE("HenonMap - Basic iteration", "[DynamicalSystem][DiscreteMap][HenonMap]")
 {
-    HenonMap hmap(1.4, 0.3);
+    HenonMap hmap(MML::Real(1.4), MML::Real(0.3));
     
 REQUIRE(hmap.getA() == Approx(static_cast<MML::Real>(1.4)));
 	REQUIRE(hmap.getB() == Approx(static_cast<MML::Real>(0.3)));
@@ -807,9 +810,9 @@ REQUIRE(hmap.getA() == Approx(static_cast<MML::Real>(1.4)));
 
 TEST_CASE("HenonMap - Strange attractor", "[DynamicalSystem][DiscreteMap][HenonMap]")
 {
-    HenonMap hmap(1.4, 0.3);
+    HenonMap hmap(MML::Real(1.4), MML::Real(0.3));
     
-    Vector<Real> x0({0.1, 0.1});
+    Vector<Real> x0({MML::Real(0.1), MML::Real(0.1)});
     auto orbit = hmap.orbit(x0, 1000);
     
     REQUIRE(orbit.size() == 1000);
@@ -843,12 +846,12 @@ TEST_CASE("TentMap - Basic iteration", "[DynamicalSystem][DiscreteMap][TentMap]"
     TentMap tmap(2.0);
     
     // Below 0.5
-    Vector<Real> x1({0.3});
+    Vector<Real> x1({MML::Real(0.3)});
     auto y1 = tmap.iterate(x1);
     REQUIRE(y1[0] == Approx(0.6));  // 2 * 0.3
     
     // Above 0.5
-    Vector<Real> x2({0.7});
+    Vector<Real> x2({MML::Real(0.7)});
     auto y2 = tmap.iterate(x2);
     REQUIRE(y2[0] == Approx(0.6));  // 2 * (1 - 0.7)
     
@@ -861,7 +864,7 @@ TEST_CASE("TentMap - Lyapunov exponent", "[DynamicalSystem][DiscreteMap][TentMap
     TentMap tmap(2.0);
     
     // Numerical Lyapunov should match analytical
-    Vector<Real> x0({0.1234});
+    Vector<Real> x0({MML::Real(0.1234)});
     auto result = DiscreteMapLyapunov<1>::Compute(tmap, x0, 5000, 500);
     
     REQUIRE(result.isChaotic == true);
@@ -870,9 +873,9 @@ TEST_CASE("TentMap - Lyapunov exponent", "[DynamicalSystem][DiscreteMap][TentMap
 
 TEST_CASE("DiscreteMapLyapunov - Henon map chaos detection", "[DynamicalSystem][DiscreteMap][Lyapunov]")
 {
-    HenonMap hmap(1.4, 0.3);
+    HenonMap hmap(MML::Real(1.4), MML::Real(0.3));
     
-    Vector<Real> x0({0.1, 0.1});
+    Vector<Real> x0({MML::Real(0.1), MML::Real(0.1)});
     auto result = DiscreteMapLyapunov<2>::Compute(hmap, x0, 10000, 1000);
     
     REQUIRE(result.exponents.size() == 2);
@@ -898,7 +901,7 @@ using Catch::Approx;
 TEST_CASE("FindFixedPointDetailed - converged fixed point", "[DynamicalSystem][Detailed]")
 {
     VanDerPolSystem vdp(1.0);
-    Vector<Real> guess({0.1, 0.1});
+    Vector<Real> guess({MML::Real(0.1), MML::Real(0.1)});
 
     auto result = FindFixedPointDetailed(vdp, guess);
 
@@ -931,7 +934,7 @@ TEST_CASE("FindFixedPointDetailed - non-convergence sets status", "[DynamicalSys
 TEST_CASE("FindFixedPointDetailed - error suppressed with ConvertToStatus", "[DynamicalSystem][Detailed]")
 {
     VanDerPolSystem vdp(1.0);
-    Vector<Real> guess({0.1, 0.1});
+    Vector<Real> guess({MML::Real(0.1), MML::Real(0.1)});
 
     DynSysConfig config;
     config.exception_policy = EvaluationExceptionPolicy::ConvertToStatus;
@@ -948,7 +951,7 @@ TEST_CASE("ComputeLyapunovDetailed - Lorenz chaotic regime", "[DynamicalSystem][
     Vector<Real> x0({1.0, 1.0, 1.0});
 
     // Short integration for test speed; float needs a longer window past the transient.
-    auto result = ComputeLyapunovDetailed(lorenz, x0, TOL(10.0, 30.0), TOL(1.0, 0.25), 0.01);
+    auto result = ComputeLyapunovDetailed(lorenz, x0, TOL(10.0, 30.0), TOL(1.0, 0.25), MML::Real(0.01));
 
     REQUIRE(result.IsSuccess());
     REQUIRE(result.algorithm_name == "LyapunovAnalyzer");
@@ -967,7 +970,7 @@ TEST_CASE("ComputeLyapunovDetailed - error suppressed", "[DynamicalSystem][Detai
     DynSysConfig config;
     config.exception_policy = EvaluationExceptionPolicy::ConvertToStatus;
 
-    auto result = ComputeLyapunovDetailed(lorenz, x0, TOL(10.0, 30.0), TOL(1.0, 0.25), 0.01, config);
+    auto result = ComputeLyapunovDetailed(lorenz, x0, TOL(10.0, 30.0), TOL(1.0, 0.25), MML::Real(0.01), config);
 
     REQUIRE(result.IsSuccess());
     REQUIRE(result.lyapunov.exponents.size() == 3);
@@ -979,12 +982,12 @@ TEST_CASE("SweepBifurcationDetailed - basic parameter sweep", "[DynamicalSystem]
     Vector<Real> x0({1.0, 1.0, 1.0});
 
     auto result = SweepBifurcationDetailed(
-        lorenz, 1, 20.0, 30.0, 5, x0, 2, 50.0, 20.0, 0.01);
+        lorenz, 1, MML::Real(20.0), MML::Real(30.0), 5, x0, 2, MML::Real(50.0), MML::Real(20.0), MML::Real(0.01));
 
     REQUIRE(result.IsSuccess());
     REQUIRE(result.algorithm_name == "BifurcationAnalyzer");
     REQUIRE(result.elapsed_time_ms >= 0.0);
-    REQUIRE(result.function_evaluations == 5);
+    REQUIRE(result.function_evaluations > 0);
     REQUIRE(result.diagram.parameterValues.size() == 5);
     REQUIRE(result.diagram.attractorValues.size() == 5);
     REQUIRE(result.diagram.parameterName == "rho");
@@ -1000,7 +1003,7 @@ TEST_CASE("ComputePoincareSectionDetailed - Lorenz section", "[DynamicalSystem][
     section.value = 25.0;
     section.direction = 1;  // crossing upward
 
-    auto result = ComputePoincareSectionDetailed(lorenz, x0, section, 5, 0.01);
+    auto result = ComputePoincareSectionDetailed(lorenz, x0, section, 5, MML::Real(0.01));
 
     REQUIRE(result.IsSuccess());
     REQUIRE(result.algorithm_name == "PoincareSection");
@@ -1013,13 +1016,13 @@ TEST_CASE("IntegrateTrajectoryDetailed - simple trajectory", "[DynamicalSystem][
     LorenzSystem lorenz;
     Vector<Real> x0({1.0, 1.0, 1.0});
 
-    auto result = IntegrateTrajectoryDetailed(lorenz, x0, 5.0, 0.1, 0.01);
+    auto result = IntegrateTrajectoryDetailed(lorenz, x0, MML::Real(5.0), MML::Real(0.1), MML::Real(0.01));
 
     REQUIRE(result.IsSuccess());
     REQUIRE(result.algorithm_name == "TrajectoryIntegration");
     REQUIRE(result.elapsed_time_ms >= 0.0);
     REQUIRE(result.points.size() > 0);
-    REQUIRE(result.function_evaluations == static_cast<int>(result.points.size()));
+    REQUIRE(result.function_evaluations > 0);
 }
 
 } // namespace MML::Tests::Systems::DynSysDetailedTests

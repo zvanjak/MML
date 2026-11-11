@@ -39,10 +39,16 @@
 #include <mml/base/Vector/Vector.h>
 #include <mml/base/Vector/VectorN.h>
 #include <mml/base/Geometry/Geometry3D.h>
+#include <mml/base/Geometry/Geometry3DBodies.h>
 
 #include <mml/core/Derivation.h>
 #include <mml/core/Integration.h>
 #include <mml/core/Fields/FieldOperations.h>
+
+#include <algorithm>
+#include <cmath>
+#include <limits>
+#include <numeric>
 
 namespace MML
 {
@@ -120,64 +126,49 @@ namespace MML
 		                            const Real x1, const Real x2, const Real y1, const Real y2, 
 		                            int numU = 20, int numV = 20)
 		{
+			ValidateBounds(x1, x2, "SurfaceIntegral u");
+			ValidateBounds(y1, y2, "SurfaceIntegral v");
 			if (x2 <= x1 || y2 <= y1)
 				throw ArgumentError("SurfaceIntegral: parameter range must satisfy x1 < x2 and y1 < y2");
 			if (numU <= 0 || numV <= 0)
 				throw ArgumentError("SurfaceIntegral: numU and numV must be positive");
+			if (numV > std::numeric_limits<int>::max() / numU)
+				throw ResourceLimitError("SurfaceIntegral: midpoint grid exceeds evaluation counter");
+			const Real minU = surface.getMinU(), maxU = surface.getMaxU();
+			const Real minV = surface.getMinW(), maxV = surface.getMaxW();
+			if (!(minU < maxU && minV < maxV) || x1 < minU || x2 > maxU || y1 < minV || y2 > maxV)
+				throw ArgumentError("SurfaceIntegral: requested range must lie inside the declared surface domain");
 
-			Real du = (x2 - x1) / numU;
-			Real dv = (y2 - y1) / numV;
-			Real total = 0.0;
-
-			// Integrate using midpoint rule with adaptive normal computation
+			AlgorithmTimer timer;
+			const int patches = numU * numV;
+			const Real halfU = IntegrationDetail::HalfWidth(x1, x2);
+			const Real halfV = IntegrationDetail::HalfWidth(y1, y2);
+			IntegrationDetail::Sum total;
+			auto sample = [&](Real u, Real v) {
+				auto point = surface(u, v);
+				RequireFiniteVector(point, "Surface point");
+				return point;
+			};
 			for (int i = 0; i < numU; i++)
 			{
 				for (int j = 0; j < numV; j++)
 				{
-					// Midpoint of current patch
-					Real u = x1 + (i + 0.5) * du;
-					Real v = y1 + (j + 0.5) * dv;
-
-					// Compute surface point at midpoint
-					VectorN<Real, 3> point = surface(u, v);
-
-					// Compute partial derivatives using central differences
-					Real h = PrecisionValues<Real>::DerivativeStepSize;
-
-					VectorN<Real, 3> point_u_plus = surface(u + h, v);
-					VectorN<Real, 3> point_u_minus = surface(u - h, v);
-					VectorN<Real, 3> dS_du = (point_u_plus - point_u_minus) / (2.0 * h);
-
-					VectorN<Real, 3> point_v_plus = surface(u, v + h);
-					VectorN<Real, 3> point_v_minus = surface(u, v - h);
-					VectorN<Real, 3> dS_dv = (point_v_plus - point_v_minus) / (2.0 * h);
-
-					// Compute cross product: ∂r/∂u × ∂r/∂v (normal vector, not normalized)
-					Vector3Cartesian partial_u(dS_du[0], dS_du[1], dS_du[2]);
-					Vector3Cartesian partial_v(dS_dv[0], dS_dv[1], dS_dv[2]);
-					Vector3Cartesian crossProd = VectorProduct(partial_u, partial_v);
-					
-					// Area element magnitude
-					Real dS_magnitude = crossProd.NormL2();
-					if (dS_magnitude < PrecisionValues<Real>::SurfaceNormalThreshold)
-						continue;  // Skip degenerate patch
-
-					// Unit normal vector
-					Vector3Cartesian normal = crossProd / dS_magnitude;
-
-					// Evaluate vector field at surface point
-					Vector3Cartesian fieldValue = vectorField(Vector3Cartesian(point[0], point[1], point[2]));
-
-					// Flux contribution: (F·n) dS where dS = |∂r/∂u × ∂r/∂v| du dv
-					Real dotProduct = ScalarProduct(normal, fieldValue);
-					Real patchArea = dS_magnitude * du * dv;
-
-					total += dotProduct * patchArea;
+					const Real u = std::lerp(x1, x2, (Real(i) + Real(0.5)) / numU);
+					const Real v = std::lerp(y1, y2, (Real(j) + Real(0.5)) / numV);
+					const auto point = sample(u, v);
+					const auto partialU = BoundedPartial([&](Real t) { return sample(t, v); }, point, u, x1, x2);
+					const auto partialV = BoundedPartial([&](Real t) { return sample(u, t); }, point, v, y1, y2);
+					const auto field = vectorField(point);
+					total.Add(ScaledFlux(field, partialU, partialV, halfU, halfV, Real(4) / patches));
 				}
 			}
 
-			// Fixed midpoint rule: no criterion checked, no error estimate (RESULT_POLICY)
-			return IntegrationResult(total, NoEstimate, numU * numV, /*converged*/ false, /*error_estimated*/ false);
+			IntegrationDetail::RequireFinite(total.Value(), "SurfaceIntegral");
+			IntegrationResult result(total.Value(), NoEstimate, patches, false, false);
+			result.function_evaluations = patches;
+			result.algorithm_name = "SurfaceIntegralMidpoint";
+			result.elapsed_time_ms = timer.elapsed_ms();
+			return result;
 		}
 
 		static Real SurfaceIntegral(const IVectorFunction<3>& vectorField, const IParametricSurfaceRect<3>& surface, 
@@ -215,22 +206,14 @@ namespace MML
 		/// Real flux = SurfaceIntegration::SurfaceIntegralDetailed(F, tetra);
 		/// // Should equal 3 * volume of tetrahedron
 		/// @endcode
-		static IntegrationResult SurfaceIntegralDetailed(const IVectorFunction<3>& vectorField, const BodyWithTriangleSurfaces& solid, Real eps = 0.001)
+		static IntegrationResult SurfaceIntegralDetailed(const IVectorFunction<3>& vectorField, const BodyWithTriangleSurfaces& solid, Real eps = Precision::SurfaceIntegrationTolerance)
 		{
-			// Aggregate the per-face adaptive results: converged only if every face converged,
-			// error estimate is the sum of the per-face estimates (RESULT_POLICY)
-			Real total = 0.0, errorSum = 0.0;
-			bool allConverged = true;
-			for (int i = 0; i < solid.getSurfaceCount(); i++) {
-				IntegrationResult face = SurfaceIntegralDetailed(vectorField, solid.getSurface(i), eps);
-				total += face.value;
-				errorSum += face.error_estimate;
-				allConverged = allConverged && face.converged;
-			}
-			return IntegrationResult(total, errorSum, solid.getSurfaceCount(), allConverged);
+			std::vector<Triangle3D> faces;
+			for (int i = 0; i < solid.getSurfaceCount(); ++i) faces.push_back(solid.getSurface(i));
+			return IntegrateSurfaces(vectorField, faces, eps, Precision::SurfaceIntegrationMaxDepth);
 		}
 
-		static Real SurfaceIntegral(const IVectorFunction<3>& vectorField, const BodyWithTriangleSurfaces& solid, Real eps = 0.001)
+		static Real SurfaceIntegral(const IVectorFunction<3>& vectorField, const BodyWithTriangleSurfaces& solid, Real eps = Precision::SurfaceIntegrationTolerance)
 		{
 			return SurfaceIntegralDetailed(vectorField, solid, eps).ValueOrThrow("SurfaceIntegral");
 		}
@@ -247,36 +230,59 @@ namespace MML
 		/// @param maxLevel Maximum recursion depth (default: 7)
 		/// @return Flux through the triangle
 		///
-		/// @par Subdivision pattern:
-		/// @code
-		///       A                    A
-		///      / \                  /|\
-		///     /   \     --->      m1-+-m3
-		///    /     \              |\ | /|
-		///   B-------C             B--m2--C
-		/// @endcode
+		/** @par Subdivision pattern:
+		 * @code
+		 *       A                    A
+		 *      / \                  /|\
+		 *     /   \     --->      m1-+-m3
+		 *    /     \              |\ | /|
+		 *   B-------C             B--m2--C
+		 * @endcode
+		 */
 		/// where m1, m2, m3 are edge midpoints.
-		static IntegrationResult SurfaceIntegralDetailed(const IVectorFunction<3>& vectorField, const Triangle3D& triangle, Real eps, int maxLevel = 7)
+		static IntegrationResult SurfaceIntegralDetailed(const IVectorFunction<3>& vectorField, const Triangle3D& triangle, Real eps, int maxLevel = Precision::SurfaceIntegrationMaxDepth)
 		{
-			Real result = CalcSurfaceContrib(vectorField, triangle);
-			Real errorSum = 0.0;
-			bool converged = true;
-			Real refined = SurfaceIntegralImproveRecursively(vectorField, triangle, result, eps, maxLevel, errorSum, converged);
-			return IntegrationResult(refined, errorSum, maxLevel, converged);
+			return IntegrateSurfaces(vectorField, std::vector<Triangle3D>{triangle}, eps, maxLevel);
 		}
 
-		static Real SurfaceIntegral(const IVectorFunction<3>& vectorField, const Triangle3D& triangle, Real eps, int maxLevel = 7)
+		static Real SurfaceIntegral(const IVectorFunction<3>& vectorField, const Triangle3D& triangle, Real eps, int maxLevel = Precision::SurfaceIntegrationMaxDepth)
 		{
 			return SurfaceIntegralDetailed(vectorField, triangle, eps, maxLevel).ValueOrThrow("SurfaceIntegral");
 		}
 
 	private:
-		/// @brief Recursive refinement for triangle surface integration
-		/// @details Subdivides triangle into 4 smaller triangles and checks convergence
-		/// @param errorSum   accumulates |result - prev_value| of every accepted leaf (the actual estimate)
-		/// @param converged  cleared when a leaf is accepted only because level == 0 was reached
-		static Real SurfaceIntegralImproveRecursively(const IVectorFunction<3>& vectorField, const Triangle3D& triangle, Real prev_value, Real eps, int level,
-		                                              Real& errorSum, bool& converged)
+		static void RequireFiniteVector(const VectorN<Real, 3>& value, const char* context) {
+			for (int i = 0; i < 3; ++i)
+				IntegrationDetail::RequireFinite(value[i], context);
+		}
+
+		template<class Sample>
+		static VectorN<Real, 3> BoundedPartial(Sample sample, const VectorN<Real, 3>& center,
+			Real t, Real lower, Real upper) {
+			const Real step = Derivation::ScaleStep(PrecisionValues<Real>::DerivativeStepSize, t);
+			const auto derivative = Derivation::Detail::BoundedFirstDerivative(sample, center, t, lower, upper, step);
+			RequireFiniteVector(derivative, "Surface derivative");
+			return derivative;
+		}
+
+		static Real ScaledFlux(const VectorN<Real, 3>& field, const VectorN<Real, 3>& first,
+			const VectorN<Real, 3>& second, Real scaleU = 1, Real scaleV = 1, Real fraction = 1) {
+			RequireFiniteVector(field, "Surface integrand");
+			RequireFiniteVector(first, "Surface tangent");
+			RequireFiniteVector(second, "Surface tangent");
+			IntegrationDetail::Sum flux;
+			for (int i = 0; i < 3; ++i) {
+				const int j = (i + 1) % 3, k = (i + 2) % 3;
+				// Retain the field and quadrature weights before reconstructing each product's exponent.
+				flux.Add(IntegrationDetail::Product({field[i], first[j], second[k], scaleU, scaleV, fraction}));
+				flux.Add(-IntegrationDetail::Product({field[i], first[k], second[j], scaleU, scaleV, fraction}));
+			}
+			IntegrationDetail::RequireFinite(flux.Value(), "Surface flux");
+			return flux.Value();
+		}
+
+		/// @brief Subdivide a triangle while retaining its orientation.
+		static std::vector<Triangle3D> SplitSurface(const Triangle3D& triangle)
 		{
 			// Subdivide triangle into 4 by connecting edge midpoints
 			Pnt3Cart m12 = (triangle.Pnt1() + triangle.Pnt2()) / 2.0;
@@ -288,55 +294,25 @@ namespace MML
 			Triangle3D t3(m31, m23, triangle.Pnt3());  // Corner triangle at vertex 3
 			Triangle3D t4(m12, m23, m31);              // Central triangle
 
-			Real c1 = CalcSurfaceContrib(vectorField, t1);
-			Real c2 = CalcSurfaceContrib(vectorField, t2);
-			Real c3 = CalcSurfaceContrib(vectorField, t3);
-			Real c4 = CalcSurfaceContrib(vectorField, t4);
-			Real result = c1 + c2 + c3 + c4;
-
-			// Check convergence
-			const Real change = std::abs(result - prev_value);
-			if (change < eps || level == 0)
-			{
-				errorSum += change;
-				if (!(change < eps)) converged = false;   // accepted only because the depth budget ran out
-				return result;
-			}
-			else
-			{
-				// Recurse on each sub-triangle with its own contribution as prev_value
-				Real new_result = 0.0;
-				new_result += SurfaceIntegralImproveRecursively(vectorField, t1, c1, eps, level - 1, errorSum, converged);
-				new_result += SurfaceIntegralImproveRecursively(vectorField, t2, c2, eps, level - 1, errorSum, converged);
-				new_result += SurfaceIntegralImproveRecursively(vectorField, t3, c3, eps, level - 1, errorSum, converged);
-				new_result += SurfaceIntegralImproveRecursively(vectorField, t4, c4, eps, level - 1, errorSum, converged);
-				return new_result;
-			}
+			return {t1, t2, t3, t4};
 		}
 
 		/// @brief Calculate flux contribution of a single triangle using centroid rule
 		/// @details Evaluates F·n at triangle center, multiplies by triangle area
-		static Real CalcSurfaceContrib(const IVectorFunction<3>& vectorField, const Triangle3D& triangle)
+		static Real CalcSurfaceContrib(const IVectorFunction<3>& vectorField, const Triangle3D& triangle, int* evaluations = nullptr)
 		{
-			// Compute outward normal using right-hand rule: edge1 × edge2
 			Vec3Cart edge1(triangle.Pnt1(), triangle.Pnt2());
 			Vec3Cart edge2(triangle.Pnt1(), triangle.Pnt3());
-			// Degenerate (zero-area) triangle contributes no flux
-			Vec3Cart normal = VectorProduct(edge1, edge2).NormalizedOrZero();
-			if (normal.IsZero())
-				return static_cast<MML::Real>(0.0);
-
-			// Triangle area
-			Real area = triangle.Area();
-
 			// Centroid (center of mass)
 			Pnt3Cart center = (triangle.Pnt1() + triangle.Pnt2() + triangle.Pnt3()) / 3.0;
 
 			// Evaluate field and compute dot product
+			if (evaluations) {
+				if (*evaluations == std::numeric_limits<int>::max()) throw ResourceLimitError("Surface integration counter exhausted");
+				++*evaluations;
+			}
 			Vector3Cartesian value = vectorField(Vector3Cartesian(center.X(), center.Y(), center.Z()));
-			Real dotProduct = ScalarProduct(normal, value);
-
-			return dotProduct * area;
+			return ScaledFlux(value, edge1, edge2, 1, 1, Real(0.5));
 		}
 
 	public:
@@ -363,22 +339,14 @@ namespace MML
 		/// Real flux = SurfaceIntegration::SurfaceIntegralDetailed(F, box);
 		/// // Net flux = 0 (same flux in through left face, out through right)
 		/// @endcode
-		static IntegrationResult SurfaceIntegralDetailed(const IVectorFunction<3>& vectorField, const BodyWithRectSurfaces& solid, Real eps = 0.001)
+		static IntegrationResult SurfaceIntegralDetailed(const IVectorFunction<3>& vectorField, const BodyWithRectSurfaces& solid, Real eps = Precision::SurfaceIntegrationTolerance)
 		{
-			// Aggregate the per-face adaptive results: converged only if every face converged,
-			// error estimate is the sum of the per-face estimates (RESULT_POLICY)
-			Real total = 0.0, errorSum = 0.0;
-			bool allConverged = true;
-			for (int i = 0; i < solid.getSurfaceCount(); i++) {
-				IntegrationResult face = SurfaceIntegralDetailed(vectorField, solid.getSurface(i), eps);
-				total += face.value;
-				errorSum += face.error_estimate;
-				allConverged = allConverged && face.converged;
-			}
-			return IntegrationResult(total, errorSum, solid.getSurfaceCount(), allConverged);
+			std::vector<RectSurface3D> faces;
+			for (int i = 0; i < solid.getSurfaceCount(); ++i) faces.push_back(solid.getSurface(i));
+			return IntegrateSurfaces(vectorField, faces, eps, Precision::SurfaceIntegrationMaxDepth);
 		}
 
-		static Real SurfaceIntegral(const IVectorFunction<3>& vectorField, const BodyWithRectSurfaces& solid, Real eps = 0.001)
+		static Real SurfaceIntegral(const IVectorFunction<3>& vectorField, const BodyWithRectSurfaces& solid, Real eps = Precision::SurfaceIntegrationTolerance)
 		{
 			return SurfaceIntegralDetailed(vectorField, solid, eps).ValueOrThrow("SurfaceIntegral");
 		}
@@ -393,33 +361,25 @@ namespace MML
 		/// @param eps Convergence tolerance
 		/// @param maxLevel Maximum recursion depth (default: 7)
 		/// @return IntegrationResult with flux value (use .value; check converged)
-		static IntegrationResult SurfaceIntegralDetailed(const IVectorFunction<3>& vectorField, const RectSurface3D& surface, Real eps, int maxLevel = 7)
+		static IntegrationResult SurfaceIntegralDetailed(const IVectorFunction<3>& vectorField, const RectSurface3D& surface, Real eps, int maxLevel = Precision::SurfaceIntegrationMaxDepth)
 		{
-			Real result = CalcSurfaceContrib(vectorField, surface);
-			Real errorSum = 0.0;
-			bool converged = true;
-			Real refined = SurfaceIntegralImproveRecursively(vectorField, surface, result, eps, maxLevel, errorSum, converged);
-			return IntegrationResult(refined, errorSum, maxLevel, converged);
+			return IntegrateSurfaces(vectorField, std::vector<RectSurface3D>{surface}, eps, maxLevel);
 		}
 
-		static Real SurfaceIntegral(const IVectorFunction<3>& vectorField, const RectSurface3D& surface, Real eps, int maxLevel = 7)
+		static Real SurfaceIntegral(const IVectorFunction<3>& vectorField, const RectSurface3D& surface, Real eps, int maxLevel = Precision::SurfaceIntegrationMaxDepth)
 		{
 			return SurfaceIntegralDetailed(vectorField, surface, eps, maxLevel).ValueOrThrow("SurfaceIntegral");
 		}
 
 	private:
-		/// @brief Recursive refinement for rectangular surface integration
-		/// @details Subdivides rectangle into 4 by connecting edge midpoints to center
-		/// @param errorSum   accumulates |result - prev_value| of every accepted leaf (the actual estimate)
-		/// @param converged  cleared when a leaf is accepted only because level == 0 was reached
-		static Real SurfaceIntegralImproveRecursively(const IVectorFunction<3>& vectorField, const RectSurface3D& surface, Real prev_value, Real eps, int level,
-		                                              Real& errorSum, bool& converged)
+		/// @brief Subdivide a rectangular patch while retaining its orientation.
+		static std::vector<RectSurface3D> SplitSurface(const RectSurface3D& surface)
 		{
 			// Compute midpoints of edges and center
-			Point3Cartesian pnt_mid12 = (surface._pnt1 + surface._pnt2) / 2.0;
-			Point3Cartesian pnt_mid23 = (surface._pnt2 + surface._pnt3) / 2.0;
-			Point3Cartesian pnt_mid34 = (surface._pnt3 + surface._pnt4) / 2.0;
-			Point3Cartesian pnt_mid41 = (surface._pnt4 + surface._pnt1) / 2.0;
+			Point3Cartesian pnt_mid12 = detail::GeometryMidpoint(surface._pnt1, surface._pnt2);
+			Point3Cartesian pnt_mid23 = detail::GeometryMidpoint(surface._pnt2, surface._pnt3);
+			Point3Cartesian pnt_mid34 = detail::GeometryMidpoint(surface._pnt3, surface._pnt4);
+			Point3Cartesian pnt_mid41 = detail::GeometryMidpoint(surface._pnt4, surface._pnt1);
 			Point3Cartesian center = surface.getCenter();
 
 			// Create 4 sub-rectangles
@@ -429,44 +389,49 @@ namespace MML
 			RectSurface3D s4(pnt_mid41, center, pnt_mid34, surface._pnt4);
 
 			// Calculate contributions for each subsurface
-			Real contrib1 = CalcSurfaceContrib(vectorField, s1);
-			Real contrib2 = CalcSurfaceContrib(vectorField, s2);
-			Real contrib3 = CalcSurfaceContrib(vectorField, s3);
-			Real contrib4 = CalcSurfaceContrib(vectorField, s4);
-			Real result = contrib1 + contrib2 + contrib3 + contrib4;
-
-			// Check convergence
-			const Real change = std::abs(result - prev_value);
-			if (change < eps || level == 0)
-			{
-				errorSum += change;
-				if (!(change < eps)) converged = false;   // accepted only because the depth budget ran out
-				return result;
-			}
-			else
-			{
-				// Recurse on each sub-rectangle
-				Real new_result = 0.0;
-				new_result += SurfaceIntegralImproveRecursively(vectorField, s1, contrib1, eps, level - 1, errorSum, converged);
-				new_result += SurfaceIntegralImproveRecursively(vectorField, s2, contrib2, eps, level - 1, errorSum, converged);
-				new_result += SurfaceIntegralImproveRecursively(vectorField, s3, contrib3, eps, level - 1, errorSum, converged);
-				new_result += SurfaceIntegralImproveRecursively(vectorField, s4, contrib4, eps, level - 1, errorSum, converged);
-				return new_result;
-			}
+			return {s1, s2, s3, s4};
 		}
 
 		/// @brief Calculate flux contribution of a single rectangle using center rule
 		/// @details Evaluates F·n at rectangle center, multiplies by rectangle area
-		static Real CalcSurfaceContrib(const IVectorFunction<3>& vectorField, const RectSurface3D& surface)
+		static Real CalcSurfaceContrib(const IVectorFunction<3>& vectorField, const RectSurface3D& surface, int* evaluations = nullptr)
 		{
 			Vector3Cartesian normal = surface.getNormal();
 			Real area = surface.getArea();
 			Point3Cartesian center = surface.getCenter();
 
+			if (evaluations) {
+				if (*evaluations == std::numeric_limits<int>::max()) throw ResourceLimitError("Surface integration counter exhausted");
+				++*evaluations;
+			}
 			Vector3Cartesian value = vectorField(Vector3Cartesian(center.X(), center.Y(), center.Z()));
+			for (int i = 0; i < 3; ++i) IntegrationDetail::RequireFinite(value[i], "Surface integrand");
 			Real dotProduct = ScalarProduct(normal, value);
 
 			return dotProduct * area;
+		}
+
+		template<class Surface>
+		static IntegrationResult IntegrateSurfaces(const IVectorFunction<3>& field, const std::vector<Surface>& surfaces,
+			Real tolerance, int maxDepth) {
+			IntegrationResult result;
+			result.algorithm_name = "SurfaceIntegral";
+			AlgorithmTimer timer;
+			auto evaluate = [&](const Surface& surface) {
+				const Real coarse = CalcSurfaceContrib(field, surface, &result.function_evaluations);
+				IntegrationDetail::Sum fine;
+				for (const auto& child : SplitSurface(surface))
+					fine.Add(CalcSurfaceContrib(field, child, &result.function_evaluations));
+				IntegrationResult estimate(fine.Value(), std::abs(fine.Value() - coarse), 1, false);
+				estimate.status = AlgorithmStatus::Completed;
+				return estimate;
+			};
+			auto split = [](const Surface& surface) { return SplitSurface(surface); };
+			IntegrationDetail::RefineCells(result, surfaces, evaluate, split, tolerance, 0, maxDepth,
+				std::numeric_limits<int>::max(), 5);
+			if (result.function_evaluations > 0) ++result.iterations;
+			result.elapsed_time_ms = timer.elapsed_ms();
+			return result;
 		}
 	};
 

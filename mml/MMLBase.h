@@ -38,12 +38,14 @@ namespace MML {
 	using std::atan;
 	using std::atan2;
 	using std::cos;
+	using std::cosh;
 	using std::exp;
 	using std::fabs;
 	using std::log;
 	using std::log10;
 	using std::pow;
 	using std::sin;
+	using std::sinh;
 	using std::sqrt;
 	using std::tan;
 	using std::hypot;
@@ -55,11 +57,11 @@ namespace MML {
 		if constexpr (std::is_unsigned_v<Type>)
 			return static_cast<Real>(a);
 		else
-			return std::abs(a);
+			return static_cast<Real>(std::abs(a));
 	}
 	template<class Type>
 	static Real Abs(const std::complex<Type>& a) {
-		return hypot(a.real(), a.imag());
+		return static_cast<Real>(hypot(a.real(), a.imag()));
 	}
 
 	/// @brief Overflow/underflow-safe Euclidean norm accumulator (LAPACK dnrm2 scale/ssq scheme).
@@ -67,24 +69,48 @@ namespace MML {
 	///          although the norm itself is representable. Feed |x_i| (a real magnitude) one at a
 	///          time via add(), read the norm with value(). Used by Vector/VectorN::NormL2
 	///          (analysis v4, roadmap item 18: "naive norms").
-	struct StableNormL2Accumulator {
-		Real scale = 0.0;   ///< Largest magnitude seen so far
-		Real ssq = 1.0;     ///< Sum of (x_i / scale)^2
+	// MSVC's optimized inliner warns despite the explicit nonzero-magnitude guard.
+#if defined(_MSC_VER) && !defined(__clang__)
+#pragma warning(push)
+#pragma warning(disable: 4723)
+#endif
+	template<class Magnitude>
+	struct StableNormL2AccumulatorT {
+		Magnitude scale = 0;   ///< Largest magnitude seen so far
+		Magnitude ssq = 1;     ///< Sum of (x_i / scale)^2
 
-		void add(Real magnitude) {
+		void add(Magnitude magnitude) {
+			if (std::isnan(magnitude)) {
+				scale = magnitude;
+				ssq = 1;
+				return;
+			}
+			if (std::isnan(scale))
+				return;
+			if (std::isinf(magnitude)) {
+				scale = magnitude;
+				ssq = 1;
+				return;
+			}
+			if (std::isinf(scale))
+				return;
 			if (magnitude == 0.0)
 				return;
 			if (scale < magnitude) {
-				const Real ratio = scale / magnitude;
-				ssq = 1.0 + ssq * ratio * ratio;
+				const Magnitude ratio = scale / magnitude;
+				ssq = Magnitude(1) + ssq * ratio * ratio;
 				scale = magnitude;
 			} else {
-				const Real ratio = magnitude / scale;
+				const Magnitude ratio = magnitude / scale;
 				ssq += ratio * ratio;
 			}
 		}
-		Real value() const { return scale * std::sqrt(ssq); }
+		Magnitude value() const { return scale * std::sqrt(ssq); }
 	};
+	using StableNormL2Accumulator = StableNormL2AccumulatorT<Real>;
+#if defined(_MSC_VER) && !defined(__clang__)
+#pragma warning(pop)
+#endif
 
 	////////////         Floating-Point Comparison Functions         ////////////
 	// The canonical comparison vocabulary (docs/TOLERANCE_POLICY.md section 3). Inline tolerance
@@ -181,10 +207,12 @@ namespace MML {
 	/// @param rad Angle in radians
 	/// @return Normalized angle in [-π, π)
 	inline Real normalizeAngle(Real rad) {
-		rad = std::fmod(rad + Constants::PI, 2 * Constants::PI);
-		if (rad < 0)
-			rad += 2 * Constants::PI;
-		return rad - Constants::PI;
+		if (!std::isfinite(rad))
+			throw DomainError("normalizeAngle - angle must be finite");
+		rad = std::remainder(rad, 2 * Constants::PI);
+		if (rad >= Constants::PI)
+			rad -= 2 * Constants::PI;
+		return rad;
 	}
 
 	/// @brief Check if two angles are equal, accounting for wrap-around at ±π.
@@ -195,8 +223,12 @@ namespace MML {
 	/// @param eps Tolerance for comparison
 	/// @return true if angles are equivalent within tolerance
 	inline bool AnglesAreEqual(Real a, Real b, Real eps) {
-		Real diff = normalizeAngle(a - b);
-		return std::abs(diff) < eps;
+		if (!std::isfinite(a) || !std::isfinite(b) || !std::isfinite(eps) || eps < 0)
+			return false;
+		const Real maximum = std::numeric_limits<Real>::max();
+		const bool overflows = (b < 0 && a > maximum + b) || (b > 0 && a < -maximum + b);
+		const Real diff = overflows ? normalizeAngle(a) - normalizeAngle(b) : a - b;
+		return std::abs(normalizeAngle(diff)) < eps;
 	}
 
 	struct AlgorithmContext {
@@ -257,10 +289,10 @@ namespace MML {
 
 		// Output defaults (per-thread; reads/writes affect the calling thread only)
 		// Usage: Defaults::VectorPrintWidth = 20;
-		static inline Detail::ThreadLocalAlias<int, PrintContext, &PrintContext::vectorWidth> VectorPrintWidth;
-		static inline Detail::ThreadLocalAlias<int, PrintContext, &PrintContext::vectorPrecision> VectorPrintPrecision;
-		static inline Detail::ThreadLocalAlias<int, PrintContext, &PrintContext::vectorNWidth> VectorNPrintWidth;
-		static inline Detail::ThreadLocalAlias<int, PrintContext, &PrintContext::vectorNPrecision> VectorNPrintPrecision;
+		[[maybe_unused]] static inline Detail::ThreadLocalAlias<int, PrintContext, &PrintContext::vectorWidth> VectorPrintWidth;
+		[[maybe_unused]] static inline Detail::ThreadLocalAlias<int, PrintContext, &PrintContext::vectorPrecision> VectorPrintPrecision;
+		[[maybe_unused]] static inline Detail::ThreadLocalAlias<int, PrintContext, &PrintContext::vectorNWidth> VectorNPrintWidth;
+		[[maybe_unused]] static inline Detail::ThreadLocalAlias<int, PrintContext, &PrintContext::vectorNPrecision> VectorNPrintPrecision;
 
 		//////////   Deprecated tolerance mirrors (TOLERANCE_POLICY section 7)   ///////////
 		// Precision::X is the canonical spelling; these copies are removed after one minor release.
@@ -314,22 +346,22 @@ namespace MML {
 
 		// Algorithm parameters (per-thread; reads/writes affect the calling thread only)
 		// Usage: Defaults::TrapezoidIntegrationEPS = 1e-6;
-		static inline Detail::ThreadLocalAlias<Real, AlgorithmContext, &AlgorithmContext::trapezoidIntegrationEPS> TrapezoidIntegrationEPS;
-		static inline Detail::ThreadLocalAlias<Real, AlgorithmContext, &AlgorithmContext::simpsonIntegrationEPS> SimpsonIntegrationEPS;
-		static inline Detail::ThreadLocalAlias<Real, AlgorithmContext, &AlgorithmContext::rombergIntegrationEPS> RombergIntegrationEPS;
-		static inline Detail::ThreadLocalAlias<Real, AlgorithmContext, &AlgorithmContext::workIntegralPrecision> WorkIntegralPrecision;
-		static inline Detail::ThreadLocalAlias<Real, AlgorithmContext, &AlgorithmContext::lineIntegralPrecision> LineIntegralPrecision;
+		[[maybe_unused]] static inline Detail::ThreadLocalAlias<Real, AlgorithmContext, &AlgorithmContext::trapezoidIntegrationEPS> TrapezoidIntegrationEPS;
+		[[maybe_unused]] static inline Detail::ThreadLocalAlias<Real, AlgorithmContext, &AlgorithmContext::simpsonIntegrationEPS> SimpsonIntegrationEPS;
+		[[maybe_unused]] static inline Detail::ThreadLocalAlias<Real, AlgorithmContext, &AlgorithmContext::rombergIntegrationEPS> RombergIntegrationEPS;
+		[[maybe_unused]] static inline Detail::ThreadLocalAlias<Real, AlgorithmContext, &AlgorithmContext::workIntegralPrecision> WorkIntegralPrecision;
+		[[maybe_unused]] static inline Detail::ThreadLocalAlias<Real, AlgorithmContext, &AlgorithmContext::lineIntegralPrecision> LineIntegralPrecision;
 
-		static inline Detail::ThreadLocalAlias<int, AlgorithmContext, &AlgorithmContext::bisectionMaxSteps> BisectionMaxSteps;
-		static inline Detail::ThreadLocalAlias<int, AlgorithmContext, &AlgorithmContext::newtonRaphsonMaxSteps> NewtonRaphsonMaxSteps;
-		static inline Detail::ThreadLocalAlias<int, AlgorithmContext, &AlgorithmContext::brentMaxSteps> BrentMaxSteps;
+		[[maybe_unused]] static inline Detail::ThreadLocalAlias<int, AlgorithmContext, &AlgorithmContext::bisectionMaxSteps> BisectionMaxSteps;
+		[[maybe_unused]] static inline Detail::ThreadLocalAlias<int, AlgorithmContext, &AlgorithmContext::newtonRaphsonMaxSteps> NewtonRaphsonMaxSteps;
+		[[maybe_unused]] static inline Detail::ThreadLocalAlias<int, AlgorithmContext, &AlgorithmContext::brentMaxSteps> BrentMaxSteps;
 
-		static inline Detail::ThreadLocalAlias<int, AlgorithmContext, &AlgorithmContext::trapezoidIntegrationMaxSteps> TrapezoidIntegrationMaxSteps;
-		static inline Detail::ThreadLocalAlias<int, AlgorithmContext, &AlgorithmContext::simpsonIntegrationMaxSteps> SimpsonIntegrationMaxSteps;
-		static inline Detail::ThreadLocalAlias<int, AlgorithmContext, &AlgorithmContext::rombergIntegrationMaxSteps> RombergIntegrationMaxSteps;
-		static inline Detail::ThreadLocalAlias<int, AlgorithmContext, &AlgorithmContext::rombergIntegrationUsedPnts> RombergIntegrationUsedPnts;
+		[[maybe_unused]] static inline Detail::ThreadLocalAlias<int, AlgorithmContext, &AlgorithmContext::trapezoidIntegrationMaxSteps> TrapezoidIntegrationMaxSteps;
+		[[maybe_unused]] static inline Detail::ThreadLocalAlias<int, AlgorithmContext, &AlgorithmContext::simpsonIntegrationMaxSteps> SimpsonIntegrationMaxSteps;
+		[[maybe_unused]] static inline Detail::ThreadLocalAlias<int, AlgorithmContext, &AlgorithmContext::rombergIntegrationMaxSteps> RombergIntegrationMaxSteps;
+		[[maybe_unused]] static inline Detail::ThreadLocalAlias<int, AlgorithmContext, &AlgorithmContext::rombergIntegrationUsedPnts> RombergIntegrationUsedPnts;
 
-		static inline Detail::ThreadLocalAlias<int, AlgorithmContext, &AlgorithmContext::odeSolverMaxSteps> ODESolverMaxSteps;
+		[[maybe_unused]] static inline Detail::ThreadLocalAlias<int, AlgorithmContext, &AlgorithmContext::odeSolverMaxSteps> ODESolverMaxSteps;
 	} // namespace Defaults
 } // namespace MML
 #endif

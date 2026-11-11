@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <mml/interfaces/IODESystemDAEWithEvents.h>
 
+#include <string>
 #include <vector>
 
 namespace MML {
@@ -46,7 +47,7 @@ namespace MML {
 	namespace Detail {
 		inline bool DAEEventCrossing(Real before, Real after, EventDirection wanted,
 			EventDirection& actual) {
-			if (!(before * after < static_cast<MML::Real>(0.0)) && !(before != 0 && after == 0)) return false;
+			if (!EventSignChange(before, after)) return false;
 			actual = before < after ? EventDirection::Increasing : EventDirection::Decreasing;
 			return wanted == EventDirection::Both || wanted == actual;
 		}
@@ -118,17 +119,22 @@ namespace MML {
 			Vector<Real> selectedX(diffDim), selectedY(algDim);
 			EventDirection selectedDirection = EventDirection::Both;
 			Real selectedValue = 0.0;
+			bool rootLocationFailed = false;
 
-			for (int eventIndex = 0; eventIndex < numEvents; ++eventIndex) {
+			for (int eventIndex = 0; eventIndex < numEvents && !rootLocationFailed; ++eventIndex) {
 				EventDirection actualDirection;
 				if (!Detail::DAEEventCrossing(eventBefore[eventIndex], eventAfter[eventIndex],
 					system.getEventDirection(eventIndex), actualDirection)) continue;
 
+				// Bisection on the linear step interpolant with consistent projection at each probe.
+				// rootTime/rootX/rootY/rootValue always describe the same (last projected) point.
 				Real lo = t;
 				Real hi = stepEnd;
 				Real valueLo = eventBefore[eventIndex];
 				Vector<Real> rootX(diffDim), rootY(algDim);
+				Real rootTime = t;
 				Real rootValue = valueLo;
+				bool converged = false;
 				for (int iteration = 0; iteration < eventConfig.max_root_iterations; ++iteration) {
 					const Real mid = (lo + hi) * static_cast<MML::Real>(0.5);
 					const Real fraction = (mid - t) / (stepEnd - t);
@@ -142,19 +148,33 @@ namespace MML {
 						result.integration.error_message = "DAE event root projection failed: " + ic.message;
 						return result;
 					}
+					rootTime = mid;
 					rootValue = system.eventFunction(eventIndex, mid, rootX, rootY);
-					if (std::abs(rootValue) <= eventConfig.event_tolerance || std::abs(hi - lo) <= eventConfig.event_tolerance) {
-						lo = hi = mid;
+					// A bracket that can no longer shrink in floating point counts as converged.
+					if (std::abs(rootValue) <= eventConfig.event_tolerance
+						|| std::abs(hi - lo) <= eventConfig.event_tolerance
+						|| mid == lo || mid == hi) {
+						converged = true;
 						break;
 					}
-					if (valueLo * rootValue < static_cast<MML::Real>(0.0)) {
+					if (EventSignChange(valueLo, rootValue)) {
 						hi = mid;
 					} else {
 						lo = mid;
 						valueLo = rootValue;
 					}
 				}
-				const Real rootTime = (lo + hi) * static_cast<MML::Real>(0.5);
+				if (!converged) {
+					result.integration.status = AlgorithmStatus::MaxIterationsExceeded;
+					result.integration.failure_reason = DAEFailureReason::MaxStepsExceeded;
+					result.integration.error_message = "DAE event root location exhausted max_root_iterations="
+						+ std::to_string(eventConfig.max_root_iterations) + " for event "
+						+ std::to_string(eventIndex) + " (bracket width "
+						+ std::to_string(static_cast<double>(std::abs(hi - lo))) + ", residual "
+						+ std::to_string(static_cast<double>(std::abs(rootValue))) + ")";
+					rootLocationFailed = true;
+					break;
+				}
 				if (selectedEvent < 0 || direction * (rootTime - selectedTime) < 0) {
 					selectedEvent = eventIndex;
 					selectedTime = rootTime;
@@ -164,6 +184,7 @@ namespace MML {
 					selectedValue = rootValue;
 				}
 			}
+			if (rootLocationFailed) break;
 
 			result.integration.accepted_steps++;
 			result.integration.solution.incrementSuccessfulSteps();

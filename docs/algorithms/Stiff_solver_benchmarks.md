@@ -60,7 +60,10 @@ Unavailable reached times are NaN; unavailable accepted/rejected step counts are
 -1. Measured RHS/Jacobian calls remain available even in those failed runs.
 
 BE/BDF2 enforce their configured work budget across accepted and rejected attempts
-and retain partial trajectories on terminal status failures. ROS2 is configured
+and retain partial trajectories on terminal status failures. Their implicit
+equations and BDF2 step ratios use the representable elapsed interval between
+stored times, rather than the requested step before floating-point clock rounding.
+ROS2 is configured
 with a 50000-step capacity because the current
 default 100000-step result allocation exceeds the matrix storage limit after
 including the initial point. The current ROS2 driver also uses an internal

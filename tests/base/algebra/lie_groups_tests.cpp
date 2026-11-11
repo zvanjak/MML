@@ -26,11 +26,19 @@ namespace MML::Tests::Base::AlgebraTests
 
 		REQUIRE(std::abs(rotated[0]) < GroupTolerance);
 		REQUIRE(std::abs(rotated[1] - static_cast<MML::Real>(1.0)) < GroupTolerance);
-		REQUIRE(std::abs(Algebra::SO2(static_cast<MML::Real>(3.0) * Constants::PI).angle() + Constants::PI) < GroupTolerance);
+		const Algebra::SO2 halfTurn(Real(3) * Constants::PI);
+		REQUIRE(halfTurn.angle() >= -Constants::PI);
+		REQUIRE(halfTurn.angle() < Constants::PI);
+		REQUIRE(halfTurn.geodesic_distance(Algebra::SO2(-Constants::PI)) < GroupTolerance);
 		REQUIRE(std::abs(quarterTurn.compose(quarterTurn.inverse()).angle()) < GroupTolerance);
 		REQUIRE(std::abs(Algebra::SO2::Exp(quarterTurn.log()).angle() - quarterTurn.angle()) < GroupTolerance);
-		REQUIRE(std::abs(Algebra::SO2::Interpolate(Algebra::SO2(static_cast<MML::Real>(0.9) * Constants::PI),
-			Algebra::SO2(-static_cast<MML::Real>(0.9) * Constants::PI), static_cast<MML::Real>(0.5)).angle() + Constants::PI) < GroupTolerance);
+		const Algebra::SO2 from(Real(0.9) * Constants::PI), to(-Real(0.9) * Constants::PI);
+		const auto midpoint = Algebra::SO2::Interpolate(from, to, Real(0.5));
+		REQUIRE(midpoint.angle() >= -Constants::PI);
+		REQUIRE(midpoint.angle() < Constants::PI);
+		REQUIRE(midpoint.geodesic_distance(halfTurn) < GroupTolerance);
+		REQUIRE(IsWithinAbs(midpoint.geodesic_distance(from), from.geodesic_distance(to) / 2, GroupTolerance));
+		REQUIRE(IsWithinAbs(midpoint.geodesic_distance(to), from.geodesic_distance(to) / 2, GroupTolerance));
 	}
 
 	TEST_CASE("SO3 hat vee exp and log are mutually consistent", "[Algebra][SO3][Base]")

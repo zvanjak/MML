@@ -49,7 +49,7 @@ namespace MML {
 				return DataFormat::CSV;  // Default
 
 			std::string ext = filename.substr(dotPos + 1);
-			std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+			std::transform(ext.begin(), ext.end(), ext.begin(), TextIO::ToLowerAscii);
 
 			if (ext == "csv") return DataFormat::CSV;
 			if (ext == "tsv" || ext == "tab") return DataFormat::TSV;

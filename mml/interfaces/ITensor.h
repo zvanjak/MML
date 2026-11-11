@@ -194,6 +194,8 @@ namespace MML
 		 * @brief Contract two indices, producing a rank-1 tensor (vector).
 		 * 
 		 * Sums over the contracted index: result_a = sum_s T_{...s...s...}
+		 * The contracted slots must have opposite variance. The returned VectorN stores
+		 * components only; it does not carry the remaining slot's variance metadata.
 		 * where the two 's' positions are determined by ind1 and ind2.
 		 * 
 		 * @param ind1 First index to contract (0, 1, or 2)
@@ -273,6 +275,7 @@ namespace MML
 		 * @brief Contract two indices, producing a rank-2 tensor.
 		 * 
 		 * Sums over the contracted index: result_{ab} = sum_s T_{...s...s...}
+		 * The contracted slots must have opposite variance.
 		 * For example, contracting indices 0 and 2 of Riemann R^i_jkl gives Ricci R_jl.
 		 * 
 		 * @param ind1 First index to contract (0, 1, 2, or 3)
@@ -352,6 +355,7 @@ namespace MML
 		 * @brief Contract two indices, producing a rank-3 tensor.
 		 * 
 		 * Sums over the contracted index: result_{abc} = sum_s T_{...s...s...}
+		 * The contracted slots must have opposite variance.
 		 * Contraction reduces rank by 2, so rank-5 becomes rank-3.
 		 * 
 		 * @param ind1 First index to contract (0-4)
@@ -380,4 +384,3 @@ namespace MML
 	};
 }
 #endif
-

@@ -7,6 +7,7 @@
 #include <mml/base/Matrix/MatrixSym.h>
 #include <mml/base/AlgorithmTypes.h>
 #include <mml/algorithms/Eigen/EigenSolverConfig.h>
+#include <mml/algorithms/Eigen/detail/SelfAdjointScaling.h>
 #include <algorithm>
 #include <cmath>
 #include <limits>
@@ -58,17 +59,27 @@ namespace MML {
 			std::string error_message;          // Error description (empty on success)
 			double elapsed_time_ms = 0.0;
 
-			Result(int n)
+			Result(int n, bool computeEigenvectors = true)
 				: eigenvalues(n)
-				, eigenvectors(n, n) {}
+				, eigenvectors(computeEigenvectors ? n : 0, computeEigenvectors ? n : 0) {}
 			
 			Result() = default;
 		};
 
 		// Main interface: Solve symmetric eigenvalue problem
+		//
+		// Matrices with extreme magnitudes are scaled by a power of two before the reduction so
+		// that squared entries cannot overflow; `tol` keeps the units of the original matrix and
+		// `converged` is true only when every eigenvalue and eigenvector entry is finite.
 		static Result Solve(const MatrixSym<Real>& A, Real tol = PrecisionValues<Real>::EigenSolverConvergenceTolerance, int maxIter = 1000) {
+			return SolveImpl(A, tol, maxIter, true, true);
+		}
+
+	private:
+		static Result SolveImpl(const MatrixSym<Real>& A, Real tol, int maxIter, bool sortEigenvalues, bool computeEigenvectors) {
+			detail::ValidateSelfAdjointControls(tol, maxIter);
 			int n = A.rows();
-			Result result(n);
+			Result result(n, computeEigenvectors);
 
 			if (n == 0) {
 				// Empty problem: nothing to iterate or check (RESULT_POLICY: Completed)
@@ -81,9 +92,13 @@ namespace MML {
 			if (n == 1) {
 				// Closed form: residual (off-diagonal norm) is exactly 0 - the criterion is checked and met
 				result.eigenvalues[0] = A(0, 0);
-				result.eigenvectors(0, 0) = 1.0;
+				if (computeEigenvectors) result.eigenvectors(0, 0) = 1.0;
 				result.residual = 0.0;
-				result.converged = result.residual <= tol;
+				result.converged = result.residual <= tol && std::isfinite(A(0, 0));
+				if (!std::isfinite(A(0, 0))) {
+					result.status = AlgorithmStatus::NumericalInstability;
+					result.error_message = "SymmMatEigenSolverQR: matrix contains nonfinite entries";
+				}
 				return result;
 			}
 
@@ -93,8 +108,30 @@ namespace MML {
 				for (int j = 0; j < n; j++)
 					T(i, j) = (i <= j) ? A(i, j) : A(j, i);
 
+			const Real maxAbs = detail::MaxAbsEntry(T);
+			if (!std::isfinite(maxAbs)) {
+				result.eigenvalues = Vector<Real>(n, std::numeric_limits<Real>::quiet_NaN());
+				if (computeEigenvectors)
+					result.eigenvectors = Matrix<Real>(n, n, std::numeric_limits<Real>::quiet_NaN());
+				result.residual = std::numeric_limits<Real>::quiet_NaN();
+				result.converged = false;
+				result.status = AlgorithmStatus::NumericalInstability;
+				result.error_message = "SymmMatEigenSolverQR: matrix contains nonfinite entries";
+				return result;
+			}
+
+			// Overflow guard: exact power-of-two scaling; absolute tolerance follows the scaling,
+			// the relative deflation term tol*(|d_i|+|d_{i+1}|) is scale invariant.
+			const Real scale = detail::SelfAdjointScale(maxAbs);
+			const Real tolScaled = tol / scale;
+			if (scale != 1)
+				for (int i = 0; i < n; i++)
+					for (int j = 0; j < n; j++)
+						T(i, j) /= scale;
+
 			// Step 2: Initialize eigenvector matrix to identity
-			Matrix<Real> Q = Matrix<Real>::Identity(n);
+			Matrix<Real> Q;
+			if (computeEigenvectors) Q = Matrix<Real>::Identity(n);
 
 			// Step 3: Reduce to tridiagonal form using Householder reflections
 			// Store diagonal in diag, subdiagonal in subdiag
@@ -111,33 +148,45 @@ namespace MML {
 			subdiag[n - 1] = 0.0;
 
 			// Step 4: Apply implicit QR algorithm with Wilkinson shift
-			ImplicitQRAlgorithm(diag, subdiag, Q, n, tol, maxIter, result.iterations, result.converged);
+			ImplicitQRAlgorithm(diag, subdiag, Q, n, tolScaled, tol, maxIter, result.iterations, result.converged);
 
-			// Step 5: Compute final residual (off-diagonal norm)
-			result.residual = 0.0;
-			for (int i = 0; i < n - 1; i++)
-				result.residual += subdiag[i] * subdiag[i];
-			result.residual = std::sqrt(result.residual);
+			// Step 5: Compute final residual (off-diagonal norm) in original units
+			result.residual = detail::VectorNormSafe(subdiag) * scale;
 
-			// Step 6: Copy results
+			// Step 6: Copy results (undo scaling)
 			result.eigenvalues = diag;
+			for (int i = 0; i < n; i++)
+				result.eigenvalues[i] *= scale;
 			result.eigenvectors = Q;
 
 			// Step 7: Sort eigenvalues and eigenvectors in ascending order
-			SortEigenpairs(result.eigenvalues, result.eigenvectors, n);
+			if (sortEigenvalues) SortEigenpairs(result.eigenvalues, result.eigenvectors, n);
+
+			if (!detail::EigenResultIsFinite(result.eigenvalues, result.eigenvectors)) {
+				result.converged = false;
+				result.status = AlgorithmStatus::NumericalInstability;
+				result.error_message = "SymmMatEigenSolverQR: iteration produced nonfinite eigenvalues or eigenvectors";
+			} else if (!result.converged) {
+				result.status = AlgorithmStatus::MaxIterationsExceeded;
+				result.error_message = "QR iteration did not converge within " + std::to_string(maxIter) + " iterations";
+			}
 
 			return result;
 		}
 
-		// Overload for regular Matrix (will symmetrize)
+	public:
+		// Overload for regular Matrix: validate the self-adjoint domain before averaging.
 		static Result Solve(const Matrix<Real>& A, Real tol = PrecisionValues<Real>::EigenSolverConvergenceTolerance, int maxIter = 1000) {
-			int n = A.rows();
-			MatrixSym<Real> symA(n);
-			for (int i = 0; i < n; i++)
-				for (int j = i; j < n; j++)
-					symA(i, j) = 0.5 * (A[i][j] + A[j][i]);
+			detail::ValidateSymmetricInput(A);
+			return Solve(SymmetricPart(A), tol, maxIter);
+		}
 
-			return Solve(symA, tol, maxIter);
+		static Result SolveSymmetricPart(const Matrix<Real>& A, Real tol = PrecisionValues<Real>::EigenSolverConvergenceTolerance, int maxIter = 1000) {
+			return Solve(SymmetricPart(A), tol, maxIter);
+		}
+
+		static Result SolveSymmetricPart(const Matrix<Real>& A, const EigenSolverConfig& config) {
+			return Solve(SymmetricPart(A), config);
 		}
 
 		/// Solve symmetric eigenvalue problem using configuration object.
@@ -148,31 +197,40 @@ namespace MML {
 		static Result Solve(const MatrixSym<Real>& A, const EigenSolverConfig& config) {
 			AlgorithmTimer timer;  // Starts automatically
 
-			int maxIter = (config.max_iterations > 0) ? config.max_iterations : 1000;
-			Result result = Solve(A, config.tolerance, maxIter);
+			detail::ValidateSelfAdjointControls(config.tolerance, config.max_iterations);
+			int maxIter = config.max_iterations == 0 ? 1000 : config.max_iterations;
+			Result result = SolveImpl(A, config.tolerance, maxIter, config.sort_eigenvalues, config.compute_eigenvectors);
 
 			// Populate diagnostic fields
 			result.elapsed_time_ms = timer.elapsed_ms();
-			if (!result.converged) {
+			if (!result.converged && result.status == AlgorithmStatus::Success) {
 				result.status = AlgorithmStatus::MaxIterationsExceeded;
 				result.error_message = "QR iteration did not converge within " + std::to_string(maxIter) + " iterations";
 			}
+			if (config.verbose) detail::LogSelfAdjointResult(result);
 
 			return result;
 		}
 
 		/// Solve for a regular Matrix using configuration object.
 		static Result Solve(const Matrix<Real>& A, const EigenSolverConfig& config) {
+			detail::ValidateSymmetricInput(A);
+			return Solve(SymmetricPart(A), config);
+		}
+
+	private:
+		// Overflow-safe symmetric part (A + A^T)/2
+		static MatrixSym<Real> SymmetricPart(const Matrix<Real>& A) {
+			if (A.rows() != A.cols())
+				throw MatrixDimensionError("SolveSymmetricPart requires a square matrix", A.rows(), A.cols(), -1, -1);
 			int n = A.rows();
 			MatrixSym<Real> symA(n);
 			for (int i = 0; i < n; i++)
 				for (int j = i; j < n; j++)
-					symA(i, j) = 0.5 * (A[i][j] + A[j][i]);
-
-			return Solve(symA, config);
+					symA(i, j) = detail::SymmetrizeEntries(A[i][j], A[j][i]);
+			return symA;
 		}
 
-	private:
 		/// Reduce symmetric matrix to tridiagonal form using Householder reflections.
 		///
 		/// Algorithm: For k = 0, 1, ..., n-3:
@@ -190,7 +248,7 @@ namespace MML {
 				for (int i = k + 1; i < n; i++)
 					sigma += T(i, k) * T(i, k);
 
-				if (sigma < PrecisionValues<Real>::DivisionSafetyThreshold) // Column already zeroed
+				if (sigma == 0) // Column already zeroed; small nonzero columns still need reduction.
 					continue;
 
 				Real xNorm = std::sqrt(sigma);
@@ -203,10 +261,10 @@ namespace MML {
 				Real u_k1 = T(k + 1, k) - alpha;
 
 				// ||u||^2 = sigma + alpha^2 - 2*alpha*T[k+1,k]
-				Real uNormSq = sigma + alpha * alpha - 2.0 * alpha * T(k + 1, k);
+				Real uNormSq = sigma + alpha * alpha - MML::Real(2.0) * alpha * T(k + 1, k);
 				Real uNorm = std::sqrt(uNormSq);
 
-				if (uNorm < PrecisionValues<Real>::DivisionSafetyThreshold)
+				if (uNorm == 0)
 					continue;
 
 				// Build normalized Householder vector v
@@ -233,7 +291,7 @@ namespace MML {
 				// w = 2*(p - K*v)
 				Vector<Real> w(n, 0.0);
 				for (int i = k + 1; i < n; i++)
-					w[i] = 2.0 * (p[i] - K * v[i]);
+					w[i] = MML::Real(2.0) * (p[i] - K * v[i]);
 
 				// Update T: T' = T - v*w^T - w*v^T
 				for (int i = k + 1; i < n; i++)
@@ -252,13 +310,13 @@ namespace MML {
 
 				// Accumulate transformation: Q = Q * H = Q * (I - 2*v*v^T)
 				// Q_new[:, j] = Q[:, j] - 2*(Q*v)*v[j]
-				for (int i = 0; i < n; i++) {
+				for (int i = 0; i < Q.rows(); i++) {
 					Real dot = 0.0;
 					for (int m = k + 1; m < n; m++)
 						dot += Q(i, m) * v[m];
 
 					for (int j = k + 1; j < n; j++)
-						Q(i, j) -= 2.0 * dot * v[j];
+						Q(i, j) -= MML::Real(2.0) * dot * v[j];
 				}
 			}
 		}
@@ -271,24 +329,27 @@ namespace MML {
 		/// - Exceptional shifts to break convergence cycles
 		/// - Implicit QR step via bulge chasing with Givens rotations
 		/// - Deflation when subdiagonal elements become negligible
-		static void ImplicitQRAlgorithm(Vector<Real>& d, Vector<Real>& e, Matrix<Real>& Q, int n, Real tol, int maxIter, int& iterations,
+		static void ImplicitQRAlgorithm(Vector<Real>& d, Vector<Real>& e, Matrix<Real>& Q, int n, Real tolAbs, Real tolRel, int maxIter, int& iterations,
 										bool& converged) {
 			iterations = 0;
 			converged = false;
+
+			// Deflation threshold: relative to the neighbouring diagonal entries, floored at the
+			// absolute tolerance (both expressed in the working, possibly scaled, units)
+			auto deflationThreshold = [&](int k) {
+				Real threshold = tolRel * (std::abs(d[k]) + std::abs(d[k + 1]));
+				return threshold < tolAbs ? tolAbs : threshold;
+			};
 
 			// Work on unreduced portion [lo, hi]
 			int lo = 0;
 			int hi = n - 1;
 			int iterSinceDeflation = 0;
 
-			while (hi > 0 && iterations < maxIter) {
+			while (hi > 0) {
 				// Deflate: Find the largest unreduced block
 				// Check if e[hi-1] is negligible
-				Real threshold = tol * (std::abs(d[hi - 1]) + std::abs(d[hi]));
-				if (threshold < tol)
-					threshold = tol;
-
-				if (std::abs(e[hi - 1]) <= threshold) {
+				if (std::abs(e[hi - 1]) <= deflationThreshold(hi - 1)) {
 					e[hi - 1] = 0.0;
 					hi--;
 					iterSinceDeflation = 0;
@@ -298,11 +359,7 @@ namespace MML {
 				// Find lo: start of the unreduced block ending at hi
 				lo = hi - 1;
 				while (lo > 0) {
-					threshold = tol * (std::abs(d[lo - 1]) + std::abs(d[lo]));
-					if (threshold < tol)
-						threshold = tol;
-
-					if (std::abs(e[lo - 1]) <= threshold) {
+					if (std::abs(e[lo - 1]) <= deflationThreshold(lo - 1)) {
 						e[lo - 1] = 0.0;
 						break;
 					}
@@ -311,15 +368,16 @@ namespace MML {
 
 				// Now work on the unreduced block [lo, hi]
 				// Choose shift strategy based on convergence progress
+				if (iterations >= maxIter) break;
 
 				if (iterSinceDeflation >= 20) {
 					// Exceptional shift: ad-hoc perturbation to break convergence cycles
 					// Alternating sign prevents getting stuck in periodic orbits
 					Real shift;
 					if (iterSinceDeflation % 2 == 0)
-						shift = d[hi] + 1.5 * std::abs(e[hi - 1]);
+						shift = d[hi] + MML::Real(1.5) * std::abs(e[hi - 1]);
 					else
-						shift = d[hi] - 1.5 * std::abs(e[hi - 1]);
+						shift = d[hi] - MML::Real(1.5) * std::abs(e[hi - 1]);
 
 					ImplicitQRStep(d, e, Q, lo, hi, shift, n);
 					iterations++;
@@ -336,15 +394,14 @@ namespace MML {
 					iterSinceDeflation++;
 
 					// Quick deflation check between shifts
-					threshold = tol * (std::abs(d[hi - 1]) + std::abs(d[hi]));
-					if (threshold < tol) threshold = tol;
-					if (std::abs(e[hi - 1]) <= threshold) {
+					if (std::abs(e[hi - 1]) <= deflationThreshold(hi - 1)) {
 						e[hi - 1] = 0.0;
 						hi--;
 						iterSinceDeflation = 0;
 						continue;
 					}
 
+					if (iterations >= maxIter) break;
 					ImplicitQRStep(d, e, Q, lo, hi, s2, n);
 					iterations++;
 					iterSinceDeflation++;
@@ -358,7 +415,7 @@ namespace MML {
 				}
 			}
 
-			converged = (hi <= 0) || IsConverged(e, n, tol);
+			converged = (hi <= 0) || IsConverged(e, n, deflationThreshold);
 		}
 
 		/// Compute Wilkinson shift: eigenvalue of 2x2 trailing submatrix closer to d[hi]
@@ -368,13 +425,13 @@ namespace MML {
 		///
 		/// We want the one closer to c (= d[hi])
 		static Real WilkinsonShift(Real a, Real b, Real c) {
-			Real d = (a - c) * 0.5;
+			Real d = (a - c) * MML::Real(0.5);
 			Real b_sq = b * b;
 
-			if (std::abs(d) < PrecisionValues<Real>::DivisionSafetyThreshold)
+			if (d == 0)
 				return c - std::abs(b);
 
-			Real sign_d = (d >= 0.0) ? 1.0 : -1.0;
+			Real sign_d = (d >= MML::Real(0.0)) ? MML::Real(1.0) : -MML::Real(1.0);
 			Real r = std::sqrt(d * d + b_sq);
 
 			// Shift = c - b^2 / (d + sign(d)*sqrt(d^2+b^2))
@@ -386,8 +443,8 @@ namespace MML {
 		/// Returns both eigenvalues with s1 being the Wilkinson shift (closer to c = d[hi])
 		/// and s2 being the other eigenvalue. Used for Francis double-shift strategy.
 		static void TrailingEigenvalues(Real a, Real b, Real c, Real& s1, Real& s2) {
-			Real avg = (a + c) * 0.5;
-			Real delta = (a - c) * 0.5;
+			Real avg = (a + c) * MML::Real(0.5);
+			Real delta = (a - c) * MML::Real(0.5);
 			Real r = std::sqrt(delta * delta + b * b);
 			s1 = avg - r;
 			s2 = avg + r;
@@ -433,8 +490,8 @@ namespace MML {
 				// d'_k     = c²*d_k + 2*c*s*e_k + s²*d_{k+1}
 				// d'_{k+1} = s²*d_k - 2*c*s*e_k + c²*d_{k+1}
 				// e'_k     = c*s*(d_{k+1} - d_k) + (c² - s²)*e_k
-				d[k] = c * c * d_k + 2.0 * c * s * e_k + s * s * d_k1;
-				d[k + 1] = s * s * d_k - 2.0 * c * s * e_k + c * c * d_k1;
+				d[k] = c * c * d_k + MML::Real(2.0) * c * s * e_k + s * s * d_k1;
+				d[k + 1] = s * s * d_k - MML::Real(2.0) * c * s * e_k + c * c * d_k1;
 				e[k] = c * s * (d_k1 - d_k) + (c * c - s * s) * e_k;
 
 				// Bulge chasing: the rotation creates a fill-in at position (k+2, k)
@@ -449,7 +506,7 @@ namespace MML {
 				// We're computing Q * G^T (to get eigenvectors of original matrix)
 				// Q_new[:, k] = c*Q[:, k] + s*Q[:, k+1]
 				// Q_new[:, k+1] = -s*Q[:, k] + c*Q[:, k+1]
-				for (int i = 0; i < n; i++) {
+				for (int i = 0; i < Q.rows(); i++) {
 					Real qik = Q(i, k);
 					Real qik1 = Q(i, k + 1);
 					Q(i, k) = c * qik + s * qik1;
@@ -468,35 +525,36 @@ namespace MML {
 		/// This zeros out b: c*a + s*b = (a^2 + b^2)/r = r
 		/// -s*a + c*b = (-ab + ab)/r = 0
 		static void ComputeGivens(Real a, Real b, Real& c, Real& s) {
-			if (std::abs(b) < PrecisionValues<Real>::DivisionSafetyThreshold) {
-				c = (a >= 0.0) ? 1.0 : -1.0;
+			if (b == 0) {
+				c = (a >= MML::Real(0.0)) ? MML::Real(1.0) : -MML::Real(1.0);
 				s = 0.0;
-			} else if (std::abs(a) < PrecisionValues<Real>::DivisionSafetyThreshold) {
+			} else if (a == 0) {
 				c = 0.0;
-				s = (b >= 0.0) ? 1.0 : -1.0;
+				s = (b >= MML::Real(0.0)) ? MML::Real(1.0) : -MML::Real(1.0);
 			} else if (std::abs(b) > std::abs(a)) {
 				// Use t = a/b to avoid overflow
 				Real t = a / b;
-				Real u = std::sqrt(1.0 + t * t);
+				Real u = std::sqrt(MML::Real(1.0) + t * t);
 				if (b < 0.0)
 					u = -u;
-				s = 1.0 / u;
+				s = MML::Real(1.0) / u;
 				c = s * t;
 			} else {
 				// Use t = b/a to avoid overflow
 				Real t = b / a;
-				Real u = std::sqrt(1.0 + t * t);
+				Real u = std::sqrt(MML::Real(1.0) + t * t);
 				if (a < 0.0)
 					u = -u;
-				c = 1.0 / u;
+				c = MML::Real(1.0) / u;
 				s = c * t;
 			}
 		}
 
-		/// Check if the tridiagonal matrix has converged (all subdiagonals negligible)
-		static bool IsConverged(const Vector<Real>& e, int n, Real tol) {
+		/// Check if the tridiagonal matrix has converged (all subdiagonals below the deflation threshold)
+		template<typename Threshold>
+		static bool IsConverged(const Vector<Real>& e, int n, Threshold deflationThreshold) {
 			for (int i = 0; i < n - 1; i++) {
-				if (std::abs(e[i]) > tol)
+				if (std::abs(e[i]) > deflationThreshold(i))
 					return false;
 			}
 			return true;
@@ -517,7 +575,7 @@ namespace MML {
 					std::swap(eigenvalues[i], eigenvalues[minIdx]);
 
 					// Swap corresponding eigenvectors (columns)
-					for (int row = 0; row < n; row++)
+					for (int row = 0; row < eigenvectors.rows(); row++)
 						std::swap(eigenvectors(row, i), eigenvectors(row, minIdx));
 				}
 			}

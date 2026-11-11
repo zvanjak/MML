@@ -84,8 +84,8 @@ namespace MML
 		/// @param algDim Dimension of algebraic variables
 		/// @param maxSteps Initial storage capacity
 		DAESolution(Real t1, Real t2, int diffDim, int algDim, int maxSteps)
-			: _t1(t1), _t2(t2), _diffDim(diffDim), _algDim(algDim),
-			  _numStepsOK(0), _numStepsBad(0), _totalSavedSteps(0), _count(0)
+			: _numStepsOK(0), _numStepsBad(0), _diffDim(diffDim), _algDim(algDim),
+			  _totalSavedSteps(0), _count(0), _t1(t1), _t2(t2)
 		{
 			const int capacity = detail::TrajectoryCapacity(0, static_cast<std::int64_t>(maxSteps) + 1,
 				max_size(), false);
@@ -486,12 +486,13 @@ namespace MML
 	/**
 	 * @brief DAE system with analytic Jacobians for implicit solvers.
 	 * 
-	 * Extends DAESystem with Jacobian computation capability.
-	 * Required for implicit methods like BDF or backward Euler.
+	 * Implements the Jacobian-capable interface through one unambiguous base chain.
+	 * Reuses DAESystem internally for differential and algebraic callbacks.
 	 */
-	class DAESystemWithJacobian : public DAESystem
+	class DAESystemWithJacobian : public IODESystemDAEWithJacobian
 	{
 	private:
+		DAESystem _system;
 		/// Jacobian ∂f/∂x
 		void (*_jacobian_fx)(Real, const Vector<Real>&, const Vector<Real>&, Matrix<Real>&);
 		/// Jacobian ∂f/∂y
@@ -516,6 +517,7 @@ namespace MML
 		/// @param jacobian_fy Function computing ∂f/∂y
 		/// @param jacobian_gx Function computing ∂g/∂x
 		/// @param jacobian_gy Function computing ∂g/∂y
+		/// @throws ArgumentError if any equation or Jacobian callback is null
 		DAESystemWithJacobian(
 			int diffDim, int algDim,
 			void (*diffFunc)(Real, const Vector<Real>&, const Vector<Real>&, Vector<Real>&),
@@ -524,40 +526,61 @@ namespace MML
 			void (*jacobian_fy)(Real, const Vector<Real>&, const Vector<Real>&, Matrix<Real>&),
 			void (*jacobian_gx)(Real, const Vector<Real>&, const Vector<Real>&, Matrix<Real>&),
 			void (*jacobian_gy)(Real, const Vector<Real>&, const Vector<Real>&, Matrix<Real>&))
-			: DAESystem(diffDim, algDim, diffFunc, algFunc),
+			: _system(diffDim, algDim, diffFunc, algFunc),
 			  _jacobian_fx(jacobian_fx), _jacobian_fy(jacobian_fy),
-			  _jacobian_gx(jacobian_gx), _jacobian_gy(jacobian_gy) {}
+			  _jacobian_gx(jacobian_gx), _jacobian_gy(jacobian_gy)
+		{
+			if (jacobian_fx == nullptr || jacobian_fy == nullptr || jacobian_gx == nullptr || jacobian_gy == nullptr)
+				throw ArgumentError("DAESystemWithJacobian: all Jacobian function pointers are required");
+		}
+
+		int getDiffDim() const override { return _system.getDiffDim(); }
+		int getAlgDim() const override { return _system.getAlgDim(); }
+
+		void diffEqs(Real t, const Vector<Real>& x, const Vector<Real>& y, Vector<Real>& dxdt) const override
+		{
+			_system.diffEqs(t, x, y, dxdt);
+		}
+
+		void algConstraints(Real t, const Vector<Real>& x, const Vector<Real>& y, Vector<Real>& residual) const override
+		{
+			_system.algConstraints(t, x, y, residual);
+		}
 
 		/// @brief Compute Jacobian ∂f/∂x
 		void jacobian_fx(Real t, const Vector<Real>& x, const Vector<Real>& y,
-		                 Matrix<Real>& df_dx) const
+		                 Matrix<Real>& df_dx) const override
 		{
-			if (_jacobian_fx != nullptr)
-				_jacobian_fx(t, x, y, df_dx);
+			if (_jacobian_fx == nullptr)
+				throw NotImplementedError("DAESystemWithJacobian::jacobian_fx - no Jacobian function provided");
+			_jacobian_fx(t, x, y, df_dx);
 		}
 
 		/// @brief Compute Jacobian ∂f/∂y
 		void jacobian_fy(Real t, const Vector<Real>& x, const Vector<Real>& y,
-		                 Matrix<Real>& df_dy) const
+		                 Matrix<Real>& df_dy) const override
 		{
-			if (_jacobian_fy != nullptr)
-				_jacobian_fy(t, x, y, df_dy);
+			if (_jacobian_fy == nullptr)
+				throw NotImplementedError("DAESystemWithJacobian::jacobian_fy - no Jacobian function provided");
+			_jacobian_fy(t, x, y, df_dy);
 		}
 
 		/// @brief Compute Jacobian ∂g/∂x
 		void jacobian_gx(Real t, const Vector<Real>& x, const Vector<Real>& y,
-		                 Matrix<Real>& dg_dx) const
+		                 Matrix<Real>& dg_dx) const override
 		{
-			if (_jacobian_gx != nullptr)
-				_jacobian_gx(t, x, y, dg_dx);
+			if (_jacobian_gx == nullptr)
+				throw NotImplementedError("DAESystemWithJacobian::jacobian_gx - no Jacobian function provided");
+			_jacobian_gx(t, x, y, dg_dx);
 		}
 
 		/// @brief Compute Jacobian ∂g/∂y
 		void jacobian_gy(Real t, const Vector<Real>& x, const Vector<Real>& y,
-		                 Matrix<Real>& dg_dy) const
+		                 Matrix<Real>& dg_dy) const override
 		{
-			if (_jacobian_gy != nullptr)
-				_jacobian_gy(t, x, y, dg_dy);
+			if (_jacobian_gy == nullptr)
+				throw NotImplementedError("DAESystemWithJacobian::jacobian_gy - no Jacobian function provided");
+			_jacobian_gy(t, x, y, dg_dy);
 		}
 	};
 

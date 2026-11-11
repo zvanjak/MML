@@ -115,4 +115,62 @@ namespace MML::Tests::Algorithms::DAEEventDetectionTests {
 		REQUIRE(result.integration.final_constraint_norm <= EventTestConfig().constraint_tol);
 	}
 
+	TEST_CASE("DAE event root budget exhaustion is reported instead of an incoherent event",
+		"[dae][events][MinimalMathLibrary-hrdm]") {
+		TimedEventDAE system(static_cast<MML::Real>(0.3), EventAction::Continue);
+		Vector<Real> x0{static_cast<MML::Real>(0.0)}, y0{static_cast<MML::Real>(1.0)};
+		DAESolverConfig config = EventTestConfig();
+		config.step_size = static_cast<MML::Real>(1.0);
+		DAEEventConfig eventConfig;
+		eventConfig.max_root_iterations = 1;
+
+		auto result = SolveDAEBackwardEulerWithEvents(system, static_cast<MML::Real>(0.0), x0, y0,
+			static_cast<MML::Real>(1.0), config, eventConfig);
+
+		INFO(result.integration.error_message);
+		REQUIRE(result.integration.status == AlgorithmStatus::MaxIterationsExceeded);
+		REQUIRE(result.events.empty());
+		REQUIRE_FALSE(result.terminated_by_event);
+		REQUIRE(result.final_time == static_cast<MML::Real>(0.0));
+		REQUIRE(result.integration.error_message.find("max_root_iterations") != std::string::npos);
+
+		SECTION("Sufficient budget yields a coherent time/state/residual triple") {
+			eventConfig.max_root_iterations = 80;
+			auto ok = SolveDAEBackwardEulerWithEvents(system, static_cast<MML::Real>(0.0), x0, y0,
+				static_cast<MML::Real>(1.0), config, eventConfig);
+			REQUIRE(ok.integration.status == AlgorithmStatus::Success);
+			REQUIRE(ok.events.size() == 1);
+			REQUIRE_THAT(ok.events[0].time, WithinAbs(static_cast<MML::Real>(0.3), TOL(1e-9, 1e-4)));
+			REQUIRE_THAT(ok.events[0].differential_state[0], WithinAbs(ok.events[0].time, TOL(1e-9, 1e-4)));
+			REQUIRE_THAT(ok.events[0].event_value, WithinAbs(static_cast<MML::Real>(0.0), eventConfig.event_tolerance));
+		}
+	}
+
+	TEST_CASE("DAE tiny-magnitude event functions are not lost to sign-product underflow",
+		"[dae][events][MinimalMathLibrary-hrdm]") {
+		if constexpr (!std::is_same_v<Real, float>) {
+			class ScaledEventDAE : public TimedEventDAE {
+			public:
+				using TimedEventDAE::TimedEventDAE;
+				Real eventFunction(int i, Real t, const Vector<Real>& x, const Vector<Real>& y) const override {
+					return static_cast<MML::Real>(1e-200) * TimedEventDAE::eventFunction(i, t, x, y);
+				}
+			};
+			ScaledEventDAE system(static_cast<MML::Real>(0.5), EventAction::Stop);
+			Vector<Real> x0{static_cast<MML::Real>(0.0)}, y0{static_cast<MML::Real>(1.0)};
+			DAESolverConfig config = EventTestConfig();
+			config.step_size = static_cast<MML::Real>(1.0);
+			DAEEventConfig eventConfig;
+			eventConfig.event_tolerance = static_cast<MML::Real>(1e-210);
+
+			auto result = SolveDAEBackwardEulerWithEvents(system, static_cast<MML::Real>(0.0), x0, y0,
+				static_cast<MML::Real>(1.0), config, eventConfig);
+			INFO(result.integration.error_message);
+			REQUIRE(result.integration.status == AlgorithmStatus::Success);
+			REQUIRE(result.terminated_by_event);
+			REQUIRE(result.events.size() == 1);
+			REQUIRE_THAT(result.events[0].time, WithinAbs(static_cast<MML::Real>(0.5), static_cast<MML::Real>(1e-9)));
+		}
+	}
+
 } // namespace MML::Tests::Algorithms::DAEEventDetectionTests

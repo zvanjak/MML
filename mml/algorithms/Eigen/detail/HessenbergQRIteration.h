@@ -50,7 +50,7 @@ namespace MML::detail {
 		//
 		// The one closer to d depends on sign of δ
 
-		Real delta = (a - d) / 2.0;
+		Real delta = (a - d) / MML::Real(2.0);
 		Real disc = delta * delta + b * c;
 
 		if (disc >= 0.0) {
@@ -73,7 +73,7 @@ namespace MML::detail {
 		} else {
 			// Complex eigenvalues - real part is (a+d)/2
 			// For real QR, use the real part
-			return (a + d) / 2.0;
+			return (a + d) / MML::Real(2.0);
 		}
 	}
 
@@ -356,7 +356,7 @@ namespace MML::detail {
 				Real t1 = result.H(k + 1, j);
 				Real t2 = result.H(k + 2, j);
 				Real dot = v0 * t0 + v1 * t1 + v2 * t2;
-				Real tau = 2.0 * dot;
+				Real tau = MML::Real(2.0) * dot;
 				result.H(k, j) = t0 - tau * v0;
 				result.H(k + 1, j) = t1 - tau * v1;
 				result.H(k + 2, j) = t2 - tau * v2;
@@ -370,7 +370,7 @@ namespace MML::detail {
 				Real t1 = result.H(j, k + 1);
 				Real t2 = result.H(j, k + 2);
 				Real dot = v0 * t0 + v1 * t1 + v2 * t2;
-				Real tau = 2.0 * dot;
+				Real tau = MML::Real(2.0) * dot;
 				result.H(j, k) = t0 - tau * v0;
 				result.H(j, k + 1) = t1 - tau * v1;
 				result.H(j, k + 2) = t2 - tau * v2;
@@ -383,7 +383,7 @@ namespace MML::detail {
 					Real t1 = result.Q(j, k + 1);
 					Real t2 = result.Q(j, k + 2);
 					Real dot = v0 * t0 + v1 * t1 + v2 * t2;
-					Real tau = 2.0 * dot;
+					Real tau = MML::Real(2.0) * dot;
 					result.Q(j, k) = t0 - tau * v0;
 					result.Q(j, k + 1) = t1 - tau * v1;
 					result.Q(j, k + 2) = t2 - tau * v2;
@@ -394,7 +394,7 @@ namespace MML::detail {
 			if (k < iHi - 2) {
 				x = result.H(k + 1, k);
 				y = result.H(k + 2, k);
-				z = (k + 3 <= iHi) ? result.H(k + 3, k) : 0.0;
+				z = (k + 3 <= iHi) ? result.H(k + 3, k) : MML::Real(0.0);
 			}
 		}
 

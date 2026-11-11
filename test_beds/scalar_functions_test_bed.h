@@ -72,8 +72,8 @@ namespace MML::TestBeds
         Real x = xVal[0];
         Real y = xVal[1];
         Real z = xVal[2];
-        if( ind == 0 ) return (exp(z / (y*y + 1)) * ((x*x + 1) * y * cos(x * y) - 2 * x * sin(x * y)))/pow((x*x + 1),2);
-        else if( ind == 1 ) return (exp(z/(y*y + 1)) * (x * pow((y*y + 1),2) * cos(x * y) - 2 * y * z * sin(x * y)))/((x*x + 1) * pow((y*y + 1),2));
+        if( ind == 0 ) return (exp(z / (y*y + 1)) * ((x*x + 1) * y * cos(x * y) - 2 * x * sin(x * y)))/pow((x*x + 1), MML::Real(2));
+        else if( ind == 1 ) return (exp(z/(y*y + 1)) * (x * pow((y*y + 1), MML::Real(2)) * cos(x * y) - 2 * y * z * sin(x * y)))/((x*x + 1) * pow((y*y + 1), MML::Real(2)));
         else return (exp(z/(y*y + 1)) * sin(x * y))/((x*x + 1) * (y*y + 1));
     }
 
@@ -147,7 +147,7 @@ namespace MML::TestBeds
     static Real TestScalarFunc_Rastrigin(const VectorN<Real, 3> &v) 
     { 
         const Real A = 10.0;
-        const Real pi2 = 2 * 3.14159265358979323846;
+        const Real pi2 = 2 * MML::Real(3.14159265358979323846);
         return 3*A + (v[0]*v[0] - A*cos(pi2*v[0])) 
                    + (v[1]*v[1] - A*cos(pi2*v[1])) 
                    + (v[2]*v[2] - A*cos(pi2*v[2]));
@@ -155,7 +155,7 @@ namespace MML::TestBeds
     static Real TestScalarFunc_Rastrigin_derived(const VectorN<Real, 3> &v, int ind) 
     { 
         const Real A = 10.0;
-        const Real pi2 = 2 * 3.14159265358979323846;
+        const Real pi2 = 2 * MML::Real(3.14159265358979323846);
         return 2*v[ind] + A*pi2*sin(pi2*v[ind]);
     }
 
@@ -165,23 +165,23 @@ namespace MML::TestBeds
     static Real TestScalarFunc_Ackley(const VectorN<Real, 3> &v) 
     { 
         const Real a = 20.0;
-        const Real b = 0.2;
-        const Real c = 2 * 3.14159265358979323846;
+        const Real b = MML::Real(0.2);
+        const Real c = 2 * MML::Real(3.14159265358979323846);
         Real sum1 = v[0]*v[0] + v[1]*v[1] + v[2]*v[2];
         Real sum2 = cos(c*v[0]) + cos(c*v[1]) + cos(c*v[2]);
-        return -a * exp(-b * sqrt(sum1/3.0)) - exp(sum2/3.0) + a + exp(1.0);
+        return -a * exp(-b * sqrt(sum1/MML::Real(3.0))) - exp(sum2/MML::Real(3.0)) + a + exp(MML::Real(1.0));
     }
     static Real TestScalarFunc_Ackley_derived(const VectorN<Real, 3> &v, int ind) 
     { 
         const Real a = 20.0;
-        const Real b = 0.2;
-        const Real c = 2 * 3.14159265358979323846;
+        const Real b = MML::Real(0.2);
+        const Real c = 2 * MML::Real(3.14159265358979323846);
         Real sum1 = v[0]*v[0] + v[1]*v[1] + v[2]*v[2];
         Real sum2 = cos(c*v[0]) + cos(c*v[1]) + cos(c*v[2]);
-        Real r = sqrt(sum1/3.0);
+        Real r = sqrt(sum1/MML::Real(3.0));
         // df/dxi = (a*b*xi)/(3*r) * exp(-b*r) + (c/3)*sin(c*xi)*exp(sum2/3)
-        if (r < 1e-12) return (c/3.0)*sin(c*v[ind])*exp(sum2/3.0);
-        return (a*b*v[ind])/(3.0*r) * exp(-b*r) + (c/3.0)*sin(c*v[ind])*exp(sum2/3.0);
+        if (r < MML::Real(1e-12)) return (c/MML::Real(3.0))*sin(c*v[ind])*exp(sum2/MML::Real(3.0));
+        return (a*b*v[ind])/(MML::Real(3.0)*r) * exp(-b*r) + (c/MML::Real(3.0))*sin(c*v[ind])*exp(sum2/MML::Real(3.0));
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -195,13 +195,13 @@ namespace MML::TestBeds
     { 
         Real r2 = v[0]*v[0] + v[1]*v[1] + v[2]*v[2];
         if (r2 < 1e-20) return -1e10;  // Regularize singularity
-        return -1.0 / sqrt(r2);
+        return -MML::Real(1.0) / sqrt(r2);
     }
     static Real TestScalarFunc_CoulombPotential_derived(const VectorN<Real, 3> &v, int ind) 
     { 
         Real r2 = v[0]*v[0] + v[1]*v[1] + v[2]*v[2];
         if (r2 < 1e-20) return 0;  // Regularize singularity
-        Real r3 = pow(r2, 1.5);
+        Real r3 = pow(r2, MML::Real(1.5));
         return v[ind] / r3;
     }
 
@@ -210,7 +210,7 @@ namespace MML::TestBeds
     // Simple quadratic well - used in physics as basis for perturbation theory
     static Real TestScalarFunc_HarmonicPotential(const VectorN<Real, 3> &v) 
     { 
-        return 0.5 * (v[0]*v[0] + v[1]*v[1] + v[2]*v[2]);
+        return MML::Real(0.5) * (v[0]*v[0] + v[1]*v[1] + v[2]*v[2]);
     }
     static Real TestScalarFunc_HarmonicPotential_derived(const VectorN<Real, 3> &v, int ind) 
     { 
@@ -224,19 +224,19 @@ namespace MML::TestBeds
     { 
         Real r2 = v[0]*v[0] + v[1]*v[1] + v[2]*v[2];
         if (r2 < 0.01) return 1e10;  // Regularize singularity
-        Real r6_inv = 1.0 / (r2*r2*r2);
+        Real r6_inv = MML::Real(1.0) / (r2*r2*r2);
         Real r12_inv = r6_inv * r6_inv;
-        return 4.0 * (r12_inv - r6_inv);
+        return MML::Real(4.0) * (r12_inv - r6_inv);
     }
     static Real TestScalarFunc_LennardJones_derived(const VectorN<Real, 3> &v, int ind) 
     { 
         Real r2 = v[0]*v[0] + v[1]*v[1] + v[2]*v[2];
         if (r2 < 0.01) return 0;  // Regularize singularity
         Real r = sqrt(r2);
-        Real r7_inv = 1.0 / pow(r, 7);
-        Real r13_inv = 1.0 / pow(r, 13);
+        Real r7_inv = MML::Real(1.0) / pow(r, MML::Real(7));
+        Real r13_inv = MML::Real(1.0) / pow(r, MML::Real(13));
         // df/dxi = 4*(-12/r^13 + 6/r^7) * (xi/r) = 4*xi*(-12/r^14 + 6/r^8)
-        return 4.0 * v[ind] * (-12.0*r13_inv/r + 6.0*r7_inv/r);
+        return MML::Real(4.0) * v[ind] * (-MML::Real(12.0)*r13_inv/r + MML::Real(6.0)*r7_inv/r);
     }
 
     // Function 12: Morse potential
@@ -248,7 +248,7 @@ namespace MML::TestBeds
         const Real a = 1.0;   // Width parameter
         const Real r0 = 1.0;  // Equilibrium distance
         Real r = sqrt(v[0]*v[0] + v[1]*v[1] + v[2]*v[2]);
-        Real term = 1.0 - exp(-a*(r - r0));
+        Real term = MML::Real(1.0) - exp(-a*(r - r0));
         return D * term * term;
     }
     static Real TestScalarFunc_Morse_derived(const VectorN<Real, 3> &v, int ind) 
@@ -261,7 +261,7 @@ namespace MML::TestBeds
         Real r = sqrt(r2);
         Real exp_term = exp(-a*(r - r0));
         // df/dxi = 2*D*a*(1-exp(-a(r-r0)))*exp(-a(r-r0)) * (xi/r)
-        return 2.0*D*a*(1.0 - exp_term)*exp_term * (v[ind]/r);
+        return MML::Real(2.0)*D*a*(MML::Real(1.0) - exp_term)*exp_term * (v[ind]/r);
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -277,7 +277,7 @@ namespace MML::TestBeds
     }
     static Real TestScalarFunc_Gaussian_derived(const VectorN<Real, 3> &v, int ind) 
     { 
-        return -2.0 * v[ind] * exp(-(v[0]*v[0] + v[1]*v[1] + v[2]*v[2]));
+        return -MML::Real(2.0) * v[ind] * exp(-(v[0]*v[0] + v[1]*v[1] + v[2]*v[2]));
     }
 
     // Function 14: Sinusoidal product

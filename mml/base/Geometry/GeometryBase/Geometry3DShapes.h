@@ -16,6 +16,7 @@
 #include <cmath>
 
 #include <mml/MMLBase.h>
+#include <mml/MMLExceptions.h>
 #include <mml/base/Geometry/GeometryBase/Geometry2DShapes.h>
 
 
@@ -35,7 +36,7 @@ namespace MML {
 	public:
 		Real Radius() const { return _radius; }
 		Real& Radius() { return _radius; }
-		Real Diameter() const { return 2.0 * _radius; }
+		Real Diameter() const { return MML::Real(2.0) * _radius; }
 
 		SphereGeom()
 			: _radius(0.0) {}
@@ -44,24 +45,24 @@ namespace MML {
 
 		bool IsValid() const { return _radius > 0; }
 
-		Real Volume() const { return (4.0 / 3.0) * Constants::PI * _radius * _radius * _radius; }
-		Real SurfaceArea() const { return 4.0 * Constants::PI * _radius * _radius; }
+		Real Volume() const { return (MML::Real(4.0) / MML::Real(3.0)) * Constants::PI * _radius * _radius * _radius; }
+		Real SurfaceArea() const { return MML::Real(4.0) * Constants::PI * _radius * _radius; }
 
 		// Great circle (equator)
 		Circle GreatCircle() const { return Circle(_radius); }
 
 		// Spherical cap for given height h
-		Real CapArea(Real h) const { return 2.0 * Constants::PI * _radius * h; }
-		Real CapVolume(Real h) const { return Constants::PI * h * h * (3.0 * _radius - h) / 3.0; }
+		Real CapArea(Real h) const { return MML::Real(2.0) * Constants::PI * _radius * h; }
+		Real CapVolume(Real h) const { return Constants::PI * h * h * (MML::Real(3.0) * _radius - h) / MML::Real(3.0); }
 
 		// Spherical zone (between two parallel planes)
-		Real ZoneArea(Real h) const { return 2.0 * Constants::PI * _radius * h; }
+		Real ZoneArea(Real h) const { return MML::Real(2.0) * Constants::PI * _radius * h; }
 
-		static SphereGeom FromVolume(Real vol) { return SphereGeom(cbrt(3.0 * vol / (4.0 * Constants::PI))); }
-		static SphereGeom FromSurfaceArea(Real area) { return SphereGeom(sqrt(area / (4.0 * Constants::PI))); }
+		static SphereGeom FromVolume(Real vol) { return SphereGeom(cbrt(MML::Real(3.0) * vol / (MML::Real(4.0) * Constants::PI))); }
+		static SphereGeom FromSurfaceArea(Real area) { return SphereGeom(sqrt(area / (MML::Real(4.0) * Constants::PI))); }
 		static SphereGeom Circumscribed(const Rectangle& rect, Real depth) {
 			Real d = sqrt(rect.Width() * rect.Width() + rect.Height() * rect.Height() + depth * depth);
-			return SphereGeom(d / 2.0);
+			return SphereGeom(d / MML::Real(2.0));
 		}
 	};
 
@@ -78,7 +79,7 @@ namespace MML {
 		Real& Radius() { return _radius; }
 		Real Height() const { return _height; }
 		Real& Height() { return _height; }
-		Real Diameter() const { return 2.0 * _radius; }
+		Real Diameter() const { return MML::Real(2.0) * _radius; }
 
 		CylinderGeom()
 			: _radius(0.0)
@@ -91,9 +92,9 @@ namespace MML {
 
 		Real Volume() const { return Constants::PI * _radius * _radius * _height; }
 
-		Real LateralArea() const { return 2.0 * Constants::PI * _radius * _height; }
+		Real LateralArea() const { return MML::Real(2.0) * Constants::PI * _radius * _height; }
 		Real BaseArea() const { return Constants::PI * _radius * _radius; }
-		Real SurfaceArea() const { return LateralArea() + 2.0 * BaseArea(); }
+		Real SurfaceArea() const { return LateralArea() + MML::Real(2.0) * BaseArea(); }
 
 		Circle Base() const { return Circle(_radius); }
 
@@ -127,7 +128,7 @@ namespace MML {
 		bool IsValid() const { return _radius > 0 && _height > 0; }
 
 		Real SlantHeight() const { return sqrt(_radius * _radius + _height * _height); }
-		Real Volume() const { return Constants::PI * _radius * _radius * _height / 3.0; }
+		Real Volume() const { return Constants::PI * _radius * _radius * _height / MML::Real(3.0); }
 
 		Real LateralArea() const { return Constants::PI * _radius * SlantHeight(); }
 		Real BaseArea() const { return Constants::PI * _radius * _radius; }
@@ -176,7 +177,7 @@ namespace MML {
 			return sqrt(dr * dr + _height * _height);
 		}
 
-		Real Volume() const { return Constants::PI * _height * (_r1 * _r1 + _r1 * _r2 + _r2 * _r2) / 3.0; }
+		Real Volume() const { return Constants::PI * _height * (_r1 * _r1 + _r1 * _r2 + _r2 * _r2) / MML::Real(3.0); }
 
 		Real LateralArea() const { return Constants::PI * (_r1 + _r2) * SlantHeight(); }
 
@@ -232,20 +233,45 @@ namespace MML {
 				   std::abs(_ab - _cd) < eps;
 		}
 
-		// Volume using Cayley-Menger determinant
+		/// @brief Volume from the Gram determinant of AB, AC and AD (equivalent to Cayley-Menger).
+		/// @throws GeometryError for nonfinite, negative or nonrealizable edges, or volume overflow.
+		/// @note Realizable degenerate tetrahedra have zero volume; roundoff-sized negative determinants are clamped to zero.
 		Real Volume() const {
-			Real a2 = _ab * _ab, b2 = _ac * _ac, c2 = _ad * _ad;
-			Real d2 = _bc * _bc, e2 = _bd * _bd, f2 = _cd * _cd;
+			Real scale = 0;
+			for (Real edge : {_ab, _ac, _ad, _bc, _bd, _cd}) {
+				if (!std::isfinite(edge) || edge < 0)
+					throw GeometryError("Tetrahedron::Volume - edges must be finite and nonnegative");
+				scale = std::max(scale, edge);
+			}
+			if (scale == 0)
+				return 0;
 
-			// Cayley-Menger determinant / 288
-			Real term1 = a2 * f2 * (b2 + c2 + d2 + e2 - a2 - f2);
-			Real term2 = b2 * e2 * (a2 + c2 + d2 + f2 - b2 - e2);
-			Real term3 = c2 * d2 * (a2 + b2 + e2 + f2 - c2 - d2);
-			Real term4 = -a2 * b2 * f2 - a2 * c2 * e2 - b2 * c2 * d2;
-			Real term5 = -d2 * e2 * f2;
+			const Real a = _ab / scale, b = _ac / scale, c = _ad / scale;
+			const Real d = _bc / scale, e = _bd / scale, f = _cd / scale;
+			const auto validFace = [](Real x, Real y, Real z) {
+				return x + y >= z - Precision::RoundoffZeroThreshold &&
+					   x + z >= y - Precision::RoundoffZeroThreshold &&
+					   y + z >= x - Precision::RoundoffZeroThreshold;
+			};
+			if (!validFace(a, b, d) || !validFace(a, c, e) || !validFace(b, c, f) || !validFace(d, e, f))
+				throw GeometryError("Tetrahedron::Volume - edges violate a face triangle inequality");
 
-			Real det = term1 + term2 + term3 + term4 + term5;
-			return sqrt(std::abs(det)) / 12.0;
+			const Real a2 = a * a, b2 = b * b, c2 = c * c;
+			const Real g01 = (a2 + b2 - d * d) / 2;
+			const Real g02 = (a2 + c2 - e * e) / 2;
+			const Real g12 = (b2 + c2 - f * f) / 2;
+			const Real determinant = a2 * (b2 * c2 - g12 * g12)
+				- g01 * (g01 * c2 - g02 * g12) + g02 * (g01 * g12 - g02 * b2);
+			if (determinant < -Precision::RoundoffZeroThreshold)
+				throw GeometryError("Tetrahedron::Volume - edges do not define a realizable tetrahedron");
+
+			Real volume = std::sqrt(std::max(Real(0), determinant)) / 6;
+			volume *= scale;
+			volume *= scale;
+			volume *= scale;
+			if (!std::isfinite(volume))
+				throw GeometryError("Tetrahedron::Volume - volume is not representable");
+			return volume;
 		}
 
 		// Surface area (sum of four triangular faces)
@@ -264,12 +290,12 @@ namespace MML {
 		Triangle FaceBCD() const { return Triangle(_bc, _bd, _cd); }
 
 		// For regular tetrahedron
-		Real Inradius() const { return 3.0 * Volume() / SurfaceArea(); }
+		Real Inradius() const { return MML::Real(3.0) * Volume() / SurfaceArea(); }
 
 		Real Circumradius() const {
 			if (!IsRegular())
 				return 0; // Only valid for regular
-			return _ab * sqrt(6.0) / 4.0;
+			return _ab * sqrt(MML::Real(6.0)) / MML::Real(4.0);
 		}
 	};
 
@@ -298,7 +324,7 @@ namespace MML {
 		bool IsOblate() const { return _equatorial > _polar; }	// flattened at poles (like Earth)
 		bool IsProlate() const { return _polar > _equatorial; } // elongated at poles
 
-		Real Volume() const { return (4.0 / 3.0) * Constants::PI * _equatorial * _equatorial * _polar; }
+		Real Volume() const { return (MML::Real(4.0) / MML::Real(3.0)) * Constants::PI * _equatorial * _equatorial * _polar; }
 
 		// Flattening f = (a - c) / a
 		Real Flattening() const { return (_equatorial - _polar) / _equatorial; }
@@ -306,30 +332,30 @@ namespace MML {
 		// Eccentricity
 		Real Eccentricity() const {
 			if (IsOblate())
-				return sqrt(1.0 - (_polar * _polar) / (_equatorial * _equatorial));
+				return sqrt(MML::Real(1.0) - (_polar * _polar) / (_equatorial * _equatorial));
 			else
-				return sqrt(1.0 - (_equatorial * _equatorial) / (_polar * _polar));
+				return sqrt(MML::Real(1.0) - (_equatorial * _equatorial) / (_polar * _polar));
 		}
 
 		// Surface area (exact formula involves elliptic integrals, using approximation)
 		Real SurfaceArea() const {
 			if (IsSphere())
-				return 4.0 * Constants::PI * _equatorial * _equatorial;
+				return MML::Real(4.0) * Constants::PI * _equatorial * _equatorial;
 
 			Real a = _equatorial, c = _polar;
 			if (IsOblate()) {
 				Real e = Eccentricity();
-				return 2.0 * Constants::PI * a * a * (1.0 + (1.0 - e * e) / e * atanh(e));
+				return MML::Real(2.0) * Constants::PI * a * a * (MML::Real(1.0) + (MML::Real(1.0) - e * e) / e * atanh(e));
 			} else // Prolate
 			{
 				Real e = Eccentricity();
-				return 2.0 * Constants::PI * a * a * (1.0 + c / (a * e) * asin(e));
+				return MML::Real(2.0) * Constants::PI * a * a * (MML::Real(1.0) + c / (a * e) * asin(e));
 			}
 		}
 
 		static Spheroid Earth() {
 			// WGS84 ellipsoid
-			return Spheroid(6378137.0, 6356752.3142);
+			return Spheroid(MML::Real(6378137.0), MML::Real(6356752.3142));
 		}
 	};
 
@@ -359,8 +385,8 @@ namespace MML {
 		bool IsHornTorus() const { return _majorRadius == _minorRadius; }	// tangent to axis
 		bool IsSpindleTorus() const { return _majorRadius < _minorRadius; } // self-intersecting
 
-		Real Volume() const { return 2.0 * Constants::PI * Constants::PI * _majorRadius * _minorRadius * _minorRadius; }
-		Real SurfaceArea() const { return 4.0 * Constants::PI * Constants::PI * _majorRadius * _minorRadius; }
+		Real Volume() const { return MML::Real(2.0) * Constants::PI * Constants::PI * _majorRadius * _minorRadius * _minorRadius; }
+		Real SurfaceArea() const { return MML::Real(4.0) * Constants::PI * Constants::PI * _majorRadius * _minorRadius; }
 
 		// Inner and outer radii (for ring torus)
 		Real InnerRadius() const { return _majorRadius - _minorRadius; }

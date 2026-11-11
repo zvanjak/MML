@@ -22,6 +22,7 @@
 #include <functional>
 #include <string>
 #include <memory>
+#include <utility>
 
 namespace MML::SparseSolvers {
 
@@ -31,7 +32,7 @@ using namespace ::MML::SparseMatrix;
 // Solver Configuration
 //=============================================================================
 
-template<typename T>
+template<MMLReal T>
 struct SolverConfig {
     T tolerance = PrecisionValues<T>::IterativeSolverTolerance;   // Relative residual tolerance
     T absTolerance = PrecisionValues<T>::RoundoffZeroThreshold;  // Absolute residual floor (roundoff at unit scale)
@@ -54,7 +55,7 @@ struct SolverConfig {
 
 using SolverStatus [[deprecated("use AlgorithmStatus")]] = AlgorithmStatus;
 
-template<typename T>
+template<MMLReal T>
 struct [[nodiscard]] KrylovResult : IterativeResultBase {
 	KrylovResult() {
 		status = AlgorithmStatus::InvalidInput;
@@ -62,9 +63,10 @@ struct [[nodiscard]] KrylovResult : IterativeResultBase {
 	}
 	T residualNorm = std::numeric_limits<T>::quiet_NaN();
 	T relativeResidual = std::numeric_limits<T>::quiet_NaN();
+	Vector<T> solution; // Owned only by the zero-initial-guess overload; explicit-x solves do not copy x.
 };
 
-template<typename T>
+template<MMLReal T>
 using SolverResult [[deprecated("use KrylovResult<T>")]] = KrylovResult<T>;
 
 //=============================================================================
@@ -95,14 +97,14 @@ public:
 // Progress Callback
 //=============================================================================
 
-template<typename T>
+template<MMLReal T>
 using SolverCallback = std::function<void(int iteration, T residual)>;
 
 //=============================================================================
 // Iterative Solver Base Class
 //=============================================================================
 
-template<typename T>
+template<MMLReal T>
 class IterativeSolverBase {
 protected:
     SolverConfig<T> config_;
@@ -137,11 +139,17 @@ public:
 				result.error_message = "Krylov solver requires nonempty matching dimensions, finite positive relative tolerance, "
 															 "nonnegative absolute tolerance and iteration budget";
 			} else {
-				result = solveImpl(A, b, x);
+				Vector<T> rhsSnapshot;
+				const Vector<T>* rhs = &b;
+				if (&b == &x) {
+					rhsSnapshot = b;
+					rhs = &rhsSnapshot;
+				}
+				result = solveImpl(A, *rhs, x);
 				result.algorithm_name = algorithmName();
 				if (result.status != AlgorithmStatus::InvalidInput) {
-					result.residualNorm = norm2(residual(A, x, b));
-					const T rhsNorm = norm2(b);
+					result.residualNorm = norm2(residual(A, x, *rhs));
+					const T rhsNorm = norm2(*rhs);
 					result.relativeResidual = rhsNorm > T(0) ? result.residualNorm / rhsNorm : result.residualNorm;
 					result.achieved_tolerance = static_cast<Real>(result.residualNorm);
 					if (!std::isfinite(result.residualNorm) || !std::isfinite(rhsNorm)) {
@@ -163,7 +171,9 @@ public:
 		// Convenience: solve with zero initial guess
 		KrylovResult<T> solve(const SparseMatrixCSR<T>& A, const Vector<T>& b) {
 			Vector<T> x(b.size(), T(0));
-			return solve(A, b, x);
+			auto result = solve(A, b, x);
+			result.solution = std::move(x);
+			return result;
 		}
 
 protected:

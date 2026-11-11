@@ -22,6 +22,25 @@ namespace MML
 {
 namespace Persistence
 {
+	namespace Detail
+	{
+		inline constexpr uint32_t MATRIX_BINARY_SCHEMA_VERSION = 1;
+
+		template<class Type>
+		IOResult BuildMatrixBinaryHeader(uint64_t rows, uint64_t cols, BinaryEnvelopeHeader& header) {
+			const uint64_t scalarBytes = BinaryScalarByteSize<Type>();
+			if (cols != 0 && rows > (std::numeric_limits<uint64_t>::max() - 16) / cols / scalarBytes)
+				return SerializeFailure(IOError::ALLOCATION_LIMIT_EXCEEDED, "Matrix binary payload size overflows uint64");
+			header.object_kind = BinaryObjectKind::Matrix;
+			header.magic = BinaryMagic(header.object_kind);
+			header.object_schema_version = MATRIX_BINARY_SCHEMA_VERSION;
+			header.scalar_type = BinaryScalarTypeFor<Type>();
+			header.scalar_byte_size = static_cast<uint32_t>(scalarBytes);
+			header.payload_byte_count = 16 + rows * cols * scalarBytes;
+			return ValidateBinaryEnvelopeHeader(header);
+		}
+	}
+
 	template<class Type>
 	IOResult SaveBinary(std::ostream& out, const Matrix<Type>& mat, const SaveOptions& = {}) {
 		static_assert(Detail::BinaryScalarTypeFor<Type>() != BinaryScalarType::Unknown,
@@ -29,18 +48,10 @@ namespace Persistence
 
 		const uint64_t rows = static_cast<uint64_t>(mat.rows());
 		const uint64_t cols = static_cast<uint64_t>(mat.cols());
-		const uint64_t scalarBytes = Detail::BinaryScalarByteSize<Type>();
-		if (cols != 0 && rows > (std::numeric_limits<uint64_t>::max() - 16) / cols / scalarBytes)
-			return SerializeFailure(IOError::ALLOCATION_LIMIT_EXCEEDED, "Matrix binary payload size overflows uint64");
-
 		BinaryEnvelopeHeader header;
-		header.object_kind = BinaryObjectKind::Matrix;
-		header.object_schema_version = 1;
-		header.scalar_type = Detail::BinaryScalarTypeFor<Type>();
-		header.scalar_byte_size = static_cast<uint32_t>(scalarBytes);
-		header.payload_byte_count = 16 + rows * cols * scalarBytes;
-
-		IOResult result = WriteBinaryEnvelopeHeader(out, header);
+		IOResult result = Detail::BuildMatrixBinaryHeader<Type>(rows, cols, header);
+		if (!result.success) return result;
+		result = WriteBinaryEnvelopeHeader(out, header);
 		if (!result.success) return result;
 		WriteUInt64LE(out, rows);
 		WriteUInt64LE(out, cols);
@@ -63,6 +74,8 @@ namespace Persistence
 		if (!envelope.result.success) return envelope.result;
 		if (envelope.header.object_kind != BinaryObjectKind::Matrix)
 			return SerializeFailure(IOError::TYPE_MISMATCH, "Binary payload is not a Matrix");
+		if (envelope.header.object_schema_version != Detail::MATRIX_BINARY_SCHEMA_VERSION)
+			return SerializeFailure(IOError::UNSUPPORTED_VERSION, "Unsupported Matrix binary object schema version");
 		IOResult result = Detail::ValidateBinaryScalarType<Type>(envelope.header.scalar_type, envelope.header.scalar_byte_size);
 		if (!result.success) return result;
 		if (envelope.header.payload_byte_count < 16)
@@ -101,6 +114,11 @@ namespace Persistence
 
 	template<class Type>
 	IOResult SaveBinary(const Matrix<Type>& mat, const std::string& filename, const SaveOptions& options = {}) {
+		auto validation = Detail::ValidateSaveFilename(filename);
+		if (!validation.success) return validation;
+		BinaryEnvelopeHeader header;
+		validation = Detail::BuildMatrixBinaryHeader<Type>(static_cast<uint64_t>(mat.rows()), static_cast<uint64_t>(mat.cols()), header);
+		if (!validation.success) return validation.WithFile(filename);
 		std::ofstream file(filename, std::ios::binary);
 		if (!file.is_open())
 			return SerializeFailure(IOError::FILE_NOT_OPENED, "Could not create binary file " + filename).WithFile(filename);

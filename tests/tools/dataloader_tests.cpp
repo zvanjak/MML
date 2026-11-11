@@ -188,7 +188,7 @@ namespace MML::Tests::Tools::DataLoaderTests {
 			REQUIRE(ds["x"].type == ColumnType::REAL);
 			REQUIRE(ds["x"].realData[0] == static_cast<MML::Real>(1.5));
 			REQUIRE(ds["x"].realData[1] == static_cast<MML::Real>(-312.5));
-			REQUIRE(ds["y"].realData[1] == static_cast<MML::Real>(0.1));
+			REQUIRE(ds["y"].realData[1] == Real(1) / 10);
 		}
 
 		SECTION("Simple CSV with header") {
@@ -598,6 +598,14 @@ namespace MML::Tests::Tools::DataLoaderTests {
 	///                         LOAD RESULT TESTS                                      ///
 	/////////////////////////////////////////////////////////////////////////////////////
 
+	// This section deliberately exercises the deprecated result-owning compatibility API.
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable: 4996)
+#else
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
 	TEST_CASE("DataLoader - LoadResult success", "[dataloader][loadresult]") {
 		TEST_PRECISION_INFO();
 
@@ -771,6 +779,11 @@ namespace MML::Tests::Tools::DataLoaderTests {
 		}
 	}
 
+#ifdef _MSC_VER
+#pragma warning(pop)
+#else
+#pragma GCC diagnostic pop
+#endif
 }  // namespace MML::Tests::Tools::DataLoaderTests
 
 namespace MML::Tests::Tools::DataLoaderCSVDateTests {

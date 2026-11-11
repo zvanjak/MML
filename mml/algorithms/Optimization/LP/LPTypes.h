@@ -178,8 +178,8 @@ struct [[nodiscard]] LinearProgrammingResult : IterativeResultBase {
 	Real objectiveValue = 0; ///< Optimal objective value
 
 	// Dual solution
-	Vector<Real> dualValues;	 ///< Shadow prices (one per constraint)
-	Vector<Real> reducedCosts; ///< Reduced costs (one per variable)
+	Vector<Real> dualValues;	 ///< d(objectiveValue)/d(b[i]), in original row order and objective sense
+	Vector<Real> reducedCosts; ///< Reduced costs in original objective sense (original and auxiliary columns)
 
 	// Slack values
 	Vector<Real> slacks; ///< Constraint slack/surplus values
@@ -192,9 +192,9 @@ struct [[nodiscard]] LinearProgrammingResult : IterativeResultBase {
 	int phase1Iterations = 0; ///< Phase 1 iterations (if two-phase)
 
 	// Sensitivity analysis (populated on request)
-	std::vector<std::pair<Real, Real>> objectiveRanges; ///< Allowable ranges for c[j]
-	std::vector<std::pair<Real, Real>> rhsRanges;				///< Allowable ranges for b[i]
-	Real basisConditionNumber = NoEstimate;							///< Condition number, if sensitivity analysis computed it
+	std::vector<std::pair<Real, Real>> objectiveRanges; ///< Absolute c[j] intervals preserving the current basis
+	std::vector<std::pair<Real, Real>> rhsRanges;				///< Absolute original b[i] intervals, one RHS changed at a time
+	Real basisConditionNumber = NoEstimate;							///< sigma_max(B)/sigma_min(B) for the unpivoted standard-form basis
 
 	std::string statusMessage() const {
 		switch (lp_status) {

@@ -7,6 +7,7 @@
 #include <mml/base/Matrix/MatrixSym.h>
 #include <mml/base/AlgorithmTypes.h>
 #include <mml/algorithms/Eigen/EigenSolverConfig.h>
+#include <mml/algorithms/Eigen/detail/SelfAdjointScaling.h>
 #include <algorithm>
 #include <cmath>
 #include <complex>
@@ -66,16 +67,16 @@ namespace MML {
 			std::string error_message;              // Error description (empty on success)
 			double elapsed_time_ms = 0.0;
 
-			Result(int n)
+			Result(int n, bool computeEigenvectors = true)
 				: eigenvalues(n)
-				, eigenvectors(n, n) {}
+				, eigenvectors(computeEigenvectors ? n : 0, computeEigenvectors ? n : 0) {}
 			
 			Result() = default;
 		};
 
 		/// Solve symmetric eigenvalue problem: A*v = λ*v
 		///
-		/// @param A        Symmetric matrix (only upper triangle is used)
+		/// @param A        Symmetric packed matrix
 		/// @param tol      Convergence tolerance (default: 1e-10)
 		/// @param maxIter  Maximum number of sweeps (default: 100)
 		/// @return Result containing eigenvalues, eigenvectors, and convergence info
@@ -85,9 +86,25 @@ namespace MML {
 		/// - eigenvectors.Column(i) corresponds to eigenvalues[i]
 		/// - Eigenvectors are orthonormal: V^T * V = I
 		/// - A * V = V * diag(λ)
+		/// - `converged` is true only when every eigenvalue and eigenvector entry is finite
+		///
+		/// Matrices with extreme magnitudes (beyond roughly 1e150 or below 1e-150) are scaled by a
+		/// power of two before iterating so that squares and sums of entries cannot overflow; the
+		/// tolerance is interpreted in the units of the original matrix.
 		static Result Solve(const MatrixSym<Real>& A, Real tol = PrecisionValues<Real>::EigenSolverConvergenceTolerance, int maxIter = 100) {
+			return SolveImpl(A, tol, maxIter, true, true);
+		}
+
+	private:
+		static Result SolveImpl(const MatrixSym<Real>& A, Real tol, int maxIter, bool sortEigenvalues, bool computeEigenvectors) {
+			detail::ValidateSelfAdjointControls(tol, maxIter);
 			int n = A.rows();
-			Result result(n);
+			Result result(n, computeEigenvectors);
+			if (n == 0) {
+				result.status = AlgorithmStatus::Completed;
+				result.residual = NoEstimate;
+				return result;
+			}
 
 			// Initialize: Copy A to working matrix, V to identity
 			Matrix<Real> D(n, n);
@@ -95,20 +112,44 @@ namespace MML {
 				for (int j = 0; j < n; j++)
 					D[i][j] = (i <= j) ? A(i, j) : A(j, i);
 
-			Matrix<Real> V = Matrix<Real>::Identity(n);
+			const Real maxAbs = detail::MaxAbsEntry(D);
+			if (!std::isfinite(maxAbs)) {
+				result.eigenvalues = Vector<Real>(n, std::numeric_limits<Real>::quiet_NaN());
+				if (computeEigenvectors)
+					result.eigenvectors = Matrix<Real>(n, n, std::numeric_limits<Real>::quiet_NaN());
+				result.residual = std::numeric_limits<Real>::quiet_NaN();
+				result.converged = false;
+				result.status = AlgorithmStatus::NumericalInstability;
+				result.error_message = "SymmMatEigenSolverJacobi: matrix contains nonfinite entries";
+				return result;
+			}
+
+			// Overflow guard: work on D/scale (exact power-of-two scaling). Entries that are skipped
+			// as "already zero" must stay within the convergence tolerance, so the skip threshold
+			// is capped by the (scaled) tolerance; exact zeros are always skipped.
+			const Real scale = detail::SelfAdjointScale(maxAbs);
+			const Real tolScaled = tol / scale;
+			const Real zeroThresholdScaled = std::min(PrecisionValues<Real>::EigenSolverZeroThreshold, tolScaled);
+			if (scale != 1)
+				for (int i = 0; i < n; i++)
+					for (int j = 0; j < n; j++)
+						D[i][j] /= scale;
+
+			Matrix<Real> V;
+			if (computeEigenvectors) V = Matrix<Real>::Identity(n);
 
 			// Jacobi iterations
 			int sweep = 0;
-			Real offDiagNorm = OffDiagonalNorm(D, n);
+			Real offDiagNorm = detail::OffDiagonalNormSafe(D);
 
-			while (offDiagNorm > tol && sweep < maxIter) {
+			while (offDiagNorm > tolScaled && sweep < maxIter) {
 				// One sweep: process all off-diagonal elements
 				for (int p = 0; p < n - 1; p++) {
 					for (int q = p + 1; q < n; q++) {
-						if (std::abs(D[p][q]) < PrecisionValues<Real>::EigenSolverZeroThreshold) // Skip if already zero
+						if (std::abs(D[p][q]) <= zeroThresholdScaled) // Skip if already zero
 							continue;
 						// Compute Givens rotation parameters
-						Real theta = ComputeRotationAngle(D, p, q);
+						Real theta = ComputeRotationAngle(D, p, q, zeroThresholdScaled);
 						Real c = std::cos(theta);
 						Real s = std::sin(theta);
 
@@ -118,51 +159,52 @@ namespace MML {
 				}
 
 				sweep++;
-				offDiagNorm = OffDiagonalNorm(D, n);
+				offDiagNorm = detail::OffDiagonalNormSafe(D);
 			}
 
-			// Extract eigenvalues from diagonal
+			// Extract eigenvalues from diagonal (undo scaling)
 			for (int i = 0; i < n; i++)
-				result.eigenvalues[i] = D[i][i];
+				result.eigenvalues[i] = D[i][i] * scale;
 
 			// Copy eigenvectors
 			result.eigenvectors = V;
 
 			// Sort eigenvalues and eigenvectors
-			SortEigenvalues(result.eigenvalues, result.eigenvectors);
+			if (sortEigenvalues) SortEigenvalues(result.eigenvalues, result.eigenvectors);
 
 			// Set convergence info
 			result.iterations = sweep;
-			result.residual = offDiagNorm;
-			result.converged = (offDiagNorm <= tol);
+			result.residual = offDiagNorm * scale;
+			result.converged = (offDiagNorm <= tolScaled);
+			if (!detail::EigenResultIsFinite(result.eigenvalues, result.eigenvectors)) {
+				result.converged = false;
+				result.status = AlgorithmStatus::NumericalInstability;
+				result.error_message = "SymmMatEigenSolverJacobi: iteration produced nonfinite eigenvalues or eigenvectors";
+			} else if (!result.converged) {
+				result.status = AlgorithmStatus::MaxIterationsExceeded;
+				result.error_message = "Jacobi iteration did not converge within " + std::to_string(maxIter) + " sweeps";
+			}
 
 			return result;
 		}
 
-		/// Solve for a regular Matrix - validates that the matrix is symmetric.
+	public:
+		/// Solve for a regular Matrix - validates square shape and symmetry.
 		/// @throws MatrixDimensionError if A is not symmetric within EigenSolverZeroThreshold
 		/// @see SolveSymmetricPart to solve for the symmetric part (A + A^T)/2 of a
 		///      nearly-symmetric matrix without validation
 		static Result Solve(const Matrix<Real>& A, Real tol = PrecisionValues<Real>::EigenSolverConvergenceTolerance, int maxIter = 100) {
-			int n = A.rows();
-			for (int i = 0; i < n; i++)
-				for (int j = i + 1; j < n; j++)
-					if (std::abs(A[i][j] - A[j][i]) > PrecisionValues<Real>::EigenSolverZeroThreshold)
-						throw MatrixDimensionError("SymmMatEigenSolverJacobi::Solve - matrix is not symmetric (use SolveSymmetricPart for the symmetric part)", n, A.cols(), -1, -1);
-
+			detail::ValidateSymmetricInput(A);
 			return SolveSymmetricPart(A, tol, maxIter);
 		}
 
 		/// Solve for the symmetric part (A + A^T)/2 of a general matrix (no symmetry validation)
 		static Result SolveSymmetricPart(const Matrix<Real>& A, Real tol = PrecisionValues<Real>::EigenSolverConvergenceTolerance, int maxIter = 100) {
-			// Convert to symmetric matrix (average A and A^T)
-			int n = A.rows();
-			MatrixSym<Real> symA(n);
-			for (int i = 0; i < n; i++)
-				for (int j = i; j < n; j++)
-					symA(i, j) = 0.5 * (A[i][j] + A[j][i]);
+			return Solve(SymmetricPart(A), tol, maxIter);
+		}
 
-			return Solve(symA, tol, maxIter);
+		static Result SolveSymmetricPart(const Matrix<Real>& A, const EigenSolverConfig& config) {
+			return Solve(SymmetricPart(A), config);
 		}
 
 		/// Solve symmetric eigenvalue problem using configuration object.
@@ -173,46 +215,55 @@ namespace MML {
 		static Result Solve(const MatrixSym<Real>& A, const EigenSolverConfig& config) {
 			AlgorithmTimer timer;  // Starts automatically
 
-			int maxIter = (config.max_iterations > 0) ? config.max_iterations : 100;
-			Result result = Solve(A, config.tolerance, maxIter);
+			detail::ValidateSelfAdjointControls(config.tolerance, config.max_iterations);
+			int maxIter = config.max_iterations == 0 ? 100 : config.max_iterations;
+			Result result = SolveImpl(A, config.tolerance, maxIter, config.sort_eigenvalues, config.compute_eigenvectors);
 
 			// Populate diagnostic fields
 			result.elapsed_time_ms = timer.elapsed_ms();
-			if (!result.converged) {
+			if (!result.converged && result.status == AlgorithmStatus::Success) {
 				result.status = AlgorithmStatus::MaxIterationsExceeded;
 				result.error_message = "Jacobi iteration did not converge within " + std::to_string(maxIter) + " sweeps";
 			}
+			if (config.verbose) detail::LogSelfAdjointResult(result);
 
 			return result;
 		}
 
 		/// Solve for a regular Matrix using configuration object.
 		static Result Solve(const Matrix<Real>& A, const EigenSolverConfig& config) {
+			detail::ValidateSymmetricInput(A);
+			return Solve(SymmetricPart(A), config);
+		}
+
+	private:
+		// Overflow-safe symmetric part (A + A^T)/2
+		static MatrixSym<Real> SymmetricPart(const Matrix<Real>& A) {
+			if (A.rows() != A.cols())
+				throw MatrixDimensionError("SolveSymmetricPart requires a square matrix", A.rows(), A.cols(), -1, -1);
 			int n = A.rows();
 			MatrixSym<Real> symA(n);
 			for (int i = 0; i < n; i++)
 				for (int j = i; j < n; j++)
-					symA(i, j) = 0.5 * (A[i][j] + A[j][i]);
-
-			return Solve(symA, config);
+					symA(i, j) = detail::SymmetrizeEntries(A[i][j], A[j][i]);
+			return symA;
 		}
 
-	private:
 		// Compute rotation angle to zero out A[p][q]
-		static Real ComputeRotationAngle(const Matrix<Real>& A, int p, int q) {
+		static Real ComputeRotationAngle(const Matrix<Real>& A, int p, int q, Real zeroThreshold) {
 			Real theta;
 
-			if (std::abs(A[p][q]) < PrecisionValues<Real>::EigenSolverZeroThreshold) {
+			if (std::abs(A[p][q]) <= zeroThreshold) {
 				theta = 0.0;
 			} else {
-				Real tau = (A[q][q] - A[p][p]) / (2.0 * A[p][q]);
+				Real tau = (A[q][q] - A[p][p]) / (MML::Real(2.0) * A[p][q]);
 				Real t;
 
 				// Choose sign to avoid loss of significance
 				if (tau >= 0)
-					t = 1.0 / (tau + std::sqrt(1.0 + tau * tau));
+					t = MML::Real(1.0) / (tau + std::sqrt(MML::Real(1.0) + tau * tau));
 				else
-					t = -1.0 / (-tau + std::sqrt(1.0 + tau * tau));
+					t = -MML::Real(1.0) / (-tau + std::sqrt(MML::Real(1.0) + tau * tau));
 
 				theta = std::atan(t);
 			}
@@ -239,28 +290,18 @@ namespace MML {
 			Real Aqq = A[q][q];
 			Real Apq = A[p][q];
 
-			A[p][p] = c * c * App - 2.0 * s * c * Apq + s * s * Aqq;
-			A[q][q] = s * s * App + 2.0 * s * c * Apq + c * c * Aqq;
+			A[p][p] = c * c * App - MML::Real(2.0) * s * c * Apq + s * s * Aqq;
+			A[q][q] = s * s * App + MML::Real(2.0) * s * c * Apq + c * c * Aqq;
 			A[p][q] = 0.0;
 			A[q][p] = 0.0;
 
 			// Accumulate rotation in eigenvector matrix V
-			for (int i = 0; i < n; i++) {
+			for (int i = 0; i < V.rows(); i++) {
 				Real Vip = V[i][p];
 				Real Viq = V[i][q];
 				V[i][p] = c * Vip - s * Viq;
 				V[i][q] = s * Vip + c * Viq;
 			}
-		}
-
-		// Compute off-diagonal norm: sqrt(sum of squares of off-diagonal elements)
-		static Real OffDiagonalNorm(const Matrix<Real>& A, int n) {
-			Real sum = 0.0;
-			for (int i = 0; i < n - 1; i++)
-				for (int j = i + 1; j < n; j++)
-					sum += A[i][j] * A[i][j];
-
-			return std::sqrt(sum);
 		}
 
 		// Sort eigenvalues and eigenvectors in ascending order
@@ -280,7 +321,7 @@ namespace MML {
 					std::swap(eigenvalues[i], eigenvalues[minIdx]);
 
 					// Swap corresponding eigenvectors (columns)
-					for (int row = 0; row < n; row++)
+					for (int row = 0; row < eigenvectors.rows(); row++)
 						std::swap(eigenvectors[row][i], eigenvectors[row][minIdx]);
 				}
 			}

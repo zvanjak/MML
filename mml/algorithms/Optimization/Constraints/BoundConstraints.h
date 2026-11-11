@@ -51,6 +51,9 @@ namespace MML::Optimization
 			for (int index = 0; index < _lower.size(); ++index) {
 				if (!IsValidBoundValue(_lower[index]) || !IsValidBoundValue(_upper[index]))
 					throw BoundConstraintsError("bounds cannot be NaN");
+				if (_lower[index] == std::numeric_limits<Real>::infinity() ||
+					_upper[index] == -std::numeric_limits<Real>::infinity())
+					throw BoundConstraintsError("bounds must admit finite coordinates");
 				if (_lower[index] > _upper[index])
 					throw BoundConstraintsError("lower bound cannot exceed upper bound");
 			}
@@ -60,6 +63,24 @@ namespace MML::Optimization
 		{
 			if (dimension != dimension_count())
 				throw VectorDimensionError(context, dimension_count(), dimension);
+		}
+
+		template<typename Point>
+		void validateFeasibilityPoint(const Point& point, const char* context) const
+		{
+			validateDimension(point.size(), context);
+			validateBounds();
+			for (int index = 0; index < point.size(); ++index) {
+				if (!std::isfinite(point[index]))
+					throw BoundConstraintsError(std::string(context) + ": point[" +
+						std::to_string(index) + "] must be finite");
+			}
+		}
+
+		static void validateFeasibilityTolerance(Real tolerance)
+		{
+			if (!std::isfinite(tolerance) || tolerance < 0)
+				throw BoundConstraintsError("IsFeasible: tolerance must be finite and nonnegative");
 		}
 
 	public:
@@ -150,6 +171,7 @@ namespace MML::Optimization
 		bool IsFeasible(const Vector<Real>& point, Real tolerance = Precision::VectorIsEqualTolerance) const
 		{
 			validateDimension(point.size(), "BoundConstraints::IsFeasible");
+			validateFeasibilityTolerance(tolerance);
 			return MaxViolation(point) <= tolerance;
 		}
 
@@ -157,12 +179,13 @@ namespace MML::Optimization
 		bool IsFeasible(const VectorN<Real, N>& point, Real tolerance = Precision::VectorIsEqualTolerance) const
 		{
 			validateDimension(N, "BoundConstraints::IsFeasible");
+			validateFeasibilityTolerance(tolerance);
 			return MaxViolation(point) <= tolerance;
 		}
 
 		Real MaxViolation(const Vector<Real>& point) const
 		{
-			validateDimension(point.size(), "BoundConstraints::MaxViolation");
+			validateFeasibilityPoint(point, "BoundConstraints::MaxViolation");
 			Real violation = static_cast<MML::Real>(0.0);
 			for (int index = 0; index < point.size(); ++index) {
 				if (point[index] < _lower[index])
@@ -176,7 +199,7 @@ namespace MML::Optimization
 		template<int N>
 		Real MaxViolation(const VectorN<Real, N>& point) const
 		{
-			validateDimension(N, "BoundConstraints::MaxViolation");
+			validateFeasibilityPoint(point, "BoundConstraints::MaxViolation");
 			Real violation = static_cast<MML::Real>(0.0);
 			for (int index = 0; index < N; ++index) {
 				if (point[index] < _lower[index])

@@ -113,7 +113,7 @@ TEST_CASE("EarClipTriangulation - Pentagon", "[ComputationalGeometry][Triangulat
     std::vector<Point2Cartesian> vertices;
     for (int i = 0; i < 5; i++)
     {
-        Real angle = 2.0 * Constants::PI * i / 5.0 - Constants::PI / 2.0;
+        Real angle = MML::Real(2.0) * Constants::PI * i / MML::Real(5.0) - Constants::PI / MML::Real(2.0);
         vertices.push_back(Point2Cartesian(std::cos(angle), std::sin(angle)));
     }
     Polygon2D pentagon(vertices);
@@ -136,12 +136,12 @@ TEST_CASE("EarClipTriangulation - Star shape (highly non-convex)", "[Computation
     for (int i = 0; i < 5; i++)
     {
         // Outer point
-        Real outerAngle = 2.0 * Constants::PI * i / 5.0 - Constants::PI / 2.0;
-        vertices.push_back(Point2Cartesian(2.0 * std::cos(outerAngle), 2.0 * std::sin(outerAngle)));
+        Real outerAngle = MML::Real(2.0) * Constants::PI * i / MML::Real(5.0) - Constants::PI / MML::Real(2.0);
+        vertices.push_back(Point2Cartesian(MML::Real(2.0) * std::cos(outerAngle), MML::Real(2.0) * std::sin(outerAngle)));
         
         // Inner point
-        Real innerAngle = outerAngle + Constants::PI / 5.0;
-        vertices.push_back(Point2Cartesian(0.8 * std::cos(innerAngle), 0.8 * std::sin(innerAngle)));
+        Real innerAngle = outerAngle + Constants::PI / MML::Real(5.0);
+        vertices.push_back(Point2Cartesian(MML::Real(0.8) * std::cos(innerAngle), MML::Real(0.8) * std::sin(innerAngle)));
     }
     Polygon2D star(vertices);
 
@@ -229,7 +229,7 @@ TEST_CASE("DelaunayTriangulation - Regular grid", "[ComputationalGeometry][Delau
     std::vector<Point2Cartesian> points;
     for (int i = 0; i < 3; i++) {
         for (int j = 0; j < 3; j++) {
-            points.push_back(Point2Cartesian(i, j));
+            points.push_back(Point2Cartesian(Real(i), Real(j)));
         }
     }
     
@@ -330,7 +330,7 @@ TEST_CASE("DelaunayTriangulation - Interpolation", "[ComputationalGeometry][Dela
     auto dt = MML::CompGeometry::Triangulation::ComputeDelaunay(points);
     
     // Interpolate at centroid (1, 2/3)
-    Point2Cartesian centroid(1.0, 2.0/3.0);
+    Point2Cartesian centroid(MML::Real(1.0), MML::Real(2.0)/MML::Real(3.0));
     Real interp = dt.Interpolate(centroid, values);
     Real expected = centroid.X() + centroid.Y();  // ~1.667
     REQUIRE_THAT(interp, WithinAbs(expected, 0.1));
@@ -650,9 +650,9 @@ TEST_CASE("DelaunayTriangulation - Moderately small coordinates", "[Computationa
     // For extremely small coordinates, users should normalize their data first.
     // This test uses coordinates that should work reliably with double precision.
     std::vector<Point2Cartesian> points = {
-        Point2Cartesian(0.001, 0.001),
-        Point2Cartesian(0.002, 0.001),
-        Point2Cartesian(0.0015, 0.002)
+        Point2Cartesian(MML::Real(0.001), MML::Real(0.001)),
+        Point2Cartesian(MML::Real(0.002), MML::Real(0.001)),
+        Point2Cartesian(MML::Real(0.0015), MML::Real(0.002))
     };
     
     auto dt = MML::CompGeometry::Triangulation::ComputeDelaunay(points);
@@ -666,7 +666,7 @@ TEST_CASE("DelaunayTriangulation - Mixed scale coordinates", "[ComputationalGeom
     std::vector<Point2Cartesian> points = {
         Point2Cartesian(0, 0),
         Point2Cartesian(1000, 0),
-        Point2Cartesian(500, 0.001),  // Very small Y relative to X span
+        Point2Cartesian(500, MML::Real(0.001)),  // Very small Y relative to X span
         Point2Cartesian(500, 1000)
     };
     
@@ -1006,13 +1006,13 @@ TEST_CASE("DelaunayTriangulation - Clustered points", "[ComputationalGeometry][D
     
     // Cluster 1 around (0,0)
     points.push_back(Point2Cartesian(0, 0));
-    points.push_back(Point2Cartesian(0.1, 0));
-    points.push_back(Point2Cartesian(0, 0.1));
+    points.push_back(Point2Cartesian(MML::Real(0.1), 0));
+    points.push_back(Point2Cartesian(0, MML::Real(0.1)));
     
     // Cluster 2 around (10,10)
     points.push_back(Point2Cartesian(10, 10));
-    points.push_back(Point2Cartesian(10.1, 10));
-    points.push_back(Point2Cartesian(10, 10.1));
+    points.push_back(Point2Cartesian(MML::Real(10.1), 10));
+    points.push_back(Point2Cartesian(10, MML::Real(10.1)));
     
     // Single point far away
     points.push_back(Point2Cartesian(5, 20));
@@ -1079,5 +1079,4 @@ TEST_CASE("DelaunayTriangulation - Large point set", "[ComputationalGeometry][De
 }
 
 } // namespace MML::Tests::Algorithms::CompGeometry::TriangulationTests
-
 

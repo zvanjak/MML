@@ -42,8 +42,8 @@ public:
     
     /// @brief Create LP with given number of variables
     explicit LinearProgram(int numVars, const std::string& name = "") 
-        : _numVars(numVars)
-        , _name(name) {
+        : _name(name)
+        , _numVars(numVars) {
         _c.resize(numVars);
         _variables.resize(numVars);
         for (int i = 0; i < numVars; ++i) {
@@ -203,8 +203,8 @@ public:
     /// - <= constraints: add slack variable
     /// - >= constraints: subtract surplus, add artificial
     /// - = constraints: add artificial
-    /// - Variables with lb != 0: shift
-    /// - Free variables: split into x+ - x-
+    /// - Negative RHS: negate the row and reverse its inequality before sizing
+    /// Variables must have the supported default bounds x >= 0.
     ///
     /// @param[out] A_std Standard form constraint matrix
     /// @param[out] b_std Standard form RHS
@@ -215,13 +215,28 @@ public:
     void ToStandardForm(Matrix<Real>& A_std, Vector<Real>& b_std, Vector<Real>& c_std,
                         int& numSlack, int& numArtificial,
                         std::vector<int>& artificialIndices) const {
-        
-        // Count slack and artificial variables needed
+        std::string error;
+        if (!Validate(error))
+            throw LinearProgrammingError("Invalid LP: " + error);
+        if (&b_std == &c_std || &numSlack == &numArtificial)
+            throw LinearProgrammingError("Standard-form outputs must not alias");
+
+        const auto effectiveType = [](const LPConstraint& con) {
+            if (con.rhs < 0) {
+                if (con.type == LPConstraintType::LessEqual)
+                    return LPConstraintType::GreaterEqual;
+                if (con.type == LPConstraintType::GreaterEqual)
+                    return LPConstraintType::LessEqual;
+            }
+            return con.type;
+        };
+
+        // Size the same normalized rows that will be written below.
         numSlack = 0;
         numArtificial = 0;
         
         for (const auto& con : _constraints) {
-            switch (con.type) {
+            switch (effectiveType(con)) {
                 case LPConstraintType::LessEqual:
                     numSlack++;
                     break;
@@ -235,16 +250,20 @@ public:
             }
         }
         
+        const int maxDimension = Matrix<Real>::MaxDimension();
+        if (numSlack > maxDimension - _numVars || numArtificial > maxDimension - _numVars - numSlack)
+            throw LinearProgrammingError("Standard-form variable count exceeds the matrix index range");
         int totalVars = _numVars + numSlack + numArtificial;
         
         // Build standard form matrix
         A_std = Matrix<Real>(_numConstraints, totalVars);
         b_std.resize(_numConstraints);
         c_std.resize(totalVars);
+        std::fill(c_std.begin(), c_std.end(), Real(0));
         artificialIndices.clear();
         
         // Copy original objective (negate if maximizing)
-        Real objSign = (_objective == LPObjective::Maximize) ? -1.0 : 1.0;
+        Real objSign = (_objective == LPObjective::Maximize) ? -MML::Real(1.0) : MML::Real(1.0);
         for (int j = 0; j < _numVars; ++j) {
             c_std[j] = objSign * _c[j];
         }
@@ -262,9 +281,7 @@ public:
             }
             
             // Handle RHS sign (standard form requires b >= 0)
-            Real rhsSign = 1.0;
             if (con.rhs < 0) {
-                rhsSign = -1.0;
                 // Flip constraint: multiply row by -1, flip type
                 for (int j = 0; j < _numVars; ++j) {
                     A_std(i, j) = -A_std(i, j);
@@ -272,18 +289,8 @@ public:
             }
             b_std[i] = std::abs(con.rhs);
             
-            // Adjust constraint type after potential flip
-            LPConstraintType effectiveType = con.type;
-            if (rhsSign < 0) {
-                if (con.type == LPConstraintType::LessEqual) {
-                    effectiveType = LPConstraintType::GreaterEqual;
-                } else if (con.type == LPConstraintType::GreaterEqual) {
-                    effectiveType = LPConstraintType::LessEqual;
-                }
-            }
-            
             // Add slack/surplus/artificial variables
-            switch (effectiveType) {
+            switch (effectiveType(con)) {
                 case LPConstraintType::LessEqual:
                     A_std(i, slackIdx) = 1.0;  // Slack
                     slackIdx++;
@@ -312,21 +319,51 @@ public:
     
     /// @brief Construct the dual LP
     /// 
-    /// Primal: min c'x, Ax >= b, x >= 0
-    /// Dual:   max b'y, A'y <= c, y >= 0
-    ///
-    /// Note: General duality rules apply based on constraint types
+    /// Primal variables must have default bounds x >= 0. For minimization,
+    /// <= rows have y <= 0, >= rows have y >= 0, and equality rows have free y.
+    /// Maximization reverses the inequality multiplier signs.
+    /// The returned LP uses nonnegative coordinates: its first m variables are
+    /// the signed inequality multipliers or equality positive parts, followed
+    /// by equality negative parts in original row order.
     LinearProgram Dual() const {
-        // For now, handle standard case: min c'x, Ax <= b, x >= 0
-        // Dual: max b'y, A'y <= c, y >= 0
-        
-        LinearProgram dual(_numConstraints);
+        std::string error;
+        if (!Validate(error))
+            throw LinearProgrammingError("Cannot construct dual: " + error);
+
+        const Real senseSign = _objective == LPObjective::Minimize ? Real(1) : Real(-1);
+        const auto multiplierSign = [senseSign](LPConstraintType type) -> Real {
+            switch (type) {
+                case LPConstraintType::LessEqual: return -senseSign;
+                case LPConstraintType::GreaterEqual: return senseSign;
+                case LPConstraintType::Equal: return Real(1);
+            }
+            throw LinearProgrammingError("Cannot construct dual: invalid constraint type");
+        };
+
+        int numDualVars = _numConstraints;
+        for (const auto& con : _constraints) {
+            if (con.type == LPConstraintType::Equal) {
+                if (numDualVars == Matrix<Real>::MaxDimension())
+                    throw LinearProgrammingError("Dual variable count exceeds the matrix index range");
+                ++numDualVars;
+            }
+        }
+
+        LinearProgram dual(numDualVars);
         dual._name = _name + "_dual";
         
-        // Dual objective is primal RHS
-        Vector<Real> dualC(_numConstraints);
+        Vector<Real> dualC(numDualVars);
+        int negativePart = _numConstraints;
         for (int i = 0; i < _numConstraints; ++i) {
-            dualC[i] = _constraints[i].rhs;
+            const auto& con = _constraints[i];
+            const Real sign = multiplierSign(con.type);
+            const std::string name = "y" + std::to_string(i + 1);
+            dualC[i] = sign * con.rhs;
+            dual.SetVariableName(i, name + (con.type == LPConstraintType::Equal ? "_plus" : sign < 0 ? "_minus" : ""));
+            if (con.type == LPConstraintType::Equal) {
+                dualC[negativePart] = -con.rhs;
+                dual.SetVariableName(negativePart++, name + "_minus");
+            }
         }
         dual.SetObjective(dualC, _objective == LPObjective::Minimize 
                                   ? LPObjective::Maximize 
@@ -334,12 +371,16 @@ public:
         
         // Dual constraints from primal columns
         for (int j = 0; j < _numVars; ++j) {
-            Vector<Real> dualRow(_numConstraints);
+            Vector<Real> dualRow(numDualVars);
+            negativePart = _numConstraints;
             for (int i = 0; i < _numConstraints; ++i) {
-                dualRow[i] = _constraints[i].coefficients[j];
+                const auto& con = _constraints[i];
+                dualRow[i] = multiplierSign(con.type) * con.coefficients[j];
+                if (con.type == LPConstraintType::Equal)
+                    dualRow[negativePart++] = -con.coefficients[j];
             }
             
-            // Constraint type depends on primal variable bounds and objective
+            // Primal variables are nonnegative, so all transposed rows share a sense.
             LPConstraintType dualType = LPConstraintType::LessEqual;
             if (_objective == LPObjective::Maximize) {
                 dualType = LPConstraintType::GreaterEqual;
@@ -437,6 +478,7 @@ public:
     
     /// @brief Validate problem consistency
     bool Validate(std::string& errorMsg) const {
+        errorMsg.clear();
         if (_numVars <= 0) {
             errorMsg = "No variables defined";
             return false;
@@ -446,11 +488,46 @@ public:
             errorMsg = "No constraints defined";
             return false;
         }
-        
+        if (_c.size() != _numVars || _variables.size() < static_cast<size_t>(_numVars) ||
+            _constraints.size() != static_cast<size_t>(_numConstraints)) {
+            errorMsg = "Inconsistent LP storage dimensions";
+            return false;
+        }
+        if (_objective != LPObjective::Minimize && _objective != LPObjective::Maximize) {
+            errorMsg = "Invalid objective sense";
+            return false;
+        }
+        for (int j = 0; j < _numVars; ++j) {
+            if (!std::isfinite(_c[j])) {
+                errorMsg = "Objective coefficient " + std::to_string(j) + " is non-finite";
+                return false;
+            }
+            if (_variables[j].lowerBound != 0 || _variables[j].upperBound != std::numeric_limits<Real>::infinity()) {
+                errorMsg = "Variable " + std::to_string(j) + " must have default bounds x >= 0";
+                return false;
+            }
+        }
+
         for (int i = 0; i < _numConstraints; ++i) {
-            if (_constraints[i].coefficients.size() != _numVars) {
+            const auto& con = _constraints[i];
+            if (con.coefficients.size() != _numVars) {
                 errorMsg = "Constraint " + std::to_string(i) + " has wrong dimension";
                 return false;
+            }
+            if (con.type != LPConstraintType::LessEqual && con.type != LPConstraintType::GreaterEqual &&
+                con.type != LPConstraintType::Equal) {
+                errorMsg = "Constraint " + std::to_string(i) + " has invalid type";
+                return false;
+            }
+            if (!std::isfinite(con.rhs)) {
+                errorMsg = "Constraint " + std::to_string(i) + " RHS is non-finite";
+                return false;
+            }
+            for (int j = 0; j < _numVars; ++j) {
+                if (!std::isfinite(con.coefficients[j])) {
+                    errorMsg = "Constraint " + std::to_string(i) + " coefficient " + std::to_string(j) + " is non-finite";
+                    return false;
+                }
             }
         }
         

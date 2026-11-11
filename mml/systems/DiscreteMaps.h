@@ -14,7 +14,10 @@
 
 #include <mml/MMLBase.h>
 #include <algorithm>
+#include <functional>
+#include <limits>
 #include <mml/interfaces/IDiscreteMap.h>
+#include <mml/systems/DynamicalSystem/LyapunovQR.h>
 #include <mml/base/Vector/Vector.h>
 #include <mml/base/Matrix/Matrix.h>
 
@@ -34,7 +37,9 @@ namespace MML::Systems
 	/// Chaotic for r ≈ 3.57 and above.
 	class LogisticMap : public IDiscreteMap<1> {
 	public:
-		LogisticMap(Real r = 3.9) : _r(r) {}
+		LogisticMap(Real r = 3.9) : _r(r) {
+			DynSysDetail::RequireFinite(r, "LogisticMap parameter");
+		}
 
 		void map(const Vector<Real>& x, Vector<Real>& xNext) const override { xNext[0] = _r * x[0] * (1 - x[0]); }
 
@@ -50,13 +55,20 @@ namespace MML::Systems
 		}
 		void setParam(int index, Real value) override {
 			if (index != 0) throw IndexError("LogisticMap::setParam - parameter index out of range");
+			DynSysDetail::RequireFinite(value, "LogisticMap parameter");
 			_r = value;
 		}
-		std::string getParamName(int /*index*/) const override { return "r"; }
-		std::string getStateName(int /*index*/) const override { return "x"; }
+		std::string getParamName(int index) const override {
+			if (index != 0) throw IndexError("LogisticMap::getParamName - parameter index out of range");
+			return "r";
+		}
+		std::string getStateName(int index) const override {
+			if (index != 0) throw IndexError("LogisticMap::getStateName - state index out of range");
+			return "x";
+		}
 
 		/// @brief Analytical Lyapunov exponent for r=4: λ = ln(2)
-		Real analyticalLyapunov() const { return (_r == 4.0) ? std::log(2.0) : 0.0; }
+		Real analyticalLyapunov() const { return (_r == MML::Real(4.0)) ? std::log(MML::Real(2.0)) : MML::Real(0.0); }
 
 		/// @brief Generate orbit of n iterations
 		std::vector<Vector<Real>> orbit(const Vector<Real>& x0, int n) const {
@@ -84,7 +96,10 @@ namespace MML::Systems
 	/// Standard parameters: a = 1.4, b = 0.3
 	class HenonMap : public IDiscreteMap<2> {
 	public:
-		HenonMap(Real a = 1.4, Real b = 0.3) : _a(a), _b(b) {}
+		HenonMap(Real a = 1.4, Real b = 0.3) : _a(a), _b(b) {
+			DynSysDetail::RequireFinite(a, "HenonMap parameter a");
+			DynSysDetail::RequireFinite(b, "HenonMap parameter b");
+		}
 
 		void map(const Vector<Real>& x, Vector<Real>& xNext) const override {
 			xNext[0] = 1 - _a * x[0] * x[0] + x[1];
@@ -106,10 +121,25 @@ namespace MML::Systems
 		}
 		void setParam(int index, Real value) override {
 			if (index < 0 || index > 1) throw IndexError("HenonMap::setParam - parameter index out of range");
+			DynSysDetail::RequireFinite(value, "HenonMap parameter");
 			(index == 0 ? _a : _b) = value;
 		}
-		std::string getParamName(int index) const override { return (index == 0) ? "a" : "b"; }
-		std::string getStateName(int index) const override { return (index == 0) ? "x" : "y"; }
+		void setParams(const Vector<Real>& values) override {
+			if (values.size() != 2)
+				throw VectorDimensionError("HenonMap::setParams - parameter vector size must equal 2", values.size(), 2);
+			DynSysDetail::RequireFinite(values[0], "HenonMap parameter a");
+			DynSysDetail::RequireFinite(values[1], "HenonMap parameter b");
+			_a = values[0];
+			_b = values[1];
+		}
+		std::string getParamName(int index) const override {
+			if (index < 0 || index > 1) throw IndexError("HenonMap::getParamName - parameter index out of range");
+			return (index == 0) ? "a" : "b";
+		}
+		std::string getStateName(int index) const override {
+			if (index < 0 || index > 1) throw IndexError("HenonMap::getStateName - state index out of range");
+			return (index == 0) ? "x" : "y";
+		}
 
 		/// @brief Get parameter a
 		Real getA() const { return _a; }
@@ -147,7 +177,9 @@ namespace MML::Systems
 	/// Canonical model for Hamiltonian chaos.
 	class StandardMap : public IDiscreteMap<2> {
 	public:
-		StandardMap(Real K = 0.971635) : _kickStrength(K) {}
+		StandardMap(Real K = 0.971635) : _kickStrength(K) {
+			DynSysDetail::RequireFinite(K, "StandardMap parameter");
+		}
 
 		void map(const Vector<Real>& x, Vector<Real>& xNext) const override {
 			Real p = x[0] + _kickStrength * std::sin(x[1]);
@@ -178,10 +210,17 @@ namespace MML::Systems
 		}
 		void setParam(int index, Real value) override {
 			if (index != 0) throw IndexError("StandardMap::setParam - parameter index out of range");
+			DynSysDetail::RequireFinite(value, "StandardMap parameter");
 			_kickStrength = value;
 		}
-		std::string getParamName(int /*index*/) const override { return "K"; }
-		std::string getStateName(int index) const override { return (index == 0) ? "p" : "theta"; }
+		std::string getParamName(int index) const override {
+			if (index != 0) throw IndexError("StandardMap::getParamName - parameter index out of range");
+			return "K";
+		}
+		std::string getStateName(int index) const override {
+			if (index < 0 || index > 1) throw IndexError("StandardMap::getStateName - state index out of range");
+			return (index == 0) ? "p" : "theta";
+		}
 
 		/// @brief Standard map preserves area (det(J) = 1)
 		bool isAreaPreserving() const { return true; }
@@ -201,7 +240,9 @@ namespace MML::Systems
 	/// Piecewise linear, exhibits chaos for μ = 2.
 	class TentMap : public IDiscreteMap<1> {
 	public:
-		TentMap(Real mu = 2.0) : _mu(mu) {}
+		TentMap(Real mu = 2.0) : _mu(mu) {
+			DynSysDetail::RequireFinite(mu, "TentMap parameter");
+		}
 
 		void map(const Vector<Real>& x, Vector<Real>& xNext) const override { xNext[0] = _mu * std::min(x[0], 1 - x[0]); }
 
@@ -218,13 +259,20 @@ namespace MML::Systems
 		}
 		void setParam(int index, Real value) override {
 			if (index != 0) throw IndexError("TentMap::setParam - parameter index out of range");
+			DynSysDetail::RequireFinite(value, "TentMap parameter");
 			_mu = value;
 		}
-		std::string getParamName(int /*index*/) const override { return "mu"; }
-		std::string getStateName(int /*index*/) const override { return "x"; }
+		std::string getParamName(int index) const override {
+			if (index != 0) throw IndexError("TentMap::getParamName - parameter index out of range");
+			return "mu";
+		}
+		std::string getStateName(int index) const override {
+			if (index != 0) throw IndexError("TentMap::getStateName - state index out of range");
+			return "x";
+		}
 
 		/// @brief Analytical Lyapunov exponent for μ=2: λ = ln(2)
-		Real analyticalLyapunov() const { return (_mu == 2.0) ? std::log(2.0) : std::log(_mu); }
+		Real analyticalLyapunov() const { return (_mu == MML::Real(2.0)) ? std::log(MML::Real(2.0)) : std::log(_mu); }
 
 	private:
 		Real _mu;
@@ -239,7 +287,7 @@ namespace MML::Systems
 	struct DiscreteMapLyapunovResult {
 		Vector<Type> exponents;  ///< Lyapunov exponents (descending order)
 		Type maxExponent;        ///< Largest exponent (λ₁)
-		bool isChaotic;          ///< True if λ₁ > 0
+		bool isChaotic;          ///< Positive-growth heuristic using Precision::DiscreteLyapunovChaosThreshold
 	};
 
 	//=============================================================================
@@ -250,6 +298,7 @@ namespace MML::Systems
 	/// @tparam N State dimension
 	template <int N>
 	class DiscreteMapLyapunov {
+		static_assert(N > 0, "Discrete Lyapunov analysis requires a positive state dimension");
 	public:
 		/// @brief Compute Lyapunov exponents
 		/// @param map The discrete map
@@ -257,8 +306,13 @@ namespace MML::Systems
 		/// @param numIterations Total iterations
 		/// @param skipTransient Iterations to skip
 		/// @return DiscreteMapLyapunovResult with exponents and chaos indicator
+		/// @throws SingularMatrixError for zero or numerically dependent tangent columns
+		/// @throws NumericalMethodError for non-finite callback outputs or tangent frames
 		static DiscreteMapLyapunovResult<Real> Compute(IDiscreteMap<N>& map, const Vector<Real>& x0, int numIterations = 10000,
 																int skipTransient = 1000) {
+			if (numIterations <= 0 || skipTransient < 0)
+				throw ArgumentError("Discrete Lyapunov: require positive measurement count and nonnegative transient count");
+			DynSysDetail::CheckState<ArgumentError>(x0, N, "Discrete Lyapunov initial state");
 			Vector<Real> x = x0;
 			Vector<Real> xNext(N);
 			Matrix<Real> J(N, N);
@@ -267,14 +321,18 @@ namespace MML::Systems
 
 			// Skip transient
 			for (int i = 0; i < skipTransient; ++i) {
+				xNext = Vector<Real>(N, std::numeric_limits<Real>::quiet_NaN());
 				map.map(x, xNext);
+				DynSysDetail::CheckState(xNext, N, "Discrete Lyapunov map output");
 				x = xNext;
 			}
 
 			// Accumulate stretching
 			for (int iter = 0; iter < numIterations; ++iter) {
 				// Get Jacobian
+				J = Matrix<Real>(N, N, std::numeric_limits<Real>::quiet_NaN());
 				map.jacobian(x, J);
+				DynSysDetail::CheckJacobian(J, N);
 
 				// Multiply Q by J
 				Matrix<Real> JQ(N, N);
@@ -288,37 +346,14 @@ namespace MML::Systems
 				}
 				Q = JQ;
 
-				// Gram-Schmidt orthonormalization
-				for (int j = 0; j < N; ++j) {
-					// Get column j
-					Vector<Real> v(N);
-					for (int i = 0; i < N; ++i)
-						v[i] = Q(i, j);
-
-					// Orthogonalize
-					for (int k = 0; k < j; ++k) {
-						Real dot = 0;
-						for (int i = 0; i < N; ++i)
-							dot += v[i] * Q(i, k);
-						for (int i = 0; i < N; ++i)
-							v[i] -= dot * Q(i, k);
-					}
-
-					// Normalize
-					Real norm = 0;
-					for (int i = 0; i < N; ++i)
-						norm += v[i] * v[i];
-					norm = std::sqrt(norm);
-
-					if (norm > Precision::DivisionSafetyThreshold) {
-						lyapunovSums[j] += std::log(norm);
-						for (int i = 0; i < N; ++i)
-							Q(i, j) = v[i] / norm;
-					}
-				}
+				const auto logarithms = LyapunovDetail::Orthonormalize(Q);
+				for (int j = 0; j < N; ++j)
+					lyapunovSums[j] += logarithms[j];
 
 				// Iterate map
+				xNext = Vector<Real>(N, std::numeric_limits<Real>::quiet_NaN());
 				map.map(x, xNext);
+				DynSysDetail::CheckState(xNext, N, "Discrete Lyapunov map output");
 				x = xNext;
 			}
 
@@ -327,9 +362,10 @@ namespace MML::Systems
 			result.exponents.resize(N);
 			for (int i = 0; i < N; ++i)
 				result.exponents[i] = lyapunovSums[i] / numIterations;
+			std::sort(result.exponents.begin(), result.exponents.end(), std::greater<Real>());
 
 			result.maxExponent = result.exponents[0];
-			result.isChaotic = result.maxExponent > 0.01;  // Small threshold
+			result.isChaotic = result.maxExponent > Precision::DiscreteLyapunovChaosThreshold;
 
 			return result;
 		}

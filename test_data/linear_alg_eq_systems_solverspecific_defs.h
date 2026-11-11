@@ -72,14 +72,14 @@ const static inline Vector<Real> overdetermined_4x3_sol{
 };
 
 const static inline VectorComplex overdetermined_4x3_eigen{
-    Complex(46.4647, 0),
-    Complex(0.5335, 0),
-    Complex(0.0018, 0)
+    Complex(MML::Real(46.4647), 0),
+    Complex(MML::Real(0.5335), 0),
+    Complex(MML::Real(0.0018), 0)
 };
 
 // Matrix properties for overdetermined_4x3_mat (rectangular - no determinant)
-const static inline Vector<Real> overdetermined_4x3_singular_values{10.629605628935844, 0.3935847579485939, 0.01346660091538802};
-const static inline Real              overdetermined_4x3_cond_2 = 789.2547266174948;
+const static inline Vector<Real> overdetermined_4x3_singular_values{MML::Real(10.629605628935844), MML::Real(0.3935847579485939), MML::Real(0.01346660091538802)};
+const static inline Real              overdetermined_4x3_cond_2 = MML::Real(789.2547266174948);
 const static inline int               overdetermined_4x3_rank = 3;
 
 // ===== OVERDETERMINED 5x3 REGRESSION =====
@@ -111,8 +111,8 @@ const static inline VectorComplex overdetermined_5x3_regression_eigen{
 };
 
 // Matrix properties for overdetermined_5x3_regression_mat (rectangular - no determinant)
-const static inline Vector<Real> overdetermined_5x3_regression_singular_values{38.94025779098568, 2.4788816217779655, 0.43284115316413265};
-const static inline Real              overdetermined_5x3_regression_cond_2 = 89.95862610108093;
+const static inline Vector<Real> overdetermined_5x3_regression_singular_values{MML::Real(38.94025779098568), MML::Real(2.4788816217779655), MML::Real(0.43284115316413265)};
+const static inline Real              overdetermined_5x3_regression_cond_2 = MML::Real(89.95862610108093);
 const static inline int               overdetermined_5x3_regression_rank = 3;
 
 // ===== OVERDETERMINED 6x4 POLYNOMIAL =====
@@ -148,8 +148,8 @@ const static inline VectorComplex overdetermined_6x4_polynomial_eigen{
 };
 
 // Matrix properties for overdetermined_6x4_polynomial_mat (rectangular - no determinant)
-const static inline Vector<Real> overdetermined_6x4_polynomial_singular_values{218.14612773285034, 8.376015556001766, 1.1102296108422065, 0.11303803251665};
-const static inline Real              overdetermined_6x4_polynomial_cond_2 = 1929.8908406299066;
+const static inline Vector<Real> overdetermined_6x4_polynomial_singular_values{MML::Real(218.14612773285034), MML::Real(8.376015556001766), MML::Real(1.1102296108422065), MML::Real(0.11303803251665)};
+const static inline Real              overdetermined_6x4_polynomial_cond_2 = MML::Real(1929.8908406299066);
 const static inline int               overdetermined_6x4_polynomial_rank = 4;
 
 /*******************************************************************************************************************
@@ -181,16 +181,16 @@ const static inline Vector<Real> diag_dominant_4x4_sol{
 };
 
 const static inline VectorComplex diag_dominant_4x4_eigen{
-    Complex(11.652, 0),
-    Complex(10.345, 0),
-    Complex(9.821, 0),
-    Complex(7.182, 0)
+    Complex(MML::Real(11.652), 0),
+    Complex(MML::Real(10.345), 0),
+    Complex(MML::Real(9.821), 0),
+    Complex(MML::Real(7.182), 0)
 };
 
 // Matrix properties for diag_dominant_4x4_mat
 const static inline Real              diag_dominant_4x4_det = 7700.0;
-const static inline Vector<Real> diag_dominant_4x4_singular_values{12.80232827821645, 10.86174188588088, 8.787015679261046, 6.449101632298261};
-const static inline Real              diag_dominant_4x4_cond_2 = 1.9848820115499685;
+const static inline Vector<Real> diag_dominant_4x4_singular_values{MML::Real(12.80232827821645), MML::Real(10.86174188588088), MML::Real(8.787015679261046), MML::Real(6.449101632298261)};
+const static inline Real              diag_dominant_4x4_cond_2 = MML::Real(1.9848820115499685);
 const static inline int               diag_dominant_4x4_rank = 4;
 
 // ===== DIAGONALLY DOMINANT TRIDIAGONAL 5x5 =====
@@ -211,25 +211,25 @@ const static inline Matrix<Real> diag_dominant_5x5_tridiag_mat{5, 5, {
 const static inline Vector<Real> diag_dominant_5x5_tridiag_rhs{1.0, 2.0, 3.0, 2.0, 1.0};
 
 const static inline Vector<Real> diag_dominant_5x5_tridiag_sol{
-    0.480769230769230769,
-    0.923076923076923077,
-    1.211538461538461538,
-    0.923076923076923077,
-    0.480769230769230769
+    MML::Real(0.480769230769230769),
+    MML::Real(0.923076923076923077),
+    MML::Real(1.211538461538461538),
+    MML::Real(0.923076923076923077),
+    MML::Real(0.480769230769230769)
 };
 
 const static inline VectorComplex diag_dominant_5x5_tridiag_eigen{
-    Complex(5.618, 0),
+    Complex(MML::Real(5.618), 0),
     Complex(5.000, 0),
     Complex(4.000, 0),
     Complex(3.000, 0),
-    Complex(2.382, 0)
+    Complex(MML::Real(2.382), 0)
 };
 
 // Matrix properties for diag_dominant_5x5_tridiag_mat
 const static inline Real              diag_dominant_5x5_tridiag_det = 832.0;
-const static inline Vector<Real> diag_dominant_5x5_tridiag_singular_values{5.618033988749895, 5.0, 4.0, 3.0, 2.381966011250105};
-const static inline Real              diag_dominant_5x5_tridiag_cond_2 = 2.3595041746212636;
+const static inline Vector<Real> diag_dominant_5x5_tridiag_singular_values{MML::Real(5.618033988749895), MML::Real(5.0), MML::Real(4.0), MML::Real(3.0), MML::Real(2.381966011250105)};
+const static inline Real              diag_dominant_5x5_tridiag_cond_2 = MML::Real(2.3595041746212636);
 const static inline int               diag_dominant_5x5_tridiag_rank = 5;
 
 // ===== DIAGONALLY DOMINANT 6x6 - 2D POISSON =====
@@ -250,27 +250,27 @@ const static inline Matrix<Real> diag_dominant_6x6_poisson2d_mat{6, 6, {
 const static inline Vector<Real> diag_dominant_6x6_poisson2d_rhs{1.0, 1.0, 1.0, 1.0, 1.0, 1.0};
 
 const static inline Vector<Real> diag_dominant_6x6_poisson2d_sol{
-    0.571428571428571429,
-    0.714285714285714286,
-    0.571428571428571429,
-    0.571428571428571429,
-    0.714285714285714286,
-    0.571428571428571429
+    MML::Real(0.571428571428571429),
+    MML::Real(0.714285714285714286),
+    MML::Real(0.571428571428571429),
+    MML::Real(0.571428571428571429),
+    MML::Real(0.714285714285714286),
+    MML::Real(0.571428571428571429)
 };
 
 const static inline VectorComplex diag_dominant_6x6_poisson2d_eigen{
-    Complex(6.732, 0),
-    Complex(5.414, 0),
-    Complex(5.414, 0),
-    Complex(2.586, 0),
-    Complex(2.586, 0),
-    Complex(1.268, 0)
+    Complex(MML::Real(6.732), 0),
+    Complex(MML::Real(5.414), 0),
+    Complex(MML::Real(5.414), 0),
+    Complex(MML::Real(2.586), 0),
+    Complex(MML::Real(2.586), 0),
+    Complex(MML::Real(1.268), 0)
 };
 
 // Matrix properties for diag_dominant_6x6_poisson2d_mat
 const static inline Real              diag_dominant_6x6_poisson2d_det = 112.0;
-const static inline Vector<Real> diag_dominant_6x6_poisson2d_singular_values{6.732050807568877, 5.414213562373095, 5.414213562373095, 2.585786437626905, 2.585786437626905, 1.2679491924311228};
-const static inline Real              diag_dominant_6x6_poisson2d_cond_2 = 5.309401076758504;
+const static inline Vector<Real> diag_dominant_6x6_poisson2d_singular_values{MML::Real(6.732050807568877), MML::Real(5.414213562373095), MML::Real(5.414213562373095), MML::Real(2.585786437626905), MML::Real(2.585786437626905), MML::Real(1.2679491924311228)};
+const static inline Real              diag_dominant_6x6_poisson2d_cond_2 = MML::Real(5.309401076758504);
 const static inline int               diag_dominant_6x6_poisson2d_rank = 6;
 
 /*******************************************************************************************************************
@@ -299,12 +299,12 @@ const static inline Vector<Real> spd_3x3_sol{
     1.000000000000000000
 };
 
-const static inline Vector<Real> spd_3x3_eigen{5.236, 4.000, 2.764};
+const static inline Vector<Real> spd_3x3_eigen{MML::Real(5.236), MML::Real(4.000), MML::Real(2.764)};
 
 // Matrix properties for spd_3x3_mat
 const static inline Real              spd_3x3_det = 56.0;
-const static inline Vector<Real> spd_3x3_singular_values{5.23606797749979, 4.0, 2.7639320225002095};
-const static inline Real              spd_3x3_cond_2 = 1.8944271909999157;
+const static inline Vector<Real> spd_3x3_singular_values{MML::Real(5.23606797749979), MML::Real(4.0), MML::Real(2.7639320225002095)};
+const static inline Real              spd_3x3_cond_2 = MML::Real(1.8944271909999157);
 const static inline int               spd_3x3_rank = 3;
 
 // ===== SPD 4x4 - CORRELATION MATRIX =====
@@ -315,12 +315,12 @@ const static inline int               spd_3x3_rank = 3;
 
 const static inline MatrixSym<Real> spd_4x4_correlation_mat{4, {
     1.0,
-    0.8,  1.0,
-    0.5,  0.7,  1.0,
-    0.3,  0.4,  0.6,  1.0
+    MML::Real(0.8),  MML::Real(1.0),
+    MML::Real(0.5),  MML::Real(0.7),  MML::Real(1.0),
+    MML::Real(0.3),  MML::Real(0.4),  MML::Real(0.6),  MML::Real(1.0)
 }};
 
-const static inline Vector<Real> spd_4x4_correlation_rhs{2.6, 2.9, 2.8, 2.3};
+const static inline Vector<Real> spd_4x4_correlation_rhs{MML::Real(2.6), MML::Real(2.9), MML::Real(2.8), MML::Real(2.3)};
 
 const static inline Vector<Real> spd_4x4_correlation_sol{
     1.000000000000000000,
@@ -329,12 +329,12 @@ const static inline Vector<Real> spd_4x4_correlation_sol{
     1.000000000000000000
 };
 
-const static inline Vector<Real> spd_4x4_correlation_eigen{2.845, 0.889, 0.195, 0.071};
+const static inline Vector<Real> spd_4x4_correlation_eigen{MML::Real(2.845), MML::Real(0.889), MML::Real(0.195), MML::Real(0.071)};
 
 // Matrix properties for spd_4x4_correlation_mat
-const static inline Real              spd_4x4_correlation_det = 0.035343;
-const static inline Vector<Real> spd_4x4_correlation_singular_values{2.844855825376282, 0.8889427629063621, 0.19545547024645665, 0.07074594147089902};
-const static inline Real              spd_4x4_correlation_cond_2 = 40.21162379051538;
+const static inline Real              spd_4x4_correlation_det = MML::Real(0.035343);
+const static inline Vector<Real> spd_4x4_correlation_singular_values{MML::Real(2.844855825376282), MML::Real(0.8889427629063621), MML::Real(0.19545547024645665), MML::Real(0.07074594147089902)};
+const static inline Real              spd_4x4_correlation_cond_2 = MML::Real(40.21162379051538);
 const static inline int               spd_4x4_correlation_rank = 4;
 
 // ===== SPD 5x5 - MASS MATRIX =====
@@ -361,12 +361,12 @@ const static inline Vector<Real> spd_5x5_mass_matrix_sol{
     1.000000000000000000
 };
 
-const static inline Vector<Real> spd_5x5_mass_matrix_eigen{5.618, 5.000, 4.000, 3.000, 2.382};
+const static inline Vector<Real> spd_5x5_mass_matrix_eigen{MML::Real(5.618), MML::Real(5.000), MML::Real(4.000), MML::Real(3.000), MML::Real(2.382)};
 
 // Matrix properties for spd_5x5_mass_matrix_mat
 const static inline Real              spd_5x5_mass_matrix_det = 832.0;
-const static inline Vector<Real> spd_5x5_mass_matrix_singular_values{5.618033988749895, 5.0, 4.0, 3.0, 2.381966011250105};
-const static inline Real              spd_5x5_mass_matrix_cond_2 = 2.3595041746212636;
+const static inline Vector<Real> spd_5x5_mass_matrix_singular_values{MML::Real(5.618033988749895), MML::Real(5.0), MML::Real(4.0), MML::Real(3.0), MML::Real(2.381966011250105)};
+const static inline Real              spd_5x5_mass_matrix_cond_2 = MML::Real(2.3595041746212636);
 const static inline int               spd_5x5_mass_matrix_rank = 5;
 
 // ===== SPD 6x6 - GRAPH LAPLACIAN =====
@@ -388,12 +388,12 @@ const static inline MatrixSym<Real> spd_6x6_graph_laplacian_mat{6, {
 const static inline Vector<Real> spd_6x6_graph_laplacian_rhs{1.0, -1.0, 1.0, -1.0, 1.0, -1.0};
 
 const static inline Vector<Real> spd_6x6_graph_laplacian_sol{
-    0.666666666666666667,
-   -0.333333333333333333,
-    0.666666666666666667,
-   -0.333333333333333333,
-    0.666666666666666667,
-   -0.333333333333333333
+    MML::Real(0.666666666666666667),
+   -MML::Real(0.333333333333333333),
+    MML::Real(0.666666666666666667),
+   -MML::Real(0.333333333333333333),
+    MML::Real(0.666666666666666667),
+   -MML::Real(0.333333333333333333)
 };
 
 const static inline Vector<Real> spd_6x6_graph_laplacian_eigen{4.000, 3.000, 3.000, 1.000, 1.000, 0.000};

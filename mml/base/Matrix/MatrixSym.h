@@ -79,6 +79,7 @@
 
 #include <vector>
 #include <algorithm>
+#include <cmath>
 #include <stdexcept>
 
 // Standard headers - include what we use
@@ -271,8 +272,9 @@ namespace MML
 			}
 
 			validateDimension(newDim);
+			std::vector<Type> replacement(numElements(newDim), Type{0});
+			_data.swap(replacement);
 			_dim = newDim;
-			_data.assign(numElements(newDim), Type{0});
 		}
 
 		/// @brief Resizes the matrix with optional data preservation.
@@ -339,10 +341,19 @@ namespace MML
 		bool IsEqualTo(const MatrixSym& b, Real eps = Precision::MatrixIsEqualTolerance) const {
 			if (_dim != b._dim)
 				return false;
+			if (!std::isfinite(eps) || eps < 0)
+				return false;
 
 			for (size_t i = 0; i < _data.size(); ++i) {
-				if (Abs(_data[i] - b._data[i]) > eps)
-					return false;
+				if constexpr (std::is_integral_v<Type>) {
+					const auto difference = _data[i] >= b._data[i]
+						? static_cast<unsigned long long>(_data[i]) - static_cast<unsigned long long>(b._data[i])
+						: static_cast<unsigned long long>(b._data[i]) - static_cast<unsigned long long>(_data[i]);
+					if (!(static_cast<long double>(difference) <= eps))
+						return false;
+				} else {
+					if (!(Abs(_data[i] - b._data[i]) <= eps)) return false;
+				}
 			}
 			return true;
 		}
@@ -517,24 +528,24 @@ namespace MML
 		/// @return @f$ \|A\|_F = \sqrt{\sum_{i,j} |a_{ij}|^2} @f$
 		/// @note Off-diagonal elements are counted twice (once from each triangle).
 		Real NormFrobenius() const {
-			Real sum{0}; // Norm is always real, even for complex matrices
+			StableNormL2Accumulator accumulator;
 			for (int i = 0; i < _dim; ++i) {
-				// Diagonal element: use |a|^2
-				if constexpr (MMLComplex<Type>) {
-					sum += std::norm((*this)(i, i));
-					// Off-diagonal elements (counted twice in full matrix)
-					for (int j = 0; j < i; ++j) {
-						sum += Real{2} * std::norm((*this)(i, j));
-					}
-				} else {
-					sum += (*this)(i, i) * (*this)(i, i);
-					// Off-diagonal elements (counted twice in full matrix)
-					for (int j = 0; j < i; ++j) {
-						sum += Real{2} * (*this)(i, j) * (*this)(i, j);
+				for (int j = 0; j <= i; ++j) {
+					const auto addEntry = [&]() {
+						if constexpr (MMLComplex<Type>) {
+							accumulator.add(std::abs(static_cast<Real>((*this)(i, j).real())));
+							accumulator.add(std::abs(static_cast<Real>((*this)(i, j).imag())));
+						} else {
+							accumulator.add(std::abs(static_cast<Real>((*this)(i, j))));
+						}
+					};
+					addEntry();
+					if (j != i) {
+						addEntry(); // The full symmetric matrix contains both triangles.
 					}
 				}
 			}
-			return std::sqrt(sum);
+			return accumulator.value();
 		}
 
 		/// @brief Computes infinity norm (maximum absolute row sum).
@@ -563,8 +574,9 @@ namespace MML
 		/// @brief Copy assignment.
 		MatrixSym& operator=(const MatrixSym& other) {
 			if (this != &other) {
+				std::vector<Type> replacement(other._data);
+				_data.swap(replacement);
 				_dim = other._dim;
-				_data = other._data;
 			}
 			return *this;
 		}

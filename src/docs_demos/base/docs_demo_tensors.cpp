@@ -67,6 +67,14 @@ void Docs_Demo_Tensors()
 	Real trace_A = A.contract();
 	std::cout << "A.contract() = " << trace_A << " (should be 2+3=5)" << std::endl;
 
+	Tensor3<2> tensor(1, 2);
+	tensor(0, 0, 0) = 2;
+	tensor(0, 1, 1) = 3;
+	auto contracted = tensor.contract(0, 1);
+	auto diagonal = tensor.EuclideanDiagonalSum(1, 2);
+	std::cout << "Strict contraction: " << contracted << " (expected {2, 0})\n";
+	std::cout << "Euclidean diagonal sum: " << diagonal << " (expected {5, 0})\n";
+
 	// Tensor evaluation on vectors
 	std::cout << "\n*** Tensor Evaluation ***" << std::endl;
 	VectorN<Real, 2> v1{1, 0};

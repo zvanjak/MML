@@ -87,7 +87,7 @@ TEST_CASE("BugFix_i5u3.1.1 - Cylindrical negation matches Cartesian negation", "
 
 TEST_CASE("BugFix_i5u3.1.1 - Cylindrical double negation is identity", "[bugfix][i5u3][vector]")
 {
-	Vector3Cylindrical v(1.5, 0.7, -2.5);
+	Vector3Cylindrical v(MML::Real(1.5), MML::Real(0.7), -MML::Real(2.5));
 	Vector3Cylindrical vv = -(-v);
 
 	Real x, y, z, xx, yy, zz;
@@ -346,7 +346,7 @@ TEST_CASE("BugFix_i5u3.1.6 - NDer2Left never evaluates f at or beyond x", "[bugf
 	// One-sided derivative for a boundary: the entire stencil (incl. error estimate)
 	// must stay strictly left of x, matching the NDer4/6/8 family pattern.
 	Real x = 2.0;
-	Real maxArgSeen = -1e30;
+	Real maxArgSeen = -MML::Real(1e30);
 	RealFunctionFromStdFunc f([&maxArgSeen](Real arg) {
 		if (arg > maxArgSeen) maxArgSeen = arg;
 		return arg * arg;
@@ -362,7 +362,7 @@ TEST_CASE("BugFix_i5u3.1.6 - NDer2Left never evaluates f at or beyond x", "[bugf
 TEST_CASE("BugFix_i5u3.1.6 - NDer2Right never evaluates f at or below x", "[bugfix][i5u3][derivation]")
 {
 	Real x = 2.0;
-	Real minArgSeen = 1e30;
+	Real minArgSeen = MML::Real(1e30);
 	RealFunctionFromStdFunc f([&minArgSeen](Real arg) {
 		if (arg < minArgSeen) minArgSeen = arg;
 		return arg * arg;
@@ -401,12 +401,12 @@ TEST_CASE("BugFix_i5u3.1.7 - Infinite-interval containment still correct", "[bug
 {
 	CompleteRInterval all;
 	REQUIRE(all.contains(0.0));
-	REQUIRE(all.contains(-1e30));
-	REQUIRE(all.contains(1e30));
+	REQUIRE(all.contains(-MML::Real(1e30)));
+	REQUIRE(all.contains(MML::Real(1e30)));
 
 	NegInfToClosedInterval upTo(2.0);
 	REQUIRE(upTo.contains(2.0));
-	REQUIRE(upTo.contains(-1e30));
+	REQUIRE(upTo.contains(-MML::Real(1e30)));
 	REQUIRE_FALSE(upTo.contains(2.5));
 
 	OpenToInfInterval from(1.0);
@@ -569,7 +569,7 @@ TEST_CASE("BugFix_i5u3.1.11 - ThreadPool executes tasks normally", "[bugfix][i5u
 TEST_CASE("BugFix_i5u3.1.12 - isSymmetric cache is keyed on tolerance", "[bugfix][i5u3][systems]")
 {
 	// Nearly-symmetric matrix: off-diagonal mismatch of 1e-6
-	Matrix<Real> A(2, 2, { 2.0, 1.0 + 1e-6,
+	Matrix<Real> A(2, 2, { MML::Real(2.0), MML::Real(1.0) + MML::Real(1e-6),
 	                       1.0, 2.0 });
 	Systems::LinearSystem<Real> sys(A, Vector<Real>{1.0, 1.0});
 
@@ -584,7 +584,7 @@ TEST_CASE("BugFix_i5u3.1.12 - isSymmetric cache is keyed on tolerance", "[bugfix
 TEST_CASE("BugFix_i5u3.1.12 - IsPositiveDefinite respects the requested tolerance", "[bugfix][i5u3][systems]")
 {
 	// SPD matrix with a tiny symmetry perturbation
-	Matrix<Real> A(2, 2, { 4.0, 1.0 + 1e-6,
+	Matrix<Real> A(2, 2, { MML::Real(4.0), MML::Real(1.0) + MML::Real(1e-6),
 	                       1.0, 3.0 });
 	Systems::LinearSystem<Real> sys(A, Vector<Real>{1.0, 1.0});
 
@@ -671,7 +671,7 @@ TEST_CASE("BugFix_i5u3.1.16 - DAESolution fillValues grows safely beyond preallo
 	Vector<Real> y({ 3.0 });
 
 	for (int i = 0; i < 20; i++)
-		REQUIRE_NOTHROW(sol.fillValues(i, 0.05 * i, x, y));
+		REQUIRE_NOTHROW(sol.fillValues(i, MML::Real(0.05) * i, x, y));
 
 	REQUIRE(sol.capacity() >= 20);
 	Vector<Real> t = sol.getTValues();
@@ -706,7 +706,7 @@ TEST_CASE("BugFix_i5u3.1.16 - stepper interpolate clamps outside last step", "[b
 	DormandPrince5_Stepper stepper(sys);
 	Vector<Real> x({ 1.0 });
 	Vector<Real> dxdt({ 1.0 });
-	auto res = stepper.doStep(0.0, x, dxdt, 0.1, 1e-8);
+	auto res = stepper.doStep(MML::Real(0.0), x, dxdt, MML::Real(0.1), MML::Real(1e-8));
 	REQUIRE(res.accepted);
 
 	// Interpolating far outside the accepted step must clamp to the endpoints,
@@ -812,7 +812,7 @@ TEST_CASE("Contract_i5u3.2.2 - Vector operator== returns false on size mismatch"
 
 TEST_CASE("Contract_i5u3.2.2 - VectorN isZero is exact, isNearZero has tolerance", "[bugfix][i5u3][contract]")
 {
-	VectorN<Real, 3> tiny({ 1e-14, 0.0, 0.0 });
+	VectorN<Real, 3> tiny({ MML::Real(1e-14), MML::Real(0.0), MML::Real(0.0) });
 	REQUIRE_FALSE(tiny.IsZero());       // previously true (hidden epsilon*100 tolerance)
 	REQUIRE(tiny.IsNearZero(static_cast<MML::Real>(1e-13)));
 
@@ -949,7 +949,7 @@ namespace ReverseTimeDetail {
 		int getDiffDim() const override { return 1; }
 		int getAlgDim() const override { return 1; }
 		void diffEqs(Real, const Vector<Real>& x, const Vector<Real>& y, Vector<Real>& dxdt) const override { dxdt[0] = -x[0] + y[0]; }
-		void algConstraints(Real, const Vector<Real>& x, const Vector<Real>& y, Vector<Real>& g) const override { g[0] = x[0] + y[0] - 1.0; }
+		void algConstraints(Real, const Vector<Real>& x, const Vector<Real>& y, Vector<Real>& g) const override { g[0] = x[0] + y[0] - MML::Real(1.0); }
 		void jacobian_fx(Real, const Vector<Real>&, const Vector<Real>&, Matrix<Real>& J) const override { J(0, 0) = -1.0; }
 		void jacobian_fy(Real, const Vector<Real>&, const Vector<Real>&, Matrix<Real>& J) const override { J(0, 0) = 1.0; }
 		void jacobian_gx(Real, const Vector<Real>&, const Vector<Real>&, Matrix<Real>& J) const override { J(0, 0) = 1.0; }
@@ -988,12 +988,12 @@ TEST_CASE("Contract_i5u3.2.4 - stiff ODE solvers support reverse time and reject
 		[](Real, const Vector<Real>& y, Vector<Real>& dydt, Matrix<Real>& J) { dydt[0] = -y[0]; J(0, 0) = -1.0; });
 	Vector<Real> y0({ 1.0 });
 
-	for (const auto& solution : { SolveBackwardEuler(sys, 1.0, y0, 0.0, 0.1),
-		SolveBDF2(sys, 1.0, y0, 0.0, 0.1) }) {
+	for (const auto& solution : { SolveBackwardEuler(sys, MML::Real(1.0), y0, MML::Real(0.0), MML::Real(0.1)),
+		SolveBDF2(sys, MML::Real(1.0), y0, MML::Real(0.0), MML::Real(0.1)) }) {
 		REQUIRE(solution.size() > 1);
 		REQUIRE(solution.getTValue(solution.size() - 1) == Catch::Approx(0.0));
 	}
-	REQUIRE_THROWS_AS(SolveBackwardEuler(sys, 0.0, y0, 1.0, -0.1), ODESolverError);
+	REQUIRE_THROWS_AS(SolveBackwardEuler(sys, MML::Real(0.0), y0, MML::Real(1.0), -MML::Real(0.1)), ODESolverError);
 	REQUIRE_THROWS_AS(SolveBDF2(sys, 1.0, y0, 0.0, 0.0), ODESolverError);
 }
 
@@ -1002,12 +1002,12 @@ TEST_CASE("Contract_i5u3.2.4 - systems analyzers reject reverse time and bad ste
 	Systems::VanDerPolSystem vdp(1.0);
 	Vector<Real> x({ 0.5, 0.5 });
 
-	REQUIRE_THROWS_AS(Systems::PhaseSpaceAnalyzer::IntegrateTrajectory(vdp, x, -1.0, 0.1), ArgumentError);
-	REQUIRE_THROWS_AS(Systems::PhaseSpaceAnalyzer::IntegrateTrajectory(vdp, x, 1.0, 0.1, -0.01), ArgumentError);
-	REQUIRE_THROWS_AS(Systems::PhaseSpaceAnalyzer::ComputePoincareSection(vdp, x, Systems::PoincareSection<Real>(0, 0.0, +1), 10, -0.01), ArgumentError);
+	REQUIRE_THROWS_AS(Systems::PhaseSpaceAnalyzer::IntegrateTrajectory(vdp, x, -MML::Real(1.0), MML::Real(0.1)), ArgumentError);
+	REQUIRE_THROWS_AS(Systems::PhaseSpaceAnalyzer::IntegrateTrajectory(vdp, x, MML::Real(1.0), MML::Real(0.1), -MML::Real(0.01)), ArgumentError);
+	REQUIRE_THROWS_AS(Systems::PhaseSpaceAnalyzer::ComputePoincareSection(vdp, x, Systems::PoincareSection<Real>(0, MML::Real(0.0), +1), 10, -MML::Real(0.01)), ArgumentError);
 
 	// Forward time still works
-	auto traj = Systems::PhaseSpaceAnalyzer::IntegrateTrajectory(vdp, x, 1.0, 0.1);
+	auto traj = Systems::PhaseSpaceAnalyzer::IntegrateTrajectory(vdp, x, MML::Real(1.0), MML::Real(0.1));
 	REQUIRE(traj.size() > 1);
 }
 

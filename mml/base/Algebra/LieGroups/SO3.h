@@ -13,6 +13,7 @@
 
 #include <mml/MMLBase.h>
 #include <mml/MMLExceptions.h>
+#include <mml/MMLNumericValidation.h>
 #include <mml/base/Quaternions.h>
 #include <mml/base/Matrix/MatrixNM.h>
 #include <mml/base/Vector/VectorN.h>
@@ -33,7 +34,7 @@ namespace MML
 			{
 				quaternion.Normalize();
 				const bool negativeHemisphere = quaternion.w() < static_cast<MML::Real>(0.0);
-				const bool ambiguousNegative = std::abs(quaternion.w()) <= PrecisionValues<Real>::DefaultTolerance &&
+				const bool ambiguousNegative = quaternion.w() == static_cast<MML::Real>(0.0) &&
 					(quaternion.x() < static_cast<MML::Real>(0.0) ||
 					 (quaternion.x() == static_cast<MML::Real>(0.0) && quaternion.y() < static_cast<MML::Real>(0.0)) ||
 					 (quaternion.x() == static_cast<MML::Real>(0.0) && quaternion.y() == static_cast<MML::Real>(0.0) && quaternion.z() < static_cast<MML::Real>(0.0)));
@@ -76,6 +77,11 @@ namespace MML
 			static bool IsRotationMatrix(const MatrixNM<Real, 3, 3>& matrix,
 				Real tolerance = PrecisionValues<Real>::OrthogonalityTolerance)
 			{
+				ValidateNonNegativeTolerance(tolerance, "SO3::IsRotationMatrix");
+				for (int row = 0; row < 3; ++row)
+					for (int column = 0; column < 3; ++column)
+						if (!std::isfinite(matrix(row, column)))
+							return false;
 				const auto orthogonality = matrix.Transposed() * matrix;
 				return orthogonality.IsEqualTo(MatrixNM<Real, 3, 3>::Identity(), tolerance) &&
 					std::abs(Determinant(matrix) - static_cast<MML::Real>(1.0)) <= tolerance;

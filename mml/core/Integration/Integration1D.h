@@ -30,6 +30,7 @@
 #include "GaussKronrod.h"
 
 #include <mml/interfaces/IFunction.h>
+#include <mml/base/Function.h>
 
 namespace MML
 {
@@ -53,11 +54,38 @@ namespace MML
 		{
 		public:
 			Real _a, _b, _currSum;
-			Real _currAbsSum;   ///< Same trapezoid stage applied to |f| (QUADPACK "resabs"): sets the scale of round-off
+			Real _currAbsSum;   ///< Sampled absolute scale: |f|, or an integrand-provided bound for internal cancellation.
 			Function& _func;
+			int _evaluations = 0;
+			IntegrationResult* _progress;
+			bool _checkFinite;
+			Real _sampleAbsoluteScale = 0;
 
-			TrapIntegratorCallable(Function& func, Real a, Real b)
-				: _func(func), _a(a), _b(b), _currSum(0.0), _currAbsSum(0.0) { }
+			TrapIntegratorCallable(Function& func, Real a, Real b, IntegrationResult* progress = nullptr, bool checkFinite = true)
+				: _a(a), _b(b), _currSum(0.0), _currAbsSum(0.0), _func(func), _progress(progress), _checkFinite(checkFinite) {
+				ValidateBounds(a, b, "Trapezoidal integration");
+			}
+
+			Real Evaluate(Real x) {
+				auto counted = [&](Real point) {
+					if (_progress) _progress->function_evaluations = _evaluations;
+					if constexpr (requires {
+						{ _func.EvaluateWithAbsoluteScale(point).first } -> std::convertible_to<Real>;
+						{ _func.EvaluateWithAbsoluteScale(point).second } -> std::convertible_to<Real>;
+					}) {
+						const auto evaluated = _func.EvaluateWithAbsoluteScale(point);
+						_sampleAbsoluteScale = evaluated.second;
+						if (_sampleAbsoluteScale < 0)
+							throw NumericalMethodError("Integration sample has an invalid absolute scale");
+						return evaluated.first;
+					} else {
+						const Real value = std::invoke(_func, point);
+						_sampleAbsoluteScale = std::abs(value);
+						return value;
+					}
+				};
+				return Sample(counted, _evaluations, _checkFinite, x);
+			}
 
 			/// Absolute tolerance floor: 50 ulp of the integral of |f| (as in QUADPACK/GSL).
 			/// Negligible for integrals of normal size; for integrals that are (near) zero it is
@@ -78,46 +106,69 @@ namespace MML
 			}
 
 			Real next() {
-				Real x, sum, absSum, del;
 				int subDivNum, j;
-
 				_currStep++;
+				const Real halfWidth = HalfWidth(_a, _b);
 				if (_currStep == 1) {
-					const Real fa = std::invoke(_func, _a);
-					const Real fb = std::invoke(_func, _b);
-					_currAbsSum = 0.5 * std::abs(_b - _a) * (std::abs(fa) + std::abs(fb));
-					return (_currSum = 0.5 * (_b - _a) * (fa + fb));
+					const Real fa = Evaluate(_a);
+					const Real faScale = _sampleAbsoluteScale;
+					const Real fb = Evaluate(_b);
+					_currAbsSum = Product({std::abs(halfWidth), faScale}) +
+						Product({std::abs(halfWidth), _sampleAbsoluteScale});
+					_currSum = Product({halfWidth, fa}) + Product({halfWidth, fb});
 				}
 				else {
 					for (subDivNum = 1, j = 1; j < _currStep - 1; j++)
 						subDivNum *= 2;
 
-					del = (_b - _a) / subDivNum;
-					x = _a + 0.5 * del;
-
-					for (sum = 0.0, absSum = 0.0, j = 0; j < subDivNum; j++, x += del) {
-						const Real fx = std::invoke(_func, x);
-						sum += fx;
-						absSum += std::abs(fx);
+					Sum sum, absSum;
+					for (j = 0; j < subDivNum; ++j) {
+						const Real x = std::lerp(_a, _b, (Real(j) + Real(.5)) / subDivNum);
+						const Real fx = Evaluate(x);
+						const Real contribution = Product({halfWidth, Real(1) / subDivNum, fx});
+						sum.Add(contribution);
+						absSum.Add(Product({std::abs(halfWidth), Real(1) / subDivNum, _sampleAbsoluteScale}));
 					}
-
-					_currSum = 0.5 * (_currSum + (_b - _a) * sum / subDivNum);
-					_currAbsSum = 0.5 * (_currAbsSum + std::abs(_b - _a) * absSum / subDivNum);
-
-					return _currSum;
+					_currSum = MML::Real(.5) * _currSum + sum.Value();
+					_currAbsSum = MML::Real(.5) * _currAbsSum + absSum.Value();
 				}
+				RequireFinite(_currSum, "Trapezoidal integration");
+				RequireFinite(_currAbsSum, "Trapezoidal absolute scale");
+				return _currSum;
 			}
 		};
 
+		inline void ValidateRefinement(Real a, Real b, Real eps, int steps) {
+			ValidateBounds(a, b, "Integration");
+			ValidateTolerance(eps, "Integration");
+			if (steps <= 0 || steps >= std::numeric_limits<int>::digits)
+				throw ArgumentError("Integration refinement count exceeds the positive supported counter range");
+		}
+
+		template<class Quadrature>
+		IntegrationResult RefinementResult(Quadrature& quadrature, Real value, Real error, int iteration, bool converged) {
+			RequireFinite(value, "Integration refinement");
+			if (!std::isnan(error)) RequireFinite(error, "Integration error");
+			IntegrationResult result(value, error, iteration, converged, !std::isnan(error));
+			result.function_evaluations = quadrature._evaluations;
+			if (!converged) {
+				result.status = AlgorithmStatus::MaxIterationsExceeded;
+				result.error_message = "Integration refinement budget exhausted before tolerance was met";
+			}
+			if (quadrature._progress) Adopt(*quadrature._progress, result, "Integration");
+			return result;
+		}
+
 		template<RealFunctionCallable Function>
 		IntegrationResult IntegrateTrapImpl(Function& func, Real a, Real b,
-			const Real eps = Defaults::TrapezoidIntegrationEPS)
+			const Real eps = Defaults::TrapezoidIntegrationEPS, IntegrationResult* progress = nullptr, bool checkFinite = true)
 		{
+			ValidateRefinement(a, b, eps, Defaults::TrapezoidIntegrationMaxSteps);
 			int j;
-			Real currSum, oldSum = 0.0;
-			Real last_error = 0.0;
+			Real currSum = 0, oldSum = 0.0;
+			Real last_error = NoEstimate;
 
-			TrapIntegratorCallable<Function> t(func, a, b);
+			TrapIntegratorCallable<Function> t(func, a, b, progress, checkFinite);
 			for (j = 0; j < Defaults::TrapezoidIntegrationMaxSteps; j++)
 			{
 				currSum = t.next();
@@ -126,58 +177,64 @@ namespace MML
 					Real error = std::abs(currSum - oldSum);
 					if (error <= t.tolerance(eps))   // <= so an exactly-zero integral converges
 					{
-						return IntegrationResult(currSum, error, j, true);
+						return RefinementResult(t, currSum, error, j + 1, true);
 					}
 				}
 
-				last_error = std::abs(currSum - oldSum);
+				last_error = j > 0 ? std::abs(currSum - oldSum) : NoEstimate;
+				static_cast<void>(RefinementResult(t, currSum, last_error, j + 1, false));
 				oldSum = currSum;
 			}
-			return IntegrationResult(currSum, last_error, j, false);
+			return RefinementResult(t, currSum, last_error, j, false);
 		}
 
 		template<RealFunctionCallable Function>
 		IntegrationResult IntegrateSimpsonImpl(Function& func, Real a, Real b,
-			const Real eps = Defaults::SimpsonIntegrationEPS)
+			const Real eps = Defaults::SimpsonIntegrationEPS, IntegrationResult* progress = nullptr, bool checkFinite = true)
 		{
+			ValidateRefinement(a, b, eps, Defaults::SimpsonIntegrationMaxSteps);
 			int j;
-			Real currSum, st, ost = 0.0, oldSum = 0.0;
-			Real last_error = 0.0;
+			Real currSum = 0, st, ost = 0.0, oldSum = 0.0;
+			Real last_error = NoEstimate;
 
-			TrapIntegratorCallable<Function> t(func, a, b);
+			TrapIntegratorCallable<Function> t(func, a, b, progress, checkFinite);
 			for (j = 0; j < Defaults::SimpsonIntegrationMaxSteps; j++)
 			{
 				st = t.next();
 
-				currSum = (4.0 * st - ost) / 3.0;
+				currSum = st + (st / 3 - ost / 3);
 
 				if (j > 5) {
 					Real error = std::abs(currSum - oldSum);
 					if (error <= t.tolerance(eps))   // <= so an exactly-zero integral converges
 					{
-						return IntegrationResult(currSum, error, j, true);
+						return RefinementResult(t, currSum, error, j + 1, true);
 					}
 				}
 
-				last_error = std::abs(currSum - oldSum);
+				last_error = j > 0 ? std::abs(currSum - oldSum) : NoEstimate;
+				static_cast<void>(RefinementResult(t, currSum, last_error, j + 1, false));
 				oldSum = currSum;
 				ost = st;
 			}
-			return IntegrationResult(currSum, last_error, j, false);
+			return RefinementResult(t, currSum, last_error, j, false);
 		}
 
 		template<RealFunctionCallable Function>
 		IntegrationResult IntegrateRombergImpl(Function& func, Real a, Real b,
-			const Real eps = Defaults::RombergIntegrationEPS)
+			const Real eps = Defaults::RombergIntegrationEPS, IntegrationResult* progress = nullptr, bool checkFinite = true)
 		{
 			const int JMAX = Defaults::RombergIntegrationMaxSteps;
 			const int K = Defaults::RombergIntegrationUsedPnts;
+			ValidateRefinement(a, b, eps, JMAX);
+			if (K < 2)
+				throw ArgumentError("Romberg interpolation order must be at least two");
 
 			std::vector<Real> s(JMAX);
 			std::vector<Real> h(JMAX + 1);
 
 			h[0] = 1.0;
-			TrapIntegratorCallable<Function> trap(func, a, b);
+			TrapIntegratorCallable<Function> trap(func, a, b, progress, checkFinite);
 
 			Real ss = 0.0;
 			Real dss = 0.0;
@@ -185,6 +242,7 @@ namespace MML
 			for (int j = 0; j < JMAX; j++)
 			{
 				s[j] = trap.next();
+				static_cast<void>(RefinementResult(trap, s[j], NoEstimate, j + 1, false));
 
 				if (j >= K - 1)
 				{
@@ -219,7 +277,7 @@ namespace MML
 
 							if (std::abs(den) < Precision::DivisionSafetyThreshold)
 							{
-								return IntegrationResult(ss, std::abs(dss), j + 1, false);
+								return RefinementResult(trap, ss, std::abs(dss), j + 1, false);
 							}
 
 							den = w / den;
@@ -236,36 +294,44 @@ namespace MML
 					}
 					if (std::abs(dss) <= trap.tolerance(eps))
 					{
-						return IntegrationResult(ss, std::abs(dss), j + 1, true);
+						return RefinementResult(trap, ss, std::abs(dss), j + 1, true);
 					}
+					static_cast<void>(RefinementResult(trap, ss, std::abs(dss), j + 1, false));
 				}
 
-				h[j + 1] = 0.25 * h[j];
+				h[j + 1] = MML::Real(0.25) * h[j];
 			}
 
-			return IntegrationResult(ss, std::abs(dss), JMAX, false);
+			return JMAX < K ? RefinementResult(trap, s.back(), NoEstimate, JMAX, false)
+				: RefinementResult(trap, ss, std::abs(dss), JMAX, false);
 		}
 
 		template<RealFunctionCallable Function>
-		IntegrationResult IntegrateGauss10Impl(Function& func, const Real a, const Real b)
+		IntegrationResult IntegrateGauss10Impl(Function& func, const Real a, const Real b,
+			IntegrationResult* progress = nullptr, bool checkFinite = true)
 		{
-			static const Real x[] = { 0.1488743389816312, 0.4333953941292472,
-															0.6794095682990244, 0.8650633666889845, 0.9739065285171717 };
-			static const Real w[] = { 0.2955242247147529, 0.2692667193099963,
-															0.2190863625159821, 0.1494513491505806, 0.0666713443086881 };
+			static const Real x[] = { MML::Real(0.1488743389816312), MML::Real(0.4333953941292472),
+															MML::Real(0.6794095682990244), MML::Real(0.8650633666889845), MML::Real(0.9739065285171717) };
+			static const Real w[] = { MML::Real(0.2955242247147529), MML::Real(0.2692667193099963),
+															MML::Real(0.2190863625159821), MML::Real(0.1494513491505806), MML::Real(0.0666713443086881) };
 
-			Real xm = 0.5 * (b + a);
-			Real xr = 0.5 * (b - a);
+			const Real xr = HalfWidth(a, b);
+			const Real xm = std::midpoint(a, b);
 
-			Real s = 0;
+			Sum sum;
+			int evaluations = 0;
+			auto counted = [&](Real point) {
+				if (progress) progress->function_evaluations = evaluations;
+				return std::invoke(func, point);
+			};
 			for (int j = 0; j < 5; j++)
 			{
 				Real dx = xr * x[j];
-				s += w[j] * (std::invoke(func, xm + dx) + std::invoke(func, xm - dx));
+				sum.Add(Product({xr, w[j], Sample(counted, evaluations, checkFinite, xm + dx)}));
+				sum.Add(Product({xr, w[j], Sample(counted, evaluations, checkFinite, xm - dx)}));
 			}
-			Real result = s * xr;
-
-			return IntegrationResult::FixedRule(result);
+			RequireFinite(sum.Value(), "Gauss10 integration");
+			return IntegrationResult::FixedRule(sum.Value(), evaluations);
 		}
 
 		template<RealFunctionCallable Function>
@@ -292,25 +358,23 @@ namespace MML
 	/// @return IntegrationResult with value, error_estimate, iterations, converged flag
 	///
 	/// @par Convergence model
-	/// Uses a mixed absolute+relative test:
-	///   |S_n - S_{n-1}| < eps * |S_{n-1}| + eps * machine_epsilon
-	/// The first term (eps * |S|) provides relative accuracy for non-zero integrals.
-	/// The second term (eps * machine_epsilon) provides an absolute floor so that
-	/// near-zero integrals can still converge rather than demanding |error| < 0.
+	/// Uses successive-estimate differences against eps times the sampled integral
+	/// of |f|, plus its named arithmetic roundoff floor. This remains meaningful
+	/// for cancelling integrals; it is not a certified black-box error bound.
 	static IntegrationResult IntegrateTrapCore(const IRealFunction& func, Real a, Real b,
 																		 const Real eps = Defaults::TrapezoidIntegrationEPS)	{
 		return IntegrationDetail::IntegrateTrapImpl(func, a, b, eps);
 	}
 
 	/// Result-returning variant with the plain argument list (RESULT_POLICY §4).
-	static auto IntegrateTrapDetailed(const IRealFunction& func, Real a, Real b, const Real eps)
+	static inline auto IntegrateTrapDetailed(const IRealFunction& func, Real a, Real b, const Real eps)
 	{
 		auto r = IntegrateTrapCore(func, a, b, eps);
 		r.algorithm_name = "IntegrateTrap";
 		return r;
 	}
 
-	static Real IntegrateTrap(const IRealFunction& func, Real a, Real b,
+	static inline Real IntegrateTrap(const IRealFunction& func, Real a, Real b,
 																		 const Real eps = Defaults::TrapezoidIntegrationEPS)
 	{
 		return IntegrateTrapCore(func, a, b, eps).ValueOrThrow("IntegrateTrap");
@@ -351,7 +415,7 @@ namespace MML
 	///
 	/// @par Convergence model
 	/// Same mixed absolute+relative test as IntegrateTrap:
-	///   |S_n - S_{n-1}| < eps * |S_{n-1}| + eps * machine_epsilon
+	/// Uses the sampled absolute-integral scale and arithmetic floor described above.
 	static IntegrationResult IntegrateSimpsonCore(const IRealFunction& func, Real a, Real b,
 																			 const Real eps = Defaults::SimpsonIntegrationEPS)
 	{
@@ -359,14 +423,14 @@ namespace MML
 	}
 
 	/// Result-returning variant with the plain argument list (RESULT_POLICY §4).
-	static auto IntegrateSimpsonDetailed(const IRealFunction& func, Real a, Real b, const Real eps)
+	static inline auto IntegrateSimpsonDetailed(const IRealFunction& func, Real a, Real b, const Real eps)
 	{
 		auto r = IntegrateSimpsonCore(func, a, b, eps);
 		r.algorithm_name = "IntegrateSimpson";
 		return r;
 	}
 
-	static Real IntegrateSimpson(const IRealFunction& func, Real a, Real b,
+	static inline Real IntegrateSimpson(const IRealFunction& func, Real a, Real b,
 																			 const Real eps = Defaults::SimpsonIntegrationEPS)
 	{
 		return IntegrateSimpsonCore(func, a, b, eps).ValueOrThrow("IntegrateSimpson");
@@ -441,7 +505,7 @@ namespace MML
 	 *
 	 * @par Convergence model
 	 * Same mixed absolute+relative test as Trap/Simpson:
-	 *   |dss| <= eps * |ss| + eps * machine_epsilon
+	 *   |dss| <= eps * integral(|f|) + arithmetic roundoff floor
 	 *
 	 * @note Reference: Numerical Recipes §4.3 "Romberg Integration"
 	 */
@@ -452,14 +516,14 @@ namespace MML
 	}
 
 	/// Result-returning variant with the plain argument list (RESULT_POLICY §4).
-	static auto IntegrateRombergDetailed(const IRealFunction& func, Real a, Real b, const Real eps)
+	static inline auto IntegrateRombergDetailed(const IRealFunction& func, Real a, Real b, const Real eps)
 	{
 		auto r = IntegrateRombergCore(func, a, b, eps);
 		r.algorithm_name = "IntegrateRomberg";
 		return r;
 	}
 
-	static Real IntegrateRomberg(const IRealFunction& func, Real a, Real b,
+	static inline Real IntegrateRomberg(const IRealFunction& func, Real a, Real b,
 																						const Real eps = Defaults::RombergIntegrationEPS)
 	{
 		return IntegrateRombergCore(func, a, b, eps).ValueOrThrow("IntegrateRomberg");
@@ -517,7 +581,7 @@ namespace MML
 	 * - Deterministic behavior
 	 *
 	 * DISADVANTAGES:
-	 * - No built-in error estimation (returned error_estimate is 0)
+	 * - No built-in error estimation (returned error_estimate is NoEstimate)
 	 * - Cannot adapt to function complexity
 	 * - May be inaccurate for highly oscillatory or singular functions
 	 * - Fixed precision - cannot be improved without using more points
@@ -531,9 +595,9 @@ namespace MML
 	 * @param func The function to integrate
 	 * @param a Lower bound of integration
 	 * @param b Upper bound of integration
-	 * @return IntegrationResult with value, error_estimate = 0 placeholder, error_estimated = false, 1 iteration
+	 * @return IntegrationResult with value, NoEstimate, error_estimated = false, 1 iteration
 	 *
-	 * @note Error estimate is 0 because this is a non-adaptive method.
+	 * @note The error estimate is unavailable because this is a fixed rule.
 	 *       Use adaptive methods (Romberg, Simpson) when error bounds are needed.
 	 * @note Reference: Abramowitz & Stegun, Table 25.4 for nodes and weights
 	 */
@@ -542,7 +606,7 @@ namespace MML
 		return IntegrationDetail::IntegrateGauss10Impl(func, a, b);
 	}
 
-	static Real IntegrateGauss10(const IRealFunction& func, const Real a, const Real b)
+	static inline Real IntegrateGauss10(const IRealFunction& func, const Real a, const Real b)
 	{
 		return IntegrateGauss10Core(func, a, b).ValueOrThrow("IntegrateGauss10");
 	}
@@ -586,7 +650,7 @@ namespace MML
 		return IntegrationDetail::IntegrateGK21Impl(func, a, b);
 	}
 
-	static Real IntegrateGK21(const IRealFunction& func, Real a, Real b)
+	static inline Real IntegrateGK21(const IRealFunction& func, Real a, Real b)
 	{
 		return IntegrateGK21Core(func, a, b).ValueOrThrow("IntegrateGK21");
 	}
@@ -656,14 +720,14 @@ namespace MML
 	}
 
 	/// Result-returning variant with the plain argument list (RESULT_POLICY §4).
-	static auto IntegrateDetailed(const IRealFunction& func, Real a, Real b, IntegrationMethod method, Real eps)
+	static inline auto IntegrateDetailed(const IRealFunction& func, Real a, Real b, IntegrationMethod method, Real eps)
 	{
 		auto r = IntegrateCore(func, a, b, method, eps);
 		r.algorithm_name = "Integrate";
 		return r;
 	}
 
-	static Real Integrate(const IRealFunction& func, Real a, Real b,
+	static inline Real Integrate(const IRealFunction& func, Real a, Real b,
 	                                   IntegrationMethod method = TRAP,
 	                                   Real eps = Defaults::TrapezoidIntegrationEPS)
 	{
@@ -758,7 +822,7 @@ namespace MML
 	}
 
 	template<IntegrationMethod Method = TRAP>
-	static Real Integrate(const IRealFunction& func, Real a, Real b,
+	static inline Real Integrate(const IRealFunction& func, Real a, Real b,
 	                                   Real eps = Defaults::TrapezoidIntegrationEPS)
 	{
 		return IntegrateCore<Method>(func, a, b, eps).ValueOrThrow("Integrate");
@@ -825,7 +889,7 @@ namespace MML
 		return IntegrationDetail::ExecuteIntegrationDetailed<IntegrationDetailedResult>(
 			"IntegrateTrap", config,
 			[&](IntegrationDetailedResult& result) {
-				auto r = IntegrateTrapCore(func, a, b, eps);
+				auto r = IntegrationDetail::IntegrateTrapImpl(func, a, b, eps, &result, config.check_finite);
 				IntegrationDetail::PopulateFromSimple(result, r, "IntegrateTrap");
 			});
 	}
@@ -839,7 +903,7 @@ namespace MML
 		return IntegrationDetail::ExecuteIntegrationDetailed<IntegrationDetailedResult>(
 			"IntegrateSimpson", config,
 			[&](IntegrationDetailedResult& result) {
-				auto r = IntegrateSimpsonCore(func, a, b, eps);
+				auto r = IntegrationDetail::IntegrateSimpsonImpl(func, a, b, eps, &result, config.check_finite);
 				IntegrationDetail::PopulateFromSimple(result, r, "IntegrateSimpson");
 			});
 	}
@@ -853,7 +917,7 @@ namespace MML
 		return IntegrationDetail::ExecuteIntegrationDetailed<IntegrationDetailedResult>(
 			"IntegrateRomberg", config,
 			[&](IntegrationDetailedResult& result) {
-				auto r = IntegrateRombergCore(func, a, b, eps);
+				auto r = IntegrationDetail::IntegrateRombergImpl(func, a, b, eps, &result, config.check_finite);
 				IntegrationDetail::PopulateFromSimple(result, r, "IntegrateRomberg");
 			});
 	}
@@ -866,7 +930,7 @@ namespace MML
 		return IntegrationDetail::ExecuteIntegrationDetailed<IntegrationDetailedResult>(
 			"IntegrateGauss10", config,
 			[&](IntegrationDetailedResult& result) {
-				auto r = IntegrateGauss10Core(func, a, b);
+				auto r = IntegrationDetail::IntegrateGauss10Impl(func, a, b, &result, config.check_finite);
 				IntegrationDetail::PopulateFromSimple(result, r, "IntegrateGauss10");
 				result.function_evaluations = 10;
 			});
@@ -880,14 +944,14 @@ namespace MML
 		return IntegrationDetail::ExecuteIntegrationDetailed<IntegrationDetailedResult>(
 			"IntegrateGK21", config,
 			[&](IntegrationDetailedResult& result) {
-				auto r = IntegrateGK21Core(func, a, b);
+				auto r = Integration::IntegrateGK21Impl([&](Real x) { return func(x); }, a, b, &result, config.check_finite);
 				IntegrationDetail::PopulateFromSimple(result, r, "IntegrateGK21");
 				result.function_evaluations = 21;
 			});
 	}
 
 	/// Unified integration with runtime method selection and full diagnostics
-	static IntegrationDetailedResult IntegrateDetailed(
+	static inline IntegrationDetailedResult IntegrateDetailed(
 		const IRealFunction& func, Real a, Real b,
 		IntegrationMethod method = TRAP,
 		const IntegrationConfig& config = {},
@@ -906,7 +970,7 @@ namespace MML
 
 	/// Template-based integration with compile-time method selection and full diagnostics
 	template<IntegrationMethod Method = TRAP>
-	static IntegrationDetailedResult IntegrateDetailed(
+	static inline IntegrationDetailedResult IntegrateDetailed(
 		const IRealFunction& func, Real a, Real b,
 		const IntegrationConfig& config = {},
 		Real eps = Defaults::TrapezoidIntegrationEPS)
@@ -923,6 +987,92 @@ namespace MML
 			return IntegrateGK21Detailed(func, a, b, config);
 		else
 			return IntegrateTrapDetailed(func, a, b, config, eps);
+	}
+	namespace IntegrationDetail {
+		template<class Compute>
+		IntegrationResult CountedDetailed(const char* name, const IRealFunction& function,
+			const IntegrationConfig& config, Compute&& compute) {
+			int evaluations = 0;
+			auto result = ExecuteIntegrationDetailed<IntegrationResult>(name, config, [&](IntegrationResult& out) {
+				auto sample = [&](Real x) { return Sample(function, evaluations, config.check_finite, x); };
+				::MML::Detail::RealFunctionCallableAdapter<decltype(sample)> adapter(sample);
+				compute(adapter, out);
+			});
+			result.function_evaluations = evaluations;
+			return result;
+		}
+
+		inline Real MethodTolerance(IntegrationMethod method) {
+			switch (method) {
+			case TRAP: return Defaults::TrapezoidIntegrationEPS;
+			case SIMPSON: return Defaults::SimpsonIntegrationEPS;
+			case ROMBERG: return Defaults::RombergIntegrationEPS;
+			case GAUSS10:
+			case GAUSS10KRONROD21: return Precision::IntegrationTolerance;
+			}
+			throw ArgumentError("Integration: unsupported method");
+		}
+
+		template<class Function>
+		IntegrationResult ConfiguredAxis(Function& function, Real a, Real b, IntegrationMethod method,
+			Real tolerance, const IntegrationConfig& config, IntegrationResult* progress = nullptr) {
+			switch (method) {
+			case TRAP: return IntegrateTrapImpl(function, a, b, tolerance, progress, config.check_finite);
+			case SIMPSON: return IntegrateSimpsonImpl(function, a, b, tolerance, progress, config.check_finite);
+			case ROMBERG: return IntegrateRombergImpl(function, a, b, tolerance, progress, config.check_finite);
+			case GAUSS10: return IntegrateGauss10Impl(function, a, b, progress, config.check_finite);
+			case GAUSS10KRONROD21:
+				return Integration::IntegrateGK21Impl([&](Real x) { return function(x); }, a, b, progress, config.check_finite);
+			}
+			throw ArgumentError("Integration: unsupported method");
+		}
+
+		inline IntegrationResult NestedAxis(const IRealFunction& function, Real a, Real b, IntegrationMethod method,
+			const IntegrationConfig& config, IntegrationResult* progress = nullptr) {
+			return ConfiguredAxis(function, a, b, method, MethodTolerance(method), config, progress);
+		}
+
+		struct NestedErrors {
+			Real maximum = 0;
+			bool allEstimated = true;
+			AlgorithmStatus failure = AlgorithmStatus::Completed;
+			std::string message;
+
+			void Observe(const IntegrationResult& inner) {
+				if (!inner.IsUsable() && MML::IsUsable(failure)) {
+					failure = inner.status;
+					message = inner.error_message.empty() ? "An inner integral did not converge" : inner.error_message;
+				}
+				allEstimated = allEstimated && inner.error_estimated;
+				if (inner.error_estimated) maximum = std::max(maximum, inner.error_estimate);
+			}
+			void Combine(IntegrationResult& result, Real a, Real b, IntegrationMethod method) const {
+				if (result.error_estimated && allEstimated) {
+					result.error_estimate += Product({2, std::abs(HalfWidth(a, b)), maximum});
+					RequireFinite(result.error_estimate, "Nested integration error");
+				} else {
+					result.error_estimated = false;
+					result.error_estimate = NoEstimate;
+				}
+				if (!MML::IsUsable(failure)) {
+					result.status = failure;
+					result.converged = false;
+					result.error_message = "Nested integration: " + message;
+				} else if (result.converged && (!result.error_estimated ||
+					result.error_estimate > MethodTolerance(method) * std::abs(result.value) +
+						Precision::IntegrationRoundoffFloorScale * std::abs(result.value))) {
+					result.status = AlgorithmStatus::MaxIterationsExceeded;
+					result.converged = false;
+					result.error_message = "Nested integration aggregate uncertainty exceeds the requested accuracy";
+				}
+			}
+		};
+
+		struct EvaluationCountGuard {
+			IntegrationResult& result;
+			const int& count;
+			~EvaluationCountGuard() { result.function_evaluations = count; }
+		};
 	}
 }
 

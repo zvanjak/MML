@@ -18,6 +18,7 @@
 #include <mml/MMLBase.h>
 
 #include <mml/interfaces/IFunction.h>
+#include "Integration1D.h"
 
 namespace MML
 {
@@ -27,14 +28,17 @@ namespace MML
 		mutable Real					_currX, _currY;
 		const IScalarFunction<3>&		_funcToIntegrate;
 		IntegrationMethod				_integrMethod;
+		mutable int _evaluations = 0;
 
 		Integral3DInnermost(const IScalarFunction<3>& func, IntegrationMethod method = GAUSS10) 
-			: _funcToIntegrate(func), _currX{ 0 }, _currY{ 0 }, _integrMethod(method) {}
+			: _currX{ 0 }, _currY{ 0 }, _funcToIntegrate(func), _integrMethod(method) {}
 		
 		Real operator()(const Real z) const
 		{
 			VectorN<Real, 3> v{ _currX, _currY, z };
-
+			if (_evaluations == std::numeric_limits<int>::max())
+				throw ResourceLimitError("Nested integration evaluation counter exhausted");
+			++_evaluations;
 			return _funcToIntegrate(v);
 		}
 	};
@@ -49,39 +53,24 @@ namespace MML
 
 		Real(*_zRangeLow)(Real, Real);
 		Real(*_zRangeUpp)(Real, Real);
+		IntegrationConfig _config;
+		mutable IntegrationDetail::NestedErrors _errors;
 
 		Integral3DInner(const IScalarFunction<3>& func, IntegrationMethod method,
-										Real zz1(Real, Real), Real zz2(Real, Real)) 
-			: _zRangeLow(zz1), _zRangeUpp(zz2), _funcToIntegrate(func), 
-			  _fInnermost(func, method), _integrMethod(method) {}
+										Real zz1(Real, Real), Real zz2(Real, Real), const IntegrationConfig& config = {})
+			: _fInnermost(func, method), _funcToIntegrate(func), _integrMethod(method),
+			  _zRangeLow(zz1), _zRangeUpp(zz2), _config(config) {
+			if (!zz1 || !zz2) throw NotImplementedError("Nested integration requires both bound callbacks");
+		}
 
 		Real operator()(const Real y) const
 		{
 			_fInnermost._currY = y;
 
-			switch (_integrMethod)
-			{
-				case SIMPSON:
-					return IntegrateSimpsonCore(_fInnermost, 
-											_zRangeLow(_fInnermost._currX, y), 
-											_zRangeUpp(_fInnermost._currX, y)).value;
-				case ROMBERG:
-					return IntegrateRombergCore(_fInnermost, 
-											_zRangeLow(_fInnermost._currX, y), 
-											_zRangeUpp(_fInnermost._currX, y)).value;
-				case GAUSS10:
-					return IntegrateGauss10Core(_fInnermost, 
-											_zRangeLow(_fInnermost._currX, y), 
-											_zRangeUpp(_fInnermost._currX, y)).value;
-				case GAUSS10KRONROD21:
-					return IntegrateGK21Core(_fInnermost, 
-											_zRangeLow(_fInnermost._currX, y), 
-											_zRangeUpp(_fInnermost._currX, y)).value;
-				default:  // TRAP
-					return IntegrateTrapCore(_fInnermost, 
-										 _zRangeLow(_fInnermost._currX, y), 
-										 _zRangeUpp(_fInnermost._currX, y)).value;
-			}
+			const auto inner = IntegrationDetail::NestedAxis(_fInnermost, _zRangeLow(_fInnermost._currX, y),
+				_zRangeUpp(_fInnermost._currX, y), _integrMethod, _config);
+			_errors.Observe(inner);
+			return inner.value;
 		}
 	};
 
@@ -94,34 +83,38 @@ namespace MML
 		IntegrationMethod			_integrMethod;
 		Real(*_yRangeLow)(Real);
 		Real(*_yRangeUpp)(Real);
+		IntegrationConfig _config;
+		mutable IntegrationDetail::NestedErrors _errors;
 
 		Integral3DOuter(const IScalarFunction<3>& func, IntegrationMethod method,
 						Real yy1(Real), Real yy2(Real), 
-						Real z1(Real, Real), Real z2(Real, Real)) 
-			: _yRangeLow(yy1), _yRangeUpp(yy2), _funcToIntegrate(func), 
-			  _fInner(func, method, z1, z2), _integrMethod(method)
+						Real z1(Real, Real), Real z2(Real, Real), const IntegrationConfig& config = {})
+			: _fInner(func, method, z1, z2, config), _funcToIntegrate(func), _integrMethod(method),
+			  _yRangeLow(yy1), _yRangeUpp(yy2), _config(config)
 		{
+			if (!yy1 || !yy2) throw NotImplementedError("Nested integration requires both bound callbacks");
 		}
 
 		Real operator()(const Real x) const
 		{
 			_fInner._fInnermost._currX = x;
-
-			switch (_integrMethod)
-			{
-				case SIMPSON:
-					return IntegrateSimpsonCore(_fInner, _yRangeLow(x), _yRangeUpp(x)).value;
-				case ROMBERG:
-					return IntegrateRombergCore(_fInner, _yRangeLow(x), _yRangeUpp(x)).value;
-				case GAUSS10:
-					return IntegrateGauss10Core(_fInner, _yRangeLow(x), _yRangeUpp(x)).value;
-				case GAUSS10KRONROD21:
-					return IntegrateGK21Core(_fInner, _yRangeLow(x), _yRangeUpp(x)).value;
-				default:  // TRAP
-					return IntegrateTrapCore(_fInner, _yRangeLow(x), _yRangeUpp(x)).value;
-			}
+			_fInner._errors = {};
+			const Real lower = _yRangeLow(x), upper = _yRangeUpp(x);
+			auto inner = IntegrationDetail::NestedAxis(_fInner, lower, upper, _integrMethod, _config);
+			_fInner._errors.Combine(inner, lower, upper, _integrMethod);
+			_errors.Observe(inner);
+			return inner.value;
 		}
 	};
+	static void RunIntegration3D(IntegrationResult& result, const IScalarFunction<3>& function, IntegrationMethod method,
+		Real a, Real b, Real lower(Real), Real upper(Real), Real z1(Real, Real), Real z2(Real, Real),
+		const IntegrationConfig& config = {}) {
+		Integral3DOuter outer(function, method, lower, upper, z1, z2, config);
+		IntegrationDetail::EvaluationCountGuard count{result, outer._fInner._fInnermost._evaluations};
+		auto integrated = IntegrationDetail::NestedAxis(outer, a, b, method, config, &result);
+		outer._errors.Combine(integrated, a, b, method);
+		IntegrationDetail::Adopt(result, integrated, "Integrate3D");
+	}
 
 	/// @brief Triple integral ∭_V f(x,y,z) dx dy dz with variable limits
 	/// @param func Scalar function f: ℝ³ → ℝ to integrate
@@ -136,24 +129,12 @@ namespace MML
 										 Real y1(Real), Real y2(Real),
 										 Real z1(Real, Real), Real z2(Real, Real))
 	{
-		Integral3DOuter f1(func, method, y1, y2, z1, z2);
-
-		switch (method)
-		{
-			case SIMPSON:
-				return IntegrateSimpsonCore(f1, x1, x2);
-			case ROMBERG:
-				return IntegrateRombergCore(f1, x1, x2);
-			case GAUSS10:
-				return IntegrateGauss10Core(f1, x1, x2);
-			case GAUSS10KRONROD21:
-				return IntegrateGK21Core(f1, x1, x2);
-			default:  // TRAP
-				return IntegrateTrapCore(f1, x1, x2);
-		}
+		IntegrationResult result;
+		RunIntegration3D(result, func, method, x1, x2, y1, y2, z1, z2);
+		return result;
 	}
 
-	static Real Integrate3D(const IScalarFunction<3>& func, 
+	static inline Real Integrate3D(const IScalarFunction<3>& func,
 										 IntegrationMethod method,
 										 const Real x1, const Real x2, 
 										 Real y1(Real), Real y2(Real),
@@ -172,7 +153,7 @@ namespace MML
 		return Integrate3DCore(func, GAUSS10, x1, x2, y1, y2, z1, z2);
 	}
 
-	static Real Integrate3D(const IScalarFunction<3>& func, 
+	static inline Real Integrate3D(const IScalarFunction<3>& func,
 										 const Real x1, const Real x2, 
 										 Real y1(Real), Real y2(Real),
 										 Real z1(Real, Real), Real z2(Real, Real))
@@ -185,7 +166,7 @@ namespace MML
 	/******************************************************************************/
 
 	/// 3D integration with method selection and full diagnostics
-	static IntegrationDetailedResult Integrate3DDetailed(
+	static inline IntegrationDetailedResult Integrate3DDetailed(
 		const IScalarFunction<3>& func, IntegrationMethod method,
 		const Real x1, const Real x2,
 		Real y1(Real), Real y2(Real),
@@ -195,13 +176,12 @@ namespace MML
 		return IntegrationDetail::ExecuteIntegrationDetailed<IntegrationDetailedResult>(
 			"Integrate3D", config,
 			[&](IntegrationDetailedResult& result) {
-				auto r = Integrate3DCore(func, method, x1, x2, y1, y2, z1, z2);
-				IntegrationDetail::PopulateFromSimple(result, r, "Integrate3D");
+				RunIntegration3D(result, func, method, x1, x2, y1, y2, z1, z2, config);
 			});
 	}
 
 	/// 3D integration with default GAUSS10 method and full diagnostics
-	static IntegrationDetailedResult Integrate3DDetailed(
+	static inline IntegrationDetailedResult Integrate3DDetailed(
 		const IScalarFunction<3>& func,
 		const Real x1, const Real x2,
 		Real y1(Real), Real y2(Real),

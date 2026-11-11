@@ -12,6 +12,7 @@
 #include <atomic>
 #include <vector>
 #include <thread>
+#include <mutex>
 #include <chrono>
 #include <stdexcept>
 #include <stop_token>
@@ -91,23 +92,21 @@ namespace MML::Tests::Tools::ThreadPoolTests {
 		SECTION("Tasks with computation") {
 			ThreadPool pool(2);
 			
-			std::atomic<Real> sum{0.0};
+			Real sum = 0;
+			std::mutex sumMutex;
 			constexpr int NUM_TASKS = 50;
 			
 			for (int i = 0; i < NUM_TASKS; ++i) {
-				pool.enqueue([&sum, i]() {
-					// Each task adds its index
-					Real current = sum.load();
-					while (!sum.compare_exchange_weak(current, current + static_cast<Real>(i))) {
-						// Retry
-					}
+				pool.enqueue([&sum, &sumMutex, i]() {
+					std::lock_guard<std::mutex> lock(sumMutex);
+					sum += static_cast<Real>(i);
 				});
 			}
 			
 			pool.wait_for_tasks();
 			
 			// Sum of 0..49 = 49*50/2 = 1225
-			REQUIRE(std::abs(sum.load() - 1225.0) < 0.1);
+			REQUIRE(sum == Real(1225));
 		}
 
 		SECTION("Batch tasks execute correctly") {

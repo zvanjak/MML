@@ -246,11 +246,27 @@ namespace MML::Tests::Core::CurvesTests
 		const CurveCartesian3D& schaum_curve2  = TestBeds::ParametricCurvesTestBed::getTestCurve("Schaums2")._curve;
 		const RealFunction&			curvature_func = TestBeds::ParametricCurvesTestBed::getTestCurve("Schaums2")._curvatureFunc;
 
-		REQUIRE_THAT(schaum_curve2.getCurvature(static_cast<MML::Real>(0.5)), WithinAbs(curvature_func(static_cast<MML::Real>(0.5)), TOL(1e-7, 1e-3)));
-		REQUIRE_THAT(schaum_curve2.getCurvature(static_cast<MML::Real>(1.0)), WithinAbs(curvature_func(static_cast<MML::Real>(1.0)), TOL(1e-7, 1e-3)));
-		REQUIRE_THAT(schaum_curve2.getCurvature(static_cast<MML::Real>(5.5)), WithinAbs(curvature_func(static_cast<MML::Real>(5.5)), TOL(1e-7, 1e-3)));
-		REQUIRE_THAT(schaum_curve2.getCurvature(static_cast<MML::Real>(20.0)), WithinAbs(curvature_func(static_cast<MML::Real>(20.0)), TOL(1e-7, 1e-3)));
-		REQUIRE_THAT(schaum_curve2.getCurvature(-static_cast<MML::Real>(3.273)), WithinAbs(curvature_func(-static_cast<MML::Real>(3.273)), TOL(1e-7, 1e-3)));
+		class CenteredCurve : public Curves::ICurveCartesian3D {
+			const CurveCartesian3D& _curve;
+			Real _center;
+		public:
+			CenteredCurve(const CurveCartesian3D& curve, Real center) : _curve(curve), _center(center) {}
+			Real getMinT() const override { return _curve.getMinT() - _center; }
+			Real getMaxT() const override { return _curve.getMaxT() - _center; }
+			VectorN<Real, 3> operator()(Real t) const override { return _curve(_center + t); }
+		};
+		for (Real t : {Real(0.5), Real(1), Real(5.5), Real(20), Real(-3.273)}) {
+			CAPTURE(t);
+			Real curvature;
+			if constexpr (std::is_same_v<Real, float>) {
+				// Center the same physical point so its float stencil does not grow with |t|.
+				CenteredCurve centered(schaum_curve2, t);
+				curvature = centered.getCurvature(0);
+			} else {
+				curvature = schaum_curve2.getCurvature(t);
+			}
+			REQUIRE_THAT(curvature, WithinAbs(curvature_func(t), TOL(1e-7, 1e-3)));
+		}
 	}
 
 	TEST_CASE("Test_Helix_getTorsion3", "[simple]")

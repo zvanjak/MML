@@ -21,7 +21,11 @@
 #include <mml/base/Vector/Vector.h>
 #include <mml/base/AlgorithmTypes.h>
 
+#include <algorithm>
 #include <limits>
+#include <cstdint>
+#include <new>
+#include <type_traits>
 #include <stdexcept>
 #include <string>
 
@@ -64,6 +68,15 @@ namespace MML::Fourier
 
 		/// Whether padding was applied before computing the result
 		bool padding_applied = false;
+
+		/// Direct, Radix2, Bluestein, FFT/Radix2, or FFT/Bluestein.
+		std::string kernel_name;
+
+		/// Largest direct or FFT kernel length (Bluestein's convolution length).
+		int work_size = 0;
+
+		/// Summation terms, FFT butterflies and complex products; excludes scaling/copies.
+		std::uint64_t work_units = 0;
 	};
 
 	///////////////////////////////////////////////////////////////////////////////////////////
@@ -71,37 +84,137 @@ namespace MML::Fourier
 	///////////////////////////////////////////////////////////////////////////////////////////
 	namespace FourierDetail
 	{
-		/// Execute a Fourier Detailed operation with timing and exception handling.
-		template<typename ResultType, typename ComputeFn>
-		ResultType ExecuteFourierDetailed(const char* algorithm_name,
-		                                 const FourierConfig& config,
-		                                 ComputeFn&& compute)
+		inline void ValidateNormalization(TransformNormalization normalization)
 		{
+			switch (normalization) {
+			case TransformNormalization::Legacy:
+			case TransformNormalization::None:
+			case TransformNormalization::Forward:
+			case TransformNormalization::Inverse:
+			case TransformNormalization::Orthonormal:
+				return;
+			}
+			throw FourierError("Fourier transform - unsupported normalization");
+		}
+
+		template<typename T>
+		void ValidateFinite(const Vector<T>& values, bool input)
+		{
+			for (int i = 0; i < values.size(); ++i) {
+				bool finite;
+				if constexpr (std::is_same_v<T, Complex>)
+					finite = std::isfinite(values[i].real()) && std::isfinite(values[i].imag());
+				else
+					finite = std::isfinite(values[i]);
+				if (!finite) {
+					if (input)
+						throw NumericInputError("Fourier transform - nonfinite input at index " + std::to_string(i));
+					throw NumericalMethodError("Fourier transform - nonfinite output at index " + std::to_string(i));
+				}
+			}
+		}
+
+		inline int NextPowerOfTwo(int size)
+		{
+			int power = 1;
+			while (power < size) {
+				if (power > std::numeric_limits<int>::max() / 2)
+					throw FourierError("FFT::NextPowerOfTwo - size exceeds supported range");
+				power *= 2;
+			}
+			return power;
+		}
+
+		inline int DoubledSize(int size)
+		{
+			if (size <= 0 || size > std::numeric_limits<int>::max() / 2)
+				throw ResourceLimitError("Fourier transform - doubled work size exceeds supported range");
+			return 2 * size;
+		}
+
+		inline int BluesteinSize(int size)
+		{
+			const int required = DoubledSize(size) - 1;
+			if (required > std::numeric_limits<int>::max() / 2 + 1)
+				throw ResourceLimitError("FFT - Bluestein convolution size exceeds supported range");
+			return NextPowerOfTwo(required);
+		}
+
+		struct Work {
+			const char* kernel;
+			int size;
+			std::uint64_t units;
+		};
+
+		inline Work DirectWork(int size)
+		{
+			if (size <= 0)
+				throw FourierError("Fourier transform - direct work size must be positive");
+			return {"Direct", size, std::uint64_t(size) * std::uint64_t(size)};
+		}
+
+		inline Work FFTWork(int size)
+		{
+			if (size <= 0)
+				throw FourierError("FFT - empty input");
+			const bool radix2 = (size & (size - 1)) == 0;
+			const int workSize = radix2 ? size : BluesteinSize(size);
+			int stages = 0;
+			for (int n = workSize; n > 1; n /= 2) ++stages;
+			const auto butterflies = std::uint64_t(workSize / 2) * std::uint64_t(stages);
+			return {radix2 ? "Radix2" : "Bluestein", workSize,
+				radix2 ? butterflies : 3 * butterflies + std::uint64_t(workSize) + 2 * std::uint64_t(size)};
+		}
+
+		template<class Result>
+		void SetWork(Result& result, const Work& work)
+		{
+			result.kernel_name = work.kernel;
+			result.work_size = work.size;
+			result.work_units = work.units;
+		}
+
+		/// Execute a Fourier Detailed operation with timing and exception handling.
+		template<typename ResultType, typename T, typename ComputeFn>
+		ResultType ExecuteFourierDetailed(const char* algorithm_name,
+		                                 const Vector<T>& input,
+		                                 const FourierConfig& config,
+		                                 ComputeFn&& compute,
+		                                 bool supportsPadding = false)
+		{
+			AlgorithmTimer timer;
+			ResultType result = MakeEvaluationSuccessResult<ResultType>(algorithm_name);
+			result.input_size = input.size();
+			result.normalization = config.normalization;
 			auto execute = [&]() {
-				AlgorithmTimer timer;
-
-				ResultType result = MakeEvaluationSuccessResult<ResultType>(algorithm_name);
-
+				ValidateNormalization(config.normalization);
+				if (input.size() == 0)
+					throw FourierError(std::string(algorithm_name) + " - empty input");
+				if (config.target_size < 0 || (!config.allow_padding && config.target_size != 0) ||
+					(!supportsPadding && (config.allow_padding || config.target_size != 0)))
+					throw FourierError(std::string(algorithm_name) + " - unsupported padding options");
+				if (config.check_finite) ValidateFinite(input, true);
 				compute(result);
-
-				result.elapsed_time_ms = timer.elapsed_ms();
-				return result;
+				result.output_size = result.value.size();
+				if (config.check_finite) ValidateFinite(result.value, false);
 			};
-
-			if (config.exception_policy == EvaluationExceptionPolicy::Propagate)
-				return execute();
-
-			try {
-				return execute();
+			auto fail = [&](AlgorithmStatus status, const std::exception& error) {
+				result.status = status;
+				result.error_message = error.what();
+			};
+			if (config.exception_policy == EvaluationExceptionPolicy::Propagate) {
+				execute();
+			} else {
+				try { execute(); }
+				catch (const std::invalid_argument& ex) { fail(AlgorithmStatus::InvalidInput, ex); }
+				catch (const NumericInputError& ex) { fail(AlgorithmStatus::InvalidInput, ex); }
+				catch (const NumericalMethodError& ex) { fail(AlgorithmStatus::NumericalInstability, ex); }
+				catch (const ResourceLimitError& ex) { fail(AlgorithmStatus::ResourceLimitExceeded, ex); }
+				catch (const std::bad_alloc& ex) { fail(AlgorithmStatus::ResourceLimitExceeded, ex); }
+				catch (const std::length_error& ex) { fail(AlgorithmStatus::ResourceLimitExceeded, ex); }
 			}
-			catch (const std::invalid_argument& ex) {
-				return MakeEvaluationFailureResult<ResultType>(
-					AlgorithmStatus::InvalidInput, ex.what(), algorithm_name);
-			}
-			catch (const std::exception& ex) {
-				return MakeEvaluationFailureResult<ResultType>(
-					AlgorithmStatus::AlgorithmSpecificFailure, ex.what(), algorithm_name);
-			}
+			result.elapsed_time_ms = timer.elapsed_ms();
+			return result;
 		}
 
 		inline Real NormalizationScale(int size, TransformNormalization normalization, bool forward_direction)
@@ -111,18 +224,18 @@ namespace MML::Fourier
 
 			switch (normalization) {
 			case TransformNormalization::None:
-				return 1.0;
+					return 1.0;
 			case TransformNormalization::Forward:
-				return forward_direction ? 1.0 / size : 1.0;
+				return forward_direction ? MML::Real(1.0) / size : MML::Real(1.0);
 			case TransformNormalization::Inverse:
-				return forward_direction ? 1.0 : 1.0 / size;
+				return forward_direction ? MML::Real(1.0) : MML::Real(1.0) / size;
 			case TransformNormalization::Orthonormal:
-				return 1.0 / std::sqrt(static_cast<Real>(size));
+				return MML::Real(1.0) / std::sqrt(static_cast<Real>(size));
 			case TransformNormalization::Legacy:
 				return 1.0;
 			}
 
-			return 1.0;
+			throw FourierError("Fourier transform - unsupported normalization");
 		}
 
 		template<typename T>
@@ -133,6 +246,71 @@ namespace MML::Fourier
 
 			for (int i = 0; i < values.size(); i++)
 				values[i] *= scale;
+		}
+
+		inline int CeilLog2(int size)
+		{
+			int exponent = 0;
+			for (int remaining = size - 1; remaining > 0; remaining /= 2)
+				++exponent;
+			return exponent;
+		}
+
+		inline Real ScalePowerOfTwo(Real value, int exponent)
+		{
+			if (exponent == 0) return value;
+			return std::scalbn(value, exponent);
+		}
+
+		inline Complex ScalePowerOfTwo(Complex value, int exponent)
+		{
+			if (exponent == 0) return value;
+			return {std::scalbn(value.real(), exponent), std::scalbn(value.imag(), exponent)};
+		}
+
+		template<typename T>
+		int TransformInputShift(const Vector<T>& values, int growthExponent)
+		{
+			Real largest = 0;
+			for (const auto& value : values) {
+				if constexpr (std::is_same_v<T, Complex>) {
+					// Preserve the existing nonfinite policy, including unchecked Detailed calls.
+					if (!std::isfinite(value.real()) || !std::isfinite(value.imag()))
+						return 0;
+					largest = std::max({largest, std::abs(value.real()), std::abs(value.imag())});
+				} else {
+					if (!std::isfinite(value))
+						return 0;
+					largest = std::max(largest, std::abs(value));
+				}
+			}
+			int exponent = 0;
+			std::frexp(largest, &exponent);
+			return std::max(0, exponent + growthExponent - std::numeric_limits<Real>::max_exponent);
+		}
+
+		template<typename T>
+		void RestoreTransformScale(Vector<T>& values, Real scale, int inputShift)
+		{
+			if (inputShift == 0) {
+				ApplyScale(values, scale);
+				return;
+			}
+			int scaleExponent = 0;
+			const Real scaleFraction = std::frexp(scale, &scaleExponent);
+			auto restore = [&](Real value) {
+				int exponent = 0;
+				const Real fraction = std::frexp(value, &exponent);
+				// Neither an overflowing reciprocal input scale nor a premature tiny
+				// product is needed to combine normalization with exponent restoration.
+				return std::scalbn(fraction * scaleFraction, exponent + scaleExponent + inputShift);
+			};
+			for (auto& value : values) {
+				if constexpr (std::is_same_v<T, Complex>)
+					value = Complex(restore(value.real()), restore(value.imag()));
+				else
+					value = restore(value);
+			}
 		}
 	} // namespace FourierDetail
 
@@ -211,15 +389,15 @@ namespace MML::Fourier
 
 		template<typename T>
 		inline void ValidatePositive(T value, const std::string& paramName, const std::string& functionName) {
-			if (value <= T(0)) {
-				throw FourierError(functionName + " - " + paramName + " must be positive");
+			if (!std::isfinite(value) || value <= T(0)) {
+				throw FourierError(functionName + " - " + paramName + " must be finite and positive");
 			}
 		}
 
 		template<typename T>
 		inline void ValidateNonNegative(T value, const std::string& paramName, const std::string& functionName) {
-			if (value < T(0)) {
-				throw FourierError(functionName + " - " + paramName + " must be non-negative");
+			if (!std::isfinite(value) || value < T(0)) {
+				throw FourierError(functionName + " - " + paramName + " must be finite and non-negative");
 			}
 		}
 
@@ -261,6 +439,8 @@ namespace MML::Fourier
 		static Vector<Complex> Forward(const Vector<Complex>& data, TransformNormalization normalization) {
 			int N = data.size();
 			FourierValidation::ValidateNonEmpty(N, "DFT::Forward");
+			const Real scale = FourierDetail::NormalizationScale(N, normalization, true);
+			const int inputShift = FourierDetail::TransformInputShift(data, FourierDetail::CeilLog2(N) + 2);
 
 			Vector<Complex> result(N);
 			const Real two_pi = 2.0 * Constants::PI;
@@ -270,12 +450,12 @@ namespace MML::Fourier
 				for (int n = 0; n < N; n++) {
 					Real angle = -two_pi * k * n / N;
 					Complex twiddle(std::cos(angle), std::sin(angle));
-					sum += data[n] * twiddle;
+					sum += FourierDetail::ScalePowerOfTwo(data[n], -inputShift) * twiddle;
 				}
 				result[k] = sum;
 			}
 
-			FourierDetail::ApplyScale(result, FourierDetail::NormalizationScale(N, normalization, true));
+			FourierDetail::RestoreTransformScale(result, scale, inputShift);
 
 			return result;
 		}
@@ -307,6 +487,8 @@ namespace MML::Fourier
 		static Vector<Complex> Inverse(const Vector<Complex>& spectrum, TransformNormalization normalization) {
 			int N = spectrum.size();
 			FourierValidation::ValidateNonEmpty(N, "DFT::Inverse");
+			const Real scale = FourierDetail::NormalizationScale(N, normalization, false);
+			const int inputShift = FourierDetail::TransformInputShift(spectrum, FourierDetail::CeilLog2(N) + 2);
 
 			Vector<Complex> result(N);
 			const Real two_pi = 2.0 * Constants::PI;
@@ -316,12 +498,12 @@ namespace MML::Fourier
 				for (int k = 0; k < N; k++) {
 					Real angle = two_pi * k * n / N; // Positive sign for inverse
 					Complex twiddle(std::cos(angle), std::sin(angle));
-					sum += spectrum[k] * twiddle;
+					sum += FourierDetail::ScalePowerOfTwo(spectrum[k], -inputShift) * twiddle;
 				}
 				result[n] = sum;
 			}
 
-			FourierDetail::ApplyScale(result, FourierDetail::NormalizationScale(N, normalization, false));
+			FourierDetail::RestoreTransformScale(result, scale, inputShift);
 
 			return result;
 		}
@@ -379,13 +561,13 @@ namespace MML::Fourier
 		{
 			using ResultType = FourierResult<Vector<Complex>>;
 			return FourierDetail::ExecuteFourierDetailed<ResultType>(
-				"DFT::Forward", config,
+				"DFT::Forward", data, config,
 				[&](ResultType& result) {
 					result.input_size = data.size();
 					result.value = Forward(data, config.normalization);
 					result.output_size = result.value.size();
 					result.normalization = config.normalization;
-					result.function_evaluations = data.size() * data.size(); // O(n²)
+					FourierDetail::SetWork(result, FourierDetail::DirectWork(data.size()));
 				});
 		}
 
@@ -395,13 +577,13 @@ namespace MML::Fourier
 		{
 			using ResultType = FourierResult<Vector<Complex>>;
 			return FourierDetail::ExecuteFourierDetailed<ResultType>(
-				"DFT::Forward", config,
+				"DFT::Forward", data, config,
 				[&](ResultType& result) {
 					result.input_size = data.size();
 					result.value = Forward(data, config.normalization);
 					result.output_size = result.value.size();
 					result.normalization = config.normalization;
-					result.function_evaluations = data.size() * data.size();
+					FourierDetail::SetWork(result, FourierDetail::DirectWork(data.size()));
 				});
 		}
 
@@ -411,13 +593,13 @@ namespace MML::Fourier
 		{
 			using ResultType = FourierResult<Vector<Complex>>;
 			return FourierDetail::ExecuteFourierDetailed<ResultType>(
-				"DFT::Inverse", config,
+				"DFT::Inverse", spectrum, config,
 				[&](ResultType& result) {
 					result.input_size = spectrum.size();
 					result.value = Inverse(spectrum, config.normalization);
 					result.output_size = result.value.size();
 					result.normalization = config.normalization;
-					result.function_evaluations = spectrum.size() * spectrum.size();
+					FourierDetail::SetWork(result, FourierDetail::DirectWork(spectrum.size()));
 				});
 		}
 
@@ -427,13 +609,13 @@ namespace MML::Fourier
 		{
 			using ResultType = FourierResult<Vector<Real>>;
 			return FourierDetail::ExecuteFourierDetailed<ResultType>(
-				"DFT::InverseReal", config,
+				"DFT::InverseReal", spectrum, config,
 				[&](ResultType& result) {
 					result.input_size = spectrum.size();
 					result.value = InverseReal(spectrum, config.normalization);
 					result.output_size = result.value.size();
 					result.normalization = config.normalization;
-					result.function_evaluations = spectrum.size() * spectrum.size();
+					FourierDetail::SetWork(result, FourierDetail::DirectWork(spectrum.size()));
 				});
 		}
 	};
@@ -459,16 +641,32 @@ namespace MML::Fourier
 		// In-place FFT (modifies input array)
 		// isign: +1 for forward, -1 for inverse (caller must normalize by 1/N)
 		static void Transform(Vector<Complex>& data, int isign = 1) {
-			int n = data.size();
-
-			FourierValidation::ValidateNonEmpty(n, "FFT::Transform");
-			if (IsPowerOfTwo(n))
-				TransformRadix2(data, isign);
-			else
-				TransformBluestein(data, isign);
+			TransformScaled(data, isign, Real(1));
 		}
 
 	private:
+		static void TransformScaled(Vector<Complex>& data, int isign, Real scale) {
+			const int n = data.size();
+			FourierValidation::ValidateNonEmpty(n, "FFT::Transform");
+			if (isign != 1 && isign != -1)
+				throw FourierError("FFT::Transform - sign must be +1 or -1");
+			const bool radix2 = IsPowerOfTwo(n);
+			const int workSize = radix2 ? n : FourierDetail::BluesteinSize(n);
+			// Radix-2 grows by at most O(N). Bluestein additionally needs headroom
+			// for two forward FFTs, their complex products and the inverse FFT.
+			const int stages = FourierDetail::CeilLog2(workSize);
+			const int growthExponent = radix2 ? stages + 2 : 3 * stages + 6;
+			const int inputShift = FourierDetail::TransformInputShift(data, growthExponent);
+			if (inputShift != 0)
+				for (auto& value : data)
+					value = FourierDetail::ScalePowerOfTwo(value, -inputShift);
+			if (radix2)
+				TransformRadix2(data, isign);
+			else
+				TransformBluestein(data, isign);
+			FourierDetail::RestoreTransformScale(data, scale, inputShift);
+		}
+
 		// Existing iterative Cooley-Tukey kernel. Input size must be a power of two.
 		static void TransformRadix2(Vector<Complex>& data, int isign) {
 			int n = data.size();
@@ -505,9 +703,7 @@ namespace MML::Fourier
 		// Bluestein rewrites an N-point DFT as a linear convolution of chirp sequences.
 		static void TransformBluestein(Vector<Complex>& data, int isign) {
 			const int n = data.size();
-			if (n > std::numeric_limits<int>::max() / 2)
-				throw FourierError("FFT::Transform - size exceeds supported range");
-			const int convolutionSize = NextPowerOfTwo(2 * n - 1);
+			const int convolutionSize = FourierDetail::BluesteinSize(n);
 			Vector<Complex> chirpedData(convolutionSize, Complex(0.0, 0.0));
 			Vector<Complex> chirpKernel(convolutionSize, Complex(0.0, 0.0));
 
@@ -528,7 +724,7 @@ namespace MML::Fourier
 				chirpedData[index] *= chirpKernel[index];
 			TransformRadix2(chirpedData, -1);
 
-			const Real inverseConvolutionSize = 1.0 / convolutionSize;
+			const Real inverseConvolutionSize = MML::Real(1.0) / convolutionSize;
 			for (int index = 0; index < n; index++) {
 				const Real angle = isign * Constants::PI *
 					(static_cast<Real>(index) * static_cast<Real>(index) / n);
@@ -546,9 +742,10 @@ namespace MML::Fourier
 
 		// Forward FFT with explicit normalization
 		static Vector<Complex> Forward(const Vector<Complex>& data, TransformNormalization normalization) {
+			FourierValidation::ValidateNonEmpty(data.size(), "FFT::Forward");
+			const Real scale = FourierDetail::NormalizationScale(data.size(), normalization, true);
 			Vector<Complex> result = data; // Copy input
-			Transform(result, 1);
-			FourierDetail::ApplyScale(result, FourierDetail::NormalizationScale(result.size(), normalization, true));
+			TransformScaled(result, 1, scale);
 			return result;
 		}
 
@@ -559,10 +756,10 @@ namespace MML::Fourier
 
 		// Inverse FFT with explicit normalization
 		static Vector<Complex> Inverse(const Vector<Complex>& spectrum, TransformNormalization normalization) {
+			FourierValidation::ValidateNonEmpty(spectrum.size(), "FFT::Inverse");
+			const Real scale = FourierDetail::NormalizationScale(spectrum.size(), normalization, false);
 			Vector<Complex> result = spectrum; // Copy input
-			Transform(result, -1);						 // Inverse transform
-
-			FourierDetail::ApplyScale(result, FourierDetail::NormalizationScale(result.size(), normalization, false));
+			TransformScaled(result, -1, scale);
 
 			return result;
 		}
@@ -576,18 +773,7 @@ namespace MML::Fourier
 
 		// Find next power of 2 >= n
 		static int NextPowerOfTwo(int n) {
-			if (n <= 0)
-				return 1;
-			if (IsPowerOfTwo(n))
-				return n;
-
-			int power = 1;
-			while (power < n) {
-				if (power > std::numeric_limits<int>::max() / 2)
-					throw FourierError("FFT::NextPowerOfTwo - size exceeds supported range");
-				power <<= 1;
-			}
-			return power;
+			return FourierDetail::NextPowerOfTwo(n);
 		}
 
 		// Zero-pad vector to next power of 2
@@ -625,35 +811,42 @@ namespace MML::Fourier
 		static FourierResult<Vector<Complex>> ForwardDetailed(
 			const Vector<Complex>& data, const FourierConfig& config = {})
 		{
-			using ResultType = FourierResult<Vector<Complex>>;
-			return FourierDetail::ExecuteFourierDetailed<ResultType>(
-				"FFT::Forward", config,
-				[&](ResultType& result) {
-					result.input_size = data.size();
-					result.value = Forward(data, config.normalization);
-					result.output_size = result.value.size();
-					result.normalization = config.normalization;
-					result.function_evaluations = data.size() * Log2(data.size()); // O(n log n)
-				});
+			return TransformDetailed(data, config, true);
 		}
 
 		/// Inverse FFT with full diagnostics
 		static FourierResult<Vector<Complex>> InverseDetailed(
 			const Vector<Complex>& spectrum, const FourierConfig& config = {})
 		{
-			using ResultType = FourierResult<Vector<Complex>>;
-			return FourierDetail::ExecuteFourierDetailed<ResultType>(
-				"FFT::Inverse", config,
-				[&](ResultType& result) {
-					result.input_size = spectrum.size();
-					result.value = Inverse(spectrum, config.normalization);
-					result.output_size = result.value.size();
-					result.normalization = config.normalization;
-					result.function_evaluations = spectrum.size() * Log2(spectrum.size());
-				});
+			return TransformDetailed(spectrum, config, false);
 		}
 
 	private:
+		static FourierResult<Vector<Complex>> TransformDetailed(
+			const Vector<Complex>& input, const FourierConfig& config, bool forward)
+		{
+			using ResultType = FourierResult<Vector<Complex>>;
+			return FourierDetail::ExecuteFourierDetailed<ResultType>(
+				forward ? "FFT::Forward" : "FFT::Inverse", input, config,
+				[&](ResultType& result) {
+					const int size = !config.allow_padding ? input.size() :
+						(config.target_size == 0 ? NextPowerOfTwo(input.size()) : config.target_size);
+					if (size < input.size())
+						throw FourierError("FFT - padding target cannot truncate input");
+					const auto work = FourierDetail::FFTWork(size);
+					Vector<Complex> padded;
+					const Vector<Complex>* effective = &input;
+					if (size != input.size()) {
+						padded = Vector<Complex>(size, Complex(0, 0));
+						for (int i = 0; i < input.size(); ++i) padded[i] = input[i];
+						effective = &padded;
+						result.padding_applied = true;
+					}
+					result.value = forward ? Forward(*effective, config.normalization) : Inverse(*effective, config.normalization);
+					FourierDetail::SetWork(result, work);
+				}, true);
+		}
+
 		///////////////////////////////////////////////////////////////////////////////////////////
 		// Internal helper functions
 		///////////////////////////////////////////////////////////////////////////////////////////
@@ -718,6 +911,33 @@ namespace MML::Fourier
 		/// Below this threshold, naive may be faster due to FFT overhead
 		static constexpr int FAST_DCT_THRESHOLD = 32;
 
+		static FourierDetail::Work DescribeWork(int size)
+		{
+			if (size < FAST_DCT_THRESHOLD)
+				return FourierDetail::DirectWork(size);
+			auto work = FourierDetail::FFTWork(FourierDetail::DoubledSize(size));
+			work.kernel = FFT::IsPowerOfTwo(size) ? "FFT/Radix2" : "FFT/Bluestein";
+			work.units += std::uint64_t(size);
+			return work;
+		}
+
+		static Real SineScale(int size, TransformNormalization normalization, bool forward)
+		{
+			const Real rawScale = std::sqrt(2 * (Real(size) + 1));
+			switch (normalization) {
+			case TransformNormalization::Legacy:
+			case TransformNormalization::Orthonormal:
+				return 1;
+			case TransformNormalization::None:
+				return rawScale;
+			case TransformNormalization::Forward:
+				return forward ? 1 / rawScale : rawScale;
+			case TransformNormalization::Inverse:
+				return forward ? rawScale : 1 / rawScale;
+			}
+			throw FourierError("DST - unsupported normalization");
+		}
+
 	public:
 		///////////////////////////////////////////////////////////////////////////////////////////
 		// ForwardII - DCT Type-II (standard "DCT") - AUTO-SELECTS FASTEST ALGORITHM
@@ -755,13 +975,63 @@ namespace MML::Fourier
 			return InverseII_Fast(coefficients);
 		}
 
+		static Vector<Real> ForwardII(const Vector<Real>& data, TransformNormalization normalization)
+		{
+			FourierDetail::ValidateNormalization(normalization);
+			if ((normalization == TransformNormalization::Forward || normalization == TransformNormalization::Orthonormal) &&
+				data.size() == 1)
+				return data;
+			auto result = ForwardII(data);
+			switch (normalization) {
+			case TransformNormalization::Legacy:
+				break;
+			case TransformNormalization::None:
+			case TransformNormalization::Inverse:
+				FourierDetail::ApplyScale(result, Real(data.size()));
+				break;
+			case TransformNormalization::Orthonormal:
+				FourierDetail::ApplyScale(result, std::sqrt(Real(data.size()) / 2));
+				result[0] /= std::sqrt(Real(2));
+				break;
+			case TransformNormalization::Forward:
+				FourierDetail::ApplyScale(result, Real(0.5));
+				break;
+			}
+			return result;
+		}
+
+		static Vector<Real> InverseII(const Vector<Real>& coefficients, TransformNormalization normalization)
+		{
+			FourierDetail::ValidateNormalization(normalization);
+			if (normalization == TransformNormalization::Orthonormal) {
+				FourierValidation::ValidateNonEmpty(coefficients.size(), "DCT::InverseII");
+				auto scaled = coefficients;
+				scaled[0] = 0;
+				FourierDetail::ApplyScale(scaled, std::sqrt(Real(2) / coefficients.size()));
+				auto result = InverseII(scaled);
+				const Real dc = coefficients[0] / std::sqrt(Real(coefficients.size()));
+				for (int i = 0; i < result.size(); ++i) result[i] += dc;
+				return result;
+			}
+			if (normalization == TransformNormalization::Inverse) {
+				FourierValidation::ValidateNonEmpty(coefficients.size(), "DCT::InverseII");
+				auto scaled = coefficients;
+				FourierDetail::ApplyScale(scaled, Real(1) / coefficients.size());
+				return InverseII(scaled);
+			}
+			auto result = InverseII(coefficients);
+			if (normalization != TransformNormalization::Legacy)
+				FourierDetail::ApplyScale(result, Real(2));
+			return result;
+		}
+
 		///////////////////////////////////////////////////////////////////////////////////////////
 		// ForwardII_Fast - Fast DCT-II via FFT (O(N log N))
 		//
 		// ALGORITHM:
 		// 1. Create mirrored extension: y[n] = x[n] for n<N, y[n] = x[2N-1-n] for n>=N
 		// 2. Compute FFT of length 2N
-		// 3. Extract DCT coefficients: X[k] = Re(exp(-iπk/2N) * Y[k]) * (2/N)
+		// 3. Extract legacy coefficients: X[k] = Re(exp(-iπk/2N) * Y[k]) / N
 		//
 		///////////////////////////////////////////////////////////////////////////////////////////
 		static Vector<Real> ForwardII_Fast(const Vector<Real>& data) {
@@ -771,7 +1041,8 @@ namespace MML::Fourier
 			}
 
 			// Create extended sequence of length 2N with even symmetry
-			int N2 = 2 * N;
+			const int N2 = FourierDetail::DoubledSize(N);
+			FourierDetail::FFTWork(N2);
 			Vector<Complex> y(N2);
 			for (int n = 0; n < N; ++n) {
 				y[n] = Complex(data[n], 0.0);
@@ -785,7 +1056,7 @@ namespace MML::Fourier
 
 			// Extract DCT coefficients
 			const Real pi = Constants::PI;
-			Real scale = 1.0 / N;
+			Real scale = MML::Real(1.0) / N;
 
 			Vector<Real> result(N);
 			for (int k = 0; k < N; ++k) {
@@ -809,7 +1080,8 @@ namespace MML::Fourier
 			}
 
 			const Real pi = Constants::PI;
-			int N2 = 2 * N;
+			const int N2 = FourierDetail::DoubledSize(N);
+			FourierDetail::FFTWork(N2);
 
 			Vector<Complex> Y(N2, Complex(0.0, 0.0));
 
@@ -832,7 +1104,7 @@ namespace MML::Fourier
 			// Extract first N samples, divide by 2
 			Vector<Real> result(N);
 			for (int n = 0; n < N; ++n) {
-				result[n] = Y[n].real() * 0.5;
+				result[n] = Y[n].real() * MML::Real(0.5);
 			}
 
 			return result;
@@ -847,16 +1119,17 @@ namespace MML::Fourier
 				throw FourierError("DCT::ForwardII_Reference - empty input");
 			}
 
-			const Real pi = Constants::PI;
-			Real fac = 2.0 / N;
+			using AccumulationReal = std::common_type_t<Real, double>;
+			const AccumulationReal pi = std::acos(AccumulationReal(-1));
+			const AccumulationReal fac = AccumulationReal(2) / N;
 
 			Vector<Real> result(N);
 			for (int k = 0; k < N; k++) {
-				Real sum = 0.0;
+				AccumulationReal sum = 0;
 				for (int n = 0; n < N; n++) {
-					sum += data[n] * std::cos(pi * k * (n + 0.5) / N);
+					sum += data[n] * std::cos(pi * k * (n + AccumulationReal(0.5)) / N);
 				}
-				result[k] = fac * sum;
+				result[k] = Real(fac * sum);
 			}
 
 			return result;
@@ -871,18 +1144,19 @@ namespace MML::Fourier
 				throw FourierError("DCT::InverseII_Reference - empty input");
 			}
 
-			const Real pi = Constants::PI;
+			using AccumulationReal = std::common_type_t<Real, double>;
+			const AccumulationReal pi = std::acos(AccumulationReal(-1));
 
 			Vector<Real> result(N);
 			for (int n = 0; n < N; n++) {
 				// First term: DC component (halved for orthogonality)
-				Real sum = coefficients[0] / 2.0;
+				AccumulationReal sum = coefficients[0] / AccumulationReal(2);
 
 				// Remaining terms
 				for (int k = 1; k < N; k++) {
-					sum += coefficients[k] * std::cos(pi * k * (n + 0.5) / N);
+					sum += coefficients[k] * std::cos(pi * k * (n + AccumulationReal(0.5)) / N);
 				}
-				result[n] = sum;
+				result[n] = Real(sum);
 			}
 
 			return result;
@@ -908,13 +1182,14 @@ namespace MML::Fourier
 			}
 
 			const Real pi = Constants::PI;
-			Real norm = std::sqrt(2.0 / (N + 1)); // Orthonormal basis
+			const Real denominator = Real(N) + 1;
+			Real norm = std::sqrt(MML::Real(2.0) / denominator); // Orthonormal basis
 
 			Vector<Real> result(N);
 			for (int k = 0; k < N; k++) {
 				Real sum = 0.0;
 				for (int n = 0; n < N; n++) {
-					sum += data[n] * std::sin(pi * (k + 1) * (n + 1) / (N + 1));
+					sum += data[n] * std::sin(pi * (k + 1) * (n + 1) / denominator);
 				}
 				result[k] = norm * sum;
 			}
@@ -930,18 +1205,40 @@ namespace MML::Fourier
 			return ForwardDST(coefficients);
 		}
 
+		static Vector<Real> ForwardDST(const Vector<Real>& data, TransformNormalization normalization)
+		{
+			FourierDetail::ValidateNormalization(normalization);
+			auto result = ForwardDST(data);
+			FourierDetail::ApplyScale(result, SineScale(data.size(), normalization, true));
+			return result;
+		}
+
+		static Vector<Real> InverseDST(const Vector<Real>& coefficients, TransformNormalization normalization)
+		{
+			FourierDetail::ValidateNormalization(normalization);
+			auto result = InverseDST(coefficients);
+			FourierDetail::ApplyScale(result, SineScale(coefficients.size(), normalization, false));
+			return result;
+		}
+
 		///////////////////////////////////////////////////////////////////////////////////////////
 		// HELPER: Verify DCT-II/III round-trip
 		///////////////////////////////////////////////////////////////////////////////////////////
 		static bool VerifyRoundTrip(const Vector<Real>& data, Real tolerance = Precision::ZeroTolerance) {
+			FourierValidation::ValidateNonEmpty(data.size(), "DCT::VerifyRoundTrip");
+			FourierValidation::ValidateNonNegative(tolerance, "tolerance", "DCT::VerifyRoundTrip");
+			FourierDetail::ValidateFinite(data, true);
 			Vector<Real> coeffs = ForwardII(data);
+			for (int i = 0; i < coeffs.size(); ++i)
+				if (!std::isfinite(coeffs[i]))
+					return false;
 			Vector<Real> recovered = InverseII(coeffs);
 
 			if (recovered.size() != data.size())
 				return false;
 
 			for (int i = 0; i < data.size(); i++) {
-				if (std::abs(recovered[i] - data[i]) > tolerance)
+				if (!std::isfinite(recovered[i]) || !(std::abs(recovered[i] - data[i]) <= tolerance))
 					return false;
 			}
 			return true;
@@ -951,10 +1248,10 @@ namespace MML::Fourier
 		// HELPER: Verify fast implementation matches reference
 		///////////////////////////////////////////////////////////////////////////////////////////
 		static bool VerifyFastMatchesReference(const Vector<Real>& data, Real tolerance = Precision::EqualityTolerance) {
+			FourierValidation::ValidateNonEmpty(data.size(), "DCT::VerifyFastMatchesReference");
+			FourierValidation::ValidateNonNegative(tolerance, "tolerance", "DCT::VerifyFastMatchesReference");
+			FourierDetail::ValidateFinite(data, true);
 			int N = data.size();
-			if (!FFT::IsPowerOfTwo(N)) {
-				return true; // Not applicable for non-power-of-2
-			}
 
 			Vector<Real> fast = ForwardII_Fast(data);
 			Vector<Real> ref = ForwardII_Reference(data);
@@ -963,7 +1260,7 @@ namespace MML::Fourier
 				return false;
 
 			for (int i = 0; i < N; ++i) {
-				if (std::abs(fast[i] - ref[i]) > tolerance)
+				if (!std::isfinite(fast[i]) || !std::isfinite(ref[i]) || !(std::abs(fast[i] - ref[i]) <= tolerance))
 					return false;
 			}
 			return true;
@@ -979,12 +1276,12 @@ namespace MML::Fourier
 		{
 			using ResultType = FourierResult<Vector<Real>>;
 			return FourierDetail::ExecuteFourierDetailed<ResultType>(
-				"DCT::ForwardII", config,
+				"DCT::ForwardII", data, config,
 				[&](ResultType& result) {
 					result.input_size = data.size();
-					result.value = ForwardII(data);
-					result.function_evaluations = FFT::IsPowerOfTwo(data.size()) ?
-						data.size() * FFT::Log2(data.size()) : data.size() * data.size();
+					const auto work = DescribeWork(data.size());
+					result.value = ForwardII(data, config.normalization);
+					FourierDetail::SetWork(result, work);
 				});
 		}
 
@@ -994,12 +1291,12 @@ namespace MML::Fourier
 		{
 			using ResultType = FourierResult<Vector<Real>>;
 			return FourierDetail::ExecuteFourierDetailed<ResultType>(
-				"DCT::InverseII", config,
+				"DCT::InverseII", coefficients, config,
 				[&](ResultType& result) {
 					result.input_size = coefficients.size();
-					result.value = InverseII(coefficients);
-					result.function_evaluations = FFT::IsPowerOfTwo(coefficients.size()) ?
-						coefficients.size() * FFT::Log2(coefficients.size()) : coefficients.size() * coefficients.size();
+					const auto work = DescribeWork(coefficients.size());
+					result.value = InverseII(coefficients, config.normalization);
+					FourierDetail::SetWork(result, work);
 				});
 		}
 
@@ -1009,11 +1306,11 @@ namespace MML::Fourier
 		{
 			using ResultType = FourierResult<Vector<Real>>;
 			return FourierDetail::ExecuteFourierDetailed<ResultType>(
-				"DCT::ForwardDST", config,
+				"DCT::ForwardDST", data, config,
 				[&](ResultType& result) {
 					result.input_size = data.size();
-					result.value = ForwardDST(data);
-					result.function_evaluations = data.size() * data.size();
+					result.value = ForwardDST(data, config.normalization);
+					FourierDetail::SetWork(result, FourierDetail::DirectWork(data.size()));
 				});
 		}
 
@@ -1023,11 +1320,11 @@ namespace MML::Fourier
 		{
 			using ResultType = FourierResult<Vector<Real>>;
 			return FourierDetail::ExecuteFourierDetailed<ResultType>(
-				"DCT::InverseDST", config,
+				"DCT::InverseDST", coefficients, config,
 				[&](ResultType& result) {
 					result.input_size = coefficients.size();
-					result.value = InverseDST(coefficients);
-					result.function_evaluations = coefficients.size() * coefficients.size();
+					result.value = InverseDST(coefficients, config.normalization);
+					FourierDetail::SetWork(result, FourierDetail::DirectWork(coefficients.size()));
 				});
 		}
 	};

@@ -18,6 +18,7 @@
 #include <mml/base/Geometry/Geometry2D.h>
 
 #include <algorithm>
+#include <numeric>
 #include <random>
 #include <vector>
 
@@ -27,43 +28,34 @@ namespace CompGeometry {
 	/// @brief Circle-related computational geometry algorithms
 	class Circles {
 	private:
-		// Use centralized geometry epsilon from Constants
-		static constexpr Real EPSILON = Precision::GeometryEpsilon;
-
 		// ========================================================================
 		// Helper functions for Minimum Enclosing Circle
 		// ========================================================================
 
 		static void CircleFrom2Points(const Point2Cartesian& p1, const Point2Cartesian& p2, 
 		                              Point2Cartesian& center, Real& radius) {
-			center = Point2Cartesian((p1.X() + p2.X()) / 2.0, (p1.Y() + p2.Y()) / 2.0);
-			radius = p1.Dist(p2) / 2.0;
+			center = Point2Cartesian(std::midpoint(p1.X(), p2.X()), std::midpoint(p1.Y(), p2.Y()));
+			auto diameter = MML::detail::GeometryDistance2D(p1, p2);
+			--diameter.exponent;
+			radius = diameter.CheckedValue();
 		}
 
 		static bool CircleFrom3Points(const Point2Cartesian& p1, const Point2Cartesian& p2, 
 		                              const Point2Cartesian& p3, Point2Cartesian& center, Real& radius) {
-			Real ax = p2.X() - p1.X();
-			Real ay = p2.Y() - p1.Y();
-			Real bx = p3.X() - p1.X();
-			Real by = p3.Y() - p1.Y();
-
-			Real d = 2.0 * (ax * by - ay * bx);
-			if (std::abs(d) < EPSILON)
-				return false; // Collinear points
-
-			Real aSq = ax * ax + ay * ay;
-			Real bSq = bx * bx + by * by;
-
-			Real cx = (by * aSq - ay * bSq) / d;
-			Real cy = (ax * bSq - bx * aSq) / d;
-
-			center = Point2Cartesian(p1.X() + cx, p1.Y() + cy);
-			radius = std::sqrt(cx * cx + cy * cy);
+			if (!MML::detail::GeometryCircumcenter2D(p1, p2, p3, center))
+				return false;
+			radius = std::max({MML::detail::GeometryDistance2D(center, p1).CheckedValue(),
+				MML::detail::GeometryDistance2D(center, p2).CheckedValue(),
+				MML::detail::GeometryDistance2D(center, p3).CheckedValue()});
 			return true;
 		}
 
 		static bool IsInsideCircle(const Point2Cartesian& p, const Point2Cartesian& center, Real radius) {
-			return p.Dist(center) <= radius + EPSILON;
+			const auto distance = MML::detail::GeometryDistance2D(p, center);
+			if (radius == 0)
+				return distance.fraction == 0;
+			return MML::detail::GeometryBinary::Quotient(distance, MML::detail::GeometryBinary(radius)).Value() <=
+				Real{1} + Precision::RoundoffZeroThreshold;
 		}
 
 		static void WelzlHelper(std::vector<Point2Cartesian>& points, std::vector<Point2Cartesian>& boundary, 
@@ -79,16 +71,10 @@ namespace CompGeometry {
 					CircleFrom2Points(boundary[0], boundary[1], center, radius);
 				} else {
 					if (!CircleFrom3Points(boundary[0], boundary[1], boundary[2], center, radius)) {
-						Real d01 = boundary[0].Dist(boundary[1]);
-						Real d02 = boundary[0].Dist(boundary[2]);
-						Real d12 = boundary[1].Dist(boundary[2]);
-
-						if (d01 >= d02 && d01 >= d12)
-							CircleFrom2Points(boundary[0], boundary[1], center, radius);
-						else if (d02 >= d12)
-							CircleFrom2Points(boundary[0], boundary[2], center, radius);
-						else
-							CircleFrom2Points(boundary[1], boundary[2], center, radius);
+						const auto endpoints = std::minmax_element(boundary.begin(), boundary.end(), [](const auto& a, const auto& b) {
+							return a.X() < b.X() || (a.X() == b.X() && a.Y() < b.Y());
+						});
+						CircleFrom2Points(*endpoints.first, *endpoints.second, center, radius);
 					}
 				}
 				return;
@@ -178,6 +164,10 @@ namespace CompGeometry {
 		// ========================================================================
 
 		static Circle2D MinimumEnclosingCircle(std::vector<Point2Cartesian> points) {
+			if (points.size() > static_cast<std::size_t>(std::numeric_limits<int>::max()))
+				throw ArgumentError("MinimumEnclosingCircle - too many points for integer indices");
+			for (const auto& point : points)
+				MML::detail::ValidateGeometryCoordinates({point.X(), point.Y()}, "MinimumEnclosingCircle");
 			int n = static_cast<int>(points.size());
 
 			if (n == 0)
@@ -195,6 +185,9 @@ namespace CompGeometry {
 
 			WelzlHelper(points, boundary, n, center, radius, rng);
 
+			// Enclose the represented points around the rounded center, including boundary roundoff.
+			for (const auto& point : points)
+				radius = std::max(radius, MML::detail::GeometryDistance2D(point, center).CheckedValue());
 			return Circle2D(center, radius);
 		}
 

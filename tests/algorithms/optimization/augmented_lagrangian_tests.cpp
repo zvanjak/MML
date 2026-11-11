@@ -40,13 +40,13 @@ TEST_CASE("ALM: ALMConfig default values", "[ALM][config]")
 	ALMConfig config;
 
 	REQUIRE(config.max_outer_iterations == 100);
-	REQUIRE_THAT(config.feasibility_tolerance, WithinAbs(1e-6, 1e-12));
-	REQUIRE_THAT(config.stationarity_tolerance, WithinAbs(1e-6, 1e-12));
+	REQUIRE(config.feasibility_tolerance == Precision::LooseTolerance);
+	REQUIRE(config.stationarity_tolerance == Precision::LooseTolerance);
 	REQUIRE_THAT(config.initial_penalty, WithinAbs(10.0, 1e-12));
 	REQUIRE_THAT(config.penalty_multiplier, WithinAbs(10.0, 1e-12));
-	REQUIRE_THAT(config.max_penalty, WithinAbs(1e12, 1e6));
+	REQUIRE(config.max_penalty == Precision::PenaltyParameterMax);
 	REQUIRE(config.max_inner_iterations == 1000);
-	REQUIRE_THAT(config.inner_tolerance, WithinAbs(1e-8, 1e-12));
+	REQUIRE(config.inner_tolerance == Precision::ModerateTolerance);
 	REQUIRE(config.verbose_stream == nullptr);
 }
 
@@ -163,7 +163,7 @@ TEST_CASE("ALM: Multiple constraints", "[ALM][optimization]")
 	alm.AddInequalityConstraint(yPositive);
 	alm.SetBounds(-2.0, 2.0);
 
-	VectorN<Real, 2> x0{ 0.1, 0.1 };
+	VectorN<Real, 2> x0{ MML::Real(0.1), MML::Real(0.1) };
 	auto result = alm.Optimize(objective, x0);
 
 	Real sqrtHalf = static_cast<MML::Real>(1.0) / std::sqrt(static_cast<MML::Real>(2.0));
@@ -259,7 +259,7 @@ TEST_CASE("ALM: 3D optimization with sphere constraint", "[ALM][optimization]")
 	alm.AddInequalityConstraint(sphere);
 	alm.SetBounds(-2.0, 2.0);
 
-	VectorN<Real, 3> x0{ 0.1, 0.1, 0.1 };
+	VectorN<Real, 3> x0{ MML::Real(0.1), MML::Real(0.1), MML::Real(0.1) };
 	auto result = alm.Optimize(objective, x0);
 
 	Real sphereVal = result.x[0] * result.x[0] + result.x[1] * result.x[1] + result.x[2] * result.x[2];
@@ -375,9 +375,9 @@ TEST_CASE("ALM: SolveConstrained convenience function", "[ALM][convenience]")
 		return x[0] * x[0] + x[1] * x[1];
 	};
 
-	std::vector<std::function<Real(const VectorN<Real, 2>&)>> ineqConstraints = {
-		[](const VectorN<Real, 2>& x) -> Real { return -x[0] - x[1] + static_cast<MML::Real>(1.0); }  // x + y >= 1
-	};
+	std::vector<std::function<Real(const VectorN<Real, 2>&)>> ineqConstraints;
+	ineqConstraints.emplace_back(
+		[](const VectorN<Real, 2>& x) -> Real { return -x[0] - x[1] + static_cast<MML::Real>(1.0); });  // x + y >= 1
 
 	VectorN<Real, 2> x0{ static_cast<MML::Real>(0.0), static_cast<MML::Real>(0.0) };
 	auto result = SolveConstrained<2>(objective, x0, ineqConstraints);

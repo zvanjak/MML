@@ -76,13 +76,13 @@ namespace MML {
 		BVPFailureReason failureReason = BVPFailureReason::None; ///< Reason for failure (if !converged)
 		std::string failureDetails;               ///< Additional failure details/message
 		int iterations = 0;			              ///< Number of shooting iterations
-		Real residual = 0.0;		              ///< Final boundary condition residual
+		Real residual = NoEstimate;		      ///< Final boundary condition residual, if evaluated
 		Vector<Real> shootingParams;              ///< Optimal shooting parameter(s)
 		ODESystemSolution solution;	              ///< Full trajectory solution
 
 		// Enhanced diagnostic fields (API Standardization Phase 6)
 		std::string algorithm_name;               ///< Name of the algorithm used
-		AlgorithmStatus status = AlgorithmStatus::Success;  ///< Algorithm termination status
+		AlgorithmStatus status = AlgorithmStatus::AlgorithmSpecificFailure;  ///< Algorithm termination status
 		double elapsed_time_ms = 0;               ///< Execution time in milliseconds
 
 		BVPShootingResult()
@@ -145,7 +145,7 @@ namespace MML {
 		/// @param system      ODE system to solve (first-order system form)
 		/// @param numSteps    Number of integration steps (more = more accurate)
 		/// @param tolerance   Root-finding tolerance for boundary condition
-		/// @param maxIter     Maximum shooting iterations
+		/// @param maxIter     Positive iteration limit for Brent refinement and each bracketing search
 		BVPShootingSolver(const IODESystem& system, int numSteps = 1000, Real tolerance = Precision::BVPTolerance, int maxIter = 100)
 			: _system(system)
 			, _numSteps(numSteps)
@@ -168,6 +168,18 @@ namespace MML {
 		BVPShootingResult solve1D(Real t0, Real t1, const Vector<Real>& knownInitCond, int shootingIndex, int targetIndex, Real targetValue,
 								  Real shootGuess1, Real shootGuess2) {
 			BVPShootingResult result;
+			result.algorithm_name = "BVPShooting";
+			const int dimension = _system.getDim();
+			if (_maxIterations <= 0 || _numSteps <= 0 || !std::isfinite(_tolerance) || _tolerance <= 0 ||
+				!std::isfinite(t0) || !std::isfinite(t1) || !std::isfinite(t1 - t0) || t0 == t1 ||
+				knownInitCond.size() != dimension || shootingIndex < 0 || shootingIndex >= dimension ||
+				targetIndex < 0 || targetIndex >= dimension || !std::isfinite(targetValue) ||
+				!std::isfinite(shootGuess1) || !std::isfinite(shootGuess2) || shootGuess1 == shootGuess2) {
+				result.status = AlgorithmStatus::InvalidInput;
+				result.failureReason = BVPFailureReason::InvalidConfiguration;
+				result.failureDetails = "Shooting requires valid dimensions, finite distinct endpoints/guesses and positive steps, tolerance and budget";
+				return result;
+			}
 
 			// Create the "defect function" that measures boundary condition error
 			// F(s) = y[targetIndex](t1) - targetValue, where s is the shooting parameter
@@ -187,13 +199,13 @@ namespace MML {
 			try {
 				// Try to bracket the root
 				Real a = shootGuess1, b = shootGuess2;
-				bool bracketed = RootFinding::BracketRoot(F, a, b, 50);
+				bool bracketed = RootFinding::BracketRoot(F, a, b, std::min(50, _maxIterations));
 
 				if (!bracketed) {
 					// If bracketing fails, try wider search
 					a = shootGuess1 - 10 * std::abs(shootGuess2 - shootGuess1);
 					b = shootGuess2 + 10 * std::abs(shootGuess2 - shootGuess1);
-					bracketed = RootFinding::BracketRoot(F, a, b, 100);
+					bracketed = RootFinding::BracketRoot(F, a, b, std::min(100, _maxIterations));
 				}
 
 				if (!bracketed) {
@@ -202,12 +214,22 @@ namespace MML {
 					result.failureDetails = "Could not bracket root with initial guesses [" + 
 						std::to_string(shootGuess1) + ", " + std::to_string(shootGuess2) + 
 						"] even after expanding range";
-					result.residual = std::numeric_limits<Real>::max();
 					return result;
 				}
 
 				// Use Brent's method to find the root
-				Real shootingParam = RootFinding::FindRootBrent(F, a, b, _tolerance);
+				RootFinding::RootFindingConfig rootConfig;
+				rootConfig.tolerance = _tolerance;
+				rootConfig.max_iterations = _maxIterations;
+				const auto root = RootFinding::FindRootBrentDetailed(F, a, b, rootConfig);
+				result.iterations = root.iterations_used;
+				if (root.status != AlgorithmStatus::Success && root.status != AlgorithmStatus::MaxIterationsExceeded) {
+					result.status = root.status;
+					result.failureReason = BVPFailureReason::RootFindingFailed;
+					result.failureDetails = root.error_message;
+					return result;
+				}
+				Real shootingParam = root.root;
 
 				// Compute final solution with optimal shooting parameter
 				Vector<Real> initCond = knownInitCond;
@@ -216,18 +238,34 @@ namespace MML {
 				ODESystemFixedStepSolver solver(_system, _stepCalc);
 				result.solution = solver.integrate(initCond, t0, t1, _numSteps);
 
-				result.converged = true;
 				result.shootingParams = Vector<Real>(1);
 				result.shootingParams[0] = shootingParam;
 
 				Vector<Real> finalState = result.solution.getXValuesAtEnd();
 				result.residual = std::abs(finalState[targetIndex] - targetValue);
-				result.failureReason = BVPFailureReason::None;
-			} catch (const std::exception& e) {
-				result.converged = false;
+				result.converged = std::isfinite(result.residual) && result.residual <= _tolerance;
+				if (result.converged) {
+					result.status = AlgorithmStatus::Success;
+					result.failureReason = BVPFailureReason::None;
+				} else if (!std::isfinite(result.residual)) {
+					result.status = AlgorithmStatus::NumericalInstability;
+					result.failureReason = BVPFailureReason::NumericalInstability;
+					result.failureDetails = "Non-finite final boundary residual";
+				} else if (root.status == AlgorithmStatus::MaxIterationsExceeded) {
+					result.status = AlgorithmStatus::MaxIterationsExceeded;
+					result.failureReason = BVPFailureReason::MaxIterationsExceeded;
+					result.failureDetails = root.error_message;
+				} else {
+					result.status = AlgorithmStatus::ToleranceUnachievable;
+					result.failureReason = BVPFailureReason::RootFindingFailed;
+					result.failureDetails = "Root parameter tolerance met but boundary residual exceeds tolerance";
+				}
+			} catch (const RootFindingError& e) {
 				result.failureReason = BVPFailureReason::RootFindingFailed;
 				result.failureDetails = e.what();
-				result.residual = std::numeric_limits<Real>::max();
+			} catch (const ODESolverError& e) {
+				result.failureReason = BVPFailureReason::IntegrationFailed;
+				result.failureDetails = e.what();
 			}
 
 			return result;
@@ -334,14 +372,14 @@ namespace MML {
 		BVPFailureReason failureReason = BVPFailureReason::None; ///< Reason for failure (if !converged)
 		std::string failureDetails;               ///< Additional failure details/message
 		int iterations = 0;			              ///< Number of Newton iterations
-		Real residualNorm = 0.0;	              ///< Final ||F(s)||₂
+		Real residualNorm = NoEstimate;	          ///< Final ||F(s)||₂, if evaluated
 		Vector<Real> shootingParams;              ///< Optimal shooting parameters
 		Vector<Real> residuals;		              ///< Final residual vector
 		ODESystemSolution solution;	              ///< Full trajectory
 
 		// Enhanced diagnostic fields (API Standardization Phase 6)
 		std::string algorithm_name;               ///< Name of the algorithm used
-		AlgorithmStatus status = AlgorithmStatus::Success;  ///< Algorithm termination status
+		AlgorithmStatus status = AlgorithmStatus::AlgorithmSpecificFailure;  ///< Algorithm termination status
 		double elapsed_time_ms = 0;               ///< Execution time in milliseconds
 
 		ShootingResultND()
@@ -423,16 +461,32 @@ namespace MML {
 		/// @return ShootingResultND
 		ShootingResultND solve(Real t0, Real t1, const Vector<Real>& knownInitCond, const ShootingConfig& config) {
 			ShootingResultND result;
+			result.algorithm_name = "BVPShootingND";
 
-			if (!config.isValid()) {
+			if (!config.isValid() || _maxIterations < 0 || _numSteps <= 0 ||
+				!std::isfinite(_tolerance) || _tolerance <= 0 ||
+				!std::isfinite(_jacobianDelta) || _jacobianDelta <= 0 ||
+				!std::isfinite(t0) || !std::isfinite(t1) || !std::isfinite(t1 - t0) || t0 == t1 ||
+				knownInitCond.size() != _system.getDim()) {
 				result.converged = false;
+				result.status = AlgorithmStatus::InvalidInput;
 				result.failureReason = BVPFailureReason::InvalidConfiguration;
-				result.failureDetails = "Shooting configuration invalid: unknownIndices, targetIndices, "
-					"unknownGuesses, and targetValues must all have same non-zero size";
+				result.failureDetails = "Shooting requires matching nonzero parameter arrays, valid dimensions, finite distinct endpoints, "
+					"positive steps/tolerance/Jacobian delta and a nonnegative correction budget";
 				return result;
 			}
 
 			int n = config.numParams();
+			for (int i = 0; i < n; ++i) {
+				if (config.unknownIndices[i] < 0 || config.unknownIndices[i] >= _system.getDim() ||
+					config.targetIndices[i] < 0 || config.targetIndices[i] >= _system.getDim() ||
+					!std::isfinite(config.unknownGuesses[i]) || !std::isfinite(config.targetValues[i])) {
+					result.status = AlgorithmStatus::InvalidInput;
+					result.failureReason = BVPFailureReason::InvalidConfiguration;
+					result.failureDetails = "Invalid shooting parameter index, guess or target";
+					return result;
+				}
+			}
 
 			// Initialize shooting parameters from guesses
 			Vector<Real> s(n);
@@ -460,11 +514,11 @@ namespace MML {
 			Vector<Real> F = computeDefect(s);
 			Real residualNorm = F.NormL2();
 
-			for (int iter = 0; iter < _maxIterations; ++iter) {
-				result.iterations = iter + 1;
+			for (int iter = 0; ; ++iter) {
 
 				if (residualNorm < _tolerance) {
 					result.converged = true;
+					result.status = AlgorithmStatus::Success;
 					result.failureReason = BVPFailureReason::None;
 					break;
 				}
@@ -472,11 +526,15 @@ namespace MML {
 				// Check for numerical instability
 				if (!std::isfinite(residualNorm)) {
 					result.converged = false;
+					result.status = AlgorithmStatus::NumericalInstability;
 					result.failureReason = BVPFailureReason::NumericalInstability;
 					result.failureDetails = "Residual norm became NaN/Inf at iteration " + 
 						std::to_string(iter);
 					break;
 				}
+				if (iter >= _maxIterations)
+					break;
+				result.iterations = iter + 1;
 
 				// Compute Jacobian numerically: J_ij = ∂F_i/∂s_j
 				Matrix<Real> J(n, n);
@@ -496,6 +554,7 @@ namespace MML {
 				
 				if (!linearResult.success) {
 					result.converged = false;
+					result.status = AlgorithmStatus::SingularMatrix;
 					result.failureReason = BVPFailureReason::SingularJacobian;
 					result.failureDetails = linearResult.errorMessage;
 					break;
@@ -511,6 +570,7 @@ namespace MML {
 			
 			// Check if we exceeded max iterations without converging
 			if (!result.converged && result.failureReason == BVPFailureReason::None) {
+				result.status = AlgorithmStatus::MaxIterationsExceeded;
 				result.failureReason = BVPFailureReason::MaxIterationsExceeded;
 				result.failureDetails = "Did not converge within " + std::to_string(_maxIterations) + 
 					" iterations. Final residual norm: " + std::to_string(residualNorm) + 

@@ -10,8 +10,33 @@
 #include <thread>
 #include <chrono>
 #include <vector>
+#include <stdexcept>
 
 using namespace MML;
+
+void Docs_Demo_ScopedTimerFailures()
+{
+	{ ScopedTimer normal("normal reporting"); }
+	double stored = -1;
+	{
+		ScopedTimer timer("result only", stored);
+		if (!std::isfinite(timer.elapsed()) || timer.elapsed() < 0)
+			throw std::runtime_error("Invalid running timer duration");
+	}
+	int calls = 0;
+	double observed = -1;
+	{
+		ScopedTimer timer("diagnostic demo", [&](const std::string& name, double elapsed) {
+			++calls;
+			observed = elapsed;
+			if (name != "diagnostic demo") throw std::logic_error("Unexpected timer name");
+			throw std::runtime_error("intentional callback failure for diagnostics demo");
+		}, false);
+	}
+	if (!std::isfinite(stored) || stored < 0 || !std::isfinite(observed) || observed < 0 || calls != 1)
+		throw std::runtime_error("Reporting failure disrupted timing or callback delivery");
+	std::cout << "Expected callback diagnostic emitted; execution continued and timing survived.\n";
+}
 
 namespace MML::docs_demos::timer
 {

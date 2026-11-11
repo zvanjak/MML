@@ -182,14 +182,14 @@ TEST_CASE("Sampling::Discrete_moments_and_support", "[sampling][discrete]") {
 	const int M = 100000;
 
 	{
-		BernoulliDistribution d(0.3);
+		BernoulliDistribution d(MML::Real(0.3));
 		auto s = draw(d, 201, M);
 		double m, var; meanVar(s, m, var);
 		REQUIRE(m == Approx(0.3).epsilon(0.03));
 		for (double x : s) REQUIRE((x == 0.0 || x == 1.0));
 	}
 	{
-		BinomialDistribution d(20, 0.3);
+		BinomialDistribution d(20, MML::Real(0.3));
 		auto s = draw(d, 202, M);
 		double m, var; meanVar(s, m, var);
 		REQUIRE(m == Approx(6.0).epsilon(0.02));

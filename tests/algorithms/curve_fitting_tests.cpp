@@ -21,6 +21,8 @@ TEST_CASE("LinearLeastSquares - Exact fit through two points", "[CurveFitting][L
     
     Real a, b;
     Real residual = LinearLeastSquares(x_data, y_data, a, b);
+    REQUIRE(std::isfinite(residual));
+    REQUIRE(residual >= 0);
     
     REQUIRE_THAT(a, WithinAbs(static_cast<MML::Real>(2.0), TOL(1e-10, 1e-5)));
     REQUIRE_THAT(b, WithinAbs(static_cast<MML::Real>(1.0), TOL(1e-10, 1e-5)));
@@ -57,7 +59,7 @@ TEST_CASE("LinearLeastSquares - Noisy data approximation", "[CurveFitting][Linea
 {
     // True line: y = 0.5x + 2.0, with small noise
     Vector<Real> x_data({1.0, 2.0, 3.0, 4.0, 5.0});
-    Vector<Real> y_data({2.5, 3.1, 3.4, 4.2, 4.5});  // y = 0.5x + 2 + noise
+    Vector<Real> y_data({MML::Real(2.5), MML::Real(3.1), MML::Real(3.4), MML::Real(4.2), MML::Real(4.5)});  // y = 0.5x + 2 + noise
     
     Real a, b;
     Real residual = LinearLeastSquares(x_data, y_data, a, b);
@@ -74,18 +76,20 @@ TEST_CASE("LinearLeastSquares - Textbook example", "[CurveFitting][LinearLeastSq
     // Classic example from numerical analysis textbooks
     // Data points roughly following y = 2x - 1
     Vector<Real> x_data({0.0, 1.0, 2.0, 3.0, 4.0});
-    Vector<Real> y_data({-1.1, 0.9, 3.2, 5.1, 6.8});
+    Vector<Real> y_data({-MML::Real(1.1), MML::Real(0.9), MML::Real(3.2), MML::Real(5.1), MML::Real(6.8)});
     
     Real a, b;
     Real residual = LinearLeastSquares(x_data, y_data, a, b);
     
     // Expected: a ≈ 2.0, b ≈ -1.0
+    REQUIRE(std::isfinite(residual));
+    REQUIRE(residual >= 0);
     REQUIRE_THAT(a, WithinAbs(static_cast<MML::Real>(2.0), static_cast<MML::Real>(0.1)));
     REQUIRE_THAT(b, WithinAbs(static_cast<MML::Real>(-1.0), static_cast<MML::Real>(0.2)));
     
     // Verify predictions are reasonable
-    Real y_pred_0 = a * 0.0 + b;
-    Real y_pred_4 = a * 4.0 + b;
+    Real y_pred_0 = a * MML::Real(0.0) + b;
+    Real y_pred_4 = a * MML::Real(4.0) + b;
     
     REQUIRE_THAT(y_pred_0, WithinAbs(static_cast<MML::Real>(-1.0), static_cast<MML::Real>(0.5)));
     REQUIRE_THAT(y_pred_4, WithinAbs(static_cast<MML::Real>(7.0), static_cast<MML::Real>(0.5)));
@@ -112,8 +116,8 @@ TEST_CASE("LinearLeastSquares - Large dataset", "[CurveFitting][LinearLeastSquar
     Vector<Real> y_data(100);
     
     for (int i = 0; i < 100; i++) {
-        x_data[i] = -10.0 + i * 0.2;  // x from -10 to 9.8
-        y_data[i] = 1.5 * x_data[i] - 2.5;
+        x_data[i] = -MML::Real(10.0) + i * MML::Real(0.2);  // x from -10 to 9.8
+        y_data[i] = MML::Real(1.5) * x_data[i] - MML::Real(2.5);
     }
     
     Real a, b;
@@ -127,7 +131,7 @@ TEST_CASE("LinearLeastSquares - Large dataset", "[CurveFitting][LinearLeastSquar
 TEST_CASE("LinearLeastSquares - Single point (degenerate case)", "[CurveFitting][LinearLeastSquares]")
 {
     Vector<Real> x_data({3.5});
-    Vector<Real> y_data({7.2});
+    Vector<Real> y_data({MML::Real(7.2)});
     
     Real a, b;
     Real residual = LinearLeastSquares(x_data, y_data, a, b);
@@ -199,7 +203,7 @@ TEST_CASE("LinearLeastSquaresDetailed - Perfect fit R^2 = 1", "[CurveFitting][Li
 TEST_CASE("LinearLeastSquaresDetailed - Noisy data R^2 < 1", "[CurveFitting][LinearLeastSquaresDetailed]")
 {
     Vector<Real> x_data({1.0, 2.0, 3.0, 4.0, 5.0});
-    Vector<Real> y_data({2.5, 3.8, 6.2, 7.9, 10.1});  // y ≈ 2x with noise
+    Vector<Real> y_data({MML::Real(2.5), MML::Real(3.8), MML::Real(6.2), MML::Real(7.9), MML::Real(10.1)});  // y ≈ 2x with noise
     
     auto result = LinearLeastSquaresDetailed(x_data, y_data);
     
@@ -386,7 +390,7 @@ TEST_CASE("GeneralLinearLeastSquares - Lambda basis functions", "[CurveFitting][
     Vector<Real> x_data({0.0, 0.5, 1.0, 1.5, 2.0});
     Vector<Real> y_data(5);
     for (int i = 0; i < 5; i++) {
-        y_data[i] = 3.0 * std::exp(x_data[i]) + 2.0 * x_data[i];
+        y_data[i] = MML::Real(3.0) * std::exp(x_data[i]) + MML::Real(2.0) * x_data[i];
     }
     
     Vector<std::function<Real(Real)>> basis({
@@ -406,7 +410,7 @@ TEST_CASE("GeneralLinearLeastSquares - Noisy data", "[CurveFitting][GeneralLLS]"
 {
     // Noisy quadratic data: y = x^2 + noise
     Vector<Real> x_data({-2.0, -1.0, 0.0, 1.0, 2.0, 3.0, 4.0});
-    Vector<Real> y_data({4.1, 1.2, -0.1, 0.9, 4.2, 8.8, 16.1});  // x^2 + small noise
+    Vector<Real> y_data({MML::Real(4.1), MML::Real(1.2), -MML::Real(0.1), MML::Real(0.9), MML::Real(4.2), MML::Real(8.8), MML::Real(16.1)});  // x^2 + small noise
     
     Vector<std::function<Real(Real)>> basis({
         [](Real) -> Real { return static_cast<MML::Real>(1.0); },
@@ -609,9 +613,8 @@ TEST_CASE("GeneralLinearLeastSquares - Error: empty data", "[CurveFitting][Gener
     Vector<Real> x_data;
     Vector<Real> y_data;
     
-    Vector<std::function<Real(Real)>> basis({
-        [](Real) -> Real { return static_cast<MML::Real>(1.0); }
-    });
+    Vector<std::function<Real(Real)>> basis(1);
+    basis[0] = [](Real) -> Real { return static_cast<MML::Real>(1.0); };
     
     REQUIRE_THROWS_AS(GeneralLinearLeastSquares(x_data, y_data, basis), std::invalid_argument);
 }
@@ -631,9 +634,8 @@ TEST_CASE("GeneralLinearLeastSquares - Error: size mismatch", "[CurveFitting][Ge
     Vector<Real> x_data({1.0, 2.0, 3.0});
     Vector<Real> y_data({1.0, 2.0});  // Different size
     
-    Vector<std::function<Real(Real)>> basis({
-        [](Real) -> Real { return static_cast<MML::Real>(1.0); }
-    });
+    Vector<std::function<Real(Real)>> basis(1);
+    basis[0] = [](Real) -> Real { return static_cast<MML::Real>(1.0); };
     
     REQUIRE_THROWS_AS(GeneralLinearLeastSquares(x_data, y_data, basis), std::invalid_argument);
 }
@@ -679,13 +681,13 @@ TEST_CASE("LinearFitDetailed - basic linear fit returns success", "[CurveFitting
     REQUIRE_THAT(result.coefficients[0], Catch::Matchers::WithinAbs(3.0, TOL(1e-10, 1e-5)));  // a = slope
     REQUIRE_THAT(result.coefficients[1], Catch::Matchers::WithinAbs(2.0, TOL(1e-10, 1e-5)));  // b = intercept
     REQUIRE_THAT(result.r_squared, Catch::Matchers::WithinAbs(1.0, TOL(1e-10, 1e-5)));
-    REQUIRE(result.mean_squared_error < 1e-20);
+    REQUIRE_THAT(result.mean_squared_error, Catch::Matchers::WithinAbs(0, TOL(1e-20, 1e-12)));
 }
 
 TEST_CASE("LinearFitDetailed - noisy data returns reasonable statistics", "[CurveFitting][Detailed]")
 {
     Vector<Real> x({1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0});
-    Vector<Real> y({2.1, 3.9, 6.2, 7.8, 10.1, 12.3, 13.8, 16.1});
+    Vector<Real> y({MML::Real(2.1), MML::Real(3.9), MML::Real(6.2), MML::Real(7.8), MML::Real(10.1), MML::Real(12.3), MML::Real(13.8), MML::Real(16.1)});
 
     auto result = LinearFitDetailed(x, y);
 
@@ -728,7 +730,7 @@ TEST_CASE("GeneralLinearFitDetailed - quadratic fit returns enriched result", "[
     Vector<Real> y(6);
     for (int i = 0; i < 6; i++) {
         Real xi = x[i];
-        y[i] = 1.0 + 2.0 * xi + 3.0 * xi * xi;
+        y[i] = MML::Real(1.0) + MML::Real(2.0) * xi + MML::Real(3.0) * xi * xi;
     }
 
     Vector<std::function<Real(Real)>> basis({
@@ -778,7 +780,7 @@ TEST_CASE("PolynomialFitDetailed - cubic polynomial fit", "[CurveFitting][Detail
     Vector<Real> y(7);
     for (int i = 0; i < 7; i++) {
         Real xi = x[i];
-        y[i] = 1.0 - xi + 0.5 * xi * xi + 0.1 * xi * xi * xi;
+        y[i] = MML::Real(1.0) - xi + MML::Real(0.5) * xi * xi + MML::Real(0.1) * xi * xi * xi;
     }
 
     auto result = PolynomialFitDetailed(x, y, 3);
@@ -812,7 +814,7 @@ TEST_CASE("WeightedGeneralLinearLeastSquares downweights heteroscedastic outlier
 {
     Vector<Real> x({0.0, 1.0, 2.0, 3.0, 4.0});
     Vector<Real> y({1.0, 3.0, 5.0, 7.0, 30.0});
-    Vector<Real> weights({1.0, 1.0, 1.0, 1.0, 0.001});
+    Vector<Real> weights({MML::Real(1.0), MML::Real(1.0), MML::Real(1.0), MML::Real(1.0), MML::Real(0.001)});
     Vector<std::function<Real(Real)>> basis({
         [](Real) { return static_cast<MML::Real>(1.0); },
         [](Real value) { return value; }

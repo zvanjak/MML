@@ -168,7 +168,7 @@ void Docs_Demo_FunctionAnalyzer_Discontinuities()
 		switch (d.type) {
 			case DiscontinuityType::JUMP: type = "jump"; break;
 			case DiscontinuityType::REMOVABLE: type = "removable"; break;
-			case DiscontinuityType::INFINITE: type = "infinite"; break;
+			case DiscontinuityType::Infinite: type = "infinite"; break;
 			case DiscontinuityType::OSCILLATORY: type = "oscillatory"; break;
 			case DiscontinuityType::UNKNOWN: type = "unknown"; break;
 		}
@@ -176,6 +176,34 @@ void Docs_Demo_FunctionAnalyzer_Discontinuities()
 		          << "left = " << d.leftLimit << ", right = " << d.rightLimit << std::endl;
 	}
 	AnalysisReports::PrintContinuityAnalysis(std::cout, continuity, "floor(x)");
+
+	RealFunctionFromStdFunc heaviside([](Real x) { return x >= 0 ? 1.0 : 0.0; });
+	const auto jump = RealFunctionAnalyzer(heaviside).ClassifyDiscontinuity(0);
+	switch (jump.type) {
+		case DiscontinuityType::JUMP:
+			std::cout << "JUMP (size: " << jump.jumpSize << ")\n";
+			break;
+		case DiscontinuityType::REMOVABLE: std::cout << "REMOVABLE\n"; break;
+		case DiscontinuityType::Infinite: std::cout << "INFINITE\n"; break;
+		default: std::cout << "OTHER\n"; break;
+	}
+
+	RealFunctionFromStdFunc reciprocal([](Real x) { return 1.0 / x; });
+	const auto pole = RealFunctionAnalyzer(reciprocal).ClassifyDiscontinuity(0);
+	std::cout << "Reciprocal type: "
+	          << (pole.type == DiscontinuityType::Infinite ? "INFINITE" : "OTHER")
+	          << ", left limit: " << pole.leftLimit << ", right limit: " << pole.rightLimit << '\n';
+
+	RealFunctionFromStdFunc tangent([](Real x) { return std::tan(x); });
+	const auto tangentCandidates = RealFunctionAnalyzer(tangent).FindDiscontinuityCandidates(
+		-Constants::PI, Constants::PI, 2000);
+	for (const auto& candidate : tangentCandidates) {
+		std::cout << "Tangent candidate at " << candidate.x << ": ";
+		switch (candidate.type) {
+			case DiscontinuityType::Infinite: std::cout << "INFINITE (vertical asymptote)\n"; break;
+			default: std::cout << "OTHER\n"; break;
+		}
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////

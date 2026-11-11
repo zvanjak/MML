@@ -35,6 +35,7 @@
 #include <mml/base/Vector/Vector.h>
 #include <mml/base/Matrix/Matrix.h>
 #include <mml/interfaces/IODESystem.h>
+#include <mml/base/detail/NumericalJacobian.h>
 
 #include <string>
 #include <utility>
@@ -63,14 +64,24 @@ namespace MML
 		//=========================================================================
 
 		/** @brief Get name of state variable */
-		virtual std::string getStateName(int i) const { return "x" + std::to_string(i); }
+		virtual std::string getStateName(int i) const {
+			if (i < 0 || i >= getDim())
+				throw IndexError("IDynamicalSystem::getStateName - state index out of range");
+			return "x" + std::to_string(i);
+		}
 
 		/** @brief Get name of parameter */
-		virtual std::string getParamName(int i) const { return "p" + std::to_string(i); }
+		virtual std::string getParamName(int i) const {
+			if (i < 0 || i >= getNumParam())
+				throw IndexError("IDynamicalSystem::getParamName - parameter index out of range");
+			return "p" + std::to_string(i);
+		}
 
-		/** @brief Get valid range for parameter */
+		/** @brief Get a suggested exploration range, not a model admissibility constraint. */
 		virtual std::pair<Real, Real> getParamRange(int i) const {
-			return {-Precision::UnboundedIntervalSamplingLimit, Precision::UnboundedIntervalSamplingLimit}; // Default: no restriction
+			if (i < 0 || i >= getNumParam())
+				throw IndexError("IDynamicalSystem::getParamRange - parameter index out of range");
+			return {-Precision::UnboundedIntervalSamplingLimit, Precision::UnboundedIntervalSamplingLimit};
 		}
 
 		/** @brief Get default initial condition */
@@ -85,26 +96,19 @@ namespace MML
 
 		/** @brief Compute Jacobian matrix at point (x, t) - the IODESystemWithJacobian contract.
 		 *  Default: central finite differences of derivs(); override with the analytic form and
-		 *  return true from hasAnalyticalJacobian(). */
+		 *  return true from hasAnalyticalJacobian().
+		 *  Validates the dimension, state, time and all stencils before callbacks. Each derivs()
+		 *  call must write exactly getDim() finite entries; omitted entries are rejected.
+		 *  Unrepresentable stencils/results throw NumericalMethodError. J is unchanged on failure. */
 		void jacobian(Real t, const Vector<Real>& x, Matrix<Real>& J) const override {
-			// Default: numerical Jacobian via finite differences
-			int n = getDim();
-			J.resize(n, n);
-			Vector<Real> f1(n), f2(n), xp(x);
-
-			Real eps = std::sqrt(std::numeric_limits<Real>::epsilon());
-
-			for (int j = 0; j < n; ++j) {
-				Real h = eps * std::max<Real>(std::abs(x[j]), Real(1.0));
-				xp[j] = x[j] + h;
-				derivs(t, xp, f1);
-				xp[j] = x[j] - h;
-				derivs(t, xp, f2);
-				xp[j] = x[j];
-
-				for (int i = 0; i < n; ++i)
-					J(i, j) = (f1[i] - f2[i]) / (2.0 * h);
-			}
+			const int n = getDim();
+			if (n <= 0)
+				throw ArgumentError("IDynamicalSystem::jacobian - dimension must be positive");
+			if (x.size() != n)
+				throw VectorDimensionError("IDynamicalSystem::jacobian - state dimension mismatch", n, x.size());
+			NumericalJacobianDetail::JacobianODE(
+				[this](Real time, const Vector<Real>& state, Vector<Real>& output) { derivs(time, state, output); },
+				t, x, J);
 		}
 
 		//=========================================================================
@@ -128,10 +132,18 @@ namespace MML
 		virtual int getNumInvariants() const { return 0; }
 
 		/** @brief Name of invariant */
-		virtual std::string getInvariantName(int i) const { return ""; }
+		virtual std::string getInvariantName(int i) const {
+			if (i < 0 || i >= getNumInvariants())
+				throw IndexError("IDynamicalSystem::getInvariantName - invariant index out of range");
+			return "";
+		}
 
 		/** @brief Compute invariant value at state x */
-		virtual Real computeInvariant(int i, const Vector<Real>& x) const { return 0.0; }
+		virtual Real computeInvariant(int i, const Vector<Real>& x) const {
+			if (i < 0 || i >= getNumInvariants())
+				throw IndexError("IDynamicalSystem::computeInvariant - invariant index out of range");
+			return 0.0;
+		}
 	};
 
 } // namespace MML

@@ -2,7 +2,7 @@
 ///                         MinimalMathLibrary (MML)                                  ///
 ///                                                                                   ///
 ///  File:        tools/TextIOFormat.h                                                ///
-///  Description: Locale-independent numeric text I/O helpers shared by every         ///
+///  Description: Locale-independent numeric text I/O and ASCII token helpers          ///
 ///               MML text reader and writer (serializer, persistence, data loader)   ///
 ///                                                                                   ///
 ///  Copyright:   (c) 2024-2026 Zvonimir Vanjak                                       ///
@@ -15,6 +15,7 @@
 #include <mml/MMLBase.h>
 
 #include <ios>
+#include <cmath>
 #include <complex>
 #include <limits>
 #include <locale>
@@ -23,6 +24,12 @@
 
 namespace MML::TextIO
 {
+	// Protocol vocabulary is ASCII; all other bytes must remain unchanged.
+	constexpr char ToLowerAscii(char character) noexcept {
+		return character >= 'A' && character <= 'Z'
+			? static_cast<char>(character - 'A' + 'a') : character;
+	}
+
 	template<class Type>
 	constexpr int RoundTripPrecision() {
 		if constexpr (is_std_complex<Type>::value)
@@ -78,6 +85,7 @@ namespace MML::TextIO
 	/// @return true if the entire string (modulo surrounding whitespace) is a valid, in-range number.
 	/// @note std::stod / strtod honour the C locale and would reject "3.14" under a comma-decimal
 	///       locale; this always parses the canonical '.' form.
+	///       Nonzero significands that underflow to zero are rejected; signed zero is preserved.
 	template<typename FloatType>
 	inline bool ParseFloatClassic(const std::string& text, FloatType& out)
 	{
@@ -85,11 +93,22 @@ namespace MML::TextIO
 		in.imbue(std::locale::classic());
 		FloatType value{};
 		in >> value;
-		if (in.fail())
-			return false;
+		if (in.fail()) {
+			// libc++ reports ERANGE/failbit even when strtold returns a representable subnormal.
+			if (in.bad() || std::fpclassify(value) != FP_SUBNORMAL)
+				return false;
+			in.clear(in.rdstate() & ~std::ios::failbit);
+		}
 		in >> std::ws;
 		if (!in.eof())
 			return false;
+		// Some num_get implementations silently accept underflow-to-zero.
+		if (value == FloatType{0}) {
+			const auto exponent = text.find_first_of("eE");
+			const auto nonzero = text.find_first_of("123456789");
+			if (nonzero != std::string::npos && nonzero < exponent)
+				return false;
+		}
 		out = value;
 		return true;
 	}

@@ -120,7 +120,7 @@ namespace MML::Tests::Base::ResultPolicyTests {
 		const auto truncated = Persistence::LoadMatrixFromFile(filename, matrix);
 		REQUIRE_FALSE(truncated);
 		REQUIRE(truncated.filename == filename);
-		REQUIRE(truncated.offset == 11);
+		REQUIRE(truncated.offset == static_cast<std::int64_t>(std::filesystem::file_size(path)));
 		REQUIRE(truncated.offset_kind == IOOffsetKind::Byte);
 		const auto saved = Persistence::SaveJson(Vector<Real>{static_cast<MML::Real>(1.0), static_cast<MML::Real>(2.0)}, filename);
 		REQUIRE(saved);
@@ -191,7 +191,7 @@ namespace MML::Tests::Base::ResultPolicyTests {
 		LPConfig config;
 		config.maxIterations = 0;
 		SimplexSolver solver(config);
-		for (const auto result : {solver.Solve(lp), solver.SolveWithSensitivity(lp)}) {
+		for (const auto& result : {solver.Solve(lp), solver.SolveWithSensitivity(lp)}) {
 			REQUIRE(result.lp_status == LPStatus::MaxIterations);
 			REQUIRE(result.status == AlgorithmStatus::MaxIterationsExceeded);
 			REQUIRE_FALSE(result.converged);
@@ -240,7 +240,7 @@ namespace MML::Tests::Base::ResultPolicyTests {
 		config.absTolerance = static_cast<MML::Real>(0.0);
 		b = Vector<Real>(9, static_cast<MML::Real>(0.0));
 		x = Vector<Real>(9, static_cast<MML::Real>(1.0));
-		for (const auto zero : {SparseSolvers::solveCG(A, b, x, config),
+		for (const auto& zero : {SparseSolvers::solveCG(A, b, x, config),
 				 SparseSolvers::solveBiCGSTAB(A, b, x, config),
 				 SparseSolvers::solveGMRES(A, b, x, 3, config)}) {
 			REQUIRE(zero.converged);
@@ -353,13 +353,22 @@ TEST_CASE("Plain integration returns the value and throws when the result is not
     auto d3 = IntegrateTrapDetailed(f, static_cast<MML::Real>(0.0), static_cast<MML::Real>(10.0), IntegrationConfig{}, static_cast<MML::Real>(1e-6));
     REQUIRE(d2.value == d3.value);
 
-    // unreachable tolerance: Detailed says so, plain throws instead of returning a partial value
-    auto bad = IntegrateTrapDetailed(f, static_cast<MML::Real>(0.0), static_cast<MML::Real>(1e-8), static_cast<MML::Real>(1e-12));
-    REQUIRE_FALSE(bad.converged);
-    REQUIRE_FALSE(bad.IsUsable());
-    REQUIRE(bad.status == AlgorithmStatus::MaxIterationsExceeded);
-    REQUIRE_THROWS_AS(IntegrateTrap(f, static_cast<MML::Real>(0.0), static_cast<MML::Real>(1e-8), static_cast<MML::Real>(1e-12)), ConvergenceError);
-    REQUIRE_THROWS_AS(bad.ValueOrThrow("test"), ConvergenceError);
+    // A bounded refinement budget must fail before the arithmetic floor permits convergence.
+    {
+        struct TrapBudget {
+            int saved = Defaults::TrapezoidIntegrationMaxSteps;
+            TrapBudget() { Defaults::TrapezoidIntegrationMaxSteps = 8; }
+            ~TrapBudget() { Defaults::TrapezoidIntegrationMaxSteps = saved; }
+        } budget;
+        auto bad = IntegrateTrapDetailed(f, static_cast<MML::Real>(0.0), static_cast<MML::Real>(1e-8), static_cast<MML::Real>(1e-12));
+        REQUIRE_FALSE(bad.converged);
+        REQUIRE_FALSE(bad.IsUsable());
+        REQUIRE(bad.status == AlgorithmStatus::MaxIterationsExceeded);
+        REQUIRE(bad.function_evaluations > 0);
+        REQUIRE(bad.error_estimate > 0);
+        REQUIRE_THROWS_AS(IntegrateTrap(f, static_cast<MML::Real>(0.0), static_cast<MML::Real>(1e-8), static_cast<MML::Real>(1e-12)), ConvergenceError);
+        REQUIRE_THROWS_AS(bad.ValueOrThrow("test"), ConvergenceError);
+    }
 
     // fixed rule: Completed is usable, so the plain call returns
     REQUIRE(IntegrateGauss10(f, static_cast<MML::Real>(0.0), static_cast<MML::Real>(1.0)) == Catch::Approx(1.0 / 3.0));

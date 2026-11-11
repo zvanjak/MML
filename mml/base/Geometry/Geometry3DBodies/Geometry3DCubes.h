@@ -98,7 +98,7 @@ namespace MML {
 		/// @{
 
 		bool IsInside(const Pnt3Cart& pnt) const override {
-			Real half_a = _a / 2.0;
+			Real half_a = _a / MML::Real(2.0);
 			return (pnt.X() >= _center.X() - half_a && pnt.X() <= _center.X() + half_a && pnt.Y() >= _center.Y() - half_a &&
 					pnt.Y() <= _center.Y() + half_a && pnt.Z() >= _center.Z() - half_a && pnt.Z() <= _center.Z() + half_a);
 		}
@@ -113,12 +113,12 @@ namespace MML {
 
 		/// /** @brief Surface area = 6a² */
 
-		Real SurfaceArea() const override { return 6.0 * _a * _a; }
+		Real SurfaceArea() const override { return MML::Real(6.0) * _a * _a; }
 
 		Pnt3Cart getCenter() const override { return _center; }
 
 		Box3D getBoundingBox() const override {
-			Real half_a = _a / 2.0;
+			Real half_a = _a / MML::Real(2.0);
 			Pnt3Cart min(_center.X() - half_a, _center.Y() - half_a, _center.Z() - half_a);
 			Pnt3Cart max(_center.X() + half_a, _center.Y() + half_a, _center.Z() + half_a);
 			return Box3D(min, max);
@@ -127,7 +127,7 @@ namespace MML {
 		/// /** @brief Bounding sphere radius = (a√3)/2 (half space diagonal) */
 
 		BoundingSphere3D getBoundingSphere() const override {
-			Real radius = _a * std::sqrt(3.0) / 2.0;
+			Real radius = _a * std::sqrt(MML::Real(3.0)) / MML::Real(2.0);
 			return BoundingSphere3D(_center, radius);
 		}
 
@@ -169,7 +169,7 @@ namespace MML {
 		CubeWithTriangles3D(Real a)
 			: _a(a)
 			, _center(0, 0, 0) {
-			Real h = a / 2.0;
+			Real h = a / MML::Real(2.0);
 			// 8 vertices of the cube
 			Pnt3Cart p1(h, -h, -h);
 			Pnt3Cart p2(h, h, -h);
@@ -213,7 +213,7 @@ namespace MML {
 		CubeWithTriangles3D(Real a, const Pnt3Cart& center)
 			: _a(a)
 			, _center(center) {
-			Real h = a / 2.0;
+			Real h = a / MML::Real(2.0);
 			// 8 vertices centered at _center
 			Pnt3Cart p1(center.X() + h, center.Y() - h, center.Z() - h);
 			Pnt3Cart p2(center.X() + h, center.Y() + h, center.Z() - h);
@@ -255,7 +255,7 @@ namespace MML {
 		/// @{
 
 		bool IsInside(const Pnt3Cart& pnt) const override {
-			Real h = _a / 2.0;
+			Real h = _a / MML::Real(2.0);
 			return (pnt.X() >= _center.X() - h && pnt.X() <= _center.X() + h && pnt.Y() >= _center.Y() - h && pnt.Y() <= _center.Y() + h &&
 					pnt.Z() >= _center.Z() - h && pnt.Z() <= _center.Z() + h);
 		}
@@ -270,12 +270,12 @@ namespace MML {
 
 		/// /** @brief Surface area = 6a² */
 
-		Real SurfaceArea() const override { return 6.0 * _a * _a; }
+		Real SurfaceArea() const override { return MML::Real(6.0) * _a * _a; }
 
 		Pnt3Cart getCenter() const override { return _center; }
 
 		Box3D getBoundingBox() const override {
-			Real h = _a / 2.0;
+			Real h = _a / MML::Real(2.0);
 			Pnt3Cart min(_center.X() - h, _center.Y() - h, _center.Z() - h);
 			Pnt3Cart max(_center.X() + h, _center.Y() + h, _center.Z() + h);
 			return Box3D(min, max);
@@ -284,7 +284,7 @@ namespace MML {
 		/// /** @brief Bounding sphere radius = (a/2)√3 (corner distance) */
 
 		BoundingSphere3D getBoundingSphere() const override {
-			Real radius = (_a / 2.0) * std::sqrt(3.0);
+			Real radius = (_a / MML::Real(2.0)) * std::sqrt(MML::Real(3.0));
 			return BoundingSphere3D(_center, radius);
 		}
 

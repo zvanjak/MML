@@ -46,11 +46,11 @@ TEST_CASE("SpecialFunctions::RegularizedGammaP", "[special][gamma]") {
 TEST_CASE("SpecialFunctions::RegularizedBetaI", "[special][beta]") {
 	TEST_PRECISION_INFO();
 	REQUIRE(RegularizedBetaI(0.5, 2.0, 2.0) == Approx(0.5).epsilon(TOL(1e-10, 2e-6)));          // symmetric
-	REQUIRE(RegularizedBetaI(0.3, 2.0, 3.0) == Approx(0.3483).epsilon(TOL(1e-6, 2e-6)));        // closed-form CDF
+	REQUIRE(RegularizedBetaI(MML::Real(0.3), MML::Real(2.0), MML::Real(3.0)) == Approx(MML::Real(0.3483)).epsilon(TOL(1e-6, 2e-6)));        // closed-form CDF
 	REQUIRE(RegularizedBetaI(0.0, 2.0, 3.0) == Approx(0.0).margin(1e-14));
 	REQUIRE(RegularizedBetaI(1.0, 2.0, 3.0) == Approx(1.0).epsilon(TOL(1e-12, 1e-6)));
 	// I_x(1,1) = x (uniform CDF)
-	REQUIRE(RegularizedBetaI(0.37, 1.0, 1.0) == Approx(0.37).epsilon(TOL(1e-10, 2e-6)));
+	REQUIRE(RegularizedBetaI(MML::Real(0.37), MML::Real(1.0), MML::Real(1.0)) == Approx(MML::Real(0.37)).epsilon(TOL(1e-10, 2e-6)));
 }
 
 TEST_CASE("SpecialFunctions::Digamma", "[special][digamma]") {
@@ -60,7 +60,7 @@ TEST_CASE("SpecialFunctions::Digamma", "[special][digamma]") {
 	REQUIRE(Digamma(2.0) == Approx(1.0 - euler).epsilon(TOL(1e-10, 2e-6)));
 	REQUIRE(Digamma(0.5) == Approx(-euler - 2.0 * std::log(2.0)).epsilon(TOL(1e-10, 2e-6)));
 	// Recurrence check: psi(x+1) - psi(x) = 1/x
-	REQUIRE(Digamma(3.7) - Digamma(2.7) == Approx(1.0 / 2.7).epsilon(TOL(1e-9, 2e-6)));
+	REQUIRE(Digamma(MML::Real(3.7)) - Digamma(MML::Real(2.7)) == Approx(MML::Real(1.0) / MML::Real(2.7)).epsilon(TOL(1e-9, 2e-6)));
 	REQUIRE_THROWS_AS(Digamma(0.0), DomainError);
 	REQUIRE_THROWS_AS(Digamma(-2.0), DomainError);
 }
@@ -71,7 +71,7 @@ TEST_CASE("SpecialFunctions::Trigamma_and_Polygamma", "[special][polygamma]") {
 	REQUIRE(Trigamma(1.0) == Approx(pi * pi / 6.0).epsilon(TOL(1e-9, 2e-6)));
 	REQUIRE(Trigamma(0.5) == Approx(pi * pi / 2.0).epsilon(TOL(1e-9, 2e-6)));
 	// Polygamma(1,x) == Trigamma(x)
-	REQUIRE(Polygamma(1, 2.3) == Approx(Trigamma(2.3)).epsilon(TOL(1e-9, 2e-6)));
+	REQUIRE(Polygamma(1, MML::Real(2.3)) == Approx(Trigamma(MML::Real(2.3))).epsilon(TOL(1e-9, 2e-6)));
 	// psi''(1) = -2 zeta(3)
 	REQUIRE(Polygamma(2, 1.0) == Approx(-2.404113806319188).epsilon(TOL(1e-8, 5e-6)));
 	// psi'''(1) = pi^4/15
@@ -83,18 +83,18 @@ TEST_CASE("SpecialFunctions::ErfInv_ErfcInv", "[special][erf]") {
 	REQUIRE(ErfInv(0.0) == Approx(0.0).margin(1e-14));
 	REQUIRE(ErfInv(0.5) == Approx(0.4769362762044699).epsilon(TOL(1e-10, 2e-6)));
 	// Round trip: erf(erfinv(x)) = x
-	for (double x : { -0.9, -0.3, 0.1, 0.75, 0.99 })
+	for (Real x : { -Real(0.9), -Real(0.3), Real(0.1), Real(0.75), Real(0.99) })
 		REQUIRE(std::erf(ErfInv(x)) == Approx(x).epsilon(TOL(1e-10, 3e-6)).margin(TOL(1e-12, 1e-7)));
 	// erfcinv(erfc(z)) = z
-	REQUIRE(ErfcInv(std::erfc(1.0)) == Approx(1.0).epsilon(TOL(1e-9, 2e-6)));
+	REQUIRE(ErfcInv(std::erfc(MML::Real(1.0))) == Approx(MML::Real(1.0)).epsilon(TOL(1e-9, 2e-6)));
 	REQUIRE(ErfcInv(1.0) == Approx(0.0).margin(1e-10));
 }
 
 TEST_CASE("SpecialFunctions::RegularizedGammaPInv_roundtrip", "[special][gamma][inverse]") {
 	TEST_PRECISION_INFO();
-	for (double a : { 0.5, 1.0, 2.5, 7.0 }) {
-		for (double x : { 0.2, 1.0, 3.0, 9.0 }) {
-			double p = RegularizedGammaP(a, x);
+	for (Real a : { Real(0.5), Real(1.0), Real(2.5), Real(7.0) }) {
+		for (Real x : { Real(0.2), Real(1.0), Real(3.0), Real(9.0) }) {
+			Real p = RegularizedGammaP(a, x);
 			CAPTURE(a, x, p);
 			REQUIRE(RegularizedGammaPInv(a, p) == Approx(x).epsilon(TOL(1e-7, 2e-4)));
 		}
@@ -103,10 +103,10 @@ TEST_CASE("SpecialFunctions::RegularizedGammaPInv_roundtrip", "[special][gamma][
 
 TEST_CASE("SpecialFunctions::RegularizedBetaIInv_roundtrip", "[special][beta][inverse]") {
 	TEST_PRECISION_INFO();
-	for (double a : { 0.7, 1.0, 2.0, 5.0 }) {
-		for (double b : { 0.9, 1.0, 3.0, 8.0 }) {
-			for (double x : { 0.15, 0.4, 0.8 }) {
-				double p = RegularizedBetaI(x, a, b);
+	for (Real a : { Real(0.7), Real(1.0), Real(2.0), Real(5.0) }) {
+		for (Real b : { Real(0.9), Real(1.0), Real(3.0), Real(8.0) }) {
+			for (Real x : { Real(0.15), Real(0.4), Real(0.8) }) {
+				Real p = RegularizedBetaI(x, a, b);
 				CAPTURE(a, b, x, p);
 				REQUIRE(RegularizedBetaIInv(p, a, b) == Approx(x).epsilon(TOL(1e-7, 2e-3)).margin(TOL(1e-10, 1e-6)));
 			}
@@ -140,7 +140,7 @@ TEST_CASE("SpecialFunctions::SineCosineIntegrals", "[special][sici]") {
 
 TEST_CASE("SpecialFunctions::Dawson", "[special][dawson]") {
 	TEST_PRECISION_INFO();
-	REQUIRE(Dawson(0.1) == Approx(0.09933599239785287).epsilon(1e-6)); // small-x branch
+	REQUIRE(Dawson(MML::Real(0.1)) == Approx(MML::Real(0.09933599239785287)).epsilon(MML::Real(1e-6))); // small-x branch
 	REQUIRE(Dawson(1.0) == Approx(0.5380795069127684).epsilon(1e-6));
 	REQUIRE(Dawson(2.0) == Approx(0.30134038892379196).epsilon(1e-6));
 	REQUIRE(Dawson(-1.0) == Approx(-0.5380795069127684).epsilon(1e-6)); // odd
@@ -165,13 +165,13 @@ TEST_CASE("SpecialFunctions::LambertW0", "[special][lambertw]") {
 	TEST_PRECISION_INFO();
 	REQUIRE(LambertW0(0.0) == Approx(0.0).margin(1e-14));
 	REQUIRE(LambertW0(1.0) == Approx(0.5671432904097838).epsilon(TOL(1e-10, 2e-6))); // Omega constant
-	REQUIRE(LambertW0(std::exp(1.0)) == Approx(1.0).epsilon(TOL(1e-10, 2e-6)));       // W0(e) = 1
+	REQUIRE(LambertW0(std::exp(MML::Real(1.0))) == Approx(MML::Real(1.0)).epsilon(TOL(1e-10, 2e-6)));       // W0(e) = 1
 	REQUIRE(LambertW0(10.0) == Approx(1.7455280027406994).epsilon(TOL(1e-10, 2e-6)));
-	REQUIRE(LambertW0(-0.2) == Approx(-0.2591711018190738).epsilon(TOL(1e-9, 2e-6)));
-	REQUIRE(LambertW0(-0.36787944117144232) == Approx(-1.0).margin(1e-6)); // branch point -1/e
+	REQUIRE(LambertW0(-MML::Real(0.2)) == Approx(-MML::Real(0.2591711018190738)).epsilon(TOL(1e-9, 2e-6)));
+	REQUIRE(LambertW0(-Real(0.367879441171442321595523770161460867L)) == Real(-1));
 	// Defining identity W(x) e^{W(x)} = x
-	for (double x : { -0.3, -0.1, 0.5, 2.0, 5.0, 50.0 }) {
-		double w = LambertW0(x);
+	for (Real x : { -Real(0.3), -Real(0.1), Real(0.5), Real(2.0), Real(5.0), Real(50.0) }) {
+		Real w = LambertW0(x);
 		REQUIRE(w * std::exp(w) == Approx(x).epsilon(TOL(1e-9, 3e-6)).margin(TOL(1e-12, 1e-6)));
 	}
 	REQUIRE_THROWS_AS(LambertW0(-0.5), DomainError);
@@ -179,14 +179,14 @@ TEST_CASE("SpecialFunctions::LambertW0", "[special][lambertw]") {
 
 TEST_CASE("SpecialFunctions::LambertWm1", "[special][lambertw]") {
 	TEST_PRECISION_INFO();
-	REQUIRE(LambertWm1(-0.1) == Approx(-3.577152063957297).epsilon(TOL(1e-9, 2e-6)));
-	REQUIRE(LambertWm1(-0.2) == Approx(-2.542641357773526).epsilon(TOL(1e-9, 2e-6)));
-	REQUIRE(LambertWm1(-0.3) == Approx(-1.781337023421627).epsilon(TOL(1e-9, 2e-6)));
-	for (double x : { -0.35, -0.2, -0.05, -0.001 }) {
-		double w = LambertWm1(x);
+	REQUIRE(LambertWm1(-MML::Real(0.1)) == Approx(-MML::Real(3.577152063957297)).epsilon(TOL(1e-9, 2e-6)));
+	REQUIRE(LambertWm1(-MML::Real(0.2)) == Approx(-MML::Real(2.542641357773526)).epsilon(TOL(1e-9, 2e-6)));
+	REQUIRE(LambertWm1(-MML::Real(0.3)) == Approx(-MML::Real(1.781337023421627)).epsilon(TOL(1e-9, 2e-6)));
+	for (Real x : { -Real(0.35), -Real(0.2), -Real(0.05), -Real(0.001) }) {
+		Real w = LambertWm1(x);
 		REQUIRE(w * std::exp(w) == Approx(x).epsilon(TOL(1e-8, 3e-6)).margin(TOL(1e-12, 1e-6)));
 	}
-	REQUIRE_THROWS_AS(LambertWm1(0.1), DomainError);
+	REQUIRE_THROWS_AS(LambertWm1(MML::Real(0.1)), DomainError);
 	REQUIRE_THROWS_AS(LambertWm1(-0.5), DomainError);
 }
 
@@ -207,7 +207,7 @@ TEST_CASE("SpecialFunctions::Airy_Wronskian_identity", "[special][airy]") {
 	TEST_PRECISION_INFO();
 	// Ai(x) Bi'(x) - Ai'(x) Bi(x) = 1/pi everywhere (validates series + both asymptotics)
 	const double invPi = 1.0 / Constants::PI;
-	for (double x : { -12.0, -8.0, -3.0, 0.0, 3.0, 8.0, 12.0 }) {
+	for (Real x : { -Real(12.0), -Real(8.0), -Real(3.0), Real(0.0), Real(3.0), Real(8.0), Real(12.0) }) {
 		CAPTURE(x);
 		Real ai, bi, aip, bip;
 		Airy(x, ai, bi, aip, bip);

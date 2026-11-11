@@ -11,11 +11,13 @@
 #ifndef MML_VECTOR_OPS_H
 #define MML_VECTOR_OPS_H
 
+#include <algorithm>
 #include <cmath>
 #include <complex>
 
 #include <mml/MMLBase.h>
 #include <mml/MMLExceptions.h>
+#include <mml/MMLNumericValidation.h>
 #include <mml/base/Vector/Vector.h>
 #include <mml/base/Vector/VectorN.h>
 #include <mml/base/Matrix/Matrix.h>
@@ -33,7 +35,7 @@ namespace MML
 		/// @param b Second vector
 		/// @return Sum of element-wise products
 		/// @throws VectorDimensionError if vectors have different sizes
-		static Real ScalarProduct(const Vector<Real>& a, const Vector<Real>& b)
+		static inline Real ScalarProduct(const Vector<Real>& a, const Vector<Real>& b)
 		{
 			if (a.size() != b.size())
 				throw VectorDimensionError("ScalarProduct - must be same dim", a.size(), b.size());
@@ -51,7 +53,7 @@ namespace MML
 		/// @param b Second complex vector (conjugated in product)
 		/// @return Complex inner product
 		/// @throws VectorDimensionError if vectors have different sizes
-		static Complex ScalarProduct(const Vector<Complex>& a, const Vector<Complex>& b)
+		static inline Complex ScalarProduct(const Vector<Complex>& a, const Vector<Complex>& b)
 		{
 			if (a.size() != b.size())
 				throw VectorDimensionError("ScalarProduct - must be same dim", a.size(), b.size());
@@ -71,7 +73,7 @@ namespace MML
 		/// @throws ArgumentError if either vector is zero (the angle is undefined)
 		/// @details Uses Kahan's formula 2*atan2(||â - b̂||, ||â + b̂||) on the unit vectors,
 		///          which is accurate for (anti)parallel vectors where acos(dot) loses ~1e-8.
-		static Real VectorsAngle(const Vector<Real>& a, const Vector<Real>& b)
+		static inline Real VectorsAngle(const Vector<Real>& a, const Vector<Real>& b)
 		{
 			if (a.size() != b.size())
 				throw VectorDimensionError("Vector::AngleToVector - vectors must be equal size", a.size(), b.size());
@@ -100,17 +102,65 @@ namespace MML
 		{
 			if (orig.size() != b.size())
 				throw VectorDimensionError("VectorOps::VectorProjectionParallelTo - vectors must be equal size", orig.size(), b.size());
-			const Real bb = ScalarProduct(b, b);
-			if (bb == Real(0))
+			Real scale = 0;
+			for (int i = 0; i < b.size(); ++i) {
+				ValidateFinite(orig[i], "VectorProjectionParallelTo input");
+				ValidateFinite(b[i], "VectorProjectionParallelTo direction");
+				scale = std::max(scale, std::abs(b[i]));
+			}
+			if (scale == Real(0))
 				throw ArgumentError("VectorOps::VectorProjectionParallelTo - cannot project onto the zero vector");
-			return ScalarProduct(orig, b) / bb * b;
+
+			Real squaredNorm = 0;
+			for (int i = 0; i < b.size(); ++i) {
+				const Real component = b[i] / scale;
+				squaredNorm += component * component;
+			}
+			// Keep tiny direction components until after multiplying by the input scale.
+			const auto productRatio = [](Real x, Real y, Real denominator, Real normalizer) {
+				if (std::abs(y) == denominator)
+					return (y < 0 ? -x : x) / normalizer;
+				int xExponent, yExponent, denominatorExponent;
+				const Real xMantissa = std::frexp(x, &xExponent);
+				const Real yMantissa = std::frexp(y, &yExponent);
+				const Real denominatorMantissa = std::frexp(denominator, &denominatorExponent);
+				return std::ldexp(xMantissa * yMantissa / denominatorMantissa / normalizer,
+					xExponent + yExponent - denominatorExponent);
+			};
+			Vector<Real> result(b.size());
+			Real termScale = 0;
+			for (int i = 0; i < b.size(); ++i) {
+				result[i] = productRatio(orig[i], b[i], scale, squaredNorm);
+				if (!std::isfinite(result[i]))
+					throw NumericalMethodError("VectorProjectionParallelTo - contribution is not representable");
+				termScale = std::max(termScale, std::abs(result[i]));
+			}
+			Real sum = 0, correction = 0;
+			if (termScale != 0) {
+				for (int i = 0; i < b.size(); ++i) {
+					const Real term = result[i] / termScale;
+					const Real next = sum + term;
+					correction += std::abs(sum) >= std::abs(term) ?
+						(sum - next) + term : (term - next) + sum;
+					sum = next;
+				}
+			}
+			const Real coefficient = (sum + correction) * termScale;
+			if (!std::isfinite(coefficient))
+				throw NumericalMethodError("VectorProjectionParallelTo - projection is not representable");
+			for (int i = 0; i < b.size(); ++i) {
+				result[i] = productRatio(coefficient, b[i], scale, Real(1));
+				if (!std::isfinite(result[i]))
+					throw NumericalMethodError("VectorProjectionParallelTo - component is not representable");
+			}
+			return result;
 		}
 
 		/// @brief Computes rejection of vector from direction of another vector.
 		/// @param orig Vector to project
 		/// @param b Direction vector to reject from
 		/// @return Component of orig perpendicular to b
-		static Vector<Real> VectorProjectionPerpendicularTo(const Vector<Real>& orig, const Vector<Real>& b)
+		static inline Vector<Real> VectorProjectionPerpendicularTo(const Vector<Real>& orig, const Vector<Real>& b)
 		{
 			return orig - VectorProjectionParallelTo(orig, b);
 		}

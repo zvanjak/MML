@@ -61,6 +61,7 @@ namespace MML
 	class IdentityCoordinateMap : public CoordinateMap<FrameTag, FrameTag, N>
 	{
 	public:
+		using CoordinateMap<FrameTag, FrameTag, N>::pull_back;
 		Point<Real, N, FrameTag> map_point(const Point<Real, N, FrameTag>& point) const override
 		{
 			return point;

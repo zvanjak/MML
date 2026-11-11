@@ -25,6 +25,7 @@
 #include <limits>
 
 #include <mml/MMLBase.h>
+#include <mml/MMLNumericValidation.h>
 #include <mml/base/Matrix/MatrixPrintFormat.h>
 #include <mml/base/Vector/Vector.h>
 
@@ -177,14 +178,17 @@ namespace MML
 				_cols = 0;
 				return;
 			}
+			if (values.size() > static_cast<size_t>(MaxDimension()) ||
+				values[0].size() > static_cast<size_t>(MaxDimension()))
+				throw MatrixAllocationError("Matrix - dimensions exceed index range", -1, -1);
 			_rows = static_cast<int>(values.size());
 			_cols = static_cast<int>(values[0].size());
 			ValidateDimensions(_rows, _cols);
 			
 			_data.reserve(static_cast<size_t>(_rows) * _cols);
 			for (int i = 0; i < _rows; ++i) {
-				if (static_cast<int>(values[i].size()) != _cols)
-					throw MatrixDimensionError("Matrix - inconsistent row sizes", _rows, _cols, i, static_cast<int>(values[i].size()));
+				if (values[i].size() != static_cast<size_t>(_cols))
+					throw MatrixDimensionError("Matrix - inconsistent row sizes", _rows, _cols, i, -1);
 				for (int j = 0; j < _cols; ++j)
 					_data.push_back(values[i][j]);
 			}
@@ -286,8 +290,8 @@ namespace MML
 				throw MatrixDimensionError("Matrix submatrix - invalid start indices", m._rows, m._cols, ind_row, ind_col);
 			if (row_num <= 0 || col_num <= 0)
 				throw MatrixDimensionError("Matrix submatrix - dimensions must be positive", row_num, col_num, -1, -1);
-			if (ind_row + row_num > m._rows || ind_col + col_num > m._cols)
-				throw MatrixDimensionError("Matrix submatrix - out of bounds", m._rows, m._cols, ind_row + row_num, ind_col + col_num);
+			if (row_num > m._rows - ind_row || col_num > m._cols - ind_col)
+				throw MatrixDimensionError("Matrix submatrix - out of bounds", m._rows, m._cols, row_num, col_num);
 			
 			_rows = row_num;
 			_cols = col_num;
@@ -304,7 +308,16 @@ namespace MML
 		///////////////////////          Assignment operators              //////////////////////
 		
 		/// @brief Copy assignment
-		Matrix& operator=(const Matrix& m) = default;
+		Matrix& operator=(const Matrix& m)
+		{
+			if (this != &m) {
+				std::vector<Type> replacement(m._data);
+				_data.swap(replacement);
+				_rows = m._rows;
+				_cols = m._cols;
+			}
+			return *this;
+		}
 		
 		/// @brief Move assignment
 		Matrix& operator=(Matrix&& m) noexcept
@@ -631,8 +644,8 @@ namespace MML
 		/// @return MatrixViewNew providing strided access to block
 		MatrixViewNew<Type> block(int startRow, int startCol, int numRows, int numCols)
 		{
-			if (startRow < 0 || startCol < 0 || numRows <= 0 || numCols <= 0 ||
-			    startRow + numRows > _rows || startCol + numCols > _cols)
+			if (startRow < 0 || startRow >= _rows || startCol < 0 || startCol >= _cols ||
+			    numRows <= 0 || numCols <= 0 || numRows > _rows - startRow || numCols > _cols - startCol)
 				throw MatrixDimensionError("Matrix::block - invalid parameters", _rows, _cols, startRow, startCol);
 			return MatrixViewNew<Type>(&_data[idx(startRow, startCol)], numRows, numCols, _cols);
 		}
@@ -641,8 +654,8 @@ namespace MML
 		/// @warning The returned view is invalidated by Resize() or destruction of this matrix.
 		MatrixViewNew<const Type> block(int startRow, int startCol, int numRows, int numCols) const
 		{
-			if (startRow < 0 || startCol < 0 || numRows <= 0 || numCols <= 0 ||
-			    startRow + numRows > _rows || startCol + numCols > _cols)
+			if (startRow < 0 || startRow >= _rows || startCol < 0 || startCol >= _cols ||
+			    numRows <= 0 || numCols <= 0 || numRows > _rows - startRow || numCols > _cols - startCol)
 				throw MatrixDimensionError("Matrix::block - invalid parameters", _rows, _cols, startRow, startCol);
 			return MatrixViewNew<const Type>(&_data[idx(startRow, startCol)], numRows, numCols, _cols);
 		}
@@ -651,17 +664,20 @@ namespace MML
 		
 		/// @brief Check if matrix is identity matrix
 		/// @param eps Tolerance for floating-point comparison
-		/// @return true if |M(i,i)-1| < eps and |M(i,j)| < eps for i≠j
+		/// @return true if all entries are finite, |M(i,i)-1| <= eps and |M(i,j)| <= eps for i≠j
 		bool IsIdentity(Real eps = Precision::IsMatrixUnitTolerance) const
 		{
-			if (_rows != _cols) return false;
+			if (_rows != _cols || !std::isfinite(eps) || eps < 0) return false;
 			
 			for (int i = 0; i < _rows; ++i) {
 				for (int j = 0; j < _cols; ++j) {
-					if (i == j) {
-						if (Abs((*this)(i, j) - Type{1}) > eps) return false;
+					if (!IsFiniteValue((*this)(i, j))) return false;
+					if constexpr (std::is_integral_v<Type>) {
+						if (!(std::abs(static_cast<long double>((*this)(i, j)) - (i == j ? 1 : 0)) <= eps))
+							return false;
 					} else {
-						if (Abs((*this)(i, j)) > eps) return false;
+						if (!(Abs((*this)(i, j) - (i == j ? Type{1} : Type{0})) <= eps))
+							return false;
 					}
 				}
 			}
@@ -673,25 +689,49 @@ namespace MML
 		/// @return true if square and M(i,j) ≈ M(j,i) for all i,j
 		bool IsSymmetric(Real eps = Precision::IsMatrixSymmetricTolerance) const
 		{
-			if (_rows != _cols) return false;
+			if (_rows != _cols || !std::isfinite(eps) || eps < 0) return false;
 			
-			for (int i = 0; i < _rows; ++i)
-				for (int j = i + 1; j < _cols; ++j)
-					if (Abs((*this)(i, j) - (*this)(j, i)) > eps)
-						return false;
+			for (int i = 0; i < _rows; ++i) {
+				if (!IsFiniteValue((*this)(i, i))) return false;
+				for (int j = i + 1; j < _cols; ++j) {
+					if constexpr (std::is_integral_v<Type>) {
+						const auto a = (*this)(i, j), b = (*this)(j, i);
+						const auto difference = a >= b
+							? static_cast<unsigned long long>(a) - static_cast<unsigned long long>(b)
+							: static_cast<unsigned long long>(b) - static_cast<unsigned long long>(a);
+						if (!(static_cast<long double>(difference) <= eps))
+							return false;
+					} else {
+						if (!(Abs((*this)(i, j) - (*this)(j, i)) <= eps))
+							return false;
+					}
+				}
+			}
 			return true;
 		}
 
-		/// @brief Check if matrix is anti-symmetric (skew-symmetric) within tolerance: M(i,j) ≈ -M(j,i), no conjugation
-		/// @param eps Maximum allowed |M(i,j) + M(j,i)|
+		/// @brief Check antisymmetry: zero diagonal and M(i,j) ≈ -M(j,i), without conjugation.
+		/// @param eps Maximum allowed diagonal magnitude or off-diagonal |M(i,j) + M(j,i)|
 		bool IsAntiSymmetric(Real eps = Precision::IsMatrixSymmetricTolerance) const
 		{
-			if (_rows != _cols) return false;
+			if (_rows != _cols || !std::isfinite(eps) || eps < 0) return false;
 			
-			for (int i = 0; i < _rows; ++i)
-				for (int j = i + 1; j < _cols; ++j)
-					if (Abs((*this)(i, j) + (*this)(j, i)) > eps)
-						return false;
+			for (int i = 0; i < _rows; ++i) {
+				if constexpr (std::is_integral_v<Type>) {
+					if (!(std::abs(static_cast<long double>((*this)(i, i))) <= eps)) return false;
+				} else {
+					if (!(Abs((*this)(i, i)) <= eps)) return false;
+				}
+				for (int j = i + 1; j < _cols; ++j) {
+					if constexpr (std::is_integral_v<Type>) {
+						if (!(std::abs(static_cast<long double>((*this)(i, j)) + static_cast<long double>((*this)(j, i))) <= eps))
+							return false;
+					} else {
+						if (!(Abs((*this)(i, j) + (*this)(j, i)) <= eps))
+							return false;
+					}
+				}
+			}
 			return true;
 		}
 
@@ -699,17 +739,16 @@ namespace MML
 		/// For real element types this is IsSymmetric().
 		bool IsHermitian(Real eps = Precision::IsMatrixSymmetricTolerance) const
 		{
-			if (_rows != _cols) return false;
+			if constexpr (!MMLComplex<Type>) return IsSymmetric(eps);
+			if (_rows != _cols || !std::isfinite(eps) || eps < 0) return false;
 			
 			for (int i = 0; i < _rows; ++i) {
 				if constexpr (MMLComplex<Type>) {
-					if (Abs((*this)(i, i).imag()) > eps) return false;
+					if (!IsFiniteValue((*this)(i, i)) || !(Abs((*this)(i, i).imag()) <= eps)) return false;
 				}
 				for (int j = i + 1; j < _cols; ++j) {
 					if constexpr (MMLComplex<Type>) {
-						if (Abs((*this)(i, j) - std::conj((*this)(j, i))) > eps) return false;
-					} else {
-						if (Abs((*this)(i, j) - (*this)(j, i)) > eps) return false;
+						if (!(Abs((*this)(i, j) - std::conj((*this)(j, i))) <= eps)) return false;
 					}
 				}
 			}
@@ -720,17 +759,16 @@ namespace MML
 		/// For real element types this is IsAntiSymmetric().
 		bool IsSkewHermitian(Real eps = Precision::IsMatrixSymmetricTolerance) const
 		{
-			if (_rows != _cols) return false;
+			if constexpr (!MMLComplex<Type>) return IsAntiSymmetric(eps);
+			if (_rows != _cols || !std::isfinite(eps) || eps < 0) return false;
 			
 			for (int i = 0; i < _rows; ++i) {
 				if constexpr (MMLComplex<Type>) {
-					if (Abs((*this)(i, i).real()) > eps) return false;
+					if (!IsFiniteValue((*this)(i, i)) || !(Abs((*this)(i, i).real()) <= eps)) return false;
 				}
 				for (int j = i + 1; j < _cols; ++j) {
 					if constexpr (MMLComplex<Type>) {
-						if (Abs((*this)(i, j) + std::conj((*this)(j, i))) > eps) return false;
-					} else {
-						if (Abs((*this)(i, j) + (*this)(j, i)) > eps) return false;
+						if (!(Abs((*this)(i, j) + std::conj((*this)(j, i))) <= eps)) return false;
 					}
 				}
 			}
@@ -742,9 +780,14 @@ namespace MML
 		/// @return true if all elements have absolute value <= eps
 		bool IsZero(Real eps = Precision::IsMatrixZeroTolerance) const
 		{
-			for (const auto& elem : _data)
-				if (Abs(elem) > eps)
-					return false;
+			if (!std::isfinite(eps) || eps < 0) return false;
+			for (const auto& elem : _data) {
+				if constexpr (std::is_integral_v<Type>) {
+					if (!(std::abs(static_cast<long double>(elem)) <= eps)) return false;
+				} else {
+					if (!(Abs(elem) <= eps)) return false;
+				}
+			}
 			return true;
 		}
 
@@ -934,10 +977,20 @@ namespace MML
 		{
 			if (_rows != b._rows || _cols != b._cols)
 				return false;
+			if (!std::isfinite(eps) || eps < 0)
+				return false;
 			
-			for (size_t i = 0; i < _data.size(); ++i)
-				if (Abs(_data[i] - b._data[i]) > eps)
-					return false;
+			for (size_t i = 0; i < _data.size(); ++i) {
+				if constexpr (std::is_integral_v<Type>) {
+					const auto difference = _data[i] >= b._data[i]
+						? static_cast<unsigned long long>(_data[i]) - static_cast<unsigned long long>(b._data[i])
+						: static_cast<unsigned long long>(b._data[i]) - static_cast<unsigned long long>(_data[i]);
+					if (!(static_cast<long double>(difference) <= eps))
+						return false;
+				} else {
+					if (!(Abs(_data[i] - b._data[i]) <= eps)) return false;
+				}
+			}
 			return true;
 		}
 		
@@ -1043,6 +1096,11 @@ namespace MML
 		}
 		
 		/// @brief Scalar division: M / s
+		// Unchecked floating scalar division intentionally retains IEEE zero-division results.
+#if defined(_MSC_VER) && !defined(__clang__)
+#pragma warning(push)
+#pragma warning(disable: 4723)
+#endif
 		[[nodiscard]] Matrix operator/(const Type& scalar) const
 		{
 			Matrix ret(_rows, _cols);
@@ -1050,6 +1108,9 @@ namespace MML
 				ret._data[i] = _data[i] / scalar;
 			return ret;
 		}
+#if defined(_MSC_VER) && !defined(__clang__)
+#pragma warning(pop)
+#endif
 		
 		/// @brief In-place scalar division
 		Matrix& operator/=(const Type& scalar)

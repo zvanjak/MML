@@ -37,31 +37,31 @@ namespace MML::Systems
 	// COMPREHENSIVE ANALYSIS RESULT
 	//=============================================================================
 
-	/// @brief Complete analysis report for a dynamical system
+	/// @brief Local fixed-point searches and finite-time trajectory indicators, not a global classification
 	template<typename Type = Real>
 	struct DynamicalSystemReport {
 		// System info
-		int dimension;
-		int numParameters;
+		int dimension = 0;
+		int numParameters = 0;
 		std::vector<std::string> stateNames;
 		std::vector<std::string> paramNames;
 		Vector<Type> currentParams;
 
 		// Fixed points
 		std::vector<FixedPoint<Type>> fixedPoints;
-		int numStableFixedPoints;
-		int numUnstableFixedPoints;
-		int numSaddlePoints;
+		int numStableFixedPoints = 0; ///< Strictly decaying numerical linearizations among the found points
+		int numUnstableFixedPoints = 0;
+		int numSaddlePoints = 0;
 
 		// Lyapunov analysis
 		LyapunovResult<Type> lyapunov;
-		bool isChaotic;
-		bool isDissipative;	  ///< Sum of Lyapunov exponents < 0
-		bool isConservative;  ///< Sum ≈ 0 (Hamiltonian-like)
+		bool isChaotic = false; ///< Legacy positive-growth heuristic; not a proof of chaos
+		bool isDissipative = false; ///< Legacy finite-time sum < -Precision::LooseTolerance indicator
+		bool isConservative = false; ///< Legacy near-zero finite-time sum indicator; not a Hamiltonian proof
 
 		// Attractor properties
-		Type kaplanYorkeDimension;
-		Type lyapunovTime;  ///< 1/λ_max - predictability time scale
+		Type kaplanYorkeDimension = std::numeric_limits<Type>::quiet_NaN(); ///< Spectrum-based estimate, unavailable until analyzed
+		Type lyapunovTime = std::numeric_limits<Type>::quiet_NaN(); ///< Reciprocal detected growth rate; not a certified predictability horizon
 
 		// Trajectory info (if computed)
 		std::vector<Vector<Type>> trajectory;
@@ -69,6 +69,8 @@ namespace MML::Systems
 
 		// Text report
 		std::string summary;
+		int numNeutralFixedPoints = 0; ///< Linear center labels, not a nonlinear stability guarantee
+		int numUnclassifiedFixedPoints = 0;
 	};
 
 	//=============================================================================
@@ -81,7 +83,7 @@ namespace MML::Systems
 	///
 	/// DynamicalSystemAnalyzer provides a single, comprehensive interface to:
 	/// - Find and classify fixed points
-	/// - Compute Lyapunov exponents and assess chaos
+	/// - Estimate finite-time Lyapunov exponents and tangent-growth indicators
 	/// - Generate bifurcation diagrams
 	/// - Compute Poincaré sections
 	/// - Integrate trajectories
@@ -92,7 +94,7 @@ namespace MML::Systems
 	/// LorenzSystem lorenz(10, 28, 8.0/3.0);
 	/// DynamicalSystemAnalyzer analyzer(lorenz);
 	///
-	/// // Quick chaos check
+	/// // Quick positive-growth heuristic (not a proof of chaos)
 	/// bool chaotic = analyzer.IsChaotic({1, 1, 1});
 	///
 	/// // Full analysis
@@ -137,35 +139,35 @@ namespace MML::Systems
 		// QUICK QUERIES
 		//=========================================================================
 
-		/// @brief Check if system exhibits chaotic behavior from given initial condition
+		/// @brief Compute the legacy finite-time positive-growth heuristic, not a proof of chaos
 		/// @param x0 Initial condition
-		/// @param integrationTime Time to integrate (longer = more accurate)
-		/// @return True if largest Lyapunov exponent > 0
+		/// @param integrationTime Finite integration duration; convergence must be checked separately
+		/// @return True if the largest estimated exponent exceeds Precision::LyapunovChaosThreshold
 		bool IsChaotic(const Vector<Type>& x0, Type integrationTime = 500) const {
 			auto result = LyapunovAnalyzer::Compute(_sys, x0, integrationTime);
 			return result.isChaotic;
 		}
 
-		/// @brief Check if system is dissipative (contracting phase space volume)
+		/// @brief Compute a finite-time exponent-sum contraction indicator along this trajectory
 		/// @param x0 Initial condition for Lyapunov computation
-		/// @return True if sum of Lyapunov exponents < 0
+		/// @return True if the estimated sum is below -Precision::LooseTolerance; not a global property
 		bool IsDissipative(const Vector<Type>& x0, Type integrationTime = 500) const {
 			auto result = LyapunovAnalyzer::Compute(_sys, x0, integrationTime);
 			return result.sum < -Precision::LooseTolerance;
 		}
 
-		/// @brief Get the Lyapunov time (predictability horizon)
+		/// @brief Get the reciprocal detected positive-growth rate, not a certified predictability horizon
 		/// @param x0 Initial condition
-		/// @return Time scale 1/λ_max (smaller = less predictable)
+		/// @return 1/λ_max above the growth threshold; otherwise infinity means no reported growth time scale
 		Type GetLyapunovTime(const Vector<Type>& x0, Type integrationTime = 500) const {
 			auto result = LyapunovAnalyzer::Compute(_sys, x0, integrationTime);
 			if (result.maxExponent > Precision::LyapunovChaosThreshold)
-				return 1.0 / result.maxExponent;
+				return MML::Real(1.0) / result.maxExponent;
 			else
 				return std::numeric_limits<Type>::infinity();
 		}
 
-		/// @brief Get the fractal (Kaplan-Yorke) dimension of the attractor
+		/// @brief Get the spectrum-based Kaplan-Yorke estimate, not a measured attractor/fractal dimension
 		Type GetFractalDimension(const Vector<Type>& x0, Type integrationTime = 500) const {
 			auto result = LyapunovAnalyzer::Compute(_sys, x0, integrationTime);
 			return result.kaplanYorkeDimension;
@@ -178,7 +180,7 @@ namespace MML::Systems
 		/// @brief Find a single fixed point near initial guess
 		/// @param initialGuess Starting point for Newton iteration
 		/// @param tol Convergence tolerance
-		/// @return Fixed point result (check convergenceResidual for success)
+		/// @return Fixed point result (check status; false isStable does not imply instability)
 		FixedPoint<Type> FindFixedPoint(const Vector<Type>& initialGuess, Type tol = PrecisionValues<Type>::FixedPointTolerance) const {
 			return FixedPointFinder::Find(_sys, initialGuess, tol);
 		}
@@ -193,15 +195,33 @@ namespace MML::Systems
 			return FixedPointFinder::FindMultiple(_sys, initialGuesses, tol, uniqueTol);
 		}
 
-		/// @brief Generate a grid of initial guesses and find all fixed points
+		/// @brief Search for unique fixed points from a bounded grid of initial guesses
 		/// @param boxMin Lower corner of search box
 		/// @param boxMax Upper corner of search box
 		/// @param gridPoints Number of grid points per dimension
+		/// @param maxGridStarts Maximum number of starting guesses, checked before allocation
+		/// A one-point grid uses the box midpoint; this search does not prove completeness.
 		/// @return Vector of unique fixed points found
 		std::vector<FixedPoint<Type>> FindFixedPointsInBox(const Vector<Type>& boxMin, const Vector<Type>& boxMax,
-																											 int gridPoints = 5) const {
+																											 int gridPoints = 5,
+																											 int maxGridStarts = PrecisionValues<Type>::FixedPointMaxGridStarts) const {
 			int n = _sys.getDim();
+			DynSysDetail::CheckInitialState(_sys, boxMin);
+			DynSysDetail::CheckInitialState(_sys, boxMax);
+			if (!_sys.isAutonomous())
+				throw ArgumentError("Fixed-point box searches require an autonomous system");
+			if (gridPoints < 1 || maxGridStarts < 1)
+				throw ArgumentError("Box grid size and starting-guess budget must be positive");
+			int total = 1;
+			for (int i = 0; i < n; ++i) {
+				if (boxMin[i] > boxMax[i])
+					throw ArgumentError("Box lower bounds must not exceed upper bounds");
+				if (total > maxGridStarts / gridPoints)
+					throw ResourceLimitError("Fixed-point box grid exceeds the starting-guess budget");
+				total *= gridPoints;
+			}
 			std::vector<Vector<Type>> guesses;
+			guesses.reserve(total);
 
 			// Generate grid
 			std::vector<int> indices(n, 0);
@@ -210,8 +230,8 @@ namespace MML::Systems
 			while (!done) {
 				Vector<Type> guess(n);
 				for (int i = 0; i < n; ++i) {
-					Type t = (gridPoints > 1) ? static_cast<Type>(indices[i]) / (gridPoints - 1) : 0.5;
-					guess[i] = boxMin[i] + t * (boxMax[i] - boxMin[i]);
+					Type t = (gridPoints > 1) ? static_cast<Type>(indices[i]) / (gridPoints - 1) : Type(0.5);
+					guess[i] = std::lerp(boxMin[i], boxMax[i], t);
 				}
 				guesses.push_back(guess);
 
@@ -261,6 +281,7 @@ namespace MML::Systems
 		//=========================================================================
 
 		/// @brief Compute bifurcation diagram by sweeping a parameter
+		/// State and physical time continue across phases and samples, starting at t=0.
 		/// @param paramIndex Which parameter to sweep
 		/// @param paramMin Starting parameter value
 		/// @param paramMax Ending parameter value
@@ -311,11 +332,11 @@ namespace MML::Systems
 		// COMPREHENSIVE ANALYSIS
 		//=========================================================================
 
-		/// @brief Perform comprehensive analysis of the system
+		/// @brief Combine local fixed-point searches with finite-time Lyapunov indicators
 		/// @param x0 Initial condition for trajectory-based analyses
 		/// @param fixedPointGuesses Initial guesses for fixed point search (optional)
 		/// @param lyapunovTime Integration time for Lyapunov computation
-		/// @return Complete analysis report
+		/// @return Non-exhaustive fixed points and finite-time estimates; no boundedness or global stability proof
 		DynamicalSystemReport<Type> Analyze(const Vector<Type>& x0,
 																				const std::vector<Vector<Type>>& fixedPointGuesses = {},
 																				Type lyapunovTime = 500) const {
@@ -363,10 +384,15 @@ namespace MML::Systems
 			for (const auto& fp : report.fixedPoints) {
 				if (fp.isStable)
 					report.numStableFixedPoints++;
-				else if (fp.type == FixedPointType::Saddle)
+				else if (fp.type == FixedPointType::Saddle || fp.type == FixedPointType::SaddleFocus)
 					report.numSaddlePoints++;
-				else
+				else if (fp.type == FixedPointType::UnstableNode || fp.type == FixedPointType::UnstableFocus
+					|| fp.type == FixedPointType::UnstableStarNode)
 					report.numUnstableFixedPoints++;
+				else if (fp.type == FixedPointType::Center)
+					report.numNeutralFixedPoints++;
+				else
+					report.numUnclassifiedFixedPoints++;
 			}
 
 			// Lyapunov analysis
@@ -377,7 +403,7 @@ namespace MML::Systems
 			report.kaplanYorkeDimension = report.lyapunov.kaplanYorkeDimension;
 
 			if (report.lyapunov.maxExponent > Precision::LyapunovChaosThreshold)
-				report.lyapunovTime = 1.0 / report.lyapunov.maxExponent;
+				report.lyapunovTime = MML::Real(1.0) / report.lyapunov.maxExponent;
 			else
 				report.lyapunovTime = std::numeric_limits<Type>::infinity();
 
@@ -392,6 +418,8 @@ namespace MML::Systems
 		//=========================================================================
 
 		/// @brief Check how chaos depends on a parameter
+		/// Each sample restarts from x0 (unlike bifurcation continuation).
+		/// One sample evaluates paramMin; descending ranges are supported.
 		/// @param paramIndex Which parameter to vary
 		/// @param paramMin Starting value
 		/// @param paramMax Ending value
@@ -401,21 +429,22 @@ namespace MML::Systems
 		std::vector<std::pair<Type, Type>> ScanChaosVsParameter(int paramIndex, Type paramMin, Type paramMax,
 																														int numSteps, const Vector<Type>& x0,
 																														Type lyapunovTime = 200) const {
+			DynSysDetail::CheckVariationalDimension(_sys.getDim());
+			DynSysDetail::CheckInitialState(_sys, x0);
+			DynSysDetail::CheckParameterScan(_sys, paramIndex, paramMin, paramMax, numSteps);
+			DynSysDetail::RequirePositive(lyapunovTime, "Chaos scan Lyapunov time");
 			std::vector<std::pair<Type, Type>> results;
-			Type dParam = (paramMax - paramMin) / (numSteps - 1);
-			Type originalParam = _sys.getParam(paramIndex);
-
-			for (int i = 0; i < numSteps; ++i) {
-				Type param = paramMin + i * dParam;
-				_sys.setParam(paramIndex, param);
-
-				auto lyap = ComputeLyapunov(x0, lyapunovTime);
-				results.push_back({param, lyap.maxExponent});
-			}
-
-			// Restore original parameter
-			_sys.setParam(paramIndex, originalParam);
-			return results;
+			results.reserve(numSteps);
+			return DynSysDetail::WithRestoredParameter(_sys, paramIndex, [&] {
+				for (int i = 0; i < numSteps; ++i) {
+					const Type fraction = numSteps > 1 ? Type(i) / (numSteps - 1) : Type(0);
+					const Type param = std::lerp(paramMin, paramMax, fraction);
+					_sys.setParam(paramIndex, param);
+					auto lyap = ComputeLyapunov(x0, lyapunovTime);
+					results.push_back({param, lyap.maxExponent});
+				}
+				return std::move(results);
+			});
 		}
 
 	private:
@@ -452,13 +481,17 @@ namespace MML::Systems
 			ss << "FIXED POINTS\n";
 			ss << "───────────────────────────────────────────────────────────────\n";
 			ss << "  Found: " << report.fixedPoints.size() << " fixed point(s)\n";
+			ss << "  Search is non-exhaustive; no points found does not prove none exist.\n";
+			ss << "  Stability counts describe local numerical linearizations, not global stability.\n";
 			ss << "    Stable:   " << report.numStableFixedPoints << "\n";
 			ss << "    Saddles:  " << report.numSaddlePoints << "\n";
 			ss << "    Unstable: " << report.numUnstableFixedPoints << "\n";
+			ss << "    Neutral (linear): " << report.numNeutralFixedPoints << "\n";
+			ss << "    Unclassified: " << report.numUnclassifiedFixedPoints << "\n";
 
 			for (size_t i = 0; i < report.fixedPoints.size(); ++i) {
 				const auto& fp = report.fixedPoints[i];
-				ss << "\n  Fixed Point #" << (i+1) << ": " << ToString(fp.type) << "\n";
+				ss << "\n  Fixed Point #" << (i+1) << ": " << to_string(fp.type) << "\n";
 				ss << "    Location: (";
 				for (int j = 0; j < fp.location.size(); ++j) {
 					if (j > 0) ss << ", ";
@@ -480,6 +513,7 @@ namespace MML::Systems
 			// Lyapunov analysis
 			ss << "LYAPUNOV ANALYSIS\n";
 			ss << "───────────────────────────────────────────────────────────────\n";
+			ss << "  Finite-time duration: " << report.lyapunov.totalTime << "\n";
 			ss << "  Lyapunov exponents: (";
 			for (int i = 0; i < report.lyapunov.exponents.size(); ++i) {
 				if (i > 0) ss << ", ";
@@ -488,31 +522,30 @@ namespace MML::Systems
 			ss << ")\n";
 			ss << "  Maximum exponent (λ₁): " << report.lyapunov.maxExponent << "\n";
 			ss << "  Sum of exponents: " << report.lyapunov.sum << "\n";
-			ss << "  Kaplan-Yorke dimension: " << report.kaplanYorkeDimension << "\n";
-			if (report.lyapunovTime < Precision::DivergenceMagnitudeThreshold)
-				ss << "  Lyapunov time (1/λ₁): " << report.lyapunovTime << "\n";
+			ss << "  Kaplan-Yorke dimension estimate: " << report.kaplanYorkeDimension << "\n";
+			ss << "    Spectrum-based; invariant-set and asymptotic-spectrum assumptions are not verified.\n";
+			ss << "    An attractor or measured fractal dimension is not established.\n";
+			if (std::isfinite(report.lyapunovTime))
+				ss << "  Reciprocal positive-growth rate (1/λ₁): " << report.lyapunovTime << "\n";
+			else
+				ss << "  No positive-growth time scale reported (threshold not exceeded).\n";
+			ss << "    This is not a certified predictability horizon.\n";
 			ss << "\n";
 
 			// Classification
-			ss << "DYNAMICAL CLASSIFICATION\n";
+			ss << "FINITE-TIME INDICATORS\n";
 			ss << "───────────────────────────────────────────────────────────────\n";
-			if (report.isChaotic) {
-				ss << "  ⚡ CHAOTIC DYNAMICS (λ₁ > 0)\n";
-				ss << "     Sensitive dependence on initial conditions.\n";
-				ss << "     Predictability horizon ~ " << report.lyapunovTime << " time units.\n";
-			} else {
-				ss << "  ✓ REGULAR DYNAMICS (λ₁ ≤ 0)\n";
-				ss << "     Trajectories converge or remain bounded.\n";
-			}
-
-			if (report.isDissipative) {
-				ss << "  📉 DISSIPATIVE (Σλ < 0)\n";
-				ss << "     Phase space volume contracts.\n";
-				ss << "     Attractor has dimension < state space.\n";
-			} else if (report.isConservative) {
-				ss << "  ⚖ CONSERVATIVE (Σλ ≈ 0)\n";
-				ss << "     Phase space volume preserved (Hamiltonian-like).\n";
-			}
+			ss << "  Finite-time positive growth: " << (report.isChaotic ? "detected" : "not detected")
+				<< " (threshold " << Precision::LyapunovChaosThreshold << ")\n";
+			ss << "    Tangent expansion is not a proof of chaos or a bounded chaotic attractor.\n";
+			ss << "    No boundedness or convergence conclusion follows from these indicators.\n";
+			ss << "  Volume contraction indicator: " << (report.isDissipative ? "detected" : "not detected")
+				<< " (sum < -" << Precision::LooseTolerance << ")\n";
+			ss << "    This concerns average volume growth along the finite-time trajectory, not global phase space.\n";
+			ss << "  Near-zero-sum indicator: " << (report.isConservative ? "detected" : "not detected")
+				<< " (absolute sum < " << Precision::CoarseTolerance << ")\n";
+			ss << "    A near-zero sum is not proof of Hamiltonian structure or exact volume preservation.\n";
+			ss << "    The two volume indicators use independent tolerances and can overlap.\n";
 
 			ss << "\n═══════════════════════════════════════════════════════════════\n";
 

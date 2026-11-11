@@ -18,6 +18,8 @@
 #include <limits>
 
 #include <mml/MMLBase.h>
+#include <mml/MMLExceptions.h>
+#include <mml/MMLNumericValidation.h>
 
 namespace MML
 {
@@ -27,7 +29,7 @@ namespace MML
 		Real value;           ///< Extrapolated value
 		Real error_estimate;  ///< Estimated error from tableau differences
 		int  iterations;      ///< Number of refinement steps used
-		bool converged;       ///< True if converged within tolerance
+		bool converged;       ///< True if extrapolation produced a finite error estimate
 
 		RichardsonResult(Real v = 0.0, Real e = 0.0, int it = 0, bool conv = false)
 			: value(v), error_estimate(e), iterations(it), converged(conv) {}
@@ -46,12 +48,12 @@ namespace MML
 		/// @param y Vector of computed values (at least 2 elements)
 		/// @param x Vector of positions/step sizes (same size as y), must approach 0
 		/// @return RichardsonResult with extrapolated value and error estimate
-		static RichardsonResult NevilleExtrapolate(const std::vector<Real>& y, 
+		static inline RichardsonResult NevilleExtrapolate(const std::vector<Real>& y,
 		                                            const std::vector<Real>& x)
 		{
 			int n = static_cast<int>(y.size());
 			if (n < 2 || x.size() != y.size())
-				return RichardsonResult(y.empty() ? 0.0 : y[0], 0.0, 0, false);
+				return RichardsonResult(y.empty() ? MML::Real(0.0) : y[0], MML::Real(0.0), 0, false);
 
 			std::vector<Real> c(n), d(n);
 			
@@ -120,41 +122,58 @@ namespace MML
 		/// @param max_iter Maximum tableau size (typically 10)
 		/// @param safe Safety factor for convergence check (typically 2.0)
 		/// @return RichardsonResult with best estimate and error
+		/// @throws ArgumentError for nonpositive budget, nonfinite/zero h0, or nonfinite con/safe <= 1
+		/// @throws NumericalMethodError if refinement cannot produce a distinct nonzero step
+		/// @throws NumericInputError if an evaluator or extrapolated estimate is nonfinite
 		template<typename Evaluator>
 		static RichardsonResult Extrapolate(Evaluator eval, Real h0, 
 		                                    Real con = 1.4, int max_iter = 10, Real safe = 2.0)
 		{
-			const Real con2 = con * con;
-			const Real big = std::numeric_limits<Real>::max();
+			if (max_iter <= 0)
+				throw ArgumentError("Richardson::Extrapolate: max_iter must be positive");
+			if (!std::isfinite(h0) || h0 == 0)
+				throw ArgumentError("Richardson::Extrapolate: h0 must be finite and nonzero");
+			if (!std::isfinite(con) || con <= 1)
+				throw ArgumentError("Richardson::Extrapolate: con must be finite and greater than one");
+			if (!std::isfinite(safe) || safe <= 1)
+				throw ArgumentError("Richardson::Extrapolate: safe must be finite and greater than one");
 
-			if (std::abs(h0) < Precision::DivisionSafetyThreshold)
-				return RichardsonResult(0.0, big, 0, false);
+			// Inverse powers avoid overflowing the usual con^(2j) multipliers.
+			const Real inverseCon2 = (1 / con) / con;
+			const Real big = std::numeric_limits<Real>::max();
 
 			// Allocate tableau (triangular, but use full matrix for clarity)
 			std::vector<std::vector<Real>> a(max_iter, std::vector<Real>(max_iter));
 
 			Real hh = h0;
-			a[0][0] = eval(hh);
+			a[0][0] = static_cast<Real>(eval(hh));
+			ValidateFunctionValue(a[0][0], "Richardson evaluator");
 			Real err = big;
 			Real ans = a[0][0];
 
 			int final_iter = 1;
 			for (int i = 1; i < max_iter; i++)
 			{
-				hh /= con;
-				a[0][i] = eval(hh);
+				const Real nextStep = hh / con;
+				if (nextStep == 0 || nextStep == hh)
+					throw NumericalMethodError("Richardson::Extrapolate: refinement step underflowed or stagnated");
+				hh = nextStep;
+				a[0][i] = static_cast<Real>(eval(hh));
+				ValidateFunctionValue(a[0][i], "Richardson evaluator");
 
 				// Richardson extrapolation: eliminate error terms
-				Real fac = con2;
+				Real inverseFactor = inverseCon2;
 				for (int j = 1; j <= i; j++)
 				{
 					// A_j(h) = (con^(2j) * A_{j-1}(h/con) - A_{j-1}(h)) / (con^(2j) - 1)
-					a[j][i] = (a[j - 1][i] * fac - a[j - 1][i - 1]) / (fac - 1.0);
-					fac *= con2;
+					a[j][i] = a[j - 1][i] + (a[j - 1][i] - a[j - 1][i - 1]) * inverseFactor / (1 - inverseFactor);
+					ValidateFunctionValue(a[j][i], "Richardson extrapolated estimate");
+					inverseFactor *= inverseCon2;
 
 					// Error estimate: max difference from previous column
 					Real errt = std::max(std::abs(a[j][i] - a[j - 1][i]), 
 					                     std::abs(a[j][i] - a[j - 1][i - 1]));
+					ValidateFunctionValue(errt, "Richardson error estimate");
 
 					// Track best answer (lowest error)
 					if (errt <= err)
@@ -187,10 +206,10 @@ namespace MML
 		/// @param r Step ratio (typically 2)
 		/// @param p Error order (e.g., 2 for trapezoidal rule)
 		/// @return Improved estimate
-		static Real SimpleExtrapolate(Real a_h, Real a_h_over_r, Real r, int p)
+		static inline Real SimpleExtrapolate(Real a_h, Real a_h_over_r, Real r, int p)
 		{
-			Real rp = std::pow(r, p);
-			return (rp * a_h_over_r - a_h) / (rp - 1.0);
+			Real rp = std::pow(r, Real(p));
+			return (rp * a_h_over_r - a_h) / (rp - MML::Real(1.0));
 		}
 
 		/// @brief Estimate error from simple Richardson extrapolation.
@@ -199,10 +218,10 @@ namespace MML
 		/// @param r Step ratio
 		/// @param p Error order
 		/// @return Estimated error in a_h_over_r
-		static Real SimpleErrorEstimate(Real a_h, Real a_h_over_r, Real r, int p)
+		static inline Real SimpleErrorEstimate(Real a_h, Real a_h_over_r, Real r, int p)
 		{
-			Real rp = std::pow(r, p);
-			return std::abs(a_h_over_r - a_h) / (rp - 1.0);
+			Real rp = std::pow(r, Real(p));
+			return std::abs(a_h_over_r - a_h) / (rp - MML::Real(1.0));
 		}
 
 	} // namespace Richardson

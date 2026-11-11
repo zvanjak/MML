@@ -262,7 +262,7 @@ namespace MML::Tests::Algorithms::StatisticsTests {
 		// Test numerical stability with very small values
 		// For float, 1e-10 values are near noise floor and TOL mapping distorts the data
 		if constexpr (!std::is_same_v<Real, float>) {
-			Vector<Real> data({TOL(1e-10, 1e-5), 2e-10, 3e-10, 4e-10, 5e-10});
+			Vector<Real> data({TOL(1e-10, 1e-5), MML::Real(2e-10), MML::Real(3e-10), MML::Real(4e-10), MML::Real(5e-10)});
 
 			Real avg = Statistics::Avg(data);
 
@@ -273,7 +273,7 @@ namespace MML::Tests::Algorithms::StatisticsTests {
 	TEST_CASE("Statistics::VeryLargeValues", "[statistics][precision]") {
 		TEST_PRECISION_INFO();
 		// Test with very large values
-		Vector<Real> data({1e10, 2e10, 3e10, 4e10, 5e10});
+		Vector<Real> data({MML::Real(1e10), MML::Real(2e10), MML::Real(3e10), MML::Real(4e10), MML::Real(5e10)});
 
 		Real avg = Statistics::Avg(data);
 

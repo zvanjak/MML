@@ -163,6 +163,26 @@ void Docs_Demo_MonteCarlo_Antithetic()
 	std::cout << "\nExact: " << exact << std::endl;
 }
 
+void Docs_Demo_MonteCarlo_Stratified()
+{
+	ScalarFunctionFromStdFunc<1> linear([](const VectorN<Real, 1>& x) { return x[0]; });
+	const VectorN<Real, 1> lower{0}, upper{1};
+	StratifiedMonteCarloIntegrator<1> integrator;
+	const auto replicated = integrator.integrate(linear, lower, upper, 1, 1000, 42);
+	const auto unreplicated = integrator.integrate(linear, lower, upper, 10, 1, 42);
+	std::cout << "Stratified estimate: " << replicated.value << " +/- " << replicated.error_estimate
+	          << ", status=" << to_string(replicated.status) << '\n';
+	std::cout << "Single sample per stratum: " << unreplicated.value
+	          << ", uncertainty available=" << unreplicated.error_estimated
+	          << ", status=" << to_string(unreplicated.status) << '\n';
+	if (replicated.error_estimate <= 0 || replicated.converged ||
+	    replicated.status != AlgorithmStatus::MaxIterationsExceeded ||
+	    unreplicated.error_estimated || HasEstimate(unreplicated.error_estimate) ||
+	    HasEstimate(unreplicated.variance) || unreplicated.converged ||
+	    unreplicated.status != AlgorithmStatus::Completed)
+		throw NumericalMethodError("Stratified Monte Carlo diagnostic contract failed");
+}
+
 ///////////////////////////////////////////////////////////////////////////////////////////
 ///                    CONVERGENCE STUDY                                                ///
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -249,6 +269,7 @@ void Docs_Demo_MonteCarlo()
 	Docs_Demo_MonteCarlo_2D();
 	Docs_Demo_MonteCarlo_HighDim();
 	Docs_Demo_MonteCarlo_Antithetic();
+	Docs_Demo_MonteCarlo_Stratified();
 	Docs_Demo_MonteCarlo_Convergence();
 	Docs_Demo_MonteCarlo_Gaussian();
 	

@@ -32,6 +32,7 @@
 #include <mml/base/Matrix/Matrix.h>
 
 #include <mml/base/InterpolatedFunctions/InterpolatedFunctionSpline.h>
+#include <mml/base/InterpolatedFunctions/InterpolationTypes.h>
 
 namespace MML {
 
@@ -83,7 +84,7 @@ namespace MML {
 		/// @param x1v Vector of x1 grid coordinates (m values)
 		/// @param x2v Vector of x2 grid coordinates (n values)
 		/// @param zm Matrix of function values z[m][n]
-		/// @throws RealFuncInterpInitError if dimensions don't match
+		/// @throws RealFuncInterpInitError for mismatched dimensions or invalid axes (finite, strictly monotonic, at least two nodes)
 
 		BilinearInterp2D(const Vector<Real>& x1v, const Vector<Real>& x2v, const Matrix<Real>& zm)
 			: _m(x1v.size())
@@ -93,6 +94,8 @@ namespace MML {
 			, _z(zm) {
 			if (zm.rows() != _m || zm.cols() != _n)
 				throw RealFuncInterpInitError("BilinearInterp2D: matrix dimensions don't match grid");
+			detail::ValidateInterpolationNodes(_x1, 2, "BilinearInterp2D x1");
+			detail::ValidateInterpolationNodes(_x2, 2, "BilinearInterp2D x2");
 		}
 
 		/// @brief Evaluate the bilinear interpolation at (x1, x2).
@@ -105,11 +108,11 @@ namespace MML {
 			int j = locate(_x2, x2);
 
 			// Compute normalized coordinates t, u in [0, 1]
-			Real t = (_x1[i + 1] - _x1[i] != 0.0) ? (x1 - _x1[i]) / (_x1[i + 1] - _x1[i]) : 0.0;
-			Real u = (_x2[j + 1] - _x2[j] != 0.0) ? (x2 - _x2[j]) / (_x2[j + 1] - _x2[j]) : 0.0;
+			Real t = (_x1[i + 1] - _x1[i] != MML::Real(0.0)) ? (x1 - _x1[i]) / (_x1[i + 1] - _x1[i]) : MML::Real(0.0);
+			Real u = (_x2[j + 1] - _x2[j] != MML::Real(0.0)) ? (x2 - _x2[j]) / (_x2[j + 1] - _x2[j]) : MML::Real(0.0);
 
 			// Bilinear interpolation formula
-			return (1.0 - t) * (1.0 - u) * _z(i, j) + t * (1.0 - u) * _z(i + 1, j) + (1.0 - t) * u * _z(i, j + 1) +
+			return (MML::Real(1.0) - t) * (MML::Real(1.0) - u) * _z(i, j) + t * (MML::Real(1.0) - u) * _z(i + 1, j) + (MML::Real(1.0) - t) * u * _z(i, j + 1) +
 				   t * u * _z(i + 1, j + 1);
 		}
 
@@ -127,21 +130,21 @@ namespace MML {
 			Real dx1 = _x1[i + 1] - _x1[i];
 			Real dx2 = _x2[j + 1] - _x2[j];
 
-			Real t = (dx1 != 0.0) ? (x1 - _x1[i]) / dx1 : 0.0;
-			Real u = (dx2 != 0.0) ? (x2 - _x2[j]) / dx2 : 0.0;
+			Real t = (dx1 != MML::Real(0.0)) ? (x1 - _x1[i]) / dx1 : MML::Real(0.0);
+			Real u = (dx2 != MML::Real(0.0)) ? (x2 - _x2[j]) / dx2 : MML::Real(0.0);
 
 			// Function value
-			z = (1.0 - t) * (1.0 - u) * _z(i, j) + t * (1.0 - u) * _z(i + 1, j) + (1.0 - t) * u * _z(i, j + 1) + t * u * _z(i + 1, j + 1);
+			z = (MML::Real(1.0) - t) * (MML::Real(1.0) - u) * _z(i, j) + t * (MML::Real(1.0) - u) * _z(i + 1, j) + (MML::Real(1.0) - t) * u * _z(i, j + 1) + t * u * _z(i + 1, j + 1);
 
 			// Partial derivatives
 			if (dx1 != 0.0) {
-				dz_dx1 = ((1.0 - u) * (_z(i + 1, j) - _z(i, j)) + u * (_z(i + 1, j + 1) - _z(i, j + 1))) / dx1;
+				dz_dx1 = ((MML::Real(1.0) - u) * (_z(i + 1, j) - _z(i, j)) + u * (_z(i + 1, j + 1) - _z(i, j + 1))) / dx1;
 			} else {
 				dz_dx1 = 0.0;
 			}
 
 			if (dx2 != 0.0) {
-				dz_dx2 = ((1.0 - t) * (_z(i, j + 1) - _z(i, j)) + t * (_z(i + 1, j + 1) - _z(i + 1, j))) / dx2;
+				dz_dx2 = ((MML::Real(1.0) - t) * (_z(i, j + 1) - _z(i, j)) + t * (_z(i + 1, j + 1) - _z(i + 1, j))) / dx2;
 			} else {
 				dz_dx2 = 0.0;
 			}
@@ -186,7 +189,7 @@ namespace MML {
 		/// @param x1v Vector of x1 grid coordinates (m values)
 		/// @param x2v Vector of x2 grid coordinates (n values)
 		/// @param zm Matrix of function values z[m][n]
-		/// @throws RealFuncInterpInitError if dimensions don't match
+		/// @throws RealFuncInterpInitError for mismatched dimensions or invalid axes (finite, strictly monotonic, at least two nodes)
 
 		BicubicSplineInterp2D(const Vector<Real>& x1v, const Vector<Real>& x2v, const Matrix<Real>& zm)
 			: _m(x1v.size())
@@ -196,6 +199,8 @@ namespace MML {
 			, _z(zm) {
 			if (zm.rows() != _m || zm.cols() != _n)
 				throw RealFuncInterpInitError("BicubicSplineInterp2D: matrix dimensions don't match grid");
+			detail::ValidateInterpolationNodes(_x1, 2, "BicubicSplineInterp2D x1");
+			detail::ValidateInterpolationNodes(_x2, 2, "BicubicSplineInterp2D x2");
 
 			_rowSplines.reserve(_m);
 			for (int i = 0; i < _m; i++) {

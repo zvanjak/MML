@@ -22,6 +22,20 @@ using namespace MML;
 using namespace MML::SparseMatrix;
 using Catch::Approx;
 
+TEST_CASE("Sparse symmetry tolerance follows its scalar rather than global Real", "[sparse][precision]") {
+    const double delta = double(PrecisionValues<float>::IsMatrixSymmetricTolerance) / 4;
+    const SparseMatrixCSR<double> realMatrix(2, 2, {1, 1 + delta}, {1, 0}, {0, 1, 2});
+    CHECK_FALSE(realMatrix.IsSymmetric());
+    const SparseMatrixCSR<float> floatMatrix(2, 2, {1, float(1 + delta)}, {1, 0}, {0, 1, 2});
+    CHECK(floatMatrix.IsSymmetric());
+    const SparseMatrixCSR<std::complex<double>> complexMatrix(2, 2,
+        {{1, 0}, {1 + delta, 0}}, {1, 0}, {0, 1, 2});
+    CHECK_FALSE(complexMatrix.IsSymmetric());
+    const SparseMatrixCSR<int> integerMatrix(2, 2, {1, 1}, {1, 0}, {0, 1, 2});
+    CHECK(integerMatrix.IsSymmetric());
+    CHECK(integerMatrix.IsSymmetric(Real(0.1)));
+}
+
 ///////////////////////////////////////////////////////////////////////////
 ///                         COO Format Tests                            ///
 ///////////////////////////////////////////////////////////////////////////

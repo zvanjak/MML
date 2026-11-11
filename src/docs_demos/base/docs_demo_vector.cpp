@@ -120,9 +120,11 @@ void Demo_Vector_Access()
     
     // Demonstrate exception handling
     try {
-        double bad = v.at(10);  // Out of bounds!
-        (void)bad;  // Suppress unused warning
-    } catch (const VectorDimensionError& e) {
+        (void)v.at(10);  // Out of bounds!
+        throw std::runtime_error("Vector::at must reject an out-of-bounds index");
+    } catch (const VectorAccessBoundsError& e) {
+        if (e.index() != 10 || e.size() != v.size())
+            throw std::runtime_error("Vector::at bounds exception has incorrect index or size");
         std::cout << "  Caught exception for v.at(10): " << e.what() << std::endl;
     }
 
@@ -324,17 +326,23 @@ void Demo_Vector_Modification()
 
     // Resize
     std::cout << "\nResize operations:" << std::endl;
-    Vector<double> r({1, 2, 3, 4, 5, 6, 7, 8, 9, 10});
+    Vector<double> r({1, 2, 3, 4, 5});
     std::cout << "  Original:                " << r << std::endl;
     
-    r.resize(5, true);  // Shrink, preserve elements
-    std::cout << "  After Resize(5, true):   " << r << std::endl;
+    r.resize(3);
+    if (r != Vector<double>{1, 2, 3})
+        throw std::runtime_error("Vector resize must preserve the retained prefix");
+    std::cout << "  After resize(3):         " << r << std::endl;
     
-    r.resize(8, true);  // Grow, preserve elements (new ones are zero)
-    std::cout << "  After Resize(8, true):   " << r << std::endl;
+    r.resize(7);
+    if (r != Vector<double>{1, 2, 3, 0, 0, 0, 0})
+        throw std::runtime_error("Vector resize must zero-initialize new arithmetic elements");
+    std::cout << "  After resize(7):         " << r << std::endl;
     
-    r.resize(3);  // Shrink without preserve flag
-    std::cout << "  After Resize(3):         " << r << std::endl;
+    r.resize(2, true);
+    if (r != Vector<double>{1, 2})
+        throw std::runtime_error("Vector resize legacy flag must preserve the same prefix");
+    std::cout << "  After resize(2, true):   " << r << std::endl;
 
     // Clear
     std::cout << "\nClear operation:" << std::endl;

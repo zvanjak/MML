@@ -184,6 +184,7 @@ namespace MML::Tests::Core::CoordTransfTests
 			TEST_PRECISION_INFO();
 		Vector3Cartesian p1{ static_cast<MML::Real>(2.0), static_cast<MML::Real>(1.0), -static_cast<MML::Real>(2.0) };
 		auto p1Spher = CoordTransfCartToSpher.transf(p1);
+		REQUIRE_THAT(p1Spher[0], Catch::Matchers::WithinAbs(p1.NormL2(), TOL(1e-12, 1e-5)));
 
 		// Vector3Cartesian vec_i = CoordTransfSpherToCart.getUnitVector(0, p1Spher);
 		// Vector3Cartesian vec_j = CoordTransfSpherToCart.getUnitVector(1, p1Spher);

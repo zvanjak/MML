@@ -8,9 +8,11 @@
 #include "../../TestPrecision.h"
 #include "../../TestMatchers.h"
 
+#ifndef MML_SINGLE_HEADER_INCLUDE
 #include <mml/MMLBase.h>
 #include <mml/algorithms/Analyzers/FieldAnalyzers.h>
 #include <mml/core/Fields/Fields.h>
+#endif
 
 using namespace MML;
 using namespace MML::Testing;
@@ -139,10 +141,10 @@ namespace MML::Tests::Algorithms::FieldAnalyzersTests
 		ScalarFieldAnalyzer analyzer(field);
 
 		// Origin is a critical point (minimum)
-		REQUIRE(analyzer.IsCriticalPoint(Vec3Cart(0, 0, 0), 1e-4));
+		REQUIRE(analyzer.IsCriticalPoint(Vec3Cart(0, 0, 0), MML::Real(1e-4)));
 
 		// (1, 1, 1) is NOT a critical point
-		REQUIRE_FALSE(analyzer.IsCriticalPoint(Vec3Cart(1, 1, 1), 1e-4));
+		REQUIRE_FALSE(analyzer.IsCriticalPoint(Vec3Cart(1, 1, 1), MML::Real(1e-4)));
 	}
 
 	TEST_CASE("ScalarFieldAnalyzer::FindCriticalPoints", "[field_analyzer][scalar]")

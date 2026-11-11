@@ -15,6 +15,7 @@
 #include <mml/MMLBase.h>
 #include <mml/base/Vector/Vector.h>
 #include <mml/interfaces/IDynamicalSystem.h>
+#include <mml/systems/DynamicalSystem/DynamicalSystemValidation.h>
 
 #include <vector>
 #include <string>
@@ -33,15 +34,24 @@ namespace MML::Systems
 	/// - State and parameter naming
 	/// - Parameter range specifications
 	///
-	/// @tparam N State space dimension
-	/// @tparam P Number of parameters
+	/// Parameter ranges are suggested exploration ranges, not admissibility constraints.
+	/// Public setters validate before mutation; derived constructors should use setParams().
+	/// @tparam N Positive state space dimension
+	/// @tparam P Nonnegative number of parameters
 	template<int N, int P>
 	class DynamicalSystemBase : public IDynamicalSystem {
+		static_assert(N > 0, "DynamicalSystemBase requires a positive state dimension");
+		static_assert(P >= 0, "DynamicalSystemBase requires a nonnegative parameter count");
 	protected:
 		std::vector<Real> _params;
 		std::vector<std::string> _stateNames;
 		std::vector<std::string> _paramNames;
 		std::vector<std::pair<Real, Real>> _paramRanges;
+
+		/// @brief Validate one proposed parameter without mutation; override for model domains.
+		virtual void ValidateParameter(int /*index*/, Real value) const {
+			DynSysDetail::RequireFinite(value, "DynamicalSystemBase parameter");
+		}
 
 	public:
 		DynamicalSystemBase()
@@ -66,6 +76,7 @@ namespace MML::Systems
 		void setParam(int i, Real val) override {
 			if (i < 0 || i >= P)
 				throw IndexError("DynamicalSystemBase::setParam - parameter index out of range");
+			ValidateParameter(i, val);
 			_params[i] = val;
 		}
 
@@ -80,12 +91,26 @@ namespace MML::Systems
 			if (p.size() != P)
 				throw VectorDimensionError("DynamicalSystemBase::setParams - parameter vector size must equal the number of parameters", p.size(), P);
 			for (int i = 0; i < P; ++i)
+				ValidateParameter(i, p[i]);
+			for (int i = 0; i < P; ++i)
 				_params[i] = p[i];
 		}
 
-		std::string getStateName(int i) const override { return _stateNames[i]; }
-		std::string getParamName(int i) const override { return _paramNames[i]; }
-		std::pair<Real, Real> getParamRange(int i) const override { return _paramRanges[i]; }
+		std::string getStateName(int i) const override {
+			if (i < 0 || i >= N)
+				throw IndexError("DynamicalSystemBase::getStateName - state index out of range");
+			return _stateNames[i];
+		}
+		std::string getParamName(int i) const override {
+			if (i < 0 || i >= P)
+				throw IndexError("DynamicalSystemBase::getParamName - parameter index out of range");
+			return _paramNames[i];
+		}
+		std::pair<Real, Real> getParamRange(int i) const override {
+			if (i < 0 || i >= P)
+				throw IndexError("DynamicalSystemBase::getParamRange - parameter index out of range");
+			return _paramRanges[i];
+		}
 	};
 
 } // namespace MML::Systems

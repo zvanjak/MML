@@ -99,7 +99,7 @@ namespace MML::AnalysisReports {
 			switch (candidate.type) {
 				case DiscontinuityType::JUMP: os << "JUMP (estimated jump: " << candidate.jumpSize << ')'; break;
 				case DiscontinuityType::REMOVABLE: os << "REMOVABLE"; break;
-				case DiscontinuityType::INFINITE: os << "INFINITE"; break;
+				case DiscontinuityType::Infinite: os << "INFINITE"; break;
 				case DiscontinuityType::OSCILLATORY: os << "OSCILLATORY"; break;
 				case DiscontinuityType::UNKNOWN: os << "UNKNOWN"; break;
 			}

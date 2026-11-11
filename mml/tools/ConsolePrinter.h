@@ -13,6 +13,7 @@
 #define MML_CONSOLE_PRINTER_H
 
 #include <mml/tools/CsvUtils.h>
+#include <mml/tools/IOResult.h>
 #include <mml/base/PrintFormatting.h>
 #include <mml/base/AlgorithmTypes.h>
 
@@ -27,6 +28,7 @@
 #include <algorithm>
 #include <stdexcept>
 #include <memory>
+#include <limits>
 
 #include <mml/base/Vector/Vector.h>
 
@@ -47,6 +49,8 @@ namespace MML {
 		inline std::string repeatString(const std::string& str, size_t count) {
 			if (str.empty() || count == 0) return "";
 			std::string result;
+			if (count > result.max_size() / str.size())
+				throw ResourceLimitError("Utf8::repeatString: repeated text exceeds the supported string size");
 			result.reserve(str.size() * count);
 			for (size_t i = 0; i < count; ++i) {
 				result += str;
@@ -174,7 +178,7 @@ namespace MML {
 		Fixed,		 // std::fixed
 		Scientific,	 // std::scientific
 		Hexadecimal, // std::hex
-		Integer		 // No decimal point
+		Integer		 // Scalar rounding to nearest, halfway away from zero; no decimal point
 	};
 
 	// Alignment enumeration
@@ -217,8 +221,14 @@ namespace MML {
 		Alignment m_alignment;
 		int m_calculatedWidth; // -1 means use m_width
 
+		static void validateWidth(int width) {
+			if (width < AUTO_WIDTH || width > MAX_WIDTH)
+				throw ArgumentError("ColumnFormat: width must be AUTO_WIDTH or between zero and INT_MAX - 2");
+		}
+
 	public:
 		static constexpr int AUTO_WIDTH = -1;
+		static constexpr int MAX_WIDTH = std::numeric_limits<int>::max() - 2;
 
 		// Constructor
 		explicit ColumnFormat(std::string name)
@@ -231,7 +241,9 @@ namespace MML {
 
 		// Builder pattern methods
 		ColumnFormat& width(int w) {
+			validateWidth(w);
 			m_width = w;
+			m_calculatedWidth = AUTO_WIDTH;
 			return *this;
 		}
 
@@ -251,8 +263,7 @@ namespace MML {
 		}
 
 		ColumnFormat& autoWidth() {
-			m_width = AUTO_WIDTH;
-			return *this;
+			return width(AUTO_WIDTH);
 		}
 
 		// Accessors
@@ -264,7 +275,10 @@ namespace MML {
 		Alignment alignment() const { return m_alignment; }
 
 		// Internal - for auto-width calculation
-		void setCalculatedWidth(int w) { m_calculatedWidth = w; }
+		void setCalculatedWidth(int w) {
+			validateWidth(w);
+			m_calculatedWidth = w;
+		}
 
 		// Helper to format a value according to this column's settings
 		template<typename T>
@@ -283,6 +297,8 @@ namespace MML {
 		// Helper to format with alignment and width
 		std::string formatAligned(const std::string& content) const {
 			int w = width();
+			if (w == AUTO_WIDTH)
+				return content;
 			size_t contentWidth = Utf8::displayWidth(content);
 			if (contentWidth >= static_cast<size_t>(w)) {
 				return content;
@@ -453,11 +469,7 @@ namespace MML {
 
 		// Print to file
 		void printToFile(const std::string& filename) const {
-			std::ofstream file(filename);
-			if (!file) {
-				throw FileIOError("Cannot open file: " + filename, filename);
-			}
-			print(file);
+			exportToFile(filename, ExportFormat::Console);
 		}
 
 		// Convert to string
@@ -499,6 +511,9 @@ namespace MML {
 				throw FileIOError("Cannot open file: " + filename, filename);
 			}
 			exportTo(file, format);
+			const auto result = FinishOutputFile(file, filename, SerializeSuccess());
+			if (!result.success)
+				throw FileIOError("Table export failed for " + filename + ": " + result.message, filename);
 		}
 
 	private:
@@ -712,11 +727,11 @@ namespace MML {
 		void printHorizontalLine(std::ostream& os, const std::string& left, const std::string& horiz, const std::string& cross,
 								 const std::string& right) const {
 			os << left;
-			os << Utf8::repeatString(horiz, static_cast<size_t>(m_tagFormat.width() + 2));
+			os << Utf8::repeatString(horiz, static_cast<size_t>(m_tagFormat.width()) + 2);
 
 			for (size_t i = 0; i < m_columnFormats.size(); ++i) {
 				os << cross;
-				os << Utf8::repeatString(horiz, static_cast<size_t>(m_columnFormats[i].width() + 2));
+				os << Utf8::repeatString(horiz, static_cast<size_t>(m_columnFormats[i].width()) + 2);
 			}
 
 			os << right << "\n";
@@ -729,23 +744,27 @@ namespace MML {
 
 			// Tag column
 			if (tagFmt.rawWidth() == ColumnFormat::AUTO_WIDTH) {
-				int maxWidth = static_cast<int>(Utf8::displayWidth(tagFmt.name()));
+				size_t maxWidth = Utf8::displayWidth(tagFmt.name());
 				for (const auto& tag : m_rowTags) {
 					std::string formatted = tagFmt.formatValue(tag);
-					maxWidth = std::max(maxWidth, static_cast<int>(Utf8::displayWidth(formatted)));
+					maxWidth = std::max(maxWidth, Utf8::displayWidth(formatted));
 				}
-				tagFmt.setCalculatedWidth(maxWidth);
+				if (maxWidth > static_cast<size_t>(ColumnFormat::MAX_WIDTH))
+					throw ArgumentError("TablePrinter: automatic tag width exceeds INT_MAX - 2");
+				tagFmt.setCalculatedWidth(static_cast<int>(maxWidth));
 			}
 
 			// Value columns
 			for (size_t col = 0; col < colFmts.size(); ++col) {
 				if (colFmts[col].rawWidth() == ColumnFormat::AUTO_WIDTH) {
-					int maxWidth = static_cast<int>(Utf8::displayWidth(colFmts[col].name()));
+					size_t maxWidth = Utf8::displayWidth(colFmts[col].name());
 					for (const auto& row : m_data) {
 						std::string formatted = colFmts[col].formatValue(row[col]);
-						maxWidth = std::max(maxWidth, static_cast<int>(Utf8::displayWidth(formatted)));
+						maxWidth = std::max(maxWidth, Utf8::displayWidth(formatted));
 					}
-					colFmts[col].setCalculatedWidth(maxWidth);
+					if (maxWidth > static_cast<size_t>(ColumnFormat::MAX_WIDTH))
+						throw ArgumentError("TablePrinter: automatic column width exceeds INT_MAX - 2");
+					colFmts[col].setCalculatedWidth(static_cast<int>(maxWidth));
 				}
 			}
 		}
@@ -824,22 +843,22 @@ namespace MML {
 
 	///////////////////////////       Vector Table Printer       ///////////////////////////
 
-	// Specialized printer for vectors
+	/// @brief Side-by-side view of borrowed vectors; inputs must outlive the printer's uses.
+	/// @details Each print observes current values and sizes. Do not mutate inputs during printing.
 	class VectorTablePrinter {
 	private:
 		std::vector<ColumnFormat> m_formats;
 		std::vector<const Vector<Real>*> m_vectors;
 		TableStyle m_style;
-		size_t m_maxLength;
 
 	public:
-		VectorTablePrinter()
-			: m_maxLength(0) {}
+		VectorTablePrinter() = default;
 
-		// Constructor that accepts formats and vectors
-		VectorTablePrinter(std::vector<ColumnFormat> formats, std::vector<Vector<Real>*> vectors)
-			: m_maxLength(0) {
+		/// @brief Borrow non-null vectors, using default formats for missing entries.
+		VectorTablePrinter(std::vector<ColumnFormat> formats, std::vector<Vector<Real>*> vectors) {
 			for (size_t i = 0; i < vectors.size(); ++i) {
+				if (vectors[i] == nullptr)
+					throw std::invalid_argument("VectorTablePrinter: null vector at index " + std::to_string(i));
 				if (i < formats.size()) {
 					addVector(formats[i], *vectors[i]);
 				} else {
@@ -849,16 +868,16 @@ namespace MML {
 		}
 
 		void addVector(const std::string& name, const Vector<Real>& vec) {
-			m_formats.emplace_back(name);
-			m_vectors.push_back(&vec);
-			m_maxLength = std::max(m_maxLength, static_cast<size_t>(vec.size()));
+			addVector(ColumnFormat(name), vec);
 		}
 
 		void addVector(const ColumnFormat& format, const Vector<Real>& vec) {
 			m_formats.push_back(format);
 			m_vectors.push_back(&vec);
-			m_maxLength = std::max(m_maxLength, static_cast<size_t>(vec.size()));
 		}
+
+		void addVector(const std::string&, const Vector<Real>&&) = delete;
+		void addVector(const ColumnFormat&, const Vector<Real>&&) = delete;
 
 		VectorTablePrinter& style(const TableStyle& s) {
 			m_style = s;
@@ -868,12 +887,28 @@ namespace MML {
 		void print(std::ostream& os = std::cout) const {
 			StreamStateGuard guard(os);
 
+			auto formats = m_formats;
+			size_t maxLength = 0;
+			for (size_t col = 0; col < m_vectors.size(); ++col) {
+				const auto& vector = *m_vectors[col];
+				maxLength = std::max(maxLength, static_cast<size_t>(vector.size()));
+				auto& format = formats[col];
+				if (format.rawWidth() == ColumnFormat::AUTO_WIDTH) {
+					size_t width = Utf8::displayWidth(format.name());
+					for (int row = 0; row < vector.size(); ++row)
+						width = std::max(width, Utf8::displayWidth(format.formatValue(vector[row])));
+					if (width > static_cast<size_t>(ColumnFormat::MAX_WIDTH))
+						throw ArgumentError("VectorTablePrinter: automatic width exceeds INT_MAX - 2");
+					format.setCalculatedWidth(static_cast<int>(width));
+				}
+			}
+
 			auto bc = m_style.getChars();
 			bool hasBorders = m_style.borderStyle() != BorderStyle::None;
 
 			// Print top border
 			if (hasBorders && m_style.showHeader()) {
-				printHorizontalLine(os, bc.topLeft, bc.horizontal, bc.topT, bc.topRight);
+				printHorizontalLine(os, formats, bc.topLeft, bc.horizontal, bc.topT, bc.topRight);
 			}
 
 			// Print header
@@ -881,14 +916,14 @@ namespace MML {
 				if (hasBorders)
 					os << bc.vertical << " ";
 
-				for (size_t i = 0; i < m_formats.size(); ++i) {
+				for (size_t i = 0; i < formats.size(); ++i) {
 					if (i > 0) {
 						if (hasBorders)
 							os << " " << bc.vertical << " ";
 						else
 							os << "  ";
 					}
-					os << m_formats[i].formatAligned(m_formats[i].name());
+					os << formats[i].formatAligned(formats[i].name());
 				}
 
 				if (hasBorders)
@@ -897,12 +932,12 @@ namespace MML {
 
 				// Header separator
 				if (hasBorders) {
-					printHorizontalLine(os, bc.leftT, bc.horizontal, bc.cross, bc.rightT);
+					printHorizontalLine(os, formats, bc.leftT, bc.horizontal, bc.cross, bc.rightT);
 				}
 			}
 
 			// Print data rows
-			for (size_t row = 0; row < m_maxLength; ++row) {
+			for (size_t row = 0; row < maxLength; ++row) {
 				if (hasBorders)
 					os << bc.vertical << " ";
 
@@ -916,9 +951,9 @@ namespace MML {
 
 					if (row < static_cast<size_t>(m_vectors[col]->size())) {
 						Real value = (*m_vectors[col])[row];
-						os << m_formats[col].formatAligned(m_formats[col].formatValue(value));
+						os << formats[col].formatAligned(formats[col].formatValue(value));
 					} else {
-						os << m_formats[col].formatAligned("");
+						os << formats[col].formatAligned("");
 					}
 				}
 
@@ -929,7 +964,7 @@ namespace MML {
 
 			// Print bottom border
 			if (hasBorders) {
-				printHorizontalLine(os, bc.bottomLeft, bc.horizontal, bc.bottomT, bc.bottomRight);
+				printHorizontalLine(os, formats, bc.bottomLeft, bc.horizontal, bc.bottomT, bc.bottomRight);
 			}
 		}
 
@@ -941,14 +976,15 @@ namespace MML {
 
 	private:
 		// Helper: print horizontal line for borders (UTF-8 safe)
-		void printHorizontalLine(std::ostream& os, const std::string& left, const std::string& horiz, const std::string& cross,
+		void printHorizontalLine(std::ostream& os, const std::vector<ColumnFormat>& formats,
+								 const std::string& left, const std::string& horiz, const std::string& cross,
 								 const std::string& right) const {
 			os << left;
 
-			for (size_t i = 0; i < m_formats.size(); ++i) {
+			for (size_t i = 0; i < formats.size(); ++i) {
 				if (i > 0)
 					os << cross;
-				os << Utf8::repeatString(horiz, static_cast<size_t>(m_formats[i].width() + 2));
+				os << Utf8::repeatString(horiz, static_cast<size_t>(formats[i].width()) + 2);
 			}
 
 			os << right << "\n";

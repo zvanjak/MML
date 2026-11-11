@@ -61,9 +61,9 @@ namespace MML
 						config.estimate_error ? evals_with_error : evals_without_error);
 					result.step_used = h;
 
-					Real error_estimate = static_cast<MML::Real>(0.0);
+					Real error_estimate = NoEstimate;
 					result.value = compute(config.estimate_error ? &error_estimate : nullptr);
-					result.error = config.estimate_error ? error_estimate : static_cast<MML::Real>(0.0);
+					result.error = config.estimate_error ? error_estimate : NoEstimate;
 
 					if (config.check_finite)
 					{
@@ -115,7 +115,7 @@ namespace MML
 		                                                           const DerivativeConfig& config = {})
 		{
 			using Stencil = Detail::FirstDerivativeStencil<Detail::FirstDerivativeOrder::One>;
-			return Detail::ExecuteComplexDerivativeDetailed("NDer1Complex", h, config, Stencil::value_offsets.size(), Stencil::error_offsets.size(),
+			return Detail::ExecuteComplexDerivativeDetailed("NDer1Complex", h, config, int{Stencil::value_offsets.size()}, int{Stencil::error_offsets.size()},
 				[&](Real* error) {
 					auto result = Detail::EvaluateFirstDerivativeStencil<Detail::FirstDerivativeOrder::One>(
 						[&](int offset) { return f(z + offset * h); }, [](const Complex& value) { return std::abs(value); }, h, error != nullptr);
@@ -123,7 +123,7 @@ namespace MML
 					return result.value;
 				});
 		}
-		static DerivativeResult<Complex, Real> NDer1ComplexDetailed(const IComplexFunction& f, Complex z,
+		static inline DerivativeResult<Complex, Real> NDer1ComplexDetailed(const IComplexFunction& f, Complex z,
 		                                                           const DerivativeConfig& config = {})
 		{
 			return NDer1ComplexDetailed(f, z, Detail::ResolveComplexDerivativeStep(config, NDer1_h, z), config);
@@ -137,11 +137,11 @@ namespace MML
 				*error = result.error;
 			return result.value;
 		}
-		static Complex NDer1Complex(const IComplexFunction& f, Complex z, Real* error)
+		static inline Complex NDer1Complex(const IComplexFunction& f, Complex z, Real* error)
 		{
 			return NDer1Complex(f, z, Detail::ScaleStepComplex(NDer1_h, z), error);
 		}
-		static Complex NDer1Complex(const IComplexFunction& f, Complex z)
+		static inline Complex NDer1Complex(const IComplexFunction& f, Complex z)
 		{
 			return NDer1Complex(f, z, Detail::ScaleStepComplex(NDer1_h, z), nullptr);
 		}
@@ -157,7 +157,7 @@ namespace MML
 		                                                           const DerivativeConfig& config = {})
 		{
 			using Stencil = Detail::FirstDerivativeStencil<Detail::FirstDerivativeOrder::Two>;
-			return Detail::ExecuteComplexDerivativeDetailed("NDer2Complex", h, config, Stencil::value_offsets.size(), Stencil::error_offsets.size(),
+			return Detail::ExecuteComplexDerivativeDetailed("NDer2Complex", h, config, int{Stencil::value_offsets.size()}, int{Stencil::error_offsets.size()},
 				[&](Real* error) {
 					auto result = Detail::EvaluateFirstDerivativeStencil<Detail::FirstDerivativeOrder::Two>(
 						[&](int offset) { return f(z + offset * h); }, [](const Complex& value) { return std::abs(value); }, h, error != nullptr);
@@ -165,7 +165,7 @@ namespace MML
 					return result.value;
 				});
 		}
-		static DerivativeResult<Complex, Real> NDer2ComplexDetailed(const IComplexFunction& f, Complex z,
+		static inline DerivativeResult<Complex, Real> NDer2ComplexDetailed(const IComplexFunction& f, Complex z,
 		                                                           const DerivativeConfig& config = {})
 		{
 			return NDer2ComplexDetailed(f, z, Detail::ResolveComplexDerivativeStep(config, NDer2_h, z), config);
@@ -179,11 +179,11 @@ namespace MML
 				*error = result.error;
 			return result.value;
 		}
-		static Complex NDer2Complex(const IComplexFunction& f, Complex z, Real* error)
+		static inline Complex NDer2Complex(const IComplexFunction& f, Complex z, Real* error)
 		{
 			return NDer2Complex(f, z, Detail::ScaleStepComplex(NDer2_h, z), error);
 		}
-		static Complex NDer2Complex(const IComplexFunction& f, Complex z)
+		static inline Complex NDer2Complex(const IComplexFunction& f, Complex z)
 		{
 			return NDer2Complex(f, z, Detail::ScaleStepComplex(NDer2_h, z), nullptr);
 		}
@@ -199,7 +199,7 @@ namespace MML
 		                                                           const DerivativeConfig& config = {})
 		{
 			using Stencil = Detail::FirstDerivativeStencil<Detail::FirstDerivativeOrder::Four>;
-			return Detail::ExecuteComplexDerivativeDetailed("NDer4Complex", h, config, Stencil::value_offsets.size(), Stencil::error_offsets.size(),
+			return Detail::ExecuteComplexDerivativeDetailed("NDer4Complex", h, config, int{Stencil::value_offsets.size()}, int{Stencil::error_offsets.size()},
 				[&](Real* error) {
 					auto result = Detail::EvaluateFirstDerivativeStencil<Detail::FirstDerivativeOrder::Four>(
 						[&](int offset) { return f(z + offset * h); }, [](const Complex& value) { return std::abs(value); }, h, error != nullptr);
@@ -207,7 +207,7 @@ namespace MML
 					return result.value;
 				});
 		}
-		static DerivativeResult<Complex, Real> NDer4ComplexDetailed(const IComplexFunction& f, Complex z,
+		static inline DerivativeResult<Complex, Real> NDer4ComplexDetailed(const IComplexFunction& f, Complex z,
 		                                                           const DerivativeConfig& config = {})
 		{
 			return NDer4ComplexDetailed(f, z, Detail::ResolveComplexDerivativeStep(config, NDer4_h, z), config);
@@ -221,11 +221,11 @@ namespace MML
 				*error = result.error;
 			return result.value;
 		}
-		static Complex NDer4Complex(const IComplexFunction& f, Complex z, Real* error)
+		static inline Complex NDer4Complex(const IComplexFunction& f, Complex z, Real* error)
 		{
 			return NDer4Complex(f, z, Detail::ScaleStepComplex(NDer4_h, z), error);
 		}
-		static Complex NDer4Complex(const IComplexFunction& f, Complex z)
+		static inline Complex NDer4Complex(const IComplexFunction& f, Complex z)
 		{
 			return NDer4Complex(f, z, Detail::ScaleStepComplex(NDer4_h, z), nullptr);
 		}
@@ -241,7 +241,7 @@ namespace MML
 		                                                           const DerivativeConfig& config = {})
 		{
 			using Stencil = Detail::FirstDerivativeStencil<Detail::FirstDerivativeOrder::Six>;
-			return Detail::ExecuteComplexDerivativeDetailed("NDer6Complex", h, config, Stencil::value_offsets.size(), Stencil::error_offsets.size(),
+			return Detail::ExecuteComplexDerivativeDetailed("NDer6Complex", h, config, int{Stencil::value_offsets.size()}, int{Stencil::error_offsets.size()},
 				[&](Real* error) {
 					auto result = Detail::EvaluateFirstDerivativeStencil<Detail::FirstDerivativeOrder::Six>(
 						[&](int offset) { return f(z + offset * h); }, [](const Complex& value) { return std::abs(value); }, h, error != nullptr);
@@ -249,7 +249,7 @@ namespace MML
 					return result.value;
 				});
 		}
-		static DerivativeResult<Complex, Real> NDer6ComplexDetailed(const IComplexFunction& f, Complex z,
+		static inline DerivativeResult<Complex, Real> NDer6ComplexDetailed(const IComplexFunction& f, Complex z,
 		                                                           const DerivativeConfig& config = {})
 		{
 			return NDer6ComplexDetailed(f, z, Detail::ResolveComplexDerivativeStep(config, NDer6_h, z), config);
@@ -263,11 +263,11 @@ namespace MML
 				*error = result.error;
 			return result.value;
 		}
-		static Complex NDer6Complex(const IComplexFunction& f, Complex z, Real* error)
+		static inline Complex NDer6Complex(const IComplexFunction& f, Complex z, Real* error)
 		{
 			return NDer6Complex(f, z, Detail::ScaleStepComplex(NDer6_h, z), error);
 		}
-		static Complex NDer6Complex(const IComplexFunction& f, Complex z)
+		static inline Complex NDer6Complex(const IComplexFunction& f, Complex z)
 		{
 			return NDer6Complex(f, z, Detail::ScaleStepComplex(NDer6_h, z), nullptr);
 		}

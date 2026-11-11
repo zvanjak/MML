@@ -78,6 +78,24 @@ instability and is not a successful completion. ROS2 counts accepted and rejecte
 attempts against `config.max_steps`; an exhausted attempt budget is reported
 separately as `MaxIterationsExceeded`.
 
+Adaptive Detailed integration under `ConvertToStatus` also retains valid saved
+points on numerical and standard callback exceptions. When storage permits, a
+partial result includes the last accepted integration endpoint even if it lies
+between scheduled output times. Failed or rejected trial states are never
+stored. A failure during initial RHS evaluation or automatic step estimation
+retains the valid initial point; invalid inputs do not produce a trajectory.
+Accepted/rejected decisions and function-evaluation counts are preserved, not
+reset by conversion. Interrupted built-in trials retain every RHS callback,
+including a throwing callback, and every rejection completed before the failure.
+The unfinished trial is included in the separate attempted-step count, not
+misclassified as an accepted or error-control-rejected step. Custom steppers
+without partial-work instrumentation retain their completed-result contract.
+`Propagate` still throws original numerical/callback exceptions. Resource limits
+retain the existing config/Detailed status-and-partial behavior under either
+exception policy; the scalar legacy overload still throws `ResourceLimitError`.
+Always check status before using a result: the last saved timestamp, not
+`getT2()` (the requested endpoint), identifies the reached trajectory bound.
+
 Run `MML_DocsApp --trajectory-resources` for the checked, no-GUI counterpart in
 [docs_demo_trajectory_resources.cpp](../../src/docs_demos/algorithms/docs_demo_trajectory_resources.cpp).
 
@@ -103,6 +121,12 @@ trajectory or BDF2 history. The smaller step is retained; these methods do not
 provide adaptive local-error control or regrow the step after recovery.
 BDF2 uses the actual current and previous accepted step lengths, including a
 clipped final step, with Backward Euler for bootstrap.
+
+The Newton budget limits corrections, not residual checks. The residual after
+the final permitted correction is checked before a retry is considered; a
+linear problem that needs one correction can therefore succeed with
+`max_newton_iter=1`. `newton_iterations` counts attempted corrections, while
+`function_evaluations` also includes the final convergence check.
 
 The configuration's `min_step_size` bounds retries. A final endpoint step may be
 shorter, but cannot be halved below that floor after a failure. `max_steps` counts
@@ -143,6 +167,23 @@ and `linear_solves` count successful factorizations and completed
 back-substitutions, including rejected attempts and Newton refreshes. DAE
 `jacobian_evaluations` counts assembled iteration-matrix evaluations (one Radau
 evaluation assembles all three stages).
+
+#### Shooting boundary conditions
+
+Scalar shooting applies its positive `maxIter` limit to Brent refinement and
+to each of the two bracketing searches (which retain their respective caps of
+50 and 100 expansions). Its `iterations` field reports Brent refinement
+iterations. The reported boundary residual is checked on the returned
+trajectory: satisfying a shooting-parameter tolerance alone is not sufficient.
+Convergence on the last permitted refinement is accepted, while an exhausted
+budget with an unsatisfied boundary reports `MaxIterationsExceeded`.
+
+ND shooting limits Newton corrections and checks the initial and final
+parameter vectors, including when the correction budget is zero. Its
+`iterations` counts attempted corrections, not an extra convergence-only pass.
+Both shooting results keep `status`, `converged`, and `failureReason` aligned;
+an unbracketable scalar boundary or a singular ND Jacobian is never `Success`.
+Residuals not evaluated are `NoEstimate`, not an invented zero or maximum value.
 
 #### Genuine RODAS4 for index-1 DAEs
 
@@ -189,9 +230,12 @@ Positive configuration magnitudes, decreasing-time trajectories, and clipped
 endpoint steps follow the reverse-time contract below. Event integration is
 currently provided by the separate Backward Euler event driver, not this API.
 
-The existing `SolveDAELinearlyImplicit` predictor-corrector is unchanged.
-Its deprecated `SolveDAERODAS` alias still selects that old method; it is
-**not** redirected to the new adaptive RODAS4 algorithm. See
+`SolveDAELinearlyImplicit` is a fixed-step, second-order frozen-matrix
+trapezoid with a residual corrector. Its linear amplification
+$(1+z/2)/(1-z/2)$ is A-stable but **not L-stable**; unresolved stiff decay can
+oscillate rather than vanish. Its deprecated `SolveDAERODAS` alias still
+selects this trapezoid, **not** the adaptive RODAS4 algorithm. See the
+[DAE method contract](DAE_SOLVERS.md#bdf4-linearly-implicit-trapezoid-and-radau-iia) and
 [Cookbook recipe 25.3](../COOKBOOK.md#253-compare-backward-euler-bdf2bdf4-radau-iia-and-rodas4)
 for a runnable comparison.
 
@@ -220,8 +264,11 @@ also triggers; a processed root is not immediately retriggered after restart.
 
 Newton retries halve the magnitude without changing direction. BDF2 uses signed
 current and previous steps; their positive ratio determines its variable-step
-coefficients. BDF4 restarts with BE for a materially clipped final main step,
-since its constant-step coefficients cannot be used on unequal steps.
+coefficients. BDF4 uses fifth-order Radau IIA for its first three history
+intervals and for a materially clipped final interval, since its constant-step
+coefficients cannot be used on unequal steps. Both history and endpoint
+accuracy therefore preserve fourth-order global convergence instead of
+introducing a second-order Backward Euler starting/restart error.
 Very short BDF4 intervals store only the bootstrap points actually reached.
 Work budgets, failure statuses, partial trajectories, and positive step-size
 statistics retain the same meaning in both directions.
@@ -621,6 +668,150 @@ class DormandPrince8_StepCalculator : public IODESystemStepCalculator {
 ---
 
 ### Steppers (Adaptive Control Wrappers)
+
+Adaptive DP5, Cash-Karp, DOP853 and both Bulirsch-Stoer step-sequence variants
+perform mandatory finite-safety checks on initial state/derivative data, RHS
+evaluation states and results, candidates, positive error scales, normalized
+error estimates, controller proposals and computed dense-output data. Nonfinite
+arithmetic fails immediately with `ODESolverError`; it is not treated as zero
+error, accepted, or retried with a smaller step. Detailed integration converts
+this to `NumericalInstability` under `ConvertToStatus` and propagates it under
+`Propagate`. These acceptance-safety checks remain active when
+`check_finite=false` and also apply to direct stepper and legacy integration
+entry points. The shared RK stage engine applies the same finite evaluation
+checks when used by fixed-step RK calculators.
+
+Embedded RK error scaling retains the initial-state magnitude, Euler-predicted
+increment and safety floor, and enlarges that denominator when the trial
+endpoint has greater magnitude. This matters when both the initial value and
+initial derivative are zero but higher-order forcing produces a nonzero
+solution: the trial value supplies the missing scale instead of dividing
+roundoff by the tiny floor and falsely exhausting the step size. DP5, Cash-Karp
+and DOP853 share this rule. Both Bulirsch-Stoer variants already include their
+trial endpoint in their error scale. Candidate and scale finiteness remain
+mandatory; this does not suppress real error estimates or loosen the requested
+tolerance.
+
+Adaptive work counters count executed RHS callbacks, including callbacks that
+throw or return invalid data. `StepResult::funcEvals` excludes the initial
+derivative supplied by the caller and includes retries, endpoint derivatives
+and dense-output setup. `getLastFunctionEvaluations()` preserves that work when
+a built-in stepper throws before returning a `StepResult`. Interpolation of an
+already prepared built-in dense-output step executes no additional callbacks.
+
+`StepResult::attemptedSteps` counts actual trials, including internal retries;
+`rejectedSteps()` reports all rejected trials in that returned result. A
+Bulirsch-Stoer extrapolation tableau is one trial, not one trial per column.
+`getLastAttemptedSteps()` and `getLastRejectedSteps()` retain started trials
+and completed error-control rejections even if a built-in stepper throws.
+`SolutionStatistics::attemptedSteps` and `ODEAdaptiveResult::attempted_steps`
+also include an unfinished trial on failure. Accepted/rejected counters describe
+completed decisions, so their sum can be smaller on an interrupted solve.
+`max_steps` limits actual trials inside built-in RK retry loops, not just calls
+that eventually return an accepted step. Exhaustion returns
+`MaxIterationsExceeded` and the retained trajectory. Dense-output, prescribed-time
+and event integrations include internal rejections in their trajectory counters.
+Event restarts retain earlier work and count the restart derivative and estimator
+probes without resetting the solve's statistics.
+
+```cpp
+int calls = 0;
+ODESystemFromStdFunc growth(1, [&](Real, const Vector<Real>& state, Vector<Real>& rhs) {
+    ++calls;
+    rhs[0] = 10 * state[0];
+});
+ODEAdaptiveConfig config;
+config.integrator.initial_step_size = Real(0.1);
+auto result = ODEAdaptiveIntegrateDetailed(growth, Vector<Real>{1}, 0, 1, config);
+std::cout << result.attempted_steps << " attempts, " << result.rejected_steps
+          << " rejected, " << result.total_func_evals << " RHS calls\n";
+```
+
+Run `MML_DocsApp --ode-attempts` for the checked counterpart in
+[docs_demo_ode_solvers.cpp](../../src/docs_demos/algorithms/docs_demo_ode_solvers.cpp),
+including the one-trial budget case. DP5 still performs six new RHS calls per trial; the
+driver's supplied initial derivative is counted only when actually evaluated.
+
+Integrator statistics and both Detailed evaluation fields include the initial
+RHS call, both automatic-startup probes when requested, all accepted/rejected
+trial work, and incomplete built-in trials on failure. Counts reset for each
+integration or standalone `estimateInitialStep` operation. Custom steppers
+retain their returned `funcEvals` contract; implementations deriving from
+`IAdaptiveStepper` can use protected `TrackEvaluations`, `BeginAttempt`,
+`RejectAttempt`, and `FinishStep` to retain partial work on exceptions as well.
+Legacy custom results default to one attempted trial; custom steppers with
+internal retries must return their actual `attemptedSteps`. The original system object is still supplied to custom
+stepper constructors.
+
+Counter exhaustion stops before an uncountable built-in callback with
+`ResourceLimitError` / `ResourceLimitExceeded`. Negative custom work counts
+are invalid, and declared work that would overflow the cumulative counter
+fails as a resource limit rather than wrapping the diagnostic fields.
+
+With `ODEIntegratorConfig`, `max_step_size` is a positive magnitude (positive
+infinity means unbounded). It caps the initial trial, the automatic estimator's
+Euler probe, and every subsequent attempt after controller growth or rejection,
+in either integration direction. A bound below `min_step_size` is invalid.
+The recorded maximum accepted step reflects the actual capped steps. The scalar
+legacy and `integrateAt` overloads have no configured maximum and remain unbounded
+apart from their existing endpoint/target clipping. Mandatory checks do not
+change the stepper formulas or certify integration error.
+
+For all adaptive integrators, `output_interval=0` stores the initial condition
+and each accepted integration endpoint, excluding rejected trials. This honors
+the documented default; it no longer silently substitutes a 100-interval grid.
+A positive interval requests an origin-anchored fixed grid, with the exact
+requested final endpoint included once even when the interval does not divide
+the duration. Negative or nonfinite output intervals fail explicitly.
+Output timestamps must advance strictly in the integration direction. If a
+fixed-grid sample cannot advance the representable clock, integration fails
+with `ODESolverError` / converted `NumericalInstability`; it does not duplicate
+timestamps, skip samples, or silently coalesce the grid. `integrateAt` likewise
+uses exact requested timestamps rather than absolute-epsilon clock comparisons,
+including at very small absolute times. Attempted and accepted steps must both
+advance representable time without passing the endpoint or current target.
+
+#### Bulirsch-Stoer extrapolation and order
+
+`BulirschStoer_Stepper` uses modified-midpoint counts
+`{2,4,6,8,10,12,14,16,18}`. `BulirschStoerRational_Stepper` retains its historical
+name but also uses **polynomial** extrapolation, with counts
+`{2,4,6,8,12,16,24,32,48}`.
+
+Each new extrapolation column starts from its own midpoint estimate and
+accumulates every Neville correction, extrapolating in the **squared substep
+size** to zero (Numerical Recipes, modified midpoint and polynomial
+extrapolation). With `m` midpoint estimates the formal method order is `2*m`.
+Both variants allow nine estimates, so `order()` reports the **maximum 18**,
+not the order selected on every accepted step. The first possible acceptance
+uses two estimates and has formal order four. The controller continues to
+use the last-correction exponent for the selected column.
+
+```cpp
+ODESystem growth(1, [](Real, const Vector<Real>& y, Vector<Real>& rhs) { rhs[0] = y[0]; });
+BulirschStoer_Stepper stepper(growth);
+Vector<Real> state{1}, derivative{1};
+const auto result = stepper.doStep(0, state, derivative, Real(0.5), 1);
+std::cout << std::setprecision(std::numeric_limits<Real>::max_digits10);
+std::cout << state[0] << ' ' << stepper.order() << '\n';
+```
+
+This prints approximately `1.648600260416667 18`. The deliberately loose
+tolerance selects the first two midpoint estimates,
+`Y2 = 1.640625` and `Y4 = 1.6466064453125`; the accepted value is
+`Y4 + (Y4-Y2)/3`, not `Y2 + (Y4-Y2)/3`. This checks the discrete arithmetic,
+not a guarantee that a loose tolerance achieves high absolute accuracy.
+Formal order requires sufficient smoothness; error estimates are not
+rigorous global-error bounds, and roundoff can limit refinement.
+The float regressions use larger growth steps to resolve all nine columns
+and bounded polynomial forcing for the order checks, rather than measuring
+slopes from growth errors below single-precision roundoff. The order bounds
+are unchanged. Rejected trials preserve the supplied state and derivative,
+the cached final derivative, and the interpolant from the last accepted step.
+
+Runnable counterpart:
+[`Docs_Demo_BulirschStoerExtrapolation`](../../src/docs_demos/algorithms/docs_demo_ode_solvers.cpp),
+available through `MML_DocsApp --bulirsch-extrapolation`. It checks both variants.
 
 #### StepperBase
 
